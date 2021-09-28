@@ -1,0 +1,24 @@
+# designN1
+# written by John Dannenhoffer
+
+DESPMTR   xsize     4
+DESPMTR   frontArea 12
+DESPMTR   volume    24
+
+SET       ysize     1    # ysize should be 3
+SET       zsize     0    # zsize should be 2
+
+OUTPMTR   myArea
+OUTPMTR   myVolume
+
+SOLBEG    ysize;zsize;
+   SOLCON frontArea-xsize*ysize
+   SOLCON volume-xsize*ysize*zsize
+SOLEND
+
+BOX       0  0  0  xsize  ysize  zsize
+
+SET       myArea    @area
+SET       myVolume  @volume
+
+END

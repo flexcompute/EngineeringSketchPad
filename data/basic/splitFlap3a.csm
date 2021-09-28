@@ -1,0 +1,120 @@
+# splitFlap3a
+# written by John Dannenhoffer
+
+DESPMTR   xflap   0.70        # x/c for split between main and flaps
+DESPMTR   gap     0.05        # gap/c for distance between main and flaps
+DESPMTR   span    3.0         # wing span
+DESPMTR   thetau  70          # deflection of upper flap (+ve for up)
+DESPMTR   thetal -30          # deflection of lower flap (-ve for down)
+
+ASSERT    ifneg(gap,1,0)  0   # make sure gap is non-negative
+
+# basic airfoil  (naca0012)
+UDPRIM    naca
+EXTRUDE   0  0  span
+STORE     airfoil
+
+# break airfoil into 3 pieces
+RESTORE   airfoil
+BOX      -1  -1  -1  xflap+1  2  span+2
+INTERSECT
+SELECT    FACE
+ATTRIBUTE _color $green
+STORE     main
+
+RESTORE   airfoil
+BOX       xflap+gap  0  -1   2   2   span+2
+INTERSECT
+SELECT    FACE
+ATTRIBUTE _color $magenta
+STORE     upper
+
+RESTORE   airfoil
+BOX       xflap+gap  0  -1   2  -2   span+2
+INTERSECT
+SELECT    FACE
+ATTRIBUTE _color $cyan
+STORE     lower
+
+# rotate the flaps into position
+RESTORE   upper
+ROTATEZ   thetau   xflap   @ymax
+STORE     upper
+
+RESTORE   lower
+ROTATEZ   thetal   xflap   @ymin
+STORE     lower
+
+# combine upper flap with main
+IFTHEN    thetau  GT  0  OR  gap  GT  0
+   # if there is no gap, we will use JOIN which requires a mark
+   IFTHEN     gap  LE  0
+      MARK
+   ENDIF
+
+   # get the exposed Edges
+   RESTORE   main
+   SELECT    EDGE     2  2  4  2  1
+   EXTRACT   -@sellist[1]
+
+   RESTORE   upper
+   SELECT    EDGE     2  2  7  1  1
+   EXTRACT   -@sellist[1]
+
+   # make the plug between the main and upper
+   IFTHEN    gap  LE  0
+      JOIN
+      COMBINE
+   ELSE
+      CONNECT 0  0  1  1
+   ENDIF
+   EXTRUDE   0  0  -span
+
+   # join the plug to the upper and then the main
+   RESTORE   upper
+   JOIN
+   RESTORE   main
+   JOIN
+
+# if no gap and non-positive rotation, we need to UNION
+ELSE
+   RESTORE   main
+   RESTORE   upper
+   UNION
+ENDIF
+
+# combine lower flap with main
+IFTHEN    thetal  LT  0  OR  gap  GT  0
+   # if there is no gap, we will use JOIN which requires a mark
+   IFTHEN    gap  LE  0
+      MARK
+   ENDIF
+
+   # get t he exposed Edges
+   RESTORE   main
+   SELECT    EDGE     2  2  4  2  1
+   EXTRACT   -@sellist[1]
+
+   RESTORE   lower
+   SELECT    EDGE     2  2  10  1  1
+   EXTRACT   -@sellist[1]
+
+   # make the plug between the main and lower
+   IFTHEN    gap  LE  0
+      JOIN
+      COMBINE
+   ELSE
+      CONNECT 0  0  1  1
+   ENDIF
+   EXTRUDE   0  0  -span
+
+   # JOIN the plug to the lower and then UNION with main/upper
+   RESTORE   lower
+   JOIN
+   UNION
+ELSE
+   RESTORE   lower
+   UNION
+ENDIF
+
+END

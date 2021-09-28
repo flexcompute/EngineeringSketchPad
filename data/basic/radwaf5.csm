@@ -1,0 +1,10 @@
+# radwaf5
+# written by John Dannenhoffer
+
+udparg    radwaf    ysize     4.0
+udparg    radwaf    zsize     1.0
+udparg    radwaf    xframe    "0;10"
+udparg    radwaf    nspoke    2
+udprim    radwaf
+
+end

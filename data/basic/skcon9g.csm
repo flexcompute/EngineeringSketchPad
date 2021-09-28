@@ -1,0 +1,43 @@
+# skcon9g (closed sketch, fully constrained)
+# written by John Dannenhoffer
+
+despmtr   xbase     0.10
+despmtr   ybase     0.20
+despmtr   zbase     0.30
+despmtr   length    3.00
+despmtr   height    2.00
+despmtr   thick     1.00
+despmtr   depth     2.00
+
+skbeg     xbase     ybase     zbase
+   skvar  xy   "xbase; ybase; 0.0;\
+                2.9;   0.1;   0.0;\
+                3.1;   0.5;   0.2;\
+                1.0;   1.0;   0.0;\
+                0.9;   2.0;   0.0;\
+                0.1;   2.1;   0.0;"
+
+   skcon  X   1  -1   xbase
+   skcon  Y   1  -1   ybase
+   skcon  H   1   2
+   skcon  L   1   2   length
+   skcon  T   2
+   skcon  T   3
+   skcon  H   3   4
+   skcon  P   4
+   skcon  L   4   5   height-thick
+   skcon  H   5   6
+   skcon  L   5   6   thick
+   skcon  D   1   4   thick
+   skcon  W   6   1   0
+
+   linseg ::x[2]  ::y[2]  ::z[2]
+   arc    ::x[3]  ::y[3]  ::z[3]  ::d[3]
+   linseg ::x[4]  ::y[4]  ::z[4]
+   linseg ::x[5]  ::y[5]  ::z[5]
+   linseg ::x[6]  ::y[6]  ::z[6]
+   linseg ::x[1]  ::y[1]  ::z[1]
+skend
+extrude   0   0   depth
+
+end

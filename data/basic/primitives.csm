@@ -1,0 +1,48 @@
+# primitives
+# written by John Dannenhoffer
+
+DESPMTR   box:x0    -7
+DESPMTR   box:y0    -1
+DESPMTR   box:z0    -1
+DESPMTR   box:dx     2
+DESPMTR   box:dy     2
+DESPMTR   box:dz     2
+
+BOX       box:x0  box:y0  box:z0  box:dx  box:dy  box:dz
+
+DESPMTR   cyl:xbeg  -4
+DESPMTR   cyl:xend  -2
+DESPMTR   cyl:y      0
+DESPMTR   cyl:z      0
+DESPMTR   cyl:rad    1
+
+CYLINDER  cyl:xbeg  cyl:y  cyl:z  cyl:xend  cyl:y  cyl:z  cyl:rad
+
+DESPMTR   sph:x      0
+DESPMTR   sph:y      0
+DESPMTR   sph:z      0
+DESPMTR   sph:rad    1
+
+SPHERE    sph:x  sph:y  sph:z  sph:rad
+
+DESPMTR   con:xbeg   2
+DESPMTR   con:xend   4
+DESPMTR   con:y      0
+DESPMTR   con:z      0
+DESPMTR   con:rad    1
+
+CONE      con:xbeg  con:y  con:z  con:xend  con:y  con:z  con:rad
+
+DESPMTR   tor:x      6
+DESPMTR   tor:y      0
+DESPMTR   tor:z      0
+CFGPMTR   tor:dx     0
+CFGPMTR   tor:dy     0
+CFGPMTR   tor:dz     1
+DESPMTR   tor:rmaj   1
+DESPMTR   tor:rmin   0.2
+
+TORUS     tor:x  tor:y  tor:z  tor:dx  tor:dy  tor:dz  tor:rmaj  tor:rmin
+
+END
+

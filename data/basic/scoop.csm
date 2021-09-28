@@ -1,0 +1,25 @@
+# scoop
+# written by John Dannenhoffer
+
+SKBEG     0.0  0.0  0.0
+   LINSEG 4.0  0.0  0.0
+   BEZIER 4.0  0.1  0.0
+   BEZIER 3.9  0.2  0.0
+   BEZIER 0.0  0.2  0.0
+   LINSEG 0.0  0.0  0.0
+SKEND
+
+REVOLVE   0.0  0.0  0.0  0 1 0  360
+ROTATEY   180  0.0  0.0
+
+BOX       0.1  0.0 -2.0  5.0  1.0  4.0
+INTERSECT
+
+SELECT    FACE  8 4
+EXTRACT   @iface
+
+SELECT    BODY
+
+DUMP      scoop.tess
+
+END

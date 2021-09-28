@@ -1,0 +1,22 @@
+# sample3
+# written by John Dannenhoffer
+
+despmtr   DX   4.0
+despmtr   DY   2.0
+despmtr   DZ   5.0
+despmtr   X0   1.0
+despmtr   Y0   2.0
+despmtr   Z0   3.0
+
+# 1D wire
+udprim    sample   dx  DX                  center X0;Y0;Z0
+translate -5  0  0   
+
+# 2D plate
+udprim    sample   dx  DX  dy  DY          center X0;Y0;Z0
+
+# 3D box 
+udprim    sample   dx  DX  dy  DY  dz  DZ  center X0;Y0;Z0
+translate +5  0  0
+
+end

@@ -1,0 +1,225 @@
+# F16_WingSide
+# written by Chris Meckstroth
+
+interface  deflFlap  in  0
+set        fntGap        2.0
+set        sidGap        2.0
+set        flapMove          0.01
+
+# Wing Airfoil - NACA 64A204 (Bezier Fit)
+skbeg         1.0000     0.0001     0.0000
+   bezier     0.7486     0.0244     0.0000
+   bezier     0.5000     0.0461     0.0000
+   bezier     0.2506     0.0374     0.0000
+   bezier     0.0000     0.0165     0.0000
+   bezier     0.0000     0.0000     0.0000
+   bezier     0.0000     0.0000     0.0000
+   bezier     0.0000    -0.0137     0.0000
+   bezier     0.2989    -0.0008     0.0000
+   bezier     0.5081    -0.0193     0.0000
+   bezier     0.5245     0.0057     0.0000
+   bezier     1.0000    -0.0001     0.0000
+   linseg     1.0000     0.0001     0.0000
+skend
+
+store WingAirfoil
+
+#################### Center Wing Section Blended Into Fuselage ####################
+dimension  Wing     5  5  0
+#                       x        y         z      chord     angle
+set        Wing    "  90.000;   0.000;    8.858;  318.950;    0.000;\
+                     100.787;  22.066;    8.858;  308.163;    0.000;\
+                                         210.026;  42.520;    8.858;  198.924;    0.000;\
+                                     259.539;  54.000;    8.858;  149.411;    0.000;\
+                                         364.530; 180.000;    8.858;   44.420;   -3.000;"
+
+mark
+
+# Center Section
+#restore WingAirfoil
+udprim naca Series 1504
+rotatex 90.0 0.0 0.0
+rotatey    Wing[1,5]        0.0        0.0
+scale      Wing[1,4]
+translate  Wing[1,1]  Wing[1,2]  Wing[1,3]
+
+# Used to create chine curvature
+#restore WingAirfoil
+udprim naca Series 1504
+rotatex 90.0 0.0 0.0
+rotatey    Wing[2,5]        0.0        0.0
+scale      Wing[2,4]
+translate  Wing[2,1]  Wing[2,2]  Wing[2,3]
+
+# Used to create chine curvature
+#restore WingAirfoil
+udprim naca Series 1504
+rotatex 90.0 0.0 0.0
+rotatey    Wing[3,5]        0.0        0.0
+scale      Wing[3,4]
+translate  Wing[3,1]  Wing[3,2]  Wing[3,3]
+
+# Fuselage interface
+#restore WingAirfoil
+udprim naca Series 1504
+rotatex 90.0 0.0 0.0
+rotatey    Wing[4,5]        0.0        0.0
+scale      Wing[4,4]
+translate  Wing[4,1]  Wing[4,2]  Wing[4,3]
+
+blend
+store WingRightIn 0 1
+
+### Create Center Wing Portion of Flap ###
+dimension Fi      2  2  0
+#                   x         z
+set       Fi   " 378.32;    41.5;\
+                 380.28;    54.0; "
+                                                                 
+# Interpolate x position of flap LE at root + gap
+set    x0Fi     Fi[1,1]
+set    x1Fi     Fi[2,1]
+set    y0Fi     Fi[1,2]
+set    y1Fi     Fi[2,2]
+
+# Create Flap #
+skbeg      x0Fi+fntGap  y0Fi  -25.0   
+   linseg  x0Fi+100.0   y0Fi  -25.0   
+   linseg  x0Fi+100.0   y1Fi  -25.0   
+   linseg  x1Fi+fntGap  y1Fi  -25.0   
+   linseg  x0Fi+fntGap  y0Fi  -25.0   
+skend
+
+extrude 0.0 0.0 50.0
+   
+intersect
+store Flapi
+restore WingRightIn
+
+skbeg     x0Fi      y0Fi  -25.0
+   linseg x0Fi+100  y0Fi  -25.0
+   linseg x0Fi+100  y1Fi  -25.0
+   linseg x1Fi      y1Fi  -25.0
+   linseg x0Fi      y0Fi  -25.0
+skend
+
+extrude 0.0 0.0 50.0
+
+subtract
+restore Flapi
+
+# Rotate Flap About Axis 
+udparg $$/gen_rot xbeg    x0Fi      ybeg  y0Fi  zbeg  8.858
+udparg $$/gen_rot xend    x1Fi      yend  y1Fi  zend  8.858
+udparg $$/gen_rot rotang  deflFlap
+udprim $$/gen_rot
+
+connect "4" "4"
+
+# Cut Connection Point To Limit Sharp Edge
+set    xCentFi  371.80
+set    xintFi   x0Fi+(y0Fi+sidGap-y0Fi)*(x1Fi-x0Fi)/(y1Fi-y0Fi)
+
+skbeg     xCentFi-flapMove      0.0          -25.0
+   linseg xCentFi+100-flapMove  0.0          -25.0
+   linseg xCentFi+100-flapMove  y0Fi+sidGap  -25.0
+   linseg xintFi-flapMove       y0Fi+sidGap  -25.0
+   linseg xCentFi-flapMove      0.0          -25.0
+skend
+extrude 0.0 0.0 50.0
+subtract
+
+store WingRightInWFlap
+
+#################### Outer Wing Section Ruled ####################
+
+mark 
+
+#restore WingAirfoil
+udprim naca Series 1504
+rotatex 90.0 0.0 0.0
+rotatey    Wing[4,5]        0.0        0.0
+scale      Wing[4,4]
+translate  Wing[4,1]  Wing[4,2]  Wing[4,3]
+
+#restore WingAirfoil
+udprim naca Series 1504
+rotatex 90.0 0.0 0.0
+rotatey    Wing[5,5]        0.0        0.0
+scale      Wing[5,4]
+translate  Wing[5,1]  Wing[5,2]  Wing[5,3]
+
+rule
+store WingRightOut 0 1
+
+### Create Outer Wing Portion of Flap ###
+dimension Fo      2  2  0
+#                   x         z
+set       Fo   " 380.28;    54.0;\
+                 393.79;   140.0; "
+                                                                 
+# Interpolate x position of flap LE at root + gap
+set    x0Fo   Fo[1,1]
+set    x1Fo   Fo[2,1]
+set    y0Fo   Fo[1,2]
+set    y1Fo   Fo[2,2]
+
+# Create Flap #
+skbeg      x0Fo+fntGap  y0Fo  -25.0   
+   linseg  x0Fo+100.0   y0Fo  -25.0   
+   linseg  x0Fo+100.0   y1Fo  -25.0   
+   linseg  x1Fo+fntGap  y1Fo  -25.0   
+   linseg  x0Fo+fntGap  y0Fo  -25.0   
+skend
+
+extrude 0.0 0.0 50.0
+   
+intersect
+store Flapo
+restore WingRightOut
+
+skbeg     x0Fo      y0Fo  -25.0
+   linseg x0Fo+100  y0Fo  -25.0
+   linseg x0Fo+100  y1Fo  -25.0
+   linseg x1Fo      y1Fo  -25.0
+   linseg x0Fo      y0Fo  -25.0
+skend
+
+extrude 0.0 0.0 50.0
+
+subtract
+restore Flapo
+
+# Rotate Flap About Axis 
+udparg $$/gen_rot xbeg    x0Fo      ybeg  y0Fo  zbeg  8.858
+udparg $$/gen_rot xend    x1Fo      yend  y1Fo  zend  8.858
+udparg $$/gen_rot rotang  deflFlap
+udprim $$/gen_rot
+
+select    body  384
+select    face  383  6
+set       iface1  @iface
+
+select    body  393
+select    face  374  6
+set       iface2  @iface
+
+connect   iface1  iface2
+
+# Cut Connection Point To Limit Sharp Edge
+set    xint1Fo   x0Fo+(y1Fo-sidGap/2-y0Fo)*(x1Fo-x0Fo)/(y1Fo-y0Fo)
+set    xint2Fo   x0Fo+(y1Fo+sidGap/2-y0Fo)*(x1Fo-x0Fo)/(y1Fo-y0Fo)
+
+skbeg     xint1Fo-flapMove      y1Fo-sidGap/2  -25.0
+   linseg xint1Fo+100-flapMove  y1Fo-sidGap/2  -25.0
+   linseg xint1Fo+100-flapMove  y1Fo+sidGap/2  -25.0
+   linseg xint2Fo-flapMove      y1Fo+sidGap/2  -25.0
+   linseg xint1Fo-flapMove      y1Fo-sidGap/2  -25.0
+skend
+extrude 0.0 0.0 50.0
+
+subtract
+
+restore WingRightInWFlap
+
+join

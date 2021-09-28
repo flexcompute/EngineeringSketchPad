@@ -1,0 +1,67 @@
+# RM-10
+# written by John Dannenhoffer
+#
+# Geometry definition from:
+#
+# Evans, Albert J,  "The zero-lift drag of a slender body of revolution
+#    (NACA RM-10 research model) as determined from tests in several
+#    wind tunnels and in flight at supersonic speeds.", NACA-TR-1160,
+#    Jan 01, 1954.
+#
+# L from NACA-TN-3020 flight test dimensions.
+
+# Design Parameter
+despmtr   L         180.126
+
+# sketch for fuselage
+skbeg     0         0         0  1
+   linseg 1         0         0
+   bezier 1/2       1/15      0
+   bezier 0         0         0
+skend
+store     profile
+
+# fuselage
+restore   profile
+revolve   0         0         0 \
+          1         0         0         360
+
+# cut off fuselage at tail
+box       -1        -1        -1 \
+          1.8133    2         2
+intersect
+
+# sketch for fin
+skbeg     0         0         0
+   arc    0.0504    0         0         0.0504*0.05  zx
+   arc    0         0         0         0.0504*0.05  zx
+skend
+
+# make fin and move to correct location
+extrude   0         1         0
+
+set       dx        0.7167
+set       dy        (dx/7.5)*(1-dx)
+
+rotatez   -60       0         0
+translate dx        dy        0
+
+# cut off tip of fin
+cylinder  0         0         0 \
+          1         0         0         0.0997
+intersect
+store     fin
+
+# add 4 fins
+patbeg    ifin      4
+   set    angle     (ifin-1)*90
+
+   restore   fin
+   rotatex   angle  0         0
+   union
+patend
+
+# scale the body by L
+scale     L
+
+end

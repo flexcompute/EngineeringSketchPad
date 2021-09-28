@@ -1,0 +1,6 @@
+# import8b
+# writen by John Dannenhoffer
+
+UDPRIM    import   filename $$/import8.egads   bodynumber -1
+
+END

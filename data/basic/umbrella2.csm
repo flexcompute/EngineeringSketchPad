@@ -1,0 +1,98 @@
+# umbrella2
+# written by John Dannenhoffer
+
+#    O     D
+#     \   / \
+#      \ /   C
+#       F   / \
+#        \ /   \
+#         E     \
+#        /       \
+#       /         B
+#      /
+#     /
+#    A
+
+# Design Parameters
+despmtr   OF        13.0
+despmtr   FE         3.0
+despmtr   AE        16.0
+despmtr   EC        13.0
+despmtr   FD        13.0
+despmtr   DC         3.0
+despmtr   CB        32.0
+
+despmtr   OA        18.0      # slider location
+
+# check for valid inputs
+assert    1         ifpos(OF,1,0)
+assert    1         ifpos(FE,1,0)
+assert    1         ifpos(AE,1,0)
+assert    1         ifpos(EC,1,0)
+assert    1         ifpos(FD,1,0)
+assert    1         ifpos(DC,1,0)
+assert    1         ifpos(CB,1,0)
+assert    1         ifpos(OF+FE+AE-OA,1,0)
+
+# vertex at top
+set       xO        0.0
+set       yO        0.0
+
+# vertex at slider
+set       xA        xO
+set       yA        yO-OA
+
+# initial values for angles
+set       thetaO    -30
+set       thetaA    +30
+set       thetaF    +30
+set       thetaD    -30
+
+# solver to find angles
+solbeg    thetaO;thetaA;thetaF;thetaD;
+
+   # match at E
+   solcon (xO+(OF+FE)*cosd(thetaO))-(xA+AE*cosd(thetaA))
+   solcon (yO+(OF+FE)*sind(thetaO))-(yA+AE*sind(thetaA))
+
+   # match at C
+   solcon (xO+OF*cosd(thetaO)+FD*cosd(thetaF)+DC*cosd(thetaD))-(xA+(AE+EC)*cosd(thetaA))
+   solcon (yO+OF*sind(thetaO)+FD*sind(thetaF)+DC*sind(thetaD))-(yA+(AE+EC)*sind(thetaA))
+solend
+
+# vertex at joints F and D
+set       xF        xO+OF*cosd(thetaO)
+set       yF        yO+OF*sind(thetaO)
+
+set       xD        xF+FD*cosd(thetaF)
+set       yD        yF+FD*sind(thetaF)
+
+# draw bars, rotate, and translate
+skbeg     0         0         0
+   linseg OF+FE     0         0
+skend
+rotatez   thetaO    0         0
+
+skbeg     0         0         0
+   linseg AE+EC     0         0
+skend
+rotatez   thetaA    0         0
+translate xA        yA        0
+
+skbeg     0         0         0
+   linseg FD        0         0
+skend
+rotatez   thetaF    0         0
+translate xF        yF        0
+
+skbeg     0         0         0
+   linseg DC+CB     0         0
+skend
+rotatez   thetaD    0         0
+translate xD        yD        0
+
+# draw node at origin
+skbeg     xO        yO        0
+skend
+
+end

@@ -1,0 +1,13 @@
+# cylinders3z
+# written by John Dannenhoffer
+
+cylinder   1.0  0.0  0.0  4.0  0.0  0.0  0.25
+cylinder   1.0  1.0  0.0  4.0  4.0  0.0  0.25
+cylinder   0.0  1.0  0.0  0.0  4.0  0.0  0.25
+cylinder  -1.0  1.0  0.0 -4.0  4.0  0.0  0.25
+cylinder  -1.0  0.0  0.0 -4.0  0.0  0.0  0.25
+cylinder  -1.0 -1.0  0.0 -4.0 -4.0  0.0  0.25
+cylinder   0.0 -1.0  0.0  0.0 -4.0  0.0  0.25
+cylinder   1.0 -1.0  0.0  4.0 -4.0  0.0  0.25
+
+end

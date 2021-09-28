@@ -1,0 +1,47 @@
+# skcon3d
+# written by John Dannenhoffer
+
+despmtr   xbase     0.1
+despmtr   ybase     0.2
+despmtr   zbase     0.3
+despmtr   width     3.0
+despmtr   height    2.0
+despmtr   thick     0.5
+
+skbeg     xbase  ybase  zbase
+   skvar  xy  " 0.1;  0.2;  0.0;\
+                5.0; -1.0;  0.0;\
+                4.5;  3.0;  0.0;\
+                3.5;  2.8;  0.0;\
+                3.4;  1.8;  0.0;\
+                1.0;  1.6;  0.0;\
+                1.2;  3.0;  0.0;\
+               -1.0;  3.1;  0.0;"
+   skcon  X   1  -1   xbase
+   skcon  Y   1  -1   ybase
+   skcon  H   1   2
+   skcon  V   2   3
+   skcon  X   3  -1   xbase+width
+   skcon  Y   3  -1   ybase+height
+   skcon  H   3   4
+   skcon  V   4   5
+   skcon  X   5  -1   ::x[3]-thick
+   skcon  Y   5  -1   ::x[1]+thick
+   skcon  H   5   6
+   skcon  V   6   7
+   skcon  X   7  -1  ::x[1]+thick
+   skcon  Y   7  -1  ::y[3]
+   skcon  H   7   8
+   skcon  V   8   1
+
+   linseg ::x[2]  ::y[2]  ::z[2]
+   linseg ::x[3]  ::y[3]  ::z[3]
+   linseg ::x[4]  ::y[4]  ::z[4]
+   linseg ::x[5]  ::y[5]  ::z[5]
+   linseg ::x[6]  ::y[6]  ::z[6]
+   linseg ::x[7]  ::y[7]  ::z[7]
+   linseg ::x[8]  ::y[8]  ::z[8]
+   linseg ::x[1]  ::y[1]  ::z[1]
+skend
+
+end

@@ -1,0 +1,19 @@
+# designEa
+# written by John Dannenhoffer
+
+despmtr   dxtop     0
+despmtr   dztop     0
+despmtr   dxbot     0
+despmtr   dzbot     0
+
+box       -1    0   -2    1    1    2
+box        0    0   -2    1    1    2
+union
+translate dxtop     0         dztop
+
+box       -2   -1   -1    4    1    2
+translate dxbot     0         dzbot
+
+union
+
+end

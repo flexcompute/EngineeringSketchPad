@@ -1,0 +1,40 @@
+# subtract6k
+# written by John Dannenhoffer
+
+# outside
+SKBEG    0 0 0
+  LINSEG 1 0 0
+  LINSEG 1 1 0
+  LINSEG 0 1 0
+  LINSEG 0 0 0
+SKEND
+ATTRIBUTE _color $blue
+ROTATEY   180  0  0.5
+
+# check normal
+EVALUATE facerng @nbody @nface
+EVALUATE face    @nbody @nface @edata[1]+0.1 @edata[3]+0.1
+ASSERT   @edata[23]  -1
+
+# inside
+SKBEG 0.25 0.25 0
+  LINSEG 0.75 0.25 0
+  LINSEG 0.75 0.75 0
+  LINSEG 0.25 0.75 0
+  LINSEG 0.25 0.25 0
+SKEND
+ATTRIBUTE _color $red
+
+# check normal
+EVALUATE facerng @nbody @nface
+EVALUATE face    @nbody @nface @edata[1]+0.1 @edata[3]+0.1
+ASSERT   @edata[23]  1
+
+SUBTRACT
+
+# check normal
+EVALUATE facerng @nbody @nface
+EVALUATE face    @nbody @nface @edata[1]+0.1 @edata[3]+0.1
+ASSERT   @edata[23]   -1
+
+END

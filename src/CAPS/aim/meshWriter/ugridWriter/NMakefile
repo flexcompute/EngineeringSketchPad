@@ -1,0 +1,36 @@
+#
+!IFNDEF ESP_ROOT
+!ERROR ESP_ROOT must be set -- Please fix the environment...
+!ENDIF
+#
+IDIR  = $(ESP_ROOT)\include
+!include $(IDIR)\$(ESP_ARCH).$(MSVC)
+LDIR  = $(ESP_ROOT)\lib
+!IFDEF ESP_BLOC
+ODIR  = $(ESP_BLOC)\obj
+TDIR  = $(ESP_BLOC)\test
+!ELSE
+ODIR  = .
+TDIR  = $(ESP_ROOT)\bin
+!ENDIF
+
+
+$(LDIR)\ugridWriter.dll:	ugridWriter.def $(ODIR)\ugridWriter.obj $(LDIR)\aimUtil.lib $(LDIR)\aimMesh.lib
+	-del $(LDIR)\ugridWriter.dll $(LDIR)\ugridWriter.lib \
+		$(LDIR)\ugridWriter.exp
+	 link /out:$(LDIR)\ugridWriter.dll /dll /def:ugridWriter.def \
+		$(ODIR)\ugridWriter.obj /LIBPATH:$(LDIR) aimUtil.lib aimMesh.lib \
+		ocsm.lib egads.lib udunits2.lib
+	$(MCOMP) /manifest $(LDIR)\ugridWriter.dll.manifest \
+		/outputresource:$(LDIR)\ugridWriter.dll;2
+
+$(ODIR)\ugridWriter.obj:	ugridWriter.c $(IDIR)\capsTypes.h $(IDIR)\aimMesh.h
+	cl /c $(COPTS) $(DEFINE) /I$(IDIR) ugridWriter.c \
+		/Fo$(ODIR)\ugridWriter.obj
+		
+clean:
+	-del $(ODIR)\ugridWriter.obj
+
+cleanall:	clean
+	-del $(LDIR)\ugridWriter.dll $(LDIR)\ugridWriter.lib \
+		$(LDIR)\ugridWriter.exp

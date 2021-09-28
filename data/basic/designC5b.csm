@@ -1,0 +1,14 @@
+# designC5b
+# written by John Dannenhoffer
+
+despmtr   xvrtx       1
+despmtr   yvrtx       6
+despmtr   zvrtx       0
+despmtr   xbase       1
+despmtr   ybase       2
+despmtr   zbase       0
+despmtr   rad         1
+
+cone      xvrtx  yvrtx  zvrtx  xbase  ybase  zbase  rad
+
+end

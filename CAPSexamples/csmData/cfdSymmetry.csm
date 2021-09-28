@@ -1,0 +1,116 @@
+# CSM file example of two wings with an outer bounding shere 
+
+# Design Parameters:
+## [despmtrs]
+DESPMTR   area         40.00000
+DESPMTR   aspect       5.00000
+DESPMTR   taper        0.50000
+DESPMTR   twist        15.00000
+DESPMTR   lesweep      30.00000
+DESPMTR   dihedral     1.00000
+## [despmtrs]
+
+# Configuration parameters
+## [cfgpmtrs]
+CFGPMTR   series        8412
+CFGPMTR   series2       0020
+CFGPMTR   sharpte       0
+## [cfgpmtrs]
+
+# Output Parameters:
+## [outpmtrs]
+OUTPMTR  cmean
+## [outpmtrs]
+
+# Specify Euler equations
+## [capsAIM]
+ATTRIBUTE capsAIM $fun3dAIM;su2AIM;egadsTessAIM;aflr4AIM;pointwiseAIM;tetgenAIM;aflr3AIM #CFD Analysis
+## [capsAIM]
+
+## [capsAttributes]
+# Set reference values
+ATTRIBUTE capsReferenceArea     area
+ATTRIBUTE capsReferenceChord    sqrt(area/aspect)
+ATTRIBUTE capsReferenceSpan     sqrt(area/aspect)*aspect
+## [capsAttributes]
+
+
+# Branches:
+## [local]
+SET   cmean     sqrt(area/aspect)
+SET   span      cmean*aspect
+SET   sspan     span/2
+SET   croot     2*cmean/(1+taper)
+SET   ctip      croot*taper
+SET   xtip      sspan*tand(lesweep)
+SET   ytip      sspan*tand(dihedral)
+SET   ybot      -0.1*croot
+SET   ytop      +0.2*croot+ytip
+SET   extend    0.02*cmean
+
+# AFLR4 component IDs
+SET   WING1_Cmp_ID    1
+SET   WING2_Cmp_ID    2
+SET   FARFIELD_Cmp_ID 3
+## [local]
+
+## [createWing]
+MARK
+   UDPRIM    naca   Series   series    sharpte sharpte
+      SCALE     croot 
+   UDPRIM    naca   Series   series2   sharpte sharpte
+      SCALE     ctip
+      ROTATEZ   -twist   0   0
+      TRANSLATE xtip   ytip   -sspan
+RULE
+
+# Get body into a typical aero-system 
+ROTATEX 90 0 0
+
+# Store half of wing 
+STORE     HalfWing 0 0
+## [createWing]
+
+# Create a bounding box as a farfied 
+## [farfield]
+BOX   -80   0  -80   160  80  160
+    ATTRIBUTE capsGroup   $Farfield
+    ATTRIBUTE capsMesh    $Farfield
+    ATTRIBUTE AFLR4_Cmp_ID FARFIELD_Cmp_ID
+SELECT face 3
+    ATTRIBUTE _color      $blue
+    ATTRIBUTE capsGroup   $Symmetry
+    ATTRIBUTE capsMesh    $Symmetry
+## [farfield]
+
+## [attribute]
+# Wing 1 - Restore
+RESTORE   HalfWing 0
+    ATTRIBUTE capsGroup $Wing1
+    ATTRIBUTE capsMesh  $Wing1
+    ATTRIBUTE AFLR4_Cmp_ID WING1_Cmp_ID
+    ATTRIBUTE AFLR4_Edge_Refinement_Weight 1
+SUBTRACT
+## [attribute]
+
+##[secondWing]
+# Wing 2 -  Restore and scale, translate
+RESTORE   HalfWing 0
+    ATTRIBUTE capsGroup         $Wing2
+    ATTRIBUTE capsMesh          $Wing2
+    ATTRIBUTE AFLR4_Scale_Factor 10
+    ATTRIBUTE AFLR4_Cmp_ID       WING2_Cmp_ID
+
+    SCALE     0.4
+    TRANSLATE 10   0   0
+SUBTRACT
+##[secondWing]
+
+# Name and meshing length scale on the final body
+SELECT body
+    ATTRIBUTE _name $Symmetry
+    ATTRIBUTE capsMeshLength  cmean #Charachteristic length for meshing
+
+## [closeCSM]
+END
+## [closeCSM]

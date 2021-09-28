@@ -1,0 +1,19 @@
+# sketch11d
+# written by John Dannenhoffer
+
+SET   x0   1.00
+SET   y0   0.00
+SET   rady 0.50
+SET   radz 0.50
+
+SKBEG        x0 y0+rady             0
+   PATBEG    i 5
+      SET    theta i*36
+      SPLINE x0 y0+rady*cosd(theta) 0+radz*sind(theta)
+   PATEND
+SKEND
+
+ROTATEY   -90  0  0
+EXTRUDE     0  0  1
+
+END

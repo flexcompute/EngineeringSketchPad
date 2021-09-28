@@ -1,0 +1,16 @@
+# designJ2b
+# written by John Dannenhoffer
+
+DESPMTR   DX   3.0
+DESPMTR   DY   2.0
+DESPMTR   DZ   1.0
+
+MARK
+   UDPRIM     box   dy DY   dz DZ
+   UDPRIM     box   dy DY   dz DZ
+   TRANSLATE  DX    0  0
+RULE
+
+TRANSLATE  -DX/2  0  0
+
+END

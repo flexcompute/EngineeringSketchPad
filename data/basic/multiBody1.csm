@@ -1,0 +1,13 @@
+# multiBody1
+# written by John Dannenhoffer
+
+DESPMTR   dy   0.1
+DESPMTR   dz   0.2
+
+BOX       0  0  0   1  1  1
+   ATTRIBUTE _color $red
+
+BOX       1  dy dz  1  1  1
+   ATTRIBUTE _color $blue
+
+END

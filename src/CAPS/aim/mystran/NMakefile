@@ -1,0 +1,40 @@
+#
+!IFNDEF ESP_ROOT
+!ERROR ESP_ROOT must be set -- Please fix the environment...
+!ENDIF
+#
+IDIR  = $(ESP_ROOT)\include
+!include $(IDIR)\$(ESP_ARCH).$(MSVC)
+LDIR  = $(ESP_ROOT)\lib
+!IFDEF ESP_BLOC
+ODIR  = $(ESP_BLOC)\obj
+TDIR  = $(ESP_BLOC)\test
+!ELSE
+ODIR  = .
+TDIR  = $(ESP_ROOT)\bin
+!ENDIF
+
+
+$(LDIR)\mystranAIM.dll:	mystranAIM.def $(ODIR)\mystranAIM.obj $(ODIR)\mystranUtils.obj $(LDIR)\utils.lib
+	-del $(LDIR)\mystranAIM.dll $(LDIR)\mystranAIM.lib \
+		$(LDIR)\mystranAIM.exp
+	 link /out:$(LDIR)\mystranAIM.dll /dll /def:mystranAIM.def \
+		$(ODIR)\mystranAIM.obj $(ODIR)\mystranUtils.obj /LIBPATH:$(LDIR) utils.lib aimUtil.lib \
+		ocsm.lib egads.lib udunits2.lib $(PYTHONLIB)
+	$(MCOMP) /manifest $(LDIR)\mystranAIM.dll.manifest \
+		/outputresource:$(LDIR)\mystranAIM.dll;2
+
+$(ODIR)\mystranAIM.obj:	mystranAIM.c $(IDIR)\capsTypes.h ..\utils\meshUtils.h
+	cl /c $(COPTS) $(DEFINE) /I$(IDIR) /I..\utils mystranAIM.c \
+		/Fo$(ODIR)\mystranAIM.obj
+
+$(ODIR)\mystranUtils.obj:	mystranUtils.c $(IDIR)\capsTypes.h ..\utils\meshUtils.h
+	cl /c $(COPTS) $(DEFINE) /I$(IDIR) /I..\utils mystranUtils.c \
+		/Fo$(ODIR)\mystranUtils.obj
+		
+clean:
+	-del $(ODIR)\mystranAIM.obj $(ODIR)\mystranUtils.obj
+
+cleanall:	clean
+	-del $(LDIR)\mystranAIM.dll $(LDIR)\mystranAIM.lib \
+		$(LDIR)\mystranAIM.exp

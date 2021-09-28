@@ -1,0 +1,29 @@
+# cones4
+# written by John Dannenhoffer
+
+despmtr   Rinner    1.0
+despmtr   Router    4.0
+despmtr   Radius    0.5
+
+cone      Rinner    0.0       0.0       Router    0.0       0.0       Radius
+cone      Rinner    Rinner    0.0       Router    Router    0.0       Radius
+cone      0.0       Rinner    0.0       0.0       Router    0.0       Radius
+cone     -Rinner    Rinner    0.0      -Router    Router    0.0       Radius
+cone     -Rinner    0.0       0.0      -Router    0.0       0.0       Radius
+cone     -Rinner   -Rinner    0.0      -Router   -Router    0.0       Radius
+cone      0.0      -Rinner    0.0       0.0      -Router    0.0       Radius
+cone      Rinner   -Rinner    0.0       Router   -Router    0.0       Radius
+
+cone      0.0       Rinner    Rinner    0.0       Router    Router    Radius
+cone      0.0       0.0       Rinner    0.0       0.0       Router    Radius
+cone      0.0      -Rinner    Rinner    0.0      -Router    Router    Radius
+cone      0.0      -Rinner   -Rinner    0.0      -Router   -Router    Radius
+cone      0.0       0.0      -Rinner    0.0       0.0      -Router    Radius
+cone      0.0       Rinner   -Rinner    0.0       Router   -Router    Radius
+
+cone      Rinner    0.0       Rinner    Router    0.0       Router    Radius
+cone      Rinner    0.0      -Rinner    Router    0.0      -Router    Radius
+cone     -Rinner    0.0      -Rinner   -Router    0.0      -Router    Radius
+cone     -Rinner    0.0       Rinner   -Router    0.0       Router    Radius
+
+end

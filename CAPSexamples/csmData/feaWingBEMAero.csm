@@ -1,0 +1,174 @@
+# Aeroelastic example - with ribs and spars
+
+# Design Parameters for OML
+despmtr   thick     0.12      frac of local chord
+despmtr   camber    0.04      frac of loacl chord
+
+despmtr   area      10.0
+despmtr   aspect    6.00
+despmtr   taper     0.60
+despmtr   sweep     20.0      deg (of c/4)
+
+despmtr   washout   5.00      deg (down at tip)
+despmtr   dihedral  4.00      deg
+
+# Design Parameters for BEM
+cfgpmtr   nrib      3         number of ribs
+despmtr   spar1     0.20      frac of local chord
+despmtr   spar2     0.75      frac of local chord
+
+despmtr flapLE 0.2  # Percent along chord for the flap as a fraction
+despmtr flapTE 80.0 # Percent along chord for the flap as a %
+
+# Setup tessellation arrays for OML for CFD sims
+dimension params 1 3 0
+
+# OML
+set       span      sqrt(aspect*area)
+set       croot     2*area/span/(1+taper)
+set       ctip      croot*taper
+set       dxtip     (croot-ctip)/4+span/2*tand(sweep)
+set       dytip     span/2*tand(dihedral)
+
+mark
+   # right tip
+   udprim    naca      Thickness thick     Camber    camber sharpTE 1
+   scale     ctip
+   #rotatez   washout   ctip/4    0
+   translate dxtip     dytip     -span/2
+   #translate dxtip     0     -span/2
+   
+   store RightTip
+   restore RightTip
+   
+   # root
+   udprim    naca      Thickness thick     Camber    camber sharpTE 1
+   scale     croot
+
+   store Root
+   restore Root
+      
+rule
+   
+   attribute capsGroup $Skin # propagates to faces becuase applied to primitive body
+
+select edge 3
+   attribute capsMesh $LeadingEdge
+select edge 1
+   attribute capsMesh $TrailingEdge
+
+select face @nbody 3 1 # latest body, 3rd face (sketch order after rule start & end), sequence 1 (only 1 generated)
+   attribute capsBound $Skin_Top
+   
+select face @nbody 2 1 # latest body, 2nd face (start then end of rule), sequence 1
+   attribute capsGroup       $Rib_Root
+   attribute capsConnectLink $Rib_Root
+
+store     OML
+
+# FEA
+    # wing ribs
+    set       Nrib    nint(nrib)
+    # wing spars
+    set       eps             0.01*span
+
+   udprim    waffle    Depth     +6*thick*croot      Filename <<
+
+      patbeg    i Nrib
+         point A   at (span/2)*(i-0.5)/Nrib   -0.01*croot
+         point B   at (span/2)*(i-0.5)/Nrib   max(croot,dxtip+ctip)
+         line  AB  A  B   tagComponent=rib tagIndex=!val2str(i,0)
+      patend
+
+      point A   at span/2+eps    spar1*ctip+dxtip
+      point B   at -eps          spar1*croot
+      line  AB  A  B    tagComponent=spar tagIndex=1
+
+      point A   at span/2+eps    spar2*ctip+dxtip
+      point B   at -eps          spar2*croot
+      line  AB  A  B   tagComponent=spar tagIndex=2
+>>
+    
+    attribute capsGroup $Ribs_and_Spars
+
+    translate 0         0         -3*thick*croot
+    rotatey   90        0         0
+    rotatez  -90        0         0
+    
+    store     waffle
+
+    # keep part of waffle inside OML
+    restore   waffle
+    restore   OML
+    intersect
+
+    # break the OML with the waffle and extract the shell
+    restore   OML
+    
+    restore   waffle
+    subtract
+    extract   0
+
+    # sew the two SHEET Bodies together
+    union
+   
+    #Rotate the body to put it in the typical aero-coordinate system
+    rotatex   90   0   0
+
+    udprim editAttr filename <<
+       edge adj2face capsGroup=Rib_Root
+       set  capsConnectLink=Rib_Root
+
+       node adj2face capsGroup=Rib_Root
+       set  capsConnectLink=Rib_Root
+
+       face   has tagComponent=rib
+       set    capsGroup=Ribs
+    
+       face   has tagComponent=spar  tagIndex=1
+       set    capsGroup=Spar1
+    
+       face   has tagComponent=spar  tagIndex=2
+       set    capsGroup=Spar2
+>>
+    select body
+        attribute capsDiscipline $Structure #FEA Analysis (2D elements)
+        attribute capsAIM        $nastranAIM;astrosAIM;mystranAIM;egadsTessAIM
+        attribute _name          $FEA
+
+# Point Connecting to Rib_Root to apply boundary conditions too
+point  croot/4 0 0
+attribute capsDiscipline    $Structure
+attribute capsGroup         $Rib_Root
+attribute capsConnect       $Rib_Root
+attribute capsConstraint    $Rib_Root_Point
+attribute capsAIM $nastranAIM;astrosAIM;mystranAIM;egadsTessAIM
+attribute _name             $Rib_Root
+
+
+# Aero
+   restore RightTip
+   
+   attribute capsReferenceArea area
+   attribute capsReferenceChord croot
+   attribute capsReferenceSpan span
+   
+   attribute capsGroup $Wing
+   attribute capsDiscipline $Aerodynamic 
+   attribute capsAIM $nastranAIM;astrosAIM;mystranAIM;egadsTessAIM
+   attribute vlmControl_CntrlLE flapLE 
+   attribute vlmControlCntrlTE flapTE # Both _CntrlTE and CntrlTE = CntrlTE
+   attribute _name $RightTip
+   rotatex   90   0   0
+   
+   restore Root 
+   
+   attribute capsGroup $Wing
+   attribute capsDiscipline $Aerodynamic 
+   attribute capsAIM $nastranAIM;astrosAIM;mystranAIM;egadsTessAIM
+   attribute vlmControl_CntrlLE flapLE
+   attribute vlmControl_CntrlTE flapTE
+   attribute _name $Root
+   rotatex   90   0   0
+
+end

@@ -1,0 +1,20 @@
+# ereped4
+# written by John Dannenhoffer
+
+SKBEG     2.0   0.0   0.0
+   LINSEG 4.0   0.0   0.0
+   CIRARC 6.0   2.0   0.0   4.0   4.0   0.0
+   LINSEG 2.0   4.0   0.0
+   CIRARC 0.0   2.0   0.0   2.0   0.0   0.0
+SKEND
+
+SKBEG     2.0   1.0   0.0
+   LINSEG 4.0   1.0   0.0
+   CIRARC 5.0   2.0   0.0   4.0   3.0   0.0
+   LINSEG 2.0   3.0   0.0
+   CIRARC 1.0   2.0   0.0   2.0   1.0   0.0
+SKEND
+
+SUBTRACT
+
+EXTRUDE   0.0   0.0   1.0

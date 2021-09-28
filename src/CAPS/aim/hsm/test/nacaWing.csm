@@ -1,0 +1,41 @@
+despmtr   thick     0.12      frac of local chord
+despmtr   camber    0.04      frac of local chord
+
+mark
+
+udprim naca Thickness thick Camber camber SharpTE 1
+hollow 0 0
+
+
+udprim naca Thickness thick Camber camber SharpTE 1
+translate 0 0 2.0
+hollow 0 0
+
+blend
+
+select edge 2
+   attribute .nPos 2
+select edge 4
+   attribute .nPos 2
+
+select edge 1
+   attribute HSMbc $root
+select edge 5
+   attribute HSMbc $root
+select edge 3
+   attribute HSMbc $tip
+select edge 6
+   attribute HSMbc $tip
+
+select edge 1
+   attribute .nPos 2
+select edge 5
+   attribute .nPos 2
+select edge 3
+   attribute .nPos 2
+select edge 6
+   attribute .nPos 2
+   
+dump nacaWing.egads
+
+end

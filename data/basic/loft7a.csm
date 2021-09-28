@@ -1,0 +1,14 @@
+# loft7a (simple sheet)
+# written by John Dannenhoffer
+
+mark
+   skbeg     -2   0  -1
+      linseg -2   0  +1
+   skend
+
+   skbeg     +2   0  -2
+      linseg +2   0  +2
+   skend
+loft 1
+
+end

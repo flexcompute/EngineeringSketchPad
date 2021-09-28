@@ -1,0 +1,53 @@
+
+
+SDIR  = $(MAKEDIR)
+IDIR  = $(ESP_ROOT)\include
+!include $(IDIR)\$(ESP_ARCH).$(MSVC)
+LDIR  = $(ESP_ROOT)\lib
+!IFDEF ESP_BLOC
+ODIR  = $(ESP_BLOC)\obj
+TDIR  = $(ESP_BLOC)\test
+!ELSE
+ODIR  = .
+TDIR  = $(ESP_ROOT)\bin
+!ENDIF
+
+FOBJS = hsmsol.obj hsmdep.obj hsmout.obj hsmgeo.obj hsmabd.obj hsmeqn.obj \
+        hsmbc.obj  hsmprj.obj hsmren.obj hsmre1.obj hsmrfm.obj hsmbb2.obj \
+	hsmglr.obj ludcmp.obj sbsolve.obj atanc.obj bmdump.obj cross.obj
+
+
+!IFDEF ESP_BLOC
+default:	start $(TDIR)\hsmrun.exe end
+!ELSE
+default:	$(TDIR)\hsmrun.exe
+!ENDIF
+
+start:
+	cd $(ODIR)
+	xcopy $(SDIR)\*.f           /Q /Y
+	xcopy $(SDIR)\*.inc         /Q /Y
+
+$(TDIR)\hsmrun.exe:	$(LDIR)\hsm.lib hsmrun.f
+	ifort /Ox /threads /real-size:64 /I. hsmrun.f $(LDIR)\hsm.lib \
+		$(FLIBS) /Fe$(TDIR)\hsmrun.exe /link /NODEFAULTLIB:MSVCRT
+	
+$(LDIR)\hsm.lib:	$(FOBJS)
+	-del $(LDIR)\hsm.lib
+	lib /out:$(LDIR)\hsm.lib $(FOBJS)
+
+$(FOBJS):	gaussb.inc gaussq.inc gausst.inc index.inc
+.f.obj:
+	ifort /c $(FOPTS) /real-size:64 /I. $<
+
+end:
+	-del *.f *.inc
+	cd $(SDIR)
+
+clean:
+	cd $(ODIR)
+	-del $(FOBJS)
+	cd $(SDIR)
+
+cleanall:	clean
+	-del $(LDIR)\hsm.lib $(TDIR)\hsmrun.exe

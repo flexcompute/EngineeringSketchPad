@@ -1,0 +1,179 @@
+# extract4
+# written by John Dannenhoffer
+
+# Design Parameters for OML
+DESPMTR   wing:area      10.0      # wing area
+DESPMTR   wing:aspect    6.00      # aspect ratio
+DESPMTR   wing:taper     0.60      # taper ratio
+DESPMTR   wing:sweep     20.0      # deg (of leading edge)
+DESPMTR   wing:thick     0.12      # frac of local chord
+DESPMTR   wing:camber    0.04      # frac of loacl chord
+DESPMTR   wing:washout   5.00      # deg (down at tip)
+DESPMTR   wing:dihedral  4.00      # deg
+CFGPMTR   wing:sharpte   1         # =1 for sharp trailing edge
+
+# Design Parameters for structure
+DESPMTR   wing:spar1     0.20      # location of fwrd spar
+DESPMTR   wing:spar2     0.70      # location of rwrd spar
+DESPMTR   wing:nrib      3.00      # number of ribs per wing
+
+# wing local variables
+SET       wing:span sqrt(wing:aspect*wing:area)
+SET       croot     2*wing:area/wing:span/(1+wing:taper)
+SET       ctip      croot*wing:taper
+SET       dxtip     (croot-ctip)/4+wing:span/2*tand(wing:sweep)
+SET       dytip     wing:span/2*tand(wing:dihedral)
+SET       wing_ytip wing:span/2
+SET       wing_xtip wing_ytip*tand(wing:sweep)
+SET       wing_ztip wing_ytip*tand(wing:dihedral)
+
+    # lay out left wing
+    MARK
+        # root
+        UDPRIM    naca      Thickness  wing:thick  Camber  wing:camber  sharpte  wing:sharpte
+        SCALE     croot
+        ROTATEX   90  0  0
+
+        # left tip
+        UDPRIM    naca      Thickness  wing:thick  Camber  wing:camber  sharpte  wing:sharpte
+        SCALE     ctip
+        ROTATEX   90  0  0
+        ROTATEY   wing:washout   ctip/4    0
+        TRANSLATE wing_xtip  -wing_ytip  wing_ztip
+    RULE
+        ATTRIBUTE tagComp  $leftWing
+    SET       ruledBody @nbody
+
+    SELECT    FACE ruledBody  1
+        ATTRIBUTE tagType  $root
+    SELECT    FACE ruledBody  2
+        ATTRIBUTE tagType  $tip
+    SELECT    FACE ruledBody  3
+        ATTRIBUTE tagType  $upper
+    SELECT    FACE ruledBody  4
+        ATTRIBUTE tagType  $lower
+    SELECT    EDGE  ruledBody 3 ruledBody 4 1
+        ATTRIBUTE tagComp  $leftWing
+        ATTRIBUTE tagType  $leadingEdge
+    IFTHEN    wing:sharpte EQ 0
+        SELECT    FACE  ruledBody 5
+            ATTRIBUTE tagType  $trailingEdge
+    ELSE
+        SELECT    EDGE  ruledBody 3 ruledBody 4 2
+            ATTRIBUTE tagComp  $leftWing
+            ATTRIBUTE tagType  $trailingEdge
+    ENDIF
+
+    # right wing too
+    STORE     foo
+    RESTORE   foo
+    RESTORE   foo
+        ATTRIBUTE tagComp $riteWing
+        SELECT    EDGE  $tagType $leadingEdge
+        IFTHEN    @iedge GT 0
+            SELECT EDGE  $tagType $leadingEdge
+                ATTRIBUTE tagComp $riteWing
+        ENDIF
+        SELECT    EDGE  $tagType $trailingEdge
+        IFTHEN    @iedge GT 0
+            SELECT EDGE  $tagType $trailingEdge
+                ATTRIBUTE tagComp $riteWing
+        ENDIF
+        CATBEG   $edge_not_found
+        CATEND
+    MIRROR    0   1  0
+    JOIN
+
+    SELECT    EDGE  ruledBody 3 ruledBody 3 1
+        ATTRIBUTE tagType  $root
+    SELECT    EDGE  ruledBody 4 ruledBody 4 1
+        ATTRIBUTE tagType  $root
+
+    STORE     WingOml
+
+# make wing waffle
+    RESTORE   WingOml
+    SET       xmin       @xmin-0.1
+    SET       xmax       @xmax+0.1
+    SET       ymin       0
+    SET       ymax       @ymax+0.1
+    SET       zmin       @zmin-0.1
+    SET       zmax       @zmax+0.1
+    STORE     .
+
+    UDPARG    waffle     depth wing:nrib     # ensures rebuild
+    UDPARG    waffle     depth wing:spar1
+    UDPARG    waffle     depth wing:spar2
+    UDPRIM    waffle     depth zmax-zmin  filename <<
+
+        # construction lines for spars
+        CPOINT A   AT          0+wing:spar1*croot 0
+        CPOINT B   AT  wing_xtip+wing:spar1*ctip  wing_ytip
+        CPOINT C   AT          0+wing:spar2*croot 0
+        CPOINT D   AT  wing_xtip+wing:spar2*ctip  wing_ytip
+
+        CLINE  AB      A  B
+        CLINE  CD      C  D
+
+        # rite spars
+        POINT  E   ON  AB   YLOC  ymin
+        POINT  F   ON  AB   YLOC  ymax
+        LINE   EF  E   F  tagComp=riteWing  tagType=spar  tagIndex=1
+
+        POINT  G   ON  CD   YLOC  ymin
+        POINT  H   ON  CD   YLOC  ymax
+        LINE   GH  G   H  tagComp=riteWing  tagType=spar tagIndex=2
+
+        # rite ribs
+        PATBEG  irib  wing:nrib
+            CPOINT  I  AT  xmin  wing_ytip*irib/(wing:nrib+1)
+            CPOINT  J  AT  xmax  y@I
+            LINE    .   I  J  tagComp=riteWing  tagType=rib   tagIndex=!val2str(irib,0)
+        PATEND
+
+        # left spars
+        POINT  E   AT  x@E  -y@E
+        POINT  F   AT  x@F  -y@F
+        LINE   EF  E   F  tagComp=leftWing  tagType=spar  tagIndex=1
+
+        POINT  G   AT  x@G  -y@G
+        POINT  H   AT  x@H  -y@H
+        LINE   GH  G   H  tagComp=leftWing  tagType=spar tagIndex=2
+
+        # left ribs
+        PATBEG  irib  wing:nrib
+            CPOINT  I  AT  xmin  -wing_ytip*irib/(wing:nrib+1)
+            CPOINT  J  AT  xmax  y@I
+            LINE    .   I  J  tagComp=leftWing  tagType=rib   tagIndex=!val2str(irib,0)
+        PATEND
+>>
+    TRANSLATE  0  0  zmin
+    STORE     WingWaffle
+
+# wing structure
+RESTORE   WingOml
+RESTORE   WingWaffle
+SUBTRACT
+EXTRACT   0
+
+RESTORE   WingOml
+RESTORE   WingWaffle
+INTERSECT
+
+JOIN
+
+# mark wingbox
+UDPRIM   editAttr   filename <<
+   FACE  HAS        tagType=spar
+   SET              wingBox=True
+
+   FACE  ADJ2FACE   tagType=spar  tagIndex=1
+   AND   ADJ2FACE   tagType=spar  tagIndex=2
+   SET              wingBox=True
+>>
+
+SELECT    FACE   $wingBox  $*
+EXTRACT   @sellist
+
+END
+

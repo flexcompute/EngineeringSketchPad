@@ -1,0 +1,30 @@
+# sketch5
+# written by John Dannenhoffer
+# edit sketch; solve; save; rebuild -- leave sketch open and flat spot at top
+
+skbeg     0   0   0   1
+   skvar     xy   "-0.003902; 0.012772; 0.066124; \
+                    3.236872; 0.012772; 0.000000; \
+                    3.236872; 2.009257; 0.000000; \
+                    3.138453; 1.981138; 0.033566; \
+                    0.136696; 0.251788; 0.000000;"
+   skcon     X   1   -1  0
+   skcon     Y   1   -1  0
+   skcon     H   1    2  0
+   skcon     V   2    3  0
+   skcon     P   1   -1  0
+   skcon     T   5   -1  0
+   skcon     T   4   -1  0
+   skcon     P   3   -1  0
+   skcon     L   1    2  3.1415926
+   skcon     L   2    3  2.727272727
+   skcon     R   5    1  .1111111
+   skcon     R   3    4  .002222222
+   linseg    ::x[2]   ::y[2]   0
+   linseg    ::x[3]   ::y[3]   0
+   arc       ::x[4]   ::y[4]   0   ::d[4]   xy
+   linseg    ::x[5]   ::y[5]   0
+   arc       ::x[1]   ::y[1]   0   ::d[1]   xy
+skend     0
+
+end

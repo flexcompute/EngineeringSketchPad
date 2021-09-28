@@ -1,0 +1,53 @@
+# complex_rotn1
+# written by Dannenhoffer
+
+despmtr   xbase     0
+despmtr   ybase     1
+despmtr   zbase    -1
+despmtr   xsize     5
+despmtr   ysize     3
+despmtr   zsize     4
+despmtr   boxsize   1
+despmtr   rotang    30
+
+# generate the base box
+box       xbase  ybase  zbase     xsize  ysize  zsize
+
+# generate a box that will be placed from corner to corner of big box
+set       boxlen sqrt(xsize^2+ysize^2+zsize^2)
+box       xbase  ybase-boxsize/2  zbase-boxsize/2  boxlen  boxsize  boxsize
+
+# make the box go across the diagonal
+rotatez   atan2d(ysize,hypot(xsize,zsize))   xbase  ybase
+rotatey   atan2d(-zsize,xsize)               zbase  xbase
+
+# pseudo-included file
+set xbeg   xbase
+set ybeg   ybase
+set zbeg   zbase
+set xend   xbase+xsize
+set yend   ybase+ysize
+set zend   zbase+zsize
+#set rotang rotang
+
+# compute the components of the vector between beg and end (local variables)
+set dx     xend-xbeg
+set dy     yend-ybeg
+set dz     zbeg-zend
+
+# azimuth and elevation angles in degrees (returned in @ans1 and @ans2)
+set ans1   atan2d(dy,dx)
+set ans2   atan2d(dz,hypot(dx,dy))
+
+# perform the necessary rotations for the Body on the top of the stack
+rotatez  -ans1   xbeg ybeg
+rotatey  -ans2   zbeg xbeg
+rotatex  rotang  ybeg zbeg
+rotatey  +ans2   zbeg xbeg
+rotatez  +ans1   xbeg ybeg
+
+# report returned values
+set azimuth   ans1
+set elevation ans2
+
+end

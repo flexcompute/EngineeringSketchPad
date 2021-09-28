@@ -1,0 +1,39 @@
+# spoiler1
+# written by John Dannenhoffer
+
+dimension XX        1  4  1
+dimension YY        1  4  1
+
+despmtr   XX        "1.50; 1.00; 1.00; 1.50;"
+despmtr   YY        "1.00; 1.00; 5.00; 5.00;"
+despmtr   Depth     0.10
+despmtr   Thick     0.02
+despmtr   Theta     30.0
+despmtr   Overlap   0.002
+despmtr   Extend    0.200
+
+# basic config
+mark
+   # root
+   udprim    naca  series 4412
+   scale     2.0
+   rotatex   90  0  0
+
+   # tip
+   udprim    naca  series 4412
+   scale     2.0
+   rotatex   90  0  0
+   translate 0  6.0  0
+rule
+
+# add the spoiler
+udparg   $$/spoilerz  xbox      XX
+udparg   $$/spoilerz  ybox      YY
+udparg   $$/spoilerz  depth     Depth
+udparg   $$/spoilerz  thick     Thick
+udparg   $$/spoilerz  theta     Theta
+udparg   $$/spoilerz  overlap   Overlap
+udparg   $$/spoilerz  extend    Extend
+udprim   $$/spoilerz
+
+end

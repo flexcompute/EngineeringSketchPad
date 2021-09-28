@@ -1,0 +1,9 @@
+# design0u
+# written by John Dannenhoffer
+
+despmtr   rx        1.50
+despmtr   ry        3.00
+
+udprim    supell    rx   rx   ry   ry
+
+end

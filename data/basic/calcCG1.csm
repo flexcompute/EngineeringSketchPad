@@ -1,0 +1,35 @@
+# calcCG1
+# written by John Dannenhoffer
+
+# box 1
+BOX       0   0   0   3   2   1
+   ATTRIBUTE  density  3
+
+# box 2
+BOX       4   0   0   4   2   1
+   ATTRIBUTE  density  2
+
+# box 3
+BOX       0   0   0   3   1   1
+TRANSLATE 0   3   0
+   ATTRIBUTE  density  4
+
+# box 4
+BOX       0   0   0   4   1   1
+TRANSLATE 4   3   0
+#  ATTRIBUTE  denisty  1 (default)
+
+# compute MASS and CG of system
+UDPRIM    $/calcCG
+
+SET       MASS  @@MASS
+SET       XCG   @@XCG
+SET       YCG   @@YCG
+SET       ZCG   @@ZCG
+
+ASSERT    MASS  50.0
+ASSERT    XCG   3.30
+ASSERT    YCG   1.80
+ASSERT    ZCG   0.50
+
+END

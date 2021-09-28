@@ -1,0 +1,12 @@
+# mirror1xy
+# written by John Dannenhoffer
+
+patbeg icopy 2
+    box       1.0       2.0       3.0       1.0       2.0       3.0
+    cylinder  2.0       2.0       6.0       2.0       3.0       6.0       0.5
+    union
+patend
+
+mirror    1.0       1.0       0.0
+
+end

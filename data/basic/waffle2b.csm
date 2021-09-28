@@ -1,0 +1,21 @@
+# waffle2b
+# written by John Dannenhoffer
+
+udprim waffle   filename << Depth 2
+   point  A   AT 1  1
+   point  B   AT 2  1
+   point  C   AT 0  2
+   point  D   AT 5  2
+   point  E   AT 0  5
+   point  F   AT 4  5
+   point  G   AT 5  5
+   point  H   AT 6  6
+
+   line   .   C  D
+   line   .   D  G
+   line   .   A  H
+   line   .   B  F
+   line   .   E  F
+>>
+
+end

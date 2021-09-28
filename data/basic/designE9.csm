@@ -1,0 +1,22 @@
+# designE9
+# written by John Dannenhoffer
+
+despmtr   dx        1
+despmtr   dy        1
+despmtr   dxall     0
+despmtr   dyall     0
+despmtr   dzall     0
+
+box      -dx       -dy        -1        dx        dy        2
+box       0.0      -dy        -1        dx        dy        2
+union
+
+box      -dx       0.0        -1        dx        dy        2
+box       0.0      0.0        -1        dx        dy        2
+union
+
+union
+
+translate dxall     dyall     dzall
+
+end

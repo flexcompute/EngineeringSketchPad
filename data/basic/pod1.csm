@@ -1,0 +1,10 @@
+# pod1
+# written by Matt Hickok
+
+despmtr   length    5.0
+despmtr   fineness  8.0
+
+udparg    pod       Length    length
+udprim    pod       Fineness  fineness
+
+end

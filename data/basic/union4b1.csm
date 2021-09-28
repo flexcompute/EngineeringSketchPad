@@ -1,0 +1,14 @@
+# union4b1
+# written by John Dannenhoffer
+
+skbeg     0         0         0  1
+   linseg 1         0         0
+   cirarc 1/2       1/15      0         0         0         0
+skend
+store     profile
+
+restore   profile
+revolve   0         0         0 \
+          1         0         0         360
+
+end

@@ -1,0 +1,64 @@
+# skcon8f
+# written by John Dannenhoffer
+
+despmtr   dx  1.0
+despmtr   dy  0.5
+
+skbeg     0  0  0
+   skvar  xy  " 0;   0;  0;\
+                1; -.1;  0;\
+                1;  -1;  0;\
+                2;  -1;  0;\
+                3;  -1;  0;\
+                3; -.1;  0;\
+                4; -.1;  0;\
+                4;  .1;  0;\
+                3;  .1;  0;\
+                3;   1;  0;\
+                2;   1;  0;\
+                1;   1;  0;\
+                1;  .1;  0;"
+
+   skcon  X   1  -1   0
+   skcon  Y   1  -1   0
+   skcon  H   1   2
+   skcon  L   1   2   dx
+   skcon  V   2   3
+   skcon  L   2   3   dy
+   skcon  H   3   4
+   skcon  L   3   4   dx
+   skcon  H   4   5
+   skcon  L   4   5   dx
+   skcon  V   5   6
+   skcon  L   5   6   dy
+   skcon  H   6   7
+   skcon  L   6   7   dx
+   skcon  X   8  -1   ::x[7]
+   skcon  Y   8  -1   ::y[7]
+   skcon  H   8   9
+   skcon  L   8   9   dx
+   skcon  V   9  10
+   skcon  L   9  10   dy
+   skcon  H  10  11
+   skcon  L  10  11   dx
+   skcon  H  11  12
+   skcon  L  11  12   dx
+   skcon  V  12  13
+   skcon  L  12  13   dy
+
+   bezier ::x[2]   ::y[2]   ::z[2]
+   bezier ::x[3]   ::y[3]   ::z[3]
+   bezier ::x[4]   ::y[4]   ::z[4]
+   bezier ::x[5]   ::y[5]   ::z[5]
+   bezier ::x[6]   ::y[6]   ::z[6]
+   bezier ::x[7]   ::y[7]   ::z[7]
+   linseg ::x[8]   ::y[8]   ::z[8]
+   bezier ::x[9]   ::y[9]   ::z[9]
+   bezier ::x[10]  ::y[10]  ::z[10]
+   bezier ::x[11]  ::y[11]  ::z[11]
+   bezier ::x[12]  ::y[12]  ::z[12]
+   bezier ::x[13]  ::y[13]  ::z[13]
+   bezier ::x[1]   ::y[1]   ::z[1] 
+skend
+
+end

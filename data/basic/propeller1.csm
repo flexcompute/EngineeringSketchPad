@@ -1,0 +1,54 @@
+# propeller1
+# modified by John Dannenhoffer
+
+despmtr   r          5.0
+despmtr   twist0     5.0
+despmtr   twist1    40.0
+despmtr   twist2    45.0
+despmtr   chordroot  1.0
+despmtr   chordmid   1.5
+despmtr   chordtip   0.8
+
+set       rootradius 0.25
+
+#                   naca4   non-dimensional-radius
+dimension airfoils 6 2 1
+despmtr   airfoils "4412;   0.0;\
+                    4412;   0.2;\
+                    4412;   0.4;\
+                    4412;   0.6;\
+                    4412;   0.8;\
+                    4412;   1.0;"
+
+mark
+   # first start with a circle for the cylinder at the hub that the propeller root attaches to
+   udprim  ellipse  rx rootradius  ry  rootradius
+   rotatez 90  0 0
+
+   patbeg i airfoils.nrow
+      # chordscale is a weighted average over the desired chord lengths given in the design parameters
+      set weightroot 1.0/(abs(airfoils[i,2]-0.0)+0.01)
+      set weightmid  1.0/(abs(airfoils[i,2]-0.5)+0.01)
+      set weighttip  1.0/(abs(airfoils[i,2]-1.0)+0.01)
+      set chordscale (chordroot*weightroot+chordmid*weightmid+chordtip*weighttip)/(weightroot+weightmid+weighttip)
+
+      # twistangle is a nonlinear or second-order twist angle along propeller span
+      set twistangle -1.0*(twist0+twist1*airfoils[i,2]+twist2*airfoils[i,2]*airfoils[i,2])
+        
+      # now create this airfoil that is to be blended
+      udprim  naca     series  airfoils[i,1]  sharpTE  1
+      scale chordscale
+      translate -0.5 0.0 (2.0*r*0.2)+(r*airfoils[i,2])
+      rotatez twistangle  0  0
+   patend
+blend  0  -1;10
+
+# make two blades
+store     rightprop
+restore   rightprop
+restore   rightprop
+rotatex   180 0 0
+
+union
+
+end

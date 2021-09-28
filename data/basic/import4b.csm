@@ -1,0 +1,20 @@
+# import4b
+# written by John Dannenhoffer
+
+# make a box
+box 0 0 0 1 1 1
+
+# attribute its faces with myFace
+patbeg iface 6
+   select face iface
+      attribute myFace iface
+patend
+
+# dump it (including its attributes), but leave it in its original position
+dump foo.egads
+
+# import it (including the attributes), and translate it to the right
+udprim    import filename $foo.egads
+translate 2 0 0
+
+end

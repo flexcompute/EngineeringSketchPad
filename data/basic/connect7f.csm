@@ -1,0 +1,57 @@
+# connect7f
+# written by Paul Mokotoff
+# modified by John Dannenhoffer
+
+# create an airfoil
+UDPRIM    naca series 0012
+
+# extrude and translate the airfoil
+EXTRUDE   0 0 0.25
+TRANSLATE 0 0 1
+
+# score the airfoil
+BOX       0.25 -1 0 0 2 2
+SUBTRACT
+BOX       0.50 -1 0 0 2 2
+SUBTRACT
+BOX       0.90 -1 0 0 2 2
+SUBTRACT
+
+# make a copy and mirror
+RESTORE   .
+MIRROR    0 0 1
+
+# create (non-contiguous) faceList for connecting
+SELECT face 2 1 2
+SELECT add  2 1 4
+   ATTRIBUTE _color $red
+
+DIMENSION faceList @sellist.size 1
+SET       faceList @sellist
+
+# connect (which should fail since Faces are not contiguous)
+CONNECT   faceList faceList
+
+# make sure it failed
+SET    nerror 0
+CATBEG $illegal_value
+   SET nerror 1
+CATEND
+ASSERT nerror 1
+
+# make an edgeList for Edges adjacent to red Faces
+SELECT face $_color $red
+UDPRIM editAttr filename <<
+   EDGE adj2face _color=red
+   SET           _color=cyan
+>>
+
+SELECT edge $_color $cyan
+
+DIMENSION edgeList @sellist.size 1
+SET       edgeList @sellist
+
+# connect (with edgeLists)
+CONNECT   faceList faceList edgeList edgeList
+
+END

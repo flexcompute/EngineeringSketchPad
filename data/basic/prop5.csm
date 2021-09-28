@@ -1,0 +1,39 @@
+# prop5
+# written by Daniel Oluwalana and John Dannenhoffer
+
+# parameters for FM 4bld (from xrotor distribution)
+CFGPMTR   nblade    4
+DESPMTR   cpower    0.303
+DESPMTR   lambda    0.303
+DESPMTR   ReyR      3.00e+5
+DESPMTR   Rtip      0.127   # m
+DESPMTR   Rhub      0.040   # m
+DESPMTR   clift     0.400
+DESPMTR   cdrag     0.016
+DESPMTR   alfa      0.500   # deg
+
+# shaft/spinner parameters
+DESPMTR   shdiam    0.012
+DESPMTR   shxmin    -.010
+DESPMTR   shxmax    0.010
+
+# make the propeller
+UDPARG    Prop   nblade     nblade
+UDPARG    Prop   cpower     cpower
+UDPARG    Prop   lambda     lambda
+UDPARG    Prop   reyr       ReyR
+UDPARG    Prop   rtip       Rtip
+UDPARG    Prop   rhub       Rhub
+UDPARG    Prop   clift      clift
+UDPARG    Prop   cdrag      cdrag
+UDPARG    Prop   alfa       alfa
+
+UDPARG    Prop   shdiam     shdiam
+UDPARG    Prop   shxmin     shxmin
+UDPARG    Prop   shxmax     shxmax
+UDPRIM    Prop
+
+MESSAGE   ThrustCoef_=_+@@cthrust
+MESSAGE   Efficiency_=_+@@eff
+
+END

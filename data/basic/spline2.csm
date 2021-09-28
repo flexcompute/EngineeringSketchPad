@@ -1,0 +1,84 @@
+# spline2  (excerpted from Mei/robin2.csm)
+# written by John Dannenhoffer
+
+# Design Parameters:
+dimension   fuse1   33   2   1
+despmtr   fuse1[1,1]       0.00000
+despmtr   fuse1[1,2]      -0.02680
+despmtr   fuse1[2,1]       0.00640
+despmtr   fuse1[2,2]      -0.02710
+despmtr   fuse1[3,1]       0.01280
+despmtr   fuse1[3,2]      -0.02820
+despmtr   fuse1[4,1]       0.01930
+despmtr   fuse1[4,2]      -0.03030
+despmtr   fuse1[5,1]       0.02550
+despmtr   fuse1[5,2]      -0.03370
+despmtr   fuse1[6,1]       0.03110
+despmtr   fuse1[6,2]      -0.03840
+despmtr   fuse1[7,1]       0.03550
+despmtr   fuse1[7,2]      -0.04450
+despmtr   fuse1[8,1]       0.03820
+despmtr   fuse1[8,2]      -0.05160
+despmtr   fuse1[9,1]       0.03900
+despmtr   fuse1[9,2]      -0.05920
+despmtr   fuse1[10,1]       0.03820
+despmtr   fuse1[10,2]      -0.06680
+despmtr   fuse1[11,1]       0.03550
+despmtr   fuse1[11,2]      -0.07400
+despmtr   fuse1[12,1]       0.03110
+despmtr   fuse1[12,2]      -0.08000
+despmtr   fuse1[13,1]       0.02550
+despmtr   fuse1[13,2]      -0.08480
+despmtr   fuse1[14,1]       0.01930
+despmtr   fuse1[14,2]      -0.08810
+despmtr   fuse1[15,1]       0.01280
+despmtr   fuse1[15,2]      -0.09030
+despmtr   fuse1[16,1]       0.00640
+despmtr   fuse1[16,2]      -0.09140
+despmtr   fuse1[17,1]       0.00000
+despmtr   fuse1[17,2]      -0.09170
+despmtr   fuse1[18,1]      -0.00640
+despmtr   fuse1[18,2]      -0.09140
+despmtr   fuse1[19,1]      -0.01280
+despmtr   fuse1[19,2]      -0.09030
+despmtr   fuse1[20,1]      -0.01930
+despmtr   fuse1[20,2]      -0.08810
+despmtr   fuse1[21,1]      -0.02550
+despmtr   fuse1[21,2]      -0.08480
+despmtr   fuse1[22,1]      -0.03110
+despmtr   fuse1[22,2]      -0.08000
+despmtr   fuse1[23,1]      -0.03550
+despmtr   fuse1[23,2]      -0.07400
+despmtr   fuse1[24,1]      -0.03820
+despmtr   fuse1[24,2]      -0.06680
+despmtr   fuse1[25,1]      -0.03900
+despmtr   fuse1[25,2]      -0.05920
+despmtr   fuse1[26,1]      -0.03820
+despmtr   fuse1[26,2]      -0.05160
+despmtr   fuse1[27,1]      -0.03550
+despmtr   fuse1[27,2]      -0.04450
+despmtr   fuse1[28,1]      -0.03110
+despmtr   fuse1[28,2]      -0.03840
+despmtr   fuse1[29,1]      -0.02550
+despmtr   fuse1[29,2]      -0.03370
+despmtr   fuse1[30,1]      -0.01930
+despmtr   fuse1[30,2]      -0.03030
+despmtr   fuse1[31,1]      -0.01280
+despmtr   fuse1[31,2]      -0.02820
+despmtr   fuse1[32,1]      -0.00640
+despmtr   fuse1[32,2]      -0.02710
+despmtr   fuse1[33,1]       0.00000
+despmtr   fuse1[33,2]      -0.02680
+
+despmtr   R[1,1]       1.57400
+
+# Branches:
+skbeg     0.02*R   fuse1[1,1]   fuse1[1,2]
+   name      x/R=0.02
+
+   patbeg    i 32
+      spline    0.02*R   fuse1[i+1,1]   fuse1[i+1,2]
+   patend
+skend
+
+end

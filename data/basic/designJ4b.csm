@@ -1,0 +1,22 @@
+# designJ4b
+# written by John Dannenhoffer
+
+DESPMTR   XBEG -1.0
+DESPMTR   YBEG  0.0
+DESPMTR   ZBEG  0.0
+DESPMTR   XEND  4.0
+DESPMTR   YEND  0.0
+DESPMTR   ZEND  0.0
+DESPMTR   DX    3.0
+DESPMTR   DY    2.0
+DESPMTR   DZ    1.0
+
+MARK
+   POINT      XBEG   YBEG   ZBEG
+   UDPRIM     box    dy DY  dz DZ
+   UDPRIM     box    dy DY  dz DZ
+   TRANSLATE  DX     0  0
+   POINT      XEND   YEND   ZEND
+BLEND
+
+END

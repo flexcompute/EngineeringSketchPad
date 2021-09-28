@@ -1,0 +1,23 @@
+# rule7k (simple box, node at rite)
+# written by John Dannenhoffer
+
+mark
+   skbeg     -2  +2  -1
+      linseg -2  -2  -1
+      linseg -2  -2  +1
+      linseg -2  +2  +1
+      linseg -2  +2  -1
+   skend
+
+   skbeg     +2  +1  -2
+      linseg +2  -1  -2
+      linseg +2  -1  +2
+      linseg +2  +1  +2
+      linseg +2  +1  -2
+   skend
+
+   skbeg     +4   0   0
+   skend
+rule
+
+end

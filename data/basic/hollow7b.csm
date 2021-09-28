@@ -1,0 +1,14 @@
+# hollow7b
+# written by John Dannenhoffer
+
+udprim    box       Dx  3  Dy  3  Dz  3  Rad  1/4
+hollow    0         1;8;9;11;13  1
+
+select    body 2
+   assert   0.00000e+00  @volume  0.001  1
+   assert   1.88164e+01  @area    -.001  1
+   assert   4.98236e-01  @xcg     -.001  1
+   assert  -1.02860e-08  @ycg     0.001  1
+   assert   1.02860e-08  @zcg     0.001  1
+
+end

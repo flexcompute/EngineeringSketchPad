@@ -1,0 +1,59 @@
+# plugs3b
+# written by John Dannenhoffer
+
+                         # target
+DESPMTR   xbeg     -2.0  # -2.0
+DESPMTR   ybeg      0.0  #  0.0
+DESPMTR   zbeg      0.0  #  0.0
+DESPMTR   dybeg     2.0  #  1.0
+LBOUND    dybeg     0.2
+UBOUND    dybeg     4.0
+DESPMTR   dzbeg     1.0  #  2.0
+LBOUND    dzbeg     0.2
+UBOUND    dzbeg     4.0
+CFGPMTR   nbeg      2.0
+
+DESPMTR   xmid      0.0  #  0.0
+DESPMTR   ymid      0.0  #  0.0
+DESPMTR   zmid      0.0  #  0.0
+DESPMTR   dymid     2.0  #  2.0
+LBOUND    dymid     0.2
+UBOUND    dymid     4.0
+DESPMTR   dzmid     1.0  #  1.0
+LBOUND    dzmid     0.2
+UBOUND    dzmid     4.0
+CFGPMTR   nmid      2.0
+
+DESPMTR   xend      2.0  #  2.0
+DESPMTR   yend      0.0  #  0.0
+DESPMTR   zend      0.0  #  0.0
+DESPMTR   dyend     1.0  #  1.0
+LBOUND    dyend     0.2
+UBOUND    dyend     4.0
+DESPMTR   dzend     3.0  #  2.0
+LBOUND    dzend     0.2
+UBOUND    dzend     4.0
+CFGPMTR   nend      5.0
+
+MARK
+   POINT     -4   0   0
+
+   UDPRIM    supell    rx dzbeg  ry dybeg
+   ROTATEY   90  0  0
+   ROTATEX   45  0  0
+   TRANSLATE xbeg  ybeg  zbeg
+
+   UDPRIM    supell    rx dzmid  ry dymid
+   ROTATEY   90  0  0
+   ROTATEX   45  0  0
+   TRANSLATE xmid  ymid  zmid
+
+   UDPRIM    supell    rx dzend  ry dyend
+   ROTATEY   90  0  0
+   ROTATEX   45  0  0
+   TRANSLATE xend  yend  zend
+
+   POINT     +4   0   0
+RULE
+
+END

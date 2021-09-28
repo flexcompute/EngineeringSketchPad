@@ -1,0 +1,8 @@
+# outpmtr1a.udc
+# written by John Dannenhoffer
+
+INTERFACE  . ALL
+
+SET       out3      4.0-1.0
+
+END

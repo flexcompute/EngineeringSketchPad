@@ -1,0 +1,24 @@
+# designM0
+# written by John Dannenhoffer
+
+DESPMTR       a   0.0
+DESPMTR       b  -1.5
+DESPMTR       c   2.0
+DESPMTR       d   4.0
+DESPMTR       e   3.0
+DESPMTR       f   2.0
+DESPMTR       g   0.8
+DESPMTR       h   1.5
+
+# outer SolidBody
+BOX       a  b  c  d  e  f
+
+# get smaller version (centered on front face)
+BOX       a  b  c  d  e  f
+SCALE     g  a+d/2  b+e/2  c+f
+
+SUBTRACT
+SCALE     h
+
+END
+   

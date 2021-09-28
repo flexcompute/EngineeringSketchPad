@@ -1,0 +1,38 @@
+# nacelle1
+# written by John Dannenhoffer
+
+despmtr   diameter  3
+despmtr   length    5
+despmtr   thickness 0.10
+despmtr   camber    0.04
+
+# generate series of sketches
+set       nsect     17
+
+# right side (looking aft)
+mark
+   patbeg    isect  (nsect+1)/2
+      set    theta  360*(isect-1)/(nsect-1)
+
+      udprim    naca   thickness thickness camber camber
+      scale     length
+      translate 0  diameter/2  0  
+      rotatex   theta  0  0
+   patend
+blend
+
+# left side (looking aft)
+mark
+   patbeg    isect  (nsect+1)/2
+      set    theta  360*(isect+(nsect-3)/2)/(nsect-1)
+
+      udprim    naca   thickness thickness camber camber
+      scale     length
+      translate 0  diameter/2  0  
+      rotatex   theta  0  0
+   patend
+blend
+
+join
+
+end

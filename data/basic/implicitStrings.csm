@@ -1,0 +1,30 @@
+# implicitStrings
+# written by John Dannenhoffer
+
+box       0  0  0   1  1  1
+store     mine
+
+set       foo      $mine
+restore   !foo
+
+set       aftype   $naca
+set       thk      $thickness
+
+udparg    !aftype  !thk 0.12
+udprim    !aftype
+translate 0  0  2
+
+store     !aftype
+
+set       aname1   $aname2
+assert    ifmatch(aname1,$aname2,1,0)  1
+
+set       aname2   aname1+1
+assert    ifmatch(aname2,$aname21,1,0)  1
+
+set       !aname1  $aname3
+assert    ifmatch(aname2,$aname3,1,0)  1
+
+restore   naca
+
+end

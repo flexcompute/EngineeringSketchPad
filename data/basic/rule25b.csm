@@ -1,0 +1,18 @@
+# rule25b
+# written by Marshall Galbraith
+
+SKBEG     0   -.5   0
+   ARC 0 .5 0 -.5
+   #--- LINSEG 0   -.5   0
+SKEND     0
+REORDER 0 1
+STORE ARC
+
+MARK
+   PATBEG i 8
+     RESTORE ARC
+     ROTATEY 45*(i-1) 0 0
+   PATEND
+RULE 0 1
+
+END

@@ -1,0 +1,29 @@
+# duct4zx_pos
+# written by John Dannenhoffer
+
+mark
+
+skbeg     sind(0)     0 cosd(0)
+   cirarc sind(22.5)  0 cosd(22.5)   sind(45)   0  cosd(45)
+   cirarc sind(90)    0 cosd(90)     sind(135)  0  cosd(135)
+   cirarc sind(157.5) 0 cosd(157.5)  sind(180)  0  cosd(180)
+   linseg sind(0)     0 cosd(0)
+skend
+
+skbeg      0 -1  1
+   linseg  1 -1  1
+   linseg  1 -1 -1
+   linseg  0 -1 -1
+   linseg  0 -1  1
+skend
+
+skbeg      0 -2  1
+   linseg  1 -2  1
+   cirarc .8 -2  0  1 -2 -1
+   linseg  0 -2 -1
+   linseg  0 -2  1
+skend
+
+blend
+
+end

@@ -1,0 +1,138 @@
+# extract2
+# written by John Dannenhoffer
+
+DIMENSION myList  1  3  0
+
+########## check for errors first ##########
+
+# not SheetBody or SolidBody
+BOX       0  0  0  1  0  0
+EXTRACT   1
+CATBEG    $wrong_types_on_stack
+   STORE  .
+CATEND
+
+# Face not found
+BOX       0  0  0  1  1  1
+EXTRACT   99
+CATBEG    $face_not_found
+   STORE  .
+CATEND
+
+# Edge not found
+BOX       0  0  0  1  1  1
+EXTRACT   -99
+CATBEG    $edge_not_found
+   STORE  .
+CATEND
+
+# discontiguous Faces
+BOX       0  0  0  1  1  1
+SELECT    FACE  @nbody  1
+SELECT    ADD   @nbody  2
+EXTRACT   @sellist
+CATBEG    $did_not_create_body
+   STORE  .
+CATEND
+
+# discontiguous Edges
+BOX       0  0  0  1  1  1
+SELECT    EDGE  @nbody  1  @nbody  5
+SELECT    ADD   @nbody  1  @nbody  6
+SELECT    ADD   @nbody  2  @nbody  6
+SET       myList[1]  -@sellist[1]
+SET       myList[2]  -@sellist[2]
+SET       myList[3]  -@sellist[2]
+EXTRACT   myList
+CATBEG    $did_not_create_body
+   STORE  .
+CATEND
+
+########## process ones we expect to work ##########
+
+# all (6) Faces of SolidBody
+BOX       -10  0  0  4  3  2
+EXTRACT   0
+ASSERT    @itype  2
+ASSERT    @nface  6
+
+# three Faces of SolidBody
+BOX        -5  0  0  4  3  2
+SELECT    FACE  @nbody  2
+SELECT    ADD   @nbody  3
+SELECT    ADD   @nbody  4
+EXTRACT   @sellist
+ASSERT    @itype  2
+ASSERT    @nface  3
+
+# one Face of SolidBody
+BOX         0  0  0  4  3  2
+SELECT    FACE  @nbody  5
+EXTRACT   @sellist
+ASSERT    @itype  2
+ASSERT    @nface  1
+
+# all (8) Edges adjacent to three Faces of SolidBody
+BOX       -10  5  0  4  3  2
+SELECT    FACE  @nbody  2
+SELECT    ADD   @nbody  3
+SELECT    ADD   @nbody  4
+EXTRACT   @sellist
+EXTRACT   0
+ASSERT    @itype  1
+ASSERT    @nedge  8
+
+# three Edges of SolidBody
+BOX        -5  5  0  4  3  2
+SELECT    EDGE  @nbody  2  @nbody  5
+SELECT    ADD   @nbody  3  @nbody  5 
+SELECT    ADD   @nbody  4  @nbody  5
+SET       myList[1]  -@sellist[1]
+SET       myList[2]  -@sellist[2]
+set       myList[3]  -@sellist[3]
+EXTRACT   myList
+ASSERT    @itype  1
+ASSERT    @nedge  3
+
+# one Edge of SolidBody
+BOX         0  5  0  4  3  2
+SELECT    EDGE  @nbody  2  @nbody  5
+EXTRACT   -@sellist[1]
+ASSERT    @itype  1
+ASSERT    @nedge  1
+
+# three Edges of SheetBody
+BOX       -10 10  0  4  3  0
+SELECT    EDGE  0  0  @nbody  1  2
+SELECT    ADD   0  0  @nbody  1  3
+SELECT    ADD   0  0  @nbody  1  4
+SET       myList[1]  -@sellist[1]
+SET       myList[2]  -@sellist[2]
+set       myList[3]  -@sellist[3]
+EXTRACT   myList
+ASSERT    @itype  1
+ASSERT    @nedge  3
+
+# one Edge of SheetBody
+BOX        -5 10  0  4  3  0
+SELECT    EDGE  0  0  @nbody  1  2
+EXTRACT   -@sellist[1]
+ASSERT    @itype  1
+ASSERT    @nedge  1
+
+# one Face of a SheetBody
+BOX         0 10  0  4  3  2
+EXTRACT   0
+SELECT    FACE  @nbody-1  5
+EXTRACT   @sellist
+ASSERT    @itype  2
+ASSERT    @nface  1
+
+# mix of signs in entList
+BOX       0  0  0  1  1  1
+EXTRACT   1;2;-3
+CATBEG    $illegal_value
+   STORE  .
+CATEND
+
+END

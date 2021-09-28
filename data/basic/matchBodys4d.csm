@@ -1,0 +1,40 @@
+# matchBodys4d
+# written by John Dannenhoffer
+
+# body1: vertical cylinder
+CYLINDER     0  -2  0  0  +2  0  1.0
+ROTATEY     90   0  0
+STORE     body1
+
+# body 2: cut horizontal cylinder
+CYLINDER  0  0  0  3  0  0  0.5
+ROTATEX  30  0  0
+CYLINDER  0  -2  0  0  +2  0  1.0
+SUBTRACT
+STORE     body2
+
+# scribe body1 by body2
+RESTORE   body1
+RESTORE   body2
+EXTRACT   0
+TRANSLATE -.1 0 0
+SUBTRACT
+STORE     body1
+
+# scribe body2 by body1
+RESTORE   body2
+RESTORE   body1
+SELECT    EDGE  1 3  1 4  3
+EXTRACT   -@iedge
+EXTRUDE   0.2  0  0
+TRANSLATE -.1  0  0
+SUBTRACT
+STORE     body2
+
+# check for matches
+RESTORE   body1
+RESTORE   body2
+UDPRIM    matchBodys  toler  0.001
+
+END
+

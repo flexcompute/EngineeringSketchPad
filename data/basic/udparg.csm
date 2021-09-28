@@ -1,0 +1,76 @@
+# udparg
+# written by John Dannenhoffer
+
+despmtr   x1        -5
+despmtr   x2        -4
+despmtr   x3        -3
+despmtr   x4        -2
+despmtr   x5        -1
+despmtr   x6        +1
+despmtr   x7        +2
+despmtr   x8        +3
+despmtr   x9        +4
+despmtr   x10       +5
+
+despmtr   y1        0
+despmtr   y2        1
+despmtr   y3        1
+despmtr   y4        0
+despmtr   y5        2
+despmtr   y6        2
+despmtr   y7        0
+despmtr   y8        1
+despmtr   y9        1
+despmtr   y10       0
+
+despmtr   z1        0
+despmtr   z2        2
+despmtr   z3        2
+despmtr   z4        0
+despmtr   z5        1
+despmtr   z6        1
+despmtr   z7        0
+despmtr   z8        2
+despmtr   z9        2
+despmtr   z10       0
+
+mark
+skbeg     x1  y1  z1
+skend
+udprim    ellipse ry  y2  rz  z2
+translate x2  0   0
+udprim    ellipse ry  y3  rz  z3
+translate x3  0   0
+rule
+
+mark
+skbeg     x4  y4  z4
+skend
+udparg    ellipse ry  y5  rz  z5
+udprim    ellipse
+translate x5  0   0
+udparg    ellipse ry  y6  ry  y6  ry  y6  rz  z6
+udprim    ellipse
+translate x6  0   0
+skbeg     x7  y7  z7
+skend
+rule
+
+mark
+udparg    ellipse ry  y8
+udparg    ellipse rz  z8
+udprim    ellipse
+translate x8  0   0
+udparg    ellipse ry  y9
+udparg    ellipse rz  z9
+udparg    ellipse ry  y9
+udparg    ellipse rz  z9
+udparg    ellipse ry  y9
+udparg    ellipse rz  z9
+udprim    ellipse
+translate x9  0   0
+skbeg     x10 y10 z10
+skend
+rule
+
+end

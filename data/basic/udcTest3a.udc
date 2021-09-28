@@ -1,0 +1,12 @@
+# udcTest3a
+# written by John Dannenhoffer
+
+INTERFACE A   in
+INTERFACE B   in  2.0
+INTERFACE C   out 0.0
+
+SET       A   A+1
+SET       B   B+1
+SET       C   A+2*B
+
+END

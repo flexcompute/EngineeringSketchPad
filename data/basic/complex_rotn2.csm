@@ -1,0 +1,37 @@
+# complex_rotn2
+# written by Dannenhoffer
+
+despmtr   xbase     0
+despmtr   ybase     1
+despmtr   zbase    -1
+despmtr   xsize     5
+despmtr   ysize     3
+despmtr   zsize     4
+despmtr   boxsize   1
+despmtr   rotang    30
+
+# generate the base box
+box       xbase  ybase  zbase     xsize  ysize  zsize
+
+# generate a box that will be placed from corner to corner of big box
+set       boxlen sqrt(xsize^2+ysize^2+zsize^2)
+box       xbase  ybase-boxsize/2  zbase-boxsize/2  boxlen  boxsize  boxsize
+
+# make the box go across the diagonal
+rotatez   atan2d(ysize,hypot(xsize,zsize))   xbase  ybase
+rotatey   atan2d(-zsize,xsize)               zbase  xbase
+
+# rotate box about its axis
+udparg    $$/gen_rot xbeg     xbase
+udparg    $$/gen_rot ybeg     ybase
+udparg    $$/gen_rot zbeg     zbase
+udparg    $$/gen_rot xend     xbase+xsize
+udparg    $$/gen_rot yend     ybase+ysize
+udparg    $$/gen_rot zend     zbase+zsize
+udprim    $$/gen_rot rotang   rotang
+
+# report returned values
+set azimuth   @@azimuth
+set elevation @@elevation
+
+end

@@ -1,0 +1,32 @@
+# select0z
+# written by John Dannenhoffer
+
+# (delta) coordinates for cylinder
+
+# unit box
+box        -0.5      -0.5      -0.5      +1.0      +1.0      +1.0
+set        box_body  @nbody
+
+# diagonal cylinder
+cylinder   -0.50     -0.50     -0.50     +0.50     +0.50     +0.50     0.25
+set        cyl_body  @nbody
+
+rotatez     5.0  -0.5 -0.5
+
+subtract
+
+# thin wires
+select     edge      box_body 4     cyl_body 4     1
+set        wire_xbeg @xmin
+set        wire_ybeg @ymin
+set        wire_zbeg @zmin
+set        wire_xend @xmax
+set        wire_yend @ymax
+set        wire_zend @zmax
+set        wire_rad  0.05
+
+cylinder   wire_xbeg wire_ybeg wire_zbeg wire_xend wire_yend wire_zend wire_rad
+
+union
+
+end

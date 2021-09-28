@@ -1,0 +1,19 @@
+# designQ2
+# written by John Dannenhoffer
+
+DESPMTR   L1        10.0
+DESPMTR   L2        10.0
+
+SET       ang       atan2d(20-L2,20-L1)
+SET       len       hypot(20-L2,20-L1)
+
+BOX       0.0   0.0   0.0   L1    0.0   10.0
+
+BOX       L1    0.0   0.0   0.0   L2    10.0
+JOIN
+
+BOX       L1    L2    0.0   len   0.0   10.0
+ROTATEZ   ang   L1    L2
+JOIN
+
+END

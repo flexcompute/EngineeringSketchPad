@@ -1,0 +1,63 @@
+# duct
+# written by John Dannenhoffer
+
+interface ID        in  0
+interface intent    in  3
+interface diameter  in  1
+interface length    in  2
+interface thickness in  0.10
+interface camber    in  0.04
+
+# build duct centerline  (intent==1)
+ifthen intent eq 1
+   skbeg     0   0   0
+      linseg length  0  0
+   skend
+      attribute ID !ID
+      attribute Intent 1  # simple 1D model
+
+# build duct centerline  (intent==2)
+elseif intent eq 2
+   skbeg     0   0   0
+      linseg length  0  0
+   skend
+      attribute ID !ID
+      attribute Intent 2  # 2D model
+
+# build duct  (intent==3)
+elseif intent eq 3
+   # generate series of sketches
+   set       nsect     17
+
+   # right side (looking aft)
+   mark
+      patbeg    isect  (nsect+1)/2
+         set    theta  360*(isect-1)/(nsect-1)
+
+         udprim    naca   thickness thickness camber camber
+         scale     length
+         translate 0  diameter/2  0  
+         rotatex   theta  0  0
+      patend
+   blend
+      attribute ID       !ID
+      attribute Intent 1  # 3D model (aka, outer-mold line)
+
+   # left side (looking aft)
+   mark
+      patbeg    isect  (nsect+1)/2
+         set    theta  360*(isect+(nsect-3)/2)/(nsect-1)
+
+         udprim    naca   thickness thickness camber camber
+         scale     length
+         translate 0  diameter/2  0  
+         rotatex   theta  0  0
+      patend
+   blend
+      attribute ID       !ID
+      attribute Intent 1  # 3D model (aka, outer-mold line)
+
+   join
+endif
+
+end

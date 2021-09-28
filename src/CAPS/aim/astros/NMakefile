@@ -1,0 +1,42 @@
+#
+!IFNDEF ESP_ROOT
+!ERROR ESP_ROOT must be set -- Please fix the environment...
+!ENDIF
+#
+IDIR  = $(ESP_ROOT)\include
+!include $(IDIR)\$(ESP_ARCH).$(MSVC)
+LDIR  = $(ESP_ROOT)\lib
+!IFDEF ESP_BLOC
+ODIR  = $(ESP_BLOC)\obj
+TDIR  = $(ESP_BLOC)\test
+!ELSE
+ODIR  = .
+TDIR  = $(ESP_ROOT)\bin
+!ENDIF
+
+
+$(LDIR)\astrosAIM.dll:	astrosAIM.def $(ODIR)\astrosAIM.obj $(ODIR)\astrosUtils.obj $(ODIR)\astrosCards.obj $(LDIR)\utils.lib
+	-del $(LDIR)\astrosAIM.dll $(LDIR)\astrosAIM.lib $(LDIR)\astrosAIM.exp
+	 link /out:$(LDIR)\astrosAIM.dll /dll /def:astrosAIM.def \
+		$(ODIR)\astrosAIM.obj $(ODIR)\astrosUtils.obj $(ODIR)\astrosCards.obj /LIBPATH:$(LDIR) utils.lib aimUtil.lib \
+		ocsm.lib egads.lib udunits2.lib $(PYTHONLIB)
+	$(MCOMP) /manifest $(LDIR)\astrosAIM.dll.manifest \
+		/outputresource:$(LDIR)\astrosAIM.dll;2
+
+$(ODIR)\astrosAIM.obj:	astrosAIM.c $(IDIR)\capsTypes.h ..\utils\meshUtils.h
+	cl /c $(COPTS) $(DEFINE) /I$(IDIR) /I..\utils astrosAIM.c \
+		/Fo$(ODIR)\astrosAIM.obj
+		
+$(ODIR)\astrosUtils.obj:	astrosUtils.c $(IDIR)\capsTypes.h ..\utils\meshUtils.h
+	cl /c $(COPTS) $(DEFINE) /I$(IDIR) /I..\utils astrosUtils.c \
+		/Fo$(ODIR)\astrosUtils.obj
+	
+$(ODIR)\astrosCards.obj:	astrosCards.c $(IDIR)\capsTypes.h ..\utils\meshUtils.h
+	cl /c $(COPTS) $(DEFINE) /I$(IDIR) /I..\utils astrosCards.c \
+		/Fo$(ODIR)\astrosCards.obj
+
+clean:
+	-del $(ODIR)\astrosAIM.obj $(ODIR)\astrosUtils.obj $(ODIR)\astrosCards.obj 
+
+cleanall:	clean
+	-del $(LDIR)\astrosAIM.dll $(LDIR)\astrosAIM.lib $(LDIR)\astrosAIM.exp

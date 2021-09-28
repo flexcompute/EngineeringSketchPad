@@ -1,0 +1,68 @@
+# attribute7b
+# written by John Dannenhoffer
+
+# cylinder
+CYLINDER   0.0   0.0   0.0   1.0  0.0  0.0  0.5
+
+PATBEG       iface     @nface
+   SELECT    FACE      iface
+   ATTRIBUTE  cylFace  iface
+PATEND
+PATBEG       iedge     @nedge
+   SELECT    EDGE      iedge
+   ATTRIBUTE  cylEdge  iedge
+PATEND
+PATBEG       inode     @nnode
+   SELECT    NODE      inode
+   ATTRIBUTE  cylNode  inode
+PATEND
+
+# box
+BOX       -1.0  -1.0  -1.0   1.0  2.0  2.0
+
+PATBEG       iface     @nface
+   SELECT    FACE      iface
+   ATTRIBUTE  boxFace  iface
+PATEND
+PATBEG       iedge     @nedge
+   SELECT    EDGE      iedge
+   ATTRIBUTE  boxEdge  iedge
+PATEND
+PATBEG       inode     @nnode
+   SELECT    NODE      inode
+   ATTRIBUTE  boxNode  inode
+PATEND
+
+# subtract (imprint)
+SUBTRACT
+
+# verify the correct number of Faces associated with the box and cylinder
+SELECT    FACE  $cylFace   $*
+ASSERT    @sellist.size    3
+
+SELECT    FACE  $boxFace   $*
+ASSERT    @sellist.size    1
+
+# verify the correct number of Edges associated with the box and cylinder
+SELECT    EDGE  $cylEdge   $*
+ASSERT    @sellist.size    4
+
+SET       okay  1
+SELECT    EDGE  $boxEdge   $*
+CATBEG    $edge_not_found
+   SET    okay  0
+CATEND
+ASSERT    okay  0
+
+# verify the correct number of Nodes associated with the box and cylinder
+SET       okay  1
+SELECT    NODE  $boxNode   $*
+CATBEG    $node_not_found
+   SET    okay  0
+CATEND
+ASSERT    okay  0
+
+SELECT    NODE  $cylNode   $*
+ASSERT    @sellist.size    4
+
+END

@@ -1,0 +1,24 @@
+# udcTest4.udc
+# written by John Dannenhoffer
+
+# string inputs and outputs
+INTERFACE input1  in   $<empty>
+INTERFACE input2  in   $<empty>
+INTERFACE input3  in   $<empty>
+INTERFACE output  out  0
+
+# number inputs and outputs
+INTERFACE dx      in   1
+INTERFACE dydz    in   1  # actually expecting a 2-element array (checked below)
+INTERFACE volume  out  0
+
+ASSERT    dydz.size    2
+
+# concatenate first two input strings
+SET       output  input1+input2
+
+# gratuitous BOX so that we have something to verify
+BOX       0  0  0  dx dydz[1] dydz[2]
+SET       volume @volume
+
+END

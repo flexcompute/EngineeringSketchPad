@@ -1,0 +1,39 @@
+# blend15b (three consecutive C1)
+# written by John Dannenhoffer
+
+mark
+   # section 1 (node)
+   skbeg     -2.0   0.0   0.0
+   skend
+
+   # section 1 (multiplicity=2)
+   udprim    supell   rx  2.0   ry  1.0
+   rotatey   90    0.0  0.0
+   translate -1.0  0.0  0.0
+   udprim    supell   rx  2.0   ry  1.0
+   rotatey   90    0.0  0.0
+   translate -1.0  0.0  0.0
+
+   # section 2 (multiplicity=2)
+   udprim    supell   rx  2.0   ry  1.0
+   rotatey   90    0.0  0.0
+   udprim    supell   rx  2.0   ry  1.0
+   rotatey   90    0.0  0.0
+
+   # section 3 (multiplicity=2)
+   udprim    supell   rx  2.0   ry  1.0
+   rotatey   90    0.0  0.0
+   translate +1.0  0.0  0.0
+   udprim    supell   rx  2.0   ry  1.0
+   rotatey   90    0.0  0.0
+   translate +1.0  0.0  0.0
+
+   # section 4 (node)
+   skbeg    +2.0   0.0   0.0
+   skend
+blend
+
+catbeg $wrong_types_on_stack
+catend
+
+end

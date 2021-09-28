@@ -1,0 +1,20 @@
+# reload1b
+# written by John Dannenhoffer
+
+despmtr   length  3
+
+# try to load Body (and color it red)
+import reload.egads
+    attribute _color $red
+
+# if we had a problem, build and save for next time (and color it blue)
+catbeg -1
+   box   0  0  0  length  1  1
+       attribute _color $blue
+   dump  reload.egads
+catend
+
+# other Body
+box  length  0  0  1  1  1
+
+end

@@ -1,0 +1,175 @@
+# poly2
+# written by John Dannenhoffer
+
+# design parameters associated with fuselage
+#                      x      y    zmin   zmax
+dimension fuse      15  4  1
+despmtr   fuse     " 1.00; -0.40; -0.20;  0.25;\
+                     2.00; -0.60; -0.30;  0.50;\
+                     3.00; -0.60; -0.30;  0.80;\
+                     4.00; -0.60; -0.30;  1.20;\
+                     5.00; -0.60; -0.20;  1.20;\
+                     6.00; -0.60; -0.10;  1.00;\
+                     7.00; -0.60;  0.00;  0.80;\
+                     8.00; -0.50;  0.00;  0.70;\
+                     9.00; -0.40;  0.00;  0.60;\
+                    10.00; -0.30;  0.00;  0.60;\
+                    11.00; -0.30;  0.00;  0.60;\
+                    12.00; -0.30;  0.00;  0.60;\
+                    13.00; -0.30;  0.00;  0.60;\
+                    13.90; -0.30;  0.00;  0.60;\
+                    14.00; -0.30;  0.00;  0.60;"
+
+dimension  noseList 2  4  1
+despmtr    noseList "0.10; 0; 1; 0;\
+                     0.05; 0; 0; 1"
+
+# design parameters associated with wing
+despmtr   series_w  4409
+
+dimension  wing     3  5  1
+
+#                     x       y      z   chord  angle
+despmtr    wing    " 4.00;  0.00;  0.20;  6.00;  0.00;\
+                     7.00;  1.00;  0.20;  3.00;  0.00;\
+                     9.00;  4.60;  0.10;  1.00; 20.00;"
+
+# design parameters associated with htail
+despmtr   series_h  0406
+despmtr   xroot_h  12.10
+despmtr   zroot_h   0.20
+despmtr   aroot_h   0.00
+despmtr   area_h    7.28
+despmtr   taper_h   0.55
+despmtr   aspect_h  3.70
+despmtr   sweep_h  25.00
+despmtr   dihed_h   3.00
+despmtr   twist_h   2.00
+
+set       cbar_h    sqrt(area_h/aspect_h)
+set       span_h    cbar_h*aspect_h
+set       croot_h   (2*cbar_h)/(taper_h+1)
+set       ctip_h    taper_h*croot_h
+set       xtip_h    xroot_h+(span_h/2)*tand(sweep_h)
+set       ytip_h    span_h/2
+set       ztip_h    zroot_h+(span_h/2)*tand(dihed_h)
+set       atip_h    aroot_h+twist_h
+
+# design parameters associated with vtail
+despmtr   series_v  0404
+despmtr   xroot_v  11.20
+despmtr   zroot_v   0.50
+despmtr   area_v    9.60
+despmtr   taper_v   0.30
+despmtr   aspect_v  3.00
+despmtr   sweep_v  45.00
+
+set       cbar_v    sqrt(area_v/aspect_v)
+set       span_v    cbar_v*aspect_v
+set       croot_v   (2*cbar_v)/(taper_v+1)
+set       ctip_v    taper_v*croot_v
+set       xtip_v    xroot_v+(span_v/2)*tand(sweep_v)
+set       ztip_v    zroot_v+span_v/2
+
+# design parameters associated with outer boundary
+despmtr   oradius   100.0
+
+# build the fuselage
+mark
+
+   skbeg     0  0  0
+   skend
+
+   patbeg    i  15
+      udprim ellipse   ry  abs(fuse[i,2])  rz  (fuse[i,4]-fuse[i,3])/2
+      translate        fuse[i,1]  0            (fuse[i,4]+fuse[i,3])/2
+   patend
+
+blend     noseList
+
+# build the wing
+mark
+
+   udprim    naca      Series    series_w
+   rotatez   -wing[3,5]   0   0
+   rotatex   90           0   0
+   scale     wing[3,4]
+   translate wing[3,1]    -wing[3,2]   wing[3,3]
+
+   udprim    naca      Series    series_w
+   rotatez   -wing[2,5]   0   0
+   rotatex   90           0   0
+   scale     wing[2,4]
+   translate wing[2,1]    -wing[2,2]   wing[2,3]
+
+   udprim    naca      Series    series_w
+   rotatez   -wing[1,5]   0   0
+   rotatex   90           0   0
+   scale     wing[1,4]
+   translate wing[1,1]    wing[1,2]   wing[1,3]
+
+   udprim    naca      Series    series_w
+   rotatez   -wing[2,5]   0   0
+   rotatex   90           0   0
+   scale     wing[2,4]
+   translate wing[2,1]    +wing[2,2]   wing[2,3]
+
+   udprim    naca      Series    series_w
+   rotatez   -wing[3,5]   0   0
+   rotatex   90           0   0
+   scale     wing[3,4]
+   translate wing[3,1]    +wing[3,2]   wing[3,3]
+
+rule
+union
+
+# build the horizontal tail
+mark
+
+   udprim    naca      Series    series_h
+   rotatez   -atip_h   0         0
+   rotatex   90        0         0
+   scale     ctip_h
+   translate xtip_h   -ytip_h    ztip_h
+
+   udprim    naca      Series    series_h
+   rotatez   -aroot_h  0         0
+   rotatex   90        0         0
+   scale     croot_h
+   translate xroot_h   0         zroot_h
+
+   udprim    naca      Series    series_h
+   rotatez   -atip_h   0         0
+   rotatex   90        0         0
+   scale     ctip_h
+   translate xtip_h    ytip_h    ztip_h
+
+rule
+union
+
+# build  the vertical tail
+mark
+
+   udprim    naca      Series    series_v
+   scale     croot_v
+   translate xroot_v   0         zroot_v
+
+   udprim    naca      Series    series_v
+   scale     ctip_v
+   translate xtip_v    0         ztip_v
+
+rule
+union
+
+# outer boundary
+patbeg ifoo ifpos(oradius,1,0)
+   set       xcent     (@xmin+@xmax)/2
+   set       ycent     (@ymin+@ymax)/2
+   set       zcent     (@zmin+@zmax)/2
+
+   sphere    xcent     ycent     zcent     oradius
+
+   udprim    createPoly  filename  $poly2.poly
+patend
+
+end

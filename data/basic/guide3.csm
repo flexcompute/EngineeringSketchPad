@@ -1,0 +1,53 @@
+# guide3
+# written by John Dannenhoffer
+
+despmtr   rad   2.0
+despmtr   dx    3.0
+
+# constant cross-section
+skbeg       0.0  0.5  -.5
+   linseg   0.0  -.5  -.5
+   linseg   0.0  -.5  0.0
+   cirarc   0.0  0.0  0.5  0.0  0.5  0.0
+   linseg   0.0  0.5  -.5
+skend
+store     xsect
+restore   xsect
+
+# guide curve
+skbeg     -3*dx          0.0               0.0
+   spline -2*dx          0.0               0.0
+   spline -1*dx          0.0               0.0
+   spline  0.0           0.0               0.0
+   spline  rad*sind(30)  rad*(1-cosd(30))  0.0
+   spline  rad*sind(60)  rad*(1-cosd(60))  0.0
+   spline  rad           rad               0.0
+skend
+
+# normal-type sweep
+#--- udprim    sweep     normal "0;0;0"            # sketch point to move to beg of guide curve
+
+mark
+   restore   xsect
+   translate -3*dx  0.0  0.0
+
+   restore   xsect
+   translate -2*dx  0.0  0.0
+
+   restore   xsect
+   translate -1*dx  0.0  0.0
+
+   restore   xsect
+
+   restore   xsect
+   rotatez   30     0.0  rad
+
+   restore   xsect
+   rotatez   60     0.0  rad
+
+   restore   xsect
+   rotatez   90     0.0  rad
+
+# blend
+
+end

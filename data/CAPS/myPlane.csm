@@ -1,0 +1,305 @@
+# simple airplane (fuselage, wing, htail, vtail)
+# written by John Dannenhoffer
+
+# global attributes
+attribute capsLength     $ft
+attribute capsForce      $lb
+attribute capsIntent     $CFD
+
+# global parameter
+#         intent   =1 for simple beam model
+#                  =2 for camber sheet and wake
+#                  =3 for outer moldline
+#                  =4 for AVL model
+#                  =5 for built-up element model
+despmtr   intent    3
+despmtr   farfield  0
+
+# fuselage design Parameters
+despmtr                      fuselage:numXsect 6
+dimension fuselage:xloc      fuselage:numXsect 1 1
+dimension fuselage:zloc      fuselage:numXsect 1 1
+dimension fuselage:width     fuselage:numXsect 1 1
+dimension fuselage:height    fuselage:numXsect 1 1
+dimension fuselage:noselist  2                 4 1
+dimension fuselage:taillist  2                 4 1
+
+despmtr   fuselage:xloc      "0;  1.0;  4.0;  8.0;  12.0;  16.0"
+despmtr   fuselage:zloc      "0;  0.1;  0.4;  0.4;   0.3;   0.2"
+despmtr   fuselage:width     "0;  1.0;  1.6;  1.6;   1.0;   0.8"
+despmtr   fuselage:height    "0;  1.0;  2.0;  2.0;   1.2;   0.4"
+despmtr   fuselage:noselist  "0.1; 0; 1; 0;\
+                              0.1; 0; 0; 1;"
+despmtr   fuselage:taillist  "0.0; 0; 1; 0;\
+                              0.0; 0; 0; 1"
+
+# wing design parameters
+despmtr   wing:xloc      4.0
+despmtr   wing:zloc      0.2
+despmtr   wing:area      100
+despmtr   wing:aspect    7
+despmtr   wing:taper     0.6
+despmtr   wing:twist     -5.0
+despmtr   wing:sweep     10.0
+despmtr   wing:dihedral  5.0
+despmtr   wing:thickness 0.12
+despmtr   wing:sharpte   0
+despmtr   wing:camber    0.04
+despmtr   wing:inboard   0.50
+despmtr   wing:outboard  0.80
+despmtr   wing:pctchord  0.75
+despmtr   wing:angleft   -10
+despmtr   wing:angrite   +10
+
+# horizontal tail design parmeters
+despmtr   htail:xloc      14.0
+despmtr   htail:zloc      0.2
+despmtr   htail:area      10
+despmtr   htail:aspect    4
+despmtr   htail:taper     0.8
+despmtr   htail:twist     0.0
+despmtr   htail:sweep     10.0
+despmtr   htail:thickness 0.10
+despmtr   htail:sharpte   0
+despmtr   htail:camber    0.00
+despmtr   htail:camber    0.00
+despmtr   htail:inboard   0.20
+despmtr   htail:outboard  0.90
+despmtr   htail:pctchord  0.60
+despmtr   htail:deflect   -10
+
+# vertical tail design parameters
+despmtr   vtail:xloc      13.5
+despmtr   vtail:zloc      0.1
+despmtr   vtail:area      10
+despmtr   vtail:aspect    3
+despmtr   vtail:taper     0.5
+despmtr   vtail:twist     0.0
+despmtr   vtail:sweep     30.0
+despmtr   vtail:thickness 0.10
+despmtr   vtail:sharpte   0
+despmtr   vtail:camber    0.00
+despmtr   vtail:inboard   0.20
+despmtr   vtail:outboard  0.95
+despmtr   vtail:pctchord  0.50
+despmtr   vtail:deflect   0.00
+
+# engine parameters
+despmtr   engine:diameter  1
+despmtr   engine:length    3.0
+despmtr   engine:thickness 0.05
+despmtr   engine:camber    0.04
+despmtr   engine:dx       -.50
+despmtr   engine:pctspan  0.40
+despmtr   engine:dz       0.30
+
+# strut parameters
+despmtr   strut:dx        0.40
+despmtr   strut:length    1.00
+despmtr   strut:thickness 0.25
+despmtr   strut:sweep     45
+
+# farfield variables
+despmtr   farfield:xmin   -200
+despmtr   farfield:xmax   +220
+despmtr   farfield:ymin   -200
+despmtr   farfield:ymax   +200
+despmtr   farfield:zmin   -200
+despmtr   farfield:zmax   +200
+
+############################################################
+
+# fuselage
+udparg    $$/fuselage  intent    intent
+udparg    $$/fuselage  xloc      fuselage:xloc
+udparg    $$/fuselage  zloc      fuselage:zloc
+udparg    $$/fuselage  width     fuselage:width
+udparg    $$/fuselage  height    fuselage:height
+udparg    $$/fuselage  noselist  fuselage:noselist
+udparg    $$/fuselage  taillist  fuselage:taillist
+udprim    $$/fuselage
+
+# wing
+udparg    $$/wing     intent    intent
+udparg    $$/wing     mirror    1
+udparg    $$/wing     area      wing:area
+udparg    $$/wing     aspect    wing:aspect
+udparg    $$/wing     taper     wing:taper
+udparg    $$/wing     twist     wing:twist
+udparg    $$/wing     sweep     wing:sweep
+udparg    $$/wing     dihedral  wing:dihedral
+udparg    $$/wing     thickness wing:thickness
+udparg    $$/wing     sharpte   wing:sharpte
+udparg    $$/wing     camber    wing:camber
+udparg    $$/wing     inboard   wing:inboard
+udparg    $$/wing     outboard  wing:outboard
+udparg    $$/wing     pctchord  wing:pctchord
+udparg    $$/wing     angleft   wing:angleft
+udparg    $$/wing     angrite   wing:angrite
+udprim    $$/wing     ID        1
+
+set       wingspan    @@span
+
+translate wing:xloc  0  wing:zloc
+ifthen intent eq 3
+   union
+endif
+
+# horizontal tail
+udparg    $$/wing     intent    intent
+udparg    $$/wing     mirror    1
+udparg    $$/wing     area      htail:area
+udparg    $$/wing     aspect    htail:aspect
+udparg    $$/wing     taper     htail:taper
+udparg    $$/wing     twist     htail:twist
+udparg    $$/wing     sweep     htail:sweep
+udparg    $$/wing     thickness htail:thickness
+udparg    $$/wing     sharpte   htail:sharpte
+udparg    $$/wing     camber    htail:camber
+udparg    $$/wing     inboard   htail:inboard
+udparg    $$/wing     outboard  htail:outboard
+udparg    $$/wing     pctchord  htail:pctchord
+udparg    $$/wing     angleft   htail:deflect
+udparg    $$/wing     angrite   htail:deflect
+udprim    $$/wing     ID        3
+
+translate htail:xloc  0  htail:zloc
+ifthen intent eq 3
+    union
+endif
+
+# vertical tail
+udparg    $$/wing     intent    intent
+udparg    $$/wing     area      vtail:area
+udparg    $$/wing     aspect    vtail:aspect
+udparg    $$/wing     taper     vtail:taper
+udparg    $$/wing     twist     vtail:twist
+udparg    $$/wing     sweep     vtail:sweep
+udparg    $$/wing     thickness vtail:thickness
+udparg    $$/wing     sharpte   vtail:sharpte
+udparg    $$/wing     camber    vtail:camber
+udparg    $$/wing     inboard   vtail:inboard
+udparg    $$/wing     outboard  vtail:outboard
+udparg    $$/wing     pctchord  vtail:pctchord
+udparg    $$/wing     angrite   vtail:deflect
+udprim    $$/wing     ID        5
+
+rotatex   90  0  0
+translate vtail:xloc  0 vtail:zloc
+ifthen intent eq 3
+   union
+endif
+
+# engines and pylons
+set       yengine  engine:pctspan*wingspan/2
+set       xengine  wing:xloc+yengine*sind(wing:sweep)+engine:dx
+set       zengine  wing:zloc+yengine*sind(wing:dihedral)-engine:diameter/2-engine:dz
+
+set       ypylon  engine:pctspan*wingspan/2
+set       xpylon  wing:xloc+ypylon*sind(wing:sweep)+strut:dx
+set       zpylon  wing:zloc+ypylon*sind(wing:dihedral)-engine:dz/2
+
+# left pylon
+udparg    $$/strut    intent    intent
+udparg    $$/strut    length    strut:length
+udparg    $$/strut    thickness strut:thickness
+udparg    $$/strut    sweep     strut:sweep
+udparg    $$/strut    height    5*engine:dz
+udprim    $$/strut    ID        5.5
+
+ifthen intent eq 3
+   translate xpylon  -ypylon  zpylon
+
+   dimension trimList 2 3 0
+   set       trimList[1,1]  +xpylon
+   set       trimList[1,2]  -ypylon
+   set       trimList[1,3]  +zpylon
+   set       trimList[2,1]  +sind(strut:sweep)*0.01
+   set       trimList[2,2]  +cosd(strut:sweep)*0.01
+   set       trimList[2,3]   0
+   union  0  trimList
+endif
+
+# left fan shroud
+udparg    $$/duct     intent    intent
+udparg    $$/duct     diameter  engine:diameter
+udparg    $$/duct     length    engine:length/2
+udparg    $$/duct     thickness engine:thickness
+udparg    $$/duct     camber    engine:camber
+udprim    $$/duct     ID        6
+translate xengine  -yengine  zengine
+
+ifthen intent eq 3
+   union  0  trimList
+endif
+
+# right pylon
+udparg    $$/strut    intent    intent
+udparg    $$/strut    length    strut:length
+udparg    $$/strut    thickness strut:thickness
+udparg    $$/strut    sweep     strut:sweep
+udparg    $$/strut    height    5*engine:dz
+udprim    $$/strut    ID        5.5
+
+ifthen intent eq 3
+   translate xpylon  -ypylon  zpylon
+   mirror    0  1  0  0
+
+   set       trimList[1,1]  +xpylon
+   set       trimList[1,2]  +ypylon
+   set       trimList[1,3]  +zpylon
+   set       trimList[2,1]  +sind(strut:sweep)*0.01
+   set       trimList[2,2]  +cosd(strut:sweep)*0.01
+   set       trimList[2,3]   0
+   union  0  trimList
+endif
+
+# right fan shroud
+udparg    $$/duct     intent    intent
+udparg    $$/duct     diameter  engine:diameter
+udparg    $$/duct     length    engine:length/2
+udparg    $$/duct     thickness engine:thickness
+udparg    $$/duct     camber    engine:camber
+udprim    $$/duct     ID        6
+translate xengine  -yengine  zengine
+mirror    0  1  0  0
+
+ifthen intent eq 3
+   union  0  trimList
+endif
+
+# set grid spacing parameters for SU2
+dimension tparams  1 3 0
+set       tparams  "0.225;0.030;8;"
+select body
+   attribute .tParams tparams
+store     foo
+restore   foo
+   attribute capsGroup $glider
+
+# make spacing finer on blunt base
+set       tparams  "0.100;0.100;8;"
+select face 1
+   attribute .tParams tparams
+
+# get bounding box info
+set       xmin      @xmin
+set       xmax      @xmax
+set       ymin      @ymin
+set       ymax      @ymax
+set       zmin      @zmin
+set       zmax      @zmax
+
+# farfield box
+set  dx   farfield:xmax-farfield:xmin
+set  dy   farfield:ymax-farfield:ymin
+set  dz   farfield:zmax-farfield:zmin
+ifthen intent eq 3 and dx gt 0
+   ifthen dy gt 0 and dz gt 0
+      box  farfield:xmin  farfield:ymin  farfield:zmin  dx  dy  dz
+         attribute capsGroup $Farfield
+         attribute .tParams 21.0 0.2 15.0
+   endif
+endif
+
+end

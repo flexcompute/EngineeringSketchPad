@@ -1,0 +1,60 @@
+# OrionLEV
+# written by John Dannenhoffer
+
+# main body
+skbeg         0        0         0
+   cirarc    35       97         0       108       146         0
+   linseg  1100      410         0
+   linseg  6040      393         0
+   cirarc  6085      411         0      6138       476         0
+   linseg  8150      465         0
+   linseg 11460     1200         0
+   cirarc 13050     2088         0     15032     2670          0
+   linseg 15477     2361         0
+   cirarc 15810     1310         0     15957         0         0
+   linseg     0        0         0
+skend
+revolve       0        0         0   1  0  0       360
+
+# ejection nozzles (each in two pieces)
+patbeg i 4
+   skbeg            5750       100         0
+      linseg        5925       100         0
+      linseg        5925       700         0
+      linseg        5750       700         0
+      linseg        5750       100         0
+   skend
+   revolve          5750       200         0   0  1  0       360
+
+   skbeg            5750       700         0
+      linseg        5925       700         0
+      linseg        5925       900         0
+      linseg        5950       900         0
+      linseg        5950       950         0
+      linseg        5925       950         0
+      linseg        5925      1000         0
+      linseg        6100      1300         0
+      linseg        6050      1300         0
+      linseg        5880      1000         0
+      linseg        5750      1000         0
+      linseg        5750       700         0
+   skend
+   revolve          5750       200         0   0  1  0       360
+
+   union
+   rotatez           -45      5750       460
+   rotatex          68+i*90      0         0
+   union
+patend
+
+# steering motors
+patbeg i 8
+   cylinder         1345       380         0      1345       415         0        45
+      attribute  cyl_imax              13
+      attribute  cyl_jmax              13
+      attribute  cyl_kmax               9
+   rotatex          i*45         0         0
+   subtract
+patend
+
+end

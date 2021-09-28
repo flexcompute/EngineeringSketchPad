@@ -1,0 +1,26 @@
+# diamondNaca6
+# written by John Dannenhoffer
+
+mark
+   udprim    $$/diamond thick  0.10
+   translate 0.0        0.0    1.00
+
+   # NACA 64A212
+   udparg    naca456 thkcode $64A
+   udparg    naca456 toc     0.12
+   udparg    naca456 camcode $6M
+   udparg    naca456 cl      0.20
+   udparg    naca456 a       0.80
+   udprim    naca456
+
+   # cut airfoil at mid-chord
+   udprim    box     dy  2.0  dz  2.0
+   translate 0.5  1.0  0.0
+   subtract
+
+   udprim    box     dy  2.0  dz  2.0
+   translate 0.5 -1.0  0.0
+   subtract
+rule
+
+end

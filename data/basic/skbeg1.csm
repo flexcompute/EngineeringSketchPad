@@ -1,0 +1,18 @@
+# skbeg1 (absolute)
+# written by John Dannenhoffer
+
+despmtr   xbeg   +5.0
+despmtr   ybeg   -2.0
+despmtr   zbeg   -3.0
+
+skbeg     xbeg   ybeg   zbeg
+   linseg +6.0   -2.0   -3.0
+   arc    +7.0   -2.0   -3.0   +0.5
+   cirarc +8.0   -1.0   -3.0   +7.0   0.0  -3.0
+   bezier +6.0    0.0   -3.0
+   bezier +5.0   -1.0   -3.0
+   bezier xbeg   ybeg   zbeg
+skend
+extrude   0      0      1
+
+end

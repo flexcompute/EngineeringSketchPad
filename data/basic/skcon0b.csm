@@ -1,0 +1,21 @@
+# skcon0b
+# written by John Dannenhoffer
+
+despmtr   xbase     0.1
+despmtr   ybase     0.2
+despmtr   zbase     0.3
+despmtr   width     2.0
+despmtr   height    1.0
+
+skbeg     xbase  ybase  zbase
+   skvar  xy  " 0.1;  0.2;  0.0;\
+                2.0;  0.0;  0.0;\
+                2.0;  1.0;  0.0;\
+                0.0;  1.0;  0.0;"
+
+   linseg ::x[2]  ::y[2]  ::z[2]
+   linseg ::x[3]  ::y[3]  ::z[3]
+   linseg ::x[4]  ::y[4]  ::z[4]
+skend
+
+end

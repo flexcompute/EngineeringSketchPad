@@ -1,0 +1,97 @@
+# fin2a
+# written by John Dannenhoffer
+
+# number of times that FinTiles are replicated
+despmtr   imax  1
+despmtr   jmax  1
+despmtr   kmax  1
+
+# upper air tube (air passages rendered red)
+skbeg     0.20      1.00      0  
+   cirarc 0.50      0.70      0         0.80      1.00      0
+   linseg 0.70      1.00      0  
+   cirarc 0.50      0.80      0         0.30      1.00      0
+   linseg 0.20      1.00      0  
+skend
+extrude   0.0       0.0       1.0
+   attribute _color $red
+
+# upper plate
+box       0.0       0.595     0.0       1.0       0.11      1.0
+   select face @nbody 4       # airside
+   attribute _color $red
+   select face @nbody 3       # liquidside
+   attribute _color $blue
+union
+
+# liquid tubes (liquid passages rendered blue)
+skbeg     0         0.60      0.00
+   cirarc 0         0.40      0.20      0         0.60      0.40
+   linseg 0         0.60      0.35
+   cirarc 0         0.45      0.20      0         0.60      0.05
+   linseg 0         0.60      0.00
+skend
+extrude   1.0       0.0       0.0
+   attribute _color $blue
+union
+
+skbeg     0         0.40      0.90
+   cirarc 0         0.60      0.70      0         0.40      0.50
+   linseg 0         0.40      0.55
+   cirarc 0         0.55      0.70      0         0.40      0.85
+   linseg 0         0.40      0.90
+skend
+extrude   1.0       0.0       0.0
+   attribute _color $blue
+union
+
+# lower plate
+box       0.0       0.295     0.0       1.0       0.11      1.0
+   select face @nbody 3       # liquidside
+   attribute _color $red
+   select face @nbody 4       # airside
+   attribute _color $blue
+union
+
+# lower air tubes (air passages rendered red)
+skbeg     0.00      0.20      0  
+   cirarc 0.14      0.14      0         0.20      0.00      0
+   linseg 0.30      0.00      0  
+   cirarc 0.21      0.21      0         0.00      0.30      0
+   linseg 0.00      0.20      0  
+skend
+extrude   0.0       0.0       1.0
+   attribute _color $red
+union
+
+skbeg     1.00      0.20      0   
+   cirarc 0.86      0.14      0         0.80      0.00      0
+   linseg 0.70      0.00      0  
+   cirarc 0.79      0.21      0         1.00      0.30      0
+   linseg 1.00      0.20      0  
+skend
+extrude   0.0       0.0       1.0
+   attribute _color $red
+union
+
+store     FinTile
+
+# replicate the FinTile
+ifthen imax*jmax*kmax gt 1
+   mark
+endif
+   
+patbeg              i   imax
+   patbeg           j   jmax
+      patbeg        k   kmax
+         restore    FinTile
+         translate  (i-1)  (j-1)  (k-1)
+      patend
+   patend
+patend
+   
+ifthen imax*jmax*kmax gt 1
+   union 1
+endif
+
+end

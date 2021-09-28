@@ -1,0 +1,42 @@
+# ganged1b
+# written by John Dannenhoffer
+
+# spine
+CYLINDER  -5.0  0.0  0.0  5.0  0.0  0.0  0.5
+   ATTRIBUTE _color $red
+
+# ten trunks
+PATBEG    itrunk  10
+   MARK
+
+   SET    X       itrunk-5.5
+   CYLINDER  X  -5.0  0  X  +5.0  0  0.3
+      ATTRIBUTE _color $green
+
+   # branches
+   PATBEG    ibrch  4
+       MARK
+          UDPRIM    supell  rx  0.1  ry  0.1
+          TRANSLATE X  -ibrch  -4.0
+          UDPRIM    supell  rx  0.1  ry  0.1
+          TRANSLATE X  -ibrch  +4.0
+       RULE
+          ATTRIBUTE _color $magenta
+#       UNION
+
+       MARK
+          UDPRIM    supell  rx  0.1  ry  0.1
+          TRANSLATE X  +ibrch  -4.0
+          UDPRIM    supell  rx  0.1  ry  0.1
+          TRANSLATE X  +ibrch  +4.0
+       RULE
+          ATTRIBUTE _color $cyan
+#      UNION
+   PATEND
+   UDPRIM    ganged   op  $UNION
+
+#   UNION
+PATEND
+UDPRIM    ganged   op  $UNION
+
+END

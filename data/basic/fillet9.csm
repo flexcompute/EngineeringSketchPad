@@ -1,0 +1,7 @@
+# fillet9
+# written by John Dannenhoffer
+
+box 0 0 0 1 1 1
+fillet 0.2 4;6;2;4;2;6;3;6
+
+end

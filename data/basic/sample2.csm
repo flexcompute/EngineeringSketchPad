@@ -1,0 +1,30 @@
+# sample2
+# written by John Dannenhoffer
+
+despmtr   DX   4.0
+despmtr   DY   2.0
+despmtr   DZ   5.0
+
+# plate in XY plane
+udprim    sample   dx  DX  dy  DY
+extrude    0      0     DZ
+translate  0      0    -DZ/2
+translate -2.5   -2.5   0
+
+# plate in YZ plane
+udprim    sample   dy  DY  dz  DZ
+extrude    DX     0     0
+translate -DX/2   0     0
+translate +2.5   -2.5   0
+
+# plate in ZX plane
+udprim    sample   dz  DZ  dx  DX
+extrude    0      DY    0
+translate  0     -DY/2  0
+translate -2.5   +2.5   0
+
+# box
+udprim    sample   dx  DX  dy  DY  dz  DZ
+translate +2.5   +2.5   0
+
+end

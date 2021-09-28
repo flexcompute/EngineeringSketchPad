@@ -1,0 +1,17 @@
+Begin SNOPT Options 
+
+   Cold Start
+   Verify level                -1
+   Difference interval          1.0e-2
+   Derivative level             3
+   Linesearch tolerance         0.99
+   Function precision           1.0e-4
+   Major iterations limit       8        * number of search dirs
+   Major step limit             1.0
+   System information           Yes
+   Minor print level            10
+   Major optimality tolerance   1.0e-6   * gradients to be driven below this target
+   Major feasibility tolerance  1.0e-4   * nonlinear constraints 
+   Hessian full memory
+
+End                                              

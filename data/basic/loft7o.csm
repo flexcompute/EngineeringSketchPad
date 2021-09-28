@@ -1,0 +1,20 @@
+# loft7o (open tube, non-planar faces)
+# written by John Dannenhoffer
+
+mark
+   skbeg     -1.9  +1  -1
+      linseg -2.1  -1  -1
+      linseg -1.9  -1  +1
+      linseg -2.1  +1  +1
+      linseg -1.9  +1  -1
+   skend 1
+
+   skbeg     +2.1  +1  -2
+      linseg +1.9  -1  -2
+      linseg +2.1  -1  +2
+      linseg +1.9  +1  +2
+      linseg +2.1  +1  -2
+   skend 1
+loft 1
+
+end

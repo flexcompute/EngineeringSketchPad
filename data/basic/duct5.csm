@@ -1,0 +1,95 @@
+# duct5
+# written by John Dannenhoffer
+
+# size of small "almost-degenerate" faux-chamfers
+CFGPMTR   EPS   0.00001
+
+MARK
+   # section with rounded corners
+   SKBEG     -5.0  0.0    2.0
+      LINSEG -5.0  0.0   -2.0
+      LINSEG -5.0  1.0   -2.0
+      CIRARC -5.0  1.7   -1.7 -5.0  2.0  -1.0
+      LINSEG -5.0  2.0    1.0
+      CIRARC -5.0  1.7    1.7 -5.0  1.0   2.0
+      LINSEG -5.0  0.0    2.0
+   SKEND
+
+   # section with rounded corners
+   SKBEG     -3.0  0.0    2.0
+      LINSEG -3.0  0.0   -2.0
+      LINSEG -3.0  1.0   -2.0
+      CIRARC -3.0  1.7   -1.7 -3.0  2.0  -1.0
+      LINSEG -3.0  2.0    1.0
+      CIRARC -3.0  1.7    1.7 -3.0  1.0   2.0
+      LINSEG -3.0  0.0    2.0
+   SKEND
+
+   # section with very small faux-chamfers
+   SKBEG     -1.0  0.0    2.0
+      LINSEG -1.0  0.0   -2.0
+      LINSEG -1.0  2-EPS -2.0
+      LINSEG -1.0  2.0   -2+EPS
+      LINSEG -1.0  2.0    2-EPS
+      LINSEG -1.0  2-EPS  2.0
+      LINSEG -1.0  0.0    2.0
+   SKEND
+RULE
+
+MARK
+   # section without corner treatment
+   SKBEG     -1.0  0.0    2.0
+      LINSEG -1.0  0.0   -2.0
+      LINSEG -1.0  2.0   -2.0
+      LINSEG -1.0  2.0    2.0
+      LINSEG -1.0  0.0    2.0
+   SKEND
+
+   # section without corner treatment
+   SKBEG      1.0  0.0    2.0
+      LINSEG  1.0  0.0   -2.0
+      LINSEG  1.0  2.0   -2.0
+      LINSEG  1.0  2.0    2.0
+      LINSEG  1.0  0.0    2.0
+   SKEND
+RULE
+
+# this UNION is purposely sloppy to join 4 Edge and 6 Edge Loops
+UNION 0 0 EPS
+
+MARK
+   # section with very small faux-chamfers
+   SKBEG      1.0  0.0    2.0
+      LINSEG  1.0  0.0   -2.0
+      LINSEG  1.0  2-EPS -2.0
+      LINSEG  1.0  2.0   -2+EPS
+      LINSEG  1.0  2.0    2-EPS
+      LINSEG  1.0  2-EPS  2.0
+      LINSEG  1.0  0.0    2.0
+   SKEND
+
+   # section with chamfered corners
+   SKBEG      3.0  0.0    2.0
+      LINSEG  3.0  0.0   -2.0
+      LINSEG  3.0  1.0   -2.0
+      LINSEG  3.0  2.0   -1.0
+      LINSEG  3.0  2.0    1.0
+      LINSEG  3.0  1.0    2.0
+      LINSEG  3.0  0.0    2.0
+   SKEND
+
+   # section with chamfered corners
+   SKBEG      5.0  0.0    2.0
+      LINSEG  5.0  0.0   -2.0
+      LINSEG  5.0  1.0   -2.0
+      LINSEG  5.0  2.0   -1.0
+      LINSEG  5.0  2.0    1.0
+      LINSEG  5.0  1.0    2.0
+      LINSEG  5.0  0.0    2.0
+   SKEND
+RULE
+
+# this UNION is purposely sloppy to join 4 Edge and 6 Edge Loops
+UNION 0 0 EPS
+
+END

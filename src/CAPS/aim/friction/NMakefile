@@ -1,0 +1,49 @@
+#
+!IFNDEF ESP_ROOT
+!ERROR ESP_ROOT must be set -- Please fix the environment...
+!ENDIF
+#
+IDIR = $(ESP_ROOT)\include
+!include $(IDIR)\$(ESP_ARCH).$(MSVC)
+LDIR = $(ESP_ROOT)\lib
+!IFDEF ESP_BLOC
+ODIR = $(ESP_BLOC)\obj
+TDIR = $(ESP_BLOC)\test
+!ELSE
+ODIR = .
+TDIR = $(ESP_ROOT)\bin
+!ENDIF
+
+!IFDEF EFCOMP
+default:	$(LDIR)\frictionAIM.dll $(TDIR)\friction.exe
+!ELSE
+default:	$(LDIR)\frictionAIM.dll
+!ENDIF
+
+
+$(LDIR)\frictionAIM.dll:	frictionAIM.def $(ODIR)\frictionAIM.obj $(LDIR)\utils.lib
+	-del $(LDIR)\frictionAIM.dll $(LDIR)\frictionAIM.lib \
+		$(LDIR)\frictionAIM.exp
+	link /out:$(LDIR)\frictionAIM.dll /dll /def:frictionAIM.def \
+		$(ODIR)\frictionAIM.obj /LIBPATH:$(LDIR) utils.lib aimUtil.lib \
+		ocsm.lib egads.lib udunits2.lib
+	$(MCOMP) /manifest $(LDIR)\frictionAIM.dll.manifest \
+		/outputresource:$(LDIR)\frictionAIM.dll;2
+
+$(ODIR)\frictionAIM.obj:	frictionAIM.c $(IDIR)\capsTypes.h
+	cl /c $(COPTS) $(DEFINE) /I$(IDIR) /I..\utils frictionAIM.c \
+		/Fo$(ODIR)\frictionAIM.obj
+
+$(TDIR)\friction.exe:	$(ODIR)\friction.obj
+	ifort /Fe$(TDIR)\friction.exe $(ODIR)\friction.obj $(FLIBS)
+
+$(ODIR)\friction.obj:	friction_eja_mod.f
+	ifort /c $(FOPTS) friction_eja_mod.f /Fo$(ODIR)\friction.obj
+
+clean:
+	-del $(ODIR)\frictionAIM.obj
+
+cleanall:	clean
+	-del $(LDIR)\frictionAIM.dll $(LDIR)\frictionAIM.lib \
+		$(LDIR)\frictionAIM.exp
+	-del $(TDIR)\friction.exe

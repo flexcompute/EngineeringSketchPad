@@ -1,0 +1,29 @@
+# showHistory
+# written by John Dannenhoffer
+
+# load initial case
+IMPORT          plugs_-1_0.egads
+ATTRIBUTE _name $plugs_-1_0.egads
+
+# get files for all passes and iterations
+PATBEG    ipass  100
+   PATBEG    iter  100
+
+      SET    filename  $plugs_+(ipass-1)+$_+(iter-1)+$.egads
+
+      IMPORT         !filename
+      ATTRIBUTE _name filename
+
+      # ran out of iterations for this pass
+      CATBEG -1
+         PATBREAK 1
+      CATEND
+   PATEND
+
+   # ran out of passes
+   CATBEG -1
+      PATBREAK 1
+   CATEND
+PATEND
+
+END

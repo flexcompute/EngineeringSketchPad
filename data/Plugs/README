@@ -1,0 +1,19 @@
+For any configuration number (such as 3):
+
+1. create a tessellation file for the baseline configuration:
+
+   serveCSM ../data/plugs/plugs3a -egg PDT2
+
+2. manually create the .cloud file:
+
+   cp ./plugs3.tess ../data/plugs/plugs3.cloud
+   edit ../data/plugs/plugs3.cloud
+
+3. run the baseline case to make sure nothing changes:
+
+   serveCSM ../data/plugs/plugs3a -plugs 25 -plot ../data/plugs/plugs3.cloud -jrnl ../data/plugs/buildFinal.jrnl -batch -verify
+
+4. run other cases (which have perturbed initial DESPMTRS) to test optimizer:
+
+   serveCSM ../data/plugs/plugs3b -plugs 25 -plot ../data/plugs/plugs3.cloud -jrnl ../data/plugs/buildFinal.jrnl -batch -verify
+

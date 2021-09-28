@@ -1,0 +1,42 @@
+# flend1b
+# written by John Dannenhoffer
+
+# left body
+SKBEG     -2.0  -1.0  -1.0
+   LINSEG  0.0  -1.0  -1.0
+   LINSEG -0.5  +1.0  -1.0
+   LINSEG -2.0  +1.0  -1.0
+   LINSEG -2.0  -1.0  -1.0
+SKEND
+EXTRUDE    0.0   0.0   2.0
+SELECT    FACE  7  4
+   ATTRIBUTE _flend $remove
+STORE     bodyL
+
+# rite body
+SKBEG     +0.5  -1.0  -1.0
+   LINSEG +2.0  -1.0  -1.0
+   LINSEG +2.0  +1.0  -1.0
+   LINSEG +0.0  +1.0  -1.0
+   LINSEG +0.5  -1.0  -1.0
+SKEND
+EXTRUDE    0.0   0.0   2.0
+SELECT    FACE  14  6
+   ATTRIBUTE _flend $remove
+STORE     bodyR
+
+# generate the flend
+MARK
+   RESTORE   bodyR
+   SELECT    face $_flend $*
+      ATTRIBUTE _color $magenta
+
+   RESTORE   bodyL
+   SELECT    face $_flend $*
+      ATTRIBUTE _color $magenta
+UDPRIM    flend
+
+SELECT    face @nbody 0
+   ATTRIBUTE _color $cyan
+
+END

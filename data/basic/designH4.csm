@@ -1,0 +1,25 @@
+# designH4
+# written by John Dannenhoffer
+
+CFGPMTR X 0
+DESPMTR Y 2
+DESPMTR Z 1
+
+BOX 0 0 0 1 5 3
+BOX X Y Z 5 1 1
+UNION
+
+# do not check entities where analytic and finite difference are expected to disagree
+SELECT    FACE  2  1
+   ATTRIBUTE     _sensCheck $skip
+UDPRIM    editAttr  filename  <<
+   EDGE ADJ2FACE _sensCheck=skip
+   SET           _sensCheck=skip
+
+   NODE ADJ2FACE _sensCheck=skip
+   SET           _sensCheck=skip
+>>
+SELECT    FACE  1  1
+   ATTRIBUTE     _sensCheck $skip
+
+END

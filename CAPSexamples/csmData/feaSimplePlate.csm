@@ -1,0 +1,24 @@
+
+# Design Parameters:
+despmtr   plateLength       0.50000
+despmtr   plateWidth        0.25000
+
+attribute capsAIM $nastranAIM;astrosAIM;mystranAIM;hsmAIM
+
+# Branches:
+skbeg     0   0   0
+   linseg    plateLength   0   0
+skend     0
+extrude   0   plateWidth   0
+attribute capsGroup   $plate
+attribute capsLoad   $plate
+
+ 
+patbeg    i  4
+   select edge i 
+   attribute capsConstraint $plateEdge
+   select node i 
+   attribute capsConstraint $plateEdge
+patend
+
+end

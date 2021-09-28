@@ -1,0 +1,64 @@
+# waffle9b
+# written by John Dannenhoffer
+
+DESPMTR   L1        10.0      # length of inboard  section
+DESPMTR   L2        20.0      # length of outboard section
+DESPMTR   theta     65.0      # break angle (deg)
+DESPMTR   chord      5.0      # chord length
+DESPMTR   thick      2.0      # depth (in z direction)
+DESPMTR   spar1     0.25      # fraction chord for spar 1
+DESPMTR   spar2     0.80      # fraction chord for spar 2
+CFGPMTR   n1        4         # number of inboard  ribs
+CFGPMTR   n2        8         # number of outboard ribs
+
+# inboard waffle
+UDPRIM    waffle   filename $$/waffle9b.txt1   depth thick
+TRANSLATE 0.0  0.0  -thick/2
+STORE     inboard
+
+# break waffle
+UDPRIM    waffle   filename $$/waffle9b.txt2   depth thick
+UDPRIM    nuscale  zscale  1/cosd(theta/2)   zcent  thick/2
+TRANSLATE 0.0      L1   -thick/2
+ROTATEX   theta/2  L1   0.0
+STORE     break
+
+# outboard waffle
+UDPRIM    waffle   filename $$/waffle9b.txt3   depth thick
+TRANSLATE 0.0      L1   -thick/2
+ROTATEX   theta    L1   0.0
+STORE     outboard
+
+# connect the inboard and break waffles
+RESTORE   inboard
+SELECT    EDGE    spar1*chord  L1*(n1-1)/n1  0    # select by location
+SET       edge11  @iedge
+SELECT    EDGE    spar2*chord  L1*(n1-1)/n1  0
+SET       edge12  @iedge
+
+RESTORE   break
+SELECT    EDGE    spar1*chord  L1            0
+SET       edge21  @iedge
+SELECT    EDGE    spar2*chord  L1            0
+SET       edge22  @iedge
+
+CONNECT   0   0  edge11;edge12  edge21;edge22
+
+# connect the outboard and break waffles
+SELECT    EDGE    spar1*chord  L1            0
+SET       edge11  @iedge
+SELECT    EDGE    spar2*chord  L1            0
+SET       edge12  @iedge
+
+SET       yy      L1+L2/n2*cosd(theta)
+SET       zz         L2/n2*sind(theta)
+
+RESTORE   outboard
+SELECT    EDGE    spar1*chord  yy            zz
+SET       edge21  @iedge
+SELECT    EDGE    spar2*chord  yy            zz
+SET       edge22  @iedge
+
+CONNECT   0   0  edge11;edge12  edge21;edge22
+
+END

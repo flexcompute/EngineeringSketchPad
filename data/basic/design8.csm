@@ -1,0 +1,14 @@
+# design8
+# written by John Dannenhoffer
+
+# default design parameters
+despmtr   xcent     0
+despmtr   ycent     0
+despmtr   zcent     0
+despmtr   L         3
+despmtr   H         2
+despmtr   W         1
+
+box       xcent-L/2  ycent-H/2  zcent-W/2  L  H  W
+
+end

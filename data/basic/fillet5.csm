@@ -1,0 +1,10 @@
+# fillet5
+# written by John Dannenhoffer
+
+box            -1.00     -1.00     -1.00      2.00      2.00      2.00
+
+dimension edgeList  4 2 0
+set       edgeList "1;3;1;4;2;3;2;4"
+fillet    0.25 edgeList
+
+end

@@ -1,0 +1,12 @@
+# nacas3
+# written by John Dannenhoffer
+
+patbeg ithick 10
+    set thick ithick/50
+    set dz    ithick
+
+    udprim naca Camber 0 Thickness thick
+    translate 0 0 5-dz/2
+patend
+
+end

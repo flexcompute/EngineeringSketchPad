@@ -1,0 +1,34 @@
+# boxudp6
+# written by John Dannenhoffer
+
+despmtr   DX   2
+despmtr   DY   1
+despmtr   DZ   3
+
+udparg    box  dx  DX
+udparg    box          dy  DY
+udparg    box                  dz  DZ
+udprim    box
+translate -4  -1  0
+
+udparg    box  dx  DX  
+udparg    box          dy  DY  dz  DZ
+udprim    box
+translate  0  -1  0
+
+udparg    box  dx  DX  dy  DY  dz  DZ
+udprim    box
+translate +4  -1  0
+
+udparg    box  dx  DX  dy  DY
+udprim    box                  dz  DZ
+translate -4  +1  0
+
+udparg    box  dx  DX
+udprim    box          dy  DY  dz  DZ
+translate  0  +1  0
+
+udprim    box  dx  DX  dy  DY  dz  DZ
+translate +4  +1  0
+
+end

@@ -1,0 +1,72 @@
+# tiptreat
+# written by Marshall Galbraith
+
+DESPMTR   thickness 0.16  # airfoil thickness
+DESPMTR   camber    0.12  # airfoil camber
+DESPMTR   maxloc    0.4   # airfoil max camber location
+CFGPMTR   sharpte   1     # aifoil sharp trailing edge
+
+DESPMTR   span      1.0   # wing semi span
+DESPMTR   taper     0.5   # taper ratip between root and tip
+DESPMTR   sweep     20.   # sweep between quarter span and tip
+CFGPMTR   cont      2     # spline continuity at quarter span C0, C1, or C2
+
+DESPMTR   begFac    10.00 # rounded tip radii
+DESPMTR   endFac    1.00
+
+ATTRIBUTE capsAIM $fun3dAIM;su2AIM;egadsTessAIM;aflr4AIM;pointwiseAIM;tetgenAIM;aflr3AIM #CFD Analysis
+
+SET cmean (1+taper)/2
+SET aspect 2*span/cmean
+SET area   2*span*cmean
+
+# Set reference values
+ATTRIBUTE capsReferenceArea     area
+ATTRIBUTE capsReferenceChord    cmean
+ATTRIBUTE capsReferenceSpan     2*span
+ATTRIBUTE capsMeshLength        cmean #Charachteristic length for meshing
+
+MARK
+    # rite tip
+    UDPRIM naca thickness thickness camber camber maxloc maxloc sharpte sharpte
+    SCALE taper
+    TRANSLATE span*atan(pi(sweep)/180) 0 -span
+    
+    # C0 rite section
+    UDPRIM naca thickness thickness camber camber maxloc maxloc sharpte sharpte
+    SCALE (1+taper)/2
+    TRANSLATE 0 0 -span/2
+    STORE   rite 0 1
+    PATBEG ndup 2-cont
+      RESTORE rite
+    PATEND
+    
+    # mid section
+    UDPRIM naca thickness thickness camber camber maxloc maxloc sharpte sharpte
+    
+    # C0 left section
+    UDPRIM naca thickness thickness camber camber maxloc maxloc sharpte sharpte
+    SCALE (1+taper)/2
+    TRANSLATE 0 0 span/2
+    STORE   left 0 1
+    PATBEG ndup 2-cont
+      RESTORE left
+    PATEND
+    
+    # left tip
+    UDPRIM naca thickness thickness camber camber maxloc maxloc sharpte sharpte
+    SCALE taper
+    TRANSLATE span*atan(pi(sweep)/180) 0 span
+BLEND  -1;begFac  -1;endFac
+    ATTRIBUTE capsGroup   $Wing
+    ATTRIBUTE _name       $Wing
+    ATTRIBUTE AFLR4_Cmp_ID 2
+
+# Create a bounding box as a farfied 
+BOX    -20   -20   -20   40   40  40
+    ATTRIBUTE capsGroup   $Farfield
+    ATTRIBUTE _name       $Farfield
+    ATTRIBUTE AFLR_GBC    $FARFIELD_UG3_GBC
+    ATTRIBUTE AFLR4_Cmp_ID 2
+
+END

@@ -1,0 +1,21 @@
+# compare1b
+# written by John Dannenhoffer
+
+# base box
+box       0   0   0   3   2   1
+dump      compare.tess
+
+# perturbed box
+box       0   0   0   3.1  2.01  1.001
+
+# compute/report compares
+udparg    compare  tessfile  $compare.tess
+#udparg    compare  plotfile  $compare.plot
+#udparg    compare  histfile  $compare.hist
+udparg    compare  toler     0.05
+udprim    compare
+
+# to see points above tolerance (on xmax Face), re-run as:
+# serveCSM ../data/basic/compare1b -plot compare.plot
+
+end

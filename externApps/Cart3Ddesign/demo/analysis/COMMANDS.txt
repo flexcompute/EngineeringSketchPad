@@ -1,0 +1,27 @@
+#!/bin/csh
+#
+# % source COMMANDS.txt
+
+source $ESP_ROOT/ESPenv.csh
+
+# 0. Cleanup in case this is a rerun
+if (-d adapt00) then
+  \rm -rf adapt??
+endif
+
+# 1. Make the Model and output and egads file
+$ESP_ROOT/bin/serveCSM -batch cart3d_demo
+
+# 2. Make the triangulation (tri file)
+$ESP_ROOT/bin/egads2cart cart3d_demo.egads
+\mv egads.001.a.tri Components.i.tri
+
+# 3. Set a number of processors, running shared memory
+#    (try this on more cores if you have them)
+setenv OMP_NUM_THREADS 1
+
+# 4. Run aero.csh. Important note: the ./ in the command below
+#    says to run the aero.csh in the current directory, not the
+#    one in your $CART3D/bin
+./aero.csh
+

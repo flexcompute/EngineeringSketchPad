@@ -1,0 +1,17 @@
+# multiBody4
+# written by John Dannenhoffer
+
+DESPMTR   angle   15
+
+BOX       0  0  0  2  2  2
+CYLINDER  1  1  1  3  1  1  1/2
+SUBTRACT
+SELECT    FACE
+   ATTRIBUTE _color $red
+
+CYLINDER  1  1  1  3  1  1  1/2
+   ATTRIBUTE _color $blue
+ROTATEX   angle  1  1
+
+END
+

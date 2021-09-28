@@ -1,0 +1,360 @@
+# CanardFighter
+# adapted from CAPS test case
+#
+#----------- CAPS Parameters -------------
+attribute   capsIntent              512  # CFD
+
+#----------- Component Switches -------------
+despmtr     MakeWing                1
+despmtr     MakeSpoilers            1
+despmtr     MakeAilerons            1
+
+despmtr     MakeFuselage            1
+despmtr     MakeCanard              1
+despmtr     MakeTails               1
+despmtr     MakeInlets              1
+
+#---------------Wing parameters--------------------
+#
+despmtr     Wing_Area               56.84
+despmtr     Wing_AspectRatio        2.367347
+despmtr     Wing_TaperRatio         0.153
+
+despmtr     Wing_SweepAngle         -15.0
+despmtr     Wing_SweepLocation      1.0
+
+despmtr     Wing_RootPositionX      7.7
+despmtr     Wing_RootPositionY      0.0
+despmtr     Wing_RootPositionZ      0.0
+
+despmtr     Wing_TipTwistAngle      0.0
+despmtr     Wing_TipTwistLocation   0.2
+
+despmtr     Wing_RootTwistAngle     0.0
+despmtr     Wing_RootTwistLocation  0.0
+
+# ------ WARNING: HedralAngle deos not work with control effectors ----
+despmtr     Wing_HedralAngle        0
+# -------------------------- End WARNING ------------------------------
+
+# spoiler-slot-deflectors
+despmtr   MakeTopFrontSpoiler       1
+despmtr   MakeBottomFrontSpoiler    0
+despmtr   MakeTopRearSpoiler        0
+despmtr   MakeBottomRearSpoiler     1
+
+despmtr   MakeSlots                 1
+
+despmtr   Spoiler_xpivot            0.5
+despmtr   Spoiler_ypivot            0.1
+despmtr   SpoilerSpan               0.3
+despmtr   SpoilerChord              0.5
+despmtr   Spoiler_Thickness         0.25
+
+despmtr   Spoiler_Azimuthal         15
+despmtr   Spoiler_Deflection_Right  20
+despmtr   Spoiler_Deflection_Left   20
+
+
+# Ailerons
+despmtr AileronLocation             0.3
+despmtr AileronChord                0.5
+despmtr AileronSpan                 0.3
+
+despmtr Aileron_Deflection          30.0
+
+# Outline of flaps
+dimension XXi       1  4  0
+dimension YYi       1  4  0   
+
+# Gap between flap and wing as percentage of aileron chord
+despmtr   Gapi                      0.05
+
+# Variable for creating axis
+set     axis_length 1.0
+
+# Compute the rest of the wing parameters
+set     wingSpan          sqrt(Wing_AspectRatio*Wing_Area)
+set     wingRootChord     (2*Wing_Area)/(wingSpan*(1.0+Wing_TaperRatio))
+set     wingTipChord      Wing_TaperRatio*wingRootChord
+
+set     wingTipPositionX  Wing_RootPositionX+(wingSpan/2.0)*tand(Wing_SweepAngle)+(Wing_SweepLocation*wingRootChord)-(Wing_SweepLocation*wingTipChord)
+set     wingTipPositionY  Wing_RootPositionY+(wingSpan/2.0)
+set     wingTipPositionZ  Wing_RootPositionZ
+
+# Compute the relative position for Spoiler-deflectors
+set     relSpoilerSpan    SpoilerSpan*wingSpan/2.0  
+set     relSpoilerChord   SpoilerChord*wingTipChord  
+
+# Compute the relative position for Aileron
+set     relAileronSpan    AileronSpan*wingSpan/2.0  
+set     relAileronChord   AileronChord*wingTipChord  
+
+#---------------Fuselage parameters--------------------
+despmtr     fuse_sections 17
+dimension   fuse fuse_sections   4   1
+#                   x       y       zmin        zmax
+despmtr     fuse    "0.01;  0.01;   -0.01;      0.01; \     
+                     1.80;  0.35;   -0.50;      0.50; \     
+                     2.20;  0.40;   -0.54;      0.60; \     
+                     2.70;  0.45;   -0.60;      0.78; \     
+                     3.40;  0.57;   -0.68;      1.16; \     
+                     4.00;  0.66;   -0.74;      1.04; \     
+                     5.40;  0.95;   -0.80;      0.86; \ 
+                     6.40;  0.98;   -0.825;     0.85; \
+                     7.30;  1.24;   -0.825;     0.825; \
+                     8.00;  1.65;   -0.825;     0.825; \
+                     8.40;  1.80;   -0.8125;    0.8125; \
+                     10.4;  2.10;   -0.80;      0.80; \
+                     11.3;  2.10;   -0.775;     0.775; \
+                     12.3;  2.10;   -0.75;      0.75; \
+                     13.8;  2.10;   -0.70;      0.70; \
+                     14.4;  2.10;   -0.65;      0.65; \
+                     17.2;  2.10;   -0.10;      0.10;"
+
+dimension   noselist 2 4 0
+set         noselist "0.01; 0; 1; 0; \
+                      0.01; 0; 0; 1;"
+
+#---------------Canard parameters--------------------
+# dimensions for Canard OML
+despmtr   xroot_c   4.0   #position of the root
+despmtr   yroot_c   0.0   # -||-
+despmtr   zroot_c   0.0   # -||- 
+despmtr   croot_c   3.4   # chord length
+
+despmtr   xtip_c    7.6   #position of the tip
+despmtr   ytip_c    3.4   # -||-
+despmtr   ztip_c    0.6   # -||- 
+despmtr   ctip_c    0.5   # chord length
+despmtr   canard_left_angle  0
+despmtr   canard_right_angle 0
+
+
+#---------------Tails parameters--------------------
+# Angle of attack for tails
+despmtr   top_tail_angle      0
+despmtr   bottom_tail_angle   0
+
+# dimensions for top vertical tail  OML
+despmtr   xroot_vt  13.9
+despmtr   yroot_vt   1.6
+despmtr   zroot_vt   0.0
+despmtr   croot_vt   2.5
+
+despmtr   xtip_vt   16.2
+despmtr   ytip_vt    2.8
+despmtr   ztip_vt    2.0
+despmtr   ctip_vt    1.1
+
+# dimensions for bottom vertical tail  OML
+despmtr   xroot_vb  14.7
+despmtr   yroot_vb   1.9
+despmtr   zroot_vb   0.0
+despmtr   croot_vb   1.9
+
+despmtr   xtip_vb   15.5
+despmtr   ytip_vb    2.2
+despmtr   ztip_vb   -0.8
+despmtr   ctip_vb    0.9
+
+#---------------Inlet parameters--------------------
+despmtr   Hollow_Inlets  1
+despmtr   num_pO    5
+dimension x_pO      num_pO    1    1
+dimension y_pO      num_pO    1    1
+dimension ymin_pO   num_pO    1    1
+dimension zmin_pO   num_pO    1    1
+dimension zmax_pO   num_pO    1    1
+
+despmtr   x_pO      "  11.8;  14.9;  15.8;   16.2;    16.7"
+despmtr   y_pO      "  0.75;  0.75;  0.75;   0.75;    0.75"
+despmtr   ymin_pO   "  0.75;  0.75;  0.70;   0.65;    0.4"
+despmtr   zmin_pO   " -0.75; -0.75; -0.70;  -0.65;   -0.4"
+despmtr   zmax_pO   "  0.75;  0.75;  0.70;   0.65;    0.4"
+
+#---------------Farifeld Switch--------------------
+despmtr   farfield:onoff  0
+
+#----------Tessellation Parameters-----------------
+dimension params 1 3 0
+set       params "0.25; 0.003; 8.0;"
+
+dimension params_lift 1 3 0
+set       params_lift "0.1; 0.003; 8.0;"
+
+dimension params_box 1 3 0
+set       params_box "21.0; 0.2; 15.0;"
+
+#------------------ Create wing --------------------------
+ifthen MakeWing eq 1
+    
+    # Wing interface variables
+    udparg $/components/myWing  Wing_TipTwistAngle      Wing_TipTwistAngle
+    udparg $/components/myWing  Wing_TipTwistLocation   Wing_TipTwistLocation
+    udparg $/components/myWing  wingTipChord            wingTipChord
+
+    udparg $/components/myWing  wingTipPositionX        wingTipPositionX
+    udparg $/components/myWing  wingTipPositionY        wingTipPositionY
+    udparg $/components/myWing  wingTipPositionZ        wingTipPositionZ
+    
+    udparg $/components/myWing  Wing_RootTwistAngle     Wing_RootTwistAngle
+    udparg $/components/myWing  Wing_RootTwistLocation  Wing_RootTwistLocation
+    udparg $/components/myWing  wingRootChord           wingRootChord
+
+    udparg $/components/myWing  Wing_RootPositionX      Wing_RootPositionX
+    udparg $/components/myWing  Wing_RootPositionY      Wing_RootPositionY
+    udparg $/components/myWing  Wing_RootPositionZ      Wing_RootPositionZ
+    
+    udparg $/components/myWing  Wing_HedralAngle        Wing_HedralAngle
+    udparg $/components/myWing  Wing_SweepAngle         Wing_SweepAngle
+    udparg $/components/myWing  wingSpan                wingSpan
+
+    # Spoiler interface variables
+    udparg $/components/myWing  MakeSpoilers                MakeSpoilers
+                                                                               
+    udparg $/components/myWing  MakeTopFrontSpoiler         MakeTopFrontSpoiler       
+    udparg $/components/myWing  MakeBottomFrontSpoiler      MakeBottomFrontSpoiler    
+    udparg $/components/myWing  MakeTopRearSpoiler          MakeTopRearSpoiler        
+    udparg $/components/myWing  MakeBottomRearSpoiler       MakeBottomRearSpoiler     
+    udparg $/components/myWing  MakeSlots                   MakeSlots     
+                                                                               
+    udparg $/components/myWing  Spoiler_xpivot              Spoiler_xpivot   
+    udparg $/components/myWing  Spoiler_ypivot              Spoiler_ypivot   
+    udparg $/components/myWing  SpoilerSpan                 SpoilerSpan      
+    udparg $/components/myWing  SpoilerChord                SpoilerChord         
+                                                                               
+    udparg $/components/myWing  Spoiler_Azimuthal               Spoiler_Azimuthal            
+    udparg $/components/myWing  Spoiler_Deflection_Right    Spoiler_Deflection_Right 
+    udparg $/components/myWing  Spoiler_Deflection_Left     Spoiler_Deflection_Left    
+
+    udparg $/components/myWing  relSpoilerSpan              relSpoilerSpan  
+    udparg $/components/myWing  relSpoilerChord             relSpoilerChord 
+    udparg $/components/myWing  Spoiler_Thickness           Spoiler_Thickness
+
+    udparg $/components/myWing  params                      params
+
+    udprim $/components/myWing 
+
+    set  xpivot_right  @@xpivot_right
+    set  ypivot_right  @@ypivot_right
+    set  zpivot_right  @@zpivot_right
+
+    set  xpivot_left   @@xpivot_left
+    set  ypivot_left   @@ypivot_left
+    set  zpivot_left   @@zpivot_left
+endif
+
+ifthen MakeAilerons eq 1
+    set  XXi  0        # cannot pass undefined variables to UDC
+    set  YYi  0
+
+    udparg $/components/myAileron   MakeAilerons            MakeAilerons
+    udparg $/components/myAileron   AileronLocation         AileronLocation 
+    udparg $/components/myAileron   AileronChord            AileronChord    
+    udparg $/components/myAileron   AileronSpan             AileronSpan     
+    udparg $/components/myAileron   relAileronSpan          relAileronSpan  
+    udparg $/components/myAileron   relAileronChord         relAileronChord 
+    udparg $/components/myAileron   Aileron_Deflection      Aileron_Deflection 
+
+    udparg $/components/myAileron   xpivot_right  xpivot_right
+    udparg $/components/myAileron   ypivot_right  ypivot_right
+    udparg $/components/myAileron   zpivot_right  zpivot_right
+
+    udparg $/components/myAileron   xpivot_left   xpivot_left
+    udparg $/components/myAileron   ypivot_left   ypivot_left
+    udparg $/components/myAileron   zpivot_left   zpivot_left
+
+    udparg $/components/myAileron   wingSpan            wingSpan
+    udparg $/components/myAileron   Wing_SweepAngle     Wing_SweepAngle
+    udparg $/components/myAileron   Wing_HedralAngle    Wing_HedralAngle
+
+    udparg $/components/myAileron   relSpoilerSpan      relSpoilerSpan  
+
+    udparg $/components/myAileron    XXi     XXi
+    udparg $/components/myAileron    YYi     YYi
+    udparg $/components/myAileron    Gapi    Gapi
+
+    udprim $/components/myAileron
+endif
+
+
+#------------------ Create fuselage --------------------------
+ifthen MakeFuselage eq 1
+    udparg $/components/myFuselage   MakeWing      MakeWing
+    udparg $/components/myFuselage   MakeInlets    MakeInlets
+    udparg $/components/myFuselage   fuse_sections fuse_sections 
+    udparg $/components/myFuselage   fuse          fuse  
+                                                      
+    udparg $/components/myFuselage   noselist      noselist 
+    udprim $/components/myFuselage
+endif
+
+#------------------ Create canards --------------------------
+# Canard OML
+ifthen MakeCanard eq 1
+    udparg $/components/myCanard    MakeFuselage        MakeFuselage  
+    udparg $/components/myCanard    MakeCanard          MakeCanard  
+    udparg $/components/myCanard    xroot_c             xroot_c   
+    udparg $/components/myCanard    yroot_c             yroot_c   
+    udparg $/components/myCanard    zroot_c             zroot_c   
+    udparg $/components/myCanard    croot_c             croot_c   
+
+    udparg $/components/myCanard    xtip_c              xtip_c    
+    udparg $/components/myCanard    ytip_c              ytip_c    
+    udparg $/components/myCanard    ztip_c              ztip_c    
+    udparg $/components/myCanard    ctip_c              ctip_c    
+    udparg $/components/myCanard    canard_left_angle   canard_left_angle  
+    udparg $/components/myCanard    canard_right_angle  canard_right_angle 
+    udparg $/components/myCanard    params_lift         params_lift
+    udprim $/components/myCanard
+endif
+            
+#------------------ Create Tails --------------------------
+# Note: At present, left and right tails are created independently
+ifthen MakeTails eq 1
+    udparg $/components/myTail  MakeFuselage        MakeFuselage  
+    udparg $/components/myTail  top_tail_angle      top_tail_angle    
+    udparg $/components/myTail  bottom_tail_angle   bottom_tail_angle 
+                                                           
+    udparg $/components/myTail  xroot_vt            xroot_vt 
+    udparg $/components/myTail  yroot_vt            yroot_vt  
+    udparg $/components/myTail  zroot_vt            zroot_vt  
+    udparg $/components/myTail  croot_vt            croot_vt  
+                                                           
+    udparg $/components/myTail  xtip_vt             xtip_vt   
+    udparg $/components/myTail  ytip_vt             ytip_vt   
+    udparg $/components/myTail  ztip_vt             ztip_vt   
+    udparg $/components/myTail  ctip_vt             ctip_vt   
+                                                           
+    udparg $/components/myTail  xroot_vb            xroot_vb  
+    udparg $/components/myTail  yroot_vb            yroot_vb  
+    udparg $/components/myTail  zroot_vb            zroot_vb  
+    udparg $/components/myTail  croot_vb            croot_vb  
+                                                           
+    udparg $/components/myTail  xtip_vb             xtip_vb   
+    udparg $/components/myTail  ytip_vb             ytip_vb   
+    udparg $/components/myTail  ztip_vb             ztip_vb   
+    udparg $/components/myTail  ctip_vb             ctip_vb   
+    udparg $/components/myTail  params_lift         params_lift
+    udprim $/components/myTail
+endif
+
+#------------------ Create Inlets --------------------------
+ifthen MakeInlets eq 1
+    udparg $/components/myInlet  MakeFuselage      MakeFuselage  
+    udparg $/components/myInlet  num_pO            num_pO   
+    udparg $/components/myInlet  x_pO              x_pO     
+    udparg $/components/myInlet  y_pO              y_pO     
+    udparg $/components/myInlet  ymin_pO           ymin_pO  
+    udparg $/components/myInlet  zmin_pO           zmin_pO  
+    udparg $/components/myInlet  zmax_pO           zmax_pO  
+    udparg $/components/myInlet  Hollow_Inlets     Hollow_Inlets     
+    udprim $/components/myInlet
+endif
+
+store   aircraft
+restore aircraft
+    attribute capsGroup $aircraft
+
+end

@@ -1,0 +1,23 @@
+# extrudeB
+# written by John Dannenhoffer
+
+POINT     0   0   0
+EXTRUDE   2   0   0
+
+POINT     2   0   0
+EXTRUDE   0   1   0
+
+JOIN
+
+POINT     2   1   0
+EXTRUDE  -2   0   0
+
+JOIN
+
+POINT     0   1   0
+EXTRUDE   0  -1   0
+
+JOIN
+
+END
+

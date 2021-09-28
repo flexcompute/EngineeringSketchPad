@@ -1,0 +1,138 @@
+# getattr1
+# written by John Dannenhoffer
+
+# set up attributed box
+box -3 -1 -1 2 2 2
+   attribute name $theBox
+
+select node 1
+   attribute nodenum 1
+select edge 1
+   attribute edgenum 1
+select face 1
+   attribute facenum 1
+select face 2
+   attribute facenum 2;2
+select face 3
+   attribute facenum 3;3;3
+select face 4
+   attribute facenum 4;4;4;4
+select face 5
+   attribute facenum 5;5;5;5;5
+select face 6
+   attribute facenum 6;6;6;6;6;6
+
+# set up attributed Cylinder
+cylinder 0 0 0 2 0 0 1
+   attribute name $theCylinder
+
+select face 1
+    attribute facename $left
+select face 2
+    attribute facename $right
+select face 3
+    attribute facename $bottom
+select face 4
+    attribute facename $top
+
+# Attributes on the box
+select body 1
+    getattr nattr $_nattr_
+    assert  ifzero(nattr-3,1,0)+ifzero(nattr-4,1,0)  1
+
+    patbeg iattr nattr
+        getattr attrName  iattr
+        getattr attrValue attrName
+    patend
+
+# Attributes on the Nodes of the box
+patbeg inode  8
+    select node inode
+        getattr nattr $_nattr_
+        ifthen inode eq 1
+            assert nattr 4
+        else
+            assert nattr 3
+        endif
+
+        patbeg iattr nattr
+            getattr attrName  iattr
+            getattr attrValue attrName
+        patend
+patend
+
+# Attributes on the Edges of the box
+patbeg iedge 12
+    select edge iedge
+        getattr nattr $_nattr_
+        ifthen iedge eq 1
+            assert nattr 5
+        else
+            assert nattr 4
+        endif
+
+        patbeg iattr nattr
+            getattr attrName  iattr
+            getattr attrValue attrName
+        patend
+patend
+
+# Attributes on the Faces of the box
+patbeg iface  6
+    select face iface
+        getattr nattr $_nattr_
+        assert  nattr 7
+
+        patbeg iattr nattr
+            getattr attrName  iattr
+            getattr attrValue attrName
+        patend
+patend
+
+# get the number of Attributes associated with cylinder
+select body 2
+    getattr nattr $_nattr_
+    assert  ifzero(nattr-3,1,0)+ifzero(nattr-4,1,0)  1
+
+    patbeg iattr nattr
+        getattr attrName  iattr
+        getattr attrValue attrName
+    patend
+
+# Attributes on the Nodes of the cylinder
+patbeg inode  4
+    select node inode
+        getattr nattr $_nattr_
+        assert  nattr 3
+
+        patbeg iattr nattr
+            getattr attrName  iattr
+            getattr attrValue attrName
+        patend
+patend
+
+# Attributes on the Edges of the cylinder
+patbeg iedge 6
+    select edge iedge
+        getattr nattr $_nattr_
+        assert  nattr 4
+
+        patbeg iattr nattr
+            getattr attrName  iattr
+            getattr attrValue attrName
+        patend
+patend
+
+# Attributes on the Faces of the cylinder
+patbeg iface  4
+    select face iface
+        getattr nattr $_nattr_
+        assert  nattr 7
+
+        patbeg iattr nattr
+            getattr attrName  iattr
+            getattr attrValue attrName
+        patend
+patend
+
+end

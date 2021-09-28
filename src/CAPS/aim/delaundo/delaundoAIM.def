@@ -1,0 +1,10 @@
+LIBRARY delaundoAIM
+EXPORTS
+aimInitialize
+aimCleanup
+aimInputs
+aimPreAnalysis
+aimExecute
+aimPostAnalysis
+aimOutputs
+aimCalcOutput

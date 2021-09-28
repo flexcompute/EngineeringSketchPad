@@ -1,0 +1,17 @@
+# design0o3 (naca/blend)
+# written by John Dannenhoffer
+
+despmtr   thickness 0.12
+despmtr   camber    0.04
+despmtr   span      2.00
+
+mark
+   udparg    naca      thickness thickness
+   udprim    naca      camber    camber
+
+   udparg    naca      thickness thickness
+   udprim    naca      camber    camber
+   translate 0  0  span
+blend
+
+end

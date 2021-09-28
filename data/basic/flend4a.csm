@@ -1,0 +1,34 @@
+# flend4a
+# written by John Dannenhoffer
+
+# left body
+CYLINDER  -1.0   0.0  -1.0  -1.0   0.0  +1.0   1.0
+BOX       -0.2  -2.0  -2.0   1.0   4.0   4.0
+SUBTRACT
+SELECT    FACE  2  1
+   ATTRIBUTE _flend $remove
+STORE     bodyL
+
+# rite body
+CYLINDER  +1.0   0.0  -0.9  +1.0   0.0  +0.9   1.0
+BOX       -0.8  -2.0  -2.0   1.0   4.0   4.0
+SUBTRACT
+SELECT    FACE  5  2
+   ATTRIBUTE _flend $remove
+STORE     bodyR
+
+# generate the flend
+MARK
+   RESTORE   bodyL
+   SELECT    face $_flend $*
+      ATTRIBUTE _color $magenta
+
+   RESTORE   bodyR
+   SELECT    face $_flend $*
+      ATTRIBUTE _color $magenta
+UDPRIM    flend
+
+SELECT    face @nbody 0
+   ATTRIBUTE _color $cyan
+
+END

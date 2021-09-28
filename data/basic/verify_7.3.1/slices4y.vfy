@@ -1,0 +1,545 @@
+#======================================#
+# automatically generated verification #
+# OpenCSM  1.19      OpenCASCADE 7.3.1 #
+#======================================#
+select    body 323
+   assert         1      @itype       0  1
+   assert         4      @nnode       0  1
+   assert         4      @nedge       0  1
+   assert         0      @nface       0  1
+   assert   9.3714288e-01  @length  -.001  1
+   assert   9.7857143e+00  @xcg      4.2857144e-04  1
+   assert  -1.8500000e+00  @ycg     -.001  1
+   assert   0.0000000e+00  @zcg     0.001  1
+
+select    body 324
+   assert         1      @itype       0  1
+   assert         4      @nnode       0  1
+   assert         4      @nedge       0  1
+   assert         0      @nface       0  1
+   assert   1.7942858e+00  @length  -.001  1
+   assert   9.5714286e+00  @xcg      8.5714288e-04  1
+   assert  -1.7000000e+00  @ycg     -.001  1
+   assert   0.0000000e+00  @zcg     0.001  1
+
+select    body 325
+   assert         1      @itype       0  1
+   assert         4      @nnode       0  1
+   assert         4      @nedge       0  1
+   assert         0      @nface       0  1
+   assert   2.6514287e+00  @length  -.001  1
+   assert   9.3571428e+00  @xcg      1.2857143e-03  1
+   assert  -1.5500000e+00  @ycg     -.001  1
+   assert   0.0000000e+00  @zcg     0.001  1
+
+select    body 326
+   assert         1      @itype       0  1
+   assert         4      @nnode       0  1
+   assert         4      @nedge       0  1
+   assert         0      @nface       0  1
+   assert   3.5085715e+00  @length  -.001  1
+   assert   9.1428571e+00  @xcg      1.7142858e-03  1
+   assert  -1.4000000e+00  @ycg     -.001  1
+   assert   0.0000000e+00  @zcg     0.001  1
+
+select    body 327
+   assert         1      @itype       0  1
+   assert        10      @nnode       0  1
+   assert        10      @nedge       0  1
+   assert         0      @nface       0  1
+   assert   4.1285529e+00  @length  -.001  1
+   assert   9.0029401e+00  @xcg      2.0000000e-03  1
+   assert  -1.2500000e+00  @ycg     -.001  1
+   assert   0.0000000e+00  @zcg     0.001  1
+
+select    body 328
+   assert         1      @itype       0  1
+   assert        10      @nnode       0  1
+   assert        10      @nedge       0  1
+   assert         0      @nface       0  1
+   assert   4.2358570e+00  @length  -.001  1
+   assert   9.0091987e+00  @xcg      2.0000000e-03  1
+   assert  -1.1000000e+00  @ycg     -.001  1
+   assert   0.0000000e+00  @zcg     0.001  1
+
+select    body 329
+   assert         1      @itype       0  1
+   assert        12      @nnode       0  1
+   assert        12      @nedge       0  1
+   assert         0      @nface       0  1
+   assert   2.1709037e+01  @length  -.001  1
+   assert   4.9988439e+00  @xcg      1.0150000e-02  1
+   assert  -9.4999997e-01  @ycg     -.001  1
+   assert   0.0000000e+00  @zcg     0.001  1
+
+select    body 330
+   assert         1      @itype       0  1
+   assert        14      @nnode       0  1
+   assert        14      @nedge       0  1
+   assert         0      @nface       0  1
+   assert   2.3116104e+01  @length  -.001  1
+   assert   4.8593571e+00  @xcg      1.0600000e-02  1
+   assert  -7.9999996e-01  @ycg     -.001  1
+   assert   0.0000000e+00  @zcg     0.001  1
+
+select    body 331
+   assert         1      @itype       0  1
+   assert         4      @nnode       0  1
+   assert         3      @nedge       0  1
+   assert         0      @nface       0  1
+   assert   1.3000000e+00  @length  -.001  1
+   assert   1.0169231e+01  @xcg      2.0000000e-04  1
+   assert  -8.0000000e-01  @ycg     -.001  1
+   assert   0.0000000e+00  @zcg     0.001  1
+
+select    body 332
+   assert         1      @itype       0  1
+   assert         4      @nnode       0  1
+   assert         4      @nedge       0  1
+   assert         0      @nface       0  1
+   assert   5.7723648e-01  @length  -.001  1
+   assert   1.1187648e+00  @xcg      2.7239968e-04  1
+   assert  -7.9999996e-01  @ycg     -.001  1
+   assert   7.4136222e-01  @zcg      2.6345673e-05  1
+
+select    body 333
+   assert         1      @itype       0  1
+   assert         4      @nnode       0  1
+   assert         4      @nedge       0  1
+   assert         0      @nface       0  1
+   assert   5.7723648e-01  @length  -.001  1
+   assert   1.1187648e+00  @xcg      2.7239968e-04  1
+   assert  -7.9999996e-01  @ycg     -.001  1
+   assert  -7.4136222e-01  @zcg      2.6345673e-05  1
+
+select    body 334
+   assert         1      @itype       0  1
+   assert         2      @nnode       0  1
+   assert         2      @nedge       0  1
+   assert         0      @nface       0  1
+   assert   2.0754000e-01  @length  -.001  1
+   assert   1.1500000e+00  @xcg      5.3631903e-05  1
+   assert  -7.9999996e-01  @ycg     -.001  1
+   assert   6.7718310e-01  @zcg      7.7410984e-05  1
+
+select    body 335
+   assert         1      @itype       0  1
+   assert         2      @nnode       0  1
+   assert         2      @nedge       0  1
+   assert         0      @nface       0  1
+   assert   2.0754000e-01  @length  -.001  1
+   assert   1.1500000e+00  @xcg      5.3631903e-05  1
+   assert  -7.9999996e-01  @ycg     -.001  1
+   assert  -6.7718310e-01  @zcg      7.7410984e-05  1
+
+select    body 336
+   assert         1      @itype       0  1
+   assert        28      @nnode       0  1
+   assert        28      @nedge       0  1
+   assert         0      @nface       0  1
+   assert   2.5907329e+01  @length  -.001  1
+   assert   5.0372085e+00  @xcg      1.1250000e-02  1
+   assert  -6.4999996e-01  @ycg     -.001  1
+   assert   0.0000000e+00  @zcg     0.001  1
+
+select    body 337
+   assert         1      @itype       0  1
+   assert         7      @nnode       0  1
+   assert         7      @nedge       0  1
+   assert         0      @nface       0  1
+   assert   3.1599415e+00  @length  -.001  1
+   assert   1.1188656e+01  @xcg      6.2500011e-04  1
+   assert  -6.4999996e-01  @ycg     -.001  1
+   assert   0.0000000e+00  @zcg     0.001  1
+
+select    body 338
+   assert         1      @itype       0  1
+   assert         4      @nnode       0  1
+   assert         4      @nedge       0  1
+   assert         0      @nface       0  1
+   assert   2.4630485e-01  @length  -.001  1
+   assert   1.1500000e+00  @xcg      7.3795469e-05  1
+   assert  -6.4999996e-01  @ycg     -.001  1
+   assert   8.3292639e-01  @zcg      6.9813542e-05  1
+
+select    body 339
+   assert         1      @itype       0  1
+   assert         4      @nnode       0  1
+   assert         4      @nedge       0  1
+   assert         0      @nface       0  1
+   assert   2.4630485e-01  @length  -.001  1
+   assert   1.1500000e+00  @xcg      7.3795469e-05  1
+   assert  -6.4999996e-01  @ycg     -.001  1
+   assert  -8.3292639e-01  @zcg      6.9813542e-05  1
+
+select    body 340
+   assert         1      @itype       0  1
+   assert        28      @nnode       0  1
+   assert        28      @nedge       0  1
+   assert         0      @nface       0  1
+   assert   2.5562376e+01  @length  -.001  1
+   assert   4.5431017e+00  @xcg      1.1500000e-02  1
+   assert  -4.9999995e-01  @ycg     -.001  1
+   assert   8.3867322e-03  @zcg      1.8010000e-03  1
+
+select    body 341
+   assert         1      @itype       0  1
+   assert         8      @nnode       0  1
+   assert         8      @nedge       0  1
+   assert         0      @nface       0  1
+   assert   4.8201546e+00  @length  -.001  1
+   assert   1.0980971e+01  @xcg      1.0000001e-03  1
+   assert  -4.9999995e-01  @ycg     -.001  1
+   assert   0.0000000e+00  @zcg     0.001  1
+
+select    body 342
+   assert         1      @itype       0  1
+   assert        12      @nnode       0  1
+   assert        12      @nedge       0  1
+   assert         0      @nface       0  1
+   assert   2.6356353e+01  @length  -.001  1
+   assert   4.3505859e+00  @xcg      1.1950000e-02  1
+   assert  -3.4999995e-01  @ycg     -.001  1
+   assert   0.0000000e+00  @zcg     0.001  1
+
+select    body 343
+   assert         1      @itype       0  1
+   assert         8      @nnode       0  1
+   assert         8      @nedge       0  1
+   assert         0      @nface       0  1
+   assert   6.2708088e+00  @length  -.001  1
+   assert   1.0796820e+01  @xcg      1.3750001e-03  1
+   assert  -3.4999995e-01  @ycg     -.001  1
+   assert   0.0000000e+00  @zcg     0.001  1
+
+select    body 344
+   assert         1      @itype       0  1
+   assert        34      @nnode       0  1
+   assert        34      @nedge       0  1
+   assert         0      @nface       0  1
+   assert   3.3776001e+01  @length  -.001  1
+   assert   5.5107088e+00  @xcg      1.3744949e-02  1
+   assert  -1.9999994e-01  @ycg     -.001  1
+   assert   0.0000000e+00  @zcg     0.001  1
+
+select    body 345
+   assert         1      @itype       0  1
+   assert         4      @nnode       0  1
+   assert         4      @nedge       0  1
+   assert         0      @nface       0  1
+   assert   5.6000000e-01  @length  -.001  1
+   assert   9.8400000e+00  @xcg      8.0000100e-05  1
+   assert  -1.9999996e-01  @ycg     -.001  1
+   assert  -6.5000000e-01  @zcg      2.0000020e-04  1
+
+select    body 346
+   assert         1      @itype       0  1
+   assert         4      @nnode       0  1
+   assert         4      @nedge       0  1
+   assert         0      @nface       0  1
+   assert   5.6000000e-01  @length  -.001  1
+   assert   9.8400000e+00  @xcg      8.0000100e-05  1
+   assert  -1.9999996e-01  @ycg     -.001  1
+   assert   6.5000000e-01  @zcg      2.0000020e-04  1
+
+select    body 347
+   assert         1      @itype       0  1
+   assert        34      @nnode       0  1
+   assert        34      @nedge       0  1
+   assert         0      @nface       0  1
+   assert   3.4418763e+01  @length  -.001  1
+   assert   5.5256805e+00  @xcg      1.3812250e-02  1
+   assert  -4.9999938e-02  @ycg     -.001  1
+   assert   0.0000000e+00  @zcg     0.001  1
+
+select    body 348
+   assert         1      @itype       0  1
+   assert        35      @nnode       0  1
+   assert        35      @nedge       0  1
+   assert         0      @nface       0  1
+   assert   3.3907605e+01  @length  -.001  1
+   assert   5.4739388e+00  @xcg      1.3800000e-02  1
+   assert   1.0000007e-01  @ycg     -.001  1
+   assert   0.0000000e+00  @zcg     0.001  1
+
+select    body 349
+   assert         1      @itype       0  1
+   assert         4      @nnode       0  1
+   assert         4      @nedge       0  1
+   assert         0      @nface       0  1
+   assert   5.6000000e-01  @length  -.001  1
+   assert   9.8400000e+00  @xcg      8.0000100e-05  1
+   assert   1.0000004e-01  @ycg     -.001  1
+   assert  -6.5000000e-01  @zcg      2.0000020e-04  1
+
+select    body 350
+   assert         1      @itype       0  1
+   assert         4      @nnode       0  1
+   assert         4      @nedge       0  1
+   assert         0      @nface       0  1
+   assert   5.6000000e-01  @length  -.001  1
+   assert   9.8400000e+00  @xcg      8.0000100e-05  1
+   assert   1.0000004e-01  @ycg     -.001  1
+   assert   6.5000000e-01  @zcg      2.0000020e-04  1
+
+select    body 351
+   assert         1      @itype       0  1
+   assert        34      @nnode       0  1
+   assert        34      @nedge       0  1
+   assert         0      @nface       0  1
+   assert   3.4136746e+01  @length  -.001  1
+   assert   5.6028894e+00  @xcg      1.3693649e-02  1
+   assert   2.5000007e-01  @ycg     -.001  1
+   assert   0.0000000e+00  @zcg     0.001  1
+
+select    body 352
+   assert         1      @itype       0  1
+   assert        13      @nnode       0  1
+   assert        13      @nedge       0  1
+   assert         0      @nface       0  1
+   assert   2.6036210e+01  @length  -.001  1
+   assert   4.4116903e+00  @xcg      1.1800000e-02  1
+   assert   4.0000008e-01  @ycg     -.001  1
+   assert   0.0000000e+00  @zcg     0.001  1
+
+select    body 353
+   assert         1      @itype       0  1
+   assert         8      @nnode       0  1
+   assert         8      @nedge       0  1
+   assert         0      @nface       0  1
+   assert   5.7972709e+00  @length  -.001  1
+   assert   1.0856979e+01  @xcg      1.2499998e-03  1
+   assert   4.0000008e-01  @ycg     -.001  1
+   assert   0.0000000e+00  @zcg     0.001  1
+
+select    body 354
+   assert         1      @itype       0  1
+   assert        39      @nnode       0  1
+   assert        39      @nedge       0  1
+   assert         0      @nface       0  1
+   assert   3.3259614e+01  @length  -.001  1
+   assert   5.6836302e+00  @xcg      1.1432287e-02  1
+   assert   5.5000008e-01  @ycg     -.001  1
+   assert   0.0000000e+00  @zcg     0.001  1
+
+select    body 355
+   assert         1      @itype       0  1
+   assert         8      @nnode       0  1
+   assert         8      @nedge       0  1
+   assert         0      @nface       0  1
+   assert   4.3094489e+00  @length  -.001  1
+   assert   1.1045440e+01  @xcg      8.7499980e-04  1
+   assert   5.5000008e-01  @ycg     -.001  1
+   assert   0.0000000e+00  @zcg     0.001  1
+
+select    body 356
+   assert         1      @itype       0  1
+   assert        33      @nnode       0  1
+   assert        33      @nedge       0  1
+   assert         0      @nface       0  1
+   assert   2.4455496e+01  @length  -.001  1
+   assert   4.7356709e+00  @xcg      1.1050000e-02  1
+   assert   7.0000008e-01  @ycg     -.001  1
+   assert   0.0000000e+00  @zcg     0.001  1
+
+select    body 357
+   assert         1      @itype       0  1
+   assert         4      @nnode       0  1
+   assert         4      @nedge       0  1
+   assert         0      @nface       0  1
+   assert   6.4903001e-01  @length  -.001  1
+   assert   1.0038894e+01  @xcg      7.0000100e-05  1
+   assert   7.0000005e-01  @ycg     -.001  1
+   assert   0.0000000e+00  @zcg     0.001  1
+
+select    body 358
+   assert         1      @itype       0  1
+   assert         5      @nnode       0  1
+   assert         5      @nedge       0  1
+   assert         0      @nface       0  1
+   assert   2.3219341e+00  @length  -.001  1
+   assert   1.1289582e+01  @xcg      4.9999957e-04  1
+   assert   7.0000009e-01  @ycg     -.001  1
+   assert   0.0000000e+00  @zcg     0.001  1
+
+select    body 359
+   assert         1      @itype       0  1
+   assert         4      @nnode       0  1
+   assert         4      @nedge       0  1
+   assert         0      @nface       0  1
+   assert   3.7220738e+00  @length  -.001  1
+   assert   9.1094816e+00  @xcg      1.8132596e-03  1
+   assert   7.0000009e-01  @ycg     -.001  1
+   assert   1.2103084e+00  @zcg      8.0000000e-05  1
+
+select    body 360
+   assert         1      @itype       0  1
+   assert         4      @nnode       0  1
+   assert         4      @nedge       0  1
+   assert         0      @nface       0  1
+   assert   3.7220738e+00  @length  -.001  1
+   assert   9.1094816e+00  @xcg      1.8132596e-03  1
+   assert   7.0000009e-01  @ycg     -.001  1
+   assert  -1.2103084e+00  @zcg      8.0000000e-05  1
+
+select    body 361
+   assert         1      @itype       0  1
+   assert        17      @nnode       0  1
+   assert        17      @nedge       0  1
+   assert         0      @nface       0  1
+   assert   2.2814110e+01  @length  -.001  1
+   assert   4.9399860e+00  @xcg      1.0532287e-02  1
+   assert   8.5000009e-01  @ycg     -.001  1
+   assert   0.0000000e+00  @zcg     0.001  1
+
+select    body 362
+   assert         1      @itype       0  1
+   assert         4      @nnode       0  1
+   assert         4      @nedge       0  1
+   assert         0      @nface       0  1
+   assert   2.0077880e+00  @length  -.001  1
+   assert   9.5380530e+00  @xcg      9.5611667e-04  1
+   assert   8.5000009e-01  @ycg     -.001  1
+   assert   1.4682997e+00  @zcg      8.0000000e-05  1
+
+select    body 363
+   assert         1      @itype       0  1
+   assert         4      @nnode       0  1
+   assert         4      @nedge       0  1
+   assert         0      @nface       0  1
+   assert   2.0077880e+00  @length  -.001  1
+   assert   9.5380530e+00  @xcg      9.5611667e-04  1
+   assert   8.5000009e-01  @ycg     -.001  1
+   assert  -1.4682997e+00  @zcg      8.0000000e-05  1
+
+select    body 364
+   assert         1      @itype       0  1
+   assert         2      @nnode       0  1
+   assert         2      @nedge       0  1
+   assert         0      @nface       0  1
+   assert   2.0965970e-01  @length  -.001  1
+   assert   1.1500000e+00  @xcg      7.9891594e-05  1
+   assert   8.5000009e-01  @ycg     -.001  1
+   assert  -6.5476431e-01  @zcg      4.4687197e-05  1
+
+select    body 365
+   assert         1      @itype       0  1
+   assert         2      @nnode       0  1
+   assert         2      @nedge       0  1
+   assert         0      @nface       0  1
+   assert   2.0965970e-01  @length  -.001  1
+   assert   1.1500000e+00  @xcg      7.9891594e-05  1
+   assert   8.5000009e-01  @ycg     -.001  1
+   assert   6.5476431e-01  @zcg      4.4687197e-05  1
+
+select    body 366
+   assert         1      @itype       0  1
+   assert         4      @nnode       0  1
+   assert         4      @nedge       0  1
+   assert         0      @nface       0  1
+   assert   1.5707963e-01  @length  -.001  1
+   assert   9.0000000e+00  @xcg      5.0000000e-05  1
+   assert   1.0000001e+00  @ycg     -.001  1
+   assert   0.0000000e+00  @zcg     0.001  1
+
+select    body 367
+   assert         1      @itype       0  1
+   assert         2      @nnode       0  1
+   assert         1      @nedge       0  1
+   assert         0      @nface       0  1
+   assert   9.7500000e-01  @length  -.001  1
+   assert   9.5125000e+00  @xcg      9.7500000e-04  1
+   assert   1.0000000e+00  @ycg     -.001  1
+   assert   0.0000000e+00  @zcg     0.001  1
+
+select    body 368
+   assert         1      @itype       0  1
+   assert         3      @nnode       0  1
+   assert         3      @nedge       0  1
+   assert         0      @nface       0  1
+   assert   2.4871593e+00  @length  -.001  1
+   assert   7.9363160e+00  @xcg      1.5474570e-03  1
+   assert   1.0000000e+00  @ycg     -.001  1
+   assert   0.0000000e+00  @zcg     0.001  1
+
+select    body 369
+   assert         1      @itype       0  1
+   assert         5      @nnode       0  1
+   assert         5      @nedge       0  1
+   assert         0      @nface       0  1
+   assert   1.0596227e+00  @length  -.001  1
+   assert   6.9056685e+00  @xcg      9.5254312e-04  1
+   assert   1.0000000e+00  @ycg     -.001  1
+   assert   0.0000000e+00  @zcg     0.001  1
+
+select    body 370
+   assert         1      @itype       0  1
+   assert         3      @nnode       0  1
+   assert         3      @nedge       0  1
+   assert         0      @nface       0  1
+   assert   2.4572465e-01  @length  -.001  1
+   assert   9.9585687e+00  @xcg      9.8973788e-05  1
+   assert   1.0000001e+00  @ycg     -.001  1
+   assert   1.7039952e+00  @zcg      3.9999780e-05  1
+
+select    body 371
+   assert         1      @itype       0  1
+   assert         3      @nnode       0  1
+   assert         3      @nedge       0  1
+   assert         0      @nface       0  1
+   assert   2.4572465e-01  @length  -.001  1
+   assert   9.9585687e+00  @xcg      9.8973788e-05  1
+   assert   1.0000001e+00  @ycg     -.001  1
+   assert  -1.7039952e+00  @zcg      3.9999780e-05  1
+
+select    body 372
+   assert         1      @itype       0  1
+   assert         4      @nnode       0  1
+   assert         4      @nedge       0  1
+   assert         0      @nface       0  1
+   assert   4.0462854e-01  @length  -.001  1
+   assert   1.7408283e+00  @xcg      1.5513299e-04  1
+   assert   1.0000001e+00  @ycg     -.001  1
+   assert  -1.6545887e-10  @zcg      1.0000020e-04  1
+
+select    body 373
+   assert         1      @itype       0  1
+   assert         5      @nnode       0  1
+   assert         5      @nedge       0  1
+   assert         0      @nface       0  1
+   assert   2.3123572e+00  @length  -.001  1
+   assert   2.9722640e+00  @xcg      2.2052776e-03  1
+   assert   1.0000000e+00  @ycg     -.001  1
+   assert   0.0000000e+00  @zcg     0.001  1
+
+select    body 374
+   assert         1      @itype       0  1
+   assert         4      @nnode       0  1
+   assert         3      @nedge       0  1
+   assert         0      @nface       0  1
+   assert   2.8473943e+00  @length  -.001  1
+   assert   5.2151089e+00  @xcg      2.4500000e-03  1
+   assert   1.0000000e+00  @ycg     -.001  1
+   assert  -2.5298424e-02  @zcg      2.4677907e-04  1
+
+select    body 375
+   assert         1      @itype       0  1
+   assert         2      @nnode       0  1
+   assert         1      @nedge       0  1
+   assert         0      @nface       0  1
+   assert   5.4230810e-01  @length  -.001  1
+   assert   5.0000000e+00  @xcg      1.4491409e-04  1
+   assert   1.0000001e+00  @ycg     -.001  1
+   assert   1.3282964e-01  @zcg      2.4677907e-04  1
+
+select    body 376
+   assert         1      @itype       0  1
+   assert         2      @nnode       0  1
+   assert         1      @nedge       0  1
+   assert         0      @nface       0  1
+   assert   1.6645898e+00  @length  -.001  1
+   assert   8.3229490e-01  @xcg      1.6645898e-03  1
+   assert   1.0000000e+00  @ycg     -.001  1
+   assert   0.0000000e+00  @zcg     0.001  1
+
+end

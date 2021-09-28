@@ -1,0 +1,15 @@
+# cylinder
+# written by John Dannenhoffer
+
+despmtr   xbeg     -1.00
+despmtr   ybeg      0.00
+despmtr   zbeg      0.00
+despmtr   xend      3.00
+despmtr   yend      0.00
+despmtr   zend      0.00
+despmtr   radius    1.00
+
+cylinder  xbeg      ybeg      zbeg \
+          xend      yend      zend      radius
+
+end

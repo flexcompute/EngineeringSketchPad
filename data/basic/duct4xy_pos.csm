@@ -1,0 +1,29 @@
+# duct4xy_pos
+# written by John Dannenhoffer
+
+mark
+
+skbeg     cosd(0)      sind(0)      0
+   cirarc cosd(22.5)   sind(22.5)   0  cosd(45)   sind(45)   0
+   cirarc cosd(90)     sind(90)     0  cosd(135)  sind(135)  0
+   cirarc cosd(157.5)  sind(157.5)  0  cosd(180)  sind(180)  0
+   linseg cosd(0)      sind(0)      0
+skend
+
+skbeg      1  0 -1
+   linseg  1  1 -1
+   linseg -1  1 -1
+   linseg -1  0 -1
+   linseg  1  0 -1
+skend
+
+skbeg      1  0 -2
+   linseg  1  1 -2
+   cirarc  0 .8 -2 -1  1 -2
+   linseg -1  0 -2
+   linseg  1  0 -2
+skend
+
+blend
+
+end

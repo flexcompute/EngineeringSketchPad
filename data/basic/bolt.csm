@@ -1,0 +1,49 @@
+# bolt
+# written by John Dannenhoffer
+
+# design parameters
+despmtr   Thead     1.00   thickness of head
+despmtr   Whead     3.00   width     of head
+despmtr   Fhead     0.50   fraction of head that is flat
+
+despmtr   Dslot     0.75   depth of slot
+despmtr   Wslot     0.25   width of slot
+
+despmtr   Lshaft    4.00   length   of shaft
+despmtr   Dshaft    1.00   diameter of shaft
+
+despmtr   sfact     1.50   overall scale factor
+
+# head
+box       0      -Whead/2  -Whead/2  \
+          Thead   Whead     Whead
+   attribute name $head
+rotatex   90  0  0
+box       0      -Whead/2  -Whead/2  \
+          Thead   Whead     Whead
+   attribute name $head
+rotatex   45  0  0
+intersect
+
+set       Rhead  (Whead^2/4+(1-Fhead)^2*Thead^2)/(2*Thead*(1-Fhead))
+
+sphere    0             0   0    Rhead
+   attribute name $head
+translate Thead-Rhead   0   0
+intersect
+
+# slot
+box       Thead-Dslot  -Wslot/2   -Whead  \
+          2*Thead       Wslot    2*Whead
+   attribute name $slot
+subtract
+
+# shaft
+cylinder  -Lshaft   0   0   \
+           0        0   0   Dshaft/2
+   attribute name $shaft
+union
+
+scale     sfact
+
+end

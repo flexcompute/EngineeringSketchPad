@@ -1,0 +1,67 @@
+#
+!IFNDEF ESP_ROOT
+!ERROR ESP_ROOT must be set -- Please fix the environment...
+!ENDIF
+#
+IDIR  = $(ESP_ROOT)\include
+!include $(IDIR)\$(ESP_ARCH).$(MSVC)
+LDIR  = $(ESP_ROOT)\lib
+!IFDEF ESP_BLOC
+ODIR  = $(ESP_BLOC)\obj
+TDIR  = $(ESP_BLOC)\test
+!ELSE
+ODIR  = .
+TDIR  = $(ESP_ROOT)\bin
+!ENDIF
+
+
+!ifdef PYTHONINC
+$(LDIR)\fun3dAIM.dll:	fun3dAIM.def $(ODIR)\fun3dAIM.obj $(ODIR)\fun3dUtils.obj $(ODIR)\fun3dNamelist.obj \
+			$(LDIR)\aimUtil.lib $(LDIR)\utils.lib
+	-del $(LDIR)\fun3dAIM.dll $(LDIR)\fun3dAIM.lib $(LDIR)\fun3dAIM.exp
+	 link /out:$(LDIR)\fun3dAIM.dll /dll /def:fun3dAIM.def \
+		$(ODIR)\fun3dAIM.obj $(ODIR)\fun3dUtils.obj $(ODIR)\fun3dNamelist.obj \
+		/LIBPATH:$(LDIR) utils.lib aimUtil.lib \
+		ocsm.lib egads.lib udunits2.lib $(PYTHONLIB)
+	$(MCOMP) /manifest $(LDIR)\fun3dAIM.dll.manifest \
+		/outputresource:$(LDIR)\fun3dAIM.dll;2
+!else
+
+$(LDIR)\fun3dAIM.dll:	$(ODIR)\fun3dAIM.obj $(ODIR)\fun3dUtils.obj $(LDIR)\aimUtil.lib \
+			$(LDIR)\utils.lib
+	-del $(LDIR)\fun3dAIM.dll $(LDIR)\fun3dAIM.lib $(LDIR)\fun3dAIM.exp
+	 link /out:$(LDIR)\fun3dAIM.dll /dll /def:fun3dAIM.def \
+		$(ODIR)\fun3dAIM.obj $(ODIR)\fun3dUtils.obj /LIBPATH:$(LDIR) utils.lib aimUtil.lib \
+		ocsm.lib egads.lib udunits2.lib
+	$(MCOMP) /manifest $(LDIR)\fun3dAIM.dll.manifest \
+		/outputresource:$(LDIR)\fun3dAIM.dll;2
+!endif
+
+!ifdef PYTHONINC
+
+$(ODIR)\fun3dAIM.obj:	fun3dAIM.c fun3dNamelist.c $(IDIR)\capsTypes.h \
+			..\utils\meshUtils.h
+	cl /c $(COPTS) $(DEFINE) /I$(IDIR) /I..\utils /I..\meshWriter\ugridWriter /I$(PYTHONINC) /I. \
+		/DHAVE_PYTHON fun3dAIM.c /Fo$(ODIR)\fun3dAIM.obj
+		
+	cl /c $(COPTS) $(DEFINE) /I$(IDIR) /I..\utils /I$(PYTHONINC) \
+		fun3dNamelist.c /Fo$(ODIR)\fun3dNamelist.obj	
+!else
+
+$(ODIR)\fun3dAIM.obj:	fun3dAIM.c $(IDIR)\capsTypes.h ..\utils\meshUtils.h
+	cl /c $(COPTS) $(DEFINE) /I$(IDIR) /I..\utils /I..\meshWriter\ugridWriter /I. fun3dAIM.c \
+		/Fo$(ODIR)\fun3dAIM.obj
+!endif
+
+$(ODIR)\fun3dUtils.obj:	fun3dUtils.c $(IDIR)\capsTypes.h ..\utils\meshUtils.h
+	cl /c $(COPTS) $(DEFINE) /I$(IDIR) /I..\utils /I..\meshWriter\ugridWriter /I. fun3dUtils.c \
+		/Fo$(ODIR)\fun3dUtils.obj
+		
+clean:
+	-del $(ODIR)\fun3dAIM.obj $(ODIR)\fun3dUtils.obj
+!ifdef PYTHONINC
+	-del $(ODIR)\fun3dNamelist.obj
+!endif
+
+cleanall:	clean
+	-del $(LDIR)\fun3dAIM.dll $(LDIR)\fun3dAIM.lib $(LDIR)\fun3dAIM.exp

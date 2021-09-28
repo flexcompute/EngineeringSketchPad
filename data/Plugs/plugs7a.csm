@@ -1,0 +1,374 @@
+# plugs7a (adapted from training_2019/ESP/transport --- htail only)
+# written by John Dannenhoffer
+#
+# run with -egg PDT2 to get un-structured cloud points
+
+# define build settings
+CFGPMTR    makeFuseOml        0
+CFGPMTR    makeWingOml        0
+CFGPMTR    makeHtailOml       1
+CFGPMTR    makeVtailOml       0
+CFGPMTR    unionAll           0
+
+# fuselage
+CFGPMTR   fuse:noseRadY     2.5    # nose radius in Y direction
+LBOUND    fuse:noseRadY     0.1
+CFGPMTR   fuse:noseRadZ     2.5    # nose radius in Z direction
+LBOUND    fuse:noseRadZ     0.1
+CFGPMTR   fuse:fwdLength     28    # length of forward fuselage
+CFGPMTR   fuse:noseHeight    -2    # zloc of center of nose
+
+CFGPMTR   fuse:midWidth      20    # width  of mid fuselage
+CFGPMTR   fuse:midHeight     20    # height of mid fuselage
+CFGPMTR   fuse:power          3    # super-ellipse power of mid and aft fuselage
+CFGPMTR   fuse:aftnSec        3    # number of sectins in the aft portion
+CFGPMTR   fuse:aftLength     44    # length of aft fuselage
+CFGPMTR   fuse:aftWidth       1    # width  of aft fuselage
+CFGPMTR   fuse:aftHeight      3    # height of aft fuselage
+CFGPMTR   fuse:aftCenter    8.5    # zloc   of aft fuselage
+CFGPMTR   fuse:aftTailExt     5    # lengt of fuselage aft of htail/vtail
+
+# wing
+CFGPMTR   wing:area        4240    # area
+CFGPMTR   wing:aspect      9.00    # aspect ratio
+CFGPMTR   wing:taperi      0.48    # inboard  taper ratio
+CFGPMTR   wing:tapero      0.23    # outboard taper ratio
+CFGPMTR   wing:sweep       35.0    # leading edge sweep
+CFGPMTR   wing:dihedral     7.0    # dihedral
+CFGPMTR   wing:break       0.37    # inboard/outboard
+LBOUND    wing:break       0.10
+UBOUND    wing:break       0.90
+CFGPMTR   wing:alphar      -1.0    # setting angle   at root
+CFGPMTR   wing:thickr      0.10    # thickness ratio at root
+LBOUND    wing:thickr      0.01
+CFGPMTR   wing:camberr     0.08    # camber    ratio at root
+CFGPMTR   wing:alphab      -3.0    # setting angle   at break
+CFGPMTR   wing:thickb      0.15    # thickness ratio at break
+LBOUND    wing:thickb      0.01
+CFGPMTR   wing:camberb     0.04    # camber    ratio at break
+CFGPMTR   wing:alphat      -8.0    # setting angle   at tip
+CFGPMTR   wing:thickt      0.08    # thickness ratio at tip
+LBOUND    wing:thickt      0.01
+CFGPMTR   wing:cambert     0.01    # camber    ratio at tip
+CFGPMTR   wing:xroot       54.0    # xloc at root LE
+CFGPMTR   wing:zroot       -5.0    # zloc at root LE
+
+# horizontal tail
+DESPMTR   htail:aspect     2.15    # htail aspect ratio
+DESPMTR   htail:taper      0.33    # htail taper ratio
+DESPMTR   htail:sweep        40    # htail sweep
+DESPMTR   htail:dihedral     12    # htail dihedral
+DESPMTR   htail:thick      0.08    # htail thickness ratio
+LBOUND    htail:thick      0.01
+DESPMTR   htail:vc         0.45    # htail volume coefficient
+DESPMTR   htail:xac         155    # htail xloc of aerodynamic center
+DESPMTR   htail:fac         0.3    # fraction of root coord for aerodynamic center
+DESPMTR   htail:zroot         5    # zloc of root LE
+
+# vertical tail
+CFGPMTR   vtail:aspect     1.80    # vtail aspect ratio
+CFGPMTR   vtail:taper      0.28    # vtail taper ratio
+CFGPMTR   vtail:sweep        45    # vtail sweep
+CFGPMTR   vtail:thick      0.08    # vtail thickness
+LBOUND    vtail:thick      0.01
+CFGPMTR   vtail:vc         0.04    # vtail volume coefficient
+CFGPMTR   vtail:xac         160    # vtail xloc of aerodynamic center
+CFGPMTR   vtail:fac         0.3    # fraction of root coord for aerodynamic center
+CFGPMTR   vtail:zroot         9    # zloc of root LE
+
+CFGPMTR   CG:xref            90    # CG location used to drive design parametres, not the actual CG
+
+##### wing #####
+
+# compute wing critical locations / dimensions
+SET       wing:span      sqrt(wing:aspect*wing:area)
+SET       wing:yroot     0
+SET       wing:ytip     -wing:span/2
+SET       wing:xtip      wing:xroot-wing:ytip*tand(wing:sweep)
+SET       wing:ztip      wing:zroot-wing:ytip*tand(wing:dihedral)
+SET       wing:ybreak    wing:ytip*wing:break
+SET       wing:xbreak    wing:xroot-wing:ybreak*tand(wing:sweep)
+SET       wing:zbreak    wing:zroot-wing:ybreak*tand(wing:dihedral)
+SET       wing:chordr    wing:area/((wing:yroot-wing:ybreak)*(wing:taperi+1)+(wing:ybreak-wing:ytip)*wing:taperi*(wing:tapero+1))
+SET       wing:chordb    wing:chordr*wing:taperi
+SET       wing:chordt    wing:chordb*wing:tapero
+SET       wing:mac       sqrt(wing:area/wing:aspect)
+
+# make wing OML
+IFTHEN    makeWingOml EQ 1
+    # lay out left wing
+    MARK
+        # root
+        UDPRIM    naca      thickness  wing:thickr   camber  wing:camberr   sharpte  1
+        SCALE     wing:chordr
+        ROTATEX   90  0  0
+        ROTATEY   wing:alphar  0  0
+        TRANSLATE wing:xroot   wing:yroot   wing:zroot
+
+        UDPRIM    naca      camber  wing:camberb   thickness  wing:thickb   sharpte  1
+        SCALE     wing:chordb
+        ROTATEX   90  0  0
+        ROTATEY   wing:alphab  0  0
+        TRANSLATE wing:xbreak       wing:ybreak    wing:zbreak
+
+        # left tip
+        UDPRIM    naca      thickness  wing:thickt   camber  wing:cambert   sharpte  1
+        SCALE     wing:chordt
+        ROTATEX   90  0  0
+        ROTATEY   wing:alphat  0           0
+        TRANSLATE wing:xtip    wing:ytip   wing:ztip
+    RULE
+        ATTRIBUTE tagComp  $leftWing
+    SET       ruledBody @nbody
+
+    SELECT    FACE ruledBody  1
+        ATTRIBUTE tagType  $root
+    SELECT    FACE ruledBody  2
+        ATTRIBUTE tagType  $tip
+        ATTRIBUTE tagIndex $1
+    SELECT    FACE ruledBody  3
+        ATTRIBUTE tagType  $upper
+    SELECT    FACE ruledBody  4
+        ATTRIBUTE tagType  $upper
+    SELECT    FACE ruledBody  5
+        ATTRIBUTE tagType  $lower
+    SELECT    FACE ruledBody  6
+        ATTRIBUTE tagType  $lower
+    SELECT    EDGE ruledBody 3 ruledBody 5 1
+        ATTRIBUTE tagType  $leadingEdge
+    SELECT    EDGE ruledBody 4 ruledBody 6 1
+        ATTRIBUTE tagType  $leadingEdge
+    SELECT    EDGE  ruledBody 3 ruledBody 5 2
+        ATTRIBUTE tagType  $trailingEdge
+    SELECT    EDGE  ruledBody 4 ruledBody 6 2
+        ATTRIBUTE tagType  $trailingEdge
+
+    # right wing too
+    STORE     LeftWing 0 1
+    RESTORE   LeftWing
+        ATTRIBUTE tagComp $riteWing
+        SELECT    FACE  $tagType $tip
+        ATTRIBUTE tagIndex $2
+        SELECT    EDGE  $tagType $leadingEdge
+        IFTHEN    @iedge GT 0
+            SELECT EDGE  $tagType $leadingEdge
+                ATTRIBUTE tagComp $riteWing
+        ENDIF
+        SELECT    EDGE  $tagType $trailingEdge
+        IFTHEN    @iedge GT 0
+            SELECT EDGE  $tagType $trailingEdge
+                ATTRIBUTE tagComp $riteWing
+        ENDIF
+    MIRROR    0   1  0
+    JOIN
+
+    SELECT    EDGE  ruledBody 3 ruledBody 3 1
+        ATTRIBUTE tagType  $root
+    SELECT    EDGE  ruledBody 5 ruledBody 5 1
+        ATTRIBUTE tagType  $root
+
+    STORE     WingOml
+ENDIF
+
+##### horizontal tail
+
+# compute horizontal tail critical locations / dimensions
+SET       htail:L        htail:xac-CG:xref
+SET       htail:area     htail:vc*wing:area*wing:mac/htail:L
+SET       htail:span     sqrt(htail:area*htail:aspect)
+SET       htail:chordr   2*htail:area/htail:span/(1+htail:taper)
+SET       htail:chordt   htail:chordr*htail:taper
+SET       htail:xroot    htail:xac-htail:chordr*htail:fac
+SET       htail:xtip     htail:xroot+htail:span*tand(htail:sweep)
+SET       htail:ytip     -htail:span
+SET       htail:ztip     htail:zroot+htail:span*tand(htail:dihedral)
+
+# make horizontal tail
+IFTHEN    makeHtailOml EQ 1
+
+    # lay out left horizontal tail
+    MARK
+        UDPRIM    naca   thickness  htail:thick   sharpte  1
+        ROTATEX   90     0  0
+        SCALE     htail:chordr
+        TRANSLATE htail:xroot  0  htail:zroot
+
+        UDPRIM    naca   thickness  htail:thick   sharpte  1
+        ROTATEX   90     0  0
+        SCALE     htail:chordt
+        TRANSLATE htail:xtip   htail:ytip  htail:ztip
+    RULE
+        ATTRIBUTE tagComp  $leftHtail
+        SELECT    FACE      @nbody 1
+        ATTRIBUTE tagType  $root
+        SELECT    FACE      @nbody 2
+        ATTRIBUTE tagType  $tip
+        SELECT    FACE      @nbody 3
+        ATTRIBUTE tagType  $upper
+        SELECT    FACE      @nbody 4
+        ATTRIBUTE tagType  $lower
+        SELECT    EDGE      @nbody 3 @nbody 4
+        ATTRIBUTE tagType  $leadingEdge
+        SELECT    EDGE      @nbody 3 @nbody 4 2
+        ATTRIBUTE tagType  $trailingEdge
+
+    # right htail too
+    STORE     LeftHtail 0 1
+    RESTORE   LeftHtail
+        ATTRIBUTE tagComp  $riteHtail
+        SELECT    EDGE  $tagType $leadingEdge
+        IFTHEN    @iedge GT 0
+            SELECT EDGE  $tagType $leadingEdge
+                ATTRIBUTE tagComp $riteWing
+        ENDIF
+        SELECT    EDGE  $tagType $trailingEdge
+        IFTHEN    @iedge GT 0
+            SELECT EDGE  $tagType $trailingEdge
+                ATTRIBUTE tagComp $riteWing
+        ENDIF
+    MIRROR    0  1  0
+    JOIN
+
+    STORE     HtailOml
+ENDIF
+
+##### vertical tail #####
+
+# compute vertical tail critical locations / dimensions
+SET       vtail:L        vtail:xac-CG:xref
+SET       vtail:area     vtail:vc*wing:area*wing:span/vtail:L
+SET       vtail:span     sqrt(vtail:area*vtail:aspect)
+SET       vtail:chordr   2*vtail:area/vtail:span/(1+vtail:taper)
+SET       vtail:chordt   vtail:chordr*vtail:taper
+SET       vtail:xroot    vtail:xac-vtail:chordr*vtail:fac
+SET       vtail:xtip     vtail:xroot+vtail:span*tand(vtail:sweep)
+SET       vtail:ztip     vtail:zroot+vtail:span
+
+# make vertical tail
+IFTHEN    makeVtailOml EQ 1
+
+    # lay out vertical tail
+    MARK
+        UDPRIM    naca    thickness  vtail:thick   sharpte  1
+        SCALE     vtail:chordr
+        TRANSLATE vtail:xroot   0   vtail:zroot
+
+        UDPRIM    naca    thickness  vtail:thick   sharpte  1
+        SCALE     vtail:chordt
+        TRANSLATE vtail:xtip    0   vtail:ztip
+    RULE
+        ATTRIBUTE tagComp  $vtail
+        SELECT    FACE      @nbody 1
+        ATTRIBUTE tagType  $root
+        SELECT    FACE      @nbody 2
+        ATTRIBUTE tagType  $tip
+        SELECT    FACE      @nbody 3
+        ATTRIBUTE tagType  $rite
+        SELECT    FACE      @nbody 4
+        ATTRIBUTE tagType  $left
+        SELECT    EDGE      @nbody 3 @nbody 4
+        ATTRIBUTE tagType  $leadingEdge
+        SELECT    EDGE      @nbody 3 @nbody 4 2
+        ATTRIBUTE tagType  $trailingEdge
+    
+    STORE    VtailOml
+ENDIF
+
+##### fuselage #####
+
+# make fuselage
+IFTHEN    makeFuseOml EQ 1
+
+    # total length driven by the location of the htail/vtail
+    SET       fuse:Length     max(htail:xroot+htail:chordr,vtail:xroot+vtail:chordr)+fuse:aftTailExt
+    SET       fuse:midLength  fuse:Length-(fuse:fwdLength+fuse:aftLength)
+
+    SET       x1              fuse:noseRadY
+    SET       z1              fuse:noseHeight
+    SET       r1              fuse:noseRadZ
+
+    SET       x2              fuse:fwdLength/2
+    SET       z2              fuse:noseHeight/2
+    SET       r2              (fuse:midHeight+fuse:midWidth)/8+r1
+
+    DIMENSION noselist  2 4
+    SET       noselist       "fuse:noseRadY; 0; 1; 0; \
+                              fuse:noseRadZ; 0; 0; 1;"
+
+    # build fuselage
+    MARK
+        # starting point of the nose
+        POINT     0 0 z1
+
+        UDPRIM    supell    rx  r1   ry  r1   n  2
+        ROTATEY   90-atan2(z2-z1,x2-x1)*180/pi(1) 0 0
+        TRANSLATE x1  0  z1
+
+        # forward break
+        UDPRIM    supell    rx  r2   ry  r2   n  2
+        ROTATEY   90-atan2(z2-z1,x2-x1)*180/pi(1) 0 0
+        TRANSLATE x2  0  z2
+
+        # mid section
+        UDPRIM    supell  rx  fuse:midHeight/2   ry  fuse:midWidth/2   n  fuse:power
+        ROTATEY   90 0 0
+        TRANSLATE fuse:fwdLength 0 0
+        
+        STORE fuseMid1 0 1 # duplicate the section which make it C1
+        RESTORE fuseMid1
+       
+        UDPRIM    supell  rx  fuse:midHeight/2   ry  fuse:midWidth/2   n  fuse:power
+        ROTATEY   90 0 0
+        TRANSLATE fuse:fwdLength+fuse:midLength 0 0
+       
+        STORE fuseMid2 0 1 # triple the section to make it C0
+        RESTORE fuseMid2
+        RESTORE fuseMid2
+ 
+        # tail section
+        UDPRIM    supell  rx  fuse:aftHeight/2   ry  fuse:aftWidth/2   n  fuse:power
+        ROTATEY   90 0 0
+        TRANSLATE fuse:Length 0 fuse:aftCenter
+       
+    BLEND  noselist
+        ATTRIBUTE tagComp  $fuselage
+
+    STORE     FuseOml
+ENDIF
+
+##### bring back whole transport #####
+
+IFTHEN    makeWingOml  EQ 1
+    RESTORE   WingOml
+       ATTRIBUTE  .tParams "3.0; 1.0; 15"
+ENDIF
+IFTHEN    makeHtailOml EQ 1
+    RESTORE   HtailOml
+       ATTRIBUTE  .tParams "3.0; 1.0; 15"
+ENDIF
+IFTHEN    makeVtailOml EQ 1
+    RESTORE   VtailOml
+       ATTRIBUTE  .tParams "3.0; 1.0; 15"
+ENDIF
+IFTHEN    makeFuseOml  EQ 1
+    RESTORE   FuseOml
+       ATTRIBUTE  .tParams "3.0; 0.5; 15"
+ENDIF
+
+# union all together
+IFTHEN    unionAll EQ 1  AND  makeFuseOml EQ 1
+    IFTHEN    makeVtailOml EQ 1
+        UNION     # fuse/vtail
+    ENDIF
+    IFTHEN    makeHtailOml EQ 1
+        UNION     # fuse/htail
+    ENDIF
+    IFTHEN    makeWingOml  EQ 1
+        UNION     # fuse/wing
+    ENDIF
+ENDIF
+
+# this is used to create "plugs7.cloud"
+DUMP      plugs7.tess
+
+END

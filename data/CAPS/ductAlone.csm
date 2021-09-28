@@ -1,0 +1,30 @@
+# ductAlone
+# written by John Dannenhoffer
+
+# global attributes
+attribute capsLength $ft
+attribute capsForce  $lb
+
+# global parameter
+despmtr   intent   3
+
+# engine parameters
+despmtr   engine:diameter  1
+despmtr   engine:length    3.0
+despmtr   engine:thickness 0.05
+despmtr   engine:camber    0.04
+despmtr   engine:dx       -.50
+despmtr   engine:pctspan  0.40
+despmtr   engine:dz       0.30
+
+############################################################
+
+# left fan shroud
+udparg    $$/duct     intent    intent
+udparg    $$/duct     diameter  engine:diameter
+udparg    $$/duct     length    engine:length/2
+udparg    $$/duct     thickness engine:thickness
+udparg    $$/duct     camber    engine:camber
+udprim    $$/duct     ID        6
+
+end

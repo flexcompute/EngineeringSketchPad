@@ -1,0 +1,14 @@
+# to be used by udpTest2.csm
+
+   EDGE   ADJ2FACE   side=xmin
+   AND    ADJ2FACE   side=zmax
+   SET               _color=magenta
+
+   PATBEG  iface  nface
+      FACE HAS    tag=!iface
+      SET         foo=!$face+iface
+   PATEND
+
+   EDGE    ADJ2FACE  side=ymin
+   AND     ADJ2FACE  side=zmax
+   SET               _color=cyan

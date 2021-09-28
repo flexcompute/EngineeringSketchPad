@@ -1,0 +1,24 @@
+# design0b
+# written by John Dannenhoffer
+
+despmtr   x1        0.0
+despmtr   x2        1.0
+despmtr   x3        2.0
+
+despmtr   y1        0.0
+despmtr   y2        0.5
+despmtr   y3        1.0
+
+despmtr   depth     3.0
+
+skbeg     x1   y1   0.0
+   linseg x3   y1   0.0
+   linseg x2   y3   0.0
+   linseg x1   y3   0.0
+   linseg x1   y2   0.0
+   linseg x1   y1   0.0
+skend
+
+extrude   0.0  0.0  depth
+
+end

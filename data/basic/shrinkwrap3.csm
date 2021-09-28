@@ -1,0 +1,86 @@
+# shrinkwrap3
+# written by John Dannenhoffer
+
+# body
+CYLINDER  0.0  0.0  0.0  5 0  0.0  1.0
+
+# engine
+CYLINDER  1.0  1.0  0.0  4.0  0.7  0.0  0.5
+SPHERE    0.0  2.0  0.0  2.0
+SUBTRACT
+
+UNION
+
+# make SheetBody
+SELECT     FACE
+SELECT     SUB   3  1    # inlet
+SELECT     SUB   2  2    # exit
+EXTRACT    @sellist
+STORE      body
+
+# split the Edge on the bottom of the inlet
+RESTORE    body
+SET        theBody  @nbody
+SELECT     EDGE  0  0  1  4  1
+SELECT     SUB   $_nface  2
+SET        theEdge  @sellist
+STORE      .
+
+EVALUATE   EDGERNG  theBody  theEdge
+SET        tsplit1  0.90*@edata[1]+0.10*@edata[2]
+SET        tsplit2  0.10*@edata[1]+0.90*@edata[2]
+
+RESTORE    body
+EVALUATE   EDGE     theBody  theEdge  tsplit1
+POINT      @edata[2]  @edata[3]  @edata[4]
+SUBTRACT
+STORE      body
+
+RESTORE    body
+EVALUATE   EDGE     theBody  theEdge  tsplit2
+POINT      @edata[2]  @edata[3]  @edata[4]
+SUBTRACT
+STORE      body
+
+# generate a cover for the inlet
+MARK
+   RESTORE   body
+   SELECT    EDGE  0  0  1  4  1
+   SELECT    ADD   0  0  1  4  3
+   SELECT    ADD   0  0  1  4  2
+   SELECT    SUB   $_nface  2
+   EXTRACT   -@sellist[1];-@sellist[2];-@sellist[3]
+
+   RESTORE   body
+   SELECT    EDGE  0  0  2  4  1
+   SELECT    ADD   0  0  2  3  1
+   SELECT    ADD   0  0  2  3  2
+   SELECT    SUB   $_nface  2
+   EXTRACT   -@sellist[1];-@sellist[2];-@sellist[3]
+RULE      1
+ATTRIBUTE _color  $blue
+STORE     inletCover
+
+# generate a cover for the exit
+MARK
+   RESTORE   body
+   SELECT    EDGE  0  0  1  4  4
+   SELECT    SUB   $_nface  2
+   EXTRACT   -@sellist
+
+   RESTORE   body
+   SELECT    EDGE  0  0  2  4  2
+   SELECT    SUB   $_nface  2
+   EXTRACT   -@sellist
+RULE      1
+ATTRIBUTE _color  $blue
+STORE     exitCover
+
+# combine into a SolidBody
+MARK
+   RESTORE    body
+   RESTORE    inletCover
+   RESTORE    exitCover
+COMBINE   0.001
+
+END

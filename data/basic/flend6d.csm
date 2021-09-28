@@ -1,0 +1,37 @@
+# flend6d
+# written by John Dannenhoffer
+
+# duct
+UDPRIM    supell   rx 4.0  ry 4.0   n_n  4.0
+ROTATEY   90  0  0
+EXTRUDE   10  0  0
+
+UDPRIM    supell   rx 3.8  ry 3.8
+ROTATEY   90  0  0
+EXTRUDE   10  0  0
+
+SUBTRACT
+
+# scarf cut
+SKBEG     0.0 -4.0  -5.0
+   LINSEG 12. -4.0  -5.0
+   LINSEG 12.  4.0  -5.0
+   LINSEG 3.0  4.0  -5.0
+   LINSEG 0.0 -4.0  -5.0
+SKEND
+EXTRUDE   0.0  0.0  10.0
+
+INTERSECT
+
+# remove the Face to be flended
+SELECT    FACE
+SELECT    SUB    14  6
+EXTRACT   @sellist
+
+# perform the flend
+UDPRIM    flend    toler 0.0001
+
+SELECT    face @nbody 0
+   ATTRIBUTE _color $cyan
+
+END

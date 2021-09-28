@@ -1,0 +1,105 @@
+# mechanism2
+# written by John Dannenhoffer
+
+# design parameters
+despmtr   x0   0.0
+despmtr   y0   0.0
+despmtr   L1   2.0
+despmtr   L2   3.0
+despmtr   L3   1.0
+despmtr   L4   3.0
+despmtr   W1   0.2
+despmtr   W2   0.2
+despmtr   W3   0.2
+despmtr   W4   0.1
+despmtr    D   0.1
+despmtr   t1   30
+despmtr   t2  -30
+despmtr   t3   0
+despmtr   t4   45
+
+# build the bars (and store them)
+skbeg     0     -W1  0
+   linseg L1    -W1  0
+   cirarc L1+W1   0  0 L1  +W1   0
+   linseg 0     +W1  0
+   cirarc   -W1   0  0 0   -W1   0
+skend
+extrude   0  0  D
+   attribute _color $red
+   csystem   A      "0;0;0;  1;0;0; 0;1;0"
+   csystem   B      "L1;0;0; 1;0;0; 0;1;0"
+store  bar 1
+
+skbeg     0     -W2  0
+   linseg L2    -W2  0
+   cirarc L2+W2   0  0 L2  +W2   0
+   linseg 0     +W2  0
+   cirarc   -W2   0  0 0   -W2   0
+skend
+extrude   0  0  D
+   attribute _color $green
+   csystem   B      "0;0;0;  1;0;0; 0;1;0"
+   csystem   C      "L2;0;0; 1;0;0; 0;1;0"
+store  bar 2
+
+skbeg     0     -W3  0
+   linseg L3    -W3  0
+   cirarc L3+W3   0  0 L3  +W3   0
+   linseg 0     +W3  0
+   cirarc   -W3   0  0 0   -W3   0
+skend
+extrude   0  0  D
+   attribute _color $blue
+   csystem   C      "0;0;0;  1;0;0; 0;1;0"
+   csystem   D      "L3;0;0; 1;0;0; 0;1;0"
+store  bar 3
+
+skbeg     0     -W4  0
+   linseg L4    -W4  0
+   cirarc L4+W4   0  0 L4  +W4   0
+   linseg 0     +W4  0
+   cirarc   -W4   0  0 0   -W4   0
+skend
+extrude   0  0  D
+   attribute _color $cyan
+   csystem   D      "0;0;0;  1;0;0; 0;1;0"
+   csystem   E      "L4;0;0; 1;0;0; 0;1;0"
+store  bar 4
+
+# initialize local variables
+set       x1   0
+set       y1   0
+set       x2   0
+set       y2   0
+set       x3   0
+set       y3   0
+
+# solve for bar locations
+solbeg "x1;y1;x2;y2;x3;y3;"
+   solcon  "x1-x0-L1*cosd(t1)"
+   solcon  "y1-y0-L1*sind(t1)"
+   solcon  "x2-x1-L2*cosd(t2)"
+   solcon  "y2-y1-L2*sind(t2)"
+   solcon  "x3-x2-L3*cosd(t3)"
+   solcon  "y3-y2-L3*sind(t3)"
+solend
+
+# move bars to final locations
+restore   bar 1
+rotatez   t1  0   0
+translate x0  y0  0
+
+restore   bar 2
+rotatez   t2  0   0
+translate x1  y1 -D
+
+restore   bar 3
+rotatez   t3  0   0
+translate x2  y2  0
+
+restore   bar 4
+rotatez   t4  0   0
+translate x3  y3 -D
+
+end

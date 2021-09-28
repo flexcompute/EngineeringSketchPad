@@ -1,0 +1,23 @@
+# attribute2
+# written by John Dannenhoffer
+
+# global attribute
+attribute global    1
+
+# create Node via POINT statement
+point     0  0  0
+   attribute point  2
+   attribute _name  $POINT
+
+# create Node via sketch
+skbeg     1  0  0
+skend
+   attribute sketch 3
+   attribute _name  $SKETCH
+
+# create little box
+box       1.9  -.1  -.1  0.2  0.2  0.2
+   attribute box    4
+   attribute _name  $BOX
+
+end

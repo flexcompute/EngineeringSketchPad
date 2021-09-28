@@ -1,0 +1,8 @@
+# boxudp3 - 2D boxes with rounded corners
+# written by Bridget Dixon
+
+udprim box dx  4.0  dy  2.0           rad  0.75
+udprim box dx  4.0           dz  7.0  rad  0.75
+udprim box          dy  2.0  dz  7.0  rad  0.75
+
+end

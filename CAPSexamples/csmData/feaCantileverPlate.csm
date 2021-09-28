@@ -1,0 +1,34 @@
+
+# Design Parameters:
+despmtr   plateLength      0.50000
+despmtr   plateWidth       0.25000
+
+attribute capsAIM $nastranAIM;astrosAIM;mystranAIM;hsmAIM
+
+# Branches:
+skbeg     0   0   0
+   linseg    plateLength   0   0
+skend     0
+
+extrude   0   plateWidth   0
+attribute capsGroup   $plate
+attribute .tParam   "0.2; 0.01; 15;"
+#csystem plate "0;0;0; 1;0;0;  0;1;0;"
+csystem plate "0;0;0; 0.7071067;0.7071067;0;  -0.7071067;0.7071067;0;"
+ 
+select edge 1 
+   attribute capsConstraint $plateEdge
+select node 1 
+   attribute capsConstraint $plateEdge
+select node 2 
+   attribute capsConstraint $plateEdge
+
+
+select edge 2 
+   attribute capsLoad $plateTip
+select node 3 
+   attribute capsLoad $plateTip
+select node 4
+   attribute capsLoad $plateTip
+
+end

@@ -1,0 +1,619 @@
+# viewSansLIP.udc
+# written by John Dannenhoffer
+
+# used Bodys
+#    WingOml
+#        WingHinge
+#    FuseOml        (optional)
+#    HtailOml       (optional)
+#        HtailHinge
+#    VtailOml       (optional)
+#        VtailHinge
+# used variables
+#    wing:area
+#    wing:span
+#    htail:area
+#    htail:aspect
+#    vtail:area
+#    vtail:aspect
+#    ANAL:SIZE
+#
+# NOTE: Bodies are stored with _SANS suffix to avoid modifying
+#       other views
+
+INTERFACE . ALL
+
+# default to coarse grid (if not specified)
+IFTHEN    ifnan(ANAL:SIZE,1,0) EQ 1
+    SET   ANAL:SIZE   1
+ENDIF
+
+# AFRL scale factors to guide mesh generation
+SET AFLR_Control_Edges           0
+SET AFLR_TE_ScaleFactor          0.05
+SET AFLR_Wake_ScaleFactor        0.05
+SET AFLR_WakeFace_ScaleFactor    0.2
+SET AFLR_ControlEdge_ScaleFactor 0.1
+SET AFLR_Fuse_ScaleFactor        5
+
+# wing with scribed controls and wake sheet
+IFTHEN    COMP:Wing EQ 1
+    SET       size  wing:area/wing:span
+    SET       dsnomWing size/(5*ANAL:SIZE)
+    RESTORE   WingOml
+        ATTRIBUTE capsGroup $Airplane
+        ATTRIBUTE .tParam   "dsnomWing; dsnomWing/25; 15;"
+        ATTRIBUTE .qParams  $off
+
+    IFTHEN    makeWingHinge EQ 1
+            SET       xmax   @xmax
+            SET       zmin   @zmin
+            SET       zmax   @zmax
+            
+        CATBEG $name_not_found
+            THROW -999   # unexpected signal
+        CATEND
+        PATBEG    ihinge 9999
+            RESTORE  WingHinge ihinge
+                ATTRIBUTE capsGroup !$WingControl+ihinge
+                ATTRIBUTE _name     !$WingControl+ihinge
+
+            EVALUATE edge @nbody 1 $beg
+            SET      xbeg  @edata[2]
+            SET      ybeg  @edata[3]
+            SET      zbeg  @edata[4]
+
+            EVALUATE edge @nbody 1 $end
+            SET      xend  @edata[2]
+            SET      yend  @edata[3]
+            SET      zend  @edata[4]
+
+            STORE    WingHinge ihinge
+
+            SKBEG      xmax+1  ybeg   zmin-1
+                LINSEG xbeg    ybeg   zmin-1
+                LINSEG xend    yend   zmin-1
+                LINSEG xmax+1  yend   zmin-1
+            SKEND
+            EXTRUDE  0  0  zmax-zmin+2
+            SUBTRACT
+    
+            # put capsGroup on control surface
+            PROJECT       (xbeg+xend)/2+0.1  (ybeg+yend)/2  zmin-1  0  0  +1
+            SELECT        face @iface
+                ATTRIBUTE capsGroup !$WingControl+ihinge
+                ATTRIBUTE .tParam   "dsnomWing/2; dsnomWing/50; 15;"
+    
+            PROJECT       (xbeg+xend)/2+0.1  (ybeg+yend)/2  zmax+1  0  0  -1
+            SELECT        face @iface
+                ATTRIBUTE capsGroup !$WingControl+ihinge
+                ATTRIBUTE .tParam   "dsnomWing/2; dsnomWing/50; 15;"
+
+            # Mark all control surface trailing edges with AFLR_Scale_Factor
+            # which gets transferred to the face on the wake for that control surface
+            UDPRIM    editAttr filename  <<
+                EDGE ADJ2FACE capsGroup=!$WingControl+ihinge
+                AND  HAS      tagType=trailingEdge
+                SET           control=!$WingControl+ihinge
+>>
+            IFTHEN AFLR_Control_Edges EQ 0
+                SELECT    EDGE  $control  !$WingControl+ihinge
+                DIMENSION wingControl 1 @sellist.size 0
+                SET       wingControl @sellist
+                PATBEG    i   wingControl.size
+                    SELECT    EDGE   wingControl[i]
+                        ATTRIBUTE AFLR_Scale_Factor AFLR_WakeFace_ScaleFactor
+                PATEND
+            ENDIF
+        PATEND
+        CATBEG $name_not_found
+        CATEND
+    ENDIF
+    STORE    WingOml_SANS
+
+    # wing wake
+    # Select all trailing edges
+    RESTORE   WingOml_SANS
+    SELECT    EDGE  $tagType  $trailingEdge
+    DIMENSION trailingEdges 1 @sellist.size 0
+    SET       trailingEdges @sellist
+    STORE     .
+
+    # Extract trailing edges and extrude the wake
+    MARK
+        PATBEG    i   trailingEdges.size
+            RESTORE   WingOml_SANS
+            EXTRACT   -trailingEdges[i]
+        PATEND
+    JOIN      0  1
+    EXTRUDE   1000  0  0
+        ATTRIBUTE capsGroup $wingWake
+    STORE    WingWake
+
+    # The scale factor should be applied after the wake egdes are extracted, 
+    # otherwise it is transferered to all the wake faces.
+    RESTORE   WingOml_SANS
+    PATBEG    i   trailingEdges.size
+        SELECT EDGE  trailingEdges[i]
+        ATTRIBUTE AFLR_Edge_Scale_Factor AFLR_TE_ScaleFactor
+    PATEND
+    STORE     WingOml_SANS
+ENDIF
+
+# horizontal tail with scribed controls
+IFTHEN    COMP:Htail EQ 1
+    SET       htail:span      sqrt(htail:aspect*htail:area)
+    SET       size  htail:area/htail:span
+    SET       dsnomHtail size/(4*ANAL:SIZE)
+    RESTORE   HtailOml
+        ATTRIBUTE capsGroup $Airplane
+        ATTRIBUTE .tParam   "dsnomHtail; dsnomHtail/50; 15;"
+        ATTRIBUTE .qParams  $off
+    IFTHEN    makeHtailHinge EQ 1
+        SET       xmax   @xmax
+        SET       zmin   @zmin
+        SET       zmax   @zmax
+        
+        CATBEG $name_not_found
+            THROW -999   # unexpected signal
+        CATEND
+        PATBEG    ihinge 9999
+            RESTORE  HtailHinge ihinge
+                ATTRIBUTE capsGroup !$HtailControl+ihinge
+                ATTRIBUTE _name     !$HtailControl+ihinge
+    
+            EVALUATE edge @nbody 1 $beg
+            SET      xbeg  @edata[2]
+            SET      ybeg  @edata[3]
+            SET      zbeg  @edata[4]
+    
+            EVALUATE edge @nbody 1 $end
+            SET      xend  @edata[2]
+            SET      yend  @edata[3]
+            SET      zend  @edata[4]
+    
+            STORE    HtailHinge ihinge
+    
+            SKBEG      xmax+1  ybeg   zmin-1
+                LINSEG xbeg    ybeg   zmin-1
+                LINSEG xend    yend   zmin-1
+                LINSEG xmax+1  yend   zmin-1
+            SKEND
+            EXTRUDE  0  0  zmax-zmin+2
+            SUBTRACT
+    
+            # put capsGroup on control surface
+            PROJECT       (xbeg+xend)/2+0.1  (ybeg+yend)/2  zmin-1  0  0  +1
+            SELECT        face @iface
+                ATTRIBUTE capsGroup !$HtailControl+ihinge
+                ATTRIBUTE .tParam   "dsnomHtail/2; dsnomHtail/50; 15;"
+    
+            PROJECT       (xbeg+xend)/2+0.1  (ybeg+yend)/2  zmax+1  0  0  -1
+            SELECT        face @iface
+                ATTRIBUTE capsGroup !$HtailControl+ihinge
+                ATTRIBUTE .tParam   "dsnomHtail/2; dsnomHtail/50; 15;"
+
+            # Mark all control surface trailing edges with AFLR_Scale_Factor
+            # which gets transferred to the face on the wake for that control surface
+            UDPRIM    editAttr filename  <<
+                EDGE ADJ2FACE capsGroup=!$HtailControl+ihinge
+                AND  HAS      tagType=trailingEdge
+                SET           control=!$HtailControl+ihinge
+>>
+            IFTHEN AFLR_Control_Edges EQ 0
+                SELECT    EDGE  $control  !$HtailControl+ihinge
+                DIMENSION wingControl 1 @sellist.size 0
+                SET       wingControl @sellist
+                PATBEG    i   wingControl.size
+                    SELECT    EDGE   wingControl[i]
+                        ATTRIBUTE AFLR_Scale_Factor AFLR_WakeFace_ScaleFactor
+                PATEND
+            ENDIF
+        PATEND
+        CATBEG $name_not_found
+        CATEND
+    ENDIF
+    STORE    HtailOml_SANS
+    
+    # htail wake
+    # Select all trailing edges
+    RESTORE   HtailOml_SANS
+    SELECT    EDGE  $tagType  $trailingEdge
+    DIMENSION trailingEdges 1 @sellist.size 0
+    SET       trailingEdges @sellist
+    STORE     .
+
+    MARK
+        PATBEG    i   trailingEdges.size
+            RESTORE   HtailOml_SANS
+            EXTRACT   -trailingEdges[i]
+        PATEND
+    JOIN      0  1
+    EXTRUDE   1000  0  0
+        ATTRIBUTE capsGroup $htailWake
+    STORE    HtailWake
+
+    RESTORE   HtailOml_SANS
+    PATBEG    i   trailingEdges.size
+        SELECT EDGE  trailingEdges[i]
+        ATTRIBUTE AFLR_Edge_Scale_Factor AFLR_TE_ScaleFactor
+    PATEND
+    STORE   HtailOml_SANS
+    
+ENDIF
+
+# vertial tail with scribed controls
+IFTHEN    COMP:Vtail EQ 1
+    SET       vtail:span      sqrt(vtail:aspect*vtail:area)
+    SET       size  vtail:area/vtail:span
+    SET       dsnomVtail size/(4*ANAL:SIZE)
+    RESTORE   VtailOml
+        ATTRIBUTE capsGroup $Airplane
+        ATTRIBUTE .tParam   "dsnomVtail; dsnomVtail/50; 15;"
+
+    IFTHEN    makeVtailHinge EQ 1
+        SET       xmax   @xmax
+        SET       ymin   @ymin
+        SET       ymax   @ymax
+
+        CATBEG $name_not_found
+            THROW -999   # unexpected signal
+        CATEND
+        PATBEG    ihinge 9999
+            RESTORE  VtailHinge ihinge
+    
+            EVALUATE edge @nbody 1 $beg
+            SET      xbeg  @edata[2]
+            SET      ybeg  @edata[3]
+            SET      zbeg  @edata[4]
+    
+            EVALUATE edge @nbody 1 $end
+            SET      xend  @edata[2]
+            SET      yend  @edata[3]
+            SET      zend  @edata[4]
+    
+            STORE    .
+    
+            SKBEG      xmax+1  ymin-1  zbeg
+                LINSEG xbeg    ymin-1  zbeg
+                LINSEG xend    ymin-1  zend
+                LINSEG xmax+1  ymin-1  zend
+            SKEND
+            EXTRUDE  0  ymax-ymin+2  0
+            SUBTRACT
+        PATEND
+        CATBEG $name_not_found
+        CATEND
+    ENDIF
+    STORE     VtailOml_SANS
+ENDIF
+
+# create the whole OML if a fuselage is requested
+IFTHEN    COMP:Fuse EQ 1
+    RESTORE   FuseOml
+        ATTRIBUTE capsGroup         $Airplane
+        ATTRIBUTE .tParam           "dsnomWing; dsnomWing/25; 20;"
+        ATTRIBUTE AFLR_Scale_Factor AFLR_Fuse_ScaleFactor
+    IFTHEN    COMP:Wing EQ 1
+        RESTORE WingOml_SANS
+        UNION
+    ENDIF
+    IFTHEN    COMP:Htail EQ 1
+        RESTORE HtailOml_SANS
+        UNION
+    ENDIF
+    IFTHEN    COMP:Vtail EQ 1
+        RESTORE VtailOml_SANS
+        UNION
+    ENDIF
+    STORE     AllOml_SANS
+ENDIF
+
+# wing wake
+IFTHEN    COMP:Wing EQ 1
+    IFTHEN    COMP:Fuse EQ 1
+        # scribe wing wake on OML
+        RESTORE   AllOml_SANS
+        RESTORE   WingWake
+        SUBTRACT
+        STORE     AllOml_SANS
+    
+        # cut the OML out of the wake
+        RESTORE   WingWake
+        RESTORE   AllOml_SANS
+        SUBTRACT
+        STORE     WingWake
+        
+        # mark newly created Edges as wake generating
+        RESTORE   AllOml_SANS
+        RESTORE   WingWake
+        UDPRIM    markWakeEdges
+        STORE     AllOml_SANS
+    ELSE
+        # mark trailing Edges as wake generating
+        RESTORE   WingOml_SANS
+        RESTORE   WingWake
+        UDPRIM    markWakeEdges
+        STORE     WingOml_SANS
+    ENDIF
+ENDIF
+
+# htail wake
+IFTHEN    COMP:Htail EQ 1
+    IFTHEN    COMP:Fuse EQ 1
+        # scribe htail wake on OML
+        RESTORE   AllOml_SANS
+        RESTORE   HtailWake
+        SUBTRACT
+        STORE     AllOml_SANS
+    
+        # cut the OML out of the wake
+        RESTORE   HtailWake
+        RESTORE   AllOml_SANS
+        SUBTRACT
+        STORE     HtailWake
+        
+        # mark newly created Edges as wake generating
+        RESTORE   AllOml_SANS
+        RESTORE   HtailWake
+        UDPRIM    markWakeEdges
+        STORE     AllOml_SANS
+    ELSE
+        # mark trailing Edges as wake generating
+        RESTORE   HtailOml_SANS
+        RESTORE   HtailWake
+        UDPRIM    markWakeEdges
+        STORE     HtailOml_SANS
+    ENDIF
+ENDIF
+
+
+# compute the bounding box of the OML
+IFTHEN    COMP:Fuse EQ 1
+    RESTORE AllOml_SANS
+        SET   xmin  @xmin
+        SET   xmax  @xmax
+        SET   ymin  @ymin
+        SET   ymax  @ymax
+        SET   zmin  @zmin
+        SET   zmax  @zmax
+    STORE    .
+ELSE
+    SET   xmin   9999
+    SET   xmax  -9999
+    SET   ymin   9999
+    SET   ymax  -9999
+    SET   zmin   9999
+    SET   zmax  -9999
+
+    IFTHEN    COMP:Wing EQ 1
+        RESTORE WingOml_SANS
+            SET   xmin  min(xmin,@xmin)
+            SET   xmax  max(xmax,@xmax)
+            SET   ymin  min(ymin,@ymin)
+            SET   ymax  max(ymax,@ymax)
+            SET   zmin  min(zmin,@zmin)
+            SET   zmax  max(zmax,@zmax)
+        STORE    .
+    ENDIF
+    IFTHEN    COMP:Htail EQ 1
+        RESTORE HtailOml_SANS
+            SET   xmin  min(xmin,@xmin)
+            SET   xmax  max(xmax,@xmax)
+            SET   ymin  min(ymin,@ymin)
+            SET   ymax  max(ymax,@ymax)
+            SET   zmin  min(zmin,@zmin)
+            SET   zmax  max(zmax,@zmax)
+        STORE    .
+    ENDIF
+    IFTHEN    COMP:Vtail EQ 1
+        RESTORE VtailOml_SANS
+            SET   xmin  min(xmin,@xmin)
+            SET   xmax  max(xmax,@xmax)
+            SET   ymin  min(ymin,@ymin)
+            SET   ymax  max(ymax,@ymax)
+            SET   zmin  min(zmin,@zmin)
+            SET   zmax  max(zmax,@zmax)
+        STORE    .
+    ENDIF
+ENDIF
+
+# FarField dimensions
+SET   size  5*max(xmax-xmin,ymax-ymin)
+SET   dsnom size/3
+
+# generate the farfield box
+BOX       (xmin+xmax-1.25*size)/2  (ymin+ymax-size)/2  (zmin+zmax-size)/2  size  size  size
+    ATTRIBUTE .tParam   "dsnom; dsnom/4; 15;"
+SELECT    FACE   @nbody  1
+    ATTRIBUTE capsGroup $Inflow
+SELECT    FACE   @nbody  2
+    ATTRIBUTE capsGroup $Outflow
+SELECT    FACE   @nbody  3
+    ATTRIBUTE capsGroup $Outflow
+SELECT    FACE   @nbody  4
+    ATTRIBUTE capsGroup $Outflow
+SELECT    FACE   @nbody  5
+    ATTRIBUTE capsGroup $Outflow
+SELECT    FACE   @nbody  6
+    ATTRIBUTE capsGroup $Outflow
+STORE     FarField
+
+# subtract OML(s) from the farfield
+RESTORE FarField
+IFTHEN    COMP:Fuse EQ 1
+    RESTORE AllOml_SANS
+    SUBTRACT
+ELSE
+    IFTHEN    COMP:Wing EQ 1
+        RESTORE WingOml_SANS
+        SUBTRACT
+    ENDIF
+    IFTHEN    COMP:Htail EQ 1
+        RESTORE HtailOml_SANS
+        SUBTRACT
+    ENDIF
+    IFTHEN    COMP:Vtail EQ 1
+        RESTORE VtailOml_SANS
+        SUBTRACT
+    ENDIF
+ENDIF
+SELECT body @nbody
+    ATTRIBUTE _name     $OML
+STORE   AllOml_SANS
+
+# trim wing wake to FarField
+IFTHEN    COMP:Wing EQ 1
+    RESTORE  WingWake
+    RESTORE  AllOml_SANS
+    # intersectWake looses edge attriubtions, so they must be added after this call
+    UDPRIM   intersectWake
+    SELECT    EDGE  $TrailingVortex  $wingWake
+    DIMENSION wingVortices 1 @sellist.size 0
+    SET       wingVortices @sellist
+    PATBEG    i   wingVortices.size
+        SELECT    EDGE   wingVortices[i]
+            ATTRIBUTE AFLR_Edge_Scale_Factor AFLR_Wake_ScaleFactor
+    PATEND
+    
+    IFTHEN AFLR_Control_Edges EQ 1
+        # Mark all control surface trailing vorticies for refinement 
+        CATBEG $name_not_found
+            THROW -999   # unexpected signal
+        CATEND
+        PATBEG    ihinge 9999
+             RESTORE  WingHinge ihinge
+             STORE    .
+
+             UDPRIM    editAttr filename  <<
+                 EDGE ADJ2FACE control=!$WingControl+ihinge
+                 ANDNOT  HAS   Kutta=wingWake
+                 ANDNOT  HAS   Trefftz=wingWake
+                 SET           control=!$WingControl+ihinge
+>>
+            SELECT    EDGE  $control  !$WingControl+ihinge
+            DIMENSION wingControl 1 @sellist.size 0
+            SET       wingControl @sellist
+            PATBEG    i   wingControl.size
+                SELECT    EDGE   wingControl[i]
+                    ATTRIBUTE AFLR_Edge_Scale_Factor AFLR_ControlEdge_ScaleFactor
+            PATEND
+        PATEND
+        CATBEG $name_not_found
+        CATEND
+    ENDIF
+    STORE    WingWake
+ENDIF
+
+# trim htail wake to FarField
+IFTHEN    COMP:Htail EQ 1
+    RESTORE  HtailWake
+    RESTORE  AllOml_SANS
+    UDPRIM   intersectWake
+    SELECT    EDGE  $TrailingVortex  $htailWake
+    DIMENSION htailVortices 1 @sellist.size 0
+    SET       htailVortices @sellist
+    PATBEG    i   htailVortices.size
+        SELECT    EDGE   htailVortices[i]
+            ATTRIBUTE AFLR_Edge_Scale_Factor AFLR_Wake_ScaleFactor
+    PATEND
+
+    IFTHEN AFLR_Control_Edges EQ 1
+        # Mark all control surface trailing vorticies for refinement 
+        CATBEG $name_not_found
+            THROW -999   # unexpected signal
+        CATEND
+        PATBEG    ihinge 9999
+            RESTORE  HtailHinge ihinge
+            STORE    .
+
+            UDPRIM    editAttr filename  <<
+                EDGE ADJ2FACE control=!$HtailControl+ihinge
+                ANDNOT  HAS   Kutta=htailWake
+                ANDNOT  HAS   Trefftz=htailWake
+                SET           control=!$HtailControl+ihinge
+>>
+            SELECT    EDGE  $control  !$HtailControl+ihinge
+            DIMENSION htailControl 1 @sellist.size 0
+            SET       htailControl @sellist
+            PATBEG    i   htailControl.size
+                SELECT    EDGE   htailControl[i]
+                    ATTRIBUTE AFLR_Edge_Scale_Factor AFLR_ControlEdge_ScaleFactor
+            PATEND
+        PATEND
+        CATBEG $name_not_found
+        CATEND
+    ENDIF
+    
+    STORE    HtailWake
+ENDIF
+
+#
+RESTORE   AllOml_SANS
+SELECT        body @nbody
+    ATTRIBUTE capsAIM            $sansLIPAIM
+    ATTRIBUTE capsReferenceArea  wing:area
+    ATTRIBUTE capsReferenceSpan  wing:span
+    ATTRIBUTE capsReferenceChord wing:area/wing:span
+    ATTRIBUTE capsReferenceX     wing:area/wing:span/4.0
+
+    # put upper and lower skins into capsBounds
+    UDPRIM    editAttr  filename <<
+        FACE HAS      tagComp=leftWing
+        AND  HAS      tagType=upper
+        SET           capsBound=upperLeftWing
+
+        FACE HAS      tagComp=riteWing
+        AND  HAS      tagType=upper
+        SET           capsBound=upperRiteWing
+
+        FACE HAS      tagComp=leftWing
+        AND  HAS      tagType=lower
+        SET           capsBound=lowerLeftWing
+
+        FACE HAS      tagComp=riteWing
+        AND  HAS      tagType=lower
+        SET           capsBound=lowerRiteWing
+>>
+
+RESTORE              WingWake
+    ATTRIBUTE _name $WingWake
+SELECT        body @nbody
+    ATTRIBUTE capsAIM  $sansLIPAIM
+    ATTRIBUTE .tParams "dsnomWing*2; 0.25; 15;"
+    ATTRIBUTE .qParams $off
+
+# wing hinge lines
+CATBEG $name_not_found
+    THROW -999   # unexpected signal
+CATEND
+PATBEG    ihinge 9999
+    RESTORE  WingHinge ihinge
+        ATTRIBUTE capsAIM $sansLIPAIM
+PATEND
+CATBEG $name_not_found
+CATEND
+
+IFTHEN    COMP:Htail EQ 1
+    RESTORE              HtailWake
+        ATTRIBUTE _name $HtailWake
+    SELECT        body @nbody
+        ATTRIBUTE capsAIM  $sansLIPAIM
+        ATTRIBUTE .tParams "dsnomHtail*2; 0.25; 15;"
+        ATTRIBUTE .qParams $off
+
+    IFTHEN    makeHtailHinge EQ 1
+        # horizontal tail hinge lines
+        CATBEG $name_not_found
+            THROW -999   # unexpected signal
+        CATEND
+        PATBEG    ihinge 9999
+            RESTORE  HtailHinge ihinge
+                ATTRIBUTE capsAIM $sansLIPAIM
+        PATEND
+        CATBEG $name_not_found
+        CATEND
+    ENDIF
+ENDIF
+
+END

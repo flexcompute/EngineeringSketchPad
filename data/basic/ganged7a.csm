@@ -1,0 +1,33 @@
+# ganged7a
+# written by John Dannenhoffer
+
+BOX       0  0  0  6  4  1
+
+# these should get ganged
+CYLINDER  0  1 -1  0  1  2  0.5
+TRANSLATE 1  0  0
+
+CYLINDER  0  1 -1  0  1  2  0.5
+TRANSLATE 3  0  0
+
+CYLINDER  0  1 -1  0  1  2  0.5
+TRANSLATE 5  0  0
+
+UDPRIM    ganged   op  $SUBTRACT
+
+TRANSLATE  0 -2  0
+
+# these should get ganged
+CYLINDER  0  1 -1  0  1  2  0.5
+TRANSLATE 1  0  0
+
+CYLINDER  0  1 -1  0  1  2  0.5
+TRANSLATE 3  0  0
+
+CYLINDER  0  1 -1  0  1  2  0.5
+TRANSLATE 5  0  0
+
+UDPRIM    ganged   op  $SUBTRACT
+
+END
+

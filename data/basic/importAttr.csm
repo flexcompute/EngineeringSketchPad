@@ -1,0 +1,53 @@
+# importAttr
+# written by John Dannenhoffer
+
+# create at attributed box
+BOX       0   0   0   3   2   1
+
+SELECT    NODE   1
+SELECT    ADD    2
+SELECT    ADD    3
+ATTRIBUTE thisNode  $on
+
+SELECT    EDGE   @nbody   3   @nbody   5
+SELECT    ADD    @nbody   3   @nbody   6
+SELECT    ADD    @nbody   4   @nbody   5
+SELECT    ADD    @nbody   4   @nbody   6
+ATTRIBUTE thisEdge  $on
+
+SELECT    FACE   @nbody   3
+SELECT    ADD    @nbody   4
+ATTRIBUTE thisFace  $on
+
+# dump the attributed box
+DUMP      foo.egads
+
+# import the box
+IMPORT    foo.egads
+
+# verify that the Nodes, Edges, and Faces still have the attributes
+SELECT    NODE  $thisNode  $on
+ASSERT    @sellist.size    3
+
+SELECT    EDGE  $thisEdge  $on
+ASSERT    @sellist.size    4
+
+SELECT    FACE  $thisFace  $on
+ASSERT    @sellist.size    2
+
+STORE     .
+
+# import the box (via UDPRIM)
+UDPRIM    import   filename  $foo.egads
+
+# verify that the Nodes, Edges, and Faces still have the attributes
+SELECT    NODE  $thisNode  $on
+ASSERT    @sellist.size    3
+
+SELECT    EDGE  $thisEdge  $on
+ASSERT    @sellist.size    4
+
+SELECT    FACE  $thisFace  $on
+ASSERT    @sellist.size    2
+
+END

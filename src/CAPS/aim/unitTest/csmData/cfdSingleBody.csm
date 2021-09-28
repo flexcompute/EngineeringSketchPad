@@ -1,0 +1,101 @@
+# CSM file example of two wings with an outer bounding box 
+
+# Design Parameters:
+## [despmtrs]
+despmtr   series[1,1]       8412.00000
+despmtr   series2[1,1]      20.00000
+despmtr   area[1,1]         40.00000
+despmtr   aspect[1,1]       5.00000
+despmtr   taper[1,1]        0.50000
+despmtr   twist[1,1]        15.00000
+despmtr   lesweep[1,1]      30.00000
+despmtr   dihedral[1,1]     1.00000
+## [despmtrs]
+
+# Specify Euler equations
+## [capsIntent]
+attribute capsIntent $CFD #CFD Analysis
+attribute capsAIM $fun3dAIM;su2AIM;egadsTessAIM;aflr4AIM;pointwiseAIM;tetgenAIM;aflr3AIM #CFD Analysis
+## [capsIntent]
+
+## [local]
+set       cmean     sqrt(area/aspect)
+set       span      cmean*aspect
+set       sspan     span/2
+set       croot     2*cmean/(1+taper)
+set       ctip      croot*taper
+set       xtip      sspan*tand(lesweep)
+set       ytip      sspan*tand(dihedral)
+set       ybot      -0.1*croot
+set       ytop      +0.2*croot+ytip
+set       extend    0.02*cmean
+## [local]
+
+# Branches:
+## [createWing]
+mark
+   udprim    naca   Series   series
+      scale     croot
+   udprim    naca   Series   series2
+      scale     ctip
+      rotatez   -twist   0   0
+      translate xtip   ytip   -sspan
+rule      0
+## [createWing]
+
+
+## [mirror]
+# Store half of wing 
+store     HalfWing 0 0
+
+# Restore the half wing 
+restore   HalfWing 0
+
+# Restore and mirror the half wing
+restore   HalfWing 0
+    mirror    0   0   1   0
+## [mirror]
+
+## [join]
+# Combine halfs into a whole
+join     0
+## [join]
+
+## [orient]
+# Get body into a typical aero-system 
+rotatex 90 0 0
+## [orient]
+
+## [attribute]
+# Store the wing 
+store     Wing 0 0
+
+# Create a bounding box as a farfied 
+## [farfield]
+#sphere    0   0   0   80
+#    attribute capsGroup $Farfield
+#    attribute capsMesh $Farfield
+BOX    -40   -40   -40   80   80   80
+    attribute capsGroup $Farfield
+    attribute capsMesh $Farfield
+    attribute AFLR_GBC  $FARFIELD_UG3_GBC
+
+# Wing 1 - Restore
+restore   Wing 0
+    attribute capsGroup $Wing1
+    attribute capsMesh $Wing1
+## [attribute]
+
+# Subtract wing from farfield
+subtract
+
+    # Set reference values on the body
+select body
+    attribute capsReferenceArea     area
+    attribute capsReferenceChord    cmean
+    attribute capsReferenceSpan     span
+    attribute capsMeshLength        cmean
+
+## [closeCSM]
+end
+## [closeCSM]

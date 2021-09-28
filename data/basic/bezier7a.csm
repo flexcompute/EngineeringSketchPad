@@ -1,0 +1,10 @@
+# bezier7a
+# written by John Dannenhoffer
+
+skbeg     0.0  0.0  0.0
+   linseg 1.0  0.0  0.0
+   bezier 0.5  1.0  0.0
+   bezier 0.0  0.0  0.0
+skend
+
+end

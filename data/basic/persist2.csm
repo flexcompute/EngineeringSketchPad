@@ -1,0 +1,167 @@
+# persist2
+# written by John Dannenhoffer
+
+despmtr   Length    4.0
+despmtr   Height    2.0
+despmtr   Depth     2.0
+despmtr   Wslot     0.1
+despmtr   Dslot     0.1
+despmtr   Rhole     0.4
+despmtr   Nhole     2
+despmtr   Fhole     0.1
+despmtr   Xpole     2.0
+despmtr   Ypole     2.0
+despmtr   Rpole     0.5
+despmtr   XangDeg   50.
+despmtr   YangDeg   40.
+despmtr   ZangDeg   30.
+despmtr   Dx        1.0
+despmtr   Dy        0.0
+despmtr   Dz        0.0
+despmtr   Scale     1.5
+
+dimension array     2 2 1
+despmtr   array[1,1] 11
+despmtr   array[1,2] 12
+despmtr   array[2,1] 21
+despmtr   array[2,2] 22
+
+# basic box
+box       0.0       -Height/2 0.0       Length    Height    Depth
+patbeg iface 6
+   select       face @nbody iface
+      attribute name $boxFace
+      attribute numb iface
+patend
+patbeg iedge 12
+   select       edge iedge
+      attribute name $boxEdge
+      attribute numb iedge
+patend
+patbeg inode 8
+   select       node inode
+      attribute name $boxNode
+      attribute numb inode
+patend
+
+# optional slot
+ifthen Dslot GT 0
+   set    temp      Length/2-Wslot
+   box    temp      -Height/2-.1 -.1       Wslot     Dslot+.1     Depth+.2
+   patbeg iface 6
+      select       face @nbody iface
+         attribute name $slotFace
+         attribute numb iface
+   patend
+   patbeg iedge 12
+      select       edge iedge
+         attribute name $slotEdge
+         attribute numb iedge
+   patend
+   patbeg inode 8
+      select       node inode
+         attribute name $slotNode
+         attribute numb inode
+   patend
+   subtract
+endif
+
+# pole
+cylinder  Xpole     0.0       Depth/2   Xpole     Ypole     Depth/2   Rpole
+patbeg iface 4
+   select       face @nbody iface
+      attribute name $postFace
+      attribute numb iface
+patend
+patbeg iedge 6
+   select       edge iedge
+      attribute name $postEdge
+      attribute numb iedge
+patend
+patbeg inode 4
+   select       node inode
+      attribute name $postNode
+      attribute numb inode
+patend
+union
+
+# Nhole holes
+patbeg    ihole     Nhole
+   set       xhole     Length*ihole/(Nhole+1)
+   cylinder  xhole     0.0       -.1       xhole     0.0       Depth+.2     Rhole
+   patbeg iface 4
+      select       face @nbody iface
+         attribute name $hole+ihole+$Face
+         attribute numb iface
+   patend
+   patbeg iedge 6
+      select       edge iedge
+         attribute name $hole+ihole+$Edge
+         attribute numb iedge
+   patend
+   patbeg inode 4
+      select       node inode
+         attribute name $hole+ihole+$Node
+         attribute numb inode
+   patend
+   subtract
+patend
+
+# apply transformations
+rotatex   XangDeg   0.0       0.0
+rotatey   YangDeg   0.0       0.0
+rotatez   ZangDeg   0.0       0.0
+translate Dx        Dy        Dz
+scale     Scale
+
+# check for persistence of Attributes
+select    node  $name  $boxNode
+assert    @sellist.size 8
+
+select    edge  $name  $boxEdge
+assert    @sellist.size 14
+
+select    face  $name  $boxFace
+assert    @sellist.size 7
+
+select    node  $name  $slotNode
+catbeg    $node_not_found
+catend
+
+select    edge  $name  $slotEdge
+assert    @sellist.size 2
+
+select    face  $name  $slotFace
+assert    @sellist.size 3
+
+select    node  $name  $postNode
+assert    @sellist.size 2
+
+select    edge  $name  $postEdge
+assert    @sellist.size 4
+
+select    face  $name  $postFace
+assert    @sellist.size 3
+
+select    node  $name  $hole1Node
+catbeg    $node_not_found
+catend
+
+select    edge  $name  $hole1Edge
+assert    @sellist.size 2
+
+select    face  $name  $hole1Face
+assert    @sellist.size 2
+
+select    node  $name  $hole2Node
+catbeg    $node_not_found
+catend
+
+select    edge  $name  $hole2Edge
+catbeg    $node_not_found
+catend
+
+select    face  $name  $hole2Face
+assert    @sellist.size 2
+
+end

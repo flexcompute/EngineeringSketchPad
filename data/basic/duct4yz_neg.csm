@@ -1,0 +1,29 @@
+# duct4yz_neg
+# written by John Dannenhoffer
+
+mark
+
+skbeg     0 cosd(180)    sind(180)
+   cirarc 0 cosd(157.5)  sind(157.5)  0  cosd(135)  sind(135)
+   cirarc 0 cosd(90)     sind(90)     0  cosd(45)  sind(45)
+   cirarc 0 cosd(22.5)   sind(22.5)   0  cosd(0)   sind(0)
+   linseg 0 cosd(180)    sind(180)
+skend
+
+skbeg     -1 -1  0
+   linseg -1 -1  1
+   linseg -1  1  1
+   linseg -1  1  0
+   linseg -1 -1  0
+skend
+
+skbeg     -2 -1  0
+   linseg -2 -1  1
+   cirarc -2  0 .8  -2  1  1
+   linseg -2  1  0
+   linseg -2 -1  0
+skend
+
+blend
+
+end

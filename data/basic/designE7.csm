@@ -1,0 +1,17 @@
+# designE7
+# written by John Dannenhoffer
+
+despmtr   dx         0.0
+despmtr   xcent      0.0
+despmtr   ycent      0.0
+despmtr   size       1.0
+
+box       -2.0-dx   -1.0      -1.0      3.0       1.0       1.0
+box       -1.0+dx    0.0      -1.0      3.0       1.0       1.0
+union
+
+box       -size/2    -size/2   0.0      size      size      1.0
+translate xcent      ycent     0.0
+union
+
+end

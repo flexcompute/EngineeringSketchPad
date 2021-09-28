@@ -1,0 +1,66 @@
+# droopInlet4 (rounded inlet)
+# written by John Dannenhoffer
+
+# outside
+MARK
+
+    # Engine face
+    UDPARG    supell    numpnts  21
+    UDPARG    supell    slpfact  -1
+    UDPRIM    ellipse   rx 5   ry    5 nedge 4
+    ROTATEY   90   0   0
+    TRANSLATE 10   0   0   
+
+    # Station 2
+    UDPARG    supell    numpnts  21
+    UDPARG    supell    slpfact  -1
+    UDPRIM    supell    rx 4   ry_n  4   ry_s  4   n 3
+    ROTATEY   90   0   0
+    ROTATEZ   0    0   0
+    TRANSLATE 5    0   0
+
+    # Throat
+    UDPARG    supell    numpnts  21
+    UDPARG    supell    slpfact  -1
+    UDPRIM    supell    rx 5   ry_n  5   ry_s  1   n 2
+    ROTATEY   90   0   0
+    TRANSLATE 0    0   0
+BLEND 0 0 1
+
+# inside
+MARK
+
+    SET       t  0.50
+
+    # Engine face
+    UDPARG    supell    numpnts  21
+    UDPARG    supell    slpfact  -1
+    UDPRIM    ellipse   rx 5-t   ry    5-t nedge 4
+    ROTATEY   90   0   0
+    TRANSLATE 10   0   0   
+
+    # Station 2
+    UDPARG    supell    numpnts  21
+    UDPARG    supell    slpfact  -1
+    UDPRIM    supell    rx 4-t   ry_n  4-t   ry_s  4-t   n 3
+    ROTATEY   90   0   0
+    ROTATEZ   0    0   0
+    TRANSLATE 5    0   0
+
+    # Throat
+    UDPARG    supell    numpnts  21
+    UDPARG    supell    slpfact  -1
+    UDPRIM    supell    rx 5-t   ry_n  5-t   ry_s  1-t   n 2
+    ROTATEY   90   0   0
+    TRANSLATE 0    0   0
+BLEND 0 0 1
+
+SUBTRACT
+
+# round over the Body at the inlet
+SELECT    FACE  17  2
+ATTRIBUTE _flend $remove
+
+UDPRIM    flend   toler 0.0001   slopeA 3.0   slopeB 3.0
+
+END

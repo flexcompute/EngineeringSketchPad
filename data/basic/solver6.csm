@@ -1,0 +1,54 @@
+# solver6
+# written by John Dannenhoffer
+
+despmtr   L     3.0  # overall length
+despmtr   H     4.0  # overall height
+
+# initial values
+set       x1    1.2
+set       y1    1.0
+set       x2    4.0
+set       y2    1.3
+set       x3    4.2
+set       y3    5.2
+set       x4    1.5
+set       y4    5.2
+
+# solver
+solbeg    x1;y1;x2;y2;x3;y3;x4;y4;
+
+          #1 fixed x val
+   solcon x1-1
+
+          #2 fixed y val
+   solcon y1-1
+
+          #3 Orthogonal at 2
+   solcon (x1-x2)*(x3-x2)+(y1-y2)*(y3-y2)
+
+          #4 Overall length
+   solcon x2-x1-L
+
+          #5 Overall height
+   solcon y4-y1-H
+
+          #6 vertical seg 1-4
+   solcon x4-x1
+
+          #7 horizontal seg 1-2
+   solcon y2-y1
+
+          #8 horizontal seg 3-4
+   solcon y4-y3 # this one works!
+
+solend
+
+# sketch
+skbeg     x1   y1   0.0
+   linseg x2   y2   0.0
+   linseg x3   y3   0.0
+   linseg x4   y4   0.0
+   linseg x1   y1   0.0
+skend
+
+end

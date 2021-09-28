@@ -1,0 +1,49 @@
+# plateBeam (for Bob Canfield)
+# written by John Dannenhoffer
+
+despmtr   xleft     0.0       # left end of plate
+despmtr   xrite     4.0       # rite end of plate
+despmtr   hleft     1.0       # height at left end
+despmtr   hrite     1.0       # height at rite end
+despmtr   nbotm     16        # number of segments along bottom and top
+despmtr   nleft     4         # number of segments along left   and rite
+despmtr   quads     0         # set to 1 to get quads
+
+# basic shape
+skbeg     xleft     -hleft/2  0
+   linseg xrite     -hrite/2  0
+   linseg xrite     +hrite/2  0
+   linseg xleft     +hleft/2  0
+   linseg xleft     -hleft/2  0
+skend
+   attribute foo1 quads       # causes tessellation update when quads changes
+   attribute foo2 nbotm       # causes tessellation update when nbotm changes
+   attribute foo3 nleft       # causes tessellation update when nleft changes
+
+# put nbotm points along bottom and top
+select edge 1
+   attribute .nPos nbotm-1
+select edge 3
+   attribute .nPos nbotm-1
+
+# put nleft points along left and rite
+select edge 2
+   attribute .nPos nleft-1
+select edge 4
+   attribute .nPos nleft-1
+
+# optionally make the grid quads
+ifthen quads eq 1
+   select face  1
+   attribute    _makeQuads 1
+else
+   set size min((xrite-xleft)/nbotm,max(hleft,hrite)/nleft)
+
+   select body
+   attribute .tParams "size; 0.1; 15"
+
+   select face 1
+   attribute .qParams $off
+endif
+
+end

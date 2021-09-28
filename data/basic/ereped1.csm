@@ -1,0 +1,54 @@
+# ereped1
+# written by John Dannenhoffer
+
+# cylinder (in two parts)
+CYLINDER  0.0   0.0   -.1   1.0   0.0   -.1   0.5
+CYLINDER  0.0   0.0   -.1   1.0   0.0   -.1   0.5
+ROTATEZ   180.  0.0   0.0
+ROTATEX   25.   0.0   -.1
+UNION
+
+# drill a hole
+CYLINDER  0.5   0.3  -2.0   0.5   0.3   2.00  0.1
+SUBTRACT
+
+# create U-shaped protuberance
+SKBEG      0.40  -.30  0.00
+   LINSEG  0.70  -.30  0.00
+   LINSEG  0.70  0.10  0.00
+   LINSEG  0.60  0.10  0.00
+   LINSEG  0.60  -.28  0.00
+   LINSEG  0.50  -.28  0.00
+   LINSEG  0.50  0.10  0.00
+   LINSEG  0.40  0.10  0.00
+   LINSEG  0.40  -.30  0.00
+SKEND
+EXTRUDE    0.00  0.00  0.50
+ROTATEZ   30.00  0.55  -.20
+UNION
+
+# cut off near symmetry plane
+BOX      -1.0  -1.0   0.0   4.0   2.0   2.0
+INTERSECT
+
+# scribe Faces
+BOX      -.2   -1.0  -1.0   0.0   2.0   2.0
+ROTATEZ  25.   -.1    0.0
+SUBTRACT
+
+# put Faces into Groups
+SELECT    FACE   2
+SELECT    ADD    3
+SELECT    ADD    5
+ATTRIBUTE _color $cyan
+ATTRIBUTE group  1
+
+SELECT    FACE   1
+SELECT    ADD    4
+SELECT    ADD    6
+SELECT    ADD    7
+SELECT    ADD    18
+ATTRIBUTE _color $magenta
+ATTRIBUTE group  2
+
+END

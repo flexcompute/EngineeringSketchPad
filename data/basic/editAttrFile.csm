@@ -1,0 +1,85 @@
+# editAttrFile
+# written by John Dannenhoffer
+
+box 0 0 0 1 1 1
+hollow 0
+
+mark
+    skbeg     1 0 0
+        linseg 1 1 0
+        linseg 1 1 1
+        linseg 1 0 1
+        linseg 1 0 0
+    skend 1
+
+    skbeg     2 0 0
+        linseg 2 1 0
+        linseg 2 1 1
+        linseg 2 0 1
+        linseg 2 0 0
+    skend
+rule
+
+union
+
+patbeg iface @nface
+    select face iface
+        attribute name $face_+@ibody1+$_+@ibody2
+    set foo $face_+@ibody1+$_+@ibody2
+patend
+
+udprim editAttr filename <<
+   face has      name=face_15_4
+   set  target=1
+
+   face has      name=face_*_1
+   set  target=1
+     
+   face adj2face name=face_15_4
+   set  target=3
+
+   face adj2face name=face_1_1
+   and  adj2face name=face_1_2
+   and  has      name=*3
+   set  target=4
+
+   face has      name=face_15_1  name=face_15_2
+   set  target=5
+
+   edge adj2face name=face_15_4
+   set  target=6
+
+   edge adj2face name=face_1_3
+   and  adj2face name=face_15_6
+   set  target=7
+
+   edge adj2edge target=7
+   set  target=8
+>>
+
+select face $target $1
+assert @sellist.size 2
+
+select face $target $2
+assert @sellist.size 2
+
+select face $target $3
+assert @sellist.size 5
+
+select face $target $4
+assert @sellist.size 1
+
+select face $target $5
+catbeg $face_not_found
+catend
+
+select edge $target $6
+assert @sellist.size 4
+
+select edge $target $7
+assert @sellist.size 1
+
+select edge $target $8
+assert @sellist.size 6
+
+end

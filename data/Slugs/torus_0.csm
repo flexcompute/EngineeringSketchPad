@@ -1,0 +1,20 @@
+# torus_0
+# written by John Dannenhoffer
+
+# unit torus
+torus 0 0 0 0 1 0 1 0.5
+
+# split front and back
+skbeg     -2 -2 0
+   linseg +2 -2 0
+   linseg +2 +2 0
+   linseg -2 +2 0
+   linseg -2 -2 0
+skend
+subtract
+   attribute  .tParams  0.10;0.02;5.0
+
+dump $/torus_0.stl
+dump $/torus.plot
+
+end

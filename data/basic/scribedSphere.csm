@@ -1,0 +1,63 @@
+# scribedSphere
+# written by John Dannenhoffer
+
+DIMENSION azimuth   1  6  1
+DIMENSION elevation 1  6  1
+DIMENSION aperture  1  6  1
+
+DESPMTR   azimuth   "  0; -45; -90; -135; -180;  290;"
+DESPMTR   elevation " 30;  60; -30;  -60;   20;   10;"
+DESPMTR   aperture  "0.3; 0.2; 0.1;  0.1;  0.5;  0.3;"
+
+# segmented sphere
+SPHERE    0.0  0.0  0.0  1.0
+BOX      -2.0  0.5 -2.0  4.0  1.0  4.0
+SUBTRACT
+
+# loop through all the cones
+PATBEG    icone  azimuth.size
+   SET       nold  @nface      # remember number of Faces
+   CONE      0  0  0  2  0  0  2*aperture[icone]
+   ROTATEZ   elevation[icone]  0  0
+   ROTATEY   azimuth[icone]    0  0
+   EXTRACT   0
+   SUBTRACT
+
+   # mark the newly scribed Edges
+   SELECT    EDGE  0  0  @nbody-4  0  0
+   ATTRIBUTE _color      $red
+   ATTRIBUTE __newEdge__ $on
+   
+   SET       nadded @nface-nold  # number of added Faces
+
+   # attribute the Faces adjacent to the newly scribed Edges
+   UDPRIM    editAttr  filename <<  verbose 1
+      FACE   adj2edge  __newEdge__=on
+      SET              __newFace__=on
+>>
+
+   # pick the nadded newly added Faces with the smallest areas
+   # in theory this could break
+   SELECT    FACE  $__newFace__ $on
+   SELECT    SORT  $area
+
+   DIMENSION added @sellist.size 1
+   SET       added @sellist
+
+   PATBEG       iadded nadded
+      SELECT    FACE   added[iadded]
+      ATTRIBUTE name   $hole_+icone
+      ATTRIBUTE _color $cyan
+   PATEND
+
+   # clear the temporary attributes that we used
+   UDPRIM    editAttr  filename <<  verbose 1
+      FACE   HAS       __newFace__=on
+      SET              __newFace__=
+      
+      EDGE   HAS       __newEdge__=on
+      SET              __newEdge__=
+>>
+PATEND
+
+END

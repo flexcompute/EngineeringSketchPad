@@ -1,0 +1,50 @@
+# $Id: OPTIONS,v 1.1.1.1 2015/07/24 18:35:39 mnemec Exp $
+
+# Format: keyword = flag1 flag2 ...
+
+# -MN, July 2015
+
+# run_config = debug || archive || standard || production
+# debug:      no files are deleted; easily traceable but needs large disk-space
+# archive:    compresses and tars critical files and deletes temp files;
+#             becomes slower for cases with large number of design variables
+#             but fully traceable
+# standard:   similar to production, but keeps more files, in particular adjoint
+#             solution(s) on the finest mesh
+# production: keeps critical files; minimal storage and number of files
+#
+
+run_config = standard
+
+# Parallel evaluation of gradient vector: gradient_memory_budget or
+# parallel_gradient_comps. These flags control parallel evaluation of the
+# gradient components. For example, gradient of objective function J with
+# respect to design variables x, y, z is [ dJ/dx dJ/dy dJ/dz ]^T. The gradient
+# components are independent and hence can be evaluated in parallel. Evaluating
+# all the components simultaneously is ideal, but you are limited by the number
+# of design variables and the size of your mesh (memory limit).  The framework
+# can compute efficient job partitioning automatically. To do this, you just
+# need to specify the memory limit for the run (in GB) via the flag
+# gradient_memory_budget, e.g.:
+
+gradient_memory_budget = 32
+
+# If you wish to control the partitioning explicitly, then use the flag
+# parallel_gradient_comps. This flag sets the maximum number of concurrent
+# cutter and xsensit jobs, which compute the components of the gradient. In
+# practice, a good strategy is for parallel_gradient_comps to be as large as
+# possible, yet divide evenly into both OMP_NUM_THREADS and the number of
+# design variables. Use of gradient_memory_budget is preferred. Setting
+# parallel_gradient_comps overrides gradient_memory_budget.
+# parallel_gradient_comps = 4
+
+# Self Restart
+# self_restart = static || progressive
+#
+# If this flag is set, the framework executes a new_from_best restart when the
+# optimizer terminates. The keyword 'progressive' means that the restarted
+# optimization will use one additional adapt cycle to improve the accuracy of
+# the objective and constraints. The keyword 'static' means that the restarted
+# optimization will use the same number of adapt cycles.
+
+# self_restart = progressive

@@ -1,0 +1,12 @@
+# design0d
+# written by John Dannenhoffer
+
+despmtr   xsize     4.0
+despmtr   ysize     2.0
+despmtr   zsize     1.0
+despmtr   scale     2.0
+
+udprim    box       dx xsize  dy ysize  dz zsize
+scale     scale
+
+end

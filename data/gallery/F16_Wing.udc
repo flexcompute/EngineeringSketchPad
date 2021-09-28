@@ -1,0 +1,12 @@
+# F16_Wing
+# written by Chris Meckstroth
+
+interface  deflFlapL  in  0
+interface  deflFlapR  in  0
+
+udprim $/F16_WingSide deflFlap deflFlapL
+mirror 0.0 1.0 0.0
+
+udprim $/F16_WingSide deflFlap deflFlapR
+
+join

@@ -1,0 +1,217 @@
+/*
+CSS file for capsViewer
+*/
+
+/* prevent text selection of all <div> element 
+div {
+  -webkit-user-select: none; /* Safari 3.1+ */
+  -moz-user-select: none; /* Firefox 2+ */
+  -ms-user-select: none; /* IE 10+ */
+  user-select: none; /* Standard syntax */
+}
+*/
+/* heading 4 */
+h4 {
+    display:                  block;
+    font-size:                 16px;
+    margin-top:                 4px;
+    margin-bottom:              4px;
+    margin-left:                  0;
+    margin-right:                 0;
+    font-weight:               bold;
+}
+
+/* background for table data entries (light-yellow) */
+td {
+    padding-left:               5px;
+    padding-right:              5px;
+    padding-top:                0px;
+    padding-bottom:             0px;
+    background-color:       #FFFFF0;
+}
+
+/* buttons */
+button {
+    font-size:                  9px;
+    padding:                    1px;
+}
+
+/* background for error table data entries (light-red) */
+/* used for Branch names that caused error */
+.errorTD {
+    padding-left:               5px;
+    padding-right:              5px;
+    padding-top:                0px;
+    padding-bottom:             0px;
+    background-color:       #FF7F7F;
+}
+
+/* background for linked table data entries (light-green) */
+/* not used */
+.linkedTD {
+    padding-left:               5px;
+    padding-right:              5px;
+    padding-top:                0px;
+    padding-bottom:             0px;
+    background-color:       #7FFF7F;
+}
+
+/* background for current table data entries (magenta) */
+/* used for Branch or Parameter that is being editted */
+.currentTD {
+    padding-left:               5px;
+    padding-right:              5px;
+    padding-top:                0px;
+    padding-bottom:             0px;
+    background-color:       #FF00FF;
+}
+
+/* background for parent table data entries (cyan) */
+/* used for parent of Branch that is being editted */
+.parentTD {
+    padding-left:               5px;
+    padding-right:              5px;
+    padding-top:                0px;
+    padding-bottom:             0px;
+    background-color:       #00FFFF;
+}
+
+/* background for child table data entries (yellow) */
+/* used for child of Branch that is being editted */
+.childTD {
+    padding-left:               5px;
+    padding-right:              5px;
+    padding-top:                0px;
+    padding-bottom:             0px;
+    background-color:       #FFFF00;
+}
+
+/* real text that looks like a link that has context-menu (green) */
+/* used for Design Parameters that can be editted */
+/* used for Branch names */
+.fakelinkcmenu {
+    cursor:                 pointer;
+    font-weight:               bold;
+    color:                  #00BF00;
+}
+
+/* real text that looks like a link that is "on" (blue) */
+/* used for Display attributes that are on */
+.fakelinkon {
+    cursor:                 pointer;
+    font-weight:               bold;
+    color:                  #0000FF;
+}
+
+/* real text that looks like a link that is "off" (red) */
+/* used for Display attributes that are off */
+.fakelinkoff {
+    cursor:                 pointer;
+    font-weight:               bold;
+    color:                  #FF0000;
+}
+
+/* + or - that looks like a link that is "on" (blue) */
+/* used for Expand/Collapse */
+.fakelinkexpand {
+    cursor:                 pointer;
+    font-weight:               bold;
+    color:                  #0000FF;
+}
+
+/* frame on top left that contains butnfrm and treefrm */
+#tlframe {
+    width:                    250px;
+    height:                   600px;
+    float:                     left;
+    font-size:                  9pt;
+    background:             #F7F7F7;
+    cursor:                 pointer;
+
+   /* prevent selection in this frame */
+  -webkit-user-select: none; /* Safari 3.1+ */
+  -moz-user-select: none; /* Firefox 2+ */
+  -ms-user-select: none; /* IE 10+ */
+  user-select: none; /* Standard syntax */
+}
+
+/* frame on top left that contains buttons */
+#butnfrm {
+    width:                    250px;
+    height:                    60px;
+    float:                     left;
+    font-size:                  9pt;
+    background:             #F7F7F7;
+}
+
+/* frame on top left that contains tree */
+#treefrm {
+    width:                    250px;
+    height:                   190px;
+    float:                     left;
+    overflow:                scroll;
+    font-size:                  9pt;
+    background:             #F7F7F7;
+}
+
+/* frame on top left that contains menus, trees, etc */
+#treefrm {
+    width:              250px;
+    height:             600px;
+    float:               left;
+    overflow:          scroll;
+    font-size:           10pt;
+}
+
+/* frame on top right that contains the viewer */
+#trframe {
+    width:                    750px;
+    height:                   600px;
+    float:                     left;
+    overflow:                scroll;
+    cursor:               crosshair;
+
+   /* prevent selection in this frame */
+  -webkit-user-select: none; /* Safari 3.1+ */
+  -moz-user-select: none; /* Firefox 2+ */
+  -ms-user-select: none; /* IE 10+ */
+  user-select: none; /* Standard syntax */
+}
+
+/* frame on bottom left that contains key */
+#blframe {
+    width:                    250px;
+    height:                   150px;
+    float:                     left;
+    overflow:                scroll;
+    font-size:                  9pt;
+
+   /* prevent selection in this frame */
+  -webkit-user-select: none; /* Safari 3.1+ */
+  -moz-user-select: none; /* Firefox 2+ */
+  -ms-user-select: none; /* IE 10+ */
+  user-select: none; /* Standard syntax */
+}
+
+/* div on bottom left that contains CAPS logo */
+#CAPSlogo {
+    text-align:              center;
+}
+
+/* frame on bottom right that contains messages */
+#brframe {
+    width:                    750px;
+    height:                   150px;
+    overflow:                scroll;
+    font-family: courier, monospace;
+    font-size:                  9pt;
+    background:             #F7F7F7;
+    cursor:                    text;
+}
+
+/* initial canvas that holds WebGL and key image */
+canvas {
+    width:              230px;
+    height:             150px;
+    border-width:         0px;
+}

@@ -1,0 +1,7 @@
+# import6b
+# written by John Dannenhoffer
+
+udprim  import  filename $$/sew.stp  bodynumber -1  
+set     nbodies @@numbodies
+
+end

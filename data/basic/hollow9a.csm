@@ -1,0 +1,31 @@
+# hollow9a
+# written by John Dannenhoffer
+
+mark
+   # root
+   skbeg     0.0  -.1  0.0
+      linseg 1.0  -.1  0.0
+      linseg 1.0  0.1  0.0
+      linseg 0.0  0.0  0.0
+      linseg 0.0  -.1  0.0
+   skend
+   scale 2
+
+   # tip
+   skbeg     0.0  -.1  0.0
+      linseg 1.0  -.1  0.0
+      linseg 1.0  0.1  0.0
+      linseg 0.0  0.0  0.0
+      linseg 0.0  -.1  0.0
+   skend
+   translate 0.1 0 6
+rule
+
+# make shell
+hollow
+
+# punch hole to look inside
+cylinder 0.85 -1.0 3.0 0.85 +1.0 3.0 0.2
+subtract
+
+end

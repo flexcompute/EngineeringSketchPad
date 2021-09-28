@@ -1,0 +1,104 @@
+# blend13b12s
+# written by John Dannenhoffer
+
+despmtr   nose      0         # 0 for blunt, 1 for rounded, 2 for sharp
+despmtr   fwd       1         # 0 for C0,    1 for C1,      2 for C2
+despmtr   rwd       2         # 0 for C0,    1 for C1,      2 for C2
+despmtr   tail      2         # 0 for blunt, 1 for rounded, 2 for sharp
+despmtr   blend     1         # 0 for sketches, 1 for blend
+
+# arrays needed for a rounded nose and/or tail
+dimension noselist  2  4
+set       noselist  "0.5;  0;  1;  0;\
+                     0.5;  0;  0;  1;"
+dimension taillist  2  4
+set       taillist  "0.5;  0;  1;  0;\
+                     0.5;  0;  0;  1;"
+
+# constants to be used in ifthen statement below
+set       blunt     0
+set       round     1
+set       sharp     2
+
+# start generating configuration
+mark
+   # section 1 (nose) --- Node (for rounded or sharp) or Sketch (for blunt)
+   # round or sharp nose
+   ifthen nose ne blunt
+      skbeg     -3.0  0.5  0.0
+      skend
+   # blunt nose
+   else
+      udprim     supell  rx  0.5  ry  0.5
+      rotatey    90    0.0  0.0
+      translate -3.0   0.5  0.0
+   endif
+
+   # section 2 --- fixed Sketch
+   udprim     supell  rx  1.0  ry  0.5
+   rotatey    90    0.0  0.0
+   translate  -2.0  0.2  0.0
+
+   # section 3 (fwd) --- Sketch that can be repeated for C0 or C1
+   udprim     supell  rx  2.0  ry  1.0
+   rotatey    90    0.0  0.0
+   translate  -1.0  0.0  0.0
+   store      forward 0 1
+
+   patbeg     ndup  2-fwd
+      restore    forward
+   patend
+
+   # section 4 (rwd) --- Sketch that can be repeated for C0 or C1
+   udprim     supell  rx  2.0  ry  1.0
+   rotatey    90    0.0  0.0
+   translate  +1.0  0.0  0.0
+   store      rearward 0 1
+
+   patbeg     ndup  2-rwd
+      restore    rearward
+   patend
+
+   # section 5 --- fixed Sketch
+   udprim     supell  rx  1.0  ry  0.5
+   rotatey    90    0.0  0.0
+   translate  +2.0  0.2  0.0
+
+   # section 6 (tail) --- Node (for rounded or sharp) or Sketch (for blunt)
+   # round or sharp tail
+   ifthen tail ne blunt
+      skbeg      +3.0  0.5  0.0
+      skend
+   # blunt tail
+   else
+      udprim     supell  rx  0.5  ry  0.5
+      rotatey    90    0.0  0.0
+      translate  3.0   0.5  0.0
+   endif
+
+# create the blend (or leave Sketches is blend is not done)
+ifthen blend eq 1
+   # round/round
+   ifthen nose eq round and tail eq round
+      blend   noselist  taillist
+
+   # round/sharp or round/blunt
+   elseif nose eq round
+      blend   noselist  0
+
+   # sharp/round or blunt/round
+   elseif tail eq round
+      blend   0         taillist
+
+   # sharp/sharp or sharp/blunt or blunt/sharp or blunt/blunt
+   else
+      blend   0         0
+   endif
+endif
+
+# reference line
+skbeg     0.0  0.0  -3.0
+   linseg 0.0  0.0  +3.0
+skend
+
+end

@@ -1,0 +1,100 @@
+# package1
+# written by John Dannenhoffer
+
+# use case 1:  for fixed package dimensions and orientations,
+#              place them in a fixed OML with the CG at a 
+#              specified location
+# use case 2:  for fixed package dimensions and orientations,
+#              place them in the minimum volume OML
+# use case 3:  repeat 2, except let packages be rotated
+#              in any cardinal direction
+# use case 4:  repeat 3, except let package dimensions
+#              change for fixed volumes
+# use case 5:  repeat 4, but place limits on how close to
+#              or how far away packages can be from each other
+# use case 6:  repeat 5, but include some line-of-sight
+#              constraints
+
+# package 1 (L-shape)
+DESPMTR   pack1:dx  3.0
+DESPMTR   pack1:dy  3.0
+DESPMTR   pack1:dz  3.0
+
+BOX       -pack1:dx/2  -pack1:dy/2  -pack1:dz/2   pack1:dx    pack1:dy    pack1:dz
+BOX       0            0            -pack1:dz/2   pack1:dx/2  pack1:dy/2  pack1:dz
+SUBTRACT
+SELECT    FACE
+   ATTRIBUTE _color $red
+STORE     package 1
+
+# package 2 (cyliner-hemispheres)
+DESPMTR   pack2:len 3.0
+DESPMTR   pack2:rad 0.5
+
+SPHERE    -pack2:len/2  0  0                       pack2:rad
+CYLINDER  -pack2:len/2  0  0   pack2:len/2  0  0   pack2:rad
+UNION
+SPHERE                         pack2:len/2  0  0   pack2:rad
+UNION
+SELECT    FACE
+   ATTRIBUTE _color $green
+STORE     package 2
+
+# package 3 (sphere 1)
+DESPMTR   pack3:rad 1.0
+
+SPHERE    0  0  0   pack3:rad
+   ATTRIBUTE _color $blue
+STORE     package 3
+
+# package 4 (sphere 2)
+DESPMTR   pack4:rad 0.5
+
+SPHERE    0  0  0   pack4:rad
+   ATTRIBUTE _color $cyan
+STORE     package 4
+
+# package 5 (box)
+DESPMTR   pack5:dx  1.0
+DESPMTR   pack5:dy  3.0
+DESPMTR   pack5:dz  4.0
+
+BOX       -pack5:dx/2  -pack5:dy/2  -pack5:dz/2   pack5:dx  pack5:dy  pack5:dz
+   ATTRIBUTE _color $magenta
+STORE     package 5
+
+# package 6 (torus)
+DESPMTR   pack6:rmaj 1.0
+DESPMTR   pack6:rmin 0.2
+TORUS     0  0  0   0  0  1  pack6:rmaj  pack6:rmin
+   ATTRIBUTE _color $yellow
+STORE     package 6
+
+# OML (enclosure)
+DESPMTR   oml:len    7.0
+DESPMTR   oml:width  3.0
+DESPMTR   oml:height 2.0
+
+UDPRIM    supell  rx oml:width  ry oml:height
+ROTATEY   90  0  0
+ROTATEZ   45  0  0
+EXTRUDE    oml:len  0  0
+TRANSLATE -oml:len  0  0
+   ATTRIBUTE _name $OML
+
+# place packages
+DIMENSION place 6 3 1
+DESPMTR   place "-9.0; -4.0;  0.0; \
+                 -5.0; -4.0;  0.0; \
+                 -1.0; -4.0;  0.0; \
+                  1.0; -4.0;  0.0; \
+                  3.0; -4.0;  0.0; \
+                  5.0; -4.0;  0.0; \
+
+PATBEG ipack 6
+   RESTORE   package ipack
+   TRANSLATE place[ipack,1]  place[ipack,2]  place[ipack,3]
+      ATTRIBUTE _name  $pack+ipack
+PATEND
+
+END

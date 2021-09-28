@@ -1,0 +1,20 @@
+# hex3
+# written by John Dannenhoffer
+
+dimension corners 8 3 0
+set       corners "0.0; 0.0; 0.0; \
+                   1.0; 0.2; 0.0; \
+		   0.0; 1.0; 0.0; \
+		   1.0; 0.8; -.2; \
+		   0.0; 0.2; 1.0; \
+		   1.0; 0.0; 1.0; \
+		   0.0; 0.8; 1.0; \
+		   1.0; 1.0; 0.8"
+
+udparg    hex   corners  corners
+udparg    hex   uknots   "0.0; 0.5; 1.0;"
+udparg    hex   vknots   "0.0; 0.2; 0.4; 0.6; 0.8; 1.0;"
+udparg    hex   wknots   "0.0; 0.1; 0.2; 1.0;"
+udprim    hex
+
+end

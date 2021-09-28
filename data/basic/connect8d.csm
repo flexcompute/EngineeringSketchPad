@@ -1,0 +1,55 @@
+# connect8d
+# written by John Dannenhoffer
+
+DIMENSION edgelist1 1 4
+DIMENSION edgelist2 1 4
+
+# left box
+BOX       -1.5  -0.5  -0.5  1.0  1.0  1.0
+SELECT    FACE  @nbody 1
+SELECT    ADD   @nbody 3
+SELECT    ADD   @nbody 4
+SELECT    ADD   @nbody 5
+SELECT    ADD   @nbody 6
+EXTRACT   @sellist
+
+SELECT    EDGE  -0.5 -0.5  0.0
+SET       edgelist1[1]  @sellist
+SELECT    EDGE  -0.5  0.5  0.0
+SET       edgelist1[2]  @sellist
+SELECT    EDGE  -0.5  0.0 -0.5
+SET       edgelist1[3]  @sellist
+SELECT    EDGE  -0.5  0.0  0.5
+SET       edgelist1[4]  @sellist
+
+# rite box
+BOX        0.5  -0.5  -0.5  1.0  1.0  1.0
+SELECT    FACE  @nbody 2
+SELECT    ADD   @nbody 3
+SELECT    ADD   @nbody 4
+SELECT    ADD   @nbody 5
+SELECT    ADD   @nbody 6
+EXTRACT   @sellist
+
+SELECT    EDGE  -0.5 -0.5  0.0
+SET       edgelist2[1]  @sellist
+SELECT    EDGE  -0.5  0.5  0.0
+SET       edgelist2[2]  @sellist
+SELECT    EDGE  -0.5  0.0 -0.5
+SET       edgelist2[3]  @sellist
+SELECT    EDGE  -0.5  0.0  0.5
+SET       edgelist2[4]  @sellist
+
+# connect boxes
+CONNECT   0  0  edgelist1  edgelist2
+SELECT FACE @nbody 1
+SELECT ADD  @nbody 2
+SELECT ADD  @nbody 3
+SELECT ADD  @nbody 4
+   ATTRIBUTE _color  $green
+   ATTRIBUTE _bcolor $green
+
+# inflate to solid Body
+COMBINE
+
+END

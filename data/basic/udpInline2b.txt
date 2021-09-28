@@ -1,0 +1,5 @@
+# to be used by udpTest2.csm
+
+   EDGE   ADJ2FACE   side=xmax
+   AND    ADJ2FACE   side=zmax
+   SET               _color=blue

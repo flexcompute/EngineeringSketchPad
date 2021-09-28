@@ -1,0 +1,83 @@
+# morph1a
+# written by John Dannenhoffer
+
+# global attributes
+attribute   ijkmin            9
+attribute   ijkmax           65
+attribute   ijkstp            4
+
+attribute   BASIC.plot        1
+attribute   GLOBL.onoff       0
+attribute   CUTTR.onoff       0
+attribute   TRIMR.onoff       0
+attribute   DONOR.onoff       0
+
+attribute   PLT3D.onoff       1
+attribute   PLT3D.bigend      1
+
+attribute   XRAYS.onoff       0
+attribute   XRAYS.bigend      1
+
+# collar attributes
+attribute   COLAR.onoff       0         no collar grids
+attribute   COLAR.plot        0
+attribute   COLAR.imin        5
+attribute   COLAR.dsi         10.0
+attribute   COLAR.jmid        28
+attribute   COLAR.dsjbeg      0.200
+attribute   COLAR.dsjrat      1.150
+attribute   COLAR.kmax        65
+attribute   COLAR.dnbeg       0.010
+attribute   COLAR.dnrat       1.150
+
+# ---------- first Body ----------
+skbeg     0.00      0.0       0.0
+   linseg 0.01      0.0       1.0
+   linseg 2.99      0.0       1.0
+   linseg 3.00      0.0       0.0
+   linseg 0.00      0.0       0.0
+skend
+revolve   0.0       0.0       0.0       1.0       0.0       0.0       360.
+   attribute  revolve_imin           5
+   attribute  revolve_dsimin     0.010      times Length
+   attribute  revolve_dsimax     0.050      times Length
+   attribute  revolve_strmin     0.800
+#   attribute  revolve_itrm1          2
+   attribute  revolve_itrm1          0
+   attribute  revolve_capfac1    2.500
+   attribute  revolve_ijcap1        25
+#   attribute  revolve_itrm2          6
+   attribute  revolve_itrm2          0
+   attribute  revolve_capfac2    2.500
+   attribute  revolve_ijcap2        25
+   attribute  revolve_jmax          97
+   attribute  revolve_kmax          33
+   attribute  revolve_dnbeg      0.020
+   attribute  revolve_dnrat      1.150
+#   attribute  revolve_morph1         1
+#   attribute  revolve_morph2        11
+#   attribute  revolve_morph3     150.0
+
+# ---------- second body ----------
+skbeg     0.0       0.0       0.0
+   linseg 0.1       0.0       1.0
+   cirarc 1.5       0.0       0.9       2.9       0.0       1.0
+   linseg 3.0       0.0       0.0
+   linseg 0.0       0.0       0.0
+skend
+revolve   0.0       0.0       0.0       1.0       0.0       0.0       360.
+   attribute  ShowBody               0
+   attribute  revolve_jmax           0
+
+# ---------- third body ----------
+skbeg     0.0       0.0       0.0
+   linseg -.1       0.0       0.9
+   linseg 3.1       0.0       1.1
+   linseg 3.0       0.0       0.0
+   linseg 0.0       0.0       0.0
+skend
+revolve   0.0       0.0       0.0       1.0       0.0       0.0       360.
+   attribute  ShowBody               0
+   attribute  revolve_jmax           0
+
+end

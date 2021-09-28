@@ -1,0 +1,33 @@
+# gen_rot
+# written by John Dannenhoffer
+
+# regular z rotation
+box     1 0 0 1 1 1
+   attribute _color $red
+rotatez 45 1 0
+
+# use gen_rot with vector in +z direction
+box     1 0 0 1 1 1
+   attribute _color $green
+udparg  $$/gen_rot xbeg 1 xend 1
+udparg  $$/gen_rot ybeg 0 yend 0
+udparg  $$/gen_rot zbeg 0 zend 1
+udprim  $$/gen_rot rotang +45
+
+# use gen_rot with vector in -z direction
+box     1 0 0 1 1 1
+   attribute _color $blue
+udparg  $$/gen_rot xbeg 1 xend 1
+udparg  $$/gen_rot ybeg 0 yend 0
+udparg  $$/gen_rot zbeg 1 zend 0
+udprim  $$/gen_rot rotang -45
+
+# special case of no rotation
+box     1 0 0 1 1 1
+   attribute _color $cyan
+udparg  $$/gen_rot xbeg 0 xend 0
+udparg  $$/gen_rot ybeg 0 yend 0
+udparg  $$/gen_rot zbeg 0 zend 0
+udprim  $$/gen_rot rotang 0
+
+end

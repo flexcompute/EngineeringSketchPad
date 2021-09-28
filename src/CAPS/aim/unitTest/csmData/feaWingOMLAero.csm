@@ -1,0 +1,136 @@
+# Aeroelastic example - with ribs and spars
+
+# Design Parameters for OML
+DESPMTR   thick     0.12      frac of local chord
+DESPMTR   camber    0.04      frac of loacl chord
+
+DESPMTR   area      10.0
+DESPMTR   aspect    6.00
+DESPMTR   taper     0.60
+DESPMTR   sweep     20.0      deg (of c/4)
+
+DESPMTR   washout   5.00      deg (down at tip)
+DESPMTR   dihedral  4.00      deg
+
+# Design Parameters for BEM
+DESPMTR   nrib      3        number of ribs
+DESPMTR   spar1     0.20      frac of local chord
+DESPMTR   spar2     0.75      frac of local chord
+
+DESPMTR   WingVlmNcut  3
+
+
+# OML
+SET       span      sqrt(aspect*area)
+SET       croot     2*area/span/(1+taper)
+SET       ctip      croot*taper
+SET       dxtip     (croot-ctip)/4+span/2*tand(sweep)
+SET       dytip     span/2*tand(dihedral)
+SET       cmean     (croot+ctip)/2
+
+MARK
+   # right tip
+   UDPRIM    naca      Thickness thick     Camber    camber sharpTE 1
+   SCALE     ctip
+   TRANSLATE dxtip     dytip     -span/2
+    
+   # root
+   UDPRIM    naca      Thickness thick     Camber    camber sharpTE 1
+   SCALE     croot
+      
+RULE
+   ATTRIBUTE capsGroup $Skin 
+ROTATEX   90  0  0 
+   ATTRIBUTE capsAIM        $astrosAIM;egadsTessAIM
+   ATTRIBUTE capsDiscipline $Structure #FEA Analysis (2D elements)
+
+#SELECT EDGE 3
+#   ATTRIBUTE capsGroup $LeadingEdge
+#SELECT EDGE 1
+#   ATTRIBUTE capsGroup $TrailingEdge
+
+SELECT FACE 1
+   ATTRIBUTE capsBound $Skin_Top
+   
+SELECT FACE 4
+   ATTRIBUTE capsGroup       $Rib_Root
+   udprim editAttr filename <<
+       edge adj2face capsGroup=Rib_Root
+       set  capsConnectLink=Rib_Root
+
+       node adj2face capsGroup=Rib_Root
+       set  capsConnectLink=Rib_Root
+>>
+SELECT body
+   ATTRIBUTE _name           $WingOml
+
+STORE     WingOml
+
+# Point Connecting to Rib_Root to apply boundary conditions too
+POINT  croot/4 0 0
+ATTRIBUTE capsDiscipline    $Structure
+ATTRIBUTE capsGroup         $Rib_Root
+ATTRIBUTE capsConnect       $Rib_Root
+ATTRIBUTE capsConstraint    $Rib_Root_Point
+ATTRIBUTE capsAIM           $astrosAIM;egadsTessAIM
+ATTRIBUTE _name             $Rib_Root
+
+# Aero
+
+# get the bounding coordinates of the OML
+RESTORE   WingOml
+SET       xmin     @xmin-1
+SET       xmax     @xmax+1
+SET       ymin     @ymin+0.001
+SET       ymax     @ymax-0.001
+SET       zmin     @zmin-1
+SET       zmax     @zmax+1
+
+# arfoil sections
+# the order of the sections does not matter 
+# as they are sorted in the AIM
+
+# make left tip, root, rite tip
+PATBEG    icut  WingVlmNcut
+    SET       y  ymin+(ymax-ymin)*(icut-1)/(WingVlmNcut-1)
+    BOX       xmin  y  zmin  xmax-xmin  0  zmax-zmin
+    RESTORE   WingOml
+    INTERSECT
+        ATTRIBUTE capsAIM            $astrosAIM
+        ATTRIBUTE capsReferenceArea  area
+        ATTRIBUTE capsReferenceSpan  span
+        ATTRIBUTE capsReferenceChord cmean
+        ATTRIBUTE capsReferenceX     cmean/4
+        ATTRIBUTE capsGroup          $Wing
+        ATTRIBUTE capsDiscipline     $Aerodynamic
+        ATTRIBUTE _name             !$Wing_+icut
+    STORE Wing icut
+PATEND
+
+# slice up the root airfoil to stress the arifoil section writer
+RESTORE Wing 1
+
+BOX       0.1*croot    -0.05        0      0   0.1  1
+SUBTRACT
+BOX       0.5*croot    -0.05        0      0   0.1 -1
+SUBTRACT
+
+# extrude and intersect the arifoil again to jumble the edge ordering
+TRANSLATE 0  -0.1   0
+EXTRUDE   0   0.2   0
+BOX      -1*croot    0   -1    4  0  2
+ROTATEX   180.  0.   0.  
+INTERSECT
+
+SELECT body
+    ATTRIBUTE capsAIM            $astrosAIM
+    ATTRIBUTE capsGroup          $Wing
+    ATTRIBUTE capsDiscipline     $Aerodynamic
+    ATTRIBUTE _name              $Wing_1
+
+# Add back remaining sections
+RESTORE Wing 2
+RESTORE Wing 3
+
+
+END

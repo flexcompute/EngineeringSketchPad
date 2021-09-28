@@ -1,0 +1,1919 @@
+# expressions
+# written by John Dannenhoffer
+
+# check assert
+assert    10.0      10.000001
+assert    10.0      10.1      0.20
+assert    10.0      10.000001 0
+assert    10.0      10.1      -.02
+
+# check number formats
+assert    0.002     .001*2
+assert    0.002     0.001*2
+assert    0.002     1e-3*2
+assert    0.002     1.0E-3*2
+assert    0.002     .001e0*2
+assert    0.002     .01e-1*2
+assert    0.002     .0001E1*2
+assert    0.002     .00001E+2*2
+
+# check for valid string characters
+set       str       $abcdefghijklmnopqrstuvwxyz
+set       str       $ABCDEFGHIJKLMNOPQRSTUVWXYZ
+set       str       $0123456789
+set       str       $@_:;$.','+-*/^?(')[]{}%=<>
+
+# check expression evaluator
+assert    +6.283185 pi(2)
+assert    -4.5      min(-4.5,6.3)
+assert    +6.3      max(-4.5,6.3)
+assert    +2.236068 sqrt(5)
+assert    +3.4      abs(+3.4)
+assert    +3.4      abs(-3.4)
+assert    +3        int(3.4)
+assert    -3        int(-3.4)
+assert    +3        nint(3.4)
+assert    -3        nint(-3.4)
+assert    +4        ceil(3.4)
+assert    -3        ceil(-3.4)
+assert    +3        floor(3.4)
+assert    -4        floor(-3.4)
+assert    +1        mod(7,2)
+assert    -1        mod(-7,2)
+set                 str  $abc
+assert     0        "ifmatch(str ,$?,     1,0)"
+assert     0        "ifmatch($abc,$?,     1,0)"
+assert    +1        "ifmatch(str ,$'+,    1,0)"
+assert    +1        "ifmatch($abc,$'+,    1,0)"
+assert    +1        "ifmatch(str ,$*,     1,0)"
+assert    +1        "ifmatch($abc,$*,     1,0)"
+assert    +1        "ifmatch(str ,$a?c,   1,0)"
+assert    +1        "ifmatch($abc,$a?c,   1,0)"
+assert    +1        "ifmatch(str ,$a'+c,  1,0)"
+assert    +1        "ifmatch($abc,$a'+c,  1,0)"
+assert    +1        "ifmatch(str ,$a*c,   1,0)"
+assert    +1        "ifmatch($abc,$a*c,   1,0)"
+assert     0        "ifmatch(str ,$a?c?,  1,0)"
+assert     0        "ifmatch($abc,$a?c?,  1,0)"
+assert     0        "ifmatch(str ,$a'+c'+,1,0)"
+assert     0        "ifmatch($abc,$a'+c'+,1,0)"
+assert    +1        "ifmatch(str ,$a*c*,  1,0)"
+assert    +1        "ifmatch($abc,$a*c*,  1,0)"
+assert    +1        "ifnan(mod(7, 0),     1,0)"
+assert    +1        "ifnan(mod(7,-2),     1,0)"
+assert    +0.600000 mod(7,1.6)
+assert   +29.964100 exp(3.4)
+assert    +1.223775 log(3.4)
+assert    +0.531479 log10(3.4)
+assert    -0.255541 sin(3.4)
+assert    +0.059306 sind(3.4)
+assert    +0.346917 asin(0.34)
+assert   +19.876874 asind(0.34)
+assert    -0.966798 cos(3.4)
+assert    +0.998240 cosd(3.4)
+assert    +1.223879 acos(0.34)
+assert   +70.123126 acosd(0.34)
+assert    +0.264317 tan(3.4)
+assert    +0.059411 tand(3.4)
+assert    +1.284745 atan(3.4)
+assert   +73.610460 atand(3.4)
+assert    +0.643501 atan2(3,4)
+assert   +36.869898 atan2d(3,4)
+assert    +5        hypot(3,4)
+assert    +5        hypot(4,3)
+assert    +13       hypot3(3,4,12)
+assert    +13       hypot3(4,12,3)
+assert    +13       hypot3(12,3,4)
+assert    +1        "ifzero(0,   1,2)"
+assert    +2        "ifzero(3.4, 1,2)"
+assert    +2        "ifzero(-3.4,1,2)"
+assert    +2        "ifpos(0,    1,2)"
+assert    +1        "ifpos(3.4,  1,2)"
+assert    +2        "ifpos(-3.4, 1,2)"
+assert    +2        "ifneg(0,    1,2)"
+assert    +2        "ifneg(3.4,  1,2)"
+assert    +1        "ifneg(-3.4, 1,2)"
+assert    +2        "ifnan(0,    1,2)"
+assert    +1        "ifnan(1/0,  1,2)"
+assert    +1        "ifnan(xyz,  1,2)"
+
+# check path() function
+set       pwd_path  path($pwd)
+set       csm_path  path($csm)
+set       full_path pwd_path+csm_path
+set       full_name pwd_path+csm_path+path($file)
+set       root_path path($root)
+set       udc_path  root_path+$/udc
+
+# check string evaluations
+set       a1        10                                 # a1 = 10  0
+assert    a1.size   1
+assert    a1.nrow   1
+assert    a1.ncol   1
+set       b1        20                                 # b1 = 20  0
+assert    b1.size   1
+set       c1        a1+b1                              # c1 = 30  0
+assert    c1        30
+assert    c1.size   1
+
+set       a2        $10                                # a2 = $10
+assert    a2.size   2
+assert    a2.nrow   0
+assert    a2.ncol   0
+set       b2        $20                                # b2 = $20
+assert    b2.size   2
+set       c2        a2+b2                              # c2 = $1020
+assert    c2.size   4
+set       c2        $10+$20                            # c2 = $1020
+assert    c2.size   4
+set       c2        $10'+$20                           # c2 = $10$20
+assert    c2.size   6
+
+set       a3        $pre_                              # a3 = $pre_
+assert    a3.size   4
+assert    a3.nrow   0
+assert    a3.ncol   0
+set       b3        3.1415926                          # b3 = 3.1415926  0
+set       c3        $_post                             # c3 = $_post
+assert    c3.size   5
+set       d3        val2str(b3,0)                      # d3 = $3
+assert    d3.size   1
+set       d3        val2str(b3,2)                      # d3 = $3.14
+assert    d3.size   4
+set       e3        a3+d3+c3                           # e3 = $pre_3.14_post
+assert    e3.size   13
+set       e3        a3+val2str(b3,2)+c3                # e3 = $pre_3.14_post
+assert    e3.size   13
+set       e3        $pre_+val2str(b3,2)+$_post         # e3 = $pre_3.14_post
+assert    e3.size   13
+set       e3        $pre_+val2str(3.1415926,2)+$_post  # e3 = $pre_3.14_post
+assert    e3.size   13
+set       f3        str2val(d3)                        # f3 = 3.14  0
+assert    f3        3.14
+set       g3        a3+b3                              # g3 = $pre_3.141593
+assert    g3.size   12
+set       g3        a3+nint(b3)                        # g3 = $pre_3
+assert    g3.size   5
+set       h3        str2val($sqrt(81'))                # h3 = 9
+assert    h3        9
+set       i3        str2val($sqrt(h3'))                # i3 = 3
+assert    i3        3
+set       j3        slice(e3,4,9)                      # j3 = $_3.14_
+assert    j3.size   6
+set       k3        slice(e3,4,999)                    # k3 = $_3.14_post
+assert    k3.size   10
+set       l3        slice(e3,13,999)
+assert    l3.size   1
+
+set       error     0
+set       m3        slice(e3,0,999)                    # func_arg_out_of_bounds
+catbeg              $func_arg_out_of_bounds
+   set    error     1
+catend
+assert    error     1
+
+set       error     0
+set       m3        slice(e3,14,999)                   # func_arg_out_of_bounds
+catbeg              $func_arg_out_of_bounds
+   set    error     1
+catend
+assert    error     1
+
+set       error     0
+set       m3        slice(e3,4,-1)                     # func_arg_out_of_bounds
+catbeg              $func_arg_out_of_bounds
+   set    error     1
+catend
+assert    error     1
+
+assert    1         ifmatch($a+3,$a3,1,0)     1
+assert    1         ifmatch(4+$b,$4b,1,0)     1
+assert    1         ifmatch($c+$d+5,$cd5,1,0) 1
+
+assert    1         findstr(e3,a3)      1
+assert    1         findstr(e3,$pre_)   1
+assert    9         findstr(e3,c3)      9
+assert    9         findstr(e3,$_post)  9
+assert    0         findstr(e3,a2)      0
+assert    0         findstr(e3,$10)     0
+
+# check for lazy evaluations
+assert    +1        "ifzero(0,   1,  2/0)"
+assert    +2        "ifzero(3.4, 1/0,2  )"
+assert    +2        "ifzero(-3.4,1/0,2  )"
+assert    +2        "ifpos(0,    1/0,2  )"
+assert    +1        "ifpos(3.4,  1,  2/0)"
+assert    +2        "ifpos(-3.4, 1/0,2  )"
+assert    +2        "ifneg(0,    1/0,2  )"
+assert    +2        "ifneg(3.4,  1/0,2  )"
+assert    +1        "ifneg(-3.4, 1,  2/0)"
+assert    +1        "sign(3.14)"
+assert     0        "sign(0)"
+assert    -1        "sign(-3.14)"
+
+# check for nested evaluations
+assert    +2        ifzero(0,ifpos(+1,2,3),ifneg(+4,5,6))
+assert    +3        ifzero(0,ifpos(-1,2,3),ifneg(+4,5,6))
+assert    +6        ifzero(1,ifpos(-1,2,3),ifneg(+4,5,6))
+assert    +5        ifzero(1,ifpos(-1,2,3),ifneg(-4,5,6))
+
+# check parser
+assert    +5        (2+3/6)*((-2*2+1)/(-3/2*1))
+assert    +5        (-2-3/6)*((2*2-1)/(-3/2*1))
+assert    -3        (2+3/(-6))*((-2*2+1)/(-3/(-2*1)))
+assert    +3766     7+6*5^4+3^2*1
+
+# check that parentheses match, brackets match, and that they
+#    are properly nested
+#set good a[min(c,d),((e)+f[g,h])]
+#set bad  a[min(c,d),((e)+f[g,h]))   more ) than (
+#set bad  a[min(c,d),((e)+f[g,h]]]   more ] than [
+#set bad  a[min(c,d),((e)+f[g,h))]   more ) than (
+#set bad  a[min(c,d),((e]+f[g,h])]   more ] than [
+#set bad  a[min(c,d],((e)+f[g,h])]   more ] than [
+#set bad  a[min(c,d),[(e)+f(g,h])]   ] does not match (
+#set bad  a[min(c,d),((e)+f[g,h]])   ] does not match (
+#set bad  a[min[c,d),((e]+f[g,h)]]   ) does not match [
+
+# check subscript evaluator
+dimension r 1 4 0
+dimension s 4 1 0
+dimension t 2 6 0
+dimension u 1 8 0
+dimension v 8 1 0
+dimension x 2 2 0
+dimension y 2 2 0
+dimension z 1 4 0
+
+set       r[1]      11
+set       r[2]      12
+set       r[1,3]    13
+set       r[1,4]    14
+set       s[1]      11
+set       s[2]      12
+set       s[3,1]    13
+set       s[4,1]    14
+set       t         "11; 12; 13; 14; 15; 16;\
+                     21; 22; 23; 24; 25; 26;"
+set       u         "11; 12; 13; 14; 15; 16; 17; 18;"
+set       v         "11; 12; 13; 14; 15; 16; 17; 18;"
+set       w         12345
+set       x         "1; 2;\
+                     3; 4;\
+                     5; 6;"
+set       y         "7; 8;"
+set       z[1,1]     9
+set       z[1,2]    10
+set       z[1,3]    11
+set       z[1,4]    12
+
+assert     1        ifzero(r[1]-t[1],1,0)
+assert     1        ifzero(r[2]-t[2],1,0)
+assert     1        ifzero(r[3]-t[3],1,0)
+assert     1        ifzero(r[4]-t[4],1,0)
+
+assert     1        ifzero(s[1]-t[1],1,0)
+assert     1        ifzero(s[2]-t[2],1,0)
+assert     1        ifzero(s[3]-t[3],1,0)
+assert     1        ifzero(s[4]-t[4],1,0)
+
+assert    11        t[1]
+assert    22        t[2*4]
+assert    12        t[1,2]
+assert    26        t[2,2*3]
+assert    26        t[1+1,2*3]
+assert    26        t[1+1,6]
+assert    26        t[(1+1),(2*3)]
+
+
+assert     1        x[1,1]
+assert     2        x[1,2]
+assert     3        x[2,1]
+assert     4        x[2,2]
+assert     7        y[1,1]
+assert     8        y[1,2]
+assert     8        y[2,1]
+assert     8        y[2,2]
+assert     9        z[1,1]
+assert    10        z[1,2]
+assert    11        z[1,3]
+assert    12        z[1,4]
+
+assert     1        x[1]
+assert     2        x[2]
+assert     3        x[3]
+assert     4        x[4]
+
+patbeg    i  4
+   assert  i        x[i]
+patend
+
+assert     9        z[1]
+assert    10        z[2]
+assert    11        z[3]
+assert    12        z[4]
+
+patbeg    i  4
+   assert  i+8      z[i]
+patend
+
+# check expressions in subscripts
+patbeg  i  4
+   set    ip4       i+4
+
+   assert  i+14     u[ip4]
+   assert  i+14     v[ip4]
+   assert  i+14     u[1,ip4]
+   assert  i+14     v[ip4,1]
+
+   assert  i+14     u[+ip4]
+   assert  i+14     v[+ip4]
+   assert  i+14     u[1,+ip4]
+   assert  i+14     v[+ip4,1]
+
+   assert  i+14     u[(i+4)]
+   assert  i+14     u[i+4]
+   assert  i+14     v[i+4]
+   assert  i+14     u[1,i+4]
+   assert  i+14     v[i+4,1]
+
+   assert  i*2+10   u[i*2]
+   assert  i*2+10   v[i*2]
+   assert  i*2+10   u[1,i*2]
+   assert  i*2+10   v[i*2,1]
+patend
+
+# check indexing
+DIMENSION mat1      2  3
+DIMENSION mat2      2  3
+DIMENSION mat3      2  3
+
+SET       error     0
+SET       mat1      1;2         #  1;2;2;2;2;2
+CATBEG    $illegal_pmtr_index
+   SET    error     1
+CATEND
+ASSERT    error     0
+ASSERT    mat1.sum  11
+
+SET       error     0
+SET       mat1      1;2;3;4;5;6;7;8  #  1;2;3;4;5;6
+CATBEG    $illegal_pmtr_index
+   SET    error     1
+CATEND
+ASSERT    error     0
+ASSERT    mat1.sum  21
+
+SET       error     0
+SET       mat1[0]   1;2         #  1;2;2;2;2;2
+CATBEG    $illegal_pmtr_index
+   SET    error     1
+CATEND
+ASSERT    error     0
+ASSERT    mat1.sum  11
+
+SET       error     0
+SET       mat1[0,0] 1;2;3;4;5;6 #  1;2;3;4;5;6
+CATBEG    $illegal_pmtr_index
+   SET    error     1
+CATEND
+ASSERT    error     0
+ASSERT    mat1.sum  21
+
+SET       error     0
+SET       mat1[-1]  7           #  error
+CATBEG    $illegal_pmtr_index
+   SET    error     1
+CATEND
+ASSERT    error     1
+ASSERT    mat1.sum  21
+
+SET       error     0
+SET       mat1[-1]  7;7         #  7;7;7;7;7;7
+CATBEG    $illegal_pmtr_index
+   SET    error     1
+CATEND
+ASSERT    error     0
+ASSERT    mat1.sum  42
+
+SET       mat1      1;2;3;4;5;6 #  1;2;3;4;5;6
+
+SET       error     0
+SET       mat1[7]   7           #  error
+CATBEG    $illegal_pmtr_index
+   SET    error     1
+CATEND
+ASSERT    error     1
+ASSERT    mat1.sum  21
+
+SET       error     0
+SET       mat1[4]   7           #  1;2;3;7;5;6
+CATBEG    $illegal_pmtr_index
+   SET    error     1
+CATEND
+ASSERT    error     0
+ASSERT    mat1.sum  24
+
+SET       error     0
+SET       mat1[0,1] 7           #  error
+CATBEG    $illegal_pmtr_index
+   SET    error     1
+CATEND
+ASSERT    error     1
+ASSERT    mat1.sum  24
+
+SET       error     0
+SET       mat1[1,0] 7           #  7;2;3;7;5;6
+CATBEG    $illegal_pmtr_index
+   SET    error     1
+CATEND
+ASSERT    error     0
+ASSERT    mat1.sum  30
+
+SET       error     0
+SET       mat1[-1,1] 7          #  error
+CATBEG    $illegal_pmtr_index
+   SET    error     1
+CATEND
+ASSERT    error     1
+ASSERT    mat1.sum  30
+
+SET       error     0
+SET       mat1[3,1] 7           #  error
+CATBEG    $illegal_pmtr_index
+   SET    error     1
+CATEND
+ASSERT    error     1
+ASSERT    mat1.sum  30
+
+SET       error     0
+SET       mat1[1,-1] 1          #  error
+CATBEG    $illegal_pmtr_index
+   SET    error     1
+CATEND
+ASSERT    error     1
+ASSERT    mat1.sum  30
+
+SET       error     0
+SET       mat1[1,4] 1           #  error
+CATBEG    $illegal_pmtr_index
+   SET    error     1
+CATEND
+ASSERT    error     1
+ASSERT    mat1.sum  30
+
+SET       error     0
+SET       mat1[2,2] 8           #  7;2;3;7;8;6
+CATBEG    $illegal_pmtr_index
+   SET    error     1
+CATEND
+ASSERT    error     0
+ASSERT    mat1.sum  33
+
+SET       mat2[2,2] 0
+ASSERT    mat2[1,1] -99999999
+ASSERT    mat2[2,2] 0
+
+SET       mat3[2,2] 0
+ASSERT    mat3[1,1] -99999999
+ASSERT    mat3[2,2] 0
+
+# check ability to change types
+
+# scalar->vector->scalar
+set       test1    11
+assert     1       test1.size
+assert     1       test1.nrow
+assert     1       test1.ncol
+assert    11       test1.sum
+assert    11       test1[1]
+
+dimension test1    1 2
+set       test1    12           # 12 is repeated
+assert     2       test1.size
+assert     1       test1.nrow
+assert     2       test1.ncol
+assert    24       test1.sum
+assert    12       test1[1]
+assert    12       test1[2]
+
+dimension test1    2 1
+set       test1    13;23;33     # truncated
+assert     2       test1.size
+assert     2       test1.nrow
+assert     1       test1.ncol
+assert    36       test1.sum
+assert    13       test1[1]
+assert    23       test1[2]
+
+dimension test1    1 1
+set       test1    14;24;34     # truncated
+assert     1       test1.size
+assert     1       test1.nrow
+assert     1       test1.ncol
+assert    14       test1.sum
+assert    14       test1[1]
+
+# scalar->string->scalar
+set       test1    15
+assert     1       test1.size
+assert     1       test1.nrow
+assert     1       test1.ncol
+assert    15       test1.sum
+assert    15       test1[1]
+
+set       test1    $test1
+assert     5       test1.size
+assert     0       test1.nrow
+assert     0       test1.ncol
+assert     1       ifmatch(test1,$test1,1,0)
+
+set       test1    16
+assert     1       test1.size
+assert     1       test1.nrow
+assert     1       test1.ncol
+assert    16       test1.sum
+assert    16       test1[1]
+
+# vector->string->vector
+dimension test1    1 2
+set       test1    17           # 17 is repeated
+assert     2       test1.size
+assert     1       test1.nrow
+assert     2       test1.ncol
+assert    34       test1.sum
+assert    17       test1[1]
+assert    17       test1[2]
+
+set       test1    $test1
+assert     5       test1.size
+assert     0       test1.nrow
+assert     0       test1.ncol
+assert     1       ifmatch(test1,$test1,1,0)
+
+dimension test1       2 1
+set       test1    18;28;38     # truncated
+assert     2       test1.size
+assert     2       test1.nrow
+assert     1       test1.ncol
+assert    46       test1.sum
+assert    18       test1[1]
+assert    28       test1[2]
+
+# check dot-suffix expressions
+assert     1        w.nrow
+assert     1        w.ncol
+assert     1        w.size
+assert     12345    w.sum
+assert     12345    w.norm
+assert     12345    w.min
+assert     12345    w.max
+assert     2        x.nrow
+assert     2        x.ncol
+assert     4        x.size
+assert    10        x.sum
+assert     5.477226 x.norm
+assert     1        x.min
+assert     4        x.max
+assert     2        y.nrow
+assert     2        y.ncol
+assert     4        y.size
+assert    31        y.sum
+assert    15.524174 y.norm
+assert     7        y.min
+assert     8        y.max
+assert     1        z.nrow
+assert     4        z.ncol
+assert     4        z.size
+assert    42        z.sum
+assert    21.118712 z.norm
+assert     9        z.min
+assert    12        z.max
+
+# check that conpmtrs are properly defined
+conpmtr   ONE       1
+conpmtr   TWO       2
+conpmtr   PIE       3.14159
+
+assert    ONE       1
+assert    TWO       2
+assert    TWO       ONE+ONE
+assert    PIE       3.14159
+
+# check that despmtrs are not averwritten
+despmtr   dv1       10
+assert    dv1       10
+despmtr   dv1       20
+assert    dv1       10
+
+dimension dv2       2 2 1
+despmtr   dv2[1,1]  100
+despmtr   dv2[1,2]  200
+despmtr   dv2[2,1]  300
+despmtr   dv2[2,2]  400
+
+assert    100       dv2[1]
+assert    200       dv2[2]
+assert    300       dv2[3]
+assert    400       dv2[4]
+
+despmtr   dv2[1,1]  0
+assert    100       dv2[1,1]
+
+# check that despmtrs can be set in a variety of ways
+#  11 11 22 11 55
+#  11 11 22 11 11
+#  31 32 33 34 35
+#  11 11 22 11 11
+dimension dv3       4 5 1
+despmtr   dv3[1,5]  44
+despmtr   dv3[3,:]  31;32;33;34;35;36;37
+despmtr   dv3[:,3]  22
+despmtr   dv3[:,:]  11
+despmtr   dv3       0
+lbound    dv3       0
+lbound    dv3[:,:]  11
+lbound    dv3[:,3]  22
+lbound    dv3[3,:]  31;32;33;34;35;36;37
+lbound    dv3[1,5]  44
+ubound    dv3       0
+ubound    dv3[:,:]  11
+ubound    dv3[:,3]  22
+ubound    dv3[3,:]  31;32;33;34;35;36;37
+ubound    dv3[1,5]  44
+
+assert    dv3[1,1]  11
+assert    dv3[1,2]  11
+assert    dv3[1,3]  22
+assert    dv3[1,4]  11
+assert    dv3[1,5]  44
+assert    dv3[2,1]  11
+assert    dv3[2,2]  11
+assert    dv3[2,3]  22
+assert    dv3[2,4]  11
+assert    dv3[2,5]  11
+assert    dv3[3,1]  31
+assert    dv3[3,2]  32
+assert    dv3[3,3]  33
+assert    dv3[3,4]  34
+assert    dv3[3,5]  35
+assert    dv3[4,1]  11
+assert    dv3[4,2]  11
+assert    dv3[4,3]  22
+assert    dv3[4,4]  11
+assert    dv3[4,5]  11
+
+# check run-time dimension statements
+set        aaaa     3+2
+set        bbbb     2
+dimension  cccc     aaaa  bbbb
+set        cccc     "1;2;3;4;5;"
+assert     5        cccc.nrow
+assert     2        cccc.ncol
+assert     10       cccc.size
+assert     40       cccc.sum
+
+# check arrays inside functions and functions inside arrays
+assert  10          ifpos(atan2d(y[1,2],abs(x[2,1]+x[2,1])),10,11)
+assert +69.443955   atan2d(y[1,2],x[2,1])
+assert +69.443955   atan2d(y[2],x[3])
+assert +69.443955   atan2d(y[min(1,2),max(1,2)],x[max(1,2),min(1,2)])
+assert +69.443955   atan2d(y[max(1,2)],x[max(1,3)])
+
+# check patterns
+set       a  0
+set       b  0
+set       c  0
+
+patbeg          i    4
+   set          a    a+1
+   patbeg       j    5
+      set       b    b+1
+      patbeg    k    2
+      patbreak  b-8
+         set    c    c+1
+      patend
+   patend
+patend
+
+assert     4        a
+assert    20        b
+assert    16        c
+
+# check ifthen structures
+ifthen 1 lt 2
+   assert  1  1
+else
+   assert  1  0
+endif
+ifthen 1 le 2
+   assert  1  1
+else
+   assert  1  0
+endif
+ifthen 1 eq 2
+   assert  1  0
+else
+   assert  1  1
+endif
+ifthen 1 ge 2
+   assert  1  0
+else
+   assert  1  1
+endif
+ifthen 1 gt 2
+   assert  1  0
+else
+   assert  1  1
+endif
+ifthen 1 ne 2
+   assert  1  1
+else
+   assert  1  0
+endif
+
+ifthen 1 lt 2 and 3 lt 4
+   assert  1  1
+else
+   assert  1  0
+endif
+ifthen 1 le 2 and 3 lt 4
+   assert  1  1
+else
+   assert  1  0
+endif
+ifthen 1 eq 2 and 3 lt 4
+   assert  1  0
+else
+   assert  1  1
+endif
+ifthen 1 ge 2 and 3 lt 4
+   assert  1  0
+else
+   assert  1  1
+endif
+ifthen 1 gt 2 and 3 lt 4
+   assert  1  0
+else
+   assert  1  1
+endif
+ifthen 1 ne 2 and 3 lt 4
+   assert  1  1
+else
+   assert  1  0
+endif
+
+ifthen 1 lt 2 and 3 le 4
+   assert  1  1
+else
+   assert  1  0
+endif
+ifthen 1 le 2 and 3 le 4
+   assert  1  1
+else
+   assert  1  0
+endif
+ifthen 1 eq 2 and 3 le 4
+   assert  1  0
+else
+   assert  1  1
+endif
+ifthen 1 ge 2 and 3 le 4
+   assert  1  0
+else
+   assert  1  1
+endif
+ifthen 1 gt 2 and 3 le 4
+   assert  1  0
+else
+   assert  1  1
+endif
+ifthen 1 ne 2 and 3 le 4
+   assert  1  1
+else
+   assert  1  0
+endif
+
+ifthen 1 lt 2 and 3 eq 4
+   assert  1  0
+else
+   assert  1  1
+endif
+ifthen 1 le 2 and 3 eq 4
+   assert  1  0
+else
+   assert  1  1
+endif
+ifthen 1 eq 2 and 3 eq 4
+   assert  1  0
+else
+   assert  1  1
+endif
+ifthen 1 ge 2 and 3 eq 4
+   assert  1  0
+else
+   assert  1  1
+endif
+ifthen 1 gt 2 and 3 eq 4
+   assert  1  0
+else
+   assert  1  1
+endif
+ifthen 1 ne 2 and 3 eq 4
+   assert  1  0
+else
+   assert  1  1
+endif
+
+ifthen 1 lt 2 and 3 ge 4
+   assert  1  0
+else
+   assert  1  1
+endif
+ifthen 1 le 2 and 3 ge 4
+   assert  1  0
+else
+   assert  1  1
+endif
+ifthen 1 eq 2 and 3 ge 4
+   assert  1  0
+else
+   assert  1  1
+endif
+ifthen 1 ge 2 and 3 ge 4
+   assert  1  0
+else
+   assert  1  1
+endif
+ifthen 1 gt 2 and 3 ge 4
+   assert  1  0
+else
+   assert  1  1
+endif
+ifthen 1 ne 2 and 3 ge 4
+   assert  1  0
+else
+   assert  1  1
+endif
+
+ifthen 1 lt 2 and 3 gt 4
+   assert  1  0
+else
+   assert  1  1
+endif
+ifthen 1 le 2 and 3 gt 4
+   assert  1  0
+else
+   assert  1  1
+endif
+ifthen 1 eq 2 and 3 gt 4
+   assert  1  0
+else
+   assert  1  1
+endif
+ifthen 1 ge 2 and 3 gt 4
+   assert  1  0
+else
+   assert  1  1
+endif
+ifthen 1 gt 2 and 3 gt 4
+   assert  1  0
+else
+   assert  1  1
+endif
+ifthen 1 ne 2 and 3 gt 4
+   assert  1  0
+else
+   assert  1  1
+endif
+
+ifthen 1 lt 2 and 3 ne 4
+   assert  1  1
+else
+   assert  1  0
+endif
+ifthen 1 le 2 and 3 ne 4
+   assert  1  1
+else
+   assert  1  0
+endif
+ifthen 1 eq 2 and 3 ne 4
+   assert  1  0
+else
+   assert  1  1
+endif
+ifthen 1 ge 2 and 3 ne 4
+   assert  1  0
+else
+   assert  1  1
+endif
+ifthen 1 gt 2 and 3 ne 4
+   assert  1  0
+else
+   assert  1  1
+endif
+ifthen 1 ne 2 and 3 ne 4
+   assert  1  1
+else
+   assert  1  0
+endif
+
+ifthen 1 lt 2 or  3 lt 4
+   assert  1  1
+else
+   assert  1  0
+endif
+ifthen 1 le 2 or  3 lt 4
+   assert  1  1
+else
+   assert  1  0
+endif
+ifthen 1 eq 2 or  3 lt 4
+   assert  1  1
+else
+   assert  1  0
+endif
+ifthen 1 ge 2 or  3 lt 4
+   assert  1  1
+else
+   assert  1  0
+endif
+ifthen 1 gt 2 or  3 lt 4
+   assert  1  1
+else
+   assert  1  0
+endif
+ifthen 1 ne 2 or  3 lt 4
+   assert  1  1
+else
+   assert  1  0
+endif
+
+ifthen 1 lt 2 or  3 le 4
+   assert  1  1
+else
+   assert  1  0
+endif
+ifthen 1 le 2 or  3 le 4
+   assert  1  1
+else
+   assert  1  0
+endif
+ifthen 1 eq 2 or  3 le 4
+   assert  1  1
+else
+   assert  1  0
+endif
+ifthen 1 ge 2 or  3 le 4
+   assert  1  1
+else
+   assert  1  0
+endif
+ifthen 1 gt 2 or  3 le 4
+   assert  1  1
+else
+   assert  1  0
+endif
+ifthen 1 ne 2 or  3 le 4
+   assert  1  1
+else
+   assert  1  0
+endif
+
+ifthen 1 lt 2 or  3 eq 4
+   assert  1  1
+else
+   assert  1  0
+endif
+ifthen 1 le 2 or  3 eq 4
+   assert  1  1
+else
+   assert  1  0
+endif
+ifthen 1 eq 2 or  3 eq 4
+   assert  1  0
+else
+   assert  1  1
+endif
+ifthen 1 ge 2 or  3 eq 4
+   assert  1  0
+else
+   assert  1  1
+endif
+ifthen 1 gt 2 or  3 eq 4
+   assert  1  0
+else
+   assert  1  1
+endif
+ifthen 1 ne 2 or  3 eq 4
+   assert  1  1
+else
+   assert  1  0
+endif
+
+ifthen 1 lt 2 or  3 ge 4
+   assert  1  1
+else
+   assert  1  0
+endif
+ifthen 1 le 2 or  3 ge 4
+   assert  1  1
+else
+   assert  1  0
+endif
+ifthen 1 eq 2 or  3 ge 4
+   assert  1  0
+else
+   assert  1  1
+endif
+ifthen 1 ge 2 or  3 ge 4
+   assert  1  0
+else
+   assert  1  1
+endif
+ifthen 1 gt 2 or  3 ge 4
+   assert  1  0
+else
+   assert  1  1
+endif
+ifthen 1 ne 2 or  3 ge 4
+   assert  1  1
+else
+   assert  1  0
+endif
+
+ifthen 1 lt 2 or  3 gt 4
+   assert  1  1
+else
+   assert  1  0
+endif
+ifthen 1 le 2 or  3 gt 4
+   assert  1  1
+else
+   assert  1  0
+endif
+ifthen 1 eq 2 or  3 gt 4
+   assert  1  0
+else
+   assert  1  1
+endif
+ifthen 1 ge 2 or  3 gt 4
+   assert  1  0
+else
+   assert  1  1
+endif
+ifthen 1 gt 2 or  3 gt 4
+   assert  1  0
+else
+   assert  1  1
+endif
+ifthen 1 ne 2 or  3 gt 4
+   assert  1  1
+else
+   assert  1  0
+endif
+
+ifthen 1 lt 2 or  3 ne 4
+   assert  1  1
+else
+   assert  1  0
+endif
+ifthen 1 le 2 or  3 ne 4
+   assert  1  1
+else
+   assert  1  0
+endif
+ifthen 1 eq 2 or  3 ne 4
+   assert  1  1
+else
+   assert  1  0
+endif
+ifthen 1 ge 2 or  3 ne 4
+   assert  1  1
+else
+   assert  1  0
+endif
+ifthen 1 gt 2 or  3 ne 4
+   assert  1  1
+else
+   assert  1  0
+endif
+ifthen 1 ne 2 or  3 ne 4
+   assert  1  1
+else
+   assert  1  0
+endif
+
+# check elseif structures
+ifthen 1 ne 1
+   assert  1  0
+elseif 1 lt 2
+   assert  1  1
+else
+   assert  1  0
+endif
+ifthen 1 ne 1
+   assert  1  0
+elseif 1 le 2
+   assert  1  1
+else
+   assert  1  0
+endif
+ifthen 1 ne 1
+   assert  1  0
+elseif 1 eq 2
+   assert  1  0
+else
+   assert  1  1
+endif
+ifthen 1 ne 1
+   assert  1  0
+elseif 1 ge 2
+   assert  1  0
+else
+   assert  1  1
+endif
+ifthen 1 ne 1
+   assert  1  0
+elseif 1 gt 2
+   assert  1  0
+else
+   assert  1  1
+endif
+ifthen 1 ne 1
+   assert  1  0
+elseif 1 ne 2
+   assert  1  1
+else
+   assert  1  0
+endif
+
+ifthen 1 ne 1
+   assert  1  0
+elseif 1 lt 2 and 3 lt 4
+   assert  1  1
+else
+   assert  1  0
+endif
+ifthen 1 ne 1
+   assert  1  0
+elseif 1 le 2 and 3 lt 4
+   assert  1  1
+else
+   assert  1  0
+endif
+ifthen 1 ne 1
+   assert  1  0
+elseif 1 eq 2 and 3 lt 4
+   assert  1  0
+else
+   assert  1  1
+endif
+ifthen 1 ne 1
+   assert  1  0
+elseif 1 ge 2 and 3 lt 4
+   assert  1  0
+else
+   assert  1  1
+endif
+ifthen 1 ne 1
+   assert  1  0
+elseif 1 gt 2 and 3 lt 4
+   assert  1  0
+else
+   assert  1  1
+endif
+ifthen 1 ne 1
+   assert  1  0
+elseif 1 ne 2 and 3 lt 4
+   assert  1  1
+else
+   assert  1  0
+endif
+
+ifthen 1 ne 1
+   assert  1  0
+elseif 1 lt 2 and 3 le 4
+   assert  1  1
+else
+   assert  1  0
+endif
+ifthen 1 ne 1
+   assert  1  0
+elseif 1 le 2 and 3 le 4
+   assert  1  1
+else
+   assert  1  0
+endif
+ifthen 1 ne 1
+   assert  1  0
+elseif 1 eq 2 and 3 le 4
+   assert  1  0
+else
+   assert  1  1
+endif
+ifthen 1 ne 1
+   assert  1  0
+elseif 1 ge 2 and 3 le 4
+   assert  1  0
+else
+   assert  1  1
+endif
+ifthen 1 ne 1
+   assert  1  0
+elseif 1 gt 2 and 3 le 4
+   assert  1  0
+else
+   assert  1  1
+endif
+ifthen 1 ne 1
+   assert  1  0
+elseif 1 ne 2 and 3 le 4
+   assert  1  1
+else
+   assert  1  0
+endif
+
+ifthen 1 ne 1
+   assert  1  0
+elseif 1 lt 2 and 3 eq 4
+   assert  1  0
+else
+   assert  1  1
+endif
+ifthen 1 ne 1
+   assert  1  0
+elseif 1 le 2 and 3 eq 4
+   assert  1  0
+else
+   assert  1  1
+endif
+ifthen 1 ne 1
+   assert  1  0
+elseif 1 eq 2 and 3 eq 4
+   assert  1  0
+else
+   assert  1  1
+endif
+ifthen 1 ne 1
+   assert  1  0
+elseif 1 ge 2 and 3 eq 4
+   assert  1  0
+else
+   assert  1  1
+endif
+ifthen 1 ne 1
+   assert  1  0
+elseif 1 gt 2 and 3 eq 4
+   assert  1  0
+else
+   assert  1  1
+endif
+ifthen 1 ne 1
+   assert  1  0
+elseif 1 ne 2 and 3 eq 4
+   assert  1  0
+else
+   assert  1  1
+endif
+
+ifthen 1 ne 1
+   assert  1  0
+elseif 1 lt 2 and 3 ge 4
+   assert  1  0
+else
+   assert  1  1
+endif
+ifthen 1 ne 1
+   assert  1  0
+elseif 1 le 2 and 3 ge 4
+   assert  1  0
+else
+   assert  1  1
+endif
+ifthen 1 ne 1
+   assert  1  0
+elseif 1 eq 2 and 3 ge 4
+   assert  1  0
+else
+   assert  1  1
+endif
+ifthen 1 ne 1
+   assert  1  0
+elseif 1 ge 2 and 3 ge 4
+   assert  1  0
+else
+   assert  1  1
+endif
+ifthen 1 ne 1
+   assert  1  0
+elseif 1 gt 2 and 3 ge 4
+   assert  1  0
+else
+   assert  1  1
+endif
+ifthen 1 ne 1
+   assert  1  0
+elseif 1 ne 2 and 3 ge 4
+   assert  1  0
+else
+   assert  1  1
+endif
+
+ifthen 1 ne 1
+   assert  1  0
+elseif 1 lt 2 and 3 gt 4
+   assert  1  0
+else
+   assert  1  1
+endif
+ifthen 1 ne 1
+   assert  1  0
+elseif 1 le 2 and 3 gt 4
+   assert  1  0
+else
+   assert  1  1
+endif
+ifthen 1 ne 1
+   assert  1  0
+elseif 1 eq 2 and 3 gt 4
+   assert  1  0
+else
+   assert  1  1
+endif
+ifthen 1 ne 1
+   assert  1  0
+elseif 1 ge 2 and 3 gt 4
+   assert  1  0
+else
+   assert  1  1
+endif
+ifthen 1 ne 1
+   assert  1  0
+elseif 1 gt 2 and 3 gt 4
+   assert  1  0
+else
+   assert  1  1
+endif
+ifthen 1 ne 1
+   assert  1  0
+elseif 1 ne 2 and 3 gt 4
+   assert  1  0
+else
+   assert  1  1
+endif
+
+ifthen 1 ne 1
+   assert  1  0
+elseif 1 lt 2 and 3 ne 4
+   assert  1  1
+else
+   assert  1  0
+endif
+ifthen 1 ne 1
+   assert  1  0
+elseif 1 le 2 and 3 ne 4
+   assert  1  1
+else
+   assert  1  0
+endif
+ifthen 1 ne 1
+   assert  1  0
+elseif 1 eq 2 and 3 ne 4
+   assert  1  0
+else
+   assert  1  1
+endif
+ifthen 1 ne 1
+   assert  1  0
+elseif 1 ge 2 and 3 ne 4
+   assert  1  0
+else
+   assert  1  1
+endif
+ifthen 1 ne 1
+   assert  1  0
+elseif 1 gt 2 and 3 ne 4
+   assert  1  0
+else
+   assert  1  1
+endif
+ifthen 1 ne 1
+   assert  1  0
+elseif 1 ne 2 and 3 ne 4
+   assert  1  1
+else
+   assert  1  0
+endif
+
+ifthen 1 ne 1
+   assert  1  0
+elseif 1 lt 2 or  3 lt 4
+   assert  1  1
+else
+   assert  1  0
+endif
+ifthen 1 ne 1
+   assert  1  0
+elseif 1 le 2 or  3 lt 4
+   assert  1  1
+else
+   assert  1  0
+endif
+ifthen 1 ne 1
+   assert  1  0
+elseif 1 eq 2 or  3 lt 4
+   assert  1  1
+else
+   assert  1  0
+endif
+ifthen 1 ne 1
+   assert  1  0
+elseif 1 ge 2 or  3 lt 4
+   assert  1  1
+else
+   assert  1  0
+endif
+ifthen 1 ne 1
+   assert  1  0
+elseif 1 gt 2 or  3 lt 4
+   assert  1  1
+else
+   assert  1  0
+endif
+ifthen 1 ne 1
+   assert  1  0
+elseif 1 ne 2 or  3 lt 4
+   assert  1  1
+else
+   assert  1  0
+endif
+
+ifthen 1 ne 1
+   assert  1  0
+elseif 1 lt 2 or  3 le 4
+   assert  1  1
+else
+   assert  1  0
+endif
+ifthen 1 ne 1
+   assert  1  0
+elseif 1 le 2 or  3 le 4
+   assert  1  1
+else
+   assert  1  0
+endif
+ifthen 1 ne 1
+   assert  1  0
+elseif 1 eq 2 or  3 le 4
+   assert  1  1
+else
+   assert  1  0
+endif
+ifthen 1 ne 1
+   assert  1  0
+elseif 1 ge 2 or  3 le 4
+   assert  1  1
+else
+   assert  1  0
+endif
+ifthen 1 ne 1
+   assert  1  0
+elseif 1 gt 2 or  3 le 4
+   assert  1  1
+else
+   assert  1  0
+endif
+ifthen 1 ne 1
+   assert  1  0
+elseif 1 ne 2 or  3 le 4
+   assert  1  1
+else
+   assert  1  0
+endif
+
+ifthen 1 ne 1
+   assert  1  0
+elseif 1 lt 2 or  3 eq 4
+   assert  1  1
+else
+   assert  1  0
+endif
+ifthen 1 ne 1
+   assert  1  0
+elseif 1 le 2 or  3 eq 4
+   assert  1  1
+else
+   assert  1  0
+endif
+ifthen 1 ne 1
+   assert  1  0
+elseif 1 eq 2 or  3 eq 4
+   assert  1  0
+else
+   assert  1  1
+endif
+ifthen 1 ne 1
+   assert  1  0
+elseif 1 ge 2 or  3 eq 4
+   assert  1  0
+else
+   assert  1  1
+endif
+ifthen 1 ne 1
+   assert  1  0
+elseif 1 gt 2 or  3 eq 4
+   assert  1  0
+else
+   assert  1  1
+endif
+ifthen 1 ne 1
+   assert  1  0
+elseif 1 ne 2 or  3 eq 4
+   assert  1  1
+else
+   assert  1  0
+endif
+
+ifthen 1 ne 1
+   assert  1  0
+elseif 1 lt 2 or  3 ge 4
+   assert  1  1
+else
+   assert  1  0
+endif
+ifthen 1 ne 1
+   assert  1  0
+elseif 1 le 2 or  3 ge 4
+   assert  1  1
+else
+   assert  1  0
+endif
+ifthen 1 ne 1
+   assert  1  0
+elseif 1 eq 2 or  3 ge 4
+   assert  1  0
+else
+   assert  1  1
+endif
+ifthen 1 ne 1
+   assert  1  0
+elseif 1 ge 2 or  3 ge 4
+   assert  1  0
+else
+   assert  1  1
+endif
+ifthen 1 ne 1
+   assert  1  0
+elseif 1 gt 2 or  3 ge 4
+   assert  1  0
+else
+   assert  1  1
+endif
+ifthen 1 ne 1
+   assert  1  0
+elseif 1 ne 2 or  3 ge 4
+   assert  1  1
+else
+   assert  1  0
+endif
+
+ifthen 1 ne 1
+   assert  1  0
+elseif 1 lt 2 or  3 gt 4
+   assert  1  1
+else
+   assert  1  0
+endif
+ifthen 1 ne 1
+   assert  1  0
+elseif 1 le 2 or  3 gt 4
+   assert  1  1
+else
+   assert  1  0
+endif
+ifthen 1 ne 1
+   assert  1  0
+elseif 1 eq 2 or  3 gt 4
+   assert  1  0
+else
+   assert  1  1
+endif
+ifthen 1 ne 1
+   assert  1  0
+elseif 1 ge 2 or  3 gt 4
+   assert  1  0
+else
+   assert  1  1
+endif
+ifthen 1 ne 1
+   assert  1  0
+elseif 1 gt 2 or  3 gt 4
+   assert  1  0
+else
+   assert  1  1
+endif
+ifthen 1 ne 1
+   assert  1  0
+elseif 1 ne 2 or  3 gt 4
+   assert  1  1
+else
+   assert  1  0
+endif
+
+ifthen 1 ne 1
+   assert  1  0
+elseif 1 lt 2 or  3 ne 4
+   assert  1  1
+else
+   assert  1  0
+endif
+ifthen 1 ne 1
+   assert  1  0
+elseif 1 le 2 or  3 ne 4
+   assert  1  1
+else
+   assert  1  0
+endif
+ifthen 1 ne 1
+   assert  1  0
+elseif 1 eq 2 or  3 ne 4
+   assert  1  1
+else
+   assert  1  0
+endif
+ifthen 1 ne 1
+   assert  1  0
+elseif 1 ge 2 or  3 ne 4
+   assert  1  1
+else
+   assert  1  0
+endif
+ifthen 1 ne 1
+   assert  1  0
+elseif 1 gt 2 or  3 ne 4
+   assert  1  1
+else
+   assert  1  0
+endif
+ifthen 1 ne 1
+   assert  1  0
+elseif 1 ne 2 or  3 ne 4
+   assert  1  1
+else
+   assert  1  0
+endif
+
+# check lazy evaluatuions in ifthen/elseif (prints errors)
+ifthen ifnan(aNaN,1,0)+1 eq 0+1 and aNaN+1 gt 0+1
+   assert  1  0
+elseif ifnan(bNaN,1,0)+1 eq 0+1 and bNaN+1 gt 0+1
+   assert  1  0
+else
+   assert  1  1
+endif
+
+ifthen ifnan(aNaN,1,0)+1 eq 1+1 or aNaN+1 gt 0+1
+   assert  1  1
+else
+   assert  1  0
+endif
+
+ifthen 0 eq 1
+   assert  1  0
+elseif ifnan(bNaN,1,0)+1 eq 1+1 or bNaN+1 gt 0+1
+   assert  1  1
+else
+   assert  1  0
+endif
+
+# check complex ifthen/elseif structures
+ifthen 0 eq 2
+   assert  1  0
+elseif 1 eq 2
+   assert  1  0
+else
+   assert  1  1
+endif
+ifthen 0 eq 2
+   assert  1  0
+elseif 1 eq 2
+   assert  1  0
+elseif 2 eq 2
+   assert  1  1
+elseif 3 eq 2
+   assert  1  0
+else
+   assert  1  0
+endif
+
+# check nesting of ifthen
+ifthen 0 eq 1
+   ifthen 1 eq 1
+      assert  1  0
+   else
+      assert  1  0
+      ifthen 1 eq 1
+         assert  1  0
+      endif
+   endif
+elseif 0 eq 1
+   ifthen 1 eq 1
+      assert  1  0
+   else
+      assert  1  0
+      ifthen 1 eq 1
+         assert  1  0
+      endif
+   endif
+elseif 0 eq 1
+   ifthen 1 eq 1
+      assert  1  0
+   else
+      assert  1  0
+      ifthen 1 eq 1
+         assert  1  0
+      endif
+   endif
+else
+   ifthen 1 eq 1
+      assert  1  1
+   else
+      assert  1  0
+      ifthen 1 eq 1
+         assert  1  0
+      endif
+   endif
+endif
+
+# check arguments into and out of .udc
+dimension yyy 2 3 1
+dimension zzz 3 2
+
+despmtr   xxx  123
+despmtr   yyy  "11; 22; 33;\
+                44; 55; 66;"
+set       zzz  "111; 222;\
+                333; 444;\
+                555; 666;"
+
+assert    xxx.nrow       1
+assert    xxx.ncol       1
+assert    xxx.size       1
+assert    yyy.nrow       2
+assert    yyy.ncol       3
+assert    yyy.size       6
+assert    zzz.nrow       3
+assert    zzz.ncol       2
+assert    zzz.size       6
+assert    ifnan(xx,1,0)  1
+assert    ifnan(yy,1,0)  1
+assert    ifnan(zz,1,0)  1
+
+udparg    $/expressions  xx  xxx
+udparg    $/expressions  yy  yyy
+udparg    $/expressions  zz  zzz
+udprim    $/expressions
+
+assert    xxx.nrow       1
+assert    xxx.ncol       1
+assert    xxx.size       1
+assert    yyy.nrow       2
+assert    yyy.ncol       3
+assert    yyy.size       6
+assert    zzz.nrow       3
+assert    zzz.ncol       2
+assert    zzz.size       6
+assert    ifnan(xx,1,0)  1
+assert    ifnan(yy,1,0)  1
+assert    ifnan(zz,1,0)  1
+
+assert    @@aa           66
+assert    @@bb           666
+
+udparg    $/expressions  xx  xxx\
+                         yy  yyy\
+                         zz  zzz
+udprim    $/expressions
+
+assert    xxx.nrow       1
+assert    xxx.ncol       1
+assert    xxx.size       1
+assert    yyy.nrow       2
+assert    yyy.ncol       3
+assert    yyy.size       6
+assert    zzz.nrow       3
+assert    zzz.ncol       2
+assert    zzz.size       6
+assert    ifnan(xx,1,0)  1
+assert    ifnan(yy,1,0)  1
+assert    ifnan(zz,1,0)  1
+
+assert    @@aa           66
+assert    @@bb           666
+
+udparg    $/expressions  xx  xxx\
+                         yy  yyy
+udprim    $/expressions  zz  zzz
+
+assert    xxx.nrow       1
+assert    xxx.ncol       1
+assert    xxx.size       1
+assert    yyy.nrow       2
+assert    yyy.ncol       3
+assert    yyy.size       6
+assert    zzz.nrow       3
+assert    zzz.ncol       2
+assert    zzz.size       6
+assert    ifnan(xx,1,0)  1
+assert    ifnan(yy,1,0)  1
+assert    ifnan(zz,1,0)  1
+
+assert    @@aa           66
+assert    @@bb           666
+
+udprim    $$/expressions xx  xxx\
+                         yy  yyy\
+                         zz  zzz
+
+assert    xxx.nrow       1
+assert    xxx.ncol       1
+assert    xxx.size       1
+assert    yyy.nrow       2
+assert    yyy.ncol       3
+assert    yyy.size       6
+assert    yyy.size       6
+assert    zzz.nrow       3
+assert    zzz.ncol       2
+assert    zzz.size       6
+assert    ifnan(xx,1,0)  1
+assert    ifnan(yy,1,0)  1
+assert    ifnan(zz,1,0)  1
+
+assert    @@aa           11
+assert    @@bb           111
+
+# check solver
+despmtr   W    3.5
+despmtr   H    5.0
+
+set       xa   1.0
+set       ya   1.0
+set       xb   4.6
+set       yb   1.0
+set       xc   4.5
+set       yc   3.2
+set       xd   3.5
+set       yd   3.0
+set       xe   3.4
+set       ye   6.0
+set       xf   1.2
+set       yf   6.0
+
+solbeg    xb;yb;xc;yc;xd;yd;xe;ye;xf;yf;
+   solcon xb-xc
+   solcon yc-yd
+   solcon xd-xe
+   solcon ye-yf
+   solcon hypot(yb-ya,xb-xa)-W
+   solcon hypot(yf-ya,xf-xa)-H
+   solcon hypot(ye-yd,xe-xd)-3
+   solcon hypot(yc-yd,xc-xd)-1
+   solcon (xe-xf)*(xa-xf)+(ye-yf)*(ya-yf)
+   solcon (xc-xb)*(xa-xb)+(yc-yb)*(ya-yb)
+solend
+
+assert    xa            1.0
+assert    ya            1.0
+assert    xb            4.5
+assert    yb            1.0
+assert    xc            4.5
+assert    yc            3.0
+assert    xd            3.5
+assert    yd            3.0
+assert    xe            3.5
+assert    ye            6.0
+assert    xf            1.0
+assert    yf            6.0
+
+# check throw/catbeg/catend
+throw     1
+assert    0  1      # should be skipped
+
+catbeg    1
+   assert 1  1
+catend
+catbeg    2
+   assert 0  1      # should be skipped
+catend
+
+cylinder  0  0  0  0  0  0  0
+assert    0  1      # should be skipped
+
+catbeg    $illegal_value
+   assert 1  1
+catend
+
+assert    1  1
+
+end

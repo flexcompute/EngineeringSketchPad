@@ -1,0 +1,36 @@
+# ganged7i
+# written by John Dannenhoffer
+
+BOX       0  0  0  6  4  1
+
+CYLINDER  0  1 -1  0  1  2  0.5
+STORE     cyl
+
+# these should get ganged
+RESTORE   cyl
+TRANSLATE 1  0  0
+UNION
+
+RESTORE   cyl
+TRANSLATE 3  0  0
+UNION
+
+RESTORE   cyl
+TRANSLATE 5  0  0
+UNION
+
+# these should get ganged
+RESTORE   cyl
+TRANSLATE 1  2  0
+SUBTRACT
+
+RESTORE   cyl
+TRANSLATE 3  2  0
+SUBTRACT
+
+RESTORE   cyl
+TRANSLATE 5  2  0
+SUBTRACT
+
+END
+

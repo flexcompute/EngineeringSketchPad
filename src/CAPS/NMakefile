@@ -1,0 +1,62 @@
+#
+SDIR = $(MAKEDIR)
+IDIR = $(ESP_ROOT)\include
+LDIR = $(ESP_ROOT)\lib
+BDIR = $(ESP_ROOT)\bin
+
+
+default:	$(LDIR)\udunits2.dll $(LDIR)\libwinpthread-1.dll \
+		$(IDIR)\udunits2.h \
+		$(BDIR)\avl.exe $(BDIR)\pplot.exe $(BDIR)\pxplot.exe \
+		$(BDIR)\xfoil.exe $(BDIR)\ASTRO.D01 $(BDIR)\ASTRO.IDX \
+		$(BDIR)\mastros.exe 
+
+$(LDIR)\udunits2.dll:	udunits\$(ESP_ARCH)\udunits2.dll
+	cd $(LDIR)
+	xcopy $(SDIR)\udunits\$(ESP_ARCH)\* /Q /Y
+	cd $(SDIR)
+
+$(LDIR)\libwinpthread-1.dll:	Libraries\$(ESP_ARCH)\libwinpthread-1.dll
+	cd $(LDIR)
+	xcopy $(SDIR)\Libraries\$(ESP_ARCH)\*.dll /Q /Y
+	cd $(SDIR)
+
+$(IDIR)\udunits2.h:		udunits\include\udunits2.h
+	cd $(IDIR)
+	xcopy $(SDIR)\udunits\include\* /Q /Y
+	cd $(SDIR)
+
+$(BDIR)\avl.exe:	Executables\WIN32\avl.exe
+	cd $(BDIR)
+	xcopy $(SDIR)\Executables\WIN32\avl.exe /Q /Y
+	cd $(SDIR)
+
+$(BDIR)\pplot.exe:	Executables\WIN32\pplot.exe
+	cd $(BDIR)
+	xcopy $(SDIR)\Executables\WIN32\pplot.exe /Q /Y
+	cd $(SDIR)
+
+$(BDIR)\pxplot.exe:	Executables\WIN32\pxplot.exe
+	cd $(BDIR)
+	xcopy $(SDIR)\Executables\WIN32\pxplot.exe /Q /Y
+	cd $(SDIR)
+
+$(BDIR)\xfoil.exe:	Executables\WIN32\xfoil.exe
+	cd $(BDIR)
+	xcopy $(SDIR)\Executables\WIN32\xfoil.exe /Q /Y
+	cd $(SDIR)
+
+$(BDIR)\ASTRO.D01:	Executables\WIN32\ASTRO.D01
+	cd $(BDIR)
+	xcopy $(SDIR)\Executables\WIN32\ASTRO.D01 /Q /Y
+	cd $(SDIR)
+
+$(BDIR)\ASTRO.IDX:	Executables\WIN32\ASTRO.IDX
+	cd $(BDIR)
+	xcopy $(SDIR)\Executables\WIN32\ASTRO.IDX /Q /Y
+	cd $(SDIR)
+
+$(BDIR)\mastros.exe:	Executables\WIN32\mastros.exe
+	cd $(BDIR)
+	xcopy $(SDIR)\Executables\WIN32\mastros.exe /Q /Y
+	cd $(SDIR)

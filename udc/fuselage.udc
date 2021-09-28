@@ -1,0 +1,169 @@
+# fuselage with elliptical cross-sections
+# written by John Dannenhoffer
+
+interface ID        in  0
+interface intent    in  1
+interface xloc      in  0
+interface zloc      in  0
+interface width     in  0
+interface height    in  0
+interface noselist  in  0
+interface taillist  in  0
+
+set       numXsect  xloc.nrow
+
+# build fuselage beam Body (intent==1)
+ifthen intent eq 1
+   skbeg     xloc[1]  0  zloc[1]
+      patbeg jsect numXsect-1
+         set isect jsect+1
+         linseg   xloc[isect]  0  zloc[isect]
+      patend
+   skend
+   attribute ID       !ID
+   attribute Intent 1  # simple 1D model (aka, beam)
+endif
+
+# build fuselage fuseOML Body (intent==3 or 5)
+ifthen intent eq 3 or intent eq 55
+   mark
+
+   # sharp or rounded nose
+   set isect 1
+   ifthen width[isect] eq 0 and height[isect] eq 0
+      skbeg  xloc[isect] 0 zloc[isect]
+      skend
+
+   # blunt nose
+   else
+      udprim ellipse ry width[isect]/2 rz height[isect]/2
+      translate xloc[isect] 0 zloc[isect]
+   endif
+
+   # intermediate sections
+   patbeg jsect numXsect-2
+      set isect jsect+1
+
+      udprim ellipse ry width[isect]/2 rz height[isect]/2
+      translate xloc[isect] 0 zloc[isect]
+   patend
+
+   # sharp or rounded tail
+   set isect numXsect
+   ifthen width[isect] eq 0 and height[isect] eq 0
+      skbeg  xloc[isect] 0 zloc[isect]
+      skend
+
+   # blunt tail
+   else
+      udprim ellipse ry width[isect]/2 rz height[isect]/2
+      translate xloc[isect] 0 zloc[isect]
+   endif
+
+   # blend the sections into the Body
+   blend noselist taillist
+      attribute ID       !ID
+      attribute Intent 3  # 3D model (aka, fuseOML)
+
+   ifthen intent eq 55
+      store fuseOML
+   endif
+endif
+
+# build fuselage fuseIML Body (intent==5)
+ifthen intent eq 55
+   mark
+
+   set fact 0.90
+
+   # sharp or rounded nose
+   set isect 1
+   ifthen width[isect] eq 0 and height[isect] eq 0
+      skbeg  xloc[isect] 0 zloc[isect]
+      skend
+
+   # blunt nose
+   else
+      udprim ellipse ry width[isect]/2*fact rz height[isect]/2*fact
+      translate xloc[isect] 0 zloc[isect]
+   endif
+
+   # intermediate sections
+   patbeg jsect numXsect-2
+      set isect jsect+1
+
+      udprim ellipse ry width[isect]/2*fact rz height[isect]/2*fact
+      translate xloc[isect] 0 zloc[isect]
+   patend
+
+   # sharp or rounded tail
+   set isect numXsect
+   ifthen width[isect] eq 0 and height[isect] eq 0
+      skbeg  xloc[isect] 0 zloc[isect]
+      skend
+
+   # blunt tail
+   else
+      udprim ellipse ry width[isect]/2*fact rz height[isect]/2*fact
+      translate xloc[isect] 0 zloc[isect]
+   endif
+
+   # blend the sections into the Body
+   blend noselist taillist
+      attribute ID       !ID
+      attribute Intent 3  # 3D model (aka, fuseIML)
+
+   store fuseIML
+endif
+
+# build BEM model  (intent==5)
+ifthen intent eq 55
+   set nbulk 10
+   set xmin  xloc.min
+   set xmax  xloc.max
+   set zmin  zloc.min
+   set zmax  zloc.max
+   set wmax  width.max
+   set hmax  height.max
+
+   dimension waffle nbulk+1 4 0
+
+   # bulkheads
+   patbeg  i nbulk
+      set  waffle[i,2]      -2*wmax
+      set  waffle[i,1]      xmin+(xmax-xmin)*(i-0.5)/nbulk
+      set  waffle[i,4]      +2*wmax
+      set  waffle[i,3]      waffle[i,1]
+   patend
+
+   # keel
+      set  waffle[nbulk+1,1]   waffle[1,1]
+      set  waffle[nbulk+1,2]   0
+      set  waffle[nbulk+1,3]   waffle[nbulk,1]
+      set  waffle[nbulk+1,4]   0
+
+   udprim  waffle   Depth  2*(zmax-zmin+2*hmax)   Segments  waffle
+      attribute name $fuse_structure
+   translate  0  0  -2*hmax
+   store      fuseWaffle
+
+   # keep part of fuseWaffle inside fuseOML
+   restore   fuseWaffle
+   restore   fuseOML
+   intersect
+
+   # keep part of waffle outside fuseIML
+   restore   fuseIML
+   subtract
+
+   # break the fuseOML with the fuseWaffle and extract the shell
+   restore   fuseOML
+   restore   fuseWaffle
+   subtract
+   extract   0
+
+   # sew the two SheetBodies together
+   union     0  0  1e-5
+endif
+
+end

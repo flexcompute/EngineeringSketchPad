@@ -1,0 +1,21 @@
+# scribe8
+# written by John Dannenhoffer
+
+# circle
+skbeg     1.0  0.0   0.2
+   cirarc 0.0  1.0   0.2  -1.0  0.0   0.2
+   cirarc 0.0 -1.0   0.2   1.0  0.0   0.2
+skend
+
+# plane
+skbeg     0.0  2.0  -1.0
+   linseg 0.0  2.0   1.0
+   linseg 0.0 -2.0   1.0
+   linseg 0.0 -2.0  -1.0
+   linseg 0.0  2.0  -1.0
+skend
+rotatez   30.  0.0   0.0
+
+subtract
+
+end

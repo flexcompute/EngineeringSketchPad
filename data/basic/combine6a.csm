@@ -1,0 +1,126 @@
+# combine6a
+# written by John Dannenhoffer
+
+mark
+   mark
+      skbeg     -1.0  -1.0   0.0
+         linseg +1.0  -1.0   0.0
+      skend
+      skbeg     +1.0  -1.0   0.0
+         linseg +1.0  +1.0   0.0
+      skend
+      skbeg     +1.0  +1.0   0.0
+         linseg -1.0  +1.0   0.0
+      skend
+      skbeg     -1.0  +1.0   0.0
+         linseg -1.0  -1.0   0.0
+      skend
+   combine
+
+   mark
+      skbeg     -1.0  -1.0   1.0
+         linseg +1.0  -1.0   1.0
+      skend
+      skbeg     +1.0  -1.0   1.0
+         linseg +1.0  +1.0   1.0
+      skend
+      skbeg     +1.0  +1.0   1.0
+         linseg -1.0  +1.0   1.0
+      skend
+      skbeg     -1.0  -1.0   1.0
+         linseg -1.0  +1.0   1.0
+      skend
+   combine
+
+   mark
+      skbeg     -1.0  -1.0   2.0
+         linseg +1.0  -1.0   2.0
+      skend
+      skbeg     +1.0  -1.0   2.0
+         linseg +1.0  +1.0   2.0
+      skend
+      skbeg     -1.0  +1.0   2.0
+         linseg +1.0  +1.0   2.0
+      skend
+      skbeg     -1.0  +1.0   2.0
+         linseg -1.0  -1.0   2.0
+      skend
+   combine
+
+   mark
+      skbeg     -1.0  -1.0   3.0
+         linseg +1.0  -1.0   3.0
+      skend
+      skbeg     +1.0  -1.0   3.0
+         linseg +1.0  +1.0   3.0
+      skend
+      skbeg     -1.0  +1.0   3.0
+         linseg +1.0  +1.0   3.0
+      skend
+      skbeg     -1.0  -1.0   3.0
+         linseg -1.0  +1.0   3.0
+      skend
+   combine
+
+   mark
+      skbeg     -1.0  -1.0   4.0
+         linseg +1.0  -1.0   4.0
+      skend
+      skbeg     +1.0  +1.0   4.0
+         linseg +1.0  -1.0   4.0
+      skend
+      skbeg     +1.0  +1.0   4.0
+         linseg -1.0  +1.0   4.0
+      skend
+      skbeg     -1.0  +1.0   4.0
+         linseg -1.0  -1.0   4.0
+      skend
+   combine
+
+   mark
+      skbeg     -1.0  -1.0   5.0
+         linseg +1.0  -1.0   5.0
+      skend
+      skbeg     +1.0  +1.0   5.0
+         linseg +1.0  -1.0   5.0
+      skend
+      skbeg     +1.0  +1.0   5.0
+         linseg -1.0  +1.0   5.0
+      skend
+      skbeg     -1.0  -1.0   5.0
+         linseg -1.0  +1.0   5.0
+      skend
+   combine
+
+   mark
+      skbeg     -1.0  -1.0   6.0
+         linseg +1.0  -1.0   6.0
+      skend
+      skbeg     +1.0  +1.0   6.0
+         linseg +1.0  -1.0   6.0
+      skend
+      skbeg     -1.0  +1.0   6.0
+         linseg +1.0  +1.0   6.0
+      skend
+      skbeg     -1.0  +1.0   6.0
+         linseg -1.0  -1.0   6.0
+      skend
+   combine
+
+   mark
+      skbeg     -1.0  -1.0   7.0
+         linseg +1.0  -1.0   7.0
+      skend
+      skbeg     +1.0  +1.0   7.0
+         linseg +1.0  -1.0   7.0
+      skend
+      skbeg     -1.0  +1.0   7.0
+         linseg +1.0  +1.0   7.0
+      skend
+      skbeg     -1.0  -1.0   7.0
+         linseg -1.0  +1.0   7.0
+      skend
+   combine
+rule
+
+end

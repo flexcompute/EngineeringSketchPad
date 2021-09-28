@@ -1,0 +1,9 @@
+# udcTest2c
+# written by John Dannenhoffer
+
+interface array in   0
+interface sum   out  1
+
+set       sum  array.sum
+
+# end left off purposely

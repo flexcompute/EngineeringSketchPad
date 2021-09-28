@@ -1,0 +1,82 @@
+#======================================#
+# automatically generated verification #
+# OpenCSM  1.19      OpenCASCADE 7.4.1 #
+#======================================#
+select    body 24
+   assert         3      @itype       0  1
+   assert         8      @nnode       0  1
+   assert        12      @nedge       0  1
+   assert         6      @nface       0  1
+   assert   8.0000000e+00  @volume  -.001  1
+   assert   2.4000000e+01  @area    -.001  1
+   assert   1.0000000e+00  @xcg      2.0000000e-03  1
+   assert   0.0000000e+00  @ycg     0.001  1
+   assert   1.4142136e+00  @zcg      2.8284271e-03  1
+
+select    body 25
+   assert         3      @itype       0  1
+   assert         8      @nnode       0  1
+   assert        12      @nedge       0  1
+   assert         6      @nface       0  1
+   assert   8.0000000e+00  @volume  -.001  1
+   assert   2.4000000e+01  @area    -.001  1
+   assert   3.0000000e+00  @xcg      2.0000000e-03  1
+   assert   1.4142136e+00  @ycg      2.8284271e-03  1
+   assert   2.8284271e+00  @zcg      2.8284271e-03  1
+
+select    body 26
+   assert         3      @itype       0  1
+   assert         8      @nnode       0  1
+   assert        12      @nedge       0  1
+   assert         6      @nface       0  1
+   assert   8.0000000e+00  @volume  -.001  1
+   assert   2.4000000e+01  @area    -.001  1
+   assert   5.0000000e+00  @xcg      2.0000000e-03  1
+   assert   2.8284271e+00  @ycg      2.8284271e-03  1
+   assert   4.2426407e+00  @zcg      2.8284271e-03  1
+
+select    body 27
+   assert         3      @itype       0  1
+   assert         8      @nnode       0  1
+   assert        12      @nedge       0  1
+   assert         6      @nface       0  1
+   assert   8.0000000e+00  @volume  -.001  1
+   assert   2.4000000e+01  @area    -.001  1
+   assert   7.0000000e+00  @xcg      2.0000000e-03  1
+   assert   4.2426407e+00  @ycg      2.8284271e-03  1
+   assert   5.6568542e+00  @zcg      2.8284271e-03  1
+
+select    body 28
+   assert         3      @itype       0  1
+   assert         8      @nnode       0  1
+   assert        12      @nedge       0  1
+   assert         6      @nface       0  1
+   assert   8.0000000e+00  @volume  -.001  1
+   assert   2.4000000e+01  @area    -.001  1
+   assert   9.0000000e+00  @xcg      2.0000000e-03  1
+   assert   2.8284271e+00  @ycg      2.8284271e-03  1
+   assert   4.2426407e+00  @zcg      2.8284271e-03  1
+
+select    body 29
+   assert         3      @itype       0  1
+   assert         8      @nnode       0  1
+   assert        12      @nedge       0  1
+   assert         6      @nface       0  1
+   assert   8.0000000e+00  @volume  -.001  1
+   assert   2.4000000e+01  @area    -.001  1
+   assert   1.1000000e+01  @xcg      2.0000000e-03  1
+   assert   1.4142136e+00  @ycg      2.8284271e-03  1
+   assert   2.8284271e+00  @zcg      2.8284271e-03  1
+
+select    body 30
+   assert         3      @itype       0  1
+   assert         8      @nnode       0  1
+   assert        12      @nedge       0  1
+   assert         6      @nface       0  1
+   assert   8.0000000e+00  @volume  -.001  1
+   assert   2.4000000e+01  @area    -.001  1
+   assert   1.3000000e+01  @xcg      2.0000000e-03  1
+   assert   0.0000000e+00  @ycg     0.001  1
+   assert   1.4142136e+00  @zcg      2.8284271e-03  1
+
+end

@@ -1,0 +1,33 @@
+# despmtr3
+# written by John Dannenhoffer
+
+SET       temp3    10
+
+DESPMTR   dx1       4
+LBOUND    dx1       0
+UBOUND    dx1      10
+
+DESPMTR   dy1       2
+LBOUND    dy1       0
+UBOUND    dy1      10
+
+DESPMTR   dz1       3
+LBOUND    dz1       0
+UBOUND    dz1      10
+
+DESPMTR   rad       3
+
+BOX       0 -3  0   dx1 dy1 dz1
+ATTRIBUTE _color $red
+
+# this function-type UDC cannot include DESPMTR, LBOUND, or UBOUND statements
+UDPRIM    $/despmtr3b
+TRANSLATE -3 -2  1
+
+# this include-type UDC includes DESPMTR, LBOUND, and UBOUND statments
+UDPRIM    $/despmtr3a
+
+BOX       5 -3  0   dx2 dy2 dz2
+ATTRIBUTE _color $magenta
+
+END

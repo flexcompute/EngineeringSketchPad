@@ -1,0 +1,81 @@
+# frustrum1
+# written by John Dannenhoffer
+
+DESPMTR   rbeg      2.0
+DESPMTR   rend      1.0
+DESPMTR   height    3.0
+DESPMTR   toler     0.01
+
+DIMENSION urange    1 2
+DIMENSION vrange    1 2
+SET       urange    0;1
+SET       vrange    0;pi(2)
+
+# try increasingly finer fits until tolerance is met
+SET       nu        2
+SET       nv        2
+PATBEG    itry      8
+   SET    nu        2*nu-1
+   SET    nv        2*nv-1
+   
+   # get an array to hold coordinates
+   DIMENSION xyz       nu*nv   3
+
+   # put points in array
+   SET       ipnt 1
+   PATBEG    iv  nv
+      SET v  vrange[1]+(vrange[2]-vrange[1])*(iv-1)/(nv-1)
+      PATBEG iu  nu
+         SET u   urange[1]+(urange[2]-urange[1])*(iu-1)/(nu-1)
+      
+         SET xyz[ipnt,1]  (rbeg+(rend-rbeg)*u)*cos(v)
+         SET xyz[ipnt,2]  (rbeg+(rend-rbeg)*u)*sin(v)
+         SET xyz[ipnt,3]  height*u
+
+         SET ipnt  ipnt+1
+      PATEND
+   PATEND
+
+   # generate frustrum
+   UDPARG    freeform  imax  nu
+   UDPARG    freeform  jmax  nv
+   UDPARG    freeform  kmax  1
+   UDPRIM    freeform  xyz   xyz
+
+   # compute rms error
+   EVALUATE  facerng @nbody 1
+   SET       umin    @edata[1]
+   SET       umax    @edata[2]
+   SET       vmin    @edata[3]
+   SET       vmax    @edata[4]
+
+   SET       errrms  0
+   PATBEG    j  3*nv+1
+      PATBEG i  3*nu+1
+         SET      u      umin+(umax-umin)*(i-1)/(3*nu)
+         SET      v      vmin+(vmax-vmin)*(j-1)/(3*nv)
+         EVALUATE face   @nbody 1 u v
+         SET      u      urange[1]+(urange[2]-urange[1])*(i-1)/(3*nu)
+         SET      v      vrange[1]+(vrange[2]-vrange[1])*(j-1)/(3*nv)
+         SET      err    hypot3(@edata[3]-(rbeg+(rend-rbeg)*u)*cos(v),@edata[4]-(rbeg+(rend-rbeg)*u)*sin(v),@edata[5]-height*u)
+         SET      errrms errrms+err*err
+      PATEND     
+   PATEND
+   SET         errrms sqrt(errrms/(3*nu+1)/(3*nv+1))
+
+   MESSAGE   !$nu____=_+val2str(nu,0)
+   MESSAGE   !$nv____=_+val2str(nv,0)
+   MESSAGE   !$errrms_=_+val2str(errrms,4)
+
+   # break out if tolerance was met
+   PATBREAK  toler-errrms
+
+   # remove Body of tolerance not met
+   STORE     .
+PATEND
+
+MESSAGE   !$nu____=_+val2str(nu,0)
+MESSAGE   !$nv____=_+val2str(nv,0)
+MESSAGE   !$errrms_=_+val2str(errrms,4)
+
+END

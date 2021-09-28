@@ -1,0 +1,22 @@
+# frustrum2
+# written by John Dannenhoffer
+
+DESPMTR   rbeg      2.0
+DESPMTR   rend      1.0
+DESPMTR   height    3.0
+CFGPMTR   toler     0.01
+
+# set up the inputs for eqn2body.udc
+DIMENSION urange    1 2
+DIMENSION vrange    1 2
+SET       urange    0;1
+SET       vrange    0;pi(2)
+
+SET       xeqn      $(rbeg'+(rend-rbeg')*u')*cos(v')
+SET       yeqn      $(rbeg'+(rend-rbeg')*u')*sin(v')
+SET       zeqn      $height*u
+
+# call the include-type UDC
+UDPRIM    $/eqn2body
+
+END

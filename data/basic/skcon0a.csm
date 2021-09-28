@@ -1,0 +1,13 @@
+# skcon0a
+# written by John Dannenhoffer
+
+despmtr   xbase     0.1
+despmtr   ybase     0.2
+despmtr   zbase     0.3
+despmtr   width     2.0
+despmtr   height    1.0
+
+skbeg     xbase  ybase  zbase
+skend
+
+end

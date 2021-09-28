@@ -1,0 +1,83 @@
+# csystem4
+# written by John Dannenhoffer
+
+set nerror 0
+
+box    -1  -1  -1  2  2  2
+
+   # 9 entries (not attached to box)
+   csystem offBody1 "1.5;0.5;0;  1;0;0; 1;1;1"
+   csystem offBody2 "1.5;-.5;0;  1;1;1; 1;0;0"
+
+   # 5 entries (attached to Face 6)
+   csystem onFace6 "+6; 0.5;0.5; 1;1"
+
+   # 5 entries (attached to Edge 6)
+   csystem onEdge6 "-6; 0.5; 1;1;1"
+
+   # 7 entries (attached to Node 7)
+   csystem atNode7 "7; 1;1;1; 1;1;0"
+
+rotatez 45 0 0
+
+# test for error trapping
+
+set nerror 0
+
+box    -1  -1  -1  2  2  2
+   csystem error1 "2;0;0; 0;0;0; 2;0;0"
+catbeg $illegal_csystem
+   set nerror nerror+1
+catend
+
+box    -1  -1  -1  2  2  2
+   csystem error2 "2;0;0; 1;0;0; 0;0;0"
+catbeg $illegal_csystem
+   set nerror nerror+1
+catend
+
+box    -1  -1  -1  2  2  2
+   csystem error3 "2;0;0; 1;0;0; 2;0;0"
+catbeg $illegal_csystem
+   set nerror nerror+1
+catend
+
+box    -1  -1  -1  2  2  2
+   csystem error4  "+6; 0.5;0.5; 0;0"
+catbeg $illegal_csystem
+   set nerror nerror+1
+catend
+
+box    -1  -1  -1  2  2  2
+   csystem error5  "-6; 0.5; 0;0;0"
+catbeg $illegal_csystem
+   set nerror nerror+1
+catend
+
+box    -1  -1  -1  2  2  2
+   csystem error6  "-6; 0.5; 0;1;0"
+catbeg $illegal_csystem
+   set nerror nerror+1
+catend
+
+box    -1  -1  -1  2  2  2
+   csystem error7  "7; 0;0;0; 0;1;0"
+catbeg $illegal_csystem
+   set nerror nerror+1
+catend
+
+box    -1  -1  -1  2  2  2
+   csystem error8  "7; 1;0;0; 0;0;0"
+catbeg $illegal_csystem
+   set nerror nerror+1
+catend
+
+box    -1  -1  -1  2  2  2
+   csystem error9  "7; 1;0;0; 2;0;0"
+catbeg $illegal_csystem
+   set nerror nerror+1
+catend
+
+assert  nerror 9
+
+end

@@ -1,0 +1,59 @@
+# connect5
+# written by John Dannenhoffer
+
+# outer body
+skbeg     0.0   0.0   -.1
+   linseg 1.0   0.0   -.1
+   linseg 1.0   1.0   -.1
+   linseg 2.0   1.0   -.1
+   linseg 2.0   0.0   -.1
+   linseg 3.0   0.0   -.1
+   linseg 3.0   2.0   -.1
+   linseg 0.0   2.0   -.1
+   linseg 0.0   0.0   -.1
+skend
+skbeg     0.0   0.0   -.1
+   linseg 0.0   0.0   +.1
+skend
+sweep
+
+dimension faceList1 1 3 0
+project   1.1   0.4   0.0   -1  0  0
+set       faceList1[1,1] @iface
+project   1.5   0.9   0.0    0 +1  0
+set       faceList1[1,2] @iface
+project   1.9   0.4   0.0   +1  0  0
+set       faceList1[1,3] @iface
+
+# inner body
+mark
+   skbeg     1.2   0.0   -.2
+      linseg 1.8   0.0   -.2
+   skend
+   skbeg     1.8   0.0   -.2
+      linseg 1.8   0.8   -.2
+   skend
+   skbeg     1.8   0.8   -.2
+      linseg 1.2   0.8   -.2
+   skend
+   skbeg     1.2   0.8   -.2
+      linseg 1.2   0.0   -.2
+   skend
+combine
+skbeg     1.2   0.0   -.2
+   linseg 1.2   0.0   +.2
+skend
+sweep
+
+dimension faceList2 1 3 0
+project   1.1   0.4   0.0   +1  0  0
+set       faceList2[1,1] @iface
+project   1.5   0.9   0.0    0 -1  0
+set       faceList2[1,2] @iface
+project   1.9   0.4   0.0   -1  0  0
+set       faceList2[1,3] @iface
+
+# set up for and execute the connect
+connect   faceList1 faceList2
+
+end

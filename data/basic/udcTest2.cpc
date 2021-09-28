@@ -1,0 +1,80 @@
+# udcTest2.cpt (expanded by hand from udctest2.csm + .udc files)
+# written by John Dannenhoffer
+
+dimension aa        2 3 1
+dimension bb        3 2
+
+despmtr   aa        "11; 12; 13;\
+                     21; 22; 23;"
+set       bb        "101; 102;\
+                     201; 202;\
+                     301; 302;"
+
+udparg    $/udcTest2a   in1  aa
+udparg    $/udcTest2a   in2  bb
+udprim    $/udcTest2a
+   # udcTest2a
+   # written by John Dannenhoffer
+
+   interface in1   in   0
+   interface in2   in   0
+   interface in3   in   0
+   interface sum1  out  0
+   interface sum2  out  0
+   interface sum3  out  0
+
+   udprim    $/udcTest2b  array in1
+      # udcTest2b
+      # written by John Dannenhoffer
+
+      interface array in   0
+      interface sum   out  1
+
+      set       sum  0
+      patbeg    irow  array.nrow
+         patbeg    icol  array.ncol
+            set       sum  sum+array[irow,icol]
+         patend
+      patend
+
+   end # udcTest2b
+   set       sum1 @@sum
+
+   udprim    $/udcTest2c  array in2
+      # udcTest2c
+      # written by John Dannenhoffer
+
+      interface array in   0
+      interface sum   out  1
+
+      set       sum  array.sum
+
+   end # udctest2c
+   set       sum2 @@sum
+
+   udprim    $/udcTest2b  array in3
+      # udcTest2b
+      # written by John Dannenhoffer
+
+      interface array in   0
+      interface sum   out  1
+
+      set       sum  0
+      patbeg    irow  array.nrow
+         patbeg    icol  array.ncol
+            set       sum  sum+array[irow,icol]
+         patend
+      patend
+
+   end # udctest2b
+   set       sum3 @@sum
+
+   box       -1 -1 -1  2  2  2
+
+end # endTest2a
+
+assert    @@sum1        102
+assert    @@sum2        1209
+assert    @@sum3        0
+
+end

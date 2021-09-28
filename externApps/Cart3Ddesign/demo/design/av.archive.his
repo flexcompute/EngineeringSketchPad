@@ -1,0 +1,15 @@
+# Analysis variable history collected by:
+#   /Users/haimes/Projects/Cart3D/Cart3D/bin/designHistory.pl
+#
+# Thu Jul 28 10:41:41 2016
+#
+# (1)Iteration  (2)Optimize__DesignPoint__DP1__Analysis__Drag  (3)Optimize__DesignPoint__DP1__Analysis__Lift  (4)Optimize__DesignPoint__DP1__Analysis__LiftDrag
+  0   2.2431377356e-02   2.9775276553e-01   5.2206653909e-02
+  2   2.1921660986e-02   3.0523444484e-01   5.2445105470e-02
+  4   2.1957325629e-02   3.1119590451e-01   5.3076916080e-02
+  5   1.7648904504e-02   3.3525378588e-01   5.1174283092e-02
+  6   1.4626945524e-02   3.3094495860e-01   4.7721441384e-02
+  7   1.6332539535e-02   3.3790118325e-01   5.0122657860e-02
+  8   1.7672879022e-02   3.5658244263e-01   5.3331123285e-02
+  9   1.7003152696e-02   3.5236121154e-01   5.2239273850e-02
+ 11   1.6937846851e-02   3.5196278795e-01   5.2134125646e-02

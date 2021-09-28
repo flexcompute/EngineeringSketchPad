@@ -1,0 +1,31 @@
+# panel2
+# written by John Dannenhoffer
+
+despmtr   ipanel    1         # panel number
+despmtr   nstiff    2         # number of stiffeners
+despmtr   depth    -0.01      # stiffener depth
+despmtr   angle     45.0      # angle at end of stiffener
+
+# import the panel
+import    !$unstiffened_+ipanel+$.egads
+store     unstiffened 0 1
+
+# create the stiffeners
+evaluate  face    @nbody 1 0.5 0.5
+evaluate  facerng @nbody 1
+set       umin    @edata[1]
+set       umax    @edata[2]
+set       vmin    @edata[3]
+set       vmax    @edata[4]
+
+patbeg    istiff nstiff
+   restore  unstiffened
+   set      u  umin+istiff/(nstiff+1)*(umax-umin)
+   udprim   stiffener  beg u;vmin  end u;vmax  depth depth  angle angle
+   union
+patend
+
+# dump the stiffened panel
+dump      !$stiffened_+ipanel+$.egads
+
+end

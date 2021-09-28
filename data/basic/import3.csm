@@ -1,0 +1,11 @@
+# import3
+# written by John Dannenhoffer
+
+udprim  import  filename  $$/sew.stp  BodyNumber  1  
+set     nbodies @@numbodies
+
+patbeg  jbody  nbodies-1
+   udprim  import  filename  $$/sew.stp  BodyNumber  jbody+1
+patend
+
+end

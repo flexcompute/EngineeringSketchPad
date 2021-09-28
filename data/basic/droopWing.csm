@@ -1,0 +1,13 @@
+# droopWing
+# written by John Dannenhffer
+
+mark
+   patbeg  isect  21
+      udprim  naca  thickness  0.12
+      udprim  droop   xle  0.15   thetale  +25*sind(18*(isect-1)) \
+                      xte  0.30   thetate  -10*sind(54*(isect-1))
+      translate       0  0  (isect-11)/4
+   patend
+blend
+
+end

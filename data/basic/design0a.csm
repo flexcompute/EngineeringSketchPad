@@ -1,0 +1,26 @@
+# design0a
+# written by John Dannenhoffer
+
+despmtr   x1        0.0
+despmtr   x2        1.0
+despmtr   x3        1.5
+despmtr   x4        2.0
+despmtr   x5        3.0
+
+despmtr   y1        0.0
+despmtr   y2        0.5
+despmtr   y3        1.0
+despmtr   y4        1.5
+despmtr   y5        2.0
+
+despmtr   z1        0.0
+despmtr   z2        1.0
+despmtr   z3        2.0
+
+box       x1   y1   z1   x3-x1   y4-y1   z2-z1
+box       x3   y1   z1   x5-x3   y5-y1   z2-z1
+union
+box       x2   y2   z2   x4-x2   y3-y2   z3-z2
+union
+
+end

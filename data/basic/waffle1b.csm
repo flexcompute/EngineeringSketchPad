@@ -1,0 +1,18 @@
+# waffle1b
+# written by John Dannenhoffer
+
+udprim waffle   filename << Depth 2
+   point  A   AT  1     1
+   point  B   AT  x@A+4 y@A
+   point  C   AT  x@B   y@B+4
+   point  D   AT  x@C+4 y@C
+   point  E   AT  x@C   y@C+3
+
+   line   .   A  C  myName=lineAC
+   line   .   B  D  myName=lineBD
+   line   .   C  D  myName=lineCD
+   line   .   C  E  myName=lineCE
+   line   .   D  E  myName=lineDE
+>>
+
+end

@@ -1,0 +1,42 @@
+# sketch9a
+# written by John Dannenhoffer
+
+DESPMTR   length    4.00000
+DESPMTR   height    3.00000
+DESPMTR   gap       2.00000
+
+SKBEG     0   0   0   1
+   SKVAR     xy   "0.000000; 0.000000; 0.000000;\
+                   3.325000; 0.000000; 0.000000;\
+                   3.585000; 1.865000; 0.000000;\
+                   2.735000; 2.095000; 0.000000;\
+                   0.825000; 1.865000;-0.711805;\
+                   0.000000; 1.995000; 0.000000;"
+   SKCON     X   1   -1  0
+   SKCON     Y   1   -1  0
+   SKCON     H   1   2  0
+   SKCON     V   6   1  0
+   SKCON     P   3   -1  0
+   SKCON     L   1   2  length
+   SKCON     L   6   1  height
+   SKCON     D   6   3  0
+   SKCON     L   5   6  (length-gap)/2
+   SKCON     L   3   4  (length-gap)/2
+   SKCON     A   2   -1  90
+   SKCON     I   5   6  180
+   LINSEG    ::x[2]   ::y[2]   0
+   LINSEG    ::x[3]   ::y[3]   0
+   LINSEG    ::x[4]   ::y[4]   0
+   ARC       ::x[5]   ::y[5]   0   ::d[5]   xy
+   LINSEG    ::x[6]   ::y[6]   0
+   LINSEG    ::x[1]   ::y[1]   0
+SKEND     0
+
+# make sure we get $underconstrained
+SET       error 0
+CATBEG    $all
+   SET    error @signal
+CATEND
+ASSERT    error -274
+
+END

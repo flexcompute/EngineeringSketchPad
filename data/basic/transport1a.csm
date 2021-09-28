@@ -1,0 +1,326 @@
+# transport1a
+# derived from OPAM1/baseline (for GMGW2)
+# written by John Dannenhoffer
+
+# design paramaters (inspired by B787-800)
+
+# wing
+DESPMTR   wing:area        4240    # area
+DESPMTR   wing:aspect      9.00    # aspect ratio
+DESPMTR   wing:taperi      0.48    # inboard  taper ratio
+DESPMTR   wing:tapero      0.23    # outboard taper ratio
+DESPMTR   wing:sweep       35.0    # leading edge sweep
+DESPMTR   wing:dihedral     7.0    # dihedral
+DESPMTR   wing:break       0.37    # inboard/outboard
+DESPMTR   wing:alphar      -3.0    # setting angle   at root
+DESPMTR   wing:thickr      0.15    # thickness ratio at root
+DESPMTR   wing:camberr     0.04    # camber    ratio at root
+DESPMTR   wing:alphab      -3.0    # setting angle   at break
+DESPMTR   wing:thickb      0.15    # thickness ratio at break
+DESPMTR   wing:camberb     0.04    # camber    ratio at break
+DESPMTR   wing:alphat      -8.0    # setting angle   at tip
+DESPMTR   wing:thickt      0.08    # thickness ratio at tip
+DESPMTR   wing:cambert     0.04    # camber    ratio at tip
+DESPMTR   wing:xroot       54.0    # xloc at root LE
+DESPMTR   wing:zroot       -5.0    # zloc at root LE
+
+# fuselage
+DESPMTR   fuse:noseRad      2.5    # nose radius
+DESPMTR   fuse:fwdLength     28    # length of forward fuselage
+DESPMTR   fuse:noseHeight    -2    # zloc of center of nose
+
+DESPMTR   fuse:midLength    115    # length of mid fuselage
+DESPMTR   fuse:midWidth      20    # width  of mid fuselage
+DESPMTR   fuse:midHeight     20    # height of mid fuselage
+DESPMTR   fuse:power          3    # super-ellipse power of mid and aft fuselage
+
+DESPMTR   fuse:aftLength     44    # length of aft fuselage
+DESPMTR   fuse:aftWidth       1    # width  of aft fuselage
+DESPMTR   fuse:aftHeight      3    # height of aft fuselage
+DESPMTR   fuse:aftCenter    8.5    # zloc   of aft fuselage
+
+# pod
+DESPMTR   pod:yb           0.50    # semispan location of pod
+DESPMTR   pod:dxnose      -15.0    # x offset of nose from wing leading edge
+DESPMTR   pod:dznose       -5.0    # z offset of nose from wing leading edge
+DESPMTR   pod:length      25.00    # length of pod
+DESPMTR   pod:thick        0.25    # thickness ratio
+
+# pylon
+DESPMTR   pylon:dxwing     1.00    # x offset from leading edge of wing
+DESPMTR   pylon:dxpod      1.00    # x offset from leading edge of pod
+DESPMTR   pylon:length     9.50    # length of pylon
+DESPMTR   pylon:thick      0.10    # thickness ratio of pylon
+
+# vertical tail
+DESPMTR   vtail:area        610    # vtail area
+DESPMTR   vtail:aspect     1.80    # vtail aspect ratio
+DESPMTR   vtail:taper      0.28    # vtail taper ratio
+DESPMTR   vtail:sweep        45    # vtail sweep
+DESPMTR   vtail:thick      0.08    # vtail thickness
+DESPMTR   vtail:xroot       150    # xloc of root LE
+DESPMTR   vtail:zroot         9    # zloc of root LE
+
+# horizontal tail
+DESPMTR   htail:area        610    # htail area
+DESPMTR   htail:aspect     1.80    # htail aspect ratio
+DESPMTR   htail:taper      0.28    # htail taper ratio
+DESPMTR   htail:sweep        40    # htail sweep
+DESPMTR   htail:dihedral     12    # htail dihedral
+DESPMTR   htail:thick      0.08    # htail thickness
+DESPMTR   htail:xroot       145    # xloc of root LE
+DESPMTR   htail:zroot         5    # zloc of root LE
+
+# constant parameter to tell if NACA airfoils should have sharp trailing edges
+CONPMTR   SHARP_TE            0    # set to 0 for standard defn, 1 for sharp TEs
+
+# compute wing critical locations / dimensions
+SET       wing:yroot     0
+SET       wing:ytip      -sqrt(wing:aspect*wing:area)/2
+SET       ybreak         wing:ytip*wing:break
+SET       wing:xtip      wing:xroot-wing:ytip*tand(wing:sweep)
+SET       xbreak         wing:xroot-ybreak*tand(wing:sweep)
+SET       wing:ztip      wing:zroot-wing:ytip*tand(wing:dihedral)
+SET       zbreak         wing:zroot-ybreak*tand(wing:dihedral)
+SET       chordr         wing:area/((wing:yroot-ybreak)*(wing:taperi+1)+(ybreak-wing:ytip)*wing:taperi*(wing:tapero+1))
+SET       chordb         chordr*wing:taperi
+SET       chordt         chordb*wing:tapero
+
+# lay out left wing
+MARK
+    UDPRIM    naca      camber  wing:camberr   thickness  wing:thickr   sharpte  SHARP_TE
+    SCALE     chordr
+    ROTATEX   90  0  0
+    ROTATEY   wing:alphar  0  0
+    TRANSLATE wing:xroot   wing:yroot   wing:zroot
+
+    UDPRIM    naca      camber  wing:camberb   thickness  wing:thickb   sharpte  SHARP_TE
+    SCALE     chordb
+    ROTATEX   90  0  0
+    ROTATEY   wing:alphab  0  0
+    TRANSLATE xbreak       ybreak    zbreak
+
+    UDPRIM    naca      camber  wing:cambert   thickness  wing:thickt   sharpte  SHARP_TE
+    SCALE     chordt
+    ROTATEX   90  0  0
+    ROTATEY   wing:alphat  0  0
+    TRANSLATE wing:xtip    wing:ytip   wing:ztip
+RULE
+    ATTRIBUTE name  $leftWing
+
+# right wing too
+STORE     foo
+RESTORE   foo
+RESTORE   foo
+    ATTRIBUTE name  $riteWing
+MIRROR    0  1  0
+JOIN
+
+# compute fuselage critical locations / dimensions
+SET       fuse:Length  fuse:fwdLength+fuse:midLength+fuse:aftLength
+
+SET       x1             fuse:noseRad
+SET       z1             fuse:noseHeight
+SET       r1             fuse:noseRad
+SET       x2             fuse:fwdLength/2
+SET       z2             fuse:noseHeight/2
+SET       r2             (fuse:midHeight+fuse:midWidth)/8+fuse:noseRad
+
+SET       L              hypot(x2-x1,z2-z1)
+
+SET       x3             x2-r2/L*(z2-z1)
+SET       z3             z2+r2/L*(x2-x1)
+SET       x5             x2+r2/L*(z2-z1)
+SET       z5             z2-r2/L*(x2-x1)
+
+SET       D              hypot(x3-x1,z3-z1)
+
+SET       phi            atan2(z3-z1,x3-x1)+pi(0.5)-asin(r1/D)
+SET       x4             x1+r1*cos(phi)      # upper tangency
+SET       z4             z1+r1*sin(phi)
+
+SET       phi            atan2(z5-z1,x5-x1)-pi(0.5)+asin(r1/D)
+SET       x6             x1+r1*cos(phi)      # lower tangency
+SET       z6             z1+r1*sin(phi)
+
+# build fuselage nose
+SPHERE    x1  0  z1  r1
+    ATTRIBUTE name  $nose
+ROTATEX   90  0  z1
+
+# trim nose to part that is exposed
+SKBEG     x6      -2*r1  z6      -2*r1
+   LINSEG x4      -2*r1  z4      -2*r1
+   LINSEG x4-2*r1 -2*r1  z4      -2*r1
+   LINSEG x6      -2*r1  z6-2*r1 -2*r1
+   LINSEG x6      -2*r1  z6      -2*r1
+SKEND
+EXTRUDE   0        4*r1  0          4*r1
+SET       cutter   @nbody
+INTERSECT
+STORE     nose
+
+# split edges at top and bottom of nose
+RESTORE   nose
+BOX       x1-2*r1  0  z1-2*r1  4*r1  0  4*r1
+INTERSECT
+
+SELECT    NODE
+SELECT    SORT     $zcg
+SET       topNode  @sellist[3]
+SET       botNode  @sellist[1]
+SELECT    NODE     topNode
+SET       xtop     @xcg
+SET       ytop     @ycg
+SET       ztop     @zcg
+SELECT    NODE     botNode
+SET       xbot     @xcg
+SET       ybot     @ycg
+SET       zbot     @zcg
+STORE     .
+
+RESTORE   nose
+POINT     xtop   ytop   ztop
+SUBTRACT
+POINT     xbot   ybot   zbot
+SUBTRACT
+
+STORE     nose
+
+# build rest of fuselage
+MARK
+    # extract back of nose
+    RESTORE   nose
+    SELECT    face    cutter  6
+    EXTRACT   @iface
+
+    # forward break
+    UDPRIM    supell    rx  r2   ry  r2   n  2
+    ROTATEY   90-atan2(z2-z1,x2-x1)*180/pi(1) 0 0
+    TRANSLATE x2  0  z2
+
+    # mid section
+    UDPRIM    supell  rx  fuse:midHeight/2   ry  fuse:midWidth/2   n  fuse:power
+    ROTATEY   90 0 0
+    TRANSLATE fuse:fwdLength  0  0
+
+    UDPRIM    supell  rx  fuse:midHeight/2   ry  fuse:midWidth/2   n  fuse:power
+    ROTATEY   90 0 0
+    TRANSLATE fuse:fwdLength+fuse:midLength 0 0
+
+    # tail section
+    UDPRIM    supell  rx  fuse:aftHeight/2   ry  fuse:aftWidth/2   n  fuse:power
+    ROTATEY   90 0 0
+    TRANSLATE fuse:Length 0 fuse:aftCenter
+RULE  1
+    ATTRIBUTE name  $fuselage
+
+# join nose to rest of fuselage
+RESTORE   nose
+UNION     0   0   -1e-5
+UNION
+
+# compute vertical tail critical locations / dimensions
+SET       semispan       sqrt(vtail:area*vtail:aspect)
+SET       chordr         2*vtail:area/semispan/(1+vtail:taper)
+SET       chordt         chordr*vtail:taper
+SET       vtail:xtip     vtail:xroot+semispan*tand(vtail:sweep)
+SET       vtail:ztip     vtail:zroot+semispan
+
+# lay out vertical tail
+MARK
+    UDPRIM    naca    thickness  vtail:thick   sharpte  SHARP_TE
+    SCALE     chordr
+    TRANSLATE vtail:xroot   0   vtail:zroot
+
+    UDPRIM    naca    thickness  vtail:thick   sharpte  SHARP_TE
+    SCALE     chordt
+    TRANSLATE vtail:xtip    0   vtail:ztip
+RULE
+    ATTRIBUTE name  $vtail
+UNION
+
+# compute horizontal tail critical locations / dimensions
+SET       span           sqrt(htail:area*htail:aspect)
+SET       chordr         2*htail:area/span/(1+htail:taper)
+SET       chordt         chordr*htail:taper
+SET       htail:xtip     htail:xroot+span*tand(htail:sweep)
+SET       htail:ytip     -span
+SET       htail:ztip     htail:zroot+span*tand(htail:dihedral)
+
+# lay out left horizontal tail
+MARK
+    UDPRIM    naca   thickness  htail:thick   sharpte  SHARP_TE
+    ROTATEX   90     0  0
+    SCALE     chordr
+    TRANSLATE htail:xroot  0  htail:zroot
+
+    UDPRIM    naca   thickness  htail:thick   sharpte  SHARP_TE
+    ROTATEX   90     0  0
+    SCALE     chordt
+    TRANSLATE htail:xtip   htail:ytip  htail:ztip
+RULE
+    ATTRIBUTE name  $leftHtail
+
+# right htail too
+STORE     foo
+RESTORE   foo
+RESTORE   foo
+    ATTRIBUTE name  $riteHtail
+MIRROR    0  1  0
+JOIN
+UNION
+
+# compute pod and pylon critical locations / dimensions
+SET       yle            pod:yb*wing:ytip
+SET       xle            wing:xroot-yle*tand(wing:sweep)
+SET       zle            wing:zroot-yle*tand(wing:dihedral)
+
+SET       ypod           yle
+SET       xpod           xle+pod:dxnose
+SET       zpod           zle+pod:dznose
+
+SET       x1             xle+pylon:dxwing
+SET       x2             xpod+pylon:dxpod
+
+# (optionally) add pylons to wings
+ifthen    pylon:length GT 0
+    UDPRIM    naca     thickness  pylon:thick   sharpte  SHARP_TE
+    SCALE     pylon:length
+    TRANSLATE xpod+pylon:dxpod  ypod  zpod
+    EXTRUDE   2*(x1-x2) 0        2*(zle-zpod)
+        ATTRIBUTE name  $leftPylon
+    STORE     pylon
+    RESTORE   pylon
+    UNION     0        "x2+pylon:length/2; ypod; zpod+0.1; 0; 0; 1"
+
+    RESTORE   pylon
+        ATTRIBUTE name  $ritePylon
+    MIRROR    0  1  0
+    UNION     0        "x2+pylon:length/2; -ypod; zpod+0.1; 0; 0; 1"
+endif
+
+# (optionally) add pods to pylons
+ifthen    pylon:length GT 0  AND  pod:length GT 0
+    SET       podrad  pod:length*pod:thick/2
+    SPHERE    podrad  0  0  podrad
+    CYLINDER  podrad  0  0      pod:length-4*podrad  0  0  podrad
+    UNION
+    CONE      pod:length  0  0  pod:length-4*podrad  0  0  podrad
+    UNION
+    TRANSLATE xpod      ypod      zpod
+    STORE     pod
+    RESTORE   pod
+        ATTRIBUTE name  $leftPod
+    UNION
+
+    RESTORE   pod
+        ATTRIBUTE name  $ritePod
+    MIRROR    0  1  0
+    UNION
+endif
+
+# write out a .stp file for the assembled aircraft
+DUMP      transport1.stp
+
+end

@@ -1,0 +1,23 @@
+# design8b
+# written by John Dannenhoffer
+
+# default design parameters
+despmtr   xbase     0
+despmtr   ybase     0
+despmtr   zbase     0
+despmtr   L         2
+despmtr   H         2
+despmtr   W         1
+despmtr   R         2
+
+set       t         R-sqrt(R^2-H^2/4)
+set       xcyl      xbase+L+(R-t)
+set       ycyl      ybase+H/2
+
+box       xbase  ybase  zbase  L+R  H  W
+cylinder  xcyl   ycyl   zbase-1  xcyl  ycyl  zbase+W+2  R
+rotatez   90     xcyl   ycyl
+
+subtract
+
+end

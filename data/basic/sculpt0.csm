@@ -1,0 +1,24 @@
+# sculpt0
+# written by John Dannenhoffer
+
+despmtr   diam  2
+
+# box and its wireframe
+box       -5  -1  -1   diam  diam  diam
+translate  0   0   0   # this only put Attributes on the Body (not Faces)
+   attribute _name      $box
+   attribute _wireframe -5;-5+diam;-1;-1+diam;-1;-1+diam
+
+# cylinder and its wireframe
+cylinder  -1   0   0   1   0   0   diam/2
+translate  0   0   0   # this only put Attributes on the Body (not Faces)
+   attribute _name      $cylinder
+   attribute _wireframe -1;1;-diam/2;diam/2;-diam/2;diam/2
+
+# sphere and its wireframe
+sphere     4   0   0   diam/2
+translate  0   0   0   # this only put Attributes on the Body (not Faces)
+   attribute _name      $sphere
+   attribute _wireframe 3;5;-diam/2;diam/2;-diam/2;diam/2
+
+end

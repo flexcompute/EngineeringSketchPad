@@ -1,0 +1,112 @@
+# connect9a
+# written by John Dannenhoffer
+
+# size of small "almost-degenerate" faux-chamfers
+CFGPMTR   EPS   0.00001
+
+# section with rounded corners
+MARK
+   SKBEG     -5.0  0.0    2.0
+      LINSEG -5.0  0.0   -2.0
+      LINSEG -5.0  1.0   -2.0
+      CIRARC -5.0  1.7   -1.7 -5.0  2.0  -1.0
+      LINSEG -5.0  2.0    1.0
+      CIRARC -5.0  1.7    1.7 -5.0  1.0   2.0
+      LINSEG -5.0  0.0    2.0
+   SKEND 1
+
+   SKBEG     -3.0  0.0    2.0
+      LINSEG -3.0  0.0   -2.0
+      LINSEG -3.0  1.0   -2.0
+      CIRARC -3.0  1.7   -1.7 -3.0  2.0  -1.0
+      LINSEG -3.0  2.0    1.0
+      CIRARC -3.0  1.7    1.7 -3.0  1.0   2.0
+      LINSEG -3.0  0.0    2.0
+   SKEND 1
+RULE
+
+SELECT    EDGE  0  0  @nbody  3  2
+SELECT    ADD   0  0  @nbody  4  2
+SELECT    ADD   0  0  @nbody  5  2
+SELECT    ADD   0  0  @nbody  6  2
+SELECT    ADD   0  0  @nbody  7  2
+SELECT    ADD   0  0  @nbody  8  2
+DIMENSION edgeList1   1  6
+SET       edgeList1   @sellist
+
+# section with very small faux-chamfers
+MARK
+   SKBEG     -1.0  0.0    2.0
+      LINSEG -1.0  0.0   -2.0
+      LINSEG -1.0  2-EPS -2.0
+      LINSEG -1.0  2.0   -2+EPS
+      LINSEG -1.0  2.0    2-EPS
+      LINSEG -1.0  2-EPS  2.0
+      LINSEG -1.0  0.0    2.0
+   SKEND 1
+
+   SKBEG      1.0  0.0    2.0
+      LINSEG  1.0  0.0   -2.0
+      LINSEG  1.0  2-EPS -2.0
+      LINSEG  1.0  2.0   -2+EPS
+      LINSEG  1.0  2.0    2-EPS
+      LINSEG  1.0  2-EPS  2.0
+      LINSEG  1.0  0.0    2.0
+   SKEND 1
+RULE
+
+SELECT    EDGE  0  0  @nbody  3  1
+SELECT    ADD   0  0  @nbody  4  1
+SELECT    ADD   0  0  @nbody  5  1
+SELECT    ADD   0  0  @nbody  6  1
+SELECT    ADD   0  0  @nbody  7  1
+SELECT    ADD   0  0  @nbody  8  1
+DIMENSION edgeList2   1  6
+SET       edgeList2   @sellist
+
+# make the 6-Edge to 6-Edge connection
+CONNECT   0   0   edgeList1   edgeList2
+
+SELECT    EDGE  0  0  @nbody-1  3  1
+SELECT    ADD   0  0  @nbody-1  4  1
+SELECT    ADD   0  0  @nbody-1  5  1
+SELECT    ADD   0  0  @nbody-1  6  1
+SELECT    ADD   0  0  @nbody-1  7  1
+SELECT    ADD   0  0  @nbody-1  8  1
+DIMENSION edgeList3   1  6
+SET       edgeList3   @sellist
+
+# chamfered section
+MARK
+   SKBEG      3.0  0.0    2.0
+      LINSEG  3.0  0.0   -2.0
+      LINSEG  3.0  1.0   -2.0
+      LINSEG  3.0  2.0   -1.0
+      LINSEG  3.0  2.0    1.0
+      LINSEG  3.0  1.0    2.0
+      LINSEG  3.0  0.0    2.0
+   SKEND 1
+
+   SKBEG      5.0  0.0    2.0
+      LINSEG  5.0  0.0   -2.0
+      LINSEG  5.0  1.0   -2.0
+      LINSEG  5.0  2.0   -1.0
+      LINSEG  5.0  2.0    1.0
+      LINSEG  5.0  1.0    2.0
+      LINSEG  5.0  0.0    2.0
+   SKEND 1
+RULE
+
+SELECT    EDGE  0  0  @nbody  3  1
+SELECT    ADD   0  0  @nbody  4  1
+SELECT    ADD   0  0  @nbody  5  1
+SELECT    ADD   0  0  @nbody  6  1
+SELECT    ADD   0  0  @nbody  7  1
+SELECT    ADD   0  0  @nbody  8  1
+DIMENSION edgeList4   1  6
+SET       edgeList4   @sellist
+
+# make the 6-Edge to 6-Edge connection
+CONNECT   0   0   edgeList3   edgeList4
+
+END

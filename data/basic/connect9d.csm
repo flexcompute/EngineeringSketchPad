@@ -1,0 +1,123 @@
+# connect9b
+# written by John Dannenhoffer
+
+# section with rounded corners
+MARK
+   SKBEG     -5.0  0.0    2.0
+      LINSEG -5.0  0.0   -2.0
+      LINSEG -5.0  1.0   -2.0
+      CIRARC -5.0  1.7   -1.7 -5.0  2.0  -1.0
+      LINSEG -5.0  2.0    1.0
+      CIRARC -5.0  1.7    1.7 -5.0  1.0   2.0
+      LINSEG -5.0  0.0    2.0
+   SKEND
+
+   SKBEG     -3.0  0.0    2.0
+      LINSEG -3.0  0.0   -2.0
+      LINSEG -3.0  1.0   -2.0
+      CIRARC -3.0  1.7   -1.7 -3.0  2.0  -1.0
+      LINSEG -3.0  2.0    1.0
+      CIRARC -3.0  1.7    1.7 -3.0  1.0   2.0
+      LINSEG -3.0  0.0    2.0
+   SKEND
+RULE
+
+SELECT    FACE  @nbody  2
+SET       faceList1        @sellist
+
+SELECT    EDGE  @nbody  2  @nbody  3
+SELECT    ADD   @nbody  2  @nbody  4
+SELECT    ADD   @nbody  2  @nbody  5
+SELECT    ADD   @nbody  2  @nbody  6
+SELECT    ADD   @nbody  2  @nbody  7
+SELECT    ADD   @nbody  2  @nbody  8
+DIMENSION edgeList1        1  6
+SET       edgeList1        @sellist
+
+# rectangular section
+MARK
+   SKBEG     -1.0  0.0    2.0
+      LINSEG -1.0  0.0   -2.0
+      LINSEG -1.0  2.0   -2.0
+      LINSEG -1.0  2.0    2.0
+      LINSEG -1.0  0.0    2.0
+   SKEND
+
+   SKBEG      1.0  0.0    2.0
+      LINSEG  1.0  0.0   -2.0
+      LINSEG  1.0  2.0   -2.0
+      LINSEG  1.0  2.0    2.0
+      LINSEG  1.0  0.0    2.0
+   SKEND
+RULE
+
+SELECT    FACE  @nbody  1
+SET       faceList2        @sellist
+
+SELECT    EDGE  @nbody  1  @nbody  3
+SELECT    ADD   @nbody  1  @nbody  4
+SELECT    ADD   @nbody  1  @nbody  5
+SELECT    ADD   @nbody  1  @nbody  6
+DIMENSION edgeList2        1  6
+SET       edgeList2[1]     @sellist[1]
+SET       edgeList2[2]     @sellist[2]
+SET       edgeList2[3]     0
+SET       edgeList2[4]     @sellist[3]
+SET       edgeList2[5]     0
+SET       edgeList2[6]     @sellist[4]
+
+# make the 6-Edge to 4-Edge connection
+CONNECT   faceList1   faceList2   edgeList1   edgeList2
+
+SELECT    FACE  @nbody-1  2
+SET       faceList3          @sellist
+
+SELECT    EDGE  @nbody-1  2  @nbody-1  3
+SELECT    ADD   @nbody-1  2  @nbody-1  4
+SELECT    ADD   @nbody-1  2  @nbody-1  5
+SELECT    ADD   @nbody-1  2  @nbody-1  6
+DIMENSION edgeList3       1  6
+SET       edgeList3[1]       @sellist[1]
+SET       edgeList3[2]       @sellist[2]
+SET       edgeList3[3]       0
+SET       edgeList3[4]       @sellist[3]
+SET       edgeList3[5]       0
+SET       edgeList3[6]       @sellist[4]
+
+# chamfered section
+MARK
+   SKBEG      3.0  0.0    2.0
+      LINSEG  3.0  0.0   -2.0
+      LINSEG  3.0  1.0   -2.0
+      LINSEG  3.0  2.0   -1.0
+      LINSEG  3.0  2.0    1.0
+      LINSEG  3.0  1.0    2.0
+      LINSEG  3.0  0.0    2.0
+   SKEND
+
+   SKBEG      5.0  0.0    2.0
+      LINSEG  5.0  0.0   -2.0
+      LINSEG  5.0  1.0   -2.0
+      LINSEG  5.0  2.0   -1.0
+      LINSEG  5.0  2.0    1.0
+      LINSEG  5.0  1.0    2.0
+      LINSEG  5.0  0.0    2.0
+   SKEND
+RULE
+
+SELECT    FACE  @nbody     1
+SET       faceList4        @sellist
+
+SELECT    EDGE  @nbody  1  @nbody  3
+SELECT    ADD   @nbody  1  @nbody  4   
+SELECT    ADD   @nbody  1  @nbody  5
+SELECT    ADD   @nbody  1  @nbody  6
+SELECT    ADD   @nbody  1  @nbody  7
+SELECT    ADD   @nbody  1  @nbody  8
+DIMENSION edgeList4        1  6
+SET       edgeList4        @sellist
+
+# make the 4-Edge to 6-Edge connection
+CONNECT   faceList3   faceList4   edgeList3   edgeList4
+
+END

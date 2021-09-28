@@ -1,0 +1,185 @@
+interface  MakeFuselage      in 0
+interface  num_pO            in 0
+interface  x_pO              in 0
+interface  y_pO              in 0
+interface  ymin_pO           in 0
+interface  zmin_pO           in 0
+interface  zmax_pO           in 0
+interface  Hollow_Inlets     in 0  
+
+# Right side inlet
+mark
+	skbeg       0.0  0.1 -0.70
+		linseg  0.0  0.9 -0.70
+		linseg  0.0  1.3  0.30
+		linseg  0.0  0.6  0.30
+		linseg  0.0  0.1 -0.70
+	skend
+    translate 0.0 -0.72 +0.211111
+    store inlet_sec_1
+    restore inlet_sec_1
+    translate 4.2 +0.72 -0.211111
+	 
+	skbeg       0.0  0.3 -0.80
+		linseg  0.0  1.1 -0.80
+		linseg  0.0  1.5  0.35
+		linseg  0.0  0.8  0.35
+		linseg  0.0  0.3 -0.80
+	skend
+    translate 0.0 -0.92 +0.237778
+    store inlet_sec_2
+
+    restore inlet_sec_2
+    translate 5.0 +0.92 -0.237778
+
+    restore inlet_sec_2
+    translate 8.5 +0.92 -0.237778
+
+    restore inlet_sec_2
+    translate 10.5 +0.92 -0.237778
+	 
+	patbeg i num_pO
+       skbeg       0.0  -ymin_pO[i,1]*cosd(45)  -ymin_pO[i,1]*sind(45)
+          cirarc  0.0   0.0                    -ymin_pO[i,1]          \
+                  0.0   ymin_pO[i,1]*cosd(45)  -ymin_pO[i,1]*sind(45)
+          cirarc  0.0   ymin_pO[i,1]            0.0                   \
+                  0.0   ymin_pO[i,1]*cosd(45)   ymin_pO[i,1]*sind(45)
+          cirarc  0.0   0.0                     ymin_pO[i,1]          \
+                  0.0  -ymin_pO[i,1]*cosd(45)   ymin_pO[i,1]*sind(45)
+          cirarc  0.0  -ymin_pO[i,1]            0.0                   \ 
+                  0.0  -ymin_pO[i,1]*cosd(45)  -ymin_pO[i,1]*sind(45)
+       skend
+       translate   x_pO[i,1] y_pO[i,1]  (zmax_pO[i,1]+zmin_pO[i,1])/2-0.05
+	patend
+rule
+# blend
+
+# Trim front part of the inlet
+mark 
+    restore inlet_sec_1
+    scale 2.5
+    translate 3.0 +0.72 -0.211111
+
+    restore inlet_sec_1
+    scale 2.5
+    translate 4.2 +0.72 -0.211111
+rule
+
+udparg $$/gen_rot xbeg      4.2
+udparg $$/gen_rot ybeg      0.9
+udparg $$/gen_rot zbeg     -0.7
+udparg $$/gen_rot xend      4.2
+udparg $$/gen_rot yend      1.3
+udparg $$/gen_rot zend      0.3
+udprim $$/gen_rot rotang    45.0
+
+udparg $$/gen_rot xbeg      4.2
+udparg $$/gen_rot ybeg      0.9
+udparg $$/gen_rot zbeg      0.3
+udparg $$/gen_rot xend      4.2
+udparg $$/gen_rot yend      1.3
+udparg $$/gen_rot zend      0.3
+udprim $$/gen_rot rotang   -30.0
+subtract
+
+store right_inlet
+restore right_inlet
+    
+patbeg fuselage_union ifzero(MakeFuselage,0,1)
+   union  # Right inlet with fuselage
+patend
+
+restore right_inlet
+mirror 0.0 1.0 0.0  # Create left inlet by mirroring the right inlet
+store left_inlet
+restore left_inlet
+
+patbeg fuselage_union ifzero(MakeFuselage,0,1)
+   union  # Left inlet with fuselage
+patend
+
+patbeg makeInletsHollow  Hollow_Inlets 
+    store solid_inlets
+    mark 
+        # restore inlet_sec_1
+        # scale 0.3
+        # translate 1.2 +0.72 -0.211111
+	     
+        restore inlet_sec_1
+        scale 0.9
+        translate 4.2 +0.72 -0.211111
+	     
+        restore inlet_sec_2
+        scale 0.9
+        translate 5.0 +0.92 -0.237778
+
+        restore inlet_sec_2
+        scale 0.9
+        translate 8.5 +0.92 -0.237778
+
+        restore inlet_sec_2
+        scale 0.9
+        translate 10.5 +0.92 -0.237778
+	 
+    	patbeg i num_pO
+           skbeg       0.0  -ymin_pO[i,1]*cosd(45)  -ymin_pO[i,1]*sind(45)
+              cirarc  0.0   0.0                    -ymin_pO[i,1]          \
+                      0.0   ymin_pO[i,1]*cosd(45)  -ymin_pO[i,1]*sind(45)
+              cirarc  0.0   ymin_pO[i,1]            0.0                   \
+                      0.0   ymin_pO[i,1]*cosd(45)   ymin_pO[i,1]*sind(45)
+              cirarc  0.0   0.0                     ymin_pO[i,1]          \
+                      0.0  -ymin_pO[i,1]*cosd(45)   ymin_pO[i,1]*sind(45)
+              cirarc  0.0  -ymin_pO[i,1]            0.0                   \ 
+                      0.0  -ymin_pO[i,1]*cosd(45)  -ymin_pO[i,1]*sind(45)
+           skend
+           scale 0.9
+           translate   x_pO[i,1] y_pO[i,1]  (zmax_pO[i,1]+zmin_pO[i,1])/2-0.05
+    	patend
+    # blend
+    rule
+
+    # Trim front part of the inlet
+    mark 
+        restore inlet_sec_1
+        scale 2.5
+        translate 3.0 +0.72 -0.211111
+    
+        restore inlet_sec_1
+        scale 2.5
+        translate 4.2 +0.72 -0.211111
+    rule
+    
+    udparg $$/gen_rot xbeg      4.2
+    udparg $$/gen_rot ybeg      0.9
+    udparg $$/gen_rot zbeg     -0.7
+    udparg $$/gen_rot xend      4.2
+    udparg $$/gen_rot yend      1.3
+    udparg $$/gen_rot zend      0.3
+    udprim $$/gen_rot rotang    45.0
+    
+    udparg $$/gen_rot xbeg      4.2
+    udparg $$/gen_rot ybeg      0.9
+    udparg $$/gen_rot zbeg      0.3
+    udparg $$/gen_rot xend      4.2
+    udparg $$/gen_rot yend      1.3
+    udparg $$/gen_rot zend      0.3
+    udprim $$/gen_rot rotang   -30.0
+    subtract
+    store hollow_inlet
+    
+    patbeg fuselage_union ifzero(MakeFuselage,0,1)
+        restore solid_inlets
+    patend
+    restore hollow_inlet
+    subtract
+    patbeg fuselage_union ifzero(MakeFuselage,0,1)
+        store solid_inlets
+    patend
+    
+    restore solid_inlets
+    restore hollow_inlet
+    mirror 0.0 1.0 0.0
+    subtract
+patend #makeInletsHollow 
+
+# attribute propulsionOML 0

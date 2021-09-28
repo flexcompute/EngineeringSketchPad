@@ -1,0 +1,44 @@
+# nudge4
+# written by JohnDannenhoffer
+
+# fuselage
+skbeg     1.0  0.0 -3.0
+   cirarc 0.0  0.3 -3.0 -1.0  0.0 -3.0
+   cirarc 0.0 -0.3 -3.0  1.0  0.0 -3.0
+skend
+store     fuselage
+
+mark
+   restore   fuselage
+   restore   fuselage
+   translate 0.0  0.0  6.0
+rule
+rotatey   90  0.0  0.0
+
+# wing
+skbeg     1.0  0.0  0.0
+   cirarc 0.0  0.1  0.0 -1.0  0.0  0.0
+   cirarc 0.0 -0.1  0.0  1.0  0.0  0.0
+skend
+store     wing
+
+mark
+   restore   wing
+   restore   wing
+   translate 0.0  0.0  2.0
+rule
+
+# nudge the wing a little
+#rotatez   1e+0  0.0  0.0   # works
+#rotatez   1e-1  0.0  0.0   # works
+rotatez   1e-2  0.0  0.0   # fails
+#rotatez   1e-3  0.0  0.0   # works
+#rotatez   1e-4  0.0  0.0   # fails
+#rotatez   1e-5  0.0  0.0   # works
+#rotatez   1e-6  0.0  0.0   # works
+#rotatez   1e-7  0.0  0.0   # works
+
+# perform the intersection
+intersect none  1  1e-4
+
+end

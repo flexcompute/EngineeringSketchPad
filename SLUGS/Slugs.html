@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE HTML PUBLIC "~//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+
+<!--
+// main file for Slugs (the Static Legacy Unstructured Geometry System)
+// written by John Dannenhoffer
+-->
+
+<html id="mainBody">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+
+      <!--
+          Copyright (C) 2010/2020  John F. Dannenhoffer, III (Syracuse University)
+
+          This library is free software; you can redistribute it and/or
+          modify it under the terms of the GNU Lesser General Public
+          License as published by the Free Software Foundation; either
+          version 2.1 of the License, or (at your option) any later version.
+
+          This library is distributed in the hope that it will be useful,
+          but WITHOUT ANY WARRANTY; without even the implied warranty of
+          MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+          Lesser General Public License for more details.
+
+          You should have received a copy of the GNU Lesser General Public
+          License along with this library; if not, write to the Free Software
+          Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
+          MA  02110-1301  USA
+        -->
+
+    <title>
+      Slugs (Static Legacy Unstructured Geometry System)
+    </title>
+
+    <script type="text/javascript" src="WebViewer/webgl-utils.js"> </script>
+    <script type="text/javascript" src="WebViewer/webgl-debug.js"> </script>
+    <script type="text/javascript" src="WebViewer/J3DIMath.js">    </script>
+
+    <script>
+      var   wv = {};              // place to store "globals"
+    </script>
+    <script type="text/javascript" src="WebViewer/wv-draw.js">     </script>
+    <script type="text/javascript" src="WebViewer/wv-render.js">   </script>
+    <script type="text/javascript" src="WebViewer/wv-gPrim.js">    </script>
+    <script type="text/javascript" src="WebViewer/wv-sGraph.js">   </script>
+    <script type="text/javascript" src="WebViewer/wv-socket.js">   </script>
+    <script type="text/javascript" src="WebViewer/wv-cbManage.js"> </script>
+
+    <script type="text/javascript" src="Slugs.js">                 </script>
+
+    <script>
+      "use strict";
+
+      wv.zNear    =  1.0;           // have some values for Zscreen
+      wv.zFar     = 11.0;
+      wv.canvasID = "WebViewer";    // must match <canvas id=...> below!
+      wv.canvasKY = "WVkey";
+      wv.debug    =    1;           // used to debug
+
+      var pmtr    = new Array();    // structure for Parameters
+      var brch    = new Array();    // structure for Branches
+      var sgData  = {};             // structure for auxiliary scene graph data
+
+      // initialize webSockets
+      var url = prompt("Enter hostname:port", "Localhost:7681");
+      wv.getSockets("ws://"+url);
+
+      // set our callback functions
+      wv.setCallback("InitUI",        wvInitUI);
+      wv.setCallback("UpdateUI",      wvUpdateUI);
+      wv.setCallback("ServerMessage", wvServerMessage);
+      wv.setCallback("UpdateCanvas",  wvUpdateCanvas);
+
+      var myTree = new Tree(document, "myTree");
+
+      window.onresize        = resizeFrames;
+    </script>
+
+    <link rel="stylesheet" type="text/css" href="Slugs.css" />
+  </head>
+
+  <body onload="wv.Start(); resizeFrames()">
+    <div id='tlframe' oncontextmenu='return false;'>
+      <div id='butnfrm' oncontextmenu='return false;'>
+	<p>
+          <button type="button" id="undoButton" onclick="cmdUndo()">Undo      </button>
+          <button type="button" id="helpButton" onclick="cmdHelp()">Help      </button>
+          <!--<button type="button" id="testButton" onclick="cmdTest()">Test      </button>-->
+        <br>
+          <button title="Home (front) view"      type="button" id="homeButton"  onclick="cmdHome()"       >H         </button>
+          <button title="Left side view"         type="button" id="leftButton"  onclick="cmdLeft()"       >L         </button>
+          <button title="Right side view"        type="button" id="riteButton"  onclick="cmdRite()"       >R         </button>
+          <button title="Bottom view"            type="button" id="botmButton"  onclick="cmdBotm()"       >B         </button>
+          <button title="Top view"               type="button" id="topButton"   onclick="cmdTop()"        >T         </button>
+          <button title="Zoom in"                type="button" id="inButton"    onclick="cmdIn()"         >+         </button>
+          <button title="Zoom out"               type="button" id="outButton"   onclick="cmdOut()"        >-         </button>
+	</p>
+      </div>
+      <div id='treefrm' oncontextmenu='return false;'>
+      </div>
+    </div>
+    <div id='trframe', oncontextmenu='return false;'>
+      <canvas id="WebViewer">
+        If you are seeing this, your web browser does not support the &lt;canvas&gt; element.
+      </canvas>
+    </div>
+    <br />
+    <div id='blframe', oncontextmenu='return false;'>
+      <canvas id="WVkey">
+      </canvas>
+    </div>
+    <div id='brframe', oncontextmenu='return false;'>
+    </div>
+  </body>
+</html>

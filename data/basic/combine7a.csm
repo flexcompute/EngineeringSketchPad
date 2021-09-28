@@ -1,0 +1,23 @@
+# combine7a
+# written by John Dannenhoffer
+
+# SheetBody
+SKBEG     0.0  0.0  0.0
+   LINSEG 1.0  0.0  0.0
+   LINSEG 1.0  1.0  0.0
+   CIRARC 0.5  1.5  0.0  0.0  1.0  0.0
+   LINSEG 0.0  0.0  0.0
+SKEND
+
+# convert to WireBody
+EXTRACT 0
+
+STORE   wire
+RESTORE wire
+
+# inflate to SheetBody
+MARK
+RESTORE wire
+COMBINE
+
+END

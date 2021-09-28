@@ -1,0 +1,17 @@
+# assembly_hemisphere.udc
+# written by John Dannenhoffer
+
+INTERFACE diameter  in  0.5
+INTERFACE side      in  1
+
+SPHERE    0  0   0   diameter/2
+
+IFTHEN side GT 0
+   BOX 0.0       -diameter  -diameter  diameter  diameter*2  diameter*2
+   INTERSECT
+ELSEIF side LT 0
+   BOX -diameter -diameter  -diameter  diameter  diameter*2  diameter*2
+   INTERSECT
+ENDIF
+
+END

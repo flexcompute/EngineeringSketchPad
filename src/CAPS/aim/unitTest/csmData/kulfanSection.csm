@@ -1,0 +1,35 @@
+# CAPS xFoil input file --- kulfanSection.csm
+
+# Define the AIM to be used
+attribute capsAIM $xfoilAIM;tsfoilAIM
+
+# Design parameters
+dimension classvar 1 2
+dimension ztailvar 1 2
+dimension auppervar 1 4
+dimension alowervar 1 4
+
+#fix class and ztail but allow design on aupper and alower
+set classvar "0.5; 1.0;"
+set ztailvar "0.001; -0.001;"
+
+despmtr au1  0.22
+despmtr au2  0.30
+despmtr au3  0.25
+despmtr au4  0.29
+despmtr al1 -0.12
+despmtr al2 -0.02
+despmtr al3 -0.03
+
+set al4 0.001
+set auppervar "au1; au2; au3; au4;"
+set alowervar "al1; al2; al3; al4;"
+
+# Create Airfoil using kulfan UDP
+udparg kulfan class classvar
+udparg kulfan ztail ztailvar
+udparg kulfan aupper auppervar
+udparg kulfan alower alowervar
+udprim kulfan
+
+end

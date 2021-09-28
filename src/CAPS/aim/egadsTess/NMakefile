@@ -1,0 +1,34 @@
+#
+!IFNDEF ESP_ROOT
+!ERROR ESP_ROOT must be set -- Please fix the environment...
+!ENDIF
+#
+IDIR  = $(ESP_ROOT)\include
+!include $(IDIR)\$(ESP_ARCH).$(MSVC)
+LDIR  = $(ESP_ROOT)\lib
+!IFDEF ESP_BLOC
+ODIR  = $(ESP_BLOC)\obj
+!ELSE
+ODIR  = .
+!ENDIF
+
+
+$(LDIR)\egadsTessAIM.dll:	egadsTessAIM.def $(ODIR)\egadsTessAIM.obj \
+			$(LDIR)\utils.lib
+	-del $(LDIR)\egadsTessAIM.dll
+	link /out:$(LDIR)\egadsTessAIM.dll /dll /def:egadsTessAIM.def \
+		$(ODIR)\egadsTessAIM.obj /LIBPATH:$(LDIR) utils.lib \
+		aimUtil.lib ocsm.lib egads.lib udunits2.lib
+	$(MCOMP) /manifest $(LDIR)\egadsTessAIM.dll.manifest \
+		/outputresource:$(LDIR)\egadsTessAIM.dll;2
+
+$(ODIR)\egadsTessAIM.obj:	egadsTessAIM.c $(IDIR)\capsTypes.h \
+			..\utils\meshUtils.h
+	cl /c $(COPTS) $(DEFINE) -I$(IDIR) -I..\utils egadsTessAIM.c \
+		/Fo$(ODIR)\egadsTessAIM.obj
+
+clean:
+	-del $(ODIR)\egadsTessAIM.obj
+
+cleanall:	clean
+	-del $(LDIR)\egadsTessAIM.dll $(LDIR)\egadsTessAIM.lib $(LDIR)\egadsTessAIM.exp

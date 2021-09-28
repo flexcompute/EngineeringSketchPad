@@ -1,0 +1,25 @@
+# designL00
+# written by John Dannenhoffer
+
+DESPMTR   xbeg     -1
+DESPMTR   ybeg     -2
+DESPMTR   zbeg     -3
+DESPMTR   xsize     4
+DESPMTR   ysize     3
+DESPMTR   zsize     2
+DESPMTR   diam      1
+DESPMTR   scale     3
+
+# basic shape (3D box)
+BOX       2*xbeg  2*ybeg  zbeg  2*(xsize+diam)  2*ysize  zsize
+TRANSLATE 1       1       0
+
+# hole (cylinder)
+CYLINDER  xbeg+2*xsize  2*ybeg+ysize  zbeg-1 \
+          xbeg+2*xsize  2*ybeg+ysize  zbeg+zsize+2  diam/2
+SUBTRACT
+
+# scale entire configuration
+SCALE     scale
+
+END

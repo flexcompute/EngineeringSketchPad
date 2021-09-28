@@ -1,0 +1,51 @@
+# nuscale3
+# written by John Dannenhoffer
+
+# original configuration
+BOX         0.0   0.0  0.0  4.0  3.0  2.0
+
+CYLINDER    2.0  -1.0  1.0  2.0  4.0  1.0  0.5
+UNION
+
+MARK
+   SKBEG     0.2  0.2  1.0
+      LINSEG 0.8  0.2  1.0
+      CIRARC 0.5  0.5  1.0  0.2  0.2  1.0
+   SKEND
+
+   SKBEG     0.2  0.2  3.0
+      LINSEG 0.8  0.2  3.0
+      CIRARC 0.5  0.5  3.0  0.2  0.2  3.0
+   SKEND
+RULE
+UNION
+
+CONE         5.0  1.0  1.0  3.0  1.0  1.0  0.5
+UNION
+
+MARK
+   BOX       2.0  1.0  2.0  1.0  1.0  0.0
+   BOX       2.0  1.0  3.0  1.0  1.0  0.0
+   POINT     2.5  1.5  4.0
+RULE
+UNION
+
+UDPRIM  printEgo
+STORE   original
+
+# converted to BSplines
+RESTORE original
+UDPRIM  nuscale
+UDPRIM  printEgo
+
+# squashed in X-direction
+RESTORE original
+UDPRIM  nuscale  xscale 0.5
+
+# squashed in all directions
+RESTORE original
+UDPARG  nuscale  xscale 0.2  xcent -1.0
+UDPARG  nuscale  yscale 0.3  ycent -2.0
+UDPRIM  nuscale  zscale 0.4  zcent -3.0
+
+END

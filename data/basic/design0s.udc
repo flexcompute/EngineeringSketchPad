@@ -1,0 +1,10 @@
+# design0s.udc
+# written by John Dannenhoffer
+
+INTERFACE L  in  1
+INTERFACE H  in  1
+INTERFACE D  in  1
+
+BOX       0  0  0  L  H  D
+
+END

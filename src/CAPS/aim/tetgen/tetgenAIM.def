@@ -1,0 +1,10 @@
+LIBRARY tetgenAIM
+EXPORTS
+aimInitialize
+aimInputs
+aimPreAnalysis
+aimExecute
+aimPostAnalysis
+aimOutputs
+aimCalcOutput
+aimCleanup

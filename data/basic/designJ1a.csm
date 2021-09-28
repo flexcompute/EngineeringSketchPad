@@ -1,0 +1,13 @@
+# designJ1a
+# written by John Dannenhoffer
+
+DESPMTR   DX   3.0
+DESPMTR   DY   2.0
+DESPMTR   DZ   1.0
+
+# move 3D box after extrusion
+UDPRIM     box   dy DY   dz DZ
+EXTRUDE    DX    0  0
+TRANSLATE -DX/2  0  0
+
+END

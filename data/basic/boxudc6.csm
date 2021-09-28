@@ -1,0 +1,41 @@
+# boxudc6
+# written by John Dannenhoffer
+
+despmtr   DX   2
+despmtr   DY   1
+despmtr   DZ   3
+
+udparg    $$/boxudc dx  DX  dy  -1  dz  -1
+udparg    $$/boxudc         dy  DY  dz  -1
+udparg    $$/boxudc                 dz  DZ
+udprim    $$/boxudc
+assert    @@vol     DX*DY*DZ
+translate -4  -1  0
+
+udparg    $$/boxudc dx  DX  dy  -1  dz  -1
+udparg    $$/boxudc         dy  DY  dz  DZ
+udprim    $$/boxudc
+assert    @@vol     DX*DY*DZ
+translate  0  -1  0
+
+udparg    $$/boxudc dx  DX  dy  DY  dz  DZ
+udprim    $$/boxudc
+assert    @@vol     DX*DY*DZ
+translate +4  -1  0
+
+udparg    $$/boxudc dx  DX  dy  DY  dz  -1
+udprim    $$/boxudc                 dz  DZ
+assert    @@vol     DX*DY*DZ
+translate -4  +1  0
+
+udparg    $$/boxudc dx  DX  dy  -1  dz  -1
+udprim    $$/boxudc         dy  DY  dz  DZ
+assert    @@vol     DX*DY*DZ
+translate  0  +1  0
+
+udparg    $$/boxudc dx  -1  dy  -1  dz  -1
+udprim    $$/boxudc dx  DX  dy  DY  dz  DZ
+assert    @@vol     DX*DY*DZ
+translate +4  +1  0
+
+end

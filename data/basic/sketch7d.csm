@@ -1,0 +1,37 @@
+# sketch7d
+# written by John Dannenhoffer
+
+DESPMTR   length  4.0   # length
+DESPMTR   height  2.0   # height
+DESPMTR   rad     1.0   # radius of cutout
+
+# Branches:
+skbeg     0   0   0   1
+   skvar     xy   "0.000000; 0.000000; 0.000000;\
+                   3.300000; 0.000000; 0.000000;\
+                   3.500000; 1.620000; 0.000000;\
+                   2.660000; 1.820000; 0.000000;\
+                   0.950000; 1.340000;-0.528397;\
+                  -0.270000; 1.340000; 0.000000;"
+   skcon     X   1   -1  0
+   skcon     Y   1   -1  0
+   skcon     H   1    2  0
+   skcon     H   5    6  0
+   skcon     V   2    3  0
+   skcon     H   3    4  0
+   skcon     R   4    5  -rad
+   skcon     L   1    2  length
+   skcon     L   2    3  height
+   skcon     P   6   -1  0
+   skcon     P   5   -1  0
+   skcon     P   4   -1  0
+   skcon     L   3   4  (length-2*rad)/2
+   linseg    ::x[2]   ::y[2]   0
+   linseg    ::x[3]   ::y[3]   0
+   linseg    ::x[4]   ::y[4]   0
+   arc       ::x[5]   ::y[5]   0   ::d[5]   xy
+   linseg    ::x[6]   ::y[6]   0
+   linseg    ::x[1]   ::y[1]   0
+skend     0
+
+end

@@ -1,0 +1,11 @@
+# tparams2
+# written by John Dannenhoffer
+
+# default BOX
+BOX       0  0  0  1  1  1
+
+# fine front Face
+SELECT    FACE  1  6
+ATTRIBUTE .tParams "0.02; 0.013; 20"
+
+END

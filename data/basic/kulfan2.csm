@@ -1,0 +1,27 @@
+# kulfan2
+# written by John Dannenhoffer
+
+dimension class     1  2  1
+dimension ztail     1  2  1
+dimension aupper    1  6  1
+dimension alower    1  6  1
+
+despmtr   class     "0.5;    1.0;   "
+despmtr   ztail     "0.0012; -.0012;"
+despmtr   aupper    "0.2216; 0.2207; 0.3254; 0.1852; 0.3102; 0.2410; 0.2887;"
+despmtr   alower    "-.1822; -.0783; -.0176; -.0676; -.0048; -.0190; -.0050;"
+
+mark
+   udparg    kulfan    class     class
+   udparg    kulfan    ztail     ztail
+   udparg    kulfan    aupper    aupper
+   udprim    kulfan    alower    alower
+
+   udparg    kulfan    class     class
+   udparg    kulfan    ztail     ztail
+   udparg    kulfan    aupper    aupper
+   udprim    kulfan    alower    alower
+   translate 0  0  2
+rule
+
+end

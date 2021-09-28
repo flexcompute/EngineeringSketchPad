@@ -1,0 +1,30 @@
+# fauxFillet2
+# written by John Dannenhoffer
+
+despmtr   Rfuse     1.5
+despmtr   series    4412
+despmtr   fillRad   0.1
+
+# build fuselage
+cylinder  -5.0  0.0  0.0  0.0  0.0  0.0  Rfuse
+cylinder   0.0  0.0  0.0  5.0  0.0  0.0  Rfuse
+join
+store     fuse
+
+# build wing
+udprim    naca  series  series
+rotatex   90    0.0  0.0
+translate -.5   0.0  0.0
+extrude   0.0  -5.0  0.0
+store     wing
+
+# build solid model
+restore   fuse
+restore   wing
+union
+
+# perform actual fillet
+fillet    fillRad
+
+end
+

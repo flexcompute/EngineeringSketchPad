@@ -1,0 +1,22 @@
+# eyeball_0
+# written by John Dannenhoffer
+
+cylinder  0.0  -.3 -2.1  0.0  -.3  +2.1  1.0
+cylinder  0.0  0.3 -2.1  0.0  0.3  +2.1  1.0
+intersect
+
+cylinder  0.0  0.0  0.0  0.0  0.0  +3.0  0.3
+subtract
+
+cylinder  0.0  0.0  0.0  0.0  0.0  +1.9  0.1
+union
+
+sphere    0.0  0.0  0.0                  2.0
+rotatex  90.0  0.0  0.0
+intersect
+   attribute  .tParams  0.10;0.02;5.0
+
+dump $/eyeball_0.stl
+dump $/eyeball.plot
+
+end

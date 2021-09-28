@@ -1,0 +1,87 @@
+# select5
+# written by John Dannenhoffer
+
+# body1
+box       -2 -2  0   1  1  1
+   attribute myType    $box
+   attribute myIndex   $1
+   attribute _name     $body1
+
+# body2
+box        0 -2  0   1  1  1
+   attribute myType    $box
+   attribute myIndex   $2
+   attribute _name     $body2
+
+# body3
+box        2 -2  0   1  1  1
+   attribute myType    $box
+   attribute myIndex   $3
+   attribute _name     $body3
+
+# body4
+cylinder  -2  0.5  0.5  -1  0.5  0.5  0.2
+   attribute myType    $cylinder
+   attribute myIndex   $1
+   attribute _name     $body4
+
+# body5
+cylinder   0  0.5  0.5   1  0.5  0.5  0.2
+   attribute myType    $cylinder
+   attribute myIndex   $2
+   attribute _name     $body5
+
+# body6
+cylinder   2  0.5  0.5   3  0.5  0.5  0.2
+   attribute myType    $cylinder
+   attribute myIndex   $3
+   attribute _name     $body6
+
+# body7
+sphere    -1.5  2.0  0.0  0.2
+   attribute myType    $sphere
+   attribute myIndex   $1
+   attribute _name     $body7
+
+# body8
+sphere     0.5  2.0  0.0  0.2
+   attribute myType    $sphere
+   attribute myIndex   $2
+   attribute _name     $body8
+
+# body9
+sphere     2.5  2.0  0.0  0.2
+   attribute myType    $sphere
+   attribute myIndex   $3
+   attribute _name     $body9
+
+# selection tests
+select    body           3
+   assert    @seltype   -1
+   assert    @selbody    3
+
+patbeg    ibody  9
+   select    body        $_name  $body+ibody
+   assert    @seltype   -1
+   assert    @selbody    ibody
+patend
+
+select    body           $myType   $box
+catbeg    $body_not_found
+   assert    101  101
+catend
+
+select    body           $myIndex  $2
+catbeg    $body_not_found
+   assert    102  102
+catend
+
+select    body           $myType   $box   $myIndex  $2
+assert    @seltype      -1
+assert    @selbody       2
+
+select    body           $myType   $cylinder  $myIndex  $2
+assert    @seltype      -1
+assert    @selbody       5
+
+end

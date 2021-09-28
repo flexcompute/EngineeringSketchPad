@@ -1,0 +1,6 @@
+# wingSew1
+# written by John Dannenhoffer
+
+UDPRIM    sew   filename  $$/wingSew1.stp
+
+END

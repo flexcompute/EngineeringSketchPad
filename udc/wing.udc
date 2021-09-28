@@ -1,0 +1,443 @@
+# wing with naca 4-series cross-sections
+# either right-side wing or mirrored wing
+# written by John Dannenhoffer
+
+# intent   =1 for simple beam model
+#          =2 for camber sheet and wake
+#          =3 for outer moldline
+#          =4 for AVL model
+#          =5 for built-up element model
+
+# compType =1 for Wing            / Flap
+#          =2 for Horizontal_Tail / Elevator
+#          =3 for Vertical_Tail   / Rudder
+
+interface ID        in  0
+interface intent    in  1
+interface compType  in  0
+interface mirror    in  0
+interface area      in  100
+interface aspect    in  8
+interface taper     in  0.8
+interface twist     in  -5.0
+interface sweep     in  0.0
+interface dihedral  in  0.0
+interface thickness in  0.12
+interface sharpte   in  0.0
+interface camber    in  0.04
+interface inboard   in  0
+interface outboard  in  1
+interface pctchord  in  0
+interface angleft   in  0
+interface angrite   in  0
+interface spar1     in  0
+interface spar2     in  0
+interface nrib      in  0
+interface span      out 0
+
+set       span      sqrt(area*aspect)
+set       span2     span/2
+set       cbar      area/span
+set       croot     2*cbar/(1+taper)
+set       ctip      taper*croot
+set       dxtip     span2*tand(sweep)
+set       dztip     span2*tand(dihedral)
+
+# build wing beam Body (at quarter-chord)  (intent==1)
+ifthen intent eq 1
+   ifthen mirror ne 1
+      skbeg     croot/4      0      0
+         linseg dxtip+ctip/4 +span2 +dztip
+      skend
+         attribute ID       !ID
+         attribute Intent 1  # simple 1D model (aka, beam)
+   else
+      skbeg     dxtip+ctip/4 -span2 +dztip
+         linseg croot/4  0  0
+         linseg dxtip+ctip/4 +span2 +dztip
+      skend
+         attribute ID       !ID
+         attribute Intent 1  # simple 1D model (aka, beam)
+   endif
+endif
+
+# build wing mid-surface aero  (intent==2)
+ifthen intent eq 2
+   mark
+      ifthen mirror eq 1
+         ifthen camber eq 0
+            skbeg     0  0  0
+               linseg 1  0  0
+            skend
+         else
+            udprim  naca  thickness  0  camber  camber
+         endif
+         rotatex  90  0  0
+         scale    ctip
+         rotatey  -twist 0 0
+         translate dxtip -span2 +dztip
+      endif
+
+      ifthen camber eq 0
+         skbeg     0  0  0
+            linseg 1  0  0
+         skend
+      else
+         udprim  naca  thickness  0  camber  camber
+      endif
+      rotatex  90  0  0
+      scale    croot
+
+      ifthen camber eq 0
+         skbeg     0  0  0
+            linseg 1  0  0
+         skend
+      else
+         udprim  naca  thickness  0  camber  camber
+      endif
+      rotatex  90  0  0
+      scale    ctip
+      rotatey  -twist 0 0
+      translate dxtip +span2 +dztip
+   rule
+      attribute ID       !ID
+      attribute Intent 2  # 2D model (aka, mid-surface aero)
+endif
+
+# build wing outer-mold line  (intent==3 or 5)
+ifthen intent eq 3 or intent eq 5
+   mark
+      ifthen mirror eq 1
+         udprim  naca  thickness  thickness  sharpte  sharpte  camber  camber
+         rotatex  90  0  0
+         scale    ctip
+         rotatey  -twist 0 0
+         translate dxtip -span2 +dztip
+      endif
+
+      udprim  naca  thickness  thickness  sharpte  sharpte  camber  camber
+      rotatex  90  0  0
+      scale    croot
+
+      udprim  naca  thickness  thickness  sharpte  sharpte  camber  camber
+      rotatex  90  0  0
+      scale    ctip
+      rotatey  -twist 0 0
+      translate dxtip +span2 +dztip
+   rule
+
+   ifthen intent eq 5
+      store wingOML
+   endif
+endif
+
+# control surfces
+ifthen intent eq 3
+   # add in left control surface
+   ifthen pctchord gt 0 and mirror eq 1
+      dimension xflap 1 4 0
+      dimension yflap 1 4 0
+
+      set xflap[1,1] max(croot,dxtip+ctip)
+      set yflap[1,1] -inboard*span2
+      set xflap[1,2] inboard*dxtip+pctchord*(croot+inboard*(ctip-croot))
+      set yflap[1,2] -inboard*span2
+      set xflap[1,3] outboard*dxtip+pctchord*(croot+outboard*(ctip-croot))
+      set yflap[1,3] -outboard*span2
+      set xflap[1,4] max(croot,dxtip+ctip)
+      set yflap[1,4] -outboard*span2
+
+      udparg $$/flapz  xflap   xflap
+      udparg $$/flapz  yflap   yflap
+      udparg $$/flapz  theta   angleft
+      udparg $$/flapz  gap     0.001*span
+      udparg $$/flapz  openEnd 1
+      udprim $$/flapz
+   endif
+
+   # add in rite control surface
+   ifthen pctchord gt 0
+      dimension xflap 1 4 0
+      dimension yflap 1 4 0
+
+      set xflap[1,1] max(croot,dxtip+ctip)
+      set yflap[1,1] +outboard*span2
+      set xflap[1,2] outboard*dxtip+pctchord*(croot+outboard*(ctip-croot))
+      set yflap[1,2] +outboard*span2
+      set xflap[1,3] inboard*dxtip+pctchord*(croot+inboard*(ctip-croot))
+      set yflap[1,3] +inboard*span2
+      set xflap[1,4] max(croot,dxtip+ctip)
+      set yflap[1,4] +inboard*span2
+
+      udparg $$/flapz  xflap   xflap
+      udparg $$/flapz  yflap   yflap
+      udparg $$/flapz  theta   angrite
+      udparg $$/flapz  gap     0.001*span
+      udparg $$/flapz  openEnd 1
+      udprim $$/flapz
+   endif
+
+   select body
+      attribute ID       !ID
+      attribute Intent 3  # 3D model (aka, outer-mold line)
+endif
+
+# build AVL model  (intent==4)
+ifthen intent eq 4
+   dimension secValues          1  5  0
+   set       secValues         "8; 1.0; 12; 1.0; 0;"
+
+   dimension  cntrlValues       1  6  0
+   set        cntrlValues      "1.0; 0.7; 0.0; 0.0; 0.0; 1.0;"
+   set        cntrlValues[1,2] pctchord
+
+   mark
+      ifthen mirror eq 1
+         ifthen compType eq 1
+            udprim  naca  thickness  thickness  sharpte  sharpte  camber  camber
+               attribute  capsIntent   LINEARAERO
+               attribute  capsGroup      $Wing
+               attribute  avlSecValues   secValues
+         elseif compType eq 2
+            udprim  naca  thickness  thickness  sharpte  sharpte  camber  camber
+               attribute  capsIntent   LINEARAERO
+               attribute  capsGroup      $Horizontal_Tail
+               attribute  avlSecValues   secValues
+         elseif compType eq 3
+            udprim  naca  thickness  thickness  sharpte  sharpte  camber  camber
+               attribute  capsIntent   LINEARAERO
+               attribute  capsGroup      $Vertical_Tail
+               attribute  avlSecValues   secValues
+         else
+            udprim  naca  thickness  thickness  sharpte  sharpte  camber  camber
+         endif
+         rotatex  90  0  0
+         scale    ctip
+         rotatey  -twist 0 0
+         translate dxtip -span2 +dztip
+
+         ifthen pctchord gt 0
+            ifthen compType eq 1
+               udprim  naca  thickness  thickness  sharpte  sharpte  camber  camber
+                  attribute  capsIntent      LINEARAERO
+                  attribute  capsGroup         $Wing
+                  attribute  avlSecValues      secValues
+                  attribute  avlCntrlFlap      cntrlValues
+            elseif compType eq 2
+               udprim  naca  thickness  thickness  sharpte  sharpte  camber  camber
+                  attribute  capsIntent      LINEARAERO
+                  attribute  capsGroup         $Horizontal_Tail
+                  attribute  avlSecValues      secValues
+                  attribute  avlCntrlElevator  cntrlValues
+            elseif compType eq 3
+               udprim  naca  thickness  thickness  sharpte  sharpte  camber  camber
+                  attribute  capsIntent      LINEARAERO
+                  attribute  capsGroup         $Vertical_Tail
+                  attribute  avlSecValues      secValues
+                  attribute  avlCntrlRudder    cntrlValues
+            else
+               udprim  naca  thickness  thickness  sharpte  sharpte  camber  camber
+            endif
+            rotatex  90  0  0
+            scale    ctip*inboard+croot*(1-inboard)
+            rotatey  -twist*inboard 0 0
+            translate dxtip*inboard -span2*inboard +dztip*inboard
+
+            ifthen compType eq 1
+               udprim  naca  thickness  thickness  sharpte  sharpte  camber  camber
+                  attribute  capsIntent      LINEARAERO
+                  attribute  capsGroup         $Wing
+                  attribute  avlSecValues      secValues
+                  attribute  avlCntrlFlap      cntrlValues
+            elseif compType eq 2
+               udprim  naca  thickness  thickness  sharpte  sharpte  camber  camber
+                  attribute  capsIntent      LINEARAERO
+                  attribute  capsGroup         $Horizontal_Tail
+                  attribute  avlSecValues      secValues
+                  attribute  avlCntrlElevator  cntrlValues
+            elseif compType eq 3
+               udprim  naca  thickness  thickness  sharpte  sharpte  camber  camber
+                  attribute  capsIntent      LINEARAERO
+                  attribute  capsGroup         $Vertical_Tail
+                  attribute  avlSecValues      secValues
+                  attribute  avlCntrlRudder    cntrlValues
+            else
+               udprim  naca  thickness  thickness  sharpte  sharpte  camber  camber
+            endif
+            rotatex  90  0  0
+            scale    ctip*outboard+croot*(1-outboard)
+            rotatey  -twist*outboard 0 0
+            translate dxtip*outboard -span2*outboard +dztip*outboard
+         endif
+      endif
+
+      ifthen compType eq 1
+         udprim  naca  thickness  thickness  sharpte  sharpte  camber  camber
+            attribute  capsIntent       LINEARAERO
+            attribute  capsGroup          $Wing
+            attribute  capsReferenceArea  area
+            attribute  capsReferenceSpan  span
+            attribute  capsReferenceChord croot
+            attribute  capsReferneceX     croot/4
+            attribute  avlSecValues   secValues
+      elseif compType eq 2
+         udprim  naca  thickness  thickness  sharpte  sharpte  camber  camber
+            attribute  capsIntent   LINEARAERO
+            attribute  capsGroup      $Horizontal_Tail
+            attribute  avlSecValues   secValues
+      elseif compType eq 3
+         udprim  naca  thickness  thickness  sharpte  sharpte  camber  camber
+            attribute  capsIntent   LINEARAERO
+            attribute  capsGroup      $Vertical_Tail
+            attribute  avlSecValues   secValues
+      else
+         udprim  naca  thickness  thickness  sharpte  sharpte  camber  camber
+      endif
+      rotatex  90  0  0
+      scale    croot
+
+      ifthen pctchord gt 0
+         ifthen compType eq 1
+            udprim  naca  thickness  thickness  sharpte  sharpte  camber  camber
+               attribute  capsIntent      LINEARAERO
+               attribute  capsGroup         $Wing
+               attribute  avlSecValues      secValues
+               attribute  avlCntrlFlap      cntrlValues
+         elseif compType eq 2
+            udprim  naca  thickness  thickness  sharpte  sharpte  camber  camber
+               attribute  capsIntent      LINEARAERO
+               attribute  capsGroup         $Horizontal_Tail
+               attribute  avlSecValues      secValues
+               attribute  avlCntrlElevator  cntrlValues
+         elseif compType eq 3
+            udprim  naca  thickness  thickness  sharpte  sharpte  camber  camber
+               attribute  capsIntent      LINEARAERO
+               attribute  capsGroup         $Vertical_Tail
+               attribute  avlSecValues      secValues
+               attribute  avlCntrlRudder    cntrlValues
+         else
+            udprim  naca  thickness  thickness  sharpte  sharpte  camber  camber
+         endif
+         rotatex  90  0  0
+         scale    ctip*outboard+croot*(1-outboard)
+         rotatey  -twist*outboard 0 0
+         translate dxtip*outboard +span2*outboard +dztip*outboard
+
+         ifthen compType eq 1
+            udprim  naca  thickness  thickness  sharpte  sharpte  camber  camber
+               attribute  capsIntent      LINEARAERO
+               attribute  capsGroup         $Wing
+               attribute  avlSecValues      secValues
+               attribute  avlCntrlFlap      cntrlValues
+         elseif compType eq 2
+            udprim  naca  thickness  thickness  sharpte  sharpte  camber  camber
+               attribute  capsIntent      LINEARAERO
+               attribute  capsGroup         $Horizontal_Tail
+               attribute  avlSecValues      secValues
+               attribute  avlCntrlElevator  cntrlValues
+         elseif compType eq 3
+            udprim  naca  thickness  thickness  sharpte  sharpte  camber  camber
+               attribute  capsIntent      13
+               attribute  capsGroup         $Vertical_Tail
+               attribute  avlSecValues      secValues
+               attribute  avlCntrlRudder    cntrlValues
+         else
+            udprim  naca  thickness  thickness  sharpte  sharpte  camber  camber
+         endif
+         rotatex  90  0  0
+         scale    ctip*inboard+croot*(1-inboard)
+         rotatey  -twist*inboard 0 0
+         translate dxtip*inboard +span2*inboard +dztip*inboard
+      endif
+
+      ifthen compType eq 1
+         udprim  naca  thickness  thickness  sharpte  sharpte  camber  camber
+            attribute  capsIntent   LINEARAERO
+            attribute  capsGroup      $Wing
+            attribute  avlSecValues   secValues
+      elseif compType eq 2
+         udprim  naca  thickness  thickness  sharpte  sharpte  camber  camber
+            attribute  capsIntent   LINEARAERO
+            attribute  capsGroup      $Horizontal_Tail
+            attribute  avlSecValues   secValues
+      elseif compType eq 3
+         udprim  naca  thickness  thickness  sharpte  sharpte  camber  camber
+            attribute  capsIntent   LINEARAERO
+            attribute  capsGroup      $Vertical_Tail
+            attribute  avlSecValues   secValues
+      else
+         udprim  naca  thickness  thickness  sharpte  sharpte  camber  camber
+      endif
+      rotatex  90  0  0
+      scale    ctip
+      rotatey  -twist 0 0
+      translate dxtip +span2 +dztip
+
+   group
+endif
+
+# build BEM model  (intent==5)
+ifthen intent eq 5 and nrib gt 0
+   set nwaffle nrib+ifpos(spar1,2,0)+ifpos(spar2,2,0)
+   dimension waffle nwaffle 4 0
+
+   # ribs
+   patbeg  i nrib
+      set  waffle[i,1]     -0.10*croot
+      set  waffle[i,2]     span2*(2*i-nrib-1)/nrib
+      set  waffle[i,3]     1.1*max(croot,dxtip+ctip)
+      set  waffle[i,4]     waffle[i,2]
+   patend
+
+   # spars
+   ifthen spar1 gt 0
+      set  nrib   nrib+1
+      set  waffle[nrib,1]   spar1*ctip+dxtip
+      set  waffle[nrib,2]  -1.01*span2
+      set  waffle[nrib,3]   spar1*croot
+      set  waffle[nrib,4]   0
+
+      set  nrib   nrib+1
+      set  waffle[nrib,1]   spar1*ctip+dxtip
+      set  waffle[nrib,2]   1.01*span2
+      set  waffle[nrib,3]   spar1*croot
+      set  waffle[nrib,4]   0
+   endif
+   ifthen spar2 gt 0
+      set  nrib   nrib+1
+      set  waffle[nrib,1]   spar2*ctip+dxtip
+      set  waffle[nrib,2]  -1.01*span2
+      set  waffle[nrib,3]   spar2*croot
+      set  waffle[nrib,4]   0
+
+      set  nrib   nrib+1
+      set  waffle[nrib,1]   spar2*ctip+dxtip
+      set  waffle[nrib,2]   1.01*span2
+      set  waffle[nrib,3]   spar2*croot
+      set  waffle[nrib,4]   0
+   endif
+
+   udprim  waffle    Depth     +4*croot      Segments  waffle
+      attribute name $wing_structure
+   translate 0         0         -2*croot
+   store     wingWaffle
+
+   # keep part of wingWaffle inside wingOML
+   restore   wingWaffle
+   restore   wingOML
+   intersect
+
+   # break the wingOML with the wingWaffle and extract the shell
+   restore   wingOML
+   restore   wingWaffle
+   subtract
+   extract   0
+
+   # sew the two SheetBodies together
+   union     0  0  1e-5
+
+   # set the spacing along Edges 
+   udprim    createBEM filename  $BEM.bdf  space  0.02   imin   3   imax   99
+endif
+
+end

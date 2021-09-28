@@ -1,0 +1,44 @@
+#
+!IFNDEF ESP_ROOT
+!ERROR ESP_ROOT must be set -- Please fix the environment...
+!ENDIF
+#
+IDIR  = $(ESP_ROOT)\include
+!include $(IDIR)\$(ESP_ARCH).$(MSVC)
+LDIR  = $(ESP_ROOT)\lib
+BDIR  = $(ESP_ROOT)\bin
+!IFDEF ESP_BLOC
+ODIR  = $(ESP_BLOC)\obj
+TDIR  = $(ESP_BLOC)\test
+!ELSE
+ODIR  = .
+TDIR  = $(ESP_ROOT)\bin
+!ENDIF
+
+default: $(LDIR)\masstranAIM.dll $(BDIR)\Masstran.exe
+
+$(LDIR)\masstranAIM.dll:	masstranAIM.def $(ODIR)\masstranAIM.obj $(LDIR)\utils.lib
+	-del $(LDIR)\masstranAIM.dll $(LDIR)\masstranAIM.lib $(LDIR)\masstranAIM.exp
+	 link /out:$(LDIR)\masstranAIM.dll /dll /def:masstranAIM.def \
+		$(ODIR)\masstranAIM.obj /LIBPATH:$(LDIR) utils.lib aimUtil.lib \
+		ocsm.lib egads.lib udunits2.lib
+	$(MCOMP) /manifest $(LDIR)\masstranAIM.dll.manifest \
+		/outputresource:$(LDIR)\masstranAIM.dll;2
+
+$(ODIR)\masstranAIM.obj:	masstranAIM.c $(IDIR)\capsTypes.h ..\utils\meshUtils.h
+	cl /c $(COPTS) $(DEFINE) /I$(IDIR) /I..\utils masstranAIM.c \
+		/Fo$(ODIR)\masstranAIM.obj
+		
+$(BDIR)\Masstran.exe:	$(ODIR)\Masstran.obj
+	cl $(ODIR)\Masstran.obj /Fe$(BDIR)\Masstran.exe
+	$(MCOMP) /manifest $(TDIR)\Masstran.exe.manifest \
+		/outputresource:$(TDIR)\Masstran.exe;1
+
+$(ODIR)\Masstran.obj:	Masstran.c
+	cl /c $(COPTS) $(DEFINE) Masstran.c /Fo$(ODIR)\Masstran.obj
+
+clean:
+	-del $(ODIR)\masstranAIM.obj $(ODIR)\Masstran.obj
+
+cleanall:	clean
+	-del $(LDIR)\masstranAIM.dll $(LDIR)\masstranAIM.lib $(LDIR)\masstranAIM.exp $(BDIR)\Masstran.exe

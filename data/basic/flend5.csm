@@ -1,0 +1,80 @@
+# flend5
+# written by John Dannenhoffer
+
+# wing-like body
+MARK
+   UDPRIM    naca      thickness 0.12  camber 0.04
+   TRANSLATE 0.0  0.1  0.0
+
+   UDPRIM    naca      thickness 0.08  camber 0.00
+   SCALE     0.80
+   TRANSLATE 0.3  0.1  2.0
+RULE
+STORE     wing
+
+# offset wing-like body
+MARK
+   UDPRIM    naca      thickness 0.12  camber 0.04  offset 0.02
+   TRANSLATE 0.0  0.1  0.0
+
+   UDPRIM    naca      thickness 0.08  camber 0.00  offset 0.02
+   SCALE     0.80
+   TRANSLATE 0.3  0.1  2.0
+RULE
+STORE     offset_wing
+
+# fuselage-like body
+CYLINDER     -2.0  0.0  0.0  3.0  0.0  0.0  0.5
+ROTATEX      90    0.0  0.0
+STORE     fuse
+
+# scribe fuselage with slightly-larger wing
+RESTORE   fuse
+RESTORE   offset_wing
+EXTRACT   0
+SUBTRACT
+STORE     fuse
+
+# scribe wing with slightly-larger fuselage
+RESTORE   wing
+RESTORE   fuse
+SCALE     1.1
+EXTRACT   0
+SUBTRACT
+STORE     wing
+
+# pick series of Facess on wing-like body
+RESTORE   wing
+SELECT    face 6 1 1
+   ATTRIBUTE _flend $remove
+SELECT    face 6 3 1
+   ATTRIBUTE _flend $remove
+SELECT    face 6 4 1
+   ATTRIBUTE _flend $remove
+SELECT    face 6 5 1
+   ATTRIBUTE _flend $remove
+STORE     wing
+
+# pick series of Faces on fuselage-like body
+RESTORE   fuse
+SELECT    face 13 4 1
+   ATTRIBUTE _flend $remove
+STORE     fuse
+
+# generate the flend
+MARK
+   RESTORE   wing
+   ROTATEY   90  0  0
+   SELECT    face $_flend $*
+      ATTRIBUTE _color $magenta
+
+   RESTORE   fuse
+   ROTATEY   90  0  0
+   SELECT    face $_flend $*
+      ATTRIBUTE _color $magenta
+UDPRIM    flend   toler  0.001 plot 1  equis 1
+
+SELECT    face @nbody 0
+   ATTRIBUTE _color $cyan
+
+END

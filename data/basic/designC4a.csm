@@ -1,0 +1,14 @@
+# designC4a
+# written by John Dannenhoffer
+
+despmtr   xvrtx       2
+despmtr   yvrtx       0
+despmtr   zvrtx       1
+despmtr   xbase       6
+despmtr   ybase       0
+despmtr   zbase       1
+despmtr   rad         1
+
+cone      xvrtx  yvrtx  zvrtx  xbase  ybase  zbase  rad
+
+end

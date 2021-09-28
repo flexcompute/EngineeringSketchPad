@@ -1,0 +1,18 @@
+# hollowD1b
+# written by John Dannenhoffer
+
+skbeg     -3  1  0
+   linseg  3  1  0
+skend
+
+skbeg     -3  0  0
+   linseg -1  0  0
+   linseg  1  0  0
+   linseg  3  0  0
+skend
+extrude    0  2  0
+rotatey  180  0  0
+
+hollow   0.0  1  1
+
+end

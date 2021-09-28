@@ -1,0 +1,20 @@
+# catch6
+# written by John Dannenhoffer
+
+SET       x    1.0
+SET       y    2.0
+SET       z    3.0
+
+SOLBEG    x;y;z;
+
+   SOLCON  x+y+z-1
+   SOLCON  x-y-z-1
+   SOLCON  2*x
+SOLEND
+
+CATBEG    $not_converged
+   BOX    0  0  0  x  y  z
+CATEND
+
+
+END

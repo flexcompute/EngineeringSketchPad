@@ -1,0 +1,11 @@
+# biconvex
+# written by John Dannenhoffer
+
+mark
+   patbeg       ithick      10
+      udprim    $$/biconvex thick  ithick/100
+      translate 0.0         0.0    ithick/10
+   patend
+rule
+
+end

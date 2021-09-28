@@ -1,0 +1,6 @@
+# sketch7a
+# written by John Dannenhoffer
+
+DESPMTR   length  4.0   # length
+DESPMTR   height  2.0   # height
+DESPMTR   rad     1.0   # radius of cutout

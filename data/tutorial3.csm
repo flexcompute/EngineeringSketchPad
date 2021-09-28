@@ -1,0 +1,133 @@
+# tutorial3
+# written by John Dannenhoffer
+
+# Design Parameters:
+DESPMTR   tire:wid_outer     12.0      # outer width of tire
+DESPMTR   tire:wid_inner     10.0      # inner width of tire
+DESPMTR   tire:fillet         1.0      # fillet rad  of tire
+DESPMTR   tire:diam_outer    30.0      # outer diam  of tire
+DESPMTR   tire:diam_inner    22.0      # inner diam  of tire
+OUTPMTR   tire:volume                  # volume      of tire
+
+DESPMTR   disk:width          1.0      # width  of disk
+DESPMTR   disk:chamfer        0.5      # chamfer radius btwn disk and tire
+OUTPMTR   disk:volume                  # volume of disk
+
+CFGPMTR   hole:num            5        # number of holes
+DESPMTR   hole:diam_circ      4.0      # diam of circle of holes
+DESPMTR   hole:rad            0.5      # radius of each hole
+
+CFGPMTR   spoke:num          10        # number of spokes
+DESPMTR   spoke:rim           1.0      # rim left after spokes cutout
+DESPMTR   spoke:rad           0.2      # radius of each spoke
+
+# sketch of half the cross-section of the tire
+UDPRIM    $/tutorial_sketch1
+
+# move sketch up to correct location and revolve half way around x axis
+TRANSLATE 0   tire:diam_inner/2   0
+REVOLVE   0   0   0   1   0   0   180
+
+# put an attribute on the Face associated with the tread
+SELECT    FACE   @nbody  6
+ATTRIBUTE myTag  $tread
+ATTRIBUTE _color $magenta
+
+# make mirrored copy first in Z and then in X
+RESTORE   .
+MIRROR    0  0  1
+JOIN
+
+RESTORE   .
+MIRROR    1   0   0
+JOIN
+
+# store the tire's volume
+SET       tire:volume  @volume
+
+# label all Faces as being part of the tire
+SELECT    FACE
+ATTRIBUTE myPart $tire
+
+# create red disk and union with tire
+CYLINDER  -disk:width/2  0  0  \
+          +disk:width/2  0  0  (tire:diam_inner+tire:diam_outer)/4
+ATTRIBUTE myPart $disk
+ATTRIBUTE _color  $red
+UNION
+
+# (optionally) add blue chamfer between disk and tire
+IFTHEN    disk:chamfer  GT  0
+   CHAMFER   disk:chamfer
+   ATTRIBUTE _color $blue
+ENDIF
+
+# (optionally) drill a pattern of holes
+PATBEG    ihole     hole:num
+   # on axis if one hole
+   IFTHEN    hole:num EQ 1
+      SET   y      0
+      SET   z      0
+   # equally spaced around axis
+   ELSE
+      SET   theta  360*ihole/hole:num
+      SET   y      "hole:diam_circ/2 * cosd(theta)"
+      SET   z      "hole:diam_circ/2 * sind(theta)"
+   ENDIF
+
+   CYLINDER -disk:width  y  z \
+            +disk:width  y  z  hole:rad
+   ATTRIBUTE myPart $hole
+   SUBTRACT
+PATEND
+
+# save this Body away (but leave copy on stack)
+STORE    SolidModel  0  1
+
+# (optionally) add spokes (in cyan)
+IFTHEN    spoke:num GT 0
+   SET    rmin  hole:diam_circ/2+hole:rad+spoke:rim
+   SET    rmax  tire:diam_inner/2-disk:chamfer-spoke:rim
+
+   CYLINDER  -disk:width  0  0  +disk:width  0  0  rmax
+   SUBTRACT
+   SELECT    FACE   @nbody-1  0     # comes from cylinder
+   ATTRIBUTE _color $cyan
+
+   CYLINDER  0  rmin-0.1  0  0  rmax+0.1  0  spoke:rad
+   ATTRIBUTE myPart $spoke
+   ATTRIBUTE _color $cyan
+
+   UNION
+
+   RESTORE SolidModel
+   CYLINDER  -disk:width  0  0  +disk:width  0  0  rmin
+   INTERSECT
+   SELECT    FACE   @nbody-1  0     # comes from cylinder
+   ATTRIBUTE _color $cyan
+   UNION
+
+   PATBEG    ispoke  spoke:num-1
+      CYLINDER  0  rmin-0.1  0  0  rmax+0.1  0  spoke:rad
+      ATTRIBUTE myPart $spoke
+      ATTRIBUTE _color $cyan
+
+      ROTATEX   360*ispoke/spoke:num  0  0
+      UNION
+   PATEND
+ENDIF
+STORE    SolidModel  0  1
+
+# intersect this SolidModel with a cylinder in order
+#    to find the disk's volume (excluding tire)
+SET      xmax     2*max(tire:wid_outer,tire:wid_inner)
+CYLINDER -xmax  0  0  +xmax  0  0  tire:diam_inner/2
+INTERSECT
+SET      disk:volume  @volume
+STORE    .          # pop Body off stack
+
+# show the final model
+RESTORE          SolidModel
+ATTRIBUTE _name $SolidModel
+
+END

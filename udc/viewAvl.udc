@@ -1,0 +1,187 @@
+# viewAvl.udc
+# written by John Dannenhoffer
+
+# used Bodys
+#    WingOml
+#    HtailOml       (optional)
+# used variables
+#    wing:area
+#    wing:aspect
+#    wing:span
+#    wing:hinge     (optional)
+#    htail:hinge    (optional)
+
+INTERFACE . ALL
+
+SET        WingAvlNcut  "ifnan( WingAvlNcut,11, WingAvlNcut)"
+SET       HtailAvlNcut  "ifnan(HtailAvlNcut,11,HtailAvlNcut)"
+
+# spanwise cuts for wing
+IFTHEN    COMP:Wing EQ 1
+
+    RESTORE   WingOml
+    SET       xmin     @xmin-1
+    SET       xmax     @xmax+1
+    SET       ymin     @ymin+0.001
+    SET       ymax     @ymax-0.001
+    SET       zmin     @zmin-1
+    SET       zmax     @zmax+1
+    STORE     .
+
+    MARK
+
+        # left tip, root, rite tip (if there is at least one WingHinge)
+        CATBEG    $name_not_found
+            THROW -999   # unexpected signal
+        CATEND
+        RESTORE   WingHinge  1
+        STORE     .
+
+        PATBEG    icut  3
+            SET       y  ymin+(ymax-ymin)*(icut-1)/2
+            BOX       xmin  y  zmin  xmax-xmin  0  zmax-zmin
+            RESTORE   WingOml
+            INTERSECT
+                ATTRIBUTE capsAIM            $avlAIM
+                ATTRIBUTE capsReferenceArea  wing:area
+                ATTRIBUTE capsReferenceSpan  wing:span
+                ATTRIBUTE capsReferenceChord wing:area/wing:span
+                ATTRIBUTE capsReferenceX     wing:area/wing:span/4.0
+                ATTRIBUTE capsGroup          $Wing
+        PATEND
+        CATBEG    $name_not_found
+        CATEND
+
+        # beginning and end of each hinge
+        CATBEG    $name_not_found
+            THROW -999   # unexpected signal
+        CATEND
+        PATBEG    ihinge  9999
+            
+	    RESTORE   WingHinge  ihinge
+            SELECT    EDGE  1
+            SET       ybeg     @ymin
+            SET       yend     @ymax
+            GETATTR   tagComp  $tagComp
+            GETATTR   tagType  $tagType
+            GETATTR   tagIndex $tagIndex
+            GETATTR   deflect  $deflect
+            GETATTR   xoverc1  $xoverc1
+            GETATTR   xoverc2  $xoverc2
+            STORE     .
+
+            BOX       xmin  ybeg  zmin  xmax-xmin  0  zmax-zmin
+            RESTORE   WingOml
+            INTERSECT
+                ATTRIBUTE capsAIM                          $avlAIM
+                ATTRIBUTE capsGroup                        $Wing
+                ATTRIBUTE !$vlmControl_WingHinge+tagIndex  xoverc1
+
+            BOX       xmin  yend  zmin  xmax-xmin  0  zmax-zmin
+            RESTORE   WingOml
+            INTERSECT
+                ATTRIBUTE capsAIM                          $avlAIM
+                ATTRIBUTE capsGroup                        $Wing
+                ATTRIBUTE !$vlmControl_WingHinge+tagIndex  xoverc2
+        PATEND
+        CATBEG    $name_not_found
+        CATEND
+
+        # if there were no WingHinge Bodys, make WingAvlNcut evenly space cuts
+        IFTHEN    ihinge EQ 1
+            PATBEG    icut  WingAvlNcut
+                SET       y  ymin+(ymax-ymin)*(icut-1)/(WingAvlNcut-1)
+                BOX       xmin  y  zmin  xmax-xmin  0  zmax-zmin
+                RESTORE   WingOml
+                INTERSECT
+                    ATTRIBUTE capsAIM            $avlAIM
+                    ATTRIBUTE capsReferenceArea  wing:area
+                    ATTRIBUTE capsReferenceSpan  wing:span
+                    ATTRIBUTE capsReferenceChord wing:area/wing:span
+                    ATTRIBUTE capsReferenceX     wing:area/wing:span/4.0
+                    ATTRIBUTE capsGroup          $Wing
+            PATEND
+        ENDIF
+    GROUP
+ENDIF
+
+# spanwise cuts for htail
+IFTHEN    COMP:Htail EQ 1
+
+    RESTORE   HtailOml
+    SET       xmin     @xmin-1
+    SET       xmax     @xmax+1
+    SET       ymin     @ymin+0.001
+    SET       ymax     @ymax-0.001
+    SET       zmin     @zmin-1
+    SET       zmax     @zmax+1
+    STORE     .
+
+    MARK
+
+        # left tip, root, rite tip (if there is at least one HtailHinge)
+        RESTORE   HtailHinge  1
+        STORE     .
+
+        CATBEG    $name_not_found
+            THROW -999   # unexpected signal
+        CATEND
+        PATBEG    icut  3
+            SET       y  ymin+(ymax-ymin)*(icut-1)/2
+            BOX       xmin  y  zmin  xmax-xmin  0  zmax-zmin
+            RESTORE   HtailOml
+            INTERSECT
+                ATTRIBUTE capsGroup $Htail
+        PATEND
+        CATBEG    $name_not_found
+        CATEND
+
+        # beginning and end of each hinge
+        CATBEG    $name_not_found
+            THROW -999   # unexpected signal
+        CATEND
+        PATBEG    ihinge  9999
+            RESTORE   HtailHinge  ihinge
+            SELECT    EDGE  1
+            SET       ybeg     @ymin
+            SET       yend     @ymax
+            GETATTR   tagComp  $tagComp
+            GETATTR   tagType  $tagType
+            GETATTR   tagIndex $tagIndex
+            GETATTR   deflect  $deflect
+            GETATTR   xoverc1  $xoverc1
+            GETATTR   xoverc2  $xoverc2
+            STORE     .
+
+            BOX       xmin  ybeg  zmin  xmax-xmin  0  zmax-zmin
+            RESTORE   HtailOml
+            INTERSECT
+                ATTRIBUTE capsAIM                           $avlAIM
+                ATTRIBUTE capsGroup                         $Htail
+                ATTRIBUTE !$vlmControl_HtailHinge+tagIndex  xoverc1
+
+            BOX       xmin  yend  zmin  xmax-xmin  0  zmax-zmin
+            RESTORE   HtailOml
+            INTERSECT
+                ATTRIBUTE capsAIM                           $avlAIM
+                ATTRIBUTE capsGroup                         $Htail
+                ATTRIBUTE !$vlmControl_HtailHinge+tagIndex  xoverc2
+        PATEND
+        CATBEG    $name_not_found
+        CATEND
+
+        # if there were no HtailHinge Bodys, make HtailAvlNcut evenly space cuts
+        IFTHEN    ihinge EQ 1
+            PATBEG    icut  HtailAvlNcut
+                SET       y  ymin+(ymax-ymin)*(icut-1)/(HtailAvlNcut-1)
+                BOX       xmin  y  zmin  xmax-xmin  0  zmax-zmin
+                RESTORE   HtailOml
+                INTERSECT
+                     ATTRIBUTE capsAIM   $avlAIM
+                     ATTRIBUTE capsGroup $Htail
+            PATEND
+        ENDIF
+    GROUP
+ENDIF
+
+END

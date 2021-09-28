@@ -1,0 +1,25 @@
+# ereped3
+# written by John Dannenhoffer
+
+BOX       0.0   0.0  -1.0   1.0   0.0   1.0
+
+BOX       0.0   0.0   0.0   1.0   0.0   1.0
+JOIN
+
+BOX       0.0   0.0   0.0   1.0   1.0   0.0
+JOIN
+
+SKBEG     0.0   1.0   0.0
+   LINSEG 1.0   1.0   0.0
+   CIRARC 0.5   1.5   0.0   0.0   1.0   0.0
+SKEND
+JOIN
+
+BOX       0.0   0.0   0.0   0.0   1.0   1.0
+ROTATEY  -60.0  0.0   0.0
+JOIN
+
+CYLINDER  0.5   0.9  -1.0   0.5   0.9   1.0   0.3
+SUBTRACT
+
+END

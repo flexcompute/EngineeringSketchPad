@@ -1,0 +1,97 @@
+# bbox
+# written by John Dannenhoffer
+
+# box and its bounding box
+box       -1   -1   -1   2    2    2
+set       xmin @xmin
+set       xmax @xmax
+set       ymin @ymin
+set       ymax @ymax
+set       zmin @zmin
+set       zmax @zmax
+
+select    face 1
+   set    xmin @xmin
+   set    xmax @xmax
+   set    ymin @ymin
+   set    ymax @ymax
+   set    zmin @zmin
+   set    zmax @zmax
+select    face 2
+   set    xmin @xmin
+   set    xmax @xmax
+   set    ymin @ymin
+   set    ymax @ymax
+   set    zmin @zmin
+   set    zmax @zmax
+select    edge 1
+   set    xmin @xmin
+   set    xmax @xmax
+   set    ymin @ymin
+   set    ymax @ymax
+   set    zmin @zmin
+   set    zmax @zmax
+
+# cylinder and its bounding box
+cylinder  -2    0    0   2    0    0    1/10
+set       xmin @xmin
+set       xmax @xmax
+set       ymin @ymin
+set       ymax @ymax
+set       zmin @zmin
+set       zmax @zmax
+
+select    face 1
+   set    xmin @xmin
+   set    xmax @xmax
+   set    ymin @ymin
+   set    ymax @ymax
+   set    zmin @zmin
+   set    zmax @zmax
+select    face 2
+   set    xmin @xmin
+   set    xmax @xmax
+   set    ymin @ymin
+   set    ymax @ymax
+   set    zmin @zmin
+   set    zmax @zmax
+select    edge 1
+   set    xmin @xmin
+   set    xmax @xmax
+   set    ymin @ymin
+   set    ymax @ymax
+   set    zmin @zmin
+   set    zmax @zmax
+
+# union and its bounding box
+union
+set       xmin @xmin
+set       xmax @xmax
+set       ymin @ymin
+set       ymax @ymax
+set       zmin @zmin
+set       zmax @zmax
+
+select    face 1
+   set    xmin @xmin
+   set    xmax @xmax
+   set    ymin @ymin
+   set    ymax @ymax
+   set    zmin @zmin
+   set    zmax @zmax
+select    face 2
+   set    xmin @xmin
+   set    xmax @xmax
+   set    ymin @ymin
+   set    ymax @ymax
+   set    zmin @zmin
+   set    zmax @zmax
+select    edge 1
+   set    xmin @xmin
+   set    xmax @xmax
+   set    ymin @ymin
+   set    ymax @ymax
+   set    zmin @zmin
+   set    zmax @zmax
+
+end

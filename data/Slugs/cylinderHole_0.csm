@@ -1,0 +1,17 @@
+# cylinderHole_0
+# written by John Dannenhoffer
+
+cylinder  -1.0  0.0  0.0  +1.0  0.0  0.0  0.5
+
+cylinder   -.5 -1.0  0.0   -.5 +1.0  0.0  0.2
+subtract
+
+box        0.4  0.0  -.1   0.4  1.0  0.2
+rotatey   30.0             0.0  0.6
+subtract
+   attribute  .tParams  0.10;0.02;5.0
+
+dump      $/cylinderHole_0.stl
+dump      $/cylinderHole.plot
+
+end

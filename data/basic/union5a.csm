@@ -1,0 +1,33 @@
+# union5a
+# written by John Dannenhoffer
+
+despmtr   theta  0
+
+mark
+   skbeg      0  1  0
+      cirarc  0  0  1  0 -1  0
+      cirarc  0  0 -1  0  1  0
+   skend
+
+   skbeg      1  1  0
+      cirarc  1  0  1  1 -1  0
+      cirarc  1  0 -1  1  1  0
+   skend
+rule
+
+mark
+   skbeg      1  1  0
+      cirarc  1  0  1  1 -1  0
+      cirarc  1  0 -1  1  1  0
+   skend
+
+   skbeg      2  1  0
+      cirarc  2  0  1  2 -1  0
+      cirarc  2  0 -1  2  1  0
+   skend
+rule
+rotatex  theta 0 0
+
+union
+
+end

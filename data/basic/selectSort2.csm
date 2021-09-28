@@ -1,0 +1,154 @@
+# selectSort2
+# written by John Dannenhoffer
+
+# make a rotated box
+BOX       0  0  0  4  3  2
+ROTATEZ  30  0  0
+ROTATEY  30  0  0
+
+# remember the Faces in face-order
+SELECT    FACE  1  1
+SET       face1 @iface
+
+SELECT    FACE  1  2
+SET       face2 @iface
+
+SELECT    FACE  1  3
+SET       face3 @iface
+
+SELECT    FACE  1  4
+SET       face4 @iface
+
+SELECT    FACE  1  5
+SET       face5 @iface
+
+SELECT    FACE  1  6
+SET       face6 @iface
+
+# get the Faces and sort them by xmin
+SELECT    FACE
+SELECT    SORT  $xmin
+
+ASSERT    @sellist[1]   face1
+ASSERT    @sellist[2]   face4
+ASSERT    @sellist[3]   face5
+ASSERT    @sellist[4]   face6
+ASSERT    @sellist[5]   face3
+ASSERT    @sellist[6]   face2
+
+# get the Faces and sort them by ymin
+SELECT    FACE
+SELECT    SORT  $ymin
+
+ASSERT    @sellist[1]   face1
+ASSERT    @sellist[2]   face3
+ASSERT    @sellist[3]   face5
+ASSERT    @sellist[4]   face6
+ASSERT    @sellist[5]   face2
+ASSERT    @sellist[6]   face4
+
+# get the Faces and sort them by zmin
+SELECT    FACE
+SELECT    SORT  $zmin
+
+ASSERT    @sellist[1]   face2
+ASSERT    @sellist[2]   face3
+ASSERT    @sellist[3]   face5
+ASSERT    @sellist[4]   face4
+ASSERT    @sellist[5]   face1
+ASSERT    @sellist[6]   face6
+
+# get the Faces and sort them by xmax
+SELECT    FACE
+SELECT    SORT  $xmax
+
+ASSERT    @sellist[1]   face1
+ASSERT    @sellist[2]   face4
+ASSERT    @sellist[3]   face5
+ASSERT    @sellist[4]   face2
+ASSERT    @sellist[5]   face3
+ASSERT    @sellist[6]   face6
+
+# get the Faces and sort them by ymax
+SELECT    FACE
+SELECT    SORT  $ymax
+
+ASSERT    @sellist[1]   face3
+ASSERT    @sellist[2]   face1
+ASSERT    @sellist[3]   face2
+ASSERT    @sellist[4]   face4
+ASSERT    @sellist[5]   face5
+ASSERT    @sellist[6]   face6
+
+# get the Faces and sort them by zmax
+SELECT    FACE
+SELECT    SORT  $zmax
+
+ASSERT    @sellist[1]   face2
+ASSERT    @sellist[2]   face5
+ASSERT    @sellist[3]   face3
+ASSERT    @sellist[4]   face1
+ASSERT    @sellist[5]   face4
+ASSERT    @sellist[6]   face6
+
+# get the Faces and sort them by xcg
+SELECT    FACE
+SELECT    SORT  $xcg
+
+ASSERT    @sellist[1]   face1
+ASSERT    @sellist[2]   face4
+ASSERT    @sellist[3]   face5
+ASSERT    @sellist[4]   face6
+ASSERT    @sellist[5]   face3
+ASSERT    @sellist[6]   face2
+
+# get the Faces and sort them by ycg
+SELECT    FACE
+SELECT    SORT  $ycg
+
+ASSERT    @sellist[1]   face3
+ASSERT    @sellist[2]   face1
+ASSERT    @sellist[3]   face5
+ASSERT    @sellist[4]   face6
+ASSERT    @sellist[5]   face2
+ASSERT    @sellist[6]   face4
+
+# get the Faces and sort them by zcg
+SELECT    FACE
+SELECT    SORT  $zcg
+
+ASSERT    @sellist[1]   face2
+ASSERT    @sellist[2]   face5
+ASSERT    @sellist[3]   face3
+ASSERT    @sellist[4]   face4
+ASSERT    @sellist[5]   face1
+ASSERT    @sellist[6]   face6
+
+# get the Faces and sort them by area
+SELECT    FACE
+SELECT    SORT  $area
+
+ASSERT    @sellist[1]   face1
+ASSERT    @sellist[2]   face2
+ASSERT    @sellist[3]   face3
+ASSERT    @sellist[4]   face4
+ASSERT    @sellist[5]   face5
+ASSERT    @sellist[6]   face6
+
+# get the Faces in the opposite order and sort them by area
+SELECT    FACE  1  6
+SELECT    ADD   1  5
+SELECT    ADD   1  4
+SELECT    ADD   1  3
+SELECT    ADD   1  2
+SELECT    ADD   1  1
+SELECT    SORT  $area
+
+ASSERT    @sellist[1]   face2
+ASSERT    @sellist[2]   face1
+ASSERT    @sellist[3]   face4
+ASSERT    @sellist[4]   face3
+ASSERT    @sellist[5]   face6
+ASSERT    @sellist[6]   face5
+
+END

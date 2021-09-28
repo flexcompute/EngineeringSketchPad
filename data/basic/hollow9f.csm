@@ -1,0 +1,21 @@
+# hollow9f
+# written by John Dannenhoffer
+
+mark
+   # root
+   udprim naca thickness 0.12 camber 0.04
+   scale 2
+
+   # tip
+   udprim naca thickness 0.08 camber 0.02
+   translate 0.1 0 6
+rule
+
+# make thin-walled offset surface (holes in root and tip)
+hollow 0.001 "5;1;  5;2"
+
+# punch hole to look inside
+cylinder 0.85 -1.0 3.0 0.85 +1.0 3.0 0.2
+subtract
+
+end

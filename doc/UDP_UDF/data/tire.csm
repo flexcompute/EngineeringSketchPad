@@ -1,0 +1,32 @@
+# tire
+# written by Jake Miller
+
+despmtr width        5.0
+despmtr minrad       8.0
+despmtr maxrad      12.0
+despmtr fillet       2.0
+despmtr platethick   0.5
+despmtr patternrad   4.0
+despmtr bolts        5
+despmtr boltrad      1.0
+
+udparg  tire   width       width
+udparg  tire   minrad      minrad  
+udparg  tire   maxrad      maxrad  
+udparg  tire   fillrad     fillet 
+udparg  tire   patternrad  patternrad
+udparg  tire   boltrad     boltrad
+udprim  tire   platethick  platethick   bolts       bolts
+
+#======================================#
+# automatically generated verification #
+# OpenCSM  1.09      OpenCASCADE 6.6.0 #
+#======================================#
+select    body 7
+   assert   1.22469e+03  @volume  -.001  1
+   assert   1.35925e+03  @area    -.001  1
+   assert   0.00000e+00  @xcg     0.001  1
+   assert   0.00000e+00  @ycg     0.001  1
+   assert   0.00000e+00  @zcg     0.001  1
+
+end

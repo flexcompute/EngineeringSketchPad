@@ -1,0 +1,137 @@
+# generic_missile
+#
+# Parameterized generic missile geometry
+#
+# -----------------------------------------------------------------
+# Define the analysis fidelity that the geometry is intended support
+# -----------------------------------------------------------------
+ATTRIBUTE capsAIM    $cart3dAIM;fun3dAIM;pointwiseAIM;egadsTessAIM;aflr4AIM;aflr3AIM
+
+CFGPMTR hollowbody 0 #Set to one (1) for hollow body suitable for massproperties and any other value for solid body (CFD)
+
+####################################
+# design and other parameters
+####################################
+DESPMTR fs:radius                1.05
+DESPMTR fs:length                21.0
+DESPMTR fs:nose:radius           0.15
+DESPMTR fs:nose:ogive_radius     10.0
+DESPMTR fs:boattail:halfangle    15.0
+DESPMTR fs:boattail:radius:scale 0.9
+
+SET fs:boattail:radius fs:boattail:radius:scale*fs:radius
+
+DESPMTR fin:rootchordscale   1.1   #scale to stage diameter (0:1)
+DESPMTR fin:tipchordscale    0.95  #scale to fin root chord (0:1)
+DESPMTR fin:spanscale        1.15  #scale to stage diameter (>0.5)
+DESPMTR fin:hingeline        0.5   #percent chord where hingeline is
+DESPMTR fin:sweepdeg         40.0  #sweep angle of fin leading edge
+DESPMTR fin:location         0.90  #normalized location of fin root end on stage length (0:1)
+DESPMTR fin:tipr             1.00  # rounded tip radii factor
+CFGPMTR numfin               4     #integer for number of fins on stage (>1)
+CFGPMTR fin:airfoil          0008  #4-digit NACA series number of fin airfoil
+DESPMTR xseeker              0.5   #x location of seeker for packaging
+
+DIMENSION  fin:angles  numfin  1  1
+DESPMTR    fin:angles  "0.0; 0.0; 0.0; 0.0; 0.0;"
+
+# Needed Other Paramaters
+SET fs:diameter fs:radius*2.0
+SET S_ref pi(fs:radius*fs:radius)
+SET TOL 1.0e-4  #tolerance to take away build warnings/errors
+SET fin:rootchord fs:diameter*fin:rootchordscale
+SET fin:tipchord fin:rootchord*fin:tipchordscale
+SET fin:span fs:diameter*fin:spanscale
+
+####################################
+#      first stage
+####################################
+SKBEG     0   0   0   1
+    SKVAR     xy " 0.00; 0.005;0.00;\
+                   0.07;-0.125;0.02;\
+                   1.51;-0.495;0.09;\
+                  14.72;-0.495;0.00;\
+                  15.00;-0.425;0.00;\
+                  15.00; 0.005;0.00;"
+    SKCON     X   1  -1  0
+    SKCON     Y   1  -1  0
+    SKCON     P   1  -1  0
+    SKCON     R   1   2  fs:nose:radius
+    SKCON     T   2  -1  0
+    SKCON     R   2   3  fs:nose:ogive_radius
+    SKCON     T   3  -1  0
+    SKCON     H   3   4  0
+    SKCON     I   4   5  fs:boattail:halfangle
+    SKCON     D   4   6  fs:radius
+    SKCON     V   5   6  0
+    SKCON     L   5   6  fs:boattail:radius
+    SKCON     H   6   1  0
+    SKCON     L   6   1  fs:length
+    ARC       ::x[2]   ::y[2]   0   ::d[2]   xy
+    ARC       ::x[3]   ::y[3]   0   ::d[3]   xy
+    LINSEG    ::x[4]   ::y[4]   0
+    LINSEG    ::x[5]   ::y[5]   0
+    LINSEG    ::x[6]   ::y[6]   0
+    LINSEG    ::x[1]   ::y[1]   0
+SKEND     0
+REVOLVE   0   0   0   1   0   0   360
+    ATTRIBUTE capsGroup $MissileOML
+    ATTRIBUTE _name $fs
+    ATTRIBUTE bc    $fs
+
+# Attributes for CFD Analysis
+ATTRIBUTE capsReferenceArea  S_ref
+ATTRIBUTE capsReferenceSpan  fin:span
+ATTRIBUTE capsReferenceChord fs:length
+
+STORE fs 0 1
+
+SCALE 0.98
+TRANSLATE TOL 0 0
+STORE fsinterior
+
+####################################
+#        fins
+####################################
+#building the fins --- initial le is (0,0,0), initial te is (1,0,0) in x-y plane
+#uniformily built numfin fins
+MARK
+   #root chord
+   UDPRIM  naca  Series  fin:airfoil
+   SCALE  fin:rootchord
+   #tip chord
+   UDPRIM  naca  Series  fin:airfoil
+   SCALE  fin:tipchord
+   TRANSLATE  fin:span/tand(90-fin:sweepdeg)  0.0    fin:span
+BLEND  0  -1;fin:tipr
+STORE fin
+
+RESTORE fs #first restore missile body to union to
+PATBEG    ifin      numfin
+   SET    circumferanceangle     (ifin-1)*(360.0/numfin)
+   RESTORE fin
+   ROTATEZ   fin:angles[ifin]  fin:hingeline*fin:rootchord  0
+   ROTATEX   circumferanceangle    0         0
+   TRANSLATE  (fs:length*fin:location)-(fin:rootchord+TOL)  0  0
+   UNION
+PATEND
+
+#Hollow out the interior of the missile again for the inside fin bodies
+IFTHEN hollowbody EQ 1
+  RESTORE fsinterior
+  SUBTRACT
+ENDIF
+SELECT body
+  ATTRIBUTE _name $Missile
+SELECT face
+   ATTRIBUTE capsGroup $MissileOML
+
+#Create a bounding box and mark boundary as a farfied 
+SET ffm 20.0
+SPHERE 0 0 0 fs:length*ffm
+  ATTRIBUTE _name          $Farfield
+  ATTRIBUTE AFLR_GBC       $FARFIELD_UG3_GBC
+  ATTRIBUTE capsGroup      $Farfield
+  ATTRIBUTE capsMeshLength fs:length*ffm/4.0
+
+END

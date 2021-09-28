@@ -1,0 +1,45 @@
+# project2
+# written by John Dannenhoffer
+
+despmtr   thick     0.12
+despmtr   camber    0.04
+despmtr   span      2.00
+
+dimension yup       1  9  0
+dimension ylo       1  9  0
+
+udprim    naca      thickness thick     camber    camber
+extrude   0         0         span
+
+set        zz        span/2
+
+patbeg     ix        9
+   set     xx        ix/10
+
+   project xx  1.0  zz  0.0 -1.0  0.0
+   set     yup[1,ix]  @ycg
+   assert  @xcg  xx
+   assert  @zcg  zz
+
+   project xx -1.0  zz  0.0  1.0  0.0
+   set     ylo[1,ix]  @ycg
+   assert  @xcg  xx
+   assert  @zcg  zz
+patend
+
+patbeg     ix       9
+   set     xx       ix/10
+
+   point   xx  ylo[1,ix]  zz
+   point   xx  yup[1,ix]  zz
+patend
+
+patbeg     ix       9
+   set     xx       ix/10
+
+   skbeg      xx  -.2  zz
+      linseg  xx  0.2  zz
+   skend
+patend
+
+end

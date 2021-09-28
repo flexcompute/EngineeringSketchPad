@@ -1,0 +1,14 @@
+# csystem6d
+# written by John Dannenhoffer
+
+# csystem associated with Node 7
+BOX       0  0  0  1  1  1
+CSYSTEM   cs1 "7;   1;0;0;   0;1;0"
+STORE     box
+
+RESTORE   box
+RESTORE   box
+ROTATEZ   30.  0.0  0.0
+TRANSLATE 2.0  0.0  0.0
+
+END

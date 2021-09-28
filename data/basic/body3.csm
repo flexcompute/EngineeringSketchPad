@@ -1,0 +1,23 @@
+# body3
+# written by John Dannenhoffer
+
+despmtr   nsect     5
+
+set       angle     360/nsect
+patbeg    isect     nsect
+   skbeg         10.000000  0.000000  0.000000
+      linseg     -2.316228  0.000000  0.000000
+      cirarc     -2.256537  0.184902  0.000000 -2.100000  0.300000  0.000000
+      linseg      0.000000  1.000000  0.000000
+      linseg     10.000000  1.000000  0.000000
+      linseg     10.000000  0.000000  0.000000
+   skend
+   revolve        0.00      0.00      0.00      1.00      0.00      0.00      angle
+
+   patbeg    foo       ifpos(isect-1,1,0)
+      rotatex   (isect-1)*angle 0.00      0.00
+      union
+   patend
+patend
+
+end

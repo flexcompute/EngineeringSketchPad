@@ -1,0 +1,9 @@
+# subtract4i
+# written by John Dannenhoffer
+
+CYLINDER -5  0  0  6  0  0  0.1
+TORUS     0  0  0  0  0  1  3  1
+
+SUBTRACT  vmin -1
+
+end

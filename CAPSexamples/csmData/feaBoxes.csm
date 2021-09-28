@@ -1,0 +1,44 @@
+# feaBoxes.csm
+# used to demonstrate quad mesh generation
+#
+# Global tessllation parameters are controlled via the AIM
+#
+# attribute .qParams as a string will disable quading on that face
+# attribute .qParams as a tring on a body will dissable quading on all faces of that body
+#
+# attribute .tParam will overwrite global tessellation parameters
+# attribute .tParams will use minimum of .tParams and global tessellation parameters
+#
+
+# Quadding on all faces
+BOX       0.0  0.0  0.0  1.0  1.0  1.0
+ATTRIBUTE capsGroup $box1
+SELECT body @nbody
+    ATTRIBUTE capsAIM $astrosAIM
+    ATTRIBUTE _name   $allQuad
+
+# Quadding is dissabled on faces 3 and 6
+BOX       2.0  0.0  0.0  1.0  1.0  1.0
+ATTRIBUTE capsGroup $box2
+SELECT face 3
+    ATTRIBUTE .qParams $off
+SELECT face 4
+    ATTRIBUTE .qParams $off
+SELECT face 6
+    ATTRIBUTE capsIgnore $true # ignore one face in the mesh
+SELECT body @nbody
+    ATTRIBUTE capsAIM $astrosAIM
+    ATTRIBUTE _name   $partQuad
+
+# Quadding dissbled on all faces
+BOX       4.0  0.0  0.0  1.0  1.0  1.0
+ATTRIBUTE capsGroup $box3
+SELECT face 2
+    ATTRIBUTE .tParam "0.4; 0.005; 15.0;"
+SELECT face 6
+    # Must be smaller than global tessellation parameters to impact tessellation
+    ATTRIBUTE .tParams "0.05; 0.005; 15.0;" 
+SELECT body @nbody
+    ATTRIBUTE capsAIM  $astrosAIM
+    ATTRIBUTE .qParams $off
+    ATTRIBUTE _name    $noQuad

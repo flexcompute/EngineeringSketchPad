@@ -1,0 +1,27 @@
+# match3
+# written by John Dannenhoffer
+
+# fuselage
+despmtr   dxfuse   10.0
+despmtr   dyfuse    2.0
+despmtr   dzfuse    1.0
+
+# main wing
+despmtr   chord     2.0
+despmtr   thick     0.2
+despmtr   span      10.
+
+despmtr   xwing     3.0
+despmtr   ywing     0.9
+
+# fuselage
+box       0.0       0.0       0.0       dxfuse    dyfuse    dzfuse
+    name      fuselage
+
+# wing
+box       0.0       0.0       0.0       chord     thick     span-dzfuse/2
+    name      main
+translate xwing     ywing     dzfuse/2
+union
+
+end

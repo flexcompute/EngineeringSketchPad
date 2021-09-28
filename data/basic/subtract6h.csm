@@ -1,0 +1,31 @@
+# subtract6h
+# written by John Dannenhoffer
+
+# make flowfield
+BOX        -1.0  -1.0   0.0   2.0   2.0   0.0
+ATTRIBUTE  myPlane  $xy
+SELECT     EDGE
+ATTRIBUTE  bc_name $box
+
+# make body (a circle)
+SKBEG      -0.3   0.0   0.0
+   CIRARC   0.0  -0.3   0.0  +0.3   0.0   0.0
+   CIRARC   0.0  +0.3   0.0  -0.3   0.0   0.0
+SKEND
+SELECT     EDGE
+ATTRIBUTE  bc_name $circle
+
+# you can now subtract in plane (no need for solids)
+SUBTRACT
+
+# make sure that we have the correct Attributes
+SELECT    FACE   $myPlane  $xy
+ASSERT    @sellist.size    1
+
+SELECT    EDGE   $bc_name  $box
+ASSERT    @sellist.size  4
+
+SELECT    EDGE   $bc_name  $circle
+ASSERT    @sellist.size  2
+
+END

@@ -1,0 +1,19 @@
+# stag1
+# written by John Dannwnhoffer
+
+despmtr   rad1    0.10     # leading edge radius
+despmtr   beta1   30.0     # leading edge incidence    (deg)
+despmtr   gama1   10.0     # leading edge wedge angle  (deg)
+despmtr   rad2    0.05     # trailing edge radius
+despmtr   beta2  -40.0     # trailing edge incidence   (deg)
+despmtr   gama2    5.0     # trailing edge wedge angle (deg)
+despmtr   alfa   -30.0     # overall stagger           (deg)
+despmtr   xfrnt  0.333     # front control point       (x/c)
+despmtr   xrear  0.667     # rear  control point       (x/c)
+
+udparg    stag    rad1    rad1   beta1   beta1    gama1   gama1
+udparg    stag    rad2    rad2   beta2   beta2    gama2   gama2
+udparg    stag    alfa    alfa   xfrnt   xfrnt    xrear   xrear
+udprim    stag
+
+end

@@ -1,0 +1,156 @@
+\documentclass[titlepage]{article}
+\usepackage{graphicx}
+\usepackage{pdfpages}
+\DeclareGraphicsExtensions{.png}
+\usepackage{geometry}
+\geometry{verbose,tmargin=1in,bmargin=1in,lmargin=1in,rmargin=1in}
+
+\title{\vspace{-1.0in}
+       {\LARGE {\tt ESP}: \\ {\bf EGADS Interface to the {\bf C}himera {\bf G}rid {\bf T}ools}}\\
+       \vspace{0.20in}
+       Discrete Output of Analytic Geometry for the {\bf CGT} Suite}
+\author{Bob Haimes\\
+  Aerospace Computational Design Laboratory \\
+  Department of Aeronautics \& Astronautics\\
+  Massachusetts Institute of Technology\\
+  haimes@mit.edu}
+\date{15 November 2019}
+
+\begin{document}
+
+\let\originalnewpage\newpage
+\let\newpage\relax
+\maketitle
+\let\newpage\originalnewpage
+
+\vspace{0.5in}
+\section{Introduction}
+
+The goal of this work is to begin the automation of geometry import into the
+{\bf C}himera {\bf G}rid {\bf T}ools, including {\tt OverGrid}. This will be accomplished by
+an EGADS (part of the {\tt ESP} toolset) application that will take as input
+an analytic geometry description (via IGES, STEP or native EGADS files).
+The output will be an enhanced {\it tri} file, PLOT3D files and an ancillary
+file that will contain all of the data necessary to reassociate the surface discretization
+back to the appropriate geometric entities.
+
+\vspace{0.075in}
+This application (called {\tt egads2cgt}) will become part of the {\tt ESP} open source software suite
+in the next release and will be distributed with {\tt ESP}. Users of {\bf CGT} will need to download and install {\tt ESP}
+in order to connect {\tt egads2cgt} to the appropriate components of the {\bf C}himera {\bf G}rid {\bf T}ools.
+
+\newpage
+\section{Application}
+
+\begin{verbatim}
+  Usage: egads2cgt [argument list] (defaults are in parenthesis)
+         -i  input geometry filename <*.egads, *.stp, *.step, *.igs, *.iges>
+         -aflr4 use AFLR4 for surface triangulations (and not EGADS)
+         -q  write structured patches from quadding scheme to plot3d surface grid file
+         -uv write structured patches from uv evaluation to plot3d surface grid file
+         -ggf factr <geometric growth factor with -uv for isocline smoothing> (1.2)
+            
+         -maxa mxang <Max allow dihedral angle (deg)>            (15.0)
+         -maxe mxedg <Max allow relative edge length>            ( 0.025 * size)
+         -maxc mxchd <Max allow relative chord-height tolerance> ( 0.001 * size)
+\end{verbatim}
+
+This application always generates {\tt Cart3D} {\it tri} files and {\tt egads2cgt} {\it tess} files.
+There will be as many files of each type as there are EGADS bodies found in the input
+geometry files.
+
+\vspace{0.1in}
+\noindent
+Note: the scheme used to generate a UV mesh has been enhanced in order to better capture
+regions of high curvature (in comparison to earlier apps -- {\tt egads2srf}).
+
+\section{Outputs}
+
+The files will have names consistent with the input filename (without the extension), then a ``.'' and 3 digits
+to indicate the EGADS {\it Body} index and finally the extension. For example: {\tt fighter.001.a.tri}, {\tt fighter.001.p3d},
+{\tt fighter.002.tess}.
+
+\subsection{Cart3D {\it tri} file}
+
+This is a standard Cart3D {\it tri} file with the exception of the use of the component field. Traditionally
+this integer (per triangle) is used to separate the triangulation of one {\it solid} component from another (for
+example: OML and stores). Since there will only be a single component per {\it tri} file, we will use this integer
+to mark the Face ID where the triangle resides. Therefore this {\it tri} file should NOT be directly used with the Cart3D
+software suite.
+
+\subsection{PLOT3D surface file}
+
+We will use standard PLOT3D surface files to output structured meshes of quadrilaterals. These will be generated
+only when either the {\tt -q} or {\tt -uv} options are specified on the {\tt egads2cgt} command line.
+
+\subsection{{\tt egads2cgt} {\it tess} vertex owner file}
+
+This {\it new} file type holds all of the necessary data so that vertices in the {\it tri} file can be placed back on the
+geometry with the appropriate parameters. Also this is where attributes (meta-data) that has been placed on geometric
+entities are found. The file format is:
+
+\begin{verbatim}
+      bodyType  nNodes  nEdges  nLoops  nFaces
+      
+      [ i gIndex 
+        nAttr
+        [ attrRecs x nAttr ] ] x nNodes
+      
+      [ i nEPts
+         [ gIndex, t, 0/nIndex ] x nEPts
+         nAttr
+         [ attrRecs x nAttr ]  ] x nEdges
+         
+      [ i nedge
+        [ eIndex sense ] x nedge
+        nAttr
+        [ attrRecs x nAttr ]  ] x nLoops
+      
+      [ i nloop norF nFpts
+         lIndex x nloop
+         [ gIndex, u, v, type, index ] x nFpts
+         nAttr
+         [ attrRecs x nAttr ]  ] x nFaces
+  
+      
+where: bodyType is 6 for WireBody, 7 for FaceBody, 8 for SheetBody, 9 for SolidBody
+
+       gIndex  is the global Index in the tri file (bias 1)
+       i       is the index of the entity (1 bias)
+       nAttr   is the number of attributes found with the entity
+       nNodes  is the number of Nodes in the Body
+       nEdges  is the number of Edges in the Body
+       nLoops  is the number of Loops in the Body
+       nFaces  is the number of Faces in the Body
+       
+       nEpts   is the number of discretization points for the Edge 
+                 (including Nodes at beginning and end) -- 0 degenerate
+       t       is the Edge parameter value that corresponds to the vertex
+       nIndex  is the Node Index (bias 1)
+       
+       nedge   is the number of Edges in the Loop
+       eIndex  is the Edge Index (bias 1)
+       sense   is -1 or 1 
+       
+       nloop   is the number of loops bounding the Face
+       norF    is the Face Normal orientation (-1 or 1)
+       nFpts   is the number of discretization points for the Face 
+       lIndex  is the loop index that trims the Face
+       u and v are the Face parameter values that correspond to the vertex
+       type    is the type of the vertex [- is interior, 0 is a Node, + is on an Edge]
+       index   is the Node/Edge index 
+       
+       attrRec is the attribute information in this form:
+       
+           [type len name]
+           [data]
+       
+           where: type = 1 -- integers
+                         2 -- doubles
+                         3 -- character string
+                  len  is the number of data values
+                  data is the record containing the information in the form of type and
+                       of the specified length
+\end{verbatim}
+
+\end{document}

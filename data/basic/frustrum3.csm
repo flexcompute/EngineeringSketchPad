@@ -1,0 +1,22 @@
+# frustrum3
+# written by John Dannenhoffer
+
+DESPMTR   rbeg      2.0
+DESPMTR   rend      1.0
+DESPMTR   height    3.0
+CFGPMTR   toler     0.01
+
+# generate Body
+UDPARG    eqn2body    urange   0;1
+UDPARG    eqn2body    vrange   0;pi(2)
+UDPARG    eqn2body    xeqn     $(rbeg'+(rend-rbeg')*u')*cos(v')
+UDPARG    eqn2body    yeqn     $(rbeg'+(rend-rbeg')*u')*sin(v')
+UDPARG    eqn2body    zeqn     $height*u
+UDPRIM    eqn2body    toler    toler
+
+ASSERT    1 0       # this should not happen
+
+CATBEG    -281
+CATEND
+
+END

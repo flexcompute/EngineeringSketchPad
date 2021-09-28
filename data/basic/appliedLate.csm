@@ -1,0 +1,48 @@
+# appliedLate
+# written by John Dannenhoffer
+
+# box with slot
+BOX       0   0   0   3   2   1
+BOX       1   1   0   1   1   1
+SUBTRACT
+
+# attributes on left and bottom Faces (for fillet)
+SELECT    FACE  1  1
+ATTRIBUTE fillet   $left
+SELECT    FACE  1  3
+ATTRIBUTE fillet   $bottom
+
+# attribute on top-right Face (for chamfer)
+SELECT    FACE  1  4  2
+ATTRIBUTE chamfer  $me
+
+# drill hole
+CYLINDER  1/2 0  1/2  1/2  2  1/2  1/8
+SUBTRACT
+
+# find Edges adjacent to Face with chamfer=me
+UDPRIM    editAttr   filename <<
+   EDGE   adj2face    chamfer=me
+   SET                chamfer=me
+>>
+
+# apply the camfer
+SELECT    BODY    @nbody
+SELECT    EDGE    $chamfer  $me
+
+CHAMFER   0.1  @sellist  1
+
+# find Edge between two Faces with fillet=me
+UDPRIM    editAttr   filename <<
+   EDGE   adj2face   fillet=left
+   AND    adj2face   fillet=bottom
+   SET               fillet=me
+>>
+
+# apply the fillet
+SELECT    BODY   @nbody
+SELECT    EDGE   $fillet  $me
+
+FILLET    0.3  @sellist  1
+
+END

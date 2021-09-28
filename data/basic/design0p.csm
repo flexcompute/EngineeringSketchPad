@@ -1,0 +1,14 @@
+# design0p
+# written by John Dannenhoffer
+
+despmtr   camber    0.10
+despmtr   chord     1.00
+despmtr   alpha     5.00
+despmtr   span      2.00
+
+udprim    naca      camber    camber
+scale     chord
+extrude   0         0         span
+rotatez   -alpha    0         0
+
+end

@@ -1,0 +1,39 @@
+# ganged2b
+# written by John Dannenhoffer
+
+DESPMTR   nspoke  24
+
+# spine
+MARK
+   UDPRIM    supell  rx 1.0   ry 1.0   n 3
+   ROTATEX   90  0  0
+
+   UDPRIM    supell  rx 1.0   ry 1.0   n 4
+   ROTATEX   90  0  0
+   TRANSLATE 0  nspoke+1  0
+RULE
+ROTATEY       45  0  0
+STORE         spine
+
+# spokes
+MARK
+   UDPRIM    supell   rx 0.1   ry 0.1
+   ROTATEY   90  0  0
+   TRANSLATE -2.0  1.0  0.0
+
+   UDPRIM    supell   rx 0.1   ry 0.1
+   ROTATEY   90  0  0
+   TRANSLATE +2.0  1.0  0.0
+BLEND
+STORE        spoke
+
+# assembly
+RESTORE      spine
+PATBEG   ispoke  nspoke
+   RESTORE   spoke
+   TRANSLATE 0  ispoke-1  0
+PATEND
+
+UDPRIM    ganged   op  $UNION
+
+END

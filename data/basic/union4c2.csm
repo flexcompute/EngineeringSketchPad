@@ -1,0 +1,19 @@
+# union4c2
+# written by John Dannenhoffer
+
+skbeg     0         0         0  1
+   linseg 1         0         0
+   bezier 1/2       1/15      0
+   bezier 0         0         0
+skend
+store     profile
+
+restore   profile
+revolve   0         0         0 \
+          1         0         0         180
+restore   profile
+revolve   0         0         0 \
+          1         0         0        -180
+union
+
+end

@@ -1,0 +1,25 @@
+# match2
+# written by John Dannenhoffer
+
+dimension chord     3 1 1
+dimension alpha     3 1 1
+dimension xle       3 1 1
+dimension yle       3 1 1
+dimension zle       3 1 0
+
+despmtr   chord     "2.00; 1.80; 1.60;"
+despmtr   alpha     "5.00; 0.00; -2.0;"
+despmtr   xle       "-.10; 0.00; 0.10;"
+despmtr   yle       "0.10; 0.10; 0.20;"
+set       zle       "0.00; 1.00; 2.00;"
+
+mark
+patbeg    isect     3
+   udprim    naca      thickness 0.12      camber    0.04
+   scale     chord[isect,1]
+   rotatez   -alpha[isect,1]    0                  0
+   translate xle[isect,1]       yle[isect,1]       zle[isect,1]
+patend
+rule
+
+end

@@ -1,0 +1,39 @@
+# rule5sb
+# written by John Dannenhoffer
+
+# fuselage description from DC-10.vsp
+# fuse[1,i]  x-location of station i
+# fuse[2,i]  y-location of station i
+#    0.0     z-location of station i
+# fuse[3,i]  height     of station i
+# fuse[4,i]  width      of station i
+
+set       nstation    8
+dimension fuse     4  8  1
+despmtr   fuse     " 0.000;  3.873;  12.276;  48.083;  86.833; 125.458; 142.505; 170.500; \
+                    -2.238; -2.010;  -0.750;   0.000;   0.000;   0.000;  -0.135;   1.324; \
+                     0.000;  7.706;  15.250;  19.750;  19.750;  19.750;  16.500;   0.000; \
+                     0.000;  7.706;  16.000;  19.750;  19.750;  19.750;  16.580;   0.000"
+
+# beginning of rule
+mark
+
+# nose (a node)
+skbeg     fuse[1,1]  fuse[2,1]  0.0
+skend
+
+# box bulkheads
+patbeg    i nstation-2
+    set   j i+1
+    udprim    box   dy fuse[3,j] dz fuse[4,j]
+    hollow
+    translate          fuse[1,j]    fuse[2,j]   0.0
+patend
+
+# tail (a node)
+# skbeg     fuse[1,nstation]  fuse[2,nstation]  0.0
+# skend
+
+rule
+
+end

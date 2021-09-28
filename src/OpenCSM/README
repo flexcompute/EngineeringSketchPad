@@ -1,0 +1,529 @@
+                   Instructions for building/testing tutorials
+                   ===========================================
+
+      setenv ESP_START "open -a /Applications/Firefox.app ../ESP/ESP.html"
+      serveCSM ../data/tutorial1
+         --- tutorial fig01
+         Localhost:7681
+         --- tutorial fig02
+         mouse ! mouse ! > Home Left Right Up Down PgUp PgDn ! Left Right Up Down ! * < ^ @ ?
+         Home Down Left S-Left S-Left S-Left PgUp PgUp PgUp ! Left S-Right S-Right S-Right ! > ?
+         --- tutorial fig03
+         <help>
+         <+  DesignParameters>
+         --- tutorial fig04
+         <Lbar>
+         --- tutorial fig05
+             9
+         <PressToRe-build>
+         <Lbar>
+             6
+         <-  DesignParameters>
+         <+  Branches>
+         --- tutorial fig06
+         <Branches>
+         --- tutorial fig07
+             sphere
+         --- tutorial fig08
+             1  0  0  2
+         <PressToRe-build>
+         --- tutorial fig09
+         <+  Body9>
+         <Viz Faces>
+         <Viz Faces>
+         <Grd Faces>
+         <Grd Faces>
+         <Trn Faces>
+         <Trn Faces>
+         <Viz Edges>
+         <Viz Edges>
+         <Grd Edges>
+         <Grd Edges>
+         <Ori Edges>
+         <Ori Edges>
+         <Branches>
+             union  0  0  0
+         <PressToRe-build>
+         --- tutorial fig10
+         <Brch_000012>
+             DeleteThisBranch
+         <Branches>
+             intersect  none  1  0
+         <PressToRe-build>
+         --- tutorial fig11
+         <Brch_000011>
+             radius->2.3
+         <+  DesignParameters>
+         <Rbar>
+             0.4
+         <-  DesignParameters>
+         <PressToRe-build>
+         --- tutorial fig12
+         <Branches>
+             cylinder  -1.2*L  0  0  +1.2*L  0  0  0.2
+         <Brch_000014>
+             AddNewBranchAfterThisBranch
+             subtract  none  1  0
+         <PressToRe-build>
+         --- tutorial fig13
+         <DesignParameters>
+             Rhole
+         --- tutorial fig14
+            0.08
+         <Branches>
+             patbeg  i  7
+         <Branches>
+             cylinder  i/3  0  -1  i/3  0  +1  Rhole
+         <Branch_000017>
+             name->small_holes
+         <Branches>
+             subtract  none  1  0
+         <Branches>
+             patend
+         <PressToRe-build>
+         --- tutorial fig15
+         <Brch_000014>
+             xbeg->0
+         <PressToRe-build>
+         <+ Body27>
+         <Viz Faces>
+         --- tutorial fig16
+         <Brch_000014>
+             DeleteThisBranch
+         <Brch_000013>
+             AddNewBranchAfterThisBranch
+             cone  1.2*L  0  0  0  0  0  0.2
+         --- tutorial fig17
+         <PressToRe-build>
+         <+  Body27>
+         <Viz  Faces>
+         <Brch_000020>
+             xvrtx->0  xbase->1.2*L
+         <PressToRe-build>
+         <+  Body27>
+         <Viz  Faces>
+         --- tutorial fig18
+         <StepThru>
+         --- tutorial fig19
+         <NextStep>
+         <NextStep>
+         <NextStep>
+         <NextStep>
+         --- tutorial fig20
+         <CancelStepThru>
+         <+ Brch_00016>
+         <small_holes>
+             AddNewBranchAfterThisBranch
+             rotatex  -15*(i-1)  0  0
+         <PressToRe-build>
+         --- tutorial fig21
+         <+ Brch_00016>
+         <Brch_00021>
+             Activity->Suppressed
+         <PressToRe-build>
+         --- tutorial fig22
+	 <+ Brch_000016>
+         <Brch_000021>
+             Activity->Active
+         <PressToRe-build>
+         <Brch_000010>
+             BuildToThisBranch
+         --- tutorial fig23
+         <Up to date>
+         <shaft>
+             <Cancel>
+         <shaft>
+             <ShowAttributes/Csystems>
+             <Cancel>
+         <shaft>
+             <ShowAttributes/Csystems>
+             <ShowArguments>
+             <Ok>  -->  alert
+         <shaft>
+             radius->Rbar+.1
+             <Cancel>
+         <shaft>
+             radius->Rbar+.1
+             <enter>
+         <shaft>
+             radius->Rbar
+             <Ok>
+         <shaft>
+             radius->Rbar+.1
+             <ShowAttributes/Csystems>
+             shaft->10
+             <ShowArguments>
+             <Cancel>
+         <shaft>
+             radius->Rbar+.1
+             <ShowAttributes/Csystems>
+             shaft->10
+             <enter>
+         <PressToRe-build>
+         <Brch_000009>
+             <ShowAttributes/Csystems>
+             clipper->10
+             <OK>
+         <Brch_00009>
+             <ShowAttributes/Csystems>
+             <AddAttribute/Csystem>
+                 1   test   ESP
+         <Brch_000009>
+             <ShowAttributes/Csystems>
+             <Cancel>
+         <Undo>
+         <Brch_000009>
+             <ShowAttributes/Csystems>
+             <Cancel>
+         <PressToRe-build>
+         <+  Body34>
+         <+  Faces>
+         <Grd Face41>
+         <^  cornerOfHead>
+         --- tutorial fig24
+         <A  cornerOfHead>
+             partID
+             1;2;sqrt(3)
+         <PressToRe-build>
+         <^  cornerOfHead>
+         <+  DesignParameters>
+         <Rbar>
+             ComputeSensitivity
+         --- tutorial fig25
+         <KeyWindow click>
+             -0.5
+             0.5
+         <D>
+             ComputeSensitivity
+         <Rbar>
+             ClearDesignVelocities
+             SetDesignVelocity  1
+         <Rhole>
+             SetDesignVelocity  1.5
+         <PressToRe-build>
+         <File->ExportFeatureTree>
+             ../data/tutorial1_new.csm
+         <File->Edit>
+         --- tutorial fig26
+             highlight lines 12 & 13
+                copy
+             cursor at beginning of line 14
+                paste
+             highlight lines 14 & 15
+                cut
+             cursor at top
+             search Rbar
+             next
+             prev
+             replace Rbar Rbarr
+                yes yes
+             undo
+             undo
+             highlight lines 42-44
+                comment
+             highlight 43
+                comment
+             hightlight lines 42-44
+                comment
+             highlight lines 15-44
+                indent
+             cursor on line 29
+                hint  (cylinder)
+             cancel
+         <Exit>
+
+      mv port7681.jrnl ../data/tutorial1.jrnl
+      serveCSM ../data/tutorial1 -jrnl ../data/tutorial1.jrnl -batch
+      serveCSM ../data/tutorial1 -jrnl ../data/tutorial1.jrnl
+         Localhost:7681
+         <KeyWindow click>
+             -2
+             1
+         <Exit>
+
+      setenv ESP_START "open -a /Applications/Firefox.app ../ESP/ESP.html"
+      serveCSM ../data/tutorial1_new.csm -port 7210
+         Localhost:7210
+         <+ DesignParameters>
+         <Rbar>
+             SetDesignVelocity  1
+         <Rhole>
+             SetDesignVelocity  1.5
+         <PressToRe-build>
+         <Exit>
+
+      serveCSM
+         Localhost:7681
+         <Branches>
+            skbeg  0  0  0  1
+               L(h)  L(v)  L(h)  L(v)  L(h)  L(v)  L(h)  L(close)
+                  L-------L
+                  |       |
+                  |       |   L---L
+                  |       |   |   |
+                  |       L---L   |
+                  |               |
+                  +->-------------L
+         --- tutorial fig27
+         <Constraining>
+         --- tutorial fig28
+               L 4               (bottom)
+               L 3               (left)
+               L 3               (right)
+               L 1               (top-left)
+               L 1               (top-right)
+               L 2               (left-slot)
+               <PressToSolve>
+               ^H
+         --- tutorial fig29
+            <Sketch->Save>
+         <PressToRe-build>
+         --- tutorial fig30
+         <DesignParameters>
+            length  4
+         <DesignParameters>
+            height  3
+         <DesignParameters>
+            thick   0.5
+         <+ Branches>
+         <Branch_000001>
+            <EnterSketcher>
+               L  length         (bottom)
+               L  height         (left)
+               L  height         (right)
+               L  thick          (top-left)
+               L  thick          (top-right)
+               L  height-thick   (left-slot)
+               <PressToSolve>
+         --- tutorial fig31
+            <Sketch->Save>
+         <PressToRe-build>
+         <DesignParameters>
+            slot  1
+         <Branch_000001>
+            <EnterSketcher>
+               <  L              (top-left)
+               L  slot           (bottom-slot)
+               ?                 (top-left)
+               L  ::L[7]         (top-right)
+               <PressToSolve>
+         --- tutorial fig32
+            <Sketch->Save>
+        <PressToRe-build>
+        <+ DesignParameters>
+        <slot>
+           2
+        <PressToRe-build>
+        <Branch_000001>
+           <EnterSketcher>
+              <  V               (right)
+              <  H               (top-right)
+              P                  (bottom-right-corner)
+              A  90              (top-right-corner)
+              <PressToSolve>
+           <Sketch->Save>
+        <DesignParameters>
+           depth  3
+        <Branches>
+           extrude  0  0  depth
+        <PressToRe-build>
+        Down Left PgUp
+         --- tutorial fig33
+        <File->ExportFeatureTree>
+           ../data/tutorial2
+        <File->Edit>
+           Cancel
+        <DesignParameters>
+           rad  0.5
+        <Branches>
+           skbeg   0  0  0  1
+              L(h)  C(v)  L(h)  C(v)  L(close)
+                 L---------------C
+                 |               |
+                 C--------+->----L
+         --- tutorial fig34
+              L  rad             (bottom-left)
+              L  rad             (bottom-right)
+              R  rad             (right-circle)
+              T                  (bottom-left)
+              T                  (bottom-right)
+              T                  (top-left)
+              T                  (top-right)
+              <PressToSolve>
+         <+>
+         <H>
+         --- tutorial fig35
+           <Sketch->Save>
+        <PressToRe-build>
+         >
+         --- tutorial fig36
+         <
+        <Branches>
+           rotatey  90  0  0
+        <Branches>
+           translate  0  height-3*rad  depth/2
+        <Branches>
+           extrude  length/2  0  0
+        <Branches>
+           subtract  none  1  0
+        <PressToRe-build>
+         --- tutorial fig37
+        <DesignParameters>
+           filrad  0.1
+        <Branches>
+           chamfer  filrad  0  0
+        <PressToRe-build>
+         --- tutorial fig38
+        <Branches>
+           skbeg  0  0  0  1
+              L(h)  B(h)  B(v)  B(h)  B(v)  L(close)
+                 B------------B
+                 |              \
+                 |               \
+                 B------B-----+->--L
+         --- tutorial fig39
+              L  depth/4         (bottom-left)
+              L  depth/4         (bottom-middle)
+              L  depth/4         (bottom-right)
+              L  depth/2         (top)
+              L  depth/4         (left)
+              <PressToSolve>
+              <Ctrl-h>
+           <Sketch->Save>
+        <PressToRe-build>
+         --- tutorial fig40
+        <Branches>
+           rotatey  90  0  0
+        <Branches>
+           translate  length  height-3*rad  depth/2
+        <Branches>
+           extrude  -length/2  0  0
+        <Branches>
+           subtract  none  1  0
+        <PressToRe-build>
+         --- tutorial fig41
+        <- Branches>
+        <+ Body35>
+        <Faces Viz>
+        <+ Edges>
+        <Edge51 Grd>
+        <Edge57 Grd>
+         --- tutorial fig42
+           ^                  (inside-slot)
+           ^                  (inside-slot)
+        <+ Branches>
+        <Branch_000103>
+           BuildToThisBranch
+        <Branch_000103>
+           AddNewBranchAfterThisBranch
+              fillet  filrad  6;7;7;8;  0
+        <PressToRe-build>
+         --- tutorial fig43
+        <height>
+           <ComputeSensitivity>
+        <File->ExportFeatureTree>
+           ../data/tutorial2
+         <exit>
+
+      mv port7681.jrnl ../data/tutorial2.jrnl
+      serveCSM -jrnl ../data/tutorial2.jrnl
+         Localhost:7681
+         <exit>
+      serveCSM ../data/tutorial2
+         Localhost:7681
+         <+ DesignParameters>
+         <height>
+           <ComputeSensitivity>
+         <exit>
+
+      serveCSM ../data/tutorial3 -dumpEgads
+         Localhost:7681
+         --- tutorial fig44
+         <File->Edit>
+            after line 2, add: # this is an added line
+         --- tutorial fig45
+            cancel
+         <File->Edit>
+            after line 2, add: # this is another added line
+            Save
+         <File->Edit>
+            remove added line (line 3)
+            Save
+         <DesignParameters>
+            xyz
+            <Add Column>
+            <Add Row>
+            <Add Column>
+            11  22  33  44  55  66
+         <File->Edit>         (should not work)
+         <File->ExportFeatureTree>
+            foo
+         <File->Edit>
+            cancel
+         <exit>
+
+      serveCSM ../data/tutorial3 -loadEgads -batch -verify
+
+      serveCSM
+         <File->Edit>  <new file>
+            box  0  0  0  1  1  1
+            end
+            <OK>  test
+         <File->Edit>  test.csm
+            after box, add:
+            udprim  /../udc/gen_rot  yend 0  zend 0  rotang 30
+            <OK>
+         <File->Edit>  test.csm
+            change:  1  1  1 -> 2  1  1
+            <Cancel>
+         <File->Edit>  ../udc/gen_rot.udc
+            <OK>
+
+      serveCSM
+         <File->Edit>  <new file>
+            box  0  0  0  3  2  1
+            end
+            <OK>  test.udc    (nothing builds)
+         <File->Edit>  test.udc
+            <Cancel>          (nothing builds)
+         <File->Edit>  <new file>
+            udprim     /test
+            udprim     /test
+            translate  0  2  0
+            end
+            <OK>  test.csm
+         <File->Edit>  test.udc
+            change: 3 -> 4
+            <OK>
+         <File->Edit>  test.csm
+            change:  0  2  0  ->  2  2  0
+            <OK>
+         <File->New>
+            <Branches>
+               cylinder   0  0  0  1  0  0  1
+         <PressToRe-build>
+         <File->ExportFeatureTree>  test2
+         <File->Open>  test
+         <File->Open>  test2.csm
+
+      serveCSM  test
+         <File->Edit>  test.csm
+            <Cancel>
+         <File->Edit>  test.udc
+            <Cancel>
+
+      serveCSM
+         <File->Open>  test.csm
+         <File->Edit>  test.csm
+            <Cancel>
+         <File->Edit>  test.udc
+            <Cancel>
+
+      serveCSM  test2
+         <File->Edit>  test2.csm
+            <Cancel>
+
+      serveCSM
+         <File->Open>  test2.csm
+         <File->Edit>  test2.csm
+            <Cancel>

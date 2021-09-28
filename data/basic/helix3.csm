@@ -1,0 +1,22 @@
+# helix3
+# written by John Dannenhoffer
+
+DESPMTR   rad       1.0   # radius of helix
+DESPMTR   pitch     0.5   # pitch
+CFGPMTR   nturn     2.5   # number of turns
+CFGPMTR   toler     0.01  # fitting tolerance
+
+# generate Body
+UDPARG    eqn2body    urange   0;pi(2)*nturn
+UDPARG    eqn2body    vrange   0;0
+UDPARG    eqn2body    xeqn     $rad*cos(u')
+UDPARG    eqn2body    yeqn     $rad*sin(u')
+UDPARG    eqn2body    zeqn     $pitch*u/pi(2')
+UDPRIM    eqn2body    toler    toler
+
+ASSERT    1 0       # this should not happen
+
+CATBEG    -281
+CATEND
+
+END

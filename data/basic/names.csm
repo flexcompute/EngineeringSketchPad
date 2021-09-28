@@ -1,0 +1,25 @@
+# names
+# written by John Dannenhoffer
+
+dimension alfa 2 2 0
+dimension beta 2 2 0
+
+# these set statements should work
+set       alfa       "1; 2;\
+                      3; 4"
+set       beta[2,2]  44
+set       gama_1     11
+set       gama:2     22
+set       gama@3     33
+set       gama_1:2@3 123
+set       dlta       beta[1,1]
+set       :eps       1e-12
+set       iota_1     alfa[2]
+set       iota_2     alfa[2,2]
+
+# these should cause an error
+#set       _eps       1e-12
+#set       @eps       1e-12
+#set       1eps       1e-12
+
+end

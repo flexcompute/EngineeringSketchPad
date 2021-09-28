@@ -1,0 +1,28 @@
+# reorder4c
+# written by Dannenhoffer
+
+mark
+   skbeg     0  -1  -2
+      linseg 0  +1  -2
+      linseg 0  +1  +2
+      linseg 0  -1  +2
+      linseg 0  -1  -2
+   skend  1
+
+   skbeg     2  +2  -1
+      linseg 2  +2  +1
+      linseg 2  -2  +1
+      linseg 2  -2  -1
+      linseg 2  +2  -1
+   skend  1
+   reorder  +3
+
+   skbeg     4  -1  -2
+      linseg 4  +1  -2
+      linseg 4  +1  +2
+      linseg 4  -1  +2
+      linseg 4  -1  -2
+   skend  1
+rule
+
+end

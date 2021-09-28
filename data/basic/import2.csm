@@ -1,0 +1,14 @@
+# import2
+# written by John Dannenhoffer
+
+udprim import FileName $$/import_1.egads
+set       numbodies  @@numbodies
+
+udparg import FileName   $$/import_2.egads
+udprim import BodyNumber 3 BodyNumber 2 BodyNumber 1
+set       numbodies  @@numbodies
+
+translate 0 0.5 0
+union
+
+end

@@ -1,0 +1,16 @@
+# scribe7
+# written by John Dannenhoffer
+
+cylinder  0.0 -2.0   0.0 \
+          0.0 +2.0   0.0  +1.0
+
+skbeg     -.5  0.5   0.0
+   linseg 0.5  0.5   0.0
+   linseg 0.5  0.5   2.0
+   linseg -.5  0.5   2.0
+   linseg -.5  0.5   0.0
+skend
+
+subtract
+
+end

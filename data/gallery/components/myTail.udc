@@ -1,0 +1,135 @@
+interface   MakeFuselage         in   0
+interface   top_tail_angle       in   0
+interface   bottom_tail_angle    in   0
+
+interface   xroot_vt             in   0
+interface   yroot_vt             in   0
+interface   zroot_vt             in   0
+interface   croot_vt             in   0
+
+interface   xtip_vt              in   0
+interface   ytip_vt              in   0
+interface   ztip_vt              in   0
+interface   ctip_vt              in   0
+
+interface   xroot_vb             in   0
+interface   yroot_vb             in   0
+interface   zroot_vb             in   0
+interface   croot_vb             in   0
+
+interface   xtip_vb              in   0
+interface   ytip_vb              in   0
+interface   ztip_vb              in   0
+interface   ctip_vb              in   0
+interface   params_lift          in   0
+
+# Store everything until now
+store aircraft
+# Create airfoil for tails
+
+# NACA 64A012  
+udparg naca456 thkcode $64A
+udparg naca456 toc     0.06
+udparg naca456 camcode $6M
+udparg naca456 cl      0.00
+udparg naca456 a       0.80
+udprim naca456
+store naca64A012
+
+# Top vtail OML left
+mark
+    restore naca64A012
+	rotatez   top_tail_angle   0.5         0
+    scale     croot_vt
+    translate xroot_vt   yroot_vt   zroot_vt
+    
+    restore naca64A012
+	rotatez   top_tail_angle   0.5         0
+    scale     ctip_vt
+    translate xtip_vt    ytip_vt    ztip_vt
+rule
+set tail_tr @nbody
+
+restore aircraft
+patbeg fuselage_union ifzero(MakeFuselage,0,1)
+   union
+patend
+
+# Top vtail OML right
+mark
+    restore naca64A012
+	rotatez   top_tail_angle   0.5         0
+    scale     croot_vt
+    translate xroot_vt  -yroot_vt   zroot_vt
+    
+    restore naca64A012
+	rotatez   top_tail_angle   0.5         0
+    scale     ctip_vt
+    translate xtip_vt   -ytip_vt    ztip_vt
+rule
+set tail_tl @nbody
+
+patbeg fuselage_union ifzero(MakeFuselage,0,1)
+   union
+patend
+
+# Bottom vtail OML left
+mark
+    restore naca64A012
+	rotatez   bottom_tail_angle   0.5         0
+    scale     croot_vb
+    translate xroot_vb   yroot_vb   zroot_vb
+    
+    restore naca64A012
+	rotatez   bottom_tail_angle   0.5         0
+    scale     ctip_vb
+    translate xtip_vb    ytip_vb    ztip_vb
+rule
+set tail_br @nbody
+
+patbeg fuselage_union ifzero(MakeFuselage,0,1)
+   union
+patend
+
+# Bottom vtail OML right
+mark
+    restore naca64A012
+	rotatez   bottom_tail_angle   0.5         0
+    scale     croot_vb
+    translate xroot_vb  -yroot_vb   zroot_vb
+    
+    restore naca64A012
+	rotatez   bottom_tail_angle   0.5         0
+    scale     ctip_vb
+    translate xtip_vb   -ytip_vb    ztip_vb
+rule
+set tail_bl @nbody
+
+patbeg fuselage_union ifzero(MakeFuselage,0,1)
+   union
+patend
+
+#Set the attributes for tessellation
+select edge tail_tl 2 tail_tl 3 1
+attribute .tParams params_lift
+
+select edge tail_tl 2 tail_tl 4 1
+attribute .tParams params_lift
+
+select edge tail_tr 2 tail_tr 3 1
+attribute .tParams params_lift
+
+select edge tail_tr 2 tail_tr 4 1
+attribute .tParams params_lift
+
+select edge tail_bl 2 tail_bl 3 1
+attribute .tParams params_lift
+
+select edge tail_bl 2 tail_bl 4 1
+attribute .tParams params_lift
+
+select edge tail_br 2 tail_br 3 1
+attribute .tParams params_lift
+
+select edge tail_br 2 tail_br 4 1
+attribute .tParams params_lift

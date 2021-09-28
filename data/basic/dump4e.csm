@@ -1,0 +1,15 @@
+# dump4e
+# written by John Dannenhoffer
+
+box       -4        -1        -1        2         2         2
+   attribute _color  $red
+mark
+box       -1        -1        -1        2         2         2
+   attribute _color  $green
+box       +2        -1        -1        2         2         2
+   attribute _color  $blue
+
+# should dump and remove last two Bodys
+dump      dump4.egads  1  1
+
+end

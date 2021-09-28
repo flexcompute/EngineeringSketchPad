@@ -1,0 +1,7 @@
+# hollow6
+# written by John Dannenhoffer
+
+udprim    box       Dx  3  Dy  3  Rad  1/4
+hollow
+
+end

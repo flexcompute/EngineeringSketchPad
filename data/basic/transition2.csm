@@ -1,0 +1,80 @@
+# transition1
+# written by John Dannenhoffer
+
+set       theta  30
+
+mark
+
+# elliptical inlet (chopped 6 places to be consistent with hexagon)
+udprim    ellipse rx 2 ry 1
+
+skbeg      0  0 -1
+   linseg  3  0 -1
+   linseg  3  0  1
+   linseg  0  0  1
+   linseg  0  0 -1
+skend
+subtract
+
+skbeg      0  0 -1
+   linseg  3  0 -1
+   linseg  3  0  1
+   linseg  0  0  1
+   linseg  0  0 -1
+skend
+rotatez   +theta 0 0
+subtract
+
+skbeg      0  0 -1
+   linseg  3  0 -1
+   linseg  3  0  1
+   linseg  0  0  1
+   linseg  0  0 -1
+skend
+rotatez   180-theta 0 0
+subtract
+
+skbeg      0  0 -1
+   linseg  3  0 -1
+   linseg  3  0  1
+   linseg  0  0  1
+   linseg  0  0 -1
+skend
+rotatez   180 0 0
+subtract
+
+skbeg      0  0 -1
+   linseg  3  0 -1
+   linseg  3  0  1
+   linseg  0  0  1
+   linseg  0  0 -1
+skend
+rotatez   180+theta 0 0
+subtract
+
+skbeg      0  0 -1
+   linseg  3  0 -1
+   linseg  3  0  1
+   linseg  0  0  1
+   linseg  0  0 -1
+skend
+rotatez   -theta 0 0
+subtract
+
+translate 0 0 2
+
+# hexagonal outlet (starting at bottom center)
+skbeg      0 -1  0
+   linseg  1 -1  0
+   linseg  2  0  0
+   linseg  1  1  0
+   linseg  0  1  0
+   linseg -1  1  0
+   linseg -2  0  0
+   linseg -1 -1  0
+   linseg  0 -1  0
+skend
+
+blend
+
+end

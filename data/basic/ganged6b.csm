@@ -1,0 +1,69 @@
+# ganged6b
+# written by John Dannenhoffer
+
+CYLINDER -4  -4   0   4  -4  0  0.25
+
+# bodys on left
+MARK
+CYLINDER  -4  -4   0  -4   4  0  0.25
+
+UDPARG    supell    rx  1  ry  1
+UDPRIM    supell    n   2
+TRANSLATE -1  -1  -0.25
+TRANSLATE -1  -1  -0.25
+TRANSLATE -1  -1  -0.25
+TRANSLATE -1  -1  -0.25
+EXTRUDE    0   0   2.00
+STORE     body  1  1
+
+UDPARG    supell   rx  1  ry  1
+UDPRIM    supell   n   4
+TRANSLATE -2   0  -.50
+TRANSLATE -2   0  -.50
+EXTRUDE    0   0   2.00
+STORE     body  2  1
+
+UDPARG    supell   rx  1  ry  1
+UDPRIM    supell   n   8
+TRANSLATE -4  4   -1.0
+EXTRUDE    0   0   2.00
+STORE     body  3  1
+
+# tie bodys on left together
+UDPRIM    ganged   op  $UNION
+#UNION
+#UNION
+#UNION
+
+# bodys on right
+MARK
+CYLINDER   4  -4   0   4   4  0  0.25
+
+RESTORE   body  1
+TRANSLATE  8   0   0
+
+RESTORE   body  2
+TRANSLATE  4   0   0
+TRANSLATE  4   0   0
+
+RESTORE   body  3
+TRANSLATE  2   0   0
+TRANSLATE  2   0   0
+TRANSLATE  2   0   0
+TRANSLATE  2   0   0
+
+# tie bodys on right together
+UDPRIM    ganged   op  $UNION
+#UNION
+#UNION
+#UNION
+
+# tie all bodys together
+UDPRIM    ganged   op  $UNION
+#UNION
+#UNION
+
+END
+
+
+

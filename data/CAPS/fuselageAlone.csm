@@ -1,0 +1,42 @@
+# fuselageAlone
+# written by John Dannenhoffer
+
+# global attributes
+attribute capsLength $ft
+attribute capsForce  $lb
+
+# global parameter
+despmtr   intent  3
+
+# fuselage design Parameters
+despmtr                      fuselage:numXsect 6
+dimension fuselage:xloc      fuselage:numXsect 1 1
+dimension fuselage:zloc      fuselage:numXsect 1 1
+dimension fuselage:width     fuselage:numXsect 1 1
+dimension fuselage:height    fuselage:numXsect 1 1
+dimension fuselage:noselist  2                 4 1
+dimension fuselage:taillist  2                 4 1
+
+despmtr   fuselage:xloc      "0;  1.0;  4.0;  8.0;  12.0;  16.0"
+despmtr   fuselage:zloc      "0;  0.1;  0.4;  0.4;   0.3;   0.2"
+despmtr   fuselage:width     "0;  1.0;  1.6;  1.6;   1.0;   0.8"
+despmtr   fuselage:height    "0;  1.0;  2.0;  2.0;   1.2;   0.4"
+despmtr   fuselage:noselist  "0.1; 0; 1; 0;\
+                              0.1; 0; 0; 1;"
+despmtr   fuselage:taillist  "0.0; 0; 1; 0;\
+                              0.0; 0; 0; 1"
+
+
+############################################################
+
+# fuselage
+udparg    $$/fuselage  intent    intent
+udparg    $$/fuselage  xloc      fuselage:xloc
+udparg    $$/fuselage  zloc      fuselage:zloc
+udparg    $$/fuselage  width     fuselage:width
+udparg    $$/fuselage  height    fuselage:height
+udparg    $$/fuselage  noselist  fuselage:noselist
+udparg    $$/fuselage  taillist  fuselage:taillist
+udprim    $$/fuselage
+
+end

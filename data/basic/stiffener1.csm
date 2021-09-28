@@ -1,0 +1,20 @@
+# stiffener1
+# written by John Dannenhoffer
+
+despmtr   angle     30.0
+despmtr   depth     0.10
+
+# create sheet
+box       0  0  2  1  1  0
+store     unstiffened 0 1
+
+# add stiffners
+restore   unstiffened
+udprim    stiffener beg 0.25;0;2  end 0.25;1;2  angle angle  depth +depth
+union
+
+restore   unstiffened
+udprim    stiffener beg 0.75;0    end 0.75;1    angle angle  depth -depth
+union
+
+end

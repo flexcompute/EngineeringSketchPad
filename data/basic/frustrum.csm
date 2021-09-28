@@ -1,0 +1,31 @@
+# assembly_frustrum
+# written by John Dannenhoffer
+
+despmtr   diam1     0.5
+despmtr   diam2     0.3
+despmtr   length    1
+
+ifthen diam1 GT diam2
+   ifthen diam2 GT 0
+      set  len  length*diam1/(diam1-diam2)
+      cone      len     0      0       0       0        0       diam1/2
+      box       0       -diam1 -diam1  length  diam1*2  diam1*2
+      intersect
+   else
+      cone      length  0      0       0       0        0       diam1/2
+   endif
+elseif diam1 LT diam2
+   ifthen  diam1 GT 0
+      set len   length*diam2/(diam2-diam1)
+      cone      length-len  0  0       length  0        0       diam2/2
+      box       0       -diam2 -diam2  len-length      diam2*2  diam2*2
+      intersect
+   else
+      cone      0       0      0       length  0        0       diam2/2
+   endif
+else
+   cylinder     0       0      0       len     0        0       diam1/2
+endif
+
+
+end

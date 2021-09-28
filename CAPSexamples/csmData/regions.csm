@@ -1,0 +1,36 @@
+#
+# Construct a box with segrigated regions
+#
+attribute capsAIM $egadsTessAIM;aflr4AIM;tetgenAIM
+attribute capsMeshLength 1
+
+# Construct the box
+box -1 -1 -2 2 2 4
+store box
+
+# Construct a plane and rotate
+udprim box dx 4 dy 4
+attribute AFLR_GBC $TRANSP_UG3_GBC
+rotatex 45 0 0
+store cut
+
+# Scribe the face on the box
+restore box
+restore cut
+subtract
+select face
+    attribute capsGroup $box
+# and extract the shell
+extract 0
+
+# Get the segregated face
+restore cut
+restore box
+intersect
+select face
+   attribute capsGroup $cut
+
+# Join the shell and face to create the segregated regions
+join
+
+end

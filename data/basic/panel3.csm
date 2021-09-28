@@ -1,0 +1,17 @@
+# panel3
+# written by John Dannenhoffer
+
+# load the internals
+import    internals.egads
+   attribute _name $internals
+
+# load each of the panels
+patbeg    ipanel 9999
+   import !$stiffened_+ipanel+$.egads
+patend
+
+# stop pattern when all files have been read
+catbeg   -1
+catend
+
+end

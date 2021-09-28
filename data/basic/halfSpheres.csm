@@ -1,0 +1,25 @@
+# halfSpheres
+# written by John Dannenhoffer
+
+# first half
+SKBEG     1.0  0.0  0.0
+   CIRARC 0.0  1.0  0.0 \
+         -1.0  0.0  0.0
+   LINSEG 1.0  0.0  0.0
+SKEND
+REVOLVE   0.0  0.0  0.0 \
+          1.0  0.0  0.0  180
+
+# second half
+SKBEG     1.0  0.0  0.0
+   CIRARC 0.0  1.0  0.0 \
+         -1.0  0.0  0.0
+   LINSEG 1.0  0.0  0.0
+SKEND
+REVOLVE   0.0  0.0  0.0 \
+          1.0  0.0  0.0 -180
+
+# join them
+JOIN
+
+END

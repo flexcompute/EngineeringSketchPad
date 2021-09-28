@@ -1,0 +1,34 @@
+# blend9a
+# written by John Dannenhoffer
+
+mark
+
+   # first section is a super-ellipse
+   set   n       4.0
+   set   ntheta  5
+   set   dy      2.0
+   set   dz      3.0
+
+   skbeg        0.0    0.0        -dz
+      patbeg    itheta (ntheta-1)/2
+         set    theta  pi(2)*(itheta)/(ntheta-1)
+         set    sintht sign(sin(theta))*abs(sin(theta))^(2/n)
+         set    costht sign(cos(theta))*abs(cos(theta))^(2/n)
+         spline 0.0    dy*sintht  -dz*costht
+      patend
+      linseg    0.0    0.0        +dz
+      patbeg    itheta  (ntheta-1)/2
+         set    theta  pi(2)*(itheta+(ntheta-1)/2)/(ntheta-1)
+         set    sintht sign(sin(theta))*abs(sin(theta))^(2/n)
+         set    costht sign(cos(theta))*abs(cos(theta))^(2/n)
+         spline 0.0    dy*sintht  -dz*costht
+      patend
+   skend
+
+   # second section is an ellipse
+   udprim    ellipse  ry  3  rz  2
+   translate 3  0  0
+
+blend
+
+end

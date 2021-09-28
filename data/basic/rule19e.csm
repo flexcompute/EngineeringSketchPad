@@ -1,0 +1,25 @@
+# rule19e
+# written by Marshall Galbraith
+
+CFGPMTR nsec 6
+
+# x-location for each section
+DIMENSION sx nsec 1 1
+DESPMTR   sx "-1.0; -0.5; 0.5; 1.0; 0.6; -0.6;"
+
+# scale for each section
+DIMENSION ss nsec 1 1
+DESPMTR   ss "0.75; 1.0; 1.0; 0.75; 0.5; 0.5;"
+
+MARK
+   PATBEG       isec  nsec
+      UDPRIM    supell   rx ss[isec]   ry ss[isec]
+      ROTATEY   90  0  0
+      TRANSLATE sx[isec]  0  0
+      EXTRACT   -1;-2
+   PATEND
+# make SheetBody periodic from begnning to end
+RULE     0  1
+ASSERT   @itype  2
+
+END

@@ -1,0 +1,29 @@
+# assembly1
+# written by John Dannenhoffer
+
+DESPMTR   len       10
+DESPMTR   diam      1
+
+# cylinder
+UDPARG    csm       filename   $$/assembly_cylinder.csm
+UDPARG    csm       pmtrname   $diameter;length
+UDPARG    csm       pmtrvalue  diam;len
+UDPRIM    csm
+
+# hemisphere at len
+UDPARG    csm       filename   $$/assembly_hemisphere.csm
+UDPARG    csm       pmtrname   $diameter
+UDPARG    csm       pmtrvalue  diam
+UDPRIM    csm
+
+TRANSLATE len  0  0
+JOIN
+
+# hemisphere at 0
+UDPARG    csm       filename   $$/assembly_hemisphere.csm
+UDPARG    csm       pmtrname   $diameter;side
+UDPARG    csm       pmtrvalue  diam;-1
+UDPRIM    csm
+JOIN
+
+END

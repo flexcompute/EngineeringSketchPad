@@ -1,0 +1,9 @@
+# subtract5e
+# written by John Dannenhoffer
+
+BOX       0 -.5 -5 0  1 11
+TORUS     0  0  0  1  0  0  3  1
+
+SUBTRACT  zmin -1
+
+end

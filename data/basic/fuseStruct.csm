@@ -1,0 +1,36 @@
+# fuseStruct
+# written by John Dannenhoffer
+
+# fuselage OML
+udparg    supell    rx     3.0
+udparg    supell    ry     2.0
+udprim    supell    n      5
+rotatey   90        0      0
+store     xsect
+
+mark
+   restore   xsect
+   restore   xsect
+   translate 5  0  0
+rule
+store     OML
+
+# fuselage structure
+udparg    radwaf    ysize     8.0
+udparg    radwaf    zsize     8.0
+udparg    radwaf    nspoke    12
+udprim    radwaf    xframe    "0;1;2;3;4"
+translate 0.5  0  0
+store     radwaf
+
+# trim structure to OML
+restore   radwaf
+restore   OML
+intersect
+
+# hollow out the structure
+restore   OML
+hollow    -.1
+subtract
+
+end

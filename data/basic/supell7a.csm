@@ -1,0 +1,17 @@
+# supell7a
+# written by John Dannenhoffer
+
+# original SUPELL (with slope discontinuities)
+DESPMTR     sf  0.00
+
+MARK
+   UDPRIM      SUPELL   rx 4   ry 1   slpfact sf
+   RESTORE     .
+   TRANSLATE   0 0 0.1
+BLEND
+
+UDPRIM    $$/applyTparams   factor 0.5
+
+# view with DisplayType=6 (normals)
+
+END

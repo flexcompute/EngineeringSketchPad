@@ -1,0 +1,67 @@
+# design2
+# written by John Dannenhoffer
+
+despmtr   Length    4.0
+despmtr   Height    2.0
+despmtr   Depth     2.0
+despmtr   BoxFil    0.2
+despmtr   Wslot     0.1
+despmtr   Dslot     0.1
+despmtr   Rhole     0.4
+despmtr   Nhole     2
+despmtr   Fhole     0.1
+despmtr   Xpole     2.0
+despmtr   Ypole     2.0
+despmtr   Rpole     0.5
+despmtr   Fpole     0.25
+despmtr   XangDeg   50.
+despmtr   YangDeg   40.
+despmtr   ZangDeg   30.
+despmtr   Dx        1.0
+despmtr   Dy        0.0
+despmtr   Dz        0.0
+despmtr   Scale     1.5
+
+dimension array     2 2 1
+despmtr   array[1,1] 11
+despmtr   array[1,2] 12
+despmtr   array[2,1] 21
+despmtr   array[2,2] 22
+
+box       0.0       -Height/2 0.0       Length    Height    Depth
+
+patbeg    foo       ifpos(BoxFil,1,0)
+   fillet BoxFil
+patend
+
+patbeg    foo       ifpos(Dslot,1,0)
+   set    temp      Length/2-Wslot
+   box    temp      -Height/2 0.0       Wslot     Dslot     Depth
+   subtract
+patend
+
+cylinder  Xpole     0.0       Depth/2   Xpole     Ypole     Depth/2   Rpole
+union
+
+patbeg    foo       ifpos(Fpole,1,0)
+   fillet Fpole
+patend
+
+patbeg    ihole     Nhole
+   set       xhole     Length*ihole/(Nhole+1)
+   cylinder  xhole     0.0       0.0       xhole     0.0       Depth     Rhole
+   attribute ihole     ihole
+   subtract
+
+   patbeg    foo       ifpos(Fhole,1,0)
+      chamfer   Fhole
+   patend
+patend
+
+rotatex   XangDeg   0.0       0.0
+rotatey   YangDeg   0.0       0.0
+rotatez   ZangDeg   0.0       0.0
+translate Dx        Dy        Dz
+scale     Scale
+
+end

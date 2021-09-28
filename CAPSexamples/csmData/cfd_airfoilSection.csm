@@ -1,0 +1,53 @@
+# Example xFoil input file to create a simple wing model
+#
+# Note to execute in serveCSM a dictionary file must be included
+# serveCSM -dict $ESP_ROOT/include/intent.dict avlDocExample1.csm
+
+# -----------------------------------------------------------------
+# Define the analysis fidelity that the geometry is intended support
+# -----------------------------------------------------------------
+## [capsAIM]
+attribute capsIntent $CFD
+attribute capsAIM    $cart3dAIM
+## [capsAIM]
+
+# -----------------------------------------------------------------
+# Design parameters to define the wing cross section and planform 
+# -----------------------------------------------------------------
+## [designParameters]
+despmtr   thick     0.12      frac of local chord
+despmtr   camber    0.00      frac of local chord
+despmtr   area      10.0      Planform area of the full span wing
+despmtr   aspect    6.00      Span^2/Area
+despmtr   taper     0.60      TipChord/RootChord
+## [designParameters]
+
+# -----------------------------------------------------------------
+# set parameters for use internally to create geometry
+# -----------------------------------------------------------------
+## [setParameters]
+set       span      sqrt(aspect*area)
+set       croot     2*area/span/(1+taper)
+set       ctip      croot*taper
+## [setParameters]
+# -----------------------------------------------------------------
+# 1. Create Airfoils using the User Defined Primitive (UDP) naca
+#  > The inputs used for this example to the UDP are Thickness and Camber
+#  > Cross sections are in the X-Y plane and are rotated to the X-Z plane
+# -----------------------------------------------------------------
+## [createAirfoils]
+mark
+udprim    naca      Thickness thick     Camber    camber sharpte 1
+rotatex	  90		0		0
+scale     croot
+udprim    naca      Thickness thick     Camber    camber sharpte 1
+rotatex	  90		0		0
+translate 0 		span 	0
+scale     ctip
+rule
+## [createAirfoils]
+attribute capsGroup    $Wing
+attribute capsReferenceArea  area
+attribute capsReferenceSpan  span
+attribute capsReferenceChord croot
+attribute capsReferenceX     croot/4

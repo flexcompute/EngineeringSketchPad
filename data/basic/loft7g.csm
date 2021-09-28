@@ -1,0 +1,27 @@
+# loft7g (box - interior is sheet)
+# written by John Dannenhoffer
+
+mark
+   skbeg     -2  +2  -1
+      linseg -2  -2  -1
+      linseg -2  -2  +1
+      linseg -2  +2  +1
+      linseg -2  +2  -1
+   skend
+
+   skbeg      0  +1  -1
+      linseg  0  -1  -1
+      linseg  0  -1  +1
+      linseg  0  +1  +1
+      linseg  0  +1  -1
+   skend
+
+   skbeg     +2  +1  -2
+      linseg +2  -1  -2
+      linseg +2  -1  +2
+      linseg +2  +1  +2
+      linseg +2  +1  -2
+   skend
+loft 1
+
+end

@@ -1,0 +1,24 @@
+# subtract6a
+# written by John Dannenhoffer
+
+SET       error 0
+
+BOX       -3.0 -2.0  1.0  6.0  4.0  0.0
+
+UDPRIM     ellipse    rx  1.0  ry  0.5
+TRANSLATE -1.0  0.0  1.0
+SUBTRACT
+CATBEG     $did_not_create_body
+   SET     error 2
+CATEND
+
+BOX        1.0 -0.5  1.0  1.0  1.0  0.0
+ROTATEZ    45   1.5  0.0
+SUBTRACT
+CATBEG     $did_not_create_body
+   SET     error 2
+CATEND
+
+ASSERT     error 0
+
+END

@@ -1,0 +1,10 @@
+# casename=../data/Slugs/pieslice_0
+
+markCreases;45;
+colorTriangles;0.52769732;-0.21898181;1.0901772;1;
+colorTriangles;0.37638187;0.15611691;1.3746671;2;
+colorTriangles;0.99863697;-0.065129136;1.0845311;3;
+colorTriangles;0.65439715;-0.095610275;0.10542002;4;
+colorTriangles;0.72207700;-0.055185886;1.8980821;5;
+
+generateEgads;../data/Slugs/pieslice_1.egads;9;

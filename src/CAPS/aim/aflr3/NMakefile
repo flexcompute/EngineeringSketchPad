@@ -1,0 +1,62 @@
+#
+!IFNDEF ESP_ROOT
+!ERROR ESP_ROOT must be set -- Please fix the environment...
+!ENDIF
+#
+!IFNDEF AFLR
+!ERROR AFLR must be set -- Please fix the environment...
+!ENDIF
+#
+!IFNDEF AFLR_ARCH
+!ERROR AFLR_ARCH must be set -- Please fix the environment...
+!ENDIF
+#
+IDIR  = $(ESP_ROOT)\include
+!include $(IDIR)\$(ESP_ARCH).$(MSVC)
+LDIR  = $(ESP_ROOT)\lib
+!IFDEF ESP_BLOC
+ODIR  = $(ESP_BLOC)\obj
+!ELSE
+ODIR  = .
+!ENDIF
+
+AFLR3_LIB = AFLR.lib
+
+default: clear_version $(ODIR)\aflr3_version.exe $(LDIR)\aflr3AIM.dll
+
+$(LDIR)\aflr3AIM.dll:	aflr3AIM.def $(ODIR)\aflr3AIM.obj $(ODIR)\aflr3_Interface.obj \
+			$(LDIR)\utils.lib
+	-del $(LDIR)\aflr3AIM.dll
+	link /out:$(LDIR)\aflr3AIM.dll /dll /def:aflr3AIM.def \
+		$(ODIR)\aflr3AIM.obj $(ODIR)\aflr3_Interface.obj \
+		/LIBPATH:$(AFLR)\$(AFLR_ARCH)\lib $(AFLR3_LIB) \
+		/LIBPATH:$(LDIR) utils.lib aimUtil.lib ocsm.lib egads.lib \
+		udunits2.lib $(AFLREX) /ignore:4078 /ignore:4217
+	$(MCOMP) /manifest $(LDIR)\aflr3AIM.dll.manifest \
+		/outputresource:$(LDIR)\aflr3AIM.dll;2
+
+$(ODIR)\aflr3AIM.obj:	aflr3AIM.c $(IDIR)\capsTypes.h \
+			..\utils\meshUtils.h
+	cl /c $(COPTS) $(DEFINE) -I$(IDIR) -I..\utils aflr3AIM.c \
+		/Fo$(ODIR)\aflr3AIM.obj
+
+$(ODIR)\aflr3_Interface.obj:	aflr3_Interface.c ..\utils\meshUtils.h
+	cl /c $(COPTS) $(DEFINE) -I$(IDIR) \
+		-I$(AFLR)\src\aflr3 -I$(AFLR)\src -I..\utils \
+		aflr3_Interface.c /Fo$(ODIR)\aflr3_Interface.obj
+		
+clear_version:
+	-del $(ODIR)\aflr3_version.exe
+
+# Compile and execute to check the version number
+$(ODIR)\aflr3_version.exe:	aflr3_version.c $(AFLR)\src\aflr3\aflr3_version.h
+	cl /Fe$(ODIR)\aflr3_version.exe /Fo$(ODIR)\aflr3_version.obj \
+		$(COPTS) $(DEFINE) -I$(IDIR) -I$(AFLR)\src aflr3_version.c \
+		/link /LIBPATH:$(AFLR)\$(AFLR_ARCH)\lib aflr3.lib
+	$(ODIR)\aflr3_version.exe
+
+clean:
+	-del $(ODIR)\aflr3_Interface.obj $(ODIR)\aflr3AIM.obj
+
+cleanall:	clean
+	-del $(LDIR)\aflr3AIM.dll $(LDIR)\aflr3AIM.lib $(LDIR)\aflr3AIM.exp

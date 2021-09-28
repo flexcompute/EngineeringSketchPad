@@ -1,0 +1,262 @@
+# tutorial4
+# written by John Dannenhoffer
+
+# Design Parameters:
+CFGPMTR   makeSpindle         1        # =-1 to make and stop, =0 to skip, =1 to make
+
+DESPMTR   tire:wid_outer     12.0      # outer width of tire
+LBOUND    tire:wid_outer      0.0
+DESPMTR   tire:wid_inner     10.0      # inner width of tire
+LBOUND    tire:wid_inner      0.0
+DESPMTR   tire:fillet         1.0      # fillet rad  of tire
+LBOUND    tire:fillet         0.0
+DESPMTR   tire:diam_outer    30.0      # outer diam  of tire
+DESPMTR   tire:diam_inner    22.0      # inner diam  of tire
+LBOUND    tire:diam_inner     0.0
+OUTPMTR   tire:volume                  # volume      of tire
+
+DESPMTR   disk:width          1.0      # width  of disk
+LBOUND    disk:width          0.0
+DESPMTR   disk:chamfer        0.5      # chamfer radius btwn disk and tire
+LBOUND    disk:chamfer        0.0
+OUTPMTR   disk:volume                  # volume of disk
+
+CFGPMTR   hole:num            5        # number of holes
+LBOUND    hole:num            0
+DESPMTR   hole:diam_circ      4.0      # diam of circle of holes
+DESPMTR   hole:rad            0.5      # radius of each hole
+LBOUND    hole:rad            0.0
+
+CFGPMTR   spoke:num          10        # number of spokes
+LBOUND    spoke:num           0
+DESPMTR   spoke:rim           1.0      # rim left after spokes cutout
+LBOUND    spoke:rim           0.0
+DESPMTR   spoke:rad           0.2      # radius of each spoke
+LBOUND    spoke:rad           0.0
+
+CFGPMTR   spindle:Cfront      2        # blend continuity at front transition
+LBOUND    spindle:Cfront      0
+UBOUND    spindle:Cfront      2
+CFGPMTR   spindle:Cback       2        # blend continuity at back  transition
+LBOUND    spindle:Cback       0
+UBOUND    spindle:Cback       2
+DESPMTR   spindle:rad_nose    0        # nose radius
+LBOUND    spindle:rad_nose    0
+DESPMTR   spindle:clear       0.1      # clearance between spindle and disk
+LBOUND    spindle:clear       0.0
+
+CONPMTR   spindle:nsect       4        # number of cross-sections
+DIMENSION spindle:xloc              1  spindle:nsect
+DIMENSION spindle:yrad              1  spindle:nsect
+DIMENSION spindle:zrad              1  spindle:nsect
+DIMENSION spindle:n                 1  spindle:nsect
+DESPMTR   spindle:xloc     "-4.0; -3.0; -1.0; +1.0;"   # x-locations
+DESPMTR   spindle:yrad     " 0.5;  0.5;  1.0;  1.0;"   # radii in y-direction
+LBOUND    spindle:yrad       0.0
+DESPMTR   spindle:n          5.0                       # super-ellipse power
+LBOUND    spindle:n          1.0
+
+# (optionally) make the spindle and store it away
+IFTHEN    makeSpindle NE 0
+   # all spindle:zrad are the same as spindle:yrad
+   SET       spindle:zrad   spindle:yrad
+
+   # beginning of BLEND
+   MARK
+
+      # if a nose is given, create an initial point
+      IFTHEN    spindle:rad_nose GT 0
+         POINT  spindle:xloc-2*max(spindle:yrad,spindle:zrad)   0   0
+      ENDIF
+
+      PATBEG    isect  spindle:nsect
+         IFTHEN    isect GT 1   AND   spindle:xloc[isect] LE spindle:xloc[isect-1]
+            MESSAGE   spindle:xloc[+isect+$]<spindle:xloc[+(isect-1)+$]
+            THROW     -998
+         ENDIF
+
+         # basic cross-section
+         UDPRIM supell   rx spindle:zrad[isect]   ry spindle:yrad[isect]   n spindle:n[isect]
+         ROTATEY  90  0  0
+         TRANSLATE spindle:xloc[isect]  0  0
+
+         # add in extra copies for front transition continuity
+         IFTHEN    isect EQ 2
+             PATBEG    icopy   2-max(spindle:Cfront,0)
+                RESTORE .
+             PATEND
+
+          # add in extra copies for back transition continuity
+          ELSEIF   isect EQ spindle:nsect-1
+             PATBEG    icopy   2-max(spindle:Cback,0)
+                RESTORE .
+             PATEND
+          ENDIF
+      PATEND
+
+   # put these cross-sections in a Group so that they can
+   #    easily be duplicated
+   GROUP
+   STORE    xsects 0 1
+
+   # get ready for BLEND
+   MARK
+   RESTORE  xsects
+   IFTHEN    spindle:rad_nose GT 0
+      BLEND  "spindle:rad_nose; 0; 1; 0;\
+              spindle:rad_nose; 0; 0; 1"
+   ELSE
+      BLEND
+   ENDIF
+
+   # label all Faces as being part of the spindle
+   SELECT    FACE
+   ATTRIBUTE myPart $spindle
+
+   # if makeSpindle < 0, write message and stop
+   IFTHEN    makeSpindle LT 0
+      MESSAGE Stopping_after_spindle_generation
+      THROW   -999
+   ENDIF
+
+   # store the Body away
+   STORE    Spindle
+
+   # clear the stack (of the extra cross-sections) if we are
+   #    continuing with the build
+   STORE    ...
+ENDIF
+
+# make sure tire outer diameter is bigger than inner diameter
+ASSERT   ifpos(tire:diam_outer-tire:diam_inner,1,0)  1
+
+# sketch of half the cross-section of the tire
+UDPRIM    $/tutorial_sketch1
+
+# move sketch up to correct location and revolve half way around x axis
+TRANSLATE 0   tire:diam_inner/2   0
+REVOLVE   0   0   0   1   0   0   180
+
+# put an attribute on the Face associated with the tread
+SELECT    FACE   @nbody  6
+ATTRIBUTE myTag  $tread
+ATTRIBUTE _color $magenta
+
+# make mirrored copy first in Z and then in X
+RESTORE   .
+MIRROR    0  0  1
+JOIN
+
+RESTORE   .
+MIRROR    1   0   0
+JOIN
+
+# store the tire's volume
+SET       tire:volume  @volume
+
+# label all Faces as being part of the tire
+SELECT    FACE
+ATTRIBUTE myPart $tire
+
+# create red disk and union with tire
+CYLINDER  -disk:width/2  0  0  \
+          +disk:width/2  0  0  (tire:diam_inner+tire:diam_outer)/4
+ATTRIBUTE myPart $disk
+ATTRIBUTE _color  $red
+UNION
+
+# (optionally) add blue chamfer between disk and tire
+IFTHEN    disk:chamfer  GT  0
+   CHAMFER   disk:chamfer
+   ATTRIBUTE _color $blue
+ENDIF
+
+# (optionally) drill a pattern of holes
+PATBEG    ihole     hole:num
+   # on axis if one hole
+   IFTHEN    hole:num EQ 1
+      SET   y      0
+      SET   z      0
+   # equally spaced around axis
+   ELSE
+      SET   theta  360*ihole/hole:num
+      SET   y      "hole:diam_circ/2 * cosd(theta)"
+      SET   z      "hole:diam_circ/2 * sind(theta)"
+   ENDIF
+
+   CYLINDER -disk:width  y  z \
+            +disk:width  y  z  hole:rad
+   ATTRIBUTE myPart $hole
+   SUBTRACT
+PATEND
+
+# make a slightly larger version of the Spindle and
+# cut hole in the disks (error caught below if Spindle
+# was not created)
+RESTORE   Spindle
+
+HOLLOW    +spindle:clear
+SUBTRACT
+
+# if the spindle could not RESTOREd, continue without it
+CATBEG    $name_not_found
+   MESSAGE Continuing_without_spindle
+CATEND
+
+# save this Body away (but leave copy on stack)
+STORE    SolidModel  0  1
+
+# (optionally) add spokes (in cyan)
+IFTHEN    spoke:num GT 0   AND   spoke:rad GT 0
+   SET    rmin  hole:diam_circ/2+hole:rad+spoke:rim
+   SET    rmax  tire:diam_inner/2-disk:chamfer-spoke:rim
+
+   CYLINDER  -disk:width  0  0  +disk:width  0  0  rmax
+   SUBTRACT
+   SELECT    FACE   @nbody-1  0     # comes from cylinder
+   ATTRIBUTE _color $cyan
+
+   CYLINDER  0  rmin-0.1  0  0  rmax+0.1  0  spoke:rad
+   ATTRIBUTE myPart $spoke
+   ATTRIBUTE _color $cyan
+
+   UNION
+
+   RESTORE SolidModel
+   CYLINDER  -disk:width  0  0  +disk:width  0  0  rmin
+   INTERSECT
+   SELECT    FACE   @nbody-1  0     # comes from cylinder
+   ATTRIBUTE _color $cyan
+   UNION
+
+   PATBEG    ispoke  spoke:num-1
+      CYLINDER  0  rmin-0.1  0  0  rmax+0.1  0  spoke:rad
+      ATTRIBUTE myPart $spoke
+      ATTRIBUTE _color $cyan
+
+      ROTATEX   360*ispoke/spoke:num  0  0
+      UNION
+   PATEND
+ENDIF
+STORE    SolidModel  0  1
+
+# intersect this SolidModel with a cylinder in order
+#    to find the disk's volume (excluding tire)
+SET      xmax     2*max(tire:wid_outer,tire:wid_inner)
+CYLINDER -xmax  0  0  +xmax  0  0  tire:diam_inner/2
+INTERSECT
+SET      disk:volume  @volume
+STORE    .          # pop Body off stack
+
+RESTORE          SolidModel
+ATTRIBUTE _name $SolidModel
+RESTORE          Spindle
+ATTRIBUTE _name $Spindle
+CATBEG    $name_not_found    # needed for cases where spindle was not created
+CATEND
+
+# catch -999 signal so that program exits cleanly if we only make the spindle
+CATBEG    -999
+CATEND
+
+END

@@ -1,0 +1,40 @@
+# rebuild2
+# written by John Dannenhoffer
+
+despmtr   Lbox      4.0
+despmtr   Dbox      3.0
+despmtr   Hbox      2.0
+
+despmtr   Lrod      4.0
+despmtr   Rrod      0.5
+despmtr   nhole     3.0
+despmtr   Rhole     0.1
+despmtr   Rfillet   0.1
+
+despmtr   Rshaft    1.5
+
+# basic box (in three pieces)
+box       0.0       0.0       0.0       Lbox      Hbox      Dbox/3
+box       0.0       0.0       Dbox/3    Lbox      Hbox      Dbox/3
+union
+box       0.0       0.0       Dbox*2/3  Lbox      Hbox      Dbox/3
+union
+
+# rod with nhole holes
+cylinder  0.0       0.0       0.0       Lrod      0.0       0.0       Rrod
+patbeg    ihole     nhole
+   set       xhole  Lrod-4*ihole*Rhole
+   cylinder  xhole  0.0       -Rrod-.1  xhole     0.0       Rrod+.1   Rhole
+   subtract
+patend
+
+# move rod and union with box
+translate Lbox      Hbox/2    Dbox/2
+union
+fillet    Rfillet
+
+# subtract shaft from box
+cylinder  0.0       -.1       Dbox      0.0       Hbox+.1   Dbox      Rshaft
+subtract
+
+end

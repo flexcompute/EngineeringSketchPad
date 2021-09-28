@@ -1,0 +1,61 @@
+# cage2
+# written by John Dannenhoffer
+
+DESPMTR   r1         0.05
+DESPMTR   r2         0.05
+DESPMTR   R1         1.00
+DESPMTR   R2         1.02
+DESPMTR   L          5.00
+DESPMTR   npair      8
+DESPMTR   skipUnion  0
+
+# cross-sections
+SKBEG                      0.0  -r1  0.0
+   CIRARC 0.0   0.0  +r1   0.0   r1  0.0
+   CIRARC 0.0   0.0  -r1   0.0  -r1  0.0
+SKEND
+STORE     xsect1
+
+SKBEG                      0.0  -r2  0.0
+   CIRARC 0.0   0.0  +r2   0.0   r2  0.0
+   CIRARC 0.0   0.0  -r2   0.0  -r2  0.0
+SKEND
+STORE     xsect2
+
+# pairs or tubes
+PATBEG    ipair  npair
+   SET    tbeg   (ipair-1)/npair*360
+   SET    R      (R1+R2)/2
+
+   # cross-section 1 tubes
+   RESTORE   xsect1
+
+   SKBEG         0.0     R*cosd(tbeg)    R*sind(tbeg)
+      PATBEG  i  15
+         SET   theta  tbeg+360*i/16
+         SPLINE  L*i/16  R1*cosd(theta)  R1*sind(theta)
+      PATEND
+      SPLINE     L       R*cosd(tbeg)    R*sind(tbeg)
+   SKEND
+   UDPRIM   guide  nxsect  33
+   IFTHEN   ipair  GT  1  AND  skipUnion  EQ  0
+      UNION
+   ENDIF
+
+   # cross-section 2 tubes
+   RESTORE   xsect2
+
+   SKBEG         0.0     R*cosd(tbeg)    R*sind(tbeg)
+      PATBEG  i  15
+         SET  theta  tbeg-360*i/16
+         SPLINE  L*i/16  R2*cosd(theta)  R2*sind(theta)
+      PATEND
+      SPLINE     L       R*cosd(tbeg)    R*sind(tbeg)
+   SKEND
+   UDPRIM   guide  nxsect  33
+   IFTHEN   ipair  GT  0  AND  skipUnion  EQ  0
+      UNION
+   ENDIF
+PATEND
+
+end

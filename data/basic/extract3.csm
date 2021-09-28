@@ -1,0 +1,38 @@
+# extract3
+# written by John Dannenhoffer
+
+# make a hollow square tube
+SKBEG     0.0  -1.0  -1.0
+   LINSEG 0.0  +1.0  -1.0
+   LINSEG 0.0  +1.0  +1.0
+   LINSEG 0.0  -1.0  +1.0
+   LINSEG 0.0  -1.0  -1.0
+SKEND     1
+STORE     box
+
+MARK
+   RESTORE   box
+   TRANSLATE -2.0  0.0  0.0
+
+   RESTORE   box
+   TRANSLATE -1.0  0.0  0.0
+
+   RESTORE   box
+
+   RESTORE   box
+   TRANSLATE +1.0  0.0  0.0
+
+   RESTORE   box
+   TRANSLATE +2.0  0.0  0.0
+RULE
+
+# @sellist should contain all Faces except for faceID=16;12 and faceID=16;13
+SELECT    FACE
+SELECT    SUB     16 12
+SELECT    SUB     16 13
+
+# now leave all the other Faces in a SheetBody
+EXTRACT   @sellist
+
+END
+

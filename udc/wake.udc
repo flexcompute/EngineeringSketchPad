@@ -1,0 +1,38 @@
+# right-side wing wake
+# written by John Dannenhoffer
+
+interface ID        in  0
+interface intent    in  1
+interface mirror    in  0
+interface area      in  100
+interface aspect    in  8
+interface taper     in  0.8
+interface twist     in  -5.0
+interface sweep     in  0.0
+interface dihedral  in  0.0
+interface camber    in  0.04
+interface wakeLen   in  3.00
+interface wakeAng   in  0.00
+
+set       span      sqrt(area*aspect)
+set       cbar      area/span
+set       croot     2*cbar/(1+taper)
+set       ctip      taper*croot
+
+ifthen intent eq 2
+   ifthen mirror ne 1
+      skbeg croot  0  0
+         linseg ctip*cosd(twist)+span/2*tand(sweep)  +span/2  +ctip*sind(twist)+span/2*tand(dihedral)
+      skend
+   else
+      skbeg     ctip*cosd(twist)+span/2*tand(sweep)  -span/2  +ctip*sind(twist)+span/2*tand(dihedral)
+         linseg croot                                0        0
+         linseg ctip*cosd(twist)+span/2*tand(sweep)  +span/2  +ctip*sind(twist)+span/2*tand(dihedral)
+      skend
+   endif
+   extrude wakeLen*cosd(wakeAng)  0  wakeLen*sind(wakeAng)
+      attribute ID       !ID
+      attribute Intent 2  # 2D model (aka, mid-surface aero)
+endif
+
+end

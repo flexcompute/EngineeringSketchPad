@@ -1,0 +1,35 @@
+# catch33 (should have uncaught 3)
+# written by John Dannenhoffer
+
+box        0 0 0 1 1 1
+throw      3
+
+box        1 0 0 1 1 1
+box        2 0 0 1 1 1
+
+catbeg     1
+   box     3 0 0 1 1 1
+   box     4 0 0 1 1 1
+catend
+
+box        5 0 0 1 1 1
+
+catbeg     2
+   box     6 0 0 1 1 1
+catend
+
+box        7 0 0 1 1 1
+
+catbeg     3
+   box     8 0 0 1 1 1
+   throw   3
+
+   box     9 0 0 1 1 1
+   catbeg  4
+      box 10 0 0 1 1 1
+   catend
+catend
+
+assert     @nbody 2
+
+end

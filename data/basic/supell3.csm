@@ -1,0 +1,40 @@
+# supell3
+# written by John Dannenhoffer
+
+udparg    supell    rx   2.0  ry  2.0  n  3.0
+udprim    supell    n_nw 0.5
+translate  -5  5  0
+
+udparg    supell    rx   2.0  ry  2.0  n  3.0
+udprim    supell    n_n  0.5
+translate   0  5  0
+
+udparg    supell    rx   2.0  ry  2.0  n  3.0
+udprim    supell    n_ne 0.5
+translate  +5  5  0
+
+udparg    supell    rx   2.0  ry  2.0  n  3.0
+udprim    supell    n_w  0.5
+translate  -5  0  0
+
+udparg    supell    rx   2.0  ry  2.0  n  3.0
+udprim    supell
+translate   0  0  0
+
+udparg    supell    rx   2.0  ry  2.0  n  3.0
+udprim    supell    n_e  0.5
+translate  +5  0  0
+
+udparg    supell    rx   2.0  ry  2.0  n  3.0
+udprim    supell    n_sw 0.5
+translate  -5 -5  0
+
+udparg    supell    rx   2.0  ry  2.0  n  3.0
+udprim    supell    n_s  0.5
+translate   0 -5  0
+
+udparg    supell    rx   2.0  ry  2.0  n  3.0
+udprim    supell    n_se 0.5
+translate  +5 -5  0
+
+end

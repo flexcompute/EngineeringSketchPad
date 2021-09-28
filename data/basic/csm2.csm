@@ -1,0 +1,22 @@
+# csm2
+# written by John Dannenhoffer
+
+despmtr   one      1.0
+despmtr   half     0.5
+
+# box 1
+udparg    csm      filename   $$/csm0.csm
+udparg    csm      pmtrname   $xsize;ysize
+udparg    csm      pmtrvalue  "1+1  ;1+1+1"
+udprim    csm
+
+# box 2
+udparg    csm      filename   $$/csm0.csm
+udparg    csm      pmtrname   $xbase;ybase;zbase;
+udparg    csm      pmtrvalue  "one  ;half ;0.3  "
+udprim    csm
+
+# combine
+subtract
+
+end

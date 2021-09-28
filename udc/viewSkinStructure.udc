@@ -1,0 +1,65 @@
+# viewSkinStructure.udc
+# written by Marshall Galbraith
+
+# used Bodys
+#    WingOml
+# used variables
+#    wing:dxnom     (default=1)
+
+INTERFACE . ALL
+
+# wing structure
+IFTHEN    COMP:Wing EQ 1
+
+    # attribute the wing
+    RESTORE   WingOml
+
+    # put upper and lower skins into capsBounds
+    UDPRIM    editAttr  filename <<
+        FACE HAS      tagComp=leftWing
+        AND  HAS      tagType=upper
+        SET           capsBound=upperLeftWing
+
+        FACE HAS      tagComp=riteWing
+        AND  HAS      tagType=upper
+        SET           capsBound=upperRiteWing
+
+        FACE HAS      tagComp=leftWing
+        AND  HAS      tagType=lower
+        SET           capsBound=lowerLeftWing
+
+        FACE HAS      tagComp=riteWing
+        AND  HAS      tagType=lower
+        SET           capsBound=lowerRiteWing
+>>
+
+    SELECT    EDGE  $tagType  $root
+    DIMENSION rootEdges 1 @sellist.size 0
+    SET       rootEdges @sellist
+    PATBEG    i   rootEdges.size
+        SELECT  EDGE   rootEdges[i]
+            ATTRIBUTE capsConstraint $pointConstraint1
+    PATEND
+
+    # mark nodes at tups and leadinge edge with possible point loads
+    UDPRIM    editAttr  filename  <<
+        NODE ADJ2FACE tagType=tip
+        AND  ADJ2EDGE tagType=leadingEdge
+        SET           capsLoad=TipLEPoint
+>>
+
+    # The bounds need to be present for a fluid structure interaction
+    STORE     WingStruct
+
+    # mesh size
+    SET       dxnom    ifnan(wing:dxnom,1,wing:dxnom)
+    RESTORE   WingStruct
+        ATTRIBUTE .tParams   "dxnom;dxnom/4;15"
+        ATTRIBUTE capsIntent $STRUCTURE
+        ATTRIBUTE capsGroup  $wingSkin
+
+    # save skin structure
+    STORE     WingStruct
+ENDIF
+
+END

@@ -1,0 +1,87 @@
+# ereped5b
+# written by John Dannenhoffer
+
+DESPMTR   X1       -1.0
+DESPMTR   DY1       1.0
+DESPMTR   DZ1       0.5
+
+DESPMTR   X2        0.0
+DESPMTR   DY2       1.0
+DESPMTR   DZ2       1.0
+
+DESPMTR   X3        2.0
+DESPMTR   DY3       0.5
+DESPMTR   DZ3       1.0
+
+DESPMTR   X4        -.2
+DESPMTR   Y4        -.2
+DESPMTR   DX4       1.0
+DESPMTR   DY4       0.2
+DESPMTR   DZ4       4.0
+
+# fuselage
+MARK
+   BOX    X1  -DY1/2  -DZ1/2   0.0  DY1  DZ1
+   BOX    X2  -DY2/2  -DZ2/2   0.0  DY2  DZ2
+   SKBEG       X3  -DY3/2   DZ3/2
+      LINSEG   X3  -DY3/2  -DZ3/2
+      LINSEG   X3   DY3/2  -DZ3/2
+      LINSEG   X3   DY3/2   DZ3/2
+      LINSEG   X3  -DY3/2   DZ3/2
+   SKEND
+RULE
+SELECT    FACE  @nbody  3
+ATTRIBUTE fuse  1          # bottom front
+SELECT    FACE  @nbody  4
+ATTRIBUTE fuse  2          # bottom back
+SELECT    FACE  @nbody  5
+ATTRIBUTE fuse  3          # right  front
+SELECT    FACE  @nbody  6
+ATTRIBUTE fuse  4          # right  back
+SELECT    FACE  @nbody  7
+ATTRIBUTE fuse  5          # top    front
+SELECT    FACE  @nbody  8
+ATTRIBUTE fuse  6          # top    back
+SELECT    FACE  @nbody  9
+ATTRIBUTE fuse  7          # left   front
+SELECT    FACE  @nbody 10
+ATTRIBUTE fuse  8          # left   back
+
+# wing
+MARK
+   PATBEG   i  5
+      SET   z  -DZ4/2+(i-1)/4*DZ4
+      BOX   X4-DX4/2  Y4-DY4/2  z  DX4  DY4  0.0
+   PATEND
+RULE
+SELECT    FACE  @nbody  3
+SELECT    ADD   @nbody  4
+ATTRIBUTE wing  1           # rite leading edge
+SELECT    FACE  @nbody  5
+SELECT    ADD   @nbody  6
+ATTRIBUTE wing  2           # left leading edge
+SELECT    FACE  @nbody  7
+SELECT    ADD   @nbody  8
+ATTRIBUTE wing  3           # rite lower
+SELECT    FACE  @nbody  9
+SELECT    ADD   @nbody 10
+ATTRIBUTE wing  4           # left lower
+SELECT    FACE  @nbody 11
+SELECT    ADD   @nbody 12
+ATTRIBUTE wing  5           # left trailing edge
+SELECT    FACE  @nbody 13
+SELECT    ADD   @nbody 14
+ATTRIBUTE wing  6           # left trailing edge
+SELECT    FACE  @nbody 15
+SELECT    ADD   @nbody 16
+ATTRIBUTE wing  7           # left upper
+SELECT    FACE  @nbody 17
+SELECT    ADD   @nbody 18
+ATTRIBUTE wing  8           # left upper
+
+UNION
+
+SELECT    NODE  X4-DX4/2  Y4+DY4/2  DZ4/4
+ATTRIBUTE .Keep 1
+
+END

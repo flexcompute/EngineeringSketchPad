@@ -1,0 +1,44 @@
+# flend3e
+# written by John Dannenhoffer
+
+DESPMTR   dsfuse  0.1
+DESPMTR   dswing  0.1
+
+# scribed fuselage-like body
+BOX       0.0  0.0  0.0   3.0  2.0  1.0
+
+SKBEG     1.0-dsfuse  0.9-dsfuse  0.9
+   LINSEG 2.0+dsfuse  0.9-dsfuse  0.9
+   LINSEG 2.0+dsfuse  1.1+dsfuse  0.9
+   LINSEG 1.0-dsfuse  1.1+dsfuse  0.9
+   LINSEG 1.0-dsfuse  0.9-dsfuse  0.9
+SKEND     1
+EXTRUDE   0.0  0.0  0.2
+SUBTRACT
+SELECT    face 1 6 1
+   ATTRIBUTE _flend $remove
+STORE     fuse
+
+# wing-like body
+BOX        1.0  0.9  1.0+dswing   1.0  0.2  2.0
+SELECT     face @nbody 5
+   ATTRIBUTE _flend $remove
+STORE     wing
+
+# generate the flend
+MARK
+   RESTORE   fuse
+   ROTATEY   90  0  0
+   SELECT    face $_flend $*
+      ATTRIBUTE _color $magenta
+
+   RESTORE   wing
+   ROTATEY   90  0  0
+   SELECT    face $_flend $*
+      ATTRIBUTE _color $magenta
+UDPRIM    flend
+
+SELECT    face @nbody 0
+   ATTRIBUTE _color $cyan
+
+END

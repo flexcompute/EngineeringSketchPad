@@ -1,0 +1,25 @@
+# design0
+# written by John Dannenhoffer
+
+despmtr   xbase    -2.0
+despmtr   ybase    -1.0
+despmtr   zbase    -0.5
+despmtr   xsize     4.0
+despmtr   ysize     2.0
+despmtr   zsize     1.0
+despmtr   dx        1.0
+despmtr   dy        2.0
+despmtr   dz       -1.0
+despmtr   rotx     30.0
+despmtr   roty    -15.0
+despmtr   rotz     60.0
+despmtr   scale     2.0
+
+box       xbase     ybase     zbase     xsize     ysize     zsize
+translate dx        dy        dz
+rotatex   rotx      0         0
+rotatey   roty      0         0
+rotatez   rotz      0         0
+scale     scale
+
+end

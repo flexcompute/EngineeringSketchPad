@@ -1,0 +1,89 @@
+a# attribute
+# written by John Dannenhoffer
+
+# global attributes
+attribute  globalPi  pi(1)
+attribute  global2   $thisGlobal
+attribute  global3   1;2;3
+attribute  global4   1^2;2^2;3^2;
+
+set        one       1
+set        four      4
+   attribute  global5   four+one
+
+# the box
+box            -1.00     -1.00     -1.00      2.00      2.00      2.00
+   name       this_is_a_box
+   attribute  xsize     11.00
+   attribute  ysize      2.00
+   attribute  zsize      3.00
+   attribute  xsize      1.00
+   attribute  myName    $myBox
+   attribute  123       1;2;3
+   attribute  456       1+3;2+3;3+3;
+   set        theBox    @nbody
+getattr   nattr   $_nattr_
+assert    nattr   13
+
+# set attributes on the Faces and Edges of the box
+   set        nedge     @nedge
+   set        nface     @nface
+
+   patbeg     iedge  nedge
+      select     edge     iedge
+      attribute  boxEdge  iedge
+   patend
+   patbeg     iface  nface
+      select     face     iface
+      attribute  boxFace  iface
+   patend
+
+# the cylinder
+cylinder        0.90      0.00      0.00      0.90      2.00      0.00      0.50
+   name       ThisIsACylinder
+   attribute  myName    $myCylinder
+   set        theCyl    @nbody
+getattr    nattr   $_nattr_
+assert     nattr   8
+
+# set attributes on the Faces of the cylinder
+   set     nface    @nface
+
+   patbeg    iface  nface
+      select     face     iface
+      attribute  cylFace  iface
+   patend
+
+# combine box and cylinder
+union
+
+# the sphere
+sphere         -1.10     -0.75      0.90      1.00
+   attribute  radius    1.00
+   attribute  myName    $mySphere
+   attribute  string    $one
+   attribute  number     one
+   set        theSph    @nbody
+getattr    nattr   $_nattr_
+assert     nattr   11
+
+# combine sphere with box/cylinder
+union
+   name       UnionOfTheThree
+   attribute  status    $done
+getattr    nattr   $_nattr_
+# nattr depends on whether or not we've already tessellated
+assert     ifzero(nattr-8,1,0)+ifzero(nattr-9,1,0)  1
+
+# get the number of global Attributes
+getattr    nattr   $_nattr_  1
+assert     nattr   5
+
+# print the global Attributes
+patbeg     iattr   nattr
+   getattr attrname iattr    1
+   getattr attrvalu attrname 1
+patend
+assert     attrvalu 5
+
+end

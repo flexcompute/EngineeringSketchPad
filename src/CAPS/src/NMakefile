@@ -1,0 +1,137 @@
+#
+IDIR  = $(ESP_ROOT)\include
+!include $(IDIR)\$(ESP_ARCH).$(MSVC)
+SDIR  = $(MAKEDIR)
+LDIR  = $(ESP_ROOT)\lib
+!IFDEF ESP_BLOC
+ODIR  = $(ESP_BLOC)\obj
+!ELSE
+ODIR  = .
+!ENDIF
+
+OBJS  = capsBase.obj capsAnalysis.obj capsApprox.obj  capsAttr.obj \
+	capsAIM.obj  capsBound.obj    capsProblem.obj capsValue.obj \
+        capsUnits.obj conjGrad.obj capsFunIDs.obj   printObject.obj
+
+!IFDEF ESP_BLOC
+default:	$(IDIR)\caps.h $(IDIR)\capsErrors.h $(IDIR)\capsTypes.h \
+		$(IDIR)\aimUtil.h $(IDIR)\aimMesh.h \
+		start $(LDIR)\caps.dll $(LDIR)\capsstatic.lib \
+		$(LDIR)\testingAIM.dll $(LDIR)\testingWriter.dll \
+		$(LDIR)\aimUtil.lib end
+!ELSE
+default:	$(IDIR)\caps.h $(IDIR)\capsErrors.h $(IDIR)\capsTypes.h \
+		$(IDIR)\aimUtil.h $(IDIR)\aimMesh.h \
+		$(LDIR)\caps.dll $(LDIR)\capsstatic.lib $(LDIR)\aimUtil.lib \
+		$(LDIR)\testingAIM.dll $(LDIR)\testingWriter.dll \
+!ENDIF
+
+start:
+	cd $(ODIR)
+	xcopy $(SDIR)\*.c           /Q /Y
+	xcopy $(SDIR)\*.h           /Q /Y
+	xcopy $(SDIR)\*.rc          /Q /Y
+	xcopy $(SDIR)\*.def         /Q /Y
+
+$(LDIR)\testingAIM.dll:	$(ODIR)\testingAIM.obj $(LDIR)\aimUtil.lib \
+			$(LDIR)\ocsm.lib $(LDIR)\egads.lib
+	-del $(LDIR)\testingAIM.dll $(LDIR)\testingAIM.lib \
+		$(LDIR)\testingAIM.exp
+	link /out:$(LDIR)\testingAIM.dll /dll /def:aim.def \
+		$(ODIR)\testingAIM.obj $(LDIR)/aimUtil.lib $(LDIR)\ocsm.lib \
+		$(LDIR)\udunits2.lib $(LDIR)\egads.lib
+	$(MCOMP) /manifest $(LDIR)\testingAIM.dll.manifest \
+		/outputresource:$(LDIR)\testingAIM.dll;2
+
+$(ODIR)\testingAIM.obj:	testingAIM.c $(IDIR)\capsTypes.h
+	cl /c $(COPTS) $(DEFINE) /I$(IDIR) testingAIM.c \
+		/Fo$(ODIR)\testingAIM.obj
+
+$(LDIR)\testingWriter.dll:	$(ODIR)\testingWriter.obj $(LDIR)\aimUtil.lib 
+	-del $(LDIR)\testingWriter.dll $(LDIR)\testingWriter.lib \
+		$(LDIR)\testingWriter.exp
+	link /out:$(LDIR)\testingWriter.dll /dll /def:testingWriter.def \
+		$(ODIR)\testingWriter.obj $(LDIR)/aimUtil.lib \
+		$(LDIR)\udunits2.lib
+	$(MCOMP) /manifest $(LDIR)\testingWriter.dll.manifest \
+		/outputresource:$(LDIR)\testingWriter.dll;2
+
+$(ODIR)\testingWriter.obj:	testingWriter.c $(IDIR)\capsTypes.h \
+				$(IDIR)\aimUtil.h $(IDIR)\aimMesh.h
+	cl /c $(COPTS) $(DEFINE) /I$(IDIR) testingWriter.c \
+		/Fo$(ODIR)\testingWriter.obj
+
+$(LDIR)\aimUtil.lib:	$(ODIR)\aimUtil.obj $(ODIR)\aimTransferUtil.obj \
+			$(ODIR)\aimMesh.obj
+	-del $(LDIR)\aimUtil.lib
+	lib /out:$(LDIR)\aimUtil.lib $(ODIR)\aimUtil.obj \
+			$(ODIR)\aimMesh.obj $(ODIR)\aimTransferUtil.obj
+
+$(ODIR)\aimUtil.obj:	aimUtil.c $(IDIR)\capsTypes.h $(IDIR)\common.h \
+			$(IDIR)\OpenCSM.h
+	cl /c $(COPTS) $(DEFINE) /I$(IDIR) aimUtil.c /Fo$(ODIR)\aimUtil.obj
+
+$(ODIR)\aimMesh.obj:	aimMesh.c $(IDIR)\capsTypes.h $(IDIR)\aimUtil.h \
+			$(IDIR)\aimMesh.h
+	cl /c $(COPTS) $(DEFINE) /I$(IDIR) aimMesh.c \
+			/Fo$(ODIR)\aimMesh.obj
+
+$(ODIR)\aimTransferUtil.obj:	aimTransferUtil.c $(IDIR)\capsTypes.h \
+				$(IDIR)\aimUtil.h
+	cl /c $(COPTS) $(DEFINE) /I$(IDIR) aimTransferUtil.c \
+			/Fo$(ODIR)\aimTransferUtil.obj
+
+$(LDIR)\capsstatic.lib:	$(OBJS)
+	-del $(LDIR)\capsstatic.lib
+	lib /out:$(LDIR)\capsstatic.lib $(OBJS)
+
+$(LDIR)\caps.dll:	$(OBJS) caps.res
+	-del $(LDIR)\caps.dll $(LDIR)\caps.lib $(LDIR)\caps.exp
+	link /out:$(LDIR)\caps.dll /dll /def:caps.def $(OBJS) caps.res \
+		$(LDIR)\ocsm.lib $(LDIR)\udunits2.lib $(LDIR)\egads.lib \
+		Advapi32.lib Ws2_32.lib
+	$(MCOMP) /manifest $(LDIR)\caps.dll.manifest \
+		/outputresource:$(LDIR)\caps.dll;2
+
+caps.res:	caps.rc
+	rc caps
+
+$(OBJS): 	$(IDIR)\capsErrors.h $(IDIR)\capsTypes.h $(IDIR)\prm.h \
+		capsFunIDs.h capsBase.h $(IDIR)\OpenCSM.h $(IDIR)\common.h \
+		$(OBJS:.obj=.c)
+	cl /c $(COPTS) $(DEFINE) /I$(IDIR) $*.c 
+
+end:
+	-del *.c *.h *.rc *.def
+	cd $(SDIR)
+
+$(IDIR)\caps.h:	..\include\caps.h
+	-del $(IDIR)\caps.h
+	copy ..\include\caps.h $(IDIR)\caps.h
+
+$(IDIR)\capsErrors.h:	..\include\capsErrors.h
+	-del $(IDIR)\capsErrors.h
+	copy ..\include\capsErrors.h $(IDIR)\capsErrors.h
+
+$(IDIR)\capsTypes.h:	..\include\capsTypes.h
+	-del $(IDIR)\capsTypes.h
+	copy ..\include\capsTypes.h $(IDIR)\capsTypes.h
+
+$(IDIR)\aimUtil.h:	..\include\aimUtil.h
+	-del $(IDIR)\aimUtil.h
+	copy ..\include\aimUtil.h $(IDIR)\aimUtil.h
+
+$(IDIR)\aimMesh.h:	..\include\aimMesh.h
+	-del $(IDIR)\aimMesh.h
+	copy ..\include\aimMesh.h $(IDIR)\aimMesh.h
+
+clean:
+	cd $(ODIR)
+	-del $(OBJS) testingAIM.obj testingWriter.obj aimUtil.obj aimMesh.obj aimTransferUtil.obj caps.res
+	cd $(SDIR)
+
+cleanall:	clean
+	-del $(LDIR)\capsstatic.lib $(LDIR)\testingAIM.dll $(LDIR)\aimUtil.lib
+	-del $(IDIR)\caps.h $(IDIR)\capsErrors.h $(IDIR)\capsTypes.h
+	-del $(IDIR)\aimUtil.h $(IDIR)\aimMesh.h $(LDIR)\testingWriter.dll
+	-del $(LDIR)\caps.dll $(LDIR)\caps.lib $(LDIR)\caps.exp

@@ -1,0 +1,36 @@
+# Dish UDC by Jake Boyce
+
+# DishRad = Dish radius
+# AntLeng = Antenna Length
+
+
+attribute capsGroup $Dish
+
+interface DishRad in 2
+interface AntLeng in 1
+
+
+# Branches:
+
+
+
+sphere DishRad-(DishRad/13) 0 0 DishRad
+sphere (DishRad)+(DishRad/10)  0 0 (DishRad)+(DishRad/20)
+subtract none 1 0
+
+box (DishRad/3) -DishRad -DishRad (DishRad/2) (2*DishRad) (2*DishRad)
+subtract none 1 0
+
+cylinder 0 0 0 AntLeng 0 0 DishRad/60
+union 0 0 0
+
+sphere AntLeng 0 0 DishRad/30
+union 0 0 0
+
+rotatez 10 0 0
+
+box 0 (DishRad/(-2)) (DishRad)/(-4) -(DishRad)/(4) (DishRad/2) (DishRad/2)
+union 0 0 0
+
+
+end

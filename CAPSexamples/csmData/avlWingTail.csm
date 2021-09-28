@@ -1,0 +1,106 @@
+# AVL 
+ 
+# Design parameters
+despmtr   thick     0.12      frac of local chord
+despmtr   camber    0.04      frac of loacl chord
+despmtr   tlen      5.00      length from wing LE to Tail LE
+despmtr   toff      0.5       tail offset
+
+despmtr   area      10.0
+despmtr   aspect    6.00
+despmtr   taper     0.60
+despmtr   sweep     20.0      deg (of c/4)
+
+despmtr   washout  -5.00      deg (down at tip)
+despmtr   dihedral  4.00      deg
+
+despmtr flapLE 0.2  # Percent along chord for the flap as a fraction
+despmtr flapTE 80.0 # Percent along chord for the flap as a %
+
+# Global attributes
+attribute capsAIM            $avlAIM
+attribute capsReferenceArea  area
+attribute capsReferenceSpan  span
+attribute capsReferenceChord croot
+attribute capsReferenceX     croot/4
+
+# Internal parameters
+set       span      sqrt(aspect*area)
+set       croot     2*area/span/(1+taper)
+set       ctip      croot*taper
+set       dxtip     (croot-ctip)/4+span/2*tand(sweep)
+set       dztip     span/2*tand(dihedral)
+
+######### Wing ##############
+
+#mark # Uncomment to make solid body model
+
+# Root
+udprim    naca      Thickness thick     Camber    camber
+    scale     croot
+    rotatex   90        0         0
+    
+    attribute capsGroup    $Wing
+   
+    # Both vlmControl_WingRightLE and vlmControl_WingRightLE  = WingRightLE
+    
+    attribute vlmControlWingRightLE flapLE
+    attribute vlmControl_WingRightTE flapTE
+    
+    attribute vlmControl_WingLeftLE flapLE
+    attribute vlmControl_WingLeftTE flapTE
+    
+# Right tip
+udprim    naca      Thickness thick     Camber    camber
+    scale     ctip
+    rotatex   90        0         0
+    rotatey   washout   0         ctip/4
+    translate dxtip    -span/2    dztip
+   
+    attribute capsGroup    $Wing
+    
+    attribute vlmControl_WingRightLE flapLE
+    attribute vlmControl_WingRightTE flapTE
+    
+    
+# Left tip
+udprim    naca      Thickness thick     Camber    camber
+    scale     ctip
+    rotatex   90        0         0
+    rotatey   washout   0         ctip/4
+    translate dxtip     span/2    dztip
+    
+    attribute capsGroup    $Wing
+    
+    attribute vlmControl_WingLeftLE flapLE
+    attribute vlmControl_WingLeftTE flapTE
+    
+#blend # Uncomment to make solid body model
+#rule 
+
+######### Vertical Tail #####
+
+#mark # Uncomment to make solid body model
+
+# Tip
+udprim    naca      Thickness thick
+    scale     0.75*ctip
+    translate tlen+0.75*(croot-ctip) 0.0 ctip+toff
+    
+    attribute capsGroup    $Vertical_Tail
+    
+    attribute vlmControl_Tail flapTE
+
+# Base
+udprim    naca      Thickness thick
+    scale     0.75*croot
+    translate tlen 0.0 toff
+    attribute capsGroup    $Vertical_Tail
+    
+    attribute vlmControl_Tail flapTE
+
+
+#blend # Uncomment to make solid body model
+#rule
+
+end

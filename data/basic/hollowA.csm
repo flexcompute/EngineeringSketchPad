@@ -1,0 +1,13 @@
+# hollowA
+# written by John Dannenhoffer
+
+SKBEG       -1 -1 0
+    LINSEG   1 -1 0
+    LINSEG   1  1 0
+    LINSEG  -1  1 0
+    LINSEG  -1 -1 0
+SKEND                                
+
+HOLLOW
+
+end

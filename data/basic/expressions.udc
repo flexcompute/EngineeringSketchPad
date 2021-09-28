@@ -1,0 +1,38 @@
+# expressions
+# written by Dannenhoffer
+
+interface xx        in  0
+interface yy        in  0
+interface zz        in  0
+interface aa        out 0
+interface bb        out 0
+
+# assert that xx, yy, and zz are proper size
+assert    xx.nrow   1
+assert    xx.ncol   1
+assert    xx.size   1
+assert    yy.nrow   2
+assert    yy.ncol   3
+assert    yy.size   6
+assert    zz.nrow   3
+assert    zz.ncol   2
+assert    zz.size   6
+
+# assert that global variables are not visible
+assert    ifnan(xxx,1,0)  1
+assert    ifnan(yyy,1,0)  1
+assert    ifnan(zzz,1,0)  1
+
+# check path() function
+set       pwd_path  path($pwd)
+set       csm_path  path($csm)
+set       full_path pwd_path+csm_path
+set       full_name pwd_path+csm_path+path($file)
+set       root_path path($root)
+set       udc_path  root_path+$/udc
+
+# set the outputs
+set       aa  yy.max
+set       bb  zz.max
+
+end

@@ -1,0 +1,7 @@
+# naca2
+# written by John Dannenhoffer
+
+udprim  naca Thickness 0.12 Camber 0.04
+extrude 0 0 3
+
+end

@@ -1,0 +1,27 @@
+# design0m
+# written by John Dannenhoffer
+
+despmtr   xbase 1.0
+despmtr   ybase 1.0
+despmtr   zbase 1.0
+despmtr   xsize 3.0
+despmtr   ysize 4.0
+despmtr   zsize 5.0
+
+despmtr   nx    0.5
+despmtr   ny    0.2
+despmtr   nz    0.1
+despmtr   dist  0.2
+
+despmtr   scale 2.0
+
+despmtr   dx   -1.0
+despmtr   dy   -2.0
+despmtr   dz   -3.0
+
+box       xbase ybase zbase xsize ysize zsize
+mirror    nx    ny    nz    dist
+scale     scale
+translate dx    dy    dz
+
+end

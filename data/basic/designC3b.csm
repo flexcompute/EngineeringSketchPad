@@ -1,0 +1,14 @@
+# designC3b
+# written by John Dannenhoffer
+
+despmtr   xbeg       0
+despmtr   ybeg       1
+despmtr   zbeg      -2
+despmtr   xend       0
+despmtr   yend       1
+despmtr   zend      -6
+despmtr   rad        1
+
+cylinder  xbeg  ybeg  zbeg  xend  yend  zend  rad
+
+end

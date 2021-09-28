@@ -1,0 +1,23 @@
+# parabaloid
+# written by John Dannenhoffer
+
+DESPMTR   xlen   6.0
+DESPMTR   yrad   2.0
+DESPMTR   zrad   3.0
+
+# 3D parabaloid
+UDPRIM    parabaloid xlength xlen   yradius yrad   zradius zrad
+
+# 2D parabola in x-z plane
+UDPRIM    parabaloid xlength xlen                  zradius zrad
+TRANSLATE 0  -1-yrad  0
+
+# 2D parabola in x-y plane
+UDPRIM    parabaloid xlength xlen   yradius yrad
+TRANSLATE 0   0 -1-zrad
+
+END
+
+
+
+

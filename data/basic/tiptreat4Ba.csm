@@ -1,0 +1,36 @@
+# tiptreat4Ba
+# written by Marshall Galbraith
+
+despmtr   thickness 0.16
+despmtr   camber    0.12
+despmtr   maxloc    0.4
+despmtr   sharpte   0
+
+despmtr   span      1.0
+despmtr   taper     0.5
+despmtr   sweep     20.
+
+mark
+   # rite tip
+   udprim naca thickness thickness camber camber maxloc maxloc sharpte sharpte
+   scale taper
+   translate span*atan(pi(sweep)/180) 0 -span
+
+   udprim naca thickness thickness camber camber maxloc maxloc sharpte sharpte
+   scale (1+taper)/2
+   translate 0 0 -span/2
+
+   # mid section
+   udprim naca thickness thickness camber camber maxloc maxloc sharpte sharpte
+
+   udprim naca thickness thickness camber camber maxloc maxloc sharpte sharpte
+   scale (1+taper)/2
+   translate 0 0 span/2
+   
+   # left tip
+   udprim naca thickness thickness camber camber maxloc maxloc sharpte sharpte
+   scale taper
+   translate span*atan(pi(sweep)/180) 0 span
+blend   0  0
+
+end

@@ -1,0 +1,17 @@
+# designA
+# written by John Dannenhoffer
+
+dimension aa        2 3 1
+dimension bb        3 2
+
+despmtr   aa        "11; 12; 13;\
+                     21; 22; 23;"
+set       bb        "101; 102;\
+                     201; 202;\
+                     301; 302;"
+
+udparg    $/udcTest2a   in1  aa
+udparg    $/udcTest2a   in2  bb
+udprim    $/udcTest2a
+
+end

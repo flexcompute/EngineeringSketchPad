@@ -1,0 +1,32 @@
+# bezier7d
+# written by John Dannenhoffer
+
+despmtr   width     2.00
+despmtr   height    0.50
+despmtr   str1      1.00
+despmtr   str2      0.75
+despmtr   str3      0.50
+despmtr   str4      0.25
+
+set       w2        width/2
+set       h2        height/2
+
+skbeg     +w2        0.0  0
+   bezier +w2-str1   0.0  0
+   bezier 0.0+str1   +h2  0
+   bezier 0.0        +h2  0 
+   linseg 0.0        +h2  0
+   bezier 0.0-str2   +h2  0
+   bezier -w2+str2   0.0  0
+   bezier -w2        0.0  0
+   linseg -w2        0.0  0
+   bezier -w2+str3   0.0  0
+   bezier 0.0-str3   -h2  0
+   bezier 0.0        -h2  0
+   linseg 0.0        -h2  0
+   bezier 0.0+str4   -h2  0
+   bezier +w2-str4   0.0  0
+   bezier +w2        0.0  0
+skend
+
+end

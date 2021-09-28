@@ -1,0 +1,14 @@
+# designC1a
+# written by John Dannenhoffer
+
+despmtr   xbeg       2
+despmtr   ybeg       0
+despmtr   zbeg       1
+despmtr   xend       6
+despmtr   yend       0
+despmtr   zend       1
+despmtr   rad        1
+
+cylinder  xbeg  ybeg  zbeg  xend  yend  zend  rad
+
+end

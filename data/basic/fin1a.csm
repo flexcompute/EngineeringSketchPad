@@ -1,0 +1,68 @@
+# fin1a
+# written by John Dnnenhoffer
+
+# number of times that FinTiles are replicated
+despmtr   imax  1
+despmtr   jmax  1
+despmtr   kmax  1
+
+# upper fin
+box       0.00  0.90  0.48   1.00  0.10  0.04
+   select    face   @nbody 5
+   attribute _color $red
+   select    face   @nbody 6
+   attribute _color $red
+ 
+# upper plate
+box       0.00  0.80  0.00   1.00  0.10  1.00
+   select    face   @nbody 4
+   attribute _color $red
+   select    face   @nbody 3
+   attribute _color $blue
+union
+
+# middle fin
+box       0.48  0.20  0.00   0.04  0.60  1.00
+   select    face   @nbody 1
+   attribute _color $blue
+   select    face   @nbody 2
+   attribute _color $blue
+union
+
+# lower plate
+box       0.00  0.10  0.00   1.00  0.10  1.00
+   select    face   @nbody 3
+   attribute _color $red
+   select    face   @nbody 4
+   attribute _color $blue
+union
+
+# lower fin
+box       0.00  0.00  0.48   1.00  0.10  0.04
+   select    face   @nbody 5
+   attribute _color $red
+   select    face   @nbody 6
+   attribute _color $red
+union
+
+store     FinTile
+
+# replicate the FinTile
+ifthen imax*jmax*kmax gt 1
+   mark
+endif
+
+patbeg              i   imax
+   patbeg           j   jmax
+      patbeg        k   kmax
+         restore    FinTile
+         translate  (i-1)  (j-1)  (k-1)
+      patend
+   patend
+patend
+
+ifthen imax*jmax*kmax gt 1
+   union 1
+endif
+
+end

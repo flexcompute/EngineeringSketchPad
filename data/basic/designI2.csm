@@ -1,0 +1,31 @@
+# designI2
+# written by John Dannenhoffer
+
+DESPMTR   XSIZE     2.0
+DESPMTR   YSIZE     1.0
+DESPMTR   ZSIZE     1.0
+DESPMTR   DX        1.5
+DESPMTR   RAD       0.2
+DESPMTR   ROUND     0.0
+DESPMTR   SCALE     1.2
+
+# first box (centered at -DX,0,0) -- sensitivities analytically
+#BOX       -DX-XSIZE  -YSIZE/2  -ZSIZE/2  XSIZE  YSIZE  ZSIZE
+#CYLINDER  -DX-XSIZE-1  0  0  +DX+XSIZE+10  0  0  RAD
+#SUBTRACT
+#SCALE     SCALE
+
+# second box (centered at 0,0,0) -- sensitivities analytically
+UDPRIM    box   dx XSIZE   dy YSIZE   dz ZSIZE   rad 0
+CYLINDER  -DX-XSIZE-1  0  0  +DX+XSIZE+10  0  0  RAD
+SUBTRACT
+SCALE     SCALE
+
+# third box (centered at +DX,0,0) -- sensitivities via finite differences
+#UDPRIM    box   dx XSIZE   dy YSIZE   dz ZSIZE   rad ROUND
+#TRANSLATE +DX+XSIZE/2  0  0
+#CYLINDER  -DX-XSIZE-1  0  0  +DX+XSIZE+10  0  0  RAD
+#SUBTRACT
+#SCALE     SCALE
+
+end

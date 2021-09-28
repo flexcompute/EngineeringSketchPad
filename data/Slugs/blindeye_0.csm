@@ -1,0 +1,16 @@
+# blindeye_0
+# written by John Dannenhoffer
+
+cylinder  0.0  -.3 -2.1  0.0  -.3  +2.1  1.0
+cylinder  0.0  0.3 -2.1  0.0  0.3  +2.1  1.0
+intersect
+
+sphere    0.0  0.0  0.0                  2.0
+rotatex  90.0  0.0  0.0
+intersect
+   attribute  .tParams  0.10;0.02;5.0
+
+dump $/blindeye_0.stl
+dump $/blindeye.plot
+
+end

@@ -1,0 +1,57 @@
+# udpInline1b
+# written by John Dannenhoffer
+
+BOX       0.0  0.0  0.0  4.0  3.0  2.0
+SELECT    FACE  @nbody  1
+ATTRIBUTE side  $xmin
+ATTRIBUTE tag   1
+SELECT    FACE  @nbody  2
+ATTRIBUTE side  $xmax
+ATTRIBUTE tag   2
+SELECT    FACE  @nbody  3
+ATTRIBUTE side  $ymin
+ATTRIBUTE tag   3
+SELECT    FACE  @nbody  4
+ATTRIBUTE side  $ymax
+ATTRIBUTE tag   4
+SELECT    FACE  @nbody  5
+ATTRIBUTE side  $zmin
+ATTRIBUTE tag   5
+SELECT    FACE  @nbody  6
+ATTRIBUTE side  $zmax
+ATTRIBUTE tag   6
+
+SET       nface @nface
+
+UDPRIM    editAttr   verbose 1   filename <<
+   EDGE   ADJ2FACE   side=xmin
+   AND    ADJ2FACE   side=zmax
+   SET               _color=magenta
+
+   PATBEG  iface  nface
+      FACE HAS    tag=!iface
+      SET         foo=!$face+iface
+   PATEND
+
+   EDGE    ADJ2FACE  side=ymin
+   AND     ADJ2FACE  side=zmax
+   SET               _color=cyan
+>>
+
+UDPRIM    editAttr   verbose 1   filename <<
+   EDGE   ADJ2FACE   side=xmax
+   AND    ADJ2FACE   side=zmax
+   SET               _color=blue
+>>
+
+# make sure the correct number of Edges were colored
+SELECT    EDGE   $_color  $*
+ASSERT    @sellist.size   3
+
+# make sure attribute added in PATBEG works
+SELECT    FACE   $foo     $face6
+ASSERT    @xcg   2.0
+ASSERT    @ycg   1.5
+ASSERT    @zcg   2.0
+
+END

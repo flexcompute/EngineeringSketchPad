@@ -1,0 +1,37 @@
+# snake1
+# written by John Dannenhoffer
+
+despmtr   r         1.00      # radius of circles where the segments join
+despmtr   theta     15.0      # angle between flat faces in each segment
+despmtr   R         2.0       # distance from segment centerline to rotation point
+
+dimension twist     8  1  1   # the "twist" angles between adjacent segments
+despmtr   twist     "0.0; 45.0; 90.0; 135.0; 180.0; 225.0; 270.0; 315.0"
+
+# make a segment
+mark
+   skbeg     r   0   0
+      cirarc 0   0   r   -r  0  0
+      cirarc 0   0  -r    r  0  0
+   skend
+
+   skbeg     r   0   0
+      cirarc 0   0   r   -r  0  0
+      cirarc 0   0  -r    r  0  0
+   skend
+      csystem mycsys "0;0;0; 1;0;0; 0;1;0;"
+   rotatez  -theta  R  0
+rule
+store     segment
+
+# build the snake by stacking as many segments as there are entries in "twist"
+patbeg    iseg  twist.size
+   restore   segment
+   ifthen    iseg gt 1
+      rotatey   180+twist[iseg]  0  0
+      applycsys mycsys  @nbody-2
+      union     0  0  -0.0001
+   endif
+patend
+
+end

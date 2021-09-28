@@ -1,0 +1,39 @@
+# blendjoin5
+# written by John Dannenhoffer
+
+despmtr   toler  -.0001   
+#despmtr   toler  0        # this either fails or creates sliver surfaces
+
+# part 1: extrusion
+udprim    ellipse   ry  1   rz  1
+extrude   1  0  0
+   attribute _color $red
+
+# part 2: blend
+mark
+   udprim    ellipse   ry  1   rz  1
+   translate 1  0  0
+
+   udprim    ellipse   ry  1   rz  1
+   translate 2  0  0
+blend
+   attribute _color $green
+union    0  0  toler
+
+# part 3: cylinder
+cylinder  2  0  0  3  0  0  1
+   attribute _color $blue
+union    0  0  toler
+
+# part 4: rule
+mark
+   udprim    ellipse   ry  1   rz  1
+   translate 3  0  0
+
+   udprim    ellipse   ry  1   rz  1
+   translate 4  0  0
+rule
+   attribute _color $yellow
+union    0  0  toler
+
+end

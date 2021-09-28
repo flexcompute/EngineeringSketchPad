@@ -1,0 +1,4 @@
+LIBRARY su2Writer
+EXPORTS
+meshExtension
+meshWrite

@@ -1,0 +1,22 @@
+# imprint5
+# written by John Dannenhoffer
+
+BOX       -2  9  0  2  2  0
+REVOLVE    0  0  0  1  0  0  360
+SELECT    FACE   @nbody 6
+ATTRIBUTE outer  1
+
+BOX        0  9  0  2  2  0
+REVOLVE    0  0  0  1  0  0  360
+SELECT    FACE   @nbody 6
+ATTRIBUTE outer  2
+
+JOIN
+
+SELECT    FACE  $outer $*
+EXTRACT   @sellist
+
+BOX       -3 -12  0  6  4  0
+SUBTRACT
+
+END

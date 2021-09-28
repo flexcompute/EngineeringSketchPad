@@ -1,0 +1,134 @@
+# wirebodyA (see also extrudeA)
+# written by John Dannenhoffer
+
+# counterclockwise
+point     -5  1  0
+skbeg     -5  1  0
+   linseg -4  1  0
+   linseg -4  2  0
+   linseg -5  2  0
+skend
+select edge 1
+   assert @xcg -4.5
+   assert @ycg  1.0
+select edge 2
+   assert @xcg -4.0
+   assert @ycg  1.5
+select edge 3
+   assert @xcg -4.5
+   assert @ycg  2.0
+
+point     -2  2  0
+skbeg     -2  2  0
+   linseg -2  1  0
+   linseg -1  1  0
+   linseg -1  2  0
+skend
+select edge 1
+   assert @xcg -2.0
+   assert @ycg  1.5
+select edge 2
+   assert @xcg -1.5
+   assert @ycg  1.0
+select edge 3
+   assert @xcg -1.0
+   assert @ycg  1.5
+
+point      2  2  0
+skbeg      2  2  0
+   linseg  1  2  0
+   linseg  1  1  0
+   linseg  2  1  0
+skend
+select edge 1
+   assert @xcg  1.5
+   assert @ycg  2.0
+select edge 2
+   assert @xcg  1.0
+   assert @ycg  1.5
+select edge 3
+   assert @xcg  1.5
+   assert @ycg  1.0
+
+point      5  1  0
+skbeg      5  1  0
+   linseg  5  2  0
+   linseg  4  2  0
+   linseg  4  1  0
+skend
+select edge 1
+   assert @xcg  5.0
+   assert @ycg  1.5
+select edge 2
+   assert @xcg  4.5
+   assert @ycg  2.0
+select edge 3
+   assert @xcg  4.0
+   assert @ycg  1.5
+
+# clockwise
+point     -5 -1  0
+skbeg     -5 -1  0
+   linseg -4 -1  0
+   linseg -4 -2  0
+   linseg -5 -2  0
+skend
+select edge 1
+   assert @xcg -4.5
+   assert @ycg -1.0
+select edge 2
+   assert @xcg -4.0
+   assert @ycg -1.5
+select edge 3
+   assert @xcg -4.5
+   assert @ycg -2.0
+
+point     -1 -1  0
+skbeg     -1 -1  0
+   linseg -1 -2  0
+   linseg -2 -2  0
+   linseg -2 -1  0
+skend
+select edge 1
+   assert @xcg -1.0
+   assert @ycg -1.5
+select edge 2
+   assert @xcg -1.5
+   assert @ycg -2.0
+select edge 3
+   assert @xcg -2.0
+   assert @ycg -1.5
+
+point      2 -2  0
+skbeg      2 -2  0
+   linseg  1 -2  0
+   linseg  1 -1  0
+   linseg  2 -1  0
+skend
+select edge 1
+   assert @xcg  1.5
+   assert @ycg -2.0
+select edge 2
+   assert @xcg  1.0
+   assert @ycg -1.5
+select edge 3
+   assert @xcg  1.5
+   assert @ycg -1.0
+
+point      4 -2  0
+skbeg      4 -2  0
+   linseg  4 -1  0
+   linseg  5 -1  0
+   linseg  5 -2  0
+skend
+select edge 1
+   assert @xcg  4.0
+   assert @ycg -1.5
+select edge 2
+   assert @xcg  4.5
+   assert @ycg -1.0
+select edge 3
+   assert @xcg  5.0
+   assert @ycg -1.5
+
+end

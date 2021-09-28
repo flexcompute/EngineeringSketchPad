@@ -1,0 +1,13 @@
+# csm0
+# written by John Dannenhoffer
+
+despmtr   xbase   0
+despmtr   ybase   0
+despmtr   zbase   0
+despmtr   xsize   3
+despmtr   ysize   2
+despmtr   zsize   1
+
+box       xbase  ybase  zbase  xsize  ysize  zsize
+
+end

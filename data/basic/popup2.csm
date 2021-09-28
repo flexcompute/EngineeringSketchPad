@@ -1,0 +1,52 @@
+# popup2
+# written by John Dannenhoffer
+
+dimension xbox      1  4  0
+dimension ybox      1  4  0
+
+# base figure
+mark
+   skbeg     0.00  0.00  0.00
+      cirarc 0.00  1.00  0.20  0.00  2.00  0.00
+      cirarc 0.00  1.00  -.20  0.00  0.00  0.00
+   skend
+
+   skbeg     5.00  0.00  0.00
+      cirarc 5.00  1.00  0.20  5.00  2.00  0.00
+      cirarc 5.00  1.00  -.20  5.00  0.00  0.00
+   skend
+rule
+
+# first popup
+set       xbox      "0.5; 1.5; 1.5; 0.5;"
+set       ybox      "0.1; 1.0; 1.1; 0.2;"
+
+udparg    $$/popupz  xbox    xbox
+udparg    $$/popupz  ybox    ybox
+udprim    $$/popupz  height  0.10
+
+# second popup
+set       xbox      "1.5; 2.5; 2.5; 1.5;"
+set       ybox      "1.9; 1.0; 0.9; 1.8;"
+
+udparg    $$/popupz  xbox    xbox
+udparg    $$/popupz  ybox    ybox
+udprim    $$/popupz  height  0.20
+
+# third popup
+set       xbox      "2.5; 3.5; 3.5; 2.5;"
+set       ybox      "0.1; 1.0; 1.1; 0.2;"
+
+udparg    $$/popupz  xbox    xbox
+udparg    $$/popupz  ybox    ybox
+udprim    $$/popupz  height  0.30
+
+# fourth popup
+set       xbox      "3.5; 4.5; 4.5; 3.5;"
+set       ybox      "1.9; 1.0; 0.9; 1.8;"
+
+udparg    $$/popupz  xbox    xbox
+udparg    $$/popupz  ybox    ybox
+udprim    $$/popupz  height  0.40
+
+end

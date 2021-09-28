@@ -1,0 +1,14 @@
+# boxWithSmallFeatures
+# written by John Dannenhoffer
+
+BOX       0  0  0    3  2  1
+
+CYLINDER  1  1  0.99 1  1  1.01  0.001
+UDPRIM    $$/applyTparams
+SUBTRACT
+
+CYLINDER  2  1  0.99 2  1  1.01  0.001
+UDPRIM    $$/applyTparams  factor 2.0
+UNION
+
+END

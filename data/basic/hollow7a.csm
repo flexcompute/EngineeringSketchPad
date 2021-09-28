@@ -1,0 +1,7 @@
+# hollow7a
+# written by John Dannenhoffer
+
+udprim    box       Dx  3  Dy  3  Dz  3  Rad  1/4
+hollow    0         1;1;1;8;1;9;1;11;1;13
+
+end

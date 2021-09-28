@@ -1,0 +1,158 @@
+# AVL input file to stress writeSections in avlAIM.c
+#
+
+# -----------------------------------------------------------------
+# Define the AIM that the geometry is intended support
+# -----------------------------------------------------------------
+attribute capsAIM     $avlAIM
+
+# -----------------------------------------------------------------
+# Define the length units in the csm file
+# -----------------------------------------------------------------
+attribute capsLength     $ft
+
+# -----------------------------------------------------------------
+# Design parameters to define the wing cross section and planform 
+# -----------------------------------------------------------------
+despmtr   thick     0.12      #frac of local chord
+despmtr   camber    0.04      #frac of loacl chord
+
+# -----------------------------------------------------------------
+# create airfoil a veriety of airfoil sections to test the writeSection logic
+# -----------------------------------------------------------------
+
+# blunt trailing edge
+udprim    naca      Thickness thick     Camber    camber
+attribute capsGroup    $Wing
+attribute _name        $secw1
+attribute capsReferenceArea  3
+attribute capsReferenceSpan  3
+attribute capsReferenceChord 1
+attribute capsReferenceX     1/4
+attribute vlmControl_RightAileron 0.8
+rotatex   90        0         0
+rotatey   10        0         0
+translate 0        1.5         0
+
+# sharp trailing edge
+udprim    naca      Thickness thick     Camber    camber sharpte 1
+rotatex   90        0         0
+translate 0        0.5         0
+attribute capsGroup    $Wing
+attribute _name        $secw2
+attribute vlmControl_RightAileron 0.8
+
+# blunt trailing edge chopped into multiple edges to stress writeSections
+udprim    naca      Thickness thick     Camber    camber
+rotatex   90        0         0
+box       0.1    -0.05        0      0   0.1  1
+subtract
+box       0.5    -0.05        0      0   0.1 -1
+subtract
+
+# extrude and intersect the arifoil again to jumble the edge ordering
+translate 0  -0.1   0
+extrude   0   0.2   0
+box      -1    0   -1    3  0  2
+intersect
+translate 0       -0.5        0
+attribute capsGroup    $Wing
+attribute _name        $secw3
+attribute vlmControl_LeftAileron 0.8
+
+# sharp trailing edge chopped into multiple edges to stress writeSections
+udprim    naca      Thickness thick     Camber    camber sharpte 1
+rotatex   90         0        0
+box       0.1    -0.05        0      0   0.1  1
+subtract
+box       0.5    -0.05        0      0   0.1 -1
+subtract
+
+# extrude and intersect the arifoil again to jumble the edge ordering
+translate 0  -0.1   0
+extrude   0   0.2   0
+box      -1    0   -1    3  0  2
+intersect
+rotatey   -15        0         0
+translate 0       -1.5        0
+attribute capsGroup    $Wing
+attribute _name        $secw4
+attribute vlmControl_LeftAileron 0.8
+
+# -----------------------------------------------------------------
+# horizonal tail
+# -----------------------------------------------------------------
+
+# rotated to produce inverted camber
+udprim    naca      Thickness thick      Camber   camber sharpte 0
+rotatez   -10        0         0
+rotatex   -45        0         0
+translate 2          0.75      0.3
+attribute capsGroup    $hTail
+attribute _name        $sech1
+attribute vlmNumSpan  6
+#attribute vlmSspace   2
+
+# inverted camber
+udprim    naca      Thickness thick      Camber  -camber sharpte 0
+rotatex   90         0         0
+translate 2          0         0
+attribute capsGroup    $hTail
+attribute _name        $sech2
+
+# rotated to produce inverted camber
+udprim    naca      Thickness thick      Camber  camber sharpte 0
+rotatez    10        0         0
+rotatex   225        0         0
+translate 2         -0.75      0.3
+attribute capsGroup    $hTail
+attribute _name        $sech3
+
+
+# -----------------------------------------------------------------
+# vertical tail
+# -----------------------------------------------------------------
+
+udprim    naca      Thickness thick      Camber   camber sharpte 0
+rotatez   -10        0         0
+translate 2          0         1
+attribute capsGroup    $vTail
+attribute _name        $secv1
+
+# inverted camber
+udprim    naca      Thickness thick      Camber  -camber sharpte 0
+rotatez   10         0         0
+translate 2          0         0
+attribute capsGroup    $vTail
+attribute _name        $secv2
+
+# -----------------------------------------------------------------
+# V-tail
+# -----------------------------------------------------------------
+
+udprim    naca      Thickness thick      Camber  -camber sharpte 0
+rotatex   135        0         0
+translate 2           1         1
+attribute capsGroup    $VTail1
+attribute _name        $secV11
+
+# inverted camber
+udprim    naca      Thickness thick      Camber  -camber sharpte 0
+rotatex   135        0         0
+translate 2          0         0
+attribute capsGroup    $VTail1
+attribute _name        $secV21
+
+
+udprim    naca      Thickness thick      Camber  -camber sharpte 0
+rotatex    45        0         0
+translate 2         -1          1
+attribute capsGroup    $VTail2
+attribute _name        $secV12
+
+# inverted camber
+udprim    naca      Thickness thick      Camber  -camber sharpte 0
+rotatex    45        0         0
+translate 2          0         0
+attribute capsGroup    $VTail2
+attribute _name        $secV22

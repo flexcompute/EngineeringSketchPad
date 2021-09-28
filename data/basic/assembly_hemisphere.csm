@@ -1,0 +1,17 @@
+# assembly_hemisphere
+# written by John Dannenhoffer
+
+DESPMTR   diameter  0.5
+DESPMTR   side      1
+
+SPHERE    0  0   0   diameter/2
+
+IFTHEN side GT 0
+   BOX 0.0       -diameter  -diameter  diameter  diameter*2  diameter*2
+   INTERSECT
+ELSEIF side LT 0
+   BOX -diameter -diameter  -diameter  diameter  diameter*2  diameter*2
+   INTERSECT
+ENDIF
+
+END

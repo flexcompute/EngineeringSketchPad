@@ -1,0 +1,15 @@
+# ellipsoid2
+# written by John Dannenhoffer
+
+despmtr   rx  1.0
+despmtr   ry  2.0
+
+# make half of the ellipse
+udprim    ellipse   rx rx   ry ry
+box       0 -2*ry -1 2*rx +4*ry +2
+intersect
+
+# revolve it about the axis
+revolve   0  -ry  0  0  1  0  360
+
+end

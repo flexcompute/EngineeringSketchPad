@@ -1,0 +1,38 @@
+# strut2
+# written by John Dannenhoffer
+
+# upper Body
+skbeg      5.0  8.0 -2.0
+   linseg  4.5  8.0 -2.0
+   cirarc  2.0  5.5 -2.0 -0.5  8.0 -2.0
+   linseg -1.0  8.0 -2.0
+   cirarc  2.0  5.0 -2.0  5.0  8.0 -2.0
+skend
+extrude    0.0  0.0  4.0
+
+# strut
+udprim     ellipse  rx 1.0  rz 0.5
+translate -2.0  0.0  0.0
+extrude    4.0  8.0  0.0
+
+# trimmed union
+dimension trimList 2 3 0
+set       trimList "  0.0;   4.0; 0.0;\
+                    0.001; 0.002; 0.0;"
+union  0  trimList
+
+# lower Body
+skbeg     -5.0  0.0 -2.0
+   linseg -4.5  0.0 -2.0
+   cirarc -2.0  2.5 -2.0  0.5  0.0 -2.0
+   linseg  1.0  0.0 -2.0
+   cirarc -2.0  3.0 -2.0 -5.0  0.0 -2.0
+skend
+extrude    0.0  0.0  4.0
+
+# trimmed union
+set       trimList[2,1] -0.001
+set       trimList[2,2] -0.002
+union  0  trimList
+
+end

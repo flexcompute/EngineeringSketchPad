@@ -1,0 +1,23 @@
+# wingSew2
+# written by John Dannenhoffer
+
+DIMENSION faceList1 1 2
+DIMENSION faceList2 1 2
+
+UDPRIM    sew   filename  $$/wingSew2.stp   bodynum  1
+SELECT    FACE
+SELECT    SORT   $zcg
+SELECT    SORT   $ycg
+SET       faceList1[1]    @sellist[1]
+SET       faceList1[2]    @sellist[2]
+
+UDPRIM    sew   filename  $$/wingSew2.stp   bodynum  2
+SELECT    FACE
+SELECT    SORT   $zcg
+SELECT    SORT   $ycg
+SET       faceList2[1]   @sellist[@sellist.size-1]
+SET       faceList2[2]   @sellist[@sellist.size-0]
+
+CONNECT   faceList1  faceList2
+
+END

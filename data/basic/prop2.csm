@@ -1,0 +1,40 @@
+# prop2
+# written by Daniel Oluwalana and John Dannenhoffer
+
+# parameters for F1D (from xrotor distribution)
+CFGPMTR   nblade    2
+DESPMTR   cpower    0.0680
+DESPMTR   lambda    0.6000
+DESPMTR   ReyR      1.45e+4
+DESPMTR   Rtip      0.300   # m
+DESPMTR   Rhub      0.030   # m
+DESPMTR   clift     0.500
+DESPMTR   cdrag     0.044
+DESPMTR   alfa      0.500   # deg
+
+# shaft/spinner parameters
+DESPMTR   shdiam    0.002
+DESPMTR   shxmin    -.005
+DESPMTR   shxmax    0.005
+
+# make the propeller
+UDPARG    Prop   nblade     nblade
+UDPARG    Prop   cpower     cpower
+UDPARG    Prop   lambda     lambda
+UDPARG    Prop   reyr       ReyR
+UDPARG    Prop   rtip       Rtip
+UDPARG    Prop   rhub       Rhub
+UDPARG    Prop   clift      clift
+UDPARG    Prop   cdrag      cdrag
+UDPARG    Prop   alfa       alfa
+
+UDPARG    Prop   shdiam     shdiam
+UDPARG    Prop   shxmin     shxmin
+UDPARG    Prop   shxmax     shxmax
+
+UDPRIM    Prop
+
+MESSAGE   ThrustCoef_=_+@@cthrust
+MESSAGE   Efficiency_=_+@@eff
+
+END

@@ -1,0 +1,35 @@
+?
+l
+e 1 9 0
+B
+e 1 6 0
+A  2 1 0 0 2
+B
+A 33 0 0
+B
+L
+D
+A 31 none 1
+B
+e 2 0.40 0
+B
+A  4 -1.1*L 0 0 +1.1*L 0 0 0.2
+A 32 none 1
+B
+a Rhole 1 1 0.08
+A 55 i 7
+A  4 i/3 0 -1 i/3 0 +1 Rhole
+A 32 none 1
+A 56
+B
+L
+X 2
+L
+A 42 -15*(i-1) 0 0
+V
+B
+W ../data/legacy/tutorial1_new.csm
+d 2 1.5 38 1 0
+B
+w
+$

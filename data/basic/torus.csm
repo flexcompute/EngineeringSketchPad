@@ -1,0 +1,16 @@
+# torus
+# written by John Dannenhoffer
+
+despmtr   xcent     0.00
+despmtr   ycent     0.00
+despmtr   zcent     0.00
+despmtr   dxaxis    0.00
+despmtr   dyaxis    0.00
+despmtr   dzaxis    1.00
+despmtr   Rmajor    1.00
+despmtr   Rminor    0.10
+
+torus     xcent     ycent     zcent \
+          dxaxis    dyaxis    dzaxis    Rmajor    Rminor
+
+end

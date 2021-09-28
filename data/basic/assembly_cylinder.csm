@@ -1,0 +1,9 @@
+# assembly_cylinder
+# written by John Dannenhoffer
+
+DESPMTR   length    2.0
+DESPMTR   diameter  0.5
+
+CYLINDER  0  0  0  length  0  0  diameter/2
+
+END

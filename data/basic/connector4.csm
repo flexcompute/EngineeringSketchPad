@@ -1,0 +1,37 @@
+# connector4
+# written by John Dannenhoffer
+
+MARK
+
+# entry
+BOX       0  0  0  0  2  2
+ROTATEZ  -30 0  0
+STORE     entry
+
+BOX       0  1  1  1  0  0
+STORE     entryNorm
+
+# exit
+UDPRIM    supell   rx  1  ry  1
+ROTATEZ   45  0  0
+ROTATEY   90  0  0
+TRANSLATE 5   0  1
+STORE     exit
+
+BOX       5  0  1  1  0  0
+ROTATEZ   20 5  0
+STORE     exitNorm
+
+# make the duct
+MARK
+   RESTORE entry
+   RESTORE exit
+BLEND     0  0  1
+
+# superimpose the entry, exit, and their normals
+RESTORE   entry
+RESTORE   entryNorm
+RESTORE   exit
+RESTORE   exitNorm
+
+END

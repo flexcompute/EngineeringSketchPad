@@ -1,0 +1,26 @@
+# wingSew3
+# written by John Dannenhoffer
+# note: we want to create a solid, but we want to get rid of 
+#       Faces that are on the y-symmetry plane
+
+# get the number of Bodys in the .stp file
+IMPORT  $/wingSew3.stp  1
+SET     nbody @@numbodies
+STORE   .
+
+# import all the Bodys
+MARK
+   PATBEG     ibody       nbody
+      IMPORT  $/wingSew3.stp  ibody
+
+      # remove those that are on the y-symmetry plane
+      IFTHEN  @ymin GE -0.01  AND  @ymax LE +0.01
+         STORE  .
+      ENDIF
+
+   PATEND
+
+# now combine Bodys that are left (on the stack) into a SolidBody
+COMBINE
+
+END

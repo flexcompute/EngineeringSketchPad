@@ -1,0 +1,34 @@
+# bounds
+# written by John Dannenhoffer
+
+dimension box1      2 3 1
+despmtr   box1      "0.0; 0.0; 0.0;\
+                     2.0; 3.0; 4.0;"
+dimension box2      2 3 1
+despmtr   box2      "1.0; 1.0; 1.0;\
+                     2.0; 3.0; 4.0;"
+dimension box3      2 3 1
+despmtr   box3      "2.0; 2.0; 2.0;\
+                     2.0; 3.0; 4.0;"
+
+despmtr   tem1     -10.0
+despmtr   tem2      11.0
+
+lbound    box1      -5.0
+lbound    box2[2,2] -6.0
+lbound    tem1      -7.0
+lbound    tem2[1,1] -8.0
+
+ubound    box1      +5.0
+ubound    box2[2,2] +6.0
+ubound    tem1      +7.0
+ubound    tem2[1,1] +8.0
+
+box       box1[1,1]  box1[1,2]  box1[1,3]  box1[2,1]  box1[2,2]  box1[2,3]
+box       box2[1,1]  box2[1,2]  box2[1,3]  box2[2,1]  box2[2,2]  box2[2,3]
+union
+
+box       box3[1,1]  box3[1,2]  box3[1,3]  box3[2,1]  box3[2,2]  box3[2,3]
+union
+
+end

@@ -1,0 +1,29 @@
+# cylinders4
+# written by John Dannenhoffer
+
+despmtr   Rinner    1.0
+despmtr   Router    4.0
+despmtr   Radius    0.5
+
+cylinder  Rinner    0.0       0.0       Router    0.0       0.0       Radius
+cylinder  Rinner    Rinner    0.0       Router    Router    0.0       Radius
+cylinder  0.0       Rinner    0.0       0.0       Router    0.0       Radius
+cylinder -Rinner    Rinner    0.0      -Router    Router    0.0       Radius
+cylinder -Rinner    0.0       0.0      -Router    0.0       0.0       Radius
+cylinder -Rinner   -Rinner    0.0      -Router   -Router    0.0       Radius
+cylinder  0.0      -Rinner    0.0       0.0      -Router    0.0       Radius
+cylinder  Rinner   -Rinner    0.0       Router   -Router    0.0       Radius
+
+cylinder  0.0       Rinner    Rinner    0.0       Router    Router    Radius
+cylinder  0.0       0.0       Rinner    0.0       0.0       Router    Radius
+cylinder  0.0      -Rinner    Rinner    0.0      -Router    Router    Radius
+cylinder  0.0      -Rinner   -Rinner    0.0      -Router   -Router    Radius
+cylinder  0.0       0.0      -Rinner    0.0       0.0      -Router    Radius
+cylinder  0.0       Rinner   -Rinner    0.0       Router   -Router    Radius
+
+cylinder  Rinner    0.0       Rinner    Router    0.0       Router    Radius
+cylinder  Rinner    0.0      -Rinner    Router    0.0      -Router    Radius
+cylinder -Rinner    0.0      -Rinner   -Router    0.0      -Router    Radius
+cylinder -Rinner    0.0       Rinner   -Router    0.0       Router    Radius
+
+end

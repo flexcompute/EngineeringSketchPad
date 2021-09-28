@@ -1,0 +1,246 @@
+# simple glider (fuselage, wing, htail, vtail)
+# written by John Dannenhoffer
+
+# global attributes
+attribute capsLength     $ft
+attribute capsForce      $lb
+attribute capsIntent     $CFD
+
+# global parameter
+#         intent   =1 for simple beam model
+#                  =2 for camber sheet and wake
+#                  =3 for outer moldline
+#                  =4 for AVL model
+#                  =5 for built-up element model
+despmtr   intent   1
+
+# fuselage design Parameters
+despmtr                      fuselage:numXsect 6
+dimension fuselage:xloc      fuselage:numXsect 1 1
+dimension fuselage:zloc      fuselage:numXsect 1 1
+dimension fuselage:width     fuselage:numXsect 1 1
+dimension fuselage:height    fuselage:numXsect 1 1
+dimension fuselage:noselist  2                 4 1
+dimension fuselage:taillist  2                 4 1
+
+despmtr   fuselage:xloc      "0;  1.0;  4.0;  8.0;  12.0;  16.0"
+despmtr   fuselage:zloc      "0;  0.1;  0.4;  0.4;   0.3;   0.2"
+despmtr   fuselage:width     "0;  1.0;  1.6;  1.6;   1.0;   0.8"
+despmtr   fuselage:height    "0;  1.0;  2.0;  2.0;   1.2;   0.4"
+despmtr   fuselage:noselist  "0.1; 0; 1; 0;\
+                              0.1; 0; 0; 1;"
+despmtr   fuselage:taillist  "0.0; 0; 1; 0;\
+                              0.0; 0; 0; 1"
+
+# wing design parameters
+despmtr   wing:xloc      4.0
+despmtr   wing:zloc      0.2
+despmtr   wing:area      80
+despmtr   wing:aspect    15
+despmtr   wing:taper     0.8
+despmtr   wing:twist     -5.0
+despmtr   wing:sweep     10.0
+despmtr   wing:dihedral  5.0
+despmtr   wing:thickness 0.12
+despmtr   wing:sharpte   1
+despmtr   wing:camber    0.04
+despmtr   wing:inboard   0.5454
+despmtr   wing:outboard  0.9091
+despmtr   wing:pctchord  0.75
+despmtr   wing:angleft   -10
+despmtr   wing:angrite   +10
+despmtr   wing:wakeLen   20.0
+despmtr   wing:wakeAng   -5.0
+despmtr   wing:spar1     0.25
+despmtr   wing:spar2     0.75
+despmtr   wing:nrib      11
+
+# horizontal tail design parmeters
+despmtr   htail:xloc      14.0
+despmtr   htail:zloc      0.2
+despmtr   htail:area      10
+despmtr   htail:aspect    4
+despmtr   htail:taper     0.8
+despmtr   htail:twist     0.0
+despmtr   htail:sweep     10.0
+despmtr   htail:thickness 0.10
+despmtr   htail:sharpte   1
+despmtr   htail:camber    0.00
+despmtr   htail:inboard   0.20
+despmtr   htail:outboard  0.90
+despmtr   htail:pctchord  0.60
+despmtr   htail:deflect   -10
+
+# vertical tail design parameters
+despmtr   vtail:xloc      13.5
+despmtr   vtail:zloc      0.1
+despmtr   vtail:area      10
+despmtr   vtail:aspect    3
+despmtr   vtail:taper     0.5
+despmtr   vtail:twist     0.0
+despmtr   vtail:sweep     30.0
+despmtr   vtail:thickness 0.10
+despmtr   vtail:sharpte   1
+despmtr   vtail:camber    0.00
+despmtr   vtail:inboard   0.20
+despmtr   vtail:outboard  0.95
+despmtr   vtail:pctchord  0.50
+despmtr   vtail:deflect   0.00
+
+# farfield variables
+despmtr   farfield:onoff  0
+despmtr   farfield:xmin   -200
+despmtr   farfield:xmax   +220
+despmtr   farfield:ymin   -200
+despmtr   farfield:ymax   +200
+despmtr   farfield:zmin   -200
+despmtr   farfield:zmax   +200
+
+############################################################
+
+# fuselage
+udparg    $$/fuselage  intent    intent
+udparg    $$/fuselage  xloc      fuselage:xloc
+udparg    $$/fuselage  zloc      fuselage:zloc
+udparg    $$/fuselage  width     fuselage:width
+udparg    $$/fuselage  height    fuselage:height
+udparg    $$/fuselage  noselist  fuselage:noselist
+udparg    $$/fuselage  taillist  fuselage:taillist
+udprim    $$/fuselage
+
+# wing
+udparg    $$/wing     intent    intent
+udparg    $$/wing     compType  1
+udparg    $$/wing     mirror    1
+udparg    $$/wing     area      wing:area
+udparg    $$/wing     aspect    wing:aspect
+udparg    $$/wing     taper     wing:taper
+udparg    $$/wing     twist     wing:twist
+udparg    $$/wing     sweep     wing:sweep
+udparg    $$/wing     dihedral  wing:dihedral
+udparg    $$/wing     thickness wing:thickness
+udparg    $$/wing     sharpte   wing:sharpte
+udparg    $$/wing     camber    wing:camber
+udparg    $$/wing     inboard   wing:inboard
+udparg    $$/wing     outboard  wing:outboard
+udparg    $$/wing     pctchord  wing:pctchord
+udparg    $$/wing     angleft   wing:angleft
+udparg    $$/wing     angrite   wing:angrite
+udparg    $$/wing     spar1     wing:spar1
+udparg    $$/wing     spar2     wing:spar2
+udparg    $$/wing     nrib      wing:nrib
+udprim    $$/wing     ID        1
+
+set       wingspan    @@span
+
+translate wing:xloc  0  wing:zloc
+ifthen intent eq 3
+   union
+endif
+
+# wake sheet
+ifthen intent eq 2
+   udparg    $$/wake     intent    intent
+   udparg    $$/wake     mirror    1
+   udparg    $$/wake     area      wing:area
+   udparg    $$/wake     aspect    wing:aspect
+   udparg    $$/wake     taper     wing:taper
+   udparg    $$/wake     twist     wing:twist
+   udparg    $$/wake     sweep     wing:sweep
+   udparg    $$/wake     dihedral  wing:dihedral
+   udparg    $$/wake     camber    wing:camber
+   udparg    $$/wake     wakeLen   wing:wakeLen
+   udparg    $$/wake     wakeAng   wing:wakeAng
+   udprim    $$/wake     ID        11
+
+   translate wing:xloc  0  wing:zloc
+   union
+endif
+
+# horizontal tail
+ifthen intent ne 5
+   udparg    $$/wing     intent    intent
+   udparg    $$/wing     compType  2
+   udparg    $$/wing     mirror    1
+   udparg    $$/wing     area      htail:area
+   udparg    $$/wing     aspect    htail:aspect
+   udparg    $$/wing     taper     htail:taper
+   udparg    $$/wing     twist     htail:twist
+   udparg    $$/wing     sweep     htail:sweep
+   udparg    $$/wing     thickness htail:thickness
+   udparg    $$/wing     sharpte   htail:sharpte
+   udparg    $$/wing     camber    htail:camber
+   udparg    $$/wing     inboard   htail:inboard
+   udparg    $$/wing     outboard  htail:outboard
+   udparg    $$/wing     pctchord  htail:pctchord
+   udparg    $$/wing     angleft   htail:deflect
+   udparg    $$/wing     angrite   htail:deflect
+   udprim    $$/wing     ID        3
+
+   translate htail:xloc  0  htail:zloc
+   ifthen intent eq 3
+       union
+   endif
+endif
+
+# vertical tail
+ifthen intent ne 5
+   udparg    $$/wing     intent    intent
+   udparg    $$/wing     compType  3
+   udparg    $$/wing     area      vtail:area
+   udparg    $$/wing     aspect    vtail:aspect
+   udparg    $$/wing     taper     vtail:taper
+   udparg    $$/wing     twist     vtail:twist
+   udparg    $$/wing     sweep     vtail:sweep
+   udparg    $$/wing     thickness vtail:thickness
+   udparg    $$/wing     sharpte   vtail:sharpte
+   udparg    $$/wing     camber    vtail:camber
+   udparg    $$/wing     inboard   vtail:inboard
+   udparg    $$/wing     outboard  vtail:outboard
+   udparg    $$/wing     pctchord  vtail:pctchord
+   udparg    $$/wing     angrite   vtail:deflect
+   udprim    $$/wing     ID        5
+
+   rotatex   90  0  0
+   translate vtail:xloc  0 vtail:zloc
+   ifthen intent eq 3
+      union
+   endif
+endif
+
+# set grid spacing parameters for SU2
+ifthen intent eq 3
+   dimension tparams  1 3 0
+   set       tparams  "0.225;0.030;8;"
+   select body
+      attribute .tParams tparams
+   store     foo
+   restore   foo
+      attribute capsGroup $glider
+
+   # make spacing finer on blunt base
+   set       tparams  "0.100;0.100;8;"
+   select face 1
+      attribute .tParams tparams
+endif
+
+# get bounding box info
+set       xmin      @xmin
+set       xmax      @xmax
+set       ymin      @ymin
+set       ymax      @ymax
+set       zmin      @zmin
+set       zmax      @zmax
+
+# farfield box
+ifthen intent eq 3 and farfield:onoff eq 1
+   set  dx   farfield:xmax-farfield:xmin
+   set  dy   farfield:ymax-farfield:ymin
+   set  dz   farfield:zmax-farfield:zmin
+
+   box  farfield:xmin  farfield:ymin  farfield:zmin  dx  dy  dz
+      attribute capsGroup $Farfield
+      attribute .tParams 21.0 0.2 15.0
+endif
+
+end

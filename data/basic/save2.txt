@@ -1,0 +1,2 @@
+   EDGE   ADJ2FACE  myFace=front
+   SET              _color=red

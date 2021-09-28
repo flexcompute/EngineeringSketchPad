@@ -1,0 +1,44 @@
+# sens3d
+# written by John Dannenhoffer
+
+despmtr   xle       -.50
+despmtr   yle       0.00
+despmtr   chord     1.00
+despmtr   alpha     0.00
+despmtr   thick     0.12
+despmtr   camber    0.00
+despmtr   cut       0.80
+despmtr   xmin     -2.00
+despmtr   xmax      2.00
+despmtr   ymin     -1.50
+despmtr   ymax      1.50
+
+# global attribute
+attribute .tParams  "0.05; 0.005; 15"
+
+# outer box
+box       xmin       ymin       -.1 \
+          xmax-xmin  ymax-ymin  0.2
+
+# wing
+set       xrot      xle+chord/2
+set       yrot      yle
+
+udprim    naca      thickness  thick \
+                    camber     camber
+scale     chord
+translate xle  yle  0
+rotatez   -alpha    xrot  yrot
+
+translate 0  0  -.2
+extrude   0  0  0.4
+
+# cut off trailing edge
+set       xcut      xle+chord*cut
+box       xcut  -1  -1  2  2  2
+subtract
+
+# subtract trimmed airfoil from box
+subtract
+
+end

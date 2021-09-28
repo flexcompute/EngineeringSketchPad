@@ -1,0 +1,3655 @@
+# ../data/Slugs/myGlider_0.cpc written by ocsmSave (v1.11)
+
+# Constant Parameters:
+
+# Design Parameters:
+despmtr   intent       3.00000
+despmtr   fuselage:numXsect       6.00000
+dimension fuselage:xloc   6   1   1
+despmtr   fuselage:xloc[1,:]   "     0.00000;"
+despmtr   fuselage:xloc[2,:]   "     1.00000;"
+despmtr   fuselage:xloc[3,:]   "     4.00000;"
+despmtr   fuselage:xloc[4,:]   "     8.00000;"
+despmtr   fuselage:xloc[5,:]   "    12.00000;"
+despmtr   fuselage:xloc[6,:]   "    16.00000;"
+dimension fuselage:zloc   6   1   1
+despmtr   fuselage:zloc[1,:]   "     0.00000;"
+despmtr   fuselage:zloc[2,:]   "     0.10000;"
+despmtr   fuselage:zloc[3,:]   "     0.40000;"
+despmtr   fuselage:zloc[4,:]   "     0.40000;"
+despmtr   fuselage:zloc[5,:]   "     0.30000;"
+despmtr   fuselage:zloc[6,:]   "     0.20000;"
+dimension fuselage:width   6   1   1
+despmtr   fuselage:width[1,:]   "     0.00000;"
+despmtr   fuselage:width[2,:]   "     1.00000;"
+despmtr   fuselage:width[3,:]   "     1.60000;"
+despmtr   fuselage:width[4,:]   "     1.60000;"
+despmtr   fuselage:width[5,:]   "     1.00000;"
+despmtr   fuselage:width[6,:]   "     0.80000;"
+dimension fuselage:height   6   1   1
+despmtr   fuselage:height[1,:]   "     0.00000;"
+despmtr   fuselage:height[2,:]   "     1.00000;"
+despmtr   fuselage:height[3,:]   "     2.00000;"
+despmtr   fuselage:height[4,:]   "     2.00000;"
+despmtr   fuselage:height[5,:]   "     1.20000;"
+despmtr   fuselage:height[6,:]   "     0.40000;"
+dimension fuselage:noselist   2   4   1
+despmtr   fuselage:noselist[1,:]   "     0.10000;     0.00000;     1.00000;     0.00000;"
+despmtr   fuselage:noselist[2,:]   "     0.10000;     0.00000;     0.00000;     1.00000;"
+dimension fuselage:taillist   2   4   1
+despmtr   fuselage:taillist[1,:]   "     0.00000;     0.00000;     1.00000;     0.00000;"
+despmtr   fuselage:taillist[2,:]   "     0.00000;     0.00000;     0.00000;     1.00000;"
+despmtr   wing:xloc       4.00000
+despmtr   wing:zloc       0.20000
+despmtr   wing:area      80.00000
+despmtr   wing:aspect      15.00000
+despmtr   wing:taper       0.80000
+despmtr   wing:twist      -5.00000
+despmtr   wing:sweep      10.00000
+despmtr   wing:dihedral       5.00000
+despmtr   wing:thickness       0.12000
+despmtr   wing:sharpte       1.00000
+despmtr   wing:camber       0.04000
+despmtr   wing:inboard       0.54540
+despmtr   wing:outboard       0.90910
+despmtr   wing:pctchord       0.75000
+despmtr   wing:angleft     -10.00000
+despmtr   wing:angrite      10.00000
+despmtr   htail:xloc      14.00000
+despmtr   htail:zloc       0.20000
+despmtr   htail:area      10.00000
+despmtr   htail:aspect       4.00000
+despmtr   htail:taper       0.80000
+despmtr   htail:twist       0.00000
+despmtr   htail:sweep      10.00000
+despmtr   htail:thickness       0.10000
+despmtr   htail:sharpte       1.00000
+despmtr   htail:camber       0.00000
+despmtr   htail:inboard       0.20000
+despmtr   htail:outboard       0.90000
+despmtr   htail:pctchord       0.60000
+despmtr   htail:deflect     -10.00000
+despmtr   vtail:xloc      13.50000
+despmtr   vtail:zloc       0.10000
+despmtr   vtail:area      10.00000
+despmtr   vtail:aspect       3.00000
+despmtr   vtail:taper       0.50000
+despmtr   vtail:twist       0.00000
+despmtr   vtail:sweep      30.00000
+despmtr   vtail:thickness       0.10000
+despmtr   vtail:sharpte       1.00000
+despmtr   vtail:camber       0.00000
+despmtr   vtail:inboard       0.20000
+despmtr   vtail:outboard       0.95000
+despmtr   vtail:pctchord       0.50000
+despmtr   vtail:deflect       0.00000
+despmtr   farfield:onoff       0.00000
+despmtr   farfield:xmin    -200.00000
+despmtr   farfield:xmax     220.00000
+despmtr   farfield:ymin    -200.00000
+despmtr   farfield:ymax     200.00000
+despmtr   farfield:zmin    -200.00000
+despmtr   farfield:zmax     200.00000
+
+# Global Attributes:
+
+# Branches:
+udparg    $$/fuselage   intent   intent
+udparg    $$/fuselage   xloc   fuselage:xloc
+udparg    $$/fuselage   zloc   fuselage:zloc
+udparg    $$/fuselage   width   fuselage:width
+udparg    $$/fuselage   height   fuselage:height
+udparg    $$/fuselage   noselist   fuselage:noselist
+udparg    $$/fuselage   taillist   fuselage:taillist
+udprim    $$/fuselage
+   interface ID   in   0
+   interface intent   in   1
+   interface xloc   in   0
+   interface zloc   in   0
+   interface width   in   0
+   interface height   in   0
+   interface noselist   in   0
+   interface taillist   in   0
+   set       numXsect xloc.nrow
+   ifthen    intent   eq   1   and   0   eq   0
+      skbeg     xloc[1]   0   zloc[1]   0
+         patbeg    jsect   numXsect-1
+            set       isect jsect+1
+            linseg    xloc[isect]   0   zloc[isect]
+         patend
+      skend     0
+attribute ID   !ID
+attribute Intent   1
+   endif
+   ifthen    intent   eq   3   or   intent   eq   55
+      mark
+      set       isect 1
+      ifthen    width[isect]   eq   0   and   height[isect]   eq   0
+         skbeg     xloc[isect]   0   zloc[isect]   0
+         skend     0
+      else
+         udprim    ellipse   ry   width[isect]/2   rz   height[isect]/2
+         translate xloc[isect]   0   zloc[isect]
+      endif
+      patbeg    jsect   numXsect-2
+         set       isect jsect+1
+         udprim    ellipse   ry   width[isect]/2   rz   height[isect]/2
+         translate xloc[isect]   0   zloc[isect]
+      patend
+      set       isect numXsect
+      ifthen    width[isect]   eq   0   and   height[isect]   eq   0
+         skbeg     xloc[isect]   0   zloc[isect]   0
+         skend     0
+      else
+         udprim    ellipse   ry   width[isect]/2   rz   height[isect]/2
+         translate xloc[isect]   0   zloc[isect]
+      endif
+      blend     noselist   taillist   0   0
+attribute ID   !ID
+attribute Intent   3
+      ifthen    intent   eq   55   and   0   eq   0
+         store     fuseOML   0   0
+      endif
+   endif
+   ifthen    intent   eq   55   and   0   eq   0
+      mark
+      set       fact 0.90
+      set       isect 1
+      ifthen    width[isect]   eq   0   and   height[isect]   eq   0
+         skbeg     xloc[isect]   0   zloc[isect]   0
+         skend     0
+      else
+         udprim    ellipse   ry   width[isect]/2*fact   rz   height[isect]/2*fact
+         translate xloc[isect]   0   zloc[isect]
+      endif
+      patbeg    jsect   numXsect-2
+         set       isect jsect+1
+         udprim    ellipse   ry   width[isect]/2*fact   rz   height[isect]/2*fact
+         translate xloc[isect]   0   zloc[isect]
+      patend
+      set       isect numXsect
+      ifthen    width[isect]   eq   0   and   height[isect]   eq   0
+         skbeg     xloc[isect]   0   zloc[isect]   0
+         skend     0
+      else
+         udprim    ellipse   ry   width[isect]/2*fact   rz   height[isect]/2*fact
+         translate xloc[isect]   0   zloc[isect]
+      endif
+      blend     noselist   taillist   0   0
+attribute ID   !ID
+attribute Intent   3
+      store     fuseIML   0   0
+   endif
+   ifthen    intent   eq   55   and   0   eq   0
+      set       nbulk 10
+      set       xmin xloc.min
+      set       xmax xloc.max
+      set       zmin zloc.min
+      set       zmax zloc.max
+      set       wmax width.max
+      set       hmax height.max
+      dimension waffle   nbulk+1   4   0
+      patbeg    i   nbulk
+         set       waffle[i,2] -2*wmax
+         set       waffle[i,1] xmin+(xmax-xmin)*(i-0.5)/nbulk
+         set       waffle[i,4] +2*wmax
+         set       waffle[i,3] waffle[i,1]
+      patend
+      set       waffle[nbulk+1,1] waffle[1,1]
+      set       waffle[nbulk+1,2] 0
+      set       waffle[nbulk+1,3] waffle[nbulk,1]
+      set       waffle[nbulk+1,4] 0
+      udprim    waffle   Depth   2*(zmax-zmin+2*hmax)   Segments   waffle
+attribute name   $fuse_structure
+      translate 0   0   -2*hmax
+      store     fuseWaffle   0   0
+      restore   fuseWaffle   0
+      restore   fuseOML   0
+      intersect none   1   0
+      restore   fuseIML   0
+      subtract  none   1   0
+      restore   fuseOML   0
+      restore   fuseWaffle   0
+      subtract  none   1   0
+      extract   0
+      union     0   0   1e-5
+   endif
+end
+udparg    $$/wing   intent   intent
+udparg    $$/wing   area   wing:area
+udparg    $$/wing   aspect   wing:aspect
+udparg    $$/wing   taper   wing:taper
+udparg    $$/wing   twist   wing:twist
+udparg    $$/wing   sweep   wing:sweep
+udparg    $$/wing   dihedral   wing:dihedral
+udparg    $$/wing   thickness   wing:thickness
+udparg    $$/wing   sharpte   wing:sharpte
+udparg    $$/wing   camber   wing:camber
+udprim    $$/wing   ID   1
+   interface ID   in   0
+   interface intent   in   1
+   interface compType   in   0
+   interface mirror   in   0
+   interface area   in   100
+   interface aspect   in   8
+   interface taper   in   0.8
+   interface twist   in   -5.0
+   interface sweep   in   0.0
+   interface dihedral   in   0.0
+   interface thickness   in   0.12
+   interface sharpte   in   0.0
+   interface camber   in   0.04
+   interface inboard   in   0
+   interface outboard   in   1
+   interface pctchord   in   0
+   interface angleft   in   0
+   interface angrite   in   0
+   interface spar1   in   0
+   interface spar2   in   0
+   interface nrib   in   0
+   interface span   out   0
+   set       span sqrt(area*aspect)
+   set       span2 span/2
+   set       cbar area/span
+   set       croot 2*cbar/(1+taper)
+   set       ctip taper*croot
+   set       dxtip span2*tand(sweep)
+   set       dztip span2*tand(dihedral)
+   ifthen    intent   eq   1   and   0   eq   0
+      ifthen    mirror   ne   1   and   0   eq   0
+         skbeg     croot/4   0   0   0
+            linseg    dxtip+ctip/4   +span2   +dztip
+         skend     0
+attribute ID   !ID
+attribute Intent   1
+      else
+         skbeg     dxtip+ctip/4   -span2   +dztip   0
+            linseg    croot/4   0   0
+            linseg    dxtip+ctip/4   +span2   +dztip
+         skend     0
+attribute ID   !ID
+attribute Intent   1
+      endif
+   endif
+   ifthen    intent   eq   2   and   0   eq   0
+      mark
+      ifthen    mirror   eq   1   and   0   eq   0
+         ifthen    camber   eq   0   and   0   eq   0
+            skbeg     0   0   0   0
+               linseg    1   0   0
+            skend     0
+         else
+            udprim    naca   thickness   0   camber   camber
+         endif
+         rotatex   90   0   0
+         scale     ctip
+         rotatey   -twist   0   0
+         translate dxtip   -span2   +dztip
+      endif
+      ifthen    camber   eq   0   and   0   eq   0
+         skbeg     0   0   0   0
+            linseg    1   0   0
+         skend     0
+      else
+         udprim    naca   thickness   0   camber   camber
+      endif
+      rotatex   90   0   0
+      scale     croot
+      ifthen    camber   eq   0   and   0   eq   0
+         skbeg     0   0   0   0
+            linseg    1   0   0
+         skend     0
+      else
+         udprim    naca   thickness   0   camber   camber
+      endif
+      rotatex   90   0   0
+      scale     ctip
+      rotatey   -twist   0   0
+      translate dxtip   +span2   +dztip
+      rule      0
+attribute ID   !ID
+attribute Intent   2
+   endif
+   ifthen    intent   eq   3   or   intent   eq   5
+      mark
+      ifthen    mirror   eq   1   and   0   eq   0
+         udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+         rotatex   90   0   0
+         scale     ctip
+         rotatey   -twist   0   0
+         translate dxtip   -span2   +dztip
+      endif
+      udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+      rotatex   90   0   0
+      scale     croot
+      udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+      rotatex   90   0   0
+      scale     ctip
+      rotatey   -twist   0   0
+      translate dxtip   +span2   +dztip
+      rule      0
+      ifthen    intent   eq   5   and   0   eq   0
+         store     wingOML   0   0
+      endif
+   endif
+   ifthen    intent   eq   3   and   0   eq   0
+      ifthen    pctchord   gt   0   and   mirror   eq   1
+         dimension xflap   1   4   0
+         dimension yflap   1   4   0
+         set       xflap[1,1] max(croot,dxtip+ctip)
+         set       yflap[1,1] -inboard*span2
+         set       xflap[1,2] inboard*dxtip+pctchord*(croot+inboard*(ctip-croot))
+         set       yflap[1,2] -inboard*span2
+         set       xflap[1,3] outboard*dxtip+pctchord*(croot+outboard*(ctip-croot))
+         set       yflap[1,3] -outboard*span2
+         set       xflap[1,4] max(croot,dxtip+ctip)
+         set       yflap[1,4] -outboard*span2
+         udparg    $$/flapz   xflap   xflap
+         udparg    $$/flapz   yflap   yflap
+         udparg    $$/flapz   theta   angleft
+         udparg    $$/flapz   gap   0.001*span
+         udparg    $$/flapz   openEnd   1
+         udprim    $$/flapz
+            interface xflap   in   0
+            interface yflap   in   0
+            interface theta   in   15
+            interface gap   in   0.01
+            interface openEnd   in   0
+            interface faceList1c   dim   3
+            interface faceList2c   dim   3
+            assert    ifzero(xflap.size-4,1,0)   1   0   0
+            assert    ifzero(yflap.size-4,1,0)   1   0   0
+            select    body
+            set       zmin @zmin
+            set       zmax @zmax
+            store     flap   999   0
+            restore   flap   999
+            store     flap   999   0
+            set       zmin @zmin
+            set       zmax @zmax
+            set       ds sqrt((xflap[1]-xflap[4])^2+(yflap[1]-yflap[4])^2)
+            set       x1p xflap[1]+(xflap[1]-xflap[4])*gap/ds
+            set       y1p yflap[1]+(yflap[1]-yflap[4])*gap/ds
+            set       x4p xflap[4]+(xflap[4]-xflap[1])*gap/ds
+            set       y4p yflap[4]+(yflap[4]-yflap[1])*gap/ds
+            set       ds sqrt((xflap[2]-xflap[3])^2+(yflap[2]-yflap[3])^2)
+            set       x2pp xflap[2]+(xflap[2]-xflap[3])*gap/ds
+            set       y2pp yflap[2]+(yflap[2]-yflap[3])*gap/ds
+            set       x3pp xflap[3]+(xflap[3]-xflap[2])*gap/ds
+            set       y3pp yflap[3]+(yflap[3]-yflap[2])*gap/ds
+            set       ds sqrt((x2pp-x1p)^2+(y2pp-y1p)^2)
+            set       x2p x2pp+(x2pp-x1p)*gap/ds
+            set       y2p y2pp+(y2pp-y1p)*gap/ds
+            set       ds sqrt((x3pp-x4p)^2+(y3pp-y4p)^2)
+            set       x3p x3pp+(x3pp-x4p)*gap/ds
+            set       y3p y3pp+(y3pp-y4p)*gap/ds
+            restore   flap   999
+            project   xflap[2]   yflap[2]   zmax+1   0.0   0.0   -1.0   0
+            set       z2max @zcg
+            project   xflap[2]   yflap[2]   zmin-1   0.0   0.0   1.0   0
+            set       z2min @zcg
+            project   xflap[3]   yflap[3]   zmax+1   0.0   0.0   -1.0   0
+            set       z3max @zcg
+            project   xflap[3]   yflap[3]   zmin-1   0.0   0.0   1.0   0
+            set       z3min @zcg
+            set       dzpivot min(z2max-z2min,z3max-z3min)/2
+            skbeg     x1p   y1p   zmin-1   0
+               linseg    x2p   y2p   zmin-1
+               linseg    x3p   y3p   zmin-1
+               linseg    x4p   y4p   zmin-1
+               linseg    x1p   y1p   zmin-1
+            skend     0
+            extrude   0.0   0.0   zmax-zmin+2
+            set       wing_cutout @nbody
+            subtract  none   1   0
+            select    face   wing_cutout   5
+            set       faceList1c[1,1] @iface
+            select    face   wing_cutout   4
+            set       faceList1c[1,2] @iface
+            set       faceList1o @iface
+            select    face   wing_cutout   3
+            set       faceList1c[1,3] @iface
+            store     flap   998   0
+            restore   flap   999
+            skbeg     xflap[1]   yflap[1]   zmin-1   0
+               linseg    xflap[2]   yflap[2]   zmin-1
+               linseg    xflap[3]   yflap[3]   zmin-1
+               linseg    xflap[4]   yflap[4]   zmin-1
+               linseg    xflap[1]   yflap[1]   zmin-1
+            skend     0
+            extrude   0.0   0.0   zmax-zmin+2
+            set       flap_cutout @nbody
+            intersect none   1   0
+            select    face   flap_cutout   5
+            set       faceList2c[1,1] @iface
+            select    face   flap_cutout   4
+            set       faceList2c[1,2] @iface
+            set       faceList2o @iface
+            select    face   flap_cutout   3
+            set       faceList2c[1,3] @iface
+            store     flap   997   0
+            restore   flap   998
+            restore   flap   997
+            ifthen    theta   gt   0   and   0   eq   0
+               udparg    $$/gen_rot   xbeg   xflap[3]
+               udparg    $$/gen_rot   ybeg   yflap[3]
+               udparg    $$/gen_rot   zbeg   z3max-dzpivot
+               udparg    $$/gen_rot   xend   xflap[2]
+               udparg    $$/gen_rot   yend   yflap[2]
+               udparg    $$/gen_rot   zend   z2max-dzpivot
+               udprim    $$/gen_rot   rotang   theta
+                  interface xbeg   in   0
+                  interface ybeg   in   0
+                  interface zbeg   in   0
+                  interface xend   in   1
+                  interface yend   in   1
+                  interface zend   in   1
+                  interface rotang   in   0
+                  interface azimuth   out   0
+                  interface elevation   out   0
+                  set       dx xend-xbeg
+                  set       dy yend-ybeg
+                  set       dz zbeg-zend
+                  assert    ifpos(dx*dx+dy*dy+dz*dz-1e-12,1,0)   1   0   0
+                  set       azimuth atan2d(dy,dx)
+                  set       elevation atan2d(dz,hypot(dx,dy))
+                  rotatez   -azimuth   xbeg   ybeg
+                  rotatey   -elevation   zbeg   xbeg
+                  rotatex   rotang   ybeg   zbeg
+                  rotatey   +elevation   zbeg   xbeg
+                  rotatez   +azimuth   xbeg   ybeg
+               end
+            else
+               udparg    $$/gen_rot   xbeg   xflap[3]
+               udparg    $$/gen_rot   ybeg   yflap[3]
+               udparg    $$/gen_rot   zbeg   z3min+dzpivot
+               udparg    $$/gen_rot   xend   xflap[2]
+               udparg    $$/gen_rot   yend   yflap[2]
+               udparg    $$/gen_rot   zend   z2min+dzpivot
+               udprim    $$/gen_rot   rotang   theta
+                  interface xbeg   in   0
+                  interface ybeg   in   0
+                  interface zbeg   in   0
+                  interface xend   in   1
+                  interface yend   in   1
+                  interface zend   in   1
+                  interface rotang   in   0
+                  interface azimuth   out   0
+                  interface elevation   out   0
+                  set       dx xend-xbeg
+                  set       dy yend-ybeg
+                  set       dz zbeg-zend
+                  assert    ifpos(dx*dx+dy*dy+dz*dz-1e-12,1,0)   1   0   0
+                  set       azimuth atan2d(dy,dx)
+                  set       elevation atan2d(dz,hypot(dx,dy))
+                  rotatez   -azimuth   xbeg   ybeg
+                  rotatey   -elevation   zbeg   xbeg
+                  rotatex   rotang   ybeg   zbeg
+                  rotatey   +elevation   zbeg   xbeg
+                  rotatez   +azimuth   xbeg   ybeg
+               end
+            endif
+            ifthen    openEnd   gt   0   and   0   eq   0
+               connect   faceList1o   faceList2o
+            else
+               connect   faceList1c   faceList2c
+            endif
+         end
+      endif
+      ifthen    pctchord   gt   0   and   0   eq   0
+         dimension xflap   1   4   0
+         dimension yflap   1   4   0
+         set       xflap[1,1] max(croot,dxtip+ctip)
+         set       yflap[1,1] +outboard*span2
+         set       xflap[1,2] outboard*dxtip+pctchord*(croot+outboard*(ctip-croot))
+         set       yflap[1,2] +outboard*span2
+         set       xflap[1,3] inboard*dxtip+pctchord*(croot+inboard*(ctip-croot))
+         set       yflap[1,3] +inboard*span2
+         set       xflap[1,4] max(croot,dxtip+ctip)
+         set       yflap[1,4] +inboard*span2
+         udparg    $$/flapz   xflap   xflap
+         udparg    $$/flapz   yflap   yflap
+         udparg    $$/flapz   theta   angrite
+         udparg    $$/flapz   gap   0.001*span
+         udparg    $$/flapz   openEnd   1
+         udprim    $$/flapz
+            interface xflap   in   0
+            interface yflap   in   0
+            interface theta   in   15
+            interface gap   in   0.01
+            interface openEnd   in   0
+            interface faceList1c   dim   3
+            interface faceList2c   dim   3
+            assert    ifzero(xflap.size-4,1,0)   1   0   0
+            assert    ifzero(yflap.size-4,1,0)   1   0   0
+            select    body
+            set       zmin @zmin
+            set       zmax @zmax
+            store     flap   999   0
+            restore   flap   999
+            store     flap   999   0
+            set       zmin @zmin
+            set       zmax @zmax
+            set       ds sqrt((xflap[1]-xflap[4])^2+(yflap[1]-yflap[4])^2)
+            set       x1p xflap[1]+(xflap[1]-xflap[4])*gap/ds
+            set       y1p yflap[1]+(yflap[1]-yflap[4])*gap/ds
+            set       x4p xflap[4]+(xflap[4]-xflap[1])*gap/ds
+            set       y4p yflap[4]+(yflap[4]-yflap[1])*gap/ds
+            set       ds sqrt((xflap[2]-xflap[3])^2+(yflap[2]-yflap[3])^2)
+            set       x2pp xflap[2]+(xflap[2]-xflap[3])*gap/ds
+            set       y2pp yflap[2]+(yflap[2]-yflap[3])*gap/ds
+            set       x3pp xflap[3]+(xflap[3]-xflap[2])*gap/ds
+            set       y3pp yflap[3]+(yflap[3]-yflap[2])*gap/ds
+            set       ds sqrt((x2pp-x1p)^2+(y2pp-y1p)^2)
+            set       x2p x2pp+(x2pp-x1p)*gap/ds
+            set       y2p y2pp+(y2pp-y1p)*gap/ds
+            set       ds sqrt((x3pp-x4p)^2+(y3pp-y4p)^2)
+            set       x3p x3pp+(x3pp-x4p)*gap/ds
+            set       y3p y3pp+(y3pp-y4p)*gap/ds
+            restore   flap   999
+            project   xflap[2]   yflap[2]   zmax+1   0.0   0.0   -1.0   0
+            set       z2max @zcg
+            project   xflap[2]   yflap[2]   zmin-1   0.0   0.0   1.0   0
+            set       z2min @zcg
+            project   xflap[3]   yflap[3]   zmax+1   0.0   0.0   -1.0   0
+            set       z3max @zcg
+            project   xflap[3]   yflap[3]   zmin-1   0.0   0.0   1.0   0
+            set       z3min @zcg
+            set       dzpivot min(z2max-z2min,z3max-z3min)/2
+            skbeg     x1p   y1p   zmin-1   0
+               linseg    x2p   y2p   zmin-1
+               linseg    x3p   y3p   zmin-1
+               linseg    x4p   y4p   zmin-1
+               linseg    x1p   y1p   zmin-1
+            skend     0
+            extrude   0.0   0.0   zmax-zmin+2
+            set       wing_cutout @nbody
+            subtract  none   1   0
+            select    face   wing_cutout   5
+            set       faceList1c[1,1] @iface
+            select    face   wing_cutout   4
+            set       faceList1c[1,2] @iface
+            set       faceList1o @iface
+            select    face   wing_cutout   3
+            set       faceList1c[1,3] @iface
+            store     flap   998   0
+            restore   flap   999
+            skbeg     xflap[1]   yflap[1]   zmin-1   0
+               linseg    xflap[2]   yflap[2]   zmin-1
+               linseg    xflap[3]   yflap[3]   zmin-1
+               linseg    xflap[4]   yflap[4]   zmin-1
+               linseg    xflap[1]   yflap[1]   zmin-1
+            skend     0
+            extrude   0.0   0.0   zmax-zmin+2
+            set       flap_cutout @nbody
+            intersect none   1   0
+            select    face   flap_cutout   5
+            set       faceList2c[1,1] @iface
+            select    face   flap_cutout   4
+            set       faceList2c[1,2] @iface
+            set       faceList2o @iface
+            select    face   flap_cutout   3
+            set       faceList2c[1,3] @iface
+            store     flap   997   0
+            restore   flap   998
+            restore   flap   997
+            ifthen    theta   gt   0   and   0   eq   0
+               udparg    $$/gen_rot   xbeg   xflap[3]
+               udparg    $$/gen_rot   ybeg   yflap[3]
+               udparg    $$/gen_rot   zbeg   z3max-dzpivot
+               udparg    $$/gen_rot   xend   xflap[2]
+               udparg    $$/gen_rot   yend   yflap[2]
+               udparg    $$/gen_rot   zend   z2max-dzpivot
+               udprim    $$/gen_rot   rotang   theta
+                  interface xbeg   in   0
+                  interface ybeg   in   0
+                  interface zbeg   in   0
+                  interface xend   in   1
+                  interface yend   in   1
+                  interface zend   in   1
+                  interface rotang   in   0
+                  interface azimuth   out   0
+                  interface elevation   out   0
+                  set       dx xend-xbeg
+                  set       dy yend-ybeg
+                  set       dz zbeg-zend
+                  assert    ifpos(dx*dx+dy*dy+dz*dz-1e-12,1,0)   1   0   0
+                  set       azimuth atan2d(dy,dx)
+                  set       elevation atan2d(dz,hypot(dx,dy))
+                  rotatez   -azimuth   xbeg   ybeg
+                  rotatey   -elevation   zbeg   xbeg
+                  rotatex   rotang   ybeg   zbeg
+                  rotatey   +elevation   zbeg   xbeg
+                  rotatez   +azimuth   xbeg   ybeg
+               end
+            else
+               udparg    $$/gen_rot   xbeg   xflap[3]
+               udparg    $$/gen_rot   ybeg   yflap[3]
+               udparg    $$/gen_rot   zbeg   z3min+dzpivot
+               udparg    $$/gen_rot   xend   xflap[2]
+               udparg    $$/gen_rot   yend   yflap[2]
+               udparg    $$/gen_rot   zend   z2min+dzpivot
+               udprim    $$/gen_rot   rotang   theta
+                  interface xbeg   in   0
+                  interface ybeg   in   0
+                  interface zbeg   in   0
+                  interface xend   in   1
+                  interface yend   in   1
+                  interface zend   in   1
+                  interface rotang   in   0
+                  interface azimuth   out   0
+                  interface elevation   out   0
+                  set       dx xend-xbeg
+                  set       dy yend-ybeg
+                  set       dz zbeg-zend
+                  assert    ifpos(dx*dx+dy*dy+dz*dz-1e-12,1,0)   1   0   0
+                  set       azimuth atan2d(dy,dx)
+                  set       elevation atan2d(dz,hypot(dx,dy))
+                  rotatez   -azimuth   xbeg   ybeg
+                  rotatey   -elevation   zbeg   xbeg
+                  rotatex   rotang   ybeg   zbeg
+                  rotatey   +elevation   zbeg   xbeg
+                  rotatez   +azimuth   xbeg   ybeg
+               end
+            endif
+            ifthen    openEnd   gt   0   and   0   eq   0
+               connect   faceList1o   faceList2o
+            else
+               connect   faceList1c   faceList2c
+            endif
+         end
+      endif
+      select    body
+attribute ID   !ID
+attribute Intent   3
+   endif
+   ifthen    intent   eq   4   and   0   eq   0
+      dimension secValues   1   5   0
+      set       secValues 8;1.0;12;1.0;0;
+      dimension cntrlValues   1   6   0
+      set       cntrlValues 1.0;0.7;0.0;0.0;0.0;1.0;
+      set       cntrlValues[1,2] pctchord
+      mark
+      ifthen    mirror   eq   1   and   0   eq   0
+         ifthen    compType   eq   1   and   0   eq   0
+            udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Wing
+attribute avlSecValues   secValues
+         elseif    compType   eq   2   and   0   eq   0
+            udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Horizontal_Tail
+attribute avlSecValues   secValues
+         elseif    compType   eq   3   and   0   eq   0
+            udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Vertical_Tail
+attribute avlSecValues   secValues
+         else
+            udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+         endif
+         rotatex   90   0   0
+         scale     ctip
+         rotatey   -twist   0   0
+         translate dxtip   -span2   +dztip
+         ifthen    pctchord   gt   0   and   0   eq   0
+            ifthen    compType   eq   1   and   0   eq   0
+               udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Wing
+attribute avlSecValues   secValues
+attribute avlCntrlFlap   cntrlValues
+            elseif    compType   eq   2   and   0   eq   0
+               udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Horizontal_Tail
+attribute avlSecValues   secValues
+attribute avlCntrlElevator   cntrlValues
+            elseif    compType   eq   3   and   0   eq   0
+               udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Vertical_Tail
+attribute avlSecValues   secValues
+attribute avlCntrlRudder   cntrlValues
+            else
+               udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+            endif
+            rotatex   90   0   0
+            scale     ctip*inboard+croot*(1-inboard)
+            rotatey   -twist*inboard   0   0
+            translate dxtip*inboard   -span2*inboard   +dztip*inboard
+            ifthen    compType   eq   1   and   0   eq   0
+               udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Wing
+attribute avlSecValues   secValues
+attribute avlCntrlFlap   cntrlValues
+            elseif    compType   eq   2   and   0   eq   0
+               udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Horizontal_Tail
+attribute avlSecValues   secValues
+attribute avlCntrlElevator   cntrlValues
+            elseif    compType   eq   3   and   0   eq   0
+               udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Vertical_Tail
+attribute avlSecValues   secValues
+attribute avlCntrlRudder   cntrlValues
+            else
+               udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+            endif
+            rotatex   90   0   0
+            scale     ctip*outboard+croot*(1-outboard)
+            rotatey   -twist*outboard   0   0
+            translate dxtip*outboard   -span2*outboard   +dztip*outboard
+         endif
+      endif
+      ifthen    compType   eq   1   and   0   eq   0
+         udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Wing
+attribute capsReferenceArea   area
+attribute capsReferenceSpan   span
+attribute capsReferenceChord   croot
+attribute capsReferneceX   croot/4
+attribute avlSecValues   secValues
+      elseif    compType   eq   2   and   0   eq   0
+         udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Horizontal_Tail
+attribute avlSecValues   secValues
+      elseif    compType   eq   3   and   0   eq   0
+         udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Vertical_Tail
+attribute avlSecValues   secValues
+      else
+         udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+      endif
+      rotatex   90   0   0
+      scale     croot
+      ifthen    pctchord   gt   0   and   0   eq   0
+         ifthen    compType   eq   1   and   0   eq   0
+            udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Wing
+attribute avlSecValues   secValues
+attribute avlCntrlFlap   cntrlValues
+         elseif    compType   eq   2   and   0   eq   0
+            udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Horizontal_Tail
+attribute avlSecValues   secValues
+attribute avlCntrlElevator   cntrlValues
+         elseif    compType   eq   3   and   0   eq   0
+            udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Vertical_Tail
+attribute avlSecValues   secValues
+attribute avlCntrlRudder   cntrlValues
+         else
+            udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+         endif
+         rotatex   90   0   0
+         scale     ctip*outboard+croot*(1-outboard)
+         rotatey   -twist*outboard   0   0
+         translate dxtip*outboard   +span2*outboard   +dztip*outboard
+         ifthen    compType   eq   1   and   0   eq   0
+            udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Wing
+attribute avlSecValues   secValues
+attribute avlCntrlFlap   cntrlValues
+         elseif    compType   eq   2   and   0   eq   0
+            udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Horizontal_Tail
+attribute avlSecValues   secValues
+attribute avlCntrlElevator   cntrlValues
+         elseif    compType   eq   3   and   0   eq   0
+            udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   13
+attribute capsGroup   $Vertical_Tail
+attribute avlSecValues   secValues
+attribute avlCntrlRudder   cntrlValues
+         else
+            udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+         endif
+         rotatex   90   0   0
+         scale     ctip*inboard+croot*(1-inboard)
+         rotatey   -twist*inboard   0   0
+         translate dxtip*inboard   +span2*inboard   +dztip*inboard
+      endif
+      ifthen    compType   eq   1   and   0   eq   0
+         udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Wing
+attribute avlSecValues   secValues
+      elseif    compType   eq   2   and   0   eq   0
+         udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Horizontal_Tail
+attribute avlSecValues   secValues
+      elseif    compType   eq   3   and   0   eq   0
+         udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Vertical_Tail
+attribute avlSecValues   secValues
+      else
+         udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+      endif
+      rotatex   90   0   0
+      scale     ctip
+      rotatey   -twist   0   0
+      translate dxtip   +span2   +dztip
+      group
+   endif
+   ifthen    intent   eq   5   and   nrib   gt   0
+      set       nwaffle nrib+ifpos(spar1,2,0)+ifpos(spar2,2,0)
+      dimension waffle   nwaffle   4   0
+      patbeg    i   nrib
+         set       waffle[i,1] -0.10*croot
+         set       waffle[i,2] span2*(2*i-nrib-1)/nrib
+         set       waffle[i,3] 1.1*max(croot,dxtip+ctip)
+         set       waffle[i,4] waffle[i,2]
+      patend
+      ifthen    spar1   gt   0   and   0   eq   0
+         set       nrib nrib+1
+         set       waffle[nrib,1] spar1*ctip+dxtip
+         set       waffle[nrib,2] -1.01*span2
+         set       waffle[nrib,3] spar1*croot
+         set       waffle[nrib,4] 0
+         set       nrib nrib+1
+         set       waffle[nrib,1] spar1*ctip+dxtip
+         set       waffle[nrib,2] 1.01*span2
+         set       waffle[nrib,3] spar1*croot
+         set       waffle[nrib,4] 0
+      endif
+      ifthen    spar2   gt   0   and   0   eq   0
+         set       nrib nrib+1
+         set       waffle[nrib,1] spar2*ctip+dxtip
+         set       waffle[nrib,2] -1.01*span2
+         set       waffle[nrib,3] spar2*croot
+         set       waffle[nrib,4] 0
+         set       nrib nrib+1
+         set       waffle[nrib,1] spar2*ctip+dxtip
+         set       waffle[nrib,2] 1.01*span2
+         set       waffle[nrib,3] spar2*croot
+         set       waffle[nrib,4] 0
+      endif
+      udprim    waffle   Depth   +4*croot   Segments   waffle
+attribute name   $wing_structure
+      translate 0   0   -2*croot
+      store     wingWaffle   0   0
+      restore   wingWaffle   0
+      restore   wingOML   0
+      intersect none   1   0
+      restore   wingOML   0
+      restore   wingWaffle   0
+      subtract  none   1   0
+      extract   0
+      union     0   0   1e-5
+      udprim    createBEM   filename   $BEM.bdf   space   0.40   imin   3   imax   99
+   endif
+end
+set       wingspan @@span
+mirror    0   1   0   0
+translate wing:xloc   0   wing:zloc
+ifthen    intent   eq   3   and   0   eq   0
+   union     0   0   0
+endif
+udparg    $$/wing   intent   intent
+udparg    $$/wing   area   wing:area
+udparg    $$/wing   aspect   wing:aspect
+udparg    $$/wing   taper   wing:taper
+udparg    $$/wing   twist   wing:twist
+udparg    $$/wing   sweep   wing:sweep
+udparg    $$/wing   dihedral   wing:dihedral
+udparg    $$/wing   thickness   wing:thickness
+udparg    $$/wing   sharpte   wing:sharpte
+udparg    $$/wing   camber   wing:camber
+udprim    $$/wing   ID   2
+   interface ID   in   0
+   interface intent   in   1
+   interface compType   in   0
+   interface mirror   in   0
+   interface area   in   100
+   interface aspect   in   8
+   interface taper   in   0.8
+   interface twist   in   -5.0
+   interface sweep   in   0.0
+   interface dihedral   in   0.0
+   interface thickness   in   0.12
+   interface sharpte   in   0.0
+   interface camber   in   0.04
+   interface inboard   in   0
+   interface outboard   in   1
+   interface pctchord   in   0
+   interface angleft   in   0
+   interface angrite   in   0
+   interface spar1   in   0
+   interface spar2   in   0
+   interface nrib   in   0
+   interface span   out   0
+   set       span sqrt(area*aspect)
+   set       span2 span/2
+   set       cbar area/span
+   set       croot 2*cbar/(1+taper)
+   set       ctip taper*croot
+   set       dxtip span2*tand(sweep)
+   set       dztip span2*tand(dihedral)
+   ifthen    intent   eq   1   and   0   eq   0
+      ifthen    mirror   ne   1   and   0   eq   0
+         skbeg     croot/4   0   0   0
+            linseg    dxtip+ctip/4   +span2   +dztip
+         skend     0
+attribute ID   !ID
+attribute Intent   1
+      else
+         skbeg     dxtip+ctip/4   -span2   +dztip   0
+            linseg    croot/4   0   0
+            linseg    dxtip+ctip/4   +span2   +dztip
+         skend     0
+attribute ID   !ID
+attribute Intent   1
+      endif
+   endif
+   ifthen    intent   eq   2   and   0   eq   0
+      mark
+      ifthen    mirror   eq   1   and   0   eq   0
+         ifthen    camber   eq   0   and   0   eq   0
+            skbeg     0   0   0   0
+               linseg    1   0   0
+            skend     0
+         else
+            udprim    naca   thickness   0   camber   camber
+         endif
+         rotatex   90   0   0
+         scale     ctip
+         rotatey   -twist   0   0
+         translate dxtip   -span2   +dztip
+      endif
+      ifthen    camber   eq   0   and   0   eq   0
+         skbeg     0   0   0   0
+            linseg    1   0   0
+         skend     0
+      else
+         udprim    naca   thickness   0   camber   camber
+      endif
+      rotatex   90   0   0
+      scale     croot
+      ifthen    camber   eq   0   and   0   eq   0
+         skbeg     0   0   0   0
+            linseg    1   0   0
+         skend     0
+      else
+         udprim    naca   thickness   0   camber   camber
+      endif
+      rotatex   90   0   0
+      scale     ctip
+      rotatey   -twist   0   0
+      translate dxtip   +span2   +dztip
+      rule      0
+attribute ID   !ID
+attribute Intent   2
+   endif
+   ifthen    intent   eq   3   or   intent   eq   5
+      mark
+      ifthen    mirror   eq   1   and   0   eq   0
+         udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+         rotatex   90   0   0
+         scale     ctip
+         rotatey   -twist   0   0
+         translate dxtip   -span2   +dztip
+      endif
+      udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+      rotatex   90   0   0
+      scale     croot
+      udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+      rotatex   90   0   0
+      scale     ctip
+      rotatey   -twist   0   0
+      translate dxtip   +span2   +dztip
+      rule      0
+      ifthen    intent   eq   5   and   0   eq   0
+         store     wingOML   0   0
+      endif
+   endif
+   ifthen    intent   eq   3   and   0   eq   0
+      ifthen    pctchord   gt   0   and   mirror   eq   1
+         dimension xflap   1   4   0
+         dimension yflap   1   4   0
+         set       xflap[1,1] max(croot,dxtip+ctip)
+         set       yflap[1,1] -inboard*span2
+         set       xflap[1,2] inboard*dxtip+pctchord*(croot+inboard*(ctip-croot))
+         set       yflap[1,2] -inboard*span2
+         set       xflap[1,3] outboard*dxtip+pctchord*(croot+outboard*(ctip-croot))
+         set       yflap[1,3] -outboard*span2
+         set       xflap[1,4] max(croot,dxtip+ctip)
+         set       yflap[1,4] -outboard*span2
+         udparg    $$/flapz   xflap   xflap
+         udparg    $$/flapz   yflap   yflap
+         udparg    $$/flapz   theta   angleft
+         udparg    $$/flapz   gap   0.001*span
+         udparg    $$/flapz   openEnd   1
+         udprim    $$/flapz
+            interface xflap   in   0
+            interface yflap   in   0
+            interface theta   in   15
+            interface gap   in   0.01
+            interface openEnd   in   0
+            interface faceList1c   dim   3
+            interface faceList2c   dim   3
+            assert    ifzero(xflap.size-4,1,0)   1   0   0
+            assert    ifzero(yflap.size-4,1,0)   1   0   0
+            select    body
+            set       zmin @zmin
+            set       zmax @zmax
+            store     flap   999   0
+            restore   flap   999
+            store     flap   999   0
+            set       zmin @zmin
+            set       zmax @zmax
+            set       ds sqrt((xflap[1]-xflap[4])^2+(yflap[1]-yflap[4])^2)
+            set       x1p xflap[1]+(xflap[1]-xflap[4])*gap/ds
+            set       y1p yflap[1]+(yflap[1]-yflap[4])*gap/ds
+            set       x4p xflap[4]+(xflap[4]-xflap[1])*gap/ds
+            set       y4p yflap[4]+(yflap[4]-yflap[1])*gap/ds
+            set       ds sqrt((xflap[2]-xflap[3])^2+(yflap[2]-yflap[3])^2)
+            set       x2pp xflap[2]+(xflap[2]-xflap[3])*gap/ds
+            set       y2pp yflap[2]+(yflap[2]-yflap[3])*gap/ds
+            set       x3pp xflap[3]+(xflap[3]-xflap[2])*gap/ds
+            set       y3pp yflap[3]+(yflap[3]-yflap[2])*gap/ds
+            set       ds sqrt((x2pp-x1p)^2+(y2pp-y1p)^2)
+            set       x2p x2pp+(x2pp-x1p)*gap/ds
+            set       y2p y2pp+(y2pp-y1p)*gap/ds
+            set       ds sqrt((x3pp-x4p)^2+(y3pp-y4p)^2)
+            set       x3p x3pp+(x3pp-x4p)*gap/ds
+            set       y3p y3pp+(y3pp-y4p)*gap/ds
+            restore   flap   999
+            project   xflap[2]   yflap[2]   zmax+1   0.0   0.0   -1.0   0
+            set       z2max @zcg
+            project   xflap[2]   yflap[2]   zmin-1   0.0   0.0   1.0   0
+            set       z2min @zcg
+            project   xflap[3]   yflap[3]   zmax+1   0.0   0.0   -1.0   0
+            set       z3max @zcg
+            project   xflap[3]   yflap[3]   zmin-1   0.0   0.0   1.0   0
+            set       z3min @zcg
+            set       dzpivot min(z2max-z2min,z3max-z3min)/2
+            skbeg     x1p   y1p   zmin-1   0
+               linseg    x2p   y2p   zmin-1
+               linseg    x3p   y3p   zmin-1
+               linseg    x4p   y4p   zmin-1
+               linseg    x1p   y1p   zmin-1
+            skend     0
+            extrude   0.0   0.0   zmax-zmin+2
+            set       wing_cutout @nbody
+            subtract  none   1   0
+            select    face   wing_cutout   5
+            set       faceList1c[1,1] @iface
+            select    face   wing_cutout   4
+            set       faceList1c[1,2] @iface
+            set       faceList1o @iface
+            select    face   wing_cutout   3
+            set       faceList1c[1,3] @iface
+            store     flap   998   0
+            restore   flap   999
+            skbeg     xflap[1]   yflap[1]   zmin-1   0
+               linseg    xflap[2]   yflap[2]   zmin-1
+               linseg    xflap[3]   yflap[3]   zmin-1
+               linseg    xflap[4]   yflap[4]   zmin-1
+               linseg    xflap[1]   yflap[1]   zmin-1
+            skend     0
+            extrude   0.0   0.0   zmax-zmin+2
+            set       flap_cutout @nbody
+            intersect none   1   0
+            select    face   flap_cutout   5
+            set       faceList2c[1,1] @iface
+            select    face   flap_cutout   4
+            set       faceList2c[1,2] @iface
+            set       faceList2o @iface
+            select    face   flap_cutout   3
+            set       faceList2c[1,3] @iface
+            store     flap   997   0
+            restore   flap   998
+            restore   flap   997
+            ifthen    theta   gt   0   and   0   eq   0
+               udparg    $$/gen_rot   xbeg   xflap[3]
+               udparg    $$/gen_rot   ybeg   yflap[3]
+               udparg    $$/gen_rot   zbeg   z3max-dzpivot
+               udparg    $$/gen_rot   xend   xflap[2]
+               udparg    $$/gen_rot   yend   yflap[2]
+               udparg    $$/gen_rot   zend   z2max-dzpivot
+               udprim    $$/gen_rot   rotang   theta
+                  interface xbeg   in   0
+                  interface ybeg   in   0
+                  interface zbeg   in   0
+                  interface xend   in   1
+                  interface yend   in   1
+                  interface zend   in   1
+                  interface rotang   in   0
+                  interface azimuth   out   0
+                  interface elevation   out   0
+                  set       dx xend-xbeg
+                  set       dy yend-ybeg
+                  set       dz zbeg-zend
+                  assert    ifpos(dx*dx+dy*dy+dz*dz-1e-12,1,0)   1   0   0
+                  set       azimuth atan2d(dy,dx)
+                  set       elevation atan2d(dz,hypot(dx,dy))
+                  rotatez   -azimuth   xbeg   ybeg
+                  rotatey   -elevation   zbeg   xbeg
+                  rotatex   rotang   ybeg   zbeg
+                  rotatey   +elevation   zbeg   xbeg
+                  rotatez   +azimuth   xbeg   ybeg
+               end
+            else
+               udparg    $$/gen_rot   xbeg   xflap[3]
+               udparg    $$/gen_rot   ybeg   yflap[3]
+               udparg    $$/gen_rot   zbeg   z3min+dzpivot
+               udparg    $$/gen_rot   xend   xflap[2]
+               udparg    $$/gen_rot   yend   yflap[2]
+               udparg    $$/gen_rot   zend   z2min+dzpivot
+               udprim    $$/gen_rot   rotang   theta
+                  interface xbeg   in   0
+                  interface ybeg   in   0
+                  interface zbeg   in   0
+                  interface xend   in   1
+                  interface yend   in   1
+                  interface zend   in   1
+                  interface rotang   in   0
+                  interface azimuth   out   0
+                  interface elevation   out   0
+                  set       dx xend-xbeg
+                  set       dy yend-ybeg
+                  set       dz zbeg-zend
+                  assert    ifpos(dx*dx+dy*dy+dz*dz-1e-12,1,0)   1   0   0
+                  set       azimuth atan2d(dy,dx)
+                  set       elevation atan2d(dz,hypot(dx,dy))
+                  rotatez   -azimuth   xbeg   ybeg
+                  rotatey   -elevation   zbeg   xbeg
+                  rotatex   rotang   ybeg   zbeg
+                  rotatey   +elevation   zbeg   xbeg
+                  rotatez   +azimuth   xbeg   ybeg
+               end
+            endif
+            ifthen    openEnd   gt   0   and   0   eq   0
+               connect   faceList1o   faceList2o
+            else
+               connect   faceList1c   faceList2c
+            endif
+         end
+      endif
+      ifthen    pctchord   gt   0   and   0   eq   0
+         dimension xflap   1   4   0
+         dimension yflap   1   4   0
+         set       xflap[1,1] max(croot,dxtip+ctip)
+         set       yflap[1,1] +outboard*span2
+         set       xflap[1,2] outboard*dxtip+pctchord*(croot+outboard*(ctip-croot))
+         set       yflap[1,2] +outboard*span2
+         set       xflap[1,3] inboard*dxtip+pctchord*(croot+inboard*(ctip-croot))
+         set       yflap[1,3] +inboard*span2
+         set       xflap[1,4] max(croot,dxtip+ctip)
+         set       yflap[1,4] +inboard*span2
+         udparg    $$/flapz   xflap   xflap
+         udparg    $$/flapz   yflap   yflap
+         udparg    $$/flapz   theta   angrite
+         udparg    $$/flapz   gap   0.001*span
+         udparg    $$/flapz   openEnd   1
+         udprim    $$/flapz
+            interface xflap   in   0
+            interface yflap   in   0
+            interface theta   in   15
+            interface gap   in   0.01
+            interface openEnd   in   0
+            interface faceList1c   dim   3
+            interface faceList2c   dim   3
+            assert    ifzero(xflap.size-4,1,0)   1   0   0
+            assert    ifzero(yflap.size-4,1,0)   1   0   0
+            select    body
+            set       zmin @zmin
+            set       zmax @zmax
+            store     flap   999   0
+            restore   flap   999
+            store     flap   999   0
+            set       zmin @zmin
+            set       zmax @zmax
+            set       ds sqrt((xflap[1]-xflap[4])^2+(yflap[1]-yflap[4])^2)
+            set       x1p xflap[1]+(xflap[1]-xflap[4])*gap/ds
+            set       y1p yflap[1]+(yflap[1]-yflap[4])*gap/ds
+            set       x4p xflap[4]+(xflap[4]-xflap[1])*gap/ds
+            set       y4p yflap[4]+(yflap[4]-yflap[1])*gap/ds
+            set       ds sqrt((xflap[2]-xflap[3])^2+(yflap[2]-yflap[3])^2)
+            set       x2pp xflap[2]+(xflap[2]-xflap[3])*gap/ds
+            set       y2pp yflap[2]+(yflap[2]-yflap[3])*gap/ds
+            set       x3pp xflap[3]+(xflap[3]-xflap[2])*gap/ds
+            set       y3pp yflap[3]+(yflap[3]-yflap[2])*gap/ds
+            set       ds sqrt((x2pp-x1p)^2+(y2pp-y1p)^2)
+            set       x2p x2pp+(x2pp-x1p)*gap/ds
+            set       y2p y2pp+(y2pp-y1p)*gap/ds
+            set       ds sqrt((x3pp-x4p)^2+(y3pp-y4p)^2)
+            set       x3p x3pp+(x3pp-x4p)*gap/ds
+            set       y3p y3pp+(y3pp-y4p)*gap/ds
+            restore   flap   999
+            project   xflap[2]   yflap[2]   zmax+1   0.0   0.0   -1.0   0
+            set       z2max @zcg
+            project   xflap[2]   yflap[2]   zmin-1   0.0   0.0   1.0   0
+            set       z2min @zcg
+            project   xflap[3]   yflap[3]   zmax+1   0.0   0.0   -1.0   0
+            set       z3max @zcg
+            project   xflap[3]   yflap[3]   zmin-1   0.0   0.0   1.0   0
+            set       z3min @zcg
+            set       dzpivot min(z2max-z2min,z3max-z3min)/2
+            skbeg     x1p   y1p   zmin-1   0
+               linseg    x2p   y2p   zmin-1
+               linseg    x3p   y3p   zmin-1
+               linseg    x4p   y4p   zmin-1
+               linseg    x1p   y1p   zmin-1
+            skend     0
+            extrude   0.0   0.0   zmax-zmin+2
+            set       wing_cutout @nbody
+            subtract  none   1   0
+            select    face   wing_cutout   5
+            set       faceList1c[1,1] @iface
+            select    face   wing_cutout   4
+            set       faceList1c[1,2] @iface
+            set       faceList1o @iface
+            select    face   wing_cutout   3
+            set       faceList1c[1,3] @iface
+            store     flap   998   0
+            restore   flap   999
+            skbeg     xflap[1]   yflap[1]   zmin-1   0
+               linseg    xflap[2]   yflap[2]   zmin-1
+               linseg    xflap[3]   yflap[3]   zmin-1
+               linseg    xflap[4]   yflap[4]   zmin-1
+               linseg    xflap[1]   yflap[1]   zmin-1
+            skend     0
+            extrude   0.0   0.0   zmax-zmin+2
+            set       flap_cutout @nbody
+            intersect none   1   0
+            select    face   flap_cutout   5
+            set       faceList2c[1,1] @iface
+            select    face   flap_cutout   4
+            set       faceList2c[1,2] @iface
+            set       faceList2o @iface
+            select    face   flap_cutout   3
+            set       faceList2c[1,3] @iface
+            store     flap   997   0
+            restore   flap   998
+            restore   flap   997
+            ifthen    theta   gt   0   and   0   eq   0
+               udparg    $$/gen_rot   xbeg   xflap[3]
+               udparg    $$/gen_rot   ybeg   yflap[3]
+               udparg    $$/gen_rot   zbeg   z3max-dzpivot
+               udparg    $$/gen_rot   xend   xflap[2]
+               udparg    $$/gen_rot   yend   yflap[2]
+               udparg    $$/gen_rot   zend   z2max-dzpivot
+               udprim    $$/gen_rot   rotang   theta
+                  interface xbeg   in   0
+                  interface ybeg   in   0
+                  interface zbeg   in   0
+                  interface xend   in   1
+                  interface yend   in   1
+                  interface zend   in   1
+                  interface rotang   in   0
+                  interface azimuth   out   0
+                  interface elevation   out   0
+                  set       dx xend-xbeg
+                  set       dy yend-ybeg
+                  set       dz zbeg-zend
+                  assert    ifpos(dx*dx+dy*dy+dz*dz-1e-12,1,0)   1   0   0
+                  set       azimuth atan2d(dy,dx)
+                  set       elevation atan2d(dz,hypot(dx,dy))
+                  rotatez   -azimuth   xbeg   ybeg
+                  rotatey   -elevation   zbeg   xbeg
+                  rotatex   rotang   ybeg   zbeg
+                  rotatey   +elevation   zbeg   xbeg
+                  rotatez   +azimuth   xbeg   ybeg
+               end
+            else
+               udparg    $$/gen_rot   xbeg   xflap[3]
+               udparg    $$/gen_rot   ybeg   yflap[3]
+               udparg    $$/gen_rot   zbeg   z3min+dzpivot
+               udparg    $$/gen_rot   xend   xflap[2]
+               udparg    $$/gen_rot   yend   yflap[2]
+               udparg    $$/gen_rot   zend   z2min+dzpivot
+               udprim    $$/gen_rot   rotang   theta
+                  interface xbeg   in   0
+                  interface ybeg   in   0
+                  interface zbeg   in   0
+                  interface xend   in   1
+                  interface yend   in   1
+                  interface zend   in   1
+                  interface rotang   in   0
+                  interface azimuth   out   0
+                  interface elevation   out   0
+                  set       dx xend-xbeg
+                  set       dy yend-ybeg
+                  set       dz zbeg-zend
+                  assert    ifpos(dx*dx+dy*dy+dz*dz-1e-12,1,0)   1   0   0
+                  set       azimuth atan2d(dy,dx)
+                  set       elevation atan2d(dz,hypot(dx,dy))
+                  rotatez   -azimuth   xbeg   ybeg
+                  rotatey   -elevation   zbeg   xbeg
+                  rotatex   rotang   ybeg   zbeg
+                  rotatey   +elevation   zbeg   xbeg
+                  rotatez   +azimuth   xbeg   ybeg
+               end
+            endif
+            ifthen    openEnd   gt   0   and   0   eq   0
+               connect   faceList1o   faceList2o
+            else
+               connect   faceList1c   faceList2c
+            endif
+         end
+      endif
+      select    body
+attribute ID   !ID
+attribute Intent   3
+   endif
+   ifthen    intent   eq   4   and   0   eq   0
+      dimension secValues   1   5   0
+      set       secValues 8;1.0;12;1.0;0;
+      dimension cntrlValues   1   6   0
+      set       cntrlValues 1.0;0.7;0.0;0.0;0.0;1.0;
+      set       cntrlValues[1,2] pctchord
+      mark
+      ifthen    mirror   eq   1   and   0   eq   0
+         ifthen    compType   eq   1   and   0   eq   0
+            udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Wing
+attribute avlSecValues   secValues
+         elseif    compType   eq   2   and   0   eq   0
+            udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Horizontal_Tail
+attribute avlSecValues   secValues
+         elseif    compType   eq   3   and   0   eq   0
+            udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Vertical_Tail
+attribute avlSecValues   secValues
+         else
+            udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+         endif
+         rotatex   90   0   0
+         scale     ctip
+         rotatey   -twist   0   0
+         translate dxtip   -span2   +dztip
+         ifthen    pctchord   gt   0   and   0   eq   0
+            ifthen    compType   eq   1   and   0   eq   0
+               udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Wing
+attribute avlSecValues   secValues
+attribute avlCntrlFlap   cntrlValues
+            elseif    compType   eq   2   and   0   eq   0
+               udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Horizontal_Tail
+attribute avlSecValues   secValues
+attribute avlCntrlElevator   cntrlValues
+            elseif    compType   eq   3   and   0   eq   0
+               udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Vertical_Tail
+attribute avlSecValues   secValues
+attribute avlCntrlRudder   cntrlValues
+            else
+               udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+            endif
+            rotatex   90   0   0
+            scale     ctip*inboard+croot*(1-inboard)
+            rotatey   -twist*inboard   0   0
+            translate dxtip*inboard   -span2*inboard   +dztip*inboard
+            ifthen    compType   eq   1   and   0   eq   0
+               udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Wing
+attribute avlSecValues   secValues
+attribute avlCntrlFlap   cntrlValues
+            elseif    compType   eq   2   and   0   eq   0
+               udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Horizontal_Tail
+attribute avlSecValues   secValues
+attribute avlCntrlElevator   cntrlValues
+            elseif    compType   eq   3   and   0   eq   0
+               udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Vertical_Tail
+attribute avlSecValues   secValues
+attribute avlCntrlRudder   cntrlValues
+            else
+               udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+            endif
+            rotatex   90   0   0
+            scale     ctip*outboard+croot*(1-outboard)
+            rotatey   -twist*outboard   0   0
+            translate dxtip*outboard   -span2*outboard   +dztip*outboard
+         endif
+      endif
+      ifthen    compType   eq   1   and   0   eq   0
+         udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Wing
+attribute capsReferenceArea   area
+attribute capsReferenceSpan   span
+attribute capsReferenceChord   croot
+attribute capsReferneceX   croot/4
+attribute avlSecValues   secValues
+      elseif    compType   eq   2   and   0   eq   0
+         udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Horizontal_Tail
+attribute avlSecValues   secValues
+      elseif    compType   eq   3   and   0   eq   0
+         udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Vertical_Tail
+attribute avlSecValues   secValues
+      else
+         udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+      endif
+      rotatex   90   0   0
+      scale     croot
+      ifthen    pctchord   gt   0   and   0   eq   0
+         ifthen    compType   eq   1   and   0   eq   0
+            udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Wing
+attribute avlSecValues   secValues
+attribute avlCntrlFlap   cntrlValues
+         elseif    compType   eq   2   and   0   eq   0
+            udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Horizontal_Tail
+attribute avlSecValues   secValues
+attribute avlCntrlElevator   cntrlValues
+         elseif    compType   eq   3   and   0   eq   0
+            udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Vertical_Tail
+attribute avlSecValues   secValues
+attribute avlCntrlRudder   cntrlValues
+         else
+            udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+         endif
+         rotatex   90   0   0
+         scale     ctip*outboard+croot*(1-outboard)
+         rotatey   -twist*outboard   0   0
+         translate dxtip*outboard   +span2*outboard   +dztip*outboard
+         ifthen    compType   eq   1   and   0   eq   0
+            udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Wing
+attribute avlSecValues   secValues
+attribute avlCntrlFlap   cntrlValues
+         elseif    compType   eq   2   and   0   eq   0
+            udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Horizontal_Tail
+attribute avlSecValues   secValues
+attribute avlCntrlElevator   cntrlValues
+         elseif    compType   eq   3   and   0   eq   0
+            udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   13
+attribute capsGroup   $Vertical_Tail
+attribute avlSecValues   secValues
+attribute avlCntrlRudder   cntrlValues
+         else
+            udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+         endif
+         rotatex   90   0   0
+         scale     ctip*inboard+croot*(1-inboard)
+         rotatey   -twist*inboard   0   0
+         translate dxtip*inboard   +span2*inboard   +dztip*inboard
+      endif
+      ifthen    compType   eq   1   and   0   eq   0
+         udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Wing
+attribute avlSecValues   secValues
+      elseif    compType   eq   2   and   0   eq   0
+         udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Horizontal_Tail
+attribute avlSecValues   secValues
+      elseif    compType   eq   3   and   0   eq   0
+         udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Vertical_Tail
+attribute avlSecValues   secValues
+      else
+         udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+      endif
+      rotatex   90   0   0
+      scale     ctip
+      rotatey   -twist   0   0
+      translate dxtip   +span2   +dztip
+      group
+   endif
+   ifthen    intent   eq   5   and   nrib   gt   0
+      set       nwaffle nrib+ifpos(spar1,2,0)+ifpos(spar2,2,0)
+      dimension waffle   nwaffle   4   0
+      patbeg    i   nrib
+         set       waffle[i,1] -0.10*croot
+         set       waffle[i,2] span2*(2*i-nrib-1)/nrib
+         set       waffle[i,3] 1.1*max(croot,dxtip+ctip)
+         set       waffle[i,4] waffle[i,2]
+      patend
+      ifthen    spar1   gt   0   and   0   eq   0
+         set       nrib nrib+1
+         set       waffle[nrib,1] spar1*ctip+dxtip
+         set       waffle[nrib,2] -1.01*span2
+         set       waffle[nrib,3] spar1*croot
+         set       waffle[nrib,4] 0
+         set       nrib nrib+1
+         set       waffle[nrib,1] spar1*ctip+dxtip
+         set       waffle[nrib,2] 1.01*span2
+         set       waffle[nrib,3] spar1*croot
+         set       waffle[nrib,4] 0
+      endif
+      ifthen    spar2   gt   0   and   0   eq   0
+         set       nrib nrib+1
+         set       waffle[nrib,1] spar2*ctip+dxtip
+         set       waffle[nrib,2] -1.01*span2
+         set       waffle[nrib,3] spar2*croot
+         set       waffle[nrib,4] 0
+         set       nrib nrib+1
+         set       waffle[nrib,1] spar2*ctip+dxtip
+         set       waffle[nrib,2] 1.01*span2
+         set       waffle[nrib,3] spar2*croot
+         set       waffle[nrib,4] 0
+      endif
+      udprim    waffle   Depth   +4*croot   Segments   waffle
+attribute name   $wing_structure
+      translate 0   0   -2*croot
+      store     wingWaffle   0   0
+      restore   wingWaffle   0
+      restore   wingOML   0
+      intersect none   1   0
+      restore   wingOML   0
+      restore   wingWaffle   0
+      subtract  none   1   0
+      extract   0
+      union     0   0   1e-5
+      udprim    createBEM   filename   $BEM.bdf   space   0.02   imin   3   imax   99
+   endif
+end
+translate wing:xloc   0   wing:zloc
+ifthen    intent   eq   3   and   0   eq   0
+   union     0   0   0
+attribute .tParams   0.316942;0.00633884;5.0
+endif
+ifthen    intent   ne   5   and   0   eq   0
+   udparg    $$/wing   intent   intent
+   udparg    $$/wing   area   htail:area
+   udparg    $$/wing   aspect   htail:aspect
+   udparg    $$/wing   taper   htail:taper
+   udparg    $$/wing   twist   htail:twist
+   udparg    $$/wing   sweep   htail:sweep
+   udparg    $$/wing   thickness   htail:thickness
+   udparg    $$/wing   sharpte   htail:sharpte
+   udparg    $$/wing   camber   htail:camber
+   udprim    $$/wing   ID   3
+      interface ID   in   0
+      interface intent   in   1
+      interface compType   in   0
+      interface mirror   in   0
+      interface area   in   100
+      interface aspect   in   8
+      interface taper   in   0.8
+      interface twist   in   -5.0
+      interface sweep   in   0.0
+      interface dihedral   in   0.0
+      interface thickness   in   0.12
+      interface sharpte   in   0.0
+      interface camber   in   0.04
+      interface inboard   in   0
+      interface outboard   in   1
+      interface pctchord   in   0
+      interface angleft   in   0
+      interface angrite   in   0
+      interface spar1   in   0
+      interface spar2   in   0
+      interface nrib   in   0
+      interface span   out   0
+      set       span sqrt(area*aspect)
+      set       span2 span/2
+      set       cbar area/span
+      set       croot 2*cbar/(1+taper)
+      set       ctip taper*croot
+      set       dxtip span2*tand(sweep)
+      set       dztip span2*tand(dihedral)
+      ifthen    intent   eq   1   and   0   eq   0
+         ifthen    mirror   ne   1   and   0   eq   0
+            skbeg     croot/4   0   0   0
+               linseg    dxtip+ctip/4   +span2   +dztip
+            skend     0
+attribute ID   !ID
+attribute Intent   1
+         else
+            skbeg     dxtip+ctip/4   -span2   +dztip   0
+               linseg    croot/4   0   0
+               linseg    dxtip+ctip/4   +span2   +dztip
+            skend     0
+attribute ID   !ID
+attribute Intent   1
+         endif
+      endif
+      ifthen    intent   eq   2   and   0   eq   0
+         mark
+         ifthen    mirror   eq   1   and   0   eq   0
+            ifthen    camber   eq   0   and   0   eq   0
+               skbeg     0   0   0   0
+                  linseg    1   0   0
+               skend     0
+            else
+               udprim    naca   thickness   0   camber   camber
+            endif
+            rotatex   90   0   0
+            scale     ctip
+            rotatey   -twist   0   0
+            translate dxtip   -span2   +dztip
+         endif
+         ifthen    camber   eq   0   and   0   eq   0
+            skbeg     0   0   0   0
+               linseg    1   0   0
+            skend     0
+         else
+            udprim    naca   thickness   0   camber   camber
+         endif
+         rotatex   90   0   0
+         scale     croot
+         ifthen    camber   eq   0   and   0   eq   0
+            skbeg     0   0   0   0
+               linseg    1   0   0
+            skend     0
+         else
+            udprim    naca   thickness   0   camber   camber
+         endif
+         rotatex   90   0   0
+         scale     ctip
+         rotatey   -twist   0   0
+         translate dxtip   +span2   +dztip
+         rule      0
+attribute ID   !ID
+attribute Intent   2
+      endif
+      ifthen    intent   eq   3   or   intent   eq   5
+         mark
+         ifthen    mirror   eq   1   and   0   eq   0
+            udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+            rotatex   90   0   0
+            scale     ctip
+            rotatey   -twist   0   0
+            translate dxtip   -span2   +dztip
+         endif
+         udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+         rotatex   90   0   0
+         scale     croot
+         udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+         rotatex   90   0   0
+         scale     ctip
+         rotatey   -twist   0   0
+         translate dxtip   +span2   +dztip
+         rule      0
+         ifthen    intent   eq   5   and   0   eq   0
+            store     wingOML   0   0
+         endif
+      endif
+      ifthen    intent   eq   3   and   0   eq   0
+         ifthen    pctchord   gt   0   and   mirror   eq   1
+            dimension xflap   1   4   0
+            dimension yflap   1   4   0
+            set       xflap[1,1] max(croot,dxtip+ctip)
+            set       yflap[1,1] -inboard*span2
+            set       xflap[1,2] inboard*dxtip+pctchord*(croot+inboard*(ctip-croot))
+            set       yflap[1,2] -inboard*span2
+            set       xflap[1,3] outboard*dxtip+pctchord*(croot+outboard*(ctip-croot))
+            set       yflap[1,3] -outboard*span2
+            set       xflap[1,4] max(croot,dxtip+ctip)
+            set       yflap[1,4] -outboard*span2
+            udparg    $$/flapz   xflap   xflap
+            udparg    $$/flapz   yflap   yflap
+            udparg    $$/flapz   theta   angleft
+            udparg    $$/flapz   gap   0.001*span
+            udparg    $$/flapz   openEnd   1
+            udprim    $$/flapz
+               interface xflap   in   0
+               interface yflap   in   0
+               interface theta   in   15
+               interface gap   in   0.01
+               interface openEnd   in   0
+               interface faceList1c   dim   3
+               interface faceList2c   dim   3
+               assert    ifzero(xflap.size-4,1,0)   1   0   0
+               assert    ifzero(yflap.size-4,1,0)   1   0   0
+               select    body
+               set       zmin @zmin
+               set       zmax @zmax
+               store     flap   999   0
+               restore   flap   999
+               store     flap   999   0
+               set       zmin @zmin
+               set       zmax @zmax
+               set       ds sqrt((xflap[1]-xflap[4])^2+(yflap[1]-yflap[4])^2)
+               set       x1p xflap[1]+(xflap[1]-xflap[4])*gap/ds
+               set       y1p yflap[1]+(yflap[1]-yflap[4])*gap/ds
+               set       x4p xflap[4]+(xflap[4]-xflap[1])*gap/ds
+               set       y4p yflap[4]+(yflap[4]-yflap[1])*gap/ds
+               set       ds sqrt((xflap[2]-xflap[3])^2+(yflap[2]-yflap[3])^2)
+               set       x2pp xflap[2]+(xflap[2]-xflap[3])*gap/ds
+               set       y2pp yflap[2]+(yflap[2]-yflap[3])*gap/ds
+               set       x3pp xflap[3]+(xflap[3]-xflap[2])*gap/ds
+               set       y3pp yflap[3]+(yflap[3]-yflap[2])*gap/ds
+               set       ds sqrt((x2pp-x1p)^2+(y2pp-y1p)^2)
+               set       x2p x2pp+(x2pp-x1p)*gap/ds
+               set       y2p y2pp+(y2pp-y1p)*gap/ds
+               set       ds sqrt((x3pp-x4p)^2+(y3pp-y4p)^2)
+               set       x3p x3pp+(x3pp-x4p)*gap/ds
+               set       y3p y3pp+(y3pp-y4p)*gap/ds
+               restore   flap   999
+               project   xflap[2]   yflap[2]   zmax+1   0.0   0.0   -1.0   0
+               set       z2max @zcg
+               project   xflap[2]   yflap[2]   zmin-1   0.0   0.0   1.0   0
+               set       z2min @zcg
+               project   xflap[3]   yflap[3]   zmax+1   0.0   0.0   -1.0   0
+               set       z3max @zcg
+               project   xflap[3]   yflap[3]   zmin-1   0.0   0.0   1.0   0
+               set       z3min @zcg
+               set       dzpivot min(z2max-z2min,z3max-z3min)/2
+               skbeg     x1p   y1p   zmin-1   0
+                  linseg    x2p   y2p   zmin-1
+                  linseg    x3p   y3p   zmin-1
+                  linseg    x4p   y4p   zmin-1
+                  linseg    x1p   y1p   zmin-1
+               skend     0
+               extrude   0.0   0.0   zmax-zmin+2
+               set       wing_cutout @nbody
+               subtract  none   1   0
+               select    face   wing_cutout   5
+               set       faceList1c[1,1] @iface
+               select    face   wing_cutout   4
+               set       faceList1c[1,2] @iface
+               set       faceList1o @iface
+               select    face   wing_cutout   3
+               set       faceList1c[1,3] @iface
+               store     flap   998   0
+               restore   flap   999
+               skbeg     xflap[1]   yflap[1]   zmin-1   0
+                  linseg    xflap[2]   yflap[2]   zmin-1
+                  linseg    xflap[3]   yflap[3]   zmin-1
+                  linseg    xflap[4]   yflap[4]   zmin-1
+                  linseg    xflap[1]   yflap[1]   zmin-1
+               skend     0
+               extrude   0.0   0.0   zmax-zmin+2
+               set       flap_cutout @nbody
+               intersect none   1   0
+               select    face   flap_cutout   5
+               set       faceList2c[1,1] @iface
+               select    face   flap_cutout   4
+               set       faceList2c[1,2] @iface
+               set       faceList2o @iface
+               select    face   flap_cutout   3
+               set       faceList2c[1,3] @iface
+               store     flap   997   0
+               restore   flap   998
+               restore   flap   997
+               ifthen    theta   gt   0   and   0   eq   0
+                  udparg    $$/gen_rot   xbeg   xflap[3]
+                  udparg    $$/gen_rot   ybeg   yflap[3]
+                  udparg    $$/gen_rot   zbeg   z3max-dzpivot
+                  udparg    $$/gen_rot   xend   xflap[2]
+                  udparg    $$/gen_rot   yend   yflap[2]
+                  udparg    $$/gen_rot   zend   z2max-dzpivot
+                  udprim    $$/gen_rot   rotang   theta
+                     interface xbeg   in   0
+                     interface ybeg   in   0
+                     interface zbeg   in   0
+                     interface xend   in   1
+                     interface yend   in   1
+                     interface zend   in   1
+                     interface rotang   in   0
+                     interface azimuth   out   0
+                     interface elevation   out   0
+                     set       dx xend-xbeg
+                     set       dy yend-ybeg
+                     set       dz zbeg-zend
+                     assert    ifpos(dx*dx+dy*dy+dz*dz-1e-12,1,0)   1   0   0
+                     set       azimuth atan2d(dy,dx)
+                     set       elevation atan2d(dz,hypot(dx,dy))
+                     rotatez   -azimuth   xbeg   ybeg
+                     rotatey   -elevation   zbeg   xbeg
+                     rotatex   rotang   ybeg   zbeg
+                     rotatey   +elevation   zbeg   xbeg
+                     rotatez   +azimuth   xbeg   ybeg
+                  end
+               else
+                  udparg    $$/gen_rot   xbeg   xflap[3]
+                  udparg    $$/gen_rot   ybeg   yflap[3]
+                  udparg    $$/gen_rot   zbeg   z3min+dzpivot
+                  udparg    $$/gen_rot   xend   xflap[2]
+                  udparg    $$/gen_rot   yend   yflap[2]
+                  udparg    $$/gen_rot   zend   z2min+dzpivot
+                  udprim    $$/gen_rot   rotang   theta
+                     interface xbeg   in   0
+                     interface ybeg   in   0
+                     interface zbeg   in   0
+                     interface xend   in   1
+                     interface yend   in   1
+                     interface zend   in   1
+                     interface rotang   in   0
+                     interface azimuth   out   0
+                     interface elevation   out   0
+                     set       dx xend-xbeg
+                     set       dy yend-ybeg
+                     set       dz zbeg-zend
+                     assert    ifpos(dx*dx+dy*dy+dz*dz-1e-12,1,0)   1   0   0
+                     set       azimuth atan2d(dy,dx)
+                     set       elevation atan2d(dz,hypot(dx,dy))
+                     rotatez   -azimuth   xbeg   ybeg
+                     rotatey   -elevation   zbeg   xbeg
+                     rotatex   rotang   ybeg   zbeg
+                     rotatey   +elevation   zbeg   xbeg
+                     rotatez   +azimuth   xbeg   ybeg
+                  end
+               endif
+               ifthen    openEnd   gt   0   and   0   eq   0
+                  connect   faceList1o   faceList2o
+               else
+                  connect   faceList1c   faceList2c
+               endif
+            end
+         endif
+         ifthen    pctchord   gt   0   and   0   eq   0
+            dimension xflap   1   4   0
+            dimension yflap   1   4   0
+            set       xflap[1,1] max(croot,dxtip+ctip)
+            set       yflap[1,1] +outboard*span2
+            set       xflap[1,2] outboard*dxtip+pctchord*(croot+outboard*(ctip-croot))
+            set       yflap[1,2] +outboard*span2
+            set       xflap[1,3] inboard*dxtip+pctchord*(croot+inboard*(ctip-croot))
+            set       yflap[1,3] +inboard*span2
+            set       xflap[1,4] max(croot,dxtip+ctip)
+            set       yflap[1,4] +inboard*span2
+            udparg    $$/flapz   xflap   xflap
+            udparg    $$/flapz   yflap   yflap
+            udparg    $$/flapz   theta   angrite
+            udparg    $$/flapz   gap   0.001*span
+            udparg    $$/flapz   openEnd   1
+            udprim    $$/flapz
+               interface xflap   in   0
+               interface yflap   in   0
+               interface theta   in   15
+               interface gap   in   0.01
+               interface openEnd   in   0
+               interface faceList1c   dim   3
+               interface faceList2c   dim   3
+               assert    ifzero(xflap.size-4,1,0)   1   0   0
+               assert    ifzero(yflap.size-4,1,0)   1   0   0
+               select    body
+               set       zmin @zmin
+               set       zmax @zmax
+               store     flap   999   0
+               restore   flap   999
+               store     flap   999   0
+               set       zmin @zmin
+               set       zmax @zmax
+               set       ds sqrt((xflap[1]-xflap[4])^2+(yflap[1]-yflap[4])^2)
+               set       x1p xflap[1]+(xflap[1]-xflap[4])*gap/ds
+               set       y1p yflap[1]+(yflap[1]-yflap[4])*gap/ds
+               set       x4p xflap[4]+(xflap[4]-xflap[1])*gap/ds
+               set       y4p yflap[4]+(yflap[4]-yflap[1])*gap/ds
+               set       ds sqrt((xflap[2]-xflap[3])^2+(yflap[2]-yflap[3])^2)
+               set       x2pp xflap[2]+(xflap[2]-xflap[3])*gap/ds
+               set       y2pp yflap[2]+(yflap[2]-yflap[3])*gap/ds
+               set       x3pp xflap[3]+(xflap[3]-xflap[2])*gap/ds
+               set       y3pp yflap[3]+(yflap[3]-yflap[2])*gap/ds
+               set       ds sqrt((x2pp-x1p)^2+(y2pp-y1p)^2)
+               set       x2p x2pp+(x2pp-x1p)*gap/ds
+               set       y2p y2pp+(y2pp-y1p)*gap/ds
+               set       ds sqrt((x3pp-x4p)^2+(y3pp-y4p)^2)
+               set       x3p x3pp+(x3pp-x4p)*gap/ds
+               set       y3p y3pp+(y3pp-y4p)*gap/ds
+               restore   flap   999
+               project   xflap[2]   yflap[2]   zmax+1   0.0   0.0   -1.0   0
+               set       z2max @zcg
+               project   xflap[2]   yflap[2]   zmin-1   0.0   0.0   1.0   0
+               set       z2min @zcg
+               project   xflap[3]   yflap[3]   zmax+1   0.0   0.0   -1.0   0
+               set       z3max @zcg
+               project   xflap[3]   yflap[3]   zmin-1   0.0   0.0   1.0   0
+               set       z3min @zcg
+               set       dzpivot min(z2max-z2min,z3max-z3min)/2
+               skbeg     x1p   y1p   zmin-1   0
+                  linseg    x2p   y2p   zmin-1
+                  linseg    x3p   y3p   zmin-1
+                  linseg    x4p   y4p   zmin-1
+                  linseg    x1p   y1p   zmin-1
+               skend     0
+               extrude   0.0   0.0   zmax-zmin+2
+               set       wing_cutout @nbody
+               subtract  none   1   0
+               select    face   wing_cutout   5
+               set       faceList1c[1,1] @iface
+               select    face   wing_cutout   4
+               set       faceList1c[1,2] @iface
+               set       faceList1o @iface
+               select    face   wing_cutout   3
+               set       faceList1c[1,3] @iface
+               store     flap   998   0
+               restore   flap   999
+               skbeg     xflap[1]   yflap[1]   zmin-1   0
+                  linseg    xflap[2]   yflap[2]   zmin-1
+                  linseg    xflap[3]   yflap[3]   zmin-1
+                  linseg    xflap[4]   yflap[4]   zmin-1
+                  linseg    xflap[1]   yflap[1]   zmin-1
+               skend     0
+               extrude   0.0   0.0   zmax-zmin+2
+               set       flap_cutout @nbody
+               intersect none   1   0
+               select    face   flap_cutout   5
+               set       faceList2c[1,1] @iface
+               select    face   flap_cutout   4
+               set       faceList2c[1,2] @iface
+               set       faceList2o @iface
+               select    face   flap_cutout   3
+               set       faceList2c[1,3] @iface
+               store     flap   997   0
+               restore   flap   998
+               restore   flap   997
+               ifthen    theta   gt   0   and   0   eq   0
+                  udparg    $$/gen_rot   xbeg   xflap[3]
+                  udparg    $$/gen_rot   ybeg   yflap[3]
+                  udparg    $$/gen_rot   zbeg   z3max-dzpivot
+                  udparg    $$/gen_rot   xend   xflap[2]
+                  udparg    $$/gen_rot   yend   yflap[2]
+                  udparg    $$/gen_rot   zend   z2max-dzpivot
+                  udprim    $$/gen_rot   rotang   theta
+                     interface xbeg   in   0
+                     interface ybeg   in   0
+                     interface zbeg   in   0
+                     interface xend   in   1
+                     interface yend   in   1
+                     interface zend   in   1
+                     interface rotang   in   0
+                     interface azimuth   out   0
+                     interface elevation   out   0
+                     set       dx xend-xbeg
+                     set       dy yend-ybeg
+                     set       dz zbeg-zend
+                     assert    ifpos(dx*dx+dy*dy+dz*dz-1e-12,1,0)   1   0   0
+                     set       azimuth atan2d(dy,dx)
+                     set       elevation atan2d(dz,hypot(dx,dy))
+                     rotatez   -azimuth   xbeg   ybeg
+                     rotatey   -elevation   zbeg   xbeg
+                     rotatex   rotang   ybeg   zbeg
+                     rotatey   +elevation   zbeg   xbeg
+                     rotatez   +azimuth   xbeg   ybeg
+                  end
+               else
+                  udparg    $$/gen_rot   xbeg   xflap[3]
+                  udparg    $$/gen_rot   ybeg   yflap[3]
+                  udparg    $$/gen_rot   zbeg   z3min+dzpivot
+                  udparg    $$/gen_rot   xend   xflap[2]
+                  udparg    $$/gen_rot   yend   yflap[2]
+                  udparg    $$/gen_rot   zend   z2min+dzpivot
+                  udprim    $$/gen_rot   rotang   theta
+                     interface xbeg   in   0
+                     interface ybeg   in   0
+                     interface zbeg   in   0
+                     interface xend   in   1
+                     interface yend   in   1
+                     interface zend   in   1
+                     interface rotang   in   0
+                     interface azimuth   out   0
+                     interface elevation   out   0
+                     set       dx xend-xbeg
+                     set       dy yend-ybeg
+                     set       dz zbeg-zend
+                     assert    ifpos(dx*dx+dy*dy+dz*dz-1e-12,1,0)   1   0   0
+                     set       azimuth atan2d(dy,dx)
+                     set       elevation atan2d(dz,hypot(dx,dy))
+                     rotatez   -azimuth   xbeg   ybeg
+                     rotatey   -elevation   zbeg   xbeg
+                     rotatex   rotang   ybeg   zbeg
+                     rotatey   +elevation   zbeg   xbeg
+                     rotatez   +azimuth   xbeg   ybeg
+                  end
+               endif
+               ifthen    openEnd   gt   0   and   0   eq   0
+                  connect   faceList1o   faceList2o
+               else
+                  connect   faceList1c   faceList2c
+               endif
+            end
+         endif
+         select    body
+attribute ID   !ID
+attribute Intent   3
+      endif
+      ifthen    intent   eq   4   and   0   eq   0
+         dimension secValues   1   5   0
+         set       secValues 8;1.0;12;1.0;0;
+         dimension cntrlValues   1   6   0
+         set       cntrlValues 1.0;0.7;0.0;0.0;0.0;1.0;
+         set       cntrlValues[1,2] pctchord
+         mark
+         ifthen    mirror   eq   1   and   0   eq   0
+            ifthen    compType   eq   1   and   0   eq   0
+               udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Wing
+attribute avlSecValues   secValues
+            elseif    compType   eq   2   and   0   eq   0
+               udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Horizontal_Tail
+attribute avlSecValues   secValues
+            elseif    compType   eq   3   and   0   eq   0
+               udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Vertical_Tail
+attribute avlSecValues   secValues
+            else
+               udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+            endif
+            rotatex   90   0   0
+            scale     ctip
+            rotatey   -twist   0   0
+            translate dxtip   -span2   +dztip
+            ifthen    pctchord   gt   0   and   0   eq   0
+               ifthen    compType   eq   1   and   0   eq   0
+                  udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Wing
+attribute avlSecValues   secValues
+attribute avlCntrlFlap   cntrlValues
+               elseif    compType   eq   2   and   0   eq   0
+                  udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Horizontal_Tail
+attribute avlSecValues   secValues
+attribute avlCntrlElevator   cntrlValues
+               elseif    compType   eq   3   and   0   eq   0
+                  udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Vertical_Tail
+attribute avlSecValues   secValues
+attribute avlCntrlRudder   cntrlValues
+               else
+                  udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+               endif
+               rotatex   90   0   0
+               scale     ctip*inboard+croot*(1-inboard)
+               rotatey   -twist*inboard   0   0
+               translate dxtip*inboard   -span2*inboard   +dztip*inboard
+               ifthen    compType   eq   1   and   0   eq   0
+                  udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Wing
+attribute avlSecValues   secValues
+attribute avlCntrlFlap   cntrlValues
+               elseif    compType   eq   2   and   0   eq   0
+                  udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Horizontal_Tail
+attribute avlSecValues   secValues
+attribute avlCntrlElevator   cntrlValues
+               elseif    compType   eq   3   and   0   eq   0
+                  udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Vertical_Tail
+attribute avlSecValues   secValues
+attribute avlCntrlRudder   cntrlValues
+               else
+                  udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+               endif
+               rotatex   90   0   0
+               scale     ctip*outboard+croot*(1-outboard)
+               rotatey   -twist*outboard   0   0
+               translate dxtip*outboard   -span2*outboard   +dztip*outboard
+            endif
+         endif
+         ifthen    compType   eq   1   and   0   eq   0
+            udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Wing
+attribute capsReferenceArea   area
+attribute capsReferenceSpan   span
+attribute capsReferenceChord   croot
+attribute capsReferneceX   croot/4
+attribute avlSecValues   secValues
+         elseif    compType   eq   2   and   0   eq   0
+            udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Horizontal_Tail
+attribute avlSecValues   secValues
+         elseif    compType   eq   3   and   0   eq   0
+            udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Vertical_Tail
+attribute avlSecValues   secValues
+         else
+            udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+         endif
+         rotatex   90   0   0
+         scale     croot
+         ifthen    pctchord   gt   0   and   0   eq   0
+            ifthen    compType   eq   1   and   0   eq   0
+               udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Wing
+attribute avlSecValues   secValues
+attribute avlCntrlFlap   cntrlValues
+            elseif    compType   eq   2   and   0   eq   0
+               udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Horizontal_Tail
+attribute avlSecValues   secValues
+attribute avlCntrlElevator   cntrlValues
+            elseif    compType   eq   3   and   0   eq   0
+               udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Vertical_Tail
+attribute avlSecValues   secValues
+attribute avlCntrlRudder   cntrlValues
+            else
+               udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+            endif
+            rotatex   90   0   0
+            scale     ctip*outboard+croot*(1-outboard)
+            rotatey   -twist*outboard   0   0
+            translate dxtip*outboard   +span2*outboard   +dztip*outboard
+            ifthen    compType   eq   1   and   0   eq   0
+               udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Wing
+attribute avlSecValues   secValues
+attribute avlCntrlFlap   cntrlValues
+            elseif    compType   eq   2   and   0   eq   0
+               udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Horizontal_Tail
+attribute avlSecValues   secValues
+attribute avlCntrlElevator   cntrlValues
+            elseif    compType   eq   3   and   0   eq   0
+               udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   13
+attribute capsGroup   $Vertical_Tail
+attribute avlSecValues   secValues
+attribute avlCntrlRudder   cntrlValues
+            else
+               udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+            endif
+            rotatex   90   0   0
+            scale     ctip*inboard+croot*(1-inboard)
+            rotatey   -twist*inboard   0   0
+            translate dxtip*inboard   +span2*inboard   +dztip*inboard
+         endif
+         ifthen    compType   eq   1   and   0   eq   0
+            udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Wing
+attribute avlSecValues   secValues
+         elseif    compType   eq   2   and   0   eq   0
+            udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Horizontal_Tail
+attribute avlSecValues   secValues
+         elseif    compType   eq   3   and   0   eq   0
+            udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Vertical_Tail
+attribute avlSecValues   secValues
+         else
+            udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+         endif
+         rotatex   90   0   0
+         scale     ctip
+         rotatey   -twist   0   0
+         translate dxtip   +span2   +dztip
+         group
+      endif
+      ifthen    intent   eq   5   and   nrib   gt   0
+         set       nwaffle nrib+ifpos(spar1,2,0)+ifpos(spar2,2,0)
+         dimension waffle   nwaffle   4   0
+         patbeg    i   nrib
+            set       waffle[i,1] -0.10*croot
+            set       waffle[i,2] span2*(2*i-nrib-1)/nrib
+            set       waffle[i,3] 1.1*max(croot,dxtip+ctip)
+            set       waffle[i,4] waffle[i,2]
+         patend
+         ifthen    spar1   gt   0   and   0   eq   0
+            set       nrib nrib+1
+            set       waffle[nrib,1] spar1*ctip+dxtip
+            set       waffle[nrib,2] -1.01*span2
+            set       waffle[nrib,3] spar1*croot
+            set       waffle[nrib,4] 0
+            set       nrib nrib+1
+            set       waffle[nrib,1] spar1*ctip+dxtip
+            set       waffle[nrib,2] 1.01*span2
+            set       waffle[nrib,3] spar1*croot
+            set       waffle[nrib,4] 0
+         endif
+         ifthen    spar2   gt   0   and   0   eq   0
+            set       nrib nrib+1
+            set       waffle[nrib,1] spar2*ctip+dxtip
+            set       waffle[nrib,2] -1.01*span2
+            set       waffle[nrib,3] spar2*croot
+            set       waffle[nrib,4] 0
+            set       nrib nrib+1
+            set       waffle[nrib,1] spar2*ctip+dxtip
+            set       waffle[nrib,2] 1.01*span2
+            set       waffle[nrib,3] spar2*croot
+            set       waffle[nrib,4] 0
+         endif
+         udprim    waffle   Depth   +4*croot   Segments   waffle
+attribute name   $wing_structure
+         translate 0   0   -2*croot
+         store     wingWaffle   0   0
+         restore   wingWaffle   0
+         restore   wingOML   0
+         intersect none   1   0
+         restore   wingOML   0
+         restore   wingWaffle   0
+         subtract  none   1   0
+         extract   0
+         union     0   0   1e-5
+         udprim    createBEM   filename   $BEM.bdf   space   0.02   imin   3   imax   99
+      endif
+   end
+   mirror    0   1   0   0
+   translate htail:xloc   0   htail:zloc
+   ifthen    intent   eq   3   and   0   eq   0
+      union     0   0   0
+   endif
+endif
+ifthen    intent   ne   5   and   0   eq   0
+   udparg    $$/wing   intent   intent
+   udparg    $$/wing   area   htail:area
+   udparg    $$/wing   aspect   htail:aspect
+   udparg    $$/wing   taper   htail:taper
+   udparg    $$/wing   twist   htail:twist
+   udparg    $$/wing   sweep   htail:sweep
+   udparg    $$/wing   thickness   htail:thickness
+   udparg    $$/wing   sharpte   htail:sharpte
+   udparg    $$/wing   camber   htail:camber
+   udprim    $$/wing   ID   3
+      interface ID   in   0
+      interface intent   in   1
+      interface compType   in   0
+      interface mirror   in   0
+      interface area   in   100
+      interface aspect   in   8
+      interface taper   in   0.8
+      interface twist   in   -5.0
+      interface sweep   in   0.0
+      interface dihedral   in   0.0
+      interface thickness   in   0.12
+      interface sharpte   in   0.0
+      interface camber   in   0.04
+      interface inboard   in   0
+      interface outboard   in   1
+      interface pctchord   in   0
+      interface angleft   in   0
+      interface angrite   in   0
+      interface spar1   in   0
+      interface spar2   in   0
+      interface nrib   in   0
+      interface span   out   0
+      set       span sqrt(area*aspect)
+      set       span2 span/2
+      set       cbar area/span
+      set       croot 2*cbar/(1+taper)
+      set       ctip taper*croot
+      set       dxtip span2*tand(sweep)
+      set       dztip span2*tand(dihedral)
+      ifthen    intent   eq   1   and   0   eq   0
+         ifthen    mirror   ne   1   and   0   eq   0
+            skbeg     croot/4   0   0   0
+               linseg    dxtip+ctip/4   +span2   +dztip
+            skend     0
+attribute ID   !ID
+attribute Intent   1
+         else
+            skbeg     dxtip+ctip/4   -span2   +dztip   0
+               linseg    croot/4   0   0
+               linseg    dxtip+ctip/4   +span2   +dztip
+            skend     0
+attribute ID   !ID
+attribute Intent   1
+         endif
+      endif
+      ifthen    intent   eq   2   and   0   eq   0
+         mark
+         ifthen    mirror   eq   1   and   0   eq   0
+            ifthen    camber   eq   0   and   0   eq   0
+               skbeg     0   0   0   0
+                  linseg    1   0   0
+               skend     0
+            else
+               udprim    naca   thickness   0   camber   camber
+            endif
+            rotatex   90   0   0
+            scale     ctip
+            rotatey   -twist   0   0
+            translate dxtip   -span2   +dztip
+         endif
+         ifthen    camber   eq   0   and   0   eq   0
+            skbeg     0   0   0   0
+               linseg    1   0   0
+            skend     0
+         else
+            udprim    naca   thickness   0   camber   camber
+         endif
+         rotatex   90   0   0
+         scale     croot
+         ifthen    camber   eq   0   and   0   eq   0
+            skbeg     0   0   0   0
+               linseg    1   0   0
+            skend     0
+         else
+            udprim    naca   thickness   0   camber   camber
+         endif
+         rotatex   90   0   0
+         scale     ctip
+         rotatey   -twist   0   0
+         translate dxtip   +span2   +dztip
+         rule      0
+attribute ID   !ID
+attribute Intent   2
+      endif
+      ifthen    intent   eq   3   or   intent   eq   5
+         mark
+         ifthen    mirror   eq   1   and   0   eq   0
+            udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+            rotatex   90   0   0
+            scale     ctip
+            rotatey   -twist   0   0
+            translate dxtip   -span2   +dztip
+         endif
+         udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+         rotatex   90   0   0
+         scale     croot
+         udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+         rotatex   90   0   0
+         scale     ctip
+         rotatey   -twist   0   0
+         translate dxtip   +span2   +dztip
+         rule      0
+         ifthen    intent   eq   5   and   0   eq   0
+            store     wingOML   0   0
+         endif
+      endif
+      ifthen    intent   eq   3   and   0   eq   0
+         ifthen    pctchord   gt   0   and   mirror   eq   1
+            dimension xflap   1   4   0
+            dimension yflap   1   4   0
+            set       xflap[1,1] max(croot,dxtip+ctip)
+            set       yflap[1,1] -inboard*span2
+            set       xflap[1,2] inboard*dxtip+pctchord*(croot+inboard*(ctip-croot))
+            set       yflap[1,2] -inboard*span2
+            set       xflap[1,3] outboard*dxtip+pctchord*(croot+outboard*(ctip-croot))
+            set       yflap[1,3] -outboard*span2
+            set       xflap[1,4] max(croot,dxtip+ctip)
+            set       yflap[1,4] -outboard*span2
+            udparg    $$/flapz   xflap   xflap
+            udparg    $$/flapz   yflap   yflap
+            udparg    $$/flapz   theta   angleft
+            udparg    $$/flapz   gap   0.001*span
+            udparg    $$/flapz   openEnd   1
+            udprim    $$/flapz
+               interface xflap   in   0
+               interface yflap   in   0
+               interface theta   in   15
+               interface gap   in   0.01
+               interface openEnd   in   0
+               interface faceList1c   dim   3
+               interface faceList2c   dim   3
+               assert    ifzero(xflap.size-4,1,0)   1   0   0
+               assert    ifzero(yflap.size-4,1,0)   1   0   0
+               select    body
+               set       zmin @zmin
+               set       zmax @zmax
+               store     flap   999   0
+               restore   flap   999
+               store     flap   999   0
+               set       zmin @zmin
+               set       zmax @zmax
+               set       ds sqrt((xflap[1]-xflap[4])^2+(yflap[1]-yflap[4])^2)
+               set       x1p xflap[1]+(xflap[1]-xflap[4])*gap/ds
+               set       y1p yflap[1]+(yflap[1]-yflap[4])*gap/ds
+               set       x4p xflap[4]+(xflap[4]-xflap[1])*gap/ds
+               set       y4p yflap[4]+(yflap[4]-yflap[1])*gap/ds
+               set       ds sqrt((xflap[2]-xflap[3])^2+(yflap[2]-yflap[3])^2)
+               set       x2pp xflap[2]+(xflap[2]-xflap[3])*gap/ds
+               set       y2pp yflap[2]+(yflap[2]-yflap[3])*gap/ds
+               set       x3pp xflap[3]+(xflap[3]-xflap[2])*gap/ds
+               set       y3pp yflap[3]+(yflap[3]-yflap[2])*gap/ds
+               set       ds sqrt((x2pp-x1p)^2+(y2pp-y1p)^2)
+               set       x2p x2pp+(x2pp-x1p)*gap/ds
+               set       y2p y2pp+(y2pp-y1p)*gap/ds
+               set       ds sqrt((x3pp-x4p)^2+(y3pp-y4p)^2)
+               set       x3p x3pp+(x3pp-x4p)*gap/ds
+               set       y3p y3pp+(y3pp-y4p)*gap/ds
+               restore   flap   999
+               project   xflap[2]   yflap[2]   zmax+1   0.0   0.0   -1.0   0
+               set       z2max @zcg
+               project   xflap[2]   yflap[2]   zmin-1   0.0   0.0   1.0   0
+               set       z2min @zcg
+               project   xflap[3]   yflap[3]   zmax+1   0.0   0.0   -1.0   0
+               set       z3max @zcg
+               project   xflap[3]   yflap[3]   zmin-1   0.0   0.0   1.0   0
+               set       z3min @zcg
+               set       dzpivot min(z2max-z2min,z3max-z3min)/2
+               skbeg     x1p   y1p   zmin-1   0
+                  linseg    x2p   y2p   zmin-1
+                  linseg    x3p   y3p   zmin-1
+                  linseg    x4p   y4p   zmin-1
+                  linseg    x1p   y1p   zmin-1
+               skend     0
+               extrude   0.0   0.0   zmax-zmin+2
+               set       wing_cutout @nbody
+               subtract  none   1   0
+               select    face   wing_cutout   5
+               set       faceList1c[1,1] @iface
+               select    face   wing_cutout   4
+               set       faceList1c[1,2] @iface
+               set       faceList1o @iface
+               select    face   wing_cutout   3
+               set       faceList1c[1,3] @iface
+               store     flap   998   0
+               restore   flap   999
+               skbeg     xflap[1]   yflap[1]   zmin-1   0
+                  linseg    xflap[2]   yflap[2]   zmin-1
+                  linseg    xflap[3]   yflap[3]   zmin-1
+                  linseg    xflap[4]   yflap[4]   zmin-1
+                  linseg    xflap[1]   yflap[1]   zmin-1
+               skend     0
+               extrude   0.0   0.0   zmax-zmin+2
+               set       flap_cutout @nbody
+               intersect none   1   0
+               select    face   flap_cutout   5
+               set       faceList2c[1,1] @iface
+               select    face   flap_cutout   4
+               set       faceList2c[1,2] @iface
+               set       faceList2o @iface
+               select    face   flap_cutout   3
+               set       faceList2c[1,3] @iface
+               store     flap   997   0
+               restore   flap   998
+               restore   flap   997
+               ifthen    theta   gt   0   and   0   eq   0
+                  udparg    $$/gen_rot   xbeg   xflap[3]
+                  udparg    $$/gen_rot   ybeg   yflap[3]
+                  udparg    $$/gen_rot   zbeg   z3max-dzpivot
+                  udparg    $$/gen_rot   xend   xflap[2]
+                  udparg    $$/gen_rot   yend   yflap[2]
+                  udparg    $$/gen_rot   zend   z2max-dzpivot
+                  udprim    $$/gen_rot   rotang   theta
+                     interface xbeg   in   0
+                     interface ybeg   in   0
+                     interface zbeg   in   0
+                     interface xend   in   1
+                     interface yend   in   1
+                     interface zend   in   1
+                     interface rotang   in   0
+                     interface azimuth   out   0
+                     interface elevation   out   0
+                     set       dx xend-xbeg
+                     set       dy yend-ybeg
+                     set       dz zbeg-zend
+                     assert    ifpos(dx*dx+dy*dy+dz*dz-1e-12,1,0)   1   0   0
+                     set       azimuth atan2d(dy,dx)
+                     set       elevation atan2d(dz,hypot(dx,dy))
+                     rotatez   -azimuth   xbeg   ybeg
+                     rotatey   -elevation   zbeg   xbeg
+                     rotatex   rotang   ybeg   zbeg
+                     rotatey   +elevation   zbeg   xbeg
+                     rotatez   +azimuth   xbeg   ybeg
+                  end
+               else
+                  udparg    $$/gen_rot   xbeg   xflap[3]
+                  udparg    $$/gen_rot   ybeg   yflap[3]
+                  udparg    $$/gen_rot   zbeg   z3min+dzpivot
+                  udparg    $$/gen_rot   xend   xflap[2]
+                  udparg    $$/gen_rot   yend   yflap[2]
+                  udparg    $$/gen_rot   zend   z2min+dzpivot
+                  udprim    $$/gen_rot   rotang   theta
+                     interface xbeg   in   0
+                     interface ybeg   in   0
+                     interface zbeg   in   0
+                     interface xend   in   1
+                     interface yend   in   1
+                     interface zend   in   1
+                     interface rotang   in   0
+                     interface azimuth   out   0
+                     interface elevation   out   0
+                     set       dx xend-xbeg
+                     set       dy yend-ybeg
+                     set       dz zbeg-zend
+                     assert    ifpos(dx*dx+dy*dy+dz*dz-1e-12,1,0)   1   0   0
+                     set       azimuth atan2d(dy,dx)
+                     set       elevation atan2d(dz,hypot(dx,dy))
+                     rotatez   -azimuth   xbeg   ybeg
+                     rotatey   -elevation   zbeg   xbeg
+                     rotatex   rotang   ybeg   zbeg
+                     rotatey   +elevation   zbeg   xbeg
+                     rotatez   +azimuth   xbeg   ybeg
+                  end
+               endif
+               ifthen    openEnd   gt   0   and   0   eq   0
+                  connect   faceList1o   faceList2o
+               else
+                  connect   faceList1c   faceList2c
+               endif
+            end
+         endif
+         ifthen    pctchord   gt   0   and   0   eq   0
+            dimension xflap   1   4   0
+            dimension yflap   1   4   0
+            set       xflap[1,1] max(croot,dxtip+ctip)
+            set       yflap[1,1] +outboard*span2
+            set       xflap[1,2] outboard*dxtip+pctchord*(croot+outboard*(ctip-croot))
+            set       yflap[1,2] +outboard*span2
+            set       xflap[1,3] inboard*dxtip+pctchord*(croot+inboard*(ctip-croot))
+            set       yflap[1,3] +inboard*span2
+            set       xflap[1,4] max(croot,dxtip+ctip)
+            set       yflap[1,4] +inboard*span2
+            udparg    $$/flapz   xflap   xflap
+            udparg    $$/flapz   yflap   yflap
+            udparg    $$/flapz   theta   angrite
+            udparg    $$/flapz   gap   0.001*span
+            udparg    $$/flapz   openEnd   1
+            udprim    $$/flapz
+               interface xflap   in   0
+               interface yflap   in   0
+               interface theta   in   15
+               interface gap   in   0.01
+               interface openEnd   in   0
+               interface faceList1c   dim   3
+               interface faceList2c   dim   3
+               assert    ifzero(xflap.size-4,1,0)   1   0   0
+               assert    ifzero(yflap.size-4,1,0)   1   0   0
+               select    body
+               set       zmin @zmin
+               set       zmax @zmax
+               store     flap   999   0
+               restore   flap   999
+               store     flap   999   0
+               set       zmin @zmin
+               set       zmax @zmax
+               set       ds sqrt((xflap[1]-xflap[4])^2+(yflap[1]-yflap[4])^2)
+               set       x1p xflap[1]+(xflap[1]-xflap[4])*gap/ds
+               set       y1p yflap[1]+(yflap[1]-yflap[4])*gap/ds
+               set       x4p xflap[4]+(xflap[4]-xflap[1])*gap/ds
+               set       y4p yflap[4]+(yflap[4]-yflap[1])*gap/ds
+               set       ds sqrt((xflap[2]-xflap[3])^2+(yflap[2]-yflap[3])^2)
+               set       x2pp xflap[2]+(xflap[2]-xflap[3])*gap/ds
+               set       y2pp yflap[2]+(yflap[2]-yflap[3])*gap/ds
+               set       x3pp xflap[3]+(xflap[3]-xflap[2])*gap/ds
+               set       y3pp yflap[3]+(yflap[3]-yflap[2])*gap/ds
+               set       ds sqrt((x2pp-x1p)^2+(y2pp-y1p)^2)
+               set       x2p x2pp+(x2pp-x1p)*gap/ds
+               set       y2p y2pp+(y2pp-y1p)*gap/ds
+               set       ds sqrt((x3pp-x4p)^2+(y3pp-y4p)^2)
+               set       x3p x3pp+(x3pp-x4p)*gap/ds
+               set       y3p y3pp+(y3pp-y4p)*gap/ds
+               restore   flap   999
+               project   xflap[2]   yflap[2]   zmax+1   0.0   0.0   -1.0   0
+               set       z2max @zcg
+               project   xflap[2]   yflap[2]   zmin-1   0.0   0.0   1.0   0
+               set       z2min @zcg
+               project   xflap[3]   yflap[3]   zmax+1   0.0   0.0   -1.0   0
+               set       z3max @zcg
+               project   xflap[3]   yflap[3]   zmin-1   0.0   0.0   1.0   0
+               set       z3min @zcg
+               set       dzpivot min(z2max-z2min,z3max-z3min)/2
+               skbeg     x1p   y1p   zmin-1   0
+                  linseg    x2p   y2p   zmin-1
+                  linseg    x3p   y3p   zmin-1
+                  linseg    x4p   y4p   zmin-1
+                  linseg    x1p   y1p   zmin-1
+               skend     0
+               extrude   0.0   0.0   zmax-zmin+2
+               set       wing_cutout @nbody
+               subtract  none   1   0
+               select    face   wing_cutout   5
+               set       faceList1c[1,1] @iface
+               select    face   wing_cutout   4
+               set       faceList1c[1,2] @iface
+               set       faceList1o @iface
+               select    face   wing_cutout   3
+               set       faceList1c[1,3] @iface
+               store     flap   998   0
+               restore   flap   999
+               skbeg     xflap[1]   yflap[1]   zmin-1   0
+                  linseg    xflap[2]   yflap[2]   zmin-1
+                  linseg    xflap[3]   yflap[3]   zmin-1
+                  linseg    xflap[4]   yflap[4]   zmin-1
+                  linseg    xflap[1]   yflap[1]   zmin-1
+               skend     0
+               extrude   0.0   0.0   zmax-zmin+2
+               set       flap_cutout @nbody
+               intersect none   1   0
+               select    face   flap_cutout   5
+               set       faceList2c[1,1] @iface
+               select    face   flap_cutout   4
+               set       faceList2c[1,2] @iface
+               set       faceList2o @iface
+               select    face   flap_cutout   3
+               set       faceList2c[1,3] @iface
+               store     flap   997   0
+               restore   flap   998
+               restore   flap   997
+               ifthen    theta   gt   0   and   0   eq   0
+                  udparg    $$/gen_rot   xbeg   xflap[3]
+                  udparg    $$/gen_rot   ybeg   yflap[3]
+                  udparg    $$/gen_rot   zbeg   z3max-dzpivot
+                  udparg    $$/gen_rot   xend   xflap[2]
+                  udparg    $$/gen_rot   yend   yflap[2]
+                  udparg    $$/gen_rot   zend   z2max-dzpivot
+                  udprim    $$/gen_rot   rotang   theta
+                     interface xbeg   in   0
+                     interface ybeg   in   0
+                     interface zbeg   in   0
+                     interface xend   in   1
+                     interface yend   in   1
+                     interface zend   in   1
+                     interface rotang   in   0
+                     interface azimuth   out   0
+                     interface elevation   out   0
+                     set       dx xend-xbeg
+                     set       dy yend-ybeg
+                     set       dz zbeg-zend
+                     assert    ifpos(dx*dx+dy*dy+dz*dz-1e-12,1,0)   1   0   0
+                     set       azimuth atan2d(dy,dx)
+                     set       elevation atan2d(dz,hypot(dx,dy))
+                     rotatez   -azimuth   xbeg   ybeg
+                     rotatey   -elevation   zbeg   xbeg
+                     rotatex   rotang   ybeg   zbeg
+                     rotatey   +elevation   zbeg   xbeg
+                     rotatez   +azimuth   xbeg   ybeg
+                  end
+               else
+                  udparg    $$/gen_rot   xbeg   xflap[3]
+                  udparg    $$/gen_rot   ybeg   yflap[3]
+                  udparg    $$/gen_rot   zbeg   z3min+dzpivot
+                  udparg    $$/gen_rot   xend   xflap[2]
+                  udparg    $$/gen_rot   yend   yflap[2]
+                  udparg    $$/gen_rot   zend   z2min+dzpivot
+                  udprim    $$/gen_rot   rotang   theta
+                     interface xbeg   in   0
+                     interface ybeg   in   0
+                     interface zbeg   in   0
+                     interface xend   in   1
+                     interface yend   in   1
+                     interface zend   in   1
+                     interface rotang   in   0
+                     interface azimuth   out   0
+                     interface elevation   out   0
+                     set       dx xend-xbeg
+                     set       dy yend-ybeg
+                     set       dz zbeg-zend
+                     assert    ifpos(dx*dx+dy*dy+dz*dz-1e-12,1,0)   1   0   0
+                     set       azimuth atan2d(dy,dx)
+                     set       elevation atan2d(dz,hypot(dx,dy))
+                     rotatez   -azimuth   xbeg   ybeg
+                     rotatey   -elevation   zbeg   xbeg
+                     rotatex   rotang   ybeg   zbeg
+                     rotatey   +elevation   zbeg   xbeg
+                     rotatez   +azimuth   xbeg   ybeg
+                  end
+               endif
+               ifthen    openEnd   gt   0   and   0   eq   0
+                  connect   faceList1o   faceList2o
+               else
+                  connect   faceList1c   faceList2c
+               endif
+            end
+         endif
+         select    body
+attribute ID   !ID
+attribute Intent   3
+      endif
+      ifthen    intent   eq   4   and   0   eq   0
+         dimension secValues   1   5   0
+         set       secValues 8;1.0;12;1.0;0;
+         dimension cntrlValues   1   6   0
+         set       cntrlValues 1.0;0.7;0.0;0.0;0.0;1.0;
+         set       cntrlValues[1,2] pctchord
+         mark
+         ifthen    mirror   eq   1   and   0   eq   0
+            ifthen    compType   eq   1   and   0   eq   0
+               udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Wing
+attribute avlSecValues   secValues
+            elseif    compType   eq   2   and   0   eq   0
+               udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Horizontal_Tail
+attribute avlSecValues   secValues
+            elseif    compType   eq   3   and   0   eq   0
+               udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Vertical_Tail
+attribute avlSecValues   secValues
+            else
+               udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+            endif
+            rotatex   90   0   0
+            scale     ctip
+            rotatey   -twist   0   0
+            translate dxtip   -span2   +dztip
+            ifthen    pctchord   gt   0   and   0   eq   0
+               ifthen    compType   eq   1   and   0   eq   0
+                  udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Wing
+attribute avlSecValues   secValues
+attribute avlCntrlFlap   cntrlValues
+               elseif    compType   eq   2   and   0   eq   0
+                  udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Horizontal_Tail
+attribute avlSecValues   secValues
+attribute avlCntrlElevator   cntrlValues
+               elseif    compType   eq   3   and   0   eq   0
+                  udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Vertical_Tail
+attribute avlSecValues   secValues
+attribute avlCntrlRudder   cntrlValues
+               else
+                  udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+               endif
+               rotatex   90   0   0
+               scale     ctip*inboard+croot*(1-inboard)
+               rotatey   -twist*inboard   0   0
+               translate dxtip*inboard   -span2*inboard   +dztip*inboard
+               ifthen    compType   eq   1   and   0   eq   0
+                  udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Wing
+attribute avlSecValues   secValues
+attribute avlCntrlFlap   cntrlValues
+               elseif    compType   eq   2   and   0   eq   0
+                  udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Horizontal_Tail
+attribute avlSecValues   secValues
+attribute avlCntrlElevator   cntrlValues
+               elseif    compType   eq   3   and   0   eq   0
+                  udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Vertical_Tail
+attribute avlSecValues   secValues
+attribute avlCntrlRudder   cntrlValues
+               else
+                  udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+               endif
+               rotatex   90   0   0
+               scale     ctip*outboard+croot*(1-outboard)
+               rotatey   -twist*outboard   0   0
+               translate dxtip*outboard   -span2*outboard   +dztip*outboard
+            endif
+         endif
+         ifthen    compType   eq   1   and   0   eq   0
+            udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Wing
+attribute capsReferenceArea   area
+attribute capsReferenceSpan   span
+attribute capsReferenceChord   croot
+attribute capsReferneceX   croot/4
+attribute avlSecValues   secValues
+         elseif    compType   eq   2   and   0   eq   0
+            udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Horizontal_Tail
+attribute avlSecValues   secValues
+         elseif    compType   eq   3   and   0   eq   0
+            udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Vertical_Tail
+attribute avlSecValues   secValues
+         else
+            udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+         endif
+         rotatex   90   0   0
+         scale     croot
+         ifthen    pctchord   gt   0   and   0   eq   0
+            ifthen    compType   eq   1   and   0   eq   0
+               udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Wing
+attribute avlSecValues   secValues
+attribute avlCntrlFlap   cntrlValues
+            elseif    compType   eq   2   and   0   eq   0
+               udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Horizontal_Tail
+attribute avlSecValues   secValues
+attribute avlCntrlElevator   cntrlValues
+            elseif    compType   eq   3   and   0   eq   0
+               udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Vertical_Tail
+attribute avlSecValues   secValues
+attribute avlCntrlRudder   cntrlValues
+            else
+               udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+            endif
+            rotatex   90   0   0
+            scale     ctip*outboard+croot*(1-outboard)
+            rotatey   -twist*outboard   0   0
+            translate dxtip*outboard   +span2*outboard   +dztip*outboard
+            ifthen    compType   eq   1   and   0   eq   0
+               udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Wing
+attribute avlSecValues   secValues
+attribute avlCntrlFlap   cntrlValues
+            elseif    compType   eq   2   and   0   eq   0
+               udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Horizontal_Tail
+attribute avlSecValues   secValues
+attribute avlCntrlElevator   cntrlValues
+            elseif    compType   eq   3   and   0   eq   0
+               udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   13
+attribute capsGroup   $Vertical_Tail
+attribute avlSecValues   secValues
+attribute avlCntrlRudder   cntrlValues
+            else
+               udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+            endif
+            rotatex   90   0   0
+            scale     ctip*inboard+croot*(1-inboard)
+            rotatey   -twist*inboard   0   0
+            translate dxtip*inboard   +span2*inboard   +dztip*inboard
+         endif
+         ifthen    compType   eq   1   and   0   eq   0
+            udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Wing
+attribute avlSecValues   secValues
+         elseif    compType   eq   2   and   0   eq   0
+            udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Horizontal_Tail
+attribute avlSecValues   secValues
+         elseif    compType   eq   3   and   0   eq   0
+            udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Vertical_Tail
+attribute avlSecValues   secValues
+         else
+            udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+         endif
+         rotatex   90   0   0
+         scale     ctip
+         rotatey   -twist   0   0
+         translate dxtip   +span2   +dztip
+         group
+      endif
+      ifthen    intent   eq   5   and   nrib   gt   0
+         set       nwaffle nrib+ifpos(spar1,2,0)+ifpos(spar2,2,0)
+         dimension waffle   nwaffle   4   0
+         patbeg    i   nrib
+            set       waffle[i,1] -0.10*croot
+            set       waffle[i,2] span2*(2*i-nrib-1)/nrib
+            set       waffle[i,3] 1.1*max(croot,dxtip+ctip)
+            set       waffle[i,4] waffle[i,2]
+         patend
+         ifthen    spar1   gt   0   and   0   eq   0
+            set       nrib nrib+1
+            set       waffle[nrib,1] spar1*ctip+dxtip
+            set       waffle[nrib,2] -1.01*span2
+            set       waffle[nrib,3] spar1*croot
+            set       waffle[nrib,4] 0
+            set       nrib nrib+1
+            set       waffle[nrib,1] spar1*ctip+dxtip
+            set       waffle[nrib,2] 1.01*span2
+            set       waffle[nrib,3] spar1*croot
+            set       waffle[nrib,4] 0
+         endif
+         ifthen    spar2   gt   0   and   0   eq   0
+            set       nrib nrib+1
+            set       waffle[nrib,1] spar2*ctip+dxtip
+            set       waffle[nrib,2] -1.01*span2
+            set       waffle[nrib,3] spar2*croot
+            set       waffle[nrib,4] 0
+            set       nrib nrib+1
+            set       waffle[nrib,1] spar2*ctip+dxtip
+            set       waffle[nrib,2] 1.01*span2
+            set       waffle[nrib,3] spar2*croot
+            set       waffle[nrib,4] 0
+         endif
+         udprim    waffle   Depth   +4*croot   Segments   waffle
+attribute name   $wing_structure
+         translate 0   0   -2*croot
+         store     wingWaffle   0   0
+         restore   wingWaffle   0
+         restore   wingOML   0
+         intersect none   1   0
+         restore   wingOML   0
+         restore   wingWaffle   0
+         subtract  none   1   0
+         extract   0
+         union     0   0   1e-5
+         udprim    createBEM   filename   $BEM.bdf   space   0.02   imin   3   imax   99
+      endif
+   end
+   translate htail:xloc   0   htail:zloc
+   ifthen    intent   eq   3   and   0   eq   0
+      union     0   0   0
+   endif
+endif
+ifthen    intent   ne   5   and   0   eq   0
+   udparg    $$/wing   intent   intent
+   udparg    $$/wing   compType   3
+   udparg    $$/wing   area   vtail:area
+   udparg    $$/wing   aspect   vtail:aspect
+   udparg    $$/wing   taper   vtail:taper
+   udparg    $$/wing   twist   vtail:twist
+   udparg    $$/wing   sweep   vtail:sweep
+   udparg    $$/wing   thickness   vtail:thickness
+   udparg    $$/wing   sharpte   vtail:sharpte
+   udparg    $$/wing   camber   vtail:camber
+   udprim    $$/wing   ID   5
+      interface ID   in   0
+      interface intent   in   1
+      interface compType   in   0
+      interface mirror   in   0
+      interface area   in   100
+      interface aspect   in   8
+      interface taper   in   0.8
+      interface twist   in   -5.0
+      interface sweep   in   0.0
+      interface dihedral   in   0.0
+      interface thickness   in   0.12
+      interface sharpte   in   0.0
+      interface camber   in   0.04
+      interface inboard   in   0
+      interface outboard   in   1
+      interface pctchord   in   0
+      interface angleft   in   0
+      interface angrite   in   0
+      interface spar1   in   0
+      interface spar2   in   0
+      interface nrib   in   0
+      interface span   out   0
+      set       span sqrt(area*aspect)
+      set       span2 span/2
+      set       cbar area/span
+      set       croot 2*cbar/(1+taper)
+      set       ctip taper*croot
+      set       dxtip span2*tand(sweep)
+      set       dztip span2*tand(dihedral)
+      ifthen    intent   eq   1   and   0   eq   0
+         ifthen    mirror   ne   1   and   0   eq   0
+            skbeg     croot/4   0   0   0
+               linseg    dxtip+ctip/4   +span2   +dztip
+            skend     0
+attribute ID   !ID
+attribute Intent   1
+         else
+            skbeg     dxtip+ctip/4   -span2   +dztip   0
+               linseg    croot/4   0   0
+               linseg    dxtip+ctip/4   +span2   +dztip
+            skend     0
+attribute ID   !ID
+attribute Intent   1
+         endif
+      endif
+      ifthen    intent   eq   2   and   0   eq   0
+         mark
+         ifthen    mirror   eq   1   and   0   eq   0
+            ifthen    camber   eq   0   and   0   eq   0
+               skbeg     0   0   0   0
+                  linseg    1   0   0
+               skend     0
+            else
+               udprim    naca   thickness   0   camber   camber
+            endif
+            rotatex   90   0   0
+            scale     ctip
+            rotatey   -twist   0   0
+            translate dxtip   -span2   +dztip
+         endif
+         ifthen    camber   eq   0   and   0   eq   0
+            skbeg     0   0   0   0
+               linseg    1   0   0
+            skend     0
+         else
+            udprim    naca   thickness   0   camber   camber
+         endif
+         rotatex   90   0   0
+         scale     croot
+         ifthen    camber   eq   0   and   0   eq   0
+            skbeg     0   0   0   0
+               linseg    1   0   0
+            skend     0
+         else
+            udprim    naca   thickness   0   camber   camber
+         endif
+         rotatex   90   0   0
+         scale     ctip
+         rotatey   -twist   0   0
+         translate dxtip   +span2   +dztip
+         rule      0
+attribute ID   !ID
+attribute Intent   2
+      endif
+      ifthen    intent   eq   3   or   intent   eq   5
+         mark
+         ifthen    mirror   eq   1   and   0   eq   0
+            udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+            rotatex   90   0   0
+            scale     ctip
+            rotatey   -twist   0   0
+            translate dxtip   -span2   +dztip
+         endif
+         udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+         rotatex   90   0   0
+         scale     croot
+         udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+         rotatex   90   0   0
+         scale     ctip
+         rotatey   -twist   0   0
+         translate dxtip   +span2   +dztip
+         rule      0
+         ifthen    intent   eq   5   and   0   eq   0
+            store     wingOML   0   0
+         endif
+      endif
+      ifthen    intent   eq   3   and   0   eq   0
+         ifthen    pctchord   gt   0   and   mirror   eq   1
+            dimension xflap   1   4   0
+            dimension yflap   1   4   0
+            set       xflap[1,1] max(croot,dxtip+ctip)
+            set       yflap[1,1] -inboard*span2
+            set       xflap[1,2] inboard*dxtip+pctchord*(croot+inboard*(ctip-croot))
+            set       yflap[1,2] -inboard*span2
+            set       xflap[1,3] outboard*dxtip+pctchord*(croot+outboard*(ctip-croot))
+            set       yflap[1,3] -outboard*span2
+            set       xflap[1,4] max(croot,dxtip+ctip)
+            set       yflap[1,4] -outboard*span2
+            udparg    $$/flapz   xflap   xflap
+            udparg    $$/flapz   yflap   yflap
+            udparg    $$/flapz   theta   angleft
+            udparg    $$/flapz   gap   0.001*span
+            udparg    $$/flapz   openEnd   1
+            udprim    $$/flapz
+               interface xflap   in   0
+               interface yflap   in   0
+               interface theta   in   15
+               interface gap   in   0.01
+               interface openEnd   in   0
+               interface faceList1c   dim   3
+               interface faceList2c   dim   3
+               assert    ifzero(xflap.size-4,1,0)   1   0   0
+               assert    ifzero(yflap.size-4,1,0)   1   0   0
+               select    body
+               set       zmin @zmin
+               set       zmax @zmax
+               store     flap   999   0
+               restore   flap   999
+               store     flap   999   0
+               set       zmin @zmin
+               set       zmax @zmax
+               set       ds sqrt((xflap[1]-xflap[4])^2+(yflap[1]-yflap[4])^2)
+               set       x1p xflap[1]+(xflap[1]-xflap[4])*gap/ds
+               set       y1p yflap[1]+(yflap[1]-yflap[4])*gap/ds
+               set       x4p xflap[4]+(xflap[4]-xflap[1])*gap/ds
+               set       y4p yflap[4]+(yflap[4]-yflap[1])*gap/ds
+               set       ds sqrt((xflap[2]-xflap[3])^2+(yflap[2]-yflap[3])^2)
+               set       x2pp xflap[2]+(xflap[2]-xflap[3])*gap/ds
+               set       y2pp yflap[2]+(yflap[2]-yflap[3])*gap/ds
+               set       x3pp xflap[3]+(xflap[3]-xflap[2])*gap/ds
+               set       y3pp yflap[3]+(yflap[3]-yflap[2])*gap/ds
+               set       ds sqrt((x2pp-x1p)^2+(y2pp-y1p)^2)
+               set       x2p x2pp+(x2pp-x1p)*gap/ds
+               set       y2p y2pp+(y2pp-y1p)*gap/ds
+               set       ds sqrt((x3pp-x4p)^2+(y3pp-y4p)^2)
+               set       x3p x3pp+(x3pp-x4p)*gap/ds
+               set       y3p y3pp+(y3pp-y4p)*gap/ds
+               restore   flap   999
+               project   xflap[2]   yflap[2]   zmax+1   0.0   0.0   -1.0   0
+               set       z2max @zcg
+               project   xflap[2]   yflap[2]   zmin-1   0.0   0.0   1.0   0
+               set       z2min @zcg
+               project   xflap[3]   yflap[3]   zmax+1   0.0   0.0   -1.0   0
+               set       z3max @zcg
+               project   xflap[3]   yflap[3]   zmin-1   0.0   0.0   1.0   0
+               set       z3min @zcg
+               set       dzpivot min(z2max-z2min,z3max-z3min)/2
+               skbeg     x1p   y1p   zmin-1   0
+                  linseg    x2p   y2p   zmin-1
+                  linseg    x3p   y3p   zmin-1
+                  linseg    x4p   y4p   zmin-1
+                  linseg    x1p   y1p   zmin-1
+               skend     0
+               extrude   0.0   0.0   zmax-zmin+2
+               set       wing_cutout @nbody
+               subtract  none   1   0
+               select    face   wing_cutout   5
+               set       faceList1c[1,1] @iface
+               select    face   wing_cutout   4
+               set       faceList1c[1,2] @iface
+               set       faceList1o @iface
+               select    face   wing_cutout   3
+               set       faceList1c[1,3] @iface
+               store     flap   998   0
+               restore   flap   999
+               skbeg     xflap[1]   yflap[1]   zmin-1   0
+                  linseg    xflap[2]   yflap[2]   zmin-1
+                  linseg    xflap[3]   yflap[3]   zmin-1
+                  linseg    xflap[4]   yflap[4]   zmin-1
+                  linseg    xflap[1]   yflap[1]   zmin-1
+               skend     0
+               extrude   0.0   0.0   zmax-zmin+2
+               set       flap_cutout @nbody
+               intersect none   1   0
+               select    face   flap_cutout   5
+               set       faceList2c[1,1] @iface
+               select    face   flap_cutout   4
+               set       faceList2c[1,2] @iface
+               set       faceList2o @iface
+               select    face   flap_cutout   3
+               set       faceList2c[1,3] @iface
+               store     flap   997   0
+               restore   flap   998
+               restore   flap   997
+               ifthen    theta   gt   0   and   0   eq   0
+                  udparg    $$/gen_rot   xbeg   xflap[3]
+                  udparg    $$/gen_rot   ybeg   yflap[3]
+                  udparg    $$/gen_rot   zbeg   z3max-dzpivot
+                  udparg    $$/gen_rot   xend   xflap[2]
+                  udparg    $$/gen_rot   yend   yflap[2]
+                  udparg    $$/gen_rot   zend   z2max-dzpivot
+                  udprim    $$/gen_rot   rotang   theta
+                     interface xbeg   in   0
+                     interface ybeg   in   0
+                     interface zbeg   in   0
+                     interface xend   in   1
+                     interface yend   in   1
+                     interface zend   in   1
+                     interface rotang   in   0
+                     interface azimuth   out   0
+                     interface elevation   out   0
+                     set       dx xend-xbeg
+                     set       dy yend-ybeg
+                     set       dz zbeg-zend
+                     assert    ifpos(dx*dx+dy*dy+dz*dz-1e-12,1,0)   1   0   0
+                     set       azimuth atan2d(dy,dx)
+                     set       elevation atan2d(dz,hypot(dx,dy))
+                     rotatez   -azimuth   xbeg   ybeg
+                     rotatey   -elevation   zbeg   xbeg
+                     rotatex   rotang   ybeg   zbeg
+                     rotatey   +elevation   zbeg   xbeg
+                     rotatez   +azimuth   xbeg   ybeg
+                  end
+               else
+                  udparg    $$/gen_rot   xbeg   xflap[3]
+                  udparg    $$/gen_rot   ybeg   yflap[3]
+                  udparg    $$/gen_rot   zbeg   z3min+dzpivot
+                  udparg    $$/gen_rot   xend   xflap[2]
+                  udparg    $$/gen_rot   yend   yflap[2]
+                  udparg    $$/gen_rot   zend   z2min+dzpivot
+                  udprim    $$/gen_rot   rotang   theta
+                     interface xbeg   in   0
+                     interface ybeg   in   0
+                     interface zbeg   in   0
+                     interface xend   in   1
+                     interface yend   in   1
+                     interface zend   in   1
+                     interface rotang   in   0
+                     interface azimuth   out   0
+                     interface elevation   out   0
+                     set       dx xend-xbeg
+                     set       dy yend-ybeg
+                     set       dz zbeg-zend
+                     assert    ifpos(dx*dx+dy*dy+dz*dz-1e-12,1,0)   1   0   0
+                     set       azimuth atan2d(dy,dx)
+                     set       elevation atan2d(dz,hypot(dx,dy))
+                     rotatez   -azimuth   xbeg   ybeg
+                     rotatey   -elevation   zbeg   xbeg
+                     rotatex   rotang   ybeg   zbeg
+                     rotatey   +elevation   zbeg   xbeg
+                     rotatez   +azimuth   xbeg   ybeg
+                  end
+               endif
+               ifthen    openEnd   gt   0   and   0   eq   0
+                  connect   faceList1o   faceList2o
+               else
+                  connect   faceList1c   faceList2c
+               endif
+            end
+         endif
+         ifthen    pctchord   gt   0   and   0   eq   0
+            dimension xflap   1   4   0
+            dimension yflap   1   4   0
+            set       xflap[1,1] max(croot,dxtip+ctip)
+            set       yflap[1,1] +outboard*span2
+            set       xflap[1,2] outboard*dxtip+pctchord*(croot+outboard*(ctip-croot))
+            set       yflap[1,2] +outboard*span2
+            set       xflap[1,3] inboard*dxtip+pctchord*(croot+inboard*(ctip-croot))
+            set       yflap[1,3] +inboard*span2
+            set       xflap[1,4] max(croot,dxtip+ctip)
+            set       yflap[1,4] +inboard*span2
+            udparg    $$/flapz   xflap   xflap
+            udparg    $$/flapz   yflap   yflap
+            udparg    $$/flapz   theta   angrite
+            udparg    $$/flapz   gap   0.001*span
+            udparg    $$/flapz   openEnd   1
+            udprim    $$/flapz
+               interface xflap   in   0
+               interface yflap   in   0
+               interface theta   in   15
+               interface gap   in   0.01
+               interface openEnd   in   0
+               interface faceList1c   dim   3
+               interface faceList2c   dim   3
+               assert    ifzero(xflap.size-4,1,0)   1   0   0
+               assert    ifzero(yflap.size-4,1,0)   1   0   0
+               select    body
+               set       zmin @zmin
+               set       zmax @zmax
+               store     flap   999   0
+               restore   flap   999
+               store     flap   999   0
+               set       zmin @zmin
+               set       zmax @zmax
+               set       ds sqrt((xflap[1]-xflap[4])^2+(yflap[1]-yflap[4])^2)
+               set       x1p xflap[1]+(xflap[1]-xflap[4])*gap/ds
+               set       y1p yflap[1]+(yflap[1]-yflap[4])*gap/ds
+               set       x4p xflap[4]+(xflap[4]-xflap[1])*gap/ds
+               set       y4p yflap[4]+(yflap[4]-yflap[1])*gap/ds
+               set       ds sqrt((xflap[2]-xflap[3])^2+(yflap[2]-yflap[3])^2)
+               set       x2pp xflap[2]+(xflap[2]-xflap[3])*gap/ds
+               set       y2pp yflap[2]+(yflap[2]-yflap[3])*gap/ds
+               set       x3pp xflap[3]+(xflap[3]-xflap[2])*gap/ds
+               set       y3pp yflap[3]+(yflap[3]-yflap[2])*gap/ds
+               set       ds sqrt((x2pp-x1p)^2+(y2pp-y1p)^2)
+               set       x2p x2pp+(x2pp-x1p)*gap/ds
+               set       y2p y2pp+(y2pp-y1p)*gap/ds
+               set       ds sqrt((x3pp-x4p)^2+(y3pp-y4p)^2)
+               set       x3p x3pp+(x3pp-x4p)*gap/ds
+               set       y3p y3pp+(y3pp-y4p)*gap/ds
+               restore   flap   999
+               project   xflap[2]   yflap[2]   zmax+1   0.0   0.0   -1.0   0
+               set       z2max @zcg
+               project   xflap[2]   yflap[2]   zmin-1   0.0   0.0   1.0   0
+               set       z2min @zcg
+               project   xflap[3]   yflap[3]   zmax+1   0.0   0.0   -1.0   0
+               set       z3max @zcg
+               project   xflap[3]   yflap[3]   zmin-1   0.0   0.0   1.0   0
+               set       z3min @zcg
+               set       dzpivot min(z2max-z2min,z3max-z3min)/2
+               skbeg     x1p   y1p   zmin-1   0
+                  linseg    x2p   y2p   zmin-1
+                  linseg    x3p   y3p   zmin-1
+                  linseg    x4p   y4p   zmin-1
+                  linseg    x1p   y1p   zmin-1
+               skend     0
+               extrude   0.0   0.0   zmax-zmin+2
+               set       wing_cutout @nbody
+               subtract  none   1   0
+               select    face   wing_cutout   5
+               set       faceList1c[1,1] @iface
+               select    face   wing_cutout   4
+               set       faceList1c[1,2] @iface
+               set       faceList1o @iface
+               select    face   wing_cutout   3
+               set       faceList1c[1,3] @iface
+               store     flap   998   0
+               restore   flap   999
+               skbeg     xflap[1]   yflap[1]   zmin-1   0
+                  linseg    xflap[2]   yflap[2]   zmin-1
+                  linseg    xflap[3]   yflap[3]   zmin-1
+                  linseg    xflap[4]   yflap[4]   zmin-1
+                  linseg    xflap[1]   yflap[1]   zmin-1
+               skend     0
+               extrude   0.0   0.0   zmax-zmin+2
+               set       flap_cutout @nbody
+               intersect none   1   0
+               select    face   flap_cutout   5
+               set       faceList2c[1,1] @iface
+               select    face   flap_cutout   4
+               set       faceList2c[1,2] @iface
+               set       faceList2o @iface
+               select    face   flap_cutout   3
+               set       faceList2c[1,3] @iface
+               store     flap   997   0
+               restore   flap   998
+               restore   flap   997
+               ifthen    theta   gt   0   and   0   eq   0
+                  udparg    $$/gen_rot   xbeg   xflap[3]
+                  udparg    $$/gen_rot   ybeg   yflap[3]
+                  udparg    $$/gen_rot   zbeg   z3max-dzpivot
+                  udparg    $$/gen_rot   xend   xflap[2]
+                  udparg    $$/gen_rot   yend   yflap[2]
+                  udparg    $$/gen_rot   zend   z2max-dzpivot
+                  udprim    $$/gen_rot   rotang   theta
+                     interface xbeg   in   0
+                     interface ybeg   in   0
+                     interface zbeg   in   0
+                     interface xend   in   1
+                     interface yend   in   1
+                     interface zend   in   1
+                     interface rotang   in   0
+                     interface azimuth   out   0
+                     interface elevation   out   0
+                     set       dx xend-xbeg
+                     set       dy yend-ybeg
+                     set       dz zbeg-zend
+                     assert    ifpos(dx*dx+dy*dy+dz*dz-1e-12,1,0)   1   0   0
+                     set       azimuth atan2d(dy,dx)
+                     set       elevation atan2d(dz,hypot(dx,dy))
+                     rotatez   -azimuth   xbeg   ybeg
+                     rotatey   -elevation   zbeg   xbeg
+                     rotatex   rotang   ybeg   zbeg
+                     rotatey   +elevation   zbeg   xbeg
+                     rotatez   +azimuth   xbeg   ybeg
+                  end
+               else
+                  udparg    $$/gen_rot   xbeg   xflap[3]
+                  udparg    $$/gen_rot   ybeg   yflap[3]
+                  udparg    $$/gen_rot   zbeg   z3min+dzpivot
+                  udparg    $$/gen_rot   xend   xflap[2]
+                  udparg    $$/gen_rot   yend   yflap[2]
+                  udparg    $$/gen_rot   zend   z2min+dzpivot
+                  udprim    $$/gen_rot   rotang   theta
+                     interface xbeg   in   0
+                     interface ybeg   in   0
+                     interface zbeg   in   0
+                     interface xend   in   1
+                     interface yend   in   1
+                     interface zend   in   1
+                     interface rotang   in   0
+                     interface azimuth   out   0
+                     interface elevation   out   0
+                     set       dx xend-xbeg
+                     set       dy yend-ybeg
+                     set       dz zbeg-zend
+                     assert    ifpos(dx*dx+dy*dy+dz*dz-1e-12,1,0)   1   0   0
+                     set       azimuth atan2d(dy,dx)
+                     set       elevation atan2d(dz,hypot(dx,dy))
+                     rotatez   -azimuth   xbeg   ybeg
+                     rotatey   -elevation   zbeg   xbeg
+                     rotatex   rotang   ybeg   zbeg
+                     rotatey   +elevation   zbeg   xbeg
+                     rotatez   +azimuth   xbeg   ybeg
+                  end
+               endif
+               ifthen    openEnd   gt   0   and   0   eq   0
+                  connect   faceList1o   faceList2o
+               else
+                  connect   faceList1c   faceList2c
+               endif
+            end
+         endif
+         select    body
+attribute ID   !ID
+attribute Intent   3
+      endif
+      ifthen    intent   eq   4   and   0   eq   0
+         dimension secValues   1   5   0
+         set       secValues 8;1.0;12;1.0;0;
+         dimension cntrlValues   1   6   0
+         set       cntrlValues 1.0;0.7;0.0;0.0;0.0;1.0;
+         set       cntrlValues[1,2] pctchord
+         mark
+         ifthen    mirror   eq   1   and   0   eq   0
+            ifthen    compType   eq   1   and   0   eq   0
+               udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Wing
+attribute avlSecValues   secValues
+            elseif    compType   eq   2   and   0   eq   0
+               udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Horizontal_Tail
+attribute avlSecValues   secValues
+            elseif    compType   eq   3   and   0   eq   0
+               udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Vertical_Tail
+attribute avlSecValues   secValues
+            else
+               udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+            endif
+            rotatex   90   0   0
+            scale     ctip
+            rotatey   -twist   0   0
+            translate dxtip   -span2   +dztip
+            ifthen    pctchord   gt   0   and   0   eq   0
+               ifthen    compType   eq   1   and   0   eq   0
+                  udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Wing
+attribute avlSecValues   secValues
+attribute avlCntrlFlap   cntrlValues
+               elseif    compType   eq   2   and   0   eq   0
+                  udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Horizontal_Tail
+attribute avlSecValues   secValues
+attribute avlCntrlElevator   cntrlValues
+               elseif    compType   eq   3   and   0   eq   0
+                  udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Vertical_Tail
+attribute avlSecValues   secValues
+attribute avlCntrlRudder   cntrlValues
+               else
+                  udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+               endif
+               rotatex   90   0   0
+               scale     ctip*inboard+croot*(1-inboard)
+               rotatey   -twist*inboard   0   0
+               translate dxtip*inboard   -span2*inboard   +dztip*inboard
+               ifthen    compType   eq   1   and   0   eq   0
+                  udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Wing
+attribute avlSecValues   secValues
+attribute avlCntrlFlap   cntrlValues
+               elseif    compType   eq   2   and   0   eq   0
+                  udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Horizontal_Tail
+attribute avlSecValues   secValues
+attribute avlCntrlElevator   cntrlValues
+               elseif    compType   eq   3   and   0   eq   0
+                  udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Vertical_Tail
+attribute avlSecValues   secValues
+attribute avlCntrlRudder   cntrlValues
+               else
+                  udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+               endif
+               rotatex   90   0   0
+               scale     ctip*outboard+croot*(1-outboard)
+               rotatey   -twist*outboard   0   0
+               translate dxtip*outboard   -span2*outboard   +dztip*outboard
+            endif
+         endif
+         ifthen    compType   eq   1   and   0   eq   0
+            udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Wing
+attribute capsReferenceArea   area
+attribute capsReferenceSpan   span
+attribute capsReferenceChord   croot
+attribute capsReferneceX   croot/4
+attribute avlSecValues   secValues
+         elseif    compType   eq   2   and   0   eq   0
+            udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Horizontal_Tail
+attribute avlSecValues   secValues
+         elseif    compType   eq   3   and   0   eq   0
+            udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Vertical_Tail
+attribute avlSecValues   secValues
+         else
+            udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+         endif
+         rotatex   90   0   0
+         scale     croot
+         ifthen    pctchord   gt   0   and   0   eq   0
+            ifthen    compType   eq   1   and   0   eq   0
+               udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Wing
+attribute avlSecValues   secValues
+attribute avlCntrlFlap   cntrlValues
+            elseif    compType   eq   2   and   0   eq   0
+               udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Horizontal_Tail
+attribute avlSecValues   secValues
+attribute avlCntrlElevator   cntrlValues
+            elseif    compType   eq   3   and   0   eq   0
+               udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Vertical_Tail
+attribute avlSecValues   secValues
+attribute avlCntrlRudder   cntrlValues
+            else
+               udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+            endif
+            rotatex   90   0   0
+            scale     ctip*outboard+croot*(1-outboard)
+            rotatey   -twist*outboard   0   0
+            translate dxtip*outboard   +span2*outboard   +dztip*outboard
+            ifthen    compType   eq   1   and   0   eq   0
+               udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Wing
+attribute avlSecValues   secValues
+attribute avlCntrlFlap   cntrlValues
+            elseif    compType   eq   2   and   0   eq   0
+               udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Horizontal_Tail
+attribute avlSecValues   secValues
+attribute avlCntrlElevator   cntrlValues
+            elseif    compType   eq   3   and   0   eq   0
+               udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   13
+attribute capsGroup   $Vertical_Tail
+attribute avlSecValues   secValues
+attribute avlCntrlRudder   cntrlValues
+            else
+               udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+            endif
+            rotatex   90   0   0
+            scale     ctip*inboard+croot*(1-inboard)
+            rotatey   -twist*inboard   0   0
+            translate dxtip*inboard   +span2*inboard   +dztip*inboard
+         endif
+         ifthen    compType   eq   1   and   0   eq   0
+            udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Wing
+attribute avlSecValues   secValues
+         elseif    compType   eq   2   and   0   eq   0
+            udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Horizontal_Tail
+attribute avlSecValues   secValues
+         elseif    compType   eq   3   and   0   eq   0
+            udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+attribute capsIntent   LINEARAERO
+attribute capsGroup   $Vertical_Tail
+attribute avlSecValues   secValues
+         else
+            udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+         endif
+         rotatex   90   0   0
+         scale     ctip
+         rotatey   -twist   0   0
+         translate dxtip   +span2   +dztip
+         group
+      endif
+      ifthen    intent   eq   5   and   nrib   gt   0
+         set       nwaffle nrib+ifpos(spar1,2,0)+ifpos(spar2,2,0)
+         dimension waffle   nwaffle   4   0
+         patbeg    i   nrib
+            set       waffle[i,1] -0.10*croot
+            set       waffle[i,2] span2*(2*i-nrib-1)/nrib
+            set       waffle[i,3] 1.1*max(croot,dxtip+ctip)
+            set       waffle[i,4] waffle[i,2]
+         patend
+         ifthen    spar1   gt   0   and   0   eq   0
+            set       nrib nrib+1
+            set       waffle[nrib,1] spar1*ctip+dxtip
+            set       waffle[nrib,2] -1.01*span2
+            set       waffle[nrib,3] spar1*croot
+            set       waffle[nrib,4] 0
+            set       nrib nrib+1
+            set       waffle[nrib,1] spar1*ctip+dxtip
+            set       waffle[nrib,2] 1.01*span2
+            set       waffle[nrib,3] spar1*croot
+            set       waffle[nrib,4] 0
+         endif
+         ifthen    spar2   gt   0   and   0   eq   0
+            set       nrib nrib+1
+            set       waffle[nrib,1] spar2*ctip+dxtip
+            set       waffle[nrib,2] -1.01*span2
+            set       waffle[nrib,3] spar2*croot
+            set       waffle[nrib,4] 0
+            set       nrib nrib+1
+            set       waffle[nrib,1] spar2*ctip+dxtip
+            set       waffle[nrib,2] 1.01*span2
+            set       waffle[nrib,3] spar2*croot
+            set       waffle[nrib,4] 0
+         endif
+         udprim    waffle   Depth   +4*croot   Segments   waffle
+attribute name   $wing_structure
+         translate 0   0   -2*croot
+         store     wingWaffle   0   0
+         restore   wingWaffle   0
+         restore   wingOML   0
+         intersect none   1   0
+         restore   wingOML   0
+         restore   wingWaffle   0
+         subtract  none   1   0
+         extract   0
+         union     0   0   1e-5
+         udprim    createBEM   filename   $BEM.bdf   space   0.02   imin   3   imax   99
+      endif
+   end
+   rotatex   90   0   0
+   translate vtail:xloc   0   vtail:zloc
+   ifthen    intent   eq   3   and   0   eq   0
+      union     0   0   0
+   endif
+endif
+ifthen    intent   eq   3   and   0   eq   0
+   dimension tparams   1   3   0
+   set       tparams 0.225;0.030;8;
+   select    body
+attribute .tParams   tparams
+   set       tparams 0.100;0.100;8;
+   select    face   1
+attribute .tParams   tparams
+endif
+
+dump      ../data/Slugs/myGlider_0.stl
+dump      ../data/Slugs/myGlider.plot
+
+end

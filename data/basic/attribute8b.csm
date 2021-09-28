@@ -1,0 +1,24 @@
+# attribute8b
+# written by John Dannenhoffer
+
+ATTRIBUTE density  2710   # global attribute
+
+BOX       0  0  0  3  3  2
+ATTRIBUTE tag  $block
+
+BOX       1  1  0  1  2  2
+ATTRIBUTE tag  $slot
+SUBTRACT
+
+CYLINDER -1  2  1  4  2  1  1/2
+ATTRIBUTE tag  $hole
+SUBTRACT
+
+SELECT    FACE   1 6 1  #select by FaceID
+ATTRIBUTE _color $red
+
+SELECT    EDGE   -.1 0.1  -.1 3.1  -.1 2.1  # select by bbox
+ATTRIBUTE _color  $cyan
+ATTRIBUTE _gcolor $cyan
+
+END

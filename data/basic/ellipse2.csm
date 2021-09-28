@@ -1,0 +1,24 @@
+# ellipse2
+# written by John Dannenhoffer
+
+UDPRIM    ellipse   rx  0.5   ry  1.0   theta  0;pi(120/180);pi(240/180)
+TRANSLATE -2  +2  0
+EXTRUDE    0  0  1
+
+UDPRIM    ellipse   rx  0.5   ry  1.0   theta  pi(-180/180);pi(-60/180);pi(60/180)
+TRANSLATE +2  +2  0
+EXTRUDE    0  0  1
+
+UDPRIM    ellipse   rx  0.5   ry  1.0   theta  0;pi(10/180);pi(170/180);pi(180/180)
+TRANSLATE -2  -2  0
+EXTRUDE    0  0  1
+
+UDPRIM    ellipse   rx  0.5   ry  1.0   theta  pi(80/180);pi(100/180);pi(240/180);pi(270/180);pi(300/180)
+TRANSLATE +2  -2  0
+EXTRUDE    0  0  1
+
+END
+
+
+
+

@@ -1,0 +1,26 @@
+# pod2
+# written by John Dannenhoffer
+
+despmtr   area      20.0
+despmtr   aspect    6.0
+despmtr   thick     0.12
+despmtr   camber    0.04
+despmtr   fineness  8.0
+
+set       span      sqrt(aspect*area)
+set       chord     area/span
+
+udprim    naca      thickness thick     camber    camber
+scale     chord
+translate 0         0         -span/2
+extrude   0         0          span
+
+udprim    pod       length    1.2*chord fineness  fineness
+translate -.1*chord 0         +span/2
+union
+
+udprim    pod       length    1.2*chord fineness  fineness
+translate -.1*chord 0         -span/2
+union
+
+end

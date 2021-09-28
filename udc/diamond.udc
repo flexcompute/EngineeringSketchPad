@@ -1,0 +1,17 @@
+# diamond
+#    create diamond airfoil
+# written by John Dannenhoffer
+
+interface thick    in  0
+
+# make sure that we have a positive thickness
+assert ifpos(thick,1,0)  1
+
+skbeg     1.0  0.0      0.0
+   linseg 0.5  thick/2  0.0
+   linseg 0.0  0.0      0.0
+   linseg 0.5 -thick/2  0.0
+   linseg 1.0  0.0      0.0
+skend
+
+end

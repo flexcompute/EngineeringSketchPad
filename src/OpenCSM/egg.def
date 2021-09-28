@@ -1,0 +1,7 @@
+EXPORTS
+eggGenerate
+eggMorph
+eggInfo
+eggDump
+eggLoad
+eggFree

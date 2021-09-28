@@ -1,0 +1,16 @@
+# damaged
+# written by John Dannenhoffer
+
+mark
+   udprim supell rx 3 ry 2 n 2
+   rotatey 90 0 0
+
+   udprim supell rx 4 ry 1 n 5
+   rotatey 90 0 0
+   translate 3 0 0
+rule
+
+dump $/damaged_0.stl
+dump $/damaged.plot
+
+end

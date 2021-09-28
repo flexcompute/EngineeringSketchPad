@@ -1,0 +1,18 @@
+# csystem1
+# written by John Dannenhoffer
+
+dimension csys7 7 1 0
+set       csys7 "3; 0;1;0; -1;0;0;"
+
+box       0  0  0   1  1  1
+   attribute attr  "1.0;1.0;1.0; 1;0;0; 0;1;0;"
+   csystem   111   "1.0;1.0;1.0; 1;0;0; 0;1;0;"
+   csystem   face1 "+1; 0.2;0.2;        0;1;"
+   csystem   face2 "+2; 0.2;0.2;        0;1;"
+   csystem   edge2 "-2; 0.2;           -1;0;0"
+   csystem   edge6 "-6; 0.2;            0;0;1"
+   csystem   node3 csys7
+
+rotatez   30.  0.5  0.5
+
+end

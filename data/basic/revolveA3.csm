@@ -1,0 +1,53 @@
+# revolveA3
+# written by John Dannenhoffer
+
+# global attributes
+attribute   BASIC.plot        1
+attribute   GLOBL.onoff       0
+attribute   CUTTR.onoff       0
+attribute   TRIMR.onoff       0
+attribute   DONOR.onoff       0
+
+attribute   PLT3D.onoff       1
+attribute   PLT3D.bigend      1
+
+attribute   XRAYS.onoff       0
+attribute   XRAYS.bigend      1
+
+# body 1
+skbeg       1  -8   1
+   linseg   1  -7   2
+   linseg   1  -6   2
+   linseg   1  -5   1
+   linseg   1  -8   1
+skend
+revolve     1   0   0   0   1   0   360
+
+# body 2
+skbeg       1  -4   1
+   linseg   1  -3   2
+   linseg   1  -2   2
+   linseg   1  -1   1
+   linseg   1  -4   1
+skend
+revolve     1   0   1   0   1   0   360
+
+# body 3
+skbeg       1   1   1
+   linseg   1   2   2
+   linseg   1   3   2
+   linseg   1   4   1
+   linseg   1   1   1
+skend
+revolve     1   0   2   0   1   0   360
+
+# body 4
+skbeg       1   5   1
+   linseg   1   6   2
+   linseg   1   7   2
+   linseg   1   8   1
+   linseg   1   5   1
+skend
+revolve     1   0   3   0   1   0   360
+
+end

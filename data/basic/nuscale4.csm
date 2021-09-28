@@ -1,0 +1,10 @@
+# nuscale4
+# written by John Dannenhoffer
+
+UDPRIM    NACA   series 4410   sharpte 1
+ROTATEX   90.0  0.0  0.0
+
+UDPRIM    Nuscale   zscale 1
+TRANSLATE 0.0  1.8  0.0
+
+END

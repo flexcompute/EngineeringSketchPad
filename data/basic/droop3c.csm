@@ -1,0 +1,13 @@
+# droop3c
+# written by John Dannenhoffer
+
+UDPRIM    $$/diamond   thick  0.12
+
+# droop leading and trailing edges down
+UDPRIM    droop     xle  0.20   thetale  +20.0 \
+                    xte  0.75   thetate  -10.0
+
+SELECT    FACE   6  0  1
+ASSERT    @sellist.size 1
+
+end

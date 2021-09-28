@@ -1,0 +1,48 @@
+# designL42
+# written by John Dannenhoffer
+
+DESPMTR   xbeg     -1
+DESPMTR   ybeg     -2
+DESPMTR   zbeg     -3
+DESPMTR   xsize     4
+DESPMTR   ysize     3
+DESPMTR   zsize     2
+DESPMTR   diam      1
+DESPMTR   scale     3
+
+# basic shape (point blended thrice)
+POINT     xbeg  ybeg  zbeg
+STORE     point
+
+MARK
+RESTORE   point
+RESTORE   point
+TRANSLATE xsize+diam  0  0
+BLEND
+STORE     line
+
+MARK
+RESTORE   line
+RESTORE   line
+TRANSLATE 0  ysize  0
+BLEND
+
+SCALE     2  0  0  zbeg
+TRANSLATE 1  1  0
+STORE     foo
+
+MARK
+RESTORE   foo
+RESTORE   foo
+TRANSLATE 0     0     zsize
+BLEND
+
+# hole (cylinder)
+CYLINDER  xbeg+2*xsize  2*ybeg+ysize  zbeg-1 \
+          xbeg+2*xsize  2*ybeg+ysize  zbeg+zsize+2  diam/2
+SUBTRACT
+
+# scale entire configuration
+SCALE     scale
+
+END

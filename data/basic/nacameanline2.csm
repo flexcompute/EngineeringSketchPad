@@ -1,0 +1,14 @@
+# nacameanline2
+# written by John Dannenhoffer
+
+mark
+patbeg icamber 5
+    set dz     (icamber-1)
+    set camber icamber*0.02
+
+    udprim naca Camber camber
+    translate 0 0 dz/2
+patend
+loft 1
+
+end

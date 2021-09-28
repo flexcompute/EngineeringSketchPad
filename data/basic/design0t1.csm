@@ -1,0 +1,13 @@
+# design0t1
+# written by John Dannenhoffer
+
+DESPMTR   DX   4.0
+DESPMTR   DY   2.0
+DESPMTR   DZ   5.0
+
+# plate in YZ plane (extruded in X)
+UDPRIM     box   dy  DY   dz  DZ
+TRANSLATE -DX/2  0        0
+EXTRUDE    DX    0        0
+
+END

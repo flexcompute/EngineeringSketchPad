@@ -1,0 +1,15 @@
+# parsec2d
+# written by John Dannenhoffer (based upon inputs from github.com/dqsis/parsec-airfoils)
+
+dimension param     1 9 1
+despmtr   param     "0.01; 0.35; 0.055; -.35; -6.00;\
+                           0.45; -.006; -.20;  0.05"
+
+udprim    parsec    Param     param
+extrude   0  0  5
+
+udprim    parsec    Param     param    Meanline  1
+translate 0.0       0.0      -1.0
+extrude   0  0  7
+
+end

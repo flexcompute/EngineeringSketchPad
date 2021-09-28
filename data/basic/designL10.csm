@@ -1,0 +1,27 @@
+# designL10
+# written by John Dannenhoffer
+
+DESPMTR   xbeg     -1
+DESPMTR   ybeg     -2
+DESPMTR   zbeg     -3
+DESPMTR   xsize     4
+DESPMTR   ysize     3
+DESPMTR   zsize     2
+DESPMTR   diam      1
+DESPMTR   scale     3
+
+# basic shape (2D box extruded)
+BOX       xbeg  ybeg  zbeg  xsize+diam  ysize  0
+SCALE     2     0     0     zbeg
+TRANSLATE 1     1     0
+EXTRUDE   0     0     zsize
+
+# hole (cylinder)
+CYLINDER  xbeg+2*xsize  2*ybeg+ysize  zbeg-1 \
+          xbeg+2*xsize  2*ybeg+ysize  zbeg+zsize+2  diam/2
+SUBTRACT
+
+# scale entire configuration
+SCALE     scale
+
+END

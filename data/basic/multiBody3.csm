@@ -1,0 +1,10 @@
+# multiBody3
+# written by John Dannenhoffer
+
+BOX       0  0  0  1  2  2
+   ATTRIBUTE _color $red
+
+CYLINDER  1  1  1  2  1  1  1/2
+   ATTRIBUTE _color $blue
+
+END

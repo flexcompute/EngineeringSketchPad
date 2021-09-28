@@ -1,0 +1,24 @@
+# strut
+# written by John Dannenhoffer
+
+interface ID        in  0
+interface intent    in  3
+interface length    in  2.0
+interface thickness in  0.2
+interface height    in  1.0
+interface sweep     in  0.0
+
+# build strut  (intent==3)
+ifthen intent eq 3
+   # cross-section
+   udprim    ellipse   ry  length/2  rx  thickness/2
+   rotatez   90  0  0
+
+   # extrusion
+   translate -sind(sweep)*height/2  0  -cosd(sweep)*height/2
+   extrude    sind(sweep)*height    0   cosd(sweep)*height
+      attribute ID !ID
+      attribute Intent 3  # 3D model (aka, outer-mold line)
+endif
+
+end

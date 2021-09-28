@@ -1,0 +1,71 @@
+# contains1
+# written by John Dannenhoffer
+
+# container
+BOX       -3  -2  -2   6   4   4
+
+# small Bodys whole within container
+BOX        0   0   0   1   1   1
+UDPRIM    $$/contains
+ASSERT    @@contains  0
+STORE     .                   # remove small Body from stack
+
+CYLINDER   0   0   0   1   0   0   1/2
+UDPRIM    $$/contains
+ASSERT    @@contains  0
+STORE     .
+
+SPHERE     0   0   0   1
+UDPRIM    $$/contains
+ASSERT    @@contains  0
+STORE     .
+
+# small Bodys within but tangent to container
+BOX       -3  -1   0   1   1   1
+UDPRIM    $$/contains
+ASSERT    @@contains  1
+STORE     .
+
+CYLINDER  -3   0   0   0   0   0   1/2
+UDPRIM    $$/contains
+ASSERT    @@contains  1
+STORE     .
+
+SPHERE    -2   0   0   1
+UDPRIM    $$/contains
+ASSERT    @@contains  0
+STORE     .
+
+# small Bodys intersecting container
+BOX        2   0   0   2   1   1
+UDPRIM    $$/contains
+ASSERT    @@contains  2
+STORE     .
+
+CYLINDER   2   0   0   4   0   0   1/2
+UDPRIM    $$/contains
+ASSERT    @@contains  2
+STORE     .
+
+SPHERE     3   0   0   1
+UDPRIM    $$/contains
+ASSERT    @@contains  2
+STORE     .
+
+# small Bodys outside container
+BOX        4   0   0   1   1   1
+UDPRIM    $$/contains
+ASSERT    @@contains  3
+STORE     .
+
+CYLINDER   4   0   0   5   0   0   1/2
+UDPRIM    $$/contains
+ASSERT    @@contains  3
+STORE     .
+
+SPHERE     5   0   0   1
+UDPRIM    $$/contains
+ASSERT    @@contains  3
+STORE     .
+
+END

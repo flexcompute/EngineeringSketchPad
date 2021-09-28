@@ -1,0 +1,83 @@
+# hollow0c
+# written by John Dannenhoffer
+
+skbeg     -2  -1  -1
+   linseg  2  -1  -1
+   linseg  1   1  -1
+   linseg -1   1  -1
+   linseg -2  -1  -1
+skend
+extrude    0   0   1
+set        trap @nbody
+cylinder  -3   0   3  3  0  3  3.9
+set        intr @nbody
+rotatex   90   0   3
+intersect
+store     trap
+
+restore   trap
+select    face intr      3
+select    add  trap      2
+hollow    0.2  @sellist  1
+
+restore   trap
+translate -5  -4   0
+select    face intr      3
+select    add  trap      2
+select    add  trap      6
+select    add  trap      3
+hollow    0.2  @sellist  1
+
+restore   trap
+translate  0  -4   0
+select    face intr      3
+select    add  trap      2
+select    add  trap      3
+hollow    0.2  @sellist  1
+
+restore   trap
+translate  5  -4   0
+select    face intr      3
+select    add  trap      2
+select    add  trap      3
+select    add  trap      4
+hollow    0.2  @sellist  1
+
+restore   trap
+translate  5   0   0
+select    face intr      3
+select    add  trap      2
+select    add  trap      4
+hollow    0.2  @sellist  1
+
+restore   trap
+translate  5   4   0
+select    face intr      3
+select    add  trap      2
+select    add  trap      4
+select    add  trap      5
+hollow    0.2  @sellist  1
+
+restore   trap
+translate  0   4   0
+select    face intr      3
+select    add  trap      2
+select    add  trap      5
+hollow    0.2  @sellist  1
+
+restore   trap
+translate -5   4   0
+select    face intr      3
+select    add  trap      2
+select    add  trap      5
+select    add  trap      6
+hollow    0.2  @sellist  1
+
+restore   trap
+translate -5   0   0
+select    face intr      3
+select    add  trap      2
+select    add  trap      6
+hollow    0.2  @sellist  1
+
+end

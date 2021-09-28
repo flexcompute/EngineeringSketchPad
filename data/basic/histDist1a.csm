@@ -1,0 +1,13 @@
+# histDist1a
+# written by John Dannenhoffer
+
+# run with: serveCSM ../data/basic/histDist1a -egg PDT2
+
+BOX       0   0   0   4.01   3.00   2.00
+SPHERE                3.00   2.80   1.00   0.50
+UNION
+ROTATEZ   2   2   1.5
+
+DUMP      histDist1.tess
+
+END

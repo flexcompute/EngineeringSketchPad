@@ -1,0 +1,10 @@
+# elbow1
+# written by John Dannenhoffer
+
+CYLINDER  0    0  0  2  0  0  0.5
+
+CYLINDER  2.5  0  0  5  0  0  0.5
+ROTATEZ   20  2.25  0
+
+END
+

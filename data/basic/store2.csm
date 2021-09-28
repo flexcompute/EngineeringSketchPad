@@ -1,0 +1,42 @@
+# store2
+# written by John Dannenhoffer
+
+# put 5 Bodys on stack
+patbeg    ibody  5
+    box  ibody  0  0   1  1  1
+patend
+
+# pop last Body (5) from stack
+store     .
+
+mark
+
+# add 5 more Bodys to stack
+patbeg    ibody  5
+    box  ibody  1  0   1  1  1
+patend
+
+# pop all Bodys (10-6) from stack back to Mark
+store     ..
+
+# pop remaining Bodys (4-1) from stack (since there is no Mark)
+store     ..
+
+# add 5 more Bodys on stack
+patbeg    ibody  5
+    box  ibody  2  0   1  1  1
+patend
+
+# clear the stack (15-11)
+store     ...
+
+# clear the stack again (nothing should happen)
+store     ...
+
+# clear back to Mark (nothing should happen)
+store     ..
+
+# add a final Body to the stack
+box  3  0  0   1  1  1
+
+end

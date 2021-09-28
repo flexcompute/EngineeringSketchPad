@@ -1,0 +1,23 @@
+# designN2
+# written by John Dannenhoffer
+
+DESPMTR   area      150.796
+DESPMTR   vol       141.372
+
+SET       length    8   # length should be 5
+SET       radius    1   # radius should be 3
+
+OUTPMTR   myArea
+OUTPMTR   myVolume
+
+SOLBEG    length;radius
+   SOLCON area-pi(2)*radius*length-pi(2)*radius*radius
+   SOLCON vol-pi(1)*radius*radius*length
+SOLEND
+
+CYLINDER  0  0  0  length  0  0  radius
+
+SET       myArea    @area
+SET       myVolume  @volume
+
+END

@@ -1,0 +1,18 @@
+LIBRARY skeletonAIM
+EXPORTS
+aimInitialize
+aimCleanup
+aimInputs
+aimPreAnalysis
+aimExecute
+aimPostAnalysis
+aimOutputs
+aimCalcOutput
+aimFreeDiscrPtr
+aimDiscr
+aimLocateElement
+aimTransfer
+aimInterpolation
+aimInterpolateBar
+aimIntegration
+aimIntegrateBar

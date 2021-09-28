@@ -1,0 +1,59 @@
+# rule11c
+# written by John Dannenhoffer
+
+mark
+   skbeg      3.0  -2.0   1.0
+      linseg  3.0  -2.0  -1.0
+      linseg  3.0   1.0  -1.0
+      linseg  3.0   1.0   1.0
+      linseg  3.0  -2.0   1.0
+   skend   1
+#  reorder 1
+
+   skbeg      2.0   1.0  -1.0
+      linseg  2.0   1.0   1.0
+      linseg  2.0  -1.5   1.0
+      linseg  2.0  -1.5  -1.0
+      linseg  2.0   1.0  -1.0
+   skend   1
+#  reorder 3
+
+   skbeg      1.0  -1.2   1.0
+      linseg  1.0  -1.2  -1.0
+      linseg  1.0   1.0  -1.0
+      linseg  1.0   1.0   1.0
+      linseg  1.0  -1.2   1.0
+   skend   1
+#  reorder 1
+
+   skbeg      0.0  -1.0  -1.0
+      linseg  0.0   1.0  -1.0
+      linseg  0.0   1.0   1.0
+      linseg  0.0  -1.0   1.0
+      linseg  0.0  -1.0  -1.0
+   skend   1
+
+   skbeg     -1.0   1.2   1.0
+      linseg -1.0  -1.0   1.0
+      linseg -1.0  -1.0  -1.0
+      linseg -1.0   1.2  -1.0
+      linseg -1.0   1.2   1.0
+   skend   1
+#  reorder 2
+
+   skbeg     -2.0  -1.0  -1.0
+      linseg -2.0   1.5  -1.0
+      linseg -2.0   1.5   1.0
+      linseg -2.0  -1.0   1.0
+      linseg -2.0  -1.0  -1.0
+   skend   1
+
+   skbeg     -3.0  -1.0  -1.0
+      linseg -3.0   2.0  -1.0
+      linseg -3.0   2.0   1.0
+      linseg -3.0  -1.0   1.0
+      linseg -3.0  -1.0  -1.0
+   skend   1
+rule  -1
+
+end

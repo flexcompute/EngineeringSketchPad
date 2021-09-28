@@ -1,0 +1,11 @@
+# design0i
+# written by John Dannenhoffer
+
+despmtr   rx        1.50
+despmtr   ry        3.00
+despmtr   span      3.00
+
+udprim    ellipse   rx   rx   ry   ry
+extrude   0         0         span
+
+end

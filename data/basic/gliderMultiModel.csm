@@ -1,0 +1,330 @@
+# gliderMultiModel
+# written by John Dannenhoffer
+
+# Design Parameters for wing OML
+despmtr   wing:xloc      4.00
+despmtr   wing:zloc      0.20
+
+despmtr   wing:thick     0.12      frac of local chord
+despmtr   wing:camber    0.04      frac of loacl chord
+
+despmtr   wing:area      100.
+despmtr   wing:aspect    6.00
+despmtr   wing:taper     0.60
+despmtr   wing:sweep     20.0      deg (of c/4)
+
+despmtr   wing:washout   5.00      deg (down at tip)
+despmtr   wing:dihedral  4.00      deg
+
+despmtr   wing:wakeLen   10.0      length of wake
+despmtr   wing:wakeAng   -5.0      deg
+
+# Design Parameters for horizontal tail OML
+despmtr   htail:xloc      14.0
+despmtr   htail:zloc      0.2
+
+despmtr   htail:thickness 0.10
+despmtr   htail:camber    0.02
+
+despmtr   htail:area      10
+despmtr   htail:aspect    4
+despmtr   htail:taper     0.8
+despmtr   htail:twist     0.0
+despmtr   htail:sweep     10.0
+despmtr   htail:dihedral  0.0
+
+# Design Parameters for vertical tail OML
+despmtr   vtail:xloc      13.5
+despmtr   vtail:yloc      0.1
+
+despmtr   vtail:thickness 0.10
+
+despmtr   vtail:area      10
+despmtr   vtail:aspect    3
+despmtr   vtail:taper     0.5
+despmtr   vtail:twist     0.0
+despmtr   vtail:sweep     30.0
+
+# Design Parameters for fuselage OML
+despmtr                   fuse:numXsect 6
+dimension fuse:xloc       fuse:numXsect 1 1
+dimension fuse:zloc       fuse:numXsect 1 1
+dimension fuse:width      fuse:numXsect 1 1
+dimension fuse:height     fuse:numXsect 1 1
+dimension fuse:noselist   2             4 1
+dimension fuse:taillist   2             4 1
+
+despmtr   fuse:xloc       "0;  1.0;  4.0;  8.0;  12.0;  16.0"
+despmtr   fuse:zloc       "0;  0.1;  0.4;  0.4;   0.3;   0.2"
+despmtr   fuse:width      "0;  1.0;  1.6;  1.6;   1.0;   0.8"
+despmtr   fuse:height     "0;  1.0;  2.0;  2.0;   1.2;   0.4"
+despmtr   fuse:noselist   "0.1; 0; 1; 0;\
+                           0.1; 0; 0; 1;"
+despmtr   fuse:taillist   "0.0; 0; 1; 0;\
+                           0.0; 0; 0; 1"
+
+# Design Parameters for BEM
+despmtr   wing:nrib      11        number of ribs
+despmtr   wing:spar1     0.20      frac of local chord
+despmtr   wing:spar2     0.75      frac of local chord
+
+########################################################################
+
+# wing OML
+set       span      sqrt(wing:aspect*wing:area)
+set       croot     2*wing:area/span/(1+wing:taper)
+set       ctip      croot*wing:taper
+set       dxtip     (croot-ctip)/4+span/2*tand(wing:sweep)
+set       dytip     span/2*tand(wing:dihedral)
+
+mark
+   # rite tip
+   udprim    naca      Thickness wing:thick     Camber    wing:camber
+   scale     ctip
+   rotatez   wing:washout   ctip/4    0
+   translate dxtip     dytip     -span/2
+
+   # root
+   udprim    naca      Thickness wing:thick     Camber    wing:camber
+   scale     croot
+
+   # left tip
+   udprim    naca      Thickness wing:thick     Camber    wing:camber
+   scale     ctip
+   rotatez   wing:washout   ctip/4    0
+   translate dxtip     dytip     +span/2
+rule
+   attribute name $OML
+translate    wing:xloc 0         wing:zloc
+select face  @nbody-1  3
+   attribute name $rite_upper
+select face  @nbody-1  4
+   attribute name $left_upper
+select face  @nbody-1  5
+   attribute name $rite_lower
+select face  @nbody-1  6
+   attribute name $left_lower
+select face  @nbody-1  7
+   attribute name $rite_TE
+select face  @nbody-1  8
+   attribute name $left_TE
+select face  @nbody-1  1
+   attribute name $rite_tip
+select face  @nbody-1  2
+   attribute name $left_tip
+store     wingOML
+
+# fuselage OML
+mark
+
+   # sharp or rounded nose
+   set isect 1
+   ifthen abs(fuse:width[isect]) EQ 0 AND abs(fuse:height[isect]) EQ 0
+      skbeg  fuse:xloc[isect] 0 fuse:zloc[isect]
+      skend
+
+   # blunt nose
+   else
+      udprim ellipse ry fuse:width[isect]/2 rz fuse:height[isect]/2
+      translate fuse:xloc[isect] 0 fuse:zloc[isect]
+   endif
+
+   # intermediate sections
+   patbeg jsect fuse:numXsect-2
+      set isect jsect+1
+
+      udprim ellipse ry fuse:width[isect]/2 rz fuse:height[isect]/2
+      translate fuse:xloc[isect] 0 fuse:zloc[isect]
+   patend
+
+   # sharp or rounded tail
+   set isect fuse:numXsect
+   ifthen abs(fuse:width[isect]) EQ 0 AND abs(fuse:height[isect]) EQ 0
+      skbeg  fuse:xloc[isect] 0 fuse:zloc[isect]
+      skend
+
+   # blunt tail
+   else
+      udprim ellipse ry fuse:width[isect]/2 rz fuse:height[isect]/2
+      translate fuse:xloc[isect] 0 fuse:zloc[isect]
+   endif
+
+# blend the sections into the Body
+blend fuse:noselist fuse:taillist
+   attribute name $fuseOML
+rotatex   -90  0  0
+store     fuseOML
+
+# horizontal tail OML
+set       span      sqrt(htail:area*htail:aspect)
+set       cbar      htail:area/span
+set       croot     2*cbar/(1+htail:taper)
+set       ctip      htail:taper*croot
+
+mark
+   udprim   naca  thickness htail:thickness camber htail:camber
+   rotatex  90  0  0
+   scale    ctip
+   rotatey  -htail:twist 0 0
+   translate span/2*tand(htail:sweep) -span/2 -span/2*tand(htail:dihedral)
+
+   udprim   naca  thickness htail:thickness camber htail:camber
+   rotatex  90  0  0
+   scale    croot
+
+   udprim   naca  thickness htail:thickness camber htail:camber
+   rotatex  90  0  0
+   scale    ctip
+   rotatey  -htail:twist 0 0
+   translate span/2*tand(htail:sweep) span/2 span/2*tand(htail:dihedral)
+rule
+   attribute name $htailOML
+rotatex   -90  0  0
+translate htail:xloc 0     htail:zloc
+store     htailOML
+
+# vertical tail OML
+set       span      sqrt(vtail:area*vtail:aspect)
+set       cbar      vtail:area/span
+set       croot     2*cbar/(1+vtail:taper)
+set       ctip      vtail:taper*croot
+
+mark
+   udprim   naca  thickness vtail:thickness camber 0
+   rotatex  90  0  0
+   scale    croot
+
+   udprim   naca  thickness vtail:thickness camber 0
+   rotatex  90  0  0
+   scale    ctip
+   translate span/2*tand(vtail:sweep) span/2 0
+rule
+   attribute name $vtail
+translate vtail:xloc vtail:yloc 0
+store     vtailOML
+
+# wing ribs
+set       span      sqrt(wing:aspect*wing:area)
+set       croot     2*wing:area/span/(1+wing:taper)
+set       ctip      croot*wing:taper
+set       dxtip     (croot-ctip)/4+span/2*tand(wing:sweep)
+set       dytip     span/2*tand(wing:dihedral)
+
+dimension waffle  wing:nrib+4 4 0
+set       Nrib    nint(wing:nrib)
+patbeg    i Nrib
+   set    waffle[i,1]     (span/2)*(2*i-Nrib-1)/Nrib
+   set    waffle[i,2]     -0.01*croot
+   set    waffle[i,3]     (span/2)*(2*i-Nrib-1)/Nrib
+   set    waffle[i,4]     max(croot,dxtip+ctip)
+patend
+
+# wing spars
+set       eps             0.01*span
+
+set       waffle[Nrib+1,1]  -span/2-eps
+set       waffle[Nrib+1,2]   wing:spar1*ctip+dxtip
+set       waffle[Nrib+1,3]   0
+set       waffle[Nrib+1,4]   wing:spar1*croot
+set       waffle[Nrib+2,1]   span/2+eps
+set       waffle[Nrib+2,2]   wing:spar1*ctip+dxtip
+set       waffle[Nrib+2,3]   0
+set       waffle[Nrib+2,4]   wing:spar1*croot
+set       waffle[Nrib+3,1]  -span/2-eps
+set       waffle[Nrib+3,2]   wing:spar2*ctip+dxtip
+set       waffle[Nrib+3,3]   0
+set       waffle[Nrib+3,4]   wing:spar2*croot
+set       waffle[Nrib+4,1]   span/2+eps
+set       waffle[Nrib+4,2]   wing:spar2*ctip+dxtip
+set       waffle[Nrib+4,3]   0
+set       waffle[Nrib+4,4]   wing:spar2*croot
+
+udprim    waffle    Depth     +6*wing:thick*croot      Segments  waffle
+   attribute name $wing_structure
+translate 0         0         -3*wing:thick*croot
+rotatey   90        0         0
+rotatez  -90        0         0
+translate wing:xloc 0         wing:zloc
+store     waffle
+
+# keep part of waffle inside wingOML
+restore   waffle
+restore   wingOML
+intersect
+
+# break the wingOML with the waffle and extract the shell
+restore   wingOML
+restore   waffle
+subtract
+extract   0
+
+# sew the two SheetBodies together
+union     0  0  1e-5
+
+# set the spacing along Edges 
+udprim    createBEM filename  $gliderMultiModel.bdf  space  0.40   imin   3   imax   99
+store     BEM
+
+# create the mid-surface-aero with wake
+mark
+   # rite tip
+   udprim    naca      Camber    wing:camber
+   scale     ctip
+   rotatez   wing:washout   ctip/4    0
+   translate dxtip     dytip     -span/2
+
+   # root
+   udprim    naca      Camber    wing:camber
+   scale     croot
+
+   # left tip
+   udprim    naca      Camber    wing:camber
+   scale     ctip
+   rotatez   wing:washout   ctip/4    0
+   translate dxtip     dytip     +span/2
+rule
+select face  @nbody  3
+   attribute name $rite_camber
+select face  @nbody  4
+   attribute name $left_camber
+translate wing:xloc 0  wing:zloc
+store     MSA_wing
+restore   MSA_wing
+
+restore   MSA_wing
+select    edge  0  0  76  4  3
+extract   -@iedge
+extrude   wing:wakeLen*cosd(wing:wakeAng)  wing:wakeLen*sind(wing:wakeAng)  0
+union
+
+restore   MSA_wing
+select    edge  0  0  76  3  3
+extract   -@iedge
+extrude   wing:wakeLen*cosd(wing:wakeAng)  wing:wakeLen*sind(wing:wakeAng)  0
+union
+   attribute name $MSA
+select    face  81  3
+   attribute name $left_wake
+select    face  85  3
+   attribute name $rite_wake
+store     MSA
+
+# combine the component OMLs into a single OML
+restore   wingOML
+restore   fuseOML
+union
+restore   htailOML
+union
+restore   vtailOML
+union
+store     OML
+
+# show all models at end
+restore   OML
+   attribute _name $OML
+restore   BEM
+   attribute _name $BEM
+restore   MSA
+   attribute _name $MSA
+
+end

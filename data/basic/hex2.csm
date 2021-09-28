@@ -1,0 +1,16 @@
+# hex2
+# written by John Dannenhoffer
+
+dimension corners 8 3 0
+set       corners "0.0; 0.0; 0.0; \
+                   1.0; 0.2; 0.0; \
+		   0.0; 1.0; 0.0; \
+		   1.0; 0.8; -.2; \
+		   0.0; 0.2; 1.0; \
+		   1.0; 0.0; 1.0; \
+		   0.0; 0.8; 1.0; \
+		   1.0; 1.0; 0.8"
+
+udprim    hex   corners  corners
+
+end

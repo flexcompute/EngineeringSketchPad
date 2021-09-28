@@ -1,0 +1,40 @@
+# capsViews.udc
+# written by John Dannenhoffer
+
+INTERFACE . ALL
+
+IFTHEN       VIEW:Concept NE 0
+    UDPRIM  $$/viewConcept
+ENDIF
+
+IFTHEN       VIEW:Avl NE 0
+    UDPRIM  $$/viewAvl
+ENDIF
+
+IFTHEN       VIEW:Masstran NE 0
+    UDPRIM  $$/viewMasstran
+ENDIF
+
+IFTHEN       VIEW:SansLIP NE 0
+    UDPRIM  $$/viewSansLIP
+ENDIF
+
+IFTHEN       VIEW:Su2Inviscid NE 0
+    UDPRIM  $$/viewSu2Inviscid
+ENDIF
+
+IFTHEN       VIEW:Su2Viscous NE 0
+    UDPRIM  $$/viewSu2Viscous
+ENDIF
+
+IFTHEN       VIEW:Astros NE 0
+    UDPRIM  $$/viewAstros
+ENDIF
+
+# uncomment below to use same outer box so that views remain unchanged
+#point -10000 -10000 -10000
+#    attribute _name $hideThis1
+#point +10000 +10000 +10000
+#    attribute _name $hideThis2
+
+END

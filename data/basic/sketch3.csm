@@ -1,0 +1,37 @@
+# sketch3
+# written by John Dannenhoffer
+
+# closed FACEBODY (must be planar)
+skbeg     -7  -1   0
+   linseg -5  -1   0
+   linseg -5  +1   0
+   linseg -7  +1   0
+   linseg -7  -1   0
+skend
+
+# closed WIREBODY
+skbeg     -3  -1   0
+   linseg -2  -1  -1
+   linseg -1  -1   0
+   linseg -1  +1   0
+   linseg -3  +1   0
+   linseg -3  -1   0
+skend 1
+
+# open WIREBODY (wirebody=0)
+skbeg     +1  -1   0
+   linseg +2  -1  -1
+   linseg +3  -1   0
+   linseg +3  +1   0
+   linseg +1  +1   0
+skend
+
+# open WIREBODY (wirebody=1)
+skbeg     +5  -1   0
+   linseg +6  -1  -1
+   linseg +7  -1   0
+   linseg +7  +1   0
+   linseg +5  +1   0
+skend 1
+
+end

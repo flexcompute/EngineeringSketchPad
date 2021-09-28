@@ -1,0 +1,26 @@
+# nacaHiAR
+# written by Bob Haimes
+# tellellation for long Edges -- set to 37 points
+
+despmtr   nPts 35
+dimension rPos 1 nPts 0
+
+patbeg i nPts
+  set rPos[1,i] i/(nPts+1)
+patend
+
+# build the geometry
+udprim   naca Series 2412
+extrude  0 0 25
+
+# specify spacing for long Edges
+select    edge       1
+attribute .rPos   rPos
+
+select    edge       2
+attribute .rPos   rPos
+
+select    edge       5
+attribute .rPos   rPos
+
+end

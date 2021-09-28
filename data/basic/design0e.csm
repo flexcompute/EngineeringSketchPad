@@ -1,0 +1,17 @@
+# design0e
+# written by John Dannenhoffer
+
+despmtr   camber    0.04
+despmtr   thick     0.12
+despmtr   xle       -.10
+despmtr   yle       0.10
+despmtr   zle       0.20
+despmtr   chord     2.00
+despmtr   alpha     5.00
+
+udprim    naca      thickness thick     camber    camber
+scale     chord
+rotatez   -alpha    0         0
+translate xle       yle       zle
+
+end

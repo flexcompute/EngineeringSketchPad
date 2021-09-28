@@ -1,0 +1,41 @@
+# rocketnozzle2
+# written by John Dannenhoffer
+
+DESPMTR  W  0.01
+
+# solid sketch
+SKBEG        0      0       0
+   SPLINE    0.125  0.781   0
+   SPLINE    0.25   1.125   0
+   LINSEG    0.438  1.125   0
+SKEND
+
+# revolve in two halves
+REVOLVE   .438  0   0   0   1   0   180
+RESTORE   .
+MIRROR    0     0   .5
+JOIN
+STORE     outside 0 1
+
+# create exit plane
+MARK
+
+RESTORE   outside
+SELECT    EDGE  0 0 6 3 1
+SELECT    SUB   $_nface  2
+EXTRACT   -@sellist[1]
+
+RESTORE   outside
+SELECT    EDGE  0 0 6 3 2
+SELECT    SUB   $_nface  2
+EXTRACT   -@sellist
+
+COMBINE
+COMBINE
+
+# hollow out
+SELECT   FACE  @nbody-1 1
+HOLLOW   W  @sellist[1]  1
+
+END
+

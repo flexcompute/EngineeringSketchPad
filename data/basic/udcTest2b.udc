@@ -1,0 +1,14 @@
+# udcTest2b
+# written by John Dannenhoffer
+
+interface array in   0
+interface sum   out  1
+
+set       sum  0
+patbeg    irow  array.nrow
+   patbeg    icol  array.ncol
+      set       sum  sum+array[irow,icol]
+   patend
+patend
+
+# end left off purposely

@@ -1,0 +1,10 @@
+# naca3
+# written by John Dannenhoffer
+
+despmtr   thick     0.12
+despmtr   camber    0.04
+
+udparg    naca      thickness thick
+udprim    naca      camber    camber
+
+end

@@ -1,0 +1,95 @@
+# attrubute6b
+# written by John Dannenhoffer
+
+# left box
+BOX       -1.0  0.0  0.0  1.0  1.0  0.0
+
+PATBEG        iface     @nface
+   SELECT     face      iface
+   ATTRIBUTE  leftFace  iface
+PATEND
+PATBEG        iedge     @nedge
+   SELECT      edge     iedge
+   ATTRIBUTE  leftEdge  iedge
+PATEND
+PATBEG        inode     @nnode
+   SELECT     node      inode
+   ATTRIBUTE  leftNode  inode
+PATEND
+
+# rite box
+BOX        0.0  0.0  0.0  1.0  1.0  0.0
+
+PATBEG        iface  @nface
+   SELECT     face      iface
+   ATTRIBUTE  riteFace  iface
+PATEND
+PATBEG        iedge  @nedge
+   SELECT      edge     iedge
+   ATTRIBUTE  riteEdge  iedge
+PATEND
+PATBEG        inode  @nnode
+   SELECT     node      inode
+   ATTRIBUTE  riteNode  inode
+PATEND
+
+# combine
+UNION
+
+# top (rite) box
+BOX        0.0  1.0  0.0  0.5  1.0  0.0
+
+PATBEG        iface     @nface
+   SELECT     face      iface
+   ATTRIBUTE  topFace   iface
+PATEND
+PATBEG        iedge     @nedge
+   SELECT      edge     iedge
+   ATTRIBUTE  topEdge   iedge
+PATEND
+PATBEG        inode     @nnode
+   SELECT     node      inode
+   ATTRIBUTE  topNode   inode
+PATEND
+
+# commbine
+UNION
+
+# verify the correct number of Faces associated with each original box
+SELECT    FACE  $leftFace  $*
+ASSERT    @sellist.size    1
+
+SELECT    FACE  $riteFace  $*
+ASSERT    @sellist.size    1
+
+SELECT    FACE  $topFace   $*
+ASSERT    @sellist.size    1
+
+# verify the correct number of Edges associated with each original box
+SELECT    EDGE  $leftEdge  $*
+ASSERT    @sellist.size    3
+
+SELECT    EDGE  $riteEdge  $*
+ASSERT    @sellist.size    3
+
+SELECT    EDGE  $topEdge   $*
+ASSERT    @sellist.size    3
+
+# verify the correct number of Nodes associated with each original box
+SELECT    NODE  $leftNode  $*
+ASSERT    @sellist.size    4
+
+SELECT    NODE  $riteNode  $*
+ASSERT    @sellist.size    4
+
+SELECT    NODE  $topNode   $*
+ASSERT    @sellist.size    4
+
+# verify the correct number of Edges associated with each union
+SELECT    EDGE   1  0  2  0
+ASSERT    @sellist.size  1
+
+SELECT    EDGE   2  0  4  0
+ASSERT    @sellist.size  1
+
+END

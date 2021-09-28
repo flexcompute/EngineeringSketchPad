@@ -1,0 +1,149 @@
+# csystem3
+# written by John Dannenhoffer
+
+# nominal box
+box       -1  -1  -1  2  2  2
+   attribute myAttribute 123
+
+   csystem  face1 "+1;  0.25;0.25;  1; 0"
+   csystem  face2 "+2;  0.25;0.25;  1; 0"
+   csystem  face3 "+3;  0.25;0.25;  1; 0"
+   csystem  face4 "+4;  0.25;0.25;  1; 0"
+   csystem  face5 "+5;  0.25;0.25;  1; 0"
+   csystem  face6 "+6;  0.25;0.25;  1; 0"
+
+   csystem  edge01 " -1;  0.25;  -1;-1; 0"
+   csystem  edge02 " -2;  0.25;  -1; 0; 1"
+   csystem  edge03 " -3;  0.25;  -1; 1; 0"
+   csystem  edge04 " -4;  0.25;  -1; 0;-1"
+   csystem  edge05 " -5;  0.25;   1;-1; 0"
+   csystem  edge06 " -6;  0.25;   1; 0; 1"
+   csystem  edge07 " -7;  0.25;   1; 1; 0"
+   csystem  edge08 " -8;  0.25;   1; 0;-1"
+   csystem  edge09 " -9;  0.25;   0;-1;-1"
+   csystem  edge10 "-10;  0.25;   0;-1; 1"
+   csystem  edge11 "-11;  0.25;   0; 1;-1"
+   csystem  edge12 "-12;  0.25;   0; 1; 1"
+
+   csystem  node1  "1;  -1;-1; 1;   1;-1; 0"
+   csystem  node2  "2;  -1;-1;-1;   1;-1; 0"
+   csystem  node3  "3;  -1; 1; 1;   1; 1; 0"
+   csystem  node4  "4;  -1; 1;-1;   1; 1; 0"
+   csystem  node5  "5;   1;-1; 1;  -1;-1; 0"
+   csystem  node6  "6;   1;-1;-1;  -1;-1; 0"
+   csystem  node7  "7;   1; 1; 1;  -1; 1; 0"
+   csystem  node8  "8;   1; 1;-1;  -1; 1; 0"
+
+# rotate and translate box
+rotatez   30  0  0
+translate  1  0  0
+scale     0.5
+
+# add cones normal to each Face
+cone      +.4  0  0  -.2  0  0  0.1
+applycsys face1
+union
+
+cone      +.4  0  0  -.2  0  0  0.1
+applycsys face2
+union
+
+cone      +.4  0  0  -.2  0  0  0.1
+applycsys face3
+union
+
+cone      +.4  0  0  -.2  0  0  0.1
+applycsys face4
+union
+
+cone      +.4  0  0  -.2  0  0  0.1
+applycsys face5
+union
+
+cone      +.4  0  0  -.2  0  0  0.1
+applycsys face6
+union
+
+# add cones in the dir2 direction for each Edge
+cone      0  +.4  0  0  -.2  0  0.1
+applycsys edge01
+union
+
+cone      0  +.4  0  0  -.2  0  0.1
+applycsys edge02
+union
+
+cone      0  +.4  0  0  -.2  0  0.1
+applycsys edge03
+union
+
+cone      0  +.4  0  0  -.2  0  0.1
+applycsys edge04
+union
+
+cone      0  +.4  0  0  -.2  0  0.1
+applycsys edge05
+union
+
+cone      0  +.4  0  0  -.2  0  0.1
+applycsys edge06
+union
+
+cone      0  +.4  0  0  -.2  0  0.1
+applycsys edge07
+union
+
+cone      0  +.4  0  0  -.2  0  0.1
+applycsys edge08
+union
+
+cone      0  +.4  0  0  -.2  0  0.1
+applycsys edge09
+union
+
+cone      0  +.4  0  0  -.2  0  0.1
+applycsys edge10
+union
+
+cone      0  +.4  0  0  -.2  0  0.1
+applycsys edge11
+union
+
+cone      0  +.4  0  0  -.2  0  0.1
+applycsys edge12
+union
+
+# add cones diagonally out from each Node
+cone      +.4  0  0  -.2  0  0  0.1
+applycsys node1
+union
+
+cone      +.4  0  0  -.2  0  0  0.1
+applycsys node2
+union
+
+cone      +.4  0  0  -.2  0  0  0.1
+applycsys node3
+union
+
+cone      +.4  0  0  -.2  0  0  0.1
+applycsys node4
+union
+
+cone      +.4  0  0  -.2  0  0  0.1
+applycsys node5
+union
+
+cone      +.4  0  0  -.2  0  0  0.1
+applycsys node6
+union
+
+cone      +.4  0  0  -.2  0  0  0.1
+applycsys node7
+union
+
+cone      +.4  0  0  -.2  0  0  0.1
+applycsys node8
+union
+
+end

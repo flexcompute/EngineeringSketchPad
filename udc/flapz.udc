@@ -1,0 +1,148 @@
+# flapz
+#    cut flap in z direction into body on stack
+# written by John Dannenhoffer
+
+interface xflap      in  0
+interface yflap      in  0
+interface theta      in  15
+interface gap        in  0.01
+interface openEnd    in  0
+interface faceList1c dim 3
+interface faceList2c dim 3
+
+# make sure that xflap and yflap both contain 4 numbers
+assert    ifzero(xflap.size-4,1,0)  1
+assert    ifzero(yflap.size-4,1,0)  1
+
+# make sure that xflap and yflap traverse in correct direction
+assert    ifpos(xflap[1]-xflap[2],1,0)  1
+assert    ifpos(yflap[2]-yflap[3],1,0)  1
+assert    ifpos(xflap[3]-xflap[4],0,1)  1
+
+# find the z bounding box of the (wing) body
+select    body
+set       zmin      @zmin
+set       zmax      @zmax
+
+# flap 999 is original body
+store     flap 999
+
+# find the z bounding box of the body
+restore   flap 999
+store     flap 999
+set       zmin      @zmin
+set       zmax      @zmax
+
+# points 1p, 2p, 3p, and 4p are the cutout which is
+#    gap bigger than the flap (defined by xflap and yflap)
+set       ds        sqrt((xflap[1]-xflap[4])^2+(yflap[1]-yflap[4])^2)
+set       x1p       xflap[1]+(xflap[1]-xflap[4])*gap/ds
+set       y1p       yflap[1]+(yflap[1]-yflap[4])*gap/ds
+set       x4p       xflap[4]+(xflap[4]-xflap[1])*gap/ds
+set       y4p       yflap[4]+(yflap[4]-yflap[1])*gap/ds
+
+set       ds        sqrt((xflap[2]-xflap[3])^2+(yflap[2]-yflap[3])^2)
+set       x2pp      xflap[2]+(xflap[2]-xflap[3])*gap/ds
+set       y2pp      yflap[2]+(yflap[2]-yflap[3])*gap/ds
+set       x3pp      xflap[3]+(xflap[3]-xflap[2])*gap/ds
+set       y3pp      yflap[3]+(yflap[3]-yflap[2])*gap/ds
+
+set       ds        sqrt((x2pp-x1p)^2+(y2pp-y1p)^2)
+set       x2p       x2pp+(x2pp-x1p)*gap/ds
+set       y2p       y2pp+(y2pp-y1p)*gap/ds
+
+set       ds        sqrt((x3pp-x4p)^2+(y3pp-y4p)^2)
+set       x3p       x3pp+(x3pp-x4p)*gap/ds
+set       y3p       y3pp+(y3pp-y4p)*gap/ds
+
+# find heights at points 2 and 3 (at corners of flap)
+restore   flap   999
+project   xflap[2]  yflap[2]  zmax+1  0.0  0.0 -1.0
+set       z2max  @zcg
+project   xflap[2]  yflap[2]  zmin-1  0.0  0.0  1.0
+set       z2min  @zcg
+project   xflap[3]  yflap[3]  zmax+1  0.0  0.0 -1.0
+set       z3max  @zcg
+project   xflap[3]  yflap[3]  zmin-1  0.0  0.0  1.0
+set       z3min  @zcg
+
+set       dzpivot  min(z2max-z2min,z3max-z3min)/2
+
+# cutout in wing (which is bigger than the flap)
+skbeg     x1p  y1p  zmin-1
+   linseg x2p  y2p  zmin-1
+   linseg x3p  y3p  zmin-1
+   linseg x4p  y4p  zmin-1
+   linseg x1p  y1p  zmin-1
+skend
+extrude   0.0    0.0     zmax-zmin+2
+set       wing_cutout  @nbody
+
+# wing with cutout for flap
+subtract
+
+select    face            wing_cutout  5
+set       faceList1c[1,1] @iface
+select    face            wing_cutout  4
+set       faceList1c[1,2] @iface
+set       faceList1o      @iface
+select    face            wing_cutout  3
+set       faceList1c[1,3] @iface
+
+store     flap   998
+
+# coutout for flap
+restore   flap   999
+
+skbeg     xflap[1]  yflap[1]  zmin-1
+   linseg xflap[2]  yflap[2]  zmin-1
+   linseg xflap[3]  yflap[3]  zmin-1
+   linseg xflap[4]  yflap[4]  zmin-1
+   linseg xflap[1]  yflap[1]  zmin-1
+skend
+extrude   0.0    0.0     zmax-zmin+2
+set       flap_cutout  @nbody
+
+# flap
+intersect
+
+select    face            flap_cutout  5
+set       faceList2c[1,1] @iface
+select    face            flap_cutout  4
+set       faceList2c[1,2] @iface
+set       faceList2o      @iface
+select    face            flap_cutout  3
+set       faceList2c[1,3] @iface
+
+store     flap   997
+
+# union wing and rotated flap
+restore   flap   998
+restore   flap   997
+
+ifthen theta gt 0
+   udparg    $$/gen_rot xbeg     xflap[3]
+   udparg    $$/gen_rot ybeg     yflap[3]
+   udparg    $$/gen_rot zbeg     z3max-dzpivot
+   udparg    $$/gen_rot xend     xflap[2]
+   udparg    $$/gen_rot yend     yflap[2]
+   udparg    $$/gen_rot zend     z2max-dzpivot
+   udprim    $$/gen_rot rotang   theta
+else
+   udparg    $$/gen_rot xbeg     xflap[3]
+   udparg    $$/gen_rot ybeg     yflap[3]
+   udparg    $$/gen_rot zbeg     z3min+dzpivot
+   udparg    $$/gen_rot xend     xflap[2]
+   udparg    $$/gen_rot yend     yflap[2]
+   udparg    $$/gen_rot zend     z2min+dzpivot
+   udprim    $$/gen_rot rotang   theta
+endif
+
+# connect the flap to the wing
+ifthen openEnd gt 0
+   connect   faceList1o faceList2o
+else
+   connect   faceList1c faceList2c
+endif
+
+end

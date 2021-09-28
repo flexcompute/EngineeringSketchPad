@@ -1,0 +1,26 @@
+# assembly3
+# written by John Dannenhoffer
+
+DESPMTR   len       10
+DESPMTR   diam      1
+
+# cylinder
+UDPARG    $/assembly_cylinder    diameter  diam
+UDPARG    $/assembly_cylinder    length    len
+UDPRIM    $/assembly_cylinder
+
+# hemisphere at len
+UDPARG    $/assembly_hemisphere  diameter  diam
+UDPRIM    $/assembly_hemisphere
+
+TRANSLATE len  0  0
+JOIN
+
+# hemisphere at 0
+UDPARG    $/assembly_hemisphere  diameter  diam
+UDPARG    $/assembly_hemisphere  side      -1
+UDPRIM    $/assembly_hemisphere
+
+JOIN
+
+END

@@ -1,0 +1,63 @@
+# intersectAll
+# written by John Dannenhoffer
+
+patbeg ileft 3
+   patbeg irite 3
+      mark
+    
+      # ileft is a SolidBody
+      ifthen ileft eq 1
+         box  0  0  0  2  2  2
+
+      # ileft is a SheetBody
+      elseif ileft eq 2
+         skbeg     0  1  0
+            linseg 2  1  0
+            linseg 2  1  2
+            linseg 0  1  2
+            linseg 0  1  0
+         skend
+
+      # ileft is a WireBody
+      else
+         skbeg     -.5  1  1
+            linseg 2.5  1  1
+         skend
+      endif
+
+      # irite is a SolidBody
+      ifthen irite eq 1
+         box  1 -.5  1 2  3  2
+
+      # irite is a SheetBody (extruded square)
+      elseif irite eq 2
+         skbeg     1 -.5  1
+            linseg 3 -.5  1
+            linseg 3 -.5  3
+            linseg 1 -.5  3
+            linseg 1 -.5  1
+         skend     1
+         extrude   0  3  0
+
+      # irite is a WireBody
+      else
+         skbeg     1 -.5 1
+            linseg 1 2.5 1
+         skend
+      endif
+
+      # intersect the Bodys
+      intersect
+
+      # if an error, group the Bodys instead
+      catbeg    $wrong_types_on_stack
+         group
+      catend
+
+      # translate the resulting Body or Group
+      translate  4*ileft-8  8-4*irite  0
+
+   patend
+patend
+
+end

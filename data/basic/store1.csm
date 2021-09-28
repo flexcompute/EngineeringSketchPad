@@ -1,0 +1,15 @@
+# store1
+# written by John Dannenhoffer
+
+# make box
+box       0  0  0  1  1  1
+store     myBox  0  1
+
+cylinder  0.5  0.5  0.5  2.5  0.5  0.5  0.25
+union
+
+restore   myBox
+translate 2  0  0
+union
+
+end

@@ -1,0 +1,78 @@
+# cart3d_demo
+
+# optimization problem:
+#    minimize:    drag
+#    by varying:  thick[1:6],camber[1:6],twist[1:6],aspect,taper,sweep
+#    subject to:  fixed lift
+
+# design parameters
+set       nsect     6
+
+dimension thick     1 6 1
+despmtr   thick     "0.14; 0.12; 0.10; 0.08; 0.06; 0.04;"
+
+dimension camber    1 6 1
+despmtr   camber    "0.04; 0.04; 0.03; 0.02; 0.01; 0.00;"
+
+dimension twist     1 6 1
+despmtr   twist     "0.00; 0.00; 0.00; 0.00; 2.50; 5.00;"
+
+despmtr   area      10.0
+despmtr   aspect    6.00
+despmtr   taper     0.60
+despmtr   sweep     20.0      deg (of c/4)
+
+despmtr   tipfac    4.0
+
+# internal parameters
+set       span      sqrt(aspect*area)
+set       croot     2*area/span/(1+taper)
+set       ctip      croot*taper
+set       dxtip     (croot-ctip)/4+span/2*tand(sweep)
+
+# equal spacing for LE/TE for quadding
+despmtr   nPts 35
+dimension rPos 1 nPts 0
+
+patbeg i nPts
+  set rPos[1,i] i/(nPts+1)
+patend
+
+dimension tparamsRoot   1  3  0
+set       tparamsRoot   "0.04; 0.005; 15.0;"
+
+dimension tparamsTip    1  3  0
+set       tparamsTip    "0.02; 0.005; 15.0;"
+set       tparamsTip[1,1] tparamsRoot[1,1]*ctip/croot
+
+##### wing
+
+mark
+   patbeg    isect     nsect
+      set       frac      (isect-1)/(nsect-1)
+      set       chord     croot+(ctip-croot)*frac
+      set       dx        dxtip*frac
+      set       dy        span/2*frac
+      udprim    naca      Thickness  thick[isect]\
+                          Camber     camber[isect]\
+                          sharpte    1
+      scale     chord
+      rotatex   90            0.0      0.0
+      rotatey   twist[isect]  chord/2  0.0
+      translate dx            dy       0.0
+   patend
+blend  0  -1;tipfac
+
+# leading edge spacing
+select    edge  2
+   attribute    .rPos  rPos
+select    edge  4
+   attribute    .rPos  rPos
+
+# tip/root spacing
+select    face 3
+   attribute    .tParams  tparamsRoot
+select    face 4
+   attribute    .tParams  tparamsTip
+
+end

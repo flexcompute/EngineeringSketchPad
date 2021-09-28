@@ -1,0 +1,25 @@
+# helix2
+# written by John Dannenhoffer
+
+DESPMTR   rad       1.0   # radius of helix
+DESPMTR   pitch     0.5   # pitch
+CFGPMTR   nturn     2.5   # number of turns
+CFGPMTR   toler     0.01  # fitting tolerance
+
+# set up inputs for eqn2body.udc
+DIMENSION urange      1 2
+DIMENSION vrange      1 2
+SET       urange      0;pi(2)*nturn
+SET       vrange      0;0
+
+SET       xeqn        $rad*cos(u')
+SET       yeqn        $rad*sin(u')
+SET       zeqn        $pitch*u/pi(2')
+
+# call the include-type UDC
+UDPRIM    $/eqn2body
+
+MESSAGE   !$nu_____=_+val2str(nu,0)
+MESSAGE   !$errrms_=_+val2str(errrms,4)
+
+END

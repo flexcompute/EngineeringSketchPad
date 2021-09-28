@@ -1,0 +1,18 @@
+# rule5
+# written by John Dannenhoffer
+
+mark
+
+udprim    box       dz        1         dx        1
+
+udprim    box       dz        1         dx        1/cosd(22.5)
+rotatez   -22.5     0.00      0.00
+translate 0.00      5.00      0.00
+
+udprim    box       dz        1         dx        1
+rotatez   -45.0     0.00      0.00
+translate 5.0/sqrt(2)  5.0+5.0/sqrt(2)  0.0
+
+rule
+
+end

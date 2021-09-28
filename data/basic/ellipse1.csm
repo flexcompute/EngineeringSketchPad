@@ -1,0 +1,68 @@
+# ellipse1
+# written by John Dannenhoffer
+
+UDPRIM    ellipse   rx  0.5   ry  2.0
+TRANSLATE -4  0  0
+EXTRUDE    0  0  1
+
+UDPRIM    ellipse   rx  0.5   ry  2.0   nedge  2
+TRANSLATE -2  0  0
+EXTRUDE    0  0  1
+
+UDPRIM    ellipse   rx  0.5   ry  2.0   nedge  3
+TRANSLATE  0  0  0
+EXTRUDE    0  0  1
+
+UDPRIM    ellipse   rx  0.5   ry  2.0   nedge  4
+TRANSLATE  2  0  0
+EXTRUDE    0  0  1
+
+UDPRIM    ellipse   rx  0.5   ry  2.0   nedge  5
+TRANSLATE  4  0  0
+EXTRUDE    0  0  1
+
+UDPRIM    ellipse   rx  0.5   ry  2.0              thbeg  pi(1/6)
+TRANSLATE -4  5  0
+EXTRUDE    0  0  1
+
+UDPRIM    ellipse   rx  0.5   ry  2.0   nedge  2   thbeg  pi(1/6)
+TRANSLATE -2  5  0
+EXTRUDE    0  0  1
+
+UDPRIM    ellipse   rx  0.5   ry  2.0   nedge  3   thbeg  pi(1/6)
+TRANSLATE  0  5  0
+EXTRUDE    0  0  1
+
+UDPRIM    ellipse   rx  0.5   ry  2.0   nedge  4   thbeg  pi(1/6)
+TRANSLATE  2  5  0
+EXTRUDE    0  0  1
+
+UDPRIM    ellipse   rx  0.5   ry  2.0   nedge  5   thbeg  pi(1/6)
+TRANSLATE  4  5  0
+EXTRUDE    0  0  1
+
+UDPRIM    ellipse   rx  0.5   ry  2.0              thbeg  pi(-1/6)
+TRANSLATE -4 -5  0
+EXTRUDE    0  0  1
+
+UDPRIM    ellipse   rx  0.5   ry  2.0   nedge  2   thbeg  pi(-1/6)
+TRANSLATE -2 -5  0
+EXTRUDE    0  0  1
+
+UDPRIM    ellipse   rx  0.5   ry  2.0   nedge  3   thbeg  pi(-1/6)
+TRANSLATE  0 -5  0
+EXTRUDE    0  0  1
+
+UDPRIM    ellipse   rx  0.5   ry  2.0   nedge  4   thbeg  pi(-1/6)
+TRANSLATE  2 -5  0
+EXTRUDE    0  0  1
+
+UDPRIM    ellipse   rx  0.5   ry  2.0   nedge  5   thbeg  pi(-1/6)
+TRANSLATE  4 -5  0
+EXTRUDE    0  0  1
+
+END
+
+
+
+

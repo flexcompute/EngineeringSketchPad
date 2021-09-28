@@ -1,0 +1,64 @@
+# popupz
+#    add popup in z direction to body on stack
+# written by John Dannenhoffer
+
+interface xbox      in  0
+interface ybox      in  0
+interface height    in  1
+
+# make sure that xbox and ybox contain 4 doubles
+assert    ifzero(xbox.size-4,1,0)  1
+assert    ifzero(ybox.size-4,1,0)  1
+
+# find the z bounding box of the body
+select    body
+set       zmin      @zmin
+set       zmax      @zmax
+
+# find z-height at corners of quadrilateral
+ifthen    height GT 0
+   project   xbox[1]  ybox[1]  zmax+1  0  0  -1
+   set       z1  @zcg
+   project   xbox[2]  ybox[2]  zmax+1  0  0  -1
+   set       z2  @zcg
+   project   xbox[3]  ybox[3]  zmax+1  0  0  -1
+   set       z3  @zcg
+   project   xbox[4]  ybox[4]  zmax+1  0  0  -1
+   set       z4  @zcg
+else
+   project   xbox[1]  ybox[1]  zmin-1  0  0  +1
+   set       z1  @zcg
+   project   xbox[2]  ybox[2]  zmin-1  0  0  +1
+   set       z2  @zcg
+   project   xbox[3]  ybox[3]  zmin-1  0  0  +1
+   set       z3  @zcg
+   project   xbox[4]  ybox[4]  zmin-1  0  0  +1
+   set       z4  @zcg
+endif
+
+set       zmin    min(min(z1,z2),min(z3,z4))
+set       zmax    max(max(z1,z2),max(z3,z4))
+
+# scribe popup onto original body
+skbeg     xbox[1]  ybox[1]  zmin-0.001
+   linseg xbox[2]  ybox[2]  zmin-0.001
+   linseg xbox[3]  ybox[3]  zmin-0.001
+   linseg xbox[4]  ybox[4]  zmin-0.001
+   linseg xbox[1]  ybox[1]  zmin-0.001
+skend 1
+extrude   0  0  zmax-zmin+0.002
+subtract
+store     popup 999
+
+restore   popup 999
+project   xbox.sum/4  ybox.sum/4  zmax+1  0  0  -1
+extract   @iface
+
+# build the popup
+extrude   0  0  height
+
+# combine it with original body
+restore   popup 999
+join
+
+end

@@ -1,0 +1,184 @@
+# waffle6b
+# written by John Dannenhoffer
+
+# definition of planform
+DESPMTR   x0LE       0.00000
+DESPMTR   x0TE      23.77261
+DESPMTR   y0         0.00000
+
+DESPMTR   x1LE       1.14707
+DESPMTR   x1TE      23.27506
+DESPMTR   y1         1.36702
+
+DESPMTR   x2LE      16.45245
+DESPMTR   x2TE      21.78239
+DESPMTR   y2         5.46809
+
+DESPMTR   x3LE      23.33486
+DESPMTR   x3TE      24.66734
+DESPMTR   y3        13.67022
+
+# leading and trailing edges
+SKBEG     x0LE  y0  0
+   LINSEG x1LE  y1  0
+   LINSEG x2LE  y2  0
+   LINSEG x3LE  y3  0
+SKEND
+
+SKBEG     x0TE  y0  0
+   LINSEG x1TE  y1  0
+   LINSEG x2TE  y2  0
+   LINSEG x3TE  y3  0
+SKEND
+
+SET       halo        0.5       # size of halo
+SET       fwdSparFrac 0.2       # fraction of chord for fwd spar in outboard section
+SET       aftSparFrac 0.7       # fraction of chord for aft spar in outboard section
+
+SET       nSpar       2         # number of spars in outboard section (excl fwd and aft)
+SET       nMidRib     2         # number of ribs  in mid      section (excl st2 and st3)
+SET       nOutRib     4         # number of ribs  in outboard section (excl st3)
+SET       nFrame      3         # number of frames between each mid-section rib
+
+UDPRIM    waffle    depth  1.0   filename <<
+
+   # construction lines at leading and trailing edges
+   CPOINT  LE0   AT   x0LE  y0
+   CPOINT  LE1   AT   x1LE  y1
+   CPOINT  LE2   AT   x2LE  y2
+   CPOINT  LE3   AT   x3LE  y3
+   CLINE   LE01  LE0  LE1
+   CLINE   LE12  LE1  LE2
+   CLINE   LE23  LE2  LE3
+
+   CPOINT  TE0   AT   x0TE  y0
+   CPOINT  TE1   AT   x1TE  y1
+   CPOINT  TE2   AT   x2TE  y2
+   CPOINT  TE3   AT   x3TE  y3
+   CLINE   TE01  TE0  TE1
+   CLINE   TE12  TE1  TE2
+   CLINE   TE23  TE2  TE3
+
+   # ribs at break
+   POINT   A     AT   x@LE1-halo  y@LE1
+   POINT   B     AT   x@TE1+halo  y@TE1
+   LINE    R1    A    B    myName=rib1
+
+   POINT   A     AT   x@LE2-halo  y@LE2
+   POINT   B     AT   x@TE2+halo  y@TE2
+   LINE    R2    A    B    nyName=rib2
+
+   # construction lines for halo
+   CPOINT  A     OFF  LE01  +halo  LE0
+   CPOINT  B     OFF  LE01  +halo  LE1
+   CLINE   HL01  A    B
+
+   CPOINT  A     OFF  LE12  +halo  LE1
+   CPOINT  B     OFF  LE12  +halo  LE2
+   CLINE   HL12  A    B
+
+   CPOINT  A     OFF  LE23  +halo  LE2
+   CPOINT  B     OFF  LE23  +halo  LE3
+   CLINE   HL23  A    B
+
+   CPOINT  A     OFF  TE01  -halo  TE0
+   CPOINT  B     OFF  TE01  -halo  TE1
+   CLINE   HT01  A    B
+
+   CPOINT  A     OFF  TE12  -halo  TE1
+   CPOINT  B     OFF  TE12  -halo  TE2
+   CLINE   HT12  A    B
+
+   CPOINT  A     OFF  TE23  -halo  TE2
+   CPOINT  B     OFF  TE23  -halo  TE3
+   CLINE   HT23  A    B
+
+   CPOINT  A     AT   x0LE-halo  y0-halo
+   CPOINT  B     AT   x0TE+halo  y0-halo
+   CLINE   Hroot A    B
+
+   CPOINT  A     AT   x3LE-halo  y3+halo
+   CPOINT  B     AT   x3TE+halo  y3+halo
+   CLINE   Htip  A    B
+
+   # forward (kick)-spars
+   POINT   F2    ON   R2   FRAC  fwdSparFrac
+   POINT   F1    AT   x@LE1+(x@F2-x@LE2)  y@LE1
+   CPOINT  tmp1  AT   x@LE0+(x@F2-x@LE2)  y@LE0
+   CLINE   tmp2  F1   tmp1
+   POINT   F0    ON   Hroot  XSECT  tmp2
+
+   CLINE   tmp1  LE3  TE3
+   CPOINT  tmp2  ON   tmp1  FRAC  fwdSparFrac
+   CLINE   tmp3  F2   tmp2
+   POINT   F3    ON   tmp3  XSECT  Htip
+
+   LINE    SF01  F0   F1  myName=inFwdSpar
+   LINE    SF12  F1   F2  myName=midFwdSpar
+   LINE    SF23  F2   F3  myName=outFwdSpar
+
+   # aft spars
+   POINT   R2    ON   R2  FRAC  aftSparFrac
+   POINT   R1    AT   x@TE1+(x@R2-x@TE2)  y@LE1
+   CPOINT  tmp1  AT   x@TE0+(x@R2-x@TE2)  y@LE0
+   CLINE   tmp2  R1   tmp1
+   POINT   R0    ON    Hroot  XSECT  tmp2
+
+   CLINE   tmp1  LE3  TE3
+   CPOINT  tmp2  ON   tmp1  FRAC  aftSparFrac
+   CLINE   tmp3  R2   tmp2
+   POINT   R3    ON   tmp3  XSECT  Htip
+
+   LINE    SR01  R0  R1  myName=inAftSpar
+   LINE    SR12  R1  R2  myName=midAftSpar
+   LINE    SR23  R2  R3  myName=outAftSpar
+
+   # carry-through from F2 and R2
+   POINT   tmp1  ON  Hroot  XLOC  x@F2
+   LINE    .     F2  tmp1   myName=fwdCarry
+
+   POINT   tmp1  ON  Hroot  XLOC  x@R2
+   LINE    .     R2  tmp1   myName=aftCarry
+
+   # outboard spars and carry through
+   PATBEG  i  nSpar
+      POINT   A     AT  x@F2+i/(nSpar+1)*(x@R2-x@F2)  y@F2+i/(nSpar+1)*(y@R2-y@F2)
+      POINT   B     ON  Hroot  XLOC  x@A
+      POINT   D     AT  x@F3+i/(nSpar+1)*(x@R3-x@F3)  y@F3+i/(nSpar+1)*(y@R3-y@F3)
+      CLINE   tmp1  A   D
+      POINT   C     on  Htip   XSECT  tmp1
+      LINE    .     A   B      myName=carry
+      LINE    .     A   C      myName=spar  myIndex=!val2str(i,0)
+   PATEND
+
+   # outboard ribs
+   PATBEG  i  nOutRib
+      POINT  A  ON  HL23  YLOC  y@LE2+i/(nOutRib+1)*(y@LE3-y@LE2)
+      POINT  B  ON  HT23  YLOC  y@A
+      LINE   .  A   B     myName=rib
+   PATEND
+
+   # mid ribs, carry through, supports
+   PATBEG  i  nMidRib
+      POINT  A  ON  SF12  FRAC  i/(nMidRib+1)
+      POINT  B  ON  Hroot XLOC  x@A
+      POINT  C  ON  HT12  YLOC  y@A
+      POINT  D  ON  HL12  PERP  A
+      LINE   .  A   B     myName=carry
+      LINE   .  A   C     myName=rib
+      LINE   .  A   D     myName=support
+   PATEND
+
+   # frames and suppports
+   PATBEG   i  nMidRib+1
+      PATBEG  j  nFrame
+         POINT  A  ON  SF12  FRAC  ((i-1)*(nFrame+1)+j)/((nMidRib+1)*(nFrame+1))
+         POINT  B  ON  Hroot XLOC  x@A
+         POINT  D  ON  HL12  PERP  A
+         LINE   .  A   B     myName=bulkhead
+         LINE   .  A   D     myName=support
+      PATEND
+   PATEND
+>>
+
+end

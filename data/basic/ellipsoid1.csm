@@ -1,0 +1,10 @@
+# ellipsoid1
+# written by John Dannenhoffer
+
+despmtr   rx  1.0
+despmtr   ry  2.0
+
+udprim    ellipse   rx rx   ry ry
+revolve   0  -ry  0  0  1  0  180
+
+end

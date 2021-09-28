@@ -1,0 +1,10 @@
+# udcTest3c
+# written by John Dannenhoffer
+
+INTERFACE .   all
+
+SET       A   A+1
+SET       B   B+1
+SET       C   A+2*B
+
+END

@@ -1,0 +1,32 @@
+# catmull2
+# written by John Dannenhoffer
+
+# basic shape
+BOX       -2.0  1.0  0.0  1.0  1.0  1.0
+BOX       -1.0  1.0  0.0  1.0  1.0  1.0
+UNION
+BOX       -2.0  2.0  0.0  1.0  1.0  1.0
+UNION
+STORE     BasicShape
+
+# original shape
+RESTORE   BasicShape
+UDPRIM    catmull   nsubdiv 0
+TRANSLATE -2.0  +2.0  0.0
+
+# one subdivision
+RESTORE   BasicShape
+UDPRIM    catmull
+TRANSLATE +2.0  +2.0  0.0
+
+# two subdivisions
+RESTORE   BasicShape
+UDPRIM    catmull   nsubdiv 2
+TRANSLATE -2.0  -2.0  0.0
+
+# three subdivisions
+RESTORE   BasicShape
+UDPRIM    catmull   nsubdiv 3
+TRANSLATE +2.0  -2.0  0.0
+
+end

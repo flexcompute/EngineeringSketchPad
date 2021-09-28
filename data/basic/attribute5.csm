@@ -1,0 +1,92 @@
+# attribute5
+# written by John Dannenhoffer
+
+# box
+box      -1 -1 -1   2  2  2
+    attribute myArea  @area
+    attribute myVol   @volume
+    attribute myXcg   @xcg
+    attribute myYcg   @ycg
+    attribute myZcg   @zcg
+store     box
+
+# cylinder
+cylinder -1  0  0   1  0  0  0.5
+    attribute myArea  @area
+    attribute myVol   @volume
+    attribute myXcg   @xcg
+    attribute myYcg   @ycg
+    attribute myZcg   @zcg
+store     cylinder
+
+# cone
+cone     -1  0  0   1  0  0  0.5
+    attribute myArea  @area
+    attribute myVol   @volume
+    attribute myXcg   @xcg
+    attribute myYcg   @ycg
+    attribute myZcg   @zcg
+store     cone
+
+# sphere
+sphere    0  1  1   0.5
+    attribute myArea  @area
+    attribute myVol   @volume
+    attribute myXcg   @xcg
+    attribute myYcg   @ycg
+    attribute myZcg   @zcg
+store     sphere
+
+# get Bodys back and test
+restore   box
+scale     2
+    getattr  myArea  $myArea
+    assert   myArea  @area/4
+    getattr  myVol   $myVol
+    assert   myVol   @volume/8
+    getattr  myXcg   $myXcg
+    assert   myXcg   @xcg
+    getattr  myYcg   $myYcg
+    assert   myYcg   @ycg
+    getattr  myZcg   $myZcg
+    assert   myZcg   @zcg
+
+restore   cylinder
+translate 1  0  0
+    getattr  myArea  $myArea
+    assert   myArea  @area
+    getattr  myVol   $myVol
+    assert   myVol   @volume
+    getattr  myXcg   $myXcg
+    assert   myXcg   @xcg-1
+    getattr  myYcg   $myYcg
+    assert   myYcg   @ycg
+    getattr  myZcg   $myZcg
+    assert   myZcg   @zcg
+
+restore   cone
+rotatez   90  0  0
+    getattr  myArea  $myArea
+    assert   myArea  @area
+    getattr  myVol   $myVol
+    assert   myVol   @volume
+    getattr  myXcg   $myXcg
+    assert   myXcg   @ycg
+    getattr  myYcg   $myYcg
+    assert   myYcg   -@xcg
+    getattr  myZcg   $myZcg
+    assert   myZcg   @zcg
+
+restore   sphere
+    getattr  myArea  $myArea
+    assert   myArea  @area
+    getattr  myVol   $myVol
+    assert   myVol   @volume
+    getattr  myXcg   $myXcg
+    assert   myXcg   @xcg
+    getattr  myYcg   $myYcg
+    assert   myYcg   @ycg
+    getattr  myZcg   $myZcg
+    assert   myZcg   @zcg
+
+end

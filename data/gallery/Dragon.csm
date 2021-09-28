@@ -1,0 +1,137 @@
+# Dragon.csm
+# written by Jake Boyce
+
+# Design Parameters:
+despmtr   HeatShieldCurve       0.25000
+despmtr   HeatShieldSlope       5.00000
+despmtr   HeatShieldDepth       0.30000
+despmtr   HatchFillet       0.02000
+despmtr   Dracorad       0.10000
+dimension Draco   14   7   1
+despmtr   Draco[1,:]   "     1.35000;    -2.20000;    -1.00000;     1.70000;    -1.00000;    -1.20000;     0.10000;"
+despmtr   Draco[2,:]   "     0.80000;    -2.20000;    -1.50000;     1.10000;    -1.00000;    -1.80000;     0.10000;"
+despmtr   Draco[3,:]   "     1.40000;    -2.20000;    -0.80000;     1.70000;    -2.20000;    -0.90000;     0.10000;"
+despmtr   Draco[4,:]   "     1.00000;    -2.20000;    -1.30000;     1.30000;    -2.20000;    -1.70000;     0.10000;"
+despmtr   Draco[5,:]   "     1.00000;    -2.20000;     1.30000;     1.30000;    -1.00000;     1.70000;     0.10000;"
+despmtr   Draco[6,:]   "     0.60000;    -2.20000;     1.00000;     1.00000;    -2.20000;     2.00000;     0.10000;"
+despmtr   Draco[7,:]   "     1.20000;    -2.20000;     0.70000;     2.40000;    -2.20000;     1.70000;     0.10000;"
+despmtr   Draco[8,:]   "    -1.00000;    -2.20000;    -1.35000;    -1.30000;    -1.00000;    -1.70000;     0.10000;"
+despmtr   Draco[9,:]   "    -1.20000;    -2.20000;    -0.70000;    -1.70000;    -2.20000;    -1.10000;     0.10000;"
+despmtr   Draco[10,:]   "    -0.80000;    -2.20000;    -1.50000;    -1.20000;    -2.20000;    -2.20000;     0.10000;"
+despmtr   Draco[11,:]   "    -1.30000;    -2.15000;     1.05000;    -1.60000;    -1.00000;     1.30000;     0.10000;"
+despmtr   Draco[12,:]   "    -0.75000;    -2.15000;     1.50000;    -1.00000;    -1.00000;     1.80000;     0.10000;"
+despmtr   Draco[13,:]   "    -1.20000;    -2.20000;     0.70000;    -1.70000;    -2.20000;     1.10000;     0.10000;"
+despmtr   Draco[14,:]   "    -1.00000;    -2.20000;     1.40000;    -1.20000;    -2.20000;     1.90000;     0.10000;"
+
+# Local Variables:
+
+# Global attributes:
+
+# Branches:
+skbeg     0   0   0   1
+name      Main_Capsule
+   skvar     xy  -0.003802;0.007539;0.000000;-0.003802;-3.247595;0.000000;1.774212;-2.919346;0.082062;1.901864;-2.563743;0.082062;1.874510;-2.518153;0.000000;1.354783;-0.585133;0.000000;1.245367;-0.585133;0.000000;1.044770;-0.320710;0.000000;1.044770;0.007539;0.000000;
+   skcon     X   1   -1  0
+   skcon     Y   1   -1  0
+   skcon     V   1   2  0
+   skcon     H   6   7  0
+   skcon     V   8   9  0
+   skcon     H   9   1  0
+   skcon     L   1   2  2.95+HeatShieldDepth
+   skcon     P   2   -1  0
+   skcon     R   2   3  HeatShieldSlope
+   skcon     R   3   4  HeatShieldCurve
+   skcon     T   3   -1  0
+   skcon     T   4   -1  0
+   skcon     I   4   5  120
+   skcon     I   5   6  105
+   skcon     L   5   6  2
+   skcon     L   6   7  0.328/3
+   skcon     L   7   8  0.328
+   skcon     L   8   9  0.328
+   skcon     L   9   1  1.05
+   skcon     I   7   8  128.0470425318261
+   linseg    ::x[2]   ::y[2]   0
+   arc       ::x[3]   ::y[3]   0   ::d[3]   xy
+   arc       ::x[4]   ::y[4]   0   ::d[4]   xy
+   linseg    ::x[5]   ::y[5]   0
+   linseg    ::x[6]   ::y[6]   0
+   linseg    ::x[7]   ::y[7]   0
+   linseg    ::x[8]   ::y[8]   0
+   linseg    ::x[9]   ::y[9]   0
+   linseg    ::x[1]   ::y[1]   0
+skend     0
+revolve   0   0   0   0   1   0   360
+cylinder  0   0   0   0   -0.328   0   0.95
+subtract  none   1   0
+skbeg     0   0   0   1
+   skvar     xy  0.000000;0.005000;0.000000;-0.330000;0.005000;0.000000;-0.370000;-0.695000;0.000000;0.360000;-0.695000;0.000000;0.330000;0.005000;0.000000;
+   skcon     X   1   -1  0
+   skcon     Y   1   -1  0
+   skcon     H   1   2  0
+   skcon     H   5   1  0
+   skcon     L   1   2  0.33
+   skcon     L   2   3  0.7
+   skcon     L   3   4  0.73
+   skcon     L   5   1  0.33
+   skcon     L   4   5  0.7
+   skcon     H   3   4  0
+   linseg    ::x[2]   ::y[2]   0
+   linseg    ::x[3]   ::y[3]   0
+   linseg    ::x[4]   ::y[4]   0
+   linseg    ::x[5]   ::y[5]   0
+   linseg    ::x[1]   ::y[1]   0
+skend     0
+extrude   0   0   0.26
+fillet    HatchFillet   0
+rotatey   90   0   0
+rotatez   -15   0   0
+translate -1.48   -1   0
+union     0   0   0
+skbeg     0   0   0   1
+   skvar     xy  0.000000;0.005000;0.000000;-0.430000;0.005000;0.000000;-0.430000;-0.395000;0.000000;0.430000;-0.395000;0.000000;0.430000;0.005000;0.000000;
+   skcon     X   1   -1  0
+   skcon     Y   1   -1  0
+   skcon     H   1   2  0
+   skcon     V   2   3  0
+   skcon     H   3   4  0
+   skcon     V   4   5  0
+   skcon     H   5   1  0
+   skcon     L   1   2  0.43
+   skcon     L   5   1  0.43
+   skcon     L   2   3  0.4
+   linseg    ::x[2]   ::y[2]   0
+   linseg    ::x[3]   ::y[3]   0
+   linseg    ::x[4]   ::y[4]   0
+   linseg    ::x[5]   ::y[5]   0
+   linseg    ::x[1]   ::y[1]   0
+skend     0
+extrude   0   0   0.26
+fillet    HatchFillet   0
+rotatey   90   0   0
+rotatez   -15   0   0
+translate -1.77   -2.1   0
+union     0   0   0
+patbeg    i 4
+   cylinder  0.5   -1.6   0.5   1.5   -2.5   1.5   Dracorad
+   rotatey   90*i   0   0
+   subtract  none   1   0
+patend
+patbeg    d 14
+   cylinder  Draco[d,1]   Draco[d,2]   Draco[d,3]   Draco[d,4]   Draco[d,5]   Draco[d,6]   Draco[d,7]
+   subtract  none   1   0
+patend
+cylinder  0   -2.7   0   0   -5   0   1.9
+fillet    0.1   0
+patbeg    a 2
+   mark
+      box       -0.025   -4   7   0.05   0.1   -5.2
+      box       -0.05   -4.8   2   0.1   1.7   17/18
+      box       -0.05   -4.8   3   0.1   1.7   68/45
+      box       -0.05   -4.8   4.57   0.1   1.7   68/45
+      box       -0.05   -4.8   6.15   0.1   1.7   68/45
+   union     1   0   0
+   rotatey   180*a   0   0
+patend
+
+end

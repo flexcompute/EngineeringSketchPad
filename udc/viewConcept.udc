@@ -1,0 +1,132 @@
+# viewConcept.udc
+# written by John Dannenhoffer
+
+# used Bodys
+#    FuseOml
+#    FuseCmass i
+#    WingOml
+#    WingHinge i
+#    WingWaffle
+#    WingCmass i
+#    HtailOml
+#    HtailHinge i
+#    HtailCmass i
+#    VtailOml
+#    VtailHinge i
+#    VtailCmass i
+#    PylonOml
+#    PylonCmass i
+#    PodOml
+#    PodCmass i
+# used variables
+
+INTERFACE . ALL
+
+# fuselage
+IFTHEN    COMP:Fuse EQ 1
+    RESTORE              FuseOml
+        ATTRIBUTE _name $FuseOml
+
+    CATBEG $name_not_found
+        THROW -999   # unexpected signal
+    CATEND
+    PATBEG  imass  9999
+        RESTORE              FuseCmass  imass
+            ATTRIBUTE _name $FuseCmass_+imass
+    PATEND
+    CATBEG $name_not_found
+    CATEND
+ENDIF
+
+# wing (with waffles and hinges)
+IFTHEN    COMP:Wing EQ 1
+    RESTORE              WingOml
+        ATTRIBUTE _name $WingOml
+
+    CATBEG $name_not_found
+        THROW -999   # unexpected signal
+    CATEND
+    RESTORE              WingWaffle
+        ATTRIBUTE _name $WingWaffle
+    CATBEG $name_not_found
+    CATEND
+
+    PATBEG  ihinge  9999
+        RESTORE              WingHinge  ihinge
+            ATTRIBUTE _name $WingHinge_+ihinge
+    PATEND
+    CATBEG $name_not_found
+    CATEND
+
+    PATBEG  imass  9999
+        RESTORE              WingCmass  imass
+            ATTRIBUTE _name $WingCmass_+imass
+    PATEND
+    CATBEG $name_not_found
+    CATEND
+
+    PATBEG  iload  9999
+        RESTORE              WingCload  iload
+	    ATTRIBUTE _name $WingCload_+iload
+    PATEND
+    CATBEG $name_not_found
+    CATEND
+ENDIF
+
+# horizontal tail (with hinges)
+IFTHEN    COMP:Htail EQ 1
+    RESTORE              HtailOml
+        ATTRIBUTE _name $HtailOml
+
+    CATBEG $name_not_found
+        THROW -999   # unexpected signal
+    CATEND
+    PATBEG  ihinge  9999
+        RESTORE              HtailHinge  ihinge
+            ATTRIBUTE _name $HtailHinge_+ihinge
+    PATEND
+    CATBEG $name_not_found
+    CATEND
+
+    PATBEG  imass  9999
+        RESTORE              HtailCmass  imass
+            ATTRIBUTE _name $HtailCmass_+imass
+    PATEND
+    CATBEG $name_not_found
+    CATEND
+ENDIF
+
+# vertical tail (with hinges)
+IFTHEN    COMP:Vtail EQ 1
+    RESTORE              VtailOml
+        ATTRIBUTE _name $VtailOml
+
+    CATBEG $name_not_found
+        THROW -999   # unexpected signal
+    CATEND
+    PATBEG  ihinge  9999
+        RESTORE              VtailHinge  ihinge
+            ATTRIBUTE _name $VtailHinge_+ihinge
+    PATEND
+    CATBEG $name_not_found
+    CATEND
+
+    PATBEG  imass  9999
+        RESTORE              VtailCmass  imass
+            ATTRIBUTE _name $VtailCmass_+imass
+    PATEND
+    CATBEG $name_not_found
+    CATEND
+ENDIF
+
+#IFTHEN    COMP:Pylon EQ 1
+#    RESTORE   PylonOml
+#    UNION
+#ENDIF
+
+#IFTHEN    COMP:Pod EQ 1
+#    RESTORE   PodOml
+#    UNION
+#ENDIF
+
+END

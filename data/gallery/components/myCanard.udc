@@ -1,0 +1,84 @@
+interface     MakeFuselage              in    0 
+interface     MakeCanard                in    0
+interface     xroot_c                   in    0
+interface     yroot_c                   in    0
+interface     zroot_c                   in    0
+interface     croot_c                   in    0
+
+interface     xtip_c                    in    0
+interface     ytip_c                    in    0
+interface     ztip_c                    in    0
+interface     ctip_c                    in    0
+interface     canard_left_angle         in    0
+interface     canard_right_angle        in    0
+interface     params_lift               in    0
+
+# Store everything until now
+store aircraft
+# Create airfoil for canard
+
+# NACA 64A012  
+udparg naca456 thkcode $64A
+udparg naca456 toc     0.06
+udparg naca456 camcode $6M
+udparg naca456 cl      0.00
+udparg naca456 a       0.80
+udprim naca456
+store naca64A012
+
+# Left canard
+mark
+    restore naca64A012
+	rotatez   canard_left_angle   0.5         0
+	rotatex   90        0         0
+	scale     ctip_c
+	translate xtip_c    -ytip_c   ztip_c
+
+    restore naca64A012
+	rotatez   canard_left_angle   0.5         0
+	rotatex   90        0         0
+	scale     croot_c
+	translate xroot_c   yroot_c   zroot_c
+rule
+set canard_left @nbody
+
+# restore aircraft
+# patbeg fuselage_union ifzero(MakeFuselage,0,1)
+#      union
+# patend
+# store aircraft
+    
+# Right canard
+mark
+    restore naca64A012
+	rotatez   canard_right_angle   0.5         0
+ 	rotatex   90        0         0
+ 	scale     croot_c
+ 	translate xroot_c   yroot_c   zroot_c
+ 	   
+    restore naca64A012
+	rotatez   canard_right_angle   0.5         0
+ 	rotatex   90        0         0
+ 	scale     ctip_c
+ 	translate xtip_c    +ytip_c   ztip_c
+rule
+set canard_right @nbody
+
+union # canard right part with left part
+
+select edge canard_left 1 canard_left 3 1
+attribute .tParams params_lift
+
+select edge canard_left 1 canard_left 4 1
+attribute .tParams params_lift
+
+select edge canard_right 2 canard_right 3 1
+attribute .tParams params_lift
+
+select edge canard_right 2 canard_right 4 1
+attribute .tParams params_lift
+
+patbeg fuselage_union ifzero(MakeFuselage,0,MakeCanard)
+   restore aircraft
+   union
+patend

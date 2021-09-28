@@ -1,0 +1,424 @@
+# viewSu2Inviscid.udc
+# written by John Dannenhoffer
+
+# used Bodys
+#    FuseOml
+#    WingOml
+#    WingHinge i
+#    HtailOml
+#    HtailHinge i
+#    VtailOml
+#    VtailHinge i
+# used variables
+#    wing:area
+#    wing:span
+#    ANAL:SIZE
+
+INTERFACE . ALL
+
+# default to coarse grid (if not specified)
+IFTHEN    ifnan(ANAL:SIZE,1,0) EQ 1
+    SET   ANAL:SIZE   1
+ENDIF
+
+# fuselage
+IFTHEN    COMP:Fuse EQ 1
+    RESTORE   FuseOml
+    SET    ymin        @ymin
+    SET    ymax        @ymax
+    SET    zmin        @zmin
+    SET    zmax        @zmax
+    SET    size        min(ymax-ymin,zmax-zmin)
+    IFTHEN    ANAL:SIZE EQ 1
+        SET   dsnomFuse   size/5
+    ELSEIF    ANAL:SIZE EQ 2
+        SET   dsnomFuse   size/10
+    ELSE
+        SET   dsnomFuse   size/20
+    ENDIF
+    STORE     .
+    RESTORE   FuseOml
+        ATTRIBUTE .tParam "dsnomFuse; dsnomFuse/25; 15;"
+    STORE     FuseOml
+    RESTORE   FuseOml
+ENDIF
+
+# wing with controls deflected
+IFTHEN    COMP:Wing EQ 1
+    SET       size         wing:area/wing:span
+    IFTHEN    ANAL:SIZE EQ 1
+        SET   dsnomWing    size/5
+    ELSEIF    ANAL:SIZE EQ 2
+        SET   dsnomWing    size/10
+    ELSE
+        SET   dsnomWing    size/20
+    ENDIF
+    RESTORE   WingOml
+        ATTRIBUTE .tParam   "dsnomWing; dsnomWing/25; 15;"
+        ATTRIBUTE .qParams  $off
+    STORE     WingOml
+    RESTORE   WingOml
+    SET       xmax   @xmax
+    SET       zmin   @zmin
+    SET       zmax   @zmax
+
+    CATBEG $name_not_found
+        THROW -999   # unexpected signal
+    CATEND
+    PATBEG    ihinge 9999
+        RESTORE  WingHinge ihinge
+        SELECT   EDGE 1
+            GETATTR  deflect  $deflect
+            GETATTR  ds       $gap
+
+        EVALUATE edge @nbody 1 $beg
+        SET      xbeg  @edata[2]
+        SET      ybeg  @edata[3]
+        SET      zbeg  @edata[4]
+
+        EVALUATE edge @nbody 1 $end
+        SET      xend  @edata[2]
+        SET      yend  @edata[3]
+        SET      zend  @edata[4]
+
+        IFTHEN    ybeg LT yend
+            SET     swap  xbeg
+            SET     xbeg  xend
+            SET     xend  swap
+
+            SET     swap  ybeg
+            SET     ybeg  yend
+            SET     yend  swap
+
+            SET     swap  zbeg
+            SET     zbeg  zend
+            SET     zend  swap
+        ENDIF
+
+        STORE    .
+
+        SKBEG      xmax+1  yend   zmin-1
+            LINSEG xend    yend   zmin-1
+            LINSEG xbeg    ybeg   zmin-1
+            LINSEG xmax+1  ybeg   zmin-1
+            LINSEG xmax+1  yend   zmin-1
+        SKEND
+        EXTRUDE  0  0  zmax-zmin+2
+        SET      saveNbody @nbody
+        INTERSECT
+            ATTRIBUTE tagComp  $wingControl
+        UDPARG    $$/gen_rot  xbeg  xbeg   ybeg  ybeg   zbeg  zbeg
+        UDPARG    $$/gen_rot  xend  xend   yend  yend   zend  zend
+        UDPRIM    $$/gen_rot  rotang  -deflect
+
+        # select Faces for putty on control surface
+        DIMENSION faceList1     1  3
+        SELECT    FACE          saveNbody  4
+        SET       faceList1[1]  @iface
+        SELECT    FACE          saveNbody  5
+        SET       faceList1[2]  @iface
+        SELECT    FACE          saveNbody  6
+        SET       faceList1[3]  @iface
+
+        RESTORE   WingOml
+        SET       L      hypot(yend-ybeg,xend-xbeg)
+        SET       Xbeg   xbeg+ds*(L+xend-xbeg)/(yend-ybeg)
+        SET       Ybeg   ybeg+ds
+        SET       Xend   xend+ds*(L-xend+xbeg)/(yend-ybeg)
+        SET       Yend   yend-ds
+
+        SKBEG      xmax+1+ds  Yend   zmin-1
+            LINSEG Xend       Yend   zmin-1
+            LINSEG Xbeg       Ybeg   zmin-1
+            LINSEG xmax+1+ds  Ybeg   zmin-1
+            LINSEG xmax+1+ds  Yend   zmin-1
+        SKEND
+        EXTRUDE  0  0  zmax-zmin+2
+        SUBTRACT
+
+        # select Faces for putty on wing
+        DIMENSION faceList2     1  3
+        SELECT    FACE          @nbody-1  4
+        SET       faceList2[1]  @iface
+        SELECT    FACE          @nbody-1  5
+        SET       faceList2[2]  @iface
+        SELECT    FACE          @nbody-1  6
+        SET       faceList2[3]  @iface
+
+        CONNECT   faceList1  faceList2
+        STORE     WingOml 0 1
+    PATEND
+    CATBEG $name_not_found
+    CATEND
+    IFTHEN    COMP:Fuse EQ 1
+        UNION
+    ENDIF
+ENDIF
+
+# horizontal tail with controls deflected
+IFTHEN    COMP:Htail EQ 1
+    SET       htail:span    sqrt(htail:aspect*htail:area)
+    SET       size          htail:area/htail:span
+    IFTHEN    ANAL:SIZE EQ 1
+        SET   dsnomHtail    size/5
+    ELSEIF    ANAL:SIZE EQ 2
+        SET   dsnomHtail    size/10
+    ELSE
+        SET   dsnomHtail    size/20
+    ENDIF
+    RESTORE   HtailOml
+        ATTRIBUTE .tParam   "dsnomHtail; dsnomHtail/50; 15;"
+        ATTRIBUTE .qParams  $off
+    STORE     HtailOml
+    RESTORE   HtailOml
+    SET       xmax   @xmax
+    SET       zmin   @zmin
+    SET       zmax   @zmax
+
+    CATBEG $name_not_found
+        THROW -999   # unexpected signal
+    CATEND
+    PATBEG    ihinge 9999
+        RESTORE  HtailHinge ihinge
+	SELECT   EDGE 1
+            GETATTR  deflect  $deflect
+	    GETATTR  ds       $gap
+
+        EVALUATE edge @nbody 1 $beg
+        SET      xbeg  @edata[2]
+        SET      ybeg  @edata[3]
+        SET      zbeg  @edata[4]
+
+        EVALUATE edge @nbody 1 $end
+        SET      xend  @edata[2]
+        SET      yend  @edata[3]
+        SET      zend  @edata[4]
+
+        IFTHEN    ybeg LT yend
+            SET     swap  xbeg
+            SET     xbeg  xend
+            SET     xend  swap
+
+            SET     swap  ybeg
+            SET     ybeg  yend
+            SET     yend  swap
+
+            SET     swap  zbeg
+            SET     zbeg  zend
+            SET     zend  swap
+        ENDIF
+
+        STORE    .
+
+        SKBEG      xmax+1  yend   zmin-1
+            LINSEG xend    yend   zmin-1
+            LINSEG xbeg    ybeg   zmin-1
+            LINSEG xmax+1  ybeg   zmin-1
+            LINSEG xmax+1  yend   zmin-1
+        SKEND
+        EXTRUDE  0  0  zmax-zmin+2
+        SET      saveNbody @nbody
+        INTERSECT
+            ATTRIBUTE tagComp  $htailControl
+        UDPARG    $$/gen_rot  xbeg  xbeg   ybeg  ybeg   zbeg  zbeg
+        UDPARG    $$/gen_rot  xend  xend   yend  yend   zend  zend
+        UDPRIM    $$/gen_rot  rotang  -deflect
+
+        # select Faces for putty on control surface
+        DIMENSION faceList1     1  3
+        SELECT    FACE          saveNbody  4
+        SET       faceList1[1]  @iface
+        SELECT    FACE          saveNbody  5
+        SET       faceList1[2]  @iface
+        SELECT    FACE          saveNbody  6
+        SET       faceList1[3]  @iface
+
+        RESTORE   HtailOml
+        SET       L      hypot(yend-ybeg,xend-xbeg)
+        SET       Xbeg   xbeg+ds*(L+xend-xbeg)/(yend-ybeg)
+        SET       Ybeg   ybeg+ds
+        SET       Xend   xend+ds*(L-xend+xbeg)/(yend-ybeg)
+        SET       Yend   yend-ds
+
+        SKBEG      xmax+1+ds  Yend   zmin-1
+            LINSEG Xend       Yend   zmin-1
+            LINSEG Xbeg       Ybeg   zmin-1
+            LINSEG xmax+1+ds  Ybeg   zmin-1
+            LINSEG xmax+1+ds  Yend   zmin-1
+        SKEND
+        EXTRUDE  0  0  zmax-zmin+2
+        SUBTRACT
+
+        # select Faces for putty on wing
+        DIMENSION faceList2     1  3
+        SELECT    FACE          @nbody-1  4
+        SET       faceList2[1]  @iface
+        SELECT    FACE          @nbody-1  5
+        SET       faceList2[2]  @iface
+        SELECT    FACE          @nbody-1  6
+        SET       faceList2[3]  @iface
+
+        CONNECT   faceList1  faceList2
+        STORE     HtailOml 0 1
+    PATEND
+    CATBEG $name_not_found
+    CATEND
+    IFTHEN    COMP:Fuse EQ 1
+        UNION
+    ENDIF
+ENDIF
+
+# vertical tail with controls deflected
+IFTHEN    COMP:Vtail EQ 1
+    SET       vtail:span    sqrt(vtail:aspect*vtail:area)
+    SET       size          vtail:area/vtail:span
+    IFTHEN    ANAL:SIZE EQ 1
+        SET   dsnomVtail    size/5
+    ELSEIF    ANAL:SIZE EQ 2
+        SET   dsnomVtail    size/10
+    ELSE
+        SET   dsnomVtail    size/20
+    ENDIF
+    RESTORE   VtailOml
+        ATTRIBUTE .tParam   "dsnomVtail; dsnomVtail/50; 15;"
+        ATTRIBUTE .qParams  $off
+    STORE     VtailOml
+    RESTORE   VtailOml
+    SET       xmax   @xmax
+    SET       ymin   @ymin
+    SET       ymax   @ymax
+
+    CATBEG $name_not_found
+        THROW -999   # unexpected signal
+    CATEND
+    PATBEG    ihinge 9999
+        RESTORE  VtailHinge ihinge
+        SELECT   EDGE 1
+            GETATTR  deflect  $deflect
+	    GETATTR  ds       $gap
+
+        EVALUATE edge @nbody 1 $beg
+        SET      xbeg  @edata[2]
+        SET      ybeg  @edata[3]
+        SET      zbeg  @edata[4]
+
+        EVALUATE edge @nbody 1 $end
+        SET      xend  @edata[2]
+        SET      yend  @edata[3]
+        SET      zend  @edata[4]
+
+        IFTHEN    zbeg LT zend
+            SET     swap  xbeg
+            SET     xbeg  xend
+            SET     xend  swap
+
+            SET     swap  ybeg
+            SET     ybeg  yend
+            SET     yend  swap
+
+            SET     swap  zbeg
+            SET     zbeg  zend
+            SET     zend  swap
+        ENDIF
+
+        STORE    .
+
+        SKBEG      xmax+1  ymin-1  zend
+            LINSEG xend    ymin-1  zend
+            LINSEG xbeg    ymin-1  zbeg
+            LINSEG xmax+1  ymin-1  zbeg
+            LINSEG xmax+1  ymin-1  zend
+        SKEND
+        EXTRUDE  0  ymax-ymin+2  0
+        SET      saveNbody @nbody
+        INTERSECT
+            ATTRIBUTE tagComp  $vtailControl
+        UDPARG    $$/gen_rot  xbeg  xbeg   ybeg  ybeg   zbeg  zbeg
+        UDPARG    $$/gen_rot  xend  xend   yend  yend   zend  zend
+        UDPRIM    $$/gen_rot  rotang  -deflect
+
+        # select Faces for putty on control surface
+        DIMENSION faceList1     1  3
+        SELECT    FACE          saveNbody  3
+        SET       faceList1[1]  @iface
+        SELECT    FACE          saveNbody  4
+        SET       faceList1[2]  @iface
+        SELECT    FACE          saveNbody  5
+        SET       faceList1[3]  @iface
+
+        RESTORE   VtailOml
+        SET       L      hypot(zend-zbeg,xend-xbeg)
+        SET       Xbeg   xbeg+ds*(L+xend-xbeg)/(zend-zbeg)
+        SET       Zbeg   zbeg+ds
+        SET       Xend   xend+ds*(L-xend+xbeg)/(zend-zbeg)
+        SET       Zend   zend-ds
+
+        SKBEG      xmax+1+ds  ymin-1  Zend
+            LINSEG Xend       ymin-1  Zend
+            LINSEG Xbeg       ymin-1  Zbeg
+            LINSEG xmax+1+ds  ymin-1  Zbeg
+            LINSEG xmax+1+ds  ymin-1  Zend
+        SKEND
+        EXTRUDE  0  ymax-ymin+2  0
+        SUBTRACT
+
+        # select Faces for putty on wing
+        DIMENSION faceList2     1  3
+        SELECT    FACE          @nbody-1  3
+        SET       faceList2[1]  @iface
+        SELECT    FACE          @nbody-1  4
+        SET       faceList2[2]  @iface
+        SELECT    FACE          @nbody-1  5
+        SET       faceList2[3]  @iface
+
+        CONNECT   faceList1  faceList2
+        STORE     VtailOml 0 1
+    PATEND
+    CATBEG $name_not_found
+    CATEND
+    IFTHEN    COMP:Fuse EQ 1
+        UNION
+    ENDIF
+ENDIF
+STORE     AllOml
+
+# put attributes on OML and remember its bounding box
+RESTORE   AllOml
+    ATTRIBUTE capsAIM            $tetgenAIM;su2AIM
+    ATTRIBUTE capsIntent         $CFD
+    ATTRIBUTE capsGroup          $Airplane
+    ATTRIBUTE capsReferenceArea  wing:area
+    ATTRIBUTE capsReferenceSpan  wing:span
+    ATTRIBUTE capsReferenceChord wing:area/wing:span
+    ATTRIBUTE capsReferenceX     wing:area/wing:span/4.0
+
+SET   xmin  @xmin
+SET   xmax  @xmax
+SET   ymin  @ymin
+SET   ymax  @ymax
+SET   zmin  @zmin
+SET   zmax  @zmax
+STORE     AllOml
+
+# create farfield box
+SET       size  20*max(xmax-xmin,ymax-ymin)
+IFTHEN    ANAL:SIZE EQ 1
+    SET   dsnom size/3
+ELSE
+    SET   dsnom size/10
+ENDIF
+BOX       (xmin+xmax-size)/2  (ymin+ymax-size)/2  (zmin+zmax-size)/2  size  size  size
+    ATTRIBUTE capsAIM    $tetgenAIM;su2AIM
+    ATTRIBUTE capsIntent $CFD
+    ATTRIBUTE capsGroup  $FarField
+    ATTRIBUTE .tParam    "dsnom;dsnom/4;15"
+STORE    FarField
+
+# show final Bodys
+RESTORE           AllOml
+    ATTRIBUTE _name $OML
+
+RESTORE              FarField
+    ATTRIBUTE _name $FarField
+
+END

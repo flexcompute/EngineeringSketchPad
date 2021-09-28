@@ -1,0 +1,280 @@
+# joinWires
+# written by John Dannenhoffer
+
+# row 1
+set case 0
+skbeg     -5.0  +4.0  0.0
+   linseg -4.0  +4.0  0.0
+skend
+skbeg     -4.0  +4.0  0.0
+   linseg -4.0  +5.0  0.0
+skend
+join
+skbeg     -4.0  +5.0  0.0
+   linseg -5.0  +5.0  0.0
+skend
+skbeg     -5.0  +5.0  0.0
+   linseg -5.0  +4.0  0.0
+skend
+join
+join
+
+set case 1
+skbeg     -1.0  +4.0  0.0#
+   linseg -2.0  +4.0  0.0
+skend
+skbeg     -1.0  +4.0  0.0
+   linseg -1.0  +5.0  0.0
+skend
+join
+skbeg     -1.0  +5.0  0.0
+   linseg -2.0  +5.0  0.0
+skend
+skbeg     -2.0  +5.0  0.0
+   linseg -2.0  +4.0  0.0
+skend
+join
+join
+
+set case 2
+skbeg     +1.0  +4.0  0.0
+   linseg +2.0  +4.0  0.0
+skend
+skbeg     +2.0  +5.0  0.0
+   linseg +2.0  +4.0  0.0#
+skend
+join
+skbeg     +2.0  +5.0  0.0
+   linseg +1.0  +5.0  0.0
+skend
+skbeg     +1.0  +5.0  0.0
+   linseg +1.0  +4.0  0.0
+skend
+join
+join
+
+set case 3
+skbeg     +5.0  +4.0  0.0#
+   linseg +4.0  +4.0  0.0
+skend
+skbeg     +5.0  +5.0  0.0#
+   linseg +5.0  +4.0  0.0
+skend
+join
+skbeg     +5.0  +5.0  0.0
+   linseg +4.0  +5.0  0.0
+skend
+skbeg     +4.0  +5.0  0.0
+   linseg +4.0  +4.0  0.0
+skend
+join
+join
+
+# row 2
+set case 4
+skbeg     -5.0  +1.0  0.0
+   linseg -4.0  +1.0  0.0
+skend
+skbeg     -4.0  +1.0  0.0
+   linseg -4.0  +2.0  0.0
+skend
+join
+skbeg     -5.0  +2.0  0.0#
+   linseg -4.0  +2.0  0.0
+skend
+skbeg     -5.0  +2.0  0.0
+   linseg -5.0  +1.0  0.0
+skend
+join
+join
+
+set case 5
+skbeg     -1.0  +1.0  0.0#
+   linseg -2.0  +1.0  0.0
+skend
+skbeg     -1.0  +1.0  0.0
+   linseg -1.0  +2.0  0.0
+skend
+join
+skbeg     -2.0  +2.0  0.0#
+   linseg -1.0  +2.0  0.0
+skend
+skbeg     -2.0  +2.0  0.0
+   linseg -2.0  +1.0  0.0
+skend
+join
+join
+
+set case 6
+skbeg     +1.0  +1.0  0.0
+   linseg +2.0  +1.0  0.0
+skend
+skbeg     +2.0  +2.0  0.0#
+   linseg +2.0  +1.0  0.0
+skend
+join
+skbeg     +1.0  +2.0  0.0#
+   linseg +2.0  +2.0  0.0
+skend
+skbeg     +1.0  +2.0  0.0
+   linseg +1.0  +1.0  0.0
+skend
+join
+join
+
+set case 7
+skbeg     +5.0  +1.0  0.0#
+   linseg +4.0  +1.0  0.0
+skend
+skbeg     +5.0  +2.0  0.0#
+   linseg +5.0  +1.0  0.0
+skend
+join
+skbeg     +4.0  +2.0  0.0#
+   linseg +5.0  +2.0  0.0
+skend
+skbeg     +4.0  +2.0  0.0
+   linseg +4.0  +1.0  0.0
+skend
+join
+join
+
+# row 3
+set case 8
+skbeg     -5.0  -2.0  0.0
+   linseg -4.0  -2.0  0.0
+skend
+skbeg     -4.0  -2.0  0.0
+   linseg -4.0  -1.0  0.0
+skend
+join
+skbeg     -4.0  -1.0  0.0
+   linseg -5.0  -1.0  0.0
+skend
+skbeg     -5.0  -2.0  0.0#
+   linseg -5.0  -1.0  0.0
+skend
+join
+join
+
+set case 9
+skbeg     -1.0  -2.0  0.0#
+   linseg -2.0  -2.0  0.0
+skend
+skbeg     -1.0  -2.0  0.0
+   linseg -1.0  -1.0  0.0
+skend
+join
+skbeg     -1.0  -1.0  0.0
+   linseg -2.0  -1.0  0.0
+skend
+skbeg     -2.0  -2.0  0.0#
+   linseg -2.0  -1.0  0.0
+skend
+join
+join
+
+set case 10
+skbeg     +1.0  -2.0  0.0
+   linseg +2.0  -2.0  0.0
+skend
+skbeg     +2.0  -1.0  0.0#
+   linseg +2.0  -2.0  0.0
+skend
+join
+skbeg     +2.0  -1.0  0.0
+   linseg +1.0  -1.0  0.0
+skend
+skbeg     +1.0  -2.0  0.0#
+   linseg +1.0  -1.0  0.0
+skend
+join
+join
+
+set case 11
+skbeg     +5.0  -2.0  0.0#
+   linseg +4.0  -2.0  0.0
+skend
+skbeg     +5.0  -1.0  0.0#
+   linseg +5.0  -2.0  0.0
+skend
+join
+skbeg     +5.0  -1.0  0.0
+   linseg +4.0  -1.0  0.0
+skend
+skbeg     +4.0  -2.0  0.0#
+   linseg +4.0  -1.0  0.0
+skend
+join
+join
+
+# row 4
+set case 12
+skbeg     -5.0  -5.0  0.0
+   linseg -4.0  -5.0  0.0
+skend
+skbeg     -4.0  -5.0  0.0
+   linseg -4.0  -4.0  0.0
+skend
+join
+skbeg     -5.0  -4.0  0.0#
+   linseg -4.0  -4.0  0.0
+skend
+skbeg     -5.0  -5.0  0.0#
+   linseg -5.0  -4.0  0.0
+skend
+join
+join
+
+set case 13
+skbeg     -1.0  -5.0  0.0#
+   linseg -2.0  -5.0  0.0
+skend
+skbeg     -1.0  -5.0  0.0
+   linseg -1.0  -4.0  0.0
+skend
+join
+skbeg     -2.0  -4.0  0.0#
+   linseg -1.0  -4.0  0.0
+skend
+skbeg     -2.0  -5.0  0.0#
+   linseg -2.0  -4.0  0.0
+skend
+join
+join
+
+set case 14
+skbeg     +1.0  -5.0  0.0
+   linseg +2.0  -5.0  0.0
+skend
+skbeg     +2.0  -4.0  0.0#
+   linseg +2.0  -5.0  0.0
+skend
+join
+skbeg     +1.0  -4.0  0.0#
+   linseg +2.0  -4.0  0.0
+skend
+skbeg     +1.0  -5.0  0.0#
+   linseg +1.0  -4.0  0.0
+skend
+join
+join
+
+set case 15
+skbeg     +5.0  -5.0  0.0#
+   linseg +4.0  -5.0  0.0
+skend
+skbeg     +5.0  -4.0  0.0#
+   linseg +5.0  -5.0  0.0
+skend
+join
+skbeg     +4.0  -4.0  0.0#
+   linseg +5.0  -4.0  0.0
+skend
+skbeg     +4.0  -5.0  0.0#
+   linseg +4.0  -4.0  0.0
+skend
+join
+join
+
+end

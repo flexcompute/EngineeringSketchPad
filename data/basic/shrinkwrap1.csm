@@ -1,0 +1,59 @@
+# shrinkwrap1
+# written by John Dannenhoffer
+
+# body
+CYLINDER  0.0  0.0  0.0  5 0  0.0  1.0
+
+# engine
+CYLINDER  1.0  0.9  0.0  4.0  0.7  0.0  0.5
+SPHERE    0.0  2.0  0.0  2.0
+SUBTRACT
+
+UNION
+
+# make SheetBody
+SELECT     FACE
+SELECT     SUB   3  1    # inlet
+SELECT     SUB   2  2    # exit
+EXTRACT    @sellist
+STORE      body
+
+# generate a cover for the inlet
+MARK
+   RESTORE   body
+   SELECT    EDGE  0  0  1  4  1
+   SELECT    SUB   $_nface  2
+   EXTRACT   -@sellist
+
+   RESTORE   body
+   SELECT    EDGE  0  0  2  4  1
+   SELECT    SUB   $_nface  2
+   EXTRACT   -@sellist
+   REORDER   0  1
+RULE
+ATTRIBUTE _color  $blue
+STORE     inletCover
+
+# generate a cover for the exit
+MARK
+   RESTORE   body
+   SELECT    EDGE  0  0  1  4  2
+   SELECT    SUB   $_nface  2
+   EXTRACT   -@sellist
+
+   RESTORE   body
+   SELECT    EDGE  0  0  2  4  2
+   SELECT    SUB   $_nface  2
+   EXTRACT   -@sellist
+RULE       1
+ATTRIBUTE _color  $blue
+STORE     exitCover
+
+# combine into a SolidBody
+MARK
+   RESTORE    body
+   RESTORE    inletCover
+   RESTORE    exitCover
+COMBINE   0.001
+
+END

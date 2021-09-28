@@ -1,0 +1,55 @@
+# designP4a
+# written by John Dannenhoffer
+
+DESPMTR   X1   -3.0
+DESPMTR   R1    4.0
+DESPMTR   X2    1.0
+DESPMTR   R2    2.0
+DESPMTR   DX1   0.0
+DESPMTR   DY1   0.0
+DESPMTR   DZ1   2.0
+DESPMTR   DX2   1.0
+DESPMTR   DY2   1.0
+DESPMTR   DZ2   2.0
+DESPMTR   DX3  -1.0
+DESPMTR   DY3   0.0
+DESPMTR   DZ3   4.0
+DESPMTR   S2    3.0
+
+CYLINDER  X1  0  0  X1  0  1  R1
+SELECT    EDGE  @nbody 1  @nbody 3
+SELECT    ADD   @nbody 1  @nbody 4
+EXTRACT   -@sellist[1];-@sellist[2]
+
+CYLINDER  X2  0 -1  X2  0  1  R2
+INTERSECT
+
+CYLINDER  X2  0  0  X2  0  1  R2
+SELECT    EDGE  @nbody 1  @nbody 3
+SELECT    ADD   @nbody 1  @nbody 4
+EXTRACT   -@sellist[1];-@sellist[2]
+
+CYLINDER  X1  0 -1  X1  0  1  R1
+INTERSECT
+
+JOIN
+
+STORE     foo
+
+RESTORE   foo
+EXTRUDE   DX1  DY1  DZ1
+
+RESTORE   foo
+TRANSLATE DX1  DY1  DZ1
+EXTRUDE   DX2  DY2  DZ2
+JOIN
+
+RESTORE   foo
+TRANSLATE DX1  DY1  DZ1
+TRANSLATE DX2  DY2  DZ2
+EXTRUDE   DX3  DY3  DZ3
+JOIN
+
+SCALE     S2
+
+END

@@ -1,0 +1,24 @@
+# fitCurve6a
+# written by John Dannenhoffer
+
+dimension xform 3 4
+
+# RAE 2822 airfoil (nominal)
+set       xform     "1.00;   0.00;   0.00;   0.00;\
+                     0.00;   1.00;   0.00;   0.00;\
+                     0.00;   0.00;   1.00;   0.00;"
+udprim    fitcurve   ncp 13   ordered 1   xform xform   filename $$/fitCurve6a.txt1
+
+# RAE 2822 airfoil (thickened)
+set       xform     "1.00;   0.00;   0.00;   0.00;\
+                     0.00;   2.00;   0.00;   0.00;\
+                     0.00;   0.00;   1.00;   1.00;"
+udprim    fitcurve   ncp 13   ordered 1   xform xform   filename $$/fitCurve6a.txt2
+
+# RAE 2822 airfoil (shortened)
+set       xform     "0.50;   0.00;   0.00;   0.00;\
+                     0.00;   1.00;   0.00;   0.00;\
+                     0.00;   0.00;   1.00;   2.00;"
+udprim    fitcurve   ncp 13   ordered 1   xform xform   filename $$/fitCurve6a.txt3
+
+end

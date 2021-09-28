@@ -1,0 +1,20 @@
+# designR2b
+# written by Marshall Galbraith
+# insipired by parsec1 written by John Dannenhoffer (based upon inputs from Justin Gray)
+
+despmtr   span      2.0
+dimension poly      2 5 1
+despmtr   poly      "0.5;  -.2;  0.2;  -.2;  -.2;\
+                     -.2;  0.2;  0.3;  -.1;  0.1;"
+
+udprim    parsec    Yte       -0.03     Poly      poly
+store airfoil 
+mark
+   restore airfoil
+   restore airfoil
+   translate   0  0  span/2
+   restore airfoil
+   translate   0  0  span
+blend
+
+end

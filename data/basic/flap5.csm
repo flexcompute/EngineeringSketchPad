@@ -1,0 +1,51 @@
+# flap5
+# written by John Dannenhoffer
+
+# inboard flap info
+dimension XXi       1  4  1
+dimension YYi       1  4  1
+
+despmtr   XXi       "25.0; 17.5; 17.5; 25.0;"
+despmtr   YYi       "20.0; 20.0;  5.0;  5.0;"
+despmtr   Gapi      0.50
+despmtr   Thetai    30.0
+
+# outboard flap info
+dimension XXo       1  4  1
+dimension YYo       1  4  1
+
+despmtr   XXo       "30.0; 22.0; 20.0; 30.0;"
+despmtr   YYo       "44.0; 45.0; 30.0; 28.0;"
+despmtr   Gapo      0.50
+despmtr   Thetao    -10.0
+
+# basic config
+mark
+   # root
+   udprim    naca  series 4418
+   scale     2.0
+   rotatex   90  0  0
+
+   # tip
+   udprim    naca  series 4406
+   scale     1.0
+   rotatex   90   0  0
+   translate 2.0  6.0  0
+rule
+scale     10
+
+# add in the inboard flap
+udparg    $$/flapz   xflap     XXi
+udparg    $$/flapz   yflap     YYi
+udparg    $$/flapz   theta     Thetai
+udparg    $$/flapz   gap       Gapi
+udprim    $$/flapz   openEnd   1
+
+# add in the outboard flap
+udparg    $$/flapz   xflap     XXo
+udparg    $$/flapz   yflap     YYo
+udparg    $$/flapz   theta     Thetao
+udparg    $$/flapz   gap       Gapo
+udprim    $$/flapz   openEnd   1
+
+end

@@ -1,0 +1,20 @@
+# tutorial1 (for SLUGS)
+# written by John Dannenhoffer
+
+cylinder  -3.0  0.0  0.0  +3.0  0.0  0.0  1.0
+rotatex   90.0  0.0  0.0
+
+skbeg     -1.0  0.0  0.0
+   linseg  1.0 -0.5  0.0
+   cirarc  1.2  0.0  0.0  1.0  0.5  0.0
+   linseg -1.0  0.0  0.0
+skend
+
+extrude    0.0  0.0  3.0
+
+union
+
+dump      $/tutorial1_setup.stl
+dump      $/tutorial1.plot
+
+end

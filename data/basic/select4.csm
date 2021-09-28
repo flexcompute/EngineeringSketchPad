@@ -1,0 +1,331 @@
+# select4
+# written by John Dannenhoffer
+
+# the box
+box       -1  -1  -1  +2  +2  +2
+set       theBox  @ibody
+
+select    face  theBox 1
+   attribute  xface    $min
+   attribute  _color   $red
+select    face  theBox 2
+   attribute  xface    $max
+select    face  theBox 3
+   attribute  yface    $min
+select    face  theBox 4
+   attribute  yface    $max
+select    face  theBox 5
+   attribute  zface    $min
+select    face  theBox 6
+   attribute  zface    $max
+   attribute  _color   $green
+
+select    edge  theBox 1 theBox 3
+   attribute  xface    $min
+   attribute  yface    $min
+select    edge  theBox 2 theBox 3
+   attribute  xface    $max
+   attribute  yface    $min
+select    edge  theBox 1 theBox 4
+   attribute  xface    $min
+   attribute  yface    $max
+select    edge  theBox 2 theBox 4
+   attribute  xface    $max
+   attribute  yface    $max
+select    edge  theBox 1 theBox 5
+   attribute  xface    $min
+   attribute  zface    $min
+select    edge  theBox 2 theBox 5
+   attribute  xface    $max
+   attribute  zface    $min
+select    edge  theBox 1 theBox 6
+   attribute  xface    $min
+   attribute  zface    $max
+select    edge  theBox 2 theBox 6
+   attribute  xface    $max
+   attribute  zface    $max
+select    edge  theBox 3 theBox 5
+   attribute  yface    $min
+   attribute  zface    $min
+select    edge  theBox 4 theBox 5
+   attribute  yface    $max
+   attribute  zface    $min
+select    edge  theBox 3 theBox 6
+   attribute  yface    $min
+   attribute  zface    $max
+select    edge  theBox 4 theBox 6
+   attribute  yface    $max
+   attribute  zface    $max
+
+select    node  1
+   attribute  xface    $min
+   attribute  yface    $min
+   attribute  zface    $max
+select    node  2
+   attribute  xface    $min
+   attribute  yface    $min
+   attribute  zface    $min
+select    node  3
+   attribute  xface    $min
+   attribute  yface    $max
+   attribute  zface    $max
+select    node  4
+   attribute  xface    $min
+   attribute  yface    $max
+   attribute  zface    $min
+select    node  5
+   attribute  xface    $max
+   attribute  yface    $min
+   attribute  zface    $max
+select    node  6
+   attribute  xface    $max
+   attribute  yface    $min
+   attribute  zface    $min
+select    node  7
+   attribute  xface    $max
+   attribute  yface    $max
+   attribute  zface    $max
+select    node  8
+   attribute  xface    $max
+   attribute  yface    $max
+   attribute  zface    $min
+
+select    face           $xface $min
+   attribute  one 1
+select    add            $*     $max
+   attribute  two 2
+select    sub            $z*    $max
+   attribute  three 3
+assert    @seltype       2
+assert    @selbody       1
+assert    @sellist.size  3
+assert    @sellist[1]    1
+assert    @sellist[2]    2
+assert    @sellist[3]    4
+assert    @nbody         1
+assert    @ibody         1
+assert    @nface         6
+assert    @iface        -2
+assert    @nedge         12
+assert    @iedge        -1
+assert    @nnode         8
+assert    @inode        -1
+assert    @igroup        1
+assert    @ibody1       -1
+assert    @ibody2       -1
+assert    @xmin         -1
+assert    @xmax          1
+assert    @ymin         -1
+assert    @ymax          1
+assert    @zmin         -1
+assert    @zmax          1
+assert    @length        0
+assert    @area          12
+assert    @volume        0
+assert    @xcg           0
+assert    @ycg           0.333333
+assert    @zcg           0
+assert    @Ixx           14.666667
+assert    @Ixy           0
+assert    @Ixz           0
+assert    @Iyx           0
+assert    @Iyy           8.000000
+assert    @Iyz           0
+assert    @Izx           0
+assert    @Izy           0
+assert    @Izz           4.000000
+
+select    face           $xface $min
+   attribute  four 4
+select    add            1      2
+   attribute  five 5
+select    add            1      4
+   attribute  six 6
+select    add            1      6
+   attribute  seven 7
+select    sub            1      6
+   attribute  eight 8
+assert    @seltype       2
+assert    @selbody       1
+assert    @sellist.size  3
+assert    @sellist[1]    1
+assert    @sellist[2]    2
+assert    @sellist[3]    4
+assert    @nbody         1
+assert    @ibody         1
+assert    @nface         6
+assert    @iface        -2
+assert    @nedge         12
+assert    @iedge        -1
+assert    @nnode         8
+assert    @inode        -1
+assert    @igroup        1
+assert    @ibody1       -1
+assert    @ibody2       -1
+assert    @xmin         -1
+assert    @xmax          1
+assert    @ymin         -1
+assert    @ymax          1
+assert    @zmin         -1
+assert    @zmax          1
+assert    @length        0
+assert    @area          12
+assert    @volume        0
+assert    @xcg           0
+assert    @ycg           0.333333
+assert    @zcg           0
+assert    @Ixx           14.666667
+assert    @Ixy           0
+assert    @Ixz           0
+assert    @Iyx           0
+assert    @Iyy           8.000000
+assert    @Iyz           0
+assert    @Izx           0
+assert    @Izy           0
+assert    @Izz           4.000000
+
+select    edge           $xface $min $yface $min
+   attribute  nine 9
+select    add            $zface $max
+   attribute  ten 10
+select    sub            $xface $max $zface $max
+   attribute  eleven 11
+assert    @seltype       1
+assert    @selbody       1
+assert    @sellist.size  4
+assert    @sellist[1]    1
+assert    @sellist[2]    2
+assert    @sellist[3]    10
+assert    @sellist[4]    12
+assert    @nbody         1
+assert    @ibody         1
+assert    @nface         6
+assert    @iface        -1
+assert    @nedge         12
+assert    @iedge        -2
+assert    @nnode         8
+assert    @inode        -1
+assert    @igroup        1
+assert    @ibody1       -1
+assert    @ibody2       -1
+assert    @xmin         -1
+assert    @xmax          1
+assert    @ymin         -1
+assert    @ymax          1
+assert    @zmin         -1
+assert    @zmax          1
+assert    @length        8
+assert    @area          0
+assert    @volume        0
+assert    @xcg          -0.500000
+assert    @ycg          -0.250000
+assert    @zcg           0.750000
+assert    @Ixx           3.333333
+assert    @Ixy           1.000000
+assert    @Ixz           1.000000
+assert    @Iyx           1.000000
+assert    @Iyy           7.500000
+assert    @Iyz           1.500000
+assert    @Izx           1.000000
+assert    @Izy           1.500000
+assert    @Izz           3.500000
+
+select    edge           $xface $min $yface $min
+   attribute  twelve 12
+select    add            1      1    1      6
+   attribute  thirteen 13
+select    add            1      2    1      6
+   attribute  fourteen 14
+select    add            1      3    1      6
+   attribute  fifteen 15
+select    add            1      4    1      6
+   attribute  sixteen 16
+select    sub            1      2    1      6
+   attribute  seventeen 17
+assert    @seltype       1
+assert    @selbody       1
+assert    @sellist.size  4
+assert    @sellist[1]    1
+assert    @sellist[2]    2
+assert    @sellist[3]    10
+assert    @sellist[4]    12
+assert    @nbody         1
+assert    @ibody         1
+assert    @nface         6
+assert    @iface        -1
+assert    @nedge         12
+assert    @iedge        -2
+assert    @nnode         8
+assert    @inode        -1
+assert    @igroup        1
+assert    @ibody1       -1
+assert    @ibody2       -1
+assert    @xmin         -1
+assert    @xmax          1
+assert    @ymin         -1
+assert    @ymax          1
+assert    @zmin         -1
+assert    @zmax          1
+assert    @length        8
+assert    @area          0
+assert    @volume        0
+assert    @xcg          -0.500000
+assert    @ycg          -0.250000
+assert    @zcg           0.750000
+assert    @Ixx           3.333333
+assert    @Ixy           1.000000
+assert    @Ixz           1.000000
+assert    @Iyx           1.000000
+assert    @Iyy           7.500000
+assert    @Iyz           1.500000
+assert    @Izx           1.000000
+assert    @Izy           1.500000
+assert    @Izz           3.500000
+
+select    node           $x* $max  $y* $min  $z* $min
+   attribute  eighteen 19
+select    add            $z* $max
+   attribute  nineteen 19
+select    sub            $x* $max  $y* $max  $z* $max
+   attribute  twenty 20
+assert    @seltype       0
+assert    @selbody       1
+assert    @sellist.size  4
+assert    @sellist[1]    6
+assert    @sellist[2]    1
+assert    @sellist[3]    3
+assert    @sellist[4]    5
+assert    @nbody         1
+assert    @ibody         1
+assert    @nface         6
+assert    @iface        -1
+assert    @nedge         12
+assert    @iedge        -1
+assert    @nnode         8
+assert    @inode        -2
+assert    @igroup        1
+assert    @ibody1       -1
+assert    @ibody2       -1
+assert    @xmin         -1
+assert    @xmax          1
+assert    @ymin         -1
+assert    @ymax          1
+assert    @zmin         -1
+assert    @zmax          1
+assert    @length        0
+assert    @area          0
+assert    @volume        0
+assert    @xcg           0
+assert    @ycg          -0.500000
+assert    @zcg           0.500000
+assert    @Ixx           0
+assert    @Ixy           0
+assert    @Ixz           0
+assert    @Iyx           0
+assert    @Iyy           0
+assert    @Iyz           0
+assert    @Izx           0
+assert    @Izy           0
+assert    @Izz           0
+
+end

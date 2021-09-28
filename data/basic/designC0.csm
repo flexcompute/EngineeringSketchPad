@@ -1,0 +1,13 @@
+# designC0
+# written by John Dannenhoffer
+
+despmtr   xbeg      -1
+despmtr   ybeg      -2
+despmtr   zbeg      -3
+despmtr   xsize      2
+despmtr   ysize      4
+despmtr   zsize      6
+
+box       xbeg  ybeg  zbeg  xsize  ysize  zsize
+
+end

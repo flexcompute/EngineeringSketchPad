@@ -1,0 +1,28 @@
+# scribedCylinder
+# written by John Dannenhoffer
+
+# cylinder
+cylinder  1  0  0  1  2  0  1
+rotatey  90  0  1
+
+# first gouge
+#skbeg     0.4  0.4  0.5
+#   linseg 1.4  0.4  0.5
+#   linseg 1.4  0.8  0.5
+#   linseg 0.4  0.8  0.5
+#   linseg 0.4  0.4  0.5
+#skend 1
+#extrude   0    0    1
+#subtract
+
+# second gouge
+skbeg     0.4  1.0  0.5
+   linseg 0.8  1.0  0.5
+   linseg 0.8  1.6  0.5
+   linseg 0.4  1.6  0.5
+   linseg 0.4  1.0  0.5
+skend 1
+extrude   0    0    1
+subtract
+
+end

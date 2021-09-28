@@ -1,0 +1,45 @@
+# catmull0
+# written by John Dannenhoffer
+
+# basic shape
+BOX       -2.0  1.0  0.0  1.0  1.0  1.0
+STORE     BasicShape
+
+# original shape
+RESTORE   BasicShape
+UDPRIM    catmull   nsubdiv 0
+TRANSLATE -2.0  +2.0  0.0
+
+# one subdivision
+RESTORE   BasicShape
+UDPRIM    catmull
+TRANSLATE +2.0  +2.0  0.0
+
+# two subdivisions
+RESTORE   BasicShape
+UDPRIM    catmull   nsubdiv 2
+TRANSLATE -2.0  -2.0  0.0
+
+# three subdivisions
+RESTORE   BasicShape
+UDPRIM    catmull   nsubdiv 3
+TRANSLATE +2.0  -2.0  0.0
+
+# reference hemispheres
+SPHERE    -3.5   3.5  0.5   0.5
+SELECT   FACE  14  1  1
+EXTRACT   @iface
+
+SPHERE    +0.5   3.5  0.5   0.5
+SELECT   FACE  16  1  1
+EXTRACT   @iface
+
+SPHERE    -3.5  -0.5  0.5   0.5
+SELECT   FACE  18  1  1
+EXTRACT   @iface
+
+SPHERE    +0.5  -0.5  0.5   0.5
+SELECT   FACE  20  1  1
+EXTRACT   @iface
+
+end

@@ -1,0 +1,43 @@
+# select6
+# written by John Dannenhoffer
+
+box       0  0  0  3  3  3
+box       3  0  0  3  3  3
+union
+box       2  1 -1  2  1  5
+subtract
+
+select    node  0  0  0
+assert    @nbors  3
+
+select    node  3  0  3
+assert    @nbors  4
+
+select    edge  1  1  1  5
+assert    @nbors  2
+
+select    face  1  1
+assert    @nbors  4
+
+select    face  1  3
+assert    @nbors  4
+
+select    face  1  5
+assert    @nbors  8
+
+select    edge  1  1  1  3
+select    add   1  1  1  4
+select    add   1  1  1  5
+select    add   1  1  1  6
+assert    @sellist.size  4
+assert    @nbors         8
+
+select    face  1  1
+select    add   1  3
+select    add   1  4
+select    add   1  5
+select    add   1  6
+assert    @sellist.size  5
+assert    @nbors        28
+
+end

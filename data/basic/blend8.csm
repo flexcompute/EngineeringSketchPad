@@ -1,0 +1,54 @@
+# blend8
+# written by John Dannenhoffer
+
+mark
+
+# airfoil split into 7 Edges
+udprim    naca      thickness 0.12      camber    0.04
+
+skbeg     0.40      0.00     -1.00
+   linseg 0.40      1.00     -1.00
+   linseg 0.40      1.00      1.00
+   linseg 0.40      0.00      1.00
+   linseg 0.40      0.00     -1.00
+skend
+subtract
+
+skbeg     0.60      0.00     -1.00
+   linseg 0.60      1.00     -1.00
+   linseg 0.60      1.00      1.00
+   linseg 0.60      0.00      1.00
+   linseg 0.60      0.00     -1.00
+skend
+subtract
+
+skbeg     0.40      0.00     -1.00
+   linseg 0.40     -1.00     -1.00
+   linseg 0.40     -1.00      1.00
+   linseg 0.40      0.00      1.00
+   linseg 0.40      0.00     -1.00
+skend
+subtract
+
+skbeg     0.60      0.00     -1.00
+   linseg 0.60     -1.00     -1.00
+   linseg 0.60     -1.00      1.00
+   linseg 0.60      0.00      1.00
+   linseg 0.60      0.00     -1.00
+skend
+subtract
+
+# septagon
+skbeg     1.00      0.02      1.00
+   linseg 0.60      0.10      1.00
+   linseg 0.40      0.10      1.00
+   linseg 0.00      0.00      1.00
+   linseg 0.40     -0.10      1.00
+   linseg 0.60     -0.10      1.00
+   linseg 1.00     -0.02      1.00
+   linseg 1.00      0.02      1.00
+skend
+
+blend
+
+end

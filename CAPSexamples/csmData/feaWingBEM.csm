@@ -1,0 +1,143 @@
+# Wing built-up element model 
+
+## [despmtrs]
+# Design Parameters for OML
+despmtr   thick     0.12      frac of local chord
+despmtr   camber    0.04      frac of loacl chord
+
+despmtr   area      10.0
+despmtr   aspect    6.00
+despmtr   taper     0.60
+despmtr   sweep     20.0      deg (of c/4)
+
+despmtr   washout   5.00      deg (down at tip)
+despmtr   dihedral  4.00      deg
+
+# Design Parameters for BEM
+cfgpmtr   nrib      11        number of ribs
+despmtr   spar1     0.20      frac of local chord
+despmtr   spar2     0.75      frac of local chord
+## [despmtrs]
+
+## [capsAIM]
+attribute capsAIM $nastranAIM;astrosAIM;mystranAIM;masstranAIM;egadsTessAIM
+## [capsAIM]
+
+## [localOML]
+# OML
+set       span      sqrt(aspect*area)
+set       croot     2*area/span/(1+taper)
+set       ctip      croot*taper
+set       dxtip     (croot-ctip)/4+span/2*tand(sweep)
+set       dytip     span/2*tand(dihedral)
+## [localOML]
+
+## [localRibSpar]
+# wing ribs
+set       Nrib    nint(nrib)
+# wing spars
+set       eps             0.01*span
+## [localRibSpar]
+
+## [createWaffle]
+udprim    waffle    Depth     +6*thick*croot      Filename <<
+
+   patbeg    i Nrib
+      point A   at (span/2)*(2*i-Nrib-1)/Nrib   -0.01*croot
+      point B   at (span/2)*(2*i-Nrib-1)/Nrib   max(croot,dxtip+ctip)
+      line  AB  A  B   tagComponent=rib tagIndex=!val2str(i,0)
+   patend
+
+   point A   at -span/2-eps   spar1*ctip+dxtip
+   point B   at 0             spar1*croot
+   line  AB  A  B   tagComponent=spar tagIndex=1 tagPosition=left
+
+   point A   at span/2+eps    spar1*ctip+dxtip
+   point B   at 0             spar1*croot
+   line  AB  A  B    tagComponent=spar tagIndex=1 tagPosition=right
+
+   point A   at -span/2-eps   spar2*ctip+dxtip
+   point B   at 0             spar2*croot
+   line  AB  A  B   tagComponent=spar tagIndex=2 tagPosition=left
+
+   point A   at span/2+eps    spar2*ctip+dxtip
+   point B   at 0             spar2*croot
+   line  AB  A  B   tagComponent=spar tagIndex=2 tagPosition=right
+>>
+## [createWaffle]
+
+## [attributeRibSpar]
+attribute capsGroup $Ribs_and_Spars
+## [attributeRibSpar]
+
+## [storeAndTranslateRotate]
+translate 0         0         -3*thick*croot
+rotatey   90        0         0
+rotatez  -90        0         0
+
+store     layoutRibSpar
+## [storeAndTranslateRotate]
+
+## [createWing]
+mark
+   # Right tip
+   udprim    naca      Thickness thick     Camber    camber
+   scale     ctip
+   rotatez   washout   ctip/4    0
+   translate dxtip     dytip     -span/2
+
+   # root
+   udprim    naca      Thickness thick     Camber    camber
+   scale     croot
+
+   # left tip
+   udprim    naca      Thickness thick     Camber    camber
+   scale     ctip
+   rotatez   washout   ctip/4    0
+   translate dxtip     dytip     +span/2
+rule
+   attribute OML 1
+## [createWing]
+
+## [storeOML]
+store     OML
+## [storeOML]
+
+# keep part of waffle inside OML
+##[intersect]
+restore   layoutRibSpar
+restore   OML
+intersect
+##[intersect]
+
+## [applyConstraints]
+udprim editAttr filename <<
+   edge adj2face tagComponent=spar tagPosition=right
+   and  adj2face tagComponent=spar tagPosition=left
+   set  capsConstraint=Rib_Constraint
+
+   node adj2face tagComponent=spar tagPosition=right
+   and  adj2face tagComponent=spar tagPosition=left
+   set  capsConstraint=Rib_Constraint
+>>
+
+ifthen nint(mod(Nrib,2)) ne 0
+   set       midRib Nrib/2
+   select    face   $tagComponent $rib $tagIndex val2str(midRib,0)
+   attribute tagPosition $root
+   
+   udprim editAttr filename <<
+      face   has tagComponent=rib tagPosition=root
+      set    capsConstraint=Rib_Constraint
+   
+      edge   adj2face tagComponent=rib tagPosition=root
+      set    capsConstraint=Rib_Constraint
+   
+      node   adj2face tagComponent=rib tagPosition=root
+      set    capsConstraint=Rib_Constraint
+>>
+endif
+## [applyConstraints]
+
+## [closeCSM]
+end

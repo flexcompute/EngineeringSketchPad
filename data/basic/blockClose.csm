@@ -1,0 +1,14 @@
+# blockClose (should cause error)
+# written by John Dannenhoffer
+
+BOX       0  0  0  1  1  1
+PATBEG    i  5
+   IFTHEN    i EQ 3
+      PATBEG j 5
+         BOX j  0  0  1  1  1
+      PATEND
+   BOX      -1  0  0  1  1  1
+
+END
+
+         

@@ -1,0 +1,32 @@
+# createBEM
+# written by John Dannenhoffer
+
+box       0  0  0   3  2  1
+    attribute  myName $box
+select    face  @nbody  1
+    attribute  myFace 1;1;1
+select    face  @nbody  2
+    attribute  myFace 2;2;2
+
+select    face  @nbody  2
+    attribute   ignoreFace $true
+select    face  @nbody  4
+    attribute   ignoreFace $true
+select    face  @nbody  5
+    attribute   ignoreFace $true
+select    face  @nbody  6
+    attribute   ignoreFace $true
+select    edge  @nbody  2  @nbody  4
+    attribute   ignoreEdge $true
+select    edge  @nbody  2  @nbody  6
+    attribute   ignoreEdge $true
+select    edge  @nbody  4  @nbody  6
+    attribute   ignoreEdge $true
+select    node  3  2  1
+    attribute   ignoreNode $true
+
+udparg    createBEM  filename $createBEM.bdf
+udparg    createBEM  space    0.25
+udprim    createBEM  imax     21
+
+end

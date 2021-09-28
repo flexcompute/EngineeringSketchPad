@@ -1,0 +1,22 @@
+# udcTest2a
+# written by John Dannenhoffer
+
+interface in1   in   0
+interface in2   in   0
+interface in3   in   0
+interface sum1  out  0
+interface sum2  out  0
+interface sum3  out  0
+
+udprim    $/udcTest2b  array in1
+set       sum1 @@sum
+
+udprim    $/udcTest2c  array in2
+set       sum2 @@sum
+
+udprim    $/udcTest2b  array in3
+set       sum3 @@sum
+
+box       -1 -1 -1  2  2  2
+
+end

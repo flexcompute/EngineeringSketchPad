@@ -1,0 +1,65 @@
+# rule11o
+# written by John Dannenhoffer
+
+mark
+   skbeg      3.0  -2.0   1.0
+      linseg  3.0  -2.0  -1.0
+      linseg  3.0   1.0  -1.0
+      linseg  3.0   1.0   1.0
+      linseg  3.0  -2.0   1.0
+   skend
+   rotatey 180  0.0  3.0
+#  reorder 0  1
+
+   skbeg      2.0   1.0  -1.0
+      linseg  2.0   1.0   1.0
+      linseg  2.0  -1.5   1.0
+      linseg  2.0  -1.5  -1.0
+      linseg  2.0   1.0  -1.0
+   skend
+   rotatey 180  0.0  2.0
+#  reorder 2  1
+
+   skbeg      1.0  -1.2   1.0
+      linseg  1.0  -1.2  -1.0
+      linseg  1.0   1.0  -1.0
+      linseg  1.0   1.0   1.0
+      linseg  1.0  -1.2   1.0
+   skend
+   rotatey 180  0.0  1.0
+#  reorder 0  1
+
+   skbeg      0.0  -1.0  -1.0
+      linseg  0.0   1.0  -1.0
+      linseg  0.0   1.0   1.0
+      linseg  0.0  -1.0   1.0
+      linseg  0.0  -1.0  -1.0
+   skend
+   rotatez 180   0.0  0.0
+#  reorder 1  1
+
+   skbeg     -1.0   1.0   1.0
+      linseg -1.0  -1.2   1.0
+      linseg -1.0  -1.2  -1.0
+      linseg -1.0   1.0  -1.0
+      linseg -1.0   1.0   1.0
+   skend
+   rotatez 180  -1.0  0.0
+#  reorder 3  1
+
+   skbeg     -2.0  -1.0  -1.0
+      linseg -2.0   1.5  -1.0
+      linseg -2.0   1.5   1.0
+      linseg -2.0  -1.0   1.0
+      linseg -2.0  -1.0  -1.0
+   skend
+
+   skbeg     -3.0  -1.0  -1.0
+      linseg -3.0   2.0  -1.0
+      linseg -3.0   2.0   1.0
+      linseg -3.0  -1.0   1.0
+      linseg -3.0  -1.0  -1.0
+   skend
+rule  -1
+
+end

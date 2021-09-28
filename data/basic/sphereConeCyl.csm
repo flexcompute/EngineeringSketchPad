@@ -1,0 +1,42 @@
+# sphereConeCyl
+# written by John Dannenhoffer
+
+DESPMTR   L1        2.00      # length of sphere/cone
+DESPMTR   L2        1.00      # length of cylinder
+DESPMTR   R         0.50      # radius of cylinder
+DESPMTR   r         0.10      # radius of sphere
+
+# make sure r is not greater than R
+ASSERT    ifneg(R-r,1,0) 0
+
+# make sure r is not greater than L1
+ASSERT    ifneg(L1-r,1,0) 0
+
+# solve for sphere/cone intersection
+# theta is angle from left horizontal to intersection point
+SET       theta     pi(0.4)   # initial guess
+SOLBEG    theta;
+   SOLCON theta+atan((R-r*sin(theta))/(L1-r+r*cos(theta)))-pi(0.5)
+SOLEND
+
+# cross-section
+SKBEG     0.0               0.0             0.0
+   LINSEG L1+L2             0.0             0.0
+   LINSEG L1+L2             R               0.0
+   LINSEG L1                R               0.0
+   LINSEG r-r*cos(theta)    r*sin(theta)    0.0
+   CIRARC r-r*cos(theta/2)  r*sin(theta/2)  0.0 \
+          0.0               0.0             0.0
+SKEND
+STORE     Xsect
+
+# revolve (in two parts) to make 3D body
+RESTORE   Xsect
+REVOLVE   0 0 0  1 0 0  180
+
+RESTORE   Xsect
+REVOLVE   0 0 0  1 0 0 -180
+
+JOIN
+
+END

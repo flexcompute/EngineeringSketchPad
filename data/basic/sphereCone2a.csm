@@ -1,0 +1,34 @@
+# sphereCone2a
+# written by John Dannenhoffer
+
+# Constant and Design Parameters:
+despmtr   L       4.00000
+despmtr   H       1.00000
+despmtr   R       0.30000
+
+# Global Attributes:
+
+# Branches:
+skbeg     0   0   0    1
+   skvar     xy   "0;   0;   0.1; \
+                   4;   0;   0;   \
+                   4;   1;   0;   \
+                   0.4; 0.4; 0;"
+   skcon     X   1   -1  0
+   skcon     Y   1   -1  0
+   skcon     H   1    2  0
+   skcon     V   2    3  0
+   skcon     T   4   -1  0
+   skcon     R   4    1  R
+   skcon     L   1    2  L
+   skcon     L   2    3  H
+   skcon     P   1   -1  0
+   
+   linseg    ::x[2]   ::y[2]   0
+   linseg    ::x[3]   ::y[3]   0
+   linseg    ::x[4]   ::y[4]   0
+   arc       ::x[1]   ::y[1]   0   ::d[1]   xy
+skend     0
+revolve   0   0   0   1   0   0   360
+
+end

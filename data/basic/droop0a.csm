@@ -1,0 +1,9 @@
+# droop0a
+# written by John Dannenhoffer
+
+UDPRIM    naca      thickness  0.12
+
+SELECT    FACE   1  1  1
+ASSERT    @sellist.size 1
+
+end

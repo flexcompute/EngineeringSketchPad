@@ -1,0 +1,33 @@
+# csystem5b
+# written by John Dannenhoffer
+# inspired by Rich Snyder
+
+# one third of torus
+TORUS     0  0  0  0  0  1  2  1
+BOX      -4 -4 -2  8  4  4
+SUBTRACT
+BOX      -4 -4 -2  8  4  4
+ROTATEZ -60  0  0
+SUBTRACT
+   CSYSTEM  exit  " 2;  0; 0;\
+                    0; -1; 0;\
+                    1;  0; 0"
+   CSYSTEM  enter  "-1;       sqrt(3); 0;\
+                    sqrt(3);  1;       0;\
+                     1;       sqrt(3); 0"
+STORE     part
+
+# put 3 copies around torus
+RESTORE   part
+
+PATBEG    ncopy  2
+   RESTORE    part
+
+   # move new part so that its CSYS:enter coincides with origin
+   APPLYCSYS  enter  -1
+
+   # move new part so that it origin coincides with CSYS:exit of previous Body
+   APPLYCSYS  exit  @nbody-2  
+PATEND
+
+END

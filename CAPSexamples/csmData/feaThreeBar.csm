@@ -1,0 +1,49 @@
+# Three Bar Truss
+
+## [capsAIM]
+attribute capsAIM $nastranAIM;astrosAIM;mystranAIM
+## [capsAIM]
+
+## [designParameters]
+dimension 	X 	1 4 1
+dimension 	Y 	1 4 1
+dimension 	Z 	1 4 1
+
+despmtr X 	"-10; 0; 10;   0;"
+despmtr Y 	"  0; 0;  0; -10;"
+despmtr Z 	"  0; 0;  0;   0;"
+## [designParameters]
+
+
+## [threeBarGeometry]
+skbeg  X[1,1] Y[1,1] Z[1,1]
+linseg X[1,4] Y[1,4] Z[1,4]
+linseg X[1,2] Y[1,2] Z[1,2]
+linseg X[1,4] Y[1,4] Z[1,4]
+linseg X[1,3] Y[1,3] Z[1,3]
+skend
+## [threeBarGeometry]
+
+## [edgeAttribute]
+select edge 1
+attribute capsGroup $bar1
+select edge 2
+attribute capsGroup $bar2
+select edge 3
+attribute capsIgnore $multipleEdge
+select edge 4
+attribute capsGroup $bar3
+## [edgeAttribute]
+
+## [nodeAttribute]
+select node 1
+attribute capsConstraint $boundary
+select node 2
+attribute capsLoad $force
+select node 3
+attribute capsConstraint $boundary
+select node 4
+attribute capsConstraint $boundary
+## [nodeAttribute]
+
+end

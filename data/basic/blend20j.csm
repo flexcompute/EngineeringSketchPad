@@ -1,0 +1,20 @@
+# blend20j
+# written by John Dannenhoffer
+
+MARK
+   UDPRIM    supell   rx 1.0  ry  1.0  n  2
+   ROTATEY   90  0  0
+
+   UDPRIM    supell   rx 1.0  ry  1.0  n  4
+   ROTATEY   90  0  0
+   TRANSLATE 2   0  0
+
+   UDPRIM    supell   rx 1.0  ry  1.0  n  2
+   ROTATEY   90  0  0
+   TRANSLATE 4   0  0
+BLEND     "5; 5; 0"   "-5; -5; 0"
+
+END
+
+
+   

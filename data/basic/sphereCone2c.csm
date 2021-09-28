@@ -1,0 +1,63 @@
+# sphereCone2c
+# written by John Dannenhoffer
+
+# Constant and Design Parameters:
+despmtr   L       4.00000
+despmtr   H       1.00000
+despmtr   R       0.30000
+
+# Global Attributes:
+
+# preset local variables to that they are not last in sketch solver
+set       xjoin  0
+set       yjoin  0
+
+# Branches:
+skbeg     0   0   0    1
+   skvar     xy   "0;   0;   0.1; \
+                   4;   0;   0;   \
+                   4;   1;   0;   \
+                   0.4; 0.4; 0;"
+   skcon     X   1   -1  0
+   skcon     Y   1   -1  0
+   skcon     H   1    2  0
+   skcon     V   2    3  0
+   skcon     T   4   -1  0
+   skcon     R   4    1  R
+   skcon     L   1    2  L
+   skcon     L   2    3  H
+   skcon     P   1   -1  0
+   
+   linseg    ::x[2]   ::y[2]   0
+   linseg    ::x[3]   ::y[3]   0
+   linseg    ::x[4]   ::y[4]   0
+   arc       ::x[1]   ::y[1]   0   ::d[1]   xy
+
+   set       xjoin    ::x[4]
+   set       yjoin    ::y[4]
+skend     0
+store     dum       # get rid of this
+
+mark
+   point     0  0  0
+
+   udprim    supell  rx  yjoin  ry  yjoin
+   rotatey   90      0   0
+   translate xjoin   0   0
+
+   set    n  9
+   patbeg i n
+      set  frac i/(n+1)
+      set  xx   (1-frac)*xjoin+frac*L
+      set  yy   (1-frac)*yjoin+frac*H
+      udprim    supell  rx  yy   ry  yy
+      rotatey   90      0   0
+      translate xx      0   0
+   patend
+
+   udprim    supell  rx  H      ry  H
+   rotatey   90      0   0
+   translate L       0   0
+blend    "R;0;1;0;R;0;0;1"
+
+end

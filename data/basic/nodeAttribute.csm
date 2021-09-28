@@ -1,0 +1,32 @@
+# nodeAttribute
+# written by John Dannenhoffer
+
+# two unioned boxes
+BOX     0  0  0   1  1  1
+BOX     1  0  0   1  1  1
+UNION
+
+# put attribute on Node at (2,0,0)
+SELECT    NODE  2  0  0
+    ATTRIBUTE   myNode  200
+
+# translate Body so that another Node is now at (2,0,0)
+TRANSLATE 1  0  0
+
+# check that Node now at (3,0,0) has the attribute
+SELECT    NODE  3  0  0
+GETATTR   nattr $_nattr_
+ASSERT    nattr 4                       # _nodeID, _nedge, __trace__, and myNode
+PATBEG    iattr nattr
+    GETATTR  aname  iattr
+PATEND
+
+# check that Node now at (2,0,0) does not have the attribute
+SELECT    NODE  2  0  0
+GETATTR   nattr $_nattr_
+ASSERT    nattr 3                       # _nodeID, _nedge, and __trace__
+PATBEG    iattr nattr
+    GETATTR  aname  iattr
+PATEND
+
+end

@@ -1,0 +1,29 @@
+# match1
+# written by John Dannenhoffer
+
+despmtr   xle       -.10
+lbound    xle      -1.00
+ubound    xle      +1.00
+
+despmtr   yle       0.10
+lbound    yle      -1.00
+ubound    yle      +1.00
+
+despmtr   zle       0.20
+lbound    zle      -1.00
+ubound    zle      +1.00
+
+despmtr   chord     2.00
+lbound    chord     0.50
+ubound    chord     4.00
+
+despmtr   alpha     5.00
+lbound    alpha    -6.00
+ubound    alpha    14.00
+
+udprim    naca      thickness 0.12      camber    0.04
+scale     chord
+rotatez   -alpha    0         0
+translate xle       yle       zle
+
+end

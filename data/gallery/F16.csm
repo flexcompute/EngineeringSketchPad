@@ -1,0 +1,44 @@
+# F16
+# written by Chris Meckstroth
+# modified by John Dannenhoffer
+
+# Control surface deflections
+# Deflection limits: 
+#     Ailerons/Flaps = +/- 21.5 deg
+#     Rudder         = +/- 30.0 deg
+#     HT/Stabilator  = +/- 25.0 deg
+
+#despmtr  deflFlapL    0.0
+#despmtr  deflFlapR    0.0
+#despmtr  deflRud      0.0
+#despmtr  deflHT       0.0
+
+despmtr  deflFlapL   21.5
+despmtr  deflFlapR  -21.5
+despmtr  deflRud     30.0
+despmtr  deflHT      25.0
+
+dimension tessParams 1 3 0  
+set   tessParamLength  3.5
+set   tessParamSag     0.35
+set   tessParamAngle   8.0
+set   tessParams "tessParamLength;  tessParamSag; tessParamAngle;"
+
+# Fuselage
+udprim $/F16_Fuselage
+
+# Wing
+udprim $/F16_Wing deflFlapR deflFlapR deflFlapL deflFlapL
+union
+
+# Vertical Tail
+udprim $/F16_VT   deflRud deflRud
+union
+
+# Horizontal Tail
+udprim $/F16_HT   deflHT deflHT
+union
+
+attribute .tParams tessParams
+
+end

@@ -1,0 +1,15 @@
+# sslope5g
+# written by John Dannenhoffer
+
+SKBEG      0.0  0.0  0.0
+   LINSEG  0.0  1.0  0.0
+   LINSEG  1.0  1.0  0.0
+#   SSLOPE  3.0  0.0  0.0
+   SPLINE  2.0  2.0  0.0
+   SSLOPE  3.0  0.0  0.0
+   LINSEG  3.0  2.0  0.0
+   LINSEG  3.0  0.0  0.0
+   LINSEG  0.0  0.0  0.0
+SKEND
+
+END

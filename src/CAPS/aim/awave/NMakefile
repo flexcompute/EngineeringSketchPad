@@ -1,0 +1,47 @@
+#
+!IFNDEF ESP_ROOT
+!ERROR ESP_ROOT must be set -- Please fix the environment...
+!ENDIF
+#
+IDIR = $(ESP_ROOT)\include
+!include $(IDIR)\$(ESP_ARCH).$(MSVC)
+LDIR = $(ESP_ROOT)\lib
+!IFDEF ESP_BLOC
+ODIR = $(ESP_BLOC)\obj
+TDIR = $(ESP_BLOC)\test
+!ELSE
+ODIR = .
+TDIR = $(ESP_ROOT)\bin
+!ENDIF
+
+!IFDEF EFCOMP
+default:	$(LDIR)\awaveAIM.dll $(TDIR)\awave.exe
+!ELSE
+default:	$(LDIR)\awaveAIM.dll
+!ENDIF
+
+
+$(LDIR)\awaveAIM.dll:	awaveAIM.def $(ODIR)\awaveAIM.obj
+	-del $(LDIR)\awaveAIM.dll $(LDIR)\awaveAIM.lib $(LDIR)\awaveAIM.exp
+	link /out:$(LDIR)\awaveAIM.dll /dll /def:awaveAIM.def \
+		$(ODIR)\awaveAIM.obj /LIBPATH:$(LDIR) utils.lib aimUtil.lib \
+		ocsm.lib egads.lib udunits2.lib
+	$(MCOMP) /manifest $(LDIR)\awaveAIM.dll.manifest \
+		/outputresource:$(LDIR)\awaveAIM.dll;2
+
+$(ODIR)\awaveAIM.obj:	awaveAIM.c $(IDIR)\capsTypes.h
+	cl /c $(COPTS) $(DEFINE) /I$(IDIR) /I..\utils awaveAIM.c \
+		/Fo$(ODIR)\awaveAIM.obj
+
+$(TDIR)\awave.exe:	$(ODIR)\awave.obj
+	ifort /Fe$(TDIR)\awave.exe $(ODIR)\awave.obj $(FLIBS)
+
+$(ODIR)\awave.obj:	$(AWAVE)
+	ifort /c $(FOPTS) $(AWAVE) /Fo$(ODIR)\awave.obj
+
+clean:
+	-del $(ODIR)\awave.obj $(ODIR)\awaveAIM.obj
+
+cleanall:	clean
+	-del $(LDIR)\awaveAIM.dll $(LDIR)\awaveAIM.lib $(LDIR)\awaveAIM.exp
+	-del $(TDIR)\awave.exe

@@ -1,0 +1,76 @@
+# matchBodys1  (just match at Nodes)
+# written by John Dannenhoffer
+
+# make the Bodys
+SKBEG     -3  0  0
+   LINSEG -1  0  0
+   LINSEG -2  1  0
+   LINSEG -1  2  0
+   LINSEG -3  2  0
+   LINSEG -3  0  0
+SKEND
+STORE    body 1
+
+SKBEG     -1  0  0
+   LINSEG  1  0  0
+   LINSEG  1  2  0
+   LINSEG -1  2  0
+   LINSEG -1  0  0
+SKEND
+STORE   body 2
+
+SKBEG     1  0  0
+   LINSEG 3  1  0
+   LINSEG 1  2  0
+   LINSEG 1  1  0
+   LINSEG 1  0  0
+SKEND
+STORE   body 3
+
+# matches between Bodys 1 and 2
+RESTORE   body  1
+RESTORE   body  2
+UDPRIM    matchBodys
+ASSERT    @@nnodes      2
+ASSERT    @@nedges      0
+ASSERT    @@nfaces      0
+
+SELECT    BODY          @nbody-1
+GETATTR   matches       $_nodeMatches_
+ASSERT    matches.size  2
+ASSERT    matches[1]    2
+ASSERT    matches[2]    4
+
+SELECT    BODY          @nbody
+GETATTR   matches       $_nodeMatches_
+ASSERT    matches.size  2
+ASSERT    matches[1]    1
+ASSERT    matches[2]    4
+
+# matches between Bodys 2 and 3
+RESTORE   body  2
+RESTORE   body  3
+UDPRIM    matchBodys
+ASSERT    @@nnodes      2
+ASSERT    @@nedges      0
+ASSERT    @@nfaces      0
+
+SELECT    BODY          @nbody-1
+GETATTR   matches       $_nodeMatches_
+ASSERT    matches.size  2
+ASSERT    matches[1]    2
+ASSERT    matches[2]    3
+
+SELECT    BODY          @nbody
+GETATTR   matches       $_nodeMatches_
+ASSERT    matches.size  2
+ASSERT    matches[1]    1
+ASSERT    matches[2]    3
+
+# clear stack and show Bodys
+STORE     ...
+RESTORE   body  1
+RESTORE   body  2
+RESTORE   body  3
+
+END

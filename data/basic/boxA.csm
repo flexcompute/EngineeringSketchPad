@@ -1,0 +1,20 @@
+# boxA
+# written by John Dannenhoffer
+
+box       -2  -2  -1   0  +4  +2
+box       -1   0  -2  +2   0  +4
+box       +2  -2   0  +2  +4   0
+
+box       +4  -2  -2  +1   0   0
+catbeg    $illegal_value
+catend
+
+box       +4  -2  -2   0  +1   0
+catbeg    $illegal_value
+catend
+
+box       +4  -2  -2   0   0  +1
+catbeg    $illegal_value
+catend
+
+end

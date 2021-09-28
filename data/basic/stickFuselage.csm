@@ -1,0 +1,213 @@
+# stickFuselage
+# written by John Dannenhoffer
+
+DIMENSION xloc      1  5
+DIMENSION ysize     1  5
+DIMENSION zsize     1  5
+
+DESPMTR   xloc      "0;  1;  2;  3;  4;"
+DESPMTR   ysize     "1;  2;  2;  1.6;1;"
+DESPMTR   zsize     "2;  1;  1.2;1;  2;"
+DESPMTR   thick     0.1
+CFGPMTR   nframe    5
+
+# fuselage sken
+MARK
+   PATBEG    i 5
+      BOX    xloc[i]  -ysize[i]/2  -zsize[i]/2  0  ysize[i]  zsize[i]
+   PATEND
+BLEND
+EXTRACT   0
+ATTRIBUTE _name $skin
+STORE     skin
+
+# longerons
+MARK
+   PATBEG    i  5
+      BOX    xloc[i]  -ysize[i]/2        -zsize[i]/2        0  thick  thick
+   PATEND
+BLEND
+STORE    longeron  1
+SET      longeron1 @nbody
+
+MARK
+   PATBEG    i  5
+      BOX    xloc[i]  -ysize[i]/2        +zsize[i]/2-thick  0  thick  thick
+   PATEND
+BLEND
+STORE     longeron  2
+SET       longeron2 @nbody
+
+MARK
+   PATBEG    i  5
+      BOX    xloc[i]  +ysize[i]/2-thick  -zsize[i]/2        0  thick  thick
+   PATEND
+BLEND
+STORE     longeron  3
+SET       longeron3 @nbody
+
+MARK
+   PATBEG    i  5
+      BOX    xloc[i]  +ysize[i]/2-thick  +zsize[i]/2-thick  0  thick  thick
+   PATEND
+BLEND
+STORE     longeron  4
+SET       longeron4 @nbody
+
+# cuts for cross-pieces
+PATBEG    iframe  nframe
+   SET    xx      xloc[1]+(iframe-1)/(nframe-1)*(xloc[xloc.size]-thick-xloc[1])
+
+   PATBEG    ilongeron  4
+      IFTHEN   iframe  GT  1
+         RESTORE   longeron  ilongeron
+         BOX       xx   -ysize.max/2-1   -zsize.max/2-1   0  ysize.max+2   zsize.max+2
+         SUBTRACT
+         STORE     longeron  ilongeron
+      ENDIF
+      IFTHEN   iframe  LT  nframe
+         RESTORE   longeron  ilongeron
+         BOX       xx+thick   -ysize.max/2-1   -zsize.max/2-1   0  ysize.max+2   zsize.max+2
+         SUBTRACT
+         STORE     longeron  ilongeron
+      ENDIF
+   PATEND
+PATEND
+
+# first ymin cross-piece
+MARK
+   RESTORE   longeron    1
+   SELECT    FACE        longeron1  6  1
+   EXTRACT   @sellist[1]
+
+   RESTORE   longeron    2
+   SELECT    FACE        longeron2  4  1
+   EXTRACT   @sellist[1]
+RULE  1
+
+RESTORE   longeron  1
+JOIN
+RESTORE   longeron  2
+JOIN
+STORE     fuselage
+
+# first zmin cross-piece
+MARK
+   RESTORE   fuselage
+   SELECT    FACE        longeron1  5  1
+   EXTRACT   @sellist[1]
+
+   RESTORE   longeron    3
+   SELECT    FACE        longeron3  3  1
+   EXTRACT   @sellist[1]
+RULE  1
+
+RESTORE   fuselage
+JOIN
+RESTORE   longeron  3
+JOIN
+STORE     fuselage
+
+# first zmax cross-piece
+MARK
+   RESTORE   fuselage
+   SELECT    FACE        longeron2  5  1
+   EXTRACT   @sellist[1]
+
+   RESTORE   longeron    4
+   SELECT    FACE        longeron4  3  1
+   EXTRACT   @sellist[1]
+RULE  1
+
+RESTORE   fuselage
+JOIN
+RESTORE   longeron  4
+JOIN
+STORE     fuselage
+
+# first ymax cross-piece
+MARK
+   RESTORE   fuselage
+   SELECT    FACE  longeron3  6  1
+   EXTRACT   @sellist[1]
+
+   RESTORE   fuselage
+   SELECT    FACE  longeron4  4  1
+   EXTRACT   @sellist[1]
+RULE  1
+
+RESTORE   fuselage
+JOIN
+STORE     fuselage
+
+# subsequent cross-pieces
+PATBEG    jframe  nframe-1
+
+   # ymin
+   MARK
+      RESTORE   fuselage
+      SELECT    FACE  longeron1  6  jframe+1
+      EXTRACT   @sellist[1]
+
+      RESTORE   fuselage
+      SELECT    FACE  longeron2  4  jframe+1
+      EXTRACT   @sellist[1]
+   RULE  1
+
+   RESTORE   fuselage
+   JOIN
+   STORE     fuselage
+
+   # zmin
+   MARK
+      RESTORE   fuselage
+      SELECT    FACE  longeron1  5  jframe+1
+      EXTRACT   @sellist[1]
+
+      RESTORE   fuselage
+      SELECT    FACE  longeron3  3  jframe+1
+      EXTRACT   @sellist[1]
+   RULE  1
+
+   RESTORE   fuselage
+   JOIN
+   STORE     fuselage
+
+   # zmax
+   MARK
+      RESTORE   fuselage
+      SELECT    FACE  longeron2  5  jframe+1
+      EXTRACT   @sellist[1]
+
+      RESTORE   fuselage
+      SELECT    FACE  longeron4  3  jframe+1
+      EXTRACT   @sellist[1]
+   RULE  1
+
+   RESTORE   fuselage
+   JOIN
+   STORE     fuselage
+
+   # ymax
+   MARK
+      RESTORE   fuselage
+      SELECT    FACE  longeron3  6  jframe+1
+      EXTRACT   @sellist[1]
+
+      RESTORE   fuselage
+      SELECT    FACE  longeron4  4  jframe+1
+      EXTRACT   @sellist[1]
+   RULE  1
+
+   RESTORE   fuselage
+   JOIN
+   STORE     fuselage
+PATEND
+
+# show final results
+RESTORE   fuselage
+ATTRIBUTE _name $frame
+
+RESTORE   skin
+
+END

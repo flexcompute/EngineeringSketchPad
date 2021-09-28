@@ -1,0 +1,17 @@
+# sketch4
+# written by John Dannenhoffer
+
+box       0.0  0.0  0.0   6.0  4.0  1.0
+
+skbeg     2.0  2.0 -1.0
+   linseg 4.0  1.0 -1.0
+   cirarc 4.2  2.0 -1.0   4.0  3.0 -1.0
+   linseg 2.0  2.0 -1.0
+skend
+extrude   0.0  0.0  2.0
+subtract
+
+cylinder  3.0  1.0  0.5   3.0  3.0  0.5   0.1
+union
+
+end

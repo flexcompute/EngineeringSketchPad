@@ -1,0 +1,38 @@
+# designF2sr
+# written by John Dannenhoffer
+
+dimension xloc    5  1  1
+dimension height  5  1  1
+dimension width   5  1  1
+
+despmtr   xloc    " -6;  -3;   0;  +3;  +6"
+despmtr   height  "  0;   1;   1;  .5;   0"
+despmtr   width   "  0;  .5;   1;   1;   0"
+despmtr   Rnose   0.2
+despmtr   Rtail   0.4
+despmtr   xbase   0.0
+despmtr   ybase   0.0
+despmtr   zbase   0.0
+
+mark
+   # sharp nose
+   point     xloc[1]   0.0  0.0
+
+   # elliptical sketches
+   udprim    ellipse   ry height[2]   rz width[2]
+   translate xloc[2]   0  0
+
+   udprim    ellipse   ry height[3]   rz width[3]
+   translate xloc[3]   0  0
+
+   udprim    ellipse   ry height[4]   rz width[4]
+   translate xloc[4]   0  0
+
+   # sharp tail
+   point     xloc[5]   0.0  0.0
+blend     0 \
+          "Rtail; 0; 1; 0; Rtail; 0; 0; 1;"
+
+translate  xbase  ybase  zbase
+
+end

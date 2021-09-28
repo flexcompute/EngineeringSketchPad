@@ -1,0 +1,9 @@
+# histDist1b
+# written by John Dannenhoffer
+
+# run with: serveCSM ../data/basic/histDist1b -plot ../data/basic/histDist1.points -histDist 0.01
+#           serveCSM ../data/basic/histDist1b -plot bad.points
+
+BOX       0   0   0   4   3   2
+
+END

@@ -1,0 +1,51 @@
+# color2a
+# written by John Dannenhoffer
+
+# color names
+dimension red     1 3 0
+dimension lred    1 3 0
+dimension green   1 3 0
+dimension lgreen  1 3 0
+dimension blue    1 3 0
+dimension lblue   1 3 0
+dimension yellow  1 3 0
+dimension cyan    1 3 0
+dimension grey    1 3 0
+
+set       red     "1.0; 0.0; 0.0;"
+set       lred    "1.0; 0.5; 0.5;"
+set       green   "0.0; 1.0; 0.0;"
+set       lgreen  "0.5; 1.0; 0.5;"
+set       blue    "0.0; 0.0; 1.0;"
+set       lblue   "0.5; 0.5; 1.0;"
+set       yellow  "1.0; 1.0; 0.0;"
+set       cyan    "0.0; 1.0; 1.0;"
+set       grey    "0.5; 0.5; 0.5;"
+
+# open box
+skbeg     0  0  0
+   linseg 0  1  0
+   linseg 0  1  1
+   linseg 0  0  1
+   linseg 0  0  0
+skend     1
+extrude   2  0  0
+
+select    face @nbody 3
+   attribute _color   red
+   attribute _bcolor  lred
+   attribute _gcolor  grey
+select    face @nbody 4
+   attribute _color   green
+   attribute _bcolor  lgreen
+   attribute _gcolor  grey
+select    face @nbody 5
+   attribute _color   blue
+   attribute _bcolor  lblue
+   attribute _gcolor  grey
+
+select     edge @nbody 4 @nbody 5
+   attribute _color   yellow
+   attribute _gcolor  cyan
+
+end

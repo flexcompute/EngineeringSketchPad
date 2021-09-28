@@ -1,0 +1,11 @@
+# cylinderBEM
+# written by John Dannenhoffer
+
+cylinder  0  1  2   3  1  2   0.5
+rotatez   25 0  0
+rotatey   25 0  0
+extract   0
+
+udprim    createBEM filename $cylinderBEM.bdf space 0.25 imin 3 imax 199
+
+end

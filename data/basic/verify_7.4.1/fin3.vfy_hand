@@ -1,0 +1,8 @@
+#======================================#
+# hand          generated verification #
+# OpenCSM  1.19      OpenCASCADE 7.4.1 #
+#======================================#
+# make sure we get an error until this gets fixed
+assert 0 1
+
+end

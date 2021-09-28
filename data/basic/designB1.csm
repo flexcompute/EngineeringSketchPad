@@ -1,0 +1,39 @@
+# designB1
+# written by John Dannenhoffer
+
+despmtr   DX   4.0
+despmtr   DY   2.0
+despmtr   DZ   5.0
+despmtr   move 1.0
+despmtr   rad  2.0
+
+# cylinder
+cylinder   0  0  -1  0  0  +1  rad
+
+# plate in XY plane (extruded in Z)
+udprim     box       dx  DX    dy  DY
+extrude    0         0         DZ
+translate  0         0        -DZ/2
+translate -2.5      -2.5       0
+union
+
+# plate in YZ plane (extruded in X)
+udprim     box       dy  DY    dz  DZ
+extrude    DX        0         0
+translate -DX/2      0         0
+translate +2.5      -2.5       0
+union
+
+# plate in ZX plane (extruded in Y)
+udprim     box       dz  DZ    dx  DX
+extrude    0         DY        0
+translate  0        -DY/2      0
+translate -2.5      +2.5       0
+union
+
+# box
+udprim     box       dx  DX    dy  DY    dz  DZ
+translate +2.5      +2.5       0
+union
+
+end

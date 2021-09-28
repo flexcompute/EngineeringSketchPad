@@ -1,0 +1,12 @@
+# sketch10a
+# written by John Dannenhoffer
+
+SKBEG      0  0  0
+   SPLINE  4  1  0
+   LINSEG  4  2  0
+   SPLINE  2  3  0
+   SPLINE  0  2  0
+   LINSEG  0  0  0
+SKEND
+
+END

@@ -1,0 +1,18 @@
+# naca4extrude
+# written by John Dannenhoffer
+
+despmtr   thick     0.12
+despmtr   camber    0.04
+despmtr   chord     1.50
+despmtr   span      9.00
+
+udprim    naca      thickness thick     camber    camber
+scale     chord
+extrude   0  0  span
+
+udprim    naca      thickness 0.0       camber    camber
+scale     chord
+extrude   0  0  span
+translate 0  -1  0
+
+end

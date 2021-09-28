@@ -1,0 +1,14 @@
+# slices1x
+# written by John Dannenhoffer
+
+# basic Body
+CYLINDER  -2  0  0  5  0  0  1/2
+BOX       -3 -3 -1  2  6  2
+UNION
+SPHERE     6  0  0  2
+UNION
+
+# make the slices
+UDPRIM    slices   nslice 25
+
+END

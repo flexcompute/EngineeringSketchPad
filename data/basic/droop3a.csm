@@ -1,0 +1,13 @@
+# droop3a
+# written by John Dannenhoffer
+
+UDPRIM    naca      thickness  0.12
+
+# droop leading and trailing edges down
+UDPRIM    droop     xle  0.20   thetale  +20.0 \
+                    xte  0.75   thetate  -10.0
+
+SELECT    FACE   1  1  1
+ASSERT    @sellist.size 1
+
+end

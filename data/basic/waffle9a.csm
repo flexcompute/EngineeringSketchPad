@@ -1,0 +1,102 @@
+# waffle9a
+# written by John Dannenhoffer
+
+DESPMTR   L1        10.0      # length of inboard  section
+DESPMTR   L2        20.0      # length of outboard section
+DESPMTR   theta     65.0      # break angle (deg)
+DESPMTR   chord      5.0      # chord length
+DESPMTR   thick      2.0      # depth (in z direction)
+DESPMTR   spar1     0.25      # fraction chord for spar 1
+DESPMTR   spar2     0.80      # fraction chord for spar 2
+CFGPMTR   n1        4         # number of inboard  ribs
+CFGPMTR   n2        8         # number of outboard ribs
+
+# inboard waffle
+UDPRIM    waffle   filename <<   depth thick
+   POINT  A   AT  chord*spar1   0.0
+   POINT  B   AT  chord*spar1   L1*(n1-1)/n1
+   LINE   .   A   B
+
+   POINT  A   AT  chord*spar2   0.0
+   POINT  B   AT  chord*spar2   L1*(n1-1)/n1
+   LINE   .   A   B
+
+   PATBEG i   n1
+      POINT   A  AT  0.0    L1*(i-1)/n1
+      POINT   B  at  chord  L1*(i-1)/n1
+      LINE    .  A   B
+   PATEND
+>>
+TRANSLATE 0.0  0.0  -thick/2
+STORE     inboard
+
+# break waffle
+UDPRIM    waffle   filename <<   depth thick
+   POINT  A   AT  0.0  0.0
+   POINT  B   AT  chord*spar1  0.0
+   POINT  C   AT  chord*spar2  0.0
+   POINT  D   AT  chord        0.0
+
+   LINE   .   A  B
+   LINE   .   B  C
+   LINE   .   C  D
+>>
+UDPRIM    nuscale  zscale  1/cosd(theta/2)   zcent  thick/2
+TRANSLATE 0.0      L1   -thick/2
+ROTATEX   theta/2  L1   0.0
+STORE     break
+
+# outboard waffle
+UDPRIM    waffle   filename <<   depth thick
+
+   POINT  A   AT  chord*spar1   L2/n2
+   POINT  B   AT  chord*spar1   L2*n2/n2
+   LINE   .   A   B
+
+   POINT  A   AT  chord*spar2   L2/n2
+   POINT  B   AT  chord*spar2   L2*n2/n2
+   LINE   .   A   B
+
+   PATBEG i   n2
+      POINT   A  AT  0.0    L2*i/n2
+      POINT   B  at  chord  L2*i/n2
+      LINE    .  A   B
+   PATEND
+>>
+TRANSLATE 0.0      L1   -thick/2
+ROTATEX   theta    L1   0.0
+STORE     outboard
+
+# connect the inboard and break waffles
+RESTORE   inboard
+SELECT    EDGE    spar1*chord  L1*(n1-1)/n1  0    # select by location
+SET       edge11  @iedge
+SELECT    EDGE    spar2*chord  L1*(n1-1)/n1  0
+SET       edge12  @iedge
+
+RESTORE   break
+SELECT    EDGE    spar1*chord  L1            0
+SET       edge21  @iedge
+SELECT    EDGE    spar2*chord  L1            0
+SET       edge22  @iedge
+
+CONNECT   0   0  edge11;edge12  edge21;edge22
+
+# connect the outboard and break waffles
+SELECT    EDGE    spar1*chord  L1            0
+SET       edge11  @iedge
+SELECT    EDGE    spar2*chord  L1            0
+SET       edge12  @iedge
+
+SET       yy      L1+L2/n2*cosd(theta)
+SET       zz         L2/n2*sind(theta)
+
+RESTORE   outboard
+SELECT    EDGE    spar1*chord  yy            zz
+SET       edge21  @iedge
+SELECT    EDGE    spar2*chord  yy            zz
+SET       edge22  @iedge
+
+CONNECT   0   0  edge11;edge12  edge21;edge22
+
+END

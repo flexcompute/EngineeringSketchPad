@@ -1,0 +1,82 @@
+# tutorial0
+# written by John Dannenhoffer
+
+# Constant Parameters:
+
+# Design Parameters:
+despmtr   Wouter    12.0      # outer width of tire
+despmtr   Winner    10.0      # inner width of tire
+despmtr   Rtire      1.0      # fillet rad  of tire
+despmtr   Douter    30.0      # outer diam  of tire
+
+despmtr   Ddisk     22.0      # diam of disk
+despmtr   Wdisk      1.0      # width of disk
+despmtr   Fdisk      0.5      # fillet radius btwn disk and tire
+
+despmtr   Nhole      5.0      # number of holes
+despmtr   Dhole      3.0      # diam of circle of holes
+despmtr   Rhole      0.5      # radius of each hole
+
+# sketch of half the cross-section of the tire
+skbeg     0   0   0   1
+
+   # initial guess for sketch variables
+   skvar     xy   "0.0; 0.0; 0.0; \
+                   5.0; 0.4; 0.0; \
+                   6.3; 3.3; 0.2; \
+                   5.0; 5.0; 0.3; \
+                   -.3; 5.5; 0.0;"
+
+   # sketch constraints
+   skcon     X   1   -1  0
+   skcon     Y   1   -1  0
+   skcon     H   1    2  0
+   skcon     P   5   -1  0
+   skcon     V   5    1  0
+   skcon     L   1    2  Winner/2
+   skcon     W   5    3  Wouter/2
+   skcon     R   3    4  Rtire
+   skcon     S   3    4  90
+   skcon     L   5    1  (Douter-Ddisk)/2
+   skcon     T   4   -1  0
+   skcon     T   3   -1  0
+
+   #sketch segments
+   linseg    ::x[2]   ::y[2]   0
+   arc       ::x[3]   ::y[3]   0   ::d[3]   xy
+   arc       ::x[4]   ::y[4]   0   ::d[4]   xy
+   linseg    ::x[5]   ::y[5]   0
+   linseg    ::x[1]   ::y[1]   0
+skend     0
+
+# move sketch up to correct location and revolve around x axis
+translate 0   Ddisk/2   0
+revolve   0   0   0   1   0   0   360
+
+# make a mirrored copy and union them together
+store     half
+restore   half
+restore   half
+mirror    1   0   0
+union
+
+# create disk and union with tire
+cylinder  -Wdisk/2  0  0  +Wdisk/2  0  0  (Ddisk+Douter)/4
+union
+
+# (optionally) add fillet between disk and tire
+ifthen    Fdisk  gt  0
+   fillet Fdisk
+endif
+
+# (optionally) drill a pattern of holes
+patbeg    ihole     Nhole
+   set   theta  360*ihole/Nhole
+   set   x      Dhole/2*cosd(theta)
+   set   y      Dhole/2*sind(theta)
+
+   cylinder -Wdisk  x  y  +Wdisk  x  y  Rhole
+   subtract
+patend
+
+end

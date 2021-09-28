@@ -1,0 +1,22 @@
+# group1
+# written by John Dannenhoffer
+
+box  0  0  0  1  1  1
+mark
+   box  1  0  0  1  1  1
+   mark
+      box  2  0  0  1  1  1
+      box  3  0  0  1  1  1
+      translate     0  1  0
+      box  4  0  0  1  1  1
+   group
+   translate     0  1  0
+   box  5  0  0  1  1  1
+group
+translate     0  1  0
+box  6  0  0  1  1  1
+group
+scale    2
+rotatex  45  0  0
+
+end

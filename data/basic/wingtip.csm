@@ -1,0 +1,13 @@
+# wingtip
+# written by John Dannenhoffer
+
+box       0.00      0.00      -.05      4.00      1.00      0.10
+
+dimension edgelist  1 2 0
+set       edgelist  2;4;
+fillet    0.50      edgelist
+
+set       edgelist  0;0;
+fillet    0.04      edgelist
+
+end

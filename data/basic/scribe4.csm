@@ -1,0 +1,14 @@
+# scribe4
+# written by John Dannenhoffer
+
+cylinder  0.0 -2.0   0.0 \
+          0.0 +2.0   0.0  +1.0
+
+skbeg     1.2  0.5  -1.0
+   cirarc 0.8  0.0  -1.0  1.2  -.5  -1.0
+skend
+extrude   0.0  0.0   2.0
+
+subtract
+
+end

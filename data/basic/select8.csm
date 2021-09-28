@@ -1,0 +1,46 @@
+# select8
+# written by John Dannenhoffer
+
+BOX        -5.5  -0.5  -0.5   10.5  1.0  1.5
+
+PATBEG    ibox 10
+   BOX    ibox-6  -3.0  0.0  0.5  6.0  0.5
+   UNION
+PATEND
+
+SELECT    face  0  0
+   ATTRIBUTE _color $red
+ASSERT    @seltype       2
+ASSERT    @sellist.size  106
+
+SELECT    face  1  0
+   ATTRIBUTE _color $blue
+ASSERT    @seltype       2
+ASSERT    @sellist.size  6
+
+SELECT    face  0  1
+   ATTRIBUTE _color $green
+ASSERT    @seltype       2
+ASSERT    @sellist.size  21
+
+SELECT    edge  0  0  0  0
+   ATTRIBUTE _color $black
+ASSERT    @seltype       1
+ASSERT    @sellist.size  252
+
+SELECT    edge  0  1  0  3
+   ATTRIBUTE _color $cyan
+ASSERT    @seltype       1
+ASSERT    @sellist.size  11
+
+SELECT    edge  6  0  6  0
+   ATTRIBUTE _color $yellow
+ASSERT    @seltype       1
+ASSERT    @sellist.size  16
+
+SELECT    edge  1  0  8  0
+   ATTRIBUTE _color $magenta
+ASSERT    @seltype       1
+ASSERT    @sellist.size  8
+
+END

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!-- Config file automatically created by flowCart on Tue Apr 26 13:57:26 2016 -->
+
+<Configuration Name="Untitled" Source="Components.i.tri">
+
+ <Component Name="Component_1" Type="tri">
+  <Data> Face Label=1 </Data>
+ </Component>
+
+</Configuration>

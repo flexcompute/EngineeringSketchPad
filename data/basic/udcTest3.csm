@@ -1,0 +1,30 @@
+# udcTest3
+# written by John Dannenhoffer
+
+SET       A     10
+SET       B     20
+
+# normal UDC (with original variables)
+UDPRIM    $/udcTest3a   A  A   B  B
+ASSERT    A     10
+ASSERT    B     20
+ASSERT    @@C   53
+
+# include-like UDC
+UDPRIM    $/udcTest3b   A  A   B  B
+ASSERT    A     12
+ASSERT    B     22
+ASSERT    C     56
+ASSERT    @@C   53
+
+# normal UDC (with variables adjusted by include-like UDC)
+UDPRIM    $/udcTest3a   A  A   B  B
+ASSERT    A     12
+ASSERT    B     22
+ASSERT    C     56
+ASSERT    @@C   59
+
+# create a Box (so that something is drawn on screen)
+BOX       0  0  0   A  B  @@C
+
+end

@@ -1,0 +1,11 @@
+LIBRARY avlAIM
+EXPORTS
+aimInitialize
+aimInputs
+aimPreAnalysis
+aimExecute
+aimPostAnalysis
+aimOutputs
+aimCalcOutput
+aimCleanup
+aimBackdoor

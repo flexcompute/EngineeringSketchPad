@@ -1,0 +1,27 @@
+# pmtrtest3
+# use with: serveCSM pmtrtest3 -despmtrs pmtrtest3.pmtrs
+# written by John Dannenhoffer
+
+CFGPMTR   n         3
+DIMENSION A         n n
+DESPMTR   A         1;2;3;4;5;6;7;8;9
+
+POINT     0         0 0
+DIMENSION B         n n
+SET       B         A
+
+IFTHEN    n  EQ  3
+   ASSERT    A.size    9
+   ASSERT    A.sum     45
+
+   ASSERT    B.size    9
+   ASSERT    B.sum     45
+ELSE
+   ASSERT    A.size    16
+   ASSERT    A.sum     99
+
+   ASSERT    B.size    16
+   ASSERT    B.sum     99
+ENDIF
+
+END

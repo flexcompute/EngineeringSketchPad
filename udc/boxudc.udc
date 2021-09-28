@@ -1,0 +1,20 @@
+# boxudc
+# written by John Dannenhoffer
+
+interface dx        in   0
+interface dy        in   0
+interface dz        in   0
+interface vol       out  0
+
+# verify that dx, dy, and dz are all positive
+assert    ifpos(dx,1,0)  1
+assert    ifpos(dy,1,0)  1
+assert    ifpos(dz,1,0)  1
+
+# build centered box
+box       -dx/2  -dy/2  -dz/2  dx  dy  dz
+
+set       vol   dx*dy*dz
+
+end
+

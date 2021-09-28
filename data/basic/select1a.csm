@@ -1,0 +1,396 @@
+# select1a
+# written by John Dannenhoffer
+
+# a Node
+point      1   0   3
+set       theNode @ibody
+
+# the box
+box        0  -1  -1  +2  +2  +2
+set       theBox  @ibody
+
+# the cylinder
+cylinder   1  -2   0   1  +2   0  0.2
+select    body
+set       theCyl  @ibody
+
+# put in same group
+group
+
+# union
+union
+
+# defaults (last Body)
+assert    @seltype      -1
+assert    @selbody       4
+assert    @sellist.size  1
+assert    @sellist[1]   -1
+assert    @nbody         4
+assert    @ibody         4
+assert    @nface         12
+assert    @iface        -1
+assert    @nedge         24
+assert    @iedge        -1
+assert    @nnode         16
+assert    @inode        -1
+assert    @igroup        4
+assert    @ibody1       -1
+assert    @ibody2       -1
+assert    @xmin          0
+assert    @xmax          2
+assert    @ymin         -2
+assert    @ymax          2
+assert    @zmin         -1
+assert    @zmax          1
+assert    @length        0
+assert    @area          26.5133  0.001
+assert    @volume        8.25133  0.001
+assert    @xcg           1
+assert    @ycg           0
+assert    @zcg           0
+
+#select the node
+select    body           theNode
+assert    @seltype      -1
+assert    @selbody       1
+assert    @sellist.size  1
+assert    @sellist[1]   -1
+assert    @nbody         4
+assert    @ibody         1
+assert    @nface         0
+assert    @iface        -1
+assert    @nedge         0
+assert    @iedge        -1
+assert    @nnode         1
+assert    @inode         1
+assert    @igroup        3
+assert    @ibody1       -1
+assert    @ibody2       -1
+assert    @xmin          1
+assert    @xmax          1
+assert    @ymin          0
+assert    @ymax          0
+assert    @zmin          3
+assert    @zmax          3
+assert    @length        0
+assert    @area          0
+assert    @volume        0
+assert    @xcg           1
+assert    @ycg           0
+assert    @zcg           3
+
+# select the box
+select    body           theBox
+assert    @seltype      -1
+assert    @selbody       2
+assert    @sellist.size  1
+assert    @sellist[1]   -1
+assert    @nbody         4
+assert    @ibody         2
+assert    @nface         6
+assert    @iface        -1
+assert    @nedge         12
+assert    @iedge        -1
+assert    @nnode         8
+assert    @inode        -1
+assert    @igroup        3
+assert    @ibody1       -1
+assert    @ibody2       -1
+assert    @xmin          0
+assert    @xmax          2
+assert    @ymin         -1
+assert    @ymax          1
+assert    @zmin         -1
+assert    @zmax          1
+assert    @length        0
+assert    @area          24
+assert    @volume        8
+assert    @xcg           1
+assert    @ycg           0
+assert    @zcg           0
+
+select    face           1
+assert    @seltype       2
+assert    @selbody       2
+assert    @sellist.size  1
+assert    @sellist[1]    1
+assert    @nbody         4
+assert    @ibody         2
+assert    @nface         6
+assert    @iface         1
+assert    @nedge         12
+assert    @iedge        -1
+assert    @nnode         8
+assert    @inode        -1
+assert    @igroup        3
+assert    @ibody1        2
+assert    @ibody2        1
+assert    @xmin          0
+assert    @xmax          0
+assert    @ymin         -1
+assert    @ymax          1
+assert    @zmin         -1
+assert    @zmax          1
+assert    @length        0
+assert    @area          4
+assert    @volume        0
+assert    @xcg           0
+assert    @ycg           0
+assert    @zcg           0
+
+select    face           theBox 6
+assert    @seltype       2
+assert    @selbody       2
+assert    @sellist.size  1
+assert    @sellist[1]    6
+assert    @nbody         4
+assert    @ibody         2
+assert    @nface         6
+assert    @iface         6
+assert    @nedge         12
+assert    @iedge        -1
+assert    @nnode         8
+assert    @inode        -1
+assert    @igroup        3
+assert    @ibody1        2
+assert    @ibody         2
+assert    @xmin          0
+assert    @xmax          2
+assert    @ymin         -1
+assert    @ymax          1
+assert    @zmin          1
+assert    @zmax          1
+assert    @length        0
+assert    @area          4
+assert    @volume        0
+assert    @xcg           1
+assert    @ycg           0
+assert    @zcg           1
+
+select    edge           1
+assert    @seltype       1
+assert    @selbody       2
+assert    @sellist.size  1
+assert    @sellist[1]    1
+assert    @nbody         4
+assert    @ibody         2
+assert    @nface         6
+assert    @iface        -1
+assert    @nedge         12
+assert    @iedge         1
+assert    @nnode         8
+assert    @inode        -1
+assert    @igroup        3
+assert    @ibody1        2
+assert    @ibody2        10003
+assert    @xmin          0
+assert    @xmax          0
+assert    @ymin         -1
+assert    @ymax         -1
+assert    @zmin         -1
+assert    @zmax          1
+assert    @length        2
+assert    @area          0
+assert    @volume        0
+assert    @xcg           0
+assert    @ycg          -1
+assert    @zcg           0
+
+select    edge           theBox  2    theBox  5
+assert    @seltype       1
+assert    @selbody       2
+assert    @sellist.size  1
+assert    @sellist[1]    8
+assert    @nbody         4
+assert    @ibody         2
+assert    @nface         6
+assert    @iface        -1
+assert    @nedge         12
+assert    @iedge         8
+assert    @nnode         8
+assert    @inode        -1
+assert    @igroup        3
+assert    @ibody1        2
+assert    @ibody2        20005
+assert    @xmin          2
+assert    @xmax          2
+assert    @ymin         -1
+assert    @ymax          1
+assert    @zmin         -1
+assert    @zmax         -1
+assert    @length        2
+assert    @area          0
+assert    @volume        0
+assert    @xcg           2
+assert    @ycg           0
+assert    @zcg          -1
+
+# select the cylinder
+select    body           theCyl
+assert    @seltype      -1
+assert    @selbody       3
+assert    @sellist.size  1
+assert    @sellist[1]   -1
+assert    @nbody         4
+assert    @ibody         3
+assert    @nface         4
+assert    @iface        -1
+assert    @nedge         6
+assert    @iedge        -1
+assert    @nnode         4
+assert    @inode        -1
+assert    @igroup        3
+assert    @ibody1       -1
+assert    @ibody2       -1
+assert    @xmin          0.80
+assert    @xmax          1.20
+assert    @ymin         -2
+assert    @ymax          2
+assert    @zmin         -0.20
+assert    @zmax          0.20
+assert    @length        0
+assert    @area          5.277876
+assert    @volume        0.502655
+assert    @xcg           1
+assert    @ycg           0
+assert    @zcg           0
+
+# select the final body (the union)
+select    body
+assert    @seltype      -1
+assert    @selbody       4
+assert    @sellist.size  1
+assert    @sellist[1]   -1
+assert    @nbody         4
+assert    @ibody         4
+assert    @nface         12
+assert    @iface        -1
+assert    @nedge         24
+assert    @iedge        -1
+assert    @nnode         16
+assert    @inode        -1
+assert    @igroup        4
+assert    @ibody1       -1
+assert    @ibody2       -1
+assert    @xmin          0
+assert    @xmax          2
+assert    @ymin         -2
+assert    @ymax          2
+assert    @zmin         -1
+assert    @zmax          1
+assert    @xcg           1
+assert    @ycg           0
+assert    @zcg           0
+assert    @Ixx           5.922277
+assert    @Ixy           0
+assert    @Ixz           0
+assert    @Iyy           5.338360
+assert    @Iyz           0
+assert    @Izz           5.922277
+
+select    face           theBox 1
+assert    @seltype       2
+assert    @selbody       4
+assert    @sellist.size  1
+assert    @sellist[1]    1
+assert    @nbody         4
+assert    @ibody         4
+assert    @nface         12
+assert    @iface         1
+assert    @nedge         24
+assert    @iedge        -1
+assert    @nnode         16
+assert    @inode        -1
+assert    @igroup        4
+assert    @ibody1        2
+assert    @ibody2        1
+assert    @xmin          0
+assert    @xmax          0
+assert    @ymin         -1
+assert    @ymax          1
+assert    @zmin         -1
+assert    @zmax          1
+assert    @length        0
+assert    @area          4
+assert    @volume        0
+assert    @xcg           0
+assert    @ycg           0
+assert    @zcg           0
+assert    @Ixx           2.666667
+assert    @Ixy           0
+assert    @Ixz           0
+assert    @Iyy           1.333333
+assert    @Iyz           0
+assert    @Izz           1.333333
+
+select    edge           theBox 1   theBox 6
+assert    @seltype       1
+assert    @selbody       4
+assert    @sellist.size  1
+assert    @sellist[1]    2
+assert    @nbody         4
+assert    @ibody         4
+assert    @nface         12
+assert    @iface        -1
+assert    @nedge         24
+assert    @iedge         2
+assert    @nnode         16
+assert    @inode        -1
+assert    @igroup        4
+assert    @ibody1        2
+assert    @ibody2        10006
+assert    @xmin          0
+assert    @xmax          0
+assert    @ymin         -1
+assert    @ymax          1
+assert    @zmin          1
+assert    @zmax          1
+assert    @length        2
+assert    @area          0
+assert    @volume        0
+assert    @xcg           0
+assert    @ycg           0
+assert    @zcg           1
+assert    @Ixx           0.666667
+assert    @Ixy           0
+assert    @Ixz           0
+assert    @Iyy           0
+assert    @Iyz           0
+assert    @Izz           0.666667
+
+select    node           1
+assert    @seltype       0
+assert    @selbody       4
+assert    @sellist.size  1
+assert    @sellist[1]    1
+assert    @nbody         4
+assert    @ibody         4
+assert    @nface         12
+assert    @iface        -1
+assert    @nedge         24
+assert    @iedge        -1
+assert    @nnode         16
+assert    @inode         1
+assert    @igroup        4
+assert    @ibody1       -1
+assert    @ibody2       -1
+assert    @xmin          0
+assert    @xmax          0
+assert    @ymin         -1
+assert    @ymax         -1
+assert    @zmin          1
+assert    @zmax          1
+assert    @length        0
+assert    @area          0
+assert    @volume        0
+assert    @xcg           0
+assert    @ycg          -1
+assert    @zcg           1
+assert    @Ixx           0
+assert    @Ixy           0
+assert    @Ixz           0
+assert    @Iyy           0
+assert    @Iyz           0
+assert    @Izz           0
+
+end

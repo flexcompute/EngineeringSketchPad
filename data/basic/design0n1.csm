@@ -1,0 +1,13 @@
+# design0n1 (naca)
+# written by John Dannenhoffer
+
+despmtr   thickness 0.12
+despmtr   camber    0.04
+despmtr   span       2.0
+
+udparg    naca      thickness thickness
+udprim    naca      camber    camber
+
+extrude   0  0  span
+
+end

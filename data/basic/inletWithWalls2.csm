@@ -1,0 +1,117 @@
+# inletWithWalls2
+# written by John Dannenhoffer
+
+DESPMTR   depth     2.00
+DESPMTR   wall      0.01
+
+########################################
+
+# lower body (NACA airfoil)
+UDPRIM    naca   thickness 0.06   camber 0.04   sharpte 1
+
+# cut upper surface of lower body into 4 parts
+SET       nbody @nbody
+EVALUATE  edgerng  nbody  1
+SET       tmin  @edata[1]
+SET       tmax  @edata[2]
+
+EVALUATE  edge     nbody  1  0.80*tmin+0.20*tmax
+POINT     @edata[2] @edata[3] @edata[4]
+SUBTRACT
+
+EVALUATE  edge     nbody  1  0.33*tmin+0.67*tmax
+POINT     @edata[2] @edata[3] @edata[4]
+SUBTRACT
+
+EVALUATE  edge     nbody  1  0.01*tmin+0.99*tmax   # needed because of LE curvature
+POINT     @edata[2] @edata[3] @edata[4]
+SUBTRACT
+
+STORE     lower 0
+
+# create RULEd lower body
+MARK
+   RESTORE  lower 0
+   RESTORE  lower 0
+   TRANSLATE 0  0  wall
+   RESTORE  lower 0
+   TRANSLATE 0  0  depth-wall
+   RESTORE   lower 0
+   TRANSLATE 0  0  depth
+RULE
+SET       lower  @nbody
+
+########################################
+
+# upper (facetted) body
+SKBEG     0.3   0.3   0.0
+   LINSEG 0.6   0.2   0.0
+   LINSEG 0.9   0.2   0.0
+   LINSEG 1.0   0.3   0.0
+   LINSEG 0.3   0.3   0.0
+SKEND
+
+STORE     upper 0
+
+# create RULEd upper body
+MARK
+   RESTORE  upper 0
+   RESTORE  upper 0
+   TRANSLATE 0  0  wall
+   RESTORE  upper 0
+   TRANSLATE 0  0  depth-wall
+   RESTORE   upper 0
+   TRANSLATE 0  0  depth
+RULE
+SET       upper @nbody
+
+########################################
+
+# create inboard endwall
+
+# extract the inboard Faces to connect
+SELECT    BODY lower
+SELECT    FACE lower  9
+SELECT    ADD  lower  6
+SELECT    ADD  lower  3
+
+DIMENSION lowerInboard 1 3
+SET       lowerInboard @sellist
+
+# extract the inboard Faces to connect
+SELECT    BODY upper
+SELECT    FACE upper  3
+SELECT    ADD  upper  6
+SELECT    ADD  upper  9
+
+DIMENSION upperInboard 1 3
+SET       upperInboard @sellist
+
+CONNECT   lowerInboard   upperInboard
+
+########################################
+
+# create outboard endwall
+
+# extract the outboard Faces to connect
+SELECT    FACE lower 11
+SELECT    ADD  lower  8
+SELECT    ADD  lower  5
+
+DIMENSION lowerOutboard 1 3
+SET       lowerOutboard @sellist
+
+# extract the outboard Faces to connect
+SELECT    FACE upper  5
+SELECT    ADD  upper  8
+SELECT    ADD  upper 11
+
+DIMENSION upperOutboard 1 3
+SET       upperOutboard @sellist
+
+MARK
+UDPRIM    $$/swap
+
+CONNECT   lowerOutboard  upperOutboard
+
+END

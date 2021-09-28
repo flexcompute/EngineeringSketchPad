@@ -1,0 +1,28 @@
+# sens2
+# written by John Dannenhoffer
+
+# serveCSM ../data/basic/sens2 [-sensTess]
+#     DesignParameter
+#     D
+#     ComputeSensitivity
+
+despmtr     D  1.0
+despmtr     H  0.5
+
+skbeg      3*D    D  0
+   linseg    D  3*D  0
+   linseg   -D  3*D  0
+   linseg -3*D    D  0
+   linseg -3*D   -D  0
+   linseg   -D -3*D  0
+   linseg    D -3*D  0
+   linseg  3*D   -D  0
+   linseg  3*D    D  0
+skend
+
+extrude 0 0 H
+
+# dump sensitivity (wrt D)
+dump  sens2.sens
+
+end

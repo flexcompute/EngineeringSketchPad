@@ -1,0 +1,200 @@
+# glovesTest
+# written by John Dannenhoffer
+
+### begin Gloves section ###
+
+# Component headers
+CFGPMTR   fuse:nsect   4
+DIMENSION fuse:xloc    4  1
+DIMENSION fuse:ymax    4  1
+DIMENSION fuse:zbot    4  1
+DIMENSION fuse:ztop    4  1
+
+# Components
+SET       compName     $fuse
+UDPRIM    $$/glovesFuse
+
+SET       compName     $htail
+UDPRIM    $$/glovesWing
+
+SET       compName     $vtail
+UDPRIM    $$/glovesVtail
+
+SET       compName     $wing
+UDPRIM    $$/glovesWing
+
+# DESPMTRs
+DESPMTR   fuse:xloc[1]  0
+LBOUND    fuse:xloc[1]  0
+UBOUND    fuse:xloc[1]  20
+
+DESPMTR   fuse:ymax[1]  0.5
+LBOUND    fuse:ymax[1]  0.1
+UBOUND    fuse:ymax[1]  20
+
+DESPMTR   fuse:ztop[1]  0
+LBOUND    fuse:ztop[1]  -20
+UBOUND    fuse:ztop[1]  20
+
+DESPMTR   fuse:zbot[1]  -0.5
+LBOUND    fuse:zbot[1]  -20
+UBOUND    fuse:zbot[1]  20
+
+DESPMTR   fuse:xloc[2]  2
+LBOUND    fuse:xloc[2]  0.1
+UBOUND    fuse:xloc[2]  20
+
+DESPMTR   fuse:ymax[2]  1.5
+LBOUND    fuse:ymax[2]  0.1
+UBOUND    fuse:ymax[2]  20
+
+DESPMTR   fuse:ztop[2]  1
+LBOUND    fuse:ztop[2]  -20
+UBOUND    fuse:ztop[2]  20
+
+DESPMTR   fuse:zbot[2]  -1
+LBOUND    fuse:zbot[2]  -20
+UBOUND    fuse:zbot[2]  20
+
+DESPMTR   fuse:xloc[3]  8
+LBOUND    fuse:xloc[3]  0.1
+UBOUND    fuse:xloc[3]  20
+
+DESPMTR   fuse:ymax[3]  1.5
+LBOUND    fuse:ymax[3]  0.1
+UBOUND    fuse:ymax[3]  20
+
+DESPMTR   fuse:ztop[3]  1
+LBOUND    fuse:ztop[3]  -20
+UBOUND    fuse:ztop[3]  20
+
+DESPMTR   fuse:zbot[3]  -1
+LBOUND    fuse:zbot[3]  -20
+UBOUND    fuse:zbot[3]  20
+
+DESPMTR   fuse:xloc[4]  15
+LBOUND    fuse:xloc[4]  0.1
+UBOUND    fuse:xloc[4]  20
+
+DESPMTR   fuse:ymax[4]  0.5
+LBOUND    fuse:ymax[4]  0.1
+UBOUND    fuse:ymax[4]  20
+
+DESPMTR   fuse:ztop[4]  1
+LBOUND    fuse:ztop[4]  -20
+UBOUND    fuse:ztop[4]  20
+
+DESPMTR   fuse:zbot[4]  0.5
+LBOUND    fuse:zbot[4]  -20
+UBOUND    fuse:zbot[4]  20
+
+DESPMTR   htail:Xroot  13.225241339101103
+LBOUND    htail:Xroot  0.1
+UBOUND    htail:Xroot  20
+
+DESPMTR   htail:Zroot  0.47292288
+LBOUND    htail:Zroot  -10
+UBOUND    htail:Zroot  10
+
+DESPMTR   htail:area  6.393113977520018
+LBOUND    htail:area  0.1
+UBOUND    htail:area  100
+
+DESPMTR   htail:aspect  5
+LBOUND    htail:aspect  0.1
+UBOUND    htail:aspect  20
+
+DESPMTR   htail:taper  0.5
+LBOUND    htail:taper  0.1
+UBOUND    htail:taper  2
+
+DESPMTR   htail:sweep  30
+LBOUND    htail:sweep  -45
+UBOUND    htail:sweep  45
+
+DESPMTR   htail:dihedral  5
+LBOUND    htail:dihedral  -10
+UBOUND    htail:dihedral  10
+
+DESPMTR   htail:thick  0.1
+LBOUND    htail:thick  0.01
+UBOUND    htail:thick  1
+
+DESPMTR   vtail:Xroot  13.3
+LBOUND    vtail:Xroot  0.1
+UBOUND    vtail:Xroot  20
+
+DESPMTR   vtail:Yroot  0
+LBOUND    vtail:Yroot  -20
+UBOUND    vtail:Yroot  20
+
+DESPMTR   vtail:Zroot  0.8
+LBOUND    vtail:Zroot  -10
+UBOUND    vtail:Zroot  10
+
+DESPMTR   vtail:area  3
+LBOUND    vtail:area  0.1
+UBOUND    vtail:area  100
+
+DESPMTR   vtail:aspect  2.5
+LBOUND    vtail:aspect  0.1
+UBOUND    vtail:aspect  20
+
+DESPMTR   vtail:taper  0.5
+LBOUND    vtail:taper  0.1
+UBOUND    vtail:taper  2
+
+DESPMTR   vtail:sweep  30
+LBOUND    vtail:sweep  -45
+UBOUND    vtail:sweep  45
+
+DESPMTR   vtail:thick  0.1
+LBOUND    vtail:thick  0.01
+UBOUND    vtail:thick  1
+
+DESPMTR   wing:Xroot  3
+LBOUND    wing:Xroot  0.1
+UBOUND    wing:Xroot  20
+
+DESPMTR   wing:Zroot  -0.5
+LBOUND    wing:Zroot  -10
+UBOUND    wing:Zroot  10
+
+DESPMTR   wing:area  48
+LBOUND    wing:area  0.1
+UBOUND    wing:area  100
+
+DESPMTR   wing:aspect  5
+LBOUND    wing:aspect  0.1
+UBOUND    wing:aspect  20
+
+DESPMTR   wing:taper  0.5
+LBOUND    wing:taper  0.1
+UBOUND    wing:taper  2
+
+DESPMTR   wing:sweep  30
+LBOUND    wing:sweep  -45
+UBOUND    wing:sweep  45
+
+DESPMTR   wing:dihedral  5
+LBOUND    wing:dihedral  -10
+UBOUND    wing:dihedral  10
+
+DESPMTR   wing:thick  0.1
+LBOUND    wing:thick  0.01
+UBOUND    wing:thick  1
+
+### end Gloves section ###
+
+# union everything together
+STORE     ...
+RESTORE   fuse
+RESTORE   wing
+UNION
+RESTORE   htail
+UNION
+RESTORE   vtail
+UNION
+
+END
+

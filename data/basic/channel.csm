@@ -1,0 +1,10 @@
+# channel
+# written by John Dannenhoffer
+
+box       0  0  0  2  2  1
+cylinder  0  1  1.6  2.2  1  1  0.5
+subtract
+
+fillet    0.20
+
+end

@@ -1,0 +1,28 @@
+# skfix2
+# written by John Dannenhoffer
+
+skbeg     0   0   0   1
+   skvar     xy   "0.00;  0.00;  0.00; \
+                   3.10;  0.20;  0.00; \
+                   1.85;  1.20;  0.00; \
+                   1.53;  0.78;  0.00; \
+                   0.23;  1.76;  0.00;"
+   skcon     X   1   -1  0
+   skcon     Y   1   -1  0
+   skcon     L   1   2  4
+   skcon     L   2   3  2.5
+   skcon     L   3   4  0.5
+   skcon     L   4   5  2.5
+   skcon     P   4   -1  0
+   skcon     P   3   -1  0
+   skcon     H   1   2  0
+   skcon     V   5   1  0
+   linseg    ::x[2]   ::y[2]   0
+   linseg    ::x[3]   ::y[3]   0
+   linseg    ::x[4]   ::y[4]   0
+   linseg    ::x[5]   ::y[5]   0
+   linseg    ::x[1]   ::y[1]   0
+skend     0
+extrude   0   0   1
+
+end

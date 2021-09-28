@@ -1,0 +1,93 @@
+# matchBodys3 (match Nodes, Edges, and Faces)
+# written by John Dannenhoffer
+
+# make the Bodys
+MARK
+   SKBEG                 -1 0.0 -.5
+      CIRARC -1 0.5 0.0  -1 0.0 0.5
+      CIRARC -1 -.5 0.0  -1 0.0 -.5
+   SKEND
+   SKBEG                 -2 0.0 -.5
+      CIRARC -2 0.5 0.0  -2 0.0 0.5
+      CIRARC -2 -.5 0.0  -2 0.0 -.5
+   SKEND
+RULE
+PROJECT   0 0 0    -1 0 0
+SET       rite1     @iface
+STORE     body 1
+
+BOX       -1 -1 -1  2  2  2
+CYLINDER   1  0  0  2  0  0  0.5
+SUBTRACT
+CYLINDER  -1  0  0 -2  0  0  0.5
+SUBTRACT
+PROJECT   0 0 0    -1 0 0
+SET       left2     @iface
+PROJECT   0 0 0     1 0 0
+SET       rite2     @iface
+STORE     body 2
+
+CYLINDER   1  0  0  2  0  0  0.5
+PROJECT   0 0 0     1 0 0
+SET       left3     @iface
+STORE    body 3
+
+# matches between Bodys 1 and 2
+RESTORE   body  1
+RESTORE   body  2
+UDPRIM    matchBodys    toler  0.001
+ASSERT    @@nnodes      2
+ASSERT    @@nedges      2
+ASSERT    @@nfaces      1
+
+SELECT    BODY          @nbody-1
+GETATTR   matches       $_nodeMatches_
+ASSERT    matches.size  2
+GETATTR   matches       $_edgeMatches_
+ASSERT    matches.size  2
+GETATTR   matches       $_faceMatches_
+ASSERT    matches.size  1
+ASSERT    matches[1]    rite1
+
+SELECT    BODY          @nbody
+GETATTR   matches       $_nodeMatches_
+ASSERT    matches.size  2
+GETATTR   matches       $_edgeMatches_
+ASSERT    matches.size  2
+GETATTR   matches       $_faceMatches_
+ASSERT    matches.size  1
+ASSERT    matches[1]    left2
+
+# matches between Bodys 2 and 3
+RESTORE   body  2
+RESTORE   body  3
+UDPRIM    matchBodys    toler  0.001
+ASSERT    @@nnodes      2
+ASSERT    @@nedges      2
+ASSERT    @@nfaces      1
+
+SELECT    BODY          @nbody-1
+GETATTR   matches       $_nodeMatches_
+ASSERT    matches.size  2
+GETATTR   matches       $_edgeMatches_
+ASSERT    matches.size  2
+GETATTR   matches       $_faceMatches_
+ASSERT    matches.size  1
+ASSERT    matches[1]    rite2
+
+SELECT    BODY          @nbody
+GETATTR   matches       $_nodeMatches_
+ASSERT    matches.size  2
+GETATTR   matches       $_edgeMatches_
+ASSERT    matches.size  2
+GETATTR   matches       $_faceMatches_
+ASSERT    matches.size  1
+ASSERT    matches[1]    left3
+
+# clear stack and show Bodys
+STORE     ...
+RESTORE   body  1
+RESTORE   body  2
+RESTORE   body  3
+
+END

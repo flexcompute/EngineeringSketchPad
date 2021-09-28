@@ -1,0 +1,103 @@
+# spoilerz
+#    cut spoiler in z direction into body on stack
+# written by John Dannenhoffer
+
+interface xbox      in  0
+interface ybox      in  0
+interface depth     in  1
+interface thick     in  0.1
+interface theta     in  30
+interface overlap   in  0.002
+interface extend    in  0.200
+
+# make sure that xbox and ybox contain 4 numbers
+assert    ifzero(xbox.size-4,1,0)  1
+assert    ifzero(ybox.size-4,1,0)  1
+
+# find the z bounding box of the body
+select    body
+set       zmin      @zmin
+set       zmax      @zmax
+
+# spoiler 999 is original body
+store     spoiler 999
+
+# find z-height at corners of quadrilateral
+restore   spoiler 999
+project   xbox[1]  ybox[1]  zmax+1  0  0  -1
+set       z1  @zcg
+project   xbox[2]  ybox[2]  zmax+1  0  0  -1
+set       z2  @zcg
+project   xbox[3]  ybox[3]  zmax+1  0  0  -1
+set       z3  @zcg
+project   xbox[4]  ybox[4]  zmax+1  0  0  -1
+set       z4  @zcg
+
+set       zhinge  (z2+z3)/2
+
+# scribe spoiler cutout on original body
+skbeg     xbox[1]  ybox[1]  zhinge-depth
+   linseg xbox[2]  ybox[2]  zhinge-depth
+   linseg xbox[3]  ybox[3]  zhinge-depth
+   linseg xbox[4]  ybox[4]  zhinge-depth
+   linseg xbox[1]  ybox[1]  zhinge-depth
+skend 1
+extrude   0 0 depth+1
+subtract
+project   xbox.sum/4  ybox.sum/4  1  0  0  -1
+extract   @iface
+# spoiler 998 is cutout shape
+store     spoiler 998
+
+# scribe spoiler cover on original body
+restore   spoiler 999
+set       x1p    (1+overlap)*xbox[1]-overlap*xbox[4]
+set       y1p    (1+overlap)*ybox[1]-overlap*ybox[4]
+set       x2p    (1+overlap)*xbox[2]-overlap*xbox[3]
+set       y2p    (1+overlap)*ybox[2]-overlap*ybox[3]
+set       x3p    (1+overlap)*xbox[3]-overlap*xbox[2]
+set       y3p    (1+overlap)*ybox[3]-overlap*ybox[2]
+set       x4p    (1+overlap)*xbox[4]-overlap*xbox[1]
+set       y4p    (1+overlap)*ybox[4]-overlap*ybox[1]
+
+set       x2pp   (1+extend)*x2p-extend*x1p
+set       y2pp   (1+extend)*y2p-extend*y1p
+set       x3pp   (1+extend)*x3p-extend*x4p
+set       y3pp   (1+extend)*y3p-extend*y4p
+
+skbeg     x1p    y1p    zhinge-depth
+   linseg x2pp   y2pp   zhinge-depth
+   linseg x3pp   y3pp   zhinge-depth
+   linseg x4p    y4p    zhinge-depth
+   linseg x1p    y1p    zhinge-depth
+skend 1
+extrude   0 0 depth+1
+subtract
+project   xbox.sum/4  ybox.sum/4  1  0  0  -1
+extract   @iface
+# spoiler 997 is cover shape
+store     spoiler 997
+
+# cut the cavity into the original body
+restore   spoiler 999
+restore   spoiler 998
+extrude   0  0  -depth
+subtract
+
+# make the cover and rotate it into its running position
+restore   spoiler 997
+extrude   0  0  -thick
+
+translate 0  0  thick/10
+udparg    $$/gen_rot  xbeg    xbox[3]
+udparg    $$/gen_rot  ybeg    ybox[3]
+udparg    $$/gen_rot  zbeg    z3
+udparg    $$/gen_rot  xend    xbox[2]
+udparg    $$/gen_rot  yend    ybox[2]
+udparg    $$/gen_rot  zend    z2
+udprim    $$/gen_rot  rotang  theta
+
+# combine the cover and the original shape with the cavity cut out
+union
+
+end

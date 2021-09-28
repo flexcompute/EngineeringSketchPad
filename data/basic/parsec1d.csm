@@ -1,0 +1,15 @@
+# parsec1d
+# written by John Dannenhoffer (based upon inputs from Justin Gray)
+
+dimension poly      2 5 1
+despmtr   poly      "0.5;  -.2;  0.2;  -.2;  -.2;\
+                     -.2;  0.2;  0.3;  -.1;  0.1;"
+
+udprim    parsec    Yte       -0.03     Poly      poly
+extrude   0  0  5
+
+udprim    parsec    Yte       -0.03     Poly      poly     Meanline  1
+translate 0.0       0.0      -1.0
+extrude   0  0  7
+
+end

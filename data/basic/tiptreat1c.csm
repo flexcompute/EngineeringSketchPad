@@ -1,0 +1,21 @@
+# tiptreat1c
+# written by John Dannenhoffer
+
+# Design Parameters
+despmtr   rad1      1.0
+despmtr   rad2      2.0
+despmtr   length    8.0
+despmtr   endFac    2.0
+
+# Branches
+mark
+   udprim    ellipse  rx   rad1   ry   rad2
+   rotatey   90   0   0
+   translate -length/2  0  0
+
+   udprim    ellipse  rx   rad1   ry   rad2
+   rotatey   90   0   0
+   translate +length/2  0  0
+blend   0  -1;endFac
+
+end

@@ -1,0 +1,43 @@
+# farfield1
+# written by John Dannenhoffer
+
+despmtr rx1    100
+despmtr ry1    400
+despmtr rx2    400
+despmtr ry2    100
+
+# first body
+udprim supell rx rx1 ry ry1
+select edge 2
+   attribute myEdge $upstream
+box    -2*rx1 0 -100 2*rx1 2*ry1 200
+intersect
+revolve 0 0 0 1 0 0 360
+   attribute BCtype $downstream
+select face $myEdge $upstream
+   attribute BCtype $upstream
+
+select face $BCtype $upstream
+      attribute _color $red
+select face $BCtype $downstream
+      attribute _color $blue
+
+# second body
+udprim supell rx rx2 ry ry2
+select edge 2
+   attribute myEdge $upstream
+box    -2*rx2 0 -100 2*rx2 2*ry2 200
+intersect
+revolve 0 0 0 1 0 0 360
+   attribute BCtype $downstream
+select face $myEdge $upstream
+   attribute BCtype $upstream
+
+select face $BCtype $upstream
+      attribute _color $red
+select face $BCtype $downstream
+      attribute _color $blue
+
+translate 500 0 0
+
+end

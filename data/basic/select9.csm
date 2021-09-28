@@ -1,0 +1,31 @@
+# select9
+# written by John Dannenhoffer
+
+SKBEG     0.0  0.0  2.0   
+   LINSEG 1.0 -1.0  2.0
+   LINSEG 2.0 -1.0  2.0
+   LINSEG 3.0  0.0  2.0
+   LINSEG 2.0  1.0  2.0
+   LINSEG 1.0  1.0  2.0
+   LINSEG 0.0  0.0  2.0
+SKEND
+EXTRUDE   0.0  0.0  1.0
+
+SELECT    NODE  1.5  3.5  -2.0  2.0  2.5  3.5
+   ATTRIBUTE picked 1
+ASSERT    @seltype       0
+ASSERT    @sellist.size  3
+
+SELECT    EDGE  1.5  3.5  -2.0  2.0  2.5  3.5
+   ATTRIBUTE picked 1
+   ATTRIBUTE _color $magenta
+ASSERT    @seltype       1
+ASSERT    @sellist.size  2
+
+SELECT    FACE  1.5  3.5  -2.0  2.0  1.5  3.5
+   ATTRIBUTE picked 1
+   ATTRIBUTE _color $cyan
+ASSERT    @seltype       2
+ASSERT    @sellist.size  2
+
+END

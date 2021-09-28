@@ -1,0 +1,57 @@
+# connect7e
+# written by John Dannenhoffer
+
+DIMENSION facelist1 1 2
+DIMENSION facelist2 1 2
+DIMENSION edgelist1 1 8
+DIMENSION edgelist2 1 8
+
+# outer Body
+BOX        -5  -5  -1   10  10   2
+BOX        -2  -2  -2    4   4   4
+SUBTRACT
+
+SELECT FACE 2 1
+SELECT ADD  2 2
+SET         facelist1  @sellist
+
+SELECT EDGE 1 5  2 1
+SELECT ADD  1 6  2 1
+SELECT ADD  1 5  2 2
+SELECT ADD  1 6  2 2
+SELECT ADD  2 1  2 3
+SELECT ADD  2 1  2 4
+SELECT ADD  2 2  2 3
+SELECT ADD  2 2  2 4
+SET         edgelist1   @sellist
+
+# inner Body
+BOX        -1  -1   2    2   2   2
+ROTATEZ    30   0   0
+SELECT FACE 4 1
+SELECT ADD  4 2
+SET         facelist2  @sellist
+
+SELECT EDGE 4 1  4 5
+SELECT ADD  4 1  4 6
+SELECT ADD  4 2  4 5
+SELECT ADD  4 2  4 6
+SELECT ADD  4 1  4 3
+SELECT ADD  4 1  4 4
+SELECT ADD  4 2  4 3
+SELECT ADD  4 2  4 4
+SET         edgelist2   @sellist
+
+# one CONNECTion
+CONNECT   facelist1  facelist2  edgelist1  edgelist2
+SELECT FACE @nbody 1
+SELECT ADD  @nbody 2
+SELECT ADD  @nbody 3
+SELECT ADD  @nbody 4
+SELECT ADD  @nbody 5
+SELECT ADD  @nbody 6
+SELECT ADD  @nbody 7
+SELECT ADD  @nbody 8
+   ATTRIBUTE _color  $green
+
+END

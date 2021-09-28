@@ -1,0 +1,175 @@
+
+# -----------------------------------------------------------------
+# Define the analysis fidelity that the geometry is intended support
+# -----------------------------------------------------------------
+attribute capsAIM $avlAIM;frictionAIM;awaveAIM
+
+# -----------------------------------------------------------------
+# Defines units of *.csm input file, optional as AWAVE is nondimensional
+# -----------------------------------------------------------------
+attribute capsLength $m
+
+# -----------------------------------------------------------------
+# Design parameters to define the wing cross section and planform
+# -----------------------------------------------------------------
+despmtr   thick     0.12      frac of local chord
+despmtr   camber    0.04      frac of loacl chord
+despmtr   tlen      5.00      length from wing LE to Tail LE
+despmtr   toff      0.5       tail offset
+
+despmtr   area      10.0
+despmtr   aspect    6.00
+despmtr   taper     0.60
+despmtr   sweep     20.0      deg (of c/4)
+
+despmtr   washout  -5.00      deg (down at tip)
+despmtr   dihedral  4.00      deg
+
+# -----------------------------------------------------------------
+# set parameters for use internally to create geometry
+# -----------------------------------------------------------------
+set       span      sqrt(aspect*area)
+set       croot     2*area/span/(1+taper)
+set       ctip      croot*taper
+set       dxtip     (croot-ctip)/4+span/2*tand(sweep)
+set       dztip     span/2*tand(dihedral)
+
+# -----------------------------------------------------------------
+# Wing Tip Store
+# Notice two attributes:
+# 	> capsType   - defines the type of awave component it is
+#   > capsGroup	 - unique string capsGroup used to group items together
+# -----------------------------------------------------------------
+udprim 	ellipse ry 0.1*ctip rz 0.1*ctip
+attribute capsType $Store
+attribute capsGroup  $RightTank
+translate dxtip    -span/2    dztip
+
+udprim 	ellipse ry 0.1*ctip rz 0.1*ctip
+attribute capsType $Store
+attribute capsGroup  $RightTank
+translate dxtip+ctip    -span/2    dztip
+
+udprim 	ellipse ry 0.1*ctip rz 0.1*ctip
+attribute capsType $Store
+attribute capsGroup  $LeftTank
+translate dxtip    span/2    dztip
+
+udprim 	ellipse ry 0.1*ctip rz 0.1*ctip
+attribute capsType $Store
+attribute capsGroup  $LeftTank
+translate dxtip+ctip    span/2    dztip
+
+# -----------------------------------------------------------------
+# Wing
+# Notice three attributes:
+#  > capsReferenceArea  - defines the reference area for coefficients
+#  > capsType   - defines the type of awave component it is
+#  > capsGroup	- unique string capsGroup used to group items together
+# -----------------------------------------------------------------
+# right tip
+udprim    naca      Thickness thick     Camber    camber
+attribute capsReferenceArea area
+attribute capsType  $Wing
+attribute capsGroup $Wing
+scale     ctip
+rotatex   90        0         0
+rotatey   washout   0         ctip/4
+translate dxtip    -span/2    dztip
+
+# root
+udprim    naca      Thickness thick     Camber    camber
+attribute capsType  $Wing
+attribute capsGroup $Wing
+rotatex   90        0         0
+scale     croot
+
+# left tip
+udprim    naca      Thickness thick     Camber    camber
+attribute capsType  $Wing
+attribute capsGroup $Wing
+scale     ctip
+rotatex   90        0         0
+rotatey   washout   0         ctip/4
+translate dxtip     span/2    dztip
+
+# -----------------------------------------------------------------
+# Vertical Tail
+# Notice two attributes:
+#  > capsType   - defines the type of awave component it is
+#  > capsGroup	- unique string capsGroup used to group items together
+# -----------------------------------------------------------------
+# tip
+udprim    naca      Thickness thick
+attribute capsType   $VTail
+attribute capsGroup  $VertTail
+scale     0.75*ctip
+translate tlen+0.75*(croot-ctip) 0.0 ctip+toff
+
+# base
+udprim    naca      Thickness thick
+attribute capsType  $VTail
+attribute capsGroup $VertTail
+scale     0.75*croot
+translate tlen 0.0 toff
+
+# -----------------------------------------------------------------
+# Horizontal Tail
+# Notice two attributes:
+#  > capsType   - defines the type of awave component it is
+#  > capsGroup	- unique string capsGroup used to group items together
+# -----------------------------------------------------------------
+# tip left
+udprim    naca      Thickness thick
+attribute capsType  $HTail
+attribute capsGroup $HorizTail
+scale     0.75*ctip
+rotatex   90        0         0
+translate tlen+0.75*(croot-ctip) -ctip toff
+
+# base
+udprim    naca      Thickness thick
+attribute capsType  $HTail
+attribute capsGroup $HorizTail
+scale     0.75*ctip
+rotatex   90        0         0
+translate tlen+0.75*(croot-ctip) 0.0 toff
+
+# tip right
+udprim    naca      Thickness thick
+attribute capsType  $HTail
+attribute capsGroup $HorizTail
+scale     0.75*ctip
+rotatex   90        0         0
+translate tlen+0.75*(croot-ctip) ctip toff
+
+# -----------------------------------------------------------------
+# Fuselage
+# Notice two attributes:
+#  > capsType     - defines the type of awave component it is
+#  > capsGroup	   - unique string capsGroup used to group items together
+# -----------------------------------------------------------------
+skbeg -0.4*tlen 0.0 0.0
+skend
+attribute capsType  $Fuse
+attribute capsGroup $Fuselage
+
+udprim 	ellipse ry 0.5*croot rz 0.2*croot
+attribute capsType $Fuse
+attribute capsGroup  $Fuselage
+translate 0.0 0.0 0.0
+
+udprim 	ellipse ry 0.4*croot rz 0.1*croot
+attribute capsType $Fuse
+translate croot 0.0 0.0
+
+udprim 	ellipse ry 0.1*croot rz 0.1*croot
+attribute capsType $Fuse
+attribute capsGroup  $Fuselage
+translate tlen 0.0 toff
+
+udprim 	ellipse ry 0.01*croot rz 0.01*croot
+attribute capsType $Fuse
+attribute capsGroup  $Fuselage
+translate tlen+0.75*croot 0.0 toff
+end

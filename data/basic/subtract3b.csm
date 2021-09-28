@@ -1,0 +1,20 @@
+# subtract3b (SOLID-SHEET)
+# written by John Dannenhoffer
+
+UDPRIM    box  dx 4  dy 2  dz 0.1
+
+SKBEG     -0.5  0.0 -1.0
+   CIRARC -1.0  0.5 -1.0   -1.5  0.0 -1.0
+   CIRARC -1.0 -0.5 -1.0   -0.5  0.0 -1.0
+SKEND 1
+EXTRUDE 0 0 2
+SUBTRACT
+
+SKBEG      2.5  0.9 -1.0
+   CIRARC  2.0  1.4 -1.0    1.5  0.9 -1.0
+   CIRARC  2.0  0.4 -1.0    2.5  0.9 -1.0
+SKEND 1
+EXTRUDE 0 0 2
+SUBTRACT
+
+end

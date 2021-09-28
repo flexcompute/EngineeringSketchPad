@@ -1,0 +1,220 @@
+# panel0
+# written by John Dannenhoffer
+#
+#
+#   +---> X     +------+------+------+   tagType=Rib   tagIndex=0
+#   |           |      |      |      |
+#   |           | U1_1 | U1_2 | U1_3 |   tagType=UpperSkin or LowerSkin
+#   Z           | L1_1 | L1_2 | L1_3 |
+#               |      |      |      |
+#               +------+------+------+   tagType=Rib  tagIndex=1
+#               |      |      |      |
+#   panelID ->  | U2_1 | U2_2 | U2_3 |
+#               | L2_1 | L2_2 | L2_3 |
+#               |      |      |      |
+#               +------+------+------+   tagType=Rib  tagIndex=2
+#               |      |      |      |
+#               | U3_1 | U3_2 | U3_3 |
+#               | L3_1 | L3_2 | L3_3 |
+#               |      |      |      |
+#               +------+------+------+   tagType=Rib  tagIndex=3
+#               |      |      |      |
+#               | U4_1 | U4_2 | U4_3 |
+#               | L4_1 | L4_2 | L4_3 |
+#               |      |      |      |
+#               +------+------+------+   tagType=Rib  tagIndex=nrib+1
+#               :      :      :      :
+#               :      :      :      tagType=TrailingEdge
+#               :      :      tagType=Spar  tagIndex=2
+#               :      tagType=Spar  tagIndex=1
+#               tagType=LeadingEdge
+
+# Constant and Design Parameters:
+
+despmtr   series_w     4409
+despmtr   area         10.0
+despmtr   aspect       6.00
+despmtr   taper        0.70
+despmtr   sweep        20.0
+despmtr   nrib         5
+despmtr   xfirst       0.20
+despmtr   xlast        0.75
+despmtr   nspar        3
+
+# make sure there are at least two spars
+ASSERT    ifpos(nspar-1,1,0)  1
+
+# Global Attributes:
+
+set       span         sqrt(area*aspect)
+set       half_span    span/2
+set       croot        2*area/span/(1+taper)
+set       ctip         taper*croot
+set       xtip         half_span*tand(sweep)
+
+# wing OML
+mark
+   udprim    naca   Series   series_w   sharpte   1
+   scale     croot
+   udprim    naca   Series   series_w   sharpte   1
+   scale     ctip
+   translate xtip   0   half_span
+rule      0
+   attribute OML 1
+select face @nbody 1
+   attribute tagType $Rib
+   attribute tagIndex $0
+select face @nbody 2
+   attribute tagType $Rib
+   attribute tagIndex val2str(nrib+1,0)
+select face @nbody 3
+   attribute tagType $UpperSkin
+select face @nbody 4
+   attribute tagType $LowerSkin
+select edge @nbody 3 @nbody 4 1     # smallest x
+   attribute tagType $LeadingEdge
+select edge @nbody 3 @nbody 4 2     # largest  x
+   attribute tagType $TrailingEdge
+store     OML
+
+# waffle  (note that depth is first set to nrib, then nspar,
+#          and then correct depth so that a change in either
+#          nrib or nspar will force a rebuild)
+set       buff    0.10
+udparg    waffle  depth nrib
+udparg    waffle  depth nspar
+udparg    waffle  depth xfirst
+udparg    waffle  depth xlast
+udprim    waffle  depth 0.5    filename <<
+
+   # construction lines for wing outline
+   POINT A   AT -buff            -buff
+   POINT B   AT  xtip-buff       half_span+buff
+   POINT C   AT  xtip+ctip+buff  half_span+buff
+   POINT D   AT  croot+buff      -buff
+
+   CLINE  AB      A   B
+   CLINE  BC      B   C
+   CLINE  CD      C   D
+   CLINE  AD      D   A
+
+   # ribs
+   PATBEG  i  nrib
+      POINT  A   ON  AB    YLOC  half_span*i/(nrib+1)
+      POINT  B   ON  CD    YLOC  half_span*i/(nrib+1)
+      LINE   .   A   B     tagType=Rib   tagIndex=!val2str(i,0)
+   PATEND
+
+   # spars
+   POINT     C   ON  AD  XLOC  croot*xfirst
+   POINT     D   ON  BC  XLOC  xtip+ctip*xfirst
+   LINE      .   C   D   tagType=Spar   tagIndex=1
+
+   POINT     E   ON  AD  XLOC  croot*xlast
+   POINT     F   ON  BC  XLOC  xtip+ctip*xlast
+   LINE      .   E   F   tagType=Spar   tagIndex=!val2str(nspar,0)
+
+   PATBEG  i  nspar-2
+      POINT  G   AT      x@C+i/(nspar-1)*(x@E-x@C)   y@C+i/(nspar-1)*(y@E-y@C)
+      POINT  H   AT      x@D+i/(nspar-1)*(x@F-x@D)   y@D+i/(nspar-1)*(y@F-y@D)
+      LINE   .   G  H    tagType=Spar   tagIndex=!val2str(i+1,0)  
+   PATEND
+>>
+rotatex   90  0       0
+translate 0   0.250   0
+store     waff
+
+# create skin panels
+restore   OML
+restore   waff
+subtract
+extract   0
+
+# create (trimmed) ribs and spars
+restore   waff
+restore   OML
+intersect
+dump     internals.egads
+
+# combine into the BEM
+union
+
+# number each of the upper and lower skin panels
+patbeg irib nrib+1
+   udprim  editAttr filename <<
+      face has      tagType=UpperSkin
+      and  adj2edge tagType=LeadingEdge
+      and  adj2face tagType=Rib  tagIndex=!val2str(irib-1,0)
+      and  adj2face tagType=Rib  tagIndex=!val2str(irib,0)
+      set           panelID=!$U+val2str(irib,0)+$_1
+
+      face has      tagType=LowerSkin
+      and  adj2edge tagType=LeadingEdge
+      and  adj2face tagType=Rib  tagIndex=!val2str(irib-1,0)
+      and  adj2face tagType=Rib  tagIndex=!val2str(irib,0)
+      set           panelID=!$L+val2str(irib,0)+$_1
+>>
+
+   patbeg ispar nspar-1
+      udprim  editAttr filename <<
+         face has      tagType=UpperSkin
+         and  adj2face tagType=Rib   tagIndex=!val2str(irib-1,0)
+         and  adj2face tagType=Rib   tagIndex=!val2str(irib,0)
+         and  adj2face tagType=Spar  tagIndex=!val2str(ispar,0)
+         and  adj2face tagType=Spar  tagIndex=!val2str(ispar+1,0)
+         set           panelID=!$U+val2str(irib,0)+$_+val2str(ispar+1,0)
+
+         face has      tagType=LowerSkin
+         and  adj2face tagType=Rib   tagIndex=!val2str(irib-1,0)
+         and  adj2face tagType=Rib   tagIndex=!val2str(irib,0)
+         and  adj2face tagType=Spar  tagIndex=!val2str(ispar,0)
+         and  adj2face tagType=Spar  tagIndex=!val2str(ispar+1,0)
+         set           panelID=!$L+val2str(irib,0)+$_+val2str(ispar+1,0)
+>>
+   patend
+
+   udprim  editAttr filename <<
+      face has      tagType=UpperSkin
+      and  adj2edge tagType=TrailingEdge
+      and  adj2face tagType=Rib  tagIndex=!val2str(irib-1,0)
+      and  adj2face tagType=Rib  tagIndex=!val2str(irib,0)
+      set           panelID=!$U+val2str(irib,0)+$_+val2str(nspar+1,0)
+
+      face has      tagType=LowerSkin
+      and  adj2edge tagType=TrailingEdge
+      and  adj2face tagType=Rib  tagIndex=!val2str(irib-1,0)
+      and  adj2face tagType=Rib  tagIndex=!val2str(irib,0)
+      set           panelID=!$L+val2str(irib,0)+$_+val2str(nspar+1,0)
+>>
+patend
+
+# dump each of the panels that have a panelID
+select    face      $panelID $*
+
+store     panels
+patbeg    ipanel  @sellist.size
+    restore   panels
+    extract   ipanel
+    dump      !$unstiffened_+ipanel+$.egads  1
+patend
+
+restore   panels
+
+# create the built-up-element model (ignoring panels adjacent to trailing edge)
+udprim  editAttr filename <<
+   node adj2edge tagType=TrailingEdge
+   set           ignoreNode=true
+
+   edge adj2node ignoreNode=true
+   set           ignoreEdge=true
+
+   face adj2node ignoreNode=true
+   set           ignoreFace=true
+>>
+
+udparg    createBEM   imin      8
+udparg    createBEM   imax      99
+udparg    createBEM   space     0.008
+udprim    createBEM   filename  $panel1.bdf
+
+end

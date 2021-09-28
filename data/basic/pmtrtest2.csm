@@ -1,0 +1,52 @@
+# pmtrtest2
+# written by John Dannenhoffer
+
+CFGPMTR   nsect     4
+CFGPMTR   nosetype  2  # 2=blend, rule otherwise
+
+DIMENSION xloc      1  nsect
+DIMENSION width     1  nsect
+DIMENSION height    1  nsect
+DIMENSION zcent     1  nsect
+DIMENSION power     1  nsect
+DIMENSION masscol   3  1
+DIMENSION massrow   1  3
+
+DESPMTR   xloc      1;2;4;6
+DESPMTR   width     1;2;2;1
+DESPMTR   height    1;2;1;1
+DESPMTR   zcent     0;.2;.1;0
+DESPMTR   power     5
+
+DESPMTR   rnose     0.5
+
+# set up the OUTPMTRS
+OUTPMTR   myLength
+OUTPMTR   myArea
+OUTPMTR   myVolume
+OUTPMTR   masscol
+OUTPMTR   massrow
+
+# make the fuselage
+MARK
+   POINT     0  0  0
+
+   PATBEG    isect  nsect
+      UDPRIM    supell  rx height[isect]/2   ry width[isect]/2   n power[isect]
+      ROTATEY   90  0  0
+      TRANSLATE xloc[isect]  0  zcent[isect]
+   PATEND
+IFTHEN    nosetype EQ 2
+   BLEND  rnose;0;1;0;rnose;0;0;1
+ELSE
+   RULE
+ENDIF
+
+# set the OUTPMTR values
+SET       myLength  xloc[nsect]
+SET       myArea    @area
+SET       myVolume  @volume
+SET       masscol   myLength;myArea;myVolume
+SET       massrow   masscol
+
+END

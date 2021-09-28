@@ -1,0 +1,50 @@
+# plugs4c
+# written by John Dannenhoffer
+
+                           # target
+DESPMTR   area      30.00  #  50.00
+DESPMTR   aspect     2.00  #   6.00
+LBOUND    aspect     1.00
+DESPMTR   taper      0.20  #   0.70
+LBOUND    taper      0.20
+UBOUND    taper      1.00
+DESPMTR   sweep     45.00  #  30.00
+LBOUND    sweep      0.00
+UBOUND    sweep     60.00
+DESPMTR   dihedral   0.00  #   5.00
+LBOUND    dihedral -10.00
+UBOUND    dihedral  10.00
+DESPMTR   thick      0.05  #   0.12
+LBOUND    thick      0.02
+
+SET       cmean     sqrt(area/aspect)
+SET       span      area/cmean
+SET       croot     2*cmean/(taper+1)
+SET       ctip      croot*taper
+
+SET       xroot     0
+SET       yroot     0
+SET       zroot     -thick*croot/2
+
+SET       xtip      xroot+span/2*sind(sweep)
+SET       ytip      yroot+span/2*cosd(sweep)
+SET       ztip      zroot+span/2*sind(dihedral)
+
+MARK
+   BOX       0.0  0.0  0.0  1.0  thick  0.0
+   ROTATEX   90 0 0
+   SCALE     ctip
+   TRANSLATE xtip  -ytip   ztip
+
+   BOX       0.0  0.0  0.0  1.0  thick  0.0
+   ROTATEX   90 0 0
+   SCALE     croot
+   TRANSLATE xroot  yroot  zroot
+
+   BOX       0.0  0.0  0.0  1.0  thick  0.0
+   ROTATEX   90 0 0
+   SCALE     ctip
+   TRANSLATE xtip   ytip   ztip
+RULE
+
+END

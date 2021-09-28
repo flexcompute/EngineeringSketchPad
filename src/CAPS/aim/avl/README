@@ -1,0 +1,7 @@
+			CAPS / AVL Requirements
+
+     If you have version 3.35 of AVL (if you wish to run the AIM). Update the
+     file "ainput.f" from this directory into the src directory of the AVL 
+     distribution. Build (or rebuild after the update) AVL by following the 
+     instructions found within the AVL distribution. The bug has been fixed
+     in AVL Rev 3.36.

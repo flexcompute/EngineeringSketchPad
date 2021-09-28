@@ -1,0 +1,33 @@
+# design0g
+# written by John Dannenhoffer
+
+dimension xle   4 1 1
+dimension yle   4 1 1
+dimension zle   4 1 1
+dimension twist 4 1 1
+dimension chord 4 1 1
+dimension thick 4 1 1
+dimension cambr 4 1 1
+
+despmtr   xle   " 904.294; 1225.820; 1516.504; 1780.737;"
+despmtr   yle   "   0.000;  427.999;  809.727; 1156.753;"
+despmtr   zle   " 174.126;  181.071;  209.794;  263.827;"
+despmtr   twist "  6.7166;   0.7635;  -1.6350;  -3.7500;"
+despmtr   chord " 536.181;  285.782;  192.344;  107.400;"
+despmtr   thick "  0.1542;   0.1052;   0.0962;   0.0950;"
+despmtr   cambr "  0.0003;   0.0095;   0.0158;   0.0009;"
+
+mark
+    patbeg isect 4
+        udprim    naca      thickness thick[isect,1]\
+                            camber    cambr[isect,1]
+        scale      chord[isect,1]
+        rotatex    90             0            0
+        rotatey    twist[isect,1] 0            0.75*chord[isect,1]
+        translate    xle[isect,1] yle[isect,1]        zle[isect,1]
+    patend
+rule
+
+scale 0.001
+
+end

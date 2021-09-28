@@ -1,0 +1,139 @@
+# poly3
+# written by Paul Mokotoff; modified by John Dannenhoffer
+
+udprim poly points "3; 2; 1; \
+                    4; 2; 1; \
+                    4; 3; 1; \
+                    3; 3; 1; \
+                    3; 2; 4; \
+                    4; 2; 4; \
+                    4; 3; 4; \
+                    3; 3; 4; "
+   attribute _name $hexahedron
+
+udprim poly points "3; 2; 1; \
+                    4; 2; 1; \
+                    4; 3; 1; \
+                    3; 3; 1; \
+                    3; 2; 4; \
+                    4; 2; 4; \
+                    4; 2; 4; \
+                    3; 3; 4; "
+   attribute _name $pinched
+translate 3 0 0
+
+udprim poly points "3; 2; 1; \
+                    4; 2; 1; \
+                    4; 3; 1; \
+                    4; 2; 4; \
+                    4; 2; 4; \
+                    4; 2; 4; "
+   attribute _name $tetrahedron
+translate 3 3 0
+
+udprim poly points "3; 2; 1; \
+                    4; 2; 1; \
+                    4; 3; 1; \
+                    3; 2; 4; \
+                    4; 2; 4; \
+                    4; 3; 4; "
+   attribute _name $wedge_a
+translate 6 0 0
+
+udprim poly points "3; 2; 1; \
+                    4; 2; 1; \
+                    4; 3; 1; \
+                    4; 3; 1; \
+                    3; 2; 4; \
+                    4; 2; 4; \
+                    4; 3; 4; \
+                    4; 3; 4; "
+   attribute _name $wedge_b
+translate 6 3 0
+
+udprim poly points "3; 2; 1; \
+                    4; 2; 1; \
+                    4; 3; 1; \
+                    3; 3; 1; \
+                    3; 2; 4; "
+   attribute _name $pyramid_a
+translate 9 0 0
+
+udprim poly points "3; 2; 1; \
+                    4; 2; 1; \
+                    4; 3; 1; \
+                    3; 3; 1; \
+                    3; 2; 4; \
+                    3; 2; 4; \
+                    3; 2; 4; \
+                    3; 2; 4; "
+   attribute _name $pyramid_b
+translate 9 3 0
+
+udprim poly points "3; 2; 1; "
+   attribute _name $point_a
+translate 12 0 0
+
+udprim poly points "3; 2; 1; \
+                    3; 2; 1; \
+                    3; 2; 1; \
+                    3; 2; 1; \
+                    3; 2; 1; \
+                    3; 2; 1; \
+                    3; 2; 1; \
+                    3; 2; 1; "
+   attribute _name $point_b
+translate 12 3 0
+
+udprim poly points "3; 2; 1; \
+                    4; 2; 1; "
+   attribute _name $line_a
+translate 15 0 0
+
+udprim poly points "3; 2; 1; \
+                    3; 2; 1; \
+                    3; 2; 1; \
+                    3; 2; 1; \
+                    4; 2; 1; \
+                    4; 2; 1; \
+                    4; 2; 1; \
+                    4; 2; 1; "
+   attribute _name $line_b
+translate 15 3 0
+
+udprim poly points "3; 2; 1; \
+                    4; 2; 1; \
+                    4; 3; 1; "
+   attribute _name $triangle_a
+translate 18 0 0
+
+udprim poly points "3; 2; 1; \
+                    4; 2; 1; \
+                    4; 3; 1; \
+                    4; 3; 1; \
+                    3; 2; 1; \
+                    4; 2; 1; \
+                    4; 3; 1; \
+                    4; 3; 1; "
+   attribute _name $triangle_b
+translate 18 3 0
+
+udprim poly points "3; 2; 1; \
+                    4; 2; 1; \
+                    4; 3; 1; \
+                    3; 3; 1; "
+   attribute _name $quad_a
+translate 21 0 0
+
+udprim poly points "3; 2; 1; \
+                    4; 2; 1; \
+                    4; 3; 1; \
+                    3; 3; 1; \
+                    3; 2; 1; \
+                    4; 2; 1; \
+                    4; 3; 1; \
+                    3; 3; 1; "
+   attribute _name $quad_b
+translate 21 3 0
+
+end

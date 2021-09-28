@@ -1,0 +1,54 @@
+#======================================#
+# automatically generated verification #
+# OpenCSM  1.19      OpenCASCADE 7.4.1 #
+#======================================#
+select    body 4
+   assert         1      @itype       0  1
+   assert         2      @nnode       0  1
+   assert         1      @nedge       0  1
+   assert         0      @nface       0  1
+   assert   1.6000000e+01  @length  -.001  1
+   assert   6.6143783e+00  @xcg      1.3228757e-02  1
+   assert  -4.5000000e+00  @ycg      9.0000000e-03  1
+   assert   0.0000000e+00  @zcg     0.001  1
+
+select    body 9
+   assert         1      @itype       0  1
+   assert         2      @nnode       0  1
+   assert         1      @nedge       0  1
+   assert         0      @nface       0  1
+   assert   2.9000000e+01  @length  -.001  1
+   assert   1.1988561e+01  @xcg      2.3977121e-02  1
+   assert  -9.8437500e+00  @ycg      1.6312500e-02  1
+   assert   0.0000000e+00  @zcg     0.001  1
+
+select    body 14
+   assert         1      @itype       0  1
+   assert         2      @nnode       0  1
+   assert         1      @nedge       0  1
+   assert         0      @nface       0  1
+   assert   1.3000000e+01  @length  -.001  1
+   assert   1.6122547e+01  @xcg      1.0748365e-02  1
+   assert  -3.6562500e+00  @ycg      7.3125000e-03  1
+   assert   0.0000000e+00  @zcg     0.001  1
+
+select    body 19
+   assert         1      @itype       0  1
+   assert         2      @nnode       0  1
+   assert         1      @nedge       0  1
+   assert         0      @nface       0  1
+   assert   3.5000000e+01  @length  -.001  1
+   assert   3.5965682e+01  @xcg      2.8937905e-02  1
+   assert  -9.8437500e+00  @ycg      1.9687500e-02  1
+   assert   0.0000000e+00  @zcg     0.001  1
+
+select    body 21
+   assert         0      @itype       0  1
+   assert         1      @nnode       0  1
+   assert         0      @nedge       0  1
+   assert         0      @nface       0  1
+   assert   0.0000000e+00  @xcg     0.001  1
+   assert   0.0000000e+00  @ycg     0.001  1
+   assert   0.0000000e+00  @zcg     0.001  1
+
+end

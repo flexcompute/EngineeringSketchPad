@@ -1,0 +1,53 @@
+# viewAstros.udc
+# written by John Dannenhoffer
+
+# used Bodys
+#    WingOml
+#    WingWaffle
+# used variables
+#    wing:dxnom      [default=1]
+
+INTERFACE . ALL
+
+# wing structure
+IFTHEN    COMP:Wing EQ 1
+
+    # make sure WingWaffle exists
+    RESTORE   WingWaffle
+    STORE     .
+
+    # create the internals
+    RESTORE   WingOml
+    RESTORE   WingWaffle
+    INTERSECT
+
+    # create the skin
+    RESTORE   WingOml
+    RESTORE   WingWaffle
+    SUBTRACT
+    EXTRACT   0
+
+    # combine internals and skin
+    UNION
+
+    # process the various editAttr_*.txt files
+    PATBEG ifile 9999
+        UDPRIM    editAttr  filename $editAttr_+ifile+$.txt
+    PATEND
+    CATBEG -1
+    CATEND
+
+    STORE     WingStruct
+
+    # WingWaffle does not exist
+    CATBEG $name_not_found
+        UDPRIM   $$/viewSkinStructure
+    CATEND
+ENDIF
+
+RESTORE       WingStruct
+    ATTRIBUTE capsAIM    $astrosAIM
+    ATTRIBUTE capsIntent $STRUCTURE
+    ATTRIBUTE _name      $WingStruct
+
+END

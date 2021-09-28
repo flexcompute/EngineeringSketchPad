@@ -1,0 +1,27 @@
+# udparg1
+# written by John Dannenhoffer
+
+despmtr   dx        1
+despmtr   dy        1
+despmtr   dz        1
+despmtr   foo       0
+
+udparg    box       dx  dx
+udparg    box       dy  dy
+udparg    box       dz  dz
+udprim    box
+translate -2 +2 0
+
+udparg    box       dx  dx
+udparg    box       dy  dy
+udprim    box       dz  dz
+translate +2 +2 0
+
+udparg    box       dx  dx
+udprim    box                 dy  dy    dz  dz
+translate -2 -2 0
+
+udprim    box       dx  dx    dy  dy    dz  dz
+translate +2 -2 0
+
+end

@@ -1,0 +1,28 @@
+# hollow0a
+# written by John Dannenhoffer
+
+# box1: convert to SheetBody
+box       -4  -3  -1   2   2   2
+hollow
+
+# box2: convert to SheetBody without z Faces
+box       -1  -3  -1   2   2   2
+hollow     0   @nbody;5;@nbody;6
+
+# box3: smaller Body
+box        2  -3  -1   2   2   2
+hollow     0.2
+
+# box4: larger Body
+box       -4   1  -1   2   2   2
+hollow    -0.2
+
+# box5: hollow inside
+box       -1   1  -1   2   2   2
+hollow     0.2   @nbody;5;@nbody;6
+
+# box6: hollow outside
+box        2   1  -1   2   2   2
+hollow    -0.2   @nbody;5;@nbody;6
+
+end

@@ -1,0 +1,33 @@
+# sketch8c (for testing sensitivities)
+# written by John Dannenhoffer
+
+DESPMTR   x0        0.0
+DESPMTR   y0        0.0
+DESPMTR   length    3.0
+DESPMTR   height    1.0
+DESPMTR   depth     2.0
+
+SKBEG     x0   y0   0   1
+   SKVAR     xy   "0.000000; 0.000000; 0.000000;\
+                   3.000000; 0.000000; 0.000000;\
+                   2.000000; 1.000000; 0.292893;\
+                   0.000000; 1.000000 ;0.000000;"
+
+SKCON     X   1   -1  0
+   SKCON     Y   1   -1  0
+   SKCON     H   1    2  0
+   SKCON     H   3    4  0
+   SKCON     V   4    1  0
+   SKCON     L   1    2  length
+   SKCON     L   4    1  height
+   SKCON     P   2   -1  0
+   SKCON     T   3   -1  0
+
+   LINSEG    ::x[2]   ::y[2]   0
+   ARC       ::x[3]   ::y[3]   0   ::d[3]   xy
+   LINSEG    ::x[4]   ::y[4]   0
+   LINSEG    ::x[1]   ::y[1]   0
+SKEND     0
+EXTRUDE   0   0   depth
+
+END

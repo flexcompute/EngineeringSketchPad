@@ -1,0 +1,57 @@
+#
+!IFNDEF ESP_ROOT
+!ERROR ESP_ROOT must be set -- Please fix the environment...
+!ENDIF
+#
+IDIR  = $(ESP_ROOT)\include
+!include $(IDIR)\$(ESP_ARCH).$(MSVC)
+LDIR  = $(ESP_ROOT)\lib
+!IFDEF ESP_BLOC
+ODIR  = $(ESP_BLOC)\obj
+TDIR  = $(ESP_BLOC)\test
+!ELSE
+ODIR  = .
+TDIR  = $(ESP_ROOT)\bin
+!ENDIF
+
+OBJS =	$(ODIR)\su2AIM.obj $(ODIR)\su2Utils.obj $(ODIR)\su2_4_Cardinal.obj \
+	$(ODIR)\su2_5_Raven.obj $(ODIR)\su2_6_Falcon.obj $(ODIR)\su2_7_Blackbird.obj
+
+$(LDIR)\su2AIM.dll:	su2AIM.def $(OBJS) $(LDIR)\utils.lib
+	-del $(LDIR)\su2AIM.dll $(LDIR)\su2AIM.lib $(LDIR)\su2AIM.exp
+	 link /out:$(LDIR)\su2AIM.dll /dll /def:su2AIM.def \
+		$(OBJS) /LIBPATH:$(LDIR) utils.lib aimUtil.lib \
+		ocsm.lib egads.lib udunits2.lib
+	$(MCOMP) /manifest $(LDIR)\su2AIM.dll.manifest \
+		/outputresource:$(LDIR)\su2AIM.dll;2
+
+$(ODIR)\su2AIM.obj:	su2AIM.c su2Utils.h $(IDIR)\capsTypes.h \
+			..\utils\meshUtils.h
+	cl /c $(COPTS) $(DEFINE) /I$(IDIR) /I..\meshWriter\su2Writer /I..\utils su2AIM.c \
+		/Fo$(ODIR)\su2AIM.obj
+
+$(ODIR)\su2Utils.obj:	su2Utils.c su2Utils.h
+	cl /c $(COPTS) $(DEFINE) /I$(IDIR) /I..\utils su2Utils.c \
+		/Fo$(ODIR)\su2Utils.obj
+
+$(ODIR)\su2_4_Cardinal.obj:	su2_4_Cardinal.c su2Utils.h
+	cl /c $(COPTS) $(DEFINE) /I$(IDIR) /I..\utils su2_4_Cardinal.c \
+		/Fo$(ODIR)\su2_4_Cardinal.obj
+
+$(ODIR)\su2_5_Raven.obj:	su2_5_Raven.c su2Utils.h
+	cl /c $(COPTS) $(DEFINE) /I$(IDIR) /I..\utils su2_5_Raven.c \
+		/Fo$(ODIR)\su2_5_Raven.obj
+
+$(ODIR)\su2_6_Falcon.obj:	su2_6_Falcon.c su2Utils.h
+	cl /c $(COPTS) $(DEFINE) /I$(IDIR) /I..\utils su2_6_Falcon.c \
+		/Fo$(ODIR)\su2_6_Falcon.obj
+
+$(ODIR)\su2_7_Blackbird.obj:	su2_7_Blackbird.c su2Utils.h
+	cl /c $(COPTS) $(DEFINE) /I$(IDIR) /I..\utils su2_7_Blackbird.c \
+		/Fo$(ODIR)\su2_7_Blackbird.obj
+
+clean:
+	-del $(OBJS)
+
+cleanall:	clean
+	-del $(LDIR)\su2AIM.dll $(LDIR)\su2AIM.lib $(LDIR)\su2AIM.exp

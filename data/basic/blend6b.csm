@@ -1,0 +1,86 @@
+# blend6b
+# written by John Dannenhoffer
+
+# left (straight, 3-section) wing
+mark
+
+udprim    naca   camber   0.10   thickness   0.10
+rotatex   90   0   0
+scale     1.2006
+translate 8.972   -3.9051   0
+
+udprim    naca   camber   0.06   thickness   0.09
+rotatex   90   0   0
+scale     3.0052
+translate 7.1674   -1.9526   0
+
+udprim    naca   camber   0.05   thickness   0.08
+rotatex   90   0   0
+scale     3.4500
+translate 6.7226   -1.4645   0
+
+blend
+
+# center section of wing
+mark
+
+udprim    naca   camber   0.05   thickness   0.08
+rotatex   90   0   0
+scale     3.4500
+translate 6.7226   -1.4645   0
+
+udprim    naca   camber   0.04   thickness   0.07
+rotatex   90   0   0
+scale     3.9500
+translate 6.2226   -1.2204   0
+
+udprim    naca   camber   0.04   thickness   0.06
+rotatex   90   0   0
+scale     4.6213
+translate 5.5513   -0.9763   0
+
+udprim    naca   camber   0.02   thickness   0.03
+rotatex   90   0   0
+scale     9.7001
+translate 0.4725   0   0
+
+udprim    naca   camber   0.04   thickness   0.06
+rotatex   90   0   0
+scale     4.6213
+translate 5.5513   0.9763   0
+
+udprim    naca   camber   0.04   thickness   0.07
+rotatex   90   0   0
+scale     3.9500
+translate 6.2226   1.2204   0
+
+udprim    naca   camber   0.05   thickness   0.08
+rotatex   90   0   0
+scale     3.4500
+translate 6.7226   1.4645   0
+
+blend
+join      1e-05
+
+# right (straight, 3-section) wing
+mark
+
+udprim    naca   camber   0.05   thickness   0.08
+rotatex   90   0   0
+scale     3.4500
+translate 6.7226   1.4645   0
+
+udprim    naca   camber   0.06   thickness   0.09
+scale     3.0052
+rotatex   90   0   0
+translate 7.1674   1.9526   0
+
+udprim    naca   camber   0.10   thickness   0.10
+rotatex   90   0   0
+scale     1.2006
+translate 8.972   3.9051   0
+
+blend
+join      1e-05
+
+end

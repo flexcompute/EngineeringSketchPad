@@ -1,0 +1,70 @@
+# joinUnion1 (SolidBody version)
+# written by John Dannenhoffer
+
+#  +-----+-----+           +-----+
+#  |     |  3  |    +-----+|  5  |
+#  |  1  +-----+    |  4  |+-----+
+#  |     |  2  |    +-----+
+#  +-----+-----+
+
+BOX    0  0  0  1  2  1
+STORE  box   1
+BOX    1  0  0  1  1  1
+STORE  box   2
+BOX    1  1  0  1  1  1
+STORE  box   3
+BOX    3  1.5 0 1  1  1
+STORE  box   4
+BOX    4  2  0  1  1  1
+STORE  box   5
+
+# join(1, join(2, 3))
+SET       ifail 0
+RESTORE   box   2
+RESTORE   box   3
+JOIN                     # should succeed
+RESTORE   box   1
+JOIN                     # should fail
+CATBEG    $face_not_found
+   SET    ifail 1
+CATEND
+ASSERT    ifail 1
+
+# union(1, union(2, 3))
+SET       ifail 0
+RESTORE   box   2
+TRANSLATE 0  3  0
+RESTORE   box   3
+TRANSLATE 0  3  0
+UNION                    # should succeed
+RESTORE   box   1
+TRANSLATE 0  3  0
+UNION                    # should succeed
+CATBEG    $face_not_found
+   SET    ifail 1
+CATEND
+ASSERT    ifail 0
+
+# join(4, 5)
+SET       ifail 0
+RESTORE   box   4
+RESTORE   box   5
+JOIN                     # should fail
+CATBEG    $face_not_found
+   SET    ifail 1
+CATEND
+ASSERT    ifail 1
+
+# union(4, 5)
+SET       ifail 0
+RESTORE   box   4
+TRANSLATE 0  3  0
+RESTORE   box   5
+TRANSLATE 0  3  0
+UNION                    # should succeed
+CATBEG    $face_not_found
+   SET    ifail 1
+CATEND
+ASSERT    ifail 0
+
+END

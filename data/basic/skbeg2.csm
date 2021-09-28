@@ -1,0 +1,18 @@
+# skbeg2 (relative)
+# written by John Dannenhoffer
+
+despmtr   xbeg   +5.0
+despmtr   ybeg   -2.0
+despmtr   zbeg   -3.0
+
+skbeg     xbeg   ybeg   zbeg   1
+   linseg +1.0    0.0    0.0
+   arc    +2.0    0.0    0.0   +0.5
+   cirarc +3.0   +1.0    0.0   +2.0  +2.0   0.0
+   bezier +1.0   +2.0    0.0
+   bezier  0.0   +1.0    0.0
+   bezier  0.0    0.0    0.0
+skend
+extrude   0      0      1
+
+end

@@ -1,0 +1,4 @@
+LIBRARY testingWriter
+EXPORTS
+meshExtension
+meshWrite

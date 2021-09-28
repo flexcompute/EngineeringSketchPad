@@ -1,0 +1,15 @@
+# biconvex
+#    create biconvex airfoil
+# written by John Dannenhoffer
+
+interface thick    in  0
+
+# make sure that we have a positive thickness
+assert ifpos(thick,1,0)  1
+
+skbeg     1.0  0.0   0.0
+   arc    0.0  0.0   0.0  thick/2
+   arc    1.0  0.0   0.0  thick/2
+skend
+
+end

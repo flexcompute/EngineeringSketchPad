@@ -1,0 +1,333 @@
+# X29.csm written by ocsmSave (v1.09)
+# modified by John Dannenhoffer
+
+# Design Parameters:
+
+# Local Variables:
+
+# Global attributes:
+
+# Branches:
+
+# fuselage
+mark
+   skbeg     0   0   0   0
+   skend     0
+
+   udprim    supell   rx   10   ry_n   10   ry_s   10   n_n   1.5
+   rotatey   90   0   0
+   rotatex   90   0   0
+   translate 25   0   0
+
+   udprim    supell   rx   20   ry_n   20   ry_s   15   n_n   1.5
+   rotatey   90   0   0
+   rotatex   90   0   0
+   translate 50   0   0
+
+   udprim    supell   rx   30   ry_n   30   ry_s   20   n_n   1.5
+   rotatey   90   0   0
+   rotatex   90   0   0
+   translate 100   0   0
+
+   udprim    supell   rx   40   ry_n   40   ry_s   20   n_n   1.5
+   rotatey   90   0   0
+   rotatex   90   0   0
+   translate 150   0   0
+
+   udprim    supell   rx   40   ry_n   50   ry_s   20   n_n   1.5
+   rotatey   90   0   0
+   rotatex   90   0   0
+   translate 200   0   0
+
+   udprim    supell   rx   40   ry_n   50   ry_s   20   n_n   1.5
+   rotatey   90   0   0
+   rotatex   90   0   0
+   translate 250   0   0
+
+   udprim    supell   rx   50   ry_n   40   ry_s   20   n_n   1.5
+   rotatey   90   0   0
+   rotatex   90   0   0
+   translate 300   0   0
+
+   udprim    supell   rx   60   ry_n   40   ry_s   20   n_n   1.5
+   rotatey   90   0   0
+   rotatex   90   0   0
+   translate 350   0   0
+
+   udprim    supell   rx   60   ry_n   40   ry_s   20   n_n   1.5
+   rotatey   90   0   0
+   rotatex   90   0   0
+   translate 400   0   0
+
+   udprim    supell   rx   70   ry_n   40   ry_s   20   n_n   1.5
+   rotatey   90   0   0
+   rotatex   90   0   0
+   translate 450   0   0
+
+   udprim    supell   rx   70   ry_n   40   ry_s   20   n_n   1.5
+   rotatey   90   0   0
+   rotatex   90   0   0
+   translate 500   0   0
+
+   udprim    supell   rx   70   ry_n   40   ry_s   20   n_n   1.5
+   rotatey   90   0   0
+   rotatex   90   0   0
+   translate 550   0   0
+
+   udprim    supell   rx   70   ry_n   40   ry_s   20   n_n   1.5
+   rotatey   90   0   0
+   rotatex   90   0   0
+   translate 600   0   0
+
+   udprim    supell   rx   70   ry_n   40   ry_s   20   n_n   2
+   rotatey   90   0   0
+   rotatex   90   0   0
+   translate 650   0   0
+
+   udprim    supell   rx   70   ry_n   40   ry_s   20   n_n   2
+   rotatey   90   0   0
+   rotatex   90   0   0
+   translate 700   0   0
+
+   udprim    supell   rx   70   ry_n   40   ry_s   20   n_n   2
+   rotatey   90   0   0
+   rotatex   90   0   0
+   translate 750   0   0
+
+   udprim    supell   rx   70   ry_n   40   ry_s   20   n_n   2
+   rotatey   90   0   0
+   rotatex   90   0   0
+   scale     .90
+   translate 800   0   0
+blend
+
+# root airfoil
+udparg    naca456   thkcode   $64A
+udparg    naca456   toc   0.06
+udparg    naca456   camcode   $6M
+udparg    naca456   cl   0.20
+udparg    naca456   a   0.80
+udprim    naca456
+store     naca64a206 0 0
+
+# left wing
+mark
+   restore   naca64a206 0
+   rotatex   90   0   0
+   scale     80.92
+   translate 400   -300   0.00
+   store     $TIP 0 1
+   rotatex   -3   0   0
+
+   restore   naca64a206 0
+   rotatex   90   0   0
+   scale     210.92
+   translate 500   -80   0.00
+   store     $MID 0 1
+
+   restore   naca64a206 0
+   rotatex   90   0   0
+   scale     260
+   translate 500   0.0   -0.00
+   store     $ROOT 0 1
+rule
+translate    0  0  0.1
+union
+
+# rite wing
+mark
+   restore   $TIP 0
+   mirror    0   -1   0   0
+   rotatex   3   0   0
+
+   restore   $MID 0
+   mirror    0   -1   0   0
+
+   restore   $ROOT 0
+   mirror    0   -1   0   0
+rule
+translate    0  0  0.1
+union
+
+# vertical tail
+mark
+   udprim    naca   series   0007
+   scale     150
+   translate 625   0.0   10.00
+
+   udprim    naca   series   0007
+   scale     50
+   translate 810   0.0   150.00
+blend
+union
+
+# right engine
+mark
+   udprim    supell   rx   10   ry_n   10   ry_s   10   n_n   2.5
+   rotatey   90   0   0
+   rotatex   360   0   0
+   scale     2
+   translate 300   40   8
+
+   udprim    supell   rx   10   ry_n   10   ry_s   10   n_n   2.5
+   rotatey   90   0   0
+   rotatex   360   0   0
+   scale     2
+   translate 350   38   8
+
+   udprim    supell   rx   10   ry_n   10   ry_s   10   n_n   2.5
+   rotatey   90   0   0
+   rotatex   360   0   0
+   scale     2
+   translate 400   36   8
+
+   udprim    supell   rx   10   ry_n   10   ry_s   10   n_n   2.5
+   rotatey   90   0   0
+   rotatex   360   0   0
+   scale     2
+   translate 450   35   5
+
+   udprim    supell   rx   10   ry_n   10   ry_s   10   n_n   2.5
+   rotatey   90   0   0
+   rotatex   360   0   0
+   scale     2
+   translate 500   35   5
+
+   udprim    supell   rx   10   ry_n   10   ry_s   10   n_n   2.5
+   rotatey   90   0   0
+   rotatex   360   0   0
+   scale     2
+   translate 550   35   5
+
+   udprim    supell   rx   10   ry_n   10   ry_s   10   n_n   2.5
+   rotatey   90   0   0
+   rotatex   360   0   0
+   scale     2
+   translate 600   35   5
+
+   udprim    supell   rx   10   ry_n   10   ry_s   10   n_n   2.5
+   rotatey   90   0   0
+   rotatex   360   0   0
+   scale     2.2
+   translate 650   35   5
+
+   udprim    supell   rx   10   ry_n   10   ry_s   10   n_n   2.5
+   rotatey   90   0   0
+   rotatex   360   0   0
+   scale     2.2
+   translate 700   35   5
+
+   udprim    supell   rx   10   ry_n   10   ry_s   10   n_n   2.5
+   rotatey   90   0   0
+   rotatex   360   0   0
+   scale     2.2
+   translate 750   35   5
+
+   udprim    supell   rx   10   ry_n   10   ry_s   10   n_n   2.5
+   rotatey   90   0   0
+   rotatex   360   0   0
+   scale     2.2
+   translate 800   35   5
+blend
+union
+
+# left engine
+mark
+   udprim    supell   rx   10   ry_n   10   ry_s   10   n_n   2.5
+   rotatey   90   0   0
+   rotatex   180   0   0
+   scale     2
+   translate 300   -40   8
+
+   udprim    supell   rx   10   ry_n   10   ry_s   10   n_n   2.5
+   rotatey   90   0   0
+   rotatex   180   0   0
+   scale     2
+   translate 350   -38   8
+
+   udprim    supell   rx   10   ry_n   10   ry_s   10   n_n   2.5
+   rotatey   90   0   0
+   rotatex   180   0   0
+   scale     2
+   translate 400   -36   8
+
+   udprim    supell   rx   10   ry_n   10   ry_s   10   n_n   2.5
+   rotatey   90   0   0
+   rotatex   180   0   0
+   scale     2
+   translate 450   -35   5
+
+   udprim    supell   rx   10   ry_n   10   ry_s   10   n_n   2.5
+   rotatey   90   0   0
+   rotatex   180   0   0
+   scale     2
+   translate 500   -35   5
+
+   udprim    supell   rx   10   ry_n   10   ry_s   10   n_n   2.5
+   rotatey   90   0   0
+   rotatex   180   0   0
+   scale     2
+   translate 550   -35   5
+
+   udprim    supell   rx   10   ry_n   10   ry_s   10   n_n   2.5
+   rotatey   90   0   0
+   rotatex   180   0   0
+   scale     2
+   translate 600   -35   5
+
+   udprim    supell   rx   10   ry_n   10   ry_s   10   n_n   2.5
+   rotatey   90   0   0
+   rotatex   180   0   0
+   scale     2.2
+   translate 650   -35   5
+
+   udprim    supell   rx   10   ry_n   10   ry_s   10   n_n   2.5
+   rotatey   90   0   0
+   rotatex   180   0   0
+   scale     2.2
+   translate 700   -35   5
+
+   udprim    supell   rx   10   ry_n   10   ry_s   10   n_n   2.5
+   rotatey   90   0   0
+   rotatex   180   0   0
+   scale     2.2
+   translate 750   -35   5
+
+   udprim    supell   rx   10   ry_n   10   ry_s   10   n_n   2.5
+   rotatey   90   0   0
+   rotatex   180   0   0
+   scale     2.2
+   translate 800   -35   5
+blend
+union
+
+# right canard
+mark
+   udprim    naca   series   0007
+   scale     120
+   rotatex   90   0   0
+   translate 320   50.0   10
+
+   udprim    naca   series   0007
+   scale     40
+   rotatex   90   0   0
+   translate 350   125.0   10
+blend
+union
+
+# left canard
+mark
+   udprim    naca   series   0007
+   scale     120
+   rotatex   90   0   0
+   translate 320   -50.0   10
+
+   udprim    naca   series   0007
+   scale     40
+   rotatex   90   0   0
+   translate 350   -125.0   10
+blend
+union
+udprim    $$/applyTparams  factor  0.5
+
+end

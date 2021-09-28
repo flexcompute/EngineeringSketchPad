@@ -1,0 +1,23 @@
+
+# Design Parameters:
+despmtr   rootChord[1,1]       1.83300
+despmtr   semiSpan[1,1]       2.50000
+despmtr   taperRatio[1,1]       0.66000
+despmtr   sweepAngle[1,1]       45.00000
+
+# Branches:
+skbeg     0   0   0
+name      root
+   linseg    rootChord   0   0
+   linseg    ((rootChord*.25)+sind(sweepAngle)*semiSpan)+(.75*taperRatio*rootChord)   semiSpan   0
+   linseg    ((rootChord*.25)+sind(sweepAngle)*semiSpan)-(.25*taperRatio*rootChord)   semiSpan   0
+   linseg    0   0   0
+skend     0
+attribute capsGroup  $yatesPlate
+attribute capsIntent $STRUCTURE
+attribute capsAIM $nastranAIM;astrosAIM;mystranAIM;masstranAIM
+scale     12
+
+select edge 1
+attribute capsConstraint $constEdge
+end

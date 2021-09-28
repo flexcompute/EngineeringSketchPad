@@ -1,0 +1,19 @@
+# bemTest1
+# written by John Dannenhoffer
+
+# make two boxes with divider
+BOX       0  0  0  2  1  1
+BOX       1 -1 -1  0  3  3
+SUBTRACT
+EXTRACT   0
+
+BOX       1  0  0  0  1  1
+UNION
+
+# generate coarse quads
+SELECT    BODY @nbody
+   ATTRIBUTE _makeQuads 1
+SELECT    EDGE
+   ATTRIBUTE .nPos 1
+
+END

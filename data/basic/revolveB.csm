@@ -1,0 +1,73 @@
+# revolveB (from wirebodyA)
+# written by John Dannenhoffer
+
+# counterclockwise
+point     -5  1  0
+skbeg     -5  1  0
+   linseg -4  1  0
+   linseg -4  2  0
+   linseg -5  2  0
+skend
+revolve    0  0  0  1  0  0  360
+select face @nbody 3
+   assert @xcg -4.5
+   assert @ycg  0
+select face @nbody 4
+   assert @xcg -4.0
+   assert @ycg  0
+select face @nbody 5
+   assert @xcg -4.5
+   assert @ycg  0
+
+point     -2  2  0
+skbeg     -2  2  0
+   linseg -2  1  0
+   linseg -1  1  0
+   linseg -1  2  0
+skend
+revolve    0  0  0  1  0  0  360
+select face @nbody 3
+   assert @xcg -2.0
+   assert @ycg  0
+select face @nbody 4
+   assert @xcg -1.5
+   assert @ycg  0
+select face @nbody 5
+   assert @xcg -1.0
+   assert @ycg  0
+
+point      2  2  0
+skbeg      2  2  0
+   linseg  1  2  0
+   linseg  1  1  0
+   linseg  2  1  0
+skend
+revolve    0  0  0  1  0  0  360
+select face @nbody 3
+   assert @xcg  1.5
+   assert @ycg  0
+select face @nbody 4
+   assert @xcg  1.0
+   assert @ycg  0
+select face @nbody 5
+   assert @xcg  1.5
+   assert @ycg  0
+
+point      5  1  0
+skbeg      5  1  0
+   linseg  5  2  0
+   linseg  4  2  0
+   linseg  4  1  0
+skend
+revolve    0  0  0  1  0  0  360
+select face @nbody 3
+   assert @xcg  5.0
+   assert @ycg  0
+select face @nbody 4
+   assert @xcg  4.5
+   assert @ycg  0
+select face @nbody 5
+   assert @xcg  4.0
+   assert @ycg  0
+
+end

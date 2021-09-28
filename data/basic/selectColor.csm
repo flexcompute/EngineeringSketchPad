@@ -1,0 +1,20 @@
+# selectColor
+# written by John Dannenhoffer
+
+BOX 0 0 0 1 1 1
+
+SELECT FACE
+   ATTRIBUTE _color $green
+SELECT EDGE
+   ATTRIBUTE _color $red
+SELECT NODE
+   ATTRIBUTE _color $cyan
+
+SELECT FACE 3
+   ATTRIBUTE _color $blue
+SELECT EDGE 3
+   ATTRIBUTE _color $yellow
+SELECT NODE 3
+   ATTRIBUTE _color $magenta
+
+END

@@ -1,0 +1,67 @@
+#
+!IFNDEF ESP_ROOT
+!ERROR ESP_ROOT must be set -- Please fix the environment...
+!ENDIF
+#
+IDIR = $(ESP_ROOT)\include
+!include $(IDIR)\$(ESP_ARCH).$(MSVC)
+LDIR = $(ESP_ROOT)\lib
+!IFDEF ESP_BLOC
+ODIR = $(ESP_BLOC)\obj
+TDIR = $(ESP_BLOC)\test
+!ELSE
+ODIR = .
+TDIR = $(ESP_ROOT)\bin
+!ENDIF
+
+!IFDEF EFCOMP
+default:        $(LDIR)\hsmAIM.dll
+!ELSE
+default:
+!ENDIF
+
+
+$(LDIR)\hsmAIM.dll:	hsmAIM.def $(ODIR)\hsmAIM.obj $(ODIR)\hsmUtils.obj \
+			$(ODIR)\hsmAdj.obj $(ODIR)\rcm.obj $(ODIR)\genrcmi.obj \
+			$(LDIR)\utils.lib  $(LDIR)\hsm.lib $(LDIR)\aimUtil.lib
+	-del $(LDIR)\hsmAIM.dll $(LDIR)\hsmAIM.lib $(LDIR)\hsmAIM.exp
+	link /out:$(LDIR)\hsmAIM.dll /dll /def:hsmAIM.def \
+		$(ODIR)\hsmAIM.obj $(ODIR)\hsmUtils.obj $(ODIR)\hsmAdj.obj \
+		$(ODIR)\rcm.obj $(ODIR)\genrcmi.obj /LIBPATH:$(LDIR) \
+		utils.lib aimUtil.lib ocsm.lib egads.lib udunits2.lib hsm.lib \
+		/NODEFAULTLIB:LIBCMT
+	$(MCOMP) /manifest $(LDIR)\hsmAIM.dll.manifest \
+		/outputresource:$(LDIR)\hsmAIM.dll;2
+
+$(ODIR)\hsmAIM.obj:	hsmAIM.c $(IDIR)\capsTypes.h 
+	cl /c $(COPTS) $(DEFINE) /I$(IDIR) /I..\utils hsmAIM.c \
+		/Fo$(ODIR)\hsmAIM.obj
+
+$(ODIR)\hsmUtils.obj:	hsmUtils.c $(IDIR)\capsTypes.h 
+	cl /c $(COPTS) $(DEFINE) /I$(IDIR) /I..\utils hsmUtils.c \
+		/Fo$(ODIR)/hsmUtils.obj
+
+$(ODIR)\hsmAdj.obj:	hsmAdj.c $(IDIR)\capsTypes.h 
+	cl /c $(COPTS) $(DEFINE) /I$(IDIR) /I..\utils hsmAdj.c \
+		/Fo$(ODIR)/hsmAdj.obj
+
+$(ODIR)\rcm.obj:	rcm\rcm.cpp
+	cl /c $(CPPOPT) $(DEFINE) rcm\rcm.cpp /Fo$(ODIR)\rcm.obj
+
+$(ODIR)\genrcmi.obj:	rcm/genrcmi.cpp
+	cl /c $(CPPOPT) $(DEFINE) rcm\genrcmi.cpp /Fo$(ODIR)/genrcmi.obj
+
+$(LDIR)\hsm.lib:
+	cd src
+	nmake -f nmakefile
+	cd ..
+
+clean:
+	-del $(ODIR)\hsmAIM.obj $(ODIR)\hsmUtils.obj $(ODIR)\hsmAdj.obj \
+		 $(ODIR)\rcm.obj $(ODIR)\genrcmi.obj
+
+cleanall:	clean
+	-del $(LDIR)\hsmAIM.dll
+	cd src
+	nmake -f nmakefile cleanall
+	cd ..

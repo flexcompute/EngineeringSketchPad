@@ -1,0 +1,63 @@
+# extract1
+# written by John Dannenhoffer
+
+set       dx  0.5
+set       dy  0.5
+
+# bottom of cylinder
+cylinder  -1     0     0   +1    0    0    0.5
+select    face  1  3  1
+extract   +@iface
+translate  0    -dy    0
+
+# top of cylinder
+cylinder  -1     0     0   +1    0    0    0.5
+select    face  4  4  1
+extract   +@iface
+translate  0    +dy    0
+
+# left of cylinder
+cylinder  -1     0     0   +1    0    0    0.5
+select    face  7  1  1
+extract   +@iface
+translate -dx    0     0
+
+# right of cylinder
+cylinder  -1     0     0   +1    0    0    0.5
+select    face  10  2  1
+extract   +@iface
+translate +dx    0     0
+
+# left edges from cylinder
+cylinder  -1     0     0   +1    0    0    0.5
+select    edge  13  1  13  3  1
+extract   -@iedge
+translate -dx   -dy    0
+
+cylinder  -1     0     0   +1    0    0    0.5
+select    edge  16  1  16  4  1
+extract   -@iedge
+translate -dx   +dy    0
+
+# right edges from extracted right end
+cylinder  -1     0     0   +1    0    0    0.5
+select    face  19  2  1
+extract   +@iface
+translate +dx/2  0     0
+select    edge  0  0  19  2  1
+extract   -@iedge
+translate +dx/2 -dy    0
+
+cylinder  -1     0     0   +1    0    0    0.5
+select    face  24  2  1
+extract   +@iface
+translate +dx/2  0     0
+select    edge  0  0  24  2  2
+extract   -@iedge
+translate +dx/2 +dy    0
+
+# extract shell from cylinder
+cylinder  -1     0     0   +1    0    0    0.5
+extract    0
+
+end

@@ -1,0 +1,38 @@
+# udcTest1a
+# written by John Dannenhoffer
+
+# design parameters
+despmtr   dx        13
+despmtr   dy        12
+despmtr   dz        11
+
+# box
+udparg    box       dx dx-10
+udparg    box       dy dy-10
+udprim    box       dz dz-10
+set       myArea    @@area
+set       myVolume  @@volume
+
+# x-plane
+udparg    box       dy 2
+udprim    box       dz 1
+translate 2 0 0
+set       myArea    @@area
+set       myVolume  @@volume
+
+# y-plane
+udparg    box       dx 3
+udparg    box       dz 1
+udprim    box
+translate 0 1.5 0
+set       myArea    @@area
+set       myVolume  @@volume
+
+# z-plane
+udparg    box       dx 3  dy 2
+udprim    box
+translate 0 0 1
+set       myArea    @@area
+set       myVolume  @@volume
+
+end

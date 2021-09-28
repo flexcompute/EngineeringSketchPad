@@ -1,0 +1,34 @@
+# skcon8e
+# written by John Dannenhoffer
+
+skbeg     0  0  0
+   skvar  xy  " 0;   0;  0;\
+                1; -.1;  0;\
+                1;  -1;  0;\
+                2;  -1;  0;\
+                3;  -1;  0;\
+                3; -.1;  0;\
+                4; -.1;  0;\
+                4;  .1;  0;\
+                3;  .1;  0;\
+                3;   1;  0;\
+                2;   1;  0;\
+                1;   1;  0;\
+                1;  .1;  0;"
+
+   bezier ::x[2]   ::y[2]   ::z[2]
+   bezier ::x[3]   ::y[3]   ::z[3]
+   bezier ::x[4]   ::y[4]   ::z[4]
+   bezier ::x[5]   ::y[5]   ::z[5]
+   bezier ::x[6]   ::y[6]   ::z[6]
+   bezier ::x[7]   ::y[7]   ::z[7]
+   linseg ::x[8]   ::y[8]   ::z[8]
+   bezier ::x[9]   ::y[9]   ::z[9]
+   bezier ::x[10]  ::y[10]  ::z[10]
+   bezier ::x[11]  ::y[11]  ::z[11]
+   bezier ::x[12]  ::y[12]  ::z[12]
+   bezier ::x[13]  ::y[13]  ::z[13]
+   bezier ::x[1]   ::y[1]   ::z[1] 
+skend
+
+end

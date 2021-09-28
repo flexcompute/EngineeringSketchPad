@@ -1,0 +1,40 @@
+# skcon6d
+# written by John Dannenhoffer
+
+despmtr   xbase     0.1
+despmtr   ybase     0.2
+despmtr   zbase     0.3
+despmtr   base      4.0
+despmtr   rad1     -1.0
+despmtr   sweep1    -60.
+despmtr   rad2      1.5
+despmtr   sweep2    120.
+despmtr   height    3.9
+
+skbeg     xbase  ybase  zbase
+   skvar  xy  " 0.1;  0.2;  0.0;\
+                3.9;  0.1;  0.0;\
+                4.3;  1.0; -0.1;\
+                4.0;  4.0;  1.1;\
+                0.0;  3.9;  0.0;"
+   skcon  X   1  -1   xbase
+   skcon  Y   1  -1   ybase
+   skcon  H   1   2
+   skcon  L   1   2   base
+   skcon  P   2
+   skcon  X   2   3   xbase+base-rad1
+   skcon  T   3
+   skcon  R   3   4   rad2
+   skcon  T   4
+   skcon  P   5
+   skcon  V   5   1
+   skcon  L   5   1   height
+
+   linseg ::x[2]  ::y[2]  ::z[2]
+   arc    ::x[3]  ::y[3]  ::z[3]  ::d[3]
+   arc    ::x[4]  ::y[4]  ::z[4]  ::d[4]
+   linseg ::x[5]  ::y[5]  ::z[5]
+   linseg ::x[1]  ::y[1]  ::z[1]
+skend
+
+end

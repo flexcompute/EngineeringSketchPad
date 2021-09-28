@@ -1,0 +1,46 @@
+# group5
+# written by John Dannenhoffer
+
+despmtr   x0        0
+despmtr   y0        0
+despmtr   z0        0
+
+despmtr   x1       -2
+despmtr   y1        0
+despmtr   z1        0
+
+despmtr   x2       +2
+despmtr   y2        0
+despmtr   z2        0
+
+despmtr   dx        0
+despmtr   dy        2
+despmtr   dz        0
+despmtr   fact      2
+
+despmtr   thick     0.16
+despmtr   camber    0.04
+despmtr   dznaca    3
+
+box       x0-1   y0-1   z0-1   2   2   2
+
+box       x1-1   y1-1   z1-1   2   2   2
+box       x2-1   y2-1   z2-1   2   2   2
+group     2
+
+store     group
+udparg    naca   thickness thick
+udparg    naca   camber    camber
+udprim    naca
+scale     4
+translate -2  0  dznaca
+
+restore   group
+
+translate dx  dy  dz
+scale     fact
+
+select    body    13
+assert    @igroup 10
+
+end

@@ -1,0 +1,17 @@
+#   +++++++++++++++++++++++++++++++++
+#   +                               +
+#   +    ++ cubes preSpecFile ++    +
+#   +    created by 'autoInputs'    +
+#   +                               +
+#   +++++++++++++++++++++++++++++++++
+# FORMAT:
+# 
+# BBox: level   Xmin   Xmax      Ymin   Ymax      Zmin    Zmax
+#       (int)  (float) (float) (float) (float)  (float) (float)
+
+
+$__Prespecified_Adaptation_Regions:     # <-Section head (req'd)
+BBox: 7   -1.122   3.614   -2.321   2.414   -0.395   4.341   #  Config BBox
+BBox: 8    0.249   2.244   -0.951   1.044    0.395   3.552   #  Comp #0
+
+# +++++++++++++++++++++++++finis!++++++++++++++++++++++

@@ -1,0 +1,26 @@
+# transition3
+# written by John Dannenhoffer
+
+mark
+
+# inlet
+skbeg     -3  -2  -1
+   linseg -3   2  -1
+   linseg -3   2   1
+   linseg -3  -2   1
+   linseg -3  -2  -1
+skend
+
+# exit
+skbeg      3  -1  -2
+   linseg  3   1  -2
+   linseg  3   1   2
+   linseg  3  -1   2
+   linseg  3  -1  -2
+skend
+translate  0  -2   0
+
+# blend (without controls)
+blend
+
+end

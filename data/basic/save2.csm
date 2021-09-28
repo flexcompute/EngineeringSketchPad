@@ -1,0 +1,20 @@
+# save2
+# written by John Dannenhoffer
+
+BOX      -2  0  0  4  3  2
+SELECT    FACE   @nbody  6
+ATTRIBUTE myFace $front
+
+UDPRIM    editAttr   filename  $$/save2.txt
+
+BOX       2  0  0  4  3  2
+SELECT    FACE   @nbody  6
+ATTRIBUTE myFace $front
+
+UDPRIM    editAttr   filename <<
+   EDGE   ADJ2FACE  myFace=front
+   SET              _color=red
+>>
+
+END
+

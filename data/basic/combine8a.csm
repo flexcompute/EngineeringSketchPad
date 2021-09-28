@@ -1,0 +1,13 @@
+# combine8a
+# written by John Dannenhoffer
+
+# create open sketch
+SKBEG     0   0   0
+   LINSEG 2   0   0
+   LINSEG 0   1   0
+SKEND
+
+# combine into SheetBody
+COMBINE
+
+END

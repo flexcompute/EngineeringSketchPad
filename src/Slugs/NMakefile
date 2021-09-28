@@ -1,0 +1,42 @@
+#	Makefile for Slugs
+#
+IDIR  = $(ESP_ROOT)\include
+!include $(IDIR)\$(ESP_ARCH).$(MSVC)
+LDIR  = $(ESP_ROOT)\lib
+BDIR  = $(ESP_ROOT)\bin
+!IFDEF ESP_BLOC
+ODIR  = $(ESP_BLOC)\obj
+!ELSE
+ODIR  = .
+!ENDIF
+
+$(BDIR)\Slugs.exe:	$(ODIR)\Slugs.obj $(ODIR)\Fitter.obj $(ODIR)\RedBlackTree.obj \
+			$(ODIR)\Tessellate.obj
+	cl /Fe$(BDIR)\Slugs.exe $(ODIR)\Slugs.obj $(ODIR)\Fitter.obj $(ODIR)\RedBlackTree.obj \
+		$(ODIR)\Tessellate.obj /link /LIBPATH:$(LDIR) wsserver.lib \
+		z.lib egads.lib ws2_32.lib
+
+$(ODIR)\Slugs.obj:	Slugs.c Fitter.h RedBlackTree.h Tessellate.h $(IDIR)\common.h \
+			$(IDIR)\egads.h $(IDIR)\egadsTypes.h \
+			$(IDIR)\egadsErrors.h $(IDIR)\wsserver.h $(IDIR)\wsss.h
+	cl /c $(COPTS) $(DEFINE) /I$(IDIR) /I$(IDIR)\winhelpers Slugs.c \
+		/Fo$(ODIR)\Slugs.obj
+
+$(ODIR)\Fitter.obj:	Fitter.c Fitter.h $(IDIR)\common.h
+	cl /c $(COPTS) $(DEFINE) /I$(IDIR) Fitter.c \
+		/Fo$(ODIR)\Fitter.obj
+
+$(ODIR)\RedBlackTree.obj:	RedBlackTree.c RedBlackTree.h $(IDIR)\common.h
+	cl /c $(COPTS) $(DEFINE) /I$(IDIR) RedBlackTree.c \
+		/Fo$(ODIR)\RedBlackTree.obj
+
+$(ODIR)\Tessellate.obj:	Tessellate.c Tessellate.h RedBlackTree.h \
+			$(IDIR)\common.h
+	cl /c $(COPTS) $(DEFINE) /I$(IDIR) Tessellate.c \
+		/Fo$(ODIR)\Tessellate.obj
+
+clean:
+	-del $(ODIR)\Slugs.obj $(ODIR)\Fitter.obj $(ODIR)\RedBlackTree.obj $(ODIR)\Tessellate.obj
+
+cleanall:	clean
+	-del $(BDIR)\Slugs.exe

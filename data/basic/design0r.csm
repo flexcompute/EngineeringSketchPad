@@ -1,0 +1,37 @@
+# design0r
+# written by John Dannenhoffer
+
+despmtr   xbeg      -2
+despmtr   xend      +2
+despmtr   rad       +1
+despmtr   size1     0.8
+despmtr   angl1     45
+despmtr   dx1       0
+despmtr   dy1       0
+despmtr   dz1       0
+despmtr   size2     0.8
+despmtr   angl2     0
+despmtr   dx2       0
+despmtr   dy2       0
+despmtr   dz2       0
+despmtr   dx        0
+despmtr   dy        0
+despmtr   dz        0
+despmtr   sfac      1
+
+cylinder  xbeg  0  0  xend  0  0  rad
+
+box       -1-size1/2  0.0  -size1/2  size1  2.0  size1
+rotatey   angl1  0  -1
+translate dx1  dy1  dz1
+union
+
+box       +1-size2/2  0.0  -size2/2  size2  2.0  size2
+rotatey   angl2  0  +1
+translate dx2  dy2  dz2
+union
+
+translate dx   dy   dz
+scale     sfac
+
+end

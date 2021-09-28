@@ -1,0 +1,11 @@
+# boxBEM
+# written by John Dannenhoffer
+
+box       1  2  0   3  2  1
+rotatez   25 0  0
+rotatey   25 0  0
+extract   0
+
+udprim    createBEM filename $boxBEM.bdf space 0.25 imin 3 imax 199
+
+end

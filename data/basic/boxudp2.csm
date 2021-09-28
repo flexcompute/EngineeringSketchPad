@@ -1,0 +1,8 @@
+# boxudp2 - 2D boxes
+# written by Bridget Dixon
+
+udprim box dx  4.0  dy  2.0
+udprim box dx  4.0           dz  7.0
+udprim box          dy  2.0  dz  7.0
+
+end

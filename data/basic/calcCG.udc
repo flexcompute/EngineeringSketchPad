@@ -1,0 +1,41 @@
+# calcCG -- calculates mass and cg for all Bodys on stack
+# written by John Dannenhoffer
+
+INTERFACE   MASS   out   0
+INTERFACE   XCG    out   0
+INTERFACE   YCG    out   0
+INTERFACE   ZCG    out   0
+
+# store the current stack
+DIMENSION  myStack 1 @stack.size
+SET        myStack   @stack
+
+# initialize sums
+SET        MASS  0
+SET        xmom  0
+SET        ymom  0
+SET        zmom  0
+
+# accumulate sums
+PATBEG     istack  myStack.size
+   SELECT  body            myStack[istack]
+
+   # get density (default is 1)
+   GETATTR density $density
+   CATBEG  $illegal_attribute
+      SET  density 1
+   CATEND
+
+
+   SET     MASS    MASS+density*@volume
+   SET     xmom    xmom+density*@volume*@xcg
+   SET     ymom    ymom+density*@volume*@ycg
+   SET     zmom    zmom+density*@volume*@zcg
+PATEND
+
+# return CGs
+SET       XCG   xmom/MASS
+SET       YCG   ymom/MASS
+SET       ZCG   zmom/MASS
+
+END

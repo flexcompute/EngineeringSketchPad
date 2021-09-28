@@ -1,0 +1,43 @@
+# waffle5a
+# written by John Dannenhoffer
+
+UDPRIM waffle progress 0 depth 2.0 filename <<
+   POINT  A    AT -2.0 -4.0
+   POINT  B    AT  5.0  4.0
+   POINT  C    AT  3.0 -1.0
+   LINE   AB   A  B
+
+   POINT  D    ON AB XLOC x@C
+   LINE   .    C  D
+
+   POINT  E    ON AB YLOC y@C
+   LINE   .    C  E
+
+   POINT  F    ON AB FRAC  0.1
+   LINE   CF   C  F
+
+   POINT  G    at  4.0  4.0
+   POINT  H    at  7.0  1.0
+   CLINE  GH   G  H
+
+   POINT  I    ON AB XSECT GH
+   LINE   .    I  C
+
+   POINT  J    ON AB PERP C
+   LINE   .    J  G
+
+   POINT  K    ON GH XLOC 6.0
+   LINE   .    K  B
+
+   POINT  L    ON GH YLOC 3.0
+   LINE   .    L  B
+
+   POINT  M    AT  0.1 -5.0
+   POINT  N    AT  0.1  5.0
+   CLINE  MN   M  N
+
+   POINT  O    ON MN XSECT AB
+   CPOINT P    ON MN XSECT CF          # does nothing
+>>
+
+end

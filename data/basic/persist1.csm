@@ -1,0 +1,65 @@
+# persist1
+# written by John Dannenhoffer
+
+# global attribute
+attribute global0 0
+
+# initial box
+box       0  0  0  1  1  1
+   attribute body1 1
+select    face 1
+   attribute face1 1
+select    edge 1
+   attribute edge1 1
+select    edge 2
+   attribute edge1 2
+
+# transformations
+translate 0.1  0  0
+
+# intersecting cylinder
+cylinder  -1.0  0.5  1.0   2.0  0.5  1.0   0.1
+   attribute body2 2
+select    face 1
+   attribute face2 2
+select    edge 1
+   attribute edge2 2
+
+# combine
+union
+   attribute body3 3
+select    face 3
+   attribute face3 3
+select    edge 3
+   attribute edge3 3
+
+# add fillets at intersection curves
+fillet    0.02
+
+# sketch
+skbeg     -1.0  0.2  0.2
+   linseg -1.0  0.4  0.2
+   linseg -1.0  0.4  0.4
+   linseg -1.0  0.2  0.2
+skend
+   attribute body4 4
+select    edge 1
+   attribute edge4 4
+
+# extrude
+extrude   3.0  0.0  0.0
+   attribute body5 5
+select    face 1
+   attribute face2 5
+select    edge 1
+   attribute edge2 5
+
+# combine
+union
+   attribute body6 6
+select    face 6
+   attribute face6 6
+select    edge 6
+   attribute edge6 6
+
+end

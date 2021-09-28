@@ -1,0 +1,12 @@
+# boxGroove
+# written by John Dannenhoffer
+
+box -1 -1 -1 2 2 2
+
+cylinder 0.9 0 0 2 0 0 .5
+cylinder 0.9 0 0 2 0 0 .25
+subtract
+
+subtract
+
+end

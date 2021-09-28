@@ -1,0 +1,20 @@
+# designD0c Trapezoidal wing --- right side (from NASA)
+
+# default design parameters
+despmtr   thickness 0.12
+despmtr   camber    0.00
+despmtr   croot     1.0       len
+despmtr   aspect    8.0       -
+
+# internal parameters
+set       cmean     croot
+set       span      cmean*aspect
+set       sspan     span/2
+
+# wing OML
+udprim     naca      Thickness thickness Camber camber
+scale      croot
+
+extrude    0  0  -sspan
+
+end

@@ -1,0 +1,20 @@
+# designJ1c
+# written by John Dannenhoffer
+
+DESPMTR   DX   3.0
+DESPMTR   DY   2.0
+DESPMTR   DZ   1.0
+
+# move 2D box after extrusion
+UDPRIM     box   dy DY
+EXTRUDE    DX    0  0
+TRANSLATE -DX/2  0  DZ
+
+SELECT    EDGE 2
+   ATTRIBUTE _sensCheck $skip
+SELECT    NODE 3
+   ATTRIBUTE _sensCheck $skip
+SELECT    NODE 4
+   ATTRIBUTE _sensCheck $skip
+
+END

@@ -1,0 +1,25 @@
+# reorder3r
+# written by Dannenhoffer
+
+mark
+   udprim    box  dx  1  dy  2  rad  0.4
+   rotatey   +90  0   0
+
+   udprim    box  dx  1  dy  2  rad  0.4
+   rotatey   +90  0   0
+   rotatex   +90  0   0
+   translate  2   0   0
+   reorder   +6
+
+   udprim    box  dx  1  dy  2  rad  0.4
+   rotatey   -90  0   0
+   rotatex   +90  0   0
+   translate  4   0   0
+   reorder   -5   1
+
+   udprim    box  dx  1  dy  2  rad  0.4
+   rotatey   +90  0   0
+   translate  6   0   0
+rule
+
+end

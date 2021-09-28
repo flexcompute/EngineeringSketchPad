@@ -1,0 +1,48 @@
+# designK0
+# written by John Dannenhoffer
+
+DESPMTR   L0        4.00      # length of box
+DESPMTR   H0        2.00      # height of box
+DESPMTR   D0        1.00      # depth  of box
+DESPMTR   X0        1.80      # center of circular cutout
+DESPMTR   Y0        -.20      # center of circular cutout
+DESPMTR   R0        1.00      # radius of circular cutout
+
+DESPMTR   X1        0.10      # center of slot1
+DESPMTR   Y1        1.20      # center of slot1
+DESPMTR   W1        0.10      # width  of slot1
+DESPMTR   H1        0.70      # height of slot1
+
+DESPMTR   X2        0.25      # center of slot2
+DESPMTR   Y2        1.20      # center of slot2
+DESPMTR   W2        0.10      # width  of slot2
+DESPMTR   H2        0.70      # height of slot2
+
+DESPMTR   R3        0.01      # small hole radius
+
+DESPMTR   X4        3.80      # center of large hole
+DESPMTR   Y4        1.00      # center of large hole
+DESPMTR   R4        0.15      # radius of large hole
+
+# box with cutout
+BOX       0.0   0.0   0.0   L0  H0  D0
+CYLINDER  X0    Y0    -.1   X0  Y0  1.1  R0
+SUBTRACT
+
+# slot1 (on left)
+BOX       X1-W1/2  Y1-H1/2  -.10  W1   H1   1.2
+SUBTRACT
+
+# slot2 (on left)
+BOX       X2-W2/2  Y2-H2/2  -.10  W2   H2   1.2
+SUBTRACT
+
+# small hole (in middle)
+CYLINDER  X0  (Y0+R0+H0)/2  -.10  X0  (Y0+R0+H0)/2  1.10  R3
+SUBTRACT
+
+# large hole (on right)
+CYLINDER  X4   Y4   -.1   X4   Y4   1.1   R4
+SUBTRACT
+
+END

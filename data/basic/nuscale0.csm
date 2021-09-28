@@ -1,0 +1,25 @@
+# nuscale0
+# written by John Dannenhoffer
+
+# original configuration
+POINT       1.0   2.0  3.0
+
+UDPRIM  printEgo
+STORE   original
+
+# converted to BSplines
+RESTORE original
+UDPRIM  nuscale
+UDPRIM  printEgo
+
+# squashed in X-direction
+RESTORE original
+UDPRIM  nuscale  xscale 0.5
+
+# squashed in all directions
+RESTORE original
+UDPARG  nuscale  xscale 0.2  xcent -1.0
+UDPARG  nuscale  yscale 0.3  ycent -2.0
+UDPRIM  nuscale  zscale 0.4  zcent -3.0
+
+END

@@ -1,0 +1,35 @@
+# connect1
+# written by John Dannenhoffer
+
+# outer body
+skbeg     0.0   0.0   -.1
+   linseg 1.0   0.0   -.1
+   linseg 1.0   1.0   -.1
+   linseg 2.0   1.0   -.1
+   linseg 2.0   0.0   -.1
+   linseg 3.0   0.0   -.1
+   linseg 3.0   2.0   -.1
+   linseg 0.0   2.0   -.1
+   linseg 0.0   0.0   -.1
+skend
+extrude   0.0   0.0   0.2
+
+# inner body
+skbeg     1.2   0.0   -.2
+   linseg 1.8   0.0   -.2
+   linseg 1.8   0.8   -.2
+   linseg 1.2   0.8   -.2
+   linseg 1.2   0.0   -.2
+skend
+extrude   0.0   0.0   0.4
+
+# set up for and execute the connect
+dimension faceList1 1 3 0
+set       faceList1 "2;3;4;"
+
+dimension faceList2 1 3 0
+set       faceList2 "4;3;2"
+
+connect   faceList1 faceList2
+
+end

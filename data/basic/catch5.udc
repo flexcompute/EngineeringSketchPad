@@ -1,0 +1,10 @@
+# catch5.udc
+# written by John Dannenhoffer
+
+INTERFACE 1 ALL
+
+CATBEG  0
+   ASSERT  0  5
+CATEND
+
+THROW    -6789

@@ -1,0 +1,44 @@
+# prop1
+# written by Daniel Oluwalana and John Dannenhoffer
+
+# parameters from Adkins & Liebeck
+CFGPMTR   nblade    2
+DESPMTR   cpower    0.2969
+DESPMTR   lambda    0.2233
+DESPMTR   ReyR      2.95e+6
+DESPMTR   Rtip      2.875   # ft
+DESPMTR   Rhub      0.500   # ft
+DESPMTR   clift     0.700
+DESPMTR   cdrag     0.075
+DESPMTR   alfa      2.000   # deg
+
+# shaft/spinner parameters
+DESPMTR   shdiam    0.10
+DESPMTR   shxmin    -.10
+DESPMTR   shxmax    0.10
+DESPMTR   spdiam    0.20
+DESPMTR   spxmin    -.30
+
+# make the propeller
+UDPARG    Prop   nblade     nblade
+UDPARG    Prop   cpower     cpower
+UDPARG    Prop   lambda     lambda
+UDPARG    Prop   reyr       ReyR
+UDPARG    Prop   rtip       Rtip
+UDPARG    Prop   rhub       Rhub
+UDPARG    Prop   clift      clift
+UDPARG    Prop   cdrag      cdrag
+UDPARG    Prop   alfa       alfa
+
+UDPARG    Prop   shdiam     shdiam
+UDPARG    Prop   shxmin     shxmin
+UDPARG    Prop   shxmax     shxmax
+UDPARG    Prop   spdiam     spdiam
+UDPARG    Prop   spxmin     spxmin
+
+UDPRIM    Prop
+
+MESSAGE   ThrustCoef_=_+@@cthrust
+MESSAGE   Efficiency_=_+@@eff
+
+END

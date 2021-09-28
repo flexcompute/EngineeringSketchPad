@@ -1,0 +1,52 @@
+#
+!IFNDEF ESP_ROOT
+!ERROR ESP_ROOT must be set -- Please fix the environment...
+!ENDIF
+#
+IDIR  = $(ESP_ROOT)\include
+!include $(IDIR)\$(ESP_ARCH).$(MSVC)
+LDIR  = $(ESP_ROOT)\lib
+!IFDEF ESP_BLOC
+ODIR  = $(ESP_BLOC)\obj
+TDIR  = $(ESP_BLOC)\test
+!ELSE
+ODIR  = .
+TDIR  = $(ESP_ROOT)\bin
+!ENDIF
+
+#default:	$(LDIR)\pointwiseAIM.dll $(TDIR)\egads2nmb.exe
+default:	$(LDIR)\pointwiseAIM.dll
+
+$(LDIR)\pointwiseAIM.dll:	pointwiseAIM.def $(ODIR)\pointwiseAIM.obj $(ODIR)\hashElement.obj \
+				$(LDIR)\utils.lib
+	-del $(LDIR)\pointwiseAIM.dll
+	link /out:$(LDIR)\pointwiseAIM.dll /dll /def:pointwiseAIM.def \
+		$(ODIR)\pointwiseAIM.obj $(ODIR)\hashElement.obj /LIBPATH:$(LDIR) utils.lib \
+		aimUtil.lib ocsm.lib egads.lib udunits2.lib
+	$(MCOMP) /manifest $(LDIR)\pointwiseAIM.dll.manifest \
+		/outputresource:$(LDIR)\pointwiseAIM.dll;2
+
+$(ODIR)\pointwiseAIM.obj:  hashElement.c hashElement.h  $(IDIR)\capsTypes.h 
+	cl /c $(COPTS) $(DEFINE) -I$(IDIR) -I..\utils pointwiseAIM.c \
+		/Fo$(ODIR)\pointwiseAIM.obj
+
+$(ODIR)\hashElement.obj:  hashElement.c hashElement.h $(IDIR)\capsTypes.h 
+	cl /c $(COPTS) $(DEFINE) -I$(IDIR) -I..\utils hashElement.c \
+		/Fo$(ODIR)\hashElement.obj
+
+
+$(TDIR)\egads2nmb.exe:	$(ODIR)\egads2nmb.obj $(LDIR)\egads.lib $(LDIR)\nmb.lib
+	cl /Fe$(TDIR)\egads2nmb.exe $(ODIR)\egads2nmb.obj \
+		/link /LIBPATH:$(LDIR) nmb.lib egads.lib $(FLIBS)
+	$(MCOMP) /manifest $(TDIR)\egads2nmb.exe.manifest \
+		/outputresource:$(TDIR)\egads2nmb.exe;1
+
+$(ODIR)\egads2nmb.obj:	egads2nmb.c
+	cl /c $(COPTS) $(DEFINE) /I$(IDIR) /I$(GELITE)\include \
+		egads2nmb.c /Fo$(ODIR)\egads2nmb.obj
+
+clean:
+	-del $(ODIR)\egads2nmb.obj $(ODIR)\pointwiseAIM.obj
+
+cleanall:	clean
+	-del $(TDIR)\egads2nmb.exe $(LDIR)\pointwiseAIM.dll $(LDIR)\pointwiseAIM.lib $(LDIR)\pointwiseAIM.exp

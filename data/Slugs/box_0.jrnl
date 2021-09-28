@@ -1,0 +1,10 @@
+# casename=../data/Slugs/box_0
+
+markCreases;45;
+colorTriangles;-1.0008569;0.038666427;-0.16046524;1;
+colorTriangles;1.0017112;-0.048991732;0.10784331;2;
+colorTriangles;0.15677890;-1.0011312;0.10312140;3;
+colorTriangles;-0.21243142;1.0034103;0.022938674;4;
+colorTriangles;0.20787054;0.058448426;-1.0008808;5;
+colorTriangles;0.14433609;-0.25753507;1.0001142;6;
+generateEgads;../data/Slugs/box_1.egads;9;

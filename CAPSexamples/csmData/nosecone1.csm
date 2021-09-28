@@ -1,0 +1,34 @@
+# nosecone1
+# written by Justin Gray
+
+despmtr h 0.9
+set     w 1/2.
+
+despmtr wo0 .60
+despmtr wo1 .78
+despmtr wo2 .85 
+despmtr wo3 .95
+
+despmtr ho0 .70
+despmtr ho1 .50
+despmtr ho2 .40
+despmtr ho3 .20
+
+skbeg 0 h 0
+    spline w*wo0 h*ho0 0
+    spline w*wo1 h*ho1 0 
+    spline w*wo2 h*ho2 0 
+    spline w*wo3 h*ho3 0  
+    spline w 0 0
+    linseg 0 0 0 
+    linseg 0 h 0 
+skend
+
+revolve 0 0 0 0 1 0 360
+select body
+    attribute capsAIM $egadsTessAIM
+    attribute capsMeshLength 1.0
+select face
+    attribute capsGroup $nose
+
+end

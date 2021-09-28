@@ -1,0 +1,17 @@
+# poly1b
+# written by John Dannenhoffer
+
+# inner Body (with tessellation force by project command)
+cylinder  -1  0  0  +1  0  0  0.5
+project    0  0  0  +1  0  0
+
+# outer Body (with tessellation forces by project command)
+sphere     0  0  0  100
+project    0  0  0  +1  0  0
+
+# create the .poly file
+dimension hole 1 3 0
+set       hole "0.5;0.2;0.3"
+udprim    createPoly  filename $poly1b.poly hole hole
+
+end

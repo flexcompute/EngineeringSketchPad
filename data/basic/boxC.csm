@@ -1,0 +1,53 @@
+# boxC
+# written by John Dannenhoffer
+
+DESPMTR   xbeg      0.1
+DESPMTR   dx        -.1
+DESPMTR   ybeg      0.1
+DESPMTR   dy        -.1
+DESPMTR   zbeg      0.1
+DESPMTR   dz        -.1
+
+BOX       xbeg   0.0   0.0   dx   1.0   1.0
+SELECT    FACE  @nbody  1
+ASSERT    @xcg  0.0
+SELECT    FACE  @nbody  2
+ASSERT    @xcg  0.1
+SELECT    FACE  @nbody  3
+ASSERT    @ycg  0.0
+SELECT    FACE  @nbody  4
+ASSERT    @ycg  1.0
+SELECT    FACE  @nbody  5
+ASSERT    @zcg  0.0
+SELECT    FACE  @nbody  6
+ASSERT    @zcg  1.0
+
+BOX       2.0   ybeg   0.0   1.0   dy   1.0
+SELECT    FACE  @nbody  1
+ASSERT    @xcg  2.0
+SELECT    FACE  @nbody  2
+ASSERT    @xcg  3.0
+SELECT    FACE  @nbody  3
+ASSERT    @ycg  0.0
+SELECT    FACE  @nbody  4
+ASSERT    @ycg  0.1
+SELECT    FACE  @nbody  5
+ASSERT    @zcg  0.0
+SELECT    FACE  @nbody  6
+ASSERT    @zcg  1.0
+
+BOX       4.0   0.0   zbeg   1.0   1.0   dz
+SELECT    FACE  @nbody  1
+ASSERT    @xcg  4.0
+SELECT    FACE  @nbody  2
+ASSERT    @xcg  5.0
+SELECT    FACE  @nbody  3
+ASSERT    @ycg  0.0
+SELECT    FACE  @nbody  4
+ASSERT    @ycg  1.0
+SELECT    FACE  @nbody  5
+ASSERT    @zcg  0.0
+SELECT    FACE  @nbody  6
+ASSERT    @zcg  0.1
+
+END

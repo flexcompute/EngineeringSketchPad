@@ -1,0 +1,32 @@
+# fin3
+# written by John Dannenhoffer
+
+mark
+   skbeg     0.000   -.025   0.000
+      linseg 1.000   -.025   0.000
+      linseg 1.000   0.025   0.000
+      linseg 0.000   0.025   0.000
+      linseg 0.000   -.025   0.000
+   skend
+
+   skbeg     0.000   -.025   0.500
+      linseg 1.000   -.025   0.500
+      linseg 1.000   0.025   0.500
+      linseg 0.000   0.025   0.500
+      linseg 0.000   -.025   0.500
+   skend
+
+   skbeg     0.000   -.001   1.500
+      linseg 1.000   -.010   0.600
+      linseg 1.000   0.010   0.600
+      linseg 0.000   0.001   1.500
+      linseg 0.000   -.001   1.500
+   skend
+rule
+
+fillet   0.10   2;6
+chamfer  0.10   2;10   # odd behvior (should really be fillet)
+rotatex -90     0  0
+
+end
+

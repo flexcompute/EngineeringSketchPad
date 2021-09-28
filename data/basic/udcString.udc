@@ -1,0 +1,17 @@
+# udcString.udc
+# written by John Dannenhoffer
+
+interface beg    in  $begText
+interface end    in  $endText
+interface base   in  0
+interface totlen out 0
+interface array  dim 20
+interface body   in  $foo
+
+# show that we can work with strings
+set totlen base+beg.size+end.size
+
+# restore the Body that was stored before calling this UDC
+restore   !body
+
+end

@@ -1,0 +1,16 @@
+# csm3
+# written by John Dannenhoffer
+
+# box 1
+udprim    csm      filename   $$/csm2.csm
+
+# box 2
+udparg    csm      filename   $$/csm0.csm
+udparg    csm      pmtrname   $xbase;ybase;zbase;
+udparg    csm      pmtrvalue  "-2.5 ;0.5  ;-.3  "
+udprim    csm
+
+# combine
+union
+
+end

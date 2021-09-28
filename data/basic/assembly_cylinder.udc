@@ -1,0 +1,9 @@
+# assembly_cylinder.udc
+# written by John Dannenhoffer
+
+INTERFACE length    in 2.0
+INTERFACE diameter  in  0.5
+
+CYLINDER  0  0  0  length  0  0  diameter/2
+
+END

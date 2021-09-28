@@ -1,0 +1,28 @@
+# spinner
+# written by John Dannenhoffer
+
+despmtr   Rspin     0.30
+despmtr   Lspin     0.60
+despmtr   Lsting    2.00
+
+# sketch of spinner and sting in x-y plane
+skbeg         Lsting                0.0                   0.0
+   linseg     Lsting                Rspin                 0.0
+   linseg     0.0                   Rspin                 0.0
+   patbeg   theta  45
+      spline  -Lspin*sind(2*theta)  Rspin*cosd(2*theta)   0.0
+   patend
+   linseg     Lsting                0.0                   0.0
+skend
+
+# make half-body
+revolve   0  0  0  1  0  0  180
+store     half
+
+# combine two half-bodies into full body
+restore   half
+restore   half
+rotatex 180 0 0
+join
+
+end

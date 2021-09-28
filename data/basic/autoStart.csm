@@ -1,0 +1,12 @@
+# autoStart
+# written by John Dannenhoffer
+
+BOX       0  0  0  4  3  2
+
+DUMP      $/autoStart.egads
+DUMP      $/autoStart.igs
+DUMP      $/autoStart.iges
+DUMP      $/autoStart.stp
+DUMP      $/autoStart.step
+
+END

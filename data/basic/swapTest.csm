@@ -1,0 +1,73 @@
+# swapTest
+# written by John Dannenhoffer
+
+# two Bodys on top of Stack
+BOX       0  0  0  1  1  1
+CYLINDER  0  0  0  1  0  0  1
+SPHERE    0  0  0  1
+UDPRIM    $$/swap
+
+SELECT    BODY     @stack[@stack.size]
+ASSERT    @nface   4  # cylinder
+STORE     .
+SELECT    BODY     @stack[@stack.size]
+ASSERT    @nface   2  # sphere
+STORE     .
+SELECT    BODY     @stack[@stack.size]
+ASSERT    @nface   6  # box
+STORE     .
+
+# Mark Body on top of Stack
+BOX       0  0  0  1  1  1
+MARK
+CYLINDER  0  0  0  1  0  0  1
+UDPRIM    $$/swap
+
+ASSERT    @stack[@stack.size] 0  #mark
+STORE     .
+SELECT    BODY     @stack[@stack.size]
+ASSERT    @nface   4  # cylinder
+STORE     .
+SELECT    BODY     @stack[@stack.size]
+ASSERT    @nface   6  # box
+STORE     .
+
+# Body Mark on top of Stack
+BOX       0  0  0  1  1  1
+CYLINDER  0  0  0  1  0  0  1
+MARK
+UDPRIM    $$/swap
+
+SELECT    BODY     @stack[@stack.size]
+ASSERT    @nface   4  # cylinder
+STORE     .
+ASSERT    @stack[@stack.size] 0  #mark
+STORE     .
+SELECT    BODY     @stack[@stack.size]
+ASSERT    @nface   6  # box
+STORE     .
+
+# two Marks on top of Stack
+BOX       0  0  0  1  1  1
+MARK
+MARK
+UDPRIM    $$/swap
+
+ASSERT    @stack[@stack.size] 0  #mark
+STORE     .
+ASSERT    @stack[@stack.size] 0  #mark
+STORE     .
+SELECT    BODY     @stack[@stack.size]
+ASSERT    @nface   6  # box
+STORE     .
+
+# not enough entries on Stack (throws error)
+SET       okay  1
+BOX       0  0  0  1  1  1
+UDPRIM    $$/swap
+CATBEG    999
+   SET    okay  0
+CATEND
+ASSERT    okay  0
+
+END

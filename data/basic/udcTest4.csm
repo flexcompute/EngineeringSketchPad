@@ -1,0 +1,13 @@
+# udcTest4
+# written by John Dannenhoffer
+
+SET       myInput   $myInput
+
+UDPARG    $/udcTest4   dx  4   dydz  2;3
+UDPARG    $/udcTest4   input1 myInput
+UDPRIM    $/udcTest4   input2 $String
+
+ASSERT    @@output.size 13
+ASSERT    @@volume      24
+
+END

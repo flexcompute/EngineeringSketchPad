@@ -1,0 +1,59 @@
+# dimension
+# written by John Dannenhoffer
+
+# size of DESPMTR and local variable
+CFGPMTR   half  3
+
+# initial dimensions of arrays
+DIMENSION des   1  3
+DIMENSION cfg   2  4
+DIMENSION out   3  5
+DIMENSION lcl   4  6
+
+# set up a constant
+CONPMTR   con   999
+
+# initialize (and set type of) all arrays
+DESPMTR   des   1;3
+CFGPMTR   cfg   2;4
+SET       out   3;4;5
+SET       lcl   4;5;6
+
+# redimension arrays
+#DIMENSION des   3  1   # should cause error
+#DIMENSION cfg   4  2   # should cause error
+#DIMENSION con   9  9   # should cause error
+DIMENSION out   5  3
+DIMENSION lcl   6  5
+
+# variable dimensioned arrays
+DIMENSION des2          1  2*half
+DESPMTR   des2          2
+ASSERT    des2.sum      4*half
+
+DIMENSION lcl2          1  half+half
+SET       lcl2          2
+ASSERT    lcl2.sum      4*half
+
+
+# make copies of arrays to print current values
+DIMENSION des_copy     des.nrow   des.ncol
+SET       des_copy     des
+ASSERT    des_copy.sum 7
+
+DIMENSION cfg_copy     cfg.nrow   cfg.ncol
+SET       cfg_copy     cfg
+ASSERT    cfg_copy.sum 30
+
+DIMENSION out_copy     out.nrow   out.ncol
+SET       out_copy     out
+ASSERT    out_copy.sum 72
+
+DIMENSION lcl_copy     lcl.nrow   lcl.ncol
+SET       lcl_copy     lcl
+ASSERT    lcl_copy.sum 177
+
+# declare that "out" is a OUTPMTR
+OUTPMTR   out
+
+END

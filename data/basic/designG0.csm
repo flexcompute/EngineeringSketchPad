@@ -1,0 +1,44 @@
+# designG0
+# written by John Dannenhoffer
+
+# Design Parameters:
+despmtr    area      40.0
+despmtr    aspect    5.00
+despmtr    taper     0.50
+despmtr    twist     15.0
+despmtr    lesweep   30.0
+despmtr    dihedral  1.00
+despmtr    thick_r   0.12
+despmtr    camber_r  0.08
+despmtr    thick_t   0.20
+despmtr    camber_t  0.00
+
+# Branches:
+set        cmean     sqrt(area/aspect)
+set        span      cmean*aspect
+set        sspan     span/2
+set        croot     2*cmean/(1+taper)
+set        ctip      croot*taper
+set        xtip      sspan*tand(lesweep)
+set        ytip      sspan*tand(dihedral)
+
+# half of wing
+udprim    naca   thickness  thick_r   camber  camber_r
+scale     croot
+extrude   xtip   ytip   -sspan
+store     HalfWing
+
+# restore the half wing 
+restore   HalfWing
+
+# restore and mirror the half wing
+restore   HalfWing
+mirror    0   0   1   0
+
+# combine halfs into a whole
+join
+
+# get body into a typical aero-system 
+rotatex 90 0 0
+
+end

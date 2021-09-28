@@ -1,0 +1,51 @@
+# matchBodys4b
+# written by John Dannenhoffer
+
+# body1: vertical cylinder
+MARK
+   UDPRIM    supell    rx 1.0  ry 1.0
+   ROTATEZ   45  0  0
+   ROTATEX   90  0  0
+   TRANSLATE 0  -2  0
+
+   UDPRIM    supell    rx 1.0  ry 1.0
+   ROTATEZ   45  0  0
+   ROTATEX   90  0  0
+   TRANSLATE 0  +2  0
+RULE
+STORE     body1
+
+# body 2: cut horizontal cylinder
+CYLINDER  0  0  0  3  0  0  0.5
+ROTATEX  30  0  0
+CYLINDER  0  -2  0  0  +2  0  1.0
+SUBTRACT
+STORE     body2
+
+# scribe body1 by body2
+RESTORE   body1
+RESTORE   body2
+EXTRACT   0
+TRANSLATE -.1 0 0
+SUBTRACT
+STORE     body1
+
+# add Node to body2 to match body1 (OpenCASCADE 7.3.1)
+RESTORE   body1
+SELECT    NODE  1.0  -0.5  -0.2
+SET       xbeg  @xcg-.1
+SET       ybeg  @ycg-.1
+SET       zbeg  @zcg
+STORE     .
+RESTORE   body2
+BOX       xbeg  ybeg  zbeg  .2  .2  0
+SUBTRACT
+STORE     body2
+
+# check for matches
+RESTORE   body1
+RESTORE   body2
+UDPRIM    matchBodys  toler  0.001
+
+END
+

@@ -1,0 +1,39 @@
+# waffle8c
+# written by John Dannenhoffer
+
+# SolidBody
+CYLINDER  0  0  0  3  0  0  1
+STORE     SolidBody
+
+# get bounding box of SolidBody
+RESTORE   SolidBody
+SET       xmin  @xmin
+SET       xmax  @xmax
+SET       ymin  @ymin
+SET       ymax  @ymax
+SET       zmin  @zmin
+SET       zmax  @zmax
+STORE     .
+
+# Waffle
+UDPRIM    waffle   filename <<   depth zmax-zmin+2
+
+   POINT  A AT  xmin-1  (ymin+ymax)/2
+   POINT  B AT  xmax+1  (ymin+ymax)/2
+   LINE   AB  A  B  type=symmetry
+
+   PATBEG  i  3
+      POINT  C AT   xmin+i/4*(xmax-xmin) ymin-1
+      POINT  D AT   xmin+i/4*(xmax-xmin) ymax+1
+      LINE   .  C  D  type=!$bulkhead_+i
+   PATEND
+>>
+TRANSLATE 0  0  zmin-1
+STORE     Waffle
+
+# generate the internal structure
+RESTORE   SolidBody
+RESTORE   Waffle
+INTERSECT
+
+END

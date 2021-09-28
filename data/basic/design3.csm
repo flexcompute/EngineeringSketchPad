@@ -1,0 +1,26 @@
+# design3
+# written by John Dannenhoffer
+
+despmtr   Xbase     1.0
+despmtr   Ybase     2.0
+despmtr   Zbase    -1.0
+despmtr   Xvrtx     5.0
+despmtr   Yvrtx     3.0
+despmtr   Zvrtx     4.0
+despmtr   Rcone     1.0
+despmtr   Rsphere   0.5
+despmtr   Rmajor    2.0
+despmtr   Rminor    0.2
+
+cone      Xvrtx     Yvrtx     Zvrtx     Xbase     Ybase     Zbase     Rcone
+
+sphere    Xvrtx     Yvrtx     Zvrtx                                   Rsphere
+union
+
+set      Xtorus     (Xbase+Xvrtx)/2-Rmajor
+set      Ytorus     (Ybase+Yvrtx)/2
+set      Ztorus     (Zbase+Zvrtx)/2
+torus    Xtorus     Ytorus    Ztorus    0.0       0.0       1.0       Rmajor    Rminor
+union
+
+end

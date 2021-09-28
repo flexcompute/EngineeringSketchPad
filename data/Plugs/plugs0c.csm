@@ -1,0 +1,26 @@
+# plugs0c
+# written by John Dannenhoffer
+
+                          # target
+DESPMTR   xbeg      2.0   #  0.0
+DESPMTR   ybeg      2.0   #  0.0
+DESPMTR   zbeg      2.0   #  0.0
+DESPMTR   dybeg     1.0   #  2.0
+LBOUND    dybeg     0.2
+DESPMTR   dzbeg     1.0   #  2.0
+LBOUND    dzbeg     0.2
+
+DESPMTR   xend      4.0   #  6.0
+DESPMTR   yend      2.0   #  0.0
+DESPMTR   zend      2.0   #  0.0
+DESPMTR   dyend     1.0   #  1.0
+LBOUND    dyend     0.2
+DESPMTR   dzend     1.0   #  3.0
+LBOUND    dzend     0.2
+
+MARK
+   BOX       xbeg   ybeg-dybeg/2   zbeg-dzbeg/2   0   dybeg   dzbeg
+   BOX       xend   yend-dyend/2   zend-dzend/2   0   dyend   dzend
+RULE
+
+END

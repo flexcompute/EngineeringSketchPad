@@ -1,0 +1,63 @@
+# rule24a
+# written by Marshall Galbraith
+
+SKBEG     0   -.5   0
+   ARC 0 .5 0 -.5
+   LINSEG 0   -.5   0
+SKEND     0
+REORDER 0 1
+STORE ARC
+
+MARK
+   # section 1 
+   RESTORE ARC
+   
+   # section 2
+   RESTORE ARC
+   TRANSLATE 0 0 1
+   
+   # section 3
+   RESTORE ARC
+   ROTATEY 45 0 0
+   TRANSLATE 0 0 1
+   
+   # section 4
+   RESTORE ARC
+   ROTATEY 90 0 0
+   TRANSLATE 0 0 1
+   
+   # section 5
+   RESTORE ARC
+   ROTATEY 135 0 0
+   TRANSLATE 0 0 1
+   
+   # section 6
+   RESTORE ARC
+   ROTATEY 135 0 0
+   TRANSLATE 1 0 0
+
+   # section 7
+   RESTORE ARC
+   ROTATEY 180 0 0
+   TRANSLATE 1 0 0
+
+   # section 8
+   RESTORE ARC
+   ROTATEY 225 0 0
+   TRANSLATE 1 0 0
+
+   # section 9
+   RESTORE ARC
+   ROTATEY 270 0 0
+   TRANSLATE 1 0 0
+
+   # section 10
+   RESTORE ARC
+   ROTATEY 270 0 0
+
+   # section 11
+   RESTORE ARC
+   ROTATEY 315 0 0
+RULE 0 1
+
+END

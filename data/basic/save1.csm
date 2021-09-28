@@ -1,0 +1,25 @@
+# save1
+# written by John Dannenhoffer
+
+UDPRIM    box   dx 4   dy 3   dz 2
+ATTRIBUTE _color $red
+TRANSLATE -4 0 0
+UDPRIM    $$/applyTparams   factor 0.5
+
+UDPARG    box   dx 4   dy 3   dz 2
+UDPRIM    box
+ATTRIBUTE _color $blue
+TRANSLATE +4 0 0
+UDPARG    $$/applyTparams   factor 2.0
+UDPRIM    $$/applyTparams
+
+UDPARG    box   dx 4
+UDPARG    box   dy 3
+UDPRIM    box   dz 2
+ATTRIBUTE _color $green
+UDPARG    $$/applyTparams   factor 2.0
+UDPARG    $$/applyTparams   factor 1.0
+UDPRIM    $$/applyTparams
+
+END
+

@@ -1,0 +1,27 @@
+# rocketnozzle1
+# written by John Dannenhoffer
+
+DESPMTR  W  0.01
+
+# solid sketch
+SKBEG        0      0       0
+   SPLINE    0.125  0.781   0
+   SPLINE    0.25   1.125   0
+   LINSEG    0.438  1.125   0
+   LINSEG    0.438  0       0
+   LINSEG    0      0       0
+SKEND
+
+# revolve in two halves
+REVOLVE   .438  0   0   0   1   0   180
+RESTORE   .
+MIRROR    0     0   .5
+JOIN
+
+# hollow out
+SELECT FACE 8 3 1
+SELECT ADD  8 3 2
+HOLLOW W @sellist 1
+
+END
+

@@ -1,0 +1,27 @@
+# import7b
+# written by John Dannenhoffer
+
+# create 3 Bodys
+BOX       -3  -2  -2   1   4   4
+   ATTRIBUTE _color $red
+
+CYLINDER  -1   0   0   1   0   0   2
+   ATTRIBUTE _color $blue
+
+SPHERE     3   0   0               1
+   ATTRIBUTE _color $magenta
+
+# dump into a single EGADS file
+DUMP      import7_1.egads  0  1
+DUMP      import7_2.egads  1  1
+
+# load the two multi-Body files
+UDPRIM    import  filename $import7_1.egads    bodynumber -1
+
+UDPRIM    import  filename $import7_1.egads    bodynumber -1
+TRANSLATE 0  -5   0
+
+UDPRIM    import  filename $import7_2.egads    bodynumber -1
+TRANSLATE 0   5   0
+
+END

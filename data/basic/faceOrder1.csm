@@ -1,0 +1,78 @@
+# faceOrder1
+# written by John Dannenhoffer
+
+skbeg     -3  0  0
+   linseg -3  2  0
+   linseg -3  2  2
+   linseg -3  0  2
+   linseg -3  0  0
+skend 1
+extrude    2  0  0
+
+select    face  @nbody  1
+catbeg   $face_not_found
+catend
+
+select    face  @nbody  2
+catbeg   $face_not_found
+catend
+
+select    face  @nbody  3
+assert    @xcg -2
+assert    @ycg  1
+assert    @zcg  0
+
+select    face  @nbody  4
+assert    @xcg -2
+assert    @ycg  2
+assert    @zcg  1
+
+select    face  @nbody  5
+assert    @xcg -2
+assert    @ycg  1
+assert    @zcg  2
+
+select    face  @nbody  6
+assert    @xcg -2
+assert    @ycg  0
+assert    @zcg  1
+
+skbeg      1  0  0
+   linseg  1  2  0
+   linseg  1  2  2
+   linseg  1  0  2
+   linseg  1  0  0
+skend
+extrude    2  0  0
+
+select    face  @nbody  1
+assert    @xcg  1
+assert    @ycg  1
+assert    @zcg  1
+
+select    face  @nbody  2
+assert    @xcg  3
+assert    @ycg  1
+assert    @zcg  1
+
+select    face  @nbody  3
+assert    @xcg  2
+assert    @ycg  1
+assert    @zcg  0
+
+select    face  @nbody  4
+assert    @xcg  2
+assert    @ycg  2
+assert    @zcg  1
+
+select    face  @nbody  5
+assert    @xcg  2
+assert    @ycg  1
+assert    @zcg  2
+
+select    face  @nbody  6
+assert    @xcg  2
+assert    @ycg  0
+assert    @zcg  1
+
+end

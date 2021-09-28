@@ -1,0 +1,30 @@
+# plugs0a
+# written by John Dannenhoffer
+#
+# run with -egg PDT2 to get un-structured cloud points
+
+DESPMTR   xbeg      0.0
+DESPMTR   ybeg      0.0
+DESPMTR   zbeg      0.0
+DESPMTR   dybeg     2.0
+LBOUND    dybeg     0.2
+DESPMTR   dzbeg     2.0
+LBOUND    dzbeg     0.2
+
+DESPMTR   xend      6.0
+DESPMTR   yend      0.0
+DESPMTR   zend      0.0
+DESPMTR   dyend     1.0
+LBOUND    dyend     0.2
+DESPMTR   dzend     3.0
+LBOUND    dzend     0.2
+
+MARK
+   BOX       xbeg   ybeg-dybeg/2   zbeg-dzbeg/2   0   dybeg   dzbeg
+   BOX       xend   yend-dyend/2   zend-dzend/2   0   dyend   dzend
+RULE
+
+# this is used to create "plugs0.cloud"
+DUMP      plugs0.tess
+
+END

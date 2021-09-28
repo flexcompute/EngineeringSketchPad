@@ -1,0 +1,22 @@
+# scarf4
+# written by John Dannenhoffer
+
+# non-concentric cylinders
+cylinder       -1.00      0.00      0.00      1.00      0.00      0.00      0.50
+cylinder       -1.01      0.05      0.00      1.01      0.05      0.00      0.40
+subtract
+
+# scarf cut
+skbeg          -0.50     -0.51     -0.51
+    linseg      1.01     -0.51     -0.51
+    linseg      1.01      0.51     -0.51
+    linseg     -1.00      0.51     -0.51
+    linseg     -0.50     -0.51     -0.51
+skend
+extrude         0.00      0.00      1.02
+intersect
+
+# fixed-radius fillets
+fillet          0.0249
+
+end

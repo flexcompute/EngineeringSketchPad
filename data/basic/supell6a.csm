@@ -1,0 +1,15 @@
+# supell6a
+# written by John Dannenhoffer
+
+# outer shell
+UDPARG    supell    rx   5.0   ry   1.0
+UDPRIM    supell    n_n  5.0   n_s  2.0
+
+# hole
+UDPARG    supell    rx   5.0   ry   1.0
+UDPRIM    supell    n_n  5.0   n_s  2.0   offset  -0.1
+TRANSLATE 0  0  -1
+EXTRUDE   0  0   2
+SUBTRACT
+
+end

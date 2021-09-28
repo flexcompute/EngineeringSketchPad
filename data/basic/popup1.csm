@@ -1,0 +1,25 @@
+# popup1
+# written by John Dannenhoffer
+
+dimension XX        1  4  1
+dimension YY        1  4  1
+
+despmtr   XX        "1.50; 1.00; 1.00; 1.50;"
+despmtr   YY        "-1.0; -1.0; -3.0; -3.0;"
+despmtr   Height    0.10
+
+mark
+   udprim    naca  series 4412
+   udprim    naca  series 4412
+   scale     0.5
+   translate 0.5  0.0  2.0
+rule
+scale     2.0
+rotatex   90.0  0.0  0.0
+
+udparg    $$/popupz    xbox    XX
+udparg    $$/popupz    ybox    YY
+udparg    $$/popupz    height  Height
+udprim    $$/popupz
+
+end

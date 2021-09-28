@@ -1,0 +1,12 @@
+# bezier1
+# written by John Dannenhoffer
+
+udprim bezier FileName $$/bezier1a.curve
+assert @@imax 13
+assert @@jmax  1
+
+udprim bezier FileName $$/bezier1b.curve
+assert @@imax 25
+assert @@jmax  1
+
+end

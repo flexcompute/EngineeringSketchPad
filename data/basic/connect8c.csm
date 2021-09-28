@@ -1,0 +1,59 @@
+# connect8c
+# written by John Dannenhoffer
+
+DIMENSION edgelist1  1  6  0
+DIMENSION edgelist2  1  6  0
+
+# first waffle
+UDPRIM waffle segments "-3.0; 1.0; -0.1; 1.0; \
+                        -3.0; 2.0; -0.1; 2.0; \
+                        -2.0; 0.0; -2.0; 3.0; \
+                        -1.0; 0.0; -1.0; 3.0;" depth 1
+
+SELECT EDGE  -2.5  2.0  1.0
+SET    edgelist1[1] @sellist
+SELECT EDGE  -1.5  2.0  1.0
+SET    edgelist1[2] @sellist
+SELECT EDGE  -0.5  2.0  1.0
+SET    edgelist1[3] @sellist
+SELECT EDGE  -0.5  1.0  1.0
+SET    edgelist1[4] @sellist
+SELECT EDGE  -2.5  1.0  1.0
+SET    edgelist1[5] @sellist
+SELECT EDGE  -1.5  1.0  1.0
+SET    edgelist1[6] @sellist
+
+# second waffle
+UDPRIM waffle segments " 0.1; 1.0;  3.0; 1.0; \
+                         0.1; 2.0;  3.0; 2.0; \
+                         1.0; 0.0;  1.0; 3.0; \
+                         2.0; 0.0;  2.0; 3.0;" depth 1
+
+SELECT EDGE   0.5  2.0  0.0
+SET    edgelist2[1] @sellist
+SELECT EDGE   1.5  2.0  0.0
+SET    edgelist2[2] @sellist
+SELECT EDGE   2.5  2.0  0.0
+SET    edgelist2[3] @sellist
+SELECT EDGE   2.5  1.0  0.0
+SET    edgelist2[4] @sellist
+SELECT EDGE   0.5  1.0  0.0
+SET    edgelist2[5] @sellist
+SELECT EDGE   1.5  1.0  0.0
+SET    edgelist2[6] @sellist
+
+TRANSLATE   -3  0.1  1.2
+
+# connect waffles
+CONNECT 0  0  edgelist1  edgelist2
+SELECT FACE @nbody 1
+SELECT ADD  @nbody 2
+SELECT ADD  @nbody 3
+SELECT ADD  @nbody 4
+SELECT ADD  @nbody 5
+SELECT ADD  @nbody 6
+   ATTRIBUTE _color  $green
+   ATTRIBUTE _bcolor $green
+
+END
+

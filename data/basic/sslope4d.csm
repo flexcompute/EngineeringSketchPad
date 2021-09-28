@@ -1,0 +1,24 @@
+# sslope4d
+# written by John Dannenhoffer
+
+DESPMTR   len   3.0   # length of slope vectors
+
+POINT       1.5   2.0   1.0
+
+SKBEG       0.0   0.0   0.0
+   LINSEG   3.0   0.0   0.0
+   LINSEG   3.0   1.0   0.0
+#   SSLOPE   -len  0.0   .0
+   SPLINE   1.5   2.0   0.0
+   SSLOPE   -len  -len  0.0
+   LINSEG   1.5   2.0   0.0
+   SSLOPE   -len  -len  0.0
+   SPLINE   0.0   1.0   0.0
+#   SSLOPE   -len  0.0   0.0
+   LINSEG   0.0   0.0   0.0
+SKEND
+
+EXTRUDE    0.0   0.0   1.0
+
+END
+

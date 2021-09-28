@@ -1,0 +1,22 @@
+# designE1
+# written by John Dannenhoffer
+
+despmtr   dxbar     0
+despmtr   dybar     0
+despmtr   dzbar     0
+despmtr   dxbox     0
+despmtr   dybox     0
+despmtr   dzbox     0
+
+box       -7.0  -0.25  -0.25  14.0  0.5  0.5
+translate dxbar  dybar  dzbar
+
+box       -6.0  -1.0  -1.0  1.0  2.0  2.0
+translate dxbox  dybox  dzbox
+union
+
+box        5.0  -1.0  -1.0  1.0  2.0  2.0
+translate dxbox  dybox  dzbox
+union
+
+end

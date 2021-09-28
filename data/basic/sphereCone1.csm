@@ -1,0 +1,88 @@
+# sphereCone1
+# written by John Dannenhoffer
+
+despmtr   x1        1.0       # center of sphere
+despmtr   y1        0.0
+despmtr   r1        2.0       # radius of sphere
+despmtr   x2       10.0       # center of cone
+despmtr   y2        6.0
+despmtr   r2        5.0       # radius of cone
+
+set       L         hypot(x2-x1,y2-y1)
+
+set       x3        x2-r2/L*(y2-y1)     # upper cone
+set       y3        y2+r2/L*(x2-x1)
+set       x5        x2+r2/L*(y2-y1)     # lower cone
+set       y5        y2-r2/L*(x2-x1)
+
+set       D         hypot(x3-x1,y3-y1)
+
+set       phi       atan2(y3-y1,x3-x1)+pi(0.5)-asin(r1/D)
+set       x4        x1+r1*cos(phi)      # upper tangency
+set       y4        y1+r1*sin(phi)
+
+set       phi       atan2(y5-y1,x5-x1)-pi(0.5)+asin(r1/D)
+set       x6        x1+r1*cos(phi)      # lower tangency
+set       y6        y1+r1*sin(phi)
+
+# create sphere
+sphere    x1  y1  0  r1
+
+# trim off part of sphere that is exposed
+skbeg     x6      y6      -2*r1
+   linseg x4      y4      -2*r1
+   linseg x4-2*r1 y4      -2*r1
+   linseg x6      y6-2*r1 -2*r1
+   linseg x6      y6      -2*r1
+skend
+extrude   0     0          4*r1
+set       cutter  @nbody
+intersect
+store     nose
+
+# split edges at top and bottom of nose
+RESTORE   nose
+BOX       x1-2*r1  y1-2*r1  0  4*r1  4*r1  0
+INTERSECT
+
+SELECT    NODE
+SELECT    SORT     $ycg
+SET       topNode  @sellist[3]
+SET       botNode  @sellist[1]
+SELECT    NODE     topNode
+SET       xtop     @xcg
+SET       ytop     @ycg
+SET       ztop     @zcg
+SELECT    NODE     botNode
+SET       xbot     @xcg
+SET       ybot     @ycg
+SET       zbot     @zcg
+STORE     .
+
+RESTORE   nose
+POINT     xtop   ytop   ztop
+SUBTRACT
+POINT     xbot   ybot   zbot
+SUBTRACT
+
+STORE     nose
+
+# create the ruled surface
+mark
+   # extract flat part of nose
+   restore   nose
+   select    face      cutter  3
+   extract   @iface
+
+   # create ruled surface
+   udprim    supell    rx  r2  ry  r2  n  2
+   rotatey   90  0  0
+   rotatez   atan2(y2-y1,x2-x1)*180/pi(1) 0 0
+   translate x2  y2  0
+rule 1
+
+# join nose to rules surface
+restore   nose
+join      1e-5
+
+end

@@ -1,0 +1,15 @@
+# cone
+# written by John Dannenhoffer
+
+despmtr   xvrtx    -1.00
+despmtr   yvrtx     0.00
+despmtr   zvrtx     0.00
+despmtr   xbase     3.00
+despmtr   ybase     0.00
+despmtr   zbase     0.00
+despmtr   radius    1.00
+
+cone      xvrtx     yvrtx     zvrtx \
+          xbase     ybase     zbase     radius
+
+end

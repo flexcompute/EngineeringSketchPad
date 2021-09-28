@@ -1,0 +1,49 @@
+# gen_rot
+#    perform a rotation of rotang degrees about the line between
+#       (xbeg,ybeg,zbeg) and (xend,yend,zend)
+# written by Dannenhoffer
+
+interface xbeg      in  0
+interface ybeg      in  0
+interface zbeg      in  0
+interface xend      in  1
+interface yend      in  1
+interface zend      in  1
+interface rotang    in  0
+interface azimuth   out 0
+interface elevation out 0
+
+# compute the components of the vector between beg and end (local variables)
+set dx     xend-xbeg
+set dy     yend-ybeg
+set dz     zbeg-zend
+
+# make sure beg and end are not the same (for non-zero rotation)
+ifthen     abs(rotang) ge 1e-12  and  dx*dx+dy*dy+dz*dz le 1e-12
+    assert 1 0
+endif
+
+# handle "overhead" case
+ifthen    hypot(dx,dy) lt 1.0e-12
+    ifthen    dz gt +1e-12
+        rotatez -rotang  xbeg ybeg
+    elseif    dz lt -1e-12
+        rotatez +rotang  xbeg ybeg
+    endif
+
+# series of 5 rotations
+else
+    # azimuth and elevation angles in degrees
+    set azimuth   atan2d(dy,dx)
+    set elevation atan2d(dz,hypot(dx,dy))
+
+    # perform the necessary rotations for the Body on the top of the stack
+    rotatez  -azimuth     xbeg ybeg
+    rotatey  -elevation   zbeg xbeg
+    rotatex  rotang       ybeg zbeg
+    rotatey  +elevation   zbeg xbeg
+    rotatez  +azimuth     xbeg ybeg
+endif
+
+end
+

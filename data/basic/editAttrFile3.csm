@@ -1,0 +1,69 @@
+# editAttrFile3
+# written by Joihn Dannenhoffer
+
+box 0 0 0 1 1 1
+hollow 0
+
+mark
+    skbeg     1 0 0
+        linseg 1 1 0
+        linseg 1 1 1
+        linseg 1 0 1
+        linseg 1 0 0
+    skend 1
+
+    skbeg     2 0 0
+        linseg 2 1 0
+        linseg 2 1 1
+        linseg 2 0 1
+        linseg 2 0 0
+    skend
+rule
+
+union
+
+patbeg iface @nface
+    select face iface
+	attribute number 1000*@ibody1+@ibody2
+patend
+
+udprim editAttr filename <<
+   face has      number=!15004
+   set           target=3
+   set           TARGET=!3
+
+   face has      number=!15001  number=!15002
+   set           target=5
+   set           TARGET=!5
+
+   edge adj2face number=!15004
+   set           target=6
+   set           TARGET=!6
+
+   edge adj2face number=!1003
+   and  adj2face number=!15006
+   set           target=7
+   set           TARGET=!7
+
+   edge adj2edge TARGET=!7
+   set           target=8
+   set           TARGET=!8
+>>
+
+select face $target $3
+assert @sellist.size 1
+
+select face $target $5
+catbeg $face_not_found
+catend
+
+select edge $target $6
+assert @sellist.size 4
+
+select edge $target $7
+assert @sellist.size 1
+
+select edge $target $8
+assert @sellist.size 6
+
+end

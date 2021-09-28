@@ -1,0 +1,148 @@
+# naca456
+# written by John Dannenhoffer
+
+# NACA 5400 (upside down)
+udparg naca456 thkcode $4
+udparg naca456 toc     0.0
+udparg naca456 camcode $2
+udparg naca456 cmax    -.05
+udparg naca456 xmaxc   0.40
+udprim naca456
+translate -4.5 2.0 0.0
+
+# NACA 5400
+udparg naca456 thkcode $4
+udparg naca456 toc     0.0
+udparg naca456 camcode $2
+udparg naca456 cmax    0.05
+udparg naca456 xmaxc   0.40
+udprim naca456
+translate -3.0 2.0 0.0
+
+# NACA 0012
+udparg naca456 thkcode $4
+udparg naca456 toc     0.12
+udparg naca456 camcode $0
+udprim naca456
+translate -3.0 1.0 0.0
+
+# NACA 5412 (upside down)
+udparg naca456 thkcode $4
+udparg naca456 toc     0.12
+udparg naca456 camcode $2
+udparg naca456 cmax    -.05
+udparg naca456 xmaxc   0.40
+udprim naca456
+translate -4.5 0.0 0.0
+
+# NACA 5412
+udparg naca456 thkcode $4
+udparg naca456 toc     0.12
+udparg naca456 camcode $2
+udparg naca456 cmax    0.05
+udparg naca456 xmaxc   0.40
+udprim naca456
+translate -3.0 0.0 0.0
+
+# NACA 0012-64
+udparg naca456 thkcode $4M
+udparg naca456 toc     0.12
+udparg naca456 leindex 6
+udparg naca456 xmaxt   0.40
+udparg naca456 camcode $0
+udprim naca456
+translate -1.5 1.0 0.0
+
+# NACA 5412-64
+udparg naca456 thkcode $4M
+udparg naca456 toc     0.12
+udparg naca456 leindex 6
+udparg naca456 xmaxt   0.40
+udparg naca456 camcode $2
+udparg naca456 cmax    0.05
+udparg naca456 xmaxc   0.40
+udprim naca456
+translate -1.5 0.0 0.0
+
+# NACA 63-200
+udparg naca456 thkcode $63
+udparg naca456 toc     0.00
+udparg naca456 camcode $6
+udparg naca456 cl      0.20
+udparg naca456 a       0.00
+udprim naca456
+translate  0.0 2.0 0.0
+
+# NACA 63-012
+udparg naca456 thkcode $63
+udparg naca456 toc     0.12
+udparg naca456 camcode $6
+udparg naca456 cl      0.00
+udparg naca456 a       0.00
+udprim naca456
+translate  0.0 1.0 0.0
+
+# NACA 63-212
+udparg naca456 thkcode $63
+udparg naca456 toc     0.12
+udparg naca456 camcode $6
+udparg naca456 cl      0.20
+udparg naca456 a       0.00
+udprim naca456
+translate  0.0 0.0 0.0
+
+# NACA 63_1-200
+udparg naca456 thkcode $63
+udparg naca456 toc     0.00
+udparg naca456 camcode $6
+udparg naca456 cl      0.20
+udparg naca456 a       0.10
+udprim naca456
+translate  1.5 2.0 0.0
+
+# NACA 63_1-012
+udparg naca456 thkcode $63
+udparg naca456 toc     0.12
+udparg naca456 camcode $6
+udparg naca456 cl      0.00
+udparg naca456 a       0.10
+udprim naca456
+translate  1.5 1.0 0.0
+
+# NACA 63_1-212
+udparg naca456 thkcode $63
+udparg naca456 toc     0.12
+udparg naca456 camcode $6
+udparg naca456 cl      0.20
+udparg naca456 a       0.10
+udprim naca456
+translate  1.5 0.0 0.0
+
+# NACA 64A200
+udparg naca456 thkcode $64A
+udparg naca456 toc     0.00
+udparg naca456 camcode $6M
+udparg naca456 cl      0.20
+udparg naca456 a       0.80
+udprim naca456
+translate  3.0 2.0 0.0
+
+# NACA 64A012
+udparg naca456 thkcode $64A
+udparg naca456 toc     0.12
+udparg naca456 camcode $6M
+udparg naca456 cl      0.00
+udparg naca456 a       0.80
+udprim naca456
+translate  3.0 1.0 0.0
+
+# NACA 64A212
+udparg naca456 thkcode $64A
+udparg naca456 toc     0.12
+udparg naca456 camcode $6M
+udparg naca456 cl      0.20
+udparg naca456 a       0.80
+udprim naca456
+translate  3.0 0.0 0.0
+
+end

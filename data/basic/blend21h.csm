@@ -1,0 +1,23 @@
+# blend21h
+# written by John Dannenhoffer
+
+MARK
+   UDPRIM    supell   rx 1.0  ry  1.0  n  2
+   EXTRACT   0
+   ROTATEY   90  0  0
+
+   UDPRIM    supell   rx 1.0  ry  1.0  n  4
+   EXTRACT   0
+   ROTATEY   90  0  0
+   TRANSLATE 2   0  0
+
+   UDPRIM    supell   rx 1.0  ry  1.0  n  2
+   EXTRACT   0
+   ROTATEY   90  0  0
+   TRANSLATE 4   0  0
+BLEND     "1; 1; 0"   "-1; -1; 0"
+
+END
+
+
+   

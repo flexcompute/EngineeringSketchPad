@@ -1,0 +1,15 @@
+# multiBody2
+# written by John Dannenhoffer
+
+DESPMTR   angle   15
+
+CYLINDER  0  0  0  1  0  0  1
+   ATTRIBUTE _color $red
+
+CYLINDER  1  0  0  2  0  0  1
+   ATTRIBUTE _color $blue
+ROTATEX   angle 0  0
+
+END
+
+

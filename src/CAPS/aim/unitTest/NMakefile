@@ -1,0 +1,66 @@
+
+!IFNDEF ESP_ROOT
+!ERROR ESP_ROOT must be set -- Please fix the environment...
+!ENDIF
+
+SDIR  = $(MAKEDIR)
+
+!IFDEF ESP_BLOC
+TDIR  = $(ESP_BLOC)\aimUnitTest
+COPY  = copy
+!ELSE
+TDIR  = .
+COPY  = 
+!ENDIF
+
+all: $(ODIR) $(COPY)
+#	cd $(SDIR)\cCAPS
+#	nmake /e /f avlTest.mak
+
+clean:
+#	cd $(SDIR)\cCAPS
+#	nmake /e /f avlTest.mak clean
+
+cleanall:
+#	cd $(SDIR)\cCAPS
+#	nmake /e /f avlTest.mak cleanall
+
+!ifdef PYTHONINC
+test: cCAPStest pyCAPStest
+!ELSE
+test: cCAPStest
+!ENDIF
+
+cCAPStest: all $(COPY)
+#	cd $(TDIR)\regressionTest 
+#	bash.exe -e execute_CTestRegression.sh $(TYPE)
+
+!IFDEF PYTHONINC
+pyCAPStest: all $(COPY)
+	cd $(TDIR)\pyCAPS
+	nmake /e /f NMakefile test
+!ENDIF
+
+!IFDEF ESP_BLOC
+
+copy: $(TDIR) $(TDIR)\csmData $(TDIR)\cCAPS $(TDIR)\pyCAPS $(TDIR)\datafiles
+	cd $(TDIR)\csmData
+	xcopy $(SDIR)\csmData\*.csm      /Q /Y
+	cd $(TDIR)\pyCAPS
+	xcopy $(SDIR)\pyCAPS\*.*         /Q /Y
+	xcopy $(SDIR)\pyCAPS\NMakefile   /Q /Y
+	cd $(TDIR)\datafiles
+	xcopy $(SDIR)\datafiles\*.*      /Q /Y
+
+$(TDIR):
+	if not exist $@ mkdir $@
+$(TDIR)\cCAPS: $(TDIR)
+	if not exist $@ mkdir $@
+$(TDIR)\pyCAPS: $(TDIR)
+	if not exist $@ mkdir $@
+$(TDIR)\csmData: $(TDIR)
+	if not exist $@ mkdir $@
+$(TDIR)\datafiles: $(TDIR)
+	if not exist $@ mkdir $@
+
+!ENDIF

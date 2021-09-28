@@ -1,0 +1,543 @@
+
+
+           A      W         W      A      V     V   EEEEEEE
+          AAA     WW       WW     AAA     VV   VV   EE    
+         AA AA    WW       WW    AA AA    VV   VV   EE   
+        AA   AA   WW   W   WW   AA   AA   VV   VV   EEEEE 
+        AAAAAAA    WW WWW WW    AAAAAAA    VV VV    EE   
+        AA   AA     WWW WWW     AA   AA     VVV     EE    
+        A     A      W   W      A     A      V      EEEEEEE
+
+
+
+      User's Guide for the Revised Wave Drag Analysis Program
+
+
+                          6 April 1992
+
+                        L. A. McCullers
+                          ViGYAN, Inc.
+                         Mail Stop 412
+                  NASA Langley Research Center
+                       Hampton, VA 23665
+                         (804) 864-7631
+
+
+
+                          INTRODUCTION
+
+
+     Awave is a streamlined, modified version of the Harris
+far-field wave drag program described in the reference.  It has
+all of the capabilities and accuracy of the original program plus
+the ability to include the approximate effects of angle of
+attack.  It is an order of magnitude faster, and improvements to
+the integration schemes have reduced numerical integration errors
+by an order of magnitude.  A formatted input echo has been added
+so that those not intimately familiar with the code can tell what
+has been input.
+
+
+REFERENCE: Harris, Roy V., Jr.  An Analysis and Correlation of
+           Aircraft Wave Drag.  NASA TMX-947.  March 1964.
+
+
+
+                       INPUT DESCRIPTION
+
+
+     Input for the wave drag analysis program is in a formatted,
+card-image form.  Consequently, each line of the input file will
+be refered to as a card.  All values default to zero if not
+input.  All configurations are assumed to be symmetric with
+respect to the X-Z plane so that only the "positive y" half of the
+vehicle is defined.  The option exists to stack input files (see
+NCON on the Case Control Card) to reanalyze a configuration with
+minor geometry changes.  For the second and successive
+configurations, the control Jx for unchanged components may be set
+to 2 to avoid repeating the input data for that component.
+
+
+
+                    Problem Control Cards
+
+
+Title Card: Format(A80)
+
+  Any 80-column alphanumeric title.
+
+
+Geometry Input Control Card: Format(24I3)  Integer input must be
+  right justified in the indicated 3-column field.
+
+ Variable   Columns    Description
+
+  J0          1- 3     = 0, No reference area
+                       = 1, Reference area will be input and used
+                       = 2, Reference area from previous
+                            configuration will be used
+
+  J1          4- 6     = 0, No wing
+                       = 1, Cambered wing data will be input
+                       =-1, Uncambered wing data will be input
+                       = 2, Wing data from previous configuration
+                            will be used
+
+  J2          7- 9     = 0, No fuselage
+                       = 1, Arbitrarily shaped fuselage
+                       =-1, Circular fuselage
+                       = 2, Fuselage data from previous
+                            configuration will be used
+
+  J3         10-12     = 0, No pod
+                       = 1, Pod data will be input
+                       = 2, Pod data from previous configuration
+                            will be used
+
+  J4         13-15     = 0, No fin (Vertical tail)
+                       = 1, Fin data will be input
+                       = 2, Fin data from previous configuration
+                            will be used
+
+  J5         16-18     = 0, No canard (Horizontal tail)
+                       = 1, Canard data will be input
+                       = 2, Canard data from previous
+                            configuration will be used
+
+  J6         19-21     = 1, Complete configuration is symmetrical
+                            with respect to the X-Y plane, implies
+                            an uncambered circular fuselage if a
+                            fuselage exists.
+                       =-1, The circular fuselage is symmetrical
+                            (uncambered)
+                       = 0, No X-Y plane symmetry
+
+  NWAF       22-24     Number of airfoil sections used to describe
+                       the wing (minimum = 2, maximum = 20)
+
+  NWAFOR     25-27     Number of stations at which ordinates are
+                       input for each wing airfoil section
+                       (minimum = 3, maximum = 30)
+                       If given a negative sign, the program
+                       will expect to read both upper and lower
+                       ordinates.  If positive, the airfoil is
+                       assumed to be symmetrical.
+
+  NFUS       28-30     Number of fuselage segments
+                       (minimum = 1, maximum = 4)
+
+  NRADX(1)   31-33     Number of points per station used to
+                       represent a half-section of the first
+                       fuselage segment.  For circular fuselages,
+                       NRADX y and z coordinates are computed
+                       (minimum = 3, maximum = 30)
+
+  NFORX(1)   34-36     Number of stations for first fuselage
+                       segment (minimum = 4, maximum = 30)
+
+  NRADX(2)   37-39     Same as NRADX(1) but for second segment
+
+  NFORX(2)   40-42     Same as NFORX(1) but for second segment
+
+  NRADX(3)   43-45     Same as NRADX(1) but for third segment
+
+  NFORX(3)   46-48     Same as NFORX(1) but for third segment
+
+  NRADX(4)   49-51     Same as NRADX(1) but for fourth segment
+
+  NFORX(4)   52-54     Same as NFORX(1) but for fourth segment
+
+  NP         55-57     Number of pods described (maximum = 9)
+
+  NPODOR     58-60     Number of stations at which pod radii are
+                       input (minimum = 4, maximum = 30)
+
+  NF         61-63     Number of fins (vertical tails) described
+                       (maximum = 6) If given a negative sign, the
+                       program will expect to read ordinates for
+                       both the outboard and inboard sides of the
+                       fins.  If positive, the airfoils are
+                       assumed to be symmetrical.
+
+  NFINOR     64-66     Number of stations at which ordinates are
+                       input for each fin airfoil
+                       (minimum = 3, maximum = 10)
+
+  NCAN       67-69     Number of canards (horizontal tails)
+                       defined (maximum = 2).  If given a negative
+                       sign, the program will expect to read
+                       ordinates for both the root and tip.  If
+                       positive, the root and tip airfoils are
+                       assumed to be the same.
+
+  NCANOR     70-72     Number of stations at which ordinates are
+                       input for each canard airfoil
+                       (minimum = 3, maximum = 10) 
+                       If given a negative sign, the program
+                       will expect to read both upper and lower
+                       ordinates.  If positive, the airfoil is
+                       assumed to be symmetrical.
+
+
+Reference Area Card: Format(3F7.0)  Input only if J0 = 1
+
+  REFA          Reference wing area used for drag coefficient
+                computation
+
+  CBAR          Wing reference chord for use in aerodynamic moment
+                coefficients
+
+  XMC           x coordinate of moment reference center
+
+Note: CBAR and XMC are not used in AWAVE but may be used in other
+      programs which use this type of geometry deck.
+
+
+
+                    Configuration Data Cards 
+
+
+     Data describing the configuration are input in seven column
+fields with a decimal point, with up to ten fields per card.  If
+more than ten fields are required, additional cards are used.
+
+     Columns 73 and up are used for identification.  This usually
+consists of a key word and a number or combination of numbers
+identifying that card within the group.  For example, "WAFORG 3"
+would be the card specifying the location of the third airfoil,
+and "TZORD 3-2" might be the second card defining the mean camber
+line for the third airfoil.  This identification is not used by
+the program, but it is useful because all configuration data are
+input in the same format, and it all looks alike.  Suggested
+identifiers are provided.
+
+
+
+                        Wing Data Cards
+
+
+     If J1 = 0 or 2, no wing data is input.  Only one wing may be
+defined for a configuration.  Input must include Wing Percent
+Chord Location Card(s), Wing Airfoil Location Cards, and Wing
+Airfoil Ordinate Cards.  Wing Mean Camber Line Cards are optional
+depending on J1.
+
+
+Wing Percent Chord Location Card(s): Format(10F7.0)  NWAFOR values
+  are input, ten to a card.  (Identifier = XAF)
+
+  XAF(I)        Locations in percent chord ((x/c)*100) at which the
+                ordinates of all wing airfoils are to be specified.
+
+
+Wing Airfoil Location Cards: Format(4F7.0)  NWAF cards are input,
+  one for each airfoil, in order, from the most inboard airfoil to
+  the most outboard.  (Identifier = WAFORG)
+
+  Columns       Description
+
+    1- 7        x coordinate of airfoil leading edge
+
+    8-14        y coordinate of airfoil leading edge
+
+   15-21        z coordinate of airfoil leading edge
+
+   22-28        airfoil streamwise chord length
+
+
+Wing Mean Camber Line Cards: Format(10F7.0)  Input only if J1 = 1.
+  NWAFOR values are input for each airfoil, ten to a card.  Each
+  airfoil is started on a new card.  NWAF sets of data are input,
+  one for each airfoil.  (Identifier = TZORD)
+
+  TZORD(I,J)    Delta z value, referenced to the z coordinate of
+                the airfoil leading edge, at the Jth wing percent
+                chord location for the Ith wing airfoil.
+
+
+Wing Airfoil Ordinate Cards: Format(10F7.0)  NWAF sets of data are
+  input, one for each airfoil. NWAFOR values are input for each
+  airfoil, ten to a card.  Each airfoil is started on a new card.
+  If NWAFOR < 0, the wing is not symmetric and two sets of data
+  are input for each airfoil, the distance from the mean camber
+  line to the upper surface followed (on a new card) by the
+  distance from the lower surface to the mean camber line.  Both
+  are expressed as percent chord as described below.  (Identifier
+  = WAFORD)
+
+  WAFORD(I,J)   Airfoil half-thickness ordinates of the wing,
+                expressed as percent chord (100 * (t/c) / 2),
+                at the Jth wing percent chord location for the
+                Ith wing airfoil.
+
+
+
+                      Fuselage Data Cards
+
+
+     If J2 = 0 or 2, no fuselage data is input.  Otherwise, NFUS
+sets of fuselage data are input.  Each set consists of Fuselage
+Station Cards and, depending on the options specified on the
+Geometry Input Control Card, Fuselage Camber Cards, Fuselage Area
+Cards, and/or Fuselage cross section y coordinate and z coordinate
+Cards.  Fuselage segments and stations within each segment must be
+in order of increasing x.
+
+
+Fuselage Station Card(s): Format(10F7.0)   NFORX(I) values are 
+  input, ten to a card, for the Ith fuselage segment.  
+  (Identifier = XFUS)
+
+  XFUS(J,I)     x coordinate of the Jth station for the Ith
+                fuselage segment
+
+
+Fuselage Camber Card(s): Format(10F7.0)   Input only for circular,
+  cambered fuselages (J2 = -1, J6 = 0).  NFORX(I) values are 
+  input, ten to a card, for the Ith fuselage segment.  
+  (Identifier = ZFUS)
+
+  ZFUS(J,I)     z coordinate of the center of the Jth station of
+                the Ith fuselage segment
+
+
+Fuselage Area Card(s): Format(10F7.0)   Input only for circular
+  fuselages (J2 = -1).  NFORX(I) values are input, ten to a card,
+  for the Ith fuselage segment.  (Identifier = FUSARD)
+
+  FUSARD(J,I)   Cross-sectional area of the Jth station of the Ith
+                fuselage segment
+
+
+Fuselage Coordinate Card(s): Format(10F7.0)  Input only for
+  arbitrary cross section fuselages (J2 = 1).  NRADX(I) values are
+  input, ten to a card, for the y coordinate followed by NRADX(I)
+  values for the z coordinate for the points defining a
+  half-section of the Jth station of the Ith fuselage segment.
+  The z coordinates are started on a new card.  The points are
+  ordered from bottom to top.  (Identifiers = Y and Z)
+
+  Y(K,J,I)      y coordinate of the Kth point defining the Jth
+                station of the Ith fuselage segment
+
+  Z(K,J,I)      z coordinate of the Kth point defining the Jth
+                station of the Ith fuselage segment
+
+
+
+                    Pod (Nacelle) Data Cards 
+
+
+     If J3 = 0 or 2, no pod data is input.  Otherwise, NP sets of
+cards are input, one for each pod defined.  Each set consists of a
+Pod Location Card and Pod Station and Radius Cards.  Pods are
+located symmetrically, i.e., unless the y coordinate is 0., a
+mirror image at -y is asssumed.  If y = 0., a single pod on the
+configuration centerline is defined.
+
+
+Pod (Nacelle) Location Card: Format(3F7.0)  One card is input
+  in each set defining the pod location.  (Identifier = PODORG)
+
+  Columns       Description
+
+    1- 7        x coordinate of the origin of the Ith pod
+
+    8-14        y coordinate of the origin of the Ith pod
+
+   15-21        z coordinate of the origin of the Ith pod
+
+
+Pod (Nacelle) Station Card(s): Format(10F7.0)   NPODOR values are 
+  input, ten to a card, for the pod currently being defined.
+  (Identifier = XPOD)
+
+  XPOD(I,J)     X location of the Jth station for the Ith pod
+                referenced to the pod origin, i. e., the first
+                value must be zero, and the last value is the
+                length of the pod.
+
+
+Pod (Nacelle) Radius Card(s): Format(10F7.0)   NPODOR values are 
+  input, ten to a card, for the pod currently being defined.
+  (Identifier = PODR)
+
+  PODR(I,J)     Pod radius at the Jth station of the Ith pod
+
+
+
+                  Fin (Vertical Tail) Data Cards 
+
+
+     If J4 = 0 or 2, no fin data is input.  Otherwise, NF sets of
+cards are input, one for each fin defined.  Each set consists of a
+Fin Planform Card, a Fin Percent Chord Location Card, and Fin
+Airfoil Ordinate Card(s).  Fins are located symmetrically, i.e.,
+unless the y coordinates are 0., a mirror image at -y is asssumed.
+If y = 0., a single vertical tail on the configuration centerline
+is defined.
+
+
+Fin (Vertical Tail) Planform Card: Format(3F7.0)  One card is
+  input in each set defining the fin location and planform.
+  (Identifier = FINORG)
+
+  Columns       Description
+
+    1- 7        x coordinate of the lower airfoil leading edge
+
+    8-14        y coordinate of the lower airfoil leading edge
+
+   15-21        z coordinate of the lower airfoil leading edge
+
+   22-28        Chord length of the lower airfoil
+
+   29-35        x coordinate of the upper airfoil leading edge
+
+   36-42        y coordinate of the upper airfoil leading edge
+
+   43-49        z coordinate of the upper airfoil leading edge
+
+   50-56        Chord length of the upper airfoil
+
+
+Fin (Vertical Tail) Percent Chord Location Card: Format(10F7.0)
+  NFINOR values are input.  (Identifier = XFIN)
+
+  XFIN(I,J)     Locations in percent chord ((x/c)*100) at which
+                the airfoil ordinates of the Ith fin are to be
+                specified.
+
+
+Fin (Vertical Tail) Airfoil Ordinate Card(s): Format(10F7.0)
+  NFINOR values are input.  If NF < 0, the fin airfoil is not
+  symmetric with respect to the inclined plane defined on the Fin
+  Planform Card and two sets of ordinates are input, the distance
+  from the inclined plane to the outboard surface followed by the
+  distance from the inboard surface to the inclined plane.  Both
+  are expressed as percent chord as described below.
+  (Identifier = FINORD)
+
+  FINORD(I,J)   Airfoil half-thickness ordinates of the Ith fin,
+                expressed as percent chord (100 * (t/c) / 2).
+
+
+
+               Canard (Horizontal Tail) Data Cards 
+
+
+     If J5 = 0 or 2, no canard data is input.  Otherwise, NCAN
+sets of cards are input, one for each canard or horizontal tail
+defined.  Each set consists of a Canard Planform Card, a Canard
+Percent Chord Location Card, and Canard Airfoil Ordinate Card(s).
+
+
+Canard (Horizontal Tail) Planform Card: Format(3F7.0)  One card is
+  input in each set defining the canard location and planform.
+  (Identifier = CANORG)
+
+  Columns       Description
+
+    1- 7        x coordinate of the inboard airfoil leading edge
+
+    8-14        y coordinate of the inboard airfoil leading edge
+
+   15-21        z coordinate of the inboard airfoil leading edge
+
+   22-28        Chord length of the inboard airfoil
+
+   29-35        x coordinate of the outboard airfoil leading edge
+
+   36-42        y coordinate of the outboard airfoil leading edge
+
+   43-49        z coordinate of the outboard airfoil leading edge
+
+   50-56        Chord length of the outboard airfoil
+
+
+Canard (Horizontal Tail) Percent Chord Location Card:
+  Format(10F7.0)  NCANOR values are input.  (Identifier = XCAN)
+
+  XCAN(I,J)     Locations in percent chord ((x/c)*100) at which
+                the airfoil ordinates of the Ith canard are to be
+                specified.
+
+
+Canard (Horizontal Tail) Airfoil Ordinate Card(s): Format(10F7.0)
+  NCANOR values are input.  If NCAN < 0, the outboard canard
+  airfoil is different from the inboard airfoil, and two sets of
+  ordinates are input, inboard airfoil data followed (starting on
+  a new card) by outboard airfoil data.  If NCANOR < 0, the canard
+  airfoil is not symmetric with respect to the inclined plane
+  defined on the Canard Planform Card and two sets of ordinates
+  are input, the distance from the inclined plane to the upper
+  surface followed by the distance from the lower surface to the
+  inclined plane.  If both NCAN < 0 and NCANOR < 0, four sets of
+  ordinates are required in the following order: inboard upper
+  surface, outboard upper surface, inboard lower surface, and
+  outboard lower surface.  Each set is started on a new card.
+  (Identifier = CANORD)
+
+  CANORD(I,J)   Airfoil half-thickness ordinates of the Ith canard,
+                expressed as percent chord (100 * (t/c) / 2).
+
+
+
+                     Case Definition Input Data
+
+
+Case Control Card: Format(A4,11I4)  Integer input must be right
+  justified in the indicated 4-column field.  As many Case Control
+  Cards as desired may be input.  If NREST > 0, the Case Control
+  Card is followed by a Restraint Card, but only one Restraint
+  Card may be input per configuration.
+
+ Variable   Columns    Description
+
+  NCASE       1- 4     Case number or other 4 character descriptor
+
+  MACH        5- 8     Mach number * 1000
+
+  NX          9-12     Number of intervals on x axis
+
+  NTHETA     13-16     Number of thetas
+
+  NREST      17-20     Number of restraint points for drag
+                       minimization (maximum = 10)
+
+  NCON       21-24     Configuration control
+                       = 1, A new configuration follows this case.
+                            (Title Card, Geometry Input Control Card,
+                            etc.) This option is normally used when
+                            only minor geometry changes are desired.
+                       = 0, Otherwise (another case or nothing)
+
+  ICYC       25-28     Number of Optimization cycles ( < 10)
+
+  KKODE      29-32     Slope check control
+                       = 0, Turn on slope checking
+                       = 1, No slope checking
+
+  JRST       33-36     Equivalent body data control
+                       = 0, Compute equivalent body areas, drags etc.
+                       = 1, Perform minimum calculations required for
+                            wave drag (saves ~25% execution time)
+
+  IALPH      37-40     Angle of attack x 100
+
+  IUP1       41-44     Unit number for plot tape 1 which contains Mach
+                       sliced area data for theta = -90 degrees
+                       = 0, Plot tape not written
+                       = Integer > 6, plot data on file PLOT1
+
+  IUP2       45-48     Unit number for plot tape 2 which contains
+                       equivalent body area data
+                       = 0, Plot tape not written
+                       = Integer > 6, plot data on file PLOT2
+
+
+Restraint Card: Format(10F7.0)  Input only if NREST > 0
+
+  XREST(I)      X locations of fuselage restraint points.  The
+                fuselage cross-sectional area is held constant at
+                these locations during optimization.

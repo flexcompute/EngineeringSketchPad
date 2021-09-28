@@ -1,0 +1,48 @@
+# inline
+# written by John Dannenhoffer
+
+DESPMTR  x0  0
+DESPMTR  y0  0
+DESPMTR  z0  0
+DESPMTR  dx  4
+DESPMTR  dy  3
+DESPMTR  dz  1
+OUTPMTR  xleft
+OUTPMTR  xrite
+
+# create a simple box
+BOX      x0  y0  z0   dx  dy  dz
+
+# give each of the Faces an iford attribute
+SELECT    face  1 1
+ATTRIBUTE iford $xmin
+SELECT    face  1 2
+ATTRIBUTE iford $xmax
+SELECT    face  1 3
+ATTRIBUTE iford $ymin
+SELECT    face  1 4
+ATTRIBUTE iford $ymax
+SELECT    face  1 5
+ATTRIBUTE iford $zmin
+SELECT    face  1 6
+ATTRIBUTE iford $zmax
+
+# call editAttr to name the left (xmin) and rite (xmax) Faces
+UDPRIM editAttr filename <<
+   face has iford=xmin
+   set       name=left
+>>
+
+UDPRIM editAttr filename <<
+   face has  iford=xmax
+   set       name=rite
+>>
+
+# now set xleft to the CG of the left Face and xrite to the CG of the rite Face
+SELECT face  $name $left
+SET    xleft @xcg
+
+SELECT face  $name $rite
+SET    xrite @xcg
+
+END

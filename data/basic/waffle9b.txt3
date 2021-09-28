@@ -1,0 +1,14 @@
+
+   POINT  A   AT  chord*spar1   L2/n2
+   POINT  B   AT  chord*spar1   L2*n2/n2
+   LINE   .   A   B
+
+   POINT  A   AT  chord*spar2   L2/n2
+   POINT  B   AT  chord*spar2   L2*n2/n2
+   LINE   .   A   B
+
+   PATBEG i   n2
+      POINT   A  AT  0.0    L2*i/n2
+      POINT   B  at  chord  L2*i/n2
+      LINE    .  A   B
+   PATEND

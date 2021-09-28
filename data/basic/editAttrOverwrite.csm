@@ -1,0 +1,99 @@
+# editAttrOverwrite
+# written by John Dannenhoffer
+
+box       -1.0  -1.0  -1.0   2.0   2.0   2.0
+
+select        face    1  1
+   attribute  attr0n  1
+   attribute  attr1n  10
+   attribute  attr2n  100
+   attribute  attr3n  1000
+   attribute  attr4n  10000
+   attribute  attr0s  $a
+   attribute  attr1s  $aa
+   attribute  attr2s  $aaa
+   attribute  attr3s  $aaaa
+   attribute  attr4s  $aaaaa
+
+select        face    1  2
+   attribute  attr0n  2
+   attribute  attr1n  20
+   attribute  attr2n  200
+   attribute  attr3n  2000
+   attribute  attr4n  20000
+   attribute  attr0s  $b
+   attribute  attr1s  $bb
+   attribute  attr2s  $bbb
+   attribute  attr3s  $bbbb
+   attribute  attr4s  $bbbbb
+
+select        face    1  3
+   attribute  attr0n  3
+   attribute  attr1n  30
+   attribute  attr2n  300
+   attribute  attr3n  3000
+   attribute  attr4n  30000
+   attribute  attr0s  $c
+   attribute  attr1s  $cc
+   attribute  attr2s  $ccc
+   attribute  attr3s  $cccc
+   attribute  attr4s  $ccccc
+
+select        face    1  4
+   attribute  attr0n  4
+   attribute  attr1n  40
+   attribute  attr2n  400
+   attribute  attr3n  4000
+   attribute  attr4n  40000
+   attribute  attr0s  $d
+   attribute  attr1s  $dd
+   attribute  attr2s  $ddd
+   attribute  attr3s  $dddd
+   attribute  attr4s  $ddddd
+
+select        face    1  5
+   attribute  attr0n  5
+   attribute  attr1n  50
+   attribute  attr2n  500
+   attribute  attr3n  5000
+   attribute  attr4n  50000
+   attribute  attr0s  $e
+   attribute  attr1s  $ee
+   attribute  attr2s  $eee
+   attribute  attr3s  $eeee
+   attribute  attr4s  $eeeee
+
+select        face    1  6
+   attribute  attr0n  6
+   attribute  attr1n  60
+   attribute  attr2n  600
+   attribute  attr3n  6000
+   attribute  attr4n  60000
+   attribute  attr0s  $f
+   attribute  attr1s  $ff
+   attribute  attr2s  $fff
+   attribute  attr3s  $ffff
+   attribute  attr4s  $fffff
+
+udprim editAttr  attrName $attr0n  input $FE  output $EF  overwrite 0
+assert @@nchange 12
+udprim editAttr  attrName $attr1n  input $FE  output $EF  overwrite 1
+assert @@nchange 48
+udprim editAttr  attrName $attr2n  input $FE  output $EF  overwrite 2
+assert @@nchange 48
+udprim editAttr  attrName $attr3n  input $FE  output $EF  overwrite 3
+assert @@nchange 48
+udprim editAttr  attrName $attr4n  input $FE  output $EF  overwrite 4
+assert @@nchange 48
+udprim editAttr  attrName $attr0s  input $FE  output $EF  overwrite 0
+assert @@nchange 12
+udprim editAttr  attrName $attr1s  input $FE  output $EF  overwrite 1
+assert @@nchange 48
+udprim editAttr  attrName $attr2s  input $FE  output $EF  overwrite 2
+assert @@nchange 16
+udprim editAttr  attrName $attr3s  input $FE  output $EF  overwrite 3
+assert @@nchange 32
+udprim editAttr  attrName $attr4s  input $FE  output $EF  overwrite 4
+assert @@nchange 48
+
+end

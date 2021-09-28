@@ -1,0 +1,78 @@
+# blend18
+# written by John Dannenhoffer (based upon ideas from Dean Bryson)
+
+DESPMTR   dx           1
+DESPMTR   dy           2
+DESPMTR   dz           2
+DESPMTR   majorRadius  0.2
+DESPMTR   minorRadius  0.1
+
+SKBEG      0 0 0
+   LINSEG  0 1 0
+SKEND
+ROTATEZ   30 0 0
+STORE     wire 1 1
+ROTATEZ  -30 0 0
+STORE     wire 2 1
+ROTATEZ  -30 0 0
+STORE     wire 3 0
+
+CYLINDER  0 -0.5*minorRadius 0   0 0.5*minorRadius 0   minorRadius
+STORE     port
+
+UDPRIM    box   dx dx   dy dy   dz dz
+CYLINDER  0 0 -dz   0 0 dz majorRadius
+SUBTRACT
+EXTRACT   0
+STORE     shell
+
+SET       nOuter 4
+SET       nInner 4
+
+PATBEG outer nOuter
+   PATBEG inner nInner
+
+      SET       outerFrac   0.2+(0.5-0.2)*(outer-1)/(nOuter-1)
+      SET       innerFrac   0.2+(0.8-0.2)*(inner-1)/(nInner-1)
+
+      RESTORE   shell
+      TRANSLATE 0.5*dx 0.5*dy 0.5*dz
+      RESTORE   port
+      TRANSLATE 0.5*dx 0.5*dy+majorRadius outerFrac*dz
+      INTERSECT
+      STORE     faces 1
+
+      RESTORE   shell
+      TRANSLATE 0.5*dx 0.5*dy 0.5*dz
+      RESTORE   port
+      TRANSLATE 0.5*dx dy innerFrac*dz
+      INTERSECT
+      STORE     faces 2
+
+      RESTORE   shell
+      TRANSLATE 0.5*dx 1.5*dy 0.5*dz
+      RESTORE   port
+      ROTATEY   180 0 0
+      TRANSLATE 0.5*dx 1.5*dy-majorRadius (1-outerFrac)*dz
+      INTERSECT
+      STORE     faces 3
+
+      MARK
+#---          RESTORE   wire  1
+         RESTORE   faces 1
+#---          RESTORE   wire  2
+         RESTORE   faces 2
+#---          RESTORE   wire  3
+         RESTORE   faces 3
+      BLEND 0 0 1
+
+      TRANSLATE 2*outer*dx 2*inner*dy 2*dz
+   PATEND
+PATEND
+
+# catch error that happens because 6.8.1 creates extra Edges in 
+#    Sketch 1 and Sketch 3
+CATBEG    $error_in_bodys_on_stack
+CATEND
+
+END

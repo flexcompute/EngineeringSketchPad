@@ -1,0 +1,39 @@
+# bullet
+# written by John Dannenhoffer
+
+despmtr   length    2.0
+despmtr   toverl    0.4
+
+set       thick     toverl*length
+
+skbeg     0.0       0.0       0.0
+   linseg length    0.0       0.0
+   linseg length    thick/2   0.0
+   spline length/2  thick/2   0.0
+   spline 0.0       0.0       0.0
+skend
+
+dump      pod.egads 1
+import    pod.egads
+revolve   0.0       0.0       0.0       1  0  0  +180
+import    pod.egads
+revolve   0.0       0.0       0.0       1  0  0  -180
+union
+store     nose
+
+restore   nose
+select    face  8  3
+extract   @iface
+extrude   length/2  0.0       0.0
+
+restore   nose
+join
+
+restore   nose
+select    face  10  3
+extract   @iface
+extrude   length/2  0.0       0.0
+
+join
+
+end

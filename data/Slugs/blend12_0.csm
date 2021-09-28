@@ -1,0 +1,29 @@
+# blend12_0
+# written by John Dannenhoffer
+
+mark
+   udprim    supell rx   2 \
+                    ry_s 4 \
+                    ry_n 2 \
+                    n_ne 5
+   translate 0 0 -6
+
+   udprim    supell rx   4 \
+                    ry_s 4 \
+                    ry_n 2 \
+                    n_s  4
+
+   udprim    supell rx   2 \
+                    ry   2 \
+                    n_sw 5
+   translate 0 0 4
+blend
+   attribute  .tParams  0.10;0.01;5.0
+
+rotatey  -30  0  0
+rotatex   30  0  0
+
+dump      $/blend12_0.stl
+dump      $/blend12.plot
+
+end

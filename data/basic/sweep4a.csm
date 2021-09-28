@@ -1,0 +1,26 @@
+# sweep4a
+# written by John Dannenhoffer
+
+set       R         1.0
+set       pitch     1.0
+set       dx        0.1
+set       dz        0.1
+
+skbeg     +dx       0.0       R
+   linseg +dx       0.0       R+dz
+   linseg 0.0       0.0       R+dz
+   linseg 0.0       0.0       R
+   linseg +dx       0.0       R
+skend
+
+skbeg        0.0       0.0             R
+   patbeg    ipnt      72
+      set    x         ipnt/36*pitch
+      set    theta     ipnt*10
+      spline x         R*sind(theta)   R*cosd(theta)
+   patend
+skend
+
+sweep
+
+end

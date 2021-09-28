@@ -1,0 +1,55 @@
+# nudge2
+# written by JohnDannenhoffer
+
+# fuselage
+skbeg     1.0  0.0 -3.0
+   cirarc 0.0  0.3 -3.0 -1.0  0.0 -3.0
+   cirarc 0.0 -0.3 -3.0  1.0  0.0 -3.0
+skend
+store     fuselage
+
+mark
+   restore   fuselage
+   restore   fuselage
+   translate 0.0  0.0  6.0
+rule
+rotatey   90  0.0  0.0
+
+# wing
+dimension params 1 3 0
+set       params "0.05; 0.005; 15.0;"
+
+skbeg     1.0  0.0  0.0
+   cirarc 0.0  0.1  0.0 -1.0  0.0  0.0
+   cirarc 0.0 -0.1  0.0  1.0  0.0  0.0
+skend
+store     wing
+
+mark
+   restore   wing
+   restore   wing
+   translate 0.0  0.0  2.0
+rule
+attribute .tParams  params
+
+# nudge the wing a little
+#rotatez   1e+0  0.0  0.0   # works
+#rotatez   1e-1  0.0  0.0   # works
+rotatez   1e-2  0.0  0.0   # fails
+#rotatez   1e-3  0.0  0.0   # works
+#rotatez   1e-4  0.0  0.0   # fails
+#rotatez   1e-5  0.0  0.0   # works
+#rotatez   1e-6  0.0  0.0   # works
+#rotatez   1e-7  0.0  0.0   # works
+
+# perform the union
+union     0  0  1e-4
+
+# test tessellation parameters
+select edge 8 1 8 3
+attribute .tParams  params
+
+select face 8 2
+attribute .tParams  params
+
+end

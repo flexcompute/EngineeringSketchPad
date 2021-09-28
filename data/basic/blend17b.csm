@@ -1,0 +1,29 @@
+# blend17b
+# written by John Dannenhoffer
+
+mark
+
+skbeg       0   0   0
+   linseg   1   0   0
+   linseg   1   1   0
+   linseg   0   1   0
+   linseg   0   0   0
+skend
+
+skbeg       0   0   3
+   linseg   2   0   3
+   linseg   2   2   3
+   linseg   0   2   3
+   linseg   0   0   3
+skend
+
+skbeg       0   0   6
+   linseg   1   0   6
+   linseg   1   1   6
+   linseg   0   1   6
+   linseg   0   0   6
+skend
+
+blend
+
+end

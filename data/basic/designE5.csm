@@ -1,0 +1,25 @@
+# designE5
+# written by John Dannenhoffer
+
+# cylinder
+despmtr   xcent     0.0
+despmtr   ycent     0.0
+despmtr   thick     0.1
+despmtr   rad       2.0
+
+# boxes
+despmtr   xbox      1.4
+despmtr   dx        0.2
+despmtr   dy        4.0
+despmtr   dz        1.0
+
+cylinder  xcent     ycent     -thick/2 \
+          xcent     ycent     +thick/2  rad
+
+box      -xbox-dx/2 -dy/2    -dz/2      dx        dy        dz
+union
+
+box      +xbox-dx/2 -dy/2    -dz/2      dx        dy        dz
+union
+
+end

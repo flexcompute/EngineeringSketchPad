@@ -1,0 +1,50 @@
+# catch5a
+# written by John Dannenhoffer
+
+IFTHEN    1  EQ  1
+   THROW  -1234
+
+   IFTHEN    1  EQ  1         # this should be skipped
+      ASSERT      0  11
+      CATBEG  $all
+          ASSERT  0  1
+      CATEND
+   ELSEIF    2  EQ  2         # this should be skipped
+      ASSERT      0  22
+      CATBEG  $all
+          ASSERT  0  2
+      CATEND
+   ELSE                       # this should be skipped
+      ASSERT      0  33
+      CATBEG  $all
+          ASSERT  0  3
+      CATEND
+   ENDIF
+
+   PATBEG    a  1             # this should be skipped
+      ASSERT      0  44
+      CATBEG  $all
+          ASSERT  0  4
+      CATEND
+   PATEND
+
+   UDPRIM    $/catch5         # this should be skipped
+
+   CATBEG  $all               # this should catch -1234
+      ASSERT  @signal  -1234
+      THROW   -2345
+   CATEND
+ENDIF
+
+IFTHEN    1  EQ  1            # this should be skipped
+   CATBEG  $all
+       ASSERT  @signal  -2345
+       THROW   -3456
+   CATEND
+ENDIF
+
+CATBEG  $all                  # this should catch -2345
+   ASSERT  @signal  -2345
+CATEND
+
+END

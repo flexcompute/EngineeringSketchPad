@@ -1,0 +1,698 @@
+# Build the Wing based on design Parameters
+# 
+# First, get all the necessary parameters from the mother script
+#
+# Wing interface variables
+interface   Wing_TipTwistAngle      in  0
+interface   Wing_TipTwistLocation   in  0
+interface   wingTipChord            in  0
+
+interface   wingTipPositionX        in  0
+interface   wingTipPositionY        in  0
+interface   wingTipPositionZ        in  0
+
+interface   Wing_RootTwistAngle     in  0
+interface   Wing_RootTwistLocation  in  0
+interface   wingRootChord           in  0
+
+interface   Wing_RootPositionX      in  0
+interface   Wing_RootPositionY      in  0
+interface   Wing_RootPositionZ      in  0
+
+interface   Wing_HedralAngle        in  0
+interface   Wing_SweepAngle         in  0
+interface   wingSpan                in  0
+
+# Spoiler interface variables
+interface   MakeSpoilers               in   0
+
+interface   MakeTopFrontSpoiler        in   0
+interface   MakeBottomFrontSpoiler     in   0
+interface   MakeTopRearSpoiler         in   0
+interface   MakeBottomRearSpoiler      in   0
+interface   MakeSlots                  in   0
+
+interface   Spoiler_xpivot             in   0
+interface   Spoiler_ypivot             in   0
+interface   SpoilerSpan                in   0
+interface   SpoilerChord	           in   0
+
+interface   Spoiler_Azimuthal	       in   0
+interface   Spoiler_Deflection_Right   in   0
+interface   Spoiler_Deflection_Left    in   0
+
+interface   relSpoilerSpan             in   0
+interface   relSpoilerChord            in   0
+interface   Spoiler_Thickness          in   0
+
+interface   params                     in   0
+
+interface   xpivot_right                out  0
+interface   ypivot_right                out  0
+interface   zpivot_right                out  0
+
+interface   xpivot_left                 out  0
+interface   ypivot_left                 out  0
+interface   zpivot_left                 out  0
+
+# # NACA 64A204
+# udparg naca456 thkcode $64A
+# udparg naca456 toc     0.04                                                      
+# udparg naca456 camcode $6M
+# udparg naca456 cl      0.02
+# udparg naca456 a       0.80
+# udprim naca456
+# store naca64A204
+
+# NACA 64A012  
+udparg naca456 thkcode $64A
+udparg naca456 toc     0.06
+udparg naca456 camcode $6M
+udparg naca456 cl      0.00
+udparg naca456 a       0.80
+udprim naca456
+store naca64A204
+
+# # NACA 5412-64
+# udparg naca456 thkcode $4M
+# udparg naca456 toc     0.12
+# udparg naca456 leindex 6
+# udparg naca456 xmaxt   0.40
+# udparg naca456 camcode $2
+# udparg naca456 cmax    0.05
+# udparg naca456 xmaxc   0.40
+# udprim naca456
+
+# Create wing
+mark
+    restore naca64A204
+    rotatez     -Wing_TipTwistAngle     Wing_TipTwistLocation   0
+    rotatex     90                      0                       0
+    scale       wingTipChord
+    translate   wingTipPositionX  wingTipPositionY   wingTipPositionZ
+    
+    restore naca64A204
+    rotatez     -Wing_RootTwistAngle    Wing_RootTwistLocation  0
+    rotatex     90                      0                       0
+    rotatex     -Wing_HedralAngle       0                       0
+    scale       wingRootChord
+    translate   Wing_RootPositionX  Wing_RootPositionY  Wing_RootPositionZ
+rule
+set right_wing  @nbody
+rotatex     Wing_HedralAngle  0 0
+
+# select top-right edge of right tip chord
+select  edge right_wing 1 right_wing 3 1
+    set     xpivot_right      ifpos(@xmax-@xmin,@xmax,@xmin)
+    set     ypivot_right      ifpos(@xmax-@xmin,@ymax,@ymin)
+    set     zpivot_right      ifpos(@xmax-@xmin,@zmax,@zmin)
+#end select
+
+mark
+    restore naca64A204
+    rotatez     Wing_TipTwistAngle     Wing_TipTwistLocation    0  
+    rotatex     90                     0                        0
+    scale       wingTipChord
+    translate   wingTipPositionX  -wingTipPositionY  wingTipPositionZ
+
+    restore naca64A204
+    rotatez     -Wing_RootTwistAngle    Wing_RootTwistLocation  0
+    rotatex     90                      0                       0
+    rotatex     Wing_HedralAngle        0                       0
+    scale       wingRootChord
+    translate   Wing_RootPositionX  Wing_RootPositionY  Wing_RootPositionZ
+rule
+set left_wing   @nbody
+rotatex     -Wing_HedralAngle  0 0
+
+# select top-left edge of left tip chord
+select edge left_wing 1 left_wing 4 1
+    set     xpivot_left      ifpos(@xmax-@xmin,@xmax,@xmin)
+    set     ypivot_left      ifpos(@xmax-@xmin,@ymax,@ymin)
+    set     zpivot_left      ifpos(@xmax-@xmin,@zmax,@zmin)
+#end select
+union
+set wing @nbody
+
+# Add spoilers only if spoilers are open 
+# (based on the spoiler_deflection_right, or spoiler_angle_left)
+patbeg spoilers MakeSpoilers
+    store wing_no_slot
+    restore wing_no_slot
+    store wing_clean
+    restore wing_clean
+
+    patbeg spoilers_right ifzero(Spoiler_Deflection_Right,0,MakeSpoilers)
+      # Create cut-out box to place SSD on the right side of the wing
+      set xpivot_rbox  xpivot_right-(Spoiler_xpivot*wingTipChord)-relSpoilerChord
+      set ypivot_rbox  ypivot_right-(Spoiler_ypivot*wingSpan/2.0)-relSpoilerSpan
+      set zpivot_rbox  zpivot_right-(0.5*relSpoilerSpan)
+       
+      set xlenth_rbox  relSpoilerChord
+      set ylenth_rbox  relSpoilerSpan            
+      set zlenth_rbox  relSpoilerSpan
+      set orient_rbox  Wing_SweepAngle+Spoiler_Azimuthal
+
+      box  xpivot_rbox ypivot_rbox zpivot_rbox \ 
+           xlenth_rbox ylenth_rbox zlenth_rbox 
+      set right_slot  @nbody
+      rotatez -orient_rbox xpivot_rbox+relSpoilerChord ypivot_rbox+relSpoilerSpan
+      rotatex Wing_HedralAngle ypivot_right zpivot_right
+      store box_right
+
+      # Create spoiler by intersecting box with wing
+      restore box_right
+      intersect
+      store spoiler_right
+
+      # Create slot by subtracting box from wing
+      restore wing_clean
+      restore box_right
+      subtract
+
+      # Select top-front edge of the right slot
+      select edge right_wing 3 right_slot 1 1
+          set     xmin_r_tf_spoiler    @xmin
+          set     ymin_r_tf_spoiler    @ymin
+          set     zmin_r_tf_spoiler    @zmin
+
+          set     xmax_r_tf_spoiler    @xmax
+          set     ymax_r_tf_spoiler    @ymax
+          set     zmax_r_tf_spoiler    @zmax
+      #end select edge
+
+      # Select bottom-front edge of the right slot
+      select edge right_wing 4 right_slot 1 1
+          set     xmin_r_bf_spoiler    @xmin
+          set     ymin_r_bf_spoiler    @ymin
+          set     zmin_r_bf_spoiler    @zmin
+
+          set     xmax_r_bf_spoiler    @xmax
+          set     ymax_r_bf_spoiler    @ymax
+          set     zmax_r_bf_spoiler    @zmax
+      #end select edge
+
+      # Select top-rear edge of the right slot
+      select edge right_wing 3 right_slot 2 1
+          set     xmin_r_tr_spoiler    @xmin
+          set     ymin_r_tr_spoiler    @ymin
+          set     zmin_r_tr_spoiler    @zmin
+
+          set     xmax_r_tr_spoiler    @xmax
+          set     ymax_r_tr_spoiler    @ymax
+          set     zmax_r_tr_spoiler    @zmax
+      #end select edge
+
+      # Select bottom-rear edge of the right slot
+      select edge right_wing 4 right_slot 2 1
+          set     xmin_r_br_spoiler    @xmin
+          set     ymin_r_br_spoiler    @ymin
+          set     zmin_r_br_spoiler    @zmin
+
+          set     xmax_r_br_spoiler    @xmax
+          set     ymax_r_br_spoiler    @ymax
+          set     zmax_r_br_spoiler    @zmax
+      #end select edge
+
+      store tmp
+      restore wing_clean
+
+      # Since Union of thin SSD does not work
+      # Increase the size of the slot for successful union
+      set y_gap Spoiler_Thickness*(zmax_r_tr_spoiler-zmin_r_br_spoiler)
+      box  xpivot_rbox ypivot_rbox-(0.1*y_gap) zpivot_rbox \
+           xlenth_rbox ylenth_rbox+(0.2*y_gap) zlenth_rbox 
+      # box  xpivot_rbox ypivot_rbox zpivot_rbox \
+      #      xlenth_rbox ylenth_rbox zlenth_rbox 
+      rotatez -orient_rbox xpivot_rbox+relSpoilerChord ypivot_rbox+relSpoilerSpan
+      rotatex Wing_HedralAngle ypivot_right zpivot_right
+      subtract
+      store wing_clean
+      restore wing_clean
+
+    patend #spoilers_right
+
+    patbeg spoilers_left ifzero(Spoiler_Deflection_Left,0,MakeSpoilers)
+       # Create cut-out box to place SSD  on the left side of the wing
+       set xpivot_lbox  xpivot_left-(Spoiler_xpivot*wingTipChord)-relSpoilerChord
+       set ypivot_lbox  ypivot_left+(Spoiler_ypivot*wingSpan/2.0)
+       set zpivot_lbox  zpivot_left-(0.5*relSpoilerSpan)
+       
+       set xlenth_lbox  relSpoilerChord
+       set ylenth_lbox  relSpoilerSpan
+       set zlenth_lbox  relSpoilerSpan
+       set orient_lbox  Wing_SweepAngle+Spoiler_Azimuthal
+
+       box xpivot_lbox ypivot_lbox zpivot_lbox \
+           xlenth_lbox ylenth_lbox zlenth_lbox
+	   set left_slot  @nbody
+       rotatez orient_lbox xpivot_lbox+relSpoilerChord ypivot_lbox
+       rotatex -Wing_HedralAngle ypivot_left zpivot_left
+       store box_left
+
+       # Create spoiler by intersecting box with wing
+       restore box_left
+       intersect
+       store spoiler_left
+
+       # Create slot by subtracting box from wing
+       restore wing_clean
+       restore box_left
+	   subtract
+       
+       # Select top-front edge of the left slot
+       select edge left_wing 3 left_slot 1 1
+           set     xmin_ltf_spoiler    @xmin
+           set     ymin_ltf_spoiler    @ymin
+           set     zmin_ltf_spoiler    @zmin
+
+           set     xmax_ltf_spoiler    @xmax
+           set     ymax_ltf_spoiler    @ymax
+           set     zmax_ltf_spoiler    @zmax
+       #end select edge
+
+       # Select bottom-front edge of the left slot
+       select edge left_wing 4 left_slot 1 1
+           set     xmin_lbf_spoiler    @xmin
+           set     ymin_lbf_spoiler    @ymin
+           set     zmin_lbf_spoiler    @zmin
+
+           set     xmax_lbf_spoiler    @xmax
+           set     ymax_lbf_spoiler    @ymax
+           set     zmax_lbf_spoiler    @zmax
+       #end select edge
+
+       # Select top-rear edge of the left slot
+       select edge left_wing 3 left_slot 2 1
+           set     xmin_ltr_spoiler    @xmin
+           set     ymin_ltr_spoiler    @ymin
+           set     zmin_ltr_spoiler    @zmin
+
+           set     xmax_ltr_spoiler    @xmax
+           set     ymax_ltr_spoiler    @ymax
+           set     zmax_ltr_spoiler    @zmax
+       #end select edge
+
+       # Select bottom-rear edge of the left slot
+       select edge left_wing 4 left_slot 2 1
+           set     xmin_lbr_spoiler    @xmin
+           set     ymin_lbr_spoiler    @ymin
+           set     zmin_lbr_spoiler    @zmin
+
+           set     xmax_lbr_spoiler    @xmax
+           set     ymax_lbr_spoiler    @ymax
+           set     zmax_lbr_spoiler    @zmax
+       #end select edge
+
+       # Since Union of thin SSD does not work,
+       # Increase the size of the slot span for successful union
+       store tmp
+       restore wing_clean
+       set y_gap Spoiler_Thickness*(zmax_ltr_spoiler-zmin_lbr_spoiler)
+       box xpivot_lbox ypivot_lbox-(0.1*y_gap) zpivot_lbox \
+           xlenth_lbox ylenth_lbox+(0.2*y_gap) zlenth_lbox 
+       rotatez orient_lbox xpivot_lbox+relSpoilerChord ypivot_lbox+relSpoilerSpan
+       rotatex -Wing_HedralAngle ypivot_left zpivot_left
+       subtract
+    patend # spoilers_left
+
+    store wing_slot
+
+    patbeg skip_slots ifzero(MakeSlots,1,0) 
+        restore wing_no_slot
+        store wing_slot
+    patend
+
+    # Create deflectors
+    patbeg spoilers_right ifzero(Spoiler_Deflection_Right,0,MakeSpoilers)
+        # Top-front deflector on the right wing
+        patbeg top_front_spoiler MakeTopFrontSpoiler
+            restore wing_slot
+            restore spoiler_right
+
+            # Trim Spoiler based on Specified spoiler thickness and store away
+            restore wing_no_slot
+            translate 0.0 0.0 -Spoiler_Thickness*(zmax_r_tr_spoiler-zmin_r_br_spoiler)
+            subtract
+
+            select edge right_slot 1 right_slot 3 1
+            set xbeg_r_tf_spoiler @xmin
+            set ybeg_r_tf_spoiler @ymin
+
+            # # upper edge as the axis of rotation 
+            # set zbeg_r_tf_spoiler @zmax
+            # lower edge as the axis of rotation 
+            set zbeg_r_tf_spoiler @zmin
+            # Mid-point as axiz of rotation
+            # set zbeg_r_tf_spoiler @zmin+0.5*(@zmax-@zmin)
+
+            select edge right_slot 1 right_slot 4 1
+            set xend_r_tf_spoiler @xmin
+            set yend_r_tf_spoiler @ymin
+
+            # # upper edge as the axis of rotation 
+            # set zend_r_tf_spoiler @zmax
+            # lower edge as the axis of rotation 
+            set zend_r_tf_spoiler @zmin
+            # Mid-point as axiz of rotation
+            # set zend_r_tf_spoiler @zmin+0.5*(@zmax-@zmin)
+
+            udparg    $$/gen_rot xbeg    xbeg_r_tf_spoiler   
+            udparg    $$/gen_rot ybeg    ybeg_r_tf_spoiler
+            udparg    $$/gen_rot zbeg    zbeg_r_tf_spoiler
+            udparg    $$/gen_rot xend    xend_r_tf_spoiler                 
+            udparg    $$/gen_rot yend    yend_r_tf_spoiler 
+            udparg    $$/gen_rot zend    zend_r_tf_spoiler 
+            udprim    $$/gen_rot rotang -Spoiler_Deflection_Right
+
+    	    union
+            store wing_slot
+        patend
+    
+        # Bottom-front deflector on the right wing
+    	patbeg bot_front_spoiler MakeBottomFrontSpoiler
+            restore wing_slot
+            restore spoiler_right
+
+            # Trim Spoiler based on Specified spoiler thickness and store away
+            restore wing_no_slot
+            translate 0.0 0.0 +Spoiler_Thickness*(zmax_r_tr_spoiler-zmin_r_br_spoiler)
+            subtract
+
+            select edge right_slot 1 right_slot 3 1
+            set xbeg_r_bf_spoiler @xmin
+            set ybeg_r_bf_spoiler @ymin
+
+            # upper edge as the axis of rotation 
+            set zbeg_r_bf_spoiler @zmax
+
+            select edge right_slot 1 right_slot 4 1
+            set xend_r_bf_spoiler @xmin
+            set yend_r_bf_spoiler @ymin
+
+            # upper edge as the axis of rotation 
+            set zend_r_bf_spoiler @zmax
+
+            udparg    $$/gen_rot xbeg    xbeg_r_bf_spoiler
+            udparg    $$/gen_rot ybeg    ybeg_r_bf_spoiler
+            udparg    $$/gen_rot zbeg    zbeg_r_bf_spoiler
+            udparg    $$/gen_rot xend    xend_r_bf_spoiler                 
+            udparg    $$/gen_rot yend    yend_r_bf_spoiler 
+            udparg    $$/gen_rot zend    zend_r_bf_spoiler 
+            udprim    $$/gen_rot rotang +Spoiler_Deflection_Right
+
+    	    union
+            store wing_slot
+        patend
+           
+        # Top-rear deflector on the right wing
+        patbeg top_rear_spoiler MakeTopRearSpoiler
+            restore wing_slot
+            restore spoiler_right
+
+            # Trim Spoiler based on Specified spoiler thickness and store away
+            restore wing_no_slot
+            translate 0.0 0.0 -Spoiler_Thickness*(zmax_r_tr_spoiler-zmin_r_br_spoiler)
+            subtract
+
+            select edge right_slot 2 right_slot 3 1
+            set xbeg_r_tr_spoiler @xmin
+            set ybeg_r_tr_spoiler @ymin
+            # lower edge as the axis of rotation 
+            set zbeg_r_tr_spoiler @zmin
+
+            select edge right_slot 2 right_slot 4 1
+            set xend_r_tr_spoiler @xmin
+            set yend_r_tr_spoiler @ymin
+            # lower edge as the axis of rotation 
+            set zend_r_tr_spoiler @zmin
+            
+            udparg    $$/gen_rot xbeg    xbeg_r_tr_spoiler   
+            udparg    $$/gen_rot ybeg    ybeg_r_tr_spoiler
+            udparg    $$/gen_rot zbeg    zbeg_r_tr_spoiler
+            udparg    $$/gen_rot xend    xend_r_tr_spoiler                 
+            udparg    $$/gen_rot yend    yend_r_tr_spoiler 
+            udparg    $$/gen_rot zend    zend_r_tr_spoiler 
+            udprim    $$/gen_rot rotang +Spoiler_Deflection_Right
+
+    	    union
+            store wing_slot
+        patend
+        
+        # Bottom-rear deflector on the right wing
+        patbeg bot_rear_spoiler MakeBottomRearSpoiler
+            restore wing_slot
+            restore spoiler_right
+
+            # Trim Spoiler based on Specified spoiler thickness and store away
+            restore wing_no_slot
+            translate 0.0 0.0 +Spoiler_Thickness*(zmax_r_tr_spoiler-zmin_r_br_spoiler)
+            subtract
+
+            select edge right_slot 2 right_slot 3 1
+            set xbeg_r_br_spoiler @xmin
+            set ybeg_r_br_spoiler @ymin
+
+            # upper edge as the axis of rotation 
+            set zbeg_r_br_spoiler @zmax
+
+            select edge right_slot 2 right_slot 4 1
+            set xend_r_br_spoiler @xmin
+            set yend_r_br_spoiler @ymin
+            # upper edge as the axis of rotation 
+            set zend_r_br_spoiler @zmax
+
+            udparg    $$/gen_rot xbeg    xbeg_r_br_spoiler   
+            udparg    $$/gen_rot ybeg    ybeg_r_br_spoiler
+            udparg    $$/gen_rot zbeg    zbeg_r_br_spoiler
+            udparg    $$/gen_rot xend    xend_r_br_spoiler                 
+            udparg    $$/gen_rot yend    yend_r_br_spoiler 
+            udparg    $$/gen_rot zend    zend_r_br_spoiler 
+            udprim    $$/gen_rot rotang -Spoiler_Deflection_Right
+
+    	    union
+            store wing_slot
+        patend
+    
+        patbeg skip_slots ifzero(MakeSlots,1,0) 
+            # Set the tessellation attributes
+            select edge 13 3 31 2 1
+            attribute .tParams params
+            
+            select edge 13 3 31 2 2
+            attribute .tParams params
+            
+            select edge 13 3 31 4 2
+            attribute .tParams params
+            
+            select edge 13 3 31 4 3
+            attribute .tParams params
+            
+            select edge 13 3 13 3 1
+            attribute .tParams params
+            
+            select edge 13 3 13 3 2
+            attribute .tParams params
+            
+            select edge 13 3 31 3 2
+            attribute .tParams params
+            
+            select edge 13 3 31 3 3
+            attribute .tParams params
+    
+            #Rim edges
+            select edge 13 3 31 4 1
+            attribute .tParams params
+    
+            select edge 31 2 31 4 1
+            attribute .tParams params
+    
+            select edge 31 2 31 3 1
+            attribute .tParams params
+            
+            select edge 13 3 31 3 1
+            attribute .tParams params
+            
+            # Lower SSD
+            select edge 13 4 31 1 1 
+            attribute .tParams params
+    
+            select edge 13 4 31 1 2 
+            attribute .tParams params
+    
+            select edge 13 4 31 3 1 
+            attribute .tParams params
+    
+            select edge 13 4 31 3 2 
+            attribute .tParams params
+    
+            select edge 13 4 13 4 1 
+            attribute .tParams params
+    
+            select edge 13 4 13 4 2 
+            attribute .tParams params
+    
+            select edge 13 4 31 4 1 
+            attribute .tParams params
+    
+            select edge 13 4 31 4 2 
+            attribute .tParams params
+    
+            #Rim edges
+            select edge 13 4 31 4 3
+            attribute .tParams params
+    
+            select edge 31 1 31 4 1
+            attribute .tParams params
+    
+            select edge 13 4 31 3 3
+            attribute .tParams params
+            
+            select edge 31 1 31 3 1
+            attribute .tParams params
+        patend #skip_slots
+    patend # spoilers_right
+    
+    patbeg spoilers_left ifzero(Spoiler_Deflection_Left,0,MakeSpoilers)
+        # Top-front deflector on the left wing
+        patbeg top_front_spoiler MakeTopFrontSpoiler
+            restore wing_slot
+            restore spoiler_left
+            
+            # Trim Spoiler based on Specified spoiler thickness and store away
+            restore wing_no_slot
+            translate 0.0 0.0 -Spoiler_Thickness*(zmax_ltr_spoiler-zmin_lbr_spoiler)
+            subtract
+
+            select edge left_slot 1 left_slot 4 1
+            set xbeg_l_tf_spoiler @xmin
+            set ybeg_l_tf_spoiler @ymin
+
+            # lower edge as the axis of rotation 
+            set zbeg_l_tf_spoiler @zmin
+
+            select edge left_slot 1 left_slot 3 1
+            set xend_l_tf_spoiler @xmin
+            set yend_l_tf_spoiler @ymin
+
+            # lower edge as the axis of rotation 
+            set zend_l_tf_spoiler @zmin
+
+            udparg    $$/gen_rot xbeg    xbeg_l_tf_spoiler   
+            udparg    $$/gen_rot ybeg    ybeg_l_tf_spoiler
+            udparg    $$/gen_rot zbeg    zbeg_l_tf_spoiler
+            udparg    $$/gen_rot xend    xend_l_tf_spoiler                 
+            udparg    $$/gen_rot yend    yend_l_tf_spoiler 
+            udparg    $$/gen_rot zend    zend_l_tf_spoiler 
+            udprim    $$/gen_rot rotang +Spoiler_Deflection_Left
+
+    	    union
+            store wing_slot
+        patend
+        
+        # Bottom-front deflector on the left wing
+        patbeg bot_front_spoiler MakeBottomFrontSpoiler
+            restore wing_slot
+            restore spoiler_left
+
+            # Trim Spoiler based on Specified spoiler thickness and store away
+            restore wing_no_slot
+            translate 0.0 0.0 Spoiler_Thickness*(zmax_ltr_spoiler-zmin_lbr_spoiler)
+            subtract
+
+            select edge left_slot 1 left_slot 4 1
+            set xbeg_l_bf_spoiler @xmin
+            set ybeg_l_bf_spoiler @ymin
+
+            # upper edge as the axis of rotation 
+            set zbeg_l_bf_spoiler @zmax
+
+            select edge left_slot 1 left_slot 3 1
+            set xend_l_bf_spoiler @xmin
+            set yend_l_bf_spoiler @ymin
+
+            # upper edge as the axis of rotation 
+            set zend_l_bf_spoiler @zmax
+
+            udparg    $$/gen_rot xbeg    xbeg_l_bf_spoiler   
+            udparg    $$/gen_rot ybeg    ybeg_l_bf_spoiler
+            udparg    $$/gen_rot zbeg    zbeg_l_bf_spoiler
+            udparg    $$/gen_rot xend    xend_l_bf_spoiler                 
+            udparg    $$/gen_rot yend    yend_l_bf_spoiler 
+            udparg    $$/gen_rot zend    zend_l_bf_spoiler 
+            udprim    $$/gen_rot rotang -Spoiler_Deflection_Left
+
+    	    union
+            store wing_slot
+        patend  #bot_front_spoiler
+        
+        # Top-rear deflector on the left wing
+        patbeg top_rear_spoiler MakeTopRearSpoiler
+            restore wing_slot
+            restore spoiler_left
+            
+            # Trim Spoiler based on Specified spoiler thickness and store away
+            restore wing_no_slot
+            translate 0.0 0.0 -Spoiler_Thickness*(zmax_ltr_spoiler-zmin_lbr_spoiler)
+            subtract
+
+            select edge left_slot 2 left_slot 3 1
+            set xbeg_l_tr_spoiler @xmin
+            set ybeg_l_tr_spoiler @ymin
+            # lower edge as the axis of rotation 
+            set zbeg_l_tr_spoiler @zmin
+
+            select edge left_slot 2 left_slot 4 1
+            set xend_l_tr_spoiler @xmin
+            set yend_l_tr_spoiler @ymin
+            # lower edge as the axis of rotation 
+            set zend_l_tr_spoiler @zmin
+            
+            udparg    $$/gen_rot xbeg    xbeg_l_tr_spoiler   
+            udparg    $$/gen_rot ybeg    ybeg_l_tr_spoiler
+            udparg    $$/gen_rot zbeg    zbeg_l_tr_spoiler
+            udparg    $$/gen_rot xend    xend_l_tr_spoiler                 
+            udparg    $$/gen_rot yend    yend_l_tr_spoiler 
+            udparg    $$/gen_rot zend    zend_l_tr_spoiler 
+            udprim    $$/gen_rot rotang +Spoiler_Deflection_Left
+
+    	    union
+            store wing_slot
+        patend
+        
+        # Bottom-rear deflector on the left wing
+        patbeg bot_rear_spoiler MakeBottomRearSpoiler
+            restore wing_slot
+            restore spoiler_left
+
+            # Trim Spoiler based on Specified spoiler thickness and store away
+            restore wing_no_slot
+            translate 0.0 0.0 +Spoiler_Thickness*(zmax_ltr_spoiler-zmin_lbr_spoiler)
+            subtract
+
+            select edge left_slot 2 left_slot 3 1
+            set xbeg_l_br_spoiler @xmin
+            set ybeg_l_br_spoiler @ymin
+            set zbeg_l_br_spoiler @zmax
+
+            select edge left_slot 2 left_slot 4 1
+            set xend_l_br_spoiler @xmin
+            set yend_l_br_spoiler @ymin
+            set zend_l_br_spoiler @zmax
+
+            udparg    $$/gen_rot xbeg    xbeg_l_br_spoiler
+            udparg    $$/gen_rot ybeg    ybeg_l_br_spoiler
+            udparg    $$/gen_rot zbeg    zbeg_l_br_spoiler
+            udparg    $$/gen_rot xend    xend_l_br_spoiler
+            udparg    $$/gen_rot yend    yend_l_br_spoiler
+            udparg    $$/gen_rot zend    zend_l_br_spoiler
+            udprim    $$/gen_rot rotang -Spoiler_Deflection_Left
+
+    	    union
+            store wing_slot
+        patend
+    patend  # spoilers_left
+    restore wing_slot
+patend # spoilers
+# write the wing so that it can be read again after aileron is created
+# dump wing.egads

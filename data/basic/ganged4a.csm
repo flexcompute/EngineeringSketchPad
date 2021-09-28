@@ -1,0 +1,31 @@
+# ganged4a
+# written by John Dannenhoffer
+
+DESPMTR   nspoke  24
+
+# spine
+CYLINDER  0.0  0.0  0.0   0.0  nspoke+1 0.0  1.0
+BOX       0.0 -1.0  0.0   2.0  nspoke+2 0.0
+SUBTRACT
+BOX       0.0 -1.0  0.0  -2.0  nspoke+2 0
+SUBTRACT
+ROTATEY       45  0  0
+STORE         spine
+
+# spokes
+CYLINDER -2.0  1.0  0.0   2.0  1.0  0.0   0.1
+BOX      -3.0  1.0  0.0   6.0  0.5  0.0
+SUBTRACT
+BOX      -3.0  1.0  0.0   6.0 -0.5  0.0
+SUBTRACT
+STORE        spoke
+
+# assembly
+RESTORE      spine
+PATBEG   ispoke  nspoke
+   RESTORE   spoke
+   TRANSLATE 0  ispoke-1  0
+   UNION
+PATEND
+
+END

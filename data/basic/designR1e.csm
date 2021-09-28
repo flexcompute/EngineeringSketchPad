@@ -1,0 +1,16 @@
+# designR1e
+# written by Marshall Galbraith
+# insipired by parsec2 written by John Dannenhoffer (based upon inputs from github.com/dqsis/parsec-airfoils)
+
+despmtr   span      2.0
+dimension param     1 9 1
+despmtr   param     "0.01; 0.35; 0.055; -.35; -6.00;\
+                           0.45; -.006; -.20;  0.05"
+dimension ztail     1 2 1
+despmtr   ztail     "0.01; -0.01"
+
+udprim    parsec    Param     param   ztail  ztail
+
+extrude   0  0  span
+
+end

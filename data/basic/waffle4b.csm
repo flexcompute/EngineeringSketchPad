@@ -1,0 +1,37 @@
+# waffle4b
+# written by John Dannenhoffer
+
+udprim waffle   filename << Depth 2
+   point  A   AT  0  0
+   point  B   AT  1  0
+   point  C   AT  2  0
+   point  D   AT  3  0
+   point  E   AT  4  0
+   point  F   AT  5  0
+   point  G   AT  0  1
+   point  H   AT  4  1
+   point  I   AT  0  2
+   point  J   AT  3  2
+   point  K   AT  0  3
+   point  L   AT  2  3
+   point  M   AT  0  4
+   point  N   AT  1  4
+   point  O   AT  0  5
+
+   line   .   M  N
+   line   .   L  K
+   line   .   I  J
+   line   .   H  G
+   line   .   A  F
+   line   .   B  N
+   line   .   L  C
+   line   .   D  J
+   line   .   H  E
+   line   .   O  F
+   line   .   E  M
+   line   .   K  D
+   line   .   C  I
+   line   .   G  B
+>>
+
+end

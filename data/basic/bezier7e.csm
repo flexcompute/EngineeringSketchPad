@@ -1,0 +1,21 @@
+# bezier7e
+# written by John Dannenhoffer
+
+skbeg     0  0  0
+   bezier 1  0  0
+   bezier 1 -1  0
+   bezier 2 -1  0
+   bezier 3 -1  0
+   bezier 3  0  0
+   bezier 4  0  0
+   linseg 4  1  0
+   bezier 3  1  0
+   bezier 3  2  0
+   bezier 2  2  0
+   bezier 1  2  0
+   bezier 1  1  0
+   bezier 0  1  0
+   linseg 0  0  0
+skend
+
+end

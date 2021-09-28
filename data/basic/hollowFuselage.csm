@@ -1,0 +1,97 @@
+# hollowFuselage (from OPAM1/baseline)
+# written by John Dannenhoffer
+
+# design paramaters (inspired by B787-800)
+
+# fuselage
+DESPMTR   fuse:noseRad      2.5    # nose radius
+DESPMTR   fuse:fwdLength     28    # length of forward fuselage
+DESPMTR   fuse:noseHeight    -2    # zloc of center of nose
+
+DESPMTR   fuse:midLength    115    # length of mid fuselage
+DESPMTR   fuse:midWidth      20    # width  of mid fuselage
+DESPMTR   fuse:midHeight     20    # height of mid fuselage
+DESPMTR   fuse:power          3    # super-ellipse power of mid and aft fuselage
+
+DESPMTR   fuse:aftLength     44    # length of aft fuselage
+DESPMTR   fuse:aftWidth       1    # width  of aft fuselage
+DESPMTR   fuse:aftHeight      3    # height of aft fuselage
+DESPMTR   fuse:aftCenter    8.5    # zloc   of aft fuselage
+
+DESPMTR   fuse:skinth       0.10   # skin thickness
+
+# compute fuselage critical locations / dimensions
+SET       fuse:Length  fuse:fwdLength+fuse:midLength+fuse:aftLength
+
+SET       x1             fuse:noseRad
+SET       z1             fuse:noseHeight
+SET       r1             fuse:noseRad
+SET       x2             fuse:fwdLength/2
+SET       z2             fuse:noseHeight/2
+SET       r2             (fuse:midHeight+fuse:midWidth)/8+fuse:noseRad
+
+SET       L              hypot(x2-x1,z2-z1)
+
+SET       x3             x2-r2/L*(z2-z1)
+SET       z3             z2+r2/L*(x2-x1)
+SET       x5             x2+r2/L*(z2-z1)
+SET       z5             z2-r2/L*(x2-x1)
+
+SET       D              hypot(x3-x1,z3-z1)
+
+SET       phi            atan2(z3-z1,x3-x1)+pi(0.5)-asin(r1/D)
+SET       x4             x1+r1*cos(phi)      # upper tangency
+SET       z4             z1+r1*sin(phi)
+
+SET       phi            atan2(z5-z1,x5-x1)-pi(0.5)+asin(r1/D)
+SET       x6             x1+r1*cos(phi)      # lower tangency
+SET       z6             z1+r1*sin(phi)
+
+# build rest of fuselage (outer mold line - OML)
+MARK
+    # forward break
+    UDPRIM    supell    rx  r2   ry  r2   n  2
+    ROTATEY   90-atan2(z2-z1,x2-x1)*180/pi(1) 0 0
+    TRANSLATE x2  0  z2
+
+    # mid section
+    UDPRIM    supell  rx  fuse:midHeight/2   ry  fuse:midWidth/2   n  fuse:power
+    ROTATEY   90 0 0
+    TRANSLATE fuse:fwdLength  0  0
+
+    UDPRIM    supell  rx  fuse:midHeight/2   ry  fuse:midWidth/2   n  fuse:power
+    ROTATEY   90 0 0
+    TRANSLATE fuse:fwdLength+fuse:midLength 0 0
+
+    # tail section
+    UDPRIM    supell  rx  fuse:aftHeight/2   ry  fuse:aftWidth/2   n  fuse:power
+    ROTATEY   90 0 0
+    TRANSLATE fuse:Length 0 fuse:aftCenter
+RULE  1
+
+# build rest of fuselage (inner mold line - IML)
+MARK
+    # forward break
+    UDPRIM    supell    rx  r2               ry  r2                n  2            offset  -fuse:skinth
+    ROTATEY   90-atan2(z2-z1,x2-x1)*180/pi(1) 0 0
+    TRANSLATE x2  0  z2
+
+    # mid section
+    UDPRIM    supell  rx  fuse:midHeight/2   ry  fuse:midWidth/2   n  fuse:power   offset  -fuse:skinth
+    ROTATEY   90 0 0
+    TRANSLATE fuse:fwdLength  0  0
+
+    UDPRIM    supell  rx  fuse:midHeight/2   ry  fuse:midWidth/2   n  fuse:power   offset  -fuse:skinth
+    ROTATEY   90 0 0
+    TRANSLATE fuse:fwdLength+fuse:midLength 0 0
+
+    # tail section
+    UDPRIM    supell  rx  fuse:aftHeight/2   ry  fuse:aftWidth/2   n  fuse:power   offset  -fuse:skinth
+    ROTATEY   90 0 0
+    TRANSLATE fuse:Length 0 fuse:aftCenter
+RULE  1
+
+# hollow out fuselage
+SUBTRACT
+
+end

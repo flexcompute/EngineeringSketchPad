@@ -1,0 +1,36 @@
+# viewMasstran.udc
+# written by John Dannenhoffer
+
+# used Bodys
+#    WingOml
+#    WingWaffle
+# used variables
+#    wing:dxnom     (default=1)
+
+INTERFACE . ALL
+
+# wing structure
+IFTHEN    COMP:Wing EQ 1
+
+    # create the internals
+    RESTORE   WingOml
+    RESTORE   WingWaffle
+    INTERSECT
+
+    # create the skin
+    RESTORE   WingOml
+    RESTORE   WingWaffle
+    SUBTRACT
+    EXTRACT   0
+
+    # combine internals and skin
+    SET       dxnom    ifnan(wing:dxnom,1,wing:dxnom)
+    UNION
+        ATTRIBUTE .tParams "dxnom;dxnom/4;15"
+    STORE     WingStruct
+ENDIF
+
+RESTORE              WingStruct
+    ATTRIBUTE _name $WingStruct
+
+END

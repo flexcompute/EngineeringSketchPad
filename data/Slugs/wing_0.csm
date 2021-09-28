@@ -1,0 +1,40 @@
+# wing_0
+# written by John Dannenhoffer
+
+# Design Parameters:
+despmtr   xloc      4.0
+despmtr   zloc      0.20
+despmtr   area      100
+despmtr   aspect    7.0
+despmtr   taper     0.60
+despmtr   twist     -5.0
+despmtr   sweep     10.0
+despmtr   dihedral  5.0
+despmtr   thickness 0.12
+despmtr   camber    0.04
+despmtr   sharpte   1
+
+# Global Attributes:
+
+# Branches:
+set       span sqrt(area*aspect)
+set       cbar area/span
+set       croot 2*cbar/(1+taper)
+set       ctip taper*croot
+
+mark
+   udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+   rotatex   90   0   0
+   scale     croot
+   udprim    naca   thickness   thickness   sharpte   sharpte   camber   camber
+   rotatex   90   0   0
+   scale     ctip
+   rotatez   -twist   0   0
+   translate span/2*tand(sweep)   span/2   span/2*tand(dihedral)
+rule
+   attribute  .tParams  0.10;0.01;5.0
+
+dump $/wing_0.stl
+dump $/wing.plot
+
+end

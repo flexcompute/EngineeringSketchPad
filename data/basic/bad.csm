@@ -1,0 +1,8 @@
+# bad
+# written by John Dannenhoffer
+
+box       0.0       0.0       0.0       1.0       1.0       1.0
+box       2.0       2.0       2.0       1.0       1.0       1.0
+intersect
+
+end

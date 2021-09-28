@@ -1,0 +1,39 @@
+# glovesFuse
+# written by John Dannenhoffer
+# built to be consistent with Gloves
+
+# include-type .udc so that it has access to the DESPMTRs
+INTERFACE . ALL
+
+# make copies of all required DESPMTRs  (done below)
+
+# compute various local variables
+SET       power     3.0
+
+# make the fuselage OML
+MARK
+
+   SET       nsect  str2val(compName+$:nsect)
+   PATBEG    isect  nsect
+      SET    xloc   str2val(compName+$:xloc[+isect+$])
+      SET    ymax   str2val(compName+$:ymax[+isect+$])
+      SET    zbot   str2val(compName+$:zbot[+isect+$])
+      SET    ztop   str2val(compName+$:ztop[+isect+$])
+
+      UDPRIM    supell  ry ymax   rx (ztop-zbot)/2   n power
+      ROTATEY   90     0  0
+      TRANSLATE xloc   0  (ztop+zbot)/2
+   PATEND
+RULE
+   ATTRIBUTE tagComp   compName
+
+# attribute each of the Faces
+SELECT       FACE      @nbody  1
+   ATTRIBUTE tagType   $nose
+SELECT       FACE      @nbody  2
+   ATTRIBUTE tagType   $tail
+
+# save a copy for possible later use
+STORE     !compName  0  1
+
+END

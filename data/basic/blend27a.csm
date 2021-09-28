@@ -1,0 +1,22 @@
+# blend27a
+# written by John Dannenhoffer
+
+DESPMTR   dx  3
+DESPMTR   dy  2
+DESPMTR   dz  1
+
+# make WireBody
+MARK
+   POINT     0  0  0
+   POINT     dx 0  0
+BLEND
+STORE      line
+
+# make SheetBody
+MARK
+   RESTORE   line
+   RESTORE   line
+   TRANSLATE 0  0  dz
+BLEND
+
+END

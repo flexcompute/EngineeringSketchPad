@@ -1,0 +1,17 @@
+# attribute8a
+# written by John Dannenhoffer
+
+ATTRIBUTE density  2710   # global attribute
+
+BOX       0  0  0  3  3  2
+ATTRIBUTE tag  $block
+
+BOX       1  1  0  1  2  2
+ATTRIBUTE tag  $slot
+SUBTRACT
+
+CYLINDER -1  2  1  4  2  1  1/2
+ATTRIBUTE tag  $hole
+SUBTRACT
+
+END

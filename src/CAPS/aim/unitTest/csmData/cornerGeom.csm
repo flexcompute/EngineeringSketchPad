@@ -1,0 +1,108 @@
+# Construct some "corner" case geometries to test the tessellation reconstruction
+
+# Unit meshing reference length
+ATTRIBUTE capsMeshLength   1.0
+
+SET meshingAIMs $pointwiseAIM;aflr4AIM;egadsTessAIM
+
+# Box
+BOX 0 -0.5 -0.5  1 1 1 
+    ATTRIBUTE capsAIM meshingAIMs
+    ATTRIBUTE capsIntent $box
+    ATTRIBUTE capsGroup $box
+    ATTRIBUTE _name $box
+# Set only 2 points on one edge to test edges without a vertex
+SELECT edge 1
+    ATTRIBUTE PW:ConnectorDimension 2
+
+# Cylinder
+BOX  2 0 0  1 0 0.5
+REVOLVE 2 0 0 1 0 0 360
+    ATTRIBUTE capsAIM meshingAIMs
+    ATTRIBUTE capsIntent $cylinder
+    ATTRIBUTE capsGroup $cylinder
+    ATTRIBUTE _name $cylinder
+
+# Cone
+CONE 4 0 0  5 0 0  0.5
+    ATTRIBUTE capsAIM meshingAIMs
+    ATTRIBUTE capsIntent $cone
+    ATTRIBUTE capsGroup $cone
+    ATTRIBUTE _name $cone
+
+# Torus
+SKBEG 7 0 0
+   LINSEG 7.25 0 0
+SKEND
+REVOLVE 7 0 0 0 1 0 360
+REVOLVE 6.5 0 0 0 0 1 360
+    ATTRIBUTE capsAIM meshingAIMs
+    ATTRIBUTE capsIntent $torus
+    ATTRIBUTE capsGroup $torus
+    ATTRIBUTE _name $torus
+SELECT edge 1
+    ATTRIBUTE PW:ConnectorDimension 20
+SELECT edge 2
+    ATTRIBUTE PW:ConnectorDimension 20
+
+# Sphere
+SPHERE 8.5 0 0  0.5
+    ATTRIBUTE capsAIM meshingAIMs
+    ATTRIBUTE capsIntent $sphere
+    ATTRIBUTE capsGroup $sphere
+    ATTRIBUTE _name $sphere
+
+# Box with a hold
+BOX 10 -0.5 -0.5  1 1 1
+CYLINDER  10.5 0 -1  10.5 0 1  0.25
+SUBTRACT
+BOX 10.5 0 -1  1 0 2
+SUBTRACT
+SELECT body
+    ATTRIBUTE capsAIM meshingAIMs
+    ATTRIBUTE capsIntent $boxhole
+    ATTRIBUTE _name $boxhole
+SELECT face
+    ATTRIBUTE capsGroup $boxhole
+
+
+# Bullet
+SET fs:radius                0.5
+SET fs:nose:radius           0.25
+SET fs:nose:ogive_radius     10.0
+SKBEG    12   0   0   1
+    SKVAR     xy " 0.00; 0.00;0.00;\
+                   0.07;-0.12;0.02;\
+                   1.00;-0.50;0.09;\
+                   1.00; 0.00;0.00;"
+    SKCON     X   1 
+    SKCON     Y   1
+    SKCON     P   1
+    SKCON     R   1   2  fs:nose:radius
+    SKCON     T   2
+    SKCON     R   2   3  fs:nose:ogive_radius
+    SKCON     V   3   4
+    SKCON     P   4
+    SKCON     L   3   4  fs:radius
+    SKCON     H   4   1
+    ARC       ::x[2]   ::y[2]   0   ::d[2]   xy
+    ARC       ::x[3]   ::y[3]   0   ::d[3]   xy
+    LINSEG    ::x[4]   ::y[4]   0
+    LINSEG    ::x[1]   ::y[1]   0
+SKEND 0
+REVOLVE   0   0   0   1   0   0   360
+SELECT body
+    ATTRIBUTE capsAIM meshingAIMs
+    ATTRIBUTE capsIntent $bullet
+    ATTRIBUTE _name $bullet
+SELECT face
+    ATTRIBUTE capsGroup $bullet
+
+
+# Farfield bounding box
+BOX -1 -2 -2  15 4 4
+    ATTRIBUTE capsAIM meshingAIMs
+    ATTRIBUTE capsIntent $farfield
+    ATTRIBUTE capsGroup $farfield
+    ATTRIBUTE _name $farfield
+    ATTRIBUTE AFLR_GBC $FARFIELD_UG3_GBC

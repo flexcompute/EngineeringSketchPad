@@ -1,0 +1,20 @@
+# designEb
+# written by John Dannenhoffer
+
+despmtr   dxtop     0
+despmtr   dxbot     0
+despmtr   dy        0
+despmtr   dz        0
+
+box       -1  0   0   2   1   1
+translate dxbot    dy         dz
+
+box       -2   1   0   2   1   1
+translate dxtop     dy        dz
+union
+
+box        0   1   0   2   1   1
+translate dxtop     dy        dz
+union
+
+end

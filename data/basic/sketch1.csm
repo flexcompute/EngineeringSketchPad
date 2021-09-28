@@ -1,0 +1,13 @@
+# sketch1
+# written by John Dannenhoffer
+
+skbeg      10.0      5.5       2.0
+   linseg   6.8      4.8       0.0
+   linseg  10.0      5.5      -2.0
+   linseg  17.5      6.5      -2.6
+   linseg  29.6      4.4       0.0
+   linseg  17.5      6.5       2.6
+   linseg  10.0      5.5       2.0
+skend
+
+end

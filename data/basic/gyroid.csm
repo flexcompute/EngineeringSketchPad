@@ -1,0 +1,8 @@
+# gyroid (use with -plot gyroid.points)
+# written by John Dannenhoffer
+
+box       0.0  0.0  0.0   pi(2)  pi(2)  pi(2)
+   select face @nbody 6
+   attribute _color $red
+
+end

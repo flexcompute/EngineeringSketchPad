@@ -1,0 +1,12 @@
+# subtract3a (SOLID-SOLID)
+# written by John Dannenhoffer
+
+UDPRIM    box  dx 4  dy 2  dz 0.1
+
+CYLINDER  -1.0 0.0 -1.0  -1.0 0.0 +1.0  0.5
+SUBTRACT
+
+CYLINDER   2.0 0.9 -1.0   2.0 0.9 +1.0  0.5
+SUBTRACT
+
+end

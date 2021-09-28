@@ -1,0 +1,30 @@
+# assembly_frustrum.udc
+# written by John Dannenhoffer
+
+INTERFACE diam1   in  0.5
+INTERFACE diam2   in  0.3
+INTERFACE length  in  1
+
+IFTHEN diam1 GT diam2
+   IFTHEN diam2 GT 0
+      SET  len  length*diam1/(diam1-diam2)
+      CONE      len     0      0       0       0        0       diam1/2
+      BOX       0       -diam1 -diam1  length  diam1*2  diam1*2
+      INTERSECT
+   ELSE
+      CONE      length  0      0       0       0        0       diam1/2
+   ENDIF
+ELSEIF diam1 LT diam2
+   IFTHEN  diam1 GT 0
+      SET len   length*diam2/(diam2-diam1)
+      CONE      length-len  0  0       length  0        0       diam2/2
+      BOX       0       -diam2 -diam2  len-length      diam2*2  diam2*2
+      INTERSECT
+   ELSE
+      CONE      0       0      0       length  0        0       diam2/2
+   ENDIF
+ELSE
+   CYLINDER     0       0      0       len     0        0       diam1/2
+ENDIF
+
+END

@@ -1,0 +1,384 @@
+#!/bin/bash
+
+echo
+echo "ESP runtime AutoConfigurator for Windows"
+echo
+#
+# if arg1 is present set it to CASROOT, second is CASARCH (also optional)
+#
+if [ "$1" ]; then
+	echo $1 > tmp0
+	./sed sx'\\'x/xg < tmp0 > tmp
+	./rm tmp0
+	read CASROOT < tmp
+	./rm tmp
+	CASARCH=
+	CASREV=
+	if [ "$2" ]; then
+		echo $2 > tmp0
+		./sed sx'\\'x/xg < tmp0 > tmp
+		./rm tmp0
+		read CASARCH < tmp
+		./rm tmp
+	fi
+fi
+
+#
+# we must know where the OpenCASCADE distribution is!
+#
+if [ -z "$CASROOT" ]; then
+	echo "ERROR - CASROOT not defined - set or input as argument!"
+	exit 1
+fi
+
+#
+# is CASROOT pointing to a valid location?
+#
+if [ -d "$CASROOT" ]; then
+	echo "CASROOT =" $CASROOT " with contents:"
+	./ls "$CASROOT"
+	echo 
+else
+	echo "ERROR - CASROOT does not point to a valid directory!"
+	exit 1
+fi
+
+#
+# look at the C/C++ Compiler to see if we are 32 or 64 bit
+#
+CARCH=UNKNOWN
+cl >& tmp
+read word0 word1 word2 word3 word4 word5 word6 word7 word8 < tmp
+rm tmp
+if [ "$word2" = 32-bit ]; then
+	CARCH=WIN32
+	ARCH=Win32
+	CCREV=$word7
+fi
+if [ "$word8" = x86 ]; then
+	CARCH=WIN32
+	ARCH=Win32
+	CCREV=$word6
+fi
+if [ "$word8" = x64 ]; then
+	CARCH=WIN64
+	ARCH=Win64
+	CCREV=$word6
+fi
+if [ "$CARCH" = UNKNOWN ]; then
+	echo "ERROR - Cannot get C/C++ Banner for Bit size!"
+	echo "       " $word0 $word1 $word2 $word3 $word4 $word5 $word6 $word7 $word8
+	exit 1
+fi
+
+#
+# do we have ifort?
+#
+if [ -n "$EFCOMP" ]; then
+	if [ "$EFCOMP" != ifort ]; then
+		echo "WARNING - ignoring EFCOMP (set to '$EFCOMP') not set to 'ifort'!"
+		EFCOMP=UNKNOWN
+	fi
+else
+	EFCOMP=UNKNOWN
+fi
+
+if [ "$EFCOMP" = UNKNOWN ]; then
+	type ifort >& tmp
+	read word0 word1 word2 word3 < tmp
+	rm tmp
+	if [ "$word2" != not ]; then
+		EFCOMP=ifort
+	fi
+fi
+
+START=UNKNOWN
+if [ -f "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" ]; then
+START="C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"
+fi
+if [ -f "C:\Program Files (x86)\Google\Chrome\Application\chrome.exe" ]; then
+START="C:\Program Files (x86)\Google\Chrome\Application\chrome.exe"
+fi
+if [ -f "C:\Program Files (x86)\Mozilla Firefox\firefox.exe" ]; then
+START="C:\Program Files (x86)\Mozilla Firefox\firefox.exe"
+fi
+if [ -f "C:\Program Files\Google\Chrome\Application\chrome.exe" ]; then
+START="C:\Program Files\Google\Chrome\Application\chrome.exe"
+fi
+if [ -f "C:\Program Files\Mozilla Firefox\firefox.exe" ]; then
+START="C:\Program Files\Mozilla Firefox\firefox.exe"
+fi
+
+MSVC=UNKNOWN
+case "$CCREV" in
+15.00*) MSVC=2008 ;;
+16.00*) MSVC=2010 ;;
+17.00*) MSVC=2012 ;;
+18.00*) MSVC=2013 ;;
+19.00*) MSVC=2015 ;;
+19.1*)  MSVC=2017 ;;
+19.2*)  MSVC=2019 ;;
+esac
+if [ "$MSVC" = UNKNOWN ]; then
+	echo "ERROR - Cannot Determine MS VC Revision $CCREV!"
+	exit 1
+fi
+if [ "$MSVC" = 2012 ]; then
+	if [ "$CARCH" = WIN64 ]; then
+		if [ "$CCREV" = 17.00.50727.1 ]; then
+			echo "ERROR - BAD Compiler, please upgrade!"
+			exit 1
+		fi
+	fi
+fi
+if [ "$CARCH" = WIN32 ]; then
+	echo "Warning - 32 bit ESP is no longer supported!"
+fi
+
+#
+# determine CASARCH (if not aleardy set)
+#
+if [ -z "$CASARCH" ]; then
+	if [ -d "$CASROOT/$ARCH" ]; then
+		if [ -d "$CASROOT/$ARCH/lib" ]; then
+			CASARCH=$ARCH
+		else
+			./ls "$CASROOT/$ARCH" >& tmp
+			read word0 word1 < tmp
+			./rm tmp
+			CASARCH=$ARCH/$word0
+		fi
+	else
+		CASARCH=.
+	fi
+fi
+
+#
+# determine the OCC rev
+#
+if [ -z "$CASREV" ]; then
+	incfl=UNKNOWN
+	if [ -f "$CASROOT/include/Standard_Version.hxx" ]; then
+		incfl=$CASROOT/include/Standard_Version.hxx
+	elif [ -f "$CASROOT/inc/Standard_Version.hxx" ]; then
+		incfl=$CASROOT/inc/Standard_Version.hxx
+	elif [ -f "$CASROOT/include/oce/Standard_Version.hxx" ]; then
+		incfl=$CASROOT/include/oce/Standard_Version.hxx
+	elif [ -f "$CASROOT/Standard_Version.hxx" ]; then
+		incfl=$CASROOT/Standard_Version.hxx
+	fi
+	if [ "$incfl" = UNKNOWN ]; then
+		echo "ERROR - Cannot find OpenCASCADE Version include!"
+		exit 1
+	fi
+	exec < "$incfl"
+	while read word0 word1 word2
+	do
+		if [ "$word1" = OCC_VERSION ]; then
+			CASREV=$word2
+		fi
+	done
+	if [ -z "$CASREV" ]; then
+		echo "ERROR - Cannot parse OpenCASCADE Version!"
+		exit 1
+	fi
+fi
+
+#
+# do we have AFLR?
+#
+if [ -n "$AFLR" ]; then
+	if [ ! -d $AFLR/$CARCH ]; then
+		echo "ERROR - \$AFLR\\$CARCH (e.g. $AFLR\\$CARCH) is not a directory!"
+		exit 1
+	fi
+else
+	AFLR=UNKNOWN
+fi
+
+#
+# do we have tetgen?
+#
+if [ -n "$TETGEN" ]; then
+	if [ ! -f $TETGEN/tetgen.cxx ]; then
+		echo "ERROR - \$TETGEN\\tetgen.cxx (e.g. $TETGEN\\tetgen.cxx) does not exist!"
+		exit 1
+	fi
+else
+	TETGEN=UNKNOWN
+fi
+#
+# do we have a python?
+#
+echo
+PYTH=UNKNOWN
+if [ ! -n "$PYTHONINC" ]; then
+	PYTHONINC=UNKNOWN
+fi
+if [ ! -n "$PYTHONLIB" ]; then
+	PYTHONLIB=UNKNOWN
+fi
+pyt="`where python`"
+if [ -n "$pyt" ]; then
+	PYTH=python
+	echo "Info: Python exec $pyt found!"
+fi
+
+if [ "$PYTH" != UNKNOWN ]; then
+	if [ "$PYTHONINC" = UNKNOWN ]; then
+		pscr="from __future__ import print_function; import distutils.sysconfig as sysconfig; print(sysconfig.get_config_var('INCLUDEPY'))"
+		eval PYTHINC=\`python -c \"$pscr\"\`
+		if [ -f "$PYTHINC/Python.h" ]; then
+			PYTHONINC=$PYTHINC
+			echo "Info: Python header $PYTHONINC\\Python.h found!"
+		fi
+	fi
+
+	if [ "$PYTHONINC" = UNKNOWN ]; then
+		pscr="from __future__ import print_function; import sysconfig; print(sysconfig.get_path('platinclude'))"
+		eval PYTHINC=\`python -c \"$pscr\"\`
+		if [ -f "$PYTHONINC/Python.h" ]; then
+			PYTHONINC=$PYTHINC
+			echo "Info: Python header $PYTHONINC\\Python.h found!"
+		fi
+	fi
+
+	if [ "$PYTHONINC" = UNKNOWN ]; then
+		echo "Error: Fix PYTHONINC -- cannot find Python.h!"
+		echo "       Has the Python Development package been installed?"
+		PYTH=ERROR
+	fi
+
+	pscr="from __future__ import print_function; import distutils.sysconfig as sysconfig; print(sysconfig.get_config_var('VERSION'))"
+	eval plb="python"\`python -c \"$pscr\"\`".lib"
+
+	if [ "$PYTHONLIB" = UNKNOWN ]; then
+		pscr="from __future__ import print_function; import distutils.sysconfig as sysconfig; print(sysconfig.get_config_var('LIBPL'))"
+		eval plp=\`python -c \"$pscr\"\`
+
+		if [ -f "$plp/$plb" ]; then
+			PYTHONLIB="$plp\\$plb"
+			echo "Info: Python library $PYTHONLIB found!"
+		fi
+	fi
+
+	if [ "$PYTHONLIB" = UNKNOWN ]; then
+		pscr="from __future__ import print_function; import distutils.sysconfig as sysconfig; print(sysconfig.get_config_var('LIBDIR'))"
+		eval plp=\`python -c \"$pscr\"\`
+
+		if [ -f "$plp/$plb" ]; then
+			PYTHONLIB="$plp\\$plb"
+			echo "Info: Python library $PYTHONLIB found!"
+		fi
+	fi
+
+	if [ "$PYTHONLIB" = UNKNOWN ]; then
+		pscr="from __future__ import print_function; import sysconfig; print(sysconfig.get_path('platstdlib'))"
+		eval plp=\`python -c \"$pscr\"\`
+
+		if [ -f "$plp/$plb" ]; then
+			PYTHONLIB="$plp\\$plb"
+			echo "Info: Python library $PYTHONLIB found!"
+		fi
+	fi
+
+	if [ "$PYTHONLIB" = UNKNOWN ]; then
+		pscr="from __future__ import print_function; import sys; import os; print(os.path.join(sys.exec_prefix, 'libs'))"
+		eval plp=\`python -c \"$pscr\"\`
+
+		if [ -f "$plp/$plb" ]; then
+			PYTHONLIB="$plp\\$plb"
+			echo "Info: Python library $PYTHONLIB found!"
+		fi
+	fi
+
+	if [ "$PYTHONLIB" = UNKNOWN ]; then
+		pscr="from __future__ import print_function; import sys; import os; print(os.path.join(os.path.dirname(os.path.dirname(sys.executable)), 'libs'))"
+		eval plp=\`python -c \"$pscr\"\`
+
+		if [ -f "$plp/$plb" ]; then
+			PYTHONLIB="$plp\\$plb"
+			echo "Info: Python library $PYTHONLIB found!"
+		fi
+	fi
+
+	# Alternatively we could have just this one check that should work on all platforms
+	# https://github.com/JuliaPy/PyCall.jl/blob/master/deps/find_libpython.py
+	#if [ "$PYTHONLIB" = UNKNOWN ]; then
+		#plp=`python find_libpython.py`
+		#if [ -f "$plp" ]; then
+			#PYTHONLIB=$plp
+			#echo "Info: Python library $plp found!"
+		#fi
+	#fi
+
+	if [ "$PYTHONLIB" = UNKNOWN ]; then
+		echo "Error: Fix PYTHONLIB -- cannot find $plb!"
+		echo "       Has the Python Development package been installed?"
+		PYTH=ERROR
+	fi
+else
+	echo "Info: No Python found!"
+fi
+echo
+
+#
+# done.
+#
+BASE=`pwd | ./sed -e 'sx/configxx'`
+echo "CARCH   =" $CARCH
+echo "CASROOT =" $CASROOT
+echo "CASARCH =" $CASARCH
+echo "CASREV  =" $CASREV
+echo "MSVC    =" $MSVC
+if [ "$EFCOMP" != UNKNOWN ]; then
+	echo "EFCOMP  =" $EFCOMP
+fi
+if [ "$PYTH" != UNKNOWN ]; then
+	echo "PYTHONINC=" $PYTHONINC
+	echo "PYTHONLIB=" $PYTHONLIB 
+	echo
+fi
+
+echo "rem ESP Environment File"                             > tmp
+echo "set MSVC="$MSVC                                      >> tmp
+echo "set ESP_ARCH="$CARCH                                 >> tmp
+echo "set ESP_ROOT="$BASE                                  >> tmp
+echo "set CASROOT="$CASROOT                                >> tmp
+echo "set CASARCH="$CASARCH                                >> tmp
+echo "set CASREV="$CASREV                                  >> tmp
+echo "set UDUNITS2_XML_PATH="$BASE/src/CAPS/udunits/udunits2.xml >> tmp
+if [ "$EFCOMP" != UNKNOWN ]; then
+	echo "set EFCOMP="$EFCOMP                          >> tmp
+fi
+echo "set PATH="$CASROOT/$CASARCH/bin";"$BASE/lib";"$BASE/bin";%PATH%" >> tmp
+
+if [ "$AFLR" != UNKNOWN ]; then
+	echo "set AFLR=$AFLR"                              >> tmp
+else
+	echo "rem set AFLR=Z:\HOME\Projects\AFLR"          >> tmp
+fi
+echo "set AFLR_ARCH="$CARCH                                >> tmp
+echo "set CAPS_GLYPH="$BASE/src/CAPS/aim/pointwise/glyph   >> tmp
+if [ "$PYTHONINC" != UNKNOWN ] && [ "$PYTHONLIB" != UNKNOWN ]; then
+	echo "set PYTHONINC=$PYTHONINC"                    >> tmp
+	echo "set PYTHONLIB=$PYTHONLIB"                    >> tmp
+else
+	echo "rem set PYTHONINC=C:\Python38\include"               >> tmp
+	echo "rem set PYTHONLIB=C:\Python38\Libs\python38.lib"     >> tmp
+	echo "rem set PATH=C:\Python38;%PATH%"                     >> tmp
+fi
+echo "set PYTHONPATH="$BASE/pyESP";%PYTHONPATH%"           >> tmp
+if [ "$TETGEN" != UNKNOWN ]; then
+	echo "set TETGEN=$TETGEN"                                  >> tmp
+else
+	echo "rem set TETGEN=Z:\HOME\Projects\TetGen\tetgen1.6.0"  >> tmp
+fi
+if [ "$START" != UNKNOWN ]; then
+	echo "set SLUGS_START=\"\"$START\" $BASE\SLUGS\Slugs.html\"" >> tmp
+	echo "set ESP_START=\"\"$START\" $BASE\ESP\ESP.html\""       >> tmp
+	echo "set WV_START=\"\"$START\" $BASE\wvClient\wv.html\""    >> tmp
+fi
+./sed sx/x'\\'xg < tmp > ../ESPenv.bat
+./rm tmp
+exit

@@ -1,0 +1,18 @@
+# holes_0
+# written by John Dannenhoffer
+
+BOX       0.0  0.0  0.0  4.0  2.0  1.0
+
+CYLINDER  1.0  1.0 -1.0  1.0  1.0  2.0  0.5
+SUBTRACT
+
+CYLINDER  3.0  1.0 -1.0  3.0  1.0  2.0  0.5
+SUBTRACT
+
+ROTATEY  30.0  0.0  0.0
+
+dump      $/holes_0.stl
+dump      $/holes.plot
+
+end
+

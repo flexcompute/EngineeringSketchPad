@@ -1,0 +1,65 @@
+# evaluate1
+# written by John Dannenhoffer
+
+dimension foo 23 1
+
+cylinder  0  0  0  3  0  0  1
+
+# Node locations
+patbeg inode @nnode
+   evaluate  node  @ibody inode
+   assert    3     @edata.size
+   set       foo   @edata
+patend
+
+# Edge midpoints
+patbeg iedge @nedge
+   evaluate  edge  @ibody iedge -99999
+   assert    10    @edata.size
+   set       tmin  @edata[1]
+
+   evaluate  edge  @ibody iedge +99999
+   assert    10    @edata.size
+   set       tmax  @edata[1]
+
+   set       tmid (tmin+tmax)/2
+
+   evaluate  edge  @ibody iedge tmid
+   assert    10    @edata.size
+   set       foo   @edata
+
+   evaluate  edgeinv @ibody iedge @edata[2] @edata[3] @edata[4]
+   assert    4     @edata.size
+   set       foo   @edata
+
+   assert    @edata[1] tmid
+patend
+
+# Face midpoints
+patbeg iface @nface
+   evaluate  face  @ibody iface -99999 -99999
+   assert    23    @edata.size
+   set       umin  @edata[1]
+   set       vmin  @edata[2]
+
+   evaluate  face  @ibody iface +99999 +99999
+   assert    23    @edata.size
+   set       umax  @edata[1]
+   set       vmax  @edata[2]
+
+   set       umid  (umin+umax)/2
+   set       vmid  (vmin+vmax)/2
+
+   evaluate  face  @ibody iface umid vmid
+   assert    23    @edata.size
+   set       foo   @edata
+
+   evaluate  faceinv @ibody iface @edata[3] @edata[4] @edata[5]
+   assert    5     @edata.size
+   set       foo   @edata
+
+   assert   @edata[1] umid
+   assert   @edata[2] vmid
+patend
+
+end

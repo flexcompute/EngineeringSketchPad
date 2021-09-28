@@ -1,0 +1,52 @@
+# joinSheets4c
+# written by John Dannenhoffer
+
+mark
+   skbeg     -4.0  -2.0  -2.0
+      linseg -4.0   2.0  -2.0
+      linseg -4.0   2.0   2.0
+      linseg -4.0  -2.0   2.0
+      linseg -4.0  -2.0  -2.0
+   skend 1
+
+   skbeg     -3.0  -2.0  -2.0
+      linseg -3.0   2.0  -2.0
+      linseg -3.0   2.0   2.0
+      linseg -3.0  -2.0   2.0
+      linseg -3.0  -2.0  -2.0
+   skend
+
+   skbeg      1.0  -1.0  -1.0
+      linseg  1.0   1.0  -1.0
+      linseg  1.0   1.0   1.0
+      linseg  1.0  -1.0   1.0
+      linseg  1.0  -1.0  -1.0
+   skend
+rule
+
+mark
+   skbeg      1.0  -1.0  -1.0
+      linseg  1.0   1.0  -1.0
+      linseg  1.0   1.0   1.0
+      linseg  1.0  -1.0   1.0
+      linseg  1.0  -1.0  -1.0
+   skend
+
+   skbeg      4.0  -2.0  -2.0
+      linseg  4.0   2.0  -2.0
+      linseg  4.0   2.0   2.0
+      linseg  4.0  -2.0   2.0
+      linseg  4.0  -2.0  -2.0
+   skend
+
+   skbeg      5.0  -2.0  -2.0
+      linseg  5.0   2.0  -2.0
+      linseg  5.0   2.0   2.0
+      linseg  5.0  -2.0   2.0
+      linseg  5.0  -2.0  -2.0
+   skend 1
+rule
+
+join
+
+end

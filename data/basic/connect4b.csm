@@ -1,0 +1,16 @@
+# connect4b
+# written by John Dannenhoffer
+
+# first block
+box       -1.5  -1.0  -2.0   0.8   2.0   4.0
+
+# second (rotated) block
+box        0.7  -1.0  -2.0   0.8   2.0   4.0
+rotatex    100   0.0   0.0
+
+# connect them
+set        faceList1  2
+set        faceList2  1
+connect    faceList1  faceList2
+
+end

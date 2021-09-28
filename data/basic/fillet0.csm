@@ -1,0 +1,10 @@
+# fillet0
+# written by John Dannenhoffer
+
+dimension edgeList  2  2  1
+despmtr   edgeList  "0;0;-2;-4;"
+
+box       0  0  0   1  1  1
+fillet    0.10  edgeList
+
+end

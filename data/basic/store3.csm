@@ -1,0 +1,62 @@
+# store3
+# written by John Dannenhoffer
+
+# put Bodys and Marks on the stack
+MARK                          # mark
+BOX       0 0 0 0 1 0         # wire
+MARK                          # mark
+MARK                          # mark
+BOX       1 0 0 0 1 1         # sheet
+BOX       2 0 0 1 1 1         # solid
+
+# verify stack contents
+SELECT    BODY      -1
+ASSERT    @selbody   3
+SELECT    BODY      -2
+ASSERT    @selbody   2
+SELECT    BODY      -3
+ASSERT    @selbody   0
+SELECT    BODY      -4
+ASSERT    @selbody   0
+SELECT    BODY      -5
+ASSERT    @selbody   1
+SELECT    BODY      -6
+ASSERT    @selbody   0
+
+# process each Body from stack
+SELECT    BODY                # solid
+ASSERT    @selbody   3
+ASSERT    @ibody     3
+ASSERT    @nface     6
+ASSERT    @nedge     12
+ASSERT    @nnode     8
+
+STORE     .
+
+SELECT    BODY      -1        # sheet
+ASSERT    @selbody   2
+ASSERT    @ibody     2
+ASSERT    @nface     1
+ASSERT    @nedge     4
+ASSERT    @nnode     4
+
+STORE     .
+
+SELECT    BODY      -1        # mark
+ASSERT    @selbody   0
+
+STORE     .
+
+SELECT    BODY      -1        # mark
+ASSERT    @selbody   0
+
+STORE     .
+
+SELECT    BODY      -1        # wire
+ASSERT    @selbody   1
+ASSERT    @ibody     1
+ASSERT    @nface     0
+ASSERT    @nedge     1
+ASSERT    @nnode     2
+
+END

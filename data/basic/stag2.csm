@@ -1,0 +1,41 @@
+# stag2
+# written by John Dannwnhoffer
+
+# Design Parameters
+dimension rad1    1 2 1
+dimension beta1   1 2 1
+dimension gama1   1 2 1
+dimension rad2    1 2 1
+dimension beta2   1 2 1
+dimension gama2   1 2 1
+dimension alfa    1 2 1
+dimension xfrnt   1 2 1
+dimension xrear   1 2 1
+
+despmtr   rad1    " 0.15;  0.10"   # leading edge radius
+despmtr   beta1   " 40.0;  30.0"   # leading edge incidence    (deg)
+despmtr   gama1   " 10.0;  10.0"   # leading edge wedge angle  (deg)
+despmtr   rad2    " 0.08;  0.05"   # trailing edge radius
+despmtr   beta2   "-50.0; -40.0"   # trailing edge incidence   (deg)
+despmtr   gama2   "  5.0;   5.0"   # trailing edge wedge angle (deg)
+despmtr   alfa    "-20.0; -40.0"   # overall stagger           (deg)
+despmtr   xfrnt   "0.333; 0.333"   # front control point       (x/c)
+despmtr   xrear   "0.667; 0.667"   # rear  control point       (x/c)
+
+# Branches
+mark
+    udparg    stag    rad1    rad1[1]   beta1   beta1[1]    gama1   gama1[1]
+    udparg    stag    rad2    rad2[1]   beta2   beta2[1]    gama2   gama2[1]
+    udparg    stag    alfa    alfa[1]   xfrnt   xfrnt[1]    xrear   xrear[1]
+    udprim    stag
+
+    udparg    stag    rad1    rad1[2]   beta1   beta1[2]    gama1   gama1[2]
+    udparg    stag    rad2    rad2[2]   beta2   beta2[2]    gama2   gama2[2]
+    udparg    stag    alfa    alfa[2]   xfrnt   xfrnt[2]    xrear   xrear[2]
+    udprim    stag
+
+    scale     0.80
+    translate 0.10  0.00  2.00
+rule
+
+end

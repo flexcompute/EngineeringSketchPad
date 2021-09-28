@@ -1,0 +1,79 @@
+# etopo2
+# written by John Dannenhoffer
+
+# cylinder (in two parts)
+CYLINDER  0.0   0.0   -.1   1.0   0.0   -.1   0.5
+CYLINDER  0.0   0.0   -.1   1.0   0.0   -.1   0.5
+ROTATEZ   180.  0.0   0.0
+ROTATEX   25.   0.0   -.1
+UNION
+
+# drill a hole
+CYLINDER  0.5   0.3  -2.0   0.5   0.3   2.00  0.1
+SUBTRACT
+
+# create U-shaped protuberance
+SKBEG      0.40  -.30  0.00
+   LINSEG  0.70  -.30  0.00
+   LINSEG  0.70  0.10  0.00
+   LINSEG  0.60  0.10  0.00
+   LINSEG  0.60  -.28  0.00
+   LINSEG  0.50  -.28  0.00
+   LINSEG  0.50  0.10  0.00
+   LINSEG  0.40  0.10  0.00
+   LINSEG  0.40  -.30  0.00
+SKEND
+EXTRUDE    0.00  0.00  0.50
+ROTATEZ   30.00  0.55  -.20
+UNION
+
+# scribe Faces
+BOX      -.2   -1.0  -1.0   0.0   2.0   2.0
+ROTATEZ  25.   -.1    0.0
+SUBTRACT
+
+# put Faces into Groups
+SELECT    FACE   20
+ATTRIBUTE _color $cyan
+ATTRIBUTE group  1
+
+SELECT    FACE   2
+SELECT    ADD    5
+SELECT    ADD    7
+ATTRIBUTE _color $magenta
+ATTRIBUTE group  2
+
+SELECT    FACE   1
+SELECT    ADD    3
+SELECT    ADD    4
+SELECT    ADD    6
+SELECT    ADD    8
+SELECT    ADD    16
+ATTRIBUTE group  3
+ATTRIBUTE _color $yellow
+
+SELECT    FACE   13
+ATTRIBUTE _color $red
+ATTRIBUTE group  4
+
+SELECT    FACE   18
+SELECT    ADD    19
+ATTRIBUTE _color $blue
+ATTRIBUTE group  5
+
+SELECT    FACE   21
+ATTRIBUTE _color $green
+ATTRIBUTE group  6
+
+SELECT    FACE   9
+SELECT    ADD    10
+SELECT    ADD    11
+SELECT    ADD    12
+SELECT    ADD    14
+SELECT    ADD    15
+SELECT    ADD    17
+SELECT    ADD    22
+ATTRIBUTE _color $blue
+ATTRIBUTE group  8
+
+END

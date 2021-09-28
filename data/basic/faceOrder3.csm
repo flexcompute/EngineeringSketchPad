@@ -1,0 +1,284 @@
+# faceOrder3
+# written by John Dannenhoffer
+
+mark
+   skbeg     -7  0  0
+      linseg -7  2  0
+      linseg -7  2  2
+      linseg -7  0  2
+      linseg -7  0  0
+   skend 1
+   skbeg     -6  0  0
+      linseg -6  2  0
+      linseg -6  2  2
+      linseg -6  0  2
+      linseg -6  0  0
+   skend
+   skbeg     -5  0  0
+      linseg -5  2  0
+      linseg -5  2  2
+      linseg -5  0  2
+      linseg -5  0  0
+   skend 1
+rule
+
+select    face  @nbody  1
+catbeg   $face_not_found
+catend
+
+select    face  @nbody  2
+catbeg   $face_not_found
+catend
+
+select    face  @nbody  3
+assert    @xcg -6.5
+assert    @ycg  1
+assert    @zcg  0
+
+select    face  @nbody  4
+assert    @xcg -5.5
+assert    @ycg  1
+assert    @zcg  0
+
+select    face  @nbody  5
+assert    @xcg -6.5
+assert    @ycg  2
+assert    @zcg  1
+
+select    face  @nbody  6
+assert    @xcg -5.5
+assert    @ycg  2
+assert    @zcg  1
+
+select    face  @nbody  7
+assert    @xcg -6.5
+assert    @ycg  1
+assert    @zcg  2
+
+select    face  @nbody  8
+assert    @xcg -5.5
+assert    @ycg  1
+assert    @zcg  2
+
+select    face  @nbody  9
+assert    @xcg -6.5
+assert    @ycg  0
+assert    @zcg  1
+
+select    face  @nbody 10
+assert    @xcg -5.5
+assert    @ycg  0
+assert    @zcg  1
+
+mark
+   skbeg     -3  0  0
+      linseg -3  2  0
+      linseg -3  2  2
+      linseg -3  0  2
+      linseg -3  0  0
+   skend 1
+   skbeg     -2  0  0
+      linseg -2  2  0
+      linseg -2  2  2
+      linseg -2  0  2
+      linseg -2  0  0
+   skend
+   skbeg     -1  0  0
+      linseg -1  2  0
+      linseg -1  2  2
+      linseg -1  0  2
+      linseg -1  0  0
+   skend
+rule
+
+select    face  @nbody  1
+catbeg   $face_not_found
+catend
+
+select    face  @nbody  2
+assert    @xcg -1
+assert    @ycg  1
+assert    @zcg  1
+
+select    face  @nbody  3
+assert    @xcg -2.5
+assert    @ycg  1
+assert    @zcg  0
+
+select    face  @nbody  4
+assert    @xcg -1.5
+assert    @ycg  1
+assert    @zcg  0
+
+select    face  @nbody  5
+assert    @xcg -2.5
+assert    @ycg  2
+assert    @zcg  1
+
+select    face  @nbody  6
+assert    @xcg -1.5
+assert    @ycg  2
+assert    @zcg  1
+
+select    face  @nbody  7
+assert    @xcg -2.5
+assert    @ycg  1
+assert    @zcg  2
+
+select    face  @nbody  8
+assert    @xcg -1.5
+assert    @ycg  1
+assert    @zcg  2
+
+select    face  @nbody  9
+assert    @xcg -2.5
+assert    @ycg  0
+assert    @zcg  1
+
+select    face  @nbody 10
+assert    @xcg -1.5
+assert    @ycg  0
+assert    @zcg  1
+
+mark
+   skbeg      1  0  0
+      linseg  1  2  0
+      linseg  1  2  2
+      linseg  1  0  2
+      linseg  1  0  0
+   skend
+   skbeg      2  0  0
+      linseg  2  2  0
+      linseg  2  2  2
+      linseg  2  0  2
+      linseg  2  0  0
+   skend
+   skbeg      3  0  0
+      linseg  3  2  0
+      linseg  3  2  2
+      linseg  3  0  2
+      linseg  3  0  0
+   skend 1
+rule
+
+select    face  @nbody  1
+assert    @xcg  1
+assert    @ycg  1
+assert    @zcg  1
+
+select    face  @nbody  2
+catbeg   $face_not_found
+catend
+
+select    face  @nbody  3
+assert    @xcg  1.5
+assert    @ycg  1
+assert    @zcg  0
+
+select    face  @nbody  4
+assert    @xcg  2.5
+assert    @ycg  1
+assert    @zcg  0
+
+select    face  @nbody  5
+assert    @xcg  1.5
+assert    @ycg  2
+assert    @zcg  1
+
+select    face  @nbody  6
+assert    @xcg  2.5
+assert    @ycg  2
+assert    @zcg  1
+
+select    face  @nbody  7
+assert    @xcg  1.5
+assert    @ycg  1
+assert    @zcg  2
+
+select    face  @nbody  8
+assert    @xcg  2.5
+assert    @ycg  1
+assert    @zcg  2
+
+select    face  @nbody  9
+assert    @xcg  1.5
+assert    @ycg  0
+assert    @zcg  1
+
+select    face  @nbody 10
+assert    @xcg  2.5
+assert    @ycg  0
+assert    @zcg  1
+
+mark
+   skbeg      5  0  0
+      linseg  5  2  0
+      linseg  5  2  2
+      linseg  5  0  2
+      linseg  5  0  0
+   skend
+   skbeg      6  0  0
+      linseg  6  2  0
+      linseg  6  2  2
+      linseg  6  0  2
+      linseg  6  0  0
+   skend
+   skbeg      7  0  0
+      linseg  7  2  0
+      linseg  7  2  2
+      linseg  7  0  2
+      linseg  7  0  0
+   skend
+rule
+
+select    face  @nbody  1
+assert    @xcg  5
+assert    @ycg  1
+assert    @zcg  1
+
+select    face  @nbody  2
+assert    @xcg  7
+assert    @ycg  1
+assert    @zcg  1
+
+select    face  @nbody  3
+assert    @xcg  5.5
+assert    @ycg  1
+assert    @zcg  0
+
+select    face  @nbody  4
+assert    @xcg  6.5
+assert    @ycg  1
+assert    @zcg  0
+
+select    face  @nbody  5
+assert    @xcg  5.5
+assert    @ycg  2
+assert    @zcg  1
+
+select    face  @nbody  6
+assert    @xcg  6.5
+assert    @ycg  2
+assert    @zcg  1
+
+select    face  @nbody  7
+assert    @xcg  5.5
+assert    @ycg  1
+assert    @zcg  2
+
+select    face  @nbody  8
+assert    @xcg  6.5
+assert    @ycg  1
+assert    @zcg  2
+
+select    face  @nbody  9
+assert    @xcg  5.5
+assert    @ycg  0
+assert    @zcg  1
+
+select    face  @nbody 10
+assert    @xcg  6.5
+assert    @ycg  0
+assert    @zcg  1
+
+end

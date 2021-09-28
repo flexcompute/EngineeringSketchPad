@@ -1,0 +1,30 @@
+#	Makefile for Windows
+#
+IDIR  = $(ESP_ROOT)\include
+!include $(IDIR)\$(ESP_ARCH).$(MSVC)
+LDIR  = $(ESP_ROOT)\lib
+
+default:	tire.exe tire.dll
+
+tire.exe:	tire.obj
+	cl /Fetire.exe tire.obj /link /LIBPATH:$(LDIR) egads.lib
+	$(MCOMP) /manifest tire.exe.manifest \
+                /outputresource:tire.exe;1
+
+tire.obj:	udpTire.c
+	cl /c $(COPTS) $(DEFINE) /I$(IDIR) udpTire.c /Fotire.obj
+
+tire.dll:	udpTire.obj
+	-del tire.dll tire.lib tire.exp
+	link /out:tire.dll /dll /def:udp.def udpTire.obj $(LDIR)\egads.lib
+	$(MCOMP) /manifest tire.dll.manifest \
+		/outputresource:tire.dll;2
+
+udpTire.obj:	udpTire.c
+	cl /c $(COPTS) $(DEFINE) /DUDP /I$(IDIR) udpTire.c /FoudpTire.obj
+
+clean:
+	-del udpTire.obj tire.obj
+
+cleanall:	clean
+	-del tire.exe tire.dll tire.lib tire.exp

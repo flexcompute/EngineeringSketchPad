@@ -1,0 +1,13 @@
+# plateBEM
+# written by John Dannenhoffer
+
+skbeg     1  1  0
+   linseg 4  1  0
+   linseg 4  3  0
+   linseg 1  3  0
+   linseg 1  1  0
+skend
+
+udprim    createBEM filename $plateBEM.bdf space 0.25 imin 3 imax 199
+
+end

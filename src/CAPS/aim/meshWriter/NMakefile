@@ -1,0 +1,10 @@
+#
+
+all:
+	forfiles /c "cmd /c if @isdir==TRUE cd @file & nmake -f NMakefile"
+
+clean:
+	forfiles /c "cmd /c if @isdir==TRUE cd @file & nmake -f NMakefile clean"
+
+cleanall:
+	forfiles /c "cmd /c if @isdir==TRUE cd @file & nmake -f NMakefilei cleanall"

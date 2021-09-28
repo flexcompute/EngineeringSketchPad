@@ -1,0 +1,20 @@
+# design0c
+# written by John Dannenhoffer
+
+despmtr   xbeg1     0.0
+despmtr   ybeg1     0.0
+despmtr   zbeg1     0.0
+despmtr   xend1     3.0
+despmtr   rad1      0.5
+
+despmtr   xbeg2     1.5
+despmtr   ybeg2    -1.0
+despmtr   zbeg2     0.0
+despmtr   yend2     1.0
+despmtr   rad2      0.2
+
+cylinder  xbeg1     ybeg1     zbeg1     xend1     ybeg1     zbeg1     rad1
+cylinder  xbeg2     ybeg2     zbeg2     xbeg2     yend2     zbeg2     rad2
+union
+
+end

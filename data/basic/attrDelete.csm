@@ -1,0 +1,64 @@
+# attrDelete
+# written by John Dannenhoffer
+
+# create box and put attributes on all its Faces, Edges, and Nodes
+BOX       0  0  0  1  1  1
+
+SELECT    FACE
+   ATTRIBUTE thisFace $on
+SELECT    EDGE
+   ATTRIBUTE thisEdge $on
+SELECT    NODE
+   ATTRIBUTE thisNode $on
+
+# mark the Face, Edge, and Node that you want deleted
+# note: the name "delete" has no special meaning
+SELECT    FACE  @nbody  1
+   ATTRIBUTE delete   $yes
+SELECT    EDGE  @nbody 1 @nbody 3
+   ATTRIBUTE delete   $yes
+SELECT    NODE  1  1  1
+   ATTRIBUTE delete   $yes
+
+# make sure that attributes are on the specified Face, Edge, and Node
+SELECT    FACE  @nbody  1
+GETATTR   foo   $_nattr_
+ASSERT    foo   7
+
+SELECT    EDGE  @nbody  1  @nbody  3
+GETATTR   foo   $_nattr_
+ASSERT    foo   6
+
+SELECT    NODE  1  1  1
+GETATTR   foo   $_nattr_
+ASSERT    foo   5
+
+# delete Attributes (and the "delete" flag) from the specified Face, Edge, and Node
+UDPRIM    editAttr  filename <<
+   FACE  HAS  delete=yes
+   SET        thisFace=
+   SET        delete=
+
+   EDGE  HAS  delete=yes
+   SET        thisEdge=
+   SET        delete=
+
+   NODE  HAS  delete=yes
+   SET        thisNode=
+   SET        delete=
+>>
+
+# make sure the attributes were deleted
+SELECT    FACE  @nbody-1  1
+GETATTR   foo   $_nattr_
+ASSERT    foo   5
+
+SELECT    EDGE  @nbody-1  1  @nbody-1  3
+GETATTR   foo   $_nattr_
+ASSERT    foo   4
+
+SELECT    NODE  1  1  1
+GETATTR   foo   $_nattr_
+ASSERT    foo   3
+
+END

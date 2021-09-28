@@ -1,0 +1,42 @@
+# select7
+# written by John Dannenhoffer
+
+# make the boxes
+BOX       0  0  0  3  2  1
+   ATTRIBUTE _color $red
+
+BOX       0  0  0  3  2  1
+   ATTRIBUTE _color $blue
+ROTATEZ  45  0  0
+TRANSLATE 4  0  0
+
+BOX       0  0  0  3  2  1
+   ATTRIBUTE _color $green
+ROTATEX  45  0  0
+TRANSLATE 0  3  0
+
+BOX       0  0  0  3  2  1
+   ATTRIBUTE _color $magenta
+ROTATEY  45  0  0
+TRANSLATE 4  3  0
+
+# make a list of the Bodys on the stack
+DIMENSION foo 1 99
+SET       nstack 0
+PATBEG    istack 99
+   SELECT BODY -istack
+   SET    foo[istack] @ibody
+   SET    nstack      nstack+1
+PATEND
+CATBEG    $body_not_found
+CATEND
+
+# check that correct Bodys were on stack
+ASSERT    foo[1]   10
+ASSERT    foo[2]    7
+ASSERT    foo[3]    4
+ASSERT    foo[4]    1
+ASSERT    nstack    4
+
+END
+

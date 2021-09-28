@@ -1,0 +1,70 @@
+# rule3
+# written by John Dannenhoffer
+
+mark
+skbeg          0    0   14
+skend
+udprim    ellipse   Rx   2    Ry   1
+translate      0    0   10
+udprim    ellipse   Rx   1    Ry   2
+translate      0    0    6
+udprim    ellipse   Rx   2    Ry   1
+translate      0    0    2
+rule
+
+mark
+skbeg          0    0  -14
+skend
+udprim    ellipse   Rx   1    Ry   2
+translate      0    0  -10
+udprim    ellipse   Rx   2    Ry   1
+translate      0    0   -6
+udprim    ellipse   Rx   1    Ry   2
+translate      0    0   -2
+rule
+
+mark
+skbeg         14    0    0
+skend
+udprim    ellipse   Ry   2    Rz   1
+translate     10    0    0
+udprim    ellipse   Ry   1    Rz   2
+translate      6    0    0
+udprim    ellipse   Ry   2    Rz   1
+translate      2    0    0
+rule
+
+mark
+skbeg         -14   0    0
+skend
+udprim    ellipse   Ry   1    Rz   2
+translate     -10   0    0
+udprim    ellipse   Ry   2    Rz   1
+translate      -6   0    0
+udprim    ellipse   Ry   1    Rz   2
+translate      -2   0    0
+rule
+
+mark
+skbeg          0   14    0
+skend
+udprim    ellipse   Rz   2    Rx   1
+translate      0   10    0
+udprim    ellipse   Rz   1    Rx   2
+translate      0    6    0
+udprim    ellipse   Rz   2    Rx   1
+translate      0    2    0
+rule
+
+mark
+skbeg          0  -14    0
+skend
+udprim    ellipse   Rz   1    Rx   2
+translate      0  -10    0
+udprim    ellipse   Rz   2    Rx   1
+translate      0   -6    0
+udprim    ellipse   Rz   1    Rx   2
+translate      0   -2    0
+rule
+
+end

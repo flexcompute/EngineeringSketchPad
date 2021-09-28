@@ -1,0 +1,37 @@
+# joinblend3
+# written by John Dannenhoffer
+
+despmtr   num    8
+dimension x      num   1    1
+dimension ymin   num   1    1
+dimension zmin   num   1    1
+dimension zmax   num   1    1
+
+despmtr   x      "   7.3;     8.4;  10.4;   11.3;  12.3; 13.8;  14.4;  17.2"
+despmtr   ymin   " -1.25;    -1.9;  -2.1;   -2.1;  -2.1; -2.1;  -2.1;  -2.1"
+despmtr   zmin   "-0.825; -0.8125;  -0.8; -0.775; -0.75; -0.7; -0.69;  -0.1"
+despmtr   zmax   " 0.825;  0.8125;   0.8;  0.775;  0.75;  0.7;  0.69;   0.1"
+
+# forward part
+mark
+   patbeg i num-1
+      udprim ellipse  ry abs(ymin[i,1]) rz (zmax[i,1]-zmin[i,1])/2
+      translate       x[i,1] 0 (zmax[i,1]+zmin[i,1])/2
+   patend
+blend
+
+# rearward part
+mark
+   set i num-1  
+   udprim ellipse  ry abs(ymin[i,1]) rz (zmax[i,1]-zmin[i,1])/2
+   translate       x[i,1] 0 (zmax[i,1]+zmin[i,1])/2
+
+   set i num
+   udprim ellipse  ry abs(ymin[i,1]) rz (zmax[i,1]-zmin[i,1])/2
+   translate       x[i,1] 0 (zmax[i,1]+zmin[i,1])/2
+rule
+
+# join bodies
+join
+
+end

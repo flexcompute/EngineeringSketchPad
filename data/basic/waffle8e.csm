@@ -1,0 +1,89 @@
+# waffle8e
+# written by John Dannenhoffer
+
+# SolidBody
+BOX       0 -1 -1  3  2  2
+ATTRIBUTE type  $OML
+
+SELECT    FACE  @nbody  1
+ATTRIBUTE face  $xmin
+SELECT    FACE  @nbody  2
+ATTRIBUTE face  $xmax
+SELECT    FACE  @nbody  3
+ATTRIBUTE face  $ymin
+SELECT    FACE  @nbody  4
+ATTRIBUTE face  $ymax
+SELECT    FACE  @nbody  5
+ATTRIBUTE face  $zmin
+SELECT    FACE  @nbody  6
+ATTRIBUTE face  $zmax
+STORE     SolidBody
+
+# get bounding box of SolidBody
+RESTORE   SolidBody
+SET       xmin  @xmin
+SET       xmax  @xmax
+SET       ymin  @ymin
+SET       ymax  @ymax
+SET       zmin  @zmin
+SET       zmax  @zmax
+STORE     .
+
+# Waffle (centered on SolidBody)
+UDPRIM    waffle   filename <<   depth zmax-zmin+2
+   POINT  A AT  xmin-1  (ymin+ymax)/2
+   POINT  B AT  xmax+1  (ymin+ymax)/2
+   LINE   AB  A  B  type=symmetry
+
+   PATBEG  i  3
+      POINT  C AT   xmin+i/4*(xmax-xmin) ymin-1
+      POINT  D AT   xmin+i/4*(xmax-xmin) ymax+1
+      LINE   .  C  D  bulkhead=!val2str(i,0)
+   PATEND
+>>
+TRANSLATE 0  0  zmin-1
+STORE     Waffle
+
+# score the SolidBody by the Waffle and extract Faces
+RESTORE   SolidBody
+RESTORE   Waffle
+SUBTRACT
+EXTRACT   0
+
+# generate the internal structure
+RESTORE   SolidBody
+RESTORE   Waffle
+INTERSECT
+
+# put them together
+UNION
+
+# select Face on bulkhead=1 but top half
+UDPRIM    editAttr  filename  <<
+   FACE   HAS       bulkhead=1
+   AND    ADJ2FACE  face=ymax
+   SET              found=face
+>>
+
+# select Edge on OML seam between bulkheads 1 and 2
+UDPRIM    editAttr  filename  <<
+   NODE   ADJ2FACE  bulkhead=1
+   SET              bulkhead=1
+   NODE   ADJ2FACE  bulkhead=2
+   SET              bulkhead=2
+   EDGE   ADJ2FACE  face=zmax
+   AND    ADJ2FACE  type=symmetry
+   AND    ADJ2NODE  bulkhead=1
+   AND    ADJ2NODE  bulkhead=2
+   SET              found=edge
+>>
+
+# select Node on OML seam at the outlet
+UDPRIM    editAttr  filename  <<
+   NODE   ADJ2FACE  face=xmax
+   AND    ADJ2FACE  face=zmax
+   AND    ADJ2FACE  type=symmetry
+   SET              found=node
+>>
+
+END

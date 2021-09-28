@@ -1,0 +1,9 @@
+# droop0c
+# written by John Dannenhoffer
+
+UDPRIM    $$/diamond   thick  0.12
+
+SELECT    FACE   6  0  1
+ASSERT    @sellist.size 1
+
+end

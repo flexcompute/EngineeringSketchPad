@@ -1,0 +1,56 @@
+# scribeWing
+# written by John Dannenhoffer
+
+# wing
+mark
+   udprim naca thickness 0.12
+   udprim naca thickness 0.08
+   translate 0 0 4
+rule
+
+# sheetbody for scribing
+skbeg     2.0 -1 2.0
+   linseg 0.5 -1 2.0
+   linseg 0.5 -1 3.0
+   linseg 2.0 -1 3.0
+skend
+extrude 0 2 0
+
+#scribe
+subtract
+
+# verify that correct _edgeIDs are set for scribe
+select    edge  4  3  10  3
+   assert @xcg  0.750216
+   assert @ycg  0.025112
+   assert @zcg  2.000000
+select    edge  4  3  10  4
+   assert @xcg  0.500000
+   assert @ycg  0.041926
+   assert @zcg  2.500000
+select    edge  4  3  10  5
+   assert @xcg  0.750175
+   assert @ycg  0.022603
+   assert @zcg  3.000000
+select    edge  4  4  10  3
+   assert @xcg  0.750216
+   assert @ycg -0.025112
+   assert @zcg  2.000000
+select    edge  4  4  10  4
+   assert @xcg  0.500000
+   assert @ycg -0.041926
+   assert @zcg  2.500000
+select    edge  4  4  10  5
+   assert @xcg  0.750175
+   assert @ycg -0.022603
+   assert @zcg  3.000000
+select    edge  4  5  10  3
+   assert @xcg  1.000000
+   assert @ycg  0.000000
+   assert @zcg  2.000000
+select    edge  4  5  10  5
+   assert @xcg  1.000000
+   assert @ycg  0.000000
+   assert @zcg  3.000000
+
+end

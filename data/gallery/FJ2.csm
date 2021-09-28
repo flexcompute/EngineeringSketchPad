@@ -1,0 +1,1820 @@
+# FJ2.csm written by Jake Boyce
+
+#
+# Parametric model of a generic UAV, with various internal
+# components & structures
+#
+# The entire model can be scaled to a size using
+# the 'BodyLength' despmtr, and there are three tail
+# configurations, detailed above the despmtr 'TailConfig'.
+#
+# The Dish and Landing gear are created from .UDC files.
+#
+#
+#######################################################################
+#                                                                     #
+#                See bottom of file for more information!       #
+#                                                                     #
+#######################################################################
+
+#################################
+# Constant and Design Parameters:
+#################################
+
+# Builds the OML Model
+despmtr CFDToggle 0
+
+# Builds the AVL Model
+despmtr LINEARAEROToggle 0
+
+# Builds the Structures Model
+despmtr StructToggle 0
+
+# Builds the Vulnerability Model
+despmtr VulnToggle 1
+
+# Builds the combined AVL & Structures Model
+despmtr LINEARStructToggle 0
+
+# Toggles the landing gear
+despmtr ToggleGear  0
+
+
+# Sets the number/configuration of the Tail
+# 1 = V-Tail Config ( Upward )
+# 2 = V-Tail Config ( Downward )
+# 3 = Horizontal Tail with underside  vertical stabilizer
+
+despmtr TailConfig 1
+
+
+# Sets the length of the UAV nose to tail
+despmtr BodyLength 20
+
+
+
+# Sets the sweep angle of the wings in degrees
+# Works best for an angle range of -5 -> 25
+
+despmtr WingSweepAngle 7
+
+
+
+# Sets the wingspan
+#
+# Because of how the spars/ribs are created, the model
+# is only good for wingspan values up to ~70
+#
+
+despmtr WingSpan 50
+
+
+
+# Sets the chord of the root
+
+despmtr Croot 5
+
+
+
+# Sets the chord of the tips
+
+despmtr Ctip 2
+
+#
+# WARNING: Changing the taper ratio may cause the fuel lines within
+#          the wings to extend beyond the bounds of the wings.
+#
+
+
+
+
+
+#
+# Internal Variables
+#
+
+# Dish Variables
+despmtr DishRadius    2
+despmtr AntennaLength 1
+
+# Avionics Variables
+despmtr AvionicsLoc 0.25
+
+# Fueltank Variables
+despmtr FuelTankLoc 0.4
+
+# Landing Gear Variables
+despmtr NoseGearRimRadius 0.6
+despmtr NoseGearLegLength 3
+
+despmtr WingGearRimRadius 0.6
+despmtr WingGearLegLength 4
+
+
+
+##################
+# Local Variables:
+##################
+
+
+# Used to scale the vehicle, originally designed for length of 20
+
+set LengthScale BodyLength/20
+
+# Spreads for superellipses in the main and underbody
+set sup_spr LengthScale
+set und_spr (BodyLength/10)*(4/7)
+
+set WingArea (Croot+Ctip)/2*(WingSpan)
+
+set OMLToggle 0
+set AVLToggle 0
+set StructuresToggle 0
+
+
+ifthen CFDToggle eq 1
+	set OMLToggle 1
+	set AVLToggle 0
+	set StructuresToggle 0
+endif
+
+ifthen LINEARAEROToggle eq 1
+	set OMLToggle 0
+	set AVLToggle 1
+	set StructuresToggle 0
+endif
+
+ifthen StructToggle eq 1
+	set OMLToggle 0
+	set AVLToggle 0
+	set StructuresToggle 1
+endif
+
+ifthen VulnToggle eq 1
+	set OMLToggle 1
+	set AVLToggle 0
+	set StructuresToggle 1
+endif
+
+ifthen LINEARStructToggle eq 1
+	set OMLToggle 0
+	set AVLToggle 1
+	set StructuresToggle 1
+endif
+
+#################       BODY & INTAKE       ################
+
+
+
+#
+# Array for the upper portion of the main body
+#
+#                        rz    ry    rx    n
+dimension BodyArr 20 4 1
+despmtr   BodyArr[1,:]  " 0; 0.100; 0.100; 3; "
+despmtr   BodyArr[2,:]  " 0; 0.800; 0.800; 3; "
+despmtr   BodyArr[3,:]  " 0; 1.500; 1.300; 2; "
+despmtr   BodyArr[4,:]  " 0; 1.600; 1.400; 2; "
+despmtr   BodyArr[5,:]  " 0; 1.600; 1.500; 2; "
+despmtr   BodyArr[6,:]  " 0; 1.500; 1.500; 2; "
+despmtr   BodyArr[7,:]  " 0; 1.400; 1.500; 2; "
+despmtr   BodyArr[8,:]  " 0; 1.300; 1.500; 2; "
+despmtr   BodyArr[9,:]  " 0; 1.200; 1.500; 4; "
+despmtr   BodyArr[10,:] " 0; 1.200; 1.500; 4; "
+despmtr   BodyArr[11,:] " 0; 1.200; 1.500; 4; "
+despmtr   BodyArr[12,:] " 0; 1.200; 1.500; 4; "
+despmtr   BodyArr[13,:] " 0; 1.200; 1.500; 4; "
+despmtr   BodyArr[14,:] " 0; 1.100; 1.500; 4; "
+despmtr   BodyArr[15,:] " 0; 1.050; 1.500; 4; "
+despmtr   BodyArr[16,:] " 0; 0.900; 1.500; 4; "
+despmtr   BodyArr[17,:] " 0; 0.800; 1.400; 4; "
+despmtr   BodyArr[18,:] " 0; 0.800; 1.300; 4; "
+despmtr   BodyArr[19,:] " 0; 0.600; 1.200; 4; "
+despmtr   BodyArr[20,:] " 0; 0.100; 1.000; 4; "
+#
+# Array for the portion of the main body on the underbelly
+#
+#                          rz    ry   rx   n
+dimension UnderArr 10 4 1
+despmtr   UnderArr[1,:]  " 0.0; 0.8; 0.7; 2; "
+despmtr   UnderArr[2,:]  " 0.0; 1.0; 0.8; 2; "
+despmtr   UnderArr[3,:]  " 0.0; 1.0; 1.0; 2; "
+despmtr   UnderArr[4,:]  " 0.0; 1.8; 1.2; 3; "
+despmtr   UnderArr[5,:]  " 0.0; 1.7; 1.3; 4; "
+despmtr   UnderArr[6,:]  " 0.0; 1.7; 1.2; 3; "
+despmtr   UnderArr[7,:]  " 0.0; 1.5; 1.2; 3; "
+despmtr   UnderArr[8,:]  " 0.0; 0.8; 1.2; 3; "
+despmtr   UnderArr[9,:]  " 0.0; 0.5; 1.2; 2; "
+despmtr   UnderArr[10,:] " 0.0; 0.3; 1.2; 3; "
+
+#
+# Array for the body connecting the intake to the main body
+#
+#                         rz    ry   rx   n
+dimension ConnArr 2 4 1
+despmtr   ConnArr[1,:] " 0.0; 3.5; 1.45; 4; "
+despmtr   ConnArr[2,:] " 0.0; 3.5; 1.45; 4; "
+
+#
+# Array for the intake/engine
+#
+#                          rz   ry   rx   n   x    y
+dimension IntakeArr 4 6 1
+despmtr   IntakeArr[1,:] " 0.0; 0.4; 1.0; 3; 10.7; 3.5; "
+despmtr   IntakeArr[2,:] " 0.0; 0.6; 1.2; 3; 10.0; 3.5; "
+despmtr   IntakeArr[3,:] " 0.0; 1.0; 1.5; 3; 15.0; 3.5; "
+despmtr   IntakeArr[4,:] " 0.0; 0.4; 1.0; 2; 17.5; 3.5; "
+
+
+
+########################        TAILS       ####################
+
+
+
+#
+# Array for the two tail NACA configuration (upward)
+#
+#                             NACA    Th    x     y     z
+dimension TwoTailArr 4 5 1
+despmtr   TwoTailArr[1,:]  " 0012;  0.10;  16.0; 2.0;   1.0;"
+despmtr   TwoTailArr[2,:]  " 0012;  0.10;  17.0; 7.0;   6.0;"
+despmtr   TwoTailArr[3,:]  " 0012;  0.10;  16.0; 2.0;  -1.0;"
+despmtr   TwoTailArr[4,:]  " 0012;  0.10;  17.0; 7.0;  -6.0;"
+
+#
+# Array for the two tail NACA configuration ( Downward )
+#
+#                             NACA    Th    x     y     z
+dimension TwoTailArrD 4 7 1
+despmtr   TwoTailArrD[1,:]  " 0012;  0.10;  16.0;  2.0;   1.0;"
+despmtr   TwoTailArrD[2,:]  " 0012;  0.10;  17.0; -1.2;   4.0;"
+despmtr   TwoTailArrD[3,:]  " 0012;  0.10;  16.0;  2.0;  -1.0;"
+despmtr   TwoTailArrD[4,:]  " 0012;  0.10;  17.0; -1.2;  -4.0;"
+
+
+#
+# Array for the two tail NACA configuration ( Horizontal )
+#
+#                             NACA    Th    x     y     z
+dimension HorTailArr 6 7 1
+despmtr   HorTailArr[1,:]  " 0012;  0.20;  16.0;  2.0;   1.0;"
+despmtr   HorTailArr[2,:]  " 0012;  0.10;  16.0;  2.0;   6.0;"
+despmtr   HorTailArr[3,:]  " 0012;  0.20;  16.0;  2.0;  -1.0;"
+despmtr   HorTailArr[4,:]  " 0012;  0.10;  16.0;  2.0;  -6.0;"
+despmtr   HorTailArr[5,:]  " 0012;  0.20;  16.0;  1.5;   0.0;"
+despmtr   HorTailArr[6,:]  " 0012;  0.10;  16.0; -1.2;   0.0;"
+
+
+
+#####################       WINGS       ########################
+
+
+
+# Array for NACA Wings configuration
+#
+#                        NACA    Th    x     y     z
+dimension NACArr 3 5 1
+despmtr   NACArr[1,:]  " 0012;  0.08;  12.0; 3.0; -25.0;"
+despmtr   NACArr[2,:]  " 0012;  0.10;  8.0;  1.0;   0.0;"
+despmtr   NACArr[3,:]  " 0012;  0.08;  12.0; 3.0;  25.0;"
+
+#
+# Array for ribs and spars
+#
+
+dimension spars 33 4 1
+#                        x1      y1    x2     y2
+#     Spanwise spars
+despmtr   spars[1,:] "   0;     -25;  0;   25;"
+despmtr   spars[2,:] "   1;     -25;  1;   25;"
+despmtr   spars[3,:] "   2;     -25;  2;   25;"
+despmtr   spars[4,:] "   3;     -25;  3;   25;"
+despmtr   spars[5,:] "   4;     -25;  4;   25;"
+despmtr   spars[6,:] "   5;     -25;  5;   25;"
+despmtr   spars[7,:] "   6;     -25;  6;   25;"
+despmtr   spars[8,:] "   7;     -25;  7;   25;"
+despmtr   spars[9,:] "   8;     -25;  8;   25;"
+despmtr   spars[10,:] "  9;     -25;  9;   25;"
+despmtr   spars[11,:] " 10;     -25; 10;   25;"
+despmtr   spars[12,:] " 11;     -25; 11;   25;"
+despmtr   spars[13,:] " 12;     -25; 12;   25;"
+despmtr   spars[14,:] " 13;     -25; 13;   25;"
+despmtr   spars[15,:] " 14;     -25; 14;   25;"
+despmtr   spars[16,:] " 15;     -25; 15;   25;"
+despmtr   spars[17,:] " 16;     -25; 16;   25;"
+despmtr   spars[18,:] " 17;     -25; 17;   25;"
+despmtr   spars[19,:] " 18;     -25; 18;   25;"
+despmtr   spars[20,:] " 19;     -25; 19;   25;"
+#   Chordwise spars
+despmtr   spars[21,:] " 0;    -25; 19;    -25;"
+despmtr   spars[22,:] " 0; -20.83; 19; -20.83;"
+despmtr   spars[23,:] " 0; -16.66; 19; -16.66;"
+despmtr   spars[24,:] " 0; -12.49; 19; -12.49;"
+despmtr   spars[25,:] " 0;  -8.32; 19;  -8.32;"
+despmtr   spars[26,:] " 0;  -4.15; 19;  -4.15;"
+despmtr   spars[27,:] " 0;      0; 19;      0;"
+despmtr   spars[28,:] " 0;   4.15; 19;   4.15;"
+despmtr   spars[29,:] " 0;   8.32; 19;   8.32;"
+despmtr   spars[30,:] " 0;  12.49; 19;  12.49;"
+despmtr   spars[31,:] " 0;  16.66; 19;  16.66;"
+despmtr   spars[32,:] " 0;  20.83; 19;  20.83;"
+despmtr   spars[33,:] " 0;     25; 19;     25;"
+
+
+#
+# Array for pods configuration
+#
+#                        rz   ry   rx  n    x    y     z
+dimension PodArr 6 7 1
+despmtr   PodArr[1,:] " 0.0; 0.2; 0.2; 2; 10.0; 0.8;  3.00;"
+despmtr   PodArr[2,:] " 0.0; 0.4; 0.5; 3; 11.0; 0.6;  3.00;"
+despmtr   PodArr[3,:] " 0.0; 0.2; 0.2; 2; 14.0; 0.5;  3.00;"
+despmtr   PodArr[4,:] " 0.0; 0.2; 0.2; 2; 10.0; 0.8; -3.00;"
+despmtr   PodArr[5,:] " 0.0; 0.4; 0.5; 3; 11.0; 0.6; -3.00;"
+despmtr   PodArr[6,:] " 0.0; 0.2; 0.2; 2; 14.0; 0.5; -3.00;"
+
+
+
+
+
+
+
+
+################# Branches #######################
+
+
+ifthen OMLToggle eq 1 or LINEARAEROToggle eq 1
+
+
+	#
+	# Blended body for the main section of the UAV body
+	#
+
+	mark
+
+	# Pattern of the front "bulb" of the UAV
+	    patbeg r 20
+	    name NosePat
+	        udprim supell rx BodyArr[r,3]*LengthScale  ry BodyArr[r,2]*LengthScale  n BodyArr[r,4]
+	        attribute capsGroup $Fuselage
+	        rotatey  270 0 0
+
+
+	        ifthen r eq 1
+	            translate 0 BodyArr[2,2]*0.75*LengthScale 0
+	        elseif r eq 2
+	            translate (r-1)*LengthScale BodyArr[r,2]*1.7*LengthScale 0
+	        elseif r gt 2 and r lt 13
+	            translate (r-1)*LengthScale BodyArr[r,2]*LengthScale 0
+
+	        elseif r eq 13 or r gt 13
+	            translate (r-1)*LengthScale (BodyArr[r,2]+(2*BodyArr[12,2]-2*BodyArr[r,2]))*LengthScale 0
+	        endif
+
+	        store $FuseXSec r 1
+
+	    patend
+	blend
+
+	attribute _stlColor 1
+	attribute capsGroup $Fuselage
+
+
+	#
+	# Blended body for the "undercarriage" section of the UAV body
+	#
+
+	# Supell at the tip of the nose (same as in the previous body)
+	mark
+	    udprim supell rx BodyArr[1,3]*LengthScale ry BodyArr[1,2]*LengthScale n BodyArr[1,4]
+	    attribute capsGroup $Fuselage
+
+	    rotatey 270 0 0
+	    translate 0 BodyArr[2,2]*0.75*LengthScale 0
+
+	    store $FuseXSec 21 1
+
+	# Pattern of undercarriage, ends roughly at trailing edge of wing
+	# Second pattern is for the rule
+	    patbeg u 5
+	    name UnderCarPat
+	        udprim supell rx UnderArr[u,3]*LengthScale  ry UnderArr[u,2]*LengthScale  n UnderArr[u,4]
+	        attribute capsGroup $Fuselage
+
+	        rotatey  270 0 0
+
+	        ifthen u eq 1
+	            translate u*und_spr (UnderArr[u,2]/1.5)*LengthScale 0
+	        elseif u gt 1
+	            translate u*und_spr (UnderArr[u,2]/2)*LengthScale 0
+	        endif
+
+	        store $FuseXSec (u+21) 1
+	    patend
+	blend
+
+	attribute _stlColor 1
+	attribute capsGroup $Fuselage
+
+	union 0 0 0
+	attribute capsGroup $Fuselage
+
+
+	mark
+	    patbeg u 6
+	    name UnderCarPat2
+	        udprim supell rx UnderArr[u+4,3]*LengthScale  ry UnderArr[u+4,2]*LengthScale  n UnderArr[u+4,4]
+	        attribute capsGroup $Fuselage
+
+	        rotatey  270 0 0
+
+	        ifthen u ne 6
+	            translate (u+4)*und_spr (UnderArr[u+4,2]/2)*LengthScale 0
+	        elseif u eq 6
+	            translate (u+4)*und_spr UnderArr[u+4,2]*LengthScale 0
+	        endif
+	    patend
+	rule
+	attribute capsGroup $Fuselage
+
+
+	union 0 0 0
+	attribute capsGroup $Fuselage
+	attribute _name $Fuselage
+	attribute _stlColor 1
+
+	store $FuselageBody 0 0
+
+	#
+	# Ruled body that connects main body to air intake
+	#
+
+	mark
+	    patbeg c 2
+	    name ConnectorPat
+	        udprim supell rx ConnArr[c,3]*LengthScale  ry ConnArr[c,2]*LengthScale  n ConnArr[c,4]
+	        rotatex 270 0 0
+	        rotatey 90 0 0
+
+	        ifthen c eq 1
+	            translate (14.2*LengthScale) 2*LengthScale 0
+	        elseif c eq 2
+	            translate (14.2*LengthScale) 3.5*LengthScale 0
+	        endif
+	    patend
+	rule
+
+	attribute _stlColor 1
+	attribute _name $Connector
+	attribute capsGroup $Connector
+
+	store $ConnectorBody 0 0
+
+
+	#
+	# Blended body that creates the air intake
+	#
+
+	mark
+	    patbeg a 4
+	    name IntakePat
+
+	        udprim supell rx IntakeArr[a,3]*LengthScale  ry IntakeArr[a,2]*LengthScale  n IntakeArr[a,4]
+	        rotatey 270 0 0
+
+	        ifthen a eq 2
+	            rotatez -30 0 0
+	        endif
+	        translate IntakeArr[a,5]*LengthScale IntakeArr[a,6]*LengthScale 0
+
+	    patend
+	blend
+
+	attribute _name $Intake
+	attribute _stlColor 2
+	attribute capsGroup $Intake
+
+	store $IntakeBody 0 0
+
+endif #OMLToggle
+
+
+#
+# Tails
+#
+
+
+
+ifthen OMLToggle eq 1 or AVLToggle eq 1
+
+	#
+	# Ruled bodies that create the two tail configuration ( Upward )
+	#
+
+	ifthen TailConfig eq 1
+	    mark
+	        patbeg t 2
+	        name TwoTailPat
+
+	            udprim naca  Series TwoTailArr[t,1]  thickness TwoTailArr[t,2]
+	            attribute capsGroup $Tail
+
+	            ifthen t eq 1
+	                scale 2*LengthScale
+	                rotatez -5 0 0
+	                translate TwoTailArr[t,3]*LengthScale TwoTailArr[t,4]*LengthScale TwoTailArr[t,5]*LengthScale
+
+	                store $TailRoot1 0 1
+	            else
+	                scale LengthScale
+	                rotatez -5 0 0
+	                translate TwoTailArr[t,3]*LengthScale TwoTailArr[t,4]*LengthScale TwoTailArr[t,5]*LengthScale
+
+	                store $TailTip1 0 1
+	            endif
+
+
+
+
+	        patend
+	    rule
+
+	    attribute _name $Tail1
+	    attribute _stlColor 3
+	    attribute capsGroup $Tail
+
+	    store $Tail1Body 0 0
+
+	    mark
+	        patbeg t 2
+	        name TwoTailPat2
+
+	            udprim naca  Series TwoTailArr[t+2,1]  thickness TwoTailArr[t+2,2]
+	            attribute capsGroup $Tail
+
+	            ifthen t eq 1
+	                scale 2*LengthScale
+	                translate TwoTailArr[t+2,3]*LengthScale TwoTailArr[t+2,4]*LengthScale TwoTailArr[t+2,5]*LengthScale
+
+	                store $TailRoot2 0 1
+	            else
+	                scale LengthScale
+	                translate TwoTailArr[t+2,3]*LengthScale TwoTailArr[t+2,4]*LengthScale TwoTailArr[t+2,5]*LengthScale
+
+	                store $TailTip2 0 1
+	            endif
+
+
+
+	        patend
+	    rule
+
+	    attribute _name $Tail2
+	    attribute _stlColor 3
+	    attribute capsGroup $Tail
+
+	    store $Tail2Body 0 0
+
+
+	#
+	# Ruled bodies to create the downward V-Tail configuration
+	#
+
+	elseif TailConfig eq 2
+	    mark
+	        patbeg t 2
+	        name TwoTailPatD
+
+	            udprim naca  Series TwoTailArrD[t,1]  thickness TwoTailArrD[t,2]
+	            attribute capsGroup $Tail
+
+	            ifthen t eq 1
+	                scale 2*LengthScale
+	                translate TwoTailArrD[t,3]*LengthScale TwoTailArrD[t,4]*LengthScale TwoTailArrD[t,5]*LengthScale
+
+	                store $TailRoot1 0 1
+	            else
+	                scale LengthScale
+	                translate TwoTailArrD[t,3]*LengthScale TwoTailArrD[t,4]*LengthScale TwoTailArrD[t,5]*LengthScale
+
+	                store $TailTip1 0 1
+	            endif
+
+
+
+	        patend
+	    rule
+
+	    attribute _name $Tail1
+	    attribute _stlColor 3
+	    attribute capsGroup $Tail
+
+	    store $Tail1Body 0 0
+
+
+	    mark
+	        patbeg t 2
+	        name TwoTailPatD2
+
+	            udprim naca  Series TwoTailArrD[t+2,1]  thickness TwoTailArrD[t+2,2]
+	            attribute capsGroup $Tail
+
+	            ifthen t eq 1
+	                scale 2*LengthScale
+	                translate TwoTailArrD[t+2,3]*LengthScale TwoTailArrD[t+2,4]*LengthScale TwoTailArrD[t+2,5]*LengthScale
+
+	                store $TailRoot2 0 1
+	            else
+	                scale LengthScale
+	                translate TwoTailArrD[t+2,3]*LengthScale TwoTailArrD[t+2,4]*LengthScale TwoTailArrD[t+2,5]*LengthScale
+
+	                store $TailTip2 0 1
+	            endif
+
+
+
+	        patend
+	    rule
+
+	    attribute _name $Tail2
+	    attribute _stlColor 3
+	    attribute capsGroup $Tail
+
+	    store $Tail2Body 0 0
+
+
+	#
+	# Ruled bodies to create the horizontal tail configuration
+	#
+
+	elseif TailConfig eq 3
+	    mark
+	        patbeg t 2
+	        name HorTailPat
+
+	            udprim naca  Series HorTailArr[t,1]  thickness HorTailArr[t,2]
+	            attribute capsGroup $Tail
+
+	            ifthen t eq 1
+	                scale 2*LengthScale
+	                translate HorTailArr[t,3]*LengthScale HorTailArr[t,4]*LengthScale HorTailArr[t,5]*LengthScale
+
+	                store $TailRoot1 0 1
+	            else
+	                scale LengthScale
+	                translate HorTailArr[t,3]*LengthScale HorTailArr[t,4]*LengthScale HorTailArr[t,5]*LengthScale
+
+	                store $TailTip1 0 1
+	            endif
+
+
+
+	        patend
+	    rule
+
+
+	    attribute _name $Tail1
+	    attribute _stlColor 3
+	    attribute capsGroup $Tail
+
+	    store $Tail1Body 0 0
+
+	    mark
+	        patbeg t 2
+	        name HorTailPat2
+
+	            udprim naca  Series HorTailArr[t+2,1]  thickness HorTailArr[t+2,2]
+	            attribute capsGroup $Tail
+
+	            ifthen t eq 1
+	                scale 2*LengthScale
+	                translate HorTailArr[t+2,3]*LengthScale HorTailArr[t+2,4]*LengthScale HorTailArr[t+2,5]*LengthScale
+
+	                store $TailRoot2 0 1
+	            else
+	                scale LengthScale
+	                translate HorTailArr[t+2,3]*LengthScale HorTailArr[t+2,4]*LengthScale HorTailArr[t+2,5]*LengthScale
+
+	                store $TailTip2 0 1
+	            endif
+
+
+
+
+	        patend
+	    rule
+
+	    attribute _name $Tail2
+	    attribute _stlColor 3
+	    attribute capsGroup $Tail
+
+	    store $Tail2Body 0 0
+
+
+	    mark
+	        patbeg t 2
+	        name HorTailPat3
+
+	            udprim naca  Series HorTailArr[t+4,1]  thickness HorTailArr[t+4,2]
+	            attribute capsGroup $HTailVStab
+
+	            rotatex 90 0 0
+
+	            ifthen t eq 1
+	                scale 2*LengthScale
+	                translate HorTailArr[t+4,3]*LengthScale HorTailArr[t+4,4]*LengthScale HorTailArr[t+4,5]*LengthScale
+
+	                store $TailRoot3 0 1
+	            else
+	                scale LengthScale
+	                translate HorTailArr[t+4,3]*LengthScale HorTailArr[t+4,4]*LengthScale HorTailArr[t+4,5]*LengthScale
+
+	                store $TailTip3 0 1
+	            endif
+
+
+
+
+	        patend
+	    rule
+
+	    attribute _name $Tail3
+	    attribute _stlColor 3
+	    attribute capsGroup $HTailVStab
+
+	    store $Tail3Body 0 0
+
+
+	endif #TailConfig
+
+endif #OMLToggle
+
+
+
+
+#
+#
+#
+# Ruled body to make the wings
+#
+#
+#
+#
+
+ifthen OMLToggle eq 1 or AVLToggle eq 1
+
+	mark
+	        patbeg w 3
+	        name WingPat
+
+	            udprim naca  Series NACArr[w,1]  thickness NACArr[w,2]
+
+	            ifthen w eq 1 or w eq 3
+	                scale Ctip*LengthScale
+	            else
+	                scale Croot*LengthScale
+	            endif
+
+	            rotatez -5 0 0
+
+	            ifthen w eq 1
+	                translate (NACArr[2,3]+(WingSpan/2)*tand(WingSweepAngle))*LengthScale NACArr[w,4]*LengthScale -(WingSpan/2)*LengthScale
+
+	                store $WingTipR 0 1
+	            elseif w eq 2
+	                translate (NACArr[2,3])*LengthScale NACArr[w,4]*LengthScale 0*LengthScale
+
+	                store $WingRoot 0 1
+	            elseif w eq 3
+	                translate (NACArr[2,3]+(WingSpan/2)*tand(WingSweepAngle))*LengthScale NACArr[w,4]*LengthScale (WingSpan/2)*LengthScale
+
+	                store $WingTipL 0 1
+	            endif
+
+	        patend
+	rule
+
+	attribute _name $Wings
+	attribute capsGroup $Wing
+
+	store $WingBody 0 0
+
+endif #OMLToggle
+
+#
+#
+# Ruled bodies that create the wings then intersected to make spars
+#
+#
+
+ifthen StructuresToggle eq 1 or VulnToggle eq 1
+
+    udprim waffle Segments spars Depth WingSpan/2.5
+    rotatex 90 0 0
+    rotatey -WingSweepAngle 0 0
+    ifthen WingSweepAngle gt 0 or WingSweepAngle eq 0
+        translate NACArr[2,3] WingSpan/4 -WingSpan/2.5
+    else
+        translate NACArr[2,3] WingSpan/4 -WingSpan/2.5
+    endif
+
+    mark
+        patbeg w 2
+        name SparPat1
+            udprim naca Series NACArr[w,1] thickness NACArr[w,2]
+
+            ifthen w eq 1
+                scale Ctip*LengthScale
+            elseif w eq 2
+                scale Croot*LengthScale
+            endif
+
+            rotatez -5 0 0
+
+            ifthen w eq 1
+                translate (NACArr[2,3]+(WingSpan/2)*tand(WingSweepAngle))*LengthScale NACArr[w,4]*LengthScale -(WingSpan/2)*LengthScale
+            elseif w eq 2
+                translate (NACArr[2,3])*LengthScale NACArr[w,4]*LengthScale 0*LengthScale
+            endif
+        patend
+    rule
+
+    intersect
+
+    attribute _name $Spars1
+    attribute _stlColor 12
+    attribute capsGroup $Spars
+
+    store $Spars 1 0
+
+
+    udprim waffle Segments spars Depth WingSpan/2.5
+    attribute capsGroup $Spars
+    rotatex 90 0 0
+    rotatey WingSweepAngle 0 0
+    translate NACArr[2,3] WingSpan/4 WingSpan/2.5
+
+    mark
+        patbeg w 2
+        name SparPat2
+            udprim naca Series NACArr[w+1,1] thickness NACArr[w+1,2]
+
+            ifthen w eq 1
+                scale Croot*LengthScale
+            elseif w eq 2
+                scale Ctip*LengthScale
+            endif
+
+            rotatez -5 0 0
+
+            ifthen w eq 1
+                translate (NACArr[2,3])*LengthScale NACArr[w+1,4]*LengthScale 0*LengthScale
+
+            elseif w eq 2
+                translate (NACArr[2,3]+(WingSpan/2)*tand(WingSweepAngle))*LengthScale NACArr[w+1,4]*LengthScale (WingSpan/2)*LengthScale
+
+            endif
+        patend
+    rule
+
+    intersect
+
+
+    attribute _name $Spars2
+    attribute _stlColor 12
+    attribute capsGroup $Spars
+
+    store $Spars 2 0
+
+endif
+
+
+#
+# Blended bodies to create the pods beneath the wings
+#
+
+ifthen OMLToggle eq 1
+
+	mark
+	    patbeg p 3
+	    name PodPat1
+	        udprim supell rx PodArr[p,3]*LengthScale ry PodArr[p,2]*LengthScale n PodArr[p,4]
+	        rotatey 90 0 0
+
+	        translate PodArr[p,5]*LengthScale PodArr[p,6]*LengthScale PodArr[p,7]*LengthScale
+	    patend
+	blend
+
+	attribute _name $Pod1
+	attribute _stlColor 5
+	attribute capsGroup $Pods
+
+	store $PodL 0 0
+
+
+	mark
+	    patbeg p 3
+	    name PodPat2
+	        udprim supell rx PodArr[p+3,3]*LengthScale ry PodArr[p+3,2]*LengthScale n PodArr[p+3,4]
+	        rotatey 90 0 0
+
+	        translate PodArr[p+3,5]*LengthScale PodArr[p+3,6]*LengthScale PodArr[p+3,7]*LengthScale
+	    patend
+	blend
+
+	attribute _name $Pod2
+	attribute _stlColor 5
+	attribute capsGroup $Pods
+
+	store $PodR 0 0
+
+endif #OMLToggle
+
+#
+#
+# Process for creating bulkheads inside the fuselage
+#
+#
+
+ifthen StructuresToggle eq 1 or VulnToggle eq 1
+
+    #
+    # X Sketch to be swept
+    #
+
+    skbeg     0   0   0   1
+       skvar     xy   -0.008056;0.026785;0.000000;-0.008056;4.027794;0.000000;0.079558;4.027794;0.000000;0.079558;0.026785;0.000000;4.080567;0.026785;0.000000;4.080567;-0.090033;0.000000;0.079558;-0.090033;0.000000;0.079558;-4.091043;0.000000;-0.008056;-4.091043;0.000000;-0.008056;-0.090033;0.000000;-4.009065;-0.090033;0.000000;-4.009065;0.026785;0.000000;
+       skcon     X   1   -1  0
+       skcon     Y   1   -1  0
+       skcon     V   1   2  0
+       skcon     H   2   3  0
+       skcon     V   3   4  0
+       skcon     H   4   5  0
+       skcon     V   5   6  0
+       skcon     H   6   7  0
+       skcon     V   7   8  0
+       skcon     H   8   9  0
+       skcon     V   9   10  0
+       skcon     H   10   11  0
+       skcon     V   11   12  0
+       skcon     H   12   1  0
+       skcon     L   1   2  4
+       skcon     L   2   3  0.1
+       skcon     L   3   4  4
+       skcon     L   4   5  4
+       skcon     L   5   6  0.1
+       skcon     L   6   7  4
+       skcon     L   7   8  4
+       skcon     L   8   9  0.1
+       skcon     L   9   10  4
+       skcon     L   10   11  4
+       linseg    ::x[2]   ::y[2]   0
+       linseg    ::x[3]   ::y[3]   0
+       linseg    ::x[4]   ::y[4]   0
+       linseg    ::x[5]   ::y[5]   0
+       linseg    ::x[6]   ::y[6]   0
+       linseg    ::x[7]   ::y[7]   0
+       linseg    ::x[8]   ::y[8]   0
+       linseg    ::x[9]   ::y[9]   0
+       linseg    ::x[10]   ::y[10]   0
+       linseg    ::x[11]   ::y[11]   0
+       linseg    ::x[12]   ::y[12]   0
+       linseg    ::x[1]   ::y[1]   0
+    skend     0
+    rotatey   -90   0   0
+    translate  2*LengthScale   BodyArr[3,2]*LengthScale   -0.05
+
+    #
+    # Sketch to be swept upon
+    #
+
+    skbeg     2*LengthScale   BodyArr[3,2]*LengthScale   0   1
+       skvar     xy   -0.019174;0.011277;0;0.987607;0.109500;0.000000;1.994389;0.109500;0.000000;2.976614;0.011277;0.000000;3.983396;-0.086945;0.000000;4.990177;-0.185168;0.000000;5.996958;-0.283390;0.000000;6.979184;-0.283390;0.000000;7.985965;-0.283390;0.000000;8.992746;-0.283390;0.000000;9.999528;-0.283390;0.000000;10.981754;-0.185168;0.000000;11.988535;-0.136056;0.000000;12.995316;0.011277;0.000000;13.977542;0.109500;0.000000;14.984323;0.109500;0.000000;15.991104;0.305945;0.000000;16.997886;0.821614;0.000000;
+       skcon     X   1   -1  0
+       skcon     Y   1   -1  0
+       skcon     X   2   -1  1
+       skcon     X   3   -1  2
+       skcon     X   4   -1  3
+       skcon     X   5   -1  4
+       skcon     X   6   -1  5
+       skcon     X   7   -1  6
+       skcon     X   8   -1  7
+       skcon     X   9   -1  8
+       skcon     X   10   -1  9
+       skcon     X   11   -1  10
+       skcon     X   12   -1  11
+       skcon     X   13   -1  12
+       skcon     X   15   -1  14
+       skcon     X   16   -1  15
+       skcon     X   17   -1  16
+       skcon     X   18   -1  17
+       skcon     X   14   -1  13
+       skcon     Y   2   -1  (BodyArr[4,2]-BodyArr[3,2])*LengthScale
+       skcon     Y   3   -1  (BodyArr[5,2]-BodyArr[3,2])*LengthScale
+       skcon     Y   4   -1  (BodyArr[6,2]-BodyArr[3,2])*LengthScale
+       skcon     Y   5   -1  (BodyArr[7,2]-BodyArr[3,2])*LengthScale
+       skcon     Y   6   -1  (BodyArr[8,2]-BodyArr[3,2])*LengthScale
+       skcon     Y   7   -1  (BodyArr[9,2]-BodyArr[3,2])*LengthScale
+       skcon     Y   8   -1  (BodyArr[10,2]-BodyArr[3,2])*LengthScale
+       skcon     Y   9   -1  (BodyArr[11,2]-BodyArr[3,2])*LengthScale
+       skcon     Y   10   -1  (BodyArr[12,2]-BodyArr[3,2])*LengthScale
+       skcon     Y   12   -1  (BodyArr[14,2]+(2*BodyArr[10,2]-2*BodyArr[14,2])-BodyArr[3,2])*LengthScale
+       skcon     Y   13   -1  (BodyArr[15,2]+(2*BodyArr[10,2]-2*BodyArr[15,2])-BodyArr[3,2])*LengthScale
+       skcon     Y   14   -1  (BodyArr[16,2]+(2*BodyArr[10,2]-2*BodyArr[16,2])-BodyArr[3,2])*LengthScale
+       skcon     Y   15   -1  (BodyArr[17,2]+(2*BodyArr[10,2]-2*BodyArr[17,2])-BodyArr[3,2])*LengthScale
+       skcon     Y   16   -1  (BodyArr[18,2]+(2*BodyArr[10,2]-2*BodyArr[18,2])-BodyArr[3,2])*LengthScale
+       skcon     Y   17   -1  (BodyArr[19,2]+(2*BodyArr[10,2]-2*BodyArr[19,2])-BodyArr[3,2])*LengthScale
+       skcon     Y   18   -1  (BodyArr[20,2]+(2*BodyArr[10,2]-2*BodyArr[20,2])-BodyArr[3,2])*LengthScale
+       linseg    ::x[2]   ::y[2]   0
+       linseg    ::x[3]   ::y[3]   0
+       linseg    ::x[4]   ::y[4]   0
+       linseg    ::x[5]   ::y[5]   0
+       linseg    ::x[6]   ::y[6]   0
+       linseg    ::x[7]   ::y[7]   0
+       linseg    ::x[8]   ::y[8]   0
+       linseg    ::x[9]   ::y[9]   0
+       linseg    ::x[10]   ::y[10]   0
+       linseg    ::x[11]   ::y[11]   0
+       linseg    ::x[12]   ::y[12]   0
+       linseg    ::x[13]   ::y[13]   0
+       linseg    ::x[14]   ::y[14]   0
+       linseg    ::x[15]   ::y[15]   0
+       linseg    ::x[16]   ::y[16]   0
+       linseg    ::x[17]   ::y[17]   0
+    skend     0
+
+    assert    0  1
+    catbeg    $underconstrained
+    catend
+
+    sweep
+
+    attribute capsGroup $Stringers
+
+    #
+    #
+    # Store copies of the fuselage at different scales
+    #
+    #
+
+    mark
+        patbeg    r   18
+        name      BulkheadsPat2
+           udprim    supell   rx   BodyArr[r+2,3]*LengthScale*0.94   ry   BodyArr[r+2,2]*LengthScale*0.94   n   BodyArr[r+2,4]
+           rotatey   270   0   0
+
+           ifthen    r   lt   11   and   0   eq   0
+              translate (r+1)*LengthScale   BodyArr[r+2,2]*LengthScale   0
+           elseif    r   eq   11   or   r   gt   11
+              translate (r+1)*LengthScale   (BodyArr[r+2,2]+(2*BodyArr[10,2]-2*BodyArr[r+2,2]))*LengthScale   0
+           endif
+        patend
+    blend     0   0   0   0
+    store     $Inner   0   0
+
+    mark
+    patbeg    r   18
+    name      MainFusePat
+       udprim    supell   rx   BodyArr[r+2,3]*LengthScale*0.98   ry   BodyArr[r+2,2]*LengthScale*0.98   n   BodyArr[r+2,4]
+       rotatey   270   0   0
+
+       ifthen    r   lt   11   and   0   eq   0
+          translate (r+1)*LengthScale   BodyArr[r+2,2]*LengthScale   0
+       elseif    r   eq   11   or   r   gt   11
+          translate (r+1)*LengthScale   (BodyArr[r+2,2]+(2*BodyArr[10,2]-2*BodyArr[r+2,2]))*LengthScale   0
+       endif
+    patend
+
+    blend     0   0   0   0
+    select    edge @nbody 3 @nbody 4
+    attribute crown $1
+    select    edge @nbody 5 @nbody 6
+    attribute keel  $1
+    set       tempBody @nbody
+    store     $ForX   0   0
+
+    #
+    # Creates stringer X within fuselage
+    #
+    restore $ForX 0
+    intersect none 0 0
+    udprim  editAttr filename <<
+    face adj2edge crown=1
+    set           crown=1
+    face adj2edge keel=1
+    set           keel=1
+>>
+    store   $Cut 0 1
+    select  face  tempBody 6 1
+    extract @iface
+    attribute _name $LeftStringer
+    attribute _stlColor 13
+    attribute _color 0;0;100
+
+    attribute capsGroup $Stringers
+    store $Stringers 1 0
+
+    restore $Cut 0
+    select  face  $keel $1
+    assert  @sellist.size 2
+    extract @sellist[1]
+    restore $Cut 0
+    select  face  $keel $1
+    extract @sellist[2]
+    join
+    attribute _name $BottomStringer
+    attribute _stlColor 13
+    attribute _color 0;0;100
+
+    attribute capsGroup $Stringers
+    store $Stringers 2 0
+
+    restore $Cut 0
+    select  face  tempBody 5 1
+    extract @iface
+    attribute _name $RightStringer
+    attribute _stlColor 13
+    attribute _color 0;0;100
+
+    attribute capsGroup $Stringers
+    store $Stringers 3 0
+
+    restore $Cut 0
+    select  face  $crown $1
+    assert  @sellist.size 2
+    extract @sellist[1]
+    restore $Cut 0
+    select  face  $crown $1
+    extract @sellist[2]
+    join
+    attribute _name $TopStringer
+    attribute _stlColor 13
+    attribute _color 0;0;100
+
+    attribute capsGroup $Stringers
+    store $Stringers 4 0
+
+    mark
+    patbeg    r   18
+    name      BulkheadsPat1
+       udprim    supell   rx   BodyArr[r+2,3]*LengthScale*0.98   ry   BodyArr[r+2,2]*LengthScale*0.98   n   BodyArr[r+2,4]
+       rotatey   270   0   0
+       ifthen    r   lt   11   and   0   eq   0
+          translate (r+1)*LengthScale   BodyArr[r+2,2]*LengthScale   0
+       elseif    r   eq   11   or   r   gt   11
+          translate (r+1)*LengthScale   (BodyArr[r+2,2]+(2*BodyArr[10,2]-2*BodyArr[r+2,2]))*LengthScale   0
+       endif
+       restore   $Inner   0
+       subtract  none   1   0
+       attribute capsGroup $Bulkheads
+       attribute _stlColor 13
+       store $Bulkheads r 0
+    patend
+
+    #attribute _name $Bulkheads
+    #attribute _color 0;0;100
+
+
+endif
+
+
+#
+# UDC that creates the landing gear
+#
+
+ifthen ToggleGear eq 1
+    udprim $/FJ2_landingGear1 RimRadius NoseGearRimRadius LegLength NoseGearLegLength
+    scale 0.4*LengthScale
+    translate 3*LengthScale -1.6 0
+    attribute _name $NoseGear
+    attribute _stlColor 14
+
+    attribute capsGroup $FrontLandingGear
+
+    store $FrontGear 0 0
+
+
+    udprim $/FJ2_landingGear2 RimRadius WingGearRimRadius LegLength WingGearLegLength
+    scale 0.5*LengthScale
+    rotatey 180 0 0
+    translate (11+(WingSpan/8)*tand(WingSweepAngle))*LengthScale -1.2*LengthScale 5.6*LengthScale
+    attribute _name  $LeftWingGear
+    attribute _stlColor 14
+
+    attribute capsGroup $LeftLandingGear
+
+    store $LeftGear 0 0
+
+
+    udprim $/FJ2_landingGear2 RimRadius WingGearRimRadius LegLength WingGearLegLength
+    mirror 0 0 1
+    scale 0.5*LengthScale
+    rotatey 180 0 0
+    translate (11+(WingSpan/8)*tand(WingSweepAngle))*LengthScale -1.2*LengthScale -5.6*LengthScale
+    attribute _name  $RightWingGear
+    attribute _stlColor 14
+
+    attribute capsGroup $RightLandingGear
+
+    store $RightGear 0 0
+
+
+endif
+
+###################                                 ###################
+###################     INTERNALS/COMPONENTS        ###################
+###################                                 ###################
+
+
+
+ifthen VulnToggle eq 1 or VulnToggle eq 1
+
+
+    #
+    # Primitive Body that creates the dish inside the nose
+    #
+
+    udprim $/FJ2_dish DishRad DishRadius AntLeng AntennaLength
+    name Dish
+    rotatey 180 0 0
+    scale 0.5*LengthScale
+    translate 2.3*LengthScale 2.1*LengthScale 0
+    attribute _name $Dish
+    attribute _stlColor 6
+    attribute capsGroup $Dish
+
+    store $Dish 0 0
+
+
+    #
+    # Primitive bodies that represent some avionics components
+    #
+
+    box 0 0 -0.5 2 2 1.0
+    attribute _color 5;1;2
+    box -3 0 -0.6 4 1 1.2
+    attribute _color 5;1;2
+    union 0 0 0
+    scale LengthScale
+    translate AvionicsLoc*BodyLength 0 0
+    name Avionics
+    attribute _name $Avionics
+    attribute _stlColor 7
+    attribute capsGroup $Avionics
+
+    store $Avionics 0 0
+
+
+    #
+    # Primitive body that creates the main fueltank
+    #
+
+    box 0 0.25 -0.8 5 2 1.6
+    attribute _color 100;0;0
+    scale LengthScale
+    translate FuelTankLoc*BodyLength 0 0
+    name FuelTank
+    attribute _name $FuelTank
+    attribute _stlColor 8
+    attribute capsGroup $FuelTank
+
+    store $FuelTank 0 0
+
+
+    #
+    # Primitive bodies to create fuel lines within wings
+    #
+
+    cylinder 9  1 0 (8.5+(WingSpan/2)*(tand(WingSweepAngle))) 2.845/cosd(-5)  24*(WingSpan/50) 0.03
+    attribute _color 100;0;0
+    scale LengthScale
+
+    cylinder 10 0.75 0 (8.5+(WingSpan/2)*(tand(WingSweepAngle))) 2.845/cosd(-5)   24*(WingSpan/50) 0.03
+    attribute _color 100;0;0
+    scale LengthScale
+    union 0 0 0
+
+    attribute _stlColor 9
+
+    cylinder 12 0.6 0 (8.5+(WingSpan/2)*(tand(WingSweepAngle))) 2.845/cosd(-5)   24*(WingSpan/50) 0.03
+    attribute _color 100;0;0
+    scale LengthScale
+    union 0 0 0
+    attribute _name $FuelLines1
+    attribute _stlColor 9
+    attribute capsGroup $FuelLinesR
+
+    store $FuelLines 1 0
+
+
+    cylinder 9     1 0 (8.5+(WingSpan/2)*(tand(WingSweepAngle))) 2.845/cosd(-5) -24*(WingSpan/50) 0.03
+    attribute _color 100;0;0
+    scale LengthScale
+
+    cylinder 10 0.75 0 (8.5+(WingSpan/2)*(tand(WingSweepAngle))) 2.845/cosd(-5) -24*(WingSpan/50) 0.03
+    attribute _color 100;0;0
+    scale LengthScale
+
+    union 0 0 0
+    attribute _stlColor 9
+
+    cylinder 12 0.6 0 (8.5+(WingSpan/2)*(tand(WingSweepAngle))) 2.845/cosd(-5) -24*(WingSpan/50) 0.03
+    attribute _color 100;0;0
+    scale LengthScale
+    union 0 0 0
+
+    attribute _name $FuelLines2
+    attribute _stlColor 9
+
+    #scale LengthScale
+    name FuelLinesL
+    attribute _stlColor 9
+    attribute capsGroup $FuelLinesL
+
+    store $FuelLines 2 0
+
+
+    #
+    # Primitive body that creates the engine
+    #
+
+    cylinder 10.8 3.5 0 17 3.25 0 0.7
+    attribute _color 99;0;55
+    scale LengthScale
+    name Engine
+    attribute _name $Engine
+    attribute _stlColor 10
+    attribute capsGroup $Engine
+
+    store $Engine 0 0
+
+
+
+    #
+    # Primitive body that creates the rear underside antenna housing
+    #
+
+    mark
+    skbeg     0   0   0   1
+       skvar     xy   -0.000833;0.005328;0.000000;1.810591;0.104778;1.420725;0.794773;2.001446;0.000000;
+       skcon     X   1   -1  0
+       skcon     Y   1   -1  0
+       skcon     R   1   2  1
+       skcon     T   2   -1  0
+       skcon     T   1   -1  0
+       skcon     X   3   -1  0.8
+       skcon     Y   3   -1  2
+       arc       ::x[2]   ::y[2]   0   ::d[2]   xy
+       linseg    ::x[3]   ::y[3]   0
+       linseg    ::x[1]   ::y[1]   0
+    skend     0
+
+    assert    0  1
+    catbeg    $underconstrained
+    catend
+
+    skbeg     0.4   0  1   1
+       skvar     xy   -0.000833;0.005328;0.000000;1.810591;0.104778;1.420725;0.794773;2.001446;0.000000;
+       skcon     X   1   -1  0
+       skcon     Y   1   -1  0
+       skcon     R   1   2  1
+       skcon     T   2   -1  0
+       skcon     T   1   -1  0
+       skcon     X   3   -1  0.8
+       skcon     Y   3   -1  2
+       arc       ::x[2]   ::y[2]   0   ::d[2]   xy
+       linseg    ::x[3]   ::y[3]   0
+       linseg    ::x[1]   ::y[1]   0
+    skend     0
+
+    assert    0  1
+    catbeg    $underconstrained
+    catend
+
+scale 0.7
+
+    skbeg     0.9   0   1   1
+       skvar     xy   0.000000;0.005000;0;
+       skcon     X   1   -1  0
+       skcon     Y   1   -1  0
+    skend     0
+    blend
+    attribute _name $RearSATCover
+    attribute _stlColor 11
+    attribute _color 0;0;100
+
+    attribute capsGroup $RearAntenna
+
+    scale 0.8*LengthScale
+    rotatey  90 0 0
+    rotatez 270 0 0
+    rotatey   5 0.8 0
+    rotatez  10 0.5 0
+    translate 15*LengthScale LengthScale 0.8*LengthScale
+
+    store $RearSAT 0 0
+
+endif
+
+#
+# Determines which models are built
+#
+
+# CFD
+
+ifthen CFDToggle eq 1
+
+	mark
+	restore $FuselageBody
+	attribute capsIntent CFD
+	restore $ConnectorBody
+	restore $IntakeBody
+	ifthen TailConfig eq 1 or TailConfig eq 2
+		restore $Tail1Body
+		restore $Tail2Body
+	else
+		restore $Tail1Body
+		restore $Tail2Body
+		restore $Tail3Body
+	endif
+	restore $WingBody
+	restore $PodR
+	restore $PodL
+
+	ifthen ToggleGear eq 1
+		restore $FrontGear
+		restore $LeftGear
+		restore $RightGear
+	endif
+
+
+	union 1 0 0
+
+	extract 0
+
+	attribute _name $OML_Model
+endif
+
+# LINEARAERO
+
+ifthen LINEARAEROToggle eq 1
+
+	mark
+	restore $WingTipR
+	attribute _name $WingTipR
+	attribute capsType  $Wing
+	attribute capsGroup $Wing
+	attribute capsReferenceArea WingArea
+	attribute capsIntent LINEARAERO
+
+
+
+	restore $WingRoot
+	attribute _name $WingRoot
+	attribute capsType  $Wing
+	attribute capsGroup $Wing
+
+	restore $WingTipL
+	attribute _name $WingTipL
+	attribute capsType  $Wing
+	attribute capsGroup $Wing
+
+	ifthen TailConfig eq 1 or TailConfig eq 2
+		restore $TailRoot1
+		attribute _name $TailRoot1
+		attribute capsType  $VTail
+		attribute capsGroup $VertTail
+
+		restore $TailTip1
+		attribute _name $TailTip1
+		attribute capsType  $VTail
+		attribute capsGroup $VertTail
+
+		restore $TailRoot2
+		attribute _name $TailRoot2
+		attribute capsType  $VTail
+		attribute capsGroup $VertTail
+
+		restore $TailTip2
+		attribute _name $TailTip2
+		attribute capsType  $VTail
+		attribute capsGroup $VertTail
+
+	else
+		restore $TailRoot1
+		attribute _name $TailRoot1
+		attribute capsType  $HTail
+		attribute capsGroup $HorTail
+
+		restore $TailTip1
+		attribute _name $TailTip1
+		attribute capsType  $HTail
+		attribute capsGroup $HorTail
+
+		restore $TailRoot2
+		attribute _name $TailRoot2
+		attribute capsType  $HTail
+		attribute capsGroup $HorTail
+
+		restore $TailTip2
+		attribute _name $TailTip2
+		attribute capsType  $HTail
+		attribute capsGroup $HorTail
+
+		restore $TailRoot3
+		attribute _name $TailRoot3
+		attribute capsType  $HTail
+		attribute capsGroup $HorTail_Stab
+
+		restore $TailTip3
+		attribute _name $TailTip3
+		attribute capsType  $HTail
+		attribute capsGroup $HorTail_Stab
+	endif
+
+	# Include xSections?
+
+	#patbeg f 25
+	#	restore $FuseXSec f
+	#	attribute capsGroup $FuselageXSection
+	#patend
+	group
+
+
+
+endif
+
+
+# Structures
+
+ifthen StructToggle eq 1
+
+
+	restore $Stringers 1
+	attribute capsGroup $Stringers
+	attribute capsIntent STRUCTURE
+	restore $Stringers 2
+	attribute capsGroup $Stringers
+	restore $Stringers 3
+	attribute capsGroup $Stringers
+	restore $Stringers 4
+	attribute capsGroup $Stringers
+
+
+
+	patbeg b 18
+
+		restore $Bulkheads b
+		attribute capsGroup $Bulkheads
+
+	patend
+
+
+	# Ideally, union bulkheads and stringers into one body
+	# Currently gives wrong_types_on_stack error
+	#union 1 0 0
+
+
+	restore $Spars 1
+	restore $ForX
+	subtract none 1 0
+	attribute capsGroup $RightSpars
+	attribute _name $RightSpars
+
+	restore $Spars 2
+	restore $ForX
+	subtract none 1 0
+	attribute capsGroup $LeftSpars
+	attribute _name $LeftSpars
+
+endif
+
+# Vulnerability
+
+ifthen VulnToggle eq 1
+
+	mark
+	restore $FuselageBody
+	attribute capsGroup $Fuselage
+
+	#attribute capsIntent Vulnerability
+
+	restore $ConnectorBody
+	attribute capsGroup $Connector
+	restore $IntakeBody
+	attribute capsGroup $Intake
+	ifthen TailConfig eq 1 or TailConfig eq 2
+		restore $Tail1Body
+		attribute capsGroup $Tail
+		restore $Tail2Body
+		attribute capsGroup $Tail
+	else
+		restore $Tail1Body
+		attribute capsGroup $Tail
+		restore $Tail2Body
+		attribute capsGroup $Tail
+		restore $Tail3Body
+		attribute capsGroup $Tail
+	endif
+	restore $WingBody
+	attribute capsGroup $Wing
+	restore $PodR
+	attribute capsGroup $Pod
+	restore $PodL
+	attribute capsGroup $Pod
+
+	ifthen ToggleGear eq 1
+		restore $FrontGear
+		attribute capsGroup $FrontGear
+		restore $LeftGear
+		attribute capsGroup $LeftGear
+		restore $RightGear
+		attribute capsGroup $RightGear
+	endif
+
+
+	# Uncomment for one sheet body OML
+	#union 1 0 0
+
+	#extract 0
+	#attribute _name $OML_Model
+	#attribute capsGroup $OML
+
+	restore $Stringers 1
+	attribute capsGroup $Stringers
+	restore $Stringers 2
+	attribute capsGroup $Stringers
+	restore $Stringers 3
+	attribute capsGroup $Stringers
+	restore $Stringers 4
+	attribute capsGroup $Stringers
+
+	patbeg b 18
+
+		restore $Bulkheads b
+		attribute capsGroup $Bulkheads
+
+	patend
+
+
+	# Ideally, union bulkheads and stringers into one body
+	# Currently gives wrong_types_on_stack error
+	#union 1 0 0
+
+
+	restore $Spars 1
+	restore $ForX
+	subtract none 1 0
+	attribute capsGroup $RightSpars
+	attribute _name $RightSpars
+
+	restore $Spars 2
+	restore $ForX
+	subtract none 1 0
+	attribute capsGroup $LeftSpars
+	attribute _name $LeftSpars
+
+	restore $Dish
+	attribute capsGroup $Dish
+	restore $Avionics
+	attribute capsGroup $Avionics
+	restore $FuelTank
+	attribute capsGroup $FuelTank
+	restore $Engine
+	attribute capsGroup $
+	restore $RearSAT
+	mark
+	restore $FuelLines 1
+	restore $FuelLines 2
+	union 1 0 0
+	attribute _name $FuelLines
+	attribute capsGroup $FuelLines
+endif
+
+# LINEARStruct
+
+ifthen LINEARStructToggle eq 1
+
+	restore $Stringers 1
+	attribute capsGroup $Stringers
+
+
+	#attribute capsIntent LINEARStruct
+
+
+	restore $Stringers 2
+	attribute capsGroup $Stringers
+	restore $Stringers 3
+	attribute capsGroup $Stringers
+	restore $Stringers 4
+	attribute capsGroup $Stringers
+
+
+
+	patbeg b 18
+
+		restore $Bulkheads b
+		attribute capsGroup $Bulkheads
+
+	patend
+
+
+	# Ideally, union bulkheads and stringers into one body
+	# Currently gives wrong_types_on_stack error
+	#union 1 0 0
+
+
+	restore $Spars 1
+	restore $ForX
+	subtract none 1 0
+	attribute capsGroup $RightSpars
+	attribute _name $RightSpars
+
+	restore $Spars 2
+	restore $ForX
+	subtract none 1 0
+	attribute capsGroup $LeftSpars
+	attribute _name $LeftSpars
+
+
+	restore $WingTipR
+	attribute _name $WingTipR
+	restore $WingRoot
+	attribute _name $WingRoot
+	restore $WingTipL
+	attribute _name $WingTipL
+
+	ifthen TailConfig eq 1 or TailConfig eq 2
+		restore $TailRoot1
+		attribute _name $TailRoot1
+		restore $TailTip1
+		attribute _name $TailTip1
+		restore $TailRoot2
+		attribute _name $TailRoot2
+		restore $TailTip2
+		attribute _name $TailTip2
+	else
+		restore $TailRoot1
+		attribute _name $TailRoot1
+		restore $TailTip1
+		attribute _name $TailTip1
+		restore $TailRoot2
+		attribute _name $TailRoot2
+		restore $TailTip2
+		attribute _name $TailTip2
+		restore $TailRoot3
+		attribute _name $TailRoot3
+		restore $TailTip3
+		attribute _name $TailTip3
+	endif
+
+	#patbeg f 25
+	#	restore $FuseXSec f
+	#	attribute capsGroup $FuselageXSection
+	#patend
+
+endif
+
+
+
+#############################################################################
+#                                                                           #
+#                                       INFORMATION                         #
+#                                                                           #
+#############################################################################
+#
+#
+# The _stlColor attribute is used to identify the components of the UAV in a
+# binary STL file, so that they are identifiable by an outside program. Below
+# is the table of values
+#
+#       Color       |        Component
+#-----------------------------------------
+#         1         |     Fuselage Body
+#         2         |     Engine Intake
+#         3         |          Tail
+#         4         |          Wings
+#         5         |        Wing Pods
+#---------------Internals------------------
+#         6         |          Dish
+#         7         |        Avionics
+#         8         |        Fueltank
+#         9         |       Fuel lines
+#        10         |         Engine
+#        11         |   Rear Satellite Pod
+#---------------Structures------------------
+#        12         |     Wing Spars/Ribs
+#        13         |    Fuselage Bulkheads
+#------------------Misc---------------------
+#        14         |      Landing Gear
+#
+#
+#
+# The current range of motion of the UAV is:
+#       Sweep = (-10 -> 25) degrees
+#    WingSpan = ( 10 -> 70) tip-to-tip
+#  BodyLength = N/A (just scales entire vehicle)
+#
+#
+
+end

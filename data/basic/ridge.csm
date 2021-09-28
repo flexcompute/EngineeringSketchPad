@@ -1,0 +1,59 @@
+# ridge
+# written by Bob Haimes for boolean tests
+
+mark
+skbeg       0.0      0.0       0.0
+   spline   0.2      0.0       0.0
+   spline   0.4      0.0       0.0
+   spline   0.6      0.0       0.0
+   spline   0.8      0.0       0.0
+   spline   1.0      0.0       0.0
+   linseg   1.0      1.0       0.0
+   linseg   0.0      1.0       0.0
+   linseg   0.0      0.0       0.0
+skend
+
+skbeg       0.0      0.0       0.2
+   spline   0.2      0.02      0.2
+   spline   0.4      0.0       0.2
+   spline   0.6      0.0       0.2
+   spline   0.8      0.02      0.2
+   spline   1.0      0.0       0.2
+   linseg   1.0      1.0       0.2
+   linseg   0.0      1.0       0.2
+   linseg   0.0      0.0       0.2
+skend
+
+skbeg       0.0      0.0       0.5
+   spline   0.2      0.01      0.5
+   spline   0.4     -0.05      0.5
+   spline   0.6     -0.05      0.5
+   spline   0.8      0.01      0.5
+   spline   1.0      0.0       0.5
+   linseg   1.0      1.0       0.5
+   linseg   0.0      1.0       0.5
+   linseg   0.0      0.0       0.5
+skend
+
+skbeg       0.0      0.0       1.0
+   spline   0.2      0.05      1.0
+   spline   0.4     -0.25      1.0
+   spline   0.6     -0.25      1.0
+   spline   0.8      0.05      1.0
+   spline   1.0      0.0       1.0
+   linseg   1.0      1.0       1.0
+   linseg   0.0      1.0       1.0
+   linseg   0.0      0.0       1.0
+skend
+
+blend
+
+udprim box dy 1.5 dz 1.5 dx 1.0
+translate -0.5 0.0 0.0
+rotatez   88.5 0.0 0.0
+rotatex    0.1 0.0 0.0
+translate 0.50 -0.00268755 0.50
+
+subtract
+
+end

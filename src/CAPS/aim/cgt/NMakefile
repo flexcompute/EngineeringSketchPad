@@ -1,0 +1,37 @@
+#
+!IFNDEF ESP_ROOT
+!ERROR ESP_ROOT must be set -- Please fix the environment...
+!ENDIF
+#
+IDIR  = $(ESP_ROOT)\include
+!include $(IDIR)\$(ESP_ARCH).$(MSVC)
+LDIR  = $(ESP_ROOT)\lib
+!IFDEF ESP_BLOC
+ODIR  = $(ESP_BLOC)\obj
+TDIR  = $(ESP_BLOC)\test
+!ELSE
+ODIR  = .
+TDIR  = $(ESP_ROOT)\bin
+!ENDIF
+
+
+$(TDIR)\egads2cgt.exe:	$(ODIR)\egads2cgt.obj $(ODIR)\aflr4egads.obj \
+		$(LDIR)\caps.lib $(LDIR)\ocsm.lib $(LDIR)\egads.lib
+	cl /Fe$(TDIR)\egads2cgt.exe $(ODIR)\egads2cgt.obj \
+		$(ODIR)\aflr4egads.obj \
+		/link /LIBPATH:$(LDIR) caps.lib ocsm.lib egads.lib
+	$(MCOMP) /manifest $(TDIR)\egads2cgt.exe.manifest \
+		/outputresource:$(TDIR)\egads2cgt.exe;1
+
+$(ODIR)\egads2cgt.obj:	egads2cgt.c
+	cl /c $(COPTS) $(DEFINE) /I$(IDIR) egads2cgt.c /Fo$(ODIR)\egads2cgt.obj
+
+$(ODIR)\aflr4egads.obj:	aflr4egads.c
+	cl /c $(COPTS) $(DEFINE) /I$(IDIR) aflr4egads.c \
+		/Fo$(ODIR)\aflr4egads.obj
+
+clean:
+	-del $(ODIR)\egads2cgt.obj $(ODIR)\aflr4egads.obj
+
+cleanall:	clean
+	-del $(TDIR)\egads2cgt.exe

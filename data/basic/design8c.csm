@@ -1,0 +1,27 @@
+# design8c
+# written by John Dannenhoffer
+
+# default design parameters
+despmtr   xcent     0
+despmtr   ycent     0
+despmtr   zcent     0
+despmtr   L         2
+despmtr   H         2
+despmtr   W         3
+despmtr   t         0.3
+
+set       R         (t^2+H^2/4)/(2*t)
+set       xcyl      xcent+L/2+(R-t)
+set       ycyl      ycent
+
+cylinder  xcent-L/2  ycent     zcent    xcent+L/2  ycent  zcent  W/2
+rotatex   90         ycent     zcent
+box       xcent-L/2  ycent-H/2 zcent-W  L          H      W*2
+intersect
+
+cylinder  xcyl   ycyl   zcent-2*W  xcyl  ycyl  zcent+2*W  R
+rotatez   90     xcyl   ycyl
+
+subtract
+
+end

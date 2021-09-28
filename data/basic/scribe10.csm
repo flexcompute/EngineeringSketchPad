@@ -1,0 +1,18 @@
+# scribe10
+# written by John Dannenhoffer
+
+# circle
+skbeg     1.0  0.0   0.2
+   cirarc 0.0  1.0   0.2  -1.0  0.0   0.2
+   cirarc 0.0 -1.0   0.2   1.0  0.0   0.2
+skend
+
+# plane
+skbeg     0.2  0.2  -1.0
+   linseg -.2  -.2  -1.0
+skend
+extrude   0.0  0.0   2.0
+
+subtract
+
+end

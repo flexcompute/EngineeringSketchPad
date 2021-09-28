@@ -1,0 +1,33 @@
+# body4
+# written by John Dannenhoffer
+
+despmtr   nsect     3
+
+set       angle     360/nsect
+
+# first section
+skbeg         10.000000  0.000000  0.000000
+   linseg     -2.316228  0.000000  0.000000
+   cirarc     -2.256537  0.184902  0.000000 -2.100000  0.300000  0.000000
+   linseg      0.000000  1.000000  0.000000
+   linseg     10.000000  1.000000  0.000000
+   linseg     10.000000  0.000000  0.000000
+skend
+revolve        0.00      0.00      0.00      1.00      0.00      0.00      angle
+
+# subsequent sections (unioned in)
+patbeg    isect     nsect-1
+   skbeg         10.000000  0.000000  0.000000
+      linseg     -2.316228  0.000000  0.000000
+      cirarc     -2.256537  0.184902  0.000000 -2.100000  0.300000  0.000000
+      linseg      0.000000  1.000000  0.000000
+      linseg     10.000000  1.000000  0.000000
+      linseg     10.000000  0.000000  0.000000
+   skend
+   revolve        0.00      0.00      0.00      1.00      0.00      0.00      angle
+
+   rotatex   isect*angle 0.00      0.00
+   union
+patend
+
+end

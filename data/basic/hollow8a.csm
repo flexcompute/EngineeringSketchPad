@@ -1,0 +1,21 @@
+# hollow8a
+# written by John Dannenhoffer
+
+despmtr   xmin     -1
+despmtr   xmax     +1
+despmtr   ymin     -1
+despmtr   ymax     +1
+despmtr   zmin     -1
+despmtr   zmax     +1
+despmtr   thick1   -0.50
+despmtr   thick2   +0.10
+
+box       xmin      ymin      zmin      xmax-xmin ymax-ymin zmax-zmin
+
+# expand around xmin and xmax
+hollow    thick1    1;1;1;2
+
+# cut out from one of the new faces
+hollow    thick2    2;4
+
+end

@@ -1,0 +1,31 @@
+# filletB
+# written by John Dannenhoffer
+
+# create box and put attributes on its left and rite Faces
+BOX       0   0   0   1   1   1
+SELECT face @nbody 1
+   ATTRIBUTE left $1
+SELECT face @nbody 2
+   ATTRIBUTE rite $1
+
+# chamfer an Edge and fillet one of the new Edges
+CHAMFER   .25  4;6
+FILLET    .12  6    1
+
+# chamfer all Edges associated with left Face
+UDPRIM editAttr filename <<
+   EDGE adj2face left=1
+   SET  left=1
+>>
+SELECT edge $left $1
+CHAMFER   .05 @sellist 1
+
+# fillet all Edges associated with rite Face
+UDPRIM editAttr filename <<
+   EDGE adj2face rite=1
+   SET  rite=1
+>>
+SELECT edge $rite $1
+FILLET    .05 @sellist 1
+
+end

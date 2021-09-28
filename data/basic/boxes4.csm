@@ -1,0 +1,79 @@
+# boxes4
+# written by John Dannenhoffer
+
+# set up as test case for OvrCad3
+
+# global attributes
+attribute   ijkmin            9
+attribute   ijkmax           65
+attribute   ijkstp            4
+
+attribute   GLOBL.onoff       0
+attribute   CUTTR.onoff       0
+attribute   TRIMR.onoff       0
+attribute   DONOR.onoff       0
+
+attribute   PLT3D.onoff       1
+attribute   PLT3D.bigend      1
+
+attribute   XRAYS.onoff       0
+attribute   XRAYS.bigend      1
+
+# box attributes
+attribute   BASIC.onoff       1
+attribute   BASIC.plot        0
+
+# collar attributes
+#attribute   COLAR.onoff       0         no collar grids
+attribute   COLAR.onoff       1
+attribute   COLAR.plot        0          =1 in/out, =2 result, =3 both
+attribute   COLAR.imax        129
+attribute   COLAR.imin        17
+attribute   COLAR.dsimin      0.010
+attribute   COLAR.dsimax      0.010
+attribute   COLAR.jmid        16
+attribute   COLAR.dsjbeg      0.004
+attribute   COLAR.dsjrat      1.100
+attribute   COLAR.kmax        13
+attribute   COLAR.dnbeg       0.002
+attribute   COLAR.dnrat       1.150
+attribute   COLAR.check       0
+
+# Design Parameters:
+despmtr   s         2.0
+despmtr   t         0.1
+despmtr   angle     10
+
+# Branches
+box       -s   -t/2   -s/2   s   t   s
+   attribute   box_onoff       1
+   attribute   box_wrpdir      3
+   attribute   box_dsnom   0.050
+   attribute   box_dsmin   0.020
+   attribute   box_strmin  0.800
+   attribute   box_dnbeg   0.005
+   attribute   box_dnrat   1.100
+   attribute   box_kmax       25
+   attribute   box_extend      8
+   attribute   box_trmlen      8
+   attribute   box_icap1       0
+   attribute   box_icap2       0
+
+box        0   -t/2   -s/5   s   t   s
+   attribute   box_onoff       1
+   attribute   box_wrpdir      3
+   attribute   box_dsnom   0.050
+   attribute   box_dsmin   0.020
+   attribute   box_strmin  0.800
+   attribute   box_dnbeg   0.005
+   attribute   box_dnrat   1.100
+   attribute   box_kmax       25
+   attribute   box_extend      8
+   attribute   box_trmlen      8
+   attribute   box_icap1       0
+   attribute   box_icap2       0
+rotatex    angle   0   0
+
+union
+
+end

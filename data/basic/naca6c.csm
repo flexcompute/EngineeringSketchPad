@@ -1,0 +1,16 @@
+# naca6c
+# written by John Dannenhoffer
+
+# outer shell
+UDPARG    naca      thickness  0.12   sharpte  1
+UDPRIM    naca      camber     0.06
+EXTRUDE   0  0  3
+
+# hole
+UDPARG    naca      thickness  0.12    sharpte  1
+UDPRIM    naca      camber     0.06    offset  -.01
+EXTRUDE   0  0  3
+
+SUBTRACT
+
+end

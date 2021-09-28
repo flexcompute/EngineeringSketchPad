@@ -1,0 +1,36 @@
+# Wing1
+
+SET wing:name    $Wing1
+SET wing:aspect  6.00
+SET wing:taper   0.60
+SET wing:xOffset 0
+SET wing:hinge   0
+SET wing:AvlNcut 3
+
+UDPRIM $/avlWing 
+
+# Wing2
+
+SET wing:name    $Wing2
+SET wing:aspect  6.00
+SET wing:taper   0.60
+SET wing:xOffset 2.5
+SET wing:hinge   0
+SET wing:AvlNcut 7
+
+UDPRIM $/avlWing
+
+# Wing3
+
+SET       wing:name $Wing3
+SET       wing:aspect 6.00
+SET       wing:taper 0.60
+SET       wing:xOffset 5
+DIMENSION wing:hinge        2 9 0
+#                           theta   ymin                  ymax                gap   grp
+SET       wing:hinge       "-10.0;  0.75; -0.90;  0.50;   0.75; -0.50; 0.50;  0.10; 1;  \ left aileron
+                            +10.0;  0.75;  0.50;  0.50;   0.75;  0.90; 0.50;  0.10; 1"  #  rite aileron
+
+UDPRIM $/avlWing
+
+end

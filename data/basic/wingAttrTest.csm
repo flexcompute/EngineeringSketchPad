@@ -1,0 +1,225 @@
+# wingAttrTest
+# written by John Dannenhoffer
+
+# plafform design parameters
+despmtr S       10.0          # wing area
+despmtr AR      10.0          # aspect ratio
+despmtr sweep   35.0          # leading edge sweep
+despmtr taper   0.35          # taper ratio
+despmtr twist0  5.0           # twist at root
+despmtr twist1  -5.0          # twist at tip
+despmtr toc0    0.1           # thickness/chord at root
+despmtr toc1    0.06          # thickness/chord at tip
+despmtr cl0     0.4           # design lift coef at root
+despmtr cl1     0.2           # desogn lift coef at tip
+
+# structure design paramaters
+dimension sparLoc 3 1 1       # spar locations (fraction chord)
+despmtr   sparLoc 0.2;0.4;0.8
+dimension ribLoc  3 1 1       # rib locations  (fraction semispan)
+despmtr   ribLoc  0.35;0.70;0.80
+
+# planform geometry
+set x0LE        0.0
+set y0          0.0
+set z0          0.0
+
+set b_2         0.5*sqrt(S*AR)
+set chord0      S/(b_2*(1+taper))
+set chord1      taper*chord0
+
+set x1LE        x0LE+b_2*tand(sweep)
+set y1          y0+b_2
+set z1          z0
+
+# wing
+mark
+   # root
+   udparg naca456 thkcode $66
+   udparg naca456 camcode $6
+   udparg naca456 a       1.0
+   udparg naca456 toc     toc0
+   udparg naca456 cl      cl0
+   udprim naca456
+   scale     chord0
+   rotatex   90     0  0
+   rotatey   twist0 0  0
+   translate x0LE   y0 z0
+
+   # tip
+   udparg naca456 thkcode $66
+   udparg naca456 camcode $6
+   udparg naca456 a       1.0
+   udparg naca456 toc     toc1
+   udparg naca456 cl      cl1
+   udprim naca456
+   scale     chord1
+   rotatex   90     0  0
+   rotatey   twist1 0  0
+   translate x1LE   y1 z1
+rule
+
+select face @nbody 1
+   attribute tagType $root
+select face @nbody 2
+   attribute tagType $tip
+select face @nbody 3
+   attribute tagType $upperSkin
+select face @nbody 4
+   attribute tagType $lowerSkin
+select edge @nbody 3 @nbody 4 1
+   attribute tagType $leadingEdge
+select edge @nbody 3 @nbody 4 2
+   attribute tagType $trailingEdge
+
+store wingSolid
+
+# internal structure
+set slop 0.1*chord0
+
+set       nRibs  ribLoc.size
+set       nSpars sparLoc.size
+
+dimension structureWaffle nSpars+nRibs 4 0
+
+set counter 0
+patbeg iSpar nSpars
+  set chordFrac sparLoc[iSpar]
+  set counter counter+1
+  set structureWaffle[counter,1] x0LE+(-slop)/(y1-y0)*(x1LE-x0LE)+chordFrac*(chord0+(-slop)/(y1-y0)*(chord1-chord0))
+  set structureWaffle[counter,2] y0-slop
+  set structureWaffle[counter,3] x1LE+(slop)/(y1-y0)*(x1LE-x0LE)+chordFrac*(chord1+(slop)/(y1-y0)*(chord1-chord0))
+  set structureWaffle[counter,4] y1+slop
+patend # iSpar
+
+patbeg iRib nRibs
+  set spanFrac ribLoc[iRib]
+  set counter counter+1
+  set structureWaffle[counter,1] x0LE+spanFrac*(x1LE-x0LE)-slop
+  set structureWaffle[counter,2] y0+spanFrac*(y1-y0)
+  set structureWaffle[counter,3] x0LE+spanFrac*(x1LE-x0LE)+chord0+spanFrac*(chord1-chord0)+slop
+  set structureWaffle[counter,4] y0+spanFrac*(y1-y0)
+patend # iRib
+
+udprim waffle Depth chord0 Segments structureWaffle
+
+# convert waaffleSeg into rib and spar identifiers
+dimension segment 1 2
+patbeg iStruct nSpars*(nRibs+1)+nRibs*(nSpars+1)
+  select face iStruct
+  getattr segment $waffleseg
+
+  ifthen segment[1] LE nSpars
+    select face iStruct # ifthen cannot be attributed
+       attribute tagType     $spar
+       attribute tagIndex    val2str(segment[1],0)
+       attribute tagSubindex val2str(segment[2],0)
+  elseif segment[1] LE nSpars+nRibs
+    select face iStruct # ifthen cannot be attributed
+       attribute tagType     $rib
+       attribute tagIndex    val2str(segment[1]-nSpars,0)
+       attribute tagSubindex val2str(segment[2],0)
+  endif
+patend
+
+translate 0.0 0.0 -0.5*chord0
+store structureCutter
+
+# generate ribs and sprs
+restore structureCutter
+restore wingSolid
+intersect
+
+# scribe skins
+restore wingSolid
+restore structureCutter
+subtract
+extract 0
+
+# combine ribs, spars, and skins
+union
+
+# set the "case" Attributes
+udprim editAttr filename <<
+
+# 1. Nodes associated with a root Face (8 Nodes)
+NODE ADJ2FACE tagType=root
+SET  case=1
+
+# 2. Node associated with tip Face and the leading Edge (1 Node)
+NODE ADJ2FACE tagType=tip
+AND  ADJ2EDGE tagType=leadingEdge
+SET  case=2
+
+# 3. Edges associated with an upper skin Face and Rib 2 (4 Edges)
+EDGE ADJ2FACE tagType=upperSkin
+AND  ADJ2FACE tagType=rib tagIndex=2
+SET  case=3
+
+# 4. Edge associted with upper skin and spar 3, but only between ribs 2 and 3 (1 Edge)
+EDGE ADJ2FACE tagType=spar tagIndex=3 tagSubindex=3
+AND  ADJ2FACE tagType=upperSkin
+SET  case=4
+
+# 5. Edges surrounding the root Face, but not shared by more than one root Face (8 Edges)
+EDGE ADJ2FACE tagType=upperSkin
+AND  ADJ2FACE tagType=root
+SET  case=5
+
+EDGE ADJ2FACE tagType=lowerSkin
+AND  ADJ2FACE tagType=root
+SET  case=5
+
+# 6. Face on root between spars 1 and 2 (1 Face)
+FACE HAS      tagType=root
+AND  ADJ2FACE tagType=spar tagIndex=1
+AND  ADJ2FACE tagType=spar tagIndex=2
+SET  case=6
+
+# 7. Face on upper skin between ribs 2 and 3 and between spars 1 and 2 (1 Face)
+FACE HAS      tagType=upperSkin
+AND  ADJ2FACE tagType=rib tagIndex=2 tagSubindex=2
+AND  ADJ2FACE tagType=rib tagIndex=3 tagSubindex=2
+SET  case=7
+
+# 8. Faces associated with the trailing Edge and between ribs 2 and tip (4 Faces)
+FACE ADJ2EDGE tagType=trailingEdge
+AND  ADJ2FACE tagType=rib tagIndex=3
+SET  case=8
+
+# 9;10. Face on rib 1 with appended attributes
+FACE HAS     tagType=rib tagIndex=1 tagSubindex=1
+ADD  case=9
+
+FACE HAS     tagType=rib tagIndex=1 tagSubindex=1
+ADD  case=10
+>>
+
+select node $case    $1
+assert @sellist.size 8
+
+select node $case    $2
+assert @sellist.size 1
+
+select edge $case    $3
+assert @sellist.size 4
+
+select edge $case    $4
+assert @sellist.size 1
+
+select edge $case    $5
+assert @sellist.size 8
+
+select face $case    $6
+assert @sellist.size 1
+
+select face $case    $7
+assert @sellist.size 1
+
+select face $case    $8
+assert @sellist.size 4
+
+select face $case    $9;10
+assert @sellist.size 1
+
+end

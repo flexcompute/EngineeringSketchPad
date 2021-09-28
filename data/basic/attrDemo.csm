@@ -1,0 +1,93 @@
+# attrDemo
+# written by John Dannenhoffer
+
+# create a wing
+mark
+   udprim    naca  thickness 0.12  camber 0.04
+   udprim    naca  thickness 0.06  camber 0.00
+   scale     0.5
+   translate 0.5  0  5
+rule
+
+# name the various Faces
+select       face    @nbody  1
+   attribute myFace  $root
+select       face    @nbody  2
+   attribute myFace  $tip
+select       face    @nbody  3
+   attribute myFace  $upper
+select       face    @nbody  4
+   attribute myFace  $lower
+select       face    @nbody  5
+   attribute myFace  $te
+
+# add an attribute to Node 1 (which is at root/upper/trailingEdge)
+select       node    1.00017  0.00125  0.00000
+   attribute myNode  $node1
+
+# add an attribute to the Node that is at the tip leadingEdge
+udprim  editAttr filename <<
+   node adj2face myFace=upper
+   and  adj2face myFace=lower
+   and  adj2face myFace=tip
+   set           myNode=node2
+>>
+
+# add an attribute to Edge which is at upper/trailingEdge
+udprim  editAttr filename <<
+   edge adj2face myFace=upper
+   and  adj2face myFace=te
+   set           myEdge=edge1
+>>
+
+# add an attribute to the Edge that is at the upper/tip
+udprim  editAttr filename <<
+   edge adj2face myFace=upper
+   and  adj2face myFace=tip
+   set           myEdge=edge2
+>>
+
+# now punch a hole in the wing
+cylinder  1.0 -1.0  2.5    1.0 +1.0  0.25   0.10
+subtract
+
+# verify that the Nodes still have their attributes
+select   node  $myNode  $node1
+assert @xcg 1.00017  0.0001
+assert @ycg 0.00125  0.0001
+assert @zcg 0.00000  0.0001
+assert @sellist.size 1
+
+select   node  $myNode  $node2
+assert @xcg 0.50000  0.0001
+assert @ycg 0.00000  0.0001
+assert @zcg 5.00000  0.0001
+assert @sellist.size 1
+
+# verify that the Edges still have their attributes
+select   edge  $myEdge  $edge1
+assert @xcg 1.00017  0.0001
+assert @ycg 0.00077  0.0001
+assert @zcg 2.57216  0.0001
+assert @sellist.size 2        # Edge was broken by hole
+
+select   edge  $myEdge  $edge2
+assert @xcg 0.74880  0.0001
+assert @ycg 0.01024  0.0001
+assert @zcg 5.00000  0.0001
+assert @sellist.size 1
+
+# verify that the faces still have their attributes
+select   face  $myFace  $te
+assert @xcg 1.00000  0.0001
+assert @ycg 0.00000  0.0001
+assert @zcg 2.05097  0.0001
+assert @sellist.size 2        # Face was broken by hole
+
+select   face  $myFace  $upper
+assert @xcg 0.60228  0.0001
+assert @ycg 0.04210  0.0001
+assert @zcg 2.21473  0.0001
+assert @sellist.size 1
+
+end

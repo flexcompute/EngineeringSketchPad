@@ -1,0 +1,87 @@
+# splitFlap2e
+# written by John Dannenhoffer
+
+DESPMTR   xflap   0.70
+DESPMTR   span    3.0
+DESPMTR   thetau  70
+DESPMTR   thetal  10
+
+# basic airfoil  (naca0012)
+UDPRIM    naca
+EXTRUDE   0  0  span
+STORE     airfoil
+
+# break airfoil into 3 pieces
+RESTORE   airfoil
+BOX      -1  -1  -1  xflap+1  2  span+2
+INTERSECT
+STORE     main
+
+RESTORE   airfoil
+BOX       xflap  0  -1   2   2   span+2
+INTERSECT
+STORE     upper
+
+RESTORE   airfoil
+BOX       xflap  0  -1   2  -2   span+2
+INTERSECT
+STORE     lower
+
+# rotate the flaps into position
+RESTORE   upper
+ROTATEZ   thetau   xflap   @ymax
+STORE     upper
+
+RESTORE   lower
+ROTATEZ   thetal   xflap   @ymin
+STORE      lower
+
+# combine upper flap with main
+IFTHEN    thetau  GT  0
+   # make insert
+   MARK
+      RESTORE   main
+      SELECT    EDGE     2  2  4  2  1
+      EXTRACT   -@sellist[1]
+
+      RESTORE   upper
+      SELECT    EDGE     2  2  7  1  1
+      EXTRACT   -@sellist[1]
+      JOIN
+   COMBINE
+   
+   EXTRUDE   0  0  -span
+   RESTORE   main
+   JOIN
+   RESTORE   upper
+   JOIN
+ELSE
+   RESTORE   main
+   RESTORE   upper
+   UNION
+ENDIF
+
+# combine lower flap with main
+IFTHEN    thetal  LT  0
+   # make insert
+   MARK
+      RESTORE   main
+      SELECT    EDGE     2  2  4  2  1
+      EXTRACT   -@sellist[1]
+
+      RESTORE   lower
+      SELECT    EDGE     2  2  10  1  1
+      EXTRACT   -@sellist[1]
+      JOIN
+   COMBINE
+
+   EXTRUDE   0  0  -span
+   RESTORE   lower
+   JOIN
+   UNION
+ELSE
+   RESTORE   lower
+   UNION
+ENDIF
+
+END

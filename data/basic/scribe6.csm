@@ -1,0 +1,16 @@
+# scribe6
+# written by John Dannenhoffer
+
+cylinder  0.0 -2.0   0.0 \
+          0.0 +2.0   0.0  +1.0
+
+skbeg     2.0  0.5  -1.0
+   linseg 0.5  0.5  -1.0
+   linseg 0.5  0.5   1.0
+   linseg 2.0  0.5   1.0
+   linseg 2.0  0.5  -1.0
+skend
+
+subtract
+
+end

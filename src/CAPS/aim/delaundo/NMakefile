@@ -1,0 +1,34 @@
+#
+!IFNDEF ESP_ROOT
+!ERROR ESP_ROOT must be set -- Please fix the environment...
+!ENDIF
+#
+IDIR  = $(ESP_ROOT)\include
+!include $(IDIR)\$(ESP_ARCH).$(MSVC)
+LDIR  = $(ESP_ROOT)\lib
+!IFDEF ESP_BLOC
+ODIR  = $(ESP_BLOC)\obj
+!ELSE
+ODIR  = .
+!ENDIF
+
+
+$(LDIR)\delaundoAIM.dll:	delaundoAIM.def $(ODIR)\delaundoAIM.obj \
+			$(LDIR)\utils.lib
+	-del $(LDIR)\delaundoAIM.dll
+	link /out:$(LDIR)\delaundoAIM.dll /dll /def:delaundoAIM.def \
+		$(ODIR)\delaundoAIM.obj /LIBPATH:$(LDIR) utils.lib \
+		aimUtil.lib ocsm.lib egads.lib udunits2.lib
+	$(MCOMP) /manifest $(LDIR)\delaundoAIM.dll.manifest \
+		/outputresource:$(LDIR)\delaundoAIM.dll;2
+
+$(ODIR)\delaundoAIM.obj:	delaundoAIM.c $(IDIR)\capsTypes.h \
+			..\utils\meshUtils.h
+	cl /c $(COPTS) $(DEFINE) -I$(IDIR) -I..\utils delaundoAIM.c \
+		/Fo$(ODIR)\delaundoAIM.obj
+
+clean:
+	-del $(ODIR)\delaundoAIM.obj
+
+cleanall:	clean
+	-del $(LDIR)\delaundoAIM.dll $(LDIR)\delaundoAIM.lib $(LDIR)\delaundoAIM.exp

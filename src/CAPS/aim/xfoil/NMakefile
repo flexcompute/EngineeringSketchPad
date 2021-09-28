@@ -1,0 +1,35 @@
+#
+!IFNDEF ESP_ROOT
+!ERROR ESP_ROOT must be set -- Please fix the environment...
+!ENDIF
+#
+IDIR  = $(ESP_ROOT)\include
+!include $(IDIR)\$(ESP_ARCH).$(MSVC)
+LDIR  = $(ESP_ROOT)\lib
+!IFDEF ESP_BLOC
+ODIR  = $(ESP_BLOC)\obj
+TDIR  = $(ESP_BLOC)\test
+!ELSE
+ODIR  = .
+TDIR  = $(ESP_ROOT)\bin
+!ENDIF
+
+
+$(LDIR)\xfoilAIM.dll:	xfoilAIM.def $(ODIR)\xfoilAIM.obj $(LDIR)\aimUtil.lib \
+			$(LDIR)\utils.lib
+	-del $(LDIR)\xfoilAIM.dll $(LDIR)\xfoilAIM.lib $(LDIR)\xfoilAIM.exp
+	 link /out:$(LDIR)\xfoilAIM.dll /dll /def:xfoilAIM.def \
+		$(ODIR)\xfoilAIM.obj /LIBPATH:$(LDIR) utils.lib aimUtil.lib \
+		ocsm.lib egads.lib udunits2.lib
+	$(MCOMP) /manifest $(LDIR)\xfoilAIM.dll.manifest \
+		/outputresource:$(LDIR)\xfoilAIM.dll;2
+
+$(ODIR)\xfoilAIM.obj:	xfoilAIM.c $(IDIR)\capsTypes.h ..\utils\meshUtils.h
+	cl /c $(COPTS) $(DEFINE) /I$(IDIR) /I..\utils xfoilAIM.c \
+		/Fo$(ODIR)\xfoilAIM.obj
+
+clean:
+	-del $(ODIR)\xfoilAIM.obj
+
+cleanall:	clean
+	-del $(LDIR)\xfoilAIM.dll $(LDIR)\xfoilAIM.lib $(LDIR)\xfoilAIM.exp

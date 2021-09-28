@@ -1,0 +1,60 @@
+# outpmtr1
+# written by John Dannenhoffer
+
+DESPMTR   des1      1.0
+
+SET       loc2      2.0
+
+OUTPMTR   out3
+
+OUTPMTR   out4
+
+DESPMTR   des5      5.0
+
+OUTPMTR   out6
+
+OUTPMTR   out7
+DIMENSION out7      1 3
+
+OUTPMTR   out8
+
+BOX       0  0  0   3  2  1
+   ATTRIBUTE  string $ThisIsAString
+   ATTRIBUTE  number 1
+   ATTRIBUTE  vector 2;3;4;5
+
+SET       out6       @volume
+
+SET       out7[1]    @xmax-@xmin
+SET       out7[2]    @ymax-@ymin
+SET       out7[3]    @zmax-@zmin
+
+SET       out8       $ThisIsMyName
+
+UDPRIM    $/outpmtr1a
+UDPRIM    $/outpmtr1b
+
+DIMENSION des9      3  1  1
+DESPMTR   des9      9.0
+
+SET       loc10     13.0-out3
+
+DIMENSION out11     out7.nrow out7.ncol
+OUTPMTR   out11
+SET       out11     out7
+
+DIMENSION out12     out7.nrow out7.ncol
+SET       out12     out7
+OUTPMTR   out12
+
+OUTPMTR   out13
+DIMENSION out13     out7.nrow out7.ncol
+SET       out13     out7
+
+SET       out14     14
+DIMENSION out14     2 2     # this overwrites SET value
+OUTPMTR   out14
+
+DUMP      outpmtr1.egads
+
+end

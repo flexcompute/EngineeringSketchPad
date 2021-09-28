@@ -1,0 +1,52 @@
+# designD6a2 swept tapered wing (C2 at root)
+
+# default design parameters
+despmtr   thickness 0.12
+despmtr   camber    0.00
+despmtr   croot     1.0       len
+despmtr   aspect    8.0       -
+despmtr   taper     0.8       -
+despmtr   twist     0.0       deg
+despmtr   lesweep  10.0       deg
+despmtr   dihedral  5.0       deg
+despmtr   rottip    0.0       deg
+despmtr   xbase     0.0
+despmtr   ybase     0.0
+despmtr   zbase     0.0
+
+# internal parameters
+set       cmean     croot*(1+taper)/2 
+set       span      cmean*aspect
+set       sspan     span/2
+set       ctip      croot*taper
+set       xtip      sspan*tand(lesweep)
+set       ytip      sspan*tand(dihedral)
+
+# wing OML
+mark
+   udprim     box       dx  1    dy  thickness
+   translate                1/2   0  0
+   scale      ctip
+   translate -ctip      0         0         # Move so that twist about trailing edge
+   rotatez   -twist     0         0
+   translate  ctip      0         0         # Move back
+   rotatey   -rottip    0         0
+   translate  xtip      ytip      -sspan
+
+   udprim     box       dx  1    dy  thickness
+   translate                1/2   0  0
+   scale      croot
+
+   udprim     box       dx  1    dy  thickness
+   translate                1/2   0  0
+   scale      ctip
+   translate -ctip      0         0         # Move so that twist about trailing edge
+   rotatez   -twist     0         0
+   translate  ctip      0         0         # Move back
+   rotatey    rottip    0         0
+   translate  xtip      ytip      +sspan
+blend
+
+translate  xbase  ybase  zbase
+
+end

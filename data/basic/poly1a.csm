@@ -1,0 +1,15 @@
+# poly1a
+# written by John Dannenhoffer
+
+# inner Body (with tessellation forced by project command)
+cylinder  -1  0  0  +1  0  0  0.5
+project    0  0  0  +1  0  0 
+
+# outer Body (with tessellation forced by project command)
+sphere     0  0  0  100
+project    0  0  0  +1  0  0 
+
+# create the .poly file
+udprim    createPoly  filename $poly1a.poly
+
+end

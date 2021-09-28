@@ -1,0 +1,42 @@
+# waffle5b
+# written by John Dannenhoffer
+
+# design parameters
+DESPMTR   xbase     0.0
+DESPMTR   ybase    -1.0
+DESPMTR   chord     2.0
+DESPMTR   span      6.0
+DESPMTR   nrib      3.0
+
+# waffle with inputs from (inline) file
+UDPRIM waffle depth 2.0 filename <<
+   POINT A         AT xbase      ybase
+   POINT B         AT x@A        y@A+chord
+   POINT C         AT x@A+span/3 y@A-1
+   LINE  root      A  B myName=root
+   LINE  kickspar  B  C myName=kickspar
+   POINT D         ON root FRAC 0.33
+   POINT E         ON kickspar YLOC y@D
+   LINE  DE        D  E
+   POINT F         ON kickspar PERP D
+   LINE  DF        D  F
+   CLINE AC        A  C
+   POINT G         ON AC XLOC x@F
+   CLINE FG        F  G
+   POINT H         ON FG XSECT DE
+   LINE  FH        F  H
+   LINE  HG        H  G
+   POINT I         AT x@A+span  y@A
+   LINE  spar      F  I myName=spar myIndex=1
+   PATBEG irib nrib
+      POINT I      ON spar XLOC (irib+1)*span/(nrib+1)
+      POINT J      AT x@I  y@I-chord/4
+      POINT K      AT x@I  y@I+chord/2
+      LINE  .      J  K myName=rib myIndex=!val2str(irib,0)
+   PATEND
+   POINT L         AT x@K  y@B
+   LINE  BL        B  L  myName=curve
+   LINE  LK        L  K  myName=curve
+>>
+
+end

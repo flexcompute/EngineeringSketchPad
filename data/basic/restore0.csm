@@ -1,0 +1,37 @@
+# restore0
+# written by John Dannenhoffer
+
+# design Parameters
+despmtr   nblade    3         # number of blades
+despmtr   length    10        # blade length
+despmtr   chord     1         # blade chord
+despmtr   thick     0.1       # blade thickness
+despmtr   twist     20        # blade twist
+despmtr   spanloc   0.7       # fraction of span for hole
+despmtr   radius    0.5       # radius of hub
+despmtr   height    0.3       # height of hub
+despmtr   scale     0.5       # overall scale factor
+
+# basic blade
+box       0  -thick/2  -chord/2  length  thick  chord
+cylinder  length*spanloc  -thick  chord/2  length*spanloc  thick  chord/2  chord/2
+subtract
+
+rotatex   twist  0  0
+dump      blade.egads  1
+
+# hub
+cylinder  0  -height/2  0  0  height/2  0  radius
+
+# add blades to hub
+patbeg    iblade nblade
+   set       angle  360*(iblade-1)/nblade
+   import    blade.egads
+   rotatey   angle  0  0
+   union
+patend
+
+# overll scaling
+scale     scale
+
+end

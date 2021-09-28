@@ -1,0 +1,28 @@
+# connect3
+# written by John Dannenhoffer
+
+# outer body
+skbeg     0.0   0.0   -.1
+   linseg 1.0   0.0   -.1
+   cirarc 1.5   0.5   -.1   2.0   0.0   -.1
+   linseg 3.0   0.0   -.1
+   linseg 3.0   2.0   -.1
+   linseg 0.0   2.0   -.1
+   linseg 0.0   0.0   -.1
+skend
+extrude   0.0   0.0   0.2
+
+# inner body
+skbeg     1.2   0.0   -.2
+   linseg 1.8   0.0   -.2
+   cirarc 1.5   0.3   -.2   1.2   0.0   -.2
+skend
+extrude   0.0   0.0   0.4
+
+# set up for and execute the connect
+set       faceList1 2
+set       faceList2 2
+
+connect   faceList1 faceList2
+
+end

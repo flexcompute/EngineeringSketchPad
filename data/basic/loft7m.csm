@@ -1,0 +1,23 @@
+# loft7m (open box, node at left)
+# written by John Dannenhoffer
+
+mark
+   skbeg     -4   0   0
+   skend
+
+   skbeg     -2  +2  -1
+      linseg -2  -2  -1
+      linseg -2  -2  +1
+      linseg -2  +2  +1
+      linseg -2  +2  -1
+   skend
+
+   skbeg     +2  +1  -2
+      linseg +2  -1  -2
+      linseg +2  -1  +2
+      linseg +2  +1  +2
+      linseg +2  +1  -2
+   skend 1
+loft 1
+
+end

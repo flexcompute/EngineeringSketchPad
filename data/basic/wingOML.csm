@@ -1,0 +1,44 @@
+# wingOML
+# written by John Dannenhoffer
+
+# Design Parameters for OML
+despmtr   thick     0.12      frac of local chord
+despmtr   camber    0.04      frac of loacl chord
+
+despmtr   area      10.0
+despmtr   aspect    6.00
+despmtr   taper     0.60
+despmtr   sweep     20.0      deg (of c/4)
+
+despmtr   washout   5.00      deg (down at tip)
+despmtr   dihedral  4.00      deg
+
+# OML
+set       span      sqrt(aspect*area)
+set       croot     2*area/span/(1+taper)
+set       ctip      croot*taper
+set       dxtip     (croot-ctip)/4+span/2*tand(sweep)
+set       dytip     span/2*tand(dihedral)
+
+mark
+   # rite tip
+   udprim    naca      Thickness thick     Camber    camber
+   scale     ctip
+   rotatez   washout   ctip/4    0
+   translate dxtip     dytip     -span/2
+
+   # root
+   udprim    naca      Thickness thick     Camber    camber
+   scale     croot
+
+   # left tip
+   udprim    naca      Thickness thick     Camber    camber
+   scale     ctip
+   rotatez   washout   ctip/4    0
+   translate dxtip     dytip     +span/2
+rule
+
+# set the spacing along Edges 
+udprim    createBEM filename  $wingOML.bdf  space  0.20   imin  2   imax  99
+
+end

@@ -1,0 +1,21 @@
+# quad3
+# written by John Dannenhoffer
+
+box       0  0  0   5  3  1
+cylinder  1  1 -1   1  1  2  0.5
+subtract
+cylinder  2  2 -1   2  2  2  0.5
+subtract
+cylinder  3  1 -1   3  1  2  0.5
+subtract
+cylinder  4  2 -1   4  2  2  0.5
+subtract
+attribute .tParams "0.50;0.25;30"
+
+# old-style quadding (one Face at a time)
+patbeg    iface      @nface
+   select face       iface
+   attribute _makeQuads 1
+patend
+
+end

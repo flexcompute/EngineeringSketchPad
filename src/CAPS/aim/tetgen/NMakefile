@@ -1,0 +1,49 @@
+#
+!IFNDEF ESP_ROOT
+!ERROR ESP_ROOT must be set -- Please fix the environment...
+!ENDIF
+#
+!IFNDEF TETGEN
+!ERROR TETGEN must be set -- Please fix the environment...
+!ENDIF
+#
+IDIR  = $(ESP_ROOT)\include
+!include $(IDIR)\$(ESP_ARCH).$(MSVC)
+LDIR  = $(ESP_ROOT)\lib
+!IFDEF ESP_BLOC
+ODIR  = $(ESP_BLOC)\obj
+!ELSE
+ODIR  = .
+!ENDIF
+
+
+$(LDIR)\tetgenAIM.dll:	tetgenAIM.def $(ODIR)\tetgenAIM.obj $(ODIR)\tetgen_Interface.obj \
+		$(ODIR)\tetgen.obj $(ODIR)\predicates.obj $(LDIR)\utils.lib tetgenAIM.def
+	-del $(LDIR)\tetgenAIM.dll $(LDIR)\tetgenAIM.lib $(LDIR)\tetgenAIM.exp
+	 link /out:$(LDIR)\tetgenAIM.dll /dll /def:tetgenAIM.def \
+		$(ODIR)\tetgenAIM.obj $(ODIR)\tetgen_Interface.obj \
+		$(ODIR)\tetgen.obj $(ODIR)\predicates.obj /LIBPATH:$(LDIR) \
+		utils.lib aimUtil.lib ocsm.lib egads.lib udunits2.lib
+	$(MCOMP) /manifest $(LDIR)\tetgenAIM.dll.manifest \
+		/outputresource:$(LDIR)\tetgenAIM.dll;2
+
+$(ODIR)\tetgenAIM.obj:	tetgenAIM.cpp $(IDIR)\capsTypes.h ..\utils\meshUtils.h
+	cl /c $(CPPOPT) $(DEFINE) /I$(IDIR) /I..\utils tetgenAIM.cpp \
+		/Fo$(ODIR)\tetgenAIM.obj
+
+$(ODIR)\tetgen_Interface.obj:	$(TETGEN)\tetgen.h tetgen_Interface.cpp ..\utils\meshUtils.h
+	cl /c $(CPPOPT) $(DEFINE) /I$(IDIR) /DTETLIBRARY /I$(TETGEN) \
+		/I..\utils tetgen_Interface.cpp /Fo$(ODIR)\tetgen_Interface.obj
+
+$(ODIR)\predicates.obj:	$(TETGEN)\predicates.cxx
+	cl /c $(CPPOPT) /Od /W0 $(TETGEN)\predicates.cxx /Fo$(ODIR)\predicates.obj
+
+$(ODIR)\tetgen.obj:	$(TETGEN)\tetgen.cxx
+	cl /c $(CPPOPT) /W0 -DTETLIBRARY $(TETGEN)\tetgen.cxx /Fo$(ODIR)\tetgen.obj
+
+clean:
+	-del $(ODIR)\tetgen.obj $(ODIR)\predicates.obj 
+	-del $(ODIR)\tetgen_Interface.obj $(ODIR)\tetgenAIM.obj
+
+cleanall:	clean
+	-del $(LDIR)\tetgenAIM.dll $(LDIR)\tetgenAIM.lib $(LDIR)\tetgenAIM.exp

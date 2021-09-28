@@ -1,0 +1,61 @@
+# ganged6a
+# written by John Dannenhoffer
+
+# bodys on left
+UDPARG    supell    rx  1  ry  1
+UDPRIM    supell    n   2
+TRANSLATE -1  -1  -0.25
+TRANSLATE -1  -1  -0.25
+TRANSLATE -1  -1  -0.25
+TRANSLATE -1  -1  -0.25
+EXTRUDE    0   0   2.00
+STORE     body  1  1
+
+UDPARG    supell   rx  1  ry  1
+UDPRIM    supell   n   4
+TRANSLATE -2   0  -.50
+TRANSLATE -2   0  -.50
+EXTRUDE    0   0   2.00
+STORE     body  2  1
+
+UDPARG    supell   rx  1  ry  1
+UDPRIM    supell   n   8
+TRANSLATE -4  4   -1.0
+EXTRUDE    0   0   2.00
+STORE     body  3  1
+
+# tie bodys on left together
+CYLINDER  -4  -4   0  -4   4  0  0.25
+UNION
+UNION
+UNION
+
+# bodys on right
+RESTORE   body  1
+TRANSLATE  8   0   0
+
+RESTORE   body  2
+TRANSLATE  4   0   0
+TRANSLATE  4   0   0
+
+RESTORE   body  3
+TRANSLATE  2   0   0
+TRANSLATE  2   0   0
+TRANSLATE  2   0   0
+TRANSLATE  2   0   0
+
+# tie bodys on right together
+CYLINDER   4  -4   0   4   4  0  0.25
+UNION
+UNION
+UNION
+
+# tie all bodys together
+CYLINDER -4  -4   0   4  -4  0  0.25
+UNION
+UNION
+
+END
+
+
+

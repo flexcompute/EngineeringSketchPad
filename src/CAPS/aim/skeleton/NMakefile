@@ -1,0 +1,37 @@
+#
+!IFNDEF ESP_ROOT
+!ERROR ESP_ROOT must be set -- Please fix the environment...
+!ENDIF
+#
+IDIR = $(ESP_ROOT)\include
+!include $(IDIR)\$(ESP_ARCH).$(MSVC)
+LDIR = $(ESP_ROOT)\lib
+!IFDEF ESP_BLOC
+ODIR = $(ESP_BLOC)\obj
+TDIR = $(ESP_BLOC)\test
+!ELSE
+ODIR = .
+TDIR = $(ESP_ROOT)\bin
+!ENDIF
+
+
+$(LDIR)\skeletonAIM.dll:	skeletonAIM.def $(ODIR)\skeletonAIM.obj $(LDIR)\utils.lib
+	-del $(LDIR)\skeletonAIM.dll $(LDIR)\skeletonAIM.lib \
+		$(LDIR)\skeletonAIM.exp
+	link /out:$(LDIR)\skeletonAIM.dll /dll /def:skeletonAIM.def \
+		$(ODIR)\skeletonAIM.obj /LIBPATH:$(LDIR) utils.lib aimUtil.lib \
+		ocsm.lib egads.lib udunits2.lib
+	$(MCOMP) /manifest $(LDIR)\skeletonAIM.dll.manifest \
+		/outputresource:$(LDIR)\skeletonAIM.dll;2
+
+$(ODIR)\skeletonAIM.obj:	skeletonAIM.c $(IDIR)\capsTypes.h
+	cl /c $(COPTS) $(DEFINE) /I$(IDIR) /I..\utils skeletonAIM.c \
+		/Fo$(ODIR)\skeletonAIM.obj
+
+clean:
+	-del $(ODIR)\skeletonAIM.obj
+
+cleanall:	clean
+	-del $(LDIR)\skeletonAIM.dll $(LDIR)\skeletonAIM.lib \
+		$(LDIR)\skeletonAIM.exp
+	-del $(TDIR)\skeleton.exe

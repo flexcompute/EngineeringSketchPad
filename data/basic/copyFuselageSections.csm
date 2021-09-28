@@ -1,0 +1,71 @@
+# copyFuselageSections
+# written by John Dannenhoffer
+
+# Design Parameters
+despmtr             numXsect 6
+dimension xloc      numXsect 1 1
+dimension zloc      numXsect 1 1
+dimension width     numXsect 1 1
+dimension height    numXsect 1 1
+dimension noselist  2        4 1
+dimension taillist  2        4 1
+
+despmtr   xloc      "0;  1.0;  4.0;  8.0;  12.0;  16.0"
+despmtr   zloc      "0;  0.1;  0.4;  0.4;   0.3;   0.2"
+despmtr   width     "0;  1.0;  1.6;  1.6;   1.0;   0.8"
+despmtr   height    "0;  1.0;  2.0;  2.0;   1.2;   0.4"
+despmtr   noselist  "0.1; 0; 1; 0;\
+                     0.1; 0; 0; 1;"
+despmtr   taillist  "0.0; 0; 1; 0;\
+                     0.0; 0; 0; 1"
+
+# make a group of the cross-sections
+mark
+
+   # sharp or rounded nose
+   set isect 1
+   ifthen width[isect] eq 0 and height[isect] eq 0
+      skbeg  xloc[isect] 0 zloc[isect]
+      skend
+
+   # blunt nose
+   else
+      udprim ellipse ry width[isect]/2 rz height[isect]/2
+      translate xloc[isect] 0 zloc[isect]
+   endif
+
+   # intermediate sections
+   patbeg jsect numXsect-2
+      set isect jsect+1
+
+      udprim ellipse ry width[isect]/2 rz height[isect]/2
+      translate xloc[isect] 0 zloc[isect]
+   patend
+
+   # sharp or rounded tail
+   set isect numXsect
+   ifthen width[isect] eq 0 and height[isect] eq 0
+      skbeg  xloc[isect] 0 zloc[isect]
+      skend
+
+   # blunt tail
+   else
+      udprim ellipse ry width[isect]/2 rz height[isect]/2
+      translate xloc[isect] 0 zloc[isect]
+   endif
+group
+   name   :xsects
+
+# store the group
+store xsects
+
+# restore the group and create a blended surface (OML)
+mark
+   restore xsects
+blend noselist taillist
+   name OML
+
+# restore the group (so that sections are available
+restore xsects
+
+end

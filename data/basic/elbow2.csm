@@ -1,0 +1,21 @@
+# elbow2
+# written by John Dannenhoffer
+
+# first body
+CYLINDER  0  0  0  2  0  0  0.5
+ROTATEX   20 0 0
+
+#second body
+UDPRIM    supell rx 0.5 ry 0.5 n 3
+ROTATEY   90  0 0
+TRANSLATE 2.5 0 0
+STORE     xsect
+
+MARK
+   RESTORE   xsect
+   RESTORE   xsect
+   TRANSLATE 2.5  0  0
+RULE
+ROTATEZ   20  2.25 0.0
+
+END

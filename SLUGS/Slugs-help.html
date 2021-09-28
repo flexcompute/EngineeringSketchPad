@@ -1,0 +1,562 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE HTML PUBLIC "~//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+
+<!--
+// help file for Slugs
+// written by John Dannenhoffer
+-->
+
+<html>
+  <head>
+    <title>Slugs User's Manual</title>
+
+    <style type="text/css">
+      body {font-size: 12pt;}
+    </style>
+  </head>
+
+  <body>
+    <p><h1 align=center>Static Legacy Unstructured Geometry System (Slugs) Version 1.13</h1>
+    <p><h3>Authors: John F. Dannenhoffer, III (Syracuse University) and Bob Haimes (MIT)</h3>
+    <p><h3>Date: January, 2020.</h3>
+
+    <p><h2 id="sec0">0.0 Table of Contents</h2>
+    <p><a href="#sec1">1.0 Overview</a>
+    <p><a href="#sec2">2.0 Tutorials</a>
+    <p><a href="#sec3">3.0 Command Line</a>
+    <p><a href="#sec4">4.0 Interactive Options</a>
+    <p><a href="#sec5">5.0 Release notes</a>
+    <p><a href="#sec6">6.0 Error Codes</a>
+    <p><a href="#sec7">7.0 Bug Reports and Other Feedback</a>
+    <p><a href="#sec8">8.0 Copyright</a>
+    <p><a href="#sec9">9.0 Glossary</a>
+
+    <!---------------------------------------------------------------->
+
+    <p><h2 id="sec1">1.0: Overview</h2>
+
+    <p><code>SLUGS</code> is a computer-based system for converting a
+      cloud of points into a static Boundary Representation (BRep).
+      The <code>SLUGS</code> program is built using a client-server
+      architecture.
+
+    <p>The server consists of a back-end program (<code>Slugs</code>)
+       that performs the majority of the computational work; the
+       server has been designed to work on a variety of compute
+       platforms, including UNIX, LINUX, OSX, and Windows.  As will be
+       described below, the user of <code>SLUGS</code> typically
+       starts a session by starting the server.
+
+    <p>The client, which is built within a web browser, provides the
+       graphical user interface with which most users will provide
+       inputs and receive outputs.  The supported browsers include
+       recent versions of FireFox, Google Chrome, and Safari.
+       (Internet Explorer is not supported because of a bug within the
+       WebSockets layer provided by the browser).
+
+    <p>The input file to <code>SLUGS</code> is a stereo-lithography
+      file (<code>.stl</code>). The triangles in the <code>.stl</code>
+      do not need to represent a watertight solid;
+      the </code>.stl</code> file can include (partially) unconnected
+      triangles.
+
+    <p>The output of <code>SLUGS</code> is a <code>.egads</code> BRep
+      file, that consists of Faces that are either:
+      <ul>
+        <li>planar Faces, with any number of bounding Edges and any
+          number of interior holes, and</li>
+        <li>non-planar Faces that have exactly four (4) bounding
+          Edges.</li>
+      </ul>
+      The hardest part of using <code>SLUGS</code> involves the design
+      of the BRep that meets the above requirements.
+
+    <p>The output BRep is considered to be "static" in that it
+      represents a Body that is not parameterized; that is, the output
+      BRep can be used as a fixed Body that can be "imported" into
+      the <code>ESP</code> system, but it cannot be parametrically
+      modified.
+
+    <p>The user of <code>SLUGS</code> performs the transformation from
+      the <code>.stl</code> file to the <code>.egads</code> file using
+      the following steps:
+      <ul>
+        <li>(Optionally) repair the input triangulation by filling in
+          gaps and removing overlaps.  This step is not in general
+          required, but such repairs may make the some of the
+          following operations a bit simpler.</li>
+        <li>Create "links" of triangle sides that will eventually
+          correspond to the Edges in the output BRep.  The linking
+          operation can be done in a variety of ways:
+          <ul>
+            <li>by automatically "marking" triangle sides with a
+              dihedral angle greater that some user-specified
+              angle;</li>
+            <li>by following the shortest path along triangle sides
+              between the user-specified "point" and "target"; or</li>
+            <li>by "scribing" the triangulation between a
+              user-specified "point" and "target" (this operation
+              splits the triangles that are scribed).</li>
+          </ul></li>
+        <li>Color the triangles such that each color corresponds with
+          one of the Faces in the output BRep.  This operation is done
+          by selecting a triangle to color; <code>SLUGS</code>
+          automatically colors all triangles that are adjacent to the
+          chosen triangle (but not across a "link").</li>
+        <li>Automatically create the BRep.</li>
+      </ul>
+
+    <p><a href="#sec0">Table of Contents</a>
+
+    <!---------------------------------------------------------------->
+
+    <p><h2 id="sec2">2.0: Tutorials</h2>
+
+    <p>The following tutorial has been designed to walk a
+       new <code>SLUGS</code> user through the basic capabilities that
+       are available through the user interface.
+
+    <p><h3 id="sec2.1">2.1 First tutorial: Basic usage</h3>
+
+    <p>This tutorial will help you understand the use of
+       <code>SLUGS</code>.  Details about the <a href="#sec3">Command
+       Line</a> and <a href="#sec4">cursor and keyboard options</a>
+       are contained in sections that follow this tutorial.
+
+    <p>The tutorial starts with a pre-made part that is defined by the
+       file <code>tutorial1.stl</code>.
+
+    <p>To start <code>SLUGS</code> there are two steps: (1) start the
+       "server" and (2) start the "browser".  This can be done in a
+       variety of ways, but the two most common follow.
+
+    <p><strong>Technique 1:</strong> issue the two commands:
+      <pre>
+        setenv SLUGS_START "open -a /Applications/Firefox.app ../SLUGS/Slugs.html"
+        Slugs ../data/Slugs/tutorial1
+      </pre>
+      if using a c-shell; make appropriate changes for your shell
+      and/or operating system.
+
+    <p>The first of these tells <code>Slugs</code> to open FireFox on
+       the file <code>../SLUGS/Slugs.html</code>
+       when <code>Slugs</code> has generated a graphical
+       representation of the configuration.  The second of these
+       actually starts the <code>Slugs</code> server.  As long as the
+       browser stays connected
+       to <code>Slugs</code>, <code>Slugs</code> will stay alive and
+       handle requests sent to it from the browser.  Once the last
+       browser that is connected to <code>Slugs</code>
+       exits, <code>Slugs</code> will shut down.
+
+    <p><strong>Technique 2:</strong> issue the command:
+       <pre>
+         Slugs ../data/Slugs/tutorial1
+       </pre>
+       Once the server starts, start a browser (for example, FireFox)
+       and open the page <code>SLUGS/Slugs.html</code>.  As
+       above, <code>Slugs</code> will stay alive as long as there
+       is a browser attached to it.
+
+    <p>Note that the default "port" used by <code>Slugs</code> is
+       7681.  One can change the port in the call
+       to <code>Slugs</code> with a command such as:
+       <pre>
+         Slugs ../data/Slugs/tutorial1 -port 7788
+       </pre>
+
+    <p>Once the browser starts, you will be prompted for a
+       "hostname:port" as in:
+    <p><img src="pictures/SLUGS-fig01.png" width="800"/>
+
+    <p>Most of the time, the "hostname" will be "Localhost" (meaning
+       that <code>Slugs</code> and the browser are on the same
+       computer).  It is possible to attach to <code>Slugs</code> that
+       is running on another computer by giving an appropriate
+       "hostname".
+
+    <p>As mentioned above, it is possible to change the "port" with a
+       command line argument when starting <code>Slugs</code>; if
+       that is done, then the alternative "port" must be included in
+      <code>Slugs</code>'s prompt.
+
+    <p>Once all the setup is done, the browser then presents the
+       following 4 windows:
+    <p><img src="pictures/SLUGS-fig02.png" width="800"/>
+
+    <p>The window on the top left is called the "Tree" window.  At the
+       top of this window is a series of buttons.  Below that is a
+       listing of the available commands.  It also contains the
+       controls for the "Graphics" window.
+
+    <p>The window on the top right is called the "Graphics" window,
+       which contains a graphical representation of the current
+       configuration, in three dimensions.
+
+    <p>The window on the bottom left is the "Key" window.  It is
+       currently blank and will be used in future versions.
+
+    <p>The window on the bottom right is called the "Messages" window.
+       It contains the messages that <code>Slugs</code> posts for the
+       user.
+
+    <p>The first thing to do is to play with the image in the
+       "Graphics" window.  This is done with the mouse in the
+       following ways:
+      <ul>
+        <li><strong>Drag</strong>: translate the graphical image</li>
+        <li><strong>Shift-Drag</strong>: moving mouse up while
+          dragging zooms in while moving the mouse down while dragging
+          zooms out</li>
+        <li><strong>Ctrl-Drag</strong>: rotate the object about its
+          center (see below for more details)</li>
+        <li><strong>Alt-Drag</strong>: rotate the view about an axis
+          that is perpendicular to the screen.
+          (Use <strong>Option-Drag</strong> on Mac OSX)</li>
+      </ul>
+      It is suggested that you use the left or middle mouse button for
+      these operations, since in most browsers the right mouse button
+      will post a popup menu.
+
+    <p>When using the mouse, it is possible to enter "flying mode", in
+       which the view continually changes until the mouse button is
+       released.  Flying mode is particularly useful when one needs to
+       translate a long distance.  Toggling flying mode is done by
+       pressing the "<strong>!</strong>" key in the "Graphics" window.
+
+    <p>At any time, a user might want to "save" a view for later use
+       in the browser session.  This is done by pressing the
+       "<strong>&gt;</strong>" key in the "Graphics" window; the
+       "saved" view can be retrieved by pressing the
+       "<strong>&lt;</strong>" key.
+
+    <p>The default (home) view can be obtained by pressing either
+       "<strong>&lt;Home&gt;</strong>",
+       "<strong>&lt;Ctrl-h&gt;</strong>",
+       "<strong>&lt;Ctrl-f&gt;</strong>", or the "<strong>H</strong>"
+       button near the top of the "Tree" window.  (The home view is
+       one in which the x-coordinate increases from left to right and
+       the y-coordinate increases from bottom to top.)  One can also
+       get the top view by pressing "<strong>&lt;Ctrl-t&gt;</strong>"
+       or the "<strong>T</strong>" button, the bottom view by pressing
+       "<strong>&lt;Ctrl-b&gt;</strong>" or the "<strong>B</strong>"
+       button, the left side view by pressing
+       "<strong>&lt;Ctrl-l&gt;</strong>" or the "<strong>L</strong>",
+       or the right side view by pressing
+       "<strong>&lt;Ctrl-r&gt;</strong>" or the "<strong>R</strong>"
+       button.
+
+    <p>The function of the arrow keys depends on whether "flying mode"
+       is active or not.  For example, if "flying mode" is not active
+       (the default), pressing the "<strong>&lt;Left&gt;</strong>" key
+       causes the object to rotate to the left by 30 degrees; if
+       "flying mode" is active (because the "<strong>!</strong>" key
+       was pressed), then pressing the "<strong>&lt;Left&gt;</strong>"
+       key causes the object on the screen to translate to the left.
+       If the "<strong>Shift</strong>" is held while
+       the "<strong>&lt;Left&gt;</strong>" key is pressed, the
+       increments are 5 degrees and the translations are also smaller.
+
+    <p>The "<strong>&lt;PgUp&gt;</strong>" or
+       "<strong>&lt;Ctrl-i&gt;</strong>" keys or the
+       "<strong>+</strong>" button can be used to zoom in and the
+       "<strong>&lt;PgDn&gt;</strong>" or
+       "<strong>&lt;Ctrl-o&gt;</strong>" key or the
+       "<strong>-</strong>" button can be used to zoom out.  The
+       behavior of these keys/buttons does not depend on the current
+       "flying mode".
+
+    <p>To re-center the image at a given point and simultaneously
+       reset the point about which mouse rotations will occur, point
+       to any location in the "Graphics" window and press
+       "<strong>*</strong>"; the image will be re-centered and a
+       message will be posted in the "Messages" window.
+
+    <p>To determine the identity of any object in the "Graphics"
+       window, simply put your cursor on the object and press
+       "<strong>^</strong>"; a summary of the identified object is
+       shown in the "Messages" window.  (Note that if the cursor is
+       not exactly over any object, the message will only be posted
+       once the mouse passes over a graphic object.)
+
+    <p>To determine the approximate coordinates of any location in the
+       "Graphics" window, simply put your cursor on the location and
+       press "<strong>@</strong>"; the approximate coordinates of the
+       location are shown in the "Messages" window.
+
+    <p>Lastly, to get help on the commands that are available in the
+       "Graphics" window, press "<strong>?</strong>" and a short
+       listing will be given in the "Messages" window.
+
+    <p>The results of several of these commands is shown in:
+    <p><img src="pictures/SLUGS-fig03.png" width="800"/>
+
+    <p>Now it is time to understand the "Tree" window. At the top of
+      the "Tree" window there is a series of buttons:
+      <ul>
+        <li><strong>Undo</strong> can be pressed to un-do the last
+          operation; and </li>
+        <li>"<strong>Help</strong>": this button opens up
+            the <code>Slugs</code> HELP document (that you are now
+            reading)</li>
+        <li>"<strong>H</strong>": return to the home (front) view  ("x"
+            right and "y" up)</li>
+        <li>"<strong>L</strong>": left-side view ("z" right and "y"
+            up)</li>
+        <li>"<strong>R</strong>": right-side view ("z" left and "y"
+            up)</li>
+        <li>"<strong>B</strong>": bottom view ("x" right and "z"
+            up)</li>
+        <li>"<strong>T</strong>": top view ("x" right and "z"
+            down)</li>
+        <li>"<strong>+</strong>": zoom in</li>
+        <li>"<strong>-</strong>": zoom out</li>
+      </ul>
+      One can verify the view with the little axes at the bottom-left
+      corner of the "Graphics" window.  The red axis corresponds to
+      "x", the green axis corresponds to "y", and the blue axis
+      corresponds to "z".
+
+    <p>Below the buttons is a tree-like representation of the various
+       commands.  The tree can be collapsed; pressing the
+       "<strong>+</strong>" at the beginning of any line expands
+       (opens up) that particular entry in the tree; pressing the
+       "<strong>-</strong>" at the beginning of any line collapses
+       (closes) that particular entry.
+
+    <p>Now look at the image in the "Graphics" window.  It consists of
+      a series of triangles (from the <code>.stl</code> file).
+      Triangle sides that are not shared by exactly two triangles are
+      called "hanging sides" and are drawn with a red highlight.
+
+    <p>As mentioned above, the hardest part of
+      using <code>SLUGS</code> is deciding how to break the
+      configuration into a combination of four-sided non-planar Faces
+      and arbitrary planar Faces.  One such design for this case is
+      shown in:
+    <p><img src="pictures/SLUGS-fig04.png" width="800"/>
+    <p>and
+    <p><img src="pictures/SLUGS-fig05.png" width="800"/>
+
+    <p>The easiest thing to do first is to break the triangles into
+      colors based upon "hard" sides, where a "hard" side is one whose
+      dihedral angle exceeds a user-specified value.  In general, a
+      value of 45 degrees successfully identifies sides that at which
+      one would like to break the triangles into separate colors.  The
+      user can execute this command by either pressing <code>Mark
+      Creases</code> in the Tree window or by pressing the
+      "<strong>m</strong>" key in the Graphics window; the user can
+      always determine the keyboard shortcut for any command by
+      looking at the blue entry in the Tree window.  When you have
+      done this (with a minimum crease angle of <strong>45</strong>),
+      links are created and are identified by white lines, as shown
+      in:
+    <p><img src="pictures/SLUGS-fig06.png" width="800"/>
+
+    <p>It now makes sense to "color" the triangles in each of the
+      regions bounded by these links.  So move the mouse over one of
+      the triangles on the left end of the cylinder and press
+      "<strong>c</strong>", which will give you the prompt:
+    <p><img src="pictures/SLUGS-fig07.png" width="800"/>
+
+    <p>The suggested value for the color is the next available color.
+      (Note that the triangles in the original configuration all had
+      color "0" and so the next available color is "1").  When you have
+      done this, your screen should look like:
+    <p><img src="pictures/SLUGS-fig08.png" width="800"/>
+
+    <p>Continue to color the bottom of the triangular extrusion, the
+      top of the extrusion, the right side of the extrusion, and the
+      triangular tip of the extrusion.  Then color the right-hand end
+      of the cylinder, giving:
+    <p><img src="pictures/SLUGS-fig09.png" width="800"/>
+
+    <p>The next step is to color the cylinder's surface.  Our design
+      calls for the cylinder being broken into two halves.  If you
+      rotate the cylinder a bit, you will see that the original
+      triangles were created so as to have a series of triangle sides
+      that form a nice straight line between the two cylinder halves.
+      In order to create "links" to separate these, you will do a
+      two-step operation:
+      <ul>
+        <li>Put your mouse over one end of these triangles sides and
+          press "<strong>p</strong>" to select a point.  The selected
+          point will be shown by a black square, as in:
+          <p><img src="pictures/SLUGS-fig10.png" width="800"/></li>
+        <li>Put your mouse over another point and press the
+          "<strong>l</strong>" key to select the triangle sides between
+          the "<strong>p</strong>" and the "<strong>l</strong>", as
+          in:
+          <p><img src="pictures/SLUGS-fig11.png" width="800"/>
+          <p>Notice that this is not the intended path, so press
+            the <string>Undo</strong> button.  Reset the "point" with
+            the "<strong>p</strong>" key and now "link" to a new
+            point, as shown in:
+          <p><img src="pictures/SLUGS-fig12.png" width="800"/>
+          <p>Doing so advances the "point" to the last location
+            chosen.  Now finish this operation (and the similar ones on
+            the bottom of the cylinder).</li>
+      </ul>
+
+    <p>Now try to color the two sides of the cylinder.  This should
+      give you something that looks like:
+    <p><img src="pictures/SLUGS-fig13.png" width="800"/>
+
+    <p>The only thing that we still need to worry about are the
+      "floating triangles".  If you put your mouse over one of the
+      triangles on the side of the cylinder that is closest to you and
+      press "<strong>^</strong>", you will see in the message window
+      that those triangles have the color "7".  To color the "floating
+      triangles", put your mouse over one of them and press
+      "<strong>c</strong>" and select color 7.
+
+    <p>The next step is to break the cylinder side from which the
+      protrusion grows into a series of 7 colors (so that each will be
+      four-sided). This is done with a series of "scribe" operations.
+      A "scribe" operation is similar to creating "links" above,
+      except that the "scribe" breaks the triangles in a fairly
+      straight line between the "point" and the scribe location.
+
+    <p>Let's scribe the triangles in the region to the left of the
+      sharp end of the protrusion.  This is done by selecting a point
+      along the left end of the cylinder with the "<strong>p</strong>"
+      command and then pressing "<strong>s</strong>" at the point at
+      the junction of the cylinder and the sharp edge of the
+      protrusion, as in:
+    <p><img src="pictures/SLUGS-fig14.png" width="800"/>
+
+    <p>Continue to "scribe" the cylinder as shown in:
+    <p><img src="pictures/SLUGS-fig15.png" width="800"/>
+
+    <p>After the whole cylindrical surface has been scribed, the
+      various portions can be colored using the "<strong>c</strong>"
+      command, giving:
+    <p><img src="pictures/SLUGS-fig16.png" width="800"/>
+
+    <p>Note that two different "colors" may appear to be the same due
+      to the limited number of hues that <code>SLUGS</code> uses.  If
+      you are not sure, use the "<strong>^</strong>" command to
+      determine the actual color numbers.
+
+    <p>The only thing remaining is to separate the back side of the
+      cylinder into three colors so that each "color" will be bounded
+      by four Edges.  Note that in "scribing" the back of the
+      cylinder, it is generally good practice to make each scribe in
+      two parts so that the "scribe" operation will operate on the
+      back of the cylinder instead of on the front.  (Note: the "scribe"
+      operation works by first finding the shortest path, as is done
+      by the "<strong>l</strong>" command, and then straightening it.
+      Since the two sides of the cylinder are roughly the same side,
+      it is equally likely that the "scribe" operation will operate on
+      the front of the cylinder as it is that it operate on the back;
+      by doing the "scribe" in two parts, one can enforce it to
+      operate on the back.)  The back of the cylinder looks like:
+    <p><img src="pictures/SLUGS-fig17.png" width="800"/>
+
+    <p>Note that all colors are either planar (the left and right
+      cylinder ends as well as the "tip" of the extrusion), or are
+      four-sided.  If you have done this correctly, you should now be
+      able to select <strong>Generate EGADS</strong> in the Tree window
+      or press the "<strong>E</strong>" key in the Graphics window.
+      You will be prompted for the name of the <code>.egads</code>
+      file; for the tutorial,
+      use <code>../data/Slugs/tutorial1.egads</code>  You will then be
+      prompted for the number of control points to use along each
+      Edge. The more more control points that are used, the better the
+      fit between the <code>.stl</code> and <code>.egads</code>
+      representations.  But also, the more control points that are
+      used, the higher liklihood that wiggles will be generated.
+      Experience has shown that the optimal value to use is either "5"
+      or "7".  Since there are not very many points in the cloud,
+      choose "5" for this case.
+
+    <p>If you have done everything successfully, you should get a
+      screen such as:
+    <p><img src="pictures/SLUGS-fig18.png" width="800"/>
+    <p> and you will get a "success" message in the Messages window.
+
+    <p>If you have a problem, the Messages window will inform you of what was
+      found.  To isolate the problem, turn the Grid off on all Faces
+      by pressing <strong>Grd</strong> to the right of "Triangles" in
+      the Tree window and then pressing <strong>Grd</strong> to the
+      right of the offending color.  Generally by looking at the
+      offending color, one can determine if the color is four-sided or
+      planar; if not, break the color into one or more colors and then
+      generating the EGADS file again.
+
+    <p><a href="#sec0">Table of Contents</a>
+
+    <!---------------------------------------------------------------->
+
+    <p><h2 id="sec3">3.0: Command Line</h2>
+
+    <p><a href="#sec0">Table of Contents</a>
+
+    <!---------------------------------------------------------------->
+
+    <p><h2 id="sec4">4.0: Interactive Options</h2>
+
+    <p><a href="#sec0">Table of Contents</a>
+
+    <!---------------------------------------------------------------->
+
+    <p><h2 id="sec5">5.0: Release Notes</h2>
+
+    <p><a href="#sec0">Table of Contents</a>
+
+    <!---------------------------------------------------------------->
+
+    <p><h2 id="sec6">6.0: Error Codes</h2>
+
+    <p><a href="#sec0">Table of Contents</a>
+
+    <!---------------------------------------------------------------->
+
+    <p><h2 id="sec7">7.0: Bugs Reports and Other Feedback</h2>
+
+    <p>All reports of possible 'bugs' and any other feedback should be
+       e-mailed to 'jfdannen@syr.edu' or 'Haimes@mit.edu'.  If a bug
+       report, please include the version number you are running
+       (listed in the title bar at the top of the program), what you
+       were doing at the time of the bug, and what happened that you
+       didn't expect.  The more information that you include, the
+       better the chances that the bug can be reproduced and hence
+       fixed.
+
+    <p><a href="#sec0">Table of Contents</a>
+
+    <!---------------------------------------------------------------->
+
+    <p><h2 id="sec8">8.0: Copyright</h2>
+
+    <p>Copyright (C) 2013/2020 John F. Dannenhoffer, III (Syracuse
+       University)
+
+    <p>This library is free software; you can redistribute it and/or
+       modify it under the terms of the GNU Lesser General Public
+       License as published by the Free Software Foundation; either
+       version 2.1 of the License, or (at your option) any later
+       version.
+
+    <p>This library is distributed in the hope that it will be useful,
+       but WITHOUT ANY WARRANTY; without even the implied warranty of
+       MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+       GNU Lesser General Public License for more details.
+
+    <p>You should have received a copy of the GNU Lesser General
+       Public License along with this library; if not, write to the
+       Free Software Foundation, Inc., 51 Franklin Street, Fifth
+       Floor, Boston, MA 02110-1301 USA
+
+    <p><a href="#sec0">Table of Contents</a>
+
+    <!---------------------------------------------------------------->
+
+    <p><h2 id="sec9">9.0: Glossary</h2>
+
+    <p><a href="#sec0">Table of Contents</a>
+
+    <!---------------------------------------------------------------->
+
+  </body>
+</html>

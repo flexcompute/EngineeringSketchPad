@@ -1,0 +1,45 @@
+# rule27b
+# written by John Dannenhoffer
+
+DESPMTR   dx  3
+DESPMTR   dy  2
+DESPMTR   dz  1
+
+# make the WireBody
+MARK
+   POINT     0    0    0
+   POINT     dx   0    0
+   POINT     dx   0    0    # copy 2
+   POINT     dx   0    0    # copy 3
+   POINT     dx   dy   0
+   POINT   2*dx   dy   0
+   POINT   2*dx   0    0
+   POINT   2*dx   0    0    # copy 2
+   POINT   3*dx   0    0
+   POINT   3*dx   0    0    # copy 2
+   POINT   3*dx   0    0    # copy 3
+   POINT   3*dx   dy   0
+RULE
+STORE      line
+
+# make the SheetBody
+MARK
+   RESTORE   line
+   RESTORE   line
+   TRANSLATE 0    0    dz
+   RESTORE   line
+   TRANSLATE 0    0    dz
+   RESTORE   line
+   TRANSLATE 0    0  2*dz
+RULE
+
+# reference points
+POINT        0    0    dz
+POINT        dx   0    dz
+POINT        dx   dy   dz
+POINT      2*dx   dy   dz
+POINT      2*dx   0    dz
+POINT      3*dx   0    dz
+POINT      3*dx   dy   dz
+
+END

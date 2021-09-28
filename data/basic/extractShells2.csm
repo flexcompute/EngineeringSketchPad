@@ -1,0 +1,68 @@
+# extractShells2
+# written by John Dannenhoffer
+
+# big box
+BOX        0  0  0  8  6  4
+
+# first hole
+SPHERE     2  3  2  1
+SUBTRACT
+
+# second hole
+CYLINDER   5  3  2  7  3  2  1/2
+BOX        5.5 1 1  1  2  2
+UNION
+SUBTRACT
+
+STORE      theBody
+
+# extract the Faces from the outside
+MARK
+RESTORE    theBody
+EXTRACT    0
+COMBINE
+ATTRIBUTE  _name   $outer
+
+# extract the Faces from the first hole (xmin>0, xmax<4, ymin>0, ymax<6, zmin>0, zmax<4)
+MARK
+RESTORE    theBody
+DIMENSION  faceList  1  @nface
+SET        nface   0
+PATBEG     iface   faceList.size
+   SELECT  FACE    iface
+   IFTHEN       @xmin GT 0 AND @xmax LT 4
+      IFTHEN    @ymin GT 0 AND @ymax LT 6
+         IFTHEN @zmin GT 0 AND @zmax LT 4
+             SET nface nface+1
+             SET faceList[nface] iface
+         ENDIF
+      ENDIF
+   ENDIF
+PATEND
+DIMENSION faceList 1 nface
+EXTRACT   faceList
+COMBINE
+ATTRIBUTE  _name   $hole1
+
+# extract the Faces from the first hole (xmin>4, xmax<8, ymin>0, ymax<6, zmin>0, zmax<4)
+MARK
+RESTORE    theBody
+DIMENSION  faceList  1  @nface
+SET        nface   0
+PATBEG     iface   faceList.size
+   SELECT  FACE    iface
+   IFTHEN       @xmin GT 4 AND @xmax LT 8
+      IFTHEN    @ymin GT 0 AND @ymax LT 6
+         IFTHEN @zmin GT 0 AND @zmax LT 4
+             SET nface nface+1
+             SET faceList[nface] iface
+         ENDIF
+      ENDIF
+   ENDIF
+PATEND
+DIMENSION faceList 1 nface
+EXTRACT   faceList
+COMBINE
+ATTRIBUTE  _name   $hole2
+
+END

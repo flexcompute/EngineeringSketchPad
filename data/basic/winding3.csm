@@ -1,0 +1,65 @@
+# winding3
+# written by John Dannenhoffer
+
+DESPMTR   L   2.00  # length of core
+DESPMTR   H   1.00  # height of core
+DESPMTR   S   0.10  # spacing between windings
+DESPMTR   D   0.08  # wire diameter
+DESPMTR   N   3     # number of layer pairs
+DESPMTR   M   8     # number of windings/layer
+
+SET       dip       S*(1-1/sqrt(2))
+
+# insulator
+BOX       -L/2-S*2*N-D  -H/2-S*2*N-D   -D   L+S*4*N+2*D  H+S*4*N+2*D  (M+1)*S+2*D
+   ATTRIBUTE _color $red
+BOX       -L/2          -H/2           -D   L            H            (M+1)*S+2*D
+   ATTRIBUTE _color $green
+SUBTRACT
+   STORE     insulator
+
+# wire cross-section
+UDPRIM     ELLIPSE  ry  D/2  rz  D/2
+TRANSLATE  -L/2  -H/2-S  0
+
+# winding
+SKBEG             -L/2-S*2*N-2*D   -H/2-S         -S
+   LINSEG         -L/2             -H/2-S         -S
+   PATBEG I  N
+      PATBEG J  M
+         LINSEG   +L/2+S*(2*I-2)   -H/2-S*(2*I-1)  S*(J-1)
+         ARC      +L/2+S*(2*I-1)   -H/2-S*(2*I-2)  S*(J-1)  dip
+         LINSEG   +L/2+S*(2*I-1)   +H/2+S*(2*I-2)  S*(J-1)
+         ARC      +L/2+S*(2*I-2)   +H/2+S*(2*I-1)  S*(J-1)  dip
+         LINSEG   -L/2-S*(2*I-2)   +H/2+S*(2*I-1)  S*(J)
+         ARC      -L/2-S*(2*I-1)   +H/2+S*(2*I-2)  S*(J)    dip
+         LINSEG   -L/2-S*(2*I-1)   -H/2-S*(2*I-2)  S*(J)
+         ARC      -L/2-S*(2*I-2)   -H/2-S*(2*I-1)  S*(J)    dip
+      PATEND
+      PATBEG JJ M
+         SET  J  M+1-JJ
+         LINSEG   +L/2+S*(2*I-1)   -H/2-S*(2*I)    S*(J)
+         ARC      +L/2+S*(2*I)     -H/2-S*(2*I-1)  S*(J)    dip
+         LINSEG   +L/2+S*(2*I)     +H/2+S*(2*I-1)  S*(J)
+         ARC      +L/2+S*(2*I-1)   +H/2+S*(2*I)    S*(J)    dip
+         LINSEG   -L/2-S*(2*I-1)   +H/2+S*(2*I)    S*(J-1)
+         ARC      -L/2-S*(2*I)     +H/2+S*(2*I-1)  S*(J-1)  dip
+         LINSEG   -L/2-S*(2*I)     -H/2-S*(2*I-1)  S*(J-1)
+         ARC      -L/2-S*(2*I-1)   -H/2-S*(2*I)    S*(J-1)  dip
+      PATEND
+   PATEND
+   LINSEG         +L/2+2*S*N+2*D   -H/2-S*(2*N)    S
+SKEND 1
+
+SWEEP
+STORE     wire
+
+RESTORE   insulator
+RESTORE   wire
+SUBTRACT
+   ATTRIBUTE _name  $insulator
+
+RESTORE   wire
+   ATTRIBUTE _name  $wire
+
+END

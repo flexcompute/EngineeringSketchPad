@@ -1,0 +1,27 @@
+# hollow9h
+# written by John Dannenhoffer
+
+mark
+   # root
+   udprim biconvex thick 0.12
+   scale 2
+
+   # tip
+   udprim biconvex thick 0.08
+   translate 0.1 0 6
+rule
+
+# remember body
+store   foo
+restore foo
+
+# make thin-walled Body by subtracting (smaller) offset surface
+restore foo
+hollow  -0.01
+subtract
+
+# punch hole to look inside
+cylinder 0.85 -1.0 3.0 0.85 +1.0 3.0 0.2
+subtract
+
+end

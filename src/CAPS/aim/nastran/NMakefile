@@ -1,0 +1,36 @@
+#
+!IFNDEF ESP_ROOT
+!ERROR ESP_ROOT must be set -- Please fix the environment...
+!ENDIF
+#
+IDIR  = $(ESP_ROOT)\include
+!include $(IDIR)\$(ESP_ARCH).$(MSVC)
+LDIR  = $(ESP_ROOT)\lib
+!IFDEF ESP_BLOC
+ODIR  = $(ESP_BLOC)\obj
+TDIR  = $(ESP_BLOC)\test
+!ELSE
+ODIR  = .
+TDIR  = $(ESP_ROOT)\bin
+!ENDIF
+
+
+$(LDIR)\nastranAIM.dll:	nastranAIM.def $(ODIR)\nastranAIM.obj $(LDIR)\utils.lib
+	-del $(LDIR)\nastranAIM.dll $(LDIR)\nastranAIM.lib \
+		$(LDIR)\nastranAIM.exp
+	 link /out:$(LDIR)\nastranAIM.dll /dll /def:nastranAIM.def \
+		$(ODIR)\nastranAIM.obj /LIBPATH:$(LDIR) utils.lib aimUtil.lib \
+		ocsm.lib egads.lib udunits2.lib $(PYTHONLIB)
+	$(MCOMP) /manifest $(LDIR)\nastranAIM.dll.manifest \
+		/outputresource:$(LDIR)\nastranAIM.dll;2
+
+$(ODIR)\nastranAIM.obj:	nastranAIM.c $(IDIR)\capsTypes.h ..\utils\meshUtils.h
+	cl /c $(COPTS) $(DEFINE) /I$(IDIR) /I..\utils nastranAIM.c \
+		/Fo$(ODIR)\nastranAIM.obj
+
+clean:
+	-del $(ODIR)\nastranAIM.obj
+
+cleanall:	clean
+	-del $(LDIR)\nastranAIM.dll $(LDIR)\nastranAIM.lib \
+		$(LDIR)\nastranAIM.exp

@@ -1,0 +1,19 @@
+# sketch8b (for testing sensitivities)
+# written by John Dannenhoffer
+
+DESPMTR   x0        0.0
+DESPMTR   y0        0.0
+DESPMTR   length    3.0
+DESPMTR   height    1.0
+DESPMTR   depth     2.0
+
+SKBEG     x0+length         y0         0
+   ARC    x0+length-height  y0+height  0  height-height/sqrt(2)
+   LINSEG x0                y0+height  0
+   LINSEG x0                y0         0
+   LINSEG x0+length         y0         0
+SKEND     0
+
+EXTRUDE   0              0       depth
+
+END

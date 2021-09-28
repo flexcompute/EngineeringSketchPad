@@ -1,0 +1,56 @@
+# rule9
+# written by John Dannenhoffer
+
+mark
+
+# nose
+skbeg 0 0 0
+skend
+
+# station 1
+set   x0   1.00
+set   y0   0.00
+set   rady 0.50
+set   radz 0.50
+
+skbeg        x0 y0+rady             0
+   patbeg i 36
+      set theta i*10
+      spline x0 y0+rady*cosd(theta) 0+radz*sind(theta)
+   patend
+skend
+
+# station 2
+set   x0   2.00
+set   y0   0.00
+set   rady 0.50
+set   radz 0.25
+
+skbeg        x0 y0+rady             0
+   patbeg i 36
+      set theta i*10
+      spline x0 y0+rady*cosd(theta) 0+radz*sind(theta)
+   patend
+skend
+
+# station 2
+set   x0   3.00
+set   y0   0.00
+set   rady 0.25
+set   radz 0.25
+
+skbeg        x0 y0+rady             0
+   patbeg i 36
+      set theta i*10
+      spline x0 y0+rady*cosd(theta) 0+radz*sind(theta)
+   patend
+skend
+
+# tail
+skbeg 4 0 0
+skend
+
+# rule
+rule
+
+end

@@ -1,0 +1,11 @@
+# design0s
+# written by John Dannenhoffer
+
+DESPMTR   dx  3
+DESPMTR   dy  2
+DESPMTR   dz  1
+
+UDPARG    $/design0s  L  dx
+UDPRIM    $/design0s  H  dy
+
+END

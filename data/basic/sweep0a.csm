@@ -1,0 +1,22 @@
+# sweep0a
+# written by John Dannenhoffer
+
+skbeg      4.0       5.0       0.0
+   linseg  4.0       6.0       0.0
+   cirarc  3.5       6.5       0.0       3.0       6.0       0.0
+   linseg  3.0       5.0       0.0
+skend
+
+skbeg      3.0       5.0       0.0
+   linseg  3.0       5.0      10.0
+   cirarc  0.0       5.0      13.0      -3.0       5.0      10.0
+   linseg -3.0       5.0       0.0
+   cirarc  1.0       5.0      -4.0       5.0       5.0       0.0
+   linseg  5.0       5.0      10.0
+   cirarc  0.0       5.0      15.0      -5.0       5.0      10.0
+   linseg -5.0       5.0       0.0
+skend
+
+sweep
+
+end

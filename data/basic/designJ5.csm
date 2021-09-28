@@ -1,0 +1,96 @@
+# designJ5
+# written by John Dannenhoffer
+
+DESPMTR   DX        3
+DESPMTR   DY        2
+DESPMTR   DZ        1
+
+# sheet body 1
+BOX       0         0         0         0         DY        0
+TRANSLATE 0        -DY/2      0
+EXTRUDE   DX        0         0
+
+# sheet body 2
+BOX       0         0         0         0         DY        0
+EXTRUDE   DX        0         0
+TRANSLATE 0        -DY/2      0
+
+# sheet body 3
+UDPRIM    box       dy DY
+TRANSLATE 0        -DY/2      0
+EXTRUDE   DX        0         0
+
+# sheet body 4
+UDPRIM    box       dy DY
+EXTRUDE   DX        0         0
+TRANSLATE 0        -DY/2      0
+
+# solid body 1
+BOX       0         0         0         0         DY        DZ
+EXTRUDE   DX        0         0
+TRANSLATE 0        -DY/2     -DZ/2
+
+# solid body 2
+BOX       0         0         0         0         DY        DZ
+TRANSLATE 0        -DY/2     -DZ/2
+EXTRUDE   DX        0         0
+
+# solid body 3
+BOX        0        0         0         DX        DY        DZ
+TRANSLATE -DX/2    -DY/2     -DZ/2
+
+# solid body 4
+UDPRIM    box       dy DY     dz DZ
+EXTRUDE   DX        0         0
+TRANSLATE 0        -DY/2     -DZ/2
+
+# solid body 5
+UDPRIM    box       dy DY     dz DZ
+TRANSLATE 0        -DY/2     -DZ/2
+EXTRUDE   DX        0         0
+
+# solid body 6
+UDPRIM    box       dx DX     dy DY     dz DZ
+TRANSLATE          -DX/2     -DY/2      -DZ/2
+
+SELECT    BODY 3
+SELECT    EDGE 2
+   ATTRIBUTE _sensCheck $skip
+SELECT    NODE 3
+   ATTRIBUTE _sensCheck $skip
+SELECT    NODE 4
+   ATTRIBUTE _sensCheck $skip
+
+SELECT    BODY 6
+SELECT    EDGE 2
+   ATTRIBUTE _sensCheck $skip
+SELECT    NODE 3
+   ATTRIBUTE _sensCheck $skip
+SELECT    NODE 4
+   ATTRIBUTE _sensCheck $skip
+
+SELECT    BODY 9
+SELECT    EDGE 2
+   ATTRIBUTE _sensCheck $skip
+SELECT    NODE 3
+   ATTRIBUTE _sensCheck $skip
+SELECT    NODE 4
+   ATTRIBUTE _sensCheck $skip
+
+SELECT    BODY 12
+SELECT    EDGE 2
+   ATTRIBUTE _sensCheck $skip
+SELECT    NODE 3
+   ATTRIBUTE _sensCheck $skip
+SELECT    NODE 4
+   ATTRIBUTE _sensCheck $skip
+
+SELECT    BODY 15
+SELECT    EDGE 2
+   ATTRIBUTE _sensCheck $skip
+SELECT    NODE 3
+   ATTRIBUTE _sensCheck $skip
+SELECT    NODE 4
+   ATTRIBUTE _sensCheck $skip
+
+END

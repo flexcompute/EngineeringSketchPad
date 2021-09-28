@@ -1,0 +1,45 @@
+# restore2
+# written by John Dannenhoffer
+
+SET       nerror   0
+
+RESTORE    .            # should fail (no Bodys on stack)
+CATBEG    $insufficient_bodys_on_stack
+   SET    nerror   nerror+1
+CATEND
+
+MARK
+   RESTORE    .            # should fail (not Body on stack)
+   CATBEG    $wrong_types_on_stack
+      SET    nerror  nerror+1
+   CATEND
+
+   BOX        -1  0  0  1  1  1
+   ATTRIBUTE _color $red
+
+   BOX         0  0  0  1  1  1
+   ATTRIBUTE _color $green
+
+   BOX        +1  0  0  1  1  1
+   ATTRIBUTE _color $cyan
+
+   SELECT    FACE  @nbody  6
+   ATTRIBUTE _color $blue
+GROUP
+
+# store and restore whole Group
+STORE     group  0  1
+RESTORE   group
+TRANSLATE 0  1  0
+
+# should duplicate only last Body (not whole Group)
+RESTORE    .
+TRANSLATE  0  1  0
+
+RESTORE    .
+TRANSLATE  0  1  0
+
+# make sure we got two (expected) errors
+ASSERT    nerror  2
+
+END

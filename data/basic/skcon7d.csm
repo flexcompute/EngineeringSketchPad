@@ -1,0 +1,40 @@
+# skcon7b
+# written by John Dannenhoffer
+
+despmtr   xbase     0.1
+despmtr   ybase     0.2
+despmtr   zbase     0.3
+despmtr   width     3.0
+despmtr   height    2.0
+despmtr   dy        0.3
+despmtr   dx        0.3
+
+skbeg     xbase  ybase  zbase
+   skvar  xy  " 0.1;  0.2;  0.0;\
+                2.9;  0.1;  0.0;\
+                2.9;  0.2;  0.0;\
+                1.5;  1.0;  0.0;\
+                0.2;  2.0;  0.0;\
+                0.0;  2.0;  0.0;"
+   skcon  X   1  -1   xbase
+   skcon  Y   1  -1   ybase
+   skcon  H   1   2
+   skcon  L   1   2   width
+   skcon  V   2   3
+   skcon  L   2   3   dy
+   skcon  X   4  -1   xbase+2*width/3
+   skcon  Y   4  -1   ybase+2*height/3
+   skcon  H   5   6
+   skcon  L   5   6   dx
+   skcon  V   6   1
+   skcon  L   6   1   height
+
+   linseg ::x[2]  ::y[2]  ::z[2]
+   spline ::x[3]  ::y[3]  ::z[3]
+   spline ::x[4]  ::y[4]  ::z[4]
+   spline ::x[5]  ::y[5]  ::z[5]
+   spline ::x[6]  ::y[6]  ::z[6]
+   linseg ::x[1]  ::y[1]  ::z[1]
+skend
+
+end

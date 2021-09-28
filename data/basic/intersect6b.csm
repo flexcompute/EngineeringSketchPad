@@ -1,0 +1,24 @@
+# intersect6b
+# written by John Dannenhoffer
+
+SKBEG      0   0   0
+   LINSEG  9   0   0
+   LINSEG  9   4   0
+   LINSEG  7   4   0
+   LINSEG  7   1   0
+   LINSEG  6   1   0
+   LINSEG  6   4   0
+   LINSEG  2   4   0
+   LINSEG  2   1   0
+   LINSEG  1   1   0
+   LINSEG  1   4   0
+   LINSEG  0   4   0
+   LINSEG  0   0   0
+SKEND
+EXTRUDE    0   0   1
+
+BOX       -1   2  .5  11  0  0
+
+INTERSECT xmax -1
+
+end

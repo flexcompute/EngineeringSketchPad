@@ -1,0 +1,167 @@
+# generaoc_launch_vehicle
+#
+# Parameterized generic launch vehicle geometry, non-dimensionalized by core diameter
+#
+# Comprised of
+#
+#   core with spherically-capped, tangent-ogive nose and boattail stern
+#
+#   optional booster(s) with spherically-capped, conical nose and flared stern
+#
+#   optional foward and aft attachment hardware
+
+despmtr   core:diameter              1.0
+despmtr   core:length               15.0
+despmtr   core:nose:radius           0.15
+despmtr   core:nose:ogive_radius     3.0
+despmtr   core:boattail:halfangle   15.0
+despmtr   core:boattail:diameter     0.85
+
+despmtr   booster:number             2
+despmtr   booster:core_separation    0.04
+despmtr   booster:diameter           0.45
+despmtr   booster:length             6.0
+despmtr   booster:nose:radius        0.05
+despmtr   booster:nose:halfangle    15.0
+despmtr   booster:flare:diameter     0.6
+despmtr   booster:flare:halfangle   15.0
+
+despmtr   attach:create              1
+despmtr   attach:fwd:location        0.13
+despmtr   attach:fwd:length          0.2 
+despmtr   attach:fwd:width           0.07
+despmtr   attach:fwd:cover:radius    0.015
+despmtr   attach:fwd:cover:length    0.02
+despmtr   attach:aft:location        0.9
+despmtr   attach:aft:separation      0.25
+despmtr   attach:aft:diameter        0.04
+
+# core
+
+skbeg     0   0   0   1
+    skvar     xy " 0.00; 0.005;0.00;\
+                   0.07;-0.125;0.02;\
+                   1.51;-0.495;0.09;\
+                  14.72;-0.495;0.00;\
+                  15.00;-0.425;0.00;\
+                  15.00; 0.005;0.00;"
+    skcon     X   1  -1  0
+    skcon     Y   1  -1  0
+    skcon     P   1  -1  0
+    skcon     R   1   2  core:nose:radius
+    skcon     T   2  -1  0
+    skcon     R   2   3  core:nose:ogive_radius
+    skcon     T   3  -1  0
+    skcon     H   3   4  0
+    skcon     I   4   5  core:boattail:halfangle
+    skcon     D   4   6  core:diameter/2
+    skcon     V   5   6  0
+    skcon     L   5   6  core:boattail:diameter/2
+    skcon     H   6   1  0
+    skcon     L   6   1  core:length
+    arc       ::x[2]   ::y[2]   0   ::d[2]   xy
+    arc       ::x[3]   ::y[3]   0   ::d[3]   xy
+    linseg    ::x[4]   ::y[4]   0
+    linseg    ::x[5]   ::y[5]   0
+    linseg    ::x[6]   ::y[6]   0
+    linseg    ::x[1]   ::y[1]   0
+skend     0
+revolve   0   0   0   1   0   0   360
+    attribute _name $core
+    attribute bc    $core
+store core 0 1
+
+ifthen booster:number gt 0
+
+    # booster
+
+    skbeg     0   0   0   1
+        skvar     xy " 0.00; 0.005;0.00;\
+                       0.03;-0.045;0.01;\
+                       0.69;-0.225;0.00;\
+                       5.97;-0.225;0.00;\
+                       6.25;-0.295;0.00;\
+                       6.50; 0.005;0.00;"
+        skcon     X   1  -1  0
+        skcon     Y   1  -1  0
+        skcon     P   1  -1  0
+        skcon     R   1   2  booster:nose:radius
+        skcon     T   2  -1  0
+        skcon     I   2   3  -booster:nose:halfangle
+        skcon     D   3   1  booster:diameter/2
+        skcon     H   3   4  0
+        skcon     I   4   5  -booster:flare:halfangle
+        skcon     V   5   6  0
+        skcon     D   5   6  booster:flare:diameter/2
+        skcon     H   6   1  0
+        skcon     L   6   1  booster:length
+        arc       ::x[2]   ::y[2]   0   ::d[2]   xy
+        linseg    ::x[3]   ::y[3]   0
+        linseg    ::x[4]   ::y[4]   0
+        linseg    ::x[5]   ::y[5]   0
+        linseg    ::x[6]   ::y[6]   0
+        linseg    ::x[1]   ::y[1]   0
+    skend     0
+    revolve   0   0   0   1   0   0   360
+    translate core:length-booster:length  core:diameter/2+booster:core_separation+booster:diameter/2   0
+    store     booster
+
+    # place boosters
+
+    patbeg    i   booster:number
+        set       angle (i-1)/booster:number*360
+        restore   booster   0
+            attribute _name $booster_+i
+            attribute bc    $booster_+i
+        rotatex   angle   0   0
+    patend
+
+    # attach boosters to core if requested
+
+    ifthen attach:create eq 1
+
+        mark
+
+        # forward attachment
+
+        box       0                  -((booster:core_separation/2)+(core:diameter/2))                -attach:fwd:width/2 \
+                 attach:fwd:length   (core:diameter/2)+booster:core_separation+(booster:diameter/2)   attach:fwd:width
+        cylinder  0   0   0   -attach:fwd:cover:length   0   0   attach:fwd:cover:radius
+        sphere    -attach:fwd:cover:length   0   0   attach:fwd:cover:radius
+        union     1   0   0
+        set xlocation  core:length-booster:length*(1-attach:fwd:location)
+        translate xlocation   core:diameter/2+booster:core_separation/2   0
+        store attach:fwd
+
+        # aft attachment
+
+        cylinder  0   0   0   0   core:diameter/2+booster:core_separation+booster:diameter/2   0   attach:aft:diameter/2
+        set xlocation  core:length-booster:length*(1-attach:aft:location)
+        translate xlocation   0   attach:aft:separation/2
+        store     attach:aft:left   0   1
+        mirror    0   0   -1   0
+        store     attach:aft:right
+
+        patbeg    i   booster:number
+            set       angle (i-1)/booster:number*360
+            mark
+                restore   attach:fwd
+                    attribute _name $attach:fwd_+i
+                    attribute bc    $attach:fwd_+i
+                restore   attach:aft:left
+                    attribute _name $attach:fwd:left_+i
+                    attribute bc    $attach:fwd:left_+i
+                restore   attach:aft:right
+                   attribute _name $attach:fwd:right_+i
+                   attribute bc    $attach:fwd:right_+i
+            group
+            rotatex   angle   0   0
+        patend
+
+        union 1
+
+    endif # attach
+
+endif # boosters
+
+end

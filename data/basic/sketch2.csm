@@ -1,0 +1,13 @@
+# sketch2
+# written by John Dannenhoffer
+
+skbeg      10.0      8.5       2.0
+   spline   6.8      7.8       0.0
+   spline  10.0      8.5      -2.0
+   spline  17.5      9.5      -2.6
+   spline  29.6      7.4       0.0
+   spline  17.5      9.5       2.6
+   spline  10.0      8.5       2.0
+skend
+
+end

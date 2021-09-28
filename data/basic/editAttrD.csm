@@ -1,0 +1,71 @@
+# editAttrD
+# written by John Dannenhoffer
+
+box       -1  -1  -1   1   1   2
+box        0  -1  -1   1   1   2
+union
+box       -1  0   -1   1   1   2
+union
+box        0  0   -1   1   1   2
+union
+
+attribute attrB01   1
+attribute attrB02   2
+attribute attrB03   3
+attribute attrB04   4
+
+select    face     15
+attribute attrF05   5
+attribute attrF06   6
+attribute attrF07   7
+attribute attrF08   8
+
+select    edge     24
+attribute attrE09   9
+attribute attrE10  10
+attribute attrE11  11
+attribute attrE12  12
+
+select    node     15
+attribute attrN13  13
+attribute attrN14  14
+attribute attrN15  15
+attribute attrN16  16
+
+udprim editAttr attrName $attrB01  input $D  output $B
+assert @@nchange 1
+udprim editAttr attrName $attrB02  input $D  output $F
+assert @@nchange 0
+udprim editAttr attrName $attrB03  input $D  output $E
+assert @@nchange 0
+udprim editAttr attrName $attrB04  input $D  output $N
+assert @@nchange 0
+
+udprim editAttr attrName $attrF05  input $D  output $B
+assert @@nchange 0
+udprim editAttr attrName $attrF06  input $D  output $F
+assert @@nchange 1
+udprim editAttr attrName $attrF07  input $D  output $E
+assert @@nchange 0
+udprim editAttr attrName $attrF08  input $D  output $N
+assert @@nchange 0
+
+udprim editAttr attrName $attrE09  input $D  output $B
+assert @@nchange 0
+udprim editAttr attrName $attrE10  input $D  output $F
+assert @@nchange 0
+udprim editAttr attrName $attrE11  input $D  output $E
+assert @@nchange 1
+udprim editAttr attrName $attrE12  input $D  output $N
+assert @@nchange 0
+
+udprim editAttr attrName $attrN13  input $D  output $B
+assert @@nchange 0
+udprim editAttr attrName $attrN14  input $D  output $F
+assert @@nchange 0
+udprim editAttr attrName $attrN15  input $D  output $E
+assert @@nchange 0
+udprim editAttr attrName $attrN16  input $D  output $N
+assert @@nchange 1
+
+end

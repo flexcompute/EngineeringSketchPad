@@ -1,0 +1,15 @@
+# skcon9a (point)
+# written by John Dannenhoffer
+
+despmtr   xbase     0.10
+despmtr   ybase     0.20
+despmtr   zbase     0.30
+despmtr   length    3.00
+despmtr   height    2.00
+despmtr   thick     1.00
+despmtr   depth     2.00
+
+skbeg     xbase     ybase     zbase
+skend
+
+end

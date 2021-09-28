@@ -1,0 +1,87 @@
+# hollowWing (from OPAM1/baseline)
+# written by John Dannenhoffer
+
+# design paramaters (inspired by B787-800)
+
+# wing
+DESPMTR   wing:area        4240    # area
+DESPMTR   wing:aspect      9.00    # aspect ratio
+DESPMTR   wing:taperi      0.48    # inboard  taper ratio
+DESPMTR   wing:tapero      0.23    # outboard taper ratio
+DESPMTR   wing:sweep       35.0    # leading edge sweep
+DESPMTR   wing:dihedral     7.0    # dihedral
+DESPMTR   wing:break       0.37    # inboard/outboard
+DESPMTR   wing:alphar      -3.0    # setting angle   at root
+DESPMTR   wing:thickr      0.15    # thickness ratio at root
+DESPMTR   wing:camberr     0.04    # camber    ratio at root
+DESPMTR   wing:alphab      -3.0    # setting angle   at break
+DESPMTR   wing:thickb      0.15    # thickness ratio at break
+DESPMTR   wing:camberb     0.04    # camber    ratio at break
+DESPMTR   wing:alphat      -8.0    # setting angle   at tip
+DESPMTR   wing:thickt      0.08    # thickness ratio at tip
+DESPMTR   wing:cambert     0.04    # camber    ratio at tip
+DESPMTR   wing:xroot       54.0    # xloc at root LE
+DESPMTR   wing:zroot       -5.0    # zloc at root LE
+DESPMTR   wing:skinth      0.02    # skin thickness
+
+# compute wing critical locations / dimensions
+SET       wing:yroot     0
+SET       wing:ytip      -sqrt(wing:aspect*wing:area)/2
+SET       ybreak         wing:ytip*wing:break
+SET       wing:xtip      wing:xroot-wing:ytip*tand(wing:sweep)
+SET       xbreak         wing:xroot-ybreak*tand(wing:sweep)
+SET       wing:ztip      wing:zroot-wing:ytip*tand(wing:dihedral)
+SET       zbreak         wing:zroot-ybreak*tand(wing:dihedral)
+SET       chordr         wing:area/((wing:yroot-ybreak)*(wing:taperi+1)+(ybreak-wing:ytip)*wing:taperi*(wing:tapero+1))
+SET       chordb         chordr*wing:taperi
+SET       chordt         chordb*wing:tapero
+
+# constant parameter to tell if NACA airfoils should have sharp trailing edges
+CONPMTR   SHARP_TE            1    # set to 0 for standard defn, 1 for sharp TEs
+
+# lay out left wing (outer mold line - OML)
+MARK
+    UDPRIM    naca      camber  wing:camberr   thickness  wing:thickr   sharpte  SHARP_TE
+    SCALE     chordr
+    ROTATEX   90  0  0
+    ROTATEY   wing:alphar  0  0
+    TRANSLATE wing:xroot   wing:yroot   wing:zroot
+
+    UDPRIM    naca      camber  wing:camberb   thickness  wing:thickb   sharpte  SHARP_TE
+    SCALE     chordb
+    ROTATEX   90  0  0
+    ROTATEY   wing:alphab  0  0
+    TRANSLATE xbreak       ybreak    zbreak
+
+    UDPRIM    naca      camber  wing:cambert   thickness  wing:thickt   sharpte  SHARP_TE
+    SCALE     chordt
+    ROTATEX   90  0  0
+    ROTATEY   wing:alphat  0  0
+    TRANSLATE wing:xtip    wing:ytip   wing:ztip
+RULE
+
+# lay out interior of left wing (inner mold line - IML)
+MARK
+    UDPRIM    naca      camber  wing:camberr   thickness  wing:thickr   sharpte  SHARP_TE   offset  -wing:skinth/chordr
+    SCALE     chordr
+    ROTATEX   90  0  0
+    ROTATEY   wing:alphar  0  0
+    TRANSLATE wing:xroot   wing:yroot   wing:zroot
+
+    UDPRIM    naca      camber  wing:camberb   thickness  wing:thickb   sharpte  SHARP_TE   offset  -wing:skinth/chordb
+    SCALE     chordb
+    ROTATEX   90  0  0
+    ROTATEY   wing:alphab  0  0
+    TRANSLATE xbreak       ybreak    zbreak
+
+    UDPRIM    naca      camber  wing:cambert   thickness  wing:thickt   sharpte  SHARP_TE   offset  -wing:skinth/chordt
+    SCALE     chordt
+    ROTATEX   90  0  0
+    ROTATEY   wing:alphat  0  0
+    TRANSLATE wing:xtip    wing:ytip   wing:ztip
+RULE
+
+# hollow out wing
+SUBTRACT
+
+end

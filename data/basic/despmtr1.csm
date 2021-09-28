@@ -1,0 +1,19 @@
+# despmtr1
+# written by John Dannenhoffer
+
+DESPMTR   scale            1.0
+
+DESPMTR   box:length       3.0
+DESPMTR   box:height       2.0
+DESPMTR   box:depth        2.0
+
+DESPMTR   box:post:height  2.0
+DESPMTR   box:post:diam    0.5
+
+BOX       0  0  0  box:length  box:height  box:depth
+CYLINDER  box:length/2  box:height                  box:depth/2  \
+          box:length/2  box:height+box:post:height  box:depth/2 \
+          box:post:diam
+UNION
+
+end

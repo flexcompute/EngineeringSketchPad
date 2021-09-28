@@ -1,0 +1,70 @@
+# umbrella1
+# written by John Dannenhoffer
+
+#    O
+#     \
+#      \
+#       B
+#      / \
+#     /   \
+#    A     C
+
+# Design Parameters
+despmtr   OB        3.0
+despmtr   AB        3.0
+despmtr   BC        4.0
+
+despmtr   OA        3.0       # slider location
+
+# check for valid inputs
+assert    1         ifpos(OB,1,0)
+assert    1         ifpos(AB,1,0)
+assert    1         ifpos(BC,1,0)
+assert    1         ifpos(AB+OB-OA,1,0)
+
+# vertex at top
+set       xO        0.0
+set       yO        0.0
+
+# vertex at slider
+set       xA        xO
+set       yA        yO-OA
+
+# initial values for angles
+set       thetaO    -30.0
+set       thetaA    +30.0
+
+# solver to find angles
+solbeg    thetaO;thetaA;
+
+   # match at B
+   solcon (xO+OB*cosd(thetaO))-(xA+AB*cosd(thetaA))
+   solcon (yO+OB*sind(thetaO))-(yA+AB*sind(thetaA))
+solend
+
+# vertex at joints B and C
+set       xB        xO+OB*cosd(thetaO)
+set       yB        yO+OB*sind(thetaO)
+
+# vertex at tip
+set       xC        xO+(OB+BC)*cosd(thetaO)
+set       yC        yO+(OB+BC)*sind(thetaO)
+
+# draw bars, rotate, and translate
+skbeg     0         0         0
+   linseg OB+BC     0         0
+skend
+rotatez   thetaO    0         0
+translate xO        yO        0
+
+skbeg     0         0         0
+   linseg AB        0         0
+skend
+rotatez   thetaA    0         0
+translate xA        yA        0
+
+# draw node at origin
+skbeg     xO        yO        0
+skend
+
+end

@@ -1,0 +1,13 @@
+# design0f
+# written by John Dannenhoffer
+
+despmtr   camber    0.04
+despmtr   thick     0.12
+despmtr   dx        0.20
+despmtr   dy        0.10
+despmtr   dz        3.00
+
+udprim    naca      thickness thick     camber    camber
+extrude   dx        dy        dz
+
+end

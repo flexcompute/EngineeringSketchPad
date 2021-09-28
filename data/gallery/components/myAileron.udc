@@ -1,0 +1,127 @@
+interface   MakeAilerons            in 0
+interface   AileronLocation         in 0
+interface   AileronChord            in 0
+interface   AileronSpan             in 0
+interface   relAileronSpan          in 0
+interface   relAileronChord         in 0
+interface   Aileron_Deflection      in 5
+
+interface   xpivot_right            in 0
+interface   ypivot_right            in 0
+interface   zpivot_right            in 0
+
+interface   xpivot_left             in 0
+interface   ypivot_left             in 0
+interface   zpivot_left             in 0
+
+interface   wingSpan                in 0 
+interface   Wing_SweepAngle         in 0
+interface   Wing_HedralAngle        in 0
+
+interface  relSpoilerSpan           in 0
+interface  XXi                      in 0
+interface  YYi                      in 0
+interface  Gapi                     in 0
+interface  Thetai                   in 0
+
+patbeg aileron_right ifzero(Aileron_Deflection,0,MakeAilerons)
+    store wing
+    # Set pivot point for Aileron relative to trailing edge of tip airfoil 
+    set xpivot_abox_r  xpivot_right-relAileronChord
+    set ypivot_abox_r  ypivot_right-(AileronLocation*wingSpan/2.0)-relAileronSpan
+    set zpivot_abox_r  zpivot_right-(0.5*relAileronChord)
+    
+    # Set the sizing parameters for the aileron
+    set xlenth_abox_r  relAileronChord
+    set ylenth_abox_r  relAileronSpan            
+    set zlenth_abox_r  relSpoilerSpan
+    set orient_abox_r  Wing_SweepAngle
+    
+    # Create a box to be used as a cut-out for aileron
+    box  0.0 0.0 0.0 xlenth_abox_r ylenth_abox_r zlenth_abox_r
+    set aileron @nbody
+    translate  xpivot_abox_r ypivot_abox_r zpivot_abox_r 
+    rotatez -Wing_SweepAngle xpivot_right ypivot_right
+    rotatex Wing_HedralAngle ypivot_right zpivot_right
+    
+    # Select the edges of the aileron 
+    select edge aileron 3 aileron 6 1
+       set arc1_xmin    @xmin
+       set arc1_ymin    @ymin
+
+       set arc1_xmax    @xmax
+       set arc1_ymax    @ymax
+    #end select
+    select edge aileron 4 aileron 6 1
+       set arc2_xmin    @xmin
+       set arc2_ymin    @ymin
+
+       set arc2_xmax    @xmax
+       set arc2_ymax    @ymax
+    #end select
+    store tmp # discard the box
+    restore wing
+
+    set   XXi   "arc2_xmax; arc2_xmin; arc1_xmin; arc1_xmax;" 
+    set   YYi   "arc2_ymax; arc2_ymin; arc1_ymin; arc1_ymax;" 
+    set   gap   Gapi*relAileronChord
+  
+    # add in the inboard flap
+    udparg    $$/flapz   xflap     XXi
+    udparg    $$/flapz   yflap     YYi
+    udparg    $$/flapz   theta     Aileron_Deflection 
+    udparg    $$/flapz   gap       gap
+    # udprim    $$/flapz 
+    udprim    $$/flapz   openEnd   1
+
+patend  #aileron_right 
+
+patbeg aileron_left ifzero(Aileron_Deflection,0,MakeAilerons)
+    # Set pivot point for Aileron relative to trailing edge of tip airfoil 
+    set xpivot_abox_l  xpivot_left-relAileronChord
+    set ypivot_abox_l  ypivot_left+(AileronLocation*wingSpan/2.0)
+    set zpivot_abox_l  zpivot_left-(0.5*relAileronChord)
+    
+    # Set the sizing parameters for the aileron
+    set xlenth_abox_l  relAileronChord
+    set ylenth_abox_l  relAileronSpan            
+    set zlenth_abox_l  relSpoilerSpan
+    set orient_abox_l  Wing_SweepAngle
+    
+    # Create a box to be used as a cut-out for aileron
+    box  0.0 0.0 0.0 xlenth_abox_l ylenth_abox_l zlenth_abox_l
+    set aileron_left @nbody
+    translate  xpivot_abox_l ypivot_abox_l zpivot_abox_l 
+    rotatez  Wing_SweepAngle xpivot_left ypivot_left
+    rotatex -Wing_HedralAngle ypivot_left zpivot_left
+    
+    # Select the edges of the aileron 
+    select edge aileron_left 3 aileron_left 6 1
+       set larc1_xmin    @xmin
+       set larc1_ymin    @ymin
+
+       set larc1_xmax    @xmax
+       set larc1_ymax    @ymax
+    #end select
+    select edge aileron_left 4 aileron_left 6 1
+       set larc2_xmin    @xmin
+       set larc2_ymin    @ymin
+
+       set larc2_xmax    @xmax
+       set larc2_ymax    @ymax
+    #end select
+
+    store tmp # discard the box
+
+    set   XXi   "larc2_xmax; larc2_xmin; larc1_xmin; larc1_xmax;" 
+    set   YYi   "larc2_ymax; larc2_ymin; larc1_ymin; larc1_ymax;" 
+    set   gap   Gapi*relAileronChord
+  
+    # add in the inboard flap
+    udparg    $$/flapz   xflap     XXi
+    udparg    $$/flapz   yflap     YYi
+    udparg    $$/flapz   theta     -Aileron_Deflection 
+    udparg    $$/flapz   gap       gap
+    # udprim    $$/flapz 
+    udprim    $$/flapz   openEnd   1
+patend  #aileron_left

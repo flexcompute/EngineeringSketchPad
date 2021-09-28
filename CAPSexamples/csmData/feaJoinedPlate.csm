@@ -1,0 +1,60 @@
+
+# Design Parameters:
+despmtr   plateLength      0.50000
+despmtr   plateWidth       0.25000
+
+attribute capsAIM $nastranAIM;astrosAIM;mystranAIM;hsmAIM
+
+# Branches:
+skbeg     0   0   0
+   linseg    plateLength   0   0
+skend     0
+extrude   0   plateWidth   0
+attribute capsGroup  $plate
+
+# Attribute the constrained edge/nodes
+select edge 1
+   attribute capsConstraint $plateEdge
+select node 1 
+   attribute capsConstraint $plateEdge
+select node 2 
+   attribute capsConstraint $plateEdge
+
+
+# Attribute the edge/nodes with the load
+select edge 2
+   attribute capsLoad $plateTip
+select node 3 
+   attribute capsLoad $plateTip
+select node 4
+   attribute capsLoad $plateTip
+store plate
+
+
+# Construct a plane to split the plate
+udprim box dx plateLength*2 dy 0 dz 1
+translate plateLength/2 plateWidth/2 0
+store cut1
+
+restore plate
+restore cut1
+subtract
+
+# Mark constraint/loads on the new nodes
+select node 2
+   attribute capsConstraint $plateEdge
+select node 3 
+   attribute capsLoad $plateTip
+
+store plate
+
+# Construct a second plane to split the plate
+udprim box dx 0 dy plateWidth*2 dz 1
+translate plateLength/2 plateWidth/2 0
+store cut2
+
+restore plate
+restore cut2
+subtract
+
+end

@@ -1,0 +1,82 @@
+# splitFlap
+# written by John Dannenhoffer
+
+# outer mold line
+udprim    naca  camber 0.04  thickness 0.12
+rotatex   90    0  0
+extrude   0.0  5.0  0.0
+store     OML
+
+# cutter
+skbeg     1.05  4.50  0.00
+   linseg 0.70  4.50  0.00
+   linseg 0.70  2.55  0.00
+   linseg 0.70  2.45  0.00
+   linseg 0.70  0.50  0.00
+   linseg 1.05  0.50  0.00
+   linseg 1.05  0.60  0.00
+   linseg 0.75  0.60  0.00
+   linseg 0.75  2.45  0.00
+   linseg 1.05  2.45  0.00
+   linseg 1.05  2.55  0.00
+   linseg 0.75  2.55  0.00
+   linseg 0.75  4.40  0.00
+   linseg 1.05  4.40  0.00
+   linseg 1.05  4.50  0.00
+skend
+translate 0.00  0.00  -.20
+extrude   0.00  0.00  0.40
+store     CUTTER
+set       cutter @nbody
+
+# main wing
+restore   OML
+restore   CUTTER
+subtract  ymin 1
+store     MAIN
+
+# inboard flap
+restore   OML
+restore   CUTTER
+subtract  ymin 2
+store     IFLAP
+
+# outboard flap
+restore   OML
+restore   CUTTER
+subtract  ymin 3
+store     OFLAP
+
+# connect the flaps to each other
+restore   IFLAP
+rotatey   +7  0.0  0.75
+select    face  cutter 11
+set       ilist @iface
+
+restore   OFLAP
+rotatey   -7  0.0  0.75
+select    face  cutter  13
+set       olist @iface
+connect   ilist olist
+
+# connect the flaps to the main
+dimension flist 1 5 0
+select    face  cutter   9
+select    add   cutter  10
+select    add   @nbody   2
+select    add   cutter  14
+select    add   cutter  15
+set       flist @sellist
+
+restore   MAIN
+dimension mlist 1 5 0
+select    face  cutter  3
+select    add   cutter  4
+select    add   cutter  5
+select    add   cutter  6
+select    add   cutter  7
+set       mlist @sellist
+
+connect   flist  mlist
+
+end

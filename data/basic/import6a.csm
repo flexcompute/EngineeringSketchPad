@@ -1,0 +1,7 @@
+# import6a
+# written by John Dannenhoffer
+
+import  $/sew.stp  -1  
+set     nbodies @@numbodies
+
+end

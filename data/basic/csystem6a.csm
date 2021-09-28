@@ -1,0 +1,14 @@
+# csystem6a
+# written by John Dannenhoffer
+
+# csystem associated with Body
+BOX       0  0  0  1  1  1
+CSYSTEM   cs1 "0.5; 0.8; 1.1;   1;0;0;   0;1;0"
+STORE     box
+
+RESTORE   box
+RESTORE   box
+ROTATEZ   30.  0.0  0.0
+TRANSLATE 2.0  0.0  0.0
+
+END

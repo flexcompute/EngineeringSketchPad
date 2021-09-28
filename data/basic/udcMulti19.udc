@@ -1,0 +1,12 @@
+# udcMulti01
+# written by John Dannenhoffer
+
+UDPARG    $$/gen_rot   xbeg    0
+UDPARG    $$/gen_rot   ybeg    0
+UDPARG    $$/gen_rot   zbeg    0
+UDPARG    $$/gen_rot   xend    1
+UDPARG    $$/gen_rot   yend    0
+UDPARG    $$/gen_rot   zend    0
+UDPRIM    $$/gen_rot   rotang  10
+
+END

@@ -1,0 +1,66 @@
+# contains.udc
+#
+# Body2 Body1 CONTAINS Body2 Body1
+#
+# returns in @@contains: 0 if Body1 is fully     within Body2
+#                        1 if Body1 is not fully within Body2
+#                        2 if Body1 is partially within Body2
+#                        3 if Body1 is          outside Body2
+#
+# written by John Dannenhoffer
+
+INTERFACE contains  out  -1
+
+STORE     contains 1
+STORE     contains 2
+
+# try to perform UNION
+RESTORE   contains 1
+RESTORE   contains 2
+UNION
+
+SET       status    0
+CATBEG    $did_not_create_body
+   SET    status   -1
+CATEND
+
+IFTHEN    status  EQ  -1
+   STORE    .                 # clear Bodys left after the union failure
+   STORE    .
+   SET      contains  3
+ELSE
+   SET      vol_12    @volume
+   SET      area_12   @area
+   SET      nnode_12  @nnode
+   SET      nedge_12  @nedge
+   SET      nface_12  @nface
+   STORE    .
+
+   RESTORE  contains  2
+   SET      vol_2     @volume
+   SET      area_2    @area
+   SET      nnode_2   @nnode
+   SET      nedge_2   @nedge
+   SET      nface_2   @nface
+   STORE    .
+
+   IFTHEN   abs(vol_12-vol_2) LT 1e-6  AND  abs(area_12-area_2) LT 1e-6
+      IFTHEN  nnode_12 EQ nnode_2  AND  nedge_12 EQ nedge_2
+         IFTHEN  nface_12 EQ nface_2
+            SET  contains 0
+         ELSE
+            SET  contains 1
+         ENDIF
+      ELSE
+         SET  contains 1
+      ENDIF
+   ELSE
+      SET  contains 2
+   ENDIF
+ENDIF
+
+# restore the stack to its original condition
+RESTORE   contains 2
+RESTORE   contains 1
+
+END

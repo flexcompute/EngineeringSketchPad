@@ -1,0 +1,28 @@
+# design1a
+# written by John Dannenhoffer
+
+despmtr   L1   3.0
+despmtr   H1   2.0
+despmtr   D1   2.0
+despmtr   L2   1.0
+despmtr   H2   2.0
+despmtr   D2   2.0
+despmtr   dx   1.0
+despmtr   dy   1.0
+despmtr   dz   1.0
+despmtr   sfac 2.0
+
+# box1
+box       0    0    0    L1   H1   D1
+
+# box2
+box       0    0    0    L2   H2   D2
+translate dx   dy   dz
+
+# combine
+union
+
+# overall scale
+scale     sfac
+
+end

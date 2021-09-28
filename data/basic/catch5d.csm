@@ -1,0 +1,20 @@
+# catch5d
+# written by John Dannenhoffer
+
+IFTHEN    1  EQ  1
+   UDPRIM    $/catch5
+
+   CATBEG  $all               # this should catch -6789
+      ASSERT  @signal  -6789
+   CATEND
+ENDIF
+
+IFTHEN    1  EQ  1
+   UDPRIM    $/catch5
+ENDIF
+
+CATBEG  $all                  # this should catch -6789
+   ASSERT  @signal  -6789
+CATEND
+
+END

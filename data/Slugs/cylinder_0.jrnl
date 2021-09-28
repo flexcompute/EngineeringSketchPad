@@ -1,0 +1,12 @@
+# casename=../data/Slugs/cylinder_0
+
+markCreases;45;
+pickPoint;-0.99354428;0.0076366751;0.50177521;
+linkToPoint;1.0046898;0.0056733447;0.50126565;
+pickPoint;1.0009543;-0.00011194402;-0.50104785;
+linkToPoint;-0.99738592;-0.00097345363;-0.50155622;
+colorTriangles;-1.0001494;0.20002669;0.012642467;1;
+colorTriangles;1.0032886;0.0032170834;-0.023748646;2;
+colorTriangles;0.19744167;-0.24140254;0.44082907;3;
+colorTriangles;0.25305331;0.32343367;0.38702089;4;
+generateEgads;../data/Slugs/cylinder_1.egads;9;

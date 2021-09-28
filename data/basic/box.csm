@@ -1,0 +1,14 @@
+# box
+# written by John Dannenhoffer
+
+despmtr   xbase     1.00
+despmtr   ybase     2.00
+despmtr   zbase     3.00
+despmtr   xsize     4.00
+despmtr   ysize     5.00
+despmtr   zsize     6.00
+
+box       xbase     ybase     zbase \
+          xsize     ysize     zsize
+
+end

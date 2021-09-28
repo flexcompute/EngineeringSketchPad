@@ -1,0 +1,73 @@
+# import5
+# written by John Danennhoffer
+
+# create box.igs, cylinder.igs, and sphere.igs
+BOX       -2.0  0.0  0.0   1.0  1.0  1.0
+DUMP      box.igs
+STORE     .
+
+CYLINDER  -0.5  0.5  0.5   0.5  0.5  0.5   0.5
+DUMP      cylinder.igs
+STORE     .
+
+SPHERE     1.5  0.5  0.5   0.5
+DUMP      sphere.igs
+STORE     .
+
+# import the first half of the faces from the box.igs file
+IMPORT    box.igs
+EXTRACT   1
+IMPORT    box.igs
+EXTRACT   2
+UDPRIM    import filename $box.igs
+EXTRACT   3
+
+# import the first face from the sphere.igs file
+UDPRIM    import  filename $sphere.igs
+EXTRACT   1
+
+# do something useless that will take more than a second
+TORUS     0.0  0.0   1.0  0.0  0.0  1.0  4.0  0.9
+UDPRIM    waffle segments "-4.0; -4.0; -4.0; +4.0;\
+                           -3.0; -4.0; -3.0; +4.0; \
+                           -2.0; -4.0; -2.0; +4.0; \
+                           -1.0; -4.0; -1.0; +4.0; \
+                            0.0; -4.0;  0.0; +4.0; \
+                            1.0; -4.0;  1.0; +4.0; \
+                            2.0; -4.0;  2.0; +4.0; \
+                            3.0; -4.0;  3.0; +4.0; \
+                            4.0; -4.0;  4.0; +4.0; \
+                           -4.0; -4.0; +4.0; -4.0; \
+                           -4.0; -3.0; +4.0; -3.0; \
+                           -4.0; -2.0; +4.0; -2.0; \
+                           -4.0; -1.0; +4.0; -1.0; \
+                           -4.0;  0.0; +4.0;  0.0; \
+                           -4.0;  1.0; +4.0;  1.0; \
+                           -4.0;  2.0; +4.0;  2.0; \
+                           -4.0;  3.0; +4.0;  3.0; \
+                           -4.0;  4.0; +4.0;  4.0;"\
+                  depth   2.0
+INTERSECT
+STORE     .
+
+# change the sphere.igs file
+SPHERE    1.5  0.5  0.5   0.3
+DUMP      sphere.igs
+STORE     .
+
+# import the cylinder.igs file
+IMPORT    cylinder.igs
+
+# import the second face from the (new) sphere.igs file
+UDPRIM    import  filename $sphere.igs
+EXTRACT   2
+
+# import the second half of the faces from the box.igs file
+IMPORT    box.igs
+EXTRACT   4
+IMPORT    box.igs
+EXTRACT   5
+UDPRIM    import filename $box.igs
+EXTRACT   6
+
+end

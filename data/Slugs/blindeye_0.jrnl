@@ -1,0 +1,8 @@
+# casename=../data/Slugs/blindeye_0
+
+markCreases;20;
+colorTriangles;-0.29896818;-0.25259784;-1.9561248;1;
+colorTriangles;0.067652946;0.054491488;1.9975561;2;
+colorTriangles;-0.29033420;-0.65651514;0.47158100;3;
+colorTriangles;-0.46550641;0.58470575;0.98097933;4;
+generateEgads;../data/Slugs/blindeye_1.egads;9;

@@ -1,0 +1,97 @@
+	ESP Bibliography at  http://acdl.mit.edu/ESP/Publications
+
+
+AIAApaper2012-0683
+"On The Construction of Aircraft Conceptual Geometry for High-Fidelity Analysis 
+ and Design" 
+Robert Haimes and Mark Drela
+
+AIAApaper2013-0701
+"OpenCSM: An Open-Source Constructive Solid Modeler for MDAO" 
+John Dannenhoffer
+
+AIAApaper2013-0702
+"Geometric Sketch Constraint Solving with User Feedback"
+Bridget Dixon and John Dannenhoffer
+
+AIAApaper2013-3073
+"The Engineering Sketch Pad: A Solid-Modeling, Feature-Based, Web-Enabled 
+ System for Building Parametric Geometry"
+Robert Haimes and John Dannenhoffer
+
+AIAApaper2014-0294
+"Conservative Fitting for Multi-Disciplinary Analysis"
+John Dannenhoffer and Robert Haimes
+
+AIAApaper2015-1370
+"Design Sensitivity Calculations Directly on CAD-based Geometry"
+John Dannenhoffer and Robert Haimes
+
+AIAApaper2016-1925
+"Generation of Multi-fidelity, Multi-discipline Air Vehicle Models with the 
+ Engineering Sketch Pad"
+John Dannenhoffer and Robert Haimes
+
+AIAApaper2016-1926
+"Generation of Parametric Aircraft Models from a Cloud of Points"
+Pengcheng Jia and John Dannenhoffer
+
+AIAApaper2016-4007
+"Multi-fidelity Geometry-centric Multi-disciplinary Analysis for Design"
+Edward Alyanak, Ryan Durscher, Robert Haimes, John Dannenhoffer, Nitin Bhagat
+and Darcy Allison
+
+AIAApaper2017-0138
+"The Creation of a Static BRep Model Given a Cloud of Points"
+John Dannenhoffer
+
+AIAApaper2017-0139
+"Using Design-Parameter Sensitivities in Adjoint-Based Design Environments"
+John Dannenhoffer and Robert Haimes
+
+AIAApaper2018-1401
+"EGADSlite: A Lightweight Geometry Kernel for HPC"
+Robert Haimes and John Dannenhoffer
+
+AIAApaper2019-1717
+"Flends: Generalized Fillets via B-splines"
+Zachary Eager and John Dannenhoffer
+
+AIAApaper2019-1721
+"Automatic Unstructured Mesh Generation with Geometry Attribution"
+Steve Karman and Nick Wyman
+
+AIAApaper2019-1988
+"Towards Fully Regular Quad Mesh Generation"
+Julia Docampo-Sánchez and Robert Haimes
+
+AIAApaper2019-1992
+"Extension of local cavity operators to 3d + t spacetime mesh adaptation"
+Philip Caplan, Robert Haimes, David Darmofal and Marshall Galbraith
+
+AIAApaper2019-2225
+"Toward the Realization of a Highly Integrated, Multidisciplinary, 
+ Multifidelity Design Environment"
+Dean Bryson, Robert Haimes and John Dannenhoffer
+
+AIAApaper2019-2226
+"pyCAPS: A Python Interface to the Computational Aircraft Prototype Syntheses"
+Ryan Durscher and Dennis Reedy
+
+AIAApaper2019-2227
+"Hybrid Shell Model for Aeroelastic Modeling"
+Mark Drela, Marshall Galbraith and Steven Allmaras
+
+AIAApaper2019-2228
+"Shape Continuum Sensitivity Analysis using ASTROS and CAPS"
+Robert Canfield, Suood Alnaqbi, Ryan Durscher, Dean Bryson and Raymond Kolonay
+
+AIAApaper2019-2229
+"Rapid Generation of Parametric Aircraft Structural Models"
+John Joe, Viraj Gandhi, John Dannenhoffer and Hamid Dalir
+
+AIAApaper2019-2230
+"Parameterized, Multi-fidelity Aircraft Geometry and Analysis for MDAO Studies
+ using CAPS"
+Christopher Meckstroth
+

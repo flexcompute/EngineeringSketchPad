@@ -1,0 +1,48 @@
+# extractShells1
+# written by John Dannenhoffer
+
+# big box
+BOX        0  0  0  8  6  4
+SELECT     FACE
+ATTRIBUTE  myBody  $outer
+
+# first hole
+SPHERE     2  3  2  1
+SELECT     FACE
+ATTRIBUTE  myBody  $hole1
+SUBTRACT
+
+# second hole
+CYLINDER   5  3  2  7  3  2  1/2
+BOX        5.5 1 1  1  2  2
+UNION
+SELECT     FACE
+ATTRIBUTE  myBody  $hole2
+SUBTRACT
+
+STORE      theBody
+
+# extract the Faces from the outside
+MARK
+RESTORE    theBody
+EXTRACT    0
+COMBINE
+ATTRIBUTE  _name   $outer
+
+# extract the Faces from the first hole
+MARK
+RESTORE    theBody
+SELECT     FACE    $myBody  $hole1
+EXTRACT    @sellist
+COMBINE
+ATTRIBUTE  _name   $hole1
+
+# extract the Faces from the second hole
+MARK
+RESTORE    theBody
+SELECT     FACE    $myBody  $hole2
+EXTRACT    @sellist
+COMBINE
+ATTRIBUTE  _name   $hole2
+
+END

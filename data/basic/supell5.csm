@@ -1,0 +1,25 @@
+# supell5
+# written by John Dannenhoffer
+
+# one quadrant
+udparg    supell    rx        2.0
+udparg    supell    ry        3.0
+udparg    supell    n         5.0
+udprim    supell    nquad     1
+translate -5.0  0.0  0.0
+
+# two quadrants
+udparg    supell    rx        2.0
+udparg    supell    ry        3.0
+udparg    supell    n         5.0
+udprim    supell    nquad     2
+translate  0.0  0.0  0.0
+
+# four quadrants (face)
+udparg    supell    rx        2.0
+udparg    supell    ry        3.0
+udparg    supell    n         5.0
+udprim    supell    nquad     4
+translate +5.0  0.0  0.0
+
+end

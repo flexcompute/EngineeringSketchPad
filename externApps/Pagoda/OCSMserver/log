@@ -1,0 +1,186 @@
+mpirun -np 1 Demo1_server tutorial1_new.csm : -np 3 Demo1_client
+--> enter ocsmLoad(filename=tutorial1_new.csm)
+    nextline ( 0:   1)[   1]: # ../data/tutorial1_new.csm written by ocsmSave (v1.12)
+    nextline ( 0:   2)[   1]: 
+    nextline ( 0:   3)[   1]: # Constant and Design Parameters:
+    nextline ( 0:   4)[   1]: despmtr   Lbar       6.00000
+    nextline ( 0:   5)[   1]: despmtr   Rbar       0.40000
+    nextline ( 0:   6)[   1]: despmtr   T          0.50000
+    nextline ( 0:   7)[   1]: despmtr   D          2.00000
+    nextline ( 0:   8)[   1]: despmtr   Rout       1.20000
+    nextline ( 0:   9)[   1]: despmtr   Rfil       0.10000
+    nextline ( 0:  10)[   1]: despmtr   Rhole      0.08000
+    nextline ( 0:  11)[   1]: 
+    nextline ( 0:  12)[   1]: # Global Attributes:
+    nextline ( 0:  13)[   1]: 
+    nextline ( 0:  14)[   1]: # Branches:
+    nextline ( 0:  15)[   1]: set       L Lbar/2
+    nextline ( 0:  16)[   2]: cylinder  -L   0.0   0.0   +L   0.0   0.0   Rbar+.1
+    nextline ( 0:  17)[   3]: name      shaft
+    nextline ( 0:  18)[   3]: attribute shaft   10
+    nextline ( 0:  19)[   3]: 
+    nextline ( 0:  20)[   3]: box       -L-T/2   -D/3   -D   T   D*2/3   2*D
+    nextline ( 0:  21)[   4]: name      left_weight
+    nextline ( 0:  22)[   4]: attribute weight   1
+    nextline ( 0:  23)[   4]: union     0   0   0
+    nextline ( 0:  24)[   5]: fillet    Rfil   0
+    nextline ( 0:  25)[   6]: 
+    nextline ( 0:  26)[   6]: box       +L-T/2   -D/2   -D/2   T   D   D
+    nextline ( 0:  27)[   7]: name      rite_weight
+    nextline ( 0:  28)[   7]: attribute weight   2
+    nextline ( 0:  29)[   7]: union     0   0   0
+    nextline ( 0:  30)[   8]: fillet    Rfil   0
+    nextline ( 0:  31)[   9]: 
+    nextline ( 0:  32)[   9]: cylinder  -L-T   0.00   0.00   +L+T   0.00   0.00   Rout
+    nextline ( 0:  33)[  10]: attribute clipper   10
+    nextline ( 0:  34)[  10]: intersect none   1   0
+    nextline ( 0:  35)[  11]: 
+    nextline ( 0:  36)[  11]: sphere    1   0   0   2.3
+    nextline ( 0:  37)[  12]: intersect none   1   0
+    nextline ( 0:  38)[  13]: cone      0   0   0   1.2*L   0   0   0.2
+    nextline ( 0:  39)[  14]: subtract  none   1   0
+    nextline ( 0:  40)[  15]: 
+    nextline ( 0:  41)[  15]: patbeg    i   7
+    nextline ( 0:  42)[  16]: cylinder  i/3   0   -1   i/3   0   +1   Rhole
+    nextline ( 0:  43)[  17]: name      small_holes
+    nextline ( 0:  44)[  17]: rotatex   -15*(i-1)   0   0
+    nextline ( 0:  45)[  18]: subtract  none   1   0
+    nextline ( 0:  46)[  19]: patend
+    nextline ( 0:  47)[  20]: 
+    nextline ( 0:  48)[  20]: select    body   34
+    nextline ( 0:  49)[  21]: attribute .tParams 0.02;0.002;15;
+    nextline ( 0:  50)[  21]: select    face   8   4   2
+    nextline ( 0:  51)[  22]: attribute partID   1;2;sqrt(3)
+    nextline ( 0:  52)[  22]: 
+    nextline ( 0:  53)[  22]: end
+--> enter ocsmBuild(buildTo=0)
+--> enter ocsmCheck()
+--> checks passed
+
+    EGADS version  1.12 (with OpenCASCADE 6.6.0)
+
+    executing [   1] set:            L  Lbar/2
+                          L =     3.00000     0.00000
+    executing [   2] cylinder:      -3.00000      0.00000      0.00000      3.00000      0.00000      0.00000      0.50000
+                          Body      1 created  (toler= 1.0000e-05)
+    executing [   3] box:           -3.25000     -0.66667     -2.00000      0.50000      1.33333      4.00000
+                          Body      2 created  (toler= 1.0000e-07)
+    executing [   4] union:          0.00000  0   0.0000e+00
+                          Body      3 created  (toler= 1.0000e-05)
+    executing [   5] fillet:         0.10000  0
+                          Body      4 created  (toler= 1.0000e-05)
+    executing [   6] box:            2.75000     -1.00000     -1.00000      0.50000      2.00000      2.00000
+                          Body      5 created  (toler= 1.0000e-07)
+    executing [   7] union:          0.00000  0   0.0000e+00
+                          Body      6 created  (toler= 1.0000e-05)
+    executing [   8] fillet:         0.10000  0
+                          Body      7 created  (toler= 1.0000e-05)
+    executing [   9] cylinder:      -3.50000      0.00000      0.00000      3.50000      0.00000      0.00000      1.20000
+                          Body      8 created  (toler= 1.0000e-05)
+    executing [  10] intersect:  none      1.00000   0.0000e+00
+                          Body      9 created  (toler= 1.0000e-05)
+    executing [  11] sphere:         1.00000      0.00000      0.00000      2.30000
+                          Body     10 created  (toler= 1.0000e-05)
+    executing [  12] intersect:  none      1.00000   0.0000e+00
+                          Body     11 created  (toler= 1.0000e-05)
+    executing [  13] cone:           0.00000      0.00000      0.00000      3.60000      0.00000      0.00000      0.20000
+                          Body     12 created  (toler= 1.0000e-05)
+    executing [  14] subtract:   none      1.00000   0.0000e+00
+                          Body     13 created  (toler= 1.0000e-05)
+    executing [  15] patbeg:         i      7.00000
+                          pattern counter: i =   1
+    executing [  16] cylinder:       0.33333      0.00000     -1.00000      0.33333      0.00000      1.00000      0.08000
+                          Body     14 created  (toler= 1.0000e-05)
+    executing [  17] rotatex:        0.00000      0.00000      0.00000
+                          Body     15 created  (toler= 1.0000e-05)
+    executing [  18] subtract:   none      1.00000   0.0000e+00
+                          Body     16 created  (toler= 1.0000e-05)
+    executing [  19] patend:
+                          pattern counter: i =   2
+    executing [  16] cylinder:       0.66667      0.00000     -1.00000      0.66667      0.00000      1.00000      0.08000
+                          Body     17 created  (toler= 1.0000e-05)
+    executing [  17] rotatex:      -15.00000      0.00000      0.00000
+                          Body     18 created  (toler= 1.0000e-05)
+    executing [  18] subtract:   none      1.00000   0.0000e+00
+                          Body     19 created  (toler= 1.0000e-05)
+    executing [  19] patend:
+                          pattern counter: i =   3
+    executing [  16] cylinder:       1.00000      0.00000     -1.00000      1.00000      0.00000      1.00000      0.08000
+                          Body     20 created  (toler= 1.0000e-05)
+    executing [  17] rotatex:      -30.00000      0.00000      0.00000
+                          Body     21 created  (toler= 1.0000e-05)
+    executing [  18] subtract:   none      1.00000   0.0000e+00
+                          Body     22 created  (toler= 1.0000e-05)
+    executing [  19] patend:
+                          pattern counter: i =   4
+    executing [  16] cylinder:       1.33333      0.00000     -1.00000      1.33333      0.00000      1.00000      0.08000
+                          Body     23 created  (toler= 1.0000e-05)
+    executing [  17] rotatex:      -45.00000      0.00000      0.00000
+                          Body     24 created  (toler= 1.0000e-05)
+    executing [  18] subtract:   none      1.00000   0.0000e+00
+                          Body     25 created  (toler= 4.8269e-05)
+    executing [  19] patend:
+                          pattern counter: i =   5
+    executing [  16] cylinder:       1.66667      0.00000     -1.00000      1.66667      0.00000      1.00000      0.08000
+                          Body     26 created  (toler= 1.0000e-05)
+    executing [  17] rotatex:      -60.00000      0.00000      0.00000
+                          Body     27 created  (toler= 1.0000e-05)
+    executing [  18] subtract:   none      1.00000   0.0000e+00
+                          Body     28 created  (toler= 4.8269e-05)
+    executing [  19] patend:
+                          pattern counter: i =   6
+    executing [  16] cylinder:       2.00000      0.00000     -1.00000      2.00000      0.00000      1.00000      0.08000
+                          Body     29 created  (toler= 1.0000e-05)
+    executing [  17] rotatex:      -75.00000      0.00000      0.00000
+                          Body     30 created  (toler= 1.0000e-05)
+    executing [  18] subtract:   none      1.00000   0.0000e+00
+                          Body     31 created  (toler= 4.8269e-05)
+    executing [  19] patend:
+                          pattern counter: i =   7
+    executing [  16] cylinder:       2.33333      0.00000     -1.00000      2.33333      0.00000      1.00000      0.08000
+                          Body     32 created  (toler= 1.0000e-05)
+    executing [  17] rotatex:      -90.00000      0.00000      0.00000
+                          Body     33 created  (toler= 1.0000e-05)
+    executing [  18] subtract:   none      1.00000   0.0000e+00
+                          Body     34 created  (toler= 4.8269e-05)
+    executing [  19] patend:
+    executing [  20] select:     body  34 
+                    putting Branch Attributes on Body
+    executing [  21] select:     face  8  4  2 
+                     putting Branch Attributes on Face 41
+    finalizing:
+--> Tessellating Body     34     ( 2.00000e-02  2.00000e-03  15.000)
+==> Profile information
+    Branch type           ncall  time (sec)    pct
+    box                       2       0.002    0.1
+    sphere                    1       0.002    0.1
+    cone                      1       0.003    0.1
+    cylinder                  9       0.033    1.1
+    fillet                    2       0.028    1.0
+    intersect                 2       0.202    6.9
+    subtract                  8       2.537   87.1
+    union                     2       0.034    1.2
+    rotatex                   7       0.010    0.3
+    set                       1       0.000    0.0
+    select                    2       0.062    2.1
+    patbeg                    1       0.000    0.0
+    patend                    7       0.000    0.0
+    Total                    45
+   PCurve Map: 296 (alloc 296)!
+   Surface Map: 30 (alloc 148)!
+   Curve Map: 127 (alloc 163)!
+ Writing PCurves...
+ Writing Curves...
+ Writing Surfaces...
+ Writing 109 Nodes...
+ Writing 165 Edges...
+ Writing 68 Loops...
+ Writing 48 Faces...
+ Writing 1 Shells...
+Broadcasting to clients...
+Comparing results...
+volume    4.47383    4.47383 ( -1.2737e-07)
+area     26.51281   26.51280 (  9.2432e-06)
+xcg       1.45048    1.45048 ( -1.0249e-07)
+ycg      -0.00000   -0.00000 ( -1.0301e-07)
+zcg      -0.00000   -0.00000 (  5.4969e-09)

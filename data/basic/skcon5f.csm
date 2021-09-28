@@ -1,0 +1,41 @@
+# skcon5f
+# written by John Dannenhoffer
+
+despmtr   xbase     0.1
+despmtr   ybase     0.2
+despmtr   zbase     0.3
+despmtr   base      2.0
+despmtr   rad       1.0
+despmtr   width     4.0
+despmtr   height    2.0
+
+skbeg     xbase  ybase  zbase
+   skvar  xy  " 0.1;  0.2;  0.0;\
+                2.0;  0.1;  0.0;\
+                3.2;  1.3; -0.3;\
+                4.2;  1.3;  0.0;\
+                4.0;  2.1;  0.0;\
+                0.1;  2.2;  0.0;"
+   skcon  X   1  -1   xbase
+   skcon  Y   1  -1   ybase
+   skcon  H   1   2
+   skcon  L   1   2   base
+   skcon  S   2   3   -90
+   skcon  H   3   4
+   skcon  L   3   4   width-rad-base
+   skcon  V   4   5
+   skcon  L   4   5   height-rad
+   skcon  X   5  -1   xbase+width
+   skcon  Y   5  -1   ybase+height
+   skcon  H   5   6
+   skcon  V   6   1
+
+   linseg ::x[2]  ::y[2]  ::z[2]
+   arc    ::x[3]  ::y[3]  ::z[3]  ::d[3]
+   linseg ::x[4]  ::y[4]  ::z[4]
+   linseg ::x[5]  ::y[5]  ::z[5]
+   linseg ::x[6]  ::y[6]  ::z[6]
+   linseg ::x[1]  ::y[1]  ::z[1]
+skend
+
+end

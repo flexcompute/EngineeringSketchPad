@@ -1,0 +1,18 @@
+# loft7p (simple tube, non-planar faces)
+# written by John Dannenhoffer
+
+# left curved face
+box      -2 -.5 -.5   4   1   1
+cylinder -2  -2   0  -2  +2   0  1
+intersect
+select   face 2  3
+extract  @iface
+store    curved
+
+mark
+   restore   curved
+   restore   curved
+   translate 2  0  0
+loft 1
+
+end

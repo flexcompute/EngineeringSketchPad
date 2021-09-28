@@ -1,0 +1,136 @@
+# umbrella4
+# written by John Dannenhoffer
+
+DESPMTR   OA       18.00      # slider location
+CONPMTR   W         0.20      # half-width or bars
+CONPMTR   R         0.10      # radii of holes
+CONPMTR   T         0.10      # thickness of plates
+
+SET       maxBar    0
+
+# slider (bar OA)
+SKBEG     +W        0.00      0.00
+   CIRARC 0.00      +W        0.00      -W        0.00      0.00
+   LINSEG -W        -OA       0.00
+   CIRARC 0.00      -OA-W     0.00      +W        -OA       0.00
+   LINSEG +W        0.00      0.00
+SKEND
+EXTRUDE   0.00      0.00      T
+CYLINDER  0.00      0.00      -1.00     0.00      0.00      1.00      R
+SUBTRACT
+CYLINDER  0.00      -OA       -1.00     0.00      -OA       1.00      R
+SUBTRACT
+   CSYSTEM  O  "0.00;  0.00;  T;   1;0;0;  0;1;0;"
+   CSYSTEM  A  "0.00;  -OA;   T;   1;0;0;  0;1;0;"
+   ATTRIBUTE _name $slider-OA
+SET       maxBar  maxBar+1
+STORE     bar     maxBar  1
+
+# bar OFE
+SKBEG     0.00      -W        0.00
+   LINSEG 16.0      -W        0.00
+   CIRARC 16.0+W    0.00      0.00      16.0      +W        0.00
+   LINSEG 0.00      +W        0.00
+   CIRARC -W        0.00      0.00      0.00      -W        0.00
+SKEND
+EXTRUDE   0.00      0.00      T
+CYLINDER  0.00      0.00      -1.00     0.00      0.00      1.00      R
+   SUBTRACT
+CYLINDER  13.0      0.00      -1.00     13.0      0.00      1.00      R
+   SUBTRACT
+CYLINDER  16.0      0.00      -1.00     16.0      0.00      1.00      R
+   SUBTRACT
+   CSYSTEM  O  "0.00;  0.00;  T;   1;0;0;  0;1;0;"
+   CSYSTEM  F  "13.0;  0.00;  T;   1;0;0;  0;1;0;"
+   CSYSTEM  E  "16.0;  0.00;  T;   1;0;0;  0;1;0;"
+   ATTRIBUTE _name $OFE
+TRANSLATE 1.0       0.0       0.0
+SET       maxBar  maxBar+1
+STORE     bar     maxBar  1
+
+# bar DCB
+SKBEG     0.00      -W        0.00
+   LINSEG 13.0      -W        0.00
+   CIRARC 13.0+W    0.00      0.00      13.0      +W        0.00
+   LINSEG 0.00      +W        0.00
+   CIRARC -W        0.00      0.00      0.00      -W        0.00
+SKEND
+EXTRUDE   0.00      0.00      T
+CYLINDER  0.00      0.00      -1.00     0.00      0.00      1.00      R
+   SUBTRACT
+CYLINDER  3.00      0.00      -1.00     3.00      0.00      1.00      R
+   SUBTRACT
+CYLINDER  13.0      0.00      -1.00     13.0      0.00      1.00      R
+   SUBTRACT
+   CSYSTEM  D  "0.00;  0.00;  T;   1;0;0;  0;1;0;"
+   CSYSTEM  C  "3.00;  0.00;  T;   1;0;0;  0;1;0;"
+   CSYSTEM  B  "13.0;  0.00;  T;   1;0;0;  0;1;0;"
+   ATTRIBUTE _name $DCB
+TRANSLATE 1.0       -2.0      0.0
+SET       maxBar  maxBar+1
+STORE     bar     maxBar  1
+
+# bar AEC
+SKBEG     0.00      -W        0.00
+   LINSEG 29.0      -W        0.00
+   CIRARC 29.0+W    0.00      0.00      29.0      +W        0.00
+   LINSEG 0.00      +W        0.00
+   CIRARC -W        0.00      0.00      0.00      -W        0.00
+SKEND
+EXTRUDE   0.00      0.00      T
+CYLINDER  0.00      0.00      -1.00     0.00      0.00      1.00      R
+   SUBTRACT
+CYLINDER  16.0      0.00      -1.00     16.0      0.00      1.00      R
+   SUBTRACT
+CYLINDER  29.0      0.00      -1.00     29.0      0.00      1.00      R
+   SUBTRACT
+   CSYSTEM  A  "0.00;  0.00;  T;   1;0;0;  0;1;0;"
+   CSYSTEM  E  "16.0;  0.00;  T;   1;0;0;  0;1;0;"
+   CSYSTEM  C  "29.0;  0.00;  T;   1;0;0;  0;1;0;"
+   ATTRIBUTE _name $AEC
+TRANSLATE 1.0       -4.0      0.0
+SET       maxBar  maxBar+1
+STORE     bar     maxBar  1
+
+# bar FD
+SKBEG     0.00      -W        0.00
+   LINSEG 13.0      -W        0.00
+   CIRARC 13.0+W    0.00      0.00      13.0      +W        0.00
+   LINSEG 0.00      +W        0.00
+   CIRARC -W        0.00      0.00      0.00      -W        0.00
+SKEND
+EXTRUDE   0.00      0.00      T
+CYLINDER  0.00      0.00      -1.00     0.00      0.00      1.00      R
+   SUBTRACT
+CYLINDER  13.0      0.00      -1.00     13.0      0.00      1.00      R
+   SUBTRACT
+   CSYSTEM  F  "0.00;  0.00;  T;   1;0;0;  0;1;0;"
+   CSYSTEM  D  "13.0;  0.00;  T;   1;0;0;  0;1;0;"
+   ATTRIBUTE _name $FD
+TRANSLATE 1.0       -6.0      0.0
+SET       maxBar  maxBar+1
+STORE     bar     maxBar  1
+
+# loop through all possible pin locations
+SET       pinList  $ABCDEFGHIJKLMNOPQRSTUVWXYZ
+
+PATBEG    ipin     pinList.size
+   SET    pin      slice(pinList,ipin,ipin)
+
+   # loop through all possible bars
+   PATBEG    ibar  maxBar
+      RESTORE   bar  ibar
+
+      # check if attribute exists
+      GETATTR   attr  !$_csys_+pin
+      SET       foundCsys pin+$_on_Bar+ibar
+      CATBEG    $illegal_attribute
+      CATEND
+
+      STORE     .
+   PATEND
+   CATBEG  $name_not_found
+   CATEND
+PATEND
+
+END

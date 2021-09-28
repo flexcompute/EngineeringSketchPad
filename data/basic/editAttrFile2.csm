@@ -1,0 +1,204 @@
+# editAttrFile2
+# written by John Dannenhoffer
+
+box       0  0  0  3  2  1
+
+select    face   @nbody 1
+   attribute myFace $xmin
+select    face   @nbody 2
+   attribute myFace $xmax
+select    face   @nbody 3
+   attribute myFace $ymin
+select    face   @nbody 4
+   attribute myFace $ymax
+select    face   @nbody 5
+   attribute myFace $zmin
+select    face   @nbody 6
+   attribute myFace $zmax
+
+select    edge   @nbody 1 @nbody 3
+   attribute myEdge $xmin;ymin
+select    edge   @nbody 1 @nbody 4
+   attribute myEdge $xmin;ymax
+select    edge   @nbody 1 @nbody 5
+   attribute myEdge $xmin;zmin
+select    edge   @nbody 1 @nbody 6
+   attribute myEdge $xmin;zmax
+select    edge   @nbody 2 @nbody 3
+   attribute myEdge $xmax;ymin
+select    edge   @nbody 2 @nbody 4
+   attribute myEdge $xmax;ymax
+select    edge   @nbody 2 @nbody 5
+   attribute myEdge $xmax;zmin
+select    edge   @nbody 2 @nbody 6
+   attribute myEdge $xmax;zmax
+select    edge   @nbody 3 @nbody 5
+   attribute myEdge $ymin;zmin
+select    edge   @nbody 3 @nbody 6
+   attribute myEdge $ymin;zmax
+select    edge   @nbody 4 @nbody 5
+   attribute myEdge $ymax;zmin
+select    edge   @nbody 4 @nbody 6
+   attribute myEdge $ymax;zmax
+
+select    node  0  0  0
+   attribute myNode $xmin;ymin;zmin
+select    node  3  0  0
+   attribute myNode $xmax;ymin;zmin
+select    node  0  2  0
+   attribute myNode $xmin;ymax;zmin
+select    node  3  2  0
+   attribute myNode $xmax;ymax;zmin
+select    node  0  0  1
+   attribute myNode $xmin;ymin;zmax
+select    node  3  0  1
+   attribute myNode $xmax;ymin;zmax
+select    node  0  2  1
+   attribute myNode $xmin;ymax;zmax
+select    node  3  2  1
+   attribute myNode $xmax;ymax;zmax
+
+#                                  A,D,E (back)
+#
+#                +------------------------N
+#               /:                       /|
+#              / :                      / |
+#             /  :    A,D,E,F (top)    /  |
+#            /  I:J                   /  I|J
+#           +-----------------------L+M   |
+#  A,B,D,G  |    :                   |  A (rite)
+#   (left)  |    :                   |    |
+#           |    + - - - - - H - - - | - -+
+#           I   '                   I|K  /
+#           | H/J                    | H/J/K
+#           | '                      | /
+#           |'   A,D,E (front)       |/
+#           +-----------H------------+
+#                  ^
+#          A,D,E (bottom)
+
+udprim    editAttr  verbose 0 filename <<
+    FACE
+    SET              new=.
+
+    FACE
+    AND     HAS      myFace=*
+    ADD              new=A
+
+    FACE    HAS      myFace=xmin
+    ADD              new=B
+
+    FACE    HAS      foo=foo
+    ADD              new=C
+
+    FACE
+    ANDNOT  HAS      myFace=xmax
+    ADD              new=D
+
+    FACE    ADJ2FACE myFace=xmin
+    ADD              new=E
+
+    FACE
+    ANDNOT  ADJ2FACE myFace=ymin
+    ANDNOT  ADJ2NODE myNode=xmin;ymin;zmin
+    ADD              new=F
+
+    FACE
+    ANDNOT  ADJ2FACE myFace=xmax
+    ANDNOT  HAS      myFace=xmax
+    ADD              new=G
+
+    EDGE
+    SET              new=.
+
+    EDGE    ADJ2FACE myFace=ymin
+    ADD              new=H
+
+    EDGE
+    ANDNOT  ADJ2FACE myFace=ymin
+    ANDNOT  ADJ2FACE myFace=ymax
+    ADD              new=I
+
+    EDGE    ADJ2EDGE myEdge=ymin;zmin
+    ADD              new=J
+
+    EDGE    ADJ2EDGE myEdge=ymin;zmax
+	ANDNOT  ADJ2FACE myFace=xmin
+    ADD              new=K
+
+    NODE
+    SET              new=.
+
+    NODE    ADJ2FACE myFace=xmax
+    AND     ADJ2FACE myFace=ymax
+    AND     ADJ2FACE myFace=zmax
+    ADD              new=L
+
+    NODE
+    ANDNOT  ADJ2FACE myFace=xmin
+    ANDNOT  ADJ2FACE myFace=ymin
+    ANDNOT  ADJ2FACE myFace=zmin
+    ADD              new=M
+
+    NODE    ADJ2EDGE myEdge=xmax;ymax
+    ANDNOT  ADJ2FACE myFace=zmax
+    ADD              new=N
+>>
+
+select    face  $myFace  $xmin
+getattr   foo   $new
+assert    ifmatch(foo,$.?A?B?D?G,1,0) 1
+
+select    face  $myFace  $xmax
+getattr   foo   $new
+assert    ifmatch(foo,$.?A,1,0) 1
+
+select    face  $myFace  $ymin
+getattr   foo   $new
+assert    ifmatch(foo,$.?A?D?E,1,0) 1
+
+select    face  $myFace  $ymax
+getattr   foo   $new
+assert    ifmatch(foo,$.?A?D?E?F,1,0) 1
+
+select    face  $myFace  $zmin
+getattr   foo   $new
+assert    ifmatch(foo,$.?A?D?E,1,0) 1
+
+select    face  $myFace  $zmax
+getattr   foo   $new
+assert    ifmatch(foo,$.?A?D?E,1,0) 1
+
+select    edge  $myEdge  $xmin;ymin
+getattr   foo   $new
+assert    ifmatch(foo,$.?H?J,1,0) 1
+
+select    edge  $myEdge  $xmax;ymin
+getattr   foo   $new
+assert    ifmatch(foo,$.?H?J?K,1,0) 1
+
+select    edge  $myEdge  $xmin;zmin
+getattr   foo   $new
+assert    ifmatch(foo,$.?I?J,1,0) 1
+
+select    edge  $myEdge  $xmax;zmin
+getattr   foo   $new
+assert    ifmatch(foo,$.?I?J,1,0) 1
+
+select    edge  $myEdge  $xmin;zmax
+getattr   foo   $new
+assert    ifmatch(foo,$.?I,1,0) 1
+
+select    edge  $myEdge  $xmax;zmax
+getattr   foo   $new
+assert    ifmatch(foo,$.?I?K,1,0) 1
+
+select    node  3  2  0
+getattr   foo   $new
+assert    ifmatch(foo,$.?N,1,0) 1
+
+select    node  3  2  1
+getattr   foo   $new
+assert    ifmatch(foo,$.?L?M,1,0) 1
+
+end

@@ -1,0 +1,49 @@
+# designP1b
+# written by John Dannenhoffer
+
+DESPMTR   X0   -1.0
+DESPMTR   Y0   -2.0
+DESPMTR   Z0   -3.0
+DESPMTR   L     4.0
+DESPMTR   H     3.0
+DESPMTR   DX1   0.0
+DESPMTR   DY1   0.0
+DESPMTR   DZ1   2.0
+DESPMTR   DX2   1.0
+DESPMTR   DY2   1.0
+DESPMTR   DZ2   2.0
+DESPMTR   DX3  -1.0
+DESPMTR   DY3   0.0
+DESPMTR   DZ3   4.0
+DESPMTR   S1    2.0
+DESPMTR   S2    3.0
+
+BOX       X0    Y0    Z0  1  0  0
+SCALE  L  X0    Y0    Z0
+BOX       X0+L  Y0    Z0  0  1  0
+SCALE  H  X0+L  Y0    Z0
+JOIN
+BOX       X0    Y0+H  Z0  1  0  0
+SCALE  L  X0    Y0+H  Z0
+JOIN
+BOX       X0    Y0    Z0  0  1  0
+SCALE  H  X0    Y0    Z0
+JOIN
+SCALE     S1
+
+STORE        foo
+MARK
+   RESTORE   foo
+   RESTORE   foo
+   TRANSLATE DX1  DY1  DZ1
+   RESTORE   foo
+   TRANSLATE DX1  DY1  DZ1
+   TRANSLATE DX2  DY2  DZ2
+   RESTORE   foo
+   TRANSLATE DX1  DY1  DZ1
+   TRANSLATE DX2  DY2  DZ2
+   TRANSLATE DX3  DY3  DZ3
+RULE
+SCALE     S2
+
+END

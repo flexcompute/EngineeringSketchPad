@@ -1,0 +1,78 @@
+# blend_nacelle.csm
+# Written by Marshall Galbraith
+
+despmtr   nacelle_length     2.00
+despmtr   nacelle_radius     0.50
+despmtr   nacelle_top_thickness  0.10
+despmtr   nacelle_bot_thickness  0.05
+despmtr   nacelle_bump_thickness 0.05
+despmtr   nacelle_top_n      50
+despmtr   nacelle_bot_n      50
+despmtr   nacelle_top_x      0.35
+despmtr   nacelle_profile_n  10
+despmtr   hub_HTR            0.478
+despmtr   hub_extension      0
+despmtr   spinner_length     0.30
+despmtr   spinner_HTR        0.375   
+despmtr   bladerow_length    0.182
+despmtr   outflow_HTR        0.5528
+despmtr   offset_ref         0.2
+
+dimension nacelle_top_thickness_LE   1   nacelle_profile_n  1
+despmtr   nacelle_top_thickness_LE  "0.1; 0.1; 0.1; 0.1; 0.1; 0.15; 0.5; 0.5; 0.3; 0.2;"
+
+dimension offset  1  nacelle_profile_n  1
+despmtr   offset "0.2; 0.2; 0.2; 0.2; 0.2; 0.3; 0.5; 0.8; 1.2; 1.8;"
+
+set   spinner_radius            spinner_HTR*nacelle_radius
+set   hub_radius                hub_HTR*nacelle_radius
+set   outflow_radius            outflow_HTR*nacelle_radius
+set   eqn_RHS_const             spinner_radius*bladerow_length/(hub_radius-spinner_radius)/spinner_length
+set   spinner_theta_end         acosd((-eqn_RHS_const+sqrt(eqn_RHS_const^2+4))/2) 
+set   spinner_ellipse_radius    spinner_radius/sind(spinner_theta_end)
+set   hub_length                nacelle_length-offset[1]
+set   MeshScale                 0.25
+set   MeshScale_Nacelle         0.10
+set   MeshScale_Spinner         0.15
+
+# Sketch the nacelle
+patbeg   j    nacelle_profile_n  
+   mark
+      skbeg     offset_ref-offset[j]  0  0
+         patbeg   i   nacelle_top_n
+            spline offset_ref-offset[j]+(offset[j]+spinner_length+bladerow_length)*(1+cosd(180-90/nacelle_top_n*i))   nacelle_top_thickness_LE[j]*sind(180-90/nacelle_top_n*i)  0
+         patend
+      skend
+
+      skbeg     offset_ref+spinner_length+bladerow_length       nacelle_top_thickness_LE[j]  0
+         sslope 2 0 0
+         spline nacelle_length   nacelle_top_thickness  0
+         sslope 2 0 0
+         linseg nacelle_length   nacelle_top_thickness  0
+      skend
+
+      skbeg     offset_ref-offset[j]   0  0
+         patbeg   i   nacelle_bot_n
+            spline offset_ref-offset[j]+offset[j]*(1+cosd(180-90/nacelle_bot_n*i))   -nacelle_bump_thickness*sind(180-90/nacelle_bot_n*i)  0
+         patend
+         spline offset_ref+spinner_length -nacelle_bot_thickness 0
+         sslope 0.4 0 0
+         linseg nacelle_length  -nacelle_bot_thickness  0
+         linseg nacelle_length   nacelle_top_thickness  0
+      skend
+
+   combine 0
+
+   translate 0   nacelle_radius+nacelle_bot_thickness   0
+
+   rotatex  180/(nacelle_profile_n-1)*(j-1)  0  0
+   store section j 1
+patend
+
+mark
+   patbeg   j    nacelle_profile_n
+      restore section j
+   patend
+
+blend
+end

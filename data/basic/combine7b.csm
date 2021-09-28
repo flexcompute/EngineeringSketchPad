@@ -1,0 +1,18 @@
+# combine7b
+# written by John Dannenhoffer
+
+# SolidBody
+CYLINDER  -1  0  0  +1  0  0  1
+
+# convert to SheetBody
+EXTRACT 0
+
+STORE   sheet
+RESTORE sheet
+
+# inflate to SolidBody
+MARK
+RESTORE sheet
+COMBINE
+
+END

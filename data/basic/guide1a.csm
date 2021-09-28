@@ -1,0 +1,25 @@
+# guide1a
+# written by John Dannenhoffer
+
+despmtr   rad   2.0
+despmtr   dz    3.0
+
+# constant cross-section
+skbeg       -.5  -.5  0.0
+   linseg   0.0  -.5  0.0
+   cirarc   0.5  0.0  0.0  0.0  0.5  0.0
+   linseg   -.5  0.5  0.0
+skend
+
+# guide curve
+skbeg        rad              0.0              0.0
+   patbeg    isect  8
+      set    theta  min(isect*45,180)
+      spline rad*cosd(theta)  rad*sind(theta)  isect*dz
+   patend
+skend
+
+udparg    guide     nxsect  17
+udprim    guide     origin  "0;0;0"   # xsect point to put on guide curve
+
+end

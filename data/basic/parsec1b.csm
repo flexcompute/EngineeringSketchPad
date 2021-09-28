@@ -1,0 +1,14 @@
+# parsec1b
+# written by Marshall Galbraith
+# insipired by parsec1 written by John Dannenhoffer (based upon inputs from Justin Gray)
+
+dimension poly      2 5 1
+despmtr   poly      "0.5;  -.2;  0.2;  -.2;  -.2;\
+                     -.2;  0.2;  0.3;  -.1;  0.1;"
+dimension ztail     1 2 1
+despmtr   ztail     "0.01; -0.01"
+
+udprim    parsec    Yte       -0.03     Poly      poly    ztail     ztail
+udprim    parsec    Yte       -0.03     Poly      poly    ztail     ztail    Meanline  1
+
+end

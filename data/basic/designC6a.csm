@@ -1,0 +1,14 @@
+# designC6a
+# written by John Dannenhoffer
+
+despmtr   xvrtx       0
+despmtr   yvrtx       1
+despmtr   zvrtx       2
+despmtr   xbase       0
+despmtr   ybase       1
+despmtr   zbase       6
+despmtr   rad         1
+
+cone      xvrtx  yvrtx  zvrtx  xbase  ybase  zbase  rad
+
+end

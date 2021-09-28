@@ -1,0 +1,36 @@
+#
+!IFNDEF ESP_ROOT
+!ERROR ESP_ROOT must be set -- Please fix the environment...
+!ENDIF
+#
+IDIR  = $(ESP_ROOT)\include
+!include $(IDIR)\$(ESP_ARCH).$(MSVC)
+LDIR  = $(ESP_ROOT)\lib
+!IFDEF ESP_BLOC
+ODIR  = $(ESP_BLOC)\obj
+TDIR  = $(ESP_BLOC)\test
+!ELSE
+ODIR  = .
+TDIR  = $(ESP_ROOT)\bin
+!ENDIF
+
+
+$(LDIR)\su2Writer.dll:	su2Writer.def $(ODIR)\su2Writer.obj $(LDIR)\aimUtil.lib $(LDIR)\aimMesh.lib
+	-del $(LDIR)\su2Writer.dll $(LDIR)\su2Writer.lib \
+		$(LDIR)\su2Writer.exp
+	 link /out:$(LDIR)\su2Writer.dll /dll /def:su2Writer.def \
+		$(ODIR)\su2Writer.obj /LIBPATH:$(LDIR) aimUtil.lib aimMesh.lib \
+		ocsm.lib egads.lib udunits2.lib
+	$(MCOMP) /manifest $(LDIR)\su2Writer.dll.manifest \
+		/outputresource:$(LDIR)\su2Writer.dll;2
+
+$(ODIR)\su2Writer.obj:	su2Writer.c $(IDIR)\capsTypes.h $(IDIR)\aimMesh.h
+	cl /c $(COPTS) $(DEFINE) /I$(IDIR) su2Writer.c \
+		/Fo$(ODIR)\su2Writer.obj
+		
+clean:
+	-del $(ODIR)\su2Writer.obj
+
+cleanall:	clean
+	-del $(LDIR)\su2Writer.dll $(LDIR)\su2Writer.lib \
+		$(LDIR)\su2Writer.exp

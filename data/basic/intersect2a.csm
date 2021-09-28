@@ -1,0 +1,14 @@
+# intersect2a
+# written by John Dannenhoffer
+
+# part of box (sheet) inside cylinder (solid)
+CYLINDER  -4  0  0  0  0  0  1
+BOX       -2 -2 -2  0  4  4
+INTERSECT
+
+# part of box (wire) inside cylinder (solid)
+CYLINDER   0  0  0  4  0  0  1
+BOX        2 -2  0  0  4  0
+INTERSECT
+
+end

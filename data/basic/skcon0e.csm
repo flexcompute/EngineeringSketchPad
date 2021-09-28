@@ -1,0 +1,38 @@
+# skcon0e
+# written by John Dannenhoffer
+
+# not available for sketcher (no skvar)
+skbeg     -4  -1   0
+   linseg -2  -1   0
+   linseg -2  +1   0
+   linseg -4  +1   0
+   linseg -4  -1   0
+skend
+
+# available for sketcher
+skbeg     -1  -1  0
+   skvar  xy  "-1.0; -1.0;  .0;\
+               +1.0; -1.0;  .0;\
+               +1.0; +1.0;  .0;\
+               -1.0; +1.0;  .0;"
+
+   linseg ::x[2]  ::y[2]  ::z[2]
+   linseg ::x[3]  ::y[3]  ::z[3]
+   linseg ::x[4]  ::y[4]  ::z[4]
+   linseg ::x[1]  ::y[1]  ::z[1]
+skend
+
+# not available for sketcher (contains cirarc)
+skbeg     +2  -1  0
+   skvar  xy  "+2.0; -1.0; 0.0;\
+               +4.0; -1.0; 0.0;\
+               +4.0; +1.0; 0.0;\
+               +2.0; +1.0; 0.0;"
+
+   linseg ::x[2]  ::y[2]  ::z[2]
+   linseg ::x[3]  ::y[3]  ::z[3]
+   linseg ::x[4]  ::y[4]  ::z[4]
+   cirarc 1.8     0.0     0.0      ::x[1]  ::y[1]  ::z[1]
+skend
+
+end

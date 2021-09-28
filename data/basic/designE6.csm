@@ -1,0 +1,13 @@
+# designE6
+# written by John Dannenhoffer
+
+despmtr   xsize      1.0
+despmtr   ysize      1.0
+despmtr   zsize      0.1
+
+box       -xsize    -ysize/2  -zsize/2  xsize     ysize     zsize
+box        0        -zsize/2  -ysize/2  xsize     zsize     ysize
+
+union
+
+end

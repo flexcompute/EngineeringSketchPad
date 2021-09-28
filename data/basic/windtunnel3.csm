@@ -1,0 +1,57 @@
+# windtunnel3
+# written by John Dannenhoffer
+
+DESPMTR   hin       0.5       # inlet height
+DESPMTR   win       0.3       # inlet width
+DESPMTR   dout      1.0       # exit  diameter
+DESPMTR   thick     0.01      # wall thickness
+
+# create sections
+UDPRIM    ellipse   rx 0  ry hin/2        rz win/2
+TRANSLATE -1  0  0
+STORE     oml1
+
+UDPRIM    ellipse   rx 0  ry hin/2        rz win/2
+STORE     oml2
+
+UDPRIM    ellipse   rx 0  ry dout/2       rz dout/2
+TRANSLATE  1  0  0
+STORE     oml3
+
+UDPRIM    ellipse   rx 0  ry hin/2-thick  rz win/2-thick
+TRANSLATE -1  0  0
+STORE     iml1
+
+UDPRIM    ellipse   rx 0  ry hin/2-thick  rz win/2-thick
+STORE     iml2
+
+UDPRIM    ellipse   rx 0  ry dout/2-thick rz dout/2-thick
+TRANSLATE  1  0  0
+STORE     iml3
+
+# combine
+MARK
+   RESTORE   oml1
+   RESTORE   oml2
+RULE
+
+MARK
+   RESTORE   iml1
+   RESTORE   iml2
+RULE
+SUBTRACT
+
+MARK
+   RESTORE   oml2
+   RESTORE   oml3
+RULE
+
+MARK
+   RESTORE   iml2
+   RESTORE   iml3
+RULE
+SUBTRACT
+
+UNION
+
+end

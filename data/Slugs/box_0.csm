@@ -1,0 +1,10 @@
+# box_0
+# written by John Dannenhoffer
+
+box -1 -1 -1 2 2 2
+   attribute  .tParams  0.10;0.02;5.0
+
+dump $/box_0.stl
+dump $/box.plot
+
+end

@@ -1,0 +1,32 @@
+# filletA
+# written by John Dannenhoffer
+
+# big body (with fillets and a chamfer)
+skbeg      0  0  0
+   linseg  3  0  0
+   linseg  3  2  0
+   linseg  1  1  0
+   linseg  0  2  0
+   cirarc -1  1  0  0  0  0
+skend
+extrude 0 0 3
+fillet  0.7  3;4
+fillet  0.1  4;5
+fillet  0.4  5;6
+chamfer 0.1  2;0
+
+# cutout (with fillets)
+skbeg      0.2 0.3 0
+    linseg 0.8 0.3 0
+    linseg 0.2 0.9 0
+    linseg 0.2 0.3 0
+skend
+extrude 0 0 3
+fillet  0.05  3;4;5;3
+fillet  0.10  4;5
+
+# subtract (with chamfer)
+subtract
+chamfer 0.05
+
+end

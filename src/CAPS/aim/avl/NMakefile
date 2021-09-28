@@ -1,0 +1,32 @@
+#
+!IFNDEF ESP_ROOT
+!ERROR ESP_ROOT must be set -- Please fix the environment...
+!ENDIF
+#
+IDIR  = $(ESP_ROOT)\include
+!include $(IDIR)\$(ESP_ARCH).$(MSVC)
+LDIR  = $(ESP_ROOT)\lib
+!IFDEF ESP_BLOC
+ODIR  = $(ESP_BLOC)\obj
+!ELSE
+ODIR  = .
+!ENDIF
+
+
+$(LDIR)\avlAIM.dll:	avlAIM.def $(ODIR)\avlAIM.obj $(LDIR)\utils.lib
+	-del $(LDIR)\avlAIM.dll $(LDIR)\avlAIM.lib $(LDIR)\avlAIM.exp
+	link /out:$(LDIR)\avlAIM.dll /dll /def:avlAIM.def \
+		$(ODIR)\avlAIM.obj /LIBPATH:$(LDIR) aimUtil.lib utils.lib \
+		ocsm.lib egads.lib udunits2.lib
+	$(MCOMP) /manifest $(LDIR)\avlAIM.dll.manifest \
+		/outputresource:$(LDIR)\avlAIM.dll;2
+
+$(ODIR)\avlAIM.obj:	avlAIM.c $(IDIR)\capsTypes.h
+	cl /c $(COPTS) $(DEFINE) /I$(IDIR) /I..\utils avlAIM.c \
+		/Fo$(ODIR)\avlAIM.obj
+
+clean:
+	-del $(ODIR)\avlAIM.obj
+
+cleanall:	clean
+	-del $(LDIR)\avlAIM.dll $(LDIR)\avlAIM.lib $(LDIR)\avlAIM.exp

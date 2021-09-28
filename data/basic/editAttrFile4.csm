@@ -1,0 +1,99 @@
+# editAttrFile4
+# written by John Dannenhoffer
+
+# make a box and tag its Faces
+BOX       0  0  0   3  2  1
+   SET    nface  @nface
+   SET    iface  1
+
+SELECT    FACE  @nbody  1
+   ATTRIBUTE tag1 $xmin
+   ATTRIBUTE tag2 1
+SELECT    FACE  @nbody  2
+   ATTRIBUTE tag1 $xmax
+   ATTRIBUTE tag2 2
+SELECT    FACE  @nbody  3
+   ATTRIBUTE tag1 $ymin
+   ATTRIBUTE tag2 3
+SELECT    FACE  @nbody  4
+   ATTRIBUTE tag1 $ymax
+   ATTRIBUTE tag2 4
+SELECT    FACE  @nbody  5
+   ATTRIBUTE tag1 $zmin
+   ATTRIBUTE tag2 5
+SELECT    FACE  @nbody  6
+   ATTRIBUTE tag1 $zmax
+   ATTRIBUTE tag2 6
+
+# add "foo" and "bar" attributes to the Faces
+SET       irib      5
+UDPRIM    editAttr  filename << verbose 1
+
+   # add attribute "foo" with value $irib
+   FACE   has  tag1=xmin
+   SET         foo=irib
+
+   # add attribute "foo" with value 5   (a number)
+   FACE   has  tag1=xmax
+   SET         foo=!irib
+
+   # add attribute "foo" with value $5  (a string)
+   FACE   has  tag1=ymin
+   SET         foo=!val2str(irib,0)
+
+   # add attribute "foo" with value 10  (a number)
+   FACE   has  tag1=z*
+   SET         foo=!irib+5
+
+   # add attribute "bar" to all Faces with value such as $face1
+   PATBEG i nface
+      FACE   has  tag2=!i
+      SET         bar=!$face+i
+
+      # this loop should do nothing (since there are no replicates)
+      PATBEG j -3
+         FACE   has  tag1=xmax
+         SET         BAD=!$face+i
+      PATEND
+   PATEND
+
+   # this loop should do nothing (since there are no replicates)
+   PATBEG j nface-999
+      FACE   has  tag2=!j
+      SET         BAD=!$face+j
+
+      PATBEG i nface
+         FACE   has  tag2=!i
+         SET         BAD=!$face+i
+      PATEND
+   PATEND
+>>
+
+SET       errorNum  0
+
+# make sure there are no "BAD" attributes
+SELECT    FACE  $BAD  $*
+ASSERT    @sellist.size  0
+CATBEG    $face_not_found
+   SET    errorNum  errorNum+1
+CATEND
+
+# verify that we have correct number of "foo" and "bar" Attributes
+SELECT    FACE  $foo  $*
+ASSERT    @sellist.size  5
+CATBEG    $face_not_found
+   SET    errorNum  errorNum+2
+CATEND
+
+SELECT    FACE  $bar  $*
+ASSERT    @sellist.size  6
+CATBEG    $face_not_found
+   SET    errorNum  errorNum+4
+CATEND
+
+ASSERT    errorNum  1
+
+# print the Brep and its Attributes
+UDPRIM    printBrep
+
+END

@@ -1,0 +1,8 @@
+# mitten1
+# written by John Dannenhoffer
+
+DESPMTR   radius    2.0
+
+SPHERE    0  0  0   radius
+
+END

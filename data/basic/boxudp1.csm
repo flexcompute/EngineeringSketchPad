@@ -1,0 +1,8 @@
+# boxudp1 - 1D boxes
+# written by Bridget Dixon
+
+udprim box dx  4.0  
+udprim box dy  2.0
+udprim box dz  7.0
+
+end

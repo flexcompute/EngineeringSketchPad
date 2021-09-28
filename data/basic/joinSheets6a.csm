@@ -1,0 +1,58 @@
+# joinSheets6a
+# written by John Dannenhoffer
+
+set       ifail 0
+mark
+    skbeg       0  0  0
+        linseg  1  0  0
+        linseg  1  1  0
+        linseg  0  1  0
+        linseg  0  0  0
+    skend
+
+    skbeg       4  2  0
+        linseg  2  2  0
+        linseg  2  1  0
+        linseg  3  1  0
+        linseg  4  1  0
+        linseg  4  2  0
+    skend
+
+    skbeg       2  1  0
+        linseg  3  1  0
+        linseg  3  0  0
+        linseg  2  0  0
+        linseg  2  1  0
+    skend
+
+    skbeg       2  0  0
+        linseg  2  1  0
+        linseg  2  2  0
+        linseg  1  2  0
+        linseg  1  1  0
+        linseg  1  0  0
+        linseg  2  0  0
+    skend
+
+    skbeg       1  2  0
+        linseg  0  2  0
+        linseg  0  1  0
+        linseg  1  1  0
+        linseg  1  2  0
+    skend
+
+    skbeg       3  0  0
+        linseg  3  1  0
+        linseg  4  1  0
+        linseg  4  0  0
+        linseg  3  0  0
+    skend
+join  0  1
+
+# join above should not work because Edges do not match
+catbeg    $edge_not_found
+   set    ifail 1
+catend
+assert    ifail 1
+
+end

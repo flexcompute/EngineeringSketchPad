@@ -1,0 +1,26 @@
+# combine3
+# written by John Dannenhoffer
+
+mark
+   mark
+      udprim    ellipse   rx 1  ry 2
+      select    edge  0  0  1  1  2
+      extract   -@iedge
+
+      skbeg     0.0  2.0  0.0
+         linseg 2.0  3.0  0.0
+         linseg 2.0 -3.0  0.0
+         linseg 0.0 -2.0  0.0
+      skend
+   combine
+   reorder   0   1
+
+   skbeg     0.0 -2.0 -5.0
+      linseg 0.0  2.0 -5.0
+      linseg 1.0  2.0 -5.0
+      linseg 1.0 -2.0 -5.0
+      linseg 0.0 -2.0 -5.0
+   skend
+rule
+
+end

@@ -1,0 +1,23 @@
+# design8d
+# written by John Dannenhoffer
+
+# default design parameters
+despmtr   xbeg1               -1.0
+despmtr   xend1                2.0
+despmtr   y1                   0.0
+despmtr   z1                   0.0
+despmtr   r1                   0.5
+despmtr   th1                 30.0
+
+despmtr   x2                   2.0
+despmtr   z2                   0.2
+despmtr   r2                   1.0
+
+cylinder   xbeg1  y1  z1  xend1  y1  z1  r1
+rotatex    th1  y1  z1
+
+cylinder   x2  y1-2  z2  x2  y1+2  z2  r2
+
+union
+
+end

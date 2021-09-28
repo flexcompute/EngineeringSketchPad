@@ -1,0 +1,55 @@
+## [capsAIM]
+attribute capsAIM $nastranAIM;astrosAIM;mystranAIM
+## [capsAIM]
+
+## [setParameters]
+dimension compositesys   9   1   0
+set       compositesys 0;5.5;0;79.3685;-0.65432;0;0.65432;79.3685;0
+## [setParameters]
+
+## [setGeometry]
+skbeg     0   0   0   1
+   skvar     xy   -0.024750;0.051384;4.841311;-0.024750;-3.895337;0.000000;82.067045;-3.895337;0.000000;77.594095;3.314007;0.000000;4.132462;13.891219;0.000000;-2.340160;13.680727;0.000000;-1.235078;10.891711;0.000000;
+   skcon     X   1   -1  0
+   skcon     Y   1   -1  0
+   skcon     V   1   2  0
+   skcon     L   3   4  8.5
+   skcon     R   7   1  5.5
+   skcon     H   2   3  0
+   skcon     L   1   2  3.91
+   skcon     L   6   7  3
+   skcon     L   5   6  6.5
+   skcon     L   4   5  74.2
+   skcon     L   2   3  82.1
+   skcon     P   1   -1  0
+   skcon     A   5   -1  10
+   skcon     A   6   -1  110
+   skcon     A   4   -1  50
+   linseg    ::x[2]   ::y[2]   0
+   linseg    ::x[3]   ::y[3]   0
+   linseg    ::x[4]   ::y[4]   0
+   linseg    ::x[5]   ::y[5]   0
+   linseg    ::x[6]   ::y[6]   0
+   linseg    ::x[7]   ::y[7]   0
+   arc       ::x[1]   ::y[1]   0   ::d[1]   xy
+skend     0
+## [setGeometry]
+
+## [setAttributes]
+attribute capsGroup $wing
+attribute capsLoad  $wing
+attribute capsBound $wing
+csystem   wing   compositesys
+select    edge   7
+attribute capsConstraint   $root
+select    edge   6
+attribute capsConstraint   $root
+select    edge   1
+attribute capsConstraint   $root
+## [setAttributes]
+
+## [scaleModel]
+scale 1/2.54
+## [scaleModel]
+
+end

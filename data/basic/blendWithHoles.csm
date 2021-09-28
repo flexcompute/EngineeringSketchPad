@@ -1,0 +1,29 @@
+# blendWithHoles
+# written by John Dannenhoffer
+
+# basic sketch with holes
+skbeg     -1  -1  0
+   linseg  1  -1  0
+   linseg  1   1  0 
+   linseg -1   1  0
+   linseg -1  -1  0
+skend
+
+cylinder -0.5 -0.5 -1.0 -0.5 -0.5 1.0 0.25
+subtract
+
+cylinder  0.5  0.5 -1.0  0.5  0.5 1.0 0.25
+subtract
+
+# copy sketch and blend
+store     sketch
+
+mark
+    restore   sketch
+    restore   sketch
+    scale     1.5
+    translate 0.0  0.0  2.0
+
+blend
+
+end

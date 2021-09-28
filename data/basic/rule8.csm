@@ -1,0 +1,43 @@
+# rule8
+# written by John Dannenhoffer
+
+cylinder  -1  0  0  0  0  0  1	1
+
+skbeg     -5  -5   0
+   linseg +5  -5   0
+   linseg +5  +5   0
+   linseg -5  +5   0
+   linseg -5  -5   0
+skend
+subtract
+store     forebody
+
+   mark
+      mark
+         restore   forebody
+         select    edge  1  2  1  3  1
+         extract   -@iedge
+
+         restore   forebody
+         select    edge  1  2  1  3  2
+         extract   -@iedge
+
+         restore   forebody
+         select    edge  1  2  1  4  1
+         extract   -@iedge
+
+         restore   forebody
+         select    edge  1  2  1  4  2
+         extract   -@iedge
+      combine
+
+      udprim    supell    rx  2  ry  2  n  4
+      rotatex   180  0  0
+      rotatey   -90  0  0
+      translate 2    0  0
+   rule 1
+
+   restore   forebody
+union     0  0  -1e-5
+
+end

@@ -1,0 +1,60 @@
+# attrSketch9b
+# written by John Dannenhoffer
+
+# basic shape
+SKBEG         0.0  1.0  0.0
+   LINSEG     2.0  1.0  0.0
+   ATTRIBUTE  segType   $linseg
+   ATTRIBUTE  _color    $red
+
+   BEZIER     3.0  1.0  0.0
+   ATTRIBUTE  segType   $bezier
+   ATTRIBUTE  _color    $green
+
+   BEZIER     3.0  2.0  0.0
+   ATTRIBUTE  segType   $bezier
+   ATTRIBUTE  _color    $green
+
+   LINSEG     1.0  2.0  0.0
+   ATTRIBUTE  segType   $linseg
+   ATTRIBUTE  _color    $blue
+
+   BEZIER     0.0  2.0  0.0
+   ATTRIBUTE  segType   $bezier
+   ATTRIBUTE  _color    $cyan
+
+   BEZIER     0.0  1.0  0.0
+   ATTRIBUTE  segType   $bezier
+   ATTRIBUTE  _color    $cyan
+SKEND
+
+# attribute the Edges
+#SELECT    EDGE    1
+#ATTRIBUTE segType $linseg
+#ATTRIBUTE _color  $red
+
+#SELECT    EDGE    2
+#ATTRIBUTE segType $bezier
+#ATTRIBUTE _color  $green
+
+#SELECT    EDGE    3
+#ATTRIBUTE segType $linseg
+#ATTRIBUTE _color  $blue
+
+#SELECT    EDGE    4
+#ATTRIBUTE segType $bezier
+#ATTRIBUTE _color  $cyan
+
+# extrude it
+EXTRUDE   0.0  0.0  1.0
+
+# verify that all the user attributes (those without . and _) are applied to associated Faces
+SELECT    FACE   $segType $*
+ASSERT    @sellist.size 4
+
+SELECT    FACE   $_color  $*
+ASSERT    0  1
+CATBEG    $face_not_found
+CATEND
+
+END

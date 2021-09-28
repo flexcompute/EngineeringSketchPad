@@ -1,0 +1,299 @@
+# atTest
+# written by John Dannenhoffer
+
+# design parameters for box
+despmtr        xmin      -1.00
+despmtr        xmax       1.00
+despmtr        ymin      -1.00
+despmtr        ymax       1.00
+despmtr        zmin      -1.00
+despmtr        zmax       1.00
+
+# design parameters for feature
+dimension      feat       2    2    1
+despmtr        feat[1,1]  0.00      # focus 1
+despmtr        feat[1,2] -0.50
+despmtr        feat[2,1]  0.50      # focus 2
+despmtr        feat[2,2] -0.50
+despmtr        radius     0.50
+
+# macro to print parameters
+macbeg 1
+    set        nbody_     @nbody
+    set        nface_     @nface
+    set        nedge_     @nedge
+    set        nnode_     @nnode
+    set        ibody1_    @ibody1
+    set        ibody2_    @ibody2
+    set        iface_     @iface
+    set        iedge_     @iedge
+    set        inode_     @inode
+    set        xmin_      @xmin
+    set        ymin_      @ymin
+    set        zmin_      @zmin
+    set        xmax_      @xmax
+    set        ymax_      @ymax
+    set        zmax_      @zmax
+    set        length_    @length
+    set        area_      @area
+    set        volume_    @volume
+    set        xcg_       @xcg
+    set        ycg_       @ycg
+    set        zcg_       @zcg
+    set        Ixx_       @Ixx
+    set        Ixy_       @Ixy
+    set        Ixz_       @Ixz
+    set        Iyx_       @Iyx
+    set        Iyy_       @Iyy
+    set        Iyz_       @Iyz
+    set        Izx_       @Izx
+    set        Izy_       @Izy
+    set        Izz_       @Izz
+macend
+
+# build the box
+box            xmin       ymin      zmin      xmax-xmin ymax-ymin zmax-zmin
+name           box
+attribute      xsize      xmax-xmin
+attribute      ysize      ymax-ymin
+attribute      zsize      zmax-zmin
+set            body1      @nbody
+recall         1
+
+# get the Face @-parameters
+patbeg iface @nface
+    select     face       iface
+    recall     1
+patend
+
+# get the Edge @-parameters
+patbeg iedge @nedge
+    select     edge       iedge
+    recall     1
+patend
+
+# get the Node @-parameters
+#patbeg inode @nnode
+#    select     node       inode
+#    recall     1
+#patend
+
+# build and union the feature
+skbeg          feat[2,1]           -2.00      feat[2,2]+radius
+    cirarc     feat[2,1]+radius    -2.00      feat[2,2]\
+               feat[2,1]           -2.00      feat[2,2]-radius
+    linseg     feat[1,1]           -2.00      feat[1,2]-radius
+    cirarc     feat[1,1]-radius    -2.00      feat[1,2]\
+               feat[1,1]           -2.00      feat[1,2]+radius
+    linseg     feat[2,1]           -2.00      feat[2,2]+radius
+skend
+extrude         0.00      4.00      0.00
+name           feature
+set            body2      @nbody
+recall         1
+
+translate       0.40      0.00      0.10
+recall         1
+
+union
+recall         1
+
+# local parameters for center of hole
+set      xc     0.50
+set      yc     -.70
+set      zc     0.45
+
+# build and subtract the hole
+skbeg           xc        yc-.20    zc-.40
+    cirarc      xc        yc        zc-.45    xc        yc+.20    zc-.40
+    linseg      xc        yc+.20    zc+.40
+    set         dummy     0.00
+    cirarc      xc        yc        zc+.45    xc        yc-.20    zc+.40
+    linseg      xc        yc-.20    zc-.40
+skend
+extrude         1.00      0.00      0.00
+name           hole
+set            body3      @nbody
+recall         1
+
+subtract
+recall         1
+
+# get the Face @-parameters by index
+patbeg iface @nface
+    select     face       iface
+    recall     1
+patend
+
+# get the Face @-parameters by name
+select     face      body1     1    1
+set        iface_    @iface
+select     face      body1     2    1
+set        iface_    @iface
+select     face      body1     2    2
+set        iface_    @iface
+select     face      body1     3    1
+set        iface_    @iface
+select     face      body1     4    1
+set        iface_    @iface
+select     face      body1     5    1
+set        iface_    @iface
+select     face      body1     6    1
+set        iface_    @iface
+select     face      body2     1    1
+set        iface_    @iface
+select     face      body2     2    1
+set        iface_    @iface
+select     face      body2     3    1
+set        iface_    @iface
+select     face      body2     4    1
+set        iface_    @iface
+select     face      body2     4    2
+set        iface_    @iface
+select     face      body2     5    1
+set        iface_    @iface
+select     face      body2     5    2
+set        iface_    @iface
+select     face      body2     6    1
+set        iface_    @iface
+select     face      body2     6    2
+set        iface_    @iface
+select     face      body3     1    1
+set        iface_    @iface
+select     face      body3     3    1
+set        iface_    @iface
+select     face      body3     4    1
+set        iface_    @iface
+select     face      body3     5    1
+set        iface_    @iface
+select     face      body3     6    1
+set        iface_    @iface
+
+# get the Edge @-parameters by index
+patbeg iedge @nedge
+    select     edge       iedge
+    recall     1
+patend
+
+# get the Edge @-parameters by name
+select     edge      body1     1    body1     3    1
+set        iedge_    @iedge
+select     edge      body1     1    body1     4    1
+set        iedge_    @iedge
+select     edge      body1     1    body1     5    1
+set        iedge_    @iedge
+select     edge      body1     1    body1     6    1
+set        iedge_    @iedge
+select     edge      body1     2    body1     3    1
+set        iedge_    @iedge
+select     edge      body1     2    body1     3    2
+set        iedge_    @iedge
+select     edge      body1     2    body1     4    1
+set        iedge_    @iedge
+select     edge      body1     2    body1     4    2
+set        iedge_    @iedge
+select     edge      body1     2    body1     5    1
+set        iedge_    @iedge
+select     edge      body1     2    body1     6    1
+set        iedge_    @iedge
+select     edge      body1     3    body1     5    1
+set        iedge_    @iedge
+select     edge      body1     3    body1     6    1
+set        iedge_    @iedge
+select     edge      body1     4    body1     5    1
+set        iedge_    @iedge
+select     edge      body1     4    body1     6    1
+set        iedge_    @iedge
+
+select     edge      body2     1    body2     3    1
+set        iedge_    @iedge
+select     edge      body2     1    body2     4    1
+set        iedge_    @iedge
+select     edge      body2     1    body2     5    1
+set        iedge_    @iedge
+select     edge      body2     1    body2     6    1
+set        iedge_    @iedge
+select     edge      body2     2    body2     3    1
+set        iedge_    @iedge
+select     edge      body2     2    body2     4    1
+set        iedge_    @iedge
+select     edge      body2     2    body2     5    1
+set        iedge_    @iedge
+select     edge      body2     2    body2     6    1
+set        iedge_    @iedge
+select     edge      body2     3    body2     4    1
+set        iedge_    @iedge
+select     edge      body2     3    body2     4    2
+set        iedge_    @iedge
+select     edge      body2     4    body2     5    1
+set        iedge_    @iedge
+select     edge      body2     4    body2     5    2
+set        iedge_    @iedge
+select     edge      body2     5    body2     6    1
+set        iedge_    @iedge
+select     edge      body2     5    body2     6    2
+set        iedge_    @iedge
+select     edge      body2     3    body2     6    1
+set        iedge_    @iedge
+select     edge      body2     3    body2     6    2
+set        iedge_    @iedge
+
+select     edge      body3     1    body3     3    1
+set        iedge_    @iedge
+select     edge      body3     1    body3     4    1
+set        iedge_    @iedge
+select     edge      body3     1    body3     5    1
+set        iedge_    @iedge
+select     edge      body3     1    body3     6    1
+set        iedge_    @iedge
+select     edge      body3     3    body3     4    1
+set        iedge_    @iedge
+select     edge      body3     4    body3     5    1
+set        iedge_    @iedge
+select     edge      body3     5    body3     6    1
+set        iedge_    @iedge
+select     edge      body3     3    body3     6    1
+set        iedge_    @iedge
+
+select     edge      body1     2    body2     3    3
+set        iedge_    @iedge
+select     edge      body1     4    body2     3    2
+set        iedge_    @iedge
+select     edge      body1     4    body2     6    1
+set        iedge_    @iedge
+select     edge      body1     4    body2     5    1
+set        iedge_    @iedge
+select     edge      body1     4    body2     4    1
+set        iedge_    @iedge
+select     edge      body1     4    body2     3    1
+set        iedge_    @iedge
+select     edge      body1     2    body2     3    2
+set        iedge_    @iedge
+select     edge      body1     3    body2     3    1
+set        iedge_    @iedge
+select     edge      body1     3    body2     4    1
+set        iedge_    @iedge
+select     edge      body1     3    body2     5    1
+set        iedge_    @iedge
+select     edge      body1     3    body2     6    1
+set        iedge_    @iedge
+select     edge      body1     3    body2     3    2
+set        iedge_    @iedge
+select     edge      body1     2    body2     3    1
+set        iedge_    @iedge
+
+select     edge      body1     2    body3     6    1
+set        iedge_    @iedge
+select     edge      body1     2    body3     5    1
+set        iedge_    @iedge
+select     edge      body1     2    body3     4    1
+set        iedge_    @iedge
+
+select     edge      body2     3    body3     3    1
+set        iedge_    @iedge
+select     edge      body2     3    body3     4    1
+set        iedge_    @iedge
+select     edge      body2     3    body3     6    1
+set        iedge_    @iedge
+
+end

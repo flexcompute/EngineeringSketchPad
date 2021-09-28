@@ -1,0 +1,36 @@
+# swap
+# written by John Dannenhoffer
+
+# make sure that there are at least entities on the Stack
+IFTHEN @stack.size LT 2
+   THROW  999  # not enough entries on Stack
+
+# if Mark,Mark on top of Stack
+ELSEIF @stack[@stack.size-1] EQ 0  AND  @stack[@stack.size] EQ 0
+
+# if Body,Mark on top of Stack
+ELSEIF @stack[@stack.size] EQ 0
+   STORE   .
+   STORE   tempSwap 99
+
+   MARK
+   RESTORE tempSwap 99
+
+# if Mark,Body on top of Stack
+ELSEIF @stack[@stack.size-1] EQ 0
+   STORE   tempSwap 99
+   STORE   .
+
+   RESTORE tempSwap 99
+   MARK
+
+# if Body,Body on top of Stack
+ELSE
+   STORE   tempSwap 98
+   STORE   tempSwap 99
+
+   RESTORE tempSwap 98
+   RESTORE tempSwap 99
+ENDIF
+
+END

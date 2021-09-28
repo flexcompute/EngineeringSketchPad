@@ -1,0 +1,23 @@
+# bezier3
+# written by John Dannenhoffer
+
+udprim bezier FileName $$/bezier3a.surf
+assert @@imax  7
+assert @@jmax  4
+translate -8 4 0
+
+udprim bezier FileName $$/bezier3b.surf
+assert @@imax 13
+assert @@jmax  4
+translate -8 0 0
+
+udprim bezier FileName $$/bezier3c.surf
+assert @@imax  7
+assert @@jmax 10
+translate  0 4 0
+
+udprim bezier FileName $$/bezier3d.surf
+assert @@imax 13
+assert @@jmax 10
+
+end

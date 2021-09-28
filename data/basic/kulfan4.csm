@@ -1,0 +1,19 @@
+# kulfan4
+# written by Chris Heath
+
+dimension C1    1  2  1
+dimension TE1   1  2  1
+dimension UA1   1  5  1
+dimension LA1   1  5  1
+
+despmtr   C1    "0.5; 1.0;"
+despmtr   TE1   "0.0; 0.0;"
+despmtr   UA1   "0.19469E-1; -0.7623E-3; -0.4971E-2; -0.2500E-2; -0.2500E-2"
+despmtr   LA1   "-0.5065E-1; -0.2047E-1; -0.8993E-1; -0.1888E00;  0.4893E-2"
+
+udparg    kulfan    class     C1
+udparg    kulfan    ztail     TE1
+udparg    kulfan    aupper    UA1
+udprim    kulfan    alower    LA1
+
+end

@@ -1,0 +1,8 @@
+# despmtr2a
+# written by John Dannenhoffer
+
+DESPMTR   A    30;40;50       # only 30 is stored
+DESPMTR   B    20;            # only 20 is stored
+DESPMTR   C   $10             # this should fail
+
+END

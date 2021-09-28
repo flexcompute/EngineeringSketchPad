@@ -1,0 +1,191 @@
+# capsHeader.udc
+# written by John Dannenhoffer
+
+INTERFACE . ALL
+
+# initialize make* variables
+SET       makeFuseOml      0
+SET       makeFuseWaffle   0
+SET       makeFuseCmass    0
+
+SET       makeWingOml      0
+SET       makeWingHinge    0
+SET       makeWingWaffle   0
+SET       makeWingCmass    0
+
+SET       makeHtailOml     0
+SET       makeHtailHinge   0
+SET       makeHtailWaffle  0
+SET       makeHtailCmass   0
+
+SET       makeVtailOml     0
+SET       makeVtailHinge   0
+SET       makeVtailWaffle  0
+SET       makeVtailCmass   0
+
+SET       makePylonOml     0
+
+SET       makePodOml       0
+
+SET       SHARP_TE         0
+
+# set up specific make* variables for CONCEPT
+IFTHEN    ifnan(VIEW:Concept,1,0) EQ 1
+    SET         VIEW:Concept         0
+ENDIF
+IFTHEN    VIEW:Concept NE 0
+    SET    makeFuseOml         1
+    SET    makeFuseWaffle      1
+    SET    makeFuseCmass       1
+    SET    makeWingOml         1
+    SET    makeWingHinge       1
+    SET    makeWingWaffle      1
+    SET    makeWingCmass       1
+    SET    makeHtailOml        1
+    SET    makeHtailHinge      1
+    SET    makeHtailCmass      1
+    SET    makeVtailOml        1
+    SET    makeVtailHinge      1
+    SET    makeVtailCmass      1
+ENDIF
+
+# set up specific make* variables for AVL
+IFTHEN    ifnan(VIEW:Avl,1,0) EQ 1
+    SET         VIEW:Avl         0
+ENDIF
+IFTHEN    VIEW:Avl NE 0
+    SET    makeWingOml         1
+    SET    makeWingHinge       1
+    SET    makeHtailOml        1
+    SET    makeHtailHinge      1
+ENDIF
+
+# set up specific make* variables for MASSTRAN
+IFTHEN    ifnan(VIEW:Masstran,1,0) EQ 1
+    SET         VIEW:Masstran         0
+ENDIF
+IFTHEN    VIEW:Masstran NE 0
+    SET    makeWingOml         1
+    SET    makeWingWaffle      1
+    SET    makeWingCmass       1
+ENDIF
+
+# set up specific make* variables for SansLIP
+IFTHEN    ifnan(VIEW:SansLIP,1,0) EQ 1
+    SET         VIEW:SansLIP         0
+ENDIF
+IFTHEN    VIEW:SansLIP NE 0
+    SET    makeFuseOml         1
+    SET    makeWingOml         1
+    SET    makeWingHinge       1
+    SET    makeHtailOml        1
+    SET    makeHtailHinge      1
+    SET    makeVtailOml        1
+    SET    makeVtailHinge      1
+    SET    SHARP_TE            1
+ENDIF
+
+# set up specific make* variables for SU2 (inviscid)
+IFTHEN    ifnan(VIEW:Su2Inviscid,1,0) EQ 1
+    SET         VIEW:Su2Inviscid         0
+ENDIF
+IFTHEN    VIEW:Su2Inviscid NE 0
+    SET    makeFuseOml         1
+    SET    makeWingOml         1
+    SET    makeWingHinge       1
+    SET    makeHtailOml        1
+    SET    makeHtailHinge      1
+    SET    makeVtailOml        1
+    SET    makeVtailHinge      1
+    SET    makePylonOml        0
+    SET    makePodOml          0
+    SET    SHARP_TE            1
+ENDIF
+
+# set up specific make* variables for SU2 (viscous)
+IFTHEN    ifnan(VIEW:Su2Viscous,1,0) EQ 1
+    SET         VIEW:Su2Viscous         0
+ENDIF
+IFTHEN    VIEW:Su2Viscous NE 0
+    SET    makeFuseOml         1
+    SET    makeWingOml         1
+    SET    makeWingHinge       1
+    SET    makeHtailOml        1
+    SET    makeHtailHinge      1
+    SET    makeVtailOml        1
+    SET    makeVtailHinge      1
+    SET    makePylonOml        0
+    SET    makePodOml          0
+ENDIF
+
+# set up specific make* variables for ASTROS
+IFTHEN    ifnan(VIEW:Astros,1,0) EQ 1
+    SET         VIEW:Astros         0
+ENDIF
+IFTHEN    VIEW:Astros NE 0
+    SET    makeWingOml         1
+    SET    makeWingWaffle      1
+ENDIF
+
+# initialize COMP: variabes
+IFTHEN    ifnan(COMP:Fuse,1,0) EQ 1
+    SET         COMP:Fuse         0
+ENDIF
+
+IFTHEN    ifnan(COMP:Wing,1,0) EQ 1
+    SET         COMP:Wing         0
+ENDIF
+
+IFTHEN    ifnan(COMP:Htail,1,0) EQ 1
+    SET         COMP:Htail         0
+ENDIF
+
+IFTHEN    ifnan(COMP:Vtail,1,0) EQ 1
+    SET         COMP:Vtail         0
+ENDIF
+
+IFTHEN    ifnan(COMP:Pylon,1,0) EQ 1
+    SET         COMP:Pylon         0
+ENDIF
+
+IFTHEN    ifnan(COMP:Pod,1,0) EQ 1
+    SET         COMP:Pod         0
+ENDIF
+
+# override make variable if component does not exist
+IFTHEN    COMP:Fuse EQ 0
+    SET    makeFuseOml      0
+    SET    makeFuseWaffle   0
+    SET    makeFuseCmass    0
+ENDIF
+
+IFTHEN    COMP:Wing EQ 0
+    SET    makeWingOml      0
+    SET    makeWingHinge    0
+    SET    makeWingWaffle   0
+    SET    makeWingCmass    0
+ENDIF
+
+IFTHEN    COMP:Htail EQ 0
+    SET    makeHtailOml     0
+    SET    makeHtailHinge   0
+    SET    makeHtailWaffle  0
+    SET    makeHtailCmass   0
+ENDIF
+
+IFTHEN    COMP:Vtail EQ 0
+    SET    makeVtailOml     0
+    SET    makeVtailHinge   0
+    SET    makeVtailWaffle  0
+    SET    makeVtailCmass   0
+ENDIF
+
+IFTHEN    COMP:Pylon EQ 0
+    SET    makePylonOml     0
+ENDIF
+
+IFTHEN    COMP:Pod EQ 0
+    SET    makePodOml       0
+ENDIF
+
+END

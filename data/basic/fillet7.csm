@@ -1,0 +1,10 @@
+# fillet7
+# written by John Dannenhoffer
+
+box       0   0   0   2   2   2
+sphere    2   2   2   1
+union
+
+fillet    0.1
+
+end

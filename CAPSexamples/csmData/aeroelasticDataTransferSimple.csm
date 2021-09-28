@@ -1,0 +1,118 @@
+# Aeroelastic example - simple/ no ribs and spars
+
+# Design Parameters for OML
+despmtr   thick     0.12      frac of local chord
+despmtr   camber    0.04      frac of loacl chord
+
+despmtr   area      10.0
+despmtr   aspect    6.00
+despmtr   taper     0.60
+despmtr   sweep     20.0      deg (of c/4)
+
+despmtr   washout   5.00      deg (down at tip)
+despmtr   dihedral  4.00      deg
+
+# Design Parameters for BEM
+cfgpmtr   nrib      3         number of ribs
+despmtr   spar1     0.20      frac of local chord
+despmtr   spar2     0.75      frac of local chord
+
+# Setup tessellation arrays for OML for CFD sims
+dimension params 1 3 0
+
+# OML
+set       span      sqrt(aspect*area)
+set       croot     2*area/span/(1+taper)
+set       ctip      croot*taper
+set       dxtip     (croot-ctip)/4+span/2*tand(sweep)
+set       dytip     span/2*tand(dihedral)
+
+mark
+   # right tip
+   udprim    naca      Thickness thick     Camber    camber sharpTE 1
+   scale     ctip
+   rotatez   washout   ctip/4    0
+   translate dxtip     dytip     -span/2
+
+   # root
+   udprim    naca      Thickness thick     Camber    camber sharpTE 1
+   scale     croot
+   
+rule
+   
+   attribute OML 1
+   
+   attribute capsGroup $Skin
+   attribute capsLoad $Skin
+   
+   select face 1
+   attribute capsBound $Skin_Top
+   select face 2
+   attribute capsBound $Skin_Bottom
+   select face 3
+   attribute capsBound $Skin_Tip
+  
+   select face 4
+   attribute capsGroup $Rib_Root
+   attribute capsConstraint $Rib_Root
+   #set        nedge     @nedge
+   #patbeg     iedge  nedge
+   #   select     edge     iedge
+   #   attribute  capsGroup  $Rib_Root
+   #patend
+
+store     OML
+
+# FEA
+    restore   OML
+    
+    # extraxt shell from OML
+    extract   0
+    
+    select edge 4
+    attribute  capsConstraint  $Rib_Root
+    
+    select edge 6
+    attribute  capsConstraint  $Rib_Root
+
+    #Rotate the body to put it in the typical aero-coordinate system
+    rotatex   90   0   0
+   
+   	attribute capsIntent $STRUCTURE #FEA Analysis (2D elements) 
+   	attribute capsAIM $nastranAIM;astrosAIM;mystranAIM;hsmAIM
+
+
+# CFD
+    
+    # Create a bounding box and mark boundary as a farfied 
+    box       -20   -20   -40   40   40   40
+    
+    attribute capsGroup $Farfield
+    
+    # Set Wing tessellation parameters for CFD sims
+    set       params[1,1] .8 
+    set       params[1,2] .1
+    set       params[1,3] 5.0
+    
+    select face 6
+    attribute capsGroup $SymmPlane
+    attribute .tParams  params
+    
+    # Set Wing tessellation parameters for CFD sims
+    set       params[1,1] 0.15
+    set       params[1,2] 0.02 
+    set       params[1,3] 15.0
+     
+    # Restore outer mold line of wing 
+    restore OML
+    
+    attribute .tParams  params
+    
+    # Subtract the two bodies
+    subtract  none   1   0
+    
+    #Rotate the body to put it in the typical aero-coordinate system
+    rotatex   90   0   0
+    
+    attribute capsIntent $CFD #CFD Analysis
+    attribute capsAIM $fun3dAIM;su2AIM;egadsTessAIM;aflr4AIM;tetgenAIM;aflr3AIM #CFD Analysis

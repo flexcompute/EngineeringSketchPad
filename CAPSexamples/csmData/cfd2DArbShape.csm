@@ -1,0 +1,82 @@
+# Design Parameters:
+despmtr   tunnelHeight  20.00000
+despmtr   tunnelLength  50.00000
+despmtr   extrude3D     1.00000
+despmtr   chord         1.00000
+
+# Design Parameters:
+dimension xy   200   1   1 # Airfoil points and sketch begin at (1.0, 0.0)
+despmtr   xy[1,:]   "     0.00000;" # xy[1] = x_1
+despmtr   xy[2,:]   "     0.00000;" # xy[2] = y_1
+despmtr   xy[3,:]   "     0.50000;" # xy[3] = x_2
+despmtr   xy[4,:]   "     0.50000;" # xy[4] = y_2
+despmtr   xy[5,:]   "     1.00000;" # xy[5] = x_3
+despmtr   xy[6,:]   "     0.00000;" #   :      :
+despmtr   xy[7,:]   "     0.50000;" #   :      :
+despmtr   xy[8,:]   "    -0.50000;" #   :      :
+despmtr   xy[9,:]   "     0.00000;" #   :      :
+despmtr   xy[10,:]  "     0.00000;"
+
+# Global attributes:
+attribute capsIntent $CFD
+attribute capsAIM $fun3dAIM;su2AIM;egadsTessAIM;aflr2AIM #CFD Analysis
+
+# Branches:
+
+# Build wind tunnel
+box       -tunnelLength/2   0   -tunnelHeight/2   tunnelLength   extrude3D   tunnelHeight
+store     Tunnel 0 0
+
+# Build Airfoil cross section from input design points and extrude 
+skbeg xy[1,1] xy[2,1] 0
+    patbeg i 100
+        ifthen abs(xy[2*i-1,1]) lt 99999.0 and abs(xy[2*i,1]) lt 99999.0
+            spline xy[2*i-1,1] xy[2*i,1] 0
+            #linseg xy[2*i-1,1] xy[2*i,1] 0
+        endif
+    patend
+skend
+
+# Scale by chord design parameter
+scale     chord 
+
+# Rotate to put in the x-z plane
+rotatex   90   0   0 # Put body in x-z plane
+
+# Extrude
+extrude   0   3*extrude3D   0
+translate 0   -extrude3D   0
+        
+store     Airfoil 0 0
+
+# Restore bodies and execute boolean operator
+restore   Tunnel 0
+restore   Airfoil 0
+subtract  none   1   0 
+
+# Get a single plane - face on y = 0 plane
+extract  2
+
+select face 1
+    attribute capsGroup $2DSlice 
+    attribute capsMesh  $2DSlice # Face needs to marked with a capsGroup - this may not be necessary in the future
+    
+# Set capsGroup and capsMesh names around boundaries
+select    edge   1
+    attribute capsGroup   $TunnelWall
+    attribute capsMesh    $TunnelWall
+select    edge   2
+    attribute capsGroup   $OutFlow
+    attribute capsMesh    $OutFlow
+select    edge   3
+    attribute capsGroup   $InFlow
+    attribute capsMesh    $InFlow
+select    edge   4
+    attribute capsGroup   $TunnelWall
+    attribute capsMesh    $TunnelWall
+
+select edge 5
+    attribute capsGroup $Airfoil
+    attribute capsMesh  $Airfoil
+    
+end

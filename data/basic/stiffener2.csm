@@ -1,0 +1,34 @@
+# stiffener2
+# written by John Dannenhoffer
+
+despmtr   span      3.0
+despmtr   angle     60.0
+despmtr   depth     -.05
+despmtr   nstiff    6
+
+# create sheet (upper wing skin)
+udprim    naca   series  0025
+extrude   0  0  span
+select    face   @nbody  3
+extract   @sellist
+store     unstiffened 0 1
+
+# find the extents of te parametric coordinates
+evaluate  faceinv  @nbody @nface  0  0  0
+set       ule      @edata[1]
+set       vroot    @edata[2]
+
+evaluate  faceinv  @nbody @nface  1  0  span
+set       ute      @edata[1]
+set       vtip     @edata[2]
+
+# add nstiff spanwise stiffners (ordered from leading edge to trailing edge)
+patbeg istiff nstiff
+   set       ustiff   ule-istiff/(nstiff+1)*(ule-ute)
+   restore   unstiffened
+   udprim    stiffener beg ustiff;vroot  end ustiff;vtip  angle angle  depth -depth
+      attribute  stiffener $1
+   union
+patend
+
+end

@@ -1,0 +1,8 @@
+   POINT  A   AT  0.0  0.0
+   POINT  B   AT  chord*spar1  0.0
+   POINT  C   AT  chord*spar2  0.0
+   POINT  D   AT  chord        0.0
+
+   LINE   .   A  B
+   LINE   .   B  C
+   LINE   .   C  D

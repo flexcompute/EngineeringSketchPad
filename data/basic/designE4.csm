@@ -1,0 +1,55 @@
+# designE4
+# written by John Dannenhoffer
+
+despmtr   thick     2
+despmtr   dxbar     0
+despmtr   dybar     0
+despmtr   dzbar     0
+despmtr   dxbox     0
+despmtr   dybox     0
+despmtr   dzbox     0
+
+mark
+   udprim    box  dy  0.5  dz  0.5
+   translate -7.0     0.0      0.0
+
+   udprim    box  dy  0.5  dz  0.5
+   translate -4.0     0.0      0.0
+
+   udprim    box  dy  0.5  dz  0.5
+   translate -3.0     0.0      0.0
+
+   udprim    box  dy  0.5  dz  0.5
+   translate -2.0     0.0      0.0
+
+   udprim    box  dy  0.5  dz  0.5
+   translate -1.0     0.0      0.0
+
+   udprim    box  dy  thick  dz  thick
+
+   udprim    box  dy  0.5  dz  0.5
+   translate +1.0     0.0      0.0
+
+   udprim    box  dy  0.5  dz  0.5
+   translate +2.0     0.0      0.0
+
+   udprim    box  dy  0.5  dz  0.5
+   translate +3.0     0.0      0.0
+
+   udprim    box  dy  0.5  dz  0.5
+   translate +4.0     0.0      0.0
+
+   udprim    box  dy  0.5  dz  0.5
+   translate +7.0     0.0      0.0
+blend
+translate dxbar  dybar  dzbar
+
+box       -6.0  -1.0  -1.0  1.0  2.0  2.0
+translate dxbox  dybox  dzbox
+union
+
+box        5.0  -1.0  -1.0  1.0  2.0  2.0
+translate dxbox  dybox  dzbox
+union
+
+end

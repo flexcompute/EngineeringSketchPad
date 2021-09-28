@@ -1,0 +1,93 @@
+# 15-Degree Sweptback Wing Model
+# From MSC Nastran Aeroelastic Users Guide
+
+set cutLoc 2.07055-.25
+
+set structureAIMs $nastranAIM;astrosAIM;mystranAIM
+
+mark
+skbeg 0 0 0
+linseg 5.72*sind(15) 5.72*cosd(15) 0
+linseg 5.72*sind(15)+2.07055 5.72*cosd(15) 0
+linseg 2.07055 0 0
+linseg 0 0 0
+skend
+
+skbeg .25 0 1
+linseg 5.72*sind(15)+.25 5.72*cosd(15) 1
+linseg 5.72*sind(15)+.25 5.72*cosd(15) -1
+linseg .25 0 -1
+linseg .25 0 1
+skend
+subtract
+store intermediate
+
+mark
+restore intermediate
+
+skbeg  cutLoc 0 1
+linseg 5.72*sind(15)+cutLoc 5.72*cosd(15) 1
+linseg 5.72*sind(15)+cutLoc 5.72*cosd(15) -1
+linseg cutLoc 0 -1
+linseg cutLoc 0 1
+skend
+subtract
+
+select body @nbody
+attribute capsAIM structureAIMs
+attribute capsDiscipline $Structure
+
+select face 1
+attribute capsGroup $Edge
+attribute capsBound $WingSurface
+udprim editAttr attrname $capsBound input $FE output $EN
+select face 3
+attribute capsGroup $Edge
+attribute capsBound $WingSurface
+udprim editAttr attrname $capsBound input $FE output $EN
+select face 2
+attribute capsGroup $Body
+attribute capsBound $WingSurface
+udprim editAttr attrname $capsBound input $FE output $EN
+
+
+select edge 5
+attribute capsConnectLink    $Root
+udprim editAttr attrname $capsConnectLink input $E output $N
+
+# Point Connecting to Root to apply boundary conditions too
+point  2.07055/2 0 0
+attribute capsGroup 		$Root
+attribute capsConnect	 	$Root
+attribute capsConstraint 	$Root_Point
+attribute capsLoad 			$Root_Point
+attribute capsAIM structureAIMs
+attribute capsDiscipline $Structure
+
+
+
+# AERODYNAMIC MODEL
+skbeg 0 0 0
+linseg 0.25 0 0.041/2
+linseg cutLoc 0 0.041/2
+linseg 2.07055 0 0
+linseg cutLoc 0 -0.041/2
+linseg 0.25 0 -0.041/2
+linseg 0 0 0
+skend
+store airfoil
+
+restore airfoil
+attribute capsReferenceArea 11.44
+attribute capsReferenceChord 2.07055
+attribute capsReferenceSpan 11.0502
+attribute capsGroup $Wing
+select body @nbody
+attribute capsAIM structureAIMs
+attribute capsDiscipline $Aerodynamic
+
+store airfoil
+restore airfoil # First airfoil
+
+restore airfoil # Second airfoil
+translate 5.72*sind(15) 5.72*cosd(15) 0

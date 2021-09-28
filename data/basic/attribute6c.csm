@@ -1,0 +1,45 @@
+# attrubute6c
+# written by John Dannenhoffer
+
+# left line
+BOX       -1.0  0.0  0.0  1.0  0.0  0.0
+
+PATBEG        iedge     @nedge
+   SELECT     edge      iedge
+   ATTRIBUTE  leftEdge  iedge
+PATEND
+PATBEG        inode     @nnode
+   SELECT     node      inode
+   ATTRIBUTE  leftNode  inode
+PATEND
+
+# rite line
+BOX        0.0  0.0  0.0  1.0  0.0  0.0
+
+PATBEG        iedge     @nedge
+   SELECT     edge      iedge
+   ATTRIBUTE  riteEdge  iedge
+PATEND
+PATBEG        inode     @nnode
+   SELECT     node      inode
+   ATTRIBUTE  riteNode  inode
+PATEND
+
+# combine
+JOIN
+
+# verify the correct number of Edges associated with each original line
+SELECT    EDGE  $leftEdge  $*
+ASSERT    @sellist.size    1
+
+SELECT    EDGE  $riteEdge  $*
+ASSERT    @sellist.size    1
+
+# verify the correct number of Nodes associated with each original line
+SELECT    NODE  $leftNode  $*
+ASSERT    @sellist.size    2
+
+SELECT    NODE  $riteNode  $*
+ASSERT    @sellist.size    2
+
+END

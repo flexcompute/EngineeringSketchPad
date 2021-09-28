@@ -1,0 +1,52 @@
+# adjoint1
+# written by John Dannenhoffer
+
+# design parameters
+DESPMTR   xbeg      -1
+DESPMTR   ybeg      -2
+DESPMTR   zbeg      -3
+DESPMTR   xlen      4
+DESPMTR   ylen      3
+DESPMTR   zlen      1
+DESPMTR   xfrac     0.3333333333
+DESPMTR   yfrac     0.5
+DESPMTR   radius    0.6666666667
+
+CFGPMTR   dumpTess  0
+
+# output parameters (for comparison)
+OUTPMTR   volume
+OUTPMTR   area
+OUTPMTR   xcg
+OUTPMTR   ycg
+OUTPMTR   zcg
+
+# generate configuration
+BOX       xbeg  ybeg  zbeg  xlen  ylen  zlen
+
+MARK
+   UDPRIM    ellipse   rx radius  ry radius
+   TRANSLATE xbeg+xfrac*xlen  ybeg+yfrac*ylen  zbeg-0.1
+
+   UDPRIM    ellipse   rx radius  ry radius
+   TRANSLATE xbeg+xfrac*xlen  ybeg+yfrac*ylen  zbeg+zlen+0.1  radius
+RULE
+SUBTRACT
+
+# get finer grid (for better results)
+UDPRIM    $$/applyTparams   factor 1/5
+
+# compute output parameters
+SELECT    BODY
+SET       volume  @volume
+SET       area    @area
+SET       xcg     @xcg
+SET       ycg     @ycg
+SET       zcg     @zcg
+
+# if needed, dump the .tess file
+IFTHEN    dumpTess NE 0
+   DUMP   $/adjoint1.tess
+ENDIF
+
+END

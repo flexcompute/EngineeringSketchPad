@@ -1,0 +1,53 @@
+# nozzle1
+# written by John Dannenhoffer
+
+# outer boundary
+skbeg     0.0       0.0       0.0
+   linseg 0.0       7.0       0.0
+   linseg 22.0      7.0       0.0
+   linseg 22.0      0.0       0.0
+   linseg 0.0       0.0       0.0
+skend
+revolve   0  0  0  1  0  0  90
+
+# nozzle
+skbeg     -0.1        0.067       0.0
+   spline 0.001       0.067       0.0
+   spline 0.00202976  0.067       0.0
+   spline 1.02310333  0.07912187  0.0
+   spline 1.02827403  0.08183543  0.0
+   spline 1.03334194  0.08449505  0.0
+   spline 1.06163349  0.09934231  0.0
+   spline 1.0660045   0.1016362   0.0
+   spline 1.07027987  0.10387988  0.0
+   spline 1.07446074  0.10607398  0.0
+   spline 1.07854825  0.10821909  0.0
+   spline 1.08254362  0.11031584  0.0
+   spline 1.1808223   0.16189201  0.0
+   spline 1.18222836  0.1626299   0.0
+   spline 1.18359503  0.16334711  0.0
+   spline 1.18492332  0.16404419  0.0
+   spline 1.1862142   0.16472164  0.0
+   spline 1.18746865  0.16537997  0.0
+   spline 1.18868762  0.16601968  0.0
+   spline 1.18987202  0.16664126  0.0
+   spline 1.19102277  0.16724516  0.0
+   spline 1.19214075  0.16783187  0.0
+   spline 1.19322683  0.16840184  0.0
+   spline 2.0         0.03        0.0
+   linseg 2.0         0.00        0.0
+   linseg -0.1        0.00        0.0
+   linseg -0.1        0.067       0.0
+skend
+revolve   0  0  0  1  0  0  360
+
+# fillet leading edge of nozzle
+dimension edgelist  1 2 0
+set      edgelist   "3;1;"
+fillet   0.025      edgelist
+
+# combine and dump
+subtract
+dump      nozzle.step
+
+end

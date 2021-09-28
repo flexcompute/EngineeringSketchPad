@@ -1,0 +1,72 @@
+# designP3c
+# written by John Dannenhoffer
+
+DESPMTR   X0    0.0
+DESPMTR   Y0    0.0
+DESPMTR   R     5.0
+DESPMTR   Ytop  4.5
+DESPMTR   Ybot -2.5
+DESPMTR   DX1   0.0
+DESPMTR   DY1   0.0
+DESPMTR   DZ1   2.0
+DESPMTR   DX2   1.0
+DESPMTR   DY2   1.0
+DESPMTR   DZ2   2.0
+DESPMTR   DX3  -1.0
+DESPMTR   DY3   0.0
+DESPMTR   DZ3   4.0
+DESPMTR   S2    3.0
+
+ASSERT    ifpos(R-abs(Ytop),1,0)  1
+ASSERT    ifpos(R-abs(Ybot),1,0)  1
+
+BOX       X0-R  Ybot  0  X0+2*R  0   0
+CYLINDER  X0    Y0   -1  X0      Y0  +1  R
+INTERSECT
+EVALUATE  EDGE  @nbody  @nedge  $beg
+SET       x1    @edata[2]
+SET       y1    @edata[3]
+SET       z1    @edata[4]
+EVALUATE  EDGE  @nbody  @nedge  $end
+SET       x2    @edata[2]
+SET       y2    @edata[3]
+SET       z2    @edata[4]
+
+
+BOX       X0-R  Ytop  0  X0+2*R  0  0
+CYLINDER  X0    Y0   -1  X0      Y0  +1  R
+INTERSECT
+EVALUATE  EDGE  @nbody  @nedge  $beg
+SET       x3    @edata[2]
+SET       y3    @edata[3]
+SET       z3    @edata[4]
+EVALUATE  EDGE  @nbody  @nedge  $end
+SET       x4    @edata[2]
+SET       y4    @edata[3]
+SET       z4    @edata[4]
+
+BOX       x2  y2  z2  hypot3(x4-x2,y4-y2,z4-z2)  0  0
+ROTATEZ   atan2d(y4-y2,x4-x2)  x2  y2
+JOIN
+JOIN
+
+BOX       x1  y1  z1  hypot3(x3-x1,y3-y1,z3-z1)  0  0
+ROTATEZ   atan2d(y3-y1,x3-x1)  x1  y1
+JOIN
+
+STORE        foo
+MARK
+   RESTORE   foo
+   RESTORE   foo
+   TRANSLATE DX1  DY1  DZ1
+   RESTORE   foo
+   TRANSLATE DX1  DY1  DZ1
+   TRANSLATE DX2  DY2  DZ2
+   RESTORE   foo
+   TRANSLATE DX1  DY1  DZ1
+   TRANSLATE DX2  DY2  DZ2
+   TRANSLATE DX3  DY3  DZ3
+BLEND
+SCALE     S2
+
+END

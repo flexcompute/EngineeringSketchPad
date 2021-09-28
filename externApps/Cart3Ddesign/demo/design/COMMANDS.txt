@@ -1,0 +1,17 @@
+#!/bin/csh
+#
+# % source COMMANDS.txt
+
+# 0. Cleanup in case this is a rerun
+if (-d opt) then
+  \rm -rf opt
+  \rm -rf design???
+endif
+
+# 1. Set a number of processors, running shared memory
+#    (try this on more cores if you have them)
+setenv OMP_NUM_THREADS 1
+
+# 2. Run the optimizer
+c3d_snopt.csh
+

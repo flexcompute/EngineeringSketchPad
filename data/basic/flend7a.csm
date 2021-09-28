@@ -1,0 +1,44 @@
+# flend7a
+# written by John Dannenhoffer
+
+# basic box, with Edges along the top (temporarily) attributed
+BOX       -1.0  -1.0  -1.0  2.0  2.0  2.0
+SELECT    EDGE  @nbody  1  @nbody  4
+SELECT    ADD   @nbody  2  @nbody  4
+SELECT    ADD   @nbody  4  @nbody  5
+SELECT    ADD   @nbody  4  @nbody  6
+ATTRIBUTE _flend $remove
+
+# scribe top
+BOX       -0.8   0.0  -0.8  1.6  1.6  1.6
+SELECT    FACE  @nbody  1
+SELECT    ADD   @nbody  2
+SELECT    ADD   @nbody  5
+SELECT    ADD   @nbody  6
+EXTRACT   @sellist
+SUBTRACT
+
+# scribe body
+BOX       -3.0  0.5  -3.0  6.0  0.0  6.0
+ROTATEZ   20.0  0.0   0.5
+SUBTRACT
+
+# attribute Faces adjacent to top Edges
+UDPRIM    editAttr   filename <<
+   FACE   ADJ2EDGE   _flend=remove
+   SET               _flend=remove
+
+   EDGE   HAS        _flend=remove
+   SET               _flend=
+>>
+SELECT    FACE   $_flend  $remove
+ATTRIBUTE _color $magenta
+
+# perform the flend
+UDPRIM    flend
+
+SELECT    face @nbody 0
+   ATTRIBUTE _color $cyan
+
+END
+

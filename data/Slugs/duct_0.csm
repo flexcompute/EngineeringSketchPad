@@ -1,0 +1,32 @@
+# duct_0
+# written by John Dannenhoffer
+
+# basic duct
+mark
+   udprim    supell rx   2 \
+                    ry_s 4 \
+                    ry_n 2 \
+                    n_ne 5
+   translate 0 0 -10
+
+   udprim    supell rx   4 \
+                    ry_s 4 \
+                    ry_n 2 \
+                    n_s  4
+
+   udprim    supell rx   2 \
+                    ry   2 \
+                    n_sw 5
+   translate 0 0 10
+blend
+
+# sphere to make inlet and exit non-planar
+sphere   0  0  0  9
+rotatex  90 0  0
+intersect
+   attribute  .tParams  0.10;0.01;5.0
+
+dump      $/duct_0.stl
+dump      $/duct.plot
+
+end

@@ -1,0 +1,99 @@
+# solver5
+# written by John Dannenhoffer
+
+despmtr   L    8.5  overall length
+despmtr   H    4.0  overall height
+despmtr   D5   0.7  given segment length
+despmtr   D8   0.4  given length
+despmtr   TH6 -150  given inclination
+
+set       x1   3.0
+set       y1   1.0
+set       x2   3.0
+set       y2   2.1
+set       x3   4.0
+set       y3   2.3
+set       x4   4.2
+set       y4   5.2
+set       x5   0.5
+set       y5   5.2
+set       x6  -2.9
+set       y6   3.0
+set       x7  -2.9
+set       y7   1.8
+set       x8  -4.2
+set       y8   1.4
+set       x9  -4.1
+set       y9   1.1
+
+solbeg    x1;y1;x2;y2;x3;y3;x4;y4;x5;y5;x6;y6;x7;y7;x8;y8;x9;y9;
+
+	  # fixed x point
+   solcon x1-3
+
+   	  # fixed y point
+   solcon y1-1
+
+          # convex perpendicularity at 1
+   solcon turnang(x9,y9,0,x1,y1,0,x2,y2)-90
+
+          # concave perpendicularity at 2
+   solcon turnang(x1,y1,0,x2,y2,0,x3,y3)+90
+
+          # convex perpendicularity at 3
+   solcon turnang(x2,y2,0,x3,y3,0,x4,y4)-90
+
+          # convex perpendicularity at 4
+   solcon turnang(x3,y3,0,x4,y4,0,x5,y5)-90
+
+          # convex perpendicularity at 6
+   solcon turnang(x5,y5,0,x6,y6,0,x7,y7)-90
+
+          # concave perpendicularity at 7
+   solcon turnang(x6,y6,0,x7,y7,0,x8,y8)+90
+
+          # convex perpendicularity at 9
+   solcon turnang(x8,y8,0,x9,y9,0,x1,y1)-90
+
+          # vertical segment 8-9
+   solcon x8-x9
+
+          # segment 7-8 at given inclination
+   solcon atan2d(y8-y7,x8-x7)-TH6
+
+          # specified length of segment 6-7
+   solcon sqrt((y7-y6)^2+(x7-x6)^2)-D5
+
+          # segemnt 5-6 is three time longer than segment 7-8
+   solcon sqrt((y6-y5)^2+(x6-x5)^2)-3*sqrt((y8-y7)^2+(x8-x7)^2)
+
+   	  # segment 1-2 is same length as 2-3
+   solcon sqrt((y2-y1)^2+(x2-x1)^2)-sqrt((y3-y2)^2+(x3-x2)^2)
+
+   	  # segment 2-3 is same length as 3-4
+   solcon sqrt((y3-y2)^2+(x3-x2)^2)-sqrt((y4-y3)^2+(x4-x3)^2)
+
+          # overall length
+   solcon (x4-x9)-L
+
+          # overall height
+   solcon (y4-y1)-H
+
+   	  # segment 8-9 
+   solcon sqrt((y9-y8)^2+(x9-x8)^2)-D8
+
+solend
+
+skbeg     x1   y1   0.0
+   linseg x2   y2   0.0
+   linseg x3   y3   0.0
+   linseg x4   y4   0.0
+   linseg x5   y5   0.0
+   linseg x6   y6   0.0
+   linseg x7   y7   0.0
+   linseg x8   y8   0.0
+   linseg x9   y9   0.0
+   linseg x1   y1   0.0
+skend
+
+end

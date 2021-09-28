@@ -1,0 +1,34 @@
+# rule22a
+# written by Marshall Galbraith
+
+SKBEG     0   -.5   0
+   CIRARC -cos(pi(1)/4)*0.5 -sin(pi(1)/4)*0.5 0  -0.5 0 0
+SKEND     0
+REORDER 0 1
+STORE ARC
+
+MARK
+   # section 1
+   #--- RESTORE ARC
+
+   # section 2
+   RESTORE ARC
+   TRANSLATE 0 0 1
+
+   # section 3
+   RESTORE ARC
+   ROTATEY 45 0 0
+   TRANSLATE 0 0 1
+
+   # section 4
+   RESTORE ARC
+   ROTATEY 90 0 0
+   TRANSLATE 0 0 1
+
+   # section 5
+   #--- RESTORE ARC
+   #--- ROTATEY 90 0 0
+   #--- TRANSLATE 1 0 1
+RULE
+
+END

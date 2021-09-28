@@ -1,0 +1,56 @@
+#	NMakefile for EGADS_dot
+#
+IDIR  = $(ESP_ROOT)\include
+!include $(IDIR)\$(ESP_ARCH).$(MSVC)
+LDIR  = $(ESP_ROOT)\lib
+BDIR  = $(ESP_ROOT)\bin
+!ifdef ESP_BLOC
+ODIR  = $(ESP_BLOC)\obj
+!else
+ODIR  = .
+!endif
+
+all: circle1_dot.exe circle2_dot.exe naca_dot.exe ruled_naca_dot.exe
+
+circle1_dot.exe:	$(ODIR)\circle1_dot.obj $(ODIR)\pingBodies.obj
+	cl /Fecircle1_dot.exe $(ODIR)\circle1_dot.obj $(ODIR)\pingBodies.obj /link /LIBPATH:$(LDIR) \
+		egads.lib ws2_32.lib
+	$(MCOMP) /manifest circle1_dot.exe.manifest \
+			/outputresource:circle1_dot.exe;1
+
+circle2_dot.exe:	$(ODIR)\circle2_dot.obj $(ODIR)\pingBodies.obj
+	cl /Fecircle2_dot.exe $(ODIR)\circle2_dot.obj $(ODIR)\pingBodies.obj /link /LIBPATH:$(LDIR) \
+		egads.lib ws2_32.lib
+	$(MCOMP) /manifest circle2_dot.exe.manifest \
+			/outputresource:circle2_dot.exe;1
+
+naca_dot.exe:	$(ODIR)\naca_dot.obj $(ODIR)\pingBodies.obj
+	cl /Fenaca_dot.exe $(ODIR)\naca_dot.obj $(ODIR)\pingBodies.obj /link /LIBPATH:$(LDIR) \
+		egads.lib ws2_32.lib
+	$(MCOMP) /manifest naca_dot.exe.manifest \
+			/outputresource:naca_dot.exe;1
+
+ruled_naca_dot.exe:	$(ODIR)\ruled_naca_dot.obj $(ODIR)\pingBodies.obj
+	cl /Feruled_naca_dot.exe $(ODIR)\ruled_naca_dot.obj $(ODIR)\pingBodies.obj /link /LIBPATH:$(LDIR) \
+		egads.lib ws2_32.lib
+	$(MCOMP) /manifest ruled_naca_dot.exe.manifest \
+			/outputresource:ruled_naca_dot.exe;1
+
+test: circle1_dot.exe circle2_dot.exe naca_dot.exe ruled_naca_dot.exe
+	.\circle1_dot.exe
+	.\circle2_dot.exe
+	.\naca_dot.exe
+	.\ruled_naca_dot.exe
+
+
+.c{$(ODIR)}.obj::
+	cl /c $(COPTS) $(DEFINE) /I$(IDIR) /Fo"$(ODIR)"\ $<
+
+clean:
+	-del $(ODIR)\circle1_dot.obj \
+		$(ODIR)\circle2_dot.obj \
+		$(ODIR)\naca_dot.obj \
+		$(ODIR)\ruled_naca_dot.obj
+
+cleanall:	clean
+	-del circle1_dot.exe circle2_dot.exe naca_dot.exe ruled_naca_dot.exe

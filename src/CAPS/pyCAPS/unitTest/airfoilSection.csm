@@ -1,0 +1,19 @@
+# Example xFoil/tsFoil input file 
+
+# -----------------------------------------------------------------
+# Define the analysis fidelity that the geometry is intended support
+# -----------------------------------------------------------------
+attribute capsAIM $xfoilAIM;tsfoilAIM
+
+# -----------------------------------------------------------------
+# Design parameters to define the wing cross section and planform 
+# -----------------------------------------------------------------
+despmtr   thick     0.12      #frac of local chord
+despmtr   camber    0.00      #frac of local chord
+
+# -----------------------------------------------------------------
+# 1. Create Airfoil using the User Defined Primitive (UDP) naca
+#  > The inputs used for this example to the UDP are Thickness and Camber
+#  > Cross sections are in the X-Y plane and are rotated to the X-Z plane
+# -----------------------------------------------------------------
+udprim    naca      Thickness thick     Camber    camber sharpte 1

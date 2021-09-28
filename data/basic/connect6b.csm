@@ -1,0 +1,24 @@
+# connect6b
+# written by John Dannenhoffer
+
+skbeg     0.0   0.0   0.0
+   linseg 1.0   -.6   0.0
+   linseg 2.0   -.6   0.0
+   linseg 2.0   0.6   0.0
+   linseg 1.0   0.6   0.0
+   linseg 0.0   0.0   0.0
+skend
+extrude   0.0   0.0   0.5
+
+skbeg     0.0   0.0   1.0
+   linseg 1.0   -.3   1.0
+   linseg 2.0   -.3   1.0
+   linseg 2.0   0.3   1.0
+   linseg 1.0   0.3   1.0
+   linseg 0.0   0.0   1.0
+skend
+extrude   0.0   0.0   0.5
+
+connect   7  6
+
+end

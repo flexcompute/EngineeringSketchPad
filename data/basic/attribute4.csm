@@ -1,0 +1,31 @@
+# attribute4
+# written by John Dannenhoffer
+
+BOX       -1.0  -1.0  -1.0  2.0  2.0  2.0
+PATBEG iedge 12
+   SELECT    edge  iedge
+   ATTRIBUTE box_1 iedge
+PATEND
+
+BOX       -2.0  -0.5  -0.5  2.0  1.0  1.0
+PATBEG iedge 12
+   SELECT    edge  iedge
+   ATTRIBUTE box_2 iedge
+PATEND
+UNION
+
+BOX        0.0  -0.5  -1.5  2.0  1.0  1.0
+PATBEG iedge 12
+   SELECT    edge  iedge
+   ATTRIBUTE box_3 iedge
+PATEND
+SUBTRACT
+
+BOX        0.0   0.0   0.0  2.0  2.0  2.0
+PATBEG iedge 12
+   SELECT    edge  iedge
+   ATTRIBUTE box_4 iedge
+PATEND
+SUBTRACT
+
+end

@@ -1,0 +1,11 @@
+# sphere
+# written by John Dannenhoffer
+
+despmtr   xcent     0.00
+despmtr   ycent     0.00
+despmtr   zcent     0.00
+despmtr   radius    1.00
+
+sphere    xcent     ycent     zcent     radius
+
+end

@@ -1,0 +1,22 @@
+# dimension2
+# written by John Dannenhoffer
+
+CFGPMTR   L  1
+CFGPMTR   M  2
+DESPMTR   N  3
+
+DIMENSION A  M   2
+DIMENSION B  M+N N
+DIMENSION C  L   N
+DIMENSION D  1   2
+DIMENSION E  M   N
+
+DESPMTR   A  1;2
+DESPMTR   B  3;4
+SET       C  5;6
+DESPMTR   D  7;8
+SET       E  9;10
+
+BOX       0  0  0  4  3  2
+
+END

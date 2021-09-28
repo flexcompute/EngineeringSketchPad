@@ -1,0 +1,12 @@
+# design0h
+# written by John Dannenhoffer
+
+despmtr   rx        1.50
+despmtr   ry        3.00
+despmtr   rz        5.00
+
+udprim    ellipse   rx   rx   ry   ry
+udprim    ellipse   ry   ry   rz   rz
+udprim    ellipse   rz   rz   rx   rx
+
+end

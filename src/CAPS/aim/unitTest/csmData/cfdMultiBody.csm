@@ -1,0 +1,100 @@
+# CSM file example of two wings with an outer bounding sphere 
+
+# lenght units in ft
+ATTRIBUTE capsLength $ft
+
+# Design Parameters:
+despmtr   area         40.00000
+despmtr   aspect       5.00000
+despmtr   taper        0.50000
+despmtr   twist        15.00000
+despmtr   lesweep      30.00000
+despmtr   dihedral     1.00000
+
+# Integer configuration parameters
+cfgpmtr   series            8412
+cfgpmtr   series2           0020
+cfgpmtr   sharpte           0
+
+# Output Parameters:
+outpmtr  cmean
+
+# Specify Euler equations
+attribute capsIntent $CFD #CFD Analysis
+attribute capsAIM $fun3dAIM;su2AIM;egadsTessAIM;aflr4AIM;pointwiseAIM;tetgenAIM;aflr3AIM #CFD Analysis
+
+# Branches:
+set       cmean     sqrt(area/aspect)
+set       span      cmean*aspect
+set       sspan     span/2
+set       croot     2*cmean/(1+taper)
+set       ctip      croot*taper
+set       xtip      sspan*tand(lesweep)
+set       ytip      sspan*tand(dihedral)
+set       ybot      -0.1*croot
+set       ytop      +0.2*croot+ytip
+set       extend    0.02*cmean
+
+mark
+   udprim    naca   Series   series
+      scale     croot
+   udprim    naca   Series   series2
+      scale     ctip
+      rotatez   -twist   0   0
+      translate xtip   ytip   -sspan
+rule      0
+
+
+# Store half of wing 
+store     HalfWing 0 0
+
+# Restore the half wing 
+restore   HalfWing 0
+
+# Restore and mirror the half wing
+restore   HalfWing 0
+    mirror    0   0   1   0
+
+# Combine halfs into a whole
+join     0
+
+# Get body into a typical aero-system 
+rotatex 90 0 0
+
+# Store the wing 
+store     Wing 0 0
+
+# Wing 1 - Restore
+restore   Wing 0
+    attribute capsGroup $Wing1
+    attribute capsMesh $Wing1
+    attribute _name $Wing1
+    attribute AFLR4_Cmp_ID 1
+    attribute AFLR4_Edge_Refinement_Weight 1
+
+# Wing 2 -  Restore and scale, translate
+restore   Wing 0
+    attribute capsGroup $Wing2
+    attribute capsMesh $Wing2
+    attribute _name             $Wing2
+    attribute AFLR4_Scale_Factor 10
+    attribute AFLR4_Cmp_ID 2
+
+    scale     0.4
+    translate 10   0   0
+
+# Create a bounding box as a farfied 
+sphere    0   0   0   80
+    attribute capsGroup $Farfield
+    attribute capsMesh $Farfield
+    attribute _name       $Farfield
+    attribute AFLR_GBC $FARFIELD_UG3_GBC
+    attribute AFLR4_Cmp_ID 3
+
+# Set reference values on the farfield
+    attribute capsReferenceArea     area
+    attribute capsReferenceChord    cmean
+    attribute capsReferenceSpan     span
+    attribute capsMeshLength        cmean
+
+end

@@ -1,0 +1,279 @@
+# Cobra.csm written by ocsmSave (v1.09)
+
+# Design Parameters:
+dimension Cockpit   6   3   1
+despmtr   Cockpit[1,:]   "     0.50000;     0.50000;     0.00000;"
+despmtr   Cockpit[2,:]   "     0.85000;     0.85000;    -1.00000;"
+despmtr   Cockpit[3,:]   "     1.75000;     3.20000;    -3.90000;"
+despmtr   Cockpit[4,:]   "     1.75000;     3.70000;    -4.80000;"
+despmtr   Cockpit[5,:]   "     1.75000;     4.50000;   -10.00000;"
+despmtr   Cockpit[6,:]   "     2.00000;     4.50000;   -12.67500;"
+dimension Tail   5   4   1
+despmtr   Tail[1,:]   "     1.70000;     2.20000;   -24.00000;     0.00000;"
+despmtr   Tail[2,:]   "     1.70000;     2.60000;   -26.50000;     0.55000;"
+despmtr   Tail[3,:]   "     1.70000;     1.75000;   -28.00000;    -0.15000;"
+despmtr   Tail[4,:]   "     1.25000;     1.75000;   -33.15000;    -0.20000;"
+despmtr   Tail[5,:]   "     0.10000;     1.00000;   -43.70000;     0.50000;"
+dimension Tip   2   5   1
+despmtr   Tip[1,:]   "     0.15000;     1.50000;     0.50000;   -42.50000;    55.00000;"
+despmtr   Tip[2,:]   "     0.10000;     1.10000;     3.60000;   -45.70000;    45.00000;"
+dimension Hump   3   4   1
+despmtr   Hump[1,:]   "     1.25000;     5.00000;     4.00000;   -17.50000;"
+despmtr   Hump[2,:]   "     1.20000;     3.57500;     5.75000;   -17.50000;"
+despmtr   Hump[3,:]   "     1.15000;     2.92500;     5.85000;   -17.50000;"
+dimension Sup   6   4   1
+despmtr   Sup[1,:]   "     1.00000;     1.15000;     2.22500;    -2.50000;"
+despmtr   Sup[2,:]   "     1.00000;     1.75000;     2.22500;    -5.00000;"
+despmtr   Sup[3,:]   "     2.00000;     1.75000;     2.22500;    -8.00000;"
+despmtr   Sup[4,:]   "     4.50000;     1.75000;     2.22500;   -12.67500;"
+despmtr   Sup[5,:]   "     4.50000;     1.75000;     2.22500;   -26.32500;"
+despmtr   Sup[6,:]   "     2.00000;     1.00000;     2.00000;   -27.30000;"
+dimension Engines   6   5   1
+despmtr   Engines[1,:]   "     0.97500;     1.00000;     1.95000;     3.00000;   -16.50000;"
+despmtr   Engines[2,:]   "     0.97500;     1.40000;     1.95000;     3.00000;   -23.00000;"
+despmtr   Engines[3,:]   "     0.97500;     0.55000;     1.95000;     3.00000;   -28.00000;"
+despmtr   Engines[4,:]   "     0.97500;     1.00000;    -1.95000;     3.00000;   -16.50000;"
+despmtr   Engines[5,:]   "     0.97500;     1.40000;    -1.95000;     3.00000;   -23.00000;"
+despmtr   Engines[6,:]   "     0.97500;     0.55000;    -1.95000;     3.00000;   -28.00000;"
+dimension Wings   4   6   1
+despmtr   Wings[1,:]   "     0.10000;     1.00000;    -4.38750;     0.50000;   -17.00000;    -6.00000;"
+despmtr   Wings[2,:]   "     0.25000;     2.43750;    -1.75000;     0.50000;   -17.00000;    -6.00000;"
+despmtr   Wings[3,:]   "     0.25000;     2.43750;     1.75000;     0.50000;   -17.00000;    -6.00000;"
+despmtr   Wings[4,:]   "     0.10000;     1.00000;     4.38750;     0.50000;   -17.00000;    -6.00000;"
+dimension WingTips   6   6   1
+despmtr   WingTips[1,:]   "     0.30000;     0.20000;    -4.50000;     0.75000;   -14.50000;    -6.00000;"
+despmtr   WingTips[2,:]   "     0.35000;     0.40000;    -4.50000;     0.60000;   -15.50000;    -6.00000;"
+despmtr   WingTips[3,:]   "     0.10000;     0.15000;    -4.50000;     0.25000;   -19.50000;    -6.00000;"
+despmtr   WingTips[4,:]   "     0.30000;     0.20000;     4.50000;     0.75000;   -14.50000;    -6.00000;"
+despmtr   WingTips[5,:]   "     0.35000;     0.40000;     4.50000;     0.60000;   -15.50000;    -6.00000;"
+despmtr   WingTips[6,:]   "     0.10000;     0.15000;     4.50000;     0.20000;   -19.50000;    -6.00000;"
+dimension Skids   6   5   1
+despmtr   Skids[1,:]   "     0.20000;     1.50000;    -1.60000;   -12.31250;     0.00000;"
+despmtr   Skids[2,:]   "     0.20000;     2.50000;    -2.25000;   -12.31250;   -45.00000;"
+despmtr   Skids[3,:]   "     0.15000;     3.45000;    -3.90000;   -12.31250;   -90.00000;"
+despmtr   Skids[4,:]   "     0.15000;    -3.45000;    -3.90000;   -12.31250;    90.00000;"
+despmtr   Skids[5,:]   "     0.20000;    -2.50000;    -2.25000;   -12.31250;    45.00000;"
+despmtr   Skids[6,:]   "     0.20000;    -1.50000;    -1.60000;   -12.31250;     0.00000;"
+
+# Local Variables:
+
+# Global attributes:
+
+# Branches:
+mark
+   patbeg    c 6
+name      Cockpit_Pat
+      udprim    ellipse   rx   Cockpit[c,1]   ry   Cockpit[c,2]   rz   0
+name      Ellipses
+      translate 0   0   Cockpit[c,3]
+   patend
+rule      0
+box       -3   0   -3.5   6   -8   -12
+name      Trimming
+rotatex   12   0   0
+subtract  none   1   0
+box       -2   -1   -4.5   4   -1   4
+name      Trimming2
+rotatex   -5   0   0
+translate 0   0.36   0
+subtract  none   1   0
+mark
+   patbeg    s 6
+name      Body_Pat
+      udprim    supell   ry_n   Sup[s,1]   rx   Sup[s,2]   ry_s   Sup[s,3]   n   4
+      translate 0   0   Sup[s,4]
+   patend
+rule      0
+union     0   0   0
+mark
+   patbeg    t 5
+name      Tail_Pat
+      udprim    ellipse   rx   Tail[t,1]   ry   Tail[t,2]   rz   0
+      translate 0   Tail[t,4]   Tail[t,3]
+   patend
+rule      0
+union     0   0   0
+mark
+name      active
+   patbeg    p 2
+name      Tip_Pat
+      udprim    ellipse   rx   Tip[p,1]   ry   Tip[p,2]   rz   0
+      translate 0   Tip[p,3]   Tip[p,4]
+      rotatex   Tip[p,5]   Tip[p,3]   Tip[p,4]
+   patend
+rule      0
+union     0   0   0
+mark
+   patbeg    h 3
+name      Hump_Pat
+      udprim    ellipse   rx   Hump[h,1]   ry   0   rz   Hump[h,2]
+      translate 0   Hump[h,3]   Hump[h,4]
+   patend
+rule      0
+union     0   0   0
+cylinder  0   5.85   -17   0   8   -17   0.25
+name      Rotor_Rod
+union     0   0   0
+cylinder  0   7.8   -15.7   0   7.8   -18.2   0.3
+union     0   0   0
+mark
+   patbeg    e 3
+name      Engines_Pat1
+      udprim    supell   rx   Engines[e,1]   ry   Engines[e,2]   n   3
+      translate Engines[e,3]   Engines[e,4]   Engines[e,5]
+   patend
+blend     0   0   0
+union     0   0   0
+mark
+   patbeg    e 3
+name      Engines_Pat2
+      udprim    supell   rx   Engines[e+3,1]   ry   Engines[e+3,2]   n   3
+      translate Engines[e+3,3]   Engines[e+3,4]   Engines[e+3,5]
+   patend
+blend     0   0   0
+union     0   0   0
+mark
+   patbeg    w 4
+name      Wing_Pat1
+      udprim    ellipse   rx   0   ry   Wings[w,1]   rz   Wings[w,2]
+      translate Wings[w,3]   Wings[w,4]   Wings[w,5]
+      rotatex   Wings[w,6]   Wings[w,4]   Wings[w,5]
+   patend
+rule      0
+union     0   0   0
+mark
+   patbeg    t 3
+name      WingTips_Pat1
+      udprim    supell   rx   WingTips[t,1]   ry   WingTips[t,2]   n   4
+      translate WingTips[t,3]   WingTips[t,4]   WingTips[t,5]
+      rotatex   WingTips[t,6]   WingTips[t,4]   WingTips[t,5]
+   patend
+blend     0   0   0
+union     0   0   0
+mark
+   patbeg    t 3
+name      WingTips_Pat2
+      udprim    supell   rx   WingTips[t+3,1]   ry   WingTips[t+3,2]   n   4
+      translate WingTips[t+3,3]   WingTips[t+3,4]   WingTips[t+3,5]
+      rotatex   WingTips[t+3,6]   WingTips[t+3,4]   WingTips[t+3,5]
+   patend
+blend     0   0   0
+union     0   0   0
+mark
+   patbeg    k 3
+name      Skids_Pat_LF
+      udprim    ellipse   ry   Skids[k,1]   rz   Skids[k,1]
+      translate Skids[k,2]   Skids[k,3]   Skids[k,4]
+      rotatez   Skids[k,5]   Skids[k,2]   Skids[k,3]
+   patend
+blend     0   0   0
+union     0   0   0
+mark
+   patbeg    k 3
+name      Skids_Pat_RF
+      udprim    ellipse   ry   Skids[k+3,1]   rz   Skids[k+3,1]
+      translate Skids[k+3,2]   Skids[k+3,3]   Skids[k+3,4]
+      rotatez   Skids[k+3,5]   Skids[k+3,2]   Skids[k+3,3]
+   patend
+blend     0   0   0
+union     0   0   0
+mark
+   patbeg    k 3
+name      Skids_Pat_LB
+      udprim    ellipse   ry   Skids[k,1]   rz   Skids[k,1]
+      translate Skids[k,2]   Skids[k,3]   (Skids[k,4]-5.85)
+      rotatez   Skids[k,5]   Skids[k,2]   Skids[k,3]
+   patend
+blend     0   0   0
+union     0   0   0
+mark
+   patbeg    k 3
+name      Skids_Pat_RB
+      udprim    ellipse   ry   Skids[k+3,1]   rz   Skids[k+3,1]
+      translate Skids[k+3,2]   Skids[k+3,3]   (Skids[k+3,4]-5.85)
+      rotatez   Skids[k+3,5]   Skids[k+3,2]   Skids[k+3,3]
+   patend
+blend     0   0   0
+union     0   0   0
+cylinder  3.4125   -3.9   -8.4125   3.4125   -3.9   -20.6   0.2
+name      Left_Skid
+union     0   0   0
+cylinder  -3.4125   -3.9   -8.4125   -3.4125   -3.9   -20.6   0.2
+name      Right_Skid
+union     0   0   0
+mark
+name      Front_Blade
+   udprim    naca   series   0030   camber   0.05   thickness   0.2
+   scale     3
+   translate -1   7.6   -15.8
+   rotatey   180   -15.8   0
+   udprim    naca   series   0024   camber   0.02   thickness   0.1
+   scale     3.2
+   translate -1   8   3.78
+   rotatey   225   3.78   0
+rule      0
+union     0   0   0
+mark
+name      Rear_Blade
+   udprim    naca   series   0030   camber   0.05   thickness   0.2
+   scale     3
+   translate -1   7.6   -18.2
+   rotatez   -5   -1   7.6
+   udprim    naca   series   0024   camber   0.02   thickness   0.1
+   scale     3.2
+   translate -1   8   -37.775
+   rotatey   45   -37.775   0
+   rotatez   -5   0   8
+rule      0
+union     0   0   0
+mark
+name      Tail_Winglets
+   udprim    naca   series   0024   camber   0.02   thickness   0.1
+   scale     2
+   translate -3.5   0   -36
+   rotatey   90   -36   -3.5
+   rotatez   180   -3.5   0
+   udprim    naca   series   0024   camber   0.02   thickness   0.1
+   scale     3
+   translate -0.25   0   -35
+   rotatey   90   -35   -0.25
+   rotatez   180   -0.25   0
+   udprim    naca   series   0024   camber   0.02   thickness   0.1
+   scale     3
+   translate 0.25   0   -35
+   rotatey   90   -35   0.25
+   rotatez   180   0.25   0
+   udprim    naca   series   0024   camber   0.02   thickness   0.1
+   scale     2
+   translate 3.5   0   -36
+   rotatey   90   -36   3.5
+   rotatez   180   3.5   0
+rule      0
+union     0   0   0
+cylinder  -0.5   4.3   -45.2   0.1   4.3   -45.2   0.2
+name      Tail_Rotor_Connection
+union     0   0   0
+cylinder  -0.25   5.2   -44.3   -0.25   3.4   -46.2   0.05
+union     0   0   0
+mark
+name      Tail_Rotor1
+   udprim    ellipse   rx   0.05   ry   0.4   rz   0
+   translate -0.25   4.8   -44.7
+   rotatex   -45   4.8   -44.7
+   udprim    ellipse   rx   0.05   ry   0.4   rz   0
+   translate -0.25   7   -42.5
+   rotatex   -45   7   -42.5
+rule      0
+union     0   0   0
+mark
+name      Tail_Rotor2
+   udprim    ellipse   rx   0.05   ry   0.4   rz   0
+   translate -0.25   1.5   -48
+   rotatex   -45   1.5   -48
+   udprim    ellipse   rx   0.05   ry   0.4   rz   0
+   translate -0.25   3.7   -45.8
+   rotatex   -45   3.7   -45.8
+rule      0
+union     0   0   0
+
+end

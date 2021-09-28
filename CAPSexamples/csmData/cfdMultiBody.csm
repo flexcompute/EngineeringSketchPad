@@ -1,0 +1,123 @@
+# CSM file example of two wings with an outer bounding shere 
+
+# Design Parameters:
+## [despmtrs]
+DESPMTR   area         40.00000
+DESPMTR   aspect       5.00000
+DESPMTR   taper        0.50000
+DESPMTR   twist        15.00000
+DESPMTR   lesweep      30.00000
+DESPMTR   dihedral     1.00000
+## [despmtrs]
+
+# Configuration parameters
+## [cfgpmtrs]
+CFGPMTR   series            8412
+CFGPMTR   series2           0020
+CFGPMTR   sharpte           0
+## [cfgpmtrs]
+
+# Output Parameters:
+## [outpmtrs]
+OUTPMTR  cmean
+## [outpmtrs]
+
+# Specify Euler equations
+## [capsAIM]
+ATTRIBUTE capsAIM $fun3dAIM;su2AIM;egadsTessAIM;aflr4AIM;pointwiseAIM;tetgenAIM;aflr3AIM #CFD Analysis
+## [capsAIM]
+
+## [capsAttributes]
+# Set reference values
+ATTRIBUTE capsReferenceArea     area
+ATTRIBUTE capsReferenceChord    sqrt(area/aspect)
+ATTRIBUTE capsReferenceSpan     sqrt(area/aspect)*aspect
+## [capsAttributes]
+
+
+# Branches:
+## [local]
+SET       cmean     sqrt(area/aspect)
+SET       span      cmean*aspect
+SET       sspan     span/2
+SET       croot     2*cmean/(1+taper)
+SET       ctip      croot*taper
+SET       xtip      sspan*tand(lesweep)
+SET       ytip      sspan*tand(dihedral)
+SET       ybot      -0.1*croot
+SET       ytop      +0.2*croot+ytip
+SET       extend    0.02*cmean
+## [local]
+
+## [createWing]
+MARK
+   UDPRIM    naca   Series   series    sharpte sharpte
+      SCALE     croot 
+   UDPRIM    naca   Series   series2   sharpte sharpte
+      SCALE     ctip
+      ROTATEZ   -twist   0   0
+      TRANSLATE xtip   ytip   -sspan
+RULE
+## [createWing]
+
+
+## [mirror]
+# Store half of wing and keep a copy on the stack
+STORE     HalfWing 0 1
+
+# Restore and mirror the half wing
+RESTORE   HalfWing 0
+    MIRROR    0   0   1   0
+## [mirror]
+
+## [join]
+# Combine halfs into a whole
+JOIN     0
+## [join]
+
+## [orient]
+# Get body into a typical aero-system 
+ROTATEX 90 0 0
+## [orient]
+
+## [attribute]
+# Store the wing 
+STORE     Wing 0 0
+
+# Wing 1 - Restore
+RESTORE   Wing 0
+    ATTRIBUTE capsGroup    $Wing1
+    ATTRIBUTE capsMesh     $Wing1
+    ATTRIBUTE _name        $Wing1
+    ATTRIBUTE AFLR4_Cmp_ID 1
+    ATTRIBUTE AFLR4_Edge_Refinement_Weight 1
+## [attribute]
+
+##[secondWing]
+# Wing 2 -  Restore and scale, translate
+RESTORE   Wing 0
+    ATTRIBUTE capsGroup         $Wing2
+    ATTRIBUTE capsMesh          $Wing2
+    ATTRIBUTE _name             $Wing2
+    ATTRIBUTE AFLR4_Scale_Factor 10
+    ATTRIBUTE AFLR4_Cmp_ID       2
+
+    SCALE     0.4
+    TRANSLATE 10   0   0
+##[secondWing]
+
+# Create a bounding box as a farfied 
+## [farfield]
+SPHERE    0   0   0   80
+    ATTRIBUTE capsGroup   $Farfield
+    ATTRIBUTE capsMesh    $Farfield
+    ATTRIBUTE _name       $Farfield
+    ATTRIBUTE AFLR_GBC    $FARFIELD_UG3_GBC
+    ATTRIBUTE AFLR4_Cmp_ID 3
+    ATTRIBUTE capsMeshLength  cmean #Charachteristic length for meshing
+    ATTRIBUTE .tParam "30.;5.;30;"
+## [farfield]
+
+## [closeCSM]
+END
+## [closeCSM]

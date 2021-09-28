@@ -1,0 +1,34 @@
+# despmtr3a.udc
+# written by John Dannenhoffer
+
+INTERFACE . all  # allows DESPMTR, LBOUND, and UBOUNS statememts
+
+SET       temp3a   10
+
+DESPMTR   dx2       4
+LBOUND    dx2       0
+UBOUND    dx2      10
+
+DESPMTR   dy2       2
+LBOUND    dy2       0
+UBOUND    dy2      10
+
+DESPMTR   dz2       3
+LBOUND    dz2       0
+UBOUND    dz2      10
+
+BOX       0  1  0   dx1 dy1 dz1
+ATTRIBUTE _color $blue
+
+BOX       5  1  0   dx2 dy2 dz2
+ATTRIBUTE _color $cyan
+
+# this function-type UDC cannot include DESPMTR, LBOUND, or UBOUND statements
+UDPRIM    $/despmtr3b
+TRANSLATE -3 +2  1
+
+SELECT    body
+SELECT    face
+ATTRIBUTE _color $white
+
+END

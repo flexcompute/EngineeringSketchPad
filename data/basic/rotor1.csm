@@ -1,0 +1,90 @@
+# rotor1.csm
+# written by Dannenhoffer
+
+mark
+
+skbeg       0.0  -6.00  -0.25
+   linseg   0.0   6.00  -0.25
+   cirarc   0.0   6.25   0.00   0.0   6.00   0.25
+   linseg   0.0  -6.00   0.25
+   linseg   0.0  -6.00  -0.25
+skend
+
+skbeg       6.0  -6.00  -0.25
+   linseg   6.0   6.00  -0.25
+   cirarc   6.0   6.25   0.00   6.0   6.00   0.25
+   linseg   6.0  -6.00   0.25
+   linseg   6.0  -6.00  -0.25
+skend
+
+skbeg      24.0  -6.00  -0.25
+   linseg  24.0   6.00  -0.25
+   cirarc  24.0   6.25   0.00  24.0   6.00   0.25
+   linseg  24.0  -6.00   0.25
+   linseg  24.0  -6.00  -0.25
+skend
+
+skbeg      25.0  -6.00  -0.25
+   linseg  25.0   6.00  -0.25
+   cirarc  25.0   6.25   0.00  25.0  6.00    0.25
+   linseg  25.0  -6.00   0.25
+   linseg  25.0  -6.00  -0.25
+skend
+
+skbeg      36.0  -6.00  -0.25
+   linseg  36.0   6.00  -0.25
+   cirarc  36.0   6.25   0.00  36.0   6.00   0.25
+   linseg  36.0  -6.00   0.25
+   linseg  36.0  -6.00  -0.25
+skend
+
+skbeg      80.0  -6.00  -0.25
+   linseg  80.0   6.00  -0.25
+   cirarc  80.0   6.25   0.00  80.0  6.00    0.25
+   linseg  80.0  -6.00   0.25
+   linseg  80.0  -6.00  -0.25
+skend
+
+skbeg      95.0  -6.00  -0.25
+   linseg  95.0   6.00  -0.25
+   cirarc  95.0   6.25   0.00  95.0   6.00   0.25
+   linseg  95.0  -6.00   0.25
+   linseg  95.0  -6.00  -0.25
+skend
+
+skbeg      96.0  -6.00  -0.25
+   linseg  96.0   6.00  -0.25
+   cirarc  96.0   6.25   0.00  96.0   6.00   0.25
+   linseg  96.0  -6.00   0.25
+   linseg  96.0  -6.00  -0.25
+skend
+
+skbeg      97.0  -6.00  -0.25
+   linseg  97.0   5.00  -0.25
+   cirarc  97.0   5.25   0.00  97.0   5.00   0.25
+   linseg  97.0  -6.00   0.25
+   linseg  97.0  -6.00  -0.25
+skend
+rotatez   -30.0   97.0  -6.00
+
+skbeg      98.0  -6.00  -0.25
+   linseg  98.0   3.00  -0.25
+   cirarc  98.0   3.25   0.00  98.0   3.00   0.25
+   linseg  98.0  -6.00   0.25
+   linseg  98.0  -6.00  -0.25
+skend
+rotatez   -60.0   98.0  -6.00
+
+skbeg      99.0  -6.00  -0.25
+   linseg  99.0   1.00  -0.25
+   cirarc  99.0   1.25   0.00  99.0   1.00   0.25
+   linseg  99.0  -6.00   0.25
+   linseg  99.0  -6.00  -0.25
+skend
+rotatez   -90.0   99.0  -6.00
+
+blend
+
+dump  rotor1.stp
+
+end

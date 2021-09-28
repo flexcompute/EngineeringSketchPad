@@ -1,0 +1,29 @@
+# blend16c
+# written by John Dannenhoffer
+
+MARK
+   UDPRIM    supell  n 3  rx 1.0  ry 0.1
+   TRANSLATE 2.5  0.0  -2.0
+ 
+   UDPRIM    supell  n 3  rx 1.8  ry 0.1
+   TRANSLATE 2.1  0.0  -1.0
+
+   UDPRIM    supell  n 3  rx 2.0  ry 0.1
+   TRANSLATE 2.0  0.0   0.0
+
+   UDPRIM    supell  n 3  rx 2.0  ry 0.1
+   TRANSLATE 2.0  0.0   0.0
+
+   UDPRIM    supell  n 3  rx 2.0  ry 0.1
+   TRANSLATE 2.0  0.0   0.0
+
+   UDPRIM    supell  n 3  rx 1.8  ry 0.1
+   TRANSLATE 2.1  0.0  +1.0
+
+   UDPRIM    supell  n 3  rx 1.0  ry 0.1
+   TRANSLATE 2.5  0.0  +2.0
+
+BLEND
+ROTATEX   90  0  0
+
+end

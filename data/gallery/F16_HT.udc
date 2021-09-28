@@ -1,0 +1,99 @@
+# F16_HT
+# written by Chris Meckstroth
+# modified by John Dannenhoffer
+
+interface  deflHT  in 0
+
+dimension  HT       4  5  0
+#                       x        y         z      chord     angle
+set        HT      " 413.698;   0.000;    8.858;  148.587;    0.000;\
+                     455.407;  42.520;    8.858;  106.299;    0.000;\                                    
+                     526.273; 108.170;   -2.718;   34.449;    deflHT;"
+mark 
+
+dimension  axis     1  2  0
+set        axis    "8.858; 502.500"
+
+set        sidGap   2.0
+
+dimension  Thick    1  3  0
+set        Thick   "0.060; 0.060; 0.035"
+
+#456.377;  43.520;    8.682;  105.205;    deflHT;\
+# Interpolate position of elevator at root + gap
+set    x0       HT[2,1]
+set    x1       HT[3,1]
+set    y0       HT[2,2]
+set    y1       HT[3,2]
+set    z0       HT[2,3]
+set    z1       HT[3,3]
+set    c0       HT[2,4]
+set    c1       HT[3,4]
+set    t0       Thick[1,2]
+set    t1       Thick[1,3]
+
+set    yint     HT[2,2]+sidGap
+
+# Interpolate x-position
+set    x0i     y0
+set    x1i     y1
+set    xin     yint 
+set    y0i     x0
+set    y1i     x1
+set    xint    (y0i+(xin-x0i)*(y1i-y0i)/(x1i-x0i))
+
+# Interpolate z-position
+set    y0i     z0
+set    y1i     z1
+set    zint    (y0i+(xin-x0i)*(y1i-y0i)/(x1i-x0i))
+
+# Interpolate chord
+set    y0i     c0
+set    y1i     c1
+set    cint    (y0i+(xin-x0i)*(y1i-y0i)/(x1i-x0i))
+
+# Interpolate thickness
+set    y0i     t0
+set    y1i     t1
+set    tint    (y0i+(xin-x0i)*(y1i-y0i)/(x1i-x0i)) 
+
+udprim biconvex thick     Thick[1,1]
+rotatex  90.0  0.0  0.0
+scale      HT[1,4]
+translate  HT[1,1]    HT[1,2]    HT[1,3]
+rotatey    HT[1,5]  axis[1,1]  axis[1,2]
+
+udprim biconvex thick     Thick[1,2]
+rotatex 90.0 0.0 0.0
+scale      HT[2,4]
+translate  HT[2,1]    yint       HT[2,3]
+rotatey    HT[2,5]  axis[1,1]  axis[1,2]
+
+rule
+
+mark
+
+udprim biconvex thick     tint
+rotatex 90.0 0.0 0.0
+scale      cint
+translate  xint      yint       zint
+rotatey    HT[3,5]   axis[1,1]  axis[1,2]
+
+udprim biconvex thick     Thick[1,3]
+rotatex 90.0 0.0 0.0
+scale      HT[3,4]
+translate  HT[3,1]    HT[3,2]    HT[3,3]
+rotatey    HT[3,5]  axis[1,1]  axis[1,2]
+
+rule
+
+union
+
+box 488.698 -27.0 -50.0 200.0 54.0 100.0
+subtract
+
+store  HTRight  0  1
+mirror 0.0 1.0 0.0
+
+restore HTRight
+join

@@ -1,0 +1,63 @@
+# selectSort1
+# written by John Dannenhoffer
+
+# make the Sketch
+SKBEG     0  0  0
+   LINSEG 1  0  0
+   LINSEG 2  0  0
+   LINSEG 2  2  0
+   LINSEG 1  2  0
+   LINSEG 0  2  0
+   LINSEG 1  1  0
+   LINSEG 0  0  0
+SKEND
+
+# make a list of the Edges
+SELECT    EDGE
+
+ASSERT    @sellist.size  7
+ASSERT    @sellist[1]    1
+ASSERT    @sellist[2]    2
+ASSERT    @sellist[3]    3
+ASSERT    @sellist[4]    4
+ASSERT    @sellist[5]    5
+ASSERT    @sellist[6]    6
+ASSERT    @sellist[7]    7
+
+# sort the list based upon xcg
+SELECT    SORT $xcg
+
+ASSERT    @sellist.size  7
+ASSERT    @sellist[1]    1
+ASSERT    @sellist[2]    5
+ASSERT    @sellist[3]    6
+ASSERT    @sellist[4]    7
+ASSERT    @sellist[5]    2
+ASSERT    @sellist[6]    4
+ASSERT    @sellist[7]    3
+
+# sort the list based upon ymin
+SELECT    SORT $ymin
+
+ASSERT    @sellist.size  7
+ASSERT    @sellist[1]    1
+ASSERT    @sellist[2]    7
+ASSERT    @sellist[3]    2
+ASSERT    @sellist[4]    3
+ASSERT    @sellist[5]    6
+ASSERT    @sellist[6]    5
+ASSERT    @sellist[7]    4
+
+# sort based upon length
+SELECT    SORT $length
+
+ASSERT    @sellist.size  7
+ASSERT    @sellist[1]    1
+ASSERT    @sellist[2]    2
+ASSERT    @sellist[3]    5
+ASSERT    @sellist[4]    4
+ASSERT    @sellist[5]    7
+ASSERT    @sellist[6]    6
+ASSERT    @sellist[7]    3
+
+END

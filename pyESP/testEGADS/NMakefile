@@ -1,0 +1,8 @@
+#
+test:
+	python --version
+	python -m unittest discover
+
+clean:
+	del __pycache__
+	del *.pyc

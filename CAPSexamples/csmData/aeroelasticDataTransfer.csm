@@ -1,0 +1,162 @@
+# Aeroelastic example - with ribs and spars
+
+# Design Parameters for OML
+despmtr   thick     0.12      frac of local chord
+despmtr   camber    0.04      frac of loacl chord
+
+despmtr   area      10.0
+despmtr   aspect    6.00
+despmtr   taper     0.60
+despmtr   sweep     20.0      deg (of c/4)
+
+despmtr   washout   5.00      deg (down at tip)
+despmtr   dihedral  4.00      deg
+
+# Design Parameters for BEM
+cfgpmtr   nrib      3         number of ribs
+despmtr   spar1     0.20      frac of local chord
+despmtr   spar2     0.75      frac of local chord
+
+# Setup tessellation arrays for OML for CFD sims
+dimension params 1 3 0
+
+# OML
+set       span      sqrt(aspect*area)
+set       croot     2*area/span/(1+taper)
+set       ctip      croot*taper
+set       dxtip     (croot-ctip)/4+span/2*tand(sweep)
+set       dytip     span/2*tand(dihedral)
+
+mark
+   # right tip
+   udprim    naca      Thickness thick     Camber    camber sharpTE 1
+   scale     ctip
+   rotatez   washout   ctip/4    0
+   translate dxtip     dytip     -span/2
+
+   # root
+   udprim    naca      Thickness thick     Camber    camber sharpTE 1
+   scale     croot
+   
+rule
+
+   attribute OML 1
+   
+   attribute capsGroup $Skin
+   
+   select face @nbody 3 1
+   attribute capsBound $Skin_Top
+   select face @nbody 4 1
+   attribute capsBound $Skin_Bottom
+   select face @nbody 1 1
+   attribute capsBound $Skin_Tip
+  
+   select face @nbody 2 1
+   attribute capsGroup $Rib_Root
+   attribute capsConstraint $Rib_Root
+   #set        nedge     @nedge
+   #patbeg     iedge  nedge
+   #   select     edge     iedge
+   #   attribute  capsGroup  $Rib_Root
+   #patend
+
+store     OML
+
+# FEA
+    # wing ribs
+    dimension waffle  (nrib)+2 4 0
+    set       Nrib    nint(nrib)
+
+    patbeg    i Nrib
+        set    waffle[i,1]     (span/2)*(i-0.5)/Nrib
+        set    waffle[i,2]     -0.01*croot
+        set    waffle[i,3]     (span/2)*(i-0.5)/Nrib
+        set    waffle[i,4]     max(croot,dxtip+ctip)
+    patend
+
+    # wing spars
+    set       eps             0.01*span
+
+    set       waffle[Nrib+1,1]   span/2+eps
+    set       waffle[Nrib+1,2]   spar1*ctip+dxtip
+    set       waffle[Nrib+1,3]   -eps
+    set       waffle[Nrib+1,4]   spar1*croot
+
+    set       waffle[Nrib+2,1]   span/2+eps
+    set       waffle[Nrib+2,2]   spar2*ctip+dxtip
+    set       waffle[Nrib+2,3]   -eps
+    set       waffle[Nrib+2,4]   spar2*croot
+
+    udprim    waffle    Depth     +6*thick*croot      Segments  waffle
+    
+    attribute capsGroup $Ribs_and_Spars
+
+    translate 0         0         -3*thick*croot
+    rotatey   90        0         0
+    rotatez  -90        0         0
+    
+    store     waffle
+
+    # keep part of waffle inside OML
+    restore   waffle
+    restore   OML
+    intersect
+
+    # break the OML with the waffle and extract the shell
+    restore   OML
+    
+    restore   waffle
+    subtract
+    extract   0
+
+    # sew the two SHEET Bodies together
+    union
+   
+    #Rotate the body to put it in the typical aero-coordinate system
+    rotatex   90   0   0
+   
+    select body
+   	attribute capsIntent $STRUCTURE #FEA Analysis (2D elements)
+   	attribute capsAIM $nastranAIM;astrosAIM;mystranAIM
+   	
+    udprim editAttr filename <<
+        edge adj2face capsGroup=Rib_Root
+        set  capsConstraint=Rib_Root
+        node adj2face capsGroup=Rib_Root
+        set  capsConstraint=Rib_Root
+>>
+
+# CFD
+    
+    # Create a bounding box and mark boundary as a farfied 
+    box       -20   -20   -40   40   40   40
+    
+    attribute capsGroup $Farfield
+    
+    # Set Wing tessellation parameters for CFD sims
+    set       params[1,1] .5 
+    set       params[1,2] .1
+    set       params[1,3] 5.0
+    
+    select face 6
+    attribute capsGroup $SymmPlane
+    attribute .tParams  params
+    
+    # Set Wing tessellation parameters for CFD sims
+    set       params[1,1] 0.07 
+    set       params[1,2] 0.02 
+    set       params[1,3] 15.0
+     
+    # Restore outer mold line of wing 
+    restore OML
+    
+    attribute .tParams  params
+    
+    # Subtract the two bodies
+    subtract  none   1   0
+    
+    #Rotate the body to put it in the typical aero-coordinate system
+    rotatex   90   0   0
+    
+    attribute capsIntent $CFD #CFD Analysis
+    attribute capsAIM $fun3dAIM;su2AIM;egadsTessAIM;aflr4AIM;tetgenAIM;aflr3AIM #CFD Analysis

@@ -1,0 +1,18 @@
+# udcString
+# written by John Dannenhoffer
+
+despmtr   dummy1 0
+set       dummy2 0
+
+# make a Body and store it away (to be restored in UDC)
+box       0  0  0   1  1  1
+store     myStore
+
+udparg    $/udcString beg  $Engineering \
+                      base 10
+udprim    $/udcString end  $SketchPad \
+                      body $myStore
+
+assert    @@totlen  30
+
+end

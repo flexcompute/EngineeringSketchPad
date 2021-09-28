@@ -1,0 +1,23 @@
+# nearbodygrid
+# written by John Dannenhoffer
+
+# fuselage-like body
+CYLINDER  0.0  0.0  0.0   1.0  0.0  0.0  1.0
+CYLINDER  1.0  0.0  0.0   2.0  0.0  0.0  1.0
+ROTATEX    70  0.0  0.0
+UNION
+SPHERE    2.0  0.0  0.0   1.0
+UNION
+
+# wing-like body
+BOX       0.8  -.1  0.0   1.6   0.2  4.0
+BOX       1.2  0 0  0.2   0.2   4.0
+SUBTRACT
+BOX       1.6  0.0  0.0   0.2   0.2  4.0
+UNION
+
+# rotate wing and union
+ROTATEZ    20  1.2  0.0
+UNION
+
+END

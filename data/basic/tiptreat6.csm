@@ -1,0 +1,42 @@
+# tiptreat6
+# written by John Dannenhoffer
+
+
+MARK
+   UDPRIM    naca   series  4412
+   UDPRIM    naca   series  4412
+   TRANSLATE 0  0  1
+BLEND     0  "-1;0.2"
+
+MARK
+   UDPRIM    naca   series  4412
+   UDPRIM    naca   series  4412
+   TRANSLATE 0  0  1
+BLEND     0  "-1;0.5"
+TRANSLATE 1.5  0  0
+
+MARK
+   UDPRIM    naca   series  4412
+   UDPRIM    naca   series  4412
+   TRANSLATE 0  0  1
+BLEND     0  "-1;1"
+TRANSLATE 3.0  0  0
+
+MARK
+   UDPRIM    naca   series  4412
+   UDPRIM    naca   series  4412
+   TRANSLATE 0  0  1
+BLEND     0  "-1;2"
+TRANSLATE 4.5  0  0
+
+MARK
+   UDPRIM    naca   series  4412
+   UDPRIM    naca   series  4412
+   TRANSLATE 0  0  1
+BLEND     0  "-1;5"
+TRANSLATE 6.0  0  0
+
+END
+
+
+

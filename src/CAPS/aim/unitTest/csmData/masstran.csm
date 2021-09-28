@@ -1,0 +1,55 @@
+# masstran.csm
+# used for Masstran testing
+
+CFGPMTR VIEW:plate 1
+CFGPMTR VIEW:box1 1
+CFGPMTR VIEW:box2 1
+CFGPMTR VIEW:box3 1
+
+IFTHEN VIEW:plate EQ 1
+    BOX       0.0  0.0  0.0  2.0  3.0  0.0
+    ATTRIBUTE capsGroup $box1
+    SELECT body @nbody
+        ATTRIBUTE capsAIM $masstranAIM
+        ATTRIBUTE _name   $plate
+ENDIF
+
+IFTHEN VIEW:box1 EQ 1
+    BOX       0.0  0.0  0.0  1.0  1.0  1.0
+    ATTRIBUTE capsGroup $box1
+    SELECT body @nbody
+        ATTRIBUTE capsAIM $masstranAIM
+        ATTRIBUTE _name   $allQuad
+ENDIF
+
+IFTHEN VIEW:box2 EQ 1
+    BOX       2.0  0.0  0.0  1.0  1.0  1.0
+    ATTRIBUTE capsGroup $box1
+    SELECT face 1
+        ATTRIBUTE capsIgnore $true # ignore one face in the mesh
+    SELECT face 3
+        ATTRIBUTE .qParams $off
+    SELECT face 6
+        ATTRIBUTE .qParams $off
+    SELECT body @nbody
+        ATTRIBUTE capsAIM $masstranAIM
+        ATTRIBUTE _name   $partQuad
+ENDIF
+
+IFTHEN VIEW:box3 EQ 1
+    BOX       4.0  0.0  0.0  1.0  1.0  1.0
+    SELECT face 1
+        ATTRIBUTE capsGroup $box1
+    SELECT face 2
+        ATTRIBUTE capsGroup $box2
+    SELECT face 3
+        ATTRIBUTE capsGroup $box1
+    SELECT face 4
+        ATTRIBUTE capsGroup $box2
+    SELECT face 5
+        ATTRIBUTE capsGroup $box1
+    SELECT face 6
+        ATTRIBUTE capsGroup $box2
+    SELECT body @nbody
+        ATTRIBUTE capsAIM  $masstranAIM
+ENDIF

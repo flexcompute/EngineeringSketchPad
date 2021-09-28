@@ -1,0 +1,16 @@
+# subtract3c (SHEET-SOLID)
+# written by John Dannenhoffer
+
+UDPRIM    box  dx 4  dy 2  dz 0
+
+UDPRIM    box  dx 5  dy 0  dz 1
+TRANSLATE 0.0 -.2 0.0
+SUBTRACT
+
+CYLINDER  -1.0 0.0 -1.0  -1.0 0.0 +1.0  0.5
+SUBTRACT
+
+CYLINDER   2.0 0.9 -1.0   2.0 0.9 +1.0  0.5
+SUBTRACT
+
+end

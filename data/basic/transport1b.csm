@@ -1,0 +1,12 @@
+# transport1b
+# written by John Dannenhoffer
+
+IMPORT    transport1.stp
+SET       nbody @@numbodies
+STORE     .
+
+PATBEG    ibody  nbody
+   IMPORT transport1.stp  ibody
+PATEND
+
+END

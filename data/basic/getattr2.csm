@@ -1,0 +1,38 @@
+# getattr2
+# written by John Dannenhoffer
+
+BOX    -1  -1  -1  2  2  2
+
+   # 9 entries (not attached to box)
+   CSYSTEM offBody1 "1.5;0.5;0;  1;0;0; 1;1;1"
+   CSYSTEM offBody2 "1.5;-.5;0;  1;1;1; 1;0;0"
+
+   # 5 entries (attached to Face 6)
+   CSYSTEM onFace6 "+6; 0.5;0.5; 1;1"
+
+   # 5 entries (attached to Edge 6)
+   CSYSTEM onEdge6 "-6; 0.5; 1;1;1"
+
+   # 7 entries (attached to Node 7)
+   CSYSTEM atNode7 "7; 1;1;1; 1;1;0"
+
+ROTATEZ 45 0 0
+
+# get the attributes
+DIMENSION offBody1  1 9
+GETATTR   offBody1  $offBody1
+
+DIMENSION offBody2  1 9
+GETATTR   offBody2  $offBody2
+
+DIMENSION onFace6   1 9
+GETATTR   onFace6   $onFace6
+
+DIMENSION onEdge6   1 9
+GETATTR   onEdge6   $onEdge6
+
+DIMENSION atNode7   1 9
+GETATTR   atNode7   $atNode7
+
+END
+

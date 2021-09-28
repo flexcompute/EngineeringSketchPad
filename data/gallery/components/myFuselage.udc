@@ -1,0 +1,44 @@
+interface   MakeWing      in 0
+interface   MakeInlets    in 0
+interface   fuse_sections in 0
+interface   fuse          in 0
+interface   noselist      in 0
+
+mark
+    skbeg   0 0 0
+    skend
+    patbeg i  fuse_sections
+        udprim      ellipse  ry abs(fuse[i,2])  rz (fuse[i,4]-fuse[i,3])/2
+        translate   fuse[i,1]  0 (fuse[i,4]+fuse[i,3])/2
+    patend
+blend noselist 
+
+# Scribe the fuselage nose
+udprim    box   dy 5.0 dz 5.0
+translate       0.75  0.0  0.0
+subtract
+
+patbeg wing MakeWing
+    union # with wing if it is present
+patend
+
+# Cut the backside of the fuselage to accomodate inlets
+patbeg inletHole  MakeInlets
+   mark
+      skbeg      15.7  -1.25  -0.9
+         linseg  15.7   1.25  -0.9
+         linseg  15.7   1.25   0.9
+         linseg  15.7  -1.25   0.9
+         linseg  15.7  -1.25  -0.9
+      skend
+            
+      skbeg       17.7  -1.75  -0.9
+         linseg  17.7   1.75  -0.9
+         linseg  17.7   1.75   0.9
+         linseg  17.7  -1.75   0.9
+         linseg  17.7  -1.75  -0.9
+       skend
+   rule
+    
+   subtract
+patend #inletHole

@@ -1,0 +1,10 @@
+# cylinder_0
+# written by John Dannenhoffer
+
+cylinder  -1.0  0.0  0.0  +1.0  0.0  0.0  0.5
+   attribute  .tParams  0.10;0.02;5.0
+
+dump      $/cylinder_0.stl
+dump      $/cylinder.plot
+
+end

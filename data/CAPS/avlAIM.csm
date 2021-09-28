@@ -1,0 +1,52 @@
+# AVL test part
+
+# design parameters
+despmtr   thick     0.12      frac of local chord
+despmtr   camber    0.04      frac of loacl chord
+
+despmtr   area      10.0
+despmtr   aspect    6.00
+despmtr   taper     0.60
+despmtr   sweep     20.0      deg (of c/4)
+
+despmtr   washout   5.00      deg (down at tip)
+despmtr   dihedral  4.00      deg
+
+# internal parameters
+set       span      sqrt(aspect*area)
+set       croot     2*area/span/(1+taper)
+set       ctip      croot*taper
+set       dxtip     (croot-ctip)/4+span/2*tand(sweep)
+set       dytip     span/2*tand(dihedral)
+
+##### wing
+
+dimension secValues 1 5 0
+set       secValues "8; 1.0; 12; 1.0; 0"
+
+# right tip
+udprim    naca      Thickness thick     Camber    camber
+attribute capsIntent   $LINEARAERO
+attribute avlSurface   $Wing
+attribute avlSecValues secValues
+scale     ctip
+rotatez   washout   ctip/4    0
+translate dxtip     dytip     -span/2
+
+# root
+udprim    naca      Thickness thick     Camber    camber
+attribute capsIntent   $LINEARAERO
+attribute avlSurface   $Wing
+attribute avlSecValues secValues
+scale     croot
+
+# left tip
+udprim    naca      Thickness thick     Camber    camber
+attribute capsIntent   $LINEARAERO
+attribute avlSurface   $Wing
+attribute avlSecValues secValues
+scale     ctip
+rotatez   washout   ctip/4    0
+translate dxtip     dytip     +span/2
+
+end

@@ -1,0 +1,78 @@
+# faceOrder2
+# written by John Dannenhoffer
+
+skbeg     -3  0  0
+   linseg -3  1  0
+   linseg -3  1  1
+   linseg -3  0  1
+   linseg -3  0  0
+skend 1
+revolve   -3 -1  0   0  0  1 -30
+
+select    face  @nbody  1
+catbeg   $face_not_found
+catend
+
+select    face  @nbody  2
+catbeg   $face_not_found
+catend
+
+select    face  @nbody  3
+assert    @xcg -2.601976
+assert    @ycg  0.485446
+assert    @zcg  0
+
+select    face  @nbody  4
+assert    @xcg -2.488255
+assert    @ycg  0.909859
+assert    @zcg  0.500000
+
+select    face  @nbody  5
+assert    @xcg -2.601976
+assert    @ycg  0.485446
+assert    @zcg  1
+
+select    face  @nbody  6
+assert    @xcg -2.744127
+assert    @ycg -0.045070
+assert    @zcg  0.500000
+
+skbeg      1  0  0
+   linseg  1  1  0
+   linseg  1  1  1
+   linseg  1  0  1
+   linseg  1  0  0
+skend
+revolve    1 -1  0   0  0  1 -30
+
+select    face  @nbody  1
+assert    @xcg  1.750000
+assert    @ycg  0.299038
+assert    @zcg  0.500000
+
+select    face  @nbody  2
+assert    @xcg  1
+assert    @ycg  0.500000
+assert    @zcg  0.500000
+
+select    face  @nbody  3
+assert    @xcg  1.398024
+assert    @ycg  0.485446
+assert    @zcg  0
+
+select    face  @nbody  4
+assert    @xcg  1.511745
+assert    @ycg  0.909859
+assert    @zcg  0.500000
+
+select    face  @nbody  5
+assert    @xcg  1.398024
+assert    @ycg  0.485446
+assert    @zcg  1
+
+select    face  @nbody  6
+assert    @xcg  1.255873
+assert    @ycg -0.045070
+assert    @zcg  0.500000
+
+end

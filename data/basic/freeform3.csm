@@ -1,0 +1,6 @@
+# freeform3
+# written by John Dannenhoffer
+
+udprim freeform FileName $$/freeform3.solid
+
+end

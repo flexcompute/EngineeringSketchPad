@@ -1,0 +1,61 @@
+# masspropsSheets
+# written by John Dannenhoffer
+
+DESPMTR   x0        1
+DESPMTR   y0        2
+DESPMTR   z0        3
+DESPMTR   dx        4
+DESPMTR   dy        3
+DESPMTR   dz        2
+
+BOX       x0  y0  z0  0   dy  dz
+BOX       x0  y0  z0  dx  0   dz
+JOIN
+BOX       x0  y0  z0  dx  dy  0
+JOIN
+
+STORE     foo
+RESTORE   foo
+
+# Body 2 should get tessellated when sensitivities are computed
+OUTPMTR   myLength
+SET       myLength     @length
+
+OUTPMTR   myArea
+SET       myArea       @area
+
+OUTPMTR   myVolume
+SET       myVolume     @volume
+
+DIMENSION myCG         1 3
+OUTPMTR   myCG
+SET       myCG[1]      @xcg*1
+SET       myCG[2]      @ycg
+SET       myCG[3]      @zcg
+
+DIMENSION myBbox       2 3
+OUTPMTR   myBbox
+SET       myBbox[1,1]  @xmin
+SET       myBbox[1,2]  @ymin
+SET       myBbox[1,3]  @zmin
+SET       myBbox[2,1]  @xmax
+SET       myBbox[2,2]  @ymax
+SET       myBbox[2,3]  @zmax
+
+DIMENSION myI          3 3
+OUTPMTR   myI
+SET       myI[1,1]     @Ixx
+SET       myI[1,2]     @Ixy
+SET       myI[1,3]     @Ixz
+SET       myI[2,1]     @Iyx
+SET       myI[2,2]     @Iyy
+SET       myI[2,3]     @Iyz
+SET       myI[3,1]     @Izx
+SET       myI[3,2]     @Izy
+SET       myI[3,3]     @Izz
+
+# Body 3 should get tessellated to display in ESP
+STORE     foo
+RESTORE   foo
+
+END

@@ -1,0 +1,15 @@
+# demo0c - placeholder for OvrCad3 (use with -rebuildTree option)
+# written by John Dannenhoffer
+
+import    $/demo0c.egads
+
+# faux FeatureTree follows:
+#$ import
+#$ import
+#$ union
+#$ import
+#$ subtract
+#$ import
+#$ union
+
+end

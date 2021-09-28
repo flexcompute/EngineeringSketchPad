@@ -1,0 +1,61 @@
+# demo2
+# written by John Dannenhoffer
+
+# design parameters for box
+despmtr        xmin      -1.00
+despmtr        xmax       1.00
+despmtr        ymin      -1.00
+despmtr        ymax       1.00
+despmtr        zmin      -1.00
+despmtr        zmax       1.00
+
+# design parameters for feature
+dimension      feat       2    2    1
+despmtr        feat[1,1]  0.00      # focus 1
+despmtr        feat[1,2] -0.50
+despmtr        feat[2,1]  0.50      # focus 2
+despmtr        feat[2,2] -0.50
+despmtr        radius     0.50
+
+# build the box
+box            xmin       ymin      zmin      xmax-xmin ymax-ymin zmax-zmin
+name           box
+attribute      xsize      xmax-xmin
+attribute      ysize      ymax-ymin
+attribute      zsize      zmax-zmin
+
+# local parameters for center of hole
+set      xc     0.50
+set      yc     -.70
+set      zc     0.45
+
+# build and union the feature
+skbeg          feat[2,1]           -2.00      feat[2,2]+radius
+    cirarc     feat[2,1]+radius    -2.00      feat[2,2]\
+               feat[2,1]           -2.00      feat[2,2]-radius
+    linseg     feat[1,1]           -2.00      feat[1,2]-radius
+    cirarc     feat[1,1]-radius    -2.00      feat[1,2]\
+               feat[1,1]           -2.00      feat[1,2]+radius
+    linseg     feat[2,1]           -2.00      feat[2,2]+radius
+skend
+extrude         0.00      4.00      0.00
+name           feature
+translate       0.40      0.00      0.10
+union
+   csystem  holeaxis  "xc;yc;zc;  1;0;0; 0;1;0"
+
+# build and subtract the hole
+skbeg           0        -.20    -.40
+    cirarc      0        0       -.45    0        0+.20    0-.40
+    linseg      0        +.20    +.40
+    set         dummy    0.00
+    cirarc      0        0       +.45    0        0-.20    0+.40
+    linseg      0        -.20    -.40
+skend
+extrude         1.00      0.00      0.00
+name           hole
+
+applycsys holeaxis
+subtract
+
+end

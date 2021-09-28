@@ -1,0 +1,14 @@
+# csystem2
+# written by John Dannenhoffer
+
+box        -1.0  0.0  0.0  1.0  1.0  1.0
+   csystem box  "-1;0;0;  -1;0;0;  0;1;0;"
+
+cylinder    0.0  0.5  0.5  1.0  0.5  0.5  0.2
+   csystem cyl  " 2;0;0;   1;0;0;  0;1;0;"
+
+union
+
+rotatez   45.  0.0  0.0
+
+end

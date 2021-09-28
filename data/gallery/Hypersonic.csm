@@ -1,0 +1,463 @@
+# Hypersonic
+# adapted from CAPS test case
+
+# Component Switches
+despmtr makeFuselage        1
+despmtr blendFuselage       1
+despmtr makeControlSurfaces 1
+despmtr makeInlet           1
+despmtr hollowInlet         1
+despmtr sec_4               0
+despmtr unionAll            1
+
+# Tail end location
+despmtr tailLength 140.0
+
+# Section locations, 3 sections assumed
+despmtr section1_x 32.0
+despmtr section2_x 62.0
+despmtr section3_x 72.0
+despmtr section4_x 82.0
+
+# Cross section of the fuselage at the nose
+dimension fuseSecBeg   	10   3   1
+
+# Coordinates:  			x 		y 		z
+despmtr   fuseSecBeg	   "0.0;    8.5;   0.0; \
+							0.0;    8.5;   0.01; \
+							0.0;    8.5;   0.01; \
+							0.0;    7.0;   0.015; \
+							0.0;    0.0;   0.025; \
+							0.0;   -7.0;   0.015; \
+							0.0;   -8.5;   0.01; \
+							0.0;   -8.5;   0.01; \
+							0.0;   -8.5;   0.0; \
+							0.0;    8.5;   0.0;"
+
+# Cross section of the fuselage at the tail
+dimension fuseSecMid	10	3	1
+
+# Coordinates:  			x 		y 		z 
+despmtr   fuseSecMid	"	72.0;    17.5;   8.0;  \
+							72.0;    17.5;   11.;  \
+							72.0;    17.5;   11.;  \
+							72.0;    16.0;   12.0; \
+							72.0;     0.0;   15.5; \
+							72.0;    -16.0;  12.0; \
+							72.0;    -17.5;  11.;  \
+							72.0;    -17.5;  11.;  \
+							72.0;    -17.5;  8.0;  \
+							72.0;     17.5;  8.0; "
+# color names
+dimension red     1 3 0
+dimension green   1 3 0
+dimension blue    1 3 0
+dimension yellow  1 3 0
+dimension magenta 1 3 0
+dimension cyan    1 3 0
+dimension white   1 3 0
+dimension black   1 3 0
+
+set       red     "1;0;0;"
+set       green   "0;1;0;"
+set       blue    "0;0;1;"
+set       yellow  "1;1;0;"
+set       cyan    "0;1;1;"
+set       magenta "1;0;1;"
+set       white   "1;1;1;"
+set       black   "0;0;0;"
+
+#--------------------- Begin Model Construction ------------------------------#
+
+# Compute slopes in y and z, based on nose-to-mid fuselage cross sections 
+dimension fuseSlope	10	2	0
+patbeg  i   10
+    # (y2-y1)/(x2-x1)
+    set fuseSlope[i,1]  " (fuseSecMid[i,2]-fuseSecBeg[i,2]) \
+                        / (fuseSecMid[i,1]-fuseSecBeg[i,1]) "
+    
+    # (z2-z1)/(x2-x1)
+    set fuseSlope[i,2]  " (fuseSecMid[i,3]-fuseSecBeg[i,3]) \
+                        / (fuseSecMid[i,1]-fuseSecBeg[i,1]) "
+patend
+
+# Compute slopes in y and z, based on nose-to-tail fuselage cross sections 
+dimension tailSlope	10	2	0
+patbeg  i   10
+    # (y2-y1)/(x2-x1)
+    set tailSlope[i,1]  " (fuseSecMid[i,2]-fuseSecBeg[i,2]) \
+                        / (tailLength-fuseSecBeg[i,1]) "
+    
+    # (z2-z1)/(x2-x1)
+    set tailSlope[i,2]  " (fuseSecMid[i,3]-fuseSecBeg[i,3]) \
+                        / (tailLength-fuseSecBeg[i,1]) "
+patend
+
+# Compute y and z coordinates for section 1
+dimension section1 10  2  0
+patbeg  i   10
+    # y1+m(x2-x1)
+    set section1[i,1] " fuseSecBeg[i,2] + fuseSlope[i,1] \
+                                        * (section1_x-fuseSecBeg[i,1]) "
+    
+    # z1+m*(x2-x1)
+    set section1[i,2] " fuseSecBeg[i,3] + (fuseSlope[i,2]-tailSlope[i,2]) \
+                                        * (section1_x-fuseSecBeg[i,1]) "
+patend
+
+# Compute y and z coordinates for section 2
+dimension section2 10  2  0
+patbeg  i   10
+    # y1+m(x2-x1)
+    set section2[i,1] " fuseSecBeg[i,2] + fuseSlope[i,1] \ 
+                                        * (section2_x-fuseSecBeg[i,1]) "
+    
+    # z1+m*(x2-x1)
+    set section2[i,2] " fuseSecBeg[i,3] + (fuseSlope[i,2]-tailSlope[i,2]) \
+                                        * (section2_x-fuseSecBeg[i,1]) "
+patend
+
+# Compute y and z coordinates for section 3
+dimension section3 10  2  0
+patbeg  i   10
+    # y1+m(x2-x1)
+    set section3[i,1] " fuseSecBeg[i,2] + fuseSlope[i,1] \
+                                        * (section3_x-fuseSecBeg[i,1]) "
+    
+    # z1+m*(x2-x1)
+    set section3[i,2] " fuseSecBeg[i,3] + (fuseSlope[i,2]-tailSlope[i,2]) \
+                                        * (section3_x-fuseSecBeg[i,1]) "
+patend
+
+dimension section4 10  2  0
+patbeg  i   10
+    # y1+m(x2-x1)
+    set section4[i,1] " fuseSecBeg[i,2] + fuseSlope[i,1] \
+                                        * (section4_x-fuseSecBeg[i,1]) "
+    
+    # z1+m*(x2-x1)
+    set section4[i,2] " fuseSecBeg[i,3] + (fuseSlope[i,2]-tailSlope[i,2]) \
+                                        * (section4_x-fuseSecBeg[i,1]) "
+patend
+
+ifthen makeFuselage eq 1
+    # Loft the cross sections to create fuselage
+    mark
+        # Cross section at the nose
+    	skbeg		fuseSecBeg[1,1]	 fuseSecBeg[1,2]  fuseSecBeg[1,3]
+    	    # Top part, sharp and smooth features
+            linseg	fuseSecBeg[2,1]	 fuseSecBeg[2,2]  fuseSecBeg[2,3]
+    		spline	fuseSecBeg[3,1]	 fuseSecBeg[3,2]  fuseSecBeg[3,3]
+    		spline	fuseSecBeg[4,1]	 fuseSecBeg[4,2]  fuseSecBeg[4,3]
+    		spline	fuseSecBeg[5,1]	 fuseSecBeg[5,2]  fuseSecBeg[5,3]
+    		spline	fuseSecBeg[6,1]	 fuseSecBeg[6,2]  fuseSecBeg[6,3]
+    		spline	fuseSecBeg[7,1]	 fuseSecBeg[7,2]  fuseSecBeg[7,3]
+    		linseg	fuseSecBeg[8,1]	 fuseSecBeg[8,2]  fuseSecBeg[8,3]
+    		linseg	fuseSecBeg[9,1]	 fuseSecBeg[9,2]  fuseSecBeg[9,3]
+            # Bottom part, only sharp features
+                linseg  fuseSecBeg[1,1] -8.4  -0.02
+                linseg  fuseSecBeg[1,1] -8.2  -0.03
+                linseg  fuseSecBeg[1,1]  8.2  -0.03
+                linseg  fuseSecBeg[1,1]  8.4  -0.02 
+    		linseg	fuseSecBeg[10,1] fuseSecBeg[10,2] fuseSecBeg[10,3] 	
+    	skend
+    	
+        # Cross section at the first location after nose
+    	skbeg		section1_x section1[1,1]  section1[1,2]
+    		# Top part, sharp and smooth features
+            linseg	section1_x section1[2,1]  section1[2,2]
+    		spline	section1_x section1[3,1]  section1[3,2]
+    		spline	section1_x section1[4,1]  section1[4,2]
+    		spline	section1_x section1[5,1]  section1[5,2]
+    		spline	section1_x section1[6,1]  section1[6,2]
+    		spline	section1_x section1[7,1]  section1[7,2]
+    		linseg	section1_x section1[8,1]  section1[8,2]
+    		linseg	section1_x section1[9,1]  section1[9,2]
+            # Bottom part, only sharp features
+                linseg  section1_x -10.5  0.0
+                linseg  section1_x -7.5  -1.0
+                linseg  section1_x  7.5  -1.0
+                linseg  section1_x  10.5  0.0
+    		linseg	section1_x section1[10,1] section1[10,2] 	
+    	skend
+    
+        # Cross section at the second location after nose
+    	skbeg		section2_x section2[1,1]  section2[1,2]
+    		# Top part, sharp and smooth features
+            linseg	section2_x section2[2,1]  section2[2,2]
+    		spline	section2_x section2[3,1]  section2[3,2]
+    		spline	section2_x section2[4,1]  section2[4,2]
+    		spline	section2_x section2[5,1]  section2[5,2]
+    		spline	section2_x section2[6,1]  section2[6,2]
+    		spline	section2_x section2[7,1]  section2[7,2]
+    		linseg	section2_x section2[8,1]  section2[8,2]
+    		linseg	section2_x section2[9,1]  section2[9,2]
+            # Bottom part, only sharp features
+                linseg  section2_x -14.5   0.0
+                linseg  section2_x -8.5  -7.5
+                linseg  section2_x  8.5  -7.5
+                linseg  section2_x  14.5  0.0
+    		linseg	section2_x section2[10,1] section2[10,2] 	
+    	skend
+    
+        # Cross section at the third location after nose
+    	skbeg		section3_x section3[1,1]  section3[1,2]
+    		# Top part, sharp and smooth features
+            linseg	section3_x section3[2,1]  section3[2,2]
+    		spline	section3_x section3[3,1]  section3[3,2]
+    		spline	section3_x section3[4,1]  section3[4,2]
+    		spline	section3_x section3[5,1]  section3[5,2]
+    		spline	section3_x section3[6,1]  section3[6,2]
+    		spline	section3_x section3[7,1]  section3[7,2]
+    		linseg	section3_x section3[8,1]  section3[8,2]
+    		linseg	section3_x section3[9,1]  section3[9,2]
+            # Bottom part, only sharp features
+                linseg  section3_x -15.5  0.0
+                linseg  section3_x -8.5  -8.0
+                linseg  section3_x  8.5  -8.0
+                linseg  section3_x  15.5  0.0
+    		linseg	section3_x section3[10,1] section3[10,2]
+    	skend
+    
+    ifthen blendFuselage eq 1
+        # Cross section at the third location after nose
+    	skbeg		section3_x section3[1,1]  section3[1,2]
+    		# Top part, sharp and smooth features
+            linseg	section3_x section3[2,1]  section3[2,2]
+    		spline	section3_x section3[3,1]  section3[3,2]
+    		spline	section3_x section3[4,1]  section3[4,2]
+    		spline	section3_x section3[5,1]  section3[5,2]
+    		spline	section3_x section3[6,1]  section3[6,2]
+    		spline	section3_x section3[7,1]  section3[7,2]
+    		linseg	section3_x section3[8,1]  section3[8,2]
+    		linseg	section3_x section3[9,1]  section3[9,2]
+            # Bottom part, only sharp features
+                linseg  section3_x -15.5  0.0
+                linseg  section3_x -8.5  -8.0
+                linseg  section3_x  8.5  -8.0
+                linseg  section3_x  15.5  0.0
+    		linseg	section3_x section3[10,1] section3[10,2]
+    	skend
+    endif
+    
+    ifthen sec_4 eq 1
+        # Cross section at the fourth location after nose
+    	skbeg		section4_x section4[1,1]  section4[1,2]
+    		# Top part, sharp and smooth features
+            linseg	section4_x section4[2,1]  section4[2,2]
+    		spline	section4_x section4[3,1]  section4[3,2]
+    		spline	section4_x section4[4,1]  section4[4,2]
+    		spline	section4_x section4[5,1]  section4[5,2]
+    		spline	section4_x section4[6,1]  section4[6,2]
+    		spline	section4_x section4[7,1]  section4[7,2]
+    		linseg	section4_x section4[8,1]  section4[8,2]
+    		linseg	section4_x section4[9,1]  section4[9,2]
+            # Bottom part, only sharp features
+                linseg  section4_x -16.5  0.0
+                linseg  section4_x -8.0  -8.0
+                linseg  section4_x  8.0  -8.0
+                linseg  section4_x  16.5  0.0
+    		linseg	section4_x section4[10,1] section4[10,2]
+    	skend
+    
+    ifthen blendFuselage eq 1
+        # Cross section at the fourth location after nose
+    	skbeg		section4_x section4[1,1]  section4[1,2]
+    		# Top part, sharp and smooth features
+            linseg	section4_x section4[2,1]  section4[2,2]
+    		spline	section4_x section4[3,1]  section4[3,2]
+    		spline	section4_x section4[4,1]  section4[4,2]
+    		spline	section4_x section4[5,1]  section4[5,2]
+    		spline	section4_x section4[6,1]  section4[6,2]
+    		spline	section4_x section4[7,1]  section4[7,2]
+    		linseg	section4_x section4[8,1]  section4[8,2]
+    		linseg	section4_x section4[9,1]  section4[9,2]
+            # Bottom part, only sharp features
+                linseg  section4_x -16.5  0.0
+                linseg  section4_x -8.0  -8.0
+                linseg  section4_x  8.0  -8.0
+                linseg  section4_x  16.5  0.0
+    		linseg	section4_x section4[10,1] section4[10,2]
+    	skend
+    endif
+    endif
+    
+        # Cross section at the tail
+    	skbeg		tailLength fuseSecMid[1,2]  fuseSecMid[1,3]
+    		# Top part, sharp and smooth features
+            linseg	tailLength fuseSecMid[2,2]  fuseSecMid[2,3]
+    		spline	tailLength fuseSecMid[3,2]  fuseSecMid[3,3]
+    		spline	tailLength fuseSecMid[4,2]  fuseSecMid[4,3]
+    		spline	tailLength fuseSecMid[5,2]  fuseSecMid[5,3]
+    		spline	tailLength fuseSecMid[6,2]  fuseSecMid[6,3]
+    		spline	tailLength fuseSecMid[7,2]  fuseSecMid[7,3]
+    		linseg	tailLength fuseSecMid[8,2]  fuseSecMid[8,3]
+    		linseg	tailLength fuseSecMid[9,2]  fuseSecMid[9,3]
+            # Bottom part, only sharp features
+                 linseg  tailLength -17.4  6.8
+                 linseg  tailLength -12.2  6.7
+                 linseg  tailLength  12.2  6.7
+                 linseg  tailLength  17.4  6.8
+            linseg  tailLength fuseSecMid[10,2] fuseSecMid[10,3]    
+    	skend
+    ifthen blendFuselage eq 1
+        blend
+        name blendfuselage
+        attribute _color  green
+    else
+        rule
+        name ruledfuselage
+        attribute _color  green
+    endif
+endif #makeFuselage
+
+
+ifthen makeControlSurfaces eq 1
+    # Horizontal
+    mark
+        # Port
+        skbeg       129.4   -30.0    8.0
+            linseg  135.5   -30.0    7.75
+            linseg  144.0   -30.0    8.0
+            linseg  135.5   -30.0    8.25 
+            linseg  129.4   -30.0    8.0 
+        skend
+
+        # Root
+        skbeg       80.0      0.0    8.0
+            linseg  92.67     0.0    7.75
+            linseg  134.0     0.0    8.0
+            linseg  92.67     0.0    8.25
+            linseg  80.0      0.0    8.0 
+        skend
+
+        # Starboard
+        skbeg       129.4   30.0    8.0
+            linseg  135.5   30.0    7.75
+            linseg  144.0   30.0    8.0
+            linseg  135.5   30.0    8.25 
+            linseg  129.4   30.0    8.0 
+        skend
+    rule
+    name horizontalCS
+    attribute _color  magenta
+    ifthen makeFuselage eq 1 and unionAll eq 1
+        union
+    endif
+    
+    # Vertical, port
+    mark    
+        skbeg       121.5  -17.5  19.0
+            linseg  138.0  -17.5  19.0
+            linseg  126.5  -17.0  19.0
+            linseg  121.5  -17.5  19.0
+        skend
+
+        skbeg        94.6   -17.5  6.0
+            linseg  136.0   -17.5  8.4
+            linseg  108.6   -15.5  6.0 
+            linseg   94.6   -17.5  6.0
+        skend
+
+        skbeg       104.8   -17.5  3.0
+            linseg  108.6   -17.5  3.0
+            linseg  106.1   -17.0  3.0 
+            linseg  104.8   -17.5  3.0
+        skend
+    rule
+    name verticalPort
+    attribute _color  blue
+    ifthen makeFuselage eq 1 and unionAll eq 1
+        union
+    endif
+
+    # Vertical, starboard
+    mark    
+        skbeg       121.5  17.5  19.0
+            linseg  138.0  17.5  19.0
+            linseg  126.5  17.0  19.0
+            linseg  121.5  17.5  19.0
+        skend
+
+        skbeg        94.6  17.5  6.0
+            linseg  136.0  17.5  8.4
+            linseg  108.6  15.5  6.0 
+            linseg   94.6  17.5  6.0
+        skend
+
+        skbeg       104.8  17.5  3.0
+            linseg  108.6  17.5  3.0
+            linseg  106.1  17.0  3.0 
+            linseg  104.8  17.5  3.0
+        skend
+    rule
+    name verticalStarboard
+    attribute _color  blue
+
+    ifthen makeFuselage eq 1 and unionAll eq 1
+        union
+    endif
+endif #makeControlSurfaces
+
+ifthen makeInlet eq 1
+    mark
+        skbeg       65.3    -8.5   -7.0
+            linseg  69.5    -8.5   -5.5
+            linseg  85.0    -8.5   -5.0
+            linseg  90.0    -8.5   -4.0
+            linseg  90.0    -8.5   -8.3
+            linseg  85.5    -8.5   -9.8
+            linseg  72.0    -8.5   -10.3
+            linseg  66.5    -8.5   -9.3
+            linseg  65.3    -8.5   -7.0
+        skend
+        
+        skbeg       65.3     8.5   -7.0
+            linseg  69.5     8.5   -5.5
+            linseg  85.0     8.5   -5.0
+            linseg  90.0     8.5   -4.0
+            linseg  90.0     8.5   -8.3
+            linseg  85.5     8.5   -9.8
+            linseg  72.0     8.5   -10.3
+            linseg  66.5     8.5   -9.3
+            linseg  65.3     8.5   -7.0
+        skend
+    rule
+    name inlet
+    attribute _color  red
+
+    ifthen makeFuselage eq 1 and unionAll eq 1
+        union
+    endif
+endif #makeInlet
+
+ifthen hollowInlet eq 1
+    mark
+        skbeg       65.3    -7.5   -7.5
+            linseg  69.5    -7.5   -6.5
+            linseg  85.0    -7.5   -6.0
+            linseg  90.0    -7.5   -5.0
+            linseg  90.0    -7.5   -7.3
+            linseg  85.5    -7.5   -8.8
+            linseg  72.0    -7.5   -9.3
+            linseg  66.5    -7.5   -9.05
+            linseg  65.3    -7.5   -7.5
+        skend
+        
+        skbeg       65.3     7.5   -7.5 
+            linseg  69.5     7.5   -6.5 
+            linseg  85.0     7.5   -6.0 
+            linseg  90.0     7.5   -5.0 
+            linseg  90.0     7.5   -7.3 
+            linseg  85.5     7.5   -8.8 
+            linseg  72.0     7.5   -9.3 
+            linseg  66.5     7.5   -9.05
+            linseg  65.3     7.5   -7.5 
+        skend
+    rule
+    subtract
+    name hollowInlet
+    attribute _color  red
+endif #hollowInlet
+
+end

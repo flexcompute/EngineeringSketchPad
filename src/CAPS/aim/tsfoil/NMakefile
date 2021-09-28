@@ -1,0 +1,35 @@
+#
+!IFNDEF ESP_ROOT
+!ERROR ESP_ROOT must be set -- Please fix the environment...
+!ENDIF
+#
+IDIR  = $(ESP_ROOT)\include
+!include $(IDIR)\$(ESP_ARCH).$(MSVC)
+LDIR  = $(ESP_ROOT)\lib
+!IFDEF ESP_BLOC
+ODIR  = $(ESP_BLOC)\obj
+TDIR  = $(ESP_BLOC)\test
+!ELSE
+ODIR  = .
+TDIR  = $(ESP_ROOT)\bin
+!ENDIF
+
+
+$(LDIR)\tsfoilAIM.dll:	tsfoilAIM.def $(ODIR)\tsfoilAIM.obj $(LDIR)\aimUtil.lib \
+			$(LDIR)\utils.lib
+	-del $(LDIR)\tsfoilAIM.dll $(LDIR)\tsfoilAIM.lib $(LDIR)\tsfoilAIM.exp
+	 link /out:$(LDIR)\tsfoilAIM.dll /dll /def:tsfoilAIM.def \
+		$(ODIR)\tsfoilAIM.obj /LIBPATH:$(LDIR) utils.lib aimUtil.lib \
+		ocsm.lib egads.lib udunits2.lib
+	$(MCOMP) /manifest $(LDIR)\tsfoilAIM.dll.manifest \
+		/outputresource:$(LDIR)\tsfoilAIM.dll;2
+
+$(ODIR)\tsfoilAIM.obj:	tsfoilAIM.c $(IDIR)\capsTypes.h ..\utils\meshUtils.h
+	cl /c $(COPTS) $(DEFINE) /I$(IDIR) /I..\utils tsfoilAIM.c \
+		/Fo$(ODIR)\tsfoilAIM.obj
+
+clean:
+	-del $(ODIR)\tsfoilAIM.obj
+
+cleanall:	clean
+	-del $(LDIR)\tsfoilAIM.dll $(LDIR)\tsfoilAIM.lib $(LDIR)\tsfoilAIM.exp

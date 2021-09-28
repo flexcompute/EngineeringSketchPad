@@ -1,0 +1,23 @@
+# pieslice_0
+# written by John Dannenhoffer
+
+set angle 45
+skbeg  0 0 0
+   linseg cosd(angle/2) -sind(angle/2) 0
+   cirarc 1              0             0 \
+          cosd(angle/2)  sind(angle/2) 0
+   linseg 0             0              0
+skend
+
+extrude 0 0 2
+
+cylinder -1 0 1   2 0 1   0.9
+rotatex  90 0 1
+
+intersect
+   attribute  .tParams  0.10;0.02;5.0
+
+dump $/pieslice_0.stl
+dump $/pieslice.plot
+
+end

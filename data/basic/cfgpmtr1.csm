@@ -1,0 +1,20 @@
+# cfgpmtr1
+# written by John Dannenhoffer
+
+CFGPMTR   dim       3
+DESPMTR   span      3
+DESPMTR   thick     0.12
+DESPMTR   camber    0.04
+CFGPMTR   sharpte   1
+
+# make airfoil
+UDPRIM    NACA      thickness thick  \
+                    camber    camber \
+		    sharpte   sharpte
+
+# optionally convert to wing
+IFTHEN     dim EQ 3
+   EXTRUDE 0   0  span
+ENDIF
+
+END

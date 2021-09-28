@@ -1,0 +1,84 @@
+# displayFilter1
+# written by John Dannenhoffer
+
+# first box
+BOX       -2.0 0 0 1 1 1
+
+SELECT    body  @nbody
+   ATTRIBUTE theBody $11
+SELECT    face  1
+   ATTRIBUTE theFace $111               # this is     shown for DisplayFilter: theFace *
+                                        # this is     shown for DisplayFilter: theFace 111
+SELECT    face  2
+   ATTRIBUTE theFace val2str(222.0,0)   # this is     shown for DisplayFilter: theFace *
+                                        # this is     shown for DisplayFilter: theFace 222
+SELECT    face  3
+   ATTRIBUTE theFace 333                # this is     shown for DisplayFilter: theFace *
+                                        # this is not shown for DisplayFilter: theFace 333
+                                        # this is     shown for DisplayFilter: theFace 333.000000
+SELECT    edge  1
+   ATTRIBUTE theEdge $1111              # this is     shown for DisplayFilter: theEdge *
+                                        # this is     shown for DisplayFilter: theEdge 1111
+SELECT    edge  2
+   ATTRIBUTE theEdge val2str(2222.,0)   # this is     shown for DisplayFilter: theEdge *
+                                        # this is     shown for DisplayFilter: theEdge 2222
+SELECT    edge  3
+   ATTRIBUTE theEdge 3333               # this is     shown for DisplayFilter: theEdge *
+                                        # this is not shown for DisplayFilter: theEdge 3333
+                                        # this is     shown for DisplayFilter: theEdge 3333.000000
+
+# second box
+BOX        -.5 0 0 1 1 1
+   ATTRIBUTE _name $secondBox
+
+SELECT    body  @nbody
+   ATTRIBUTE theBody $22
+SELECT    face  1
+   ATTRIBUTE theFace $111               # this is     shown for DisplayFilter: theFace *
+                                        # this is     shown for DisplayFilter: theFace 111
+SELECT    face  2
+   ATTRIBUTE theFace val2str(222.0,0)   # this is     shown for DisplayFilter: theFace *
+                                        # this is     shown for DisplayFilter: theFace 222
+SELECT    face  3
+   ATTRIBUTE theFace 333                # this is     shown for DisplayFilter: theFace *
+                                        # this is not shown for DisplayFilter: theFace 333
+                                        # this is     shown for DisplayFilter: theFace 333.000000
+SELECT    edge  1
+   ATTRIBUTE theEdge $1111              # this is     shown for DisplayFilter: theEdge *
+                                        # this is     shown for DisplayFilter: theEdge 1111
+SELECT    edge  2
+   ATTRIBUTE theEdge val2str(2222.,0)   # this is     shown for DisplayFilter: theEdge *
+                                        # this is     shown for DisplayFilter: theEdge 2222
+SELECT    edge  3
+   ATTRIBUTE theEdge 3333               # this is     shown for DisplayFilter: theEdge *
+                                        # this is not shown for DisplayFilter: theEdge 3333
+                                        # this is     shown for DisplayFilter: theEdge 3333.000000
+
+# third box
+BOX        1.0 0 0 1 1 1
+   ATTRIBUTE _name $secondBox
+
+SELECT    body  @nbody
+SELECT    face  1
+   ATTRIBUTE theFace $111               # this is     shown for DisplayFilter: theFace *
+                                        # this is     shown for DisplayFilter: theFace 111
+SELECT    face  2
+   ATTRIBUTE theFace val2str(222.0,0)   # this is     shown for DisplayFilter: theFace *
+                                        # this is     shown for DisplayFilter: theFace 222
+SELECT    face  3
+   ATTRIBUTE theFace 333                # this is     shown for DisplayFilter: theFace *
+                                        # this is not shown for DisplayFilter: theFace 333
+                                        # this is     shown for DisplayFilter: theFace 333.000000
+SELECT    edge  1
+   ATTRIBUTE theEdge $1111              # this is     shown for DisplayFilter: theEdge *
+                                        # this is     shown for DisplayFilter: theEdge 1111
+SELECT    edge  2
+   ATTRIBUTE theEdge val2str(2222.,0)   # this is     shown for DisplayFilter: theEdge *
+                                        # this is     shown for DisplayFilter: theEdge 2222
+SELECT    edge  3
+   ATTRIBUTE theEdge 3333               # this is     shown for DisplayFilter: theEdge *
+                                        # this is not shown for DisplayFilter: theEdge 3333
+                                        # this is     shown for DisplayFilter: theEdge 3333.000000
+
+END
+

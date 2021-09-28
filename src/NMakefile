@@ -1,0 +1,82 @@
+#
+!IFNDEF ESP_ROOT
+!ERROR ESP_ROOT must be set -- Please fix the environment...
+!ENDIF
+
+all:
+	cd EGADS\src
+	nmake -f NMakefile
+	cd ..\lite
+	nmake -f NMakefile
+	cd ..\..\wvServer
+	nmake -f NMakefile
+	cd ..\EGADS\examples
+	nmake -f egads2cart.mak
+	nmake -f vCurvature.mak
+	nmake -f vGeom.mak
+	nmake -f vTess.mak
+	cd ..\..
+	cd OpenCSM
+	nmake -f NMakefile
+	cd ..
+	cd Slugs
+	nmake -f NMakefile
+	cd ..
+	cd CAPS
+	nmake -f NMakefile
+	cd src
+	nmake -f NMakefile
+	cd ..\..\..\CAPSexamples
+	nmake -f NMakefile
+	cd ..\src\CAPS\aim
+	nmake -f NMakefile
+	cd ..\..
+	@echo  *** Build Completed! ***
+
+clean:
+	cd CAPS\aim
+	nmake -f NMakefile clean
+	cd ..\..\..\CAPSexamples
+	nmake -f NMakefile clean
+	cd ..\src\CAPS\src
+	nmake -f NMakefile clean
+	cd ..\..\wvServer
+	nmake -f NMakefile clean
+	cd ..\OpenCSM
+	nmake -f NMakefile clean
+	cd ..\Slugs
+	nmake -f NMakefile clean
+	cd ..\EGADS\examples
+	nmake -f egads2cart.mak clean
+	nmake -f vGeom.mak clean
+	nmake -f vTess.mak clean
+	nmake -f vCurvature.mak clean
+	cd ..\lite
+	nmake -f NMakefile clean
+	cd ..\src
+	nmake -f NMakefile clean
+	cd ..\..
+
+cleanall:
+	cd CAPS\aim
+	nmake -f NMakefile cleanall
+	cd ..\..\..\CAPSexamples
+	nmake -f NMakefile cleanall
+	cd ..\src\CAPS\src
+	nmake -f NMakefile cleanall
+	cd ..\..\wvServer
+	nmake -f NMakefile cleanall
+	cd ..\OpenCSM
+	nmake -f NMakefile cleanall
+	cd ..\Slugs
+	nmake -f NMakefile cleanall
+	cd ..\EGADS\examples
+	nmake -f egads2cart.mak cleanall
+	nmake -f vGeom.mak cleanall
+	nmake -f vTess.mak cleanall
+	nmake -f vCurvature.mak cleanall
+	cd ..\lite
+	nmake -f NMakefile cleanall
+	cd ..\src
+	nmake -f NMakefile cleanall
+	cd ..\..

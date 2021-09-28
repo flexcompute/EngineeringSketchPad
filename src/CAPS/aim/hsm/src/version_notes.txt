@@ -1,0 +1,67 @@
+---------------------
+HSM 0.90    6 Aug 17
+
+* First major release
+
+
+---------------------
+HSM 0.91   22 Aug 17
+
+* Added routines to assist in case setup
+  - ISOMAT
+
+* Changed applied edge moments to be conventional r x F moments.
+  These differ from shell stress moments by a 90 deg rotation about n
+
+* Made the manufactored solution for case 4 more exact by using
+  quadratic von-Karman strains, replacing the linear KL strains.
+
+
+---------------------
+HSM 0.92    4 Sep 17
+
+* Removed large work array allocation from all routines
+  except the top-level driving program HSMRUN.  These routines
+  can then be driven by applications with dynamic memory allocation.
+
+* Crossed moment equation with normal vector n, so that its natural
+  loading BCs are the conventional "r x F" moments, not the shell moments.
+  This also simplifies moment-matching conditions at joint edges.
+
+
+---------------------
+HSM 0.93   30 Oct 17
+
+* Added new work array ilast(kdim) to the call list of HSMSOL.
+  Previously this was incorrectly allocated inside COLSET.
+
+* Cleaned up the matrix-array size determination logic, chosen via itmax = -2
+
+* This itmax = -2 can now be specified from the shell command, e.g.
+
+    % hsmrun 4 1 41 41 -2
+
+  in which case HSMRUN will only print out the minimum  nmdim  and stop.
+
+
+**  Case 8 with more than one joint line still has some unresolved problem
+
+
+----------------------
+HSM 1.00   21 Jul 19
+
+
+* Joints appear to be working well.  The wing case 8 has these.
+
+* Data arrays have not changed, but there are a few new scalar arguments 
+  passed in to HSMSOL, and a few of the other lower-level routines.
+
+* The edge-BC parameter parb(..) array is now called pare(..), to avoid name 
+  conflicts with future implementation of 1D beams.
+
+* The lb* indexing pointers for pare(..) are now caller le* to match the 
+  new name.
+
+* HSMSOL now automatically performs membrane-only sub-iterations as needed 
+  which greatly improves convergence with large deformations of very thin 
+  shells. 

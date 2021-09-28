@@ -1,0 +1,57 @@
+# catmullA
+# written by John Dannenhoffer
+
+# basic shape
+PATBEG    ix  9               # fuselage
+   PATBEG    iy  2
+      PATBEG    iz  3
+         BOX    ix-1  iy-3  iz-1  1  1  1
+         IFTHEN iy EQ 2
+             SELECT FACE @nbody  4
+             ATTRIBUTE limitFace 2
+         ENDIF
+         UNION
+         CATBEG $insufficient_bodys_on_stack
+         CATEND
+      PATEND
+   PATEND
+PATEND
+
+PATBEG    iy  6               # wings
+   PATBEG    ix  3
+      BOX    ix+1  -2-iy  1  1  1  1
+      UNION
+   PATEND
+PATEND
+
+PATBEG   iy  2                # htails
+   PATBEG    ix  2
+      BOX    ix+6  -2-iy  1  1  1  1
+      UNION
+   PATEND
+PATEND
+
+PATBEG   iz  2                # vtail
+   PATBEG    ix  2
+      BOX    ix+6  -1  iz+2  1  1  1
+      SELECT FACE @nbody  4
+      ATTRIBUTE limitFace 2
+      UNION
+   PATEND
+PATEND
+STORE   BasicShape
+
+# original shape
+RESTORE    BasicShape
+TRANSLATE  -12.0  0.0  0.0
+
+# one subdivision
+RESTORE    BasicShape
+UDPRIM     catmull
+
+# two subdivisions
+RESTORE    BasicShape
+TRANSLATE  +12.0  0.0  0.0
+UDPRIM     catmull    nsubdiv 2
+
+end

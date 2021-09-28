@@ -1,0 +1,172 @@
+# inletWithWalls1
+# written by John Dannenhoffer
+
+DESPMTR   depth     2.00
+DESPMTR   wall      0.01
+
+########################################
+
+# lower body (NACA airfoil)
+UDPRIM    naca   thickness 0.06   camber 0.04   sharpte 1
+
+# cut upper surface of lower body into 4 parts
+SET       nbody @nbody
+EVALUATE  edgerng  nbody  1
+SET       tmin  @edata[1]
+SET       tmax  @edata[2]
+
+EVALUATE  edge     nbody  1  0.80*tmin+0.20*tmax
+POINT     @edata[2] @edata[3] @edata[4]
+SUBTRACT
+
+EVALUATE  edge     nbody  1  0.33*tmin+0.67*tmax
+POINT     @edata[2] @edata[3] @edata[4]
+SUBTRACT
+
+EVALUATE  edge     nbody  1  0.01*tmin+0.99*tmax   # needed because of LE curvature
+POINT     @edata[2] @edata[3] @edata[4]
+SUBTRACT
+
+STORE     lower 0
+
+# create RULEd lower body
+MARK
+   RESTORE  lower 0
+   RESTORE  lower 0
+   TRANSLATE 0  0  wall
+   RESTORE  lower 0
+   TRANSLATE 0  0  depth-wall
+   RESTORE   lower 0
+   TRANSLATE 0  0  depth
+RULE
+SET       lower  @nbody
+
+# extract the inboard Faces to connect
+RESTORE   .
+SELECT    FACE lower  9
+EXTRACT   @sellist
+STORE     lower  1
+
+RESTORE   .
+SELECT    FACE lower  6
+EXTRACT   @sellist
+STORE     lower  2
+
+RESTORE   .
+SELECT    FACE lower  3
+EXTRACT   @sellist
+STORE     lower  3
+
+# extract the outboard Faces to connect
+RESTORE   .
+SELECT    FACE lower 11
+EXTRACT   @sellist
+STORE     lower  4
+
+RESTORE   .
+SELECT    FACE lower  8
+EXTRACT   @sellist
+STORE     lower  5
+
+RESTORE   .
+SELECT    FACE lower  5
+EXTRACT   @sellist
+STORE     lower  6
+
+########################################
+
+# upper (facetted) body
+SKBEG     0.3   0.3   0.0
+   LINSEG 0.6   0.2   0.0
+   LINSEG 0.9   0.2   0.0
+   LINSEG 1.0   0.3   0.0
+   LINSEG 0.3   0.3   0.0
+SKEND
+
+STORE     upper 0
+
+# create RULEd upper body
+MARK
+   RESTORE  upper 0
+   RESTORE  upper 0
+   TRANSLATE 0  0  wall
+   RESTORE  upper 0
+   TRANSLATE 0  0  depth-wall
+   RESTORE   upper 0
+   TRANSLATE 0  0  depth
+RULE
+SET       upper @nbody
+
+# extract the inboard Faces to connect
+RESTORE   .
+SELECT    FACE upper  3
+EXTRACT   @sellist
+STORE     upper  1
+
+RESTORE   .
+SELECT    FACE upper  6
+EXTRACT   @sellist
+STORE     upper  2
+
+RESTORE   .
+SELECT    FACE upper  9
+EXTRACT   @sellist
+STORE     upper  3
+
+# extract the outboard Faces to connect
+RESTORE   .
+SELECT    FACE upper  5
+EXTRACT   @sellist
+STORE     upper  4
+
+RESTORE   .
+SELECT    FACE upper  8
+EXTRACT   @sellist
+STORE     upper  5
+
+RESTORE   .
+SELECT    FACE upper 11
+EXTRACT   @sellist
+STORE     upper  6
+
+########################################
+
+# create and join endwalls
+MARK
+   RESTORE   lower  1
+   RESTORE   upper  1
+RULE  1
+JOIN
+JOIN
+
+MARK
+   RESTORE   lower  2
+   RESTORE   upper  2
+RULE  1
+JOIN
+
+MARK
+   RESTORE   lower  3
+   RESTORE   upper  3
+RULE  1
+JOIN
+
+MARK
+   RESTORE   lower  4
+   RESTORE   upper  4
+RULE  1
+JOIN
+
+MARK
+   RESTORE   lower  5
+   RESTORE   upper  5
+RULE  1
+JOIN
+
+MARK
+   RESTORE   lower  6
+   RESTORE   upper  6
+RULE  1
+JOIN
+
+END

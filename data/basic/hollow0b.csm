@@ -1,0 +1,34 @@
+# hollow0b
+# written by John Dannenhoffer
+
+# box1: convert to WireBody
+udprim    box   dx 2   dy 2
+translate -3 -2 0
+hollow
+
+# box2: convert to WireBody without xmax Edge
+udprim    box   dx 2   dy 2
+translate  0 -2 0
+hollow    0   2
+
+# box3: smaller Body
+udprim    box   dx 2   dy 2
+translate +3 -2 0
+hollow    0.2
+
+# box4: larger Body
+udprim    box   dx 2   dy 2
+translate -3  2 0
+hollow   -0.2
+
+# box5: hollow inside without xmax Edge
+udprim    box   dx 2   dy 2
+translate  0  2 0
+hollow    0.2   2
+
+# box6: hollow outside without xmax Edge
+udprim    box   dx 2   dy 2
+translate +3  2 0
+hollow   -0.2   2
+
+end

@@ -1,0 +1,78 @@
+# glovesVtail
+# written by John Dannenhoffer
+# built to be consistent with Gloves
+
+# include-type .udc so that it has access to the DESPMTRs
+INTERFACE . ALL
+
+# make copies of all required DESPMTRs
+SET       Xroot     str2val(compName+$:Xroot)
+SET       Yroot     str2val(compName+$:Yroot)
+SET       Zroot     str2val(compName+$:Zroot)
+SET       area      str2val(compName+$:area)
+SET       aspect    str2val(compName+$:aspect)
+SET       taper     str2val(compName+$:taper)
+SET       sweep     str2val(compName+$:sweep)
+SET       thick     str2val(compName+$:thick)
+
+# compute various local variables
+SET       span      sqrt(area*aspect)
+SET       cmean     area/span
+SET       croot     2*cmean/(1+taper)
+SET       ctip      taper*croot
+
+SET       Xtip      Xroot+span*tand(sweep)
+SET       Ytip      Yroot
+SET       Ztip      span
+
+# make the wing OML
+MARK
+   UDPRIM    naca   thickness thick
+   SCALE     croot
+   TRANSLATE Xroot  Yroot   Zroot
+
+   UDPRIM    naca   thickness thick
+   SCALE     ctip
+   TRANSLATE Xtip   Ytip    Ztip
+RULE
+   ATTRIBUTE tagComp   compName
+
+# attribute each of the Faces
+SELECT       FACE      @nbody  1
+   ATTRIBUTE tagType   $root
+SELECT       FACE      @nbody  2
+   ATTRIBUTE tagType   $tip
+SELECT       FACE      @nbody  3
+   ATTRIBUTE tagType   $riteSide
+SELECT       FACE      @nbody  4
+   ATTRIBUTE tagType   $leftSide
+SELECT       FACE      @nbody  5
+   ATTRIBUTE tagType   $TE
+
+# attribute the leading edge and root
+UDPRIM    editAttr  filename <<
+   EDGE  ADJ2FACE  tagType=leftUpper
+   AND   ADJ2FACE  tagType=leftLower
+   SET             tagType=leftLE
+
+   EDGE  ADJ2FACE  tagType=riteUpper
+   AND   ADJ2FACE  tagType=riteLower
+   SET             tagType=riteLE
+
+   EDGE  ADJ2FACE  tagType=leftUpper
+   AND   ADJ2FACE  tagType=riteUpper
+   SET             tagType=rootUpper
+
+   EDGE  ADJ2FACE  tagType=leftLower
+   AND   ADJ2FACE  tagType=riteLower
+   SET             tagType=rootLower
+
+   EDGE  ADJ2FACE  tagType=leftTE
+   AND   ADJ2FACE  tagType=riteTE
+   SET             tagType=rootTE
+>>
+
+# save a copy for possible later use
+STORE     !compName  0  1
+
+END

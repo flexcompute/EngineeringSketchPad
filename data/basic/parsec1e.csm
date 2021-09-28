@@ -1,0 +1,23 @@
+# parsec1e
+# written by John Dannenhoffer (based upon inputs from Justin Gray)
+
+dimension poly      2 5 1
+despmtr   poly      "0.5;  -.2;  0.2;  -.2;  -.2;\
+                     -.2;  0.2;  0.3;  -.1;  0.1;"
+
+mark
+   udprim    parsec    Yte       -0.03     Poly      poly
+
+   udprim    parsec    Yte       -0.03     Poly      poly
+   translate 0.0       0.0       5.0
+rule
+
+mark
+   udprim    parsec    Yte       -0.03     Poly      poly     Meanline  1
+   translate 0.0       0.0      -1.0
+
+   udprim    parsec    Yte       -0.03     Poly      poly     Meanline  1
+   translate 0.0       0.0       6.0
+rule
+
+end

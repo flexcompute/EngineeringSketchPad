@@ -1,0 +1,12 @@
+# hollowC8
+# written by John Dannenhoffer
+
+# ruler
+skbeg     -1.0  0.0  0.0
+   linseg +1.0  0.0  0.0
+skend
+
+# basic shape
+udprim supell  rx 1.0  ry 2.0  n 5
+
+end

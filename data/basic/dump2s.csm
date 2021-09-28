@@ -1,0 +1,14 @@
+# dump2s
+# written by John Dannenhoffer
+
+box       -4        -1        -1        2         2         2
+   attribute _color  $red
+box       -1        -1        -1        2         2         2
+   attribute _color  $green
+box       +2        -1        -1        2         2         2
+   attribute _color  $blue
+
+# should dump and remove last Body
+dump      dump2.stl  1
+
+end

@@ -1,0 +1,12 @@
+# nacas2
+# written by John Dannenhoffer
+
+patbeg icamber 11
+    set dz     (icamber-1)
+    set camber (icamber-5)*0.02
+
+    udprim naca Camber camber Thickness 0.12
+    translate 0 0 dz/2
+patend
+
+end

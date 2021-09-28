@@ -1,0 +1,58 @@
+# compare2c
+# written by John Dannenhoffer
+
+despmtr   Linner    1.0
+despmtr   Louter    4.0
+despmtr   D         1.0
+despmtr   thetad   15.0
+
+# left side open cylinder
+cylinder  -Louter  0  0  -Linner  0  0  D/2
+hollow    0  @nbody;2
+rotatez   +thetad  0  0
+dump      left.tess
+
+# rite side open cylinder
+cylinder  +Linner  0  0  +Louter  0  0  D/2
+hollow    0  @nbody;1
+rotatez   -thetad  0  0
+dump      rite.tess
+
+# bent tube
+mark
+   udprim    supell  rx  D/2  ry  D/2
+   rotatey   90  0  0
+   translate -Louter  0  0
+   rotatez   +thetad  0  0
+
+   udprim    supell  rx  D/2  ry  D/2
+   rotatey   90  0  0
+   translate -Linner  0  0
+   rotatez   +thetad  0  0
+
+   udprim    supell  rx  D/2  ry  D/2
+   rotatey   90  0  0
+   translate -Linner  0  0
+   rotatez   +thetad  0  0
+
+   udprim    supell  rx  D/2  ry  D/2
+   rotatey   90  0  0
+   translate +Linner  0  0
+   rotatez   -thetad  0  0
+
+   udprim    supell  rx  D/2  ry  D/2
+   rotatey   90  0  0
+   translate +Linner  0  0
+   rotatez   -thetad  0  0
+
+   udprim    supell  rx  D/2  ry  D/2
+   rotatey   90  0  0
+   translate +Louter  0  0
+   rotatez   -thetad  0  0
+blend
+
+# find distances
+udprim    compare  tessfile  $left.tess
+udprim    compare  tessfile  $rite.tess
+
+end

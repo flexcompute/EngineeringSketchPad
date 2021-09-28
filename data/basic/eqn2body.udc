@@ -1,0 +1,179 @@
+# eqn2body.udc
+# written by John Dannenhoffer
+
+INTERFACE . ALL
+
+# make sure we have valid inputs
+IFTHEN     urange.size NE 2
+   MESSAGE urange_should_have_2_values
+   THROW   999
+ELSEIF     vrange.size NE 2
+   MESSAGE vrange_should_have_2_values
+   THROW   999
+ELSEIF     xeqn.nrow NE 0 OR xeqn.size LE 0
+   MESSAGE xeqn_should_be_a_string
+   THROW   999
+ELSEIF     yeqn.nrow NE 0 OR yeqn.size LE 0
+   MESSAGE yeqn_should_be_a_string
+   THROW   999
+ELSEIF     zeqn.nrow NE 0 OR zeqn.size LE 0
+   MESSAGE zeqn_should_be_a_string
+   THROW   999
+ELSEIF     toler.nrow NE 1
+   MESSAGE toler_should_be_a_scalar
+   THROW   999
+ENDIF
+
+# make sure we are not already using internal variables
+IFTHEN     ifnan(nu,1,0) NE 1
+   MESSAGE WARNING::already_using_nu
+ELSEIF     ifnan(nv,1,0) NE 1
+   MESSAGE WARNING::already_using_nv
+ELSEIF     ifnan(iu,1,0) NE 1
+   MESSAGE WARNING::already_using_iu
+ELSEIF     ifnan(iv,1,0) NE 1
+   MESSAGE WARNING::already_using_iv
+ELSEIF     ifnan(itry,1,0) NE 1
+   MESSAGE WARNING::already_using_itry
+ELSEIF     ifnan(u,1,0) NE 1
+   MESSAGE WARNING::already_using_u
+ELSEIF     ifnan(v,1,0) NE 1
+   MESSAGE WARNING::already_using_v
+ELSEIF     ifnan(xyz,1,0) NE 1
+   MESSAGE WARNING::already_using_xyz
+ELSEIF     ifnan(ipnt,1,0) NE 1
+   MESSAGE WARNING::already_using_ipnt
+ELSEIF     ifnan(errrms,1,0) NE 1
+   MESSAGE WARNING::already_using_errrms
+ENDIF
+
+# generate a WireBody
+IFTHEN    vrange[1] GE vrange[2]
+
+   # try increasingly finer fits until tolerance is met
+   SET       nu        2
+   PATBEG    itry      8
+      SET    nu        2*nu-1
+   
+      # get array to hold coordinates
+      DIMENSION xyz  nu  3
+
+      # put points in array
+      SET       ipnt  1
+
+      PATBEG iu    nu
+         SET u     urange[1]+(urange[2]-urange[1])*(iu-1)/(nu-1)
+      
+         SET xyz[ipnt,1]  str2val(xeqn)
+         SET xyz[ipnt,2]  str2val(yeqn)
+         SET xyz[ipnt,3]  str2val(zeqn)
+      
+         SET ipnt         ipnt+1
+      PATEND
+
+      # generate WireBody
+      UDPARG    freeform  imax  nu
+      UDPARG    freeform  jmax  1
+      UDPARG    freeform  kmax  1
+      UDPRIM    freeform  xyz   xyz
+
+      # compute rms error
+      EVALUATE  edgerng @nbody 1
+      SET       umin    @edata[1]
+      SET       umax    @edata[2]
+
+      SET       errrms  0
+      PATBEG    iu  3*nu+1
+         SET      u      umin+(umax-umin)*(iu-1)/(3*nu)
+         EVALUATE edge   @nbody 1 u
+         
+         SET      u      urange[1]+(urange[2]-urange[1])*(iu-1)/(3*nu)
+         SET      err    hypot3(@edata[2]-str2val(xeqn),@edata[3]-str2val(yeqn),@edata[4]-str2val(zeqn))
+         SET      errrms errrms+err*err
+      PATEND
+      SET         errrms sqrt(errrms/(3*nu+1))
+
+      MESSAGE   !$nu____=_+val2str(nu,0)
+      MESSAGE   !$errrms_=_+val2str(errrms,4)
+
+      # break out if tolerance was met
+      PATBREAK  toler-errrms
+
+      # remove Body of tolerance not met
+      STORE     .
+   PATEND
+
+# generate a SheetBody
+ELSE
+
+   # try increasingly finer fits until tolerance is met
+   SET       nu        2
+   SET       nv        2
+   PATBEG    itry      8
+      SET    nu        2*nu-1
+      SET    nv        2*nv-1
+   
+      # get array to hold coordinates
+      DIMENSION xyz  nu*nv  3
+
+      # put points in array
+      SET       ipnt  1
+
+      PATBEG    iv  nv
+         SET    v   vrange[1]+(vrange[2]-vrange[1])*(iv-1)/(nv-1)
+         PATBEG iu  nu
+            SET u   urange[1]+(urange[2]-urange[1])*(iu-1)/(nu-1)
+         
+            SET xyz[ipnt,1]  str2val(xeqn)
+            SET xyz[ipnt,2]  str2val(yeqn)
+            SET xyz[ipnt,3]  str2val(zeqn)
+         
+            SET    ipnt           ipnt+1
+         PATEND
+      PATEND
+
+      # generate WireBody or SheetBody
+      UDPARG    freeform  imax  nu
+      UDPARG    freeform  jmax  nv
+      UDPARG    freeform  kmax  1
+      UDPRIM    freeform  xyz   xyz
+
+      # compute rms error
+      EVALUATE  facerng @nbody 1
+      SET       umin    @edata[1]
+      SET       umax    @edata[2]
+      SET       vmin    @edata[3]
+      SET       vmax    @edata[4]
+
+      SET       errrms  0
+      PATBEG    iv  3*nv-1
+         PATBEG iu  3*nu-1
+            SET      u      umin+(umax-umin)*(iu-1)/(3*nu)
+            SET      v      vmin+(vmax-vmin)*(iv-1)/(3*nv)
+            EVALUATE face   @nbody 1 u v
+            
+            SET      u      urange[1]+(urange[2]-urange[1])*(iu-1)/(3*nu)
+            SET      v      vrange[1]+(vrange[2]-vrange[1])*(iv-1)/(3*nv)
+            SET      err    hypot3(@edata[3]-str2val(xeqn),@edata[4]-str2val(yeqn),@edata[5]-str2val(zeqn))
+            SET      errrms errrms+err*err
+         PATEND
+      PATEND
+      SET         errrms sqrt(errrms/(3*nu+1)/(3*nv+1))
+
+      MESSAGE   !$nu____=_+val2str(nu,0)
+      MESSAGE   !$nv____=_+val2str(nv,0)
+      MESSAGE   !$errrms_=_+val2str(errrms,4)
+
+      # break out if tolerance was met
+      PATBREAK  toler-errrms
+
+      # remove Body of tolerance not met
+      STORE     .
+   PATEND
+
+ENDIF
+
+# release (most of) the xyz array
+DIMENSION xyz 1 1
+
+END

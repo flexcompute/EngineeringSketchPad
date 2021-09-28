@@ -1,0 +1,20 @@
+# pyramid2
+# written by John Dannenhoffer
+
+mark
+   skbeg       -5.0      0.0       -5.0
+      linseg    5.0      0.0       -5.0
+      linseg    5.0      0.0        5.0
+      linseg   -5.0      0.0        5.0
+      linseg   -5.0      0.0       -5.0
+   skend
+
+   skbeg       -1.0      5.0       -1.0
+      linseg    1.0      5.0       -1.0
+      linseg    1.0      5.0        1.0
+      linseg   -1.0      5.0        1.0
+      linseg   -1.0      5.0       -1.0
+   skend
+blend
+
+end

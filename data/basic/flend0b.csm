@@ -1,0 +1,21 @@
+# flend0b
+# written by John Dannenhoffer
+
+# left box (without right Face)
+BOX       -2 -1 -1  1  2  2
+SELECT    FACE
+SELECT    SUB  @nbody  2
+EXTRACT   @sellist
+
+# right box (without left Face)
+BOX        1  0 -1  1  1  1
+SELECT    FACE
+SELECT    SUB  @nbody  1
+EXTRACT   @sellist
+
+UDPRIM    flend   slopea 0.10   slopeb 0.10
+
+SELECT    face @nbody 0
+   ATTRIBUTE _color $cyan
+
+END

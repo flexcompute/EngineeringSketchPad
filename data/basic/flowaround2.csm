@@ -1,0 +1,82 @@
+# flowaround2
+# written by John Dannenhoffer
+
+# make outer duct
+mark
+   udprim    supell rx   3 \
+                    ry_s 4 \
+                    ry_n 3 \
+                    n_ne 5
+   translate 0 0 -6
+
+   udprim    supell rx   2 \
+                    ry_s 2 \
+                    ry_n 1 \
+                    n_s  4
+
+   udprim    supell rx   3 \
+                    ry   3 \
+                    n_sw 5
+   translate 0 0 4
+blend
+
+# create SheetBody out of Faces except at zmin and zmax
+select  face @nbody 1
+select  add  @nbody 2
+hollow  0 @sellist 1
+store   outer
+restore outer
+
+mark
+
+   # extract zmin loop
+   restore outer
+   select  edge  0  0  6  3  2
+   select  sub   $_nface  2
+   extract -@iedge
+
+   restore outer
+   select  edge  0  0  6  4  1
+   select  sub   $_nface  2
+   extract -@iedge
+   join
+
+   restore outer
+   select  edge  0  0  6  5  2
+   select  sub   $_nface  2
+   extract -@iedge
+   join
+
+   restore outer
+   select  edge  0  0  6  6  2
+   select  sub   $_nface  2
+   extract -@iedge
+   join
+
+   # extract zmax loop
+   restore outer
+   select  edge  0  0  6  3  1
+   select  sub   $_nface  2
+   extract -@iedge
+
+   restore outer
+   select  edge  0  0  6  4  2
+   select  sub   $_nface  2
+   extract -@iedge
+   join
+
+   restore outer
+   select  edge  0  0  6  5  1
+   select  sub   $_nface  2
+   extract -@iedge
+   join
+
+   restore outer
+   select  edge  0  0  6  6  1
+   select  sub   $_nface  2
+   extract -@iedge
+   join
+rule
+combine             # combine is used here to promote to SolidBody
+
+end

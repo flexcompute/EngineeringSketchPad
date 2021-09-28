@@ -1,0 +1,27 @@
+# attrScribe
+# written by John Dannenhoffer
+
+# basic shape
+BOX       0  0  0  4  3  2
+BOX       1  1  1  2  1  5
+UNION
+
+# scribe 1
+BOX     1.5 -1 -1  0  5  8
+SET     scribe1  @nbody
+SUBTRACT
+
+# scribe 2
+BOX     2.5 -1 -1  0  5  8
+SET     scribe2  @nbody
+SUBTRACT
+
+# attribute Edges created by first scribe operation
+SELECT    EDGE   $__scribeID__  scribe1;1;1
+ATTRIBUTE _color $red
+
+# attribute Edges created by second scribe operation
+SELECT    EDGE   $__scribeID__  scribe2;1;1
+ATTRIBUTE _color $cyan
+
+END

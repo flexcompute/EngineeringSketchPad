@@ -1,0 +1,64 @@
+# udcBox
+# written by John Dannenhoffer
+
+interface dx        in  0
+interface dy        in  0
+interface dz        in  0
+interface area      out 0
+interface volume    out 0
+
+set       madeBody  0
+
+# if (dx>0, dy>0, dz>0) make Box
+patbeg    foo ifzero(ifpos(dx,1,0)+ifpos(dy,1,0)+ifpos(dz,1,0)-3,1,0)
+   set       area     2*(dx*dy+dy*dz+dz*dx)
+   set       volume   dx*dy*dz
+   set       madeBody madeBody+1
+
+   box       -dx/2  -dy/2  -dz/2  dx  dy  dz
+patend
+
+# if (dx=0, dy>0, dz>0) make Face in y-z plane
+patbeg    foo ifzero(ifzero(dx,1,0)+ifpos(dy,1,0)+ifpos(dz,1,0)-3,1,0)
+   set       area     dy*dz
+   set       volume   0
+   set       madeBody madeBody+1
+
+   skbeg     0   dy/2   dz/2
+      linseg 0  -dy/2   dz/2
+      linseg 0  -dy/2  -dz/2
+      linseg 0   dy/2  -dz/2
+      linseg 0   dy/2   dz/2
+   skend
+patend
+
+# if (dx>0, dy=0, dz>0) make Face in z-x plane
+patbeg    foo ifzero(ifpos(dx,1,0)+ifzero(dy,1,0)+ifpos(dz,1,0)-3,1,0)
+   set       area     dx*dz
+   set       volume   0
+   set       madeBody madeBody+1
+
+   skbeg      dx/2  0   dz/2
+      linseg  dx/2  0  -dz/2
+      linseg -dx/2  0  -dz/2
+      linseg -dx/2  0   dz/2
+      linseg  dx/2  0   dz/2
+   skend 
+patend
+
+# if (dx>0, dy>0, dz=0) make Face in x-y plane
+patbeg    foo ifzero(ifpos(dx,1,0)+ifpos(dy,1,0)+ifzero(dz,1,0)-3,1,0)
+   set       area     dx*dy
+   set       volume   0
+   set       madeBody madeBody+1
+
+   skbeg      dx/2   dy/2  0
+      linseg -dx/2   dy/2  0
+      linseg -dx/2  -dy/2  0
+      linseg  dx/2  -dy/2  0
+      linseg  dx/2   dy/2  0
+   skend
+patend
+
+# check that one Body was made
+assert    madeBody 1

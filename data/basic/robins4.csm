@@ -1,0 +1,435 @@
+# robins4.csm
+# originally written by Yafei Mei
+# modified by John Dannenhoffer
+# based upon definition in NASA TM 80059 (by Freeman and Minick)
+
+# global attributes
+attribute   ijkmin            9
+attribute   ijkmax           65
+attribute   ijkstp            4
+
+attribute   GLOBL.onoff       0
+attribute   CUTTR.onoff       0
+attribute   TRIMR.onoff       0
+attribute   DONOR.onoff       0
+
+attribute   PLT3D.onoff       1
+attribute   PLT3D.bigend      1
+
+attribute   XRAYS.onoff       0
+attribute   XRAYS.bigend      1
+
+# collar attributes
+#attribute   COLAR.onoff       0         no collar grids
+attribute   COLAR.onoff       1
+attribute   COLAR.plot        0          =1 in/out, =2 result, =3 both
+attribute   COLAR.imax        129
+attribute   COLAR.imin        5
+attribute   COLAR.dsimin      0.005
+attribute   COLAR.dsimax      0.010
+attribute   COLAR.jmid        21
+attribute   COLAR.dsjbeg      0.002
+attribute   COLAR.dsjrat      1.050
+attribute   COLAR.kmax        33
+attribute   COLAR.dnbeg       0.001
+attribute   COLAR.dnrat       1.150
+
+# Design Parameters:
+despmtr     R      1.57400
+
+dimension   Fuse   16   8   1
+despmtr     Fuse   "1.000; -1.000; -0.400; 0.400; 1.800;  0.000;  0.250; 1.800;\
+                    1.000; -1.000; -0.400; 0.400; 2.000;  0.000;  0.250; 2.000;\
+                    1.000; -1.000; -0.400; 0.400; 1.800; -0.080;  0.080; 1.800;\
+                    2.000;  3.000;  0.000; 0.400; 1.000;  0.000;  1.000; 1.000;\
+\
+                    0.250;  0.000;  0.000; 0.000; 0.000;  0.000;  0.000; 0.000;\
+                    0.250;  0.000;  0.000; 0.000; 0.000;  0.000;  0.000; 0.000;\
+                    0.000;  0.000;  0.000; 0.000; 0.000;  0.000;  0.000; 0.000;\
+                    5.000;  0.000;  0.000; 0.000; 0.000;  0.000;  0.000; 0.000;\
+\
+                    1.000; -1.000; -0.800; 1.100; 1.500;  0.050;  0.200; 0.600;\
+                    1.000; -1.000; -0.800; 1.100; 1.500;  0.050;  0.200; 0.600;\
+                    1.000; -1.000; -0.800; 1.100; 1.500;  0.040; -0.040; 0.600;\
+                    5.000; -3.000; -0.800; 1.100; 1.000;  0.000;  0.000; -.100;\
+\
+                    1.000; -1.000; -1.900; 0.100; 2.000;  0.000;  0.050; 2.000;\
+                    1.000; -1.000; -1.900; 0.100; 2.000;  0.000;  0.050; 2.000;\
+                    0.040;  0.000;  0.000; 0.000; 0.000;  0.000;  0.000; 0.000;\
+                    2.000;  0.000;  0.000; 0.000; 0.000;  0.000;  0.000; 0.000;"
+
+dimension   Pylon  8   8   1
+despmtr     Pylon  "1.000; -1.000; -0.800; 0.400; 3.000;  0.000;  0.200; 3.000;\
+                    1.000; -1.000; -0.800; 0.400; 3.000;  0.000;  0.172; 3.000;\
+                    0.122;  0.000;  0.000; 0.000; 0.000;  0.000;  0.000; 0.000;\
+                    5.000;  0.000;  0.000; 0.000; 0.000;  0.000;  0.000; 0.000;\
+\
+                    1.000; -1.000; -0.800; 0.218; 2.000;  0.000;  0.200; 2.000;\
+                    1.000; -1.000; -0.800; 0.218; 2.000;  0.000;  0.172; 2.000;\
+                    0.122;  0.000;  0.000; 0.000; 0.000;  0.000;  0.000; 0.000;\
+                    3.500;  0.000;  0.000; 0.000; 0.000;  0.000;  0.000; 0.000;"
+
+dimension   NoseListF  2   4   1
+despmtr     NoseListF "0.015; -.25881905; 0.000; 0.96592583;\
+                       0.030; 0.0000;     1.000; 0.0000;"
+
+dimension   TailListF  2   4   1
+despmtr     TailListF "0.010; 0.000; 1.000; 0.000;\
+                       0.010; 0.000; 0.000; 1.000;"
+
+dimension   NoseListP  2   4   1
+despmtr     NoseListP "0.055; 0.000; 0.000; 1.000;\
+                       0.055; 0.000; 1.000; 0.000;"
+
+dimension   TailListP  2   4   1
+despmtr     TailListP "0.025; 0.000; 1.000; 0.000;\
+                       0.025; 0.000; 0.000; 1.000;"
+
+# fuselage
+mark
+   set      npnt   32
+   set      pi2n   pi(2/npnt)
+
+#  nose of fuselage (goes along with NodeListF)
+   skbeg     0   0   -0.072
+   skend
+
+#  part 1 of fuselage
+   patbeg    isect 20
+      set       X1 0.02*isect*R
+      set       x  X1/R
+
+      set       H  0
+      set       W  0
+      set       Z0 0
+      set       N  0
+
+      patbeg    ivar 4           # H, W, Z0, N
+         set       c1 Fuse[ivar,1]
+         set       c2 Fuse[ivar,2]
+         set       c3 Fuse[ivar,3]
+         set       c4 Fuse[ivar,4]
+         set       c5 Fuse[ivar,5]
+         set       c6 Fuse[ivar,6]
+         set       c7 Fuse[ivar,7]
+         set       c8 Fuse[ivar,8]
+
+         set       M  c1+c2*(abs(x+c3)/c4)^c5
+         set       F  ifneg(c8,M,c6+c7*(abs(M))^(1/c8))
+
+         set       H  ifzero(ivar-1,F,H)
+         set       W  ifzero(ivar-2,F,W)
+         set       Z0 ifzero(ivar-3,F,Z0)
+         set       N  ifzero(ivar-4,F,N)
+      patend
+
+      set       A  H/2
+      set       B  W/2
+      set       r  ((A*B)^N/(abs((A*sin(0)))^N+(abs(B*cos(0)))^N))^(1/N)
+      set       Y  r*sin(0)
+      set       Z  r*cos(0)+Z0
+
+      skbeg     X1   Y   Z
+         patbeg    ipnt npnt
+            set       r  ((A*B)^N/(abs((A*sin(ipnt*pi2n)))^N+(abs(B*cos(ipnt*pi2n)))^N))^(1/N)
+            set       Y  r*sin(ipnt*pi2n)
+            set       Z  r*cos(ipnt*pi2n)+Z0
+            spline    X1   Y   Z
+        patend
+     skend
+   patend
+
+#  part 2 of fuselage
+   patbeg    isect 10
+      set       X1 (0.4+0.04*isect)*R
+      set       x  X1/R
+
+      set       H  Fuse[5,1]
+      set       W  Fuse[6,1]
+      set       Z0 Fuse[7,1]
+      set       N  Fuse[8,1]
+
+      set       A  H/2
+      set       B  W/2
+      set       r  ((A*B)^N/(abs((A*sin(0)))^N+(abs(B*cos(0)))^N))^(1/N)
+      set       Y  r*sin(0)
+      set       Z  r*cos(0)+Z0
+
+      skbeg     X1   Y   Z
+         patbeg    ipnt npnt
+            set       r  ((A*B)^N/(abs((A*sin(ipnt*pi2n)))^N+(abs(B*cos(ipnt*pi2n)))^N))^(1/N)
+            set       Y  r*sin(ipnt*pi2n)
+            set       Z  r*cos(ipnt*pi2n)+Z0
+            spline    X1   Y   Z
+         patend
+      skend
+   patend
+
+#  part 3 of fuselage
+   patbeg    isect 10
+      set       X1 (0.8+0.11*isect)*R
+      set       x  X1/R
+      set       H  0
+      set       W  0
+      set       Z0 0
+      set       N  0
+
+      patbeg    ivar 4           # H, W, Z0, N
+         set       c1 Fuse[ivar+8,1]
+         set       c2 Fuse[ivar+8,2]
+         set       c3 Fuse[ivar+8,3]
+         set       c4 Fuse[ivar+8,4]
+         set       c5 Fuse[ivar+8,5]
+         set       c6 Fuse[ivar+8,6]
+         set       c7 Fuse[ivar+8,7]
+         set       c8 Fuse[ivar+8,8]
+
+         set       M  c1+c2*(abs(x+c3)/c4)^c5
+         set       F  ifneg(c8,M,c6+c7*(abs(M))^(1/c8))
+
+         set       H  ifzero(ivar-1,F,H)
+         set       W  ifzero(ivar-2,F,W)
+         set       Z0 ifzero(ivar-3,F,Z0)
+         set       N  ifzero(ivar-4,F,N)
+      patend
+
+      set       A  H/2
+      set       B  W/2
+      set       r  ((A*B)^N/(abs((A*sin(0)))^N+(abs(B*cos(0)))^N))^(1/N)
+      set       Y  r*sin(0)
+      set       Z  r*cos(0)+Z0
+
+      skbeg     X1   Y   Z
+         patbeg    ipnt npnt
+            set       r  ((A*B)^N/(abs((A*sin(ipnt*pi2n)))^N+(abs(B*cos(ipnt*pi2n)))^N))^(1/N)
+            set       Y  r*sin(ipnt*pi2n)
+            set       Z  r*cos(ipnt*pi2n)+Z0
+            spline    X1   Y   Z
+         patend
+      skend
+   patend
+
+#  part 4 of fuselage
+   patbeg    isect 9
+      set       X1 (1.9+0.01*isect)*R
+      set       x  X1/R
+      set       H  0
+      set       W  0
+      set       Z0 0
+      set       N  0
+      patbeg    ivar 2           # H, W
+         set       c1 Fuse[ivar+12,1]
+         set       c2 Fuse[ivar+12,2]
+         set       c3 Fuse[ivar+12,3]
+         set       c4 Fuse[ivar+12,4]
+         set       c5 Fuse[ivar+12,5]
+         set       c6 Fuse[ivar+12,6]
+         set       c7 Fuse[ivar+12,7]
+         set       c8 Fuse[ivar+12,8]
+
+         set       M  c1+c2*(abs(x+c3)/c4)^c5
+         set       F  ifneg(c8,M,c6+c7*(abs(M))^(1/c8))
+
+         set       H  ifzero(ivar-1,F,H)
+         set       W  ifzero(ivar-2,F,W)
+      patend
+
+      set       Z0 Fuse[15,1]
+      set       N  Fuse[16,1]
+
+      set       A  H/2
+      set       B  W/2
+      set       r  ((A*B)^N/(abs((A*sin(0)))^N+(abs(B*cos(0)))^N))^(1/N)
+      set       Y  r*sin(0)
+      set       Z  r*cos(0)+Z0
+
+      skbeg     X1   Y   Z
+         patbeg    ipnt npnt
+            set       r  ((A*B)^N/(abs((A*sin(ipnt*pi2n)))^N+(abs(B*cos(ipnt*pi2n)))^N))^(1/N)
+            set       Y  r*sin(ipnt*pi2n)
+            set       Z  r*cos(ipnt*pi2n)+Z0
+            spline    X1   Y   Z
+         patend
+      skend
+   patend
+
+#  tail of fuselage (goes along with TailListF)
+   skbeg     2*R   0   0.04
+   skend
+
+blend     NoseListF  TailListF
+   attribute blend_imax     261
+   attribute blend_jmax      65
+   attribute blend_kmax      33
+   attribute blend_itrm1      2
+   attribute blend_ijcap1    25
+   attribute blend_iover1     8
+   attribute blend_itrm2      2
+   attribute blend_ijcap2    25
+   attribute blend_iover2     6
+   attribute blend_dnbeg  0.001
+   attribute blend_dnrat  1.150
+
+# pylon
+mark
+
+#  nose of pylon (goes along with NoseListP)
+   skbeg     0.4*R   0   0.122
+   skend
+
+#  part 1 of pylon
+   patbeg    isect 8
+      set       X1 (0.4+0.05*isect)*R
+      set       x  X1/R
+
+      set       H  0
+      set       W  0
+      set       Z0 0
+      set       N  0
+
+      patbeg    ivar 2           # H, W
+         set       c1 Pylon[ivar,1]
+         set       c2 Pylon[ivar,2]
+         set       c3 Pylon[ivar,3]
+         set       c4 Pylon[ivar,4]
+         set       c5 Pylon[ivar,5]
+         set       c6 Pylon[ivar,6]
+         set       c7 Pylon[ivar,7]
+         set       c8 Pylon[ivar,8]
+
+         set       M  c1+c2*(abs(x+c3)/c4)^c5
+         set       F  ifzero(c4,c1,M)
+         set       F  ifneg(c8,M,c6+c7*(abs(M))^(1/c8))
+
+         set       H  ifzero(ivar-1,F,H)
+         set       W  ifzero(ivar-2,F,W)
+      patend
+
+      set       Z0 Pylon[3,1]
+      set       N  Pylon[4,1]
+
+      set       A  H/2
+      set       B  W/2
+      set       r  ((A*B)^N/(abs((A*sin(0)))^N+(abs(B*cos(0)))^N))^(1/N)
+      set       Y  r*sin(0)
+      set       Z  r*cos(0)+Z0
+
+      skbeg     X1   Y   Z
+         patbeg    ipnt npnt
+            set       r  ((A*B)^N/(abs((A*sin(ipnt*pi2n)))^N+(abs(B*cos(ipnt*pi2n)))^N))^(1/N)
+            set       Y  r*sin(ipnt*pi2n)
+            set       Z  r*cos(ipnt*pi2n)+Z0
+            spline    X1   Y   Z
+         patend
+      skend
+   patend
+
+#  part 2 on pylon
+   patbeg    isect 10
+      set       X1 (0.8+0.0208*isect)*R
+      set       x  X1/R
+
+      set       H  0
+      set       W  0
+      set       Z0 0
+      set       N  0
+
+      patbeg    ivar 2           # H, W
+         set       c1 Pylon[ivar+4,1]
+         set       c2 Pylon[ivar+4,2]
+         set       c3 Pylon[ivar+4,3]
+         set       c4 Pylon[ivar+4,4]
+         set       c5 Pylon[ivar+4,5]
+         set       c6 Pylon[ivar+4,6]
+         set       c7 Pylon[ivar+4,7]
+         set       c8 Pylon[ivar+4,8]
+
+         set       M  c1+c2*(abs(x+c3)/c4)^c5
+         set       F  ifzero(c4,c1,M)
+         set       F  ifneg(c8,M,c6+c7*(abs(M))^(1/c8))
+
+         set       H  ifzero(ivar-1,F,H)
+         set       W  ifzero(ivar-2,F,W)
+      patend
+
+      set       Z0 Pylon[7,1]
+      set       N  Pylon[8,1]
+
+      set       A  H/2
+      set       B  W/2
+      set       r  ((A*B)^N/(abs((A*sin(0)))^N+(abs(B*cos(0)))^N))^(1/N)
+      set       Y  r*sin(0)
+      set       Z  r*cos(0)+Z0
+
+      skbeg     X1   Y   Z
+         patbeg    ipnt npnt
+            set       r  ((A*B)^N/(abs((A*sin(ipnt*pi2n)))^N+(abs(B*cos(ipnt*pi2n)))^N))^(1/N)
+            set       Y  r*sin(ipnt*pi2n)
+            set       Z  r*cos(ipnt*pi2n)+Z0
+            spline    X1   Y   Z
+         patend
+      skend
+   patend
+
+#  tail of pylon  (goes along with TailListP)
+   skbeg     1.018*R   0   0.122
+   skend
+
+blend     NoseListP  TailListP
+   attribute blend_imax      69
+   attribute blend_jmax      49
+   attribute blend_kmax      33
+   attribute blend_itrm1      2
+   attribute blend_ijcap1    25
+   attribute blend_ijcap1     0
+   attribute blend_iover1     6
+   attribute blend_itrm2      2
+   attribute blend_ijcap2    25
+   attribute blend_ijcap2     0
+   attribute blend_iover2     6
+   attribute blend_dnbeg  0.001
+   attribute blend_dnrat  1.150
+
+union
+
+# rotor hub
+skbeg     0      0   0.124*R
+   linseg 0.008  0   0.124*R
+   linseg 0.008  0   0.194*R
+   linseg 0.060  0   0.194*R
+   linseg 0.060  0   0.214*R
+   linseg 0      0   0.214*R
+   linseg 0      0   0.124*R
+skend
+revolve   0      0   0   0   0   1   360
+#   attribute revolve_jmax     0
+
+# rotor blades (with root cutout)
+patbeg    iblade 4
+   mark
+      udprim    naca   camber   0.017   thickness   0.10
+      scale     0.1
+      rotatex   90   0   0
+      rotatey   8    0   0
+      translate 0    R   0
+
+      udprim    naca   camber   0.017   thickness   0.10
+      scale     0.1
+      rotatex   90   0   0
+   rule
+      attribute rule_icells  0
+
+   box       0.02   0   -0.05   0.1   0.2*R   0.1
+      attribute  box_onoff   0
+   subtract
+
+   rotatez   90*(iblade-1)   0.01   0
+   translate -0.01*R   0   0.204*R
+   union
+patend
+
+# place rotors on fueslage/pylon
+translate  0.690*R   0    0
+union
+
+end

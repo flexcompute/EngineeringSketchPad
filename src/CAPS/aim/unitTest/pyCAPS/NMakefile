@@ -1,0 +1,12 @@
+#
+test:
+	python --version
+	python -m unittest discover
+
+clean:
+	rmdir /q /s __pycache__
+	del /q *.pyc
+
+cleanall: clean
+	del /q workDir_*
+	rmdir /q /s workDir_*

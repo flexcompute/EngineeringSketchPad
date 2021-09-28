@@ -1,0 +1,26 @@
+# apply .tParams to Body on top of stack
+# written by John Dannenhoffer
+
+INTERFACE factor in  1
+INTERFACE angle  in  20
+
+# find size of Body on the top of the stack
+SELECT    BODY
+SET       size max(max(@xmax-@xmin,@ymax-@ymin),@zmax-@zmin)
+
+# apply .tParams to the Body
+SELECT    BODY
+   ATTRIBUTE .tParams  "0.0250*factor*size; 0.0075*factor*size; angle;"
+
+# if there is more than one Face, apply .tParams to all Faces on the Body
+IFTHEN    @nface GT 1
+   SELECT    FACE
+      ATTRIBUTE .tParams  "0.0250*factor*size; 0.0075*factor*size; angle;"
+
+# otherwise apply .tParams to all Edges on the Body
+ELSE
+   SELECT    EDGE
+      ATTRIBUTE .tParams  "0.0250*factor*size; 0.0075*factor*size; angle;"
+ENDIF
+
+END

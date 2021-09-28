@@ -1,0 +1,23 @@
+# demo0a
+# written by John Dannenhoffer
+
+box            -1.00     -1.00     -1.00      2.00      2.00      2.00
+
+cylinder        0.00     -1.10      0.00      0.00      1.10      0.00      1.20
+intersect
+
+box             0.90     -0.50     -0.30      3.00      0.10      1.10
+rotatex        15.00     -0.45      0.20
+union
+
+box            -1.00      0.20     -0.40      2.00      0.80      0.80
+rotatex         20.0      0.60      0.00
+rotatez         75.0     -0.40      1.00
+union
+
+box             0.50      0.20     -1.20      0.60      0.60      2.40
+subtract
+
+dump            $/demo0b.step
+
+end

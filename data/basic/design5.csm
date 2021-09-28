@@ -1,0 +1,149 @@
+# design5
+# written by John Dannenhoffer
+
+# design parameters
+despmtr   thick     0.12      frac of local chord
+despmtr   camber    0.04      frac of loacl chord
+
+despmtr   area      10.0
+despmtr   aspect    6.00
+despmtr   taper     0.60
+despmtr   sweep     20.0      deg (of c/4)
+
+despmtr   washout   5.00      deg (down at tip)
+despmtr   dihedral  4.00      deg
+
+despmtr   xnose     -2.0
+despmtr   xtail     5.00
+despmtr   fuserad   0.30
+
+cfgpmtr   nrib      11        number of ribs
+despmtr   spar1     0.20      frac of local chord
+despmtr   spar2     0.75      frac of local chord
+
+# internal parameters
+set       span      sqrt(aspect*area)
+set       croot     2*area/span/(1+taper)
+set       ctip      croot*taper
+set       dxtip     (croot-ctip)/4+span/2*tand(sweep)
+set       dytip     span/2*tand(dihedral)
+
+##### mid-surface aero
+
+mark
+
+# rite tip
+udprim    naca      Thickness 0         Camber    camber
+scale     ctip
+rotatez   washout   ctip/4    0
+translate dxtip     dytip     -span/2
+
+# root
+udprim    naca      Thickness 0         Camber    camber
+scale     croot
+
+# left tip
+udprim    naca      Thickness 0         Camber    camber
+scale     ctip
+rotatez   washout   ctip/4    0
+translate dxtip     dytip     +span/2
+
+loft      0
+
+dump      design5_msa.egads
+
+##### wing
+
+mark
+
+# rite tip
+udprim    naca      Thickness thick     Camber    camber
+scale     ctip
+rotatez   washout   ctip/4    0
+translate dxtip     dytip     -span/2
+
+# root
+udprim    naca      Thickness thick     Camber    camber
+scale     croot
+
+# left tip
+udprim    naca      Thickness thick     Camber    camber
+scale     ctip
+rotatez   washout   ctip/4    0
+translate dxtip     dytip     +span/2
+
+loft      0
+
+dump      design5_wing.egads
+
+# blended fuselage
+
+mark
+
+point     xnose     0         0
+
+set       x         xnose+fuserad
+skbeg     x         +fuserad  0
+   cirarc x         0         +fuserad  x         -fuserad  0
+   cirarc x         0         -fuserad  x         +fuserad  0
+skend
+
+set       x         (xnose+fuserad+xtail)/2
+skbeg     x         +fuserad  0
+   cirarc x         0         +fuserad  x         -fuserad  0
+   cirarc x         0         -fuserad  x         +fuserad  0
+skend
+
+set       x         xtail
+skbeg     x         +fuserad  0
+   cirarc x         0         +fuserad/4  x       -fuserad  0
+   cirarc x         0         -fuserad/4  x       +fuserad  0
+skend
+
+blend     fuserad;0;1;0;fuserad;0;0;1  0
+
+dump      design5_fuselage.egads
+
+union
+
+dump      design5_oml.egads
+
+# wing ribs
+dimension waffle  nrib+4 4 0
+set       Nrib    nint(nrib)
+patbeg    i Nrib
+   set    waffle[i,1]     (span/2)*(2*i-Nrib-1)/Nrib
+   set    waffle[i,2]     -0.01*croot
+   set    waffle[i,3]     (span/2)*(2*i-Nrib-1)/Nrib
+   set    waffle[i,4]     max(croot,dxtip+ctip)
+patend
+
+# wing spars
+set       eps             0.01*span
+
+set       waffle[Nrib+1,1]  -span/2-eps
+set       waffle[Nrib+1,2]   spar1*ctip+dxtip
+set       waffle[Nrib+1,3]   0
+set       waffle[Nrib+1,4]   spar1*croot
+set       waffle[Nrib+2,1]   span/2+eps
+set       waffle[Nrib+2,2]   spar1*ctip+dxtip
+set       waffle[Nrib+2,3]   0
+set       waffle[Nrib+2,4]   spar1*croot
+set       waffle[Nrib+3,1]  -span/2-eps
+set       waffle[Nrib+3,2]   spar2*ctip+dxtip
+set       waffle[Nrib+3,3]   0
+set       waffle[Nrib+3,4]   spar2*croot
+set       waffle[Nrib+4,1]   span/2+eps
+set       waffle[Nrib+4,2]   spar2*ctip+dxtip
+set       waffle[Nrib+4,3]   0
+set       waffle[Nrib+4,4]   spar2*croot
+
+udprim    waffle    Depth     +6*thick*croot      Segments  waffle
+translate 0         0         -3*thick*croot
+rotatey   90        0         0
+rotatez  -90        0         0
+
+import    design5_wing.egads
+intersect
+
+end

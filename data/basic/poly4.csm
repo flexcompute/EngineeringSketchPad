@@ -1,0 +1,32 @@
+# poly4
+# written by John Dannenhoffer
+
+mark
+   udprim  poly  points  "0; 0; 0; \
+                          2; 0; 1; \
+                          3; 3; 0;"
+   udprim  poly  points  "0; 0; 0; \
+                          2; 0; 1; \
+                          3;-3; 0;"
+   udprim  poly  points  "2; 0; 1; \
+                          6; 0; 1; \
+                          5; 3; 0; \
+                          3; 3; 0;"
+   udprim  poly  points  "2; 0; 1; \
+                          6; 0; 1; \
+                          5;-3; 0; \
+                          3;-3; 0;"
+   udprim  poly  points  "6; 0; 1; \
+                          5;-3; 0; \
+                          5; 3; 0"
+   udprim  poly  points  "3;-3; 0; \
+                          5;-3; 0; \
+                          5; 3; 0; \
+                          3; 3; 0;"
+   udprim  poly  points  "0; 0; 0; \
+                          3;-3; 0; \
+                          3; 3; 0;"
+combine
+
+end
+
