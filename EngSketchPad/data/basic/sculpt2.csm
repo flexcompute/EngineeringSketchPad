@@ -1,0 +1,47 @@
+# sculpt2
+# written by John Dannenhoffer
+
+# base shape
+UDPRIM    supell    rx 4  ry 2  n 4
+ROTATEY   90  0  0
+TRANSLATE -3  0  0
+
+UDPRIM    supell    rx 2  ry 2  n 2
+ROTATEY   90  0  0
+TRANSLATE -1  0  0
+
+RESTORE   .
+
+UDPRIM    supell    rx 2  ry 2  n 2
+ROTATEY   90  0  0
+TRANSLATE  1  0  0
+
+RESTORE   .
+
+UDPRIM    supell    rx 4  ry 2  n 4
+ROTATEY   90  0  0
+TRANSLATE  3  0  0
+
+BLEND
+
+# cutout 1 (with fillet)
+MARK
+   UDPRIM    supell    rx 3/2   ry 3/2
+   ROTATEY   90  0  0
+   TRANSLATE -4  1.8  3
+
+   RESTORE   .
+   TRANSLATE  8  0  0
+RULE
+SUBTRACT
+FILLET   0.1
+
+# cutout 2
+CYLINDER  0 -1 -4  0 -1  4  1/2
+SUBTRACT
+
+# convert to Bsplines
+UDPRIM    nuscale
+
+END
+

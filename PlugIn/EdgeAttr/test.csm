@@ -1,0 +1,15 @@
+BOX 0 0 0 1 1 1
+
+udparg  edgeAttr  attrname $EdgeName  attrstr $String
+udprim  edgeAttr  xyzs "0; .5; 0"
+
+udparg  edgeAttr  attrname $EdgeName  attrints "1; 9"
+udprim  edgeAttr  xyzs "1; .5; 1"
+
+udparg  edgeAttr  attrname $EdgeName  attrreals "1; 9"
+udprim  edgeAttr  xyzs "1; .5; 0"
+
+udparg  edgeAttr  attrname $EdgeName  attrreals "1; 9; 5"
+udprim  edgeAttr  xyzs "0; .5; 1; 0; .75; 1"
+
+end

@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<Functionals>
+  <!-- Adapt to 0.1*CL + CD -->
+  <AeroFun ID="LplusD" Options="Adapt">
+    # Force Codes: CA=0 CY=1 CN=2 in Aircraft (Body) Frame
+    #         Name    Force   Frame    J      N    Target   Weight  Bound   GMP
+    #        (String) (0,1,2) (0,1) (0,1,2) (int)  (dble)   (dble) (-1,0,1)
+    optForce   CL        2      0      0      1      0.      0.1      0     entire
+    optForce   CD        0      0      0      1      0.      1.0      0     entire
+  </AeroFun>
+
+  <!-- Monitor error in CL, up to and including penultimate mesh -->
+  <AeroFun ID="Lift" Options="Error">
+    # Force Codes: CD=0 Cy=1 CL=2 in Aerodynamic Frame
+    #         Name    Force   Frame    J      N    Target   Weight  Bound   GMP
+    #        (String) (0,1,2) (0,1) (0,1,2) (int)  (dble)   (dble) (-1,0,1)
+    optForce   CL        2      0      0      1      0.      1.       0     entire
+  </AeroFun>
+
+  <!-- Monitor error in CD, up to and including penultimate mesh -->
+  <AeroFun ID="Drag" Options="Error">
+    # Force Codes: CA=0 CY=1 CN=2 in Aircraft (Body) Frame
+    #         Name    Force   Frame    J      N    Target   Weight  Bound   GMP
+    #        (String) (0,1,2) (0,1) (0,1,2) (int)  (dble)   (dble) (-1,0,1)
+    optForce   CD        0      0      0      1      0.      1.       0     entire
+  </AeroFun>
+
+  <!-- Monitor mesh convergence of pitch, no adjoint or error estimate -->
+  <AeroFun ID="Pitch">
+    #              Name   Index Moment  Frame  J     N    Target Weight Bound GMP
+    #            (String) (int) (0,1,2) (0,1) (0,1) (int) (dble) (dble) (0)
+    optMoment_Point  MP0   0      1      1     0     1     0.      1.    0   entire
+  </AeroFun>
+</Functionals>

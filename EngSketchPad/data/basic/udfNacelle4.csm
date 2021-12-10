@@ -1,0 +1,21 @@
+# udfNacelle4
+# written by Aidan Hoff and John Dannenhoffer
+
+DESPMTR   thick  0.12
+DESPMTR   camber 0.05
+
+DIMENSION the_rad  1 4
+DESPMTR   the_rad  "1; 1; 1; 1"
+DIMENSION the_pow  1 4
+DESPMTR   the_pow  "2; 2; 2; 2"
+DESPMTR   length   5.0
+DESPMTR   deltaH  -3.0
+DESPMTR   rakeAng  15.0
+
+UDPRIM naca    thickness thick   camber camber
+
+UDPARG nacelle f_rad  the_rad   f_pow  the_pow
+UDPARG nacelle a_rad  the_rad   a_pow  the_pow
+UDPRIM nacelle length length    deltah deltaH   rakeang rakeAng
+
+END

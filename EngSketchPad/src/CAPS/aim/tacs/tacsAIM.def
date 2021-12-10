@@ -1,0 +1,17 @@
+LIBRARY tacsAIM
+EXPORTS
+aimInitialize
+aimCleanup
+aimInputs
+aimPreAnalysis
+aimPostAnalysis
+aimOutputs
+aimCalcOutput
+aimFreeDiscrPtr
+aimDiscr
+aimLocateElement
+aimTransfer
+aimInterpolation
+aimInterpolateBar
+aimIntegration
+aimIntegrateBar

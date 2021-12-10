@@ -1,0 +1,62 @@
+# scope1b.udc (include type)
+# written by John Dannenhoffer
+INTERFACE . ALL
+
+DESPMTR   des1    19   # redefinition - does not overwrite
+DESPMTR   des2    12
+LBOUND    des2    10
+UBOUND    des2    20
+
+CFGPMTR   cfg1    29   # redefinition - does not overwrite
+CFGPMTR   cfg2    22
+LBOUND    cfg2    20
+UBOUND    cfg2    30
+
+#CONPMTR   con1    39   # redefinition not allowed
+CONPMTR   con2    32
+#LBOUND    con2    30   # not allowed for CONPMTR
+#UBOUND    con2    40   # not allowed for CONPMTR
+
+SET       out1    49   # overwrite
+SET       out2    42
+OUTPMTR   out2
+#LBOUND    out2    40   # not allowed for OUTPMTR
+#UBOUND    out2    50   # not allowed for OUTPMTR
+
+SET       lcl1    59   # overwrite
+SET       lcl2    52
+#LBOUND    lcl2    50   # not allowed for LOCALVAR
+#UBOUND    lcl2    60   # not allowed for LOCALVAR
+
+#-----------------------------
+
+POINT     0  0  0
+STORE     .
+ASSERT    @scope  0
+
+ASSERT    des1             11
+ASSERT    des2             12
+ASSERT    ifnan(des3,1,0)  1
+ASSERT    ifnan(des4,1,0)  1
+
+ASSERT    cfg1             21
+ASSERT    cfg2             22
+ASSERT    ifnan(cfg3,1,0)  1
+ASSERT    ifnan(cfg4,1,0)  1
+
+ASSERT    con1             31
+ASSERT    con2             32
+ASSERT    ifnan(cfg3,1,0)  1
+ASSERT    ifnan(cfg4,1,0)  1
+
+ASSERT    out1             49
+ASSERT    out2             42
+ASSERT    ifnan(out3,1,0)  1
+ASSERT    ifnan(out4,1,0)  1
+
+ASSERT    lcl1             59
+ASSERT    lcl2             52
+ASSERT    ifnan(lcl3,1,0)  1
+ASSERT    ifnan(lcl4,1,0)  1
+
+END

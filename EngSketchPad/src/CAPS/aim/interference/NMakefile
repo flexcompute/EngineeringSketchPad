@@ -1,0 +1,39 @@
+#
+!IFNDEF ESP_ROOT
+!ERROR ESP_ROOT must be set -- Please fix the environment...
+!ENDIF
+#
+IDIR  = $(ESP_ROOT)\include
+!include $(IDIR)\$(ESP_ARCH).$(MSVC)
+LDIR  = $(ESP_ROOT)\lib
+!IFDEF ESP_BLOC
+ODIR  = $(ESP_BLOC)\obj
+!ELSE
+ODIR  = .
+!ENDIF
+
+
+$(LDIR)\interferenceAIM.dll:	interferenceAIM.def $(ODIR)\cloudFns.obj \
+				$(ODIR)\interferenceAIM.obj $(LDIR)\aimUtil.lib
+	-del $(LDIR)\interferenceAIM.dll $(LDIR)\interferenceAIM.lib \
+			$(LDIR)\interferenceAIM.exp
+	link /out:$(LDIR)\interferenceAIM.dll /dll /def:interferenceAIM.def \
+		$(ODIR)\interferenceAIM.obj $(ODIR)\cloudFns.obj \
+		/LIBPATH:$(LDIR) aimUtil.lib ocsm.lib egads.lib udunits2.lib
+	$(MCOMP) /manifest $(LDIR)\interferenceAIM.dll.manifest \
+		/outputresource:$(LDIR)\interferenceAIM.dll;2
+
+$(ODIR)\interferenceAIM.obj:	interferenceAIM.c $(IDIR)\capsTypes.h
+	cl /c $(COPTS) $(DEFINE) /I$(IDIR) interferenceAIM.c \
+		/Fo$(ODIR)\interferenceAIM.obj
+
+$(ODIR)\cloudFns.obj:	cloudFns.c cloud.h
+	cl /c $(COPTS) $(DEFINE) /I$(IDIR) /I. cloudFns.c \
+		/Fo$(ODIR)\cloudFns.obj
+
+clean:
+	-del $(ODIR)\interferenceAIM.obj $(ODIR)\cloudFns.obj
+
+cleanall:	clean
+	-del $(LDIR)\interferenceAIM.dll $(LDIR)\interferenceAIM.lib \
+		$(LDIR)\interferenceAIM.exp

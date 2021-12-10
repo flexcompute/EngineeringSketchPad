@@ -1,0 +1,95 @@
+# ../data/legacy/tutorial2.csm written by ocsmSave (v1.21)
+
+# Constant, Design, and Output Parameters:
+despmtr   length       4.00000
+despmtr   height       3.00000
+despmtr   thick       0.50000
+despmtr   slot       2.00000
+despmtr   depth       3.00000
+despmtr   rad       0.50000
+despmtr   filrad       0.10000
+
+# Global Attributes:
+
+# Branches:
+skbeg     0   0   0   1
+   skvar     xy   0.000000;0.000000;0.000000;4.000000;0.000000;0.000000;4.000000;3.000000;0.000000;3.000000;3.000000;0.000000;3.000000;0.500000;0.000000;1.000000;0.500000;0.000000;1.000000;3.000000;0.000000;0.000000;3.000000;0.000000;
+   skcon     X   1   -1  0
+   skcon     Y   1   -1  0
+   skcon     H   1   2  0
+   skcon     V   4   5  0
+   skcon     H   5   6  0
+   skcon     V   6   7  0
+   skcon     H   7   8  0
+   skcon     V   8   1  0
+   skcon     L   1   2  length
+   skcon     L   8   1  height
+   skcon     L   2   3  height
+   skcon     L   3   4  ::L[7]
+   skcon     L   6   7  height-thick
+   skcon     L   5   6  slot
+   skcon     P   2   -1  0
+   skcon     A   3   -1  90
+   linseg    ::x[2]   ::y[2]   0
+   linseg    ::x[3]   ::y[3]   0
+   linseg    ::x[4]   ::y[4]   0
+   linseg    ::x[5]   ::y[5]   0
+   linseg    ::x[6]   ::y[6]   0
+   linseg    ::x[7]   ::y[7]   0
+   linseg    ::x[8]   ::y[8]   0
+   linseg    ::x[1]   ::y[1]   0
+skend     0
+extrude   0   0   depth
+fillet    filrad   6;7;7;8;   0
+skbeg     0   0   0   1
+   skvar     xy   0.000000;0.000000;0.000000;0.500000;0.000000;0.000000;0.500000;1.000000;0.500000;-0.500000;1.000000;0.000000;-0.500000;0.000000;0.500000;
+   skcon     X   1   -1  0
+   skcon     Y   1   -1  0
+   skcon     H   1   2  0
+   skcon     H   3   4  0
+   skcon     H   5   1  0
+   skcon     L   5   1  rad
+   skcon     L   1   2  rad
+   skcon     R   2   3  rad
+   skcon     T   5   -1  0
+   skcon     T   2   -1  0
+   skcon     T   4   -1  0
+   skcon     T   3   -1  0
+   linseg    ::x[2]   ::y[2]   0
+   arc       ::x[3]   ::y[3]   0   ::d[3]   xy
+   linseg    ::x[4]   ::y[4]   0
+   arc       ::x[5]   ::y[5]   0   ::d[5]   xy
+   linseg    ::x[1]   ::y[1]   0
+skend     0
+rotatey   90   0   0
+translate 0   height-3*rad   depth/2
+extrude   length/2   0   0
+subtract  none   1   0
+chamfer   filrad   0   0
+skbeg     0   0   0   1
+   skvar     xy   0.000000;0.000000;0.000000;0.750000;0.000000;0.000000;0.000000;0.750000;0.000000;-1.500000;0.750000;0.000000;-1.500000;0.000000;0.000000;-0.750000;0.000000;0.000000;
+   skcon     X   1   -1  0
+   skcon     Y   1   -1  0
+   skcon     H   1   2  0
+   skcon     H   3   4  0
+   skcon     V   4   5  0
+   skcon     H   5   6  0
+   skcon     H   6   1  0
+   skcon     L   5   6  depth/4
+   skcon     L   6   1  depth/4
+   skcon     L   1   2  depth/4
+   skcon     L   3   4  depth/2
+   skcon     L   4   5  depth/4
+   linseg    ::x[2]   ::y[2]   0
+   bezier    ::x[3]   ::y[3]   0
+   bezier    ::x[4]   ::y[4]   0
+   bezier    ::x[5]   ::y[5]   0
+   bezier    ::x[6]   ::y[6]   0
+   linseg    ::x[1]   ::y[1]   0
+skend     0
+rotatey   90   0   0
+translate length   height-3*rad   depth/2
+extrude   -length/2   0   0
+subtract  none   1   0
+
+end

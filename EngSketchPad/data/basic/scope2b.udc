@@ -1,0 +1,46 @@
+# scope2b.udc (function type)
+# written by John Dannenhoffer
+
+#DESPMTR   des3      99   # not allowed except at top-level
+
+#CFGPMTR   cfg3      99   # not allowed except at top-level
+
+#CONPMTR   con3      99   # not allowed except at top-level
+
+#OUTPMTR   out3           # not allowed except at top-levle
+SET       out3      43   # local variable
+
+SET       lcl3      53
+
+#-----------------------------
+
+POINT     0  0  0
+STORE     .
+ASSERT    @scope  1
+
+ASSERT    ifnan(des1,1,0)  1
+ASSERT    ifnan(des2,1,0)  1
+ASSERT    ifnan(des3,1,0)  1
+ASSERT    ifnan(des4,1,0)  1
+
+ASSERT    ifnan(cfg1,1,0)  1
+ASSERT    ifnan(cfg2,1,0)  1
+ASSERT    ifnan(cfg3,1,0)  1
+ASSERT    ifnan(cfg4,1,0)  1
+
+ASSERT    con1             31
+ASSERT    con2             32
+ASSERT    ifnan(cfg3,1,0)  1
+ASSERT    ifnan(cfg4,1,0)  1
+
+ASSERT    ifnan(out1,1,0)  1
+ASSERT    ifnan(out2,1,0)  1
+ASSERT    out3             43
+ASSERT    ifnan(out4,1,0)  1
+
+ASSERT    ifnan(lcl1,1,0)  1
+ASSERT    ifnan(lcl2,1,0)  1
+ASSERT    lcl3             53
+ASSERT    ifnan(lcl4,1,0)  1
+
+END

@@ -1,0 +1,34 @@
+# designS2
+# written by John Dannenhoffer
+
+DESPMTR   dx   -1.0
+DESPMTR   dy    1.0
+DESPMTR   dz    3.0
+DESPMTR   scale 1.5
+
+# constant cross-section
+BOX       0  -dy/2  -dz/2  0  dy  dz
+
+# guide curve
+UDPRIM    fitcurve   ncp 9   filename <<
+    0.0000    0.0000    0.0000
+    0.5000    0.0000    0.0000
+    1.0000    0.0000    0.0000
+    1.5000    0.0000    0.0000
+    2.0000    0.0000    0.0000
+    3.0000    0.5000    0.0000
+    4.0000    1.0000    0.0000
+    4.5000    1.0000    0.0000
+    5.0000    1.0000    0.0000
+    5.5000    1.0000    0.0000
+    6.0000    1.0000    0.0000
+>>
+SCALE     scale
+
+# make solid
+UDPRIM    guide     nxsect  17
+
+# translate final Body
+TRANSLATE dx  0  0
+
+END

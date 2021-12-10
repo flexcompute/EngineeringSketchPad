@@ -1,0 +1,36 @@
+#
+!IFNDEF ESP_ROOT
+!ERROR ESP_ROOT must be set -- Please fix the environment...
+!ENDIF
+#
+IDIR  = $(ESP_ROOT)\include
+!include $(IDIR)\$(ESP_ARCH).$(MSVC)
+LDIR  = $(ESP_ROOT)\lib
+!IFDEF ESP_BLOC
+ODIR  = $(ESP_BLOC)\obj
+TDIR  = $(ESP_BLOC)\test
+!ELSE
+ODIR  = .
+TDIR  = $(ESP_ROOT)\bin
+!ENDIF
+
+
+$(LDIR)\tacsAIM.dll:	tacsAIM.def $(ODIR)\tacsAIM.obj $(LDIR)\utils.lib
+	-del $(LDIR)\tacsAIM.dll $(LDIR)\tacsAIM.lib \
+		$(LDIR)\tacsAIM.exp
+	 link /out:$(LDIR)\tacsAIM.dll /dll /def:tacsAIM.def \
+		$(ODIR)\tacsAIM.obj /LIBPATH:$(LDIR) utils.lib aimUtil.lib \
+		ocsm.lib egads.lib udunits2.lib $(PYTHONLIB)
+	$(MCOMP) /manifest $(LDIR)\tacsAIM.dll.manifest \
+		/outputresource:$(LDIR)\tacsAIM.dll;2
+
+$(ODIR)\tacsAIM.obj:	tacsAIM.c $(IDIR)\capsTypes.h ..\utils\meshUtils.h
+	cl /c $(COPTS) $(DEFINE) /I$(IDIR) /I..\utils tacsAIM.c \
+		/Fo$(ODIR)\tacsAIM.obj
+
+clean:
+	-del $(ODIR)\tacsAIM.obj
+
+cleanall:	clean
+	-del $(LDIR)\tacsAIM.dll $(LDIR)\tacsAIM.lib \
+		$(LDIR)\tacsAIM.exp

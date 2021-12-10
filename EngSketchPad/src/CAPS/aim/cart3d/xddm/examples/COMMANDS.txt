@@ -1,0 +1,13 @@
+# $Id: COMMANDS.txt,v 1.1.1.1 2013/06/04 17:35:44 mnemec Exp $
+
+# Tester of XDDM library. Echoes content of an XDDM file for given XPath expression,
+# and writes an example output file. See the web for XPath basics, for example:
+# www.developer.com/net/net/article.php/3383961/NET-and-XML-XPath-Queries.htm
+
+../xddm_tester basic.xml /Model
+../xddm_tester design.xml /Optimize
+../xddm_tester Functionals.xml /Functionals
+../xddm_tester Config.xml /Configuration
+
+
+# -MN, June 2013

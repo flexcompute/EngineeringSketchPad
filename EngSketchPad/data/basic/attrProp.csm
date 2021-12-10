@@ -1,0 +1,96 @@
+# attrProp
+# written by John Dannenhoffer
+
+# original attributed plate
+BOX       0  0  0  0  1  1
+SELECT    EDGE 1
+ATTRIBUTE name 1
+SELECT    EDGE 2
+ATTRIBUTE name 2
+SELECT    EDGE 3
+ATTRIBUTE name 3
+SELECT    EDGE 4
+ATTRIBUTE name 4
+STORE     plate
+
+# EXTRUDE
+RESTORE   plate
+TRANSLATE -3 -2  0
+EXTRUDE    2  0  0
+
+SELECT    FACE  @nbody  3
+GETATTR   myName $name
+ASSERT    myName 1
+CATBEG    $illegal_attribute            # there should be no signal to catch
+   ASSERT 0 1
+CATEND
+
+SELECT    EDGE  @nbody  1  @nbody  3
+GETATTR   myName $name
+ASSERT    myName 1
+CATBEG    $illegal_attribute            # this is needed because GETATTR failed
+CATEND
+
+# REVOLVE
+RESTORE   plate
+TRANSLATE  2 -2  0
+REVOLVE    2 -3  0  0  0  1  90
+
+SELECT    FACE  @nbody  3
+GETATTR   myName $name
+ASSERT    myName 1
+CATBEG    $illegal_attribute           # there should be no signal to catch
+   ASSERT 0 1
+CATEND
+
+SELECT    EDGE  @nbody  1  @nbody  3
+GETATTR   myName $name
+ASSERT    myName 1
+CATBEG    $illegal_attribute            # this is needed because GETATTR failed
+CATEND
+
+# RULE
+MARK
+   RESTORE   plate
+   TRANSLATE -3  1  0
+   RESTORE   plate
+   TRANSLATE -2  2  0
+   RESTORE   plate
+   TRANSLATE -1  1  0
+RULE
+
+SELECT    FACE  @nbody  3
+GETATTR   myName $name
+ASSERT    myName 1
+CATBEG    $illegal_attribute            # this is needed because GETATTR failed
+CATEND
+
+SELECT    EDGE  @nbody  1  @nbody  3
+GETATTR   myName $name
+ASSERT    myName 1
+CATBEG    $illegal_attribute            # this is needed because GETATTR failed
+CATEND
+
+# BLEND
+MARK
+   RESTORE   plate
+   TRANSLATE  1  1  0
+   RESTORE   plate
+   TRANSLATE  2  2  0
+   RESTORE   plate
+   TRANSLATE  3  1  0
+BLEND
+
+SELECT    FACE  @nbody  3
+GETATTR   myName $name
+ASSERT    myName 1
+CATBEG    $illegal_attribute            # this is needed because GETATTR failed
+CATEND
+
+SELECT    EDGE  @nbody  1  @nbody  3
+GETATTR   myName $name
+ASSERT    myName 1
+CATBEG    $illegal_attribute            # this is needed because GETATTR failed
+CATEND
+
+END

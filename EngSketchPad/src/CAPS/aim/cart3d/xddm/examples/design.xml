@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!-- $Id: design.xml,v 1.3 2015/09/08 17:56:11 mnemec Exp $ -->
+<Optimize>
+  <Configure Sensitivity="Required"/>
+  <!-- Geometry to be optimized is specified by 'Intersect' elements, where the
+       Parts attribute is a comma separated list of all the models and static
+       triangulations that make up your configuration. For example:
+       Parts="pylon.xml, nacelle.xml, wing.xml, fuselage.tri" The order is
+       important because that is the order used by 'comp2tri'. -->
+  <Intersect ID="airfoil" Parts="builder.xml"/>
+  <!-- Freestream conditions (Mach number, alpha and beta) are specified in a
+       DesignPoint element. These parameters can be designated as design
+       variables and they overwrite the content of 'input.cntl'. The Geometry
+       attribute links the DesignPoint to a specific Intersect element. -->
+  <DesignPoint ID="DP1" Geometry="airfoil">
+    <Constant ID="Mach" Value="0.8"/>
+    <Variable ID="alpha" Value="0.1500000000000000E+01" Min="0.0" Max="6.0" TypicalSize="1.0"/>
+    <!-- Use CD+0.1CL to drive mesh adaptation. This is designated by the
+         'Adapt' option. On all but the finest mesh, only the adjoint for this
+         output is solved. -->
+    <Analysis ID="LiftDrag" Sensitivity="None" Value="7.1590988859e-02" DiscretizationError="4.6531345e-03">
+      <AeroFun Options="Adapt">
+        # Force Codes: CD=0 Cy=1 CL=2 in Aerodynamic Frame
+        #         Name    Force   Frame    J      N    Target   Weight  Bound  GMP Comp
+        #        (String) (0,1,2) (0,1) (0,1,2) (int)  (dble)   (dble) (-1,0,1)
+        optForce   CL        2      0      0      1      0.      0.1      0    entire
+        optForce   CD        0      0      0      1      0.      1.0      0    entire
+      </AeroFun>
+    </Analysis>
+    <!-- Adjoints for lift and drag are computed only on the finest mesh. -->
+    <Analysis ID="Lift" Value="4.2170822795e-01">
+      <AeroFun>
+        # Force Codes: CD=0 Cy=1 CL=2 in Aerodynamic Frame
+        #         Name    Force   Frame    J      N    Target   Weight  Bound  GMP Comp
+        #        (String) (0,1,2) (0,1) (0,1,2) (int)  (dble)   (dble) (-1,0,1)
+        optForce   CL        2      0      0      1      0.      1.       0     entire
+      </AeroFun>
+      <SensitivityArray>
+        <Sensitivity P="Model__wing__Bspline__Root__Variable__9" Value="-1.377452048227422e+00"/>
+        <Sensitivity P="Model__wing__Bspline__Root__Variable__11" Value="2.488746750448875e+00"/>
+        <Sensitivity P="Optimize__DesignPoint__DP1__Variable__alpha" Value="2.655343904378947e-01"/>
+      </SensitivityArray>
+    </Analysis>
+    <Analysis ID="Drag" Value="2.9420166064e-02">
+      <AeroFun>
+        # Force Codes: CD=0 Cy=1 CL=2 in Aerodynamic Frame
+        #         Name    Force   Frame    J      N    Target   Weight  Bound  GMP Comp
+        #        (String) (0,1,2) (0,1) (0,1,2) (int)  (dble)   (dble) (-1,0,1)
+        optForce   CD        0      0      0      1      0.      1.       0     entire
+      </AeroFun>
+      <SensitivityArray>
+        <Sensitivity P="Model__wing__Bspline__Root__Variable__9" Value="4.501069615909536e-01"/>
+        <Sensitivity P="Model__wing__Bspline__Root__Variable__11" Value="1.177443349893910e+00"/>
+        <Sensitivity P="Optimize__DesignPoint__DP1__Variable__alpha" Value="2.400723314072045e-02"/>
+      </SensitivityArray>
+    </Analysis>
+    <!-- Define objective and constraint -->
+    <Objective ID="min_drag" Expr="Drag" Value="0.029420166064">
+      <SensitivityArray>
+        <Sensitivity P="Optimize__DesignPoint__DP1__Variable__alpha" Value="0.0240072331407204"/>
+        <Sensitivity P="Model__wing__Bspline__Root__Variable__9" Value="0.450106961590954"/>
+        <Sensitivity P="Model__wing__Bspline__Root__Variable__11" Value="1.17744334989391"/>
+      </SensitivityArray>
+    </Objective>
+    <Constraint ID="hold_lift" Expr="Lift" Min="0.6" Value="0.42170822795">
+      <SensitivityArray>
+        <Sensitivity P="Optimize__DesignPoint__DP1__Variable__alpha" Value="0.265534390437895"/>
+        <Sensitivity P="Model__wing__Bspline__Root__Variable__9" Value="-1.37745204822742"/>
+        <Sensitivity P="Model__wing__Bspline__Root__Variable__11" Value="2.48874675044887"/>
+      </SensitivityArray>
+    </Constraint>
+  </DesignPoint>
+</Optimize>

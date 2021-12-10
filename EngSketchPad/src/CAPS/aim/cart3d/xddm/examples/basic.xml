@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!-- Example XDDM file, more details at $CART3D/doc/xddm/xddm.html -->
+<Model ID="airplane">
+  <Variable ID="semispan" Value="4.0" TypicalSize="1" Min="1" Max="10" Comment="semispan of main wing"/>
+  <Variable ID="taper" Value="0.5"/>
+  <Variable ID="1" Value="0" TypicalSize="0.1" Min="-5" Max="12"/>
+  <Constant ID="2" Value="1" Comment="This is a constant"/>
+  <Tessellate ID="1" Comment="Wing"/>
+  <Tessellate ID="3" Comment="Fuse" Edge="aaa" Stuff="Stuff1" Sensitivity="Required"/>
+</Model>

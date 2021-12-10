@@ -1,0 +1,48 @@
+# scope3b.udc (include type)
+# written by John Dannenhoffer
+
+INTERFACE  . ALL
+
+#DESPMTR   des4      99   # not allowed except at top-level
+
+#CFGPMTR   cfg4      99   # not allowed except at top-level
+
+#CONPMTR   con4      99   # not allowed except at top-level
+
+#OUTPMTR   out4           # not allowed except at top-levle
+SET       out4      44   # local variable
+
+SET       lcl4      54
+
+#-----------------------------
+
+POINT     0  0  0
+STORE     .
+ASSERT    @scope  1
+
+ASSERT    ifnan(des1,1,0)  1
+ASSERT    ifnan(des2,1,0)  1
+ASSERT    ifnan(des3,1,0)  1
+ASSERT    ifnan(des4,1,0)  1
+
+ASSERT    ifnan(cfg1,1,0)  1
+ASSERT    ifnan(cfg2,1,0)  1
+ASSERT    ifnan(cfg3,1,0)  1
+ASSERT    ifnan(cfg4,1,0)  1
+
+ASSERT    con1             31
+ASSERT    con2             32
+ASSERT    ifnan(cfg3,1,0)  1
+ASSERT    ifnan(cfg4,1,0)  1
+
+ASSERT    ifnan(out1,1,0)  1
+ASSERT    ifnan(out2,1,0)  1
+ASSERT    ifnan(out3,1,0)  1
+ASSERT    out4             44
+
+ASSERT    ifnan(lcl1,1,0)  1
+ASSERT    ifnan(lcl2,1,0)  1
+ASSERT    ifnan(lcl3,1,0)  1
+ASSERT    lcl4             54
+
+END

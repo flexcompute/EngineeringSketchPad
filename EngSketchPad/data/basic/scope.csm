@@ -1,0 +1,66 @@
+# scope
+# written by John Dannenhoffer
+
+DESPMTR   des1      11
+LBOUND    des1      0
+UBOUND    des1      20
+
+CFGPMTR   cfg1      21
+LBOUND    cfg1      20
+UBOUND    cfg1      30
+
+CONPMTR   con1      31
+#LBOUND    con1      30   # not allowed for CONPMTR
+#UBOUND    con1      50   # not allowed for CONPMTR
+
+SET       out1      41   # overwritten in scope1b
+OUTPMTR   out1
+#LBOUND    out1      40   # not allowed for OUTPMTR
+#UBOUND    out1      50   # not allowed for OUTPMTR
+
+SET       lcl1      51   # overwritten in scope1b
+#LBOUND    lcl1      50   # not allowed for LOCALVAR
+#UBOUND    lcl1      60   # not allowed for LOCALVAR
+
+#-----------------------------
+
+# include-type UDC
+UDPRIM    $/scope1a
+
+# function-type UDC
+UDPRIM    $/scope2a
+
+# function-type UDC
+UDPRIM    $/scope3a
+
+POINT     0  0  0
+ASSERT    @scope  0
+
+#-----------------------------
+
+ASSERT    des1             11
+ASSERT    des2             12
+ASSERT    ifnan(des3,1,0)  1
+ASSERT    ifnan(des4,1,0)  1
+
+ASSERT    cfg1             21
+ASSERT    cfg2             22
+ASSERT    ifnan(cfg3,1,0)  1
+ASSERT    ifnan(cfg4,1,0)  1
+
+ASSERT    con1             31
+ASSERT    con2             32
+ASSERT    ifnan(cfg3,1,0)  1
+ASSERT    ifnan(cfg4,1,0)  1
+
+ASSERT    out1             49
+ASSERT    out2             42
+ASSERT    ifnan(out3,1,0)  1
+ASSERT    ifnan(out4,1,0)  1
+
+ASSERT    lcl1             59
+ASSERT    lcl2             52
+ASSERT    ifnan(lcl3,1,0)  1
+ASSERT    ifnan(lcl4,1,0)  1
+
+END

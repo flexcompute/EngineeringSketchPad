@@ -1,0 +1,11 @@
+# scope2a.udc (include type)
+# written by John Dannenhoffer
+INTERFACE . ALL
+
+POINT     0  0  0
+STORE     .
+ASSERT    @scope  0
+
+UDPRIM    $/scope2b
+
+END

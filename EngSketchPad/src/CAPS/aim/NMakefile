@@ -1,0 +1,236 @@
+#
+!IFNDEF ESP_ROOT
+!ERROR ESP_ROOT must be set -- Please fix the environment...
+!ENDIF
+#
+
+all:
+	cd utils
+	nmake -f NMakefile
+	cd ..
+	cd avl
+	nmake -f NMakefile
+	cd ..
+	cd delaundo
+	nmake -f NMakefile
+	cd ..
+	cd egadsTess
+	nmake -f NMakefile
+	cd ..
+	cd friction
+	nmake -f NMakefile
+	cd ..
+	cd fun3d
+	nmake -f NMakefile
+	cd ..
+	cd mystran
+	nmake -f NMakefile
+	cd ..
+	cd masstran
+	nmake -f NMakefile
+	cd ..
+	cd nastran
+	nmake -f NMakefile
+	cd ..
+	cd pointwise
+	nmake -f NMakefile
+	cd ..
+	cd astros
+	nmake -f NMakefile
+	cd ..
+	cd hsm
+	nmake -f NMakefile
+	cd ..
+	cd su2
+	nmake -f NMakefile
+	cd ..
+	cd tacs
+	nmake -f NMakefile
+	cd ..
+#	cd tsfoil
+#	nmake -f NMakefile
+#	cd ..
+	cd xfoil
+	nmake -f NMakefile
+	cd ..
+	cd interference
+	nmake -f NMakefile
+	cd ..
+!IFDEF AFLR
+	cd aflr2
+	nmake -f NMakefile
+	cd ..
+	cd aflr3
+	nmake -f NMakefile
+	cd ..
+	cd aflr4
+	nmake -f NMakefile
+	cd ..
+!ENDIF
+!IFDEF AWAVE
+	cd awave
+	nmake -f NMakefile
+	cd ..
+!ENDIF
+!IFDEF TETGEN
+	cd tetgen
+	nmake -f NMakefile
+	cd ..
+!ENDIF
+	cd custom
+	nmake -f Nmakefile
+	cd ..
+
+clean:
+	cd utils
+	nmake -f NMakefile clean
+	cd ..
+	cd avl
+	nmake -f NMakefile clean
+	cd ..
+	cd delaundo
+	nmake -f NMakefile clean
+	cd ..
+	cd egadsTess
+	nmake -f NMakefile clean
+	cd ..
+	cd friction
+	nmake -f NMakefile clean
+	cd ..
+	cd fun3d
+	nmake -f NMakefile clean
+	cd ..
+	cd mystran
+	nmake -f NMakefile clean
+	cd ..
+	cd masstran
+	nmake -f NMakefile clean
+	cd ..
+	cd nastran
+	nmake -f NMakefile clean
+	cd ..
+	cd pointwise
+	nmake -f NMakefile clean
+	cd ..
+	cd astros
+	nmake -f NMakefile clean
+	cd ..
+	cd hsm
+	nmake -f NMakefile clean
+	cd ..
+	cd su2
+	nmake -f NMakefile clean
+	cd ..
+	cd tacs
+	nmake -f NMakefile clean
+	cd ..
+#	cd tsfoil
+#	nmake -f NMakefile clean
+#	cd ..
+	cd xfoil
+	nmake -f NMakefile clean
+	cd ..
+	cd interference
+	nmake -f NMakefile clean
+	cd ..
+!IFDEF AFLR
+	cd aflr2
+	nmake -f NMakefile clean
+	cd ..
+	cd aflr3
+	nmake -f NMakefile clean
+	cd ..
+	cd aflr4
+	nmake -f NMakefile clean
+	cd ..
+!ENDIF
+!IFDEF AWAVE
+	cd awave
+	nmake -f NMakefile clean
+	cd ..
+!ENDIF
+!IFDEF TETGEN
+	cd tetgen
+	nmake -f NMakefile clean
+	cd ..
+!ENDIF
+	cd custom
+	nmake -f NMakefile clean
+	cd ..
+	
+cleanall:
+	cd utils
+	nmake -f NMakefile cleanall
+	cd ..
+	cd avl
+	nmake -f NMakefile cleanall
+	cd ..
+	cd delaundo
+	nmake -f NMakefile cleanall
+	cd ..
+	cd egadsTess
+	nmake -f NMakefile cleanall
+	cd ..
+	cd friction
+	nmake -f NMakefile cleanall
+	cd ..
+	cd fun3d
+	nmake -f NMakefile cleanall
+	cd ..
+	cd mystran
+	nmake -f NMakefile cleanall
+	cd ..
+	cd masstran
+	nmake -f NMakefile cleanall
+	cd ..
+	cd nastran
+	nmake -f NMakefile cleanall
+	cd ..
+	cd pointwise
+	nmake -f NMakefile cleanall
+	cd ..
+	cd astros
+	nmake -f NMakefile cleanall
+	cd ..
+	cd hsm
+	nmake -f NMakefile cleanall
+	cd ..
+	cd su2
+	nmake -f NMakefile cleanall
+	cd ..
+	cd tacs
+	nmake -f NMakefile cleanall
+	cd ..
+#	cd tsfoil
+#	nmake -f NMakefile cleanall
+#	cd ..
+	cd xfoil
+	nmake -f NMakefile cleanall
+	cd ..
+	cd interference
+	nmake -f NMakefile cleanall
+	cd ..
+!IFDEF AFLR
+	cd aflr2
+	nmake -f NMakefile cleanall
+	cd ..
+	cd aflr3
+	nmake -f NMakefile cleanall
+	cd ..
+	cd aflr4
+	nmake -f NMakefile cleanall
+	cd ..
+!ENDIF
+!IFDEF AWAVE
+	cd awave
+	nmake -f NMakefile cleanall
+	cd ..
+!ENDIF
+!IFDEF TETGEN
+	cd tetgen
+	nmake -f NMakefile cleanall
+	cd ..
+!ENDIF
+	cd custom
+	nmake -f NMakefile cleanall
+	cd ..

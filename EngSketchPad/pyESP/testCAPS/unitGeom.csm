@@ -1,0 +1,176 @@
+# CSM file example of two wings with an outer bounding box 
+
+# lenght units in ft
+ATTRIBUTE capsLength $ft
+
+# Constant pramaters
+CONPMTR  nConst  10
+
+# Design Parameters:
+CFGPMTR   series            8412
+CFGPMTR   series2           0020
+DESPMTR   area[1,1]         40.00000
+DESPMTR   aspect[1,1]       5.00000
+DESPMTR   taper[1,1]        0.50000
+DESPMTR   twist[1,1]        15.00000
+DESPMTR   wing:lesweep[1,1]  30.00000
+DESPMTR   wing:dihedral[1,1] 1.00000
+DESPMTR   wing:chord:root    1.56
+DESPMTR   htail              1
+DESPMTR   htail:chord        2
+DESPMTR   vtail:chord        3
+DESPMTR   vtail              4
+DESPMTR   sphereR            80.00000
+
+CFGPMTR   VIEW:CFD            1
+
+DESPMTR v@1:d_name     1  # Used to test varaible names
+
+LBOUND taper 0
+UBOUND taper 1
+
+# Output Parameters:
+OUTPMTR  span
+OUTPMTR  dummyRow
+OUTPMTR  dummyRow2
+OUTPMTR  dummyRow3
+OUTPMTR  dummyCol
+OUTPMTR  dummyMat
+OUTPMTR  cmean
+
+
+ATTRIBUTE capsAIM    $fun3dAIM;su2AIM;egadsTessAIM;aflr4AIM;tetgenAIM;aflr3AIM;masstranAIM
+
+# Set reference values
+ATTRIBUTE capsReferenceArea     area
+ATTRIBUTE capsReferenceChord    sqrt(area/aspect)
+ATTRIBUTE capsReferenceSpan     sqrt(area/aspect)*aspect
+
+# Dummy variables for testing 
+CFGPMTR   nrow     3
+CFGPMTR   ncol     2
+
+DIMENSION despMat  nrow ncol
+DESPMTR   despMat  "11;12;\
+                    13;14;\
+                    15;16;"
+
+DIMENSION despCol  nrow 1
+DESPMTR   despCol  "11;\
+                    13;\
+                    15;"
+
+DIMENSION despRow  1 nrow
+DESPMTR   despRow  "11;12;13"
+
+DIMENSION dummyRow   3 1 0
+DIMENSION dummyRow2  3 1 0
+DIMENSION dummyRow3  5 1 0
+DIMENSION dummyCol   1 3 0
+DIMENSION dummyMat   3 2 0
+
+
+
+SET dummyRow    "1;2;3;"
+SET dummyCol    "3;2;1;"
+SET dummyMat    "1;2;\
+                 3;4;\
+                 5;6;"
+
+SET dummyRow2[1] 1
+SET dummyRow2[2] 2
+# Leave dummyRow2[3] unset
+
+SET dummyRow3[0] 1. # sets all entries to 1.
+SET dummyRow3[1] 2.
+SET dummyRow3[2] 3.
+
+
+                                  
+# Branches:
+## [local]
+SET       cmean     sqrt(area/aspect)
+SET       span      cmean*aspect
+SET       sspan     span/2
+SET       croot     2*cmean/(1+taper)
+SET       ctip      croot*taper
+SET       xtip      sspan*tand(wing:lesweep)
+SET       ytip      sspan*tand(wing:dihedral)
+SET       ybot      -0.1*croot
+SET       ytop      +0.2*croot+ytip
+SET       extend    0.02*cmean
+
+MARK
+   UDPRIM    naca   Series   series
+      SCALE     croot
+   UDPRIM    naca   Series   series2
+      SCALE     ctip
+      ROTATEZ   -twist   0   0
+      TRANSLATE xtip   ytip   -sspan
+RULE      0
+
+# Duplicate the half wing and mirror
+RESTORE  .
+    MIRROR    0   0   1   0
+
+# Combine halfs into a whole
+JOIN     0
+
+# Get body into a typical aero-system 
+ROTATEX 90 0 0
+
+# Store the wing 
+STORE     Wing 0 0
+
+MARK
+
+# Wing 1 - Restore
+RESTORE   Wing 0
+    ATTRIBUTE _name $Wing1
+    ATTRIBUTE capsGroup $Wing1
+    ATTRIBUTE capsIntent $OML;CFD
+    ATTRIBUTE .tParam    "5.0; 5.0/15; 35"
+                             #iface;ubar0;vbar0;du2;dv2
+    CSYSTEM   leftWingSkin   5;0;0;0;1
+    CSYSTEM   riteWingSkin   1;0;0;0;1
+
+SELECT face 7 3 1
+    ATTRIBUTE capsBound $Upper_Left
+
+# Wing 2 -  Restore and scale, translate
+RESTORE   Wing 0
+    ATTRIBUTE _name $Wing2
+    ATTRIBUTE capsGroup $Wing2
+    ATTRIBUTE capsIntent $OML;CFD
+    ATTRIBUTE .tParam    "5.0; 5.0/15; 35"
+    
+    SCALE     0.4
+    TRANSLATE 10   0   0
+
+# Create a bounding box as a farfied 
+SPHERE    0   0   0   sphereR
+    ATTRIBUTE _name $Farfield
+    ATTRIBUTE capsGroup $Farfield
+    ATTRIBUTE capsIntent $Farfiled;CFD
+    ATTRIBUTE .tParam    "50; 50/15; 35"
+
+OUTPMTR sphereVol
+set sphereVol @volume
+
+# Create a box baxed on a matrix design parameter
+BOX despMat[1,1] despMat[2,1] despMat[3,1] despMat[1,2] despMat[2,2] despMat[3,2]
+    ATTRIBUTE _name $aBox
+
+OUTPMTR boxVol
+set boxVol @volume
+
+DIMENSION boxCG 3 1
+OUTPMTR boxCG
+set boxCG[1] @xcg
+set boxCG[2] @ycg
+set boxCG[3] @zcg
+
+# Dump out an egads file to test reading parameters
+DUMP unitGeom.egads 0 1
+
+END

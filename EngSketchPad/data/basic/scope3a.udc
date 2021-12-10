@@ -1,0 +1,10 @@
+# scope3a.udc (function type)
+# written by John Dannenhoffer
+
+POINT     0  0  0
+STORE     .
+ASSERT    @scope  1
+
+UDPRIM    $/scope3b
+
+END

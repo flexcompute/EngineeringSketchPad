@@ -1,0 +1,55 @@
+# Example Cart3D input file to create a simple wing model
+#
+# -----------------------------------------------------------------
+# Define the AIMs that the geometry is intended support
+# -----------------------------------------------------------------
+attribute capsAIM    $cart3dAIM
+
+# -----------------------------------------------------------------
+# Design parameters to define the wing cross section and planform 
+# -----------------------------------------------------------------
+despmtr   thick     0.12      frac of local chord
+despmtr   camber    0.00      frac of local chord
+despmtr   area      10.0      Planform area of the full span wing
+despmtr   aspect    6.00      Span^2/Area
+despmtr   taper     0.60      TipChord/RootChord
+dimension twist 2 1
+despmtr   twist     0.00;0.00  Airfoil twist angles
+
+# -----------------------------------------------------------------
+# set parameters for use internally to create geometry
+# -----------------------------------------------------------------
+
+set       span      sqrt(aspect*area)
+set       croot     2*area/span/(1+taper)
+set       ctip      croot*taper
+
+# -----------------------------------------------------------------
+# 1. Create Airfoils using the User Defined Primitive (UDP) naca
+#  > The inputs used for this example to the UDP are Thickness and Camber
+#  > Cross sections are in the X-Y plane and are rotated to the X-Z plane
+# -----------------------------------------------------------------
+
+mark
+udprim    naca      Thickness thick     Camber    camber sharpte 1
+rotatex   90        0        0
+scale     croot
+rotatey   twist[1]  croot    0
+udprim    naca      Thickness thick     Camber    camber sharpte 1
+rotatex   90        0        0
+translate 0         span     0
+scale     ctip
+rotatey   twist[2]  ctip     0
+rule
+
+select face
+  attribute capsGroup          $Wing
+  attribute capsReferenceArea  area
+  attribute capsReferenceSpan  span
+  attribute capsReferenceChord croot
+  attribute capsReferenceX     croot/4
+
+# Trigger TFI templates for taper=1
+select edge @nbody 3 @nbody 4 1
+select add  @nbody 3 @nbody 4 2
+  attribute .nPos 40

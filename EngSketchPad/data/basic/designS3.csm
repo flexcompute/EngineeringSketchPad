@@ -1,0 +1,24 @@
+# designS3
+# written by John Dannenhoffer
+
+DESPMTR   len   10.
+DESPMTR   Rcyl  0.5
+DESPMTR   Rsph  3.0
+
+CYLINDER  -len/2   0   0   len/2   0   0   Rcyl
+SPHERE    0        0   0                   Rsph
+UNION
+
+SELECT    FACE   1  1
+ATTRIBUTE _color $red
+
+UDPRIM    printBbox
+UDPRIM    printBrep
+UDPRIM    printEgo
+
+UDPRIM    editAttr  filename <<
+   FACE   HAS   _color=red
+   SET          _color
+>>
+
+END

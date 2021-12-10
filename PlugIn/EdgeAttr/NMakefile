@@ -1,0 +1,21 @@
+#	Makefile for Windows
+#
+IDIR  = $(ESP_ROOT)\include
+!include $(IDIR)\$(ESP_ARCH).$(MSVC)
+LDIR  = $(ESP_ROOT)\lib
+
+$(LDIR)\edgeAttr.dll:	udfEdgeAttr.obj
+	-del $(LDIR)\edgeAttr.dll $(LDIR)\edgeAttr.lib $(LDIR)\edgeAttr.exp
+	link /out:$(LDIR)\edgeAttr.dll /dll /def:udf.def udfEdgeAttr.obj \
+		$(LDIR)\egads.lib
+	$(MCOMP) /manifest $(LDIR)\edgeAttr.dll.manifest \
+		/outputresource:$(LDIR)\edgeAttr.dll;2
+
+udfEdgeAttr.obj:	udfEdgeAttr.c
+	cl /c $(COPTS) $(DEFINE) /I$(IDIR) udfEdgeAttr.c
+
+clean:
+	-del udfEdgeAttr.obj
+
+cleanall:	clean
+	-del $(LDIR)\edgeAttr.dll $(LDIR)\edgeAttr.lib $(LDIR)\edgeAttr.exp
