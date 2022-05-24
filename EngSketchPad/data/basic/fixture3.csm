@@ -1,0 +1,35 @@
+# fixture3 (not ganged)
+# adapted by John Dannenhoffer from case sent by Brett Clark
+
+# basic shape (with holes)
+BOX       0   0   0   10   10   1.5
+BOX       0.5 0.5 1   9    9    1
+SUBTRACT
+
+CYLINDER  -1   9   .5   11   9   .5   .2
+SUBTRACT  none   1   0
+CYLINDER  -1   3   .5   11   3   .5   .3
+SUBTRACT  none   1   0
+
+# horizontal ribs
+PATBEG    y_index   17
+   BOX       .25   .75+(y_index-1)*0.5   0.95   9.5   .25   .35
+PATEND
+UDPRIM    ganged   op $UNION
+
+# vertical ribs
+PATBEG    x_index   17
+   BOX       .75+(x_index-1)*0.5   .25   0.95   .25   9.5   .35
+PATEND
+UDPRIM    ganged   op $UNION
+
+# imprints for loads
+PATBEG    i  4
+   PATBEG    j  4
+      BOX       2.75*i-2.50   2.75*j-2.50   -1   0.5   0.5   1
+      ATTRIBUTE pad  val2str(i,0)+$_+j
+   PATEND
+PATEND
+UDPRIM    ganged   op $SUBTRACT
+
+END

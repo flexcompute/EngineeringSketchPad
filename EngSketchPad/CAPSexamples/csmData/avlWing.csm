@@ -1,6 +1,6 @@
 # Example AVL input file to create a simple wing model
 #
-# serveCSM avlWing.csm
+# serveESP avlWing.csm
 
 # -----------------------------------------------------------------
 # Define the AIM that the geometry is intended support

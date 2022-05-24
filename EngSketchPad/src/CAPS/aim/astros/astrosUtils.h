@@ -8,24 +8,24 @@ extern "C" {
 #endif
 
 // Write a Astros connections card from a feaConnection structure
-int astros_writeConnectionCard(FILE *fp, feaConnectionStruct *feaConnect,
-                               feaFileFormatStruct *feaFileFormat);
+int astros_writeConnectionCard(FILE *fp, const feaConnectionStruct *feaConnect,
+                               const feaFileFormatStruct *feaFileFormat);
 
 // Write out PLYLIST Card.
 int astros_writePlyListCard(FILE *fp, feaFileFormatStruct *feaFileFormat,
                             int id, int numVal, int values[]);
 
 // Write Nastran load card from a feaLoad structure
-int astros_writeLoadCard(FILE *fp, meshStruct *mesh, feaLoadStruct *feaLoad,
-                         feaFileFormatStruct *feaFileFormat);
+int astros_writeLoadCard(FILE *fp, const meshStruct *mesh, const feaLoadStruct *feaLoad,
+                         const feaFileFormatStruct *feaFileFormat);
 
 // Write a Astros AEROS card from a feaAeroRef structure
-int astros_writeAEROSCard(FILE *fp, feaAeroRefStruct *feaAeroRef,
-                          feaFileFormatStruct *feaFileFormat);
+int astros_writeAEROSCard(FILE *fp, const feaAeroRefStruct *feaAeroRef,
+                          const feaFileFormatStruct *feaFileFormat);
 
 // Write a Astros AEROS card from a feaAeroRef structure
-int astros_writeAEROCard(FILE *fp, feaAeroRefStruct *feaAeroRef,
-                         feaFileFormatStruct *feaFileFormat);
+int astros_writeAEROCard(FILE *fp, const feaAeroRefStruct *feaAeroRef,
+                         const feaFileFormatStruct *feaFileFormat);
 
 // Write out FLFact Card.
 int astros_writeFLFactCard(FILE *fp, feaFileFormatStruct *feaFileFormat,
@@ -37,66 +37,66 @@ int astros_writeAEFactCard(FILE *fp, feaFileFormatStruct *feaFileFormat,
 
 // Check to make for the bodies' topology are acceptable for airfoil shapes
 // Return: CAPS_SUCCESS if everything is ok
-// 		   CAPS_SOURCEERR if not acceptable
-// 		   CAPS_* if something else went wrong
+//         CAPS_SOURCEERR if not acceptable
+//         CAPS_* if something else went wrong
 int astros_checkAirfoil(void *aimInfo,
-						feaAeroStruct *feaAero);
+                        feaAeroStruct *feaAero);
 
 // Write out all the Aero cards necessary to define the VLM surface
 int astros_writeAeroData(void *aimInfo, FILE *fp,
-			 int useAirfoilShape, // = true use the airfoils shape, = false panel
+                         int useAirfoilShape, // = true use the airfoils shape, = false panel
                          feaAeroStruct *feaAero,
-                         feaFileFormatStruct *feaFileFormat);
+                         const feaFileFormatStruct *feaFileFormat);
 
 // Write Astros CAERO6 cards from a feaAeroStruct
 int astros_writeCAeroCard(FILE *fp, feaAeroStruct *feaAero,
-                          feaFileFormatStruct *feaFileFormat);
+                          const feaFileFormatStruct *feaFileFormat);
 
 // Write out all the Airfoil cards for each each of a surface
 int astros_writeAirfoilCard(FILE *fp,
                             int useAirfoilShape, // = true use the airfoils shape, = false panel
                             feaAeroStruct *feaAero,
-                            feaFileFormatStruct *feaFileFormat);
+                            const feaFileFormatStruct *feaFileFormat);
 
 // Write Astros Spline1 cards from a feaAeroStruct
 int astros_writeAeroSplineCard(FILE *fp, feaAeroStruct *feaAero,
-                               feaFileFormatStruct *feaFileFormat);
+                               const feaFileFormatStruct *feaFileFormat);
 
 // Write Astros constraint card from a feaConstraint structure
 int astros_writeConstraintCard(FILE *fp, int feaConstraintSetID,
-                               feaConstraintStruct *feaConstraint,
-                               feaFileFormatStruct *feaFileFormat);
+                               const feaConstraintStruct *feaConstraint,
+                               const feaFileFormatStruct *feaFileFormat);
 
 // Write Astros support card from a feaSupport structure
 int astros_writeSupportCard(FILE *fp, feaSupportStruct *feaSupport,
-                            feaFileFormatStruct *feaFileFormat);
+                            const feaFileFormatStruct *feaFileFormat);
 
 // Write a Astros Property card from a feaProperty structure w/ design parameters
 int astros_writePropertyCard(FILE *fp, feaPropertyStruct *feaProperty,
-                             feaFileFormatStruct *feaFileFormat,
+                             const feaFileFormatStruct *feaFileFormat,
                              int numDesignVariable,
                              feaDesignVariableStruct feaDesignVariable[]);
 
 // Write Astros element cards not supported by mesh_writeNastran in meshUtils.c
-int astros_writeSubElementCard(FILE *fp, meshStruct *feaMesh, int numProperty,
-                               feaPropertyStruct *feaProperty,
-                               feaFileFormatStruct *feaFileFormat);
+int astros_writeSubElementCard(FILE *fp, const meshStruct *feaMesh, int numProperty,
+                               const feaPropertyStruct *feaProperty,
+                               const feaFileFormatStruct *feaFileFormat);
 
 // Write a Astros Analysis card from a feaAnalysis structure
-int astros_writeAnalysisCard(FILE *fp, feaAnalysisStruct *feaAnalysis,
-                             feaFileFormatStruct *feaFileFormat);
+int astros_writeAnalysisCard(FILE *fp, const feaAnalysisStruct *feaAnalysis,
+                             const feaFileFormatStruct *feaFileFormat);
 
 // Write design variable/optimization information from a feaDesignVariable structure
 int astros_writeDesignVariableCard(FILE *fp, feaDesignVariableStruct *feaDesignVariable,
                                    int numProperty, feaPropertyStruct feaProperty[],
-                                   feaFileFormatStruct *feaFileFormat);
+                                   const feaFileFormatStruct *feaFileFormat);
 
 // Write design constraint/optimization information from a feaDesignConstraint structure
 int astros_writeDesignConstraintCard(FILE *fp, int feaDesignConstraintSetID,
                                      feaDesignConstraintStruct *feaDesignConstraint,
                                      int numMaterial, feaMaterialStruct feaMaterial[],
                                      int numProperty, feaPropertyStruct feaProperty[],
-                                     feaFileFormatStruct *feaFileFormat);
+                                     const feaFileFormatStruct *feaFileFormat);
 
 // Read data from a Astros OUT file to determine the number of eignevalues
 int astros_readOUTNumEigenValue(FILE *fp, int *numEigenVector);
@@ -124,8 +124,8 @@ int astros_writeGeomParametrization(FILE *fp, void *aimInfo,
                                     int numDesignVariable,
                                     feaDesignVariableStruct *feaDesignVariable,
                                     int numGeomIn, capsValue *geomInVal,
-                                    meshStruct *feaMesh,
-                                    feaFileFormatStruct *feaFileFormat);
+                                    const meshStruct *feaMesh,
+                                    const feaFileFormatStruct *feaFileFormat);
 
 // Write a mesh contained in the mesh structure in Astros format (*.bdf)
 int astros_writeMesh(void *aimInfo,

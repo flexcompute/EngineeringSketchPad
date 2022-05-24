@@ -1,7 +1,7 @@
 # Example AWAVE input file to create a simple wing model
 #
-# Note to execute in serveCSM a dictionary file must be included
-# serveCSM -dict $ESP_ROOT/include/intent.dict awaveWingTailFuselage.csm
+# Note to execute in serveESP a dictionary file must be included
+# serveESP -dict $ESP_ROOT/include/intent.dict awaveWingTailFuselage.csm
 
 # -----------------------------------------------------------------
 # Define the analysis fidelity that the geometry is intended support

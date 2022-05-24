@@ -1,0 +1,17 @@
+# test
+# written by John Dannenhoffer
+
+DESPMTR   L    4
+DESPMTR   H    3
+DESPMTR   D    2
+
+OUTPMTR   myVol
+
+BOX       -L/2  -H/2  -D/2  L  H  D
+SET       myVol @volume
+MESSAGE   myVol_=_+myVol
+
+SELECT    FACE   @nbody  6
+ATTRIBUTE _color $cyan
+
+END

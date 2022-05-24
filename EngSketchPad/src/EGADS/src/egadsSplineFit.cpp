@@ -3,7 +3,7 @@
  *
  *             Spline Fitting Functions w/ Derivatives
  *
- *      Copyright 2011-2021, Massachusetts Institute of Technology
+ *      Copyright 2011-2022, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -39,17 +39,24 @@ extern "C" int EG_fixedKnots( const ego object );
 
 /* to deal with tolerance & print statements */
 
-static double value(double val)
+static double value(const double& val)
 {
   return val;
 }
 
-template <int N>
-static double value(SurrealS<N> valS)
+
+static double value(const SurrealS<1>& valS)
 {
   return valS.value();
 }
 
+#ifdef SURREALS_LAZY_H
+template <class Expr, class T>
+static double value(const SurrealSType<Expr, T>& valS)
+{
+  return valS.value();
+}
+#endif
 
 template<class T, class T2>
 static int

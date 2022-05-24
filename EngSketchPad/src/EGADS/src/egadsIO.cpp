@@ -3,7 +3,7 @@
  *
  *             Load & Save Functions
  *
- *      Copyright 2011-2021, Massachusetts Institute of Technology
+ *      Copyright 2011-2022, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -13,6 +13,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+
+//#define WRITECSYS
 
 #include "egadsTypes.h"
 #include "egadsInternals.h"
@@ -29,12 +31,19 @@
 #endif
 #include <StepRepr_RepresentationItem.hxx>
 #include <StepRepr_RepresentationContext.hxx>
+#ifdef WRITECSYS
+#include <StepRepr_ConstructiveGeometryRepresentation.hxx>
+#include <StepRepr_HArray1OfRepresentationItem.hxx>
+#include <StepGeom_Axis2Placement3d.hxx>
+#include <GeomToStep_MakeAxis2Placement3d.hxx>
+#endif
 #include <STEPConstruct.hxx>
 #include <Interface_Graph.hxx>
 #include <Interface_EntityIterator.hxx>
 #include <XSControl_WorkSession.hxx>
 #include <XSControl_TransferReader.hxx>
 #include <APIHeaderSection_MakeHeader.hxx>
+#include <Interface_Static.hxx>
 
 
 class egadsLabel
@@ -50,7 +59,7 @@ public:
 #endif
 
 
-#define INTERIM
+//#define INTERIM
 
 #define UVTOL    1.e-4
 
@@ -82,6 +91,14 @@ public:
                                    /*@null@*/ const int    **ints,
                                    /*@null@*/ const double **reals,
                                    /*@null@*/ const char   **str );
+#ifdef WRITECSYS
+  extern "C" int  EG_attributeGet( const egObject *obj, int index,
+                                   const char **name, int *type, int *len,
+                                   /*@null@*/ const int    **ints,
+                                   /*@null@*/ const double **reals,
+                                   /*@null@*/ const char   **str );
+  extern "C" int  EG_attributeNum( const egObject *obj, int *num );
+#endif
   extern "C" int  EG_statusTessBody( egObject *tess, egObject **body,
                                      int *state, int *npts );
   extern "C" int  EG_getBodyTopos( const egObject *body, egObject *src,
@@ -624,7 +641,6 @@ EG_readAttrs(egObject *obj, int nattr, FILE *fp)
 void
 EG_initOCC()
 {
-#if CASVER >= 690
   int  np;
   char *env;
 
@@ -632,10 +648,15 @@ EG_initOCC()
   np  = 2;
   if (env != NULL) np = atoi(env);
   if (np > 1) BOPAlgo_Options::SetParallelMode(Standard_True);
+
+#ifdef OCC_VERSION_DEVELOPMENT
+  if (strcmp("ESP", OCC_VERSION_DEVELOPMENT) == 0) return;
 #endif
   if (((OCC_VERSION_MAJOR       != 7) || (OCC_VERSION_MINOR != 3) ||
        (OCC_VERSION_MAINTENANCE == 0)) &&
       ((OCC_VERSION_MAJOR       != 7) || (OCC_VERSION_MINOR != 4) ||
+       (OCC_VERSION_MAINTENANCE == 0)) &&
+      ((OCC_VERSION_MAJOR       != 7) || (OCC_VERSION_MINOR != 6) ||
        (OCC_VERSION_MAINTENANCE == 0)))
     printf(" EGADS WARNING: OpenCASCADE %d.%d.%d NOT an Authorized Release!\n",
            OCC_VERSION_MAJOR, OCC_VERSION_MINOR, OCC_VERSION_MAINTENANCE);
@@ -827,36 +848,43 @@ EG_readTess(FILE *fp, egObject *body, egObject **tess)
 
 
 static void
-EG_importScale(const char *reader, const char *units, double *scale)
+EG_importScale(const char *reader, const char *units, double *scale,
+               const char **wunits)
 {
   if ((strcasecmp(units,"inch")   == 0) ||
       (strcasecmp(units,"inches") == 0) ||
       (strcasecmp(units,"in")     == 0)) {
     *scale = 1.0/25.4;
-    printf("  %s Reader Info: Using %s\n", reader, units);
+    if (wunits != NULL) *wunits = "INCH";
+    printf("  %s Info: Using %s\n", reader, units);
   } else if ((strcasecmp(units,"foot") == 0) ||
              (strcasecmp(units,"feet") == 0) ||
              (strcasecmp(units,"ft")   == 0)) {
     *scale = 1.0/304.8;
-    printf("  %s Reader Info: Using %s\n", reader, units);
+    if (wunits != NULL) *wunits = "FT";
+    printf("  %s Info: Using %s\n", reader, units);
   } else if ((strcasecmp(units,"metre")  == 0) ||
              (strcasecmp(units,"meter")  == 0) ||
              (strcasecmp(units,"meters") == 0) ||
              (strcasecmp(units,"m")      == 0)) {
     *scale = 1.0/1000.0;
-    printf("  %s Reader Info: Using %s\n", reader, units);
+    if (wunits != NULL) *wunits = "M";
+    printf("  %s Info: Using %s\n", reader, units);
   } else if ((strcasecmp(units,"centimetre")  == 0) ||
              (strcasecmp(units,"centimeter")  == 0) ||
              (strcasecmp(units,"centimeters") == 0) ||
              (strcasecmp(units,"cm")          == 0)) {
-    *scale = 1.0/100.0;
-    printf("  %s Reader Info: Using %s\n", reader, units);
+    *scale = 1.0/10.0;
+    if (wunits != NULL) *wunits = "CM";
+    printf("  %s Info: Using %s\n", reader, units);
   } else if ((strcasecmp(units,"millimetre")  == 0) ||
              (strcasecmp(units,"millimeter")  == 0) ||
              (strcasecmp(units,"millimeters") == 0) ||
              (strcasecmp(units,"mm")          == 0)) {
-    printf("  %s Reader Info: Using %s\n", reader, units);
+    if (wunits != NULL) *wunits = "MM";
+    printf("  %s Info: Using %s\n", reader, units);
   } else {
+    if (wunits != NULL) *wunits = "MM";
     printf(" EGADS %s Info: Cannot convert %s -- using millimeters!\n",
            reader, units);
   }
@@ -867,9 +895,9 @@ int
 EG_loadModel(egObject *context, int bflg, const char *name, egObject **model)
 {
   int          i, j, stat, outLevel, len, nattr, nerr, hite, hitf, egads = 0;
-  int          oclass, ibody, nas = 0, nbs = 0;
-  double       scale = 1.0;
-  const char   *units;
+  int          oclass, ibody, *invalid = NULL, nas = 0, nbs = 0;
+  double       scale  = 1.0;
+  char         *units = NULL;
   egObject     *omodel, *aobj;
   TopoDS_Shape source;
   egadsModel   *mshape = NULL;
@@ -935,8 +963,8 @@ EG_loadModel(egObject *context, int bflg, const char *name, egObject **model)
       if (unitLength.Length() >= 1) {
         if (unitLength.Length() > 1)
           printf(" EGADS Info: # unitLengths = %d\n", unitLength.Length());
-        units = unitLength(1).ToCString();
-        EG_importScale("STEP", units, &scale);
+        units = EG_strdup(unitLength(1).ToCString());
+        EG_importScale("STEP Reader", units, &scale, NULL);
       }
     }
 
@@ -1137,8 +1165,8 @@ EG_loadModel(egObject *context, int bflg, const char *name, egObject **model)
       if(!aModel.IsNull()) {
         Handle(TCollection_HAsciiString) aUnitName =
                                             aModel->GlobalSection().UnitName();
-        units = aUnitName->ToCString();
-        EG_importScale("IGES", units, &scale);
+        units = EG_strdup(aUnitName->ToCString());
+        EG_importScale("IGES Reader", units, &scale, NULL);
       }
     }
     iReader.TransferRoots();
@@ -1397,13 +1425,21 @@ EG_loadModel(egObject *context, int bflg, const char *name, egObject **model)
       printf(" EGADS Warning: Nothing found in %s (EG_loadModel)!\n", name);
     return EGADS_NODATA;
   }
+  if (egads == 0) {
+    invalid = (int *) EG_alloc(nBody*sizeof(int));
+    if (invalid == NULL) {
+      printf(" EGADS Warning: Cannot check for Invalid Bodies (EG_loadModel)!\n");
+    } else {
+      for (i = 0; i < nBody; i++) invalid[i] = 0;
+    }
+  }
   
   mshape              = new egadsModel;
   mshape->shape       = source;
   mshape->nobjs       = nBody;
   mshape->nbody       = nBody;
   mshape->bbox.filled = 0;
-  mshape->bodies = new egObject*[nBody];
+  mshape->bodies      = new egObject*[nBody];
   for (i = 0; i < nBody; i++) {
     stat = EG_makeObject(context, &mshape->bodies[i]);
     if (stat != EGADS_SUCCESS) {
@@ -1452,12 +1488,14 @@ EG_loadModel(egObject *context, int bflg, const char *name, egObject **model)
         if (fixedShape.IsNull()) {
           if (outLevel > 0)
             printf(" EGADS Warning: Body %d is an Invalid WireBody!\n", i);
+          if (invalid != NULL) invalid[i-1] = 1;
         } else {
           BRepCheck_Analyzer wfCheck(fixedShape);
           if (!wfCheck.IsValid()) {
             if (outLevel > 0)
               printf(" EGADS Warning: Fixed Body %d is an Invalid WireBody!\n",
                      i);
+            if (invalid != NULL) invalid[i-1] = 1;
           } else {
             pbody->shape = fixedShape;
           }
@@ -1479,12 +1517,14 @@ EG_loadModel(egObject *context, int bflg, const char *name, egObject **model)
         if (fixedShape.IsNull()) {
           if (outLevel > 0)
             printf(" EGADS Warning: Body %d is an Invalid FaceBody!\n", i);
+          if (invalid != NULL) invalid[i-1] = 1;
         } else {
           BRepCheck_Analyzer ffCheck(fixedShape);
           if (!ffCheck.IsValid()) {
             if (outLevel > 0)
               printf(" EGADS Warning: Fixed Body %d is an Invalid FaceBody!\n",
                      i);
+            if (invalid != NULL) invalid[i-1] = 1;
           } else {
             pbody->shape = fixedShape;
           }
@@ -1506,17 +1546,20 @@ EG_loadModel(egObject *context, int bflg, const char *name, egObject **model)
         if (fixedShape.IsNull()) {
           if (outLevel > 0)
             printf(" EGADS Warning: Body %d is an Invalid SheetBody!\n", i);
+          if (invalid != NULL) invalid[i-1] = 1;
         } else {
           if (fixedShape.ShapeType() != TopAbs_SHELL) {
             if (outLevel > 0)
               printf(" EGADS Reject: Fixed Body %d is No longer a SheetBody!\n",
                      i);
+            if (invalid != NULL) invalid[i-1] = 1;
           } else {
             BRepCheck_Analyzer sfCheck(fixedShape);
             if (!sfCheck.IsValid()) {
               if (outLevel > 0)
                 printf(" EGADS Warning: Fixed Body %d is an Invalid SheetBody!\n",
                        i);
+              if (invalid != NULL) invalid[i-1] = 1;
             } else {
               pbody->shape = fixedShape;
             }
@@ -1540,17 +1583,20 @@ EG_loadModel(egObject *context, int bflg, const char *name, egObject **model)
         if (fixedShape.IsNull()) {
           if (outLevel > 0)
             printf(" EGADS Warning: Body %d is an Invalid SolidBody!\n", i);
+          if (invalid != NULL) invalid[i-1] = 1;
         } else {
           if (fixedShape.ShapeType() != TopAbs_SHELL) {
             if (outLevel > 0)
               printf(" EGADS Reject: Fixed Body %d is No longer a SolidBody!\n",
                      i);
+            if (invalid != NULL) invalid[i-1] = 1;
           } else {
             BRepCheck_Analyzer sfCheck(fixedShape);
             if (!sfCheck.IsValid()) {
               if (outLevel > 0)
                 printf(" EGADS Warning: Fixed Body %d is an Invalid SolidBody!\n",
                        i);
+              if (invalid != NULL) invalid[i-1] = 1;
             } else {
               pbody->shape = fixedShape;
             }
@@ -1578,6 +1624,7 @@ EG_loadModel(egObject *context, int bflg, const char *name, egObject **model)
       }
       delete [] labels;
     }
+    if (invalid != NULL) EG_free(invalid);
     return stat;
   }
   omodel->oclass = MODEL;
@@ -1602,12 +1649,16 @@ EG_loadModel(egObject *context, int bflg, const char *name, egObject **model)
           }
           delete [] labels;
         }
+        if (invalid != NULL) EG_free(invalid);
         return stat;
       }
       if (outLevel > 0)
         printf(" EGADS Warning: Body  %d parse = %d!\n", i+1, stat);
       continue;
     }
+    if (invalid != NULL)
+      if (invalid[i] == 1)
+        EG_attributeAdd(pobj, ".invalid", ATTRSTRING, 1, NULL, NULL, name);
     mshape->bodies[j] = mshape->bodies[i];
     j++;
   }
@@ -1624,10 +1675,20 @@ EG_loadModel(egObject *context, int bflg, const char *name, egObject **model)
         }
         delete [] labels;
       }
+      if (invalid != NULL) EG_free(invalid);
       return EGADS_TOPOERR;
     }
   }
   *model = omodel;
+  
+  /* possibly assign units when doing an IGES/STEP read */
+  if (units != NULL) {
+    for (int ibody = 0; ibody < mshape->nbody; ibody++) {
+      egObject *pobj = mshape->bodies[ibody];
+      EG_attributeAdd(pobj, ".lengthUnits", ATTRSTRING, 1, NULL, NULL, units);
+    }
+    EG_free(units);
+  }
   
   /* possibly assign attributes from IGES/STEP read */
   if (labels != NULL) {
@@ -1660,6 +1721,7 @@ EG_loadModel(egObject *context, int bflg, const char *name, egObject **model)
     }
     delete [] labels;
   }
+  if (invalid != NULL) EG_free(invalid);
   if (egads != 1) return EGADS_SUCCESS;
 
   /* get the attributes from the EGADS files */
@@ -1993,7 +2055,7 @@ EG_writeTess(const egObject *tess, FILE *fp)
   for (iface = 0; iface < nface; iface++) {
     status = EG_getTessFace(tess, iface+1, &len, &pxyz, &puv, &ptype, &pindex,
                             &ntri, &ptris, &ptric);
-    if (status != EGADS_SUCCESS) return status;
+    if ((status != EGADS_SUCCESS) && (status != EGADS_NODATA)) return status;
     fprintf(fp, " %d %d\n", len, ntri);
     if ((len == 0) || (ntri == 0)) continue;
     for (j = 0; j < len; j++)
@@ -2016,14 +2078,21 @@ EG_writeTess(const egObject *tess, FILE *fp)
 
 
 static void
-EG_setSTEPname(int nbody, const egObject **bodies,
-               Handle(Transfer_FinderProcess) FP)
+EG_setSTEPname(const Handle(XSControl_WorkSession) &WS, int nbody,
+               const egObject **bodies, Handle(Transfer_FinderProcess) FP)
 {
   int          i, j, stat, aType, aLen, nshell, nface, nloop, nedge, nnode;
   const int    *ints;
   const double *reals;
   const char   *str;
   Handle(StepRepr_RepresentationItem) r;
+  
+#ifdef WRITECSYS
+  // Get working data & place to store Body CSYSs
+  const Handle(Interface_InterfaceModel) &aModel = WS->Model();
+  Handle(StepRepr_HArray1OfRepresentationItem) reprItems =
+    new StepRepr_HArray1OfRepresentationItem;
+#endif
   
   for (j = 0; j < nbody; j++) {
     egadsBody *pbody = (egadsBody *) bodies[j]->blind;
@@ -2035,13 +2104,39 @@ EG_setSTEPname(int nbody, const egObject **bodies,
   
     stat   = EG_attributeRet(bodies[j], "Name", &aType, &aLen, &ints, &reals,
                              &str);
-    if (stat  != EGADS_SUCCESS) continue;
-    if (aType != ATTRSTRING)    continue;
-    r = STEPConstruct::FindEntity(FP, pbody->shape);
-    if (!r.IsNull()) {
-      Handle(TCollection_HAsciiString) id = new TCollection_HAsciiString(str);
-      r->SetName(id);
-    }
+    if (stat == EGADS_SUCCESS)
+      if (aType == ATTRSTRING) {
+        r = STEPConstruct::FindEntity(FP, pbody->shape);
+        if (!r.IsNull()) {
+          Handle(TCollection_HAsciiString) id = new TCollection_HAsciiString(str);
+          r->SetName(id);
+        }
+      }
+
+#ifdef WRITECSYS
+    // find unattached Body CSYSs
+    int nAttr;
+    stat = EG_attributeNum(bodies[j], &nAttr);
+    if (stat == EGADS_SUCCESS)
+      for (i = 1; i <= nAttr; i++) {
+        const char *name;
+        stat = EG_attributeGet(bodies[j], i, &name, &aType, &aLen, &ints,
+                               &reals, &str);
+        if (stat == EGADS_SUCCESS)
+          if ((aType == ATTRCSYS) && (aLen == 9)) {
+            gp_Pnt pntc(reals[ 9], reals[10], reals[11]);
+            gp_Dir dirx(reals[12], reals[13], reals[14]);
+            gp_Dir diry(reals[15], reals[16], reals[17]);
+            gp_Ax2 aDTAxis(pntc, dirx, diry);
+            GeomToStep_MakeAxis2Placement3d anAxisMaker(aDTAxis);
+            Handle(StepGeom_Axis2Placement3d) anA2P3D = anAxisMaker.Value();
+            anA2P3D->SetName(new TCollection_HAsciiString(name));
+            int len = reprItems->Length() + 1;
+            reprItems->Resize(1, len, Standard_True);
+            reprItems->SetValue(len, anA2P3D);
+          }
+      }
+#endif
 
     for (i = 0; i < nshell; i++) {
       egObject   *aobj   = pbody->shells.objs[i];
@@ -2114,6 +2209,57 @@ EG_setSTEPname(int nbody, const egObject **bodies,
     }
   }
 
+#ifdef WRITECSYS
+  // do we need to add any Body CSYSs?
+  if (reprItems->Length() > 0) {
+    Handle(StepRepr_RepresentationContext) dummyRC;
+    Handle(StepRepr_ConstructiveGeometryRepresentation) theRepr =
+      new StepRepr_ConstructiveGeometryRepresentation();
+    theRepr->Init(new TCollection_HAsciiString("supplemental geometry"),
+                  reprItems, dummyRC);
+    aModel->AddWithRefs(theRepr);
+  }
+#endif
+
+}
+
+
+static void
+EG_getBodyUnits(const egObject *model, int nBody, const egObject **bodies,
+                const char **units)
+{
+  int          i, stat, aType, aLen;
+  const int    *ints;
+  const double *reals;
+  const char   *str;
+  
+  *units = NULL;
+  if (model != NULL) {
+    stat = EG_attributeRet(model, ".lengthUnits", &aType, &aLen, &ints,
+                           &reals, &str);
+    if (stat == EGADS_SUCCESS)
+      if (aType == ATTRSTRING) {
+        *units = str;
+        return;
+      }
+  }
+  
+  for (i = 0; i < nBody; i++) {
+    stat = EG_attributeRet(bodies[i], ".lengthUnits", &aType, &aLen, &ints,
+                           &reals, &str);
+    if (stat == EGADS_SUCCESS)
+      if (aType == ATTRSTRING)
+        if (*units == NULL) {
+          *units = str;
+        } else {
+          if (strcmp(*units, str) != 0) {
+            printf(" EGADS Warning: Inconsistent Units (EG_saveModel)!\n");
+            *units = NULL;
+            return;
+          }
+        }
+  }
+
 }
 
 
@@ -2121,8 +2267,10 @@ int
 EG_saveModel(const egObject *model, const char *name)
 {
   int            i, j, n, len, outLevel, ibody, nbody, stat;
+  double         scale = 1.0;
   TopoDS_Shape   wshape;
-  const egObject **objs;
+  const egObject *mdl, **objs;
+  const char     *units, *wunits;
   FILE           *fp;
   
   if  (model == NULL)               return EGADS_NULLOBJ;
@@ -2163,11 +2311,13 @@ EG_saveModel(const egObject *model, const char *name)
     wshape             = mshape->shape;
     nbody              = mshape->nbody;
     objs               = (const egObject **) mshape->bodies;
+    mdl                = model;
   } else {
     egadsBody *mshape  = (egadsBody *) model->blind;
     wshape             = mshape->shape;
     nbody              = 1;
     objs               = &model;
+    mdl                = NULL;
   }
   
   if ((strcasecmp(&name[i],".step") == 0) || 
@@ -2175,7 +2325,15 @@ EG_saveModel(const egObject *model, const char *name)
 
     /* STEP files */
     
+    EG_getBodyUnits(mdl, nbody, objs, &units);
+    if (units == NULL) {
+      wunits = "MM";
+    } else {
+      EG_importScale("STEP Writer", units, &scale, &wunits);
+    }
+
     STEPControl_Writer aWriter;
+    Interface_Static::SetCVal("write.step.unit", wunits);
     const Handle(XSControl_WorkSession)& theSession = aWriter.WS();
     const Handle(XSControl_TransferWriter)& aTransferWriter =
                                                   theSession->TransferWriter();
@@ -2197,7 +2355,7 @@ EG_saveModel(const egObject *model, const char *name)
          Exp.More(); Exp.Next()) aWriter.Transfer(Exp.Current(), aVal);
     
     // transfer Name attributes to StepRepr_RepresentationItem
-    EG_setSTEPname(nbody, objs, FP);
+    EG_setSTEPname(theSession, nbody, objs, FP);
   
     if (!aWriter.Write(name)) {
       printf(" EGADS Warning: STEP Write Error (EG_saveModel)!\n");
@@ -2208,12 +2366,31 @@ EG_saveModel(const egObject *model, const char *name)
              (strcasecmp(&name[i],".igs") == 0)) {
              
     /* IGES files */
+    
+    EG_getBodyUnits(mdl, nbody, objs, &units);
+    if (units == NULL) {
+      wunits = "MM";
+    } else {
+      EG_importScale("IGES Writer", units, &scale, &wunits);
+      if (scale != 1.0) {
+        scale = 1.0/scale;
+        gp_Trsf form = gp_Trsf();
+        form.SetValues(scale, 0.0,   0.0,   0.0,
+                       0.0,   scale, 0.0,   0.0,
+                       0.0,   0.0,   scale, 0.0);
+        BRepBuilderAPI_Transform xForm(wshape, form, Standard_True);
+        if (!xForm.IsDone()) {
+          printf(" EGADS Warning: Can't scale Object (EG_saveModel)!\n");
+        } else {
+          wshape = xForm.ModifiedShape(wshape);
+        }
+      }
+    }
 
     try {
       IGESControl_Controller::Init();
-      Standard_CString unit = "mm";
       Standard_Integer modecr = 1;    // BRep export
-      IGESControl_Writer iWrite(unit, modecr);
+      IGESControl_Writer iWrite(wunits, modecr);
       TopExp_Explorer Exp;
       for (Exp.Init(wshape, TopAbs_WIRE,  TopAbs_FACE);
            Exp.More(); Exp.Next()) iWrite.AddShape(Exp.Current());
@@ -2241,7 +2418,12 @@ EG_saveModel(const egObject *model, const char *name)
   
     /* Native OCC file or our filetype */
 
+#if CASVER < 760
     if (!BRepTools::Write(wshape, name)) {
+#else
+    if (!BRepTools::Write(wshape, name, Standard_False, Standard_False,
+                          TopTools_FormatVersion_VERSION_2)) {
+#endif
       printf(" EGADS Warning: OCC Write Error (EG_saveModel)!\n");
       return EGADS_WRITERR;
     }
@@ -2441,7 +2623,7 @@ EG_saveTess(egObject *tess, const char *name)
 
   /* does file exist? */
 
-  FILE *fp = fopen(name, "r");
+  FILE *fp = fopen(name, "rb");
   if (fp != NULL) {
     if (outLevel > 0)
       printf(" EGADS Warning: File %s Exists (EG_saveTess)!\n", name);
@@ -2465,7 +2647,7 @@ EG_saveTess(egObject *tess, const char *name)
   status = EG_getBodyTopos(body, NULL, FACE, &nface, NULL);
   if (status != EGADS_SUCCESS) goto cleanup;
 
-  fp = fopen(name, "w");
+  fp = fopen(name, "wb");
   if (fp == NULL) {
     printf(" EGADS Warning: File %s Open Error (EG_saveTess)!\n", name);
     status = EGADS_WRITERR;
@@ -2543,12 +2725,19 @@ EG_loadTess(egObject *body, const char *name, egObject **tess)
   *tess  = NULL;
   status = EG_getBodyTopos(body, NULL, NODE, &nnode, NULL);
   if (status != EGADS_SUCCESS) return status;
-  status = EG_getBodyTopos(body, NULL, EDGE, &nedge, NULL);
-  if (status != EGADS_SUCCESS) return status;
-  status = EG_getBodyTopos(body, NULL, FACE, &nface, NULL);
-  if (status != EGADS_SUCCESS) return status;
+  if (body->oclass == EBODY) {
+    status = EG_getBodyTopos(body, NULL, EEDGE, &nedge, NULL);
+    if (status != EGADS_SUCCESS) return status;
+    status = EG_getBodyTopos(body, NULL, EFACE, &nface, NULL);
+    if (status != EGADS_SUCCESS) return status;
+  } else {
+    status = EG_getBodyTopos(body, NULL, EDGE, &nedge, NULL);
+    if (status != EGADS_SUCCESS) return status;
+    status = EG_getBodyTopos(body, NULL, FACE, &nface, NULL);
+    if (status != EGADS_SUCCESS) return status;
+  }
   
-  fp = fopen(name, "r");
+  fp = fopen(name, "rb");
   if (fp == NULL) {
     printf(" EGADS Error: File %s Does not Exist (EG_loadTess)!\n", name);
     return EGADS_EXISTS;

@@ -9,7 +9,7 @@
  */
 
 /*
- * Copyright (C) 2013/2021  John F. Dannenhoffer, III (Syracuse University)
+ * Copyright (C) 2013/2022  John F. Dannenhoffer, III (Syracuse University)
  *
  * This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
@@ -34,14 +34,14 @@
 #include "udpUtilities.h"
 
 /* shorthands for accessing argument values and velocities */
-#define NXSECT(IUDP)     ((int    *) (udps[IUDP].arg[0].val))[0]
+#define NXSECT(IUDP)     ((double *) (udps[IUDP].arg[0].val))[0]
 #define ORIGIN(IUDP,I)   ((double *) (udps[IUDP].arg[1].val))[I]
 #define AXIS(  IUDP,I)   ((double *) (udps[IUDP].arg[2].val))[I]
 
 static char  *argNames[NUMUDPARGS] = {"nxsect", "origin", "axis",   };
-static int    argTypes[NUMUDPARGS] = {ATTRINT,  ATTRREAL, ATTRREAL, };
-static int    argIdefs[NUMUDPARGS] = {5,        0,        0,        };
-static double argDdefs[NUMUDPARGS] = {0.,       0.,       0.,       };
+static int    argTypes[NUMUDPARGS] = {ATTRREAL, ATTRREAL, ATTRREAL, };
+static int    argIdefs[NUMUDPARGS] = {0,        0,        0,        };
+static double argDdefs[NUMUDPARGS] = {5.,       0.,       0.,       };
 
 /* get utility routines: udpErrorStr, udpInitialize, udpReset, udpSet,
                          udpGet, udpVel, udpClean, udpMesh */
@@ -77,7 +77,7 @@ udpExecute(ego  emodel,                 /* (in)  input model */
 
 #ifdef DEBUG
     printf("udpExecute(emodel=%llx)\n", (long long)emodel);
-    printf("nxsect    = %d\n", NXSECT(0));
+    printf("nxsect    = %d\n", NINT(NXSECT(0)));
     printf("origin(0) = ");
     for (i = 0; i < udps[0].arg[1].size; i++) {
         printf("%f ", ORIGIN(0,i));
@@ -104,8 +104,8 @@ udpExecute(ego  emodel,                 /* (in)  input model */
         status  = EGADS_RANGERR;
         goto cleanup;
 
-    } else if (NXSECT(0) <= 0) {
-        snprintf(message, 100, "nxsect = %d <= 0", NXSECT(0));
+    } else if (NINT(NXSECT(0)) <= 0) {
+        snprintf(message, 100, "nxsect = %d <= 0", NINT(NXSECT(0)));
         status  = EGADS_RANGERR;
         goto cleanup;
 
@@ -197,7 +197,7 @@ udpExecute(ego  emodel,                 /* (in)  input model */
     CHECK_STATUS(cacheUdp);
 
 #ifdef DEBUG
-    printf("nxsect(%d) = %d\n", numUdp, NXSECT(numUdp));
+    printf("nxsect(%d) = %d\n", numUdp, NINT(NXSECT(numUdp)));
     printf("origin(%d) = ", numUdp);
     for (i = 0; i < udps[numUdp].arg[1].size; i++) {
         printf("%f ", ORIGIN(numUdp,i));
@@ -214,7 +214,7 @@ udpExecute(ego  emodel,                 /* (in)  input model */
     CHECK_STATUS(EG_getContext);
 
     /* get an array to hold the cross-sections */
-    MALLOC(exsects, ego, NXSECT(numUdp));
+    MALLOC(exsects, ego, NINT(NXSECT(numUdp)));
 
     /* for now, make sure guide curve is comprised of a single Edge */
     status = EG_getBodyTopos(ebodys[1], NULL, EDGE, &nedge, &eedges);
@@ -232,8 +232,8 @@ udpExecute(ego  emodel,                 /* (in)  input model */
     CHECK_STATUS(EG_getRange);
 
     /* create nxsect Faces/Loops */
-    for (i = 0; i < NXSECT(0); i++) {
-        tt = trange[0] + (trange[1] - trange[0]) * (double)(i) / (double)(NXSECT(0)-1);
+    for (i = 0; i < NINT(NXSECT(0)); i++) {
+        tt = trange[0] + (trange[1] - trange[0]) * (double)(i) / (double)(NINT(NXSECT(0))-1);
         status = EG_evaluate(eedges[0], &tt, data);
         CHECK_STATUS(EG_evaluate);
 
@@ -266,7 +266,7 @@ udpExecute(ego  emodel,                 /* (in)  input model */
         status = EG_makeTransform(context, xform, &exform);
         CHECK_STATUS(EG_makeTransform);
 
-        if (i == 0 || i == NXSECT(0)-1) {
+        if (i == 0 || i == NINT(NXSECT(0))-1) {
             status = EG_copyObject(efaces[0], exform, &exsects[i]);
         } else {
             status = EG_copyObject(eloops[0], exform, &exsects[i]);
@@ -283,7 +283,7 @@ udpExecute(ego  emodel,                 /* (in)  input model */
     }
 
     /* create the blend */
-    status = EG_blend(NXSECT(0), exsects, NULL, NULL, ebody);
+    status = EG_blend(NINT(NXSECT(0)), exsects, NULL, NULL, ebody);
     CHECK_STATUS(EG_blend);
     if (*ebody == NULL) goto cleanup;   // needed fro splint
 

@@ -17,20 +17,21 @@ TDIR  = $(ESP_ROOT)\bin
 #default:	$(LDIR)\pointwiseAIM.dll $(TDIR)\egads2nmb.exe
 default:	$(LDIR)\pointwiseAIM.dll
 
-$(LDIR)\pointwiseAIM.dll:	pointwiseAIM.def $(ODIR)\pointwiseAIM.obj $(ODIR)\hashElement.obj \
-				$(LDIR)\utils.lib
+$(LDIR)\pointwiseAIM.dll:	pointwiseAIM.def $(ODIR)\pointwiseAIM.obj \
+		$(ODIR)\hashElement.obj $(LDIR)\utils.lib
 	-del $(LDIR)\pointwiseAIM.dll
 	link /out:$(LDIR)\pointwiseAIM.dll /dll /def:pointwiseAIM.def \
-		$(ODIR)\pointwiseAIM.obj $(ODIR)\hashElement.obj /LIBPATH:$(LDIR) utils.lib \
-		aimUtil.lib ocsm.lib egads.lib udunits2.lib
+		$(ODIR)\pointwiseAIM.obj $(ODIR)\hashElement.obj \
+		/LIBPATH:$(LDIR) utils.lib aimUtil.lib ocsm.lib egads.lib \
+		udunits2.lib
 	$(MCOMP) /manifest $(LDIR)\pointwiseAIM.dll.manifest \
 		/outputresource:$(LDIR)\pointwiseAIM.dll;2
 
-$(ODIR)\pointwiseAIM.obj:  hashElement.c hashElement.h  $(IDIR)\capsTypes.h 
+$(ODIR)\pointwiseAIM.obj:	pointwiseAIM.c hashElement.h $(IDIR)\capsTypes.h
 	cl /c $(COPTS) $(DEFINE) -I$(IDIR) -I..\utils pointwiseAIM.c \
 		/Fo$(ODIR)\pointwiseAIM.obj
 
-$(ODIR)\hashElement.obj:  hashElement.c hashElement.h $(IDIR)\capsTypes.h 
+$(ODIR)\hashElement.obj:	hashElement.c hashElement.h $(IDIR)\capsTypes.h 
 	cl /c $(COPTS) $(DEFINE) -I$(IDIR) -I..\utils hashElement.c \
 		/Fo$(ODIR)\hashElement.obj
 
@@ -49,4 +50,5 @@ clean:
 	-del $(ODIR)\egads2nmb.obj $(ODIR)\pointwiseAIM.obj
 
 cleanall:	clean
-	-del $(TDIR)\egads2nmb.exe $(LDIR)\pointwiseAIM.dll $(LDIR)\pointwiseAIM.lib $(LDIR)\pointwiseAIM.exp
+	-del $(TDIR)\egads2nmb.exe $(LDIR)\pointwiseAIM.dll \
+		$(LDIR)\pointwiseAIM.lib $(LDIR)\pointwiseAIM.exp

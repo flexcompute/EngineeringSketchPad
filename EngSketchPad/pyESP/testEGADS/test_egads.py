@@ -2156,6 +2156,66 @@ class TestEGADS(unittest.TestCase):
         self.assertEqual(egads.MODEL, data[0])
 
 #==============================================================================
+    def test_makeNmWireBody(self):
+
+        # construction data
+        x0 = [0,0,0]
+        x1 = [1,0,0]
+        x2 = [1,1,0]
+        x3 = [0,1,0]
+
+        # make Nodes
+        nodes = [None]*4
+        nodes[0] = self.context.makeTopology(egads.NODE, reals=x0)
+        nodes[1] = self.context.makeTopology(egads.NODE, reals=x1)
+        nodes[2] = self.context.makeTopology(egads.NODE, reals=x2)
+        nodes[3] = self.context.makeTopology(egads.NODE, reals=x3)
+
+        # make lines and edges
+        lines = [None]*3
+        edges = [None]*3 #Add some extra None edges
+
+        # Line data (point and direction)
+        rdata = [None]*6
+        rdata[0] = x0[0]
+        rdata[1] = x0[1]
+        rdata[2] = x0[2]
+        rdata[3] = x1[0] - x0[0]
+        rdata[4] = x1[1] - x0[1]
+        rdata[5] = x1[2] - x0[2]
+        tdata = [0, (rdata[3]**2 + rdata[4]**2 + rdata[5]**2)**0.5]
+
+        lines[0] = self.context.makeGeometry(egads.CURVE, egads.LINE, rdata)
+        edges[0] = self.context.makeTopology(egads.EDGE, egads.TWONODE, geom=lines[0], children=[nodes[0],nodes[1]], reals=tdata)
+
+        rdata[0] = x0[0]
+        rdata[1] = x0[1]
+        rdata[2] = x0[2]
+        rdata[3] = x2[0] - x0[0]
+        rdata[4] = x2[1] - x0[1]
+        rdata[5] = x2[2] - x0[2]
+        tdata = [0, (rdata[3]**2 + rdata[4]**2 + rdata[5]**2)**0.5]
+
+        lines[1] = self.context.makeGeometry(egads.CURVE, egads.LINE, rdata)
+        edges[1] = self.context.makeTopology(egads.EDGE, egads.TWONODE, geom=lines[1], children=[nodes[0],nodes[2]], reals=tdata)
+
+        rdata[0] = x0[0]
+        rdata[1] = x0[1]
+        rdata[2] = x0[2]
+        rdata[3] = x3[0] - x0[0]
+        rdata[4] = x3[1] - x0[1]
+        rdata[5] = x3[2] - x0[2]
+        tdata = [0, (rdata[3]**2 + rdata[4]**2 + rdata[5]**2)**0.5]
+
+        lines[2] = self.context.makeGeometry(egads.CURVE, egads.LINE, rdata)
+        edges[2] = self.context.makeTopology(egads.EDGE, egads.TWONODE, geom=lines[2], children=[nodes[0],nodes[3]], reals=tdata)
+
+        wbody = egads.makeNmWireBody(edges)
+        data = wbody.getInfo()
+        self.assertEqual(egads.BODY, data[0])
+        self.assertEqual(egads.WIREBODY, data[1])
+
+#==============================================================================
     def test_matchBodyEdges(self):
 
         box0 = self.context.makeSolidBody(egads.BOX, [0,0,0, 1,1,1])

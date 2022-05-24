@@ -22,13 +22,61 @@ ODIR  = .
 
 AFLR3_LIB = AFLR.lib
 
+# Compile egads_aflr4 to make sure it uses the latest EGADS
+EGADS_AFLR4_OBJS = 	\
+			$(ODIR)\EG_getEffBodyTopos.obj \
+			$(ODIR)\egads_aflr4_check_tess_coord.obj \
+			$(ODIR)\egads_aflr4_check_tess_ordering.obj \
+			$(ODIR)\egads_aflr4_get_bedge_coord.obj \
+			$(ODIR)\egads_aflr4_get_edge_spacing.obj \
+			$(ODIR)\egads_aflr4_get_faceOrder.obj \
+			$(ODIR)\egads_aflr4_get_face_spacing.obj \
+			$(ODIR)\egads_aflr4_get_surf_grid.obj \
+			$(ODIR)\egads_aflr4_create_tess.obj \
+			$(ODIR)\egads_aflr4_tess_to_dgeom.obj \
+			$(ODIR)\egads_aflr4_version.obj \
+			$(ODIR)\egads_auto_cad_geom_setup.obj \
+			$(ODIR)\egads_cad_geom_add_attr.obj \
+			$(ODIR)\egads_cad_geom_add_ff.obj \
+			$(ODIR)\egads_cad_geom_add_ret_attr.obj \
+			$(ODIR)\egads_cad_geom_bodyFlag.obj \
+			$(ODIR)\egads_cad_geom_check_bc.obj \
+			$(ODIR)\egads_cad_geom_data_cleanup.obj \
+			$(ODIR)\egads_cad_geom_edgeData.obj \
+			$(ODIR)\egads_cad_geom_edgeFace.obj \
+			$(ODIR)\egads_cad_geom_edit.obj \
+			$(ODIR)\egads_cad_geom_faceEdge.obj \
+			$(ODIR)\egads_cad_geom_faceFace.obj \
+			$(ODIR)\egads_cad_geom_faceFlag.obj \
+			$(ODIR)\egads_cad_geom_faceLoop.obj \
+			$(ODIR)\egads_cad_geom_file_read.obj \
+			$(ODIR)\egads_cad_geom_file_write.obj \
+			$(ODIR)\egads_cad_geom_idef2idef.obj \
+			$(ODIR)\egads_cad_geom_loopEdge.obj \
+			$(ODIR)\egads_cad_geom_nodeData.obj \
+			$(ODIR)\egads_cad_geom_reset_attr.obj \
+			$(ODIR)\egads_cad_geom_setup.obj \
+			$(ODIR)\egads_cad_geom_write_topo_data.obj \
+			$(ODIR)\egads_eval_curv_at_uv.obj \
+			$(ODIR)\egads_eval_edge_arclen.obj \
+			$(ODIR)\egads_eval_norm_at_uv.obj \
+			$(ODIR)\egads_eval_uv_at_t.obj \
+			$(ODIR)\egads_eval_uv_at_xyz.obj \
+			$(ODIR)\egads_eval_uv_bounds.obj \
+			$(ODIR)\egads_eval_xyz_at_u.obj \
+			$(ODIR)\egads_eval_xyz_at_uv.obj \
+			$(ODIR)\egads_face_node_map.obj \
+			$(ODIR)\egads_get_model.obj \
+			$(ODIR)\egads_set_ext_cad_data.obj
+
 default: clear_version $(ODIR)\aflr3_version.exe $(LDIR)\aflr3AIM.dll
 
 $(LDIR)\aflr3AIM.dll:	aflr3AIM.def $(ODIR)\aflr3AIM.obj $(ODIR)\aflr3_Interface.obj \
-			$(LDIR)\utils.lib
+			$(EGADS_AFLR4_OBJS) $(LDIR)\utils.lib
 	-del $(LDIR)\aflr3AIM.dll
 	link /out:$(LDIR)\aflr3AIM.dll /dll /def:aflr3AIM.def \
 		$(ODIR)\aflr3AIM.obj $(ODIR)\aflr3_Interface.obj \
+		$(EGADS_AFLR4_OBJS) \
 		/LIBPATH:$(AFLR)\$(AFLR_ARCH)\lib $(AFLR3_LIB) \
 		/LIBPATH:$(LDIR) utils.lib aimUtil.lib ocsm.lib egads.lib \
 		udunits2.lib $(AFLREX) /ignore:4078 /ignore:4217
@@ -44,7 +92,14 @@ $(ODIR)\aflr3_Interface.obj:	aflr3_Interface.c ..\utils\meshUtils.h
 	cl /c $(COPTS) $(DEFINE) -I$(IDIR) \
 		-I$(AFLR)\src\aflr3 -I$(AFLR)\src -I..\utils \
 		aflr3_Interface.c /Fo$(ODIR)\aflr3_Interface.obj
-		
+
+# Compile each AFLR source file
+{$(AFLR)\src\egads_aflr4\}.c{$(ODIR)}.obj::
+	cl /c $(CPPOPT) /W0 /Fo"$(ODIR)"\ /Dstrcasecmp=stricmp -I$(IDIR) -I$(AFLR)\src\egads_aflr4 $<
+
+$(LDIR)\AFLR.dll: $(AFLR)\$(AFLR_ARCH)\bin\AFLR.dll
+	xcopy /Q /Y $(AFLR)\$(AFLR_ARCH)\bin\AFLR.dll $(LDIR)
+
 clear_version:
 	-del $(ODIR)\aflr3_version.exe
 

@@ -1,0 +1,66 @@
+# hollowE1
+# written by John Dannenhoffer
+
+SET       nerror   0
+
+UDPRIM    supell   rx 0.5   ry 0.5
+EXTRUDE   0  0  -2
+TRANSLATE -2.0  1.0  0.0
+HOLLOW    0.100  @nbody-1;1;@nbody-1;2
+
+UDPRIM    supell   rx 0.5   ry 0.5
+EXTRUDE   0  0  -2
+TRANSLATE  -.5  1.0  0.0
+HOLLOW    0.010  @nbody-1;1;@nbody-1;2
+
+UDPRIM    supell   rx 0.5   ry 0.5
+EXTRUDE   0  0  -2
+TRANSLATE  1.0  1.0  0.0
+HOLLOW    0.001  @nbody-1;1;@nbody-1;2
+
+
+UDPRIM    supell   rx 0.5   ry 0.2
+EXTRUDE   0  0  -2
+TRANSLATE -2.0  0.0  0.0
+HOLLOW    0.100  @nbody-1;1;@nbody-1;2
+
+UDPRIM    supell   rx 0.5   ry 0.2
+EXTRUDE   0  0  -2
+TRANSLATE  -.5  0.0  0.0
+HOLLOW    0.010  @nbody-1;1;@nbody-1;2
+
+UDPRIM    supell   rx 0.5   ry 0.2
+EXTRUDE   0  0  -2
+TRANSLATE  1.0  0.0  0.0
+HOLLOW    0.001  @nbody-1;1;@nbody-1;2
+
+
+UDPRIM    supell   rx 0.5   ry 0.1
+EXTRUDE   0  0  -2
+TRANSLATE -2.0 -1.0  0.0
+HOLLOW    0.100  @nbody-1;1;@nbody-1;2
+CATBEG    $did_not_create_body
+   SET    nerror  nerror+1
+CATEND
+
+UDPRIM    supell   rx 0.5   ry 0.1
+EXTRUDE   0  0  -2
+TRANSLATE  -.5 -1.0  0.0
+HOLLOW    0.010  @nbody-1;1;@nbody-1;2
+
+UDPRIM    supell   rx 0.5   ry 0.1
+EXTRUDE   0  0  -2
+TRANSLATE  1.0 -1.0  0.0
+HOLLOW    0.001  @nbody-1;1;@nbody-1;2
+CATBEG    $did_not_create_body
+   SET    nerror  nerror+1
+CATEND
+
+IFTHEN    nerror EQ 1   OR   nerror EQ 2
+   ASSERT 0 0
+ELSE
+   ASSERT nerror 0
+ENDIF
+
+END
+

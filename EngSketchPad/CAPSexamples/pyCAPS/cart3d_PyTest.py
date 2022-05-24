@@ -50,7 +50,7 @@ myAnalysis.input.Mach      = 0.95
 myAnalysis.input.alpha     = 2.0
 myAnalysis.input.maxCycles = 10
 myAnalysis.input.nDiv      = 6
-myAnalysis.input.maxR      = 12
+myAnalysis.input.maxR      = 9
 ## [setInputs]
 
 # -----------------------------------------------------------------

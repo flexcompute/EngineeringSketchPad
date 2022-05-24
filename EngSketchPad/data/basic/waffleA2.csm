@@ -1,0 +1,25 @@
+# waffleA2
+# written by Johh Dannenhoffer
+
+CFGPMTR   nrib     10
+
+UDPRIM    waffle   filename <<
+   POINT   A at  0.0  -2.0
+   POINT   B at  0.0   2.0
+   LINE   AB A B
+
+   POINT   C at  2.0  -0.4
+   POINT   D at  2.0   0.4
+   LINE   CD C D
+
+   PATBEG    irib nrib
+      POINT  G  on AB  frac  irib/(nrib+1)
+
+      IFTHEN y@G GE y@C
+         IFTHEN y@G LE y@D
+            POINT  H  on  CD  perp G
+            LINE   .  G  H
+	 ENDIF
+      ENDIF
+   PATEND
+>>

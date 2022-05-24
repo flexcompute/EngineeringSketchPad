@@ -13,8 +13,8 @@
  * A module in the Computational Aircraft Prototype Syntheses (CAPS) has been developed to interact (through input
  * files) with the subsonic airfoil analysis tool xFoil \cite Drela1989. xFoil is an open-source tool and
  * may be freely downloaded from http://web.mit.edu/drela/Public/web/xfoil/ . At this time only a subsection
- * of xFoil's capabilities are exposed through the AIM. Furthermore, only versions 6.97 and 6.99 of xFoil
- * have been tested against (for Windows only 6.99).
+ * of xFoil's capabilities are exposed through the AIM. Furthermore, only version 6.99 of xFoil
+ * have been tested against.
  *
  * An outline of the AIM's inputs and outputs are provided in \ref aimInputsXFOIL and \ref aimOutputsXFOIL, respectively.
  *
@@ -64,7 +64,7 @@
 #define strtok_r   strtok_s
 #endif
 
-#define MAXPOINT  200
+#define NUMPOINT  200
 
 #define MXCHAR  255
 
@@ -79,6 +79,8 @@ enum aimInputs
   inCL_Inviscid,
   inAppend_PolarFile,
   inViscous_Iteration,
+  inNum_Panel,
+  inLETE_Panel_Density_Ratio,
   inWrite_Cp,
   NUMINPUT = inWrite_Cp            /* Total number of inputs */
 };
@@ -246,12 +248,32 @@ int aimInputs(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo,
     } else if (index == inViscous_Iteration) {
         *ainame              = EG_strdup("Viscous_Iteration");
         defval->type         = Integer;
-        defval->vals.integer = 20;
+        defval->vals.integer = 100;
 
         /*! \page aimInputsXFOIL
-         * - <B> Viscous_Iteration = 20</B> <br>
+         * - <B> Viscous_Iteration = 100</B> <br>
          *  Viscous solution iteration limit. Only set if a Re isn't 0.0 .
          */
+    } else if (index == inNum_Panel) {
+        *ainame              = EG_strdup("Num_Panel");
+        defval->type         = Integer;
+        defval->vals.integer = 200;
+
+        /*! \page aimInputsXFOIL
+         * - <B> Num_Panel = 200</B> <br>
+         *  Number of discrete panels.
+         */
+
+    } else if (index == inLETE_Panel_Density_Ratio) {
+        *ainame           = EG_strdup("LETE_Panel_Density_Ratio");
+        defval->type      = Double;
+        defval->vals.real = 0.25;
+
+        /*! \page aimInputsXFOIL
+         * - <B> LETE_Panel_Density_Ratio = 0.25</B> <br>
+         *  Panel density ratio between LE/TE.
+         */
+
     } else if (index == inWrite_Cp) {
         *ainame              = EG_strdup("Write_Cp");
         defval->type         = Boolean;
@@ -270,7 +292,15 @@ cleanup:
 }
 
 
-int aimPreAnalysis(/*@unused@*/ void *instStore, void *aimInfo,
+// ********************** AIM Function Break *****************************
+int aimUpdateState(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo,
+                   /*@unused@*/ capsValue *aimInputs)
+{
+    return CAPS_SUCCESS;
+}
+
+// ********************** AIM Function Break *****************************
+int aimPreAnalysis(/*@unused@*/ const void *instStore, void *aimInfo,
                    capsValue *aimInputs)
 {
     int status; // Function return status
@@ -283,7 +313,6 @@ int aimPreAnalysis(/*@unused@*/ void *instStore, void *aimInfo,
     ego *bodies = NULL;
 
     vlmSectionStruct vlmSection;
-    char aimFile[PATH_MAX];
 
     // File I/O
     FILE *fp = NULL;
@@ -300,25 +329,20 @@ int aimPreAnalysis(/*@unused@*/ void *instStore, void *aimInfo,
     }
 
     status = aim_getBodies(aimInfo, &intents, &numBody, &bodies);
-    if (status != CAPS_SUCCESS) {
-#ifdef DEBUG
-        printf("\txfoilAIM/aimPreAnalysis getBodies = %d!\n", status);
-#endif
-        return status;
-    }
+    AIM_STATUS(aimInfo, status);
 
     if (numBody == 0 || bodies == NULL) {
-        printf("\tError: xfoilAIM/aimPreAnalysis No Bodies!\n");
+        AIM_ERROR(aimInfo, "No Bodies!");
         return CAPS_SOURCEERR;
     }
 
     if (numBody != 1) {
-        printf("\tError: Only one body should be provided to the xfoilAIM at this time!!");
+        AIM_ERROR(aimInfo, "Only one body should be provided to the xfoilAIM! numBody = %d", numBody);
         return CAPS_SOURCEERR;
     }
 
     status = initiate_vlmSectionStruct(&vlmSection);
-    if (status != CAPS_SUCCESS) goto cleanup;
+    AIM_STATUS(aimInfo, status);
 
     // Accumulate cross coordinates of airfoil and write out data file
     for (bodyIndex = 0; bodyIndex < numBody; bodyIndex++) {
@@ -326,7 +350,7 @@ int aimPreAnalysis(/*@unused@*/ void *instStore, void *aimInfo,
         // Open and write the input to control the XFOIL session
         fp = aim_fopen(aimInfo, xfoilFilename, "w");
         if (fp == NULL) {
-            printf("\tUnable to open file %s\n!", xfoilFilename);
+            AIM_ERROR(aimInfo, "Unable to open file %s\n!", xfoilFilename);
             status = CAPS_IOERR;
             goto cleanup;
         }
@@ -334,20 +358,21 @@ int aimPreAnalysis(/*@unused@*/ void *instStore, void *aimInfo,
         fprintf(fp,"capsBody_%d\n",bodyIndex+1);
 
         status = EG_copyObject(bodies[bodyIndex], NULL, &vlmSection.ebody);
-        if (status != CAPS_SUCCESS) goto cleanup;
+        AIM_STATUS(aimInfo, status);
 
-        status = finalize_vlmSectionStruct(&vlmSection);
-        if (status != CAPS_SUCCESS) goto cleanup;
+        status = finalize_vlmSectionStruct(aimInfo, &vlmSection);
+        AIM_STATUS(aimInfo, status);
 
         // Write out the airfoil cross-section given an ego body
-        status = vlm_writeSection(fp,
+        status = vlm_writeSection(aimInfo,
+                                  fp,
                                   &vlmSection,
                                   (int) false, // Normalize by chord (true/false)
-                                  (int) MAXPOINT);
-        if (status != CAPS_SUCCESS) goto cleanup;
+                                  (int) NUMPOINT);
+        AIM_STATUS(aimInfo, status);
 
         status = destroy_vlmSectionStruct(&vlmSection);
-        if (status != CAPS_SUCCESS) goto cleanup;
+        AIM_STATUS(aimInfo, status);
 
         // Close file
         if (fp != NULL) {
@@ -374,9 +399,21 @@ int aimPreAnalysis(/*@unused@*/ void *instStore, void *aimInfo,
     fprintf(fp, "LOAD\n"); // Load airfoil
     fprintf(fp, "%s\n", xfoilFilename);
 
+    fprintf(fp, "PPAR\n"); // Set the number of panels
+    fprintf(fp, "N\n");
+    fprintf(fp, "%d\n", aimInputs[inNum_Panel-1].vals.integer);
+
+    fprintf(fp, "T\n"); // Set LE/TE panel density ratio
+    fprintf(fp, "%16.12e\n", aimInputs[inLETE_Panel_Density_Ratio-1].vals.real);
+
+    fprintf(fp, "\n\n"); // return to main menu
+
     fprintf(fp, "PANE\n"); // USE PANE Option to clean up airfoil mesh
 
     fprintf(fp, "OPER\n"); // Enter OPER
+    fprintf(fp, "VPAR\n"); // Enter VPAR
+    fprintf(fp, "VACC 0\n"); // Turn of Vacc to improve robustness
+    fprintf(fp, "\n"); // Return to OPER
 
     fprintf(fp, "Mach %f\n", aimInputs[inMach-1].vals.real);    // Set Mach number
 
@@ -397,15 +434,8 @@ int aimPreAnalysis(/*@unused@*/ void *instStore, void *aimInfo,
     // Check to see if polar file exist
     if (aim_isFile(aimInfo, polarFilename) == CAPS_SUCCESS){
         if (aimInputs[inAppend_PolarFile-1].vals.integer == (int) false) {
-            status = aim_file(aimInfo, polarFilename, aimFile);
+            status = aim_rmFile(aimInfo, polarFilename);
             AIM_STATUS(aimInfo, status);
-            status = remove(aimFile); // Remove the file
-            if(status != CAPS_SUCCESS) {
-                AIM_ERROR(aimInfo, "Unable to delete the file - %s",
-                          aimFile);
-                status = CAPS_IOERR;
-                goto cleanup;
-            }
         } else {
             fprintf(fp,"n\n");
         }
@@ -491,7 +521,7 @@ int aimPreAnalysis(/*@unused@*/ void *instStore, void *aimInfo,
 }
 
 
-int aimExecute(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo,
+int aimExecute(/*@unused@*/ const void *instStore, /*@unused@*/ void *aimInfo,
                int *state)
 {
   /*! \page aimExecuteXFOIL AIM Execution

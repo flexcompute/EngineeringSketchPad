@@ -34,6 +34,8 @@ myProblem = pyCAPS.Problem(problemName=workDir,
 # Change a design parameter - area in the geometry
 ## [setGeom]
 myProblem.geometry.despmtr.area = 50
+# TetGen does not support wakes
+myProblem.geometry.cfgpmtr.wake = 0
 ## [setGeom]
 
 # Write out a new egads file for the geometry

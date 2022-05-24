@@ -5,7 +5,6 @@
 enum aimInputs
 {
   Proj_Name = 1,               /* index is 1-based */
-  Tess_Params,
   Mesh_Quiet_Flag,
   Mesh_Format,
   Mesh_ASCII_Flag,
@@ -20,18 +19,21 @@ enum aimInputs
   NUMINPUT = Surface_Mesh     /* Total number of inputs */
 };
 
+#define AFLR3TESSFILE "aflr3_%d.eto"
 
 extern
 int aflr3_Volume_Mesh (void *aimInfo,
                        capsValue *aimInputs,
+                       int ibodyOffset,
                        meshInputStruct meshInput,
                        const char *fileName,
+                       int boundingBoxIndex,
                        int createBL,
-                       int blFlag[],
-                       double blSpacing[],
-                       double blThickness[],
+                       double globalBLSpacing,
+                       double globalBLThickness,
                        double capsMeshLength,
+                       const mapAttrToIndexStruct *groupMap,
+                       const mapAttrToIndexStruct *meshMap,
                        int numMeshProp,
                        meshSizingStruct *meshProp,
-                       meshStruct *surfaceMesh,
                        meshStruct *volumeMesh);

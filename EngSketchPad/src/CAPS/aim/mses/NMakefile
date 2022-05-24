@@ -1,0 +1,39 @@
+#
+!IFNDEF ESP_ROOT
+!ERROR ESP_ROOT must be set -- Please fix the environment...
+!ENDIF
+#
+IDIR  = $(ESP_ROOT)\include
+!include $(IDIR)\$(ESP_ARCH).$(MSVC)
+LDIR  = $(ESP_ROOT)\lib
+!IFDEF ESP_BLOC
+ODIR  = $(ESP_BLOC)\obj
+TDIR  = $(ESP_BLOC)\test
+!ELSE
+ODIR  = .
+TDIR  = $(ESP_ROOT)\bin
+!ENDIF
+
+
+$(LDIR)\msesAIM.dll:	msesAIM.def $(ODIR)\msesAIM.obj $(ODIR)\msesUtils.obj $(LDIR)\aimUtil.lib \
+			$(LDIR)\utils.lib
+	-del $(LDIR)\msesAIM.dll $(LDIR)\msesAIM.lib $(LDIR)\msesAIM.exp
+	 link /out:$(LDIR)\msesAIM.dll /dll /def:msesAIM.def \
+		$(ODIR)\msesAIM.obj $(ODIR)\msesUtils.obj /LIBPATH:$(LDIR) utils.lib aimUtil.lib \
+		ocsm.lib egads.lib udunits2.lib
+	$(MCOMP) /manifest $(LDIR)\msesAIM.dll.manifest \
+		/outputresource:$(LDIR)\msesAIM.dll;2
+
+$(ODIR)\msesAIM.obj:	msesAIM.c msesUtils.h $(IDIR)\capsTypes.h 
+	cl /c $(COPTS) $(DEFINE) /I$(IDIR) /I..\utils msesAIM.c \
+		/Fo$(ODIR)\msesAIM.obj
+
+$(ODIR)\msesUtils.obj:	msesUtils.c msesUtils.h $(IDIR)\capsTypes.h
+	cl /c $(COPTS) $(DEFINE) /I$(IDIR) /I..\utils msesUtils.c \
+		/Fo$(ODIR)\msesUtils.obj
+
+clean:
+	-del $(ODIR)\msesAIM.obj $(ODIR)\msesUtils.obj
+
+cleanall:	clean
+	-del $(LDIR)\msesAIM.dll $(LDIR)\msesAIM.lib $(LDIR)\msesAIM.exp

@@ -67,7 +67,7 @@ $(function() {
 </div><!--header-->
 <div class="contents">
 <div class="textblock"><p>This example contains a set of *.csm and pyCAPS (*.py) inputs that uses the AVL AIM. A user should have knowledge on the generation of parametric geometry in Engineering Sketch Pad (ESP) before attempting to integrate with any AIM. Specifically, this example makes use of Design Parameters, Set Parameters, User Defined Primitive (UDP) and attributes in ESP.</p>
-<p>The follow code details the process in a *.csm file that generates three airfoil sections to create a wing. Note to execute in serveCSM a dictionary file must be included "serveCSM $ESP_ROOT/CAPSexamples/csmData/avlWing.csm"</p>
+<p>The follow code details the process in a *.csm file that generates three airfoil sections to create a wing. Note to execute in serveESP a dictionary file must be included "serveESP $ESP_ROOT/CAPSexamples/csmData/avlWing.csm"</p>
 <p>The CSM script generates Bodies which are designed to be used by specific AIMs. The AIMs that the Body is designed for is communicated to the CAPS framework via the capsAIM string attribute. This is a semicolon-separated string with the list of AIM names. Thus, the CSM author can give a clear indication to which AIMs should use the Body. In this example, the list contains only the avlAIM: </p><div class="fragment"><div class="line">attribute capsAIM     $avlAIM</div>
 </div><!-- fragment --><p> Next we will define the design parameters to define the wing cross section and planform. </p><div class="fragment"><div class="line">despmtr   thick     0.12      frac of local chord</div>
 <div class="line">despmtr   camber    0.04      frac of loacl chord</div>
@@ -191,7 +191,7 @@ $(function() {
 </div><!-- PageDoc -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Fri Sep 17 2021 06:41:45 for AVL Analysis Interface Module (AIM) by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1
+Generated on Sat Jul 2 2022 10:12:08 for AVL Analysis Interface Module (AIM) by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1
 </small></address>
 </body>
 </html>

@@ -5,7 +5,7 @@
  *
  *             AIM Mesh Function Prototypes
  *
- *      Copyright 2014-2021, Massachusetts Institute of Technology
+ *      Copyright 2014-2022, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -21,8 +21,15 @@ typedef struct {
 } aimMeshTessMap;
 
 typedef struct {
+  char             *groupName;  /* name of group or NULL */
+  int              ID;          /* Group ID */
+} aimMeshBnd;
+
+typedef struct {
   int             nmap;     /* number of EGADS Tessellation Objects */
   aimMeshTessMap *maps;     /* the EGADS Tess Object and map to mesh verts */
+  int             nbnd;     /* number of boundary groups */
+  aimMeshBnd     *bnds;     /* boundary group info */
   char           *fileName; /* full path name (no extension) for grids */
 } aimMeshRef;
 
@@ -74,13 +81,16 @@ extern "C" {
 
 
 __ProtoExt__ int
-  aim_deleteMeshes( void *aimInfo, aimMeshRef *meshRef );
+  aim_deleteMeshes( void *aimInfo, const aimMeshRef *meshRef );
 
 __ProtoExt__ int
   aim_queryMeshes( void *aimInfo, int index, aimMeshRef *meshRef );
 
 __ProtoExt__ int
   aim_writeMeshes( void *aimInfo, int index, aimMesh *mesh );
+
+__ProtoExt__ int
+  aim_initMeshBnd(aimMeshBnd *meshBnd);
 
 __ProtoExt__ int
   aim_initMeshRef( aimMeshRef *meshRef );
@@ -101,6 +111,11 @@ __ProtoExt__ int
 
 __ProtoExt__ int
   aim_addMeshElem( void *aimStruc, int nElems, aimMeshElemGroup *elemGroup );
+
+__ProtoExt__ int
+  aim_readBinaryUgridHeader(void *aimStruc, aimMeshRef *meshRef,
+                          int *nVertex, int *nTri, int *nQuad,
+                          int *nTet, int *nPyramid, int *nPrism, int *nHex);
 
 __ProtoExt__ int
   aim_readBinaryUgrid( void *aimStruc, aimMesh *mesh );

@@ -1,5 +1,5 @@
 // Modified from Solution Adaptive Numerical Simulator (SANS)
-// Copyright 2013-2021, Massachusetts Institute of Technology
+// Copyright 2013-2022, Massachusetts Institute of Technology
 // Licensed under The GNU Lesser General Public License, version 2.1
 // See http://www.opensource.org/licenses/lgpl-2.1.php
 
@@ -9,6 +9,7 @@
 //  overloaded derivative operator
 //  ref: derivify.h (Google it)
 
+#define _USE_MATH_DEFINES // needed to get M_PI
 #include <cmath>
 #include <cassert>
 #include <iostream>
@@ -1013,8 +1014,15 @@ SURREALD_FUNC1( tanh, std::tanh(z), double(1)/(std::cosh(z)*std::cosh(z)) )
 // exp and log functions <cmath>
 
 SURREALD_FUNC1( exp, std::exp(z), std::exp(z) )
+SURREALD_FUNC1( expm1, expm1(z), exp(z) )
 SURREALD_FUNC1( log, std::log(z), double(1)/z )
 SURREALD_FUNC1( log10, std::log10(z), double(1)/(z*std::log(10.)) )
+SURREALD_FUNC1( log1p, log1p(z), double(1)/( 1 + z )  )
+
+// error-functions <cmath>
+
+SURREALD_FUNC1( erf , erf(z) ,  double(2)/sqrt(M_PI)*exp(-(z*z)) )
+SURREALD_FUNC1( erfc, erfc(z), -double(2)/sqrt(M_PI)*exp(-(z*z)) )
 
 // power functions <cmath>
 

@@ -83,6 +83,9 @@ typedef struct {
     // Attribute to index map
     mapAttrToIndexStruct groupMap;
 
+    // Boundary/surface properties
+    cfdBoundaryConditionStruct bcProps;
+
     // Point to caps input value for version of Su2
     capsValue *su2Version;
 
@@ -177,6 +180,10 @@ int aimInitialize(int inst, /*@null@*/ /*@unused@*/ const char *unitSys, void *a
 
     // Container for attribute to index map
     status = initiate_mapAttrToIndexStruct(&su2Instance->groupMap);
+    AIM_STATUS(aimInfo, status);
+
+    // Boundary conditions
+    status = initiate_cfdBoundaryConditionStruct(&su2Instance->bcProps);
     AIM_STATUS(aimInfo, status);
 
     // Pointer to caps input value for scaling pressure during data transfer
@@ -326,7 +333,7 @@ int aimInputs(void *instStore, /*@unused@*/ void *aimInfo, int index,
      * distributed with SU2.
      * Note: The configuration file is dependent on the version of SU2 used.
      * This configuration file that will be auto generated is compatible with
-     * SU2 4.1.1. (Cardinal), 5.0.0 (Raven), 6.2.0 (Falcon) or 7.2.0 (Blackbird - Default)
+     * SU2 4.1.1. (Cardinal), 5.0.0 (Raven), 6.2.0 (Falcon) or 7.3.1 (Blackbird - Default)
      */
 
     su2Instance = (aimStorage *) instStore;
@@ -798,7 +805,7 @@ int aimInputs(void *instStore, /*@unused@*/ void *aimInfo, int index,
 
         /*! \page aimInputsSU2
          * - <B>SU2_Version = "Blackbird"</B> <br>
-         * SU2 version to generate specific configuration file. Options: "Cardinal(4.0)", "Raven(5.0)", "Falcon(6.2)" or "Blackbird(7.2.0)".
+         * SU2 version to generate specific configuration file. Options: "Cardinal(4.0)", "Raven(5.0)", "Falcon(6.2)" or "Blackbird(7.3.1)".
          */
 
       if (su2Instance != NULL) su2Instance->su2Version = defval;
@@ -868,7 +875,90 @@ cleanup:
 }
 
 
-int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
+// ********************** AIM Function Break *****************************
+int aimUpdateState(void *instStore, void *aimInfo,
+                   capsValue *aimInputs)
+{
+    int status; // Function return status
+
+    // Volume Mesh obtained from meshing AIM
+    aimMeshRef *meshRef = NULL;
+
+    cfdUnitsStruct *units=NULL;
+
+    aimStorage *su2Instance;
+
+    su2Instance = (aimStorage *) instStore;
+    AIM_NOTNULL(aimInputs, aimInfo, status);
+
+    // Get units
+    units = &su2Instance->units;
+    if (units->length != NULL) {
+      if (aimInputs[Moment_Length-1      ].nullVal == IsNull) {
+        AIM_ANALYSISIN_ERROR(aimInfo, Moment_Length      , "Cannot be NULL with unitSys != NULL"); status = CAPS_BADVALUE; goto cleanup;
+      }
+      if (aimInputs[Reference_Area-1     ].nullVal == IsNull) {
+        AIM_ANALYSISIN_ERROR(aimInfo, Reference_Area     , "Cannot be NULL with unitSys != NULL"); status = CAPS_BADVALUE; goto cleanup;
+      }
+      if (aimInputs[Freestream_Density-1 ].nullVal == IsNull) {
+        AIM_ANALYSISIN_ERROR(aimInfo, Freestream_Density , "Cannot be NULL with unitSys != NULL"); status = CAPS_BADVALUE; goto cleanup;
+      }
+      if (aimInputs[Freestream_Velocity-1].nullVal == IsNull) {
+        AIM_ANALYSISIN_ERROR(aimInfo, Freestream_Velocity, "Cannot be NULL with unitSys != NULL"); status = CAPS_BADVALUE; goto cleanup;
+      }
+      if (aimInputs[Freestream_Pressure-1].nullVal == IsNull) {
+        AIM_ANALYSISIN_ERROR(aimInfo, Freestream_Pressure, "Cannot be NULL with unitSys != NULL"); status = CAPS_BADVALUE; goto cleanup;
+      }
+
+      status = cfd_cfdCoefficientUnits(aimInfo,
+                                       aimInputs[Moment_Length-1      ].vals.real, aimInputs[Moment_Length-1      ].units,
+                                       aimInputs[Reference_Area-1     ].vals.real, aimInputs[Reference_Area-1     ].units,
+                                       aimInputs[Freestream_Density-1 ].vals.real, aimInputs[Freestream_Density-1 ].units,
+                                       aimInputs[Freestream_Velocity-1].vals.real, aimInputs[Freestream_Velocity-1].units,
+                                       aimInputs[Freestream_Pressure-1].vals.real, aimInputs[Freestream_Pressure-1].units,
+                                       units);
+      AIM_STATUS(aimInfo, status);
+    }
+
+    // Get project name
+    su2Instance->projectName = aimInputs[Proj_Name-1].vals.string;
+
+    if (aimInputs[Mesh-1].nullVal == IsNull) {
+        AIM_ANALYSISIN_ERROR(aimInfo, Mesh, "'Mesh' input must be linked to an output 'Area_Mesh' or 'Volume_Mesh'");
+        status = CAPS_BADVALUE;
+        goto cleanup;
+    }
+
+    // Get mesh
+    meshRef = (aimMeshRef *)aimInputs[Mesh-1].vals.AIMptr;
+    AIM_NOTNULL(meshRef, aimInfo, status);
+
+    // Get attribute to index mapping
+    status = create_MeshRefToIndexMap(aimInfo, meshRef, &su2Instance->groupMap);
+    AIM_STATUS(aimInfo, status);
+
+    if (aimInputs[Boundary_Condition-1].nullVal ==  IsNull) {
+      AIM_ANALYSISIN_ERROR(aimInfo, Boundary_Condition, "No boundary conditions provided!");
+      status = CAPS_BADVALUE;
+      goto cleanup;
+    }
+
+    // Get boundary conditions
+    status = cfd_getBoundaryCondition( aimInfo,
+                                       aimInputs[Boundary_Condition-1].length,
+                                       aimInputs[Boundary_Condition-1].vals.tuple,
+                                       &su2Instance->groupMap,
+                                       &su2Instance->bcProps);
+    AIM_STATUS(aimInfo, status);
+
+    status = CAPS_SUCCESS;
+cleanup:
+    return status;
+}
+
+
+// ********************** AIM Function Break *****************************
+int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
 {
     // Function return flag
     int status;
@@ -898,10 +988,7 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
     ego *bodies = NULL;
 
     const char *bodyLunits=NULL;
-    cfdUnitsStruct *units=NULL;
-
-    // Boundary/surface properties
-    cfdBoundaryConditionStruct bcProps;
+    const cfdUnitsStruct *units=NULL;
 
     // Boundary conditions container - for writing .mapbc file
     bndCondStruct bndConds;
@@ -911,22 +998,17 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
 
     // Discrete data transfer variables
     char **boundNames = NULL;
-    int numBoundName;
+    int numBoundName = 0;
 
-    int attrLevel = 0;
     int withMotion = (int) false;
 
-    aimStorage *su2Instance;
+    const aimStorage *su2Instance;
 
-    su2Instance = (aimStorage *) instStore;
+    su2Instance = (const aimStorage *) instStore;
     units = &su2Instance->units;
 
     status = initiate_bndCondStruct(&bndConds);
-    if (status != CAPS_SUCCESS) return status;
-
-    // Get boundary conditions
-    status = initiate_cfdBoundaryConditionStruct(&bcProps);
-    if (status != CAPS_SUCCESS) return status;
+    AIM_STATUS(aimInfo, status);
 
     // Get AIM bodies
     status = aim_getBodies(aimInfo, &intents, &numBody, &bodies);
@@ -935,7 +1017,6 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
 #ifdef DEBUG
     printf(" su2AIM/aimPreAnalysis  numBody = %d!\n", numBody);
 #endif
-
     if ((numBody <= 0) || (bodies == NULL)) {
         AIM_ERROR(aimInfo, "No Bodies!");
         return CAPS_SOURCEERR;
@@ -1049,33 +1130,6 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
 
     }
 
-    if (units->length != NULL) {
-      if (aimInputs[Moment_Length-1      ].nullVal == IsNull) {
-        AIM_ANALYSISIN_ERROR(aimInfo, Moment_Length      , "Cannot be NULL with unitSys != NULL"); status = CAPS_BADVALUE; goto cleanup;
-      }
-      if (aimInputs[Reference_Area-1     ].nullVal == IsNull) {
-        AIM_ANALYSISIN_ERROR(aimInfo, Reference_Area     , "Cannot be NULL with unitSys != NULL"); status = CAPS_BADVALUE; goto cleanup;
-      }
-      if (aimInputs[Freestream_Density-1 ].nullVal == IsNull) {
-        AIM_ANALYSISIN_ERROR(aimInfo, Freestream_Density , "Cannot be NULL with unitSys != NULL"); status = CAPS_BADVALUE; goto cleanup;
-      }
-      if (aimInputs[Freestream_Velocity-1].nullVal == IsNull) {
-        AIM_ANALYSISIN_ERROR(aimInfo, Freestream_Velocity, "Cannot be NULL with unitSys != NULL"); status = CAPS_BADVALUE; goto cleanup;
-      }
-      if (aimInputs[Freestream_Pressure-1].nullVal == IsNull) {
-        AIM_ANALYSISIN_ERROR(aimInfo, Freestream_Pressure, "Cannot be NULL with unitSys != NULL"); status = CAPS_BADVALUE; goto cleanup;
-      }
-
-      status = cfd_cfdCoefficientUnits(aimInfo,
-                                       aimInputs[Moment_Length-1      ].vals.real, aimInputs[Moment_Length-1      ].units,
-                                       aimInputs[Reference_Area-1     ].vals.real, aimInputs[Reference_Area-1     ].units,
-                                       aimInputs[Freestream_Density-1 ].vals.real, aimInputs[Freestream_Density-1 ].units,
-                                       aimInputs[Freestream_Velocity-1].vals.real, aimInputs[Freestream_Velocity-1].units,
-                                       aimInputs[Freestream_Pressure-1].vals.real, aimInputs[Freestream_Pressure-1].units,
-                                       units);
-      AIM_STATUS(aimInfo, status);
-    }
-
     // Check to see if python was linked
 #ifdef HAVE_PYTHON
     pythonLinked = (int) true;
@@ -1096,41 +1150,6 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
     }
     */
 
-    // Get project name
-    su2Instance->projectName = aimInputs[Proj_Name-1].vals.string;
-
-    // Get attribute to index mapping
-    if (aim_newGeometry(aimInfo) == CAPS_SUCCESS) {
-        if (aimInputs[Two_Dimensional-1].vals.integer == (int) true) {
-          attrLevel = 2; // Only search down to the edge level of the EGADS body
-        } else {
-          attrLevel = 1; // Only search down to the face level of the EGADS body
-        }
-
-        // Get capsGroup name and index mapping to make sure all faces have a capsGroup value
-        status = create_CAPSGroupAttrToIndexMap(numBody,
-                                                bodies,
-                                                attrLevel,
-                                                &su2Instance->groupMap);
-        if (status != CAPS_SUCCESS) return status;
-    }
-
-    // Get boundary conditions - if the boundary condition has been set
-    if (aimInputs[Boundary_Condition-1].nullVal == NotNull) {
-
-        status = cfd_getBoundaryCondition(aimInfo,
-                                          aimInputs[Boundary_Condition-1].length,
-                                          aimInputs[Boundary_Condition-1].vals.tuple,
-                                          &su2Instance->groupMap,
-                                          &bcProps);
-        if (status != CAPS_SUCCESS) goto cleanup;
-
-    } else {
-        AIM_ANALYSISIN_ERROR(aimInfo, Boundary_Condition, "No boundary conditions provided !!!!");
-        status = CAPS_BADVALUE;
-        goto cleanup;
-    }
-
     if (aimInputs[Mesh-1].nullVal == IsNull) {
         AIM_ANALYSISIN_ERROR(aimInfo, Mesh, "'Mesh' input must be linked to an output 'Area_Mesh' or 'Volume_Mesh'");
         status = CAPS_BADVALUE;
@@ -1143,42 +1162,42 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
 
     if (status == CAPS_SUCCESS) {
 
-        status = populate_bndCondStruct_from_bcPropsStruct(&bcProps, &bndConds);
-        if (status != CAPS_SUCCESS) return status;
+        status = populate_bndCondStruct_from_bcPropsStruct(&su2Instance->bcProps, &bndConds);
+        AIM_STATUS(aimInfo, status);
 
         // Replace dummy values in bcVal with SU2 specific values (more to add here)
         printf("Writing boundary flags\n");
-        for (i = 0; i < bcProps.numSurfaceProp ; i++) {
+        for (i = 0; i < su2Instance->bcProps.numSurfaceProp ; i++) {
             printf(" - bcProps.surfaceProp[%d].surfaceType = %u\n",
-                   i, bcProps.surfaceProp[i].surfaceType);
+                   i, su2Instance->bcProps.surfaceProp[i].surfaceType);
 
             // {UnknownBoundary, Inviscid, Viscous, Farfield, Freestream,
             //  BackPressure, Symmetry, SubsonicInflow, SubsonicOutflow}
 
 
-            if      (bcProps.surfaceProp[i].surfaceType == Inviscid       ) bndConds.bcVal[i] = 3000;
-            else if (bcProps.surfaceProp[i].surfaceType == Viscous        ) bndConds.bcVal[i] = 4000;
-            else if (bcProps.surfaceProp[i].surfaceType == Farfield       ) bndConds.bcVal[i] = 5000;
-            else if (bcProps.surfaceProp[i].surfaceType == Extrapolate    ) bndConds.bcVal[i] = 5026;
-            else if (bcProps.surfaceProp[i].surfaceType == Freestream     ) bndConds.bcVal[i] = 5050;
-            else if (bcProps.surfaceProp[i].surfaceType == BackPressure   ) bndConds.bcVal[i] = 5051;
-            else if (bcProps.surfaceProp[i].surfaceType == SubsonicInflow ) bndConds.bcVal[i] = 7011;
-            else if (bcProps.surfaceProp[i].surfaceType == SubsonicOutflow) bndConds.bcVal[i] = 7012;
-            else if (bcProps.surfaceProp[i].surfaceType == MassflowIn     ) bndConds.bcVal[i] = 7036;
-            else if (bcProps.surfaceProp[i].surfaceType == MassflowOut    ) bndConds.bcVal[i] = 7031;
-            else if (bcProps.surfaceProp[i].surfaceType == FixedInflow    ) bndConds.bcVal[i] = 7100;
-            else if (bcProps.surfaceProp[i].surfaceType == FixedOutflow   ) bndConds.bcVal[i] = 7105;
-            else if (bcProps.surfaceProp[i].surfaceType == Symmetry       ) {
+            if      (su2Instance->bcProps.surfaceProp[i].surfaceType == Inviscid       ) bndConds.bcVal[i] = 3000;
+            else if (su2Instance->bcProps.surfaceProp[i].surfaceType == Viscous        ) bndConds.bcVal[i] = 4000;
+            else if (su2Instance->bcProps.surfaceProp[i].surfaceType == Farfield       ) bndConds.bcVal[i] = 5000;
+            else if (su2Instance->bcProps.surfaceProp[i].surfaceType == Extrapolate    ) bndConds.bcVal[i] = 5026;
+            else if (su2Instance->bcProps.surfaceProp[i].surfaceType == Freestream     ) bndConds.bcVal[i] = 5050;
+            else if (su2Instance->bcProps.surfaceProp[i].surfaceType == BackPressure   ) bndConds.bcVal[i] = 5051;
+            else if (su2Instance->bcProps.surfaceProp[i].surfaceType == SubsonicInflow ) bndConds.bcVal[i] = 7011;
+            else if (su2Instance->bcProps.surfaceProp[i].surfaceType == SubsonicOutflow) bndConds.bcVal[i] = 7012;
+            else if (su2Instance->bcProps.surfaceProp[i].surfaceType == MassflowIn     ) bndConds.bcVal[i] = 7036;
+            else if (su2Instance->bcProps.surfaceProp[i].surfaceType == MassflowOut    ) bndConds.bcVal[i] = 7031;
+            else if (su2Instance->bcProps.surfaceProp[i].surfaceType == FixedInflow    ) bndConds.bcVal[i] = 7100;
+            else if (su2Instance->bcProps.surfaceProp[i].surfaceType == FixedOutflow   ) bndConds.bcVal[i] = 7105;
+            else if (su2Instance->bcProps.surfaceProp[i].surfaceType == Symmetry       ) {
 
-                if      (bcProps.surfaceProp[i].symmetryPlane == 1) bndConds.bcVal[i] = 6021;
-                else if (bcProps.surfaceProp[i].symmetryPlane == 2) bndConds.bcVal[i] = 6022;
-                else if (bcProps.surfaceProp[i].symmetryPlane == 3) bndConds.bcVal[i] = 6023;
+                if      (su2Instance->bcProps.surfaceProp[i].symmetryPlane == 1) bndConds.bcVal[i] = 6021;
+                else if (su2Instance->bcProps.surfaceProp[i].symmetryPlane == 2) bndConds.bcVal[i] = 6022;
+                else if (su2Instance->bcProps.surfaceProp[i].symmetryPlane == 3) bndConds.bcVal[i] = 6023;
             }
         }
         printf("Done boundary flags\n");
 
         status = destroy_bndCondStruct(&bndConds);
-        if (status != CAPS_SUCCESS) return status;
+        AIM_STATUS(aimInfo, status);
     }
 
     // If data transfer is ok ....
@@ -1190,7 +1209,8 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
             status = su2_dataTransfer(aimInfo,
                                       su2Instance->projectName,
                                       meshRef);
-            if (status != CAPS_SUCCESS && status != CAPS_NOTFOUND) goto cleanup;
+            if (status != CAPS_SUCCESS && status != CAPS_NOTFOUND)
+              AIM_STATUS(aimInfo, status);
 
             withMotion = (int) true;
         }
@@ -1217,19 +1237,19 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
 
             if (strcasecmp(aimInputs[SU2_Version-1].vals.string, "Cardinal") == 0) {
 
-                status = su2_writeCongfig_Cardinal(aimInfo, aimInputs, meshfilename, bcProps);
+                status = su2_writeCongfig_Cardinal(aimInfo, aimInputs, meshfilename, su2Instance->bcProps);
 
             } else if (strcasecmp(aimInputs[SU2_Version-1].vals.string, "Raven") == 0) {
 
-                status = su2_writeCongfig_Raven(aimInfo, aimInputs, meshfilename, bcProps);
+                status = su2_writeCongfig_Raven(aimInfo, aimInputs, meshfilename, su2Instance->bcProps);
 
             } else if (strcasecmp(aimInputs[SU2_Version-1].vals.string, "Falcon") == 0) {
 
-                status = su2_writeCongfig_Falcon(aimInfo, aimInputs, meshfilename, bcProps, withMotion);
+                status = su2_writeCongfig_Falcon(aimInfo, aimInputs, meshfilename, su2Instance->bcProps, withMotion);
 
             } else if (strcasecmp(aimInputs[SU2_Version-1].vals.string, "Blackbird") == 0) {
 
-                status = su2_writeCongfig_Blackbird(aimInfo, aimInputs, meshfilename, bcProps, withMotion);
+                status = su2_writeCongfig_Blackbird(aimInfo, aimInputs, meshfilename, su2Instance->bcProps, withMotion);
 
             } else {
 
@@ -1251,7 +1271,6 @@ cleanup:
 
     AIM_FREE(boundNames);
 
-    (void) destroy_cfdBoundaryConditionStruct(&bcProps);
     // (void) destroy_cfdModalAeroelasticStruct(&modalAeroelastic);
 
     (void) destroy_bndCondStruct(&bndConds);
@@ -1542,6 +1561,8 @@ void aimCleanup(void *instStore)
     // Clean up su2Instance data
     destroy_mapAttrToIndexStruct(&su2Instance->groupMap);
 
+    (void) destroy_cfdBoundaryConditionStruct(&su2Instance->bcProps);
+
     // SU2 project name
     su2Instance->projectName = NULL;
 
@@ -1554,8 +1575,7 @@ void aimCleanup(void *instStore)
     // Cleanup units
     destroy_cfdUnitsStruct(&su2Instance->units);
 
-    EG_free(su2Instance);
-
+    AIM_FREE(su2Instance);
 }
 
 
@@ -1622,13 +1642,9 @@ int aimDiscr(char *tname, capsDiscr *discr)
         goto cleanup;
     }
 
-    if (aim_newGeometry(discr->aInfo) == CAPS_SUCCESS &&
+    if (aim_newGeometry(discr->aInfo) == CAPS_SUCCESS ||
         su2Instance->groupMap.numAttribute == 0) {
-        // Get capsGroup name and index mapping to make sure all faces have a capsGroup value
-        status = create_CAPSGroupAttrToIndexMap(numBody,
-                                                bodies,
-                                                1, // Only search down to the face level of the EGADS body
-                                                &su2Instance->groupMap);
+        status = create_MeshRefToIndexMap(discr->aInfo, meshRef, &su2Instance->groupMap);
         AIM_STATUS(discr->aInfo, status);
     }
 
@@ -1699,8 +1715,10 @@ int aimTransfer(capsDiscr *discr, const char *dataName, int numPoint,
      */ // Reset of this block comes from su2Util.c
 
     int status, status2; // Function return status
-    int i, j, dataPoint, bIndex; // Indexing
-    aimStorage *su2Instance;
+    int i, j, dataPoint, bIndex, iglobal; // Indexing
+    aimStorage *su2Instance = NULL;
+    aimMeshRef *meshRef = NULL;
+    capsValue *valMeshRef = NULL;
 
     // Aero-Load data variables
     int numVariable=0;
@@ -1852,15 +1870,24 @@ int aimTransfer(capsDiscr *discr, const char *dataName, int numPoint,
         goto cleanup;
     }
 
+    // Get mesh
+    status = aim_getValue(discr->aInfo, Mesh, ANALYSISIN, &valMeshRef);
+    AIM_STATUS(discr->aInfo, status);
+    AIM_NOTNULL(valMeshRef, discr->aInfo, status);
+
+    meshRef = (aimMeshRef *)valMeshRef->vals.AIMptr;
+    AIM_NOTNULL(meshRef, discr->aInfo, status);
+
     for (i = 0; i < numPoint; i++) {
 
-        bIndex       = discr->tessGlobal[2*i  ];
-        globalNodeID = discr->tessGlobal[2*i+1] +
-                       discr->bodys[bIndex-1].globalOffset;
+        bIndex  = discr->tessGlobal[2*i  ];
+        iglobal = discr->tessGlobal[2*i+1];
+
+        globalNodeID = meshRef->maps[bIndex-1].map[iglobal-1];
 
         found = (int) false;
         for (dataPoint = 0; dataPoint < numDataPoint; dataPoint++) {
-            if ((int) dataMatrix[globalIDIndex][dataPoint] +1 ==  globalNodeID) { // SU2 meshes are 0-index
+            if ((int) dataMatrix[globalIDIndex][dataPoint]+1 == globalNodeID) { // SU2 meshes are 0-index
                 found = (int) true;
                 break;
             }
@@ -1872,11 +1899,10 @@ int aimTransfer(capsDiscr *discr, const char *dataName, int numPoint,
                 // Add something for units - aim_covert()
 
                 dataVal[dataRank*i+j] = dataMatrix[variableIndex][dataPoint]*dataScaleFactor + dataScaleOffset;
-                //dataVal[dataRank*i+j] = 99;
 
             }
         } else {
-            AIM_ERROR(discr->aInfo, "Error: Unable to find node %d!\n", globalNodeID);
+            AIM_ERROR(discr->aInfo, "Unable to find node %d!\n", globalNodeID);
             status = CAPS_BADVALUE;
             goto cleanup;
         }

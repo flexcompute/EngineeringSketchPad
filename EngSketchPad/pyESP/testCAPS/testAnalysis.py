@@ -72,6 +72,8 @@ class TestAnalysis(unittest.TestCase):
         self.assertEqual(("fun3d" in self.myProblem.analysis.keys() and
                           "su2"   in self.myProblem.analysis.keys()), True)
 
+        self.myProblem.analysis["fun3d"].markForDelete()
+
 #==============================================================================
     # Analysis sequence
     def test_analysis(self):
@@ -428,9 +430,9 @@ class TestAnalysis(unittest.TestCase):
 
         self.xfoil2 = self.problem.analysis.create(aim="xfoilAIM",
                                                    name="xfoil2")
-        
+
         self.xfoil1.input["Alpha"].link(self.xfoil0.output["Alpha"])
-        
+
         with self.assertRaises(pyCAPS.CAPSError) as e:
             self.xfoil0.input["CL"].link(self.xfoil1.output["CL"])
         self.assertEqual(e.exception.errorName, "CAPS_CIRCULARLINK")
@@ -440,7 +442,7 @@ class TestAnalysis(unittest.TestCase):
         with self.assertRaises(pyCAPS.CAPSError) as e:
             self.xfoil0.input["CL"].link(self.xfoil2.output["CL"])
         self.assertEqual(e.exception.errorName, "CAPS_CIRCULARLINK")
-        
+
         del self.problem
         del self.xfoil0
         del self.xfoil1

@@ -44,6 +44,13 @@ class TestCart3D(unittest.TestCase):
 
         cls.myProblem = pyCAPS.Problem(cls.problemName, capsFile=cls.file, outLevel=0)
 
+        cls.myProblem.geometry.cfgpmtr.series     = 12
+        cls.myProblem.geometry.cfgpmtr.series2    = 12
+        cls.myProblem.geometry.cfgpmtr.sharpte    = 1
+        cls.myProblem.geometry.despmtr.twist      = [0, 0]
+        cls.myProblem.geometry.despmtr.dihedral   = 0
+        cls.myProblem.geometry.cfgpmtr.aerosystem = 0
+
         cls.myAnalysis = cls.myProblem.analysis.create(aim = "cart3dAIM")
 
     @classmethod
@@ -72,12 +79,15 @@ class TestCart3D(unittest.TestCase):
             if which("flowCart") == None:
                 self.skipTest("No flowCart executable")
 
+#==============================================================================
     # Test available outputs
     def test_outputs(self):
 
         keys = list(self.myAnalysis.output.keys())
         self.assertEqual(sorted(keys), sorted(["C_A", "C_Y", "C_N",   "C_D",   "C_S", "C_L", "C_l",
-                                               "C_m", "C_n", "C_M_x", "C_M_y", "C_M_z"])  )
+                                               "C_m", "C_n", "C_M_x", "C_M_y", "C_M_z", "alpha"])  )
+
+#==============================================================================
     # Test re-enter
     def test_reenter(self):
 
@@ -100,39 +110,82 @@ class TestCart3D(unittest.TestCase):
 
         # Generate Components.i.tri
         self.myAnalysis.input.Mach = 0.5
-        self.myAnalysis.runAnalysis()
+
+        vals = {}
 
         # Try exatracting values for each output
         for name in self.myAnalysis.output:
-            val = self.myAnalysis.output[name].value
-            print(name, val)
+            vals[name] = self.myAnalysis.output[name].value
+            #print(name, val)
             #self.assertNotEqual(val, 0)
 
         # Doe not change grid, so no new Components.i.tri
         self.myAnalysis.input.Mach = 0.4
-        self.myAnalysis.runAnalysis()
 
-        # Try exatracting values for each output
+        # Try exatracting values for each output agan and make sure they have changed
         for name in self.myAnalysis.output:
+            if name == "alpha": continue
             val = self.myAnalysis.output[name].value
-            print(name, val)
-            #self.assertNotEqual(val, 0)
+            #print(name, val, vals[name])
+            self.assertNotEqual(val, vals[name])
+            vals[name] = val
 
         # Changes surface grid, makes new Components.i.tri
-        self.myAnalysis.input.Tess_Params = self.myAnalysis.input.Tess_Params
-        self.myAnalysis.runAnalysis()
+        Tess_Params = self.myAnalysis.input.Tess_Params
+        Tess_Params[0] *= 0.8
+        self.myAnalysis.input.Tess_Params = Tess_Params
 
-        # Try exatracting values for each output
+        # Try exatracting values for each output and make sure they have changed
         for name in self.myAnalysis.output:
+            if name == "alpha": continue
             val = self.myAnalysis.output[name].value
-            print(name, val)
-            #self.assertNotEqual(val, 0)
+            #print(name, val)
+            self.assertNotEqual(val, vals[name])
 
-    # Create sensitvities
+#==============================================================================
+    # Test maching a target CL
+    def test_TargetCL(self):
+
+        # Create a new instance
+        self.cart3d = self.myProblem.analysis.create(aim = "cart3dAIM", autoExec=True)
+
+        TargetCL = 0.1
+
+        self.cart3d.input.mesh2d = True
+        self.cart3d.input.nDiv = 9
+        self.cart3d.input.maxR = 7
+
+        self.cart3d.input.Mach = 0.2
+        self.cart3d.input.outer_box = 10*self.myProblem.geometry.outpmtr.cmean
+
+        self.cart3d.input.Model_X_axis = "-Xb"
+        self.cart3d.input.Model_Y_axis = "-Zb"
+        self.cart3d.input.Model_Z_axis = "-Yb"
+        #self.cart3d.input.Yslices = [0]
+        self.cart3d.input.Zslices = [0]
+
+        self.cart3d.input.alpha = 1
+        self.cart3d.input.TargetCL = TargetCL
+
+        # print(self.cart3d.output.C_L)
+        # print(self.cart3d.output.C_S)
+        # print(self.cart3d.output.C_D)
+        # print(self.cart3d.output.alpha)
+        self.assertAlmostEqual( TargetCL, self.cart3d.output.C_L, 2 )
+        #self.assertAlmostEqual( 0.45018301428, self.cart3d.output.alpha, 2 )
+
+        del self.cart3d
+
+#==============================================================================
+    # Test analysis sensitvities
     def test_sensitivity_AnalysisIn(self):
 
         # Create a new instance
         self.cart3d = self.myProblem.analysis.create(aim = "cart3dAIM", autoExec=True)
+
+        self.cart3d.input.Model_X_axis = "-Xb"
+        self.cart3d.input.Model_Y_axis = "-Zb"
+        self.cart3d.input.Model_Z_axis = "-Yb"
 
         self.cart3d.input.Mach = 0.5
         self.cart3d.input.outer_box = 80
@@ -168,41 +221,43 @@ class TestCart3D(unittest.TestCase):
             #self.cart3d.input.Design_Adapt = "C_D"
 
             self.cart3d.input.Design_Sensitivity = False
-            self.cart3d.runAnalysis()
 
-            # Try exatracting values for each output amd checm the dynamic outputs match
+            # Try exatracting values for each output and check the dynamic outputs match
             for name in names: #self.cart3d.output:
                 valOut = self.cart3d.output[name].value
                 valDyn = self.cart3d.dynout[name].value
-                print(name, valOut, valDyn)
+                #print(name, valOut, valDyn)
                 self.assertAlmostEqual(valOut, valDyn, 1)
 
             self.cart3d.input.Design_Sensitivity = True
-            self.cart3d.runAnalysis()
 
             for name in names: #self.cart3d.output:
                 valOut = self.cart3d.output[name].value
                 valDyn = self.cart3d.dynout[name].value
-                print(name, valOut, valDyn)
+                #print(name, valOut, valDyn)
                 self.assertAlmostEqual(valOut, valDyn, 1)
 
             self.cart3d.input.Design_Sensitivity = False
-            self.cart3d.runAnalysis()
 
             for name in names: #self.cart3d.output:
                 valOut = self.cart3d.output[name].value
                 valDyn = self.cart3d.dynout[name].value
-                print(name, valOut, valDyn)
+                #print(name, valOut, valDyn)
                 self.assertAlmostEqual(valOut, valDyn, 1)
 
         del self.cart3d
 
 
-    # Create sensitvities
+#==============================================================================
+    # Test geometry sensitvities
     def test_sensitivity_GeometryIn(self):
 
         # Create a new instance
         self.cart3d = self.myProblem.analysis.create(aim = "cart3dAIM", autoExec=True)
+
+        self.cart3d.input.Model_X_axis = "-Xb"
+        self.cart3d.input.Model_Y_axis = "-Zb"
+        self.cart3d.input.Model_Z_axis = "-Yb"
 
         self.cart3d.input.Mach = 0.5
         self.cart3d.input.outer_box = 80
@@ -239,31 +294,28 @@ class TestCart3D(unittest.TestCase):
             #self.cart3d.input.Design_Adapt = "C_D"
 
             self.cart3d.input.Design_Sensitivity = False
-            self.cart3d.runAnalysis()
 
-            # Try exatracting values for each output amd checm the dynamic outputs match
+            # Try exatracting values for each output and check the dynamic outputs match
             for name in names: #self.cart3d.output:
                 valOut = self.cart3d.output[name].value
                 valDyn = self.cart3d.dynout[name].value
-                print(name, valOut, valDyn)
+                #print(name, valOut, valDyn)
                 self.assertAlmostEqual(valOut, valDyn, 1)
 
             self.cart3d.input.Design_Sensitivity = True
-            self.cart3d.runAnalysis()
 
             for name in names: #self.cart3d.output:
                 valOut = self.cart3d.output[name].value
                 valDyn = self.cart3d.dynout[name].value
-                print(name, valOut, valDyn)
+                #print(name, valOut, valDyn)
                 self.assertAlmostEqual(valOut, valDyn, 1)
 
             self.cart3d.input.Design_Sensitivity = False
-            self.cart3d.runAnalysis()
 
             for name in names: #self.cart3d.output:
                 valOut = self.cart3d.output[name].value
                 valDyn = self.cart3d.dynout[name].value
-                print(name, valOut, valDyn)
+                #print(name, valOut, valDyn)
                 self.assertAlmostEqual(valOut, valDyn, 1)
 
         del self.cart3d

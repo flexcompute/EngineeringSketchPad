@@ -9,7 +9,7 @@
  */
 
 /*
- * Copyright (C) 2013/2021  John F. Dannenhoffer, III (Syracuse University)
+ * Copyright (C) 2013/2022  John F. Dannenhoffer, III (Syracuse University)
  *
  * This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
@@ -78,7 +78,7 @@ int
 timLoad(esp_T *ESP,                     /* (in)  pointer to ESP structure */
         void  *cloudfile)               /* (in)  name of file containing cloud */
 {
-    int    status = EGADS_SUCCESS;      /* (out) return status */
+    int    status=0;                    /* (out) return status */
 
     int     icloud, jmax, ipmtr;
     char    templine[128];
@@ -90,15 +90,28 @@ timLoad(esp_T *ESP,                     /* (in)  pointer to ESP structure */
 
     /* --------------------------------------------------------------- */
 
-    outLevel = ocsmSetOutLevel(0);
-    (void)     ocsmSetOutLevel(outLevel);
+    outLevel = ocsmSetOutLevel(-1);
 
-    /* create the plugs_T structure and initialize it */
-    MALLOC(ESP->udata, plugs_T, 1);
+    if (ESP == NULL) {
+        printf("ERROR:: cannot run timMitten without serveESP\n");
+        status = EGADS_SEQUERR;
+        goto cleanup;
+    }
+    
+    /* create the plugs_T structure */
+    if (ESP->nudata >= MAX_TIM_NESTING) {
+        printf("ERROR:: cannot nest more than %d TIMs\n", MAX_TIM_NESTING);
+        exit(0);
+    }
+    
+    ESP->nudata++;
+    MALLOC(ESP->udata[ESP->nudata-1], plugs_T, 1);
 
-    plugs = (plugs_T *) ESP->udata;
+    strcpy(ESP->timName[ESP->nudata-1], "plugs");
+    
+    plugs = (plugs_T *) (ESP->udata[ESP->nudata-1]);
 
-    /* initialize it */
+    /* initialize the structure */
     plugs->ncloud   = 0;
     plugs->nclass   = 0;
     plugs->cloud    = NULL;
@@ -166,76 +179,10 @@ timLoad(esp_T *ESP,                     /* (in)  pointer to ESP structure */
     /* unset the verification flag */
     ESP->MODL->verify = 0;
 
+    /* hold the UI when executing */
+    status = 1;
+
 cleanup:
-    return status;
-}
-
-
-/***********************************************************************/
-/*                                                                     */
-/*   timSave - save tim data and close tim instance                    */
-/*                                                                     */
-/***********************************************************************/
-
-int
-timSave(esp_T *ESP)                     /* (in)  pointer to ESP structure */
-{
-    int    status = EGADS_SUCCESS;      /* (out) return status */
-
-    plugs_T *plugs = (plugs_T *)(ESP->udata);
-
-    ROUTINE(timSave(plugs));
-
-    /* --------------------------------------------------------------- */
-
-    /* set the verification flag */
-    ESP->MODL->verify = 1;
-
-    /* remove the allocated data from the PLUGS structure */
-    FREE(plugs->cloud   );
-    FREE(plugs->face    );
-    FREE(plugs->pmtrindx);
-    FREE(plugs->pmtrorig);
-
-//cleanup:
-    return status;
-}
-
-
-/***********************************************************************/
-/*                                                                     */
-/*   timQuit - close tim instance without saving                       */
-/*                                                                     */
-/***********************************************************************/
-
-int
-timQuit(esp_T *ESP)                     /* (in)  pointer to ESP structure */
-{
-    int    status = EGADS_SUCCESS;      /* (out) return status */
-
-    int     ipmtr;
-    plugs_T *plugs = (plugs_T *)(ESP->udata);
-
-    ROUTINE(timQuit(plugs));
-
-    /* --------------------------------------------------------------- */
-
-    /* return all DESPMTRs to their original values */
-    for (ipmtr = 0; ipmtr < plugs->npmtr; ipmtr++) {
-        if (ESP->MODL                                     != NULL &&
-            ESP->MODL->pmtr                               != NULL &&
-            ESP->MODL->pmtr[plugs->pmtrindx[ipmtr]].value != NULL   ) {
-            ESP->MODL->pmtr[plugs->pmtrindx[ipmtr]].value[0] = plugs->pmtrorig[ipmtr];
-        }
-    }
-
-    /* remove the allocated data from the PLUGS structure */
-    FREE(plugs->cloud   );
-    FREE(plugs->face    );
-    FREE(plugs->pmtrindx);
-    FREE(plugs->pmtrorig);
-
-//cleanup:
     return status;
 }
 
@@ -248,16 +195,15 @@ timQuit(esp_T *ESP)                     /* (in)  pointer to ESP structure */
 
 int
 timMesg(esp_T *ESP,                     /* (in)  pointer to ESP structure */
-        char  command[],                /* (in)  command */
-        int   *max_resp_len,            /* (in)  length of response */
-        char  *response[])              /* (out) response */
+        char  command[])                /* (in)  command */
 {
     int    status = EGADS_SUCCESS;      /* (out) return status */
 
     int     ibody, unclass, reclass, ipmtr;
+    char    response[MAX_EXPR_LEN];
 
     modl_T  *MODL  =             ESP->MODL;
-    plugs_T *plugs = (plugs_T *)(ESP->udata);
+    plugs_T *plugs = (plugs_T *)(ESP->udata[ESP->nudata-1]);
 
     ROUTINE(timMesg(plugs));
 
@@ -281,10 +227,12 @@ timMesg(esp_T *ESP,                     /* (in)  pointer to ESP structure */
         }
 
         if (status < EGADS_SUCCESS) {
-            snprintf(*response, *max_resp_len-1, "phase1|%10.4e|ERROR:: %d detected", plugs->RMS, status);
+            snprintf(response, MAX_EXPR_LEN, "timMesg|plugs|phase1|%10.4e|ERROR:: %d detected", plugs->RMS, status);
         } else {
-            snprintf(*response, *max_resp_len-1, "phase1|%10.4e|%d", plugs->RMS, status);
+            snprintf(response, MAX_EXPR_LEN, "timMesg|plugs|phase1|%10.4e|%d", plugs->RMS, status);
         }
+
+        tim_bcst("plugs", response);
 
     /* "phase2" */
     } else if (strncmp(command, "phase2|", 7) == 0) {
@@ -305,19 +253,139 @@ timMesg(esp_T *ESP,                     /* (in)  pointer to ESP structure */
         }
 
         if (status < EGADS_SUCCESS) {
-            snprintf(*response, *max_resp_len-1, "phase2|%10.4e|%d|%dERROR:: %d detected", plugs->RMS, unclass, reclass, status);
+            snprintf(response, MAX_EXPR_LEN, "timMesg|plugs|phase2|%10.4e|%d|%dERROR:: %d detected", plugs->RMS, unclass, reclass, status);
         } else {
-            snprintf(*response, *max_resp_len-1, "phase2|%10.4e|%d|%d|%d", plugs->RMS, unclass, reclass, status);
+            snprintf(response, MAX_EXPR_LEN, "timMesg|plugs|phase2|%10.4e|%d|%d|%d", plugs->RMS, unclass, reclass, status);
         }
+
+        tim_bcst("plugs", response);
 
     /* "draw|" */
     } else if (strncmp(command, "draw|", 5) == 0) {
         plotPointCloud(ESP);
 
-        snprintf(*response, *max_resp_len-1, "draw");
+        tim_bcst("plugs", "timMesg|plugs|draw");
     }
 
 //cleanup:
+    return status;
+}
+
+
+/***********************************************************************/
+/*                                                                     */
+/*   timSave - save tim data and close tim instance                    */
+/*                                                                     */
+/***********************************************************************/
+
+int
+timSave(esp_T *ESP)                     /* (in)  pointer to ESP structure */
+{
+    int    status = EGADS_SUCCESS;      /* (out) return status */
+
+    int    i;
+    
+    plugs_T *plugs;
+
+    ROUTINE(timSave(plugs));
+
+    /* --------------------------------------------------------------- */
+
+    if (ESP->nudata <= 0) {
+        goto cleanup;
+    } else if (strcmp(ESP->timName[ESP->nudata-1], "plugs") != 0) {
+        printf("WARNING:: TIM on top of stack is not \"plugs\"\n");
+        for (i = 0; i < ESP->nudata; i++) {
+            printf("   timName[%d]=%s\n", i, ESP->timName[i]);
+        }
+        goto cleanup;
+    } else {
+        plugs = (plugs_T *)(ESP->udata[ESP->nudata-1]);
+    }
+    
+    if (plugs == NULL) {
+        goto cleanup;
+    }
+
+    /* set the verification flag */
+    ESP->MODL->verify = 1;
+
+    /* remove the allocated data from the PLUGS structure */
+    FREE(plugs->cloud   );
+    FREE(plugs->face    );
+    FREE(plugs->pmtrindx);
+    FREE(plugs->pmtrorig);
+
+    FREE(ESP->udata[ESP->nudata-1]);
+    ESP->timName[   ESP->nudata-1][0] = '\0';
+    ESP->nudata--;
+
+    tim_bcst("plugs", "timSave|plugs|");
+
+cleanup:
+    return status;
+}
+
+
+/***********************************************************************/
+/*                                                                     */
+/*   timQuit - close tim instance without saving                       */
+/*                                                                     */
+/***********************************************************************/
+
+int
+timQuit(esp_T *ESP,                     /* (in)  pointer to ESP structure */
+/*@unused@*/int   unload)               /* (in)  flag to unload */
+{
+    int    status = EGADS_SUCCESS;      /* (out) return status */
+
+    int     i, ipmtr;
+    plugs_T *plugs;
+
+    ROUTINE(timQuit(plugs));
+
+    /* --------------------------------------------------------------- */
+
+    if (ESP->nudata <= 0) {
+        goto cleanup;
+    } else if (strcmp(ESP->timName[ESP->nudata-1], "plugs") != 0) {
+        printf("WARNING:: TIM on top of stack is not \"plugs\"\n");
+        for (i = 0; i < ESP->nudata; i++) {
+            printf("   timName[%d]=%s\n", i, ESP->timName[i]);
+        }
+        goto cleanup;
+    } else {
+        plugs = (plugs_T *)(ESP->udata[ESP->nudata-1]);
+    }
+    
+    if (plugs == NULL) {
+        goto cleanup;
+    }
+
+    /* return all DESPMTRs to their original values */
+    if (plugs->pmtrindx != NULL && plugs->pmtrorig != NULL) {
+        for (ipmtr = 0; ipmtr < plugs->npmtr; ipmtr++) {
+            if (ESP->MODL                                     != NULL &&
+                ESP->MODL->pmtr                               != NULL &&
+                ESP->MODL->pmtr[plugs->pmtrindx[ipmtr]].value != NULL   ) {
+                ESP->MODL->pmtr[plugs->pmtrindx[ipmtr]].value[0] = plugs->pmtrorig[ipmtr];
+            }
+        }
+    }
+
+    /* remove the allocated data from the PLUGS structure */
+    FREE(plugs->cloud   );
+    FREE(plugs->face    );
+    FREE(plugs->pmtrindx);
+    FREE(plugs->pmtrorig);
+
+    FREE(ESP->udata[ESP->nudata-1]);
+    ESP->timName[   ESP->nudata-1][0] = '\0';
+    ESP->nudata--;
+
+    tim_bcst("plugs", "timQuit|plugs|");
+
+cleanup:
     return status;
 }
 
@@ -2045,7 +2113,7 @@ plotPointCloud(esp_T *ESP)              /* (in)  pointer to ESP structure */
     wvData items[20];
 
     wvContext *cntxt =             ESP->cntxt;
-    plugs_T   *plugs = (plugs_T *)(ESP->udata);
+    plugs_T   *plugs = (plugs_T *)(ESP->udata[ESP->nudata-1]);
 
     ROUTINE(plotPointCloud);
 
@@ -2164,59 +2232,5 @@ plotPointCloud(esp_T *ESP)              /* (in)  pointer to ESP structure */
 cleanup:
     FREE(verts);
 
-    return status;
-}
-
-
-/***********************************************************************/
-/*                                                                     */
-/*   timGetModl - get the active MODL                                  */
-/*                                                                     */
-/***********************************************************************/
-
-int
-timGetModl(/*@unused@*/void **myModl)               /* (out) pointer to active MODL */
-{
-    int    status = EGADS_SUCCESS;      /* (out) return status */
-
-    /* --------------------------------------------------------------- */
-
-//cleanup:
-    return status;
-}
-
-
-/***********************************************************************/
-/*                                                                     */
-/*   timSetModl - set the active MODL                                  */
-/*                                                                     */
-/***********************************************************************/
-
-int
-timSetModl(/*@unused@*/void *myModl)                /* (in)  pointer to active MODL */
-{
-    int    status = EGADS_SUCCESS;      /* (out) return status */
-
-    /* --------------------------------------------------------------- */
-
-//cleanup:
-    return status;
-}
-
-
-/***********************************************************************/
-/*                                                                     */
-/*   timViewModl - view the active MODL in serveESP                    */
-/*                                                                     */
-/***********************************************************************/
-
-int
-timViewModl(/*@unused@*/void *myModl)               /* (in)  pointer to active MODL */
-{
-    int    status = EGADS_SUCCESS;      /* (out) return status */
-
-    /* --------------------------------------------------------------- */
-
-//cleanup:
     return status;
 }

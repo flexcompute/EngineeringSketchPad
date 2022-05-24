@@ -3,7 +3,7 @@
  *
  *             Attribute Functions
  *
- *      Copyright 2014-2021, Massachusetts Institute of Technology
+ *      Copyright 2014-2022, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -17,21 +17,26 @@
 
 extern /*@null@*/ /*@only@*/ char *EG_strdup(/*@null@*/ const char *str);
 
-extern int  caps_writeObject(capsObject *cobj);
-extern void caps_jrnlWrite(capsProblem *problem, capsObject *obj, int status,
-                           int nargs, capsJrnl *args, CAPSLONG sNum0,
+extern int  caps_makeValueX(capsObject *pobject, const char *vname,
+                            enum capssType styp, enum capsvType vtyp, int nrow,
+                            int ncol, const void *data, /*@null@*/ int *partial,
+                            /*@null@*/ const char *units, capsObject **vobj);
+extern int  caps_writeObject(capsObject *object);
+extern void caps_jrnlWrite(int funID, capsProblem *problem, capsObject *obj,
+                           int status, int nargs, capsJrnl *args, CAPSLONG sNm0,
                            CAPSLONG sNum);
-extern int  caps_jrnlRead(capsProblem *problem, capsObject *obj, int nargs,
-                          capsJrnl *args, CAPSLONG *sNum, int *status);
+extern int  caps_jrnlEnd(capsProblem *problem);
+extern int  caps_jrnlRead(int funID, capsProblem *problem, capsObject *obj,
+                          int nargs, capsJrnl *args, CAPSLONG *sNum, int *stat);
+
 
 int
 caps_attrByName(capsObject *cobj, char *name, capsObject **attr)
 {
-  int            i, status, ret, atype, len;
+  int            i, status, ret, atype, len, nrow, ncol;
   CAPSLONG       sNum;
   const void     *data;
   enum capsvType type;
-  capsValue      *value;
   capsObject     *object, *pobject;
   capsProblem    *problem;
   capsJrnl       args[1];
@@ -49,33 +54,13 @@ caps_attrByName(capsObject *cobj, char *name, capsObject **attr)
     if (strcmp(name, cobj->attrs->attrs[i].name) == 0) break;
   if (i == cobj->attrs->nattrs) return CAPS_NOTFOUND;
   
-  status = caps_makeVal(Integer, 1, &i, &value);
-  if (status != CAPS_SUCCESS) return status;
-  status = caps_makeObject(&object);
-  if (status != CAPS_SUCCESS) {
-    EG_free(value);
-    return status;
-  }
-  object->type    = VALUE;
-  object->subtype = USER;
-  object->parent  = pobject;
-  object->blind   = value;
-  
-  args[0].type        = jValObj;
-  args[0].members.obj = object;
-  status = caps_jrnlRead(problem, cobj, 1, args, &sNum, &ret);
+  args[0].type = jObject;
+  status = caps_jrnlRead(CAPS_ATTRBYNAME, problem, *attr, 1, args, &sNum, &ret);
   if (status == CAPS_JOURNALERR) return status;
   if (status == CAPS_JOURNAL) {
-    if (ret == CAPS_SUCCESS) {
-      object->name = EG_strdup(name);
-      *attr = object;
-    } else {
-      caps_delete(object);
-    }
+    if (ret == CAPS_SUCCESS) *attr = args[0].members.obj;
     return ret;
   }
-  EG_free(object->blind);
-  object->blind = NULL;
 
   sNum  = problem->sNum;
   len   = cobj->attrs->attrs[i].length;
@@ -98,29 +83,20 @@ caps_attrByName(capsObject *cobj, char *name, capsObject **attr)
     type = String;
     data = cobj->attrs->attrs[i].vals.string;
   }
-  status = caps_makeVal(type, len, data, &value);
-  if (status != CAPS_SUCCESS) {
-    caps_delete(object);
-    goto adone;
-  }
   if ((len == 1) || (type == String)) {
-    value->nrow = 1;
-    value->ncol = 1;
-    value->dim  = Scalar;
+    nrow = 1;
+    ncol = 1;
   } else {
-    value->nrow = len;
-    value->ncol = 1;
-    value->dim  = Vector;
+    nrow = len;
+    ncol = 1;
   }
-  object->name  = EG_strdup(name);
-  object->blind = value;
-  
-  *attr  = object;
-  status = CAPS_SUCCESS;
+  status = caps_makeValueX(pobject, name, USER, type, nrow, ncol, data, NULL,
+                           NULL, &object);
+  if (status == CAPS_SUCCESS) *attr = object;
 
-adone:
   args[0].members.obj = *attr;
-  caps_jrnlWrite(problem, cobj, status, 1, args, sNum, problem->sNum);
+  caps_jrnlWrite(CAPS_ATTRBYNAME, problem, *attr, status, 1, args, sNum,
+                 problem->sNum);
   
   return status;
 }
@@ -129,11 +105,10 @@ adone:
 int
 caps_attrByIndex(capsObject *cobj, int in, capsObject **attr)
 {
-  int            status, ret, atype, len;
+  int            i, status, ret, atype, len, nrow, ncol;
   CAPSLONG       sNum;
   const void     *data;
   enum capsvType type;
-  capsValue      *value;
   capsObject     *object, *pobject;
   capsProblem    *problem;
   capsJrnl       args[1];
@@ -147,78 +122,50 @@ caps_attrByIndex(capsObject *cobj, int in, capsObject **attr)
   if (status            != CAPS_SUCCESS)      return status;
   problem = (capsProblem *) pobject->blind;
   
-  ret    = 0;
-  status = caps_makeVal(Integer, 1, &ret, &value);
-  if (status != CAPS_SUCCESS) return status;
-  status = caps_makeObject(&object);
-  if (status != CAPS_SUCCESS) {
-    EG_free(value);
-    return status;
-  }
-  object->type    = VALUE;
-  object->subtype = USER;
-  object->parent  = pobject;
-  object->blind   = value;
-  
-  args[0].type        = jValObj;
-  args[0].members.obj = object;
-  status = caps_jrnlRead(problem, cobj, 1, args, &sNum, &ret);
+  args[0].type = jObject;
+  status = caps_jrnlRead(CAPS_ATTRBYINDEX, problem, *attr, 1, args, &sNum, &ret);
   if (status == CAPS_JOURNALERR) return status;
   if (status == CAPS_JOURNAL) {
-    if (ret == CAPS_SUCCESS) {
-      object->name = EG_strdup(cobj->attrs->attrs[in-1].name);
-      *attr = object;
-    } else {
-      caps_delete(object);
-    }
+    if (ret == CAPS_SUCCESS) *attr = args[0].members.obj;
     return ret;
   }
-  EG_free(object->blind);
-  object->blind = NULL;
 
-  len   = cobj->attrs->attrs[in-1].length;
-  atype = cobj->attrs->attrs[in-1].type;
+  i     = in - 1;
+  sNum  = problem->sNum;
+  len   = cobj->attrs->attrs[i].length;
+  atype = cobj->attrs->attrs[i].type;
   if (atype == ATTRINT) {
     type = Integer;
     if (len == 1) {
-      data = &cobj->attrs->attrs[in-1].vals.integer;
+      data = &cobj->attrs->attrs[i].vals.integer;
     } else {
-      data =  cobj->attrs->attrs[in-1].vals.integers;
+      data =  cobj->attrs->attrs[i].vals.integers;
     }
   } else if (atype == ATTRREAL) {
     type = Double;
     if (len == 1) {
-      data = &cobj->attrs->attrs[in-1].vals.real;
+      data = &cobj->attrs->attrs[i].vals.real;
     } else {
-      data =  cobj->attrs->attrs[in-1].vals.reals;
+      data =  cobj->attrs->attrs[i].vals.reals;
     }
   } else {
     type = String;
-    data = cobj->attrs->attrs[in-1].vals.string;
-  }
-  status = caps_makeVal(type, len, data, &value);
-  if (status != CAPS_SUCCESS) {
-    caps_delete(object);
-    goto idone;
+    data = cobj->attrs->attrs[i].vals.string;
   }
   if ((len == 1) || (type == String)) {
-    value->nrow = 1;
-    value->ncol = 1;
-    value->dim  = Scalar;
+    nrow = 1;
+    ncol = 1;
   } else {
-    value->nrow = len;
-    value->ncol = 1;
-    value->dim  = Vector;
+    nrow = len;
+    ncol = 1;
   }
-  object->name  = EG_strdup(cobj->attrs->attrs[in-1].name);
-  object->blind = value;
-  
-  *attr  = object;
-  status = CAPS_SUCCESS;
+  status = caps_makeValueX(pobject, cobj->attrs->attrs[i].name, USER, type,
+                           nrow, ncol, data, NULL, NULL, &object);
+  if (status == CAPS_SUCCESS) *attr = object;
 
-idone:
   args[0].members.obj = *attr;
-  caps_jrnlWrite(problem, cobj, status, 1, args, sNum, problem->sNum);
+  caps_jrnlWrite(CAPS_ATTRBYINDEX, problem, *attr, status, 1, args, sNum,
+                 problem->sNum);
   
   return status;
 }
@@ -237,22 +184,26 @@ caps_setAttr(capsObject *cobj, /*@null@*/ const char *aname, capsObject *aval)
   capsProblem  *problem;
   capsValue    *value;
   
-  if (cobj              == NULL)         return CAPS_NULLOBJ;
-  if (cobj->magicnumber != CAPSMAGIC)    return CAPS_BADOBJECT;
-  if (aval              == NULL)         return CAPS_NULLVALUE;
-  if (aval->type        != VALUE)        return CAPS_BADTYPE;
-  if (aval->blind       == NULL)         return CAPS_NULLBLIND;
+  if (cobj              == NULL)          return CAPS_NULLOBJ;
+  if (cobj->magicnumber != CAPSMAGIC)     return CAPS_BADOBJECT;
+  if (aval              == NULL)          return CAPS_NULLVALUE;
+  if (aval->type        != VALUE)         return CAPS_BADTYPE;
+  if (aval->blind       == NULL)          return CAPS_NULLBLIND;
   name = aname;
   if (name == NULL) name = aval->name;
-  if (name              == NULL)         return CAPS_NULLNAME;
+  if (name              == NULL)          return CAPS_NULLNAME;
   status = caps_findProblem(cobj, CAPS_SETATTR, &pobject);
-  if (status            != CAPS_SUCCESS) return status;
+  if (status            != CAPS_SUCCESS)  return status;
   value   = aval->blind;
   problem = (capsProblem *) pobject->blind;
+  if (problem->dbFlag == 1) return CAPS_READONLYERR;
   
   /* ignore if restarting */
   if (problem->stFlag == CAPS_JOURNALERR) return CAPS_JOURNALERR;
-  if (problem->stFlag == 4)               return CAPS_SUCCESS;
+  if (problem->stFlag == oContinue) {
+    status = caps_jrnlEnd(problem);
+    if (status != CAPS_CLEAN)             return CAPS_SUCCESS;
+  }
   
   if (value->type == Integer) {
     if (value->dim == 2) return CAPS_BADRANK;
@@ -383,16 +334,20 @@ caps_deleteAttr(capsObject *cobj, /*@null@*/ char *name)
   capsObject  *pobject;
   capsProblem *problem;
 
-  if (cobj              == NULL)         return CAPS_NULLOBJ;
-  if (cobj->magicnumber != CAPSMAGIC)    return CAPS_BADOBJECT;
-  if (cobj->attrs       == NULL)         return CAPS_NOTFOUND;
+  if (cobj              == NULL)          return CAPS_NULLOBJ;
+  if (cobj->magicnumber != CAPSMAGIC)     return CAPS_BADOBJECT;
+  if (cobj->attrs       == NULL)          return CAPS_NOTFOUND;
   status = caps_findProblem(cobj, CAPS_DELETEATTR, &pobject);
-  if (status            != CAPS_SUCCESS) return status;
+  if (status            != CAPS_SUCCESS)  return status;
   problem = (capsProblem *) pobject->blind;
+  if (problem->dbFlag == 1) return CAPS_READONLYERR;
   
   /* ignore if restarting */
   if (problem->stFlag == CAPS_JOURNALERR) return CAPS_JOURNALERR;
-  if (problem->stFlag == 4)               return CAPS_SUCCESS;
+  if (problem->stFlag == oContinue) {
+    status = caps_jrnlEnd(problem);
+    if (status != CAPS_CLEAN)             return CAPS_SUCCESS;
+  }
   
   /* delete all? */
   if (name == NULL) {

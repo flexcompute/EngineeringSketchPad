@@ -22,8 +22,8 @@
 
 
 // Write a Astros connections card from a feaConnection structure
-int astros_writeConnectionCard(FILE *fp, feaConnectionStruct *feaConnect,
-                               feaFileFormatStruct *feaFileFormat)
+int astros_writeConnectionCard(FILE *fp, const feaConnectionStruct *feaConnect,
+                               const feaFileFormatStruct *feaFileFormat)
 {
     int status = CAPS_SUCCESS;
     int compNumbers[2];
@@ -112,8 +112,8 @@ int astros_writeConnectionCard(FILE *fp, feaConnectionStruct *feaConnect,
 }
 
 // Write a Nastran Load card from a feaLoad structure
-int astros_writeLoadCard(FILE *fp, meshStruct *mesh, feaLoadStruct *feaLoad,
-                         feaFileFormatStruct *feaFileFormat)
+int astros_writeLoadCard(FILE *fp, const meshStruct *mesh, const feaLoadStruct *feaLoad,
+                         const feaFileFormatStruct *feaFileFormat)
 {
 
     int status = CAPS_SUCCESS;
@@ -439,10 +439,10 @@ int astros_writeLoadCard(FILE *fp, meshStruct *mesh, feaLoadStruct *feaLoad,
  */
 
 // Write a Astros AEROS card from a feaAeroRef structure
-int astros_writeAEROSCard(FILE *fp, feaAeroRefStruct *feaAeroRef,
-                          feaFileFormatStruct *feaFileFormat)
+int astros_writeAEROSCard(FILE *fp, const feaAeroRefStruct *feaAeroRef,
+                          const feaFileFormatStruct *feaFileFormat)
 {
-    int *rcsid;
+    const int *rcsid;
 
     if (feaAeroRef == NULL) return CAPS_NULLVALUE;
 
@@ -456,8 +456,8 @@ int astros_writeAEROSCard(FILE *fp, feaAeroRefStruct *feaAeroRef,
 }
 
 // Write a Astros AERO card from a feaAeroRef structure
-int astros_writeAEROCard(FILE *fp, feaAeroRefStruct *feaAeroRef,
-                         feaFileFormatStruct *feaFileFormat)
+int astros_writeAEROCard(FILE *fp, const feaAeroRefStruct *feaAeroRef,
+                         const feaFileFormatStruct *feaFileFormat)
 {
     double defaultRhoRef = 1.0;
 
@@ -504,7 +504,7 @@ int astros_writeAeroData(void *aimInfo,
                          FILE *fp,
                          int useAirfoilShape,
                          feaAeroStruct *feaAero,
-                         feaFileFormatStruct *feaFileFormat)
+                         const feaFileFormatStruct *feaFileFormat)
 {
     int status; // Function return status
 
@@ -524,9 +524,11 @@ int astros_writeAeroData(void *aimInfo,
 
         if (useAirfoilShape == (int) true) { // Using the airfoil upper and lower surfaces or panels?
 
-          status = vlm_getSectionCoordX(&feaAero->vlmSurface.vlmSection[i],
+          status = vlm_getSectionCoordX(aimInfo,
+                                        &feaAero->vlmSurface.vlmSection[i],
                                         1.0, // Cosine distribution
-                                        (int) true, numPoint,
+                                        (int) true, (int) true,
+                                        numPoint,
                                         &xCoord, &yUpper, &yLower);
           if (status != CAPS_SUCCESS) return status;
           if ((xCoord == NULL) || (yUpper == NULL) || (yLower == NULL)) {
@@ -601,7 +603,7 @@ cleanup:
 
 // Write Astros CAERO6 cards from a feaAeroStruct
 int astros_writeCAeroCard(FILE *fp, feaAeroStruct *feaAero,
-                          feaFileFormatStruct *feaFileFormat)
+                          const feaFileFormatStruct *feaFileFormat)
 {
     int status; // Function return status
 
@@ -728,7 +730,7 @@ cleanup:
 int astros_writeAirfoilCard(FILE *fp,
                             /*@unused@*/ int useAirfoilShape, // = true use the airfoils shape, = false panel
                             feaAeroStruct *feaAero,
-                            feaFileFormatStruct *feaFileFormat)
+                            const feaFileFormatStruct *feaFileFormat)
 {
     int i, status = CAPS_SUCCESS; // Indexing
     int compID, chordID, lowerID, upperID;
@@ -754,7 +756,7 @@ int astros_writeAirfoilCard(FILE *fp,
 
 // Write Astros Spline1 cards from a feaAeroStruct
 int astros_writeAeroSplineCard(FILE *fp, feaAeroStruct *feaAero,
-                               feaFileFormatStruct *feaFileFormat)
+                               const feaFileFormatStruct *feaFileFormat)
 {
     int firstBoxID, lastBoxID, numSpanWise;
 
@@ -789,8 +791,8 @@ int astros_writeAeroSplineCard(FILE *fp, feaAeroStruct *feaAero,
 
 // Write Astros constraint card from a feaConstraint structure
 int astros_writeConstraintCard(FILE *fp, int feaConstraintSetID,
-                               feaConstraintStruct *feaConstraint,
-                               feaFileFormatStruct *feaFileFormat)
+                               const feaConstraintStruct *feaConstraint,
+                               const feaFileFormatStruct *feaFileFormat)
 {
     int status;
     int i; // Indexing;
@@ -831,7 +833,7 @@ int astros_writeConstraintCard(FILE *fp, int feaConstraintSetID,
 
 // Write Astros support card from a feaSupport structure
 int astros_writeSupportCard(FILE *fp, feaSupportStruct *feaSupport,
-                            feaFileFormatStruct *feaFileFormat)
+                            const feaFileFormatStruct *feaFileFormat)
 {
     int status;
     int i; // Indexing;
@@ -856,7 +858,7 @@ int astros_writeSupportCard(FILE *fp, feaSupportStruct *feaSupport,
 
 // Write a Astros Property card from a feaProperty structure w/ design parameters
 int astros_writePropertyCard(FILE *fp, feaPropertyStruct *feaProperty,
-                             feaFileFormatStruct *feaFileFormat,
+                             const feaFileFormatStruct *feaFileFormat,
                              int numDesignVariable,
                              feaDesignVariableStruct feaDesignVariable[])
 {
@@ -1097,9 +1099,9 @@ int astros_writePropertyCard(FILE *fp, feaPropertyStruct *feaProperty,
 }
 
 // Write ASTROS element cards not supported by astros_writeMesh
-int astros_writeSubElementCard(FILE *fp, meshStruct *feaMesh, int numProperty,
-                               feaPropertyStruct *feaProperty,
-                               feaFileFormatStruct *feaFileFormat)
+int astros_writeSubElementCard(FILE *fp, const meshStruct *feaMesh, int numProperty,
+                               const feaPropertyStruct *feaProperty,
+                               const feaFileFormatStruct *feaFileFormat)
 {
     int status;
     int i, j; // Indexing
@@ -1365,7 +1367,7 @@ int astros_writeSubElementCard(FILE *fp, meshStruct *feaMesh, int numProperty,
     return CAPS_SUCCESS;
 }
 
-static int _getTrimType(feaAnalysisStruct *feaAnalysis, int *trimType)
+static int _getTrimType(const feaAnalysisStruct *feaAnalysis, int *trimType)
 {
     // SYMMETRY
     // SYM (0)
@@ -1457,8 +1459,8 @@ static int _getAstrosTrimParamLabelAndSymmetry(const char *label,
 }
 
 // Write a Astros Analysis card from a feaAnalysis structure
-int astros_writeAnalysisCard(FILE *fp, feaAnalysisStruct *feaAnalysis,
-                             feaFileFormatStruct *feaFileFormat)
+int astros_writeAnalysisCard(FILE *fp, const feaAnalysisStruct *feaAnalysis,
+                             const feaFileFormatStruct *feaFileFormat)
 {
     int i; // Indexing
     double velocity, dv, vmin, vmax, velocityArray[21], *vo;
@@ -1734,7 +1736,7 @@ int astros_writeDesignVariableCard(FILE *fp,
                                    feaDesignVariableStruct *feaDesignVariable,
                                    int numProperty,
                                    feaPropertyStruct feaProperty[],
-                                   feaFileFormatStruct *feaFileFormat)
+                                   const feaFileFormatStruct *feaFileFormat)
 {
     int  i; //Indexing
     int len, composite, numPly = 0;
@@ -2005,7 +2007,7 @@ int astros_writeDesignVariableCard(FILE *fp,
                 }
     }
      */
-  
+
     status = CAPS_SUCCESS;
 
 cleanup:
@@ -2021,7 +2023,7 @@ int astros_writeDesignConstraintCard(FILE *fp, int feaDesignConstraintSetID,
                                      feaDesignConstraintStruct *feaDesignConstraint,
                                      int numMaterial, feaMaterialStruct feaMaterial[],
                                      int numProperty, feaPropertyStruct feaProperty[],
-                                     feaFileFormatStruct *feaFileFormat)
+                                     const feaFileFormatStruct *feaFileFormat)
 {
     int  i, j; // Index
     int  iPID = 0, iMID = 0;
@@ -2337,7 +2339,7 @@ int astros_readOUTEigenVector(FILE *fp, int *numEigenVector, int *numGridPoint,
     // Loop through the file again and pull out data
     while (getline(&line, &linecap, fp) >= 0) {
         if (line == NULL) break;
-  
+
         // Look for start of Eigen-Vector
         if (strncmp(beginEigenLine, line, strlen(beginEigenLine)) == 0) {
 
@@ -2757,7 +2759,7 @@ cleanup:
 // Write out a DVGRID entry
 static int astros_writeDVGRIDCard(FILE *fp, int dvID, meshNodeStruct node,
                                   double scaleCoeff, double designVec[3],
-                                  feaFileFormatStruct *feaFileFormat)
+                                  const feaFileFormatStruct *feaFileFormat)
 {
     int status = CAPS_SUCCESS;
     cardStruct card;
@@ -2791,7 +2793,7 @@ cleanup:
 
 static int astros_writeSNORMCard(FILE *fp, meshNodeStruct node, double snorm[3],
                                  int patchID, /*@unused@*/ int cAxis,
-                                 feaFileFormatStruct *feaFileFormat)
+                                 const feaFileFormatStruct *feaFileFormat)
 {
     int status = CAPS_SUCCESS;
     int coordID = 0;
@@ -2835,7 +2837,7 @@ static int astros_writeSNORMCard(FILE *fp, meshNodeStruct node, double snorm[3],
 
 static int astros_writeSNORMDTCard(FILE *fp, int dvID, meshNodeStruct node,
                                    double snormdt[3], int patchID,
-                                   feaFileFormatStruct *feaFileFormat)
+                                   const feaFileFormatStruct *feaFileFormat)
 {
     // int fieldWidth;
     // char *tempString=NULL;
@@ -3094,7 +3096,7 @@ static int astros_getConfigurationSens(FILE *fp,
                                        void *aimInfo,
                                        int numDesignVariable,
                                        feaDesignVariableStruct *feaDesignVariable,
-                                       feaFileFormatStruct *feaFileFormat,
+                                       const feaFileFormatStruct *feaFileFormat,
                                        int numGeomIn,
                                        capsValue *geomInVal,
                                        ego tess, int topoType, int topoIndex,
@@ -3212,15 +3214,15 @@ static int astros_getBoundaryNormal(FILE *fp,
                                     feaDesignVariableStruct *feaDesignVariable,
                                     int numGeomIn,
                                     capsValue *geomInVal,
-                                    meshStruct *feaMesh,
-                                    feaFileFormatStruct *feaFileFormat)
+                                    const meshStruct *feaMesh,
+                                    const feaFileFormatStruct *feaFileFormat)
 {
     int status; // Function return status
 
     int i, j, k, faceIndex, loopIndex, edgeIndex; // Indexing
 
     int numMesh;
-    meshStruct *mesh = NULL;
+    const meshStruct *mesh = NULL;
     int nodeOffSet = 0; //Keep track of global node indexing offset due to combining multiple meshes
 
     ego body;
@@ -3254,7 +3256,7 @@ static int astros_getBoundaryNormal(FILE *fp,
     }
 
     // Are we dealing with a single mesh or a combined mesh
-    if (feaMesh->bodyTessMap.egadsTess != NULL) {
+    if (feaMesh->egadsTess != NULL) {
         numMesh = 1;
         mesh = feaMesh;
 
@@ -3273,7 +3275,7 @@ static int astros_getBoundaryNormal(FILE *fp,
 
         if (mesh == NULL) mesh = &feaMesh->referenceMesh[i];
 
-        status = EG_statusTessBody(mesh->bodyTessMap.egadsTess, &body,
+        status = EG_statusTessBody(mesh->egadsTess, &body,
                                    &tessState, &numPoint);
         if (status != EGADS_SUCCESS) goto cleanup;
 
@@ -3304,7 +3306,7 @@ static int astros_getBoundaryNormal(FILE *fp,
 
         for (j = 0; j < numPoint; j++) {
 
-            status = EG_getGlobal(mesh->bodyTessMap.egadsTess, j+1,
+            status = EG_getGlobal(mesh->egadsTess, j+1,
                                   &pointLocalIndex, &pointTopoIndex, NULL);
             if (status != EGADS_SUCCESS) goto cleanup;
 
@@ -3369,7 +3371,7 @@ static int astros_getBoundaryNormal(FILE *fp,
 
                             if (numChildrenNode == 1 || numChildrenNode == 2) {
 
-                                status = EG_getTessEdge(mesh->bodyTessMap.egadsTess,
+                                status = EG_getTessEdge(mesh->egadsTess,
                                                         edgeTopoIndex, &len, &xyz, &t);
                                 if (status != EGADS_SUCCESS) goto cleanup;
 
@@ -3399,7 +3401,7 @@ static int astros_getBoundaryNormal(FILE *fp,
                         }
 
                         // Get t - along edge
-                        status = EG_getTessEdge(mesh->bodyTessMap.egadsTess,
+                        status = EG_getTessEdge(mesh->egadsTess,
                                                 edgeTopoIndex, &len, &xyz, &t);
                         if (status != EGADS_SUCCESS) goto cleanup;
 
@@ -3493,7 +3495,7 @@ static int astros_getBoundaryNormal(FILE *fp,
                                                              feaFileFormat,
                                                              numGeomIn,
                                                              geomInVal,
-                                                             mesh->bodyTessMap.egadsTess,
+                                                             mesh->egadsTess,
                                                              -1, edgeTopoIndex,
                                                              pointLocalIndex,
                                                              normBoundary,
@@ -3541,15 +3543,15 @@ int astros_writeGeomParametrization(FILE *fp,
                                     feaDesignVariableStruct *feaDesignVariable,
                                     int numGeomIn,
                                     capsValue *geomInVal,
-                                    meshStruct *feaMesh,
-                                    feaFileFormatStruct *feaFileFormat)
+                                    const meshStruct *feaMesh,
+                                    const feaFileFormatStruct *feaFileFormat)
 {
     int status; // Function return status
 
     int i, j, k, m; // row, col; // Indexing
 
     int numMesh;
-    meshStruct *mesh = NULL;
+    const meshStruct *mesh = NULL;
 
     int nodeOffSet = 0; //Keep track of global node indexing offset due to combining multiple meshes
 
@@ -3565,7 +3567,7 @@ int astros_writeGeomParametrization(FILE *fp,
     if (feaFileFormat     == NULL) return CAPS_NULLVALUE;
 
     // Are we dealing with a single mesh or a combined mesh
-    if (feaMesh->bodyTessMap.egadsTess != NULL) {
+    if (feaMesh->egadsTess != NULL) {
         numMesh = 1;
         mesh = feaMesh;
 
@@ -3616,7 +3618,7 @@ int astros_writeGeomParametrization(FILE *fp,
                 status = aim_tessSensitivity(aimInfo,
                                              geomInName,
                                              1, 1,
-                                             mesh->bodyTessMap.egadsTess,
+                                             mesh->egadsTess,
                                              &numPoint, &xyz);
                 printf(">>> Back from getting sensitivity\n");
                 AIM_STATUS(aimInfo, status, "Sensitivity for: %s\n", geomInName);
@@ -3660,7 +3662,7 @@ int astros_writeGeomParametrization(FILE *fp,
                                                 status = aim_tessSensitivity(aimInfo,
                                                                                                  geomInName,
                                                                                                  row+1, col+1, // row, col
-                                                                                                 mesh->bodyTessMap.egadsTess,
+                                                                                                 mesh->egadsTess,
                                                                                                  &numPoint, &xyz);
                                                 AIM_STATUS(aimInfo, status, "Sensitivity for: %s\n", geomInName);
 
@@ -3984,6 +3986,6 @@ cleanup:
     if (filename != NULL) EG_free(filename);
 
     if (fp != NULL) fclose(fp);
-  
+
     return status;
 }

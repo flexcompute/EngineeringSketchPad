@@ -1,5 +1,5 @@
 // Modified from Solution Adaptive Numerical Simulator (SANS)
-// Copyright 2013-2021, Massachusetts Institute of Technology
+// Copyright 2013-2022, Massachusetts Institute of Technology
 // Licensed under The GNU Lesser General Public License, version 2.1
 // See http://www.opensource.org/licenses/lgpl-2.1.php
 
@@ -9,6 +9,7 @@
 //  overloaded derivative operator
 //  ref: derivify.h (Google it)
 
+#define _USE_MATH_DEFINES // needed to get M_PI
 #include <cmath>
 #include <iostream>
 #include <cassert>
@@ -115,8 +116,14 @@ public:
 
   // exp and log functions <cmath>
   friend SurrealD exp( const SurrealD& );
+  friend SurrealD expm1( const SurrealD& );
   friend SurrealD log( const SurrealD& );
   friend SurrealD log10( const SurrealD& );
+  friend SurrealD log1p( const SurrealD& );
+
+  // error-functions <cmath>
+  friend SurrealD erf( const SurrealD& );
+  friend SurrealD erfc( const SurrealD& );
 
   // power functions <cmath>
   friend SurrealD pow( const SurrealD&, const SurrealD& );
@@ -801,8 +808,16 @@ SURREALD_FUNC1( tanh, std::tanh(z.v_), double(1)/(std::cosh(z.v_)*std::cosh(z.v_
 // exp and log functions <cmath>
 
 SURREALD_FUNC1( exp, std::exp(z.v_), std::exp(z.v_) )
+SURREALD_FUNC1( expm1, expm1(z.v_), exp(z.v_) )
 SURREALD_FUNC1( log, std::log(z.v_), double(1)/z.v_ )
 SURREALD_FUNC1( log10, std::log10(z.v_), double(1)/(z.v_*std::log(10.)) )
+
+SURREALD_FUNC1( log1p, log1p(z.v_), double(1)/( 1 + z.v_ ) )
+
+// error-functions <cmath>
+
+SURREALD_FUNC1( erf , erf(z.v_) ,  double(2)/sqrt(M_PI)*exp(-(z.v_*z.v_)) )
+SURREALD_FUNC1( erfc, erfc(z.v_), -double(2)/sqrt(M_PI)*exp(-(z.v_*z.v_)) )
 
 // power functions <cmath>
 

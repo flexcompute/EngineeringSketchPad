@@ -1,0 +1,27 @@
+# designGB
+# written by John Dannenhoffer
+
+DESPMTR   x1   -5.0
+DESPMTR   x2    0.0
+DESPMTR   x3   +5.0
+DESPMTR   rad   1.0
+
+MARK
+   UDPRIM    ellipse   ry rad   rz rad
+   TRANSLATE x1  0  0
+
+   UDPRIM    ellipse   ry rad   rz rad
+   TRANSLATE x2  0  0
+   RESTORE   .
+   RESTORE   .
+
+   UDPRIM    ellipse   ry rad   rz rad
+   TRANSLATE x3  0  0
+BLEND
+
+BOX       5  -2  -2  10  4  4
+ROTATEZ  30   5  -2
+SUBTRACT
+
+END
+

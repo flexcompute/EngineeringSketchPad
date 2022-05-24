@@ -17,8 +17,8 @@
 int deprecate_SizingAttr(void *aimInfo,
                          int numTuple,
                          capsTuple meshBCTuple[],
-                         mapAttrToIndexStruct *meshMap,
-                         mapAttrToIndexStruct *groupMap){
+                         const mapAttrToIndexStruct *meshMap,
+                         const mapAttrToIndexStruct *groupMap){
     int status;
     int i, j, attrIndex;
 

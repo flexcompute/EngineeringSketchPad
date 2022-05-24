@@ -3,7 +3,7 @@
  *
  *             Interference AIM
  *
- *      Copyright 2020-2021, Massachusetts Institute of Technology
+ *      Copyright 2020-2022, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -192,7 +192,14 @@ cleanup:
 }
 
 
-int aimPreAnalysis(/*@unused@*/ void *instStore, void *aimInfo,
+int aimUpdateState(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo,
+                   /*@unused@*/ capsValue *aimInputs)
+{
+  return CAPS_SUCCESS;
+}
+
+
+int aimPreAnalysis(/*@unused@*/ const void *instStore, void *aimInfo,
                    capsValue *aimInputs)
 {
   int          i, n, numBody, status, atype, alen;
@@ -207,12 +214,7 @@ int aimPreAnalysis(/*@unused@*/ void *instStore, void *aimInfo,
          aim_getInstance(aimInfo));
 #endif
 
-  if (aimInputs == NULL) {
-#ifdef DEBUG
-    printf(" interferenceAIM/aimPreAnalysis aimInputs == NULL!\n");
-#endif
-    return CAPS_NULLVALUE;
-  }
+  AIM_NOTNULL(aimInputs, aimInfo, status);
 
   status = aim_getBodies(aimInfo, &intents, &numBody, &bodies);
   AIM_STATUS(aimInfo, status);
@@ -248,7 +250,7 @@ cleanup:
 }
 
 
-int aimExecute(/*@unused@*/ void *instStore, void *aimInfo, int *state)
+int aimExecute(/*@unused@*/ const void *instStore, void *aimInfo, int *state)
 {
   int          i, ioml, j, m, n, numBody, status, atype, alen;
 #ifdef DEBUG
@@ -618,7 +620,7 @@ int aimOutputs(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo,
     form->vals.reals = NULL;
 
     /*! \page aimOutputsInter
-     * - <B> qc/2V </B> = Center of Gravity (3 in length).
+     * - <B> CGs </B> = Center of Gravity (3 in length).
      */
     
   } else if (index == Inertias) {
@@ -632,7 +634,7 @@ int aimOutputs(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo,
     form->nullVal    = IsNull;
     form->vals.reals = NULL;
 
-    /*! \page aimOutputsAInter
+    /*! \page aimOutputsInter
      * - <B> Inertias </B> = Inertial Matrix (9 in length).
      */
 

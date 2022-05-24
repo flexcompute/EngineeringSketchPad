@@ -10,7 +10,7 @@
  */
 
 /*
- * Copyright (C) 2011/2021  John F. Dannenhoffer, III (Syracuse University)
+ * Copyright (C) 2011/2022  John F. Dannenhoffer, III (Syracuse University)
  *
  * This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
@@ -138,11 +138,6 @@ udpExecute(ego  context,                /* (in)  EGADS context */
 
     } else if (NEDGE(0) < 2) {
         snprintf(message, 100, "nedge = %d < 2\n", NEDGE(0));
-        status  = EGADS_RANGERR;
-        goto cleanup;
-
-    } else if (NEDGE(0) > 8) {
-        snprintf(message, 100, "nedge = %d > 8\n", NEDGE(0));
         status  = EGADS_RANGERR;
         goto cleanup;
 

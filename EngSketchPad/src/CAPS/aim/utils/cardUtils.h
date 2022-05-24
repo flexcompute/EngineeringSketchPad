@@ -43,19 +43,19 @@ int card_addStringArray(cardStruct *card, int numFieldValues, char *fieldValues[
 int card_addInteger(cardStruct *card, int fieldValue);
 
 // add integer fields
-int card_addIntegerArray(cardStruct *card, int numFieldValues, int fieldValues[]);
+int card_addIntegerArray(cardStruct *card, int numFieldValues, const int fieldValues[]);
 
 // // add integer field from pointer, if null add blank
-int card_addIntegerOrBlank(cardStruct *card, int *fieldValue);
+int card_addIntegerOrBlank(cardStruct *card, const int *fieldValue);
 
 // add real field
 int card_addDouble(cardStruct *card, double fieldValue);
 
 // add real fields
-int card_addDoubleArray(cardStruct *card, int numFieldValues, double fieldValues[]);
+int card_addDoubleArray(cardStruct *card, int numFieldValues, const double fieldValues[]);
 
 // // add real field from pointer, if null add blank
-int card_addDoubleOrBlank(cardStruct *card, double *fieldValue);
+int card_addDoubleOrBlank(cardStruct *card, const double *fieldValue);
 
 // does `field` represent a blank field ?
 int card_isBlankField(const char *field);

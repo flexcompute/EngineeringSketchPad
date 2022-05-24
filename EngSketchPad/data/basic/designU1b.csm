@@ -1,0 +1,22 @@
+# designU1b
+# written by John Dannenhoffer
+# inspired by Nathan Wukie
+
+CFGPMTR   useFD     1
+DESPMTR   xbeg      5
+DESPMTR   offset    1
+OUTPMTR   myXcg
+
+IFTHEN    useFD EQ 1
+   SKBEG     0  0  0
+      LINSEG 1  0  0
+   SKEND
+   STORE     .
+ENDIF
+
+BOX       xbeg  0  0  1  1  1
+TRANSLATE offset-@xcg 0  0
+SCALE     1
+SET       myXcg  @xcg
+
+END

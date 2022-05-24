@@ -1,0 +1,8 @@
+# quad7 (quads from .egads file)
+# written by John Dannenhoffer
+
+IMPORT    $/quad7.egads  -1
+
+MESSAGE   quads_from_egads_file
+
+END

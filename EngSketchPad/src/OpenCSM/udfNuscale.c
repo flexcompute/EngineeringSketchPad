@@ -10,7 +10,7 @@
  */
 
 /*
- * Copyright (C) 2011/2021  John F. Dannenhoffer, III (Syracuse University)
+ * Copyright (C) 2011/2022  John F. Dannenhoffer, III (Syracuse University)
  *
  * This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
@@ -72,9 +72,9 @@ udpExecute(ego  emodel,                 /* (in)  Model containing Body */
 {
     int     status = EGADS_SUCCESS;
 
-    int     oclass, mtype, nchild, *senses;
+    int     oclass, mtype, nchild, *senses, ndum;
     double  xyz[18], mat[12];
-    ego     *ebodys, eref;
+    ego     *ebodys, eref, *edum;
 
     char    *message=NULL;
 
@@ -115,6 +115,10 @@ udpExecute(ego  emodel,                 /* (in)  Model containing Body */
         goto cleanup;
     }
 
+    status = EG_getTopology(ebodys[0], &eref, &oclass, &mtype,
+                            xyz, &ndum, &edum, &senses);
+    CHECK_STATUS(EG_getTopology);
+
     /* check arguments */
     if        (udps[0].arg[0].size > 1) {
         snprintf(message, 100, "xscale should be a scalar");
@@ -146,6 +150,21 @@ udpExecute(ego  emodel,                 /* (in)  Model containing Body */
         status = EGADS_RANGERR;
         goto cleanup;
 
+    } else if (XSCALE(0) < EPS06 && mtype == SOLIDBODY) {
+        snprintf(message, 100, "xscale must be positive for a SolidBody");
+        status = EGADS_RANGERR;
+        goto cleanup;
+
+    } else if (YSCALE(0) < EPS06 && mtype == SOLIDBODY) {
+        snprintf(message, 100, "yscale must be positive for a SolidBody");;
+        status = EGADS_RANGERR;
+        goto cleanup;
+
+    } else if (ZSCALE(0) < EPS06 && mtype == SOLIDBODY) {
+        snprintf(message, 100, "zscale must be positive for a SOlidBody");;
+        status = EGADS_RANGERR;
+        goto cleanup;
+
     } else if (fabs(XSCALE(0)) < EPS06 && fabs(YSCALE(0)) < EPS06) {
         snprintf(message, 100, "xscale and yscale cannot both be 0");
         status = EGADS_RANGERR;
@@ -156,7 +175,7 @@ udpExecute(ego  emodel,                 /* (in)  Model containing Body */
         status = EGADS_RANGERR;
         goto cleanup;
 
-    } else if (fabs(ZSCALE(0)) < EPS06 && fabs(ZSCALE(0)) < EPS06) {
+    } else if (fabs(ZSCALE(0)) < EPS06 && fabs(XSCALE(0)) < EPS06) {
         snprintf(message, 100, "zscale and xscale cannot both be 0");
         status = EGADS_RANGERR;
         goto cleanup;

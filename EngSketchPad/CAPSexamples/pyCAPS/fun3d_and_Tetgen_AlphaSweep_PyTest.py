@@ -26,6 +26,9 @@ myProblem = pyCAPS.Problem(problemName=workDir,
                            capsFile=geometryScript,
                            outLevel=args.outLevel)
 
+# TetGen does not support wakes
+myProblem.geometry.cfgpmtr.wake = 0
+
 # Load egadsTess aim
 myProblem.analysis.create(aim = "egadsTessAIM", name = "egadsTess")
 

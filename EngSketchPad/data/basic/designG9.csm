@@ -1,0 +1,15 @@
+# designG9
+# written by John Dannenhoffer
+
+DESPMTR   rad  2
+DESPMTR   len  4
+DESPMTR   bump 0.01
+
+MARK
+   UDPRIM    ellipse  ry rad   rz rad
+   TRANSLATE -len/2  0  0
+   RESTORE   .
+   TRANSLATE +len    0  0
+BLEND     -1;bump  -1;bump
+
+END

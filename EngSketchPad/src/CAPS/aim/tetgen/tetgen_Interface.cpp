@@ -235,6 +235,8 @@ int tetgen_VolumeMesh(void *aimInfo,
     // Create Tetgen input string
     char temp[120] = "p"; // Tetrahedralize a piecewise linear complex flag
     char q[80];
+    const char* tetgenDebugSurface = "tetgenDebugSurface";
+    char aimFile[PATH_MAX];
 
 
     // TetGen variables
@@ -367,10 +369,11 @@ int tetgen_VolumeMesh(void *aimInfo,
     try {
         tetrahedralize((char*)"pYQ", &in, &emptymesh);
     } catch (...){
-        printf("Tetgen failed to generate an empty volume mesh......!!!\n");
-        printf("  See Tecplot file tetegenDebugSurface.dat for the surface mesh\n");
-        mesh_writeTecplot(aimInfo,"tetegenDebugSurface.dat", 1, surfaceMesh, 1.0);
-        return -335;
+        aim_file(aimInfo, tetgenDebugSurface, aimFile);
+        mesh_writeTecplot(aimInfo,tetgenDebugSurface, 1, surfaceMesh, 1.0);
+        AIM_ERROR  (aimInfo, "Tetgen failed to generate an empty volume mesh......!!!");
+        AIM_ADDLINE(aimInfo, "  See Tecplot file %s.dat for the surface mesh", aimFile);
+        return CAPS_EXECERR;
     }
 
     std::vector<REAL> holepoints;
@@ -529,16 +532,25 @@ int tetgen_VolumeMesh(void *aimInfo,
     try {
         tetrahedralize(inputString, &in, &out);
     } catch (...){
-        AIM_ERROR(aimInfo, "Tetgen failed to generate a volume mesh......!!!");
-        AIM_ADDLINE(aimInfo, "  See Tecplot file tetegenDebugSurface.dat for the surface mesh");
-        mesh_writeTecplot(aimInfo,"tetegenDebugSurface.dat", 1, surfaceMesh, 1.0);
-        return -335;
+        aim_file(aimInfo, tetgenDebugSurface, aimFile);
+        mesh_writeTecplot(aimInfo,tetgenDebugSurface, 1, surfaceMesh, 1.0);
+        AIM_ERROR  (aimInfo, "Tetgen failed to generate a volume mesh......!!!");
+        AIM_ADDLINE(aimInfo, "  See Tecplot file %s.dat for the surface mesh", aimFile);
+        return CAPS_EXECERR;
     }
 
     // Save data
     //in.save_nodes((char *)"TETGEN_Test");
     //in.save_poly((char *) "TETGEN_Test");
     //out.save_faces((char *) "TETGEN_Test");
+
+    if (out.numberoftetrahedra == 0) {
+        aim_file(aimInfo, tetgenDebugSurface, aimFile);
+        mesh_writeTecplot(aimInfo,tetgenDebugSurface, 1, surfaceMesh, 1.0);
+        AIM_ERROR  (aimInfo, "Tetgen failed to generate a volume mesh......!!!");
+        AIM_ADDLINE(aimInfo, "  See Tecplot file %s.dat for the surface mesh", aimFile);
+        return CAPS_EXECERR;
+    }
 
     // Transfer tetgen mesh structure to genUnstrMesh format
     status = tetgen_to_MeshStruct(&out, volumeMesh);

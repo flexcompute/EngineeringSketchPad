@@ -1,5 +1,5 @@
 // Modified from Solution Adaptive Numerical Simulator (SANS)
-// Copyright 2013-2021, Massachusetts Institute of Technology
+// Copyright 2013-2022, Massachusetts Institute of Technology
 // Licensed under The GNU Lesser General Public License, version 2.1
 // See http://www.opensource.org/licenses/lgpl-2.1.php
 
@@ -907,6 +907,12 @@ BOOST_AUTO_TEST_CASE( cmath )
   v2 += exp(v1);
   BOOST_CHECK( chkSurrealD1( v1, 1, 3 ) );
   BOOST_CHECK( chkSurrealD1( v2, 2*exp(1.), 2*3*exp(1.), tol ) );
+  v2 = expm1(v1);
+  BOOST_CHECK( chkSurrealD1( v1, 1, 3 ) );
+  BOOST_CHECK( chkSurrealD1( v2, expm1(1.), 3*exp(1.), tol ) );
+  v2 += expm1(v1);
+  BOOST_CHECK( chkSurrealD1( v1, 1, 3 ) );
+  BOOST_CHECK( chkSurrealD1( v2, 2*expm1(1.), 2*3*exp(1.), tol ) );
   v2 = log(v1);
   BOOST_CHECK( chkSurrealD1( v1, 1, 3 ) );
   BOOST_CHECK( chkSurrealD1( v2, 0, 3, tol ) );
@@ -919,6 +925,22 @@ BOOST_AUTO_TEST_CASE( cmath )
   v2 += log10(v1);
   BOOST_CHECK( chkSurrealD1( v1, 1, 3 ) );
   BOOST_CHECK( chkSurrealD1( v2, 0, 2*3/log(10.), tol ) );
+  v2 = log1p(v1);
+  BOOST_CHECK( chkSurrealD1( v1, 1, 3 ) );
+  BOOST_CHECK( chkSurrealD1( v2, log(2.), 3./2., tol ) );
+  v2 += log1p(v1);
+  BOOST_CHECK( chkSurrealD1( v1, 1, 3 ) );
+  BOOST_CHECK( chkSurrealD1( v2, 2*log(2.), 2*3/2., tol ) );
+
+  // error-functions <cmath>
+
+  v2 = 1.5*v1;
+  v3 = erf(v2);
+  BOOST_CHECK( chkSurrealD1( v2, 1.5, 4.5 ) );
+  BOOST_CHECK( chkSurrealD1( v3, erf(v2.value()), v2.deriv()*(2./sqrt(M_PI)*exp(-(v2.value()*v2.value())) )) );
+  v3 = erfc(v2);
+  BOOST_CHECK( chkSurrealD1( v2, 1.5, 4.5 ) );
+  BOOST_CHECK( chkSurrealD1( v3, erfc(v2.value()), v2.deriv()*(-2./sqrt(M_PI)*exp(-(v2.value()*v2.value())) )) );
 
   // power functions <cmath>
 

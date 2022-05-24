@@ -1,0 +1,20 @@
+# rotate1
+# written by John Dannenhoffer
+
+# axes specified
+BOX       0  0  0  4  3  2
+
+ROTATEX  10  0  0
+ROTATEY  20  0  0
+ROTATEZ  30  0  0
+
+# default axes
+BOX       0  0  0  4  3  2
+
+ROTATEX  10
+ROTATEY  20
+ROTATEZ  30
+
+END
+
+

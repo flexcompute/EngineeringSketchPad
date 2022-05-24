@@ -146,7 +146,15 @@ int aimInputs(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo,
 
 
 // ********************** AIM Function Break *****************************
-int aimPreAnalysis(/*@unused@*/ void *instStore, void *aimInfo,
+int aimUpdateState(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo,
+                   /*@unused@*/ capsValue *aimInputs)
+{
+    return CAPS_SUCCESS;
+}
+
+
+// ********************** AIM Function Break *****************************
+int aimPreAnalysis(/*@unused@*/ const void *instStore, void *aimInfo,
                    capsValue *aimInputs)
 {
     int status; // Function return status
@@ -187,18 +195,11 @@ int aimPreAnalysis(/*@unused@*/ void *instStore, void *aimInfo,
     char outputFilename[] = "tsfoilOutput.txt";
     char tsfoilFilename[] = "caps.tsfoil";
 
-    if (aimInputs == NULL) {
-#ifdef DEBUG
-        printf("\ttsfoilAIM/aimPreAnalysis aimInputs == NULL!\n");
-#endif
-        return CAPS_NULLVALUE;
-    }
+    AIM_NOTNULL(aimInputs, aimInfo, status);
 
     status = aim_getBodies(aimInfo, &intents, &numBody, &bodies);
     if (status != CAPS_SUCCESS) {
-#ifdef DEBUG
-        printf("\ttsfoilAIM/aimPreAnalysis getBodies = %d!\n", status);
-#endif
+        AIM_ERROR(aimInfo, "No Bodies!");
         return status;
     }
 
@@ -480,7 +481,7 @@ int aimPreAnalysis(/*@unused@*/ void *instStore, void *aimInfo,
 
 
 // ********************** AIM Function Break *****************************
-int aimExecute(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo,
+int aimExecute(/*@unused@*/ const void *instStore, /*@unused@*/ void *aimInfo,
                int *state)
 {
   /*! \page aimExecuteTSFOIL AIM Execution

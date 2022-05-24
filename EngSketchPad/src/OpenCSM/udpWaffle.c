@@ -10,7 +10,7 @@
  */
 
 /*
- * Copyright (C) 2011/2021  John F. Dannenhoffer, III (Syracuse University)
+ * Copyright (C) 2011/2022  John F. Dannenhoffer, III (Syracuse University)
  *
  * This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
@@ -28,7 +28,7 @@
  *     MA  02110-1301  USA
  */
 
-#define NUMUDPARGS 4
+#define NUMUDPARGS 5
 #include "udpUtilities.h"
 
 /* shorthands for accessing argument values and velocities */
@@ -36,12 +36,13 @@
 #define SEGMENTS(IUDP,I)  ((double *) (udps[IUDP].arg[1].val))[I]
 #define FILENAME(IUDP)    ((char   *) (udps[IUDP].arg[2].val))
 #define PROGRESS(IUDP)    ((int    *) (udps[IUDP].arg[3].val))[0]
+#define LAYOUT(IUDP)      ((int    *) (udps[IUDP].arg[4].val))[0]
 
 /* data about possible arguments */
-static char  *argNames[NUMUDPARGS] = {"depth",  "segments", "filename", "progress", };
-static int    argTypes[NUMUDPARGS] = {ATTRREAL, ATTRREAL,   ATTRFILE,   ATTRINT,    };
-static int    argIdefs[NUMUDPARGS] = {0,        0,          0,          0,          };
-static double argDdefs[NUMUDPARGS] = {1.,       0.,         0.,         0.,         };
+static char  *argNames[NUMUDPARGS] = {"depth",  "segments", "filename", "progress", "layout", };
+static int    argTypes[NUMUDPARGS] = {ATTRREAL, ATTRREAL,   ATTRFILE,   ATTRINT,    ATTRINT,  };
+static int    argIdefs[NUMUDPARGS] = {0,        0,          0,          0,          0,        };
+static double argDdefs[NUMUDPARGS] = {1.,       0.,         0.,         0.,         0.,       };
 
 /* get utility routines: udpErrorStr, udpInitialize, udpReset, udpSet,
                          udpGet, udpVel, udpClean, udpMesh */
@@ -111,6 +112,7 @@ udpExecute(ego  context,                /* (in)  EGADS context */
     seg_T   *seg=NULL;
     char    *message=NULL;
     ego     *enodes=NULL, *eedges=NULL, *efaces=NULL, ecurve, echild[4], eloop, eshell;
+    ego     *ewires=NULL;
 
     double  EPS06 = 1.0e-6;
 
@@ -128,6 +130,7 @@ udpExecute(ego  context,                /* (in)  EGADS context */
     printf("\n");
     printf("filename(0) = %s\n", FILENAME(  0));
     printf("progress(0) = %d\n", PROGRESS(  0));
+    printf("layout(  0) = %d\n", LAYOUT(    0));
 #endif
 
     /* default return values */
@@ -135,32 +138,32 @@ udpExecute(ego  context,                /* (in)  EGADS context */
     *nMesh  = 0;
     *string = NULL;
 
-    MALLOC(message, char, 100);
+    MALLOC(message, char, 1024);
     message[0] = '\0';
 
     /* check arguments */
     if (udps[0].arg[1].size == 1 && STRLEN(FILENAME(0)) == 0) {
-        snprintf(message, 100, "must specify segments or filename");
+        snprintf(message, 1024, "must specify segments or filename");
         status = EGADS_RANGERR;
         goto cleanup;
 
     } else if (udps[0].arg[1].size > 1 && STRLEN(FILENAME(0)) > 0) {
-        snprintf(message, 100, "must specify segments or filename");
+        snprintf(message, 1024, "must specify segments or filename");
         status = EGADS_RANGERR;
         goto cleanup;
 
     } else if (udps[0].arg[0].size > 1) {
-        snprintf(message, 100, "depth should be a scalar");
+        snprintf(message, 1024, "depth should be a scalar");
         status = EGADS_RANGERR;
         goto cleanup;
 
     } else if (DEPTH(0) <= 0) {
-        snprintf(message, 100, "depth = %f <= 0", DEPTH(0));
+        snprintf(message, 1024, "depth = %f <= 0", DEPTH(0));
         status = EGADS_RANGERR;
         goto cleanup;
 
     } else if (STRLEN(FILENAME(0)) == 0 && udps[0].arg[1].size%4 != 0) {
-        snprintf(message, 100, "segments must be divisible by 4");
+        snprintf(message, 1024, "segments must be divisible by 4");
         status = EGADS_RANGERR;
         goto cleanup;
     }
@@ -178,6 +181,7 @@ udpExecute(ego  context,                /* (in)  EGADS context */
     printf("\n");
     printf("filename(%d) = %s\n", numUdp, FILENAME(numUdp));
     printf("progress(%d) = %d\n", numUdp, PROGRESS(numUdp));
+    printf("layout(  %d) = %d\n", numUdp, LAYOUT(  numUdp));
 #endif
 
     /* if filename is given, process the file */
@@ -189,6 +193,77 @@ udpExecute(ego  context,                /* (in)  EGADS context */
     } else {
         status = processSegments(&npnt, &pnt, &nseg, &seg);
         CHECK_STATUS(processSegments);
+    }
+
+    SPLINT_CHECK_FOR_NULL(pnt);
+    SPLINT_CHECK_FOR_NULL(seg);
+
+    /* if layout was selected,, generate a MODEL with a WireBody for each Segment */
+    if (LAYOUT(0) != 0) {
+        MALLOC(ewires, ego, nseg);
+        MALLOC(enodes, ego, 2   );
+        MALLOC(eedges, ego, 1   );
+
+        for (iseg = 0; iseg < nseg; iseg++) {
+            ibeg = seg[iseg].ibeg;
+            iend = seg[iseg].iend;
+
+            data[0] = pnt[ibeg].x;
+            data[1] = pnt[ibeg].y;
+            data[2] = 0;
+            data[3] = pnt[iend].x;
+            data[4] = pnt[iend].y;
+            data[5] = 0;
+
+            status = EG_makeTopology(context, NULL, NODE, 0,
+                                     &(data[0]), 0, NULL, NULL, &(enodes[0]));
+            CHECK_STATUS(EG_makeTopology);
+
+            status = EG_makeTopology(context, NULL, NODE, 0,
+                                     &(data[3]), 0, NULL, NULL, &(enodes[1]));
+            CHECK_STATUS(EG_makeTopology);
+
+            data[3] -= data[0];
+            data[4] -= data[1];
+
+            status = EG_makeGeometry(context, CURVE, LINE, NULL,
+                                     NULL, data, &ecurve);
+            CHECK_STATUS(EG_makeGeometry);
+
+            data[0] = 0;
+            data[1] = sqrt(data[3]*data[3] + data[4]*data[4]);
+
+            status = EG_makeTopology(context, ecurve, EDGE, TWONODE,
+                                     data, 2, enodes, NULL, eedges);
+            CHECK_STATUS(EG_makeTopology);
+
+            seginfo[0] = SFORWARD;
+            status = EG_makeTopology(context, NULL, LOOP, OPEN,
+                                     NULL, 1, eedges, seginfo, &eloop);
+            CHECK_STATUS(EG_makeTopology);
+
+            status = EG_makeTopology(context, NULL, BODY, WIREBODY,
+                                     NULL, 1, &eloop, NULL, &(ewires[iseg]));
+            CHECK_STATUS(EG_makeTopology);
+
+            for (iattr = 0; iattr < seg[iseg].nattr; iattr++) {
+                status = EG_attributeAdd(ewires[iseg], seg[iseg].aname[iattr], ATTRSTRING,
+                                         1, NULL, NULL, seg[iseg].avalu[iattr]);
+                CHECK_STATUS(EG_attributeAdd);
+            }
+        }
+
+        /* make a Model of the WIreBodys */
+        status = EG_makeTopology(context, NULL, MODEL, 0,
+                                 NULL, nseg, ewires, NULL, ebody);
+        CHECK_STATUS(EG_makeTopology);
+
+        /* set the output value(s) */
+
+        /* remember this model (body) */
+        udps[numUdp].ebody = *ebody;
+
+        goto cleanup;
     }
 
     mpnt = npnt;
@@ -374,6 +449,9 @@ udpExecute(ego  context,                /* (in)  EGADS context */
                 }
 
                 for (iattr = 0; iattr < seg[nseg].nattr; iattr++) {
+                    seg[nseg].aname[iattr] = NULL;
+                    seg[nseg].avalu[iattr] = NULL;
+                    
                     MALLOC(seg[nseg].aname[iattr], char, 80);
                     MALLOC(seg[nseg].avalu[iattr], char, 80);
 
@@ -381,12 +459,14 @@ udpExecute(ego  context,                /* (in)  EGADS context */
                     strncpy(seg[nseg].avalu[iattr], seg[iseg].avalu[iattr], 80);
                 }
 
-                nseg++;
-
-                seg[iseg].iend = ipnt;
-
                 /* revise first half */
                 seg[iseg].iend = ipnt;
+
+                nseg++;
+
+                /* start again at this Segment */
+                iseg--;
+                break;
             }
         }
     }
@@ -419,7 +499,7 @@ udpExecute(ego  context,                /* (in)  EGADS context */
     /* check for degenerate Segments */
     for (jseg = 0; jseg < nseg; jseg++) {
         if (seg[jseg].ibeg == seg[jseg].iend) {
-            snprintf(message, 100, "Segment %d is degenerate", iseg);
+            snprintf(message, 1024, "Segment %d is degenerate", iseg);
             status = EGADS_DEGEN;
             goto cleanup;
         }
@@ -652,6 +732,7 @@ cleanup:
     FREE(efaces);
     FREE(eedges);
     FREE(enodes);
+    FREE(ewires);
 
     FREE(pnt);
 
@@ -810,6 +891,8 @@ cleanup:
     CLINE  -------------- same as LINE ---------------- creates construction line ...
     PATBEG varname ncopy                                loops ncopy times with varname=1,...,ncopy
     PATEND
+    IFTHEN val1 op val2                                 op is LT LE EQ GE GT or NE
+    ENDIF
 */
 
 static int
@@ -830,8 +913,8 @@ processFile(ego    context,             /* (in)  EGADS context */
     int    pat_value[]={ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
     int    pat_end[  ]={-1,-1,-1,-1,-1,-1,-1,-1,-1,-1};
     long   pat_seek[ ]={ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-    int    istream, ieof, iskip, npat=0, outLevel;
-    double xloc, yloc, xvalue, yvalue, value, dot, frac, D, s, dist, dx, dy, alen;
+    int    istream, ieof, iskip, ifthen, npat=0, outLevel;
+    double xloc, yloc, xvalue, yvalue, value, dot, val1, val2, frac, D, s, dist, dx, dy, alen;
     pnt_T  *pnt=NULL;
     seg_T  *seg=NULL;
     char   templine[256], token[256], pname1[256], pname2[256], lname1[256], lname2[256];
@@ -854,8 +937,7 @@ processFile(ego    context,             /* (in)  EGADS context */
     CHECK_STATUS(EG_getUserPointer);
 
     /* get the outLevel from OpenCSM */
-    outLevel = ocsmSetOutLevel(       0);
-    (void)     ocsmSetOutLevel(outLevel);
+    outLevel = ocsmSetOutLevel(-1);
 
     /* make sure that there are no Parameters whose names start with
        x@ or y@ */
@@ -868,7 +950,7 @@ processFile(ego    context,             /* (in)  EGADS context */
 
         if (strncmp(name, "x@", 2) == 0 ||
             strncmp(name, "y@", 2) == 0   ) {
-            snprintf(message, 100, "cannot start with Parameter named \"%s\"", name);
+            snprintf(message, 1024, "cannot use waffle if you already have a Parameter named \"%s\"", name);
             status = EGADS_NODATA;
             goto cleanup;
         }
@@ -888,7 +970,7 @@ processFile(ego    context,             /* (in)  EGADS context */
     if (istream == 0) {
         fp = fopen(filename, "rb");
         if (fp == NULL) {
-            snprintf(message, 100, "processFile: could not open file \"%s\"", filename);
+            snprintf(message, 1024, "processFile: could not open file \"%s\"", filename);
             status = EGADS_NOTFOUND;
             goto cleanup;
         }
@@ -956,6 +1038,9 @@ processFile(ego    context,             /* (in)  EGADS context */
     /* by default, we are not skipping */
     iskip = 0;
 
+    /* we start without any pending ifthens */
+    ifthen = 0;
+
     /* read the file */
     while (ieof == 0) {
 
@@ -992,7 +1077,10 @@ processFile(ego    context,             /* (in)  EGADS context */
 
         /* get and process the first token */
         status = getToken(templine, 0, ' ', 255, token);
-        CHECK_STATUS(getToken);
+        if (status < SUCCESS) {
+            snprintf(message, 1024, "cannot find first token\nwhile processing: %s", templine);
+            goto cleanup;
+        }
 
         /* skip blank line */
         if (strcmp(token, "") == 0) {
@@ -1004,6 +1092,21 @@ processFile(ego    context,             /* (in)  EGADS context */
 
         /* skip comment */
         } else if (strcmp(token, "#") == 0) {
+            continue;
+
+        /* ENDIF */
+        } else if (strcmp(token, "endif") == 0 ||
+                   strcmp(token, "ENDIF") == 0   ) {
+            if (ifthen > 0) {
+                ifthen--;
+            }
+
+        /* skip line if there is an active IFTHEN */
+        } else if (ifthen > 0) {
+            if (outLevel >= 1) {
+                printf("    ...skipping\n");
+            }
+            continue;
 
         /* POINT and CPOINT */
         } else if (strcmp(token,  "point") == 0 ||
@@ -1022,10 +1125,16 @@ processFile(ego    context,             /* (in)  EGADS context */
 
             /* pname1 */
             status = getToken(templine, 1, ' ', 255, pname1);
-            CHECK_STATUS(getToken);
+            if (status < SUCCESS) {
+                snprintf(message, 1024, "cannot find pname1\nwhile processing: %s", templine);
+                goto cleanup;
+            }
 
             status = getToken(templine, 2, ' ', 255, token);
-            CHECK_STATUS(getToken);
+            if (status < SUCCESS) {
+                snprintf(message, 1024, "cannot find second token\nwhile processing: %s", templine);
+                goto cleanup;
+            }
 
             /* POINT pname1 AT xloc yloc */
             if        (strcmp(token, "at") == 0 ||
@@ -1033,26 +1142,36 @@ processFile(ego    context,             /* (in)  EGADS context */
 
                 /* get xloc */
                 status = getToken(templine, 3, ' ', 255, token);
-                CHECK_STATUS(getToken);
+                if (status < SUCCESS) {
+                    snprintf(message, 1024, "cannot find third token\nwhile processing: %s", templine);
+                    goto cleanup;
+                }
 
                 status = ocsmEvalExpr(modl, token, &xloc, &dot, str);
-                CHECK_STATUS(ocsmEvalExpr);
+                if (status < SUCCESS) {
+                    snprintf(message, 1024, "cannot evaluate \"%s\"\nwhile processing: %s", token, templine);
+                    goto cleanup;
+                }
 
                 if (STRLEN(str) > 0) {
-                    snprintf(message, 100, "xvalue must be a number");
+                    snprintf(message, 1024, "xvalue must be a number\nwhile processing: %s", templine);
                     status = EGADS_NODATA;
                     goto cleanup;
                 }
 
                 /* get yloc */
                 status = getToken(templine, 4, ' ', 255, token);
-                CHECK_STATUS(getToken);
+                if (status < SUCCESS) {
+                    snprintf(message, 1024, "cannot find fourth token\nwhile processing: %s", templine);
+                    goto cleanup;
+                }
 
                 status = ocsmEvalExpr(modl, token, &yloc, &dot, str);
-                             CHECK_STATUS(ocsmEvalExpr);
-
-                if (STRLEN(str) > 0) {
-                    snprintf(message, 100, "yvalue must be a number");
+                if (status < SUCCESS) {
+                    snprintf(message, 1024, "cannot evaluate \"%s\"\nwhile processing: %s", token, templine);
+                    goto cleanup;
+                } else if (STRLEN(str) > 0) {
+                    snprintf(message, 1024, "yvalue must be a number\nwhile processing: %s", templine);
                     status = EGADS_NODATA;
                     goto cleanup;
                 }
@@ -1067,7 +1186,10 @@ processFile(ego    context,             /* (in)  EGADS context */
 
                 /* find lname1 */
                 status = getToken(templine, 3, ' ', 255, lname1);
-                CHECK_STATUS(getToken);
+                if (status < SUCCESS) {
+                    snprintf(message, 1024, "cannot find lname1\nwhile processing: %s", templine);
+                    goto cleanup;
+                }
 
                 iseg = -1;
                 for (jseg = 0; jseg < *nseg; jseg++) {
@@ -1076,7 +1198,7 @@ processFile(ego    context,             /* (in)  EGADS context */
                     }
                 }
                 if (iseg < 0) {
-                    snprintf(message, 100, "line \"%s\" could not be found", lname1);
+                    snprintf(message, 1024, "line \"%s\" could not be found\nwhile processing: %s", lname1, templine);
                     status = EGADS_NOTFOUND;
                     goto cleanup;
                 }
@@ -1086,7 +1208,10 @@ processFile(ego    context,             /* (in)  EGADS context */
 
                 /* determine the sub-operator */
                 status = getToken(templine, 4, ' ', 255, token);
-                CHECK_STATUS(getToken);
+                if (status < SUCCESS) {
+                    snprintf(message, 1024, "cannot determine sub-operator\nwhile processing: %s", templine);
+                    goto cleanup;
+                }
 
                 /* POINT pname1 ON lname1 FRAC fracDist */
                 if        (strcmp(token, "frac") == 0 ||
@@ -1094,10 +1219,16 @@ processFile(ego    context,             /* (in)  EGADS context */
 
                     /* get fracDist */
                     status = getToken(templine, 5, ' ', 255, token);
-                    CHECK_STATUS(getToken);
+                    if (status < SUCCESS) {
+                        snprintf(message, 1024, "cannot find fifth token\nwhile processing: %s", templine);
+                        goto cleanup;
+                    }
 
                     status = ocsmEvalExpr(modl, token, &frac, &dot, str);
-                    CHECK_STATUS(ocsmEvalExpr);
+                    if (status < SUCCESS) {
+                        snprintf(message, 1024, "cannot evaluate \"%s\"\nwhile processing: %s", token, templine);
+                        goto cleanup;
+                    }
 
                     /* compute (xvalue,yvalue) */
                     xvalue = (1-frac) * pnt[ibeg].x + frac * pnt[iend].x;
@@ -1108,17 +1239,24 @@ processFile(ego    context,             /* (in)  EGADS context */
                            strcmp(token, "XLOC") == 0   ) {
 
                     if(fabs(pnt[ibeg].x-pnt[iend].x) < EPS06) {
-                        snprintf(message, 100, "cannot specify XLOC on a constant X line");
+                        snprintf(message, 1024, "cannot specify XLOC on a constant X line\nwhile processing: %s", templine);
                         status = EGADS_RANGERR;
                         goto cleanup;
                     }
 
                     /* get xloc */
                     status = getToken(templine, 5, ' ', 255, token);
-                    CHECK_STATUS(getToken);
+                    if (status < SUCCESS) {
+                        snprintf(message, 1024, "cannot find fifth token\nwhile processing: %s", templine);
+                        goto cleanup;
+                    }
 
                     status = ocsmEvalExpr(modl, token, &xloc, &dot, str);
-                                 CHECK_STATUS(ocsmEvalExpr);
+                    if (status < SUCCESS) {
+                        snprintf(message, 1024, "cannot evaluate \"%s\"\nwhile processing: %s", token, templine);
+                        goto cleanup;
+                    }
+                                 
 
                     /* compute (xvalue,yvalue) */
                     frac   = (xloc - pnt[ibeg].x) / (pnt[iend].x - pnt[ibeg].x);
@@ -1130,17 +1268,23 @@ processFile(ego    context,             /* (in)  EGADS context */
                            strcmp(token, "YLOC") == 0   ) {
 
                     if(fabs(pnt[ibeg].y-pnt[iend].y) < EPS06) {
-                        snprintf(message, 100, "cannot specify YLOC on a constant Y line");
+                        snprintf(message, 1024, "cannot specify YLOC on a constant Y line\nwhile processing: %s", templine);
                         status = EGADS_RANGERR;
                         goto cleanup;
                     }
 
                     /* get yloc */
                     status = getToken(templine, 5, ' ', 255, token);
-                    CHECK_STATUS(getToken);
+                    if (status < SUCCESS) {
+                        snprintf(message, 1024, "cannot find fifth token\nwhile processing: %s", templine);
+                        goto cleanup;
+                    }
 
                     status = ocsmEvalExpr(modl, token, &yloc, &dot, str);
-                    CHECK_STATUS(ocsmEvalExpr);
+                    if (status < SUCCESS) {
+                        snprintf(message, 1024, "cannot evaluate \"%s\"\nwhile processing: %s", token, templine);
+                        goto cleanup;
+                    }
 
                     /* compute (xvalue,yvalue) */
                     frac   = (yloc - pnt[ibeg].y) / (pnt[iend].y - pnt[ibeg].y);
@@ -1153,7 +1297,10 @@ processFile(ego    context,             /* (in)  EGADS context */
 
                     /* get pname2 */
                     status = getToken(templine, 5, ' ', 255, pname2);
-                    CHECK_STATUS(getToken);
+                    if (status < SUCCESS) {
+                        snprintf(message, 1024, "cannot find fofth token\nwhile processing: %s", templine);
+                        goto cleanup;
+                    }
 
                     ipnt = -1;
                     for (jpnt = 0; jpnt < *npnt; jpnt++) {
@@ -1162,7 +1309,7 @@ processFile(ego    context,             /* (in)  EGADS context */
                         }
                     }
                     if (ipnt < 0) {
-                        snprintf(message, 100, "point \"%s\" could not be found", pname2);
+                        snprintf(message, 1024, "point \"%s\" could not be found\nwhile processing: %s", pname2, templine);
                         status = EGADS_NOTFOUND;
                         goto cleanup;
                     }
@@ -1181,7 +1328,10 @@ processFile(ego    context,             /* (in)  EGADS context */
 
                     /* find lname2 */
                     status = getToken(templine, 5, ' ', 255, lname2);
-                    CHECK_STATUS(getToken);
+                    if (status < SUCCESS) {
+                        snprintf(message, 1024, "cannot find fifth token\nwhile processing: %s", templine);
+                        goto cleanup;
+                    }
 
                     iseg = -1;
                     for (jseg = 0; jseg < *nseg; jseg++) {
@@ -1190,7 +1340,7 @@ processFile(ego    context,             /* (in)  EGADS context */
                         }
                     }
                     if (iseg < 0) {
-                        snprintf(message, 100, "line \"%s\" could not be found", lname2);
+                        snprintf(message, 1024, "line \"%s\" could not be found\nwhile processing: %s", lname2, templine);
                         status = EGADS_NOTFOUND;
                         goto cleanup;
                     }
@@ -1207,13 +1357,13 @@ processFile(ego    context,             /* (in)  EGADS context */
                         xvalue = (1 - s) * pnt[ibeg].x + s * pnt[iend].x;
                         yvalue = (1 - s) * pnt[ibeg].y + s * pnt[iend].y;
                     } else {
-                        snprintf(message, 100, "segments do not intersect");
+                        snprintf(message, 1024, "segments do not intersect\nwhile processing: %s", templine);
                         status = EGADS_NOTFOUND;
                         goto cleanup;
                     }
 
                 } else {
-                    snprintf(message, 100, "fifth token should be FRAC, PERP, XLOC, YLOC, SAMEX, SAMEY, or XSECT");
+                    snprintf(message, 1024, "fifth token should be FRAC, PERP, XLOC, YLOC, SAMEX, SAMEY, or XSECT\nwhile processing: %s", templine);
                     status = EGADS_RANGERR;
                     goto cleanup;
                 }
@@ -1224,7 +1374,10 @@ processFile(ego    context,             /* (in)  EGADS context */
 
                 /* find lname1 */
                 status = getToken(templine, 3, ' ', 255, lname1);
-                CHECK_STATUS(getToken);
+                if (status < SUCCESS) {
+                    snprintf(message, 1024, "cannot find third token\nwhile processing: %s", templine);
+                    goto cleanup;
+                }
 
                 iseg = -1;
                 for (jseg = 0; jseg < *nseg; jseg++) {
@@ -1233,7 +1386,7 @@ processFile(ego    context,             /* (in)  EGADS context */
                     }
                 }
                 if (iseg < 0) {
-                    snprintf(message, 100, "line \"%s\" could not be found", lname1);
+                    snprintf(message, 1024, "line \"%s\" could not be found\nwhile processing: %s", lname1, templine);
                     status = EGADS_NOTFOUND;
                     goto cleanup;
                 }
@@ -1243,14 +1396,23 @@ processFile(ego    context,             /* (in)  EGADS context */
 
                 /* get dist */
                 status = getToken(templine, 4, ' ', 255, token);
-                CHECK_STATUS(getToken);
+                if (status < SUCCESS) {
+                    snprintf(message, 1024, "cannot find fourth token\nwhile processing: %s", templine);
+                    goto cleanup;
+                }
 
                 status = ocsmEvalExpr(modl, token, &dist, &dot, str);
-                CHECK_STATUS(ocsmEvalExpr);
+                if (status < SUCCESS) {
+                    snprintf(message, 1024, "cannot evaluate \"%s\"\nwhile processing: %s", token, templine);
+                    goto cleanup;
+                }
 
                 /* get pname2 */
                 status = getToken(templine, 5, ' ', 255, pname2);
-                CHECK_STATUS(getToken);
+                if (status < SUCCESS) {
+                    snprintf(message, 1024, "cannot find fifth token\nwhile processing: %s", templine);
+                    goto cleanup;
+                }
 
                 ipnt = -1;
                 for (jpnt = 0; jpnt < *npnt; jpnt++) {
@@ -1259,7 +1421,7 @@ processFile(ego    context,             /* (in)  EGADS context */
                     }
                 }
                 if (ipnt < 0) {
-                    snprintf(message, 100, "point \"%s\" could not be found", pname2);
+                    snprintf(message, 1024, "point \"%s\" could not be found\nwhile processing: %s", pname2, templine);
                     status = EGADS_NOTFOUND;
                     goto cleanup;
                 }
@@ -1273,7 +1435,7 @@ processFile(ego    context,             /* (in)  EGADS context */
                 yvalue = pnt[ipnt].y + dist * dx / alen;
 
             } else {
-                snprintf(message, 100, "third token should be AT, ON, or OFF");
+                snprintf(message, 1024, "third token should be AT, ON, or OFF\nwhile processing: %s", templine);
                 status = EGADS_RANGERR;
                 goto cleanup;
             }
@@ -1323,7 +1485,10 @@ processFile(ego    context,             /* (in)  EGADS context */
             (void) strcat(str, pname1);
 
             status = ocsmFindPmtr(modl, str, OCSM_LOCALVAR, 1, 1, &ipmtr);
-            CHECK_STATUS(ocsm_localvar);
+            if (status < SUCCESS) {
+                snprintf(message, 1024, "cannot find \"%s\"\nwhile processing: %s", str, templine);
+                goto cleanup;
+            }
 
             status = ocsmSetValuD(modl, ipmtr, 1, 1, xvalue);
             CHECK_STATUS(ocsmSetValuD);
@@ -1332,7 +1497,10 @@ processFile(ego    context,             /* (in)  EGADS context */
             (void) strcat(str, pname1);
 
             status = ocsmFindPmtr(modl, str, OCSM_LOCALVAR, 1, 1, &ipmtr);
-            CHECK_STATUS(ocsm_localvar);
+            if (status < SUCCESS) {
+                snprintf(message, 1024, "cannot find \"%s\"\nwhile processing: %s", str, templine);
+                goto cleanup;
+            }
 
             status = ocsmSetValuD(modl, ipmtr, 1, 1, yvalue);
             CHECK_STATUS(ocsmSetValuD);
@@ -1347,13 +1515,22 @@ processFile(ego    context,             /* (in)  EGADS context */
             if (iskip > 0) continue;
 
             status = getToken(templine, 1, ' ', 255, lname1);
-            CHECK_STATUS(getToken);
+            if (status < SUCCESS) {
+                snprintf(message, 1024, "cannot find first token\nwhile processing: %s", templine);
+                goto cleanup;
+            }
 
             status = getToken(templine, 2, ' ', 255, pname1);
-            CHECK_STATUS(getToken);
+            if (status < SUCCESS) {
+                snprintf(message, 1024, "cannot find second token\nwhile processing: %s", templine);
+                goto cleanup;
+            }
 
             status = getToken(templine, 3, ' ', 255, pname2);
-            CHECK_STATUS(getToken);
+            if (status < SUCCESS) {
+                snprintf(message, 1024, "cannot find third token\nwhile processing: %s", templine);
+                goto cleanup;
+            }
 
             /* make room in the Segment table */
             if (*nseg+1 >= mseg) {
@@ -1379,7 +1556,7 @@ processFile(ego    context,             /* (in)  EGADS context */
                 }
             }
             if (seg[*nseg].ibeg < 0) {
-                snprintf(message, 100, "\"%s\" not found", pname1);
+                snprintf(message, 1024, "\"%s\" not found\nwhile processing: %s", pname1, templine);
                 status = EGADS_NODATA;
                 goto cleanup;
             }
@@ -1393,7 +1570,7 @@ processFile(ego    context,             /* (in)  EGADS context */
                 }
             }
             if (seg[*nseg].iend < 0) {
-                snprintf(message, 100, "\"%s\" not found", pname2);
+                snprintf(message, 1024, "\"%s\" not found\nwhile processing: %s", pname2, templine);
                 status = EGADS_NODATA;
                 goto cleanup;
             }
@@ -1415,7 +1592,7 @@ processFile(ego    context,             /* (in)  EGADS context */
                 if (STRLEN(token) == 0) break;
 
                 if (strstr(token, "=") == NULL) {
-                    snprintf(message, 100, "attribute pair must contain = sign");
+                    snprintf(message, 1024, "attribute pair must contain = sign\nwhile processing: %s", templine);
                     status = EGADS_RANGERR;
                     goto cleanup;
                 } else {
@@ -1444,10 +1621,13 @@ processFile(ego    context,             /* (in)  EGADS context */
 
                     token[ichar] = '$';
                     status = ocsmEvalExpr(modl, &(token[ichar]), &value, &dot, str);
-                    CHECK_STATUS(ocsmEvalExpr);
+                    if (status < SUCCESS) {
+                        snprintf(message, 1024, "cannot evaluate \"%s\"\nwhile processing: %s", &(token[ichar]), templine);
+                        goto cleanup;
+                    }
 
                     if (STRLEN(str) == 0) {
-                        snprintf(message, 100, "attribute value must be a string");
+                        snprintf(message, 1024, "attribute value must be a string\nwhile processing: %s", templine);
                         status = EGADS_NODATA;
                         goto cleanup;
                     }
@@ -1466,7 +1646,7 @@ processFile(ego    context,             /* (in)  EGADS context */
             if (npat < 9) {
                 npat++;
             } else {
-                snprintf(message, 100, "PATBEGs nested too deeply");
+                snprintf(message, 1024, "PATBEGs nested too deeply\nwhile processing: %s", templine);
                 status = EGADS_RANGERR;
                 goto cleanup;
             }
@@ -1491,10 +1671,16 @@ processFile(ego    context,             /* (in)  EGADS context */
 
             /* get the number of replicates */
             status = getToken(templine, 2, ' ', 255, token);
-            CHECK_STATUS(getToken);
+            if (status < SUCCESS) {
+                snprintf(message, 1024, "cannot find second token\nwhile processing: %s", templine);
+                goto cleanup;
+            }
 
             status = ocsmEvalExpr(modl, token, &value, &dot, str);
-            CHECK_STATUS(ocsmEvalExpr);
+            if (status < SUCCESS) {
+                snprintf(message, 1024, "cannot evaluate \"%s\"\nwhile processing: %s", token, templine);
+                goto cleanup;
+            }
 
             pat_end[npat] = NINT(value);
 
@@ -1507,13 +1693,16 @@ processFile(ego    context,             /* (in)  EGADS context */
 
             /* set up Parameter to hold pattern index */
             status = getToken(templine, 1, ' ', 255, token);
-            CHECK_STATUS(getToken);
+            if (status < SUCCESS) {
+                snprintf(message, 1024, "cannot find first token\nwhile processing: %s", templine);
+                goto cleanup;
+            }
 
             status = ocsmFindPmtr(modl, token, OCSM_LOCALVAR, 1, 1, &pat_pmtr[npat]);
             CHECK_STATUS(ocsm_localvar);
 
             if (pat_pmtr[npat] <= npmtr_save) {
-                snprintf(message, 100, "cannot use \"%s\" as pattern variable since it was previously defined", token);
+                snprintf(message, 1024, "cannot use \"%s\" as pattern variable since it was previously defined\nwhile processing: %s", token, templine);
                 status = EGADS_NONAME;
                 goto cleanup;
             }
@@ -1525,7 +1714,7 @@ processFile(ego    context,             /* (in)  EGADS context */
                    strcmp(token, "PATEND") == 0   ) {
 
             if (pat_end[npat] < 0) {
-                snprintf(message, 100, "PATEND without PATBEG");
+                snprintf(message, 1024, "PATEND without PATBEG\nwhile processing: %s", templine);
                 status = EGADS_RANGERR;
                 goto cleanup;
             }
@@ -1560,8 +1749,74 @@ processFile(ego    context,             /* (in)  EGADS context */
                 npat--;
             }
 
+        } else if (strcmp(token, "ifthen") == 0 ||
+                   strcmp(token, "IFTHEN") == 0   ) {
+
+            /* get val1, op and val2 */
+            status = getToken(templine, 1, ' ', 256, token);
+            if (status < SUCCESS) {
+                snprintf(message, 1024, "cannot find first token\nwhile processing: %s", templine);
+                goto cleanup;
+            }
+
+            status = ocsmEvalExpr(modl, token, &val1, &dot, str);
+            if (status < SUCCESS) {
+                snprintf(message, 1024, "cannot evaluate \"%s\"\nwhile processing: %s", token, templine);
+                goto cleanup;
+            }
+
+            status = getToken(templine, 3, ' ', 256, token);
+            if (status < SUCCESS) {
+                snprintf(message, 1024, "cannot find third token\nwhile processing: %s", templine);
+                goto cleanup;
+            }
+
+            status = ocsmEvalExpr(modl, token, &val2, &dot, str);
+            if (status < SUCCESS) {
+                snprintf(message, 1024, "cannot evaluate \"%s\"\nwhile processing: %s", token, templine);
+                goto cleanup;
+            }
+
+            status = getToken(templine, 2, ' ', 256, token);
+            if (status < SUCCESS) {
+                snprintf(message, 1024, "cannot find second token\nwhile processing: %s", templine);
+                goto cleanup;
+            }
+
+            if (ifthen > 0) {
+                ifthen++;
+            } else if (strcmp(token, "lt") == 0 || strcmp(token, "LT") == 0) {
+                if (val1 >= val2) {
+                    ifthen++;
+                }
+            } else if (strcmp(token, "le") == 0 || strcmp(token, "LE") == 0) {
+                if (val1 > val2) {
+                    ifthen++;
+                }
+            } else if (strcmp(token, "eq") == 0 || strcmp(token, "EQ") == 0) {
+                if (val1 != val2) {
+                    ifthen++;
+                }
+            } else if (strcmp(token, "ge") == 0 || strcmp(token, "GE") == 0) {
+                if (val1 < val2) {
+                    ifthen++;
+                }
+            } else if (strcmp(token, "gt") == 0 || strcmp(token, "GT") == 0) {
+                if (val1 <= val2) {
+                    ifthen++;
+                }
+            } else if (strcmp(token, "ne") == 0 || strcmp(token, "NE") == 0) {
+                if (val1 == val2) {
+                    ifthen++;
+                }
+            } else {
+                snprintf(message, 1024, "op must be LT LE EQ GE GT or NE\nwhile processing: %s", templine);
+                status = EGADS_RANGERR;
+                goto cleanup;
+            }
+
         } else {
-            snprintf(message, 100, "input should start with CPOINT, POINT, LINE, CLINE, PATBEG, or PATEND");
+            snprintf(message, 1024, "input should start with CPOINT, POINT, LINE, CLINE, PATBEG, or PATEND\nwhile processing: %s", templine);
             status = EGADS_RANGERR;
             goto cleanup;
         }

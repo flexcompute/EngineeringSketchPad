@@ -10,7 +10,7 @@
  */
 
 /*
- * Copyright (C) 2011/2021  John F. Dannenhoffer, III (Syracuse University)
+ * Copyright (C) 2011/2022  John F. Dannenhoffer, III (Syracuse University)
  *
  * This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
@@ -219,8 +219,7 @@ udpExecute(ego  context,                /* (in)  EGADS context */
     /* check arguments */
 
     /* get the outLevel from OpenCSM */
-    outLevel = ocsmSetOutLevel(       0);
-    (void)     ocsmSetOutLevel(outLevel);
+    outLevel = ocsmSetOutLevel(-1);
 
     /* cache copy of arguments for future use */
     status = cacheUdp(NULL);

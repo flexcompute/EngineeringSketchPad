@@ -15,6 +15,7 @@ despmtr   aspect    6.00      Span^2/Area
 despmtr   taper     0.60      TipChord/RootChord
 dimension twist 2 1
 despmtr   twist     0.00;0.00  Airfoil twist angles
+cfgpmtr   aerosystem        1
 
 # -----------------------------------------------------------------
 # set parameters for use internally to create geometry
@@ -27,29 +28,34 @@ set       ctip      croot*taper
 # -----------------------------------------------------------------
 # 1. Create Airfoils using the User Defined Primitive (UDP) naca
 #  > The inputs used for this example to the UDP are Thickness and Camber
-#  > Cross sections are in the X-Y plane and are rotated to the X-Z plane
+#  > Cross sections are in the X-Y plane and are rotated to the X-Z plane if aerosystem
 # -----------------------------------------------------------------
 
 mark
 udprim    naca      Thickness thick     Camber    camber sharpte 1
-rotatex   90        0        0
 scale     croot
-rotatey   twist[1]  croot    0
+rotatez   twist[1]  croot    0
 udprim    naca      Thickness thick     Camber    camber sharpte 1
-rotatex   90        0        0
-translate 0         span     0
+translate 0         0        span
 scale     ctip
-rotatey   twist[2]  ctip     0
+rotatez   twist[2]  ctip     0
 rule
-
-select face
-  attribute capsGroup          $Wing
-  attribute capsReferenceArea  area
-  attribute capsReferenceSpan  span
-  attribute capsReferenceChord croot
-  attribute capsReferenceX     croot/4
 
 # Trigger TFI templates for taper=1
 select edge @nbody 3 @nbody 4 1
 select add  @nbody 3 @nbody 4 2
   attribute .nPos 40
+
+translate 0         0       -span/2
+
+ifthen aerosystem eq 1
+    rotatex   90        0        0
+endif
+
+select face
+  attribute capsGroup          $Wing
+select body
+  attribute capsReferenceArea  area
+  attribute capsReferenceSpan  span
+  attribute capsReferenceChord croot
+  attribute capsReferenceX     croot/4

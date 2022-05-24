@@ -1,0 +1,81 @@
+# sectionsWithHoles1c
+# written by John Dannenhoffer
+
+# section 1
+UDPARG    box   dx   2.0
+UDPARG    box   dy   1.0
+UDPRIM    box
+
+UDPARG    box   dx   2.0-0.2
+UDPARG    box   dy   1.0-0.2
+UDPARG    box   rad  0.1
+UDPRIM    box
+
+SUBTRACT
+TRANSLATE 0  0  -2
+STORE     section 1
+
+# section 2
+UDPARG    box   dx   2.0
+UDPARG    box   dy   2.0
+UDPRIM    box
+
+UDPARG    box   dx   2.0-0.5
+UDPARG    box   dy   2.0-0.5
+UDPARG    box   rad  0.5
+UDPRIM    box
+
+SUBTRACT
+STORE     section 2
+
+# section 3
+UDPARG    box   dx   1.0
+UDPARG    box   dy   2.0
+UDPRIM    box
+
+UDPARG    box   dx   1.0-0.2
+UDPARG    box   dy   2.0-0.2
+UDPARG    box   rad  0.1
+UDPRIM    box
+
+SUBTRACT
+TRANSLATE 0  0  +2
+STORE     section 3
+
+# create BLENDed SheetBody of outside Edges
+MARK
+   RESTORE   section 1
+   SELECT    LOOP  1  1
+   EXTRACT   -@sellist
+
+   RESTORE   section 2
+   SELECT    LOOP  1  1
+   EXTRACT   -@sellist
+
+   RESTORE   section 3
+   SELECT    LOOP  1  1
+   EXTRACT   -@sellist
+BLEND
+
+# create BLENDed SheetBody of inside Edges
+MARK
+   RESTORE   section 1
+   SELECT    LOOP  1  2
+   EXTRACT   -@sellist
+
+   RESTORE   section 2
+   SELECT    LOOP  1  2
+   EXTRACT   -@sellist
+
+   RESTORE   section 3
+   SELECT    LOOP  1  2
+   EXTRACT   -@sellist
+BLEND
+
+# glue on the first and last sections to make a SolidBody
+RESTORE   section 1
+RESTORE   section 3
+
+COMBINE
+
+END

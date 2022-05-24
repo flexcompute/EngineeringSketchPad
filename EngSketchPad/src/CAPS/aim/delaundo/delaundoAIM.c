@@ -24,7 +24,7 @@
  *
  * An outline of the AIM's inputs and outputs are provided in \ref aimInputsDelaundo and \ref aimOutputsDelaundo, respectively.
  *
- * The dealundo AIM can automatically execute dealundo, with details provided in \ref aimExecuteDelaundo.
+ * The delaundo AIM can automatically execute delaundo, with details provided in \ref aimExecuteDelaundo.
  *
  * \section clearanceDelaundo Clearance Statement
  *  This software has been cleared for public release on 05 Nov 2020, case number 88ABW-2020-3462.
@@ -106,11 +106,12 @@ typedef struct {
     int swapZY;
 
     aimMeshRef meshRef;
+    ego egadsTess;
 } aimStorage;
 
 
 static int
-destroy_aimStorage(aimStorage *delaundoInstance)
+destroy_aimStorage(aimStorage *delaundoInstance, int inUpdate)
 {
 
     int status; // Function return status
@@ -131,12 +132,16 @@ destroy_aimStorage(aimStorage *delaundoInstance)
               printf("Status = %d, delaundoAIM surfaceMesh cleanup!!!\n",
                      status);
         }
-        if (delaundoInstance->surfaceMesh != NULL)
-          EG_free(delaundoInstance->surfaceMesh);
+        AIM_FREE(delaundoInstance->surfaceMesh);
     }
 
     delaundoInstance->numSurface = 0;
     delaundoInstance->surfaceMesh = NULL;
+
+    // Free the meshRef
+    aim_freeMeshRef(&delaundoInstance->meshRef);
+
+    if (inUpdate == (int)true) return status;
 
     // Destroy attribute to index map
     status = destroy_mapAttrToIndexStruct(&delaundoInstance->groupMap);
@@ -148,10 +153,7 @@ destroy_aimStorage(aimStorage *delaundoInstance)
       printf("Status = %d, delaundoAIM attributeMap cleanup!!!\n", status);
 
     delaundoInstance->numEdge = 0;
-
-    if (delaundoInstance->edgeAttrMap != NULL)
-      EG_free(delaundoInstance->edgeAttrMap);
-    delaundoInstance->edgeAttrMap = NULL; // size = [numEdge]
+    AIM_FREE(delaundoInstance->edgeAttrMap);
 
     delaundoInstance->faceAttr = 0;
 
@@ -159,9 +161,8 @@ destroy_aimStorage(aimStorage *delaundoInstance)
     delaundoInstance->swapZY = (int) false;
 
     delaundoInstance->numBoundaryEdge = 0;
-
-    // Free the meshRef
-    aim_freeMeshRef(&delaundoInstance->meshRef);
+    EG_deleteObject(delaundoInstance->egadsTess);
+    delaundoInstance->egadsTess = NULL;
 
     return CAPS_SUCCESS;
 }
@@ -388,8 +389,8 @@ int aimInitialize(int inst, /*@unused@*/ const char *unitSys, void *aimInfo,
     // Set initial values for delaundoInstance //
 
     // Container for surface meshes
-    delaundoInstance[inst].surfaceMesh = NULL;
-    delaundoInstance[inst].numSurface = 0;
+    delaundoInstance->surfaceMesh = NULL;
+    delaundoInstance->numSurface = 0;
 
     // Container for attribute to index map
     status = initiate_mapAttrToIndexStruct(&delaundoInstance->groupMap);
@@ -410,7 +411,8 @@ int aimInitialize(int inst, /*@unused@*/ const char *unitSys, void *aimInfo,
     delaundoInstance->swapZX = (int) false;
     delaundoInstance->swapZY = (int) false;
 
-    delaundoInstance[inst].numBoundaryEdge = 0;
+    delaundoInstance->numBoundaryEdge = 0;
+    delaundoInstance->egadsTess = NULL;
 
     // Mesh reference passed to solver
     status = aim_initMeshRef(&delaundoInstance->meshRef);
@@ -712,38 +714,35 @@ int aimInputs(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo,
 
 
 // ********************** AIM Function Break *****************************
-int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
+int aimUpdateState(void *instStore, void *aimInfo,
+                   capsValue *aimInputs)
 {
+    int status; // Function return status
 
-    int status; // Status return
+    int i, bodyIndex;
+    int loopIndex, edgeIndex, edgeBodyIndex; // Indexing
+    int numFace, numLoop, numEdge; // Totals
 
-    int i, bodyIndex; // Indexing
+    int numPoints;
+    const double *points = NULL, *uv = NULL, *ts = NULL;
 
     // Body parameters
     const char *intents;
     int numBody = 0; // Number of bodies
     ego *bodies = NULL; // EGADS body objects
 
-    // Tessellation
-    double size, box[6], params[3];
-    ego egadsTess;
-
     // Global settings
     int minEdgePoint = -1, maxEdgePoint = -1;
-    aimStorage *delaundoInstance;
+
+    // 2D mesh checks
+    int xMeshConstant = (int) true, yMeshConstant = (int) true, zMeshConstant= (int) true;
 
     // Mesh attribute parameters
     int numMeshProp = 0;
     meshSizingStruct *meshProp = NULL;
 
-    // FILEIO
-    FILE *fp = NULL;
-    char fileExt[] = ".pts";
-    char *filename = NULL;
-    char aimFile[PATH_MAX];
-
-    // 2D mesh checks
-    int xMeshConstant = (int) true, yMeshConstant = (int) true, zMeshConstant= (int) true;
+    // Tessellation
+    double size, box[6], params[3];
 
     // EGADS meshing variables
     ego *faces = NULL, *loops = NULL, *edges = NULL, geom;
@@ -751,77 +750,60 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
     double uvbox[4], refLen = -1;
     int *edgeSense = NULL, *loopSense = NULL;
 
-    int loopIndex, edgeIndex, edgeBodyIndex; // Indexing
-    int numFace, numLoop, numEdge; // Totals
-
-    int numPoints;
-    const double *points = NULL, *uv = NULL, *ts = NULL;
-
-    int stringLength = 0;
-
     // Mesh attribute parameters
     const char *groupName = NULL;
     int attrIndex = 0;
+
+    char aimFile[PATH_MAX];
+
+    aimStorage *delaundoInstance;
 
     // Get AIM bodies
     status = aim_getBodies(aimInfo, &intents, &numBody, &bodies);
     AIM_STATUS(aimInfo, status);
 
     if ((numBody <= 0) || (bodies == NULL)) {
-#ifdef DEBUG
-        printf(" delaundoAIM/aimPreAnalysis No Bodies!\n");
-#endif
+        AIM_ERROR(aimInfo, "No Bodies!");
         return CAPS_SOURCEERR;
     }
 
     if (numBody != 1) {
-        printf("Delaundo is a 2D mesh generator only one body may be supplied!\n");
+        AIM_ERROR(aimInfo, "Delaundo is a 2D mesh generator only one body may be supplied!");
         return CAPS_BADVALUE;
     }
-    if (aimInputs == NULL) return CAPS_NULLVALUE;
+    AIM_NOTNULL(aimInputs, aimInfo, status);
+
     delaundoInstance = (aimStorage *) instStore;
 
-#ifdef DEBUG
-    printf(" delaundoAIM/aimPreAnalysis numBody = %d!\n",
-           delaundoInstance->numSurface);
-#endif
-
     // Cleanup previous aimStorage for the instance in case this is the second time through preAnalysis for the same instance
-    status = destroy_aimStorage(delaundoInstance);
-    AIM_STATUS(aimInfo, status, "delaundo aimStorage cleanup!!!");
+    status = destroy_aimStorage(delaundoInstance, (int)true);
+    AIM_STATUS(aimInfo, status);
 
     // set the filename without extensions where the grid is written for solvers
     status = aim_file(aimInfo, "delaundoMesh", aimFile);
     AIM_STATUS(aimInfo, status);
     AIM_STRDUP(delaundoInstance->meshRef.fileName, aimFile, aimInfo, status);
 
-    // remove previous meshes
-    status = aim_deleteMeshes(aimInfo, &delaundoInstance->meshRef);
-    AIM_STATUS(aimInfo, status);
 
-
-    // Get capsGroup name and index mapping to make sure all faces have a capsGroup value
-    status = create_CAPSGroupAttrToIndexMap(numBody,
-                                            bodies,
-                                            2,
-                                            &delaundoInstance->groupMap);
-    AIM_STATUS(aimInfo, status);
-
-    status = create_CAPSMeshAttrToIndexMap(numBody,
-                                            bodies,
-                                            3,
-                                            &delaundoInstance->meshMap);
-    AIM_STATUS(aimInfo, status);
-
-    // Allocate surfaceMesh from number of bodies
-    AIM_ALLOC(delaundoInstance->surfaceMesh, numBody, meshStruct, aimInfo, status);
-    delaundoInstance->numSurface = numBody;
-
-    // Initiate surface meshes
-    for (bodyIndex = 0; bodyIndex < delaundoInstance->numSurface; bodyIndex++){
-        status = initiate_meshStruct(&delaundoInstance->surfaceMesh[bodyIndex]);
+    if (delaundoInstance->groupMap.numAttribute == 0 ||
+        aim_newGeometry(aimInfo) == CAPS_SUCCESS ) {
+        // Get capsGroup name and index mapping to make sure all faces have a capsGroup value
+        status = create_CAPSGroupAttrToIndexMap(numBody,
+                                                bodies,
+                                                2,
+                                                &delaundoInstance->groupMap);
         AIM_STATUS(aimInfo, status);
     }
+
+    if (delaundoInstance->meshMap.numAttribute == 0 ||
+        aim_newGeometry(aimInfo) == CAPS_SUCCESS ) {
+        status = create_CAPSMeshAttrToIndexMap(numBody,
+                                                bodies,
+                                                3,
+                                                &delaundoInstance->meshMap);
+        AIM_STATUS(aimInfo, status);
+    }
+
 
     // Setup meshing input structure
 
@@ -831,32 +813,15 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
     delaundoInstance->meshInput.paramTess[2] = aimInputs[Tess_Params-1].vals.reals[2];
 
     if (aimInputs[Mesh_Format-1].nullVal != IsNull) {
-        stringLength = strlen(aimInputs[Mesh_Format-1].vals.string);
-
-        delaundoInstance->meshInput.outputFormat = (char *)
-                                       EG_alloc((stringLength+1) *sizeof(char));
-        if (delaundoInstance->meshInput.outputFormat == NULL) return EGADS_MALLOC;
-
-        strncpy(delaundoInstance->meshInput.outputFormat,
-                aimInputs[Mesh_Format-1].vals.string, stringLength);
-
-        delaundoInstance->meshInput.outputFormat[stringLength] = '\0';
+        AIM_STRDUP(delaundoInstance->meshInput.outputFormat,
+                   aimInputs[Mesh_Format-1].vals.string, aimInfo, status);
     }
 
     delaundoInstance->meshInput.outputASCIIFlag  = aimInputs[Mesh_ASCII_Flag-1].vals.integer;
 
     if (aimInputs[Proj_Name-1].nullVal != IsNull) {
-
-        stringLength = strlen(aimInputs[Proj_Name-1].vals.string);
-
-        delaundoInstance->meshInput.outputFileName = (char *)
-                                        EG_alloc((stringLength+1)*sizeof(char));
-        if (delaundoInstance->meshInput.outputFileName == NULL) return EGADS_MALLOC;
-
-        strncpy(delaundoInstance->meshInput.outputFileName,
-                aimInputs[Proj_Name-1].vals.string, stringLength);
-
-        delaundoInstance->meshInput.outputFileName[stringLength] = '\0';
+        AIM_STRDUP(delaundoInstance->meshInput.outputFileName,
+                   aimInputs[Proj_Name-1].vals.string, aimInfo, status);
     }
 
     // Max and min number of points
@@ -921,9 +886,16 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
     AIM_STATUS(aimInfo, status);
 
 
-    // Write control file
-    status = write_ctrFile(aimInfo, aimInputs);
-    AIM_STATUS(aimInfo, status);
+    // Allocate surfaceMesh from number of bodies
+    AIM_ALLOC(delaundoInstance->surfaceMesh, numBody, meshStruct, aimInfo, status);
+    delaundoInstance->numSurface = numBody;
+
+    // Initiate surface meshes
+    for (bodyIndex = 0; bodyIndex < delaundoInstance->numSurface; bodyIndex++){
+        status = initiate_meshStruct(&delaundoInstance->surfaceMesh[bodyIndex]);
+        AIM_STATUS(aimInfo, status);
+    }
+
 
     // Run delaundo for each body
     for (bodyIndex = 0 ; bodyIndex < numBody; bodyIndex++) {
@@ -943,25 +915,8 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
         params[1] =  delaundoInstance->meshInput.paramTess[1]*size;
         params[2] =  delaundoInstance->meshInput.paramTess[2];
 
-        status = EG_makeTessBody(bodies[bodyIndex], params, &egadsTess);
+        status = EG_makeTessBody(bodies[bodyIndex], params, &delaundoInstance->egadsTess);
         AIM_STATUS(aimInfo, status, "Problem during edge discretization of body %d\n", bodyIndex+1);
-
-        stringLength = strlen(delaundoInstance->meshInput.outputFileName) +
-                       strlen(fileExt) + 1;
-
-        AIM_ALLOC(filename, stringLength+1, char, aimInfo, status);
-
-        sprintf(filename, "%s%s", delaundoInstance->meshInput.outputFileName, fileExt);
-        filename[stringLength] = '\0';
-
-        fp = aim_fopen(aimInfo, filename, "w");
-        if (fp == NULL) {
-            AIM_ERROR(aimInfo, "Unable to open file - %s", filename);
-            status = CAPS_IOERR;
-            goto cleanup;
-        }
-
-        printf("\tWriting out *.pts file\n");
 
         // Get faces
         status = EG_getBodyTopos(bodies[bodyIndex], NULL, FACE, &numFace, &faces);
@@ -998,7 +953,7 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
                 goto cleanup;
             }
 
-            status = EG_getTessEdge(egadsTess, edgeBodyIndex, &numPoints,
+            status = EG_getTessEdge(delaundoInstance->egadsTess, edgeBodyIndex, &numPoints,
                                     &points, &ts);
             AIM_STATUS(aimInfo, status);
             AIM_NOTNULL(points, aimInfo, status);
@@ -1044,19 +999,14 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
 
             } else {
 
-                printf("\tUnable to rotate mesh!\n");
+                AIM_ERROR(aimInfo, "Unable to rotate mesh!");
                 status = CAPS_BADVALUE;
                 goto cleanup;
             }
         }
 
 
-        delaundoInstance->edgeAttrMap = (int *)
-                               EG_alloc(delaundoInstance->numEdge*sizeof(int));
-        if (delaundoInstance->edgeAttrMap == NULL) {
-            status = EGADS_MALLOC;
-            goto cleanup;
-        }
+        AIM_ALLOC(delaundoInstance->edgeAttrMap, delaundoInstance->numEdge, int, aimInfo, status);
 
         status = EG_getTopology(faces[0], &geom, &oclass, &mtype, uvbox,
                                 &numLoop, &loops, &loopSense);
@@ -1098,7 +1048,161 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
                 delaundoInstance->edgeAttrMap[edgeBodyIndex-1] = attrIndex;
 
                 //printf("EdgeBodyIndex = %d %d\n", edgeBodyIndex, edgeSense[edgeIndex]);
-                status = EG_getTessEdge(egadsTess, edgeBodyIndex, &numPoints,
+                status = EG_getTessEdge(delaundoInstance->egadsTess, edgeBodyIndex, &numPoints,
+                                        &points, &uv);
+                AIM_STATUS(aimInfo, status);
+
+                delaundoInstance->numBoundaryEdge += numPoints-1;
+            }
+        }
+    }
+
+    status = CAPS_SUCCESS;
+cleanup:
+
+    if (meshProp != NULL) {
+        for (i = 0; i < numMeshProp; i++) {
+            (void) destroy_meshSizingStruct(&meshProp[i]);
+        }
+        AIM_FREE(meshProp);
+    }
+
+    return status;
+}
+
+
+// ********************** AIM Function Break *****************************
+int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
+{
+
+    int status; // Status return
+
+    int i, bodyIndex; // Indexing
+
+    // Body parameters
+    const char *intents;
+    int numBody = 0; // Number of bodies
+    ego *bodies = NULL; // EGADS body objects
+
+    // FILEIO
+    FILE *fp = NULL;
+    char fileExt[] = ".pts";
+    char *filename = NULL;
+
+    // EGADS meshing variables
+    ego *faces = NULL, *loops = NULL, *edges = NULL, geom;
+    int oclass, mtype;
+    double uvbox[4];
+    int *edgeSense = NULL, *loopSense = NULL;
+
+    int loopIndex, edgeIndex, edgeBodyIndex; // Indexing
+    int numFace, numLoop, numEdge; // Totals
+
+    int numPoints;
+    const double *points = NULL, *uv = NULL;
+
+    int stringLength = 0;
+
+    // Mesh attribute parameters
+    const char *groupName = NULL;
+    int attrIndex = 0;
+
+    const aimStorage *delaundoInstance;
+
+    // Get AIM bodies
+    status = aim_getBodies(aimInfo, &intents, &numBody, &bodies);
+    AIM_STATUS(aimInfo, status);
+
+    if ((numBody <= 0) || (bodies == NULL)) {
+        AIM_ERROR(aimInfo, "No Bodies!");
+        return CAPS_SOURCEERR;
+    }
+    AIM_NOTNULL(aimInputs, aimInfo, status);
+    delaundoInstance = (const aimStorage *) instStore;
+
+#ifdef DEBUG
+    printf(" delaundoAIM/aimPreAnalysis numBody = %d!\n",
+           delaundoInstance->numSurface);
+#endif
+
+    // remove previous meshes
+    status = aim_deleteMeshes(aimInfo, &delaundoInstance->meshRef);
+    AIM_STATUS(aimInfo, status);
+
+    // Write control file
+    status = write_ctrFile(aimInfo, aimInputs);
+    AIM_STATUS(aimInfo, status);
+
+    // Run delaundo for each body
+    for (bodyIndex = 0 ; bodyIndex < numBody; bodyIndex++) {
+
+        stringLength = strlen(delaundoInstance->meshInput.outputFileName) +
+                       strlen(fileExt) + 1;
+
+        AIM_ALLOC(filename, stringLength+1, char, aimInfo, status);
+
+        sprintf(filename, "%s%s", delaundoInstance->meshInput.outputFileName, fileExt);
+        filename[stringLength] = '\0';
+
+        fp = aim_fopen(aimInfo, filename, "w");
+        if (fp == NULL) {
+            AIM_ERROR(aimInfo, "Unable to open file - %s", filename);
+            status = CAPS_IOERR;
+            goto cleanup;
+        }
+
+        printf("\tWriting out *.pts file\n");
+
+        // Get faces
+        status = EG_getBodyTopos(bodies[bodyIndex], NULL, FACE, &numFace, &faces);
+        AIM_STATUS(aimInfo, status);
+
+        if ((numFace != 1) || (faces == NULL)) {
+            AIM_ERROR(aimInfo, "Body should only have 1 face!!\n");
+            status = CAPS_BADVALUE;
+            goto cleanup;
+        }
+
+        status = EG_getTopology(faces[0], &geom, &oclass, &mtype, uvbox,
+                                &numLoop, &loops, &loopSense);
+        if (status != EGADS_SUCCESS) goto cleanup;
+        if (loopSense == NULL || loops == NULL) {
+            status = CAPS_NULLVALUE;
+            goto cleanup;
+        }
+        AIM_FREE(faces);
+
+        // Go around the loop and collect edges
+        for (loopIndex = 0; loopIndex < numLoop; loopIndex++) {
+
+            //printf("Loop %d\n", loopIndex);
+            status = EG_getTopology(loops[loopIndex], &geom, &oclass, &mtype,
+                                    NULL, &numEdge, &edges, &edgeSense);
+            AIM_STATUS(aimInfo, status);
+            AIM_NOTNULL(edges, aimInfo, status);
+            AIM_NOTNULL(edgeSense, aimInfo, status);
+
+            for (edgeIndex = 0; edgeIndex < numEdge; edgeIndex++) {
+
+                //printf("edgeIndex = %d\n", edgeIndex);
+                edgeBodyIndex = EG_indexBodyTopo(bodies[bodyIndex], edges[edgeIndex]);
+                if (edgeBodyIndex < EGADS_SUCCESS) {
+                    status = CAPS_BADINDEX;
+                    AIM_STATUS(aimInfo, status);
+                    goto cleanup;
+                }
+
+                status = retrieve_CAPSGroupAttr(edges[edgeIndex], &groupName);
+                AIM_STATUS(aimInfo, status, "No capsGroup found on edge %d\n", edgeBodyIndex);
+                AIM_NOTNULL(groupName, aimInfo, status);
+
+                status = get_mapAttrToIndexIndex(&delaundoInstance->groupMap,
+                                                 groupName, &attrIndex);
+                AIM_STATUS(aimInfo, status, "No capsGroup \"%s\" not found in attribute map\n", groupName);
+                delaundoInstance->edgeAttrMap[edgeBodyIndex-1] = attrIndex;
+
+                //printf("EdgeBodyIndex = %d %d\n", edgeBodyIndex, edgeSense[edgeIndex]);
+                status = EG_getTessEdge(delaundoInstance->egadsTess, edgeBodyIndex, &numPoints,
                                         &points, &uv);
                 AIM_STATUS(aimInfo, status);
                 AIM_NOTNULL(points, aimInfo, status);
@@ -1108,8 +1212,6 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
                 fprintf(fp,"NAMEBN\n %d\n", edgeBodyIndex);
 
                 fprintf(fp,"NRBNDE\n %d\n", numPoints);
-
-                delaundoInstance->numBoundaryEdge += numPoints-1;
 
                 // Edge connected at the start
                 if (edgeIndex == 0){
@@ -1216,64 +1318,55 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
 
 cleanup:
 
-    if (status != CAPS_SUCCESS) printf("aimPreanalysis status = %d\n", status);
-
     if (fp != NULL) fclose(fp);
 
     AIM_FREE(filename);
     AIM_FREE(faces);
-
-    if (meshProp != NULL) {
-        for (i = 0; i < numMeshProp; i++) {
-            (void) destroy_meshSizingStruct(&meshProp[i]);
-        }
-        AIM_FREE(meshProp);
-    }
 
     return status;
 }
 
 
 // ********************** AIM Function Break *****************************
-int aimExecute(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo,
+int aimExecute(/*@unused@*/ const void *instStore, /*@unused@*/ void *aimInfo,
                int *state)
 {
   /*! \page aimExecuteDelaundo AIM Execution
    *
-   * If auto execution is enabled when creating an dealundo AIM,
-   * the AIM will execute dealundo just-in-time with the command line:
+   * If auto execution is enabled when creating an delaundo AIM,
+   * the AIM will execute delaundo just-in-time with the command line:
    *
    * \code{.sh}
-   * dealundo < dealundoInput.txt > dealundoOutput.txt
+   * delaundo < delaundoInput.txt > delaundoOutput.txt
    * \endcode
    *
-   * where preAnalysis generated the file "dealundoInput.txt" which contains the input information.
+   * where preAnalysis generated the file "delaundoInput.txt" which contains the input information.
    *
    * The analysis can be also be explicitly executed with caps_execute in the C-API
    * or via Analysis.runAnalysis in the pyCAPS API.
    *
    * Calling preAnalysis and postAnalysis is NOT allowed when auto execution is enabled.
    *
-   * Auto execution can also be disabled when creating an dealundo AIM object.
+   * Auto execution can also be disabled when creating an delaundo AIM object.
    * In this mode, caps_execute and Analysis.runAnalysis can be used to run the analysis,
-   * or dealundo can be executed by calling preAnalysis, system call, and posAnalysis as demonstrated
+   * or delaundo can be executed by calling preAnalysis, system call, and posAnalysis as demonstrated
    * below with a pyCAPS example:
    *
    * \code{.py}
    * print ("\n\preAnalysis......")
-   * dealundo.preAnalysis()
+   * delaundo.preAnalysis()
    *
    * print ("\n\nRunning......")
-   * dealundo.system("delaundo < delaundoInput.txt > dealundoOutput.txt"); # Run via system call
+   * delaundo.system("delaundo < delaundoInput.txt > delaundoOutput.txt"); # Run via system call
    *
    * print ("\n\postAnalysis......")
-   * dealundo.postAnalysis()
+   * delaundo.postAnalysis()
    * \endcode
    */
 
   *state = 0;
   return aim_system(aimInfo, NULL,
-                    "delaundo < delaundoInput.txt > dealundoOutput.txt");
+                    "delaundo < delaundoInput.txt > delaundoOutput.txt");
 }
 
 
@@ -1560,6 +1653,19 @@ int aimPostAnalysis(void *instStore, void *aimInfo,
         }
     }
 
+
+    AIM_ALLOC(delaundoInstance->meshRef.bnds, delaundoInstance->groupMap.numAttribute, aimMeshBnd, aimInfo, status);
+    delaundoInstance->meshRef.nbnd = delaundoInstance->groupMap.numAttribute;
+    for (j = 0; j < delaundoInstance->meshRef.nbnd; j++) {
+      status = aim_initMeshBnd(delaundoInstance->meshRef.bnds + j);
+      AIM_STATUS(aimInfo, status);
+    }
+
+    for (j = 0; j < delaundoInstance->meshRef.nbnd; j++) {
+      AIM_STRDUP(delaundoInstance->meshRef.bnds[j].groupName, delaundoInstance->groupMap.attributeName[j], aimInfo, status);
+      delaundoInstance->meshRef.bnds[j].ID = delaundoInstance->groupMap.attributeIndex[j];
+    }
+
     status = CAPS_SUCCESS;
 
 cleanup:
@@ -1675,9 +1781,9 @@ void aimCleanup(void *instStore)
 #endif
     delaundoInstance = (aimStorage *) instStore;
 
-    status = destroy_aimStorage(delaundoInstance);
+    status = destroy_aimStorage(delaundoInstance, (int)false);
     if (status != CAPS_SUCCESS)
         printf("Status = %d, delaundoAIM aimStorage cleanup!!!\n", status);
 
-    EG_free(delaundoInstance);
+    AIM_FREE(delaundoInstance);
 }

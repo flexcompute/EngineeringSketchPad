@@ -117,15 +117,18 @@ su2.input.Input_String = ["INNER_ITER= 10",
 su2.input.Overwrite_CFG = True
 
 # Set boundary conditions
-bc1 = {"bcType" : "Viscous", "wallHeatFlux" : 0}
+bc1 = {"bcType" : "Inviscid"}
 bc2 = {"bcType" : "Inviscid"}
 su2.input.Boundary_Condition = {"Wing1": bc1,
                                 "Wing2": bc2,
-                                "Farfield":"farfield"}
+                                "Farfield":"farfield",
+                                "Wake":{"bcType":"Internal"}}
 
 # Specifcy the boundares used to compute forces
 su2.input.Surface_Monitor = ["Wing1", "Wing2"]
 
+
+su2.input.Output_Format = "Paraview"
 
 #################################################
 ##  AFLR4/AFLR3 are executed automatically      #

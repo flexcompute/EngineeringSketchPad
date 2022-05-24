@@ -3,13 +3,14 @@
 # Unit meshing reference length
 ATTRIBUTE capsMeshLength   1.0
 
-SET meshingAIMs $pointwiseAIM;aflr4AIM;egadsTessAIM
+SET meshingAIMs $pointwiseAIM;aflr4AIM;aflr3AIM;egadsTessAIM;tetgenAIM
 
 # Box
 BOX 0 -0.5 -0.5  1 1 1 
     ATTRIBUTE capsAIM meshingAIMs
     ATTRIBUTE capsIntent $box
     ATTRIBUTE capsGroup $box
+    ATTRIBUTE capsMesh $box
     ATTRIBUTE _name $box
 # Set only 2 points on one edge to test edges without a vertex
 SELECT edge 1
@@ -98,9 +99,15 @@ SELECT body
 SELECT face
     ATTRIBUTE capsGroup $bullet
 
+# Sphere
+POINT 14.5 0 0  0.5
+    ATTRIBUTE capsAIM $egadsTessAIM
+    ATTRIBUTE capsIntent $nodeBody
+    ATTRIBUTE capsGroup $nodeBody
+    ATTRIBUTE _name $nodeBody
 
 # Farfield bounding box
-BOX -1 -2 -2  15 4 4
+BOX -1 -2 -2  17 4 4
     ATTRIBUTE capsAIM meshingAIMs
     ATTRIBUTE capsIntent $farfield
     ATTRIBUTE capsGroup $farfield

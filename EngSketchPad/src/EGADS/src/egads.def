@@ -113,6 +113,7 @@ EG_tessMassProps_dot
 EG_isEquivalent
 EG_isPlanar
 EG_sewFaces
+EG_makeNmWireBody
 EG_replaceFaces
 EG_mapBody
 EG_matchBodyEdges

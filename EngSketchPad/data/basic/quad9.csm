@@ -1,0 +1,234 @@
+# quad9
+# written by John Dannenhoffer
+
+DESPMTR   generateWing 1
+DESPMTR   generateFuse 1
+
+# waffle for wing and fuselage
+DIMENSION waffle   13  4  0
+
+# spar 1
+SET       waffle[1,1]   4.00
+SET       waffle[1,2]  -3.00
+SET       waffle[1,3]   6.00
+SET       waffle[1,4]  -12.0
+
+# spar 2
+SET       waffle[2,1]   6.00
+SET       waffle[2,2]  -3.00
+SET       waffle[2,3]   7.00
+SET       waffle[2,4]  -12.0
+
+# rib 1
+SET       waffle[3,1]   3.00
+SET       waffle[3,2]  -4.50
+SET       waffle[3,3]   8.00
+SET       waffle[3,4]  -4.50
+
+# rib 2
+SET       waffle[4,1]   3.00
+SET       waffle[4,2]  -6.50
+SET       waffle[4,3]   8.00
+SET       waffle[4,4]  -6.50
+
+# rib 3
+SET       waffle[5,1]   3.00
+SET       waffle[5,2]  -8.50
+SET       waffle[5,3]   8.00
+SET       waffle[5,4]  -8.50
+
+# rib 4
+SET       waffle[6,1]   3.00
+SET       waffle[6,2]  -10.5
+SET       waffle[6,3]   8.00
+SET       waffle[6,4]  -10.5
+
+# fuselage centerline
+SET       waffle[7,1]   0.00
+SET       waffle[7,2]   0.00
+SET       waffle[7,3]   12.0
+SET       waffle[7,4]   0.00
+
+# frame 1
+SET       waffle[8,1]   2.00
+SET       waffle[8,2]  -3.00
+SET       waffle[8,3]   2.00
+SET       waffle[8,4]   3.00
+
+# frame 2
+SET       waffle[9,1]   4.00
+SET       waffle[9,2]  -3.00
+SET       waffle[9,3]   4.00
+SET       waffle[9,4]   3.00
+
+# frame 3
+SET       waffle[10,1]   5.00
+SET       waffle[10,2]  -3.00
+SET       waffle[10,3]   5.00
+SET       waffle[10,4]   3.00
+
+# frame 4
+SET       waffle[11,1]   6.00
+SET       waffle[11,2]  -3.00
+SET       waffle[11,3]   6.00
+SET       waffle[11,4]   3.00
+
+# frame 5
+SET       waffle[12,1]   8.00
+SET       waffle[12,2]  -3.00
+SET       waffle[12,3]   8.00
+SET       waffle[12,4]   3.00
+
+# frame 6
+SET       waffle[13,1]   10.0
+SET       waffle[13,2]  -3.00
+SET       waffle[13,3]   10.0
+SET       waffle[13,4]   3.00
+
+UDPARG    waffle    Depth     4.0
+UDPRIM    waffle    Segments  waffle
+TRANSLATE 0  0  -2
+
+SET       yy      2.00/tand(60)
+SET       zz      3.00*tand(30)
+
+# add longeron 1
+SKBEG     0.00   -yy     -2.00
+   LINSEG 12.0   -yy     -2.00
+   LINSEG 12.0    yy      2.00
+   LINSEG 0.00    yy      2.00
+   LINSEG 0.00   -yy     -2.00
+SKEND
+UNION
+
+# add longeron 2
+SKBEG     0.00   -3.00   -zz
+   LINSEG 12.0   -3.00   -zz
+   LINSEG 12.0    3.00    zz
+   LINSEG 0.00    3.00    zz
+   LINSEG 0.00   -3.00   -zz
+SKEND
+UNION
+
+# add longeron 3
+SKBEG     0.00   -3.00    0.00
+   LINSEG 12.0   -3.00    0.00
+   LINSEG 12.0    3.00    0.00
+   LINSEG 0.00    3.00    0.00
+   LINSEG 0.00   -3.00    0.00
+SKEND
+UNION
+
+# add longeron 4
+SKBEG     0.00   -yy      2.00
+   LINSEG 12.0   -yy      2.00
+   LINSEG 12.0    yy     -2.00
+   LINSEG 0.00    yy     -2.00
+   LINSEG 0.00   -yy      2.00
+SKEND
+UNION
+
+# add longeron 5
+SKBEG     0.00   -3.00    zz
+   LINSEG 12.0   -3.00    zz
+   LINSEG 12.0    3.00   -zz
+   LINSEG 0.00    3.00   -zz
+   LINSEG 0.00   -3.00    zz
+SKEND
+UNION
+STORE     waffle
+
+# OML for wing
+IFTHEN generateWing EQ 1
+   MARK
+      UDPRIM    naca      series    4412
+      ROTATEX   90   0  0
+      SCALE     3.0
+      TRANSLATE 3.5  -2.8  0.5
+
+      UDPRIM    naca      series    4412
+      ROTATEX   90   0   0
+      SCALE     1.8
+      TRANSLATE 5.5   -11.0   0.5
+   RULE
+   STORE     wingOML
+ENDIF
+
+# OML for fuselage
+IFTHEN generateFuse EQ 1
+   MARK
+      UDPARG    supell    rx        1.9
+      UDPARG    supell    ry        2.9
+      UDPRIM    supell    n         4.0
+      ROTATEY    90   0  0
+      TRANSLATE 0.1   0  0
+
+      UDPARG    supell    rx        1.9
+      UDPARG    supell    ry        2.9
+      UDPRIM    supell    n         4.0
+      ROTATEY   90    0  0
+      TRANSLATE 11.9  0  0
+   RULE
+   STORE     fuseOML
+
+   # hollow out fuselage
+   RESTORE   fuseOML
+   HOLLOW    0.2   5;6   1
+   STORE     fuseOML/IML
+ENDIF
+
+# overall OML
+IFTHEN generateWing EQ 1 AND generateFuse EQ 1
+   RESTORE   wingOML
+   RESTORE   fuseOML
+   UNION
+   STORE     allOML
+ELSEIF generateWing EQ 1
+   RESTORE   wingOML
+   STORE     allOML
+ELSEIF generateFuse EQ 1
+   RESTORE   fuseOML
+   STORE     allOML
+ELSE
+   ASSERT 0 1
+ENDIF
+
+# overall OML/IML
+IFTHEN generateWing EQ 1 AND generateFuse EQ 1
+   RESTORE   wingOML
+   RESTORE   fuseOML/IML
+   UNION
+   STORE     allOML/IML
+ELSEIF generateWing EQ 1
+   RESTORE   wingOML
+   STORE     allOML/IML
+ELSEIF generateFuse EQ 1
+   RESTORE   fuseOML/IML
+   STORE     allOML/IML
+ENDIF
+
+# trim waffle by OML
+RESTORE   waffle
+RESTORE   allOML/IML
+INTERSECT
+STORE     structure
+
+# scribe skin by waffle
+RESTORE   allOML
+RESTORE   waffle
+SUBTRACT
+EXTRACT   0
+STORE     skins
+
+# union skins with structure
+RESTORE   structure
+RESTORE   skins
+UNION
+
+# use old-style Quads
+SELECT    face
+ATTRIBUTE _makeQuads 1
+
+MESSAGE   old-style_quads
+
+END

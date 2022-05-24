@@ -12,22 +12,30 @@ else
 ODIR  = .
 endif
 
+# Allow implicit rule for object files in ODIR directory
+VPATH = $(ODIR)
 
-$(LDIR)/avlAIM.so:	$(ODIR)/avlAIM.o $(LDIR)/libaimUtil.a $(LDIR)/libutils.a
+AVL_MRF_FILES=$(wildcard avlmrf/*.c)
+AVL_MRF_OBJS=$(foreach src,$(AVL_MRF_FILES),$(ODIR)/$(basename $(notdir $(src))).o)
+
+$(LDIR)/avlAIM.so:	$(ODIR)/avlAIM.o $(AVL_MRF_OBJS) $(LDIR)/libaimUtil.a $(LDIR)/libutils.a
 	touch $(LDIR)/avlAIM.so
 	rm $(LDIR)/avlAIM.so
-	$(CC) $(SOFLGS) -o $(LDIR)/avlAIM.so $(ODIR)/avlAIM.o \
+	$(CC) $(SOFLGS) -o $(LDIR)/avlAIM.so $(ODIR)/avlAIM.o $(AVL_MRF_OBJS) \
 		-L$(LDIR) -laimUtil -lutils -locsm -legads -ludunits2 -ldl \
 		$(CPPSLB) $(RPATH) -lm
 
 $(ODIR)/avlAIM.o:	avlAIM.c $(IDIR)/capsTypes.h
 	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I../utils avlAIM.c -o $(ODIR)/avlAIM.o
 
+$(ODIR)/%.o: avlmrf/%.c avlmrf/%.h avlmrf/read_util.h
+	$(CC) -c $(COPTS) -Wno-unused-function -Iavlmrf $< -o $@
+
 lint:
 	$(LINT) -I../../include -I$(IDIR) -I../utils $(wildcard *.c) -exportlocal -nestcomment -bufferoverflowhigh -uniondef
 
 clean:
-	-rm $(ODIR)/avlAIM.o
+	-rm $(ODIR)/avlAIM.o $(AVL_MRF_OBJS)
 
 cleanall:	clean
 	-rm $(LDIR)/avlAIM.so

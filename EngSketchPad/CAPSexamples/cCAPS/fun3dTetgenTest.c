@@ -3,7 +3,7 @@
  *
  *             fun3d/tetgen AIM tester
  *
- *      Copyright 2014-2021, Massachusetts Institute of Technology
+ *      Copyright 2014-2022, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -72,6 +72,7 @@ int main(int argc, char *argv[])
     // Input values
     capsTuple        *tupleVal = NULL;
     int               tupleSize = 3;
+    int               intVal;
     double            doubleVal;
     enum capsBoolean  boolVal;
 
@@ -93,6 +94,20 @@ int main(int argc, char *argv[])
     status = caps_open("FUN3D_Tetgen_Example", NULL, 0,
                        "../csmData/cfdMultiBody.csm", outLevel, &problemObj,
                        &nErr, &errors);
+    if (nErr != 0) printErrors(nErr, errors);
+    if (status != CAPS_SUCCESS) goto cleanup;
+
+    status = caps_childByName(problemObj, VALUE, GEOMETRYIN, "wake", &tempObj,
+                              &nErr, &errors);
+    if (nErr != 0) printErrors(nErr, errors);
+    if (status != CAPS_SUCCESS) {
+      printf("problemObj childByName for wake = %d\n", status);
+      goto cleanup;
+    }
+
+    intVal  = 0;
+    status = caps_setValue(tempObj, Integer, 1, 1, (void *) &intVal, NULL,
+                           NULL, &nErr, &errors);
     if (nErr != 0) printErrors(nErr, errors);
     if (status != CAPS_SUCCESS) goto cleanup;
 

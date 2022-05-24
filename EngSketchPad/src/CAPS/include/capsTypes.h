@@ -5,7 +5,7 @@
  *
  *             General Object Header
  *
- *      Copyright 2014-2021, Massachusetts Institute of Technology
+ *      Copyright 2014-2022, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -41,7 +41,8 @@
 #define MAXWRITER     16
 
 
-enum capsoFlag   {oFileName, oMODL, oEGO, oPhaseName, oContinue};
+enum capsoFlag   {oFileName, oMODL, oEGO, oPhaseName, oContinue, oPNewCSM,
+                  oPNnoDel, oReadOnly};
 enum capsoType   {BODIES=-2, ATTRIBUTES, UNUSED, PROBLEM, VALUE, ANALYSIS,
                   BOUND, VERTEXSET, DATASET};
 enum capssType   {NONE, STATIC, PARAMETRIC, GEOMETRYIN, GEOMETRYOUT,
@@ -50,7 +51,7 @@ enum capssType   {NONE, STATIC, PARAMETRIC, GEOMETRYIN, GEOMETRYOUT,
 enum capseType   {CONTINUATION=-1, CINFO, CWARN, CERROR, CSTAT};
 enum capsfType   {FieldIn, FieldOut, GeomSens, TessSens, User, BuiltIn};
 enum capsjType   {jInteger, jDouble, jString, jStrings, jTuple, jPointer,
-                  jPtrFree, jObject, jObjs, jValObj, jErr, jOwn, jOwns, jEgos};
+                  jPtrFree, jObject, jObjs, jErr, jOwn, jOwns, jEgos};
 enum capsBoolean {False=false, True=true};
 enum capsvType   {Boolean, Integer, Double, String, Tuple, Pointer, DoubleDeriv,
                   PointerMesh};
@@ -60,6 +61,11 @@ enum capsNull    {NotAllowed, NotNull, IsNull, IsPartial};
 enum capstMethod {Copy, Integrate, Average};
 enum capsdMethod {Interpolate, Conserve};
 enum capsState   {MultipleError=-2, Open, Empty, Single, Multiple};
+
+
+#define AIM_UPDATESTATE  1
+#define AIM_PREANALYSIS  2
+#define AIM_POSTANALYSIS 3
 
 
 /*
@@ -75,13 +81,12 @@ typedef struct {
  * defines the owning information
  */
 typedef struct {
-  int       nLines;             /* the number of information strings */
-  char      **lines;            /* the information strings */
-  char      *pname;             /* the process name -- NULL from Problem */
-  char      *pID;               /* the process ID   -- NULL from Problem */
-  char      *user;              /* the user name    -- NULL from Problem */
-  short     datetime[6];        /* the date/time stamp */
-  CAPSLONG  sNum;               /* the CAPS sequence number */
+  int      index;               /* intent phrase index -- -1 no intent */
+  char     *pname;              /* the process name -- NULL from Problem */
+  char     *pID;                /* the process ID   -- NULL from Problem */
+  char     *user;               /* the user name    -- NULL from Problem */
+  short    datetime[6];         /* the date/time stamp */
+  CAPSLONG sNum;                /* the CAPS sequence number */
 } capsOwn;
 
 
@@ -139,6 +144,9 @@ typedef struct {
                                    when using reference points (2*nmat long) */
   int    *tris;                 /* the triangles defined by reference indices
                                    (bias 1) -- 3*ntri in length */
+  int    nseg;                  /* number of element segments */
+  int    *segs;                 /* the element segments by reference indices
+                                   (bias 1) -- 2*nsegs in length */
 } capsEleType;
 
 
@@ -200,6 +208,8 @@ typedef struct {
   int           *celem;         /* 2*nVerts (body, element) containing vert or NULL */
   int           nDtris;         /* number of triangles to plot data */
   int           *dtris;         /* NULL for NULL verts -- indices into verts */
+  int           nDsegs;         /* number of segs to plot data mesh */
+  int           *dsegs;         /* NULL for NULL verts -- indices into verts */
   int           nPoints;        /* number of entries in the geom positions */
   int           nTypes;         /* number of Element Types */
   capsEleType   *types;         /* the Element Types (nTypes in length) */
@@ -218,6 +228,7 @@ typedef struct capsObject {
   int     magicnumber;          /* must be set to validate the object */
   int     type;                 /* object type */
   int     subtype;              /* object subtype */
+  int     delMark;              /* delete mark */
   char    *name;                /* object name */
   egAttrs *attrs;               /* object attributes */
   void    *blind;               /* blind pointer to object data */
@@ -253,9 +264,11 @@ typedef struct {
  *   only with GeometryOut, AnalysisOut or AnalysisDynO Value Objects
  */
 typedef struct {
-  char   *name;                  /* the derivative with respect to */
-  int    len_wrt;                /* the number of members in the derivative w.r.t. Value Object*/
-  double *deriv;                 /* the derivative values -- capsValue.length*len_wrt in length */
+  char   *name;                 /* the derivative with respect to */
+  int    len_wrt;               /* the number of members in the derivative
+                                   w.r.t. Value Object */
+  double *deriv;                /* the derivative values 
+                                   - capsValue.length*len_wrt long */
 } capsDeriv;
 
 
@@ -273,7 +286,8 @@ typedef struct {
   int          nullVal;         /* NULL handling */
   int          index;           /* index into collection of Values */
   int          pIndex;          /* DESPMTR index */
-  int          gInType;         /* 0 -- normal, 1 -- CFGPMTR, 2 -- CONPMTR */
+  int          gInType;         /* 0 -- DESPMTR (or not GeomIn), 1 -- CFGPMTR,
+                                   2 -- CONPMTR */
   union {
     int        integer;         /* single int -- length == 1 */
     int        *integers;       /* multiple ints */
@@ -352,8 +366,9 @@ typedef void (*aimF) (void *);
 typedef int  (*aimL) (capsDiscr *, double *, double *, int *, int *, double *);
 typedef int  (*aimIn)(/*@null@*/ void *, /*@null@*/ void *, int, char **,
                       capsValue *);
-typedef int  (*aimA) (/*@null@*/ void *, void *, /*@null@*/ capsValue *);
-typedef int  (*aimEx)(/*@null@*/ void *, void *, int *);
+typedef int  (*aimU) (/*@null@*/       void *, void *, /*@null@*/ capsValue *);
+typedef int  (*aimA) (/*@null@*/ const void *, void *, /*@null@*/ capsValue *);
+typedef int  (*aimEx)(/*@null@*/ const void *, void *, int *);
 typedef int  (*aimPo)(/*@null@*/ void *, void *, int, /*@null@*/ capsValue *);
 typedef int  (*aimO) (/*@null@*/ void *, /*@null@*/ void *, int, char **,
                       capsValue *);
@@ -381,6 +396,7 @@ typedef struct {
   aimF  aimFreeD[MAXANAL];
   aimL  aimLoc[MAXANAL];
   aimIn aimInput[MAXANAL];
+  aimU  aimUState[MAXANAL];
   aimA  aimPAnal[MAXANAL];
   aimEx aimExec[MAXANAL];
 #ifdef ASYNCEXEC
@@ -403,55 +419,71 @@ typedef struct {
  * structure for sensitivity registry for Geometry In
  */
 typedef struct {
-  char *name;                    /* parameter name including optional [n] or
-                                    [n,m] for vectors/arrays */
-  int  index;                    /* GeometryIn Index */
-  int  irow;                     /* the row index */
-  int  icol;                     /* the column index */
+  char *name;                   /* parameter name including optional [n] or
+                                   [n,m] for vectors/arrays */
+  int  index;                   /* GeometryIn Index */
+  int  irow;                    /* the row index */
+  int  icol;                    /* the column index */
 } capsRegGIN;
   
+
+/*
+ * structure to hold the intent phrase
+ */
+typedef struct {
+  char *phase;                  /* phase when intent phrase was specified */
+  int  nLines;                  /* the number of intent strings in the phrase */
+  char **lines;                 /* the intent strings */
+} capsPhrase;
+
 
 /*
  * structure for CAPS object -- PROBLEM
  */
 typedef struct {
   char       **signature;
-  capsObject *mySelf;            /* the problem object */
-  ego        context;            /* the EGADS context object */
-  void       *utsystem;          /* the units system */
-  aimContext aimFPTR;            /* the aim Function Pointers */
-  char       *root;              /* the path to the active phase */
-  char       *phName;            /* the phase name */
-  capsOwn    writer;             /* the owning info of a Problem writer */
-  int        stFlag;             /* Problem startup flag */
-  FILE       *jrnl;              /* journal file */
-  int        outLevel;           /* output level for messages
-                                    0 none, 1 minimal, 2 verbose, 3 debug */
-  int        funID;              /* active function index */
-  void       *modl;              /* OpenCSM model void pointer or static ego */
-  int        nParam;             /* number of parameters */
-  capsObject **params;           /* list of parameter objects */
-  int        nGeomIn;            /* number of geometryIn (params) -- 0 static */
-  capsObject **geomIn;           /* list of geometryIn objects */
-  int        nGeomOut;           /* number of geometryOut objects */
-  capsObject **geomOut;          /* list of geometryOut objects */
-  int        nAnalysis;          /* number of Analysis objects */
-  capsObject **analysis;         /* list of Analysis objects */
-  int        mBound;             /* current maximum bound index */
-  int        nBound;             /* number of Bound objects */
-  capsObject **bounds;           /* list of Bound objects */
-  capsOwn    geometry;           /* the owning info of the geometry */
-  int        nBodies;            /* number of current geometric bodies */
-  ego        *bodies;            /* the EGADS bodies */
-  char       **lunits;           /* the body-based length units */
-  int        nEGADSmdl;          /* the number of journalled EGADS Models */
-  int        nRegGIN;            /* number of Registered GeometryIn Values */
-  capsRegGIN *regGIN;            /* sensitivity slots for GeometryIn Values */
-  int        nExec;              /* number of analyses that have executed */
-  capsObject **execs;            /* list of executed Analysis objects */
-  CAPSLONG   sNum;               /* sequence number */
+  capsObject *mySelf;           /* the problem object */
+  ego        context;           /* the EGADS context object */
+  void       *utsystem;         /* the units system */
+  aimContext aimFPTR;           /* the aim Function Pointers */
+  char       *root;             /* the path to the active phase */
+  char       *phName;           /* the phase name */
+  capsOwn    writer;            /* the owning info of a Problem writer */
+  int        dbFlag;            /* debug flag */
+  int        stFlag;            /* Problem startup flag */
+  FILE       *jrnl;             /* journal file */
+  int        outLevel;          /* output level for messages
+                                   0 none, 1 minimal, 2 verbose, 3 debug */
+  int        funID;             /* active function index */
+  void       *modl;             /* OpenCSM model void pointer or static ego */
+  int        iPhrase;           /* the current phrase index (-1 no phrase) */
+  int        nPhrase;           /* number of intent phrases */
+  capsPhrase *phrases;          /* the intent phrases */
+  int        nParam;            /* number of parameters */
+  capsObject **params;          /* list of parameter objects */
+  int        nUser;             /* number of user objects */
+  capsObject **users;           /* list of user objects */
+  int        nGeomIn;           /* number of geometryIn (params) -- 0 static */
+  capsObject **geomIn;          /* list of geometryIn objects */
+  int        nGeomOut;          /* number of geometryOut objects */
+  capsObject **geomOut;         /* list of geometryOut objects */
+  int        nAnalysis;         /* number of Analysis objects */
+  capsObject **analysis;        /* list of Analysis objects */
+  int        mBound;            /* current maximum bound index */
+  int        nBound;            /* number of Bound objects */
+  capsObject **bounds;          /* list of Bound objects */
+  capsOwn    geometry;          /* the owning info of the geometry */
+  int        nBodies;           /* number of current geometric bodies */
+  ego        *bodies;           /* the EGADS bodies */
+  char       **lunits;          /* the body-based length units */
+  int        nEGADSmdl;         /* the number of journalled EGADS Models */
+  int        nRegGIN;           /* number of Registered GeometryIn Values */
+  capsRegGIN *regGIN;           /* sensitivity slots for GeometryIn Values */
+  int        nDesPmtr;          /* number of OpenCSM Design Parameters marked */
+  int        *desPmtr;          /* the list of OpenCSM Design Parameters */
+  CAPSLONG   sNum;              /* sequence number */
 #ifdef WIN32
-  __int64    jpos;               /* journal position for last success */
+  __int64    jpos;              /* journal position for last success */
 #else
   long       jpos;
 #endif
@@ -474,17 +506,17 @@ typedef struct {
  * structure for AIM Information
  */
 typedef struct {
-  int           magicnumber;   /* the magic number */
-  int           instance;      /* instance index */
-  int           inPost;        /* calling from Post Ananlysis */
-  int           pIndex;        /* the OpenCSM parameter index - sensitivities */
-  int           irow;          /* the parameter row index */
-  int           icol;          /* the parameter column index */
-  capsProblem   *problem;      /* problem structure */
+  int           magicnumber;    /* the magic number */
+  int           instance;       /* instance index */
+  int           funID;          /* calling funcition ID */
+  int           pIndex;         /* the OpenCSM parameter index - sensitivities */
+  int           irow;           /* the parameter row index */
+  int           icol;           /* the parameter column index */
+  capsProblem   *problem;       /* problem structure */
 /*@dependent@*/
-  void          *analysis;     /* specific analysis structure */
-  capsErrs      errs;          /* accumulate the AIMs error/warnings */
-  writerContext wCntxt;        /* volume mesh writer DLL info */
+  void          *analysis;      /* specific analysis structure */
+  capsErrs      errs;           /* accumulate the AIMs error/warnings */
+  writerContext wCntxt;         /* volume mesh writer DLL info */
 } aimInfo;
 
 
@@ -501,6 +533,7 @@ typedef struct {
   void       *instStore;        /* the AIM's instance storage */
   int        autoexec;          /* execution can be lazy */
   int        eFlag;             /* execution flag - 1 AIM executes analysis */
+  int        reload;            /* post or link transfer needed to reload AIM */
 /*@null@*/
   char       *intents;          /* the intents requested for the instance
                                    NULL - all bodies given to the AIM */
@@ -519,6 +552,7 @@ typedef struct {
   ego        *bodies;           /* the bodies */
   int        nTess;             /* number of tessellations for this Analysis */
   ego        *tess;             /* the tessellations */
+  CAPSLONG   uSsN;              /* updateState sequence number */
   capsOwn    pre;               /* preAnalysis time/date stamp */
 } capsAnalysis;
 

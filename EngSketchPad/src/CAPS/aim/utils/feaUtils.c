@@ -76,7 +76,7 @@ int fea_createMesh(void *aimInfo,
             if (status != CAPS_SUCCESS) printf("Error: Status %d during destroy_meshStruct!\n", status);
         }
 
-        EG_free(*feaMesh);
+        AIM_FREE(*feaMesh);
     }
 
     (*feaMesh) = NULL;
@@ -111,7 +111,7 @@ int fea_createMesh(void *aimInfo,
     for (body = 0; body < numBody; body++) {
 
         status = retrieve_CAPSDisciplineAttr(bodies[body], &discipline);
-        if (status != EGADS_SUCCESS) continue; // Need to add an error code
+        if (status != CAPS_SUCCESS) continue; // Need to add an error code
 
         if (strcasecmp(discipline, "structure") != 0) feaMeshList[body] = (int) false;
     }
@@ -208,7 +208,7 @@ int fea_createMesh(void *aimInfo,
 
                     tempMesh = &((meshStruct *) meshVal->vals.AIMptr)[body];
                                                                                          // Dummy arguments
-                    status = EG_statusTessBody(tempMesh->bodyTessMap.egadsTess, &tempBody, &stat, &nGlobal);
+                    status = EG_statusTessBody(tempMesh->egadsTess, &tempBody, &stat, &nGlobal);
                     if (status != EGADS_SUCCESS) goto cleanup;
 
                     status = retrieve_CAPSDisciplineAttr(tempBody, &discipline);
@@ -242,9 +242,7 @@ int fea_createMesh(void *aimInfo,
                 AIM_STATUS(aimInfo, status);
             }
 
-            feaMeshes = (meshStruct *) EG_alloc(numFEAMesh*sizeof(meshStruct));
-            if (feaMeshes == NULL) { status = EGADS_MALLOC; goto cleanup; }
-
+            AIM_ALLOC(feaMeshes, numFEAMesh, meshStruct, aimInfo, status);
             for (body = 0; body < numFEAMesh; body++) (void) initiate_meshStruct(&feaMeshes[body]);
 
             for (body = 0; body < numFEAMesh; body++) {
@@ -286,10 +284,6 @@ int fea_createMesh(void *aimInfo,
                 printf("\tElemental Rods  = %d\n", feaMeshes[body].meshQuickRef.numLine);
                 printf("\tElemental Tria3 = %d\n", feaMeshes[body].meshQuickRef.numTriangle);
                 printf("\tElemental Quad4 = %d\n", feaMeshes[body].meshQuickRef.numQuadrilateral);
-
-                // set the resulting tessellation
-                status = aim_newTess(aimInfo, feaMeshes[body].bodyTessMap.egadsTess);
-                AIM_STATUS(aimInfo, status);
             }
 
             if (numFEAMesh > 1) {
@@ -361,7 +355,7 @@ int fea_createMesh(void *aimInfo,
             for (i = 0; i < feaProblem->feaMesh.numReferenceMesh; i++) {
 
                 status = aim_newTess(aimInfo,
-                                     feaProblem->feaMesh.referenceMesh[i].bodyTessMap.egadsTess);
+                                     feaProblem->feaMesh.referenceMesh[i].egadsTess);
                 AIM_STATUS(aimInfo, status);
             }
 
@@ -449,7 +443,7 @@ int fea_createMesh(void *aimInfo,
             printf("\tElemental Quad4 = %d\n", tempMesh[*numMesh-1].meshQuickRef.numQuadrilateral);
 
             // set the resulting tessellation
-            status = aim_newTess(aimInfo, tempMesh[*numMesh-1].bodyTessMap.egadsTess);
+            status = aim_newTess(aimInfo, tempMesh[*numMesh-1].egadsTess);
             AIM_STATUS(aimInfo, status);
         }
 
@@ -538,7 +532,7 @@ int fea_bodyToBEM(void *aimInfo,                       // (in)  AIM structure
     const int  *triConn = NULL, *triNeighbor = NULL; // Triangle
 
     int numPatch = 0; // Patching
-    int n1, n2;
+    int n1, n2, *qints = NULL;
 
     int gID; // Global id
 
@@ -825,7 +819,7 @@ int fea_bodyToBEM(void *aimInfo,                       // (in)  AIM structure
     }
 
     // Make tessellation
-    status = EG_makeTessBody(ebody, params, &feaMesh->bodyTessMap.egadsTess);
+    status = EG_makeTessBody(ebody, params, &feaMesh->egadsTess);
     if (status != EGADS_SUCCESS) {
       printf("\tError in fea_bodyToBEM: EG_makeTessBody\n");
       goto cleanup;
@@ -838,25 +832,18 @@ int fea_bodyToBEM(void *aimInfo,                       // (in)  AIM structure
 
     // If making quads on faces lets setup an array to keep track of which faces have been quaded.
     if (quadMesh == (int)true) {
-        feaMesh->bodyTessMap.numTessFace = numFace;
-        if (feaMesh->bodyTessMap.tessFaceQuadMap != NULL) EG_free(feaMesh->bodyTessMap.tessFaceQuadMap);
-
         if( numFace > 0) {
-            feaMesh->bodyTessMap.tessFaceQuadMap = (int *) EG_alloc(numFace*sizeof(int));
-            if (feaMesh->bodyTessMap.tessFaceQuadMap == NULL) {
-                status = EGADS_MALLOC;
-                goto cleanup;
-            }
+            AIM_ALLOC(qints, numFace, int, aimInfo, status);
         }
         // Set default to 0
-        for (face = 0; face < numFace; face++) feaMesh->bodyTessMap.tessFaceQuadMap[face] = 0;
+        for (face = 0; face < numFace; face++) qints[face] = 0;
     }
 
     if (quadMesh == (int)true) {
         for (face = 1; face <= numFace; face++) {
             if (iwest[face] <= 0) continue;
 
-            status = EG_makeQuads(feaMesh->bodyTessMap.egadsTess, params, face);
+            status = EG_makeQuads(feaMesh->egadsTess, params, face);
             if (status < EGADS_SUCCESS) {
                 printf("Face = %d, failed to make quads\n", face);
                 printf("Edges = %d %d %d %d\n", inorth[face], ieast[face], isouth[face], iwest[face]);
@@ -871,7 +858,7 @@ int fea_bodyToBEM(void *aimInfo,                       // (in)  AIM structure
     feaMesh->analysisType = MeshStructure;
 
     // Get number of point in the tessellation
-    status = EG_statusTessBody(feaMesh->bodyTessMap.egadsTess, &tempBody, &i, &feaMesh->numNode);
+    status = EG_statusTessBody(feaMesh->egadsTess, &tempBody, &i, &feaMesh->numNode);
     if (status != EGADS_SUCCESS) goto cleanup;
 
     feaMesh->node = (meshNodeStruct *) EG_alloc(feaMesh->numNode*sizeof(meshNodeStruct));
@@ -889,7 +876,7 @@ int fea_bodyToBEM(void *aimInfo,                       // (in)  AIM structure
     // Fill up the Attributes for the nodes
     for (i = 0; i < feaMesh->numNode; i++) {
 
-        status = EG_getGlobal(feaMesh->bodyTessMap.egadsTess, i+1, &pointType, &pointTopoIndex, xyzPoint);
+        status = EG_getGlobal(feaMesh->egadsTess, i+1, &pointType, &pointTopoIndex, xyzPoint);
         if (status != EGADS_SUCCESS) goto cleanup;
 
         feaMesh->node[i].xyz[0] = xyzPoint[0];
@@ -1040,15 +1027,15 @@ int fea_bodyToBEM(void *aimInfo,                       // (in)  AIM structure
 
             feaMesh->element[numElement-1].markerID = attrIndex;
 
-            status = EG_getTessEdge(feaMesh->bodyTessMap.egadsTess, i+1, &numPoint, &xyz, &uv);
+            status = EG_getTessEdge(feaMesh->egadsTess, i+1, &numPoint, &xyz, &uv);
             if (status < EGADS_SUCCESS) goto cleanup;
 
-            status = EG_localToGlobal(feaMesh->bodyTessMap.egadsTess, -(i+1), 1, &gID);
+            status = EG_localToGlobal(feaMesh->egadsTess, -(i+1), 1, &gID);
             if (status != EGADS_SUCCESS) goto cleanup;
 
             feaMesh->element[numElement-1].connectivity[0] = gID;
 
-            status = EG_localToGlobal(feaMesh->bodyTessMap.egadsTess, -(i+1), numPoint, &gID);
+            status = EG_localToGlobal(feaMesh->egadsTess, -(i+1), numPoint, &gID);
             if (status != EGADS_SUCCESS) goto cleanup;
 
             feaMesh->element[numElement-1].connectivity[1] = gID;
@@ -1143,8 +1130,8 @@ int fea_bodyToBEM(void *aimInfo,                       // (in)  AIM structure
         }
 
         if (quadMesh == (int) true) {
-            status = EG_getQuads(feaMesh->bodyTessMap.egadsTess, face+1, &numPoint, &xyz, &uv, &ptype, &pindex, &numPatch);
-            if (status < EGADS_SUCCESS) goto cleanup;
+            status = EG_getQuads(feaMesh->egadsTess, face+1, &numPoint, &xyz, &uv, &ptype, &pindex, &numPatch);
+            AIM_STATUS(aimInfo, status);
 
         } else numPatch = -1;
 
@@ -1156,11 +1143,11 @@ int fea_bodyToBEM(void *aimInfo,                       // (in)  AIM structure
                 goto cleanup;
             }
 
-            feaMesh->bodyTessMap.tessFaceQuadMap[face] = 0;
+            qints[face] = 0;
             for (patch = 1; patch <= numPatch; patch++) {
 
-                status = EG_getPatch(feaMesh->bodyTessMap.egadsTess, face+1, patch, &n1, &n2, &pvindex, &pbounds);
-                if (status < EGADS_SUCCESS) goto cleanup;
+                status = EG_getPatch(feaMesh->egadsTess, face+1, patch, &n1, &n2, &pvindex, &pbounds);
+                AIM_STATUS(aimInfo, status);
 
                 for (j = 1; j < n2; j++) {
                     for (i = 1; i < n1; i++) {
@@ -1181,34 +1168,34 @@ int fea_bodyToBEM(void *aimInfo,                       // (in)  AIM structure
                         feaMesh->element = tempElement;
 
                         status = initiate_meshElementStruct(&feaMesh->element[numElement-1], feaMesh->analysisType);
-                        if (status != CAPS_SUCCESS) goto cleanup;
+                        AIM_STATUS(aimInfo, status);
 
-                        feaMesh->bodyTessMap.tessFaceQuadMap[face] += 1;
+                        qints[face] += 1;
 
                         feaMesh->element[numElement-1].elementType = Quadrilateral;
 
                         feaMesh->element[numElement-1].elementID = numElement;
 
                         status = mesh_allocMeshElementConnectivity(&feaMesh->element[numElement-1]);
-                        if (status != CAPS_SUCCESS) goto cleanup;
+                        AIM_STATUS(aimInfo, status);
 
-                        status = EG_localToGlobal(feaMesh->bodyTessMap.egadsTess, face+1, pvindex[(i-1)+n1*(j-1)], &gID);
-                        if (status != EGADS_SUCCESS) goto cleanup;
+                        status = EG_localToGlobal(feaMesh->egadsTess, face+1, pvindex[(i-1)+n1*(j-1)], &gID);
+                        AIM_STATUS(aimInfo, status);
 
                         feaMesh->element[numElement-1].connectivity[0] = gID;
 
-                        status = EG_localToGlobal(feaMesh->bodyTessMap.egadsTess, face+1, pvindex[(i  )+n1*(j-1)], &gID);
-                        if (status != EGADS_SUCCESS) goto cleanup;
+                        status = EG_localToGlobal(feaMesh->egadsTess, face+1, pvindex[(i  )+n1*(j-1)], &gID);
+                        AIM_STATUS(aimInfo, status);
 
                         feaMesh->element[numElement-1].connectivity[1] = gID;
 
-                        status = EG_localToGlobal(feaMesh->bodyTessMap.egadsTess, face+1, pvindex[(i  )+n1*(j  )], &gID);
-                        if (status != EGADS_SUCCESS) goto cleanup;
+                        status = EG_localToGlobal(feaMesh->egadsTess, face+1, pvindex[(i  )+n1*(j  )], &gID);
+                        AIM_STATUS(aimInfo, status);
 
                         feaMesh->element[numElement-1].connectivity[2] = gID;
 
-                        status = EG_localToGlobal(feaMesh->bodyTessMap.egadsTess, face+1, pvindex[(i-1)+n1*(j  )], &gID);
-                        if (status != EGADS_SUCCESS) goto cleanup;
+                        status = EG_localToGlobal(feaMesh->egadsTess, face+1, pvindex[(i-1)+n1*(j  )], &gID);
+                        AIM_STATUS(aimInfo, status);
 
                         feaMesh->element[numElement-1].connectivity[3] = gID;
 
@@ -1226,7 +1213,7 @@ int fea_bodyToBEM(void *aimInfo,                       // (in)  AIM structure
 
             }
         } else {
-            status = EG_getTessFace(feaMesh->bodyTessMap.egadsTess, face+1,
+            status = EG_getTessFace(feaMesh->egadsTess, face+1,
                                     &numPoint, &xyz, &uv, &ptype, &pindex,
                                     &numTri, &triConn, &triNeighbor);
             if (status < EGADS_SUCCESS) goto cleanup;
@@ -1258,20 +1245,20 @@ int fea_bodyToBEM(void *aimInfo,                       // (in)  AIM structure
                 feaMesh->element[numElement-1].elementID = numElement;
 
                 status = mesh_allocMeshElementConnectivity(&feaMesh->element[numElement-1]);
-                if (status != CAPS_SUCCESS) goto cleanup;
+                AIM_STATUS(aimInfo, status);
 
-                status = EG_localToGlobal(feaMesh->bodyTessMap.egadsTess, face+1, triConn[3*i + 0], &gID);
-                if (status != EGADS_SUCCESS) goto cleanup;
+                status = EG_localToGlobal(feaMesh->egadsTess, face+1, triConn[3*i + 0], &gID);
+                AIM_STATUS(aimInfo, status);
 
                 feaMesh->element[numElement-1].connectivity[0] = gID;
 
-                status = EG_localToGlobal(feaMesh->bodyTessMap.egadsTess, face+1, triConn[3*i + 1], &gID);
-                if (status != EGADS_SUCCESS) goto cleanup;
+                status = EG_localToGlobal(feaMesh->egadsTess, face+1, triConn[3*i + 1], &gID);
+                AIM_STATUS(aimInfo, status);
 
                 feaMesh->element[numElement-1].connectivity[1] = gID;
 
-                status = EG_localToGlobal(feaMesh->bodyTessMap.egadsTess, face+1, triConn[3*i + 2], &gID);
-                if (status != EGADS_SUCCESS) goto cleanup;
+                status = EG_localToGlobal(feaMesh->egadsTess, face+1, triConn[3*i + 2], &gID);
+                AIM_STATUS(aimInfo, status);
 
                 feaMesh->element[numElement-1].connectivity[2] = gID;
 
@@ -1288,6 +1275,11 @@ int fea_bodyToBEM(void *aimInfo,                       // (in)  AIM structure
         }
     }
 
+    if (qints != NULL) {
+        status = EG_attributeAdd(feaMesh->egadsTess, ".mixed", ATTRINT, numFace, qints, NULL, NULL);
+        AIM_STATUS(aimInfo, status);
+    }
+
     if (ignoreFound == (int) true) {
 
         // Look at the nodeID for each node and check to see if it is being used in the element connectivity; if not it is removed
@@ -1298,27 +1290,28 @@ int fea_bodyToBEM(void *aimInfo,                       // (in)  AIM structure
     }
 
     status = CAPS_SUCCESS;
-    goto cleanup;
 
-    cleanup:
-        if (status != CAPS_SUCCESS) printf("\tPremature exit in fea_bodyToBem, status = %d\n", status);
+cleanup:
+    if (status != CAPS_SUCCESS) printf("\tPremature exit in fea_bodyToBem, status = %d\n", status);
 
-        if (iwest  != NULL) EG_free(iwest );
-        if (inorth != NULL) EG_free(inorth);
-        if (ieast  != NULL) EG_free(ieast );
-        if (isouth != NULL) EG_free(isouth);
-        if (rpos   != NULL) EG_free(rpos  );
-        if (points  != NULL) EG_free(points );
+    AIM_FREE(iwest );
+    AIM_FREE(inorth);
+    AIM_FREE(ieast );
+    AIM_FREE(isouth);
+    AIM_FREE(rpos  );
+    AIM_FREE(points );
 
-        if (enodes != NULL) EG_free(enodes);
-        if (eedges != NULL) EG_free(eedges);
-        if (efaces != NULL) EG_free(efaces);
+    AIM_FREE(enodes);
+    AIM_FREE(eedges);
+    AIM_FREE(efaces);
 
-        enodes = NULL;
-        eedges =NULL;
-        efaces =NULL;
+    AIM_FREE(qints);
 
-        return status;
+    enodes = NULL;
+    eedges =NULL;
+    efaces =NULL;
+
+    return status;
 }
 
 // Set the fea analysis meta data in a mesh
@@ -1372,18 +1365,18 @@ int fea_setAnalysisData( void *aimInfo,                       // (in)  AIM struc
         printf("Setting FEA Data\n");
 
         // Get body from tessellation
-        status = EG_statusTessBody(feaMesh->bodyTessMap.egadsTess, &ebody, &dummy, &dummy);
-        if (status != CAPS_SUCCESS) goto cleanup;
+        status = EG_statusTessBody(feaMesh->egadsTess, &ebody, &dummy, &dummy);
+        AIM_STATUS(aimInfo, status);
 
         // Get number of Nodes, Edges, and Faces in ebody
         status = EG_getBodyTopos(ebody, NULL, NODE, &numNode, &enodes);
-        if (status < EGADS_SUCCESS) goto cleanup;
+        AIM_STATUS(aimInfo, status);
 
         status = EG_getBodyTopos(ebody, NULL, EDGE, &numEdge, &eedges);
-        if (status != EGADS_SUCCESS) goto cleanup;
+        AIM_STATUS(aimInfo, status);
 
         status = EG_getBodyTopos(ebody, NULL, FACE, &numFace, &efaces);
-        if (status < EGADS_SUCCESS) goto cleanup;
+        AIM_STATUS(aimInfo, status);
 
         // What type of BODY do we have?
         isNodeBody = aim_isNodeBody(ebody, xyzPoint);
@@ -1396,8 +1389,8 @@ int fea_setAnalysisData( void *aimInfo,                       // (in)  AIM struc
         // Fill up the Attributes for the nodes
         for (i = 0; i < feaMesh->numNode; i++) {
 
-            status = EG_getGlobal(feaMesh->bodyTessMap.egadsTess, feaMesh->node[i].nodeID, &pointType, &pointTopoIndex, xyzPoint);
-            if (status != EGADS_SUCCESS) goto cleanup;
+            status = EG_getGlobal(feaMesh->egadsTess, feaMesh->node[i].nodeID, &pointType, &pointTopoIndex, xyzPoint);
+            AIM_STATUS(aimInfo, status);
 
             feaData = (feaMeshDataStruct *) feaMesh->node[i].analysisData;
 
@@ -1411,7 +1404,7 @@ int fea_setAnalysisData( void *aimInfo,                       // (in)  AIM struc
                                          responseMap,
                                          pointType, pointTopoIndex,
                                          feaData); // Set the feaData structure
-            if (status != CAPS_SUCCESS) goto cleanup;
+            AIM_STATUS(aimInfo, status);
         }
 
         // Fill element information
@@ -1467,7 +1460,7 @@ int fea_setAnalysisData( void *aimInfo,                       // (in)  AIM struc
             for (i = 0; i < feaMesh->meshQuickRef.numLine; i++) {
 
                 status = EG_getInfo(eedges[i], &oclass, &mtype, &topObj, &prev, &next);
-                if (status != CAPS_SUCCESS) goto cleanup;
+                AIM_STATUS(aimInfo, status);
                 if (mtype == DEGENERATE) continue;
 
                 if (feaMesh->meshQuickRef.useStartIndex == (int)true)
@@ -1592,8 +1585,8 @@ int fea_setAnalysisData( void *aimInfo,                       // (in)  AIM struc
             printf("Setting FEA Data from reference mesh %d (of %d)\n", body+1, feaMesh->numReferenceMesh);
 
             // Get body from tessellation
-            status = EG_statusTessBody(feaMesh->referenceMesh[body].bodyTessMap.egadsTess, &ebody, &dummy, &dummy);
-            if (status != CAPS_SUCCESS) goto cleanup;
+            status = EG_statusTessBody(feaMesh->referenceMesh[body].egadsTess, &ebody, &dummy, &dummy);
+            AIM_STATUS(aimInfo, status);
 
             // Get number of Nodes, Edges, and Faces in ebody
             status = EG_getBodyTopos(ebody, NULL, NODE, &numNode, &enodes);
@@ -1621,7 +1614,7 @@ int fea_setAnalysisData( void *aimInfo,                       // (in)  AIM struc
             // Fill up the Attributes for the nodes
             for (i = 0; i < feaMesh->referenceMesh[body].numNode; i++) {
 
-                status = EG_getGlobal(feaMesh->referenceMesh[body].bodyTessMap.egadsTess, feaMesh->referenceMesh[body].node[i].nodeID, &pointType, &pointTopoIndex, xyzPoint);
+                status = EG_getGlobal(feaMesh->referenceMesh[body].egadsTess, feaMesh->referenceMesh[body].node[i].nodeID, &pointType, &pointTopoIndex, xyzPoint);
                 if (status != EGADS_SUCCESS) goto cleanup;
 
                 feaData = (feaMeshDataStruct *) feaMesh->node[i+nodeOffset].analysisData;
@@ -1636,7 +1629,7 @@ int fea_setAnalysisData( void *aimInfo,                       // (in)  AIM struc
                                              responseMap,
                                              pointType, pointTopoIndex,
                                              feaData); // Set the feaData structure
-                if (status != CAPS_SUCCESS) goto cleanup;
+                AIM_STATUS(aimInfo, status);
             }
 
             // Fill element information //
@@ -2418,11 +2411,81 @@ int initiate_feaLoadStruct(feaLoadStruct *feaLoad) {
     return CAPS_SUCCESS;
 }
 
+// Copy feaLoad in the feaLoadStruct structure format
+// assumes that copy has been initialized with initiate_feaLoadStruct
+int copy_feaLoadStruct(void *aimInfo, feaLoadStruct *feaLoad, feaLoadStruct *copy) {
+
+    int status = CAPS_SUCCESS;
+    int i;
+
+    if (feaLoad->name != NULL) {
+      AIM_STRDUP(copy->name, feaLoad->name, aimInfo, status); // Load name
+    }
+
+    copy->loadType = feaLoad->loadType; // Load type
+
+    copy->loadID = feaLoad->loadID; // ID number of load
+
+    copy->loadScaleFactor = feaLoad->loadScaleFactor; // Scale factor for when combining loads
+
+    // Concentrated force at a grid point
+    copy->numGridID = feaLoad->numGridID; // Number of grid IDs in grid ID set
+    // List of grid IDs to apply the constraint to
+    AIM_ALLOC(copy->gridIDSet, feaLoad->numGridID, int, aimInfo, status);
+    for (i = 0; i < feaLoad->numGridID; i++)
+        copy->gridIDSet[i] = feaLoad->gridIDSet[i];
+
+    copy->coordSystemID = feaLoad->coordSystemID; // Component number of coordinate system in which force vector is specified
+    copy->forceScaleFactor = feaLoad->forceScaleFactor; // Overall scale factor for the force
+    copy->directionVector[0] = feaLoad->directionVector[0];   // [0]-x, [1]-y, [2]-z components of the force vector
+    copy->directionVector[1] = feaLoad->directionVector[1];
+    copy->directionVector[2] = feaLoad->directionVector[2];
+
+    // Concentrated moment at a grid pofeaLoad->(also uses coordSystemID and directionVector)
+    copy->momentScaleFactor = feaLoad->momentScaleFactor; // Overall scale factor for the moment
+
+    // Gravitational load (also uses coordSystemID and directionVector)
+    copy->gravityAcceleration = feaLoad->gravityAcceleration; // Gravitational acceleration
+
+    // Pressure load
+    copy->pressureForce = feaLoad->pressureForce; // Pressure value
+
+    copy->pressureDistributeForce[0] = feaLoad->pressureDistributeForce[0]; // Pressure load at a specified grid location in the element
+    copy->pressureDistributeForce[1] = feaLoad->pressureDistributeForce[1];
+    copy->pressureDistributeForce[2] = feaLoad->pressureDistributeForce[2];
+    copy->pressureDistributeForce[3] = feaLoad->pressureDistributeForce[3];
+
+    // Unique pressure load at a specified grid location for
+    //each element in elementIDSet size = [4*numElementID]- used in type PressureExternal
+    if (feaLoad->pressureMultiDistributeForce != NULL) {
+        AIM_ALLOC(copy->pressureMultiDistributeForce, 4*feaLoad->numElementID, double, aimInfo, status);
+        for (i = 0; i < 4*feaLoad->numElementID; i++)
+            copy->pressureMultiDistributeForce[i] = feaLoad->pressureMultiDistributeForce[i];
+    } else {
+        copy->pressureMultiDistributeForce = NULL;
+    }
+
+    copy->numElementID = feaLoad->numElementID;  // Number of elements IDs in element ID set
+    AIM_ALLOC(copy->elementIDSet, feaLoad->numElementID, int, aimInfo, status); // List element IDs in which to apply the load
+    for (i = 0; i < feaLoad->numElementID; i++)
+        copy->elementIDSet[i] = feaLoad->elementIDSet[i];
+
+    // Rotational velocity (also uses coordSystemID and directionVector)
+    copy->angularVelScaleFactor = feaLoad->angularVelScaleFactor; // Overall scale factor for the angular velocity
+    copy->angularAccScaleFactor = feaLoad->angularAccScaleFactor; // Overall scale factor for the angular acceleration
+
+    // Thermal load - currently the temperature at a grid point - use gridIDSet
+    copy->temperature = feaLoad->temperature; // Temperature value
+    copy->temperatureDefault = feaLoad->temperatureDefault; // Default temperature of grid point explicitly not used
+
+cleanup:
+    return status;
+}
+
 // Destroy (0 out all values and NULL all pointers) of feaLoad in the feaLoadStruct structure format
 int destroy_feaLoadStruct(feaLoadStruct *feaLoad) {
 
-    if (feaLoad->name != NULL) EG_free(feaLoad->name);
-    feaLoad->name = NULL;  // Load name
+    AIM_FREE(feaLoad->name); // Load name
 
     feaLoad->loadType = UnknownLoad; // Load type
 
@@ -2432,8 +2495,7 @@ int destroy_feaLoadStruct(feaLoadStruct *feaLoad) {
 
     // Concentrated force at a grid point
     feaLoad->numGridID = 0; // Number of grid IDs in grid ID set
-    if (feaLoad->gridIDSet != NULL) EG_free(feaLoad->gridIDSet); // List of grid IDs to apply the constraint to
-    feaLoad->gridIDSet = NULL;
+    AIM_FREE(feaLoad->gridIDSet); // List of grid IDs to apply the constraint to
 
     feaLoad->coordSystemID= 0; // Component number of coordinate system in which force vector is specified
     feaLoad->forceScaleFactor= 0; // Overall scale factor for the force
@@ -2455,13 +2517,13 @@ int destroy_feaLoadStruct(feaLoadStruct *feaLoad) {
     feaLoad->pressureDistributeForce[2] = 0;
     feaLoad->pressureDistributeForce[3] = 0;
 
-    if (feaLoad->pressureMultiDistributeForce != NULL) EG_free(feaLoad->pressureMultiDistributeForce); // Unique pressure load at a specified grid location for
-    feaLoad->pressureMultiDistributeForce = NULL; //each element in elementIDSet size = [4*numElementID]- used in type PressureExternal
+    // Unique pressure load at a specified grid location for
+    //each element in elementIDSet size = [4*numElementID]- used in type PressureExternal
+    AIM_FREE(feaLoad->pressureMultiDistributeForce);
 
 
     feaLoad->numElementID = 0; // Number of elements IDs in element ID set
-    if (feaLoad->elementIDSet != NULL) EG_free(feaLoad->elementIDSet); // List element IDs in which to apply the load
-    feaLoad->elementIDSet = NULL;
+    AIM_FREE(feaLoad->elementIDSet); // List element IDs in which to apply the load
 
     // Rotational velocity (also uses coordSystemID and directionVector)
     feaLoad->angularVelScaleFactor = 0.0; // Overall scale factor for the angular velocity
@@ -8340,8 +8402,6 @@ int fea_getDesignVariable(void *aimInfo,
     char **groupName = NULL;
     int  numGroupName = 0;
 
-    int relationIndex = 0;
-
     feaDesignVariableStruct *designVariable;
     feaDesignVariableRelationStruct *designVariableRelation;
     feaMeshDataStruct *feaData = NULL;
@@ -8382,13 +8442,6 @@ int fea_getDesignVariable(void *aimInfo,
 
     feaProblem->numDesignVariable = numDesignVariableTuple;
 
-    // there is potentially one design variable relation per design variable,
-    // plus additional relations specified via Design_Variable_Relation
-    feaProblem->numDesignVariableRelation = numDesignVariableTuple;
-    if (designVariableRelationTuple != NULL) {
-        feaProblem->numDesignVariableRelation += numDesignVariableRelationTuple;
-    } 
-
     printf("\tNumber of design variables          - %d\n", feaProblem->numDesignVariable);
     // printf("\tNumber of design variable relations - %d\n", numDesignVariableRelationTuple);
 
@@ -8396,9 +8449,6 @@ int fea_getDesignVariable(void *aimInfo,
 
         AIM_ALLOC(feaProblem->feaDesignVariable,
                   feaProblem->numDesignVariable, feaDesignVariableStruct, aimInfo, status);
-        
-        AIM_ALLOC(feaProblem->feaDesignVariableRelation,
-                  feaProblem->numDesignVariableRelation, feaDesignVariableRelationStruct, aimInfo, status);
 
     } else {
         AIM_ERROR(aimInfo, "Number of design variable values in input tuple is 0\n");
@@ -8407,11 +8457,6 @@ int fea_getDesignVariable(void *aimInfo,
 
     for (i = 0; i < feaProblem->numDesignVariable; i++) {
         status = initiate_feaDesignVariableStruct(&feaProblem->feaDesignVariable[i]);
-        AIM_STATUS(aimInfo, status);
-    }
-
-    for (i = 0; i < feaProblem->numDesignVariableRelation; i++) {
-        status = initiate_feaDesignVariableRelationStruct(&feaProblem->feaDesignVariableRelation[i]);
         AIM_STATUS(aimInfo, status);
     }
 
@@ -8474,16 +8519,9 @@ int fea_getDesignVariable(void *aimInfo,
 
             if (status == CAPS_SUCCESS) {
 
+                AIM_ALLOC(designVariable->materialSetID, numMaterial, int, aimInfo, status);
+                AIM_ALLOC(designVariable->materialSetType, numMaterial, int, aimInfo, status);
                 designVariable->numMaterialID = numMaterial;
-                designVariable->materialSetID   = EG_alloc(numMaterial * sizeof(int));
-                designVariable->materialSetType = EG_alloc(numMaterial * sizeof(int));
-                
-                if (designVariable->materialSetID   == NULL ||
-                    designVariable->materialSetType == NULL   ) {
-
-                    status = EGADS_MALLOC;
-                    goto cleanup;
-                }
 
                 for (j = 0; j < numMaterial; j++) {
 
@@ -8500,16 +8538,9 @@ int fea_getDesignVariable(void *aimInfo,
 
             if (status == CAPS_SUCCESS) {
 
+                AIM_ALLOC(designVariable->propertySetID, numProperty, int, aimInfo, status);
+                AIM_ALLOC(designVariable->propertySetType, numProperty, int, aimInfo, status);
                 designVariable->numPropertyID = numProperty;
-                designVariable->propertySetID   = EG_alloc(numProperty * sizeof(int));
-                designVariable->propertySetType = EG_alloc(numProperty * sizeof(int));
-                
-                if (designVariable->propertySetID   == NULL ||
-                    designVariable->propertySetType == NULL   ) {
-
-                    status = EGADS_MALLOC;
-                    goto cleanup;
-                }
 
                 for (j = 0; j < numProperty; j++) {
 
@@ -8526,18 +8557,10 @@ int fea_getDesignVariable(void *aimInfo,
             
             if (status == CAPS_SUCCESS) {
 
+                AIM_ALLOC(designVariable->elementSetID, numElement, int, aimInfo, status);
+                AIM_ALLOC(designVariable->elementSetType, numElement, int, aimInfo, status);
+                AIM_ALLOC(designVariable->elementSetSubType, numElement, int, aimInfo, status);
                 designVariable->numElementID = numElement;
-                designVariable->elementSetID   = EG_alloc(numElement * sizeof(int));
-                designVariable->elementSetType = EG_alloc(numElement * sizeof(int));
-                designVariable->elementSetSubType = EG_alloc(numElement * sizeof(int));
-                
-                if (designVariable->elementSetID   == NULL ||
-                    designVariable->elementSetType == NULL ||
-                    designVariable->elementSetSubType == NULL) {
-
-                    status = EGADS_MALLOC;
-                    goto cleanup;
-                }
 
                 for (j = 0; j < numElement; j++) {
 
@@ -8552,6 +8575,7 @@ int fea_getDesignVariable(void *aimInfo,
 
             if (groupName != NULL)
                 string_freeArray(numGroupName, &groupName);
+            numGroupName = 0;
             groupName = NULL;
 
             AIM_FREE(materialSet);
@@ -8776,26 +8800,19 @@ int fea_getDesignVariable(void *aimInfo,
             }
 
             if (status == CAPS_SUCCESS) {
-
-                // The main relation associated with this design variable, if defined in input
-                designVariableRelation = &feaProblem->feaDesignVariableRelation[relationIndex++];
-                        
-                printf("\tWarning: the ability to provide design variable relation data "
-                    "within Design_Variable input is deprecated and "
-                    "will be removed in the future. Please use provide relation data "
-                    "via \"Design_Variable_Relation\" instead.\n");
-                status = fea_getDesignVariableRelationEntry(
-                    &designVariableTuple[i], designVariableRelation, attrMap, feaProblem, designVariable->name);
-                if (status != CAPS_SUCCESS) goto cleanup;
-
-                designVariableRelation->relationID = relationIndex;
+                AIM_ERROR(aimInfo, "The ability to provide design variable relation data "
+                                   "within Design_Variable input is deprecated. Please use provide relation data "
+                                   "via \"Design_Variable_Relation\" instead.\n");
+                status = CAPS_BADVALUE;
+                goto cleanup;
             }
 
 
         } else {
 
             AIM_ERROR(aimInfo, "Design_Variable tuple value is expected to be a JSON string\n");
-            return CAPS_BADVALUE;
+            status = CAPS_BADVALUE;
+            goto cleanup;
 
         }
     }
@@ -8810,8 +8827,7 @@ int fea_getDesignVariable(void *aimInfo,
 
         if (designVariable->numIndependVariable != 0) {
 
-            designVariable->independVariableID = (int *) EG_alloc(designVariable->numIndependVariable*sizeof(int));
-            if (designVariable->independVariableID == NULL) return EGADS_MALLOC;
+            AIM_ALLOC(designVariable->independVariableID, designVariable->numIndependVariable, int, aimInfo, status);
 
             // Loop through the independent variable names
             for (j = 0; j < designVariable->numIndependVariable; j++) {
@@ -8827,10 +8843,11 @@ int fea_getDesignVariable(void *aimInfo,
 
                 // If NOT found
                 if (found != (int) true) {
-                    printf("\tDesign variable name, \"%s\", not found when searching for independent design variables for "
-                            "variable %s!!!\n", designVariable->independVariable[j],
-                                                designVariable->name);
-                    return CAPS_NOTFOUND;
+                    AIM_ERROR(aimInfo, "\tDesign variable name, \"%s\", not found when searching for independent design variables for "
+                                       "variable %s!!!\n", designVariable->independVariable[j],
+                                                           designVariable->name);
+                    status = CAPS_NOTFOUND;
+                    goto cleanup;
                 }
 
                 designVariable->independVariableID[j] = feaProblem->feaDesignVariable[k].designVariableID;
@@ -8839,6 +8856,14 @@ int fea_getDesignVariable(void *aimInfo,
     }
 
     if (designVariableRelationTuple != NULL) {
+
+        AIM_REALL(feaProblem->feaDesignVariableRelation, numDesignVariableRelationTuple, feaDesignVariableRelationStruct, aimInfo, status);
+        feaProblem->numDesignVariableRelation = numDesignVariableRelationTuple;
+
+        for (i = 0; i < numDesignVariableRelationTuple; i++) {
+          status = initiate_feaDesignVariableRelationStruct(&feaProblem->feaDesignVariableRelation[i]);
+          AIM_STATUS(aimInfo, status);
+        }
 
         // Go through design variable relations defined via 'Design_Variable_Relation'
         for (i = 0; i < numDesignVariableRelationTuple; i++) {
@@ -8851,25 +8876,15 @@ int fea_getDesignVariable(void *aimInfo,
              *
              */
 
-            designVariableRelation = &feaProblem->feaDesignVariableRelation[relationIndex++];
+            designVariableRelation = &feaProblem->feaDesignVariableRelation[i];
 
-            designVariableRelation->relationID = relationIndex;
+            designVariableRelation->relationID = i+1;
 
             status = fea_getDesignVariableRelationEntry(
                 &designVariableRelationTuple[i], designVariableRelation, attrMap, feaProblem, NULL);
-            if (status != CAPS_SUCCESS) goto cleanup;
+            AIM_STATUS(aimInfo, status);
         }
 
-        feaProblem->numDesignVariableRelation = relationIndex;
-
-        feaProblem->feaDesignVariableRelation = EG_reall(
-                feaProblem->feaDesignVariableRelation,
-                feaProblem->numDesignVariableRelation * sizeof(feaDesignVariableRelationStruct));
-
-        if (feaProblem->feaDesignVariableRelation == NULL) {
-            status = EGADS_MALLOC;
-            goto cleanup;
-        }
     }
     printf("\tNumber of design variable relations - %d\n", feaProblem->numDesignVariableRelation);
     printf("\tDone getting FEA design variables\n");
@@ -8877,20 +8892,13 @@ int fea_getDesignVariable(void *aimInfo,
 
 cleanup:
 
-    if (keyValue != NULL)
-        EG_free(keyValue);
+    AIM_FREE(keyValue);
+    AIM_FREE(materialSet);
+    AIM_FREE(propertySet);
+    AIM_FREE(elementSet);
 
     if (groupName != NULL)
         string_freeArray(numGroupName, &groupName);
-
-    if (materialSet != NULL)
-        EG_free(materialSet);
-
-    if (propertySet != NULL)
-        EG_free(propertySet);
-
-    if (elementSet != NULL)
-        EG_free(elementSet);
 
     return status;
 }
@@ -9147,12 +9155,11 @@ int fea_getDesignVariableRelationEntry(capsTuple *designVariableInput,
 
     status = CAPS_SUCCESS;
 
-    cleanup:
+cleanup:
 
-        if (keyValue != NULL)
-            EG_free(keyValue);
+    AIM_FREE(keyValue);
 
-        return status;
+    return status;
 }
 
 // Get the design constraints from a capsTuple
@@ -10469,7 +10476,7 @@ int fea_findMaterialsByNames(feaProblemStruct *feaProblem,
 }
 
 // Find feaDesignVariableStructs with given names in feaProblem
-int fea_findDesignVariablesByNames(feaProblemStruct *feaProblem, 
+int fea_findDesignVariablesByNames(const feaProblemStruct *feaProblem,
                                    int numDesignVariableNames,
                                    char **designVariableNames, 
                                    int *numDesignVariables,
@@ -10512,7 +10519,7 @@ int fea_findDesignVariablesByNames(feaProblemStruct *feaProblem,
 }
 
 // Find feaDesignResponseStructs with given names in feaProblem
-int fea_findDesignResponsesByNames(feaProblemStruct *feaProblem, 
+int fea_findDesignResponsesByNames(const feaProblemStruct *feaProblem,
                                    int numDesignResponseNames,
                                    char **designResponseNames, 
                                    int *numDesignResponses,
@@ -10555,11 +10562,11 @@ int fea_findDesignResponsesByNames(feaProblemStruct *feaProblem,
 }
 
 // Find feaDesignEquationResponseStructs with given names in feaProblem
-int fea_findEquationResponsesByNames(feaProblemStruct *feaProblem, 
-                                   int numEquationResponseNames,
-                                   char **equationResponseNames, 
-                                   int *numEquationResponses,
-                                   feaDesignEquationResponseStruct ***equationResponses) {
+int fea_findEquationResponsesByNames(const feaProblemStruct *feaProblem,
+                                     int numEquationResponseNames,
+                                     char **equationResponseNames,
+                                     int *numEquationResponses,
+                                     feaDesignEquationResponseStruct ***equationResponses) {
     int i, status;
 
     int numFound;
@@ -10598,7 +10605,7 @@ int fea_findEquationResponsesByNames(feaProblemStruct *feaProblem,
 }
 
 // Find feaDesignEquationStruct with given equationName in feaProblem
-int fea_findEquationByName(feaProblemStruct *feaProblem, char *equationName, feaDesignEquationStruct **equation) {
+int fea_findEquationByName(const feaProblemStruct *feaProblem, char *equationName, feaDesignEquationStruct **equation) {
 
     int i;
 
@@ -10942,7 +10949,7 @@ int destroy_feaFileFormatStruct(feaFileFormatStruct *feaFileFormat) {
 }
 
 // Transfer external pressure from the discrObj into the feaLoad structure
-int fea_transferExternalPressure(void *aimInfo, meshStruct *feaMesh, feaLoadStruct *feaLoad) {
+int fea_transferExternalPressure(void *aimInfo, const meshStruct *feaMesh, feaLoadStruct *feaLoad) {
 
     // [in/out] feaLoad
     // [in] feaMesh
@@ -10970,12 +10977,12 @@ int fea_transferExternalPressure(void *aimInfo, meshStruct *feaMesh, feaLoadStru
     printf("Extracting external pressure loads from data transfer....\n");
 
     feaLoad->numElementID = 0;
-    EG_free(feaLoad->pressureMultiDistributeForce); feaLoad->pressureMultiDistributeForce = NULL;
-    EG_free(feaLoad->elementIDSet); feaLoad->elementIDSet = NULL;
+    AIM_FREE(feaLoad->pressureMultiDistributeForce);
+    AIM_FREE(feaLoad->elementIDSet);
 
     //See if we have data transfer information
     status = aim_getBounds(aimInfo, &numTransferName, &transferName);
-    if (status != CAPS_SUCCESS) goto cleanup;
+    AIM_STATUS(aimInfo, status);
 
     numDataTransferElement = 0;
     elementIndex = 0;
@@ -10984,7 +10991,8 @@ int fea_transferExternalPressure(void *aimInfo, meshStruct *feaMesh, feaLoadStru
     for (transferNameIndex = 0; transferNameIndex < numTransferName; transferNameIndex++) {
 
         status = aim_getDiscr(aimInfo, transferName[transferNameIndex], &dataTransferDiscreteObj);
-        if (status != CAPS_SUCCESS) continue;
+        if (status == CAPS_NOTFOUND) continue;
+        AIM_STATUS(aimInfo, status);
 
         status = aim_getDataSet(dataTransferDiscreteObj,
                                 "Pressure",
@@ -10993,38 +11001,29 @@ int fea_transferExternalPressure(void *aimInfo, meshStruct *feaMesh, feaLoadStru
                                 &dataTransferRank,
                                 &dataTransferData,
                                 &units);
+        if (status == CAPS_NOTFOUND) continue; // If no elements in this object skip to next transfer name
+        AIM_STATUS(aimInfo, status);
 
-        if (status == CAPS_SUCCESS) { // If we do have data ready, how many elements there are?
-
-            if (numDataTransferPoint == 1) {
-                printf("*********************************\n");
-                printf("\n");
-                printf("ERROR: Pressures not initialized!\n");
-                printf("\n");
-                printf("*********************************\n");
-                status = CAPS_BADINIT;
-                goto cleanup;
-            }
-
-            discElements = 0;
-            for (bIndex = 0; bIndex < dataTransferDiscreteObj->nBodys; bIndex++)
-              discElements += dataTransferDiscreteObj->bodys[bIndex].nElems;
-
-            numDataTransferElement += discElements;
-            printf("\tTransferName = %s\n", transferName[transferNameIndex]);
-            printf("\tNumber of Elements = %d (total = %d)\n", discElements, numDataTransferElement);
-
-        } else {
-
-            continue; // If no elements in this object skip to next transfer name
+        // If we do have data ready, how many elements there are?
+        if (numDataTransferPoint == 1) {
+            AIM_ERROR(aimInfo, "Pressures not initialized!");
+            status = CAPS_BADINIT;
+            goto cleanup;
         }
 
         if (dataTransferRank != 1) {
-            printf("\tPressure transfer data found however rank is %d not 1!!!!\n", dataTransferRank);
-
+            AIM_ERROR(aimInfo, "Pressure transfer data found however rank is %d not 1!!!!", dataTransferRank);
             status = CAPS_BADRANK;
             goto cleanup;
         }
+
+        discElements = 0;
+        for (bIndex = 0; bIndex < dataTransferDiscreteObj->nBodys; bIndex++)
+          discElements += dataTransferDiscreteObj->bodys[bIndex].nElems;
+
+        numDataTransferElement += discElements;
+        printf("\tTransferName = %s\n", transferName[transferNameIndex]);
+        printf("\tNumber of Elements = %d (total = %d)\n", discElements, numDataTransferElement);
 
         // If the first time we found elements allocate arrays
         if (feaLoad->numElementID == 0) {
@@ -11165,24 +11164,17 @@ int fea_transferExternalPressure(void *aimInfo, meshStruct *feaMesh, feaLoadStru
         }
 
         if (elementCount != numDataTransferElement) {
-            printf("\tElement transfer mismatch: number of elements found = %d, number"
-                    " of elements in transfer data set %d\n", elementCount, numDataTransferElement);
-            if (transferName != NULL) EG_free(transferName);
-            transferName = NULL;
-
+            AIM_ERROR(aimInfo, "Element transfer mismatch: number of elements found = %d, number"
+                               " of elements in transfer data set %d", elementCount, numDataTransferElement);
+            AIM_FREE(transferName);
+ 
             status = CAPS_MISMATCH;
             goto cleanup;
         }
 
         // Resize
         if (feaLoad->numElementID != numDataTransferElement) {
-            feaLoad->pressureMultiDistributeForce = (double *) EG_reall(feaLoad->pressureMultiDistributeForce,
-                                                                        4*feaLoad->numElementID *sizeof(double));
-            if (feaLoad->pressureMultiDistributeForce == NULL) {
-                feaLoad->numElementID = 0;
-                status = EGADS_MALLOC;
-                goto cleanup;
-            }
+            AIM_REALL(feaLoad->pressureMultiDistributeForce, 4*feaLoad->numElementID, double, aimInfo, status);
         }
 
     } // End data transfer name loop
@@ -11192,9 +11184,7 @@ int fea_transferExternalPressure(void *aimInfo, meshStruct *feaMesh, feaLoadStru
 
 cleanup:
 
-    if (status != CAPS_SUCCESS) printf("\tPremature exit in fea_transferExternalPressure, status = %d\n", status);
-
-    if (transferName != NULL) EG_free(transferName);
+    AIM_FREE(transferName);
 
     return status;
 }
@@ -11797,7 +11787,7 @@ int fea_glueMesh(meshStruct *mesh,
 //}
 
 // Create a default analysis structure based on previous inputs
-int fea_createDefaultAnalysis(feaProblemStruct *feaProblem, char *analysisType) {
+int fea_createDefaultAnalysis(feaProblemStruct *feaProblem, const char *analysisType) {
 
     int status;
     int i;

@@ -3,7 +3,7 @@
  *
  *             FORTRAN Bindings for Topological Functions
  *
- *      Copyright 2011-2021, Massachusetts Institute of Technology
+ *      Copyright 2011-2022, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -61,6 +61,8 @@
   extern int EG_inFace(const egObject *face, const double *uv);
   extern int EG_inFaceOCC(const egObject *face, double tol, const double *uv);
   extern int EG_getWindingAngle(egObject *edge, double t, double *angle);
+  extern int EG_makeNmWireBody(int nobj, const egObject **objs, double toler,
+                               egObject **result);
   extern int EG_sewFaces(int nobj, const egObject **objs, double toler,
                          int flag, egObject **result);
   extern int EG_replaceFaces(const egObject *body,  int nobj,
@@ -561,6 +563,30 @@ ig_sewfaces_(int *nobj, INT8 *obj, double *toler, int *flag, INT8 *mdl)
   stat = EG_sewFaces(*nobj, objs, *toler, *flag, &object);
   if (objs != NULL) EG_free((void *) objs);
   if (stat == EGADS_SUCCESS) *mdl = (INT8) object;
+  return stat;
+}
+
+
+int
+#ifdef WIN32
+IG_MAKENMWIREBODY (int *nobj, INT8 *obj, double *toler, INT8 *wbdy)
+#else
+ig_makenmwirebody_(int *nobj, INT8 *obj, double *toler, INT8 *wbdy)
+#endif
+{
+  int            i, stat;
+  egObject       *object;
+  const egObject **objs = NULL;
+
+  *wbdy = 0;
+  if (*nobj <= 1) return EGADS_RANGERR;
+  objs = (const egObject **) EG_alloc(*nobj*sizeof(egObject *));
+  if (objs == NULL) return EGADS_MALLOC;
+  for (i = 0; i < *nobj; i++)
+    objs[i] = (egObject *) obj[i];
+  stat = EG_makeNmWireBody(*nobj, objs, *toler, &object);
+  if (objs != NULL) EG_free((void *) objs);
+  if (stat == EGADS_SUCCESS) *wbdy = (INT8) object;
   return stat;
 }
 

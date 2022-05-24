@@ -50,6 +50,9 @@ despmtr   wing:outboard  0.80
 despmtr   wing:pctchord  0.75
 despmtr   wing:angleft   -10
 despmtr   wing:angrite   +10
+despmtr   wing:spar1     0.20
+despmtr   wing:spar2     0.75
+despmtr   wing:nrib      10
 
 # horizontal tail design parmeters
 despmtr   htail:xloc      14.0
@@ -61,7 +64,6 @@ despmtr   htail:twist     0.0
 despmtr   htail:sweep     10.0
 despmtr   htail:thickness 0.10
 despmtr   htail:sharpte   0
-despmtr   htail:camber    0.00
 despmtr   htail:camber    0.00
 despmtr   htail:inboard   0.20
 despmtr   htail:outboard  0.90
@@ -136,6 +138,9 @@ udparg    $$/wing     outboard  wing:outboard
 udparg    $$/wing     pctchord  wing:pctchord
 udparg    $$/wing     angleft   wing:angleft
 udparg    $$/wing     angrite   wing:angrite
+udparg    $$/wing     spar1     wing:spar1
+udparg    $$/wing     spar2     wing:spar2
+udparg    $$/wing     nrib      wing:nrib
 udprim    $$/wing     ID        1
 
 set       wingspan    @@span
@@ -163,9 +168,11 @@ udparg    $$/wing     angleft   htail:deflect
 udparg    $$/wing     angrite   htail:deflect
 udprim    $$/wing     ID        3
 
-translate htail:xloc  0  htail:zloc
-ifthen intent eq 3
-    union
+ifthen intent ne 5
+   translate htail:xloc  0  htail:zloc
+   ifthen intent eq 3
+       union
+   endif
 endif
 
 # vertical tail
@@ -184,30 +191,32 @@ udparg    $$/wing     pctchord  vtail:pctchord
 udparg    $$/wing     angrite   vtail:deflect
 udprim    $$/wing     ID        5
 
-rotatex   90  0  0
-translate vtail:xloc  0 vtail:zloc
-ifthen intent eq 3
-   union
+ifthen intent ne 5
+   rotatex   90  0  0
+   translate vtail:xloc  0 vtail:zloc
+   ifthen intent eq 3
+      union
+   endif
 endif
 
 # engines and pylons
-set       yengine  engine:pctspan*wingspan/2
-set       xengine  wing:xloc+yengine*sind(wing:sweep)+engine:dx
-set       zengine  wing:zloc+yengine*sind(wing:dihedral)-engine:diameter/2-engine:dz
-
-set       ypylon  engine:pctspan*wingspan/2
-set       xpylon  wing:xloc+ypylon*sind(wing:sweep)+strut:dx
-set       zpylon  wing:zloc+ypylon*sind(wing:dihedral)-engine:dz/2
-
-# left pylon
-udparg    $$/strut    intent    intent
-udparg    $$/strut    length    strut:length
-udparg    $$/strut    thickness strut:thickness
-udparg    $$/strut    sweep     strut:sweep
-udparg    $$/strut    height    5*engine:dz
-udprim    $$/strut    ID        5.5
-
 ifthen intent eq 3
+   set       yengine  engine:pctspan*wingspan/2
+   set       xengine  wing:xloc+yengine*sind(wing:sweep)+engine:dx
+   set       zengine  wing:zloc+yengine*sind(wing:dihedral)-engine:diameter/2-engine:dz
+
+   set       ypylon  engine:pctspan*wingspan/2
+   set       xpylon  wing:xloc+ypylon*sind(wing:sweep)+strut:dx
+   set       zpylon  wing:zloc+ypylon*sind(wing:dihedral)-engine:dz/2
+
+   # left pylon
+   udparg    $$/strut    intent    intent
+   udparg    $$/strut    length    strut:length
+   udparg    $$/strut    thickness strut:thickness
+   udparg    $$/strut    sweep     strut:sweep
+   udparg    $$/strut    height    5*engine:dz
+   udprim    $$/strut    ID        5.5
+
    translate xpylon  -ypylon  zpylon
 
    dimension trimList 2 3 0
@@ -218,30 +227,26 @@ ifthen intent eq 3
    set       trimList[2,2]  +cosd(strut:sweep)*0.01
    set       trimList[2,3]   0
    union  0  trimList
-endif
 
-# left fan shroud
-udparg    $$/duct     intent    intent
-udparg    $$/duct     diameter  engine:diameter
-udparg    $$/duct     length    engine:length/2
-udparg    $$/duct     thickness engine:thickness
-udparg    $$/duct     camber    engine:camber
-udprim    $$/duct     ID        6
-translate xengine  -yengine  zengine
+   # left fan shroud
+   udparg    $$/duct     intent    intent
+   udparg    $$/duct     diameter  engine:diameter
+   udparg    $$/duct     length    engine:length/2
+   udparg    $$/duct     thickness engine:thickness
+   udparg    $$/duct     camber    engine:camber
+   udprim    $$/duct     ID        6
+   translate xengine  -yengine  zengine
 
-ifthen intent eq 3
    union  0  trimList
-endif
 
-# right pylon
-udparg    $$/strut    intent    intent
-udparg    $$/strut    length    strut:length
-udparg    $$/strut    thickness strut:thickness
-udparg    $$/strut    sweep     strut:sweep
-udparg    $$/strut    height    5*engine:dz
-udprim    $$/strut    ID        5.5
+   # right pylon
+   udparg    $$/strut    intent    intent
+   udparg    $$/strut    length    strut:length
+   udparg    $$/strut    thickness strut:thickness
+   udparg    $$/strut    sweep     strut:sweep
+   udparg    $$/strut    height    5*engine:dz
+   udprim    $$/strut    ID        5.5
 
-ifthen intent eq 3
    translate xpylon  -ypylon  zpylon
    mirror    0  1  0  0
 
@@ -252,53 +257,52 @@ ifthen intent eq 3
    set       trimList[2,2]  +cosd(strut:sweep)*0.01
    set       trimList[2,3]   0
    union  0  trimList
-endif
 
-# right fan shroud
-udparg    $$/duct     intent    intent
-udparg    $$/duct     diameter  engine:diameter
-udparg    $$/duct     length    engine:length/2
-udparg    $$/duct     thickness engine:thickness
-udparg    $$/duct     camber    engine:camber
-udprim    $$/duct     ID        6
-translate xengine  -yengine  zengine
-mirror    0  1  0  0
+   # right fan shroud
+   udparg    $$/duct     intent    intent
+   udparg    $$/duct     diameter  engine:diameter
+   udparg    $$/duct     length    engine:length/2
+   udparg    $$/duct     thickness engine:thickness
+   udparg    $$/duct     camber    engine:camber
+   udprim    $$/duct     ID        6
+   translate xengine  -yengine  zengine
+   mirror    0  1  0  0
 
-ifthen intent eq 3
    union  0  trimList
-endif
 
-# set grid spacing parameters for SU2
-dimension tparams  1 3 0
-set       tparams  "0.225;0.030;8;"
-select body
-   attribute .tParams tparams
-store     foo
-restore   foo
-   attribute capsGroup $glider
+   # set grid spacing parameters for SU2
+   dimension tparams  1 3 0
+   set       tparams  "0.225;0.030;8;"
+   select body
+      attribute .tParams tparams
+   store     foo
+   restore   foo
+      attribute capsGroup $glider
 
-# make spacing finer on blunt base
-set       tparams  "0.100;0.100;8;"
-select face 1
-   attribute .tParams tparams
+   # make spacing finer on blunt base
+   set       tparams  "0.100;0.100;8;"
+   select face 1
+      attribute .tParams tparams
 
-# get bounding box info
-set       xmin      @xmin
-set       xmax      @xmax
-set       ymin      @ymin
-set       ymax      @ymax
-set       zmin      @zmin
-set       zmax      @zmax
+   # get bounding box info
+   set       xmin      @xmin
+   set       xmax      @xmax
+   set       ymin      @ymin
+   set       ymax      @ymax
+   set       zmin      @zmin
+   set       zmax      @zmax
 
-# farfield box
-set  dx   farfield:xmax-farfield:xmin
-set  dy   farfield:ymax-farfield:ymin
-set  dz   farfield:zmax-farfield:zmin
-ifthen intent eq 3 and dx gt 0
-   ifthen dy gt 0 and dz gt 0
-      box  farfield:xmin  farfield:ymin  farfield:zmin  dx  dy  dz
-         attribute capsGroup $Farfield
-         attribute .tParams 21.0 0.2 15.0
+   # farfield box
+   set  dx   farfield:xmax-farfield:xmin
+   set  dy   farfield:ymax-farfield:ymin
+   set  dz   farfield:zmax-farfield:zmin
+   ifthen dx gt 0
+      ifthen dy gt 0 and dz gt 0
+         box  farfield:xmin  farfield:ymin  farfield:zmin  dx  dy  dz
+            attribute capsGroup $Farfield
+            attribute .tParams 21.0 0.2 15.0
+	    attribute _name     $Farfield
+      endif
    endif
 endif
 

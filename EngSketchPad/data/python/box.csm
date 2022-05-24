@@ -1,0 +1,12 @@
+# box
+# written by John Dannenhoffer
+
+DESPMTR   xsize   4
+DESPMTR   ysize   3
+DESPMTR   zsize   2
+
+BOX       -xsize/2  -ysize/2  -zsize/2 \
+           xsize     ysize     zsize
+
+END
+

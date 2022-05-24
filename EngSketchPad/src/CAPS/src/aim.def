@@ -5,6 +5,7 @@ aimFreeDiscrPtr
 aimLocateElement
 aimInputs
 aimOutputs
+aimUpdateState
 aimPreAnalysis
 aimExecute
 aimPostAnalysis

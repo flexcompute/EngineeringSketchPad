@@ -66,22 +66,32 @@ $(function() {
 <div class="title">AIM Inputs </div>  </div>
 </div><!--header-->
 <div class="contents">
-<div class="textblock"><p>The following list outlines the CART3D inputs along with their default value available through the AIM interface.</p>
+<div class="textblock"><p>The following list outlines the Cart3D inputs along with their default value available through the AIM interface.</p>
 <ul>
 <li><b> Tess_Params = [double, double, double]</b>. &lt;Default [0.025, 0.001, 15.00]&gt; <br  />
- These parameters are used to create the surface mesh for CART3D. Their order definition is as follows.<ol type="1">
+ These parameters are used to create the surface mesh for Cart3D. Their order definition is as follows.<ol type="1">
 <li>Max Edge Length (0 is any length)</li>
 <li>Max Sag or distance from mesh segment and actual curved geometry</li>
 <li>Max angle in degrees between triangle facets</li>
 </ol>
 </li>
+<li><b> mesh2d = bool</b>. &lt;Default false&gt; <br  />
+ Specify 2D analysis</li>
 <li><b> outer_box = double</b>. &lt;Default 30&gt; <br  />
  Factor of outer boundary box based on geometry length scale defined by the diagonal of the 3D tightly fitting bounding box around body being modeled.</li>
 <li><b> nDiv = int</b>. &lt;Default 5&gt; <br  />
  nominal # of divisions in backgrnd mesh</li>
-<li><b> maxR = int</b>. &lt;Default 11&gt; <br  />
+<li><b> maxR = int</b>. &lt;Default 7&gt; <br  />
  Max Num of cell refinements to perform</li>
-<li><b> Mach = double</b>. &lt;Default 0.76&gt; <br  />
+<li><b> symmX = bool</b>. &lt;Default false&gt; <br  />
+ Symmetry on x-min boundary</li>
+<li><b> symmY = int</b>. &lt;Default false&gt; <br  />
+ Symmetry on y-min boundary</li>
+<li><b> symmZ = int</b>. &lt;Default false&gt; <br  />
+ Symmetry on z-min boundary</li>
+<li><b> halfBody = bool</b>. &lt;Default false&gt; <br  />
+ Input geometry is a half-body</li>
+<li><b> Mach = NULL</b>. &lt;Default 0.76&gt; <br  />
 </li>
 <li><b> alpha = double</b>. &lt;Default 0.0&gt; <br  />
  Angle of Attach in Degrees</li>
@@ -89,10 +99,21 @@ $(function() {
  Side Slip Angle in Degrees</li>
 <li><b> gamma = double</b>. &lt;Default 1.4&gt; <br  />
  Ratio of specific heats (default is air)</li>
+<li><b>Pressure_Scale_Factor = 1.0</b> <br  />
+ Value to scale Pressure data when transferring data. Data is scaled based on Pressure = Pressure_Scale_Factor*Pressure.</li>
+<li><b> TargetCL = NULL</b>.<br  />
+ Target lift coefficient. If set, Cart3D will adjust alpha to such that CL matches TargetCL.<br  />
+ See TargetCL_ inputs for additional controls.</li>
+<li><b> TargetCL_Tol = double</b>. &lt;Default 0.01&gt; <br  />
+ Target lift coefficient tolerance</li>
+<li><b> TargetCL_Start_Iter = int</b>. &lt;Default 60&gt; <br  />
+ Iteration for first Target lift coefficient alpha adjustment</li>
+<li><b> TargetCL_Freq = int</b>. &lt;Default 5&gt; <br  />
+ Iteration frequency for Target lift coefficient alpha adjustment</li>
+<li><b> TargetCL_NominalAlphaStep = double</b>. &lt;Default 0.2&gt; <br  />
+ Initial alpha step and max step size in Degrees</li>
 <li><b> maxCycles = int</b>. &lt;Default 1000&gt; <br  />
  Number of iterations</li>
-<li><b> SharpFeatureDivisions = int</b>. &lt;Default 2&gt; <br  />
- nominal # of ADDITIONAL divisions in backgrnd mesh around sharp features</li>
 <li><b> nMultiGridLevels = int</b>. &lt;Default 1&gt; <br  />
  number of multigrid levels in the mesh (1 is a single mesh)</li>
 <li><b> MultiGridCycleType = int</b>. &lt;Default 2&gt; <br  />
@@ -114,30 +135,52 @@ $(function() {
  Update 'history.dat' every iHist cycles</li>
 <li><b> nOrders = int</b>. &lt;Default 8&gt; <br  />
  Num of orders of Magnitude reduction in residual</li>
-<li><b> Xslices = double </b> <br  />
- OR</li>
-<li><b> Xslices = [double, ... , double] </b> <br  />
+<li><b> nAdaptCycles = 0</b> <br  />
+ Number of adaptation cycles.</li>
+<li><b> Adapt_Functional = NULL</b> <br  />
+ Single valued tuple that defines the functional used to drive mesh adaptation, see <a class="el" href="cfdDesignFunctional.html">CFD Functional</a> for additional details on functionals.</li>
+<li><b> Design_Variable = NULL</b> <br  />
+ The design variable tuple is used to input design variable information for optimization, see <a class="el" href="cfdDesignVariable.html">CFD Design Variable</a> for additional details.</li>
+<li><b> Design_Functional = NULL</b> <br  />
+ The design objective tuple is used to input objective information for optimization, see <a class="el" href="cfdDesignFunctional.html">CFD Functional</a> for additional details. The value of the design functionals become available as Dynamic Output Value Objects using the "name" of the functionals.</li>
+<li><b> Design_Adapt = NULL</b> <br  />
+ String name of a Design_Functional to be used for adjoint based mesh adaptation.</li>
+<li><b> Design_Run_Config = "production"</b> <br  />
+ run_config = debug || archive || standard || production <br  />
+ debug: no files are deleted; easily traceable but needs large disk-space<br  />
+ archive: compresses and tars critical files and deletes temp files;<br  />
+ becomes slower for cases with large number of design variables<br  />
+ but fully traceable<br  />
+ standard: similar to production, but keeps more files, in particular adjoint<br  />
+ solution(s) on the finest mesh<br  />
+ production: keeps critical files; reasonable storage and max speed</li>
+<li><b> Design_Gradient_Memory_Budget = 32</b> <br  />
+ This flag controls the parallel evaluation of components of the gradient. For example, gradient of objective function J with respect to design variables x, y, z is [ dJ/dx dJ/dy dJ/dz ]^T. The gradient components are independent and hence, can be evaluated in parallel. Evaluating all the components simultaneously is ideal, but you are limited by the number of design variables and the size of your mesh (memory limit). The framework can compute efficient job partitioning automatically. To do this, you just need to specify the memory limit for the run (in GB) via the flag</li>
+<li><b> Xslices = double </b> or <b> [double, ... , double] </b> <br  />
  X slice locations created in output.</li>
-<li><b> Yslices = double </b> <br  />
- OR</li>
-<li><b> Yslices = [double, ... , double] </b> <br  />
+<li><b> Yslices = double </b> or <b> [double, ... , double] </b> <br  />
  Y slice locations created in output.</li>
-<li><b> Zslices = double </b> <br  />
- OR</li>
-<li><b> Zslices = [double, ... , double] </b> <br  />
+<li><b> Zslices = double </b> or <b> [double, ... , double] </b> <br  />
  Z slice locations created in output.</li>
-<li><b> Model_X_axis = string </b> <br  />
+<li><b> y_is_spanwise = bool </b> &lt;Default false&gt; <br  />
+ If false, then alpha is defined in the x-y plane, <br  />
+ otherwise alpha is in the x-z plane</li>
+<li><b> Model_X_axis = "-Xb" </b> <br  />
  Model_X_axis defines x-axis orientation.</li>
-<li><b> Model_Y_axis = string </b> <br  />
+<li><b> Model_Y_axis = "Yb" </b> <br  />
  Model_Y_axis defines y-axis orientation.</li>
-<li><b> Model_Z_axis = string </b> <br  />
- Model_Z_axis defines z-axis orientation. </li>
+<li><b> Model_Z_axis = "-Zb" </b> <br  />
+ Model_Z_axis defines z-axis orientation.</li>
+<li><b> Restart = False </b> <br  />
+ Use the "restart" option for aero.csh or not</li>
+<li><b> aerocsh = NULL</b> <br  />
+ List of strings that can be used to override defaults in the Cart3D aero.csh script. Please refer to the Cart3D documentation for all available aero.csh inputs. </li>
 </ul>
 </div></div><!-- contents -->
 </div><!-- PageDoc -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Fri Sep 17 2021 06:43:07 for CART3D Analysis Interface Module (AIM) by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1
+Generated on Sat Jul 2 2022 10:13:31 for CART3D Analysis Interface Module (AIM) by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1
 </small></address>
 </body>
 </html>

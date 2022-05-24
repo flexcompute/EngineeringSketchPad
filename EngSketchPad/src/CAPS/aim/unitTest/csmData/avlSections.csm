@@ -92,6 +92,7 @@ attribute capsGroup    $hTail
 attribute _name        $sech1
 attribute vlmNumSpan  6
 #attribute vlmSspace   2
+attribute vlmControl_Elevator 0.9
 
 # inverted camber
 udprim    naca      Thickness thick      Camber  -camber sharpte 0
@@ -99,6 +100,7 @@ rotatex   90         0         0
 translate 2          0         0
 attribute capsGroup    $hTail
 attribute _name        $sech2
+attribute vlmControl_Elevator 0.9
 
 # rotated to produce inverted camber
 udprim    naca      Thickness thick      Camber  camber sharpte 0
@@ -107,6 +109,7 @@ rotatex   225        0         0
 translate 2         -0.75      0.3
 attribute capsGroup    $hTail
 attribute _name        $sech3
+attribute vlmControl_Elevator 0.9
 
 
 # -----------------------------------------------------------------
@@ -118,6 +121,7 @@ rotatez   -10        0         0
 translate 2          0         1
 attribute capsGroup    $vTail
 attribute _name        $secv1
+attribute vlmControl_Rudder 0.7
 
 # inverted camber
 udprim    naca      Thickness thick      Camber  -camber sharpte 0
@@ -125,6 +129,7 @@ rotatez   10         0         0
 translate 2          0         0
 attribute capsGroup    $vTail
 attribute _name        $secv2
+attribute vlmControl_Rudder 0.7
 
 # -----------------------------------------------------------------
 # V-tail

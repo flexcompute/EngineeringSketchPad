@@ -74,6 +74,9 @@ class TestValue(unittest.TestCase):
         self.assertEqual(self.myParam.value, [0.0, 30000.0, 60000.0]*ft)
         self.assertEqual(self.myParam.limits, [0.0, 70000]*ft)
 
+        self.assertTrue("Altitude" in self.myProblem.parameter)
+        self.assertFalse("DoesNotExist" in self.myProblem.parameter)
+
 #==============================================================================
     # Set values
     def test_value(self):
@@ -89,6 +92,9 @@ class TestValue(unittest.TestCase):
 
         myParam.transferValue(pyCAPS.tMethod.Copy, self.myParam)
         self.assertEqual(self.myParam.value, [0.0, 30000.0, 60000.0]*ft)
+
+        # Test marking the parameter for deletion
+        myParam.markForDelete()
 
 #==============================================================================
     # Set limits
@@ -169,7 +175,7 @@ class TestValue(unittest.TestCase):
 #==============================================================================
     # Autolink
     def test_autolink(self):
-        
+
         deg = pyCAPS.Unit("degree")
 
         self.myAnalysis.input.Beta = 0.0*deg
@@ -183,18 +189,18 @@ class TestValue(unittest.TestCase):
 
         self.assertEqual(self.myAnalysis.input.Beta, 1.0*deg)
         self.assertEqual(self.myAnalysis.input.Alpha, 10.0*deg)
-        
+
         # Modify the parameter
         self.myProblem.parameter.Beta = 3.0*deg
         self.myProblem.parameter.Alpha = 5.0*deg
-        
+
         # Check the analysis input is modified
         self.assertEqual(self.myAnalysis.input.Beta, 3.0*deg)
         self.assertEqual(self.myAnalysis.input.Alpha, 5.0*deg)
 
         with self.assertRaises(pyCAPS.CAPSError) as e:
             self.myAnalysis.input.Beta = 1.0*deg
-            
+
         self.myAnalysis.input["Beta"].unlink()
         self.myAnalysis.input["Alpha"].unlink()
 
@@ -223,7 +229,7 @@ class TestValue(unittest.TestCase):
     def test_colValue(self):
 
         # Should get convert back to a row
-        param = self.myProblem.parameter.create("colValue", [[1,2,3]])
+        param = self.myProblem.parameter.create("colValue", [[1],[2],[3]])
         self.assertEqual(param.value, [1,2,3])
 
 #==============================================================================

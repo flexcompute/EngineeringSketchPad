@@ -1,0 +1,19 @@
+# designV1
+# written by John Dannenhoffer
+
+DESPMTR   len       2.0
+DESPMTR   dip       0.5
+DESPMTR   ang       40.0
+DESPMTR   xA        0.5
+DESPMTR   yA        -.5
+
+SKBEG     xA        yA                0.0
+   CIRARC xA+len/2  yA-dip            0.0 \
+          xA+len    yA                0.0
+   LINSEG xA        yA+len*tand(ang)  0.0
+   LINSEG xA        yA                0.0
+SKEND
+
+EXTRUDE   0.0       0.0               1.0
+
+END

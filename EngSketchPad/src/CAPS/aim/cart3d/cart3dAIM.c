@@ -3,7 +3,7 @@
  *
  *             Cart3D AIM
  *
- *      Copyright 2014-2021, Massachusetts Institute of Technology
+ *      Copyright 2014-2022, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -54,13 +54,24 @@ int writeSurfTrix(const p_tsTriangulation p_config, const int nComps,
 enum aimInputs
 {
   Tess_Params = 1,                   /* index is 1-based */
+  mesh2d,
   outer_box,
   nDiv,
   maxR,
+  symmX,
+  symmY,
+  symmZ,
+  halfBody,
   Mach,
   alpha,
   beta,
   Gamma,
+  TargetCL,
+  TargetCL_Tol,
+  TargetCL_Start_Iter,
+  TargetCL_Freq,
+  TargetCL_NominalAlphaStep,
+  Pressure_Scale_Factor,
   maxCycles,
   nMultiGridLevels,
   MultiGridCycleType,
@@ -83,6 +94,7 @@ enum aimInputs
   Xslices,
   Yslices,
   Zslices,
+  y_is_spanwise,
   Model_X_axis,
   Model_Y_axis,
   Model_Z_axis,
@@ -91,7 +103,7 @@ enum aimInputs
   NUMINPUT = aerocsh                 /* Total number of inputs */
 };
 
-#define NUMOUT    12                 /* number of outputs */
+#define NUMOUT    13                 /* number of outputs */
 
 
 typedef struct {
@@ -117,16 +129,18 @@ typedef struct {
 
 /*!\mainpage Introduction
  *
- * \section overviewCART3D CART3D AIM Overview
- * CART3D
+ * \section overviewCART3D Cart3D AIM Overview
+ * Cart3D
  *
  * \section assumptionsCART3D Assumptions
  *
  * This documentation contains four sections to document the use of the CART3D AIM.
  * \ref examplesCART3D contains example *.csm input files and pyCAPS scripts designed to make use of the CART3D AIM.  These example
- * scripts make extensive use of the \ref attributeCART3D and CART3D \ref aimInputsCART3D and CART3D \ref aimOutputsCART3D.
+ * scripts make extensive use of the \ref attributeCART3D and Cart3D \ref aimInputsCART3D and Cart3D \ref aimOutputsCART3D.
  *
  * The Cart3D AIM can automatically execute Cart3D, with details provided in \ref aimExecuteCART3D.
+ *
+ * Details of the AIM's automated data transfer capabilities are outlined in \ref dataTransferCART3D
  *
  * \section dependeciesCART3D Dependencies
  * ESP client of libxddm. For XDDM documentation, see $CART3D/doc/xddm/xddm.html. The library uses XML Path Language (XPath) to
@@ -137,39 +151,195 @@ typedef struct {
  * most systems, check existence of 'xml2-config' script
  */
 
-/*! \page examplesCART3D CART3D Examples
+/*! \page examplesCART3D Cart3D Examples
  *
- * This example contains a set of *.csm and pyCAPS (*.py) inputs that uses the CART3D AIM.  A user should have knowledge
+ * This example contains a set of *.csm and pyCAPS (*.py) inputs that uses the Cart3D AIM.  A user should have knowledge
  * on the generation of parametric geometry in Engineering Sketch Pad (ESP) before attempting to integrate with any AIM.
  * Specifically, this example makes use of Design Parameters, Set Parameters, User Defined Primitive (UDP) and attributes
  * in ESP.
  *
  */
 
-/*! \page attributeCART3D CART3D attributes
- * The following list of attributes drives the CART3D geometric definition.
+/*! \page attributeCART3D Cart3D attributes
+ * The following list of attributes drives the Cart3D geometric definition.
  *
  * - <b> capsAIM</b> This attribute is a CAPS requirement to indicate the analysis the geometry
  * representation supports.
  *
  *  - <b> capsReferenceArea</b>  [Optional: Default 1.0] This attribute may exist on any <em> Body</em>.  Its
- * value will be used as the Reference_Area entry in the CART3D input.
+ * value will be used as the Reference_Area entry in the Cart3D input.
  *
  *  - <b> capsReferenceChord</b>  [Optional: Default 1.0] This attribute may exist on any <em> Body</em>.  Its
- * value will be used as the Reference_Length entry in the CART3D input.
+ * value will be used as the Reference_Length entry in the Cart3D input.
  *
  *  - <b> capsReferenceX</b>  [Optional: Default 0.0] This attribute may exist on any <em> Body</em>.  Its
- * value will be used in the Moment_Point entry in the CART3D input.
+ * value will be used in the Moment_Point entry in the Cart3D input.
  *
  *  - <b> capsReferenceY</b>  [Optional: Default 0.0] This attribute may exist on any <em> Body</em>.  Its
- * value will be used in the Moment_Point entry in the CART3D input.
+ * value will be used in the Moment_Point entry in the Cart3D input.
  *
  *  - <b> capsReferenceZ</b>  [Optional: Default 0.0] This attribute may exist on any <em> Body</em>.  Its
- *  value will be used in the Moment_Point entry in the CART3D input.
+ *  value will be used in the Moment_Point entry in the Cart3D input.
  *
  */
 
 static const char* const runDir = "design";
+
+
+// Write SU2 data transfer files
+static int
+cart3d_dataTransfer(void *aimInfo,
+                    ego tess,
+                    double **dxyz_out)
+{
+
+    /*! \page dataTransferCart3D Cart3D Data Transfer
+     *
+     * \section dataToCart3D Data transfer to Cart3D (FieldIn)
+     *
+     * <ul>
+     *  <li> <B>"Displacement"</B> </li> <br>
+     *   Retrieves nodal displacements (as from a structural solver)
+     *   and updates Cart3D's surface mesh.
+     * </ul>
+     */
+
+    int status; // Function return status
+    int i, ibound, ibody, iglobal; // Indexing
+
+    // Discrete data transfer variables
+    capsDiscr *discr;
+    char **boundNames = NULL;
+    int numBoundName = 0;
+    enum capsdMethod dataTransferMethod;
+    int numDataTransferPoint;
+    int dataTransferRank;
+    double *dataTransferData;
+    char *units;
+
+    int state, nGlobal;
+    ego body;
+
+    // Data transfer Out variable
+    double *dxyz = NULL;
+
+    int foundDisplacement = (int) false;
+
+    *dxyz_out = NULL;
+
+    status = aim_getBounds(aimInfo, &numBoundName, &boundNames);
+    if (status == CAPS_NOTFOUND) return CAPS_SUCCESS;
+    AIM_STATUS(aimInfo, status);
+
+    foundDisplacement = (int) false;
+    for (ibound = 0; ibound < numBoundName; ibound++) {
+      AIM_NOTNULL(boundNames, aimInfo, status);
+
+      status = aim_getDiscr(aimInfo, boundNames[ibound], &discr);
+      if (status != CAPS_SUCCESS) continue;
+
+      status = aim_getDataSet(discr,
+                              "Displacement",
+                              &dataTransferMethod,
+                              &numDataTransferPoint,
+                              &dataTransferRank,
+                              &dataTransferData,
+                              &units);
+      if (status != CAPS_SUCCESS) continue;
+
+      foundDisplacement = (int) true;
+
+      // Is the rank correct?
+      if (dataTransferRank != 3) {
+        AIM_ERROR(aimInfo, "Displacement transfer data found however rank is %d not 3!!!!", dataTransferRank);
+        status = CAPS_BADRANK;
+        goto cleanup;
+      }
+
+    } // Loop through bound names
+
+    if (foundDisplacement != (int) true ) {
+        status = CAPS_SUCCESS;
+        goto cleanup;
+    }
+
+    status  = EG_statusTessBody(tess, &body, &state, &nGlobal);
+    AIM_STATUS(aimInfo, status);
+
+    AIM_ALLOC(dxyz, 3*nGlobal, double, aimInfo, status);
+    memset(dxyz, 0, 3*nGlobal*sizeof(double));
+
+    // now apply the displacements
+    for (ibound = 0; ibound < numBoundName; ibound++) {
+      AIM_NOTNULL(boundNames, aimInfo, status);
+
+      status = aim_getDiscr(aimInfo, boundNames[ibound], &discr);
+      if (status != CAPS_SUCCESS) continue;
+
+      status = aim_getDataSet(discr,
+                              "Displacement",
+                              &dataTransferMethod,
+                              &numDataTransferPoint,
+                              &dataTransferRank,
+                              &dataTransferData,
+                              &units);
+      if (status != CAPS_SUCCESS) continue;
+
+      if (numDataTransferPoint != discr->nPoints &&
+          numDataTransferPoint > 1) {
+        AIM_ERROR(aimInfo, "Developer error!! %d != %d", numDataTransferPoint, discr->nPoints);
+        status = CAPS_MISMATCH;
+        goto cleanup;
+      }
+
+      // Find the disc tessellation in the original list of tessellations
+      for (ibody = 0; ibody < discr->nBodys; ibody++) {
+        if (discr->bodys[ibody].tess == tess) {
+          break;
+        }
+      }
+      if (ibody == discr->nBodys && numDataTransferPoint > 1) {
+        AIM_ERROR(aimInfo, "Could not find matching tessellation!");
+        status = CAPS_MISMATCH;
+        goto cleanup;
+      }
+
+      for (i = 0; i < discr->nPoints; i++) {
+
+        if (ibody+1 != discr->tessGlobal[2*i+0]) {
+          AIM_ERROR(aimInfo, "Delveoper Error! Inconsistent body index %d != %d", ibody+1, discr->tessGlobal[2*i+0]);
+          status = CAPS_SOURCEERR;
+          goto cleanup;
+        }
+        iglobal = discr->tessGlobal[2*i+1];
+
+        if (numDataTransferPoint == 1) {
+          // A single point means this is an initialization phase
+          dxyz[3*(iglobal-1)  ] = dataTransferData[0];
+          dxyz[3*(iglobal-1)+1] = dataTransferData[1];
+          dxyz[3*(iglobal-1)+2] = dataTransferData[2];
+        } else {
+          // Apply delta displacements
+          dxyz[3*(iglobal-1)+0] = dataTransferData[3*i+0];
+          dxyz[3*(iglobal-1)+1] = dataTransferData[3*i+1];
+          dxyz[3*(iglobal-1)+2] = dataTransferData[3*i+2];
+        }
+      }
+    } // Loop through bound names
+
+    *dxyz_out = dxyz;
+    status = CAPS_SUCCESS;
+
+// Clean-up
+cleanup:
+/*@-dependenttrans@*/
+    if (status != CAPS_SUCCESS) AIM_FREE(dxyz);
+/*@+dependenttrans@*/
+    AIM_FREE(boundNames);
+
+    return status;
+}
+
 
 // Write out all variants of Components.i.tri and
 // retrieve geometric sensitivities w.r.t. design variable
@@ -178,7 +348,7 @@ static int
 cart3d_Components(void *aimInfo,
                   int numDesignVariable,
        /*@null@*/ cfdDesignVariableStruct designVariable[],
-                  mapAttrToIndexStruct *groupMap,
+                  const mapAttrToIndexStruct *groupMap,
                   int nBody,
                   ego *tess)
 {
@@ -392,21 +562,35 @@ cart3d_Components(void *aimInfo,
     AIM_NOTNULL(triFaceConn, aimInfo, status);
     AIM_NOTNULL(triFaceCompID, aimInfo, status);
 
+
+    //See if we have data transfer information
+    status = cart3d_dataTransfer(aimInfo,
+                                 tess[ibody],
+                                 &dxyz);
+    AIM_STATUS(aimInfo, status);
+
+
     for (i = 0; i < nvert; i++) {              /* save vert locations */
-      p_surf->a_Verts[iov+i].x[0] = (float) xyzs[3*i  ];
+      p_surf->a_Verts[iov+i].x[0] = (float) xyzs[3*i+0];
       p_surf->a_Verts[iov+i].x[1] = (float) xyzs[3*i+1];
       p_surf->a_Verts[iov+i].x[2] = (float) xyzs[3*i+2];
       //surf->a_dpVerts[i].x[0] = xyzs[3*i  ];
       //surf->a_dpVerts[i].x[1] = xyzs[3*i+1];
       //surf->a_dpVerts[i].x[2] = xyzs[3*i+2];
 
-      p_surf->a_scalar0[3*iov+3*i  ] = 0;
+      if (dxyz != NULL) {
+        p_surf->a_Verts[iov+i].x[0] += dxyz[3*i+0];
+        p_surf->a_Verts[iov+i].x[1] += dxyz[3*i+1];
+        p_surf->a_Verts[iov+i].x[2] += dxyz[3*i+2];
+      }
+
+      p_surf->a_scalar0[3*iov+3*i+0] = 0;
       p_surf->a_scalar0[3*iov+3*i+1] = 0;
       p_surf->a_scalar0[3*iov+3*i+2] = 0;
     }
 
     for (i = 0; i < ntri; i++) {
-      p_surf->a_Tris[iot+i].vtx[0] = iov + triFaceConn[3*i  ] - 1;
+      p_surf->a_Tris[iot+i].vtx[0] = iov + triFaceConn[3*i+0] - 1;
       p_surf->a_Tris[iot+i].vtx[1] = iov + triFaceConn[3*i+1] - 1;
       p_surf->a_Tris[iot+i].vtx[2] = iov + triFaceConn[3*i+2] - 1;
 
@@ -419,6 +603,7 @@ cart3d_Components(void *aimInfo,
     iot += ntri;
 
     AIM_FREE(xyzs);
+    AIM_FREE(dxyz);
     AIM_FREE(triFaceConn);
     AIM_FREE(triFaceCompID);
     AIM_FREE(triFaceTopoID);
@@ -476,6 +661,11 @@ cart3d_Components(void *aimInfo,
 
     AIM_NOTNULL(designVariable, aimInfo, status);
     if (designVariable[i].type != DesignVariableGeometry) continue;
+
+    // Get the value index
+    geomIndex = aim_getIndex(aimInfo, designVariable[i].name, GEOMETRYIN);
+    status = aim_getValue(aimInfo, geomIndex, GEOMETRYIN, &geomInVal);
+    AIM_STATUS(aimInfo, status);
 
     for (irow = 0; irow < geomInVal->nrow; irow++) {
       for (icol = 0; icol < geomInVal->ncol; icol++) {
@@ -743,8 +933,8 @@ cleanup:
 // Write runDir/design.xml
 static int
 cart3d_designxml(void *aimInfo,
-                 cfdDesignStruct *design,
-                 int sensitivity,
+                 const cfdDesignStruct *design,
+                 const int sensitivity,
                  const char *adapt)
 {
   int status; // Function return status
@@ -878,7 +1068,7 @@ cleanup:
 // Write inputs/Config.xml
 static int
 cart3d_configxml(void *aimInfo,
-                 mapAttrToIndexStruct *groupMap)
+                 const mapAttrToIndexStruct *groupMap)
 {
   int status; // Function return status
 
@@ -887,6 +1077,10 @@ cart3d_configxml(void *aimInfo,
   p_tsXddm p_xddm = NULL;
   char aimFile[PATH_MAX];
   char tmp[128];
+  const char *configFile = "inputs/Config.xml";
+
+  if (aim_newGeometry(aimInfo) != CAPS_SUCCESS &&
+      aim_isFile(aimInfo, configFile) == CAPS_SUCCESS) return CAPS_SUCCESS;
 
   p_xddm = xddm_alloc();
 
@@ -916,7 +1110,7 @@ cart3d_configxml(void *aimInfo,
 
   // Write design.xml
 
-  status = aim_file(aimInfo, "inputs/Config.xml", aimFile);
+  status = aim_file(aimInfo, configFile, aimFile);
   AIM_STATUS(aimInfo, status);
 
   status = xddm_writeFile(aimFile, p_xddm, 0);
@@ -979,8 +1173,10 @@ cleanup:
 // Write inputs/aero.csh
 static int
 cart3d_aerocsh(void *aimInfo,
+               int mesh2d,
                int nAdapt,
                int maxR,
+               int y_is_spanwise,
                int aerocsh_len,
                const char *aerocsh_str)
 {
@@ -1036,8 +1232,10 @@ cart3d_aerocsh(void *aimInfo,
           aerocsh_str += strlen(aerocsh_str)+1;
         }
 
+        fprintf(fout, "set mesh2d = %d\n", mesh2d);
         fprintf(fout, "set n_adapt_cycles = %d\n", nAdapt);
         fprintf(fout, "set maxR = %d\n", maxR);
+        fprintf(fout, "set y_is_spanwise = %d\n", y_is_spanwise);
         fprintf(fout, "# ---------------------------------------------\n");
 
       }
@@ -1104,7 +1302,7 @@ int aimInitialize(int inst, /*@unused@*/ const char *unitSys, void *aimInfo,
   cartInstance->aero_start = NULL;
 
   /* specify the field variables this analysis can generate and consume */
-  *nFields = 4;
+  *nFields = 5;
 
   /* specify the name of each field variable */
   AIM_ALLOC(strs, *nFields, char *, aimInfo, status);
@@ -1112,6 +1310,7 @@ int aimInitialize(int inst, /*@unused@*/ const char *unitSys, void *aimInfo,
   strs[1]  = EG_strdup("Density");
   strs[2]  = EG_strdup("Velocity");
   strs[3]  = EG_strdup("Pressure");
+  strs[4]  = EG_strdup("Displacement");
   for (i = 0; i < *nFields; i++)
     if (strs[i] == NULL) {
       status = EGADS_MALLOC;
@@ -1126,6 +1325,7 @@ int aimInitialize(int inst, /*@unused@*/ const char *unitSys, void *aimInfo,
   ints[1]  = 1;
   ints[2]  = 3;
   ints[3]  = 1;
+  ints[4]  = 3;
   *franks   = ints;
   ints = NULL;
 
@@ -1136,6 +1336,7 @@ int aimInitialize(int inst, /*@unused@*/ const char *unitSys, void *aimInfo,
   ints[1]  = FieldOut;
   ints[2]  = FieldOut;
   ints[3]  = FieldOut;
+  ints[4]  = FieldIn;
   *fInOut  = ints;
   ints = NULL;
 
@@ -1164,7 +1365,7 @@ aimInputs(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo, int index,
   int status = CAPS_SUCCESS;
 
     /*! \page aimInputsCART3D AIM Inputs
-     * The following list outlines the CART3D inputs along with their default value available
+     * The following list outlines the Cart3D inputs along with their default value available
      * through the AIM interface.
      */
 
@@ -1190,12 +1391,20 @@ aimInputs(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo, int index,
 
       /*! \page aimInputsCART3D
      * - <B> Tess_Params = [double, double, double]</B>. <Default [0.025, 0.001, 15.00]> <br>
-     * These parameters are used to create the surface mesh for CART3D. Their order definition is as follows.
+     * These parameters are used to create the surface mesh for Cart3D. Their order definition is as follows.
      *  1. Max Edge Length (0 is any length)
      *  2. Max Sag or distance from mesh segment and actual curved geometry
      *  3. Max angle in degrees between triangle facets
      */
 
+  } else if (index == mesh2d) {
+    *name                = EG_strdup("mesh2d");
+    defval->type         = Boolean;
+    defval->vals.integer = (int)false;
+      /*! \page aimInputsCART3D
+     * - <B> mesh2d = bool</B>. <Default false> <br>
+     * Specify 2D analysis
+     */
   } else if (index == outer_box) {
     *name             = EG_strdup("outer_box");
     defval->type      = Double;
@@ -1221,6 +1430,38 @@ aimInputs(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo, int index,
       /*! \page aimInputsCART3D
      * - <B> maxR = int</B>. <Default 7> <br>
      * Max Num of cell refinements to perform
+     */
+  } else if (index == symmX) {
+    *name                = EG_strdup("symmX");
+    defval->type         = Boolean;
+    defval->vals.integer = (int)false;
+      /*! \page aimInputsCART3D
+     * - <B> symmX = bool</B>. <Default false> <br>
+     * Symmetry on x-min boundary
+     */
+  } else if (index == symmY) {
+    *name                = EG_strdup("symmY");
+    defval->type         = Boolean;
+    defval->vals.integer = (int)false;
+      /*! \page aimInputsCART3D
+     * - <B> symmY = int</B>. <Default false> <br>
+     * Symmetry on y-min boundary
+     */
+  } else if (index == symmZ) {
+    *name                = EG_strdup("symmZ");
+    defval->type         = Boolean;
+    defval->vals.integer = (int)false;
+      /*! \page aimInputsCART3D
+     * - <B> symmZ = int</B>. <Default false> <br>
+     * Symmetry on z-min boundary
+     */
+  } else if (index == halfBody) {
+    *name                = EG_strdup("halfBody");
+    defval->type         = Boolean;
+    defval->vals.integer = (int)false;
+      /*! \page aimInputsCART3D
+     * - <B> halfBody = bool</B>. <Default false> <br>
+     * Input geometry is a half-body
      */
   } else if (index == Mach) {
     *name             = EG_strdup("Mach");
@@ -1253,6 +1494,56 @@ aimInputs(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo, int index,
       /*! \page aimInputsCART3D
      * - <B> gamma = double</B>. <Default 1.4> <br>
      * Ratio of specific heats (default is air)
+     */
+  } else if (index == Pressure_Scale_Factor) {
+    *name              = EG_strdup("Pressure_Scale_Factor");
+    defval->type         = Double;
+    defval->vals.real    = 1.0;
+
+    /*! \page aimInputsCART3D
+     * - <B>Pressure_Scale_Factor = 1.0</B> <br>
+     * Value to scale Pressure data when transferring data. Data is scaled based on Pressure = Pressure_Scale_Factor*Pressure.
+     */
+  } else if (index == TargetCL) {
+    *name             = EG_strdup("TargetCL");
+    defval->type      = Double;
+    defval->nullVal   = IsNull;
+      /*! \page aimInputsCART3D
+     * - <B> TargetCL = NULL</B>.<br>
+     * Target lift coefficient. If set, Cart3D will adjust alpha to such that CL matches TargetCL.<br>
+     * See TargetCL_ inputs for additional controls.
+     */
+  } else if (index == TargetCL_Tol) {
+    *name             = EG_strdup("TargetCL_Tol");
+    defval->type      = Double;
+    defval->vals.real = 0.01;
+      /*! \page aimInputsCART3D
+     * - <B> TargetCL_Tol = double</B>. <Default 0.01> <br>
+     * Target lift coefficient tolerance
+     */
+  } else if (index == TargetCL_Start_Iter) {
+    *name                = EG_strdup("TargetCL_Start_Iter");
+    defval->type         = Integer;
+    defval->vals.integer = 60;
+      /*! \page aimInputsCART3D
+     * - <B> TargetCL_Start_Iter = int</B>. <Default 60> <br>
+     * Iteration for first Target lift coefficient alpha adjustment
+     */
+  } else if (index == TargetCL_Freq) {
+    *name                = EG_strdup("TargetCL_Freq");
+    defval->type         = Integer;
+    defval->vals.integer = 5;
+      /*! \page aimInputsCART3D
+     * - <B> TargetCL_Freq = int</B>. <Default 5> <br>
+     * Iteration frequency for Target lift coefficient alpha adjustment
+     */
+  } else if (index == TargetCL_NominalAlphaStep) {
+    *name             = EG_strdup("TargetCL_NominalAlphaStep");
+    defval->type      = Double;
+    defval->vals.real = 0.2;
+      /*! \page aimInputsCART3D
+     * - <B> TargetCL_NominalAlphaStep = double</B>. <Default 0.2> <br>
+     * Initial alpha step and max step size in Degrees
      */
   } else if (index == maxCycles) {
     *name                = EG_strdup("maxCycles");
@@ -1490,6 +1781,17 @@ aimInputs(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo, int index,
     * - <B> Zslices = double </B> or <B> [double, ... , double] </B> <br>
     * Z slice locations created in output.
     */
+
+  } else if (index == y_is_spanwise) {
+    *name = EG_strdup("y_is_spanwise");
+    defval->type = Boolean;
+    defval->vals.integer = (int)false;
+
+    /*! \page aimInputsCART3D
+     * - <B> y_is_spanwise = bool </B> <Default false> <br>
+     * If false, then alpha is defined in the x-y plane, <br>
+     * otherwise alpha is in the x-z plane
+     */
   } else if (index == Model_X_axis) {
     *name = EG_strdup("Model_X_axis");
     defval->type = String;
@@ -1553,156 +1855,44 @@ cleanup:
   return status;
 }
 
-
-/* ********************** Exposed AIM Functions ***************************** */
+// ********************** AIM Function Break *****************************
 int
-aimPreAnalysis(void *instStore, void *aimInfo, capsValue *inputs)
+aimUpdateState(void *instStore, void *aimInfo,
+               capsValue *aimInputs)
 {
-  int          i, j, varid, status, nBody;
-  int          atype, alen, cleanDir;
-  double       params[3], box[6], size, Sref, Cref, Xref, Yref, Zref;
-  char         line[128], aimFile[PATH_MAX], designxml[42];
-  const int    *ints;
-  const char   *string, *intents;
-  const char   *inputsDir="inputs";
-  const double *reals;
+  int status; // Function return status
+
+  int i;
+
+  double params[3], box[6], size;
+
+  // Body parameters
+  const char *intents;
+  int nBody = 0; // Number of bodies
+  ego *bodies = NULL; // EGADS body objects
+
   aimStorage   *cartInstance;
-  p_tsXddm     p_xddm = NULL;
-  ego          *bodies;
-  FILE         *fp=NULL;
-
-#ifdef DEBUG
-  printf(" Cart3DAIM/aimPreAnalysis!\n");
-#endif
-
-  if (inputs == NULL) {
-#ifdef DEBUG
-    printf(" Cart3DAIM/aimPreAnalysis -- NULL inputs!\n");
-#endif
-    return CAPS_NULLOBJ;
-  }
-
-  if (inputs[Mach-1].nullVal == IsNull) {
-    AIM_ERROR(aimInfo, "'Mach' is not set");
-    status = CAPS_BADVALUE;
-    goto cleanup;
-  }
 
   cartInstance = (aimStorage *) instStore;
-
-  snprintf(designxml, 42, "%s/design.xml", runDir);
+  AIM_NOTNULL(aimInputs, aimInfo, status);
 
   // Get AIM bodies
   status = aim_getBodies(aimInfo, &intents, &nBody, &bodies);
   AIM_STATUS(aimInfo, status);
 
-  if (nBody < 1) {
+  if (nBody < 1 || bodies == NULL) {
     AIM_ERROR(aimInfo, "Cart3D AIM requires at least 1 body");
     status = CAPS_BADVALUE;
     goto cleanup;
   }
 
-  // Initialize reference values
-  Sref = Cref = 1.0;
-  Xref = Yref = Zref = 0.0;
-
-  // Loop over bodies and look for reference quantity attributes
-  for (i = 0; i < nBody; i++) {
-    status = EG_attributeRet(bodies[i], "capsReferenceArea", &atype, &alen,
-                             &ints, &reals, &string);
-    if ((status == EGADS_SUCCESS) && (atype == ATTRREAL)) Sref = reals[0];
-
-    status = EG_attributeRet(bodies[i], "capsReferenceChord", &atype, &alen,
-                             &ints, &reals, &string);
-    if ((status == EGADS_SUCCESS) && (atype == ATTRREAL)) Cref = reals[0];
-
-    status = EG_attributeRet(bodies[i], "capsReferenceX", &atype, &alen,
-                             &ints, &reals, &string);
-    if ((status == EGADS_SUCCESS) && (atype == ATTRREAL)) Xref = reals[0];
-
-    status = EG_attributeRet(bodies[i], "capsReferenceY", &atype, &alen,
-                             &ints, &reals, &string);
-    if ((status == EGADS_SUCCESS) && (atype == ATTRREAL)) Yref = reals[0];
-
-    status = EG_attributeRet(bodies[i], "capsReferenceZ", &atype, &alen,
-                             &ints, &reals, &string);
-    if ((status == EGADS_SUCCESS) && (atype == ATTRREAL)) Zref = reals[0];
-  }
-
-
-  // Get design variables
-  if (inputs[Design_Variable-1].nullVal == NotNull &&
-      aim_newAnalysisIn(aimInfo, Design_Variable) == CAPS_SUCCESS) {
-
-      if (inputs[Design_Functional-1].nullVal == IsNull) {
-          AIM_ERROR(aimInfo, "\"Design_Variable\" has been set, but no values have been provided for \"Design_Functional\"!");
-          status = CAPS_BADVALUE;
-          goto cleanup;
-      }
-
-      status = cfd_getDesignVariable(aimInfo,
-                                     inputs[Design_Variable-1].length,
-                                     inputs[Design_Variable-1].vals.tuple,
-                                     &cartInstance->design.numDesignVariable,
-                                     &cartInstance->design.designVariable);
-      AIM_STATUS(aimInfo, status);
-  }
-
-  // Create the inputs directory
-  status = aim_mkDir(aimInfo, inputsDir);
-  AIM_STATUS(aimInfo, status);
-
-  // remove any previous adapt directories
-  status = aim_rmDir(aimInfo, "inputs/adapt??");
-  AIM_STATUS(aimInfo, status);
-
-  if ( inputs[Design_Functional-1].nullVal == NotNull) {
-    // Create the runDir directory
-    status = aim_mkDir(aimInfo, runDir);
-    AIM_STATUS(aimInfo, status);
-
-    // remove the previous tbl file
-    snprintf(line, 128, "%s/entire.DP1.tbl", runDir);
-    status = aim_file(aimInfo, line, aimFile);
-    AIM_STATUS(aimInfo, status);
-    remove(aimFile);
-
-    if (aim_newAnalysisIn(aimInfo, Design_Run_Config) == CAPS_SUCCESS ||
-        aim_newAnalysisIn(aimInfo, Design_Gradient_Memory_Budget) == CAPS_SUCCESS) {
-
-      snprintf(line, 128, "%s/OPTIONS", runDir);
-      fp = aim_fopen(aimInfo, line, "w");
-      if (fp == NULL) {
-        AIM_ERROR(aimInfo, "Cannot open: %s", line);
-        status = CAPS_IOERR;
-        goto cleanup;
-      }
-
-      fprintf(fp, "run_config = %s\n", inputs[Design_Run_Config-1].vals.string);
-      fprintf(fp, "gradient_memory_budget = %d\n", inputs[Design_Gradient_Memory_Budget-1].vals.integer);
-      fclose(fp); fp = NULL;
-    }
-  }
-
-  if (aim_newGeometry(aimInfo) == CAPS_SUCCESS) {
-    // Container for attribute to index map
-    status = destroy_mapAttrToIndexStruct(&cartInstance->groupMap);
-    AIM_STATUS(aimInfo, status);
-
+  if (aim_newGeometry(aimInfo) == CAPS_SUCCESS ||
+      cartInstance->groupMap.numAttribute == 0) {
     // Get capsGroup name and index mapping to make sure all bodies have a capsGroup value
     status = create_CAPSGroupAttrToIndexMap(nBody,
                                             bodies,
                                             1, // Down to face
                                             &cartInstance->groupMap);
-    AIM_STATUS(aimInfo, status);
-
-    // Write out inputs/Config.xml
-    status = cart3d_configxml(aimInfo, &cartInstance->groupMap);
-    AIM_STATUS(aimInfo, status);
-
-    // Remove old geometric sensitivity files
-    snprintf(line, 128, "%s/geometry_*", runDir);
-    status = aim_rmDir(aimInfo, line);
     AIM_STATUS(aimInfo, status);
 
     status = destroy_cfdBoundaryConditionStruct(&cartInstance->bcProps);
@@ -1723,22 +1913,303 @@ aimPreAnalysis(void *instStore, void *aimInfo, capsValue *inputs)
     }
   }
 
+  // Get design variables
+  if (aimInputs[Design_Variable-1].nullVal == NotNull &&
+      (aim_newAnalysisIn(aimInfo, Design_Variable) == CAPS_SUCCESS ||
+       cartInstance->design.numDesignVariable == 0) ) {
+
+    if (aimInputs[Design_Functional-1].nullVal == IsNull) {
+      AIM_ERROR(aimInfo, "\"Design_Variable\" has been set, but no values have been provided for \"Design_Functional\"!");
+      status = CAPS_BADVALUE;
+      goto cleanup;
+    }
+
+    status = cfd_getDesignVariable(aimInfo,
+                                   aimInputs[Design_Variable-1].length,
+                                   aimInputs[Design_Variable-1].vals.tuple,
+                                   &cartInstance->design.numDesignVariable,
+                                   &cartInstance->design.designVariable);
+    AIM_STATUS(aimInfo, status);
+  }
+
+
+  // Check for Design_Functional
+  if (aimInputs[Design_Functional-1].nullVal == NotNull &&
+      (cartInstance->design.numDesignFunctional == 0 ||
+       aim_newAnalysisIn(aimInfo, Design_Functional ) == CAPS_SUCCESS ||
+       aim_newAnalysisIn(aimInfo, Design_Variable   ) == CAPS_SUCCESS) ) {
+
+      status = cfd_getDesignFunctional(aimInfo,
+                                       aimInputs[Design_Functional-1].length,
+                                       aimInputs[Design_Functional-1].vals.tuple,
+                                       &cartInstance->bcProps,
+                                       cartInstance->design.numDesignVariable,
+                                       cartInstance->design.designVariable,
+                                       &cartInstance->design.numDesignFunctional,
+                                       &cartInstance->design.designFunctional);
+      AIM_STATUS(aimInfo, status);
+  }
+
+  // Check if adaptation is requested
+  if (aimInputs[Design_Functional-1].nullVal == IsNull &&
+      aimInputs[Adapt_Functional-1].nullVal == NotNull &&
+      aim_newAnalysisIn(aimInfo, Adapt_Functional) == CAPS_SUCCESS) {
+
+    i = cartInstance->adaptFunctional == NULL ? 0 : 1;
+
+    status = cfd_getDesignFunctional(aimInfo,
+                                     aimInputs[Adapt_Functional-1].length,
+                                     aimInputs[Adapt_Functional-1].vals.tuple,
+                                     &cartInstance->bcProps,
+                                     0,
+                                     NULL,
+                                     &i,
+                                     &cartInstance->adaptFunctional);
+    AIM_STATUS(aimInfo, status);
+  }
+
+
+  // Only do surface meshing if the geometry or Tess_Params have changed
+  if (aim_newGeometry(aimInfo) == CAPS_SUCCESS ||
+      aim_newAnalysisIn(aimInfo, Tess_Params) == CAPS_SUCCESS ||
+      cartInstance->tess == NULL) {
+
+    AIM_REALL(cartInstance->tess, nBody, ego, aimInfo, status);
+    cartInstance->ntess = nBody;
+
+    for (i = 0; i < nBody; i++) {
+      status = EG_getBoundingBox(bodies[i], box);
+      AIM_STATUS(aimInfo, status);
+
+      size = sqrt((box[3]-box[0])*(box[3]-box[0]) +
+                  (box[4]-box[1])*(box[4]-box[1]) +
+                  (box[5]-box[2])*(box[5]-box[2]));
+      printf(" Body size = %lf\n", size);
+
+      params[0] = aimInputs[Tess_Params-1].vals.reals[0]*size;
+      params[1] = aimInputs[Tess_Params-1].vals.reals[1]*size;
+      params[2] = aimInputs[Tess_Params-1].vals.reals[2];
+      printf(" Tessellating body %d with  MaxEdge = %lf  Sag = %lf  Angle = %lf\n",
+             i+1, params[0], params[1], params[2]);
+
+      status = EG_makeTessBody(bodies[i], params, &cartInstance->tess[i]);
+      AIM_STATUS(aimInfo, status);
+
+      /* store away the tessellation */
+      status = aim_newTess(aimInfo, cartInstance->tess[i]);
+      AIM_STATUS(aimInfo, status);
+    }
+  }
+
+  status = CAPS_SUCCESS;
+  cleanup:
+  return status;
+}
+
+// ********************** AIM Function Break *****************************
+int
+aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
+{
+  int          i, j, varid, status, nBody;
+  int          atype, alen, cleanDir;
+  int          foundSref=(int)false, foundCref=(int)false, foundXref=(int)false;
+  double       Sref, Cref, Xref, Yref, Zref;
+  char         line[128], aimFile[PATH_MAX], designxml[42];
+  const int    *ints;
+  const char   *string, *intents;
+  const char   *inputsDir="inputs";
+  const double *reals;
+  char         args[128];
+  p_tsXddm     p_xddm = NULL;
+  ego          *bodies;
+  FILE         *fp=NULL;
+  const aimStorage *cartInstance;
+
+#ifdef DEBUG
+  printf(" Cart3DAIM/aimPreAnalysis!\n");
+#endif
+
+  if (aimInputs == NULL) {
+#ifdef DEBUG
+    printf(" Cart3DAIM/aimPreAnalysis -- NULL inputs!\n");
+#endif
+    return CAPS_NULLOBJ;
+  }
+
+  if (aimInputs[Mach-1].nullVal == IsNull) {
+    AIM_ERROR(aimInfo, "'Mach' is not set");
+    status = CAPS_BADVALUE;
+    goto cleanup;
+  }
+
+  cartInstance = (const aimStorage *) instStore;
+
+  snprintf(designxml, 42, "%s/design.xml", runDir);
+
+  // Get AIM bodies
+  status = aim_getBodies(aimInfo, &intents, &nBody, &bodies);
+  AIM_STATUS(aimInfo, status);
+
+  if (nBody < 1 || bodies == NULL) {
+    AIM_ERROR(aimInfo, "Cart3D AIM requires at least 1 body");
+    status = CAPS_BADVALUE;
+    goto cleanup;
+  }
+
+  // Initialize reference values
+  Sref = Cref = 1.0;
+  Xref = Yref = Zref = 0.0;
+
+  // Loop over bodies and look for reference quantity attributes
+  for (i = 0; i < nBody; i++) {
+    status = EG_attributeRet(bodies[i], "capsReferenceArea", &atype, &alen,
+                             &ints, &reals, &string);
+    if (status == EGADS_SUCCESS) {
+        if (atype == ATTRREAL && alen == 1) {
+            Sref = (double) reals[0];
+            foundSref = (int)true;
+        } else {
+            AIM_ERROR(aimInfo, "capsReferenceArea should be followed by a single real value!\n");
+            status = CAPS_BADVALUE;
+            goto cleanup;
+        }
+    }
+
+    status = EG_attributeRet(bodies[i], "capsReferenceChord", &atype, &alen,
+                             &ints, &reals, &string);
+    if (status == EGADS_SUCCESS) {
+        if (atype == ATTRREAL && alen == 1) {
+            Cref = (double) reals[0];
+            foundCref = (int)true;
+        } else {
+            AIM_ERROR(aimInfo, "capsReferenceChord should be followed by a single real value!\n");
+            status = CAPS_BADVALUE;
+            goto cleanup;
+        }
+    }
+
+    status = EG_attributeRet(bodies[i], "capsReferenceX", &atype, &alen,
+                             &ints, &reals, &string);
+    if (status == EGADS_SUCCESS) {
+        if (atype == ATTRREAL && alen == 1) {
+            Xref = (double) reals[0];
+            foundXref = (int)true;
+        } else {
+            AIM_ERROR(aimInfo, "capsReferenceX should be followed by a single real value!\n");
+            status = CAPS_BADVALUE;
+            goto cleanup;
+        }
+    }
+
+    status = EG_attributeRet(bodies[i], "capsReferenceY", &atype, &alen,
+                             &ints, &reals, &string);
+    if (status == EGADS_SUCCESS) {
+        if (atype == ATTRREAL && alen == 1) {
+            Yref = (double) reals[0];
+        } else {
+            AIM_ERROR(aimInfo, "capsReferenceY should be followed by a single real value!\n");
+            status = CAPS_BADVALUE;
+            goto cleanup;
+        }
+    }
+
+    status = EG_attributeRet(bodies[i], "capsReferenceZ", &atype, &alen,
+                             &ints, &reals, &string);
+    if (status == EGADS_SUCCESS){
+        if (atype == ATTRREAL && alen == 1) {
+            Zref = (double) reals[0];
+        } else {
+            AIM_ERROR(aimInfo, "capsReferenceZ should be followed by a single real value!\n");
+            status = CAPS_BADVALUE;
+            goto cleanup;
+        }
+    }
+  }
+
+  if (foundSref == (int)false) {
+      AIM_ERROR(aimInfo, "capsReferenceArea is not set on any body!");
+      status = CAPS_BADVALUE;
+      goto cleanup;
+  }
+  if (foundCref == (int)false) {
+      AIM_ERROR(aimInfo, "capsReferenceChord is not set on any body!");
+      status = CAPS_BADVALUE;
+      goto cleanup;
+  }
+  if (foundXref == (int)false) {
+      AIM_ERROR(aimInfo, "capsReferenceX is not set on any body!");
+      status = CAPS_BADVALUE;
+      goto cleanup;
+  }
+
+
+  // Create the inputs directory
+  status = aim_mkDir(aimInfo, inputsDir);
+  AIM_STATUS(aimInfo, status);
+
+  // remove any previous adapt directories
+  status = aim_rmDir(aimInfo, "inputs/adapt??");
+  AIM_STATUS(aimInfo, status);
+
+  if ( aimInputs[Design_Functional-1].nullVal == NotNull ) {
+    // Create the runDir directory
+    status = aim_mkDir(aimInfo, runDir);
+    AIM_STATUS(aimInfo, status);
+
+    // remove the previous tbl file
+    snprintf(line, 128, "%s/entire.DP1.tbl", runDir);
+    status = aim_rmFile(aimInfo, line);
+    AIM_STATUS(aimInfo, status);
+
+    if (aim_newAnalysisIn(aimInfo, Design_Run_Config) == CAPS_SUCCESS ||
+        aim_newAnalysisIn(aimInfo, Design_Gradient_Memory_Budget) == CAPS_SUCCESS) {
+
+      snprintf(line, 128, "%s/OPTIONS", runDir);
+      fp = aim_fopen(aimInfo, line, "w");
+      if (fp == NULL) {
+        AIM_ERROR(aimInfo, "Cannot open: %s", line);
+        status = CAPS_IOERR;
+        goto cleanup;
+      }
+
+      fprintf(fp, "run_config = %s\n", aimInputs[Design_Run_Config-1].vals.string);
+      fprintf(fp, "gradient_memory_budget = %d\n", aimInputs[Design_Gradient_Memory_Budget-1].vals.integer);
+      fclose(fp); fp = NULL;
+    }
+  }
+
+  // Write out inputs/Config.xml
+  status = cart3d_configxml(aimInfo, &cartInstance->groupMap);
+  AIM_STATUS(aimInfo, status);
+
+  if (aim_newGeometry(aimInfo) == CAPS_SUCCESS) {
+    // Remove old geometric sensitivity files
+    snprintf(line, 128, "%s/geometry_*", runDir);
+    status = aim_rmDir(aimInfo, line);
+    AIM_STATUS(aimInfo, status);
+  }
+
   // Copy over aero.csh with modified inputs
-  if (aim_newAnalysisIn(aimInfo, nAdaptCycles) == CAPS_SUCCESS ||
-      aim_newAnalysisIn(aimInfo, maxR        ) == CAPS_SUCCESS ||
-      aim_newAnalysisIn(aimInfo, aerocsh     ) == CAPS_SUCCESS) {
+  if (aim_isFile(aimInfo, "inputs/aero.csh") == CAPS_NOTFOUND ||
+      aim_newAnalysisIn(aimInfo, mesh2d       ) == CAPS_SUCCESS ||
+      aim_newAnalysisIn(aimInfo, nAdaptCycles ) == CAPS_SUCCESS ||
+      aim_newAnalysisIn(aimInfo, maxR         ) == CAPS_SUCCESS ||
+      aim_newAnalysisIn(aimInfo, y_is_spanwise) == CAPS_SUCCESS ||
+      aim_newAnalysisIn(aimInfo, aerocsh      ) == CAPS_SUCCESS) {
     status = cart3d_aerocsh(aimInfo,
-                            inputs[nAdaptCycles-1].vals.integer,
-                            inputs[maxR-1].vals.integer,
-                            inputs[aerocsh-1].length,
-                            inputs[aerocsh-1].vals.string);
+                            aimInputs[mesh2d-1].vals.integer,
+                            aimInputs[nAdaptCycles-1].vals.integer,
+                            aimInputs[maxR-1].vals.integer,
+                            aimInputs[y_is_spanwise-1].vals.integer,
+                            aimInputs[aerocsh-1].length,
+                            aimInputs[aerocsh-1].vals.string);
     AIM_STATUS(aimInfo, status);
   }
 
   /* check to see if previous M*A*B*_DP1 need to be removed
    * it should be kept only to restart a gradient calculation
    * */
-  if (inputs[Design_Functional-1].nullVal == NotNull &&
+  if (aimInputs[Design_Functional-1].nullVal == NotNull &&
       aim_isFile(aimInfo, designxml) == CAPS_SUCCESS) {
 
     /* check if only Design_Sensitivity is new input */
@@ -1788,7 +2259,7 @@ aimPreAnalysis(void *instStore, void *aimInfo, capsValue *inputs)
 
   // Get design functionals
   // alpha, beta, Mach might be design variables that must be updated
-  if ( inputs[Design_Functional-1].nullVal == NotNull &&
+  if ( aimInputs[Design_Functional-1].nullVal == NotNull &&
       ((int)true == (int)true || // right now design.xml must always be overwritten
        aim_newAnalysisIn(aimInfo, Design_Functional ) == CAPS_SUCCESS ||
        aim_newAnalysisIn(aimInfo, Design_Variable   ) == CAPS_SUCCESS ||
@@ -1797,46 +2268,20 @@ aimPreAnalysis(void *instStore, void *aimInfo, capsValue *inputs)
        aim_newAnalysisIn(aimInfo, alpha             ) == CAPS_SUCCESS ||
        aim_newAnalysisIn(aimInfo, beta              ) == CAPS_SUCCESS ||
        aim_newAnalysisIn(aimInfo, Mach              ) == CAPS_SUCCESS ||
-       aim_isFile(aimInfo, "design/design.xml"      ) != CAPS_SUCCESS)) {
-
-      if (aim_newAnalysisIn(aimInfo, Design_Functional ) == CAPS_SUCCESS ||
-          aim_newAnalysisIn(aimInfo, Design_Variable   ) == CAPS_SUCCESS) {
-
-          status = cfd_getDesignFunctional(aimInfo,
-                                           inputs[Design_Functional-1].length,
-                                           inputs[Design_Functional-1].vals.tuple,
-                                           &cartInstance->bcProps,
-                                           cartInstance->design.numDesignVariable,
-                                           cartInstance->design.designVariable,
-                                           &cartInstance->design.numDesignFunctional,
-                                           &cartInstance->design.designFunctional);
-          AIM_STATUS(aimInfo, status);
-      }
+       aim_isFile(aimInfo, "design/design.xml"      ) == CAPS_NOTFOUND)) {
 
       // write design.xml
       status = cart3d_designxml(aimInfo, &cartInstance->design,
-                                inputs[Design_Sensitivity-1].vals.integer,
-                                inputs[Design_Adapt-1].vals.string);
+                                aimInputs[Design_Sensitivity-1].vals.integer,
+                                aimInputs[Design_Adapt-1].vals.string);
       AIM_STATUS(aimInfo, status);
   }
 
   // Check if adaptation is requested
-  if (inputs[Design_Functional-1].nullVal == IsNull &&
-      inputs[Adapt_Functional-1].nullVal == NotNull &&
+  if (aimInputs[Design_Functional-1].nullVal == IsNull &&
+      aimInputs[Adapt_Functional-1 ].nullVal == NotNull &&
       (aim_newAnalysisIn(aimInfo, Adapt_Functional ) == CAPS_SUCCESS ||
-       aim_isFile(aimInfo, "inputs/Functionals.xml") != CAPS_SUCCESS)) {
-
-    i = cartInstance->adaptFunctional == NULL ? 0 : 1;
-
-    status = cfd_getDesignFunctional(aimInfo,
-                                     inputs[Adapt_Functional-1].length,
-                                     inputs[Adapt_Functional-1].vals.tuple,
-                                     &cartInstance->bcProps,
-                                     0,
-                                     NULL,
-                                     &i,
-                                     &cartInstance->adaptFunctional);
-    AIM_STATUS(aimInfo, status);
+       aim_isFile(aimInfo, "inputs/Functionals.xml") == CAPS_NOTFOUND)) {
 
     AIM_NOTNULL(cartInstance->adaptFunctional, aimInfo, status);
     status = cart3d_functionalsxml(aimInfo, cartInstance->adaptFunctional);
@@ -1844,45 +2289,14 @@ aimPreAnalysis(void *instStore, void *aimInfo, capsValue *inputs)
   }
 
 
-  // Only do surface meshing if the geometry or Tess_Params have changed
   if (aim_newGeometry(aimInfo) == CAPS_SUCCESS ||
-      aim_newAnalysisIn(aimInfo, Tess_Params) == CAPS_SUCCESS) {
-
-    AIM_REALL(cartInstance->tess, nBody, ego, aimInfo, status);
-    cartInstance->ntess = nBody;
-
-    for (i = 0; i < nBody; i++) {
-      status = EG_getBoundingBox(bodies[i], box);
-      AIM_STATUS(aimInfo, status);
-
-      size = sqrt((box[3]-box[0])*(box[3]-box[0]) +
-                  (box[4]-box[1])*(box[4]-box[1]) +
-                  (box[5]-box[2])*(box[5]-box[2]));
-      printf(" Body size = %lf\n", size);
-
-      params[0] = inputs[Tess_Params-1].vals.reals[0]*size;
-      params[1] = inputs[Tess_Params-1].vals.reals[1]*size;
-      params[2] = inputs[Tess_Params-1].vals.reals[2];
-      printf(" Tessellating body %d with  MaxEdge = %lf  Sag = %lf  Angle = %lf\n",
-             i+1, params[0], params[1], params[2]);
-
-      status = EG_makeTessBody(bodies[i], params, &cartInstance->tess[i]);
-      AIM_STATUS(aimInfo, status);
-
-      /* store away the tessellation */
-      status = aim_newTess(aimInfo, cartInstance->tess[i]);
-      AIM_STATUS(aimInfo, status);
-    }
-  }
-
-  if (aim_newGeometry(aimInfo) == CAPS_SUCCESS ||
-      aim_newAnalysisIn(aimInfo, Tess_Params) == CAPS_SUCCESS ||
-      aim_newAnalysisIn(aimInfo, Design_Variable) == CAPS_SUCCESS ||
+      aim_newAnalysisIn(aimInfo, Tess_Params       ) == CAPS_SUCCESS ||
+      aim_newAnalysisIn(aimInfo, Design_Variable   ) == CAPS_SUCCESS ||
       aim_newAnalysisIn(aimInfo, Design_Sensitivity) == CAPS_SUCCESS ||
-      aim_isFile(aimInfo, "design/builder.xml") != CAPS_SUCCESS) {
+      aim_isFile(aimInfo, "design/builder.xml"     ) == CAPS_NOTFOUND) {
 
     // Only compute sensitivities if needed
-    if (inputs[Design_Sensitivity-1].vals.integer == (int)true) {
+    if (aimInputs[Design_Sensitivity-1].vals.integer == (int)true) {
 
       status = cart3d_Components(aimInfo,
                                  cartInstance->design.numDesignVariable,
@@ -1907,13 +2321,37 @@ aimPreAnalysis(void *instStore, void *aimInfo, capsValue *inputs)
   // Only do volume meshing if the geometry has been changed or a meshing input variable has been changed
   if (aim_newGeometry(aimInfo) == CAPS_SUCCESS ||
       aim_newAnalysisIn(aimInfo, Tess_Params) == CAPS_SUCCESS ||
-      aim_newAnalysisIn(aimInfo, outer_box) == CAPS_SUCCESS ||
-      aim_newAnalysisIn(aimInfo, nDiv) == CAPS_SUCCESS ||
-      aim_newAnalysisIn(aimInfo, maxR) == CAPS_SUCCESS) {
+      aim_newAnalysisIn(aimInfo, mesh2d     ) == CAPS_SUCCESS ||
+      aim_newAnalysisIn(aimInfo, outer_box  ) == CAPS_SUCCESS ||
+      aim_newAnalysisIn(aimInfo, nDiv       ) == CAPS_SUCCESS ||
+      aim_newAnalysisIn(aimInfo, maxR       ) == CAPS_SUCCESS ||
+      aim_newAnalysisIn(aimInfo, symmX       ) == CAPS_SUCCESS ||
+      aim_newAnalysisIn(aimInfo, symmY       ) == CAPS_SUCCESS ||
+      aim_newAnalysisIn(aimInfo, symmZ       ) == CAPS_SUCCESS ||
+      aim_newAnalysisIn(aimInfo, halfBody   ) == CAPS_SUCCESS ||
+      aim_isFile(aimInfo, "inputs/input.c3d") == CAPS_NOTFOUND ||
+      aim_isFile(aimInfo, "inputs/preSpec.c3d.cntl") == CAPS_NOTFOUND) {
 
-    snprintf(line, 128, "autoInputs -r %lf -nDiv %d -maxR %d > autoInputs.out",
-             inputs[outer_box-1].vals.real, inputs[nDiv-1].vals.integer,
-             inputs[maxR-1].vals.integer);
+    args[0] = '\0';
+    if (aimInputs[mesh2d-1].vals.integer == (int)true) {
+      strcat(args, " -mesh2d");
+    }
+    if (aimInputs[symmX-1].vals.integer == (int)true) {
+      strcat(args, " -symmX");
+    }
+    if (aimInputs[symmY-1].vals.integer == (int)true) {
+      strcat(args, " -symmY");
+    }
+    if (aimInputs[symmZ-1].vals.integer == (int)true) {
+      strcat(args, " -symmZ");
+    }
+    if (aimInputs[halfBody-1].vals.integer == (int)true) {
+      strcat(args, " -halfBody");
+    }
+
+    snprintf(line, 128, "autoInputs -r %lf -nDiv %d -maxR %d %s > autoInputs.out",
+             aimInputs[outer_box-1].vals.real, aimInputs[nDiv-1].vals.integer,
+             aimInputs[maxR-1].vals.integer, args);
     printf(" Executing: %s\n", line);
     status = aim_system(aimInfo, inputsDir, line);
     AIM_STATUS(aimInfo, status);
@@ -1928,10 +2366,10 @@ aimPreAnalysis(void *instStore, void *aimInfo, capsValue *inputs)
   }
 
   fprintf(fp, "$__Case_Information:\n\n");
-  fprintf(fp, "Mach     %lf\n", inputs[Mach-1].vals.real);
-  fprintf(fp, "alpha    %lf\n", inputs[alpha-1].vals.real);
-  fprintf(fp, "beta     %lf\n", inputs[beta-1].vals.real);
-  fprintf(fp, "gamma    %lf\n", inputs[Gamma-1].vals.real);
+  fprintf(fp, "Mach     %lf\n", aimInputs[Mach-1].vals.real);
+  fprintf(fp, "alpha    %lf\n", aimInputs[alpha-1].vals.real);
+  fprintf(fp, "beta     %lf\n", aimInputs[beta-1].vals.real);
+  fprintf(fp, "gamma    %lf\n", aimInputs[Gamma-1].vals.real);
 
   fprintf(fp, "\n$__File_Name_Information:\n\n");
   fprintf(fp, "MeshInfo           Mesh.c3d.Info\n");
@@ -1943,30 +2381,45 @@ aimPreAnalysis(void *instStore, void *aimInfo, capsValue *inputs)
   fprintf(fp, "RK        0.2898     0\n");
   fprintf(fp, "RK        0.5060     0\n");
   fprintf(fp, "RK        1.0        0\n\n");
-  fprintf(fp, "CFL           %lf\n", inputs[CFL-1].vals.real);
-  fprintf(fp, "Limiter       %d\n",  inputs[Limiter-1].vals.integer);
-  fprintf(fp, "FluxFun       %d\n",  inputs[FluxFun-1].vals.integer);
-  fprintf(fp, "maxCycles     %d\n",  inputs[maxCycles-1].vals.integer);
+  fprintf(fp, "CFL           %lf\n", aimInputs[CFL-1].vals.real);
+  fprintf(fp, "Limiter       %d\n",  aimInputs[Limiter-1].vals.integer);
+  fprintf(fp, "FluxFun       %d\n",  aimInputs[FluxFun-1].vals.integer);
+  fprintf(fp, "maxCycles     %d\n",  aimInputs[maxCycles-1].vals.integer);
   fprintf(fp, "Precon        0\n");
   fprintf(fp, "wallBCtype    0\n");
-  fprintf(fp, "nMGlev        %d\n",   inputs[nMultiGridLevels-1].vals.integer);
-  fprintf(fp, "MG_cycleType  %d\n",   inputs[MultiGridCycleType-1].vals.integer);
-  fprintf(fp, "MG_nPre       %d\n",   inputs[MultiGridPreSmoothing-1].vals.integer);
-  fprintf(fp, "MG_nPost      %d\n\n", inputs[MultiGridPostSmoothing-1].vals.integer);
+  fprintf(fp, "nMGlev        %d\n",   aimInputs[nMultiGridLevels-1].vals.integer);
+  fprintf(fp, "MG_cycleType  %d\n",   aimInputs[MultiGridCycleType-1].vals.integer);
+  fprintf(fp, "MG_nPre       %d\n",   aimInputs[MultiGridPreSmoothing-1].vals.integer);
+  fprintf(fp, "MG_nPost      %d\n\n", aimInputs[MultiGridPostSmoothing-1].vals.integer);
 
   fprintf(fp, "$__Boundary_Conditions:\n\n");
 /*                   # BC types: 0 = FAR FIELD
                                  1 = SYMMETRY
                                  2 = INFLOW  (specify all)
                                  3 = OUTFLOW (simple extrap)  */
-  fprintf(fp, "Dir_Lo_Hi     0   0 0\n"); /* (0/1/2) direction - Low BC - Hi BC */
-  fprintf(fp, "Dir_Lo_Hi     1   0 0\n");
-  fprintf(fp, "Dir_Lo_Hi     2   0 0\n\n");
+                       /* (0/1/2) direction - Low BC - Hi BC */
+  if (aimInputs[symmX-1].vals.integer == (int)true) {
+    fprintf(fp, "Dir_Lo_Hi     0   1 0\n");
+  } else {
+    fprintf(fp, "Dir_Lo_Hi     0   0 0\n");
+  }
+  if (aimInputs[symmY-1].vals.integer == (int)true) {
+    fprintf(fp, "Dir_Lo_Hi     1   1 0\n");
+  } else {
+    fprintf(fp, "Dir_Lo_Hi     1   0 0\n");
+  }
+  if (aimInputs[symmZ-1].vals.integer == (int)true) {
+    fprintf(fp, "Dir_Lo_Hi     2   1 0\n\n");
+  } else if (aimInputs[mesh2d-1].vals.integer == (int)true) {
+    fprintf(fp, "Dir_Lo_Hi     2   1 1\n\n");
+  } else {
+    fprintf(fp, "Dir_Lo_Hi     2   0 0\n\n");
+  }
 
   fprintf(fp, "$__Convergence_History_reporting:\n\n");
-  fprintf(fp, "iForce     %d\n", inputs[iForce-1].vals.integer);
-  fprintf(fp, "iHist      %d\n", inputs[iHist-1].vals.integer);
-  fprintf(fp, "nOrders    %d\n", inputs[nOrders-1].vals.integer);
+  fprintf(fp, "iForce     %d\n", aimInputs[iForce-1].vals.integer);
+  fprintf(fp, "iHist      %d\n", aimInputs[iHist-1].vals.integer);
+  fprintf(fp, "nOrders    %d\n", aimInputs[nOrders-1].vals.integer);
   fprintf(fp, "refArea    %lf\n", Sref);
   fprintf(fp, "refLength  %lf\n", Cref);
 
@@ -1976,39 +2429,39 @@ aimPreAnalysis(void *instStore, void *aimInfo, capsValue *inputs)
 
   fprintf(fp, "\n$__Post_Processing:\n\n");
   varid = Xslices-1;
-  if (inputs[varid].nullVal != IsNull) {
-    if (inputs[varid].length == 1) {
-      fprintf(fp,"Xslices %lf\n",inputs[varid].vals.real);
+  if (aimInputs[varid].nullVal != IsNull) {
+    if (aimInputs[varid].length == 1) {
+      fprintf(fp,"Xslices %lf\n",aimInputs[varid].vals.real);
     } else {
       fprintf(fp,"Xslices");
-      for (j = 0; j < inputs[varid].length; j++) {
-        fprintf(fp," %lf",inputs[varid].vals.reals[j]);
+      for (j = 0; j < aimInputs[varid].length; j++) {
+        fprintf(fp," %lf",aimInputs[varid].vals.reals[j]);
       }
       fprintf(fp,"\n");
     }
   }
 
   varid = Yslices-1;
-  if (inputs[varid].nullVal != IsNull) {
-    if (inputs[varid].length == 1) {
-      fprintf(fp,"Yslices %lf\n",inputs[varid].vals.real);
+  if (aimInputs[varid].nullVal != IsNull) {
+    if (aimInputs[varid].length == 1) {
+      fprintf(fp,"Yslices %lf\n",aimInputs[varid].vals.real);
     } else {
       fprintf(fp,"Yslices");
-      for (j = 0; j < inputs[varid].length; j++) {
-        fprintf(fp," %lf",inputs[varid].vals.reals[j]);
+      for (j = 0; j < aimInputs[varid].length; j++) {
+        fprintf(fp," %lf",aimInputs[varid].vals.reals[j]);
       }
       fprintf(fp,"\n");
     }
   }
 
   varid = Zslices-1;
-  if (inputs[varid].nullVal != IsNull) {
-    if (inputs[varid].length == 1) {
-      fprintf(fp,"Zslices %lf\n",inputs[varid].vals.real);
+  if (aimInputs[varid].nullVal != IsNull) {
+    if (aimInputs[varid].length == 1) {
+      fprintf(fp,"Zslices %lf\n",aimInputs[varid].vals.real);
     } else {
       fprintf(fp,"Zslices");
-      for (j = 0; j < inputs[varid].length; j++) {
-        fprintf(fp," %lf",inputs[varid].vals.reals[j]);
+      for (j = 0; j < aimInputs[varid].length; j++) {
+        fprintf(fp," %lf",aimInputs[varid].vals.reals[j]);
       }
       fprintf(fp,"\n");
     }
@@ -2017,13 +2470,30 @@ aimPreAnalysis(void *instStore, void *aimInfo, capsValue *inputs)
   fprintf(fp, "\n$__Force_Moment_Processing:\n\n");
 /* ... Axis definitions (with respect to body axis directions (Xb,Yb,Zb)
                          w/ usual stability and control orientation)  */
-  fprintf(fp, "Model_X_axis  %s\n", inputs[Model_X_axis-1].vals.string);
-  fprintf(fp, "Model_Y_axis  %s\n", inputs[Model_Y_axis-1].vals.string);
-  fprintf(fp, "Model_Z_axis  %s\n", inputs[Model_Z_axis-1].vals.string);
+  fprintf(fp, "Model_X_axis  %s\n", aimInputs[Model_X_axis-1].vals.string);
+  fprintf(fp, "Model_Y_axis  %s\n", aimInputs[Model_Y_axis-1].vals.string);
+  fprintf(fp, "Model_Z_axis  %s\n", aimInputs[Model_Z_axis-1].vals.string);
   fprintf(fp, "Reference_Area   %lf all\n", Sref);
   fprintf(fp, "Reference_Length %lf all\n", Cref);
   fprintf(fp, "Force all\n\n");
   fprintf(fp, "Moment_Point %lf %lf %lf all\n",Xref ,Yref ,Zref );
+
+
+  if (aimInputs[TargetCL-1].nullVal != IsNull) {
+    //                          ...live steering this section is optional
+    //                             if it exists it will get re-parsed every
+    //                             iCLfreq iterations
+    fprintf(fp,"\n");
+    fprintf(fp, "$__Steering_Information:\n");
+    //TargetCL  (CL target value) (CL tolerance)  (iCLStart iter) (iCLfrequency)
+    //              (float)           (float)         (int)            (int)
+    fprintf(fp, "TargetCL  %lf  %lf  %d %d\n", aimInputs[TargetCL-1].vals.real,
+                                               aimInputs[TargetCL_Tol-1].vals.real,
+                                               aimInputs[TargetCL_Start_Iter-1].vals.integer,
+                                               aimInputs[TargetCL_Freq-1].vals.integer);
+    // NominalAlphaStep  %f  # (OPTIONAL) choose Initial alpha step, also max step size OPTIONAL, default <0.2>
+    fprintf(fp, "NominalAlphaStep %lf\n", aimInputs[TargetCL_NominalAlphaStep-1].vals.real);
+  }
 
   status = CAPS_SUCCESS;
 
@@ -2037,7 +2507,7 @@ cleanup:
 
 
 // ********************** AIM Function Break *****************************
-int aimExecute(/*@unused@*/ void *instStore, void *aimInfo,
+int aimExecute(/*@unused@*/ const void *instStore, void *aimInfo,
                int *state)
 {
   /*! \page aimExecuteCART3D AIM Execution
@@ -2262,7 +2732,8 @@ aimOutputs(/*@unused@*/ void *instStore, /*@unused@*/ void *aimStruc, int index,
   const char *names[NUMOUT] = {"C_A"  , "C_Y"  , "C_N",
                                "C_D"  , "C_S"  , "C_L",
                                "C_l"  , "C_m"  , "C_n",
-                               "C_M_x", "C_M_y", "C_M_z"};
+                               "C_M_x", "C_M_y", "C_M_z",
+                               "alpha"};
 #ifdef DEBUG
   printf(" Cart3DAIM/aimOutputs index = %d!\n", index);
 #endif
@@ -2281,6 +2752,7 @@ aimOutputs(/*@unused@*/ void *instStore, /*@unused@*/ void *aimStruc, int index,
   * - <B> C_M_x</B>. X Aero Moment
   * - <B> C_M_y</B>. Y Aero Moment
   * - <B> C_M_z</B>. Z Aero Moment
+  * - <B> alpha</B>. Angle of attach (may change using TargetCL)
   */
 
   *aoname    = EG_strdup(names[index-1]);
@@ -2311,7 +2783,8 @@ aimCalcOutput(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo,
                                     "entire   Yawing Moment",
                                     "entire   X Aero Moment",
                                     "entire   Y Aero Moment",
-                                    "entire   Z Aero Moment" };
+                                    "entire   Z Aero Moment",
+                                    "alpha"};
 
   char       *startTbl[NUMOUT]= { "CAxial",
                                   "CY(Lateral)",
@@ -2324,7 +2797,8 @@ aimCalcOutput(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo,
                                   "Cn(Yaw)",
                                   "C_M_x",
                                   "C_M_y",
-                                  "C_M_z" };
+                                  "C_M_z",
+                                  "Alpha"};
 
   capsValue *design_functional=NULL;
 
@@ -2383,24 +2857,38 @@ aimCalcOutput(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo,
 
   } else {
 
-    /* open the Cart3D loads file */
-    fp = aim_fopen(aimInfo, "inputs/BEST/FLOW/loadsCC.dat", "r");
-    if (fp == NULL) {
-      AIM_ERROR(aimInfo, "Cannot open: inputs/BEST/FLOW/loadsCC.dat!");
-      return CAPS_IOERR;
+    if (index == NUMOUT) { // alpha
+      /* open the Cart3D input.cntl file */
+      fp = aim_fopen(aimInfo, "inputs/BEST/FLOW/input.cntl", "r");
+      if (fp == NULL) {
+        AIM_ERROR(aimInfo, "Cannot open: inputs/BEST/FLOW/input.cntl!");
+        return CAPS_IOERR;
+      }
+    } else {
+      /* open the Cart3D loads file */
+      fp = aim_fopen(aimInfo, "inputs/BEST/FLOW/loadsCC.dat", "r");
+      if (fp == NULL) {
+        AIM_ERROR(aimInfo, "Cannot open: inputs/BEST/FLOW/loadsCC.dat!");
+        return CAPS_IOERR;
+      }
     }
 
     /* scan the file for the string */
     valstr = NULL;
     while (getline(&line, &linecap, fp) >= 0) {
       if (line == NULL) continue;
+      if (line[0] == '#') continue;
       valstr = strstr(line, startLoads[index-1]);
       if (valstr != NULL) {
-        valstr = strchr(line,comp);
+        if (index == NUMOUT)
+          valstr += strlen(startLoads[index-1]);
+        else
+          valstr = strchr(line,comp);
 
-  #ifdef DEBUG
+
+#ifdef DEBUG
         printf("valstr > |%s|\n",valstr);
-  #endif
+#endif
         /* found it -- get the value */
         sscanf(valstr+1, "%lf", &val->vals.real);
         break;
@@ -2409,7 +2897,11 @@ aimCalcOutput(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo,
     AIM_FREE(line);
 
     if (valstr == NULL) {
-      AIM_ERROR(aimInfo, "Cannot find '%s' in loadsCC.dat file!", startLoads[index-1]);
+      if (index == NUMOUT) { // alpha
+        AIM_ERROR(aimInfo, "Cannot find '%s' in inputs/BEST/FLOW/input.cntl file!", startLoads[index-1]);
+      } else {
+        AIM_ERROR(aimInfo, "Cannot find '%s' in inputs/BEST/FLOW/loadsCC.dat file!", startLoads[index-1]);
+      }
       status = CAPS_NOTFOUND;
       goto cleanup;
     }
@@ -2468,6 +2960,7 @@ aimDiscr(char *tname, capsDiscr *discr)
   const char    *string, *intents;
   ego           body, *bodies, *faces=NULL, *tess = NULL;
   capsBodyDiscr *discBody;
+  aimStorage    *cartInstance = NULL;
 
 #ifdef DEBUG
   printf(" capsAIM/aimDiscr: tname = %s, instance = %d!\n",
@@ -2477,21 +2970,20 @@ aimDiscr(char *tname, capsDiscr *discr)
   /* create the discretization structure for this capsBound */
 
   status = aim_getBodies(discr->aInfo, &intents, &nBody, &bodies);
-  if (status != CAPS_SUCCESS) goto cleanup;
+  AIM_STATUS(discr->aInfo, status);
 
-  /* bodies is 2*nBodies long where the last nBodies
-     are the tess objects for the first nBodies */
-  tess = bodies + nBody;
+  cartInstance = (aimStorage*)discr->instStore;
+  tess = cartInstance->tess;
 
   /* find any faces with our boundary marker */
   for (nBodyDisc = ibody = 0; ibody < nBody; ibody++) {
     if (tess[ibody] == NULL) continue;
+
     status = EG_getBodyTopos(bodies[ibody], NULL, FACE, &nFace, &faces);
-    if (status != EGADS_SUCCESS) goto cleanup;
-    if (faces == NULL) {
-      status = EGADS_TOPOERR;
-      goto cleanup;
-    }
+    AIM_STATUS(discr->aInfo, status, "getBodyTopos (Face) for Body %d",
+               ibody+1);
+    AIM_NOTNULL(faces, discr->aInfo, status);
+
     found = 0;
     for (iface = 0; iface < nFace; iface++) {
       status = EG_attributeRet(faces[iface], "capsBound", &atype, &alen,
@@ -2500,7 +2992,7 @@ aimDiscr(char *tname, capsDiscr *discr)
       if (atype  != ATTRSTRING)       continue;
       if (strcmp(string, tname) != 0) continue;
 #ifdef DEBUG
-      printf(" skeletonAIM/aimDiscr: Body %d/Face %d matches %s!\n",
+      printf(" cart3dAIM/aimDiscr: Body %d/Face %d matches %s!\n",
              ibody+1, iface+1, tname);
 #endif
       /* count the number of face with capsBound */
@@ -2510,7 +3002,7 @@ aimDiscr(char *tname, capsDiscr *discr)
     AIM_FREE(faces);
   }
   if (nBodyDisc == 0) {
-    printf(" skeletonAIM/aimDiscr: No Faces match %s!\n", tname);
+    printf(" cart3dAIM/aimDiscr: No Faces match %s!\n", tname);
     return CAPS_SUCCESS;
   }
 
@@ -2518,34 +3010,12 @@ aimDiscr(char *tname, capsDiscr *discr)
   discr->nTypes = 1;
   AIM_ALLOC(discr->types, discr->nTypes, capsEleType, discr->aInfo, status);
 
-  discr->types[0].nref  = 3;
-  discr->types[0].ndata = 0;         /* data at geom reference positions
-                                        (i.e. vertex centered/iso-parametric) */
-  discr->types[0].ntri  = 1;
-  discr->types[0].nmat  = 0;         /* match points at geom ref positions */
-  discr->types[0].tris  = NULL;
-  discr->types[0].gst   = NULL;
-  discr->types[0].dst   = NULL;
-  discr->types[0].matst = NULL;
-
-  /* specify the numbering for the points on the triangle */
-  AIM_ALLOC(discr->types[0].tris, discr->types[0].nref, int, discr->aInfo, status);
-
-  discr->types[0].tris[0] = 1;
-  discr->types[0].tris[1] = 2;
-  discr->types[0].tris[2] = 3;
-
-  /* specify the reference coordinates for each point on the triangle */
-  AIM_ALLOC(discr->types[0].gst, 2*discr->types[0].nref, double, discr->aInfo, status);
-
-  discr->types[0].gst[0] = 0.0;   /* s = 0, t = 0 */
-  discr->types[0].gst[1] = 0.0;
-  discr->types[0].gst[2] = 1.0;   /* s = 1, t = 0 */
-  discr->types[0].gst[3] = 0.0;
-  discr->types[0].gst[4] = 0.0;   /* s = 0, t = 1 */
-  discr->types[0].gst[5] = 1.0;
+  /* define triangle element type */
+  status = aim_nodalTriangleType( &discr->types[0]);
+  AIM_STATUS(discr->aInfo, status);
 
   /* allocate the body discretizations */
+  discr->nBodys = nBodyDisc;
   AIM_ALLOC(discr->bodys, discr->nBodys, capsBodyDiscr, discr->aInfo, status);
 
   /* get the tessellation and
@@ -2553,15 +3023,16 @@ aimDiscr(char *tname, capsDiscr *discr)
   vID = nBodyDisc = 0;
   for (ibody = 0; ibody < nBody; ibody++) {
     if (tess[ibody] == NULL) continue;
+
+    status = EG_statusTessBody(tess[ibody], &body, &state, &nGlobal);
+    AIM_STATUS(discr->aInfo, status);
+
     ntris = 0;
     AIM_FREE(faces);
-    status = EG_getBodyTopos(bodies[ibody], NULL, FACE, &nFace, &faces);
-    if ((status != EGADS_SUCCESS) || (faces == NULL)) {
-      printf(" skeletonAIM: getBodyTopos (Face) = %d for Body %d!\n",
-             status, ibody+1);
-      status = EGADS_TOPOERR;
-      goto cleanup;
-    }
+    status = EG_getBodyTopos(body, NULL, FACE, &nFace, &faces);
+    AIM_STATUS(discr->aInfo, status, "getBodyTopos (Face) for Body %d", ibody+1);
+    AIM_NOTNULL(faces, discr->aInfo, status);
+
     found = 0;
     for (iface = 0; iface < nFace; iface++) {
       status = EG_attributeRet(faces[iface], "capsBound", &atype, &alen,
@@ -2573,7 +3044,7 @@ aimDiscr(char *tname, capsDiscr *discr)
       status = EG_getTessFace(tess[ibody], iface+1, &alen, &xyz, &uv,
                               &ptype, &pindex, &tlen, &tris, &nei);
       if (status != EGADS_SUCCESS) {
-        printf(" skeletonAIM: EG_getTessFace %d = %d for Body %d!\n",
+        printf(" cart3dAIM: EG_getTessFace %d = %d for Body %d!\n",
                iface+1, status, ibody+1);
         continue;
       }
@@ -2582,9 +3053,7 @@ aimDiscr(char *tname, capsDiscr *discr)
     }
     if (found == 0) continue;
     if (ntris == 0) {
-#ifdef DEBUG
-      printf(" skeletonAIM/aimDiscr: ntris = %d!\n", ntris);
-#endif
+      AIM_ERROR(discr->aInfo, "No faces with capsBound = %s", tname);
       status = CAPS_SOURCEERR;
       goto cleanup;
     }
@@ -2592,14 +3061,11 @@ aimDiscr(char *tname, capsDiscr *discr)
     discBody = &discr->bodys[nBodyDisc];
     aim_initBodyDiscr(discBody);
 
-    discBody->tess = tess[ibody-1];
+    discBody->tess = tess[ibody];
     discBody->nElems = ntris;
 
     AIM_ALLOC(discBody->elems   ,   ntris, capsElement, discr->aInfo, status);
     AIM_ALLOC(discBody->gIndices, 6*ntris, int        , discr->aInfo, status);
-
-    status = EG_statusTessBody(tess[ibody-1], &body, &state, &nGlobal);
-    AIM_STATUS(discr->aInfo, status);
 
     AIM_FREE(vid);
     AIM_ALLOC(vid, nGlobal, int, discr->aInfo, status);
@@ -2613,13 +3079,13 @@ aimDiscr(char *tname, capsDiscr *discr)
       if (atype  != ATTRSTRING)       continue;
       if (strcmp(string, tname) != 0) continue;
 
-      status = EG_getTessFace(tess[ibody-1], iface, &alen, &xyz, &uv,
+      status = EG_getTessFace(tess[ibody], iface+1, &alen, &xyz, &uv,
                             &ptype, &pindex, &tlen, &tris, &nei);
       AIM_STATUS(discr->aInfo, status);
 
       /* construct global vertex indices */
       for (i = 0; i < alen; i++) {
-        status = EG_localToGlobal(tess[ibody-1], iface, i+1, &global);
+        status = EG_localToGlobal(tess[ibody], iface+1, i+1, &global);
         AIM_STATUS(discr->aInfo, status);
         if (vid[global-1] != 0) continue;
         vid[global-1] = vID+1;
@@ -2629,26 +3095,26 @@ aimDiscr(char *tname, capsDiscr *discr)
       /* fill elements */
       for (itri = 0; itri < tlen; itri++, ielem++) {
         discBody->elems[ielem].tIndex      = 1;
-        discBody->elems[ielem].eIndex      = iface;
+        discBody->elems[ielem].eIndex      = iface+1;
 /*@-immediatetrans@*/
         discBody->elems[ielem].gIndices    = &discBody->gIndices[6*ielem];
 /*@+immediatetrans@*/
         discBody->elems[ielem].dIndices    = NULL;
         discBody->elems[ielem].eTris.tq[0] = itri+1;
 
-        status = EG_localToGlobal(tess[ibody-1], iface, tris[3*itri  ],
+        status = EG_localToGlobal(tess[ibody], iface+1, tris[3*itri  ],
                                   &global);
         AIM_STATUS(discr->aInfo, status);
         discBody->elems[ielem].gIndices[0] = vid[global-1];
         discBody->elems[ielem].gIndices[1] = tris[3*itri  ];
 
-        status = EG_localToGlobal(tess[ibody-1], iface, tris[3*itri+1],
+        status = EG_localToGlobal(tess[ibody], iface+1, tris[3*itri+1],
                                   &global);
         AIM_STATUS(discr->aInfo, status);
         discBody->elems[ielem].gIndices[2] = vid[global-1];
         discBody->elems[ielem].gIndices[3] = tris[3*itri+1];
 
-        status = EG_localToGlobal(tess[ibody-1], iface, tris[3*itri+2],
+        status = EG_localToGlobal(tess[ibody], iface+1, tris[3*itri+2],
                                   &global);
         AIM_STATUS(discr->aInfo, status);
         discBody->elems[ielem].gIndices[4] = vid[global-1];
@@ -2687,22 +3153,57 @@ int
 aimTransfer(capsDiscr *discr, const char *name, int npts, int rank, double *data,
             /*@unused@*/ char **units)
 {
-  int    i, j, global, stat, bIndex, dim;
-  double **rvec;
+  /*! \page dataTransferCART3D AIM Data Transfer
+   *
+   * The Cart3D AIM has the ability to transfer surface data (e.g. pressure distributions) to and from the AIM
+   * using the conservative and interpolative data transfer schemes in CAPS. Currently these transfers may only
+   * take place on triangular meshes.
+   *
+   * \section dataFromCart3D Data transfer from Cart3D (FieldOut)
+   *
+   * <ul>
+   * <li> <B>"Pressure" </B> </li> <br>
+   *  Loads the pressure distribution from Components.i.trix file.
+   *  This distribution may be scaled based on
+   *  Pressure = Pressure_Scale_Factor*Pressure, where "Pressure_Scale_Factor"
+   *  is an AIM input (\ref aimInputsCART3D)
+   * </ul>
+   *
+   */
+  int    i, j, global, status, bIndex, dim, nBody;
+  double **rvec=NULL, scale = 1.0;
+  capsValue *Pressure_Scale_Factor_Value=NULL;
+  char aimFile[PATH_MAX];
+  const char *intents;
+  ego        *bodies;
 
 #ifdef DEBUG
   printf(" Cart3DAIM/aimTransfer name = %s  npts = %d/%d!\n",
          name, npts, len_wrt);
 #endif
 
+  status = aim_getBodies(discr->aInfo, &intents, &nBody, &bodies);
+  AIM_STATUS(discr->aInfo, status);
+
+  status = aim_file(discr->aInfo, "inputs/BEST/FLOW/Components.i.trix", aimFile);
+  AIM_STATUS(discr->aInfo, status);
+
   /* try and read the trix file */
-  stat = readTrix("Components.i.trix", name, &dim, &rvec);
-  if (stat != 0) {
+  status = readTrix(aimFile, name, &dim, &rvec);
+  if (status != 0) {
     return CAPS_IOERR;
   }
   if (dim != rank) {
     AIM_ERROR(discr->aInfo, "Rank/Dim missmatch!");
     return CAPS_IOERR;
+  }
+  AIM_NOTNULL(rvec, discr->aInfo, status);
+
+  if (strcmp(name, "Pressure") == 0) {
+    status = aim_getValue(discr->aInfo, Pressure_Scale_Factor, ANALYSISIN, &Pressure_Scale_Factor_Value);
+    AIM_STATUS(discr->aInfo, status);
+    AIM_NOTNULL(Pressure_Scale_Factor_Value, discr->aInfo, status);
+    scale = Pressure_Scale_Factor_Value->vals.real;
   }
 
   /* move the appropriate parts of the tessellation to data */
@@ -2710,11 +3211,18 @@ aimTransfer(capsDiscr *discr, const char *name, int npts, int rank, double *data
     /* points might span multiple bodies */
     bIndex = discr->tessGlobal[2*i  ];
     global = discr->tessGlobal[2*i+1];
-    for (j = 0; j < rank; j++) data[rank*i+j] = rvec[bIndex-1][rank*global+j];
+    for (j = 0; j < rank; j++) data[rank*i+j] = rvec[bIndex-1][rank*(global-1)+j] * scale;
   }
 
+  status = CAPS_SUCCESS;
+cleanup:
+  if (rvec != NULL) {
+    for (i = 0; i < nBody; ++i) {
+      AIM_FREE(rvec[i]);
+    }
+  }
   AIM_FREE(rvec);
-  return CAPS_SUCCESS;
+  return status;
 }
 
 

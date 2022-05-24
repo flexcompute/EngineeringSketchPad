@@ -1,0 +1,35 @@
+# designP5a
+# written by John Dannenhoffer
+
+CFGPMTR   useFD  0
+DESPMTR   rad    1
+DESPMTR   xcut   0
+DESPMTR   zcut   0
+DESPMTR   xrod   1/2
+DESPMTR   zrod   1/2
+
+# throw-away body if finitie-differences are required
+IFTHEN    useFD NE 0
+   SKBEG      0  0  0
+      LINSEG  1  0  0
+   SKEND
+   STORE ...
+ENDIF
+
+# SheetBody INTERSECTed with a CYLINDER
+CYLINDER  -2     0  0     +2  0  0   rad
+BOX        xcut -2 -2      0  4  4
+BOX       -1    -2  zcut   2  4  0
+UNION
+INTERSECT
+TRANSLATE  1  1  1
+SCALE      2
+
+# WireBody INTERSECTed with a CYLINDER
+CYLINDER  -2     0  0     +2  0  0   rad
+BOX        xrod -2  zrod   0  4  0
+INTERSECT
+TRANSLATE  1  1  1
+SCALE      2
+
+END

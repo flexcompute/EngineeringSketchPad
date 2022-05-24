@@ -3,7 +3,7 @@
  *
  *             Base Object Functions
  *
- *      Copyright 2011-2021, Massachusetts Institute of Technology
+ *      Copyright 2011-2022, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -34,7 +34,7 @@
 
 
   static char *EGADSprop[2] = {STR(EGADSPROP),
-                               "\nEGADSprop: Copyright 2011-2021 MIT. All Rights Reserved."};
+                               "\nEGADSprop: Copyright 2011-2022 MIT. All Rights Reserved."};
 
 
   extern void EG_initOCC( );
@@ -1264,6 +1264,7 @@ EG_copyObject(const egObject *object, /*@null@*/ void *ptr, egObject **copy)
     for (i = 1; i <= btess->nFace; i++) {
       stat = EG_getTessFace(object, i, &npts, &xyz, &prms, &ptype, &pindex,
                             &ntri, &tris, &tric);
+      if (stat == EGADS_NODATA) continue;
       if (stat != EGADS_SUCCESS) {
         if (outLevel > 0)
           printf(" EGADS Error: EG_getTessFace %d = %d (EG_copyObject)!\n",

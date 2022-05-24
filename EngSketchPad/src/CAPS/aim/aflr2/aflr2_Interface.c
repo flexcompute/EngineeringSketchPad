@@ -34,7 +34,7 @@ char xplt_Case_Name[133];
 
 static INT_
 egads_eval_bedge(void *aimInfo, ego tess,
-                 mapAttrToIndexStruct *groupMap, mapAttrToIndexStruct *meshMap,
+                 const mapAttrToIndexStruct *groupMap, const mapAttrToIndexStruct *meshMap,
                  INT_ *nbedge, INT_2D ** inibe, INT_1D **Bnd_Edge_ID_Flag,
                  INT_1D **Bnd_Edge_Mesh_ID_Flag, DOUBLE_2D ** x)
 {
@@ -320,11 +320,11 @@ cleanup:
 
 int aflr2_Surface_Mesh(void *aimInfo,
                        int Message_Flag, ego bodyIn,
-                       meshInputStruct *meshInput,
-                       mapAttrToIndexStruct *groupMap,
-                       mapAttrToIndexStruct *meshMap,
+                       const meshInputStruct *meshInput,
+                       const mapAttrToIndexStruct *groupMap,
+                       const mapAttrToIndexStruct *meshMap,
                        meshStruct *surfaceMesh,
-                       aimMeshRef *meshRef)
+                       const aimMeshRef *meshRef)
 {
 
     int status; // Function return status

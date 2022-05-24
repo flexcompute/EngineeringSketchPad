@@ -1,5 +1,5 @@
 // Modified from Solution Adaptive Numerical Simulator (SANS)
-// Copyright 2013-2021, Massachusetts Institute of Technology
+// Copyright 2013-2022, Massachusetts Institute of Technology
 // Licensed under The GNU Lesser General Public License, version 2.1
 // See http://www.opensource.org/licenses/lgpl-2.1.php
 
@@ -15,7 +15,10 @@ inline double log1p( double x ) { return log(x + 1); }
 #endif
 #endif
 
-#define SURREAL_TRAD
+#if !defined(SURREAL_LAZY) && !defined(SURREAL_TRAD)
+#define SURREAL_LAZY
+#define EGADS_SURREAL
+#endif
 
 #if defined(SURREAL_TRAD)
 #include "SurrealS_Trad.h"
@@ -25,6 +28,8 @@ inline double log1p( double x ) { return log(x + 1); }
 #error "Please define SURREAL_TRAD or SURREAL_LAZY"
 #endif
 
-#undef SURREAL_TRAD
+#ifdef EGADS_SURREAL
+#undef SURREAL_LAZY
+#endif
 
 #endif // SURREALS_H

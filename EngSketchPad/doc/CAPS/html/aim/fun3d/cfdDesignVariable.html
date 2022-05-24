@@ -66,7 +66,8 @@ $(function() {
 <div class="title">CFD Design Variable </div>  </div>
 </div><!--header-->
 <div class="contents">
-<div class="textblock"><p>Structure for the design variable tuple = ("DesignVariable Name", "Value"). "DesignVariable Name" defines the reference name for the design variable being specified. The "Value" may be a JSON String dictionary (see Section <a class="el" href="cfdDesignVariable.html#jsonStringDesignVariable">JSON String Dictionary</a>) or just a blank string (see Section stringDesignVariable).</p>
+<div class="textblock"><p>Structure for the design variable tuple = ("DesignVariable Name", "Value"). "DesignVariable Name" defines the reference name for the design variable being specified. The "Value" may be a JSON String dictionary (see Section <a class="el" href="cfdDesignVariable.html#jsonStringDesignVariable">JSON String Dictionary</a>) or just a blank string (see Section <a class="el" href="cfdDesignVariable.html#keyStringDesignVariable">Single Value String</a>).</p>
+<p>Note that any JSON string inputs are written to the input files as information only. They are only use if the analysis is executed with the analysis specific design framework.</p>
 <h1><a class="anchor" id="jsonStringDesignVariable"></a>
 JSON String Dictionary</h1>
 <p>If "Value" is JSON string dictionary (eg. "Value" = {"upperBound": 10.0}) the following keywords ( = default values) may be used:</p>
@@ -77,7 +78,7 @@ JSON String Dictionary</h1>
 </ul>
 <ul>
 <li>
-<b>upperBound = 0.0</b>  <br  />
+<b>upperBound = 0.0 or [0.0, 0.0,...]</b>  <br  />
  Upper bound for the design variable. </li>
 </ul>
 <h1><a class="anchor" id="keyStringDesignVariable"></a>
@@ -87,7 +88,7 @@ Single Value String</h1>
 </div><!-- PageDoc -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Fri Sep 17 2021 06:42:05 for FUN3D Analysis Interface Module (AIM) by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1
+Generated on Sat Jul 2 2022 10:12:29 for FUN3D Analysis Interface Module (AIM) by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1
 </small></address>
 </body>
 </html>

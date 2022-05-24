@@ -37,11 +37,13 @@ int aim_nodalTriangleType(capsEleType *eletype)
   eletype->nref  = 3;
   eletype->ndata = 0;            /* data at geom reference positions */
   eletype->ntri  = 1;
+  eletype->nseg  = 0;
   eletype->nmat  = 0;            /* match points at geom ref positions */
   eletype->gst   = NULL;
   eletype->dst   = NULL;
   eletype->matst = NULL;
   eletype->tris  = NULL;
+  eletype->segs  = NULL;
 
   /*  t
       ^
@@ -98,11 +100,13 @@ int aim_nodalQuadType(capsEleType *eletype)
   eletype->nref  = 4;
   eletype->ndata = 0;            /* data at geom reference positions */
   eletype->ntri  = 2;
+  eletype->nseg  = 4;
   eletype->nmat  = 0;            /* match points at geom ref positions */
   eletype->gst   = NULL;
   eletype->dst   = NULL;
   eletype->matst = NULL;
   eletype->tris  = NULL;
+  eletype->segs  = NULL;
 
   /*  t
       ^
@@ -123,6 +127,20 @@ int aim_nodalQuadType(capsEleType *eletype)
   eletype->tris[3] = 3;
   eletype->tris[4] = 4;
   eletype->tris[5] = 1;
+  
+  eletype->segs    = (int *) EG_alloc(8*sizeof(int));
+  if (eletype->segs == NULL) goto cleanup;
+  eletype->segs[0] = 1;
+  eletype->segs[1] = 2;
+  
+  eletype->segs[2] = 2;
+  eletype->segs[3] = 3;
+  
+  eletype->segs[4] = 3;
+  eletype->segs[5] = 4;
+  
+  eletype->segs[6] = 4;
+  eletype->segs[7] = 1;
 
   eletype->gst    = (double *) EG_alloc(2*eletype->nref*sizeof(double));
   if (eletype->gst == NULL) goto cleanup;
@@ -148,6 +166,8 @@ cleanup:
   eletype->matst = NULL;
   EG_free(eletype->tris);
   eletype->tris = NULL;
+  EG_free(eletype->segs);
+  eletype->segs = NULL;
 
   return status;
 }
@@ -165,11 +185,13 @@ int aim_cellTriangleType(capsEleType *eletype)
   eletype->nref  = 3;
   eletype->ndata = 1;            /* data at 1 reference positions */
   eletype->ntri  = 1;
+  eletype->nseg  = 0;
   eletype->nmat  = 1;            /* match points at 1 ref positions */
   eletype->gst   = NULL;
   eletype->dst   = NULL;
   eletype->matst = NULL;
   eletype->tris  = NULL;
+  eletype->segs  = NULL;
 
   /*  t
       ^
@@ -237,11 +259,13 @@ int aim_cellQuadType(capsEleType *eletype)
   eletype->nref  = 4;
   eletype->ndata = 1;            /* data at 1 reference positions */
   eletype->ntri  = 2;
+  eletype->nseg  = 4;
   eletype->nmat  = 1;            /* match points at 1 ref positions */
   eletype->gst   = NULL;
   eletype->dst   = NULL;
   eletype->matst = NULL;
   eletype->tris  = NULL;
+  eletype->segs  = NULL;
 
   /*  t
       ^
@@ -262,6 +286,20 @@ int aim_cellQuadType(capsEleType *eletype)
   eletype->tris[3] = 3;
   eletype->tris[4] = 4;
   eletype->tris[5] = 1;
+  
+  eletype->segs    = (int *) EG_alloc(8*sizeof(int));
+  if (eletype->segs == NULL) goto cleanup;
+  eletype->segs[0] = 1;
+  eletype->segs[1] = 2;
+  
+  eletype->segs[2] = 2;
+  eletype->segs[3] = 3;
+  
+  eletype->segs[4] = 3;
+  eletype->segs[5] = 4;
+  
+  eletype->segs[6] = 4;
+  eletype->segs[7] = 1;
 
   eletype->gst    = (double *) EG_alloc(2*eletype->nref*sizeof(double));
   if (eletype->gst == NULL) goto cleanup;
@@ -298,6 +336,8 @@ cleanup:
   eletype->matst = NULL;
   EG_free(eletype->tris);
   eletype->tris = NULL;
+  EG_free(eletype->segs);
+  eletype->segs = NULL;
 
   return status;
 }

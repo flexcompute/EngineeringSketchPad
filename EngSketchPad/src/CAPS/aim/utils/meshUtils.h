@@ -13,19 +13,19 @@ extern "C" {
 #endif
 
 // extracts boundary elements and adds them to the surface mesh
-int mesh_addTess2Dbc(void *aimInfo, meshStruct *surfaceMesh, mapAttrToIndexStruct *attrMap);
+int mesh_addTess2Dbc(void *aimInfo, meshStruct *surfaceMesh, const mapAttrToIndexStruct *attrMap);
 
-int mesh_bodyTessellation(void *aimInfo, ego tess, mapAttrToIndexStruct *attrMap,
+int mesh_bodyTessellation(void *aimInfo, ego tess, const mapAttrToIndexStruct *attrMap,
                           int *numNodes, double *xyzCoord[],
                           int *numTriFace, int *triFaceConn[], int *triFaceCompID[], int *triFaceTopoID[],
                           int *numBndEdge, int *bndEdgeConn[], int *bndEdgeCompID[], int *bndEdgeTopoID[],
                           int *numNodeEle, int *nodeEleConn[], int *nodeEleCompID[], int *nodeEleTopoID[],
                           int *twoDMesh,
-               /*@null@*/ int *tessFaceQuadMap,
+               /*@null@*/ const int *tessFaceQuadMap,
                           int *numQuadFace, int *quadFaceConn[], int *quadFaceCompID[], int *quadFaceTopoID[]);
 
 // Create a surface mesh in meshStruct format using the EGADS body object
-int mesh_surfaceMeshEGADSBody(void *aimInfo, ego body, double refLen, double tessParams[3], int quadMesh, meshStruct *surfMesh);
+int mesh_surfaceMeshEGADSBody(void *aimInfo, ego body, double refLen, const double tessParams[3], int quadMesh, ego *tess);
 
 // Create a surface mesh in meshStruct format using the EGADS body tessellation
 int mesh_surfaceMeshEGADSTess(void *aimInfo, meshStruct *surfMesh);
@@ -54,7 +54,7 @@ void get_Surface_Norm(double p1[3],
                       double norm[3]);
 
 // Populate bndCondStruct boundary condition information - Boundary condition values get filled with 99
-int populate_bndCondStruct_from_bcPropsStruct(cfdBoundaryConditionStruct *bcProps,
+int populate_bndCondStruct_from_bcPropsStruct(const cfdBoundaryConditionStruct *bcProps,
                                               bndCondStruct *bndConds);
 
 // Populate bndCondStruct boundary condition information from attribute map - Boundary condition values get filled with 99
@@ -95,12 +95,6 @@ int initiate_meshInputStruct(meshInputStruct *meshInput);
 // Destroy (0 out all values and NULL all pointers) a meshInput in the meshInputStruct structure format
 int destroy_meshInputStruct(meshInputStruct *meshInput);
 
-// Initiate (0 out all values and NULL all pointers) a bodyTessMapping in the bodyTessMappingStruct structure format
-int initiate_bodyTessMappingStruct (bodyTessMappingStruct *bodyTessMapping);
-
-// Destroy (0 out all values and NULL all pointers) a bodyTessMapping in the bodyTessMappingStruct structure format
-int destroy_bodyTessMappingStruct (bodyTessMappingStruct *bodyTessMapping);
-
 // Initiate (0 out all values and NULL all pointers) a meshProp in the meshSizingStruct structure format
 int initiate_meshSizingStruct (meshSizingStruct *meshProp);
 
@@ -111,7 +105,7 @@ int destroy_meshSizingStruct (meshSizingStruct *meshProp);
 int mesh_getSizingProp(void *aimInfo,
                        int numTuple,
                        capsTuple meshBCTuple[],
-                       mapAttrToIndexStruct *attrMap,
+                       const mapAttrToIndexStruct *attrMap,
                        int *numMeshProp,
                        meshSizingStruct *meshProps[]);
 
@@ -219,9 +213,6 @@ int mesh_retrieveMeshElements(int numElement,
 // Fill out the QuickRef lists for all element types
 int mesh_fillQuickRefList( meshStruct *mesh);
 
-// Make a copy bodyTessMapping structure
-int mesh_copyBodyTessMappingStruct(bodyTessMappingStruct *in, bodyTessMappingStruct *out);
-
 // Make a copy of the analysis Data
 int mesh_copyMeshAnalysisData(void *in, meshAnalysisTypeEnum analysisType, void *out);
 
@@ -270,7 +261,7 @@ int mesh_writeSU2(void *aimInfo,
 int mesh_writeNASTRAN(void *aimInfo,
                       char *fname,
                       int asciiFlag, // 0 for binary, anything else for ascii
-                      meshStruct *nasMesh,
+                      const meshStruct *nasMesh,
                       feaFileTypeEnum gridFileType,
                       double scaleFactor); // Scale factor for coordinates
 
@@ -278,7 +269,7 @@ int mesh_writeNASTRAN(void *aimInfo,
 int mesh_writeAstros(void *aimInfo,
                      char *fname,
                      int asciiFlag, // 0 for binary, anything else for ascii
-                     meshStruct *mesh,
+                     const meshStruct *mesh,
                      feaFileTypeEnum gridFileType,
                      int numDesignVariable, feaDesignVariableStruct feaDesignVariable[],
                      double scaleFactor); // Scale factor for coordinates

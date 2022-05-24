@@ -1,0 +1,85 @@
+# hollowSheet
+# written by John Dannenhoffer
+
+# basic shape (trapezoid)
+SKBEG     -2  -1  0
+   LINSEG +2  -1  0
+   LINSEG +1  +1  0
+   LINSEG -1  +1  0
+   LINSEG -2  -1  0
+SKEND
+STORE     trapezoid
+
+# hollow case G (WireBody)
+RESTORE   trapezoid
+TRANSLATE -5  +3  0
+HOLLOW     0   0
+ATTRIBUTE _name   $caseG
+POINT     -3  +2  0
+
+# hollow case H (WireBody with iedge removed)
+RESTORE   trapezoid
+TRANSLATE  0  +3  0
+HOLLOW     0   3;4
+ATTRIBUTE _name   $caseH
+POINT     +2  +2  0
+
+# hollow case I (larger SheetBody)
+RESTORE   trapezoid
+TRANSLATE +5  +3  0
+HOLLOW    0.1  0
+ATTRIBUTE _name   $caseI
+POINT     +7  +2  0
+
+# hollow case J (smaller SheetBody)
+RESTORE   trapezoid
+TRANSLATE -5   0  0
+HOLLOW    -.1  0
+ATTRIBUTE _name   $caseJ
+POINT     -3  -1  0
+
+# hollow case K (hollow inward with iedge removed)
+RESTORE   trapezoid
+TRANSLATE  0   0  0
+HOLLOW    0.1  3;4
+ATTRIBUTE _name   $caseK
+POINT     +2  -1  0
+
+# hollow case L (hollow outward with iedge removed)
+RESTORE   trapezoid
+TRANSLATE +5   0  0
+HOLLOW    -.1  3;4
+ATTRIBUTE _name   $caseL
+POINT     +7  -1  0
+
+# hollow case M (remove iface)
+RESTORE   trapezoid
+RESTORE   trapezoid
+MIRROR     0   1  0  -1
+JOIN
+TRANSLATE -5  -3  0
+HOLLOW     0   1  1
+ATTRIBUTE _name   $caseM
+POINT     -3  -4  0
+
+# hollow case N (hollow all faces inward)
+RESTORE   trapezoid
+RESTORE   trapezoid
+MIRROR     0   1  0  -1
+JOIN
+TRANSLATE  0  -3  0
+HOLLOW    0.1  0
+ATTRIBUTE _name   $caseN
+POINT     +2  -4  0
+
+# hollow case P (hollow iface inward)
+RESTORE   trapezoid
+RESTORE   trapezoid
+MIRROR     0   1  0  -1
+JOIN
+TRANSLATE +5  -3  0
+HOLLOW    0.1  1  1
+ATTRIBUTE _name   $caseP
+POINT     +7  -4  0
+
+END

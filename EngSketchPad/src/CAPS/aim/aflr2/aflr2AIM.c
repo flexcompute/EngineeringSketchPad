@@ -71,7 +71,9 @@ enum aimInputs
 
 enum aimOutputs
 {
-  Area_Mesh = 1,            /* index is 1-based */
+  NumberOfElement = 1,      /* index is 1-based */
+  NumberOfNode,
+  Area_Mesh,
   NUMOUT = Area_Mesh        /* Total number of outputs */
 };
 
@@ -92,14 +94,19 @@ typedef struct {
 } aimStorage;
 
 
-static int destroy_aimStorage(aimStorage *aflr2Instance)
+static int destroy_aimStorage(aimStorage *aflr2Instance, int inUpdate)
 {
     int status; // Function return status
+
+    // Free the meshRef
+    aim_freeMeshRef(&aflr2Instance->meshRef);
 
     // Destroy meshInput
     status = destroy_meshInputStruct(&aflr2Instance->meshInput);
     if (status != CAPS_SUCCESS)
       printf("Status = %d, aflr2AIM meshInput cleanup!!!\n", status);
+
+    if (inUpdate == (int)true) return CAPS_SUCCESS;
 
     // Destroy attribute to index map
     status = destroy_mapAttrToIndexStruct(&aflr2Instance->groupMap);
@@ -109,9 +116,6 @@ static int destroy_aimStorage(aimStorage *aflr2Instance)
     status = destroy_mapAttrToIndexStruct(&aflr2Instance->meshMap);
     if (status != CAPS_SUCCESS)
       printf("Status = %d, aflr2AIM attributeMap cleanup!!!\n", status);
-
-    // Free the meshRef
-    aim_freeMeshRef(&aflr2Instance->meshRef);
 
     return CAPS_SUCCESS;
 }
@@ -340,90 +344,75 @@ int aimInputs(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo,
 }
 
 
-int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
+// ********************** AIM Function Break *****************************
+int aimUpdateState(void *instStore, void *aimInfo,
+                   capsValue *aimInputs)
 {
-    int status; // Status return
+    int status; // Function return status
 
-    int i, bodyIndex; // Indexing
-
-    int Message_Flag;
-    aimStorage *aflr2Instance;
-
-    // Body parameters
-    const char *intents;
-    int numBody = 0; // Number of bodies
-    ego *bodies = NULL; // EGADS body objects
-    double refLen = -1.0;
-
-    // Global settings
-    int minEdgePoint = -1, maxEdgePoint = -1;
+    int i;
 
     // Mesh attribute parameters
     int numMeshProp = 0;
     meshSizingStruct *meshProp = NULL;
 
-    // Container for surface mesh
-    int numSurface=0;
-    meshStruct *surfaceMesh=NULL;
+    // Global settings
+    int minEdgePoint = -1, maxEdgePoint = -1;
+    double refLen = -1.0;
 
-    // File output
-    char *filename = NULL;
-    char bodyNumber[11];
+    // Body parameters
+    const char *intents;
+    int numBody = 0; // Number of bodies
+    ego *bodies = NULL; // EGADS body objects
+
     char aimFile[PATH_MAX];
+
+    aimStorage *aflr2Instance;
+
+    aflr2Instance = (aimStorage *) instStore;
 
     // Get AIM bodies
     status = aim_getBodies(aimInfo, &intents, &numBody, &bodies);
     AIM_STATUS(aimInfo, status);
 
-#ifdef DEBUG
-    printf(" aflr2AIM/aimPreAnalysis numBody = %d!\n", numBody);
-#endif
-
     if (numBody <= 0 || bodies == NULL) {
-#ifdef DEBUG
-        printf(" aflr2AIM/aimPreAnalysis No Bodies!\n");
-#endif
+        AIM_ERROR(aimInfo, "No Bodies!");
         return CAPS_SOURCEERR;
     }
-    if (aimInputs == NULL) return CAPS_NULLOBJ;
-  
-    aflr2Instance = (aimStorage *) instStore;
+    AIM_NOTNULL(aimInputs, aimInfo, status);
+
+    // remove previous meshes
+    status = aim_deleteMeshes(aimInfo, &aflr2Instance->meshRef);
+    AIM_STATUS(aimInfo, status);
 
     // Cleanup previous aimStorage for the instance in case this is the
-    //         second time through preAnalysis for the same instance
-    status = destroy_aimStorage(aflr2Instance);
-    AIM_STATUS(aimInfo, status, "aflr2AIM aimStorage cleanup!!!");
+    //         second time through aimUpdateState for the same instance
+    status = destroy_aimStorage(aflr2Instance, (int)true);
+    AIM_STATUS(aimInfo, status);
 
     // set the filename without extensions where the grid is written for solvers
     status = aim_file(aimInfo, "aflr2", aimFile);
     AIM_STATUS(aimInfo, status);
     AIM_STRDUP(aflr2Instance->meshRef.fileName, aimFile, aimInfo, status);
 
-    // remove previous meshes
-    status = aim_deleteMeshes(aimInfo, &aflr2Instance->meshRef);
-    AIM_STATUS(aimInfo, status);
+    if (aflr2Instance->meshMap.numAttribute == 0 ||
+        aim_newGeometry(aimInfo) == CAPS_SUCCESS ) {
+      // Get capsMesh name and index mapping
+      status = create_CAPSMeshAttrToIndexMap(numBody,
+                                             bodies,
+                                             3, // Node level
+                                             &aflr2Instance->meshMap);
+      AIM_STATUS(aimInfo, status);
+    }
 
-    // Get capsGroup name and index mapping to make sure all edges have a capsGroup value
-    status = create_CAPSMeshAttrToIndexMap(numBody,
-                                           bodies,
-                                           3, // Node level
-                                           &aflr2Instance->meshMap);
-    AIM_STATUS(aimInfo, status);
-
-    status = create_CAPSGroupAttrToIndexMap(numBody,
-                                            bodies,
-                                            3, // Node level
-                                            &aflr2Instance->groupMap);
-    AIM_STATUS(aimInfo, status);
-
-    // Allocate surfaceMesh from number of bodies
-    numSurface = numBody;
-    AIM_ALLOC(surfaceMesh, numSurface, meshStruct, aimInfo, status);
-
-    // Initiate surface meshes
-    for (bodyIndex = 0; bodyIndex < numBody; bodyIndex++){
-        status = initiate_meshStruct(&surfaceMesh[bodyIndex]);
-        AIM_STATUS(aimInfo, status);
+    if (aflr2Instance->groupMap.numAttribute == 0 ||
+        aim_newGeometry(aimInfo) == CAPS_SUCCESS ) {
+      // Get capsGroup name and index mapping to make sure all edges have a capsGroup value
+      status = create_CAPSGroupAttrToIndexMap(numBody,
+                                              bodies,
+                                              3, // Node level
+                                              &aflr2Instance->groupMap);
+      AIM_STATUS(aimInfo, status);
     }
 
     // Setup meshing input structure
@@ -445,7 +434,7 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
                    aimInputs[Proj_Name-1].vals.string, aimInfo, status);
     }
 
-    // Set aflr2 specific mesh inputs 
+    // Set aflr2 specific mesh inputs
     if (aimInputs[Mesh_Gen_Input_String-1].nullVal != IsNull) {
         AIM_STRDUP(aflr2Instance->meshInput.aflr4Input.meshInputString,
                    aimInputs[Mesh_Gen_Input_String-1].vals.string, aimInfo, status);
@@ -508,6 +497,77 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
                                   numBody,
                                   bodies);
     AIM_STATUS(aimInfo, status);
+
+    AIM_ALLOC(aflr2Instance->meshRef.bnds, aflr2Instance->groupMap.numAttribute, aimMeshBnd, aimInfo, status);
+    aflr2Instance->meshRef.nbnd = aflr2Instance->groupMap.numAttribute;
+    for (i = 0; i < aflr2Instance->meshRef.nbnd; i++) {
+      status = aim_initMeshBnd(aflr2Instance->meshRef.bnds + i);
+      AIM_STATUS(aimInfo, status);
+    }
+
+    for (i = 0; i < aflr2Instance->meshRef.nbnd; i++) {
+      AIM_STRDUP(aflr2Instance->meshRef.bnds[i].groupName, aflr2Instance->groupMap.attributeName[i], aimInfo, status);
+      aflr2Instance->meshRef.bnds[i].ID = aflr2Instance->groupMap.attributeIndex[i];
+    }
+
+    status = CAPS_SUCCESS;
+cleanup:
+
+    if (meshProp != NULL) {
+        for (i = 0; i < numMeshProp; i++) {
+            (void) destroy_meshSizingStruct(&meshProp[i]);
+        }
+        AIM_FREE(meshProp);
+    }
+
+    return status;
+}
+
+// ********************** AIM Function Break *****************************
+int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
+{
+    int status; // Status return
+
+    int i, bodyIndex; // Indexing
+
+    int Message_Flag;
+
+    // Body parameters
+    const char *intents;
+    int numBody = 0; // Number of bodies
+    ego *bodies = NULL; // EGADS body objects
+
+    // Container for surface mesh
+    int numSurface=0;
+    meshStruct *surfaceMesh=NULL;
+
+    // File output
+    char *filename = NULL;
+    char bodyNumber[11];
+
+    const aimStorage *aflr2Instance;
+
+    aflr2Instance = (const aimStorage *) instStore;
+
+    // Get AIM bodies
+    status = aim_getBodies(aimInfo, &intents, &numBody, &bodies);
+    AIM_STATUS(aimInfo, status);
+
+    if (numBody <= 0 || bodies == NULL) {
+        AIM_ERROR(aimInfo, "No Bodies!");
+        return CAPS_SOURCEERR;
+    }
+    AIM_NOTNULL(aimInputs, aimInfo, status);
+
+    // Allocate surfaceMesh from number of bodies
+    numSurface = numBody;
+    AIM_ALLOC(surfaceMesh, numSurface, meshStruct, aimInfo, status);
+
+    // Initiate surface meshes
+    for (bodyIndex = 0; bodyIndex < numBody; bodyIndex++){
+        status = initiate_meshStruct(&surfaceMesh[bodyIndex]);
+        AIM_STATUS(aimInfo, status);
+    }
 
     // Run AFLR2 for each body
     for (bodyIndex = 0; bodyIndex < numBody; bodyIndex++) {
@@ -619,20 +679,13 @@ cleanup:
     }
     AIM_FREE(surfaceMesh);
 
-    if (meshProp != NULL) {
-        for (i = 0; i < numMeshProp; i++) {
-            (void) destroy_meshSizingStruct(&meshProp[i]);
-        }
-        AIM_FREE(meshProp);
-    }
-
     AIM_FREE(filename);
     return status;
 }
 
 
-/* the execution code from above should be moved here */
-int aimExecute(/*@unused@*/ void *instStore, /*@unused@*/ void *aimStruc,
+// ********************** AIM Function Break *****************************
+int aimExecute(/*@unused@*/ const void *instStore, /*@unused@*/ void *aimStruc,
                int *state)
 {
   *state = 0;
@@ -640,7 +693,7 @@ int aimExecute(/*@unused@*/ void *instStore, /*@unused@*/ void *aimStruc,
 }
 
 
-/* no longer optional and needed for restart */
+// ********************** AIM Function Break *****************************
 int aimPostAnalysis(/*@unused@*/ void *instStore, /*@unused@*/ void *aimStruc,
                     /*@unused@*/ int restart, /*@unused@*/ capsValue *inputs)
 {
@@ -648,6 +701,7 @@ int aimPostAnalysis(/*@unused@*/ void *instStore, /*@unused@*/ void *aimStruc,
 }
 
 
+// ********************** AIM Function Break *****************************
 int aimOutputs(/*@unused@*/ void *instStore, /*@unused@*/ void *aimStruc,
                /*@unused@*/ int index, char **aoname, capsValue *form)
 {
@@ -661,7 +715,27 @@ int aimOutputs(/*@unused@*/ void *instStore, /*@unused@*/ void *aimStruc,
     printf(" aflr2AIM/aimOutputs index = %d!\n", index);
 #endif
 
-    if (index == Area_Mesh) {
+    if (index == NumberOfElement) {
+        *aoname = EG_strdup("NumberOfElement");
+        form->type = Integer;
+        form->vals.integer = 0;
+
+        /*! \page aimOutputsAFLR2
+         * - <B> NumberOfElement </B> <br>
+         * Number of elements in the surface mesh
+         */
+
+    } else if (index == NumberOfNode) {
+        *aoname = EG_strdup("NumberOfNode");
+        form->type = Integer;
+        form->vals.integer = 0;
+
+        /*! \page aimOutputsAFLR2
+         * - <B> NumberOfNode </B> <br>
+         * Number of vertices in the surface mesh
+         */
+
+    } else if (index == Area_Mesh) {
         *aoname           = AIM_NAME(Area_Mesh);
         form->type        = PointerMesh;
         form->dim         = Scalar;
@@ -684,11 +758,12 @@ cleanup:
 }
 
 
-// See if a surface mesh was generated for each body
+// ********************** AIM Function Break *****************************
 int aimCalcOutput(void *instStore, /*@unused@*/ void *aimInfo,
                   /*@unused@*/ int index, capsValue *val)
 {
     int        status = CAPS_SUCCESS;
+    int        nVertex, nTri, nQuad, nTet, nPyramid, nPrism, nHex;
     aimStorage *aflr2Instance;
     aimMesh    mesh;
 
@@ -697,7 +772,27 @@ int aimCalcOutput(void *instStore, /*@unused@*/ void *aimInfo,
 #endif
     aflr2Instance = (aimStorage *) instStore;
 
-    if (Area_Mesh == index) {
+    if (NumberOfElement == index) {
+
+        // Count the total number of surface elements
+        status = aim_readBinaryUgridHeader(aimInfo, &aflr2Instance->meshRef,
+                                           &nVertex, &nTri, &nQuad,
+                                           &nTet, &nPyramid, &nPrism, &nHex);
+        AIM_STATUS(aimInfo, status);
+
+        val->vals.integer = nTri + nQuad;
+
+    } else if (NumberOfNode == index) {
+
+        // Count the total number of surface vertices
+        status = aim_readBinaryUgridHeader(aimInfo, &aflr2Instance->meshRef,
+                                           &nVertex, &nTri, &nQuad,
+                                           &nTet, &nPyramid, &nPrism, &nHex);
+        AIM_STATUS(aimInfo, status);
+
+        val->vals.integer = nVertex;
+
+    } else if (Area_Mesh == index) {
 
         status = aim_queryMeshes( aimInfo, Area_Mesh, &aflr2Instance->meshRef );
         if (status > 0) {
@@ -760,7 +855,7 @@ void aimCleanup(void *instStore)
     aflr2Instance = (aimStorage *) instStore;
 
     // Clean up aflr2Instance data
-    status = destroy_aimStorage(aflr2Instance);
+    status = destroy_aimStorage(aflr2Instance, (int)false);
     if (status != CAPS_SUCCESS)
         printf("Status = %d, aflr2AIM aimStorage cleanup!!!\n", status);
 

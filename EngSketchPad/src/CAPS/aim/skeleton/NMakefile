@@ -27,6 +27,8 @@ $(LDIR)\skeletonAIM.dll:	skeletonAIM.def $(ODIR)\skeletonAIM.obj $(LDIR)\utils.l
 $(ODIR)\skeletonAIM.obj:	skeletonAIM.c $(IDIR)\capsTypes.h
 	cl /c $(COPTS) $(DEFINE) /I$(IDIR) /I..\utils skeletonAIM.c \
 		/Fo$(ODIR)\skeletonAIM.obj
+test:
+	python -u case.py
 
 clean:
 	-del $(ODIR)\skeletonAIM.obj

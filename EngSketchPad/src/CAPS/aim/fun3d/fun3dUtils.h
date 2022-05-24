@@ -8,18 +8,21 @@ extern "C" {
 int fun3d_readAeroLoad(void *aimInfo, char *filename, int *numVariable, char **variableName[],
                        int *numDataPoint, double ***dataMatrix);
 
+// Create a 3D BC for FUN3D from a 2D mesh
+int fun3d_2DBC(void *aimInfo,
+               cfdBoundaryConditionStruct *bcProps);
+
 // Create a 3D mesh for FUN3D from a 2D mesh
 int fun3d_2DMesh(void *aimInfo,
                  aimMeshRef *meshRef,
                  const char *projectName,
-                 mapAttrToIndexStruct *attrMap,
-                 cfdBoundaryConditionStruct *bcProps);
+                 const mapAttrToIndexStruct *attrMap);
 
 // Write FUN3D data transfer files
 int fun3d_dataTransfer(void *aimInfo,
                        const char *projectName,
-                       mapAttrToIndexStruct *groupMap,
-                       cfdBoundaryConditionStruct bcProps,
+                       const mapAttrToIndexStruct *groupMap,
+                       const cfdBoundaryConditionStruct bcProps,
                        aimMeshRef *meshRef,
                        /*@null@*/ cfdModalAeroelasticStruct *eigenVector);
 
@@ -33,22 +36,28 @@ int fun3d_writeMovingBody(void *aimInfo, double fun3dVersion,
                           cfdModalAeroelasticStruct *modalAeroelastic);
 
 // Write FUN3D parametrization/sensitivity file
+// Will not calculate shape sensitivities if there are no geometry design variable; will
+// simple check and dump out the body meshes in model.tec files
 int fun3d_writeParameterization(void *aimInfo,
                                 int numDesignVariable,
                                 cfdDesignVariableStruct designVariable[],
-                                int writeSensitivity,
                                 aimMeshRef *meshRef);
 
 // Write FUN3D rubber.data file
+// Will not write shape entries unless explicitly told to check if they are need
 int fun3d_writeRubber(void *aimInfo,
                       cfdDesignStruct design,
+                      int checkGeomShape,
                       double fun3dVersion,
                       aimMeshRef *meshRef);
 
 // Read FUN3D rubber.data file
+// Will not read shape entries unless explicitly told to check if they are needed
 int fun3d_readRubber(void *aimInfo,
                      cfdDesignStruct design,
-                     double fun3dVersion);
+                     int checkGeomShape,
+                     double fun3dVersion,
+                     aimMeshRef *meshRef);
 
 // Make FUN3D directory structure/tree
 int fun3d_makeDirectory(void *aimInfo);

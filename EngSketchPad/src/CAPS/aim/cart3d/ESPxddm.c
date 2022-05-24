@@ -416,7 +416,9 @@ main(int argc, char *argv[])
 
       /* do all of the faces */
       for (iface = 1; iface <= nface; iface++) {
+        outLevel = ocsmSetOutLevel(0);
         stat = ocsmGetTessVel(modl, ibody, OCSM_FACE, iface, &pcsens);
+        ocsmSetOutLevel(outLevel);
         if (stat != EGADS_SUCCESS) {
           printf(" ocsmGetTessVel Parameter %d Face %d failed: %d!\n",
                  i+1, j, stat);

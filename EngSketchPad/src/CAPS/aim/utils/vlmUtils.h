@@ -66,12 +66,13 @@ int copy_vlmSectionStruct(vlmSectionStruct *sectionIn, vlmSectionStruct *section
 int copy_vlmSurfaceStruct(vlmSurfaceStruct *surfaceIn, vlmSurfaceStruct *surfaceOut);
 
 // Finalizes populating vlmSectionStruct member data after the ebody is set
-int finalize_vlmSectionStruct(vlmSectionStruct *vlmSection);
+int finalize_vlmSectionStruct(void *aimInfo, vlmSectionStruct *vlmSection);
 
 // Accumulate VLM section data from a set of bodies.If disciplineFilter is not NULL
 // bodies not found with disciplineFilter (case insensitive) for a capsDiscipline attribute
 // will be ignored.
-int vlm_getSections(int numBody,
+int vlm_getSections(void *aimInfo,
+                    int numBody,
                     ego bodies[],
                     /*@null@*/ const char *disciplineFilter,
                     mapAttrToIndexStruct attrMap,
@@ -83,17 +84,30 @@ int vlm_getSections(int numBody,
 int vlm_orderSections(int numSection, vlmSectionStruct section[]);
 
 // Compute spanwise panel spacing with close to equal spacing on each pane
-int vlm_equalSpaceSpanPanels(int NspanTotal, int numSection, vlmSectionStruct vlmSection[]);
+int vlm_equalSpaceSpanPanels(void *aimInfo, int NspanTotal, int numSection, vlmSectionStruct vlmSection[]);
+
+// Get the airfoil cross-section tessellation ego given a vlmSectionStruct
+int vlm_getSectionTessSens(void *aimInfo,
+                           vlmSectionStruct *vlmSection,
+                           int normalize,      // Normalize by chord (true/false)
+                           const char *geomInName,
+                           const int irow, const int icol,
+                           ego tess,
+                           double **dx_dvar_out,
+                           double **dy_dvar_out);
 
 // Get the airfoil cross-section given a vlmSectionStruct
-int vlm_getSectionCoord(vlmSectionStruct *vlmSection,
-                        int normalize, // Normalize by chord (true/false)
-                        int maxNumPoint,// Max number of points in airfoil
-                        double **xCoordOut, //[maxNumPoint]
-                        double **yCoordOut); //[maxNumPoint] for upper and lower surface
+int vlm_getSectionCoord(void *aimInfo,
+                        vlmSectionStruct *vlmSection,
+                        int normalize,      // Normalize by chord (true/false)
+                        int numPoint,       // number of points in airfoil
+                        double **xCoordOut, // [numPoint]
+                        double **yCoordOut, // [numPoint] for upper and lower surface
+                        ego *tessOut);      // Tess object that created points
 
 // Write out the airfoil cross-section given a vlmSectionStruct
-int vlm_writeSection(FILE *fp,
+int vlm_writeSection(void *aimInfo,
+                     FILE *fp,
                      vlmSectionStruct *vlmSection,
                      int normalize, // Normalize by chord (true/false)
                      int numPoint); // Number of points in airfoil
@@ -101,21 +115,24 @@ int vlm_writeSection(FILE *fp,
 // Get the airfoil cross-section given a vlmSectionStruct
 // where y-upper and y-lower correspond to the x-value
 // Only works for sharp trailing edges
-int vlm_getSectionCoordX(vlmSectionStruct *vlmSection,
+int vlm_getSectionCoordX(void *aimInfo,
+                         vlmSectionStruct *vlmSection,
                          double Cspace,       // Chordwise spacing (see spacer)
                          int normalize,       // Normalize by chord (true/false)
+                         int rotated,         // Leave airfoil rotated (true/false)
                          int numPoint,        // Number of points in airfoil
                          double **xCoordOut,  // [numPoint] increasing x values
                          double **yUpperOut,  // [numPoint] for upper surface
                          double **yLowerOut); // [numPoint] for lower surface
 
 // Get the camber line for a set of x coordinates
-int vlm_getSectionCamberLine(vlmSectionStruct *vlmSection,
-                            double Cspace,       // Chordwise spacing (see spacer)
-                            int normalize,       // Normalize by chord (true/false)
-                            int numPoint,        // Number of points in airfoil
-                            double **xCoordOut,  // [numPoint] increasing x values
-                            double **yCamberOut);// [numPoint] camber line y values
+int vlm_getSectionCamberLine(void* aimInfo,
+                             vlmSectionStruct *vlmSection,
+                             double Cspace,       // Chordwise spacing (see spacer)
+                             int normalize,       // Normalize by chord (true/false)
+                             int numPoint,        // Number of points in airfoil
+                             double **xCoordOut,  // [numPoint] increasing x values
+                             double **yCamberOut);// [numPoint] camber line y values
 
 
 #ifdef __cplusplus

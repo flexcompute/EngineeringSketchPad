@@ -1,0 +1,62 @@
+# designG8
+# written by John Dannenhoffer
+
+# Design Parameters:
+despmtr    area      40.0
+despmtr    aspect    5.00
+despmtr    taper     0.50
+despmtr    twist     15.0
+despmtr    lesweep   30.0
+despmtr    dihedral  1.00
+cfgpmtr    thick_r   0.12
+cfgpmtr    camber_r  0.08
+cfgpmtr    thick_t   0.20
+cfgpmtr    camber_t  0.00
+despmtr    tiprad    2.00
+despmtr    dxwing    5.00
+
+# Branches:
+set        cmean     sqrt(area/aspect)
+set        span      cmean*aspect
+set        sspan     span/2
+set        croot     2*cmean/(1+taper)
+set        ctip      croot*taper
+set        xtip      sspan*tand(lesweep)
+set        ytip      sspan*tand(dihedral)
+
+# half of wing
+mark
+   udparg    naca   thickness  thick_r
+   udparg    naca   camber     camber_r
+   udprim    naca   sharpte    1
+      scale     croot
+   udparg    naca   thickness  thick_t
+   udparg    naca   camber     camber_t
+   udprim    naca   sharpte    1
+      scale     ctip
+      rotatez   -twist   0   0
+      translate xtip   ytip   -sspan
+blend     0 "-1; tiprad"
+store     HalfWing
+
+# restore the half wing 
+restore   HalfWing
+
+# restore and mirror the half wing
+restore   HalfWing
+mirror    0   0   1   0
+
+# combine halfs into a whole
+join
+
+# get body into a typical aero-system 
+rotatex 90 0 0
+store      Wing
+
+# get two copies and transLate one
+restore    Wing
+
+restore    Wing
+translate  dxwing   0.0   0.0
+
+end

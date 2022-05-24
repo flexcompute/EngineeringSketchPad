@@ -74,9 +74,9 @@ Single Load Case Example</h1>
 <img src="threeBar.png" alt=""/>
 <div class="caption">
 Three Bar Truss</div></div>
- <p>The follow code details the process in a *.csm file that generates a three bar truss. Note to execute in serveCSM a dictionary file must be included</p>
+ <p>The follow code details the process in a *.csm file that generates a three bar truss. Note to execute in serveESP a dictionary file must be included</p>
 <ul>
-<li><code>serveCSM feaThreeBar.csm</code></li>
+<li><code>serveESP feaThreeBar.csm</code></li>
 </ul>
 <p>The CSM script generates Bodies which are designed to be used by specific AIMs. The AIMs that the Body is designed for is communicated to the CAPS framework via the “capsAIM” string attribute. This is a semicolon-separated string with the list of AIM names. Thus, the CSM author can give a clear indication to which AIMs should use the Body. In this example, the list contains the structural finite element analysis tools that can analyze the body: </p><div class="fragment"><div class="line">attribute capsAIM $nastranAIM;astrosAIM;mystranAIM</div>
 </div><!-- fragment --><p> Next we will define the design parameters to define the wing cross section and planform. Notice that the despmtr entries have a dimension input that must be defined for inputs with a length greater than one. </p><div class="fragment"><div class="line">dimension   X   1 4 1</div>
@@ -480,7 +480,7 @@ Composite Wing Optimization Example</h1>
 </div><!-- PageDoc -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Fri Sep 17 2021 06:42:22 for Nastran Analysis Interface Module (AIM) by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1
+Generated on Sat Jul 2 2022 10:12:44 for Nastran Analysis Interface Module (AIM) by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1
 </small></address>
 </body>
 </html>

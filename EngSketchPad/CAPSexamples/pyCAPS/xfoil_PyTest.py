@@ -50,13 +50,13 @@ xfoil.input.Re   = 1.0e6
 xfoil.input.Alpha = [0.0, 3.0, 5.0, 7.0, 9.0, 11, 13, 14, 15.0]
 
 # Set AoA seq
-xfoil.input.Alpha_Increment = [1.0, 2.0, 0.10]
+#xfoil.input.Alpha_Increment = [1.0, 2.0, 0.10]
 
 # Set custom Cl
-xfoil.input.CL = 0.1
+#xfoil.input.CL = 0.1
 
 # Set Cl seq
-xfoil.input.CL_Increment = [0.8, 3, .25]
+#xfoil.input.CL_Increment = [0.8, 3, .25]
 
 # Append the polar file if it already exists - otherwise the AIM will delete the file
 xfoil.input.Append_PolarFile = True
@@ -97,12 +97,12 @@ if args.noPlotData == False:
 
         plt.legend(loc = "upper left")
         plt.title("Lift and Drag Coefficients for Various Angles of Attack\n (window must be closed to terminate Python script)")
-        plt.xlabel("$Angle\ of\ Attack\ (^o)$")
-        plt.ylabel("$C_L,\ C_D$")
+        plt.xlabel("$Angle\\ of\\ Attack\\ (^o)$")
+        plt.ylabel("$C_L,\\ C_D$")
         plt.show()
-        
-    except:
+
+    except ImportError:
         print ("Unable to import matplotlib.pyplot module. Drag polar will not be plotted")
 
 # Check assertation
-assert abs(Cl[0]-1.2455) <= 1E-4 and abs(Cd[0]-0.01565) <= 1E-4
+assert abs(Cl[0]-0.9867) <= 1E-4 and abs(Cd[0]-0.01259) <= 1E-4

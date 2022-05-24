@@ -31,8 +31,9 @@ endif
 ###############################################################################
 # Used to add debug information to AFLR2
 # Please do not remove this - MCG
-# AFLR2_FILES=$(wildcard $(AFLR)/src/aflr2c/*.c)
-# AFLR2_OBJS=$(patsubst %.c,%.o,$(AFLR2_FILES))
+#VPATH     += $(AFLR)/src/aflr2c
+#AFLR2_FILES=$(wildcard $(AFLR)/src/aflr2c/*.c)
+#AFLR2_OBJS = $(subst $(AFLR)/src/aflr2c,$(ODIR),$(AFLR2_FILES:.c=.o))
 
 #VPATH    += $(AFLR)/src/ug3
 #UG3_FILES=$(wildcard $(AFLR)/src/ug3/*.c)
@@ -42,7 +43,7 @@ endif
 #UG_IO_FILES = $(wildcard $(AFLR)/src/ug_io/*.c)
 #UG_IO_OBJS  = $(subst $(AFLR)/src/ug_io,$(ODIR),$(UG_IO_FILES:.c=.o))
 
-#OBJS=$(AFLR2_OBJS) $(UG_IO_OBJS) $(UG3_OBJS)
+OBJS=$(AFLR2_OBJS) $(UG_IO_OBJS) $(UG3_OBJS)
 ###############################################################################
 
 $(LDIR)/aflr2AIM.so:	$(ODIR)/aflr2AIM.o $(ODIR)/aflr2_Interface.o \

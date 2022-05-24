@@ -708,7 +708,7 @@ int card_addInteger(cardStruct *card, int fieldValue) {
     return status;
 }
 
-int card_addIntegerArray(cardStruct *card, int numFieldValues, int fieldValues[]) {
+int card_addIntegerArray(cardStruct *card, int numFieldValues, const int fieldValues[]) {
 
     int i, status = CAPS_SUCCESS;
 
@@ -719,7 +719,7 @@ int card_addIntegerArray(cardStruct *card, int numFieldValues, int fieldValues[]
     return status;
 }
 
-int card_addIntegerOrBlank(cardStruct *card, int *fieldValue) {
+int card_addIntegerOrBlank(cardStruct *card, const int *fieldValue) {
     
     if (fieldValue == NULL) {
         return card_addBlank(card);
@@ -741,7 +741,7 @@ int card_addDouble(cardStruct *card, double fieldValue) {
     return status;
 }
 
-int card_addDoubleArray(cardStruct *card, int numFieldValues, double fieldValues[]) {
+int card_addDoubleArray(cardStruct *card, int numFieldValues, const double fieldValues[]) {
 
     int i, status = CAPS_SUCCESS;
 
@@ -752,7 +752,7 @@ int card_addDoubleArray(cardStruct *card, int numFieldValues, double fieldValues
     return status;
 }
 
-int card_addDoubleOrBlank(cardStruct *card, double *fieldValue) {
+int card_addDoubleOrBlank(cardStruct *card, const double *fieldValue) {
     
     if (fieldValue == NULL) {
         return card_addBlank(card);

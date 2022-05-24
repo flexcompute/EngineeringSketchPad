@@ -614,9 +614,9 @@ for iface in range(1, nface+1):
     npnt = modl2.GetTessNpnt(nbody, ocsm.FACE, iface)
     print("    face", iface, "has", npnt, "tessellation points")
 
-print("\ntest 096: calling modl2.NewBrch(nbrch, dump, <none, 0, $sample.tess, 0, 0, ...)")
+print("\ntest 096: calling modl2.NewBrch(nbrch, dump, <none>, 0, $sample.tess, 0, 0, 0, ...)")
 modl2.NewBrch(nbrch, modl2.GetCode("dump"), "<none>", 0,
-              "$sample.tess", "0", "0", "", "", "", "", "", "")
+              "$sample.tess", "0", "0", "0", "", "", "", "", "")
 
 print("\ntest 097: calling modl2.Build(0, 0)")
 modl2.Build(0, 0)

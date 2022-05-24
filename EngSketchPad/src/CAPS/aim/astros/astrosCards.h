@@ -31,8 +31,8 @@ int astrosCard_aefact(FILE *fp, int *sid, int numD, double *D,
  * refc    Reference length (Real >= 0.0)
  * rhoref  Reference density (Real >= 0.0)
  */
-int astrosCard_aero(FILE *fp, int *acsid, double *refc, double *rhoref,
-                     feaFileTypeEnum formatType);
+int astrosCard_aero(FILE *fp, const int *acsid, const double *refc, const double *rhoref,
+                    feaFileTypeEnum formatType);
 
 /*
  * AEROS
@@ -49,9 +49,9 @@ int astrosCard_aero(FILE *fp, int *acsid, double *refc, double *rhoref,
  * refd    Fuselage reference diameter (Real > 0.0, Default = 1.0)
  * refl    Fuselage reference length (Real > 0.0, Default = 1.0)
  */
-int astrosCard_aeros(FILE *fp, int *acsid, int *rcsid, double *refc,
-                      double *refb, double *refs, /*@null@*/ int *gref,
-                     /*@null@*/ double *refd, /*@null@*/ double *refl,
+int astrosCard_aeros(FILE *fp, const int *acsid, const int *rcsid, const double *refc,
+                     const double *refb, const double *refs, /*@null@*/ const int *gref,
+                     /*@null@*/ const double *refd, /*@null@*/ const double *refl,
                      feaFileTypeEnum formatType);
 
 /*
@@ -114,9 +114,10 @@ int astrosCard_caero6(FILE *fp, int *acid, char *cmpnt, /*@null@*/ int *cp,
  * tmin    Minimum value for design (Real)
  * tmax    Maximum value for design (Real)
  */
-int astrosCard_celas2(FILE *fp, int *eid, double *k, int G[2], int C[2],
-                      double *ge, double *s, /*@null@*/ double *tmin,
-                      /*@null@*/ double *tmax, feaFileTypeEnum formatType);
+int astrosCard_celas2(FILE *fp, const int *eid, const double *k, const int G[2], const int C[2],
+                      const double *ge, /*@unused@*/ const double *s,
+                      /*@null@*/ const double *tmin, /*@null@*/ const double *tmax,
+                      feaFileTypeEnum formatType);
 
 /*
  * CIHEX1
@@ -139,8 +140,8 @@ int astrosCard_cihex1(FILE *fp, int *eid, int *pid, int G[8],
  * tmin    The minimum mass value for design (Real)
  * tmax    The maximum mass value for design (Real)
  */
-int astrosCard_cmass2(FILE *fp, int *eid, double *m, int G[2], int C[2],
-                      /*@null@*/ double *tmin, /*@null@*/ double *tmax,
+int astrosCard_cmass2(FILE *fp, const int *eid, const double *m, const int G[2], const int C[2],
+                      /*@null@*/ const double *tmin, /*@null@*/ const double *tmax,
                       feaFileTypeEnum formatType);
 /*
  * CONM2
@@ -162,9 +163,9 @@ int astrosCard_cmass2(FILE *fp, int *eid, double *m, int G[2], int C[2],
  * tmin    The minimum mass values for design (Real, or blank)
  * tmax    The maximum mass values for design (Real, or blank)
  */
-int astrosCard_conm2(FILE *fp, int *eid, int *g, int *cid, double *m,
-                     double X[3], double I[6], /*@null@*/ double *tmin,
-                     /*@null@*/double *tmax, feaFileTypeEnum formatType);
+int astrosCard_conm2(FILE *fp, const int *eid, const int *g, const int *cid, const double *m,
+                     const double X[3], const double I[6], /*@null@*/ const double *tmin,
+                     /*@null@*/const double *tmax, feaFileTypeEnum formatType);
 
 /*
  * CQDMEM1
@@ -366,9 +367,9 @@ int astrosCard_desvarp(FILE *fp, int *dvid, int *linkid, double *vmin,
  * gid     Grid or scalar point identification number (Integer > 0)
  * dof     Component number (Integer 1-6)
  */
-int astrosCard_eigr(FILE *fp, int *sid, char *method, double *f1,
-                    double *f2, int *ne, int *nd, /*@null@*/ double *e,
-                    char *norm, int *gid, int *dof, feaFileTypeEnum formatType);
+int astrosCard_eigr(FILE *fp, const int *sid, const char *method, const double *f1,
+                    const double *f2, const int *ne, const int *nd, /*@null@*/ const double *e,
+                    const char *norm, const int *gid, const int *dof, feaFileTypeEnum formatType);
 
 /*
  * FLFACT
@@ -378,8 +379,8 @@ int astrosCard_eigr(FILE *fp, int *sid, char *method, double *f1,
  * 
  * numF    Number of `F` values
  */
-int astrosCard_flfact(FILE *fp, int *sid, int numF, double *F,
-                       feaFileTypeEnum formatType);
+int astrosCard_flfact(FILE *fp, const int *sid, int numF, const double *F,
+                      feaFileTypeEnum formatType);
 
 /*
  * FLUTTER
@@ -414,7 +415,7 @@ int astrosCard_flfact(FILE *fp, int *sid, int numF, double *F,
  * gfilter The damping a mode must attain to be considered stable
  *         before a flutter crossing (Real, Default = 0.0)
  */
-int astrosCard_flutter(FILE *fp, int *sid, char *method, int *dens,
+int astrosCard_flutter(FILE *fp, const int *sid, char *method, int *dens,
                        double *mach, int *vel, /*@null@*/ int *mlist,
                        /*@null@*/ int *klist, /*@null@*/ int *effid,
                        int *symxz, int *symxy, /*@null@*/ double *eps,
@@ -432,8 +433,8 @@ int astrosCard_flutter(FILE *fp, int *sid, char *method, int *dens,
  * N       Components of a vector measured in the coordinate system
  *         defined by `cid` (Real; must have at least one nonzero component)
  */
-int astrosCard_force(FILE *fp, int *sid, int *g, int *cid, double *f,
-                      double N[3], feaFileTypeEnum formatType);
+int astrosCard_force(FILE *fp, const int *sid, const int *g, const int *cid, const double *f,
+                     const double N[3], feaFileTypeEnum formatType);
 
 /*
  * GRAV
@@ -443,8 +444,8 @@ int astrosCard_force(FILE *fp, int *sid, int *g, int *cid, double *f,
  * g       Gravity vector scale factor (Real != 0.0)
  * N       Gravity vector components (Real, at least one nonzero)
  */
-int astrosCard_grav(FILE *fp, int *sid, int *cid, double *g, double N[3],
-                     feaFileTypeEnum formatType);
+int astrosCard_grav(FILE *fp, const int *sid, const int *cid, const double *g, const double N[3],
+                    feaFileTypeEnum formatType);
 
 /*
  * GRID
@@ -487,8 +488,8 @@ int astrosCard_mkaero1(FILE *fp, int *symxz, int *symxy, int numM, double *,
  * N       Components of vector measured in coordinate system defined by CID (Real, 
  *         least one nonzero component)
  */
-int astrosCard_moment(FILE *fp, int *sid, int *g, int *cid, double *m,
-                       double N[3], feaFileTypeEnum formatType);
+int astrosCard_moment(FILE *fp, const int *sid, const int *g, const int *cid, const double *m,
+                      const double N[3], feaFileTypeEnum formatType);
 
 /*
  * PBAR
@@ -581,7 +582,7 @@ int astrosCard_plist(FILE *fp, int *linkid, /*@null@*/ char *ptype, int numPID,
  * 
  * numG   Number of grid points defining the surface (3 or 4)
  */
-int astrosCard_pload(FILE *fp, int *sid, double *P, int numG, int *G,
+int astrosCard_pload(FILE *fp, const int *sid, const double *P, int numG, const int *G,
                       feaFileTypeEnum formatType);
 
 /*
@@ -596,8 +597,8 @@ int astrosCard_pload(FILE *fp, int *sid, double *P, int numG, int *G,
  * 
  * numP   Number of P values specified (1, 3, or 4)
  */
-int astrosCard_pload4(FILE *fp, int *lid, int *eid, int numP, double *P,
-                      /*@null@*/ int *cid, /*@null@*/ double *V,
+int astrosCard_pload4(FILE *fp, const int *lid, const int *eid, int numP, const double *P,
+                      /*@null@*/ const int *cid, /*@null@*/ const double *V,
                       feaFileTypeEnum formatType);
 
 /*
@@ -699,8 +700,8 @@ int astrosCard_pshell(FILE *fp, int *pid, int *mid1, double *t,
  * 
  * numGM   Number of `GM` grid points
  */
-int astrosCard_rbe2(FILE *fp, int *setid, int *eid, int *gn, int *cm,
-                     int numGM, int *GM, feaFileTypeEnum formatType);
+int astrosCard_rbe2(FILE *fp, const int *setid, const int *eid, const int *gn, const int *cm,
+                     int numGM, const int *GM, feaFileTypeEnum formatType);
 
 /*
  * RBE2
@@ -725,10 +726,10 @@ int astrosCard_rbe2(FILE *fp, int *setid, int *eid, int *gn, int *cm,
  * numG    Number of `g`. `wt`, `c` values
  * numM    Number of `gm`, `cm` values
  */
-int astrosCard_rbe3(FILE *fp, int *setid, int *eid, int *refg, int *refc,
-                     int numG, double *wt, int *c, int *g,
-                     int numM, /*@null@*/ int *gm, /*@null@*/ int *cm,
-                     feaFileTypeEnum formatType);
+int astrosCard_rbe3(FILE *fp, const int *setid, const int *eid, const int *refg, const int *refc,
+                    int numG, const double *wt, const int *c, const int *g,
+                    int numM, /*@null@*/ const int *gm, /*@null@*/ const int *cm,
+                    feaFileTypeEnum formatType);
 
 // int astrosCard_rforce(FILE *fp, feaFileTypeEnum formatType);
 
@@ -745,8 +746,8 @@ int astrosCard_rbe3(FILE *fp, int *setid, int *eid, int *refg, int *refc,
  * 
  * numSPC  Number of `G`, `C`, `D` values
  */
-int astrosCard_spc(FILE *fp, int *sid, int numSPC, int *G, int *C, double *D,
-                    feaFileTypeEnum formatType);
+int astrosCard_spc(FILE *fp, const int *sid, int numSPC, const int *G, const int *C, const double *D,
+                   feaFileTypeEnum formatType);
 
 /*
  * SPC1
@@ -759,8 +760,8 @@ int astrosCard_spc(FILE *fp, int *sid, int numSPC, int *G, int *C, double *D,
  * 
  * numSPC  Number of `G` values 
  */
-int astrosCard_spc1(FILE *fp, int *sid, int *c, int numSPC, int *G,
-                     feaFileTypeEnum formatType);
+int astrosCard_spc1(FILE *fp, const int *sid, const int *c, int numSPC, const int *G,
+                    feaFileTypeEnum formatType);
 
 // int astrosCard_snorm(FILE *fp, feaFileTypeEnum formatType);
 
@@ -808,8 +809,8 @@ int astrosCard_suport(FILE *fp, int *setid, int numSUP, int *ID, int *C,
  * 
  * numT    Number of `G`, `T` values
  */
-int astrosCard_temp(FILE *fp, int *sid, int numT, int *G, double *T,
-                     feaFileTypeEnum formatType);
+int astrosCard_temp(FILE *fp, const int *sid, int numT, const int *G, const double *T,
+                    feaFileTypeEnum formatType);
 
 /*
  * TEMPD
@@ -819,7 +820,7 @@ int astrosCard_temp(FILE *fp, int *sid, int numT, int *G, double *T,
  * 
  * numT    Number of `SID`, `T` values
  */
-int astrosCard_tempd(FILE *fp, int numT, int *SID, double *T,
+int astrosCard_tempd(FILE *fp, int numT, const int *SID, const double *T,
                       feaFileTypeEnum formatType);
 
 /*
@@ -862,9 +863,9 @@ int astrosCard_destroyTrimParam(astrosCardTrimParamStruct *param);
  * numParam  Number of trim parameters
  * param     Trim parameters
  */
-int astrosCard_trim(FILE *fp, int *trimid, double *mach, double *qdp,
-                    /*@null@*/ char *trmtyp, /*@null@*/ int *effid,
-                    /*@null@*/ double *vo, int numParam,
+int astrosCard_trim(FILE *fp, const int *trimid, const double *mach, const double *qdp,
+                    /*@null@*/ const char *trmtyp, /*@null@*/ const int *effid,
+                    /*@null@*/ const double *vo, int numParam,
                     astrosCardTrimParamStruct *param, feaFileTypeEnum formatType);
 
 

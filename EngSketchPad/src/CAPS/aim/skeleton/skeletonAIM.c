@@ -3,7 +3,7 @@
  *
  *             Skeleton AIM Example Code
  *
- *      Copyright 2014-2021, Massachusetts Institute of Technology
+ *      Copyright 2014-2022, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -12,7 +12,8 @@
 /*!\mainpage Introduction
  *
  * \section overviewSkeleton Skeleton AIM Overview
- * This is an example skeleten AIM intended to provude examples of best practices when writing an AIM
+ * This is an example skeleton AIM intended to provude examples of best
+ * practices when writing an AIM
  */
 
 #include <string.h>
@@ -23,7 +24,7 @@
 #define strcasecmp stricmp
 #endif
 
-#define DEBUG
+//#define DEBUG
 
 #define CROSS(a,b,c)      a[0] = (b[1]*c[2]) - (b[2]*c[1]);\
                           a[1] = (b[2]*c[0]) - (b[0]*c[2]);\
@@ -33,7 +34,7 @@
 enum aimInputs
 {
   InputVariable = 1,           /* index is 1-based */
-  SkeletonAIMin,
+  num,
   Mach,
   Mesh_Format,
   Table,
@@ -42,14 +43,15 @@ enum aimInputs
 
 enum aimOutputs
 {
-  SkeletonAIMout = 1,          /* index is 1-based */
-  NUMOUT = SkeletonAIMout      /* Total number of outputs */
+  sqrtNum = 1,                 /* index is 1-based */
+  NUMOUT  = sqrtNum            /* Total number of outputs */
 };
 
 typedef struct {
   int nBody;
   ego *tess;
 } aimStorage;
+
 
 /****************** exposed AIM entry points -- Analysis **********************/
 
@@ -60,9 +62,8 @@ aimInitialize(int inst, /*@unused@*/ const char *unitSys, void *aimInfo,
               /*@unused@*/ int *minor, int *nIn, int *nOut,
               int *nFields, char ***fnames, int **franks, int **fInOut)
 {
-  int status = CAPS_SUCCESS;
-  int  *ints=NULL, i;
-  char **strs = NULL;
+  int        *ints = NULL, i, status = CAPS_SUCCESS;
+  char       **strs = NULL;
   aimStorage *aimStore = NULL;
 
 #ifdef DEBUG
@@ -81,31 +82,52 @@ aimInitialize(int inst, /*@unused@*/ const char *unitSys, void *aimInfo,
   if (inst == -1) return CAPS_SUCCESS;
 
   /* specify the field variables this analysis can generate and consume */
-  *nFields = 2;
+  *nFields = 8;
 
   /* specify the name of each field variable */
   AIM_ALLOC(strs, *nFields, char *, aimInfo, status);
 
-  strs[0]  = EG_strdup("scalar");
-  strs[1]  = EG_strdup("coordinates");
+  strs[0] = EG_strdup("in1");
+  strs[1] = EG_strdup("in2");
+  strs[2] = EG_strdup("in3");
+  strs[3] = EG_strdup("in4");
+  strs[4] = EG_strdup("x");
+  strs[5] = EG_strdup("y");
+  strs[6] = EG_strdup("z");
+  strs[7] = EG_strdup("pi");
   for (i = 0; i < *nFields; i++)
-    if (strs[i] == NULL) { status = EGADS_MALLOC; goto cleanup; }
-  *fnames  = strs;
+    if (strs[i] == NULL) {
+      status = EGADS_MALLOC;
+      goto cleanup;
+    }
+  *fnames = strs;
 
-  /* specify the dimension of each field variable */
+  /* specify the rank of each field variable */
   AIM_ALLOC(ints, *nFields, int, aimInfo, status);
-  ints[0]  = 1;
-  ints[1]  = 3;
-  *franks  = ints;
-  ints = NULL;
+  ints[0] = 1;
+  ints[1] = 1;
+  ints[2] = 1;
+  ints[3] = 1;
+  ints[4] = 1;
+  ints[5] = 1;
+  ints[6] = 1;
+  ints[7] = 1;
+  *franks = ints;
+  ints    = NULL;
 
   /* specify if a field is an input field or output field */
   AIM_ALLOC(ints, *nFields, int, aimInfo, status);
 
-  ints[0]  = FieldIn;
-  ints[1]  = FieldOut;
-  *fInOut  = ints;
-  ints = NULL;
+  ints[0] = FieldIn;
+  ints[1] = FieldIn;
+  ints[2] = FieldIn;
+  ints[3] = FieldIn;
+  ints[4] = FieldOut;
+  ints[5] = FieldOut;
+  ints[6] = FieldOut;
+  ints[7] = FieldOut;
+  *fInOut = ints;
+  ints    = NULL;
 
   /* setup our AIM specific state */
   AIM_ALLOC(aimStore, 1, aimStorage, aimInfo, status);
@@ -137,8 +159,8 @@ int
 aimInputs(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo, int index,
           char **ainame, capsValue *defval)
 {
-  int status = CAPS_SUCCESS;
-  capsTuple *tuple=NULL;
+  int       i, status = CAPS_SUCCESS;
+  capsTuple *tuple = NULL;
   
 #ifdef DEBUG
   printf(" skeletonAIM/aimInputs  instance = %d  index  = %d!\n",
@@ -156,15 +178,15 @@ aimInputs(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo, int index,
      * A boolean input variable.
      */
 
-  } else if (index == SkeletonAIMin) {
-    *ainame           = AIM_NAME(SkeletonAIMin);
+  } else if (index == num) {
+    *ainame           = AIM_NAME(num);
     defval->type      = Double;
-    defval->vals.real = 5.0;
-    defval->units     = EG_strdup("cm");
+    defval->vals.real = 8.0;
+/*  defval->units     = EG_strdup("cm");  */
 
     /*! \page aimInputsSkeleton
-     * - <B> skeletonAIMin = 5 cm</B> <br>
-     * A real input with units
+     * - <B> num = 8.0 </B> <br>
+     * A real input initialized to 8.0
      */
 
   } else if (index == Mach) {
@@ -197,6 +219,10 @@ aimInputs(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo, int index,
     *ainame = AIM_NAME(Table);
 
     AIM_ALLOC( tuple, 3, capsTuple, aimInfo, status);
+    for (i = 0; i < 3; i++) {
+      tuple[i].name  = NULL;
+      tuple[i].value = NULL;
+    }
     AIM_STRDUP(tuple[0].name , "Entry1", aimInfo, status);
     AIM_STRDUP(tuple[1].name , "Entry2", aimInfo, status);
     AIM_STRDUP(tuple[2].name , "Entry3", aimInfo, status);
@@ -223,22 +249,77 @@ cleanup:
 }
 
 
-/* aimPreAnalysis: Parse Inputs, Generate Input File(s) & Possibly Tessellate */
+/* aimUpdateState: The always the first call in the execution sequence */
 int
-aimPreAnalysis(void *instStore, void *aimInfo, capsValue *inputs)
+aimUpdateState(void *instStore, void *aimInfo, /*@unused@*/ capsValue *inputs)
 {
-  int        i, n, status = CAPS_SUCCESS, nBody;
-  const char *name, *intents;
-  double     size, box[6], params[3], mach;
+  int        i, nBody, status = CAPS_SUCCESS;
+  double     size, box[6], params[3];
+  const char *intents;
   ego        *bodies;
-  capsValue  *val;
   aimStorage *aimStore;
+  
+#ifdef DEBUG
+  printf(" skeletonAIM/aimUpdateState instance = %d!\n",
+         aim_getInstance(aimInfo));
+#endif
+  aimStore = (aimStorage *) instStore;
+  
+  status = aim_newGeometry(aimInfo);
+  printf("             aim_newGeometry = %d!\n", status);
+  if (status != CAPS_SUCCESS) return status;
+  
+  /* create the tessellation */
+  
+  status = aim_getBodies(aimInfo, &intents, &nBody, &bodies);
+  AIM_STATUS(aimInfo, status, "aim_getBodies");
+  if ((bodies == NULL) || (nBody == 0)) return CAPS_SUCCESS;
+
+  aimStore->nBody = nBody;
+  AIM_REALL(aimStore->tess, aimStore->nBody, ego, aimInfo, status);
+
+  for (i = 0; i < nBody; i++) {
+    /* tessellate with EGADS tessellation in this example */
+    status = EG_getBoundingBox(bodies[i], box);
+    AIM_STATUS(aimInfo, status);
+
+                              size = box[3]-box[0];
+    if (size < box[4]-box[1]) size = box[4]-box[1];
+    if (size < box[5]-box[2]) size = box[5]-box[2];
+    params[0] =  0.025*size;
+    params[1] =  0.001*size;
+    params[2] = 15.0;
+    status = EG_makeTessBody(bodies[i], params, &aimStore->tess[i]);
+    AIM_STATUS(aimInfo, status);
+
+#ifdef DEBUG
+    printf(" skeletonAIM/aimUpdateState tess %d!\n", i);
+#endif
+    
+    /* store the tessellation in CAPS */
+    status = aim_newTess(aimInfo, aimStore->tess[i]);
+    AIM_STATUS(aimInfo, status);
+  }
+
+cleanup:
+  return status;
+}
+
+
+/* aimPreAnalysis: Parse Inputs, Generate Input File(s) */
+int
+aimPreAnalysis(/*@unused@*/ const void *instStore, void *aimInfo,
+               capsValue *inputs)
+{
+  int        i, n, status = CAPS_SUCCESS;
+  const char *name;
+  double     mach;
+  capsValue  *val;
 
 #ifdef DEBUG
   printf("\n skeletonAIM/aimPreAnalysis instance = %d!\n",
          aim_getInstance(aimInfo));
 #endif
-  aimStore = (aimStorage *) instStore;
 
   /* look at the CSM design parameters */
   printf("   GeometryIn:\n");
@@ -281,38 +362,6 @@ aimPreAnalysis(void *instStore, void *aimInfo, capsValue *inputs)
       goto cleanup;
     }
   }
-
-  /* create the tessellation */
-  
-  status = aim_getBodies(aimInfo, &intents, &nBody, &bodies);
-  AIM_STATUS(aimInfo, status, "aim_getBodies");
-  if ((bodies == NULL) || (nBody == 0)) return CAPS_SUCCESS;
-
-  aimStore->nBody = nBody;
-  AIM_REALL(aimStore->tess, aimStore->nBody, ego, aimInfo, status);
-
-  for (i = 0; i < nBody; i++) {
-    /* tessellate with EGADS tessellation in this example */
-    status = EG_getBoundingBox(bodies[i], box);
-    AIM_STATUS(aimInfo, status);
-
-    size = box[3]-box[0];
-    if (size < box[4]-box[1]) size = box[4]-box[1];
-    if (size < box[5]-box[2]) size = box[5]-box[2];
-    params[0] =  0.025*size;
-    params[1] =  0.001*size;
-    params[2] = 15.0;
-    status = EG_makeTessBody(bodies[i], params, &aimStore->tess[i]);
-    AIM_STATUS(aimInfo, status);
-
-#ifdef DEBUG
-    printf(" skeletonAIM/aimPreAnalysis tess %d!\n", i);
-#endif
-    
-    /* store the tessellation in CAPS */
-    status = aim_newTess(aimInfo, aimStore->tess[i]);
-    AIM_STATUS(aimInfo, status);
-  }
   printf("\n");
   
 cleanup:
@@ -322,7 +371,8 @@ cleanup:
 
 /* aimExecute: runs the Analysis & specifies the AIM does the execution */
 int
-aimExecute(/*@unused@*/ void *instStor, /*@unused@*/ void *aimInfo, int *state)
+aimExecute(/*@unused@*/ const void *instStor, /*@unused@*/ void *aimInfo,
+           int *state)
 {
   
   *state = 0;
@@ -343,8 +393,8 @@ aimPostAnalysis(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo,
 
 /* aimOutputs: Output Information for the AIM */
 int
-aimOutputs(/*@unused@*/ void *instStore, void *aimInfo, /*@unused@*/ int index,
-           char **aoname, capsValue *form)
+aimOutputs(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo,
+           /*@unused@*/ int index, char **aoname, capsValue *form)
 {
   int status = CAPS_SUCCESS;
 #ifdef DEBUG
@@ -352,8 +402,8 @@ aimOutputs(/*@unused@*/ void *instStore, void *aimInfo, /*@unused@*/ int index,
          aim_getInstance(aimInfo), index);
 #endif
   
-  if (index == SkeletonAIMout) {
-    *aoname = AIM_NAME(SkeletonAIMout);
+  if (index == sqrtNum) {
+    *aoname = AIM_NAME(sqrtNum);
     form->type = Double;
   }
 
@@ -366,8 +416,10 @@ int
 aimCalcOutput(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo,
               /*@unused@*/ int index, capsValue *val)
 {
-#ifdef DEBUG
   int        status = CAPS_SUCCESS;
+  double     myNum;
+  capsValue  *myVal;
+#ifdef DEBUG
   const char *name;
 
   status = aim_getName(aimInfo, index, ANALYSISOUT, &name);
@@ -375,10 +427,31 @@ aimCalcOutput(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo,
          aim_getInstance(aimInfo), index, name, status);
 #endif
 
-  if (index == SkeletonAIMout) {
-    val->vals.real = 3.1415926;
+  if (index == sqrtNum) {
+    /* default return */
+    val->vals.real = -1;
+
+    /* get the input num */
+    status = aim_getValue(aimInfo, num, ANALYSISIN, &myVal);
+    if (status != EGADS_SUCCESS) {
+        printf("ERROR:: aim_getValue -> status=%d\n", status);
+        goto cleanup;
+    }
+
+    if ((myVal->type != Double) || (myVal->length != 1)) {
+      printf("ERROR:: aim_getValue -> type=%d, len = %d\n",
+             myVal->type, myVal->length);
+      status = CAPS_BADTYPE;
+      goto cleanup;
+    }
+
+    myNum = myVal->vals.real;
+    val->vals.real = sqrt(myNum);
+  } else {
+    status = CAPS_BADVALUE;
   }
 
+cleanup:
   return status;
 }
 
@@ -386,7 +459,7 @@ aimCalcOutput(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo,
 /* aimCleanup: Free up the AIMs storage */
 void aimCleanup(/*@unused@*/ void *instStore)
 {
-  aimStorage *aimStore=NULL;
+  aimStorage *aimStore = NULL;
 #ifdef DEBUG
   printf(" skeletonAIM/aimCleanup!\n");
 #endif
@@ -395,7 +468,8 @@ void aimCleanup(/*@unused@*/ void *instStore)
    * tessellation objects are deleted by CAPS 
    */
 
-  aimStore = (aimStorage*)instStore;
+  aimStore = (aimStorage *) instStore;
+  if (aimStore == NULL) return;
   aimStore->nBody = 0;
   AIM_FREE(aimStore->tess);
   AIM_FREE(aimStore);
@@ -418,21 +492,20 @@ aimDiscr(char *tname, capsDiscr *discr)
 {
   int           ibody, iface, i, vID=0, itri, ielem, status, found;
   int           nFace, atype, alen, tlen, nBodyDisc;
-  int           ntris, state, nGlobal, global;
-  int           *vid = NULL;
+  int           ntris, state, nGlobal, global, *vid = NULL;
   const int     *ints, *ptype, *pindex, *tris, *nei;
   const double  *reals, *xyz, *uv;
   const char    *string;
-  ego           body, *faces=NULL, *tess = NULL;
+  ego           body, *faces = NULL, *tess = NULL;
   capsBodyDiscr *discBody;
-  aimStorage    *aimStore=NULL;
+  aimStorage    *aimStore = NULL;
 
 #ifdef DEBUG
   printf(" skeletonAIM/aimDiscr: tname = %s, instance = %d!\n",
          tname, aim_getInstance(discr->aInfo));
 #endif
-  aimStore = (aimStorage*)discr->instStore;
-  tess = aimStore->tess;
+  aimStore = (aimStorage *) discr->instStore;
+  tess     = aimStore->tess;
 
   /* find any faces with our boundary marker */
   for (nBodyDisc = ibody = 0; ibody < aimStore->nBody; ibody++) {
@@ -473,8 +546,10 @@ aimDiscr(char *tname, capsDiscr *discr)
   discr->types[0].ndata = 0;         /* data at geom reference positions
                                         (i.e. vertex centered/iso-parametric) */
   discr->types[0].ntri  = 1;
+  discr->types[0].nseg  = 0;
   discr->types[0].nmat  = 0;         /* match points at geom ref positions */
   discr->types[0].tris  = NULL;
+  discr->types[0].segs  = NULL;
   discr->types[0].gst   = NULL;
   discr->types[0].dst   = NULL;
   discr->types[0].matst = NULL;
@@ -624,12 +699,11 @@ cleanup:
 
 /* aimTransfer: Data Transfer using the Discrete Structure -- Optional */
 int
-aimTransfer(capsDiscr *discr, const char *fname, int npts, int rank,
-            double *data, /*@unused@*/ char **units)
+aimTransfer(capsDiscr *discr, const char *fname, int npts,
+            /*@unused@*/ int rank, double *data, /*@unused@*/ char **units)
 {
-  int        status = CAPS_SUCCESS;
-  int        i, j, bIndex, ptype, pindex, global;
-  double     xyz[3];
+  int           i, bIndex, ptype, pindex, global, status = CAPS_SUCCESS;
+  double        xyz[3];
   capsBodyDiscr *discBody;
 
 #ifdef DEBUG
@@ -637,16 +711,7 @@ aimTransfer(capsDiscr *discr, const char *fname, int npts, int rank,
          fname, aim_getInstance(discr->aInfo), npts, rank);
 #endif
 
-  if (strcmp(fname, "scalar") == 0 ) {
-
-    /* fill in a simple scalar field */
-    for (i = 0; i < npts; i++) {
-      data[i] = i;
-    }
-
-  } else if (strcmp(fname, "coordinates") == 0 ) {
-
-    /* fill in with our coordinates -- as an example */
+  if (strcmp(fname, "x") == 0) {
     for (i = 0; i < npts; i++) {
       bIndex = discr->tessGlobal[2*i  ];
       global = discr->tessGlobal[2*i+1];
@@ -654,9 +719,40 @@ aimTransfer(capsDiscr *discr, const char *fname, int npts, int rank,
       discBody = &discr->bodys[bIndex-1];
       status = EG_getGlobal(discBody->tess, global, &ptype, &pindex, xyz);
       AIM_STATUS(discr->aInfo, status);
-      for (j = 0; j < rank; j++) data[rank*i+j] = xyz[j];
+      data[i] = xyz[0];
     }
+
+  } else if (strcmp(fname, "y") == 0) {
+    for (i = 0; i < npts; i++) {
+      bIndex = discr->tessGlobal[2*i  ];
+      global = discr->tessGlobal[2*i+1];
+
+      discBody = &discr->bodys[bIndex-1];
+      status = EG_getGlobal(discBody->tess, global, &ptype, &pindex, xyz);
+      AIM_STATUS(discr->aInfo, status);
+      data[i] = xyz[1];
+    }
+
+  } else if (strcmp(fname, "z") == 0) {
+    for (i = 0; i < npts; i++) {
+      bIndex = discr->tessGlobal[2*i  ];
+      global = discr->tessGlobal[2*i+1];
+
+      discBody = &discr->bodys[bIndex-1];
+      status = EG_getGlobal(discBody->tess, global, &ptype, &pindex, xyz);
+      AIM_STATUS(discr->aInfo, status);
+      data[i] = xyz[2];
+    }
+
+  } else if (strcmp(fname, "pi") == 0) {
+    for (i = 0; i < npts; i++) {
+      data[i] = 3.1415926;
+    }
+
+  } else {
+    status = CAPS_BADVALUE;
   }
+
 
 cleanup:
   return status;
@@ -670,9 +766,9 @@ int
 aimLocateElement(capsDiscr *discr, double *params, double *param,
                  int *bIndex, int *eIndex, double *bary)
 {
-  int    i, ib, in[3], stat, ibsmall = 0, ismall = 0;
-  double we[3], w, smallw = -1.e300;
-  capsBodyDiscr *discBody=NULL;
+  int           i, ib, in[3], stat, ibsmall = 0, ismall = 0;
+  double        we[3], w, smallw = -1.e300;
+  capsBodyDiscr *discBody = NULL;
 
   if (discr == NULL) return CAPS_NULLOBJ;
 
@@ -727,9 +823,9 @@ aimInterpolation(capsDiscr *discr, /*@unused@*/ const char *name,
                  int bIndex, int eIndex, double *bary, int rank,
                  double *data, double *result)
 {
-  int    in[3], i;
-  double we[3];
-  capsBodyDiscr *discBody=NULL;
+  int           in[3], i;
+  double        we[3];
+  capsBodyDiscr *discBody = NULL;
 
   /* interpolate data to barycentric coordinates of the element */
 
@@ -766,9 +862,9 @@ aimInterpolateBar(capsDiscr *discr, /*@unused@*/ const char *name,
                   int bIndex, int eIndex, double *bary, int rank,
                   double *r_bar, double *d_bar)
 {
-  int    in[3], i;
-  double we[3];
-  capsBodyDiscr *discBody=NULL;
+  int           in[3], i;
+  double        we[3];
+  capsBodyDiscr *discBody = NULL;
 
   /* reverse differentiation of aimInterpolation */
 
@@ -809,10 +905,9 @@ aimIntegration(capsDiscr *discr, /*@unused@*/ const char *name,
                int bIndex, int eIndex, int rank, double *data,
                double *result)
 {
-  int        status = CAPS_SUCCESS;
-  int        i, in[3], ptype, pindex, global[3];
-  double     x1[3], x2[3], x3[3], xyz1[3], xyz2[3], xyz3[3], area;
-  capsBodyDiscr *discBody=NULL;
+  int           i, in[3], ptype, pindex, global[3], status = CAPS_SUCCESS;
+  double        x1[3], x2[3], x3[3], xyz1[3], xyz2[3], xyz3[3], area;
+  capsBodyDiscr *discBody = NULL;
 
   /* computes the integral of the data on a given element */
 
@@ -877,10 +972,9 @@ aimIntegrateBar(capsDiscr *discr, /*@unused@*/ const char *name,
                 int bIndex, int eIndex, int rank,
                 double *r_bar, double *d_bar)
 {
-  int        status = CAPS_SUCCESS;
-  int        i, in[3], ptype, pindex, global[3];
-  double     x1[3], x2[3], x3[3], xyz1[3], xyz2[3], xyz3[3], area;
-  capsBodyDiscr *discBody=NULL;
+  int           i, in[3], ptype, pindex, global[3], status = CAPS_SUCCESS;
+  double        x1[3], x2[3], x3[3], xyz1[3], xyz2[3], xyz3[3], area;
+  capsBodyDiscr *discBody = NULL;
 
   /* reverse differentiation of aimIntegration */
   if ((bIndex <= 0) || (bIndex > discr->nBodys)) {

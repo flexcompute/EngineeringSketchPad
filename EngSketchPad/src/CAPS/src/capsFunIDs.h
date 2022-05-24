@@ -5,7 +5,7 @@
  *
  *             Function ID & Journal Header
  *
- *      Copyright 2014-2021, Massachusetts Institute of Technology
+ *      Copyright 2014-2022, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -21,14 +21,12 @@
 #define CAPS_CHILDBYNAME      5
 #define CAPS_BODYBYINDEX      6
 #define CAPS_GETHISTORY       7
-#define CAPS_ADDHISTORY       8
-#define CAPS_OWNERINFO        9
-#define CAPS_SETOWNER        10 
-#define CAPS_FREEOWNER       11 
-#define CAPS_DELETE          12
-#define CAPS_ERRORINFO       13
-#define CAPS_FREEERROR       14
-#define CAPS_FREEVALUE       15
+#define CAPS_OWNERINFO        8
+#define CAPS_MARKFORDELETE    9
+#define CAPS_ERRORINFO       10
+#define CAPS_FREEERROR       11
+#define CAPS_FREEVALUE       12
+#define CAPS_UNKNOWN         19
 
 
 /* problem & I/O functions */
@@ -41,6 +39,7 @@
 #define CAPS_READPARAMETERS  24
 #define CAPS_WRITEGEOMETRY   25
 #define CAPS_GETROOTPATH     26
+#define CAPS_INTENTPHRASE    27
 
 
 /* attribute functions */
@@ -65,9 +64,8 @@
 #define CAPS_RUNANALYSIS     49
 #define CAPS_CHECKANALYSIS   50
 #define CAPS_POSTANALYSIS    51
-#define CAPS_RESETANALYSIS   52
-#define CAPS_GETTESSELS      53
-#define CAPS_SYSTEM          54
+#define CAPS_GETTESSELS      52
+#define CAPS_SYSTEM          53
 #define CAPS_AIMBACKDOOR     59
   
   
@@ -86,7 +84,7 @@
 #define CAPS_SETDATA         70
 #define CAPS_GETDATA         71
 #define CAPS_GETDATASETS     72
-#define CAPS_TRIANGULATE     73
+#define CAPS_GETTRIANGLES    73
 #define CAPS_DATASETINFO     74
 
   

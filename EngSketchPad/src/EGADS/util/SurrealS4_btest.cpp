@@ -1,5 +1,5 @@
 // Modified from Solution Adaptive Numerical Simulator (SANS)
-// Copyright 2013-2021, Massachusetts Institute of Technology
+// Copyright 2013-2022, Massachusetts Institute of Technology
 // Licensed under The GNU Lesser General Public License, version 2.1
 // See http://www.opensource.org/licenses/lgpl-2.1.php
 
@@ -1103,6 +1103,18 @@ BOOST_AUTO_TEST_CASE( cmath )
   v2 += log1p(v1);  d0 = 2./2.;
   BOOST_CHECK( chkSurrealS4( v1, 1, 1, 2, 3, 4 ) );
   BOOST_CHECK( chkSurrealS4( v2, 2*log(2.), d0, 2*d0, 3*d0, 4*d0, tol ) );
+
+  // error-functions <cmath>
+
+  v2 = 1.5*v1;
+  v3 = erf(v2);
+  BOOST_CHECK( chkSurrealS4( v2, 1.5, 1.5, 3, 4.5, 6 ) );
+  Real erf_x =  2./sqrt(M_PI)*exp(-(v2.value()*v2.value()));
+  BOOST_CHECK( chkSurrealS4( v3, erf(v2.value()), v2.deriv(0)*erf_x, v2.deriv(1)*erf_x, v2.deriv(2)*erf_x, v2.deriv(3)*erf_x) );
+  v3 = erfc(v2);
+  BOOST_CHECK( chkSurrealS4( v2, 1.5, 1.5, 3, 4.5, 6 ) );
+  Real erfc_x = -2./sqrt(M_PI)*exp(-(v2.value()*v2.value()));
+  BOOST_CHECK( chkSurrealS4( v3, erfc(v2.value()), v2.deriv(0)*erfc_x, v2.deriv(1)*erfc_x, v2.deriv(2)*erfc_x, v2.deriv(3)*erfc_x) );
 
   // power functions <cmath>
 

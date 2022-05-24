@@ -3,7 +3,7 @@
  *
  *             AVL AIM
  *
- *      Copyright 2014-2021, Massachusetts Institute of Technology
+ *      Copyright 2014-2022, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -20,13 +20,15 @@
 #include "vlmSpanSpace.h"
 #include "cfdUtils.h"
 
+#include "avlmrf/avlmrf.h"
+
 #ifdef WIN32
 #define strcasecmp  stricmp
 #define strncasecmp _strnicmp
 #define strtok_r    strtok_s
 #endif
 
-#define MAXPOINT  200
+#define NUMPOINT  200
 #define PI        3.1415926535897931159979635
 #define NINT(A)         (((A) < 0)   ? (int)(A-0.5) : (int)(A+0.5))
 
@@ -234,8 +236,8 @@ enum aimOutputs
  * in ESP.
  *
  * The follow code details the process in a *.csm file that generates three airfoil sections to create a wing. Note
- * to execute in serveCSM a dictionary file must be included
- * "serveCSM $ESP_ROOT/CAPSexamples/csmData/avlWing.csm"
+ * to execute in serveESP a dictionary file must be included
+ * "serveESP $ESP_ROOT/CAPSexamples/csmData/avlWing.csm"
  *
  * The CSM script generates Bodies which are designed to be used by specific AIMs.
  * The AIMs that the Body is designed for is communicated to the CAPS framework via
@@ -346,13 +348,13 @@ enum aimOutputs
  * <b> Sections</b> will be marked up in an appropriate manner to drive the input file construction. Many attributes
  * are required and those that are optional are marked so in the description:
  *
- * - <b> capsReferenceArea</b>  [Optional: Default 1.0] This attribute may exist on any <em> Body</em>.  Its
+ * - <b> capsReferenceArea</b> This attribute may exist on any <em> Body</em>.  Its
  * value will be used as the SREF entry in the AVL input.
  *
- * - <b> capsReferenceChord</b>  [Optional: Default 1.0] This attribute may exist on any <em> Body</em>.  Its
+ * - <b> capsReferenceChord</b> This attribute may exist on any <em> Body</em>.  Its
  * value will be used as the CREF entry in the AVL input.
  *
- * - <b> capsReferenceSpan</b>  [Optional: Default 1.0] This attribute may exist on any <em> Body</em>.  Its
+ * - <b> capsReferenceSpan</b> This attribute may exist on any <em> Body</em>.  Its
  * value will be used as the BREF entry in the AVL input.
  *
  * - <b> capsReferenceX</b>  [Optional: Default 0.0] This attribute may exist on any <em> Body</em>.  Its
@@ -440,10 +442,29 @@ typedef struct {
     // Units structure
     cfdUnitsStruct units;
 
+    // Total forces
+    avlTot tot;
+
+    // Strip forces
+    avlStrp strp;
+
+    // Stability derivatives (ST)
+    avlDermatS dermatS;
+
+    // Stability (body axis) derivatives (SB)
+    avlDermatB dermatB;
+
+    // Hinge moments
+    avlHinge hinge;
+
+    // OML Cp values
+    avlCpOml cpoml;
+
 } aimStorage;
 
 
-static int initiate_aimStorage(void *aimInfo, aimStorage *avlInstance)
+static int
+initiate_aimStorage(void *aimInfo, aimStorage *avlInstance)
 {
 
     int status;
@@ -465,15 +486,32 @@ static int initiate_aimStorage(void *aimInfo, aimStorage *avlInstance)
     status = initiate_cfdUnitsStruct(&avlInstance->units);
     AIM_STATUS(aimInfo, status);
 
+    avlInit_TOT(&avlInstance->tot);
+    avlInit_STRP(&avlInstance->strp);
+    avlInit_DERMATS(&avlInstance->dermatS);
+    avlInit_DERMATB(&avlInstance->dermatB);
+    avlInit_HINGE(&avlInstance->hinge);
+    avlInit_CPOML(&avlInstance->cpoml);
+
 cleanup:
     return status;
 }
 
 
-static int destroy_aimStorage(aimStorage *avlInstance)
+static int
+destroy_aimStorage(aimStorage *avlInstance, int inUpdate)
 {
     int status;
     int i;
+
+    avlFree_TOT(&avlInstance->tot);
+    avlFree_STRP(&avlInstance->strp);
+    avlFree_DERMATS(&avlInstance->dermatS);
+    avlFree_DERMATB(&avlInstance->dermatB);
+    avlFree_HINGE(&avlInstance->hinge);
+    avlFree_CPOML(&avlInstance->cpoml);
+
+    if (inUpdate == (int)true) return CAPS_SUCCESS;
 
     status = destroy_mapAttrToIndexStruct(&avlInstance->controlMap);
     if (status != CAPS_SUCCESS)
@@ -512,7 +550,8 @@ static int destroy_aimStorage(aimStorage *avlInstance)
 
 
 /* ********************** AVL AIM Helper Functions ************************** */
-static int writeSection(FILE *fp, vlmSectionStruct *vlmSection)
+static int
+writeSection(void *aimInfo, FILE *fp, vlmSectionStruct *vlmSection)
 {
     int status; // Function return status
 
@@ -562,10 +601,11 @@ static int writeSection(FILE *fp, vlmSectionStruct *vlmSection)
             xyzLE[0], xyzLE[1], xyzLE[2], chord, ainc, Nspan, Sspace);
     fprintf(fp, "AIRFOIL\n");
 
-    status = vlm_writeSection(fp,
+    status = vlm_writeSection(aimInfo,
+                              fp,
                               vlmSection,
                               (int) true, // Normalize by chord (true/false)
-                              (int) MAXPOINT);
+                              (int) NUMPOINT);
     if (status != CAPS_SUCCESS) goto cleanup;
 
     status = CAPS_SUCCESS;
@@ -579,7 +619,7 @@ cleanup:
 
 
 static int
-writeMassFile(void *aimInfo, capsValue *aimInputs, cfdUnitsStruct *units,
+writeMassFile(void *aimInfo, capsValue *aimInputs, const cfdUnitsStruct *units,
               const char *bodyLunits, char massFilename[])
 {
   int status; // Function return status
@@ -691,7 +731,7 @@ writeMassFile(void *aimInfo, capsValue *aimInputs, cfdUnitsStruct *units,
   //AIM_STATUS(aimInfo, status);
 
   printf("Parsing MassProp\n");
-  for (i = 0; i< massPropLen; i++ ) {
+  for (i = 0; i < massPropLen; i++ ) {
 
       // Set error message strings
       errName  = massProp[i].name;
@@ -732,7 +772,7 @@ writeMassFile(void *aimInfo, capsValue *aimInputs, cfdUnitsStruct *units,
        AIM_FREE(keyValue);
        (void) string_freeArray(numString, &stringArray);
 
-       for (j = 0; j< 6; j++) inertia[j] = 0;
+       for (j = 0; j < 6; j++) inertia[j] = 0;
 
        keyWord = "massInertia";
        status  = search_jsonDictionary(massProp[i].value, keyWord, &keyValue);
@@ -802,8 +842,8 @@ cleanup:
   return status;
 }
 
-
-static int read_Data(void *aimInfo, const char *file, const char *key, double *data)
+static int
+read_Data(void *aimInfo, const char *file, const char *key, double *data)
 {
 
     int i; //Indexing
@@ -846,7 +886,7 @@ static int read_Data(void *aimInfo, const char *file, const char *key, double *d
                 }
             }
             // Found it -- get the value
-            sscanf(&valstr[strlen(key)+1], "%lf", data);
+            sscanf(&valstr[strlen(key)], "%lf", data);
             break;
         }
     }
@@ -859,6 +899,109 @@ static int read_Data(void *aimInfo, const char *file, const char *key, double *d
     return CAPS_SUCCESS;
 }
 
+
+static int
+getStripForces(void *aimInfo, aimStorage *avlInstance, int *length, capsTuple **surfaces_out)
+{
+
+    int status = CAPS_SUCCESS;
+    int i, j; //Indexing
+
+    size_t     vallen = 0, alen = 0;
+    char       token[24], *value = NULL;
+    capsTuple  *tuples = NULL, *surfaces = NULL;
+    int        isurf, numSurfaces = 0;
+
+    // create a new surface and save off the name of the surface, and start the value JSON dictionary
+    numSurfaces = avlInstance->strp.nSurf;
+    AIM_ALLOC(surfaces, numSurfaces, capsTuple, aimInfo, status);
+    for (isurf = 0; isurf < numSurfaces; isurf++) {
+        surfaces[isurf].name  = NULL;
+        surfaces[isurf].value = NULL;
+    }
+
+    for (isurf = 0; isurf < numSurfaces; isurf++) {
+
+        AIM_STRDUP(surfaces[isurf].name, avlInstance->strp.surf[isurf].name, aimInfo, status);
+        AIM_STRDUP(surfaces[isurf].value, "{", aimInfo, status);
+
+        // size the number of tuples
+        AIM_ALLOC(tuples, AVL_NSTRP_DATA, capsTuple, aimInfo, status);
+        for (i = 0; i < AVL_NSTRP_DATA; i++) {
+            tuples[i].name = tuples[i].value = NULL;
+        }
+
+        for (i = 0; i < AVL_NSTRP_DATA; i++) {
+            // copy over the header and start the list
+            AIM_STRDUP(tuples[i].name , avlInstance->strp.surf[isurf].data[i].name, aimInfo, status);
+            AIM_STRDUP(tuples[i].value, "[", aimInfo, status);
+        }
+
+        // copy the data columns
+        for (i = 0; i < AVL_NSTRP_DATA; i++) {
+            for (j = 0; j < avlInstance->strp.surf[isurf].nSpan; j++) {
+                sprintf(token, "%16.12e", avlInstance->strp.surf[isurf].data[i].val[j]);
+                vallen = strlen(tuples[i].value);
+                AIM_REALL(tuples[i].value, vallen+strlen(token)+2, char, aimInfo, status);
+
+                // append the values to the list
+                sprintf(tuples[i].value + vallen,"%s,", token);
+            }
+        }
+
+        for (i = 0; i < AVL_NSTRP_DATA; i++) {
+
+            // close the lists by replacing the ',' with ']'
+            tuples[i].value[strlen(tuples[i].value)-1] = ']';
+
+            // collapse down the tuples for the surface
+            vallen = strlen(surfaces[isurf].value);
+
+            // \" + name                     + \": + value                 + ,\0
+            alen = 1 + strlen(tuples[i].name) + 2 + strlen(tuples[i].value) + 2;
+            AIM_REALL(surfaces[isurf].value, vallen+alen, char, aimInfo, status);
+
+            value = surfaces[isurf].value + vallen;
+            sprintf(value,"\"%s\":%s,", tuples[i].name, tuples[i].value);
+
+            // release the memory now that it's been consumed
+            AIM_FREE(tuples[i].name );
+            AIM_FREE(tuples[i].value);
+        }
+        AIM_FREE(tuples);
+
+        // close the JSON dict by replacing the ',' with '}'
+        surfaces[isurf].value[strlen(surfaces[isurf].value)-1] = '}';
+    }
+
+    *surfaces_out = surfaces;
+    surfaces      = NULL;
+    *length       = numSurfaces;
+    status        = CAPS_SUCCESS;
+
+cleanup:
+
+    if ((status != CAPS_SUCCESS) && (surfaces != NULL)) {
+        for (i = 0; i < numSurfaces; i++) {
+            AIM_FREE(surfaces[i].name);
+            AIM_FREE(surfaces[i].value);
+        }
+        AIM_FREE(surfaces);
+    }
+
+    if (tuples != NULL) {
+        for (i = 0; i < AVL_NSTRP_DATA; i++) {
+            AIM_FREE(tuples[i].name);
+            AIM_FREE(tuples[i].value);
+        }
+        AIM_FREE(tuples);
+    }
+
+    return status;
+}
+
+
+#ifdef OLD_AVL_FILE_READERS
 
 static int
 read_StripForces(void *aimInfo, int *length, capsTuple **surfaces_out)
@@ -903,7 +1046,7 @@ read_StripForces(void *aimInfo, int *length, capsTuple **surfaces_out)
         while(rest[0]              == ' ' && rest[0] != '\0') rest++;                      // remove leading spaces
         while(rest[strlen(rest)-1] == ' '                   ) rest[strlen(rest)-1] = '\0'; // remove trailing spaces
         if (rest[0] == '\0') {
-            printf("ERROR: Could not find a strip force surface name for surface # %s!\n", token);
+            AIM_ERROR(aimInfo, "Could not find a strip force surface name for surface # %s!", token);
             status = CAPS_IOERR;
             goto cleanup;
         }
@@ -928,14 +1071,16 @@ read_StripForces(void *aimInfo, int *length, capsTuple **surfaces_out)
             if (str != NULL) break;
         }
         if (status < 0){
+            AIM_ERROR(aimInfo, "Could not find a strip force table!");
             status = CAPS_IOERR;
             goto cleanup;
         }
 
         // read the header, e.g.
-        //   j      Yle    Chord     Area     c cl      ai      cl_norm  cl       cd       cdv    cm_c/4    cm_LE  C.P.x/c
+        //   j      Yle    Chord     Area     c_cl      ai      cl_norm  cl       cd       cdv    cm_c/4    cm_LE  C.P.x/c
         status = getline(&line, &linecap, fp);
         if (status < 0){
+            AIM_ERROR(aimInfo, "Could not read strip force table header!");
             status = CAPS_IOERR;
             goto cleanup;
         }
@@ -946,11 +1091,9 @@ read_StripForces(void *aimInfo, int *length, capsTuple **surfaces_out)
 
         // change "c cl" to "c_cl" so it does not get treated as two headers
         str = strstr(line, "c cl");
-        if (str == NULL){
-            status = CAPS_IOERR;
-            goto cleanup;
+        if (str != NULL){
+            str[1] = '_';
         }
-        str[1] = '_';
 
         rest = line;
         // skip the "j" column
@@ -966,10 +1109,10 @@ read_StripForces(void *aimInfo, int *length, capsTuple **surfaces_out)
             AIM_ALLOC(tuples[numDataEntry].value, strlen("["  )+1, char, aimInfo, status);
 
             // restore the name with a space in it
-            str = strstr(token, "c_cl");
-            if (str != NULL){
-              str[1] = ' ';
-            }
+//            str = strstr(token, "c_cl");
+//            if (str != NULL){
+//              str[1] = ' ';
+//            }
 
             // copy over the header and start the list
             strcpy(tuples[numDataEntry].name, token);
@@ -1068,6 +1211,88 @@ cleanup:
     return status;
 }
 
+static int
+get_controlDeriv(void *aimInfo, int controlIndex, int outputIndex, double *data)
+{
+
+    int status; // Function return status
+    char *fileToOpen;
+
+    char *coeff = NULL;
+    char key[42];
+
+    // Stability axis
+    if        (outputIndex == CLtot) {
+        fileToOpen = "capsStatbilityDeriv.txt";
+        coeff = "CL";
+
+    } else if (outputIndex == CYtot) {
+        fileToOpen = "capsStatbilityDeriv.txt";
+        coeff = "CY";
+
+    } else if (outputIndex == ClPtot) {
+        fileToOpen = "capsStatbilityDeriv.txt";
+        coeff = "Cl";
+
+    } else if (outputIndex == Cmtot) {
+        fileToOpen = "capsStatbilityDeriv.txt";
+        coeff = "Cm";
+
+    } else if (outputIndex == CnPtot) {
+        fileToOpen = "capsStatbilityDeriv.txt";
+        coeff = "Cn";
+
+    } else if (outputIndex == CDff) {
+        fileToOpen = "capsStatbilityDeriv.txt";
+        coeff = "CDff";
+
+    } else if (outputIndex == e) {
+        fileToOpen = "capsStatbilityDeriv.txt";
+        coeff = "e";
+
+    // Body axis
+    } else if (outputIndex == CXtot) {
+        fileToOpen = "capsBodyAxisDeriv.txt";
+        coeff = "CX";
+
+    } else if (outputIndex == CYtot) {
+        fileToOpen = "capsBodyAxisDeriv.txt";
+        coeff = "CY";
+
+    } else if (outputIndex == CZtot) {
+        fileToOpen = "capsBodyAxisDeriv.txt";
+        coeff = "CZ";
+
+    } else if (outputIndex == Cltot) {
+        fileToOpen = "capsBodyAxisDeriv.txt";
+        coeff = "Cl";
+
+    } else if (outputIndex == Cmtot) {
+        fileToOpen = "capsBodyAxisDeriv.txt";
+        coeff = "Cm";
+
+    } else if (outputIndex == Cntot) {
+        fileToOpen = "capsBodyAxisDeriv.txt";
+        coeff = "Cn";
+
+    } else {
+        AIM_ERROR(aimInfo, "Unrecognized output variable for control derivatives!");
+        status = CAPS_MISMATCH;
+        goto cleanup;
+    }
+
+    sprintf(key, "%sd%02d =", coeff, controlIndex);
+
+    status = read_Data(aimInfo, fileToOpen, key, data);
+    AIM_STATUS (aimInfo, status);
+
+    status = CAPS_SUCCESS;
+
+cleanup:
+    return status;
+}
+
+#endif // OLD_AVL_FILE_READERS
 
 static int
 read_EigenValues(void *aimInfo, int *length, capsTuple **eigen_out)
@@ -1172,129 +1397,9 @@ cleanup:
     return status;
 }
 
-static int get_controlDeriv(void *aimInfo, int controlIndex, int outputIndex, double *data)
-{
-
-    int status; // Function return status
-    char *fileToOpen;
-
-    char *coeff = NULL;
-    char key[42];
-
-    // Stability axis
-    if        (outputIndex == CLtot) {
-        fileToOpen = "capsStatbilityDeriv.txt";
-        coeff = "CL";
-
-    } else if (outputIndex == CYtot) {
-        fileToOpen = "capsStatbilityDeriv.txt";
-        coeff = "CY";
-
-    } else if (outputIndex == ClPtot) {
-        fileToOpen = "capsStatbilityDeriv.txt";
-        coeff = "Cl";
-
-    } else if (outputIndex == Cmtot) {
-        fileToOpen = "capsStatbilityDeriv.txt";
-        coeff = "Cm";
-
-    } else if (outputIndex == CnPtot) {
-        fileToOpen = "capsStatbilityDeriv.txt";
-        coeff = "Cn";
-
-    // Body axis
-    } else if (outputIndex == CXtot) {
-        fileToOpen = "capsBodyAxisDeriv.txt";
-        coeff = "CX";
-
-    } else if (outputIndex == CYtot) {
-        fileToOpen = "capsBodyAxisDeriv.txt";
-        coeff = "CY";
-
-    } else if (outputIndex == CZtot) {
-        fileToOpen = "capsBodyAxisDeriv.txt";
-        coeff = "CZ";
-
-    } else if (outputIndex == Cltot) {
-        fileToOpen = "capsBodyAxisDeriv.txt";
-        coeff = "Cl";
-
-    } else if (outputIndex == Cmtot) {
-        fileToOpen = "capsBodyAxisDeriv.txt";
-        coeff = "Cm";
-
-    } else if (outputIndex == Cntot) {
-        fileToOpen = "capsBodyAxisDeriv.txt";
-        coeff = "Cn";
-
-    } else {
-        AIM_ERROR(aimInfo, "Unrecognized output variable for control derivatives!");
-        status = CAPS_MISMATCH;
-        goto cleanup;
-    }
-
-    sprintf(key, "%sd%d =", coeff, controlIndex);
-
-    status = read_Data(aimInfo, fileToOpen, key, data);
-    AIM_STATUS (aimInfo, status);
-
-    status = CAPS_SUCCESS;
-
-cleanup:
-    return status;
-}
-
-
-static int parse_controlName(aimStorage *avlInstance, char string[],
-                             int *controlNumber)
-{
-
-    int status; // Function return status
-
-    char control[] = "AVL_Control";
-
-    char *controlName = NULL;
-
-    *controlNumber = CAPSMAGIC;
-
-    //printf("String = %s\n", string);
-
-    if (strncasecmp(string, control, strlen(control)) != 0 ) {
-        status = CAPS_NOTFOUND;
-        goto cleanup;
-    }
-
-    controlName = strstr(string, ":");
-    if (controlName == NULL) {
-        status = CAPS_NOTFOUND;
-        goto cleanup;
-    }
-
-    // Increment pointer to remove ':'
-    ++controlName;
-
-    //printf("Temp = %s\n", temp);
-
-    // Loop through and determine which control integer this name corresponds to?
-    status = get_mapAttrToIndexIndex(&avlInstance->controlMap,
-            (const char *) controlName, controlNumber);
-    if (status != CAPS_SUCCESS) goto cleanup;
-
-    /*
-    printf("ControlName = %s\n", controlName);
-    printf("ControlIndex = %d\n", *controlNumber);
-     */
-
-    status = CAPS_SUCCESS;
-    goto cleanup;
-
-cleanup:
-    return status;
-}
-
 
 static int
-stabilityAngleDerivatives(void *aimInfo, capsValue *val)
+stabilityAngleDerivatives(void *aimInfo, capsValue *val, double da, double db)
 {
   int i, status = CAPS_SUCCESS;
 
@@ -1310,7 +1415,10 @@ stabilityAngleDerivatives(void *aimInfo, capsValue *val)
 
   i = val->nderiv;
   AIM_STRDUP(val->derivs[i+0].name, "Alpha", aimInfo, status);
-  AIM_STRDUP(val->derivs[i+1].name, "Beta", aimInfo, status);
+  AIM_STRDUP(val->derivs[i+1].name, "Beta" , aimInfo, status);
+
+  val->derivs[i+0].deriv[0] = da;
+  val->derivs[i+1].deriv[0] = db;
   val->nderiv += nderiv;
 
 cleanup:
@@ -1319,7 +1427,63 @@ cleanup:
 
 
 static int
-bodyRateDerivatives(void *aimInfo, capsValue *val)
+stabilityControlDerivatives(void *aimInfo, int outIndex, aimStorage *avlInstance, capsValue *val)
+{
+  int i, status = CAPS_SUCCESS;
+
+  int nderiv = avlInstance->dermatS.nCont;
+
+  if (nderiv == 0) return CAPS_SUCCESS;
+
+  AIM_REALL(val->derivs, val->nderiv+nderiv, capsDeriv, aimInfo, status);
+  for (i = val->nderiv; i < val->nderiv+nderiv; i++) {
+    val->derivs[i].name    = NULL;
+    val->derivs[i].deriv   = NULL;
+    val->derivs[i].len_wrt = 1;
+    AIM_ALLOC(val->derivs[i].deriv, 1, double, aimInfo, status);
+  }
+
+  // Loop through control surfaces
+  for (i = 0; i < avlInstance->dermatB.nCont; i++) {
+    AIM_STRDUP(val->derivs[val->nderiv+i].name, avlInstance->dermatS.cont[i].wrt, aimInfo, status);
+
+    switch (outIndex) {
+    case CLtot:
+      val->derivs[val->nderiv+i].deriv[0] = avlInstance->dermatS.cont[i].CLd;
+      break;
+    case CYtot:
+      val->derivs[val->nderiv+i].deriv[0] = avlInstance->dermatS.cont[i].CYd;
+      break;
+    case ClPtot:
+      val->derivs[val->nderiv+i].deriv[0] = avlInstance->dermatS.cont[i].Cld;
+      break;
+    case Cmtot:
+      val->derivs[val->nderiv+i].deriv[0] = avlInstance->dermatS.cont[i].Cmd;
+      break;
+    case CnPtot:
+      val->derivs[val->nderiv+i].deriv[0] = avlInstance->dermatS.cont[i].Cnd;
+      break;
+    case CDff:
+      val->derivs[val->nderiv+i].deriv[0] = avlInstance->dermatS.cont[i].CDffd;
+      break;
+    case e:
+      val->derivs[val->nderiv+i].deriv[0] = avlInstance->dermatS.cont[i].ed;
+      break;
+    default:
+      AIM_ERROR(aimInfo, "Developer error. Unknown outIndex = %d", outIndex);
+      status = CAPS_NOTIMPLEMENT;
+      goto cleanup;
+    }
+  }
+  val->nderiv += nderiv;
+
+cleanup:
+  return status;
+}
+
+
+static int
+bodyRateDerivatives(void *aimInfo, capsValue *val, double dp, double dq, double dr)
 {
   int i, status = CAPS_SUCCESS;
 
@@ -1334,9 +1498,13 @@ bodyRateDerivatives(void *aimInfo, capsValue *val)
   }
 
   i = val->nderiv;
-  AIM_STRDUP(val->derivs[i+0].name, "RollRate", aimInfo, status);
+  AIM_STRDUP(val->derivs[i+0].name, "RollRate" , aimInfo, status);
   AIM_STRDUP(val->derivs[i+1].name, "PitchRate", aimInfo, status);
-  AIM_STRDUP(val->derivs[i+2].name, "YawRate", aimInfo, status);
+  AIM_STRDUP(val->derivs[i+2].name, "YawRate"  , aimInfo, status);
+
+  val->derivs[i+0].deriv[0] = dp;
+  val->derivs[i+1].deriv[0] = dq;
+  val->derivs[i+2].deriv[0] = dr;
   val->nderiv += nderiv;
 
 cleanup:
@@ -1345,11 +1513,11 @@ cleanup:
 
 
 static int
-controlDerivatives(void *aimInfo, int outIndex, aimStorage *avlInstance, capsValue *val)
+bodyControlDerivatives(void *aimInfo, int outIndex, aimStorage *avlInstance, capsValue *val)
 {
   int i, status = CAPS_SUCCESS;
 
-  int nderiv = avlInstance->controlMap.numAttribute;
+  int nderiv = avlInstance->dermatB.nCont;
 
   if (nderiv == 0) return CAPS_SUCCESS;
 
@@ -1362,12 +1530,33 @@ controlDerivatives(void *aimInfo, int outIndex, aimStorage *avlInstance, capsVal
   }
 
   // Loop through control surfaces
-  for (i = 0; i < avlInstance->controlMap.numAttribute; i++) {
-    AIM_STRDUP(val->derivs[val->nderiv+i].name, avlInstance->controlMap.attributeName[i], aimInfo, status);
+  for (i = 0; i < avlInstance->dermatB.nCont; i++) {
+    AIM_STRDUP(val->derivs[val->nderiv+i].name, avlInstance->dermatB.cont[i].wrt, aimInfo, status);
 
-    status = get_controlDeriv(aimInfo, avlInstance->controlMap.attributeIndex[i],
-                              outIndex, val->derivs[val->nderiv+i].deriv);
-    AIM_STATUS(aimInfo, status);
+    switch (outIndex) {
+    case CXtot:
+      val->derivs[val->nderiv+i].deriv[0] = avlInstance->dermatB.cont[i].CXd;
+      break;
+    case CYtot:
+      val->derivs[val->nderiv+i].deriv[0] = avlInstance->dermatB.cont[i].CYd;
+      break;
+    case CZtot:
+      val->derivs[val->nderiv+i].deriv[0] = avlInstance->dermatB.cont[i].CZd;
+      break;
+    case Cltot:
+      val->derivs[val->nderiv+i].deriv[0] = avlInstance->dermatB.cont[i].Cld;
+      break;
+    case Cmtot:
+      val->derivs[val->nderiv+i].deriv[0] = avlInstance->dermatB.cont[i].Cmd;
+      break;
+    case Cntot:
+      val->derivs[val->nderiv+i].deriv[0] = avlInstance->dermatB.cont[i].Cnd;
+      break;
+    default:
+      AIM_ERROR(aimInfo, "Developer error. Unknown outIndex = %d", outIndex);
+      status = CAPS_NOTIMPLEMENT;
+      goto cleanup;
+    }
   }
   val->nderiv += nderiv;
 
@@ -1774,72 +1963,31 @@ cleanup:
 
 
 // ********************** AIM Function Break *****************************
-int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
+int aimUpdateState(void *instStore, void *aimInfo,
+                   capsValue *aimInputs)
 {
     int status; // Function return status
 
-    int i, j, k, surf, section, control; // Indexing
-
-    int numBody;
-
-    int found = (int) false; // Boolean tester
-    int eigenValues = (int) false;
-
-    int atype, alen;
-
-    aimStorage *avlInstance;
-
-    double      Sref, Cref, Bref, Xref, Yref, Zref;
-    const int    *ints;
-    const char   *string, *intents;
-    const double *reals;
+    int          numBody;
+    const char   *intents;
     ego          *bodies;
 
-    const char *bodyLunits = NULL;
-
-    // File I/O
-    FILE *fp = NULL;
-    char inputFilename[] = "avlInput.txt";
-    char avlFilename[] = "caps.avl";
-    char massFilename[] = "caps.mass";
-
-    char totalForceFile[] = "capsTotalForce.txt";
-    char stripForceFile[] = "capsStripForce.txt";
-    char stabilityFile[] = "capsStatbilityDeriv.txt";
-    char bodyAxisFile[] = "capsBodyAxisDeriv.txt";
-    char hingeMomentFile[] = "capsHingeMoment.txt";
-    char eigenValueFile[] = "capsEigenValues.txt";
-
-    int numControlName = 0; // Unique control names
-    char **controlName = NULL;
-
-    int numSpanWise = 0;
+    int i, k, isurf, icontrol, isection;
+    int numSpanWise;
+    int found = (int)false;
 
     // Control related variables
     //double xyzHingeMag, xyzHingeVec[3];
 
+    int numControlName = 0; // Unique control names
+    char **controlName = NULL;
 
-#ifdef DEBUG
-    printf(" avlAIM/aimPreAnalysis\n");
-#endif
+    aimStorage *avlInstance;
 
     avlInstance = (aimStorage *) instStore;
 
-    // Initialize reference values
-    Sref = 1.0;
-    Cref = 1.0;
-    Bref = 1.0;
-
-    Xref = 0.0;
-    Yref = 0.0;
-    Zref = 0.0;
-
-    if (aimInputs == NULL) {
-#ifdef DEBUG
-        printf(" avlAIM/aimPreAnalysis aimInputs == NULL!\n");
-#endif
-        return CAPS_NULLVALUE;
-    }
+    destroy_aimStorage(avlInstance, (int)true);
+    AIM_NOTNULL(aimInputs, aimInfo, status);
 
     status = aim_getBodies(aimInfo, &intents, &numBody, &bodies);
     AIM_STATUS(aimInfo, status);
@@ -1850,10 +1998,14 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
         goto cleanup;
     }
 
-    if (aim_newGeometry(aimInfo) == CAPS_SUCCESS) {
-      // Destroy previous groupMap (in case it already exists)
-      status = destroy_mapAttrToIndexStruct(&avlInstance->groupMap);
-      AIM_STATUS(aimInfo, status);
+    if (aimInputs[inAVL_Surface-1].nullVal == IsNull) {
+        AIM_ERROR(aimInfo, "No AVL_Surface specified!");
+        status = CAPS_NOTFOUND;
+        goto cleanup;
+    }
+
+    if (avlInstance->groupMap.numAttribute == 0 ||
+        aim_newGeometry(aimInfo) == CAPS_SUCCESS) {
 
       // Get capsGroup name and index mapping to make sure all bodies have a capsGroup value
       status = create_CAPSGroupAttrToIndexMap(numBody,
@@ -1865,19 +2017,32 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
 
 
     if (aim_newGeometry(aimInfo) == CAPS_SUCCESS ||
-        aim_newAnalysisIn(aimInfo, inAVL_Surface) == CAPS_SUCCESS) {
-        // Get AVL surface information
-        if (aimInputs[inAVL_Surface-1].nullVal == NotNull) {
+        avlInstance->numAVLSurface == 0 ||
+        aim_newAnalysisIn(aimInfo, inAVL_Surface) == CAPS_SUCCESS ||
+        avlInstance->numAVLControl == 0 ||
+        aim_newAnalysisIn(aimInfo, inAVL_Control) == CAPS_SUCCESS) {
 
-            if (avlInstance->avlSurface != NULL) {
-                for (i = 0; i < avlInstance->numAVLSurface; i++) {
-                    status = destroy_vlmSurfaceStruct(&avlInstance->avlSurface[i]);
-                    AIM_STATUS(aimInfo, status);
-                }
-                AIM_FREE(avlInstance->avlSurface);
-                avlInstance->numAVLSurface = 0;
+
+        if (avlInstance->numAVLControl == 0 ||
+            aim_newAnalysisIn(aimInfo, inAVL_Control) == CAPS_SUCCESS) {
+
+            // Get AVL control surface information
+            if (aimInputs[inAVL_Control-1].nullVal == NotNull) {
+
+                status = get_vlmControl(aimInfo,
+                                        aimInputs[inAVL_Control-1].length,
+                                        aimInputs[inAVL_Control-1].vals.tuple,
+                                        &avlInstance->numAVLControl,
+                                        &avlInstance->avlControl);
+                AIM_STATUS(aimInfo, status);
             }
+        }
 
+        if (aim_newGeometry(aimInfo) == CAPS_SUCCESS ||
+            avlInstance->numAVLSurface == 0 ||
+            aim_newAnalysisIn(aimInfo, inAVL_Surface) == CAPS_SUCCESS) {
+
+            // Get AVL surface information
             status = get_vlmSurface(aimInputs[inAVL_Surface-1].length,
                                     aimInputs[inAVL_Surface-1].vals.tuple,
                                     &avlInstance->groupMap,
@@ -1886,67 +2051,87 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
                                     &avlInstance->avlSurface);
             AIM_STATUS(aimInfo, status);
 
-        } else {
-            AIM_ERROR(aimInfo, "No AVL_Surface specified!");
-            status = CAPS_NOTFOUND;
-            goto cleanup;
-        }
-
-        // Accumulate section data
-        status = vlm_getSections(numBody, bodies, NULL, avlInstance->groupMap, vlmGENERIC,
-                                 avlInstance->numAVLSurface, &avlInstance->avlSurface);
-        AIM_STATUS(aimInfo, status);
-        AIM_NOTNULL(avlInstance->avlSurface, aimInfo, status);
-    }
-
-    if (aim_newGeometry(aimInfo) == CAPS_SUCCESS ||
-        aim_newAnalysisIn(aimInfo, inAVL_Control) == CAPS_SUCCESS) {
-
-        // Get AVL control surface information
-        if (aimInputs[inAVL_Control-1].nullVal == NotNull) {
-
-            status = get_vlmControl(aimInfo,
-                                    aimInputs[inAVL_Control-1].length,
-                                    aimInputs[inAVL_Control-1].vals.tuple,
-                                    &avlInstance->numAVLControl,
-                                    &avlInstance->avlControl);
+            // Accumulate section data
+            status = vlm_getSections(aimInfo, numBody, bodies, NULL, avlInstance->groupMap, vlmGENERIC,
+                                     avlInstance->numAVLSurface, &avlInstance->avlSurface);
             AIM_STATUS(aimInfo, status);
-        }
+            AIM_NOTNULL(avlInstance->avlSurface, aimInfo, status);
 
-        // Loop through surfaces and transfer control surface data to sections
-        for (surf = 0; surf < avlInstance->numAVLSurface; surf++) {
-    /*@-nullpass@*/
-            status = get_ControlSurface(aimInfo,
-                                        avlInstance->numAVLControl,
-                                        avlInstance->avlControl,
-                                        &avlInstance->avlSurface[surf]);
-    /*@+nullpass@*/
-            AIM_STATUS (aimInfo, status);
+            // Loop through surfaces and transfer control surface data to sections
+            for (isurf = 0; isurf < avlInstance->numAVLSurface; isurf++) {
+                /*@-nullpass@*/
+                status = get_ControlSurface(aimInfo,
+                                            avlInstance->numAVLControl,
+                                            avlInstance->avlControl,
+                                            &avlInstance->avlSurface[isurf]);
+                /*@+nullpass@*/
+                AIM_STATUS (aimInfo, status);
+            }
         }
-    }
-
-    if (aim_newGeometry(aimInfo) == CAPS_SUCCESS ||
-        aim_newAnalysisIn(aimInfo, inAVL_Surface) == CAPS_SUCCESS ||
-        aim_newAnalysisIn(aimInfo, inAVL_Control) == CAPS_SUCCESS) {
 
         // Compute auto spacing
-        for (surf = 0; surf < avlInstance->numAVLSurface; surf++) {
+        for (isurf = 0; isurf < avlInstance->numAVLSurface; isurf++) {
 
-            if      (avlInstance->avlSurface[surf].NspanTotal > 0  && avlInstance->avlSurface[surf].NspanSection == 0)
-                numSpanWise = avlInstance->avlSurface[surf].NspanTotal;
-            else if (avlInstance->avlSurface[surf].NspanTotal == 0 && avlInstance->avlSurface[surf].NspanSection > 0 )
-                numSpanWise = (avlInstance->avlSurface[surf].numSection-1)*avlInstance->avlSurface[surf].NspanSection;
+            if      (avlInstance->avlSurface[isurf].NspanTotal > 0  && avlInstance->avlSurface[isurf].NspanSection == 0)
+                numSpanWise = avlInstance->avlSurface[isurf].NspanTotal;
+            else if (avlInstance->avlSurface[isurf].NspanTotal == 0 && avlInstance->avlSurface[isurf].NspanSection > 0 )
+                numSpanWise = (avlInstance->avlSurface[isurf].numSection-1)*avlInstance->avlSurface[isurf].NspanSection;
             else {
                 AIM_ERROR  (aimInfo,"Only one of numSpanTotal and numSpanPerSection must be non-zero!");
-                AIM_ADDLINE(aimInfo,"       numSpanTotal      = %d", avlInstance->avlSurface[surf].NspanTotal);
-                AIM_ADDLINE(aimInfo,"       numSpanPerSection = %d", avlInstance->avlSurface[surf].NspanSection);
+                AIM_ADDLINE(aimInfo,"       numSpanTotal      = %d", avlInstance->avlSurface[isurf].NspanTotal);
+                AIM_ADDLINE(aimInfo,"       numSpanPerSection = %d", avlInstance->avlSurface[isurf].NspanSection);
                 status = CAPS_BADVALUE;
                 goto cleanup;
             }
 
-            status = vlm_autoSpaceSpanPanels(numSpanWise, avlInstance->avlSurface[surf].numSection,
-                                                          avlInstance->avlSurface[surf].vlmSection);
+            status = vlm_autoSpaceSpanPanels(aimInfo,
+                                             numSpanWise, avlInstance->avlSurface[isurf].numSection,
+                                             avlInstance->avlSurface[isurf].vlmSection);
             AIM_STATUS (aimInfo, status);
+        }
+
+
+        // Destroy previous controlMap (in case it already exists)
+        status = destroy_mapAttrToIndexStruct(&avlInstance->controlMap);
+        AIM_STATUS(aimInfo, status);
+
+        // Check for control surface information
+        numControlName = 0;
+        for (isurf = 0; isurf < avlInstance->numAVLSurface; isurf++) {
+
+            for (i = 0; i < avlInstance->avlSurface[isurf].numSection; i++) {
+
+                isection = avlInstance->avlSurface[isurf].vlmSection[i].sectionIndex;
+
+                for (icontrol = 0; icontrol < avlInstance->avlSurface[isurf].vlmSection[isection].numControl; icontrol++) {
+
+                    // Check to see if control surface hasn't already been written
+                    found = (int) false;
+
+                    for (k = 0; k < numControlName; k++) {
+                        /*@-nullderef@*/
+                        if (strcmp(controlName[k],
+                                   avlInstance->avlSurface[isurf].vlmSection[isection].vlmControl[icontrol].name) == 0) {
+                            found = (int) true;
+                            break;
+                        }
+                        /*@+nullderef@*/
+                    }
+                    if (found == (int) true) continue;
+
+                    AIM_REALL(controlName, numControlName+1, char*, aimInfo, status);
+                    controlName[numControlName] = NULL;
+                    numControlName += 1;
+
+                    AIM_STRDUP(controlName[numControlName-1],
+                               avlInstance->avlSurface[isurf].vlmSection[isection].vlmControl[icontrol].name, aimInfo, status);
+
+                    // Store control map for later use
+                    status = increment_mapAttrToIndexStruct(&avlInstance->controlMap,
+                                                            controlName[numControlName-1]);
+                    AIM_STATUS(aimInfo, status);
+                }
+            }
         }
     }
 
@@ -1991,6 +2176,95 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
         }
     }
      */
+
+
+    status = CAPS_SUCCESS;
+
+cleanup:
+
+    // Free array of control name strings
+    if (numControlName != 0 && controlName != NULL) {
+        (void) string_freeArray(numControlName, &controlName);
+#ifdef S_SPLINT_S
+        AIM_FREE(controlName);
+#endif
+    }
+
+    return status;
+}
+
+// ********************** AIM Function Break *****************************
+int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
+{
+    int status; // Function return status
+
+    int i, j, k, isurf, isection, icontrol; // Indexing
+    int found = (int)false;
+
+    int numBody;
+
+    int eigenValues = (int) false;
+
+    int atype, alen;
+
+    const aimStorage *avlInstance;
+
+    double      Sref, Cref, Bref, Xref, Yref, Zref;
+    int         foundSref=(int)false, foundCref=(int)false, foundBref=(int)false, foundXref=(int)false;
+    const int    *ints;
+    const char   *string, *intents;
+    const double *reals;
+    ego          *bodies;
+
+    const char *bodyLunits = NULL;
+
+    int numControlName = 0; // Unique control names
+    char **controlName = NULL;
+
+    // File I/O
+    FILE *fp = NULL;
+    char inputFilename[] = "avlInput.txt";
+    char avlFilename[] = "caps.avl";
+    char massFilename[] = "caps.mass";
+
+    char totalForceFile[]  = "capsTotalForce.txt";
+    char stripForceFile[]  = "capsStripForce.txt";
+    char stabilityFile[]   = "capsStatbilityDeriv.txt";
+    char bodyAxisFile[]    = "capsBodyAxisDeriv.txt";
+    char hingeMomentFile[] = "capsHingeMoment.txt";
+    char eigenValueFile[]  = "capsEigenValues.txt";
+
+
+#ifdef DEBUG
+    printf(" avlAIM/aimPreAnalysis\n");
+#endif
+
+    avlInstance = (const aimStorage *) instStore;
+
+    // Initialize reference values
+    Sref = 1.0;
+    Cref = 1.0;
+    Bref = 1.0;
+
+    Xref = 0.0;
+    Yref = 0.0;
+    Zref = 0.0;
+
+    if (aimInputs == NULL) {
+#ifdef DEBUG
+        printf(" avlAIM/aimPreAnalysis aimInputs == NULL!\n");
+#endif
+        return CAPS_NULLVALUE;
+    }
+
+    status = aim_getBodies(aimInfo, &intents, &numBody, &bodies);
+    AIM_STATUS(aimInfo, status);
+
+    if (numBody == 0 || bodies == NULL) {
+        AIM_ERROR(aimInfo, "No Bodies!");
+        status = CAPS_SOURCEERR;
+        goto cleanup;
+    }
 
     // look for eigen value analysis
     if ( (aimInputs[inMassProp-1].nullVal == NotNull ||
@@ -2046,6 +2320,7 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
 
     // Set operation parameters
     fprintf(fp, "OPER\n");
+    fprintf(fp, "MRF\n"); // Machine Readable Format
 
     if (aimInputs[inAlpha-1].nullVal ==  NotNull) {
         fprintf(fp, "A A ");//Alpha
@@ -2069,20 +2344,14 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
     fprintf(fp, "Y Y ");//Yaw Rate rb/2v
     fprintf(fp, "%lf\n", aimInputs[inYawRate-1].vals.real);
 
-    // Destroy previous controlMap (in case it already exists)
-    status = destroy_mapAttrToIndexStruct(&avlInstance->controlMap);
-    AIM_STATUS(aimInfo, status);
-
     // Check for control surface information
-    j = 1;
-    numControlName = 0;
-    for (surf = 0; surf < avlInstance->numAVLSurface; surf++) {
+    for (isurf = 0; isurf < avlInstance->numAVLSurface; isurf++) {
 
-        for (i = 0; i < avlInstance->avlSurface[surf].numSection; i++) {
+        for (i = 0; i < avlInstance->avlSurface[isurf].numSection; i++) {
 
-            section = avlInstance->avlSurface[surf].vlmSection[i].sectionIndex;
+            isection = avlInstance->avlSurface[isurf].vlmSection[i].sectionIndex;
 
-            for (control = 0; control < avlInstance->avlSurface[surf].vlmSection[section].numControl; control++) {
+            for (icontrol = 0; icontrol < avlInstance->avlSurface[isurf].vlmSection[isection].numControl; icontrol++) {
 
                 // Check to see if control surface hasn't already been written
                 found = (int) false;
@@ -2090,7 +2359,7 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
                 for (k = 0; k < numControlName; k++) {
                     /*@-nullderef@*/
                     if (strcmp(controlName[k],
-                               avlInstance->avlSurface[surf].vlmSection[section].vlmControl[control].name) == 0) {
+                               avlInstance->avlSurface[isurf].vlmSection[isection].vlmControl[icontrol].name) == 0) {
                         found = (int) true;
                         break;
                     }
@@ -2103,15 +2372,15 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
                 numControlName += 1;
 
                 AIM_STRDUP(controlName[numControlName-1],
-                           avlInstance->avlSurface[surf].vlmSection[section].vlmControl[control].name, aimInfo, status);
+                           avlInstance->avlSurface[isurf].vlmSection[isection].vlmControl[icontrol].name, aimInfo, status);
 
-                // Store control map for later use
-                status = increment_mapAttrToIndexStruct(&avlInstance->controlMap,
-                                                        controlName[numControlName-1]);
+                // Get the control index
+                status = get_mapAttrToIndexIndex(&avlInstance->controlMap,
+                                                 avlInstance->avlSurface[isurf].vlmSection[isection].vlmControl[icontrol].name,
+                                                 &j);
                 AIM_STATUS(aimInfo, status);
 
-                fprintf(fp, "D%d D%d %f\n",j, j, avlInstance->avlSurface[surf].vlmSection[section].vlmControl[control].deflectionAngle);
-                j += 1;
+                fprintf(fp, "D%d D%d %f\n", j, j, avlInstance->avlSurface[isurf].vlmSection[isection].vlmControl[icontrol].deflectionAngle);
             }
         }
     }
@@ -2128,12 +2397,12 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
         }
     }*/
 
-    fprintf(fp, "M\n"); // Modify parameters
-    fprintf(fp, "MN\n");//Mach
+    fprintf(fp, "M\n");  // Modify parameters
+    fprintf(fp, "MN\n"); //Mach
     fprintf(fp, "%lf\n", aimInputs[inMach-1].vals.real);
 
     if (aimInputs[inVelocity-1].nullVal == NotNull) {
-        fprintf(fp, "V\n");                            // Velocity
+        fprintf(fp, "V\n");                                       // Velocity
         fprintf(fp, "%lf\n", aimInputs[inVelocity-1].vals.real);  // set the value
     }
     fprintf(fp, "\n");                    // exit modify parameters
@@ -2148,37 +2417,32 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
     // Get Total forces
     fprintf(fp,"FT\n");
     fprintf(fp,"%s\n", totalForceFile);
-    if (aim_isFile(aimInfo, totalForceFile) == CAPS_SUCCESS) {
-        fprintf(fp, "O\n");
-    }
+    status = aim_rmFile(aimInfo, totalForceFile);
+    AIM_STATUS(aimInfo, status);
 
     // Get strip forces
     fprintf(fp,"FS\n");
     fprintf(fp,"%s\n", stripForceFile);
-    if (aim_isFile(aimInfo, stripForceFile) == CAPS_SUCCESS) {
-        fprintf(fp, "O\n");
-    }
+    status = aim_rmFile(aimInfo, stripForceFile);
+    AIM_STATUS(aimInfo, status);
 
     // Get stability derivatives
     fprintf(fp,"ST\n");
     fprintf(fp,"%s\n", stabilityFile);
-    if (aim_isFile(aimInfo, stabilityFile) == CAPS_SUCCESS) {
-        fprintf(fp, "O\n");
-    }
+    status = aim_rmFile(aimInfo, stabilityFile);
+    AIM_STATUS(aimInfo, status);
 
     // Get stability (body axis) derivatives
     fprintf(fp,"SB\n");
     fprintf(fp,"%s\n", bodyAxisFile);
-    if (aim_isFile(aimInfo, bodyAxisFile) == CAPS_SUCCESS) {
-        fprintf(fp, "O\n");
-    }
+    status = aim_rmFile(aimInfo, bodyAxisFile);
+    AIM_STATUS(aimInfo, status);
 
     // Get hinge moments
     fprintf(fp,"HM\n");
     fprintf(fp,"%s\n", hingeMomentFile);
-    if (aim_isFile(aimInfo, hingeMomentFile) == CAPS_SUCCESS) {
-        fprintf(fp, "O\n");
-    }
+    status = aim_rmFile(aimInfo, hingeMomentFile);
+    AIM_STATUS(aimInfo, status);
 
     fprintf(fp, "\n"); // back to main menu
 
@@ -2188,9 +2452,8 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
         fprintf(fp, "n\n");                   // compute eigen values
         fprintf(fp, "w\n");                   // write eigen values to file
         fprintf(fp, "%s\n", eigenValueFile);
-        if (aim_isFile(aimInfo, eigenValueFile) == CAPS_SUCCESS) {
-            fprintf(fp, "Y\n");
-        }
+        status = aim_rmFile(aimInfo, eigenValueFile);
+        AIM_STATUS(aimInfo, status);
         fprintf(fp, "\n"); // back to main menu
     }
 
@@ -2198,7 +2461,8 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
     fclose(fp);
     fp = NULL;
 
-    if (aim_newGeometry(aimInfo) == CAPS_SUCCESS ||
+    if (aim_isFile(aimInfo, avlFilename) == CAPS_NOTFOUND ||
+        aim_newGeometry(aimInfo) == CAPS_SUCCESS ||
         aim_newAnalysisIn(aimInfo, inAVL_Surface) == CAPS_SUCCESS ||
         aim_newAnalysisIn(aimInfo, inAVL_Control) == CAPS_SUCCESS ||
         aim_newAnalysisIn(aimInfo, inMoment_Center) == CAPS_SUCCESS ||
@@ -2220,6 +2484,7 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
 
                 if (atype == ATTRREAL && alen == 1) {
                     Sref = (double) reals[0];
+                    foundSref = (int)true;
                 } else {
                     AIM_ERROR(aimInfo, "capsReferenceArea should be followed by a single real value!\n");
                     status = CAPS_BADVALUE;
@@ -2233,6 +2498,7 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
 
                 if (atype == ATTRREAL && alen == 1) {
                     Cref = (double) reals[0];
+                    foundCref = (int)true;
                 } else {
                     AIM_ERROR(aimInfo, "capsReferenceChord should be followed by a single real value!\n");
                     status = CAPS_BADVALUE;
@@ -2246,6 +2512,7 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
 
                 if (atype == ATTRREAL && alen == 1) {
                     Bref = (double) reals[0];
+                    foundBref = (int)true;
                 } else {
                     AIM_ERROR(aimInfo, "capsReferenceSpan should be followed by a single real value!\n");
                     status = CAPS_BADVALUE;
@@ -2259,6 +2526,7 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
 
                 if (atype == ATTRREAL && alen == 1) {
                     Xref = (double) reals[0];
+                    foundXref = (int)true;
                 } else {
                     AIM_ERROR(aimInfo, "capsReferenceX should be followed by a single real value!\n");
                     status = CAPS_BADVALUE;
@@ -2293,12 +2561,34 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
             }
         }
 
+        if (foundSref == (int)false) {
+            AIM_ERROR(aimInfo, "capsReferenceArea is not set on any body!");
+            status = CAPS_BADVALUE;
+            goto cleanup;
+        }
+        if (foundCref == (int)false) {
+            AIM_ERROR(aimInfo, "capsReferenceChord is not set on any body!");
+            status = CAPS_BADVALUE;
+            goto cleanup;
+        }
+        if (foundBref == (int)false) {
+            AIM_ERROR(aimInfo, "capsReferenceSpan is not set on any body!");
+            status = CAPS_BADVALUE;
+            goto cleanup;
+        }
+
         // Check for moment reference overwrites
-        if (aimInputs[inMoment_Center-1].nullVal ==  NotNull) {
+        if (aimInputs[inMoment_Center-1].nullVal == NotNull) {
 
             Xref = aimInputs[inMoment_Center-1].vals.reals[0];
             Yref = aimInputs[inMoment_Center-1].vals.reals[1];
             Zref = aimInputs[inMoment_Center-1].vals.reals[2];
+        } else {
+          if (foundXref == (int)false) {
+              AIM_ERROR(aimInfo, "capsReferenceX is not set on any body and 'Moment_Center' input not set!");
+              status = CAPS_BADVALUE;
+              goto cleanup;
+          }
         }
 
         fprintf(fp, "CAPS generated Configuration\n");
@@ -2309,74 +2599,74 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
         fprintf(fp, "%lf         # CDp\n", aimInputs[inCDp-1].vals.real);      /* CDp */
 
         // Write out the Surfaces, one at a time
-        for (surf = 0; surf < avlInstance->numAVLSurface; surf++) {
+        for (isurf = 0; isurf < avlInstance->numAVLSurface; isurf++) {
 
-            printf("Writing surface - %s (ID = %d)\n", avlInstance->avlSurface[surf].name, surf);
+            printf("Writing surface - %s (ID = %d)\n", avlInstance->avlSurface[isurf].name, isurf);
 
-            if (avlInstance->avlSurface[surf].numSection < 2) {
+            if (avlInstance->avlSurface[isurf].numSection < 2) {
                 printf("Surface %s only has %d Sections - it will be skipped!\n",
-                       avlInstance->avlSurface[surf].name, avlInstance->avlSurface[surf].numSection);
+                       avlInstance->avlSurface[isurf].name, avlInstance->avlSurface[isurf].numSection);
                 continue;
             }
 
-            fprintf(fp, "#\nSURFACE\n%s\n%d %lf\n\n", avlInstance->avlSurface[surf].name,
-                                                      avlInstance->avlSurface[surf].Nchord,
-                                                      avlInstance->avlSurface[surf].Cspace);
+            fprintf(fp, "#\nSURFACE\n%s\n%d %lf\n\n", avlInstance->avlSurface[isurf].name,
+                                                      avlInstance->avlSurface[isurf].Nchord,
+                                                      avlInstance->avlSurface[isurf].Cspace);
 
-            if  (avlInstance->avlSurface[surf].compon != 0)
-                fprintf(fp, "COMPONENT\n%d\n\n", avlInstance->avlSurface[surf].compon);
+            if  (avlInstance->avlSurface[isurf].compon != 0)
+                fprintf(fp, "COMPONENT\n%d\n\n", avlInstance->avlSurface[isurf].compon);
 
-            if  (avlInstance->avlSurface[surf].iYdup  != 0)
+            if  (avlInstance->avlSurface[isurf].iYdup  != 0)
                 fprintf(fp, "YDUPLICATE\n0.0\n\n");
 
-            if  (avlInstance->avlSurface[surf].nowake == (int) true) fprintf(fp, "NOWAKE\n");
-            if  (avlInstance->avlSurface[surf].noalbe == (int) true) fprintf(fp, "NOALBE\n");
-            if  (avlInstance->avlSurface[surf].noload == (int) true) fprintf(fp, "NOLOAD\n");
+            if  (avlInstance->avlSurface[isurf].nowake == (int) true) fprintf(fp, "NOWAKE\n");
+            if  (avlInstance->avlSurface[isurf].noalbe == (int) true) fprintf(fp, "NOALBE\n");
+            if  (avlInstance->avlSurface[isurf].noload == (int) true) fprintf(fp, "NOLOAD\n");
 
-            if ( (avlInstance->avlSurface[surf].nowake == (int) true) ||
-                 (avlInstance->avlSurface[surf].noalbe == (int) true) ||
-                 (avlInstance->avlSurface[surf].noload == (int) true)) {
+            if ( (avlInstance->avlSurface[isurf].nowake == (int) true) ||
+                 (avlInstance->avlSurface[isurf].noalbe == (int) true) ||
+                 (avlInstance->avlSurface[isurf].noload == (int) true)) {
 
                 fprintf(fp,"\n");
             }
 
             // Write the sections for each surface
-            for (i = 0; i < avlInstance->avlSurface[surf].numSection; i++) {
+            for (i = 0; i < avlInstance->avlSurface[isurf].numSection; i++) {
 
-                section = avlInstance->avlSurface[surf].vlmSection[i].sectionIndex;
+                isection = avlInstance->avlSurface[isurf].vlmSection[i].sectionIndex;
 
                 printf("\tSection %d of %d (ID = %d)\n",
-                       i+1, avlInstance->avlSurface[surf].numSection, section);
+                       i+1, avlInstance->avlSurface[isurf].numSection, isection);
 
                 // Write section data
-                status = writeSection(fp, &avlInstance->avlSurface[surf].vlmSection[section]);
-                if (status != CAPS_SUCCESS) goto cleanup;
+                status = writeSection(aimInfo, fp, &avlInstance->avlSurface[isurf].vlmSection[isection]);
+                AIM_STATUS(aimInfo, status);
 
                 // Write control information for each section
-                for (control = 0; control < avlInstance->avlSurface[surf].vlmSection[section].numControl; control++) {
+                for (icontrol = 0; icontrol < avlInstance->avlSurface[isurf].vlmSection[isection].numControl; icontrol++) {
 
-                    printf("\t  Control surface %d of %d \n", control + 1, avlInstance->avlSurface[surf].vlmSection[section].numControl);
+                    printf("\t  Control surface %d of %d \n", icontrol + 1, avlInstance->avlSurface[isurf].vlmSection[isection].numControl);
 
                     fprintf(fp, "CONTROL\n");
-                    fprintf(fp, "%s ", avlInstance->avlSurface[surf].vlmSection[section].vlmControl[control].name);
+                    fprintf(fp, "%s ", avlInstance->avlSurface[isurf].vlmSection[isection].vlmControl[icontrol].name);
 
-                    fprintf(fp, "%f ", avlInstance->avlSurface[surf].vlmSection[section].vlmControl[control].controlGain);
+                    fprintf(fp, "%f ", avlInstance->avlSurface[isurf].vlmSection[isection].vlmControl[icontrol].controlGain);
 
-                    if (avlInstance->avlSurface[surf].vlmSection[section].vlmControl[control].leOrTe == 0) { // Leading edge (-)
+                    if (avlInstance->avlSurface[isurf].vlmSection[isection].vlmControl[icontrol].leOrTe == 0) { // Leading edge (-)
 
-                        fprintf(fp, "%f ", -avlInstance->avlSurface[surf].vlmSection[section].vlmControl[control].percentChord);
+                        fprintf(fp, "%f ", -avlInstance->avlSurface[isurf].vlmSection[isection].vlmControl[icontrol].percentChord);
 
                     } else { // Trailing edge (+)
 
-                        fprintf(fp, "%f ", avlInstance->avlSurface[surf].vlmSection[section].vlmControl[control].percentChord);
+                        fprintf(fp, "%f ", avlInstance->avlSurface[isurf].vlmSection[isection].vlmControl[icontrol].percentChord);
                     }
 
                     fprintf(fp, "%f %f %f ",
-                            avlInstance->avlSurface[surf].vlmSection[section].vlmControl[control].xyzHingeVec[0],
-                            avlInstance->avlSurface[surf].vlmSection[section].vlmControl[control].xyzHingeVec[1],
-                            avlInstance->avlSurface[surf].vlmSection[section].vlmControl[control].xyzHingeVec[2]);
+                            avlInstance->avlSurface[isurf].vlmSection[isection].vlmControl[icontrol].xyzHingeVec[0],
+                            avlInstance->avlSurface[isurf].vlmSection[isection].vlmControl[icontrol].xyzHingeVec[1],
+                            avlInstance->avlSurface[isurf].vlmSection[isection].vlmControl[icontrol].xyzHingeVec[2]);
 
-                    fprintf(fp, "%f\n", (double) avlInstance->avlSurface[surf].vlmSection[section].vlmControl[control].deflectionDup);
+                    fprintf(fp, "%f\n", (double) avlInstance->avlSurface[isurf].vlmSection[isection].vlmControl[icontrol].deflectionDup);
                 }
                 fprintf(fp, "\n");
             }
@@ -2410,7 +2700,7 @@ cleanup:
 
 
 // ********************** AIM Function Break *****************************
-int aimExecute(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo,
+int aimExecute(/*@unused@*/ const void *instStore, /*@unused@*/ void *aimInfo,
                int *state)
 {
   /*! \page aimExecuteAVL AIM Execution
@@ -2456,13 +2746,94 @@ int aimExecute(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo,
 int aimPostAnalysis(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo,
                     /*@unused@*/ int restart, /*@unused@*/ capsValue *inputs)
 {
-  // check an AVL output file
-  if (aim_isFile(aimInfo, "capsTotalForce.txt") != CAPS_SUCCESS) {
-    AIM_ERROR(aimInfo, "avl execution did not produce capsTotalForce.txt");
-    return CAPS_EXECERR;
-  }
+    int status = CAPS_SUCCESS;
 
-  return CAPS_SUCCESS;
+    char totalForceFile[]  = "capsTotalForce.txt";
+    char stripForceFile[]  = "capsStripForce.txt";
+    char stabilityFile[]   = "capsStatbilityDeriv.txt";
+    char bodyAxisFile[]    = "capsBodyAxisDeriv.txt";
+    char hingeMomentFile[] = "capsHingeMoment.txt";
+
+    char aimFile[PATH_MAX];
+
+    aimStorage *avlInstance;
+
+    avlInstance = (aimStorage *) instStore;
+
+    // check AVL output files
+    if (aim_isFile(aimInfo, totalForceFile) != CAPS_SUCCESS) {
+      AIM_ERROR(aimInfo, "avl execution did not produce %s", totalForceFile);
+      return CAPS_EXECERR;
+    }
+
+    if (aim_isFile(aimInfo, stripForceFile) != CAPS_SUCCESS) {
+      AIM_ERROR(aimInfo, "avl execution did not produce %s", stripForceFile);
+      return CAPS_EXECERR;
+    }
+
+    if (aim_isFile(aimInfo, stabilityFile) != CAPS_SUCCESS) {
+      AIM_ERROR(aimInfo, "avl execution did not produce %s", stabilityFile);
+      return CAPS_EXECERR;
+    }
+
+    if (aim_isFile(aimInfo, bodyAxisFile) != CAPS_SUCCESS) {
+      AIM_ERROR(aimInfo, "avl execution did not produce %s", bodyAxisFile);
+      return CAPS_EXECERR;
+    }
+
+    if (aim_isFile(aimInfo, hingeMomentFile) != CAPS_SUCCESS) {
+      AIM_ERROR(aimInfo, "avl execution did not produce %s", hingeMomentFile);
+      return CAPS_EXECERR;
+    }
+
+    // Total forces
+    status = aim_file(aimInfo, totalForceFile, aimFile);
+    AIM_STATUS(aimInfo, status);
+
+    status = avlRead_TOT(aimFile, &avlInstance->tot, false);
+    if (status != 0) status = CAPS_IOERR;
+    AIM_STATUS(aimInfo, status);
+
+    // Strip forces
+    status = aim_file(aimInfo, stripForceFile, aimFile);
+    AIM_STATUS(aimInfo, status);
+
+    status = avlRead_STRP(aimFile, &avlInstance->strp, false);
+    if (status != 0) status = CAPS_IOERR;
+    AIM_STATUS(aimInfo, status);
+
+    // Stability derivatives (ST)
+    status = aim_file(aimInfo, stabilityFile, aimFile);
+    AIM_STATUS(aimInfo, status);
+
+    status = avlRead_DERMATS(aimFile, &avlInstance->dermatS, false);
+    if (status != 0) status = CAPS_IOERR;
+    AIM_STATUS(aimInfo, status);
+
+    // Stability (body axis) derivatives (SB)
+    status = aim_file(aimInfo, bodyAxisFile, aimFile);
+    AIM_STATUS(aimInfo, status);
+
+    status = avlRead_DERMATB(aimFile, &avlInstance->dermatB, false);
+    if (status != 0) status = CAPS_IOERR;
+    AIM_STATUS(aimInfo, status);
+
+    // Hinge moments
+    status = aim_file(aimInfo, hingeMomentFile, aimFile);
+    AIM_STATUS(aimInfo, status);
+
+    status = avlRead_HINGE(aimFile, &avlInstance->hinge, false);
+    if (status != 0) status = CAPS_IOERR;
+    AIM_STATUS(aimInfo, status);
+
+    status = CAPS_SUCCESS;
+
+cleanup:
+    if (status != CAPS_SUCCESS) {
+      AIM_ADDLINE(aimInfo, "Please make sure you are using avl 3.40 or newer.");
+    }
+
+    return status;
 }
 
 
@@ -3010,12 +3381,7 @@ int aimCalcOutput(void *instStore, /*@unused@*/ void *aimInfo, int index,
 
     const char *key = NULL;
     const char *fileToOpen = "capsTotalForce.txt";
-    const char *derivFile = NULL;
-    const char *deriv_keys[5] = {NULL,NULL,NULL,NULL,NULL};
-    int nderiv = 0;
     aimStorage *avlInstance;
-
-    double tempVal[6];
 
     char jsonOut[200];
 
@@ -3038,561 +3404,449 @@ int aimCalcOutput(void *instStore, /*@unused@*/ void *aimInfo, int index,
 /*@-observertrans@*/
     switch (index) {
     case Alpha:
-        fileToOpen= "capsTotalForce.txt";
-        key = "Alpha =";
+        val->vals.real = avlInstance->tot.Alpha;
         break;
     case Beta:
-        fileToOpen= "capsTotalForce.txt";
-        key = "Beta  =";
+        val->vals.real = avlInstance->tot.Beta;
         break;
     case Mach:
-        fileToOpen= "capsTotalForce.txt";
-        key = "Mach  =";
+        val->vals.real = avlInstance->tot.Mach;
         break;
     case pbd2V:
-        fileToOpen= "capsTotalForce.txt";
-        key = "pb/2V =";
+        val->vals.real = avlInstance->tot.pb_2V;
         break;
     case qcd2V:
-        fileToOpen= "capsTotalForce.txt";
-        key = "qc/2V =";
+        val->vals.real = avlInstance->tot.qc_2V;
         break;
     case rbd2V:
-        fileToOpen= "capsTotalForce.txt";
-        key = "rb/2V =";
+        val->vals.real = avlInstance->tot.rb_2V;
         break;
     case pPbd2V:
-        fileToOpen= "capsTotalForce.txt";
-        key = "p'b/2V =";
+        val->vals.real = avlInstance->tot.pPb_2V;
         break;
     case rPbd2V:
-        fileToOpen= "capsTotalForce.txt";
-        key = "r'b/2V =";
+        val->vals.real = avlInstance->tot.rPb_2V;
         break;
     case CXtot:
-        fileToOpen= "capsTotalForce.txt";
-        key = "CXtot =";
+        val->vals.real = avlInstance->tot.CXtot;
 
-        status = bodyRateDerivatives(aimInfo, val);
+        status = bodyRateDerivatives(aimInfo, val,
+                                     avlInstance->dermatB.CXp,
+                                     avlInstance->dermatB.CXq,
+                                     avlInstance->dermatB.CXr);
         AIM_STATUS(aimInfo, status);
 
-        derivFile= "capsBodyAxisDeriv.txt";
-        nderiv = 3;
-        deriv_keys[0] = "CXp =";
-        deriv_keys[1] = "CXq =";
-        deriv_keys[2] = "CXr =";
-
-        status = controlDerivatives(aimInfo, CXtot, avlInstance, val);
+        status = bodyControlDerivatives(aimInfo, CXtot, avlInstance, val);
         AIM_STATUS(aimInfo, status);
 
         break;
     case CYtot:
-        fileToOpen= "capsTotalForce.txt";
-        key = "CYtot =";
+        val->vals.real = avlInstance->tot.CYtot;
 
-        status = stabilityAngleDerivatives(aimInfo, val);
+        status = stabilityAngleDerivatives(aimInfo, val,
+                                           avlInstance->dermatS.CYa,
+                                           avlInstance->dermatS.CYb);
         AIM_STATUS(aimInfo, status);
 
-        deriv_keys[0] = "CYa =";
-        deriv_keys[1] = "CYb =";
-        for (i = 0; i < 2; i++) {
-          status = read_Data(aimInfo, "capsStatbilityDeriv.txt", deriv_keys[i], val->derivs[i].deriv);
-          AIM_STATUS(aimInfo, status);
-        }
-
-        status = bodyRateDerivatives(aimInfo, val);
+        status = bodyRateDerivatives(aimInfo, val,
+                                     avlInstance->dermatB.CYp,
+                                     avlInstance->dermatB.CYq,
+                                     avlInstance->dermatB.CYr);
         AIM_STATUS(aimInfo, status);
 
-        deriv_keys[0] = "CYp =";
-        deriv_keys[1] = "CYq =";
-        deriv_keys[2] = "CYr =";
-        for (i = 0; i < 3; i++) {
-          status = read_Data(aimInfo, "capsBodyAxisDeriv.txt", deriv_keys[i], val->derivs[i+2].deriv);
-          AIM_STATUS(aimInfo, status);
-        }
-
-        status = controlDerivatives(aimInfo, CYtot, avlInstance, val);
+        status = bodyControlDerivatives(aimInfo, CYtot, avlInstance, val);
         AIM_STATUS(aimInfo, status);
 
         break;
     case CZtot:
-        fileToOpen= "capsTotalForce.txt";
-        key = "CZtot =";
+        val->vals.real = avlInstance->tot.CZtot;
 
-        status = bodyRateDerivatives(aimInfo, val);
+        status = bodyRateDerivatives(aimInfo, val,
+                                     avlInstance->dermatB.CZp,
+                                     avlInstance->dermatB.CZq,
+                                     avlInstance->dermatB.CZr);
         AIM_STATUS(aimInfo, status);
 
-        derivFile= "capsBodyAxisDeriv.txt";
-        nderiv = 3;
-        deriv_keys[0] = "CZp =";
-        deriv_keys[1] = "CZq =";
-        deriv_keys[2] = "CZr =";
-
-        status = controlDerivatives(aimInfo, CZtot, avlInstance, val);
+        status = bodyControlDerivatives(aimInfo, CZtot, avlInstance, val);
         AIM_STATUS(aimInfo, status);
 
         break;
     case Cltot:
-        fileToOpen= "capsTotalForce.txt";
-        key = "Cltot =";
+        val->vals.real = avlInstance->tot.Cltot;
 
-        status = bodyRateDerivatives(aimInfo, val);
+        status = bodyRateDerivatives(aimInfo, val,
+                                     avlInstance->dermatB.Clp,
+                                     avlInstance->dermatB.Clq,
+                                     avlInstance->dermatB.Clr);
         AIM_STATUS(aimInfo, status);
 
-        derivFile= "capsBodyAxisDeriv.txt";
-        nderiv = 3;
-        deriv_keys[0] = "Clp =";
-        deriv_keys[1] = "Clq =";
-        deriv_keys[2] = "Clr =";
-
-        status = controlDerivatives(aimInfo, Cltot, avlInstance, val);
+        status = bodyControlDerivatives(aimInfo, Cltot, avlInstance, val);
         AIM_STATUS(aimInfo, status);
 
         break;
     case Cmtot:
-        fileToOpen= "capsTotalForce.txt";
-        key = "Cmtot =";
+        val->vals.real = avlInstance->tot.Cmtot;
 
-        status = stabilityAngleDerivatives(aimInfo, val);
+        status = stabilityAngleDerivatives(aimInfo, val,
+                                           avlInstance->dermatS.Cma,
+                                           avlInstance->dermatS.Cmb);
         AIM_STATUS(aimInfo, status);
 
-        deriv_keys[0] = "Cma =";
-        deriv_keys[1] = "Cmb =";
-        for (i = 0; i < 2; i++) {
-          status = read_Data(aimInfo, "capsStatbilityDeriv.txt", deriv_keys[i], val->derivs[i].deriv);
-          AIM_STATUS(aimInfo, status);
-        }
-
-        status = bodyRateDerivatives(aimInfo, val);
+        status = bodyRateDerivatives(aimInfo, val,
+                                     avlInstance->dermatB.Cmp,
+                                     avlInstance->dermatB.Cmq,
+                                     avlInstance->dermatB.Cmr);
         AIM_STATUS(aimInfo, status);
 
-        deriv_keys[0] = "Cmp =";
-        deriv_keys[1] = "Cmq =";
-        deriv_keys[2] = "Cmr =";
-        for (i = 0; i < 3; i++) {
-          status = read_Data(aimInfo, "capsBodyAxisDeriv.txt", deriv_keys[i], val->derivs[i+2].deriv);
-          AIM_STATUS(aimInfo, status);
-        }
-
-        status = controlDerivatives(aimInfo, Cmtot, avlInstance, val);
+        status = bodyControlDerivatives(aimInfo, Cmtot, avlInstance, val);
         AIM_STATUS(aimInfo, status);
 
         break;
     case Cntot:
-        fileToOpen= "capsTotalForce.txt";
-        key = "Cntot =";
+        val->vals.real = avlInstance->tot.Cntot;
 
-        status = bodyRateDerivatives(aimInfo, val);
+        status = bodyRateDerivatives(aimInfo, val,
+                                     avlInstance->dermatB.Cnp,
+                                     avlInstance->dermatB.Cnq,
+                                     avlInstance->dermatB.Cnr);
         AIM_STATUS(aimInfo, status);
 
-        derivFile= "capsBodyAxisDeriv.txt";
-        nderiv = 3;
-        deriv_keys[0] = "Cnp =";
-        deriv_keys[1] = "Cnq =";
-        deriv_keys[2] = "Cnr =";
-
-        status = controlDerivatives(aimInfo, Cntot, avlInstance, val);
+        status = bodyControlDerivatives(aimInfo, Cntot, avlInstance, val);
         AIM_STATUS(aimInfo, status);
 
         break;
     case ClPtot:
-        fileToOpen= "capsTotalForce.txt";
-        key = "Cl'tot =";
+        val->vals.real = avlInstance->tot.ClPtot;
 
-        status = stabilityAngleDerivatives(aimInfo, val);
+        status = stabilityAngleDerivatives(aimInfo, val,
+                                           avlInstance->dermatS.Cla,
+                                           avlInstance->dermatS.Clb);
         AIM_STATUS(aimInfo, status);
 
-        derivFile = "capsStatbilityDeriv.txt";
-        nderiv = 2;
-        deriv_keys[0] = "Cla =";
-        deriv_keys[1] = "Clb =";
-
-        status = controlDerivatives(aimInfo, ClPtot, avlInstance, val);
+        status = stabilityControlDerivatives(aimInfo, ClPtot, avlInstance, val);
         AIM_STATUS(aimInfo, status);
 
         break;
     case CnPtot:
-        fileToOpen= "capsTotalForce.txt";
-        key = "Cn'tot =";
+        val->vals.real = avlInstance->tot.CnPtot;
 
-        status = stabilityAngleDerivatives(aimInfo, val);
+        status = stabilityAngleDerivatives(aimInfo, val,
+                                           avlInstance->dermatS.Cna,
+                                           avlInstance->dermatS.Cnb);
         AIM_STATUS(aimInfo, status);
 
-        derivFile = "capsStatbilityDeriv.txt";
-        nderiv = 2;
-        deriv_keys[0] = "Cna =";
-        deriv_keys[1] = "Cnb =";
-
-        status = controlDerivatives(aimInfo, CnPtot, avlInstance, val);
+        status = stabilityControlDerivatives(aimInfo, CnPtot, avlInstance, val);
         AIM_STATUS(aimInfo, status);
 
         break;
     case CLtot:
-        fileToOpen= "capsTotalForce.txt";
-        key = "CLtot =";
+        val->vals.real = avlInstance->tot.CLtot;
 
-        status = stabilityAngleDerivatives(aimInfo, val);
+        status = stabilityAngleDerivatives(aimInfo, val,
+                                           avlInstance->dermatS.CLa,
+                                           avlInstance->dermatS.CLb);
         AIM_STATUS(aimInfo, status);
 
-        derivFile = "capsStatbilityDeriv.txt";
-        nderiv = 2;
-        deriv_keys[0] = "CLa =";
-        deriv_keys[1] = "CLb =";
-
-        status = controlDerivatives(aimInfo, CLtot, avlInstance, val);
+        status = stabilityControlDerivatives(aimInfo, CLtot, avlInstance, val);
         AIM_STATUS(aimInfo, status);
 
         break;
     case CDtot:
-        fileToOpen= "capsTotalForce.txt";
-        key = "CDtot =";
+        val->vals.real = avlInstance->tot.CDtot;
         break;
     case CDvis:
-        fileToOpen= "capsTotalForce.txt";
-        key = "CDvis =";
+        val->vals.real = avlInstance->tot.CDvis;
         break;
     case CLff:
-        fileToOpen= "capsTotalForce.txt";
-        key = "CLff  =";
+        val->vals.real = avlInstance->tot.CLff;
         break;
     case CYff:
-        fileToOpen= "capsTotalForce.txt";
-        key = "CYff  =";
+        val->vals.real = avlInstance->tot.CYff;
         break;
     case CDind:
-        fileToOpen= "capsTotalForce.txt";
-        key = "CDind =";
+        val->vals.real = avlInstance->tot.CDind;
         break;
     case CDff:
-        fileToOpen= "capsTotalForce.txt";
-        key = "CDff  =";
+        val->vals.real = avlInstance->tot.CDff;
+
+        status = stabilityControlDerivatives(aimInfo, CDff, avlInstance, val);
+        AIM_STATUS(aimInfo, status);
         break;
     case e:
-        fileToOpen= "capsTotalForce.txt";
-        key = "e =";
+        val->vals.real = avlInstance->tot.e;
+
+        status = stabilityControlDerivatives(aimInfo, e, avlInstance, val);
+        AIM_STATUS(aimInfo, status);
         break;
 
-        // Alpha stability derivatives
+
+    // Alpha stability derivatives
     case CLa:
-        fileToOpen = "capsStatbilityDeriv.txt";
-        key = "CLa =";
+        val->vals.real = avlInstance->dermatS.CLa;
         break;
 
     case CYa:
-        fileToOpen = "capsStatbilityDeriv.txt";
-        key = "CYa =";
+        val->vals.real = avlInstance->dermatS.CYa;
         break;
 
     case ClPa:
-        fileToOpen = "capsStatbilityDeriv.txt";
-        key = "Cla =";
+        val->vals.real = avlInstance->dermatS.Cla;
         break;
 
     case Cma:
-        fileToOpen = "capsStatbilityDeriv.txt";
-        key = "Cma =";
+        val->vals.real = avlInstance->dermatS.Cma;
         break;
 
     case CnPa:
-        fileToOpen = "capsStatbilityDeriv.txt";
-        key = "Cna =";
+        val->vals.real = avlInstance->dermatS.Cna;
         break;
 
-        // Beta stability derivatives
+
+    // Beta stability derivatives
     case CLb:
-        fileToOpen = "capsStatbilityDeriv.txt";
-        key = "CLb =";
+        val->vals.real = avlInstance->dermatS.CLb;
         break;
 
     case CYb:
-        fileToOpen = "capsStatbilityDeriv.txt";
-        key = "CYb =";
+        val->vals.real = avlInstance->dermatS.CYb;
         break;
 
     case ClPb:
-        fileToOpen = "capsStatbilityDeriv.txt";
-        key = "Clb =";
+        val->vals.real = avlInstance->dermatS.Clb;
         break;
 
     case Cmb:
-        fileToOpen = "capsStatbilityDeriv.txt";
-        key = "Cmb =";
+        val->vals.real = avlInstance->dermatS.Cmb;
         break;
 
     case CnPb:
-        fileToOpen = "capsStatbilityDeriv.txt";
-        key = "Cnb =";
+        val->vals.real = avlInstance->dermatS.Cnb;
         break;
 
-        // Roll rate p' stability derivatives
+
+    // Roll rate p' stability derivatives
     case CLpP:
-        fileToOpen = "capsStatbilityDeriv.txt";
-        key = "CLp =";
+        val->vals.real = avlInstance->dermatS.CLp;
         break;
 
     case CYpP:
-        fileToOpen = "capsStatbilityDeriv.txt";
-        key = "CYp =";
+        val->vals.real = avlInstance->dermatS.CYp;
         break;
 
     case ClPpP:
-        fileToOpen = "capsStatbilityDeriv.txt";
-        key = "Clp =";
+        val->vals.real = avlInstance->dermatS.Clp;
         break;
 
     case CmpP:
-        fileToOpen = "capsStatbilityDeriv.txt";
-        key = "Cmp =";
+        val->vals.real = avlInstance->dermatS.Cmp;
         break;
 
     case CnPpP:
-        fileToOpen = "capsStatbilityDeriv.txt";
-        key = "Cnp =";
+        val->vals.real = avlInstance->dermatS.Cnp;
         break;
 
-        // Pitch rate q' stability derivatives
+
+    // Pitch rate q' stability derivatives
     case CLqP:
-        fileToOpen = "capsStatbilityDeriv.txt";
-        key = "CLq =";
+        val->vals.real = avlInstance->dermatS.CLq;
         break;
 
     case CYqP:
-        fileToOpen = "capsStatbilityDeriv.txt";
-        key = "CYq =";
+        val->vals.real = avlInstance->dermatS.CYq;
         break;
 
     case ClPqP:
-        fileToOpen = "capsStatbilityDeriv.txt";
-        key = "Clq =";
+        val->vals.real = avlInstance->dermatS.Clq;
         break;
 
     case CmqP:
-        fileToOpen = "capsStatbilityDeriv.txt";
-        key = "Cmq =";
+        val->vals.real = avlInstance->dermatS.Cmq;
         break;
 
     case CnPqP:
-        fileToOpen = "capsStatbilityDeriv.txt";
-        key = "Cnq =";
+        val->vals.real = avlInstance->dermatS.Cnq;
         break;
 
-        // Yaw rate r' stability derivatives
+
+    // Yaw rate r' stability derivatives
     case CLrP:
-        fileToOpen = "capsStatbilityDeriv.txt";
-        key = "CLr =";
+        val->vals.real = avlInstance->dermatS.CLr;
         break;
 
     case CYrP:
-        fileToOpen = "capsStatbilityDeriv.txt";
-        key = "CYr =";
+        val->vals.real = avlInstance->dermatS.CYr;
         break;
 
     case ClPrP:
-        fileToOpen = "capsStatbilityDeriv.txt";
-        key = "Clr =";
+        val->vals.real = avlInstance->dermatS.Clr;
         break;
 
     case CmrP:
-        fileToOpen = "capsStatbilityDeriv.txt";
-        key = "Cmr =";
+        val->vals.real = avlInstance->dermatS.Cmr;
         break;
 
     case CnPrP:
-        fileToOpen = "capsStatbilityDeriv.txt";
-        key = "Cnr =";
+        val->vals.real = avlInstance->dermatS.Cnr;
         break;
 
 
-        // Axial vel (body axis)  stability derivatives
+    // Axial vel (body axis)  stability derivatives
     case CXu:
-        fileToOpen= "capsBodyAxisDeriv.txt";
-        key = "CXu =";
+        val->vals.real = avlInstance->dermatB.CXu;
         break;
 
     case CYu:
-        fileToOpen= "capsBodyAxisDeriv.txt";
-        key = "CYu =";
+        val->vals.real = avlInstance->dermatB.CYu;
         break;
 
     case CZu:
-        fileToOpen= "capsBodyAxisDeriv.txt";
-        key = "CZu =";
+        val->vals.real = avlInstance->dermatB.CZu;
         break;
 
     case Clu:
-        fileToOpen= "capsBodyAxisDeriv.txt";
-        key = "Clu =";
+        val->vals.real = avlInstance->dermatB.Clu;
         break;
 
     case Cmu:
-        fileToOpen= "capsBodyAxisDeriv.txt";
-        key = "Cmu =";
+        val->vals.real = avlInstance->dermatB.Cmu;
         break;
 
     case Cnu:
-        fileToOpen= "capsBodyAxisDeriv.txt";
-        key = "Cnu =";
+        val->vals.real = avlInstance->dermatB.Cnu;
         break;
 
 
-        // Slidslip vel (body axis) stability derivatives
+    // Sideslip vel (body axis) stability derivatives
     case CXv:
-        fileToOpen= "capsBodyAxisDeriv.txt";
-        key = "CXv =";
+        val->vals.real = avlInstance->dermatB.CXv;
         break;
 
     case CYv:
-        fileToOpen= "capsBodyAxisDeriv.txt";
-        key = "CYv =";
+        val->vals.real = avlInstance->dermatB.CYv;
         break;
 
     case CZv:
-        fileToOpen= "capsBodyAxisDeriv.txt";
-        key = "CZv =";
+        val->vals.real = avlInstance->dermatB.CZv;
         break;
 
     case Clv:
-        fileToOpen= "capsBodyAxisDeriv.txt";
-        key = "Clv =";
+        val->vals.real = avlInstance->dermatB.Clv;
         break;
 
     case Cmv:
-        fileToOpen= "capsBodyAxisDeriv.txt";
-        key = "Cmv =";
+        val->vals.real = avlInstance->dermatB.Cmv;
         break;
 
     case Cnv:
-        fileToOpen= "capsBodyAxisDeriv.txt";
-        key = "Cnv =";
+        val->vals.real = avlInstance->dermatB.Cnv;
         break;
 
-        // Normal vel (body axis)  stability derivatives
+
+    // Normal vel (body axis)  stability derivatives
     case CXw:
-        fileToOpen= "capsBodyAxisDeriv.txt";
-        key = "CXw =";
+        val->vals.real = avlInstance->dermatB.CXw;
         break;
 
     case CYw:
-        fileToOpen= "capsBodyAxisDeriv.txt";
-        key = "CYw =";
+        val->vals.real = avlInstance->dermatB.CYw;
         break;
 
     case CZw:
-        fileToOpen= "capsBodyAxisDeriv.txt";
-        key = "CZw =";
+        val->vals.real = avlInstance->dermatB.CZw;
         break;
 
     case Clw:
-        fileToOpen= "capsBodyAxisDeriv.txt";
-        key = "Clw =";
+        val->vals.real = avlInstance->dermatB.Clw;
         break;
 
     case Cmw:
-        fileToOpen= "capsBodyAxisDeriv.txt";
-        key = "Cmw =";
+        val->vals.real = avlInstance->dermatB.Cmw;
         break;
 
     case Cnw:
-        fileToOpen= "capsBodyAxisDeriv.txt";
-        key = "Cnw =";
+        val->vals.real = avlInstance->dermatB.Cnw;
         break;
 
-        // Roll rate (body axis)  stability derivatives
+
+    // Roll rate (body axis)  stability derivatives
     case CXp:
-        fileToOpen= "capsBodyAxisDeriv.txt";
-        key = "CXp =";
+        val->vals.real = avlInstance->dermatB.CXp;
         break;
 
     case CYp:
-        fileToOpen= "capsBodyAxisDeriv.txt";
-        key = "CYp =";
+        val->vals.real = avlInstance->dermatB.CYp;
         break;
 
     case CZp:
-        fileToOpen= "capsBodyAxisDeriv.txt";
-        key = "CZp =";
+        val->vals.real = avlInstance->dermatB.CZp;
         break;
 
     case Clp:
-        fileToOpen= "capsBodyAxisDeriv.txt";
-        key = "Clp =";
+        val->vals.real = avlInstance->dermatB.Clp;
         break;
 
     case Cmp:
-        fileToOpen= "capsBodyAxisDeriv.txt";
-        key = "Cmp =";
+        val->vals.real = avlInstance->dermatB.Cmp;
         break;
 
     case Cnp:
-        fileToOpen= "capsBodyAxisDeriv.txt";
-        key = "Cnp =";
+        val->vals.real = avlInstance->dermatB.Cnp;
         break;
 
-        // Pitch rate (body axis)  stability derivatives
+
+    // Pitch rate (body axis)  stability derivatives
     case CXq:
-        fileToOpen= "capsBodyAxisDeriv.txt";
-        key = "CXq =";
+        val->vals.real = avlInstance->dermatB.CXq;
         break;
 
     case CYq:
-        fileToOpen= "capsBodyAxisDeriv.txt";
-        key = "CYq =";
+        val->vals.real = avlInstance->dermatB.CYq;
         break;
 
     case CZq:
-        fileToOpen= "capsBodyAxisDeriv.txt";
-        key = "CZq =";
+        val->vals.real = avlInstance->dermatB.CZq;
         break;
 
     case Clq:
-        fileToOpen= "capsBodyAxisDeriv.txt";
-        key = "Clq =";
+        val->vals.real = avlInstance->dermatB.Clq;
         break;
 
     case Cmq:
-        fileToOpen= "capsBodyAxisDeriv.txt";
-        key = "Cmq =";
+        val->vals.real = avlInstance->dermatB.Cmq;
         break;
 
     case Cnq:
-        fileToOpen= "capsBodyAxisDeriv.txt";
-        key = "Cnq =";
+        val->vals.real = avlInstance->dermatB.Cnq;
         break;
 
-        // Yaw rate (body axis)  stability derivatives
+
+    // Yaw rate (body axis)  stability derivatives
     case CXr:
-        fileToOpen= "capsBodyAxisDeriv.txt";
-        key = "CXr =";
+        val->vals.real = avlInstance->dermatB.CXr;
         break;
 
     case CYr:
-        fileToOpen= "capsBodyAxisDeriv.txt";
-        key = "CYr =";
+        val->vals.real = avlInstance->dermatB.CYr;
         break;
 
     case CZr:
-        fileToOpen= "capsBodyAxisDeriv.txt";
-        key = "CZr =";
+        val->vals.real = avlInstance->dermatB.CZr;
         break;
 
     case Clr:
-        fileToOpen= "capsBodyAxisDeriv.txt";
-        key = "Clr =";
+        val->vals.real = avlInstance->dermatB.Clr;
         break;
 
     case Cmr:
-        fileToOpen= "capsBodyAxisDeriv.txt";
-        key = "Cmr =";
+        val->vals.real = avlInstance->dermatB.Cmr;
         break;
 
     case Cnr:
-        fileToOpen= "capsBodyAxisDeriv.txt";
-        key = "Cnr =";
+        val->vals.real = avlInstance->dermatB.Cnr;
         break;
 
     case Xnp:
-        fileToOpen = "capsStatbilityDeriv.txt";
-        key = "Xnp =";
+        val->vals.real = avlInstance->dermatS.Xnp;
         break;
 
     case Xcg:
@@ -3609,24 +3863,15 @@ int aimCalcOutput(void *instStore, /*@unused@*/ void *aimInfo, int index,
         fileToOpen= "caps.run";
         key = "Z_cg      =";
         break;
-
-    case ControlStability:
-    case ControlBody:
-    case HingeMoment:
-        fileToOpen = "capsHingeMoment.txt";
-        break;
-
-    case StripForces:
-        fileToOpen = "capsStripForce.txt";
-        break;
-
-    case EigenValues:
-        fileToOpen = "capsEigenValues.txt";
-        break;
     }
 /*@+observertrans@*/
 
-    if (index < ControlStability) {
+    if (index < Xcg) {
+
+      status = CAPS_SUCCESS;
+      goto cleanup;
+
+    } else if (index >= Xcg && index <= Zcg) {
 
       if (key == NULL) {
           AIM_ERROR(aimInfo, "Developer error: No string key found!");
@@ -3636,14 +3881,6 @@ int aimCalcOutput(void *instStore, /*@unused@*/ void *aimInfo, int index,
 
       status = read_Data(aimInfo, fileToOpen, key, &val->vals.real);
       AIM_STATUS(aimInfo, status);
-
-      /* read derivatives */
-      for (i = 0; i < nderiv; i++) {
-        /*@-nullpass@*/
-        status = read_Data(aimInfo, derivFile, deriv_keys[i], val->derivs[i].deriv);
-        AIM_STATUS(aimInfo, status);
-        /*@+nullpass@*/
-      }
 
     } else if (index >= ControlStability && index <= HingeMoment) { // Need to build something for control output
 
@@ -3661,84 +3898,38 @@ int aimCalcOutput(void *instStore, /*@unused@*/ void *aimInfo, int index,
         for (i = 0; i < val->nrow; i++) val->vals.tuple[i].name = val->vals.tuple[i].value = NULL;
 
         // Loop through control surfaces
-        for (i = 0; i < avlInstance->controlMap.numAttribute; i++) {
+        for (i = 0; i < avlInstance->dermatS.nCont; i++) {
 
-            AIM_STRDUP(val->vals.tuple[i].name, avlInstance->controlMap.attributeName[i], aimInfo, status);
+            AIM_STRDUP(val->vals.tuple[i].name, avlInstance->dermatS.cont[i].wrt, aimInfo, status);
 
-            // Stability axis
             if (index == ControlStability) {
-                status = get_controlDeriv(aimInfo, avlInstance->controlMap.attributeIndex[i],
-                                          CLtot, &tempVal[0]);
-                AIM_STATUS(aimInfo, status);
 
-                status = get_controlDeriv(aimInfo, avlInstance->controlMap.attributeIndex[i],
-                                          CYtot, &tempVal[1]);
-                AIM_STATUS(aimInfo, status);
-
-
-                status = get_controlDeriv(aimInfo, avlInstance->controlMap.attributeIndex[i],
-                                          ClPtot, &tempVal[2]);
-                AIM_STATUS(aimInfo, status);
-
-
-                status = get_controlDeriv(aimInfo, avlInstance->controlMap.attributeIndex[i],
-                                          Cmtot, &tempVal[3]);
-                AIM_STATUS(aimInfo, status);
-
-
-                status = get_controlDeriv(aimInfo, avlInstance->controlMap.attributeIndex[i],
-                                          CnPtot, &tempVal[4]);
-                AIM_STATUS(aimInfo, status);
-
-                sprintf(jsonOut,"{\"%s\":%7.6f,\"%s\":%7.6f,\"%s\":%7.6f,\"%s\":%7.6f,\"%s\":%7.6f}",
-                        "CLtot",  tempVal[0],
-                        "CYtot",  tempVal[1],
-                        "Cl'tot", tempVal[2],
-                        "Cmtot",  tempVal[3],
-                        "Cn'tot", tempVal[4]);
+                // Stability axis
+                sprintf(jsonOut,"{\"%s\":%16.12e,\"%s\":%16.12e,\"%s\":%16.12e,\"%s\":%16.12e,\"%s\":%16.12e,\"%s\":%16.12e,\"%s\":%16.12e}",
+                        "CLtot" , avlInstance->dermatS.cont[i].CLd,
+                        "CYtot" , avlInstance->dermatS.cont[i].CYd,
+                        "Cl'tot", avlInstance->dermatS.cont[i].Cld,
+                        "Cmtot" , avlInstance->dermatS.cont[i].Cmd,
+                        "Cn'tot", avlInstance->dermatS.cont[i].Cnd,
+                        "CDff"  , avlInstance->dermatS.cont[i].CDffd,
+                        "e"     , avlInstance->dermatS.cont[i].ed);
                 AIM_STRDUP(val->vals.tuple[i].value, jsonOut, aimInfo, status);
 
             } else if (index == ControlBody) {
 
                 // Body axis
-                status = get_controlDeriv(aimInfo, avlInstance->controlMap.attributeIndex[i],
-                                          CXtot, &tempVal[0]);
-                AIM_STATUS(aimInfo, status);
-
-                status = get_controlDeriv(aimInfo, avlInstance->controlMap.attributeIndex[i],
-                                          CYtot, &tempVal[1]);
-                AIM_STATUS(aimInfo, status);
-
-                status = get_controlDeriv(aimInfo, avlInstance->controlMap.attributeIndex[i],
-                                          CZtot, &tempVal[2]);
-                AIM_STATUS(aimInfo, status);
-
-
-                status = get_controlDeriv(aimInfo, avlInstance->controlMap.attributeIndex[i],
-                                          Cltot, &tempVal[3]);
-                AIM_STATUS(aimInfo, status);
-
-
-                status = get_controlDeriv(aimInfo, avlInstance->controlMap.attributeIndex[i],
-                                          Cmtot, &tempVal[4]);
-                AIM_STATUS(aimInfo, status);
-
-
-                status = get_controlDeriv(aimInfo, avlInstance->controlMap.attributeIndex[i],
-                                          Cntot, &tempVal[5]);
-                AIM_STATUS(aimInfo, status);;
-
-                sprintf(jsonOut,"{\"%s\":%7.6f,\"%s\":%7.6f,\"%s\":%7.6f,\"%s\":%7.6f,\"%s\":%7.6f,\"%s\":%7.6f}",
-                        "CXtot", tempVal[0], "CYtot", tempVal[1], "CZtot", tempVal[2],
-                        "Cltot", tempVal[3], "Cmtot", tempVal[4], "Cntot", tempVal[5]);
-                val->vals.tuple[i].value = EG_strdup(jsonOut);
+                sprintf(jsonOut,"{\"%s\":%16.12e,\"%s\":%16.12e,\"%s\":%16.12e,\"%s\":%16.12e,\"%s\":%16.12e,\"%s\":%16.12e}",
+                        "CXtot", avlInstance->dermatB.cont[i].CXd,
+                        "CYtot", avlInstance->dermatB.cont[i].CYd,
+                        "CZtot", avlInstance->dermatB.cont[i].CZd,
+                        "Cltot", avlInstance->dermatB.cont[i].Cld,
+                        "Cmtot", avlInstance->dermatB.cont[i].Cmd,
+                        "Cntot", avlInstance->dermatB.cont[i].Cnd);
+                AIM_STRDUP(val->vals.tuple[i].value, jsonOut, aimInfo, status);
 
             } else if (index == HingeMoment) {
 
-                status = read_Data(aimInfo, fileToOpen, val->vals.tuple[i].name, &tempVal[0]);
-                AIM_STATUS(aimInfo, status);
-
-                sprintf(jsonOut, "%5.4e", tempVal[0]);
+                sprintf(jsonOut, "%16.12e", avlInstance->hinge.cont[i].Chinge);
 
                 AIM_STRDUP(val->vals.tuple[i].value, jsonOut, aimInfo, status);
 
@@ -3751,8 +3942,8 @@ int aimCalcOutput(void *instStore, /*@unused@*/ void *aimInfo, int index,
 
     } else if (index == StripForces) {
 
-      // Read in the strip forces
-      status = read_StripForces(aimInfo, &val->nrow, &val->vals.tuple);
+      // Get in the strip forces
+      status = getStripForces(aimInfo, avlInstance, &val->nrow, &val->vals.tuple);
       AIM_STATUS(aimInfo, status);
 
     } else if (index == EigenValues) {
@@ -3787,8 +3978,58 @@ void aimCleanup(void *instStore)
     avlInstance = (aimStorage *) instStore;
 
     // cleanup storage
-    destroy_aimStorage(avlInstance);
+    destroy_aimStorage(avlInstance, (int)false);
     AIM_FREE(avlInstance);
+}
+
+
+#ifdef WE_DONT_NEED_THE_BACKDOOR_ANYMORE
+static int
+parse_controlName(aimStorage *avlInstance, char string[],
+                  int *controlNumber)
+{
+
+    int status; // Function return status
+
+    char control[] = "AVL_Control";
+
+    char *controlName = NULL;
+
+    *controlNumber = CAPSMAGIC;
+
+    //printf("String = %s\n", string);
+
+    if (strncasecmp(string, control, strlen(control)) != 0 ) {
+        status = CAPS_NOTFOUND;
+        goto cleanup;
+    }
+
+    controlName = strstr(string, ":");
+    if (controlName == NULL) {
+        status = CAPS_NOTFOUND;
+        goto cleanup;
+    }
+
+    // Increment pointer to remove ':'
+    ++controlName;
+
+    //printf("Temp = %s\n", temp);
+
+    // Loop through and determine which control integer this name corresponds to?
+    status = get_mapAttrToIndexIndex(&avlInstance->controlMap,
+            (const char *) controlName, controlNumber);
+    if (status != CAPS_SUCCESS) goto cleanup;
+
+    /*
+    printf("ControlName = %s\n", controlName);
+    printf("ControlIndex = %d\n", *controlNumber);
+     */
+
+    status = CAPS_SUCCESS;
+    goto cleanup;
+
+cleanup:
+    return status;
 }
 
 // ********************** AIM Function Break *****************************
@@ -4281,7 +4522,7 @@ int aimBackdoor(void *instStore, void *aimInfo, const char *JSONin,
             status = get_controlDeriv(aimInfo, controlIndex, outputIndex, &data);
             if (status != CAPS_SUCCESS) goto cleanup;
 
-            val.vals.real = data;
+            val.vals.real = 0.0;
 
 
         } else { // Make the standard call
@@ -4312,3 +4553,4 @@ cleanup:
 
     return status;
 }
+#endif

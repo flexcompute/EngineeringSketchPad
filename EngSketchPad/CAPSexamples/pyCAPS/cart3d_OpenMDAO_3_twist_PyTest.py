@@ -107,6 +107,7 @@ geometry = myProblem.geometry
 
 geometry.despmtr.taper = 1.0
 geometry.despmtr.twist = [1.0, 2.0]
+geometry.cfgpmtr.aerosystem = True
 
 #######################################
 ## Load Cart3D aim                   ##
@@ -120,10 +121,10 @@ cart3d.input.beta = 0.0
 cart3d.input.Mach = 0.5901
 cart3d.input.maxR = 9
 
-cart3d.input.aerocsh = ["set y_is_spanwise = 1"]
+cart3d.input.y_is_spanwise = True
 
 cart3d.input.Model_X_axis = "-Xb"
-cart3d.input.Model_Y_axis = "-Yb"
+cart3d.input.Model_Y_axis = "Yb"
 cart3d.input.Model_Z_axis = "-Zb"
 
 # Setup C_L**2 as the objective functional to minimize

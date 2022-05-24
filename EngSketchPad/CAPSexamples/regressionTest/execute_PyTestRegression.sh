@@ -106,75 +106,27 @@ fi
 if [ "$TYPE" == "MINIMAL" ]; then
     echo "Running.... MINIMAL PyTests"
 
+    ###### avl ######
     if [[ `command -v avl` ]]; then
          expectPythonSuccess "avl_PyTest.py"
     else
         notRun="$notRun\navl"
     fi
 
+    ###### xfoil ######
     if [[ `command -v xfoil` ]]; then
         expectPythonSuccess "xfoil_PyTest.py" -noPlotData
     else
         notRun="$notRun\nxfoil"
     fi
 
-    if [[ `command -v awave` ]]; then
-        expectPythonSuccess "awave_PyTest.py"
+    ###### mses ######
+    if [[ `command -v mses` ]]; then
+        expectPythonSuccess "mses_PyTest.py" -noPlotData
     else
-        notRun="$notRun\nawave"
+        notRun="$notRun\nmses"
     fi
 
-    if [[ -f $ESP_ROOT/lib/aflr2AIM.$EXT ]]; then
-        expectPythonSuccess "aflr2_PyTest.py"
-    else
-        notRun="$notRun\nAFLR"
-    fi
-
-    if [[ `command -v delaundo` || `command -v delaundo.exe` ]]; then
-        expectPythonSuccess "delaundo_PyTest.py"
-    else
-        notRun="$notRun\ndelaundo"
-    fi
-
-    if [[ "$ASTROS_ROOT" != "" ]]; then
-        expectPythonSuccess "astros_ThreeBar_PyTest.py"
-        expectPythonSuccess "astros_Flutter_15degree.py"
-    else
-        notRun="$notRun\nAstros"
-    fi
-
-    expectPythonSuccess "masstran_PyTest.py"
-
-    ######  HSM ###### 
-    if [[ -f $ESP_ROOT/lib/hsmAIM.$EXT ]]; then
-        expectPythonSuccess "hsm_SingleLoadCase_PyTest.py"
-    else
-        notRun="$notRun\nHSM"
-    fi 
-
-    testsRan=1
-fi
-
-###### Linear aero. examples ######
-if [[ "$TYPE" == "LINEARAERO" || "$TYPE" == "ALL" ]]; then
-    echo "Running.... LINEARAERO PyTests"
-    
-    ###### AVL ######
-    if [[ `command -v avl` ]]; then
-        expectPythonSuccess "avl_PyTest.py"
-        expectPythonSuccess "avl_AutoSpan_PyTest.py"
-        expectPythonSuccess "avl_DesignSweep_PyTest.py" -noPlotData
-        expectPythonSuccess "avl_ControlSurf_PyTest.py"
-        expectPythonSuccess "avl_EigenValue_PyTest.py"
-        if ( python -c 'import openmdao' ); then
-            expectPythonSuccess "avl_OpenMDAO_3_PyTest.py"
-        else
-            notRun="$notRun\avl_OpenMDAO_3_PyTest.py"
-        fi
-    else
-        notRun="$notRun\navl"
-    fi
-    
     ###### awave ######
     if [[ `command -v awave` ]]; then
         expectPythonSuccess "awave_PyTest.py"
@@ -196,8 +148,145 @@ if [[ "$TYPE" == "LINEARAERO" || "$TYPE" == "ALL" ]]; then
         notRun="$notRun\ntsfoil"
     fi
     
+    ###### delaundo ######
+    if [[ `command -v delaundo` || `command -v delaundo.exe` ]]; then
+        expectPythonSuccess "delaundo_PyTest.py"
+    else
+        notRun="$notRun\ndelaundo"
+    fi
+
+    ###### EGADS Tess ######
+    expectPythonSuccess "egadsTess_PyTest.py"
+    
+    ###### AFLR ######
+    if [[ -f $ESP_ROOT/lib/aflr2AIM.$EXT && \
+          -f $ESP_ROOT/lib/aflr3AIM.$EXT && \
+          -f $ESP_ROOT/lib/aflr4AIM.$EXT ]]; then
+        expectPythonSuccess "aflr2_PyTest.py"
+        expectPythonSuccess "aflr4_and_aflr3_PyTest.py"
+    else
+        notRun="$notRun\nAFLR"
+    fi
+    
+    ###### Tetgen ######
+    if [[ -f $ESP_ROOT/lib/tetgenAIM.$EXT ]]; then
+        expectPythonSuccess "tetgen_PyTest.py"
+    else
+        notRun="$notRun\nTetGen"
+    fi
+
+    ######  SU2 ###### 
+    if [ "$SU2_RUN" != "" ] && [ "$OS" != "Windows_NT" ]; then
+        if [[ -f $ESP_ROOT/lib/aflr2AIM.$EXT ]]; then
+            expectPythonSuccess "su2_and_AFLR2_PyTest.py"
+        else
+            notRun="$notRun\nSU2 and AFLR2"
+        fi
+    else
+        notRun="$notRun\nSU2"
+    fi
+   
+    ######  Cart3D ###### 
+    if [[ `command -v flowCart` ]]; then
+        ulimit -s unlimited || true # Cart3D requires unlimited stack size
+        expectPythonSuccess "cart3d_PyTest.py"
+    else
+        notRun="$notRun\nCart3D"
+    fi
+
+    ######  ASTROS ###### 
+    if [[ "$ASTROS_ROOT" != "" ]]; then
+        expectPythonSuccess "astros_ThreeBar_PyTest.py"
+        expectPythonSuccess "astros_Flutter_15degree.py"
+    else
+        notRun="$notRun\nAstros"
+    fi
+
+    ######  MASSTRAN ###### 
+    expectPythonSuccess "masstran_PyTest.py"
+
+    ######  HSM ###### 
+    if [[ -f $ESP_ROOT/lib/hsmAIM.$EXT ]]; then
+        expectPythonSuccess "hsm_SingleLoadCase_PyTest.py"
+    else
+        notRun="$notRun\nHSM"
+    fi 
+
+    ###### Mystran ######
+    if [[ ( `command -v mystran.exe` || `command -v mystran` ) && "$OS" != "Windows_NT" ]]; then
+        expectPythonSuccess "mystran_PyTest.py"
+    else
+        notRun="$notRun\nMystran"
+    fi
+    
+    ######  CORSAIRLITE ###### 
+    expectPythonSuccess "../corsairlite/qp.py"
+    
+    testsRan=1
+fi
+
+###### Linear aero. examples ######
+if [[ "$TYPE" == "LINEARAERO" || "$TYPE" == "ALL" ]]; then
+    echo "Running.... LINEARAERO PyTests"
+    echo ""
+    
+    ###### AVL ######
+    if [[ `command -v avl` ]]; then
+        echo "avl: `which avl`"
+        expectPythonSuccess "avl_PyTest.py"
+        expectPythonSuccess "avl_AutoSpan_PyTest.py"
+        expectPythonSuccess "avl_DesignSweep_PyTest.py" -noPlotData
+        expectPythonSuccess "avl_ControlSurf_PyTest.py"
+        expectPythonSuccess "avl_EigenValue_PyTest.py"
+        if ( python -c 'import openmdao' ); then
+            expectPythonSuccess "avl_OpenMDAO_3_PyTest.py"
+        else
+            notRun="$notRun\navl_OpenMDAO_3_PyTest.py"
+        fi
+    else
+        notRun="$notRun\navl"
+    fi
+    
+    ###### awave ######
+    if [[ `command -v awave` ]]; then
+        echo "awave: `which awave`"
+        expectPythonSuccess "awave_PyTest.py"
+    else
+        notRun="$notRun\nawave"
+    fi
+    
+    ###### friction ######
+    if [[ `command -v friction` ]]; then
+        echo "friction: `which friction`"
+        expectPythonSuccess "friction_PyTest.py"
+    else
+        notRun="$notRun\nfriction"
+    fi
+    
+    ###### tsFoil ######
+    if [[ `command -v tsfoil2` && "$OS" != "Windows_NT" ]]; then
+        echo "tsfoil2: `which tsfoil2`"
+        expectPythonSuccess "tsfoil_PyTest.py"
+    else
+        notRun="$notRun\ntsfoil"
+    fi
+    
+    ###### MSES ######
+    if [[ `command -v mses` ]]; then
+        echo "mses: `which mses`"
+        expectPythonSuccess "mses_PyTest.py" -noPlotData
+        if ( python -c 'import openmdao' ); then
+          expectPythonSuccess "mses_OpenMDAO_3_PyTest.py"
+        else
+            notRun="$notRun\nmses_OpenMDAO_3_PyTest.py"
+        fi
+    else
+        notRun="$notRun\nmses"
+    fi
+    
     ###### XFoil ######
     if [[ `command -v xfoil` ]]; then
+        echo "xfoil: `which xfoil`"
         expectPythonSuccess "xfoil_PyTest.py" -noPlotData
     else
         notRun="$notRun\nxfoil"
@@ -205,6 +294,7 @@ if [[ "$TYPE" == "LINEARAERO" || "$TYPE" == "ALL" ]]; then
 
     ###### AutoLink with awave, friction, and avl ######
     if [[ `command -v awave` && `command -v friction` && `command -v avl` ]]; then
+        echo "awave: `which awave`"
         expectPythonSuccess "autoLink_Pytest.py" -noPlotData
     else
         notRun="$notRun\nautoLink"
@@ -216,6 +306,7 @@ fi
 ###### Meshing examples ######
 if [[ "$TYPE" == "MESH" || "$TYPE" == "ALL" ]]; then
     echo "Running.... MESH PyTests"
+    echo ""
 
     # EGADS Tess
     expectPythonSuccess "egadsTess_PyTest.py"
@@ -235,7 +326,8 @@ if [[ "$TYPE" == "MESH" || "$TYPE" == "ALL" ]]; then
         expectPythonSuccess "aflr4_Generic_Missile.py"
         expectPythonSuccess "aflr4_TipTreat_PyTest.py" -noPlotData
         expectPythonSuccess "aflr4_and_aflr3_PyTest.py"
-    
+        expectPythonSuccess "aflr4_and_aflr3_Symmetry_PyTest.py"
+
         if [[ -f $ESP_ROOT/lib/tetgenAIM.$EXT ]]; then
             expectPythonSuccess "aflr4_and_Tetgen_PyTest.py"
             expectPythonSuccess "aflr4_tetgen_Regions_PyTest.py"
@@ -259,6 +351,7 @@ if [[ "$TYPE" == "MESH" || "$TYPE" == "ALL" ]]; then
    
     # Delaundo 
     if [[ `command -v delaundo` || `command -v delaundo.exe` ]]; then
+        echo "delaundo: `which delaundo`"
         expectPythonSuccess "delaundo_PyTest.py"
     else
         notRun="$notRun\ndelaundo"
@@ -266,6 +359,7 @@ if [[ "$TYPE" == "MESH" || "$TYPE" == "ALL" ]]; then
 
     # pointwise
     if [[ `command -v pointwise` && -f $ESP_ROOT/lib/pointwiseAIM.$EXT ]]; then
+        echo "pointwise: `which pointwise`"
         expectPythonSuccess "pointwise_PyTest.py"
         expectPythonSuccess "pointwise_Symmetry_PyTest.py"
     else
@@ -278,6 +372,7 @@ fi
 ###### CFD examples ######
 if [[ "$TYPE" == "CFD" || "$TYPE" == "ALL" ]]; then
     echo "Running.... CFD PyTests"
+    echo ""
     
     if [ "$SU2_RUN" != "" ] && [ "$OS" != "Windows_NT" ]; then
         if [[ -f $ESP_ROOT/lib/aflr2AIM.$EXT ]]; then
@@ -289,9 +384,11 @@ if [[ "$TYPE" == "CFD" || "$TYPE" == "ALL" ]]; then
             expectPythonSuccess "su2_and_AFLR4_AFLR3_PyTest.py"
         fi
         if [[ `command -v delaundo` || `command -v delaundo.exe` ]]; then
+            echo "delaundo: `which delaundo`"
             expectPythonSuccess "su2_and_Delaundo_PyTest.py"
         fi
         if [[ `command -v pointwise` ]]; then
+            echo "pointwise: `which pointwise`"
             expectPythonSuccess "su2_and_pointwise_PyTest.py"
         fi
         if [[ -f $ESP_ROOT/lib/tetgenAIM.$EXT ]]; then
@@ -304,6 +401,7 @@ if [[ "$TYPE" == "CFD" || "$TYPE" == "ALL" ]]; then
    
     if [[ `command -v flowCart` ]]; then
         ulimit -s unlimited || true # Cart3D requires unlimited stack size
+        echo "flowCart: `which flowCart`"
         expectPythonSuccess "cart3d_PyTest.py"
         if ( python -c 'import openmdao' ); then
             expectPythonSuccess "cart3d_OpenMDAO_3_alpha_PyTest.py"
@@ -325,6 +423,7 @@ if [[ "$TYPE" == "CFD" || "$TYPE" == "ALL" ]]; then
             expectPythonSuccess "fun3d_and_AFLR4_AFLR3_PyTest.py"
         fi
         if [[ `command -v delaundo` || `command -v delaundo.exe` ]]; then
+            echo "delaundo: `which delaundo`"
             expectPythonSuccess "fun3d_and_Delaundo_PyTest.py"
         fi
         if [[ -f $ESP_ROOT/lib/tetgenAIM.$EXT ]]; then
@@ -342,6 +441,7 @@ fi
 ###### Structural examples ######
 if [[ "$TYPE" == "STRUCTURE" || "$TYPE" == "ALL" ]]; then
     echo "Running.... STRUCTURE PyTests"
+    echo ""
 
     ###### masstran ######
     expectPythonSuccess "masstran_PyTest.py"
@@ -357,6 +457,7 @@ if [[ "$TYPE" == "STRUCTURE" || "$TYPE" == "ALL" ]]; then
 
     ###### Astros ######
     if [[ "$ASTROS_ROOT" != "" ]]; then
+        echo "ASTROS_ROOT: $ASTROS_ROOT"
         expectPythonSuccess "astros_Aeroelastic_PyTest.py"
         expectPythonSuccess "astros_AGARD445_PyTest.py"
         expectPythonSuccess "astros_Composite_PyTest.py"
@@ -381,6 +482,7 @@ if [[ "$TYPE" == "STRUCTURE" || "$TYPE" == "ALL" ]]; then
 
     ###### Nastran ######
     if [[ `command -v nastran` ]]; then
+        echo "nastran: `which nastran`"
         expectPythonSuccess "nastran_Aeroelastic_PyTest.py"
         expectPythonSuccess "nastran_AGARD445_PyTest.py"
         expectPythonSuccess "nastran_Composite_PyTest.py"
@@ -402,7 +504,8 @@ if [[ "$TYPE" == "STRUCTURE" || "$TYPE" == "ALL" ]]; then
     fi
 
     ###### Mystran ######
-    if [[ `command -v mystran.exe` ]]; then
+    if [[ `command -v mystran.exe` || `command -v mystran` ]]; then
+        echo "mystran: `which mystran`"
         if [[ "$OS" != "Windows_NT" ]]; then
             # Mystran runs out of heap memory on windows running this example
             expectPythonSuccess "mystran_PyTest.py"
@@ -420,6 +523,7 @@ fi
 ###### Aeroelastic examples ######
 if [[ "$TYPE" == "AEROELASTIC" || "$TYPE" == "ALL" ]]; then
     echo "Running.... AEROELASTIC PyTests"
+    echo ""
 
     ###### Astros ######
     if [[ "$ASTROS_ROOT" != "" && "$SU2_RUN" != "" && "$OS" != "Windows_NT" ]]; then
@@ -434,7 +538,8 @@ if [[ "$TYPE" == "AEROELASTIC" || "$TYPE" == "ALL" ]]; then
     fi
 
     ###### Mystran ######
-    if [[ `command -v mystran.exe` && "$SU2_RUN" != "" && "$OS" != "Windows_NT" ]]; then
+    if [[ (`command -v mystran.exe` || `command -v mystran`) && "$SU2_RUN" != "" && "$OS" != "Windows_NT" ]]; then
+        echo "mystran: `which mystran`"
         # SU2 6.0.0 on Windows does not work with displacements
         expectPythonSuccess "aeroelasticSimple_Pressure_SU2_and_Mystran.py" -noPlotData
         expectPythonSuccess "aeroelasticSimple_Displacement_SU2_and_Mystran.py" -noPlotData
@@ -443,6 +548,41 @@ if [[ "$TYPE" == "AEROELASTIC" || "$TYPE" == "ALL" ]]; then
         notRun="$notRun\nMystran and SU2"
     fi
 
+    if [[ (`command -v mystran.exe` || `command -v mystran`) && `command -v flowCart` ]]; then
+        echo "mystran: `which mystran`"
+        echo "flowCart: `which flowCart`"
+        expectPythonSuccess "aeroelasticSimple_Iterative_Cart3D_and_Mystran.py"
+    else
+        notRun="$notRun\nMystran and Cart3D"
+    fi
+
+    testsRan=1
+fi
+
+###### CorsairLite examples ######
+if [[ "$TYPE" == "CORSAIRLITE" || "$TYPE" == "ALL" ]]; then
+    echo "Running.... CORSAIRLITE PyTests"
+    echo ""
+    
+    cd ../corsairlite
+    expectPythonSuccess "gp.py"
+    expectPythonSuccess "qp.py"
+    expectPythonSuccess "sp.py"
+    expectPythonSuccess "boydBox.py"
+    expectPythonSuccess "hoburg_gp.py"
+    if ( python -c 'import scipy' ); then
+      expectPythonSuccess "hoburg_blackbox.py"
+    fi
+
+    cd capsPhase
+    rm -rf ostrich
+    expectPythonSuccess "pyCAPS/sizeWing.py"
+    if [[ `command -v avl` ]]; then
+        echo "avl: `which avl`"
+        expectPythonSuccess "pyCAPS/optTaperAvl.py"
+        expectPythonSuccess "pyCAPS/optWingAvl.py"
+    fi
+ 
     testsRan=1
 fi
 
