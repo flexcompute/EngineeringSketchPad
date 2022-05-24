@@ -55,18 +55,23 @@ pointwise.preAnalysis()
 # Attempt to run pointwise repeatedly in case a licensce is not readily available
 CAPS_GLYPH = os.environ["CAPS_GLYPH"]
 for i in range(30):
-    if platform.system() == "Windows":
-        PW_HOME = os.environ["PW_HOME"]
-        pointwise.system(PW_HOME + "\win64\bin\tclsh.exe " + CAPS_GLYPH + "\\GeomToMesh.glf caps.egads capsUserDefaults.glf")
-    elif "CYGWIN" in platform.system():
-        PW_HOME = os.environ["PW_HOME"]
-        pointwise.system(PW_HOME + "/win64/bin/tclsh.exe " + CAPS_GLYPH + "/GeomToMesh.glf caps.egads capsUserDefaults.glf")
-    else:
-        pointwise.system("pointwise -b " + CAPS_GLYPH + "/GeomToMesh.glf caps.egads capsUserDefaults.glf")
-    
+    try:
+        if platform.system() == "Windows":
+            PW_HOME = os.environ["PW_HOME"]
+            pointwise.system(PW_HOME + "\win64\bin\tclsh.exe " + CAPS_GLYPH + "\\GeomToMesh.glf caps.egads capsUserDefaults.glf")
+        elif "CYGWIN" in platform.system():
+            PW_HOME = os.environ["PW_HOME"]
+            pointwise.system(PW_HOME + "/win64/bin/tclsh.exe " + CAPS_GLYPH + "/GeomToMesh.glf caps.egads capsUserDefaults.glf")
+        else:
+            pointwise.system("pointwise -b " + CAPS_GLYPH + "/GeomToMesh.glf caps.egads capsUserDefaults.glf")
+    except pyCAPS.CAPSError:
+        time.sleep(10) # wait and try again
+        continue
+
     time.sleep(1) # let the harddrive breathe
-    if os.path.isfile(os.path.join(pointwise.analysisDir, 'caps.GeomToMesh.gma')) and \
-       os.path.isfile(os.path.join(pointwise.analysisDir, 'caps.GeomToMesh.ugrid')): break
+    if os.path.isfile(os.path.join(pointwise.analysisDir,'caps.GeomToMesh.gma')) and \
+      (os.path.isfile(os.path.join(pointwise.analysisDir,'caps.GeomToMesh.ugrid')) or \
+       os.path.isfile(os.path.join(pointwise.analysisDir,'caps.GeomToMesh.lb8.ugrid'))): break
     time.sleep(10) # wait and try again
 
 # Run AIM post-analysis

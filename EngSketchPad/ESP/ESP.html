@@ -12,7 +12,7 @@ written by John Dannenhoffer
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 
       <!--
-          Copyright (C) 2010/2021  John F. Dannenhoffer, III (Syracuse University)
+          Copyright (C) 2010/2022  John F. Dannenhoffer, III (Syracuse University)
 
           This library is free software; you can redistribute it and/or
           modify it under the terms of the GNU Lesser General Public
@@ -39,14 +39,16 @@ written by John Dannenhoffer
     <script type="text/javascript" src="WebViewer/J3DIMath.js">    </script>
 
     <script>
-      var   wv     = {};          // object to store "globals"
-      var   main   = {};          // object to store main mode
-      var   sketch = {};          // object to store "sketch"
-      var   gloves = {};          // object to store "gloves"
-      var   ereped = {};          // object to store "ereped"
-      var   mitten = {};          // object to store "mitten"
-      var   plugs  = {};          // object to store "plugs"
-      var   python = {};          // object to store "python"
+      var   wv       = {};          // object to store "globals"
+      var   main     = {};          // object to store main mode
+      var   sketch   = {};          // object to store "sketch"
+      var   gloves   = {};          // object to store "gloves"
+      var   ereped   = {};          // object to store "ereped"
+      var   mitten   = {};          // object to store "mitten"
+      var   plotter  = {};          // object to store "plotter"
+      var   plugs    = {};          // object to store "plugs"
+      var   pyscript = {};          // object to store "pyscript"
+      var   viewer   = {};          // object to store "viewer"
     </script>
 
     <script type="text/javascript" src="WebViewer/wv-draw.js">     </script>
@@ -61,8 +63,10 @@ written by John Dannenhoffer
     <script type="text/javascript" src="ESP-gloves.js">            </script>
     <script type="text/javascript" src="ESP-ereped.js">            </script>
     <script type="text/javascript" src="ESP-mitten.js">            </script>
+    <script type="text/javascript" src="ESP-plotter.js">           </script>
     <script type="text/javascript" src="ESP-plugs.js">             </script>
-    <script type="text/javascript" src="ESP-python.js">            </script>
+    <script type="text/javascript" src="ESP-pyscript.js">          </script>
+    <script type="text/javascript" src="ESP-viewer.js">            </script>
     <script type="text/javascript" src="ESP.js">                   </script>
 
     <script>
@@ -73,6 +77,7 @@ written by John Dannenhoffer
       wv.canvasID = "WebViewer";    // must match canvas id=... below
       wv.canvasKY = "WVkey";
 
+      var cval    = new Array();    // structure for Caps Values
       var pmtr    = new Array();    // structure for Parameters
       var brch    = new Array();    // structure for Branches
       var sgData  = {};             // structure for auxiliary scene graph data
@@ -105,14 +110,15 @@ written by John Dannenhoffer
       var OCSM_UNKNOWN    = 505;
     </script>
 
-    <link rel="stylesheet"    type="text/css"  href="ESP.css"        />
-    <link rel="stylesheet"    type="text/css"  href="ESP-sketch.css" />
-    <link rel="stylesheet"    type="text/css"  href="ESP-gloves.css" />
-    <link rel="stylesheet"    type="text/css"  href="ESP-ereped.css" />
-    <link rel="stylesheet"    type="text/css"  href="ESP-mitten.css" />
-    <link rel="stylesheet"    type="text/css"  href="ESP-plugs.css"  />
-    <link rel="stylesheet"    type="text/css"  href="ESP-python.css" />
-    <link rel="shortcut icon" type="image/png" href="esp_logo.png"   />
+    <link rel="stylesheet"    type="text/css"  href="ESP.css"          />
+    <link rel="stylesheet"    type="text/css"  href="ESP-sketch.css"   />
+    <link rel="stylesheet"    type="text/css"  href="ESP-gloves.css"   />
+    <link rel="stylesheet"    type="text/css"  href="ESP-ereped.css"   />
+    <link rel="stylesheet"    type="text/css"  href="ESP-mitten.css"   />
+    <link rel="stylesheet"    type="text/css"  href="ESP-plotter.css"  />
+    <link rel="stylesheet"    type="text/css"  href="ESP-plugs.css"    />
+    <link rel="stylesheet"    type="text/css"  href="ESP-pyscript.css" />
+    <link rel="shortcut icon" type="image/png" href="esp_logo.png"     />
   </head>
 
   <body onload="wv.Start(); resizeFrames()">
@@ -120,8 +126,13 @@ written by John Dannenhoffer
       <div id="butnfrm" oncontextmenu="return false;">
         <p>
           <div class="fileMenu">
-            <button                              class="fileMenuBtn"            onclick="cmdFile()"       >File      </button>
-            <div id="myFileMenu"                 class="fileMenu-contents">
+            <button id="fileMenuBtn"             class="fileMenuBtn"            onclick="cmdFile()"       >File      </button>
+            <div    id="myFileMenu"              class="fileMenu-contents">
+            </div>
+          </div>
+          <div class="capsMenu">
+            <button id="capsMenuBtn"             class="capsMenuBtn"            onclick="cmdCaps()"       >CAPS      </button>
+            <div    id="myCapsMenu"              class="capsMenu-contents">
             </div>
           </div>
           <div class="toolMenu" id="toolMenu">
@@ -136,6 +147,7 @@ written by John Dannenhoffer
               <button title="Quit exit"                                         onclick="cmdQuit()"       >Quit       </button>
             </div>
           </div>
+	  <button title="Exit Overlay"           type="button" id="exitOlayBtn" onClick="cmdOverlayEnd()" >Exit Olay </button>
           <button title="Step through"           type="button" id="stepThruBtn" onClick="cmdStepThru(+1)" >StepThru  </button>
           <button title="Open Help file"         type="button" id="helpButton"  onclick="cmdHelp()"       >Help      </button>
           <!--
@@ -465,47 +477,47 @@ written by John Dannenhoffer
         </table>
       </form>
 
-      <form id="editPmtrForm" onsubmit="return false" hidden>
-        <div id="addPmtrHeader" hidden>
+      <form id="editValuForm" onsubmit="return false" hidden>
+        <div id="addValuHeader" hidden>
           <h3>Either select one of these options...</h3>
           <center>
             <input type="button" value="Add row"    onclick="addRow()">
             <input type="button" value="Add column" onclick="addColumn()">
               &nbsp;&nbsp;&nbsp;
-            <input type="button" value="Cancel"     onclick="editPmtrCancel()">
-            <input type="button" value="OK"         onclick="editPmtrOk()">
+            <input type="button" value="Cancel"     onclick="editValuCancel()">
+            <input type="button" value="OK"         onclick="editValuOk()">
           </center>
           <hr>
           <h3>... or enter values for the new Parameter</h3>
         </div>
-        <div id="editPmtrHeader" hidden>
+        <div id="editValuHeader" hidden>
           <h3>Either select one of these options ...</h3>
           <center>
-            <input type="button" value="Compute geom sens"         onclick="compGeomSens()">
-            <input type="button" value="Compute tess sens"         onclick="compTessSens()">
-            <input type="button" value="Clear Design Velocities"   onclick="clrVels()">
-            <input type="button" value="Delete Parameter"          onclick="delPmtr()">
+            <input type="button" id="computeGeomSens" value="Compute geom sens"         onclick="compGeomSens()">
+            <input type="button" id="computeTessSens" value="Compute tess sens"         onclick="compTessSens()">
+            <input type="button" id="clearVelocities" value="Clear Design Velocities"   onclick="clrVels()">
+            <input type="button" id="deleteValue"     value="Delete Parameter"          onclick="delValu()">
               &nbsp;&nbsp;&nbsp;
-            <input type="button" value="Cancel"                    onclick="editPmtrCancel()">
-            <input type="button" value="OK"                        onclick="editPmtrOk()">
+            <input type="button" value="Cancel"                    onclick="editValuCancel()">
+            <input type="button" value="OK"                        onclick="editValuOk()">
           </center>
           <hr>
-          <h3>... or edit a value for the current Parameter</h3>
+          <h3>... or edit a value</h3>
         </div>
         <table>
           <tr>
             <td> Name:              </td>
-            <td  id="pmtrName">-----</td>
+            <td  id="valuName">-----</td>
           </tr>
         </table>
-        <table id="editPmtrValTable">
+        <table id="editValuValTable">
           <tr>
             <td> the table goes here</td>
           </tr>
         </table>
-        <div id="editPmtrDot">
-          <h3>... or edit a velocity for the current Parameter</h3>
-          <table id="editPmtrDotTable">
+        <div id="editValuDot">
+          <h3>... or edit a velocity</h3>
+          <table id="editValuDotTable">
             <tr>
               <td> the table goes here</td>
             </tr>
@@ -524,25 +536,26 @@ written by John Dannenhoffer
 
       <div id="editorForm" onsubmit="return false" hidden>
         <center>
-          <input type="button" value="Copy"    onclick="cmdEditCopy(wv.codeMirror);">
-          <input type="button" value="Cut"     onclick="cmdEditCut(wv.codeMirror);">
-          <input type="button" value="Paste"   onclick="cmdEditPaste(wv.codeMirror);"     id="cmdPaste">
+          <input type="button" id="editorCopyBtn"    value="Copy"    onclick="cmdEditCopy(wv.codeMirror);">
+          <input type="button" id="editorCutBtn"     value="Cut"     onclick="cmdEditCut(wv.codeMirror);">
+          <input type="button" id="editorPasteBtn"   value="Paste"   onclick="cmdEditPaste(wv.codeMirror);">
             &nbsp;&nbsp;&nbsp;
-          <input type="button" value="Search"  onclick="cmdEditFind(wv.codeMirror);">
-          <input type="button" value="Next"    onclick="cmdEditFindNext(wv.codeMirror);"  id="cmdFindNext">
-          <input type="button" value="Prev"    onclick="cmdEditFindPrev(wv.codeMirror);"  id="cmdFindPrev">
-          <input type="button" value="Replace" onclick="cmdEditReplace(wv.codeMirror);">
+          <input type="button" id="editorSearchBtn"  value="Search"  onclick="cmdEditFind(wv.codeMirror);">
+          <input type="button" id="editorNextBtn"    value="Next"    onclick="cmdEditFindNext(wv.codeMirror);">
+          <input type="button" id="editorPrevBtn"    value="Prev"    onclick="cmdEditFindPrev(wv.codeMirror);">
+          <input type="button" id="editorReplaceBtn" value="Replace" onclick="cmdEditReplace(wv.codeMirror);">
             &nbsp;&nbsp;&nbsp;
-          <input type="button" value="Comment" onclick="cmdEditComment();">
-          <input type="button" value="Indent"  onclick="cmdEditIndent();">
-          <input type="button" value="Hint"    onclick="cmdEditHint();">
-          <input type="button" value="Undo"    onclick="cmdEditUndo(wv.codeMirror);">
+          <input type="button" id="editorCommentBtn" value="Comment" onclick="cmdEditComment();">
+          <input type="button" id="editorIndentBtn"  value="Indent"  onclick="cmdEditIndent();">
+          <input type="button" id="editorHintBtn"    value="Hint"    onclick="cmdEditHint();">
+          <input type="button" id="editorUndoBtn"    value="Undo"    onclick="cmdEditUndo(wv.codeMirror);">
+          <input type="button" id="editorDebugBtn"   value="Debug"   onclick="cmdEditDebug();">
             &nbsp;&nbsp;&nbsp;
-          <input type="button" value="Cancel"  onclick="editCsmCancel();">
-          <input type="button" value="Save"    onclick="editCsmOk();">
+          <input type="button" id="editorCancelBtn"  value="Cancel"  onclick="editorCancel();">
+          <input type="button" id="editorSaveBtn"    value="Save"    onclick="editorOk();">
         </center>
-        <h4 id="editCsmFilename">filename</h4>
-        <textarea id="editCsmTextArea" spellcheck="false">
+        <h4 id="editorFilename">filename</h4>
+        <textarea id="editorTextArea" spellcheck="false">
           You should not see this.
         </textarea>
       </div>

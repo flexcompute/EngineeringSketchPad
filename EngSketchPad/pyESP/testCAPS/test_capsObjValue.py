@@ -17,7 +17,7 @@ class TestValue(unittest.TestCase):
         cls.projectName = "testProblem"
         cls.cleanUp()
 
-        cls.problemObj = caps.open(cls.projectName, None, cls.file, 0)
+        cls.problemObj = caps.open(cls.projectName, None, caps.oFlag.oFileName, cls.file, 0)
 
     @classmethod
     def tearDownClass(cls):

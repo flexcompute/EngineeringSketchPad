@@ -6,6 +6,7 @@ interface yy        in  0
 interface zz        in  0
 interface aa        out 0
 interface bb        out 0
+interface cc        out 0
 
 # assert that xx, yy, and zz are proper size
 assert    xx.nrow   1
@@ -34,5 +35,9 @@ set       udc_path  root_path+$/udc
 # set the outputs
 set       aa  yy.max
 set       bb  zz.max
+
+dimension cc  2 4
+set       cc  "1.1; 1.2; 1.3; 1.4; \
+               2.1; 2.2; 2.3; 2.4"
 
 end

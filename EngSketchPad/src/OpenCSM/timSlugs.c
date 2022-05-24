@@ -9,7 +9,7 @@
  */
 
 /*
- * Copyright (C) 2013/2021  John F. Dannenhoffer, III (Syracuse University)
+ * Copyright (C) 2013/2022  John F. Dannenhoffer, III (Syracuse University)
  *
  * This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
@@ -48,6 +48,26 @@ int
 timLoad(/*@unused@*/esp_T *TIM,                     /* (in)  pointer to TIM structure */
         /*@unused@*/void  *data)                    /* (in)  user-supplied data */
 {
+    int    status;                      /* (out) return status */
+
+    /* hold the UI when executing */
+    status = 1;
+    
+//cleanup:
+    return status;
+}
+
+
+/***********************************************************************/
+/*                                                                     */
+/*   timMesg - get command, process, and return response               */
+/*                                                                     */
+/***********************************************************************/
+
+int
+timMesg(/*@unused@*/esp_T *TIM,                     /* (in)  pointer to TIM structure */
+        /*@unused@*/char  command[])                /* (in)  command */
+{
     int    status = EGADS_SUCCESS;      /* (out) return status */
 
 //cleanup:
@@ -78,82 +98,10 @@ timSave(/*@unused@*/esp_T *TIM)                     /* (in)  pointer to TIM stru
 /***********************************************************************/
 
 int
-timQuit(/*@unused@*/esp_T *TIM)                     /* (in)  pointer to TIM structure */
+timQuit(/*@unused@*/esp_T *TIM,                     /* (in)  pointer to TIM structure */
+        /*@unused@*/int   unload)                   /* (in)  flag to unload */
 {
     int    status = EGADS_SUCCESS;      /* (out) return status */
-
-//cleanup:
-    return status;
-}
-
-
-/***********************************************************************/
-/*                                                                     */
-/*   timMesg - get command, process, and return response               */
-/*                                                                     */
-/***********************************************************************/
-
-int
-timMesg(/*@unused@*/esp_T *TIM,                     /* (in)  pointer to TIM structure */
-        /*@unused@*/char  command[],                /* (in)  command */
-        /*@unused@*/int   *max_resp_len,            /* (in)  length of response */
-        /*@unused@*/char  *response[])              /* (out) response */
-{
-    int    status = EGADS_SUCCESS;      /* (out) return status */
-
-//cleanup:
-    return status;
-}
-
-
-/***********************************************************************/
-/*                                                                     */
-/*   timGetModl - get the active MODL                                  */
-/*                                                                     */
-/***********************************************************************/
-
-int
-timGetModl(/*@unused@*/void **myModl)               /* (out) pointer to active MODL */
-{
-    int    status = EGADS_SUCCESS;      /* (out) return status */
-
-    /* --------------------------------------------------------------- */
-
-//cleanup:
-    return status;
-}
-
-
-/***********************************************************************/
-/*                                                                     */
-/*   timSetModl - set the active MODL                                  */
-/*                                                                     */
-/***********************************************************************/
-
-int
-timSetModl(/*@unused@*/void *myModl)                /* (in)  pointer to active MODL */
-{
-    int    status = EGADS_SUCCESS;      /* (out) return status */
-
-    /* --------------------------------------------------------------- */
-
-//cleanup:
-    return status;
-}
-
-
-/***********************************************************************/
-/*                                                                     */
-/*   timViewModl - view the active MODL in serveESP                    */
-/*                                                                     */
-/***********************************************************************/
-
-int
-timViewModl(/*@unused@*/void *myModl)               /* (in)  pointer to active MODL */
-{
-    int    status = EGADS_SUCCESS;      /* (out) return status */
-
-    /* --------------------------------------------------------------- */
 
 //cleanup:
     return status;

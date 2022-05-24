@@ -11,7 +11,7 @@
 #include "cfdTypes.h"  // Bring in cfd specific types
 #include "su2Utils.h"  // Bring in su2 utility header
 
-// Write SU2 configuration file for version Blackbird (7.2.0)
+// Write SU2 configuration file for version Blackbird (7.3.0)
 int su2_writeCongfig_Blackbird(void *aimInfo, capsValue *aimInputs,
                                const char *meshfilename,
                                cfdBoundaryConditionStruct bcProps, int withMotion)
@@ -42,7 +42,7 @@ int su2_writeCongfig_Blackbird(void *aimInfo, capsValue *aimInputs,
     FILE *fp = NULL;
     char fileExt[] = ".cfg";
 
-    printf("Write SU2 configuration file for version \"BlackBird (7.2.0) \"\n");
+    printf("Write SU2 configuration file for version \"BlackBird (7.3.0) \"\n");
     stringLength = 1
                    + strlen(aimInputs[Proj_Name-1].vals.string)
                    + strlen(fileExt);
@@ -66,20 +66,20 @@ int su2_writeCongfig_Blackbird(void *aimInfo, capsValue *aimInputs,
     fprintf(fp,"%%                                                                              %%\n");
     fprintf(fp,"%% SU2 configuration file                                                       %%\n");
     fprintf(fp,"%% Created by SU2AIM for Project: \"%s\"\n", aimInputs[Proj_Name-1].vals.string);
-    fprintf(fp,"%% File Version 7.2.0 \"Blackbird\"                                               %%\n");
+    fprintf(fp,"%% File Version 7.3.0 \"Blackbird\"                                               %%\n");
     fprintf(fp,"%%                                                                              %%\n");
     fprintf(fp,"%% Please report bugs/comments/suggestions to NBhagat1@UDayton.edu              %%\n");
     fprintf(fp,"%%                                                                              %%\n");
     fprintf(fp,"%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n\n");
     fprintf(fp,"\n");
 
-    fprintf(fp,"%% ------------- DIRECT, ADJOINT, AND LINEARIZED PROBLEM DEFINITION ------------%% \n");
-    fprintf(fp,"%% \n");
+    fprintf(fp,"%% ------------- DIRECT, ADJOINT, AND LINEARIZED PROBLEM DEFINITION ------------%%\n");
+    fprintf(fp,"\n");
     fprintf(fp,"%% Solver type (EULER, NAVIER_STOKES, RANS, \n");
-    fprintf(fp,"%%                               INC_EULER, INC_NAVIER_STOKES, INC_RANS, \n");
-    fprintf(fp,"%%                               NEMO_EULER, NEMO_NAVIER_STOKES, \n");
-    fprintf(fp,"%%                               FEM_EULER, FEM_NAVIER_STOKES, FEM_RANS, FEM_LES, \n");
-    fprintf(fp,"%%                               HEAT_EQUATION_FVM, ELASTICITY) \n");
+    fprintf(fp,"%%              INC_EULER, INC_NAVIER_STOKES, INC_RANS, \n");
+    fprintf(fp,"%%              NEMO_EULER, NEMO_NAVIER_STOKES, \n");
+    fprintf(fp,"%%              FEM_EULER, FEM_NAVIER_STOKES, FEM_RANS, FEM_LES, \n");
+    fprintf(fp,"%%              HEAT_EQUATION_FVM, ELASTICITY) \n");
     string_toUpperCase(aimInputs[Physical_Problem-1].vals.string);
     string_toUpperCase(aimInputs[Equation_Type-1].vals.string);
     compare = strcmp("COMPRESSIBLE", aimInputs[Equation_Type-1].vals.string);
@@ -94,6 +94,9 @@ int su2_writeCongfig_Blackbird(void *aimInfo, capsValue *aimInputs,
     string_toUpperCase(aimInputs[Turbulence_Model-1].vals.string);
     fprintf(fp,"KIND_TURB_MODEL = %s\n", aimInputs[Turbulence_Model-1].vals.string);
     fprintf(fp,"%% \n");
+    fprintf(fp,"%% Transition model (NONE, BC) \n");
+    fprintf(fp,"%% KIND_TRANS_MODEL= NONE \n");
+    fprintf(fp,"%% \n");
     fprintf(fp,"%% Specify subgrid scale model(NONE, IMPLICIT_LES, SMAGORINSKY, WALE, VREMAN) \n");
     fprintf(fp,"%% KIND_SGS_MODEL= NONE \n");
     fprintf(fp,"%% \n");
@@ -106,6 +109,7 @@ int su2_writeCongfig_Blackbird(void *aimInfo, capsValue *aimInputs,
     fprintf(fp,"%% KIND_VERIFICATION_SOLUTION= NO_VERIFICATION_SOLUTION \n");
     fprintf(fp,"%% \n");
     fprintf(fp,"%% Mathematical problem (DIRECT, CONTINUOUS_ADJOINT, DISCRETE_ADJOINT) \n");
+    fprintf(fp,"%% Defaults to DISCRETE_ADJOINT for the SU2_*_AD codes, and to DIRECT otherwise. \n");
     string_toUpperCase(aimInputs[Math_Problem-1].vals.string);
     fprintf(fp,"MATH_PROBLEM = %s\n", aimInputs[Math_Problem-1].vals.string);
     fprintf(fp,"%% \n");
@@ -123,11 +127,11 @@ int su2_writeCongfig_Blackbird(void *aimInfo, capsValue *aimInputs,
     fprintf(fp,"%% \n");
     fprintf(fp,"%% System of measurements (SI, US) \n");
     fprintf(fp,"%% International system of units (SI): ( meters, kilograms, Kelvins, \n");
-    fprintf(fp,"%%                                       Newtons = kg m/s^2, Pascals = N/m^2,  \n");
+    fprintf(fp,"%%                                       Newtons = kg m/s^2, Pascals = N/m^2, \n");
     fprintf(fp,"%%                                       Density = kg/m^3, Speed = m/s, \n");
     fprintf(fp,"%%                                       Equiv. Area = m^2 ) \n");
-    fprintf(fp,"%% United States customary units (US): ( inches, slug, Rankines, lbf = slug ft/s^2,  \n");
-    fprintf(fp,"%%                                       psf = lbf/ft^2, Density = slug/ft^3,  \n");
+    fprintf(fp,"%% United States customary units (US): ( inches, slug, Rankines, lbf = slug ft/s^2, \n");
+    fprintf(fp,"%%                                       psf = lbf/ft^2, Density = slug/ft^3, \n");
     fprintf(fp,"%%                                       Speed = ft/s, Equiv. Area = ft^2 ) \n");
     string_toUpperCase(aimInputs[Unit_System-1].vals.string);
     fprintf(fp,"SYSTEM_MEASUREMENTS= %s\n", aimInputs[Unit_System-1].vals.string);
@@ -148,8 +152,11 @@ int su2_writeCongfig_Blackbird(void *aimInfo, capsValue *aimInputs,
     }
 
     fprintf(fp,"%% \n");
+    fprintf(fp,"%% List of config files for each zone in a multizone setup with SOLVER=MULTIPHYSICS \n");
+    fprintf(fp,"%% Order here has to match the order in the meshfile if just one is used. \n");
+    fprintf(fp,"%% CONFIG_LIST= (configA.cfg, configB.cfg, ...) \n");
     fprintf(fp,"%% \n");
-    fprintf(fp,"%% ------------------------------- SOLVER CONTROL -------------------------------%% \n");
+    fprintf(fp,"%% ------------------------------- SOLVER CONTROL ------------------------------%% \n");
     fprintf(fp,"%% \n");
     fprintf(fp,"%% Number of iterations for single-zone problems \n");
     fprintf(fp,"ITER= %d\n", aimInputs[Num_Iter-1].vals.integer);
@@ -161,9 +168,9 @@ int su2_writeCongfig_Blackbird(void *aimInfo, capsValue *aimInputs,
     fprintf(fp,"%% OUTER_ITER= 1 \n");
     fprintf(fp,"%% \n");
     fprintf(fp,"%% Maximum number of time iterations \n");
-    fprintf(fp,"%% TIME_ITER= 1\n");
+    fprintf(fp,"%% TIME_ITER= 1 \n");
     fprintf(fp,"%% \n");
-    fprintf(fp,"%% Convergence field  \n");
+    fprintf(fp,"%% Convergence field \n");
     fprintf(fp,"%% CONV_FIELD= DRAG \n");
     fprintf(fp,"%% \n");
     fprintf(fp,"%% Min value of the residual (log10 of the residual) \n");
@@ -184,7 +191,7 @@ int su2_writeCongfig_Blackbird(void *aimInfo, capsValue *aimInputs,
     fprintf(fp,"%% Time convergence monitoring \n");
     fprintf(fp,"%% WINDOW_CAUCHY_CRIT = YES \n");
     fprintf(fp,"%% \n");
-    fprintf(fp,"%% List of time convergence fields  \n");
+    fprintf(fp,"%% List of time convergence fields \n");
     fprintf(fp,"%% CONV_WINDOW_FIELD = (TAVG_DRAG, TAVG_LIFT) \n");
     fprintf(fp,"%% \n");
     fprintf(fp,"%% Time Convergence Monitoring starts at Iteration WINDOW_START_ITER + CONV_WINDOW_STARTITER \n");
@@ -215,11 +222,11 @@ int su2_writeCongfig_Blackbird(void *aimInfo, capsValue *aimInputs,
     fprintf(fp,"%% Unsteady Courant-Friedrichs-Lewy number of the finest grid \n");
     fprintf(fp,"%% UNST_CFL_NUMBER= 0.0 \n");
     fprintf(fp,"%% \n");
-    fprintf(fp,"%% Windowed output time averaging \n");
+    fprintf(fp,"%%  Windowed output time averaging \n");
     fprintf(fp,"%% Time iteration to start the windowed time average in a direct run \n");
     fprintf(fp,"%% WINDOW_START_ITER = 500 \n");
     fprintf(fp,"%% \n");
-    fprintf(fp,"%% Window used for reverse sweep and direct run. Options (SQUARE, HANN, HANN_SQUARE, BUMP) Square is default.  \n");
+    fprintf(fp,"%% Window used for reverse sweep and direct run. Options (SQUARE, HANN, HANN_SQUARE, BUMP) Square is default. \n");
     fprintf(fp,"%% WINDOW_FUNCTION = SQUARE \n");
     fprintf(fp,"%% \n");
     fprintf(fp,"%% ------------------------------- DES Parameters ------------------------------%% \n");
@@ -229,7 +236,7 @@ int su2_writeCongfig_Blackbird(void *aimInfo, capsValue *aimInputs,
     fprintf(fp,"%% \n");
     fprintf(fp,"%% DES Constant (0.65) \n");
     fprintf(fp,"%% DES_CONST= 0.65 \n");
-    fprintf(fp," \n");
+    fprintf(fp,"%% \n");
     fprintf(fp,"%% -------------------- COMPRESSIBLE FREE-STREAM DEFINITION --------------------%% \n");
     fprintf(fp,"%% \n");
     fprintf(fp,"%% Mach number (non-dimensional, based on the free-stream values) \n");
@@ -309,17 +316,24 @@ int su2_writeCongfig_Blackbird(void *aimInfo, capsValue *aimInputs,
         fprintf(fp,"FREESTREAM_VISCOSITY= 1.853E-5\n");
     }
     fprintf(fp,"%% \n");
+    fprintf(fp,"%% Free-stream turbulence intensity \n");
+    fprintf(fp,"%% FREESTREAM_TURBULENCEINTENSITY= 0.05 \n");
+    fprintf(fp,"%% \n");
+    fprintf(fp,"%% Fix turbulence quantities to far-field values inside an upstream half-space \n");
+    fprintf(fp,"%% TURB_FIXED_VALUES= NO \n");
+    fprintf(fp,"%% \n");
+    fprintf(fp,"%% Shift of the half-space on which fixed values are applied. \n");
+    fprintf(fp,"%% It consists of those coordinates whose dot product with the \n");
+    fprintf(fp,"%% normalized far-field velocity is less than this parameter. \n");
+    fprintf(fp,"%% TURB_FIXED_VALUES_DOMAIN= -1.0 \n");
+    fprintf(fp,"%% \n");
+    fprintf(fp,"%% Free-stream ratio between turbulent and laminar viscosity \n");
+    fprintf(fp,"%% FREESTREAM_TURB2LAMVISCRATIO= 10.0 \n");
+    fprintf(fp,"%% \n");
     fprintf(fp,"%% Compressible flow non-dimensionalization (DIMENSIONAL, FREESTREAM_PRESS_EQ_ONE, \n");
     fprintf(fp,"%%                              FREESTREAM_VEL_EQ_MACH, FREESTREAM_VEL_EQ_ONE) \n");
     string_toUpperCase(aimInputs[Reference_Dimensionalization-1].vals.string);
     fprintf(fp,"REF_DIMENSIONALIZATION= %s\n", aimInputs[Reference_Dimensionalization-1].vals.string);
-
-    fprintf(fp," \n");
-    fprintf(fp,"%% Free-stream turbulence intensity \n");
-    fprintf(fp,"%% FREESTREAM_TURBULENCEINTENSITY= 0.05 \n");
-    fprintf(fp,"%% \n");
-    fprintf(fp,"%% Free-stream ratio between turbulent and laminar viscosity \n");
-    fprintf(fp,"%% FREESTREAM_TURB2LAMVISCRATIO= 10.0 \n");
     fprintf(fp,"%% \n");
 
     fprintf(fp,"%% ---------------- INCOMPRESSIBLE FLOW CONDITION DEFINITION -------------------%% \n");
@@ -339,8 +353,8 @@ int su2_writeCongfig_Blackbird(void *aimInfo, capsValue *aimInputs,
     fprintf(fp,"%% Initial velocity for incompressible flows (1.0,0,0 m/s by default) \n");
     fprintf(fp,"%% INC_VELOCITY_INIT= ( 1.0, 0.0, 0.0 ) \n");
     fprintf(fp,"%% \n");
-    fprintf(fp,"%% Initial temperature for incompressible flows that include the  \n");
-    fprintf(fp,"%% energy equation (288.15 K by default). Value is ignored if  \n");
+    fprintf(fp,"%% Initial temperature for incompressible flows that include the \n");
+    fprintf(fp,"%% energy equation (288.15 K by default). Value is ignored if \n");
     fprintf(fp,"%% INC_ENERGY_EQUATION is false. \n");
     fprintf(fp,"%% INC_TEMPERATURE_INIT= 288.15 \n");
     fprintf(fp,"%% \n");
@@ -355,7 +369,7 @@ int su2_writeCongfig_Blackbird(void *aimInfo, capsValue *aimInputs,
     fprintf(fp,"%% Reference velocity for incompressible flows (1.0 m/s by default) \n");
     fprintf(fp,"%% INC_VELOCITY_REF= 1.0 \n");
     fprintf(fp,"%% \n");
-    fprintf(fp,"%% Reference temperature for incompressible flows that include the  \n");
+    fprintf(fp,"%% Reference temperature for incompressible flows that include the \n");
     fprintf(fp,"%% energy equation (1.0 K by default) \n");
     fprintf(fp,"%% INC_TEMPERATURE_REF = 1.0 \n");
     fprintf(fp,"%% \n");
@@ -373,25 +387,20 @@ int su2_writeCongfig_Blackbird(void *aimInfo, capsValue *aimInputs,
     fprintf(fp,"%% Damping coefficient for iterative updates at mass flow outlets. (0.1 by default) \n");
     fprintf(fp,"%% INC_OUTLET_DAMPING= 0.1 \n");
     fprintf(fp,"%% \n");
-
     fprintf(fp,"%% Epsilon^2 multipier in Beta calculation for incompressible preconditioner. \n");
     fprintf(fp,"%% BETA_FACTOR= 4.1 \n");
     fprintf(fp,"%% \n");
-
-
-    fprintf(fp, "%% ----------------------------- SOLID ZONE HEAT VARIABLES-----------------------%% \n");
-    fprintf(fp, "%% \n");
-    fprintf(fp, "%% Thermal conductivity used for heat equation \n");
-    fprintf(fp, "%% SOLID_THERMAL_CONDUCTIVITY= 0.0 \n");
-    fprintf(fp, "%% \n");
-    fprintf(fp, "%% Solids temperature at freestream conditions \n");
-    fprintf(fp, "%% SOLID_TEMPERATURE_INIT= 288.15 \n");
-    fprintf(fp, "%% \n");
-    fprintf(fp, "%% Density used in solids \n");
-    fprintf(fp, "%% SOLID_DENSITY= 2710.0 \n");
-    fprintf(fp, "%% \n");
-
-
+    fprintf(fp,"%% ----------------------------- SOLID ZONE HEAT VARIABLES-----------------------%% \n");
+    fprintf(fp,"%% \n");
+    fprintf(fp,"%% Thermal conductivity used for heat equation \n");
+    fprintf(fp,"%% THERMAL_CONDUCTIVITY_CONSTANT= 0.0 \n");
+    fprintf(fp,"%% \n");
+    fprintf(fp,"%% Solids temperature at freestream conditions \n");
+    fprintf(fp,"%% FREESTREAM_TEMPERATURE= 288.15 \n");
+    fprintf(fp,"%% \n");
+    fprintf(fp,"%% Density used in solids \n");
+    fprintf(fp,"%% MATERIAL_DENSITY= 2710.0 \n");
+    fprintf(fp,"%% \n");
     fprintf(fp,"%% ----------------------------- CL DRIVER DEFINITION ---------------------------%% \n");
     fprintf(fp,"%% \n");
     fprintf(fp,"%% Activate fixed lift mode (specify a CL instead of AoA, NO/YES) \n");
@@ -408,7 +417,7 @@ int su2_writeCongfig_Blackbird(void *aimInfo, capsValue *aimInputs,
     fprintf(fp,"%% \n");
     fprintf(fp,"%% Number of iterations to evaluate dCL_dAlpha by using finite differences (500 by default) \n");
     fprintf(fp,"%% ITER_DCL_DALPHA= 500 \n");
-    fprintf(fp," \n");
+    fprintf(fp,"%%  \n");
     fprintf(fp,"%% ---------------------- REFERENCE VALUE DEFINITION ---------------------------%% \n");
     fprintf(fp,"%% \n");
     fprintf(fp,"%% Reference origin for moment computation (m or in) \n");
@@ -444,14 +453,13 @@ int su2_writeCongfig_Blackbird(void *aimInfo, capsValue *aimInputs,
     } else {
         fprintf(fp,"REF_AREA= 1.00\n");
     }
-    fprintf(fp,"%% \n");
     fprintf(fp,"%% Aircraft semi-span (0 implies automatic calculation) (m or in) \n");
     fprintf(fp,"%% SEMI_SPAN= 0.0 \n");
-    fprintf(fp," \n");
+    fprintf(fp,"%% \n");
     fprintf(fp,"%% ---- NONEQUILIBRIUM GAS, IDEAL GAS, POLYTROPIC, VAN DER WAALS AND PENG ROBINSON CONSTANTS -------%% \n");
     fprintf(fp,"%% \n");
     fprintf(fp,"%% Fluid model (STANDARD_AIR, IDEAL_GAS, VW_GAS, PR_GAS, \n");
-    fprintf(fp,"%%              CONSTANT_DENSITY, INC_IDEAL_GAS, INC_IDEAL_GAS_POLY, MUTATIONPP, USER_DEFINED_NONEQ) \n");
+    fprintf(fp,"%%              CONSTANT_DENSITY, INC_IDEAL_GAS, INC_IDEAL_GAS_POLY, MUTATIONPP, SU2_NONEQ) \n");
     fprintf(fp,"%% FLUID_MODEL= STANDARD_AIR \n");
     fprintf(fp,"%% \n");
     fprintf(fp,"%% Ratio of specific heats (1.4 default and the value is hardcoded \n");
@@ -471,11 +479,11 @@ int su2_writeCongfig_Blackbird(void *aimInfo, capsValue *aimInputs,
     fprintf(fp,"%% Acentri factor (0.035 (air)) \n");
     fprintf(fp,"%% ACENTRIC_FACTOR= 0.035 \n");
     fprintf(fp,"%% \n");
-    fprintf(fp,"%% Specific heat at constant pressure, Cp (1004.703 J/kg*K (air)).  \n");
-    fprintf(fp,"%% Incompressible fluids with energy eqn. only (CONSTANT_DENSITY, INC_IDEAL_GAS). \n");
+    fprintf(fp,"%% Specific heat at constant pressure, Cp (1004.703 J/kg*K (air)). \n");
+    fprintf(fp,"%% Incompressible fluids with energy eqn. (CONSTANT_DENSITY, INC_IDEAL_GAS) and the heat equation. \n");
     fprintf(fp,"%% SPECIFIC_HEAT_CP= 1004.703 \n");
     fprintf(fp,"%% \n");
-    fprintf(fp,"%% Thermal expansion coefficient (0.00347 K^-1 (air))  \n");
+    fprintf(fp,"%% Thermal expansion coefficient (0.00347 K^-1 (air)) \n");
     fprintf(fp,"%% Used with Boussinesq approx. (incompressible, BOUSSINESQ density model only) \n");
     fprintf(fp,"%% THERMAL_EXPANSION_COEFF= 0.00347 \n");
     fprintf(fp,"%% \n");
@@ -517,15 +525,15 @@ int su2_writeCongfig_Blackbird(void *aimInfo, capsValue *aimInputs,
     fprintf(fp,"%% Temperature polynomial coefficients (up to quartic) for viscosity. \n");
     fprintf(fp,"%% Format -> Mu(T) : b0 + b1*T + b2*T^2 + b3*T^3 + b4*T^4 \n");
     fprintf(fp,"%% MU_POLYCOEFFS= (0.0, 0.0, 0.0, 0.0, 0.0) \n");
-    fprintf(fp," \n");
+    fprintf(fp,"%%  \n");
     fprintf(fp,"%% --------------------------- THERMAL CONDUCTIVITY MODEL ----------------------%% \n");
     fprintf(fp,"%% \n");
-    fprintf(fp,"%% Laminar Conductivity model (CONSTANT_CONDUCTIVITY, CONSTANT_PRANDTL,  \n");
+    fprintf(fp,"%% Laminar Conductivity model (CONSTANT_CONDUCTIVITY, CONSTANT_PRANDTL, \n");
     fprintf(fp,"%% POLYNOMIAL_CONDUCTIVITY). \n");
     fprintf(fp,"%% CONDUCTIVITY_MODEL= CONSTANT_PRANDTL \n");
     fprintf(fp,"%% \n");
     fprintf(fp,"%% Molecular Thermal Conductivity that would be constant (0.0257 by default) \n");
-    fprintf(fp,"%% KT_CONSTANT= 0.0257 \n");
+    fprintf(fp,"%% THERMAL_CONDUCTIVITY_CONSTANT= 0.0257 \n");
     fprintf(fp,"%% \n");
     fprintf(fp,"%% Laminar Prandtl number (0.72 (air), only for CONSTANT_PRANDTL) \n");
     fprintf(fp,"%% PRANDTL_LAM= 0.72 \n");
@@ -540,14 +548,11 @@ int su2_writeCongfig_Blackbird(void *aimInfo, capsValue *aimInputs,
     fprintf(fp,"%% \n");
     fprintf(fp,"%% Turbulent Prandtl number (0.9 (air) by default) \n");
     fprintf(fp,"%% PRANDTL_TURB= 0.90 \n");
-    fprintf(fp," \n");
-    fprintf(fp," \n");
-    fprintf(fp," \n");
+    fprintf(fp,"%% \n");
     fprintf(fp,"%% ----------------------- DYNAMIC MESH DEFINITION -----------------------------%% \n");
     fprintf(fp,"%% \n");
     fprintf(fp,"%% Type of dynamic mesh (NONE, RIGID_MOTION, ROTATING_FRAME, \n");
-    fprintf(fp,"%%                       STEADY_TRANSLATION, \n");
-    fprintf(fp,"%%                       ELASTICITY, GUST) \n");
+    fprintf(fp,"%%                       STEADY_TRANSLATION, GUST) \n");
     fprintf(fp,"%% GRID_MOVEMENT= NONE \n");
     fprintf(fp,"%% \n");
     fprintf(fp,"%% Motion mach number (non-dimensional). Used for initializing a viscous flow \n");
@@ -578,10 +583,8 @@ int su2_writeCongfig_Blackbird(void *aimInfo, capsValue *aimInputs,
     fprintf(fp,"%% Plunging amplitude (m or ft) in x, y, & z directions \n");
     fprintf(fp,"%% PLUNGING_AMPL= 0.0 0.0 0.0 \n");
     fprintf(fp,"%% \n");
-    fprintf(fp,"%% Type of dynamic surface movement (NONE, DEFORMING,  \n");
-    fprintf(fp,"%%                       MOVING_WALL, FLUID_STRUCTURE, FLUID_STRUCTURE_STATIC, \n");
-    fprintf(fp,"%%                       AEROELASTIC, EXTERNAL, EXTERNAL_ROTATION, \n");
-    fprintf(fp,"%%                       AEROELASTIC_RIGID_MOTION) \n");
+    fprintf(fp,"%% Type of dynamic surface movement (NONE, DEFORMING, MOVING_WALL, \n");
+    fprintf(fp,"%% AEROELASTIC, AEROELASTIC_RIGID_MOTION EXTERNAL, EXTERNAL_ROTATION) \n");
     fprintf(fp,"%% SURFACE_MOVEMENT= NONE \n");
     fprintf(fp,"%% \n");
     fprintf(fp,"%% Moving wall boundary marker(s) (NONE = no marker, ignored for RIGID_MOTION) \n");
@@ -592,7 +595,7 @@ int su2_writeCongfig_Blackbird(void *aimInfo, capsValue *aimInputs,
             bcProps.surfaceProp[i].surfaceType == Viscous) {
 
             if (counter > 0) fprintf(fp, ",");
-            fprintf(fp," %d", bcProps.surfaceProp[i].bcID);
+            fprintf(fp," BC_%d", bcProps.surfaceProp[i].bcID);
 
             counter += 1;
         }
@@ -633,7 +636,7 @@ int su2_writeCongfig_Blackbird(void *aimInfo, capsValue *aimInputs,
     fprintf(fp,"%% If BUFFET objective/constraint is specified, the objective is given by \n");
     fprintf(fp,"%% the integrated sensor normalized by reference area \n");
     fprintf(fp,"%% \n");
-    fprintf(fp,"%% See doi: 10.2514/1.J055172  \n");
+    fprintf(fp,"%% See doi: 10.2514/1.J055172 \n");
     fprintf(fp,"%% \n");
     fprintf(fp,"%% Evaluate buffet sensor on Navier-Stokes markers  (NO, YES) \n");
     fprintf(fp,"%% BUFFET_MONITORING= NO \n");
@@ -643,7 +646,7 @@ int su2_writeCongfig_Blackbird(void *aimInfo, capsValue *aimInputs,
     fprintf(fp,"%% \n");
     fprintf(fp,"%% Offset parameter for the buffet sensor Heaviside function \n");
     fprintf(fp,"%% BUFFET_LAMBDA= 0.0 \n");
-    fprintf(fp," \n");
+    fprintf(fp,"%%  \n");
     fprintf(fp,"%% -------------- AEROELASTIC SIMULATION (Typical Section Model) ---------------%% \n");
     fprintf(fp,"%% \n");
     fprintf(fp,"%% Activated by GRID_MOVEMENT_KIND option \n");
@@ -670,7 +673,7 @@ int su2_writeCongfig_Blackbird(void *aimInfo, capsValue *aimInputs,
     fprintf(fp,"%% \n");
     fprintf(fp,"%% Solve the aeroelastic equations every given number of internal iterations \n");
     fprintf(fp,"%% AEROELASTIC_ITER = 3 \n");
-    fprintf(fp," \n");
+    fprintf(fp,"%% \n");
     fprintf(fp,"%% --------------------------- GUST SIMULATION ---------------------------------%% \n");
     fprintf(fp,"%% \n");
     fprintf(fp,"%% Apply a wind gust (NO, YES) \n");
@@ -694,10 +697,15 @@ int su2_writeCongfig_Blackbird(void *aimInfo, capsValue *aimInputs,
     fprintf(fp,"%% Time at which to begin the gust (sec) \n");
     fprintf(fp,"%% GUST_BEGIN_TIME= 0.0 \n");
     fprintf(fp,"%% \n");
-    fprintf(fp,"%% Location at which the gust begins (meters) \n");
+    fprintf(fp,"%% Location at which the gust begins (meters) */ \n");
     fprintf(fp,"%% GUST_BEGIN_LOC= 0.0 \n");
-    fprintf(fp," \n");
+    fprintf(fp,"%% \n");
     fprintf(fp,"%% ------------------------ SUPERSONIC SIMULATION ------------------------------%% \n");
+    fprintf(fp,"%% MARKER_NEARFIELD needs to be defined on a circumferential boundary within \n");
+    fprintf(fp,"%% calculation domain so that it captures pressure disturbance from the model. \n");
+    fprintf(fp,"%% The boundary should have a structured grid with the same number of nodes \n");
+    fprintf(fp,"%% along each azimuthal angle. \n");
+    fprintf(fp,"%% To run inverse design using target equivalent area, TargetEA.dat is required. \n");
     fprintf(fp,"%% \n");
     fprintf(fp,"%% Evaluate equivalent area on the Near-Field (NO, YES) \n");
     fprintf(fp,"%% EQUIV_AREA= NO \n");
@@ -713,7 +721,7 @@ int su2_writeCongfig_Blackbird(void *aimInfo, capsValue *aimInputs,
     fprintf(fp,"%% \n");
     fprintf(fp,"%% Drag weight in sonic boom Objective Function (from 0.0 to 1.0) \n");
     fprintf(fp,"%% DRAG_IN_SONICBOOM= 0.0 \n");
-    fprintf(fp," \n");
+    fprintf(fp,"%% \n");
     fprintf(fp,"%% -------------------------- ENGINE SIMULATION --------------------------------%% \n");
     fprintf(fp,"%% \n");
     fprintf(fp,"%% Highlite area to compute MFR (1 in2 by default) \n");
@@ -751,7 +759,7 @@ int su2_writeCongfig_Blackbird(void *aimInfo, capsValue *aimInputs,
     fprintf(fp,"%% \n");
     fprintf(fp,"%% Flow variables that define the subsonic region (Mach, Alpha, Beta, Pressure, Temperature) \n");
     fprintf(fp,"%% SUBSONIC_ENGINE_VALUES= ( 0.4, 0.0, 0.0, 2116.216, 518.67 ) \n");
-    fprintf(fp," \n");
+    fprintf(fp,"%% \n");
     fprintf(fp,"%% ------------------------- TURBOMACHINERY SIMULATION -------------------------%% \n");
     fprintf(fp,"%% \n");
     fprintf(fp,"%% Specify kind of architecture for each zone (AXIAL, CENTRIPETAL, CENTRIFUGAL, \n");
@@ -784,7 +792,7 @@ int su2_writeCongfig_Blackbird(void *aimInfo, capsValue *aimInputs,
     fprintf(fp,"%% (ALGEBRAIC, AREA, MASSSFLUX, MIXEDOUT) default AREA \n");
     fprintf(fp,"%% AVERAGE_PROCESS_KIND= MIXEDOUT \n");
     fprintf(fp,"%% \n");
-    fprintf(fp,"%% Specify Kind of average process for computing turbomachienry performance parameters \n");
+    fprintf(fp,"%% Specify Kind of average process for computing turbomachinery performance parameters \n");
     fprintf(fp,"%% (ALGEBRAIC, AREA, MASSSFLUX, MIXEDOUT) default AREA \n");
     fprintf(fp,"%% PERFORMANCE_AVERAGE_PROCESS_KIND= MIXEDOUT \n");
     fprintf(fp,"%% \n");
@@ -795,7 +803,7 @@ int su2_writeCongfig_Blackbird(void *aimInfo, capsValue *aimInputs,
     fprintf(fp,"%% Limit of Mach number below which the mixedout algorithm is substituted \n");
     fprintf(fp,"%% with a AREA average algorithm to avoid numerical issues \n");
     fprintf(fp,"%% AVERAGE_MACH_LIMIT= 0.05 \n");
-    fprintf(fp," \n");
+    fprintf(fp,"%% \n");
     fprintf(fp,"%% ------------------- RADIATIVE HEAT TRANSFER SIMULATION ----------------------%% \n");
     fprintf(fp,"%% \n");
     fprintf(fp,"%% Type of radiation model (NONE, P1) \n");
@@ -833,7 +841,56 @@ int su2_writeCongfig_Blackbird(void *aimInfo, capsValue *aimInputs,
     fprintf(fp,"%% \n");
     fprintf(fp,"%% Time discretization for radiation problems (EULER_IMPLICIT) \n");
     fprintf(fp,"%% TIME_DISCRE_RADIATION = EULER_IMPLICIT \n");
-    fprintf(fp,"\n");
+    fprintf(fp,"%% \n");
+    fprintf(fp,"%% --------------------- SPECIES TRANSPORT SIMULATION --------------------------%% \n");
+    fprintf(fp,"%% \n");
+    fprintf(fp,"%% Specify scalar transport model (NONE, PASSIVE_SCALAR) \n");
+    fprintf(fp,"%% KIND_SCALAR_MODEL= NONE \n");
+    fprintf(fp,"%% \n");
+    fprintf(fp,"%% Mass diffusivity model (CONSTANT_DIFFUSIVITY) \n");
+    fprintf(fp,"%% DIFFUSIVITY_MODEL= CONSTANT_DIFFUSIVITY \n");
+    fprintf(fp,"%% \n");
+    fprintf(fp,"%% Mass diffusivity if DIFFUSIVITY_MODEL= CONSTANT_DIFFUSIVITY is chosen. D_air ~= 0.001 \n");
+    fprintf(fp,"%% DIFFUSIVITY_CONSTANT= 0.001 \n");
+    fprintf(fp,"%% \n");
+    fprintf(fp,"%% Turbulent Schmidt number of mass diffusion \n");
+    fprintf(fp,"%% SCHMIDT_NUMBER_TURBULENT= 0.7 \n");
+    fprintf(fp,"%% \n");
+    fprintf(fp,"%% Inlet Species boundary marker(s) with the following format: \n");
+    fprintf(fp,"%% (inlet_marker, Species1, Species2, ..., SpeciesN-1, inlet_marker2, Species1, Species2, ...) \n");
+    fprintf(fp,"%% MARKER_INLET_SPECIES= (inlet, 0.5, ..., inlet2, 0.6, ...) \n");
+    fprintf(fp,"%% \n");
+    fprintf(fp,"%% Use strong inlet and outlet BC in the species solver \n");
+    fprintf(fp,"%% SPECIES_USE_STRONG_BC= NO \n");
+    fprintf(fp,"%% \n");
+    fprintf(fp,"%% Convective numerical method for species transport (SCALAR_UPWIND) \n");
+    fprintf(fp,"%% CONV_NUM_METHOD_SPECIES= SCALAR_UPWIND \n");
+    fprintf(fp,"%% \n");
+    fprintf(fp,"%% Monotonic Upwind Scheme for Conservation Laws (TVD) in the species equations. \n");
+    fprintf(fp,"%% Required for 2nd order upwind schemes (NO, YES) \n");
+    fprintf(fp,"%% MUSCL_SPECIES= NO \n");
+    fprintf(fp,"%% \n");
+    fprintf(fp,"%% Slope limiter for species equations (NONE, VENKATAKRISHNAN, VENKATAKRISHNAN_WANG, BARTH_JESPERSEN, VAN_ALBADA_EDGE) \n");
+    fprintf(fp,"%% SLOPE_LIMITER_SPECIES = NONE \n");
+    fprintf(fp,"%% \n");
+    fprintf(fp,"%% Time discretization for species equations (EULER_IMPLICIT, EULER_EXPLICIT) \n");
+    fprintf(fp,"%% TIME_DISCRE_SPECIES= EULER_IMPLICIT \n");
+    fprintf(fp,"%% \n");
+    fprintf(fp,"%% Reduction factor of the CFL coefficient in the species problem \n");
+    fprintf(fp,"%% CFL_REDUCTION_SPECIES= 1.0 \n");
+    fprintf(fp,"%% \n");
+    fprintf(fp,"%% Initial values for scalar transport \n");
+    fprintf(fp,"%% SPECIES_INIT= 1.0, ... \n");
+    fprintf(fp,"%% \n");
+    fprintf(fp,"%% Activate clipping for scalar transport equations \n");
+    fprintf(fp,"%% SPECIES_CLIPPING= NO \n");
+    fprintf(fp,"%% \n");
+    fprintf(fp,"%% Maximum values for scalar clipping \n");
+    fprintf(fp,"%% SPECIES_CLIPPING_MAX= 1.0, ... \n");
+    fprintf(fp,"%% \n");
+    fprintf(fp,"%% Minimum values for scalar clipping \n");
+    fprintf(fp,"%% SPECIES_CLIPPING_MIN= 0.0, ... \n");
+    fprintf(fp,"%% \n");
     fprintf(fp,"%% --------------------- INVERSE DESIGN SIMULATION -----------------------------%% \n");
     fprintf(fp,"%% \n");
     fprintf(fp,"%% Evaluate an inverse design problem using Cp (NO, YES) \n");
@@ -841,7 +898,7 @@ int su2_writeCongfig_Blackbird(void *aimInfo, capsValue *aimInputs,
     fprintf(fp,"%% \n");
     fprintf(fp,"%% Evaluate an inverse design problem using heat flux (NO, YES) \n");
     fprintf(fp,"%% INV_DESIGN_HEATFLUX= NO \n");
-    fprintf(fp," \n");
+    fprintf(fp,"%% \n");
     fprintf(fp,"%% ----------------------- BODY FORCE DEFINITION -------------------------------%% \n");
     fprintf(fp,"%% \n");
     fprintf(fp,"%% Apply a body force as a source term (NO, YES) \n");
@@ -849,8 +906,7 @@ int su2_writeCongfig_Blackbird(void *aimInfo, capsValue *aimInputs,
     fprintf(fp,"%% \n");
     fprintf(fp,"%% Vector of body force values (BodyForce_X, BodyForce_Y, BodyForce_Z) \n");
     fprintf(fp,"%% BODY_FORCE_VECTOR= ( 0.0, 0.0, 0.0 ) \n");
-    fprintf(fp," \n");
-
+    fprintf(fp,"%% \n");
     fprintf(fp,"%% --------------------- STREAMWISE PERIODICITY DEFINITION ---------------------%% \n");
     fprintf(fp,"%% \n");
     fprintf(fp,"%% Generally for streamwise periodictiy one has to set MARKER_PERIODIC= (<inlet>, <outlet>, ...) \n");
@@ -873,14 +929,13 @@ int su2_writeCongfig_Blackbird(void *aimInfo, capsValue *aimInputs,
     fprintf(fp,"%% This option is only necessary if INC_ENERGY_EQUATION=YES \n");
     fprintf(fp,"%% STREAMWISE_PERIODIC_TEMPERATURE= NO \n");
     fprintf(fp,"%% \n");
-    fprintf(fp,"%% Prescribe integrated heat [W] extracted at the periodic \"outlet\".\n");
+    fprintf(fp,"%% Prescribe integrated heat [W] extracted at the periodic \"outlet\". \n");
     fprintf(fp,"%% Only active if STREAMWISE_PERIODIC_TEMPERATURE= NO. \n");
     fprintf(fp,"%% If set to zero, the heat is integrated automatically over all present MARKER_HEATFLUX. \n");
     fprintf(fp,"%% Upon convergence, the area averaged inlet temperature will be INC_TEMPERATURE_INIT. \n");
     fprintf(fp,"%% Defaults to 0.0. \n");
     fprintf(fp,"%% STREAMWISE_PERIODIC_OUTLET_HEAT= 0.0 \n");
     fprintf(fp,"%% \n");
-
     fprintf(fp,"%% -------------------- BOUNDARY CONDITION DEFINITION --------------------------%% \n");
     fprintf(fp,"%% \n");
     fprintf(fp,"%% Euler wall boundary marker(s) (NONE = no marker) \n");
@@ -892,7 +947,7 @@ int su2_writeCongfig_Blackbird(void *aimInfo, capsValue *aimInputs,
         if (bcProps.surfaceProp[i].surfaceType == Inviscid) {
 
             if (counter > 0) fprintf(fp, ",");
-            fprintf(fp," %d", bcProps.surfaceProp[i].bcID);
+            fprintf(fp," BC_%d", bcProps.surfaceProp[i].bcID);
 
             counter += 1;
         }
@@ -910,13 +965,18 @@ int su2_writeCongfig_Blackbird(void *aimInfo, capsValue *aimInputs,
             bcProps.surfaceProp[i].wallTemperature < 0) {
 
             if (counter > 0) fprintf(fp, ",");
-            fprintf(fp," %d, %f", bcProps.surfaceProp[i].bcID, bcProps.surfaceProp[i].wallHeatFlux);
+            fprintf(fp," BC_%d, %f", bcProps.surfaceProp[i].bcID, bcProps.surfaceProp[i].wallHeatFlux);
 
             counter += 1;
         }
     }
     if(counter == 0) fprintf(fp," NONE");
     fprintf(fp," )\n");
+    fprintf(fp,"%% \n");
+    fprintf(fp,"%% Navier-Stokes (no-slip), heat-transfer/convection wall marker(s) (NONE = no marker) \n");
+    fprintf(fp,"%% Available for compressible and incompressible flow. \n");
+    fprintf(fp,"%% Format: ( marker name, constant heat-transfer coefficient (J/(K*m^2)), constant reservoir Temperature (K) ... ) \n");
+    fprintf(fp,"%% MARKER_HEATTRANSFER= ( NONE ) \n");
     fprintf(fp,"%% \n");
     fprintf(fp,"%% Navier-Stokes (no-slip), isothermal wall marker(s) (NONE = no marker) \n");
     fprintf(fp,"%% Format: ( marker name, constant wall temperature (K), ... ) \n");
@@ -928,7 +988,7 @@ int su2_writeCongfig_Blackbird(void *aimInfo, capsValue *aimInputs,
             bcProps.surfaceProp[i].wallTemperature >= 0) {
 
             if (counter > 0) fprintf(fp, ",");
-            fprintf(fp," %d, %f", bcProps.surfaceProp[i].bcID, bcProps.surfaceProp[i].wallTemperature);
+            fprintf(fp," BC_%d, %f", bcProps.surfaceProp[i].bcID, bcProps.surfaceProp[i].wallTemperature);
 
             counter += 1;
         }
@@ -943,7 +1003,7 @@ int su2_writeCongfig_Blackbird(void *aimInfo, capsValue *aimInputs,
         if (bcProps.surfaceProp[i].surfaceType == Farfield) {
 
             if (counter > 0) fprintf(fp, ",");
-            fprintf(fp," %d", bcProps.surfaceProp[i].bcID);
+            fprintf(fp," BC_%d", bcProps.surfaceProp[i].bcID);
 
             counter += 1;
         }
@@ -959,7 +1019,7 @@ int su2_writeCongfig_Blackbird(void *aimInfo, capsValue *aimInputs,
         if (bcProps.surfaceProp[i].surfaceType == Symmetry) {
 
             if (counter > 0) fprintf(fp, ",");
-            fprintf(fp," %d", bcProps.surfaceProp[i].bcID);
+            fprintf(fp," BC_%d", bcProps.surfaceProp[i].bcID);
 
             counter += 1;
         }
@@ -1002,12 +1062,12 @@ int su2_writeCongfig_Blackbird(void *aimInfo, capsValue *aimInputs,
         if (bcProps.surfaceProp[i].surfaceType == SubsonicInflow) {
 
             if (counter > 0) fprintf(fp, ",");
-            fprintf(fp," %d, %f, %f, %f, %f, %f", bcProps.surfaceProp[i].bcID,
-                                                  bcProps.surfaceProp[i].totalTemperature,
-                                                  bcProps.surfaceProp[i].totalPressure,
-                                                  bcProps.surfaceProp[i].uVelocity,
-                                                  bcProps.surfaceProp[i].vVelocity,
-                                                  bcProps.surfaceProp[i].wVelocity);
+            fprintf(fp," BC_%d, %f, %f, %f, %f, %f", bcProps.surfaceProp[i].bcID,
+                                                     bcProps.surfaceProp[i].totalTemperature,
+                                                     bcProps.surfaceProp[i].totalPressure,
+                                                     bcProps.surfaceProp[i].uVelocity,
+                                                     bcProps.surfaceProp[i].vVelocity,
+                                                     bcProps.surfaceProp[i].wVelocity);
             counter += 1;
         }
     }
@@ -1025,8 +1085,8 @@ int su2_writeCongfig_Blackbird(void *aimInfo, capsValue *aimInputs,
             bcProps.surfaceProp[i].surfaceType == SubsonicOutflow) {
 
             if (counter > 0) fprintf(fp, ",");
-            fprintf(fp," %d, %f", bcProps.surfaceProp[i].bcID,
-                                    bcProps.surfaceProp[i].staticPressure);
+            fprintf(fp," BC_%d, %f", bcProps.surfaceProp[i].bcID,
+                                       bcProps.surfaceProp[i].staticPressure);
 
             counter += 1;
         }
@@ -1075,7 +1135,7 @@ int su2_writeCongfig_Blackbird(void *aimInfo, capsValue *aimInputs,
     fprintf(fp,"%% Format: (engine inflow marker, fan face Mach, ... ) \n");
     fprintf(fp,"%% MARKER_ENGINE_INFLOW= ( NONE ) \n");
     fprintf(fp,"%% \n");
-    fprintf(fp,"%% Engine exhaust boundary marker(s) with the following formats (NONE = no marker)  \n");
+    fprintf(fp,"%% Engine exhaust boundary marker(s) with the following formats (NONE = no marker) \n");
     fprintf(fp,"%% Format: (engine exhaust marker, total nozzle temp, total nozzle pressure, ... ) \n");
     fprintf(fp,"%% MARKER_ENGINE_EXHAUST= ( NONE ) \n");
     fprintf(fp,"%% \n");
@@ -1150,13 +1210,30 @@ int su2_writeCongfig_Blackbird(void *aimInfo, capsValue *aimInputs,
     fprintf(fp,"%% Catalytic wall marker(s) (NONE = no marker) \n");
     fprintf(fp,"%% Format: ( marker name, ... ) \n");
     fprintf(fp,"%% CATALYTIC_WALL= ( NONE ) \n");
-    fprintf(fp," \n");
+    fprintf(fp,"%% \n");
     fprintf(fp,"%% ------------------------ WALL ROUGHNESS DEFINITION --------------------------%% \n");
-    fprintf(fp,"%% The equivalent sand grain roughness height (k_s) on each of the wall. This must be in m.  \n");
+    fprintf(fp,"%% The equivalent sand grain roughness height (k_s) on each of the wall. This must be in m. \n");
     fprintf(fp,"%% This is a list of (string, double) each element corresponding to the MARKER defined in WALL_TYPE. \n");
     fprintf(fp,"%% WALL_ROUGHNESS = (wall1, ks1, wall2, ks2) \n");
     fprintf(fp,"%% WALL_ROUGHNESS = (wall1, ks1, wall2, 0.0) %%is also allowed \n");
-    fprintf(fp," \n");
+    fprintf(fp,"%% \n");
+    fprintf(fp,"%% ------------------------ WALL FUNCTION DEFINITION --------------------------%% \n");
+    fprintf(fp,"%% \n");
+    fprintf(fp,"%% The von Karman constant, the constant below only affects the standard wall function model \n");
+    fprintf(fp,"%% WALLMODEL_KAPPA= 0.41 \n");
+    fprintf(fp,"%% \n");
+    fprintf(fp,"%% The wall function model constant B \n");
+    fprintf(fp,"%% WALLMODEL_B= 5.5 \n");
+    fprintf(fp,"%% \n");
+    fprintf(fp,"%% The y+ value below which the wall function is switched off and we resolve the wall \n");
+    fprintf(fp,"%% WALLMODEL_MINYPLUS= 5.0 \n");
+    fprintf(fp,"%% \n");
+    fprintf(fp,"%% [Expert] Max Newton iterations used for the standard wall function \n");
+    fprintf(fp,"%% WALLMODEL_MAXITER= 200 \n");
+    fprintf(fp,"%% \n");
+    fprintf(fp,"%% [Expert] relaxation factor for the Newton iterations of the standard wall function \n");
+    fprintf(fp,"%% WALLMODEL_RELFAC= 0.5 \n");
+    fprintf(fp,"%% \n");
     fprintf(fp,"%% ------------------------ SURFACES IDENTIFICATION ----------------------------%% \n");
     fprintf(fp,"%% \n");
     fprintf(fp,"%% Marker(s) of the surface in the surface flow solution file \n");
@@ -1167,7 +1244,7 @@ int su2_writeCongfig_Blackbird(void *aimInfo, capsValue *aimInputs,
             bcProps.surfaceProp[i].surfaceType == Viscous) {
 
             if (counter > 0) fprintf(fp, ",");
-            fprintf(fp," %d", bcProps.surfaceProp[i].bcID);
+            fprintf(fp," BC_%d", bcProps.surfaceProp[i].bcID);
 
             counter += 1;
         }
@@ -1197,15 +1274,15 @@ int su2_writeCongfig_Blackbird(void *aimInfo, capsValue *aimInputs,
     fprintf(fp,"%% \n");
     fprintf(fp,"%% Method to compute the average value in MARKER_ANALYZE (AREA, MASSFLUX). \n");
     fprintf(fp,"%% MARKER_ANALYZE_AVERAGE = MASSFLUX \n");
-    fprintf(fp," \n");
+    fprintf(fp,"%% \n");
     fprintf(fp,"%% ------------- COMMON PARAMETERS DEFINING THE NUMERICAL METHOD ---------------%% \n");
     fprintf(fp,"%% \n");
     fprintf(fp,"%% Numerical method for spatial gradients (GREEN_GAUSS, WEIGHTED_LEAST_SQUARES) \n");
     fprintf(fp,"%% NUM_METHOD_GRAD= GREEN_GAUSS \n");
-    fprintf(fp," \n");
+    fprintf(fp,"%% \n");
     fprintf(fp,"%% Numerical method for spatial gradients to be used for MUSCL reconstruction \n");
     fprintf(fp,"%% Options are (GREEN_GAUSS, WEIGHTED_LEAST_SQUARES, LEAST_SQUARES). Default value is \n");
-    fprintf(fp,"%% NONE and the method specified in NUM_METHOD_GRAD is used.  \n");
+    fprintf(fp,"%% NONE and the method specified in NUM_METHOD_GRAD is used. \n");
     fprintf(fp,"%% NUM_METHOD_GRAD_RECON = LEAST_SQUARES \n");
     fprintf(fp,"%% \n");
     fprintf(fp,"%% CFL number (initial value for the adaptive CFL number) \n");
@@ -1214,9 +1291,13 @@ int su2_writeCongfig_Blackbird(void *aimInfo, capsValue *aimInputs,
     fprintf(fp,"%% Adaptive CFL number (NO, YES) \n");
     fprintf(fp,"%% CFL_ADAPT= NO \n");
     fprintf(fp,"%% \n");
-    fprintf(fp,"%% Parameters of the adaptive CFL number (factor down, factor up, CFL min value, \n");
-    fprintf(fp,"%%                                        CFL max value ) \n");
-    fprintf(fp,"%% CFL_ADAPT_PARAM= ( 0.1, 2.0, 10.0, 1e10 ) \n");
+    fprintf(fp,"%% Parameters of the adaptive CFL number (factor-down, factor-up, CFL min value, \n");
+    fprintf(fp,"%%                                        CFL max value, acceptable linear solver convergence) \n");
+    fprintf(fp,"%% Local CFL increases by factor-up until max if the solution rate of change is not limited, \n");
+    fprintf(fp,"%% and acceptable linear convergence is achieved. It is reduced if rate is limited, or if there \n");
+    fprintf(fp,"%% is not enough linear convergence, or if the nonlinear residuals are stagnant and oscillatory. \n");
+    fprintf(fp,"%% It is reset back to min when linear solvers diverge, or if nonlinear residuals increase too much. \n");
+    fprintf(fp,"%% CFL_ADAPT_PARAM= ( 0.1, 2.0, 10.0, 1e10, 0.001 ) \n");
     fprintf(fp,"%% \n");
     fprintf(fp,"%% Maximum Delta Time in local time stepping simulations \n");
     fprintf(fp,"%% MAX_DELTA_TIME= 1E6 \n");
@@ -1224,20 +1305,25 @@ int su2_writeCongfig_Blackbird(void *aimInfo, capsValue *aimInputs,
     fprintf(fp,"%% Runge-Kutta alpha coefficients \n");
     fprintf(fp,"%% RK_ALPHA_COEFF= ( 0.66667, 0.66667, 1.000000 ) \n");
     fprintf(fp,"%% \n");
-    fprintf(fp,"%% Objective function in gradient evaluation   (DRAG, LIFT, SIDEFORCE, MOMENT_X, \n");
+    fprintf(fp,"%% Objective function in gradient evaluation  (DRAG, LIFT, SIDEFORCE, MOMENT_X, \n");
     fprintf(fp,"%%                                             MOMENT_Y, MOMENT_Z, EFFICIENCY, BUFFET, \n");
     fprintf(fp,"%%                                             EQUIVALENT_AREA, NEARFIELD_PRESSURE, \n");
     fprintf(fp,"%%                                             FORCE_X, FORCE_Y, FORCE_Z, THRUST, \n");
-    fprintf(fp,"%%                                             TORQUE, TOTAL_HEATFLUX, \n");
+    fprintf(fp,"%%                                             TORQUE, TOTAL_HEATFLUX, CUSTOM_OBJFUNC \n");
     fprintf(fp,"%%                                             MAXIMUM_HEATFLUX, INVERSE_DESIGN_PRESSURE, \n");
-    fprintf(fp,"%%                                             INVERSE_DESIGN_HEATFLUX, SURFACE_TOTAL_PRESSURE,  \n");
+    fprintf(fp,"%%                                             INVERSE_DESIGN_HEATFLUX, SURFACE_TOTAL_PRESSURE, \n");
     fprintf(fp,"%%                                             SURFACE_MASSFLOW, SURFACE_STATIC_PRESSURE, SURFACE_MACH) \n");
     fprintf(fp,"%% For a weighted sum of objectives: separate by commas, add OBJECTIVE_WEIGHT and MARKER_MONITORING in matching order. \n");
     fprintf(fp,"%% OBJECTIVE_FUNCTION= DRAG \n");
     fprintf(fp,"%% \n");
     fprintf(fp,"%% List of weighting values when using more than one OBJECTIVE_FUNCTION. Separate by commas and match with MARKER_MONITORING. \n");
     fprintf(fp,"%% OBJECTIVE_WEIGHT = 1.0 \n");
-    fprintf(fp," \n");
+    fprintf(fp,"%% \n");
+    fprintf(fp,"%% Expression used when \"OBJECTIVE_FUNCTION= CUSTOM_OBJFUNC\", any history/screen output can be used together with common \n");
+    fprintf(fp,"%% math functions (sqrt, cos, exp, etc.). This can be used for constraint aggregation (as below) or to compute something \n");
+    fprintf(fp,"%% SU2 does not, see TestCases/user_defined_functions/. \n");
+    fprintf(fp,"%% CUSTOM_OBJFUNC= 'DRAG + 10 * pow(fmax(0.4-LIFT, 0), 2)' \n");
+    fprintf(fp,"%% \n");
     fprintf(fp,"%% ----------- SLOPE LIMITER AND DISSIPATION SENSOR DEFINITION -----------------%% \n");
     fprintf(fp,"%% \n");
     fprintf(fp,"%% Monotonic Upwind Scheme for Conservation Laws (TVD) in the flow equations. \n");
@@ -1303,20 +1389,20 @@ int su2_writeCongfig_Blackbird(void *aimInfo, capsValue *aimInputs,
     fprintf(fp,"%% 2nd, and 4th order artificial dissipation coefficients for \n");
     fprintf(fp,"%%     the adjoint JST method ( 0.5, 0.02 by default ) \n");
     fprintf(fp,"%% ADJ_JST_SENSOR_COEFF= ( 0.5, 0.02 ) \n");
-    fprintf(fp," \n");
+    fprintf(fp,"%% \n");
     fprintf(fp,"%% ------------------------ LINEAR SOLVER DEFINITION ---------------------------%% \n");
     fprintf(fp,"%% \n");
     fprintf(fp,"%% Linear solver or smoother for implicit formulations: \n");
     fprintf(fp,"%% BCGSTAB, FGMRES, RESTARTED_FGMRES, CONJUGATE_GRADIENT (self-adjoint problems only), SMOOTHER. \n");
     fprintf(fp,"%% LINEAR_SOLVER= FGMRES \n");
     fprintf(fp,"%% \n");
-    fprintf(fp,"%% Same for discrete adjoint (smoothers not supported) \n");
+    fprintf(fp,"%% Same for discrete adjoint (smoothers not supported), replaces LINEAR_SOLVER in SU2_*_AD codes. \n");
     fprintf(fp,"%% DISCADJ_LIN_SOLVER= FGMRES \n");
     fprintf(fp,"%% \n");
     fprintf(fp,"%% Preconditioner of the Krylov linear solver or type of smoother (ILU, LU_SGS, LINELET, JACOBI) \n");
     fprintf(fp,"%% LINEAR_SOLVER_PREC= ILU \n");
     fprintf(fp,"%% \n");
-    fprintf(fp,"%% Same for discrete adjoint (JACOBI or ILU) \n");
+    fprintf(fp,"%% Same for discrete adjoint (JACOBI or ILU), replaces LINEAR_SOLVER_PREC in SU2_*_AD codes. \n");
     fprintf(fp,"%% DISCADJ_LIN_PREC= ILU \n");
     fprintf(fp,"%% \n");
     fprintf(fp,"%% Linear solver ILU preconditioner fill-in level (0 by default) \n");
@@ -1333,7 +1419,7 @@ int su2_writeCongfig_Blackbird(void *aimInfo, capsValue *aimInputs,
     fprintf(fp,"%% \n");
     fprintf(fp,"%% Relaxation factor for smoother-type solvers (LINEAR_SOLVER= SMOOTHER) \n");
     fprintf(fp,"%% LINEAR_SOLVER_SMOOTHER_RELAXATION= 1.0 \n");
-    fprintf(fp," \n");
+    fprintf(fp,"%% \n");
     fprintf(fp,"%% -------------------------- MULTIGRID PARAMETERS -----------------------------%% \n");
     fprintf(fp,"%% \n");
     fprintf(fp,"%% Multi-grid levels (0 = no multi-grid) \n");
@@ -1356,7 +1442,7 @@ int su2_writeCongfig_Blackbird(void *aimInfo, capsValue *aimInputs,
     fprintf(fp,"%% \n");
     fprintf(fp,"%% Damping factor for the correction prolongation \n");
     fprintf(fp,"%% MG_DAMP_PROLONGATION= 0.75 \n");
-    fprintf(fp," \n");
+    fprintf(fp,"%% \n");
     fprintf(fp,"%% -------------------- FLOW NUMERICAL METHOD DEFINITION -----------------------%% \n");
     fprintf(fp,"%% \n");
     fprintf(fp,"%% Convective numerical method (JST, JST_KE, JST_MAT, LAX-FRIEDRICH, CUSP, ROE, AUSM, \n");
@@ -1396,15 +1482,12 @@ int su2_writeCongfig_Blackbird(void *aimInfo, capsValue *aimInputs,
     fprintf(fp,"%% \n");
     fprintf(fp,"%% Time discretization (RUNGE-KUTTA_EXPLICIT, EULER_IMPLICIT, EULER_EXPLICIT) \n");
     fprintf(fp,"%% TIME_DISCRE_FLOW= EULER_IMPLICIT \n");
-
     fprintf(fp,"%% \n");
     fprintf(fp,"%% Use a Newton-Krylov method on the flow equations, see TestCases/rans/oneram6/turb_ONERAM6_nk.cfg \n");
     fprintf(fp,"%% For multizone discrete adjoint it will use FGMRES on inner iterations with restart frequency \n");
     fprintf(fp,"%% equal to \"QUASI_NEWTON_NUM_SAMPLES\". \n");
     fprintf(fp,"%% NEWTON_KRYLOV= NO \n");
-
-
-    fprintf(fp," \n");
+    fprintf(fp,"%% \n");
     fprintf(fp,"%% ------------------- FEM FLOW NUMERICAL METHOD DEFINITION --------------------%% \n");
     fprintf(fp,"%% \n");
     fprintf(fp,"%% FEM numerical method (DG) \n");
@@ -1449,24 +1532,22 @@ int su2_writeCongfig_Blackbird(void *aimInfo, capsValue *aimInputs,
     fprintf(fp,"%% \n");
     fprintf(fp,"%% Specify the method for matrix coloring for Jacobian computations (GREEDY_COLORING, NATURAL_COLORING) \n");
     fprintf(fp,"%% KIND_MATRIX_COLORING= GREEDY_COLORING \n");
-    fprintf(fp," \n");
+    fprintf(fp,"%% \n");
     fprintf(fp,"%% -------------------- TURBULENT NUMERICAL METHOD DEFINITION ------------------%% \n");
     fprintf(fp,"%% \n");
     fprintf(fp,"%% Convective numerical method (SCALAR_UPWIND) \n");
     fprintf(fp,"%% CONV_NUM_METHOD_TURB= SCALAR_UPWIND \n");
     fprintf(fp,"%% \n");
-    fprintf(fp,"%% Time discretization (EULER_IMPLICIT) \n");
+    fprintf(fp,"%% Time discretization (EULER_IMPLICIT, EULER_EXPLICIT) \n");
     fprintf(fp,"%% TIME_DISCRE_TURB= EULER_IMPLICIT \n");
     fprintf(fp,"%% \n");
     fprintf(fp,"%% Reduction factor of the CFL coefficient in the turbulence problem \n");
     fprintf(fp,"%% CFL_REDUCTION_TURB= 1.0 \n");
-    fprintf(fp," \n");
+    fprintf(fp,"%% \n");
     fprintf(fp,"%% --------------------- HEAT NUMERICAL METHOD DEFINITION ----------------------%% \n");
     fprintf(fp,"%% \n");
     fprintf(fp,"%% Value of the thermal diffusivity \n");
     fprintf(fp,"%% THERMAL_DIFFUSIVITY= 1.0 \n");
-
-
     fprintf(fp,"%% \n");
     fprintf(fp,"%% Convective numerical method \n");
     fprintf(fp,"%% CONV_NUM_METHOD_HEAT= SPACE_CENTERED \n");
@@ -1480,9 +1561,6 @@ int su2_writeCongfig_Blackbird(void *aimInfo, capsValue *aimInputs,
     fprintf(fp,"%% Time discretization \n");
     fprintf(fp,"%% TIME_DISCRE_HEAT= EULER_IMPLICIT \n");
     fprintf(fp,"%% \n");
-
-
-    fprintf(fp," \n");
     fprintf(fp,"%% ---------------- ADJOINT-FLOW NUMERICAL METHOD DEFINITION -------------------%% \n");
     fprintf(fp,"%% \n");
     fprintf(fp,"%% Frozen the slope limiter in the discrete adjoint formulation (NO, YES) \n");
@@ -1516,7 +1594,7 @@ int su2_writeCongfig_Blackbird(void *aimInfo, capsValue *aimInputs,
     fprintf(fp,"%% \n");
     fprintf(fp,"%% Use multigrid in the adjoint problem (NO, YES) \n");
     fprintf(fp,"%% MG_ADJFLOW= YES \n");
-    fprintf(fp," \n");
+    fprintf(fp,"%% \n");
     fprintf(fp,"%% ---------------- ADJOINT-TURBULENT NUMERICAL METHOD DEFINITION --------------%% \n");
     fprintf(fp,"%% \n");
     fprintf(fp,"%% Convective numerical method (SCALAR_UPWIND) \n");
@@ -1527,7 +1605,13 @@ int su2_writeCongfig_Blackbird(void *aimInfo, capsValue *aimInputs,
     fprintf(fp,"%% \n");
     fprintf(fp,"%% Reduction factor of the CFL coefficient in the adjoint turbulent problem \n");
     fprintf(fp,"%% CFL_REDUCTION_ADJTURB= 0.01 \n");
-    fprintf(fp," \n");
+    fprintf(fp,"%% \n");
+    fprintf(fp,"%% \n");
+    fprintf(fp,"%% -------------------- NEMO NUMERICAL METHOD DEFINITION -----------------------%% \n");
+    fprintf(fp,"%% \n");
+    fprintf(fp,"%% Mixture transport properties (WILKE,GUPTA-YOS,CHAPMANN-ENSKOG) \n");
+    fprintf(fp,"%% TRANSPORT_COEFF_MODEL = WILKE \n");
+    fprintf(fp,"%% \n");
     fprintf(fp,"%% ----------------------- GEOMETRY EVALUATION PARAMETERS ----------------------%% \n");
     fprintf(fp,"%% \n");
     fprintf(fp,"%% Marker(s) of the surface where geometrical based function will be evaluated \n");
@@ -1551,7 +1635,7 @@ int su2_writeCongfig_Blackbird(void *aimInfo, capsValue *aimInputs,
     fprintf(fp,"%% \n");
     fprintf(fp,"%% Geometrical evaluation mode (FUNCTION, GRADIENT) \n");
     fprintf(fp,"%% GEO_MODE= FUNCTION \n");
-    fprintf(fp," \n");
+    fprintf(fp,"%% \n");
     fprintf(fp,"%% ------------------------- GRID ADAPTATION STRATEGY --------------------------%% \n");
     fprintf(fp,"%% \n");
     fprintf(fp,"%% Kind of grid adaptation (NONE, PERIODIC, FULL, FULL_FLOW, GRAD_FLOW, \n");
@@ -1568,18 +1652,18 @@ int su2_writeCongfig_Blackbird(void *aimInfo, capsValue *aimInputs,
     fprintf(fp,"%% \n");
     fprintf(fp,"%% Adapt the boundary elements (NO, YES) \n");
     fprintf(fp,"%% ADAPT_BOUNDARY= YES \n");
-    fprintf(fp," \n");
+    fprintf(fp,"%% \n");
     fprintf(fp,"%% ----------------------- DESIGN VARIABLE PARAMETERS --------------------------%% \n");
     fprintf(fp,"%% \n");
     fprintf(fp,"%% Kind of deformation (NO_DEFORMATION, SCALE_GRID, TRANSLATE_GRID, ROTATE_GRID, \n");
     fprintf(fp,"%%                      FFD_SETTING, FFD_NACELLE, \n");
     fprintf(fp,"%%                      FFD_CONTROL_POINT, FFD_CAMBER, FFD_THICKNESS, FFD_TWIST \n");
-    fprintf(fp,"%%                      FFD_CONTROL_POINT_2D, FFD_CAMBER_2D, FFD_THICKNESS_2D,  \n");
+    fprintf(fp,"%%                      FFD_CONTROL_POINT_2D, FFD_CAMBER_2D, FFD_THICKNESS_2D, \n");
     fprintf(fp,"%%                      FFD_TWIST_2D, HICKS_HENNE, SURFACE_BUMP, SURFACE_FILE) \n");
     if ( withMotion == (int) false ) fprintf(fp, "%% ");
     fprintf(fp,"DV_KIND= SURFACE_FILE \n");
-    fprintf(fp,"%%\n");
-    fprintf(fp,"%% Marker of the surface in which we are going apply the shape deformation\n");
+    fprintf(fp,"%% \n");
+    fprintf(fp,"%% Marker of the surface in which we are going apply the shape deformation \n");
     if ( withMotion == (int) false ) fprintf(fp, "%% ");
     fprintf(fp,"DV_MARKER= (");
 
@@ -1592,7 +1676,7 @@ int su2_writeCongfig_Blackbird(void *aimInfo, capsValue *aimInputs,
                 bcProps.surfaceProp[i].surfaceType == Viscous) {
 
                 if (counter > 0) fprintf(fp, ",");
-                fprintf(fp," %d", bcProps.surfaceProp[i].bcID);
+                fprintf(fp," BC_%d", bcProps.surfaceProp[i].bcID);
 
                 counter += 1;
             }
@@ -1626,7 +1710,7 @@ int su2_writeCongfig_Blackbird(void *aimInfo, capsValue *aimInputs,
     fprintf(fp,"%% - HICKS_HENNE ( Lower Surface (0)/Upper Surface (1)/Only one Surface (2), x_Loc ) \n");
     fprintf(fp,"%% - SURFACE_BUMP ( x_Start, x_End, x_Loc ) \n");
     if ( withMotion == (int) false ) fprintf(fp, "%% ");
-    fprintf(fp,"DV_PARAM= ( 1, 0.5 )\n");
+    fprintf(fp,"DV_PARAM= ( 1, 0.5 ) \n");
     fprintf(fp,"%% \n");
     fprintf(fp,"%% Value of the shape deformation \n");
     if ( withMotion == (int) false ) fprintf(fp, "%% ");
@@ -1656,7 +1740,7 @@ int su2_writeCongfig_Blackbird(void *aimInfo, capsValue *aimInputs,
     fprintf(fp,"%% rows of x, y, z, dJ/dx, dJ/dy, dJ/dz for each grid point. \n");
     fprintf(fp,"%% DV_SENSITIVITY_FORMAT= SU2_NATIVE \n");
     fprintf(fp,"%% DV_UNORDERED_SENS_FILENAME= unordered_sensitivity.dat \n");
-    fprintf(fp," \n");
+    fprintf(fp,"%% \n");
     fprintf(fp,"%% ---------------- MESH DEFORMATION PARAMETERS (NEW SOLVER) -------------------%% \n");
     fprintf(fp,"%% \n");
     fprintf(fp,"%% Use the reformatted pseudo-elastic solver for grid deformation \n");
@@ -1665,7 +1749,7 @@ int su2_writeCongfig_Blackbird(void *aimInfo, capsValue *aimInputs,
     fprintf(fp,"%% Moving markers which deform the mesh \n");
     fprintf(fp,"%% MARKER_DEFORM_MESH = ( airfoil ) \n");
     fprintf(fp,"%% MARKER_DEFORM_MESH_SYM_PLANE = ( wall ) \n");
-    fprintf(fp," \n");
+    fprintf(fp,"%% \n");
     fprintf(fp,"%% ------------------------ GRID DEFORMATION PARAMETERS ------------------------%% \n");
     fprintf(fp,"%% \n");
     fprintf(fp,"%% Linear solver or smoother for implicit formulations (FGMRES, RESTARTED_FGMRES, BCGSTAB) \n");
@@ -1697,7 +1781,7 @@ int su2_writeCongfig_Blackbird(void *aimInfo, capsValue *aimInputs,
     fprintf(fp,"%% Deform the grid only close to the surface. It is possible to specify how much \n");
     fprintf(fp,"%% of the volumetric grid is going to be deformed in meters or inches (1E6 by default) \n");
     fprintf(fp,"%% DEFORM_LIMIT = 1E6 \n");
-    fprintf(fp," \n");
+    fprintf(fp,"%% \n");
     fprintf(fp,"%% -------------------- FREE-FORM DEFORMATION PARAMETERS -----------------------%% \n");
     fprintf(fp,"%% \n");
     fprintf(fp,"%% Tolerance of the Free-Form Deformation point inversion \n");
@@ -1705,8 +1789,7 @@ int su2_writeCongfig_Blackbird(void *aimInfo, capsValue *aimInputs,
     fprintf(fp,"%% \n");
     fprintf(fp,"%% Maximum number of iterations in the Free-Form Deformation point inversion \n");
     fprintf(fp,"%% FFD_ITERATIONS= 500 \n");
-
-
+    fprintf(fp,"%% \n");
     fprintf(fp,"%% Parameters for prevention of self-intersections within FFD box \n");
     fprintf(fp,"%% FFD_INTPREV = YES \n");
     fprintf(fp,"%% FFD_INTPREV_ITER = 10 \n");
@@ -1716,8 +1799,7 @@ int su2_writeCongfig_Blackbird(void *aimInfo, capsValue *aimInputs,
     fprintf(fp,"%% CONVEXITY_CHECK = YES \n");
     fprintf(fp,"%% CONVEXITY_CHECK_ITER = 10 \n");
     fprintf(fp,"%% CONVEXITY_CHECK_DEPTH = 3 \n");
-    fprintf(fp,"\n");
-
+    fprintf(fp,"%%  \n");
     fprintf(fp,"%% \n");
     fprintf(fp,"%% FFD box definition: 3D case (FFD_BoxTag, X1, Y1, Z1, X2, Y2, Z2, X3, Y3, Z3, X4, Y4, Z4, \n");
     fprintf(fp,"%%                              X5, Y5, Z5, X6, Y6, Z6, X7, Y7, Z7, X8, Y8, Z8) \n");
@@ -1725,8 +1807,8 @@ int su2_writeCongfig_Blackbird(void *aimInfo, capsValue *aimInputs,
     fprintf(fp,"%%                              0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0) \n");
     fprintf(fp,"%% FFD_DEFINITION= (MAIN_BOX, 0.5, 0.25, -0.25, 1.5, 0.25, -0.25, 1.5, 0.75, -0.25, 0.5, 0.75, -0.25, 0.5, 0.25, 0.25, 1.5, 0.25, 0.25, 1.5, 0.75, 0.25, 0.5, 0.75, 0.25) \n");
     fprintf(fp,"%% \n");
-    fprintf(fp,"%% FFD box degree: 3D case (x_degree, y_degree, z_degree) \n");
-    fprintf(fp,"%%                 2D case (x_degree, y_degree, 0) \n");
+    fprintf(fp,"%% FFD box degree: 3D case (i_degree, j_degree, k_degree) \n");
+    fprintf(fp,"%%                 2D case (i_degree, j_degree, 0) \n");
     fprintf(fp,"%% FFD_DEGREE= (10, 10, 1) \n");
     fprintf(fp,"%% \n");
     fprintf(fp,"%% Surface grid continuity at the intersection with the faces of the FFD boxes. \n");
@@ -1810,13 +1892,56 @@ int su2_writeCongfig_Blackbird(void *aimInfo, capsValue *aimInputs,
     fprintf(fp,"%% PARMETIS_EDGE_WEIGHT= 1 \n");
     fprintf(fp,"%% PARMETIS_POINT_WEIGHT= 0 \n");
     fprintf(fp,"%% \n");
+    fprintf(fp,"%% ----------------------- SOBOLEV GRADIENT SMOOTHING OPTIONS ----------------------%% \n");
+    fprintf(fp,"%% \n");
+    fprintf(fp,"%% Activate the gradient smoothing solver for the discrete adjoint driver (NO, YES) \n");
+    fprintf(fp,"%% see TestCases/grad_smooth/naca0012/inv_NACA0012_gradsmooth.cfg for a detailed explanantion \n");
+    fprintf(fp,"%% on the config options shown here. \n");
+    fprintf(fp,"%% SMOOTH_GRADIENT= NO \n");
+    fprintf(fp,"%% \n");
+    fprintf(fp,"%% Mode how the Sobolev method is applied to the discrete adjoint gradient. \n");
+    fprintf(fp,"%% SOBOLEV_MODE= NO_MODUS \n");
+    fprintf(fp,"%% \n");
+    fprintf(fp,"%% Scaling factor for the identity part of the Laplace-Beltrami operator \n");
+    fprintf(fp,"%% SMOOTHING_EPSILON1= 1.0 \n");
+    fprintf(fp,"%% \n");
+    fprintf(fp,"%% Scaling factor for the Laplace part of the Laplace-Beltrami operator \n");
+    fprintf(fp,"%% SMOOTHING_EPSILON2= 1.0 \n");
+    fprintf(fp,"%% \n");
+    fprintf(fp,"%% Switch for applying the Sobolev smoothing to the design surface mesh, i.e., instead of the whole volume mesh (NO, YES). \n");
+    fprintf(fp,"%% SMOOTH_ON_SURFACE= NO \n");
+    fprintf(fp,"%% \n");
+    fprintf(fp,"%% Switch for running the smoothing procedure seperately in each space dimension (NO, YES). \n");
+    fprintf(fp,"%% SEPARATE_DIMENSIONS= NO \n");
+    fprintf(fp,"%% \n");
+    fprintf(fp,"%% Use Dirichlet boundary conditions when working on the design surface, only used for SMOOTH_ON_SURFACE= YES (NO, YES). \n");
+    fprintf(fp,"%% DIRICHLET_SURFACE_BOUNDARY= NO \n");
+    fprintf(fp,"%% \n");
+    fprintf(fp,"%% Marker for boundaries where Dirichlet boundary conditions are applied, only valid if working on the volume mesh. \n");
+    fprintf(fp,"%% MARKER_SOBOLEVBC= ( airfoil ) \n");
+    fprintf(fp,"%% \n");
+    fprintf(fp,"%% Output filename for the assembled Sobolev smoothing system matrix \n");
+    fprintf(fp,"%% HESS_OBJFUNC_FILENAME= of_hess.dat \n");
+    fprintf(fp,"%% \n");
+    fprintf(fp,"%% Linear solver or smoother for implicit formulations (FGMRES, RESTARTED_FGMRES, BCGSTAB) \n");
+    fprintf(fp,"%% GRAD_LINEAR_SOLVER= FGMRES \n");
+    fprintf(fp,"%% \n");
+    fprintf(fp,"%% Preconditioner of the Krylov linear solver (ILU, LU_SGS, JACOBI) \n");
+    fprintf(fp,"%% GRAD_LINEAR_SOLVER_PREC= ILU \n");
+    fprintf(fp,"%% \n");
+    fprintf(fp,"%% Number of linear solver iterations for the Sobolev smoothing solver \n");
+    fprintf(fp,"%% GRAD_LINEAR_SOLVER_ITER= 1000 \n");
+    fprintf(fp,"%% \n");
+    fprintf(fp,"%% Minimum residual criteria for the linear solver convergence of the Sobolev smoothing solver \n");
+    fprintf(fp,"%% GRAD_LINEAR_SOLVER_ERROR= 1E-14 \n");
+    fprintf(fp,"%% \n");
     fprintf(fp,"%% ------------------------- SCREEN/HISTORY VOLUME OUTPUT --------------------------%% \n");
     fprintf(fp,"%% \n");
     fprintf(fp,"%% Screen output fields (use 'SU2_CFD -d <config_file>' to view list of available fields) \n");
-    fprintf(fp,"%% SCREEN_OUTPUT= (INNER_ITER, RMS_DENSITY, RMS_MOMENTUM-X, RMS_MOMENTUM-Y, RMS_ENERGY, LIFT, DRAG, SIDEFORCE) \n");
+    fprintf(fp,"SCREEN_OUTPUT= (TIME_ITER, OUTER_ITER, INNER_ITER, CUR_TIME, TIME_STEP, WALL_TIME, RMS_DENSITY, RMS_MOMENTUM-X, RMS_MOMENTUM-Y, RMS_ENERGY, EFFICIENCY) \n");
     fprintf(fp,"%% \n");
     fprintf(fp,"%% History output groups (use 'SU2_CFD -d <config_file>' to view list of available fields) \n");
-    fprintf(fp,"%% HISTORY_OUTPUT= (ITER, RMS_RES, AERO_COEFF) \n");
+    fprintf(fp,"HISTORY_OUTPUT= (ITER, TIME_DOMAIN, WALL_TIME, RMS_RES, AERO_COEFF) \n");
     fprintf(fp,"%% \n");
     fprintf(fp,"%% Volume output fields/groups (use 'SU2_CFD -d <config_file>' to view list of available fields) \n");
     fprintf(fp,"%% VOLUME_OUTPUT= (COORDINATES, SOLUTION, PRIMITIVE) \n");
@@ -1825,18 +1950,30 @@ int su2_writeCongfig_Blackbird(void *aimInfo, capsValue *aimInputs,
     fprintf(fp,"%% SCREEN_WRT_FREQ_INNER= 1 \n");
     fprintf(fp,"%% \n");
     fprintf(fp,"%% SCREEN_WRT_FREQ_OUTER= 1 \n");
-    fprintf(fp,"%%  \n");
+    fprintf(fp,"%% \n");
     fprintf(fp,"%% SCREEN_WRT_FREQ_TIME= 1 \n");
     fprintf(fp,"%% \n");
     fprintf(fp,"%% Writing frequency for history output \n");
     fprintf(fp,"%% HISTORY_WRT_FREQ_INNER= 1 \n");
     fprintf(fp,"%% \n");
     fprintf(fp,"%% HISTORY_WRT_FREQ_OUTER= 1 \n");
-    fprintf(fp,"%%  \n");
+    fprintf(fp,"%% \n");
     fprintf(fp,"%% HISTORY_WRT_FREQ_TIME= 1 \n");
     fprintf(fp,"%% \n");
     fprintf(fp,"%% Writing frequency for volume/surface output \n");
     fprintf(fp,"%% OUTPUT_WRT_FREQ= 10 \n");
+    fprintf(fp,"%% \n");
+    fprintf(fp,"%% Output the performance summary to the console at the end of SU2_CFD \n");
+    fprintf(fp,"%% WRT_PERFORMANCE= NO \n");
+    fprintf(fp,"%% \n");
+    fprintf(fp,"%% Overwrite or append iteration number to the restart files when saving \n");
+    fprintf(fp,"%% WRT_RESTART_OVERWRITE= YES \n");
+    fprintf(fp,"%% \n");
+    fprintf(fp,"%% Overwrite or append iteration number to the surface files when saving \n");
+    fprintf(fp,"%% WRT_SURFACE_OVERWRITE= YES \n");
+    fprintf(fp,"%% \n");
+    fprintf(fp,"%% Overwrite or append iteration number to the volume files when saving \n");
+    fprintf(fp,"%% WRT_VOLUME_OVERWRITE= YES \n");
     fprintf(fp,"%% \n");
     fprintf(fp,"%% Enable dumping forces breakdown file \n");
     fprintf(fp,"WRT_FORCES_BREAKDOWN= YES \n");
@@ -1847,7 +1984,7 @@ int su2_writeCongfig_Blackbird(void *aimInfo, capsValue *aimInputs,
     fprintf(fp,"MESH_FILENAME= %s\n", meshfilename);
     fprintf(fp,"%% \n");
     fprintf(fp,"%% Mesh input file format (SU2, CGNS) \n");
-    fprintf(fp,"%% MESH_FORMAT= SU2 \n");
+    fprintf(fp,"MESH_FORMAT= SU2 \n");
     fprintf(fp,"%% \n");
     fprintf(fp,"%% Mesh output file \n");
     fprintf(fp,"MESH_OUT_FILENAME= %s.su2\n", aimInputs[Proj_Name-1].vals.string);
@@ -1859,12 +1996,12 @@ int su2_writeCongfig_Blackbird(void *aimInfo, capsValue *aimInputs,
     fprintf(fp,"%% SOLUTION_ADJ_FILENAME= solution_adj.dat \n");
     fprintf(fp,"%% \n");
     fprintf(fp,"%% Output tabular file format (TECPLOT, CSV) \n");
-    fprintf(fp,"%% TABULAR_FORMAT= TECPLOT \n");
+    fprintf(fp,"%% TABULAR_FORMAT= CSV \n");
     fprintf(fp,"%% \n");
-    fprintf(fp,"%% Files to output  \n");
-    fprintf(fp,"%% Possible formats : (TECPLOT, TECPLOT_BINARY, SURFACE_TECPLOT, \n");
-    fprintf(fp,"%%  SURFACE_TECPLOT_BINARY, CSV, SURFACE_CSV, PARAVIEW, PARAVIEW_BINARY, SURFACE_PARAVIEW,  \n");
-    fprintf(fp,"%%  SURFACE_PARAVIEW_BINARY, MESH, RESTART_BINARY, RESTART_ASCII, CGNS, STL) \n");
+    fprintf(fp,"%% Files to output \n");
+    fprintf(fp,"%% Possible formats : (TECPLOT_ASCII, TECPLOT, SURFACE_TECPLOT_ASCII, \n");
+    fprintf(fp,"%%  SURFACE_TECPLOT, CSV, SURFACE_CSV, PARAVIEW_ASCII, PARAVIEW_LEGACY, SURFACE_PARAVIEW_ASCII, \n");
+    fprintf(fp,"%%  SURFACE_PARAVIEW_LEGACY, PARAVIEW, SURFACE_PARAVIEW, RESTART_ASCII, RESTART, CGNS, SURFACE_CGNS, STL_ASCII, STL_BINARY) \n");
     fprintf(fp,"%% default : (RESTART, PARAVIEW, SURFACE_PARAVIEW) \n");
     string_toUpperCase(aimInputs[Output_Format-1].vals.string);
     fprintf(fp,"OUTPUT_FILES= RESTART, SURFACE_CSV, %s, SURFACE_%s\n",
@@ -1906,11 +2043,11 @@ int su2_writeCongfig_Blackbird(void *aimInfo, capsValue *aimInputs,
     fprintf(fp,"%% \n");
     fprintf(fp,"%% Reorient elements based on potential negative volumes (YES/NO) \n");
     fprintf(fp,"%% REORIENT_ELEMENTS= YES \n");
-    fprintf(fp," \n");
+    fprintf(fp,"%% \n");
     fprintf(fp,"%% --------------------- OPTIMAL SHAPE DESIGN DEFINITION -----------------------%% \n");
     fprintf(fp,"%% \n");
     fprintf(fp,"%% Available flow based objective functions or constraint functions \n");
-    fprintf(fp,"%%    DRAG, LIFT, SIDEFORCE, EFFICIENCY, BUFFET,  \n");
+    fprintf(fp,"%%    DRAG, LIFT, SIDEFORCE, EFFICIENCY, BUFFET, \n");
     fprintf(fp,"%%    FORCE_X, FORCE_Y, FORCE_Z, \n");
     fprintf(fp,"%%    MOMENT_X, MOMENT_Y, MOMENT_Z, \n");
     fprintf(fp,"%%    THRUST, TORQUE, FIGURE_OF_MERIT, \n");
@@ -2003,7 +2140,28 @@ int su2_writeCongfig_Blackbird(void *aimInfo, capsValue *aimInputs,
     fprintf(fp,"%% \n");
     fprintf(fp,"%% Use combined objective within gradient evaluation: may reduce cost to compute gradients when using the adjoint formulation. \n");
     fprintf(fp,"%% OPT_COMBINE_OBJECTIVE = NO \n");
-    fprintf(fp,"%%\n");
+    fprintf(fp,"%% \n");
+    fprintf(fp,"%% --------------------- LIBROM PARAMETERS -----------------------%% \n");
+    fprintf(fp,"%% LibROM can be found here: https://github.com/LLNL/libROM \n");
+    fprintf(fp,"%% \n");
+    fprintf(fp,"%% Toggle saving to librom (NO, YES) \n");
+    fprintf(fp,"%% SAVE_LIBROM = NO \n");
+    fprintf(fp,"%% \n");
+    fprintf(fp,"%% Prefix to the saved libROM files (default: su2) \n");
+    fprintf(fp,"%% LIBROM_BASE_FILENAME = su2 \n");
+    fprintf(fp,"%% \n");
+    fprintf(fp,"%% Specify POD basis generation algorithm (STATIC_POD, INCREMENTAL_POD) \n");
+    fprintf(fp,"%% STATIC_POD recommended for steady problems \n");
+    fprintf(fp,"%% BASIS_GENERATION = STATIC_POD \n");
+    fprintf(fp,"%% \n");
+    fprintf(fp,"%% Maximum number of basis vectors to keep (default: 100) \n");
+    fprintf(fp,"%% MAX_BASIS_DIM = 100 \n");
+    fprintf(fp,"%% \n");
+    fprintf(fp,"%% Frequency of snapshots saves, for unsteady problems (default: 1. 2 means every other) \n");
+    fprintf(fp,"%% ROM_SAVE_FREQ = 1 \n");
+
+    fprintf(fp,"%% \n");
+    fprintf(fp,"%% --------------------- User Variables via SU2 AIM -----------------------%% \n");
     if (aimInputs[Input_String-1].nullVal != IsNull) {
         fprintf(fp,"%% CAPS Input_String\n");
         for (slen = i = 0; i < aimInputs[Input_String-1].length; i++) {

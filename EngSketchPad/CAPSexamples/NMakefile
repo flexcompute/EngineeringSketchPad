@@ -23,6 +23,7 @@ all: $(ODIR) $(COPY)
 	nmake -f fun3d.mak
 	nmake -f hsm.mak
 	nmake -f interferenceTest.mak
+	nmake -f msesTest.mak
 	nmake -f mystran.mak
 	nmake -f pointwiseTest.mak
 
@@ -34,6 +35,7 @@ clean:
 	nmake -f fun3d.mak clean
 	nmake -f hsm.mak clean
 	nmake -f interferenceTest.mak clean
+	nmake -f msesTest.mak clean
 	nmake -f mystran.mak clean
 	nmake -f pointwiseTest.mak clean
 
@@ -45,6 +47,7 @@ cleanall:
 	nmake -f fun3d.mak cleanall
 	nmake -f hsm.mak cleanall
 	nmake -f interferenceTest.mak cleanall
+	nmake -f msesTest.mak cleanall
 	nmake -f mystran.mak cleanall
 	nmake -f pointwiseTest.mak cleanall
 

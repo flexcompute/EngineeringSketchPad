@@ -1,7 +1,7 @@
 // ESP-sketch.js implements Sketcher functions for the Engineering Sketch Pad (ESP)
 // written by John Dannenhoffer and Bob Haimes
 
-// Copyright (C) 2010/2021  John F. Dannenhoffer, III (Syracuse University)
+// Copyright (C) 2010/2022  John F. Dannenhoffer, III (Syracuse University)
 //
 // This library is free software; you can redistribute it and/or
 //    modify it under the terms of the GNU Lesser General Public
@@ -117,6 +117,12 @@
 //    sketch.undo[i].con
 
 "use strict";
+
+
+//
+// name of TIM object
+//
+sketch.name = "sketch";
 
 
 //

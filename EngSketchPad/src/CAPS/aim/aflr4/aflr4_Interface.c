@@ -20,20 +20,17 @@ typedef int         pid_t;
 #include "aflr4_Interface.h" // Bring in AFLR4 'interface' functions
 
 
-int aflr4_Surface_Mesh(int quiet,
+int aflr4_Surface_Mesh(void *aimInfo,
+                       int quiet,
                        int numBody, ego *bodies,
-                       void *aimInfo, capsValue *aimInputs,
-                       meshInputStruct meshInput,
-                       mapAttrToIndexStruct groupMap,
-                       meshStruct *surfaceMeshes)
+                       capsValue *aimInputs,
+                       meshInputStruct meshInput)
 {
     int status; // Function return status
 
     int numFace = 0; // Number of faces on a body
 
     int faceIndex = 0, bodyIndex = 0;
-
-    int numNodeTotal = 0, numElemTotal = 0;
 
     const char *pstring = NULL;
     const int *pints = NULL;
@@ -52,6 +49,8 @@ int aflr4_Surface_Mesh(int quiet,
 
     const char *aflr4_debug = "aflr4_debug.egads";
     char aimFile[PATH_MAX];
+    char bodyNumber[42];
+    const char *attrtype = "";
 
      // Commandline inputs
     INT_ mmsg = 0;
@@ -97,40 +96,36 @@ int aflr4_Surface_Mesh(int quiet,
                             (strcasecmp (pstring, "-TRANSP_UG3_GBC") == 0)        ||
                             (strcasecmp (pstring, "TRANSP_INTRNL_UG3_GBC") == 0)  ||
                             (strcasecmp (pstring, "-TRANSP_INTRNL_UG3_GBC") == 0) ) ) {
-                        printf("**********************************************************\n");
-                        printf("Invalid AFLR_GBC on face %d of body %d: \"%s\"\n", faceIndex+1, bodyIndex+1, pstring);
-                        printf("Valid string values are:\n");
-                        printf("  FARFIELD_UG3_GBC       : farfield surface\n");
-                        printf("  STD_UG3_GBC            : standard surface\n");
-                        printf("  -STD_UG3_GBC           : standard surface\n");
-                        printf("                           BL generating surface\n");
-                        printf("  BL_INT_UG3_GBC         : symmetry or standard surface that intersects BL\n");
-                        printf("  TRANSP_SRC_UG3_GBC     : embedded/transparent surface\n");
-                        printf("                           converted to source nodes\n");
-                        printf("  TRANSP_BL_INT_UG3_GBC  : embedded/transparent surface that intersects BL\n");
-                        printf("  TRANSP_UG3_GBC         : embedded/transparent surface\n");
-                        printf("  -TRANSP_UG3_GBC        : embedded/transparent surface\n");
-                        printf("                           BL generating surface\n");
-                        printf("  TRANSP_INTRNL_UG3_GBC  : embedded/transparent surface\n");
-                        printf("                           converted to an internal surface\n");
-                        printf("                           coordinates are retained but connectivity is not\n");
-                        printf("  -TRANSP_INTRNL_UG3_GBC : embedded/transparent surface\n");
-                        printf("                           converted to an internal surface\n");
-                        printf("                           coordinates are retained but connectivity is not\n");
-                        printf("                           BL generating surface\n");
-                        printf("**********************************************************\n");
+                        AIM_ERROR(  aimInfo, "Invalid AFLR_GBC on face %d of body %d: \"%s\"", faceIndex+1, bodyIndex+1, pstring);
+                        AIM_ADDLINE(aimInfo, "Valid string values are:\n");
+                        AIM_ADDLINE(aimInfo, "  FARFIELD_UG3_GBC       : farfield surface");
+                        AIM_ADDLINE(aimInfo, "  STD_UG3_GBC            : standard surface");
+                        AIM_ADDLINE(aimInfo, "  -STD_UG3_GBC           : standard surface");
+                        AIM_ADDLINE(aimInfo, "                           BL generating surface");
+                        AIM_ADDLINE(aimInfo, "  BL_INT_UG3_GBC         : symmetry or standard surface that intersects BL");
+                        AIM_ADDLINE(aimInfo, "  TRANSP_SRC_UG3_GBC     : embedded/transparent surface");
+                        AIM_ADDLINE(aimInfo, "                           converted to source nodes");
+                        AIM_ADDLINE(aimInfo, "  TRANSP_BL_INT_UG3_GBC  : embedded/transparent surface that intersects BL");
+                        AIM_ADDLINE(aimInfo, "  TRANSP_UG3_GBC         : embedded/transparent surface");
+                        AIM_ADDLINE(aimInfo, "  -TRANSP_UG3_GBC        : embedded/transparent surface");
+                        AIM_ADDLINE(aimInfo, "                           BL generating surface");
+                        AIM_ADDLINE(aimInfo, "  TRANSP_INTRNL_UG3_GBC  : embedded/transparent surface");
+                        AIM_ADDLINE(aimInfo, "                           converted to an internal surface");
+                        AIM_ADDLINE(aimInfo, "                           coordinates are retained but connectivity is not");
+                        AIM_ADDLINE(aimInfo, "  -TRANSP_INTRNL_UG3_GBC : embedded/transparent surface");
+                        AIM_ADDLINE(aimInfo, "                           converted to an internal surface");
+                        AIM_ADDLINE(aimInfo, "                           coordinates are retained but connectivity is not");
+                        AIM_ADDLINE(aimInfo, "                           BL generating surface");
 /*@+nullpass@*/
                         status = CAPS_BADVALUE;
                         goto cleanup;
                     }
                 } else {
-                    printf("**********************************************************\n");
-                    printf("AFLR_GBC on face %d of body %d has %d entries ",
+                    AIM_ERROR(  aimInfo, "AFLR_GBC on face %d of body %d has %d entries ",
                            faceIndex+1, bodyIndex+1, n);
-                    if (atype == ATTRREAL)        printf("of reals\n");
-                    else if (atype == ATTRINT)    printf("of integers\n");
-                    printf("Should only contain a string!\n");
-                    printf("**********************************************************\n");
+                    if (atype == ATTRREAL)     { AIM_ADDLINE(aimInfo, "of reals");    }
+                    else if (atype == ATTRINT) { AIM_ADDLINE(aimInfo, "of integers"); }
+                    AIM_ADDLINE(aimInfo, "Should only contain a string!");
                     status = CAPS_BADVALUE;
                     goto cleanup;
                 }
@@ -140,11 +135,9 @@ int aflr4_Surface_Mesh(int quiet,
             status = EG_attributeRet(faces[faceIndex], "AFLR_Cmp_ID", &atype, &n,
                                      &pints, &preals, &pstring);
             if (status == EGADS_SUCCESS) {
-              printf("**********************************************************\n");
-              printf("Error: AFLR_Cmp_ID on face %d of body %d is deprecated\n",
+              AIM_ERROR(aimInfo, "AFLR_Cmp_ID on face %d of body %d is deprecated",
                      faceIndex+1, bodyIndex+1);
-              printf("   use AFLR4_Cmp_ID instead!\n");
-              printf("**********************************************************\n");
+              AIM_ADDLINE(aimInfo, "   use AFLR4_Cmp_ID instead!");
               status = CAPS_BADVALUE;
               goto cleanup;
             }
@@ -155,14 +148,12 @@ int aflr4_Surface_Mesh(int quiet,
 
             if (status == EGADS_SUCCESS && (!(atype == ATTRREAL || atype == ATTRINT) || n != 1)) {
                 //make sure it is only a single real
-                printf("**********************************************************\n");
-                printf("AFLR4_Cmp_ID on face %d of body %d has %d entries ",
-                       faceIndex+1, bodyIndex+1, n);
-                if (atype == ATTRREAL)        printf("of reals\n");
-                else if (atype == ATTRINT)    printf("of integers\n");
-                else if (atype == ATTRSTRING) printf("of a string\n");
-                printf("Should only contain a single integer or real!\n");
-                printf("**********************************************************\n");
+              if (atype == ATTRREAL)        { attrtype = "of reals";    }
+              else if (atype == ATTRINT)    { attrtype = "of integers"; }
+              else if (atype == ATTRSTRING) { attrtype = "of a string"; }
+                AIM_ERROR(aimInfo, "AFLR4_Cmp_ID on face %d of body %d has %d entries %s",
+                       faceIndex+1, bodyIndex+1, n, attrtype);
+                AIM_ADDLINE(aimInfo, "Should only contain a single integer or real!");
                 status = CAPS_BADVALUE;
                 goto cleanup;
             }
@@ -173,14 +164,12 @@ int aflr4_Surface_Mesh(int quiet,
 
             if (status == EGADS_SUCCESS && (!(atype == ATTRREAL || atype == ATTRINT) || n != 1)) {
                 //make sure it is only a single real
-                printf("**********************************************************\n");
-                printf("AFLR4_Isolated_Edge_Refinement_Flag on face %d of body %d has %d entries ",
-                       faceIndex+1, bodyIndex+1, n);
-                if (atype == ATTRREAL)        printf("of reals\n");
-                else if (atype == ATTRINT)    printf("of integers\n");
-                else if (atype == ATTRSTRING) printf("of a string\n");
-                printf("Should only contain a single integer or real!\n");
-                printf("**********************************************************\n");
+                if (atype == ATTRREAL)        { attrtype = "of reals";    }
+                else if (atype == ATTRINT)    { attrtype = "of integers"; }
+                else if (atype == ATTRSTRING) { attrtype = "of a string"; }
+                AIM_ERROR(aimInfo, "AFLR4_Isolated_Edge_Refinement_Flag on face %d of body %d has %d entries %s",
+                       faceIndex+1, bodyIndex+1, n, attrtype);
+                AIM_ADDLINE(aimInfo, "Should only contain a single integer or real!");
                 status = CAPS_BADVALUE;
                 goto cleanup;
             }
@@ -189,11 +178,9 @@ int aflr4_Surface_Mesh(int quiet,
             status = EG_attributeRet(faces[faceIndex], "AFLR_Scale_Factor", &atype,
                                      &n, &pints, &preals, &pstring);
             if (status == EGADS_SUCCESS) {
-              printf("**********************************************************\n");
-              printf("Error: AFLR_Scale_Factor on face %d of body %d is deprecated\n",
+              AIM_ERROR(aimInfo, "AFLR_Scale_Factor on face %d of body %d is deprecated",
                      faceIndex+1, bodyIndex+1);
-              printf("   use AFLR4_Scale_Factor instead!\n");
-              printf("**********************************************************\n");
+              AIM_ADDLINE(aimInfo, "   use AFLR4_Scale_Factor instead!");
               status = CAPS_BADVALUE;
               goto cleanup;
             }
@@ -204,17 +191,12 @@ int aflr4_Surface_Mesh(int quiet,
 
             if (status == EGADS_SUCCESS && !(atype == ATTRREAL && n == 1)) {
                 //make sure it is only a single real
-                printf("**********************************************************\n");
-                printf("AFLR4_Scale_Factor on face %d of body %d has %d entries ",
-                       faceIndex+1, bodyIndex+1, n);
-                if (atype == ATTRREAL)
-                    printf("of reals\n");
-                else if (atype == ATTRINT)
-                    printf("of integers\n");
-                else if (atype == ATTRSTRING)
-                    printf("of a string\n");
-                printf("Should only contain a single real!\n");
-                printf("**********************************************************\n");
+                if (atype == ATTRREAL)        { attrtype = "of reals";    }
+                else if (atype == ATTRINT)    { attrtype = "of integers"; }
+                else if (atype == ATTRSTRING) { attrtype = "of a string"; }
+                AIM_ERROR(aimInfo, "AFLR4_Scale_Factor on face %d of body %d has %d entries %s",
+                       faceIndex+1, bodyIndex+1, n, attrtype);
+                AIM_ADDLINE(aimInfo, "Should only contain a single real!");
                 status = CAPS_BADVALUE;
                 goto cleanup;
             }
@@ -226,11 +208,9 @@ int aflr4_Surface_Mesh(int quiet,
             status = EG_attributeRet(faces[faceIndex], "AFLR_Edge_Scale_Factor_Weight",
                                      &atype, &n, &pints, &preals, &pstring);
             if (status == EGADS_SUCCESS) {
-              printf("**********************************************************\n");
-              printf("Error: AFLR_Edge_Scale_Factor_Weight on face %d of body %d is deprecated\n",
+              AIM_ERROR(aimInfo, "AFLR_Edge_Scale_Factor_Weight on face %d of body %d is deprecated",
                      faceIndex+1, bodyIndex+1);
-              printf("   use AFLR4_Edge_Refinement_Weight instead!\n");
-              printf("**********************************************************\n");
+              AIM_ADDLINE(aimInfo, "   use AFLR4_Edge_Refinement_Weight instead!");
               status = CAPS_BADVALUE;
               goto cleanup;
             }
@@ -238,11 +218,9 @@ int aflr4_Surface_Mesh(int quiet,
             status = EG_attributeRet(faces[faceIndex], "AFLR4_Edge_Scale_Factor_Weight",
                                      &atype, &n, &pints, &preals, &pstring);
             if (status == EGADS_SUCCESS) {
-              printf("**********************************************************\n");
-              printf("Error: AFLR4_Edge_Scale_Factor_Weight on face %d of body %d is deprecated\n",
+              AIM_ERROR(aimInfo, "AFLR4_Edge_Scale_Factor_Weight on face %d of body %d is deprecated",
                      faceIndex+1, bodyIndex+1);
-              printf("   use AFLR4_Edge_Refinement_Weight instead!\n");
-              printf("**********************************************************\n");
+              AIM_ADDLINE(aimInfo, "   use AFLR4_Edge_Refinement_Weight instead!");
               status = CAPS_BADVALUE;
               goto cleanup;
             }
@@ -253,17 +231,12 @@ int aflr4_Surface_Mesh(int quiet,
 
             if (status == EGADS_SUCCESS && !(atype == ATTRREAL && n == 1) ) {
                 //make sure it is only a single real
-                printf("**********************************************************\n");
-                printf("AFLR4_Edge_Refinement_Weight on face %d of body %d has %d entries ",
-                       faceIndex+1, bodyIndex+1, n);
-                if (atype == ATTRREAL)
-                    printf("of reals\n");
-                else if (atype == ATTRINT)
-                    printf("of integers\n");
-                else if (atype == ATTRSTRING)
-                    printf("of a string\n");
-                printf("Should only contain a single real!\n");
-                printf("**********************************************************\n");
+                if (atype == ATTRREAL)        { attrtype = "of reals";    }
+                else if (atype == ATTRINT)    { attrtype = "of integers"; }
+                else if (atype == ATTRSTRING) { attrtype = "of a string"; }
+                AIM_ERROR(aimInfo, "AFLR4_Edge_Refinement_Weight on face %d of body %d has %d entries %s",
+                       faceIndex+1, bodyIndex+1, n, attrtype);
+                AIM_ADDLINE(aimInfo, "Should only contain a single real!");
                 status = CAPS_BADVALUE;
                 goto cleanup;
             }
@@ -293,28 +266,24 @@ int aflr4_Surface_Mesh(int quiet,
     status = check_CAPSMeshLength(numBody, bodies, &capsMeshLength);
 
     if (capsMeshLength <= 0 || status != CAPS_SUCCESS) {
-      printf("**********************************************************\n");
-      if (status != CAPS_SUCCESS)
-        printf("capsMeshLength is not set on any body.\n");
-      else
-        printf("capsMeshLength: %f\n", capsMeshLength);
-      printf("\n");
-      printf("The capsMeshLength attribute must\n"
-             "present on at least one body.\n"
-             "\n"
-             "capsMeshLength should be a a positive value representative\n"
-             "of a characteristic length of the geometry,\n"
-             "e.g. the MAC of a wing or diameter of a fuselage.\n");
-      printf("**********************************************************\n");
+      if (status != CAPS_SUCCESS) {
+        AIM_ERROR(aimInfo, "capsMeshLength is not set on any body.");
+      } else {
+        AIM_ERROR(aimInfo, "capsMeshLength: %f", capsMeshLength);
+      }
+      AIM_ADDLINE(aimInfo, "The capsMeshLength attribute must\n"
+                           "present on at least one body.\n"
+                           "\n"
+                           "capsMeshLength should be a a positive value representative\n"
+                           "of a characteristic length of the geometry,\n"
+                           "e.g. the MAC of a wing or diameter of a fuselage.\n");
       status = CAPS_BADVALUE;
       goto cleanup;
     }
 
     if (meshLenFac <= 0) {
-      printf("**********************************************************\n");
-      printf("Mesh_Length_Factor is: %f\n", meshLenFac);
-      printf("Mesh_Length_Factor must be a positive number.\n");
-      printf("**********************************************************\n");
+      AIM_ERROR(aimInfo, "Mesh_Length_Factor is: %f\n", meshLenFac);
+      AIM_ADDLINE(aimInfo, "Mesh_Length_Factor must be a positive number.\n");
       status = CAPS_BADVALUE;
       goto cleanup;
     }
@@ -585,49 +554,16 @@ int aflr4_Surface_Mesh(int quiet,
             }
         }
 
-        status = copy_mapAttrToIndexStruct( &groupMap,
-                                            &surfaceMeshes[bodyIndex].groupMap );
+        // set the file name to write the egads file
+        snprintf(bodyNumber, 42, AFLR4TESSFILE, bodyIndex);
+        status = aim_file(aimInfo, bodyNumber, aimFile);
         AIM_STATUS(aimInfo, status);
 
-        // save off the tessellation object
-        surfaceMeshes[bodyIndex].bodyTessMap.egadsTess = tessBodies[bodyIndex];
-
-        status = EG_getBodyTopos(bodies[bodyIndex], NULL, FACE, &numFace, &faces);
-        EG_free(faces); faces = NULL;
-        if (status != EGADS_SUCCESS) goto cleanup;
-
-        surfaceMeshes[bodyIndex].bodyTessMap.numTessFace = 0; // Number of faces in the tessellation
-        //surfaceMeshes[bodyIndex].bodyTessMap.tessFaceQuadMap = tessFaceQuadMap[bodyIndex]; // Save off the quad map
-        //tessFaceQuadMap[bodyIndex] = NULL;
-
-        status = mesh_surfaceMeshEGADSTess(aimInfo, &surfaceMeshes[bodyIndex]);
-        if (status != CAPS_SUCCESS) goto cleanup;
-
-        status = aim_newTess(aimInfo, surfaceMeshes[bodyIndex].bodyTessMap.egadsTess);
-        if (status != CAPS_SUCCESS) {
-             printf(" aim_setTess return = %d\n", status);
-             goto cleanup;
-         }
-
-        if (quiet == (int)false ) {
-            printf("Body = %d\n", bodyIndex+1);
-            printf("Number of nodes = %d\n", surfaceMeshes[bodyIndex].numNode);
-            printf("Number of elements = %d\n", surfaceMeshes[bodyIndex].numElement);
-            if (surfaceMeshes[bodyIndex].meshQuickRef.useStartIndex == (int) true ||
-                surfaceMeshes[bodyIndex].meshQuickRef.useListIndex == (int) true) {
-                printf("Number of tris = %d\n", surfaceMeshes[bodyIndex].meshQuickRef.numTriangle);
-                printf("Number of quad = %d\n", surfaceMeshes[bodyIndex].meshQuickRef.numQuadrilateral);
-            }
-        }
-
-        numNodeTotal += surfaceMeshes[bodyIndex].numNode;
-        numElemTotal += surfaceMeshes[bodyIndex].numElement;
+        remove(aimFile);
+        status = EG_saveTess(tessBodies[bodyIndex], aimFile);
+        AIM_STATUS(aimInfo, status);
     }
-    if (quiet == (int)false ) {
-        printf("----------------------------\n");
-        printf("Total number of nodes = %d\n", numNodeTotal);
-        printf("Total number of elements = %d\n", numElemTotal);
-    }
+
     status = CAPS_SUCCESS;
 
 cleanup:
@@ -639,16 +575,16 @@ cleanup:
     ug_free_argv(prog_argv); prog_argv = NULL;
     ug_free_param (AFLR4_Param_Struct_Ptr);
 
-    EG_free(faces); faces = NULL;
+    AIM_FREE(faces);
 
-    EG_free(meshInputString); meshInputString = NULL;
+    AIM_FREE(meshInputString);
 
     AIM_FREE(copy_bodies);
     EG_deleteObject(model);
 /*@+nullpass@*/
 
     // free memory from egads_aflr4_tess
-    EG_free(tessBodies); tessBodies = NULL;
+    AIM_FREE(tessBodies);
 
     return status;
 }

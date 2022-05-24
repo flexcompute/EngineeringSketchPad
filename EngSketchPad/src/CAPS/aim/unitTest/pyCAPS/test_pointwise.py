@@ -75,23 +75,29 @@ class TestPointwise(unittest.TestCase):
         print ("\n\nRunning pointwise......")
 
         # Run pointwise via system call
-        # try up to 30 times
+        # try up to 30 times in case license is not available
         CAPS_GLYPH = os.environ["CAPS_GLYPH"]
         for i in range(30):
-            if platform.system() == "Windows":
-                PW_HOME = os.environ["PW_HOME"]
-                pointwise.system(PW_HOME + r"\win64\bin\tclsh.exe " + CAPS_GLYPH + r"\GeomToMesh.glf caps.egads capsUserDefaults.glf")
-            else:
-                pointwise.system("pointwise -b " + CAPS_GLYPH + "/GeomToMesh.glf caps.egads capsUserDefaults.glf")
+            try:
+                if platform.system() == "Windows":
+                    PW_HOME = os.environ["PW_HOME"]
+                    pointwise.system(PW_HOME + r"\win64\bin\tclsh.exe " + CAPS_GLYPH + r"\GeomToMesh.glf caps.egads capsUserDefaults.glf")
+                else:
+                    pointwise.system("pointwise -b " + CAPS_GLYPH + "/GeomToMesh.glf caps.egads capsUserDefaults.glf")
+            except pyCAPS.CAPSError:
+                time.sleep(10) # wait and try again
+                continue
 
             time.sleep(1) # let the harddrive breathe
             if os.path.isfile(os.path.join(pointwise.analysisDir,'caps.GeomToMesh.gma')) and \
-               os.path.isfile(os.path.join(pointwise.analysisDir,'caps.GeomToMesh.ugrid')): break
+              (os.path.isfile(os.path.join(pointwise.analysisDir,'caps.GeomToMesh.ugrid')) or \
+               os.path.isfile(os.path.join(pointwise.analysisDir,'caps.GeomToMesh.lb8.ugrid'))): break
             time.sleep(10) # wait and try again
 
         # make sure the execution was successful
-        self.assertTrue(os.path.isfile(os.path.join(pointwise.analysisDir,'caps.GeomToMesh.gma')) and
-                        os.path.isfile(os.path.join(pointwise.analysisDir,'caps.GeomToMesh.ugrid')))
+        self.assertTrue( os.path.isfile(os.path.join(pointwise.analysisDir,'caps.GeomToMesh.gma')) and
+                        (os.path.isfile(os.path.join(pointwise.analysisDir,'caps.GeomToMesh.ugrid')) or
+                         os.path.isfile(os.path.join(pointwise.analysisDir,'caps.GeomToMesh.lb8.ugrid'))))
 
         # Run AIM post-analysis
         pointwise.postAnalysis()
@@ -258,7 +264,7 @@ class TestPointwise(unittest.TestCase):
         # Just make sure it runs without errors...
         self.run_pointwise(pointwise)
 
-        #pointwise.viewGeometry()
+        #pointwise.view()
 
     def off_test_boxhole(self):
 
@@ -299,7 +305,7 @@ class TestPointwise(unittest.TestCase):
         # Load pointwise aim
         pointwise = self.myProblem.analysis.create(aim = "pointwiseAIM",
                                                    name = "All",
-                                                   capsIntent = ["box", "cone", "sphere", "cylinder", "bullet", "farfield"]) #, "torus", "boxhole"
+                                                   capsIntent = ["box", "cone", "sphere", "bullet", "farfield"]) #, "cylinder", "torus", "boxhole"
 
         #pointwise.saveGeometry("GeomAll")
 
@@ -311,7 +317,7 @@ class TestPointwise(unittest.TestCase):
         # Just make sure it runs without errors...
         self.run_pointwise(pointwise)
 
-        #pointwise.viewGeometry()
+        #pointwise.view()
 
 if __name__ == '__main__':
     unittest.main()

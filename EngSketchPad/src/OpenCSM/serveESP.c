@@ -9,7 +9,7 @@
  */
 
 /*
- * Copyright (C) 2012/2021  John F. Dannenhoffer, III (Syracuse University)
+ * Copyright (C) 2012/2022  John F. Dannenhoffer, III (Syracuse University)
  *
  * This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
@@ -36,8 +36,6 @@
 #include <unistd.h>
 #include <assert.h>
 
-//#define MIXED_TESS               1      // display mixed tri/quads tessellations
-
 #define TESS_PARAM_0             0.0250
 #define TESS_PARAM_1             0.0075
 #define TESS_PARAM_2             20.0
@@ -46,21 +44,18 @@
     #define WIN32_LEAN_AND_MEAN
     #include <windows.h>
     #include <winsock2.h>
+    #define snprintf     _snprintf
+    #define SLEEP(msec)  Sleep(msec)
+    #define SLASH '\\'
+#else
+    #include <unistd.h>
+    #define SLEEP(msec)  usleep(1000*msec)
+    #define SLASH '/'
 #endif
 
 #define CINT    const int
 #define CDOUBLE const double
 #define CCHAR   const char
-
-#ifdef WIN32
-    #define snprintf _snprintf
-#endif
-
-#ifdef WIN32
-    #define  SLASH '\\'
-#else
-    #define  SLASH '/'
-#endif
 
 #define STRNCPY(A, B, LEN) strncpy(A, B, LEN); A[LEN-1] = '\0';
 
@@ -73,6 +68,17 @@
 #include "egg.h"
 
 #include "tim.h"
+
+#define USING_CAPS  1
+#ifdef  USING_CAPS
+   #include "caps.h"
+   extern int caps_statFile(const char *path);   /* EGADS_OUTSIDE=directory, EGADS_SUCCESS=file, EGADS_NOTFOUND=neither */
+   extern int caps_mkDir(const char *path);
+   extern int caps_cpDir(const char *src, const char *dst);
+   extern int caps_rmDir(const char *path);
+   extern int caps_cpFile(const char *src, const char *dst);
+   extern int caps_rmFile(const char *path);
+#endif
 
 /***********************************************************************/
 /*                                                                     */
@@ -252,6 +258,7 @@ static int        skipBuild  = 0;      /* =1 to skip initial build */
 static int        skipTess   = 0;      /* -1 to skip tessellation at end of build */
 static int        tessel     = 0;      /* =1 for tessellation sensitivities */
 static int        verify     = 0;      /* =1 to enable verification */
+static char       *capsname  = NULL;   /* name of CAPS project:phase */
 static char       *filename  = NULL;   /* name of .csm file */
 static char       *vrfyname  = NULL;   /* name of .vfy file */
 static char       *despname  = NULL;   /* name of DESPMTRs file */
@@ -259,10 +266,16 @@ static char       *dictname  = NULL;   /* name of dictionary file */
 static char       *dxddname  = NULL;   /* name of despmtr for -dxdd */
 static char       *ptrbname  = NULL;   /* name of perturbation file */
 static char       *eggname   = NULL;   /* name of external grid generator */
-static char       *pyname    = NULL;   /* name of python file (if given) */
+static char       *pyname    = NULL;   /* name of pyscript file (if given) */
 static char       *plotfile  = NULL;   /* name of plotdata file */
 static char       *tessfile  = NULL;   /* name of tessellation file */
 static char       *BDFname   = NULL;   /* name of BDF file to plot */
+
+/* global variables associated with CAPS */
+static char        capsProj[ MAX_FILENAME_LEN]; /* name of CAPS Project */
+static char        capsPhase[MAX_FILENAME_LEN]; /* name of CAPS Phase */
+static capsObj     capsProject;
+
 
 /* global variables associated with graphical user interface (gui) */
 #define MAX_CLIENTS  100
@@ -331,7 +344,7 @@ static FILE       *jrnl_out = NULL;    /* output journal file */
 static void       addToResponse(char text[]);
 static void       addToSgMetaData(char format[], ...);
 static int        applyDisplacement(esp_T *ESP, int ipmtr);
-       void       browserMessage(void *udata, void *wsi, char text[],int lena);
+       void       browserMessage(void *esp, void *wsi, char text[],int lena);
 static int        buildBodys(esp_T *ESP, int buildTo, int *builtTo, int *buildStatus, int *nwarn);
 static int        buildSceneGraph(esp_T *ESP);
 static int        buildSceneGraphBody(esp_T *ESP, int ibody);
@@ -364,7 +377,7 @@ main(int       argc,                    /* (in)  number of arguments */
     int       imajor, iminor, status, i, bias, showUsage=0;
     int       builtTo, buildStatus, nwarn=0;
     int       npmtrs, type, nrow, irow, ncol, icol, ii, *ipmtrs=NULL, *irows=NULL, *icols=NULL;
-    int       ipmtr, jpmtr, iundo; //, inode, iedge, iface;
+    int       ipmtr, jpmtr, iundo, nbody;
     float     fov, zNear, zFar;
     float     eye[3]    = {0.0, 0.0, 7.0};
     float     center[3] = {0.0, 0.0, 0.0};
@@ -376,9 +389,16 @@ main(int       argc,                    /* (in)  number of arguments */
     char      pname[MAX_NAME_LEN], strval[MAX_STRVAL_LEN];
     char      *text=NULL, *esp_start;
     CCHAR     *OCC_ver;
-    FILE      *jrnl_in=NULL, *ptrb_fp, *vrfy_fp, *auto_fp;
+    FILE      *jrnl_in=NULL, *ptrb_fp, *vrfy_fp, *auto_fp, *test_fp, *parent_fp;
     esp_T     *ESP=NULL;
     modl_T    *MODL=NULL;
+#ifdef USING_CAPS
+    int       nbrch, npmtr, nerror;
+    capsErrs  *errors;
+#endif
+
+    char      egadsName[128];
+    ego       context, emodel;
 
     int       ibody;
 
@@ -399,6 +419,7 @@ main(int       argc,                    /* (in)  number of arguments */
     MALLOC(casename,    char, MAX_FILENAME_LEN);
     MALLOC(jrnlname,    char, MAX_FILENAME_LEN);
     MALLOC(tempname,    char, MAX_FILENAME_LEN);
+    MALLOC(capsname,    char, MAX_FILENAME_LEN);
     MALLOC(filename,    char, MAX_FILENAME_LEN);
     MALLOC(vrfyname,    char, MAX_FILENAME_LEN);
     MALLOC(despname,    char, MAX_FILENAME_LEN);
@@ -429,6 +450,7 @@ main(int       argc,                    /* (in)  number of arguments */
     /* get the flags and casename(s) from the command line */
     casename[ 0] = '\0';
     jrnlname[ 0] = '\0';
+    capsname[ 0] = '\0';
     filename[ 0] = '\0';
     vrfyname[ 0] = '\0';
     despname[ 0] = '\0';
@@ -442,6 +464,8 @@ main(int       argc,                    /* (in)  number of arguments */
     tessfile[ 0] = '\0';
     BDFname[  0] = '\0';
 
+    egadsName[0] = '\0';
+
     for (i = 1; i < argc; i++) {
         if        (strcmp(argv[i], "--") == 0) {
             /* ignore (needed for gdb) */
@@ -451,6 +475,19 @@ main(int       argc,                    /* (in)  number of arguments */
             allVels = 1;
         } else if (strcmp(argv[i], "-batch") == 0) {
             batch = 1;
+        } else if (strcmp(argv[i], "-caps") == 0) {
+#ifdef USING_CAPS
+            if (i < argc-1) {
+                STRNCPY(capsname, argv[++i], MAX_FILENAME_LEN);
+            } else {
+                showUsage = 1;
+                break;
+            }
+#else
+            SPRINT0(0, "ERROR:: serveESP compiled without USING_CAPS");
+            status = EXIT_FAILURE;
+            goto cleanup;
+#endif
         } else if (strcmp(argv[i], "-despmtrs") == 0) {
             if (i < argc-1) {
                 STRNCPY(despname, argv[++i], MAX_FILENAME_LEN);
@@ -470,6 +507,13 @@ main(int       argc,                    /* (in)  number of arguments */
         } else if (strcmp(argv[i], "-dxdd") == 0) {
             if (i < argc-1) {
                 STRNCPY(dxddname, argv[++i], MAX_FILENAME_LEN);
+            } else {
+                showUsage = 1;
+                break;
+            }
+        } else if (strcmp(argv[i], "-egads") == 0) {
+            if (i < argc-1) {
+                STRNCPY(egadsName, argv[++i], 127);
             } else {
                 showUsage = 1;
                 break;
@@ -584,6 +628,9 @@ main(int       argc,                    /* (in)  number of arguments */
         SPRINT0(0, "   where [options...] = -addVerify");
         SPRINT0(0, "                        -allVels");
         SPRINT0(0, "                        -batch");
+#ifdef USING_CAPS
+        SPRINT0(0, "                        -caps project:phase");
+#endif
         SPRINT0(0, "                        -despmtrs despname");
         SPRINT0(0, "                        -dict dictname");
         SPRINT0(0, "                        -dumpEgads");
@@ -622,7 +669,7 @@ main(int       argc,                    /* (in)  number of arguments */
     SPRINT0(1, "*                    Program serveESP                    *");
     SPRINT2(1, "*                     version %2d.%02d                      *", imajor, iminor);
     SPRINT0(1, "*                                                        *");
-    SPRINT0(1, "*        written by John Dannenhoffer, 2010/2021         *");
+    SPRINT0(1, "*        written by John Dannenhoffer, 2010/2022         *");
     SPRINT0(1, "*                                                        *");
     SPRINT0(1, "**********************************************************\n");
 
@@ -630,6 +677,9 @@ main(int       argc,                    /* (in)  number of arguments */
     SPRINT1(1, "    addVerify   = %d", addVerify  );
     SPRINT1(1, "    allVels     = %d", allVels    );
     SPRINT1(1, "    batch       = %d", batch      );
+#ifdef USING_CAPS
+    SPRINT1(1, "    capsname    = %s", capsname   );
+#endif
     SPRINT1(1, "    despmtrs    = %s", despname   );
     SPRINT1(1, "    dictname    = %s", dictname   );
     SPRINT1(1, "    dxddname    = %s", dxddname   );
@@ -663,6 +713,16 @@ main(int       argc,                    /* (in)  number of arguments */
     ESP->sgFocus[2] = 0;
     ESP->sgFocus[3] = 1;
     ESP->udata      = NULL;
+    ESP->udata2     = NULL;
+    ESP->sgMutex    = NULL;
+
+    /* create a mutex to make sure only one thread can modify the scene graph at a time */
+    ESP->sgMutex = EMP_LockCreate();
+    if (ESP->sgMutex == NULL) {
+        SPRINT0(0, "ERROR:: a mutex for the SceneGraph could not be created");
+        status = -997;
+        goto cleanup;
+    }
 
     /* set OCSMs output level */
     (void) ocsmSetOutLevel(outLevel);
@@ -678,6 +738,23 @@ main(int       argc,                    /* (in)  number of arguments */
 
     /* allocate sketch buffer */
     MALLOC(skbuff, char, MAX_STR_LEN);
+
+    if (strlen(egadsName) > 0) {
+        status = EG_open(&context);
+        if (status < SUCCESS) goto cleanup;
+
+        status = EG_loadModel(context, 0, egadsName, &emodel);
+        if (status < SUCCESS) goto cleanup;
+
+        status = ocsmLoadFromModel(emodel, (void **)&(ESP->MODL));
+        if (status < SUCCESS) goto cleanup;
+
+        MODL = ESP->MODL;
+
+        pendingError = -2;
+
+        goto somewhere;
+    }
 
     /* add .csm extension if a valid extension is not given */
     if (STRLEN(casename) > 0) {
@@ -738,7 +815,17 @@ main(int       argc,                    /* (in)  number of arguments */
                 SPRINT1(0, "Generated \"%s\" input file", filename);
             }
         } else if (strstr(casename, ".py") != NULL) {
-            /* python file given */
+            /* check if file exists */
+            test_fp = fopen(casename, "r");
+            if (test_fp == NULL) {
+                SPRINT1(0, "ERROR:: \"%s\" does not exist", casename);
+                status = -999;
+                goto cleanup;
+            } else {
+                fclose(test_fp);
+            }
+
+            /* pyscript file given */
             strcpy(pyname, filename);
             filename[0] = '\0';
             jrnlname[0] = '\0';
@@ -751,6 +838,367 @@ main(int       argc,                    /* (in)  number of arguments */
     } else {
         casename[0] = '\0';
         filename[0] = '\0';
+    }
+
+#ifdef USING_CAPS
+    /* if a capsname is given, we are in CAPS mode */
+    if (strlen(capsname) > 0) {
+
+        /* extract the project name and possibly the starting Phase */
+        char oldPhase[MAX_FILENAME_LEN], tempFile[MAX_FILENAME_LEN];
+        int  capsbrch = 0;
+        int  capsrev  = 0;
+        int  ans;
+
+        strncpy(capsProj, capsname, MAX_FILENAME_LEN);
+
+        for (i = 1; i < strlen(capsProj); i++) {
+            if (capsProj[i] == ':') {
+                capsProj[i] = '\0';
+                i++;
+                while (i < strlen(capsname)) {
+                    if (capsname[i] == '.') {
+                        i++;
+                        break;
+                    } else if (capsname[i] >= '0' && capsname[i] <= '9') {
+                        capsbrch = 10 * capsbrch + capsname[i] - '0';
+                        i++;
+                    } else {
+                        SPRINT1(0, "ERROR:: bad character in \"%s\" while extracting Branch", capsname);
+                        status = EXIT_FAILURE;
+                        goto cleanup;
+                    }
+                }
+                while (i < strlen(capsname)) {
+                    if (capsname[i] >= '0' && capsname[i] <= '9') {
+                        capsrev = 10 * capsrev + capsname[i] - '0';
+                        i++;
+                    } else {
+                        SPRINT1(0, "ERROR:: bad character in \"%s\" while extracting Revision", capsname);
+                        status = EXIT_FAILURE;
+                        goto cleanup;
+                    }
+                }
+                break;
+            }
+        }
+
+        /* processing for a CAPS Project */
+        status = caps_statFile(capsProj);
+
+        /* directory does not exist, so starting a new Project */
+        if (status != EGADS_OUTSIDE) {
+
+            /* check that no starting Phase was given */
+            if (capsbrch != 0 || capsrev != 0) {
+                SPRINT0(0, "ERROR:: cannot specify a starting Phase for a new Project");
+                status = EXIT_FAILURE;
+                goto cleanup;
+
+            /* check that a .csm file was given */
+            } else if (strlen(filename) == 0) {
+                SPRINT0(0, "ERROR:: a .csm file must be given for a new Project");
+                status = EXIT_FAILURE;
+                goto cleanup;
+
+            /* set up for new project */
+            } else {
+                strcpy(oldPhase,  "0.0");
+                strcpy(capsPhase, "1.1");
+            }
+
+       /* directory for project appears to exist */
+        } else {
+
+            /* make sure there is a Phase 1.1 */
+            snprintf(tempFile, MAX_FILENAME_LEN, "%s/1.1", capsProj);
+            status = caps_statFile(tempFile);
+            if (status != EGADS_OUTSIDE) {        // not a directory
+                SPRINT1(0, "ERROR:: Project \"%s\" does not contain a Phase \"1.1\"", capsProj);
+                status = EXIT_FAILURE;
+                goto cleanup;
+            }
+
+            /* make sure the .csm file exists */
+            snprintf(tempFile, MAX_FILENAME_LEN, "%s/%s.csm", capsProj, capsProj);
+            status = caps_statFile(tempFile);
+            if (status != SUCCESS) {        // not a file
+                SPRINT1(0, "ERROR:: cannot find \"%s\" in project", tempFile);
+                status = EXIT_FAILURE;
+                goto cleanup;
+            }
+
+            /* a specific starting Phase was given */
+            if (capsbrch != 0 && capsrev != 0) {
+
+                /* check if Phase exists */
+                snprintf(tempFile, MAX_FILENAME_LEN, "%s/%d.%d", capsProj, capsbrch, capsrev);
+                status = caps_statFile(tempFile);
+                if (status != EGADS_OUTSIDE) {    // not a directory
+                    SPRINT3(0, "ERROR:: Project \"%s\" does not contain Phase \"%d.%d\"", capsProj, capsbrch, capsrev);
+                    status = EXIT_FAILURE;
+                    goto cleanup;
+                }
+
+                /* check if we can create a new Phase with the same Branch */
+                snprintf(tempFile, MAX_FILENAME_LEN, "%s/%d.%d", capsProj, capsbrch, capsrev+1);
+                status = caps_statFile(tempFile);
+
+                /* next Phase on same Branch is possible */
+                if (status != EGADS_OUTSIDE) {
+                    snprintf(oldPhase,  MAX_FILENAME_LEN, "%d.%d", capsbrch, capsrev  );
+                    snprintf(capsPhase, MAX_FILENAME_LEN, "%d.%d", capsbrch, capsrev+1);
+
+                /* we need to start a new Branch */
+                } else {
+                    snprintf(oldPhase,  MAX_FILENAME_LEN, "%d.%d", capsbrch, capsrev);
+                    snprintf(capsPhase, MAX_FILENAME_LEN, "%d.%d", 0,        0      );
+
+                    for (i = capsbrch+1; i < 1000; i++) {
+                        snprintf(tempFile, MAX_FILENAME_LEN, "%s/%d.%d", capsProj, i, 1);
+                        status = caps_statFile(tempFile);
+                        if (status != EGADS_OUTSIDE) {
+                            snprintf(oldPhase,  MAX_FILENAME_LEN, "%d.%d", capsbrch, capsrev);
+                            snprintf(capsPhase, MAX_FILENAME_LEN, "%d.%d", i,        1      );
+                            break;
+                        }
+                    }
+
+                    if (strcmp(capsPhase, "0.0") == 0) {
+                        SPRINT1(0, "ERROR:: could not find available Branch for Project \"%s\"", capsProj);
+                        status = EXIT_FAILURE;
+                        goto cleanup;
+                    }
+                }
+
+            /* a specific starting Phase was not given, so create next Revision in this Branch */
+            } else {
+                if (capsbrch == 0) {
+                    capsbrch = 1;
+                }
+
+                /* check if the Branch exists */
+                snprintf(tempFile, MAX_FILENAME_LEN, "%s/%d.%d", capsProj, capsbrch, 1);
+                status = caps_statFile(tempFile);
+                if (status != EGADS_OUTSIDE) {
+                    SPRINT2(0, "ERROR:: Project \"%s\" does not contain Phase \"%d.1\"", capsProj, capsbrch);
+                    status = EXIT_FAILURE;
+                    goto cleanup;
+                }
+
+                /* find first available Revision in this Branch */
+                for (i = 2; i < 1000; i++) {
+                    snprintf(tempFile, MAX_FILENAME_LEN, "%s/%d.%d", capsProj, capsbrch, i);
+                    status = caps_statFile(tempFile);
+                    if (status != EGADS_OUTSIDE) {
+                        snprintf(oldPhase,  MAX_FILENAME_LEN, "%d.%d", capsbrch, i-1);
+                        snprintf(capsPhase, MAX_FILENAME_LEN, "%d.%d", capsbrch, i  );
+                        break;
+                    }
+                }
+            }
+        }
+
+        /* if oldPhase is 0.0, make a new Project */
+        if (strcmp(oldPhase, "0.0") == 0) {
+            status = caps_mkDir(capsProj);
+            if (status != SUCCESS) {
+                SPRINT1(0, "ERROR:: could not create directory \"%s\"", capsProj);
+                status = EXIT_FAILURE;
+                goto cleanup;
+            }
+
+            snprintf(tempFile, MAX_FILENAME_LEN, "%s/%s.csm", capsProj, capsProj);
+            status = caps_cpFile(filename, tempFile);
+            if (status != SUCCESS) {
+                SPRINT2(0, "ERROR:: problem when copying \"%s\" to \"%s\"", filename, tempFile);
+                status = EXIT_FAILURE;
+                goto cleanup;
+            }
+
+            /* open a new Project with the copied .csm file */
+            SPRINT3(1, "\n--> enter caps_open(%s:%s) new (from \"%s\")", capsProj, capsPhase, filename);
+            old_time = clock();
+            status = caps_open(capsProj, capsPhase, 0, tempFile, outLevel, &capsProject, &nerror, &errors);
+            (void) caps_printErrors(NULL, nerror, errors);
+            CHECK_STATUS(caps_open);
+            new_time = clock();
+
+            /* update the filename */
+            snprintf(filename, MAX_FILENAME_LEN, "%s/%s.csm", capsProj, capsProj);
+
+            /* write the parent file */
+            snprintf(tempFile, MAX_FILENAME_LEN, "%s/%s/parent.txt", capsProj, capsPhase);
+            parent_fp = fopen(tempFile, "w");
+            if (parent_fp != NULL) {
+                fprintf(parent_fp, "0.0\n");
+                fclose(parent_fp);
+            }
+
+            /* save the pointer to CAPS and the MODL */
+            ESP->CAPS = (capsObj)capsProject;
+            SPLINT_CHECK_FOR_NULL(ESP->CAPS);
+            MODL = ESP->MODL = ((capsProblem*) (capsProject->blind))->modl;
+
+        /* check the state of the oldPhase */
+        } else {
+            status = caps_phaseState(capsProj, oldPhase, &ans);
+            if (status != SUCCESS) {
+                SPRINT3(0, "ERROR:: caps_phaseState(%s, %s) -> status=%d", capsProj, oldPhase, status);
+                status = EXIT_FAILURE;
+                goto cleanup;
+            }
+
+            /* oldPhase is locked by someone else */
+            if (ans%2 == 1) {
+                SPRINT2(0, "ERROR:: Phase \"%s\" for Project \"%s\" is being used by someone else", oldPhase, capsProj);
+                status = EXIT_FAILURE;
+                goto cleanup;
+
+            /* oldPhase is open, so start CAPS in continuation mode */
+            } else if (ans < 2) {
+                SPRINT2(0, "WARNING:: Phase \"%s\" for Project \"%s\" is open, so no new Phase will be created", oldPhase, capsProj);
+
+                SPRINT2(1, "\n--> enter caps_open(%s:%s) continuation", capsProj, capsPhase);
+                old_time = clock();
+                status = caps_open(capsProj, oldPhase, 4, capsPhase,  outLevel, &capsProject, &nerror, &errors);
+                (void) caps_printErrors(NULL, nerror, errors);
+                CHECK_STATUS(caps_open);
+                new_time = clock();
+
+                strcpy(capsPhase, oldPhase);
+
+                /* save the pointer to CAPS and the MODL */
+                ESP->CAPS = (capsObj)capsProject;
+                SPLINT_CHECK_FOR_NULL(ESP->CAPS);
+                MODL = ESP->MODL = ((capsProblem*) (capsProject->blind))->modl;
+
+            /* start a new Phase after reloading a new .csm file */
+            } else if (strlen(filename) > 0) {
+                snprintf(tempFile, MAX_FILENAME_LEN, "%s%c%s.csm", capsProj, SLASH, capsProj);
+                status = caps_rmFile(tempFile);
+                if (status != SUCCESS) {
+                    SPRINT1(0, "ERROR:: problem when removing \"%s\"", tempFile);
+                    status = EXIT_FAILURE;
+                    goto cleanup;
+                }
+                status = caps_cpFile(filename, tempFile);
+                if (status != SUCCESS) {
+                    SPRINT2(0, "ERROR:: problem when copying \"%s\" to \"%s\"", filename, tempFile);
+                    status = EXIT_FAILURE;
+                    goto cleanup;
+                }
+
+                SPRINT4(1, "\n--> enter caps_open(%s:%s) from Phase %s (from \"%s\")", capsProj, capsPhase, oldPhase, filename);
+                old_time = clock();
+                status = caps_open(capsProj, capsPhase, 5, oldPhase, outLevel, &capsProject, &nerror, &errors);
+                (void) caps_printErrors(NULL, nerror, errors);
+                CHECK_STATUS(caps_open);
+                new_time = clock();
+
+                /* update the filename */
+                snprintf(filename, MAX_FILENAME_LEN, "%s/%s.csm", capsProj, capsProj);
+
+                /* write the parent file */
+                snprintf(tempFile, MAX_FILENAME_LEN, "%s/%s/parent.txt", capsProj, capsPhase);
+                parent_fp = fopen(tempFile, "w");
+                if (parent_fp != NULL) {
+                    fprintf(parent_fp, "%s\n", oldPhase);
+                    fclose(parent_fp);
+                }
+
+                /* save the pointer to CAPS and the MODL */
+                ESP->CAPS = (capsObj)capsProject;
+                SPLINT_CHECK_FOR_NULL(ESP->CAPS);
+                MODL = ESP->MODL = ((capsProblem*) (capsProject->blind))->modl;
+
+            /* start a new Phase with the old .csm file */
+            } else {
+                SPRINT3(1, "\n--> enter caps_open(%s:%s) from Phase %s", capsProj, capsPhase, oldPhase);
+                old_time = clock();
+                status = caps_open(capsProj, capsPhase, 3, oldPhase,  outLevel, &capsProject, &nerror, &errors);
+                (void) caps_printErrors(NULL, nerror, errors);
+                CHECK_STATUS(caps_open);
+                new_time = clock();
+
+                /* write the parent file */
+                snprintf(tempFile, MAX_FILENAME_LEN, "%s/%s/parent.txt", capsProj, capsPhase);
+                parent_fp = fopen(tempFile, "w");
+                if (parent_fp != NULL) {
+                    fprintf(parent_fp, "%s\n", oldPhase);
+                    fclose(parent_fp);
+                }
+
+                /* save the pointer to CAPS and the MODL */
+                ESP->CAPS = (capsObj)capsProject;
+                SPLINT_CHECK_FOR_NULL(ESP->CAPS);
+                MODL = ESP->MODL = ((capsProblem*) (capsProject->blind))->modl;
+            }
+        }
+
+        /* output statistics about the MODL */
+        SPLINT_CHECK_FOR_NULL(MODL);
+        status = ocsmInfo(MODL, &nbrch, &npmtr, &nbody);
+        if (status < SUCCESS) {
+            SPRINT0(0, "ERROR:: could not get info out of MODL");
+            status = EXIT_FAILURE;
+            goto cleanup;
+        }
+
+        SPRINT4(1, "--> caps_open(%s) -> nbrch=%d, npmtr=%d, nbody=%d", capsname, nbrch, npmtr, nbody);
+        SPRINT1(1, "==> caps_open CPUtime=%9.3f sec\n",
+                (double)(new_time-old_time) / (double)(CLOCKS_PER_SEC));
+
+        goto somewhere;
+    }
+#endif
+
+    /* read the .csm file and create the MODL */
+    old_time = clock();
+    status   = ocsmLoad(filename, (void **)&(ESP->MODL));
+    MODL = ESP->MODL;
+
+    new_time = clock();
+    SPRINT3(1, "--> ocsmLoad(%s) -> status=%d (%s)", filename, status, ocsmGetText(status));
+    SPRINT1(1, "==> ocsmLoad CPUtime=%9.3f sec",
+            (double)(new_time-old_time) / (double)(CLOCKS_PER_SEC));
+
+    if (status < SUCCESS && batch == 1) {
+        SPRINT0(0, "ERROR:: problem in ocsmLoad");
+        status = -999;
+        goto cleanup;
+    } else if (status < SUCCESS) {
+        SPRINT0(0, "ERROR:: problem in ocsmLoad\a");
+        pendingError = 1;
+    }
+
+    SPLINT_CHECK_FOR_NULL(MODL);
+
+    if (pendingError == 0) {
+        status = ocsmLoadDict(MODL, dictname);
+        if (status < SUCCESS) goto cleanup;
+    }
+
+    if (pendingError == 0) {
+        status = ocsmRegMesgCB(MODL, mesgCallbackFromOpenCSM);
+        if (status < SUCCESS) goto cleanup;
+
+        status = ocsmRegSizeCB(MODL, sizeCallbackFromOpenCSM);
+        if (status < SUCCESS) goto cleanup;
+    }
+
+    if (strlen(despname) > 0) {
+        status = ocsmUpdateDespmtrs(MODL, despname);
+        if (status < SUCCESS) goto cleanup;
+    }
+
+    if (pendingError == 0) {
+        if (filelist != NULL) EG_free(filelist);
+        status = ocsmGetFilelist(MODL, &filelist);
+        if (status != SUCCESS) {
+            SPRINT1(0, "ERROR:: ocsmGetFilelist -> status=%d", status);
+        }
+        updatedFilelist = 1;
     }
 
     /* create the verify filename */
@@ -783,54 +1231,6 @@ main(int       argc,                    /* (in)  number of arguments */
         snprintf(vrfyname, MAX_FILENAME_LEN-1, "%s%cverify_%s%c%s.vfy", dirname, SLASH, &(OCC_ver[strlen(OCC_ver)-5]), SLASH, basename);
     } else {
         vrfyname[0] = '\0';
-    }
-
-    /* read the .csm file and create the MODL */
-    old_time = clock();
-    status   = ocsmLoad(filename, (void **)&(ESP->MODL));
-    MODL = ESP->MODL;
-
-    new_time = clock();
-    SPRINT3(1, "--> ocsmLoad(%s) -> status=%d (%s)", filename, status, ocsmGetText(status));
-    SPRINT1(1, "==> ocsmLoad CPUtime=%9.3f sec",
-            (double)(new_time-old_time) / (double)(CLOCKS_PER_SEC));
-
-    if (status < SUCCESS && batch == 1) {
-        SPRINT0(0, "ERROR:: problem in ocsmLoad");
-        status = -999;
-        goto cleanup;
-    } else if (status < SUCCESS) {
-        SPRINT0(0, "ERROR:: problem in ocsmLoad\a");
-        pendingError = 1;
-    }
-
-    SPLINT_CHECK_FOR_NULL(MODL);
-
-    if (pendingError == 0) {
-        status = ocsmLoadDict(MODL, dictname);
-        if (status < EGADS_SUCCESS) goto cleanup;
-    }
-
-    if (pendingError == 0) {
-        status = ocsmRegMesgCB(MODL, mesgCallbackFromOpenCSM);
-        if (status < EGADS_SUCCESS) goto cleanup;
-
-        status = ocsmRegSizeCB(MODL, sizeCallbackFromOpenCSM);
-        if (status < EGADS_SUCCESS) goto cleanup;
-    }
-
-    if (strlen(despname) > 0) {
-        status = ocsmUpdateDespmtrs(MODL, despname);
-        if (status < EGADS_SUCCESS) goto cleanup;
-    }
-
-    if (pendingError == 0) {
-        if (filelist != NULL) EG_free(filelist);
-        status = ocsmGetFilelist(MODL, &filelist);
-        if (status != SUCCESS) {
-            SPRINT1(0, "ERROR:: ocsmGetFilelist -> status=%d", status);
-        }
-        updatedFilelist = 1;
     }
 
     /* if verify is on, add verification data from .vfy file to Branches */
@@ -894,6 +1294,7 @@ main(int       argc,                    /* (in)  number of arguments */
         }
     }
 
+somewhere:
     /* open the output journal file */
     snprintf(tempname, MAX_FILENAME_LEN, "port%d.jrnl", port);
     jrnl_out = fopen(tempname, "w");
@@ -930,6 +1331,11 @@ main(int       argc,                    /* (in)  number of arguments */
         wv_setUserPtr(ESP->cntxt, (void *)ESP);
     }
 
+    if (strlen(egadsName) > 0) {
+        status = buildSceneGraph(ESP);
+        if (status < SUCCESS) goto cleanup;
+    }
+
     /* build the Bodys from the MODL */
     if (pendingError == 0) {
         status = buildBodys(ESP, 0, &builtTo, &buildStatus, &nwarn);
@@ -964,7 +1370,6 @@ main(int       argc,                    /* (in)  number of arguments */
 
         /* batch mode */
         } else {
-            printf("builtTo=%d, jrnlname=%s\n", builtTo, jrnlname);
 
             /* uncaught signal */
             if (builtTo < 0 && STRLEN(jrnlname) == 0) {
@@ -989,7 +1394,6 @@ main(int       argc,                    /* (in)  number of arguments */
 
         /* if the -dxdd option is set, process it now */
         if (strlen(dxddname) > 0) {
-            int  nbody;
             char sensfilename[MAX_FILENAME_LEN+1], *beg, *mid, *end;
 
             strcpy(sensfilename, dxddname);
@@ -1057,7 +1461,7 @@ main(int       argc,                    /* (in)  number of arguments */
                 goto cleanup;
             }
 
-            /* rebuild to propagate the velocities */
+            /* rebuild to compute the velocities */
             nbody = 0;
             status = ocsmBuild(MODL, 0, &builtTo, &nbody, NULL);
             if (status != SUCCESS) {
@@ -1259,7 +1663,7 @@ main(int       argc,                    /* (in)  number of arguments */
 
             /* stay alive a long as we have a client */
             while (wv_statusServer(0)) {
-                usleep(500000);
+                SLEEP(150);
 
                 /* start the browser if the first time through this loop */
                 if (status == SUCCESS) {
@@ -1269,6 +1673,9 @@ main(int       argc,                    /* (in)  number of arguments */
 
                     status++;
                 }
+
+                /* set a lock on all current TIMs */
+                tim_lock();
             }
         }
 
@@ -1367,10 +1774,6 @@ main(int       argc,                    /* (in)  number of arguments */
                 fprintf(vrfy_fp, "   assert  %8d      @itype       0  1\n", 3);
             }
 
-            fprintf(vrfy_fp, "   assert  %8d      @nnode       0  1\n", MODL->body[ibody].nnode);
-            fprintf(vrfy_fp, "   assert  %8d      @nedge       0  1\n", MODL->body[ibody].nedge);
-            fprintf(vrfy_fp, "   assert  %8d      @nface       0  1\n", MODL->body[ibody].nface);
-
             status = EG_getBoundingBox(MODL->body[ibody].ebody, bbox);
             if (status != SUCCESS) {
                 SPRINT2(0, "ERROR:: EG_getBoundingBox(%d) -> status=%d\n", ibody, status);
@@ -1430,6 +1833,11 @@ main(int       argc,                    /* (in)  number of arguments */
             } else {
                 fprintf(vrfy_fp, "   assert %15.7e  @zcg    %15.7e  1\n", data[4], 0.001*(bbox[5]-bbox[2]));
             }
+
+            fprintf(vrfy_fp, "   assert  %8d      @nnode       0  1\n", MODL->body[ibody].nnode);
+            fprintf(vrfy_fp, "   assert  %8d      @nedge       0  1\n", MODL->body[ibody].nedge);
+            fprintf(vrfy_fp, "   assert  %8d      @nface       0  1\n", MODL->body[ibody].nface);
+
             fprintf(vrfy_fp, "\n");
         }
 
@@ -1620,11 +2028,187 @@ main(int       argc,                    /* (in)  number of arguments */
         CHECK_STATUS(printHistogram);
     }
 
+#ifdef USING_CAPS
+    if (strlen(capsname) > 0) {
+//$$$        char            *objName;
+//$$$        enum capsoType  otype;
+//$$$        enum capssType  stype;
+//$$$        capsObj         link, parent, myBound, myVset;
+//$$$        capsOwn         last;
+//$$$        int             size, nbound, ibound, nvset, ivset;
+//$$$
+//$$$        SPLINT_CHECK_FOR_NULL(ESP->CAPS);
+
+        /* show all objects that are children of the capsProblem */
+//$$$        status = caps_info(ESP->CAPS, &objName, &otype, &stype, &link, &parent, &last);
+//$$$        printf("caps_info -> status=%d, objName=%s, otype=%d, stype=%d, link=%llx, parent=%llx\n",
+//$$$               status, objName, otype, stype, (long long)link, (long long)parent);
+//$$$
+//$$$        status = caps_size(ESP->CAPS, ATTRIBUTES, NONE, &size, &nerror, &errors);
+//$$$        printf("caps_size(ATTRIBUTES,NONE)           -> status=%d, otype=%d, stype=%d, size=%d, nerror=%d\n",
+//$$$               status, otype, stype, size, nerror);
+//$$$        if (status < SUCCESS || nerror > 0) {
+//$$$            (void) caps_printErrors(NULL, nerror, errors);
+//$$$            status = EXIT_FAILURE;
+//$$$            goto cleanup;
+//$$$        }
+//$$$
+//$$$        status = caps_size(ESP->CAPS, BODIES, NONE, &size, &nerror, &errors);
+//$$$        printf("caps_size(BODIES,NONE)               -> status=%d, otype=%d, stype=%d, size=%d, nerror=%d\n",
+//$$$               status, otype, stype, size, nerror);
+//$$$        if (status < SUCCESS || nerror > 0) {
+//$$$            (void) caps_printErrors(NULL, nerror, errors);
+//$$$            status = EXIT_FAILURE;
+//$$$            goto cleanup;
+//$$$        }
+//$$$
+//$$$        status = caps_size(ESP->CAPS, VALUE, PARAMETER, &size, &nerror, &errors);
+//$$$        printf("caps_size(VALUE,PARAMETER)           -> status=%d, otype=%d, stype=%d, size=%d, nerror=%d\n",
+//$$$               status, otype, stype, size, nerror);
+//$$$        if (status < SUCCESS || nerror > 0) {
+//$$$            (void) caps_printErrors(NULL, nerror, errors);
+//$$$            status = EXIT_FAILURE;
+//$$$            goto cleanup;
+//$$$        }
+//$$$
+//$$$        status = caps_size(ESP->CAPS, VALUE, GEOMETRYIN, &size, &nerror, &errors);
+//$$$        printf("caps_size(VALUE,GEOMETRYIN)          -> status=%d, otype=%d, stype=%d, size=%d, nerror=%d\n",
+//$$$               status, otype, stype, size, nerror);
+//$$$        if (status < SUCCESS || nerror > 0) {
+//$$$            (void) caps_printErrors(NULL, nerror, errors);
+//$$$            status = EXIT_FAILURE;
+//$$$            goto cleanup;
+//$$$        }
+//$$$
+//$$$        status = caps_size(ESP->CAPS, VALUE, GEOMETRYOUT, &size, &nerror, &errors);
+//$$$        printf("caps_size(VALUE,GEOMETRYOUT)         -> status=%d, otype=%d, stype=%d, size=%d, nerror=%d\n",
+//$$$               status, otype, stype, size, nerror);
+//$$$        if (status < SUCCESS || nerror > 0) {
+//$$$            (void) caps_printErrors(NULL, nerror, errors);
+//$$$            status = EXIT_FAILURE;
+//$$$            goto cleanup;
+//$$$        }
+//$$$
+//$$$        status = caps_size(ESP->CAPS, ANALYSIS, NONE, &size, &nerror, &errors);
+//$$$        printf("caps_size(ANALYSIS,NONE)             -> status=%d, otype=%d, stype=%d, size=%d, nerror=%d\n",
+//$$$               status, otype, stype, size, nerror);
+//$$$        if (status < SUCCESS || nerror > 0) {
+//$$$            (void) caps_printErrors(NULL, nerror, errors);
+//$$$            status = EXIT_FAILURE;
+//$$$            goto cleanup;
+//$$$        }
+//$$$
+//$$$        status = caps_size(ESP->CAPS, BOUND, NONE, &size, &nerror, &errors);
+//$$$        printf("caps_size(BOUND,NONE)                -> status=%d, otype=%d, stype=%d, size=%d, nerror=%d\n",
+//$$$               status, otype, stype, size, nerror);
+//$$$        if (status < SUCCESS || nerror > 0) {
+//$$$            (void) caps_printErrors(NULL, nerror, errors);
+//$$$            status = EXIT_FAILURE;
+//$$$            goto cleanup;
+//$$$        }
+//$$$
+//$$$        status = caps_size(ESP->CAPS, VALUE, ANALYSISIN, &size, &nerror, &errors);
+//$$$        printf("caps_size(VALUE,ANALYSISIN)          -> status=%d, otype=%d, stype=%d, size=%d, nerror=%d\n",
+//$$$               status, otype, stype, size, nerror);
+//$$$        if (status < SUCCESS || nerror > 0) {
+//$$$            (void) caps_printErrors(NULL, nerror, errors);
+//$$$            status = EXIT_FAILURE;
+//$$$            goto cleanup;
+//$$$        }
+//$$$
+//$$$        status = caps_size(ESP->CAPS, VALUE, ANALYSISOUT, &size, &nerror, &errors);
+//$$$        printf("caps_size(VALUE,ANALYSISOUT)         -> status=%d, otype=%d, stype=%d, size=%d, nerror=%d\n",
+//$$$               status, otype, stype, size, nerror);
+//$$$        if (status < SUCCESS || nerror > 0) {
+//$$$            (void) caps_printErrors(NULL, nerror, errors);
+//$$$            status = EXIT_FAILURE;
+//$$$            goto cleanup;
+//$$$        }
+//$$$
+//$$$        status = caps_size(ESP->CAPS, VALUE, ANALYSISDYNO, &size, &nerror, &errors);
+//$$$        printf("caps_size(VALUE,ANALYSISDYNO)        -> status=%d, otype=%d, stype=%d, size=%d, nerror=%d\n",
+//$$$               status, otype, stype, size, nerror);
+//$$$        if (status < SUCCESS || nerror > 0) {
+//$$$            (void) caps_printErrors(NULL, nerror, errors);
+//$$$            status = EXIT_FAILURE;
+//$$$            goto cleanup;
+//$$$        }
+//$$$
+//$$$        status = caps_size(ESP->CAPS, BOUND, NONE, &nbound, &nerror, &errors);
+//$$$        printf("caps_size(BOUND) -> status=%d, nbound=%d\n", status, nbound);
+//$$$        for (ibound = 0; ibound < nbound; ibound++) {
+//$$$            printf("ibound %d\n", ibound);
+//$$$            status = caps_childByIndex(ESP->CAPS, BOUND, NONE, ibound+1, &myBound);
+//$$$            if (status != SUCCESS) printf("status=%d\n", status);
+//$$$
+//$$$            status = caps_size(myBound, VERTEXSET, CONNECTED, &nvset, &nerror, &errors);
+//$$$            printf("    caps_size(VERTEXSET,CONNECTED)   -> status=%d, otype=%d, stype=%d, size=%d, nerror=%d\n",
+//$$$                   status, otype, stype, size, nerror);
+//$$$            if (status < SUCCESS || nerror > 0) {
+//$$$                (void) caps_printErrors(NULL, nerror, errors);
+//$$$                status = EXIT_FAILURE;
+//$$$                goto cleanup;
+//$$$            }
+//$$$
+//$$$            for (ivset = 0; ivset < nvset; ivset++) {
+//$$$                printf("    ivset %d\n", ivset);
+//$$$                status = caps_childByIndex(myBound, VERTEXSET, CONNECTED, ivset+1, &myVset);
+//$$$                if (status != SUCCESS) printf("status=%d\n", status);
+//$$$
+//$$$                status = caps_size(myVset, DATASET, NONE, &size, &nerror, &errors);
+//$$$                printf("        caps_size(DATASET,NONE)      -> status=%d, otype=%d, stype=%d, size=%d, nerror=%d\n",
+//$$$                       status, otype, stype, size, nerror);
+//$$$                if (status < SUCCESS || nerror > 0) {
+//$$$                    (void) caps_printErrors(NULL, nerror, errors);
+//$$$                    status = EXIT_FAILURE;
+//$$$                    goto cleanup;
+//$$$                }
+//$$$            }
+//$$$
+//$$$            status = caps_size(myBound, VERTEXSET, UNCONNECTED, &size, &nerror, &errors);
+//$$$            printf("    caps_size(VERTEXSET,UNCONNECTED) -> status=%d, otype=%d, stype=%d, size=%d, nerror=%d\n",
+//$$$                   status, otype, stype, size, nerror);
+//$$$            if (status < SUCCESS || nerror > 0) {
+//$$$                (void) caps_printErrors(NULL, nerror, errors);
+//$$$                status = EXIT_FAILURE;
+//$$$                goto cleanup;
+//$$$            }
+//$$$        }
+
+        /* turn off auto-execution */
+//$$$        status = caps_debug(ESP->CAPS);
+//$$$        printf("caps_debug -> status=%d (should be 1)\n", status);
+
+        /* show all CAPS data */
+//$$$        caps_printObjects(ESP->CAPS, ESP->CAPS, 0);
+
+        /* turn auto-execution back on */
+//$$$        status = caps_debug(ESP->CAPS);
+//$$$        printf("caps_debug -> status=%d (should be 0)\n", status);
+
+        /* show all CAPS data */
+//$$$        caps_printObjects(ESP->CAPS, ESP->CAPS, 0);
+
+        /* close the CAPS problem */
+        SPLINT_CHECK_FOR_NULL(ESP->CAPS);
+
+        status = caps_close(ESP->CAPS, 1, NULL);
+        if (status < SUCCESS) {
+            SPRINT1(0, "ERROR:: caps->close -> status=%d", status);
+        }
+//$$$        printf("caps_close -> status=%d\n", status);
+
     /* free up storage associated with OpenCSM and EGADS */
-    cleanupMemory(MODL, 0);
+    } else {
+#else
+    if (1) {
+#endif
+        cleanupMemory(MODL, 0);
+    }
 
     /* free up stoage associated with GUI */
     wv_cleanupServers();
+    ESP->cntxt = NULL;
 
     /* free up undo storage */
     for (iundo = nundo-1; iundo >= 0; iundo--) {
@@ -1676,14 +2260,19 @@ main(int       argc,                    /* (in)  number of arguments */
     status = SUCCESS;
 
 cleanup:
+    /* destroy the mutex associated with the scene graph */
+    if (ESP == NULL) return EXIT_FAILURE;
+
+    EMP_LockDestroy(ESP->sgMutex);
+
+    tim_free();
+
     FREE(ESP);
 
     FREE(filelist);
 
     if (jrnl_out != NULL) fclose(jrnl_out);
     jrnl_out = NULL;
-
-    tim_free();
 
     if (undo_modl != NULL) {
         for (iundo = nundo-1; iundo >= 0; iundo--) {
@@ -1714,6 +2303,7 @@ cleanup:
     FREE(vrfyname   );
     FREE(despname   );
     FREE(filename   );
+    FREE(capsname   );
     FREE(tempname   );
     FREE(jrnlname   );
     FREE(casename   );
@@ -1996,7 +2586,7 @@ cleanup:
 /***********************************************************************/
 
 void
-browserMessage(void    *udata,
+browserMessage(void    *esp,
    /*@unused@*/void    *wsi,
                char    text[],
    /*@unused@*/int     lena)
@@ -2006,7 +2596,7 @@ browserMessage(void    *udata,
     int       sendKeyData, ibody, onstack;
     char      message2[MAX_LINE_LEN];
 
-    esp_T     *ESP   = (esp_T *)udata;
+    esp_T     *ESP   = (esp_T *)esp;
     modl_T    *MODL;
     wvContext *cntxt;
 
@@ -2043,15 +2633,15 @@ browserMessage(void    *udata,
     MODL = ESP->MODL;
 
     /* send the response */
-    SPRINT1(2, "\n<<< server2browser: %s", response);
-//    wv_sendText(wsi, response);
-    wv_broadcastText(response);
+    if (strlen(response) > 0) {
+        SPRINT1(2, "\n<<< server2browser: %s", response);
+        wv_broadcastText(response);
+    }
 
     /* if the sensitivities were just computed, send a message to
        inform the user about the lowest and highest sensitivity values */
     if (sensPost > 0) {
         snprintf(message2, MAX_LINE_LEN-1, "Sensitivities are in the range between %f and %f", sensLo, sensHi);
-//        wv_sendText(wsi, message2);
         wv_broadcastText(message2);
 
         sensPost = 0;
@@ -2395,13 +2985,13 @@ buildSceneGraph(esp_T  *ESP)
 {
     int       status = SUCCESS;         /* return status */
 
-    int       ibody, jbody, iface, iedge, inode, iattr, nattr, ipmtr, irc, newStyleQuads, atype, alen;
+    int       ibody, jbody, iface, iedge, inode, iattr, nattr, ipmtr, irc, atype, alen;
     int       npnt, ipnt, ntri, itri, igprim, nseg, i, j, k, ij, ij1, ij2, ngrid, ncrod, nctri3, ncquad4;
     int       imax, jmax, ibeg, iend, isw, ise, ine, inw;
     int       attrs, head[3], nitems, nnode, nedge, nface;
     int       oclass, mtype, nchild, *senses, *header;
     int       *segs=NULL, *ivrts=NULL;
-    int        npatch2, ipatch, n1, n2, i1, i2, *Tris=NULL;
+    int       npatch, ipatch, n1, n2, i1, i2, *Tris=NULL;
     CINT      *ptype, *pindx, *tris, *tric, *pvindex, *pbounds;
     float     color[18], *pcolors=NULL, *plotdata=NULL, *segments=NULL, *tuft=NULL;
     double    bigbox[6], box[6], size, size2=0, xyz_dum[6], *vel=NULL, velmag;
@@ -2415,10 +3005,7 @@ buildSceneGraph(esp_T  *ESP)
     ego       *enodes=NULL, *eedges=NULL, *efaces=NULL;
 
     int       nlist, itype;
-    CINT      *tempIlist;
-#if MIXED_TESS
-    CINT      *nquad=NULL;
-#endif
+    CINT      *tempIlist, *nquad=NULL;
     CDOUBLE   *tempRlist;
     CCHAR     *attrName, *tempClist;
 
@@ -2429,6 +3016,10 @@ buildSceneGraph(esp_T  *ESP)
     ROUTINE(buildSceneGraph);
 
     /* --------------------------------------------------------------- */
+
+    /* set the mutex.  if the mutex wss already set, wait until released */
+    SPLINT_CHECK_FOR_NULL(ESP);
+    EMP_LockSet(ESP->sgMutex);
 
     /* remove any graphic primitives that already exist */
     wv_removeAll(cntxt);
@@ -2670,33 +3261,9 @@ buildSceneGraph(esp_T  *ESP)
                   + (box[5] - box[2]) * (box[5] - box[2]);
         }
 
-        /* determine if new-style quadding */
-        newStyleQuads = 0;
-        status = EG_attributeRet(etess, ".tessType",
-                                 &atype, &alen, &tempIlist, &tempRlist, &tempClist);
-        if (status == SUCCESS) {
-#if MIXED_TESS
-            newStyleQuads = 1;
-            status = EG_attributeRet(etess, ".mixed",
-                                     &atype, &alen, &nquad, &tempRlist, &tempClist);
-            if (status != SUCCESS) newStyleQuads = 0;
-#else
-            if (strcmp(tempClist, "Quad") == 0) {
-                newStyleQuads = 1;
-            }
-#endif
-        }
-
         /* loop through the Faces within the current Body */
         for (iface = 1; iface <= nface; iface++) {
             nitems = 0;
-
-            status = EG_getQuads(etess, iface,
-                                 &npnt, &xyz, &uv, &ptype, &pindx,
-                                 &npatch2);
-            if (status != SUCCESS) {
-                SPRINT3(0, "ERROR:: EG_getQuads(%d,%d) -> status=%d", ibody, iface, status);
-            }
 
             /* name and attributes */
             snprintf(gpname, MAX_STRVAL_LEN-1, "%s Face %d", bname, iface);
@@ -2706,86 +3273,25 @@ buildSceneGraph(esp_T  *ESP)
                 attrs = WV_ON | WV_ORIENTATION;
             }
 
-            /* render the Quadrilaterals (if they exist) */
-            if (npatch2 > 0) {
-                /* vertices */
-                status = wv_setData(WV_REAL64, npnt, (void*)xyz, WV_VERTICES, &(items[nitems]));
+            status = EG_getQuads(etess, iface,
+                                 &npnt, &xyz, &uv, &ptype, &pindx, &npatch);
+            if (status != SUCCESS) {
+                SPRINT3(0, "ERROR:: EG_getQuads(%d,%d) -> status=%d", ibody, iface, status);
+            }
+
+            status = EG_attributeRet(etess, ".tessType",
+                                     &atype, &alen, &tempIlist, &tempRlist, &tempClist);
+
+            /* new-style Quads */
+            if (status == SUCCESS && atype == ATTRSTRING &&
+                (strcmp(tempClist, "Quad") == 0 || strcmp(tempClist, "Mixed") == 0))
+            {
+                status = EG_attributeRet(etess, ".mixed",
+                                         &atype, &alen, &nquad, &tempRlist, &tempClist);
                 if (status != SUCCESS) {
-                    SPRINT3(0, "ERROR:: wv_setData(%d,%d) -> status=%d", ibody, iface, status);
+                    SPRINT3(0, "ERROR:: EG_attributeRet(%d,%d) -> status=%d", ibody, iface, status);
                 }
 
-                wv_adjustVerts(&(items[nitems]), ESP->sgFocus);
-                nitems++;
-
-                /* loop through the patches and build up the triangle and
-                   segment tables (bias-1) */
-                ntri = 0;
-                nseg = 0;
-
-                for (ipatch = 1; ipatch <= npatch2; ipatch++) {
-                    status = EG_getPatch(etess, iface, ipatch, &n1, &n2, &pvindex, &pbounds);
-                    if (status != SUCCESS) {
-                        SPRINT3(0, "ERROR:: EG_getPatch(%d,%d) -> status=%d\n", ibody, iface, status);
-                    }
-
-                    ntri += 2 * (n1-1) * (n2-1);
-                    nseg += n1 * (n2-1) + n2 * (n1-1);
-                }
-
-                MALLOC(Tris, int, 3*ntri);
-                MALLOC(segs, int, 2*nseg);
-
-                ntri = 0;
-                nseg = 0;
-
-                for (ipatch = 1; ipatch <= npatch2; ipatch++) {
-                    status = EG_getPatch(etess, iface, ipatch, &n1, &n2, &pvindex, &pbounds);
-                    if (status != SUCCESS) {
-                        SPRINT3(0, "ERROR:: EG_getPatch(%d,%d) -> status=%d\n", ibody, iface, status);
-                    }
-
-                    for (i2 = 1; i2 < n2; i2++) {
-                        for (i1 = 1; i1 < n1; i1++) {
-                            Tris[3*ntri  ] = pvindex[(i1-1)+n1*(i2-1)];
-                            Tris[3*ntri+1] = pvindex[(i1  )+n1*(i2-1)];
-                            Tris[3*ntri+2] = pvindex[(i1  )+n1*(i2  )];
-                            ntri++;
-
-                            Tris[3*ntri  ] = pvindex[(i1  )+n1*(i2  )];
-                            Tris[3*ntri+1] = pvindex[(i1-1)+n1*(i2  )];
-                            Tris[3*ntri+2] = pvindex[(i1-1)+n1*(i2-1)];
-                            ntri++;
-                        }
-                    }
-
-                    for (i2 = 0; i2 < n2; i2++) {
-                        for (i1 = 1; i1 < n1; i1++) {
-                            segs[2*nseg  ] = pvindex[(i1-1)+n1*(i2)];
-                            segs[2*nseg+1] = pvindex[(i1  )+n1*(i2)];
-                            nseg++;
-                        }
-                    }
-
-                    for (i1 = 0; i1 < n1; i1++) {
-                        for (i2 = 1; i2 < n2; i2++) {
-                            segs[2*nseg  ] = pvindex[(i1)+n1*(i2-1)];
-                            segs[2*nseg+1] = pvindex[(i1)+n1*(i2  )];
-                            nseg++;
-                        }
-                    }
-                }
-
-                /* two triangles for rendering each quadrilateral */
-                status = wv_setData(WV_INT32, 3*ntri, (void*)Tris, WV_INDICES, &(items[nitems]));
-                if (status != SUCCESS) {
-                    SPRINT3(0, "ERROR:: wv_setData(%d,%d) -> status=%d", ibody, iface, status);
-                }
-                nitems++;
-
-                FREE(Tris);
-
-            /* render the Quadrilaterals if new-style quadding */
-            } else if (newStyleQuads == 1) {
                 status = EG_getTessFace(etess, iface,
                                         &npnt, &xyz, &uv, &ptype, &pindx,
                                         &ntri, &tris, &tric);
@@ -2817,8 +3323,9 @@ buildSceneGraph(esp_T  *ESP)
 
                 MALLOC(segs, int, 2*nseg);
 
-#if MIXED_TESS
                 /* create segments between Triangles (bias-1) */
+                SPLINT_CHECK_FOR_NULL(nquad);
+
                 nseg = 0;
                 for (itri = 0; itri < ntri-2*nquad[iface-1]; itri++) {
                     for (k = 0; k < 3; k++) {
@@ -2865,44 +3372,6 @@ buildSceneGraph(esp_T  *ESP)
                         nseg++;
                     }
                 }
-#else
-                /* create segments between Triangles (but not within the pair) (bias-1) */
-                nseg = 0;
-                for (itri = 0; itri < ntri; itri++) {
-                    if (tric[3*itri  ] < itri+2) {
-                        segs[2*nseg  ] = tris[3*itri+1];
-                        segs[2*nseg+1] = tris[3*itri+2];
-                        nseg++;
-                    }
-                    if (tric[3*itri+1] < itri+2) {
-                        segs[2*nseg  ] = tris[3*itri+2];
-                        segs[2*nseg+1] = tris[3*itri  ];
-                        nseg++;
-                    }
-                    if (tric[3*itri+2] < itri+2) {
-                        segs[2*nseg  ] = tris[3*itri  ];
-                        segs[2*nseg+1] = tris[3*itri+1];
-                        nseg++;
-                    }
-                    itri++;
-
-                    if (tric[3*itri  ] < itri) {
-                        segs[2*nseg  ] = tris[3*itri+1];
-                        segs[2*nseg+1] = tris[3*itri+2];
-                        nseg++;
-                    }
-                    if (tric[3*itri+1] < itri) {
-                        segs[2*nseg  ] = tris[3*itri+2];
-                        segs[2*nseg+1] = tris[3*itri  ];
-                        nseg++;
-                    }
-                    if (tric[3*itri+2] < itri) {
-                        segs[2*nseg  ] = tris[3*itri  ];
-                        segs[2*nseg+1] = tris[3*itri+1];
-                        nseg++;
-                    }
-                }
-#endif
 
                 /* triangles */
                 status = wv_setData(WV_INT32, 3*ntri, (void*)tris, WV_INDICES, &(items[nitems]));
@@ -2911,7 +3380,85 @@ buildSceneGraph(esp_T  *ESP)
                 }
                 nitems++;
 
-            /* render the Triangles (if quads do not exist) */
+            /* patches in old-style Quads */
+            } else if (npatch > 0) {
+                /* vertices */
+                status = wv_setData(WV_REAL64, npnt, (void*)xyz, WV_VERTICES, &(items[nitems]));
+                if (status != SUCCESS) {
+                    SPRINT3(0, "ERROR:: wv_setData(%d,%d) -> status=%d", ibody, iface, status);
+                }
+
+                wv_adjustVerts(&(items[nitems]), ESP->sgFocus);
+                nitems++;
+
+                /* loop through the patches and build up the triangle and
+                   segment tables (bias-1) */
+                ntri = 0;
+                nseg = 0;
+
+                for (ipatch = 1; ipatch <= npatch; ipatch++) {
+                    status = EG_getPatch(etess, iface, ipatch, &n1, &n2, &pvindex, &pbounds);
+                    if (status != SUCCESS) {
+                        SPRINT3(0, "ERROR:: EG_getPatch(%d,%d) -> status=%d\n", ibody, iface, status);
+                    }
+
+                    ntri += 2 * (n1-1) * (n2-1);
+                    nseg += n1 * (n2-1) + n2 * (n1-1);
+                }
+
+                MALLOC(Tris, int, 3*ntri);
+                MALLOC(segs, int, 2*nseg);
+
+                ntri = 0;
+                nseg = 0;
+
+                for (ipatch = 1; ipatch <= npatch; ipatch++) {
+                    status = EG_getPatch(etess, iface, ipatch, &n1, &n2, &pvindex, &pbounds);
+                    if (status != SUCCESS) {
+                        SPRINT3(0, "ERROR:: EG_getPatch(%d,%d) -> status=%d\n", ibody, iface, status);
+                    }
+
+                    for (i2 = 1; i2 < n2; i2++) {
+                        for (i1 = 1; i1 < n1; i1++) {
+                            Tris[3*ntri  ] = pvindex[(i1-1)+n1*(i2-1)];
+                            Tris[3*ntri+1] = pvindex[(i1  )+n1*(i2-1)];
+                            Tris[3*ntri+2] = pvindex[(i1  )+n1*(i2  )];
+                            ntri++;
+
+                            Tris[3*ntri  ] = pvindex[(i1  )+n1*(i2  )];
+                            Tris[3*ntri+1] = pvindex[(i1-1)+n1*(i2  )];
+                            Tris[3*ntri+2] = pvindex[(i1-1)+n1*(i2-1)];
+                            ntri++;
+                        }
+                    }
+
+                    for (i2 = 0; i2 < n2; i2++) {
+                        for (i1 = 1; i1 < n1; i1++) {
+                            segs[2*nseg  ] = pvindex[(i1-1)+n1*(i2)];
+                            segs[2*nseg+1] = pvindex[(i1  )+n1*(i2)];
+                            nseg++;
+                        }
+                    }
+
+                    for (i1 = 0; i1 < n1; i1++) {
+                        for (i2 = 1; i2 < n2; i2++) {
+                            segs[2*nseg  ] = pvindex[(i1)+n1*(i2-1)];
+                            segs[2*nseg+1] = pvindex[(i1)+n1*(i2  )];
+                            nseg++;
+                        }
+                    }
+                }
+
+                /* two triangles for rendering each quadrilateral */
+                status = wv_setData(WV_INT32, 3*ntri, (void*)Tris, WV_INDICES, &(items[nitems]));
+                if (status != SUCCESS) {
+                    SPRINT3(0, "ERROR:: wv_setData(%d,%d) -> status=%d", ibody, iface, status);
+                }
+                nitems++;
+
+                FREE(Tris);
+
+            /* Triangles */
             } else {
                 status = EG_getTessFace(etess, iface,
                                         &npnt, &xyz, &uv, &ptype, &pindx,
@@ -3868,6 +4415,60 @@ buildSceneGraph(esp_T  *ESP)
                 SPRINT3(0, "ERROR:: EG_attributeNum(%d,%d) -> status=%d", ibody, iedge, status);
             }
 
+            /* if tessel is set and we are asking for smooth colors
+               (sensitivities) is set, draw tuft, whose length can be changed
+               by recomputing sensitivity with a different value for the velocity
+               of the Design Parameter.  (note that the tufts cannot be toggled in ESP) */
+            if (tessel == 1 && haveDots >= 1) {
+                nitems = 0;
+
+                /* name and attributes */
+                snprintf(gpname, MAX_STRVAL_LEN-1, "PlotLine: Node_%d:%d_tufts", ibody, inode);
+                attrs = WV_ON;
+
+//$$$
+                status = ocsmGetTessVel(MODL, ibody, OCSM_NODE, inode, (const double**)(&vel));
+                CHECK_STATUS(ocsmGetTessVel);
+
+                SPLINT_CHECK_FOR_NULL(vel);
+
+                /* create tuft */
+                MALLOC(tuft, float, 6);
+
+                tuft[0] = MODL->body[ibody].node[inode].x;
+                tuft[1] = MODL->body[ibody].node[inode].y;
+                tuft[2] = MODL->body[ibody].node[inode].z;
+                tuft[3] = MODL->body[ibody].node[inode].x + vel[0];
+                tuft[4] = MODL->body[ibody].node[inode].y + vel[1];
+                tuft[5] = MODL->body[ibody].node[inode].z + vel[2];
+
+                status = wv_setData(WV_REAL32, 2, (void*)tuft, WV_VERTICES, &(items[nitems]));
+
+                FREE(tuft);
+
+                if (status != SUCCESS) {
+                    SPRINT3(0, "ERROR:: wv_setData(%d,%d) -> status=%d", ibody, iedge, status);
+                }
+
+                wv_adjustVerts(&(items[nitems]), ESP->sgFocus);
+                nitems++;
+
+                /* tuft color */
+                color[0] = 1;   color[1] = 0;   color[2] = 1;
+                status = wv_setData(WV_REAL32, 1, (void*)color, WV_COLORS, &(items[nitems]));
+                if (status != SUCCESS) {
+                    SPRINT3(0, "ERROR:: wv_setData(%d,%d) -> status=%d", ibody, iedge, status);
+                }
+                nitems++;
+
+                /* make graphic primitive for tufts */
+                igprim = wv_addGPrim(cntxt, gpname, WV_LINE, attrs, nitems, items);
+                if (igprim < 0) {
+                    SPRINT2(0, "ERROR:: wv_addGPrim(%s) -> igprim=%d", gpname, igprim);
+                }
+
+            }
+
             /* add Node to meta data (if there is room) */
             if (nattr > 0) {
                 addToSgMetaData("\"%s\":[",  gpname);
@@ -4047,6 +4648,27 @@ buildSceneGraph(esp_T  *ESP)
         while (1) {
             if (fscanf(fp, "%d %d %s", &imax, &jmax, temp) != 3) break;
 
+            /* set up the color */
+            color[0] = 0;   color[1] = 0;   color[2] = 0;
+            if (temp[strlen(temp)-2] == '|') {
+                if        (temp[strlen(temp)-1] == 'r') {
+                    color[0] = 1;
+                } else if (temp[strlen(temp)-1] == 'g') {
+                    color[1] = 1;
+                } else if (temp[strlen(temp)-1] == 'b') {
+                    color[2] = 1;
+                } else if (temp[strlen(temp)-1] == 'c') {
+                    color[1] = 1;   color[2] = 1;
+                } else if (temp[strlen(temp)-1] == 'm') {
+                    color[0] = 1;   color[2] = 1;
+                } else if (temp[strlen(temp)-1] == 'y') {
+                    color[0] = 1;   color[1] = 1;
+                } else if (temp[strlen(temp)-1] == 'w') {
+                    color[0] = 1;   color[1] = 1;   color[2] = 1;
+                }
+                temp[strlen(temp)-2] = '\0';
+            }
+
             /* points (imax=npts, jmax=0) */
             if (imax > 0 && jmax == 0) {
                 SPRINT2(1, "    plotting %d points (%s)", imax, temp);
@@ -4076,7 +4698,6 @@ buildSceneGraph(esp_T  *ESP)
                 nitems++;
 
                 /* point color */
-                color[0] = 0;   color[1] = 0;   color[2] = 0;
                 status = wv_setData(WV_REAL32, 1, (void*)color, WV_COLORS, &(items[nitems]));
                 if (status != SUCCESS) {
                     SPRINT1(0, "ERROR:: wv_setData(color) -> status=%d", status);
@@ -4091,7 +4712,7 @@ buildSceneGraph(esp_T  *ESP)
                 } else {
                     SPLINT_CHECK_FOR_NULL(cntxt->gPrims);
 
-                    cntxt->gPrims[igprim].pSize = 3.0;
+                    cntxt->gPrims[igprim].pSize = 5.0;
                 }
 
                 /* add plotdata to meta data (if there is room) */
@@ -4143,7 +4764,6 @@ buildSceneGraph(esp_T  *ESP)
                 nitems++;
 
                 /* line color */
-                color[0] = 0;   color[1] = 0;   color[2] = 0;
                 status = wv_setData(WV_REAL32, 1, (void*)color, WV_COLORS, &(items[nitems]));
                 if (status != SUCCESS) {
                     SPRINT1(0, "ERROR:: wv_setData(color) -> status=%d", status);
@@ -4195,7 +4815,6 @@ buildSceneGraph(esp_T  *ESP)
                 nitems++;
 
                 /* line color */
-                color[0] = 0;   color[1] = 0;   color[2] = 0;
                 status = wv_setData(WV_REAL32, 1, (void*)color, WV_COLORS, &(items[nitems]));
                 if (status != SUCCESS) {
                     SPRINT1(0, "ERROR:: wv_setData(color) -> status=%d", status);
@@ -4249,15 +4868,7 @@ buildSceneGraph(esp_T  *ESP)
                 wv_adjustVerts(&(items[nitems-1]), ESP->sgFocus);
 
                 /* triangle colors */
-                color[0] = 0;   color[1] = 1;   color[2] = 1;
                 status = wv_setData(WV_REAL32, 1, (void*)color, WV_COLORS, &(items[nitems++]));
-                if (status != SUCCESS) {
-                    SPRINT1(0, "ERROR:: wv_setData(color) -> status=%d", status);
-                }
-
-                /* triangle back colors */
-                color[0] = 0;   color[1] = 0.5;   color[2] = 0.5;
-                status = wv_setData(WV_REAL32, 1, (void*)color, WV_BCOLOR, &(items[nitems++]));
                 if (status != SUCCESS) {
                     SPRINT1(0, "ERROR:: wv_setData(color) -> status=%d", status);
                 }
@@ -4283,7 +4894,6 @@ buildSceneGraph(esp_T  *ESP)
                 FREE(segs);
 
                 /* triangle side color */
-                color[0] = 1;   color[1] = 0;   color[2] = 0;
                 status = wv_setData(WV_REAL32, 1, (void*)color, WV_LCOLOR, &(items[nitems++]));
                 if (status != SUCCESS) {
                     SPRINT1(0, "ERROR:: wv_setData(color) -> status=%d", status);
@@ -4495,7 +5105,6 @@ buildSceneGraph(esp_T  *ESP)
                 nitems++;
 
                 /* grid color */
-                color[0] = 0;   color[1] = 0;   color[2] = 0;
                 status = wv_setData(WV_REAL32, 1, (void*)color, WV_COLORS, &(items[nitems]));
                 if (status != SUCCESS) {
                     SPRINT1(0, "ERROR:: wv_setData(color) -> status=%d", status);
@@ -4886,6 +5495,10 @@ buildSceneGraph(esp_T  *ESP)
     addToSgMetaData("}");
 
 cleanup:
+
+    /* release the mutex so that another thread can access the scene graph */
+    EMP_LockRelease(ESP->sgMutex);
+
     if (enodes != NULL) EG_free(enodes);
     if (eedges != NULL) EG_free(eedges);
     if (efaces != NULL) EG_free(efaces);
@@ -4936,6 +5549,10 @@ buildSceneGraphBody(esp_T  *ESP,
     ROUTINE(buildSceneGraphBody);
 
     /* --------------------------------------------------------------- */
+
+    /* set the mutex.  if the mutex wss already set, wait until released */
+    SPLINT_CHECK_FOR_NULL(ESP);
+    EMP_LockSet(ESP->sgMutex);
 
     /* remove any graphic primitives that already exist */
     wv_removeAll(cntxt);
@@ -5283,6 +5900,10 @@ buildSceneGraphBody(esp_T  *ESP,
     }
 
 cleanup:
+
+    /* release the mutex so that another thread can access the scene graph */
+    EMP_LockRelease(ESP->sgMutex);
+
     return status;
 }
 
@@ -5684,14 +6305,14 @@ processBrowserToServer(esp_T   *ESP,
     int       status = SUCCESS;
 
     int       i, ibrch, itype, nlist, builtTo, buildStatus, ichar, iundo;
-    int       ipmtr, jpmtr, nrow, ncol, irow, icol, index, iattr, actv, itemp;
+    int       ipmtr, jpmtr, nrow, ncol, irow, icol, index, iattr, actv, itemp, linenum;
     int       itoken1, itoken2, itoken3, ibody, onstack, direction=1, nwarn;
     int       my_length = 4096;
     int       nclient;
     CINT      *tempIlist;
     double    scale, value, dot;
     CDOUBLE   *tempRlist;
-    char      *pEnd, bname[MAX_NAME_LEN+1];
+    char      *pEnd, bname[MAX_NAME_LEN+1], *bodyinfo=NULL;
     CCHAR     *tempClist;
 
     char      *name=NULL,   *type=NULL, *valu=NULL;
@@ -5759,7 +6380,11 @@ processBrowserToServer(esp_T   *ESP,
         SPRINT0(1, "********************************************");
 
         /* build the response */
-        snprintf(response, max_resp_len, "identify|serveESP|%d|%s|", nclient, pyname);
+        if (strlen(capsname) == 0) {
+            snprintf(response, max_resp_len, "identify|serveESP|%d|%s|||", nclient, pyname);
+        } else {
+            snprintf(response, max_resp_len, "identify|serveCAPS|%d|%s|%s|%s|", nclient, pyname, capsProj, capsPhase);
+        }
         response_len = STRLEN(response);
 
     /* "userName|name|passTo|" */
@@ -6075,7 +6700,7 @@ processBrowserToServer(esp_T   *ESP,
             addToResponse("]");
         }
 
-    /* "newPmtr|name|nrow|ncol|value1| ..." */
+    /* "newPmtr|name|nrow|ncol|value1|..." */
     } else if (strncmp(text, "newPmtr|", 8) == 0) {
 
         /* write journal entry */
@@ -6126,7 +6751,7 @@ processBrowserToServer(esp_T   *ESP,
         status = ocsmSave(MODL, "autosave.csm");
         SPRINT1(2, "ocsmSave(autosave.csm) -> status=%d", status);
 
-    /* "setPmtr|pmtrname|irow|icol|value1| " */
+    /* "setPmtr|name|irow|icol|value| " */
     } else if (strncmp(text, "setPmtr|", 8) == 0) {
 
         /* write journal entry */
@@ -6463,6 +7088,11 @@ processBrowserToServer(esp_T   *ESP,
                 }
                 addToResponse(entry);
             }
+
+            if (MODL->nbrch == 0) {
+                snprintf(entry, MAX_STR_LEN, "]");
+                addToResponse(entry);
+            }
         }
 
     /* "newBrch|ibrch|type|arg1|arg2|arg3|arg4|arg5|arg6|arg7|arg8|arg9|" */
@@ -6754,6 +7384,202 @@ processBrowserToServer(esp_T   *ESP,
         status = ocsmSave(MODL, "autosave.csm");
         SPRINT1(2, "ocsmSave(autosave.csm) -> status=%d", status);
 
+#ifdef USING_CAPS
+    /* "getCvals|" */
+    } else if (strncmp(text, "getCvals|", 9) == 0) {
+        int            icval, ncval, nerror;
+        const int      *partial;
+        const double   *reals;
+        char           *name2;
+        const char     *units;
+        const void     *data;
+        capsObj        cValue, link, parent;
+        capsErrs       *errors;
+        enum capsoType otype;
+        enum capssType stype;
+        enum capsvType vtype;
+        capsOwn        last;
+
+        /* build the response in JSON format */
+        status = caps_size(ESP->CAPS, VALUE, PARAMETER, &ncval, &nerror, &errors);
+        (void) caps_printErrors(NULL, nerror, errors);
+//$$$        printf("caps_size -> status=%d, ncval=%d, nerror=%d\n", status, ncval, nerror);
+        CHECK_STATUS(caps_size);
+
+        if (ncval > 0) {
+            snprintf(response, max_resp_len, "getCvals|[");
+        } else {
+            snprintf(response, max_resp_len, "getCvals|");
+        }
+        response_len = STRLEN(response);
+
+        for (icval = 1; icval <= ncval; icval++) {
+            status = caps_childByIndex(ESP->CAPS, VALUE, PARAMETER, icval, &cValue);
+//$$$            printf("caps_childByIndex(%d) -> status=%d\n", icval, status);
+            CHECK_STATUS(caps_childByIndex);
+
+            status = caps_info(cValue, &name2, &otype, &stype, &link, &parent, &last);
+//$$$            printf("caps_info -> status=%d\n", status);
+            CHECK_STATUS(caps_info);
+
+            status = caps_getValue(cValue, &vtype, &nrow, &ncol, &data, &partial, &units, &nerror, &errors);
+            (void) caps_printErrors(NULL, nerror, errors);
+//$$$            printf("caps_getValue -> status=%d, nerror=%d\n", status, nerror);
+            CHECK_STATUS(caps_getValue);
+            
+            reals = data;
+
+            snprintf(entry, MAX_STR_LEN, "{\"name\":\"%s\",\"nrow\":%d,\"ncol\":%d,\"value\":[",
+                     name2, nrow, ncol);
+            addToResponse(entry);
+
+            for (i = 0; i < nrow*ncol-1; i++) {
+                snprintf(entry, MAX_STR_LEN, "%lg,", reals[i]);
+                addToResponse(entry);
+            }
+            if (icval < ncval) {
+                snprintf(entry, MAX_STR_LEN, "%lg]},", reals[nrow*ncol-1]);
+            } else {
+                snprintf(entry, MAX_STR_LEN, "%lg]}]", reals[nrow*ncol-1]);
+            }
+            addToResponse(entry);
+        }
+//$$$        printf("serverToBrowser(%s)\n", response);
+
+    /* "newCval|name|nrow|ncol|units|value1|..." */
+    } else if (strncmp(text, "newCval|", 8) == 0) {
+        double  *cvals=NULL;
+        char    units[MAX_EXPR_LEN];
+        capsObj cValue;
+
+        /* write journal entry */
+        if (jrnl_out != NULL) {
+            fprintf(jrnl_out, "%s\n", text);
+            fflush( jrnl_out);
+        }
+
+        /* extract arguments */
+        nrow = 0;
+        ncol = 0;
+
+        if (getToken(text,  1, '|', name ) == 0) name[0] = '\0';
+        if (getToken(text,  2, '|', arg1 )     ) nrow = strtol(arg1, &pEnd, 10);
+        if (getToken(text,  3, '|', arg2 )     ) ncol = strtol(arg2, &pEnd, 10);
+        if (getToken(text,  4, '|', units) == 0) units[0] = '\0';
+//$$$        printf("text =%s\n", text);
+//$$$        printf("name =%s\n", name);
+//$$$        printf("nrow= %d\n", nrow);
+//$$$        printf("ncol =%d\n", ncol);
+//$$$        printf("units=%s\n", units);
+
+        MALLOC(cvals, double, nrow*ncol);
+
+        i = 5;
+        for (irow = 1; irow <= nrow; irow++) {
+            for (icol = 1; icol <= ncol; icol++) {
+                if (getToken(text, i, '|', arg4)) {
+                    cvals[i-5] = atof(arg4);
+                }
+
+                i++;
+            }
+        }
+
+        /* build the response */
+        if (strcmp(units, ".") == 0) {
+            status = caps_makeValue(ESP->CAPS, name, PARAMETER, Double, nrow, ncol, cvals, NULL, "",    &cValue);
+        } else {
+            status = caps_makeValue(ESP->CAPS, name, PARAMETER, Double, nrow, ncol, cvals, NULL, units, &cValue);
+        }
+//$$$        printf("caps_makeValue -> status=%d\n", status);
+        if (status == SUCCESS) {
+            snprintf(response, max_resp_len, "newCval|");
+        } else {
+            snprintf(response, max_resp_len, "ERROR:: newCval(%s,%s,%s,%s) detected: %d",
+                     name, arg1, arg2, arg3, status);
+        }
+        response_len = STRLEN(response);
+
+        FREE(cvals);
+//$$$        printf("serverToBrowser(%s)\n", response);
+
+    /* "setCval|name|irow|icol|value| " */
+    } else if (strncmp(text, "setCval|", 8) == 0) {
+        int            icval, nerror;
+        const int      *partial;
+        enum capsvType vtype;
+        double         *cvals_new=NULL;
+        const double   *cvals_old;
+        const void     *data;
+        const char     *units;
+        capsObj        cValue;
+        capsErrs       *errors;
+
+        /* write journal entry */
+        if (jrnl_out != NULL) {
+            fprintf(jrnl_out, "%s\n", text);
+            fflush( jrnl_out);
+        }
+
+        /* extract arguments */
+        irow  = 0;
+        icol  = 0;
+
+        getToken(text, 1, '|', arg1);
+        if (getToken(text, 2, '|', arg2)) irow  = strtol(arg2, &pEnd, 10);
+        if (getToken(text, 3, '|', arg3)) icol  = strtol(arg3, &pEnd, 10);
+        getToken(text, 4, '|', arg4);
+
+        status = caps_childByName(ESP->CAPS, VALUE, PARAMETER, arg1, &cValue, &nerror, &errors);
+//$$$        printf("caps_childByName -> status=%d, nerror=%d\n", status, nerror);
+        if (status < SUCCESS) {
+            (void) caps_printErrors(NULL, nerror, errors);
+            snprintf(response, max_resp_len, "setCval|ERROR:: caps_childByName -> status=%d", status);
+        }
+
+        if (nerror == 0) {
+            /*@-nullpass@*/
+            status = caps_getValue(cValue, &vtype, &nrow, &ncol, &data, &partial, &units, &nerror, &errors);
+            /*@+nullpass@*/
+//$$$            printf("caps_getValue -> status=%d, nerror=%d\n", status, nerror);
+            cvals_old = data;
+            if (status < SUCCESS) {
+                (void) caps_printErrors(NULL, nerror, errors);
+                snprintf(response, max_resp_len, "setCval|ERROR:: caps_getValue -> status=%d", status);
+            }
+        }
+
+        if (nerror == 0) {
+            MALLOC(cvals_new, double, nrow*ncol);
+
+            for (icval = 0; icval < nrow*ncol; icval++) {
+                cvals_new[icval] = cvals_old[icval];
+            }
+
+            if        (irow < 1 || irow > nrow) {
+                snprintf(response, max_resp_len, "setCval|ERROR:: illegal irow (%d) value", irow);
+            } else if (icol < 1 || icol > ncol) {
+                snprintf(response, max_resp_len, "setCval|ERROR:: illegal icol (%d) value", icol);
+            } else {
+                icval = (irow-1) * ncol + (icol-1);
+                cvals_new[icval] = atof(arg4);
+
+                status = caps_setValue(cValue, vtype, nrow, ncol, cvals_new, NULL, units, &nerror, &errors);
+//$$$                printf("caps_setValue -> status=%d, nerror=%d\n", status, nerror);
+                if (status < SUCCESS) {
+                    (void) caps_printErrors(NULL, nerror, errors);
+                    snprintf(response, max_resp_len, "setCval|ERROR:: caps_setValue -> status=%d", status);
+                } else {
+                    snprintf(response, max_resp_len, "setCval|");
+                }
+            }
+        }
+        response_len = STRLEN(response);
+
+        FREE(cvals_new);
+//$$$        printf("serverToBrowser(%s)\n", response);
+#endif
+
     /* "undo|" */
     } else if (strncmp(text, "undo|", 5) == 0) {
 
@@ -6828,14 +7654,14 @@ processBrowserToServer(esp_T   *ESP,
         }
 
         status = ocsmRegMesgCB(MODL, mesgCallbackFromOpenCSM);
-        if (status < EGADS_SUCCESS) goto cleanup;
+        if (status < SUCCESS) goto cleanup;
 
         status = ocsmRegSizeCB(MODL, sizeCallbackFromOpenCSM);
-        if (status < EGADS_SUCCESS) goto cleanup;
+        if (status < SUCCESS) goto cleanup;
 
         if (strlen(despname) > 0) {
             status = ocsmUpdateDespmtrs(MODL, despname);
-            if (status < EGADS_SUCCESS) goto cleanup;
+            if (status < SUCCESS) goto cleanup;
         }
 
         status = buildBodys(ESP, 0, &builtTo, &buildStatus, &nwarn);
@@ -6890,23 +7716,23 @@ processBrowserToServer(esp_T   *ESP,
             }
 
             status = ocsmRegMesgCB(MODL, mesgCallbackFromOpenCSM);
-            if (status < EGADS_SUCCESS) goto cleanup;
+            if (status < SUCCESS) goto cleanup;
 
             status = ocsmRegSizeCB(MODL, sizeCallbackFromOpenCSM);
-            if (status < EGADS_SUCCESS) goto cleanup;
+            if (status < SUCCESS) goto cleanup;
 
             if (strlen(despname) > 0) {
                 status = ocsmUpdateDespmtrs(MODL, despname);
-                if (status < EGADS_SUCCESS) goto cleanup;
+                if (status < SUCCESS) goto cleanup;
             }
 
             /* apply and free up a saved MODL (if it exists) */
             if (saved_MODL != NULL) {
                 status = updateModl(saved_MODL, MODL);
-                if (status < EGADS_SUCCESS) goto cleanup;
+                if (status < SUCCESS) goto cleanup;
 
                 status = ocsmFree(saved_MODL);
-                if (status < EGADS_SUCCESS) goto cleanup;
+                if (status < SUCCESS) goto cleanup;
             }
 
             status = buildBodys(ESP, 0, &builtTo, &buildStatus, &nwarn);
@@ -7085,18 +7911,18 @@ processBrowserToServer(esp_T   *ESP,
             }
 
             status = ocsmRegMesgCB(MODL, mesgCallbackFromOpenCSM);
-            if (status < EGADS_SUCCESS) goto cleanup;
+            if (status < SUCCESS) goto cleanup;
 
             status = ocsmRegSizeCB(MODL, sizeCallbackFromOpenCSM);
-            if (status < EGADS_SUCCESS) goto cleanup;
+            if (status < SUCCESS) goto cleanup;
 
             if (strlen(despname) > 0) {
                 status = ocsmUpdateDespmtrs(MODL, despname);
-                if (status < EGADS_SUCCESS) goto cleanup;
+                if (status < SUCCESS) goto cleanup;
             }
 
             status = updateModl(saved_MODL, MODL);
-            if (status < EGADS_SUCCESS) goto cleanup;
+            if (status < SUCCESS) goto cleanup;
 
             snprintf(response, max_resp_len, "load|");
         }
@@ -7189,6 +8015,34 @@ processBrowserToServer(esp_T   *ESP,
         status = buildBodys(ESP, ibrch, &builtTo, &buildStatus, &nwarn);
 
         goto cleanup;
+
+    /* "getBodyDetails|filename|linenum||" */
+    } else if (strncmp(text, "getBodyDetails|", 15) == 0) {
+
+        /* extract arguments */
+        linenum = 0;
+        getToken(text, 1, '|', arg1);
+        if (getToken(text, 2, '|', arg2)) linenum = strtol(arg2, &pEnd, 10);
+
+        status = ocsmBodyDetails(MODL, arg1, linenum, &bodyinfo);
+
+        SPLINT_CHECK_FOR_NULL(bodyinfo);
+
+        if (status == SUCCESS) {
+            itemp = 25 + STRLEN(bodyinfo);
+
+            if (itemp > max_resp_len) {
+                max_resp_len = itemp + 1;
+
+                RALLOC(response, char, max_resp_len+1);
+            }
+
+            /* build the response */
+            snprintf(response, max_resp_len, "getBodyDetails|%s|%d|%s|", arg1, linenum, bodyinfo);
+            response_len = STRLEN(response);
+        }
+
+        FREE(bodyinfo);
 
     /* "loadSketch|" */
     } else if (strncmp(text, "loadSketch|", 11) == 0) {
@@ -7443,6 +8297,232 @@ processBrowserToServer(esp_T   *ESP,
             response_len = STRLEN(response);
         }
 
+    /* "editor|...|" */
+    } else if (strncmp(text, "editor|", 7) == 0) {
+        snprintf(response, max_resp_len, "%s", text);
+        response_len = STRLEN(response);
+
+#ifdef USING_CAPS
+    /* "caps|command|args...|" */
+    } else if (strncmp(text, "caps|", 5) == 0) {
+
+        /* extract argument */
+        getToken(text, 1, '|', arg1);
+
+        /* "caps|commit|" */
+        if (strcmp(arg1, "commit") == 0) {
+            int      irev, idot, nerror;
+            char     newPhase[MAX_FILENAME_LEN], parentName[MAX_FILENAME_LEN], tempFile[MAX_FILENAME_LEN];
+            capsErrs *errors;
+            FILE     *parent_fp;
+
+            /* close the current Phase */
+            status = caps_close(capsProject, 1, NULL);
+//$$$            printf("caps_close -> status=%d\n", status);
+            if (status < SUCCESS) goto cleanup;
+
+            /* get new Phase name by incrementing the revision */
+            ibrch = 0;
+            irev  = 0;
+            idot  = 0;
+            for (i = 0; i < strlen(capsPhase); i++) {
+                if (capsPhase[i] == '.') {
+                    idot = 1;
+                } else if (idot == 0) {
+                    ibrch = 10 * ibrch + capsPhase[i] - '0';
+                } else {
+                    irev  = 10 * irev  + capsPhase[i] - '0';
+                }
+            }
+            snprintf(newPhase, MAX_FILENAME_LEN, "%d.%d", ibrch, irev+1);
+//$$$            printf("capsPhase=%s\n", capsPhase);
+//$$$            printf("newPhase =%s\n", newPhase );
+
+            /* reopen with the new Phase */
+            status = caps_open(capsProj, newPhase, 3, capsPhase, 1, &capsProject, &nerror, &errors);
+//$$$            printf("caps_open -> status=%d\n", status);
+            (void) caps_printErrors(NULL, nerror, errors);
+            if (status < SUCCESS) goto cleanup;
+
+            strcpy(parentName, capsPhase);
+            strcpy(capsPhase,  newPhase);
+
+            /* write the parent file */
+            snprintf(tempFile, MAX_FILENAME_LEN, "%s/%s/parent.txt", capsProj, capsPhase);
+            parent_fp = fopen(tempFile, "w");
+            if (parent_fp != NULL) {
+                fprintf(parent_fp, "%s\n", parentName);
+                fclose(parent_fp);
+            }
+
+            /* save the pointer to CAPS and the MODL */
+            ESP->CAPS = (capsObj)capsProject;
+            SPLINT_CHECK_FOR_NULL(ESP->CAPS);
+            ESP->MODL = ((capsProblem*) (capsProject->blind))->modl;
+
+            /* create response */
+            snprintf(response, max_resp_len, "caps|%s|", capsPhase);
+            response_len = STRLEN(response);
+
+        /* "caps|revert|" */
+        } else if (strcmp(arg1, "revert") == 0) {
+            int      nerror;
+            char     tempFile[MAX_FILENAME_LEN], parentName[MAX_FILENAME_LEN];
+            FILE     *parent_fp;
+            capsErrs *errors;
+
+            /* find the parent Phase */
+            snprintf(tempFile, MAX_FILENAME_LEN, "%s/%s/parent.txt", capsProj, capsPhase);
+//$$$            printf("tempFile=%s\n", tempFile);
+            parent_fp = fopen(tempFile, "r");
+            if (parent_fp != NULL) {
+                fscanf(parent_fp, "%s", parentName);
+                fclose(parent_fp);
+            }
+//$$$            printf("parentName=%s\n", parentName);
+//$$$            printf("capsPhase =%s\n", capsPhase);
+
+            /* close the current Phase (with remove flag on) */
+            status = caps_close(capsProject, -1, NULL);
+//$$$            printf("caps_close -> status=%d\n", status);
+            if (status < SUCCESS) goto cleanup;
+
+            /* reopen with the new Phase (with the same name as before) */
+            if (strlen(filename) > 0) {
+                status = caps_open(capsProj, capsPhase, 5, parentName, 1, &capsProject, &nerror, &errors);
+//$$$                printf("caps_open -> status=%d\n", status);
+                (void) caps_printErrors(NULL, nerror, errors);
+                if (status < SUCCESS) goto cleanup;
+            } else {
+                status = caps_open(capsProj, capsPhase, 3, parentName, 1, &capsProject, &nerror, &errors);
+//$$$                printf("caps_open -> status=%d\n", status);
+                (void) caps_printErrors(NULL, nerror, errors);
+                if (status < SUCCESS) goto cleanup;
+            }
+
+            /* write the parent file */
+            snprintf(tempFile, MAX_FILENAME_LEN, "%s/%s/parent.txt", capsProj, capsPhase);
+            parent_fp = fopen(tempFile, "w");
+            if (parent_fp != NULL) {
+                fprintf(parent_fp, "%s\n", parentName);
+                fclose(parent_fp);
+            }
+
+            /* save the pointer to CAPS and the MODL */
+            ESP->CAPS = (capsObj)capsProject;
+            SPLINT_CHECK_FOR_NULL(ESP->CAPS);
+            ESP->MODL = ((capsProblem*) (capsProject->blind))->modl;
+
+            /* create response */
+            snprintf(response, max_resp_len, "caps|%s|", capsPhase);
+            response_len = STRLEN(response);
+
+        /* "caps|listPhases|" */
+        } else if (strcmp(arg1, "listPhases") == 0) {
+            int      irev;
+            char     tempFile[MAX_FILENAME_LEN], parentName[MAX_FILENAME_LEN];
+            FILE     *parent_fp;
+
+            snprintf(response, max_resp_len, "caps|listPhases|List of Phases for Project \"%s\"\n", capsProj);
+            response_len = STRLEN(response);
+
+            for (ibrch = 1; ibrch < 1000; ibrch++) {
+                for (irev = 1; irev < 1000; irev++) {
+                    snprintf(tempFile, MAX_FILENAME_LEN, "%s/%d.%d", capsProj, ibrch, irev);
+                    status = caps_statFile(tempFile);
+                    if (status != EGADS_OUTSIDE) break;
+
+                    snprintf(tempFile, MAX_FILENAME_LEN, "%s/%d.%d/parent.txt", capsProj, ibrch, irev);
+                    parent_fp = fopen(tempFile, "r");
+                    if (parent_fp != NULL) {
+                        fscanf(parent_fp, "%s", parentName);
+                        fclose(parent_fp);
+                    }
+
+                    snprintf(tempFile, MAX_FILENAME_LEN, "%d.%d", ibrch, irev);
+
+                    if (strcmp(tempFile, capsPhase) == 0) {
+                        if (ibrch == 1 && irev == 1) {
+                            snprintf(tempFile, MAX_FILENAME_LEN, "* Phase %2d.%-2d\n", ibrch, irev);
+                        } else {
+                            snprintf(tempFile, MAX_FILENAME_LEN, "* Phase %2d.%-2d    (from parent %s)\n", ibrch, irev, parentName);
+                        }
+                    } else {
+                        if (ibrch == 1 && irev == 1) {
+                            snprintf(tempFile, MAX_FILENAME_LEN, "  Phase %2d.%-2d\n", ibrch, irev);
+                        } else {
+                            snprintf(tempFile, MAX_FILENAME_LEN, "  Phase %2d.%-2d    (from parent %s)\n", ibrch, irev, parentName);
+                        }
+                    }
+                    addToResponse(tempFile);
+                }
+                if (status != EGADS_OUTSIDE && irev == 1) break;
+            }
+
+        /* "caps|listAnalyses|" */
+        } else if (strcmp(arg1, "listAnalyses") == 0) {
+            int            nanal, ianal, nerror;
+            char           tempFile[MAX_FILENAME_LEN];
+            enum capsoType otype;
+            enum capssType stype;
+            capsObj        capsAnal, link, parent;
+            capsOwn        last;
+            capsErrs       *errors;
+
+            snprintf(response, max_resp_len, "caps|listAnalyses|List of Analysis objects for Project \"%s\"\n", capsProj);
+            response_len = STRLEN(response);
+
+            status = caps_size(capsProject, ANALYSIS, NONE, &nanal, &nerror, &errors);
+            (void) caps_printErrors(NULL, nerror, errors);
+//$$$            printf("caps_size -> status=%d, nanal=%d\n", status, nanal);    
+            if (status < SUCCESS) goto cleanup;
+            
+            for (ianal = 1; ianal <= nanal; ianal++) {
+                status = caps_childByIndex(capsProject, ANALYSIS, NONE, ianal, &capsAnal);
+//$$$                printf("caps_getChildByIndex(%d) -> status=%d\n", ianal, status);
+                if (status < SUCCESS) goto cleanup;
+
+                status = caps_info(capsAnal, &name, &otype, &stype, &link, &parent, &last);
+//$$$                printf("caps_info -> status=%d\n", status);
+                if (status < SUCCESS) goto cleanup;
+
+                snprintf(tempFile, MAX_FILENAME_LEN, "  Analysis %2d: %s\n", ianal, name);
+                addToResponse(tempFile);
+            }
+
+        /* "caps|listBounds|" */
+        } else if (strcmp(arg1, "listBounds") == 0) {
+            int            nbound, ibound, nerror;
+            char           tempFile[MAX_FILENAME_LEN];
+            enum capsoType otype;
+            enum capssType stype;
+            capsObj        capsBound, link, parent;
+            capsOwn        last;
+            capsErrs       *errors;
+
+            snprintf(response, max_resp_len, "caps|listBounds|List of Bound objects for Project \"%s\"\n", capsProj);
+            response_len = STRLEN(response);
+
+            status = caps_size(capsProject, BOUND, NONE, &nbound, &nerror, &errors);
+            (void) caps_printErrors(NULL, nerror, errors);
+//$$$            printf("caps_size -> status=%d, nbound=%d\n", status, nbound);
+            if (status < SUCCESS) goto cleanup;
+            
+            for (ibound = 1; ibound <= nbound; ibound++) {
+                status = caps_childByIndex(capsProject, BOUND, NONE, ibound, &capsBound);
+//$$$                printf("caps_getChildByIndex(%d) -> status=%d\n", ibound, status);
+                if (status < SUCCESS) goto cleanup;
+
+                status = caps_info(capsBound, &name, &otype, &stype, &link, &parent, &last);
+//$$$                printf("caps_info -> status=%d\n", status);
+                if (status < SUCCESS) goto cleanup;
+
+                snprintf(tempFile, MAX_FILENAME_LEN, "  Bound %2d: %s\n", ibound, name);
+                addToResponse(tempFile);
+            }
+        }
+#endif
+
     /* "timLoad|timname|arg|" */
     } else if (strncmp(text, "timLoad|", 8) == 0) {
 
@@ -7452,20 +8532,23 @@ processBrowserToServer(esp_T   *ESP,
             fflush( jrnl_out);
         }
 
+        response[0]  = '\0';
+        response_len = 0;
+
         /* extract arguments */
         getToken(text, 1, '|', arg1);
         getToken(text, 2, '|', arg2);
 
         /* load the tim */
         status = tim_load(arg1, ESP, arg2);
+        if (status < SUCCESS) goto cleanup;
 
-        if (status < EGADS_SUCCESS) {
-            snprintf(response, max_resp_len, "%sERROR:: %s", text, ocsmGetText(status));
-        } else {
-            snprintf(response, max_resp_len, "%s", text);
-        }
+        /* reset the callbacks in case in was changed */
+        status = ocsmRegMesgCB(MODL, mesgCallbackFromOpenCSM);
+        if (status < SUCCESS) goto cleanup;
 
-        response_len = STRLEN(response);
+        status = ocsmRegSizeCB(MODL, sizeCallbackFromOpenCSM);
+        if (status < SUCCESS) goto cleanup;
 
     /* "timMesg|timname|...|" */
     } else if (strncmp(text, "timMesg|", 8) == 0) {
@@ -7475,6 +8558,9 @@ processBrowserToServer(esp_T   *ESP,
             fprintf(jrnl_out, "%s\n", text);
             fflush( jrnl_out);
         }
+
+        response[0]  = '\0';
+        response_len = 0;
 
         /* extract argument */
         getToken(text, 1, '|', arg1);
@@ -7486,17 +8572,15 @@ processBrowserToServer(esp_T   *ESP,
 
         MALLOC(my_response, char, my_length);
 
-        status = tim_mesg(arg1, &text[i+1], &my_length, &my_response);
+        status = tim_mesg(arg1, &text[i+1]);
+        if (status < SUCCESS) goto cleanup;
 
-        if (status < EGADS_SUCCESS) {
-            snprintf(response, max_resp_len, "timMesg|%sERROR:: %s", text, ocsmGetText(status));
-        } else {
-            snprintf(response, max_resp_len, "timMesg|%s|%s|", arg1, my_response);
-        }
+        /* reset the callbacks in case they were changed */
+        status = ocsmRegMesgCB(MODL, mesgCallbackFromOpenCSM);
+        if (status < SUCCESS) goto cleanup;
 
-        FREE(my_response);
-
-        response_len = STRLEN(response);
+        status = ocsmRegSizeCB(MODL, sizeCallbackFromOpenCSM);
+        if (status < SUCCESS) goto cleanup;
 
     /* "timSave|timname|" */
     } else if (strncmp(text, "timSave|", 8) == 0) {
@@ -7507,17 +8591,14 @@ processBrowserToServer(esp_T   *ESP,
             fflush( jrnl_out);
         }
 
+        response[0]  = '\0';
+        response_len = 0;
+
+        /* extract argument */
         getToken(text, 1, '|', arg1);
 
         status = tim_save(arg1);
-
-        if (status < EGADS_SUCCESS) {
-            snprintf(response, max_resp_len, "%sERROR:: %s", text, ocsmGetText(status));
-        } else {
-            snprintf(response, max_resp_len, "%s", text);
-        }
-
-        response_len = STRLEN(response);
+        if (status < SUCCESS) goto cleanup;
 
     /* "timQuit|timname|" */
     } else if (strncmp(text, "timQuit|", 8) == 0) {
@@ -7528,17 +8609,14 @@ processBrowserToServer(esp_T   *ESP,
             fflush( jrnl_out);
         }
 
+        response[0]  = '\0';
+        response_len = 0;
+
+        /* extract argument */
         getToken(text, 1, '|', arg1);
 
         status = tim_quit(arg1);
-
-        if (status < EGADS_SUCCESS) {
-            snprintf(response, max_resp_len, "%sERROR:: %s", text, ocsmGetText(status));
-        } else {
-            snprintf(response, max_resp_len, "%s", text);
-        }
-
-        response_len = STRLEN(response);
+        if (status < SUCCESS) goto cleanup;
 
     /* "timDraw|" */
     } else if (strncmp(text, "timDraw|timName|", 8) == 0) {
@@ -7547,10 +8625,12 @@ processBrowserToServer(esp_T   *ESP,
 
         buildSceneGraph(ESP);
 
-        snprintf(response, max_resp_len, "%s", text);
+    /* "overlayEnd|timName|" */
+    } else if (strncmp(text, "overlayEnd|", 11) == 0) {
 
-        response_len = STRLEN(response);
+        getToken(text, 1, '|', arg1);
 
+        tim_lift(arg1);
     }
 
     status = SUCCESS;
@@ -7616,12 +8696,6 @@ sizeCallbackFromOpenCSM(void   *modl,   /* (in)  pointer to MODL */
     if (ipmtr >= 1 && ipmtr <= MODL->npmtr) {
         SPRINT3(2, "Size of %s changed to (%d,%d)", MODL->pmtr[ipmtr].name, nrow, ncol);
     }
-
-    /* no further processor if webViewer is not up yet */
-//$$$    if (cntxt == NULL) {
-//$$$        SPRINT0(2, "WebViewer not up yet");
-//$$$        goto cleanup;
-//$$$    }
 
     MALLOC(entry, char, MAX_STR_LEN);
 

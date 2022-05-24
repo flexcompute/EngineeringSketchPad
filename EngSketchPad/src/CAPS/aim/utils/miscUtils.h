@@ -151,6 +151,12 @@ char * convert_integerToString(int integerVal, int fieldWidth, int leftOrRight);
 /*@null@*/
 char * convert_doubleToString(double doubleVal, int fieldWidth, int leftOrRight);
 
+// Factorizes in place the square linear system A using simple LU decomposition
+int factorLU(int n, double A[] );
+
+// Solves the factorized square linear system LU x = b
+int backsolveLU(int n, double LU[], double b[], double x[] );
+
 // Solves the square linear system A x = b using simple LU decomposition
 int solveLU(int n, double A[], double b[], double x[] );
 

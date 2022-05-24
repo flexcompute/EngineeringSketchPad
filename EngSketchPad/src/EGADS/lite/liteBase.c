@@ -3,7 +3,7 @@
  *
  *             Lite Base Object Functions
  *
- *      Copyright 2011-2021, Massachusetts Institute of Technology
+ *      Copyright 2011-2022, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -51,7 +51,7 @@ __PROTO_H_AND_D__ void uvmap_struct_free( void *uvmap );
 
 
 static const char *EGADSprop[2] = {STR(EGADSPROP),
-                  "\nEGADSprop: Copyright 2011-2021 MIT. All Rights Reserved."};
+                  "\nEGADSprop: Copyright 2011-2022 MIT. All Rights Reserved."};
 
 
 #ifndef __CUDA_ARCH__

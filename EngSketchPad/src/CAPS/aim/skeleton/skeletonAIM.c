@@ -3,7 +3,7 @@
  *
  *             Skeleton AIM Example Code
  *
- *      Copyright 2014-2021, Massachusetts Institute of Technology
+ *      Copyright 2014-2022, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -137,7 +137,7 @@ int
 aimInputs(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo, int index,
           char **ainame, capsValue *defval)
 {
-  int status = CAPS_SUCCESS;
+  int i, status = CAPS_SUCCESS;
   capsTuple *tuple=NULL;
   
 #ifdef DEBUG
@@ -163,7 +163,7 @@ aimInputs(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo, int index,
     defval->units     = EG_strdup("cm");
 
     /*! \page aimInputsSkeleton
-     * - <B> skeletonAIMin = 5 cm</B> <br>
+     * - <B> SkeletonAIMin = 5 cm</B> <br>
      * A real input with units
      */
 
@@ -197,6 +197,10 @@ aimInputs(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo, int index,
     *ainame = AIM_NAME(Table);
 
     AIM_ALLOC( tuple, 3, capsTuple, aimInfo, status);
+    for (i = 0; i < 3; i++) {
+      tuple[i].name = NULL;
+      tuple[i].value = NULL;
+    }
     AIM_STRDUP(tuple[0].name , "Entry1", aimInfo, status);
     AIM_STRDUP(tuple[1].name , "Entry2", aimInfo, status);
     AIM_STRDUP(tuple[2].name , "Entry3", aimInfo, status);
@@ -473,8 +477,10 @@ aimDiscr(char *tname, capsDiscr *discr)
   discr->types[0].ndata = 0;         /* data at geom reference positions
                                         (i.e. vertex centered/iso-parametric) */
   discr->types[0].ntri  = 1;
+  discr->types[0].nseg  = 0;
   discr->types[0].nmat  = 0;         /* match points at geom ref positions */
   discr->types[0].tris  = NULL;
+  discr->types[0].segs  = NULL;
   discr->types[0].gst   = NULL;
   discr->types[0].dst   = NULL;
   discr->types[0].matst = NULL;

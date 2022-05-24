@@ -3,7 +3,7 @@
  *
  *             Topology Functions
  *
- *      Copyright 2011-2021, Massachusetts Institute of Technology
+ *      Copyright 2011-2022, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -526,6 +526,37 @@ EG_splitPeriodics(egadsBody *body)
   catch (...) {
     printf(" EGADS Info: General Error (EG_splitPeriodics)!\n");
     return;
+  }
+  
+  // simplify curves
+  BRep_Builder               Builder;
+  TopTools_IndexedMapOfShape edgeMap;
+  TopExp::MapShapes(solid, TopAbs_EDGE, edgeMap);
+  hit = 0;
+  for (int i = 1; i <= edgeMap.Extent(); i++) {
+    Standard_Real t1, t2, toler;
+    TopoDS_Shape shape        = edgeMap(i);
+    TopoDS_Edge  Edge         = TopoDS::Edge(shape);
+    Handle(Geom_Curve) hCurve = BRep_Tool::Curve(Edge, t1, t2);
+    Handle(Geom_BSplineCurve) hBSpline =
+                                    Handle(Geom_BSplineCurve)::DownCast(hCurve);
+    if (hBSpline.IsNull())        continue;
+    if (hBSpline->Degree()  != 1) continue;
+    if (hBSpline->NbPoles() != 2) continue;
+    toler      = BRep_Tool::Tolerance(Edge);
+    gp_Pnt CP0 = hBSpline->Pole(1);
+    gp_Pnt CP1 = hBSpline->Pole(2);
+    gp_Dir dirl((CP1.X()-CP0.X())/(t2-t1), (CP1.Y()-CP0.Y())/(t2-t1),
+                (CP1.Z()-CP0.Z())/(t2-t1));
+    gp_Pnt begl(CP0.X()-dirl.X()*t1, CP0.Y()-dirl.Y()*t1, CP0.Z()-dirl.Z()*t1);
+    Handle(Geom_Curve) hCurvNew = new Geom_Line(begl, dirl);
+    Builder.UpdateEdge(Edge, hCurvNew, toler);
+    hit++;
+  }
+  if (hit != 0) {
+    BRepCheck_Analyzer sCheck(solid);
+    if (!sCheck.IsValid())
+      printf(" EGADS Info: Doesnt pass the final check (EG_splitPeriodics)!\n");
   }
 
   body->shape = solid;
@@ -3542,8 +3573,8 @@ EG_makeTopology(egObject *context, /*@null@*/ egObject *geom,
     }
     BRepCheck_Analyzer fCheck(face);
     if (!fCheck.IsValid()) {
-#ifdef THIS_TRIES_TO_FIX_TOO_MUCH
       // try to fix the fault
+#ifdef THIS_TRIES_TO_FIX_TOO_MUCH
       Handle_ShapeFix_Shape sfs = new ShapeFix_Shape(face);
       sfs->FixFreeShellMode() = Standard_False;
       sfs->FixFaceTool()->FixIntersectingWiresMode() = Standard_False;
@@ -3556,9 +3587,9 @@ EG_makeTopology(egObject *context, /*@null@*/ egObject *geom,
 #endif
       ShapeFix_Face sff(face);
       sff.FixIntersectingWiresMode() = Standard_False;
-      sff.FixMissingSeamMode() = Standard_False;
-      sff.FixOrientationMode() = Standard_False;
-      sff.FixWireMode() = Standard_False;
+      sff.FixMissingSeamMode()       = Standard_False;
+      sff.FixOrientationMode()       = Standard_False;
+      sff.FixWireMode()              = Standard_False;
       sff.Perform();
       TopoDS_Shape fixedFace = sff.Result();
 
@@ -3578,7 +3609,7 @@ EG_makeTopology(egObject *context, /*@null@*/ egObject *geom,
         return  EGADS_CONSTERR;
       }
       face = TopoDS::Face(fixedFace);
-      //if (outLevel > 0)
+//    if (outLevel > 0)
       printf(" EGADS Warning: Face has been fixed (EG_makeTopology)!\n");
       stat = EG_examineFace(face, nChildren, children, outLevel);
       if (stat != EGADS_SUCCESS) return stat;
@@ -3868,9 +3899,15 @@ EG_makeTopology(egObject *context, /*@null@*/ egObject *geom,
       }
       BRepCheck_Analyzer sCheck(solid);
       if (!sCheck.IsValid()) {
+#ifdef THIS_TRIES_TO_FIX_TOO_MUCH
         Handle_ShapeFix_Shape sfs = new ShapeFix_Shape(solid);
         sfs->Perform();
         TopoDS_Shape fixedSolid = sfs->Shape();
+#endif
+        ShapeFix_Solid sfs(solid);
+        sfs.FixShellTool()->FixFaceMode() = Standard_False;
+        sfs.Perform();
+        TopoDS_Shape fixedSolid = sfs.Shape();
         if (fixedSolid.IsNull()) {
           if (outLevel > 0)
             printf(" EGADS Error: Solid is invalid (EG_makeTopology)!\n");
@@ -3942,8 +3979,7 @@ EG_makeTopology(egObject *context, /*@null@*/ egObject *geom,
           }
         }
       }
-    }
-     */
+    } */
     EG_referenceObject(obj, context);
 
   } else {
@@ -6397,7 +6433,7 @@ EG_getBoundingBX(const egObject *topo, double *bbox)
         if (obj == NULL) continue;
         egadsBody *pbody = (egadsBody *) obj->blind;
         if (pbody == NULL) continue;
- #if CASVER >= 730
+#if CASVER >= 730
         BRepBndLib::AddOptimal(pbody->shape, Box, Standard_False);
 #else
         BRepBndLib::Add(pbody->shape, Box);
@@ -8446,9 +8482,7 @@ EG_sewFaces(int nobj, const egObject **objs, double toler, int opt,
   BRepCheck_Analyzer fCheck(sewShape);
   if (!fCheck.IsValid()) {
     Handle_ShapeFix_Shape sfs = new ShapeFix_Shape(sewShape);
-#if CASVER >= 700
     if (opt == 1) sfs->FixShellTool()->SetNonManifoldFlag(Standard_True);
-#endif
     sfs->Perform();
     TopoDS_Shape fixedShape = sfs->Shape();
     if (fixedShape.IsNull()) {

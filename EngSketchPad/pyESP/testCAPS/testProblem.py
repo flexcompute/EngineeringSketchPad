@@ -57,6 +57,16 @@ class TestProblem(unittest.TestCase):
         myProblem = pyCAPS.Problem(self.probemName + str(self.iProb), capsFile=u"unitGeom.csm", outLevel=0); self.__class__.iProb += 1
 
 #==============================================================================
+    def test_close(self):
+        myProblem = pyCAPS.Problem(self.probemName + str(self.iProb), capsFile= "unitGeom.csm", outLevel=0); self.__class__.iProb += 1
+
+        myProblem.close()
+        
+        # Closing a second time raises and error
+        with self.assertRaises(pyCAPS.CAPSError):
+            myProblem.close()
+
+#==============================================================================
     # Cannot add Python attributes
     def test_static(self):
 
@@ -185,6 +195,9 @@ class TestProblem(unittest.TestCase):
             del problem.attr.testAttr_2
         with self.assertRaises(KeyError):
             del problem.attr["testAttr_2"]
+            
+        # Explicitly close the problem object to check for memory leaks
+        problem.close()
 
 #==============================================================================
     # Create parameters

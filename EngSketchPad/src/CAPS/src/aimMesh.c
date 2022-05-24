@@ -3,7 +3,7 @@
  *
  *             AIM Volume Mesh Functions
  *
- *      Copyright 2014-2021, Massachusetts Institute of Technology
+ *      Copyright 2014-2022, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -43,13 +43,13 @@ static /*@null@*/ DLL writerDLopen(const char *name)
   struct dirent   *de;
   DIR             *dr;
 #endif
-  
+
   env = getenv("ESP_ROOT");
   if (env == NULL) {
     printf(" Information: Could not find $ESP_ROOT\n");
     return NULL;
   }
-  
+
   if (name == NULL) {
     printf(" Information: Dynamic Loader invoked with NULL name!\n");
     return NULL;
@@ -84,7 +84,7 @@ static /*@null@*/ DLL writerDLopen(const char *name)
     free(full);
     return NULL;
   }
-  
+
   if (i == 1) {
     hFind = FindFirstFile(dir, &ffd);
     do {
@@ -95,7 +95,7 @@ static /*@null@*/ DLL writerDLopen(const char *name)
   } else {
     dll = LoadLibrary(full);
   }
-  
+
 #else
 
   full[len+1] = 's';
@@ -119,7 +119,7 @@ static /*@null@*/ DLL writerDLopen(const char *name)
     free(full);
     return NULL;
   }
-  
+
   if (i == 1) {
     dr = opendir(dir);
     while ((de = readdir(dr)) != NULL)
@@ -132,7 +132,7 @@ static /*@null@*/ DLL writerDLopen(const char *name)
     dll = dlopen(full, RTLD_NOW | RTLD_NODELETE);
   }
 #endif
-  
+
   if (!dll) {
     printf(" Information: Dynamic Loader Error for %s\n", full);
 #ifndef WIN32
@@ -144,7 +144,7 @@ static /*@null@*/ DLL writerDLopen(const char *name)
     return NULL;
   }
   free(full);
-  
+
   return dll;
 }
 
@@ -162,7 +162,7 @@ static void writerDLclose(/*@only@*/ DLL dll)
 static wrDLLFunc writerDLget(DLL dll, const char *symname)
 {
   wrDLLFunc data;
-  
+
 #ifdef WIN32
   data = (wrDLLFunc) GetProcAddress(dll, symname);
 #else
@@ -170,7 +170,7 @@ static wrDLLFunc writerDLget(DLL dll, const char *symname)
   data = (wrDLLFunc) dlsym(dll, symname);
 /*@+castfcnptr@*/
 #endif
-  
+
   return data;
 }
 
@@ -178,10 +178,10 @@ static wrDLLFunc writerDLget(DLL dll, const char *symname)
 static int writerDLoaded(writerContext cntxt, const char *name)
 {
   int i;
-  
+
   for (i = 0; i < cntxt.aimWriterNum; i++)
     if (strcasecmp(name, cntxt.aimWriterName[i]) == 0) return i;
-  
+
   return -1;
 }
 
@@ -190,14 +190,14 @@ static int writerDYNload(writerContext *cntxt, const char *name)
 {
   int i, len, ret;
   DLL dll;
-  
+
   if (cntxt->aimWriterNum >= MAXWRITER) {
     printf(" Information: Number of Writers > %d!\n", MAXWRITER);
     return EGADS_INDEXERR;
   }
   dll = writerDLopen(name);
   if (dll == NULL) return EGADS_NULLOBJ;
-  
+
   ret                      = cntxt->aimWriterNum;
   cntxt->aimExtension[ret] = (AIMext)    writerDLget(dll, "meshExtension");
   cntxt->aimWriter[ret]    = (AIMwriter) writerDLget(dll, "meshWrite");
@@ -211,7 +211,7 @@ static int writerDYNload(writerContext *cntxt, const char *name)
     printf(" Error: Missing symbol 'meshWrite' in %s\n", name);
     return EGADS_EMPTY;
   }
-  
+
   len = strlen(name) + 1;
   cntxt->aimWriterName[ret] = (char *) EG_alloc(len*sizeof(char));
   if (cntxt->aimWriterName[ret] == NULL) {
@@ -221,7 +221,7 @@ static int writerDYNload(writerContext *cntxt, const char *name)
   for (i = 0; i < len; i++) cntxt->aimWriterName[ret][i] = name[i];
   cntxt->aimWriterDLL[ret] = dll;
   cntxt->aimWriterNum++;
-  
+
   return ret;
 }
 
@@ -238,7 +238,7 @@ aim_writerExtension(void *aimStruc, const char *writerName)
     i  = writerDYNload(&aInfo->wCntxt, writerName);
     if (i < 0) return NULL;
   }
-  
+
   return aInfo->wCntxt.aimExtension[i]();
 }
 
@@ -255,7 +255,7 @@ aim_writeMesh(void *aimStruc, const char *writerName, aimMesh *mesh)
     i  = writerDYNload(&aInfo->wCntxt, writerName);
     if (i < 0) return i;
   }
-  
+
   return aInfo->wCntxt.aimWriter[i](aimStruc, mesh);
 }
 
@@ -274,12 +274,12 @@ aim_deleteMeshes(void *aimStruc, aimMeshRef *meshRef)
   const char    *ext;
   aimInfo       *aInfo;
   writerContext cntxt;
-  
+
   aInfo = (aimInfo *) aimStruc;
   if (aInfo == NULL)                    return CAPS_NULLOBJ;
   if (aInfo->magicnumber != CAPSMAGIC)  return CAPS_BADOBJECT;
   cntxt = aInfo->wCntxt;
-  
+
   for (i = 0; i < cntxt.aimWriterNum; i++) {
     ext = aim_writerExtension(aimStruc, cntxt.aimWriterName[i]);
     if (ext == NULL) continue;
@@ -291,7 +291,7 @@ aim_deleteMeshes(void *aimStruc, aimMeshRef *meshRef)
     unlink(file);
 #endif
   }
-  
+
   return CAPS_SUCCESS;
 }
 
@@ -318,14 +318,14 @@ aim_queryMeshes(void *aimStruc, int index, aimMeshRef *meshRef)
   if (aInfo->magicnumber != CAPSMAGIC)  return CAPS_BADOBJECT;
   problem  = aInfo->problem;
   analysis = (capsAnalysis *) aInfo->analysis;
-  
+
   if ((index < 1) || (index > analysis->nAnalysisOut)) return CAPS_BADINDEX;
   vobject = analysis->analysisOut[index-1];
   if (vobject == NULL)            return CAPS_NULLOBJ;
   value = (capsValue *) vobject->blind;
   if (value == NULL)              return CAPS_NULLBLIND;
   if (value->type != PointerMesh) return CAPS_BADTYPE;
-  
+
   /* find all of our linked writers */
   for (i = 0; i < problem->nAnalysis; i++) {
     if (problem->analysis[i]        == NULL) continue;
@@ -359,7 +359,7 @@ aim_queryMeshes(void *aimStruc, int index, aimMeshRef *meshRef)
     }
   }
   if (nWrite == 0) return CAPS_NOTFOUND;
-  
+
   /* look at the extensions for our files -- do they exist? */
   for (ret = i = 0; i < nWrite; i++) {
     ext = aim_writerExtension(aimStruc, writerName[i]);
@@ -372,7 +372,7 @@ aim_queryMeshes(void *aimStruc, int index, aimMeshRef *meshRef)
     if (access(file,  F_OK) != 0) ret++;
 #endif
   }
-  
+
   return ret;
 }
 
@@ -399,14 +399,14 @@ aim_writeMeshes(void *aimStruc, int index, aimMesh *mesh)
   if (aInfo->magicnumber != CAPSMAGIC)  return CAPS_BADOBJECT;
   problem  = aInfo->problem;
   analysis = (capsAnalysis *) aInfo->analysis;
-  
+
   if ((index < 1) || (index > analysis->nAnalysisOut)) return CAPS_BADINDEX;
   vobject = analysis->analysisOut[index-1];
   if (vobject == NULL)            return CAPS_NULLOBJ;
   value = (capsValue *) vobject->blind;
   if (value == NULL)              return CAPS_NULLBLIND;
   if (value->type != PointerMesh) return CAPS_BADTYPE;
-  
+
   /* find all of our linked writers */
   for (i = 0; i < problem->nAnalysis; i++) {
     if (problem->analysis[i]        == NULL) continue;
@@ -443,7 +443,7 @@ aim_writeMeshes(void *aimStruc, int index, aimMesh *mesh)
     }
   }
   if (nWrite == 0) return CAPS_NOTFOUND;
-  
+
   /* write the files */
   for (i = 0; i < nWrite; i++) {
     /* does the file exist? */
@@ -464,7 +464,7 @@ aim_writeMeshes(void *aimStruc, int index, aimMesh *mesh)
       return stat;
     }
   }
-  
+
   return CAPS_SUCCESS;
 }
 
@@ -588,6 +588,55 @@ aim_addMeshElem(void *aimStruc,
   elemGroup->nElems += nElems;
 
 cleanup:
+  return status;
+}
+
+
+int
+aim_readBinaryUgridHeader(void *aimStruc, aimMeshRef *meshRef,
+                          int *nVertex, int *nTri, int *nQuad,
+                          int *nTet, int *nPyramid, int *nPrism, int *nHex)
+{
+  int    status = CAPS_SUCCESS;
+
+  char filename[PATH_MAX];
+  FILE *fp = NULL;
+
+  if (meshRef  == NULL) return CAPS_NULLOBJ;
+  if (meshRef->fileName  == NULL) return CAPS_NULLOBJ;
+
+  snprintf(filename, PATH_MAX, "%s%s", meshRef->fileName, ".lb8.ugrid");
+
+  fp = fopen(filename, "rb");
+  if (fp == NULL) {
+    AIM_ERROR(aimStruc, "Cannot open file: %s\n", filename);
+    status = CAPS_IOERR;
+    goto cleanup;
+  }
+
+  /* read a binary UGRID file */
+  status = fread(nVertex, sizeof(int), 1, fp);
+  if (status != 1) { status = CAPS_IOERR; AIM_STATUS(aimStruc, status); }
+  status = fread(nTri,     sizeof(int), 1, fp);
+  if (status != 1) { status = CAPS_IOERR; AIM_STATUS(aimStruc, status); }
+  status = fread(nQuad,    sizeof(int), 1, fp);
+  if (status != 1) { status = CAPS_IOERR; AIM_STATUS(aimStruc, status); }
+  status = fread(nTet,     sizeof(int), 1, fp);
+  if (status != 1) { status = CAPS_IOERR; AIM_STATUS(aimStruc, status); }
+  status = fread(nPyramid, sizeof(int), 1, fp);
+  if (status != 1) { status = CAPS_IOERR; AIM_STATUS(aimStruc, status); }
+  status = fread(nPrism,   sizeof(int), 1, fp);
+  if (status != 1) { status = CAPS_IOERR; AIM_STATUS(aimStruc, status); }
+  status = fread(nHex,     sizeof(int), 1, fp);
+  if (status != 1) { status = CAPS_IOERR; AIM_STATUS(aimStruc, status); }
+
+  status = CAPS_SUCCESS;
+
+cleanup:
+/*@-dependenttrans@*/
+  if (fp != NULL) fclose(fp);
+/*@+dependenttrans@*/
+  fp = NULL;
   return status;
 }
 
@@ -804,7 +853,7 @@ aim_readBinaryUgrid(void *aimStruc, aimMesh *mesh)
   if (nElems > 0) {
     status = aim_addMeshElemGroup(aimStruc, NULL, 0, elementTopo, 1, nPoint, meshData);
     AIM_STATUS(aimStruc, status);
-    
+
     igroup = meshData->nElemGroup-1;
 
     /* add the elements to the group */
@@ -950,7 +999,7 @@ aim_readBinaryUgrid(void *aimStruc, aimMesh *mesh)
       }
 
       igroup = mapGroupID[bcID-1];
-      
+
       /* add the elements to the group */
       status = aim_addMeshElem(aimStruc, 1, &meshData->elemGroups[igroup]);
       AIM_STATUS(aimStruc, status);

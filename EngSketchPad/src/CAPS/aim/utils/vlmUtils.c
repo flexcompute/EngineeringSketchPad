@@ -1404,7 +1404,7 @@ int vlm_findTrailingEdge(int numNode, ego *nodes,
 
         status = EG_evaluate(*teObj, &t, result);
         if (status != EGADS_SUCCESS) goto cleanup;
-      
+
         xyzTE[0] = result[0];
         xyzTE[1] = result[1];
         xyzTE[2] = result[2];
@@ -1420,7 +1420,7 @@ cleanup:
 
 // Get the normal to the airfoil cross-section plane
 static
-int vlm_secNormal(ego body,
+int vlm_secNormal(void *aimInfo, ego body,
                   double *secnorm)
 {
     int status; // Function return status
@@ -1442,42 +1442,35 @@ int vlm_secNormal(ego body,
 
     status = EG_isPlanar(body);
     if (status != EGADS_SUCCESS) {
-        printf("Error: (vlm_secNormal):: body is not planar!\n");
+        AIM_ERROR(aimInfo, "body is not planar!");
         goto cleanup;
     }
 
     status = EG_getBodyTopos(body, NULL, EDGE, &numEdge, &edges);
-    if (status != EGADS_SUCCESS) {
-        printf("Error: (vlm_secNormal):: getBodyTopos Nodes = %d\n", status);
-        goto cleanup;
-    }
+    AIM_STATUS(aimInfo, status);
 
     status = EG_getBodyTopos(body, NULL, LOOP, &numLoop, &loops);
-    if (status != EGADS_SUCCESS) {
-        printf("Error: (vlm_secNormal):: getBodyTopos Nodes = %d\n", status);
-        goto cleanup;
-    }
+    AIM_STATUS(aimInfo, status);
 
     status = EG_getBodyTopos(body, NULL, FACE, &numFace, &faces);
-    if (status != EGADS_SUCCESS) {
-        printf("Error: (vlm_secNormal):: getBodyTopos Faces = %d\n", status);
-        goto cleanup;
-    }
+    AIM_STATUS(aimInfo, status);
+
 
     // get the PLANE normal vector for the airfoil section
     if (numFace == 1) {
         status = EG_getTopology(faces[0], &ref, &oclass, &mtype, trange, &numChildren, &children, &sens);
-        if (status != EGADS_SUCCESS) goto cleanup;
+        AIM_STATUS(aimInfo, status);
         i = mtype;
 
         status = EG_getGeometry(ref, &oclass, &mtype, &refGeom, &ivec, &rvec);
-        if (status != EGADS_SUCCESS) goto cleanup;
+        AIM_STATUS(aimInfo, status);
 
         if (oclass == SURFACE && mtype == PLANE) {
             cross_DoubleVal(rvec+3, rvec+6, secnorm);
             secnorm[0] *= i;
             secnorm[1] *= i;
             secnorm[2] *= i;
+            goto cleanup;
         }
         EG_free(ivec); ivec=NULL;
         EG_free(rvec); rvec=NULL;
@@ -1486,25 +1479,24 @@ int vlm_secNormal(ego body,
 
     // get the edge senses from the loop
     status = EG_getTopology(loops[0], &ref, &oclass, &mtype, trange, &numChildren, &children, &esens);
-    if (status != EGADS_SUCCESS) goto cleanup;
+    AIM_STATUS(aimInfo, status);
 
     for (i = 0; i < numEdge && (secnorm[0] == 0 && secnorm[1] == 0 && secnorm[2] == 0); i++) {
 
         status = EG_getTopology(edges[i], &ref, &oclass, &mtype, trange, &numChildren, &children, &sens);
-        if (status != EGADS_SUCCESS) goto cleanup;
+        AIM_STATUS(aimInfo, status);
         if (mtype == DEGENERATE) continue;
 
         if (esens[i] == SFORWARD) {
             status = EG_evaluate(children[0], NULL, nodesXYZ[0]);
-            if (status != EGADS_SUCCESS) goto cleanup;
         } else {
             status = EG_evaluate(children[1], NULL, nodesXYZ[0]);
-            if (status != EGADS_SUCCESS) goto cleanup;
         }
+        AIM_STATUS(aimInfo, status);
 
         t = (trange[0] + trange[1])/2.;
         status = EG_evaluate(edges[i], &t, nodesXYZ[1]);
-        if (status != EGADS_SUCCESS) goto cleanup;
+        AIM_STATUS(aimInfo, status);
 
         dX1[0] = nodesXYZ[1][0] - nodesXYZ[0][0];
         dX1[1] = nodesXYZ[1][1] - nodesXYZ[0][1];
@@ -1514,7 +1506,7 @@ int vlm_secNormal(ego body,
             if (i == j) continue;
 
             status = EG_getTopology(edges[j], &ref, &oclass, &mtype, trange, &numChildren, &children, &sens);
-            if (status != EGADS_SUCCESS) goto cleanup;
+            AIM_STATUS(aimInfo, status);
             if (mtype == DEGENERATE) continue;
 
             t = (trange[0] + trange[1])/2.;
@@ -1532,7 +1524,7 @@ int vlm_secNormal(ego body,
         }
     }
     if (secnorm[0] == 0 && secnorm[1] == 0 && secnorm[2] == 0) {
-        printf("Error: (vlm_secNormal):: Failed to determine airfoil section PLANE normal!\n");
+        AIM_ERROR(aimInfo, "Failed to determine airfoil section PLANE normal!");
         status = EGADS_GEOMERR;
         goto cleanup;
     }
@@ -1557,7 +1549,7 @@ cleanup:
 }
 
 // Finalizes populating vlmSectionStruct member data after the ebody is set
-int finalize_vlmSectionStruct(vlmSectionStruct *vlmSection)
+int finalize_vlmSectionStruct(void *aimInfo, vlmSectionStruct *vlmSection)
 {
     int status; // Function return status
 
@@ -1610,7 +1602,8 @@ int finalize_vlmSectionStruct(vlmSectionStruct *vlmSection)
     }
 
     // Get the section normal from the body
-    status = vlm_secNormal(ebody,
+    status = vlm_secNormal(aimInfo,
+                           ebody,
                            vlmSection->normal);
     if (status != CAPS_SUCCESS) goto cleanup;
 
@@ -1660,7 +1653,7 @@ cleanup:
 
 // flips a section
 static
-int vlm_flipSection(ego body, ego *flipped)
+int vlm_flipSection(void *aimInfo, ego body, ego *flipped)
 {
     int status; // Function return status
 
@@ -1670,54 +1663,50 @@ int vlm_flipSection(ego body, ego *flipped)
     ego context, ref, *children = NULL, eflip;
 
     status = EG_getContext(body, &context);
-    if (status != EGADS_SUCCESS) goto cleanup;
+    AIM_STATUS(aimInfo, status);
 
     // get the child of the body as the body it self cannot be flipped
     status = EG_getTopology(body, &ref, &oclass, &mtype, data, &numChildren, &children, &sens);
-    if (status != EGADS_SUCCESS) goto cleanup;
+    AIM_STATUS(aimInfo, status);
 
     if (numChildren != 1) {
-      printf("Error: (vlm_flipSection):: Body has %d children (may only have 1)!\n", numChildren);
+      AIM_ERROR(aimInfo, "Body has %d children (may only have 1)!", numChildren);
       status = CAPS_BADVALUE;
       goto cleanup;
     }
 
     // Flip the airfoil so the normals are consistent
     status = EG_flipObject(children[0], &eflip);
-    if (status != EGADS_SUCCESS) goto cleanup;
+    AIM_STATUS(aimInfo, status);
 
     // create the new body with the flipped airfoil
     status = EG_makeTopology(context, NULL, oclass, mtype, data, 1, &eflip, sens, flipped);
-    if (status != EGADS_SUCCESS) goto cleanup;
+    AIM_STATUS(aimInfo, status);
 
     // copy over the body attributes
     status = EG_attributeDup(body, *flipped);
-    if (status != EGADS_SUCCESS) goto cleanup;
+    AIM_STATUS(aimInfo, status);
 
 cleanup:
-    if (status != CAPS_SUCCESS) {
-      printf("Error: Premature exit in vlm_flipSection, status = %d\n", status);
-    }
-
     return status;
 }
 
 
-// returns a list of bodies with normal vectors pointing in the negative y- and z-directions
+// returns a list of bodies with normal vectors pointing in the negative y- or z-directions
 // requires that all sections be in y- or z-constant planes
 static
-int vlm_getSectionYZ(ego body, ego *copy)
+int vlm_getSectionYZ(void *aimInfo, ego body, ego *copy)
 {
     int status;
 
     double secnorm[3] = {0,0,0};
 
-    status = vlm_secNormal(body, secnorm);
+    status = vlm_secNormal(aimInfo, body, secnorm);
     if (status != CAPS_SUCCESS) goto cleanup;
 
     if ( fabs(fabs(secnorm[1]) - 1.) > DOTTOL &&
          fabs(fabs(secnorm[2]) - 1.) > DOTTOL ) {
-        printf("Error: (vlm_getSectionYZ):: Section is neither purely in the y- or the z-plane.\n");
+        AIM_ERROR(aimInfo, "Section is neither purely in the y- or the z-plane.");
         status = CAPS_BADVALUE;
         goto cleanup;
     }
@@ -1725,39 +1714,35 @@ int vlm_getSectionYZ(ego body, ego *copy)
     if ( fabs(fabs(secnorm[1]) - 1.) < DOTTOL ) {
         if (secnorm[1] > 0.) {
             // Flip the body
-            status = vlm_flipSection(body, copy);
-            if (status != EGADS_SUCCESS) goto cleanup;
+            status = vlm_flipSection(aimInfo, body, copy);
+            AIM_STATUS(aimInfo, status);
         } else {
             // Store a copy of the body
             status = EG_copyObject(body, NULL, copy);
-            if (status != EGADS_SUCCESS) goto cleanup;
+            AIM_STATUS(aimInfo, status);
         }
     } else {
         if (secnorm[2] > 0.) {
             // Flip the body
-            status = vlm_flipSection(body, copy);
-            if (status != EGADS_SUCCESS) goto cleanup;
+            status = vlm_flipSection(aimInfo, body, copy);
+            AIM_STATUS(aimInfo, status);
         } else {
             // Store a copy of the body
             status = EG_copyObject(body, NULL, copy);
-            if (status != EGADS_SUCCESS) goto cleanup;
+            AIM_STATUS(aimInfo, status);
         }
     }
 
     status = CAPS_SUCCESS;
 
 cleanup:
-    if (status != CAPS_SUCCESS) {
-      printf("Error: Premature exit in vlm_getSectionYZ, status = %d\n", status);
-    }
-
     return status;
 }
 
 
 // returns a list of bodies with normal vectors pointing in the negative radial direction
 static
-int vlm_getSectionRadial(ego body, ego *copy)
+int vlm_getSectionRadial(void *aimInfo, ego body, ego *copy)
 {
     int status;
 
@@ -1769,14 +1754,11 @@ int vlm_getSectionRadial(ego body, ego *copy)
 
     double secnorm[3] = {0,0,0};
 
-    status = vlm_secNormal(body, secnorm);
+    status = vlm_secNormal(aimInfo, body, secnorm);
     if (status != CAPS_SUCCESS) goto cleanup;
 
     status = EG_getBodyTopos(body, NULL, NODE, &numNode, &nodes);
-    if (status != EGADS_SUCCESS) {
-        printf("Error in vlm_getSectionRadial, getBodyTopos Nodes = %d\n", status);
-        goto cleanup;
-    }
+    AIM_STATUS(aimInfo, status);
 
     status = vlm_findLeadingEdge(numNode, nodes, &nodeIndexLE, xyzLE );
     if (status != CAPS_SUCCESS) goto cleanup;
@@ -1789,7 +1771,7 @@ int vlm_getSectionRadial(ego body, ego *copy)
     norm = sqrt(dot_DoubleVal(radLE,radLE));
 
     if (norm < DOTTOL) {
-        printf("Error: (vlm_getSectionRadial):: Section LE cannot be on y = 0 and z = 0!\n");
+        AIM_ERROR(aimInfo, "Section LE cannot be on y = 0 and z = 0!");
         status = CAPS_BADVALUE;
         goto cleanup;
     }
@@ -1798,7 +1780,7 @@ int vlm_getSectionRadial(ego body, ego *copy)
     radLE[2] /= norm;
 
     if ( fabs(secnorm[1]*radLE[1] + secnorm[2]*radLE[2]) < DOTTOL) {
-        printf("Error: (vlm_getSectionRadial):: Section normal is not radial!\n");
+        AIM_ERROR(aimInfo, "Section normal is not radial!");
         status = CAPS_BADVALUE;
         goto cleanup;
     }
@@ -1806,22 +1788,19 @@ int vlm_getSectionRadial(ego body, ego *copy)
     // make sure the radial dot product is negative
     if ( secnorm[1]*radLE[1] + secnorm[2]*radLE[2] > 0. ) {
         // Flip the body
-        status = vlm_flipSection(body, copy);
-        if (status != EGADS_SUCCESS) goto cleanup;
+        status = vlm_flipSection(aimInfo, body, copy);
+        AIM_STATUS(aimInfo, status);
     } else {
         // Store a copy of the body
         status = EG_copyObject(body, NULL, copy);
-        if (status != EGADS_SUCCESS) goto cleanup;
+        AIM_STATUS(aimInfo, status);
     }
 
     status = CAPS_SUCCESS;
 
 cleanup:
-    if (status != CAPS_SUCCESS) {
-      printf("Error: Premature exit in vlm_getSectionRadial, status = %d\n", status);
-    }
 
-    EG_free(nodes);
+    AIM_FREE(nodes);
 
     return status;
 }
@@ -1830,7 +1809,8 @@ cleanup:
 // Accumulate VLM section data from a set of bodies. If disciplineFilter is not NULL
 // bodies not found with disciplineFilter (case insensitive) for a capsDiscipline attribute
 // will be ignored.
-int vlm_getSections(int numBody,
+int vlm_getSections(void *aimInfo,
+                    int numBody,
                     ego bodies[],
                     /*@null@*/ const char *disciplineFilter,
                     mapAttrToIndexStruct attrMap,
@@ -1873,7 +1853,7 @@ int vlm_getSections(int numBody,
 
             status = get_mapAttrToIndexIndex(&attrMap, groupName, &attrIndex);
             if (status == CAPS_NOTFOUND) {
-                printf("VLM Surface name \"%s\" not found in attrMap\n", groupName);
+                AIM_ERROR(aimInfo, "VLM Surface name \"%s\" not found in attrMap\n", groupName);
                 goto cleanup;
             }
 
@@ -1891,24 +1871,12 @@ int vlm_getSections(int numBody,
             // If attrIndex isn't in the array the; body doesn't belong in this surface
             if (found == (int) false) continue;
 
-            // Increment the number of sections
+            // realloc vlmSection size
+            AIM_REALL((*vlmSurface)[surf].vlmSection, (*vlmSurface)[surf].numSection+1, vlmSectionStruct, aimInfo, status);
             (*vlmSurface)[surf].numSection += 1;
 
             // Get section index
-            section = (*vlmSurface)[surf].numSection -1;
-
-            if ((*vlmSurface)[surf].numSection == 1) {
-                (*vlmSurface)[surf].vlmSection = (vlmSectionStruct *) EG_alloc(1*sizeof(vlmSectionStruct));
-            } else {
-
-                (*vlmSurface)[surf].vlmSection = (vlmSectionStruct *) EG_reall((*vlmSurface)[surf].vlmSection,
-                                                                               (*vlmSurface)[surf].numSection*
-                                                                               sizeof(vlmSectionStruct));
-            }
-            if ((*vlmSurface)[surf].vlmSection == NULL) {
-                status = EGADS_MALLOC;
-                goto cleanup;
-            }
+            section = (*vlmSurface)[surf].numSection-1;
 
             status = initiate_vlmSectionStruct(&(*vlmSurface)[surf].vlmSection[section]);
             if (status != CAPS_SUCCESS) goto cleanup;
@@ -1930,7 +1898,7 @@ int vlm_getSections(int numBody,
             (*vlmSurface)[surf].vlmSection[section].Sset = (int)(status == CAPS_SUCCESS);
 
             // Get the section normal
-            status = vlm_secNormal(bodies[body],
+            status = vlm_secNormal(aimInfo, bodies[body],
                                    (*vlmSurface)[surf].vlmSection[section].normal);
             if (status != CAPS_SUCCESS) goto cleanup;
 
@@ -1943,51 +1911,66 @@ int vlm_getSections(int numBody,
                             (*vlmSurface)[surf].vlmSection[k].normal[2]*(*vlmSurface)[surf].vlmSection[section].normal[2]) < DOTTOL) {
                     k++;
                     if (k == section) {
-                        printf("Error (vlm_getSections):: Body %d is orthogonal to all other airfoils!\n", body +1);
+                        AIM_ERROR(aimInfo, "Body %d is orthogonal to all other airfoils!\n", body+1);
                         status = CAPS_NOTFOUND;
                         goto cleanup;
                     }
                 }
 
-                if (((*vlmSurface)[surf].vlmSection[k].normal[1]*(*vlmSurface)[surf].vlmSection[section].normal[1] +
-                     (*vlmSurface)[surf].vlmSection[k].normal[2]*(*vlmSurface)[surf].vlmSection[section].normal[2]) < 0) {
-                  // Flip the body
-                  status = vlm_flipSection(bodies[body], &(*vlmSurface)[surf].vlmSection[section].ebody);
-                  if (status != EGADS_SUCCESS) goto cleanup;
-                } else {
-                  // Store a copy of the body
-                  status = EG_copyObject(bodies[body], NULL, &(*vlmSurface)[surf].vlmSection[section].ebody);
-                  if (status != EGADS_SUCCESS) goto cleanup;
+                if (section == 0) {
+
+                  if ((*vlmSurface)[surf].vlmSection[section].normal[1] > 0) {
+                      // Flip the body
+                      status = vlm_flipSection(aimInfo, bodies[body], &(*vlmSurface)[surf].vlmSection[section].ebody);
+                      AIM_STATUS(aimInfo, status);
+                  } else {
+                      // Store a copy of the body
+                      status = EG_copyObject(bodies[body], NULL, &(*vlmSurface)[surf].vlmSection[section].ebody);
+                      AIM_STATUS(aimInfo, status);
+                  }
+
+                } else { // section == 0
+
+                  if (((*vlmSurface)[surf].vlmSection[k].normal[1]*(*vlmSurface)[surf].vlmSection[section].normal[1] +
+                       (*vlmSurface)[surf].vlmSection[k].normal[2]*(*vlmSurface)[surf].vlmSection[section].normal[2]) < 0) {
+                      // Flip the body
+                      status = vlm_flipSection(aimInfo, bodies[body], &(*vlmSurface)[surf].vlmSection[section].ebody);
+                      AIM_STATUS(aimInfo, status);
+                  } else {
+                      // Store a copy of the body
+                      status = EG_copyObject(bodies[body], NULL, &(*vlmSurface)[surf].vlmSection[section].ebody);
+                      AIM_STATUS(aimInfo, status);
+                  }
+
                 }
 
             } else if (sys == vlmPLANEYZ) {
-                status = vlm_getSectionYZ(bodies[body], &(*vlmSurface)[surf].vlmSection[section].ebody);
-                if (status != CAPS_SUCCESS) goto cleanup;
+                status = vlm_getSectionYZ(aimInfo, bodies[body], &(*vlmSurface)[surf].vlmSection[section].ebody);
+                AIM_STATUS(aimInfo, status);
             } else if (sys == vlmRADIAL) {
-                status = vlm_getSectionRadial(bodies[body], &(*vlmSurface)[surf].vlmSection[section].ebody);
-                if (status != CAPS_SUCCESS) goto cleanup;
+                status = vlm_getSectionRadial(aimInfo, bodies[body], &(*vlmSurface)[surf].vlmSection[section].ebody);
+                AIM_STATUS(aimInfo, status);
             } else {
-                printf("Developer Error (vlm_getSections):: Unknown coordinate system\n");
+                AIM_ERROR(aimInfo, "Developer Error: Unknown coordinate system");
                 status = CAPS_BADVALUE;
                 goto cleanup;
             }
 
             // Populate remaining data after the body is set
-            status = finalize_vlmSectionStruct(&(*vlmSurface)[surf].vlmSection[section]);
-            if (status != EGADS_SUCCESS) goto cleanup;
+            status = finalize_vlmSectionStruct(aimInfo, &(*vlmSurface)[surf].vlmSection[section]);
+            AIM_STATUS(aimInfo, status);
         }
     }
 
     // order the sections in the surfaces
     for (surf = 0; surf < numSurface; surf++) {
         status = vlm_orderSections((*vlmSurface)[surf].numSection, (*vlmSurface)[surf].vlmSection);
-        if (status != CAPS_SUCCESS) return status;
+        AIM_STATUS(aimInfo, status);
     }
 
     status = CAPS_SUCCESS;
 
 cleanup:
-    if (status != CAPS_SUCCESS) printf("Error: Status %d during vlm_getSections", status);
     return status;
 }
 
@@ -2050,7 +2033,7 @@ int vlm_orderSections(int numSection, vlmSectionStruct vlmSections[])
 
 
 // Compute spanwise panel spacing with close to equal spacing on each panel
-int vlm_equalSpaceSpanPanels(int NspanTotal, int numSection, vlmSectionStruct vlmSection[])
+int vlm_equalSpaceSpanPanels(void *aimInfo, int NspanTotal, int numSection, vlmSectionStruct vlmSection[])
 {
     int status = CAPS_SUCCESS;
     int    i, j, sectionIndex1, sectionIndex2;
@@ -2062,7 +2045,7 @@ int vlm_equalSpaceSpanPanels(int NspanTotal, int numSection, vlmSectionStruct vl
     int numSeg = numSection-1;
 
     if (numSeg == 0) {
-      printf("Error: VLM must have at least 2 sections\n");
+      AIM_ERROR(aimInfo, "VLM must have at least 2 sections\n");
       status = CAPS_BADVALUE;
       goto cleanup;
     }
@@ -2147,7 +2130,7 @@ int vlm_equalSpaceSpanPanels(int NspanTotal, int numSection, vlmSectionStruct vl
             vlmSection[imax].Nspan--;
 
             if (vlmSection[imax].Nspan == 0) {
-                printf("Error: Insufficient spanwise sections! Increase numSpanTotal or numSpanPerSection!\n");
+                AIM_ERROR(aimInfo, "Insufficient spanwise sections! Increase numSpanTotal or numSpanPerSection!\n");
                 status = CAPS_BADVALUE;
                 goto cleanup;
             }
@@ -2406,8 +2389,253 @@ cleanup:
     return status;
 }
 
+// Get the airfoil cross-section tessellation ego given a vlmSectionStruct
+int vlm_getSectionTessSens(void *aimInfo,
+                           vlmSectionStruct *vlmSection,
+                           int normalize,      // Normalize by chord (true/false)
+                           const char *geomInName,
+                           const int irow, const int icol,
+                           int numPoint,    // Number of points in airfoil
+                           double **dx_dvar_out,
+                           double **dy_dvar_out)
+{
+    int status; // Function return status
+
+    int i, j, counter=0; // Indexing
+
+    int n, edgeIndex, *edgeLoopOrder=NULL, *edgeLoopSense = NULL;
+
+    int *numEdgePoint = NULL;
+
+    int numEdge, numNode, numChildren;
+    ego *nodes = NULL, *edges = NULL, *children = NULL;
+
+    int sense = 0;
+    double t, *ts=NULL, *xyz=NULL, trange[4], result[18];
+    double params[3], *dxyz=NULL;
+    double *dx_dvar=NULL, *dy_dvar=NULL;
+    double *xyzLE, *xyzTE;
+
+    double chord;
+    double xdot[3], ydot[3], *secnorm;
+
+    //EGADS returns
+    int oclass, mtype, *sens = NULL;
+    ego ref, nodeTE = NULL;
+    ego teObj = NULL, body, tess=NULL;
+
+    *dx_dvar_out = NULL;
+    *dy_dvar_out = NULL;
+
+    body = vlmSection->ebody;
+    chord = vlmSection->chord;
+    secnorm = vlmSection->normal;
+    xyzLE = vlmSection->xyzLE;
+    xyzTE = vlmSection->xyzTE;
+    teObj = vlmSection->teObj;
+
+    status = EG_getBodyTopos(body, NULL, NODE, &numNode, &nodes);
+    AIM_STATUS(aimInfo, status);
+
+    status = EG_getBodyTopos(body, NULL, EDGE, &numEdge, &edges);
+    AIM_STATUS(aimInfo, status);
+
+    // Get the number of points on each edge
+    status = vlm_secEdgePoints(numPoint,
+                               numEdge, edges,
+                               teObj, &numEdgePoint);
+    AIM_STATUS(aimInfo, status);
+
+    // Get the loop edge ordering so it starts at the trailing edge NODE
+    status = vlm_secOrderEdges(numNode, nodes,
+                               numEdge, edges,
+                               body, teObj,
+                               &edgeLoopOrder, &edgeLoopSense, &nodeTE);
+    AIM_STATUS(aimInfo, status);
+
+    status = EG_initTessBody(body, &tess);
+    AIM_STATUS(aimInfo, status);
+
+    // Loop through edges
+    for (edgeIndex = 0; edgeIndex < numEdge; edgeIndex++) {
+
+        // Get t-range and nodes for the edge
+        status = EG_getTopology(edges[edgeIndex], &ref, &oclass, &mtype, trange, &numChildren, &children, &sens);
+        if (mtype == DEGENERATE) continue;
+        AIM_STATUS(aimInfo, status);
+
+        // Get the sense of the edge from the loop
+        sense = edgeLoopSense[edgeIndex];
+        if (numEdgePoint[edgeIndex] == 0)
+          numEdgePoint[edgeIndex] = 2;
+        else
+          numEdgePoint[edgeIndex]++; // correct for the Node
+
+        AIM_REALL(ts ,   numEdgePoint[edgeIndex], double, aimInfo, status);
+        AIM_REALL(xyz, 3*numEdgePoint[edgeIndex], double, aimInfo, status);
+
+        // Create in points along edge
+        for (j = 0; j < numEdgePoint[edgeIndex]; j++) {
+            if (sense == 1) {
+                t = trange[0] + j*(trange[1]-trange[0])/numEdgePoint[edgeIndex];
+            } else {
+                t = trange[1] - j*(trange[1]-trange[0])/numEdgePoint[edgeIndex];
+            }
+
+            if (j == 0) {
+                if (sense == SFORWARD)
+                    status = EG_evaluate(nodes[0], NULL, result);
+                else
+                    status = EG_evaluate(nodes[1], NULL, result);
+            } else if (j == numEdgePoint[edgeIndex]-1) {
+                if (sense == SFORWARD)
+                    status = EG_evaluate(nodes[1], NULL, result);
+                else
+                    status = EG_evaluate(nodes[0], NULL, result);
+            } else {
+                status = EG_evaluate(edges[edgeIndex], &t, result);
+            }
+            AIM_STATUS(aimInfo, status);
+
+            ts[j] = t;
+            xyz[3*j+0] = result[0];
+            xyz[3*j+1] = result[1];
+            xyz[3*j+2] = result[2];
+        }
+
+        status = EG_setTessEdge(tess, EG_indexBodyTopo(body, edges[edgeIndex]), numEdgePoint[edgeIndex], xyz, ts);
+        AIM_STATUS(aimInfo, status);
+    }
+
+    params[0] = 10;
+    params[1] = 20;
+    params[2] = 1;
+    status = EG_finishTess(tess, params);
+    AIM_STATUS(aimInfo, status);
+
+    status = aim_setSensitivity(aimInfo, geomInName, irow, icol);
+    AIM_STATUS(aimInfo, status);
+
+
+    // vector from LE to TE normalized
+    xdot[0]  =  xyzTE[0] - xyzLE[0];
+    xdot[1]  =  xyzTE[1] - xyzLE[1];
+    xdot[2]  =  xyzTE[2] - xyzLE[2];
+
+    if (normalize == (int) false) chord = 1;
+
+    xdot[0] /=  chord;
+    xdot[1] /=  chord;
+    xdot[2] /=  chord;
+
+    // cross with section PLANE normal to get perpendicular vector in the PLANE
+    cross_DoubleVal(secnorm, xdot, ydot);
+
+    AIM_ALLOC(dx_dvar, numPoint, double, aimInfo, status);
+    AIM_ALLOC(dy_dvar, numPoint, double, aimInfo, status);
+
+    // get the coordinate of the starting trailing edge node
+//    status = EG_evaluate(nodeTE, NULL, result);
+//    AIM_STATUS(aimInfo, status);
+//
+//    result[0] -= xyzLE[0];
+//    result[1] -= xyzLE[1];
+//    result[2] -= xyzLE[2];
+
+    // get the sensitivity of the starting trailing edge node
+    status = aim_getSensitivity(aimInfo, tess, 0, EG_indexBodyTopo(body,nodeTE),
+                                &n, &dxyz);
+    AIM_STATUS(aimInfo, status);
+
+    result[0] = dxyz[0];
+    result[1] = dxyz[1];
+    result[2] = dxyz[2];
+
+    dx_dvar[counter] = (xdot[0]*result[0]+xdot[1]*result[1]+xdot[2]*result[2])/chord;
+    dy_dvar[counter] = (ydot[0]*result[0]+ydot[1]*result[1]+ydot[2]*result[2])/chord;
+    counter++;
+    AIM_FREE(dxyz);
+
+    // Loop through edges based on order
+    for (i = 0; i < numEdge; i++) {
+        //printf("Edge order %d\n", edgeOrder[i]);
+
+        edgeIndex = edgeLoopOrder[i] - 1; // -1 indexing
+
+        if (edges[edgeIndex] == teObj) continue;
+
+        // Get children for edge
+        status = EG_getTopology(edges[edgeIndex], &ref, &oclass, &mtype, trange, &numChildren, &children, &sens);
+        if (mtype == DEGENERATE) continue;
+        if (status != EGADS_SUCCESS) goto cleanup;
+
+        // Get the sense of the edge from the loop
+        sense = edgeLoopSense[edgeIndex];
+
+        status = aim_getSensitivity(aimInfo, tess, 1, edgeIndex+1, &n, &dxyz);
+        AIM_STATUS(aimInfo, status);
+
+        for (j = 1; j < n-1; j++) {
+          if (sense == SFORWARD) {
+            result[0] = dxyz[3*j+0];
+            result[1] = dxyz[3*j+1];
+            result[2] = dxyz[3*j+2];
+          } else {
+            result[0] = dxyz[3*(n-j)+0];
+            result[1] = dxyz[3*(n-j)+1];
+            result[2] = dxyz[3*(n-j)+2];
+          }
+
+          dx_dvar[counter] = (xdot[0]*result[0]+xdot[1]*result[1]+xdot[2]*result[2])/chord;
+          dy_dvar[counter] = (ydot[0]*result[0]+ydot[1]*result[1]+ydot[2]*result[2])/chord;
+          counter++;
+        }
+        AIM_FREE(dxyz);
+
+        // get the last Node on the Edge
+        if (sense == SFORWARD) {
+            status = aim_getSensitivity(aimInfo, tess, 0, EG_indexBodyTopo(body,children[1]),
+                                        &n, &dxyz);
+        } else {
+            status = aim_getSensitivity(aimInfo, tess, 0, EG_indexBodyTopo(body,children[0]),
+                                        &n, &dxyz);
+        }
+        AIM_STATUS(aimInfo, status);
+
+        result[0] = dxyz[0];
+        result[1] = dxyz[1];
+        result[2] = dxyz[2];
+
+        dx_dvar[counter] = (xdot[0]*result[0]+xdot[1]*result[1]+xdot[2]*result[2])/chord;
+        dy_dvar[counter] = (ydot[0]*result[0]+ydot[1]*result[1]+ydot[2]*result[2])/chord;
+        counter++;
+        AIM_FREE(dxyz);
+    }
+
+    *dx_dvar_out = dx_dvar;
+    *dy_dvar_out = dy_dvar;
+
+    status = CAPS_SUCCESS;
+
+cleanup:
+    EG_deleteObject(tess);
+
+    AIM_FREE(ts);
+    AIM_FREE(xyz);
+    AIM_FREE(dxyz);
+    AIM_FREE(nodes);
+    AIM_FREE(edges);
+
+    AIM_FREE(edgeLoopSense);
+    AIM_FREE(edgeLoopOrder);
+    AIM_FREE(numEdgePoint);
+
+    return status;
+}
+
 // Get the airfoil cross-section coordinates given a vlmSectionStruct
-int vlm_getSectionCoord(vlmSectionStruct *vlmSection,
+int vlm_getSectionCoord(void *aimInfo,
+                        vlmSectionStruct *vlmSection,
                         int normalize,      // Normalize by chord (true/false)
                         int numPoint,       // Number of points in airfoil
                         double **xCoordOut, // [numPoint]
@@ -2471,29 +2699,23 @@ int vlm_getSectionCoord(vlmSectionStruct *vlmSection,
 #endif
 
     status = EG_getBodyTopos(body, NULL, NODE, &numNode, &nodes);
-    if (status != EGADS_SUCCESS) {
-        printf("\tError in vlm_getSectionCoord, getBodyTopos Nodes = %d\n", status);
-        goto cleanup;
-    }
+    AIM_STATUS(aimInfo, status);
 
     status = EG_getBodyTopos(body, NULL, EDGE, &numEdge, &edges);
-    if (status != EGADS_SUCCESS) {
-        printf("\tError in vlm_getSectionCoord, getBodyTopos Edges = %d\n", status);
-        goto cleanup;
-    }
+    AIM_STATUS(aimInfo, status);
 
     // Get the number of points on each edge
     status = vlm_secEdgePoints(numPoint,
                                numEdge, edges,
                                teObj, &numEdgePoint);
-    if (status != EGADS_SUCCESS) goto cleanup;
+    AIM_STATUS(aimInfo, status);
 
     // Get the loop edge ordering so it starts at the trailing edge NODE
     status = vlm_secOrderEdges(numNode, nodes,
                                numEdge, edges,
                                body, teObj,
                                &edgeLoopOrder, &edgeLoopSense, &nodeTE);
-    if (status != EGADS_SUCCESS) goto cleanup;
+    AIM_STATUS(aimInfo, status);
 
     // vector from LE to TE normalized
     xdot[0]  =  xyzTE[0] - xyzLE[0];
@@ -2511,12 +2733,8 @@ int vlm_getSectionCoord(vlmSectionStruct *vlmSection,
 
     // set output points
 
-    xCoord = (double *) EG_alloc(numPoint*sizeof(double));
-    yCoord = (double *) EG_alloc(numPoint*sizeof(double));
-    if (xCoord == NULL || yCoord == NULL) {
-        status = EGADS_MALLOC;
-        goto cleanup;
-    }
+    AIM_ALLOC(xCoord, numPoint, double, aimInfo, status);
+    AIM_ALLOC(yCoord, numPoint, double, aimInfo, status);
 
     for (i=0; i < numPoint; i++) {
         xCoord[i] = 0.0;
@@ -2525,7 +2743,7 @@ int vlm_getSectionCoord(vlmSectionStruct *vlmSection,
 
     // get the coordinate of the starting trailing edge node
     status = EG_evaluate(nodeTE, NULL, result);
-    if (status != EGADS_SUCCESS) goto cleanup;
+    AIM_STATUS(aimInfo, status);
 
     result[0] -= xyzLE[0];
     result[1] -= xyzLE[1];
@@ -2546,21 +2764,21 @@ int vlm_getSectionCoord(vlmSectionStruct *vlmSection,
         // Get t- range for edge
         status = EG_getTopology(edges[edgeIndex], &ref, &oclass, &mtype, trange, &numChildren, &children, &sens);
         if (mtype == DEGENERATE) continue;
-        if (status != EGADS_SUCCESS) goto cleanup;
+        AIM_STATUS(aimInfo, status);
 
         // Get the sense of the edge from the loop
         sense = edgeLoopSense[i];
 
-        // Write out in points along edge
+        // Write out in points along each edge
         for (j = 1; j < numEdgePoint[edgeIndex]; j++) {
-            if (sense == 1) {
+            if (sense == SFORWARD) {
                 t = trange[0] + j*(trange[1]-trange[0])/numEdgePoint[edgeIndex];
             } else {
                 t = trange[1] - j*(trange[1]-trange[0])/numEdgePoint[edgeIndex];
             }
 
             status = EG_evaluate(edges[edgeIndex], &t, result);
-            if (status != EGADS_SUCCESS) goto cleanup;
+            AIM_STATUS(aimInfo, status);
 
             result[0] -= xyzLE[0];
             result[1] -= xyzLE[1];
@@ -2572,13 +2790,12 @@ int vlm_getSectionCoord(vlmSectionStruct *vlmSection,
         }
 
         // Write the last node of the edge
-        if (sense == 1) {
+        if (sense == SFORWARD) {
             status = EG_evaluate(children[1], NULL, result);
-            if (status != EGADS_SUCCESS) goto cleanup;
         } else {
             status = EG_evaluate(children[0], NULL, result);
-            if (status != EGADS_SUCCESS) goto cleanup;
         }
+        AIM_STATUS(aimInfo, status);
 
         result[0] -= xyzLE[0];
         result[1] -= xyzLE[1];
@@ -2592,32 +2809,35 @@ int vlm_getSectionCoord(vlmSectionStruct *vlmSection,
     *xCoordOut = xCoord;
     *yCoordOut = yCoord;
 
+    xCoord = NULL;
+    yCoord = NULL;
+
     status = CAPS_SUCCESS;
 
 cleanup:
     if (status != CAPS_SUCCESS) {
-        printf("Error: Premature exit in vlm_getSectionCoord, status = %d\n", status);
-        EG_free(xCoord);
-        EG_free(yCoord);
+        AIM_FREE(xCoord);
+        AIM_FREE(yCoord);
     }
 
-    EG_free(numEdgePoint);
+    AIM_FREE(numEdgePoint);
 
-    EG_free(nodes);
-    EG_free(edges);
+    AIM_FREE(nodes);
+    AIM_FREE(edges);
 
-    EG_free(edgeLoopSense);
-    EG_free(edgeLoopOrder);
+    AIM_FREE(edgeLoopSense);
+    AIM_FREE(edgeLoopOrder);
 
     return status;
 }
 
 
 // Write out the airfoil cross-section given an ego body
-int vlm_writeSection(FILE *fp,
+int vlm_writeSection(void *aimInfo,
+                     FILE *fp,
                      vlmSectionStruct *vlmSection,
                      int normalize, // Normalize by chord (true/false)
-                     int maxNumPoint) // number of points in airfoil
+                     int numPoint)  // number of points in airfoil
 {
     int status; // Function return status
 
@@ -2625,14 +2845,15 @@ int vlm_writeSection(FILE *fp,
 
     double *xCoord=NULL, *yCoord=NULL;
 
-    status = vlm_getSectionCoord(vlmSection,
+    status = vlm_getSectionCoord(aimInfo,
+                                 vlmSection,
                                  normalize, // Normalize by chord (true/false)
-                                 maxNumPoint,// Max number of points in airfoil
-                                 &xCoord, //[maxNumPoint]
-                                 &yCoord); //[maxNumPoint] for upper and lower surface
+                                 numPoint,  // Number of points in airfoil
+                                 &xCoord,   //[numPoint]
+                                 &yCoord);  //[numPoint] for upper and lower surface
     if (status != CAPS_SUCCESS) goto cleanup;
 
-    for( i = 0; i < maxNumPoint; i++) {
+    for( i = 0; i < numPoint; i++) {
         fprintf(fp, "%lf %lf\n", xCoord[i], yCoord[i]);
     }
 
@@ -2716,8 +2937,8 @@ void spacer( int N, double pspace, double scale, double x[]) {
   x[N-1] = scale;
 }
 // Use Newton solve to refine the t-value
-static int _refineT(double x1, double xCoord, double scale, double chord, 
-                    ego edge, double xdot[], double result[], double xyzLE[], 
+static int _refineT(double x1, double xCoord, double scale, double chord,
+                    ego edge, double xdot[], double result[], double xyzLE[],
                     double *t) {
 
     int status;
@@ -2768,6 +2989,7 @@ static int _refineT(double x1, double xCoord, double scale, double chord,
 int vlm_getSectionCoordX(vlmSectionStruct *vlmSection,
                          double Cspace,      // Chordwise spacing (see spacer)
                          int normalize,      // Normalize by chord (true/false)
+                         int rotated,        // Leave airfoil rotated (true/false)
                          int numPoint,       // Number of points in airfoil
                          double **xCoordOut, // [numPoint] increasing x values
                          double **yUpperOut, // [numPoint] for upper surface
@@ -2782,8 +3004,8 @@ int vlm_getSectionCoordX(vlmSectionStruct *vlmSection,
 
     int *numEdgePoint = NULL;
 
-    double chord, x1, x2;
-    double xdot[3], ydot[3], *secnorm;
+    double chord, x1, x2, ux, uy, uz, c, s;
+    double xdot[3], ydot[3], tmp[3], *secnorm;
 
     int numEdge, numNode;
     ego *nodes = NULL, *edges = NULL, nodeTE = NULL, nodeLE;
@@ -2861,6 +3083,24 @@ int vlm_getSectionCoordX(vlmSectionStruct *vlmSection,
     xdot[1] /=  chord;
     xdot[2] /=  chord;
 
+    if (rotated == (int)true) {
+      c = cos(-vlmSection->ainc*PI/180.);
+      s = sin(-vlmSection->ainc*PI/180.);
+
+      ux = secnorm[0];
+      uy = secnorm[1];
+      uz = secnorm[2];
+
+      // rotation matrix about an arbitrary axis
+      tmp[0] = (    c + (1-c)*ux*ux)*xdot[0] + (-uz*s + (1-c)*uy*ux)*xdot[1] + ( uy*s + (1-c)*uz*ux)*xdot[2];
+      tmp[1] = ( uz*s + (1-c)*ux*uy)*xdot[0] + (    c + (1-c)*uy*uy)*xdot[1] + (-ux*s + (1-c)*uz*uy)*xdot[2];
+      tmp[2] = (-uy*s + (1-c)*ux*uz)*xdot[0] + ( ux*s + (1-c)*uy*uz)*xdot[1] + (    c + (1-c)*uz*uz)*xdot[2];
+
+      xdot[0] = tmp[0];
+      xdot[1] = tmp[1];
+      xdot[2] = tmp[2];
+    }
+
     // cross with section PLANE normal to get perpendicular vector in the PLANE
     cross_DoubleVal(secnorm, xdot, ydot);
 
@@ -2903,7 +3143,7 @@ int vlm_getSectionCoordX(vlmSectionStruct *vlmSection,
         status = EG_getTopology(edges[edgeIndex], &ref, &oclass, &mtype, trange, &numChildren, &children, &sens);
         if (mtype == DEGENERATE) continue;
         if (status != EGADS_SUCCESS) goto cleanup;
-      
+
         // Check if the first node is the LE edge, which means the current edge is on the lower surface
         sense = edgeLoopSense[i];
         if (sense == SFORWARD) {
@@ -2944,7 +3184,7 @@ int vlm_getSectionCoordX(vlmSectionStruct *vlmSection,
 
             x1 = (xdot[0]*result[0]+xdot[1]*result[1]+xdot[2]*result[2])/chord;
             // use Newton solve to refine the t-value
-            status = _refineT(x1, xCoord[ipnt], scale, chord, 
+            status = _refineT(x1, xCoord[ipnt], scale, chord,
                               edges[edgeIndex], xdot, result, xyzLE, &t);
             if (status != CAPS_SUCCESS) goto cleanup;
 
@@ -2996,7 +3236,7 @@ int vlm_getSectionCoordX(vlmSectionStruct *vlmSection,
 
             x1 = (xdot[0]*result[0]+xdot[1]*result[1]+xdot[2]*result[2])/chord;
             // use Newton solve to refine the t-value
-            status = _refineT(x1, xCoord[ipnt], scale, chord, 
+            status = _refineT(x1, xCoord[ipnt], scale, chord,
                               edges[edgeIndex], xdot, result, xyzLE, &t);
             if (status != CAPS_SUCCESS) goto cleanup;
 
@@ -3066,7 +3306,7 @@ int vlm_getSectionCamberLine(vlmSectionStruct *vlmSection,
 
     status = vlm_getSectionCoordX(vlmSection,
                                   Cspace, // Cosine distribution
-                                  normalize, numPoint,
+                                  normalize, (int)false, numPoint,
                                   &xCoord, &yUpper, &yLower);
     if (status != CAPS_SUCCESS) goto cleanup;
 

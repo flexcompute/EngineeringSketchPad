@@ -1,31 +1,25 @@
 import pyCAPS
 
-# Instantiate our CAPS problem "myProblem" 
+# Define length unit
+m = pyCAPS.Unit("m")
+
+# Instantiate our CAPS problem "myProblem"
 print("Loading file into our Problem")
 myProblem = pyCAPS.Problem(problemName="skeletonExample",
                            capsFile="case.csm")
 
-# Load our skeletal aim 
+# Load our skeletal aim
 skel = myProblem.analysis.create(aim = "skeletonAIM")
 
-##[analysisValueSetandGet]
 # Get current value of our first input
-value = skel.input.skeletonAIMin
-print("Default skeletonAIMin =", value)
-skel.input.skeletonAIMin = 6.0
-value = skel.input.skeletonAIMin
-print("Current skeletonAIMin =", value)
+value = skel.input.SkeletonAIMin
+print("Default SkeletonAIMin =", value)
+skel.input.SkeletonAIMin = 6.0*m
+value = skel.input.SkeletonAIMin
+print("Current SkeletonAIMin =", value)
 
-##[analysisPreAndPost]
-# Execute pre-Analysis
-skel.preAnalysis()
-
-# Run AIM - os.system call, python interface, etc.....
-
-# Execute post-Analysis (notify CAPS that analysis is done)
-skel.postAnalysis()
+# AIM autoExecutes
 
 # Get an output
-value = skel.output.skeletonAIMout
-print("Computed skeletonAIMout =", value)
-##[analysisPreAndPost]
+value = skel.output.SkeletonAIMout
+print("Computed SkeletonAIMout =", value)

@@ -358,6 +358,7 @@ def createTree(dataItem, showAnalysisGeom, showInternalGeomAttr, reverseMap):
 # \param Problem.parameter \ref ParamSequence of \ref ValueIn parameters
 # \param Problem.bound     \ref BoundSequence of \ref Bound instances
 # \param Problem.attr      \ref AttrSequence of \ref ValueIn attributes
+#
 class Problem(object):
 
     __slots__ = ['_problemObj', 'geometry', 'parameter', 'analysis', 'bound', 'attr', '_name']
@@ -365,11 +366,12 @@ class Problem(object):
     ## Initialize the problem.
     # \param problemName CAPS problem name that serves as the root directory for all file I/O.
     # \param phaseName the current phase name (None is equivalent to 'Scratch')
+    # \param prevPhaseName the previous phase name
     # \param capsFile CAPS file to load. Options: *.csm or *.egads.
     # \param outLevel Level of output verbosity. See \ref setOutLevel .
     # \param useJournal Use Journaling to continue execution of an interrupted script.
     #
-    def __init__(self, problemName, phaseName=None, capsFile=None, outLevel=1, useJournal=False):
+    def __init__(self, problemName, phaseName=None, prevPhaseName=None, capsFile=None, outLevel=1, useJournal=False):
 
         verbosity = {"minimal"  : 0,
                      "standard" : 1,
@@ -382,7 +384,22 @@ class Problem(object):
         if int(outLevel) not in verbosity.values():
             raise caps.CAPSError(caps.CAPS_BADVALUE, msg = "invalid verbosity level! outLevel={!r}".format(outLevel))
 
-        problemObj = caps.open(problemName, phaseName, capsFile, outLevel, useJournal)
+        if isinstance(problemName,caps.capsObj):
+            problemObj = problemName
+            problemName, otype, stype, link, parent, last = problemObj.info()
+        else:
+            if capsFile is not None:
+                ptr = capsFile
+                flag = caps.oFlag.oFileName
+                if useJournal:
+                    flag = caps.oFlag.oContinue
+            elif prevPhaseName is not None:
+                flag = caps.oFlag.oPhaseName
+                ptr = prevPhaseName
+
+
+            problemObj = caps.open(problemName, phaseName, flag, ptr, outLevel)
+
         super(Problem, self).__setattr__("_problemObj", problemObj)
 
         super(Problem, self).__setattr__("geometry",  ProblemGeometry(problemObj))
@@ -398,18 +415,41 @@ class Problem(object):
     def __delattr__(self, name):
         raise AttributeError("Cannot del attribute: {!r}".format(name))
 
+
+    # delete all references to _problemObj after closing the problem
+    def _clean(self):
+        super(Problem, self).__delattr__("geometry")
+        super(Problem, self).__delattr__("parameter")
+        super(Problem, self).__delattr__("analysis")
+        super(Problem, self).__delattr__("bound")
+        super(Problem, self).__delattr__("attr")
+
     ## Exlicitly closes CAPS Problem Object
+    #
+    # This method is mainly useful for testing purposes
+    #
     def close(self):
         self._problemObj.close()
+        self._clean()
+
+    ## Completes the Phase and closes the CAPS Problem Object
+    # \param phaseName Phase Name of the Scratch phase is closed as complete
+    #
+    def closePhase(self, phaseName=None):
+        self._problemObj.close(1, phaseName)
+        self._clean()
 
     ## Property returns the name of the CAPS Problem Object
     @property
     def name(self):
         return self._name
 
-    ## Indicates if the CAPS Problem Object is currently journaling
+    ## Boolean indicator if the CAPS Problem Object is currently journaling
     def journaling(self):
         return self._problemObj.journalState()
+
+    def outputObjects(self):
+        self._problemObj.outputObjects()
 
     ## Set the verbosity level of the CAPS output.
     # See \ref problem5.py for a representative use case.
@@ -621,7 +661,7 @@ class capsProblem(Problem):
 
         return dirtyAnalysis
 
-    @deprecated("'None'")
+    @deprecated("'close'")
     def closeCAPS(self):
 
         # delete all references to _problemObj
@@ -778,9 +818,12 @@ class ProblemGeometry(object):
 
     def _viewGeometryCAPSViewer(self, **kwargs):
 
-        name, otype, stype, link, parent, last = self._problemObj.info()
+        egadsFile = os.path.join(self._problemObj.getRootPath(), "viewProblemGeometry.egads")
+        relFile = os.path.relpath(egadsFile, os.getcwd())
 
-        egadsFile = os.path.join(name, "viewProblemGeometry.egads")
+        # use the shortest filename
+        if len(relFile) < len(egadsFile):
+            egadsFile = relFile
 
         self.save( egadsFile )
 
@@ -1087,7 +1130,7 @@ class capsGeometry(ProblemGeometry):
                 iProj += 1
                 projectName = base + str(iProj)
 
-        super(capsProblem, problem).__init__(projectName, None, capsFile, verbosity)
+        super(capsProblem, problem).__init__(projectName, None, None, capsFile, verbosity)
         super(capsGeometry, self).__init__(problem._problemObj)
 
         super(Problem, problem).__setattr__("geometry", self)
@@ -1723,7 +1766,7 @@ class ValueOut(object):
             derivs = {}
             for name in names:
                 derivs[name] = self._valObj.getDeriv(name)
-    
+
             return derivs
 
 #==============================================================================
@@ -1835,7 +1878,7 @@ class ValueDynOut(object):
             derivs = {}
             for name in names:
                 derivs[name] = valObj.getDeriv(name)
-    
+
             return derivs
 
 #==============================================================================
@@ -1950,7 +1993,7 @@ class Analysis(object):
         self._analysisObj.execute()
 
     ## Execute the Command Line String
-    #    Notes: 
+    #    Notes:
     #    1. only needed when explicitly executing the appropriate analysis solver (i.e., not using the AIM)
     #    2. should be invoked after caps_preAnalysis and before caps_postAnalysis
     #    3. this must be used instead of the OS system call to ensure that journaling properly functions
@@ -1992,8 +2035,8 @@ class Analysis(object):
     # \param **kwargs See below.
     #
     # \return Cleanliness state of analysis object or a dictionary containing analysis
-    # information (infoDict must be set to True). For cleanliness state: 
-    # 0 = "Up to date", 
+    # information (infoDict must be set to True). For cleanliness state:
+    # 0 = "Up to date",
     # 1 = "Dirty analysis inputs",
     # 2 = "Dirty geometry inputs",
     # 3 = "Both analysis and geometry inputs are dirty",
@@ -2057,7 +2100,7 @@ class Analysis(object):
 
         return cleanliness
 
-    ## Create a HTML dendrogram/tree of the current state of the analysis. 
+    ## Create a HTML dendrogram/tree of the current state of the analysis.
     # The HTML file relies on the open-source JavaScript library, D3, to visualize the data.
     # This library is freely available from https://d3js.org/ and is dynamically loaded within the HTML file.
     # If running on a machine without internet access a (miniaturized) copy of the library may be written to
@@ -2282,6 +2325,11 @@ class AnalysisGeometry(object):
         analysisDir, unitSystem, major, minor, capsIntent, fnames, franks, fInOut, execution, cleanliness = self._analysisObj.analysisInfo()
 
         egadsFile = os.path.join(analysisDir, "viewAnalysisGeometry.egads")
+        relFile = os.path.relpath(egadsFile, os.getcwd())
+
+        # use the shortest filename
+        if len(relFile) < len(egadsFile):
+            egadsFile = relFile
 
         self.save( egadsFile )
 
@@ -3497,14 +3545,14 @@ class VertexSet(object):
     def name(self):
         return self._name
 
-    ## Executes caps_triangulate on data set's vertex set to retrieve the connectivity (triangles only) information
+    ## Executes caps_getTriangles on data set's vertex set to retrieve the connectivity (triangles only) information
     # for the data set.
     # \return Optionally returns a list of lists of connectivity values
     # (e.g. [ [node1, node2, node3], [node2, node3, node7], etc. ] ) and a list of lists of data connectivity (not this is
     # an empty list if the data is node-based) (eg. [ [node1, node2, node3], [node2, node3, node7], etc. ]
     def getDataConnect(self):
-        triConn, dataConn = self._vertexSetObj.triangulate()
-        return (triConn, dataConn)
+        Gtris, Gsegs, Dtris, Dsegs = self._vertexSetObj.getTriangles()
+        return Gtris, Gsegs, Dtris, Dsegs
 
 #==============================================================================
 ## Defines a Sequence of CAPS Bound Objects
@@ -3594,19 +3642,19 @@ class DataSet(object):
     def getDataXYZ(self):
         return self.xyz()
 
-    ## Executes caps_triangulate on data set's vertex set to retrieve the connectivity (triangles only) information
+    ## Executes caps_getTriangles on data set's vertex set to retrieve the connectivity (triangles only) information
     # for the data set.
     # \return Optionally returns a list of lists of connectivity values
     # (e.g. [ [node1, node2, node3], [node2, node3, node7], etc. ] ) and a list of lists of data connectivity (not this is
     # an empty list if the data is node-based) (eg. [ [node1, node2, node3], [node2, node3, node7], etc. ]
     def connectivity(self):
-        triConn, dataConn = self._vertexSetObj.triangulate()
-        return (triConn, dataConn)
+        Gtris, Gsegs, Dtris, Dsegs = self._vertexSetObj.getTriangles()
+        return Gtris, Gsegs, Dtris, Dsegs
 
     @deprecated("'DataSet.connectivity'")
     def getDataConnect(self):
-        triConn, dataConn = self._vertexSetObj.triangulate()
-        return (triConn, dataConn)
+        Gtris, Gsegs, Dtris, Dsegs = self._vertexSetObj.getTriangles()
+        return Gtris, Gsegs, Dtris, Dsegs
 
     ## Link this DataSet to an other CAPS DataSet Object
     # \param source The source DataSEt Object
@@ -3699,11 +3747,11 @@ class DataSet(object):
         data = self.data()
         xyz = self.xyz()
 
-        triConn, dataConn = self._vertexSetObj.triangulate()
+        triConn, Gsegs, Dtris, dataConn = self._vertexSetObj.getTriangles()
 
         numData = len(data)
         numTri = len(triConn)
-        
+
         try:
             dataRank = len(data[0])
         except TypeError:
@@ -3848,7 +3896,6 @@ class DataSet(object):
 
             if filename == None:
                 raise caps.CAPSError(caps.CAPS_BADVALUE, msg = "while writing Tecplot file for data set - " + str(self.dataSetName)
-                                                             + " (during a call to caps_triangulate)"
                                                              + "\nNo file name or open file object provided" )
 
             if "." not in filename:
@@ -3876,7 +3923,7 @@ class DataSet(object):
 
         xyz = self.xyz()
 
-        connectivity, dconnectivity = self.connectivity()
+        connectivity, Gsegs, dconnectivity, Dsegs = self.connectivity()
 
         #TODO: dconnectivity does not appear to indicate a cell centered data set?
         if dconnectivity:

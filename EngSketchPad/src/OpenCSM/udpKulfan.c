@@ -14,7 +14,7 @@
  */
 
 /*
- * Copyright (C) 2011/2021  John F. Dannenhoffer, III (Syracuse University)
+ * Copyright (C) 2011/2022  John F. Dannenhoffer, III (Syracuse University)
  *
  * This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
@@ -32,8 +32,7 @@
  *     MA  02110-1301  USA
 */
 
-#define NUMPNTS    101
-#define NUMUDPARGS 4
+#define NUMUDPARGS 5
 #include "udpUtilities.h"
 
 /* shorthands for accessing argument values and velocities */
@@ -41,12 +40,13 @@
 #define ZTAIL( IUDP,I)  ((double *) (udps[IUDP].arg[1].val))[I]
 #define AUPPER(IUDP,I)  ((double *) (udps[IUDP].arg[2].val))[I]
 #define ALOWER(IUDP,I)  ((double *) (udps[IUDP].arg[3].val))[I]
+#define NUMPTS(IUDP  )  ((int    *) (udps[IUDP].arg[4].val))[0]
 
 /* data about possible arguments */
-static char*  argNames[NUMUDPARGS] = {"class",  "ztail",  "aupper", "alower", };
-static int    argTypes[NUMUDPARGS] = {ATTRREAL, ATTRREAL, ATTRREAL, ATTRREAL, };
-static int    argIdefs[NUMUDPARGS] = {0,        0,        0,        0,        };
-static double argDdefs[NUMUDPARGS] = {0.,       0.,       0.,       0.,       };
+static char*  argNames[NUMUDPARGS] = {"class",  "ztail",  "aupper", "alower", "numpts", };
+static int    argTypes[NUMUDPARGS] = {ATTRREAL, ATTRREAL, ATTRREAL, ATTRREAL, ATTRINT,  };
+static int    argIdefs[NUMUDPARGS] = {0,        0,        0,        0,        101,      };
+static double argDdefs[NUMUDPARGS] = {0.,       0.,       0.,       0.,       0.,       };
 
 /* get utility routines: udpErrorStr, udpInitialize, udpReset, udpSet,
  udpGet, udpVel, udpClean, udpMesh */
@@ -58,6 +58,10 @@ static double argDdefs[NUMUDPARGS] = {0.,       0.,       0.,       0.,       };
 #define           EPS12           1.0e-12
 #define           MIN(A,B)        (((A) < (B)) ? (A) : (B))
 #define           MAX(A,B)        (((A) < (B)) ? (B) : (A))
+
+#ifdef GRAFIC
+    #include "grafic.h"
+#endif
 
 /*
  ************************************************************************
@@ -115,6 +119,9 @@ udpExecute(ego  context,                /* (in)  EGADS context */
     double  data[18], tdata[2], result[3], range[4], eval[18], norm[3];
     double  dxytol = 1.0e-6;
     ego     enodes[4], eedges[3], ecurve, eline, eloop, eface, enew;
+#ifdef GRAFIC
+    float   *xplot=NULL, *yplot=NULL;
+#endif
 
 #ifdef DEBUG
     printf("udpExecute(context=%llx)\n", (long long)context);
@@ -150,22 +157,28 @@ udpExecute(ego  context,                /* (in)  EGADS context */
         status = EGADS_RANGERR;
         goto cleanup;
 
+    } else if (udps[0].arg[4].size != 1 || NUMPTS(0) < 11) {
+        printf(" udpExecute: numpts should contain one positive number greater than 11\n");
+        status = EGADS_RANGERR;
+        goto cleanup;
+
     }
 
 #ifdef DEBUG
     {
         int i;
 
-        printf("class(0)[0]   = %f  (nose)\n", CLASS(0,0));
-        printf("class(0)[1]   = %f  (tail)\n", CLASS(0,1));
-        printf("ztail(0)[0]   = %f  (upper)\n", ZTAIL(0,0));
-        printf("ztail(0)[1]   = %f  (lower)\n", ZTAIL(0,1));
+        printf("class( 0)[0]   = %f  (nose)\n", CLASS(0,0));
+        printf("class( 0)[1]   = %f  (tail)\n", CLASS(0,1));
+        printf("ztail( 0)[0]   = %f  (upper)\n", ZTAIL(0,0));
+        printf("ztail( 0)[1]   = %f  (lower)\n", ZTAIL(0,1));
         for (i = 0; i < udps[0].arg[2].size; i++) {
             printf("aupper(0)[%d]  = %f\n", i, AUPPER(0,i));
         }
         for (i = 0; i < udps[0].arg[3].size; i++) {
             printf("alower(0)[%d]  = %f\n", i, ALOWER(0,i));
         }
+        printf("numpts(0)      = %d\n", NUMPTS( 0));
     }
 #endif
 
@@ -174,15 +187,15 @@ udpExecute(ego  context,                /* (in)  EGADS context */
     CHECK_STATUS(cacheUdp);
 
     /* mallocs required by Windows compiler */
-    MALLOC(pnts, double, (3*NUMPNTS));
+    MALLOC(pnts, double, (3*NUMPTS(numUdp)));
 
     /* points around airfoil ( upper and lower) */
-    for (ipnt = 0; ipnt < NUMPNTS; ipnt++) {
-        zeta = TWOPI * ipnt / (NUMPNTS-1);
+    for (ipnt = 0; ipnt < NUMPTS(numUdp); ipnt++) {
+        zeta = TWOPI * ipnt / (NUMPTS(numUdp)-1);
         s    = (1 + cos(zeta)) / 2;
 
         /* upper surface */
-        if ( ipnt < (NUMPNTS-1)/2){
+        if ( ipnt < (NUMPTS(numUdp)-1)/2){
             n = udps[numUdp].arg[2].size - 1;
 
             shape = 0;
@@ -200,13 +213,13 @@ udpExecute(ego  context,                /* (in)  EGADS context */
             pnts[3*ipnt+2] = 0;
 
         /* leading edge */
-        } else if (ipnt == (NUMPNTS-1)/2) {
+        } else if (ipnt == (NUMPTS(numUdp)-1)/2) {
             pnts[3*ipnt  ] = 0;
             pnts[3*ipnt+1] = 0;
             pnts[3*ipnt+2] = 0;
 
         /* lower surface */
-        } else if (ipnt > (NUMPNTS-1)/2) {
+        } else if (ipnt > (NUMPTS(numUdp)-1)/2) {
             n = udps[numUdp].arg[3].size - 1;
 
             shape = 0;
@@ -235,7 +248,7 @@ udpExecute(ego  context,                /* (in)  EGADS context */
     CHECK_STATUS(EG_makeTopology);
 
     /* create Node at leading edge */
-    ipnt = (NUMPNTS - 1) / 2;
+    ipnt = (NUMPTS(numUdp) - 1) / 2;
     data[0] = pnts[3*ipnt  ];
     data[1] = pnts[3*ipnt+1];
     data[2] = pnts[3*ipnt+2];
@@ -244,7 +257,7 @@ udpExecute(ego  context,                /* (in)  EGADS context */
     CHECK_STATUS(EG_makeTopology);
 
     /* create Node at lower trailing edge */
-    ipnt = NUMPNTS - 1;
+    ipnt = NUMPTS(numUdp) - 1;
     data[0] = pnts[3*ipnt  ];
     data[1] = pnts[3*ipnt+1];
     data[2] = pnts[3*ipnt+2];
@@ -258,22 +271,80 @@ udpExecute(ego  context,                /* (in)  EGADS context */
     {
         int i;
 
-        for (i = 0; i < NUMPNTS; i++) {
+        for (i = 0; i < NUMPTS(numUdp); i++) {
             printf("%3d  %10.4f %10.4f %10.4f\n", i, pnts[3*i], pnts[3*i+1], pnts[3*i+2]);
         }
     }
 #endif
 
     /* create spline curve from upper TE, to LE, to lower TE */
-    sizes[0] = NUMPNTS;
+    sizes[0] = NUMPTS(numUdp);
     sizes[1] = 0;
     status = EG_approximate(context, 0, dxytol, sizes, pnts, &ecurve);
     CHECK_STATUS(EG_approximate);
 
+#ifdef GRAFIC
+    #define NUMEVAL 5000
+
+    if (1) {
+        int    io_kbd=5, io_scr=6, indgr=1+2+4+16+64;
+        int    nline=0, npnt=0, ilin[NUMEVAL+3], isym[NUMEVAL+3], nper[NUMEVAL+3], i;
+        double tt, evaldata[18];
+
+        MALLOC(xplot, float, NUMPTS(numUdp)+3*NUMEVAL);
+        MALLOC(yplot, float, NUMPTS(numUdp)+3*NUMEVAL);
+
+        for (i = 0; i < NUMPTS(numUdp); i++) {
+            xplot[npnt] = pnts[3*i  ];
+            yplot[npnt] = pnts[3*i+1];
+            npnt++;
+        }
+        ilin[nline] = -GR_DASHED;
+        isym[nline] = +GR_CIRCLE;
+        nper[nline] =  NUMPTS(numUdp);
+        nline++;
+
+        for (i = 0; i < NUMEVAL; i++) {
+            tt = (double)(i) / (double)(NUMEVAL-1);
+            (void) EG_evaluate(ecurve, &tt, evaldata);
+
+            xplot[npnt] = evaldata[0];
+            yplot[npnt] = evaldata[1];
+            npnt++;
+        }
+        ilin[nline] = +GR_SOLID;
+        isym[nline] = -GR_PLUS;
+        nper[nline] =  NUMEVAL;
+        nline++;
+
+        for (i = 0; i < NUMEVAL; i++) {
+            tt = (double)(i) / (double)(NUMEVAL+1);
+            (void) EG_evaluate(ecurve, &tt, evaldata);
+
+            xplot[npnt] = evaldata[0];
+            yplot[npnt] = evaldata[1];
+            npnt++;
+
+            xplot[npnt] = evaldata[0] + evaldata[4] / 100;
+            yplot[npnt] = evaldata[1] - evaldata[3] / 100;
+            npnt++;
+
+            ilin[nline] = GR_SOLID;
+            isym[nline] = 0;
+            nper[nline] = 2;
+            nline++;
+        }
+
+        grinit_(&io_kbd, &io_scr, "udpKulfan", STRLEN("udpKulfan"));
+        grline_(ilin, isym, &nline,                 "~x~y~O=points, line=fit",
+                &indgr, xplot, yplot, nper, STRLEN( "~x~y~O=points, line=fit"));
+    }
+#endif
+
     /* make Edge for upper surface */
     tdata[0] = 0;   // because EG_approximate was used
 
-    ipnt = (NUMPNTS - 1) / 2;
+    ipnt = (NUMPTS(numUdp) - 1) / 2;
     data[0] = pnts[3*ipnt  ];
     data[1] = pnts[3*ipnt+1];
     data[2] = pnts[3*ipnt+2];
@@ -285,7 +356,7 @@ udpExecute(ego  context,                /* (in)  EGADS context */
     CHECK_STATUS(EG_makeTopology);
 
     /* make Edge for lower surface */
-    ipnt = (NUMPNTS - 1) / 2;
+    ipnt = (NUMPTS(numUdp) - 1) / 2;
     data[0] = pnts[3*ipnt  ];
     data[1] = pnts[3*ipnt+1];
     data[2] = pnts[3*ipnt+2];
@@ -299,7 +370,7 @@ udpExecute(ego  context,                /* (in)  EGADS context */
     CHECK_STATUS(EG_makeTopology);
 
     /* create line segment at trailing edge */
-    ipnt = NUMPNTS - 1;
+    ipnt = NUMPTS(numUdp) - 1;
     data[0] = pnts[3*ipnt  ];
     data[1] = pnts[3*ipnt+1];
     data[2] = pnts[3*ipnt+2];
@@ -391,6 +462,11 @@ udpExecute(ego  context,                /* (in)  EGADS context */
 
 cleanup:
     if (pnts != NULL) free(pnts);
+
+#ifdef GRAFIC
+    FREE(xplot);
+    FREE(yplot);
+#endif
 
     if (status != EGADS_SUCCESS) {
         *string = udpErrorStr(status);

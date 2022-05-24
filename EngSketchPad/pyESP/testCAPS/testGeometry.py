@@ -463,7 +463,7 @@ class TestGeometry(unittest.TestCase):
     def test_viewGeometry(self):
 
         try:
-            self.myGeometry.viewGeometry(filename = "geomView", showImage =False)
+            self.myGeometry.view(filename = "geomView", showImage =False)
 
             self.assertTrue(os.path.isfile("geomView_0.png"))
             self.assertTrue(os.path.isfile("geomView_1.png"))

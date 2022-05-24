@@ -5,7 +5,7 @@
  *
  *             AIM Utility Function Prototypes
  *
- *      Copyright 2014-2021, Massachusetts Institute of Technology
+ *      Copyright 2014-2022, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -57,6 +57,9 @@ __ProtoExt__ /*@null@*/ /*@out@*/ /*@only@*/ FILE *
 
 __ProtoExt__ int
   aim_isFile(void *aimStruc, const char *file);
+
+__ProtoExt__ int
+  aim_rmFile(void *aimStruc, const char *file);
 
 __ProtoExt__ int
   aim_cpFile(void *aimStruc, const char *src, const char *dst);
@@ -134,6 +137,9 @@ __ProtoExt__ int
 
 __ProtoExt__ int
   aim_initValue( capsValue *value );
+
+__ProtoExt__ void
+  aim_freeValue(capsValue *value);
 
 __ProtoExt__ int
   aim_makeDynamicOutput( void *aimInfo, const char *dynObjName,

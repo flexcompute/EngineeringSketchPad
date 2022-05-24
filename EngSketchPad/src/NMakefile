@@ -31,10 +31,15 @@ all:
 	cd ..\src\CAPS\aim
 	nmake -f NMakefile
 	cd ..\..
+	cd OpenCSM
+	nmake -f serveESP.mak
+	cd ..
 	@echo  *** Build Completed! ***
 
 clean:
-	cd CAPS\aim
+	cd OpenCSM
+	nmake -f serveESP.mak clean
+	cd ..\CAPS\aim
 	nmake -f NMakefile clean
 	cd ..\..\..\CAPSexamples
 	nmake -f NMakefile clean
@@ -58,7 +63,9 @@ clean:
 	cd ..\..
 
 cleanall:
-	cd CAPS\aim
+	cd OpenCSM
+	nmake -f serveESP.mak cleanall
+	cd ..\CAPS\aim
 	nmake -f NMakefile cleanall
 	cd ..\..\..\CAPSexamples
 	nmake -f NMakefile cleanall

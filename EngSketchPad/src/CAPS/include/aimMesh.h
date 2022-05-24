@@ -5,7 +5,7 @@
  *
  *             AIM Mesh Function Prototypes
  *
- *      Copyright 2014-2021, Massachusetts Institute of Technology
+ *      Copyright 2014-2022, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -101,6 +101,11 @@ __ProtoExt__ int
 
 __ProtoExt__ int
   aim_addMeshElem( void *aimStruc, int nElems, aimMeshElemGroup *elemGroup );
+
+__ProtoExt__ int
+  aim_readBinaryUgridHeader(void *aimStruc, aimMeshRef *meshRef,
+                          int *nVertex, int *nTri, int *nQuad,
+                          int *nTet, int *nPyramid, int *nPrism, int *nHex);
 
 __ProtoExt__ int
   aim_readBinaryUgrid( void *aimStruc, aimMesh *mesh );

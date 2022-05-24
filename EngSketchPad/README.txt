@@ -1,5 +1,5 @@
                         ESP: The Engineering Sketch Pad
-                           Rev 1.20 -- September 2021
+                          Rev 1.21 beta -- March 2022
 
 
 0. Preamble
@@ -8,11 +8,10 @@
     This also means that older versions of MS Visual Studio are no longer 
     being tested either. Only MSVS versions 2017 and up are fully supported.
 
-    This ESP release no longer tests against Python 2.7. It should still
-    work, but we strongly advise going to at least Python 3.7. Also, we
-    now only support OpenCASCADE at Rev 7.3 or higher. And these must be
-    the versions taken from the ESP website (and not from elsewhere). At
-    this point we recommend 7.4.1 and are skipping 7.5 (waiting for 7.6).
+    This ESP release no longer works with Python 2.7. The minimum supported
+    version is now Python 3.8. Also, we now only support OpenCASCADE at Rev 
+    7.4 or higher. And these must be the versions taken from the ESP website
+    (and not from elsewhere). At this point we recommend 7.6.0.
 
     The training material is no longer part of this distribution. The last
     training was given for Rev 1.19 and can be found at the ESP website at
@@ -20,30 +19,31 @@
     ESP geometry construction and is found in the ESP subdirectory and the
     second on analysis is found in the CAPS subdirectory. The PDFs and MP4s
     of the lectures can be found in the (sub)subdirectory "lectures".
-    Please do not apply the overlays -- they are specifically for ESP 1.19.
+    Do NOT apply the overlays -- they are specifically for ESP 1.19.
 
     Apple notes: 
     (1) You CANNOT download the distributions using a browser. For 
         instructions on how to get ESP see MACdownloads.txt on the web site.
-    (2) Big Sur (11.x) is now fully tested. 
-    (3) Apple M1 computers are natively supported but require Rosetta2 for 
+    (2) You must have XQuartz at a minimum release of 2.8.1 for some supplied
+        executables to function.
+    (3) Big Sur and Monterey are now fully tested. 
+    (4) Apple M1 computers are natively supported but require Rosetta2 for 
         the execution of some legacy CAPS apps. Rosetta2 can be installed by 
         executing the following command: "softwareupdate --install-rosetta".
-    (4) M1 builds must be done in a "native" shell. That is, typing "arch"
+    (5) M1 builds must be done in a "native" shell. That is, typing "arch"
         must return "arm64".
 
 
 1. Prerequisites
 
     The most significant prerequisite for this software is OpenCASCADE.
-    This ESP release only supports the prebuilt versions marked 7.3.1 
-    and 7.4.1, which are available at http://acdl.mit.edu/ESP. Please DO 
+    This ESP release only supports the prebuilt versions marked 7.4.1 
+    and 7.6.0, which are available at http://acdl.mit.edu/ESP. Please DO 
     NOT report any problems with any other versions of OpenCASCADE, much 
     effort has been spent in "hardening" the OpenCASCADE code. It is advised 
-    that all ESP users update to 7.3.1/7.4.1 because of better robustness, 
+    that all ESP users update to 7.4.1/7.6.0 because of better robustness and
     performance. If you are still on a LINUX box with a version of gcc less 
-    than 4.8, you may want to consider an upgrade, so that at least 7.3.1 
-    can be used.
+    than 4.8, you will have to upgrade to a newer OS or version of gcc.
 
     Another prerequisite is a WebGL/Websocket capable Browser. In general 
     these include Mozilla's FireFox, Google Chrome and Apple's Safari. 
@@ -103,9 +103,8 @@
     optimization and by setting the _tParams attribute on a Body only
     when a tessellation is done.
 
-1.2.3 Known issues in v1.20:
+1.2.3 Known issues in v1.21:
 
-    Sensitivities for BLENDS with C0 are done by finite differences.
 
 1.2.4 CAPS
 
@@ -134,7 +133,7 @@
     the commands:
 
         % cd $ESP_ROOT/config
-        % ./makeEnv **name_of_OpenCASCADE_directory_containing_inc_and_lib**
+        % ./makeEnv **path_of_OpenCASCADE_directory_containing_inc_and_lib**
 
     An optional second argument to makeEnv is required if the distribution 
     of OpenCASCADE has multiple architectures. In this case it is the 

@@ -93,7 +93,7 @@ $(LDIR)/libcaps.dll:	$(OBJS)
 			-L$(LDIR) -ludunits2 -locsm -legads -ldl )
 
 $(OBJS): %.o: 	%.c ../include/capsErrors.h ../include/capsTypes.h capsBase.h \
-		capsFunIDs.h $(IDIR)/OpenCSM.h $(IDIR)/common.h
+		../include/caps.h capsFunIDs.h $(IDIR)/OpenCSM.h $(IDIR)/common.h
 	$(CC) -c $(COPTS) $(DEFINE) -I../include -I$(IDIR) -I. \
 		-I/usr/include/udunits2 $< -o $(ODIR)/$@
 
@@ -127,7 +127,7 @@ $(IDIR)/capsTypes.h:	../include/capsTypes.h
 
 lint:
 	@echo "CAPS library:"
-	$(LINT) -I../include -I$(IDIR) $(patsubst %.o,%.c,$(OBJS)) -uniondef -exportlocal -nullpass -Dclosedir=free
+	$(LINT) -I../include -I$(IDIR) $(patsubst %.o,%.c,$(OBJS)) -uniondef -exportlocal -nullpass -bufferoverflowhigh -Dclosedir=free
 	@echo " "
 	@echo "AIM utility library:"
 	$(LINT) -I../include -I$(IDIR) aimUtil.c aimMesh.c aimTransferUtil.c -uniondef -exportlocal -initallelements -Dclosedir=free

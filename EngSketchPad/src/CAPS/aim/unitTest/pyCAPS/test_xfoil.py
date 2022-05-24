@@ -4,19 +4,8 @@ import os
 import glob
 import shutil
 
-import argparse
-
 import pyCAPS
 
-# Setup and read command line options. Please note that this isn't required for pyCAPS
-#parser = argparse.ArgumentParser(description = 'xFoil Pytest Example',
-#                                 prog = 'xfoil_PyTest.py',
-#                                 formatter_class = argparse.ArgumentDefaultsHelpFormatter)
-
-#Setup the available commandline options
-#parser.add_argument('-workDir', default = "./", nargs=1, type=str, help = 'Set working/run directory')
-#parser.add_argument('-noAnalysis', action='store_true', default = False, help = "Don't run analysis code")
-#args = parser.parse_args()
  
 class Testxfoil_NACA(unittest.TestCase):
 

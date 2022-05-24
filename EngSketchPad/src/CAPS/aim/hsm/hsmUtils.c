@@ -376,7 +376,8 @@ int allocate_hsmTempMemoryStruct(int numNode, int maxValence, int maxDim,
 
 
 // Convert an EGADS body to a boundary element model - disjointed at edges
-int hsm_bodyToBEM(ego    ebody,                        // (in)  EGADS Body
+int hsm_bodyToBEM(void *aimInfo,
+                  ego    ebody,                        // (in)  EGADS Body
                   double paramTess[3],                 // (in)  Tessellation parameters
                   int    edgePointMin,                 // (in)  minimum points along any Edge
                   int    edgePointMax,                 // (in)  maximum points along any Edge
@@ -417,7 +418,7 @@ int hsm_bodyToBEM(ego    ebody,                        // (in)  EGADS Body
     ego    eref, *echilds, eloop;
 
     int          n, cnt, iloop, iedge, eindex, last, numEdgePoints, nloop;
-    int          nedge, *sen;
+    int          nedge, *sen, *qints=NULL;
     double       uvbox[4];
     const double *xyzs = NULL, *ts = NULL;
     ego          *loops = NULL, *edges = NULL, *nodes = NULL;
@@ -609,7 +610,7 @@ int hsm_bodyToBEM(ego    ebody,                        // (in)  EGADS Body
     }
 
     // Make tessellation
-    status = EG_makeTessBody(ebody, params, &feaMesh->bodyTessMap.egadsTess);
+    status = EG_makeTessBody(ebody, params, &feaMesh->egadsTess);
     if (status != EGADS_SUCCESS) {
         printf("\tError in hsm_bodyToBEM: EG_makeTessBody\n");
         goto cleanup;
@@ -622,21 +623,12 @@ int hsm_bodyToBEM(ego    ebody,                        // (in)  EGADS Body
 
     // If making quads on faces lets setup an array to keep track of which faces have been quaded.
     if (quadMesh == (int) true) {
-        feaMesh->bodyTessMap.numTessFace = numFace;
-        if (feaMesh->bodyTessMap.tessFaceQuadMap != NULL) {
-            EG_free(feaMesh->bodyTessMap.tessFaceQuadMap);
-            feaMesh->bodyTessMap.tessFaceQuadMap = NULL;
-        }
-
         if (numFace > 0) {
-            feaMesh->bodyTessMap.tessFaceQuadMap = (int *) EG_alloc(numFace*sizeof(int));
-            if (feaMesh->bodyTessMap.tessFaceQuadMap == NULL) {
-                status = EGADS_MALLOC;
-                goto cleanup;
-            }
+            AIM_ALLOC(qints, numFace, int, aimInfo, status);
+
             // Set default to 0
             for (face = 0; face < numFace; face++)
-                feaMesh->bodyTessMap.tessFaceQuadMap[face] = 0;
+                qints[face] = 0;
         }
     }
 
@@ -644,7 +636,7 @@ int hsm_bodyToBEM(ego    ebody,                        // (in)  EGADS Body
         for (face = 1; face <= numFace; face++) {
             if (iwest[face] <= 0) continue;
 
-            status = EG_makeQuads(feaMesh->bodyTessMap.egadsTess, params, face);
+            status = EG_makeQuads(feaMesh->egadsTess, params, face);
             if (status < EGADS_SUCCESS) goto cleanup;
         }
     }
@@ -713,19 +705,19 @@ int hsm_bodyToBEM(ego    ebody,                        // (in)  EGADS Body
         }
 
         if (quadMesh == (int) true) {
-            status = EG_getQuads(feaMesh->bodyTessMap.egadsTess, face+1,
+            status = EG_getQuads(feaMesh->egadsTess, face+1,
                                  &numPoint, &xyz, &uv, &pointType,
                                  &pointTopoIndex, &numPatch);
             if (status < EGADS_SUCCESS) goto cleanup;
 
         } else numPatch = -1;
 
-        if ((numPatch > 0) && (feaMesh->bodyTessMap.tessFaceQuadMap != NULL)) {
+        if ((numPatch > 0) && (qints != NULL)) {
 
-            feaMesh->bodyTessMap.tessFaceQuadMap[face] = 0;
+            qints[face] = 0;
             for (patch = 1; patch <= numPatch; patch++) {
 
-                status = EG_getPatch(feaMesh->bodyTessMap.egadsTess, face+1,
+                status = EG_getPatch(feaMesh->egadsTess, face+1,
                                      patch, &n1, &n2, &pvindex, &pbounds);
                 if (status < EGADS_SUCCESS) goto cleanup;
                 if (pvindex == NULL) {
@@ -754,7 +746,7 @@ int hsm_bodyToBEM(ego    ebody,                        // (in)  EGADS Body
                                                             feaMesh->analysisType);
                         if (status != CAPS_SUCCESS) goto cleanup;
 
-                        feaMesh->bodyTessMap.tessFaceQuadMap[face] += 1;
+                        qints[face] += 1;
 
                         feaMesh->element[numElement-1].elementType = Quadrilateral;
 
@@ -784,7 +776,7 @@ int hsm_bodyToBEM(ego    ebody,                        // (in)  EGADS Body
                 }
             }
         } else {
-            status = EG_getTessFace(feaMesh->bodyTessMap.egadsTess, face+1,
+            status = EG_getTessFace(feaMesh->egadsTess, face+1,
                                     &numPoint, &xyz, &uv, &pointType,
                                     &pointTopoIndex,
                                     &numTri, &triConn, &triNeighbor);
@@ -884,7 +876,7 @@ int hsm_bodyToBEM(ego    ebody,                        // (in)  EGADS Body
                 eindex = EG_indexBodyTopo(ebody, edges[iedge]);
                 if (eindex < EGADS_SUCCESS) goto cleanup;
 
-                status = EG_getTessEdge(feaMesh->bodyTessMap.egadsTess, eindex,
+                status = EG_getTessEdge(feaMesh->egadsTess, eindex,
                                         &numEdgePoints, &xyzs, &ts);
                 if (status != EGADS_SUCCESS) goto cleanup;
 
@@ -1012,21 +1004,28 @@ int hsm_bodyToBEM(ego    ebody,                        // (in)  EGADS Body
         feaMesh->numNode += numPoint;
     }
 
+    if (qints != NULL) {
+        status = EG_attributeAdd(feaMesh->egadsTess, ".mixed", ATTRINT, numFace, qints, NULL, NULL);
+        AIM_STATUS(aimInfo, status);
+    }
+
+
 cleanup:
 
     if (status != CAPS_SUCCESS)
         printf("Error: Premature exit in hsm_bodyToBEM, status %d\n", status);
 
-    EG_free(iwest );
-    EG_free(inorth);
-    EG_free(ieast );
-    EG_free(isouth);
-    EG_free(rpos  );
-    EG_free(points );
+    AIM_FREE(iwest );
+    AIM_FREE(inorth);
+    AIM_FREE(ieast );
+    AIM_FREE(isouth);
+    AIM_FREE(rpos  );
+    AIM_FREE(points );
 
-    EG_free(enodes);
-    EG_free(eedges);
-    EG_free(efaces);
+    AIM_FREE(enodes);
+    AIM_FREE(eedges);
+    AIM_FREE(efaces);
+    AIM_FREE(qints);
 
     return status;
 }

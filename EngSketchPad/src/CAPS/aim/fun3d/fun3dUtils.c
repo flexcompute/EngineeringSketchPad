@@ -1208,7 +1208,8 @@ int fun3d_writeNML(void *aimInfo, capsValue *aimInputs, cfdBoundaryConditionStru
     char fileExt[] ="fun3d.nml";
 
     printf("Writing fun3d.nml\n");
-    if (aimInputs[Design_Functional-1].nullVal == NotNull) {
+    if (aimInputs[Design_Functional-1].nullVal == NotNull ||
+        aimInputs[Design_SensFile-1].vals.integer == (int)true) {
 #ifdef WIN32
         snprintf(filename, PATH_MAX, "Flow\\%s", fileExt);
 #else
@@ -1975,7 +1976,8 @@ static int _writeFunctinoalComponent(void *aimInfo, FILE *fp, cfdDesignFunctiona
                            "sboom"  ,                    // Coupled sBOOM ground-based noise metrics
                            "ae"     ,                    // Supersonic equivalent area target distribution
                            "press"  ,                    // box RMS of pressure in user-defined box, also pointwise dp/dt, dρ/dt
-                           "cpstar"                      // Target pressure distributions
+                           "cpstar" ,                    // Target pressure distributions
+                           "sgen"                        // Entropy generation
                           };
 
     int i, found = (int)false;

@@ -21,11 +21,11 @@ int mesh_bodyTessellation(void *aimInfo, ego tess, mapAttrToIndexStruct *attrMap
                           int *numBndEdge, int *bndEdgeConn[], int *bndEdgeCompID[], int *bndEdgeTopoID[],
                           int *numNodeEle, int *nodeEleConn[], int *nodeEleCompID[], int *nodeEleTopoID[],
                           int *twoDMesh,
-               /*@null@*/ int *tessFaceQuadMap,
+               /*@null@*/ const int *tessFaceQuadMap,
                           int *numQuadFace, int *quadFaceConn[], int *quadFaceCompID[], int *quadFaceTopoID[]);
 
 // Create a surface mesh in meshStruct format using the EGADS body object
-int mesh_surfaceMeshEGADSBody(void *aimInfo, ego body, double refLen, double tessParams[3], int quadMesh, meshStruct *surfMesh);
+int mesh_surfaceMeshEGADSBody(void *aimInfo, ego body, double refLen, double tessParams[3], int quadMesh, ego *tess);
 
 // Create a surface mesh in meshStruct format using the EGADS body tessellation
 int mesh_surfaceMeshEGADSTess(void *aimInfo, meshStruct *surfMesh);
@@ -94,12 +94,6 @@ int initiate_meshInputStruct(meshInputStruct *meshInput);
 
 // Destroy (0 out all values and NULL all pointers) a meshInput in the meshInputStruct structure format
 int destroy_meshInputStruct(meshInputStruct *meshInput);
-
-// Initiate (0 out all values and NULL all pointers) a bodyTessMapping in the bodyTessMappingStruct structure format
-int initiate_bodyTessMappingStruct (bodyTessMappingStruct *bodyTessMapping);
-
-// Destroy (0 out all values and NULL all pointers) a bodyTessMapping in the bodyTessMappingStruct structure format
-int destroy_bodyTessMappingStruct (bodyTessMappingStruct *bodyTessMapping);
 
 // Initiate (0 out all values and NULL all pointers) a meshProp in the meshSizingStruct structure format
 int initiate_meshSizingStruct (meshSizingStruct *meshProp);
@@ -218,9 +212,6 @@ int mesh_retrieveMeshElements(int numElement,
 
 // Fill out the QuickRef lists for all element types
 int mesh_fillQuickRefList( meshStruct *mesh);
-
-// Make a copy bodyTessMapping structure
-int mesh_copyBodyTessMappingStruct(bodyTessMappingStruct *in, bodyTessMappingStruct *out);
 
 // Make a copy of the analysis Data
 int mesh_copyMeshAnalysisData(void *in, meshAnalysisTypeEnum analysisType, void *out);

@@ -3,6 +3,7 @@
 
 #include "capsTypes.h"  // Bring in CAPS types
 #include "miscUtils.h"
+#include "aimUtil.h"
 
 #include "vlmSpanSpace.h"
 
@@ -85,7 +86,7 @@ void spacer( const T& N, const double pspace, T x[]) {
 
 // Compute auto spanwise panel spacing
 extern "C"
-int vlm_autoSpaceSpanPanels(int NspanTotal, int numSection, vlmSectionStruct vlmSection[])
+int vlm_autoSpaceSpanPanels(void *aimInfo, int NspanTotal, int numSection, vlmSectionStruct vlmSection[])
 {
     int    i, j, sectionIndex1, sectionIndex2;
     double distLE, distLETotal = 0, numSpanX;
@@ -256,7 +257,7 @@ int vlm_autoSpaceSpanPanels(int NspanTotal, int numSection, vlmSectionStruct vlm
             vlmSection[imax].Nspan--;
 
             if (vlmSection[imax].Nspan == 1) {
-                printf("Error: Insufficient spanwise sections! Increase numSpanTotal or numSpanPerSection!\n");
+                AIM_ERROR(aimInfo, "Insufficient spanwise sections! Increase numSpanTotal or numSpanPerSection!\n");
                 return CAPS_BADVALUE;
             }
         }

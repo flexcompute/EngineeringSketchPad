@@ -3,7 +3,7 @@
  *
  *             Function ID & Journal Header
  *
- *      Copyright 2014-2021, Massachusetts Institute of Technology
+ *      Copyright 2014-2022, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -26,10 +26,7 @@ caps_initFunIDs()
   caps_funID[CAPS_CHILDBYNAME ] = "childByName";
   caps_funID[CAPS_BODYBYINDEX ] = "bodyByIndex";
   caps_funID[CAPS_GETHISTORY  ] = "getHistory";
-  caps_funID[CAPS_ADDHISTORY  ] = "addHistory";
   caps_funID[CAPS_OWNERINFO   ] = "ownerInfo";
-  caps_funID[CAPS_SETOWNER    ] = "setOwner";
-  caps_funID[CAPS_FREEOWNER   ] = "freeOwner";
   caps_funID[CAPS_DELETE      ] = "delete";
   caps_funID[CAPS_ERRORINFO   ] = "errorInfo";
   caps_funID[CAPS_FREEERROR   ] = "freeError";
@@ -45,6 +42,7 @@ caps_initFunIDs()
   caps_funID[CAPS_READPARAMETERS ] = "readParameters";
   caps_funID[CAPS_WRITEGEOMETRY  ] = "writeGeometry";
   caps_funID[CAPS_GETROOTPATH    ] = "getRootPath";
+  caps_funID[CAPS_INTENTPHRASE   ] = "intentPhrase";
 
 
   /* attribute functions */
@@ -90,7 +88,7 @@ caps_initFunIDs()
   caps_funID[CAPS_SETDATA        ] = "setData";
   caps_funID[CAPS_GETDATA        ] = "getData";
   caps_funID[CAPS_GETDATASETS    ] = "getDataSets";
-  caps_funID[CAPS_TRIANGULATE    ] = "triangulate";
+  caps_funID[CAPS_GETTRIANGLES   ] = "getTriangles";
   caps_funID[CAPS_DATASETINFO    ] = "dataSetInfo";
 
 

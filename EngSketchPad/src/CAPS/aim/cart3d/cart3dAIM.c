@@ -3,7 +3,7 @@
  *
  *             Cart3D AIM
  *
- *      Copyright 2014-2021, Massachusetts Institute of Technology
+ *      Copyright 2014-2022, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -1663,9 +1663,8 @@ aimPreAnalysis(void *instStore, void *aimInfo, capsValue *inputs)
 
     // remove the previous tbl file
     snprintf(line, 128, "%s/entire.DP1.tbl", runDir);
-    status = aim_file(aimInfo, line, aimFile);
+    status = aim_rmFile(aimInfo, line);
     AIM_STATUS(aimInfo, status);
-    remove(aimFile);
 
     if (aim_newAnalysisIn(aimInfo, Design_Run_Config) == CAPS_SUCCESS ||
         aim_newAnalysisIn(aimInfo, Design_Gradient_Memory_Budget) == CAPS_SUCCESS) {
@@ -2518,32 +2517,9 @@ aimDiscr(char *tname, capsDiscr *discr)
   discr->nTypes = 1;
   AIM_ALLOC(discr->types, discr->nTypes, capsEleType, discr->aInfo, status);
 
-  discr->types[0].nref  = 3;
-  discr->types[0].ndata = 0;         /* data at geom reference positions
-                                        (i.e. vertex centered/iso-parametric) */
-  discr->types[0].ntri  = 1;
-  discr->types[0].nmat  = 0;         /* match points at geom ref positions */
-  discr->types[0].tris  = NULL;
-  discr->types[0].gst   = NULL;
-  discr->types[0].dst   = NULL;
-  discr->types[0].matst = NULL;
-
-  /* specify the numbering for the points on the triangle */
-  AIM_ALLOC(discr->types[0].tris, discr->types[0].nref, int, discr->aInfo, status);
-
-  discr->types[0].tris[0] = 1;
-  discr->types[0].tris[1] = 2;
-  discr->types[0].tris[2] = 3;
-
-  /* specify the reference coordinates for each point on the triangle */
-  AIM_ALLOC(discr->types[0].gst, 2*discr->types[0].nref, double, discr->aInfo, status);
-
-  discr->types[0].gst[0] = 0.0;   /* s = 0, t = 0 */
-  discr->types[0].gst[1] = 0.0;
-  discr->types[0].gst[2] = 1.0;   /* s = 1, t = 0 */
-  discr->types[0].gst[3] = 0.0;
-  discr->types[0].gst[4] = 0.0;   /* s = 0, t = 1 */
-  discr->types[0].gst[5] = 1.0;
+  /* define triangle element type */
+  status = aim_nodalTriangleType( &discr->types[0]);
+  AIM_STATUS(discr->aInfo, status);
 
   /* allocate the body discretizations */
   AIM_ALLOC(discr->bodys, discr->nBodys, capsBodyDiscr, discr->aInfo, status);
