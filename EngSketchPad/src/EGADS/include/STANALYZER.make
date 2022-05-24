@@ -4,7 +4,7 @@ ifneq (,$(findstring DARWIN,$(ESP_ARCH)))
 #
 # Install with: pip install scan-build
 #
-SCANBUILD=intercept-build --override-compiler --cdb=$(SCANDIR)compile_commands.json $(MAKE) CC=intercept-cc CXX=intercept-c++ && analyze-build --cdb=$(SCANDIR)compile_commands.json -o $(SCANDIR) $(SCANEXCLUDE)
+SCANBUILD=intercept-build --override-compiler --cdb=$(SCANDIR)compile_commands.json $(MAKE) -f $(word 1,$(MAKEFILE_LIST)) CC=intercept-cc CXX=intercept-c++ && analyze-build --cdb=$(SCANDIR)compile_commands.json -o $(SCANDIR) $(SCANEXCLUDE)
 
 .PHONY: scan-build
 scan-build:
@@ -26,11 +26,11 @@ ifeq ("$(ESP_ARCH)","LINUX64")
 .PHONY: scan-build
 scan-build:
 	@bash -c '[ -d $(SCANDIR) ] && rm -rf $(SCANDIR)' || true
-	scan-build -o $(SCANDIR) $(SCANEXCLUDE) --status-bugs $(MAKE)
+	scan-build -o $(SCANDIR) $(SCANEXCLUDE) --status-bugs $(MAKE) -f $(word 1,$(MAKEFILE_LIST))
 
 .PHONY: scan-view
 scan-view:
 	@bash -c '[ -d $(SCANDIR) ] && rm -rf $(SCANDIR)' || true
-	scan-build -o $(SCANDIR) $(SCANEXCLUDE) $(MAKE)
+	scan-build -o $(SCANDIR) $(SCANEXCLUDE) $(MAKE) -f $(word 1,$(MAKEFILE_LIST))
 	-@xdg-open $(SCANDIR)/*/index.html || true
 endif

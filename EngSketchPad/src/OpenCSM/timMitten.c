@@ -9,7 +9,7 @@
  */
 
 /*
- * Copyright (C) 2013/2021  John F. Dannenhoffer, III (Syracuse University)
+ * Copyright (C) 2013/2022  John F. Dannenhoffer, III (Syracuse University)
  *
  * This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
@@ -32,6 +32,13 @@
 #include <stdarg.h>
 #include <string.h>
 #include <math.h>
+
+#ifdef WIN32
+    #define  SLEEP(msec)  Sleep(msec)
+#else
+    #include <unistd.h>
+    #define  SLEEP(msec)  usleep(1000*msec)
+#endif
 
 #include "egads.h"
 #include "common.h"
@@ -56,6 +63,8 @@ typedef struct {
 
 static int mittenBuildBox(esp_T *ESP, double rotate);
 
+static void *oldUdata=NULL;
+
 
 /***********************************************************************/
 /*                                                                     */
@@ -67,7 +76,7 @@ int
 timLoad(esp_T *ESP,                     /* (in)  pointer to ESP structure */
         void  *data)                    /* (in)  component name */
 {
-    int    status = EGADS_SUCCESS;      /* (out) return status */
+    int    status;                      /* (out) return status */
 
     mitten_T *mitn;
 
@@ -75,7 +84,15 @@ timLoad(esp_T *ESP,                     /* (in)  pointer to ESP structure */
 
     /* --------------------------------------------------------------- */
 
+    if (ESP == NULL) {
+        printf("ERROR:: cannot run timMitten without serveESP\n");
+        status = EGADS_SEQUERR;
+        goto cleanup;
+    }
+    
     /* create the mitten_T structure */
+    oldUdata = ESP->udata;
+    ESP->udata = NULL;
     MALLOC(ESP->udata, mitten_T, 1);
 
     mitn = (mitten_T *) ESP->udata;
@@ -99,6 +116,156 @@ timLoad(esp_T *ESP,                     /* (in)  pointer to ESP structure */
     /* build the initial body */
     status = mittenBuildBox(ESP, 0);
     CHECK_STATUS(mittenBuildBox);
+
+    /* hold the UI when executing */
+    status = 1;
+    
+cleanup:
+    return status;
+}
+
+
+/***********************************************************************/
+/*                                                                     */
+/*   timMesg - get command, process, and return response               */
+/*                                                                     */
+/***********************************************************************/
+
+int
+timMesg(esp_T *ESP,                     /* (in)  pointer to ESP structure */
+        char  command[])                /* (in)  command */
+{
+    int    status = EGADS_SUCCESS;      /* (out) return status */
+
+    int    i;
+    double delta=0, fact=1, angle=0, delay=0;
+    char   *arg1=NULL, *pEnd;
+    char   response[MAX_EXPR_LEN];
+    mitten_T *mitn = (mitten_T *)(ESP->udata);
+
+    ROUTINE(timMesg(mitten));
+
+    /* --------------------------------------------------------------- */
+
+    /* "xcent|delta|" */
+    if        (strncmp(command, "xcent|", 6) == 0) {
+
+        /* extract argument */
+        GetToken(command, 1, '|', &arg1);
+        SPLINT_CHECK_FOR_NULL(arg1);
+        if (strlen(arg1) > 0) delta = strtod(arg1, &pEnd);
+        FREE(arg1);
+
+        mitn->xcent += delta;
+
+        mittenBuildBox(ESP, 0);
+
+        tim_bcst("mitten", "timMesg|mitten|xcent");
+
+    /* "xsize|fact|" */
+    } else if (strncmp(command, "xsize|", 6) == 0) {
+
+        /* extract argument */
+        GetToken(command, 1, '|', &arg1);
+        SPLINT_CHECK_FOR_NULL(arg1);
+        if (strlen(arg1) > 0) fact = strtod(arg1, &pEnd);
+        FREE(arg1);
+
+        mitn->xsize *= fact;
+
+        mittenBuildBox(ESP, 0);
+
+        tim_bcst("mitten", "timMesg|mitten|xsize");
+
+    /* "ycent|delta|" */
+    } else if (strncmp(command, "ycent|", 6) == 0) {
+
+        /* extract argument */
+        GetToken(command, 1, '|', &arg1);
+        SPLINT_CHECK_FOR_NULL(arg1);
+        if (strlen(arg1) > 0) delta = strtod(arg1, &pEnd);
+        FREE(arg1);
+
+        mitn->ycent += delta;
+
+        mittenBuildBox(ESP, 0);
+
+        tim_bcst("mitten", "timMesg|mitten|ycent");
+
+    /* "ysize|fact|" */
+    } else if (strncmp(command, "ysize|", 6) == 0) {
+
+        /* extract argument */
+        GetToken(command, 1, '|', &arg1);
+        SPLINT_CHECK_FOR_NULL(arg1);
+        if (strlen(arg1) > 0) fact = strtod(arg1, &pEnd);
+        FREE(arg1);
+
+        mitn->ysize *= fact;
+
+        mittenBuildBox(ESP, 0);
+
+        tim_bcst("mitten", "timMesg|mitten|ysize");
+
+    /* "zcent|delta|" */
+    } else if (strncmp(command, "zcent|", 6) == 0) {
+
+        /* extract argument */
+        GetToken(command, 1, '|', &arg1);
+        SPLINT_CHECK_FOR_NULL(arg1);
+        if (strlen(arg1) > 0) delta = strtod(arg1, &pEnd);
+        FREE(arg1);
+
+        mitn->zcent += delta;
+
+        mittenBuildBox(ESP, 0);
+
+        tim_bcst("mitten", "timMesg|mitten|zcent");
+
+    /* "zsize|fact|" */
+    } else if (strncmp(command, "zsize|", 6) == 0) {
+
+        /* extract argument */
+        GetToken(command, 1, '|', &arg1);
+        SPLINT_CHECK_FOR_NULL(arg1);
+        if (strlen(arg1) > 0) fact = strtod(arg1, &pEnd);
+        FREE(arg1);
+
+        mitn->zsize *= fact;
+
+        mittenBuildBox(ESP, 0);
+
+        tim_bcst("mitten", "timMesg|mitten|zsize");
+
+    /* "rotate|angle|" */
+    } else if (strncmp(command, "rotate|", 7) == 0) {
+
+        /* extract argument */
+        GetToken(command, 1, '|', &arg1);
+        SPLINT_CHECK_FOR_NULL(arg1);
+        if (strlen(arg1) > 0) angle = strtod(arg1, &pEnd);
+        FREE(arg1);
+
+        mittenBuildBox(ESP, angle);
+
+        snprintf(response, MAX_EXPR_LEN, "timMesg|mitten|rotate|%10.3f", angle);
+        tim_bcst("mitten", response);
+
+    /* "countdown|seconds|" */
+    } else if (strncmp(command, "countdown|", 10) == 0) {
+
+        /* extract argument */
+        GetToken(command, 1, '|', &arg1);
+        SPLINT_CHECK_FOR_NULL(arg1);
+        if (strlen(arg1) > 0) delay = strtod(arg1, &pEnd);
+        FREE(arg1);
+
+        for (i = NINT(delay); i > 0; i--) {
+            snprintf(response, MAX_EXPR_LEN, "     %d", i);
+            tim_bcst("mitten", response);
+            SLEEP(1000);
+        }
+    }
 
 cleanup:
     return status;
@@ -129,7 +296,7 @@ timSave(esp_T *ESP)                     /* (in)  pointer to TI Mstructure */
     /* add the mitten Body to the bottm of the .csm file */
     fp = fopen(ESP->MODL->filename, "a");
     if (fp == NULL) {
-        printf("the .csm file does not exist or could not be opened\n");
+        printf("\"%s\" does not exist or could not be opened\n", ESP->MODL->filename);
         status = EGADS_NOTFOUND;
         goto cleanup;
     }
@@ -163,6 +330,7 @@ timSave(esp_T *ESP)                     /* (in)  pointer to TI Mstructure */
 
     /* free up the mitten_T structure */
     FREE(ESP->udata);
+    ESP->udata = oldUdata;
 
 cleanup:
     return status;
@@ -176,7 +344,8 @@ cleanup:
 /***********************************************************************/
 
 int
-timQuit(esp_T *ESP)                     /* (in)  pointer to ESP structure */
+timQuit(esp_T *ESP,                     /* (in)  pointer to ESP structure */
+/*@unused@*/int   unload)               /* (in)  flag to unload */
 {
     int    status = EGADS_SUCCESS;      /* (out) return status */
 
@@ -188,133 +357,25 @@ timQuit(esp_T *ESP)                     /* (in)  pointer to ESP structure */
 
     /* --------------------------------------------------------------- */
 
+    if (mitn == NULL) goto cleanup;
+    
     /* remove the Body from the scene graph */
-    for (iface = 1; iface <= 6; iface++) {
-        snprintf(gpname, 254, "Body %s Face %d", mitn->bodyName, iface);
+    if (ESP->cntxt != NULL) {
+        for (iface = 1; iface <= 6; iface++) {
+            snprintf(gpname, 254, "Body %s Face %d", mitn->bodyName, iface);
 
-        igprim = wv_indexGPrim(ESP->cntxt, gpname);
-        printf("iface=%d, igprim=%d\n", iface, igprim);
+            igprim = wv_indexGPrim(ESP->cntxt, gpname);
 
-        if (igprim > 0) {
-            wv_removeGPrim(ESP->cntxt, igprim);
+            if (igprim > 0) {
+                wv_removeGPrim(ESP->cntxt, igprim);
+            }
         }
     }
 
     /* free up the mitten_T structure */
     FREE(ESP->udata);
 
-//cleanup:
-    return status;
-}
-
-
-/***********************************************************************/
-/*                                                                     */
-/*   timMesg - get command, process, and return response               */
-/*                                                                     */
-/***********************************************************************/
-
-int
-timMesg(esp_T *ESP,                     /* (in)  pointer to ESP structure */
-        char  command[],                /* (in)  command */
-        int   *max_resp_len,            /* (in)  length of response */
-        char  *response[])              /* (out) response */
-{
-    int    status = EGADS_SUCCESS;      /* (out) return status */
-
-    double delta=0, fact=1, angle=0;
-    char   arg1[MAX_EXPR_LEN], *pEnd;
-    mitten_T *mitn = (mitten_T *)(ESP->udata);
-
-    ROUTINE(timMesg(mitten));
-
-    /* --------------------------------------------------------------- */
-
-    /* "xcent|delta|" */
-    if        (strncmp(command, "xcent|", 6) == 0) {
-
-        /* extract argument */
-        if (GetToken(command, 1, '|', arg1)) delta = strtod(arg1, &pEnd);
-
-        mitn->xcent += delta;
-
-        mittenBuildBox(ESP, 0);
-
-        snprintf(*response, *max_resp_len, "xcent");
-
-    /* "xsize|fact|" */
-    } else if (strncmp(command, "xsize|", 6) == 0) {
-
-        /* extract argument */
-        if (GetToken(command, 1, '|', arg1)) fact = strtod(arg1, &pEnd);
-
-        mitn->xsize *= fact;
-
-        mittenBuildBox(ESP, 0);
-
-        snprintf(*response, *max_resp_len, "xsize");
-
-    /* "ycent|delta|" */
-    } else if (strncmp(command, "ycent|", 6) == 0) {
-
-        /* extract argument */
-        if (GetToken(command, 1, '|', arg1)) delta = strtod(arg1, &pEnd);
-
-        mitn->ycent += delta;
-
-        mittenBuildBox(ESP, 0);
-
-        snprintf(*response, *max_resp_len, "ycent");
-
-    /* "ysize|fact|" */
-    } else if (strncmp(command, "ysize|", 6) == 0) {
-
-        /* extract argument */
-        if (GetToken(command, 1, '|', arg1)) fact = strtod(arg1, &pEnd);
-
-        mitn->ysize *= fact;
-
-        mittenBuildBox(ESP, 0);
-
-        snprintf(*response, *max_resp_len, "ysize");
-
-    /* "zcent|delta|" */
-    } else if (strncmp(command, "zcent|", 6) == 0) {
-
-        /* extract argument */
-        if (GetToken(command, 1, '|', arg1)) delta = strtod(arg1, &pEnd);
-
-        mitn->zcent += delta;
-
-        mittenBuildBox(ESP, 0);
-
-        snprintf(*response, *max_resp_len, "zcent");
-
-    /* "zsize|fact|" */
-    } else if (strncmp(command, "zsize|", 6) == 0) {
-
-        /* extract argument */
-        if (GetToken(command, 1, '|', arg1)) fact = strtod(arg1, &pEnd);
-
-        mitn->zsize *= fact;
-
-        mittenBuildBox(ESP, 0);
-
-        snprintf(*response, *max_resp_len, "zsize");
-
-    /* "rotate|angle|" */
-    } else if (strncmp(command, "rotate|", 7) == 0) {
-
-        /* extract argument */
-        if (GetToken(command, 1, '|', arg1)) angle = strtod(arg1, &pEnd);
-
-        mittenBuildBox(ESP, angle);
-
-        snprintf(*response, *max_resp_len, "rotate|%10.3f", angle);
-
-    }
-
-//cleanup:
+cleanup:
     return status;
 }
 
@@ -383,6 +444,15 @@ mittenBuildBox(esp_T    *ESP,           /* (in)  pointer to ESP structure */
 
     status = EG_makeTessBody(ebody, params, &etess);
     CHECK_STATUS(EG_makeTessBody);
+
+    /* if the sgFocus has not been set yet (for example, if we are
+       starting with an empty MODL) set it now */
+    if (ESP->sgFocus[3] <= 0) {
+        ESP->sgFocus[0] = mitn->xcent;
+        ESP->sgFocus[1] = mitn->ycent;
+        ESP->sgFocus[2] = mitn->zcent;
+        ESP->sgFocus[3] = MAX(MAX(mitn->xsize, mitn->ysize), mitn->zsize);
+    }
 
     /* generate the scene graph info needed to visualize it */
     for (iface = 1; iface <= 6; iface++) {
@@ -495,59 +565,5 @@ mittenBuildBox(esp_T    *ESP,           /* (in)  pointer to ESP structure */
 cleanup:
     FREE(segs);
 
-    return status;
-}
-
-
-/***********************************************************************/
-/*                                                                     */
-/*   timGetModl - get the active MODL                                  */
-/*                                                                     */
-/***********************************************************************/
-
-int
-timGetModl(/*@unused@*/void **myModl)               /* (out) pointer to active MODL */
-{
-    int    status = EGADS_SUCCESS;      /* (out) return status */
-
-    /* --------------------------------------------------------------- */
-
-//cleanup:
-    return status;
-}
-
-
-/***********************************************************************/
-/*                                                                     */
-/*   timSetModl - set the active MODL                                  */
-/*                                                                     */
-/***********************************************************************/
-
-int
-timSetModl(/*@unused@*/void *myModl)                /* (in)  pointer to active MODL */
-{
-    int    status = EGADS_SUCCESS;      /* (out) return status */
-
-    /* --------------------------------------------------------------- */
-
-//cleanup:
-    return status;
-}
-
-
-/***********************************************************************/
-/*                                                                     */
-/*   timViewModl - view the active MODL in serveESP                    */
-/*                                                                     */
-/***********************************************************************/
-
-int
-timViewModl(/*@unused@*/void *myModl)               /* (in)  pointer to active MODL */
-{
-    int    status = EGADS_SUCCESS;      /* (out) return status */
-
-    /* --------------------------------------------------------------- */
-
-//cleanup:
     return status;
 }

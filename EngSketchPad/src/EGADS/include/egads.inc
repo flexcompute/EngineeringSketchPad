@@ -3,7 +3,7 @@ C      EGADS: Electronic Geometry Aircraft Design System
 C
 C             FORTRAN Include
 C
-C      Copyright 2011-2021, Massachusetts Institute of Technology
+C      Copyright 2011-2022, Massachusetts Institute of Technology
 C      Licensed under The GNU Lesser General Public License, version 2.1
 C      See http://www.opensource.org/licenses/lgpl-2.1.php
 C

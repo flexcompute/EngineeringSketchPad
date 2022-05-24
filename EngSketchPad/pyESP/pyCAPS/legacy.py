@@ -3954,7 +3954,7 @@ class _capsDataSet:
              xyz = xyz._value
         return xyz
 
-    ## Executes caps_triangulate on data set's vertex set to retrieve the connectivity (triangles only) information
+    ## Executes caps_getTriangles on data set's vertex set to retrieve the connectivity (triangles only) information
     # for the data set.
     # \return Optionally returns a list of lists of connectivity values
     # (e.g. [ [node1, node2, node3], [node2, node3, node7], etc. ] ) and a list of lists of data connectivity (not this is

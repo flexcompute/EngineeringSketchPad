@@ -3,7 +3,7 @@
  *
  *             AVL AIM
  *
- *      Copyright 2014-2021, Massachusetts Institute of Technology
+ *      Copyright 2014-2022, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -26,7 +26,7 @@
 #define strtok_r    strtok_s
 #endif
 
-#define MAXPOINT  200
+#define NUMPOINT  200
 #define PI        3.1415926535897931159979635
 #define NINT(A)         (((A) < 0)   ? (int)(A-0.5) : (int)(A+0.5))
 
@@ -512,7 +512,7 @@ static int destroy_aimStorage(aimStorage *avlInstance)
 
 
 /* ********************** AVL AIM Helper Functions ************************** */
-static int writeSection(FILE *fp, vlmSectionStruct *vlmSection)
+static int writeSection(void *aimInfo, FILE *fp, vlmSectionStruct *vlmSection)
 {
     int status; // Function return status
 
@@ -562,10 +562,11 @@ static int writeSection(FILE *fp, vlmSectionStruct *vlmSection)
             xyzLE[0], xyzLE[1], xyzLE[2], chord, ainc, Nspan, Sspace);
     fprintf(fp, "AIRFOIL\n");
 
-    status = vlm_writeSection(fp,
+    status = vlm_writeSection(aimInfo,
+                              fp,
                               vlmSection,
                               (int) true, // Normalize by chord (true/false)
-                              (int) MAXPOINT);
+                              (int) NUMPOINT);
     if (status != CAPS_SUCCESS) goto cleanup;
 
     status = CAPS_SUCCESS;
@@ -1790,6 +1791,7 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
     aimStorage *avlInstance;
 
     double      Sref, Cref, Bref, Xref, Yref, Zref;
+    int         foundSref=(int)false, foundCref=(int)false, foundBref=(int)false, foundXref=(int)false;
     const int    *ints;
     const char   *string, *intents;
     const double *reals;
@@ -1893,7 +1895,7 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
         }
 
         // Accumulate section data
-        status = vlm_getSections(numBody, bodies, NULL, avlInstance->groupMap, vlmGENERIC,
+        status = vlm_getSections(aimInfo, numBody, bodies, NULL, avlInstance->groupMap, vlmGENERIC,
                                  avlInstance->numAVLSurface, &avlInstance->avlSurface);
         AIM_STATUS(aimInfo, status);
         AIM_NOTNULL(avlInstance->avlSurface, aimInfo, status);
@@ -1944,7 +1946,8 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
                 goto cleanup;
             }
 
-            status = vlm_autoSpaceSpanPanels(numSpanWise, avlInstance->avlSurface[surf].numSection,
+            status = vlm_autoSpaceSpanPanels(aimInfo,
+                                             numSpanWise, avlInstance->avlSurface[surf].numSection,
                                                           avlInstance->avlSurface[surf].vlmSection);
             AIM_STATUS (aimInfo, status);
         }
@@ -2220,6 +2223,7 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
 
                 if (atype == ATTRREAL && alen == 1) {
                     Sref = (double) reals[0];
+                    foundSref = (int)true;
                 } else {
                     AIM_ERROR(aimInfo, "capsReferenceArea should be followed by a single real value!\n");
                     status = CAPS_BADVALUE;
@@ -2233,6 +2237,7 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
 
                 if (atype == ATTRREAL && alen == 1) {
                     Cref = (double) reals[0];
+                    foundCref = (int)true;
                 } else {
                     AIM_ERROR(aimInfo, "capsReferenceChord should be followed by a single real value!\n");
                     status = CAPS_BADVALUE;
@@ -2246,6 +2251,7 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
 
                 if (atype == ATTRREAL && alen == 1) {
                     Bref = (double) reals[0];
+                    foundBref = (int)true;
                 } else {
                     AIM_ERROR(aimInfo, "capsReferenceSpan should be followed by a single real value!\n");
                     status = CAPS_BADVALUE;
@@ -2259,6 +2265,7 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
 
                 if (atype == ATTRREAL && alen == 1) {
                     Xref = (double) reals[0];
+                    foundXref = (int)true;
                 } else {
                     AIM_ERROR(aimInfo, "capsReferenceX should be followed by a single real value!\n");
                     status = CAPS_BADVALUE;
@@ -2291,6 +2298,27 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
                     goto cleanup;
                 }
             }
+        }
+
+        if (foundSref == (int)false) {
+            AIM_ERROR(aimInfo, "capsReferenceArea is not set on any body!");
+            status = CAPS_BADVALUE;
+            goto cleanup;
+        }
+        if (foundCref == (int)false) {
+            AIM_ERROR(aimInfo, "capsReferenceChord is not set on any body!");
+            status = CAPS_BADVALUE;
+            goto cleanup;
+        }
+        if (foundBref == (int)false) {
+            AIM_ERROR(aimInfo, "capsReferenceSpan is not set on any body!");
+            status = CAPS_BADVALUE;
+            goto cleanup;
+        }
+        if (foundXref == (int)false) {
+            AIM_ERROR(aimInfo, "capsReferenceX is not set on any body!");
+            status = CAPS_BADVALUE;
+            goto cleanup;
         }
 
         // Check for moment reference overwrites
@@ -2349,8 +2377,8 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
                        i+1, avlInstance->avlSurface[surf].numSection, section);
 
                 // Write section data
-                status = writeSection(fp, &avlInstance->avlSurface[surf].vlmSection[section]);
-                if (status != CAPS_SUCCESS) goto cleanup;
+                status = writeSection(aimInfo, fp, &avlInstance->avlSurface[surf].vlmSection[section]);
+                AIM_STATUS(aimInfo, status);
 
                 // Write control information for each section
                 for (control = 0; control < avlInstance->avlSurface[surf].vlmSection[section].numControl; control++) {

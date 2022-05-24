@@ -36,6 +36,7 @@ enum aimInputs
   FUN3D_Version,
   Design_Variable,
   Design_Functional,
+  Design_SensFile,
   Design_Sensitivity,
   Mesh,
   NUMINPUT = Mesh                /* Total number of inputs */

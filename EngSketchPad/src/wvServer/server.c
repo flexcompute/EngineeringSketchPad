@@ -3,7 +3,7 @@
  *
  *		WV simple server code
  *
- *      Copyright 2011-2021, Massachusetts Institute of Technology
+ *      Copyright 2011-2022, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -146,7 +146,7 @@ static int callback_http(/*@unused@*/ struct libwebsocket_context *context,
 		libwebsockets_get_peer_addresses(user, client_name,
 			     sizeof(client_name), client_ip, sizeof(client_ip));
 
-		fprintf(stderr, "Received network connect from %s (%s)\n",
+		fprintf(stdout, "Received network connect from %s (%s)\n",
 							client_name, client_ip);
 
 		/* if we returned non-zero from here, we kill the connection */
@@ -199,7 +199,7 @@ dump_handshake_info(struct lws_tokens *lwst)
 	
 	for (n = 0; n < WSI_TOKEN_COUNT; n++) {
 		if (lwst[n].token == NULL) continue;
-		fprintf(stderr, "    %s = %s\n", token_names[n], lwst[n].token);
+		fprintf(stdout, "    %s = %s\n", token_names[n], lwst[n].token);
 	}
 }
 
@@ -239,7 +239,7 @@ callback_gprim_binary(struct libwebsocket_context *context,
          */
          
 	case LWS_CALLBACK_ESTABLISHED:
-		fprintf(stderr, "callback_gprim_binary: LWS_CALLBACK_ESTABLISHED\n");
+		fprintf(stdout, "callback_gprim_binary: LWS_CALLBACK_ESTABLISHED\n");
 		pss->status = 0;
 		break;
 
@@ -277,7 +277,7 @@ callback_gprim_binary(struct libwebsocket_context *context,
 		break;
                 
         case LWS_CALLBACK_CLOSED:
-                fprintf(stderr, "callback_gprim_binary: LWS_CALLBACK_CLOSED\n");
+                fprintf(stdout, "callback_gprim_binary: LWS_CALLBACK_CLOSED\n");
                 break;
         
 	/*
@@ -327,7 +327,7 @@ callback_ui_text(struct libwebsocket_context *context,
 	switch (reason) {
 
 	case LWS_CALLBACK_ESTABLISHED:
-		fprintf(stderr, "callback_ui_text: LWS_CALLBACK_ESTABLISHED\n");
+		fprintf(stdout, "callback_ui_text: LWS_CALLBACK_ESTABLISHED\n");
 		pss->wsi = wsi;
                 n        = servers[slot].nClient + 1;
                 if (servers[slot].wsi == NULL) {
@@ -379,7 +379,7 @@ callback_ui_text(struct libwebsocket_context *context,
 		break;
             
         case LWS_CALLBACK_CLOSED:
-              fprintf(stderr, "callback_ui_text: LWS_CALLBACK_CLOSED\n");
+              fprintf(stdout, "callback_ui_text: LWS_CALLBACK_CLOSED\n");
               for (n = i = 0; i < servers[slot].nClient; i++) {
                   if (servers[slot].wsi[i] == wsi) {
                     if (servers[slot].mess != NULL) {
@@ -478,9 +478,9 @@ static void serverThread(wvServer *server)
 	}
         
         /* mark the thread as down */
-        server->loop = -1;
         wv_destroyContext(&server->WVcontext);
         libwebsocket_context_destroy(server->WScontext);
+        server->loop = -1;
 }
 
 
@@ -491,7 +491,7 @@ int wv_startServer(int port, char *interface, char *cert_path, char *key_path,
         wvServer *tserver;
         struct libwebsocket_context *context;
 
-	fprintf(stderr, "\nwv libwebsockets server thread start\n\n");
+	fprintf(stdout, "\nwv libwebsockets server thread start\n\n");
 
 	context = libwebsocket_create_context(port, interface, wv_protocols,
 				              libwebsocket_internal_extensions,
@@ -548,7 +548,21 @@ int wv_startServer(int port, char *interface, char *cert_path, char *key_path,
 void wv_cleanupServers()
 {
   int i, j;
+  
+  /* called by the main thread to shutdown and cleanup all server threads
+     if a server is active, make its loop 0 to notify it to stop, then wait */
+  for (i = 0; i < nServers; i++) {
+    if (servers[i].loop == 1) {
+      servers[i].loop = 0;
+      /* wait - with a limit */
+      for (j = 0; j < 100; j++) {
+        if (servers[i].loop == -1) break;
+        usleep(5000);
+      }
+    }
+  }
 
+  /* cleanup associated message memory & contexts */
   for (i = 0; i < nServers; i++) {
 #ifndef __clang_analyzer__
     if (servers[i].mess != NULL) {
@@ -678,7 +692,8 @@ void wv_sendText(struct libwebsocket *wsi, char *text)
   }
   n = strlen(text) + 1;
   message = (unsigned char *) wv_alloc((n+LWS_SEND_BUFFER_PRE_PADDING +
-                                        LWS_SEND_BUFFER_POST_PADDING)*sizeof(unsigned char));
+                                        LWS_SEND_BUFFER_POST_PADDING)*
+                                        sizeof(unsigned char));
   if (message == NULL) {
     fprintf(stderr, "ERROR: sendText Malloc with length %d!", n);
     return;    
@@ -702,7 +717,8 @@ void wv_broadcastText(char *text)
   }
   n = strlen(text) + 1;
   message = (unsigned char *) wv_alloc((n+LWS_SEND_BUFFER_PRE_PADDING +
-                                        LWS_SEND_BUFFER_POST_PADDING)*sizeof(unsigned char));
+                                        LWS_SEND_BUFFER_POST_PADDING)*
+                                        sizeof(unsigned char));
   if (message == NULL) {
     fprintf(stderr, "ERROR: broadcastText Malloc with length %d!", n);
     return;    

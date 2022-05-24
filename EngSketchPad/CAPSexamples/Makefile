@@ -19,6 +19,7 @@ all: $(COPY) | $(TDIR)
 	(make -C cCAPS -f fun3d.make)
 	(make -C cCAPS -f hsm.make)
 	(make -C cCAPS -f interferenceTest.make)
+	(make -C cCAPS -f msesTest.make)
 	(make -C cCAPS -f mystran.make)
 	(make -C cCAPS -f pointwiseTest.make)
 
@@ -30,6 +31,7 @@ clean:
 	(make -C cCAPS -f fun3d.make clean)
 	(make -C cCAPS -f hsm.make clean)
 	(make -C cCAPS -f interferenceTest.make clean)
+	(make -C cCAPS -f msesTest.make clean)
 	(make -C cCAPS -f mystran.make clean)
 	(make -C cCAPS -f pointwiseTest.make clean)
 
@@ -41,6 +43,7 @@ cleanall:
 	(make -C cCAPS -f fun3d.make cleanall)
 	(make -C cCAPS -f hsm.make cleanall)
 	(make -C cCAPS -f interferenceTest.make cleanall)
+	(make -C cCAPS -f msesTest.make cleanall)
 	(make -C cCAPS -f mystran.make cleanall)
 	(make -C cCAPS -f pointwiseTest.make cleanall)
 

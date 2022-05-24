@@ -5,7 +5,6 @@
 enum aimInputs
 {
   Proj_Name = 1,               /* index is 1-based */
-  Tess_Params,
   Mesh_Quiet_Flag,
   Mesh_Format,
   Mesh_ASCII_Flag,

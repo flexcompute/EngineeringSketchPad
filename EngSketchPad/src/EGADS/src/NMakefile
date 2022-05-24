@@ -13,7 +13,11 @@ ODIR  = .
 
 OBJSP = egadsGeom.obj  egadsHLevel.obj    egadsTopo.obj  egadsCopy.obj \
 	egadsIO.obj    egadsSplineFit.obj egadsSpline.obj egadsTessSens.obj \
-	egadsSkinning.obj BRepLib_FuseEdges.obj
+	egadsSkinning.obj
+OBJSOCC = $(ODIR)\BRepLib_FuseEdges.obj
+#	$(ODIR)\BRepSweep_Rotation.obj $(ODIR)\BRepSweep_Revol.obj \
+#	$(ODIR)\BRepPrimAPI_MakeRevol.obj $(ODIR)\BRepSweep_Translation.obj \
+#	$(ODIR)\BRepSweep_Prism.obj $(ODIR)\BRepPrimAPI_MakePrism.obj
 OBJS  = egadsBase.obj  egadsMemory.obj egadsAttrs.obj    egadsTessInp.obj \
 	egadsTess.obj  egadsTris.obj   egadsQuads.obj    egadsRobust.obj \
 	egadsSBO.obj   egadsFit.obj    prmCfit.obj \
@@ -50,6 +54,10 @@ start:
 	xcopy $(SDIR)\*.h           /Q /Y
 	xcopy $(SDIR)\*.rc          /Q /Y
 	xcopy $(SDIR)\*.def         /Q /Y
+	-mkdir OCC
+	cd OCC
+	xcopy $(SDIR)\OCC        /S /Q /Y
+	cd ..
 	-mkdir Surreal
 	cd Surreal
 	xcopy $(SDIR)\Surreal    /S /Q /Y
@@ -62,17 +70,17 @@ start:
 	xcopy $(SDIR)\..\util\Surreal*_btest.cpp   /Q /Y
 	xcopy $(SDIR)\..\util\uvmap\uvmap_struct.h /Q /Y
 
-$(LDIR)\egadstatic.lib:	$(OBJSP) $(OBJS) emp.obj evaluate.obj rational.obj \
-			regQuads.obj $(LDIR)\uvmap.lib
+$(LDIR)\egadstatic.lib:	$(OBJSP) $(OBJS) $(OBJSOCC) emp.obj evaluate.obj \
+			rational.obj regQuads.obj $(LDIR)\uvmap.lib
 	-del $(LDIR)\egadstatic.lib
-	lib /out:$(LDIR)\egadstatic.lib $(OBJS) $(OBJSP) emp.obj evaluate.obj \
-		rational.obj regQuads.obj $(LDIR)\uvmap.lib
+	lib /out:$(LDIR)\egadstatic.lib $(OBJS) $(OBJSP) $(OBJSOCC) emp.obj \
+		evaluate.obj rational.obj regQuads.obj $(LDIR)\uvmap.lib
 
-$(LDIR)\egads.dll:	$(OBJSP) $(OBJS) emp.obj evaluate.obj rational.obj \
-			regQuads.obj $(LDIR)\uvmap.lib egads.res 
+$(LDIR)\egads.dll:	$(OBJSP) $(OBJS) $(OBJSOCC) emp.obj evaluate.obj \
+			rational.obj regQuads.obj $(LDIR)\uvmap.lib egads.res 
 	-del $(LDIR)\egads.dll $(LDIR)\egads.lib $(LDIR)\egads.exp
 	link /out:$(LDIR)\egads.dll /dll /def:egads.def $(OBJSP) $(OBJS) \
-		emp.obj evaluate.obj rational.obj regQuads.obj \
+		$(OBJSOCC) emp.obj evaluate.obj rational.obj regQuads.obj \
 		egads.res $(LDIR)\uvmap.lib $(LNKPTH) $(LIBS)
 	$(MCOMP) /manifest $(LDIR)\egads.dll.manifest \
 		/outputresource:$(LDIR)\egads.dll;2
@@ -109,14 +117,17 @@ $(FOBJS):	$(INCD)\egadsErrors.h egadsInternals.h egadsStack.h \
 $(OBJSP):	$(INCD)\egadsErrors.h egadsOCC.h egadsInternals.h egadsStack.h \
 		$(INCD)\egadsTypes.h $(INCD)\egads_dot.h egadsClasses.h \
 		egadsSplineFit.h $(OBJSP:.obj=.cpp)
-	cl /c $(CPPOPT) $(DEFINE) $(XDEF) $(INCS) /I. /I$(INCD) $*.cpp
+	cl /c $(CPPOPT) $(DEFINE) $(XDEF) /IOCC $(INCS) /I. /I$(INCD) $*.cpp
+
+{OCC\}.cpp{$(ODIR)\}.obj:
+	cl /c $(CPPOPT) $(DEFINE) $(XDEF) /IOCC $(INCS) /I$(INCD) $<
 
 !IFDEF ESP_BLOC
 emp.obj:	emp.c
 	cl /c $(COPTS) $(DEFINE) /I$(INCD) emp.c
 
 evaluate.obj:	evaluate.cpp
-	cl /c $(CPPOPT) $(DEFINE) $(INCS) /I$(INCD) /I. evaluate.cpp
+	cl /c $(CPPOPT) $(DEFINE) /IOCC $(INCS) /I$(INCD) /I. evaluate.cpp
 
 rational.obj:	rational.cpp
 	cl /c $(CPPOPT) $(DEFINE) rational.cpp
@@ -254,6 +265,8 @@ $(SRINC):	Surreal\SurrealD.h Surreal\SurrealS.h Surreal\always_inline.h \
 
 end:
 	-del *.cpp *.c *.h *.rc *def *.manifest
+	-del OCC\* /Q
+	-rmdir OCC
 	-del Surreal\* /Q
 	-rmdir Surreal
 	cd $(SDIR)
@@ -270,8 +283,9 @@ clean:
 !ELSE
 	cd $(SDIR)
 !ENDIF
-	-del $(FOBJS) $(OBJSP) $(OBJS) emp.obj evaluate.obj rational.obj \
-		SurrealD1.exe SurrealD4.exe SurrealS1.exe SurrealS4.exe
+	-del $(FOBJS) $(OBJSP) $(OBJS) $(OBJSOCC) emp.obj evaluate.obj \
+		rational.obj SurrealD1.exe SurrealD4.exe SurrealS1.exe \
+		SurrealS4.exe
 	cd $(SDIR)
 
 cleanall:	clean

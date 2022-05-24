@@ -3,7 +3,7 @@
  *
  *             Export a Model (via a string) for use in egadsLite
  *
- *      Copyright 2011-2021, Massachusetts Institute of Technology
+ *      Copyright 2011-2022, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -578,6 +578,7 @@ EG_writeGeometry(egObject *gobject, const egGeoMap *maps, stream_T *fp)
           nint  = 4;
           nreal = ivec[3] + 3*ivec[2];
           if ((ivec[0]&2) != 0) nreal += ivec[2];
+          ivec[0] |= 1;           /* mark that this has been flattened */
 /*        printf("     periodic flag = %d\n", ivec[0]);  */
           EG_deleteObject(bspline);
         }
@@ -661,7 +662,7 @@ EG_writeGeometry(egObject *gobject, const egGeoMap *maps, stream_T *fp)
         nreal = ivec[3] + ivec[6] + 3*ivec[2]*ivec[5];
         if ((ivec[0]&2) != 0) nreal += ivec[2]*ivec[5];
         if ((ivec[0]&12) != 0) {
-/*        printf(" note: Converting Periodic Surface %d!\n", ivec[0]);
+/*        printf(" note: Converting Periodic Surface %d!\n", ivec[0]);  */
           stat = EG_flattenBSpline(gobject, &bspline);
           EG_free(ivec);
           EG_free(rvec);
@@ -674,34 +675,9 @@ EG_writeGeometry(egObject *gobject, const egGeoMap *maps, stream_T *fp)
           if (stat != EGADS_SUCCESS) return stat;
           nreal = ivec[3] + ivec[6] + 3*ivec[2]*ivec[5];
           if ((ivec[0]&2) != 0) nreal += ivec[2]*ivec[5];
-          printf("     periodic flag = %d\n", ivec[0]);
-          EG_deleteObject(bspline);  */
-          {
-            int    iper;
-            double range[4];
-
-            stat = EG_getRange(gobject, range, &iper);
-            if (stat != EGADS_SUCCESS) {
-              printf(" EG_getRange = %d\n", stat);
-              return stat;
-            }
-            printf(" EGADS Warning: Periodic Surface (%lf %lf  %lf %lf)!\n",
-                   range[0], range[1], range[2], range[3]);
-            stat = EG_convertToBSplineRange(gobject, range, &bspline);
-            EG_free(ivec);
-            EG_free(rvec);
-            if (stat != EGADS_SUCCESS) {
-              printf(" EG_convertBSplineRange = %d\n", stat);
-              return stat;
-            }
-            stat = EG_getGeometry(bspline, &oclass, &mtype, &robject,
-                                  &ivec, &rvec);
-            if (stat != EGADS_SUCCESS) return stat;
-            nreal = ivec[3] + ivec[6] + 3*ivec[2]*ivec[5];
-            if ((ivec[0]&2) != 0) nreal += ivec[2]*ivec[5];
-/*          printf("     periodic flag = %d\n", ivec[0]);  */
-            EG_deleteObject(bspline);
-          }
+          ivec[0] |= 1;           /* mark that this has been flattened */
+ /*       printf("     periodic flag = %d\n", ivec[0]);  */
+          EG_deleteObject(bspline);
         }
         break;
         
@@ -768,7 +744,7 @@ EG_exportBody(egObject *bobject, stream_T *fp)
 {
   int      i, n, m, no, nchild, stat, oclass, mtype, iref, ntypes[8], *senses;
   int      outLevel;
-  double   tol, data[4], bbox[6];
+  double   tol, data[4], bbox[6], lims[4];
   egGeoMap maps;
   egObject **objs, *obj, *ref, **children;
 
@@ -979,7 +955,18 @@ EG_exportBody(egObject *bobject, stream_T *fp)
       return stat;
     }
     iref = 0;
-    if (mtype != DEGENERATE) iref = EG_lookAtMap(ref, CURVE, &maps, 0);
+    if (mtype != DEGENERATE) {
+      if (ref->mtype == BSPLINE)
+        if (EG_getRange(ref, lims, &n) == EGADS_SUCCESS)
+          if (n != 0)
+            if ((data[0] < lims[0]) || (data[1] > lims[1])) {
+              printf(" EGADS Problem: Edge #%d BSPLINE limits out of Period!\n",
+                     i+1);
+              printf("                %lf %lf   %lf %lf\n",
+                     data[0], data[1], lims[0], lims[1]);
+            }
+      iref = EG_lookAtMap(ref, CURVE, &maps, 0);
+    }
     if (iref < EGADS_SUCCESS) {
       EG_free(objs);
       EG_free(maps.pcurves.objs);
@@ -1212,6 +1199,18 @@ EG_exportBody(egObject *bobject, stream_T *fp)
         EG_free(maps.surfaces.objs);
         return stat;
       }
+      if (ref != NULL)
+        if (ref->mtype == BSPLINE)
+          if (EG_getRange(ref, lims, &n) == EGADS_SUCCESS)
+            if (n != 0)
+              if ((data[0] < lims[0]) || (data[1] > lims[1]) ||
+                  (data[2] < lims[2]) || (data[3] > lims[3])) {
+                printf(" EGADS Problem: Face #%d BSPLINE limits out of Period!\n",
+                       i+1);
+                printf("                %lf %lf %lf %lf   %lf %lf %lf %lf\n",
+                       data[0], data[1], data[2], data[3],
+                       lims[0], lims[1], lims[2], lims[3]);
+              }
       n = Fwrite(&mtype,  sizeof(int), 1, fp);
       if (n != 1) {
         EG_free(objs);

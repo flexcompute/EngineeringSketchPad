@@ -5,7 +5,7 @@
 # -----------------------------------------------------------------
 ## [capsAIM]
 attribute capsIntent       $LINEARAERO
-attribute capsAIM $xfoilAIM;tsfoilAIM
+attribute capsAIM $xfoilAIM;tsfoilAIM;msesAIM
 ## [capsAIM]
 
 # -----------------------------------------------------------------

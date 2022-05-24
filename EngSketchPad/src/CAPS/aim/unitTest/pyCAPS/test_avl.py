@@ -8,7 +8,6 @@ import shutil
 
 # Import pyCAPS class file
 import pyCAPS
-from pyCAPS import Problem
 
 
 # Geometry is verified with avl by plotting the camber using the commands:
@@ -24,12 +23,12 @@ class TestAVL(unittest.TestCase):
     def setUpClass(cls):
 
         # Create working directory variable
-        cls.probemName = "workDir_avlAnalysisTest"
+        cls.problemName = "workDir_avlAnalysisTest"
 
         cls.cleanUp()
 
         # Initialize Problem object
-        cls.myProblem = Problem(cls.probemName, capsFile="../csmData/avlSections.csm", outLevel=0)
+        cls.myProblem = pyCAPS.Problem(cls.problemName, capsFile="../csmData/avlSections.csm", outLevel=0)
 
     @classmethod
     def tearDownClass(cls):
@@ -40,7 +39,7 @@ class TestAVL(unittest.TestCase):
     def cleanUp(cls):
 
         # Remove problemName directories
-        dirs = glob.glob( cls.probemName + '*')
+        dirs = glob.glob( cls.problemName + '*')
         for dir in dirs:
             if os.path.isdir(dir):
                 shutil.rmtree(dir)
@@ -233,8 +232,8 @@ class TestAVL(unittest.TestCase):
         #print("CLtot = ", CLtot)
         #print("CDtot = ", CDtot)
 
-        CLtotTrue  = 0.16305
-        CDtotTrue  = 0.02286
+        CLtotTrue  = 0.15827
+        CDtotTrue  = 0.02262
         self.assertAlmostEqual(CLtotTrue, CLtot, 4)
         self.assertAlmostEqual(CDtotTrue, CDtot, 4)
 
@@ -326,10 +325,10 @@ class TestAVL(unittest.TestCase):
 #==============================================================================
     def test_MassProp_noUnits(self):
 
-       # Load avl aim
+        # Load avl aim
         avl = self.myProblem.analysis.create(aim = "avlAIM")
 
-       # Set new Mach/Alt parameters
+        # Set new Mach/Alt parameters
         avl.input.Mach  = 0.5
         avl.input.Alpha = 1.0
         avl.input.Beta  = 0.0
@@ -352,7 +351,7 @@ class TestAVL(unittest.TestCase):
 
         avl.input.MassProp = {"Aircraft": {"mass":mass, "CG":[x,y,z], "massInertia":[Ixx, Iyy, Izz]}}
 
-       # check there are errors if information is missing
+        # check there are errors if information is missing
         with self.assertRaises(pyCAPS.CAPSError) as e:
             avl.runAnalysis()
         self.assertEqual(e.exception.errorName, "CAPS_BADVALUE")
@@ -361,16 +360,16 @@ class TestAVL(unittest.TestCase):
         avl.input.Density  = 1.22557083  # kg/m^3
         avl.input.Velocity = 19.67167008 # "m/s"
 
-       # make sure there are no errsos
+        # make sure there are no errsos
         avl.runAnalysis()
 
         avl.input.MassProp = {"Aircraft":{"mass":mass, "CG":[x,y,z], "massInertia":[Ixx, Iyy, Izz, 1.0, 2.0, 3.0]},
                               "Engine"  :{"mass":mass, "CG":[x,y,z], "massInertia":[Ixx, Iyy, Izz]}}
 
-       # again should not cause errors
+        # again should not cause errors
         avl.runAnalysis()
 
-       # test error handling of the mass properties parsing
+        # test error handling of the mass properties parsing
 
         avl.input.MassProp = {"Aircraft": "1"}
         with self.assertRaises(pyCAPS.CAPSError) as e:
@@ -405,11 +404,11 @@ class TestAVL(unittest.TestCase):
         slug = pyCAPS.Unit("slug")
 
 
-       # Load avl aim
+        # Load avl aim
         avl = self.myProblem.analysis.create(aim = "avlAIM",
                                              unitSystem={"mass":kg, "length":m, "time":s, "temperature":K})
 
-       # Set new Mach/Alt parameters
+        # Set new Mach/Alt parameters
         avl.input.Mach  = 0.5
         avl.input.Alpha = 1.0 * deg
         avl.input.Beta  = 0.0 * deg
@@ -432,7 +431,7 @@ class TestAVL(unittest.TestCase):
 
         avl.input.MassProp = {"Aircraft": {"mass":mass * kg, "CG":[x,y,z] * m, "massInertia":[Ixx, Iyy, Izz] * kg*m**2}}
 
-       # check there are errors if information is missing
+        # check there are errors if information is missing
         with self.assertRaises(pyCAPS.CAPSError) as e:
             avl.runAnalysis()
         self.assertEqual(e.exception.errorName, "CAPS_BADVALUE")
@@ -441,16 +440,16 @@ class TestAVL(unittest.TestCase):
         avl.input.Density  = 0.002378 * slug/ft**3
         avl.input.Velocity = 64.5396 * ft/s
 
-       # make sure there are no errsos
+        # make sure there are no errsos
         avl.runAnalysis()
 
         avl.input.MassProp = {"Aircraft":{"mass":mass * kg, "CG":[x,y,z] * m, "massInertia":[Ixx, Iyy, Izz, 1.0, 2.0, 3.0] * kg*m**2},
                               "Engine"  :{"mass":mass * kg, "CG":[x,y,z] * m, "massInertia":[Ixx, Iyy, Izz] * kg*m**2}}
 
-       # again should not cause errors
+        # again should not cause errors
         avl.runAnalysis()
 
-       # test error handling of the mass properties parsing
+        # test error handling of the mass properties parsing
 
         avl.input.MassProp = {"Aircraft": "1"}
         with self.assertRaises(pyCAPS.CAPSError) as e:
@@ -486,6 +485,48 @@ class TestAVL(unittest.TestCase):
         with self.assertRaises(pyCAPS.CAPSError) as e:
             avl.runAnalysis()
         self.assertEqual(e.exception.errorName, "CAPS_BADVALUE")
+        
+#==============================================================================
+    def test_phase(self):
+        
+        # Initialize Problem object
+        problemName = self.problemName + "_Phase"
+        myProblem = pyCAPS.Problem(problemName, phaseName="Phase0", capsFile="../csmData/avlSections.csm", outLevel=0)
+
+        # Load avl aim
+        avl = myProblem.analysis.create(aim = "avlAIM", name = "avl")
+
+        # Set new Mach/Alt parameters
+        avl.input.Mach  = 0.5
+        avl.input.Alpha = 1.0
+        avl.input.Beta  = 0.0
+
+        wing = {"groupName"         : "Wing", # Notice Wing is the value for the capsGroup attribute
+                "numChord"          : 8,
+                "spaceChord"        : 1.0,
+                "numSpanPerSection" : 12,
+                "spaceSpan"         : 1.0}
+
+        avl.input.AVL_Surface = {"Wing": wing}
+        
+        # Retrieve results
+        CLtot = avl.output.CLtot
+        CDtot = avl.output.CDtot
+
+        myProblem.closePhase()
+
+        # Initialize Problem from the last phase and make a new phase
+        myProblem = pyCAPS.Problem(problemName, phaseName="Phase1", prevPhaseName="Phase0", outLevel=0)
+
+        avl = myProblem.analysis["avl"]
+
+        # Retrieve results
+        self.assertAlmostEqual(CLtot, avl.output.CLtot)
+        self.assertAlmostEqual(CDtot, avl.output.CDtot)
+
+        avl.input.Alpha  = 3.0
+        self.assertAlmostEqual(0.41257, avl.output.CLtot, 4)
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -3,7 +3,7 @@
  *
  *             Testing AIM 3D Mesh Writer Example Code
  *
- *      Copyright 2014-2021, Massachusetts Institute of Technology
+ *      Copyright 2014-2022, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -245,7 +245,7 @@ int meshWrite(void *aimInfo, aimMesh *mesh)
     }
 
     // Probably eventually want to change this to a string tag
-    fprintf(fp,"MARKER_TAG= %d\n", meshData->elemGroups[igroup].ID);
+    fprintf(fp,"MARKER_TAG= BC_%d\n", meshData->elemGroups[igroup].ID);
     // see note at the beginning of function
 
     //Number of elements with a particular ID

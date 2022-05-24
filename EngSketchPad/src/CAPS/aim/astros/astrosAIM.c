@@ -323,7 +323,7 @@ static int checkAndCreateMesh(aimStorage *aimInfo, aimStorage *astrosInstance)
   capsValue *QuadMesh = NULL;
 
   for (i = 0; i < astrosInstance->numMesh; i++) {
-      remesh = remesh && (astrosInstance->feaMesh[i].bodyTessMap.egadsTess->oclass == EMPTY);
+      remesh = remesh && (astrosInstance->feaMesh[i].egadsTess->oclass == EMPTY);
   }
   if (remesh == (int) false) return CAPS_SUCCESS;
 
@@ -621,7 +621,8 @@ static int createVLMMesh(void *instStore, void *aimInfo, capsValue *aimInputs)
 
     printf("\nGetting FEA vortex lattice mesh\n");
 
-    status = vlm_getSections(numBody,
+    status = vlm_getSections(aimInfo,
+                             numBody,
                              bodies,
                              "Aerodynamic",
                              astrosInstance->attrMap,
@@ -642,15 +643,17 @@ static int createVLMMesh(void *instStore, void *aimInfo, capsValue *aimInputs)
         else if (vlmSurface[i].NspanSection > 0)
             numSpanWise = (vlmSurface[i].numSection-1)*vlmSurface[i].NspanSection;
         else {
-            printf("Error: Only one of numSpanTotal and numSpanPerSection can be non-zero!\n");
-            printf("       numSpanTotal      = %d\n", vlmSurface[i].NspanTotal);
-            printf("       numSpanPerSection = %d\n", vlmSurface[i].NspanSection);
+            AIM_ERROR(aimInfo  , "Only one of numSpanTotal and numSpanPerSection can be non-zero!");
+            AIM_ADDLINE(aimInfo, "    numSpanTotal      = %d", vlmSurface[i].NspanTotal);
+            AIM_ADDLINE(aimInfo, "    numSpanPerSection = %d", vlmSurface[i].NspanSection);
             status = CAPS_BADVALUE;
             goto cleanup;
         }
 
-        status = vlm_equalSpaceSpanPanels(numSpanWise, vlmSurface[i].numSection, vlmSurface[i].vlmSection);
-        if (status != CAPS_SUCCESS) goto cleanup;
+        status = vlm_equalSpaceSpanPanels(aimInfo, numSpanWise,
+                                          vlmSurface[i].numSection,
+                                          vlmSurface[i].vlmSection);
+        AIM_STATUS(aimInfo, status);
     }
 
     // Split the surfaces that have more than 2 sections into a new surface
@@ -3094,42 +3097,6 @@ int aimDiscr(char *tname, capsDiscr *discr) {
 
     const char   *intents;
 
-#ifdef OLD_DISCR_IMPLEMENTATION_TO_REMOVE
-    int i, j, body, face, counter; // Indexing
-
-    // EGADS objects
-    ego tess, *bodies = NULL, *faces = NULL, tempBody;
-
-    const char *intents, *string = NULL, *capsGroup = NULL; // capsGroups strings
-
-    // EGADS function returns
-    int plen, tlen, qlen;
-    int atype, alen;
-    const int    *ptype, *pindex, *tris, *nei, *ints;
-    const double *xyz, *uv, *reals;
-
-    // Body Tessellation
-    int numFace = 0;
-    int numFaceFound = 0;
-    int numPoint = 0, numTri = 0, numQuad = 0, numGlobalPoint = 0;
-    int *bodyFaceMap = NULL; // size=[2*numFaceFound], [2*numFaceFound + 0] = body, [2*numFaceFoun + 1] = face
-
-    int *globalID = NULL, *localStitchedID = NULL, gID = 0;
-
-    int *storage= NULL; // Extra information to store into the discr void pointer
-
-    int numCAPSGroup = 0, attrIndex = 0, foundAttr = (int) false;
-    int *capsGroupList = NULL;
-    int dataTransferBodyIndex=-99;
-
-    int numElem, stride, tindex;
-
-    // Quading variables
-    int quad = (int)false;
-    int patch;
-    int numPatch, n1, n2;
-    const int *pvindex = NULL, *pbounds = NULL;
-#endif
 #ifdef DEBUG
     printf(" astrosAIM/aimDiscr: tname = %s, instance = %d!\n", tname);
 #endif
@@ -3161,452 +3128,12 @@ int aimDiscr(char *tname, capsDiscr *discr) {
 
     AIM_ALLOC(tess, astrosInstance->numMesh, ego, discr->aInfo, status);
     for (i = 0; i < astrosInstance->numMesh; i++) {
-      tess[i] = astrosInstance->feaMesh[i].bodyTessMap.egadsTess;
+      tess[i] = astrosInstance->feaMesh[i].egadsTess;
     }
 
     status = mesh_fillDiscr(tname, &astrosInstance->attrMap, astrosInstance->numMesh, tess, discr);
     if (status != CAPS_SUCCESS) goto cleanup;
 
-#ifdef OLD_DISCR_IMPLEMENTATION_TO_REMOVE
-
-    numFaceFound = 0;
-    numPoint = numTri = numQuad = 0;
-    // Find any faces with our boundary marker and get how many points and triangles there are
-    for (body = 0; body < numBody; body++) {
-
-        status = EG_getBodyTopos(bodies[body], NULL, FACE, &numFace, &faces);
-        if ((status != EGADS_SUCCESS) || (faces == NULL)) {
-            printf("astrosAIM: getBodyTopos (Face) = %d for Body %d!\n",
-                   status, body);
-            if (status == EGADS_SUCCESS) status = CAPS_NULLOBJ;
-            return status;
-        }
-
-        tess = bodies[body + numBody];
-        if (tess == NULL) continue;
-
-        quad = (int) false;
-        status = EG_attributeRet(tess, ".tessType", &atype, &alen, &ints, &reals,
-                                 &string);
-        if (status == EGADS_SUCCESS)
-          if ((atype == ATTRSTRING) && (string != NULL))
-            if (strcmp(string, "Quad") == 0) quad = (int) true;
-
-        for (face = 0; face < numFace; face++) {
-
-            // Retrieve the string following a capsBound tag
-            status = retrieve_CAPSBoundAttr(faces[face], &string);
-            if ((status != CAPS_SUCCESS) || (string == NULL)) continue;
-            if (strcmp(string, tname) != 0) continue;
-
-            status = retrieve_CAPSIgnoreAttr(faces[face], &string);
-            if (status == CAPS_SUCCESS) {
-              printf("astrosAIM: WARNING: capsIgnore found on bound %s\n", tname);
-              continue;
-            }
-
-#ifdef DEBUG
-            printf(" astrosAIM/aimDiscr: Body %d/Face %d matches %s!\n",
-                   body, face+1, tname);
-#endif
-
-            status = retrieve_CAPSGroupAttr(faces[face], &capsGroup);
-            if ((status != CAPS_SUCCESS) || (capsGroup == NULL)) {
-                printf("capsBound found on face %d, but no capGroup found!!!\n",
-                       face);
-                continue;
-            } else {
-
-                status = get_mapAttrToIndexIndex(&astrosInstance->attrMap,
-                                                 capsGroup, &attrIndex);
-                if (status != CAPS_SUCCESS) {
-                    printf("capsGroup %s NOT found in attrMap\n", capsGroup);
-                    continue;
-                } else {
-
-                    // If first index create arrays and store index
-                    if (capsGroupList == NULL) {
-                        numCAPSGroup  = 1;
-                        capsGroupList = (int *) EG_alloc(numCAPSGroup*sizeof(int));
-                        if (capsGroupList == NULL) {
-                            status =  EGADS_MALLOC;
-                            goto cleanup;
-                        }
-
-                        capsGroupList[numCAPSGroup-1] = attrIndex;
-                    } else { // If we already have an index(es) let make sure it is unique
-                        foundAttr = (int) false;
-                        for (i = 0; i < numCAPSGroup; i++) {
-                            if (attrIndex == capsGroupList[i]) {
-                                foundAttr = (int) true;
-                                break;
-                            }
-                        }
-
-                        if (foundAttr == (int) false) {
-                            numCAPSGroup += 1;
-                            capsGroupList = (int *) EG_reall(capsGroupList,
-                                                             numCAPSGroup*sizeof(int));
-                            if (capsGroupList == NULL) {
-                                status =  EGADS_MALLOC;
-                                goto cleanup;
-                            }
-
-                            capsGroupList[numCAPSGroup-1] = attrIndex;
-                        }
-                    }
-                }
-            }
-
-            numFaceFound += 1;
-            dataTransferBodyIndex = body;
-            bodyFaceMap = (int *) EG_reall(bodyFaceMap, 2*numFaceFound*sizeof(int));
-            if (bodyFaceMap == NULL) { status = EGADS_MALLOC; goto cleanup; }
-
-            // Get number of points and triangles
-            bodyFaceMap[2*(numFaceFound-1) + 0] = body+1;
-            bodyFaceMap[2*(numFaceFound-1) + 1] = face+1;
-
-            // count Quads/triangles
-            status = EG_getQuads(bodies[body+numBody], face+1, &qlen, &xyz, &uv,
-                                 &ptype, &pindex, &numPatch);
-            if (status == EGADS_SUCCESS && numPatch != 0) {
-
-              // Sum number of points and quads
-              numPoint  += qlen;
-
-              for (patch = 1; patch <= numPatch; patch++) {
-                status = EG_getPatch(bodies[body+numBody], face+1, patch, &n1,
-                                     &n2, &pvindex, &pbounds);
-                if (status != EGADS_SUCCESS) goto cleanup;
-                numQuad += (n1-1)*(n2-1);
-              }
-            } else {
-                // Get face tessellation
-                status = EG_getTessFace(bodies[body+numBody], face+1, &plen,
-                                        &xyz, &uv, &ptype, &pindex, &tlen, &tris,
-                                        &nei);
-                if (status != EGADS_SUCCESS) {
-                    printf(" astrosAIM: EG_getTessFace %d = %d for Body %d!\n",
-                           face+1, status, body+1);
-                    continue;
-                }
-
-                // Sum number of points and triangles
-                numPoint += plen;
-                if (quad == (int)true)
-                    numQuad += tlen/2;
-                else
-                    numTri  += tlen;
-            }
-        }
-
-        EG_free(faces); faces = NULL;
-
-        if (dataTransferBodyIndex >=0) break; // Force that only one body can be used
-    }
-
-    if (numFaceFound == 0) {
-        printf(" astrosAIM/aimDiscr: No Faces match %s!\n", tname);
-        status = CAPS_NOTFOUND;
-        goto cleanup;
-    }
-
-    // Debug
-#ifdef DEBUG
-    printf(" astrosAIM/aimDiscr: ntris = %d, npts = %d!\n", numTri, numPoint);
-    printf(" astrosAIM/aimDiscr: nquad = %d, npts = %d!\n", numQuad, numPoint);
-#endif
-
-    if ( numPoint == 0 || (numTri == 0 && numQuad == 0) ) {
-#ifdef DEBUG
-      printf(" astrosAIM/aimDiscr: ntris = %d, npts = %d!\n", numTri, numPoint);
-      printf(" astrosAIM/aimDiscr: nquad = %d, npts = %d!\n", numQuad, numPoint);
-#endif
-      status = CAPS_SOURCEERR;
-      goto cleanup;
-    }
-
-#ifdef DEBUG
-    printf(" astrosAIM/aimDiscr: Body Index for data transfer = %d\n",
-           dataTransferBodyIndex);
-#endif
-
-    // Specify our element type
-    status = EGADS_MALLOC;
-    discr->nTypes = 2;
-
-    discr->types  = (capsEleType *) EG_alloc(discr->nTypes* sizeof(capsEleType));
-    if (discr->types == NULL) goto cleanup;
-
-    // Define triangle element type
-    status = aim_nodalTriangleType( &discr->types[0]);
-    if (status != CAPS_SUCCESS) goto cleanup;
-
-    // Define quad element type
-    status = aim_nodalQuadType( &discr->types[1]);
-    if (status != CAPS_SUCCESS) goto cleanup;
-
-    // Get the tessellation and make up a simple linear continuous triangle discretization */
-
-    discr->nElems = numTri + numQuad;
-
-    discr->elems = (capsElement *) EG_alloc(discr->nElems*sizeof(capsElement));
-    if (discr->elems == NULL) { status = EGADS_MALLOC; goto cleanup; }
-
-    discr->gIndices = (int *) EG_alloc(2*(discr->types[0].nref*numTri +
-                                          discr->types[1].nref*numQuad)*sizeof(int));
-    if (discr->gIndices == NULL) { status = EGADS_MALLOC; goto cleanup; }
-
-    discr->mapping = (int *) EG_alloc(2*numPoint*sizeof(int)); // Will be resized
-    if (discr->mapping == NULL) { status = EGADS_MALLOC; goto cleanup; }
-
-    globalID = (int *) EG_alloc(numPoint*sizeof(int));
-    if (globalID == NULL) { status = EGADS_MALLOC; goto cleanup; }
-
-    if (bodyFaceMap == NULL) {
-        printf(" astrosAIM/aimDiscr: Body Face Map is NULL!\n");
-        status = CAPS_NULLOBJ;
-        goto cleanup;
-    }
-
-    numPoint = 0;
-    numTri   = 0;
-    numQuad  = 0;
-
-    for (face = 0; face < numFaceFound; face++){
-
-        tess = bodies[bodyFaceMap[2*face + 0]-1 + numBody];
-
-        quad = (int) false;
-        status = EG_attributeRet(tess, ".tessType", &atype, &alen, &ints, &reals,
-                                 &string);
-        if (status == EGADS_SUCCESS)
-          if ((atype == ATTRSTRING) && (string != NULL))
-            if (strcmp(string, "Quad") == 0)
-              quad = (int) true;
-
-        if (localStitchedID == NULL) {
-            status = EG_statusTessBody(tess, &tempBody, &i, &numGlobalPoint);
-            if (status != EGADS_SUCCESS) goto cleanup;
-
-            localStitchedID = (int *) EG_alloc(numGlobalPoint*sizeof(int));
-            if (localStitchedID == NULL) { status = EGADS_MALLOC; goto cleanup; }
-
-            for (i = 0; i < numGlobalPoint; i++) localStitchedID[i] = 0;
-        }
-
-        // Get face tessellation
-        status = EG_getTessFace(tess, bodyFaceMap[2*face + 1], &plen, &xyz, &uv,
-                                &ptype, &pindex, &tlen, &tris, &nei);
-        if (status != EGADS_SUCCESS) {
-            printf(" astrosAIM: EG_getTessFace %d = %d for Body %d!\n",
-                   bodyFaceMap[2*face + 1], status, bodyFaceMap[2*face + 0]);
-            continue;
-        }
-
-        for (i = 0; i < plen; i++ ) {
-
-            status = EG_localToGlobal(tess, bodyFaceMap[2*face+1], i+1, &gID);
-            if (status != EGADS_SUCCESS) goto cleanup;
-
-            if (localStitchedID[gID -1] != 0) continue;
-
-            discr->mapping[2*numPoint  ] = bodyFaceMap[2*face + 0];
-            discr->mapping[2*numPoint+1] = gID;
-
-            localStitchedID[gID -1] = numPoint+1;
-
-            globalID[numPoint] = gID;
-
-            numPoint += 1;
-        }
-
-        // Attempt to retrieve quad information
-        status = EG_getQuads(tess, bodyFaceMap[2*face + 1], &i, &xyz, &uv,
-                             &ptype, &pindex, &numPatch);
-        if (status == EGADS_SUCCESS && numPatch != 0) {
-
-            if (numPatch != 1) {
-                status = CAPS_NOTIMPLEMENT;
-                printf("astrosAIM/aimDiscr: EG_localToGlobal accidentally only works for a single quad patch! FIXME!\n");
-                goto cleanup;
-            }
-
-            counter = 0;
-            for (patch = 1; patch <= numPatch; patch++) {
-
-                status = EG_getPatch(tess, bodyFaceMap[2*face + 1], patch, &n1,
-                                     &n2, &pvindex, &pbounds);
-                if ((status != EGADS_SUCCESS) || (pvindex == NULL)) goto cleanup;
-
-                for (j = 1; j < n2; j++) {
-                    for (i = 1; i < n1; i++) {
-
-                        discr->elems[numQuad+numTri].bIndex = bodyFaceMap[2*face + 0];
-                        discr->elems[numQuad+numTri].tIndex = 2;
-                        discr->elems[numQuad+numTri].eIndex = bodyFaceMap[2*face + 1];
-/*@-immediatetrans@*/
-                        discr->elems[numQuad+numTri].gIndices =
-                              &discr->gIndices[2*(discr->types[0].nref*numTri +
-                                                  discr->types[1].nref*numQuad)];
-/*@+immediatetrans@*/
-
-                        discr->elems[numQuad+numTri].dIndices = NULL;
-                      //discr->elems[numQuad+numTri].eTris.tq[0] = (numQuad*2 + numTri) + 1;
-                      //discr->elems[numQuad+numTri].eTris.tq[1] = (numQuad*2 + numTri) + 2;
-
-                        discr->elems[numQuad+numTri].eTris.tq[0] = counter*2 + 1;
-                        discr->elems[numQuad+numTri].eTris.tq[1] = counter*2 + 2;
-
-                        status = EG_localToGlobal(tess, bodyFaceMap[2*face + 1],
-                                                  pvindex[(i-1)+n1*(j-1)], &gID);
-                        if (status != EGADS_SUCCESS) goto cleanup;
-
-                        discr->elems[numQuad+numTri].gIndices[0] = localStitchedID[gID-1];
-                        discr->elems[numQuad+numTri].gIndices[1] = pvindex[(i-1)+n1*(j-1)];
-
-                        status = EG_localToGlobal(tess, bodyFaceMap[2*face + 1],
-                                                  pvindex[(i  )+n1*(j-1)], &gID);
-                        if (status != EGADS_SUCCESS) goto cleanup;
-
-                        discr->elems[numQuad+numTri].gIndices[2] = localStitchedID[gID-1];
-                        discr->elems[numQuad+numTri].gIndices[3] = pvindex[(i  )+n1*(j-1)];
-
-                        status = EG_localToGlobal(tess, bodyFaceMap[2*face + 1],
-                                                  pvindex[(i  )+n1*(j  )], &gID);
-                        if (status != EGADS_SUCCESS) goto cleanup;
-
-                        discr->elems[numQuad+numTri].gIndices[4] = localStitchedID[gID-1];
-                        discr->elems[numQuad+numTri].gIndices[5] = pvindex[(i  )+n1*(j  )];
-
-                        status = EG_localToGlobal(tess, bodyFaceMap[2*face + 1],
-                                                  pvindex[(i-1)+n1*(j  )], &gID);
-                        if (status != EGADS_SUCCESS) goto cleanup;
-
-                        discr->elems[numQuad+numTri].gIndices[6] = localStitchedID[gID-1];
-                        discr->elems[numQuad+numTri].gIndices[7] = pvindex[(i-1)+n1*(j  )];
-
-//                        printf("Quad %d, GIndice = %d %d %d %d %d %d %d %d\n", numQuad+numTri,
-//                                                                               discr->elems[numQuad+numTri].gIndices[0],
-//                                                                               discr->elems[numQuad+numTri].gIndices[1],
-//                                                                               discr->elems[numQuad+numTri].gIndices[2],
-//                                                                               discr->elems[numQuad+numTri].gIndices[3],
-//                                                                               discr->elems[numQuad+numTri].gIndices[4],
-//                                                                               discr->elems[numQuad+numTri].gIndices[5],
-//                                                                               discr->elems[numQuad+numTri].gIndices[6],
-//                                                                               discr->elems[numQuad+numTri].gIndices[7]);
-
-                        numQuad += 1;
-                        counter += 1;
-                    }
-                }
-            }
-
-        } else {
-
-            if (quad == (int)true) {
-                numElem = tlen/2;
-                stride = 6;
-                tindex = 2;
-            } else {
-                numElem = tlen;
-                stride = 3;
-                tindex = 1;
-            }
-
-            // Get triangle/quad connectivity in global sense
-            for (i = 0; i < numElem; i++) {
-
-                discr->elems[numQuad+numTri].bIndex      = bodyFaceMap[2*face + 0];
-                discr->elems[numQuad+numTri].tIndex      = tindex;
-                discr->elems[numQuad+numTri].eIndex      = bodyFaceMap[2*face + 1];
-/*@-immediatetrans@*/
-                discr->elems[numQuad+numTri].gIndices    =
-                             &discr->gIndices[2*(discr->types[0].nref*numTri +
-                                                 discr->types[1].nref*numQuad)];
-/*@+immediatetrans@*/
-                discr->elems[numQuad+numTri].dIndices    = NULL;
-
-                if (quad == (int)true) {
-                    discr->elems[numQuad+numTri].eTris.tq[0] = i*2 + 1;
-                    discr->elems[numQuad+numTri].eTris.tq[1] = i*2 + 2;
-                } else {
-                    discr->elems[numQuad+numTri].eTris.tq[0] = i + 1;
-                }
-
-                status = EG_localToGlobal(tess, bodyFaceMap[2*face + 1],
-                                          tris[stride*i + 0], &gID);
-                if (status != EGADS_SUCCESS) goto cleanup;
-
-                discr->elems[numQuad+numTri].gIndices[0] = localStitchedID[gID-1];
-                discr->elems[numQuad+numTri].gIndices[1] = tris[stride*i + 0];
-
-                status = EG_localToGlobal(tess, bodyFaceMap[2*face + 1],
-                                          tris[stride*i + 1], &gID);
-                if (status != EGADS_SUCCESS) goto cleanup;
-
-                discr->elems[numQuad+numTri].gIndices[2] = localStitchedID[gID-1];
-                discr->elems[numQuad+numTri].gIndices[3] = tris[stride*i + 1];
-
-                status = EG_localToGlobal(tess, bodyFaceMap[2*face + 1],
-                                          tris[stride*i + 2], &gID);
-                if (status != EGADS_SUCCESS) goto cleanup;
-
-                discr->elems[numQuad+numTri].gIndices[4] = localStitchedID[gID-1];
-                discr->elems[numQuad+numTri].gIndices[5] = tris[stride*i + 2];
-
-                if (quad == (int)true) {
-                    status = EG_localToGlobal(tess, bodyFaceMap[2*face + 1],
-                                              tris[stride*i + 5], &gID);
-                    if (status != EGADS_SUCCESS) goto cleanup;
-
-                    discr->elems[numQuad+numTri].gIndices[6] = localStitchedID[gID-1];
-                    discr->elems[numQuad+numTri].gIndices[7] = tris[stride*i + 5];
-                }
-
-                if (quad == (int)true) {
-                    numQuad += 1;
-                } else {
-                    numTri += 1;
-                }
-            }
-        }
-    }
-
-    discr->nPoints = numPoint;
-
-#ifdef DEBUG
-    printf(" astrosAIM/aimDiscr: ntris = %d, npts = %d!\n",
-           discr->nElems, discr->nPoints);
-#endif
-
-    // Resize mapping to stitched together number of points
-    discr->mapping = (int *) EG_reall(discr->mapping, 2*numPoint*sizeof(int));
-
-    // Local to global node connectivity + numCAPSGroup + sizeof(capGrouplist)
-    storage = (int *) EG_alloc((numPoint + 1 + numCAPSGroup) *sizeof(int));
-    if (storage == NULL) goto cleanup;
-    discr->ptrm = storage;
-
-    // Store the global node id
-    for (i = 0; i < numPoint; i++) {
-
-        storage[i] = globalID[i];
-
-        //#ifdef DEBUG
-        //    printf(" astrosAIM/aimDiscr: Instance = %d, Global Node ID %d\n", iIndex, storage[i]);
-        //#endif
-    }
-
-    // Save way the attrMap capsGroup list
-    if (capsGroupList != NULL) {
-        storage[numPoint] = numCAPSGroup;
-        for (i = 0; i < numCAPSGroup; i++) {
-            storage[numPoint+1+i] = capsGroupList[i];
-        }
-    }
-#endif
 #ifdef DEBUG
     printf(" astrosAIM/aimDiscr: Instance = %d, Finished!!\n", iIndex);
 #endif
@@ -3617,15 +3144,6 @@ cleanup:
     if (status != CAPS_SUCCESS)
         printf("\tPremature exit in astrosAIM aimDiscr, status = %d\n", status);
 
-#ifdef OLD_DISCR_IMPLEMENTATION_TO_REMOVE
-    EG_free(faces);
-
-    EG_free(globalID);
-    EG_free(localStitchedID);
-
-    EG_free(capsGroupList);
-    EG_free(bodyFaceMap);
-#endif
     AIM_FREE(tess);
     return status;
 }

@@ -1,7 +1,8 @@
 
 # Design Parameters:
-despmtr   plateLength       0.50000
-despmtr   plateWidth        0.25000
+despmtr   plateLength       0.50
+despmtr   plateWidth        0.25
+despmtr   angle             0.00
 
 attribute capsAIM $nastranAIM;astrosAIM;mystranAIM;hsmAIM;tacsAIM;egadsTessAIM
 
@@ -12,7 +13,6 @@ skend     0
 extrude   0   plateWidth   0
 attribute capsGroup   $plate
 attribute capsLoad   $plate
-
  
 patbeg    i  4
    select edge i 
@@ -20,5 +20,7 @@ patbeg    i  4
    select node i 
    attribute capsConstraint $plateEdge
 patend
+
+rotatex angle 0 0
 
 end

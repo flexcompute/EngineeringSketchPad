@@ -9,7 +9,7 @@ default:	$(LDIR)\udunits2.dll $(LDIR)\libwinpthread-1.dll \
 		$(IDIR)\udunits2.h \
 		$(BDIR)\avl.exe $(BDIR)\pplot.exe $(BDIR)\pxplot.exe \
 		$(BDIR)\xfoil.exe $(BDIR)\ASTRO.D01 $(BDIR)\ASTRO.IDX \
-		$(BDIR)\mastros.exe 
+		$(BDIR)\mastros.exe $(BDIR)\mses.exe $(BDIR)\mset.exe
 
 $(LDIR)\udunits2.dll:	udunits\$(ESP_ARCH)\udunits2.dll
 	cd $(LDIR)
@@ -59,4 +59,14 @@ $(BDIR)\ASTRO.IDX:	Executables\WIN32\ASTRO.IDX
 $(BDIR)\mastros.exe:	Executables\WIN32\mastros.exe
 	cd $(BDIR)
 	xcopy $(SDIR)\Executables\WIN32\mastros.exe /Q /Y
+	cd $(SDIR)
+
+$(BDIR)\mses.exe:	Executables\WIN32\mses.exe
+	cd $(BDIR)
+	xcopy $(SDIR)\Executables\WIN32\mses.exe /Q /Y
+	cd $(SDIR)
+
+$(BDIR)\mset.exe:	Executables\WIN32\mset.exe
+	cd $(BDIR)
+	xcopy $(SDIR)\Executables\WIN32\mset.exe /Q /Y
 	cd $(SDIR)

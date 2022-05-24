@@ -49,7 +49,7 @@ class TestProblem(unittest.TestCase):
 
 #=============================================================================-
     def test_openSingleParametric(self):
-        problem = caps.open(self.projectName, None, self.file, 0)
+        problem = caps.open(self.projectName, None, caps.oFlag.oFileName, self.file, 0)
 
         #check the pointer equality operator
         self.assertEqual(problem, problem)
@@ -67,13 +67,13 @@ class TestProblem(unittest.TestCase):
     # Multiple problems
     def test_openMultiStaic(self):
 
-        problem1 = caps.open(self.projectName+"_1", None, "unitGeom.csm", 0)
+        problem1 = caps.open(self.projectName+"_1", None, caps.oFlag.oFileName, "unitGeom.csm", 0)
 
         problem1.writeGeometry("unitGeom2.egads")
 
         self.assertEqual(4, problem1.size(caps.oType.BODIES, 0))
 
-        problem2 = caps.open(self.projectName+"_2", None, "unitGeom2.egads", 0)
+        problem2 = caps.open(self.projectName+"_2", None, caps.oFlag.oFileName, "unitGeom2.egads", 0)
 
         self.assertNotEqual(problem1, problem2)
 
@@ -102,7 +102,7 @@ class TestProblem(unittest.TestCase):
 
 #=============================================================================-
     def test_childByIndex(self):
-        problem = caps.open(self.projectName+str(self.iProb), None, self.file, 0); self.__class__.iProb += 1
+        problem = caps.open(self.projectName+str(self.iProb), None, caps.oFlag.oFileName, self.file, 0); self.__class__.iProb += 1
 
         nGeomIn = problem.size(caps.oType.VALUE, caps.sType.GEOMETRYIN)
         self.assertGreater(nGeomIn, 0)
@@ -111,7 +111,7 @@ class TestProblem(unittest.TestCase):
 
 #=============================================================================-
     def test_geometryInOut(self):
-        problem = caps.open(self.projectName+str(self.iProb), None, self.file, 0); self.__class__.iProb += 1
+        problem = caps.open(self.projectName+str(self.iProb), None, caps.oFlag.oFileName, self.file, 0); self.__class__.iProb += 1
 
         # get the aspaect ratio and area
         aspectObj = problem.childByName(caps.oType.VALUE, caps.sType.GEOMETRYIN, "aspect")
@@ -169,7 +169,7 @@ class TestProblem(unittest.TestCase):
 
 #=============================================================================-
     def test_parameterIO(self):
-        problem = caps.open(self.projectName+str(self.iProb), None, self.file, 0); self.__class__.iProb += 1
+        problem = caps.open(self.projectName+str(self.iProb), None, caps.oFlag.oFileName, self.file, 0); self.__class__.iProb += 1
 
         problem.writeParameters("unitGeom.param")
         problem.readParameters("unitGeom.param")
@@ -182,12 +182,12 @@ class TestProblem(unittest.TestCase):
 
 #=============================================================================-
     def test_queryAnalysis(self):
-        problem = caps.open(self.projectName+str(self.iProb), None, self.file, 0); self.__class__.iProb += 1
+        problem = caps.open(self.projectName+str(self.iProb), None, caps.oFlag.oFileName, self.file, 0); self.__class__.iProb += 1
         nIn, nOut, execute = problem.queryAnalysis("fun3dAIM")
 
 #=============================================================================-
     def test_makeAnalysis(self):
-        problem = caps.open(self.projectName+str(self.iProb), None, self.file, 0); self.__class__.iProb += 1
+        problem = caps.open(self.projectName+str(self.iProb), None, caps.oFlag.oFileName, self.file, 0); self.__class__.iProb += 1
 
         self.assertEqual(0, problem.size(caps.oType.ANALYSIS, 0))
 
@@ -198,7 +198,7 @@ class TestProblem(unittest.TestCase):
 
 #=============================================================================-
     def test_makeValue(self):
-        problem = caps.open(self.projectName+str(self.iProb), None, self.file, 0); self.__class__.iProb += 1
+        problem = caps.open(self.projectName+str(self.iProb), None, caps.oFlag.oFileName, self.file, 0); self.__class__.iProb += 1
 
         data = 3
         value = problem.makeValue("scalar_Int", caps.sType.USER, data)
@@ -255,7 +255,7 @@ class TestProblem(unittest.TestCase):
     # Set verbosity
     def test_setOutLevel(self):
 
-        problem = caps.open(self.projectName+str(self.iProb), None, self.file, 0); self.__class__.iProb += 1
+        problem = caps.open(self.projectName+str(self.iProb), None, caps.oFlag.oFileName, self.file, 0); self.__class__.iProb += 1
 
         problem.setOutLevel(0)
         problem.setOutLevel(1)
@@ -273,7 +273,7 @@ class TestProblem(unittest.TestCase):
     # Adding/getting attributes
     def test_attributes(self):
 
-        problem = caps.open(self.projectName+str(self.iProb), None, self.file, 0); self.__class__.iProb += 1
+        problem = caps.open(self.projectName+str(self.iProb), None, caps.oFlag.oFileName, self.file, 0); self.__class__.iProb += 1
 
         # Check list attribute
         data = [1, 2, 3]
@@ -325,7 +325,7 @@ class TestProblem(unittest.TestCase):
     # Get geometry out values - if geometry has not been set
     def test_getGeometryOut_NotSet(self):
 
-        problem = caps.open(self.projectName+str(self.iProb), None, self.file, 0); self.__class__.iProb += 1
+        problem = caps.open(self.projectName+str(self.iProb), None, caps.oFlag.oFileName, self.file, 0); self.__class__.iProb += 1
 
         # Not set with OutParam
         with self.assertRaises(caps.CAPSError) as e:

@@ -3,7 +3,7 @@
  *
  *             High-Level Functions
  *
- *      Copyright 2011-2021, Massachusetts Institute of Technology
+ *      Copyright 2011-2022, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -105,6 +105,10 @@
 
   extern "C" int  EG_rotate( const egObject *src, double angle,
                              const double *axis, egObject **result );
+  extern "C" int  EG_rotate_dot(egObject *body, const egObject *src,
+                                double angle, double angle_dot,
+                                const double *axis, const double *axis_dot);
+
   extern "C" int  EG_sweep( const egObject *src, const egObject *spine, int mode,
                                   egObject **result );
   extern "C" int  EG_loft( int nsec, const egObject **secs, int opt,
@@ -203,7 +207,6 @@ EG_attrFixup(int outLevel, egObject *body, const egObject *src)
 }
 
 
-#if CASVER >= 700
 static int
 EG_matchSplitter(BRepAlgoAPI_BuilderAlgo& BSO, egObject *src,
                  egObject *tool, TopoDS_Shape result,
@@ -471,7 +474,7 @@ EG_matchGeneral(BRepAlgoAPI_BooleanOperation& BSO, egObject *src,
   *emapping = NULL;
   *fmapping = NULL;
   fullAttrs = EG_fullAttrs(src);
-  
+
   /* remove spurious Nodes -- note: Face mapping remains the same */
   EG_removeSpuriousNodes(BSO, result, newShape);
 
@@ -594,7 +597,6 @@ EG_matchGeneral(BRepAlgoAPI_BooleanOperation& BSO, egObject *src,
   *fmapping = fmap;
   return EGADS_SUCCESS;
 }
-#endif
 
 
 static void
@@ -611,7 +613,7 @@ EG_matchMdlFace(BRepAlgoAPI_BooleanOperation& BSO, TopoDS_Shape src,
 
   *emapping = NULL;
   *fmapping = NULL;
-  
+
   /* remove spurious Nodes -- note: Face mapping remains the same */
   EG_removeSpuriousNodes(BSO, result, newShape);
 
@@ -737,7 +739,7 @@ EG_matchMdlFace(BRepAlgoAPI_BooleanOperation& BSO, TopoDS_Shape src,
     }
 
   }
-  
+
   result = newShape;
 }
 
@@ -968,10 +970,6 @@ int
 EG_generalBoolean(egObject *src, egObject *tool, int oper, double tol,
                   egObject **model)
 {
-#if CASVER < 700
-  printf(" EGADS Error: Not implemented for this Rev of OCC (EG_generalBoolean)!\n");
-  return EGADS_NOTFOUND;
-#else
   int          i, j, index, nerr, outLevel, stat;
   double       toler = Precision::Confusion();
   egObject     *context, *omodel, **emap = NULL, **fmap = NULL;
@@ -1374,7 +1372,6 @@ EG_generalBoolean(egObject *src, egObject *tool, int oper, double tol,
 
   *model = omodel;
   return EGADS_SUCCESS;
-#endif
 }
 
 
@@ -2458,9 +2455,7 @@ EG_fuseSheets(const egObject *srcx, const egObject *toolx, egObject **sheet)
     BRepCheck_Analyzer rCheck(result);
     if (!rCheck.IsValid()) {
       Handle_ShapeFix_Shape sfs = new ShapeFix_Shape(result);
-#if CASVER >= 700
       sfs->FixShellTool()->SetNonManifoldFlag(Standard_True);
-#endif
       sfs->Perform();
       TopoDS_Shape fixedShape = sfs->Shape();
       if (fixedShape.IsNull()) {
@@ -4413,13 +4408,496 @@ EG_extrude(const egObject *src, double dist, const double *dir,
 }
 
 
+// no-name namespace makes functions private to this file
+namespace {
+
+
+template<class T>
+static int
+EG_extrude_line(const egObject* node, const T* dir, T *data)
+{
+  int status = EGADS_SUCCESS;
+  T xyz[3];
+
+  status = EG_evaluate(node, NULL, xyz);
+  if (status != EGADS_SUCCESS) goto cleanup;
+
+  /* create the Line (point and direction) */
+  data[0] = xyz[0];
+  data[1] = xyz[1];
+  data[2] = xyz[2];
+  data[3] = dir[0];
+  data[4] = dir[1];
+  data[5] = dir[2];
+
+cleanup:
+  return status;
+}
+
+
+static int
+EG_extrude_plane(const egObject *edge, const SurrealS<1> *dir, int *mtype, SurrealS<1> *data)
+{
+  int stat = EGADS_SUCCESS;
+  SurrealS<1> mZ;
+
+  *mtype = PLANE;
+
+  if (edge->oclass != EDGE) return EGADS_TOPOERR;
+
+  egadsEdge *pedge = (egadsEdge*)edge->blind;
+
+  egObject *ecurve = pedge->curve;
+
+  if (ecurve->oclass != CURVE) return EGADS_GEOMERR;
+
+  egadsCurve *pcurve = (egadsCurve *) ecurve->blind;
+  Handle(Geom_Curve) hCurve = pcurve->handle;
+
+  /*
+   * from OCC GeomAdaptor_SurfaceOfLinearExtrusion::Plane
+   */
+
+  gp_Pnt P;
+  SurrealS<1> D1u[3], newZ[3];
+  double UFirst = pedge->trange[0];
+  double ULast  = pedge->trange[1];
+  if (Precision::IsNegativeInfinite(UFirst) &&
+      Precision::IsPositiveInfinite(ULast)) {
+    UFirst = -100.;
+    ULast  = 100.;
+  }
+  else if (Precision::IsNegativeInfinite(UFirst)) {
+    UFirst = ULast - 200.;
+  }
+  else if (Precision::IsPositiveInfinite(ULast)) {
+    ULast = UFirst + 200.;
+  }
+  double deltau = (ULast-UFirst)/20.;
+  for (int i = 1; i <= 21; i++) {
+    SurrealS<1> prm = UFirst + (i-1)*deltau;
+    stat = EG_evaluate(edge, &prm, data);
+    if (stat != EGADS_SUCCESS) return stat;
+
+    D1u[0] = data[3];
+    D1u[1] = data[4];
+    D1u[2] = data[5];
+    CROSS(newZ, D1u, dir);
+    mZ = sqrt(DOT(newZ, newZ));
+    if (mZ > 1.e-12) break;
+  }
+//data[0]           /* center from evaluate */
+//data[1]
+//data[2]
+  data[3] = D1u[0]; /* x-axis */
+  data[4] = D1u[1];
+  data[5] = D1u[2];
+  data[6] = dir[0]; /* y-axis */
+  data[7] = dir[1];
+  data[8] = dir[2];
+
+  gp_Dir Dir(dir[0].value(), dir[1].value(), dir[2].value());
+  gp_Ax3 Ax3(P,gp_Dir(newZ[0].value(), newZ[1].value(), newZ[2].value()),
+               gp_Dir( D1u[0].value(),  D1u[2].value(),  D1u[2].value()));
+  if (Dir.Dot(Ax3.YDirection()) < 0.0){
+    data[6] = -dir[0]; /* y-axis */
+    data[7] = -dir[1];
+    data[8] = -dir[2];
+    *mtype = -(*mtype);
+  }
+
+  return stat;
+}
+
+static int
+EG_extrude_surf(const egObject *edge, int *mtype, const SurrealS<1> *dir, SurrealS<1> *data)
+{
+  SurrealS<1> vec[3];
+
+  if (edge->oclass != EDGE) return EGADS_TOPOERR;
+
+  egObject *ecurve = ((egadsEdge*)edge->blind)->curve;
+
+  if (ecurve->oclass != CURVE) return EGADS_GEOMERR;
+
+  egadsCurve *pcurve = (egadsCurve *) ecurve->blind;
+  Handle(Geom_Curve) hCurve = pcurve->handle;
+
+  /*
+   * from OCC BRepSweep_Translation::MakeEmptyFace
+   *  "extruded surfaces are inverted correspondingly to the topology, so reverse."
+   *
+   */
+  vec[0] = -dir[0];
+  vec[1] = -dir[1];
+  vec[2] = -dir[2];
+
+  gp_Dir Dir(vec[0].value(), vec[1].value(), vec[2].value());
+
+  if (ecurve->mtype == LINE) {
+    Handle(Geom_Line) hLine = Handle(Geom_Line)::DownCast(hCurve);
+
+    gp_Dir D = hLine->Lin().Direction();
+    if (!Dir.IsParallel( D, Precision::Angular()))
+      return EG_extrude_plane(edge, vec, mtype, data);
+  }
+
+  /* create the Extruded surface */
+  *mtype  = EXTRUSION;
+  data[0] = vec[0]; /* direction */
+  data[1] = vec[1];
+  data[2] = vec[2];
+
+  return EGADS_SUCCESS;
+}
+
+
+template<class T>
+static int
+EG_extrude_node(const egObject* node, BRepPrimAPI_MakePrism& prism,
+                const T& dist, const T *dir, egadsBody *tmpbody, egadsBody *body)
+{
+  int stat = EGADS_SUCCESS;
+  int index;
+  T data[6], tdata[2];
+
+  tdata[0] = 0;
+  tdata[1] = fabs(dist);
+
+  egadsNode *pnode = (egadsNode *) node->blind;
+  const TopTools_ListOfShape& genEdges = prism.Generated(pnode->node);
+  if (genEdges.Extent() > 0) {
+    /* generated Faces from Edges */
+    TopTools_ListIteratorOfListOfShape it(genEdges);
+    for (; it.More(); it.Next()) {
+      TopoDS_Shape qEdge = it.Value();
+      if (qEdge.ShapeType() != TopAbs_EDGE) return EGADS_TOPOERR;
+      TopoDS_Edge genEdge = TopoDS::Edge(qEdge);
+      index = tmpbody->edges.map.FindIndex(genEdge);
+      if (index == 0) return EGADS_RANGERR;
+
+      egObject* edge = body->edges.objs[index-1];
+      egadsEdge* pedge = (egadsEdge*)edge->blind;
+
+      stat = EG_extrude_line(node, dir, data);
+      if (stat != EGADS_SUCCESS) return stat;
+
+      /* set the CURVE sensitivity */
+      stat = EG_setGeometry_dot(pedge->curve, CURVE, LINE, NULL, data);
+      if (stat != EGADS_SUCCESS) return stat;
+
+      /* set the t-range sensitivity */
+      stat = EG_setRange_dot(edge, EDGE, tdata);
+      if (stat != EGADS_SUCCESS) return stat;
+    }
+  }
+
+  return stat;
+}
+
+
+template<class T>
+static int
+EG_extrude_edge(const egObject* edge, BRepPrimAPI_MakePrism& prism,
+               const T& dist, T *dir, T *mat, egadsBody *tmpbody, egadsBody *body)
+{
+  int stat = EGADS_SUCCESS;
+  int index;
+  T data[18];
+
+  egadsEdge *pedge = (egadsEdge *) edge->blind;
+  const TopTools_ListOfShape& genFaces = prism.Generated(pedge->edge);
+  if (genFaces.Extent() > 0) {
+    /* generated Faces from Edges */
+    TopTools_ListIteratorOfListOfShape it(genFaces);
+    for (; it.More(); it.Next()) {
+      TopoDS_Shape qFace = it.Value();
+      if (qFace.ShapeType() != TopAbs_FACE) return EGADS_TOPOERR;
+      TopoDS_Face genface = TopoDS::Face(qFace);
+      index = tmpbody->faces.map.FindIndex(genface);
+      if (index == 0) return EGADS_RANGERR;
+
+      egObject* face = body->faces.objs[index-1];
+      egadsFace* pface = (egadsFace*)face->blind;
+
+      egObject* surface = pface->surface;
+      egadsSurface *psurface = (egadsSurface*)surface->blind;
+
+      int mtype;
+      stat = EG_extrude_surf(edge, &mtype, dir, data);
+      if (stat != EGADS_SUCCESS) return stat;
+
+      if (psurface->ref != NULL) {
+        /* set the CURVE sensitivity */
+        stat = EG_copyGeometry_dot(pedge->curve, NULL, psurface->ref);
+        if (stat != EGADS_SUCCESS) return stat;
+      }
+
+      /* set the SURFACE sensitivity */
+      stat = EG_setGeometry_dot(surface, SURFACE, mtype, NULL, data);
+      if (stat != EGADS_SUCCESS) return stat;
+    }
+  }
+
+  const TopoDS_Shape& fShape = prism.FirstShape(pedge->edge);
+  TopoDS_Edge fEdge = TopoDS::Edge(fShape);
+  index = tmpbody->edges.map.FindIndex(fEdge);
+  if (index > 0) {
+    egObject* fedge = body->edges.objs[index-1];
+
+    /* set the curve and node sensitivity */
+    stat = EG_copyGeometry_dot(edge, NULL, fedge);
+    if (stat != EGADS_SUCCESS) return stat;
+  }
+
+  const TopoDS_Shape& lShape = prism.LastShape(pedge->edge);
+  TopoDS_Edge lEdge = TopoDS::Edge(lShape);
+  index = tmpbody->edges.map.FindIndex(lEdge);
+  if (index > 0) {
+    egObject* ledge = body->edges.objs[index-1];
+
+    /* set the curve and node sensitivity */
+    stat = EG_copyGeometry_dot(edge, mat, ledge);
+    if (stat != EGADS_SUCCESS) return stat;
+  }
+
+  return stat;
+}
+
+
+template<class T>
+static int
+EG_extrude_face(const egObject* face, BRepPrimAPI_MakePrism& prism,
+                T *mat, egadsBody *tmpbody, egadsBody *body)
+{
+  int stat = EGADS_SUCCESS;
+  int index;
+
+  egadsFace *pface = (egadsFace *) face->blind;
+  const TopoDS_Shape& fShape = prism.FirstShape(pface->face);
+  TopoDS_Face fFace = TopoDS::Face(fShape);
+  index = tmpbody->faces.map.FindIndex(fFace);
+  if (index > 0) {
+    egObject* fface = body->faces.objs[index-1];
+    egadsFace *pfface = (egadsFace *) fface->blind;
+
+    /* set the SURFACE sensitivity */
+    stat = EG_copyGeometry_dot(pface->surface, NULL, pfface->surface);
+    if (stat != EGADS_SUCCESS) return stat;
+  }
+
+  const TopoDS_Shape& lShape = prism.LastShape(pface->face);
+  TopoDS_Face lFace = TopoDS::Face(lShape);
+  index = tmpbody->faces.map.FindIndex(lFace);
+  if (index > 0) {
+    egObject* lface = body->faces.objs[index-1];
+    egadsFace *plface = (egadsFace *) lface->blind;
+
+    /* set the SURFACE sensitivity */
+    stat = EG_copyGeometry_dot(pface->surface, mat, plface->surface);
+    if (stat != EGADS_SUCCESS) return stat;
+  }
+
+  return stat;
+}
+
+} // namespace no-name
+
 int
 EG_extrude_dot(egObject *body, const egObject *src,
                double dist, double dist_dot,
                const double *dir, const double *dir_dot)
 {
-  printf(" EGADS Internal Error: Sensitivities not available for OCC extrude! (EG_extrude_dot)\n");
-  return EGADS_GEOMERR;
+  int          outLevel, stat, i, mtype;
+  SurrealS<1>  dS, vecS[3], dirS[3], distS;
+  int          nerr;
+  double       d, vec[3];
+  egObject     *context, *obj=NULL, *node, *edge, *face;
+  TopoDS_Shape shape, newShape;
+
+  if (src == NULL)                return EGADS_NULLOBJ;
+  if (src->magicnumber != MAGIC)  return EGADS_NOTOBJ;
+  if (src->blind == NULL)         return EGADS_NODATA;
+  if (EG_sameThread(src))         return EGADS_CNTXTHRD;
+
+  if (body == NULL)               return EGADS_NULLOBJ;
+  if (body->magicnumber != MAGIC) return EGADS_NOTOBJ;
+  if (body->blind == NULL)        return EGADS_NODATA;
+  if (body->oclass != BODY)       return EGADS_NOTBODY;
+  if (EG_sameThread(body))        return EGADS_CNTXTHRD;
+
+  outLevel = EG_outLevel(src);
+  context  = EG_context(src);
+
+  if (EG_hasGeometry_dot(src) != EGADS_SUCCESS) {
+    if (outLevel > 0)
+      printf(" EGADS Error: src without data_dot (EG_extrude_dot)!\n");
+    return EGADS_NODATA;
+  }
+
+  if (dist == 0.0) {
+    if (outLevel > 0)
+      printf(" EGADS Error: Zero Distance (EG_extrude_dot)!\n");
+    return EGADS_GEOMERR;
+  }
+
+  mtype = SOLIDBODY;
+  if  (src->oclass == BODY) {
+    if ((src->mtype == WIREBODY) || (src->mtype == FACEBODY)) {
+      egadsBody *pbody = (egadsBody *) src->blind;
+      shape = pbody->shape;
+      if (src->mtype == WIREBODY) mtype = SHEETBODY;
+    } else {
+      if (outLevel > 0)
+        printf(" EGADS Error: Body src must be Wire or Face (EG_extrude)!\n");
+      return EGADS_NOTTOPO;
+    }
+  } else if (src->oclass == LOOP) {
+    egadsLoop *ploop = (egadsLoop *) src->blind;
+    shape = ploop->loop;
+    mtype = SHEETBODY;
+  } else if (src->oclass == FACE) {
+    egadsFace *pface = (egadsFace *) src->blind;
+    shape = pface->face;
+  } else {
+    if (outLevel > 0)
+      printf(" EGADS Error: Invalid src type (EG_extrude)!\n");
+    return EGADS_NOTTOPO;
+  }
+
+  d = sqrt(dir[0]*dir[0] + dir[1]*dir[1] + dir[2]*dir[2]);
+  if (d == 0.0) {
+    if (outLevel > 0)
+      printf(" EGADS Error: Invalid Direction (EG_extrude)!\n");
+    return EGADS_GEOMERR;
+  }
+  vec[0] = dist*dir[0]/d;
+  vec[1] = dist*dir[1]/d;
+  vec[2] = dist*dir[2]/d;
+  BRepPrimAPI_MakePrism prism(shape, gp_Vec(vec[0],vec[1],vec[2]));
+  try {
+    newShape = prism.Shape();
+  }
+  catch (const Standard_Failure& e) {
+    printf(" EGADS Error: MakePrism Exception (EG_extrude)!\n");
+    printf("              %s\n", e.GetMessageString());
+    return EGADS_GEOMERR;
+  }
+  catch (...) {
+    printf(" EGADS Error: MakePrism Exception (EG_extrude)!\n");
+    return EGADS_GEOMERR;
+  }
+
+  stat = EG_makeObject(context, &obj);
+  if (stat != EGADS_SUCCESS) {
+    if (outLevel > 0)
+      printf(" EGADS Error: Cannot make Body object (EG_extrude)!\n");
+    return stat;
+  }
+  egadsBody *pbods   = new egadsBody;
+  obj->oclass        = BODY;
+  obj->mtype         = mtype;
+  pbods->nodes.objs  = NULL;
+  pbods->edges.objs  = NULL;
+  pbods->loops.objs  = NULL;
+  pbods->faces.objs  = NULL;
+  pbods->shells.objs = NULL;
+  pbods->senses      = NULL;
+  pbods->shape       = newShape;
+  pbods->bbox.filled = 0;
+  pbods->massFill    = 0;
+  obj->blind         = pbods;
+  stat = EG_traverseBody(context, 0, obj, obj, pbods, &nerr);
+  if (stat != EGADS_SUCCESS) {
+    EG_deleteObject(obj);
+    return stat;
+  }
+
+  distS.value() = dist;
+  distS.deriv() = dist_dot;
+
+  for (i = 0; i < 3; i++) {
+    dirS[i].value() = dir[i];
+    dirS[i].deriv() = dir_dot[i];
+  }
+
+  dS = sqrt(dirS[0]*dirS[0] + dirS[1]*dirS[1] + dirS[2]*dirS[2]);
+  if (dS == 0.0) {
+    if (outLevel > 0)
+      printf(" EGADS Error: Invalid Direction (EG_extrude_dot)!\n");
+    return EGADS_GEOMERR;
+  }
+  vecS[0] = distS*dirS[0]/dS;
+  vecS[1] = distS*dirS[1]/dS;
+  vecS[2] = distS*dirS[2]/dS;
+
+  if (distS < 0) {
+    dirS[0] = -dirS[0];
+    dirS[1] = -dirS[1];
+    dirS[2] = -dirS[2];
+  }
+
+  SurrealS<1> matS[12] = {1.00, 0.00, 0.00, vecS[0],
+                          0.00, 1.00, 0.00, vecS[1],
+                          0.00, 0.00, 1.00, vecS[2]};
+
+  /* set sensitivity information */
+  if (src->oclass == BODY) {
+    egadsBody *pbody = (egadsBody *) src->blind;
+    for (int i = 0; i < pbody->nodes.map.Extent(); i++) {
+      node = pbody->nodes.objs[i];
+      stat = EG_extrude_node(node, prism, distS, dirS, pbods, (egadsBody*)body->blind);
+      if (stat != EGADS_SUCCESS) return stat;
+    }
+    for (int i = 0; i < pbody->edges.map.Extent(); i++) {
+      edge = pbody->edges.objs[i];
+      stat = EG_extrude_edge(edge, prism, distS, dirS, matS, pbods, (egadsBody*)body->blind);
+      if (stat != EGADS_SUCCESS) return stat;
+    }
+    for (int i = 0; i < pbody->faces.map.Extent(); i++) {
+      face = pbody->faces.objs[i];
+      stat = EG_extrude_face(face, prism, matS, pbods, (egadsBody*)body->blind);
+      if (stat != EGADS_SUCCESS) return stat;
+    }
+  } else if (src->oclass == LOOP) {
+    egadsLoop *ploop = (egadsLoop *) src->blind;
+    for (int i = 0; i < ploop->nedges; i++) {
+      edge = ploop->edges[i];
+
+      stat = EG_extrude_edge(edge, prism, distS, dirS, matS, pbods, (egadsBody*)body->blind);
+      if (stat != EGADS_SUCCESS) return stat;
+
+      egadsEdge *pedge = (egadsEdge*)edge->blind;
+      stat = EG_extrude_node(pedge->nodes[0], prism, distS, dirS, pbods, (egadsBody*)body->blind);
+      if (stat != EGADS_SUCCESS) return stat;
+
+      stat = EG_extrude_node(pedge->nodes[1], prism, distS, dirS, pbods, (egadsBody*)body->blind);
+      if (stat != EGADS_SUCCESS) return stat;
+    }
+  } else {
+    egadsFace *pface = (egadsFace *) src->blind;
+    for (int j = 0; j < pface->nloops; j++) {
+      egadsLoop *ploop = (egadsLoop *) pface->loops[j]->blind;
+      for (int i = 0; i < ploop->nedges; i++) {
+        edge = ploop->edges[i];
+
+        stat = EG_extrude_edge(edge, prism, distS, dirS, matS, pbods, (egadsBody*)body->blind);
+        if (stat != EGADS_SUCCESS) return stat;
+
+        egadsEdge *pedge = (egadsEdge*)edge->blind;
+        stat = EG_extrude_node(pedge->nodes[0], prism, distS, dirS, pbods, (egadsBody*)body->blind);
+        if (stat != EGADS_SUCCESS) return stat;
+
+        stat = EG_extrude_node(pedge->nodes[1], prism, distS, dirS, pbods, (egadsBody*)body->blind);
+        if (stat != EGADS_SUCCESS) return stat;
+      }
+    }
+    stat = EG_extrude_face(src, prism, matS, pbods, (egadsBody*)body->blind);
+    if (stat != EGADS_SUCCESS) return stat;
+  }
+
+  EG_deleteObject(obj);
+  return EGADS_SUCCESS;
 }
 
 #else
@@ -5401,7 +5879,7 @@ EG_rotate(const egObject *src, double angle, const double *axis,
   if (mtype == SOLIDBODY) {
     GProp_GProps VProps;
     BRepGProp    BProps;
-    
+
     if (fabs(fabs(ang)-360.0) < 1.e-6) {
       char *env = getenv("EGADSrotate");
       if (env != NULL) {
@@ -5442,7 +5920,7 @@ EG_rotate(const egObject *src, double angle, const double *axis,
   if (split == 1) EG_splitPeriodics(pbods);
   stat = EG_traverseBody(context, 0, obj, obj, pbods, &nerr);
   if (stat != EGADS_SUCCESS) {
-    delete pbods;
+    EG_deleteObject(obj);
     return stat;
   }
 
@@ -5522,6 +6000,534 @@ EG_rotate(const egObject *src, double angle, const double *axis,
   *result = obj;
   return EGADS_SUCCESS;
 }
+
+
+// no-name namespace makes functions private to this file
+namespace {
+
+
+static void
+EG_normalizeDir_dot(int dim, SurrealS<1>* data_dot)
+{
+  SurrealS<1> mag = 0;
+
+  for (int i = 0; i < dim; i++)
+    mag += data_dot[i]*data_dot[i];
+
+  mag = sqrt(mag);
+
+  if (mag == 0.0) {
+    printf(" EGADS Warning: Zero magnitude (EG_setGeometry_dot)!\n");
+    return;
+  }
+
+  for (int i = 0; i < dim; i++)
+    data_dot[i] /= mag;
+}
+
+
+/* taken from gp_Ax2::gp_Ax2(const gp_Pnt& P, const gp_Dir& N, const gp_Dir& Vx)
+ * and gp_XYZ::CrossCross (const gp_XYZ& Coord1, const gp_XYZ& Coord2)
+ */
+static void
+EG_CrossCross_dot(const SurrealS<1>* dirz, SurrealS<1>* dirx)
+{
+  SurrealS<1>& x1 = dirx[0];
+  SurrealS<1>& y1 = dirx[1];
+  SurrealS<1>& z1 = dirx[2];
+
+  const SurrealS<1>& x2 = dirz[0];
+  const SurrealS<1>& y2 = dirz[1];
+  const SurrealS<1>& z2 = dirz[2];
+
+  SurrealS<1> X =  y2 * (x1 * y2 - y1 * x2) -
+                   z2 * (z1 * x2 - x1 * z2);
+  SurrealS<1> Y =  z2 * (y1 * z2 - z1 * y2) -
+                   x2 * (x1 * y2 - y1 * x2);
+              z1 = x2 * (z1 * x2 - x1 * z2) -
+                   y2 * (y1 * z2 - z1 * y2);
+  y1 = Y;
+  x1 = X;
+
+  EG_normalizeDir_dot(3, dirx);
+}
+
+
+template<class T>
+static void
+EG_rotationMatrix(const T& angle, const T *axis, T *mat)
+{
+  /* unit axis */
+  T ux = axis[3];
+  T uy = axis[4];
+  T uz = axis[5];
+
+  T mag = sqrt(ux*ux + uy*uy + uz*uz);
+  if (mag == 0.0) {
+    printf(" EGADS Warning: Zero magnitude!\n");
+    return;
+  }
+
+  ux /= mag;
+  uy /= mag;
+  uz /= mag;
+
+  T cosa = cos(angle);
+  T sina = sin(angle);
+
+  /* rotation matrix about axis (not including the point) */
+  T R[3][3];
+
+  R[0][0] = ux*ux*(1 - cosa) +    cosa;
+  R[0][1] = ux*uy*(1 - cosa) - uz*sina;
+  R[0][2] = ux*uz*(1 - cosa) + uy*sina;
+
+  R[1][0] = uy*ux*(1 - cosa) + uz*sina;
+  R[1][1] = uy*uy*(1 - cosa) +    cosa;
+  R[1][2] = uy*uz*(1 - cosa) - ux*sina;
+
+  R[2][0] = uz*ux*(1 - cosa) - uy*sina;
+  R[2][1] = uz*uy*(1 - cosa) + ux*sina;
+  R[2][2] = uz*uz*(1 - cosa) +    cosa;
+
+  for (int i = 0; i < 3; i++)
+    for (int j = 0; j < 3; j++)
+      mat[4*i + j] = R[i][j];
+
+  /* set the translation to include the point */
+  mat[4*0 + 3] = axis[0];
+  mat[4*1 + 3] = axis[1];
+  mat[4*2 + 3] = axis[2];
+
+  for (int i = 0; i < 3; i++)
+    for (int j = 0; j < 3; j++)
+      mat[4*i + 3] -= R[i][j]*axis[j];
+}
+
+template<class T>
+static int
+EG_rotate_circle(const egObject* node, const T& angle, const T *axis, T *data)
+{
+  // Taken from BRepSweep_Rotation::MakeEmptyDirectingEdge
+
+  //gp_Pnt P = BRep_Tool::Pnt(TopoDS::Vertex(aGenV));
+  //gp_Dir Dirz(myAxe.Direction());
+  //gp_Vec V(Dirz);
+  //gp_Pnt O(myAxe.Location());
+  //O.Translate(V.Dot(gp_Vec(O,P)) * V);
+  //gp_Ax2 Axis(O,Dirz,gp_Dir(gp_Vec(O,P)));
+  //Handle(Geom_Circle) GC = new Geom_Circle(Axis,O.Distance(P));
+
+  int status = EGADS_SUCCESS;
+  T xyz[3], r, dirx[3], diry[3], dirz[3], vec[3], cent[3], dot, mag;
+
+  status = EG_evaluate(node, NULL, xyz);
+  if (status != EGADS_SUCCESS) goto cleanup;
+
+  //gp_Dir Dirz(myAxe.Direction());
+  dirz[0] = axis[3];
+  dirz[1] = axis[4];
+  dirz[2] = axis[5];
+  EG_normalizeDir_dot(3, dirz);
+  if (angle < 0.) {
+    dirz[0] = -dirz[0];
+    dirz[1] = -dirz[1];
+    dirz[2] = -dirz[2];
+  }
+
+  // find the center on the axis perpendicular to the node
+  // gp_Vec(O,P) -> P - O
+  dirx[0] = xyz[0] - axis[0];
+  dirx[1] = xyz[1] - axis[1];
+  dirx[2] = xyz[2] - axis[2];
+
+  // V.Dot(gp_Vec(O,P))
+  dot = DOT(dirx, dirz);
+
+  // O.Translate(V.Dot(gp_Vec(O,P)) * V);
+  cent[0] = axis[0] + dot*dirz[0];
+  cent[1] = axis[1] + dot*dirz[1];
+  cent[2] = axis[2] + dot*dirz[2];
+
+  // compute the radius
+  // O.Distance(P)
+  vec[0] = xyz[0] - cent[0];
+  vec[1] = xyz[1] - cent[1];
+  vec[2] = xyz[2] - cent[2];
+  r = sqrt(DOT(vec, vec));
+
+  // gp_Dir(gp_Vec(O,P))
+  EG_normalizeDir_dot(3, dirx);
+
+  // gp_Ax2 Axis(O,Dirz,gp_Dir(gp_Vec(O,P)));
+  EG_CrossCross_dot(dirz, dirx);
+  CROSS(diry, dirz, dirx);
+
+  /* the Circle data */
+  data[0] = cent[0]; /* center */
+  data[1] = cent[1];
+  data[2] = cent[2];
+  data[3] = dirx[0]; /* x-axis */
+  data[4] = dirx[1];
+  data[5] = dirx[2];
+  data[6] = diry[0]; /* y-axis */
+  data[7] = diry[1];
+  data[8] = diry[2];
+  data[9] = r;
+
+cleanup:
+  return status;
+}
+
+
+template<class T>
+static int
+EG_rotate_node(const egObject* node, BRepPrimAPI_MakeRevol& revol,
+               const T& angle, const T *axis, egadsBody *tmpbody, egadsBody *body)
+{
+  int stat = EGADS_SUCCESS;
+  int index;
+  T data[10], tdata[2];
+
+  tdata[0] = 0;
+  tdata[1] = fabs(angle);
+
+  egadsNode *pnode = (egadsNode *) node->blind;
+  const TopTools_ListOfShape& genEdges = revol.Generated(pnode->node);
+  if (genEdges.Extent() > 0) {
+    /* generated Faces from Edges */
+    TopTools_ListIteratorOfListOfShape it(genEdges);
+    for (; it.More(); it.Next()) {
+      TopoDS_Shape qEdge = it.Value();
+      if (qEdge.ShapeType() != TopAbs_EDGE) return EGADS_TOPOERR;
+      TopoDS_Edge genEdge = TopoDS::Edge(qEdge);
+      index = tmpbody->edges.map.FindIndex(genEdge);
+      if (index == 0) return EGADS_RANGERR;
+
+      egObject* edge = body->edges.objs[index-1];
+      egadsEdge* pedge = (egadsEdge*)edge->blind;
+
+      if (edge->mtype != DEGENERATE) {
+        stat = EG_rotate_circle(node, angle, axis, data);
+        if (stat != EGADS_SUCCESS) return stat;
+
+        /* set the curve sensitivity */
+        stat = EG_setGeometry_dot(pedge->curve, CURVE, CIRCLE, NULL, data);
+        if (stat != EGADS_SUCCESS) return stat;
+      }
+
+      /* set the t-range sensitivity */
+      stat = EG_setRange_dot(edge, EDGE, tdata);
+      if (stat != EGADS_SUCCESS) return stat;
+    }
+  }
+
+  return stat;
+}
+
+
+template<class T>
+static int
+EG_rotate_edge(const egObject* edge, BRepPrimAPI_MakeRevol& revol,
+               const T& angle, T *axis, T *mat, egadsBody *tmpbody, egadsBody *body)
+{
+  int stat = EGADS_SUCCESS;
+  int index;
+  T revdata[6];
+
+  revdata[0] = axis[0];
+  revdata[1] = axis[1];
+  revdata[2] = axis[2];
+  if (angle < 0.) {
+    revdata[3] = -axis[3];
+    revdata[4] = -axis[4];
+    revdata[5] = -axis[5];
+  } else {
+    revdata[3] =  axis[3];
+    revdata[4] =  axis[4];
+    revdata[5] =  axis[5];
+  }
+
+  egadsEdge *pedge = (egadsEdge *) edge->blind;
+  const TopTools_ListOfShape& genFaces = revol.Generated(pedge->edge);
+  if (genFaces.Extent() > 0) {
+    /* generated Faces from Edges */
+    TopTools_ListIteratorOfListOfShape it(genFaces);
+    for (; it.More(); it.Next()) {
+      TopoDS_Shape qFace = it.Value();
+      if (qFace.ShapeType() != TopAbs_FACE) return EGADS_TOPOERR;
+      TopoDS_Face genface = TopoDS::Face(qFace);
+      index = tmpbody->faces.map.FindIndex(genface);
+      if (index == 0) return EGADS_RANGERR;
+
+      egObject* face = body->faces.objs[index-1];
+      egadsFace* pface = (egadsFace*)face->blind;
+
+      egObject* surface = pface->surface;
+      egadsSurface *psurface = (egadsSurface*)surface->blind;
+
+      if (psurface->ref != NULL) {
+        /* set the TRIMMED sensitivity */
+        stat = EG_setGeometry_dot(psurface->ref, CURVE, TRIMMED, NULL, pedge->trange_dot);
+        if (stat != EGADS_SUCCESS) return stat;
+
+        /* set the CURVE sensitivity */
+        egadsCurve* pcurve = (egadsCurve*)psurface->ref->blind;
+        stat = EG_copyGeometry_dot(pedge->curve, NULL, pcurve->ref);
+        if (stat != EGADS_SUCCESS) return stat;
+      }
+
+      /* set the SURFACE sensitivity */
+      stat = EG_setGeometry_dot(surface, SURFACE, REVOLUTION, NULL, revdata);
+      if (stat != EGADS_SUCCESS) return stat;
+    }
+  }
+
+  const TopoDS_Shape& fShape = revol.FirstShape(pedge->edge);
+  TopoDS_Edge fEdge = TopoDS::Edge(fShape);
+  index = tmpbody->edges.map.FindIndex(fEdge);
+  if (index > 0) {
+    egObject* fedge = body->edges.objs[index-1];
+
+    /* set the curve and node sensitivity */
+    stat = EG_copyGeometry_dot(edge, NULL, fedge);
+    if (stat != EGADS_SUCCESS) return stat;
+  }
+
+  const TopoDS_Shape& lShape = revol.LastShape(pedge->edge);
+  TopoDS_Edge lEdge = TopoDS::Edge(lShape);
+  index = tmpbody->edges.map.FindIndex(lEdge);
+  if (index > 0) {
+    egObject* ledge = body->edges.objs[index-1];
+
+    /* set the curve and node sensitivity */
+    stat = EG_copyGeometry_dot(edge, mat, ledge);
+    if (stat != EGADS_SUCCESS) return stat;
+  }
+
+  return stat;
+}
+
+
+template<class T>
+static int
+EG_rotate_face(const egObject* face, BRepPrimAPI_MakeRevol& revol,
+               T *mat, egadsBody *tmpbody, egadsBody *body)
+{
+  int stat = EGADS_SUCCESS;
+  int index;
+
+  egadsFace *pface = (egadsFace *) face->blind;
+  const TopoDS_Shape& fShape = revol.FirstShape(pface->face);
+  TopoDS_Face fFace = TopoDS::Face(fShape);
+  index = tmpbody->faces.map.FindIndex(fFace);
+  if (index > 0) {
+    egObject* fface = body->faces.objs[index-1];
+    egadsFace *pfface = (egadsFace *) fface->blind;
+
+    /* set the SURFACE sensitivity */
+    stat = EG_copyGeometry_dot(pface->surface, NULL, pfface->surface);
+    if (stat != EGADS_SUCCESS) return stat;
+  }
+
+  const TopoDS_Shape& lShape = revol.LastShape(pface->face);
+  TopoDS_Face lFace = TopoDS::Face(lShape);
+  index = tmpbody->faces.map.FindIndex(lFace);
+  if (index > 0) {
+    egObject* lface = body->faces.objs[index-1];
+    egadsFace *plface = (egadsFace *) lface->blind;
+
+    /* set the SURFACE sensitivity */
+    stat = EG_copyGeometry_dot(pface->surface, mat, plface->surface);
+    if (stat != EGADS_SUCCESS) return stat;
+  }
+
+  return stat;
+}
+
+} // no-name namespace
+
+
+int
+EG_rotate_dot(egObject *body, const egObject *src,
+              double angle, double angle_dot,
+              const double *axis, const double *axis_dot)
+{
+  int          outLevel, stat, mtype, nerr;
+  double       ang;
+  egObject     *context, *obj=NULL, *node, *edge, *face;
+  TopoDS_Shape shape, newShape;
+
+  if (src == NULL)               return EGADS_NULLOBJ;
+  if (src->magicnumber != MAGIC) return EGADS_NOTOBJ;
+  if (src->blind == NULL)        return EGADS_NODATA;
+  if (EG_sameThread(src))        return EGADS_CNTXTHRD;
+
+  if (body == NULL)               return EGADS_NULLOBJ;
+  if (body->magicnumber != MAGIC) return EGADS_NOTOBJ;
+  if (body->blind == NULL)        return EGADS_NODATA;
+  if (body->oclass != BODY)       return EGADS_NOTBODY;
+  if (EG_sameThread(body))        return EGADS_CNTXTHRD;
+
+  outLevel = EG_outLevel(src);
+  context  = EG_context(src);
+
+  mtype = SOLIDBODY;
+  if  (src->oclass == BODY) {
+    if ((src->mtype == WIREBODY) || (src->mtype == FACEBODY)) {
+      egadsBody *pbody = (egadsBody *) src->blind;
+      shape = pbody->shape;
+      if (src->mtype == WIREBODY) mtype = SHEETBODY;
+    } else {
+      if (outLevel > 0)
+        printf(" EGADS Error: Body src must be Wire or Face (EG_rotate_dot)!\n");
+      return EGADS_NOTTOPO;
+    }
+  } else if (src->oclass == LOOP) {
+    egadsLoop *ploop = (egadsLoop *) src->blind;
+    shape = ploop->loop;
+    mtype = SHEETBODY;
+  } else if (src->oclass == FACE) {
+    egadsFace *pface = (egadsFace *) src->blind;
+    shape = pface->face;
+  } else {
+    if (outLevel > 0)
+      printf(" EGADS Error: Invalid src type (EG_rotate_dot)!\n");
+    return EGADS_NOTTOPO;
+  }
+
+  gp_Pnt pnt(axis[0], axis[1], axis[2]);
+  gp_Dir dir(axis[3], axis[4], axis[5]);
+  gp_Ax1 axi(pnt, dir);
+  ang = 360.0;
+  if ((angle > -360.0) && (angle < 360.0)) ang = angle;
+  BRepPrimAPI_MakeRevol revol(shape, axi, ang*PI/180.0);
+  try {
+    newShape = revol.Shape();
+  }
+  catch (const Standard_Failure& e) {
+    printf(" EGADS Error: MakeRevol Exception (EG_rotate_dot)!\n");
+    printf("              %s\n", e.GetMessageString());
+    return EGADS_GEOMERR;
+  }
+  catch (...) {
+    printf(" EGADS Error: MakeRevol Exception (EG_rotate_dot)!\n");
+    return EGADS_GEOMERR;
+  }
+
+  if (mtype == SOLIDBODY) {
+    GProp_GProps VProps;
+    BRepGProp    BProps;
+
+    BProps.VolumeProperties(newShape, VProps);
+    if (VProps.Mass() < 0.0) {
+      if (outLevel > 0)
+        printf(" EGADS Info: Volume = %lf reversing (EG_rotate_dot)!\n",
+               VProps.Mass());
+      newShape.Reverse();
+    }
+  }
+
+  stat = EG_makeObject(context, &obj);
+  if (stat != EGADS_SUCCESS) {
+    if (outLevel > 0)
+      printf(" EGADS Error: Cannot make Body object (EG_rotate_dot)!\n");
+    return stat;
+  }
+  egadsBody *pbods   = new egadsBody;
+  obj->oclass        = BODY;
+  obj->mtype         = mtype;
+  pbods->nodes.objs  = NULL;
+  pbods->edges.objs  = NULL;
+  pbods->loops.objs  = NULL;
+  pbods->faces.objs  = NULL;
+  pbods->shells.objs = NULL;
+  pbods->senses      = NULL;
+  pbods->shape       = newShape;
+  pbods->bbox.filled = 0;
+  pbods->massFill    = 0;
+  obj->blind         = pbods;
+  stat = EG_traverseBody(context, 0, obj, obj, pbods, &nerr);
+  if (stat != EGADS_SUCCESS) {
+    delete pbods;
+    return stat;
+  }
+
+  /* get the rotation matrix */
+  SurrealS<1> angS = 360.0;
+  if ((angle > -360.0) && (angle < 360.0)) {
+    angS.value() = angle;
+    angS.deriv() = angle_dot;
+  }
+  SurrealS<1> axisS[6], matS[3*4];
+  for (int i = 0; i < 6; i++) {
+    axisS[i].value() = axis[i];
+    axisS[i].deriv() = axis_dot[i];
+  }
+  EG_normalizeDir_dot(3, axisS+3);
+  angS *= PI/180.0;
+  EG_rotationMatrix(angS, axisS, matS);
+
+  /* set sensitivity information */
+  if (src->oclass == BODY) {
+    egadsBody *pbody = (egadsBody *) src->blind;
+    for (int i = 0; i < pbody->nodes.map.Extent(); i++) {
+      node = pbody->nodes.objs[i];
+      stat = EG_rotate_node(node, revol, angS, axisS, pbods, (egadsBody*)body->blind);
+      if (stat != EGADS_SUCCESS) return stat;
+    }
+    for (int i = 0; i < pbody->edges.map.Extent(); i++) {
+      edge = pbody->edges.objs[i];
+      stat = EG_rotate_edge(edge, revol, angS, axisS, matS, pbods, (egadsBody*)body->blind);
+      if (stat != EGADS_SUCCESS) return stat;
+    }
+    for (int i = 0; i < pbody->faces.map.Extent(); i++) {
+      face = pbody->faces.objs[i];
+      stat = EG_rotate_face(face, revol, matS, pbods, (egadsBody*)body->blind);
+      if (stat != EGADS_SUCCESS) return stat;
+    }
+  } else if (src->oclass == LOOP) {
+    egadsLoop *ploop = (egadsLoop *) src->blind;
+    for (int i = 0; i < ploop->nedges; i++) {
+      edge = ploop->edges[i];
+
+      stat = EG_rotate_edge(edge, revol, angS, axisS, matS, pbods, (egadsBody*)body->blind);
+      if (stat != EGADS_SUCCESS) return stat;
+
+      egadsEdge *pedge = (egadsEdge*)edge->blind;
+      stat = EG_rotate_node(pedge->nodes[0], revol, angS, axisS, pbods, (egadsBody*)body->blind);
+      if (stat != EGADS_SUCCESS) return stat;
+
+      stat = EG_rotate_node(pedge->nodes[1], revol, angS, axisS, pbods, (egadsBody*)body->blind);
+      if (stat != EGADS_SUCCESS) return stat;
+    }
+  } else {
+    egadsFace *pface = (egadsFace *) src->blind;
+    for (int j = 0; j < pface->nloops; j++) {
+      egadsLoop *ploop = (egadsLoop *) pface->loops[j]->blind;
+      for (int i = 0; i < ploop->nedges; i++) {
+        edge = ploop->edges[i];
+
+        stat = EG_rotate_edge(edge, revol, angS, axisS, matS, pbods, (egadsBody*)body->blind);
+        if (stat != EGADS_SUCCESS) return stat;
+
+        egadsEdge *pedge = (egadsEdge*)edge->blind;
+        stat = EG_rotate_node(pedge->nodes[0], revol, angS, axisS, pbods, (egadsBody*)body->blind);
+        if (stat != EGADS_SUCCESS) return stat;
+
+        stat = EG_rotate_node(pedge->nodes[1], revol, angS, axisS, pbods, (egadsBody*)body->blind);
+        if (stat != EGADS_SUCCESS) return stat;
+      }
+    }
+    stat = EG_rotate_face(src, revol, matS, pbods, (egadsBody*)body->blind);
+    if (stat != EGADS_SUCCESS) return stat;
+  }
+
+  EG_deleteObject(obj);
+  return EGADS_SUCCESS;
+}
+
+
 #else
 
 extern "C" int  EG_saveModel( const egObject *model, const char *name );
@@ -5550,17 +6556,17 @@ EG_rotationMatrix(const T& angle, const T *axis, T *mat)
   /* rotation matrix about axis (not including the point */
   T R[3][3];
 
-  R[0][0] = cosa + ux*ux*(1 - cosa);
+  R[0][0] = ux*ux*(1 - cosa) +    cosa;
   R[0][1] = ux*uy*(1 - cosa) - uz*sina;
   R[0][2] = ux*uz*(1 - cosa) + uy*sina;
 
   R[1][0] = uy*ux*(1 - cosa) + uz*sina;
-  R[1][1] = cosa + uy*uy*(1 - cosa);
+  R[1][1] = uy*uy*(1 - cosa) +    cosa;
   R[1][2] = uy*uz*(1 - cosa) - ux*sina;
 
   R[2][0] = uz*ux*(1 - cosa) - uy*sina;
   R[2][1] = uz*uy*(1 - cosa) + ux*sina;
-  R[2][2] = cosa + uz*uz*(1 - cosa);
+  R[2][2] = uz*uz*(1 - cosa) +    cosa;
 
   for (int i = 0; i < 3; i++)
     for (int j = 0; j < 3; j++)
@@ -5884,7 +6890,7 @@ EG_rotate_loop(objStack *stack, const egObject *loop0, const egObject *loop1,
       }
     }
 
-#if 0
+#if 1
       {
         egObject *loop, *body, *model;
 
@@ -5980,9 +6986,69 @@ cleanup:
   return stat;
 }
 
+int
+EG_rotate_replaceLoopEdge(objStack *stack, egObject *newedge, int nedges, int iedge, egObject **loop_edges)
+{
+  int stat, i, ipass, ind, found;
+  egObject *context, *ledge, *nodes[2];
+
+  context  = EG_context(newedge);
+
+  egadsEdge *pnewedge = (egadsEdge *)newedge->blind;
+  egadsEdge *poldedge = (egadsEdge *)loop_edges[iedge]->blind;
+
+  // create edges with the Nodes from 'newedge'
+  for (ipass = 0; ipass < 2; ipass++) {
+
+    if (ipass == 0) {
+      if (iedge == 0) {
+        ind = nedges-1;
+      } else {
+        ind = iedge-1;
+      }
+    } else {
+      if (iedge == nedges-1) {
+        ind = 0;
+      } else {
+        ind = iedge+1;
+      }
+    }
+
+    ledge = loop_edges[ind];
+    egadsEdge *pedge = (egadsEdge *)ledge->blind;
+    nodes[0] = pedge->nodes[0];
+    nodes[1] = pedge->nodes[1];
+
+    found = 0;
+    for (i = 0; i < 2; i++) {
+      if (poldedge->nodes[i] == nodes[0]) {
+        nodes[0] = pnewedge->nodes[i];
+        found = 1;
+      }
+      if (poldedge->nodes[i] == nodes[1]) {
+        nodes[1] = pnewedge->nodes[i];
+        found = 1;
+      }
+    }
+    if (found == 0) continue;
+
+    stat = EG_makeTopology(context, pedge->curve, EDGE, ledge->mtype,
+                           pedge->trange, ledge->mtype == ONENODE ? 1 : 2, nodes, NULL, &loop_edges[ind]);
+    if (stat != EGADS_SUCCESS) goto cleanup;
+    stat = EG_stackPush(stack, loop_edges[ind]);
+    if (stat != EGADS_SUCCESS) goto cleanup;
+  }
+
+  // replace the edge in the loop
+  loop_edges[iedge] = newedge;
+
+  stat = EGADS_SUCCESS;
+cleanup:
+  return stat;
+}
 
 int
-EG_rotate_copy(objStack *stack, egObject *src, egObject *exform,
+EG_rotate_copy(objStack *stack, const egObject *src, egObject *exform,
                egObject ***loops0_out, egObject ***loops1_out, egObject **efaces)
 {
   int      stat, i, j, nloops, found=0;
@@ -6009,13 +7075,15 @@ EG_rotate_copy(objStack *stack, egObject *src, egObject *exform,
 
       loops1_edges = (egObject **) EG_alloc(ploop1->nedges*sizeof(egObject *));
 
+      for (j = 0; j < ploop1->nedges; j++) {
+        loops1_edges[j] = ploop1->edges[j];
+      }
+
       /* find equivalent edges */
       for (j = 0; j < ploop0->nedges; j++) {
-
-        loops1_edges[j] = ploop1->edges[j];
-
         if (EG_isEquivalent(ploop0->edges[j], loops1_edges[j]) == EGADS_SUCCESS) {
-          loops1_edges[j] = ploop0->edges[j];
+          stat = EG_rotate_replaceLoopEdge(stack, ploop0->edges[j], ploop0->nedges, j, loops1_edges);
+          if (stat != EGADS_SUCCESS) goto cleanup;
           found = 1;
         }
       }
@@ -6044,7 +7112,7 @@ EG_rotate_copy(objStack *stack, egObject *src, egObject *exform,
 
     *loops0_out = pface0->loops;
     *loops1_out = pface1->loops;
-    efaces[0] = src;
+    efaces[0] = const_cast<egObject*>(src);
     efaces[1] = copy;
   }
 
@@ -6065,7 +7133,7 @@ EG_rotate(const egObject *src, double angle, const double *axis,
 {
   int      outLevel, stat, i, mtype, nfaces, nloops, offset;
   double   mat[12];
-  egObject *context, *ref, **faces, *efaces[2];
+  egObject *context, *ref, **faces=NULL, *efaces[2];
   egObject *shell, *body, *exform, *ecopy;
   egObject **loops0=NULL, **loops1=NULL;
   objStack stack;
@@ -6188,7 +7256,7 @@ EG_rotate(const egObject *src, double angle, const double *axis,
 //      pface  = (egadsFace *) efaces[1]->blind;
 //      loops1 = pface->loops;
 
-      stat = EG_rotate_copy(&stack, const_cast<egObject*>(src), exform, &loops0,
+      stat = EG_rotate_copy(&stack, src, exform, &loops0,
                             &loops1, efaces);
       if (stat != EGADS_SUCCESS) goto cleanup;
     }
@@ -7487,11 +8555,7 @@ EG_sweep(const egObject *src, const egObject *spine, int mode,
       for (int i = 0; i < pbody->edges.map.Extent(); i++) {
         edge = pbody->edges.objs[i];
         egadsEdge *pedge = (egadsEdge *) edge->blind;
-#if CASVER >= 700 // Not sure this is the right version...
         const TopTools_ListOfShape& genFaces = pipe.Generated(pedge->edge);
-#else
-        const TopTools_ListOfShape& genFaces = static_cast<BRepPrimAPI_MakeSweep&>(pipe).Generated(pedge->edge);
-#endif
         if (genFaces.Extent() > 0) {
           /* generated Faces from Edges */
           TopTools_ListIteratorOfListOfShape it(genFaces);
@@ -7509,11 +8573,7 @@ EG_sweep(const egObject *src, const egObject *spine, int mode,
       for (int i = 0; i < ploop->nedges; i++) {
         edge = ploop->edges[i];
         egadsEdge *pedge = (egadsEdge *) edge->blind;
-#if CASVER >= 700 // Not sure this is the right version...
         const TopTools_ListOfShape& genFaces = pipe.Generated(pedge->edge);
-#else
-        const TopTools_ListOfShape& genFaces = static_cast<BRepPrimAPI_MakeSweep&>(pipe).Generated(pedge->edge);
-#endif
         if (genFaces.Extent() > 0) {
           /* generated Faces from Edges */
           TopTools_ListIteratorOfListOfShape it(genFaces);
@@ -7533,11 +8593,7 @@ EG_sweep(const egObject *src, const egObject *spine, int mode,
         for (int i = 0; i < ploop->nedges; i++) {
           edge = ploop->edges[i];
           egadsEdge *pedge = (egadsEdge *) edge->blind;
-#if CASVER >= 700 // Not sure this is the right version...
           const TopTools_ListOfShape& genFaces = pipe.Generated(pedge->edge);
-#else
-          const TopTools_ListOfShape& genFaces = static_cast<BRepPrimAPI_MakeSweep&>(pipe).Generated(pedge->edge);
-#endif
           if (genFaces.Extent() > 0) {
             /* generated Faces from Edges */
             TopTools_ListIteratorOfListOfShape it(genFaces);

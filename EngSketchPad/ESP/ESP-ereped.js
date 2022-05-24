@@ -1,7 +1,7 @@
 // ESP-ereped.js implements ErepEd functions for the Engineering Sketch Pad (ESP)
 // written by John Dannenhoffer
 
-// Copyright (C) 2010/2021  John F. Dannenhoffer, III (Syracuse University)
+// Copyright (C) 2010/2022  John F. Dannenhoffer, III (Syracuse University)
 //
 // This library is free software; you can redistribute it and/or
 //    modify it under the terms of the GNU Lesser General Public
@@ -58,6 +58,12 @@
 //    erepRedraw()
 
 "use strict";
+
+
+//
+// name of TIM object
+//
+ereped.name = "ereped";
 
 
 //
@@ -518,7 +524,7 @@ ereped.cmdQuit = function () {
     // change solve button legend
     var button = document.getElementById("solveButton");
     button["innerHTML"] = "Up to date";
-    button.style.backgroundColor = "#FFFFFF";
+    button.style.backgroundColor = null;
 
     // execute quit in the tim (which does nothing)
     browserToServer("timQuit|ereped|");
@@ -655,6 +661,7 @@ ereped.cmdQuit = function () {
 //
 ereped.keyPressPart1 = function(myKeyPress) {
     // alert("in ereped.keyPressPart1(myKeyPress="+myKeyPress+")");
+    console.trace();
 
     var button = document.getElementById("solveButton");
     var done = 0;

@@ -2684,20 +2684,20 @@ libwebsocket_create_context(int port, const char *interf,
 		context->use_ssl = ssl_cert_filepath != NULL &&
 					       ssl_private_key_filepath != NULL;
 		if (context->use_ssl)
-			fprintf(stderr, " Compiled with SSL support, "
+			fprintf(stdout, " Compiled with SSL support, "
 								  "using it\n");
 		else
-			fprintf(stderr, " Compiled with SSL support, "
+			fprintf(stdout, " Compiled with SSL support, "
 							      "not using it\n");
 
 #else
 		if (ssl_cert_filepath != NULL &&
 					     ssl_private_key_filepath != NULL) {
-			fprintf(stderr, " Not compiled for OpenSSl support!\n");
+			fprintf(stdout, " Not compiled for OpenSSl support!\n");
                         free(context);
 			return NULL;
 		}
-		fprintf(stderr, " Compiled without SSL support, "
+		fprintf(stdout, " Compiled without SSL support, "
 						       "serving unencrypted\n");
 #endif
 	}
@@ -2897,7 +2897,7 @@ libwebsocket_create_context(int port, const char *interf,
 		insert_wsi(context, wsi);
 
 		listen(sockfd, 5);
-		fprintf(stderr, " Listening on port %d\n", port);
+		fprintf(stdout, " Listening on port %d\n", port);
 
 		/* list in the internal poll array */
 

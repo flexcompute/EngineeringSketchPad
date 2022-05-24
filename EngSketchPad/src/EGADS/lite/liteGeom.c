@@ -3,7 +3,7 @@
  *
  *             Lite Geometry Functions
  *
- *      Copyright 2011-2021, Massachusetts Institute of Technology
+ *      Copyright 2011-2022, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -272,7 +272,7 @@ EG_getGeometry(const egObject     *geom, int *oclass, int *type,
 __HOST_AND_DEVICE__ static int
 EG_getRangeCurve(const egObject *geomx, double *range, int *periodic)
 {
-  int            stat, mtype;
+  int            stat, mtype, degree;
   egObject       *ref;
   liteEdge       *ledge;
   liteGeometry   *lgeom;
@@ -332,8 +332,9 @@ curRecurse:
         break;
         
       case BSPLINE:
-        range[0]  =  lgeom->data[0];
-        range[1]  =  lgeom->data[lgeom->header[3]-1];
+        degree    =  lgeom->header[1];
+        range[0]  =  lgeom->data[degree-1];
+        range[1]  =  lgeom->data[lgeom->header[3]-degree];
         *periodic = (lgeom->header[0]&4)/4;
         stat      =  EGADS_SUCCESS;
         break;
@@ -409,8 +410,9 @@ curRecurse:
         break;
         
       case BSPLINE:
-        range[0]  =  lgeom->data[0];
-        range[1]  =  lgeom->data[lgeom->header[3]-1];
+        degree    =  lgeom->header[1];
+        range[0]  =  lgeom->data[degree-1];
+        range[1]  =  lgeom->data[lgeom->header[3]-degree];
         *periodic = (lgeom->header[0]&4)/4;
         stat      =  EGADS_SUCCESS;
         break;
@@ -434,7 +436,7 @@ curRecurse:
 __HOST_AND_DEVICE__ static int
 EG_getRangeSurface(const egObject *geomx, double *range, int *periodic)
 {
-  int            stat, mtype;
+  int            stat, mtype, Udeg, Vdeg;
   egObject       *ref;
   liteFace       *lface;
   liteGeometry   *lgeom;
@@ -532,10 +534,12 @@ surRecurse:
       break;
       
     case BSPLINE:
-      range[0]  =  lgeom->data[0];
-      range[1]  =  lgeom->data[lgeom->header[3]-1];
-      range[2]  =  lgeom->data[lgeom->header[3]];
-      range[3]  =  lgeom->data[lgeom->header[3]+lgeom->header[6]-1];
+      Udeg      =  lgeom->header[1];
+      Vdeg      =  lgeom->header[4];
+      range[0]  =  lgeom->data[uDeg-1];
+      range[1]  =  lgeom->data[lgeom->header[3]-Udeg];
+      range[2]  =  lgeom->data[lgeom->header[3]+Vdeg-1];
+      range[3]  =  lgeom->data[lgeom->header[3]+lgeom->header[6]-Vdeg];
       *periodic = (lgeom->header[0]&12)/4;
       stat      =  EGADS_SUCCESS;
       break;
@@ -581,7 +585,7 @@ EG_getRangX(const egObject *geom, double *range, int *periodic)
 int
 EG_getRangX(const egObject *geom, double *range, int *periodic)
 {
-  int          stat, mtype;
+  int          stat, mtype, degree, Udeg, Vdeg;
   egObject     *ref;
   liteEdge     *ledge;
   liteFace     *lface;
@@ -651,8 +655,9 @@ EG_getRangX(const egObject *geom, double *range, int *periodic)
         break;
         
       case BSPLINE:
-        range[0]  =  lgeom->data[0];
-        range[1]  =  lgeom->data[lgeom->header[3]-1];
+        degree    =  lgeom->header[1];
+        range[0]  =  lgeom->data[degree-1];
+        range[1]  =  lgeom->data[lgeom->header[3]-degree];
         *periodic = (lgeom->header[0]&4)/4;
         stat      =  EGADS_SUCCESS;
         break;
@@ -730,8 +735,9 @@ EG_getRangX(const egObject *geom, double *range, int *periodic)
         break;
         
       case BSPLINE:
-        range[0]  =  lgeom->data[0];
-        range[1]  =  lgeom->data[lgeom->header[3]-1];
+        degree    =  lgeom->header[1];
+        range[0]  =  lgeom->data[degree-1];
+        range[1]  =  lgeom->data[lgeom->header[3]-degree];
         *periodic = (lgeom->header[0]&4)/4;
         stat      =  EGADS_SUCCESS;
         break;
@@ -840,10 +846,12 @@ EG_getRangX(const egObject *geom, double *range, int *periodic)
         break;
         
       case BSPLINE:
-        range[0]  =  lgeom->data[0];
-        range[1]  =  lgeom->data[lgeom->header[3]-1];
-        range[2]  =  lgeom->data[lgeom->header[3]];
-        range[3]  =  lgeom->data[lgeom->header[3]+lgeom->header[6]-1];
+        Udeg      =  lgeom->header[1];
+        Vdeg      =  lgeom->header[4];
+        range[0]  =  lgeom->data[Udeg-1];
+        range[1]  =  lgeom->data[lgeom->header[3]-Udeg];
+        range[2]  =  lgeom->data[lgeom->header[3]+Vdeg-1];
+        range[3]  =  lgeom->data[lgeom->header[3]+lgeom->header[6]-Vdeg];
         *periodic = (lgeom->header[0]&12)/4;
         stat      =  EGADS_SUCCESS;
         break;
@@ -1113,13 +1121,11 @@ EG_invEvaluateGuess(const egObject *geom, double *xyz,
 }
 
 
-__HOST_AND_DEVICE__ int
-EG_arcLenX(const egObject *geom, double t1, double t2, double *alen)
+__HOST_AND_DEVICE__ static int
+EG_arcLenSeg(const egObject *geom, double t1, double t2, double *alen)
 {
   int            i, stat;
-  double         t, d, ur, mid, result[9] = {0.,0.,0.,0.,0.,0.,0.,0.,0.};
-  liteEdge       *ledge;
-  const egObject *ref;
+  double         t, d, ur, mid, arc, result[9] = {0.,0.,0.,0.,0.,0.,0.,0.,0.};
 /*
   static int     ngauss   = 5;
   static double  wg[2*5]  = { 0.5688888888888889,  0.0000000000000000,
@@ -1128,6 +1134,23 @@ EG_arcLenX(const egObject *geom, double t1, double t2, double *alen)
                               0.2369268850561891, -0.9061798459386640,
                               0.2369268850561891,  0.9061798459386640 };
  */
+/*
+  // degree 23 polynomial; 12 points
+  static int     ngauss   = 12;
+  static double  wg[2*20] = {0.0471753363865118271946160, -0.9815606342467192506905491,
+                             0.1069393259953184309602547, -0.9041172563704748566784659,
+                             0.1600783285433462263346525, -0.7699026741943046870368938,
+                             0.2031674267230659217490645, -0.5873179542866174472967024,
+                             0.2334925365383548087608499, -0.3678314989981801937526915,
+                             0.2491470458134027850005624, -0.1252334085114689154724414,
+                             0.2491470458134027850005624,  0.1252334085114689154724414,
+                             0.2334925365383548087608499,  0.3678314989981801937526915,
+                             0.2031674267230659217490645,  0.5873179542866174472967024,
+                             0.1600783285433462263346525,  0.7699026741943046870368938,
+                             0.1069393259953184309602547,  0.9041172563704748566784659,
+                             0.0471753363865118271946160,  0.9815606342467192506905491 };
+*/
+/*
   static int     ngauss   = 15;
   static double  wg[2*15] = { 0.2025782419255613,  0.0000000000000000,
                               0.1984314853271116, -0.2011940939974345,
@@ -1144,7 +1167,60 @@ EG_arcLenX(const egObject *geom, double t1, double t2, double *alen)
                               0.0703660474881081,  0.9372733924007060,
                               0.0307532419961173, -0.9879925180204854,
                               0.0307532419961173,  0.9879925180204854 };
-  
+*/
+  /* degree 39 polynomial; 20 points */
+  static int     ngauss   = 20;
+  static double  wg[2*20] = {0.0176140071391521183118620, -0.9931285991850949247861224,
+                             0.0406014298003869413310400, -0.9639719272779137912676661,
+                             0.0626720483341090635695065, -0.9122344282513259058677524,
+                             0.0832767415767047487247581, -0.8391169718222188233945291,
+                             0.1019301198172404350367501, -0.7463319064601507926143051,
+                             0.1181945319615184173123774, -0.6360536807265150254528367,
+                             0.1316886384491766268984945, -0.5108670019508270980043641,
+                             0.1420961093183820513292983, -0.3737060887154195606725482,
+                             0.1491729864726037467878287, -0.2277858511416450780804962,
+                             0.1527533871307258506980843, -0.0765265211334973337546404,
+                             0.1527533871307258506980843,  0.0765265211334973337546404,
+                             0.1491729864726037467878287,  0.2277858511416450780804962,
+                             0.1420961093183820513292983,  0.3737060887154195606725482,
+                             0.1316886384491766268984945,  0.5108670019508270980043641,
+                             0.1181945319615184173123774,  0.6360536807265150254528367,
+                             0.1019301198172404350367501,  0.7463319064601507926143051,
+                             0.0832767415767047487247581,  0.8391169718222188233945291,
+                             0.0626720483341090635695065,  0.9122344282513259058677524,
+                             0.0406014298003869413310400,  0.9639719272779137912676661,
+                             0.0176140071391521183118620,  0.9931285991850949247861224 };
+
+  arc    = 0.0;
+  ur     =      t2 - t1;
+  mid    = 0.5*(t2 + t1);
+  for (i = 0; i < ngauss; i++) {
+    t    = 0.5*wg[2*i+1]*ur + mid;
+    stat = EG_evaluate(geom, &t, result);
+    if (stat != EGADS_SUCCESS) return stat;
+    if (geom->oclass == PCURVE) {
+      d = sqrt(result[2]*result[2] + result[3]*result[3]);
+    } else {
+      d = sqrt(result[3]*result[3] + result[4]*result[4] + result[5]*result[5]);
+    }
+    arc += d*wg[2*i];
+  }
+  arc   *= 0.5*ur;
+  *alen += arc;
+
+  return EGADS_SUCCESS;
+}
+
+
+__HOST_AND_DEVICE__ int
+EG_arcLenX(const egObject *geom, double t1, double t2, double *alen)
+{
+  int            i, stat, degree, end;
+  double         t;
+  const egObject *ref;
+  liteEdge       *ledge;
+  liteGeometry   *lgeom;
+
   *alen = 0.0;
   if  (geom == NULL)               return EGADS_NULLOBJ;
   if  (geom->magicnumber != MAGIC) return EGADS_NOTOBJ;
@@ -1152,41 +1228,29 @@ EG_arcLenX(const egObject *geom, double t1, double t2, double *alen)
       (geom->oclass != EDGE))      return EGADS_NOTGEOM;
   if (geom->blind == NULL)         return EGADS_NODATA;
 
-  if (geom->oclass == PCURVE) {
-    
-    ur  =      t2 - t1;
-    mid = 0.5*(t2 + t1);
-    for (i = 0; i < ngauss; i++) {
-      t    = t1 + 0.5*wg[2*i+1]*ur + mid;
-      stat = EG_evaluate(geom, &t, result);
-      if (stat != EGADS_SUCCESS) return stat;
-      d = sqrt(result[2]*result[2] + result[3]*result[3]);
-      *alen += d*wg[2*i];
-    }
-    *alen *= 0.5*ur;
-    
-  } else {
-    
-    ref = geom;
-    if (geom->oclass == EDGE) {
-      ledge = (liteEdge *) geom->blind;
-      ref   = ledge->curve;
-      if (ref == NULL)        return EGADS_NULLOBJ;
-      if (ref->blind == NULL) return EGADS_NODATA;
-    }
-    ur  =      t2 - t1;
-    mid = 0.5*(t2 + t1);
-    for (i = 0; i < ngauss; i++) {
-      t    = t1 + 0.5*wg[2*i+1]*ur + mid;
-      stat = EG_evaluate(ref, &t, result);
-      if (stat != EGADS_SUCCESS) return stat;
-      d = sqrt(result[3]*result[3] + result[4]*result[4] + result[5]*result[5]);
-      *alen += d*wg[2*i];
-    }
-    *alen *= 0.5*ur;
+  ref = geom;
+  if (geom->oclass == EDGE) {
+    ledge = (liteEdge *) geom->blind;
+    ref   = ledge->curve;
+    if (ref == NULL)        return EGADS_NULLOBJ;
+    if (ref->blind == NULL) return EGADS_NODATA;
+  }
+  if (ref->mtype != BSPLINE) return EG_arcLenSeg(ref, t1, t2, alen);
+  
+  /* get length of each set of knots */
+  t      = t1;
+  lgeom  = (liteGeometry *) ref->blind;
+  degree = lgeom->header[1];
+  end    = lgeom->header[3]-degree-1;
+  for (i = degree; i < end; i++) {
+    if (lgeom->data[i] <= t)  continue;
+    if (lgeom->data[i] >= t2) break;
+    stat = EG_arcLenSeg(ref, t, lgeom->data[i], alen);
+    if (stat != EGADS_SUCCESS) return stat;
+    t = lgeom->data[i];
   }
 
-  return EGADS_SUCCESS;
+  return EG_arcLenSeg(ref, t, t2, alen);
 }
 
 

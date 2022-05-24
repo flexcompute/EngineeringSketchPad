@@ -520,7 +520,8 @@ static int createMesh(void *aimInfo, aimStorage *hsmInstance)
             AIM_STATUS(aimInfo, status);
 
             // Get FEA Problem from EGADs body
-            status = hsm_bodyToBEM(bodies[body], // (in)  EGADS Body
+            status = hsm_bodyToBEM(aimInfo,
+                                   bodies[body], // (in)  EGADS Body
                                    tessParam,    // (in)  Tessellation parameters
                                    edgePointMin, // (in)  minimum points along any Edge
                                    edgePointMax, // (in)  maximum points along any Edge

@@ -19,7 +19,7 @@
   <body>
     <p><h1 align=center>Engineering Sketch Pad (ESP) Version 1.21</h1>
     <p><h3>Authors: John F. Dannenhoffer, III (Syracuse University) and Bob Haimes (MIT)</h3>
-    <p><h3>Date: September 2021.</h3>
+    <p><h3>Date: January 2022.</h3>
 
     <p><h3 align=center><img src="esp_logo.png" width="400"/></h3>
 
@@ -6177,8 +6177,12 @@ COMBINE   toler=0
                   if all Bodys since Mark are SheetBodys
                      create either a SolidBody from closed Shell or an
                      (open) SheetBody
-                  elseif all Bodys since Mark are WireBodys and are co-planar
-                     create SheetBody from closed Loop or close Loop first
+                  elseif there is 1 planar WireBody that is closed
+                     create SheetBody from Loop
+                  elseif there is 1 planar WireBody that is open
+                     create SheetBody from Loop after closing Loop first
+                  elseif there are multiple planar WireBodys
+                     create SheetBody from closed Loop
                   endif
                   if maxtol>0, then tolerance can be relaxed until successful
                   sets up @-parameters
@@ -6370,7 +6374,7 @@ DIMENSION $pmtrName nrow ncol
       <p><h3 id="dump">dump</h3>
         <!-- extract from OpenCSM.h -->
         <pre>
-DUMP      $filename remove=0 toMark=0
+DUMP      $filename remove=0 toMark=0 withTess=0
           use:    write a file that contains the Body
           pops:   Body1 (if remove=1)
           pushes: -
@@ -6383,6 +6387,7 @@ DUMP      $filename remove=0 toMark=0
                   if toMark=1, all Bodys back to the Mark (or all if no Mark)
                      are combined into a single model
                   if toMark=1, the remove flag is ignored
+                  if withTess!=0, add tessellations to .egads file
                   for .ugrid files, toMark must be 0
                   valid filetypes are:
                      .brep   .BREP   --> OpenCASCADE output
@@ -6391,6 +6396,7 @@ DUMP      $filename remove=0 toMark=0
                      .egg    .EGG    --> EGG restart output
                      .iges   .IGES   --> IGES        output
                      .igs    .IGS    --> IGES        output
+                     .plot   .PLOT   --> ASCII plot  output
                      .sens   .SENS   --> ASCII sens  output
                      .step   .STEP   --> STEP        output
                      .stl    .STL    --> ASCII stl   output
@@ -6682,40 +6688,41 @@ HOLLOW    thick=0 entList=0 listStyle=0
           use:    hollow out a SolidBody or SheetBody
           pops:   Body
           pushes: Body
-          notes:  Sketch may not be open
+          notes:  results can be unpredictable due to OpenCASCADE issues
+                  Sketch may not be open
                   Solver may not be open
                   if SolidBody (radius is ignored)
-                     if thick=0 and entList==0
+                     if thick=0 and entList==0         (case A)
                          convert to SheetBody
-                     if thick=0 and entList!=0
+                     if thick=0 and entList!=0         (case B)
                         convert to SheetBody without Faces in entList (if connected)
-                     if thick>0 and entList==0
-                        smaller offset Body is created
-                     if thick<0 and entList==0
+                     if thick>0 and entList==0         (case C)
                         larger offset Body is created
-                     if thick>0 and entList!=0
+                     if thick<0 and entList==0         (case D)
+                        smaller offset Body is created
+                     if thick>0 and entList!=0         (case E)
                         hollow (removing entList) with new Faces inside  original Body
-                     if thick<0 and entList!=0
+                     if thick<0 and entList!=0         (case F)
                         hollow (removing entList) with new Faces outside original Body
                   if a SheetBody with only one Face
-                     if thick=0 and entList==0
+                     if thick=0 and entList==0         (case G)
                         convert to WireBody (if connected)
-                     if thick=0 and entList!=0
+                     if thick=0 and entList!=0         (case H)
                         convert to WireBody without Edges in entList (if connected)
-                     if thick>0 and entList==0
-                        smaller offset Body is created
-                     if thick<0 and entList==0
-                        larger offset Body is created
-                     if thick>0 and entList!=0
+                     if thick>0 and entList==0         (case I)
+                        hollow with new Edges inside  original Body
+                     if thick<0 and entList==0         (case J)
+                        hollow with new Edges outside original Body
+                     if thick>0 and entList!=0         (case K)
                         hollow (removing entList) with new Edges inside  original Body
-                     if thick<0 and entList!=0
+                     if thick<0 and entList!=0         (case L)
                         hollow (removing entList) with new Edges outside original Body
                   if a SheetBody with multiple Faces
-                     if thick=0 and entList!=0
+                     if thick=0 and entList!=0         (case M)
                         remove Faces in entList (if connected)
-                     if thick>0 and entList==0
+                     if thick>0 and entList==0         (case N)
                         hollow all Faces with new Edges inside original Faces
-                     if thick>0 and entList!=0
+                     if thick>0 and entList!=0         (case P)
                         hollow Faces in entList with new Edges inside original Faces
                   entList is multi-valued Parameter, or a semicolon-separated list
                   if listStyle==0 and a SolidBody
@@ -6732,6 +6739,7 @@ HOLLOW    thick=0 entList=0 listStyle=0
                   face-order is based upon order that is returned from EGADS
                   signals that may be thrown/caught:
                      $illegal_argument
+                     $did_not_create_body
                      $insufficient_bodys_on_stack
         </pre>
       <p><h3 id="ifthen">ifthen</h3>
@@ -6778,8 +6786,7 @@ INTERFACE $argName $argType default=0
           notes:  only allowed in a .udc file
                   must be placed before any executable statement
                   argType must be "in", "out", "dim", or "all"
-                  if argType=="dim", then default contains number of elements
-                  if argType=="dim", the default values are zero
+                  argType="dim" is obsolete, use DIMENSION instead
                   if argType=="all", a new scope is not created (and
                                      $argName is ignored)
                   a string variable can be passed into UDC if default
@@ -7165,6 +7172,7 @@ RESTORE   $name index=0
                   Solver may not be open
                   $name is used directly (without evaluation)
                   if $name is . (dot), then duplicate Body on stack
+                  if index<0, get all Bodys that match $name
                   sets up @-parameters
                   error results if nothing has been stored in name
                   the Faces all receive the Branch's Attributes
@@ -7198,7 +7206,7 @@ REVOLVE   xorig yorig zorig dxaxis dyaxis dzaxis angDeg
       <p><h3 id="rotatex">rotatex</h3>
         <!-- extract from OpenCSM.h -->
         <pre>
-ROTATEX   angDeg yaxis zaxis
+ROTATEX   angDeg yaxis=0 zaxis=0
           use:    rotates Group on top of Stack around an axis that
                   passes through (0, yaxis, zaxis) and is parallel
                   to the x-axis
@@ -7214,7 +7222,7 @@ ROTATEX   angDeg yaxis zaxis
       <p><h3 id="rotatey">rotatey</h3>
         <!-- extract from OpenCSM.h -->
         <pre>
-ROTATEY   angDeg zaxis xaxis
+ROTATEY   angDeg zaxis=0 xaxis=0
           use:    rotates Group on top of Stack around an axis that
                   passes through (xaxis, 0, zaxis) and is parallel
                   to the y-axis
@@ -7230,7 +7238,7 @@ ROTATEY   angDeg zaxis xaxis
       <p><h3 id="rotatez">rotatez</h3>
         <!-- extract from OpenCSM.h -->
         <pre>
-ROTATEZ   angDeg xaxis yaxis
+ROTATEZ   angDeg xaxis=0 yaxis=0
           use:    rotates Group on top of Stack around an axis that
                   passes tgrough (xaxis, yaxis, 0) and is parallel
                   to the z-axis
@@ -7326,6 +7334,12 @@ SELECT    $type arg1 ...
                      sets @seltype to 2
                      uses @selbody
                      sets @sellist to iface
+//$$$                  elseif arguments are: "face 0 iford1" or
+//$$$                                        "face ibody1 0"
+//$$$                     sets @seltype to 2
+//$$$                     uses @selbody
+//$$$                     sets @sellist with Faces in @selbody that matches ibody1/iford1
+//$$$                                   (with 0 being treated as a wildcard)
                   elseif arguments are: "face ibody1 iford1 iseq=1"
                      sets @seltype to 2
                      uses @selbody
@@ -7350,6 +7364,15 @@ SELECT    $type arg1 ...
                      sets @seltype to 1
                      uses @selbody
                      sets @sellist to iedge
+//$$$                  elseif arguments are: "edge 0 iford1 ibody2 iford2" or
+//$$$                                        "edge ibody1 0 ibody2 iford2" or
+//$$$                                        "edge ibody1 iford1 0 iford2" or
+//$$$                                        "edge ibody1 iford1 ibody2 0" or
+//$$$                                        "edge ibody1 0 ibody2 0"
+//$$$                     sets @seltype to 1
+//$$$                     uses @selbody
+//$$$                     sets @sellist to Edge in @selbody that adjoins Faces
+//$$$                        ibody1/iford1 and ibody2/iford2 (with 0 being treated as wildcard)
                   elseif arguments are: "edge ibody1 iford1 ibody2 iford2 iseq=1"
                      sets @seltype to 1
                      uses @selbody
@@ -7371,6 +7394,10 @@ SELECT    $type arg1 ...
                      sets @seltype to 1
                      uses @selbody
                      sets @sellist to Edge whose center is closest to (x,y,z)
+                  elseif arguments are: "loop iface iloop"
+                     sets @seltype to 1
+                     uses @selbody
+                     sets @sellist to Edges in order in the Loop
                   elseif arguments are: "node"
                      sets @seltype to 0
                      uses @selbody
@@ -7402,18 +7429,23 @@ SELECT    $type arg1 ...
                   elseif arguments are: "add ibody1 iford1 iseq=1" and @seltype is 2
                      uses @selbody
                      appends to @sellist the Face in @selbody that matches ibody1/iford1
+                     (a 0 matches ibody1=0 amd/or iford1=0)
                   elseif arguments are: "add ibody1 iford1 ibody2 iford2 iseq=1" and @seltype is 1
                      uses @selbody
                      appends to @sellist the Edge in @selbody that adjoins Faces
+                     (a 0 matches ibody1=0, iford1=0, ibody2=0, and/or iford2=0)
                   elseif arguments are: "add iface" and @seltype is 2
                      uses @selbody
                      appends to @sellist Face iface in @selbody
+                     (wildcarding is not allowed)
                   elseif arguments are: "add iedge" and @seltype is 1
                      uses @selbody
                      appends to @sellist Edge iedge in @selbody
+                     (wildcarding is not allowed)
                   elseif arguments are: "add inode" and @seltype is 0
                      uses @selbody
                      appends to @sellist Node inode in @selbody
+                     (wildcarding is not allowed)
                   elseif arguments are: "sub attrName1    attrValue1
                                              attrName2=$* attrValue2=$*
                                              attrName3=$* attrValue3=$*"
@@ -7423,11 +7455,14 @@ SELECT    $type arg1 ...
                   elseif arguments are: "sub ibody1 iford1 iseq=1" and @seltype is 2
                      uses @selbody
                      removes from @sellist the Face in @selbody that matches ibody1/iford1
+                     (a 0 matches ibody1=0 amd/or iford1=0)
                   elseif arguments are: "sub ibody1 iford1 ibody2 iford2 iseq=1" and @seltype is 1
                      uses @selbody
                      removes from @sellist the Edge in @selbody that adjoins Faces
+                     (a 0 matches ibody1=0, iford1=0, ibody2=0, and/or iford2=0)
                   elseif arguments are: "sub ient" and ient is in @sellist
                      removes from @sellist ient
+                     (wildcarding is not allowed)
                   elseif arguments are: "sort $key"
                      sorts @sellist based upon $key which can be: $xmin, $ymin, $zmin,
                         $xmax, $ymax, $zmax, $xcg, $ycg, $zcg, $area, or $length
@@ -7437,7 +7472,7 @@ SELECT    $type arg1 ...
 //                Node specifications are stored in _nodeID Attribute
                   iseq selects from amongst multiple Faces/Edges/Nodes that
                      match the ibody/iford specifications
-                  attrNames and attrValues can be wild-carded
+                  attrNames and attrValues can be wild-carded with $*
                   avoid using forms "SELECT face iface" and "SELECT edge iedge"
                      since iface and iedge are not guaranteed to be the same during
                      rebuilds or on different OpenCASCADE versions or computers
@@ -7696,6 +7731,7 @@ STORE     $name index=0 keep=0
           notes:  Sketch may not be open
                   Solver may not be open
                   $name is used directly (without evaluation)
+                  if index<0, use first available index
                   previous Group in name/index is overwritten
                   if $name=.   then Body is popped off stack
                                     but not actually stored
@@ -7771,7 +7807,8 @@ SWEEP
           use:    create a Body by sweeping an Xsect along an Xsect
           pops:   Xsect1 Xsect2
           pushes: Body
-          notes:  Sketch may not be open
+          notes:  results can be unpredictable due to OpenCASCADE issues
+                  Sketch may not be open
                   Solver may not be open
                   Xsect1 must be either a SheetBody or WireBody
                   Xsect2 must be a WireBody
@@ -8365,6 +8402,7 @@ UDPRIM kulfan
            ztail      height of upper and lower trailing edge (2 values)
            aupper     vector of control points for upper surface
            alower     vector of control points fpr lower surface
+           numpts     number of points used to define spline [default 101]
        output arguments:
        notes:
             always generates airfoil with 3 edges (upper, lower, TE)
@@ -8622,6 +8660,20 @@ UDPRIM sew
            combines the various bodies into a single SHEET or SOLID Body
            if specified toler is smaller than Face tolers, use Face tolers
 
+UDPRIM shadow
+       input arguments (specified as name/value pairs):
+           numpts     number of GraphPaper points  [default 1001]
+       output arguments:
+           area       projected area
+           xcent      x-centroid of projected area
+           ycent      y-centroid of projected area
+           ixx        moment  of inertia
+           ixy        product of inertia
+           iyy        moment  of inertia
+       usage:
+           projects Body onto x-y plane and computes mass
+               properties of projection
+                  
 UDPRIM slices
        input arguments (specified as name/value pairs):
            nslice     number of slices
@@ -9414,9 +9466,21 @@ Special User-defined Attributes for Nodes:
       </pre>
       The <code>name</code> is a character string (without white
       spaces) that will be listed in the <code>ESP</code> Display
-      list; this name must be unique.  The meaning of
-      <code>imax</code> and <code>jmax</code> depends on the type
-      of data, as described below.
+      list; this name must be unique.  The entity will be colored
+      black unless it ends in one of the following sequences:
+      <pre>
+        |r   red
+        |g   green
+        |b   blue
+        |c   cyan
+        |m   magenta
+        |y   yellow
+        |w   white
+      </pre>
+      If the name ends in one of the above sequences, the sequence
+      will be removed from the name.  The meaning of <code>imax</code>
+      and <code>jmax</code> depends on the type of data, as described
+      below.
 
     <h4>Series of points</h4>
     <p>Here <code>imax</code> is the number points
@@ -9560,7 +9624,7 @@ end
 
     <p><h2 id="sec8">8.0: Release Notes</h2>
 
-    <p><h3 id="sec8.3"> 8.1: New/extended features in v1.20</h3>
+    <p><h3 id="sec8.1"> 8.1: New/extended features in v1.20</h3>
 
     <p><h4>New/updated commands/statements and functions</h4>
 
@@ -9682,7 +9746,7 @@ end
     <p>preserve orientation of Faces during EXTRACT; add extract4
        test case
 
-    <p>do not include SSLOPE statments when determining if Sketch
+    <p>do not include SSLOPE statements when determining if Sketch
        points are co-planar
 
     <p>change number of reclassified points in Plugs to be the larger
@@ -9965,7 +10029,7 @@ end
     <p>serveCSM: allow plotting of shaded triangles (jmax=-3) and
        quadrilaterals (jmax=-4) in the plotfile in ESP
 
-    <p>pyOCSM: new capability that exactly imics OpenCSM API
+    <p>pyOCSM: new capability that exactly mimics OpenCSM API
 
     <p>Plugs: improve cloud point reclassification process; write
        plugs.despmtrs file at end
@@ -12377,7 +12441,7 @@ EGADS_READERR                         -32
 
     <p><h2 id="sec11">11.0: Copyright</h2>
 
-    <p>Copyright (C) 2010/2021 John F. Dannenhoffer, III (Syracuse
+    <p>Copyright (C) 2010/2022 John F. Dannenhoffer, III (Syracuse
        University)
 
     <p>This library is free software; you can redistribute it and/or

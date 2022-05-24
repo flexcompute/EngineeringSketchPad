@@ -1,7 +1,7 @@
 /*
  *      EMP: Explicit Multithread Package
  *
- *      Copyright 2013-2021, Massachusetts Institute of Technology
+ *      Copyright 2013-2022, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -26,6 +26,11 @@
 #include <conio.h>
 #include <process.h>
 
+typedef struct {
+  HANDLE mutex;
+  long   owner;
+  int    state;            /* 0 - unset, 1 - set */
+} EMP_lock;
 
 #ifndef __CUDA_ARCH__
 static long
@@ -170,20 +175,22 @@ void EMP_ThreadDestroy(HANDLE *thread)
 /* Create a lock (unlocked) */
 
 __HOST_AND_DEVICE__
-HANDLE *EMP_LockCreate()
+EMP_lock *EMP_LockCreate()
 {
 #ifndef __CUDA_ARCH__
-  HANDLE *mutex;
+  EMP_lock *lock;
 
-  mutex  = (HANDLE *) malloc(sizeof(HANDLE));
-  if (mutex == NULL) return NULL;
-  *mutex = CreateMutex(NULL, FALSE, NULL);
-  if (*mutex == NULL) {
+  lock = (EMP_lock *) malloc(sizeof(EMP_lock));
+  if (lock == NULL) return NULL;
+  lock->mutex = CreateMutex(NULL, FALSE, NULL);
+  if (lock->mutex == NULL) {
     printf(" ERROR: MUTEX not assigned (LockCreate)!\n");
-    free(mutex);
+    free(lock);
     return NULL;
   }
-  return mutex;
+  lock->owner = 0L;
+  lock->state = 0;
+  return lock;
 #else
   return NULL;
 #endif
@@ -193,11 +200,12 @@ HANDLE *EMP_LockCreate()
 /* Destroy the lock memory */
 
 __HOST_AND_DEVICE__
-void EMP_LockDestroy(HANDLE *mutex)
+void EMP_LockDestroy(EMP_lock *lock)
 {
 #ifndef __CUDA_ARCH__
-  ReleaseMutex(*mutex);
-  free(mutex);
+  if (lock->state == 1) ReleaseMutex(lock->mutex);
+  CloseHandle(lock->mutex);
+  free(lock);
 #endif
 }
 
@@ -205,11 +213,15 @@ void EMP_LockDestroy(HANDLE *mutex)
 /* Set a lock (wait if already set) */
 
 __HOST_AND_DEVICE__
-void EMP_LockSet(HANDLE *mutex)
+void EMP_LockSet(EMP_lock *lock)
 {
 #ifndef __CUDA_ARCH__
-  if (WaitForSingleObject(*mutex, INFINITE) == WAIT_FAILED)
+  if (WaitForSingleObject(lock->mutex, INFINITE) == WAIT_FAILED) {
     printf(" Warning: LockSet Wait FAILED!\n");
+    return;
+  }
+  lock->owner = GetCurrentThreadId();
+  lock->state = 1;
 #endif
 }
 
@@ -217,18 +229,10 @@ void EMP_LockSet(HANDLE *mutex)
 /* Gets the value of a lock (0-unset, 1-set) */
 
 __HOST_AND_DEVICE__
-int EMP_LockTest(HANDLE *mutex)
+int EMP_LockTest(EMP_lock *lock)
 {
 #ifndef __CUDA_ARCH__
-  DWORD stat;
-
-  stat = WaitForSingleObject(*mutex, 0L);
-  if (stat == WAIT_FAILED) {
-    return 1;
-  } else {
-    ReleaseMutex(*mutex);
-    return 0;
-  }
+  return lock->state;
 #else
   return 0;
 #endif
@@ -238,11 +242,22 @@ int EMP_LockTest(HANDLE *mutex)
 /* Release a lock */
 
 __HOST_AND_DEVICE__
-void EMP_LockRelease(HANDLE *mutex)
+void EMP_LockRelease(EMP_lock *lock)
 {
 #ifndef __CUDA_ARCH__
-  if (ReleaseMutex(*mutex) == 0)
+  if (lock->state != 1) {
+    printf(" Warning: LockRelease Lock NOT set!\n");
+/*  return;  */
+  } else if (lock->owner != GetCurrentThreadId()) {
+    printf(" Warning: LockRelease NOT owning Thread!\n");
+/*  return;  */
+  }
+  lock->owner = 0L;
+  lock->state = 0;
+  if (ReleaseMutex(lock->mutex) == 0) {
     printf(" Warning: LockRelease Unlock FAILED!\n");
+    return;
+  }
 #endif
 }
 
@@ -421,7 +436,9 @@ __HOST_AND_DEVICE__
   pthread_mutex_t *mutex;
 
   mutex = (pthread_mutex_t *) malloc(sizeof(pthread_mutex_t));
-  if (mutex != NULL) {
+  if (mutex == NULL) {
+    printf(" ERROR: malloc (LockCreate)\n");
+  } else {
     stat = pthread_mutex_init(mutex, NULL);
     if (stat != 0) {
       printf(" Threading ERROR: %d (LockCreate)\n", stat);
@@ -444,6 +461,10 @@ void EMP_LockDestroy(/*@only@*/ void *vlock)
 #ifndef __CUDA_ARCH__
   pthread_mutex_t *lock;
 
+  if (vlock == NULL) {
+    printf(" ERROR: NULL Lock (LockDestroy)\n");
+    return;
+  }
   lock = (pthread_mutex_t *) vlock;
   pthread_mutex_destroy(lock);
   free(lock);
@@ -460,6 +481,10 @@ void EMP_LockSet(void *vlock)
   int             stat;
   pthread_mutex_t *lock;
 
+  if (vlock == NULL) {
+    printf(" ERROR: NULL Lock (LockSet)!\n");
+    return;
+  }
   lock = (pthread_mutex_t *) vlock;
   stat = pthread_mutex_lock(lock);
   if (stat != 0) printf(" Threading Warning: %d (LockSet)\n", stat);
@@ -476,6 +501,10 @@ int EMP_LockTest(void *vlock)
   int             stat;
   pthread_mutex_t *lock;
 
+  if (vlock == NULL) {
+    printf(" ERROR: NULL Lock (LockTest)!\n");
+    return 1;
+  }
   lock = (pthread_mutex_t *) vlock;
   stat = pthread_mutex_trylock(lock);
   if (stat == EBUSY) {
@@ -499,6 +528,10 @@ void EMP_LockRelease(void *vlock)
 #ifndef __CUDA_ARCH__
   pthread_mutex_t *lock;
 
+  if (vlock == NULL) {
+    printf(" ERROR: NULL Lock (LockRelease)!\n");
+    return;
+  }
   lock = (pthread_mutex_t *) vlock;
   pthread_mutex_unlock(lock);
 #endif
@@ -506,6 +539,7 @@ void EMP_LockRelease(void *vlock)
 #endif
 
 
+#ifndef __clang_analyzer__
 /* structure to hold control info for EMP_for, EMP_sum, and EMP_min */
 
 typedef struct {
@@ -540,7 +574,7 @@ static void EMP_for_inner(void *Global)
   while (1) {
 
     /* only one thread at a time here - controlled by a mutex */
-    if (global->mutex != NULL ) EMP_LockSet(global->mutex);
+    if (global->mutex != NULL) EMP_LockSet(global->mutex);
 
     status        = global->status;
     index         = global->index;
@@ -659,6 +693,7 @@ static void EMP_sum_inner(void *Global)
   long   ID;
   double sum;
   emp_T  *global;
+
 
   global = (emp_T *)Global;
 
@@ -789,7 +824,6 @@ int EMP_sum(int maxproc, int nindex, int (*sumFn)(int index, double *sum),
 }
 
 
-#ifndef __clang_analyzer__
 /* Inner routine used by EMP_min */
 
 static void EMP_min_inner(void *Global)

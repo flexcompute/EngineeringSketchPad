@@ -3,7 +3,7 @@
  *
  *             Effective (Virtual) Topology Functions
  *
- *      Copyright 2011-2021, Massachusetts Institute of Technology
+ *      Copyright 2011-2022, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -2408,7 +2408,8 @@ EG_eRemoveNode(egObject *EBody)
   
   /* count the Number of Nodes w/ 2 EEdges */
   for (i = 0; i < ebody->eedges.nobjs; i++) {
-    if (ebody->eedges.objs[i] == NULL) continue;
+    if (ebody->eedges.objs[i]        == NULL)       continue;
+    if (ebody->eedges.objs[i]->mtype == DEGENERATE) continue;
     eedge = (egEEdge *) ebody->eedges.objs[i]->blind;
     /* Edges with .Keep attribute have Nodes that cannot be removed! */
     if (eedge->nsegs == 1) {
@@ -4725,11 +4726,11 @@ EG_initEBody(egObject *tess, double angle, egObject **EBody)
     ebody->edges[i].npts = btess->tess1d[i].npts;
     for (j = 0; j < ebody->edges[i].npts; j++)
       ebody->edges[i].ts[j] = btess->tess1d[i].t[j];
-    if (geom->mtype == LINE) ebody->edges[i].curve = 0;
     if (mtype == DEGENERATE) {
       ebody->edges[i].curve = -1;
       continue;
     }
+    if (geom->mtype == LINE) ebody->edges[i].curve = 0;
     j    = 0;
     stat = EG_evaluatX(edges[i], &ebody->edges[i].ts[j], result);
     if (stat == EGADS_SUCCESS) {
@@ -5510,7 +5511,9 @@ EG_makeEFace(egObject *EBody, int nFace, egObject **Faces, egObject **EFace)
     eloop = (egELoop *) eloops[i]->blind;
     for (j = 0; j < eloop->eedges.nobjs; j++) {
       index = EG_indexBodyTopo(EBody, eloop->eedges.objs[j]);
-      if (index > EGADS_SUCCESS) iedge[index-1]++;
+      if (index <= EGADS_SUCCESS) continue;
+      iedge[index-1]++;
+      if (eloop->eedges.objs[j]->mtype == DEGENERATE) iedge[index-1] = 2;
     }
   }
   /* mark non-manifold Edges w/ more than 2 Faces */
@@ -5521,15 +5524,11 @@ EG_makeEFace(egObject *EBody, int nFace, egObject **Faces, egObject **EFace)
     if (eloops[i] == NULL) continue;
     eloop = (egELoop *) eloops[i]->blind;
     for (j = 0; j < eloop->eedges.nobjs; j++) {
-      if (eloop->eedges.objs[j] == NULL) continue;
+      if (eloop->eedges.objs[j]        == NULL)       continue;
+      if (eloop->eedges.objs[j]->mtype == DEGENERATE) continue;
       index = EG_indexBodyTopo(EBody, eloop->eedges.objs[j]);
       if (index <= EGADS_SUCCESS) continue;
       if (iedge[index-1] <= 1)    continue;
-      /* Only 2 Node EEdges are candidates
-      if (eloop->eedges.objs[j]->mtype != TWONODE) {
-        iedge[index-1] = -1;
-        continue;
-      }  */
       eedge = (egEEdge *) eloop->eedges.objs[j]->blind;
       /* Edges with .Keep attribute cannot be removed! */
       if (eedge->nsegs == 1) {
@@ -5584,10 +5583,6 @@ EG_makeEFace(egObject *EBody, int nFace, egObject **Faces, egObject **EFace)
   /* n is the number of retained EEdges */
   for (k = n = i = 0; i < ebody->eedges.nobjs; i++) {
     if (ebody->eedges.objs[i] == NULL) continue;
-    if (ebody->eedges.objs[i]->mtype == DEGENERATE) {
-      iedge[i] = -2;
-      continue;
-    }
     if (abs(iedge[i]) == 1) n++;
     if (    iedge[i]  >  1) {
       k++;
@@ -5722,6 +5717,11 @@ EG_makeEFace(egObject *EBody, int nFace, egObject **Faces, egObject **EFace)
           continue;
         }
         if (map[k-1] < 0) k = -map[k-1];
+        if (map[k-1] < 0) {
+          printf(" EGADS Warning: Edge- %d Double Mapping %d/%d (makeEFace)!\n",
+                 i+1, j+1, edgsen[3*i  ]->npts);
+          k = -map[k-1];
+        }
         edgsen[3*i  ]->iuv[j] = map[k-1];
       }
     }
@@ -5734,6 +5734,11 @@ EG_makeEFace(egObject *EBody, int nFace, egObject **Faces, egObject **EFace)
         continue;
       }
       if (map[k-1] < 0) k = -map[k-1];
+      if (map[k-1] < 0) {
+        printf(" EGADS Warning: Edge+ %d Double Mapping %d/%d (makeEFace)!\n",
+               i+1, j+1, edgsen[3*i+1]->npts);
+        k = -map[k-1];
+      }
       edgsen[3*i+1]->iuv[j] = map[k-1];
     }
   }

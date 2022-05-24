@@ -9,7 +9,7 @@
  */
 
 /*
- * Copyright (C) 2010/2021  John F. Dannenhoffer, III (Syracuse University)
+ * Copyright (C) 2010/2022  John F. Dannenhoffer, III (Syracuse University)
  *
  * This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
@@ -35,10 +35,13 @@
 typedef struct {
     ego       EGADS;                    /* pointer to EGADS object */
     modl_T    *MODL;                    /* pointer to OpenCSM MODL */
-    void      *CAPS;                    /* pointer to CAPS capsObject */
+    void      *CAPS;                    /* capsProject */
     wvContext *cntxt;                   /* WebViewer context */
     float     sgFocus[4];               /* scene graph focus */
-    void      *udata;                   /* pointer to user data */
+    void      *udata;                   /* pointer to primary   user data */
+    void      *udata2;                  /* pointer to secondary user data */
+    void      *sgMutex;                 /* mutex associated with scene graphs */
+    int       curTim;                   /* ID of current TIM (or -1 if serveESP) */
 } esp_T;
 
 #endif

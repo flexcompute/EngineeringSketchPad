@@ -3,7 +3,7 @@
  *
  *             masstran AIM
  *
- *      Copyright 2014-2021, Massachusetts Institute of Technology
+ *      Copyright 2014-2022, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -242,7 +242,7 @@ static int checkAndCreateMesh(void *aimInfo, aimStorage *masstranInstance)
   capsValue *QuadMesh = NULL;
 
   for (i = 0; i < masstranInstance->numMesh; i++) {
-      remesh = remesh && (masstranInstance->feaMesh[i].bodyTessMap.egadsTess->oclass == EMPTY);
+      remesh = remesh && (masstranInstance->feaMesh[i].egadsTess->oclass == EMPTY);
   }
   if (remesh == (int) false) return CAPS_SUCCESS;
 

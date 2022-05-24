@@ -17,9 +17,6 @@
  * \ref aimOutputsTACS and \ref attributeTACS, respectively.
  *
  * Details of the AIM's automated data transfer capabilities are outlined in \ref dataTransferTACS
- *
- * \section clearanceTACS Clearance Statement
- *  This software has been cleared for public release on 05 Nov 2020, case number 88ABW-2020-3462.
  */
 
 /*! \page attributeTACS AIM attributes
@@ -112,7 +109,7 @@ enum aimInputs
   Analysis_Type,
   File_Format,
   Mesh_File_Format,
-  Design_Variable,
+  inDesign_Variable,
   Design_Variable_Relation,
   Design_Constraint,
   Design_Equation,
@@ -285,12 +282,6 @@ static int checkAndCreateMesh(void *aimInfo, aimStorage *tacsInstance)
 {
   // Function return flag
   int status = CAPS_SUCCESS;
-  int i, remesh = (int)true;
-
-  for (i = 0; i < tacsInstance->numMesh; i++) {
-      remesh = remesh && (tacsInstance->feaMesh[i].bodyTessMap.egadsTess->oclass == EMPTY);
-  }
-  if (remesh == (int) false) return CAPS_SUCCESS;
 
   status = fea_createMesh(aimInfo,
                           NULL,
@@ -518,7 +509,7 @@ int aimInputs(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo,
          * Formatting type for the mesh file. Options: "Small", "Large", "Free".
          */
 
-    } else if (index == Design_Variable) {
+    } else if (index == inDesign_Variable) {
         *ainame              = EG_strdup("Design_Variable");
         defval->type         = Tuple;
         defval->nullVal      = IsNull;
@@ -728,9 +719,6 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
     int numSetID;
     int tempID, *setID = NULL;
 
-    const char* name;
-    int index;
-
     aimStorage *tacsInstance;
 
     tacsInstance = (aimStorage *) instStore;
@@ -840,43 +828,16 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
     } else printf("Load tuple is NULL - No loads applied\n");
 
     // Set design variables
-    if (aimInputs[Design_Variable-1].nullVal == NotNull) {
+    if (aimInputs[inDesign_Variable-1].nullVal == NotNull) {
         status = fea_getDesignVariable(aimInfo,
                                        (int)false,
-                                       aimInputs[Design_Variable-1].length,
-                                       aimInputs[Design_Variable-1].vals.tuple,
+                                       aimInputs[inDesign_Variable-1].length,
+                                       aimInputs[inDesign_Variable-1].vals.tuple,
                                        aimInputs[Design_Variable_Relation-1].length,
                                        aimInputs[Design_Variable_Relation-1].vals.tuple,
                                        &tacsInstance->groupMap,
                                        &tacsInstance->feaProblem);
         AIM_STATUS(aimInfo, status);
-
-
-        /* check the design variables are all GeometryIn variables*/
-        for (i = 0; i < tacsInstance->feaProblem.numDesignVariable; i++) {
-
-          name = tacsInstance->feaProblem.feaDesignVariable[i].name;
-
-          // Loop over the geometry in values and compute sensitivities for all bodies
-          index = aim_getIndex(aimInfo, name, GEOMETRYIN);
-          if (index == CAPS_NOTFOUND){
-            AIM_ERROR(aimInfo, "'%s' is not a design parameter - can't get sensitivity\n",
-                      name);
-            status = CAPS_BADVALUE;
-            goto cleanup;
-          }
-          if (index < CAPS_SUCCESS ) {
-            status = index;
-            AIM_STATUS(aimInfo, status);
-          }
-
-          if(aim_getGeomInType(aimInfo, index) != 0) {
-              AIM_ERROR(aimInfo, "GeometryIn value %s is a configuration parameter and not a valid design parameter - can't get sensitivity\n",
-                        name);
-              status = CAPS_BADVALUE;
-              goto cleanup;
-          }
-        }
 
     } else printf("Design_Variable tuple is NULL - No design variables applied\n");
 
@@ -1662,7 +1623,7 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
                                                  &tacsInstance->feaProblem.feaFileFormat);
         AIM_STATUS(aimInfo, status);
     }
-#if 0
+
     // Optimization - design variable relations
     for( i = 0; i < tacsInstance->feaProblem.numDesignVariableRelation; i++) {
 
@@ -1675,7 +1636,7 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
                                                          &tacsInstance->feaProblem.feaFileFormat);
         AIM_STATUS(aimInfo, status);
     }
-#endif
+
     // Optimization - design constraints
     for( i = 0; i < tacsInstance->feaProblem.numDesignConstraint; i++) {
 
@@ -1750,7 +1711,7 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
 
 cleanup:
     if (status != CAPS_SUCCESS)
-        printf("\tPremature exit in nastranAIM preAnalysis, status = %d\n",
+        printf("\tPremature exit in tacsAIM preAnalysis, status = %d\n",
                status);
 
     if (tempIntegerArray != NULL) EG_free(tempIntegerArray);
@@ -1767,90 +1728,167 @@ int aimPostAnalysis(void *instStore, void *aimInfo,
 {
   int status = CAPS_SUCCESS; // Function return status
 
-  int i, j, idv, irow, icol, ibody; // Indexing
-  int index, offset;
+  int i, j, k, idv, irow, icol, ibody; // Indexing
+  int index, nGeomIn=0;
 
   char tmp[128];
-  int numFunctinoal=0;
+  int numFunctional=0;
+  int **functional_map=NULL;
   double **functional_xyz=NULL;
   double functional_dvar;
 
-  int numNode = 0, numPoint;
+  int numNode = 0, *numPoint=NULL, *surf2tess=NULL;
 
   const char *name;
   char **names=NULL;
-  double *dxyz = NULL;
+  double **dxyz = NULL;
 
   FILE *fp=NULL;
-  capsValue *value=NULL, *geomInVal;
+  capsValue *values=NULL, *geomInVal;
   aimStorage *tacsInstance;
-
   tacsInstance = (aimStorage*)instStore;
   AIM_NOTNULL(inputs, aimInfo, status);
 
-  if (inputs[Design_Variable-1].nullVal == NotNull) {
+  if (inputs[inDesign_Variable-1].nullVal == NotNull) {
 
-    // Read design.xml
+    /* check for GeometryIn variables*/
+    nGeomIn = 0;
+    for (i = 0; i < tacsInstance->feaProblem.numDesignVariable; i++) {
+
+      name = tacsInstance->feaProblem.feaDesignVariable[i].name;
+
+      // Loop over the geometry in values and compute sensitivities for all bodies
+      index = aim_getIndex(aimInfo, name, GEOMETRYIN);
+      if (index == CAPS_NOTFOUND){
+       continue;
+      }
+      if (index < CAPS_SUCCESS ) {
+        status = index;
+        AIM_STATUS(aimInfo, status);
+      }
+
+      if(aim_getGeomInType(aimInfo, index) != 0) {
+          AIM_ERROR(aimInfo, "GeometryIn value %s is a configuration parameter and not a valid design parameter - can't get sensitivity\n",
+                    name);
+          status = CAPS_BADVALUE;
+          goto cleanup;
+      }
+
+      nGeomIn++;
+    }
+
+    // No geometry sensitivties, so don't look for .sens file
+    if (nGeomIn == 0) {
+      status = CAPS_SUCCESS;
+      goto cleanup;
+    }
+
+    numNode = 0;
+    for (ibody = 0; ibody < tacsInstance->numMesh; ibody++) {
+      numNode += tacsInstance->feaMesh[ibody].numNode;
+    }
+
+    AIM_ALLOC(surf2tess, 2*numNode, int, aimInfo, status);
+    for (i = 0; i < 2*numNode; i++) surf2tess[i] = 0;
+
+    numNode = 0;
+    for (ibody = 0; ibody < tacsInstance->numMesh; ibody++) {
+      for (i = 0; i < tacsInstance->feaMesh[ibody].numNode; i++) {
+        surf2tess[2*(numNode+i)+0] = ibody;
+        surf2tess[2*(numNode+i)+1] = i;
+      }
+      numNode += tacsInstance->feaMesh[ibody].numNode;
+    }
+
+    // Read <Proj_Name>.sens
     snprintf(tmp, 128, "%s%s", tacsInstance->projectName, ".sens");
     fp = aim_fopen(aimInfo, tmp, "r");
     if (fp == NULL) {
-      AIM_ERROR(aimInfo, "Unable to open: %s");
+      AIM_ERROR(aimInfo, "Unable to open: %s", tmp);
       status = CAPS_IOERR;
       goto cleanup;
     }
 
     // Number of nodes and functinoals in the file
-    status = fscanf(fp, "%d %d", &numFunctinoal, &numPoint);
-    if (status != 2) status = CAPS_IOERR; else status = CAPS_SUCCESS;
-    AIM_STATUS(aimInfo, status);
-
-    AIM_ALLOC(functional_xyz, numFunctinoal, double*, aimInfo, status);
-    for (i = 0; i < numFunctinoal; i++) functional_xyz[i] = NULL;
-
-    AIM_ALLOC(names, numFunctinoal, char*, aimInfo, status);
-    for (i = 0; i < numFunctinoal; i++) names[i] = NULL;
-
-    numNode = 0;
-    for (i = 0; i < tacsInstance->numMesh; i++) {
-      numNode += tacsInstance->feaMesh[i].numNode;
-    }
-    if (numNode != numPoint) {
-      AIM_ERROR(aimInfo, "Number of Nodes in %s does not match mesh node count", tmp);
-      status = CAPS_IOERR;
-      goto cleanup;
+    status = fscanf(fp, "%d", &numFunctional);
+    if (status == EOF || status != 1) {
+      AIM_ERROR(aimInfo, "Failed to read sens file number of functionals");
+      status = CAPS_IOERR; goto cleanup;
     }
 
-    AIM_ALLOC(value, numFunctinoal, capsValue, aimInfo, status);
-    for (i = 0; i < numFunctinoal; i++) aim_initValue(&value[i]);
+    AIM_ALLOC(numPoint, numFunctional, int, aimInfo, status);
+    for (i = 0; i < numFunctional; i++) numPoint[i] = 0;
 
-    for (i = 0; i < numFunctinoal; i++) {
-      value[i].type = DoubleDeriv;
+    AIM_ALLOC(functional_map, numFunctional, int*, aimInfo, status);
+    for (i = 0; i < numFunctional; i++) functional_map[i] = NULL;
+
+    AIM_ALLOC(functional_xyz, numFunctional, double*, aimInfo, status);
+    for (i = 0; i < numFunctional; i++) functional_xyz[i] = NULL;
+
+    AIM_ALLOC(names, numFunctional, char*, aimInfo, status);
+    for (i = 0; i < numFunctional; i++) names[i] = NULL;
+
+    AIM_ALLOC(values, numFunctional, capsValue, aimInfo, status);
+    for (i = 0; i < numFunctional; i++) aim_initValue(&values[i]);
+
+    for (i = 0; i < numFunctional; i++) {
+      values[i].type = DoubleDeriv;
 
       /* allocate derivatives */
-      AIM_ALLOC(value[i].derivs, tacsInstance->feaProblem.numDesignVariable, capsDeriv, aimInfo, status);
+      AIM_ALLOC(values[i].derivs, tacsInstance->feaProblem.numDesignVariable, capsDeriv, aimInfo, status);
       for (idv = 0; idv < tacsInstance->feaProblem.numDesignVariable; idv++) {
-        value[i].derivs[idv].name  = NULL;
-        value[i].derivs[idv].deriv = NULL;
-        value[i].derivs[idv].len_wrt = 0;
+        values[i].derivs[idv].name  = NULL;
+        values[i].derivs[idv].deriv = NULL;
+        values[i].derivs[idv].len_wrt = 0;
       }
-      value[i].nderiv = tacsInstance->feaProblem.numDesignVariable;
+      values[i].nderiv = tacsInstance->feaProblem.numDesignVariable;
     }
 
-    // Read in Functional name, value and dFunctinoal/dxyz
-    for (i = 0; i < numFunctinoal; i++) {
-      AIM_ALLOC(functional_xyz[i], 3*numNode, double, aimInfo, status);
+    // Read in Functional name, value, numPoint, and dFunctinoal/dxyz
+    for (i = 0; i < numFunctional; i++) {
 
-      fscanf(fp, "%s", tmp);
+      status = fscanf(fp, "%s", tmp);
+      if (status == EOF) {
+        AIM_ERROR(aimInfo, "Failed to read sens file functional name");
+        status = CAPS_IOERR; goto cleanup;
+      }
+
       AIM_STRDUP(names[i], tmp, aimInfo, status);
 
-      fscanf(fp, "%lf", &value[i].vals.real);
+      status = fscanf(fp, "%lf", &values[i].vals.real);
+      if (status == EOF || status != 1) {
+        AIM_ERROR(aimInfo, "Failed to read sens file functional value");
+        status = CAPS_IOERR; goto cleanup;
+      }
 
-      for (j = 0; j < numNode; j++) {
-        fscanf(fp, "%lf %lf %lf", &functional_xyz[i][3*j+0],
-                                  &functional_xyz[i][3*j+1],
-                                  &functional_xyz[i][3*j+2]);
+      status = fscanf(fp, "%d", &numPoint[i]);
+      if (status == EOF || status != 1) {
+        AIM_ERROR(aimInfo, "Failed to read sens file number of points");
+        status = CAPS_IOERR; goto cleanup;
+      }
+
+      AIM_ALLOC(functional_map[i],   numPoint[i], int   , aimInfo, status);
+      AIM_ALLOC(functional_xyz[i], 3*numPoint[i], double, aimInfo, status);
+
+      for (j = 0; j < numPoint[i]; j++) {
+        status = fscanf(fp, "%d %lf %lf %lf", &functional_map[i][j],
+                                              &functional_xyz[i][3*j+0],
+                                              &functional_xyz[i][3*j+1],
+                                              &functional_xyz[i][3*j+2]);
+        if (status == EOF || status != 4) {
+          AIM_ERROR(aimInfo, "Failed to read sens file data");
+          status = CAPS_IOERR; goto cleanup;
+        }
+
+        if (functional_map[i][j] < 1 || functional_map[i][j] > numNode) {
+          AIM_ERROR(aimInfo, "sens file volume mesh vertex index: %d out-of-range [1-%d]", functional_map[i][j], numNode);
+          status = CAPS_IOERR; goto cleanup;
+        }
       }
     }
+
+    AIM_ALLOC(dxyz, tacsInstance->numMesh, double*, aimInfo, status);
+    for (ibody = 0; ibody < tacsInstance->numMesh; ibody++) dxyz[ibody] = NULL;
 
     /* set derivatives */
     for (idv = 0; idv < tacsInstance->feaProblem.numDesignVariable; idv++) {
@@ -1860,49 +1898,55 @@ int aimPostAnalysis(void *instStore, void *aimInfo,
       // Loop over the geometry in values and compute sensitivities for all bodies
       index = aim_getIndex(aimInfo, name, GEOMETRYIN);
       status = aim_getValue(aimInfo, index, GEOMETRYIN, &geomInVal);
+      if (status == CAPS_BADINDEX) continue;
       AIM_STATUS(aimInfo, status);
 
-      for (i = 0; i < numFunctinoal; i++) {
-        AIM_STRDUP(value[i].derivs[idv].name, name, aimInfo, status);
+      for (i = 0; i < numFunctional; i++) {
+        AIM_STRDUP(values[i].derivs[idv].name, name, aimInfo, status);
 
-        AIM_ALLOC(value[i].derivs[idv].deriv, geomInVal->length, double, aimInfo, status);
-        value[i].derivs[idv].len_wrt  = geomInVal->length;
+        AIM_ALLOC(values[i].derivs[idv].deriv, geomInVal->length, double, aimInfo, status);
+        values[i].derivs[idv].len_wrt  = geomInVal->length;
         for (j = 0; j < geomInVal->length; j++)
-          value[i].derivs[idv].deriv[j] = 0;
+          values[i].derivs[idv].deriv[j] = 0;
       }
 
       for (irow = 0; irow < geomInVal->nrow; irow++) {
         for (icol = 0; icol < geomInVal->ncol; icol++) {
 
-          offset = 0;
           for (ibody = 0; ibody < tacsInstance->numMesh; ibody++) {
             status = aim_tessSensitivity(aimInfo,
                                          name,
                                          irow+1, icol+1, // row, col
-                                         tacsInstance->feaMesh[ibody].bodyTessMap.egadsTess,
-                                         &numPoint, &dxyz);
+                                         tacsInstance->feaMesh[ibody].egadsTess,
+                                         &numNode, &dxyz[ibody]);
             AIM_STATUS(aimInfo, status, "Sensitivity for: %s\n", name);
-            AIM_NOTNULL(dxyz, aimInfo, status);
-
-            for (i = 0; i < numFunctinoal; i++) {
-              functional_dvar = value[i].derivs[idv].deriv[geomInVal->ncol*irow + icol];
-              for (j = 0; j < numPoint; j++) {
-                functional_dvar += functional_xyz[i][offset + 3*j+0]*dxyz[3*j + 0]  // dx/dGeomIn
-                                 + functional_xyz[i][offset + 3*j+1]*dxyz[3*j + 1]  // dy/dGeomIn
-                                 + functional_xyz[i][offset + 3*j+1]*dxyz[3*j + 1]; // dz/dGeomIn
-              }
-              value[i].derivs[idv].deriv[geomInVal->ncol*irow + icol] = functional_dvar;
-            }
-            AIM_FREE(dxyz);
-            offset += 3*numPoint;
+            AIM_NOTNULL(dxyz[ibody], aimInfo, status);
           }
+
+          for (i = 0; i < numFunctional; i++) {
+            functional_dvar = values[i].derivs[idv].deriv[geomInVal->ncol*irow + icol];
+
+            for (j = 0; j < numPoint[i]; j++) {
+              k = functional_map[i][j]-1; // 1-based indexing
+              ibody = surf2tess[2*k+0];
+              k     = surf2tess[2*k+1];
+
+              functional_dvar += functional_xyz[i][3*j+0]*dxyz[ibody][3*k + 0]  // dx/dGeomIn
+                               + functional_xyz[i][3*j+1]*dxyz[ibody][3*k + 1]  // dy/dGeomIn
+                               + functional_xyz[i][3*j+2]*dxyz[ibody][3*k + 2]; // dz/dGeomIn
+            }
+            values[i].derivs[idv].deriv[geomInVal->ncol*irow + icol] = functional_dvar;
+          }
+
+          for (ibody = 0; ibody < tacsInstance->numMesh; ibody++)
+            AIM_FREE(dxyz[ibody]);
         }
       }
     }
 
     /* create the dynamic output */
-    for (i = 0; i < numFunctinoal; i++) {
-      status = aim_makeDynamicOutput(aimInfo, names[i], &value[i]);
+    for (i = 0; i < numFunctional; i++) {
+      status = aim_makeDynamicOutput(aimInfo, names[i], &values[i]);
       AIM_STATUS(aimInfo, status);
     }
   }
@@ -1912,17 +1956,28 @@ cleanup:
   if (fp != NULL) fclose(fp);
 
   if (functional_xyz != NULL)
-    for (i = 0; i < numFunctinoal; i++)
+    for (i = 0; i < numFunctional; i++)
       AIM_FREE(functional_xyz[i]);
 
+  if (functional_map != NULL)
+    for (i = 0; i < numFunctional; i++)
+      AIM_FREE(functional_map[i]);
+
   if (names != NULL)
-    for (i = 0; i < numFunctinoal; i++)
+    for (i = 0; i < numFunctional; i++)
       AIM_FREE(names[i]);
 
+  if (dxyz != NULL)
+    for (i = 0; i < tacsInstance->numMesh; i++)
+      AIM_FREE(dxyz[i]);
+
   AIM_FREE(functional_xyz);
+  AIM_FREE(functional_map);
   AIM_FREE(names);
   AIM_FREE(dxyz);
-  AIM_FREE(value);
+  AIM_FREE(values);
+  AIM_FREE(surf2tess);
+  AIM_FREE(numPoint);
 
   return status;
 }
@@ -2152,7 +2207,7 @@ int aimDiscr(char *tname, capsDiscr *discr)
 
     AIM_ALLOC(tess, tacsInstance->numMesh, ego, discr->aInfo, status);
     for (i = 0; i < tacsInstance->numMesh; i++) {
-      tess[i] = tacsInstance->feaMesh[i].bodyTessMap.egadsTess;
+      tess[i] = tacsInstance->feaMesh[i].egadsTess;
     }
 
     status = mesh_fillDiscr(tname, &tacsInstance->groupMap, tacsInstance->numMesh, tess, discr);

@@ -95,6 +95,11 @@ if [ "$ARCH" = Darwin ]; then
 	20.5.*) MACOSX=11.4 ;;
 	20.6.*) MACOSX=11.5 ;;
 	20.7.*) MACOSX=11.6 ;;
+	21.0.*) MACOSX=12.0 ;;
+	21.1.*) MACOSX=12.0 ;;
+	21.2.*) MACOSX=12.1 ;;
+	21.3.*) MACOSX=12.2 ;;
+	21.*)   MACOSX=12.x ;;
 	esac
 fi
 
@@ -246,8 +251,12 @@ if [ ! -n "$PYTHONLIB" ]; then
 fi
 pyt="`which python`"
 if [ -n "$pyt" ]; then
-	PYTH=python
-	echo "Info: Python exec $pyt found!"
+	if python -c "import sys; assert sys.version_info >= (3,8)" >& /dev/null; then 
+		PYTH=python
+		echo "Info: Python exec $pyt found!"
+	else
+		echo "Info: Ignoring Python exec $pyt older than 3.8!"
+	fi
 fi
 
 if [ "$PYTH" != UNKNOWN ]; then
@@ -507,10 +516,9 @@ if [ "$ARCH" = Darwin ]; then
 	echo "export ESP_START=\"open -a /Applications/Safari.app;sleep 1;open -a /Applications/Safari.app $BASE/ESP/ESP.html\""       >> ../ESPenv.sh
 	echo "export WV_START=\"open -a /Applications/Safari.app $BASE/wvClient/wv.html\""    >> ../ESPenv.sh
 else
-	echo "export SLUGS_START=\"firefox $BASE/SLUGS/Slugs.html\"" >> ../ESPenv.sh
-	echo "export CAPS_START=\"firefox $BASE/src/CAPS/pyCAPS/viewer/capsViewer.html\"" >> ../ESPenv.sh
-	echo "export ESP_START=\"firefox $BASE/ESP/ESP.html\""       >> ../ESPenv.sh
-	echo "export WV_START=\"firefox $BASE/wvClient/wv.html\""    >> ../ESPenv.sh
+	echo "export SLUGS_START=\"firefox $BASE/SLUGS/Slugs.html &\"" >> ../ESPenv.sh
+	echo "export ESP_START=\"firefox $BASE/ESP/ESP.html &\""       >> ../ESPenv.sh
+	echo "export WV_START=\"firefox $BASE/wvClient/wv.html &\""    >> ../ESPenv.sh
 fi
 
 #
@@ -583,10 +591,9 @@ if [ "$ARCH" = Darwin ]; then
 	echo "setenv ESP_START \"open -a /Applications/Safari.app;sleep 1;open -a /Applications/Safari.app $BASE/ESP/ESP.html\""       >> ../ESPenv.csh
 	echo "setenv WV_START \"open -a /Applications/Safari.app $BASE/wvClient/wv.html\""    >> ../ESPenv.csh
 else
-	echo "setenv SLUGS_START \"firefox $BASE/SLUGS/Slugs.html\"" >> ../ESPenv.csh
-	echo "setenv CAPS_START \"firefox $BASE/src/CAPS/pyCAPS/viewer/capsViewer.html\"" >> ../ESPenv.csh
-	echo "setenv ESP_START \"firefox $BASE/ESP/ESP.html\""       >> ../ESPenv.csh
-	echo "setenv WV_START \"firefox $BASE/wvClient/wv.html\""    >> ../ESPenv.csh
+	echo "setenv SLUGS_START \"firefox $BASE/SLUGS/Slugs.html &\"" >> ../ESPenv.csh
+	echo "setenv ESP_START \"firefox $BASE/ESP/ESP.html &\""       >> ../ESPenv.csh
+	echo "setenv WV_START \"firefox $BASE/wvClient/wv.html &\""    >> ../ESPenv.csh
 fi
 
 exit

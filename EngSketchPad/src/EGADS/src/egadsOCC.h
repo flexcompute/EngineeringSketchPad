@@ -5,7 +5,7 @@
  *
  *             OpenCASCADE Headers Used
  *
- *      Copyright 2011-2021, Massachusetts Institute of Technology
+ *      Copyright 2011-2022, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -92,9 +92,11 @@
 #include <GeomFill_Filling.hxx>
 #include <GeomFill_FillingStyle.hxx>
 //#include <GeomFill_BSplineCurves.hxx>
+#if CASVER < 760
 #include <Geom2dAdaptor_HCurve.hxx>
-#include <GeomAdaptor_Curve.hxx>
 #include <GeomAdaptor_HSurface.hxx>
+#endif
+#include <GeomAdaptor_Curve.hxx>
 #include <Geom2dAPI_ProjectPointOnCurve.hxx>
 #include <GeomAPI_ProjectPointOnCurve.hxx>
 #include <GeomAPI_ProjectPointOnSurf.hxx>
@@ -103,8 +105,6 @@
 #include <GeomLProp_SLProps.hxx>
 #include <GeomLProp_CLProps.hxx>
 #include <Geom2dLProp_CLProps2d.hxx>
-#include <Adaptor3d_HSurface.hxx>
-#include <Adaptor2d_HCurve2d.hxx>
 #include <Adaptor3d_CurveOnSurface.hxx>
 #include <BSplCLib.hxx>
 #include <BSplSLib.hxx>
@@ -126,7 +126,7 @@
 #include <BRepTopAdaptor_FClass2d.hxx>
 #include <BRepLib.hxx>
 //#include <BRepLib_FuseEdges.hxx>
-#include "BRepLib_FuseEdges.h"
+#include "OCC/BRepLib_FuseEdges.h"
 #include <BRepBndLib.hxx>
 #include <BRepPrimAPI_MakeBox.hxx>
 #include <BRepPrimAPI_MakeCylinder.hxx>

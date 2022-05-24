@@ -118,7 +118,6 @@ int cfd_getBoundaryCondition(void *aimInfo,
              *  - Extrapolate
              *  - Freestream
              *  - BackPressure
-             *  - Symmetry
              *  - SubsonicInflow
              *  - SubsonicOutflow
              *  - MassflowIn
@@ -555,7 +554,17 @@ int cfd_getBoundaryCondition(void *aimInfo,
              *
              * If "Value" is a single string the following options maybe used:
              *
-             * \if (SU2)
+             * \if (FUN3D)
+             * - "Inviscid" (default)
+             * - "Viscous"
+             * - "Farfield"
+             * - "Extrapolate"
+             * - "Freestream"
+             * - "SymmetryX"
+             * - "SymmetryY"
+             * - "SymmetryZ"
+             *
+             * \elseif (SU2)
              * - "Inviscid" (default)
              * - "Viscous"
              * - "Farfield"
@@ -563,6 +572,7 @@ int cfd_getBoundaryCondition(void *aimInfo,
              * - "SymmetryX"
              * - "SymmetryY"
              * - "SymmetryZ"
+             *
              * \else
              * - "Inviscid" (default)
              * - "Viscous"
@@ -1219,24 +1229,24 @@ cleanup:
     return status;
 }
 
-// Fill objective in a cfdDesignFunctionalStruct format with objective data from Objective Tuple
+// Fill functional in a cfdDesignFunctionalStruct format with data from Functional Tuple
 int cfd_getDesignFunctional(void *aimInfo,
-                            int numObjectiveTuple,
-                            capsTuple objectiveTuple[],
+                            int numFunctinoalTuple,
+                            capsTuple functionalTuple[],
                             cfdBoundaryConditionStruct *bcProps,
                             int numDesignVariable,
                             cfdDesignVariableStruct variables[],
-                            int *numObjective,
-                            cfdDesignFunctionalStruct *objective[])
+                            int *numFunctional,
+                            cfdDesignFunctionalStruct *functional[])
 {
     /*! \if (FUN3D)
      *
-     * \page cfdDesignFunctional CFD Objective
-     * Structure for the design objective tuple  = ("Objective Name", "Value").
-     * "Objective Name" defines the objective function being specified.
+     * \page cfdDesignFunctional CFD Functional
+     * Structure for the design functional tuple  = ("Functional Name", "Value").
+     * "Functional Name" defines the functional returned as a dynamic output.
      *  The "Value" must be a JSON String dictionary (see Section \ref jsonStringcfdDesignFunctional).
      *
-     * For FUN3D, the objective function in which the adjoint will be taken with respect to can be:
+     * For FUN3D, a functional in which the adjoint will be taken with respect to can be build up using:
      *
      * | Function Names               | Description                                                           |
      * | :----------------------------| :-------------------------------------------------------------------- |
@@ -1256,29 +1266,31 @@ int cfd_getDesignFunctional(void *aimInfo,
      * | "rtr"                        |  thrust Rotorcraft thrust function                                    |
      * | "pstag"                      |  RMS of stagnation pressure in cutting plane disk                     |
      * | "distort"                    |  Engine inflow distortion                                             |
-     * | "boom"                       |  targ Near-field p/p∞ pressure target                                 |
+     * | "boom"                       |  Near-field \f$p/p_\infty \f$ pressure target                         |
      * | "sboom"                      |  Coupled sBOOM ground-based noise metrics                             |
      * | "ae"                         |  Supersonic equivalent area target distribution                       |
-     * | "press"                      |  box RMS of pressure in user-defined box, also pointwise dp/dt, dρ/dt |
+     * | "press"                      |  box RMS of pressure in user-defined box, also pointwise \f$dp/dt,\; d\rho/dt \f$ |
      * | "cpstar"                     |  Target pressure distributions                                        |
      *
-     * FUN3D calculates the objective function using the following form:
-     * f = sum_i (w_i *(C_i - C_i^*) ^ p_i)
-     * Where:
-     * f : Objective function
-     * w_i : Weighting of objective function
-     * C_i : Objective function type (cl, cd, etc.)
-     * C_i^* : Objective function target
-     * p_i : Exponential factor of objective function
+     * FUN3D calculates a functional using the following form:
+     * \f$
+     * f = \sum_i (w_i *(C_i - C_i^*) ^ {p_i})
+     * \f$ <br>
+     * Where: <br>
+     * \f$f\f$ : Functional <br>
+     * \f$w_i\f$ : Weighting of function <br>
+     * \f$C_i\f$ : Function type (cl, cd, etc.) <br>
+     * \f$C_i^*\f$ : Function target <br>
+     * \f$p_i\f$ : Exponential factor of function <br>
      *
      * \endif
      */
 
     /*! \if (CART3D)
      *
-     * \page cfdDesignFunctional CFD Objective
-     * Structure for the design objective tuple  = ("Objective Name", "Expresson").
-     * "Objective Name" is a user specified unique name, and the Expression is a mathematical expression
+     * \page cfdDesignFunctional CFD Functional
+     * Structure for the design functional tuple  = ("Functional Name", "Expresson").
+     * "Functional Name" is a user specified unique name, and the Expression is a mathematical expression
      * parsed by Cart3D symbolically.
      *
      * The variables that can be used to form an expression are:
@@ -1303,60 +1315,60 @@ int cfd_getDesignFunctional(void *aimInfo,
     char *boundaryName = NULL;
 
     // Destroy our design objective structures coming in if aren't 0 and NULL already
-     if (*objective != NULL) {
-         for (i = 0; i < *numObjective; i++) {
-             status = destroy_cfdDesignFunctionalStruct(&(*objective)[i]);
+     if (*functional != NULL) {
+         for (i = 0; i < *numFunctional; i++) {
+             status = destroy_cfdDesignFunctionalStruct(&(*functional)[i]);
              if (status != CAPS_SUCCESS) goto cleanup;
          }
      }
 
-     AIM_FREE(*objective);
-     *numObjective = 0;
+     AIM_FREE(*functional);
+     *numFunctional = 0;
 
-    printf("Getting CFD objective.......\n");
+    printf("Getting CFD functional.......\n");
 
-    *numObjective = numObjectiveTuple;
+    *numFunctional = numFunctinoalTuple;
 
-    printf("\tNumber of design variables - %d\n", numObjectiveTuple);
+    printf("\tNumber of design variables - %d\n", numFunctinoalTuple);
 
-    if (numObjectiveTuple > 0) {
-        AIM_ALLOC(*objective, numObjectiveTuple, cfdDesignFunctionalStruct, aimInfo, status);
+    if (numFunctinoalTuple > 0) {
+        AIM_ALLOC(*functional, numFunctinoalTuple, cfdDesignFunctionalStruct, aimInfo, status);
     } else {
         AIM_ERROR(aimInfo, "Number of objective values in input tuple is 0");
         status = CAPS_NOTFOUND;
         goto cleanup;
     }
 
-    for (i = 0; i < numObjectiveTuple; i++) {
-        status = initiate_cfdDesignFunctionalStruct(&(*objective)[i]);
+    for (i = 0; i < numFunctinoalTuple; i++) {
+        status = initiate_cfdDesignFunctionalStruct(&(*functional)[i]);
         AIM_STATUS(aimInfo, status);
 
-        AIM_ALLOC((*objective)[i].dvar, numDesignVariable, cfdDesignVariableStruct, aimInfo, status);
-        (*objective)[i].numDesignVariable = numDesignVariable;
+        AIM_ALLOC((*functional)[i].dvar, numDesignVariable, cfdDesignVariableStruct, aimInfo, status);
+        (*functional)[i].numDesignVariable = numDesignVariable;
 
         for (j = 0; j < numDesignVariable; j++)
-          initiate_cfdDesignVariableStruct((*objective)[i].dvar + j);
+          initiate_cfdDesignVariableStruct((*functional)[i].dvar + j);
 
         for (j = 0; j < numDesignVariable; j++) {
-          status = copy_cfdDesignVariableStruct(aimInfo, &variables[j], (*objective)[i].dvar + j);
+          status = copy_cfdDesignVariableStruct(aimInfo, &variables[j], (*functional)[i].dvar + j);
           AIM_STATUS(aimInfo, status);
         }
     }
 
-    for (i = 0; i < numObjectiveTuple; i++) {
+    for (i = 0; i < numFunctinoalTuple; i++) {
 
-        printf("\tObjective name - %s\n", objectiveTuple[i].name);
+        printf("\tObjective name - %s\n", functionalTuple[i].name);
 
-        AIM_STRDUP((*objective)[i].name, objectiveTuple[i].name, aimInfo, status);
+        AIM_STRDUP((*functional)[i].name, functionalTuple[i].name, aimInfo, status);
 
-        status = string_toStringDynamicArray(objectiveTuple[i].value, &numComponent, &compJson);
+        status = string_toStringDynamicArray(functionalTuple[i].value, &numComponent, &compJson);
         AIM_STATUS(aimInfo, status);
 
-        AIM_ALLOC((*objective)[i].component, numComponent, cfdDesignFunctionalCompStruct, aimInfo, status);
+        AIM_ALLOC((*functional)[i].component, numComponent, cfdDesignFunctionalCompStruct, aimInfo, status);
         for (j = 0; j < numComponent; j++) {
-            initiate_cfdDesignFunctionalCompStruct((*objective)[i].component + j);
+            initiate_cfdDesignFunctionalCompStruct((*functional)[i].component + j);
         }
-        (*objective)[i].numComponent = numComponent;
+        (*functional)[i].numComponent = numComponent;
 
         for (j = 0; j < numComponent; j++) {
 
@@ -1370,8 +1382,8 @@ int cfd_getDesignFunctional(void *aimInfo,
                  *  \section jsonStringcfdDesignFunctional JSON String Dictionary
                  *
                  * If "Value" is a JSON string dictionary (eg. "Value" = "Composite":[{"function": "cl", "weight": 3.0, "target": 10.7},
-                 *                                                {"function": "cd", "weight": 2.0, "power": 2.0}])
-                 * which represents the composite function: "Composite" = 3*(cl-10.7) + 2*cd^2
+                 *                                                {"function": "cd", "weight": 2.0, "power": 2.0}])<br>
+                 * which represents the composite functional: \f$Composite = 3 (c_l-10.7) + 2 c_d^2\f$<br>
                  * The following keywords ( = default values) may be used:
                  *
                  * \endif
@@ -1383,7 +1395,7 @@ int cfd_getDesignFunctional(void *aimInfo,
                  *
                  *  <ul>
                  *  <li> <B>capsGroup = "GroupName"</B> </li> <br>
-                 *  Name of boundary to apply for the objective function.
+                 *  Name of boundary to apply for the function \f$C_i\f$.
                  *  </ul>
                  * \endif
                  */
@@ -1397,8 +1409,8 @@ int cfd_getDesignFunctional(void *aimInfo,
                     found = (int)false;
                     for (k = 0; k < bcProps->numSurfaceProp; k++) {
                         if (strcasecmp(bcProps->surfaceProp[k].name, boundaryName) == 0) {
-                          (*objective)[i].component[j].bcID = bcProps->surfaceProp[k].bcID;
-                          AIM_STRDUP((*objective)[i].component[j].boundaryName, boundaryName, aimInfo, status);
+                          (*functional)[i].component[j].bcID = bcProps->surfaceProp[k].bcID;
+                          AIM_STRDUP((*functional)[i].component[j].boundaryName, boundaryName, aimInfo, status);
                           found = (int)true;
                           break;
                         }
@@ -1421,14 +1433,14 @@ int cfd_getDesignFunctional(void *aimInfo,
                  *
                  *  <ul>
                  *  <li> <B>function = NULL</B> </li> <br>
-                 *  The name of the function in the component, e.g. "cl", "cd", etc.
+                 *  The name of the function \f$C_i\f$, e.g. "cl", "cd", etc.
                  *  </ul>
                  * \endif
                  */
                 keyWord = "function";
                 status = search_jsonDictionary( compJson[j], keyWord, &keyValue);
                 if (status == CAPS_SUCCESS) {
-                    (*objective)[i].component[j].name = string_removeQuotation(keyValue);
+                    (*functional)[i].component[j].name = string_removeQuotation(keyValue);
                     AIM_FREE(keyValue);
                 } else {
                     AIM_ERROR(aimInfo, "The key 'function' must be specified in: %s", compJson[j]);
@@ -1442,7 +1454,7 @@ int cfd_getDesignFunctional(void *aimInfo,
                  *
                  *  <ul>
                  *  <li> <B>weight = 1.0</B> </li> <br>
-                 *  This weighting of the objective function.
+                 *  This weighting \f$w_i\f$ of the function.
                  *  </ul>
                  * \endif
                  */
@@ -1450,7 +1462,7 @@ int cfd_getDesignFunctional(void *aimInfo,
                 status = search_jsonDictionary( compJson[j], keyWord, &keyValue);
                 if (status == CAPS_SUCCESS) {
 
-                    status = string_toDouble(keyValue, &(*objective)[i].component[j].weight);
+                    status = string_toDouble(keyValue, &(*functional)[i].component[j].weight);
                     AIM_STATUS(aimInfo, status);
                     AIM_FREE(keyValue);
                 }
@@ -1461,7 +1473,7 @@ int cfd_getDesignFunctional(void *aimInfo,
                  *
                  *  <ul>
                  *  <li> <B>target = 0.0</B> </li> <br>
-                 *  This is the target value of the objective function.
+                 *  This is the target value \f$C_i^*\f$ of the function.
                  *  </ul>
                  * \endif
                  */
@@ -1469,7 +1481,7 @@ int cfd_getDesignFunctional(void *aimInfo,
                 status = search_jsonDictionary( compJson[j], keyWord, &keyValue);
                 if (status == CAPS_SUCCESS) {
 
-                    status = string_toDouble(keyValue, &(*objective)[i].component[j].target);
+                    status = string_toDouble(keyValue, &(*functional)[i].component[j].target);
                     AIM_STATUS(aimInfo, status);
                     AIM_FREE(keyValue);
                 }
@@ -1480,7 +1492,7 @@ int cfd_getDesignFunctional(void *aimInfo,
                  *
                  *  <ul>
                  *  <li> <B>power = 1.0</B> </li> <br>
-                 *  This is the user defined power operator for the objective function.
+                 *  This is the user defined power operator \f$p_i\f$ for the function.
                  *  </ul>
                  * \endif
                  */
@@ -1488,14 +1500,14 @@ int cfd_getDesignFunctional(void *aimInfo,
                 status = search_jsonDictionary( compJson[j], keyWord, &keyValue);
                 if (status == CAPS_SUCCESS) {
 
-                    status = string_toDouble(keyValue, &(*objective)[i].component[j].power);
+                    status = string_toDouble(keyValue, &(*functional)[i].component[j].power);
                     AIM_STATUS(aimInfo, status);
                     AIM_FREE(keyValue);
                 }
 
 
             } else {
-                AIM_ERROR(aimInfo, "A JSON string was NOT provided for tuple %s!!!", objectiveTuple[i].name);
+                AIM_ERROR(aimInfo, "A JSON string was NOT provided for tuple %s!!!", functionalTuple[i].name);
                 AIM_ADDLINE(aimInfo, "Tuple value is expected to be a JSON string");
                 status = CAPS_BADVALUE;
                 goto cleanup;
@@ -1506,7 +1518,7 @@ int cfd_getDesignFunctional(void *aimInfo,
 
     }
 
-    printf("\tDone getting CFD objective\n");
+    printf("\tDone getting CFD functional\n");
 
     status = CAPS_SUCCESS;
 

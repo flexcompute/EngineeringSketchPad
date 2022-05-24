@@ -62,8 +62,8 @@ rod  =   {"propertyType"      : "Rod",
           "crossSecArea"      : 1.0}
 
 rod2  =   {"propertyType"      : "Rod",
-          "material"          : "Madeupium",
-          "crossSecArea"      : 2.0}
+           "material"          : "Madeupium",
+           "crossSecArea"      : 2.0}
 
 astrosAIM.input.Property = {"bar1": rod,
                             "bar2": rod2,
@@ -73,15 +73,13 @@ DesVar1    = {"groupName" : "bar1",
               "initialValue" : rod["crossSecArea"],
               "lowerBound" : rod["crossSecArea"]*0.5,
               "upperBound" : rod["crossSecArea"]*1.5,
-              "maxDelta"   : rod["crossSecArea"]*0.1,
-              "fieldName" : "A"}
+              "maxDelta"   : rod["crossSecArea"]*0.1}
 
 DesVar2    = {"groupName" : "bar2",
               "initialValue" : rod2["crossSecArea"],
               "lowerBound" : rod2["crossSecArea"]*0.5,
               "upperBound" : rod2["crossSecArea"]*1.5,
-              "maxDelta"   : rod2["crossSecArea"]*0.1,
-              "fieldName" : "A"}
+              "maxDelta"   : rod2["crossSecArea"]*0.1}
 
 DesVar3    = {"groupName" : "bar3",
               "initialValue" : rod["crossSecArea"],
@@ -90,12 +88,33 @@ DesVar3    = {"groupName" : "bar3",
               "maxDelta"   : rod["crossSecArea"]*0.1,
               "variableWeight" : [0.0, 1.0],
               "independentVariableWeight" : 1.0,
-              "independentVariable" : "Bar1A",
-              "fieldName" : "A"}
+              "independentVariable" : "Bar1A"}
 
 myProblem.analysis["astros"].input.Design_Variable = {"Bar1A": DesVar1,
                                                       "Bar2A": DesVar2,
                                                       "Bar3A": DesVar3}
+
+DesVarR1 = {"variableType": "Property",
+            "fieldName" : "A",
+            "constantCoeff" : 0.0,
+            "groupName" : "Bar1A",
+            "linearCoeff" : 1.0}
+
+DesVarR2 = {"variableType": "Property",
+            "fieldName" : "A",
+            "constantCoeff" : 0.0,
+            "groupName" : "Bar2A",
+            "linearCoeff" : 1.0}
+
+DesVarR3 = {"variableType": "Property",
+            "fieldName" : "A",
+            "constantCoeff" : 0.0,
+            "groupName" : "Bar3A",
+            "linearCoeff" : 1.0}
+
+myProblem.analysis["astros"].input.Design_Variable_Relation = {"Bar1A" : DesVarR1,
+                                                               "Bar2A" : DesVarR2,
+                                                               "Bar3A" : DesVarR3}
 
 # Set constraints
 constraint = {"groupName" : ["boundary"],

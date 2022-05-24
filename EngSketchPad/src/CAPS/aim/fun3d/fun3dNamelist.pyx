@@ -82,8 +82,9 @@ cdef public int fun3d_writeNMLPython(void *aimInfo,
     cdef:
         char aimFile[PATH_MAX]
 
-    index = cAIMUtil.aim_getIndex(aimInfo, "Design_Variable", cCAPS.ANALYSISIN)-1
-    if aimInputs[index].nullVal != cCAPS.IsNull:
+    index  = cAIMUtil.aim_getIndex(aimInfo, "Design_Functional", cCAPS.ANALYSISIN)-1
+    index2 = cAIMUtil.aim_getIndex(aimInfo, "Design_SensFile", cCAPS.ANALYSISIN)-1
+    if aimInputs[index].nullVal != cCAPS.IsNull or aimInputs[index2].vals.integer == cCAPS.true:
         Flow = b"Flow" + os.sep.encode()
     else:
         Flow = b""

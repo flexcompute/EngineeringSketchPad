@@ -1,7 +1,7 @@
 // ESP-gloves.js implements Gloves functions for the Engineering Sketch Pad (ESP)
 // written by John Dannenhoffer
 
-// Copyright (C) 2010/2021  John F. Dannenhoffer, III (Syracuse University)
+// Copyright (C) 2010/2022  John F. Dannenhoffer, III (Syracuse University)
 //
 // This library is free software; you can redistribute it and/or
 //    modify it under the terms of the GNU Lesser General Public
@@ -60,6 +60,12 @@
 //    glovesLoad()
 
 "use strict";
+
+
+//
+// name of TIM object
+//
+gloves.name = "gloves";
 
 
 //
@@ -400,7 +406,7 @@ gloves.cmdQuit = function () {
     // change solve button legend
     var button = document.getElementById("solveButton");
     button["innerHTML"] = "Up to date";
-    button.style.backgroundColor = "#FFFFFF";
+    button.style.backgroundColor = null;
 
     changeMode(0);
 };

@@ -3,7 +3,7 @@
  *
  *             Manipulate the Tessellation of a Face
  *
- *      Copyright 2011-2021, Massachusetts Institute of Technology
+ *      Copyright 2011-2022, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -1974,6 +1974,7 @@ EG_addFacetNorm(triStruct *ts)
     mid[0] = ts->tris[t1].mid[0];
     mid[1] = ts->tris[t1].mid[1];
     mid[2] = ts->tris[t1].mid[2];
+/*  if (EG_inTri(t1, mid, 0.1, ts) == 1) continue;  */
     if (DIST2(ts->verts[i0].xyz, mid) < 0.001*ts->edist2) continue;
     if (DIST2(ts->verts[i1].xyz, mid) < 0.001*ts->edist2) continue;
     if (DIST2(ts->verts[i2].xyz, mid) < 0.001*ts->edist2) continue;
@@ -2014,10 +2015,12 @@ EG_addFacetNorm(triStruct *ts)
 
       d = EG_dotNorm(ts->verts[i0-1].xyz, ts->verts[i1-1].xyz,
                      ts->verts[i2-1].xyz, ts->verts[i3-1].xyz);
+      if (d < 0.0) break;
       if (d < dot) 
         if (EG_dotNorm(mid,                 ts->verts[i1-1].xyz,
                        ts->verts[i2-1].xyz, ts->verts[i3-1].xyz) > d) dot = d;
     }
+    if (side != 3) continue;
     /* is the minimum dot bigger than the threshold? */
     if (dot+ANGTOL > ts->dotnrm) continue;
 
@@ -2141,13 +2144,10 @@ EG_splitInter(int sideMid, /*@null@*/ double *aux, int cnt, triStruct *ts)
     uv[1]  = 0.5*(ts->verts[i1-1].uv[1] + ts->verts[i2-1].uv[1]);
     status = EG_evaluate(ts->face, uv, point);
     if (status != EGADS_SUCCESS) continue;
-    if (aux == NULL) {
-      if (EG_dotNorm(ts->verts[i0-1].xyz, point,
-                     ts->verts[i2-1].xyz, ts->verts[i3-1].xyz) <= 0.1) continue;
-      if (EG_dotNorm(ts->verts[i0-1].xyz, ts->verts[i1-1].xyz,
-                     point,               ts->verts[i3-1].xyz) <= 0.1) continue;
-    }
-
+    if (EG_dotNorm(ts->verts[i0-1].xyz, point,
+                   ts->verts[i2-1].xyz, ts->verts[i3-1].xyz) <= 0.1) continue;
+    if (EG_dotNorm(ts->verts[i0-1].xyz, ts->verts[i1-1].xyz,
+                   point,               ts->verts[i3-1].xyz) <= 0.1) continue;
     if (EG_splitSide(t1, side, t2, sideMid, ts) == EGADS_SUCCESS) {
       EG_floodTriGraph(t1, FLOODEPTH, ts);
       EG_floodTriGraph(t2, FLOODEPTH, ts);
@@ -2156,6 +2156,20 @@ EG_splitInter(int sideMid, /*@null@*/ double *aux, int cnt, triStruct *ts)
         aux[3*i1  ] = aux[3*i1+1] = aux[3*i1+2] = 0.0;
         status = EG_evaluate(ts->face, ts->verts[i1].uv, point);
         if (status == EGADS_SUCCESS) {
+          dist       = DOT(deru, deru);
+          if (dist  != 0.0) {
+            dist     = 1.0/sqrt(dist);
+            deru[0] *= dist;
+            deru[1] *= dist;
+            deru[2] *= dist;
+          }
+          dist       = DOT(derv, derv);
+          if (dist  != 0.0) {
+            dist     = 1.0/sqrt(dist);
+            derv[0] *= dist;
+            derv[1] *= dist;
+            derv[2] *= dist;
+          }
           CROSS(norm, deru, derv);
           aux[3*i1  ] = norm[0];
           aux[3*i1+1] = norm[1];
@@ -2299,11 +2313,9 @@ EG_addSideDist(int iter, double maxlen2, int sideMid, triStruct *ts)
       for (j = 0; j < 3; j++) {
         d = ts->tris[i].mid[j];
 /*
-        if (d == 0.0) {
+        if (d == 0.0)
           printf(" EGADS warning: Face %d tri %d side %d -- len = 0.0!\n",
-                 ts->fIndex, ts->fIndex, i, j);
-          return 0;
-        }
+                 ts->fIndex, i, j);
  */
         if (d <= cmp) continue;
         if (d > dist) {
@@ -2632,6 +2644,20 @@ EG_tessellate(int outLevel, triStruct *ts, long tID)
             printf(" EGADS Internal: Face %d EG_evaluate %lf %lf = %d\n",
                    ts->fIndex, ts->verts[i].uv[0], ts->verts[i].uv[1], status);
           continue;
+        }
+        dist       = DOT(deru, deru);
+        if (dist  != 0.0) {
+          dist     = 1.0/sqrt(dist);
+          deru[0] *= dist;
+          deru[1] *= dist;
+          deru[2] *= dist;
+        }
+        dist       = DOT(derv, derv);
+        if (dist  != 0.0) {
+          dist     = 1.0/sqrt(dist);
+          derv[0] *= dist;
+          derv[1] *= dist;
+          derv[2] *= dist;
         }
         CROSS(norm, deru, derv);
         aux[3*i  ] = norm[0];

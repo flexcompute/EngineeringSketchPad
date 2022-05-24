@@ -195,17 +195,17 @@ ifthen intent eq 4
       ifthen mirror eq 1
          ifthen compType eq 1
             udprim  naca  thickness  thickness  sharpte  sharpte  camber  camber
-               attribute  capsIntent   LINEARAERO
+               attribute  capsIntent   $LINEARAERO
                attribute  capsGroup      $Wing
                attribute  avlSecValues   secValues
          elseif compType eq 2
             udprim  naca  thickness  thickness  sharpte  sharpte  camber  camber
-               attribute  capsIntent   LINEARAERO
+               attribute  capsIntent   $LINEARAERO
                attribute  capsGroup      $Horizontal_Tail
                attribute  avlSecValues   secValues
          elseif compType eq 3
             udprim  naca  thickness  thickness  sharpte  sharpte  camber  camber
-               attribute  capsIntent   LINEARAERO
+               attribute  capsIntent   $LINEARAERO
                attribute  capsGroup      $Vertical_Tail
                attribute  avlSecValues   secValues
          else
@@ -219,19 +219,19 @@ ifthen intent eq 4
          ifthen pctchord gt 0
             ifthen compType eq 1
                udprim  naca  thickness  thickness  sharpte  sharpte  camber  camber
-                  attribute  capsIntent      LINEARAERO
+                  attribute  capsIntent      $LINEARAERO
                   attribute  capsGroup         $Wing
                   attribute  avlSecValues      secValues
                   attribute  avlCntrlFlap      cntrlValues
             elseif compType eq 2
                udprim  naca  thickness  thickness  sharpte  sharpte  camber  camber
-                  attribute  capsIntent      LINEARAERO
+                  attribute  capsIntent      $LINEARAERO
                   attribute  capsGroup         $Horizontal_Tail
                   attribute  avlSecValues      secValues
                   attribute  avlCntrlElevator  cntrlValues
             elseif compType eq 3
                udprim  naca  thickness  thickness  sharpte  sharpte  camber  camber
-                  attribute  capsIntent      LINEARAERO
+                  attribute  capsIntent      $LINEARAERO
                   attribute  capsGroup         $Vertical_Tail
                   attribute  avlSecValues      secValues
                   attribute  avlCntrlRudder    cntrlValues
@@ -245,19 +245,19 @@ ifthen intent eq 4
 
             ifthen compType eq 1
                udprim  naca  thickness  thickness  sharpte  sharpte  camber  camber
-                  attribute  capsIntent      LINEARAERO
+                  attribute  capsIntent      $LINEARAERO
                   attribute  capsGroup         $Wing
                   attribute  avlSecValues      secValues
                   attribute  avlCntrlFlap      cntrlValues
             elseif compType eq 2
                udprim  naca  thickness  thickness  sharpte  sharpte  camber  camber
-                  attribute  capsIntent      LINEARAERO
+                  attribute  capsIntent      $LINEARAERO
                   attribute  capsGroup         $Horizontal_Tail
                   attribute  avlSecValues      secValues
                   attribute  avlCntrlElevator  cntrlValues
             elseif compType eq 3
                udprim  naca  thickness  thickness  sharpte  sharpte  camber  camber
-                  attribute  capsIntent      LINEARAERO
+                  attribute  capsIntent      $LINEARAERO
                   attribute  capsGroup         $Vertical_Tail
                   attribute  avlSecValues      secValues
                   attribute  avlCntrlRudder    cntrlValues
@@ -273,7 +273,7 @@ ifthen intent eq 4
 
       ifthen compType eq 1
          udprim  naca  thickness  thickness  sharpte  sharpte  camber  camber
-            attribute  capsIntent       LINEARAERO
+            attribute  capsIntent       $LINEARAERO
             attribute  capsGroup          $Wing
             attribute  capsReferenceArea  area
             attribute  capsReferenceSpan  span
@@ -282,12 +282,12 @@ ifthen intent eq 4
             attribute  avlSecValues   secValues
       elseif compType eq 2
          udprim  naca  thickness  thickness  sharpte  sharpte  camber  camber
-            attribute  capsIntent   LINEARAERO
+            attribute  capsIntent   $LINEARAERO
             attribute  capsGroup      $Horizontal_Tail
             attribute  avlSecValues   secValues
       elseif compType eq 3
          udprim  naca  thickness  thickness  sharpte  sharpte  camber  camber
-            attribute  capsIntent   LINEARAERO
+            attribute  capsIntent   $LINEARAERO
             attribute  capsGroup      $Vertical_Tail
             attribute  avlSecValues   secValues
       else
@@ -299,19 +299,19 @@ ifthen intent eq 4
       ifthen pctchord gt 0
          ifthen compType eq 1
             udprim  naca  thickness  thickness  sharpte  sharpte  camber  camber
-               attribute  capsIntent      LINEARAERO
+               attribute  capsIntent      $LINEARAERO
                attribute  capsGroup         $Wing
                attribute  avlSecValues      secValues
                attribute  avlCntrlFlap      cntrlValues
          elseif compType eq 2
             udprim  naca  thickness  thickness  sharpte  sharpte  camber  camber
-               attribute  capsIntent      LINEARAERO
+               attribute  capsIntent      $LINEARAERO
                attribute  capsGroup         $Horizontal_Tail
                attribute  avlSecValues      secValues
                attribute  avlCntrlElevator  cntrlValues
          elseif compType eq 3
             udprim  naca  thickness  thickness  sharpte  sharpte  camber  camber
-               attribute  capsIntent      LINEARAERO
+               attribute  capsIntent      $LINEARAERO
                attribute  capsGroup         $Vertical_Tail
                attribute  avlSecValues      secValues
                attribute  avlCntrlRudder    cntrlValues
@@ -325,13 +325,13 @@ ifthen intent eq 4
 
          ifthen compType eq 1
             udprim  naca  thickness  thickness  sharpte  sharpte  camber  camber
-               attribute  capsIntent      LINEARAERO
+               attribute  capsIntent      $LINEARAERO
                attribute  capsGroup         $Wing
                attribute  avlSecValues      secValues
                attribute  avlCntrlFlap      cntrlValues
          elseif compType eq 2
             udprim  naca  thickness  thickness  sharpte  sharpte  camber  camber
-               attribute  capsIntent      LINEARAERO
+               attribute  capsIntent      $LINEARAERO
                attribute  capsGroup         $Horizontal_Tail
                attribute  avlSecValues      secValues
                attribute  avlCntrlElevator  cntrlValues
@@ -352,17 +352,17 @@ ifthen intent eq 4
 
       ifthen compType eq 1
          udprim  naca  thickness  thickness  sharpte  sharpte  camber  camber
-            attribute  capsIntent   LINEARAERO
+            attribute  capsIntent   $LINEARAERO
             attribute  capsGroup      $Wing
             attribute  avlSecValues   secValues
       elseif compType eq 2
          udprim  naca  thickness  thickness  sharpte  sharpte  camber  camber
-            attribute  capsIntent   LINEARAERO
+            attribute  capsIntent   $LINEARAERO
             attribute  capsGroup      $Horizontal_Tail
             attribute  avlSecValues   secValues
       elseif compType eq 3
          udprim  naca  thickness  thickness  sharpte  sharpte  camber  camber
-            attribute  capsIntent   LINEARAERO
+            attribute  capsIntent   $LINEARAERO
             attribute  capsGroup      $Vertical_Tail
             attribute  avlSecValues   secValues
       else
@@ -437,7 +437,7 @@ ifthen intent eq 5 and nrib gt 0
    union     0  0  1e-5
 
    # set the spacing along Edges 
-   udprim    createBEM filename  $BEM.bdf  space  0.02   imin   3   imax   99
+   udprim    createBEM filename  $BEM.bdf  space  0.2   imin   3   imax   99
 endif
 
 end

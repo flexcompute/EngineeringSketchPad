@@ -386,7 +386,7 @@ int su2_writeCongfig_Falcon(void *aimInfo, capsValue *aimInputs,
             bcProps.surfaceProp[i].surfaceType == Viscous) {
 
             if (counter > 0) fprintf(fp, ",");
-            fprintf(fp," %d", bcProps.surfaceProp[i].bcID);
+            fprintf(fp," BC_%d", bcProps.surfaceProp[i].bcID);
 
             counter += 1;
         }
@@ -574,7 +574,7 @@ int su2_writeCongfig_Falcon(void *aimInfo, capsValue *aimInputs,
         if (bcProps.surfaceProp[i].surfaceType == Inviscid) {
 
             if (counter > 0) fprintf(fp, ",");
-            fprintf(fp," %d", bcProps.surfaceProp[i].bcID);
+            fprintf(fp," BC_%d", bcProps.surfaceProp[i].bcID);
 
             counter += 1;
         }
@@ -594,7 +594,7 @@ int su2_writeCongfig_Falcon(void *aimInfo, capsValue *aimInputs,
             bcProps.surfaceProp[i].wallTemperature < 0) {
 
             if (counter > 0) fprintf(fp, ",");
-            fprintf(fp," %d, %f", bcProps.surfaceProp[i].bcID, bcProps.surfaceProp[i].wallHeatFlux);
+            fprintf(fp," BC_%d, %f", bcProps.surfaceProp[i].bcID, bcProps.surfaceProp[i].wallHeatFlux);
 
             counter += 1;
         }
@@ -614,7 +614,7 @@ int su2_writeCongfig_Falcon(void *aimInfo, capsValue *aimInputs,
             bcProps.surfaceProp[i].wallTemperature >= 0) {
 
             if (counter > 0) fprintf(fp, ",");
-            fprintf(fp," %d, %f", bcProps.surfaceProp[i].bcID, bcProps.surfaceProp[i].wallTemperature);
+            fprintf(fp," BC_%d, %f", bcProps.surfaceProp[i].bcID, bcProps.surfaceProp[i].wallTemperature);
 
             counter += 1;
         }
@@ -631,7 +631,7 @@ int su2_writeCongfig_Falcon(void *aimInfo, capsValue *aimInputs,
         if (bcProps.surfaceProp[i].surfaceType == Farfield) {
 
             if (counter > 0) fprintf(fp, ",");
-            fprintf(fp," %d", bcProps.surfaceProp[i].bcID);
+            fprintf(fp," BC_%d", bcProps.surfaceProp[i].bcID);
 
             counter += 1;
         }
@@ -648,7 +648,7 @@ int su2_writeCongfig_Falcon(void *aimInfo, capsValue *aimInputs,
         if (bcProps.surfaceProp[i].surfaceType == Symmetry) {
 
             if (counter > 0) fprintf(fp, ",");
-            fprintf(fp," %d", bcProps.surfaceProp[i].bcID);
+            fprintf(fp," BC_%d", bcProps.surfaceProp[i].bcID);
 
             counter += 1;
         }
@@ -686,7 +686,7 @@ int su2_writeCongfig_Falcon(void *aimInfo, capsValue *aimInputs,
         if (bcProps.surfaceProp[i].surfaceType == SubsonicInflow) {
 
             if (counter > 0) fprintf(fp, ",");
-            fprintf(fp," %d, %f, %f, %f, %f, %f", bcProps.surfaceProp[i].bcID,
+            fprintf(fp," BC_%d, %f, %f, %f, %f, %f", bcProps.surfaceProp[i].bcID,
                                                   bcProps.surfaceProp[i].totalTemperature,
                                                   bcProps.surfaceProp[i].totalPressure,
                                                   bcProps.surfaceProp[i].uVelocity,
@@ -710,7 +710,7 @@ int su2_writeCongfig_Falcon(void *aimInfo, capsValue *aimInputs,
             bcProps.surfaceProp[i].surfaceType == SubsonicOutflow) {
 
             if (counter > 0) fprintf(fp, ",");
-            fprintf(fp," %d, %f", bcProps.surfaceProp[i].bcID,
+            fprintf(fp," BC_%d, %f", bcProps.surfaceProp[i].bcID,
                                     bcProps.surfaceProp[i].staticPressure);
 
             counter += 1;
@@ -880,7 +880,7 @@ int su2_writeCongfig_Falcon(void *aimInfo, capsValue *aimInputs,
             bcProps.surfaceProp[i].surfaceType == Viscous) {
 
             if (counter > 0) fprintf(fp, ",");
-            fprintf(fp," %d", bcProps.surfaceProp[i].bcID);
+            fprintf(fp," BC_%d", bcProps.surfaceProp[i].bcID);
 
             counter += 1;
         }
@@ -1200,7 +1200,7 @@ int su2_writeCongfig_Falcon(void *aimInfo, capsValue *aimInputs,
                 bcProps.surfaceProp[i].surfaceType == Viscous) {
 
                 if (counter > 0) fprintf(fp, ",");
-                fprintf(fp," %d", bcProps.surfaceProp[i].bcID);
+                fprintf(fp," BC_%d", bcProps.surfaceProp[i].bcID);
 
                 counter += 1;
             }

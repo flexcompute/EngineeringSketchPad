@@ -26,14 +26,15 @@ enum aimInputs
   Min_scale,
   Mesh_Length_Factor,
   Mesh_Sizing,
+  Multiple_Mesh,
   EGADS_Quad,
   NUMINPUT = EGADS_Quad        /* Total number of inputs */
 };
 
+#define AFLR4TESSFILE "aflr4_%d.eto"
 
-extern int aflr4_Surface_Mesh(int quiet,
+extern int aflr4_Surface_Mesh(void *aimInfo,
+                              int quiet,
                               int numBody, ego *bodies,
-                              void *aimInfo, capsValue *aimInputs,
-                              meshInputStruct meshInput,
-                              mapAttrToIndexStruct attrMap,
-                              meshStruct *surfaceMeshes);
+                              capsValue *aimInputs,
+                              meshInputStruct meshInput);

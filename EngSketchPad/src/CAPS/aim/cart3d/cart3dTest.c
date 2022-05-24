@@ -3,7 +3,7 @@
  *
  *             Cart3D AIM tester
  *
- *      Copyright 2014-2021, Massachusetts Institute of Technology
+ *      Copyright 2014-2022, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -258,7 +258,7 @@ int main(int argc, char *argv[])
   
   /* output what we have */
   printf("\n");
-  caps_printObjects(pobj, 0);
+  caps_printObjects(pobj, pobj, 0);
   printf("\n");
   
   /* min and max on our dataset */

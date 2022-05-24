@@ -119,6 +119,13 @@ if [[ "$TYPE" == "LINEARAERO" || "$TYPE" == "ALL" ]]; then
         notRun="$notRun\navl"
     fi
 
+    ###### MSES ###### 
+    if [[ "`which mses`" != "" ]]; then
+        expectCSuccess "./msesTest" 0
+    else
+        notRun="$notRun\nmses"
+    fi
+
     ###### AWAVE ###### 
     if [[ "`which awave`" != "" ]]; then
         expectCSuccess "./awaveTest" 0

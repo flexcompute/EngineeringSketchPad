@@ -57,12 +57,12 @@ $(LDIR)/aflr3AIM.so:	$(ODIR)/aflr3AIM.o $(ODIR)/aflr3_Interface.o \
 		$(AFLR3_LIB) $(AFLR3_LIB) $(AFLR3_LIB) -L$(LDIR) -lutils \
 		-laimUtil -locsm -legads -ludunits2 -ldl $(RPATH) $(CPPSLB) -lm
 
-$(ODIR)/aflr3AIM.o:	$(ODIR)/aflr3_version aflr3AIM.c $(IDIR)/capsTypes.h \
+$(ODIR)/aflr3AIM.o:	$(ODIR)/aflr3_version aflr3AIM.c aflr3_Interface.h $(IDIR)/capsTypes.h \
 			$(IDIR)/aimUtil.h $(IDIR)/aimMesh.h ../utils/meshUtils.h
 	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I../utils aflr3AIM.c \
 		-o $(ODIR)/aflr3AIM.o
 
-$(ODIR)/aflr3_Interface.o:	$(ODIR)/aflr3_version aflr3_Interface.c \
+$(ODIR)/aflr3_Interface.o:	$(ODIR)/aflr3_version aflr3_Interface.c aflr3_Interface.h \
 				../utils/meshUtils.h
 	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) \
 		-I$(AFLR)/src/aflr3 -I$(AFLR)/src -I../utils \

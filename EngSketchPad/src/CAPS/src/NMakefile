@@ -98,7 +98,7 @@ caps.res:	caps.rc
 
 $(OBJS): 	$(IDIR)\capsErrors.h $(IDIR)\capsTypes.h $(IDIR)\prm.h \
 		capsFunIDs.h capsBase.h $(IDIR)\OpenCSM.h $(IDIR)\common.h \
-		$(OBJS:.obj=.c)
+		$(IDIR)\caps.h $(OBJS:.obj=.c)
 	cl /c $(COPTS) $(DEFINE) /I$(IDIR) $*.c 
 
 end:

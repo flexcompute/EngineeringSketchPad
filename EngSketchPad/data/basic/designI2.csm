@@ -16,7 +16,7 @@ DESPMTR   SCALE     1.2
 #SCALE     SCALE
 
 # second box (centered at 0,0,0) -- sensitivities analytically
-UDPRIM    box   dx XSIZE   dy YSIZE   dz ZSIZE   rad 0
+UDPRIM    box   dx XSIZE   dy YSIZE   dz ZSIZE
 CYLINDER  -DX-XSIZE-1  0  0  +DX+XSIZE+10  0  0  RAD
 SUBTRACT
 SCALE     SCALE

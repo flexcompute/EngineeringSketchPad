@@ -1,7 +1,7 @@
 // ESP-plugs.js implements plugs functions for the Engineering Sketch Pad (ESP)
 // written by John Dannenhoffer
 
-// Copyright (C) 2010/2021  John F. Dannenhoffer, III (Syracuse University)
+// Copyright (C) 2010/2022  John F. Dannenhoffer, III (Syracuse University)
 //
 // This library is free software; you can redistribute it and/or
 //    modify it under the terms of the GNU Lesser General Public
@@ -52,6 +52,12 @@
 //    plugs.timMesgCB(text)
 
 "use strict";
+
+
+//
+// name of TIM object
+//
+plugs.name = "plugs";
 
 
 //
@@ -359,7 +365,7 @@ plugs.updateKeyWindow = function () {
 // callback when timLoad returns
 //
 plugs.timLoadCB = function (text) {
-    // postMessage("in plugs.timLoadCB: "+text);
+    // alert("in plugs.timLoadCB: "+text);
 
     var tokens = text.split('|');
 
@@ -375,12 +381,12 @@ plugs.timLoadCB = function (text) {
 // callback when timSave returns
 //
 plugs.timSaveCB = function (text) {
-    // postMessage("in plugs.timSaveCB: "+text);
+    // alert("in plugs.timSaveCB: "+text);
 
     // change solve button legend
     var button = document.getElementById("solveButton");
     button["innerHTML"] = "Up to date";
-    button.style.backgroundColor = "#FFFFFF";
+    button.style.backgroundColor = null;
 
     changeMode(0);
 
@@ -393,12 +399,12 @@ plugs.timSaveCB = function (text) {
 // callback when timQuit returns
 //
 plugs.timQuitCB = function (text) {
-    //postMessage("in plugs.timQuitCB: "+text);
+    // alert("in plugs.timQuitCB: "+text);
 
     // change solve button legend
     var button = document.getElementById("solveButton");
     button["innerHTML"] = "Up to date";
-    button.style.backgroundColor = "#FFFFFF";
+    button.style.backgroundColor = null;
 
     changeMode(0);
 
@@ -411,7 +417,7 @@ plugs.timQuitCB = function (text) {
 // callback when timMesg returns
 //
 plugs.timMesgCB = function (text) {
-    // postMessage("in plugs.timMesgCB: "+text);
+    // alert("in plugs.timMesgCB: "+text);
 
     var button = document.getElementById("solveButton");
     var tokens = text.split("|");
@@ -495,9 +501,12 @@ plugs.timMesgCB = function (text) {
             button["innerHTML"] = "ExecutePhase2";
         }
 
+    // draw
+    } else if (tokens[1] == "draw") {
+
     // unexpected message
     } else {
-        postMessage("token[1]="+token[1]+" is an unexpected value");
+        postMessage("tokens[1]="+tokens[1]+" is an unexpected value");
         for (var i = 0; i < tokens.length; i++) {
             postMessage("tokens["+i+"]="+tokens[i]);
         }

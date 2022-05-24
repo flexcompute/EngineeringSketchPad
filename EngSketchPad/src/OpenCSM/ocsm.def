@@ -2,6 +2,8 @@ LIBRARY ocsm
 EXPORTS
 convertToBSplines
 createTessVels
+GetToken
+ocsmBodyDetails
 ocsmBuild
 ocsmCheck
 ocsmCopy
@@ -35,6 +37,7 @@ ocsmGetXYZ
 ocsmInfo
 ocsmLoad
 ocsmLoadDict
+ocsmLoadFromModel
 ocsmMakeEBody
 ocsmNewBrch
 ocsmNewPmtr
@@ -71,6 +74,16 @@ ocsmUpdateDespmtrs
 ocsmUpdateTess
 ocsmVersion
 removeVels
+tim_bcst
+tim_free
+tim_getEsp
+tim_hold
+tim_lift
+tim_load
+tim_lock
+tim_mesg
+tim_quit
+tim_save
 velocityOfEdge
 velocityOfFace
 velocityOfNode

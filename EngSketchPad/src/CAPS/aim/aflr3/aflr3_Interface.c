@@ -601,7 +601,7 @@ int aflr3_Volume_Mesh (void *aimInfo,
     //for (i = 0; i <prog_argc ; i++) printf("Arg %d = %s\n", i, prog_argv[i]);
 
     // Set meshInputs
-    if (meshInput.quiet ==1 ) Message_Flag = 0;
+    if (meshInput.quiet == 1) Message_Flag = 0;
     else Message_Flag = 1;
 
     // check that all the inputs

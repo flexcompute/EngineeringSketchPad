@@ -10,6 +10,7 @@ BOX 0 -0.5 -0.5  1 1 1
     ATTRIBUTE capsAIM meshingAIMs
     ATTRIBUTE capsIntent $box
     ATTRIBUTE capsGroup $box
+    ATTRIBUTE capsMesh $box
     ATTRIBUTE _name $box
 # Set only 2 points on one edge to test edges without a vertex
 SELECT edge 1

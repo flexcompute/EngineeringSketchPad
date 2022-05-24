@@ -16,7 +16,7 @@ LIBS   = TKBool.lib TKernel.lib TKFeat.lib TKBO.lib TKGeomAlgo.lib TKMath.lib TK
 !if "$(CASREV)" == "7.4"
 LIBS   = TKBool.lib TKernel.lib TKFeat.lib TKBO.lib TKGeomAlgo.lib TKMath.lib TKOffset.lib TKPrim.lib TKTopAlgo.lib TKBRep.lib TKG2d.lib TKG3d.lib TKGeomBase.lib TKShHealing.lib TKSTEP.lib TKSTEP209.lib TKSTEPBase.lib TKSTEPAttr.lib TKXSBase.lib TKIGES.lib TKFillet.lib
 !endif
-!if "$(CASREV)" == "7.5"
+!if "$(CASREV)" == "7.6"
 LIBS   = TKBool.lib TKernel.lib TKFeat.lib TKBO.lib TKGeomAlgo.lib TKMath.lib TKOffset.lib TKPrim.lib TKTopAlgo.lib TKBRep.lib TKG2d.lib TKG3d.lib TKGeomBase.lib TKShHealing.lib TKSTEP.lib TKSTEP209.lib TKSTEPBase.lib TKSTEPAttr.lib TKXSBase.lib TKIGES.lib TKFillet.lib
 !endif
 GLIBS  = gv.lib glu32.lib opengl32.lib user32.lib gdi32.lib

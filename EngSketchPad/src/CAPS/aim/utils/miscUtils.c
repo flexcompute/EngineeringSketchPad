@@ -1733,9 +1733,9 @@ char * convert_doubleToString(double doubleVal, int fieldWidth, int leftOrRight)
     return stringVal;
 }
 
-// Solves the square linear system A x = b using simple LU decomposition
+// Factorizes in place the square linear system A x = b using simple LU decomposition
 // Returns CAPS_BADVALUE for a singular matrix
-int solveLU(int n, double A[], double b[], double x[] )
+int factorLU(int n, double A[] )
 {
     int i,j,k;
     double y;
@@ -1752,11 +1752,20 @@ int solveLU(int n, double A[], double b[], double x[] )
         }
     }
 
+    return CAPS_SUCCESS;
+}
+
+// Solves the factorized square linear system LU x = b
+int backsolveLU(int n, double LU[], double b[], double x[] )
+{
+    int i,j;
+    double y;
+
     // Forward solve
     for(i = 0; i < n; i++) {
         y=0.0;
         for(j = 0 ;j < i;j++) {
-            y += A[i*n+j]*x[j];
+            y += LU[i*n+j]*x[j];
         }
         x[i]=(b[i]-y);
     }
@@ -1765,10 +1774,23 @@ int solveLU(int n, double A[], double b[], double x[] )
     for(i = n-1; i >=0; i--) {
         y = 0.0;
         for(j = i+1; j < n; j++) {
-            y += A[i*n+j]*x[j];
+            y += LU[i*n+j]*x[j];
         }
-        x[i] = (x[i]-y)/A[i*n+i];
+        x[i] = (x[i]-y)/LU[i*n+i];
     }
+
+    return CAPS_SUCCESS;
+}
+
+// Solves the square linear system A x = b using simple LU decomposition
+// Returns CAPS_BADVALUE for a singular matrix
+int solveLU(int n, double A[], double b[], double x[] )
+{
+    int status = CAPS_SUCCESS;
+
+    status = factorLU(n, A);
+    if (status != CAPS_SUCCESS) return status;
+    backsolveLU(n, A, b, x);
 
     return CAPS_SUCCESS;
 }
@@ -2414,14 +2436,9 @@ int create_genericAttrToIndexMap(int numBody, ego bodies[], int attrLevelIn, con
             }
         } // End node loop
 
-
-        if (faces != NULL) EG_free(faces);
-        if (edges != NULL) EG_free(edges);
-        if (nodes != NULL) EG_free(nodes);
-
-        faces = NULL;
-        edges = NULL;
-        nodes = NULL;
+        AIM_FREE(faces);
+        AIM_FREE(edges);
+        AIM_FREE(nodes);
 
     } // End body loop
 
@@ -2432,15 +2449,13 @@ int create_genericAttrToIndexMap(int numBody, ego bodies[], int attrLevelIn, con
 
     status = CAPS_SUCCESS;
 
-    goto cleanup;
+cleanup:
 
-    cleanup:
+    AIM_FREE(faces);
+    AIM_FREE(edges);
+    AIM_FREE(nodes);
 
-        if (faces != NULL) EG_free(faces);
-        if (edges != NULL) EG_free(edges);
-        if (nodes != NULL) EG_free(nodes);
-
-        return status;
+    return status;
 }
 
 // Create a mapping between unique capsGroup attribute names and an index value

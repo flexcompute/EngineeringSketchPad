@@ -3,7 +3,7 @@
  *
  *             Testing AIM Example Code
  *
- *      Copyright 2014-2021, Massachusetts Institute of Technology
+ *      Copyright 2014-2022, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -246,8 +246,10 @@ aimDiscr(char *tname, capsDiscr *discr)
   discr->types[0].ndata = 0;         /* data at geom reference positions
                                         (i.e. vertex centered/iso-parametric) */
   discr->types[0].ntri  = 1;
+  discr->types[0].nseg  = 3;
   discr->types[0].nmat  = 0;         /* match points at geom ref positions */
   discr->types[0].tris  = NULL;
+  discr->types[0].segs  = NULL;
   discr->types[0].gst   = NULL;
   discr->types[0].dst   = NULL;
   discr->types[0].matst = NULL;
@@ -255,10 +257,18 @@ aimDiscr(char *tname, capsDiscr *discr)
   /* specify the numbering for the points on the triangle */
   AIM_ALLOC(discr->types[0].tris, discr->types[0].nref, int, discr->aInfo,
             status);
-
   discr->types[0].tris[0] = 1;
   discr->types[0].tris[1] = 2;
   discr->types[0].tris[2] = 3;
+  
+  AIM_ALLOC(discr->types[0].segs, 2*discr->types[0].nref, int, discr->aInfo,
+            status);
+  discr->types[0].segs[0] = 1;
+  discr->types[0].segs[1] = 2;
+  discr->types[0].segs[2] = 2;
+  discr->types[0].segs[3] = 3;
+  discr->types[0].segs[4] = 3;
+  discr->types[0].segs[5] = 1;
 
   /* specify the reference coordinates for each point on the triangle */
   AIM_ALLOC(discr->types[0].gst, 2*discr->types[0].nref, double, discr->aInfo,

@@ -4,7 +4,7 @@ c      EGADS: Electronic Geometry Aircraft Design System
 c
 c             Parse Topology of Existing Model (FORTRAN)
 c
-c      Copyright 2011-2021, Massachusetts Institute of Technology
+c      Copyright 2011-2022, Massachusetts Institute of Technology
 c      Licensed under The GNU Lesser General Public License, version 2.1
 c      See http://www.opensource.org/licenses/lgpl-2.1.php
 c

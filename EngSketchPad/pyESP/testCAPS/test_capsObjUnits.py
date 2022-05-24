@@ -147,6 +147,17 @@ class TestUnit(unittest.TestCase):
         self.assertAlmostEqual(math.sin(5*deg), math.sin(5*deg/rad), 5)
 
 #=============================================================================-
+    def test_value(self):
+        m  = caps.Unit("m")
+        ft  = caps.Unit("ft")
+        
+        q = 10*m # Make a Quantity
+        
+        self.assertEqual(10, q/m)
+        self.assertEqual(10, q.value())
+        self.assertAlmostEqual(q.convert(ft).value(), q/ft, 5)
+ 
+#=============================================================================-
     def test_list(self):
         m  = caps.Unit("m")
         s  = caps.Unit("s")

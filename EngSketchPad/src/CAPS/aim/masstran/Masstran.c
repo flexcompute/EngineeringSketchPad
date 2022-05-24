@@ -10,7 +10,7 @@
  */
 
 /*
- * Copyright (C) 2012/2021  John F. Dannenhoffer, III (Syracuse University)
+ * Copyright (C) 2012/2022  John F. Dannenhoffer, III (Syracuse University)
  *
  * This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public

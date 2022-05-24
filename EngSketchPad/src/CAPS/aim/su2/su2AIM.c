@@ -798,7 +798,7 @@ int aimInputs(void *instStore, /*@unused@*/ void *aimInfo, int index,
 
         /*! \page aimInputsSU2
          * - <B>SU2_Version = "Blackbird"</B> <br>
-         * SU2 version to generate specific configuration file. Options: "Cardinal(4.0)", "Raven(5.0)", "Falcon(6.2)" or "Blackbird(7.2.0)".
+         * SU2 version to generate specific configuration file. Options: "Cardinal(4.0)", "Raven(5.0)", "Falcon(6.2)" or "Blackbird(7.3.0)".
          */
 
       if (su2Instance != NULL) su2Instance->su2Version = defval;
@@ -1100,7 +1100,8 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
     su2Instance->projectName = aimInputs[Proj_Name-1].vals.string;
 
     // Get attribute to index mapping
-    if (aim_newGeometry(aimInfo) == CAPS_SUCCESS) {
+    if (aim_newGeometry(aimInfo) == CAPS_SUCCESS ||
+        su2Instance->groupMap.mapName == NULL) {
         if (aimInputs[Two_Dimensional-1].vals.integer == (int) true) {
           attrLevel = 2; // Only search down to the edge level of the EGADS body
         } else {
@@ -1115,21 +1116,19 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
         if (status != CAPS_SUCCESS) return status;
     }
 
-    // Get boundary conditions - if the boundary condition has been set
-    if (aimInputs[Boundary_Condition-1].nullVal == NotNull) {
-
-        status = cfd_getBoundaryCondition(aimInfo,
-                                          aimInputs[Boundary_Condition-1].length,
-                                          aimInputs[Boundary_Condition-1].vals.tuple,
-                                          &su2Instance->groupMap,
-                                          &bcProps);
-        if (status != CAPS_SUCCESS) goto cleanup;
-
-    } else {
-        AIM_ANALYSISIN_ERROR(aimInfo, Boundary_Condition, "No boundary conditions provided !!!!");
-        status = CAPS_BADVALUE;
-        goto cleanup;
+    if (aimInputs[Boundary_Condition-1].nullVal ==  IsNull) {
+      AIM_ANALYSISIN_ERROR(aimInfo, Boundary_Condition, "No boundary conditions provided!");
+      status = CAPS_BADVALUE;
+      goto cleanup;
     }
+
+    // Get boundary conditions
+    status = cfd_getBoundaryCondition( aimInfo,
+                                       aimInputs[Boundary_Condition-1].length,
+                                       aimInputs[Boundary_Condition-1].vals.tuple,
+                                       &su2Instance->groupMap,
+                                       &bcProps);
+    AIM_STATUS(aimInfo, status);
 
     if (aimInputs[Mesh-1].nullVal == IsNull) {
         AIM_ANALYSISIN_ERROR(aimInfo, Mesh, "'Mesh' input must be linked to an output 'Area_Mesh' or 'Volume_Mesh'");

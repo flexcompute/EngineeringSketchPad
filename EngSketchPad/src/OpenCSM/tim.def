@@ -3,6 +3,4 @@ timLoad
 timSave
 timQuit
 timMesg
-timGetModl
-timSetModl
-timViewModl
+

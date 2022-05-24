@@ -1,7 +1,7 @@
 // ESP-mitten.js implements mitten functions for the Engineering Sketch Pad (ESP)
 // written by John Dannenhoffer
 
-// Copyright (C) 2010/2021  John F. Dannenhoffer, III (Syracuse University)
+// Copyright (C) 2010/2022  John F. Dannenhoffer, III (Syracuse University)
 //
 // This library is free software; you can redistribute it and/or
 //    modify it under the terms of the GNU Lesser General Public
@@ -52,6 +52,12 @@
 //    mitten.timMesgCB(text)
 
 "use strict";
+
+
+//
+// name of TIM object
+//
+mitten.name = "mitten";
 
 
 //
@@ -148,7 +154,7 @@ mitten.cmdSave = function () {
     // change solve button legend
     var button = document.getElementById("solveButton");
     button["innerHTML"] = "Up to date";
-    button.style.backgroundColor = "#FFFFFF";
+    button.style.backgroundColor = null;
 
     changeMode(0);
 
@@ -178,7 +184,7 @@ mitten.cmdQuit = function () {
     // change solve button legend
     var button = document.getElementById("solveButton");
     button["innerHTML"] = "Up to date";
-    button.style.backgroundColor = "#FFFFFF";
+    button.style.backgroundColor = null;
 
     changeMode(0);
 };
@@ -342,6 +348,13 @@ mitten.keyPress = function (e) {
     } else if (myKeyPress == "R") {
         browserToServer("timMesg|mitten|rotate|0|");
         postMessage("rotating with angle = 0");
+
+        return 1;
+    } else if (myKeyPress == "C") {
+        var seconds = prompt("Enter number of seconds", "10");
+        if (seconds !== null) {
+            browserToServer("timMesg|mitten|countdown|"+seconds+"|");
+        }
 
         return 1;
     } else {

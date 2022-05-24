@@ -53,6 +53,9 @@ all:
 	cd xfoil
 	nmake -f NMakefile
 	cd ..
+	cd mses
+	nmake -f NMakefile
+	cd ..
 	cd interference
 	nmake -f NMakefile
 	cd ..
@@ -130,6 +133,9 @@ clean:
 	cd xfoil
 	nmake -f NMakefile clean
 	cd ..
+	cd mses
+	nmake -f NMakefile clean
+	cd ..
 	cd interference
 	nmake -f NMakefile clean
 	cd ..
@@ -205,6 +211,9 @@ cleanall:
 #	nmake -f NMakefile cleanall
 #	cd ..
 	cd xfoil
+	nmake -f NMakefile cleanall
+	cd ..
+	cd mses
 	nmake -f NMakefile cleanall
 	cd ..
 	cd interference

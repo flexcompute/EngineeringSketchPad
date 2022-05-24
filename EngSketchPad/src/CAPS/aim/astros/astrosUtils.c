@@ -526,7 +526,8 @@ int astros_writeAeroData(void *aimInfo,
 
           status = vlm_getSectionCoordX(&feaAero->vlmSurface.vlmSection[i],
                                         1.0, // Cosine distribution
-                                        (int) true, numPoint,
+                                        (int) true, (int) true,
+                                        numPoint,
                                         &xCoord, &yUpper, &yLower);
           if (status != CAPS_SUCCESS) return status;
           if ((xCoord == NULL) || (yUpper == NULL) || (yLower == NULL)) {
@@ -2005,7 +2006,7 @@ int astros_writeDesignVariableCard(FILE *fp,
                 }
     }
      */
-  
+
     status = CAPS_SUCCESS;
 
 cleanup:
@@ -2337,7 +2338,7 @@ int astros_readOUTEigenVector(FILE *fp, int *numEigenVector, int *numGridPoint,
     // Loop through the file again and pull out data
     while (getline(&line, &linecap, fp) >= 0) {
         if (line == NULL) break;
-  
+
         // Look for start of Eigen-Vector
         if (strncmp(beginEigenLine, line, strlen(beginEigenLine)) == 0) {
 
@@ -3254,7 +3255,7 @@ static int astros_getBoundaryNormal(FILE *fp,
     }
 
     // Are we dealing with a single mesh or a combined mesh
-    if (feaMesh->bodyTessMap.egadsTess != NULL) {
+    if (feaMesh->egadsTess != NULL) {
         numMesh = 1;
         mesh = feaMesh;
 
@@ -3273,7 +3274,7 @@ static int astros_getBoundaryNormal(FILE *fp,
 
         if (mesh == NULL) mesh = &feaMesh->referenceMesh[i];
 
-        status = EG_statusTessBody(mesh->bodyTessMap.egadsTess, &body,
+        status = EG_statusTessBody(mesh->egadsTess, &body,
                                    &tessState, &numPoint);
         if (status != EGADS_SUCCESS) goto cleanup;
 
@@ -3304,7 +3305,7 @@ static int astros_getBoundaryNormal(FILE *fp,
 
         for (j = 0; j < numPoint; j++) {
 
-            status = EG_getGlobal(mesh->bodyTessMap.egadsTess, j+1,
+            status = EG_getGlobal(mesh->egadsTess, j+1,
                                   &pointLocalIndex, &pointTopoIndex, NULL);
             if (status != EGADS_SUCCESS) goto cleanup;
 
@@ -3369,7 +3370,7 @@ static int astros_getBoundaryNormal(FILE *fp,
 
                             if (numChildrenNode == 1 || numChildrenNode == 2) {
 
-                                status = EG_getTessEdge(mesh->bodyTessMap.egadsTess,
+                                status = EG_getTessEdge(mesh->egadsTess,
                                                         edgeTopoIndex, &len, &xyz, &t);
                                 if (status != EGADS_SUCCESS) goto cleanup;
 
@@ -3399,7 +3400,7 @@ static int astros_getBoundaryNormal(FILE *fp,
                         }
 
                         // Get t - along edge
-                        status = EG_getTessEdge(mesh->bodyTessMap.egadsTess,
+                        status = EG_getTessEdge(mesh->egadsTess,
                                                 edgeTopoIndex, &len, &xyz, &t);
                         if (status != EGADS_SUCCESS) goto cleanup;
 
@@ -3493,7 +3494,7 @@ static int astros_getBoundaryNormal(FILE *fp,
                                                              feaFileFormat,
                                                              numGeomIn,
                                                              geomInVal,
-                                                             mesh->bodyTessMap.egadsTess,
+                                                             mesh->egadsTess,
                                                              -1, edgeTopoIndex,
                                                              pointLocalIndex,
                                                              normBoundary,
@@ -3565,7 +3566,7 @@ int astros_writeGeomParametrization(FILE *fp,
     if (feaFileFormat     == NULL) return CAPS_NULLVALUE;
 
     // Are we dealing with a single mesh or a combined mesh
-    if (feaMesh->bodyTessMap.egadsTess != NULL) {
+    if (feaMesh->egadsTess != NULL) {
         numMesh = 1;
         mesh = feaMesh;
 
@@ -3616,7 +3617,7 @@ int astros_writeGeomParametrization(FILE *fp,
                 status = aim_tessSensitivity(aimInfo,
                                              geomInName,
                                              1, 1,
-                                             mesh->bodyTessMap.egadsTess,
+                                             mesh->egadsTess,
                                              &numPoint, &xyz);
                 printf(">>> Back from getting sensitivity\n");
                 AIM_STATUS(aimInfo, status, "Sensitivity for: %s\n", geomInName);
@@ -3660,7 +3661,7 @@ int astros_writeGeomParametrization(FILE *fp,
                                                 status = aim_tessSensitivity(aimInfo,
                                                                                                  geomInName,
                                                                                                  row+1, col+1, // row, col
-                                                                                                 mesh->bodyTessMap.egadsTess,
+                                                                                                 mesh->egadsTess,
                                                                                                  &numPoint, &xyz);
                                                 AIM_STATUS(aimInfo, status, "Sensitivity for: %s\n", geomInName);
 
@@ -3984,6 +3985,6 @@ cleanup:
     if (filename != NULL) EG_free(filename);
 
     if (fp != NULL) fclose(fp);
-  
+
     return status;
 }

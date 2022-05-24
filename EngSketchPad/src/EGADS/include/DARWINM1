@@ -11,18 +11,18 @@ else ifeq ($(CASREV),7.4)
 CPDS    = -std=c++11
 INCS    = -I$(CASROOT)/inc -I$(CASROOT)/include/opencascade -I$(CASROOT)
 LIBS    = -lTKBool -lTKernel -lTKFeat -lTKBO -lTKGeomAlgo -lTKMath -lTKOffset -lTKPrim -lTKTopAlgo -lTKBRep -lTKG2d -lTKG3d -lTKGeomBase -lTKShHealing -lTKSTEP -lTKSTEP209 -lTKSTEPBase -lTKSTEPAttr -lTKXSBase -lTKIGES -lTKFillet
-else ifeq ($(CASREV),7.5)
+else ifeq ($(CASREV),7.6)
 CPDS    = -std=c++11
 INCS    = -I$(CASROOT)/inc -I$(CASROOT)/include/opencascade -I$(CASROOT)
 LIBS    = -lTKBool -lTKernel -lTKFeat -lTKBO -lTKGeomAlgo -lTKMath -lTKOffset -lTKPrim -lTKTopAlgo -lTKBRep -lTKG2d -lTKG3d -lTKGeomBase -lTKShHealing -lTKSTEP -lTKSTEP209 -lTKSTEPBase -lTKSTEPAttr -lTKXSBase -lTKIGES -lTKFillet
 else 
-$(error Unsupported CASREV=$(CASREV) -- Must be one of: 7.3 7.4)
+$(error Unsupported CASREV=$(CASREV) -- Must be one of: 7.3 7.4 7.6)
 endif
 
 DEFINE = -DREVISION=$(CASREV)
-CXX    = clang++ -m64 -g -target arm64-apple-macos11 $(ESPFLAGS)
+CXX    = clang++ -m64 -g -target arm64-apple-darwin $(ESPFLAGS)
 CPPOPT = -O -fPIC -DOCC_CONVERT_SIGNALS -DNDEBUG -DNo_Exception -D_OCC64 -Wall -Wno-write-strings -Wno-dangling-else -Wno-unused-result $(CPDS)
-CC     = clang -m64 -g -target arm64-apple-macos11 $(ESPFLAGS)
+CC     = clang -m64 -g -target arm64-apple-darwin $(ESPFLAGS)
 COPTS  = -O -Wall -Wno-dangling-else -Wno-unused-result
 OCOPT  = -O -Wall -Wno-dangling-else -Wno-unused-result
 ifeq ($(EFCOMP),gfortran)

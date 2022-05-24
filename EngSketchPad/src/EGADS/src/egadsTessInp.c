@@ -3,7 +3,7 @@
  *
  *             Tessellation Input Functions
  *
- *      Copyright 2011-2021, Massachusetts Institute of Technology
+ *      Copyright 2011-2022, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -128,6 +128,11 @@ __PROTO_H_AND_D__ int  EG_attributeRet( const egObject *obj, const char *name,
                                         /*@null@*/ const int **ints,
                                         /*@null@*/ const double **reals,
                                         /*@null@*/ const char   **str );
+__PROTO_H_AND_D__ int  EG_effectiveMap( egObject *EObject, double *eparam,
+                                        egObject **Object, double *param );
+__PROTO_H_AND_D__ int  EG_uv2UVmap( void *uvmap, int *trmap, double *fuv,
+                                    double *fuvs, int *tris, int tbeg, int tend,
+                                    double *uv );
 #ifndef LITE
            extern int  EG_attributeDel( egObject *obj,
                                         /*@null@*/ const char *name );
@@ -2545,28 +2550,109 @@ EG_getInterior(const ego face, double *xyz, double *uv)
 }
 
 
-__HOST_AND_DEVICE__ int
-EG_baryInsert(ego face, double w1, double w2, double w3, const double *uvA,
-              const double *uvB, const double *uvC, double *uvOUT)
+__HOST_AND_DEVICE__ static int
+EG_singleFace(ego efobj, const double *uvA, const double *uvB,
+              /*@null@*/ const double *uvC, /*@null@*/ const double *uvD,
+              ego *face, double *UVa, double *UVb,
+              /*@null@*/ double *UVc, /*@null@*/ double *UVd)
 {
-  int    i, it, nT = 100, nS = 20, stat, fold = 0, periodic;
-  double pA[18], pB[18], pC[18], OA[3], OB[3], OC[3], pIT[18], J[16], JI[16];
-  double crA[3]  = {0.,0.,0.}, crB[3] = {0.,0.,0.}, crC[3] = {0.,0.,0.};
-  double duA[3]  = {0.,0.,0.}, duB[3] = {0.,0.,0.}, duC[3] = {0.,0.,0.};
-  double dvA[3]  = {0.,0.,0.}, dvB[3] = {0.,0.,0.}, dvC[3] = {0.,0.,0.};
-  double crIT[3] = {0.,0.,0.}, AC[3], CB[3], BA[3], range[4], uvIT[4], uv[4];
-  double grad[3], delta[4] = {0.,0.,0.,0.}, L[4] = {0.,0.,0.,0.};
-  double a, b, c, s, da = 0, db = 0.0, dc = 0.0, det, ka, kc, delnrm = 1.0;
-  double rsdnrm = 0.0, x3 = 0.0, tol = EPS10;
+  int     stat;
+  ego     facex;
+  egEFace *eface;
+  
+  stat  = EGADS_SUCCESS;
+  if (efobj->oclass == FACE) goto cleanup;
+  eface = (egEFace *) efobj->blind;
+  if (eface->npatch == 1) {
+    /* do this with the Face -- ignore closure */
+    *face    = eface->patches[0].face;
+    UVa[0]   = uvA[0];
+    UVa[1]   = uvA[1];
+    UVb[0]   = uvB[0];
+    UVb[1]   = uvB[1];
+    if ((uvC != NULL) && (UVc != NULL)) {
+      UVc[0] = uvC[0];
+      UVc[1] = uvC[1];
+    }
+    if ((uvD != NULL) && (UVd != NULL)) {
+      UVd[0] = uvD[0];
+      UVd[1] = uvD[1];
+    }
+    return stat;
+  }
+  
+  stat = EG_effectiveMap(efobj, (double *) uvA, face,   UVa);
+  if (stat  != EGADS_SUCCESS) goto cleanup;
+  stat = EG_effectiveMap(efobj, (double *) uvB, &facex, UVb);
+  if (stat  != EGADS_SUCCESS) goto cleanup;
+  if (*face != facex) goto cleanup;
+  
+  if ((uvC != NULL) && (UVc != NULL)) {
+    stat = EG_effectiveMap(efobj, (double *) uvC, &facex, UVc);
+    if (stat  != EGADS_SUCCESS) goto cleanup;
+    if (*face != facex) goto cleanup;
+  }
+  if ((uvD != NULL) && (UVd != NULL)) {
+    stat = EG_effectiveMap(efobj, (double *) uvD, &facex, UVd);
+    if (stat  != EGADS_SUCCESS) goto cleanup;
+    if (*face != facex) goto cleanup;
+  }
+  
+  /* all the same Face -- inform the calling function! */
+  return EGADS_OUTSIDE;
+  
+cleanup:
+  *face    = efobj;
+  UVa[0]   = uvA[0];
+  UVa[1]   = uvA[1];
+  UVb[0]   = uvB[0];
+  UVb[1]   = uvB[1];
+  if ((uvC != NULL) && (UVc != NULL)) {
+    UVc[0] = uvC[0];
+    UVc[1] = uvC[1];
+  }
+  if ((uvD != NULL) && (UVd != NULL)) {
+    UVd[0] = uvD[0];
+    UVd[1] = uvD[1];
+  }
+  
+  return stat;
+}
+
+
+__HOST_AND_DEVICE__ int
+EG_baryInsert(ego facex, double w1, double w2, double w3, const double *uvAx,
+              const double *uvBx, const double *uvCx, double *uvOUT)
+{
+  int     i, it, nT = 100, nS = 20, stat, fold = 0;
+  int     tbeg, tend, index, periodic, singleFace;
+  double  pA[18], pB[18], pC[18], OA[3], OB[3], OC[3], pIT[18], J[16], JI[16];
+  double  crA[3]  = {0.,0.,0.}, crB[3] = {0.,0.,0.}, crC[3] = {0.,0.,0.};
+  double  duA[3]  = {0.,0.,0.}, duB[3] = {0.,0.,0.}, duC[3] = {0.,0.,0.};
+  double  dvA[3]  = {0.,0.,0.}, dvB[3] = {0.,0.,0.}, dvC[3] = {0.,0.,0.};
+  double  crIT[3] = {0.,0.,0.}, AC[3], CB[3], BA[3], range[4], uvIT[4], uv[4];
+  double  grad[3], delta[4] = {0.,0.,0.,0.}, L[4] = {0.,0.,0.,0.};
+  double  a, b, c, s, da = 0, db = 0.0, dc = 0.0, det, ka, kc, delnrm = 1.0;
+  double  rsdnrm = 0.0, x3 = 0.0, tol = EPS10;
+  double  uvA[2], uvB[2], uvC[2] = {0.,0.};
+  ego     face;
+  egEFace *eface;
 #ifdef FACE_NORMAL_FOLD_CHECK
-  int    mtype;
+  int     mtype;
 #endif
 #ifdef DEBUG
-  double d, e1 = 0.0, e2 = 0.0;
+  double  d, e1 = 0.0, e2 = 0.0;
 #endif
 #ifdef DEBUGG
-  double x0 = 0.0, x1 = 0.0;
+  double  x0 = 0.0, x1 = 0.0;
 #endif
+  
+  singleFace = EG_singleFace(facex, uvAx, uvBx, uvCx, NULL,
+                             &face, uvA,  uvB,  uvC,  NULL);
+  if (singleFace < EGADS_SUCCESS) {
+    printf(" EG_baryInsert: EG_singleFace = %d!\n ", singleFace);
+    singleFace = EGADS_SUCCESS;
+  }
 
   /* Initial guess uv = w1*uvA + w2*uvB + w3*uvC */
   uvIT[0] = w1 * uvA[0] + w2 * uvB[0] + w3 * uvC[0];
@@ -2891,7 +2977,8 @@ EG_baryInsert(ego face, double w1, double w2, double w3, const double *uvA,
     if (delnrm < tol) break;  /* converged! */
   }
   if (rsdnrm >= tol && delnrm >= tol) {
-    printf(" EG_baryInsert: not converged -- residual %1.2le delta %1.2le (%1.2le)\n", rsdnrm, delnrm, tol);
+    printf(" EG_baryInsert: not converged -- residual %1.2le delta %1.2le (%1.2le)\n",
+           rsdnrm, delnrm, tol);
   }
 
 #ifdef DEBUG
@@ -2940,6 +3027,28 @@ EG_baryInsert(ego face, double w1, double w2, double w3, const double *uvA,
 #endif
     return EGADS_TESSTATE;
   }
+  
+  /* put UV back to Effective Face */
+  if (singleFace == EGADS_OUTSIDE) {
+    eface = (egEFace *) facex->blind;
+    for (index = 0; index < eface->npatch; index++)
+      if (eface->patches[index].face == face) break;
+    if (index == eface->npatch) {
+      printf(" EG_baryInsert: Face not found in Effective Face!\n");
+      return EGADS_EFFCTOBJ;
+    }
+    uv[0] = uvOUT[0];
+    uv[1] = uvOUT[1];
+    tbeg  = eface->patches[index].start;
+    tend  = tbeg + eface->patches[index].ntris;
+    stat  = EG_uv2UVmap(eface->uvmap, eface->trmap, uv,
+                        eface->patches[index].uvs,
+                        eface->patches[index].uvtris, tbeg+1, tend, uvOUT);
+    if (stat != EGADS_SUCCESS) {
+      printf(" EG_baryInsert: EG_uv2UVmap = %d!\n", stat);
+      return stat;
+    }
+  }
 
   return EGADS_SUCCESS;
 }
@@ -2950,18 +3059,28 @@ EG_baryInsert(ego face, double w1, double w2, double w3, const double *uvA,
                with minimum distance
 */
 __HOST_AND_DEVICE__ void
-EG_minArc4(const ego face, double fact1, double fact2, const double *uv0,
-           const double *uv1, const double *uv2, const double *uv3,
+EG_minArc4(const ego facex, double fact1, double fact2, const double *uv0x,
+           const double *uv1x, const double *uv2x, const double *uv3x,
            double *uvOUT)
 {
-  int    i, it, stat, nT = 100;
-  double x2, l[4], p0[18], p2[18], p1[18], p3[18], pIT[18], J[16], JI[16], L[4];
-  double Pu0[3], Pu1[3], Pu2[3], Pu3[3], Pv0[3], Pv1[3], Pv2[3], Pv3[3];
-  double delta[4], det, k02, k13, d0, d1, d2, d3, aux0[3], aux1[3], aux2[3];
-  double aux3[3], r0[3], r1[3], r2[3], r3[3], uvIT[4], range[4], pOUT[18];
+  int     i, it, stat, singleFace, tbeg, tend, index, nT = 100;
+  double  x2, l[4], p0[18], p2[18], p1[18], p3[18], pIT[18], J[16], JI[16], L[4];
+  double  Pu0[3], Pu1[3], Pu2[3], Pu3[3], Pv0[3], Pv1[3], Pv2[3], Pv3[3];
+  double  delta[4], det, k02, k13, d0, d1, d2, d3, aux0[3], aux1[3], aux2[3];
+  double  aux3[3], r0[3], r1[3], r2[3], r3[3], uvIT[4], range[4], pOUT[18];
+  double  uv[2], uv0[2], uv1[2], uv2[2] = {0.,0.}, uv3[2] = {0.,0.};
+  ego     face;
+  egEFace *eface;
  #ifdef DEBUG
-  double e1 = 0.0, e2 = 0.0, lt02, lt13, x1 = 0.0, x0 = 0.0;
+  double  e1 = 0.0, e2 = 0.0, lt02, lt13, x1 = 0.0, x0 = 0.0;
 #endif
+
+  singleFace = EG_singleFace(facex, uv0x, uv1x, uv2x, uv3x,
+                             &face, uv0,  uv1,  uv2,  uv3);
+  if (singleFace < EGADS_SUCCESS) {
+    printf(" EG_minArc4: EG_singleFace = %d!\n ", singleFace);
+    singleFace = EGADS_SUCCESS;
+  }
 
   stat = EG_getRange(face, range, &it);
   if (stat != EGADS_SUCCESS) {
@@ -3233,9 +3352,28 @@ EG_minArc4(const ego face, double fact1, double fact2, const double *uv0,
   }
 #endif
 
- uvOUT[0] = uvIT[0];
- uvOUT[1] = uvIT[1];
- return;
+  uvOUT[0] = uvIT[0];
+  uvOUT[1] = uvIT[1];
+  
+  /* put UV back to Effective Face */
+  if (singleFace == EGADS_OUTSIDE) {
+    eface = (egEFace *) facex->blind;
+    for (index = 0; index < eface->npatch; index++)
+      if (eface->patches[index].face == face) break;
+    if (index == eface->npatch) {
+      printf(" EG_minArc4: Face not found in Effective Face!\n");
+      return;
+    }
+    uv[0] = uvOUT[0];
+    uv[1] = uvOUT[1];
+    tbeg  = eface->patches[index].start;
+    tend  = tbeg + eface->patches[index].ntris;
+    stat  = EG_uv2UVmap(eface->uvmap, eface->trmap, uv,
+                        eface->patches[index].uvs,
+                        eface->patches[index].uvtris, tbeg+1, tend, uvOUT);
+    if (stat != EGADS_SUCCESS)
+      printf(" EG_minArc4: EG_uv2UVmap = %d!\n", stat);
+  }
 }
 
 
@@ -3405,40 +3543,51 @@ EG_getEdgepoint(const ego edge, double w, double tm, double tp, double *tOUT)
 
 */
 __HOST_AND_DEVICE__ void
-EG_getSidepoint(const ego face, double fact, const double *uvm,
-                const double *uvp, /*@null@*/ const double *uvl,
-                /*@null@*/ const double *uvr, double *uvOUT)
+EG_getSidepoint(const ego facex, double fact, const double *uvmx,
+                const double *uvpx, /*@null@*/ const double *uvlx,
+                /*@null@*/ const double *uvrx, double *uvOUT)
 {
-  int    stat, i, it, nT = 50, nS = 20, fold = 0, foldL, foldR;
-  double b, s, dlu0 = 0.0, dlu1 = 0.0, dlv0 = 0.0, dlv1 = 0.0, ddl0, ddl1;
-  double detJ, rsdnrm = 1.0, x3 = 0.0, delnrm = 1.0, ctt;
-  double pM[18], pP[18], pL[18], pR[18], pIT[18], J[3][3], ATJ[3][3];
-  double range[4], r0[3] = {0.,0.,0.}, r1[3] = {0.,0.,0.}, l[2] = {0.,0.};
-  double delta[3] = {0.,0.,0.}, L[3] = {0.,0.,0.}, uv[3], uvIT[3], xyz[3];
-  double MR[3], RP[3], PL[3], LM[3], RO[3], MO[3], LO[3], PO[3];
-  double crMR[3], crRP[3], crPL[3], crLM[3], crITL[3], crITR[3];
+  int     stat, i, it, nT = 50, nS = 20, fold = 0, foldL, foldR;
+  int     index, singleFace, tbeg, tend;
+  double  b, s, dlu0 = 0.0, dlu1 = 0.0, dlv0 = 0.0, dlv1 = 0.0, ddl0, ddl1;
+  double  detJ, rsdnrm = 1.0, x3 = 0.0, delnrm = 1.0, ctt;
+  double  pM[18], pP[18], pL[18], pR[18], pIT[18], J[3][3], ATJ[3][3];
+  double  range[4], r0[3] = {0.,0.,0.}, r1[3] = {0.,0.,0.}, l[2] = {0.,0.};
+  double  delta[3] = {0.,0.,0.}, L[3] = {0.,0.,0.}, uv[3], uvIT[3], xyz[3];
+  double  MR[3], RP[3], PL[3], LM[3], RO[3], MO[3], LO[3], PO[3];
+  double  crMR[3], crRP[3], crPL[3], crLM[3], crITL[3], crITR[3];
+  double  uvm[2], uvp[2], uvl[2] = {0.,0.}, uvr[2] = {0.,0.};
+  ego     face;
+  egEFace *eface;
 #ifdef FACE_NORMAL_FOLD_CHECK
-  int    mtype;
+  int     mtype;
 #endif
 #ifdef DEBUG
-  double e1 = 0.0, e2 = 0.0, x0 = 0.0, x1 = 0.0;
+  double  e1 = 0.0, e2 = 0.0, x0 = 0.0, x1 = 0.0;
 #endif
 
+  singleFace = EG_singleFace(facex, uvmx, uvpx, uvlx, uvrx,
+                             &face, uvm,  uvp,  uvl,  uvr);
+  if (singleFace < EGADS_SUCCESS) {
+    printf(" EG_getSidepoint: EG_singleFace = %d!\n ", singleFace);
+    singleFace = EGADS_SUCCESS;
+  }
+  
   stat = EG_getRange(face, range, &it);
   if (stat != EGADS_SUCCESS) {
-    printf(" EG_getSidepoint: EG_egetRange = %d!\n ", stat);
+    printf(" EG_getSidepoint: EG_getRange = %d!\n ", stat);
     return;
   }
-  /* Initial guess uv  */
-  uvIT[0]  = fact*uvp[0]  + (1.0-fact)*uvm[0];
-  uvIT[1]  = fact*uvp[1]  + (1.0-fact)*uvm[1];
-  uvIT[2]  = 0.0;
-  uvOUT[0] = uvIT[0];
-  uvOUT[1] = uvIT[1];
-  stat     = EG_evaluate(face, uvm, pM);
-  stat    += EG_evaluate(face, uvp, pP);
-  if (uvl != NULL) stat += EG_evaluate(face, uvl, pL);
-  if (uvr != NULL) stat += EG_evaluate(face, uvr, pR);
+  /* Initial guess uv */
+  uvIT[0]   = fact*uvp[0]  + (1.0-fact)*uvm[0];
+  uvIT[1]   = fact*uvp[1]  + (1.0-fact)*uvm[1];
+  uvIT[2]   = 0.0;
+  uvOUT[0]  = uvIT[0];
+  uvOUT[1]  = uvIT[1];
+  stat      = EG_evaluate(face, uvm, pM);
+  stat     += EG_evaluate(face, uvp, pP);
+  if (uvlx != NULL) stat += EG_evaluate(face, uvl, pL);
+  if (uvrx != NULL) stat += EG_evaluate(face, uvr, pR);
   if (stat != EGADS_SUCCESS) {
     printf(" EG_getSidepoint: EG_evaluate = %d!\n ", stat);
     return;
@@ -3470,7 +3619,7 @@ EG_getSidepoint(const ego face, double fact, const double *uvm,
 #endif
 
   /* segments connected to L */
-  if (uvl != NULL) {
+  if (uvlx != NULL) {
     PL[0] = pL[0] - pP[0]; PL[1] = pL[1] - pP[1]; PL[2] = pL[2] - pP[2];
     LM[0] = pM[0] - pL[0]; LM[1] = pM[1] - pL[1]; LM[2] = pM[2] - pL[2];
   }
@@ -3478,7 +3627,7 @@ EG_getSidepoint(const ego face, double fact, const double *uvm,
     foldL = 0;
 
   /* segments connected to R */
-  if (uvr != NULL) {
+  if (uvrx != NULL) {
     MR[0] = pR[0] - pM[0]; MR[1] = pR[1] - pM[1]; MR[2] = pR[2] - pM[2];
     RP[0] = pP[0] - pR[0]; RP[1] = pP[1] - pR[1]; RP[2] = pP[2] - pR[2];
   }
@@ -3491,10 +3640,10 @@ EG_getSidepoint(const ego face, double fact, const double *uvm,
   mtype = face->mtype;
 #else
   /* use the original triangle normal as the reference */
-  if (uvl != NULL) {
+  if (uvlx != NULL) {
     CRXSS(PL, LM, crITL);
   }
-  if (uvr != NULL) {
+  if (uvrx != NULL) {
     CRXSS(MR, RP, crITR);
   }
 #endif
@@ -3520,7 +3669,7 @@ EG_getSidepoint(const ego face, double fact, const double *uvm,
       }
 
 #ifdef FACE_NORMAL_FOLD_CHECK
-      if (uvl != NULL || uvr != NULL) {
+      if (uvlx != NULL || uvrx != NULL) {
         /* get the normal vector at the proposed point */
         CRXSS(pIT+3, pIT+6, crITL);
         crITR[0] = (crITL[0] *= mtype);
@@ -3529,7 +3678,7 @@ EG_getSidepoint(const ego face, double fact, const double *uvm,
       }
 #endif
 
-      if (uvl != NULL) {
+      if (uvlx != NULL) {
         /* Get vectors */
         LO[0] = pIT[0] - pL[0]; LO[1] = pIT[1] - pL[1]; LO[2] = pIT[2] - pL[2];
         MO[0] = pIT[0] - pM[0]; MO[1] = pIT[1] - pM[1]; MO[2] = pIT[2] - pM[2];
@@ -3542,7 +3691,7 @@ EG_getSidepoint(const ego face, double fact, const double *uvm,
         foldL = (DOT(crPL, crITL) < 0.0) || (DOT(crLM, crITL) < 0.0);
       }
 
-      if (uvr != NULL) {
+      if (uvrx != NULL) {
         /* Get vectors */
         RO[0] = pIT[0] - pR[0]; RO[1] = pIT[1] - pR[1]; RO[2] = pIT[2] - pR[2];
         PO[0] = pIT[0] - pP[0]; PO[1] = pIT[1] - pP[1]; PO[2] = pIT[2] - pP[2];
@@ -3790,6 +3939,26 @@ EG_getSidepoint(const ego face, double fact, const double *uvm,
 
   uvOUT[0] = uvIT[0];
   uvOUT[1] = uvIT[1];
+  
+  /* put UV back to Effective Face */
+  if (singleFace == EGADS_OUTSIDE) {
+    eface = (egEFace *) facex->blind;
+    for (index = 0; index < eface->npatch; index++)
+      if (eface->patches[index].face == face) break;
+    if (index == eface->npatch) {
+      printf(" EG_getSidepoint: Face not found in Effective Face!\n");
+      return;
+    }
+    uv[0] = uvOUT[0];
+    uv[1] = uvOUT[1];
+    tbeg  = eface->patches[index].start;
+    tend  = tbeg + eface->patches[index].ntris;
+    stat  = EG_uv2UVmap(eface->uvmap, eface->trmap, uv,
+                        eface->patches[index].uvs,
+                        eface->patches[index].uvtris, tbeg+1, tend, uvOUT);
+    if (stat != EGADS_SUCCESS)
+      printf(" EG_getSidepoint: EG_uv2UVmap = %d!\n", stat);
+  }
 }
 
 
