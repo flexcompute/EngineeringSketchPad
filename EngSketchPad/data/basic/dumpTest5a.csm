@@ -1,0 +1,10 @@
+# dumpTest5a
+# written by John Danennhoffer
+
+BOX       -4  0  0  2  2  2
+BOX       -1  0  0  2  2  2
+BOX        2  0  0  2  2  2
+
+DUMP      dumpTest5a.egads  0  0  1
+
+END

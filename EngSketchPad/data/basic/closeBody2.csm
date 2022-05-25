@@ -1,0 +1,39 @@
+# closeBody2
+# written by John Dannenhoffer
+
+# get the original open Body
+IMPORT    $/closeBody.stp
+
+# find the non-manifold Edges
+SELECT    edge   $_nface 1
+
+# make a BOX to subtract from the shape so that
+#    we can generate a planar Face
+SET       eps  0.001
+BOX       @xmin-eps     @ymin-1        @zmin-1 \
+          @xmax-@xmin+1 @ymax-@ymin+2  @zmax-@zmin+2
+
+# subtract from original shape to make back end planar
+SUBTRACT
+STORE    body 0 1
+
+# find the new non-manifold Edges
+SELECT    edge  $_nface 1
+
+# make a WireBody (EXTRACT) and then SheetBody (COMBINE) from these Edges
+DIMENSION edges  1  @sellist.size
+PATBEG    i  @sellist.size
+   SET    edges[i]  -@sellist[i]
+PATEND
+EXTRACT   edges
+REORDER   0  1    # this is needed so that teh Face points outward
+COMBINE
+
+# join the new SheetBody with the original (SheetBody) config
+RESTORE   body
+JOIN
+
+# now promote to a SolidBody
+COMBINE
+
+END

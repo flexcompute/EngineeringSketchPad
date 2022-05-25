@@ -1,0 +1,61 @@
+# shadow2
+# written by John Dannenhoffer
+
+# tube 1 (along x-axis))
+CYLINDER  -3.0   2.0   0.0  -1.0   2.0   0.0   0.5
+CYLINDER  -3.0   2.0   0.0  -1.0   2.0   0.0   0.3
+SUBTRACT
+
+UDPRIM    shadow
+
+ASSERT    @@area    2.00    0.02
+ASSERT    @@xcent  -2.00    0.02
+ASSERT    @@ycent   2.00    0.02
+ASSERT    @@ixx     0.1667  0.02
+ASSERT    @@ixy     0.00    0.02
+ASSERT    @@iyy     0.6667  0.02
+
+# tube 2 (along z-axis)
+CYLINDER   2.0   2.0  -1.0   2.0   2.0   1.0   0.5
+CYLINDER   2.0   2.0  -1.0   2.0   2.0   1.0   0.3
+SUBTRACT
+
+UDPRIM    shadow
+
+ASSERT    @@area    0.5026  0.02
+ASSERT    @@xcent   2.00    0.02
+ASSERT    @@ycent   2.00    0.02
+ASSERT    @@ixx     0.0427  0.02
+ASSERT    @@ixy     0.00    0.02
+ASSERT    @@iyy     0.0427  0.02
+
+# sphere
+SPHERE    -2.0  -2.0   0.0   1.0
+
+UDPRIM    shadow
+
+ASSERT    @@area    3.1416  0.02
+ASSERT    @@xcent  -2.00    0.02
+ASSERT    @@ycent  -2.00    0.02
+ASSERT    @@ixx     0.7854  0.02
+ASSERT    @@ixy     0.00    0.02
+ASSERT    @@iyy     0.7854  0.02
+
+# diamond with groove
+BOX        1.0  -3.0  -1.0   2.0   2.0   2.0
+ROTATEZ   45.00  2.0  -2.0
+CYLINDER   0.0  -2.0   1.0   4.0  -2.0   1.0   1.0
+SUBTRACT
+CYLINDER   2.0  -4.0  -1.0   2.0   0.0  -1.0   1.0
+SUBTRACT
+
+UDPRIM    shadow
+
+ASSERT    @@area    4.00    0.02
+ASSERT    @@xcent   2.00    0.02
+ASSERT    @@ycent  -2.00    0.02
+ASSERT    @@ixx     1.3333  0.02
+ASSERT    @@ixy     0.00    0.02
+ASSERT    @@iyy     1.3333  0.02
+
+END

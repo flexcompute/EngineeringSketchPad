@@ -1,0 +1,33 @@
+# designU2b
+# written by John Dannenhoffer
+
+CFGPMTR   FD1  1
+CFGPMTR   FD2  0
+DESPMTR   dx   3
+DESPMTR   dy   2
+DESPMTR   dz   1
+
+# possibly require finite differences
+IFTHEN    FD1 EQ 1
+   SKBEG     0  0  0
+      LINSEG 1  0  0
+   SKEND
+   STORE     .
+ENDIF
+
+# three boxes
+BOX       0  0  0  dx  dy  dz
+BOX       @xmax  @ymin  @zmin  dx  dy  (@zmax-@zmin)
+SELECT    FACE  @nbody  4
+BOX       @xmin  @ymin  @zmin  dx  dy  (@zmax-@zmin)
+UNION     1
+
+# possibly require finite differences
+IFTHEN    FD2 EQ 1
+   SKBEG     0  0  0
+      LINSEG 1  0  0
+   SKEND
+   STORE     .
+ENDIF
+
+END

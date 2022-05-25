@@ -1,0 +1,80 @@
+# hollowE3
+# written by John Dannenhoffer
+
+SET       nerror  0
+
+UDPRIM    naca      series 6412   sharpte 1
+EXTRUDE   0  0  -2
+TRANSLATE -2.0  1.0  0.0
+HOLLOW    0.100  @nbody-1;1;@nbody-1;2
+CATBEG    $did_not_create_body
+   SET    nerror  nerror+1
+CATEND
+
+UDPRIM    naca      series 6412
+EXTRUDE   0  0  -2
+TRANSLATE  -.5  1.0  0.0
+HOLLOW    0.010  @nbody-1;1;@nbody-1;2
+CATBEG    $did_not_create_body
+   SET    nerror  nerror+1
+CATEND
+
+UDPRIM    naca      series 6412
+EXTRUDE   0  0  -2
+TRANSLATE  1.0  1.0  0.0
+HOLLOW    0.001  @nbody-1;1;@nbody-1;2
+CATBEG    $did_not_create_body
+   SET    nerror  nerror+1
+CATEND
+
+UDPRIM    naca      series 6412   sharpte 1
+EXTRUDE   0  0  -2
+TRANSLATE -2.0  0.0  0.0
+HOLLOW    0.100  @nbody-1;1;@nbody-1;2
+CATBEG    $did_not_create_body
+   SET    nerror  nerror+1
+CATEND
+
+UDPRIM    naca      series 6412
+EXTRUDE   0  0  -2
+TRANSLATE  -.5  0.0  0.0
+HOLLOW    0.010  @nbody-1;1;@nbody-1;2
+CATBEG    $did_not_create_body
+   SET    nerror  nerror+1
+CATEND
+
+UDPRIM    naca      series 6412
+EXTRUDE   0  0  -2
+TRANSLATE  1.0  0.0  0.0
+HOLLOW    0.001  @nbody-1;1;@nbody-1;2
+CATBEG    $did_not_create_body
+   SET    nerror  nerror+1
+CATEND
+
+UDPRIM    naca      series 6412   sharpte 1
+EXTRUDE   0  0  -2
+TRANSLATE -2.0 -1.0  0.0
+HOLLOW    0.100  @nbody-1;1;@nbody-1;2
+CATBEG    $did_not_create_body
+   SET    nerror  nerror+1
+CATEND
+
+UDPRIM    naca      series 6412
+EXTRUDE   0  0  -2
+TRANSLATE  -.5 -1.0  0.0
+HOLLOW    0.010  @nbody-1;1;@nbody-1;2
+CATBEG    $did_not_create_body
+   SET    nerror  nerror+1
+CATEND
+
+UDPRIM    naca      series 6412
+EXTRUDE   0  0  -2
+TRANSLATE  1.0 -1.0  0.0
+HOLLOW    0.001  @nbody-1;1;@nbody-1;2
+CATBEG    $did_not_create_body
+   SET    nerror  nerror+1
+CATEND
+
+ASSERT    nerror  9
+
+END

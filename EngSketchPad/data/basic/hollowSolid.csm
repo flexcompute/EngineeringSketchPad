@@ -1,0 +1,77 @@
+# hollowSolid
+# written by John Dannenhoffer
+
+# basic shape (trapezoid)
+SKBEG     -2  -1  0
+   LINSEG +2  -1  0
+   LINSEG +1  +1  0
+   LINSEG -1  +1  0
+   LINSEG -2  -1  0
+SKEND
+EXTRUDE    0   0 -1
+STORE     trapehedron
+
+# hollow case A (SheetBody)
+RESTORE   trapehedron
+TRANSLATE -5  +3  0
+HOLLOW     0   0
+ATTRIBUTE _name   $caseA
+POINT     -3  +2  0
+
+# hollow case B (SheetBody with ibody/iford removed)
+RESTORE   trapehedron
+TRANSLATE  0  +3  0
+HOLLOW     0   7;1;7;5
+ATTRIBUTE _name   $caseB_ibody/iford
+POINT     +2  +2  0
+
+# hollow case C (larger SolidBody)
+RESTORE   trapehedron
+TRANSLATE +5  +3  0
+HOLLOW    0.1  0
+ATTRIBUTE _name   $caseC
+POINT     +7  +2  0
+
+# hollow case D (smaller SolidBody)
+RESTORE   trapehedron
+TRANSLATE -5   0  0
+HOLLOW    -.1  0
+ATTRIBUTE _name   $caseD
+POINT     -3  -1  0
+
+# hollow case E (smaller SolidBody with ibody/iford cut)
+RESTORE   trapehedron
+TRANSLATE  0   0  0
+HOLLOW    0.1  7;1;7;5
+ATTRIBUTE _name   $caseE_ibody/iford
+POINT     +2  -1  0
+
+# hollow case F (larger SolidBody with ibody/iford cut)
+RESTORE   trapehedron
+TRANSLATE +5   0  0
+HOLLOW    -.1  7;1;7;5
+ATTRIBUTE _name   $caseF_ibody/iford
+POINT     +7  -1  0
+
+# hollow case B (SheetBody with iface removed)
+RESTORE   trapehedron
+TRANSLATE -5  -3  0
+HOLLOW     0   3;5  1
+ATTRIBUTE _name   $caseB_iface
+POINT     -3  -4  0
+
+# hollow case E (smaller SolidBody with iface cut)
+RESTORE   trapehedron
+TRANSLATE  0  -3  0
+HOLLOW    0.1  3;5  1
+ATTRIBUTE _name   $caseE_iface
+POINT     +2  -4  0
+
+# hollow case F (larger SolidBody with iface cut)
+RESTORE   trapehedron
+TRANSLATE +5  -3  0
+HOLLOW    -.1  3;5  1
+ATTRIBUTE _name   $caseF_iface
+POINT     +7  -4  0
+
+END

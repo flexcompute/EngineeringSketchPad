@@ -1,0 +1,35 @@
+# sectionsWithHoles2a
+# written by John Dannenhoffer
+
+# section 1
+BOX       -2  -1   0   4   2   0
+CYLINDER  -1   0  -1  -1   0   1   1/2
+SUBTRACT
+CYLINDER  +1   0  -1  +1   0   1   1/2
+SUBTRACT
+TRANSLATE  0   0  -2
+STORE     section 1
+
+# section 2
+BOX       -2  -2   0   4   4   0
+CYLINDER  -1  -1  -1  -1  -1   1   1/2
+SUBTRACT
+CYLINDER  +1  +1  -1  +1  +1   1   1/2
+SUBTRACT
+STORE     section 2
+
+#section 3
+BOX       -1  -2   0   2   4   0
+CYLINDER   0  -1  -1   0  -1   1   1/2
+SUBTRACT
+CYLINDER   0  +1  -1   0  +1   1   1/2
+SUBTRACT
+TRANSLATE  0   0  +2
+STORE     section 3
+
+# show the sections
+RESTORE   section 1
+RESTORE   section 2
+RESTORE   section 3
+
+END

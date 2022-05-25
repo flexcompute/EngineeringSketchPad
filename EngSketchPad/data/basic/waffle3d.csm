@@ -1,0 +1,27 @@
+# waffle3d
+# written by John Dannenhoffer
+
+despmtr   span      14.0
+despmtr   chord      4.0
+despmtr   nrib       7.0
+
+udprim waffle   filename << Depth 2 Layout 1
+   # rearward spar
+   point  A   AT  0    chord/4
+   point  B   AT  span chord/4
+   line   .   A   B    myName=spar  myIndex=1
+
+   # forward spar
+   point  C   AT  x@A  y@A+chord/2
+   point  D   AT  x@B  y@B+chord/2
+   line   .   C   D    myName=spar  myIndex=2
+
+   # ribs
+   patbeg irib nrib+1
+      point  E   AT  span*(2*irib-1)/nrib/2  0
+      point  F   AT  x@E                     y@E+chord
+      line   .   E   F  myName=rib  myIndex=!val2str(irib,0)
+   patend
+>>
+
+end

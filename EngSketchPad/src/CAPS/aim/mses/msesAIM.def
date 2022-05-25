@@ -1,0 +1,10 @@
+LIBRARY msesAIM
+EXPORTS
+aimInitialize
+aimCleanup
+aimInputs
+aimPreAnalysis
+aimExecute
+aimPostAnalysis
+aimOutputs
+aimCalcOutput

@@ -1,0 +1,107 @@
+# hollowE4
+# written by John Dannenhoffer
+
+SET       nerror  0
+
+UDPRIM    naca      series 6412   sharpte 1   offset 0.100
+EXTRUDE   0  0  -2
+TRANSLATE -2.0  1.0  0.0
+UDPRIM    naca      series 6412   sharpte 1
+EXTRUDE   0  0  -2
+TRANSLATE -2.0  1.0  0.0
+SUBTRACT
+CATBEG    $did_not_create_body
+   SET    nerror  nerror+1
+CATEND
+
+UDPRIM    naca      series 6412   offset 0.100
+EXTRUDE   0  0  -2
+TRANSLATE  -.5  1.0  0.0
+UDPRIM    naca      series 6412
+EXTRUDE   0  0  -2
+TRANSLATE  -.5  1.0  0.0
+SUBTRACT
+CATBEG    $did_not_create_body
+   SET    nerror  nerror+1
+CATEND
+
+UDPRIM    naca      series 6412
+EXTRUDE   0  0  -2
+TRANSLATE  1.0  1.0  0.0
+UDPRIM    naca      series 6412   offset -.100
+EXTRUDE   0  0  -2
+TRANSLATE  1.0  1.0  0.0
+SUBTRACT
+CATBEG    $did_not_create_body
+   SET    nerror  nerror+1
+CATEND
+
+UDPRIM    naca      series 6412   sharpte 1   offset 0.010
+EXTRUDE   0  0  -2
+TRANSLATE -2.0  0.0  0.0
+UDPRIM    naca      series 6412   sharpte 1
+EXTRUDE   0  0  -2
+TRANSLATE -2.0  0.0  0.0
+SUBTRACT
+CATBEG    $did_not_create_body
+   SET    nerror  nerror+1
+CATEND
+
+UDPRIM    naca      series 6412   offset 0.010
+EXTRUDE   0  0  -2
+TRANSLATE  -.5  0.0  0.0
+UDPRIM    naca      series 6412
+EXTRUDE   0  0  -2
+TRANSLATE  -.5  0.0  0.0
+SUBTRACT
+CATBEG    $did_not_create_body
+   SET    nerror  nerror+1
+CATEND
+
+UDPRIM    naca      series 6412
+EXTRUDE   0  0  -2
+TRANSLATE  1.0  0.0  0.0
+UDPRIM    naca      series 6412   offset -.010
+EXTRUDE   0  0  -2
+TRANSLATE  1.0  0.0  0.0
+SUBTRACT
+CATBEG    $did_not_create_body
+   SET    nerror  nerror+1
+CATEND
+
+UDPRIM    naca      series 6412   sharpte 1   offset 0.001
+EXTRUDE   0  0  -2
+TRANSLATE -2.0 -1.0  0.0
+UDPRIM    naca      series 6412   sharpte 1
+EXTRUDE   0  0  -2
+TRANSLATE -2.0 -1.0  0.0
+SUBTRACT
+CATBEG    $did_not_create_body
+   SET    nerror  nerror+1
+CATEND
+
+UDPRIM    naca      series 6412   offset 0.001
+EXTRUDE   0  0  -2
+TRANSLATE  -.5 -1.0  0.0
+UDPRIM    naca      series 6412
+EXTRUDE   0  0  -2
+TRANSLATE  -.5 -1.0 0.0
+SUBTRACT
+CATBEG    $did_not_create_body
+   SET    nerror  nerror+1
+CATEND
+
+UDPRIM    naca      series 6412
+EXTRUDE   0  0  -2
+TRANSLATE  1.0 -1.0  0.0
+UDPRIM    naca      series 6412   offset -.001
+EXTRUDE   0  0  -2
+TRANSLATE  1.0 -1.0  0.0
+SUBTRACT
+CATBEG    $did_not_create_body
+   SET    nerror  nerror+1
+CATEND
+
+ASSERT    nerror  0
+
+END

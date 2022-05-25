@@ -1,0 +1,9 @@
+EXPORTS
+timLoad
+timSave
+timQuit
+timMesg
+timGetCaps
+timGetModl
+timSetCaps
+timSetModl

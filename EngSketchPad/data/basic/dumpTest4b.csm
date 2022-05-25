@@ -1,0 +1,11 @@
+# dumpTess4b
+# written by John Danennhoffer
+
+BOX       -4  0  0  2  2  2
+MARK
+BOX       -1  0  0  2  2  2
+BOX        2  0  0  2  2  2
+
+DUMP      dumpTest4b.egads  1  1  0
+
+END

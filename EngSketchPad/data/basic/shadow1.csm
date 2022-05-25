@@ -1,0 +1,67 @@
+# shadow1
+# written by John Dannenhoffer
+
+# triangle
+SKBEG     -3.0   1.0   0.0
+   LINSEG -1.0   1.0   0.0
+   LINSEG -1.0   3.0   0.0
+   LINSEG -3.0   1.0   0.0
+SKEND
+
+UDPRIM    shadow
+
+ASSERT    @@area   @area  0.02
+ASSERT    @@xcent  @xcg   0.02
+ASSERT    @@ycent  @ycg   0.02
+ASSERT    @@ixx    @Ixx   0.02
+ASSERT    @@ixy    @Ixy   0.02
+ASSERT    @@iyy    @Iyy   0.02
+
+# U-bracket
+SKBEG      1.0   1.0   0.0
+   LINSEG  3.0   1.0   0.0
+   LINSEG  3.0   3.0   0.0
+   LINSEG  2.5   3.0   0.0
+   LINSEG  2.5   1.5   0.0
+   LINSEG  1.5   1.5   0.0
+   LINSEG  1.5   3.0   0.0
+   LINSEG  1.0   3.0   0.0
+   LINSEG  1.0   1.0   0.0
+SKEND
+
+UDPRIM    shadow
+
+ASSERT    @@area   @area  0.02
+ASSERT    @@xcent  @xcg   0.02
+ASSERT    @@ycent  @ycg   0.02
+ASSERT    @@ixx    @Ixx   0.02
+ASSERT    @@ixy    @Ixy   0.02
+ASSERT    @@iyy    @Iyy   0.02
+
+# circular disk
+UDPRIM    ellipse   rx 1.0   ry 1.0
+TRANSLATE -2.0  -2.0   0.0
+
+UDPRIM    shadow
+
+ASSERT    @@area   @area  0.02
+ASSERT    @@xcent  @xcg   0.02
+ASSERT    @@ycent  @ycg   0.02
+ASSERT    @@ixx    @Ixx   0.02
+ASSERT    @@ixy    @Ixy   0.02
+ASSERT    @@iyy    @Iyy   0.02
+
+# elliptical disk
+UDPRIM    ellipse   rx 1.0   ry 0.1
+TRANSLATE  2.0  -2.0   0.0
+
+UDPRIM    shadow
+
+ASSERT    @@area   @area  0.02
+ASSERT    @@xcent  @xcg   0.02
+ASSERT    @@ycent  @ycg   0.02
+ASSERT    @@ixx    @Ixx   0.02
+ASSERT    @@ixy    @Ixy   0.02
+ASSERT    @@iyy    @Iyy   0.02
+
+END
