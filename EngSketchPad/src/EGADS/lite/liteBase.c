@@ -3,7 +3,7 @@
  *
  *             Lite Base Object Functions
  *
- *      Copyright 2011-2021, Massachusetts Institute of Technology
+ *      Copyright 2011-2022, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -51,7 +51,7 @@ __PROTO_H_AND_D__ void uvmap_struct_free( void *uvmap );
 
 
 static const char *EGADSprop[2] = {STR(EGADSPROP),
-                  "\nEGADSprop: Copyright 2011-2021 MIT. All Rights Reserved."};
+                  "\nEGADSprop: Copyright 2011-2022 MIT. All Rights Reserved."};
 
 
 #ifndef __CUDA_ARCH__
@@ -361,13 +361,15 @@ EG_open(egObject **context)
     return EGADS_MALLOC;
   }
   for (i = 0; i < MTESSPARAM; i++) cntx_h->tess[i] = 0.0;
-  cntx_h->outLevel  = 1;
-  cntx_h->signature = (char **) EGADSprop;
-  cntx_h->usrPtr    = NULL;
-  cntx_h->threadID  = EMP_ThreadID();
-  cntx_h->mutex     = EMP_LockCreate();
-  cntx_h->pool      = NULL;
-  cntx_h->last      = object;
+  cntx_h->outLevel   = 1;
+  cntx_h->fixedKnots = 0;
+  cntx_h->fullAttrs  = 0;
+  cntx_h->signature  = (char **) EGADSprop;
+  cntx_h->usrPtr     = NULL;
+  cntx_h->threadID   = EMP_ThreadID();
+  cntx_h->mutex      = EMP_LockCreate();
+  cntx_h->pool       = NULL;
+  cntx_h->last       = object;
   if (cntx_h->mutex == NULL)
     printf(" EMP Error: mutex creation = NULL (EG_open)!\n");
   EG_SET_CNTXT(cntx, cntx_h);

@@ -38,8 +38,9 @@ myProblem = pyCAPS.Problem(problemName=workDir,
 ## [geometry]
 
 ## [capsDespmtrs]
-# Change a design parameter - area in the geometry
+# Change a design parameter - area in the geometry and no wake (TetGen does not support the wake)
 myProblem.geometry.despmtr.area = 50
+myProblem.geometry.cfgpmtr.wake = 0
 ## [capsDespmtrs]
 
 ## [loadMeshAIM]

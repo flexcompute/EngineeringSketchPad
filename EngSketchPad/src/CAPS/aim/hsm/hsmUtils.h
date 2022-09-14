@@ -25,7 +25,8 @@ int allocate_hsmTempMemoryStruct(int numNode, int maxValence, int maxDim,
                                  hsmTempMemoryStruct *mem);
 
 // Convert an EGADS body to a boundary element model - disjointed at edges
-int hsm_bodyToBEM(ego    ebody,                        // (in)  EGADS Body
+int hsm_bodyToBEM(void *aimInfo,
+                  ego    ebody,                        // (in)  EGADS Body
                   double paramTess[3],                 // (in)  Tessellation parameters
                   int    edgePointMin,                 // (in)  minimum points along any Edge
                   int    edgePointMax,                 // (in)  maximum points along any Edge
@@ -59,7 +60,7 @@ int hsm_setNodeBCParameter(feaProblemStruct feaProblem, int permutation[],
 
 // Generates the adjacency structure (non-zero matrix pattern) for HSM
 extern
-int hsm_Adjacency(meshStruct *feaMesh,
+int hsm_Adjacency(const meshStruct *feaMesh,
                   const int numJoint, // Number of joints
                   const int *kjoint,  // Joint connectivity
                   int *maxAdjacency,  // Max adjacency (columns in a row)

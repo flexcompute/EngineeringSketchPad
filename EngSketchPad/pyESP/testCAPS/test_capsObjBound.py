@@ -51,7 +51,7 @@ class TestBound(unittest.TestCase):
     # Test bound creation
     def test_boundInit(self):
 
-        problem = caps.open(self.projectName+str(self.iProb), None, self.file, 0); self.__class__.iProb += 1
+        problem = caps.open(self.projectName+str(self.iProb), None, caps.oFlag.oFileName, self.file, 0); self.__class__.iProb += 1
 
         fun3d = problem.makeAnalysis("fun3dAIM", name = self.analysisDir + str(self.iDir)); self.__class__.iDir += 1
 

@@ -1,0 +1,21 @@
+# inflatedBody1a (brute-force unions)
+# written by John Dannenhoffer
+
+TORUS     0  0  0  0  0  1  10  1
+BOX       0 -8.1 -8  20  16.2  16
+INTERSECT
+STORE     sector
+
+# make the whole body by combining the various sectors
+RESTORE     sector
+PATBEG      i  35
+   RESTORE  sector
+   ROTATEY  10*i
+   UNION
+PATEND
+
+# trim the caps
+BOX   -20  -8  -20  40  16  40
+INTERSECT
+
+END

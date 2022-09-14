@@ -30,7 +30,7 @@ static void bubbleSort(int arr[], int n)
 
 
 // Generates the adjacency structure for HSM
-int hsm_Adjacency(meshStruct *feaMesh,
+int hsm_Adjacency(const meshStruct *feaMesh,
                   const int numJoint, // Number of joints
                   const int *kjoint,  // Joint connectivity
                   int *maxAdjacency,    // Max valence

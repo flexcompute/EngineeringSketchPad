@@ -23,6 +23,8 @@ UBOUND    aspect    10.00
 cfgpmtr   series            8412
 cfgpmtr   series2           0020
 cfgpmtr   sharpte           0
+cfgpmtr   aerosystem        1
+cfgpmtr   wake              1
 
 # Output Parameters:
 outpmtr  cmean
@@ -66,8 +68,10 @@ restore   HalfWing 0
 # Combine halfs into a whole
 join     0
 
-# Get body into a typical aero-system 
-rotatex 90 0 0
+# Get body into a typical aero-system
+ifthen aerosystem eq 1
+    rotatex 90 0 0
+endif
 
 # Store the wing 
 store     Wing 0 0
@@ -81,6 +85,13 @@ restore   Wing 0
     attribute AFLR4_Cmp_ID 1
     attribute AFLR4_Edge_Refinement_Weight 1
 
+# Set reference values on the wing
+    attribute capsReferenceArea     area
+    attribute capsReferenceChord    cmean
+    attribute capsReferenceSpan     span
+    attribute capsReferenceX        0.0
+    attribute capsMeshLength        cmean
+
 # Wing 2 -  Restore and scale, translate
 restore   Wing 0
     attribute capsGroup $Wing2
@@ -93,6 +104,18 @@ restore   Wing 0
     scale     0.4
     translate 10   0   0
 
+IFTHEN wake EQ 1
+   # Create a wake sheet for mesh clustering
+   BOX 13   -sspan   0    5  2*sspan  0
+       ATTRIBUTE capsGroup   $Wake
+       ATTRIBUTE capsMesh    $Wake
+       attribute capsAIM     capsAIM
+       ATTRIBUTE _name       $Wake
+       ATTRIBUTE AFLR_GBC    $TRANSP_UG3_GBC
+       ATTRIBUTE AFLR4_Cmp_ID 3
+       ATTRIBUTE PW:Baffle   $Baffle
+ENDIF
+
 # Create a bounding box as a farfied 
 sphere    0   0   0   80
     attribute capsGroup $Farfield
@@ -100,12 +123,6 @@ sphere    0   0   0   80
     attribute capsAIM capsAIM
     attribute _name       $Farfield
     attribute AFLR_GBC $FARFIELD_UG3_GBC
-    attribute AFLR4_Cmp_ID 3
-
-# Set reference values on the farfield
-    attribute capsReferenceArea     area
-    attribute capsReferenceChord    cmean
-    attribute capsReferenceSpan     span
-    attribute capsMeshLength        cmean
+    attribute AFLR4_Cmp_ID 4
 
 end

@@ -20,14 +20,70 @@ else
 ODIR  = .
 endif
 
-AFLR3_LIB  = -laflr3 -lsurf_auto_cpp -lsurf_auto -laflr4 -lrec3 -lotb
-AFLR3_LIB += -lug3 -lug -lanbl3 -laflr2c -lrec2 -lbl1
-AFLR3_LIB += -ldgeom -legen -lug2 -lice2 -lice3  -ldftr2 -ldftr3
+AFLR3_LIB  = -laflr3 -lsurf_auto_cpp -lsurf_auto -laflr4 -lrec3
+AFLR3_LIB += -lug3 -lug -lug_mp -lanbl3 -laflr2c -lrec2 -lbl1
+AFLR3_LIB += -ldgeom -lotb -legen -lug2 -lice2 -lice3  -ldftr2 -ldftr3
 AFLR3_LIB += -lug_io -lug_gq -lug_cpp -lcgns -lqtb
 
 ifeq ("$(ESP_ARCH)","LINUX64")
 AFLR3_LIB += -lrt
 endif
+
+# CAPS compiles egads_aflr4 library to use the latest egads.h file
+VPATH             = $(AFLR)/src/egads_aflr4
+EGADS_INC_FILES   = $(wildcard $(IDIR)/egads*.h)
+# EGADS_AFLR4_FILES = $(wildcard $(AFLR)/src/egads_aflr4/*.c)
+# EGADS_AFLR4_OBJS  = $(subst $(AFLR)/src/egads_aflr4,$(ODIR),$(EGADS_AFLR4_FILES:.c=.o))
+
+EGADS_AFLR4_FILES =               \
+EG_getEffBodyTopos.c              \
+egads_aflr4_check_tess_coord.c    \
+egads_aflr4_check_tess_ordering.c \
+egads_aflr4_get_bedge_coord.c     \
+egads_aflr4_get_edge_spacing.c    \
+egads_aflr4_get_faceOrder.c       \
+egads_aflr4_get_face_spacing.c    \
+egads_aflr4_get_surf_grid.c       \
+egads_aflr4_create_tess.c         \
+egads_aflr4_tess_to_dgeom.c       \
+egads_aflr4_version.c             \
+egads_auto_cad_geom_setup.c       \
+egads_cad_geom_add_attr.c         \
+egads_cad_geom_add_ff.c           \
+egads_cad_geom_add_ret_attr.c     \
+egads_cad_geom_bodyFlag.c         \
+egads_cad_geom_check_bc.c         \
+egads_cad_geom_data_cleanup.c     \
+egads_cad_geom_edgeData.c         \
+egads_cad_geom_edgeFace.c         \
+egads_cad_geom_edit.c             \
+egads_cad_geom_faceEdge.c         \
+egads_cad_geom_faceFace.c         \
+egads_cad_geom_faceFlag.c         \
+egads_cad_geom_faceLoop.c         \
+egads_cad_geom_file_read.c        \
+egads_cad_geom_file_write.c       \
+egads_cad_geom_idef2idef.c        \
+egads_cad_geom_loopEdge.c         \
+egads_cad_geom_nodeData.c         \
+egads_cad_geom_reset_attr.c       \
+egads_cad_geom_setup.c            \
+egads_cad_geom_write_topo_data.c  \
+egads_eval_curv_at_uv.c           \
+egads_eval_edge_arclen.c          \
+egads_eval_norm_at_uv.c           \
+egads_eval_uv_at_t.c              \
+egads_eval_uv_at_xyz.c            \
+egads_eval_uv_bounds.c            \
+egads_eval_xyz_at_u.c             \
+egads_eval_xyz_at_uv.c            \
+egads_face_node_map.c             \
+egads_get_model.c                 \
+egads_set_ext_cad_data.c
+
+EGADS_AFLR4_OBJS  = $(addprefix $(ODIR)/,$(EGADS_AFLR4_FILES:.c=.o))
+
+OBJS=$(EGADS_AFLR4_OBJS)
 
 ###############################################################################
 # Used to add debug information to AFLR3
@@ -41,11 +97,23 @@ endif
 #UG3_FILES=$(wildcard $(AFLR)/src/ug3/*.c)
 #UG3_OBJS=$(patsubst %.c,%.o,$(UG3_FILES))
 
-#VPATH    += $(AFLR)/src/ug_io
+#VPATH      += $(AFLR)/src/ug_io
 #UG_IO_FILES = $(wildcard $(AFLR)/src/ug_io/*.c)
 #UG_IO_OBJS  = $(subst $(AFLR)/src/ug_io,$(ODIR),$(UG_IO_FILES:.c=.o))
 
-#OBJS=$(AFLR3_OBJS) $(UG_OBJS) $(UG3_OBJS) $(UG_IO_OBJS)
+#VPATH    += $(AFLR)/src/otb
+#OTB_FILES = $(wildcard $(AFLR)/src/otb/*.c)
+#OTB_OBJS  = $(subst $(AFLR)/src/otb,$(ODIR),$(OTB_FILES:.c=.o))
+
+#VPATH      += $(AFLR)/src/dgeom
+#DGEOM_FILES = $(wildcard $(AFLR)/src/dgeom/*.c)
+#DGEOM_OBJS  = $(subst $(AFLR)/src/dgeom,$(ODIR),$(DGEOM_FILES:.c=.o))
+
+#VPATH      += $(AFLR)/src/aflr4
+#AFLR4_FILES = $(wildcard $(AFLR)/src/aflr4/*.c)
+#AFLR4_OBJS  = $(subst $(AFLR)/src/aflr4,$(ODIR),$(AFLR4_FILES:.c=.o))
+
+OBJS+=$(AFLR3_OBJS) $(UG_OBJS) $(UG3_OBJS) $(UG_IO_OBJS) $(AFLR4_OBJS) $(DGEOM_OBJS) $(OTB_OBJS)
 ###############################################################################
 
 $(LDIR)/aflr3AIM.so:	$(ODIR)/aflr3AIM.o $(ODIR)/aflr3_Interface.o \
@@ -57,12 +125,12 @@ $(LDIR)/aflr3AIM.so:	$(ODIR)/aflr3AIM.o $(ODIR)/aflr3_Interface.o \
 		$(AFLR3_LIB) $(AFLR3_LIB) $(AFLR3_LIB) -L$(LDIR) -lutils \
 		-laimUtil -locsm -legads -ludunits2 -ldl $(RPATH) $(CPPSLB) -lm
 
-$(ODIR)/aflr3AIM.o:	$(ODIR)/aflr3_version aflr3AIM.c $(IDIR)/capsTypes.h \
+$(ODIR)/aflr3AIM.o:	$(ODIR)/aflr3_version aflr3AIM.c aflr3_Interface.h $(IDIR)/capsTypes.h \
 			$(IDIR)/aimUtil.h $(IDIR)/aimMesh.h ../utils/meshUtils.h
 	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I../utils aflr3AIM.c \
 		-o $(ODIR)/aflr3AIM.o
 
-$(ODIR)/aflr3_Interface.o:	$(ODIR)/aflr3_version aflr3_Interface.c \
+$(ODIR)/aflr3_Interface.o:	$(ODIR)/aflr3_version aflr3_Interface.c aflr3_Interface.h \
 				../utils/meshUtils.h
 	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) \
 		-I$(AFLR)/src/aflr3 -I$(AFLR)/src -I../utils \
@@ -76,10 +144,9 @@ $(ODIR)/aflr3_version:	aflr3_version.c $(AFLR)/src/aflr3/aflr3_version.h
 		-o $(ODIR)/aflr3_version
 	$(ODIR)/aflr3_version
 
-ifdef OBJS
-$(ODIR)/%.o:	%.c
-	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I$(AFLR)/src $< -o $@
-endif
+# Build for each AFLR C source file
+$(ODIR)/%.o: %.c $(EGADS_INC_FILES) | $(ODIR)/aflr3_version
+	$(CC) -c $(COPTS) $(DEFINE) -w -I$(IDIR) -I$(AFLR)/src $< -o $@
 
 lint:
 	$(LINT) -I../../include -I$(IDIR) -I../utils -I$(AFLR)/src -I$(AFLR)/src/aflr3 $(wildcard *.c) -nullpass -exportlocal -bufferoverflowhigh

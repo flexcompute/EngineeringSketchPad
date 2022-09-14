@@ -29,9 +29,11 @@ EGADS_AFLR4_OBJS = 	\
 			$(ODIR)\egads_aflr4_check_tess_ordering.obj \
 			$(ODIR)\egads_aflr4_get_bedge_coord.obj \
 			$(ODIR)\egads_aflr4_get_edge_spacing.obj \
+			$(ODIR)\egads_aflr4_get_faceOrder.obj \
 			$(ODIR)\egads_aflr4_get_face_spacing.obj \
 			$(ODIR)\egads_aflr4_get_surf_grid.obj \
-			$(ODIR)\egads_aflr4_get_tess.obj \
+			$(ODIR)\egads_aflr4_create_tess.obj \
+			$(ODIR)\egads_aflr4_tess_to_dgeom.obj \
 			$(ODIR)\egads_aflr4_version.obj \
 			$(ODIR)\egads_auto_cad_geom_setup.obj \
 			$(ODIR)\egads_cad_geom_add_attr.obj \
@@ -55,13 +57,16 @@ EGADS_AFLR4_OBJS = 	\
 			$(ODIR)\egads_cad_geom_reset_attr.obj \
 			$(ODIR)\egads_cad_geom_setup.obj \
 			$(ODIR)\egads_cad_geom_write_topo_data.obj \
-			$(ODIR)\egads_eval_arclen.obj \
 			$(ODIR)\egads_eval_curv_at_uv.obj \
-			$(ODIR)\egads_eval_edge_uv.obj \
+			$(ODIR)\egads_eval_edge_arclen.obj \
 			$(ODIR)\egads_eval_norm_at_uv.obj \
+			$(ODIR)\egads_eval_uv_at_t.obj \
+			$(ODIR)\egads_eval_uv_at_xyz.obj \
 			$(ODIR)\egads_eval_uv_bounds.obj \
 			$(ODIR)\egads_eval_xyz_at_u.obj \
 			$(ODIR)\egads_eval_xyz_at_uv.obj \
+			$(ODIR)\egads_face_node_map.obj \
+			$(ODIR)\egads_get_model.obj \
 			$(ODIR)\egads_set_ext_cad_data.obj
 
 default: $(ODIR)\aflr4_version.exe $(LDIR)\aflr4AIM.dll $(LDIR)\AFLR.dll
@@ -88,7 +93,7 @@ $(ODIR)\aflr4_Interface.obj:	aflr4_Interface.c ..\utils\meshUtils.h
 
 # Compile each AFLR source file
 {$(AFLR)\src\egads_aflr4\}.c{$(ODIR)}.obj::
-	cl /c $(CPPOPT) /W0 /Fo"$(ODIR)"\ /Dstrcasecmp=stricmp -I$(IDIR) -I$(AFLR4)\src\egads_aflr4 $<
+	cl /c $(CPPOPT) /W0 /Fo"$(ODIR)"\ /Dstrcasecmp=stricmp -I$(IDIR) -I$(AFLR)\src\egads_aflr4 $<
 
 $(LDIR)\AFLR.dll: $(AFLR)\$(AFLR_ARCH)\bin\AFLR.dll
 	xcopy /Q /Y $(AFLR)\$(AFLR_ARCH)\bin\AFLR.dll $(LDIR)

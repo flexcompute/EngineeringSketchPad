@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <title>Flowchart</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="ESP-flowchart2.css">
+  </head>
+  <body>
+    <div class="container">
+      <div class="left-pane">
+
+      </div>
+      <div class="right-pane">
+        <div class="menu-div" id="menu-div">
+          <button class="toggle-btn" id="toggle-color" type="button">Toggle Color</button>
+          <button class="toggle-btn" id="toggle-stroke" type="button">Toggle Stroke</button>
+        </div>
+        <div class="svg-container" id="svg-div">
+          <svg id="viz-area"></svg>
+        </div>
+        <div class="textarea-container" id="textarea-container">
+          <div class="textarea" id="textarea">
+          </div>
+        </div>
+        <div class="hover-box" id="aim-hover" style="opacity:0">
+          <h3 id="hover-title"></h3>
+          <hr/>
+          <div class="hover-side">
+            <table id="aim-table-in">
+              <tr>
+                <th>Vars In</th>
+                <th>Value</th>
+              </tr>
+            </table>
+          </div>
+          <div class="hover-side">
+            <table id="aim-table-out">
+              <tr>
+                <th>Vars Out</th>
+                <th>Value</th>
+              </tr>
+            </table>
+          </div>
+        </div>
+        <div class="hover-box" id="link-hover" style="opacity:0">
+          <h3 id="hover-title"></h3>
+          <hr/>
+          <div class="hover-side">
+            <h4>Out</h4>
+            <ul class="link-vars" id="link-left-ul"></ul>
+          </div>
+          <div class="hover-side">
+            <h4>In</h4>
+            <ul class="link-vars" id="link-right-ul"></ul>
+          </div>
+        </div>
+        <div class="hover-box" id="geom-hover" style="opacity:0">
+          <h3 id="hover-title"></h3>
+          <hr/>
+          <div class="hover-side">
+            <h4>Bound</h4>
+            <ul class="link-vars" id="bound-ul"></ul>
+          </div>
+          <div class="hover-side">
+            <h4>Out</h4>
+            <ul class="link-vars" id="geom-left-ul"></ul>
+          </div>
+          <div class="hover-side">
+            <h4>In</h4>
+            <ul class="link-vars" id="geom-right-ul"></ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <template id="textbox-table-template">
+      <table class="textbox-table" id="textbox-in-table">
+        <thead class="table-head">
+          <tr>
+            <th>Vars In</th>
+            <th>Value</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <table class="textbox-table" id="textbox-out-table">
+        <thead class="table-head">
+          <tr>
+            <th>Vars Out</th>
+            <th>Value</th>
+            <th>Derivatives</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </template>
+    
+  </body>
+  <script src="ESP-flowchart-data.js"></script>
+  <!-- External libs -->
+  <script src="ESP-flowchart-dagre.js"></script>
+  <script src="ESP-flowchart-d3.js"></script>
+
+  <script src="ESP-flowchart2.js"></script>
+</html>

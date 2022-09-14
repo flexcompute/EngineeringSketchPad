@@ -6,7 +6,7 @@
  * Written by John Dannenhoffer @ Syracuse University &                       *
  *            Bob Haimes @ MIT                                                *
  *                                                                            *
- * Copyright 2011-2021, Massachusetts Institute of Technology                 *
+ * Copyright 2011-2022, Massachusetts Institute of Technology                 *
  * Licensed under The GNU Lesser General Public License, version 2.1          *
  * See http://www.opensource.org/licenses/lgpl-2.1.php                        *
  ******************************************************************************
@@ -3711,7 +3711,7 @@ sparseBCG(double   asmf[],                   /* (in)   sparse-matrix data */
     double      *z  = NULL;
     double      *zz = NULL;
 
-    double      err, rmin, rmax, check;
+    double      err, rmin, rmax;
     double      ak,        akden;
     double      bk, bknum, bkden;
     int         i, j, k, n, ipass, iter;
@@ -3917,7 +3917,10 @@ sparseBCG(double   asmf[],                   /* (in)   sparse-matrix data */
     status = PRM_NOTCONVERGED;
 
  cleanup:
+#ifdef DEBUG
     if (status == PRM_ZEROPIVOT || status == PRM_NOTCONVERGED) {
+        double check;
+      
         DPRINT1("Sparse matrix that caused status=%d", status);
 
         for (i = 0; i < ismf[0]-1; i++) {
@@ -3934,6 +3937,7 @@ sparseBCG(double   asmf[],                   /* (in)   sparse-matrix data */
             }
         }
     }
+#endif
 
     FREE(zz);
     FREE(z );

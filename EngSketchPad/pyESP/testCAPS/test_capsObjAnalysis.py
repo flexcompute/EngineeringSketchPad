@@ -54,7 +54,7 @@ class TestAnalysis(unittest.TestCase):
 #=============================================================================-
     # Same AIM twice
     def test_makeAnalysis(self):
-        problem = caps.open(self.projectName+str(self.iProb), None, self.file, 0); self.__class__.iProb += 1
+        problem = caps.open(self.projectName+str(self.iProb), None, caps.oFlag.oFileName, self.file, 0); self.__class__.iProb += 1
 
         analysis1 = problem.makeAnalysis("fun3dAIM", name = self.analysisDir);
         analysis2 = problem.makeAnalysis("fun3dAIM", name = self.analysisDir + str(self.iDir)); self.__class__.iDir += 1
@@ -78,7 +78,7 @@ class TestAnalysis(unittest.TestCase):
 #=============================================================================-
     # Multiple intents
     def test_multipleIntents(self):
-        problem = caps.open(self.projectName+str(self.iProb), None, self.file, 0); self.__class__.iProb += 1
+        problem = caps.open(self.projectName+str(self.iProb), None, caps.oFlag.oFileName, self.file, 0); self.__class__.iProb += 1
 
         analysis = None
         analysis = problem.makeAnalysis("fun3dAIM", name = self.analysisDir + str(self.iDir),
@@ -97,7 +97,7 @@ class TestAnalysis(unittest.TestCase):
 #=============================================================================-
     # get all bodies in the analysis
     def test_getBodies(self):
-        problem = caps.open(self.projectName+str(self.iProb), None, self.file, 0); self.__class__.iProb += 1
+        problem = caps.open(self.projectName+str(self.iProb), None, caps.oFlag.oFileName, self.file, 0); self.__class__.iProb += 1
 
         analysis = problem.makeAnalysis("fun3dAIM", name = self.analysisDir);
 
@@ -108,7 +108,7 @@ class TestAnalysis(unittest.TestCase):
 #=============================================================================-
     # Set analysis value with units
     def test_setInputUnits(self):
-        problem = caps.open(self.projectName+str(self.iProb), None, self.file, 0); self.__class__.iProb += 1
+        problem = caps.open(self.projectName+str(self.iProb), None, caps.oFlag.oFileName, self.file, 0); self.__class__.iProb += 1
         
         
         deg = caps.Unit("degree")
@@ -133,7 +133,7 @@ class TestAnalysis(unittest.TestCase):
 #=============================================================================-
     # Set/Unset analysis value
     def test_setUnsetInput(self):
-        problem = caps.open(self.projectName+str(self.iProb), None, self.file, 0); self.__class__.iProb += 1
+        problem = caps.open(self.projectName+str(self.iProb), None, caps.oFlag.oFileName, self.file, 0); self.__class__.iProb += 1
  
         analysis = problem.makeAnalysis("fun3dAIM", name = self.analysisDir + str(self.iDir)); self.__class__.iDir += 1
 
@@ -153,7 +153,7 @@ class TestAnalysis(unittest.TestCase):
 #=============================================================================-
     # Get a string and add it to another string -> Make sure byte<->str<->unicode is correct between Python 2 and 3
     def test_AnalysisString(self):
-        problem = caps.open(self.projectName+str(self.iProb), None, self.file, 0); self.__class__.iProb += 1
+        problem = caps.open(self.projectName+str(self.iProb), None, caps.oFlag.oFileName, self.file, 0); self.__class__.iProb += 1
  
         analysis = problem.makeAnalysis("fun3dAIM", name = self.analysisDir + str(self.iDir)); self.__class__.iDir += 1
 
@@ -169,7 +169,7 @@ class TestAnalysis(unittest.TestCase):
     # Get analysis out values
     def test_getAnalysisOutVal(self):
   
-        problem = caps.open(self.projectName+str(self.iProb), None, self.file, 0); self.__class__.iProb += 1
+        problem = caps.open(self.projectName+str(self.iProb), None, caps.oFlag.oFileName, self.file, 0); self.__class__.iProb += 1
  
         analysis = problem.makeAnalysis("fun3dAIM", name = self.analysisDir + str(self.iDir)); self.__class__.iDir += 1
 
@@ -184,7 +184,7 @@ class TestAnalysis(unittest.TestCase):
 #=============================================================================-
     def test_parent1(self):
         
-        problem = caps.open(self.projectName+str(self.iProb), None, self.file, 0); self.__class__.iProb += 1
+        problem = caps.open(self.projectName+str(self.iProb), None, caps.oFlag.oFileName, self.file, 0); self.__class__.iProb += 1
 
         analysis1 = problem.makeAnalysis("egadsTessAIM", name = self.analysisDir + str(self.iDir)); self.__class__.iDir += 1
 
@@ -278,7 +278,7 @@ class TestAnalysis(unittest.TestCase):
     # Get analysis info
     def test_getAnalysisInfo(self):
  
-        problem = caps.open(self.projectName+str(self.iProb), None, self.file, 0); self.__class__.iProb += 1
+        problem = caps.open(self.projectName+str(self.iProb), None, caps.oFlag.oFileName, self.file, 0); self.__class__.iProb += 1
 
         analysis = problem.makeAnalysis("fun3dAIM", 
                                         intent = ["CFD", "OML"],
@@ -361,7 +361,7 @@ class TestAnalysis(unittest.TestCase):
     # Save geometry
     def test_writeGeometry(self):
          
-        problem = caps.open(self.projectName+str(self.iProb), None, self.file, 0); self.__class__.iProb += 1
+        problem = caps.open(self.projectName+str(self.iProb), None, caps.oFlag.oFileName, self.file, 0); self.__class__.iProb += 1
  
         analysis = problem.makeAnalysis("fun3dAIM", name = self.analysisDir + str(self.iDir)); self.__class__.iDir += 1
 

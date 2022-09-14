@@ -17,7 +17,7 @@ class TestValue(unittest.TestCase):
         cls.projectName = "testProblem"
         cls.cleanUp()
 
-        cls.problemObj = caps.open(cls.projectName, None, cls.file, 0)
+        cls.problemObj = caps.open(cls.projectName, None, caps.oFlag.oFileName, cls.file, 0)
 
     @classmethod
     def tearDownClass(cls):
@@ -45,11 +45,17 @@ class TestValue(unittest.TestCase):
         ft = caps.Unit("ft")
 
         data = [0.0, 30000.0, 60000.0]*ft
-        value = self.problemObj.makeValue("Altitude1", caps.sType.USER, data)
+        value = self.problemObj.makeValue("Altitude1", caps.sType.PARAMETER, data)
         data_out = value.getValue()
         self.assertEqual(data, data_out)
         self.assertIsInstance(data_out, caps.Quantity)
         self.assertEqual(caps.Unit("ft"), data_out._units)
+        
+        # Test marking the value for deletion
+        value.markForDelete()
+        
+        value.info()
+
 
 #=============================================================================-
     # Set/Get values

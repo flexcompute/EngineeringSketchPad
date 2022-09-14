@@ -21,7 +21,7 @@ def which(program):
         return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
 
     try:
-        exe_file = os.path.join(ASTROS_ROOT, "astros.exe")
+        exe_file = os.path.join(ASTROS_ROOT, program)
         if is_exe(exe_file):
             return exe_file
     except:
@@ -96,6 +96,7 @@ class TestAstros(unittest.TestCase):
         astros.postAnalysis()
 
 
+#==============================================================================
     def test_Plate(self):
 
         filename = os.path.join("..","csmData","feaSimplePlate.csm")
@@ -172,6 +173,7 @@ class TestAstros(unittest.TestCase):
         # Run Free format
         astros.runAnalysis()
 
+#==============================================================================
     def test_Aeroelastic(self):
 
         filename = os.path.join("..","csmData","feaWingOMLAero.csm")

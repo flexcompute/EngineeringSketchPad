@@ -1,0 +1,12 @@
+# growing
+# written by John Dannenhoffer
+
+DESPMTR   xsize  0.1
+
+BOX       -1  -1  -1  2  2  2
+
+CYLINDER  -xsize/2 0 1  +xsize/2 0 1  0.25
+
+UNION
+
+END

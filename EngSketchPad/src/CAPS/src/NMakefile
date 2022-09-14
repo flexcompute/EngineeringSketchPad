@@ -3,6 +3,7 @@ IDIR  = $(ESP_ROOT)\include
 !include $(IDIR)\$(ESP_ARCH).$(MSVC)
 SDIR  = $(MAKEDIR)
 LDIR  = $(ESP_ROOT)\lib
+BDIR  = $(ESP_ROOT)\bin
 !IFDEF ESP_BLOC
 ODIR  = $(ESP_BLOC)\obj
 !ELSE
@@ -18,12 +19,13 @@ default:	$(IDIR)\caps.h $(IDIR)\capsErrors.h $(IDIR)\capsTypes.h \
 		$(IDIR)\aimUtil.h $(IDIR)\aimMesh.h \
 		start $(LDIR)\caps.dll $(LDIR)\capsstatic.lib \
 		$(LDIR)\testingAIM.dll $(LDIR)\testingWriter.dll \
-		$(LDIR)\aimUtil.lib end
+		$(LDIR)\aimUtil.lib $(BDIR)\phaseUtil.exe end
 !ELSE
 default:	$(IDIR)\caps.h $(IDIR)\capsErrors.h $(IDIR)\capsTypes.h \
 		$(IDIR)\aimUtil.h $(IDIR)\aimMesh.h \
 		$(LDIR)\caps.dll $(LDIR)\capsstatic.lib $(LDIR)\aimUtil.lib \
 		$(LDIR)\testingAIM.dll $(LDIR)\testingWriter.dll \
+		$(BDIR)\phaseUtil.exe
 !ENDIF
 
 start:
@@ -81,6 +83,13 @@ $(ODIR)\aimTransferUtil.obj:	aimTransferUtil.c $(IDIR)\capsTypes.h \
 	cl /c $(COPTS) $(DEFINE) /I$(IDIR) aimTransferUtil.c \
 			/Fo$(ODIR)\aimTransferUtil.obj
 
+$(BDIR)\phaseUtil.exe:	$(ODIR)\phaseUtil.obj $(LDIR)\caps.lib
+	cl /Fe$(BDIR)\phaseUtil.exe $(ODIR)\phaseUtil.obj \
+		$(LIBPTH) caps.lib egads.lib
+
+$(ODIR)\phaseUtil.obj:	phaseUtil.c $(IDIR)\capsTypes.h
+        cl /c $(COPTS) $(DEFINE) -I$(IDIR) phaseUtil.c /Fo$(ODIR)\phaseUtil.obj
+
 $(LDIR)\capsstatic.lib:	$(OBJS)
 	-del $(LDIR)\capsstatic.lib
 	lib /out:$(LDIR)\capsstatic.lib $(OBJS)
@@ -98,7 +107,7 @@ caps.res:	caps.rc
 
 $(OBJS): 	$(IDIR)\capsErrors.h $(IDIR)\capsTypes.h $(IDIR)\prm.h \
 		capsFunIDs.h capsBase.h $(IDIR)\OpenCSM.h $(IDIR)\common.h \
-		$(OBJS:.obj=.c)
+		$(IDIR)\caps.h $(OBJS:.obj=.c)
 	cl /c $(COPTS) $(DEFINE) /I$(IDIR) $*.c 
 
 end:
@@ -127,7 +136,7 @@ $(IDIR)\aimMesh.h:	..\include\aimMesh.h
 
 clean:
 	cd $(ODIR)
-	-del $(OBJS) testingAIM.obj testingWriter.obj aimUtil.obj aimMesh.obj aimTransferUtil.obj caps.res
+	-del $(OBJS) testingAIM.obj testingWriter.obj aimUtil.obj aimMesh.obj aimTransferUtil.obj phaseUtil.obj caps.res
 	cd $(SDIR)
 
 cleanall:	clean
@@ -135,3 +144,4 @@ cleanall:	clean
 	-del $(IDIR)\caps.h $(IDIR)\capsErrors.h $(IDIR)\capsTypes.h
 	-del $(IDIR)\aimUtil.h $(IDIR)\aimMesh.h $(LDIR)\testingWriter.dll
 	-del $(LDIR)\caps.dll $(LDIR)\caps.lib $(LDIR)\caps.exp
+	-del $(BDIR)\phaseUtil.exe

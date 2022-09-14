@@ -9,11 +9,11 @@ LIBS    = -lTKBool -lTKernel -lTKFeat -lTKBO -lTKGeomAlgo -lTKMath -lTKOffset -l
 else ifeq ($(CASREV),7.4)
 CPDS    = -std=c++11
 LIBS    = -lTKBool -lTKernel -lTKFeat -lTKBO -lTKGeomAlgo -lTKMath -lTKOffset -lTKPrim -lTKTopAlgo -lTKBRep -lTKG2d -lTKG3d -lTKGeomBase -lTKShHealing -lTKSTEP -lTKSTEP209 -lTKSTEPBase -lTKSTEPAttr -lTKXSBase -lTKIGES -lTKFillet
-else ifeq ($(CASREV),7.5)
+else ifeq ($(CASREV),7.6)
 CPDS    = -std=c++11
 LIBS    = -lTKBool -lTKernel -lTKFeat -lTKBO -lTKGeomAlgo -lTKMath -lTKOffset -lTKPrim -lTKTopAlgo -lTKBRep -lTKG2d -lTKG3d -lTKGeomBase -lTKShHealing -lTKSTEP -lTKSTEP209 -lTKSTEPBase -lTKSTEPAttr -lTKXSBase -lTKIGES -lTKFillet
 else 
-$(error Unsupported CASREV=$(CASREV) -- Must be one of: 7.3 7.4)
+$(error Unsupported CASREV=$(CASREV) -- Must be one of: 7.3 7.4 7.6)
 endif
 
 LIBS    += -pthread -lm

@@ -7,7 +7,8 @@
 
 typedef enum {UnknownBoundary, Inviscid, Viscous, Farfield, Extrapolate, Freestream,
               BackPressure, Symmetry, SubsonicInflow, SubsonicOutflow,
-              MassflowIn, MassflowOut, FixedInflow, FixedOutflow, MachOutflow} cfdSurfaceTypeEnum;
+              MassflowIn, MassflowOut, FixedInflow, FixedOutflow, MachOutflow,
+              Internal} cfdSurfaceTypeEnum;
 
 typedef enum {DesignVariableUnknown, DesignVariableGeometry, DesignVariableAnalysis} cfdDesignVariableTypeEnum;
 

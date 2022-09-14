@@ -19,15 +19,6 @@ typedef enum {UnknownMeshAnalysis, MeshCFD, MeshStructure, MeshOrigami} meshAnal
 //typedef enum {UnknownMeshDimension, TwoDimensional, ThreeDimensional} meshDimensionalityEnum;
 typedef enum {UnknownMeshType, Surface2DMesh, SurfaceMesh, VolumeMesh} meshTypeEnum;
 
-typedef struct {
-    // EGADS body tessellation storage
-    ego egadsTess; // EGADS body tessellation
-    int numTessFace; // Number of faces in the tessellation
-    int *tessFaceQuadMap; // List to keep track of whether or not the tessObj has quads that have been split into tris
-                       // size = [numTessFace]. In general if the quads have been split they should be added to the end
-                       // of the tri list in the face tessellation
-} bodyTessMappingStruct;
-
 // Container for boundary conditions
 typedef struct {
     int numBND;
@@ -271,7 +262,7 @@ struct meshStruct {
     int numElement;
     meshElementStruct *element; // size[numElement]
 
-    bodyTessMappingStruct bodyTessMap;
+    ego egadsTess; // EGADS body tessellation
 
     int numReferenceMesh; // Number of reference meshes
     meshStruct *referenceMesh; // Pointers to other meshes, should be freed but not individual references, size[numReferenceMesh]

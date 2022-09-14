@@ -22,7 +22,7 @@ endif
 
 AFLR4_LIB  = -laflr4 -laflr2c
 AFLR4_LIB += -lsurf_auto -lsurf_auto_cpp -laflr4 -laflr3
-AFLR4_LIB += -legen -lotb -lrec2 -lrec3 -ldftr3 -ldftr2 -ldgeom -lqtb
+AFLR4_LIB += -legen -lrec2 -lrec3 -ldftr3 -ldftr2 -ldgeom -lotb -lqtb
 AFLR4_LIB += -lice2 -lice3 -lug3 -lug2 -lug -lug_mp
 
 ifeq ("$(ESP_ARCH)","LINUX64")
@@ -35,46 +35,50 @@ EGADS_INC_FILES   = $(wildcard $(IDIR)/egads*.h)
 # EGADS_AFLR4_FILES = $(wildcard $(AFLR)/src/egads_aflr4/*.c)
 # EGADS_AFLR4_OBJS  = $(subst $(AFLR)/src/egads_aflr4,$(ODIR),$(EGADS_AFLR4_FILES:.c=.o))
 
-EGADS_AFLR4_FILES = \
-EG_getEffBodyTopos.c \
-egads_aflr4_check_tess_coord.c \
+EGADS_AFLR4_FILES =               \
+EG_getEffBodyTopos.c              \
+egads_aflr4_check_tess_coord.c    \
 egads_aflr4_check_tess_ordering.c \
-egads_aflr4_get_bedge_coord.c \
-egads_aflr4_get_edge_spacing.c \
-egads_aflr4_get_face_spacing.c \
-egads_aflr4_get_surf_grid.c \
-egads_aflr4_get_tess.c \
-egads_aflr4_version.c \
-egads_auto_cad_geom_setup.c \
-egads_cad_geom_add_attr.c \
-egads_cad_geom_add_ff.c \
-egads_cad_geom_add_ret_attr.c \
-egads_cad_geom_bodyFlag.c \
-egads_cad_geom_check_bc.c \
-egads_cad_geom_data_cleanup.c \
-egads_cad_geom_edgeData.c \
-egads_cad_geom_edgeFace.c \
-egads_cad_geom_edit.c \
-egads_cad_geom_faceEdge.c \
-egads_cad_geom_faceFace.c \
-egads_cad_geom_faceFlag.c \
-egads_cad_geom_faceLoop.c \
-egads_cad_geom_file_read.c \
-egads_cad_geom_file_write.c \
-egads_cad_geom_idef2idef.c \
-egads_cad_geom_loopEdge.c \
-egads_cad_geom_nodeData.c \
-egads_cad_geom_reset_attr.c \
-egads_cad_geom_setup.c \
-egads_cad_geom_write_topo_data.c \
-egads_eval_arclen.c \
-egads_eval_curv_at_uv.c \
-egads_eval_edge_uv.c \
-egads_eval_norm_at_uv.c \
-egads_eval_uv_at_xyz.c \
-egads_eval_uv_bounds.c \
-egads_eval_xyz_at_u.c \
-egads_eval_xyz_at_uv.c \
+egads_aflr4_get_bedge_coord.c     \
+egads_aflr4_get_edge_spacing.c    \
+egads_aflr4_get_faceOrder.c       \
+egads_aflr4_get_face_spacing.c    \
+egads_aflr4_get_surf_grid.c       \
+egads_aflr4_create_tess.c         \
+egads_aflr4_tess_to_dgeom.c       \
+egads_aflr4_version.c             \
+egads_auto_cad_geom_setup.c       \
+egads_cad_geom_add_attr.c         \
+egads_cad_geom_add_ff.c           \
+egads_cad_geom_add_ret_attr.c     \
+egads_cad_geom_bodyFlag.c         \
+egads_cad_geom_check_bc.c         \
+egads_cad_geom_data_cleanup.c     \
+egads_cad_geom_edgeData.c         \
+egads_cad_geom_edgeFace.c         \
+egads_cad_geom_edit.c             \
+egads_cad_geom_faceEdge.c         \
+egads_cad_geom_faceFace.c         \
+egads_cad_geom_faceFlag.c         \
+egads_cad_geom_faceLoop.c         \
+egads_cad_geom_file_read.c        \
+egads_cad_geom_file_write.c       \
+egads_cad_geom_idef2idef.c        \
+egads_cad_geom_loopEdge.c         \
+egads_cad_geom_nodeData.c         \
+egads_cad_geom_reset_attr.c       \
+egads_cad_geom_setup.c            \
+egads_cad_geom_write_topo_data.c  \
+egads_eval_curv_at_uv.c           \
+egads_eval_edge_arclen.c          \
+egads_eval_norm_at_uv.c           \
+egads_eval_uv_at_t.c              \
+egads_eval_uv_at_xyz.c            \
+egads_eval_uv_bounds.c            \
+egads_eval_xyz_at_u.c             \
+egads_eval_xyz_at_uv.c            \
+egads_face_node_map.c             \
+egads_get_model.c                 \
 egads_set_ext_cad_data.c
 
 EGADS_AFLR4_OBJS  = $(addprefix $(ODIR)/,$(EGADS_AFLR4_FILES:.c=.o))
@@ -133,7 +137,7 @@ $(ODIR)/aflr4_version:	aflr4_version.c $(AFLR)/src/aflr4/aflr4_version.h
 	$(ODIR)/aflr4_version
 
 # Build for each AFLR C source file
-$(ODIR)/%.o: %.c $(ODIR)/aflr4_version $(EGADS_INC_FILES)
+$(ODIR)/%.o: %.c $(EGADS_INC_FILES) | $(ODIR)/aflr4_version
 	$(CC) -c $(COPTS) $(DEFINE) -w -I$(IDIR) -I$(AFLR)/src $< -o $@
 
 ifdef OBJSP

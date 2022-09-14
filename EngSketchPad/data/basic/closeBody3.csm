@@ -1,0 +1,36 @@
+# closeBody3
+# written by John Dannenhoffer
+
+# get the original open Body
+IMPORT    $/closeBody.stp
+STORE     body 0 1
+
+# find the non-manifold Edges
+SELECT    edge   $_nface 1
+
+# make a WireBody (EXTRACT) and then SheetBody (COMBINE) from these Edges
+DIMENSION edges  1  @sellist.size
+PATBEG    i  @sellist.size
+   SET    edges[i]  -@sellist[i]
+PATEND
+EXTRACT   edges
+STORE     edges 0 1
+SET       dx    @xmax-@xmin
+
+# make a flattened version of these Edges and then translate
+UDPRIM    nuscale   xscale  0   xcent  @xcg
+TRANSLATE dx  0  0
+
+# convert into a SheetBody
+COMBINE
+
+# make a new SheetBody
+RESTORE   edges
+RULE
+
+# join with original SheetBody and promote to a SolidBody
+RESTORE   body
+JOIN      1e-4
+COMBINE
+
+END

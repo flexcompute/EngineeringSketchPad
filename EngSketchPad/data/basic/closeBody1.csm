@@ -1,0 +1,31 @@
+# closeBody1
+# written by John Dannenhoffer
+
+# get the original open Body
+IMPORT    $/closeBody.stp
+STORE     body 0 1
+
+# find the non-manifold Edges
+SELECT    edge   $_nface 1
+
+# make a WireBody from these Edges
+DIMENSION edges  1  @sellist.size
+PATBEG    i  @sellist.size
+   SET    edges[i]  -@sellist[i]
+PATEND
+EXTRACT   edges
+
+# create a Point at the centroid
+POINT     @xcg  @ycg  @zcg
+
+# make a ruled SheetBody
+RULE
+
+# join the new SheetBody to the original SheetBody
+RESTORE   body
+JOIN      1e-4
+
+# promote to a SolidBody
+COMBINE
+
+END

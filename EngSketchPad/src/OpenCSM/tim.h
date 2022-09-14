@@ -9,7 +9,7 @@
  */
 
 /*
- * Copyright (C) 2010/2021  John F. Dannenhoffer, III (Syracuse University)
+ * Copyright (C) 2010/2022  John F. Dannenhoffer, III (Syracuse University)
  *
  * This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
@@ -46,31 +46,42 @@
 
 /* open a tim instance */
 extern int
-tim_load(char   timName[],              /* (in)  name of tim */
-         esp_T  *TIM,                   /* (in)  pointer to TIM structure */
+tim_load(char   timName[],              /* (in)  name of TIM */
+         esp_T  *ESP,                   /* (in)  pointer to ESP structure */
 /*@null@*/void  *data);                 /* (in)  user-provided data */
 
-/* save tim data and close tim instance */
-extern int
-tim_save(char   timName[]);             /* (in)  name of tim */
-
-/* close tim instance without saving */
-extern int
-tim_quit(char   timName[]);             /* (in)  name of tim */
-
 /* get command, process, and return response */
-extern int
-tim_mesg(char   timName[],              /* (in)  name of tim */
-         char   command[],              /* (in)  command to process */
-         int    *len_response,           /* (in)  length of response */
-         char   *response[]);            /* (out) response */
+/*@null@*/extern int
+tim_mesg(char   timName[],              /* (in)  name of TIM */
+         char   command[]);             /* (in)  command to process */
 
-/* return pointer to TIM structure */
-extern int
-tim_data(char   timName[],
-         esp_T  **TIM);
+/* set a lock on all TIMs */
+extern void
+tim_lock();
 
-/* free up all tim data */
+/* hold a TIM until the lock is lifted */
+extern int
+tim_hold(char   timName[],              /* (in)  name of TIM to hold */
+         char   overlay[]);             /* (in)  name of overlay to lift hold */
+
+/* lift the hold on a TIM */
+extern int
+tim_lift(char   timName[]);             /* (in)  name of TIM to unlock */
+
+/* broadcast a message to all browsers */
+extern int
+tim_bcst(char   timName[],              /* (in)  name of TIM */
+         char   text[]);                /* (in)  text to broadcast */
+
+/* save TIM data and close TIM instance */
+extern int
+tim_save(char   timName[]);             /* (in)  name of TIM */
+
+/* close TIM instance without saving */
+extern int
+tim_quit(char   timName[]);             /* (in)  name of TIM */
+
+/* free up all TIM data */
 extern void
 tim_free();
 
@@ -84,20 +95,19 @@ tim_free();
  */
 
 int
-timLoad(esp_T  *TIM,
-/*@null@*/void *data);
+timLoad(esp_T  *TIM,                    /* (in)  pointer to ESP structure */
+/*@null@*/void *data);                  /* (in)  TIM-specific structure */
 
 int
-timSave(esp_T  *TIM);
+timMesg(esp_T  *TIM,                    /* (in)  pointer to ESP structure */
+        char   command[]);              /* (in)  caommand to execute */
 
 int
-timQuit(esp_T  *TIM);
+timSave(esp_T  *TIM);                   /* (in)  pointer to ESP structure */
 
 int
-timMesg(esp_T  *TIM,
-        char   command[],
-        int    *len_response,
-        char   *response[]);
+timQuit(esp_T  *TIM,                    /* (in)  pointer to ESP structure */
+        int    unload);                 /* (in)  flag to unload */
 
 /*
  ************************************************************************
@@ -107,6 +117,20 @@ timMesg(esp_T  *TIM,
  ************************************************************************
  */
 
-extern int GetToken(char text[], int nskip, char sep, char token[]);
+extern int
+GetToken(char text[],                   /* (in)  original string */
+         int  nskip,                    /* (in)  number of separators to skip */
+         char sep,                      /* (in)  separator character */
+         char *token[]);                /* (in)  token (freeable) */
+
+// values for timState[]
+#define TIM_NOTAVAIL  -1
+#define TIM_INACTIVE   0
+#define TIM_LOADING    1
+#define TIM_READY      2
+#define TIM_EXECUTING  3
+#define TIM_CLOSING    4
+
+// value for TIM errors
 
 #endif

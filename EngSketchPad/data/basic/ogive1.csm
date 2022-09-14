@@ -1,0 +1,39 @@
+# ogive1
+# original contribution from a user
+
+#input takes in a circle of radius r
+DESPMTR length 1
+DESPMTR radius 0.2
+CFGPMTR type 1
+DESPMTR resolution 404
+
+DIMENSION x_array resolution 1
+DIMENSION y_array resolution 1
+DIMENSION sketch_array resolution 2
+
+
+set rho (radius^2+length^2)/(2*radius)
+
+PATBEG i x_array.size
+   set x_array[i] length/(x_array.size-1)*(i-1);
+   set y_array[i] sqrt(rho^2-(length-x_array[i])^2)+radius-rho;
+   set sketch_array[i,1] x_array[i];
+   set sketch_array[i,2] y_array[i];
+PATEND
+
+skbeg 0 0 0
+   PATBEG i x_array.size-1
+      linseg sketch_array[i+1,1] sketch_array[i+1,2] 0;
+   PATEND
+   linseg length 0 0;
+   linseg 0 0 0;
+skend
+
+REVOLVE 0 0 0 1 0 0 180
+SELECT body
+STORE $body
+RESTORE $body
+RESTORE $body
+MIRROR 0 0 1
+UNION
+END

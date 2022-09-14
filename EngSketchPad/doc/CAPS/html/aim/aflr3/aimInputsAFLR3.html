@@ -67,12 +67,9 @@ $(function() {
 </div><!--header-->
 <div class="contents">
 <div class="textblock"><p>The following list outlines the AFLR3 meshing options along with their default value available through the AIM interface.</p>
-<p>Please consult the <a href="https://www.simcenter.msstate.edu/software/documentation/aflr4/index.html">AFLR4 documentation</a> for default values not present here.</p>
 <ul>
 <li><b> Proj_Name = NULL</b> <br  />
  This corresponds to the output name of the mesh. If left NULL, the mesh is not written to a file.</li>
-<li><b> Tess_Params = [0.025, 0.001, 15.0]</b> <br  />
- Body tessellation parameters. Tess_Params[0] and Tess_Params[1] get scaled by the bounding box of the body. (From the EGADS manual) A set of 3 parameters that drive the EDGE discretization and the FACE triangulation. The first is the maximum length of an EDGE segment or triangle side (in physical space). A zero is flag that allows for any length. The second is a curvature-based value that looks locally at the deviation between the centroid of the discrete object and the underlying geometry. Any deviation larger than the input value will cause the tessellation to be enhanced in those regions. The third is the maximum interior dihedral angle (in degrees) between triangle facets (or Edge segment tangents for a WIREBODY tessellation), note that a zero ignores this phase.</li>
 <li><b> Mesh_Quiet_Flag = False</b> <br  />
  Suppression of mesh generator (not including errors)</li>
 <li><b> Mesh_Format = "AFLR3"</b> <br  />
@@ -86,11 +83,11 @@ $(function() {
 <li><b>Mesh_Sizing = NULL </b> <br  />
  See <a class="el" href="meshSizingProp.html">Mesh Sizing</a> for additional details.</li>
 <li><b> BL_Initial_Spacing = 0.0</b> <br  />
- Initial mesh spacing when growing a boundary layer that is applied to all bodies. <br  />
+ Initial mesh spacing when growing a boundary layer that is applied to all bodies (scaled by capsMeshLength). <br  />
 <br  />
  Note: Both "BL_Initial_Spacing" and "BL_Thickness" must be non-zero for values to be applied. If "Multiple_Mesh" is False (default value) these values will not be applied to the largest body (if more than 1 body exist in the AIM), as that body is assumed to be a bounding box (e.g. a farfield boundary in a CFD simulation). Boundary spacing and thickness specified through the use of the "Mesh_Sizing" input (see <a class="el" href="meshSizingProp.html">Mesh Sizing</a> for additional details) will take precedence over the values specified for "BL_Initial_Spacing" and "BL_Thickness".</li>
 <li><b> BL_Thickness = 0.0</b> <br  />
- Total boundary layer thickness that is applied to all bodies. <br  />
+ Total boundary layer thickness that is applied to all bodies (scaled by capsMeshLength). <br  />
  This is a lower bound on the desired thickness. The height can be limited with "nbl".<br  />
 <br  />
  Note: see "BL_Initial_Spacing" and "BL_Max_Layers" for additional details</li>
@@ -110,7 +107,7 @@ $(function() {
 </div><!-- PageDoc -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Fri Sep 17 2021 06:42:45 for AFLR3 Analysis Interface Module (AIM) by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1
+Generated on Sat Jul 2 2022 10:13:04 for AFLR3 Analysis Interface Module (AIM) by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1
 </small></address>
 </body>
 </html>

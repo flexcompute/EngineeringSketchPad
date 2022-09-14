@@ -1,0 +1,90 @@
+
+
+		***  JULIA EGADS: quick user guide ***
+
+
+1. All EGADS functions EG_*(args) can be called after importing the egads module as *(args): 
+	C: EG_getArea(args)
+	jl: egads.area(args)
+
+
+2. You can query what any function does & return using the help command
+	(in open Julia session) julia> ?egads.getArea 
+
+
+3. Functions don't return status (as opposed to EG_() which returns icode)
+	** It will raise an internal error if something went wrong
+
+
+4. - C- pointers: egos are wrapped in Julia structures: Cego for objects, Ccontext for context
+
+   - Parameters in EG_*(...) that are NULL pointers to be filled become return arguments in Julia
+	C:  icode     = EG_flipObject(const ego object, ego *newObject). # here *newObject is empty
+	jl: newObject = J_flipObject(object::Cego)  
+		**The actual pointer can be accessed via newObject.obj
+
+
+6. Array size as input parameters:
+
+  In Julia the size / length of any array can be retrieved by size(arr), length(arr).
+  Parameters in EG_*() with information about the array size, are excluded in egads.*()
+
+	icode = EG_getTessQuads(ego tess, int *nface, int **fList)
+	fList = egads.getTessQuads(Cego tess)	# Find out length: nface = length(fList)
+
+
+7. Returned variables: pack & unpack:
+
+   (1) use a single variable in return and access its names 
+   (2) declare as many variables in return as needed
+   
+	info = egads.invEvaluate(obj, pos) 
+         a,b  = egads.invEvaluate(obj, pos)
+	info.params = a ; info.result = b
+	
+
+8. Functions with optional && default arguments
+   -----------------------------------------------------------------------------
+   Varargs function example: foo (a, b ; c = opt_1, d = opt_2)
+   Here a, b are required arguments and c is optional
+   $foo(2,3) # no extra arguments
+   $foo(2,3; c = 4) # Inside foo(), if c was given, it does something with it.
+   !! For multiple optional arguments, the order doesn't matter. The name does!
+   -----------------------------------------------------------------------------
+
+   Example: EG_makeTopology(ego context, ego geom, int oclass, int mtype, double *reals, 
+                           int nchild, ego *children, int *senses, ego *topo);
+
+	- Fixed: context, oclass
+      	- Optional: geom, mtype, reals, nchild, children, senses
+      	- *topo is a return pointer
+
+   Create a node: 
+   C:	icode = EG_makeTopology(context,NULL,NODE,0,xyz,0,NULL,NULL,topo)
+   jl:	info  = egads.makeTopology(context, NODE ; reals=xyz)
+
+   !! Use the help command ? to see required / optional parameters 
+
+
+9. Array dimensions: flat vectors from EG_() become matrices in egads.*()
+ 
+  Example:
+      C: icode = EG_getTessGeom(tess, sizes, xyzs)  # xyzs is length 3 * sizes
+      jl: xyzs = egads.getTessGeom(tess) 	    # xyzs is length [3][sizes] 
+
+   ** If a C-call required flat information and input is 2D matrix, it's OK.
+      Inside the egads.*() call, matrices are flattened.
+
+
+10. Evaluate geometry: info = egads.evaluate(geom, param)
+
+   CURVES:	
+	info.X   = xyz[1:3]  
+	info.dX  = xyz[4:6]
+	info.ddX = xyz[7:9]
+
+   SURFACES: 
+	info.X   = xyz[1:3]
+	info.dX  = [xyz[4:6],xyz[7:9]]		        # dX[1] = dSdu ; dX[2] = dSdv    
+	info.ddX = [xyz[10:12],xyz[13:15], xyz[16:18]]  # ddX[1] = dSduu ; ddX[2] = dSduv ; ddX[3] = dSdvv
+

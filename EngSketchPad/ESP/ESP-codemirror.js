@@ -1326,7 +1326,7 @@ function e_defaultPrevented(e) {
 }
 function e_stop(e) {e_preventDefault(e); e_stopPropagation(e)}
 
-function e_target(e) {return e.target || e.srcElement}
+function e_target(e) {return e.target || e.target}
 function e_button(e) {
   var b = e.which
   if (b == null) {

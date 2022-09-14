@@ -1,0 +1,67 @@
+# pipeNetwork3
+# written by John Dannenhoffer
+
+# inlet
+SKBEG       0  -2   0
+   LINSEG   0   0   1
+   LINSEG   0   2   0
+SKEND
+SELECT    EDGE
+ATTRIBUTE _color $blue
+
+SKBEG      -2   0   0
+   LINSEG   0   0   1
+   LINSEG   2   0   0
+SKEND
+SELECT    EDGE
+ATTRIBUTE _color $blue
+
+SKBEG       0   0   1
+   LINSEG   0   0   2
+SKEND
+SELECT    EDGE
+ATTRIBUTE _color $magenta
+
+# manifold
+SKBEG      -2  -2   0
+   LINSEG   0  -2   0
+   LINSEG   2  -2   0
+   LINSEG   2   0   0
+   LINSEG   2   2   0
+   LINSEG   0   2   0
+   LINSEG  -2   2   0
+   LINSEG  -2   0   0
+   LINSEG  -2  -2   0
+SKEND     1
+SELECT    EDGE
+ATTRIBUTE _color $red
+
+# outlets
+SKBEG      -2  -2   0
+   LINSEG  -3  -3   0
+SKEND
+SELECT    EDGE
+ATTRIBUTE _color $green
+
+SKBEG       2  -2   0
+   LINSEG   3  -3   0
+SKEND
+SELECT    EDGE
+ATTRIBUTE _color $green
+
+SKBEG       2   2   0
+   LINSEG   3   3   0
+SKEND
+SELECT    EDGE
+ATTRIBUTE _color $green
+
+SKBEG      -2   2   0
+   LINSEG  -3   3   0
+SKEND
+SELECT    EDGE
+ATTRIBUTE _color $green
+
+# combine the pipes into a network
+COMBINE
+
+END

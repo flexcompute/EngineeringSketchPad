@@ -1,0 +1,41 @@
+# sharpFin
+# written by John Dannenhoffer
+
+# lower surface SheetBody
+MARK
+   SKBEG     0    0  0
+      LINSEG 1  -.1  0
+      LINSEG 2    0  0
+   SKEND
+   STORE     lower   0  1
+
+   SKBEG     0    0  5
+      LINSEG 1    0  5
+      LINSEG 2    0  5
+   SKEND
+RULE
+
+# upper surface SheetBody
+MARK
+   SKBEG     0    0  0
+      LINSEG 1  +.1  0
+      LINSEG 2    0  0
+   SKEND
+   STORE     upper   0  1
+   
+   SKBEG     0    0  5
+      LINSEG 1    0  5
+      LINSEG 2    0  5
+   SKEND
+RULE
+
+# base SheetBody
+MARK
+   RESTORE   lower   0
+   RESTORE   upper   0
+COMBINE
+
+# combine all three SheetBodys into a SolidBody
+COMBINE
+
+END

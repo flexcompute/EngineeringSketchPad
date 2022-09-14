@@ -3,7 +3,7 @@
  *
  *             Manipulate the Tessellation of a Face
  *
- *      Copyright 2011-2021, Massachusetts Institute of Technology
+ *      Copyright 2011-2022, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -95,6 +95,33 @@ __PROTO_H_AND_D__ double EG_orienTri(double *t0, double *t1, double *t2);
   __device__
 #endif
   static int sides[3][2] = {{1,2}, {2,0}, {0,1}};
+
+
+#ifdef WRITETRIS
+static void
+EG_writeTris(triStruct *ts, const char *filename)
+{
+  int  k;
+  FILE *fp;
+  
+  fp = fopen(filename, "w");
+  if (fp == NULL) {
+    printf(" EGADS ERROR: Opening %s!\n", filename);
+    return;
+  }
+  fprintf(fp, "1\n");  /* number of bodies */
+  fprintf(fp, "1\n");  /* number of Faces */
+  fprintf(fp, "%d %d\n", ts->nverts, ts->ntris);
+  for (k = 0; k < ts->nverts; k++)
+    fprintf(fp, "%lf %lf %lf\n", ts->verts[k].xyz[0], ts->verts[k].xyz[1],
+            ts->verts[k].xyz[2]);
+  for (k = 0; k < ts->ntris; k++)
+    fprintf(fp, "%d %d %d\n", ts->tris[k].indices[0], ts->tris[k].indices[1],
+            ts->tris[k].indices[2]);
+  
+  fclose(fp);
+}
+#endif
 
 
 #ifdef DEBUG
@@ -1974,6 +2001,7 @@ EG_addFacetNorm(triStruct *ts)
     mid[0] = ts->tris[t1].mid[0];
     mid[1] = ts->tris[t1].mid[1];
     mid[2] = ts->tris[t1].mid[2];
+/*  if (EG_inTri(t1, mid, 0.1, ts) == 1) continue;  */
     if (DIST2(ts->verts[i0].xyz, mid) < 0.001*ts->edist2) continue;
     if (DIST2(ts->verts[i1].xyz, mid) < 0.001*ts->edist2) continue;
     if (DIST2(ts->verts[i2].xyz, mid) < 0.001*ts->edist2) continue;
@@ -2014,10 +2042,12 @@ EG_addFacetNorm(triStruct *ts)
 
       d = EG_dotNorm(ts->verts[i0-1].xyz, ts->verts[i1-1].xyz,
                      ts->verts[i2-1].xyz, ts->verts[i3-1].xyz);
+      if (d < 0.0) break;
       if (d < dot) 
         if (EG_dotNorm(mid,                 ts->verts[i1-1].xyz,
                        ts->verts[i2-1].xyz, ts->verts[i3-1].xyz) > d) dot = d;
     }
+    if (side != 3) continue;
     /* is the minimum dot bigger than the threshold? */
     if (dot+ANGTOL > ts->dotnrm) continue;
 
@@ -2141,13 +2171,10 @@ EG_splitInter(int sideMid, /*@null@*/ double *aux, int cnt, triStruct *ts)
     uv[1]  = 0.5*(ts->verts[i1-1].uv[1] + ts->verts[i2-1].uv[1]);
     status = EG_evaluate(ts->face, uv, point);
     if (status != EGADS_SUCCESS) continue;
-    if (aux == NULL) {
-      if (EG_dotNorm(ts->verts[i0-1].xyz, point,
-                     ts->verts[i2-1].xyz, ts->verts[i3-1].xyz) <= 0.1) continue;
-      if (EG_dotNorm(ts->verts[i0-1].xyz, ts->verts[i1-1].xyz,
-                     point,               ts->verts[i3-1].xyz) <= 0.1) continue;
-    }
-
+    if (EG_dotNorm(ts->verts[i0-1].xyz, point,
+                   ts->verts[i2-1].xyz, ts->verts[i3-1].xyz) <= 0.1) continue;
+    if (EG_dotNorm(ts->verts[i0-1].xyz, ts->verts[i1-1].xyz,
+                   point,               ts->verts[i3-1].xyz) <= 0.1) continue;
     if (EG_splitSide(t1, side, t2, sideMid, ts) == EGADS_SUCCESS) {
       EG_floodTriGraph(t1, FLOODEPTH, ts);
       EG_floodTriGraph(t2, FLOODEPTH, ts);
@@ -2156,6 +2183,20 @@ EG_splitInter(int sideMid, /*@null@*/ double *aux, int cnt, triStruct *ts)
         aux[3*i1  ] = aux[3*i1+1] = aux[3*i1+2] = 0.0;
         status = EG_evaluate(ts->face, ts->verts[i1].uv, point);
         if (status == EGADS_SUCCESS) {
+          dist       = DOT(deru, deru);
+          if (dist  != 0.0) {
+            dist     = 1.0/sqrt(dist);
+            deru[0] *= dist;
+            deru[1] *= dist;
+            deru[2] *= dist;
+          }
+          dist       = DOT(derv, derv);
+          if (dist  != 0.0) {
+            dist     = 1.0/sqrt(dist);
+            derv[0] *= dist;
+            derv[1] *= dist;
+            derv[2] *= dist;
+          }
           CROSS(norm, deru, derv);
           aux[3*i1  ] = norm[0];
           aux[3*i1+1] = norm[1];
@@ -2299,11 +2340,9 @@ EG_addSideDist(int iter, double maxlen2, int sideMid, triStruct *ts)
       for (j = 0; j < 3; j++) {
         d = ts->tris[i].mid[j];
 /*
-        if (d == 0.0) {
+        if (d == 0.0)
           printf(" EGADS warning: Face %d tri %d side %d -- len = 0.0!\n",
-                 ts->fIndex, ts->fIndex, i, j);
-          return 0;
-        }
+                 ts->fIndex, i, j);
  */
         if (d <= cmp) continue;
         if (d > dist) {
@@ -2356,7 +2395,7 @@ EG_tessellate(int outLevel, triStruct *ts, long tID)
   int    i, j, k, l, stri, i0, i1, last, split, count, lsplit, qi1, qi3;
   int    eg_split, sideMid, badStart = 0;
   double result[18], trange[2], laccum, dist, lang, maxlen2, dot, xvec[3];
-  double norm[3], *deru, *derv, *aux;
+  double norm[3], nrm[3], x1[3], x2[3], *deru, *derv, *aux;
   triTri *tt;
 
   ts->edist2 = 0.0;             /* average edge segment length */
@@ -2632,6 +2671,20 @@ EG_tessellate(int outLevel, triStruct *ts, long tID)
             printf(" EGADS Internal: Face %d EG_evaluate %lf %lf = %d\n",
                    ts->fIndex, ts->verts[i].uv[0], ts->verts[i].uv[1], status);
           continue;
+        }
+        dist       = DOT(deru, deru);
+        if (dist  != 0.0) {
+          dist     = 1.0/sqrt(dist);
+          deru[0] *= dist;
+          deru[1] *= dist;
+          deru[2] *= dist;
+        }
+        dist       = DOT(derv, derv);
+        if (dist  != 0.0) {
+          dist     = 1.0/sqrt(dist);
+          derv[0] *= dist;
+          derv[1] *= dist;
+          derv[2] *= dist;
         }
         CROSS(norm, deru, derv);
         aux[3*i  ] = norm[0];
@@ -2957,7 +3010,39 @@ EG_tessellate(int outLevel, triStruct *ts, long tID)
 
   } else {
 
-    /* planar surfaces */
+    /* planar surfaces -- check for inversions */
+    
+    norm[0] = norm[1] = norm[2] = 0.0;
+    for (flag = i = 0; i < ts->ntris; i++) {
+      n0    = ts->tris[i].indices[0];
+      n1    = ts->tris[i].indices[1];
+      n2    = ts->tris[i].indices[2];
+      x1[0] = ts->verts[n1-1].xyz[0] - ts->verts[n0-1].xyz[0];
+      x2[0] = ts->verts[n2-1].xyz[0] - ts->verts[n0-1].xyz[0];
+      x1[1] = ts->verts[n1-1].xyz[1] - ts->verts[n0-1].xyz[1];
+      x2[1] = ts->verts[n2-1].xyz[1] - ts->verts[n0-1].xyz[1];
+      x1[2] = ts->verts[n1-1].xyz[2] - ts->verts[n0-1].xyz[2];
+      x2[2] = ts->verts[n2-1].xyz[2] - ts->verts[n0-1].xyz[2];
+      CROSS(nrm, x1, x2);
+      dist = DOT(nrm, nrm);
+      if (dist != 0.0) {
+        dist   = 1.0/sqrt(dist);
+        nrm[0] *= dist;
+        nrm[1] *= dist;
+        nrm[2] *= dist;
+      }
+      if (i != 0) {
+        if (DOT(norm,nrm) < 0.0) flag++;
+      } else {
+        norm[0] = nrm[0];
+        norm[1] = nrm[1];
+        norm[2] = nrm[2];
+      }
+    }
+#ifdef DEBUG
+    if (flag != 0) printf(" *** Face %d: Planar # inverted = %d (%d) ***\n",
+                          ts->fIndex, flag, ts->ntris);
+#endif
 
     ts->phase = -3;
     EG_swapTris(EG_angXYZTest, "angleXYZ", 0.0, ts);
@@ -2966,7 +3051,7 @@ EG_tessellate(int outLevel, triStruct *ts, long tID)
     /* break up long edges */
 
     if (ts->maxlen > 0.0) {
-      count = i = 0;
+      count = i = k = l = 0;
       do {
         split = EG_addSideDist(i, maxlen2, sideMid, ts);
         if (split > 0) {
@@ -2979,6 +3064,17 @@ EG_tessellate(int outLevel, triStruct *ts, long tID)
           if (ts->nverts > ts->maxPts) break;
         if (ts->maxPts < 0)
           if ((ts->nverts-ts->nfrvrts+2) > -ts->maxPts) break;
+        /* resolves strange problem with fillArea not providing a good start */
+        if ((i != 1) && (flag != 0)) {
+          if ((k == 0) && (split != 1)) {
+            k = 1;
+          } else if ((k == 1) && (split == 1) && (l == 1)) {
+            printf(" *** Face %d: Planar early breakout -- count = %d ***\n",
+                   ts->fIndex, count);
+            break;
+          }
+        }
+        l = split;
       } while (split > 0);
 #ifdef REPORT
       printf("%lX  XYZang = %le,   split = %d\n", tID, ts->accum, count);

@@ -1,0 +1,45 @@
+# tutorial6/model5a - simple rectangular wing (via a RULE)
+# written by John Dannenhoffer
+
+INTERFACE . ALL
+
+# construct wing via a 5-section RULE
+MARK
+   UDPARG    naca         thickness wing:thick
+   UDPARG    naca         camber    wing:camber
+   UDPRIM    naca         sharpte   1
+   ROTATEX   90
+   SCALE     wing:chord
+   TRANSLATE 0   -wing:span/2   0
+
+   RESTORE   .
+   TRANSLATE 0    wing:span/4   0
+
+   RESTORE   .
+   TRANSLATE 0    wing:span/4   0
+
+   RESTORE   .
+   TRANSLATE 0    wing:span/4   0
+
+   RESTORE   .
+   TRANSLATE 0    wing:span/4   0
+RULE
+ATTRIBUTE capsAIM     $skeletonAIM
+ATTRIBUTE capsIntent  $Body_2
+
+SELECT    FACE        @nbody 3
+SELECT    ADD         @nbody 4
+SELECT    ADD         @nbody 5
+SELECT    ADD         @nbody 6
+ATTRIBUTE capsBound   $upperWing
+
+SELECT    FACE        @nbody 7
+SELECT    ADD         @nbody 8
+SELECT    ADD         @nbody 9
+SELECT    ADD         @nbody 10
+ATTRIBUTE capsBound   $lowerWing
+
+# check calling a UDP from a UDC
+UDPRIM    $$/gen_rot
+
+END

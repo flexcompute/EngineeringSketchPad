@@ -1,0 +1,25 @@
+# pipeNetwork4
+# written by John Dannenhoffer
+
+# horizontal pipe
+SKBEG     -1  0  0
+   LINSEG  1  0  0
+SKEND
+SELECT    EDGE
+ATTRIBUTE _color $red
+
+# vertical pipe
+SKBEG      0 -1  0
+   LINSEG  0  1  0
+SKEND
+SELECT    EDGE
+ATTRIBUTE _color $green
+
+COMBINE    # should fail since no chared Nodes
+ASSERT    0  1
+
+CATBEG    $did_not_create_body
+   MESSAGE COMBINE_failed_as_expected
+CATEND
+
+END

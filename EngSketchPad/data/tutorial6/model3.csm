@@ -1,0 +1,143 @@
+# tutorial6/model3 - deformed tapered wing
+# written by John Dannenhoffer
+
+# view switch
+CFGPMTR   view:OML      1
+CFGPMTR   view:AVL      1
+
+# design parameters
+DESPMTR   wing:area    20.0
+DESPMTR   wing:aspect   4.0
+DESPMTR   wing:taper   1.00
+DESPMTR   wing:thick   0.01
+DESPMTR   wing:camber  0.06
+DESPMTR   wing:ztip    0.00
+
+# local variables
+SET       wing:span    sqrt(wing:area*wing:aspect)
+SET       wing:croot   wing:area/wing:span*2/(wing:taper+1)
+SET       wing:ctip    wing:croot*wing:taper
+SET       wing:xtip   (wing:croot-wing:ctip)/2
+
+OUTPMTR   wing:span
+
+# construct wing (left-to-right with C0 at root)
+MARK
+   # left tip
+   SET       chord        wing:ctip
+   SET       dx           wing:xtip
+   SET       dz           wing:ztip
+   UDPARG    naca         thickness wing:thick
+   UDPARG    naca         camber    wing:camber
+   UDPRIM    naca         sharpte   1
+      ATTRIBUTE capsAIM           $avlAIM
+      ATTRIBUTE capsIntent        $wing
+      ATTRIBUTE capsGroup         $wing
+   ROTATEX   90
+   SCALE     chord
+   TRANSLATE dx          -wing:span/2   dz
+   STORE     wing  -1  1
+
+   SET       chord       (wing:ctip+wing:croot)/2
+   SET       dx           wing:xtip/2
+   SET       dz           wing:ztip/4
+   UDPARG    naca         thickness wing:thick
+   UDPARG    naca         camber    wing:camber
+   UDPRIM    naca         sharpte   1
+      ATTRIBUTE capsAIM           $avlAIM
+      ATTRIBUTE capsIntent        $wing
+      ATTRIBUTE capsGroup         $wing
+   ROTATEX   90
+   SCALE     chord
+   TRANSLATE dx          -wing:span/4   dz
+   STORE     wing  -1  1
+
+   SET       chord       (wing:ctip+3*wing:croot)/4
+   SET       dx           wing:xtip/4
+   SET       dz           wing:ztip/16
+   UDPARG    naca         thickness wing:thick
+   UDPARG    naca         camber    wing:camber
+   UDPRIM    naca         sharpte   1
+      ATTRIBUTE capsAIM           $avlAIM
+      ATTRIBUTE capsIntent        $wing
+      ATTRIBUTE capsGroup         $wing
+   ROTATEX   90
+   SCALE     chord
+   TRANSLATE dx          -wing:span/8   dz
+   STORE     wing  -1  1
+
+   # root
+   UDPARG    naca         thickness wing:thick
+   UDPARG    naca         camber    wing:camber
+   UDPRIM    naca         sharpte   1
+      ATTRIBUTE capsAIM           $avlAIM
+      ATTRIBUTE capsIntent        $wing
+      ATTRIBUTE capsGroup         $wing
+   ROTATEX   90
+   SCALE     wing:croot
+   STORE     wing  -1  1
+
+   RESTORE   .
+   RESTORE   .
+
+   SET       chord       (wing:ctip+3*wing:croot)/4
+   SET       dx           wing:xtip/4
+   SET       dz           wing:ztip/16
+   UDPARG    naca         thickness wing:thick
+   UDPARG    naca         camber    wing:camber
+   UDPRIM    naca         sharpte   1
+      ATTRIBUTE capsAIM           $avlAIM
+      ATTRIBUTE capsIntent        $wing
+      ATTRIBUTE capsGroup         $wing
+   ROTATEX   90
+   SCALE     chord
+   TRANSLATE dx          +wing:span/8   dz
+   STORE     wing  -1  1
+
+   SET       chord       (wing:ctip+wing:croot)/2
+   SET       dx           wing:xtip/2
+   SET       dz           wing:ztip/4
+   UDPARG    naca         thickness wing:thick
+   UDPARG    naca         camber    wing:camber
+   UDPRIM    naca         sharpte   1
+      ATTRIBUTE capsAIM           $avlAIM
+      ATTRIBUTE capsIntent        $wing
+      ATTRIBUTE capsGroup         $wing
+   ROTATEX   90
+   SCALE     chord
+   TRANSLATE dx          +wing:span/4   dz
+   STORE     wing  -1  1
+
+   # rite tip
+   SET       chord        wing:ctip
+   SET       dx           wing:xtip
+   SET       dz           wing:ztip
+   UDPARG    naca         thickness wing:thick
+   UDPARG    naca         camber    wing:camber
+   UDPRIM    naca         sharpte   1
+      ATTRIBUTE capsAIM           $avlAIM
+      ATTRIBUTE capsIntent        $wing
+      ATTRIBUTE capsGroup         $wing
+   ROTATEX   90
+   SCALE     chord
+   TRANSLATE dx          +wing:span/2   wing:ztip
+   STORE     wing  -1  1
+BLEND
+   ATTRIBUTE capsGroup         $wing
+STORE     OML
+
+# to view AVL, restore the various sections
+IFTHEN view:AVL NE 0
+   RESTORE  wing -1
+      ATTRIBUTE capsReferenceArea  wing:area
+      ATTRIBUTE capsReferenceSpan  wing:span
+      ATTRIBUTE capsReferenceChord wing:croot
+      ATTRIBUTE capsReferenceX     wing:croot/4
+ENDIF
+
+# to view OML, restore the OML
+IFTHEN view:OML NE 0
+   RESTORE   OML
+ENDIF
+
+END

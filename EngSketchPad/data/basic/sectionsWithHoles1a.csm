@@ -1,0 +1,50 @@
+# sectionsWithHoles1a
+# written by John Dannenhoffer
+
+# section 1
+UDPARG    box   dx   2.0
+UDPARG    box   dy   1.0
+UDPRIM    box
+
+UDPARG    box   dx   2.0-0.2
+UDPARG    box   dy   1.0-0.2
+UDPARG    box   rad  0.1
+UDPRIM    box
+
+SUBTRACT
+TRANSLATE 0  0  -2
+STORE     section 1
+
+# section 2
+UDPARG    box   dx   2.0
+UDPARG    box   dy   2.0
+UDPRIM    box
+
+UDPARG    box   dx   2.0-0.5
+UDPARG    box   dy   2.0-0.5
+UDPARG    box   rad  0.5
+UDPRIM    box
+
+SUBTRACT
+STORE     section 2
+
+# section 3
+UDPARG    box   dx   1.0
+UDPARG    box   dy   2.0
+UDPRIM    box
+
+UDPARG    box   dx   1.0-0.2
+UDPARG    box   dy   2.0-0.2
+UDPARG    box   rad  0.1
+UDPRIM    box
+
+SUBTRACT
+TRANSLATE 0  0  +2
+STORE     section 3
+
+# show the sections
+RESTORE   section 1
+RESTORE   section 2
+RESTORE   section 3
+
+END

@@ -1,0 +1,48 @@
+# tutorial6/model2a - simple tapered wing
+# written by John Dannenhoffer
+
+# modification of model1:
+#     addition of taper, which is done by converting the EXTRUDE to a RULE
+
+# design parameters
+DESPMTR   wing:area    20.0
+DESPMTR   wing:aspect   4.0
+DESPMTR   wing:taper   1.00
+DESPMTR   wing:thick   0.01
+DESPMTR   wing:camber  0.06
+
+# local variables
+SET       wing:span    sqrt(wing:area*wing:aspect)
+SET       wing:croot   wing:area/wing:span*2/(wing:taper+1)
+SET       wing:ctip    wing:croot*wing:taper
+SET       wing:xtip   (wing:croot-wing:ctip)/2
+
+OUTPMTR   wing:span
+
+# construct wing (left-to-right)
+MARK
+   # left tip
+   UDPARG    naca         thickness wing:thick
+   UDPARG    naca         camber    wing:camber
+   UDPRIM    naca         sharpte   1
+   ROTATEX   90
+   SCALE     wing:ctip
+   TRANSLATE wing:xtip   -wing:span/2   0
+
+   # root
+   UDPARG    naca         thickness wing:thick
+   UDPARG    naca         camber    wing:camber
+   UDPRIM    naca         sharpte   1
+   ROTATEX   90
+   SCALE     wing:croot
+
+   # rite tip
+   UDPARG    naca         thickness wing:thick
+   UDPARG    naca         camber    wing:camber
+   UDPRIM    naca         sharpte   1
+   ROTATEX   90
+   SCALE     wing:ctip
+   TRANSLATE wing:xtip   +wing:span/2   0
+RULE
+
+END

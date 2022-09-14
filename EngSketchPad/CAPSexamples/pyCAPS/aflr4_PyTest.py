@@ -23,8 +23,8 @@ workDir = os.path.join(str(args.workDir[0]), "AFLR4AnalysisTest")
 # Load CSM file and build the geometry explicitly
 geometryScript = os.path.join("..","csmData","cfdMultiBody.csm")
 myProblem = pyCAPS.Problem(problemName = workDir,
-                                capsFile=geometryScript, 
-                                outLevel=args.outLevel)
+                           capsFile=geometryScript, 
+                           outLevel=args.outLevel)
 
 myProblem.geometry.cfgpmtr.sharpte = 1
 

@@ -1,0 +1,23 @@
+# attribute9a
+# written by John Dannenhoffer
+
+BOX       0.0  0.0  0.0  3.0  2.0  1.0
+
+BOX       2.0 -1.0 -1.0  0.0  4.0  3.0
+SUBTRACT
+
+PATBEG    iedge  @nedge
+   SELECT EDGE   iedge
+   IFTHEN  @xcg GT 1.9 AND @xcg LT 2.1
+      SELECT EDGE iedge
+         ATTRIBUTE scribe $yes
+   ENDIF
+PATEND
+
+CYLINDER  2.0  1.0  0.5  2.0  3.0  0.5  0.25
+UNION
+
+SELECT    EDGE   $scribe  $*
+ASSERT    @sellist.size  5
+
+END

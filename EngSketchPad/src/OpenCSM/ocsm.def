@@ -2,6 +2,9 @@ LIBRARY ocsm
 EXPORTS
 convertToBSplines
 createTessVels
+GetToken
+ocsmAdjustUDCs
+ocsmBodyDetails
 ocsmBuild
 ocsmCheck
 ocsmCopy
@@ -13,6 +16,7 @@ ocsmFindPmtr
 ocsmFree
 ocsmGetArg
 ocsmGetAttr
+ocsmGetAuxPtr
 ocsmGetBnds
 ocsmGetBody
 ocsmGetBrch
@@ -35,6 +39,7 @@ ocsmGetXYZ
 ocsmInfo
 ocsmLoad
 ocsmLoadDict
+ocsmLoadFromModel
 ocsmMakeEBody
 ocsmNewBrch
 ocsmNewPmtr
@@ -45,6 +50,7 @@ ocsmPrintBrchs
 ocsmPrintBrep
 ocsmPrintEgo
 ocsmPrintPmtrs
+ocsmPrintProfile
 ocsmRegMesgCB
 ocsmRegSizeCB
 ocsmRetAttr
@@ -54,6 +60,7 @@ ocsmSaveDespmtrs
 ocsmSaveSketch
 ocsmSetArg
 ocsmSetAttr
+ocsmSetAuxPtr
 ocsmSetBnds
 ocsmSetBrch
 ocsmSetCsys
@@ -67,10 +74,22 @@ ocsmSetValuD
 ocsmSetVel
 ocsmSetVelD
 ocsmSolveSketch
+ocsmTessellate
 ocsmUpdateDespmtrs
 ocsmUpdateTess
 ocsmVersion
 removeVels
+tim_bcst
+tim_free
+tim_getEsp
+tim_hold
+tim_lift
+tim_load
+tim_lock
+tim_mesg
+tim_quit
+tim_save
+update_esp
 velocityOfEdge
 velocityOfFace
 velocityOfNode

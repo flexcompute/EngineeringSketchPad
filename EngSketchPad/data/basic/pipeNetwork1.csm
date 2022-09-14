@@ -1,0 +1,30 @@
+# pipeNetwork1
+# written by John Dannenhoffer
+
+# horizonal pipe
+SKBEG     0.00   1.00   0.00
+   LINSEG 1.00   1.00   0.00
+   LINSEG 2.00   1.00   0.00
+SKEND
+SELECT    EDGE
+ATTRIBUTE _color  $red
+
+# vertical pipe
+SKBEG     1.00   0.00   0.00
+   LINSEG 1.00   1.00   0.00
+   LINSEG 1.00   2.00   0.00
+SKEND
+SELECT    EDGE
+ATTRIBUTE _color  $green
+
+# out-of-plane pipe
+SKBEG     1.00   1.00   0.00
+   LINSEG 1.00   1.00   1.00
+SKEND
+SELECT    EDGE
+ATTRIBUTE _color  $blue
+
+# combine the pipes into a network
+COMBINE
+
+END

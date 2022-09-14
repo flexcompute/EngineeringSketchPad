@@ -41,6 +41,9 @@ all:
 	cd hsm
 	nmake -f NMakefile
 	cd ..
+	cd skeleton
+	nmake -f NMakefile
+	cd ..
 	cd su2
 	nmake -f NMakefile
 	cd ..
@@ -51,6 +54,9 @@ all:
 #	nmake -f NMakefile
 #	cd ..
 	cd xfoil
+	nmake -f NMakefile
+	cd ..
+	cd mses
 	nmake -f NMakefile
 	cd ..
 	cd interference
@@ -118,6 +124,9 @@ clean:
 	cd hsm
 	nmake -f NMakefile clean
 	cd ..
+	cd skeleton
+	nmake -f NMakefile clean
+	cd ..
 	cd su2
 	nmake -f NMakefile clean
 	cd ..
@@ -128,6 +137,9 @@ clean:
 #	nmake -f NMakefile clean
 #	cd ..
 	cd xfoil
+	nmake -f NMakefile clean
+	cd ..
+	cd mses
 	nmake -f NMakefile clean
 	cd ..
 	cd interference
@@ -195,6 +207,9 @@ cleanall:
 	cd hsm
 	nmake -f NMakefile cleanall
 	cd ..
+	cd skeleton
+	nmake -f NMakefile cleanall
+	cd ..
 	cd su2
 	nmake -f NMakefile cleanall
 	cd ..
@@ -205,6 +220,9 @@ cleanall:
 #	nmake -f NMakefile cleanall
 #	cd ..
 	cd xfoil
+	nmake -f NMakefile cleanall
+	cd ..
+	cd mses
 	nmake -f NMakefile cleanall
 	cd ..
 	cd interference

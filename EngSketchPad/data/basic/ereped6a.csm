@@ -1,0 +1,48 @@
+# ereped6a
+# written by John Dannenhoffer
+
+CFGPMTR   nsect    60
+CFGPMTR   hole      1
+
+# basic torus-like Body
+SKBEG      9.0  0.0  -1.0
+   LINSEG 11.0  0.0  -1.0
+   LINSEG 11.0  0.0   1.0
+   CIRARC 10.0  0.0   1.5 \
+           9.0  0.0   1.0
+   CIRARC  8.5  0.0   0.0 \
+           9.0  0.0  -1.0
+SKEND
+SELECT     EDGE    1
+ATTRIBUTE  myFace  1
+SELECT     EDGE    2
+ATTRIBUTE  myFace  2
+SELECT     EDGE    3
+ATTRIBUTE  myFace  3
+SELECT     EDGE    4
+ATTRIBUTE  myFace  4
+
+REVOLVE    0.0  0.0  0.0  0.0  0.0  1.0  180
+
+# optionally add hole
+IFTHEN    hole NE 0
+   CYLINDER   0.0  0.0  0.0  12.0  0.0  0.0  0.1
+   ROTATEZ    180/nsect
+   SUBTRACT
+ENDIF
+
+# take pie-like slice
+SET       theta 360/nsect
+SKBEG      0.0              0.0               -2.0
+   LINSEG 30.0              0.0               -2.0
+   LINSEG 30.0*cosd(theta)  30.0*sind(theta)  -2.0
+   LINSEG  0.0              0.0               -2.0
+SKEND
+EXTRUDE    0.0              0.0                4.0
+INTERSECT
+
+# make replicates
+UDPRIM    $$/replicate   ncopy  nsect
+MESSAGE   nunion_=_+@@nunion
+
+END

@@ -1,0 +1,22 @@
+# rule22
+# written by Marshall Galbraith
+
+MARK
+   MARK
+      POINT 0 0 0
+      PATBEG k 5
+         SKBEG     0.1*k -((0.175*k)^2-0.2*k)*0.2  -0.005*k
+            LINSEG 0.1*k  ((0.175*k)^2-0.2*k)*0.2   0.005*k
+         SKEND
+      PATEND
+   BLEND
+
+   RESTORE .
+   TRANSLATE 0 0 0.1
+
+   RESTORE .
+   TRANSLATE 0 0 0.1
+RULE
+
+END
+

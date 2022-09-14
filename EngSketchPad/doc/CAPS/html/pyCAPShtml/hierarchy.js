@@ -4,6 +4,7 @@ var hierarchy =
     [ "AnalysisGeometry", "classpy_c_a_p_s_1_1problem_1_1_analysis_geometry.html", null ],
     [ "Bound", "classpy_c_a_p_s_1_1problem_1_1_bound.html", null ],
     [ "DataSet", "classpy_c_a_p_s_1_1problem_1_1_data_set.html", null ],
+    [ "History", "classpy_c_a_p_s_1_1problem_1_1_history.html", null ],
     [ "Problem", "classpy_c_a_p_s_1_1problem_1_1_problem.html", null ],
     [ "ProblemGeometry", "classpy_c_a_p_s_1_1problem_1_1_problem_geometry.html", null ],
     [ "Sequence", "classpy_c_a_p_s_1_1problem_1_1_sequence.html", [
@@ -16,7 +17,11 @@ var hierarchy =
       [ "ValueOutSequence", "classpy_c_a_p_s_1_1problem_1_1_value_out_sequence.html", null ],
       [ "VertexSetSequence", "classpy_c_a_p_s_1_1problem_1_1_vertex_set_sequence.html", null ]
     ] ],
-    [ "ValueIn", "classpy_c_a_p_s_1_1problem_1_1_value_in.html", null ],
+    [ "ValueDynOut", "classpy_c_a_p_s_1_1problem_1_1_value_dyn_out.html", null ],
+    [ "ValueDynOutSequence", "classpy_c_a_p_s_1_1problem_1_1_value_dyn_out_sequence.html", null ],
+    [ "ValueIn", "classpy_c_a_p_s_1_1problem_1_1_value_in.html", [
+      [ "ValueInParam", "classpy_c_a_p_s_1_1problem_1_1_value_in_param.html", null ]
+    ] ],
     [ "ValueOut", "classpy_c_a_p_s_1_1problem_1_1_value_out.html", null ],
     [ "VertexSet", "classpy_c_a_p_s_1_1problem_1_1_vertex_set.html", null ]
 ];

@@ -1,0 +1,4 @@
+export LC_CTYPE=C 
+export LANG=C
+grep -rli 'corsair' * | xargs -I@ sed -i 's/corsair/corsairlite/g' @
+find . -name "*.bck" -type f -delete

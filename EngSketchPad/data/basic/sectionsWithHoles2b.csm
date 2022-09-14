@@ -1,0 +1,81 @@
+# sectionsWithHoles2b
+# written by John Dannenhoffer
+
+# section 1
+BOX       -2  -1   0   4   2   0
+CYLINDER  -1   0  -1  -1   0   1   1/2
+SUBTRACT
+CYLINDER  +1   0  -1  +1   0   1   1/2
+SUBTRACT
+TRANSLATE  0   0  -2
+STORE     section 1
+
+# section 2
+BOX       -2  -2   0   4   4   0
+CYLINDER  -1  -1  -1  -1  -1   1   1/2
+SUBTRACT
+CYLINDER  +1  +1  -1  +1  +1   1   1/2
+SUBTRACT
+STORE     section 2
+
+#section 3
+BOX       -1  -2   0   2   4   0
+CYLINDER   0  -1  -1   0  -1   1   1/2
+SUBTRACT
+CYLINDER   0  +1  -1   0  +1   1   1/2
+SUBTRACT
+TRANSLATE  0   0  +2
+STORE     section 3
+
+# create RULEd SheetBody of outside Edges
+MARK
+   RESTORE   section 1
+   SELECT    LOOP  1  1
+   EXTRACT   -@sellist
+
+   RESTORE   section 2
+   SELECT    LOOP  1  1
+   EXTRACT   -@sellist
+
+   RESTORE   section 3
+   SELECT    LOOP  1  1
+   EXTRACT   -@sellist
+RULE
+
+# create RULEd SheetBody of inside Edges of hole 1
+MARK
+   RESTORE   section 1
+   SELECT    LOOP  1  2
+   EXTRACT   -@sellist
+
+   RESTORE   section 2
+   SELECT    LOOP  1  2
+   EXTRACT   -@sellist
+
+   RESTORE   section 3
+   SELECT    LOOP  1  2
+   EXTRACT   -@sellist
+RULE
+
+# create RULEd SheetBody of inside Edges of hole 2
+MARK
+   RESTORE   section 1
+   SELECT    LOOP  1  3
+   EXTRACT   -@sellist
+
+   RESTORE   section 2
+   SELECT    LOOP  1  3
+   EXTRACT   -@sellist
+
+   RESTORE   section 3
+   SELECT    LOOP  1  3
+   EXTRACT   -@sellist
+RULE
+
+# glue on the first and last sections to make a SolidBody
+RESTORE   section 1
+RESTORE   section 3
+
+COMBINE
+
+END

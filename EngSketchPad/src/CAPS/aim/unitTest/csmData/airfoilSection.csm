@@ -3,7 +3,7 @@
 # -----------------------------------------------------------------
 # Define the analysis fidelity that the geometry is intended support
 # -----------------------------------------------------------------
-attribute capsAIM $xfoilAIM;tsfoilAIM
+attribute capsAIM $xfoilAIM;tsfoilAIM;msesAIM
 
 # -----------------------------------------------------------------
 # Design parameters to define the wing cross section and planform 

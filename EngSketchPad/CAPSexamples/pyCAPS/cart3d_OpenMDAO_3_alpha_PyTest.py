@@ -103,6 +103,7 @@ myProblem = pyCAPS.Problem(problemName=workDir,
 geometry = myProblem.geometry
 
 geometry.despmtr.taper = 1.0
+geometry.cfgpmtr.aerosystem = False
 
 #######################################
 ## Load Cart3D aim                   ##
@@ -111,16 +112,15 @@ geometry.despmtr.taper = 1.0
 cart3d = myProblem.analysis.create(aim = "cart3dAIM", name = "cart3d")
 
 # Set inputs
+cart3d.input.mesh2d = True # Use 2D calculation
 cart3d.input.alpha = 2.0
 cart3d.input.beta = 0.0
 cart3d.input.Mach = 0.5901
 #cart3d.input.maxR = 9
 
-cart3d.input.aerocsh = ["set y_is_spanwise = 1"]
-
 cart3d.input.Model_X_axis = "-Xb"
-cart3d.input.Model_Y_axis = "-Yb"
-cart3d.input.Model_Z_axis = "-Zb"
+cart3d.input.Model_Y_axis = "-Zb"
+cart3d.input.Model_Z_axis = "-Yb"
 
 # Setup Cl**2 as the objective functional to minimize
 cart3d.input.Design_Functional = {"CL2": {"function":"C_L", "power":2}}

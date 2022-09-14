@@ -17,7 +17,7 @@ OBJS  = capsBase.o  capsAnalysis.o capsApprox.o capsAttr.o  capsAIM.o \
 
 default:	includes $(LDIR)/libaimUtil.a $(LDIR)/$(CSHLIB) \
 		$(LDIR)/libcapsstatic.a $(LDIR)/testingAIM.so \
-		$(LDIR)/testingWriter.so
+		$(LDIR)/testingWriter.so $(BDIR)/phaseUtil
 
 $(LDIR)/testingAIM.so:	$(ODIR)/testingAIM.o $(LDIR)/libaimUtil.a
 	-rm $(LDIR)/testingAIM.so
@@ -61,6 +61,14 @@ $(ODIR)/aimTransferUtil.o:	aimTransferUtil.c ../include/capsTypes.h \
 		-I/usr/include/udunits2 aimTransferUtil.c \
 		-o $(ODIR)/aimTransferUtil.o
 
+$(BDIR)/phaseUtil:	$(ODIR)/phaseUtil.o $(LDIR)/$(CSHLIB)
+	$(CC) -o $(BDIR)/phaseUtil $(ODIR)/phaseUtil.o \
+	-L$(LDIR) -lcaps -ludunits2 -locsm -legads -ldl $(RPATH) -lm
+
+$(ODIR)/phaseUtil.o:	phaseUtil.c ../include/capsTypes.h
+	$(CC) -c $(COPTS) $(DEFINE) -I../include -I$(IDIR) phaseUtil.c \
+		-o $(ODIR)/phaseUtil.o
+
 $(LDIR)/libcapsstatic.a:	$(OBJS)
 	touch $(LDIR)/libcapsstatic.a
 	rm $(LDIR)/libcapsstatic.a
@@ -93,7 +101,7 @@ $(LDIR)/libcaps.dll:	$(OBJS)
 			-L$(LDIR) -ludunits2 -locsm -legads -ldl )
 
 $(OBJS): %.o: 	%.c ../include/capsErrors.h ../include/capsTypes.h capsBase.h \
-		capsFunIDs.h $(IDIR)/OpenCSM.h $(IDIR)/common.h
+		../include/caps.h capsFunIDs.h $(IDIR)/OpenCSM.h $(IDIR)/common.h
 	$(CC) -c $(COPTS) $(DEFINE) -I../include -I$(IDIR) -I. \
 		-I/usr/include/udunits2 $< -o $(ODIR)/$@
 
@@ -126,8 +134,11 @@ $(IDIR)/capsTypes.h:	../include/capsTypes.h
 	cp -p ../include/capsTypes.h $(IDIR)/capsTypes.h
 
 lint:
+	@echo "Phase Utility:"
+	$(LINT) -I../include -I$(IDIR) phaseUtil.c capsBase.c -uniondef -exportlocal -nullpass -bufferoverflowhigh -Dclosedir=free
+	@echo " "
 	@echo "CAPS library:"
-	$(LINT) -I../include -I$(IDIR) $(patsubst %.o,%.c,$(OBJS)) -uniondef -exportlocal -nullpass -Dclosedir=free
+	$(LINT) -I../include -I$(IDIR) $(patsubst %.o,%.c,$(OBJS)) -uniondef -exportlocal -nullpass -bufferoverflowhigh -Dclosedir=free
 	@echo " "
 	@echo "AIM utility library:"
 	$(LINT) -I../include -I$(IDIR) aimUtil.c aimMesh.c aimTransferUtil.c -uniondef -exportlocal -initallelements -Dclosedir=free
@@ -136,9 +147,10 @@ lint:
 	$(LINT) -I../include -I$(IDIR) testingAIM.c -uniondef
 
 clean:
-	-(cd $(ODIR); rm -f $(OBJS) testingAIM.o testingWriter.o aimUtil.o aimTransferUtil.o aimMesh.o)
+	-(cd $(ODIR); rm -f $(OBJS) testingAIM.o testingWriter.o aimUtil.o aimTransferUtil.o aimMesh.o phaseUtil.o)
 
 cleanall:	clean
 	-rm -f $(LDIR)/libcaps* $(LDIR)/testingAIM.so $(LDIR)/libaimUtil.a
 	-rm -f $(IDIR)/caps.h $(IDIR)/capsErrors.h $(IDIR)/capsTypes.h 
 	-rm -f $(IDIR)/aimUtil.h $(IDIR)/aimMesh.h $(LDIR)/testingWriter.so
+	-rm -f $(BDIR)/phaseUtil

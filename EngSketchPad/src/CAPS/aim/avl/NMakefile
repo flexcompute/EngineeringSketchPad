@@ -12,18 +12,33 @@ ODIR  = $(ESP_BLOC)\obj
 ODIR  = .
 !ENDIF
 
+AVL_MRF_OBJS= 	$(ODIR)\avlRead_BODY.obj \
+		$(ODIR)\avlRead_CPOML.obj \
+		$(ODIR)\avlRead_DERMATM.obj \
+		$(ODIR)\avlRead_ELE.obj \
+		$(ODIR)\avlRead_STRP.obj \
+		$(ODIR)\avlRead_TOT.obj \
+		$(ODIR)\avlRead_CNC.obj \
+		$(ODIR)\avlRead_DERMATB.obj \
+		$(ODIR)\avlRead_DERMATS.obj \
+		$(ODIR)\avlRead_HINGE.obj \
+		$(ODIR)\avlRead_SURF.obj \
+		$(ODIR)\avlRead_VM.obj
 
-$(LDIR)\avlAIM.dll:	avlAIM.def $(ODIR)\avlAIM.obj $(LDIR)\utils.lib
+$(LDIR)\avlAIM.dll:	avlAIM.def $(ODIR)\avlAIM.obj $(AVL_MRF_OBJS) $(LDIR)\utils.lib
 	-del $(LDIR)\avlAIM.dll $(LDIR)\avlAIM.lib $(LDIR)\avlAIM.exp
 	link /out:$(LDIR)\avlAIM.dll /dll /def:avlAIM.def \
-		$(ODIR)\avlAIM.obj /LIBPATH:$(LDIR) aimUtil.lib utils.lib \
-		ocsm.lib egads.lib udunits2.lib
+		$(ODIR)\avlAIM.obj $(AVL_MRF_OBJS) /LIBPATH:$(LDIR) aimUtil.lib utils.lib \
+		ocsm.lib egads.lib udunits2.lib 
 	$(MCOMP) /manifest $(LDIR)\avlAIM.dll.manifest \
 		/outputresource:$(LDIR)\avlAIM.dll;2
 
 $(ODIR)\avlAIM.obj:	avlAIM.c $(IDIR)\capsTypes.h
 	cl /c $(COPTS) $(DEFINE) /I$(IDIR) /I..\utils avlAIM.c \
 		/Fo$(ODIR)\avlAIM.obj
+
+{avlmrf\}.c{$(ODIR)}.obj::
+	cl /c $(COPTS) /Fo"$(ODIR)"\ -Iavlmrf $<
 
 clean:
 	-del $(ODIR)\avlAIM.obj

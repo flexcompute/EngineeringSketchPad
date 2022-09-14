@@ -116,3 +116,16 @@ store     OML
     
     attribute capsIntent $CFD #CFD Analysis
     attribute capsAIM $fun3dAIM;su2AIM;egadsTessAIM;aflr4AIM;tetgenAIM;aflr3AIM #CFD Analysis
+
+    # Restore outer mold line of wing for Cart3D
+    restore OML
+    rotatex   90   0   0
+    select body
+       attribute .tParams  params
+       attribute capsIntent $CFD       #CFD Analysis
+       attribute capsAIM $cart3dAIM    #CFD Analysis
+       attribute capsReferenceArea     area
+       attribute capsReferenceChord    sqrt(area/aspect)
+       attribute capsReferenceSpan     sqrt(area/aspect)*aspect
+       attribute capsReferenceX        croot/4
+    

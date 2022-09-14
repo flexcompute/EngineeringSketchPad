@@ -9,7 +9,7 @@
  */
 
 /*
- * Copyright (C) 2010/2021  John F. Dannenhoffer, III (Syracuse University)
+ * Copyright (C) 2010/2022  John F. Dannenhoffer, III (Syracuse University)
  *
  * This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
@@ -337,6 +337,7 @@ BLEND     begList=0 endList=0 reorder=0 oneFace=0 periodic=0
                      a SheetBody is created
                   else
                      a SolidBody is created
+                  Xsects cannot be non-manifold WireBody
                   if the first Xsect is a point
                       if begList is 0
                           pointed end is created
@@ -477,20 +478,23 @@ CHAMFER   radius edgeList=0
           pushes: Body
           notes:  Sketch may not be open
                   Solver may not be open
-                  if previous operation is boolean, apply to all new Edges
-                  edgeList=0 is the same as edgeList=[0;0]
-                  edgeList is a multi-value Parameter or a semicolon-separated
-                     list
-                  pairs of edgeList entries are processed in order
-                  pairs of edgeList entries are interpreted as follows:
-                     col1  col2   meaning
-                      =0    =0    add all Edges
-                      >0    >0    add    Edges between iford=+icol1
-                                                   and iford=+icol2
-                      <0    <0    remove Edges between iford=-icol1
-                                                   and iford=-icol2
-                      >0    =0    add    Edges adjacent to iford=+icol1
-                      <0    =0    remove Edges adjacent to iford=-icol1
+                  if listStyle==0
+                     if previous operation is boolean, apply to all new Edges
+                     edgeList=0 is the same as edgeList=[0;0]
+                     edgeList is a multi-value Parameter or a semicolon-separated
+                        list
+                     pairs of edgeList entries are processed in order
+                     pairs of edgeList entries are interpreted as follows:
+                        col1  col2   meaning
+                         =0    =0    add all Edges
+                         >0    >0    add    Edges between iford=+icol1
+                                                      and iford=+icol2
+                         <0    <0    remove Edges between iford=-icol1
+                                                      and iford=-icol2
+                         >0    =0    add    Edges adjacent to iford=+icol1
+                         <0    =0    remove Edges adjacent to iford=-icol1
+                  else
+                     edgeList contains Edge number(s)
                   sensitivity computed w.r.t. radius
                   sets up @-parameters
                   new Faces all receive the Branch's Attributes
@@ -521,8 +525,14 @@ COMBINE   toler=0
                   if all Bodys since Mark are SheetBodys
                      create either a SolidBody from closed Shell or an
                      (open) SheetBody
-                  elseif all Bodys since Mark are WireBodys and are co-planar
-                     create SheetBody from closed Loop or close Loop first
+                  elseif there is 1 planar WireBody that is closed
+                     create SheetBody from Loop
+                  elseif there is 1 planar WireBody that is open
+                     create SheetBody from Loop after closing Loop first
+                  elseif there are multiple planar WireBodys that are closed
+                     create SheetBody from closed Loop
+                  elseif there are multiple WireBodys that have common Nodes
+                     create non-manifold WireBody
                   endif
                   if maxtol>0, then tolerance can be relaxed until successful
                   sets up @-parameters
@@ -690,7 +700,7 @@ DIMENSION $pmtrName nrow ncol
                   old values are not overwritten
                   cannot be followed by ATTRIBUTE or CSYSTEM
 
-DUMP      $filename remove=0 toMark=0
+DUMP      $filename remove=0 toMark=0 withTess=0
           use:    write a file that contains the Body
           pops:   Body1 (if remove=1)
           pushes: -
@@ -703,6 +713,7 @@ DUMP      $filename remove=0 toMark=0
                   if toMark=1, all Bodys back to the Mark (or all if no Mark)
                      are combined into a single model
                   if toMark=1, the remove flag is ignored
+                  if withTess!=0, add tessellations to .egads file
                   for .ugrid files, toMark must be 0
                   valid filetypes are:
                      .brep   .BREP   --> OpenCASCADE output
@@ -711,6 +722,7 @@ DUMP      $filename remove=0 toMark=0
                      .egg    .EGG    --> EGG restart output
                      .iges   .IGES   --> IGES        output
                      .igs    .IGS    --> IGES        output
+                     .plot   .PLOT   --> ASCII plot  output
                      .sens   .SENS   --> ASCII sens  output
                      .step   .STEP   --> STEP        output
                      .stl    .STL    --> ASCII stl   output
@@ -787,7 +799,7 @@ EVALUATE  $type arg1 ...
                   elseif arguments are: "edge ibody iedge $beg"
                      ibody is Body number (1:nbody)
                      iedge is Edge number (1:nedge)
-                     evaluate Edge at given t
+                     evaluate Edge at beginning
                      return in @edata:
                         t (clipped),
                         x,      y,      z,
@@ -796,7 +808,7 @@ EVALUATE  $type arg1 ...
                   elseif arguments are: "edge ibody iedge $end"
                      ibody is Body number (1:nbody)
                      iedge is Edge number (1:nedge)
-                     evaluate Edge at given t
+                     evaluate Edge at end
                      return in @edata:
                         t (clipped),
                         x,      y,      z,
@@ -885,7 +897,10 @@ EXTRUDE   dx dy dz
                   computes Face sensitivities analytically
                   sets up @-parameters
                   the Faces all receive the Branch's Attributes
-                  Attributes on Xsect are maintained
+                  Attributes on Xsect Face are placed on both beg and end Faces
+                  Attributes on Xsect Edges that do not start with
+                     . or _ are placed on the associated Faces
+                  Attributes on Xsect Edges are not placed on Edges
                   face-order is: (base), (end), feat1, ...
                   signals that may be thrown/caught:
                      $illegal_value
@@ -969,40 +984,41 @@ HOLLOW    thick=0 entList=0 listStyle=0
           use:    hollow out a SolidBody or SheetBody
           pops:   Body
           pushes: Body
-          notes:  Sketch may not be open
+          notes:  results can be unpredictable due to OpenCASCADE issues
+                  Sketch may not be open
                   Solver may not be open
                   if SolidBody (radius is ignored)
-                     if thick=0 and entList==0
+                     if thick=0 and entList==0         (case A)
                          convert to SheetBody
-                     if thick=0 and entList!=0
+                     if thick=0 and entList!=0         (case B)
                         convert to SheetBody without Faces in entList (if connected)
-                     if thick>0 and entList==0
-                        smaller offset Body is created
-                     if thick<0 and entList==0
+                     if thick>0 and entList==0         (case C)
                         larger offset Body is created
-                     if thick>0 and entList!=0
+                     if thick<0 and entList==0         (case D)
+                        smaller offset Body is created
+                     if thick>0 and entList!=0         (case E)
                         hollow (removing entList) with new Faces inside  original Body
-                     if thick<0 and entList!=0
+                     if thick<0 and entList!=0         (case F)
                         hollow (removing entList) with new Faces outside original Body
                   if a SheetBody with only one Face
-                     if thick=0 and entList==0
+                     if thick=0 and entList==0         (case G)
                         convert to WireBody (if connected)
-                     if thick=0 and entList!=0
+                     if thick=0 and entList!=0         (case H)
                         convert to WireBody without Edges in entList (if connected)
-                     if thick>0 and entList==0
-                        smaller offset Body is created
-                     if thick<0 and entList==0
-                        larger offset Body is created
-                     if thick>0 and entList!=0
+                     if thick>0 and entList==0         (case I)
+                        hollow with new Edges inside  original Body
+                     if thick<0 and entList==0         (case J)
+                        hollow with new Edges outside original Body
+                     if thick>0 and entList!=0         (case K)
                         hollow (removing entList) with new Edges inside  original Body
-                     if thick<0 and entList!=0
+                     if thick<0 and entList!=0         (case L)
                         hollow (removing entList) with new Edges outside original Body
                   if a SheetBody with multiple Faces
-                     if thick=0 and entList!=0
+                     if thick=0 and entList!=0         (case M)
                         remove Faces in entList (if connected)
-                     if thick>0 and entList==0
+                     if thick>0 and entList==0         (case N)
                         hollow all Faces with new Edges inside original Faces
-                     if thick>0 and entList!=0
+                     if thick>0 and entList!=0         (case P)
                         hollow Faces in entList with new Edges inside original Faces
                   entList is multi-valued Parameter, or a semicolon-separated list
                   if listStyle==0 and a SolidBody
@@ -1019,6 +1035,7 @@ HOLLOW    thick=0 entList=0 listStyle=0
                   face-order is based upon order that is returned from EGADS
                   signals that may be thrown/caught:
                      $illegal_argument
+                     $did_not_create_body
                      $insufficient_bodys_on_stack
 
 IFTHEN    val1 $op1 val2 $op2=and val3=0 $op3=eq val4=0
@@ -1049,7 +1066,7 @@ IMPORT    $filename bodynumber=1
                      $did_not_create_body
                      udp-specific code
 
-INTERFACE $argName $argType default=0
+INTERFACE $argName $argTypet default=0
           use:    defines an argument for a .udc file
           pops:   -
           pushes: -
@@ -1210,6 +1227,7 @@ LOFT      smooth
                   all Xsects must have the same number of Segments
                   if Xsect is a SheetBody, then a SolidBody is created
                   if Xsect is a WireBody, then a SheetBody is created
+                  Xsects cannot be non-manifold WireBody
                   the Faces all receive the Branch's Attributes
                   Attributes on Xsects are not maintained
                   face-order is: (base), (end), feat1, ...
@@ -1222,6 +1240,7 @@ LOFT      smooth
                   MAY BE DEPRECATED (use RULE or BLEND)
                   signals that may be thrown/caught:
                      $insufficient_bodys_on_stack
+                     $wrong_types_on_stack
 
 MACBEG    imacro
           use:    marks the start of a macro
@@ -1382,6 +1401,7 @@ RESTORE   $name index=0
                   Solver may not be open
                   $name is used directly (without evaluation)
                   if $name is . (dot), then duplicate Body on stack
+                  if index<0, get all Bodys that match $name
                   sets up @-parameters
                   error results if nothing has been stored in name
                   the Faces all receive the Branch's Attributes
@@ -1402,14 +1422,17 @@ REVOLVE   xorig yorig zorig dxaxis dyaxis dzaxis angDeg
                      dyaxis, dzaxis, andDeg
                   sets up @-parameters
                   the Faces all receive the Branch's Attributes
-                  Attributes on Xsect are maintained
+                  Attributes on Xsect Face are placed on both beg and end Faces
+                  Attributes on Xsect Edges that do not start with
+                     . or _ are placed on the associated Faces
+                  Attributes on Xsect Edges are not placed on Edges
                   face-order is: (base), (end), feat1, ...
                   signals that may be thrown/caught:
                      $illegal_value
                      $insufficient_bodys_on_stack
                      $wrong_types_on_stack
 
-ROTATEX   angDeg yaxis zaxis
+ROTATEX   angDeg yaxis=0 zaxis=0
           use:    rotates Group on top of Stack around an axis that
                   passes through (0, yaxis, zaxis) and is parallel
                   to the x-axis
@@ -1422,7 +1445,7 @@ ROTATEX   angDeg yaxis zaxis
                   signals that may be thrown/caught:
                      $insufficient_bodys_on_stack
 
-ROTATEY   angDeg zaxis xaxis
+ROTATEY   angDeg zaxis=0 xaxis=0
           use:    rotates Group on top of Stack around an axis that
                   passes through (xaxis, 0, zaxis) and is parallel
                   to the y-axis
@@ -1435,7 +1458,7 @@ ROTATEY   angDeg zaxis xaxis
                   signals that may be thrown/caught:
                      $insufficient_bodys_on_stack
 
-ROTATEZ   angDeg xaxis yaxis
+ROTATEZ   angDeg xaxis=0 yaxis=0
           use:    rotates Group on top of Stack around an axis that
                   passes tgrough (xaxis, yaxis, 0) and is parallel
                   to the z-axis
@@ -1460,6 +1483,7 @@ RULE      reorder=0 periodic=0
                   first Xsect is unaltered if reorder>0
                   last  Xsect is unaltered if reorder<0
                   all Xsects must have the same number of Edges
+                  Xsects cannot be non-manifold WireBody
                   if all Xsects are NodeBodys
                      a WireBody is created
                   elseif all Xsects are WireBodys (or a NodeBody at one end)
@@ -1582,6 +1606,10 @@ SELECT    $type arg1 ...
                      sets @seltype to 1
                      uses @selbody
                      sets @sellist to Edge whose center is closest to (x,y,z)
+                  elseif arguments are: "loop iface iloop"
+                     sets @seltype to 1
+                     uses @selbody
+                     sets @sellist to Edges in order in the Loop
                   elseif arguments are: "node"
                      sets @seltype to 0
                      uses @selbody
@@ -1613,18 +1641,23 @@ SELECT    $type arg1 ...
                   elseif arguments are: "add ibody1 iford1 iseq=1" and @seltype is 2
                      uses @selbody
                      appends to @sellist the Face in @selbody that matches ibody1/iford1
+                     (a 0 matches ibody1=0 amd/or iford1=0)
                   elseif arguments are: "add ibody1 iford1 ibody2 iford2 iseq=1" and @seltype is 1
                      uses @selbody
                      appends to @sellist the Edge in @selbody that adjoins Faces
+                     (a 0 matches ibody1=0, iford1=0, ibody2=0, and/or iford2=0)
                   elseif arguments are: "add iface" and @seltype is 2
                      uses @selbody
                      appends to @sellist Face iface in @selbody
+                     (wildcarding is not allowed)
                   elseif arguments are: "add iedge" and @seltype is 1
                      uses @selbody
                      appends to @sellist Edge iedge in @selbody
+                     (wildcarding is not allowed)
                   elseif arguments are: "add inode" and @seltype is 0
                      uses @selbody
                      appends to @sellist Node inode in @selbody
+                     (wildcarding is not allowed)
                   elseif arguments are: "sub attrName1    attrValue1
                                              attrName2=$* attrValue2=$*
                                              attrName3=$* attrValue3=$*"
@@ -1634,11 +1667,14 @@ SELECT    $type arg1 ...
                   elseif arguments are: "sub ibody1 iford1 iseq=1" and @seltype is 2
                      uses @selbody
                      removes from @sellist the Face in @selbody that matches ibody1/iford1
+                     (a 0 matches ibody1=0 amd/or iford1=0)
                   elseif arguments are: "sub ibody1 iford1 ibody2 iford2 iseq=1" and @seltype is 1
                      uses @selbody
                      removes from @sellist the Edge in @selbody that adjoins Faces
+                     (a 0 matches ibody1=0, iford1=0, ibody2=0, and/or iford2=0)
                   elseif arguments are: "sub ient" and ient is in @sellist
                      removes from @sellist ient
+                     (wildcarding is not allowed)
                   elseif arguments are: "sort $key"
                      sorts @sellist based upon $key which can be: $xmin, $ymin, $zmin,
                         $xmax, $ymax, $zmax, $xcg, $ycg, $zcg, $area, or $length
@@ -1648,7 +1684,7 @@ SELECT    $type arg1 ...
 //                Node specifications are stored in _nodeID Attribute
                   iseq selects from amongst multiple Faces/Edges/Nodes that
                      match the ibody/iford specifications
-                  attrNames and attrValues can be wild-carded
+                  attrNames and attrValues can be wild-carded with $*
                   avoid using forms "SELECT face iface" and "SELECT edge iedge"
                      since iface and iedge are not guaranteed to be the same during
                      rebuilds or on different OpenCASCADE versions or computers
@@ -1871,6 +1907,7 @@ STORE     $name index=0 keep=0
           notes:  Sketch may not be open
                   Solver may not be open
                   $name is used directly (without evaluation)
+                  if index<0, use first available index
                   previous Group in name/index is overwritten
                   if $name=.   then Body is popped off stack
                                     but not actually stored
@@ -1940,9 +1977,10 @@ SWEEP
           use:    create a Body by sweeping an Xsect along an Xsect
           pops:   Xsect1 Xsect2
           pushes: Body
-          notes:  Sketch may not be open
+          notes:  results can be unpredictable due to OpenCASCADE issues
+                  Sketch may not be open
                   Solver may not be open
-                  Xsect1 must be either a SheetBody or WireBody
+                  Xsect1 must be either a SheetBody or non-manifold WireBody
                   Xsect2 must be a WireBody
                   if Xsect2 is not slope-continuous, result may not be
                      as expected
@@ -2388,6 +2426,9 @@ Valid operators (in order of precedence):
     * /            multiply and divide        (evaluated left to right)
     + -            add/concat and subtract    (evaluated left to right)
 
+    An expression that consists of only the name of a Parameter my be
+    prepended by a unary + or -
+
 Valid function calls:
     pi(x)                        3.14159...*x
     min(x,y)                     minimum of x and y
@@ -2519,7 +2560,8 @@ Attributes assigned to Bodys:
 
 Special User-defined Attributes for Bodys:
 
-    _makeQuads  to make quads on all Faces in Body
+    _makeQuads  to make new-style quads on all Faces in Body
+                (.tessType is set to "Quad" and .mixed is created)
 
     _name       string used in ESP interface for a Body
 
@@ -2587,7 +2629,10 @@ Special User-defined Attributes for Faces:
 
     _gcolor     color of grid of Face in ESP (see _color)
 
-    _makeQuads  to make quads for this Face
+    _makeQuads  to make old-style quads for this Face.  This is only
+                available if there is no _makeQuads Attribute on the Body.
+                Also, quads made by this option cannot be DUMPed to a
+                .egads file.
 
     _stlColor   color to use for this Face in an .stl file
 
@@ -2691,6 +2736,12 @@ typedef struct {
     double        *dot;                 /* array of velocities if nval>0 */
 } varg_T;
 
+/* "Mprp" are the mass properties used by a Branch */
+typedef struct {
+    char          name[10];             /* name     of the mass property */
+    double        val;                  /* value    of the mass property */
+} mprp_T;
+
 /* "Node" is a 0-D topological entity in a Body */
 typedef struct {
     int           nedge;                /* number of indicent Edges */
@@ -2755,6 +2806,7 @@ typedef struct {
     int           hasdots;              /* =1 if an argument has a dot; =2 if UDPARG is changed; =0 otherwise */
     int           hasdxyz;              /* =1 if Body has associated velocities */
     int           botype;               /* Body type (see below) */
+    int           nonmani;              /* =1 if a non-manifold WireBody */
     double        CPU;                  /* CPU time (sec) */
     int           nnode;                /* number of Nodes */
     node_T        *node;                /* array  of Nodes */
@@ -2782,6 +2834,8 @@ typedef struct {
     int           ileft;                /* left parent Branch (or 0)*/
     int           irite;                /* rite parent Branch (or 0)*/
     int           ichld;                /* child Branch (or 0 for root) */
+    int           nmprp;                /* number of mass properties */
+    mprp_T        *mprp;                /* array  of mass properties */
     int           narg;                 /* number of arguments */
     char          *arg1;                /* definition for args[1] */
     char          *arg2;                /* definition for args[2] */
@@ -2854,7 +2908,7 @@ typedef struct modl_T {
     int           tessAtEnd;            /* =1 to tessellate Bodys on stack at end of ocsmBuild */
     int           erepAtEnd;            /* =1 to generate Erep based upon _erepAttr and _erepAngle */
     int           bodyLoaded;           /* Body index of last Body loaded */
-    int           hasC0blend;           /* =1 if there is a BLEND with a C0 */
+
     int           seltype;              /* selection type: 0=Node, 1=Edge, 2=Face, or -1 */
     int           selbody;              /* Body selected (or -1)  (1:nbody) */
     int           selsize;              /* number of selected entities */
@@ -2887,7 +2941,7 @@ typedef struct modl_T {
     int           mbody;                /* maximum   Bodys */
     body_T        *body;                /* array  of Bodys */
 
-    int           numchgs;              /* number of DESPMTR/CFGPMTR/CONPMTR changes since last build */
+    int           needFDs;              /* =1 if finite differences are needed */
     int           numdots;              /* number of non-zero dots associated with DESPMTRS */
     struct modl_T *perturb;             /* model of perturbed body for sensitivty */
     struct modl_T *basemodl;            /* base MODL while creating perturbation */
@@ -2911,7 +2965,7 @@ typedef struct modl_T {
     int           sigCode;              /* current signal code */
     char          *sigMesg;             /* current signal message */
 
-    prof_T        profile[100];         /* profile data */
+    prof_T        profile[101];         /* profile data */
 } modl_T;
 
 /*
@@ -2928,17 +2982,32 @@ int ocsmVersion(int   *imajor,          /* (out) major version number */
 
 /* set output level */
 int ocsmSetOutLevel(int    ilevel);     /* (in)  output level: */
+                                        /*       <0 do not change */
                                         /*       =0 errors only */
                                         /*       =1 nominal (default) */
                                         /*       =2 debug */
+                                        /* (out) previous outLevel */
+
+/* set (global) auxiliary pointer */
+int ocsmSetAuxPtr(void  *newAuxPtr);    /* (in)  auxiliary pointer */
+
+/* get (global auxiliary pointer */
+int ocsmGetAuxPtr(void  **oldAuxPtr);   /* (out) auxiliary pointer */
 
 /* create a MODL by reading a .csm file */
 int ocsmLoad(char   filename[],         /* (in)  file to be read (with .csm) */
              void   **modl);            /* (out) pointer to MODL */
 
+/* create a MODL from an ego */
+int ocsmLoadFromModel(ego    emodel,    /* (in)  egads MODEL */
+                      void   **modl);   /* (out) pointer to MODL */
+
 /* load dictionary from dictname */
 int ocsmLoadDict(void   *modl,          /* (in)  pointer to MODL */
                  char   dictname[]);    /* (in)  file that contains dictionary */
+
+/* adjust UDCs to be colocated with the .csm file */
+int ocsmAdjustUDCs(void   *modl);       /* (in)  pointer to MODL */
 
 /* update CFGPMTRs and DESPMTRs from filename */
 int ocsmUpdateDespmtrs(void   *modl,    /* (in)  pointer to MODL */
@@ -2974,7 +3043,6 @@ int ocsmInfo(void   *modl,              /* (in)  pointer to MODL */
              int    *npmtr,             /* (out) number of Parameters */
              int    *nbody);            /* (out) number of Bodys */
 
-
 /* check that Branches are properly ordered */
 int ocsmCheck(void   *modl);            /* (in)  pointer to MODL */
 
@@ -2994,6 +3062,20 @@ int ocsmBuild(void   *modl,             /* (in)  pointer to MODL */
                                         /* (out) number of Bodys on the stack */
     /*@null@*/int    body[]);           /* (out) array  of Bodys on the stack (LIFO)
                                                  (at least nbody long) */
+
+/* print profile from last ocsmBuild() */
+int ocsmPrintProfile(void   *modl,      /* (in)  pointer to MODL */
+                     char   filename[]);/* (in)  file to which output is appended (or "" for stdout) */
+
+/* tessellate one or more Bodys */
+int ocsmTessellate(void   *modl,        /* (in)  pointer to MODL */
+                   int    ibody);       /* (in)  Body index (1:nbody) or 0 for all on stack */
+
+/* get information about one Body */
+int ocsmBodyDetails(void   *modl,       /* (in)  pointer to MODL */
+                    char   fiename[],   /* (in)  name of file from which Bdy was created */
+                    int    linenum,     /* (in)  line in filename from which Body was created */
+                    char   *info[]);    /* (out) info about the Body (freeable) */
 
 /* create a perturbed MODL */
 int ocsmPerturb(void   *modl,           /* (in)  pointer to MODL */
@@ -3460,7 +3542,7 @@ int ocsmGetCode(char   *text);          /* (in)  text to look up */
 #define           OCSM_DUMP       198
 #define           OCSM_ASSERT     199
 #define           OCSM_MESSAGE    200
-#define           OCSM_SPECIAL    299
+#define           OCSM_SPECIAL    299   /* note that this will not be profiled */
 
 #define           OCSM_PRIMITIVE  201   /* Branch classes */
 #define           OCSM_GROWN      202

@@ -1790,6 +1790,11 @@ assert    ifnan(zz,1,0)  1
 
 assert    @@aa           66
 assert    @@bb           666
+assert    @@cc.nrow      2
+assert    @@cc.ncol      4
+assert    @@cc.sum       14
+assert    @@cc.min       1.1
+assert    @@cc.max       2.4
 
 udparg    $/expressions  xx  xxx\
                          yy  yyy\
@@ -1811,6 +1816,9 @@ assert    ifnan(zz,1,0)  1
 
 assert    @@aa           66
 assert    @@bb           666
+assert    @@cc.nrow      2
+assert    @@cc.ncol      4
+assert    @@cc.sum       14
 
 udparg    $/expressions  xx  xxx\
                          yy  yyy
@@ -1831,6 +1839,9 @@ assert    ifnan(zz,1,0)  1
 
 assert    @@aa           66
 assert    @@bb           666
+assert    @@cc.nrow      2
+assert    @@cc.ncol      4
+assert    @@cc.sum       14
 
 udprim    $$/expressions xx  xxx\
                          yy  yyy\
@@ -1852,6 +1863,9 @@ assert    ifnan(zz,1,0)  1
 
 assert    @@aa           11
 assert    @@bb           111
+assert    @@cc.nrow      2
+assert    @@cc.ncol      4
+assert    @@cc.sum       14
 
 # check solver
 despmtr   W    3.5

@@ -1,0 +1,10 @@
+# dumpTest3a
+# written by John Danennhoffer
+
+BOX       -4  0  0  2  2  2
+BOX       -1  0  0  2  2  2
+BOX        2  0  0  2  2  2
+
+DUMP      dumpTest3a.egads  0  1  0
+
+END

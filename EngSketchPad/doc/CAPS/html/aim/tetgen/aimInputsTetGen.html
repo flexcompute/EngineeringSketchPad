@@ -70,8 +70,6 @@ $(function() {
 <ul>
 <li><b> Proj_Name = NULL</b> <br  />
  This corresponds to the output name of the mesh. If left NULL, the mesh is not written to a file.</li>
-<li><b> Tess_Params = [0.025, 0.001, 15.0]</b> <br  />
- Body tessellation parameters. Tess_Params[0] and Tess_Params[1] get scaled by the bounding box of the body. (From the EGADS manual) A set of 3 parameters that drive the EDGE discretization and the FACE triangulation. The first is the maximum length of an EDGE segment or triangle side (in physical space). A zero is flag that allows for any length. The second is a curvature-based value that looks locally at the deviation between the centroid of the discrete object and the underlying geometry. Any deviation larger than the input value will cause the tessellation to be enhanced in those regions. The third is the maximum interior dihedral angle (in degrees) between triangle facets (or Edge segment tangents for a WIREBODY tessellation), note that a zero ignores this phase</li>
 <li><b> Preserve_Surf_Mesh = True</b> <br  />
  Tells TetGen to preserve the surface mesh provided (i.e. do not add Steiner points on the surface). Discrete data transfer will <b>NOT</b> be possible if Steiner points are added.</li>
 <li><b> Mesh_Verbose_Flag = False</b> <br  />
@@ -97,26 +95,7 @@ $(function() {
 </ul>
 </li>
 <li><b> Multiple_Mesh = False</b> <br  />
- If set to True a volume will be generated for each body. When set to False (default value) only a single volume mesh will be created.<ul>
-<li><b> Edge_Point_Min = NULL</b> <br  />
- Minimum number of points on an edge including end points to use when creating a surface mesh (min 2). &zwj;/</li>
-</ul>
-</li>
-</ul>
-<p>} else if (index == 15) { *ainame = EG_strdup("Edge_Point_Max"); defval-&gt;type = Integer; defval-&gt;vals.integer = 0; defval-&gt;lfixed = Fixed; defval-&gt;nrow = 1; defval-&gt;ncol = 1; defval-&gt;nullVal = IsNull;</p>
-<p>/*!</p>
-<ul>
-<li><b> Edge_Point_Max = NULL</b> <br  />
- Maximum number of points on an edge including end points to use when creating a surface mesh (min 2). &zwj;/</li>
-</ul>
-<p>} else if (index == 16) { *ainame = EG_strdup("Mesh_Sizing"); defval-&gt;type = Tuple; defval-&gt;nullVal = IsNull; //defval-&gt;units = NULL; defval-&gt;dim = Vector; defval-&gt;lfixed = Change; defval-&gt;vals.tuple = NULL;</p>
-<p>/*!</p>
-<ul>
-<li><b>Mesh_Sizing = NULL </b> <br  />
- See <a class="el" href="meshSizingProp.html">Mesh Sizing</a> for additional details. &zwj;/ } else if (index == Regions) { ainame = EG_strdup("Regions"); defval-&gt;type = Tuple; defval-&gt;nullVal = IsNull; defval-&gt;dim = Vector; defval-&gt;lfixed = Change; defval-&gt;vals.tuple = NULL;</li>
-</ul>
-<p>/*!</p>
-<ul>
+ If set to True a volume will be generated for each body. When set to False (default value) only a single volume mesh will be created.</li>
 <li><b>Regions = NULL</b><br  />
  If this input is set, the volume mesh will be divided into regions, each bounded by surface mesh and identified by an interior <code>seed</code> point. If a seed appears in the <code>Regions</code> input, then its region will be meshed and the markers for all cells in the region will be set to the region's <code>id</code>. The markers for cells that fall outside of any user-defined region or hole will be numbered automatically. The input is a vector of tuples. The tuple keys are ignored and the tuple values are dictionaries; each requires an integer <code>id</code> entry and a 3-vector <code>seed</code> point. For example, from within a pyCAPS script,</li>
 </ul>
@@ -142,7 +121,7 @@ $(function() {
 </div><!-- PageDoc -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Fri Sep 17 2021 06:42:55 for TetGen Analysis Interface Module (AIM) by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1
+Generated on Sat Jul 2 2022 10:13:13 for TetGen Analysis Interface Module (AIM) by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1
 </small></address>
 </body>
 </html>

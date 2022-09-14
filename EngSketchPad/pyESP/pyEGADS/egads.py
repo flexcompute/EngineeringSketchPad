@@ -3,7 +3,7 @@
 # pyEGADS --- Python version of EGADS API                                 #
 #                                                                         #
 #                                                                         #
-#      Copyright 2011-2021, Massachusetts Institute of Technology         #
+#      Copyright 2011-2022, Massachusetts Institute of Technology         #
 #      Licensed under The GNU Lesser General Public License, version 2.1  #
 #      See http://www.opensource.org/licenses/lgpl-2.1.php                #
 #                                                                         #
@@ -182,7 +182,7 @@ if sys.version_info[:2] < (3, 4):
                     gc.enable()
 else:
     finalize = weakref.finalize
-    
+
 # =============================================================================
 # Decode function to play nice with Pyhon 2.7
 def _decode(data):
@@ -505,6 +505,9 @@ _egads.EG_isEquivalent.restype = c_int
 _egads.EG_sewFaces.argtypes = [c_int, POINTER(c_ego), c_double, c_int, POINTER(c_ego)]
 _egads.EG_sewFaces.restype = c_int
 
+_egads.EG_makeNmWireBody.argtypes = [ c_int, POINTER(c_ego), c_double, POINTER(c_ego)]
+_egads.EG_makeNmWireBody.restype = c_int
+
 _egads.EG_replaceFaces.argtypes = [c_ego, c_int, POINTER(c_ego), POINTER(c_ego)]
 _egads.EG_replaceFaces.restype = c_int
 
@@ -817,14 +820,14 @@ def free(ptr):
 def c_to_py(c_obj, deleteObject=False, context=None):
     """
     Creates a Python class for an exiting c_ego object.
-    
+
     Parameters
     ----------
     c_obj:
         the c_ego instance
-        
+
     deleteObject:
-        if True the class instance will call EG_deleteObject or EG_close 
+        if True the class instance will call EG_deleteObject or EG_close
         for the provided c_ego during garbage collection
 
     context:
@@ -903,7 +906,7 @@ class Context:
     def py_to_c(self, takeOwnership=False):
         """
         Returns the c_ego pointer
-        
+
         Parameters
         ----------
         takeOwnership:
@@ -1221,8 +1224,8 @@ class Context:
             pchildren = (c_ego * nchildren)()
             for i in range(nchildren):
                 pchildren[i] = children[i]._obj
-        
-        # Account for effective topology 
+
+        # Account for effective topology
         if oclass == MODEL:
             mtype = nchildren
             nchildren = 0
@@ -1485,7 +1488,7 @@ class ego:
     def py_to_c(self, takeOwnership=False):
         """
         Returns the c_ego pointer
-        
+
         Parameters
         ----------
         takeOwnership:
@@ -3826,7 +3829,7 @@ class ego:
         """
         Computes the Winding Angle along an Edge
 
-        The Winding Angle is measured from one Face ``winding'' 
+        The Winding Angle is measured from one Face ``winding''
         around to the other based on the normals.
         An Edge with a single Face always returns 180.0.
 
@@ -3842,7 +3845,7 @@ class ego:
         angle = c_double()
         stat = _egads.EG_getWindingAngle(self._obj, c_double(t), ctypes.byref(angle))
         if stat: _raiseStatus(stat)
- 
+
         return angle.value
 
 #=============================================================================-
@@ -4268,9 +4271,9 @@ class ego:
         if stat: _raiseStatus(stat)
 
         if (oclass == EEDGE):
-            param = peparam[0]
+            param = param[0]
         elif (oclass == EFACE):
-            param = [peparam[0], peparam[1]]
+            param = [param[0], param[1]]
 
         return ego(pobj, self.context), param
 
@@ -4405,6 +4408,35 @@ def sewFaces(objlist, toler=0.0, manifold=True):
     if stat: _raiseStatus(stat)
 
     return ego(model, objlist[0].context, deleteObject=True, refs=objlist)
+
+#=============================================================================-
+def makeNmWireBody(objects, toler=0.0):
+    """
+    Creates a non-manifold Wire Body
+
+    Parameters
+    ----------
+    objects:
+        List of Edge Objects to make the Wire Body
+
+    toler:
+        Node tolerance to connect Edges (0.0 indicates the use of the Nodes directly)
+
+    Returns
+    -------
+    The resultant Wire Body Object
+    """
+
+    nobj = len(objects)
+    objs = (c_ego * nobj)()
+    for i in range(nobj):
+        objs[i] = objects[i]._obj
+
+    wbody = c_ego()
+    stat = _egads.EG_makeNmWireBody(c_int(nobj), objs, toler, ctypes.byref(wbody))
+    if stat: _raiseStatus(stat)
+
+    return ego(wbody, objects[0].context, deleteObject=True, refs=objects)
 
 #=============================================================================-
 def blend(sections, rc1=None, rc2=None):

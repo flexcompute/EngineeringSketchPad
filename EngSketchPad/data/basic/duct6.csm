@@ -1,0 +1,33 @@
+# duct6
+# written by John Dannenhoffer
+
+# inlet
+SKBEG     -1.0  -1.0   0.0
+   ARC    -1.0   1.0   0.0   2.0
+   ARC    -1.0  -1.0   0.0  -0.5
+SKEND
+
+# mid 1
+SKBEG     -1.0  -1.0   2.0
+   LINSEG  1.0   0.0   2.0
+   LINSEG -1.0   1.0   2.0
+   LINSEG -1.0  -1.0   2.0
+SKEND
+
+# mid 2
+SKBEG     -1.0  -1.0   4.0
+   LINSEG  1.0  -1.0   4.0
+   LINSEG  1.0   1.0   4.0
+   LINSEG -1.0   1.0   4.0
+   LINSEG -1.0  -1.0   4.0
+SKEND
+
+# mid 3
+UDPRIM    box      dx 2.0   dy 2.0   dz 0.0   rad 0.2
+TRANSLATE   0.0   0.0   6.0
+
+# fanface
+UDPRIM    supell   rx 1.0   ry 1.0
+TRANSLATE   0.0   0.0   8.0
+
+END

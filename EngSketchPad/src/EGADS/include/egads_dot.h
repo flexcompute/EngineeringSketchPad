@@ -5,7 +5,7 @@
  *
  *             Function Prototypes for Sensitivities
  *
- *      Copyright 2011-2021, Massachusetts Institute of Technology
+ *      Copyright 2011-2022, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -80,6 +80,9 @@ __ProtoExt__ int  EG_tessMassProps_dot( const ego tess, double *xyz_dot,
 __ProtoExt__ int  EG_extrude_dot( ego body, const ego src,
                                   double dist, double dist_dot,
                                   const double *dir, const double *dir_dot );
+__ProtoExt__ int  EG_rotate_dot( ego body, const ego src,
+                                 double angle, double angle_dot,
+                                 const double *axis, const double *axis_dot);
 __ProtoExt__ int  EG_ruled_dot( ego body, int nSection, const ego *sections );
 __ProtoExt__ int  EG_blend_dot( ego body, int nSection, const ego *sections,
                                 /*@null@*/ double *rc1,

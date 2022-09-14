@@ -19,7 +19,7 @@
   <body>
     <p><h1 align=center>Engineering Sketch Pad (ESP) Version 1.21</h1>
     <p><h3>Authors: John F. Dannenhoffer, III (Syracuse University) and Bob Haimes (MIT)</h3>
-    <p><h3>Date: September 2021.</h3>
+    <p><h3>Date: July 2022.</h3>
 
     <p><h3 align=center><img src="esp_logo.png" width="400"/></h3>
 
@@ -32,9 +32,10 @@
     <p>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#sec2.3">2.3 Third tutorial: Using the sketcher and adding spokes</a>
     <p>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#sec2.4">2.4 Fourth tutorial: RULEs, BLENDs, and error checking</a>
     <p>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#sec2.5">2.5 Fifth tutorial: Multi-models </a>
-    <p>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#sec2.6">2.6 First legacy tutorial: Basic usage</a>
-    <p>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#sec2.7">2.7 Second legacy tutorial: Sketcher</a>
-    <p>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#sec2.8">2.8 Third legacy tutorial: Aircraft example</a>
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#sec2.6">2.6 Sixth tutorial: Integrated Design Environment </a>
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#sec2.7">2.7 First legacy tutorial: Basic usage</a>
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#sec2.8">2.8 Second legacy tutorial: Sketcher</a>
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#sec2.9">2.9 Third legacy tutorial: Aircraft example</a>
     <p><a href="#sec3">3.0 Command Line</a>
     <p><a href="#sec4">4.0 Interactive Options</a>
     <p><a href="#sec5">5.0 Format of the <code>.csm</code> and <code>.udc</code> Files</a>
@@ -53,37 +54,39 @@
     <p><a href="#sec6">6.0 Example <code>.csm</code> file</a>
     <p><a href="#sec7">7.0 Frequently Asked Questions</a>
     <p><a href="#sec8">8.0 Release notes</a>
-    <p>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#sec8.1">8.1 New/extended features in v1.20</a>
-    <p>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#sec8.2">8.2 Bug fixes since v1.19</a>
-    <p>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#sec8.3">8.3 New/extended features in v1.19</a>
-    <p>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#sec8.4">8.4 Bug fixes since v1.18</a>
-    <p>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#sec8.5">8.5 New/extended features in v1.18</a>
-    <p>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#sec8.6">8.6 Bug fixes since v1.17</a>
-    <p>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#sec8.7">8.7 New/extended features in v1.17</a>
-    <p>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#sec8.8">8.8 Bug fixes since v1.16</a>
-    <p>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#sec8.9">8.9 New/extended features in v1.16</a>
-    <p>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#sec8.10">8.10 Bug fixes since v1.15</a>
-    <p>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#sec8.11">8.11 New/extended features in v1.15</a>
-    <p>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#sec8.12">8.12 Bug fixes since v1.14</a>
-    <p>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#sec8.13">8.13 New/extended features in v1.14</a>
-    <p>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#sec8.14">8.14 Bug fixes since v1.13</a>
-    <p>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#sec8.15">8.15 New/extended features in v1.13</a>
-    <p>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#sec8.16">8.16 Bug fixes since v1.12</a>
-    <p>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#sec8.17">8.17 New/extended features in v1.12</a>
-    <p>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#sec8.18">8.18 Bug fixes since v1.11</a>
-    <p>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#sec8.19">8.19 New/extended features in v1.11</a>
-    <p>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#sec8.20">8.20 Bug fixes since v1.10</a>
-    <p>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#sec8.21">8.21 New/extended features in v1.10</a>
-    <p>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#sec8.22">8.22 Bug fixes since v1.09</a>
-    <p>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#sec8.23">8.23 New/extended features in v1.09</a>
-    <p>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#sec8.24">8.24 Bug fixes since v1.08</a>
-    <p>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#sec8.25">8.25 New/extended features in v1.08</a>
-    <p>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#sec8.26">8.26 Bug fixes since v1.07</a>
-    <p>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#sec8.27">8.27 New/extended features in v1.07</a>
-    <p>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#sec8.28">8.28 Bug fixes since v1.06</a>
-    <p>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#sec8.29">8.29 New/extended features in v1.06</a>
-    <p>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#sec8.30">8.30 Bug fixes since v1.05</a>
-    <p>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#sec8.31">8.31 Known problems in v1.09</a>
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#sec8.1">8.1 New/extended features in v1.21</a>
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#sec8.2">8.2 Bug fixes since v1.20</a>
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#sec8.3">8.3 New/extended features in v1.20</a>
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#sec8.4">8.4 Bug fixes since v1.19</a>
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#sec8.5">8.5 New/extended features in v1.19</a>
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#sec8.6">8.6 Bug fixes since v1.18</a>
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#sec8.7">8.7 New/extended features in v1.18</a>
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#sec8.8">8.8 Bug fixes since v1.17</a>
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#sec8.9">8.9 New/extended features in v1.17</a>
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#sec8.10">8.10 Bug fixes since v1.16</a>
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#sec8.11">8.11 New/extended features in v1.16</a>
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#sec8.12">8.12 Bug fixes since v1.15</a>
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#sec8.13">8.13 New/extended features in v1.15</a>
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#sec8.14">8.14 Bug fixes since v1.14</a>
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#sec8.15">8.15 New/extended features in v1.14</a>
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#sec8.16">8.16 Bug fixes since v1.13</a>
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#sec8.17">8.17 New/extended features in v1.13</a>
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#sec8.18">8.18 Bug fixes since v1.12</a>
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#sec8.19">8.19 New/extended features in v1.12</a>
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#sec8.20">8.20 Bug fixes since v1.11</a>
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#sec8.21">8.21 New/extended features in v1.11</a>
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#sec8.22">8.22 Bug fixes since v1.10</a>
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#sec8.23">8.23 New/extended features in v1.10</a>
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#sec8.24">8.24 Bug fixes since v1.09</a>
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#sec8.25">8.25 New/extended features in v1.09</a>
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#sec8.26">8.26 Bug fixes since v1.08</a>
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#sec8.27">8.27 New/extended features in v1.08</a>
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#sec8.28">8.28 Bug fixes since v1.07</a>
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#sec8.29">8.29 New/extended features in v1.07</a>
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#sec8.30">8.30 Bug fixes since v1.06</a>
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#sec8.31">8.31 New/extended features in v1.06</a>
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#sec8.32">8.32 Bug fixes since v1.05</a>
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#sec8.33">8.33 Known problems in v1.09</a>
     <p><a href="#sec9">9.0 Error Codes</a>
     <p>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#sec9.1">9.1 OpenCSM error codes</a>
     <p>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#sec9.2">9.2 EGADS error codes</a>
@@ -102,7 +105,7 @@
        using a client-server architecture.
 
     <p>The server consists of a back-end program
-       (<code>serveCSM</code>) that performs the majority of the
+       (<code>serveESP</code>) that performs the majority of the
        computational work; the server has been designed to work on a
        variety of compute platforms, including UNIX, LINUX, OSX, and
        Windows.  As will be described below, the user
@@ -112,9 +115,9 @@
     <p>The client, which is built within a web browser, provides the
        graphical user interface with which most users will provide
        inputs and receive outputs.  The supported browsers include
-       recent versions of FireFox, Google Chrome, and Safari.
-       (Internet Explorer and Edge are not supported because of a bug
-       within the WebSockets layer provided by the browser).
+       recent versions of FireFox, Google Chrome, Safari, and Edge.
+       (Internet Explorer is not supported because of a bug within the
+       WebSockets layer provided by the browser).
 
     <p><code>ESP</code> is technically just the user-interface to a
       system of software packages, including:
@@ -182,9 +185,8 @@
     <p>For a convenient Quick Reference,
        see <code>$ESP_ROOT/doc/ESP_QuickReference.pdf</code>, which is
        a two-page summary of the various <code>.csm</code> commands,
-       built-in functions, dot-suffixes, the <code>ESP</code>
-       character set, and a brief summary of the meanings of the various
-       keypresses in <code>ESP</code>.
+       built-in functions, dot-suffixes, and the <code>ESP</code>
+       character set.
 
     <p><h3 id="sec1.1">1.1 Gallery of cases</h3>
 
@@ -193,57 +195,63 @@
        in your favorite text editor to see how they were constructed.
 
        <h4>CanardFighter.csm</h4>
-       <img src="gallery/CanardFighter.png" width="100%"/>
+       <img src="pictures/gallery/CanardFighter.png" width="100%"/>
 
        <h4>Cobra.csm</h4>
-       <img src="gallery/Cobra.png" width="100%"/>
+       <img src="pictures/gallery/Cobra.png" width="100%"/>
 
        <h4>Dragon.csm</h4>
-       <img src="gallery/Dragon.png" width="100%"/>
+       <img src="pictures/gallery/Dragon.png" width="100%"/>
 
        <h4>Hypersonic.csm</h4>
-       <img src="gallery/Hypersonic.png" width="100%"/>
+       <img src="pictures/gallery/Hypersonic.png" width="100%"/>
 
        <h4>JMR3.csm</h4>
-       <img src="gallery/JMR3.png" width="100%"/>
+       <img src="pictures/gallery/JMR3.png" width="100%"/>
 
        <h4>Lander.csm</h4>
-       <img src="gallery/Lander.png" width="100%"/>
+       <img src="pictures/gallery/Lander.png" width="100%"/>
 
        <h4>OrionLEV.csm</h4>
-       <img src="gallery/OrionLEV.png" width="100%"/>
+       <img src="pictures/gallery/OrionLEV.png" width="100%"/>
 
        <h4>RM-10.csm</h4>
-       <img src="gallery/RM-10.png" width="100%"/>
+       <img src="pictures/gallery/RM-10.png" width="100%"/>
 
        <h4>Xwing.csm</h4>
-       <img src="gallery/Xwing.png" width="100%"/>
+       <img src="pictures/gallery/Xwing.png" width="100%"/>
 
     <p>In addition, several students have created models of a variety
        of configurations.  The <code>.csm</code> files for these cases
        are not included in the distribution since they have not been
        cleaned up; nevertheless, the models are very impressive.
 
+      <h4>A12</h4>
+      <img src="pictures/studentGallery/A12.png" width="100%"/>
+
       <h4>BulletTrain</h4>
-      <img src="studentGallery/BulletTrain.png" width="100%"/>
+      <img src="pictures/studentGallery/BulletTrain.png" width="100%"/>
 
       <h4>Cessna162</h4>
-      <img src="studentGallery/Cessna162.png" width="100%"/>
+      <img src="pictures/studentGallery/Cessna162.png" width="100%"/>
+
+      <h4>F104</h4>
+      <img src="pictures/studentGallery/f104.png" width="100%"/>
 
       <h4>F117</h4>
-      <img src="studentGallery/F117.png" width="100%"/>
+      <img src="pictures/studentGallery/F117.png" width="100%"/>
 
       <h4>GenericFighter</h4>
-      <img src="studentGallery/GenericFighter.png" width="100%"/>
+      <img src="pictures/studentGallery/GenericFighter.png" width="100%"/>
 
       <h4>LunarLander_11</h4>
-      <img src="studentGallery/LunarLander_11.png" width="100%"/>
+      <img src="pictures/studentGallery/LunarLander_11.png" width="100%"/>
 
       <h4>PittsSpecial</h4>
-      <img src="studentGallery/PittsSpecial.png" width="100%"/>
+      <img src="pictures/studentGallery/PittsSpecial.png" width="100%"/>
 
-      <h4>A12</h4>
-      <img src="studentGallery/A12.png" width="100%"/>
+      <h4>Sub03</h4>
+      <img src="pictures/studentGallery/sub03.png" width="100%"/>
 
     <p>Back to <a href="#sec0">Table of Contents</a>
 
@@ -251,7 +259,7 @@
 
     <p><h2 id="sec2">2.0: Tutorials</h2>
 
-    <p>There are five (new) Tutorials that will help you get
+    <p>There are six (new) Tutorials that will help you get
        acquainted with the Engineering Sketch Pad (<code>ESP</code>).
        The first uses a fairly sophisticated multi-model to help you
        get familiar with the <code>ESP</code> browser-based graphical
@@ -266,7 +274,7 @@
        <code>ESP</code> to be more flexible and faster than the
        GUI-based mode used by traditional CAD systems.  But, if you
        favor the traditional CAD system look-and-feel, check out the
-       legacy Tutorials (starting with <a href="#sec2.6">First legacy
+       legacy Tutorials (starting with <a href="#sec2.7">First legacy
        tutorial: Basic usage</a>)
 
     <p>For a more extensive introduction to <code>ESP</code>, see
@@ -301,13 +309,13 @@
 
     <p>There are two main ways of starting <code>ESP</code>.
 
-    <p><i>Technique 1.</i> Click the <b>ESP119</b> icon on your
+    <p><i>Technique 1.</i> Click the <b>ESP121</b> icon on your
        desktop.  This will open up a terminal window in which all the
        environment variables needed to run <code>ESP</code> are
        defined.  After the window opens, you can issue a command such
        as:
        <pre>
-         serveCSM [options] [filename[.csm]]
+         serveESP [options] [filename[.csm]]
        </pre>
        where <code>[options]</code> is a list of one or more
        command-line options, and <code>filename</code> (with or
@@ -321,34 +329,34 @@
 
     <p>To start the first Tutorial, simply enter:
       <pre>
-        serveCSM ../data/tutorial1    (on MAC or LINUX)
+        serveESP ../data/tutorial1    (on MAC or LINUX)
       </pre>
       or
       <pre>
-        serveCSM ..\data\tutorial1     (on Windows)
+        serveESP ..\data\tutorial1     (on Windows)
       </pre>
 
-    <p>After serveCSM builds the configuration, it will automatically
+    <p>After serveESP builds the configuration, it will automatically
        open up a browser containing the <code>ESP</code> user
-       interface.  When <code>ESP</code> starts, it will first ask you
+       interface.  When <code>ESP</code> starts, it may first ask you
        for the hostname and port associated with the server (which was
-       started when you typed serveCSM).
+       started when you typed serveESP).
 
     <p><img src="pictures/tutorial1-01.png" width="100%"/>
 
     <p>Most often you will choose the default
        <code>Localhost:7681</code>.  Note that a new feature
-       in <code>ESP119</code> allows more than one user to attach to the
+       in <code>ESP121</code> allows more than one user to attach to the
        same session, allowing them to work collaboratively on the same
        model at the same time.  This new collaboration feature is not
        explicitly covered in these Tutorials.
 
-    <p><i>Technique 2.</i> Click the <b>runESP119</b> icon on your
+    <p><i>Technique 2.</i> Click the <b>runESP121</b> icon on your
        desktop, which will open up (in the background) a terminal
        window and then a browser containing the <code>ESP</code> user
-       interface.  The first thing it will ask you for is the hostname
+       interface.  The first thing it may ask you for is the hostname
        and port associated with the server (that is actually running
-       in the terminal window), as shown above Most often you will
+       in the terminal window), as shown above. Most often you will
        choose the default <code>Localhost:7681</code>.  Note that a
        new feature in <code>ESP</code> allows more than one user to
        attach to the same session, allowing them to work
@@ -461,18 +469,14 @@
        nothing will happen.
 
     <p>The default (home) view can be obtained by pressing either
-       <b>&lt;Home&gt;</b>, <b>&lt;Ctrl-h&gt;</b>, <b>&lt;Ctrl-f&gt;</b>,
-       or the <b>H</b> button near the top of the TreeWindow.  (The
-       home view is one in which the <i>x</i>-coordinate increases from left
-       to right and the <i>y</i>-coordinate increases from bottom to top.)
-       One can also get the top view by pressing <b>&lt;Ctrl-t&gt;</b>
-       or the <b>T</b> button, the bottom view by
-       pressing <b>&lt;Ctrl-b&gt;</b> or the <b>B</b> button, the left
-       side view by pressing <b>&lt;Ctrl-l&gt;</b> or the <b>L</b>, or
-       the right side view by pressing <b>&lt;Ctrl-r&gt;</b> or
-       the <b>R</b> button.  Note the your browser might steal
-       key-presses such as <b>&lt;Ctrl-h&gt;</b>, so it is best to
-       either use the <b>&lt;Home&gt;</b> key or the buttons.
+       the <b>&lt;Home&gt;</b> key or the <b>H</b> button near the top
+       of the TreeWindow.  (The home view is one in which
+       the <i>x</i>-coordinate increases from left to right and
+       the <i>y</i>-coordinate increases from bottom to top.)  One can
+       also get the top view by pressing the <b>T</b> button, the
+       bottom view by pressing the <b>B</b> button, the left side view
+       by pressing the <b>L</b> button, or the right side view by
+       pressing the <b>R</b> button.
 
     <p>The function of the arrow keys on the keyboard depends on
        whether FlyingMode is active or not.  For example, if
@@ -485,12 +489,11 @@
        the <b>&lt;Left&gt;</b> key is pressed, the increments are 5
        degrees and the translations are also smaller.
 
-    <p>The <b>&lt;PgUp&gt;</b> or <b>&lt;Ctrl-i&gt;</b> keys or the
-       <b>+</b> button can be used to zoom in and the <b>&lt;PgDn&gt;</b> or
-       <b>&lt;Ctrl-o&gt;</b> key or the <b>-</b> button can be used to
-       zoom out.  (Recall that the mouse wheel can also be used.)  The
-       behavior of these keys/buttons does not depend on the current
-       FlyingMode.
+    <p>The <b>&lt;PgUp&gt;</b> key or the <b>+</b> button can be used
+       to zoom in and the <b>&lt;PgDn&gt;</b> key or the <b>-</b>
+       button can be used to zoom out.  (Recall that the mouse wheel
+       can also be used.)  The behavior of these keys/buttons does not
+       depend on the current FlyingMode.
 
     <p>To re-center the image at a given point and simultaneously
        reset the point about which mouse rotations will occur, point
@@ -531,10 +534,10 @@
     <p>Now let's look at the Display part of the TreeWindow.  By
        default, "Display" is expanded and you can see that you have
        Bodys named "SheetModel", "SolidModel", and "Spindle".  Expand
-       the listing for "SolidModel" by pressing the <b>+</b> to the left
-       of "SolidModel" and you will see entries for Faces, Edges,
-       Nodes, and Csystems.  To the right of "Faces" (below
-       "SolidModel") you will see three items:
+       the listing for "SolidModel" by pressing the <b>+</b> to the
+       left of "SolidModel" and you will see entries for Faces, Edges,
+       and Nodes.  To the right of "Faces" (below "SolidModel") you
+       will see three items:
       <ul>
         <li><b>Viz</b>: toggles the visibility of all Faces associated
             with SolidModel;</li>
@@ -568,7 +571,7 @@
         <li>changes made to the heading (such as "Faces") applies to
             all Faces in the group; and</li>
         <li>changes made at the Body level applies to all Faces,
-        Edges, Nodes, and Csystems in the body.</li>
+        Edges, and Nodes in the body.</li>
       </ul>
 
     <p>When you have a configuration with lots of Bodys, it is
@@ -618,18 +621,23 @@
 
     <p>The second button on the top of the TreeWindow is
        the <b>Tool</b> button, which gives you access to the various
-       tools within <code>ESP</code>.  In version 1.19, there are only
-       three options here:
+       tools within <code>ESP</code>.  In version 1.21, there are only
+       five options here:
       <ul>
         <li><b>Sketch</b> - we will be using this in Tutorial 3;</li>
-        <li><b>Gloves</b> - this is a very early version of a system
-             to graphically lay out a vehicle system.  At the current
-             time this is purely experimental and probably should not
-             be used; and</li>
+        <li><b>Caps</b> - this allows interactions
+             with <code>CAPS</code>, which will be covered in Tutorial
+             6; </li>
         <li><b>ErepEd</b> - this option allows you to define an
             effective topology, which is a way of collecting Faces
-            into EFaces in order to facilitate mesh generation.  This
-            will not be discussed further in these Tutorials.</li>
+             into EFaces in order to facilitate mesh generation.  This
+             will not be discussed further in these Tutorials.</li>
+        <li><b>Plugs</b> - this option automatically updates a model's
+             DesignParameters so as to least-square fit a cloud of
+             points that are defined in a PlotFile.  This is not
+             defined in further in this document; and</li>
+        <li><b>Pyscript</b> - this option allows a user to run a
+             Python script, which will be covered in Tutorial 6.
       </ul>
       It is anticipated that many more tools will be added to
       the <b>Tool</b> menu in future releases of <code>ESP</code>.
@@ -744,7 +752,7 @@
          (described later).  The groups can have sub-groups, etc, so
          sometimes it is convenient to see everything at once.  This
          can be done by pressing <b>ExpandAll</b> to the right
-         of "Design Parameters".  (When you have done this,the
+         of "Design Parameters".  (When you have done this, the
          legend will change to <b>CollapseAll</b> which will have the
          opposite effect.
 
@@ -980,16 +988,29 @@
          press <b>OK</b> and then <b>Press to Re-build</b> to see the
          effect of the edits.
 
-      <p>Also, the first column in the Branches tree in the TreeWindow
-        is colored as follows:
+      <p>If you choose "Brch_000114", you will see that the first
+         column is colored magenta.  None of the other entries in the
+        first column are colored, which either means that:
+        <ul>
+          <li>the statement does not use any entries from the Stack and the
+              Body that is produced is left on the Stack at the end of
+              the build (which is not the case here), or</li>
+          <li>the statement was not executed during the last build
+              (which is the case here).
+          </ul>
+
+      <p>To get around this, change the DesignParameter "makeSpindle"
+         to <code>o</code> and <b>Press to Re-build</b>.  Once you've
+         done this and re-edit "Brch_000114", the first column in the
+         Branches tree in the TreeWindow is colored as follows:
         <ul>
           <li>magenta - the Branch being edited (in this case
               "Brch_000114");</li>
           <li>cyan - the two Branches whose Bodys are
-              being <code>UNION</code>ed (in this case "Brch_000111"
+              being <code>UNION</code>ed (in this case "Brch_000101"
               and "Brch_000113"); and</li>
           <li>yellow - the Branch that uses this Body (in this case,
-              the <code>UNION</code> in "Brch_000119"),</li>
+              the <code>UNION</code> in "Brch_000117"),</li>
         </ul>
 
       <p>Current <code>ESP</code> best practice does not rely much on
@@ -1006,9 +1027,9 @@
          clicking on <b>DisplayType</b>:
         <ul>
           <li><i>0 monochrome</i> is the default coloring scheme (that
-              you've been seeing so far (except for the fact that some
+              you've been seeing so far), except for the fact that some
               of the Faces have been explicitly colored, as described
-              in some of the following Tutorials).  In monochrome
+              in some of the following Tutorials.  In monochrome
               mode:
             <ul>
               <li>Faces associated with SolidBodys are shown in light
@@ -1040,8 +1061,14 @@
           <li><i>5 Gaussian curvature</i> shows the Gaussian curvature
               (which is the product of the two principal curvatures,
               but scaled to highlight surface waviness) at each
-              point on each Face; and</li>
-          <li><i>6 Erep</i> shows the effective topology (which can be
+              point on each Face;</li>
+          <li><i>6 Normals</i> show the outward-pointing normals at each
+              of the tessellation points.  The lengths of the little
+              tufts can be adjusted by clicking in the KeyWindow and
+              changing the LowerLimit to <code>0</code> and the
+              UpperLimit to <code>1</code> (or somthing smaller if the
+              tufts are too long); and</li>
+          <li><i>10 Erep</i> shows the effective topology (which can be
               generated via <b>Tool->ErepEd</b>).</li></li>
         </ul>
 
@@ -1050,7 +1077,9 @@
          spectrum to let you know what the various colors mean.  If
          you click in the KeyWindow (when a spectrum is showing), you
          can change the values associated with the lower limit (blue)
-         and the upper limit (red).
+         and the upper limit (red).  When viewing normals, the lower
+         KeyWindow limit will usually be zero and the upper limit can
+         be used to adjust the lengths of the tufts.
 
         Trying these on the spindle gives you pictures like this.
 
@@ -1101,7 +1130,7 @@
          associated with the holes.  You can turn the DisplayFilter
          off by simply pressing <b>Enter</b> in one of the popups.
 
-      <p>Closing your browswer will also terminate
+      <p>Closing your browser will also terminate
          the <code>ESP</code> server.
 
       <p>Now that you have finished your tour of the <code>ESP</code>
@@ -1117,11 +1146,11 @@
          do <a href="#sec2.1">Tutorial 1</a> first.
 
       <p>Begin by starting <code>ESP</code> by either pressing
-         the <b>runESP119</b> icon on you desktop, or by pressing
-         the <b>ESP119</b> icon and then typing <code>serveCSM</code>
+         the <b>runESP121</b> icon on you desktop, or by pressing
+         the <b>ESP121</b> icon and then typing <code>serveESP</code>
          in the window that pops up.
 
-      <p>In either case, when </code>ESP</code> asks for you hostname
+      <p>In either case, if </code>ESP</code> asks for you hostname
          and port, enter (the default) <code>Localhost:7681</code>.
          This should bring up an empty <code>ESP</code> GUI.
 
@@ -1163,6 +1192,8 @@
               onto the clipboard;</li>
           <li><b>Paste</b>: put copy of the clipboard at the
               current cursor location;</li>
+          <li><b>Insert</b>: insert the contents of another file at
+              the current cursor location;
           <li><b>Search</b>: look for a string (see prompt
               near top of screen). The search is case sensitive;</li>
           <li><b>Prev</b>: look for previous occurrence of
@@ -1280,7 +1311,7 @@
       <pre>
         BOX  -length/2 -height/2 -depth/2 length height depth
       </pre>
-       Note the the continuation character was used here to improve
+       Note that the continuation character was used here to improve
        readability.
 
     <p>Since we wanted the <code>BOX</code> centered at the origin,
@@ -1583,7 +1614,7 @@
     <p>We will start with a <code>BOX</code> command (in line 19), but
        this time we will make its "dz" zero, to create a SheetBody (a
        Body without volume) instead of the traditional SolidBody.
-       Notice that SheetBody is defined in the <i>xy</i>-plane
+       Notice that the SheetBody is defined in the <i>xy</i>-plane
        (because <code>zbase</code> is <code>0</code>) and that is goes
        between <code>0</code> and <code>tire:width/2</code> in
        the <i>x</i> direction and <code>tire:diam_inner/2</code>
@@ -1746,7 +1777,7 @@
        Faces that were created to get the "tread" Attribute.  To get
        around this, we will use the <code>SELECT</code> statement.
        This statement has lots of options, and in fact is the longest
-       entry in the section that describes the various commands.
+       entry in the sections that describes the various commands.
 
     <p>To figure out which Face we want to Attribute:
       <ul>
@@ -1883,20 +1914,23 @@
                  pushes: Body
                  notes:  Sketch may not be open
                          Solver may not be open
-                         if previous operation is boolean, apply to all new Edges
-                         edgeList=0 is the same as edgeList=[0;0]
-                         edgeList is a multi-value Parameter or a semicolon-separated
-                            list
-                         pairs of edgeList entries are processed in order
-                         pairs of edgeList entries are interpreted as follows:
-                            col1  col2   meaning
-                             =0    =0    add all Edges
-                             >0    >0    add    Edges between iford=+icol1
-                                                          and iford=+icol2
-                             <0    <0    remove Edges between iford=-icol1
-                                                          and iford=-icol2
-                             >0    =0    add    Edges adjacent to iford=+icol1
-                             <0    =0    remove Edges adjacent to iford=-icol1
+                         if listStyle==0
+                            if previous operation is boolean, apply to all new Edges
+                            edgeList=0 is the same as edgeList=[0;0]
+                            edgeList is a multi-value Parameter or a semicolon-separated
+                               list
+                            pairs of edgeList entries are processed in order
+                            pairs of edgeList entries are interpreted as follows:
+                               col1  col2   meaning
+                                =0    =0    add all Edges
+                                >0    >0    add    Edges between iford=+icol1
+                                                             and iford=+icol2
+                                <0    <0    remove Edges between iford=-icol1
+                                                             and iford=-icol2
+                                >0    =0    add    Edges adjacent to iford=+icol1
+                                <0    =0    remove Edges adjacent to iford=-icol1
+                         else
+                            edgeList contains Edge number(s)
                          sensitivity computed w.r.t. radius
                          sets up @-parameters
                          new Faces all receive the Branchs Attributes
@@ -2511,8 +2545,13 @@
 
     <p>The next thing we are going to do is to make a copy of
        our <code>../data/tutorial2.csm</code> file, and call
-       it <code>temp.csm</code>. It is probably easiest to
-       do this in another window on your computer.
+      it <code>temp.csm</code>. To do this:
+      <ul>
+        <li>press <b>File</b> and <b>Edit: &lt;new file&gt;</b>;</li>
+        <li><b>Insert</b> the file <code>../data/tutorial2.csm</code>
+            (or <code>..\data\tutorial2.csm</code> on Windows); and
+        <li><b>Save</b> the file as <code>temp.csm</code>.
+      </ul>
 
     <p>After you have done that, we will make our sketch of the
        cross-section of the tire.  This is done by
@@ -2625,7 +2664,8 @@
 
     <p>The next thing we are going to do is to add spokes to our
        configuration.  At this time, <b>File</b> and <b>Open</b> the
-       model <code>../data/tutorial3</code>.  Now <b>File</b>
+       model <code>../data/tutorial3</code>
+       (or <code>..\data\tutorial3</code>).  Now <b>File</b>
        and <b>Edit: ../data/tutorial3.csm</b>.
 
     <p>To add the spokes, the following changes were made:
@@ -2898,12 +2938,12 @@
       that <code>ESP</code> can be extended by the user.
 
     <p>The first argument of the <code>UDPRIM</code> is the name of
-       the UDP or UDF; which one it is depends on the way the
+       the UDP, UDF, or UDC; which one it is depends on the way the
        <i>primtype</i> is specified:
        <ul>
-         <li>if <i>primtype</i> starts with a letter, then it is the name
-             of a UDP.  UDPs are C- or FORTRAN-applets that can either
-             be one shipped with <code>ESP</code> (see
+         <li>if <i>primtype</i> starts with a letter, then it is the
+             name of a UDP (or UDF).  UDPs are C- or FORTRAN-applets
+             that can either be one shipped with <code>ESP</code> (see
              the <a href="#sec5.5">User-defined Primitives/Functions
              shipped with OpenCSM</a> for a listing) or one written by
              you or someone in your organization.  They are only
@@ -3001,8 +3041,9 @@
     <p><h4>Adding a spindle</h4>
 
     <p>Now it it time to turn to Tutorial 4.  Press <b>File</b>,
-       then <b>Open</b>, choose <code>../data/tutorial4</code> and
-       then <b>File</b> <b>Edit: ../data/tutorial4.csm</b>   The first
+       then <b>Open</b>, choose <code>../data/tutorial4</code>
+       (or <code>..\data\tutorial4.csm</code>)and
+       then <b>File</b> <b>Edit: ../data/tutorial4.csm</b> The first
        change is in lines 37 through 57:
       <pre>
         CFGPMTR   spindle:Cfront      2        # blend continuity at front transition
@@ -3036,7 +3077,7 @@
         CFGPMTR   spindle:Cback       2        # blend continuity at back  transition
      </pre>
        which define ConfigurationParameters.  Recall that a
-       ConfigurationParameter like a DesignParameter is in all ways
+       ConfigurationParameter is like a DesignParameter in all ways
        except that you cannot find the sensitivity with respect to it.
        We will see in a few minutes what <code>spindle:Cfront</code>
        and <code>spindle:Cback</code> are, and why it does not make
@@ -3186,7 +3227,7 @@
 
     <p>A quick note: while it is possible to get a <code>RULE</code>d
        Body by using <code>BLEND</code> with all the interior SheetBodys
-       duplicated twice, doing this way is much less efficient and may
+       duplicated twice, doing it this way is much less efficient and may
        cause problems in your build later on.  So it is best to use
        <code>RULE</code> if appropriate.
 
@@ -3256,7 +3297,7 @@
                 spindle:rad_nose; 0; 0; 1"
       </pre>
        If you get a <b>Hint</b> on the <code>BLEND</code>, you will
-       see the the first (optional) argument is
+       see that the first (optional) argument is
        the <code>begList</code>; see the documentation in
        <a href="#sec5.4">Valid CSM statements</a> for a full
        description.
@@ -3369,7 +3410,8 @@
       </ul>
 
     <p>Press <b>File</b>, <b>Open</b>, and
-       select <code>../data/tutorial5</code>.
+       select <code>../data/tutorial5</code>
+       (or <code>..\data\tutorial5</code>).
 
     <p>The first big change (relative to <code>tutorial4</code>) is
        in lines 170 to 178:
@@ -3408,7 +3450,7 @@
       It begins by <code>EXTRACT</code>ing the Faces from the
       SolidModel that have a <code>myTag</code> Attribute whose value
       is the string <code>tread</code>.  This is done
-      by <code>SELECT</code>ing those Faces (which put their Face
+      by <code>SELECT</code>ing those Faces (which puts their Face
       number into the AtParameter <code>@sellist</code>), and then
       using the <code>@sellist</code> in the <code>EXTRACT</code>
       command.
@@ -3479,7 +3521,7 @@
        by step.  That is how this Tutorial script was developed: step
       by step.
 
-    <p>Most of the scripts that  you write initially will be
+    <p>Most of the scripts that you write initially will be
        much simpler than the script that we used here.   Feel free to
        use the <b>Hint</b> button in the script editor, look up the
        commands in this Help document (below), use
@@ -3487,6 +3529,1549 @@
        if you are not sure how to do something.  It is only by
        frequent contact with the users that <code>ESP</code> can be
        made better for the kinds of things that you want to do.
+
+    <p><h3 id="sec2.6">2.6 Sixth tutorial: Integrated Design Environment</h3>
+
+    <p>This tutorial uses <code>ESP</code>'s Integrated Design
+       Environment (IDE), which allows a user to incrementally build
+       geometric models and perform analyses via the Computational
+       Aerospace Prototype Syntheses (<code>CAPS</code>) system.  The
+       goals of this new IDE are to:
+      <ul>
+        <li>be a tool that can be used by all individuals involved
+            in a design and its processes</li>
+        <li>be a central repository of all design data, including
+            mission and functional requirements</li>
+        <li>provide a mechanism for the user to document the "how" and
+            "why" design decisions were made</li>
+        <li>allow geometric models to evolve over time</li>
+        <li>maintain history of the evolving design and design
+            decisions</li>
+        <li>support user-written workflows via Python scripts</li>
+        <li>support various optimization schemes and provide
+            sensitivities when available</li>
+        <li>allow a user to suspend a session and be able to restart
+            (including after an abort)</li>
+        <li>give user methods to interactively visualize the geometry and
+            analysis results at any stage of the design</li>
+        <li>allow the user to generate simple graphs</li>
+        <li>support branching, merging, and pruning of the design decision
+            tree</li>
+        <li>allow collaboration by geographically-dispersed users</li>
+     </ul>
+
+    <p>Work in the IDE is organized in Phases, which are the atomic pieces of
+       work that keep track of a design as it evolves from a very
+       simple initial concept through its final design.  A Phase keeps
+       track of the evolution of the geometric model
+       (in <code>ESP</code> </code>.csm</code> files) as well as the
+       Python scripts that tie the geometric model with analysis
+       software through the <code>CAPS</code>
+       system.  <code>CAPS</code> includes links to analysis software
+       such a Computational Fuild Dynamics (CFD) and Finite Element
+       Analysis (FEA) programs.  (We will be using the Athena Vortex
+       Lattice (AVL) analysis later in this tutorial.)
+
+    <p>In many ways, a Phase resembles the version-control snapshots
+       (or commits) of a software project in a revision-control system
+       such as Git or Subversion.  Like these version-control systems,
+       the Phases in the IDE can be organized in Branches, and are
+       named with the Branch number, followed by a dot, followed by
+       the Revision number.  The first Phase is always named "1.1",
+       which means the first Revision on the first Branch.  Subsequent
+       Phases in the main Branch are numbered sequentially, such as
+       "1.2", "1.3", etc.  The Branches are also numbered
+       sequentially, and always start at revision 1, such as "2.1".
+       All Phases (except "1.1") have a parent Phase, which is either
+       the prior Revision in the current Branch or the Branch.Revision
+       from which a new Branch was greated. For example, the parent of
+       Phase "3.6" is always "3.5".  The parent of the first Revision
+       of any Branch can be any previously existing Phase.
+
+    <p>A Phase can be in several states:
+      <ul>
+        <li><b>Closed</b> - which means that the Phase is complete and
+            cannot be changed (much like a "commit" in a
+            version-control system).  A Closed Phase can be used as the
+            starting point for any new Phase;</li>
+        <li><b>Open</b> - which means that further work can be done on
+            the Phase.  Note that only the last Revision in any Branch
+            can be Open; and</li>
+        <li><b>Locked</b> - which is just like an Open Phase, except
+            it was not properly suspended or in use by another
+            session; this can happen when something
+            in <code>serveESP</code> or in an analysis executed from
+            the IDE crashes or is killed in some way.  When trying to
+            access a Locked Phase, the user will be asked if they want
+            to steal the lock.  If they answer "yes", then the Phase
+            can be editted just like any Open Phase.</li>
+      </ul>
+
+    <p>When working on a Phase in the IDE, a user has four options to
+       leave the Phase:
+      <ul>
+        <li><b>Caps->CommitPhase</b> - which closes the phase (and
+            cannot be further editted);</li>
+        <li><b>Caps->QuitPhase</b> - which removes all the work done
+            during the Phase from the system.  It also removes the
+            .csm from <code>ESP</code>, which can be re-loaded
+            with <b>File</b> and <b>Open</b>;</li>
+        <li><b>Caps->SuspendPhase</b> - which leaves the Phase Open
+            (and can be further editted); and</li>
+        <li>close <code>serveESP</code> while the IDE is still active,
+            which is equivalent to explicitly suspending the Phase.</li>
+      </ul>
+      Also, as noted above, in the event that the program crashes or
+      is killed, the Phase will be left Locked (but otherwise Open).
+
+    <p><h4>Design problem</h4>
+
+    <p>The design exercise that we will be looking at in this tutorial
+       is a rubber-powered, hand-launched aircraft that carries golf
+       balls.  The design will be scored as the product of the square
+       of the time aloft beyond 3 seconds and the number of golf balls
+       carried.
+
+    <p><h4>First model (simple rectangular wing)</h4>
+
+    <p>We are going to start this tutorial by clicking on
+       the <code>ESP_121</code> icon on the Desktop.  (Note that since
+       we be re-entering <code>serveESP</code> several times and will
+       using the <code>phaseUtil</code> program, it is not advisable
+       to use the <code>runESP_121</code> icon for this tutorial.)
+
+    <p>After clicking the <code>ESP_121</code> icon, a terminal window
+       will open. Since there will be lots of files used in this
+       tutorial, it is convenient to set an environment varaible that
+       tells <code>serveESP</code> where to find the various files that
+       we will be using.  Issue the command:
+<pre>
+        setenv ESP_PREFIX ../data/tutorial6/       (in a tcsh on Mac or LINUX)
+</pre>
+       or
+<pre>
+        export ESP_PREFIX=../data/tutorial6/       (in a bash shell on Mac or LINUX)
+</pre>
+       or
+<pre>
+        set ESP_PREFIX=..\data\tutorial6\          (on Windows)
+</pre>
+
+    <p><b>Special note:</b> In what follows, the separator between a
+       file and its directory (folder) will be shown as a
+       forward-slash (<code>/</code>).  If you are using Windows,
+       please use the back-slash (<code>\</code>) instead.
+
+    <p>We will start the tutorial by using a very simple wing model.
+       Start the program by typing:
+<pre>
+       serveESP ../data/tutorial6/model1.csm
+</pre>
+    <p>You will see the normal <code>ESP</code> screen, which looks
+       like:
+    <p><img src="pictures/tutorial6-01.png" width="100%"/>
+
+    <p>Note that the <code>ESP</code> window looks the same as in the
+       previous tutorials and that you can do anything you want with
+       the model.
+
+    <p>To examine the <code>.csm</code> file (which is used to define
+       the geometric model), click on <b>File</b> and <b>Edit:
+       ../data/tutorial6/model1.csm</b>, which will open the code editor.
+
+    <p>Notice that we have four Design Parameters
+       ("wing:area", "wing:aspect", "wing:thick", and "wing:camber"), each
+       with its own default values, defined in lines 8 through 11 by:
+<pre>
+        DESPMTR   wing:area    20.0
+        DESPMTR   wing:aspect   4.0
+        DESPMTR   wing:thick   0.01
+        DESPMTR   wing:camber  0.06
+</pre>
+       Note that the prefix "wing:" is not essential, but
+       helps to organize the Design Parameters in the <code>ESP</code>
+       viewer.
+
+    <p>This is followed by lines 14 through 17:
+<pre>
+        SET       wing:span    sqrt(wing:area*wing:aspect)
+        SET       wing:chord   wing:area/wing:span
+
+        OUTPMTR   wing:span
+</pre>
+       which compute the "span" and "chord" from the area and aspect
+       ratio, and further makes the "span" an Output Parameter, which
+       means that its value is accessible outside the model build
+       process.
+
+    <p>The actual build is done in lines 20 to 27:
+<pre>
+        UDPARG    naca         thickness wing:thick
+        UDPARG    naca         camber    wing:camber
+        UDPRIM    naca         sharpte   1
+        ROTATEX   90
+        SCALE     wing:chord
+        TRANSLATE 0   -wing:span/2   0
+
+        EXTRUDE   0    wing:span     0
+</pre>
+       which generates a NACA airfoil, ROTATEs it to the <em>x-z</em>
+       plane, SCALEs it by the "chord", TRANSLATEs it half the "span",
+       and then EXTRUDEs it for the full "span".  This is technique is
+       not the traditional way of creating a wing, but is used here
+       for illustriative purposes.  Press the <b>Cancel</b> button to
+       get the view shown above.
+
+    <p>We are now going to enter the IDE by
+       pressing <b>Tool</b> and <b>Caps</b>.  The first thing you are asked for is
+       the name of your project, optionally followed by a colon
+       (":") and the Branch number, then optionally followed by
+       a dot (".") and the Revision number, all optionally
+       followed by an asterisk ("*").  If the Branch is not
+       given, it defaults to Branch 1; if a Revision is not given, it
+       defaults to the last Revision in the Branch.  The asterisk
+       tells the IDE to ignore the model currently on the screen, and
+       instead use the model associated with the Branch.Revision given
+       (or implied).  More on this later.
+
+    <p>For this tutorial, we are going to call the project "ostrich"
+
+    <p><img src="pictures/tutorial6-02.png" width="100%"/>
+
+    <p>We then get another prompt that asks us to describe the intent
+       (our intention) during this Phase.  This information is saved
+       by the system and displayed at various times.  For this
+       tutorial, our intent will be "initial sizing of rectangular
+       wing", as in:
+    <p><img src="pictures/tutorial6-03.png" width="100%"/>
+
+    <p>Note the changes to the display:
+      <ul>
+        <li>there is a green button at the top of the TreeWindow that
+            can be pressed to execute various of the IDE
+            functions;</li>
+        <li>there is a yellow rectange that shows the name of the
+            project, the current Branch (in this case "1"),
+            and the current Revision (in this case
+            also "1");</li>
+        <li>there is a new entry, <b>Caps Values</b>, in the tree;
+            and</li>
+        <li>the <b>Branches</b> entry is not in the tree (since the
+            user cannot manipulate the geometric build process while
+            in the IDE).</li>
+      </ul>
+
+    <p>The first thing we are going to do is to create a CapsValue
+       named "nball".  This is done (in an analogous way to
+       creating a new DesignParmeter) by pressing on the words <b>Caps
+       Values</b>, entering the name "nball", entering the
+       value "1" in the form, and then pressing
+       the <b>OK</b> button.
+
+    <p>We can also add a row-vector by pressing <b>Caps Values</b>,
+       entering the name "badValue", pressing the <b>Add
+       column</b> button twice, and then filling in the values, such
+       as:
+    <p><img src="pictures/tutorial6-04.png" width="100%"/>
+       We can press <b>OK</b> to save our change.  If we then
+       press <b>ExpandAll</b> to the right of <b>Caps Values</b>
+       and <b>Design Parameters</b>, we should see:
+    <p><img src="pictures/tutorial6-05.png" width="100%"/>
+       Note that the "wing:area" is "20"
+       and "wing:aspect" is "4", as was
+       prescribed in the <code>.csm</code> file.
+
+    <p>Now we are going to maniulate the model in <code>CAPS</code>
+       (via its Python interface called <code>pyCAPS</code>).  This is
+       done by pressing <b>Tool</b> followed by <b>Pyscript</b>, which
+       brings up a prompt that looks like:
+    <p><img src="pictures/tutorial6-06.png" width="100%"/>
+       You can enter "../data/tutorial6/sizeWing.py".  By
+       the way, if you leave the <code>.py</code> extension off, the
+       IDE will provide it for you.
+
+    <p>Lines 1 through 7 are typical Python comments that describe the
+       purpose of the file:
+<pre>
+        ###################################################################
+        #                                                                 #
+        # sizeWing.py - pick (S, AR, V) to maximize L/D                   #
+        #                                                                 #
+        #              Written by John Dannenhoffer @ Syracuse University #
+        #                                                                 #
+        ###################################################################
+</pre>
+
+    <p>Lines 10 and 11 get the Python script access to the various
+       needed Python libraries:
+<pre>
+        import pyCAPS
+        from   pyOCSM import esp
+</pre>
+
+    <p>As we will see below, we need to take the square-root of a
+      number, so line 14 gives us access to Python's math library:
+<pre>
+        import math
+</pre>
+
+    <p>The first real interaction with <code>CAPS</code> occurs in
+      lines 17 to 19:
+<pre>
+        myProblem = pyCAPS.Problem(problemName = "RunWithoutESP",
+                                   capsFile    = "../data/tutorial6/model1.csm",
+                                   outLevel    = 1)
+</pre>
+    <p>These lines are interpreted differently if running in the IDE
+       or if running from a stand-alone Python prompt:
+      <ul>
+        <li>if running in the IDE, these lines simply tell Python to
+            generate a handle to the <code>CAPS</code> problem that is
+            currently running, and to call that
+            handle "myProblem"; or</li>
+        <li>if running from a Python prompt, create a
+            new <code>CAPS</code> problem
+            named "RunWithoutESP", using
+            the <code>.csm</code> file
+            named "../data/tutorial6/mode1.csm", and
+            to use "myProblem" as its handle.</li>
+      </ul>
+
+    <p>In this script, the wing is sized by doing a full-factorial
+       design of experiments, with the independent variables being
+       wing area, aspect ratio, and cruise velocity.  The value that
+       is being maximized is the lift-to-drag ratio.
+
+    <p>We start off in lines 22 to 28 by defining the density of air,
+       the weight of a ball, the fixed weight of the aircraft, a
+       wing-weight mutiplier, the zero-lift drag coefficient, target
+       oswald efficiency factor, and maximum lift coefficient:
+<pre>
+        rho      = 0.002377       # slug/ft3
+        Wball    = 0.10           # lb/ball
+        Wfixed   = 0.02           # lb
+        Wwing    = 0.03           # lb/ft3
+        CD0      = 0.04
+        oswald   = 0.90
+        CL_max   = 1.00
+</pre>
+
+    <p>Lines 31 to 34:
+<pre>
+        if ("nball" in myProblem.parameter):
+            nball = myProblem.parameter["nball"].value
+        else:
+            nball = 2
+</pre>
+
+        are used to create a local Python variable, "nball",
+        from the CapsValues (if it exists) or to use a default value
+        of "2".  The value is then printed in the
+        MessageWindow by:
+<pre>
+        print("nball", nball)
+</pre>
+
+    <p>Before the full-factorial search, we need to initialize the
+       best-we-have-seen-so-far in lines 39 to 44:
+<pre>
+        S_best   = 0
+        AR_best  = 0
+        V_best   = 0
+        W_best   = 0
+        CL_best  = 0
+        LoD_best = 0
+</pre>
+
+    <p>The full-factorial search is carried out in lines 47 to 66:
+<pre>
+        for S in [0.25, 0.50, 0.75, 1.00, 1.25, 1.50, 1.75, 2.00, 2.25, 2.50, 2.75, 3.00]:
+            for AR in [3, 4, 5, 6, 7, 8]:
+                for V in [2.5, 5.0, 7.5, 10.0, 12.5, 15.0, 17.5, 20.0]:
+
+                    # compute performance
+                    b   = math.sqrt(S * AR)
+                    q   = 0.5 * rho * V**2
+                    W   = Wfixed + nball * Wball + S * b * Wwing
+                    CL  = W / (q * S)
+                    CD  = CD0 + CL**2 / (math.pi * AR * oswald)
+                    LoD = CL / CD
+
+                    # save if best result so far
+                    if (LoD > LoD_best and CL <= CL_max):
+                        S_best   = S
+                        AR_best  = AR
+                        W_best   = W
+                        V_best   = V
+                        CL_best  = CL
+                        LoD_best = LoD
+</pre>
+       where we start with the three nested loops, we compute the
+       performance (lift-to-drag ratio), and then remember this case
+       if it is the best we've seen so far.
+
+    <p>Then the "best" results are reported to the user in the
+        MessageWindow by:
+<pre>
+        print("S_best  =", S_best  )
+        print("AR_best =", AR_best )
+        print("W_best  =", W_best  )
+        print("V_best  =", V_best  )
+        print("CL_best =", CL_best )
+        print("LoD_best=", LoD_best)
+</pre>
+    <p>Finally the best results are returned to the IDE by lines 77 to
+       83:
+<pre>
+        myProblem.geometry.despmtr["wing:area"  ].value = S_best
+        myProblem.geometry.despmtr["wing:aspect"].value = AR_best
+
+        if "CLcruise" in myProblem.parameter:
+            myProblem.parameter["CLcruise"].value = CL_best
+        else:
+            myProblem.parameter.create("CLcruise", CL_best)
+</pre>
+       The first two lines update the DesignParameters and then the
+       last 4 lines either update the "CLcruise" if it already exists
+       or creates a new CapsValue and sets its value.
+
+    <p>If we <b>ExpandAll</b> the CapsValues and DesignParameters, we
+       should see:
+    <p><img src="pictures/tutorial6-07.png" width="100%"/>
+
+       Note that the values in the TreeWindow have been updated
+       (the "wing:area" is "2" and the
+       "wing:aspect" is "8", but that the image
+       has not been updated, since <code>CAPS</code> only re-builds
+       the geometry on demand; that is, the geometry is only rebuilt
+       when a downstream process needs the geometry to be updated.
+
+    <p>One such downstream process is leaving the IDE.  We are going
+       to do this now by pressing <b>Caps</b>, followed by <b>Commit
+       Phase</b>.  This will both Close this Phase (so that no further
+       edits can be done to it) and will update the geometry, as in:
+    <p><img src="pictures/tutorial6-08.png" width="100%"/>
+
+    <p>We have now returned to the normal <code>ESP</code> display.
+
+    <p>Now, let's say that we want to remove the "badValue"
+       that we created earlier.  To do this, we can
+       enter <code>CAPS</code> again by pressing <b>Caps</b>, entering
+       "ostrich" as our project, and "mark badValue for deletion" as
+       our intent phrase.  Note that since we only entered "ostrich"
+       above, it was assumed to be on Branch "1" and to
+       start after the last Revision ("1").  (We could have
+       had a similar result by entering "ostrich:1" or "ostrich:1.1")
+
+    <p> Once we are back in the IDE, we can press <b>Tool</b> and
+        <b>Pyscript</b> on the
+        file "../data/tutorial6/stub.py".
+    <p><img src="pictures/tutorial6-09.png" width="100%"/>
+        Lines 9 through 16 are the usual hook-up to <code>CAPS</code>:
+<pre>
+        # get access to pyCAPS
+        import pyCAPS
+        from   pyOCSM import esp
+
+        # if running in serveESP, the following load is ignored
+        myProblem = pyCAPS.Problem(problemName = "RunWithoutESP",
+                                   capsFile    = "../data/tutorial6/model1.csm",
+                                   outLevel    = 1)
+</pre>
+
+    <p>Line 20 is commented out:
+<pre>
+        #--- myProblem.parameter["badValue"].markForDelete()
+</pre>
+        but we want it un-commented (since we want to
+        mark "badValue" for deletion).  This is done by
+        placing the cursor somewhere on Line 20 and pressing
+        the <b>Comment</b> button.  This function looks at the first
+        highlighted line, and if it is a comment, it un-comments the
+        whole highlighted region.  Alternatively if the first line in
+        the highligted region is not a comment, the region is
+        commented.  We can use this to comment the lines:
+<pre>
+        myProblem.analysis["skeletonAIM_1"].markForDelete()
+        myProblem.analysis["skeletonAIM_2"].markForDelete()
+        myProblem.bound["upperWing"].markForDelete()
+</pre>
+       by highlighting them and pressing <b>Comment</b>, yielding:
+    <p><img src="pictures/tutorial6-10.png" width="100%"/>
+
+    <p>We can execute this script by pressing the <b>Save and run</b>
+       button.  You can look at the bottom of the screen (in the
+       MessageWindow) and see that the pyscript completed successfully.
+
+    <p>If you <b>ExpandAll</b> the CapsValues, you will see
+       that "badValue" is still there, but will be deleted
+       when the Phase is Committed.
+
+    <p>Now let us look at two other commands that become available
+       when you press the  <b>Caps</b> button:
+      <ul>
+        <li><b>List Phases</b> lists all the Phases in the current
+            project in the MessageWindow; and</li>
+        <li><b>List Analyses</b> lists all the Analyses in the current
+          project.</li>
+      </ul>
+    <p><img src="pictures/tutorial6-11.png" width="100%"/>
+
+    <p>If you look in the MessageWindow, you will see that there are
+       two Phases:
+      <ul>
+        <li>Phase 1.1 has a dash to its left, indicating that it is
+            a predecessor of the current Phase; and</li>
+        <li>Phase 1.2 has an asterisk to its left, indicating that it
+          is the current Phase.</li>
+      </ul>
+       The MessageWindow also says that we do not yet have any active
+       Analyses (yet).
+
+    <p>We are going to commit the Phase by pressing <b>Caps</b>
+       and <b>Commit Phase</b>
+
+    <p><h4>Second model (simple tapered wing)</h4>
+
+    <p>In a real design environment, the design process can take days
+       or weeks to execute, and so to simulate that we are gong to
+       exit <code>serveESP</code> by closing the browser and then
+       opening <code>serveESP</code> again by typing:
+      <pre>
+        serveESP ../data/tutorial6/model2a
+      </pre>
+       or its equivalent.  You will notice that we are
+       starting <code>serveESP</code> with a different model file,
+       which is a slightly different representation of the same wing.
+       Expanding the Design Parameters shows that we have a new
+       DesignParameter called "wing:taper", which is
+       initialized to "1".
+
+    <p><img src="pictures/tutorial6-12.png" width="100%"/>
+
+       To see  the differences between this new file (model2a)
+       and the original file (model1), press <b>File</b>
+       and <b>model2a.csm</b>.  The new DesignParameter
+       ("wing:taper") is defined in line 10:
+      <pre>
+        DESPMTR   wing:taper   1.00
+      </pre>
+       Lines 15 through 18 are slightly different from before:
+      <pre>
+        SET       wing:span    sqrt(wing:area*wing:aspect)
+        SET       wing:croot   wing:area/wing:span*2/(wing:taper+1)
+        SET       wing:ctip    wing:croot*wing:taper
+        SET       wing:xtip   (wing:croot-wing:ctip)/2
+      </pre>
+       where the differences account for the fact that the wing root
+       chord and wing tip chord are related by the taper ratio.
+
+    <p>The big difference is in the construction of the wing in lines
+       26 through 46:
+      <pre>
+        MARK
+           # left tip
+           UDPARG    naca         thickness wing:thick
+           UDPARG    naca         camber    wing:camber
+           UDPRIM    naca         sharpte   1
+           ROTATEX   90
+           SCALE     wing:ctip
+           TRANSLATE wing:xtip   -wing:span/2   0
+
+           # root
+           UDPARG    naca         thickness wing:thick
+           UDPARG    naca         camber    wing:camber
+           UDPRIM    naca         sharpte   1
+           ROTATEX   90
+           SCALE     wing:croot
+
+           # rite tip
+           UDPARG    naca         thickness wing:thick
+           UDPARG    naca         camber    wing:camber
+           UDPRIM    naca         sharpte   1
+           ROTATEX   90
+           SCALE     wing:ctip
+           TRANSLATE wing:xtip   +wing:span/2   0
+        RULE
+      </pre>
+
+    <p>Instead of an EXTRUDE, the new construction will be a RULE
+       between the left tip cross-section, the root cross-section, and
+       the right-tip cross-section.  The left-tip cross-section is a
+       NACA airfoil (in lines 25 through 27), that is ROTATEd, SCALEd,
+       and TRANSLATEd as before in lines 28 through 30.  Similar
+       statements create the root and right-tip cross-sections.  These
+       three cross-sections are then RULEd together by line 46 (back
+       to the MARK in line 23). Hit <b>Cancel</b> to get out of the
+       code editor.
+
+    <p>In order to find the "optimal" taper, we are going to vary the
+       taper ratio to get the maximum Oswald efficiency factor, as
+       predicted by the Athena Vortex Lattice (AVL) method.  The
+       representation of the aircraft that AVL uses as its input is
+       simply cross-sections that describe the various lifting
+       surfaces. To see how to do this, we will be modifying our
+       model, as is done in "model2b.csm".
+       Press <b>File</b> and <b>Open</b> and
+       enter "../data/tutorial6/model2b" and a new model
+       should appear on the screen, which has 4 Bodys; one Body is the
+       outer mold line (OML) and the other three are the
+      cross-sections for AVL.
+
+    <p>The changes to the <code>.csm</code> file start in lines 12 and
+       13:
+      <pre>
+        CFGPMTR   view:OML      1
+        CFGPMTR   view:AVL      1
+      </pre>
+       which define ConfigurationParameters that tell if we want to
+       view the OML and if we want to view the AVL cross-sections.
+       As you can see, both of these are non-zero, and hence we see
+       the 4 Bodys on the display.
+
+    <p>The next set of changes is (for example) in line 39:
+      <pre>
+           STORE     wing  -1  1
+      </pre>
+       which STOREs a copy of the cross-section in the first available
+      "wing" storage location (which in this case is "0").  The final
+      "1" in the STORE command says to leave a copy of the Body on the
+      stack (so that it can be used by the subsequent RULE).  Similar
+      storage is done in lines 47 and 56.  Line 58:
+      <pre>
+        STORE     OML
+      </pre>
+      STOREs the OML after it has been created.
+
+    <p>Lines 61 to 68:
+      <pre>
+        IFTHEN view:AVL NE 0
+           RESTORE  wing -1
+        ENDIF
+
+        # to view OML, restore the OML
+        IFTHEN view:OML NE 0
+           RESTORE   OML
+        ENDIF
+      </pre>
+      are used to RESTORE the Bodys that we want left on the stack.
+      Note that the RESTORE in line 62 RESTOREs all the AVL sections
+      (as indicated by the second argument being "-1").
+      Press <b>Cancel</b> to get out of the code editor.
+
+    <p>The final thing that we need to do to run AVL is to add
+       Attributes as done in <code>model2c.csm</code>.  To get this
+       file into <code>ESP</code> we are going to use a slightly
+       different process from above.  Press <b>File</b> and
+       then <b>Edit: &lt; new file&gt;</b>, to give you a
+       blank <code>.csm</code> file.  Press the <b>Insert</b> button
+       at the top of the editor and
+       enter "../data/tutorial6/model2c.csm" in the prompt
+       that appears.
+
+    <p>The first set of differences can be seen in lines 38 to 40,
+       lines 50 to 52, and lines 61 to 63:
+      <pre>
+              ATTRIBUTE capsAIM           $avlAIM
+              ATTRIBUTE capsIntent        $wing
+              ATTRIBUTE capsGroup         $wing
+      </pre>
+       which set Attributes on the airfoil sections immediately after
+       they are created.  Creating Attributes as early as possible is a
+       best practice in using <code>ESP</code>.  You can look at the
+       documentation of the AVL Analysis Interface Module (AIM) in
+       the <code>ESP</code> documentation suite for full details on
+       these Attributes.
+
+    <p>The next difference is in line 69:
+      <pre>
+              ATTRIBUTE capsGroup    $wing
+      </pre>
+      which attributes the OML and then in lines 75 to 78:
+      <pre>
+              ATTRIBUTE capsReferenceArea  wing:area
+              ATTRIBUTE capsReferenceSpan  wing:span
+              ATTRIBUTE capsReferenceChord wing:croot
+              ATTRIBUTE capsReferenceX     wing:croot/4
+      </pre>
+      which set the reference quatities that AVL will need.
+
+    <p>Press <b>Save</b> to exit the code editor.
+       Since <code>ESP</code> does not know the name of the new file,
+       it prompts you for it; enter "model2.csm" (which
+       will save the file in your current working directory).
+
+    <p>Notice in the TreeWindow that we have four Bodys.  If we turn
+       the visibility of Body 22 (the OML) off by pressing
+       the <b>Viz</b> to the right of <code>Body 22</code> we will see
+       the tip and root cross-sections, which after rotating the
+       display looks like
+    <p><img src="pictures/tutorial6-13.png" width="100%"/>
+
+    <p>Turning the visibility of Body 22 back on gives:
+    <p><img src="pictures/tutorial6-14.png" width="100%"/>
+
+    <p>The first thing we need to do is to hook up to
+       our <code>CAPS</code> project by pressing <b>Tool</b>
+       and <b>Caps</b> and entering "ostrich" as our
+       project name.  When asked for our intent, enter "find
+       taper to maximize oswald".  You will notice in the
+       MessageWindow that it says that "CAPS overrides .csm value for
+       wing:area", and "wing:aspect" and that the updated values are
+       shown in the dislay.
+    <p><img src="pictures/tutorial6-15.png" width="100%"/>
+
+    <p>In order to "optimize" the taper, we are going to execute AVL
+       for taper ratios from 0.2 to 1.0 and are going to remember the
+       "best".  A script that does this can be launched by
+       pressing <b>Tool</b> and <b>Pyscript</b> and
+       typing "../data/tutorial6/optTaper.py".  As you
+       can see in the code editor, lines 10 through 18 are the usual
+       hook-ups to the model currently in <code>ESP</code>.
+
+    <p>Lines 21 through 25:
+      <pre>
+        if ("avl" in myProblem.analysis):
+            avl = myProblem.analysis["avl"]
+        else:
+            avl = myProblem.analysis.create(aim  = "avlAIM",
+                                            name = "avl")
+      </pre>
+      either get access to an AVL AIM named "avl" (from a previous
+      analysis), or create a new AVL AIM.  In both cases, the python
+      variable "avl" is a handle to the AIM.
+
+    <p>Then in lines 28 through 31:
+      <pre>
+        if ("CLcriuse" in myProblem.parameter):
+            avl.input["CL"].value = myProblem.parameter["CLcruise"].value
+        else:
+            avl.input["CL"].value = 0.95
+      </pre>
+       we get the target cruise lift coefficient, either from the
+       CapsValue we set earlier (when we ran
+       "../data/tutorial6/sizeWing.py") or using the default value of 0.95.
+       Other inputs needed by AVL are given in lines 33 to 36:
+      <pre>
+        avl.input["Mach"].value = 0
+        avl.input["Beta"].value = 0
+        avl.input.AVL_Surface   = {"wing" : {"numChord"     : 4,
+                                             "numSpanTotal" : 24}}
+      </pre>
+
+    <p>In lines 39 and 40:
+      <pre>
+        taper_best  = 0
+        oswald_best = 0
+      </pre>
+      we initialize the best we have seen so far, and in lines 43 and
+      44:
+      <pre>
+        taper_data  = ""
+        oswald_data = ""
+      </pre>
+      we initialize the strings in which we remember all the cases we
+      have run (so that we can plot them below).
+
+    <p>The "optimization" loop that actually does the AVL calculation
+      starts in lines 47 through 52:
+      <pre>
+        for taper in [0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]:
+            print("executing taper =", taper)
+
+            # compute performance (getting output automagically runs AVL)
+            myProblem.geometry.despmtr["wing:taper"].value = taper
+            oswald = avl.output["e"].value
+      </pre>
+      Note that the use of the AVL output valiable "e" in line 52 is
+      what actually focees AVL to be executed.
+
+    <p>Lines 55 and 56:
+      <pre>
+            taper_data  += str(taper)  + ";"
+            oswald_data += str(oswald) + ";"
+      </pre>
+      keep track of all the calculations so far, and lines 59 to 61:
+      <pre>
+            if (oswald > oswald_best):
+                taper_best  = taper
+                oswald_best = oswald
+      </pre>
+      keep track of the "best" so far.  The "sleep" in line 64 is not
+      necessary, but is included here so that you can actually see
+      when the AVL is executed.
+
+    <p>The next major block of code is in lines 67 through 72:
+      <pre>
+        esp.TimLoad("plotter", esp.GetEsp("pyscript"), "")
+        esp.TimMesg("plotter", "new|Taper optimization|taper ratio|oswald|")
+        esp.TimMesg("plotter", "add|"+taper_data+"|"+oswald_data+"|k:+|")
+        esp.TimMesg("plotter", "add|"+str(taper_best)+"|"+str(oswald_best)+"|ro|")
+        esp.TimMesg("plotter", "show")
+        esp.TimQuit("plotter")
+      </pre>
+      which loads the line plotter, stars a new plot with the title
+      "Taper optimization", with the horizonal axis label "taper
+      ratio" and vertical axis label "oswald".  The first line in the
+      plot is the remembered data (from above), drawn as a black
+      ("k") dotted line (":") with plus symbols
+      ("+").  The second line is simply the best, shown as
+      a red ("r") circle ("o").  The resulting plot is:
+    <p><img src="pictures/tutorial6-16.png" width="100%"/>
+      and the plotter is closed.
+
+    <p>The script finally reports the best results in the
+      MessageWindow:
+      <pre>
+        print("taper_best =", taper_best )
+        print("oswald_best=", oswald_best)
+      </pre>
+      and puts the best results into the CAPS problem:
+      <pre>
+        print("re-setting optimal taper")
+        myProblem.geometry.despmtr["wing:taper"].value = taper_best
+        myProblem.geometry.build()
+
+        if ("oswald" in myProblem.parameter):
+            myProblem.parameter["oswald"].value = oswald_best
+        else:
+            myProblem.parameter.create("oswald", oswald_best)
+      </pre>
+      This script is execute by pressing <b>Save and run</b>.  After
+      some computations you will see the plot given above.  Press the
+      green <b>Exit plotter</b> button and the dispaly will change to
+      the optimized tapered wing:
+    <p><img src="pictures/tutorial6-17.png" width="100%"/>
+      Note that the "optimal" geometry is shown since we forced a
+      re-build in line 81.  The last lines either update or create a
+      new CapsValue in which the best oswald efficiency factor will be
+      stored.
+
+    <p>If you select <b>Caps</b> then <b>List Phases</b>
+       and <b>Caps</b> then <b>List Analyses</b> you will see in the
+       MessageWindow that we have three Phases (the first two of which
+       use "model1" and the third uses "model2") and that we now have an
+       Analysis Object named "avl", which was created in Phase "1.3".
+       Note also the intent phrases associated with the three Phases.
+    <p><img src="pictures/tutorial6-18.png" width="100%"/>
+
+    <p>Commit this Phase (that is, make it read-only) by
+       pressing <b>Caps</b> and <b>Commit Phase</b>.
+
+    <p><h4>Third model (bent tapered wing)</h4>
+
+    <p>You may notice that the wing is very thin, and so we expect
+       that there is considerable flexibility that we must account
+       for. To do this, we have further enhanced our model in
+       "../data/tutorial6/model3.csm", which can be loaded by
+       pressing <b>File</b> and then <b>Open</b>.  This model looks
+       very similar to the above, except there are more cross-sections
+       and there is a new DesignParameter named "wing:ztip", which is
+      the vertical tip deflection.
+
+    <p>If you <b>File</b> and <b>Edit model3</b>, the major changes from
+       the above are the addition of cross-sections at the
+       quarter-semi-span and mid-semi-span locations, and the use of a
+       BLEND instead of the RULE.  Note that in order to make sure
+       that we got the slope discontinuity at the root, we have added
+       (in lines 80 and 81 ):
+      <pre>
+        RESTORE  .
+        RESTORE  .
+      </pre>
+       to make the two extra copies on the root Body, which is needed
+       to make the continuity of the BLEND only C0 (value continuous).
+       The values of "wing:area", "wing:aspect", and "wing:taper" are
+       from the <code>.csm</code> file.
+    <p><img src="pictures/tutorial6-19.png" width="100%"/>
+
+    <p>When we start the IDE by pressing <b>Tool</b> and <b>Caps</b>
+       and entering "ostrich" (or "ostrich:1" or "ostrich:1.3"), with
+       the intent phrase "account for wing flexibility", we get the
+       latest versions of the wing variables, giving us:
+    <p><img src="pictures/tutorial6-20.png" width="100%"/>
+       Note the MessageWindow which says that <code>CAPS</code>
+       over-rides the previous values.
+
+    <p>We now are going to run a pyscript to deflect the wing.  This
+       is done by pressing <b>Tool</b> and <b>Pyscript</b> and entering
+        "../data/tutorial6/bendWing.py".  Lines 10 through 18 are the
+        regular hook-up to <code>CAPS</code>.  Line 21:
+      <pre>
+        Eyoung   = 77.5e6         # lb/ft2
+      </pre>
+      sets the Youngs modulus for balsa wood, lines 24 to 26:
+      <pre>
+        sparrad  = 0.0104         # ft
+        W        = 0.36           # lb
+        b        = myProblem.geometry.outpmtr["wing:span"].value
+      </pre>
+      sets (or looks up) other design variables.
+
+    <p>The actual structural calculations are done in lines 29 and 30:
+      <pre>
+        Inertia  = math.pi / 4 * sparrad**4
+        deflect  = (W/2) * (b/2)**3 / (3 * Eyoung * Inertia)
+      </pre>
+      for a round cantilevered beam.  Finally, in lines 33 to 36:
+      <pre>
+        print("deflect=", deflect)
+
+        # put the result into the CAPS Problem
+        myProblem.geometry.despmtr["wing:ztip"].value = deflect
+      </pre>
+      the results are printed in the MessageWindow and returned to the
+      IDE and the configuration is rebuilt in line 37:
+      <pre>
+        myProblem.geometry.build()
+      </pre>
+      Pressing <b>Save and run</b> and expanding the <b>Caps
+      Values</b> and <b>Design Parameters</b> produces:
+    <p><img src="pictures/tutorial6-21.png" width="100%"/>
+
+    <p>Instead of leaving <code>CAPS</code> mode by choosing one of
+       the options in the <b>Caps</b> menu, we are simply going to
+       close the browser.  This is essentially the same as if we had
+       chosen <b>Suspend Phase</b>.
+
+    <p>To look at the status of our project, we can type (in the
+      command or terminal window):
+      <pre>
+        phaseUtil ostrich
+      </pre>
+      which produces:
+      <pre>
+         phaseUtil for ESP Rev 1.21
+
+                          Phase Name:                    Parent Name:
+                           -------------------------------------------
+                  Closed   1.1
+                  Closed   1.2                            1.1
+                  Closed   1.3                            1.2
+                           1.4                            1.3
+      </pre>
+      You can see that Phases "1.1", "1.2", and "1.3" are Closed 
+      and that Phase "1.4" is not Closed.  This means that the
+      next time we enter the IDE, we can continue Phase 1.4.
+
+    <p>Reenter <code>serveESP</code> (without file name) and then
+       press <b>Tool</b> and <b>Caps</b> with the project "ostrich".
+       You can see that it picks up where we left off.  The Message
+       Window includes a message that says that Phase "1.4" is being
+       continued.  Let us now commit the Phase by pressing <b>Caps</b>
+       and <b>Commit Phase</b>.
+
+    <p>If we get out of <code>serveESP</code> by closing the browser
+       and then type:
+      <pre>
+        phaseUtil ostrich
+      </pre>
+       you can see that Phase 1.4 is now Closed too.  Recall that a
+       Closed Phase cannot be editted but can be used as a starting
+       Phase for a new Phase.
+
+    <p><h4>Fourth model (inclusion of tail)</h4>
+
+    <p>Re-start <code>serveESP</code> by typing:
+      <pre>
+        serveESP ../data/tutorial6/model4
+      </pre>
+      which brings up a wing and tail, as in:
+    <p><img src="pictures/tutorial6-22.png" width="100%"/>
+      Note that this looks rather odd, since it is using the
+      DesignParameters from "model4.csm" and that the DesignParameters
+      for the wing are the originals whereas those for the tail are
+      associated with the updated wing.  (You can see this in the
+      TreeWindow.) To make them consistent (that
+      is, use the latest values for the wing), simply enter the IDE by
+      pressing <b>Tool</b> and <b>Caps</b> and using project "ostrich"
+      with the intent phrase "set up AVL and view Modl and AVL
+      Bodys".  You can see that the wing values from <code>CAPS</code>
+      override that values in the <code>.csm</code> file and that the
+      wing and tail are now consistent.
+    <p><img src="pictures/tutorial6-23.png" width="100%"/>
+      This image also includes a rendition of the location of the golf
+      ball.
+
+    <p>If we <b>File</b> and <b>Edit model4</b>, we can see in lines
+      17 to 22:
+      <pre>
+        DESPMTR   tail:len     2.00
+        DESPMTR   tail:Vh      0.45
+        DESPMTR   tail:Vv      0.025
+        DESPMTR   tail:aspect  5.00
+        DESPMTR   tail:thick   0.02
+        DESPMTR   tail:camber  0.02
+      </pre>
+      the DesignParameters associated with the tail, and in lines 25
+      and 26:
+      <pre>
+        DESPMTR   ball:xloc    0.00
+        CFGPMTR   ball:radius  0.05
+      </pre>
+      those DesignParameters associated with the golf ball(s).
+
+    <p>The construction of the tail is given in lines 143 to 192:
+      <pre>
+        # horizontal tail local variables
+        SET       htail:area      tail:Vh*(wing:croot+wing:ctip)/2*wing:area/tail:len
+        SET       htail:span      sqrt(htail:area*tail:aspect)
+        SET       htail:chord     htail:area/htail:span
+        SET       tail:xloc       tail:len+wing:croot/4-htail:chord/4
+
+        # construct horizontal tail
+        MARK
+           UDPARG    naca         thickness tail:thick
+           UDPARG    naca         camber    tail:camber
+           UDPRIM    naca         sharpte   1
+              ATTRIBUTE capsAIM           $avlAIM
+              ATTRIBUTE capsIntent        $htail;tail
+              ATTRIBUTE capsGroup         $htail
+           ROTATEX   90
+           SCALE     htail:chord
+           TRANSLATE tail:xloc  -htail:span/2  0
+           STORE     htail -1  1
+
+           RESTORE   .
+           TRANSLATE 0          htail:span    0
+           STORE     htail -1  1
+        RULE
+           ATTRIBUTE _name             $htail
+           ATTRIBUTE capsGroup         $htail
+        STORE     htailOML
+
+        # vertical tail local variables (same chord as htail)
+        SET       vtail:area      tail:Vv*wing:span*wing:area/tail:len
+        SET       vtail:chord     htail:chord
+        SET       vtail:span      vtail:area/vtail:chord
+
+        # construct vertical tail
+        MARK
+           UDPARG    naca         thickness tail:thick
+           UDPRIM    naca         sharpte   1
+              ATTRIBUTE capsAIM           $avlAIM
+              ATTRIBUTE capsIntent        $vtail;tail
+              ATTRIBUTE capsGroup         $vtail
+           SCALE     vtail:chord
+           TRANSLATE tail:xloc  0  0
+           STORE     vtail -1  1
+
+           RESTORE   .
+           TRANSLATE 0         0  vtail:span
+           STORE     vtail -1  1
+        RULE
+           ATTRIBUTE _name             $vtail
+           ATTRIBUTE capsGroup         $vtail
+        STORE     vtailOML
+      </pre>
+      Note in particular that the tail has a different "capsIntent"
+      and "capsGroup" Attribute than the wing; this will be important
+      momentarily.
+
+    <p>The ball is created in lines 195 to 198:
+      <pre>
+        SPHERE    ball:xloc  0  0  ball:radius
+           ATTRIBUTE _color $blue
+           ATTRIBUTE _name  $ball
+        STORE     ball
+      </pre>
+
+    <p>The only other change is in the view section, where everywhere
+       we were previously RESTOREing the "wing", we now also need to
+       RESTORE the "htail" and "vtail".
+
+    <p>Special note: when editing a <code>.csm</code> file while
+       in <code>CAPS</code> mode, you may NOT edit and <b>Save</b>;
+       the only action you may take is to <b>Quit</b>, which you
+       should do now.
+
+    <p>We are now going to set up two analysis objects for subsequent
+       calculations (which are beyond this tutorial).  In particular,
+       we are going to be setting up "avlWing" for wing-only analyses
+       and "avlAll" to include the tails. We are then going to use the
+       integrated viewer to see these.
+
+    <p>Press <b>Tool</b> and <b>Pyscript</b> and enter
+       "../data/tutorial6/viewBodys.py"   This pyscript starts with
+      the usual preamble in lines 10 through 16.  Line 19:
+      <pre>
+        esp.TimLoad("viewer", esp.GetEsp("pyscript"), "")
+      </pre>
+      loads the integrated viewer.  Lines 22 and 23:
+      <pre>
+        print("==> Viewing all Bodys on te stack")
+        esp.TimMesg("viewer", "MODL")
+      </pre>
+      will print a message in the MessageWindow and display all the
+      Bodys in the Modl (that is, on the stack), which should look
+      exactly the same as the display before the pyscript was executed.
+
+    <p>Lines 27 to 30:
+      <pre>
+        if ("avlAIM" not in myProblem.analysis):
+            myProblem.analysis.create(aim        = "avlAIM",
+                                      capsIntent = "wing",
+                                      name       = "avlWing")
+      </pre>
+      create a new analysis object for the "avlAIM" AIM (if it does
+      not already exist), using all the Bodys with a "capsAim" equal
+      to "avlAIM" and with a "capsIntent" equal to "wing"; the new
+      analysis object will have the name "avlWing".  These Bodys can
+      be viewed in line 33:
+      <pre>
+        esp.TimMesg("viewer", "AIM|avlWing|")
+      </pre>
+      which shows all Bodys associated with "avlWing".
+    <p><img src="pictures/tutorial6-24.png" width="100%"/>
+
+    <p>Lines 37 to 40:
+      <pre>
+        if ("avlAIM" not in myProblem.analysis):
+            myProblem.analysis.create(aim        = "avlAIM",
+                                      capsIntent = "",
+                                      name       = "avlAll")
+      </pre>
+      create another analysis object, named "avlAll", that contains
+      all Bodys with "capsAIM" equal to "avlAIM", regardless of their
+      "capsIntent".
+      Line 42:
+      <pre>
+        esp.TimMesg("viewer", "AIM|avlAll|")
+      </pre>
+      shows these Bodys associated with both the wing and tail.
+    <p><img src="pictures/tutorial6-25.png" width="100%"/>
+      Selecting Bodys by Attribute is a powerful capability
+      in <code>CAPS</code>; now you can probably understand why we
+      spent the time in "model4.csm" to put the Attributures on the
+      Bodys that we did.
+
+    <p>Finally in line 44:
+      <pre>
+        esp.TimQuit("viewer")
+      </pre>
+      we quit the viewer.
+
+    <p>When we press <b>Save and run</b>, we will see the various
+      displays shown above.  Note that to go from one display to the
+      next, we will have to press the green <b>Exit viewer</b> button.
+
+    <p>Commit this Phase by pressing <b>Caps</b> and <b>Commit
+        Phase</b> and exit <code>ESP</code> by closing the browser.
+
+    <p><h4>Fifth model (flowchart and data transfers)</h4>
+
+    <p>The next model is quite a bit more complicated than before
+      because it uses user-defined components (UDCs) from the standard
+      library, from the same folder as the <code>.csm</code> file, and
+      from the current working directory.  To get the file we need in
+      the current working directory, type (in the terminal or command
+      window):
+      <pre>
+        cp ../data/tutorial6/model5a.udc_orig ./model5a.udc
+      </pre>
+      or if on Windows
+      <pre>
+        copy ..\data\tutorial6\model5a.udc_orig .\model5a.udc
+      </pre>
+
+    <p>If we now type:
+      <pre>
+        phaseUtil ostrich
+      </pre>
+      you can see that we have Phases 1.1 to 1.5 and that all the
+      Phases are Closed (which means that they can no longer be
+      editted).
+
+    <p>Start <code>serveESP</code> by typing:
+      <pre>
+        serveESP ../data/tutorial6/model5
+      </pre>
+      If you look in the MessageWindow, you can see that "model5" uses
+      four UDCs.  You can also see that there are two Bodys on the
+      stack (although they look like only one because they are located
+      at the same location).
+
+    <p>Up until now, every time we started <code>CAPS</code>, we did
+      so on the main Branch; that is, the Revisions were named "1.1",
+      "1.2", "1.3", "1.4", and "1.5".  This time we are going to do
+      something different.  We are going to create a new Branch,
+      starting at Revision "1.2".  <code>serveESP</code> knows that we
+      want a new Branch since the Revision after "1.2" would normally
+      be "1.3", but "1.3" already exists.  Therefore a new Branch will
+      be created, with the name "2.1".
+
+    <p>Press <b>Tool</b> and <b>Caps</b> and enter "ostrich:1.2" as the
+      project name.  Our intent will be "interpolate upper".  Body 7
+      is (essentially) out original EXTRUDEd wing and Body 28 is a
+      RULEd wing made from five cross-sections.  Turn the visibility
+      on and off (by pressing <b>Viz</b>) to see these Bodys.
+
+    <p>Body 7 looks like:
+    <p><img src="pictures/tutorial6-26.png" width="100%"/>
+
+      and Body 28 looks like:
+    <p><img src="pictures/tutorial6-27.png" width="100%"/>
+
+    <p>The reason we have to similar wings is that we want to test out
+      the various schemes in <code>CAPS</code> for transferring data
+      from one representation to another.  This capability is
+      essential if one is trying to perform a fluid/structures
+      interaction, where one Body (say Body 7) is associated with the
+      aerodynamic analysis and the other Body (Body 28) is associated
+      with the structures analysis.
+
+    <p>Instead of using a real aerodynamic or structure analysis, we
+      are going to use a testing AIM, named "skeletonAIM", which has:
+      <ul>
+        <li>an input scalar number named "num";</li>
+        <li>an output scalar number named "sqrtNum";</li>
+        <li>input scalar datasets named "in1", "in2", "in3", and
+          "in4";</li>
+        <li>an output scalar dataset named "x", which is simply
+          the <em>x</em> coordinates;</li>
+        <li>an output scalar dataset named "y", which is simply
+          the <em>y</em> coordinates;</li>
+        <li>an output scalar dataset named "z", which is simply
+          the <em>z</em> coordinates; and</li>
+        <li>an output scalar dataset named "pi", which is the constant
+          3.14159...</li>
+      </ul>
+
+    <p>Press <b>Tool</b> and <b>Pyscript</b> and enter
+      "../data/tutorial6/interpolateUpper".  Lines 10 through 16 are
+      the usual hook-up to the model currently in memory.
+
+    <p>Lines 17 through 27:
+      <pre>
+        if ("skeletonAIM_1" not in myProblem.analysis):
+            myProblem.analysis.create(aim        = "skeletonAIM",
+                                      capsIntent = "Body_1",
+                                      name       = "skeletonAIM_1")
+
+        if ("skeletonAIM_2" not in myProblem.analysis):
+            myProblem.analysis.create(aim        = "skeletonAIM",
+                                     capsIntent = "Body_2",
+                                     name       = "skeletonAIM_2")
+      </pre>
+      create two analysis objects, "skeletonAIM_1" and
+      "skeletonAIM_2", which are associated with the Body that has
+      "capsIntent" equal to "Body_1" (ie, Body 7) and with the Body
+      that has "capsIntent" equal to "Body_2" (ie, Body 28).  Both of
+      these analysis objects are created if they do not already exist.
+
+    <p>Lines 30 to 33:
+      <pre>
+        if ("upperWing" not in myProblem.bound):
+            boundUpper = myProblem.bound.create("upperWing")
+        else:
+            boundUpper = myProblem.bound["upperWing"]
+      </pre>
+      create (or re-use) a Bound, or collection of Faces in the
+      various Bodys, named "upperWing", with the handle "boundUpper".
+
+    <p>Lines 35 and 36:
+      <pre>
+        vset1 = boundUpper.vertexSet.create(myProblem.analysis["skeletonAIM_1"])
+        vset2 = boundUpper.vertexSet.create(myProblem.analysis["skeletonAIM_2"])
+      </pre>
+      makes two vertex sets --- one associated with each of the AIMs.
+
+    <p>Lines 38 to 40:
+      <pre>
+        dset1x = vset1.dataSet.create("x",   pyCAPS.fType.FieldOut)
+        dset2x = vset2.dataSet.create("in1", pyCAPS.fType.FieldIn)
+        dset2x.link(dset1x, "Interpolate")
+      </pre>
+      create data sets that tie together "x" in "skeletonAIM_1" with
+      "in1" in "skeletonAIM_2", and do the transfer via
+      interpolation.  Similar tansfers are done in lines 42 to 52 for
+      the other variables.  Finaly the Bound object is closed in line
+      54:
+      <pre>
+        boundUpper.close()
+      </pre>
+
+    <p>Lines 57 to 59:
+      <pre>
+        myProblem.analysis["skeletonAIM_1"].input.num = 16
+        value = myProblem.analysis["skeletonAIM_1"].output.sqrtNum
+        print("Computed sqrt =", value)
+      </pre>
+      are needed to actually make the AIMs execute.  Recall that AIMs
+      only execute when explicitly told to do so; using the output
+      "sqrtNum" in line 58 is such an example.  Alternatively, we
+      could have used a statement such as in the comment on line 60:
+      <pre>
+        #myProblem.analysis["skeletonAIM_1"].execute()
+      </pre>
+      to force the execution.
+
+    <p>After all this setup, this pyscript starts by showing a
+      flowchart of the analysis objects (shown as rectangles) and
+      Bounds (shown as arrows) in lines 63 to 65:
+      <pre>
+        esp.TimLoad("flowchart", esp.GetEsp("pyscript"), "")
+        esp.TimMesg("flowchart", "show");
+        esp.TimQuit("flowchart");
+      </pre>
+    <p><img src="pictures/tutorial6-28.png" width="100%"/>
+      Moving the mouse over one of the AIMs or the Bound brings up a
+      pop-up that shows associated information.
+    <p><img src="pictures/tutorial6-29.png" width="100%"/>
+      The flowchart is brought up in a separate browser tab, which you
+      can either close or leave open.  In either case, in the original
+      tab you will need to press <b>Exit flowchart</b> to continue
+      execution.
+
+    <p>Then in line 68 we load the integrated viewer:
+      <pre>
+        esp.TimLoad("viewer", esp.GetEsp("pyscript"), "")
+      </pre>
+      and in lines 71 and 72:
+      <pre>
+        print("==> Viewing x in skeletonAIM_1")
+        esp.TimMesg("viewer", "BOUND|upperWing|skeletonAIM_1|x")
+      </pre>
+      we show the "x" in "skeletonAIM_1"
+    <p><img src="pictures/tutorial6-30.png" width="100%"/>
+      and in lines 74 and 75:
+      <pre>
+        print("==> Viewing in1 in skeletonAIM_2 (interpolate)")
+        esp.TimMesg("viewer", "BOUND|upperWing|skeletonAIM_2|in1")
+      </pre>
+        we show the intepolated version of it (that is, "in1" in
+      "skeletonAIM_2").
+    <p><img src="pictures/tutorial6-31.png" width="100%"/>
+      Notice how well the interpolation works.  Remember to
+      press <b>Exit viewer</b> to exit the viewer after each display.
+
+    <p>The rest of the pyscript does the same thing for the other
+      variables.  It finally closes the viewer in line 95.
+
+    <p>This Phase has been enlighting, but what we really want to do
+      is to look at the effect of a conservative data transfer.
+      Therefore we can <b>Caps</b> and <b>Quit Phase</b> to throw away
+      everything we have done since starting this Phase.  Since
+      quitting a Phase removes the model from memory, we need
+      to <b>File</b> and <b>Open</b> "../data/tutorial6/model5".  Then
+      start a new Phase by pressing <b>Tool</b> and <b>Caps</b>, again
+      entering "ostrich:1.2", with the intent phrase "conserve
+      upper".  If you press <b>Caps</b> and <b>List Analyses</b> you
+      will see that the analysis objects that we previously created
+      are gone.
+
+    <p>Next, press <b>Tool</b> and <b>Pyscript</b> and enter
+      "../data/tutorial6/conserveUpper".  If you look at this file, it
+      is the same as "interpolateUpper", except the link statements
+      in lines 42, 48, 52, and 56 say something like:
+      <pre>
+        dset2x.link(dset1x, "Conserve")
+      </pre>
+      instead of:
+      <pre>
+        dset2x.link(dset1x, "Interpolate")
+      </pre>
+
+    <p>Press <b>Save and run</b> to see the effect of the conservative
+      data transfer.  (A conservative data transfer is one in which
+      the integral of the scalar field in the source and target
+      match.  This kind of transfer is essential in order to make sure
+      that the total aerodynamic load is transferred to the structural
+      calculation.) The disadvantages of the conservative data
+      transfer are that it is quite a bit slower than straight
+      iterpolation and that the transferred data is not quite as
+      smooth.  For example, "in1" now looks like:
+    <p><img src="pictures/tutorial6-32.png" width="100%"/>
+      and "in4" looks like:
+    <p><img src="pictures/tutorial6-33.png" width="100%"/>
+      While this initially looks quite disturbing (since the input was
+      the constant "pi"), if you look at the KeyWindow you will see
+      that all the values vary between 3.14056 and 3.14159 --- so it
+      is essentially constant.  The differences stem from the fact that
+      the discrete surface areas in the two models are slightly different.
+
+    <p>If we now <b>Caps</b> and <b>List Phases</b>
+    <p><img src="pictures/tutorial6-34.png" width="100%"/> you can see
+      in the MessageWindow that the current Phase is "2.1" and that it
+      predecessors are "1.1" and "1.2".  Pressing <b>Caps</b>
+      and <b>List Analyses</b> and <b>Caps</b> and <b>List Bounds</b>
+      produces:
+    <p><img src="pictures/tutorial6-35.png" width="100%"/>
+      Note that we have two analyses and one Bound.
+
+    <p>We can <b>Caps</b> and <b>Commit Phase</b> to complete this
+      Phase.  Then exit the browser.
+
+    <p><h4>Parametric variations</h4>
+
+    <p>During the process of design, one often wants to do a what-if
+      experiment, in which various alternatives are explored in an
+      effort to justify or update earlier assumptions. You might
+      remember from earlier in this tutorial that all of our analysis
+      has been done for one ball.  We are now going to look at the
+      effect of two and three balls.  Each of these what-ifs will be
+      done in a separate Phase.
+
+    <p>To begin, start by typing:
+      <pre>
+        phaseUtil ostrich
+      </pre>
+      which shows that we have Phases "1.1" to "1.5", and Phase "2.1",
+      and that all the Phases are Closed.  We will start our
+      exploration in a new Branch by typing:
+      <pre>
+        serveESP
+      </pre>
+      and then pressing <b>Tool</b> and <b>Caps</b> and "ostrich:1.3".
+      Recall that Phase 1.4 already exists, so this will create the
+      first Revision on a new Branch ("3.1").  We will use the intent
+      phrase "look at 2 balls".  Recall that Phase 1.3 was the Phase
+      in which we optimized the taper by running AVL.
+
+    <p>In the TreeWindow, press on <b>ExpandAll</b> associated with
+      the CaspsValues, press on <b>nball</b> and change the value to
+      "2".  Resize the wing by pressing <b>Tool</b>
+      and <b>Pyscript</b> and "../data/tutorial6/sizeWing".  (Do not
+      forget to press <b>Save and run</b> to execute.) You can see the
+      results of this operation both in the MessageWindow and in the
+      displayed Body.
+    <p><img src="pictures/tutorial6-36.png" width="100%"/>
+
+    <p>Then re-optimize the taper by
+      pressing <b>Tool</b>, <b>Pyscript</b>, and
+      "../data/tutorial6/optTaper".  You can see in the MessageWindow
+      each of the AVL cases as it runs (with the 2 second delay).
+      Then, as before, this latter pyscript will produce a plot of
+      "oswald" vs. "taper ratio".  (Remember to press <b>Exit
+        plotter</b> to continue.)
+    <p><img src="pictures/tutorial6-37.png" width="100%"/>
+
+    <p>In order to show what happens when we suspend a Phase,
+      press <b>Caps</b> and <b>Suspend Phase</b> and exit the
+      browser.  If you type:
+      <pre>
+        phaseUtil ostrich
+      </pre>
+      you can see that Phase "3.1" is not Closed.
+
+    <p>We can once again start by typing:
+      <pre>
+        serveESP
+      </pre>
+      and enter the IDE by pressing <b>Tool</b> and <b>Caps</b> and
+      entering "ostrich:3".  This will either start on the last
+      Revision in Phase "3" if it is not Closed, or will create a new
+      Revision at the end of Branch "3" if the last Revision in this
+      Branch is Closed.  The former is the case, so we will be picking
+      up where we left off.  If you look in the MessageWindow, you
+      will see messages such as:
+      <pre>
+        excuuting taper = 0.2
+      </pre>
+      with no itermediate builds.
+    <p><img src="pictures/tutorial6-38.png" width="100%"/>
+      This is because in continuation mode, <code>CAPS</code> will
+      reuse (or recycle) as many operations (in this case analyses) as
+      possible.  Also, at the end of this process, the plot will not
+      be displayed since overlays (such as the "viewer", "plotter",
+      and "flowchart") are not executed in continuation mode.
+
+    <p>If you now press <b>Caps</b> and <b>List Phases</b> you should see
+    <p><img src="pictures/tutorial6-39.png" width="100%"/> which shows
+      that we are working on Phase "3.1", with predecessors "1.1",
+      "1.2" and "1.3".  We can <b>Caps</b> and <b>List Analyses</b> to
+      see that we still have the "avl" analysis object.  Now
+      press <b>Caps</b> and <b>List History</b> to show the evolution
+      of any value.  We are going to look at the history of
+      "CLcruise".  You can see the values at the end of Phases 1.3
+      (for which "nball" was "1") and Phase 3.1 (for which "nball" was
+      "2").
+
+    <p>We can <b>Caps</b>, then <b>Commit Phase</b>, and then start a new
+      Phase in which we set "nball" to "3".  We can follow the same
+      steps as above during this new Phase ("3.2").  While "optTaper"
+      is running in this Phase, kill <code>serveESP</code>, resulting
+      in a screen that says that the server has died.
+    <p><img src="pictures/tutorial6-40.png" width="100%"/>
+      Note that <code>serveESP</code> can die if you encounter an error
+      (which you should report to the developers), or for a
+      long-running job, or via an explicit kill, as was done here.
+      This will leave the current phase not Closed, but more
+      importantly will leave it "Locked".  A Locked Phase means that
+      it was not put into a safe state by some user.  You can see the
+      status of the various Phases by typing:
+      <pre>
+        phaseUtil ostrich
+      </pre>
+      Note that Phase 3.2 is Locked.
+
+    <p>If we re-start by typing:
+      <pre>
+        serveESP
+      </pre>
+      and then <b>Tool</b>, <b>Caps</b>, and "ostrich:3", you will be
+      told that the current Phase is Locked:
+    <p><img src="pictures/tutorial6-41.png" width="100%"/>
+      Since you know why it is Locked, you can safely "steal the lock"
+      and continue on as usual.  If you look in the MessageWindow, you
+      will see that some of the analyses are recycled and others are
+      executed; how many of each depends on when you
+      killed <code>serveESP</code>.  After the pyscript completes, you
+      can look at the history of "wing:area" (a CapsValue) and
+      "wing:span" (an OutputParameter) to see how they evolved over time.
+    <p><img src="pictures/tutorial6-42.png" width="100%"/>
+
+    <p>Commit this Phase.  (Hopefully by now you know how to do this.)
+
+    <p><h4>Working with Phases</h4>
+
+    <p>Then restart the IDE (<b>Tool</b> and <b>Caps</b>) and give it
+      the project "ostrich*".  (Recall that the default Branch is "1"
+      and the default Revision is the last in the given Branch, so this
+      is exactly equivalent to typing "ostrich:1*" or "ostrich:1.5*".
+    <p><img src="pictures/tutorial6-43.png" width="100%"/>
+
+    <p> What the "*" means is "do not use the model shown on the
+      screen, but instead use the model from the given Phase".  So for
+      this case, it will use "model4".  We can use the intent phrase
+      "back to Branch 1".
+
+    <p>Let us quit this Phase, and reload "../data/tutorial6/model4"
+      (which is the wing and tail).  Start a new Phase starting at
+      "ostrich:2*".  Recall that this means to start at the end of
+      Branch "2", but do not use "model4" (which we just loaded), but
+      instead use "model5" (from the parent Phase).  Use the intent
+      phrase "back to Branch 2".  If you <b>List Phases</b>
+    <p><img src="pictures/tutorial6-44.png" width="100%"/>
+      you will see that we are in Phase "2.2", which uses "model5",
+      and that its predecessors are "1.1", "1.2", and "2.1".  If we
+      now <b>List Analyses</b> and <b>List Bounds</b>
+    <p><img src="pictures/tutorial6-45.png" width="100%"/>
+      you can recall that "2.1" was the one where we were looking at
+      the effect of conservative data transfers between the two
+      "sekelton" AIMs.
+
+    <p>Now we can <b>Caps</b> and <b>Update intent</b> to update the
+      intent phrase to "back to Branch 2; remove analyses and bound"
+    <p><img src="pictures/tutorial6-46.png" width="100%"/>
+
+    <p>Re-run "../data/tutorial6/stub6.py" and comment out line 20 (by
+      highlighting the line and pressing <b>Comment</b>) and uncomment
+      lines 22 through 24 by highlighting them and
+      pressing <b>Comment</b>; this will un-comment these lines since
+      line 20 was a comment.
+    <p><img src="pictures/tutorial6-47.png" width="100%"/>
+      This pyscript will mark the analysis objects and bound for
+      deletion; the deletion will occur when we <b>Commit
+      Phase</b>. You can check this starting a new Phase and <b>List
+        Analyses</b> and/or <b>List Bounds</b>
+
+    <p>This rather-long tutorial has touched upon many aspects of the
+      new Integrated Design Environment (IDE).  Since it is so new,
+      comments, suggestion, corrections, etc. are welcome by the
+      developer at jfdannen@syr.edu
+
+    <p><h3>Legacy Tutorials</h3>
 
     <p>If you are new to <code>ESP</code> and planning on following
        current best practices, you can skip the legacy tutorials.  But
@@ -3500,10 +5085,10 @@
        different from the pictures, but the basic functionality should
        be the same.
 
-    <p><h3 id="sec2.6">2.6 First legacy tutorial: Basic usage</h3>
+    <p><h3 id="sec2.7">2.7 First legacy tutorial: Basic usage</h3>
 
     <p>This tutorial will help you understand the use of
-       <code>serveCSM</code> and <code>ESP</code> for a variety of
+       <code>serveESP</code> and <code>ESP</code> for a variety of
        tasks.  Details about the <a href="#sec3">Command
        Line</a>, <a href="#sec4">cursor and keyboard options</a>, and
        the <a href="#sec6">Example <code>.csm</code> file</a> are
@@ -3521,36 +5106,36 @@
     <p><b>Technique 1:</b> issue the two commands:
       <pre>
         setenv ESP_START "open -a /Applications/Firefox.app ../ESP/ESP.html"
-        serveCSM ../data/tutorial1
+        serveESP ../data/legacy/tutorial1
       </pre>
       if using a c-shell; make appropriate changes for your shell
       and/or operating system.
 
-    <p>The first of these tells <code>serveCSM</code> to open FireFox
+    <p>The first of these tells <code>serveESP</code> to open FireFox
        on the file <code>../ESP/ESP.html</code>
-       when <code>serveCSM</code> has generated a graphical
+       when <code>serveESP</code> has generated a graphical
        representation of the configuration.  The second of these
-       actually starts the <code>serveCSM</code> server.  As long as
+       actually starts the <code>serveESP</code> server.  As long as
        the browser stays connected
-       to <code>serveCSM</code>, <code>serveCSM</code> will stay alive
+       to <code>serveESP</code>, <code>serveESP</code> will stay alive
        and handle requests sent to it from the browser.  Once the last
-       browser that is connected to <code>serveCSM</code>
-       exits, <code>serveCSM</code> will shut down.
+       browser that is connected to <code>serveESP</code>
+       exits, <code>serveESP</code> will shut down.
 
     <p><b>Technique 2:</b> issue the command:
        <pre>
-         serveCSM ../data/tutorial1
+         serveESP ../data/legacy/tutorial1
        </pre>
        Once the server starts, start a browser (for example, FireFox)
        and open the page <code>ESP/ESP.html</code>.  As
-       above, <code>serveCSM</code> will stay alive as long as there
+       above, <code>serveESP</code> will stay alive as long as there
        is a browser attached to it.
 
-    <p>Note that the default "port" used by <code>serveCSM</code> is
+    <p>Note that the default "port" used by <code>serveESP</code> is
        7681.  One can change the port in the call
-       to <code>serveCSM</code> with a command such as:
+       to <code>serveESP</code> with a command such as:
        <pre>
-         serveCSM ../data/tutorial1 -port 7788
+         serveESP ../data/legacy/tutorial1 -port 7788
        </pre>
 
     <p>Once the browser starts, you will be prompted for a
@@ -3558,13 +5143,13 @@
     <p><img src="pictures/legacy1-01.png" width="100%"/>
 
     <p>Most of the time, the "hostname" will be "Localhost" (meaning
-       that <code>serveCSM</code> and the browser are on the same
-       computer).  It is possible to attach to <code>serveCSM</code>
+       that <code>serveESP</code> and the browser are on the same
+       computer).  It is possible to attach to <code>serveESP</code>
        that is running on another computer by giving an appropriate
        "hostname".
 
     <p>As mentioned above, it is possible to change the "port" with a
-       command line argument when starting <code>serveCSM</code>; if
+       command line argument when starting <code>serveESP</code>; if
        that is done, then the alternative "port" must be included in
       <code>ESP</code>'s prompt.
 
@@ -3969,7 +5554,7 @@
        defaults and rebuild, producing:
     <p><img src="pictures/legacy1-13.png" width="100%"/>
 
-    <p>You can now proceed to the <a href="#sec2.6c">common part of
+    <p>You can now proceed to the <a href="#sec2.7c">common part of
        the tutorial</a> or take a detour to explore the new
        integrated <code>.csm</code> editor (which is next).
 
@@ -4278,7 +5863,7 @@
        command at the top of the editor window.
 
     <p>Finally exit the browser and you should see
-       that <code>serveCSM</code> also shuts down.
+       that <code>serveESP</code> also shuts down.
 
     <p>If we now rename the file journal file (which was automatically
        generated while you were running ESP) with:
@@ -4287,7 +5872,7 @@
       </pre>
       we can replay our session by the command:
       <pre>
-        serveCSM ../data/tutorial1 -jrnl tutorial1.jrnl
+        serveESP ../data/legacy/tutorial1 -jrnl tutorial1.jrnl
       </pre>
       This replays all your operations, so it may take a while to
       execute.
@@ -4296,7 +5881,7 @@
       <code>tutorial1_new.csm</code> file (which we just created
       above) with the command:
       <pre>
-        serveCSM tutorial1_new
+        serveESP tutorial1_new
       </pre>
       This will run more quickly since it simply executes the final
       Feature Tree (of Branches).
@@ -4308,19 +5893,19 @@
     <p>Now we will learn how to develop a configuration using the
        integrated editor.  Make a copy of the
        original <code>.csm</code> file and
-       restart <code>serveCSM</code>.
+       restart <code>serveESP</code>.
       <pre>
-       cp       ../data/tutorial1.csm ../data/tutorial1_temp.csm
-       serveCSM ../data/tutorial1_temp
+       cp       ../data/legacy/tutorial1.csm ../data/legacy/tutorial1_temp.csm
+       serveESP ../data/legacy/tutorial1_temp
       </pre>
       or
       <pre>
-       copy     ..\data\tutorial1.csm ..\data\tutorial1_temp.csm
-       serveCSM ..\data\tutorial1_temp
+       copy     ..\data\legacy\tutorial1.csm ..\data\legacy\tutorial1_temp.csm
+       serveESP ..\data\legacy\tutorial1_temp
       </pre>
 
     <p>Start by pressing the "<b>File</b>" button and then
-       "<b>Edit: ../data/tutorial1_temp.csm</b>".  This will
+       "<b>Edit: ../data/legacy/tutorial1_temp.csm</b>".  This will
        display the contents of the (original) tutorial file in code
        form. Notice at the top you have Design Parameters with their
        given values which are followed by the Branches and their
@@ -4376,15 +5961,15 @@
        the <code>ESP</code> Tree Window, but experienced users find it
        much faster using the integrated editor.
 
-    <p><h3 id="sec2.7">2.7 Second legacy tutorial: Sketcher</h3>
+    <p><h3 id="sec2.8">2.8 Second legacy tutorial: Sketcher</h3>
 
-    <p>For the second tutorial, we will start <code>serveCSM</code>
+    <p>For the second tutorial, we will start <code>serveESP</code>
        without a <code>.csm</code> file and investigate the use of the
        Sketcher.
 
     <p>Start <code>ESP</code> by issuing the command:
       <pre>
-        serveCSM
+        serveESP
       </pre>
 
     <p>If you have not set the <code>ESP_START</code> environment
@@ -4638,7 +6223,7 @@
     <p>As with most programs, it makes sense to periodically save your
        work, so press "<b>File</b>", "<b>Export
        FeatureTree</b>", and save the current model in a file
-       named "<code>../data/tutorial2</code>".  (Note that the
+       named "<code>../data/legacy/tutorial2</code>".  (Note that the
        "<code>.csm</code>" suffix will automatically be added for
        you.)
 
@@ -4647,7 +6232,7 @@
        "<b>Edit</b>" buttons.  At the top of the file, all
        the Design Parameters are defined (along with their current
        values).  This is followed by the Branches in the Feature Tree.
-       Note the the sketch starts with a SKBEG statement.  This is
+       Note that the sketch starts with a SKBEG statement.  This is
        followed by a SKVAR statement that specifies the initial
        locations of the various points in the sketch.  (These
        positions were automatically set up for you when you drew the
@@ -4844,28 +6429,28 @@
 
     <p>We can now save our <code>.csm</code> file by choosing
        "<b>File->Export FeatureTree</b>" with the filename
-       "<code>../data/tutorial2</code>".  Close the browser and
-       serveCSM should close automatically.
+       "<code>../data/legacy/tutorial2</code>".  Close the browser and
+       serveESP should close automatically.
 
-    <p><h3 id="sec2.8">2.8 Third legacy tutorial: Aircraft example</h3>
+    <p><h3 id="sec2.9">2.9 Third legacy tutorial: Aircraft example</h3>
 
-    <p>For the third tutorial, we will start <code>serveCSM</code>
-       with the file <code>data/tutorial3.csm</code>, which represents
+    <p>For the third tutorial, we will start <code>serveESP</code>
+       with the file <code>data/legacy/tutorial3.csm</code>, which represents
        a fighter-like aircraft using blends and ruled surfaces.
 
-    <p>Start <code>serveCSM</code> with commands such as
+    <p>Start <code>serveESP</code> with commands such as
       <pre>
-        serveCSM ../data/tutorial3 -dumpEgads
+        serveESP ../data/legacy/tutorial3 -dumpEgads
       </pre>
       After a few minutes, the following will appear:
     <p><img src="pictures/legacy3-01.png" width="100%"/>
 
-    <p>The <code>-dumpEgade</code> tells <code>serveCSM</code> to dump
+    <p>The <code>-dumpEgade</code> tells <code>serveESP</code> to dump
        a file with the name <code>Body_xxxxxx.egads</code> whenever a
        new Body is created; here, <code>xxxxxx</code> is replaced with
        the current Body number.  This is a very useful option to use
        if you have a long build and want to "see" the current process
-       (in another invocation of <code>serveCSM</code> (which uses a
+       (in another invocation of <code>serveESP</code> (which uses a
        different port number).  It is also useful in conjunction with
        the <code>-loadEgads</code> option described below.
 
@@ -5183,10 +6768,10 @@ end
 
     <p>Feel free to experiment by modifying this file.
 
-    <p>Finally we are going to run <code>serveCSM</code> with
+    <p>Finally we are going to run <code>serveESP</code> with
        the <code>-loadEgads</code> option, as in:
       <pre>
-serveCSM ../data/tutorial3 -loadEgads
+serveESP ../data/legacy/tutorial3 -loadEgads
       </pre>
 
     <p>This will rerun the <code>tutorial3</code> case, but will read
@@ -5201,10 +6786,10 @@ serveCSM ../data/tutorial3 -loadEgads
 
     <p><h2 id="sec3">3.0: Command Line</h2>
 
-    <p>To start <code>serveCSM</code>, one uses the command:
-      <!-- extract from serveCSM.c -->
+    <p>To start <code>serveESP</code>, one uses the command:
+      <!-- extract from serveESP.c -->
       <pre>
-        serveCSM [casename[.csm]] [options...]
+        serveESP [casename[.csm]] [options...]
            where [options...] = -addVerify
                                 -allVels
                                 -batch
@@ -5235,7 +6820,7 @@ serveCSM ../data/tutorial3 -loadEgads
                                 -version  -or-  -v  -or-  --version
       </pre>
 
-    <p>The <code>-addVerify</code> option tells <code?serveCSM</code>
+    <p>The <code>-addVerify</code> option tells <code?serveESP</code>
        to write a <code>.csm_verify</code> file that contains
        information about the Bodys on the stack.  This information can
        be used in a subsequent call (using the <code>-verify</code>
@@ -5246,7 +6831,7 @@ serveCSM ../data/tutorial3 -loadEgads
        velocities (in addition to Face velocities).
 
     <p>If the <code>-batch</code> option is given,
-       <code>serveCSM</code> is started without any graphical user
+       <code>serveESP</code> is started without any graphical user
        interface.  This option is useful for regenerating
        configurations as part of a bigger process, such as for testing
        or within an MDAO environment.
@@ -5255,7 +6840,7 @@ serveCSM ../data/tutorial3 -loadEgads
        be read to override any DESPMTR and CFGPMTR values in
        the <code>.csm</code> file.
 
-    <p>The <code>-dict</code> option tells <code>serveCSM</code> to
+    <p>The <code>-dict</code> option tells <code>serveESP</code> to
        read the <code>dictname</code> file to define constant
        Parameters that should be defined before the configuration is
        built.  The format of the <code>dictname</code> file is a
@@ -5263,14 +6848,14 @@ serveCSM ../data/tutorial3 -loadEgads
        value, separated by white space; these Parameters are defined
        after the <code>.csm</code> is read but before it is executed.
 
-    <p>The <code>-dumpEgads</code> option tells <code>serveCSM</code>
+    <p>The <code>-dumpEgads</code> option tells <code>serveESP</code>
        to write an EGADS file named "Body_xxxxxx.egads" to the current
        working directory every time a new Body is built.  This option
        is useful if one wants to see the progress so far during a long
        build or in conjunction with the <code>-loadEgads</code>
        option.
 
-    <p>The <code>-egg</code> option tells <code>serveCSM</code> to use
+    <p>The <code>-egg</code> option tells <code>serveESP</code> to use
        the <code>eggname</code> external grid generator instead of the
        built-in <code>EGADS</code> tessellator.
 
@@ -5285,18 +6870,18 @@ serveCSM ../data/tutorial3 -loadEgads
        previous session.  This journal file is an ASCII file that can
        be created with any text-editor.  But more typically, a user
        modifies the <code>portX.jrnl</code> file that is automatically
-       produced every time <code>serveCSM</code> is started.  (Note:
+       produced every time <code>serveESP</code> is started.  (Note:
        be sure to copy and/or rename this file before using it as an
-       input to <code>serveCSM</code>, since the
-       next <code>serveCSM</code> will overwrite this file.)
+       input to <code>serveESP</code>, since the
+       next <code>serveESP</code> will overwrite this file.)
 
-    <p>The<code>-loadEgads</code> option tells <code>serveCSM</code>
+    <p>The<code>-loadEgads</code> option tells <code>serveESP</code>
        to try to read file named "Body_xxxxxx.egads" during the build
        process, thereby bypassing possibly long operations.  There are
        safeguards to ensure that the Branch type and arguments match
        before the file is loaded.
 
-    <p>The <code>-onormal</code> option tells <code>serveCSM</code> to
+    <p>The <code>-onormal</code> option tells <code>serveESP</code> to
        move the user's eye away from the configuration, making the
        display almost orthonormal (instead of perspective).
 
@@ -5324,7 +6909,7 @@ serveCSM ../data/tutorial3 -loadEgads
        minimized in a least-squares sense.  This option is still
        experimental and should be used with caution.
 
-    <p>The <code>-port</code> option tells <code>serveCSM</code> with
+    <p>The <code>-port</code> option tells <code>serveESP</code> with
        which port to connect.  If a port other than the default is
        used, be certain to use that same port number
        in <code>ESP</code>'s initial prompt.
@@ -5337,7 +6922,7 @@ serveCSM ../data/tutorial3 -loadEgads
        (defined by the specified file) to be generated and the maximum
        distance between it and the base case to be printed.
 
-    <p>The <code>-skipBuild</code> flag tells <code>serveCSM</code> to
+    <p>The <code>-skipBuild</code> flag tells <code>serveESP</code> to
        skip the initial build.  This is useful when the user knows
        that some DESPMTRs will be changed before the build.
 
@@ -5564,11 +7149,11 @@ serveCSM ../data/tutorial3 -loadEgads
         </tr>
         <tr><td></td>
           <td><a href="#rule">rule</a></td>
-          <td>reorder=0</td>
+          <td>reorder=0 periodic=0</td>
         </tr>
         <tr><td></td>
           <td><a href="#blend">blend</a></td>
-          <td>begList=0 endList=0 reorder=0 oneFace=0</td>
+          <td>begList=0 endList=0 reorder=0 oneFace=0 periodic=0</td>
         </tr>
         <tr><td></td>
           <td><a href="#revolve">revolve</a></td>
@@ -5582,15 +7167,15 @@ serveCSM ../data/tutorial3 -loadEgads
         </tr>
         <tr><td></td>
           <td><a href="#fillet">fillet</a></td>
-          <td>radius edgeList=0</td>
+          <td>radius edgeList=0 listStyle=0</td>
         </tr>
         <tr><td></td>
           <td><a href="#chamfer">chamfer</a></td>
-          <td>radius edgeList=0</td>
+          <td>radius edgeList=0 listStyle=0</td>
         </tr>
         <tr><td></td>
           <td><a href="#hollow">hollow</a></td>
-          <td>thick faceList=0</td>
+          <td>thick faceList=0 listStyle=0</td>
         </tr>
         <tr>
           <td><b>Booleans</b></td>
@@ -5609,18 +7194,19 @@ serveCSM ../data/tutorial3 -loadEgads
         </tr>
         <tr><td></td>
           <td><a href="#join">join</a></td>
-          <td>toler=0</td>
+          <td>toler=0 toMark=0</td>
         </tr>
         <tr><td></td>
           <td><a href="#connect">connect</a></td>
-          <td>faceList1 faceList2</td>
+          <td>faceList1 faceList2 edgeList1=0 edgeList2=0 toler=0</td>
         </tr>
         <tr><td></td>
           <td><a href="#extract">extract</a></td>
-          <td>index</td>
+          <td>entList</td>
         </tr>
         <tr><td></td>
           <td><a href="#combine">combine</a></td>
+          <td>toler=0</td>
         </tr>
         <tr>
           <td><b>Transform</b></td>
@@ -5631,19 +7217,19 @@ serveCSM ../data/tutorial3 -loadEgads
         </tr>
         <tr><td></td>
           <td><a href="#rotatex">rotatex</a></td>
-          <td>angDeg yaxis zaxis</td>
+          <td>angDeg yaxis=0 zaxis=0</td>
         </tr>
         <tr><td></td>
           <td><a href="#rotatey">rotatey</a></td>
-          <td>angDeg zaxis xaxis</td>
+          <td>angDeg zaxis=0 xaxis=0</td>
         </tr>
         <tr><td></td>
           <td><a href="#rotatez">rotatez</a></td>
-          <td>angDeg xaxis yaxis</td>
+          <td>angDeg xaxis=0 yaxis=0</td>
         </tr>
         <tr><td></td>
           <td><a href="#scale">scale</a></td>
-          <td>fact</td>
+          <td>fact xcent=0 ycent=0 zcent=0</td>
         </tr>
         <tr><td></td>
           <td><a href="#mirror">mirror</a></td>
@@ -5735,6 +7321,7 @@ serveCSM ../data/tutorial3 -loadEgads
         </tr>
         <tr><td></td>
           <td><a href="#group">group</a></td>
+          <td>nbody=0</td>
         </tr><td></td>
         <td><a href="#patbeg">patbeg</a></td>
           <td>$pmtrName ncopy</td>
@@ -5770,7 +7357,7 @@ serveCSM ../data/tutorial3 -loadEgads
         </tr>
         <tr><td></td>
           <td><a href="#dump">dump</a></td>
-          <td>$filename remove=0 toMark=0</td>
+          <td>$filename remove=0 toMark=0 withTess=0</td>
         </tr>
         <tr><td></td>
           <td><a href="#select">select</a></td>
@@ -5778,7 +7365,7 @@ serveCSM ../data/tutorial3 -loadEgads
         </tr>
         <tr><td></td>
           <td><a href="#getattr">getattr</a></td>
-          <td>$pmtrName attrID</td>
+          <td>$pmtrName attrID global=0</td>
         </tr>
         <tr><td></td>
           <td><a href="#project">project</a></td>
@@ -5797,6 +7384,7 @@ serveCSM ../data/tutorial3 -loadEgads
         </tr>
         <tr><td></td>
           <td><a href="#message">message</a></td>
+          <td>$text $schar=_</td>
         </tr>
         <tr>
           <td><b>Declarations</b></td>
@@ -5827,7 +7415,7 @@ serveCSM ../data/tutorial3 -loadEgads
         </tr>
         <tr><td></td>
           <td><a href="#dimension">dimension</a></td>
-          <td>$pmtrName nrow ncol despmtr=0</td>
+          <td>$pmtrName nrow ncol</td>
         </tr>
         <tr><td></td>
           <td><a href="#name">name</a></td>
@@ -5972,6 +7560,7 @@ BLEND     begList=0 endList=0 reorder=0 oneFace=0 periodic=0
                      a SheetBody is created
                   else
                      a SolidBody is created
+                  Xsects cannot be non-manifold WireBody
                   if the first Xsect is a point
                       if begList is 0
                           pointed end is created
@@ -6127,20 +7716,23 @@ CHAMFER   radius edgeList=0
           pushes: Body
           notes:  Sketch may not be open
                   Solver may not be open
-                  if previous operation is boolean, apply to all new Edges
-                  edgeList=0 is the same as edgeList=[0;0]
-                  edgeList is a multi-value Parameter or a semicolon-separated
-                     list
-                  pairs of edgeList entries are processed in order
-                  pairs of edgeList entries are interpreted as follows:
-                     col1  col2   meaning
-                      =0    =0    add all Edges
-                      >0    >0    add    Edges between iford=+icol1
-                                                   and iford=+icol2
-                      <0    <0    remove Edges between iford=-icol1
-                                                   and iford=-icol2
-                      >0    =0    add    Edges adjacent to iford=+icol1
-                      <0    =0    remove Edges adjacent to iford=-icol1
+                  if listStyle==0
+                     if previous operation is boolean, apply to all new Edges
+                     edgeList=0 is the same as edgeList=[0;0]
+                     edgeList is a multi-value Parameter or a semicolon-separated
+                        list
+                     pairs of edgeList entries are processed in order
+                     pairs of edgeList entries are interpreted as follows:
+                        col1  col2   meaning
+                         =0    =0    add all Edges
+                         >0    >0    add    Edges between iford=+icol1
+                                                      and iford=+icol2
+                         <0    <0    remove Edges between iford=-icol1
+                                                      and iford=-icol2
+                         >0    =0    add    Edges adjacent to iford=+icol1
+                         <0    =0    remove Edges adjacent to iford=-icol1
+                  else
+                     edgeList contains Edge number(s)
                   sensitivity computed w.r.t. radius
                   sets up @-parameters
                   new Faces all receive the Branch's Attributes
@@ -6177,8 +7769,14 @@ COMBINE   toler=0
                   if all Bodys since Mark are SheetBodys
                      create either a SolidBody from closed Shell or an
                      (open) SheetBody
-                  elseif all Bodys since Mark are WireBodys and are co-planar
-                     create SheetBody from closed Loop or close Loop first
+                  elseif there is 1 planar WireBody that is closed
+                     create SheetBody from Loop
+                  elseif there is 1 planar WireBody that is open
+                     create SheetBody from Loop after closing Loop first
+                  elseif there are multiple planar WireBodys that are closed
+                     create SheetBody from closed Loop
+                  elseif there are multiple WireBodys that have common Nodes
+                     create non-manifold WireBody
                   endif
                   if maxtol>0, then tolerance can be relaxed until successful
                   sets up @-parameters
@@ -6370,7 +7968,7 @@ DIMENSION $pmtrName nrow ncol
       <p><h3 id="dump">dump</h3>
         <!-- extract from OpenCSM.h -->
         <pre>
-DUMP      $filename remove=0 toMark=0
+DUMP      $filename remove=0 toMark=0 withTess=0
           use:    write a file that contains the Body
           pops:   Body1 (if remove=1)
           pushes: -
@@ -6383,6 +7981,7 @@ DUMP      $filename remove=0 toMark=0
                   if toMark=1, all Bodys back to the Mark (or all if no Mark)
                      are combined into a single model
                   if toMark=1, the remove flag is ignored
+                  if withTess!=0, add tessellations to .egads file
                   for .ugrid files, toMark must be 0
                   valid filetypes are:
                      .brep   .BREP   --> OpenCASCADE output
@@ -6391,6 +7990,7 @@ DUMP      $filename remove=0 toMark=0
                      .egg    .EGG    --> EGG restart output
                      .iges   .IGES   --> IGES        output
                      .igs    .IGS    --> IGES        output
+                     .plot   .PLOT   --> ASCII plot  output
                      .sens   .SENS   --> ASCII sens  output
                      .step   .STEP   --> STEP        output
                      .stl    .STL    --> ASCII stl   output
@@ -6482,7 +8082,7 @@ EVALUATE  $type arg1 ...
                   elseif arguments are: "edge ibody iedge $beg"
                      ibody is Body number (1:nbody)
                      iedge is Edge number (1:nedge)
-                     evaluate Edge at given t
+                     evaluate Edge at beginning
                      return in @edata:
                         t (clipped),
                         x,      y,      z,
@@ -6491,7 +8091,7 @@ EVALUATE  $type arg1 ...
                   elseif arguments are: "edge ibody iedge $end"
                      ibody is Body number (1:nbody)
                      iedge is Edge number (1:nedge)
-                     evaluate Edge at given t
+                     evaluate Edge at end
                      return in @edata:
                         t (clipped),
                         x,      y,      z,
@@ -6586,7 +8186,10 @@ EXTRUDE   dx dy dz
                   computes Face sensitivities analytically
                   sets up @-parameters
                   the Faces all receive the Branch's Attributes
-                  Attributes on Xsect are maintained
+                  Attributes on Xsect Face are placed on both beg and end Faces
+                  Attributes on Xsect Edges that do not start with
+                     . or _ are placed on the associated Faces
+                  Attributes on Xsect Edges are not placed on Edges
                   face-order is: (base), (end), feat1, ...
                   signals that may be thrown/caught:
                      $illegal_value
@@ -6682,40 +8285,41 @@ HOLLOW    thick=0 entList=0 listStyle=0
           use:    hollow out a SolidBody or SheetBody
           pops:   Body
           pushes: Body
-          notes:  Sketch may not be open
+          notes:  results can be unpredictable due to OpenCASCADE issues
+                  Sketch may not be open
                   Solver may not be open
                   if SolidBody (radius is ignored)
-                     if thick=0 and entList==0
+                     if thick=0 and entList==0         (case A)
                          convert to SheetBody
-                     if thick=0 and entList!=0
+                     if thick=0 and entList!=0         (case B)
                         convert to SheetBody without Faces in entList (if connected)
-                     if thick>0 and entList==0
-                        smaller offset Body is created
-                     if thick<0 and entList==0
+                     if thick>0 and entList==0         (case C)
                         larger offset Body is created
-                     if thick>0 and entList!=0
+                     if thick<0 and entList==0         (case D)
+                        smaller offset Body is created
+                     if thick>0 and entList!=0         (case E)
                         hollow (removing entList) with new Faces inside  original Body
-                     if thick<0 and entList!=0
+                     if thick<0 and entList!=0         (case F)
                         hollow (removing entList) with new Faces outside original Body
                   if a SheetBody with only one Face
-                     if thick=0 and entList==0
+                     if thick=0 and entList==0         (case G)
                         convert to WireBody (if connected)
-                     if thick=0 and entList!=0
+                     if thick=0 and entList!=0         (case H)
                         convert to WireBody without Edges in entList (if connected)
-                     if thick>0 and entList==0
-                        smaller offset Body is created
-                     if thick<0 and entList==0
-                        larger offset Body is created
-                     if thick>0 and entList!=0
+                     if thick>0 and entList==0         (case I)
+                        hollow with new Edges inside  original Body
+                     if thick<0 and entList==0         (case J)
+                        hollow with new Edges outside original Body
+                     if thick>0 and entList!=0         (case K)
                         hollow (removing entList) with new Edges inside  original Body
-                     if thick<0 and entList!=0
+                     if thick<0 and entList!=0         (case L)
                         hollow (removing entList) with new Edges outside original Body
                   if a SheetBody with multiple Faces
-                     if thick=0 and entList!=0
+                     if thick=0 and entList!=0         (case M)
                         remove Faces in entList (if connected)
-                     if thick>0 and entList==0
+                     if thick>0 and entList==0         (case N)
                         hollow all Faces with new Edges inside original Faces
-                     if thick>0 and entList!=0
+                     if thick>0 and entList!=0         (case P)
                         hollow Faces in entList with new Edges inside original Faces
                   entList is multi-valued Parameter, or a semicolon-separated list
                   if listStyle==0 and a SolidBody
@@ -6732,6 +8336,7 @@ HOLLOW    thick=0 entList=0 listStyle=0
                   face-order is based upon order that is returned from EGADS
                   signals that may be thrown/caught:
                      $illegal_argument
+                     $did_not_create_body
                      $insufficient_bodys_on_stack
         </pre>
       <p><h3 id="ifthen">ifthen</h3>
@@ -6778,8 +8383,7 @@ INTERFACE $argName $argType default=0
           notes:  only allowed in a .udc file
                   must be placed before any executable statement
                   argType must be "in", "out", "dim", or "all"
-                  if argType=="dim", then default contains number of elements
-                  if argType=="dim", the default values are zero
+                  argType="dim" is obsolete, use DIMENSION instead
                   if argType=="all", a new scope is not created (and
                                      $argName is ignored)
                   a string variable can be passed into UDC if default
@@ -6948,6 +8552,7 @@ LOFT      smooth
                   all Xsects must have the same number of Segments
                   if Xsect is a SheetBody, then a SolidBody is created
                   if Xsect is a WireBody, then a SheetBody is created
+                  Xsects cannot be non-manifold WireBody
                   the Faces all receive the Branch's Attributes
                   Attributes on Xsects are not maintained
                   face-order is: (base), (end), feat1, ...
@@ -6960,6 +8565,7 @@ LOFT      smooth
                   MAY BE DEPRECATED (use RULE or BLEND)
                   signals that may be thrown/caught:
                      $insufficient_bodys_on_stack
+                     $wrong_types_on_stack
         </pre>
       <p><h3 id="macbeg">macbeg</h3>
         <!-- extract from OpenCSM.h -->
@@ -7165,6 +8771,7 @@ RESTORE   $name index=0
                   Solver may not be open
                   $name is used directly (without evaluation)
                   if $name is . (dot), then duplicate Body on stack
+                  if index<0, get all Bodys that match $name
                   sets up @-parameters
                   error results if nothing has been stored in name
                   the Faces all receive the Branch's Attributes
@@ -7188,7 +8795,10 @@ REVOLVE   xorig yorig zorig dxaxis dyaxis dzaxis angDeg
                      dyaxis, dzaxis, andDeg
                   sets up @-parameters
                   the Faces all receive the Branch's Attributes
-                  Attributes on Xsect are maintained
+                  Attributes on Xsect Face are placed on both beg and end Faces
+                  Attributes on Xsect Edges that do not start with
+                     . or _ are placed on the associated Faces
+                  Attributes on Xsect Edges are not placed on Edges
                   face-order is: (base), (end), feat1, ...
                   signals that may be thrown/caught:
                      $illegal_value
@@ -7198,7 +8808,7 @@ REVOLVE   xorig yorig zorig dxaxis dyaxis dzaxis angDeg
       <p><h3 id="rotatex">rotatex</h3>
         <!-- extract from OpenCSM.h -->
         <pre>
-ROTATEX   angDeg yaxis zaxis
+ROTATEX   angDeg yaxis=0 zaxis=0
           use:    rotates Group on top of Stack around an axis that
                   passes through (0, yaxis, zaxis) and is parallel
                   to the x-axis
@@ -7214,7 +8824,7 @@ ROTATEX   angDeg yaxis zaxis
       <p><h3 id="rotatey">rotatey</h3>
         <!-- extract from OpenCSM.h -->
         <pre>
-ROTATEY   angDeg zaxis xaxis
+ROTATEY   angDeg zaxis=0 xaxis=0
           use:    rotates Group on top of Stack around an axis that
                   passes through (xaxis, 0, zaxis) and is parallel
                   to the y-axis
@@ -7230,7 +8840,7 @@ ROTATEY   angDeg zaxis xaxis
       <p><h3 id="rotatez">rotatez</h3>
         <!-- extract from OpenCSM.h -->
         <pre>
-ROTATEZ   angDeg xaxis yaxis
+ROTATEZ   angDeg xaxis=0 yaxis=0
           use:    rotates Group on top of Stack around an axis that
                   passes tgrough (xaxis, yaxis, 0) and is parallel
                   to the z-axis
@@ -7258,6 +8868,7 @@ RULE      reorder=0 periodic=0
                   first Xsect is unaltered if reorder>0
                   last  Xsect is unaltered if reorder<0
                   all Xsects must have the same number of Edges
+                  Xsects cannot be non-manifold WireBody
                   if all Xsects are NodeBodys
                      a WireBody is created
                   elseif all Xsects are WireBodys (or a NodeBody at one end)
@@ -7326,6 +8937,12 @@ SELECT    $type arg1 ...
                      sets @seltype to 2
                      uses @selbody
                      sets @sellist to iface
+//$$$                  elseif arguments are: "face 0 iford1" or
+//$$$                                        "face ibody1 0"
+//$$$                     sets @seltype to 2
+//$$$                     uses @selbody
+//$$$                     sets @sellist with Faces in @selbody that matches ibody1/iford1
+//$$$                                   (with 0 being treated as a wildcard)
                   elseif arguments are: "face ibody1 iford1 iseq=1"
                      sets @seltype to 2
                      uses @selbody
@@ -7350,6 +8967,15 @@ SELECT    $type arg1 ...
                      sets @seltype to 1
                      uses @selbody
                      sets @sellist to iedge
+//$$$                  elseif arguments are: "edge 0 iford1 ibody2 iford2" or
+//$$$                                        "edge ibody1 0 ibody2 iford2" or
+//$$$                                        "edge ibody1 iford1 0 iford2" or
+//$$$                                        "edge ibody1 iford1 ibody2 0" or
+//$$$                                        "edge ibody1 0 ibody2 0"
+//$$$                     sets @seltype to 1
+//$$$                     uses @selbody
+//$$$                     sets @sellist to Edge in @selbody that adjoins Faces
+//$$$                        ibody1/iford1 and ibody2/iford2 (with 0 being treated as wildcard)
                   elseif arguments are: "edge ibody1 iford1 ibody2 iford2 iseq=1"
                      sets @seltype to 1
                      uses @selbody
@@ -7371,6 +8997,10 @@ SELECT    $type arg1 ...
                      sets @seltype to 1
                      uses @selbody
                      sets @sellist to Edge whose center is closest to (x,y,z)
+                  elseif arguments are: "loop iface iloop"
+                     sets @seltype to 1
+                     uses @selbody
+                     sets @sellist to Edges in order in the Loop
                   elseif arguments are: "node"
                      sets @seltype to 0
                      uses @selbody
@@ -7402,18 +9032,23 @@ SELECT    $type arg1 ...
                   elseif arguments are: "add ibody1 iford1 iseq=1" and @seltype is 2
                      uses @selbody
                      appends to @sellist the Face in @selbody that matches ibody1/iford1
+                     (a 0 matches ibody1=0 amd/or iford1=0)
                   elseif arguments are: "add ibody1 iford1 ibody2 iford2 iseq=1" and @seltype is 1
                      uses @selbody
                      appends to @sellist the Edge in @selbody that adjoins Faces
+                     (a 0 matches ibody1=0, iford1=0, ibody2=0, and/or iford2=0)
                   elseif arguments are: "add iface" and @seltype is 2
                      uses @selbody
                      appends to @sellist Face iface in @selbody
+                     (wildcarding is not allowed)
                   elseif arguments are: "add iedge" and @seltype is 1
                      uses @selbody
                      appends to @sellist Edge iedge in @selbody
+                     (wildcarding is not allowed)
                   elseif arguments are: "add inode" and @seltype is 0
                      uses @selbody
                      appends to @sellist Node inode in @selbody
+                     (wildcarding is not allowed)
                   elseif arguments are: "sub attrName1    attrValue1
                                              attrName2=$* attrValue2=$*
                                              attrName3=$* attrValue3=$*"
@@ -7423,11 +9058,14 @@ SELECT    $type arg1 ...
                   elseif arguments are: "sub ibody1 iford1 iseq=1" and @seltype is 2
                      uses @selbody
                      removes from @sellist the Face in @selbody that matches ibody1/iford1
+                     (a 0 matches ibody1=0 amd/or iford1=0)
                   elseif arguments are: "sub ibody1 iford1 ibody2 iford2 iseq=1" and @seltype is 1
                      uses @selbody
                      removes from @sellist the Edge in @selbody that adjoins Faces
+                     (a 0 matches ibody1=0, iford1=0, ibody2=0, and/or iford2=0)
                   elseif arguments are: "sub ient" and ient is in @sellist
                      removes from @sellist ient
+                     (wildcarding is not allowed)
                   elseif arguments are: "sort $key"
                      sorts @sellist based upon $key which can be: $xmin, $ymin, $zmin,
                         $xmax, $ymax, $zmax, $xcg, $ycg, $zcg, $area, or $length
@@ -7437,7 +9075,7 @@ SELECT    $type arg1 ...
 //                Node specifications are stored in _nodeID Attribute
                   iseq selects from amongst multiple Faces/Edges/Nodes that
                      match the ibody/iford specifications
-                  attrNames and attrValues can be wild-carded
+                  attrNames and attrValues can be wild-carded with $*
                   avoid using forms "SELECT face iface" and "SELECT edge iedge"
                      since iface and iedge are not guaranteed to be the same during
                      rebuilds or on different OpenCASCADE versions or computers
@@ -7696,6 +9334,7 @@ STORE     $name index=0 keep=0
           notes:  Sketch may not be open
                   Solver may not be open
                   $name is used directly (without evaluation)
+                  if index<0, use first available index
                   previous Group in name/index is overwritten
                   if $name=.   then Body is popped off stack
                                     but not actually stored
@@ -7771,9 +9410,10 @@ SWEEP
           use:    create a Body by sweeping an Xsect along an Xsect
           pops:   Xsect1 Xsect2
           pushes: Body
-          notes:  Sketch may not be open
+          notes:  results can be unpredictable due to OpenCASCADE issues
+                  Sketch may not be open
                   Solver may not be open
-                  Xsect1 must be either a SheetBody or WireBody
+                  Xsect1 must be either a SheetBody or non-manifold WireBody
                   Xsect2 must be a WireBody
                   if Xsect2 is not slope-continuous, result may not be
                      as expected
@@ -8365,6 +10005,7 @@ UDPRIM kulfan
            ztail      height of upper and lower trailing edge (2 values)
            aupper     vector of control points for upper surface
            alower     vector of control points fpr lower surface
+           numpts     number of points used to define spline [default 101]
        output arguments:
        notes:
             always generates airfoil with 3 edges (upper, lower, TE)
@@ -8622,6 +10263,20 @@ UDPRIM sew
            combines the various bodies into a single SHEET or SOLID Body
            if specified toler is smaller than Face tolers, use Face tolers
 
+UDPRIM shadow
+       input arguments (specified as name/value pairs):
+           numpts     number of GraphPaper points  [default 1001]
+       output arguments:
+           area       projected area
+           xcent      x-centroid of projected area
+           ycent      y-centroid of projected area
+           ixx        moment  of inertia
+           ixy        product of inertia
+           iyy        moment  of inertia
+       usage:
+           projects Body onto x-y plane and computes mass
+               properties of projection
+
 UDPRIM slices
        input arguments (specified as name/value pairs):
            nslice     number of slices
@@ -8745,6 +10400,7 @@ UDPRIM waffle
            segments   array of segments
            filename   name of file
            progress   turn on progress print [default 0]
+           layout     generate WireBodys instead of waffle [default 0]
        output arguments:
        usage:
            if (segments are set)
@@ -8997,9 +10653,9 @@ Strings:
 Valid names:
     start with a letter, colon(:), or at-sign(@)
     contains letters, digits, at-signs(@), underscores(_), and colons(:)
-    contains fewer than 32 characters
+    contains fewer than 64 characters
     names that start with an at-sign cannot be set by a CONPMTR, DESPMTR,
-       or SET statement
+       SET, PATBEG, or GETATTR statement
     if a name has a dot-suffix, a property of the name (and not its
         value) is returned
        x.nrow   number of rows     in x or 0 if a string
@@ -9020,35 +10676,74 @@ Array names:
     values are stored across rows ([1,1], [1,2], ..., [2,1], ...)
 
 Types:
-    CONSTANT
-        declared and defined by a CONPMTR statement
-        must be a scalar
-        is available at both .csm and .udc file level
-        can be set  outside ocsmBuild by a call to ocsmSetValu
-        can be read outside ocsmBuild by a call to ocsmGetValu
-    EXTERNAL
+    DESPMTR
+        declared by a DESPMTR statement only at the top level
         if a scalar, declared and defined by a DESPMTR statement
-        if an array, declared by a DIMENSION statement (with despmtr=1)
-                     values defined by one or more DESPMTR statements
+        if an array, declared by a DIMENSION statement
+            values defined by one or more DESPMTR statements
         each value can only be defined in one DESPMTR statement
+        values are not over-written by subsequent DESPMTR statements
         can have an optional lower bound
         can have an optional upper bound
-        is only available at the .csm file level
+        is only available at the top level
         can be set  outside ocsmBuild by a call to ocsmSetValu
         can be read outside ocsmBuild by a call to ocsmGetValu
-    INTERNAL
-        if a scalar, declared and defined by a SET statement
-        if an array, declared by a DIMENSION statement (with despmtr=0)
-                     values defined by one or more SET statements
-        values can be overwritten by subsequent SET statements
-        are created by an INTERFACE statement in a .udc file
-        see scope rules (below)
-    OUTPUT
-        if a scalar, declared and defined by a OUTPMTR statement
-        values can be overwritten by subsequent SET statements
-        see scope rules (below)
+        can be used to find sensitivities
+    CFGPMTR
+        declared by a CFGPMTR statement only at the top level
+        if a scalar, declared and defined by a CFGPMTR statement
+        if an array, declared by a DIMENSION statement
+            values defined by one or more CFGPMTR statements
+        each value can only be defined in one CFGPMTR statement
+        values are not over-written by subsequent CFGPMTR statements
+        can have an optional lower bound
+        can have an optional upper bound
+        is only available at the top level
+        can be set  outside ocsmBuild by a call to ocsmSetValu
+        can be read outside ocsmBuild by a call to ocsmGetValu
+    CONPMTR
+        declared by a CONPMTR statement at the top level or
+            via ocsmLoadDict
+        cannot be declared in a DIMENSION statment
+        is available everywhere
+        can be set  outside ocsmBuild by a call to ocsmSetValu
+        can be read outside ocsmBuild by a call to ocsmGetValu
+    OUTPMTR
+        declared by a OUTPMTR statement only at the top level
+        can only be set at the top level
+        can be read outside ocsmBuild by a call to ocsmGetValu
+    LOCALVAR
+        if a scalar, declared and defined by a SET, PATBEG, or
+            GETATTR statement or via an INTERFACE IN statement
+        if an array, declared by a DIMENSION statement
+            values defined by one or more SET statements
+        can have a string value
+        values can be overwritten by subsequent statements
+        are only available in the .csm or .udc file in which
+            it is defined or in an include-type UDC that is
+            called by the program unit in which iit was defined
     SOLVER
-        not implemented yet
+        is a scalar defined by a SOLBEG statement
+        only available between SOLBEG and SOLEND
+
+                                                            L
+                                                D  C  C  O  O
+                                                E  F  O  U  C
+                                                S  G  N  T  A
+                                                P  P  P  P  L
+                                                M  M  M  M  V
+                                                T  T  T  T  A
+                                                R  R  R  R  R
+                                                -  -  -  -  -
+      Can be vector or array of numbers         Y  Y  Y  Y  Y
+      Can have a string value                   N  N  N  Y  Y
+      Can be restricted by LBOUND or UBOUND     Y  Y  N  N  N
+      Scope (T=top-level, G=global, L=local)    T  T  G  L  L
+      Defined during ocsmLoad or ocsmLoadDict   Y  Y  Y  N  N
+      Can be set via ocsmSetValu(D)             Y  Y  N  N  N
+      Defined and set during ocsmBuild          N  N  N  Y  Y
+      Can be read via ocsmGetValu(S)            Y  Y  Y  Y  N
+      Can find associated sensitivity           Y  N  N  N  N
 
     @-parameters depend on the last SELECT statement(s).
         each time a new Body is added to the Stack, 'SELECT body' is
@@ -9104,11 +10799,13 @@ Types:
         @Izy      x    x    x    0
         @Izz      x    x    x    0
 
+        @toler    x    x    x    0   maximum tolerance (at last SELECT)
         @signal   x    x    x    x   current signal code
-        @nwarn    x    x    x    x   number of warnings
+        @nwarn    x    x    x    x   number of warnings (at last SELECT)
 
         @edata                       only set up by EVALUATE statement
         @stack                       Bodys on stack; 0=Mark; -1=none
+        @scope                       scoping level (at last SELECT)
         @version                     version number
 
         in above table:
@@ -9117,21 +10814,6 @@ Types:
            * -> special value is set (if single Edge)
            0 -> value is set to  0
           -1 -> value is set to -1
-
-Scope:
-    CONSTANT parameters are available everywhere
-    EXTERNAL parameters are only usable within the .csm file
-    INTERNAL within a .csm file
-                created by a DIMENSION or SET statement
-                values are usable only within the .csm file
-             within a .udc file
-                created by an INTERFACE of SET statament
-                values are usable only with the current .udc file
-    OUTPUT within a .csm file
-                created by a OUTPMTR statement
-                values are available anywhere
-    SOLVER   parameters are only accessible between SOLBEG and
-                SOLEND statements
       </pre>
 
     <p><h3 id="sec5.10">5.10: Expression rules</h3>
@@ -9145,6 +10827,9 @@ Valid operators (in order of precedence):
     ^              exponentiation             (evaluated left to right)
     * /            multiply and divide        (evaluated left to right)
     + -            add/concat and subtract    (evaluated left to right)
+
+    An expression that consists of only the name of a Parameter my be
+    prepended by a unary + or -
 
 Valid function calls:
     pi(x)                        3.14159...*x
@@ -9204,7 +10889,8 @@ Valid function calls:
     dip(xa,ya,xb,yb,rad)         acute dip between arc and chord
                                      produces derivative=0
     smallang(x)                  ensures -180<=x<=180
-    val2str(num,digits)          convert num to string
+    val2str(num,digits)          convert num to string ("%d" if digits=0,
+                                     "%f" if digits>0, "%e" if digits<0)
     str2val(string)              convert string to value
     findstr(str1,str2)           find locn of str2 in str1 (bias-1 or 0)
     slice(str,ibeg,iend)         substring of str from ibeg to iend
@@ -9234,13 +10920,15 @@ Valid function calls:
       <pre>
 Attributes assigned to Bodys:
 
-    _body       Body index (bias-1)
+    _body       Body index (1:nbody)
 
-    _brch       Branch index (bias-1)
+    _brch       Branch index (1:nbrch)
 
     _tParams    tessellation parameters that were used
 
     _csys_*     arguments when CSYSTEM was defined
+
+    _hist       history for WireBodys only
 
     <any>       all global Attributes
 
@@ -9270,7 +10958,8 @@ Attributes assigned to Bodys:
 
 Special User-defined Attributes for Bodys:
 
-    _makeQuads  to make quads on all Faces in Body
+    _makeQuads  to make new-style quads on all Faces in Body
+                (.tessType is set to "Quad" and .mixed is created)
 
     _name       string used in ESP interface for a Body
 
@@ -9279,13 +10968,13 @@ Special User-defined Attributes for Bodys:
 Attributes assigned to Faces:
 
     _body       non-unique 2-tuple associated with first Face creation
-        [0]     Body index in which Face first existed (bias-1)
+        [0]     Body index in which Face first existed (1:nbody)
         [1]     face-order associated with creation (see above)
 
     _brch       non-unique even-numbered list associated with Branches
                    that are active when the Face is created (most
                    recent Branch is listed first)
-        [2*i  ] Branch index (bias-1)
+        [2*i  ] Branch index (1:nbrch)
         [2*i+1] (see below)
 
                 Branches that contribute to brch Attribute are
@@ -9338,16 +11027,19 @@ Special User-defined Attributes for Faces:
 
     _gcolor     color of grid of Face in ESP (see _color)
 
-    _makeQuds   to make quads for this Face
+    _makeQuads  to make old-style quads for this Face.  This is only
+                available if there is no _makeQuads Attribute on the Body.
+                Also, quads made by this option cannot be DUMPed to a
+                .egads file.
 
     _stlColor   color to use for this Face in an .stl file
 
 Attributes assigned to Edges:
 
     _body       non-unique 2-tuple associated with first Edge creation
-        [0]     Body index in which Edge first existed (bias-1)
-        [1]     100 * min(_body[1][ileft],_body[1][irite])
-                    + max(_body[1][ileft],_body[1][irite])
+        [0]     Body index in which Edge first existed (1:nbody)
+        [1]     10000 * min(_body[1][ileft],_body[1][irite])
+                      + max(_body[1][ileft],_body[1][irite])
                 (or -3 if non-manifold)
 
     _edgeID     unique 5-tuple that is assigned automatically
@@ -9358,7 +11050,7 @@ Attributes assigned to Edges:
           [4]   sequence number
 
                 _edgeID[0]/[1] swapped with edge[2]/[3]
-                   100*_edgeID[0]+_edgeID[1] > 100*_edgeID[2]+_edgeID[3]
+                   10000*_edgeID[0]+_edgeID[1] > 10000*_edgeID[2]+_edgeID[3]
                 if multiple Edges have same _edgeID[0], _edgeID[1],
                    _edgeID[2], and _edgeID[3], then the sequence number
                    is defined based upon the first rule that applies:
@@ -9402,7 +11094,7 @@ Special User-defined Attributes for Nodes:
 
     <p>A plotfile is a file that is specified via the
       <code>-plot</code> command line option
-      to <code>serveCSM</code>.
+      to <code>serveESP</code>.
       The contents of this file is used for either plotting in
       <code>ESP</code> and/or as input for the <code>-histDist</code>
       or <code>-plugs</code> command line options.
@@ -9414,9 +11106,21 @@ Special User-defined Attributes for Nodes:
       </pre>
       The <code>name</code> is a character string (without white
       spaces) that will be listed in the <code>ESP</code> Display
-      list; this name must be unique.  The meaning of
-      <code>imax</code> and <code>jmax</code> depends on the type
-      of data, as described below.
+      list; this name must be unique.  The entity will be colored
+      black unless it ends in one of the following sequences:
+      <pre>
+        |r   red
+        |g   green
+        |b   blue
+        |c   cyan
+        |m   magenta
+        |y   yellow
+        |w   white
+      </pre>
+      If the name ends in one of the above sequences, the sequence
+      will be removed from the name.  The meaning of <code>imax</code>
+      and <code>jmax</code> depends on the type of data, as described
+      below.
 
     <h4>Series of points</h4>
     <p>Here <code>imax</code> is the number points
@@ -9560,7 +11264,213 @@ end
 
     <p><h2 id="sec8">8.0: Release Notes</h2>
 
-    <p><h3 id="sec8.3"> 8.1: New/extended features in v1.20</h3>
+    <p><h3 id="sec8.1"> 8.1: New/extended features in v1.21</h3>
+
+    <p><h4>New/updated commands/statements and functions</h4>
+
+    <p>put note in ESP-help and OpenCSM.h that warns users that
+       results from HOLLOW and SWEEP may be unpredicable due to
+       OpenCASCADE issues
+
+    <p>add SELECT LOOP to get Edges associated with a Loop in a Face
+
+    <p>extend STORE such that if index=-1, the first available index
+       is used
+
+    <p>allow wild-carding (with 0) in SELECT ADD and SELECT SUB
+
+    <p>restrict SPHEREs to have a positive radius
+
+    <p>extend COMBINE to make a non-manifold WireBody for a set of
+       contiguous WireBodys
+
+    <p>allow CONPMTR statement if at top-level scope; update scope
+       test case
+
+    <p>allow default xaxis=0, yaxis=0, and zaxis=0 in ROTATEX,
+       ROTATEY, and ROTATEZ
+
+    <p>allow unary + or - in front of (multi-valued) Parameter when
+       used alone in an expression
+
+    <p>index.lt.0 in RESTORE is now a wildcard, meaning that Bodys
+       in all storages that match name are put onto the stack
+
+    <p>make INTERFACE DIM obsolete; issue WARNING to use DIMESNION
+       statement instead
+
+    <p>do not allow non-manifold WireBodys in RULE, BLEND, LOFT, and
+       SWEEP
+
+    <p><h4>New/modified command line arguments</h4>
+
+    <p>change serveCSM to serveESP
+
+    <p>allow serveESP to start with a .py file
+
+    <p><h4>New/updated UDPs, UDCs, or UDFs</h4>
+
+    <p>COMPARE: group bad points based upon the magnitude of the error
+
+    <P>COMPARE: check distances from Nodes and Edges as
+       well as distances from Faces
+
+    <p>ELLIPSE: remove upper limit check on NEDGE
+
+    <p>GUIDE: fix bug that did not work properly for an input SheetBody
+
+    <p>GUIDE: change NXSECT argument to ATTRREAL so that finite
+       difference sensitivities are triggered
+
+    <p>KULFAN: add NUMPTS argument, which helps avoid small
+       dimples near the leading edge of a very thin section
+
+    <p>NACELLE: new UDF
+
+    <p>NUSCALE: fix bug when ZSCALE=0
+
+    <p>NUSCALE: require positive scale factors when applied to
+       a SolidBody
+
+    <p>SHADOW: new UDF
+
+    <p>WAFFLE: add IFTHEN/ENDIF construct
+
+    <p><h4>OpenCSM updates</h4>
+
+    <p>add @scope at-parameter; add scope test case
+
+    <p>improve sensitivities associated with tip treatments in
+       BLEND
+
+    <p>fix typo in error message associated with COMBINE command
+
+    <p>add documentation about what happens for a 0 in either SELECT
+       ADD or SELECT SUB statement
+
+    <p>update documentation for DUMP in OpenCSM.h
+
+    <p>allow DIMENSIONed variable to be returned from a UDC; update
+       expressions test case to demonstrate multi-value returns
+
+    <p><h4>ESP updates</h4>
+
+    <p>create CAPS TIM to run the new Integaretd Design Environment (IDE)
+
+    <p>create pyscript TIM to asynchronously run python
+
+    <p>add a context-sensitive python editor
+
+    <p>create viewer TIM to view AIMS and Bounds in CAPS mode
+
+    <p>create plotter TIM to generate (multi-)line plots
+
+    <p>create flowchart TIM to examine AIMs and Bounds
+
+    <p>add Debug option in ESP editor
+
+    <p>update ESP editor so that users without the ball can see the
+       edits as they happen
+
+    <p>allow non-*host* to initiate file editting
+
+    <p>modify visualization of grids on Faces in serveESP
+
+    <p>update ESP so that double-clicking in MessageWindow takes you
+       to filename:linenum that is clicked on, else takes you to
+       last filename:linenum in MessageWindow
+
+    <p>add tufts for Nodes when displaying tessellation
+       sesnitivities in serveESP
+
+    <p>only show Display table entries (Node/Edge/Face/Csystem/Pips)
+       if it contains any child entities
+
+    <p><h4>Miscellaneous updates</h4>
+
+    <p>add ocsmLoadFromModel function
+
+    <p><h3 id="sec8.2"> 8.2: Bug fixes since v1.20</h3>
+
+    <p><h4>OpenCSM bug fixes</h4>
+
+    <p>fix bug that did not compute sensitivities correctly for UDFs
+       when one (or more) of the input Bodys had non-zero velocities
+
+    <p>compute sensitivity correctly with udfCreateBEM,
+       udfCreatePoly, udfEditAttr, udfPrintBbox, udfPrintBrep, and
+       udoPrintEgo
+
+    <p>fix bug associated with (FD) sensitivities for a MODL with a
+       OUTPMTR being set before a FILLET or CHAMFER
+
+    <p>fix bug that did not compute sensitivity correctly when a
+       DESPMTR was used in an include-type UDC
+
+    <p>fix bug that did not remove UDP cache entries when a Body was
+       deleted (such as during recycling)
+
+    <p>fix bug that re-computed velocities when re-computation was
+       not necessary
+
+    <p>fix bug associated with sensitivities of mass properties
+
+    <p> give @version a value before the first Body is built
+
+    <p>improve tessellation sensitivities for Edges and Faces that
+       are not trimmed by a boolean operation
+
+    <p>fix tessellation sensitivity bug associated with SheetBodys
+       that are INTERSECTed with a SolidBody
+
+    <p>fix Node sensitivity for two parallel Edges
+
+    <p>ensure that tessellation sensitivities on the boundaries of
+       Face and ends of Edges agree with Edge and Node
+       sensitivities
+
+    <p>for a UDP/UDF, only use finite differences if one of its
+       arguements is ATTRREAL and has non-zero dots
+
+    <p>fix bug in ocsmPrintEgo when called on BSPLINE Curve or
+       Surface
+
+    <p>improve error message generated when SKVAR does not contain
+       triplets
+
+    <p>fix bug in ocsmSave that did not write DIMENSION statements
+       correctly when writing either a .csm or .cpc file with a
+       variable nrow and/or ncol
+
+    <p>fix bugs in File-Open and File-Edit for cases with and
+       without UDCs
+
+    <p>fix bug that did not profile MESSAGE statements
+
+    <p>fix bug that did not print OUTPMTRs during call to
+       ocsmPrintPmtrs
+
+    <p>fix sensitivity bug associated with UDP/UDFs that requires
+       finite differences coupled with an OUTPMTR that is tied to
+       a mass property
+
+    <p>fix bug that did not persist attributes on scribed Edges
+       during a boolean operation
+
+
+    <p><h4>ESP bug fixes</h4>
+
+    <p>fix hint for SCALE in ESP
+
+    <p>shorten hint time-out in ESP to 15 sec
+
+    <p>fix bug if user with ball loaded a new .csm file and then
+       editted (where user without ball saw wrong file)
+
+    <p>change display scaling so that if there is only one NodeBody
+       it still gets displayed
+
+    <p><h3 id="sec8.3"> 8.3: New/extended features in v1.20</h3>
 
     <p><h4>New/updated commands/statements and functions</h4>
 
@@ -9633,7 +11543,7 @@ end
 
     <p><h4>Miscellaneous updates</h4>
 
-    <p><h3 id="sec8.4"> 8.2: Bug fixes since v1.19</h3>
+    <p><h3 id="sec8.4"> 8.4: Bug fixes since v1.19</h3>
 
     <p><h4>OpenCSM bug fixes</h4>
 
@@ -9658,7 +11568,7 @@ end
 
     <p>fix bug in mass property derivatives
 
-    <p>fix bug when starting serveCSM on Windoze from an .egads, .igs,
+    <p>fix bug when starting serveESP on Windoze from an .egads, .igs,
        or .stp file for filename with backslashes; add autoStart test
        case
 
@@ -9682,7 +11592,7 @@ end
     <p>preserve orientation of Faces during EXTRACT; add extract4
        test case
 
-    <p>do not include SSLOPE statments when determining if Sketch
+    <p>do not include SSLOPE statements when determining if Sketch
        points are co-planar
 
     <p>change number of reclassified points in Plugs to be the larger
@@ -9701,7 +11611,7 @@ end
 
     <p>fix bug in JOIN associated with Faces that share Edges but
        which have bounding boxes that differ
-      
+
     <p><h4>ESP bug fixes</h4>
 
     <p>fix Hint associated with CONNECT command
@@ -9711,7 +11621,7 @@ end
 
     <p>fix long delay when browser without ball syncs display
 
-    <p><h3 id="sec8.3"> 8.3: New/extended features in v1.19</h3>
+    <p><h3 id="sec8.5"> 8.5: New/extended features in v1.19</h3>
 
     <p><h4>New/updated commands/statements and functions</h4>
 
@@ -9923,7 +11833,7 @@ end
     <p>add capability to ESP to show table of OUTPMTR values and
        velocities; add pmtrtest2 test case
 
-    <p>add printout of velocities of OUTPMTRs to serveCSMs output
+    <p>add printout of velocities of OUTPMTRs to serveESPs output
 
     <p>allow the ESP DisplayFilter to numerically compare values if
        attrValue is numeric
@@ -9944,7 +11854,7 @@ end
 
     <p>allow user to show either configuration or tessellation
        sensitivities in ESP (and make the -tessel flag obsolete in
-       serveCSM)
+       serveESP)
 
     <p>fix bug in flend that caused out-of-bounds error
 
@@ -9962,15 +11872,15 @@ end
 
     <p>Gloves: add many options
 
-    <p>serveCSM: allow plotting of shaded triangles (jmax=-3) and
+    <p>serveESP: allow plotting of shaded triangles (jmax=-3) and
        quadrilaterals (jmax=-4) in the plotfile in ESP
 
-    <p>pyOCSM: new capability that exactly imics OpenCSM API
+    <p>pyOCSM: new capability that exactly mimics OpenCSM API
 
     <p>Plugs: improve cloud point reclassification process; write
        plugs.despmtrs file at end
 
-    <p><h3 id="sec8.4"> 8.4: Bug fixes since v1.18</h3>
+    <p><h3 id="sec8.6"> 8.6: Bug fixes since v1.18</h3>
 
     <p><h4>OpenCSM bug fixes</h4>
 
@@ -10074,7 +11984,7 @@ end
 
     <p>fix first-column coloring when editing  DesignParameter
 
-    <p><h3 id="sec8.5"> 8.5: New/extended features in v1.18</h3>
+    <p><h3 id="sec8.7"> 8.7: New/extended features in v1.18</h3>
 
     <p><h4>New/updated commands/statements and functions</h4>
 
@@ -10155,7 +12065,7 @@ end
 
     <p>make groups for at- and at-at-parameters in ESP
 
-    <p>in serveCSM -sensTess, show Face tufts in blue and Edge tufts
+    <p>in serveESP -sensTess, show Face tufts in blue and Edge tufts
              in red
 
     <p>add option to ESP to turn on/off all Nodes, Edges, Faces, or
@@ -10163,7 +12073,7 @@ end
 
     <p>allow plotfile to contain triangles (if jmax==-2)
 
-    <p><h3 id="sec8.6"> 8.6: Bug fixes since v1.17</h3>
+    <p><h3 id="sec8.8"> 8.8: Bug fixes since v1.17</h3>
 
     <p>throw error if sketch solver does not converge
 
@@ -10267,7 +12177,7 @@ end
     <p>fix bug after FileEdit when one of the skteches in a RULE or
        BLEND could not be recycled
 
-    <p><h3 id="sec8.7"> 8.7: New/extended features in v1.17</h3>
+    <p><h3 id="sec8.9"> 8.9: New/extended features in v1.17</h3>
 
     <p><h4>New/updated commands/statements and functions</h4>
 
@@ -10358,7 +12268,7 @@ end
 
     <p><h4>OpenCSM updates</h4>
 
-    <p>add summary CPU information to serveCSM
+    <p>add summary CPU information to serveESP
 
     <p>add geometry info in output produced by ocsmPrintEgo
 
@@ -10367,16 +12277,15 @@ end
     <p>return ILLEGAL_VALUE from ocsmSetValu, ocsmSetValuD, or
       ocsmSetBnds if value violates the bounds
 
-    <p>add moments of inertia to -chcckMass option in serveCSM
+    <p>add moments of inertia to -chcckMass option in serveESP
 
     <p>print message out outLevel=0 when an error is caught
 
     <p><h4>ESP updates</h4>
 
-    <p>allow multi-segment line plotting in serveCSM
+    <p>allow multi-segment line plotting in serveESP
 
-
-    <p><h3 id="sec8.8"> 8.8: Bug fixes since v1.16</h3>
+    <p><h3 id="sec8.10"> 8.10: Bug fixes since v1.16</h3>
 
     <p>fix bug that did not allow sensitivity calculations if there
       was a NodeBody on the stack
@@ -10445,7 +12354,7 @@ end
     <p>fix bug that did not free memory after an error was detected
       during argument evaluations
 
-    <p><h3 id="sec8.9"> 8.9: New/extended features in v1.16</h3>
+    <p><h3 id="sec8.11"> 8.11: New/extended features in v1.16</h3>
 
     <p>add ESP_QuickReference
 
@@ -10498,12 +12407,12 @@ end
 
     <p>compute analytic sensisitivities for udpBiconvex
 
-    <p><h3 id="sec8.10"> 8.10: Bug fixes since v1.15</h3>
+    <p><h3 id="sec8.12"> 8.12: Bug fixes since v1.15</h3>
 
     <p>fix bug in Sketcher to use atan2d for ::I[]
 
     <p>fix dbest initialization error in -histDist option to
-      serveCSM
+      serveESP
 
     <p>add one more level to printouts in ocsmPrintEgo so that
       Nodes get printed when the input is a Model
@@ -10561,7 +12470,7 @@ end
     <p>fix bug that did not update Local Variables after FILE->Edit in
  `    ESP
 
-    <p><h3 id="sec8.11"> 8.11: New/extended features in v1.15</h3>
+    <p><h3 id="sec8.13"> 8.13: New/extended features in v1.15</h3>
 
     <p><h4>New commands/statements</h4>
 
@@ -10598,12 +12507,12 @@ end
 
     <p><h4>New command line arguments</h4>
 
-    <p>add -histDist flag to serveCSM
+    <p>add -histDist flag to serveESP
 
     <p>allow -addVerify and -verify to use verification files that
       depend on the version of OpenCASCADE being used
 
-    <p>add -checkMass flag to serveCSM
+    <p>add -checkMass flag to serveESP
 
     <p><h4>New/updated UDPs, UDCs, or UDFs</h4>
 
@@ -10686,7 +12595,7 @@ end
 
     <p>allow StepThru mode to show WireBodys
 
-    <p><h3 id="sec8.12"> 8.12: Bug fixes since v1.14</h3>
+    <p><h3 id="sec8.14"> 8.14: Bug fixes since v1.14</h3>
 
     <p>fix erroneous error message ass≈oociated with UNION of
       SheetBodys or WireBodys with the tomark flag
@@ -10711,7 +12620,7 @@ end
 
     <p>improve Branch status indications in ocsmPrintBrchs
 
-    <p>move ocsmPrinBrchs to after ocsmBuild in serveCSM
+    <p>move ocsmPrinBrchs to after ocsmBuild in serveESP
 
     <p>fix writing of NodeBody info during -dumpEgads
 
@@ -10798,7 +12707,7 @@ end
 
     <p>fix typos associated with LINT in Makefile.DARWIN64
 
-    <p><h3 id="sec8.13"> 8.13: New/extended features in v1.14</h3>
+    <p><h3 id="sec8.15"> 8.15: New/extended features in v1.14</h3>
 
     <p><h4>New commands/statements</h4>
 
@@ -10853,27 +12762,27 @@ end
 
     <p><h4>New command line arguments</h4>
 
-    <p>Add -skipBuild command line option to serveCSM
+    <p>Add -skipBuild command line option to serveESP
 
     <p>Add -onormal command line option
 
-    <p>Remove -printBbox command line argument from serveCSM
+    <p>Remove -printBbox command line argument from serveESP
 
-    <p>Remove -printBrep command line argument from serveCSM
+    <p>Remove -printBrep command line argument from serveESP
 
-    <p>Remove -checkMass command line option from serveCSM
+    <p>Remove -checkMass command line option from serveESP
 
-    <p>Add -plotBDF flag to serveCSM so that contents of BDF file can
+    <p>Add -plotBDF flag to serveESP so that contents of BDF file can
              be visualized
 
     <p><h4>New/updated UDPs, UDCs, or UDFs</h4>
 
     <p>udpWaffle: upgrade file format; fix nested PATBEG
 
-    <p>udfPrintBbox: new UDF to replace serveCSM's -printBbox command
+    <p>udfPrintBbox: new UDF to replace serveESP's -printBbox command
         line argument
 
-    <p>udfPrintBrep: new UDF to replace serveCSM/s -printBrep command
+    <p>udfPrintBrep: new UDF to replace serveESP/s -printBrep command
 
     <p>udpSupell: add offset argument
 
@@ -10914,7 +12823,7 @@ end
 
     <p>Allow visibility of NodeBodys to be toggled in ESP
 
-    <p><h3 id="sec8.14"> 8.14: Bug fixes since v1.13</h3>
+    <p><h3 id="sec8.16"> 8.16: Bug fixes since v1.13</h3>
 
     <p>Fix error statement associated with mis-matched argument in
        call to UDC
@@ -11046,7 +12955,7 @@ end
 
     <p>Fix bug that truncated long filenames in ESP Edit-File
 
-    <p><h3 id="sec8.15"> 8.15: New/extended features in v1.13</h3>
+    <p><h3 id="sec8.17"> 8.17: New/extended features in v1.13</h3>
 
     <p><h4>New commands/statements</h4>
 
@@ -11134,7 +13043,7 @@ end
     <p>Design Parameters are now listed hierarchically in ESP (with
        the hierarcy defined by a colon (:)
 
-    <p><h3 id="sec8.16"> 8.16: Bug fixes since v1.12</h3>
+    <p><h3 id="sec8.18"> 8.18: Bug fixes since v1.12</h3>
 
     <p>Fix bug that caused infinite recursion if trying to generate a
        .sens file for a case that required finite difference
@@ -11172,7 +13081,7 @@ end
     <p>An error is raised if an INTERFACE statement uses name of a
        CONPMTR
 
-    <p><h3 id="sec8.17"> 8.17: New/extended features in v1.12</h3>
+    <p><h3 id="sec8.19"> 8.19: New/extended features in v1.12</h3>
 
     <p><h4>New commands/statements</h4>
 
@@ -11277,7 +13186,7 @@ end
 
     <p>Recycling is used (if possible) after FileEdit
 
-    <p><h3 id="sec8.18"> 8.18: Bug fixes since v1.11</h3>
+    <p><h3 id="sec8.20"> 8.20: Bug fixes since v1.11</h3>
 
     <p>Fix many bugs in udpTblade and Tblade itself
 
@@ -11318,7 +13227,7 @@ end
        faulted) after an error encountered during loading a .csm file
        (after FileOpen or FileEdit)
 
-    <p><h3 id="sec8.19"> 8.19: New/extended features in v1.11</h3>
+    <p><h3 id="sec8.21"> 8.21: New/extended features in v1.11</h3>
 
     <p><h4>New commands/statements</h4>
 
@@ -11387,7 +13296,7 @@ end
 
     <p>Add ability to save view to and read view from a file
 
-    <p><h3 id="sec8.20"> 8.20: Bug fixes since v1.010</h3>
+    <p><h3 id="sec8.22"> 8.22: Bug fixes since v1.010</h3>
 
     <p>Add printing of Node Attributes in ocsmPrintBrep
 
@@ -11429,7 +13338,7 @@ end
 
     <p>Fix bug to allow HOLLOW after SKEND
 
-    <p><h3 id="sec8.21"> 8.21: New/extended features in v1.10</h3>
+    <p><h3 id="sec8.23"> 8.23: New/extended features in v1.10</h3>
 
     <p><h4>New commands/statements</h4>
 
@@ -11486,7 +13395,7 @@ end
 
     <p>Add gallery of cases to ESP-help
 
-    <p><h3 id="sec8.22"> 8.22: Bug fixes since v1.09</h3>
+    <p><h3 id="sec8.24"> 8.24: Bug fixes since v1.09</h3>
 
     <p>Fix code when bad expression is detected to not seg fault
 
@@ -11501,7 +13410,7 @@ end
 
     <p>Fix arrowhead size in CSYSTEMs
 
-    <p><h3 id="sec8.23"> 8.23: New/extended features in v1.09</h3>
+    <p><h3 id="sec8.25"> 8.25: New/extended features in v1.09</h3>
 
     <p><h4>New commands/statements</h4>
 
@@ -11598,7 +13507,7 @@ end
 
     <p><h4>Miscellaneous updates</h4>
 
-    <p>Print mass properties (in serveCSM) for all Bodys on stack
+    <p>Print mass properties (in serveESP) for all Bodys on stack
 
     <p>Quadrilaterals are generated (and visualized) if a Face has a
       _makeQuads attribute
@@ -11624,7 +13533,7 @@ end
 
     <p>Add many new test cases, all with verification data
 
-    <p><h3 id="sec8.24"> 8.24: Bug fixes since v1.08</h3>
+    <p><h3 id="sec8.26"> 8.26: Bug fixes since v1.08</h3>
 
     <p>Improve robustness of UNION when applied to SheetBodys
 
@@ -11663,7 +13572,7 @@ end
 
     <p>Fix erroneous truncation of very long metadata in ESP
 
-    <p><h3 id="sec8.25"> 8.25: New/extended features in v1.08</h3>
+    <p><h3 id="sec8.27"> 8.27: New/extended features in v1.08</h3>
 
     <p>A new ocsmDelPmtr function has been added to the OpenCSM API to
        delete a Design Parameter
@@ -11753,11 +13662,11 @@ end
 
     <p>NodeBodys are now displayed on the screen
 
-    <p>For -outLevel=2 in serveCSM, the debug messages now are
+    <p>For -outLevel=2 in serveESP, the debug messages now are
        explicit as to which messages are sent by the browser and which
        message are sent by the server
 
-    <p><h3 id="sec8.26"> 8.26: Bug fixes since v1.07</h3>
+    <p><h3 id="sec8.28"> 8.28: Bug fixes since v1.07</h3>
 
     <p>Numerous typos were fixed in this help file
 
@@ -11843,11 +13752,11 @@ end
 
     <p>Sensitivities are now correctly computed for non-manifold Edges
 
-    <p><h3 id="sec8.27"> 8.27: New/extended features in v1.07</h3>
+    <p><h3 id="sec8.29"> 8.29: New/extended features in v1.07</h3>
 
     <p><code>CAPRI</code> is no longer supported
 
-    <p>serveCSM now returns 1 if running in batch and an error is
+    <p>serveESP now returns 1 if running in batch and an error is
        encountered
 
     <p>A warning is issued if a SolidBody has a non-positive volume
@@ -11939,7 +13848,7 @@ end
     <p>The <code>popupz</code> user-defined component (udc) was added
        to generate a "pop-up" from an existing surface
 
-    <p>If the server (serveCSM) dies, the Messages window turns pink
+    <p>If the server (serveESP) dies, the Messages window turns pink
        and no alert is issued
 
     <p>Rolling the middle -mouse button zooms in/out
@@ -11965,7 +13874,7 @@ end
        to <code>ESP_START</code> (although <code>ESP_START</code> still
        works)
 
-    <p><h3 id="sec8.28"> 8.28: Bug fixes since v1.06</h3>
+    <p><h3 id="sec8.30"> 8.30: Bug fixes since v1.06</h3>
 
     <p>A journalling error was associated with the UNION command
 
@@ -12008,7 +13917,7 @@ end
 
     <p>An error in the first Branch caused ESP to hang
 
-    <p><h3 id="sec8.29"> 8.29: New/extended features in v1.06</h3>
+    <p><h3 id="sec8.31"> 8.31: New/extended features in v1.06</h3>
 
     <p>User-defined components (UDCs) have been implemented to execute
        consistently with user-defined primitives (UDPs).  The main
@@ -12130,7 +14039,7 @@ end
 
     <p>Branches are indented (with ">") in Tree Window in ESP.
 
-    <p><h3 id="sec8.30"> 8.30: Bug fixes since v1.05</h3>
+    <p><h3 id="sec8.32"> 8.32: Bug fixes since v1.05</h3>
 
     <p>Attribute values can be strings (prepended by "$").
 
@@ -12163,17 +14072,17 @@ end
     <p>Allow blanks in SELECT, UDPARG, and UDPRIM statement in
        ESP (but only at end).
 
-    <p>Fix serveCSM so that the JSON that it transfers to the browser
+    <p>Fix serveESP so that the JSON that it transfers to the browser
        does not contain ",]" nor ",}".
 
-    <p><h3 id="sec8.31"> 8.31: Known problems in v1.09</h3>
+    <p><h3 id="sec8.33"> 8.33: Known problems in v1.09</h3>
 
     <p>Internet Explorer (11) is not recommended since it sometimes
        stops sending messages to the server.
 
     <p>When using 64-bit OS X 10.8 or higher, you should use
        OpenCASCADE 6.6.0 (as opposed to 6.8.0).  There is an error
-       somewhere that causes "serveCSM tutorial1_new" to sometimes
+       somewhere that causes "serveESP tutorial1_new" to sometimes
        produces a segmentation fault during rebuilds.
 
     <p>Edges are not drawn in ESP when running a LINUX64 virtual
@@ -12377,7 +14286,7 @@ EGADS_READERR                         -32
 
     <p><h2 id="sec11">11.0: Copyright</h2>
 
-    <p>Copyright (C) 2010/2021 John F. Dannenhoffer, III (Syracuse
+    <p>Copyright (C) 2010/2022 John F. Dannenhoffer, III (Syracuse
        University)
 
     <p>This library is free software; you can redistribute it and/or
@@ -12473,7 +14382,7 @@ EGADS_READERR                         -32
       <p><b>command</b> Synonym for statement.
 
       <p><b>command line</b> The statement typed into a
-      terminal window to start <code>serveCSM</code>.
+      terminal window to start <code>serveESP</code>.
 
       <p><string>Configuation Parameter</b> A value that can be
       set by the user, either programmatically or via the ESP user
@@ -12581,7 +14490,7 @@ EGADS_READERR                         -32
       the current configuration.
 
       <p><b>hostname</b> The name of the computer that is
-      running the server (typically serveCSM).  If using a single
+      running the server (typically serveESP).  If using a single
       computer for both the browser and server, use 'Localhost' as the
       hostname.
 
@@ -12590,7 +14499,7 @@ EGADS_READERR                         -32
       while running ESP.  A user (who has access to the server) can
       copy the journal file to another name and use it to
       automatically replay the session that was journalled during a
-      future invocation of serveCSM.
+      future invocation of serveESP.
 
       <p><b>Key window</b> The window on the bottom left of
       the ESP screen that contains a spectrum to indicate sensitivity
@@ -12643,8 +14552,8 @@ EGADS_READERR                         -32
       along an Edge (or curve), or on a Face (or surface).
 
       <p><b>port</b> The port number on which the server
-      (typically serveCSM) is listening for requests by the browser.
-      serveCSM uses 7681 as its default port.
+      (typically serveESP) is listening for requests by the browser.
+      serveESP uses 7681 as its default port.
 
       <p><b>primitive</b> A CSM statement that generates
       either a box, sphere, cylinder, cone, or torus, or a
@@ -12660,7 +14569,7 @@ EGADS_READERR                         -32
 
       <p><b>server</b> A computer program in which OpenCSM
       runs and which 'serves' Models and Boundary Representations to
-      ESP.  The program 'serveCSM' is the initial server for ESP.
+      ESP.  The program 'serveESP' is the initial server for ESP.
 
       <p><b>sketch</b> A 2-D drawing composed of lines,
       circular arcs, a splines, that is used to define a SheetBody

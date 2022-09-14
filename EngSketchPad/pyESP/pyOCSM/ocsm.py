@@ -6,7 +6,7 @@
 #                                                                 #
 ###################################################################
 
-# Copyright (C) 2021  John F. Dannenhoffer, III (Syracuse University)
+# Copyright (C) 2022  John F. Dannenhoffer, III (Syracuse University)
 #
 # This library is free software; you can redistribute it and/or
 #    modify it under the terms of the GNU Lesser General Public
@@ -93,6 +93,43 @@ def SetOutLevel(ilevel):
     _processStatus(status, "SetOutLevel")
 
     return
+
+# ======================================================================
+
+def SetAuxPtr(auxPtr):
+    """
+    ocsm.SetAuxPtr - set (global) auxiliary pointer
+
+    inputs:
+        auxPtr      auxiliary pointer
+    outputs:
+        (None)
+    """
+    _ocsm.ocsmSetAuxPtr.argtypes = [ctypes.c_void_p]
+
+    status = _ocsm.ocsmSetAuxPtr(auxPtr)
+    _processStatus(status, "SetAuxPtr")
+
+    return
+
+# ======================================================================
+
+def GetAuxPtr():
+    """
+    ocsm.GetAuxPtr - get (global) auxiliary pointer
+
+    inputs:
+        (none)
+    outputs:
+        auxPtr      auxiliary pointer
+    """
+    _ocsm.ocsmGetAuxPtr.argtypes = [ctypes.POINTER(ctypes.c_void_p)]
+    _ocsm.ocsmGetAuxPtr.restype  =  ctypes.c_int
+
+    auxPtr = ctypes.c_void_p()
+    status = _ocsm.ocsmGetAuxPtr(ctypes.byref(auxPtr))
+
+    return auxPtr
 
 # ======================================================================
 
@@ -184,6 +221,10 @@ class Ocsm(object):
                                    ctypes.POINTER(ctypes.c_void_p)]
         _ocsm.ocsmLoad.restype  =  ctypes.c_int
 
+        _ocsm.ocsmLoadFromModel.argtypes = [ctypes.c_void_p,
+                                            ctypes.POINTER(ctypes.c_void_p)]
+        _ocsm.ocsmLoadFromModel.restype  =  ctypes.c_int
+
         if (isinstance(init, str)):
             filename = init.encode()
 
@@ -191,23 +232,37 @@ class Ocsm(object):
             self._mesgCB  = None
             self._sizeCB  = None
             self._context = None
-            self._pyowned = True
             status        = _ocsm.ocsmLoad(filename, self._modl)
             _processStatus(status, "Load")
 
             # create finalizer to ensure _ocsmFree is called during garbage collection
+            self._pyowned  = True
+            self._finalize = egads.finalize(self, _ocsmFree, self._modl)
+
+        elif (isinstance(init, egads.ego)):
+            emodel = init.py_to_c()
+
+            self._modl    = ctypes.cast(emodel, ctypes.c_void_p)
+            self._mesgCB  = None
+            self._sizeCB  = None
+            self._context = None
+            status        = _ocsm.ocsmLoadFromModel(emodel, self._modl)
+            _processStatus(status, "LoadFromModel")
+
+            # create finalizer to ensure _ocsmFree is called during garbage collection
+            self._pyowned  = True
             self._finalize = egads.finalize(self, _ocsmFree, self._modl)
 
         else:
             self._modl    = ctypes.c_void_p()
             self._mesgCB  = None
-            self._sozeCB  = None
+            self._sizeCB  = None
             self._context = None
-            self._pyowned = False
 
             self._modl = init
 
             # we do not want to call _ocsmFree since we do not own the MODL
+            self._pyowned  = False
             self._finalize = None
 
         return

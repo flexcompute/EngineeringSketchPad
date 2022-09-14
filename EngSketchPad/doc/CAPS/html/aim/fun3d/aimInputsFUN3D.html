@@ -74,6 +74,8 @@ $(function() {
  This corresponds to the mach_number variable in the &amp;reference_physical_properties namelist of fun3d.nml.</li>
 <li><b> Re = NULL </b> <br  />
  This corresponds to the reynolds_number variable in the &amp;reference_physical_properties namelist of fun3d.nml.</li>
+<li><b> Temperature = NULL </b> <br  />
+ This corresponds to the temperature variable in the &amp;reference_physical_properties namelist of fun3d.nml. Note if no temperature units are set, units of Kelvin are assumed (see <a class="el" href="aimUnitsFUN3D.html">AIM Units</a>)</li>
 <li><b> Viscous = NULL </b> <br  />
  This corresponds to the viscous_terms variable in the &amp;governing_equation namelist of fun3d.nml.</li>
 <li><b> Equation_Type = NULL </b> <br  />
@@ -139,9 +141,13 @@ $(function() {
 <li><b>FUN3D_Version = 13.1 </b> <br  />
  FUN3D version to generate specific configuration file for; currently only has influence over rubber.data (sensitivity file) and aeroelastic modal data namelist in moving_body.input .</li>
 <li><b> Design_Variable = NULL</b> <br  />
- The design variable tuple is used to input design variable information for optimization, see <a class="el" href="cfdDesignVariable.html">CFD Design Variable</a> for additional details.</li>
-<li><b> Design_Objective = NULL</b> <br  />
- The design objective tuple is used to input objective information for optimization, see <a class="el" href="cfdDesignObjective.html">CFD Objective</a> for additional details.</li>
+ List of AnalysisIn and/or GeometryIn variable names used to compute sensitivities of Design_Functional for optimization, see <a class="el" href="cfdDesignVariable.html">CFD Design Variable</a> for additional details.</li>
+<li><b> Design_Functional = NULL</b> <br  />
+ The design functional tuple is used to input functional information for optimization, see <a class="el" href="cfdDesignFunctional.html">CFD Functional</a> for additional details. Using this requires Design_SensFile = False.</li>
+<li><b> Design_SensFile = False</b> <br  />
+ Read &lt;Proj_Name&gt;.sens file to compute functional sensitivities w.r.t Design_Variable. Using this requires Design_Functional = NULL.</li>
+<li><b> Design_Sensitivity = False</b> <br  />
+ If True and Design_Functional is set, create geometric sensitivities Fun3D input files needed to compute Design_Functional sensitivities w.r.t Design_Variable. If True and Design_SensFile = True, read functional sensitivities from &lt;Proj_Name&gt;.sens and compute sensitivities w.r.t Design_Variable. The value of the design functionals become available as Dynamic Output Value Objects using the "name" of the functionals.</li>
 <li><b>Mesh = NULL</b> <br  />
  A Area_Mesh or Volume_Mesh link for 2D and 3D calculations respectively. </li>
 </ul>
@@ -149,7 +155,7 @@ $(function() {
 </div><!-- PageDoc -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Fri Sep 17 2021 06:42:05 for FUN3D Analysis Interface Module (AIM) by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1
+Generated on Sat Jul 2 2022 10:12:29 for FUN3D Analysis Interface Module (AIM) by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1
 </small></address>
 </body>
 </html>

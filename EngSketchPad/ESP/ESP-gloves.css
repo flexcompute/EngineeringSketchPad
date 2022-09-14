@@ -1,6 +1,7 @@
 /*
 CSS file for ESP-gloves
-written by John Dannenhoffer
+written by Paul Mokotoff
+patterned after code written by John Dannenhoffer
 */
 
 /*
@@ -22,7 +23,7 @@ This library is distributed in the hope that it will be useful,
    MA  02110-1301  USA
 */
 
-/* div on bottom left that contains gloves status */
+/* div on bottom left that contains sketch status */
 #timStatus {
     width:                    250px;
     height:                   350px;
@@ -32,3 +33,12 @@ This library is distributed in the hope that it will be useful,
     background:             #F7F7F7;
 }
 
+/* WebViewer canvas */
+#WebViewer {
+    z-index: 1
+}
+
+/* text canvas */
+#glovesText {
+    z-index: 0
+}

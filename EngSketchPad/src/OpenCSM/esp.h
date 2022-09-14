@@ -9,7 +9,7 @@
  */
 
 /*
- * Copyright (C) 2010/2021  John F. Dannenhoffer, III (Syracuse University)
+ * Copyright (C) 2010/2022  John F. Dannenhoffer, III (Syracuse University)
  *
  * This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
@@ -32,13 +32,20 @@
 
 #include "wsserver.h"
 
+#define MAX_TIM_NESTING  10
+
 typedef struct {
     ego       EGADS;                    /* pointer to EGADS object */
     modl_T    *MODL;                    /* pointer to OpenCSM MODL */
-    void      *CAPS;                    /* pointer to CAPS capsObject */
+    modl_T    *MODLorig;                /* pointer to OpenCSM MODL before CAPS */
+    void      *CAPS;                    /* capsProject */
     wvContext *cntxt;                   /* WebViewer context */
     float     sgFocus[4];               /* scene graph focus */
-    void      *udata;                   /* pointer to user data */
+    void      *sgMutex;                 /* mutex associated with scene graphs */
+    int       curTim;                   /* ID of current TIM (or -1 if serveESP) */
+    int       nudata;                   /* number of nested TIMs */
+    void      *udata[MAX_TIM_NESTING];  /* array  of nested TIMs */
+    char      timName[MAX_TIM_NESTING][10];  /* names of nested TIM */
 } esp_T;
 
 #endif

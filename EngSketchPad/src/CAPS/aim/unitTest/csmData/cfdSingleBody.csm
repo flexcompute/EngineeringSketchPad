@@ -41,8 +41,9 @@ mark
       rotatez   -twist   0   0
       translate xtip   ytip   -sspan
 rule      0
+select edge 7 4 7 5 1
+  attribute capsMesh $trailingEdge
 ## [createWing]
-
 
 ## [mirror]
 # Store half of wing 

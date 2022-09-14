@@ -197,8 +197,8 @@ int readTrix(const char *fname, const char *tag, int *dim,
   trixOpts = 0;      /* or TRIX_VERBOSE */
 
   nComps = 0;        /* ...need to initialize to 0 before calling */
-  rc     = readSurfTrix(fname, &p_surf, &nComps, tag, "ALL", "ALL",
-                           trixOpts);
+  rc     = readSurfTrix(fname, &p_surf, &nComps, "ALL", "ALL", "ALL",
+                        trixOpts);
   if (rc == VALID_TRIX_FILE) {
     printf("trix_readSurf: %s is a valid TRIX (VTK) file\n", fname);
     return EGADS_READERR;
@@ -294,14 +294,13 @@ int readTrix(const char *fname, const char *tag, int *dim,
   status = EGADS_SUCCESS;
 
 cleanup:
-  for (i = 0; i < nComps; ++i) c3d_freeTriangulation(p_surf+i, 1);
+  for (i = 0; i < nComps; ++i) c3d_freeTriangulation(p_surf+i, 0);
   free(p_surf);
   if (status != EGADS_SUCCESS) {
     if (data != NULL) {
       for (i = 0; i < nComps; ++i) {
         EG_free(data[i]);
       }
-
     }
   }
 

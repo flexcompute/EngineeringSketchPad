@@ -23,6 +23,7 @@ all:
 	(cd tacs; make)
 	(cd tsfoil; make)
 	(cd xfoil; make)
+	(cd mses; make)
 	(cd interference; make)
 ifdef AFLR
 	(cd aflr2; make)
@@ -58,6 +59,7 @@ lint:
 	(cd tacs; make lint)
 	(cd tsfoil; make lint)
 	(cd xfoil; make lint)
+	(cd mses; make lint)
 	(cd interference; make lint)
 ifdef AFLR
 	(cd aflr2; make lint)
@@ -94,6 +96,7 @@ clean:
 	(cd tacs; make clean)
 	(cd tsfoil; make clean)
 	(cd xfoil; make clean)
+	(cd mses; make clean)
 	(cd interference; make clean)
 ifdef AFLR
 	(cd aflr2; make clean)
@@ -130,6 +133,7 @@ cleanall:
 	(cd tacs; make cleanall)
 	(cd tsfoil; make cleanall)
 	(cd xfoil; make cleanall)
+	(cd mses; make cleanall)
 	(cd interference; make cleanall)
 ifdef AFLR
 	(cd aflr2; make cleanall)
@@ -169,6 +173,7 @@ dox:
 	(cd tacs; make dox)
 	(cd tsfoil; make dox)
 	(cd xfoil; make dox)
+	(cd mses; make dox)
 	(cd interference; make dox)
 	(cd cart3d; make dox)
 	(cd pointwise; make dox)
@@ -193,6 +198,7 @@ doxclean:
 	(cd tacs; make doxclean)
 	(cd tsfoil; make doxclean)
 	(cd xfoil; make doxclean)
+	(cd mses; make doxclean)
 	(cd interference; make doxclean)
 	(cd cart3d; make doxclean)
 	(cd pointwise; make doxclean)

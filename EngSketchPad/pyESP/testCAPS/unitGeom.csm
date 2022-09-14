@@ -101,6 +101,10 @@ SET       ytop      +0.2*croot+ytip
 SET       extend    0.02*cmean
 
 MARK
+   UDPRIM    naca   Series   series2
+      SCALE     ctip
+      ROTATEZ   -twist   0   0
+      TRANSLATE xtip   ytip    sspan
    UDPRIM    naca   Series   series
       SCALE     croot
    UDPRIM    naca   Series   series2
@@ -108,13 +112,6 @@ MARK
       ROTATEZ   -twist   0   0
       TRANSLATE xtip   ytip   -sspan
 RULE      0
-
-# Duplicate the half wing and mirror
-RESTORE  .
-    MIRROR    0   0   1   0
-
-# Combine halfs into a whole
-JOIN     0
 
 # Get body into a typical aero-system 
 ROTATEX 90 0 0
@@ -131,10 +128,10 @@ RESTORE   Wing 0
     ATTRIBUTE capsIntent $OML;CFD
     ATTRIBUTE .tParam    "5.0; 5.0/15; 35"
                              #iface;ubar0;vbar0;du2;dv2
-    CSYSTEM   leftWingSkin   5;0;0;0;1
-    CSYSTEM   riteWingSkin   1;0;0;0;1
+    CSYSTEM   leftWingSkin   1;0;1;0;-1
+    CSYSTEM   riteWingSkin   2;0;0;0;1
 
-SELECT face 7 3 1
+SELECT face 11 3 1
     ATTRIBUTE capsBound $Upper_Left
 
 # Wing 2 -  Restore and scale, translate

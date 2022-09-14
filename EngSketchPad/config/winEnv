@@ -65,11 +65,6 @@ if [ "$word8" = x64 ]; then
 	ARCH=Win64
 	CCREV=$word6
 fi
-if [ "$word1" = x64 ]; then
-	CARCH=WIN64
-	ARCH=Win64
-	CCREV=$word7
-fi
 if [ "$CARCH" = UNKNOWN ]; then
 	echo "ERROR - Cannot get C/C++ Banner for Bit size!"
 	echo "       " $word0 $word1 $word2 $word3 $word4 $word5 $word6 $word7 $word8
@@ -98,43 +93,32 @@ if [ "$EFCOMP" = UNKNOWN ]; then
 fi
 
 START=UNKNOWN
-if [ -f "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" ]; then
-START="C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"
-fi
 if [ -f "C:\Program Files (x86)\Google\Chrome\Application\chrome.exe" ]; then
 START="C:\Program Files (x86)\Google\Chrome\Application\chrome.exe"
-fi
-if [ -f "C:\Program Files (x86)\Mozilla Firefox\firefox.exe" ]; then
-START="C:\Program Files (x86)\Mozilla Firefox\firefox.exe"
 fi
 if [ -f "C:\Program Files\Google\Chrome\Application\chrome.exe" ]; then
 START="C:\Program Files\Google\Chrome\Application\chrome.exe"
 fi
+if [ -f "C:\Program Files (x86)\Mozilla Firefox\firefox.exe" ]; then
+START="C:\Program Files (x86)\Mozilla Firefox\firefox.exe"
+fi
 if [ -f "C:\Program Files\Mozilla Firefox\firefox.exe" ]; then
 START="C:\Program Files\Mozilla Firefox\firefox.exe"
+fi
+if [ -f "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" ]; then
+START="C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"
 fi
 
 MSVC=UNKNOWN
 case "$CCREV" in
-15.00*) MSVC=2008 ;;
-16.00*) MSVC=2010 ;;
-17.00*) MSVC=2012 ;;
-18.00*) MSVC=2013 ;;
 19.00*) MSVC=2015 ;;
 19.1*)  MSVC=2017 ;;
 19.2*)  MSVC=2019 ;;
+19.3*)  MSVC=2022 ;;
 esac
 if [ "$MSVC" = UNKNOWN ]; then
 	echo "ERROR - Cannot Determine MS VC Revision $CCREV!"
 	exit 1
-fi
-if [ "$MSVC" = 2012 ]; then
-	if [ "$CARCH" = WIN64 ]; then
-		if [ "$CCREV" = 17.00.50727.1 ]; then
-			echo "ERROR - BAD Compiler, please upgrade!"
-			exit 1
-		fi
-	fi
 fi
 if [ "$CARCH" = WIN32 ]; then
 	echo "Warning - 32 bit ESP is no longer supported!"
@@ -225,8 +209,12 @@ if [ ! -n "$PYTHONLIB" ]; then
 fi
 pyt="`where python`"
 if [ -n "$pyt" ]; then
-	PYTH=python
-	echo "Info: Python exec $pyt found!"
+	if python -c "import sys; assert sys.version_info >= (3,8)" >& /dev/null; then 
+		PYTH=python
+		echo "Info: Python exec $pyt found!"
+	else
+		echo "Info: Ignoring Python exec $pyt older than 3.8!"
+	fi
 fi
 
 if [ "$PYTH" != UNKNOWN ]; then
@@ -366,24 +354,27 @@ fi
 echo "set AFLR_ARCH="$CARCH                                >> tmp
 echo "set CAPS_GLYPH="$BASE/src/CAPS/aim/pointwise/glyph   >> tmp
 if [ "$PYTHONINC" != UNKNOWN ] && [ "$PYTHONLIB" != UNKNOWN ]; then
-	echo "set PYTHONINC=$PYTHONINC"                    >> tmp
-	echo "set PYTHONLIB=$PYTHONLIB"                    >> tmp
+	echo "set PYTHONINC=\"$PYTHONINC\""                >> tmp
+	echo "set PYTHONLIB=\"$PYTHONLIB\""                >> tmp
+	echo "set PATH="$PYTHONINC/..";%PATH%"             >> tmp
 else
-	echo "rem set PYTHONINC=C:\Python38\include"               >> tmp
-	echo "rem set PYTHONLIB=C:\Python38\Libs\python38.lib"     >> tmp
-	echo "rem set PATH=C:\Python38;%PATH%"                     >> tmp
+	echo "rem set PYTHONINC=C:\Python39\include"               >> tmp
+	echo "rem set PYTHONLIB=C:\Python39\Libs\python39.lib"     >> tmp
+	echo "rem set PATH="$PYTHONINC/..";%PATH%"                 >> tmp
 fi
-echo "set PYTHONPATH="$BASE/pyESP";%PYTHONPATH%"           >> tmp
+echo "set PYTHONPATH="$BASE/lib";"$BASE/pyESP";%PYTHONPATH%"       >> tmp
 if [ "$TETGEN" != UNKNOWN ]; then
 	echo "set TETGEN=$TETGEN"                                  >> tmp
 else
 	echo "rem set TETGEN=Z:\HOME\Projects\TetGen\tetgen1.6.0"  >> tmp
 fi
 if [ "$START" != UNKNOWN ]; then
-	echo "set SLUGS_START=\"\"$START\" $BASE\SLUGS\Slugs.html\"" >> tmp
-	echo "set ESP_START=\"\"$START\" $BASE\ESP\ESP.html\""       >> tmp
-	echo "set WV_START=\"\"$START\" $BASE\wvClient\wv.html\""    >> tmp
+	echo "set SLUGS_START=\"start /b \"$START\" $BASE\SLUGS\Slugs.html\"" >> tmp
+	echo "set ESP_START=\"start /b \"$START\" $BASE\ESP\ESP.html\""       >> tmp
+	echo "set WV_START=\"start /b \"$START\" $BASE\wvClient\wv.html\""    >> tmp
 fi
-./sed sx/x'\\'xg < tmp > ../ESPenv.bat
+./sed sx/x'\\'xg < tmp > tmp1
+./sed sx'start \\b 'x'start /b 'xg < tmp1 > ../ESPenv.bat
 ./rm tmp
+./rm tmp1
 exit

@@ -1,0 +1,24 @@
+# attributeA
+# written by John Dannenhoffer
+
+# basic BOX with left side marked for removal
+BOX       0  0  0  3  2  1
+SELECT    FACE  @nbody  1
+ATTRIBUTE remove $yes
+
+# attribute all Edges that will be exposed when the Face is removed
+UDPRIM    editAttr   filename <<
+   EDGE   ADJ2FACE   remove=yes
+   SET               exposed=yes
+>>
+
+# remove the Face
+SELECT    FACE
+SELECT    SUB  $remove  $yes
+EXTRACT   @sellist
+
+# there should be 4 exposed Edges
+SELECT    EDGE   $exposed  $yes
+ASSERT    @sellist.size  4
+
+END

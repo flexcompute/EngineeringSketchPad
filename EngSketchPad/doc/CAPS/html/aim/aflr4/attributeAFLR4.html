@@ -139,8 +139,8 @@ that intersects BL region   </td></tr>
 <li><b> AFLR4_Edge_Refinement_Weight</b> [Optional FACE attribute: Default 0.0, Range 0 to 1]<br  />
  EGADS attribute AFLR4_Edge_Refinement_Weight represents the edge mesh spacing scale factor weight for a given face/surface. Edge mesh spacing can be scaled on a given face/surface based on the discontinuity level between adjacent faces/surfaces on both sides of the edge. The edge mesh spacing scale factor weight set with AFLR4_Edge_Refinement_Weight is used as an interpolation weight between the unmodified spacing and the modified spacing. A value of one applies the maximum modification and a value of zero applies no change in edge spacing. Note that no modification is done to edges that belong to farfield or BL intersecting face/surface. <br  />
 </li>
-<li><b> AFLR4_Scale_Factor</b> [Optional FACE attribute: Default 1.0]<br  />
- EGADS attribute AFLR4_Scale_Factor represents the AFLR4 surface mesh spacing scale factor for a given face/surface. Curvature dependent spacing can be scaled on the face/surface by the value of the scale factor set with AFLR4_Scale_Factor.<br  />
+<li><b> AFLR4_Scale_Factor</b> [Optional FACE or EDGE attribute: Default 1.0]<br  />
+ EGADS attribute AFLR4_Scale_Factor represents the AFLR4 mesh spacing scale factor for a given face/edge. Curvature dependent spacing can be scaled on the face/edge by the value of the scale factor set with AFLR4_Scale_Factor.<br  />
  <br  />
  </li>
 </ul>
@@ -148,7 +148,7 @@ that intersects BL region   </td></tr>
 </div><!-- PageDoc -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Fri Sep 17 2021 06:42:50 for AFLR4 Analysis Interface Module (AIM) by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1
+Generated on Sat Jul 2 2022 10:13:08 for AFLR4 Analysis Interface Module (AIM) by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1
 </small></address>
 </body>
 </html>

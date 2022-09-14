@@ -1,0 +1,26 @@
+# nmWireBody6 (SWEEP)
+# written by John Dannenhoffer
+
+# non-manifold WireBody
+SKBEG     1  1  0
+   LINSEG 0  0  0
+   LINSEG 2  0  0
+SKEND
+SKBEG     2  0  0
+   LINSEG 1  1  0
+   LINSEG 1  2  0
+SKEND
+COMBINE
+
+# guide curve
+SKBEG     0  0  0
+   LINSEG 0  0  2
+SKEND
+SWEEP
+
+# SWEEP shuld have thrown an error
+ASSERT    0  1
+CATBEG    $wrong_types_on_stack
+CATEND
+
+END

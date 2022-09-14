@@ -19,6 +19,11 @@ AIAApaper2013-3073
  System for Building Parametric Geometry"
 Robert Haimes and John Dannenhoffer
 
+AIAApaper2014-0188
+"Computational Geometry for Multifidelity and Multidisciplinary Analysis and 
+ Optimization"
+Nitin Bhagat and Edward Alyanak
+
 AIAApaper2014-0294
 "Conservative Fitting for Multi-Disciplinary Analysis"
 John Dannenhoffer and Robert Haimes
@@ -95,3 +100,37 @@ AIAApaper2019-2230
  using CAPS"
 Christopher Meckstroth
 
+AIAApaper2019-3369
+"Automated Wing Internal Structure Placement Guided by Finite Element Analysis"
+Justin Clough, Assad Oberai and Andrew Zakrajsek
+
+IMR28
+"A Regularization Approach for Automatic Quad Mesh Generation"
+Julia Docampo-Sánchez and Robert Haimes
+
+AIAApaper2021-2992
+"Boundary Representation Tolerance Impacts on Mesh Generation and Adaptation"
+Michael Park, Robert Haimes, Nicholas Wyman, Patrick Baker and Adrien Loseille
+
+AIAApaper2022-0387
+"Exploring Tie Constraints for Structural Analysis Problems"
+Paul Mokotoff and John Dannenhoffer
+
+AIAApaper2022-0971
+"Parallelization Strategies for Efficiently Computing CAD-based Sensitivities 
+ for Design Optimization"
+John Dannenhoffer
+
+AIAApaper2022-1734
+"A Parametric G1-continuous Rounded Wing Tip Treatment for Preliminary 
+ Aircraft Design"
+Marshall Galbraith and Robert Haimes
+
+AIAApaper2022-1736
+"On Analysis Driven Shape Design Using B-Splines"
+Marlena Gomez, Marshall Galbraith and Robert Haimes 
+
+AIAApaper2022-2248
+"Towards Modeling for Design: Using a Real-time Collaborative Environment 
+ in CAPS"
+John Dannenhoffer and Nitin Bhagat 

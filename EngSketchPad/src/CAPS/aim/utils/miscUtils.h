@@ -7,6 +7,7 @@
 #include "capsTypes.h"  // Bring in CAPS types
 #include "cfdTypes.h"   // Bring in cfd structures
 #include "miscTypes.h"  // Bring in miscellaneous structures
+#include "aimMesh.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -151,6 +152,12 @@ char * convert_integerToString(int integerVal, int fieldWidth, int leftOrRight);
 /*@null@*/
 char * convert_doubleToString(double doubleVal, int fieldWidth, int leftOrRight);
 
+// Factorizes in place the square linear system A using simple LU decomposition
+int factorLU(int n, double A[] );
+
+// Solves the factorized square linear system LU x = b
+int backsolveLU(int n, double LU[], double b[], double x[] );
+
 // Solves the square linear system A x = b using simple LU decomposition
 int solveLU(int n, double A[], double b[], double x[] );
 
@@ -173,7 +180,7 @@ int merge_mapAttrToIndexStruct(mapAttrToIndexStruct *attrMap1,
                                mapAttrToIndexStruct *attrMapOut);
 
 // Search a mapAttrToIndex structure for a given keyword and set/return the corresponding index
-int get_mapAttrToIndexIndex(mapAttrToIndexStruct *attrMap, const char *keyWord,
+int get_mapAttrToIndexIndex(const mapAttrToIndexStruct *attrMap, const char *keyWord,
                             int *index);
 
 // Search a mapAttrToIndex structure for a given index and return the corresponding keyword
@@ -235,10 +242,7 @@ int retrieve_CAPSMeshAttr(ego geomEntity, const char **string);
 int retrieve_CoordSystemAttr(ego geomEntity, const char **string);
 */
 
-// Create a mapping between unique, generic (specified via mapName) attribute names and an index value
-int create_genericAttrToIndexMap(int numBody, ego bodies[], int attrLevel,
-                                 const char *mapName,
-                                 mapAttrToIndexStruct *attrMap);
+int create_MeshRefToIndexMap(void *aimInfo, aimMeshRef *meshRef, mapAttrToIndexStruct *attrMap);
 
 // Create a mapping between unique capsGroup attribute names and an index value
 int create_CAPSGroupAttrToIndexMap(int numBody, ego bodies[], int attrLevel,

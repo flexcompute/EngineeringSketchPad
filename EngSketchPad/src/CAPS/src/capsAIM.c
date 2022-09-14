@@ -3,7 +3,7 @@
  *
  *             AIM Dynamic Subsystem
  *
- *      Copyright 2014-2021, Massachusetts Institute of Technology
+ *      Copyright 2014-2022, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -212,6 +212,7 @@ static int aimDYNload(aimContext *cntxt, const char *name)
   cntxt->aimFreeD[ret]    = (aimF)  aimDLget(dll, "aimFreeDiscrPtr"  );
   cntxt->aimLoc[ret]      = (aimL)  aimDLget(dll, "aimLocateElement" );
   cntxt->aimInput[ret]    = (aimIn) aimDLget(dll, "aimInputs"        );
+  cntxt->aimUState[ret]   = (aimU)  aimDLget(dll, "aimUpdateState"   );
   cntxt->aimPAnal[ret]    = (aimA)  aimDLget(dll, "aimPreAnalysis"   );
   cntxt->aimExec[ret]     = (aimEx) aimDLget(dll, "aimExecute"       );
 #ifdef ASYNCEXEC
@@ -227,25 +228,35 @@ static int aimDYNload(aimContext *cntxt, const char *name)
   cntxt->aimIntgrBar[ret] = (aimG)  aimDLget(dll, "aimIntegrateBar"  );
   cntxt->aimBdoor[ret]    = (aimBd) aimDLget(dll, "aimBackdoor"      );
   cntxt->aimClean[ret]    = (aimCU) aimDLget(dll, "aimCleanup"       );
-  if ((cntxt->aimInit[ret]   == NULL) || (cntxt->aimClean[ret] == NULL) ||
-      (cntxt->aimInput[ret]  == NULL) || (cntxt->aimPAnal[ret] == NULL) ||
-      (cntxt->aimOutput[ret] == NULL) || (cntxt->aimCalc[ret]  == NULL) ||
-      (cntxt->aimPost[ret]   == NULL)) {
+  if ((cntxt->aimInit[ret]   == NULL) || (cntxt->aimClean[ret]  == NULL) ||
+      (cntxt->aimInput[ret]  == NULL) || (cntxt->aimPAnal[ret]  == NULL) ||
+      (cntxt->aimOutput[ret] == NULL) || (cntxt->aimCalc[ret]   == NULL) ||
+      (cntxt->aimPost[ret]   == NULL) || (cntxt->aimUState[ret] == NULL)) {
     aimDLclose(dll);
     if (cntxt->aimInit[ret]   == NULL)
-      printf(" Error: Missing non-optional symbol 'aimInitialize' in %s\n", name);
-    if (cntxt->aimInput[ret]   == NULL)
-      printf(" Error: Missing non-optional symbol 'aimInputs' in %s\n", name);
-    if (cntxt->aimOutput[ret]   == NULL)
-      printf(" Error: Missing non-optional symbol 'aimOutputs' in %s\n", name);
-    if (cntxt->aimPAnal[ret]   == NULL)
-      printf(" Error: Missing non-optional symbol 'aimPreAnalysis' in %s\n", name);
+      printf(" Error: Missing non-optional symbol 'aimInitialize' in %s\n",
+             name);
+    if (cntxt->aimInput[ret]  == NULL)
+      printf(" Error: Missing non-optional symbol 'aimInputs' in %s\n",
+             name);
+    if (cntxt->aimOutput[ret] == NULL)
+      printf(" Error: Missing non-optional symbol 'aimOutputs' in %s\n",
+             name);
+    if (cntxt->aimUState[ret] == NULL)
+      printf(" Error: Missing non-optional symbol 'aimUpdateState' in %s\n",
+             name);
+    if (cntxt->aimPAnal[ret]  == NULL)
+      printf(" Error: Missing non-optional symbol 'aimPreAnalysis' in %s\n",
+             name);
     if (cntxt->aimPost[ret]   == NULL)
-      printf(" Error: Missing non-optional symbol 'aimPostAnalysis' in %s\n", name);
+      printf(" Error: Missing non-optional symbol 'aimPostAnalysis' in %s\n",
+             name);
     if (cntxt->aimCalc[ret]   == NULL)
-      printf(" Error: Missing non-optional symbol 'aimCalcOutput' in %s\n", name);
-    if (cntxt->aimClean[ret]   == NULL)
-      printf(" Error: Missing non-optional symbol 'aimCleanup' in %s\n", name);
+      printf(" Error: Missing non-optional symbol 'aimCalcOutput' in %s\n",
+             name);
+    if (cntxt->aimClean[ret]  == NULL)
+      printf(" Error: Missing non-optional symbol 'aimCleanup' in %s\n",
+             name);
     return EGADS_EMPTY;
   }
   
@@ -419,9 +430,27 @@ aim_Inputs(aimContext cntxt,
 
 
 int
-aim_PreAnalysis(aimContext cntxt,
+aim_UpdateState(aimContext cntxt,
                 const char *analysisName,
      /*@null@*/ void       *instStore,  /* instance storage */
+                void       *aimStruc,   /* the AIM context */
+     /*@null@*/ capsValue  *inputs)     /* complete suite of analysis inputs */
+{
+  int i;
+  
+  i = aimDLoaded(cntxt, analysisName);
+  if (i == -1) return CAPS_NOTFOUND;
+  
+  if (cntxt.aimUState[i] == NULL) return CAPS_SUCCESS;
+  
+  return cntxt.aimUState[i](instStore, aimStruc, inputs);
+}
+
+
+int
+aim_PreAnalysis(aimContext cntxt,
+                const char *analysisName,
+     /*@null@*/ const void *instStore,  /* instance storage */
                 void       *aimStruc,   /* the AIM context */
      /*@null@*/ capsValue  *inputs)     /* complete suite of analysis inputs */
 {
@@ -437,7 +466,7 @@ aim_PreAnalysis(aimContext cntxt,
 int
 aim_Execute(aimContext cntxt,
             const char *analysisName,
- /*@null@*/ void       *instStore,  /* instance storage */
+ /*@null@*/ const void *instStore,  /* instance storage */
             void       *aimStruc,   /* the AIM context */
             int        *state)      /* the returned state of the execution */
 {
@@ -572,7 +601,8 @@ aim_Interpolation(aimContext cntxt,
     return CAPS_NOTIMPLEMENT;
   }
   
-  return cntxt.aimIntrp[i](discr, name, bIndex, eIndex, bary, rank, data, result);
+  return cntxt.aimIntrp[i](discr, name, bIndex, eIndex, bary, rank, data,
+                           result);
 }
 
 
@@ -594,7 +624,8 @@ aim_InterpolIndex(aimContext cntxt,
     return CAPS_NOTIMPLEMENT;
   }
   
-  return cntxt.aimIntrp[i](discr, name, bIndex, eIndex, bary, rank, data, result);
+  return cntxt.aimIntrp[i](discr, name, bIndex, eIndex, bary, rank, data,
+                           result);
 }
 
 

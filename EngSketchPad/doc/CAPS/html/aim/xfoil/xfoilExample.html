@@ -89,7 +89,7 @@ Script files</h2>
 Creating Geometry using ESP</h1>
 <p>In our example *.csm file setting up the CAPS fidelity is the first step. If multiple bodies exist in the *.csm file the tag, capsIntent, can be used to distinguish what type of analysis the body may be used for. In this example, the geometry model generated can be used for CFD analysis, as shown:</p>
 <div class="fragment"><div class="line">attribute capsIntent       $LINEARAERO</div>
-<div class="line">attribute capsAIM $xfoilAIM;tsfoilAIM</div>
+<div class="line">attribute capsAIM $xfoilAIM;tsfoilAIM;msesAIM</div>
 </div><!-- fragment --><p> A typical geometry model can be created and interactively modified using design parameters. These design parameters are either design- or geometry- based. In this example, a single airfoil cross-section is created using the following design parameters. </p><div class="fragment"><div class="line">despmtr   thick     0.12      frac of local chord</div>
 <div class="line">despmtr   camber    0.00      frac of local chord</div>
 <div class="line">despmtr   area      10.0      Planform area of the full span wing</div>
@@ -128,13 +128,13 @@ Performing analysis using pyCAPS</h1>
 <div class="line">xfoil.input.Alpha = [0.0, 3.0, 5.0, 7.0, 9.0, 11, 13, 14, 15.0]</div>
 <div class="line"> </div>
 <div class="line"><span class="comment"># Set AoA seq</span></div>
-<div class="line">xfoil.input.Alpha_Increment = [1.0, 2.0, 0.10]</div>
+<div class="line"><span class="comment">#xfoil.input.Alpha_Increment = [1.0, 2.0, 0.10]</span></div>
 <div class="line"> </div>
 <div class="line"><span class="comment"># Set custom Cl</span></div>
-<div class="line">xfoil.input.CL = 0.1</div>
+<div class="line"><span class="comment">#xfoil.input.CL = 0.1</span></div>
 <div class="line"> </div>
 <div class="line"><span class="comment"># Set Cl seq</span></div>
-<div class="line">xfoil.input.CL_Increment = [0.8, 3, .25]</div>
+<div class="line"><span class="comment">#xfoil.input.CL_Increment = [0.8, 3, .25]</span></div>
 <div class="line"> </div>
 <div class="line"><span class="comment"># Append the polar file if it already exists - otherwise the AIM will delete the file</span></div>
 <div class="line">xfoil.input.Append_PolarFile = <span class="keyword">True</span></div>
@@ -176,7 +176,7 @@ xFoil generated lift and drag coefficients for various angles of attack</div></d
 </div><!-- PageDoc -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Fri Sep 17 2021 06:43:03 for xFoil Analysis Interface Module (AIM) by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1
+Generated on Sat Jul 2 2022 10:13:22 for xFoil Analysis Interface Module (AIM) by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1
 </small></address>
 </body>
 </html>

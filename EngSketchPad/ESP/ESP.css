@@ -5,7 +5,7 @@ CodeMirror part taken from codemirror-5.27.0 (see below)
 */
 
 /*
-Copyright (C) 2010/2021  John F. Dannenhoffer, III (Syracuse University)
+Copyright (C) 2010/2022  John F. Dannenhoffer, III (Syracuse University)
 
 This library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public
@@ -200,6 +200,17 @@ canvas {
     width:                    230px;
     height:                   150px;
     border-width:               0px;
+    position:              absolute;
+}
+
+/* graphics */
+#WebViewer {
+    z-index: 1;
+}
+
+/* text for GLOVES */
+#glovesText {
+    z-index: 0;
 }
 
 /* <div> container used to position the File menu contents */
@@ -215,6 +226,7 @@ canvas {
     padding-left:              10px;
     padding-right:             10px;
     background-color:       #BFBFBF;
+    z-index:                      1;
 }
 
 /* buttons inside File menu */
@@ -226,6 +238,33 @@ canvas {
 
 /* show the File menu contents */
 .showFileMenu {
+    display:                  block;
+}
+
+/* <div> container used to position the Caps menu contents */
+.capsMenu {
+    position:              relative;
+    display:           inline-block;
+}
+
+/* Caps menu contents (hidden by default) */
+.capsMenu-contents {
+    display:                   none;
+    position:              absolute;
+    padding-left:              10px;
+    padding-right:             10px;
+    background-color:       #BFBFBF;
+}
+
+/* buttons inside Caps menu */
+.capsMenu-contents button {
+    display:                  block;
+    padding-left:              12px;
+    padding-right:             12px;
+}
+
+/* show the Caps menu contents */
+.showCapsMenu {
     display:                  block;
 }
 
@@ -279,6 +318,7 @@ canvas {
     padding-left:              10px;
     padding-right:             10px;
     background-color:       #BFBFBF;
+    z-index:                      1;
 }
 
 /* buttons inside Tool menu */
@@ -306,6 +346,7 @@ canvas {
     padding-left:              10px;
     padding-right:             10px;
     background-color:       #BFBFBF;
+    z-index:                      1;
 }
 
 /* buttons inside Done menu */
@@ -412,7 +453,7 @@ canvas {
 @keyframes blink {
     0% {
     }
-    50% { 
+    50% {
         background-color: transparent;
     }
     100% {

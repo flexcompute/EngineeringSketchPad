@@ -10,8 +10,8 @@ box       0   0   0   3.1  2.01  1.001
 
 # compute/report compares
 udparg    compare  tessfile  $compare.tess
-#udparg    compare  plotfile  $compare.plot
-#udparg    compare  histfile  $compare.hist
+udparg    compare  plotfile  $compare.plot
+udparg    compare  histfile  $compare.hist
 udparg    compare  toler     0.05
 udprim    compare
 

@@ -23,6 +23,7 @@ UBOUND    aspect    10.00
 CFGPMTR   series            8412
 CFGPMTR   series2           0020
 CFGPMTR   sharpte           0
+CFGPMTR   wake              1
 ## [cfgpmtrs]
 
 # Output Parameters:
@@ -114,6 +115,17 @@ RESTORE   Wing 0
     TRANSLATE 10   0   0
 ##[secondWing]
 
+IFTHEN wake EQ 1
+   # Create a wake sheet for mesh clustering
+   BOX 13   -sspan   0    5  2*sspan  0
+       ATTRIBUTE capsGroup   $Wake
+       ATTRIBUTE capsMesh    $Wake
+       ATTRIBUTE _name       $Wake
+       ATTRIBUTE AFLR_GBC    $TRANSP_UG3_GBC
+       ATTRIBUTE AFLR4_Cmp_ID 3
+       ATTRIBUTE PW:Baffle   $Baffle
+ENDIF
+
 # Create a bounding box as a farfied 
 ## [farfield]
 SPHERE    0   0   0   80
@@ -121,7 +133,7 @@ SPHERE    0   0   0   80
     ATTRIBUTE capsMesh    $Farfield
     ATTRIBUTE _name       $Farfield
     ATTRIBUTE AFLR_GBC    $FARFIELD_UG3_GBC
-    ATTRIBUTE AFLR4_Cmp_ID 3
+    ATTRIBUTE AFLR4_Cmp_ID 4
     ATTRIBUTE capsMeshLength  cmean #Charachteristic length for meshing
     ATTRIBUTE .tParam "30.;5.;30;"
 ## [farfield]

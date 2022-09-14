@@ -64,12 +64,18 @@ translate dxtip+ctip    span/2    dztip
 # Wing
 # Notice three attributes:
 #  > capsReferenceArea  - defines the reference area for coefficients
+#  > capsReferenceChord  - defines the reference chord for coefficients
+#  > capsReferenceSpan  - defines the reference span for coefficients
+#  > capsReferenceX  - defines the reference X for moment coefficients
 #  > capsType   - defines the type of awave component it is
 #  > capsGroup	- unique string capsGroup used to group items together
 # -----------------------------------------------------------------
 # right tip
 udprim    naca      Thickness thick     Camber    camber
 attribute capsReferenceArea area
+attribute capsReferenceChord croot
+attribute capsReferenceSpan span
+attribute capsReferenceX croot/4
 attribute capsType  $Wing
 attribute capsGroup $Wing
 scale     ctip

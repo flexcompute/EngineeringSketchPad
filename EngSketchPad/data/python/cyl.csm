@@ -1,0 +1,10 @@
+# cyl
+# written by John Dannenhoffer
+
+DESPMTR   len       4
+DESPMTR   diam      1
+
+CYLINDER  -len/2  0  0 \
+           len/2  0  0  diam/2
+
+END

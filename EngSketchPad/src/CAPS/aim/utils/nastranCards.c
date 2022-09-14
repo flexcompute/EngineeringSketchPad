@@ -45,8 +45,8 @@ int nastranCard_aelist(FILE *fp, int *sid, int numE, int *e,
 /*
  * Write AERO card
  */
-int nastranCard_aero(FILE *fp, int *acsid, double *velocity, double *refc,
-                     double *rhoref, int *symxz, int *symxy,
+int nastranCard_aero(FILE *fp, const int *acsid, const double *velocity, const double *refc,
+                     const double *rhoref, const int *symxz, const int *symxy,
                      feaFileTypeEnum formatType) {
     
     int status;
@@ -96,9 +96,9 @@ int nastranCard_aero(FILE *fp, int *acsid, double *velocity, double *refc,
 /*
  * Write AEROS card
  */
-int nastranCard_aeros(FILE *fp, int *acsid, int *rcsid, double *refc,
-                      double *refb, double *refs, int *symxz,
-                      int *symxy, feaFileTypeEnum formatType) {
+int nastranCard_aeros(FILE *fp, const int *acsid, const int *rcsid, const double *refc,
+                      const double *refb, const double *refs, const int *symxz,
+                      const int *symxy, feaFileTypeEnum formatType) {
     
     int status;
 
@@ -235,10 +235,10 @@ int nastranCard_aesurf(FILE *fp, int *id, char *label, int *cid, int *alid,
 /*
  * Write CAERO1 card
  */
-int nastranCard_caero1(FILE *fp, int *eid, int *pid, int *cp,
-                       int *nspan, int *nchord, int *lspan, int *lchord,
-                       int *igid, double xyz1[3], double xyz4[3],
-                       double *x12, double *x43, 
+int nastranCard_caero1(FILE *fp, const int *eid, const int *pid, const int *cp,
+                       const int *nspan, const int *nchord, const int *lspan, const int *lchord,
+                       const int *igid, const double xyz1[3], const double xyz4[3],
+                       const double *x12, const double *x43,
                        feaFileTypeEnum formatType) {
     
     int status;
@@ -312,9 +312,9 @@ int nastranCard_caero1(FILE *fp, int *eid, int *pid, int *cp,
 /*
  * Write CBAR card
  */
-int nastranCard_cbar(FILE *fp, int *eid, int *pid, int g[2], 
-                     double x[3], int *g0, int *pa, int *pb,
-                     double wa[3], double wb[3],
+int nastranCard_cbar(FILE *fp, const int *eid, const int *pid, const int g[2],
+                     const double x[3], const int *g0, const int *pa, const int *pb,
+                     const double wa[3], const double wb[3],
                      feaFileTypeEnum formatType) {
     
     int status;
@@ -391,8 +391,8 @@ int nastranCard_cbar(FILE *fp, int *eid, int *pid, int g[2],
 /*
  * Write CDAMP2 card
  */
-int nastranCard_cdamp2(FILE *fp, int *eid, double *b, int *g1, int *g2,
-                       int *c1, int *c2, feaFileTypeEnum formatType) {
+int nastranCard_cdamp2(FILE *fp, const int *eid, const double *b, const int *g1, const int *g2,
+                       const int *c1, const int *c2, feaFileTypeEnum formatType) {
     
     int status;
 
@@ -441,8 +441,8 @@ int nastranCard_cdamp2(FILE *fp, int *eid, double *b, int *g1, int *g2,
 /*
  * Write CELAS2 card
  */
-int nastranCard_celas2(FILE *fp, int *eid, double *k, int *g1, int *g2,
-                       int *c1, int *c2, double *ge, double *s,
+int nastranCard_celas2(FILE *fp, const int *eid, const double *k, const int *g1, const int *g2,
+                       const int *c1, const int *c2, const double *ge, const double *s,
                        feaFileTypeEnum formatType) {
     
     int status;
@@ -500,8 +500,8 @@ int nastranCard_celas2(FILE *fp, int *eid, double *k, int *g1, int *g2,
 /*
  * Write CMASS2 card
  */
-int nastranCard_cmass2(FILE *fp, int *eid, double *m, int *g1, int *g2,
-                       int *c1, int *c2, feaFileTypeEnum formatType) {
+int nastranCard_cmass2(FILE *fp, const int *eid, const double *m, const int *g1, const int *g2,
+                       const int *c1, const int *c2, feaFileTypeEnum formatType) {
     
     int status;
 
@@ -550,8 +550,8 @@ int nastranCard_cmass2(FILE *fp, int *eid, double *m, int *g1, int *g2,
 /*
  * Write CONM2 card
  */
-int nastranCard_conm2(FILE *fp, int *eid, int *g, int *cid, double *m,
-                      double x[3], double i[6],
+int nastranCard_conm2(FILE *fp, const int *eid, const int *g, const int *cid, const double *m,
+                      const double x[3], const double i[6],
                       feaFileTypeEnum formatType) {
     
     int status;
@@ -611,9 +611,9 @@ int nastranCard_conm2(FILE *fp, int *eid, int *g, int *cid, double *m,
 /*
  * Write CORD2* card
  */
-static int _cord2Card(const char *cardname, FILE *fp, int *cid, int *rid, 
-                          double a[3], double b[3], double c[3],
-                          feaFileTypeEnum formatType) {
+static int _cord2Card(const char *cardname, FILE *fp, const int *cid, const int *rid,
+                      double a[3], double b[3], double c[3],
+                      feaFileTypeEnum formatType) {
     
     int status;
 
@@ -658,7 +658,7 @@ static int _cord2Card(const char *cardname, FILE *fp, int *cid, int *rid,
 /*
  * Write CORD2C card
  */
-int nastranCard_cord2c(FILE *fp, int *cid, int *rid, 
+int nastranCard_cord2c(FILE *fp, const int *cid, const int *rid,
                        double a[3], double b[3], double c[3],
                        feaFileTypeEnum formatType) {
     return _cord2Card("CORD2C", fp, cid, rid, a, b, c, formatType);
@@ -667,7 +667,7 @@ int nastranCard_cord2c(FILE *fp, int *cid, int *rid,
 /*
  * Write CORD2R card
  */
-int nastranCard_cord2r(FILE *fp, int *cid, int *rid, 
+int nastranCard_cord2r(FILE *fp, const int *cid, const int *rid,
                        double a[3], double b[3], double c[3],
                        feaFileTypeEnum formatType) {
     return _cord2Card("CORD2R", fp, cid, rid, a, b, c, formatType);
@@ -676,7 +676,7 @@ int nastranCard_cord2r(FILE *fp, int *cid, int *rid,
 /*
  * Write CORD2S card
  */
-int nastranCard_cord2s(FILE *fp, int *cid, int *rid, 
+int nastranCard_cord2s(FILE *fp, const int *cid, const int *rid,
                        double a[3], double b[3], double c[3],
                        feaFileTypeEnum formatType) {
     return _cord2Card("CORD2S", fp, cid, rid, a, b, c, formatType);
@@ -981,7 +981,7 @@ int nastranCard_ctria6(FILE *fp, int *eid, int *pid, int g[6],
 /* 
  * Write DCONADD card
  */
-int nastranCard_dconadd(FILE *fp, int *dcid, int numDC, int *dc,
+int nastranCard_dconadd(FILE *fp, const int *dcid, int numDC, const int *dc,
                         feaFileTypeEnum formatType) {
     
     int status;
@@ -1014,8 +1014,8 @@ int nastranCard_dconadd(FILE *fp, int *dcid, int numDC, int *dc,
 /*
  * Write DCONSTR card
  */
-int nastranCard_dconstr(FILE *fp, int *dcid, int *rid,
-                        double *lallow, double *uallow,
+int nastranCard_dconstr(FILE *fp, const int *dcid, const int *rid,
+                        const double *lallow, const double *uallow,
                         feaFileTypeEnum formatType) {
     
     int status;
@@ -1057,7 +1057,7 @@ int nastranCard_dconstr(FILE *fp, int *dcid, int *rid,
 /*
  * Write DDVAL card
  */
-int nastranCard_ddval(FILE *fp, int *id, int numDV, double *dval, 
+int nastranCard_ddval(FILE *fp, const int *id, int numDV, const double *dval,
                       feaFileTypeEnum formatType) {
     
     int status;
@@ -1142,7 +1142,7 @@ static void _freeFields(int numFields, char **fields) {
 /*
  * Write DEQATN card
  */
-int nastranCard_deqatn(FILE *fp, int *eqid, int numEquation,
+int nastranCard_deqatn(FILE *fp, const int *eqid, int numEquation,
                        char **equation) {
 
     
@@ -1194,8 +1194,8 @@ int nastranCard_deqatn(FILE *fp, int *eqid, int numEquation,
 /*
  * Write DESVAR card
  */
-int nastranCard_desvar(FILE *fp, int *id, char *label, double *xinit, 
-                       double *xlb, double *xub, double *delxv, int *ddval,
+int nastranCard_desvar(FILE *fp, const int *id, const char *label, const double *xinit,
+                       const double *xlb, const double *xub, const double *delxv, const int *ddval,
                        feaFileTypeEnum formatType) {
     
     int status;
@@ -1250,8 +1250,8 @@ int nastranCard_desvar(FILE *fp, int *id, char *label, double *xinit,
 /*
  * Write DLINK card
  */
-int nastranCard_dlink(FILE *fp, int *id, int *ddvid, double *c0, 
-                      double *cmult, int numDV, int *idv, double *c,
+int nastranCard_dlink(FILE *fp, const int *id, const int *ddvid, const double *c0,
+                      const double *cmult, const int numDV, const int *idv, const double *c,
                       feaFileTypeEnum formatType) {
     
     int i, status;
@@ -1451,10 +1451,10 @@ cleanup:
 /*
  * Write DRESP1 card
  */
-int nastranCard_dresp1(FILE *fp, int *id, char *label, char *rtype,
-                       char *ptype, int *region, int attaType, void *atta,    
-                       int attbType, void *attb, 
-                       int attsType, int numAtts, void *atts,
+int nastranCard_dresp1(FILE *fp, const int *id, const char *label, const char *rtype,
+                       const char *ptype, const int *region, int attaType, const void *atta,
+                       int attbType, const void *attb,
+                       int attsType, int numAtts, const void *atts,
                        feaFileTypeEnum formatType) {
     
     int status;
@@ -1744,9 +1744,9 @@ int nastranCard_dtable(FILE *fp, int numVal, char **labl, double *valu,
 /*
  * Write DVCREL1 card
  */
-int nastranCard_dvcrel1(FILE *fp, int *id, char *type, int *eid,
-                        char *cpname, double *cpmin, double *cpmax,
-                        double *c0, int numDV, int *dvid, double *coeff,
+int nastranCard_dvcrel1(FILE *fp, const int *id, const char *type, const int *eid,
+                        const char *cpname, const double *cpmin, const double *cpmax,
+                        const double *c0, int numDV, const int *dvid, const double *coeff,
                         feaFileTypeEnum formatType) {
     
     int i, status;
@@ -1813,9 +1813,9 @@ int nastranCard_dvcrel1(FILE *fp, int *id, char *type, int *eid,
 /*
  * Write DVMREL1 card
  */
-int nastranCard_dvmrel1(FILE *fp, int *id, char *type, int *mid, 
-                        char *mpname, double *mpmin, double *mpmax, 
-                        double *c0, int numDV, int *dvid, double *coeff,
+int nastranCard_dvmrel1(FILE *fp, const int *id, const char *type, const int *mid,
+                        const char *mpname, const double *mpmin, const double *mpmax,
+                        const double *c0, int numDV, const int *dvid, const double *coeff,
                         feaFileTypeEnum formatType) {
     
     int i, status;
@@ -1882,10 +1882,10 @@ int nastranCard_dvmrel1(FILE *fp, int *id, char *type, int *mid,
 /*
  * Write DVPREL1 card
  */
-int nastranCard_dvprel1(FILE *fp, int *id, char *type, int *pid,
-                        int *fid, char *pname, double *pmin, 
-                        double *pmax, double *c0,
-                        int numDV, int *dvid, double *coef,
+int nastranCard_dvprel1(FILE *fp, const int *id, const char *type, const int *pid,
+                        const int *fid, const char *pname, const double *pmin,
+                        const double *pmax, const double *c0,
+                        int numDV, const int *dvid, const double *coef,
                         feaFileTypeEnum formatType) {
     
     int i, status;
@@ -1956,9 +1956,9 @@ int nastranCard_dvprel1(FILE *fp, int *id, char *type, int *pid,
 /*
  * Write EIGR card
  */
-int nastranCard_eigr(FILE *fp, int *sid, char *method, double *f1,
-                     double *f2, int *ne, int *nd, char *norm,
-                     int *g, int *c, feaFileTypeEnum formatType) {
+int nastranCard_eigr(FILE *fp, const int *sid, const char *method, const double *f1,
+                     const double *f2, const int *ne, const int *nd, const char *norm,
+                     const int *g, const int *c, feaFileTypeEnum formatType) {
     
     int status;
 
@@ -2022,8 +2022,8 @@ int nastranCard_eigr(FILE *fp, int *sid, char *method, double *f1,
 /*
  * Write EIGRL card
  */
-int nastranCard_eigrl(FILE *fp, int *sid, double *v1, double *v2,
-                      int *nd, int *msglvl, int *maxset,
+int nastranCard_eigrl(FILE *fp, const int *sid, const double *v1, const double *v2,
+                      const int *nd, int *msglvl, int *maxset,
                       double *shfscl, char *norm,
                       feaFileTypeEnum formatType) {
     
@@ -2082,7 +2082,7 @@ int nastranCard_eigrl(FILE *fp, int *sid, double *v1, double *v2,
 /*
  * Write FLFACT card
  */
-int nastranCard_flfact(FILE *fp, int *sid, int numF, double *f,
+int nastranCard_flfact(FILE *fp, const int *sid, int numF, const double *f,
                        feaFileTypeEnum formatType) {
     
     int status;
@@ -2117,9 +2117,9 @@ int nastranCard_flfact(FILE *fp, int *sid, int numF, double *f,
 /*
  * Write FLUTTER card
  */
-int nastranCard_flutter(FILE *fp, int *sid, char *method, int *dens,
-                        int *mach, int *rfreq, char *imeth, 
-                        int *nvalue, double *eps, 
+int nastranCard_flutter(FILE *fp, const int *sid, const char *method, const int *dens,
+                        const int *mach, const int *rfreq, const char *imeth,
+                        const int *nvalue, const double *eps,
                         feaFileTypeEnum formatType) {
     
     int status;
@@ -2177,8 +2177,8 @@ int nastranCard_flutter(FILE *fp, int *sid, char *method, int *dens,
 /*
  * Write FORCE card
  */
-int nastranCard_force(FILE *fp, int *sid, int *g, int *cid,
-                      double *f, double n[3], 
+int nastranCard_force(FILE *fp, const int *sid, const int *g, const int *cid,
+                      const double *f, const double n[3],
                       feaFileTypeEnum formatType) {
     
     int status;
@@ -2224,8 +2224,8 @@ int nastranCard_force(FILE *fp, int *sid, int *g, int *cid,
 /*
  * Write GRAV card
  */
-int nastranCard_grav(FILE *fp, int *sid, int *cid,
-                     double *g, double n[3],
+int nastranCard_grav(FILE *fp, const int *sid, const int *cid,
+                     const double *g, const double n[3],
                      feaFileTypeEnum formatType) {
     
     int status;
@@ -2312,10 +2312,10 @@ int nastranCard_load(FILE *fp, int *sid, double *s, int numL,
 /*
  * Write MAT1 card
  */
-int nastranCard_mat1(FILE *fp, int *mid, double *e, double* g,
-                     double *nu, double *rho, double *a, double *tref,
-                     double *ge, double *st, double *sc, double *ss,
-                     int *mcsid, feaFileTypeEnum formatType) {
+int nastranCard_mat1(FILE *fp, const int *mid, const double *e, const double* g,
+                     const double *nu, const double *rho, const double *a, const double *tref,
+                     const double *ge, const double *st, const double *sc, const double *ss,
+                     const int *mcsid, feaFileTypeEnum formatType) {
     
     int status;
 
@@ -2388,12 +2388,12 @@ int nastranCard_mat1(FILE *fp, int *mid, double *e, double* g,
 /*
  * Write MAT8 card
  */
-int nastranCard_mat8(FILE *fp, int *mid, double *e1, double *e2,
-                     double *nu12, double *g12, double *g1z, 
-                     double *g2z, double *rho, double *a1, double *a2,
-                     double *tref, double *xt, double *xc, 
-                     double *yt, double *yc, double *s, double *ge,
-                     double *f12, double *strn,
+int nastranCard_mat8(FILE *fp, const int *mid, const double *e1, const double *e2,
+                     const double *nu12, const double *g12, const double *g1z,
+                     const double *g2z, const double *rho, const double *a1, const double *a2,
+                     const double *tref, const double *xt, const double *xc,
+                     const double *yt, const double *yc, const double *s, const double *ge,
+                     const double *f12, const double *strn,
                      feaFileTypeEnum formatType) {
     
     int status;
@@ -2533,10 +2533,10 @@ int nastranCard_mkaero1(FILE *fp, int numM, double *m, int numK,
 /*
  * Write MOMENT card
  */
-int nastranCard_moment(FILE *fp, int *sid,
-           /*@unused@*/int *g,
-                       int *cid, double *m,
-                       double n[3], feaFileTypeEnum formatType) {
+int nastranCard_moment(FILE *fp, const int *sid,
+           /*@unused@*/const int *g,
+                       const int *cid, const double *m,
+                       const double n[3], feaFileTypeEnum formatType) {
     
     int status;
 
@@ -2577,7 +2577,7 @@ int nastranCard_moment(FILE *fp, int *sid,
 /*
  * Write PAERO1 card
  */
-int nastranCard_paero1(FILE *fp, int *pid, int numB, int *b,
+int nastranCard_paero1(FILE *fp, const int *pid, int numB, const int *b,
                        feaFileTypeEnum formatType) {
     
     int status;
@@ -2611,10 +2611,10 @@ int nastranCard_paero1(FILE *fp, int *pid, int numB, int *b,
 /*
  * Write PBAR card
  */
-int nastranCard_pbar(FILE *fp, int *pid, int *mid, double *a,
-                     double *i1, double *i2, double *i12, double *j,
-                     double *nsm, double c[2], double d[2],
-                     double e[2], double f[2], double *k1, double *k2, 
+int nastranCard_pbar(FILE *fp, const int *pid, const int *mid, const double *a,
+                     const double *i1, const double *i2, const double *i12, const double *j,
+                     const double *nsm, const double c[2], const double d[2],
+                     const double e[2], const double f[2], const double *k1, double *k2,
                      feaFileTypeEnum formatType) {
     
     int status;
@@ -2719,8 +2719,8 @@ int nastranCard_pbar(FILE *fp, int *pid, int *mid, double *a,
 /*
  * Write PBARL card
  */
-int nastranCard_pbarl(FILE *fp, int *pid, int *mid, char *type, 
-                      double *f0, int numDim, double *dim, double *nsm,
+int nastranCard_pbarl(FILE *fp, const int *pid, const int *mid, const char *type,
+                      const double *f0, const int numDim, const double *dim, const double *nsm,
                       feaFileTypeEnum formatType) {
     
     int status;
@@ -2776,10 +2776,10 @@ int nastranCard_pbarl(FILE *fp, int *pid, int *mid, char *type,
 /*
  * Write PCOMP card
  */
-int nastranCard_pcomp(FILE *fp, int *pid, double *z0, double* nsm,
-                      double *sb, char *ft, double *tref, double *ge,
-                      char *lam, int numLayers, int *mid, double *t,
-                      double *theta, char **sout, 
+int nastranCard_pcomp(FILE *fp, const int *pid, const double *z0, const double* nsm,
+                      const double *sb, const char *ft, const double *tref, const double *ge,
+                      const char *lam, int numLayers, const int *mid, const double *t,
+                      const double *theta, const char **sout,
                       feaFileTypeEnum formatType) {
     
     int i, status;
@@ -2869,8 +2869,8 @@ int nastranCard_pcomp(FILE *fp, int *pid, double *z0, double* nsm,
 /*
  * Write PLOAD2 card
  */
-int nastranCard_pload2(FILE *fp, int *sid, double *p, int numE,
-                       int *eid, feaFileTypeEnum formatType) {
+int nastranCard_pload2(FILE *fp, const int *sid, const double *p, int numE,
+                       const int *eid, feaFileTypeEnum formatType) {
     
     int status;
 
@@ -2907,8 +2907,8 @@ int nastranCard_pload2(FILE *fp, int *sid, double *p, int numE,
 /*
  * Write PLOAD4 card
  */
-int nastranCard_pload4(FILE *fp, int *sid, int *eid, double p[4],
-                       int *g1, int *g3, int *cid, double n[3],
+int nastranCard_pload4(FILE *fp, const int *sid, const int *eid, const double p[4],
+                       const int *g1, const int *g3, const int *cid, const double n[3],
                        feaFileTypeEnum formatType) {
     
     int status;
@@ -2964,8 +2964,8 @@ int nastranCard_pload4(FILE *fp, int *sid, int *eid, double p[4],
 /*
  * Write PROD card
  */
-int nastranCard_prod(FILE *fp, int *pid, int *mid, double *a, double *j,
-                     double *c, double *nsm, 
+int nastranCard_prod(FILE *fp, const int *pid, const int *mid, const double *a, const double *j,
+                     const double *c, const double *nsm,
                      feaFileTypeEnum formatType) {
     
     int status;
@@ -3015,8 +3015,8 @@ int nastranCard_prod(FILE *fp, int *pid, int *mid, double *a, double *j,
 /*
  * Write PSHEAR card
  */
-int nastranCard_pshear(FILE *fp, int *pid, int *mid, double *t, 
-                       double *nsm, double *f1, double *f2,
+int nastranCard_pshear(FILE *fp, const int *pid, const int *mid, const double *t,
+                       const double *nsm, const double *f1, const double *f2,
                        feaFileTypeEnum formatType) {
     
     int status;
@@ -3066,10 +3066,10 @@ int nastranCard_pshear(FILE *fp, int *pid, int *mid, double *t,
 /*
  * Write PSHELL card
  */
-int nastranCard_pshell(FILE *fp, int *pid, int *mid1, double *t,
-                       int *mid2, double *i12t3, int *mid3, 
-                       double *tst, double *nsm, double *z1, 
-                       double *z2, int *mid4, 
+int nastranCard_pshell(FILE *fp, const int *pid, const int *mid1, const double *t,
+                       const int *mid2, const double *i12t3, const int *mid3,
+                       const double *tst, const double *nsm, const double *z1,
+                       const double *z2, const int *mid4,
                        feaFileTypeEnum formatType) {
     
     int status;
@@ -3139,8 +3139,8 @@ int nastranCard_pshell(FILE *fp, int *pid, int *mid1, double *t,
 /*
  * Write PSOLID card
  */
-int nastranCard_psolid(FILE *fp, int *pid, int *mid, int *cordm,
-                       char *in, char *stress, char *isop, char *fctn, 
+int nastranCard_psolid(FILE *fp, const int *pid, const int *mid, const int *cordm,
+                       const char *in, const char *stress, const char *isop, const char *fctn,
                        feaFileTypeEnum formatType) {
     
     int status;
@@ -3194,8 +3194,8 @@ int nastranCard_psolid(FILE *fp, int *pid, int *mid, int *cordm,
 /*
  * Write RBE2 card
  */
-int nastranCard_rbe2(FILE *fp, int *eid, int *gn, int *cm, 
-                     int numGM, int *gm, feaFileTypeEnum formatType) {   
+int nastranCard_rbe2(FILE *fp, const int *eid, const int *gn, const int *cm,
+                     int numGM, const int *gm, feaFileTypeEnum formatType) {
     int status;
 
     cardStruct card;
@@ -3235,9 +3235,9 @@ int nastranCard_rbe2(FILE *fp, int *eid, int *gn, int *cm,
 /*
  * Write RBE3 card
  */
-int nastranCard_rbe3(FILE *fp, int *eid, int *refgrid, int *refc,
-                     int numG, double *wt, int *c, int *g,
-                     int numGM, int *gm, int *cm,
+int nastranCard_rbe3(FILE *fp, const int *eid, const int *refgrid, const int *refc,
+                     int numG, const double *wt, const int *c, const int *g,
+                     int numGM, const int *gm, const int *cm,
                      feaFileTypeEnum formatType) {
     
     int i, status;
@@ -3318,8 +3318,8 @@ int nastranCard_rbe3(FILE *fp, int *eid, int *refgrid, int *refc,
 /*
  * Write RFORCE card
  */
-int nastranCard_rforce(FILE *fp, int *sid, int *g, int *cid, double *a,
-                       double r[3], int *method, double *racc,
+int nastranCard_rforce(FILE *fp, const int *sid, const int *g, const int *cid, const double *a,
+                       const double r[3], const int *method, const double *racc,
                        feaFileTypeEnum formatType) {
     
     int status;
@@ -3373,7 +3373,7 @@ int nastranCard_rforce(FILE *fp, int *sid, int *g, int *cid, double *a,
 /*
  * Write SET1 card
  */
-int nastranCard_set1(FILE *fp, int *sid, int numG, int *g,
+int nastranCard_set1(FILE *fp, const int *sid, int numG, const int *g,
                      feaFileTypeEnum formatType) {
     
     int status;
@@ -3407,8 +3407,8 @@ int nastranCard_set1(FILE *fp, int *sid, int numG, int *g,
 /*
  * Write SPC card
  */
-int nastranCard_spc(FILE *fp, int *sid, int numSPC, int *g, int *c,
-                    double *d, feaFileTypeEnum formatType) {
+int nastranCard_spc(FILE *fp, const int *sid, int numSPC, const int *g, const int *c,
+                    const double *d, feaFileTypeEnum formatType) {
     
     int i, status;
 
@@ -3450,7 +3450,7 @@ int nastranCard_spc(FILE *fp, int *sid, int numSPC, int *g, int *c,
 /*
  * Write SPC1 card
  */
-int nastranCard_spc1(FILE *fp, int *sid, int *c, int numSPC, int *g,
+int nastranCard_spc1(FILE *fp, const int *sid, const int *c, int numSPC, const int *g,
                      feaFileTypeEnum formatType) {
     
     int status;
@@ -3522,8 +3522,8 @@ int nastranCard_spcadd(FILE *fp, int *sid, int numSPC, int *s,
 /*
  * Write SPLINE1 card
  */
-int nastranCard_spline1(FILE *fp, int *eid, int *caero, int *box1, 
-                        int *box2, int *setg, double *dz,
+int nastranCard_spline1(FILE *fp, const int *eid, const int *caero, const int *box1,
+                        const int *box2, const int *setg, const double *dz,
                         feaFileTypeEnum formatType) {
     
     int status;
@@ -3573,7 +3573,7 @@ int nastranCard_spline1(FILE *fp, int *eid, int *caero, int *box1,
 /*
  * Write SUPORT card
  */
-int nastranCard_suport(FILE *fp, int numID, int *id, int *c,
+int nastranCard_suport(FILE *fp, int numID, const int *id, const int *c,
                        feaFileTypeEnum formatType){
     
     int i, status;
@@ -3609,7 +3609,7 @@ int nastranCard_suport(FILE *fp, int numID, int *id, int *c,
 /*
  * Write SUPORT1 card
  */
-int nastranCard_suport1(FILE *fp, int *sid, int numID, int *id, int *c,
+int nastranCard_suport1(FILE *fp, const int *sid, int numID, const int *id, const int *c,
                        feaFileTypeEnum formatType){
     
     int i, status;
@@ -3648,7 +3648,7 @@ int nastranCard_suport1(FILE *fp, int *sid, int numID, int *id, int *c,
 /*
  * Write TEMP card
  */
-int nastranCard_temp(FILE *fp, int *sid, int numG, int *g, double *t,
+int nastranCard_temp(FILE *fp, const int *sid, int numG, const int *g, const double *t,
                      feaFileTypeEnum formatType) {
     
     int i, status;
@@ -3688,7 +3688,7 @@ int nastranCard_temp(FILE *fp, int *sid, int numG, int *g, double *t,
 /*
  * Write TEMPD card
  */
-int nastranCard_tempd(FILE *fp, int numSID, int *sid, double *t,
+int nastranCard_tempd(FILE *fp, int numSID, const int *sid, const double *t,
                       feaFileTypeEnum formatType) {
     
     int i, status;
@@ -3724,8 +3724,8 @@ int nastranCard_tempd(FILE *fp, int numSID, int *sid, double *t,
 /*
  * Write TRIM card
  */
-int nastranCard_trim(FILE *fp, int *id, double *mach, double *q,
-                     int numVar, char **label, double *ux,
+int nastranCard_trim(FILE *fp, const int *id, const double *mach, const double *q,
+                     int numVar, char **label, const double *ux,
                      feaFileTypeEnum formatType) {
     
     int i, status;

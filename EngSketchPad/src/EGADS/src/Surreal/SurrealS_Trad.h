@@ -1,5 +1,5 @@
 // Modified from Solution Adaptive Numerical Simulator (SANS)
-// Copyright 2013-2021, Massachusetts Institute of Technology
+// Copyright 2013-2022, Massachusetts Institute of Technology
 // Licensed under The GNU Lesser General Public License, version 2.1
 // See http://www.opensource.org/licenses/lgpl-2.1.php
 
@@ -9,6 +9,7 @@
 //  overloaded derivative operator
 //  ref: derivify.h (Google it)
 
+#define _USE_MATH_DEFINES // needed to get M_PI
 #include <cmath>
 #include <iostream>
 #include <cassert>
@@ -125,6 +126,10 @@ public:
   template<int M, class R> friend SurrealS<M,R> log( const SurrealS<M,R>& );
   template<int M, class R> friend SurrealS<M,R> log10( const SurrealS<M,R>& );
   template<int M, class R> friend SurrealS<M,R> log1p( const SurrealS<M,R>& );
+
+  // error-functions <cmath>
+  template<int M, class R> friend SurrealS<M,R> erf( const SurrealS<M,R>& );
+  template<int M, class R> friend SurrealS<M,R> erfc( const SurrealS<M,R>& );
 
   // power functions <cmath>
   template<int M, class R> friend SurrealS<M,R> pow( const SurrealS<M,R>&, const SurrealS<M,R>& );
@@ -665,6 +670,11 @@ SURREALS_FUNC1( expm1, expm1(z.v_), exp(z.v_) )
 SURREALS_FUNC1( log, log(z.v_), double(1)/z.v_ )
 SURREALS_FUNC1( log10, log10(z.v_), double(1)/(z.v_*log(10.)) )
 SURREALS_FUNC1( log1p, log1p(z.v_), double(1)/( 1 + z.v_ ) )
+
+// error-functions <cmath>
+
+SURREALS_FUNC1( erf , erf(z.v_) ,  double(2)/sqrt(M_PI)*exp(-(z.v_*z.v_)) )
+SURREALS_FUNC1( erfc, erfc(z.v_), -double(2)/sqrt(M_PI)*exp(-(z.v_*z.v_)) )
 
 // power functions <cmath>
 

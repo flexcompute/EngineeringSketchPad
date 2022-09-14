@@ -1,0 +1,45 @@
+# collab1
+# John Dannenhoffer: basic wing OML with hardwired dimesnions
+
+# dimensions in mm based upon printed 3-view
+#DESPMTR   wing:area
+#DESPMTR   wing:aspect
+#DESPMTR   wing:ybreak
+#DESPMTR   wing:taper_ob
+#DESPMTR   wing:sweep
+#DESPMTR   wing:dihedral
+
+#DESPMTR   winglet:area
+#DESPMTR   winglet:aspect
+#DESPMTR   winglet:taper
+#DESPMTR   winglet:sweep
+#DESPMTR   winglet:dihedral
+
+UDPRIM    naca      thickness 0.12   camber 0.06
+SCALE     31.5
+ROTATEX   90
+
+UDPRIM    naca      thickness 0.12   camber 0.04
+SCALE     31.5-24.0/62.5*43.0
+ROTATEX   90
+TRANSLATE 24.0/62.5*43.0   24.0   24.0/62.5*8.0
+
+UDPRIM    naca      thickness 0.04   camber 0.04
+SCALE     48.0-43.0
+ROTATEX   90
+TRANSLATE 43.0   62.5   8.0
+
+UDPRIM    naca      thickness 0.04   camber 0.00
+SCALE     52.0-50.0
+ROTATEX   90
+TRANSLATE 50.0   65.0   9.0
+
+RULE
+
+# scale to ft
+SCALE     197/2/65
+
+END
+
+
+

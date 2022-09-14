@@ -9,7 +9,7 @@
  */
 
 /*
- * Copyright (C) 2012/2021  John F. Dannenhoffer, III (Syracuse University)
+ * Copyright (C) 2012/2022  John F. Dannenhoffer, III (Syracuse University)
  *
  * This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
@@ -51,21 +51,18 @@
     #define WIN32_LEAN_AND_MEAN
     #include <windows.h>
     #include <winsock2.h>
+    #define snprintf     _snprintf
+    #define SLEEP(msec)  Sleep(msec)
+    #define SLASH '\\'
+#else
+    #include <unistd.h>
+    #define SLEEP(msec)  usleep(1000*msec)
+    #define SLASH '/'
 #endif
 
 #define CINT    const int
 #define CDOUBLE const double
 #define CCHAR   const char
-
-#ifdef WIN32
-    #define snprintf _snprintf
-#endif
-
-#ifdef WIN32
-    #define  SLASH '\\'
-#else
-    #define  SLASH '/'
-#endif
 
 #define STRNCPY(A, B, LEN) strncpy(A, B, LEN); A[LEN-1] = '\0';
 
@@ -372,6 +369,11 @@ static int        solsvd(double A[], double b[], int mrow, int ncol, double W[],
 static int        tridiag(int n, double a[], double b[], double c[], double d[], double x[]);
 static int        writeSensFile(modl_T *modl, int ibody, char filename[]);
 
+//#define TRACE_BROADCAST(BUFFER)  if (strlen(BUFFER) > 0) printf("<<< server2browser: %.80s\n", BUFFER)
+#ifndef TRACE_BROADCAST
+   #define TRACE_BROADCAST(BUFFER)
+#endif
+
 
 /***********************************************************************/
 /*                                                                     */
@@ -656,7 +658,7 @@ main(int       argc,                    /* (in)  number of arguments */
     SPRINT0(1, "*                    Program serveCSM                    *");
     SPRINT2(1, "*                     version %2d.%02d                      *", imajor, iminor);
     SPRINT0(1, "*                                                        *");
-    SPRINT0(1, "*        written by John Dannenhoffer, 2010/2021         *");
+    SPRINT0(1, "*        written by John Dannenhoffer, 2010/2022         *");
     SPRINT0(1, "*                                                        *");
     SPRINT0(1, "**********************************************************\n");
 
@@ -1072,13 +1074,22 @@ main(int       argc,                    /* (in)  number of arguments */
                 goto cleanup;
             }
 
-            /* rebuild to propagate the velocities */
+            /* rebuild to compute the velocities */
             nbody = 0;
             status = ocsmBuild(MODL, 0, &builtTo, &nbody, NULL);
             if (status != SUCCESS) {
                 SPRINT1(0, "ERROR:: ocsmBuild -> status=%d\n", status);
                 status = -999;
                 goto cleanup;
+            }
+
+            if (outLevel >= 1) {
+                status = ocsmPrintProfile(MODL, "");
+                if (status != SUCCESS) {
+                    SPRINT1(0, "ERROR:: ocsmPrintProfile -> status=%d\n", status);
+                    status = -999;
+                    goto cleanup;
+                }
             }
 
             /* write the .tess file and exit */
@@ -1350,7 +1361,7 @@ main(int       argc,                    /* (in)  number of arguments */
 
             /* stay alive a long as we have a client */
             while (wv_statusServer(0)) {
-                usleep(500000);
+                SLEEP(500);
 
                 /* start the browser if the first time through this loop */
                 if (status == SUCCESS) {
@@ -1500,10 +1511,6 @@ main(int       argc,                    /* (in)  number of arguments */
                 fprintf(vrfy_fp, "   assert  %8d      @itype       0  1\n", 3);
             }
 
-            fprintf(vrfy_fp, "   assert  %8d      @nnode       0  1\n", MODL->body[ibody].nnode);
-            fprintf(vrfy_fp, "   assert  %8d      @nedge       0  1\n", MODL->body[ibody].nedge);
-            fprintf(vrfy_fp, "   assert  %8d      @nface       0  1\n", MODL->body[ibody].nface);
-
             status = EG_getBoundingBox(MODL->body[ibody].ebody, bbox);
             if (status != SUCCESS) {
                 SPRINT2(0, "ERROR:: EG_getBoundingBox(%d) -> status=%d\n", ibody, status);
@@ -1563,6 +1570,11 @@ main(int       argc,                    /* (in)  number of arguments */
             } else {
                 fprintf(vrfy_fp, "   assert %15.7e  @zcg    %15.7e  1\n", data[4], 0.001*(bbox[5]-bbox[2]));
             }
+
+            fprintf(vrfy_fp, "   assert  %8d      @nnode       0  1\n", MODL->body[ibody].nnode);
+            fprintf(vrfy_fp, "   assert  %8d      @nedge       0  1\n", MODL->body[ibody].nedge);
+            fprintf(vrfy_fp, "   assert  %8d      @nface       0  1\n", MODL->body[ibody].nface);
+
             fprintf(vrfy_fp, "\n");
         }
 
@@ -2157,15 +2169,14 @@ browserMessage(
     (void) processBrowserToServer(text);
 
     /* send the response */
-    SPRINT1(2, "\n<<< server2browser: %s", response);
-//    wv_sendText(wsi, response);
+    TRACE_BROADCAST( response);
     wv_broadcastText(response);
 
     /* if the sensitivities were just computed, send a message to
        inform the user about the lowest and highest sensitivity values */
     if (sensPost > 0) {
         snprintf(message2, MAX_LINE_LEN-1, "Sensitivities are in the range between %f and %f", sensLo, sensHi);
-//        wv_sendText(wsi, message2);
+        TRACE_BROADCAST( message2);
         wv_broadcastText(message2);
 
         sensPost = 0;
@@ -2184,7 +2195,7 @@ browserMessage(
         SPLINT_CHECK_FOR_NULL(filelist);
 
         snprintf(message2, MAX_LINE_LEN-1, "getFilenames|%s", filelist);
-        SPRINT1(2, "\n<<< server2browser: getFilenames|%s", filelist);
+        TRACE_BROADCAST( message2);
         wv_broadcastText(message2);
 
         updatedFilelist = 0;
@@ -2192,7 +2203,7 @@ browserMessage(
 
     /* send the scene graph meta data if it has not already been sent */
     if (STRLEN(sgMetaData) > 0) {
-        SPRINT1(2, "\n<<< server2browser: sgData: %s", sgMetaData);
+        TRACE_BROADCAST( sgMetaData);
         wv_broadcastText(sgMetaData);
 
         /* nullify meta data so that it does not get sent again */
@@ -2202,7 +2213,7 @@ browserMessage(
     }
 
     if (STRLEN(sgFocusData) > 0) {
-        SPRINT1(2, "\n<<< server2browser: sgFocus: %s", sgFocusData);
+        TRACE_BROADCAST( sgFocusData);
         wv_broadcastText(sgFocusData);
 
         sendKeyData    = 1;
@@ -2216,33 +2227,39 @@ browserMessage(
             } else {
                 status = wv_setKey(cntxt, 256, color_map, lims[0], lims[1], "Tess: d(norm)/d(***)");
             }
-            SPRINT0(2, "\n<<< server2browser: setWvKey|on|");
+            TRACE_BROADCAST( "setWvKey|on|");
             wv_broadcastText("setWvKey|on|");
         } else if (haveDots == 1) {
             status = wv_setKey(cntxt, 256, color_map, lims[0], lims[1], dotName         );
-            SPRINT0(2, "\n<<< server2browser: setWvKey|on|");
+            TRACE_BROADCAST( "setWvKey|on|");
             wv_broadcastText("setWvKey|on|");
         } else if (plotType == 1) {
             status = wv_setKey(cntxt, 256, color_map, lims[0], lims[1], "Normalized U");
+            TRACE_BROADCAST( "setWvKey|on|");
             wv_broadcastText("setWvKey|on|");
         } else if (plotType == 2) {
             status = wv_setKey(cntxt, 256, color_map, lims[0], lims[1], "Normalized V");
+            TRACE_BROADCAST( "setWvKey|on|");
             wv_broadcastText("setWvKey|on|");
         } else if (plotType == 3) {
             status = wv_setKey(cntxt, 256, color_map, lims[0], lims[1], "Minimum Curv");
+            TRACE_BROADCAST( "setWvKey|on|");
             wv_broadcastText("setWvKey|on|");
         } else if (plotType == 4) {
             status = wv_setKey(cntxt, 256, color_map, lims[0], lims[1], "Maximum Curv");
+            TRACE_BROADCAST( "setWvKey|on|");
             wv_broadcastText("setWvKey|on|");
         } else if (plotType == 5) {
             status = wv_setKey(cntxt, 256, color_map, lims[0], lims[1], "Gaussian Curv");
+            TRACE_BROADCAST( "setWvKey|on|");
             wv_broadcastText("setWvKey|on|");
         } else if (plotType == 6) {
             status = wv_setKey(cntxt, 256, color_map, lims[0], lims[1], "normals");
+            TRACE_BROADCAST( "setWvKey|on|");
             wv_broadcastText("setWvKey|on|");
         } else {
             status = wv_setKey(cntxt,   0, NULL,      lims[0], lims[1], NULL            );
-            SPRINT0(2, "\n<<< server2browser: setWvKey|off|");
+            TRACE_BROADCAST( "setWvKey|off|");
             wv_broadcastText("setWvKey|off|");
         }
         if (status != SUCCESS) {
@@ -2255,7 +2272,7 @@ browserMessage(
         snprintf(response, max_resp_len, "%s|%s|",
                  MODL->sigMesg, messages);
 
-        SPRINT1(2, "\n<<< server2browser: %s", response);
+        TRACE_BROADCAST( response);
         wv_broadcastText(response);
 
         pendingError =  0;
@@ -2265,7 +2282,7 @@ browserMessage(
         snprintf(response, max_resp_len, "ERROR:: could not find Design Velocities; shown as zeros|%s|",
             messages);
 
-        SPRINT1(2, "\n<<< server2browser: %s", response);
+        TRACE_BROADCAST( response);
         wv_broadcastText(response);
 
         pendingError =  0;
@@ -2280,7 +2297,7 @@ browserMessage(
         snprintf(response, max_resp_len, "build|%d|%d|%s|",
                  successBuild, onstack, messages);
 
-        SPRINT1(2, "\n<< server2browser: %s", response);
+        TRACE_BROADCAST( response);
         wv_broadcastText(response);
 
         pendingError =  0;
@@ -2394,6 +2411,22 @@ buildBodys(int     buildTo,             /* (in)  last Branch to execute */
                 if (strcmp(MODL->pmtr[ipmtr].name, "@nwarn") == 0) {
                     *nwarn = NINT(MODL->pmtr[ipmtr].value[0]);
                     break;
+                }
+            }
+
+            /* print the profile of CPU time */
+            if (MODL->sigCode == 0 && outLevel >= 1) {
+                status2 = ocsmPrintProfile(MODL, "");
+                if (status2 != SUCCESS) {
+                    SPRINT1(0, "ERROR:: ocsmPrintProfile -> status=%d", status2);
+                }
+            }
+
+            /* print out the externally-visible Parameters */
+            if (outLevel > 0 && MODL->sigCode == 0) {
+                status2 = ocsmPrintPmtrs(MODL, "");
+                if (status2 != SUCCESS) {
+                    SPRINT1(0, "ERROR:: ocsmPrintPmtrs -> status=%d", status2);
                 }
             }
 
@@ -2621,6 +2654,19 @@ buildSceneGraph()
             fclose(fp);
             fp = NULL;
         }
+    }
+
+    if (fabs(bigbox[0]-bigbox[3]) < EPS06) {
+        bigbox[0] -= EPS06;
+        bigbox[3] += EPS06;
+    }
+    if (fabs(bigbox[1]-bigbox[4]) < EPS06) {
+        bigbox[1] -= EPS06;
+        bigbox[4] += EPS06;
+    }
+    if (fabs(bigbox[2]-bigbox[5]) < EPS06) {
+        bigbox[2] -= EPS06;
+        bigbox[5] += EPS06;
     }
 
                                     size = bigbox[3] - bigbox[0];
@@ -5797,13 +5843,13 @@ processBrowserToServer(char    text[])
     int       status = SUCCESS;
 
     int       i, ibrch, itype, nlist, builtTo, buildStatus, ichar, iundo;
-    int       ipmtr, jpmtr, nrow, ncol, irow, icol, index, iattr, actv, itemp;
+    int       ipmtr, jpmtr, nrow, ncol, irow, icol, index, iattr, actv, itemp, linenum;
     int       itoken1, itoken2, itoken3, ibody, onstack, direction=1, nwarn;
     int       nclient;
     CINT      *tempIlist;
     double    scale, dihedral, value, dot;
     CDOUBLE   *tempRlist;
-    char      *pEnd, bname[MAX_NAME_LEN+1];
+    char      *pEnd, bname[MAX_NAME_LEN+1], *bodyinfo=NULL;
     CCHAR     *tempClist;
 
     char      *name=NULL,  *type=NULL, *valu=NULL;
@@ -7074,6 +7120,30 @@ processBrowserToServer(char    text[])
         }
         response_len = STRLEN(response);
 
+    /* "insert|filename|" */
+    } else if (strncmp(text, "insert|", 7) == 0) {
+
+        /* extract argument */
+        getToken(text, 1, '|', arg1);
+
+        /* send filename's contents to the browser */
+        fp = fopen(arg1, "r");
+        if (fp != NULL) {
+            snprintf(response, max_resp_len, "insert|");
+            response_len = STRLEN(response);
+
+            while (1) {
+                if (fgets(entry, MAX_STR_LEN-1, fp) == NULL) break;
+                addToResponse(entry);
+                if (feof(fp) != 0) break;
+            }
+
+            fclose(fp);
+            fp = NULL;
+        }
+
+        response_len = STRLEN(response);
+
     /* "getFilenames|" */
     } else if (strncmp(text, "getFilenames|", 13) == 0) {
 
@@ -7307,6 +7377,34 @@ processBrowserToServer(char    text[])
         status = buildBodys(ibrch, &builtTo, &buildStatus, &nwarn);
 
         goto cleanup;
+
+    /* "getBodyDetails|filename|linenum||" */
+    } else if (strncmp(text, "getBodyDetails|", 15) == 0) {
+
+        /* extract arguments */
+        linenum = 0;
+        getToken(text, 1, '|', arg1);
+        if (getToken(text, 2, '|', arg2)) linenum = strtol(arg2, &pEnd, 10);
+
+        status = ocsmBodyDetails(MODL, arg1, linenum, &bodyinfo);
+
+        SPLINT_CHECK_FOR_NULL(bodyinfo);
+
+        if (status == SUCCESS) {
+            itemp = 25 + STRLEN(bodyinfo);
+
+            if (itemp > max_resp_len) {
+                max_resp_len = itemp + 1;
+
+                RALLOC(response, char, max_resp_len+1);
+            }
+
+            /* build the response */
+            snprintf(response, max_resp_len, "getBodyDetails|%s|%d|%s|", arg1, linenum, bodyinfo);
+            response_len = STRLEN(response);
+        }
+
+        FREE(bodyinfo);
 
     /* "loadSketch|" */
     } else if (strncmp(text, "loadSketch|", 11) == 0) {
@@ -7590,6 +7688,12 @@ processBrowserToServer(char    text[])
                      scale, matrix);
             response_len = STRLEN(response);
         }
+
+    /* "editor|...|" */
+    } else if (strncmp(text, "editor|", 7) == 0) {
+        snprintf(response, max_resp_len, "%s", text);
+        response_len = STRLEN(response);
+
     }
 
     status = SUCCESS;
@@ -7810,7 +7914,7 @@ sizeCallbackFromOpenCSM(void   *modl,   /* (in)  pointer to MODL */
     }
 
     /* send to browsers */
-    SPRINT1(2, "\n<<< server2browser: %s", response);
+    TRACE_BROADCAST( response);
     wv_broadcastText(response);
 
     response[0]  = '\0';

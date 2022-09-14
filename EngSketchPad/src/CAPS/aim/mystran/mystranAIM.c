@@ -149,11 +149,11 @@ static int initiate_aimStorage(aimStorage *mystranInstance)
 
     // Set initial values for mystranInstance
     mystranInstance->projectName = NULL;
-  
+
     // Mesh holders
     mystranInstance->numMesh = 0;
     mystranInstance->feaMesh = NULL;
-  
+
     /*
     // Check to make sure data transfer is ok
     mystranInstance->dataTransferCheck = (int) true;
@@ -186,7 +186,7 @@ static int destroy_aimStorage(aimStorage *mystranInstance)
 
     int status;
     int i;
-  
+
     status = destroy_feaUnitsStruct(&mystranInstance->units);
     if (status != CAPS_SUCCESS)
       printf("Error: Status %d during destroy_feaUnitsStruct!\n", status);
@@ -258,7 +258,7 @@ static int checkAndCreateMesh(void *aimInfo, aimStorage *mystranInstance)
   capsValue *QuadMesh;
 
   for (i = 0; i < mystranInstance->numMesh; i++) {
-      remesh = remesh && (mystranInstance->feaMesh[i].bodyTessMap.egadsTess->oclass == EMPTY);
+      remesh = remesh && (mystranInstance->feaMesh[i].egadsTess->oclass == EMPTY);
   }
   if (remesh == (int) false) return CAPS_SUCCESS;
 
@@ -631,36 +631,23 @@ cleanup:
 }
 
 
-
-int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
+// ********************** AIM Function Break *****************************
+int aimUpdateState(void *instStore, void *aimInfo,
+                   capsValue *aimInputs)
 {
+    int status; // Function return status
 
-    int i, j, k; // Indexing
-
-    int status; // Status return
-
-    int found; // Boolean operator
-
-    int *tempIntegerArray = NULL; // Temporary array to store a list of integers
-
-    // Analyis information
-    char *analysisType = NULL;
-
-    // File IO
-    char filename[PATH_MAX]; // Output file name
-    FILE *fp = NULL; // Output file pointer
-  
     aimStorage *mystranInstance;
-  
+
     mystranInstance = (aimStorage *) instStore;
-    if (aimInputs == NULL) return CAPS_NULLVALUE;
+    AIM_NOTNULL(aimInputs, aimInfo, status);
 
     // Get project name
     mystranInstance->projectName = aimInputs[Proj_Name-1].vals.string;
 
     // Check and generate/retrieve the mesh
     status = checkAndCreateMesh(aimInfo, mystranInstance);
-    if (status != CAPS_SUCCESS) goto cleanup;
+    AIM_STATUS(aimInfo, status);
 
     // Note: Setting order is important here.
     // 1. Materials should be set before properties.
@@ -676,7 +663,7 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
                                  &mystranInstance->units,
                                  &mystranInstance->feaProblem.numMaterial,
                                  &mystranInstance->feaProblem.feaMaterial);
-        if (status != CAPS_SUCCESS) goto cleanup;
+        AIM_STATUS(aimInfo, status);
     } else printf("\nLoad tuple is NULL - No materials set\n");
 
     // Set property properties
@@ -687,7 +674,7 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
                                  &mystranInstance->attrMap,
                                  &mystranInstance->units,
                                  &mystranInstance->feaProblem);
-        if (status != CAPS_SUCCESS) goto cleanup;
+        AIM_STATUS(aimInfo, status);
     } else printf("\nProperty tuple is NULL - No properties set\n");
 
     // Set constraint properties
@@ -696,7 +683,7 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
                                    aimInputs[Constraint-1].vals.tuple,
                                    &mystranInstance->constraintMap,
                                    &mystranInstance->feaProblem);
-        if (status != CAPS_SUCCESS) goto cleanup;
+        AIM_STATUS(aimInfo, status);
     } else printf("\nConstraint tuple is NULL - No constraints applied\n");
 
     // Set support properties
@@ -714,20 +701,7 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
                              aimInputs[Load-1].vals.tuple,
                              &mystranInstance->loadMap,
                              &mystranInstance->feaProblem);
-        if (status != CAPS_SUCCESS) goto cleanup;
-
-        // Loop through loads to see if any of them are supposed to be from an external source
-        for (i = 0; i < mystranInstance->feaProblem.numLoad; i++) {
-
-            if (mystranInstance->feaProblem.feaLoad[i].loadType == PressureExternal) {
-
-                // Transfer external pressures from the AIM discrObj
-                status = fea_transferExternalPressure(aimInfo,
-                                                      &mystranInstance->feaProblem.feaMesh,
-                                                      &mystranInstance->feaProblem.feaLoad[i]);
-                if (status != CAPS_SUCCESS) goto cleanup;
-            }
-        }
+        AIM_STATUS(aimInfo, status);
     } else printf("\nLoad tuple is NULL - No loads applied\n");
 
     // Set analysis settings
@@ -735,8 +709,59 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
         status = fea_getAnalysis(aimInputs[Analysix-1].length,
                                  aimInputs[Analysix-1].vals.tuple,
                                  &mystranInstance->feaProblem);
-        if (status != CAPS_SUCCESS) goto cleanup; // It ok to not have an analysis tuple
+        AIM_STATUS(aimInfo, status); // It ok to not have an analysis tuple
     } else printf("\nAnalysis tuple is NULL\n");
+
+    status = CAPS_SUCCESS;
+cleanup:
+    return status;
+}
+
+
+// ********************** AIM Function Break *****************************
+int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
+{
+
+    int i, j, k; // Indexing
+
+    int status; // Status return
+
+    int found; // Boolean operator
+
+    int *tempIntegerArray = NULL; // Temporary array to store a list of integers
+
+    // Analyis information
+    char *analysisType = NULL;
+
+    // File IO
+    char filename[PATH_MAX]; // Output file name
+    FILE *fp = NULL; // Output file pointer
+
+    const aimStorage *mystranInstance;
+
+    // Load information
+    feaLoadStruct *feaLoad = NULL;  // size = [numLoad]
+
+    mystranInstance = (const aimStorage *) instStore;
+    AIM_NOTNULL(aimInputs, aimInfo, status);
+
+    if (mystranInstance->feaProblem.numLoad > 0) {
+        AIM_ALLOC(feaLoad, mystranInstance->feaProblem.numLoad, feaLoadStruct, aimInfo, status);
+        for (i = 0; i < mystranInstance->feaProblem.numLoad; i++) initiate_feaLoadStruct(&feaLoad[i]);
+        for (i = 0; i < mystranInstance->feaProblem.numLoad; i++) {
+            status = copy_feaLoadStruct(aimInfo, &mystranInstance->feaProblem.feaLoad[i], &feaLoad[i]);
+            AIM_STATUS(aimInfo, status);
+
+            if (feaLoad[i].loadType == PressureExternal) {
+
+                // Transfer external pressures from the AIM discrObj
+                status = fea_transferExternalPressure(aimInfo,
+                                                      &mystranInstance->feaProblem.feaMesh,
+                                                      &feaLoad[i]);
+                AIM_STATUS(aimInfo, status);
+            }
+        }
+    }
 
     // Write Nastran Mesh
     status = mesh_writeNASTRAN(aimInfo,
@@ -745,7 +770,7 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
                                &mystranInstance->feaProblem.feaMesh,
                                mystranInstance->feaProblem.feaFileFormat.gridFileType,
                                1.0);
-    if (status != CAPS_SUCCESS) goto cleanup;
+    AIM_STATUS(aimInfo, status);
 
     // Write mystran input file
     strcpy(filename, mystranInstance->projectName);
@@ -754,7 +779,7 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
     printf("\nWriting MYSTRAN instruction file....\n");
     fp = aim_fopen(aimInfo, filename, "w");
     if (fp == NULL) {
-        printf("Unable to open file: %s\n", filename);
+        AIM_ERROR(aimInfo, "Unable to open file: %s\n", filename);
         status = CAPS_IOERR;
         goto cleanup;
     }
@@ -792,11 +817,12 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
     // Check thermal load - currently only a single thermal load is supported - also it only works for the global level - no subcase
     found = (int) false;
     for (i = 0; i < mystranInstance->feaProblem.numLoad; i++) {
+        AIM_NOTNULL(feaLoad, aimInfo, status);
 
-        if (mystranInstance->feaProblem.feaLoad[i].loadType != Thermal) continue;
+        if (feaLoad[i].loadType != Thermal) continue;
 
         if (found == (int) true) {
-            printf("More than 1 Thermal load found - mystranAIM does NOT currently doesn't support multiple thermal loads!\n");
+            AIM_ERROR(aimInfo, "More than 1 Thermal load found - mystranAIM does NOT currently doesn't support multiple thermal loads!");
             status = CAPS_BADVALUE;
             goto cleanup;
         }
@@ -804,7 +830,7 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
         found = (int) true;
 
         fprintf(fp, "TEMPERATURE = %d\n",
-                mystranInstance->feaProblem.feaLoad[i].loadID);
+                feaLoad[i].loadID);
     }
 
     // Write constraint information
@@ -854,14 +880,14 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
                             mystranInstance->feaProblem.feaAnalysis[i].name);
 
                     // Write loads for sub-case
-                    if (mystranInstance->feaProblem.numLoad != 0) {
+                    if (mystranInstance->feaProblem.numLoad > 0) {
                         fprintf(fp, "\tLOAD = %d\n",
                                 mystranInstance->feaProblem.numLoad+i+1);
                     }
 
                     // Issue some warnings regarding loads if necessary
                     if (mystranInstance->feaProblem.feaAnalysis[i].numLoad == 0 &&
-                        mystranInstance->feaProblem.numLoad !=0) {
+                        mystranInstance->feaProblem.numLoad > 0) {
                         printf("Warning: No loads specified for static case %s, assuming "
                                 "all loads are applied!!!!\n",
                                mystranInstance->feaProblem.feaAnalysis[i].name);
@@ -874,7 +900,7 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
 
         } else { // // If no sub-cases
 
-            if (mystranInstance->feaProblem.numLoad != 0) {
+            if (mystranInstance->feaProblem.numLoad > 0) {
                 fprintf(fp, "LOAD = %d\n", mystranInstance->feaProblem.numLoad+1);
             } else {
                 printf("Warning: No loads specified for static a job!!!!\n");
@@ -905,26 +931,27 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
             status = nastran_writeAnalysisCard(fp,
                                                &mystranInstance->feaProblem.feaAnalysis[i],
                                                &mystranInstance->feaProblem.feaFileFormat);
-            if (status != CAPS_SUCCESS) goto cleanup;
+            AIM_STATUS(aimInfo, status);
 
             if (mystranInstance->feaProblem.feaAnalysis[i].numLoad != 0) {
+                AIM_NOTNULL(feaLoad, aimInfo, status);
 
                 status = nastran_writeLoadADDCard(fp,
                                                   mystranInstance->feaProblem.numLoad+i+1,
                                                   mystranInstance->feaProblem.feaAnalysis[i].numLoad,
                                                   mystranInstance->feaProblem.feaAnalysis[i].loadSetID,
-                                                  mystranInstance->feaProblem.feaLoad,
+                                                  feaLoad,
                                                   &mystranInstance->feaProblem.feaFileFormat);
-                if (status != CAPS_SUCCESS) goto cleanup;
+                AIM_STATUS(aimInfo, status);
 
             } else { // If no loads for an individual analysis are specified assume that all loads should be applied
 
-                if (mystranInstance->feaProblem.numLoad != 0) {
+                if (feaLoad != NULL) {
 
                     // Ignore thermal loads
                     k = 0;
                     for (j = 0; j < mystranInstance->feaProblem.numLoad; j++) {
-                        if (mystranInstance->feaProblem.feaLoad[j].loadType == Thermal) continue;
+                        if (feaLoad[j].loadType == Thermal) continue;
                         k += 1;
                     }
 
@@ -939,8 +966,8 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
                         k = 0;
                         for (j = 0; j < mystranInstance->feaProblem.numLoad; j++) {
 
-                            if (mystranInstance->feaProblem.feaLoad[j].loadType == Thermal) continue;
-                            tempIntegerArray[k] = mystranInstance->feaProblem.feaLoad[j].loadID;
+                            if (feaLoad[j].loadType == Thermal) continue;
+                            tempIntegerArray[k] = feaLoad[j].loadID;
 
                             k += 1;
                         }
@@ -950,9 +977,9 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
                                                           mystranInstance->feaProblem.numLoad+i+1,
                                                           k,
                                                           tempIntegerArray,
-                                                          mystranInstance->feaProblem.feaLoad,
+                                                          feaLoad,
                                                           &mystranInstance->feaProblem.feaFileFormat);
-                        if (status != CAPS_SUCCESS) goto cleanup;
+                        AIM_STATUS(aimInfo, status);
 
                         // Free temporary load ID list
                         if (tempIntegerArray != NULL) EG_free(tempIntegerArray);
@@ -965,12 +992,12 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
     } else { // If there aren't any analysis structures just write a single combined load card
 
         // Combined loads
-        if (mystranInstance->feaProblem.numLoad != 0) {
+        if (feaLoad != NULL) {
 
             // Ignore thermal loads
             k = 0;
             for (j = 0; j < mystranInstance->feaProblem.numLoad; j++) {
-                if (mystranInstance->feaProblem.feaLoad[j].loadType == Thermal) continue;
+                if (feaLoad[j].loadType == Thermal) continue;
                 k += 1;
             }
 
@@ -985,8 +1012,8 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
                 k = 0;
                 for (j = 0; j < mystranInstance->feaProblem.numLoad; j++) {
 
-                    if (mystranInstance->feaProblem.feaLoad[j].loadType == Thermal) continue;
-                    tempIntegerArray[k] = mystranInstance->feaProblem.feaLoad[j].loadID;
+                    if (feaLoad[j].loadType == Thermal) continue;
+                    tempIntegerArray[k] = feaLoad[j].loadID;
 
                     k += 1;
                 }
@@ -996,14 +1023,13 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
                                                   mystranInstance->feaProblem.numLoad+1,
                                                   k,
                                                   tempIntegerArray,
-                                                  mystranInstance->feaProblem.feaLoad,
+                                                  feaLoad,
                                                   &mystranInstance->feaProblem.feaFileFormat);
 
-                if (status != CAPS_SUCCESS) goto cleanup;
+                AIM_STATUS(aimInfo, status);
 
                 // Free temporary load ID list
-                if (tempIntegerArray != NULL) EG_free(tempIntegerArray);
-                tempIntegerArray = NULL;
+                AIM_FREE(tempIntegerArray);
             }
         }
     }
@@ -1012,11 +1038,7 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
     if (mystranInstance->feaProblem.numConstraint != 0) {
 
         // Create a temporary list of constraint IDs
-        tempIntegerArray = (int *) EG_alloc(mystranInstance->feaProblem.numConstraint*sizeof(int));
-        if (tempIntegerArray == NULL) {
-            status = EGADS_MALLOC;
-            goto cleanup;
-        }
+        AIM_ALLOC(tempIntegerArray, mystranInstance->feaProblem.numConstraint, int, aimInfo, status);
 
         for (i = 0; i < mystranInstance->feaProblem.numConstraint; i++) {
             tempIntegerArray[i] = mystranInstance->feaProblem.feaConstraint[i].constraintID;
@@ -1028,7 +1050,7 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
                                                 mystranInstance->feaProblem.numConstraint,
                                                 tempIntegerArray,
                                                 &mystranInstance->feaProblem.feaFileFormat);
-        if (status != CAPS_SUCCESS) goto cleanup;
+        AIM_STATUS(aimInfo, status);
 
         // Free temporary constraint ID list
         if (tempIntegerArray != NULL) EG_free(tempIntegerArray);
@@ -1037,10 +1059,11 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
 
     // Loads
     for (i = 0; i < mystranInstance->feaProblem.numLoad; i++) {
+        AIM_NOTNULL(feaLoad, aimInfo, status);
         status = nastran_writeLoadCard(fp,
-                                       &mystranInstance->feaProblem.feaLoad[i],
+                                       &feaLoad[i],
                                        &mystranInstance->feaProblem.feaFileFormat);
-        if (status != CAPS_SUCCESS) goto cleanup;
+        AIM_STATUS(aimInfo, status);
     }
 
     // Constraints
@@ -1048,7 +1071,7 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
         status = nastran_writeConstraintCard(fp,
                                              &mystranInstance->feaProblem.feaConstraint[i],
                                              &mystranInstance->feaProblem.feaFileFormat);
-        if (status != CAPS_SUCCESS) goto cleanup;
+        AIM_STATUS(aimInfo, status);
     }
 
     // Supports
@@ -1059,7 +1082,7 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
                                           &mystranInstance->feaProblem.feaFileFormat,
                                           NULL);
 /*@+nullpass@*/
-        if (status != CAPS_SUCCESS) goto cleanup;
+        AIM_STATUS(aimInfo, status);
     }
 
     // Materials
@@ -1067,7 +1090,7 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
         status = nastran_writeMaterialCard(fp,
                                            &mystranInstance->feaProblem.feaMaterial[i],
                                            &mystranInstance->feaProblem.feaFileFormat);
-        if (status != CAPS_SUCCESS) goto cleanup;
+        AIM_STATUS(aimInfo, status);
     }
 
     // Properties
@@ -1075,7 +1098,7 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
         status = nastran_writePropertyCard(fp,
                                            &mystranInstance->feaProblem.feaProperty[i],
                                            &mystranInstance->feaProblem.feaFileFormat);
-        if (status != CAPS_SUCCESS) goto cleanup;
+        AIM_STATUS(aimInfo, status);
     }
 
     // Coordinate systems
@@ -1083,7 +1106,7 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
         status = nastran_writeCoordinateSystemCard(fp,
                                                    &mystranInstance->feaProblem.feaCoordSystem[i],
                                                    &mystranInstance->feaProblem.feaFileFormat);
-        if (status != CAPS_SUCCESS) goto cleanup;
+        AIM_STATUS(aimInfo, status);
     }
 
     // Include mesh file
@@ -1095,8 +1118,13 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
     status = CAPS_SUCCESS;
 
 cleanup:
-    if (status != CAPS_SUCCESS)
-      printf("Premature exit in mystranAIM preAnalysis status = %d\n", status);
+
+    if (feaLoad != NULL) {
+        for (i = 0; i < mystranInstance->feaProblem.numLoad; i++) {
+            destroy_feaLoadStruct(&feaLoad[i]);
+        }
+        AIM_FREE(feaLoad);
+    }
 
     if (fp != NULL) fclose(fp);
 
@@ -1107,7 +1135,7 @@ cleanup:
 
 
 // ********************** AIM Function Break *****************************
-int aimExecute(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo,
+int aimExecute(/*@unused@*/ const void *instStore, /*@unused@*/ void *aimInfo,
                int *state)
 {
   /*! \page aimExecuteMYSTRAN AIM Execution
@@ -1144,10 +1172,10 @@ int aimExecute(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo,
    */
 
   char command[PATH_MAX];
-  aimStorage *mystranInstance;
+  const aimStorage *mystranInstance;
   *state = 0;
 
-  mystranInstance = (aimStorage *) instStore;
+  mystranInstance = (const aimStorage *) instStore;
   if (mystranInstance == NULL) return CAPS_NULLVALUE;
 
   snprintf(command, PATH_MAX, "mystran %s.dat > Info.out",
@@ -1256,32 +1284,26 @@ int aimCalcOutput(void *instStore, /*@unused@*/ void *aimInfo, int index,
 
     int i; // Indexing
 
-    char *filename = NULL; // File to open
-    char extOP1[] = ".OP1";
+    char filename[PATH_MAX]; // File to open
+    char extOU1[] = ".OU1";
     char extF06[] = ".F06";
     FILE *fp = NULL; // File pointer
     aimStorage *mystranInstance;
 
     const double pi = 4.0 * atan(1.0);
-  
+
     mystranInstance = (aimStorage *) instStore;
 
     if (index == 1 || index == 2 || index == 3) {
-        // Open mystran *.OP1 file - OUTPUT4
-        filename = (char *) EG_alloc((strlen(mystranInstance->projectName) +
-                                      strlen(extOP1)+1)*sizeof(char));
-        if (filename == NULL) return EGADS_MALLOC;
-
-        sprintf(filename, "%s%s", mystranInstance->projectName, extOP1);
+        // Open mystran *.OU1 file - OUTPUT4
+        snprintf(filename, PATH_MAX, "%s%s", mystranInstance->projectName, extOU1);
 
         fp = aim_fopen(aimInfo, filename, "rb");
-
-        EG_free(filename); // Free filename allocation
-
         if (fp == NULL) {
 #ifdef DEBUG
             printf(" mystranAIM/aimCalcOutput Cannot open Output file!\n");
 #endif
+            AIM_ERROR(aimInfo, "Failed to open %s", filename);
             return CAPS_IOERR;
         }
 
@@ -1303,21 +1325,16 @@ int aimCalcOutput(void *instStore, /*@unused@*/ void *aimInfo, int index,
         }
 
     } else if (index == 4) {
-        // Open mystran *.OP1 file - OUTPUT4
-        filename = (char *) EG_alloc((strlen(mystranInstance->projectName) +
-                                      strlen(extOP1) +1)*sizeof(char));
-        if (filename == NULL) return EGADS_MALLOC;
-
-        sprintf(filename, "%s%s", mystranInstance->projectName, extOP1);
+        // Open mystran *.OU1 file - OUTPUT4
+        snprintf(filename, PATH_MAX, "%s%s", mystranInstance->projectName, extOU1);
 
         fp = aim_fopen(aimInfo, filename, "rb");
-
-        EG_free(filename); // Free filename allocation
 
         if (fp == NULL) {
 #ifdef DEBUG
             printf(" mystranAIM/aimCalcOutput Cannot open Output file!\n");
 #endif
+            AIM_ERROR(aimInfo, "Failed to open %s", filename);
             return CAPS_IOERR;
         }
 
@@ -1326,19 +1343,15 @@ int aimCalcOutput(void *instStore, /*@unused@*/ void *aimInfo, int index,
     } else if (index == 5) {
 
         // Open mystran *.F06 file
-        filename = (char *) EG_alloc((strlen(mystranInstance->projectName) +
-                                      strlen(extF06) +1)*sizeof(char));
-        if (filename == NULL) return EGADS_MALLOC;
-
-        sprintf(filename, "%s%s", mystranInstance->projectName, extF06);
+        snprintf(filename, PATH_MAX, "%s%s", mystranInstance->projectName, extF06);
 
         fp = aim_fopen(aimInfo, filename, "r");
 
-        EG_free(filename); // Free filename allocation
         if (fp == NULL) {
 #ifdef DEBUG
             printf(" mystranAIM/aimCalcOutput Cannot open Output file!\n");
 #endif
+            AIM_ERROR(aimInfo, "Failed to open %s", filename);
             return CAPS_IOERR;
         }
 /*
@@ -1387,43 +1400,6 @@ int aimDiscr(char *tname, capsDiscr *discr)
 
     const char   *intents;
 
-#ifdef OLD_DISCR_IMPLEMENTATION_TO_REMOVE
-    int i, j, body, face, counter; // Indexing
-
-    // EGADS objects
-    ego tess, *faces = NULL, tempBody;
-
-    const char   *string, *capsGroup; // capsGroups strings
-
-    // EGADS function returns
-    int plen, tlen, qlen;
-    int atype, alen;
-    const int    *ptype, *pindex, *tris, *nei, *ints;
-    const double *xyz, *uv, *reals;
-
-    // Body Tessellation
-    int numFace = 0;
-    int numFaceFound = 0;
-    int numPoint = 0, numTri = 0, numQuad = 0, numGlobalPoint = 0;
-    int *bodyFaceMap = NULL; // size=[2*numFaceFound]
-                             // [2*num + 0] = body, [2*num + 1] = face
-
-    int *globalID = NULL, *localStitchedID = NULL, gID = 0;
-
-    int *storage= NULL; // Extra information to store into the discr void pointer
-
-    int numCAPSGroup = 0, attrIndex = 0, foundAttr = (int) false;
-    int *capsGroupList = NULL;
-    int dataTransferBodyIndex=-99;
-
-    int numElem, stride, tindex;
-
-    // Quading variables
-    int quad = (int) false;
-    int patch;
-    int numPatch, n1, n2;
-    const int *pvindex = NULL, *pbounds = NULL;
-#endif
 #ifdef DEBUG
     printf(" mystranAIM/aimDiscr: tname = %s!\n", tname);
 #endif
@@ -1451,448 +1427,12 @@ int aimDiscr(char *tname, capsDiscr *discr)
 
     AIM_ALLOC(tess, mystranInstance->numMesh, ego, discr->aInfo, status);
     for (i = 0; i < mystranInstance->numMesh; i++) {
-        tess[i] = mystranInstance->feaMesh[i].bodyTessMap.egadsTess;
+        tess[i] = mystranInstance->feaMesh[i].egadsTess;
     }
 
     status = mesh_fillDiscr(tname, &mystranInstance->attrMap, mystranInstance->numMesh, tess, discr);
     AIM_STATUS(discr->aInfo, status);
 
-#ifdef OLD_DISCR_IMPLEMENTATION_TO_REMOVE
-    numFaceFound = 0;
-    numPoint = numTri = numQuad = 0;
-    // Find any faces with our boundary marker and get how many points and triangles there are
-    for (body = 0; body < numBody; body++) {
-
-        status = EG_getBodyTopos(bodies[body], NULL, FACE, &numFace, &faces);
-        if ((status != EGADS_SUCCESS) || (faces == NULL)) {
-            if (status == EGADS_SUCCESS) status = CAPS_NULLOBJ;
-            printf(" mystranAIM: getBodyTopos (Face) = %d for Body %d!\n",
-                   status, body);
-            return status;
-        }
-
-        tess = bodies[body + numBody];
-        if (tess == NULL) continue;
-
-        quad = (int)false;
-        status = EG_attributeRet(tess, ".tessType", &atype, &alen, &ints,
-                                 &reals, &string);
-        if (status == EGADS_SUCCESS)
-          if ((atype == ATTRSTRING) && (string != NULL))
-            if (strcmp(string, "Quad") == 0) quad = (int) true;
-
-        for (face = 0; face < numFace; face++) {
-
-            // Retrieve the string following a capsBound tag
-            status = retrieve_CAPSBoundAttr(faces[face], &string);
-            if ((status != CAPS_SUCCESS) || (string == NULL)) continue;
-            if (strcmp(string, tname) != 0) continue;
-
-            status = retrieve_CAPSIgnoreAttr(faces[face], &string);
-            if (status == CAPS_SUCCESS) {
-              printf("mystranAIM: WARNING: capsIgnore found on bound %s\n",
-                     tname);
-              continue;
-            }
-            
-#ifdef DEBUG
-            printf(" mystranAIM/aimDiscr: Body %d/Face %d matches %s!\n",
-                   body, face+1, tname);
-#endif
-
-            status = retrieve_CAPSGroupAttr(faces[face], &capsGroup);
-            if (status != CAPS_SUCCESS) {
-                printf("capsBound found on face %d, but no capGroup found!!!\n",
-                       face);
-                continue;
-            } else {
-/*@-nullpass@*/
-                status = get_mapAttrToIndexIndex(&mystranInstance->attrMap,
-                                                 capsGroup, &attrIndex);
-                if (status != CAPS_SUCCESS) {
-                    printf("capsGroup %s NOT found in attrMap\n", capsGroup);
-                    continue;
-/*@+nullpass@*/
-                } else {
-
-                    // If first index create arrays and store index
-                    if (capsGroupList == NULL) {
-                        numCAPSGroup  = 1;
-                        capsGroupList = (int *) EG_alloc(numCAPSGroup*sizeof(int));
-                        if (capsGroupList == NULL) {
-                            status =  EGADS_MALLOC;
-                            goto cleanup;
-                        }
-                        capsGroupList[numCAPSGroup-1] = attrIndex;
-                    } else { // If we already have an index(es) let make sure it is unique
-                        foundAttr = (int) false;
-                        for (i = 0; i < numCAPSGroup; i++) {
-                            if (attrIndex == capsGroupList[i]) {
-                                foundAttr = (int) true;
-                                break;
-                            }
-                        }
-
-                        if (foundAttr == (int) false) {
-                            numCAPSGroup += 1;
-                            capsGroupList = (int *) EG_reall(capsGroupList,
-                                                             numCAPSGroup*sizeof(int));
-                            if (capsGroupList == NULL) {
-                                status =  EGADS_MALLOC;
-                                goto cleanup;
-                            }
-                            capsGroupList[numCAPSGroup-1] = attrIndex;
-                        }
-                    }
-                }
-            }
-
-            numFaceFound += 1;
-            dataTransferBodyIndex = body;
-            bodyFaceMap = (int *) EG_reall(bodyFaceMap, 2*numFaceFound*sizeof(int));
-            if (bodyFaceMap == NULL) { status = EGADS_MALLOC; goto cleanup; }
-
-            // Get number of points and triangles
-            bodyFaceMap[2*(numFaceFound-1) + 0] = body+1;
-            bodyFaceMap[2*(numFaceFound-1) + 1] = face+1;
-
-            // count Quads/triangles
-            status = EG_getQuads(bodies[body+numBody], face+1, &qlen, &xyz,
-                                 &uv, &ptype, &pindex, &numPatch);
-            if (status == EGADS_SUCCESS && numPatch != 0) {
-
-              // Sum number of points and quads
-              numPoint  += qlen;
-
-              for (patch = 1; patch <= numPatch; patch++) {
-                status = EG_getPatch(bodies[body+numBody], face+1, patch, &n1,
-                                     &n2, &pvindex, &pbounds);
-                if (status != EGADS_SUCCESS) goto cleanup;
-                numQuad += (n1-1)*(n2-1);
-              }
-            } else {
-                // Get face tessellation
-                status = EG_getTessFace(bodies[body+numBody], face+1, &plen,
-                                        &xyz, &uv, &ptype, &pindex, &tlen,
-                                        &tris, &nei);
-                if (status != EGADS_SUCCESS) {
-                    printf(" mystranAIM: EG_getTessFace %d = %d for Body %d!\n",
-                           face+1, status, body+1);
-                    continue;
-                }
-
-                // Sum number of points and triangles
-                numPoint += plen;
-                if (quad == (int)true)
-                    numQuad += tlen/2;
-                else
-                    numTri  += tlen;
-            }
-        }
-
-        EG_free(faces); faces = NULL;
-
-        if (dataTransferBodyIndex >= 0) break; // Force that only one body can be used
-    }
-
-    if (numFaceFound == 0) {
-        printf(" mystranAIM/aimDiscr: No Faces match %s!\n", tname);
-        status = CAPS_NOTFOUND;
-        goto cleanup;
-    }
-
-    // Debug
-#ifdef DEBUG
-    printf(" mystranAIM/aimDiscr: ntris = %d, npts = %d!\n", numTri, numPoint);
-    printf(" mystranAIM/aimDiscr: nquad = %d, npts = %d!\n", numQuad, numPoint);
-#endif
-
-    if ( numPoint == 0 || (numTri == 0 && numQuad == 0) ) {
-#ifdef DEBUG
-        printf(" mystranAIM/aimDiscr: ntris = %d, npts = %d!\n", numTri, numPoint);
-        printf(" mystranAIM/aimDiscr: nquad = %d, npts = %d!\n", numQuad, numPoint);
-#endif
-        status = CAPS_SOURCEERR;
-        goto cleanup;
-    }
-
-#ifdef DEBUG
-    printf(" mystranAIM/aimDiscr: Body Index for data transfer = %d\n",
-           dataTransferBodyIndex);
-#endif
-    status = CAPS_HIERARCHERR;
-    if (bodyFaceMap == NULL) goto cleanup;
-
-    // Specify our element type
-    status = EGADS_MALLOC;
-    discr->nTypes = 2;
-
-    discr->types  = (capsEleType *) EG_alloc(discr->nTypes* sizeof(capsEleType));
-    if (discr->types == NULL) goto cleanup;
-
-    // Define triangle element type
-    status = aim_nodalTriangleType( &discr->types[0]);
-    if (status != CAPS_SUCCESS) goto cleanup;
-
-    // Define quad element type
-    status = aim_nodalQuadType( &discr->types[1]);
-    if (status != CAPS_SUCCESS) goto cleanup;
-
-    // Get the tessellation and make up a simple linear continuous triangle discretization */
-
-    discr->nElems = numTri + numQuad;
-
-    discr->elems = (capsElement *) EG_alloc(discr->nElems*sizeof(capsElement));
-    if (discr->elems == NULL) { status = EGADS_MALLOC; goto cleanup; }
-
-    discr->gIndices = (int *) EG_alloc(2*(discr->types[0].nref*numTri +
-                                          discr->types[1].nref*numQuad)*sizeof(int));
-    if (discr->gIndices == NULL) { status = EGADS_MALLOC; goto cleanup; }
-
-    discr->mapping = (int *) EG_alloc(2*numPoint*sizeof(int)); // Will be resized
-    if (discr->mapping == NULL) { status = EGADS_MALLOC; goto cleanup; }
-
-    globalID = (int *) EG_alloc(numPoint*sizeof(int));
-    if (globalID == NULL) { status = EGADS_MALLOC; goto cleanup; }
-
-    numPoint = 0;
-    numTri   = 0;
-    numQuad  = 0;
-
-    for (face = 0; face < numFaceFound; face++) {
-
-        tess = bodies[bodyFaceMap[2*face + 0]-1 + numBody];
-
-        quad = (int)false;
-        status = EG_attributeRet(tess, ".tessType", &atype, &alen, &ints, &reals,
-                                 &string);
-        if (status == EGADS_SUCCESS)
-          if ((atype == ATTRSTRING) && (string != NULL))
-            if (strcmp(string, "Quad") == 0) quad = (int)true;
-
-        if (localStitchedID == NULL) {
-            status = EG_statusTessBody(tess, &tempBody, &i, &numGlobalPoint);
-            if (status != EGADS_SUCCESS) goto cleanup;
-
-            localStitchedID = (int *) EG_alloc(numGlobalPoint*sizeof(int));
-            if (localStitchedID == NULL) { status = EGADS_MALLOC; goto cleanup; }
-
-            for (i = 0; i < numGlobalPoint; i++) localStitchedID[i] = 0;
-        }
-
-        // Get face tessellation
-        status = EG_getTessFace(tess, bodyFaceMap[2*face + 1], &plen, &xyz, &uv,
-                                &ptype, &pindex, &tlen, &tris, &nei);
-        if (status != EGADS_SUCCESS) {
-            printf(" mystranAIM: EG_getTessFace %d = %d for Body %d!\n",
-                   bodyFaceMap[2*face + 1], status, bodyFaceMap[2*face + 0]);
-            continue;
-        }
-
-        for (i = 0; i < plen; i++ ) {
-
-            status = EG_localToGlobal(tess, bodyFaceMap[2*face+1], i+1, &gID);
-            if (status != EGADS_SUCCESS) goto cleanup;
-
-            if (localStitchedID[gID -1] != 0) continue;
-
-            discr->mapping[2*numPoint  ] = bodyFaceMap[2*face + 0];
-            discr->mapping[2*numPoint+1] = gID;
-
-            localStitchedID[gID -1] = numPoint+1;
-
-            globalID[numPoint] = gID;
-
-            numPoint += 1;
-        }
-
-        // Attempt to retrieve quad information
-        status = EG_getQuads(tess, bodyFaceMap[2*face + 1], &i, &xyz, &uv,
-                             &ptype, &pindex, &numPatch);
-        if (status == EGADS_SUCCESS && numPatch != 0) {
-
-            if (numPatch != 1) {
-                status = CAPS_NOTIMPLEMENT;
-                printf("mystranAIM/aimDiscr: EG_localToGlobal accidentally only works for a single quad patch! FIXME!\n");
-                goto cleanup;
-            }
-
-            counter = 0;
-            for (patch = 1; patch <= numPatch; patch++) {
-
-                status = EG_getPatch(tess, bodyFaceMap[2*face + 1], patch,
-                                     &n1, &n2, &pvindex, &pbounds);
-                if (status != EGADS_SUCCESS) goto cleanup;
-                if (pvindex == NULL) {
-                    status = CAPS_NULLVALUE;
-                    goto cleanup;
-                }
-
-                for (j = 1; j < n2; j++) {
-                    for (i = 1; i < n1; i++) {
-
-                        discr->elems[numQuad+numTri].bIndex = bodyFaceMap[2*face + 0];
-                        discr->elems[numQuad+numTri].tIndex = 2;
-                        discr->elems[numQuad+numTri].eIndex = bodyFaceMap[2*face + 1];
-/*@-immediatetrans@*/
-                        discr->elems[numQuad+numTri].gIndices =
-                           &discr->gIndices[2*(discr->types[0].nref*numTri +
-                                               discr->types[1].nref*numQuad)];
-/*@+immediatetrans@*/
-                        discr->elems[numQuad+numTri].dIndices    = NULL;
-                        //discr->elems[numQuad+numTri].eTris.tq[0] = (numQuad*2 + numTri) + 1;
-                        //discr->elems[numQuad+numTri].eTris.tq[1] = (numQuad*2 + numTri) + 2;
-
-                        discr->elems[numQuad+numTri].eTris.tq[0] = counter*2 + 1;
-                        discr->elems[numQuad+numTri].eTris.tq[1] = counter*2 + 2;
-
-                        status = EG_localToGlobal(tess, bodyFaceMap[2*face + 1],
-                                                  pvindex[(i-1)+n1*(j-1)], &gID);
-                        if (status != EGADS_SUCCESS) goto cleanup;
-
-                        discr->elems[numQuad+numTri].gIndices[0] = localStitchedID[gID-1];
-                        discr->elems[numQuad+numTri].gIndices[1] = pvindex[(i-1)+n1*(j-1)];
-
-                        status = EG_localToGlobal(tess, bodyFaceMap[2*face + 1],
-                                                  pvindex[(i  )+n1*(j-1)], &gID);
-                        if (status != EGADS_SUCCESS) goto cleanup;
-
-                        discr->elems[numQuad+numTri].gIndices[2] = localStitchedID[gID-1];
-                        discr->elems[numQuad+numTri].gIndices[3] = pvindex[(i  )+n1*(j-1)];
-
-                        status = EG_localToGlobal(tess, bodyFaceMap[2*face + 1],
-                                                  pvindex[(i  )+n1*(j  )], &gID);
-                        if (status != EGADS_SUCCESS) goto cleanup;
-
-                        discr->elems[numQuad+numTri].gIndices[4] = localStitchedID[gID-1];
-                        discr->elems[numQuad+numTri].gIndices[5] = pvindex[(i  )+n1*(j  )];
-
-                        status = EG_localToGlobal(tess, bodyFaceMap[2*face + 1],
-                                                  pvindex[(i-1)+n1*(j  )], &gID);
-                        if (status != EGADS_SUCCESS) goto cleanup;
-
-                        discr->elems[numQuad+numTri].gIndices[6] = localStitchedID[gID-1];
-                        discr->elems[numQuad+numTri].gIndices[7] = pvindex[(i-1)+n1*(j  )];
-/*
-                        printf("Quad %d, GIndice = %d %d %d %d %d %d %d %d\n",
-                               numQuad+numTri,
-                               discr->elems[numQuad+numTri].gIndices[0],
-                               discr->elems[numQuad+numTri].gIndices[1],
-                               discr->elems[numQuad+numTri].gIndices[2],
-                               discr->elems[numQuad+numTri].gIndices[3],
-                               discr->elems[numQuad+numTri].gIndices[4],
-                               discr->elems[numQuad+numTri].gIndices[5],
-                               discr->elems[numQuad+numTri].gIndices[6],
-                               discr->elems[numQuad+numTri].gIndices[7]);
-*/
-                        numQuad += 1;
-                        counter += 1;
-                    }
-                }
-            }
-
-        } else {
-
-            if (quad == (int)true) {
-                numElem = tlen/2;
-                stride = 6;
-                tindex = 2;
-            } else {
-                numElem = tlen;
-                stride = 3;
-                tindex = 1;
-            }
-
-            // Get triangle/quad connectivity in global sense
-            for (i = 0; i < numElem; i++) {
-
-                discr->elems[numQuad+numTri].bIndex   = bodyFaceMap[2*face + 0];
-                discr->elems[numQuad+numTri].tIndex   = tindex;
-                discr->elems[numQuad+numTri].eIndex   = bodyFaceMap[2*face + 1];
-/*@-immediatetrans@*/
-                discr->elems[numQuad+numTri].gIndices =
-                             &discr->gIndices[2*(discr->types[0].nref*numTri +
-                                                 discr->types[1].nref*numQuad)];
-/*@+immediatetrans@*/
-                discr->elems[numQuad+numTri].dIndices = NULL;
-
-                if (quad == (int)true) {
-                    discr->elems[numQuad+numTri].eTris.tq[0] = i*2 + 1;
-                    discr->elems[numQuad+numTri].eTris.tq[1] = i*2 + 2;
-                } else {
-                    discr->elems[numQuad+numTri].eTris.tq[0] = i + 1;
-                }
-
-                status = EG_localToGlobal(tess, bodyFaceMap[2*face + 1],
-                                          tris[stride*i + 0], &gID);
-                if (status != EGADS_SUCCESS) goto cleanup;
-
-                discr->elems[numQuad+numTri].gIndices[0] = localStitchedID[gID-1];
-                discr->elems[numQuad+numTri].gIndices[1] = tris[stride*i + 0];
-
-                status = EG_localToGlobal(tess, bodyFaceMap[2*face + 1],
-                                          tris[stride*i + 1], &gID);
-                if (status != EGADS_SUCCESS) goto cleanup;
-
-                discr->elems[numQuad+numTri].gIndices[2] = localStitchedID[gID-1];
-                discr->elems[numQuad+numTri].gIndices[3] = tris[stride*i + 1];
-
-                status = EG_localToGlobal(tess, bodyFaceMap[2*face + 1],
-                                          tris[stride*i + 2], &gID);
-                if (status != EGADS_SUCCESS) goto cleanup;
-
-                discr->elems[numQuad+numTri].gIndices[4] = localStitchedID[gID-1];
-                discr->elems[numQuad+numTri].gIndices[5] = tris[stride*i + 2];
-
-                if (quad == (int)true) {
-                    status = EG_localToGlobal(tess, bodyFaceMap[2*face + 1],
-                                              tris[stride*i + 5], &gID);
-                    if (status != EGADS_SUCCESS) goto cleanup;
-
-                    discr->elems[numQuad+numTri].gIndices[6] = localStitchedID[gID-1];
-                    discr->elems[numQuad+numTri].gIndices[7] = tris[stride*i + 5];
-                }
-
-                if (quad == (int)true) {
-                    numQuad += 1;
-                } else {
-                    numTri += 1;
-                }
-            }
-        }
-    }
-
-    discr->nPoints = numPoint;
-
-#ifdef DEBUG
-    printf(" mystranAIM/aimDiscr: ntris = %d, npts = %d!\n",
-           discr->nElems, discr->nPoints);
-#endif
-
-    // Local to global node connectivity + numCAPSGroup + sizeof(capGrouplist)
-    storage  = (int *) EG_alloc((numPoint + 1 + numCAPSGroup) *sizeof(int));
-    if (storage == NULL) {
-        status = EGADS_MALLOC;
-        goto cleanup;
-    }
-    discr->ptrm = storage;
-
-    // Store the global node id
-    for (i = 0; i < numPoint; i++) {
-        storage[i] = globalID[i];
-//#ifdef DEBUG
-//      printf(" mystranAIM/aimDiscr: Instance = %d, Global Node ID %d\n", iIndex, storage[i]);
-//#endif
-    }
-
-    // Save way the attrMap capsGroup list
-    if (capsGroupList != NULL) {
-        storage[numPoint] = numCAPSGroup;
-        for (i = 0; i < numCAPSGroup; i++) {
-            storage[numPoint+1+i] = capsGroupList[i];
-        }
-    }
-#endif
 #ifdef DEBUG
     printf(" mystranAIM/aimDiscr: Instance = %d, Finished!!\n", iIndex);
 #endif
@@ -1903,16 +1443,7 @@ cleanup:
     if (status != CAPS_SUCCESS)
         printf("\tPremature exit: function aimDiscr mystranAIM status = %d\n",
                status);
-#ifdef OLD_DISCR_IMPLEMENTATION_TO_REMOVE
 
-    EG_free(faces);
-
-    EG_free(globalID);
-    EG_free(localStitchedID);
-
-    EG_free(capsGroupList);
-    EG_free(bodyFaceMap);
-#endif
     AIM_FREE(tess);
     return status;
 }

@@ -3,7 +3,7 @@
  *
  *             AIM Utility Functions
  *
- *      Copyright 2014-2021, Massachusetts Institute of Technology
+ *      Copyright 2014-2022, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -97,7 +97,103 @@ aim_getRootPath(void *aimStruc, const char **fullPath)
 
 
 int
+aim_fileLink(void *aimStruc, /*@null@*/ char *srcPath)
+{
+  int          i, len, status;
+  char         aimFile[PATH_MAX], otherPhAIM[PATH_MAX];
+  aimInfo      *aInfo;
+  capsAnalysis *analysis;
+  capsProblem  *problem;
+  FILE         *fp;
+
+  aInfo = (aimInfo *) aimStruc;
+  if (aInfo == NULL)                   return CAPS_NULLOBJ;
+  if (aInfo->magicnumber != CAPSMAGIC) return CAPS_BADOBJECT;
+  problem  = aInfo->problem;
+  analysis = (capsAnalysis *) aInfo->analysis;
+
+  status = snprintf(aimFile, PATH_MAX, "%s.clnk", analysis->fullPath);
+  if (status >= PATH_MAX) {
+    AIM_ERROR(aimStruc, "File path exceeds max length!");
+    return CAPS_DIRERR;
+  }
+  if (access(aimFile, F_OK) != 0) return CAPS_NOTFOUND;
+  
+  if (srcPath != NULL) {
+    fp = fopen(aimFile, "r");
+    if (fp == NULL) {
+      AIM_ERROR(aimStruc, "Cannot open file: %s!", aimFile);
+      return CAPS_DIRERR;
+    }
+    fscanf(fp, "%s", otherPhAIM);
+/*@-dependenttrans@*/
+    fclose(fp);
+/*@+dependenttrans@*/
+    len = strlen(problem->root) + 1;
+    for (i = 0; i < len; i++) aimFile[i] = problem->root[i];
+    for (i = len-1; i > 0; i--)
+      if (aimFile[i] == SLASH) break;
+    aimFile[i] = 0;
+    status = snprintf(srcPath, PATH_MAX, "%s%c%s", aimFile, SLASH, otherPhAIM);
+    if (status >= PATH_MAX) {
+      AIM_ERROR(aimStruc, "File path exceeds max length!");
+      return CAPS_DIRERR;
+    }
+  }
+
+  return CAPS_SUCCESS;
+}
+
+
+int
 aim_file(void *aimStruc, const char *file, char *aimFile)
+{
+  int          status;
+  aimInfo      *aInfo;
+  capsAnalysis *analysis;
+  char         srcPath[PATH_MAX];
+  const char   *filename = file;
+#ifdef WIN32
+  char         back[PATH_MAX];
+
+  status = aim_flipSlash(file, back);
+  if (status != CAPS_SUCCESS) {
+    AIM_ERROR(aimStruc, "File path exceeds max length!");
+    return CAPS_DIRERR;
+  }
+  filename = back;
+#endif
+
+  aInfo = (aimInfo *) aimStruc;
+  if (aInfo == NULL)                   return CAPS_NULLOBJ;
+  if (aInfo->magicnumber != CAPSMAGIC) return CAPS_BADOBJECT;
+  analysis = (capsAnalysis *) aInfo->analysis;
+  
+  status = aim_fileLink(aimStruc, srcPath);
+  if (status == CAPS_SUCCESS) {
+    status = snprintf(aimFile, PATH_MAX, "%s%c%s",
+                      srcPath, SLASH, filename);
+    if (status >= PATH_MAX) {
+      AIM_ERROR(aimStruc, "File path exceeds max length!");
+      return CAPS_DIRERR;
+    }
+    return CAPS_SUCCESS;
+  } else if (status == CAPS_NOTFOUND) {
+    status = snprintf(aimFile, PATH_MAX, "%s%c%s",
+                      analysis->fullPath, SLASH, filename);
+    if (status >= PATH_MAX) {
+      AIM_ERROR(aimStruc, "File path exceeds max length!");
+      return CAPS_DIRERR;
+    }
+    return CAPS_SUCCESS;
+  }
+
+  return status;
+}
+
+
+static int
+aim_fileSP(void *aimStruc, const char *file, char *aimFile)
 {
   int          status;
   aimInfo      *aInfo;
@@ -119,7 +215,7 @@ aim_file(void *aimStruc, const char *file, char *aimFile)
   if (aInfo->magicnumber != CAPSMAGIC) return CAPS_BADOBJECT;
   analysis = (capsAnalysis *) aInfo->analysis;
 
-  status = snprintf(aimFile, PATH_MAX, "%s%c%s",
+  status = snprintf(aimFile, PATH_MAX, "\"%s%c\"%s",
                     analysis->fullPath, SLASH, filename);
   if (status >= PATH_MAX) {
     AIM_ERROR(aimStruc, "File path exceeds max length!");
@@ -168,6 +264,18 @@ aim_mkDir(void *aimStruc, const char *path)
 {
   int  status;
   char aimDir[PATH_MAX];
+  aimInfo *aInfo;
+  
+  aInfo = (aimInfo *) aimStruc;
+  if (aInfo == NULL)                   return CAPS_NULLOBJ;
+  if (aInfo->magicnumber != CAPSMAGIC) return CAPS_BADOBJECT;
+  if (aInfo->funID == AIM_UPDATESTATE) return CAPS_STATEERR;
+
+  status = aim_fileLink(aimStruc, NULL);
+  if (status == CAPS_SUCCESS) {
+    AIM_ERROR(aimStruc, "Making a Directory in a CAPS link!");
+    return CAPS_FILELINKERR;
+  }
 
   status = aim_file(aimStruc, path, aimDir);
   if (status != CAPS_SUCCESS) return status;
@@ -196,32 +304,39 @@ aim_rmDir(void *aimStruc, const char *path)
 {
   int  status;
   size_t i, len;
-  char cmd[PATH_MAX+13];
+  char cmd[PATH_MAX+14];
   char aimDir[PATH_MAX];
-  int  wild = (int)false;
+  int  wild = (int) false;
+  aimInfo *aInfo;
+  
+  aInfo = (aimInfo *) aimStruc;
+  if (aInfo == NULL)                   return CAPS_NULLOBJ;
+  if (aInfo->magicnumber != CAPSMAGIC) return CAPS_BADOBJECT;
+  if (aInfo->funID == AIM_UPDATESTATE) return CAPS_STATEERR;
+
+  status = aim_fileLink(aimStruc, NULL);
+  if (status == CAPS_SUCCESS) {
+    AIM_ERROR(aimStruc, "Removing a Directory in a CAPS link!");
+    return CAPS_FILELINKERR;
+  }
 
   len = strlen(path);
   for (i = 0; i < len; i++) {
-    if (path[i] == '*' || path[i] == '?')
-      wild = (int)true;
-    if (path[i] == ' ') {
-      AIM_ERROR(aimStruc, "path ('%s') may not contain spaces!", path);
-      return CAPS_DIRERR;
-    }
+    if (path[i] == '*' || path[i] == '?') wild = (int) true;
   }
-  if (wild == (int)false) {
+  if (wild == (int) false) {
     status = aim_isDir(aimStruc, path);
     if (status != CAPS_SUCCESS) return status;
   }
-  status = aim_file(aimStruc, path, aimDir);
+  status = aim_fileSP(aimStruc, path, aimDir);
   if (status != CAPS_SUCCESS) return status;
 
 #ifdef WIN32
-  snprintf(cmd, PATH_MAX+13, "rmdir /Q /S %s", aimDir);
+  snprintf(cmd, PATH_MAX+14, "rmdir /Q /S %s", aimDir);
   fflush(NULL);
 #else
   if (status != CAPS_SUCCESS) return status;
-  snprintf(cmd, PATH_MAX+13, "rm -rf %s", aimDir);
+  snprintf(cmd, PATH_MAX+14, "rm -rf %s", aimDir);
 #endif
   status = system(cmd);
   if ((status == -1) || (status == 127)) return CAPS_DIRERR;
@@ -245,13 +360,52 @@ aim_isFile(void *aimStruc, const char *file)
 }
 
 
+int
+aim_rmFile(void *aimStruc, const char *file)
+{
+  int  status;
+  char aimFile[PATH_MAX];
+  aimInfo *aInfo;
+  
+  aInfo = (aimInfo *) aimStruc;
+  if (aInfo == NULL)                   return CAPS_NULLOBJ;
+  if (aInfo->magicnumber != CAPSMAGIC) return CAPS_BADOBJECT;
+  if (aInfo->funID == AIM_UPDATESTATE) return CAPS_STATEERR;
+
+  status = aim_fileLink(aimStruc, NULL);
+  if (status == CAPS_SUCCESS) {
+    AIM_ERROR(aimStruc, "Removing a file in a CAPS link!");
+    return CAPS_FILELINKERR;
+  }
+
+  status = aim_file(aimStruc, file, aimFile);
+  if (status != CAPS_SUCCESS) return status;
+
+  remove(aimFile);
+
+  return CAPS_SUCCESS;
+}
+
+
 int aim_cpFile(void *aimStruc, const char *src, const char *dst)
 {
   int  status;
-  char cmd[2*PATH_MAX+10], aimDst[PATH_MAX];
+  char cmd[2*PATH_MAX+14], aimDst[PATH_MAX];
+  aimInfo *aInfo;
 #ifdef WIN32
   char sback[PATH_MAX], dback[PATH_MAX];
 #endif
+
+  aInfo = (aimInfo *) aimStruc;
+  if (aInfo == NULL)                   return CAPS_NULLOBJ;
+  if (aInfo->magicnumber != CAPSMAGIC) return CAPS_BADOBJECT;
+  if (aInfo->funID == AIM_UPDATESTATE) return CAPS_STATEERR;
+
+  status = aim_fileLink(aimStruc, NULL);
+  if (status == CAPS_SUCCESS) {
+    AIM_ERROR(aimStruc, "Copying a file into a CAPS link!");
+    return CAPS_FILELINKERR;
+  }
 
   if (strlen(src) > PATH_MAX) {
     AIM_ERROR(aimStruc, "File src path exceeds max length!");
@@ -270,10 +424,10 @@ int aim_cpFile(void *aimStruc, const char *src, const char *dst)
   if (status != EGADS_SUCCESS)  return status;
   status = aim_flipSlash(aimDst, dback);
   if (status != EGADS_SUCCESS)  return status;
-  snprintf(cmd, 2*PATH_MAX+10, "copy /Y %s %s", sback, dback);
+  snprintf(cmd, 2*PATH_MAX+14, "copy /Y \"%s\" \"%s\"", sback, dback);
   fflush(NULL);
 #else
-  snprintf(cmd, 2*PATH_MAX+10, "cp %s %s", src, aimDst);
+  snprintf(cmd, 2*PATH_MAX+14, "cp '%s' '%s'", src, aimDst);
 #endif
   status = system(cmd);
   if (status != 0) {
@@ -288,8 +442,8 @@ int aim_cpFile(void *aimStruc, const char *src, const char *dst)
 int aim_relPath(void *aimStruc, const char *src,
                 /*@null@*/ const char *dst, char *relPath)
 {
-  int         i, j, len, status;
-  char        aimDst[PATH_MAX], *ptr;
+  int         i, j, k, len, lsrc, nsrc, ldst, ndst, status;
+  char        aimDst[PATH_MAX];
   aimInfo     *aInfo;
   capsProblem *problem;
 
@@ -325,29 +479,61 @@ int aim_relPath(void *aimStruc, const char *src,
     status   = aim_file(aimStruc, ".", aimDst);
   }
   AIM_STATUS(aimStruc, status);
-
+  
+  /* get Problem path */
   len = strlen(problem->root);
-  if ((len >= strlen(src)) || (len >= strlen(aimDst))) {
+  for (k = len-1; k > 0; k--)
+    if (problem->root[k] == SLASH) break;
+  if ((k >= strlen(src)) || (k >= strlen(aimDst))) {
     AIM_ERROR(aimStruc, "File not in rootPath!");
     return CAPS_IOERR;
   }
-  for (i = 0; i < len; i++)
+  for (i = 0; i < k; i++)
     if ((problem->root[i] != src[i]) || (problem->root[i] != aimDst[i])) {
-      AIM_ERROR(aimStruc, "Path mismatch!");
+      AIM_ERROR(aimStruc, "Problem path mismatch!");
       return CAPS_IOERR;
     }
-  len++; /* skip the slash */
-
-  j = 0;
-  ptr = aimDst+len;
-  while((ptr = strchr(ptr, SLASH)) != NULL) {
-    relPath[j++] = '.';
-    relPath[j++] = '.';
-    relPath[j++] = SLASH;
-    ptr++;
+  
+  if (strcmp(src, aimDst) == 0) {
+    relPath[0] = '.';
+    return CAPS_SUCCESS;
   }
+  
+  /* find the level */
+  lsrc = strlen(src);
+  nsrc = 0;
+  for (i = k+1; i < lsrc; i++)
+    if (src[i] == SLASH) nsrc++;
+  ldst = strlen(aimDst);
+  ndst = 0;
+  for (i = k+1; i < ldst; i++)
+    if (aimDst[i] == SLASH) ndst++;
+  j = ldst;
+  if (j > lsrc) j = lsrc;
+  for (i = k+1; i < j; i++)
+    if (src[i] == aimDst[i]) {
+      if (src[i] == SLASH) {
+        nsrc--;
+        ndst--;
+        k = i;
+      }
+    } else {
+      break;
+    }
 
-  for (i = len; i <= strlen(src); i++, j++) relPath[j] = src[i];
+  /* construct the relative path */
+  j = 0;
+  relPath[j++] = '.';
+  relPath[j++] = '.';
+  relPath[j++] = SLASH;
+  if (nsrc < ndst) {
+    for (i = 0; i < ndst-nsrc; i++) {
+      relPath[j++] = '.';
+      relPath[j++] = '.';
+      relPath[j++] = SLASH;
+    }
+  }
+  for (i = k+1; i <= lsrc; i++, j++) relPath[j] = src[i];
 
 cleanup:
   return status;
@@ -361,12 +547,13 @@ int aim_symLink(void *aimStruc, const char *src, /*@null@*/ const char *dst)
   return      aim_cpFile(aimStruc, src, dst);
 #else
   int         i, j, k, m, len, status;
-  char        cmd[2*PATH_MAX+10], aimDst[PATH_MAX], relSrc[PATH_MAX];
+  char        cmd[2*PATH_MAX+14], aimDst[PATH_MAX], relSrc[PATH_MAX];
   aimInfo     *aInfo;
 
   aInfo = (aimInfo *) aimStruc;
   if (aInfo == NULL)                   return CAPS_NULLOBJ;
   if (aInfo->magicnumber != CAPSMAGIC) return CAPS_BADOBJECT;
+  if (aInfo->funID == AIM_UPDATESTATE) return CAPS_STATEERR;
 
   if (strlen(src) > PATH_MAX) {
     AIM_ERROR(aimStruc, "File src path exceeds max length!");
@@ -375,6 +562,12 @@ int aim_symLink(void *aimStruc, const char *src, /*@null@*/ const char *dst)
   if (access(src, F_OK) != 0) {
     AIM_ERROR(aimStruc, "%s Not a File!", src);
     return CAPS_IOERR;
+  }
+  
+  status = aim_fileLink(aimStruc, NULL);
+  if (status == CAPS_SUCCESS) {
+    AIM_ERROR(aimStruc, "Making a symLink in a CAPS link!");
+    return CAPS_FILELINKERR;
   }
 
   /* convert the absolute src path to a relative path */
@@ -410,7 +603,7 @@ int aim_symLink(void *aimStruc, const char *src, /*@null@*/ const char *dst)
   }
   unlink(aimDst);
 
-  snprintf(cmd, 2*PATH_MAX+10, "ln -s %s %s", relSrc, aimDst);
+  snprintf(cmd, 2*PATH_MAX+14, "ln -s '%s' '%s'", relSrc, aimDst);
   status = system(cmd);
   if (status != 0) {
     AIM_ERROR(aimStruc, "Could not execute: %s", cmd);
@@ -426,18 +619,33 @@ cleanup:
 /*@null@*/ /*@out@*/ /*@only@*/ FILE *
 aim_fopen(void *aimStruc, const char *path, const char *mode)
 {
-  int          status;
-  char         fullPath[PATH_MAX];
+  int          i, status, len;
+  char         fullPath[PATH_MAX], srcPath[PATH_MAX];
   aimInfo      *aInfo;
   capsAnalysis *analysis;
 
   aInfo = (aimInfo *) aimStruc;
+  if (mode  == NULL)                   return NULL;
   if (aInfo == NULL)                   return NULL;
   if (aInfo->magicnumber != CAPSMAGIC) return NULL;
   analysis = (capsAnalysis *) aInfo->analysis;
+  
+  if (aInfo->funID == AIM_UPDATESTATE) {
+    len = strlen(mode);
+    for (i = 0; i < len; i++)
+      if ((mode[i] == 'w') || (mode[i] == 'a') || (mode[i] == '+')) return NULL;
+  }
 
-  status   = snprintf(fullPath, PATH_MAX, "%s%c%s",
-                      analysis->fullPath, SLASH, path);
+  status   = aim_fileLink(aimStruc, srcPath);
+  if (status == CAPS_SUCCESS) {
+    len = strlen(mode);
+    for (i = 0; i < len; i++)
+      if ((mode[i] == 'w') || (mode[i] == 'a') || (mode[i] == '+')) return NULL;
+    status = snprintf(fullPath, PATH_MAX, "%s%c%s", srcPath, SLASH, path);
+  } else {
+    status = snprintf(fullPath, PATH_MAX, "%s%c%s", analysis->fullPath, SLASH,
+                      path);
+  }
   if (status >= PATH_MAX) return NULL;
 
 /*@-dependenttrans@*/
@@ -459,20 +667,27 @@ aim_system(void *aimStruc, /*@null@*/ const char *rpath, const char *command)
   aInfo = (aimInfo *) aimStruc;
   if (aInfo == NULL)                   return CAPS_NULLOBJ;
   if (aInfo->magicnumber != CAPSMAGIC) return CAPS_BADOBJECT;
+  if (aInfo->funID == AIM_UPDATESTATE) return CAPS_STATEERR;
   problem  = aInfo->problem;
   analysis = (capsAnalysis *) aInfo->analysis;
+  
+  status   = aim_fileLink(aimStruc, NULL);
+  if (status == CAPS_SUCCESS) {
+    AIM_ERROR(aimStruc, "Running a command in a CAPS link!");
+    return CAPS_FILELINKERR;
+  }
 
   len = 9 + strlen(problem->root) + 1 + strlen(analysis->path) +
-        4 + strlen(command) + 1;
+        4 + strlen(command) + 3;
   if (rpath == NULL) {
     fullcommand = EG_alloc(len*sizeof(char));
     if (fullcommand == NULL) return EGADS_MALLOC;
 #ifdef WIN32
-    status = snprintf(fullcommand, len, "%c: && cd %s\\%s && %s",
+    status = snprintf(fullcommand, len, "%c: && cd \"%s\\%s\" && %s",
                       problem->root[0], &problem->root[2], analysis->path,
                       command);
 #else
-    status = snprintf(fullcommand, len, "cd %s/%s && %s",
+    status = snprintf(fullcommand, len, "cd '%s/%s' && %s",
                       problem->root, analysis->path, command);
 #endif
   } else {
@@ -480,11 +695,11 @@ aim_system(void *aimStruc, /*@null@*/ const char *rpath, const char *command)
     fullcommand = EG_alloc(len*sizeof(char));
     if (fullcommand == NULL) return EGADS_MALLOC;
 #ifdef WIN32
-    status = snprintf(fullcommand, len, "%c: && cd %s\\%s\\%s && %s",
+    status = snprintf(fullcommand, len, "%c: && cd \"%s\\%s\\%s\" && %s",
                       problem->root[0], &problem->root[2], analysis->path,
                       rpath, command);
 #else
-    status = snprintf(fullcommand, len, "cd %s/%s/%s && %s",
+    status = snprintf(fullcommand, len, "cd '%s/%s/%s' && %s",
                       problem->root, analysis->path, rpath, command);
 #endif
   }
@@ -633,8 +848,8 @@ aim_convert(void *aimStruc, const int count,
   }
 
   aInfo = (aimInfo *) aimStruc;
-  if (aInfo == NULL)                           return CAPS_NULLOBJ;
-  if (aInfo->magicnumber != CAPSMAGIC)         return CAPS_BADOBJECT;
+  if (aInfo == NULL)                   return CAPS_NULLOBJ;
+  if (aInfo->magicnumber != CAPSMAGIC) return CAPS_BADOBJECT;
   problem = aInfo->problem;
 
   utunit1 = ut_parse((ut_system *) problem->utsystem,  inUnits, UT_ASCII);
@@ -998,6 +1213,143 @@ aim_initValue(capsValue *value)
 
 
 int
+aim_copyValue(capsValue *value, capsValue *copy)
+{
+  int i, j, len;
+
+  if (value == NULL) return CAPS_NULLVALUE;
+  if (copy  == NULL) return CAPS_NULLVALUE;
+
+  aim_initValue(copy);
+
+  copy->length          = value->length;
+  copy->nrow            = value->nrow;
+  copy->ncol            = value->ncol;
+  copy->type            = value->type;
+  copy->dim             = value->dim;
+  copy->pIndex          = value->pIndex;
+  copy->index           = value->index;
+  copy->lfixed          = value->lfixed;
+  copy->sfixed          = value->sfixed;
+  copy->nullVal         = value->nullVal;
+  copy->units           = EG_strdup(value->units);
+  copy->meshWriter      = value->meshWriter;
+  copy->link            = value->link;
+
+  if (copy->type == Double || copy->type == DoubleDeriv) {
+    if (value->length > 1) {
+      copy->vals.reals = (double*)EG_alloc(value->length*sizeof(double));
+      if (copy->vals.reals == NULL) return EGADS_MALLOC;
+      for (i = 0; i < value->length; i++)
+        copy->vals.reals[i] = value->vals.reals[i];
+    } else {
+      copy->vals.real = value->vals.real;
+    }
+  } else if (copy->type == Integer) {
+    if (value->length > 1) {
+      copy->vals.integers = (int*)EG_alloc(value->length*sizeof(int));
+      if (copy->vals.integers == NULL) return EGADS_MALLOC;
+      for (i = 0; i < value->length; i++)
+        copy->vals.integers[i] = value->vals.integers[i];
+    } else {
+      copy->vals.integer = value->vals.integer;
+    }
+  } else if (copy->type == String) {
+    if (value->length > 1) {
+      len = 0;
+      for (i = 0; i < value->length; i++)
+        len += strlen(&value->vals.string[len])+1;
+
+      copy->vals.string = (char*)EG_alloc(len*sizeof(char));
+      if (copy->vals.string == NULL) return EGADS_MALLOC;
+      for (i = 0; i < len; i++)
+        copy->vals.string[i] = value->vals.string[i];
+    } else {
+      copy->vals.string = EG_strdup(value->vals.string);
+    }
+  } else if (copy->type == Tuple) {
+
+    copy->vals.tuple = (capsTuple*)EG_alloc(value->length*sizeof(capsTuple));
+    if (copy->vals.tuple == NULL) return EGADS_MALLOC;
+    for (i = 0; i < value->length; i++) {
+      copy->vals.tuple[i].name = EG_strdup(value->vals.tuple[i].name);
+      copy->vals.tuple[i].value = EG_strdup(value->vals.tuple[i].value);
+    }
+  } else {
+    return CAPS_NOTIMPLEMENT;
+  }
+
+  copy->limits.dlims[0] = value->limits.dlims[0];
+  copy->limits.dlims[1] = value->limits.dlims[1];
+  copy->linkMethod      = value->linkMethod;
+  copy->gInType         = value->gInType;
+  if (value->partial != NULL) {
+    copy->partial = (int*)EG_alloc(value->length*sizeof(int));
+    if (copy->partial == NULL) return EGADS_MALLOC;
+
+    for (i = 0; i < value->length; i++)
+      copy->partial[i] = value->partial[i];
+  }
+  copy->nderiv = value->nderiv;
+  if (value->derivs != NULL) {
+
+    copy->derivs = (capsDeriv*)EG_alloc(value->nderiv*sizeof(capsDeriv));
+    if (copy->derivs == NULL) return EGADS_MALLOC;
+
+    for (i = 0; i < value->length; i++) {
+      copy->derivs[i].len_wrt = value->derivs[i].len_wrt;
+      copy->derivs[i].name = EG_strdup(copy->derivs[i].name);
+
+      len = value->length*value->derivs[i].len_wrt;
+      copy->derivs[i].deriv = (double*)EG_alloc(len*sizeof(double));
+      for (j = 0; j < len; j++) {
+        copy->derivs[i].deriv[j] = value->derivs[i].deriv[j];
+      }
+    }
+  }
+
+  return CAPS_SUCCESS;
+}
+
+
+void
+aim_freeValue(capsValue *value)
+{
+  int i;
+
+  if (value == NULL) return;
+
+  EG_free(value->units);
+
+  if (value->length > 1) {
+    if (value->type == Double || value->type == DoubleDeriv) {
+      EG_free(value->vals.reals);
+    } else if (value->type == Integer) {
+      EG_free(value->vals.integers);
+    } else if (value->type == String) {
+      EG_free(value->vals.string);
+    } else if (value->type == Tuple) {
+      for (i = 0; i < value->length; i++) {
+        EG_free(value->vals.tuple[i].name);
+        EG_free(value->vals.tuple[i].value);
+      }
+      EG_free(value->vals.tuple);
+    }
+  }
+  EG_free(value->partial);
+  if (value->derivs != NULL) {
+    for (i = 0; i < value->nderiv; i++) {
+      EG_free(value->derivs[i].name);
+      EG_free(value->derivs[i].deriv);
+    }
+    EG_free(value->derivs);
+  }
+
+  aim_initValue(value);
+}
+
+
+int
 aim_makeDynamicOutput(void *aimStruc, const char *dynObjName, capsValue *value)
 {
   int          i;
@@ -1008,11 +1360,11 @@ aim_makeDynamicOutput(void *aimStruc, const char *dynObjName, capsValue *value)
   capsObject   *obj, **tmp, *pobject;
 
   aInfo = (aimInfo *) aimStruc;
-  if (aInfo == NULL)                   return CAPS_NULLOBJ;
-  if (aInfo->magicnumber != CAPSMAGIC) return CAPS_BADOBJECT;
-  if (dynObjName == NULL)              return CAPS_NULLNAME;
-  if (value      == NULL)              return CAPS_NULLVALUE;
-  if (aInfo->inPost != 1)              return CAPS_STATEERR;
+  if (aInfo == NULL)                    return CAPS_NULLOBJ;
+  if (aInfo->magicnumber != CAPSMAGIC)  return CAPS_BADOBJECT;
+  if (dynObjName == NULL)               return CAPS_NULLNAME;
+  if (value      == NULL)               return CAPS_NULLVALUE;
+  if (aInfo->funID != AIM_POSTANALYSIS) return CAPS_STATEERR;
   problem  = aInfo->problem;
   pobject  = problem->mySelf;
   analysis = (capsAnalysis *) aInfo->analysis;
@@ -1060,11 +1412,12 @@ aim_makeDynamicOutput(void *aimStruc, const char *dynObjName, capsValue *value)
   }
   /* copy contents */
   (*val) = (*value);
-  val->index = analysis->nAnalysisDynO;
+  val->index = analysis->nAnalysisDynO+1;
 
   obj->magicnumber = CAPSMAGIC;
   obj->type        = VALUE;
   obj->subtype     = ANALYSISDYNO;
+  obj->delMark     = 0;
   obj->name        = EG_strdup(dynObjName);
   obj->attrs       = NULL;
   obj->blind       = val;
@@ -1072,8 +1425,7 @@ aim_makeDynamicOutput(void *aimStruc, const char *dynObjName, capsValue *value)
   obj->parent      = problem->analysis[i];
   obj->nHistory    = 0;
   obj->history     = NULL;
-  obj->last.nLines = 0;
-  obj->last.lines  = NULL;
+  obj->last.index  = -1;
   obj->last.pname  = EG_strdup(pobject->last.pname);
   obj->last.pID    = EG_strdup(pobject->last.pID);
   obj->last.user   = EG_strdup(pobject->last.user);
@@ -1310,6 +1662,7 @@ aim_getDataSet(capsDiscr *discr, const char *dname, enum capsdMethod *method,
   aInfo   = discr->aInfo;
   if (aInfo == NULL)                   return CAPS_NULLOBJ;
   if (aInfo->magicnumber != CAPSMAGIC) return CAPS_BADOBJECT;
+  if (aInfo->funID != AIM_PREANALYSIS) return CAPS_STATEERR;
   problem  = aInfo->problem;
   analysis = (capsAnalysis *) aInfo->analysis;
 
@@ -1714,7 +2067,7 @@ int
 aim_getSensitivity(void *aimStruc, ego tess, int ttype, int index, int *npts,
                    double **dxyz)
 {
-  int          i, stat, ibody, npt, ntri, type;
+  int          i, stat, ibody, npt, ntri, type, outLevel;
   double       *dsen;
   const int    *ptype, *pindex, *tris, *tric;
   const double *xyzs, *parms;
@@ -1788,14 +2141,18 @@ aim_getSensitivity(void *aimStruc, ego tess, int ttype, int index, int *npts,
 
   /* get and return the requested sensitivity */
   if (ttype <= 0) {
+    outLevel = ocsmSetOutLevel(0);
     stat = ocsmGetVel(problem->modl, ibody, type, index, npt, NULL, dsen);
+    ocsmSetOutLevel(outLevel);
     if (stat != SUCCESS) {
       EG_free(dsen);
       MODL->body[ibody].etess = oldtess;
       return stat;
     }
   } else {
+    outLevel = ocsmSetOutLevel(0);
     stat = ocsmGetTessVel(problem->modl, ibody, type, index, &xyzs);
+    ocsmSetOutLevel(outLevel);
     if (stat != SUCCESS) {
       EG_free(dsen);
       MODL->body[ibody].etess = oldtess;
@@ -1805,6 +2162,8 @@ aim_getSensitivity(void *aimStruc, ego tess, int ttype, int index, int *npts,
   }
   /* reset OCSMs tessellation */
   MODL->body[ibody].etess = oldtess;
+  if (MODL->dtime != 0)
+    printf(" CAPS Info: Sensitivity finite differenced\n");
 
   *npts = npt;
   *dxyz = dsen;
@@ -1817,12 +2176,13 @@ aim_tessSensitivity(void *aimStruc, const char *GIname, int irow, int icol,
                     ego tess, int *npts, double **dxyz)
 {
   int          i, j, ipmtr, ibody, stat, nbrch, npmtr, nbody, nrow, ncol, type;
-  int          npt, nface, np, ntris, global;
+  int          npt, nface, np, ntris, global, outLevel;
   const int    *ptype, *pindex, *tris, *tric;
   char         name[MAX_NAME_LEN];
   double       *dsen;
   const double *xyzs, *xyz, *uv;
   ego          body, oldtess;
+  egTessel     *btess;
   modl_T       *MODL;
   aimInfo      *aInfo;
   capsProblem  *problem;
@@ -1884,27 +2244,58 @@ aim_tessSensitivity(void *aimStruc, const char *GIname, int irow, int icol,
   /* return the requested sensitivity */
   oldtess = MODL->body[ibody].etess;
   MODL->body[ibody].etess = tess;
-  for (i = 1; i <= nface; i++) {
-    stat = EG_getTessFace(tess, i, &np, &xyz, &uv, &ptype, &pindex, &ntris,
-                          &tris, &tric);
-    if (stat != EGADS_SUCCESS) {
-      EG_free(dsen);
-      return stat;
-    }
-    stat = ocsmGetTessVel(problem->modl, ibody, OCSM_FACE, i, &xyzs);
-    if (stat != SUCCESS) {
-      EG_free(dsen);
-      return stat;
-    }
-    for (j = 1; j <= np; j++) {
-      stat = EG_localToGlobal(tess, i, j, &global);
+
+  btess = (egTessel *) tess->blind;
+  if (btess->nFace == 0) {
+    for (i = 1; i <= btess->nEdge; i++) {
+      stat = EG_getTessEdge(tess, i, &np, &xyz, &uv);
       if (stat != EGADS_SUCCESS) {
         EG_free(dsen);
         return stat;
       }
-      dsen[3*global-3] = xyzs[3*j-3];
-      dsen[3*global-2] = xyzs[3*j-2];
-      dsen[3*global-1] = xyzs[3*j-1];
+      outLevel = ocsmSetOutLevel(0);
+      stat = ocsmGetTessVel(problem->modl, ibody, OCSM_EDGE, i, &xyzs);
+      ocsmSetOutLevel(outLevel);
+      if (stat != SUCCESS) {
+        EG_free(dsen);
+        return stat;
+      }
+      for (j = 1; j <= np; j++) {
+        stat = EG_localToGlobal(tess, -i, j, &global);
+        if (stat != EGADS_SUCCESS) {
+          EG_free(dsen);
+          return stat;
+        }
+        dsen[3*global-3] = xyzs[3*j-3];
+        dsen[3*global-2] = xyzs[3*j-2];
+        dsen[3*global-1] = xyzs[3*j-1];
+      }
+    }
+  } else {
+    for (i = 1; i <= nface; i++) {
+      stat = EG_getTessFace(tess, i, &np, &xyz, &uv, &ptype, &pindex, &ntris,
+                            &tris, &tric);
+      if (stat != EGADS_SUCCESS) {
+        EG_free(dsen);
+        return stat;
+      }
+      outLevel = ocsmSetOutLevel(0);
+      stat = ocsmGetTessVel(problem->modl, ibody, OCSM_FACE, i, &xyzs);
+      ocsmSetOutLevel(outLevel);
+      if (stat != SUCCESS) {
+        EG_free(dsen);
+        return stat;
+      }
+      for (j = 1; j <= np; j++) {
+        stat = EG_localToGlobal(tess, i, j, &global);
+        if (stat != EGADS_SUCCESS) {
+          EG_free(dsen);
+          return stat;
+        }
+        dsen[3*global-3] = xyzs[3*j-3];
+        dsen[3*global-2] = xyzs[3*j-2];
+        dsen[3*global-1] = xyzs[3*j-1];
+      }
     }
   }
   MODL->body[ibody].etess = oldtess;
@@ -1973,10 +2364,11 @@ aim_isNodeBody(ego body, double *xyz)
 static void
 aim_addErrorLine(void *aimStruc, enum capseType etype, const char *line)
 {
-  int       index, len;
-  char      **ltmp;
-  capsError *etmp;
-  aimInfo   *aInfo;
+  int        index, len, i;
+  char       **ltmp;
+  capsError  *etmp;
+  aimInfo    *aInfo;
+  char       buffer[EBUFSIZE] = {'\0'};
 
   aInfo = (aimInfo *) aimStruc;
   if (aInfo == NULL)                   return;
@@ -1992,7 +2384,9 @@ aim_addErrorLine(void *aimStruc, enum capseType etype, const char *line)
     ltmp  = (char **) EG_reall(aInfo->errs.errors[index].lines,
                                len*sizeof(char *));
     if (ltmp == NULL) return;
-    ltmp[len-1] = EG_strdup(line);
+    for (i = 0; i < 2; i++) buffer[i] = ' ';
+    strncat(buffer + 2, line, EBUFSIZE-3);
+    ltmp[len-1] = EG_strdup(buffer);
     aInfo->errs.errors[index].lines  = ltmp;
     aInfo->errs.errors[index].nLines = len;
     return;

@@ -31,7 +31,7 @@ $(ODIR)/ugridWriter.o:	ugridWriter.c $(IDIR)/aimUtil.h $(IDIR)/aimMesh.h
 LINT_FLAGS=-uniondef -exportlocal -nullpass -retvalother -evalorder -nullderef \
            -initallelements -bufferoverflowhigh -boolops -dependenttrans -kepttrans -immediatetrans
 lint:
-	$(LINT) -I../../include -I$(IDIR) $(patsubst %.o,%.c,$(OBJS)) $(LINT_FLAGS)
+	$(LINT) -I../../../include -I$(IDIR) $(patsubst %.o,%.c,$(OBJS)) $(LINT_FLAGS)
 
 clean:
 	-(cd $(ODIR); rm -f $(OBJS) )

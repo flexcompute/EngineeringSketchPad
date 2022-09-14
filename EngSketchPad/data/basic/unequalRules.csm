@@ -1,0 +1,84 @@
+# unequalRules
+# written by John Dannenhoffer
+
+# sketches
+SKBEG      0   0   0
+   LINSEG  0   0   3
+   LINSEG  0   1   3
+   LINSEG  0   4   0
+   LINSEG  0   1  -3
+   LINSEG  0   0  -3
+   LINSEG  0   0   0
+SKEND
+STORE     sketch 1
+
+SKBEG      0   0   0
+   LINSEG  0   0   3
+   LINSEG  0   4   0
+   LINSEG  0   0  -3
+   LINSEG  0   0   0
+SKEND
+STORE     sketch 2
+
+# using CONNECT with degenerate Edges
+RESTORE   sketch 1
+TRANSLATE -5   5   0
+RESTORE   sketch 2
+TRANSLATE  5   5   0
+CONNECT    1   1   1;2;3;4;5;6  1;0;2;3;0;4
+
+RESTORE   sketch 1
+TRANSLATE -5   5   0
+JOIN
+RESTORE   sketch 2
+TRANSLATE  5   5   0
+JOIN
+COMBINE
+
+# using RULE with triangle Edges cut equally
+MARK
+   RESTORE   sketch 1
+   TRANSLATE -5   0   0
+   RESTORE   sketch 2
+   TRANSLATE  5   0   0
+
+   # midpoint of Edge 2
+   EVALUATE  EDGERNG   @nbody  2
+   EVALUATE  EDGE      @nbody  2  (@edata[1]+@edata[2])/2
+   POINT     @edata[2] @edata[3]   @edata[4]
+   SUBTRACT
+
+   # midpoint of NEW Edge 4
+   EVALUATE  EDGERNG   @nbody  4
+   EVALUATE  EDGE      @nbody  4  (@edata[1]+@edata[2])/2
+   POINT     @edata[2] @edata[3]   @edata[4]
+   SUBTRACT
+RULE
+
+# using RULE with triangle Edges cut unequally
+MARK
+   RESTORE   sketch 1
+   TRANSLATE -5  -5   0
+   RESTORE   sketch 2
+   TRANSLATE  5  -5   0
+
+   # midpoint of Edge 2
+   EVALUATE  EDGERNG   @nbody  2
+   EVALUATE  EDGE      @nbody  2  (4*@edata[1]+@edata[2])/5
+   POINT     @edata[2] @edata[3]   @edata[4]
+   SUBTRACT
+
+   # midpoint of NEW Edge 4
+   EVALUATE  EDGERNG   @nbody  4
+   EVALUATE  EDGE      @nbody  4  (@edata[1]+4*@edata[2])/5
+   POINT     @edata[2] @edata[3]   @edata[4]
+   SUBTRACT
+RULE
+
+# show original sketches
+RESTORE   sketch 1
+TRANSLATE -8   0   0
+RESTORE   sketch 2
+TRANSLATE  8   0   0
+
+END

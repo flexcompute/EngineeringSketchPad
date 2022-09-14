@@ -23,8 +23,11 @@ workDir = os.path.join(str(args.workDir[0]), "AFLR4TetgenAnalysisTest")
 # Load CSM file
 geometryScript = os.path.join("..","csmData","cfdMultiBody.csm")
 myProblem = pyCAPS.Problem(problemName = workDir,
-                           capsFile = geometryScript, 
+                           capsFile = geometryScript,
                            outLevel = args.outLevel)
+
+# TetGen does not support wakes
+myProblem.geometry.cfgpmtr.wake = 0
 
 # Load AFLR4 aim
 mySurfMesh = myProblem.analysis.create(aim = "aflr4AIM")

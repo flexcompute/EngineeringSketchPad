@@ -1,0 +1,40 @@
+# debug
+# written by John Dannenhoffer
+#
+# can you find the 5 bugs to make a box that is 5*1*1
+
+SET       a 0
+
+BOX       0 0 0 1 1 1
+ROTATEX   0 0 0
+SCALE     1
+ATTRIBUTE _name $box.1
+STORE     box 1 1
+
+BOX       1 0 0 1 1/2 1/2
+STORE     box 2 1
+SCALE     2 1 0 0
+ROTATEY   0 0 0
+ATTRIBUTE _name $box.2
+
+SET       B  pi(0
+
+RESTORE   box 2
+UNION
+
+SET       C 2*(B+sqrt(9))+1
+
+BOX       5 0 0 1 1 1
+ROTATEZ   0 0 0
+SCALE     1 A A A
+
+EXTRACT   C
+EXTRUDE   -1 0 0
+
+UNION     B
+
+# the following two statements are correct
+ASSERT    @area     22
+ASSERT    @volume   5
+
+END

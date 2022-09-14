@@ -14,8 +14,8 @@ BLOCK "StringFileInfo"
 		VALUE "OriginalFilename", "egads.DLL"
 		VALUE "ProductName", "EGADS"
 		VALUE "ProductVersion", "1.21"
-		VALUE "LegalCopyright", "Copyright © 2011-2021 MIT. All Rights Reserved."
-		VALUE "Comment", "Copyright 2011-2021 MIT. All rights reserved."
+		VALUE "LegalCopyright", "Copyright © 2011-2022 MIT. All Rights Reserved."
+		VALUE "Comment", "Copyright 2011-2022 MIT. All rights reserved."
 	}
 }
 

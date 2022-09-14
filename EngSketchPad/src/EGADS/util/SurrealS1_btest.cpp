@@ -1,5 +1,5 @@
 // Modified from Solution Adaptive Numerical Simulator (SANS)
-// Copyright 2013-2021, Massachusetts Institute of Technology
+// Copyright 2013-2022, Massachusetts Institute of Technology
 // Licensed under The GNU Lesser General Public License, version 2.1
 // See http://www.opensource.org/licenses/lgpl-2.1.php
 
@@ -953,6 +953,16 @@ BOOST_AUTO_TEST_CASE( cmath )
   BOOST_CHECK( chkSurrealS1( v1, 1, 3 ) );
   BOOST_CHECK( chkSurrealS1( v2, 2*log(2.), 2*3/2., tol ) );
 
+  // error-functions <cmath>
+
+  v2 = 1.5*v1;
+  v3 = erf(v2);
+  BOOST_CHECK( chkSurrealS1( v2, 1.5, 4.5 ) );
+  BOOST_CHECK( chkSurrealS1( v3, erf(v2.value()), v2.deriv()*(2./sqrt(M_PI)*exp(-(v2.value()*v2.value())) )) );
+  v3 = erfc(v2);
+  BOOST_CHECK( chkSurrealS1( v2, 1.5, 4.5 ) );
+  BOOST_CHECK( chkSurrealS1( v3, erfc(v2.value()), v2.deriv()*(-2./sqrt(M_PI)*exp(-(v2.value()*v2.value())) )) );
+
   // power functions <cmath>
 
   v2 = v1;
@@ -1571,6 +1581,24 @@ BOOST_AUTO_TEST_CASE( cmath_deriv2 )
   v2 += log1p(v1);
   BOOST_CHECK( chkSurrealS1( v1, 1, 3, 0 ) );
   BOOST_CHECK( chkSurrealS1( v2, 2*log(2.), 2*3/2., -2*3./4., tol ) );
+
+  // error-functions <cmath>
+
+  v2 = 1.5*v1;
+  v3 = erf(v2);
+  BOOST_CHECK( chkSurrealS1( v2, 1.5, 4.5, 0 ) );
+  Real x2 = (v2.value().value()*v2.value().value());
+  Real erf_x  = v2.deriv().value()*(2./sqrt(M_PI)*exp(-x2));
+  Real erf_x2 = -pow(v2.deriv().value(),2)*(2./sqrt(M_PI)*exp(-x2)) +
+                 v2.deriv().deriv()*(2./sqrt(M_PI)*exp(-x2));
+  BOOST_CHECK( chkSurrealS1( v3, erf(v2.value().value()), erf_x, erf_x2, tol) );
+
+  v3 = erfc(v2);
+  BOOST_CHECK( chkSurrealS1( v2, 1.5, 4.5, 0 ) );
+  Real erfc_x  = -v2.deriv().value()*(2./sqrt(M_PI)*exp(-x2));
+  Real erfc_x2 = pow(v2.deriv().value(),2)*(2./sqrt(M_PI)*exp(-x2)) -
+                 v2.deriv().deriv()*(2./sqrt(M_PI)*exp(-x2));
+  BOOST_CHECK( chkSurrealS1( v3, erfc(v2.value().value()), erfc_x, erfc_x2, 2*tol) );
 
   // power functions <cmath>
 

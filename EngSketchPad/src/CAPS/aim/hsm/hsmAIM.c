@@ -56,7 +56,7 @@ extern void HSMSOL(int *lvinit, int *lprint,
                    double *alim, double *atol, double *adel,
                    double *parg,
                    double *damem, double *rtolm,
-                   int *nnode, double *pars, double *vars,
+                   const int *nnode, double *pars, double *vars,
                    int *nvarg, double *varg,
                    int *nelem, int *kelem,
                    int *nbcedge, int *kbcedge, double *pare,
@@ -75,7 +75,7 @@ extern void HSMDEP(int *leinit, int *lprint,
                    int *lrcurv, int *ldrill,
                    int *itmax,
                    double *elim, double *etol, double *edel,
-                   int *nnode, double *par, double *var, double *dep,
+                   const int *nnode, double *par, double *var, double *dep,
                    int *nelem, int *kelem,
                    int *kdim, int *ldim, int *nedim, int *nddim, int *nmdim,
                    double *acn,
@@ -440,7 +440,7 @@ static int createMesh(void *aimInfo, aimStorage *hsmInstance)
                                                bodies,
                                                3, //>2 - search the body, faces, edges, and all the nodes
                                                &hsmInstance->connectMap);
-    if (status != CAPS_SUCCESS) goto cleanup;*/
+    AIM_STATUS(aimInfo, status);*/
 
     // Get capsGroup name and index mapping to make sure all faces have a capsGroup value
     status = create_CAPSGroupAttrToIndexMap(numBody,
@@ -520,7 +520,8 @@ static int createMesh(void *aimInfo, aimStorage *hsmInstance)
             AIM_STATUS(aimInfo, status);
 
             // Get FEA Problem from EGADs body
-            status = hsm_bodyToBEM(bodies[body], // (in)  EGADS Body
+            status = hsm_bodyToBEM(aimInfo,
+                                   bodies[body], // (in)  EGADS Body
                                    tessParam,    // (in)  Tessellation parameters
                                    edgePointMin, // (in)  minimum points along any Edge
                                    edgePointMax, // (in)  maximum points along any Edge
@@ -533,7 +534,7 @@ static int createMesh(void *aimInfo, aimStorage *hsmInstance)
                                    NULL, //&hsmInstance->connectMap,
                                    &hsmInstance->feaMesh[hsmInstance->numMesh-1]);
 
-            if (status != CAPS_SUCCESS) goto cleanup;
+            AIM_STATUS(aimInfo, status);
 
             printf("\tNumber of nodal coordinates = %d\n",
                    hsmInstance->feaMesh[hsmInstance->numMesh-1].numNode);
@@ -553,7 +554,7 @@ static int createMesh(void *aimInfo, aimStorage *hsmInstance)
         status = mesh_combineMeshStruct(hsmInstance->numMesh,
                                         hsmInstance->feaMesh,
                                         &hsmInstance->feaProblem.feaMesh);
-        if (status != CAPS_SUCCESS) goto cleanup;
+        AIM_STATUS(aimInfo, status);
 
         // Set reference meshes
         AIM_ALLOC(hsmInstance->feaProblem.feaMesh.referenceMesh, hsmInstance->numMesh, meshStruct, aimInfo, status);
@@ -620,7 +621,7 @@ int aimInputs(void *instStore, /*@unused@*/ void *aimInfo, int index,
 {
     int status = CAPS_SUCCESS;
     aimStorage *hsmInstance;
-  
+
     /*! \page aimInputsHSM AIM Inputs
      * The following list outlines the HSM options along with their default value available
      * through the AIM interface.
@@ -796,119 +797,29 @@ cleanup:
 }
 
 
-// AIM preAnalysis function
-int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
-{
-    int status; // Status return
 
-    int i, j, k, propertyIndex, materialIndex; // Indexing
+// ********************** AIM Function Break *****************************
+int aimUpdateState(void *instStore, void *aimInfo,
+                   capsValue *aimInputs)
+{
+    int status; // Function return status
+
     aimStorage *hsmInstance;
 
-    char *filename = NULL; // Output file
-
-    //int numConnect; // Number of connections for element of a given type
-
-    // RCM variables
-    //int numOpenSeg;
-    int *elementConnect=NULL, *permutation=NULL, *permutationInv=NULL, *openSeg=NULL;
-
-    // HSM input/output parameters
-    int kdim,ldim,nedim,nddim,nmdim;
-    int lrcurv, ldrill;
-
-    int itmax;
-    double rref, elim, etol, edel;
-    double rlim, rtol, rdel;
-    double alim, atol, adel;
-    double damem, rtolm;
-
-    // global variables
-    int nvarg = 0;
-    double varg[1];
-
-    // HSM memory
-    int numBCEdge = 0, numBCNode = 0, numJoint = 0, maxDim = 0;
-    int hsmNumElement = 0;
-    int type, topoIndex;
-    int maxAdjacency = 0;
-    int *xadj = NULL, *adj = NULL, *kjoint = NULL;
-
-    hsmMemoryStruct hsmMemory;
-    hsmTempMemoryStruct hsmTempMemory;
-
-    // Temp storage
-    feaMeshDataStruct *feaData; // Not freeable
-    meshElementStruct *element; // Not freeable
-    meshNodeStruct *node; // Not freeable
-
-    // Setting variables
-    double membraneThickness, shearMembraneRatio, refLocation, massPerArea;
-    double youngModulus; // E - Young's Modulus [Longitudinal if distinction is made]
-    double youngModulusLateral; // Young's Modulus in the lateral direction
-    double shearModulus; // G - Shear Modulus
-    double poissonRatio; // Poisson's Ratio
-    double shearModulusTrans1Z; // Transverse shear modulus in the 1-Z plane
-    double shearModulusTrans2Z; // Transverse shear modulus in the 2-Z plane
-
-    double normalize, norm[3];
-
-    int found; // Checker
-
-    // Newton convergence tolerances
-    rtol = 1.0e-11;  /* relative displacements, |d|/dref */
-    atol = 1.0e-11;  /* angles (unit vector changes) */
-
-    /* reference length for displacement limiting, convergence checks
-         (should be comparable to size of the geometry) */
-    rref = 1.0;
-
-    // max Newton changes (dimensionless)
-    rlim = 0.5;
-    alim = 0.5;
-
-    // d,psi change threshold to trigger membrane-only sub-iterations
-    damem = 0.025;
-
-    // displacement convergence tolerance for membrane-only sub-iterations
-    rtolm = 1.0e-4;
-
-    //ddel    last max position Newton delta  (fraction of dref)
-    //adel    last max normal angle Newton delta
-  
     hsmInstance = (aimStorage *) instStore;
-    if (aimInputs == NULL) return CAPS_NULLVALUE;
+    AIM_NOTNULL(aimInputs, aimInfo, status);
 
     // Get project name
     hsmInstance->projectName = aimInputs[Proj_Name-1].vals.string;
 
-    status = initiate_hsmMemoryStruct(&hsmMemory);
-    if (status != CAPS_SUCCESS) goto cleanup;
-
-    status = initiate_hsmTempMemoryStruct(&hsmTempMemory);
-    if (status != CAPS_SUCCESS) goto cleanup;
-
     // Get FEA mesh if we don't already have one
-    if (aim_newGeometry(aimInfo) == CAPS_SUCCESS) {
+    if (hsmInstance->feaProblem.feaMesh.numNode == 0 ||
+        aim_newGeometry(aimInfo) == CAPS_SUCCESS) {
 
         status = createMesh(aimInfo, hsmInstance);
-        if (status != CAPS_SUCCESS) goto cleanup;
-
-        // Write Nastran Mesh
-        filename = (char *) EG_alloc((strlen(hsmInstance->projectName)+1)*sizeof(char));
-        if (filename == NULL) return EGADS_MALLOC;
-
-        strcpy(filename, hsmInstance->projectName);
-
-        status = mesh_writeNASTRAN(aimInfo,
-                                   filename,
-                                   1,
-                                   &hsmInstance->feaProblem.feaMesh,
-                                   SmallField,
-                                   1.0);
-        EG_free(filename);
-        filename = NULL;
-        if (status != CAPS_SUCCESS) return status;
+        AIM_STATUS(aimInfo, status);
     }
+
 
     // Note: Setting order is important here.
     // 1. Materials should be set before properties.
@@ -961,21 +872,141 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
                              &hsmInstance->loadMap,
                              &hsmInstance->feaProblem);
         if (status != CAPS_SUCCESS) return status;
+    } else printf("Load tuple is NULL - No loads applied\n");
 
-        // Loop through loads to see if any of them are supposed to be from an external source
+    status = CAPS_SUCCESS;
+
+cleanup:
+    return status;
+}
+
+// ********************** AIM Function Break *****************************
+int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
+{
+    int status; // Status return
+
+    int i, j, k, propertyIndex, materialIndex; // Indexing
+    const aimStorage *hsmInstance;
+
+    char *filename = NULL; // Output file
+
+    //int numConnect; // Number of connections for element of a given type
+
+    // RCM variables
+    //int numOpenSeg;
+    int *elementConnect=NULL, *permutation=NULL, *permutationInv=NULL, *openSeg=NULL;
+
+    // HSM input/output parameters
+    int kdim,ldim,nedim,nddim,nmdim;
+    int lrcurv, ldrill;
+
+    int itmax;
+    double rref, elim, etol, edel;
+    double rlim, rtol, rdel;
+    double alim, atol, adel;
+    double damem, rtolm;
+
+    // global variables
+    int nvarg = 0;
+    double varg[1];
+
+    // HSM memory
+    int numBCEdge = 0, numBCNode = 0, numJoint = 0, maxDim = 0;
+    int hsmNumElement = 0;
+    int type, topoIndex;
+    int maxAdjacency = 0;
+    int *xadj = NULL, *adj = NULL, *kjoint = NULL;
+
+    hsmMemoryStruct hsmMemory;
+    hsmTempMemoryStruct hsmTempMemory;
+
+    // Temp storage
+    feaMeshDataStruct *feaData; // Not freeable
+    meshElementStruct *element; // Not freeable
+    meshNodeStruct *node; // Not freeable
+
+    // Load information
+    feaLoadStruct *feaLoad = NULL;  // size = [numLoad]
+
+    // Setting variables
+    double membraneThickness, shearMembraneRatio, refLocation, massPerArea;
+    double youngModulus; // E - Young's Modulus [Longitudinal if distinction is made]
+    double youngModulusLateral; // Young's Modulus in the lateral direction
+    double shearModulus; // G - Shear Modulus
+    double poissonRatio; // Poisson's Ratio
+    double shearModulusTrans1Z; // Transverse shear modulus in the 1-Z plane
+    double shearModulusTrans2Z; // Transverse shear modulus in the 2-Z plane
+
+    double normalize, norm[3];
+
+    int found; // Checker
+
+    // Newton convergence tolerances
+    rtol = 1.0e-11;  /* relative displacements, |d|/dref */
+    atol = 1.0e-11;  /* angles (unit vector changes) */
+
+    /* reference length for displacement limiting, convergence checks
+         (should be comparable to size of the geometry) */
+    rref = 1.0;
+
+    // max Newton changes (dimensionless)
+    rlim = 0.5;
+    alim = 0.5;
+
+    // d,psi change threshold to trigger membrane-only sub-iterations
+    damem = 0.025;
+
+    // displacement convergence tolerance for membrane-only sub-iterations
+    rtolm = 1.0e-4;
+
+    //ddel    last max position Newton delta  (fraction of dref)
+    //adel    last max normal angle Newton delta
+
+    hsmInstance = (const aimStorage *) instStore;
+    AIM_NOTNULL(aimInputs, aimInfo, status);
+
+
+    if (hsmInstance->feaProblem.numLoad > 0) {
+        AIM_ALLOC(feaLoad, hsmInstance->feaProblem.numLoad, feaLoadStruct, aimInfo, status);
+        for (i = 0; i < hsmInstance->feaProblem.numLoad; i++) initiate_feaLoadStruct(&feaLoad[i]);
         for (i = 0; i < hsmInstance->feaProblem.numLoad; i++) {
+            status = copy_feaLoadStruct(aimInfo, &hsmInstance->feaProblem.feaLoad[i], &feaLoad[i]);
+            AIM_STATUS(aimInfo, status);
 
-            if (hsmInstance->feaProblem.feaLoad[i].loadType == PressureExternal) {
+            if (feaLoad[i].loadType == PressureExternal) {
 
                 // Transfer external pressures from the AIM discrObj
                 status = fea_transferExternalPressure(aimInfo,
                                                       &hsmInstance->feaProblem.feaMesh,
-                                                      &hsmInstance->feaProblem.feaLoad[i]);
-                if (status != CAPS_SUCCESS) return status;
+                                                      &feaLoad[i]);
+                AIM_STATUS(aimInfo, status);
+            }
+        }
+    }
 
-            } // End PressureExternal if
-        } // End load for loop
-    } else printf("Load tuple is NULL - No loads applied\n");
+    status = initiate_hsmMemoryStruct(&hsmMemory);
+    AIM_STATUS(aimInfo, status);
+
+    status = initiate_hsmTempMemoryStruct(&hsmTempMemory);
+    AIM_STATUS(aimInfo, status);
+
+    AIM_ALLOC(filename, strlen(hsmInstance->projectName)+4, char, aimInfo, status);
+    snprintf(filename, strlen(hsmInstance->projectName)+4, "%s%s", hsmInstance->projectName, ".bdf");
+
+    // Get FEA mesh if we don't already have one
+    if (aim_newGeometry(aimInfo) == CAPS_SUCCESS) {
+
+        // Write Nastran Mesh
+
+        status = mesh_writeNASTRAN(aimInfo,
+                                   filename,
+                                   1,
+                                   &hsmInstance->feaProblem.feaMesh,
+                                   SmallField,
+                                   1.0);
+        AIM_STATUS(aimInfo, status);
+    }
+    AIM_FREE(filename);
 
 
     // Count the number joints
@@ -1064,7 +1095,7 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
 
     status = hsm_Adjacency(&hsmInstance->feaProblem.feaMesh, numJoint, kjoint,
                            &maxAdjacency, &xadj, &adj);
-    if (status != CAPS_SUCCESS) goto cleanup;
+    AIM_STATUS(aimInfo, status);
     printf("Max Adjacency set to = %d\n", maxAdjacency);
     AIM_NOTNULL(xadj, aimInfo, status);
     AIM_NOTNULL( adj, aimInfo, status);
@@ -1146,13 +1177,13 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
                                       hsmNumElement,
                                       maxDim, //, numBCEdge, numBCNode, numJoint);
                                       &hsmMemory);
-    if (status != CAPS_SUCCESS) goto cleanup;
+    AIM_STATUS(aimInfo, status);
 
     status = allocate_hsmTempMemoryStruct(hsmInstance->feaProblem.feaMesh.numNode,
                                           maxAdjacency,
                                           maxDim,
                                           &hsmTempMemory);
-    if (status != CAPS_SUCCESS) goto cleanup;
+    AIM_STATUS(aimInfo, status);
 
     /////  Populate HSM inputs /////
 
@@ -1576,19 +1607,19 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
 #endif
 
     status = hsm_setGlobalParameter(hsmInstance->feaProblem, &hsmMemory);
-    if (status != CAPS_SUCCESS) goto cleanup;
+    AIM_STATUS(aimInfo, status);
 /*@-nullpass@*/
     status = hsm_setSurfaceParameter(hsmInstance->feaProblem, permutation,
                                      &hsmMemory);
-    if (status != CAPS_SUCCESS) goto cleanup;
+    AIM_STATUS(aimInfo, status);
 
     status = hsm_setEdgeBCParameter(hsmInstance->feaProblem, permutation,
                                     &hsmMemory);
-    if (status != CAPS_SUCCESS) goto cleanup;
+    AIM_STATUS(aimInfo, status);
 
     status = hsm_setNodeBCParameter(hsmInstance->feaProblem, permutation,
                                     &hsmMemory);
-    if (status != CAPS_SUCCESS) goto cleanup;
+    AIM_STATUS(aimInfo, status);
 /*@+nullpass@*/
     printf("NumBCNode = %d\n", hsmMemory.numBCNode);
     //for (i = 0; i < hsmInstance->feaProblem.feaMesh.numNode*LVTOT;i++) printf("i = %d, %f\n", i, hsmMemory.par[i]);
@@ -1723,7 +1754,7 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
     status = hsm_writeTecplot(hsmInstance->projectName,
                               hsmInstance->feaProblem.feaMesh,
                               &hsmMemory, permutation);
-    if (status != CAPS_SUCCESS) goto cleanup;
+    AIM_STATUS(aimInfo, status);
 */
 
     if (i >= 0) {
@@ -1766,7 +1797,7 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
                                   hsmInstance->feaProblem.feaMesh,
                                   &hsmMemory, permutation);
 /*@+nullpass@*/
-        if (status != CAPS_SUCCESS) goto cleanup;
+        AIM_STATUS(aimInfo, status);
 
     }
 
@@ -1777,29 +1808,36 @@ cleanup:
     if (status != CAPS_SUCCESS)
         printf("Error: hsmAIM status %d\n",  status);
 
-    //EG_free(nodeValence);    nodeValence    = NULL;
+    if (feaLoad != NULL) {
+        for (i = 0; i < hsmInstance->feaProblem.numLoad; i++) {
+            destroy_feaLoadStruct(&feaLoad[i]);
+        }
+        AIM_FREE(feaLoad);
+    }
 
-    EG_free(elementConnect); elementConnect = NULL;
-    EG_free(permutation);    permutation    = NULL;
-    EG_free(permutationInv); permutationInv = NULL;
+    //AIM_FREE(nodeValence);
 
-    EG_free(openSeg);        openSeg        = NULL;
+    AIM_FREE(elementConnect);
+    AIM_FREE(permutation);
+    AIM_FREE(permutationInv);
 
-    EG_free(xadj);           xadj = NULL;
-    EG_free(adj);            adj = NULL;
-    EG_free(kjoint);         kjoint = NULL;
+    AIM_FREE(openSeg);
+
+    AIM_FREE(xadj);
+    AIM_FREE(adj);
+    AIM_FREE(kjoint);
 
     (void) destroy_hsmMemoryStruct(&hsmMemory);
     (void) destroy_hsmTempMemoryStruct(&hsmTempMemory);
 
-    if (filename != NULL) EG_free(filename);
+    AIM_FREE(filename);
 
     return status;
 }
 
 
 /* the execution code from above should be moved here */
-int aimExecute(/*@unused@*/ void *instStore, /*@unused@*/ void *aimStruc,
+int aimExecute(/*@unused@*/ const void *instStore, /*@unused@*/ void *aimStruc,
                int *state)
 {
   *state = 0;

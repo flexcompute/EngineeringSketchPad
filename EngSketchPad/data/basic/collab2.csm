@@ -1,0 +1,56 @@
+# collab2
+# John Dannenhoffer: basic wing OML with hardwired dimesnions
+# Nitin Bhagat:      update OML to use DESPMTRS  (wingOML)
+
+# dimensions in mm based upon printed 3-view
+DESPMTR   wing:area        1886.
+DESPMTR   wing:aspect      8.285
+DESPMTR   wing:ybreak      24.0
+DESPMTR   wing:taper_ob    0.333
+DESPMTR   wing:sweep       34.5
+DESPMTR   wing:dihedral    7.30
+
+DESPMTR   winglet:area     17.5   # both
+DESPMTR   winglet:aspect   1.43
+DESPMTR   winglet:taper    0.40
+DESPMTR   winglet:sweep    70.3
+DESPMTR   winglet:dihedral 21.8
+
+SET        wing:span           sqrt(wing:area*wing:aspect)
+SET        delta               wing:ybreak*tand(wing:sweep)
+SET        num                 (wing:area+delta*wing:ybreak+delta*(1+wing:taper_ob)*(wing:span/2-wing:ybreak))
+SET        den                 (2*wing:ybreak+(1+wing:taper_ob)*(wing:span/2-wing:ybreak))
+SET        c1                  num/den
+SET        c2                  c1-delta
+SET        c3                  c2*wing:taper_ob
+
+SET        winglet:span        sqrt(winglet:area*winglet:aspect)
+SET        c4                  c3*winglet:taper
+
+UDPRIM    naca      thickness 0.12   camber 0.06
+SCALE     c1
+ROTATEX   90
+
+UDPRIM    naca      thickness 0.12   camber 0.04
+SCALE     c2
+ROTATEX   90
+TRANSLATE delta                      wing:ybreak       wing:ybreak*tand(wing:dihedral)
+
+UDPRIM    naca      thickness 0.04   camber 0.04
+SCALE     c3
+ROTATEX   90
+TRANSLATE wing:span/2*tand(wing:sweep)   wing:span/2   wing:span/2*tand(wing:dihedral)
+
+UDPRIM    naca      thickness 0.04   camber 0.00
+SCALE     c4
+ROTATEX   90
+TRANSLATE wing:span/2*tand(wing:sweep)+winglet:span/2*tand(winglet:sweep)\
+          (wing:span+winglet:span)/2\
+	  wing:span/2*tand(wing:dihedral)+winglet:span/2*tand(winglet:dihedral)
+
+RULE
+
+# scale to ft
+SCALE     197/2/65
+
+END

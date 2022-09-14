@@ -67,6 +67,9 @@ aflr3.input.Proj_Name = "pyCAPS_AFLR4_AFLR3_VolMesh"
 # Set output grid format since a project name is being supplied - Tecplot tetrahedral file
 aflr3.input.Mesh_Format = "Tecplot"
 
+# Fun3D does not support TRANSP_UG3_GBC
+aflr3.input.Mesh_Sizing = {"Wake": {"bcType":"TRANSP_INTRNL_UG3_GBC"}}
+
 #######################################
 ## Load FUN3D aim                    ##
 #######################################

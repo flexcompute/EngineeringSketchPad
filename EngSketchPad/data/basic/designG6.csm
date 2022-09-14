@@ -8,10 +8,10 @@ despmtr    taper     0.50
 despmtr    twist     15.0
 despmtr    lesweep   30.0
 despmtr    dihedral  1.00
-despmtr    thick_r   0.12
-despmtr    camber_r  0.08
-despmtr    thick_t   0.20
-despmtr    camber_t  0.00
+cfgpmtr    thick_r   0.12
+cfgpmtr    camber_r  0.08
+cfgpmtr    thick_t   0.20
+cfgpmtr    camber_t  0.00
 despmtr    tiprad    2.00
 despmtr    dxwing    5.00
 

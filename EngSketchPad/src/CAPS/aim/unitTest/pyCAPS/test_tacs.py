@@ -1,4 +1,3 @@
-from __future__ import print_function
 import unittest
 
 import os
@@ -21,6 +20,7 @@ class TestTACS(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         cls.cleanUp()
+        pass
 
     @classmethod
     def cleanUp(cls):
@@ -31,13 +31,13 @@ class TestTACS(unittest.TestCase):
             if os.path.isdir(dir):
                 shutil.rmtree(dir)
 
-    def test_Plate(self):
+    def test_PlateSensFile(self):
 
         filename = os.path.join("..","csmData","feaSimplePlate.csm")
         myProblem = pyCAPS.Problem(self.problemName+str(self.iProb), capsFile=filename, outLevel=0); self.__class__.iProb += 1
 
         mesh = myProblem.analysis.create(aim="egadsTessAIM")
-        
+
         tacs = myProblem.analysis.create(aim = "tacsAIM",
                                          name = "tacs")
 
@@ -47,9 +47,9 @@ class TestTACS(unittest.TestCase):
         mesh.input.Mesh_Elements = "Quad"
 
         mesh.input.Tess_Params = [.25,.01,15]
-        
+
         NumberOfNode = mesh.output.NumberOfNode
-        
+
         # Link the mesh
         tacs.input["Mesh"].link(mesh.output["Surface_Mesh"])
 
@@ -92,39 +92,235 @@ class TestTACS(unittest.TestCase):
         tacs.input.Mesh_File_Format = "Small"
         tacs.input.Proj_Name = "astrosPlateSmall"
 
+        # make a unit place so the snensitvity is simply the Cartesian coordinate
+        myProblem.geometry.despmtr.plateLength = 1.0
+        myProblem.geometry.despmtr.plateWidth = 1.0
+
+        # Setup an AnalysisIn design variable
+        thickness = 0.1;
+        desvar = {"groupName" : "plate",
+                  "initialValue" : thickness,
+                  "lowerBound" : thickness*0.5,
+                  "upperBound" : thickness*1.5,
+                  "maxDelta"   : thickness*0.1}
+
         tacs.input.Design_Variable = {"plateLength" : {},
-                                      "plateWidth"  : {}}
-
-        # Run Small format
-        tacs.preAnalysis()
+                                      "thick1" : desvar}
         
-        # Create a dummy sensitivity file
-        filename = os.path.join(tacs.analysisDir, tacs.input.Proj_Name+".sens")
-        with open(filename, "w") as f:
-            f.write("2 {}\n".format(NumberOfNode)) # Two functionals Number Of Nodes
-            f.write("Func1\n") # 1st functional
-            f.write("42\n")    # Value of Func1
-            for i in range(NumberOfNode): # d(Func1)/d(xyz)
-                f.write("{} {} {}\n".format(i, 2*i, 3*i))
+        desvarR = {"variableType": "Property",
+                   "fieldName" : "T",
+                   "constantCoeff" : 0.0,
+                   "groupName" : "thick1",
+                   "linearCoeff" : 1.0}
 
-            f.write("Func2\n") # 2nd functiona;
-            f.write("21\n")    # Value of Func2
-            for i in range(NumberOfNode): # d(Func2)/d(xyz)
-                f.write("{} {} {}\n".format(3*i, 2*i, i))
+        tacs.input.Design_Variable_Relation = {"thick1" : desvarR}
 
-        tacs.postAnalysis()
+        for inode in range(NumberOfNode):
+            tacs.input.File_Format = "Small"
 
-        Func1             = tacs.dynout["Func1"].value
-        Func1_plateLength = tacs.dynout["Func1"].deriv("plateLength")
-        Func1_plateWidth  = tacs.dynout["Func1"].deriv("plateWidth")
-        
-        self.assertEqual(Func1, 42)
+            # Write input files
+            tacs.preAnalysis()
 
-        Func2             = tacs.dynout["Func2"].value
-        Func2_plateLength = tacs.dynout["Func2"].deriv("plateLength")
-        Func2_plateWidth  = tacs.dynout["Func2"].deriv("plateWidth")
+            if inode == 0:
+                xyz = [None]*NumberOfNode
+                filename = os.path.join(tacs.analysisDir, tacs.input.Proj_Name+".bdf")
+                with open(filename, "r") as f:
+                    f.readline()
+                    for i in range(NumberOfNode):
+                        line = f.readline()
+                        line = line.split()
+                        xyz[i] = [float(line[-3]), float(line[-2]), float(line[-1])]
 
-        self.assertEqual(Func2, 21)
+            # Create a dummy sensitivity file
+            filename = os.path.join(tacs.analysisDir, tacs.input.Proj_Name+".sens")
+            with open(filename, "w") as f:
+                f.write("2 1\n")                     # Two functionals and one analysis design variable
+                f.write("Func1\n")                   # 1st functional
+                f.write("%f\n"%(42*(inode+1)))       # Value of Func1
+                f.write("{}\n".format(NumberOfNode)) # Number Of Nodes for this functional
+                for i in range(NumberOfNode):        # node ID, d(Func1)/d(xyz)
+                    f.write("{} {} {} {}\n".format(i+1, 1 if i == inode else 0, 0, 0))
+                f.write("thick1\n")                  # AnalysisIn design variables name
+                f.write("1\n")                       # Number of design variable derivatives
+                f.write("84\n")                      # Design variable derivatives
+
+                f.write("Func2\n")                   # 2nd functiona;
+                f.write("%f\n"%(21*(inode+1)))       # Value of Func2
+                f.write("{}\n".format(NumberOfNode)) # Number Of Nodes for this functional
+                for i in range(NumberOfNode):        # node ID, d(Func2)/d(xyz)
+                    f.write("{} {} {} {}\n".format(i+1, 1 if i == inode else 0, 0, 0))
+                f.write("thick1\n")                  # AnalysisIn design variables name
+                f.write("1\n")                       # Number of design variable derivatives
+                f.write("126\n")                     # Design variable derivatives
+
+            tacs.postAnalysis()
+
+            Func1             = tacs.dynout["Func1"].value
+            Func1_plateLength = tacs.dynout["Func1"].deriv("plateLength")
+            Func1_thick1      = tacs.dynout["Func1"].deriv("thick1")
+
+            self.assertEqual(Func1, 42*(inode+1))
+            self.assertAlmostEqual(Func1_plateLength, xyz[inode][0], 5)
+            self.assertEqual(Func1_thick1, 84)
+
+            Func2             = tacs.dynout["Func2"].value
+            Func2_plateLength = tacs.dynout["Func2"].deriv("plateLength")
+            Func2_thick1      = tacs.dynout["Func2"].deriv("thick1")
+
+            self.assertEqual(Func2, 21*(inode+1))
+            self.assertAlmostEqual(Func2_plateLength, xyz[inode][0], 5)
+            self.assertEqual(Func2_thick1, 126)
+
+
+        tacs.input.Design_Variable = {"plateWidth" : {}}
+        tacs.input.Design_Variable_Relation = None
+
+        for inode in range(NumberOfNode):
+            tacs.input.File_Format = "Small"
+
+            # Write input files
+            tacs.preAnalysis()
+
+            if inode == 0:
+                xyz = [None]*NumberOfNode
+                filename = os.path.join(tacs.analysisDir, tacs.input.Proj_Name+".bdf")
+                with open(filename, "r") as f:
+                    f.readline()
+                    for i in range(NumberOfNode):
+                        line = f.readline()
+                        line = line.split()
+                        xyz[i] = [float(line[-3]), float(line[-2]), float(line[-1])]
+
+            # Create a dummy sensitivity file
+            filename = os.path.join(tacs.analysisDir, tacs.input.Proj_Name+".sens")
+            with open(filename, "w") as f:
+                f.write("2 0\n")                     # Two functionals and one analysis design variable
+                f.write("Func1\n")                   # 1st functional
+                f.write("%f\n"%(42*(inode+1)))       # Value of Func1
+                f.write("{}\n".format(NumberOfNode)) # Number Of Nodes for this functional
+                for i in range(NumberOfNode): # d(Func1)/d(xyz)
+                    f.write("{} {} {} {}\n".format(i+1, 0, 1 if i == inode else 0, 0))
+
+                f.write("Func2\n")                   # 2nd functiona;
+                f.write("%f\n"%(21*(inode+1)))       # Value of Func2
+                f.write("{}\n".format(NumberOfNode)) # Number Of Nodes for this functional
+                for i in range(NumberOfNode): # d(Func2)/d(xyz)
+                    f.write("{} {} {} {}\n".format(i+1, 0, 1 if i == inode else 0, 0))
+
+            tacs.postAnalysis()
+
+            Func1             = tacs.dynout["Func1"].value
+            Func1_plateWidth  = tacs.dynout["Func1"].deriv("plateWidth")
+
+            self.assertEqual(Func1, 42*(inode+1))
+            self.assertAlmostEqual(Func1_plateWidth, xyz[inode][1], 5)
+
+            Func2             = tacs.dynout["Func2"].value
+            Func2_plateWidth  = tacs.dynout["Func2"].deriv("plateWidth")
+
+            self.assertEqual(Func2, 21*(inode+1))
+            self.assertAlmostEqual(Func2_plateWidth, xyz[inode][1], 5)
+
+        # Rotate so the 2nd coordinate in the plate is the z-coordinate
+        myProblem.geometry.despmtr.angle = 90.0
+
+        for inode in range(NumberOfNode):
+            tacs.input.File_Format = "Small"
+
+            # Write input files
+            tacs.preAnalysis()
+
+            if inode == 0:
+                xyz = [None]*NumberOfNode
+                filename = os.path.join(tacs.analysisDir, tacs.input.Proj_Name+".bdf")
+                with open(filename, "r") as f:
+                    f.readline()
+                    for i in range(NumberOfNode):
+                        line = f.readline()
+                        line = line.split()
+                        xyz[i] = [float(line[-3]), float(line[-2]), float(line[-1])]
+
+            # Create a dummy sensitivity file
+            filename = os.path.join(tacs.analysisDir, tacs.input.Proj_Name+".sens")
+            with open(filename, "w") as f:
+                f.write("2 0\n")                     # Two functionals and one analysis design variable
+                f.write("Func1\n")                   # 1st functional
+                f.write("%f\n"%(42*(inode+1)))       # Value of Func1
+                f.write("{}\n".format(NumberOfNode)) # Number Of Nodes for this functional
+                for i in range(NumberOfNode): # d(Func1)/d(xyz)
+                    f.write("{} {} {} {}\n".format(i+1, 0, 0, 1 if i == inode else 0))
+
+                f.write("Func2\n")                   # 2nd functiona;
+                f.write("%f\n"%(21*(inode+1)))       # Value of Func2
+                f.write("{}\n".format(NumberOfNode)) # Number Of Nodes for this functional
+                for i in range(NumberOfNode): # d(Func2)/d(xyz)
+                    f.write("{} {} {} {}\n".format(i+1, 0, 0, 1 if i == inode else 0))
+
+            tacs.postAnalysis()
+
+            Func1             = tacs.dynout["Func1"].value
+            Func1_plateWidth  = tacs.dynout["Func1"].deriv("plateWidth")
+
+            self.assertEqual(Func1, 42*(inode+1))
+            self.assertAlmostEqual(Func1_plateWidth, xyz[inode][2], 5)
+
+            Func2             = tacs.dynout["Func2"].value
+            Func2_plateWidth  = tacs.dynout["Func2"].deriv("plateWidth")
+
+            self.assertEqual(Func2, 21*(inode+1))
+            self.assertAlmostEqual(Func2_plateWidth, xyz[inode][2], 5)
+
+
+        tacs.input.Design_Variable = {"thick1" : desvar}
+        tacs.input.Design_Variable_Relation = {"thick1" : desvarR}
+
+        for inode in range(NumberOfNode):
+            tacs.input.File_Format = "Small"
+
+            # Write input files
+            tacs.preAnalysis()
+
+            if inode == 0:
+                xyz = [None]*NumberOfNode
+                filename = os.path.join(tacs.analysisDir, tacs.input.Proj_Name+".bdf")
+                with open(filename, "r") as f:
+                    f.readline()
+                    for i in range(NumberOfNode):
+                        line = f.readline()
+                        line = line.split()
+                        xyz[i] = [float(line[-3]), float(line[-2]), float(line[-1])]
+
+            # Create a dummy sensitivity file
+            filename = os.path.join(tacs.analysisDir, tacs.input.Proj_Name+".sens")
+            with open(filename, "w") as f:
+                f.write("2 1\n")                     # Two functionals and one analysis design variable
+                f.write("Func1\n")                   # 1st functional
+                f.write("%f\n"%(42*(inode+1)))       # Value of Func1
+                f.write("{}\n".format(0))            # Number Of Nodes for this functional
+                f.write("thick1\n")                  # AnalysisIn design variables name
+                f.write("1\n")                       # Number of design variable derivatives
+                f.write("84\n")                      # Design variable derivatives
+
+                f.write("Func2\n")                   # 2nd functiona;
+                f.write("%f\n"%(21*(inode+1)))       # Value of Func2
+                f.write("{}\n".format(0))            # Number Of Nodes for this functional
+                f.write("thick1\n")                  # AnalysisIn design variables name
+                f.write("1\n")                       # Number of design variable derivatives
+                f.write("126\n")                     # Design variable derivatives
+
+            tacs.postAnalysis()
+
+            Func1             = tacs.dynout["Func1"].value
+            Func1_thick1      = tacs.dynout["Func1"].deriv("thick1")
+
+            self.assertEqual(Func1, 42*(inode+1))
+            self.assertEqual(Func1_thick1, 84)
+
+            Func2             = tacs.dynout["Func2"].value
+            Func2_thick1      = tacs.dynout["Func2"].deriv("thick1")
+
+            self.assertEqual(Func2, 21*(inode+1))
+            self.assertEqual(Func2_thick1, 126)
 
 
 if __name__ == '__main__':

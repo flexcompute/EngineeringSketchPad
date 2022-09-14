@@ -1,7 +1,7 @@
 #
 test:
 	python --version
-	python -m unittest discover
+	python -u -m unittest discover
 
 clean:
 	rmdir /q /s __pycache__

@@ -323,22 +323,22 @@ static int checkAndCreateMesh(aimStorage *aimInfo, aimStorage *astrosInstance)
   capsValue *QuadMesh = NULL;
 
   for (i = 0; i < astrosInstance->numMesh; i++) {
-      remesh = remesh && (astrosInstance->feaMesh[i].bodyTessMap.egadsTess->oclass == EMPTY);
+      remesh = remesh && (astrosInstance->feaMesh[i].egadsTess->oclass == EMPTY);
   }
   if (remesh == (int) false) return CAPS_SUCCESS;
 
   // retrieve or create the mesh from fea_createMesh
   status = aim_getValue(aimInfo, Tess_Params,    ANALYSISIN, &TessParams);
-  if (status != CAPS_SUCCESS) return status;
+  AIM_STATUS(aimInfo, status);
 
   status = aim_getValue(aimInfo, Edge_Point_Min, ANALYSISIN, &EdgePoint_Min);
-  if (status != CAPS_SUCCESS) return status;
+  AIM_STATUS(aimInfo, status);
 
   status = aim_getValue(aimInfo, Edge_Point_Max, ANALYSISIN, &EdgePoint_Max);
-  if (status != CAPS_SUCCESS) return status;
+  AIM_STATUS(aimInfo, status);
 
   status = aim_getValue(aimInfo, Quad_Mesh,      ANALYSISIN, &QuadMesh);
-  if (status != CAPS_SUCCESS) return status;
+  AIM_STATUS(aimInfo, status);
 
   if (TessParams != NULL) {
       tessParam[0] = TessParams->vals.reals[0]; // Gets multiplied by bounding box size
@@ -385,9 +385,11 @@ static int checkAndCreateMesh(aimStorage *aimInfo, aimStorage *astrosInstance)
                           &astrosInstance->numMesh,
                           &astrosInstance->feaMesh,
                           &astrosInstance->feaProblem );
-  if (status != CAPS_SUCCESS) return status;
+  AIM_STATUS(aimInfo, status);
 
-  return CAPS_SUCCESS;
+  status = CAPS_SUCCESS;
+cleanup:
+  return status;
 }
 
 
@@ -555,7 +557,7 @@ static int createVLMMesh(void *instStore, void *aimInfo, capsValue *aimInputs)
 
     int wingCheck = (int) false, finCheck = (int) false, canardCheck = (int) false;
     int feaAeroTempCombineCount = 0, type=-1;
-    feaAeroStruct *feaAeroTemp = NULL, *feaAeroTempCombine = NULL;
+    feaAeroStruct *feaAeroTempCombine = NULL;
 
     // Vector variables
     double A[3], B[3], C[3], D[3], P[3], p[3], N[3], n[3], d_proj[3];
@@ -569,7 +571,7 @@ static int createVLMMesh(void *instStore, void *aimInfo, capsValue *aimInputs)
 
     // Get AIM bodies
     status = aim_getBodies(aimInfo, &intents, &numBody, &bodies);
-    if (status != CAPS_SUCCESS) return status;
+    AIM_STATUS(aimInfo, status);
 
 #ifdef DEBUG
     printf(" astrosAIM/createVLMMesh nbody = %d!\n", numBody);
@@ -587,17 +589,17 @@ static int createVLMMesh(void *instStore, void *aimInfo, capsValue *aimInputs)
 
     // Get aerodynamic reference quantities
     status = fea_retrieveAeroRef(numBody, bodies, &astrosInstance->feaProblem.feaAeroRef);
-    if (status != CAPS_SUCCESS) goto cleanup;
+    AIM_STATUS(aimInfo, status);
 
     // Cleanup Aero storage first
     if (astrosInstance->feaProblem.feaAero != NULL) {
 
         for (i = 0; i < astrosInstance->feaProblem.numAero; i++) {
             status = destroy_feaAeroStruct(&astrosInstance->feaProblem.feaAero[i]);
-            if (status != CAPS_SUCCESS) goto cleanup;
+            AIM_STATUS(aimInfo, status);
         }
 
-        EG_free(astrosInstance->feaProblem.feaAero);
+        AIM_FREE(astrosInstance->feaProblem.feaAero);
     }
 
     astrosInstance->feaProblem.numAero = 0;
@@ -611,28 +613,26 @@ static int createVLMMesh(void *instStore, void *aimInfo, capsValue *aimInputs)
                                 0.0, // default Cspace
                                 &numVLMSurface,
                                 &vlmSurface);
-        if (status != CAPS_SUCCESS) goto cleanup;
+        AIM_STATUS(aimInfo, status);
 
     } else {
-        printf("An analysis type of Aeroelastic set but no VLM_Surface tuple specified\n");
+        AIM_ERROR(aimInfo, "An analysis type of Aeroelastic set but no VLM_Surface tuple specified");
         status = CAPS_NOTFOUND;
         goto cleanup;
     }
 
     printf("\nGetting FEA vortex lattice mesh\n");
 
-    status = vlm_getSections(numBody,
+    status = vlm_getSections(aimInfo,
+                             numBody,
                              bodies,
                              "Aerodynamic",
                              astrosInstance->attrMap,
                              vlmPLANEYZ,
                              numVLMSurface,
                              &vlmSurface);
-    if (status != CAPS_SUCCESS) goto cleanup;
-    if (vlmSurface == NULL) {
-        status = CAPS_NULLOBJ;
-        goto cleanup;
-    }
+    AIM_STATUS(aimInfo, status);
+    AIM_NOTNULL(vlmSurface, aimInfo, status);
 
     for (i = 0; i < numVLMSurface; i++) {
 
@@ -642,22 +642,24 @@ static int createVLMMesh(void *instStore, void *aimInfo, capsValue *aimInputs)
         else if (vlmSurface[i].NspanSection > 0)
             numSpanWise = (vlmSurface[i].numSection-1)*vlmSurface[i].NspanSection;
         else {
-            printf("Error: Only one of numSpanTotal and numSpanPerSection can be non-zero!\n");
-            printf("       numSpanTotal      = %d\n", vlmSurface[i].NspanTotal);
-            printf("       numSpanPerSection = %d\n", vlmSurface[i].NspanSection);
+            AIM_ERROR(aimInfo  , "Only one of numSpanTotal and numSpanPerSection can be non-zero!");
+            AIM_ADDLINE(aimInfo, "    numSpanTotal      = %d", vlmSurface[i].NspanTotal);
+            AIM_ADDLINE(aimInfo, "    numSpanPerSection = %d", vlmSurface[i].NspanSection);
             status = CAPS_BADVALUE;
             goto cleanup;
         }
 
-        status = vlm_equalSpaceSpanPanels(numSpanWise, vlmSurface[i].numSection, vlmSurface[i].vlmSection);
-        if (status != CAPS_SUCCESS) goto cleanup;
+        status = vlm_equalSpaceSpanPanels(aimInfo, numSpanWise,
+                                          vlmSurface[i].numSection,
+                                          vlmSurface[i].vlmSection);
+        AIM_STATUS(aimInfo, status);
     }
 
     // Split the surfaces that have more than 2 sections into a new surface
     for (i = 0; i < numVLMSurface; i++) {
 
         if (vlmSurface->numSection < 2) {
-            printf("Error: Surface '%s' has less than two-sections!\n", vlmSurface[i].name);
+            AIM_ERROR(aimInfo, "Surface '%s' has less than two-sections!", vlmSurface[i].name);
             status = CAPS_BADVALUE;
             goto cleanup;
         }
@@ -669,7 +671,8 @@ static int createVLMMesh(void *instStore, void *aimInfo, capsValue *aimInputs)
             printf("\tA corresponding capsBound name not found for \"%s\". Surface will be ignored!\n",
                    vlmSurface[i].name);
             continue;
-        } else if (status != CAPS_SUCCESS) goto cleanup;
+        }
+        AIM_STATUS(aimInfo, status);
 
         for (j = 0; j < vlmSurface[i].numSection-1; j++) {
 
@@ -679,29 +682,14 @@ static int createVLMMesh(void *instStore, void *aimInfo, capsValue *aimInputs)
             surfaceIndex = astrosInstance->feaProblem.numAero - 1;
 
             // Allocate
-            feaAeroTemp = (feaAeroStruct *) EG_reall(astrosInstance->feaProblem.feaAero,
-                      astrosInstance->feaProblem.numAero*sizeof(feaAeroStruct));
-
-
-            if (feaAeroTemp == NULL) {
-                astrosInstance->feaProblem.numAero -= 1;
-
-                status = EGADS_MALLOC;
-                goto cleanup;
-            }
-
-            astrosInstance->feaProblem.feaAero = feaAeroTemp;
+            AIM_REALL(astrosInstance->feaProblem.feaAero, astrosInstance->feaProblem.numAero, feaAeroStruct, aimInfo, status);
 
             // Initiate feaAeroStruct
             status = initiate_feaAeroStruct(&astrosInstance->feaProblem.feaAero[surfaceIndex]);
-            if (status != CAPS_SUCCESS) goto cleanup;
+            AIM_STATUS(aimInfo, status);
 
             // Get surface Name - copy from original surface
-            astrosInstance->feaProblem.feaAero[surfaceIndex].name = EG_strdup(vlmSurface[i].name);
-            if (astrosInstance->feaProblem.feaAero[surfaceIndex].name == NULL) {
-              status = EGADS_MALLOC;
-              goto cleanup;
-            }
+            AIM_STRDUP(astrosInstance->feaProblem.feaAero[surfaceIndex].name, vlmSurface[i].name, aimInfo, status);
 
             // Get surface ID - Multiple by 1000 !!
             astrosInstance->feaProblem.feaAero[surfaceIndex].surfaceID =
@@ -740,12 +728,12 @@ static int createVLMMesh(void *instStore, void *aimInfo, capsValue *aimInputs)
                 sectionIndex = vlmSurface[i].vlmSection[j+k].sectionIndex;
 
                 status = initiate_vlmSectionStruct(&astrosInstance->feaProblem.feaAero[surfaceIndex].vlmSurface.vlmSection[k]);
-                if (status != CAPS_SUCCESS) goto cleanup;
+                AIM_STATUS(aimInfo, status);
 
                 // Copy the section data - This also copies the control data for the section
                 status = copy_vlmSectionStruct( &vlmSurface[i].vlmSection[sectionIndex],
                                                 &astrosInstance->feaProblem.feaAero[surfaceIndex].vlmSurface.vlmSection[k]);
-                if (status != CAPS_SUCCESS) goto cleanup;
+                AIM_STATUS(aimInfo, status);
 
                 // Reset the sectionIndex that is keeping track of the section order.
                 astrosInstance->feaProblem.feaAero[surfaceIndex].vlmSurface.vlmSection[k].sectionIndex = k;
@@ -765,7 +753,7 @@ static int createVLMMesh(void *instStore, void *aimInfo, capsValue *aimInputs)
         status = get_mapAttrToIndexIndex(&astrosInstance->transferMap,
                                          astrosInstance->feaProblem.feaAero[i].name,
                                          &transferIndex);
-        if (status != CAPS_SUCCESS) goto cleanup;
+        AIM_STATUS(aimInfo, status);
 
         if (projectionMethod == (int) false) { // Look for attributes
 
@@ -981,7 +969,7 @@ static int createVLMMesh(void *instStore, void *aimInfo, capsValue *aimInputs)
                    i+1, astrosInstance->feaProblem.feaAero[i].numGridID );
         }
         else {
-            printf("\tError: No points found for aero-spline for surface %d\n", i+1);
+            AIM_ERROR(aimInfo, "No points found for aero-spline for surface %d", i+1);
             status = CAPS_NOTFOUND;
             goto cleanup;
         }
@@ -1031,15 +1019,7 @@ static int createVLMMesh(void *instStore, void *aimInfo, capsValue *aimInputs)
                 continue;
             }
 
-            feaAeroTemp = (feaAeroStruct *) EG_reall(feaAeroTempCombine,
-                                                     (feaAeroTempCombineCount+1)*
-                                                     sizeof(feaAeroStruct));
-            if (feaAeroTemp == NULL) {
-                status = EGADS_MALLOC;
-                goto cleanup;
-            }
-
-            feaAeroTempCombine = feaAeroTemp;
+            AIM_REALL(feaAeroTempCombine, (feaAeroTempCombineCount+1), feaAeroStruct, aimInfo, status);
 
             status = initiate_feaAeroStruct(&feaAeroTempCombine[feaAeroTempCombineCount]);
             if (status != CAPS_SUCCESS) goto cleanup;
@@ -1087,8 +1067,7 @@ static int createVLMMesh(void *instStore, void *aimInfo, capsValue *aimInputs)
             }
         }
 
-        if (astrosInstance->feaProblem.feaAero != NULL)
-            EG_free(astrosInstance->feaProblem.feaAero);
+        AIM_FREE(astrosInstance->feaProblem.feaAero);
         astrosInstance->feaProblem.feaAero = NULL;
         astrosInstance->feaProblem.numAero = 0;
 
@@ -1550,52 +1529,20 @@ cleanup:
 }
 
 
-int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
+// ********************** AIM Function Break *****************************
+int aimUpdateState(void *instStore, void *aimInfo,
+                   capsValue *aimInputs)
 {
-
-    int i, j, k, l; // Indexing
-    int found;
-
-    int status; // Status return
-
-    //int found; // Boolean operator
-
-    int *tempIntegerArray = NULL; // Temporary array to store a list of integers
-    char *noQuoteString = NULL;
+    int status; // Function return status
+    int i;
 
     // Analysis information
-    char *analysisType = NULL;
-    int optFlag; // 0 - ANALYSIS, 1 - OPTIMIZATION Set based on analysisType char input
+    const char *analysisType = NULL;
 
-    // Optimization Information
-    //char *objectiveResp = NULL;
-    const char *geomInName;
-
-    // File IO
-    char *filename = NULL; // Output file name
-    FILE *fp = NULL; // Output file pointer
-    int addComma = (int) false; // Add comma between inputs
-
-    feaLoadStruct *feaLoad;
-    int numThermalLoad=0, numGravityLoad=0;
-    int nGeomIn;
-    capsValue *geomInVal;
     aimStorage *astrosInstance;
 
-#ifdef DEBUG
-    // Bodies
-    const char *intents;
-    int   numBody; // Number of Bodies
-    ego  *bodies;
-
-    // Get AIM bodies
-    status = aim_getBodies(aimInfo, &intents, &numBody, &bodies);
-    if (status != CAPS_SUCCESS) return status;
-
-    printf(" astrosAIM/aimPreAnalysis  numBody = %d!\n", numBody);
-#endif
     astrosInstance = (aimStorage *) instStore;
-    if (aimInputs == NULL) return CAPS_NULLVALUE;
+    AIM_NOTNULL(aimInputs, aimInfo, status);
 
     // Get project name
     astrosInstance->projectName = aimInputs[Proj_Name-1].vals.string;
@@ -1604,10 +1551,11 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
     analysisType = aimInputs[Analysis_Type-1].vals.string;
 
     // Get FEA mesh if we don't already have one
-    if (aim_newGeometry(aimInfo) == CAPS_SUCCESS) {
+    if (astrosInstance->feaProblem.feaMesh.numNode == 0 ||
+        aim_newGeometry(aimInfo) == CAPS_SUCCESS) {
 
         status = checkAndCreateMesh(aimInfo, astrosInstance);
-        if (status != CAPS_SUCCESS) goto cleanup;
+        AIM_STATUS(aimInfo, status);
 
         // Get Aeroelastic mesh
         if( strcasecmp(analysisType, "Aeroelastic") == 0 ||
@@ -1616,9 +1564,10 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
             strcasecmp(analysisType, "AeroelasticFlutter") == 0) {
 
             status = createVLMMesh(instStore, aimInfo, aimInputs);
-            if (status != CAPS_SUCCESS) goto cleanup;
+            AIM_STATUS(aimInfo, status);
         }
     }
+
 
     // Note: Setting order is important here.
     // 1. Materials should be set before properties.
@@ -1635,7 +1584,7 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
                                  &astrosInstance->units,
                                  &astrosInstance->feaProblem.numMaterial,
                                  &astrosInstance->feaProblem.feaMaterial);
-        if (status != CAPS_SUCCESS) return status;
+        AIM_STATUS(aimInfo, status);
     } else printf("Material tuple is NULL - No materials set\n");
 
     // Set property properties
@@ -1646,13 +1595,13 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
                                  &astrosInstance->attrMap,
                                  &astrosInstance->units,
                                  &astrosInstance->feaProblem);
-        if (status != CAPS_SUCCESS) return status;
+        AIM_STATUS(aimInfo, status);
 
         // Assign element "subtypes" based on properties set
         status = fea_assignElementSubType(astrosInstance->feaProblem.numProperty,
                                           astrosInstance->feaProblem.feaProperty,
                                           &astrosInstance->feaProblem.feaMesh);
-        if (status != CAPS_SUCCESS) return status;
+        AIM_STATUS(aimInfo, status);
     } else printf("Property tuple is NULL - No properties set\n");
 
     // Set constraint properties
@@ -1661,7 +1610,7 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
                                    aimInputs[Constraint-1].vals.tuple,
                                    &astrosInstance->constraintMap,
                                    &astrosInstance->feaProblem);
-        if (status != CAPS_SUCCESS) return status;
+        AIM_STATUS(aimInfo, status);
     } else printf("Constraint tuple is NULL - No constraints applied\n");
 
     // Set support properties
@@ -1670,7 +1619,7 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
                                 aimInputs[Support-1].vals.tuple,
                                 &astrosInstance->constraintMap,
                                 &astrosInstance->feaProblem);
-        if (status != CAPS_SUCCESS) return status;
+        AIM_STATUS(aimInfo, status);
     } else printf("Support tuple is NULL - No supports applied\n");
 
     // Set connection properties
@@ -1679,7 +1628,7 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
                                    aimInputs[Connect-1].vals.tuple,
                                    &astrosInstance->connectMap,
                                    &astrosInstance->feaProblem);
-        if (status != CAPS_SUCCESS) return status;
+        AIM_STATUS(aimInfo, status);
 
 
         // Unify all connectionID's for RBE2 cards sake to be used for MPC in case control
@@ -1700,21 +1649,7 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
                              aimInputs[Load-1].vals.tuple,
                              &astrosInstance->loadMap,
                              &astrosInstance->feaProblem);
-        if (status != CAPS_SUCCESS) return status;
-
-        // Loop through loads to see if any of them are supposed to be from an external source
-        for (i = 0; i < astrosInstance->feaProblem.numLoad; i++) {
-
-            if (astrosInstance->feaProblem.feaLoad[i].loadType == PressureExternal) {
-
-                // Transfer external pressures from the AIM discrObj
-                status = fea_transferExternalPressure(aimInfo,
-                                                      &astrosInstance->feaProblem.feaMesh,
-                                                      &astrosInstance->feaProblem.feaLoad[i]);
-                if (status != CAPS_SUCCESS) return status;
-
-            } // End PressureExternal if
-        } // End load for loop
+        AIM_STATUS(aimInfo, status);
     } else printf("Load tuple is NULL - No loads applied\n");
 
     // Set design variables
@@ -1727,7 +1662,7 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
                                        aimInputs[Design_Variable_Relation-1].vals.tuple,
                                        &astrosInstance->attrMap,
                                        &astrosInstance->feaProblem);
-        if (status != CAPS_SUCCESS) return status;
+        AIM_STATUS(aimInfo, status);
     } else printf("Design_Variable tuple is NULL - No design variables applied\n");
 
     // Set design constraints
@@ -1735,7 +1670,7 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
         status = fea_getDesignConstraint(aimInputs[Design_Constraint-1].length,
                                          aimInputs[Design_Constraint-1].vals.tuple,
                                          &astrosInstance->feaProblem);
-        if (status != CAPS_SUCCESS) return status;
+        AIM_STATUS(aimInfo, status);
     } else printf("Design_Constraint tuple is NULL - No design constraints applied\n");
 
     // Set analysis settings
@@ -1743,12 +1678,12 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
         status = fea_getAnalysis(aimInputs[Analysix-1].length,
                                  aimInputs[Analysix-1].vals.tuple,
                                  &astrosInstance->feaProblem);
-        if (status != CAPS_SUCCESS) return status;
+        AIM_STATUS(aimInfo, status);
     } else {
         printf("Analysis tuple is NULL\n"); // Its ok to not have an analysis tuple we will just create one
 
         status = fea_createDefaultAnalysis(&astrosInstance->feaProblem, analysisType);
-        if (status != CAPS_SUCCESS) return status;
+        AIM_STATUS(aimInfo, status);
     }
 
 
@@ -1774,9 +1709,89 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
         printf("Unrecognized \"Mesh_File_Format\", valid choices are [Small, Large, or Free]. Reverting to default\n");
     }
 
+    status = CAPS_SUCCESS;
+cleanup:
+    return status;
+}
+
+
+// ********************** AIM Function Break *****************************
+int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
+{
+
+    int i, j, k, l; // Indexing
+    int found;
+
+    int status; // Status return
+
+    //int found; // Boolean operator
+
+    int *tempIntegerArray = NULL; // Temporary array to store a list of integers
+    char *noQuoteString = NULL;
+
+    // Analysis information
+    const char *analysisType = NULL;
+    int optFlag; // 0 - ANALYSIS, 1 - OPTIMIZATION Set based on analysisType char input
+
+    // Optimization Information
+    //char *objectiveResp = NULL;
+    const char *geomInName;
+
+    // File IO
+    char *filename = NULL; // Output file name
+    FILE *fp = NULL; // Output file pointer
+    int addComma = (int) false; // Add comma between inputs
+
+    int numThermalLoad=0, numGravityLoad=0;
+    int nGeomIn;
+    capsValue *geomInVal;
+    const aimStorage *astrosInstance;
+
+    // Load information
+    feaLoadStruct *feaLoad = NULL;  // size = [numLoad]
+
+#ifdef DEBUG
+    // Bodies
+    const char *intents;
+    int   numBody; // Number of Bodies
+    ego  *bodies;
+
+    // Get AIM bodies
+    status = aim_getBodies(aimInfo, &intents, &numBody, &bodies);
+    AIM_STATUS(aimInfo, status);
+
+    printf(" astrosAIM/aimPreAnalysis  numBody = %d!\n", numBody);
+#endif
+    astrosInstance = (const aimStorage *) instStore;
+    AIM_NOTNULL(aimInputs, aimInfo, status);
+
+    if (astrosInstance->feaProblem.numLoad > 0) {
+        AIM_ALLOC(feaLoad, astrosInstance->feaProblem.numLoad, feaLoadStruct, aimInfo, status);
+        for (i = 0; i < astrosInstance->feaProblem.numLoad; i++) initiate_feaLoadStruct(&feaLoad[i]);
+        for (i = 0; i < astrosInstance->feaProblem.numLoad; i++) {
+            status = copy_feaLoadStruct(aimInfo, &astrosInstance->feaProblem.feaLoad[i], &feaLoad[i]);
+            AIM_STATUS(aimInfo, status);
+
+            if (feaLoad[i].loadType == PressureExternal) {
+
+                // Transfer external pressures from the AIM discrObj
+                status = fea_transferExternalPressure(aimInfo,
+                                                      &astrosInstance->feaProblem.feaMesh,
+                                                      &feaLoad[i]);
+                AIM_STATUS(aimInfo, status);
+            }
+        }
+    }
+
+    // Analysis type
+    analysisType = aimInputs[Analysis_Type-1].vals.string;
+
     // Write Astros Mesh
     filename = EG_alloc(MXCHAR +1);
-    if (filename == NULL) return EGADS_MALLOC;
+    if (filename == NULL) {
+        status = EGADS_MALLOC;
+        goto cleanup;
+    }
     strcpy(filename, astrosInstance->projectName);
 
     status = mesh_writeAstros(aimInfo,
@@ -1787,20 +1802,17 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
                               astrosInstance->feaProblem.numDesignVariable,
                               astrosInstance->feaProblem.feaDesignVariable,
                               1.0);
-    if (status != CAPS_SUCCESS) {
-        EG_free(filename);
-        return status;
-    }
+    AIM_STATUS(aimInfo, status);
 
     // Write Astros subElement types not supported by astros_writeMesh
     strcat(filename, ".bdf");
     fp = aim_fopen(aimInfo, filename, "a");
     if (fp == NULL) {
-        printf("Unable to open file: %s\n", filename);
-        EG_free(filename);
-        return CAPS_IOERR;
+        AIM_ERROR(aimInfo, "Unable to open file: %s", filename);
+        status = CAPS_IOERR;
+        goto cleanup;
     }
-    EG_free(filename);
+    AIM_FREE(filename);
 
     printf("Writing subElement types (if any) - appending mesh file\n");
     status = astros_writeSubElementCard(fp,
@@ -1808,7 +1820,7 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
                                          astrosInstance->feaProblem.numProperty,
                                          astrosInstance->feaProblem.feaProperty,
                                          &astrosInstance->feaProblem.feaFileFormat);
-    if (status != CAPS_SUCCESS) goto cleanup;
+    AIM_STATUS(aimInfo, status);
 
     // Connections
     for (i = 0; i < astrosInstance->feaProblem.numConnect; i++) {
@@ -1820,7 +1832,7 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
         status = astros_writeConnectionCard(fp,
                                             &astrosInstance->feaProblem.feaConnect[i],
                                             &astrosInstance->feaProblem.feaFileFormat);
-        if (status != CAPS_SUCCESS) goto cleanup;
+        AIM_STATUS(aimInfo, status);
     }
     if (fp != NULL) fclose(fp);
     fp = NULL;
@@ -1828,18 +1840,19 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
 
     // Write astros input file
     filename = EG_alloc(MXCHAR +1);
-    if (filename == NULL) return EGADS_MALLOC;
+    if (filename == NULL) { status = EGADS_MALLOC; goto cleanup; }
     strcpy(filename, astrosInstance->projectName);
     strcat(filename, ".dat");
 
 
     printf("\nWriting Astros instruction file....\n");
     fp = aim_fopen(aimInfo, filename, "w");
-    EG_free(filename);
     if (fp == NULL) {
-        printf("Unable to open file: %s\n", filename);
-        return CAPS_IOERR;
+        AIM_ERROR(aimInfo, "Unable to open file: %s", filename);
+        status = CAPS_IOERR;
+        goto cleanup;
     }
+    AIM_FREE(filename);
 
     // define file format delimiter type
     /*
@@ -1974,18 +1987,16 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
             numThermalLoad = 0;
             numGravityLoad = 0;
 
-            if (astrosInstance->feaProblem.numLoad !=0) {
+            if (feaLoad != NULL) {
                 fprintf(fp, "(");
 
                 for (k = 0; k < astrosInstance->feaProblem.numLoad; k++) {
-
-                    feaLoad = &astrosInstance->feaProblem.feaLoad[k];
 
                     if (astrosInstance->feaProblem.feaAnalysis[i].numLoad != 0) { // if loads specified in analysis
 
                         for (j = 0; j < astrosInstance->feaProblem.feaAnalysis[i].numLoad; j++) { // See if the load is in the loadSet
 
-                            if (feaLoad->loadID == astrosInstance->feaProblem.feaAnalysis[i].loadSetID[j] ) break;
+                            if (feaLoad[k].loadID == astrosInstance->feaProblem.feaAnalysis[i].loadSetID[j] ) break;
                         }
 
                         if (j >= astrosInstance->feaProblem.feaAnalysis[i].numLoad) continue; // If it isn't in the loadSet move on
@@ -1993,10 +2004,10 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
                         //pass
                     }
 
-                    if (feaLoad->loadType == Thermal && numThermalLoad == 0) {
+                    if (feaLoad[k].loadType == Thermal && numThermalLoad == 0) {
 
                         if (addComma == (int) true) fprintf(fp, ",");
-                        fprintf(fp, " THERMAL = %d", feaLoad->loadID);
+                        fprintf(fp, " THERMAL = %d", feaLoad[k].loadID);
                         addComma = (int) true;
 
                         numThermalLoad += 1;
@@ -2007,10 +2018,10 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
                         continue;
                     }
 
-                    if (feaLoad->loadType == Gravity && numGravityLoad == 0) {
+                    if (feaLoad[k].loadType == Gravity && numGravityLoad == 0) {
 
                         if (addComma == (int) true) fprintf(fp, ",");
-                        fprintf(fp, " GRAVITY = %d", feaLoad->loadID);
+                        fprintf(fp, " GRAVITY = %d", feaLoad[k].loadID);
                         addComma = (int) true;
 
                         numGravityLoad += 1;
@@ -2115,17 +2126,17 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
 //            fprintf(fp, "    STATICS");
 //
 //            // Write loads for sub-case
-//            if (astrosInstance->feaProblem.numLoad != 0) {
+//            if (astrosInstance->feaProblem.numLoad > 0) {
 //                fprintf(fp, "(");
 //
 //                addComma = (int) false;
 //
 //                k = 0;
 //                for (j = 0; j < astrosInstance->feaProblem.numLoad; j++) {
-//                    if (astrosInstance->feaProblem.feaLoad[j].loadType == Thermal) {
+//                    if (feaLoad[j].loadType == Thermal) {
 //
 //                        if (addComma == (int) true) fprintf(fp, ",");
-//                        fprintf(fp, " THERMAL = %d", astrosInstance->feaProblem.feaLoad[j].loadID);
+//                        fprintf(fp, " THERMAL = %d", feaLoad[j].loadID);
 //                        addComma = (int) true;
 //
 //                        numThermalLoad += 1;
@@ -2136,9 +2147,9 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
 //                        continue;
 //                    }
 //
-//                    if (astrosInstance->feaProblem.feaLoad[j].loadType == Gravity) {
+//                    if (feaLoad[j].loadType == Gravity) {
 //                        if (addComma == (int) true) fprintf(fp, ",");
-//                        fprintf(fp, " GRAVITY = %d", astrosInstance->feaProblem.feaLoad[j].loadID);
+//                        fprintf(fp, " GRAVITY = %d", feaLoad[j].loadID);
 //                        addComma = (int) true;
 //                        continue;
 //                    }
@@ -2251,6 +2262,7 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
         AIM_STATUS(aimInfo, status);
 
         if (astrosInstance->feaProblem.feaAnalysis[i].numLoad != 0) {
+            AIM_NOTNULL(feaLoad, aimInfo, status);
 
             // Create a temporary list of load IDs
             tempIntegerArray = (int *) EG_alloc(astrosInstance->feaProblem.feaAnalysis[i].numLoad*sizeof(int));
@@ -2262,13 +2274,13 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
             k = 0;
             for (j = 0; j <  astrosInstance->feaProblem.feaAnalysis[i].numLoad; j++) {
                 for (l = 0; l < astrosInstance->feaProblem.numLoad; l++) {
-                    if (astrosInstance->feaProblem.feaAnalysis[i].loadSetID[j] == astrosInstance->feaProblem.feaLoad[l].loadID) break;
+                    if (astrosInstance->feaProblem.feaAnalysis[i].loadSetID[j] == feaLoad[l].loadID) break;
                 }
 
                 if (l >= astrosInstance->feaProblem.numLoad) continue;
-                if (astrosInstance->feaProblem.feaLoad[l].loadType == Gravity) continue;
-                if (astrosInstance->feaProblem.feaLoad[l].loadType == Thermal) continue;
-                tempIntegerArray[k] = astrosInstance->feaProblem.feaLoad[l].loadID;
+                if (feaLoad[l].loadType == Gravity) continue;
+                if (feaLoad[l].loadType == Thermal) continue;
+                tempIntegerArray[k] = feaLoad[l].loadID;
                 k += 1;
             }
 
@@ -2284,10 +2296,10 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
                                               astrosInstance->feaProblem.numLoad+i+1,
                                               k,
                                               tempIntegerArray,
-                                              astrosInstance->feaProblem.feaLoad,
+                                              feaLoad,
                                               &astrosInstance->feaProblem.feaFileFormat);
 
-            if (status != CAPS_SUCCESS) goto cleanup;
+            AIM_STATUS(aimInfo, status);
 
             // Free temporary load ID list
             EG_free(tempIntegerArray);
@@ -2295,7 +2307,7 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
 
         } else { // If no loads for an individual analysis are specified assume that all loads should be applied
 
-            if (astrosInstance->feaProblem.numLoad != 0) {
+            if (feaLoad != NULL) {
 
                 // Create a temporary list of load IDs
                 tempIntegerArray = (int *) EG_alloc(astrosInstance->feaProblem.numLoad*sizeof(int));
@@ -2306,9 +2318,9 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
 
                 k = 0;
                 for (j = 0; j < astrosInstance->feaProblem.numLoad; j++) {
-                    if (astrosInstance->feaProblem.feaLoad[j].loadType == Gravity) continue;
-                    if (astrosInstance->feaProblem.feaLoad[j].loadType == Thermal) continue;
-                    tempIntegerArray[k] = astrosInstance->feaProblem.feaLoad[j].loadID;
+                    if (feaLoad[j].loadType == Gravity) continue;
+                    if (feaLoad[j].loadType == Thermal) continue;
+                    tempIntegerArray[k] = feaLoad[j].loadID;
                     k += 1;
                 }
 
@@ -2325,10 +2337,10 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
                                                   astrosInstance->feaProblem.numLoad+i+1,
                                                   k,
                                                   tempIntegerArray,
-                                                  astrosInstance->feaProblem.feaLoad,
+                                                  feaLoad,
                                                   &astrosInstance->feaProblem.feaFileFormat);
 
-                if (status != CAPS_SUCCESS) goto cleanup;
+                AIM_STATUS(aimInfo, status);
 
                 // Free temporary load ID list
                 EG_free(tempIntegerArray);
@@ -2351,7 +2363,7 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
                                                     astrosInstance->feaProblem.numConstraint+i+1,
                                                     &astrosInstance->feaProblem.feaConstraint[k],
                                                     &astrosInstance->feaProblem.feaFileFormat);
-                if (status != CAPS_SUCCESS) goto cleanup;
+                AIM_STATUS(aimInfo, status);
             }
 
 //                printf("\tWriting constraint ADD cards\n");
@@ -2377,7 +2389,7 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
                                                         astrosInstance->feaProblem.numConstraint+i+1,
                                                         &astrosInstance->feaProblem.feaConstraint[j],
                                                         &astrosInstance->feaProblem.feaFileFormat);
-                    if (status != CAPS_SUCCESS) goto cleanup;
+                    AIM_STATUS(aimInfo, status);
                 }
             }
         }
@@ -2398,7 +2410,7 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
                                                           astrosInstance->feaProblem.numProperty,
                                                           astrosInstance->feaProblem.feaProperty,
                                                           &astrosInstance->feaProblem.feaFileFormat);
-                if (status != CAPS_SUCCESS) goto cleanup;
+                AIM_STATUS(aimInfo, status);
             }
 
         } else { // If no design constraints for an individual analysis are specified assume that all design constraints should be applied
@@ -2418,7 +2430,7 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
                                                               astrosInstance->feaProblem.numProperty,
                                                               astrosInstance->feaProblem.feaProperty,
                                                               &astrosInstance->feaProblem.feaFileFormat);
-                    if (status != CAPS_SUCCESS) goto cleanup;
+                    AIM_STATUS(aimInfo, status);
                 }
             }
 
@@ -2427,6 +2439,7 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
 
     // Loads
     for (i = 0; i < astrosInstance->feaProblem.numLoad; i++) {
+        AIM_NOTNULL(feaLoad, aimInfo, status);
 
         if (i == 0) {
             printf("\tWriting load cards\n");
@@ -2435,9 +2448,9 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
 
         status = astros_writeLoadCard(fp,
                                       &astrosInstance->feaProblem.feaMesh,
-                                      &astrosInstance->feaProblem.feaLoad[i],
+                                      &feaLoad[i],
                                       &astrosInstance->feaProblem.feaFileFormat);
-        if (status != CAPS_SUCCESS) goto cleanup;
+        AIM_STATUS(aimInfo, status);
     }
 
     // Constraints
@@ -2452,7 +2465,7 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
         status = nastran_writeConstraintCard(fp,
                                              &astrosInstance->feaProblem.feaConstraint[i],
                                              &astrosInstance->feaProblem.feaFileFormat);
-        if (status != CAPS_SUCCESS) goto cleanup;
+        AIM_STATUS(aimInfo, status);
     } */
 
     // Supports
@@ -2466,7 +2479,7 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
         status = astros_writeSupportCard(fp,
                                          &astrosInstance->feaProblem.feaSupport[i],
                                          &astrosInstance->feaProblem.feaFileFormat);
-        if (status != CAPS_SUCCESS) goto cleanup;
+        AIM_STATUS(aimInfo, status);
     }
 
 
@@ -2481,7 +2494,7 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
         status = nastran_writeMaterialCard(fp,
                                            &astrosInstance->feaProblem.feaMaterial[i],
                                            &astrosInstance->feaProblem.feaFileFormat);
-        if (status != CAPS_SUCCESS) goto cleanup;
+        AIM_STATUS(aimInfo, status);
     }
 
     // Properties
@@ -2497,7 +2510,7 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
                                           &astrosInstance->feaProblem.feaFileFormat,
                                           astrosInstance->feaProblem.numDesignVariable,
                                           astrosInstance->feaProblem.feaDesignVariable);
-        if (status != CAPS_SUCCESS) goto cleanup;
+        AIM_STATUS(aimInfo, status);
     }
 
     // Coordinate systems
@@ -2509,7 +2522,7 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
         }
 
         status = nastran_writeCoordinateSystemCard(fp, &astrosInstance->feaProblem.feaCoordSystem[i], &astrosInstance->feaProblem.feaFileFormat);
-        if (status != CAPS_SUCCESS) goto cleanup;
+        AIM_STATUS(aimInfo, status);
     }
 
     // Optimization - design variables
@@ -2525,7 +2538,7 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
                                                 astrosInstance->feaProblem.numProperty,
                                                 astrosInstance->feaProblem.feaProperty,
                                                 &astrosInstance->feaProblem.feaFileFormat);
-        if (status != CAPS_SUCCESS) goto cleanup;
+        AIM_STATUS(aimInfo, status);
     }
 
     // Optimization - design variables - geometry
@@ -2543,7 +2556,7 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
         for (j = 0; j < nGeomIn; j++) {
 
             status = aim_getName(aimInfo, j+1, GEOMETRYIN, &geomInName);
-            if (status != CAPS_SUCCESS) goto cleanup;
+            AIM_STATUS(aimInfo, status);
 
             if (strcmp(astrosInstance->feaProblem.feaDesignVariable[i].name, geomInName) == 0) break;
         }
@@ -2565,7 +2578,7 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
                                                  nGeomIn, geomInVal,
                                                  &astrosInstance->feaProblem.feaMesh,
                                                  &astrosInstance->feaProblem.feaFileFormat);
-        if (status != CAPS_SUCCESS) goto cleanup;
+        AIM_STATUS(aimInfo, status);
         printf(">>> Done writing geometry parametrization\n");
 
         break; // Only need to call astros_writeGeomParametrization once!
@@ -2587,7 +2600,7 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
                                                     astrosInstance->feaProblem.numProperty,
                                                     astrosInstance->feaProblem.feaProperty,
                                                     &astrosInstance->feaProblem.feaFileFormat);
-        if (status != CAPS_SUCCESS) goto cleanup;
+        AIM_STATUS(aimInfo, status);
       } */
 
     // Aeroelastic
@@ -2601,7 +2614,7 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
             status = astros_writeCAeroCard(fp,
                                            &astrosInstance->feaProblem.feaAero[i],
                                            &astrosInstance->feaProblem.feaFileFormat);
-            if (status != CAPS_SUCCESS) goto cleanup;
+            AIM_STATUS(aimInfo, status);
 
             status = astros_checkAirfoil(aimInfo,
                                          &astrosInstance->feaProblem.feaAero[i]);
@@ -2623,24 +2636,24 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
                                              j, // useAirfoilShape
                                              &astrosInstance->feaProblem.feaAero[i],
                                              &astrosInstance->feaProblem.feaFileFormat);
-            if (status != CAPS_SUCCESS) goto cleanup;
+            AIM_STATUS(aimInfo, status);
 
             status = astros_writeAeroData(aimInfo,
                                           fp,
                                           j, // useAirfoilShape
                                           &astrosInstance->feaProblem.feaAero[i],
                                           &astrosInstance->feaProblem.feaFileFormat);
-            if (status != CAPS_SUCCESS) goto cleanup;
+            AIM_STATUS(aimInfo, status);
 
             status = astros_writeAeroSplineCard(fp,
                                                 &astrosInstance->feaProblem.feaAero[i],
                                                 &astrosInstance->feaProblem.feaFileFormat);
-            if (status != CAPS_SUCCESS) goto cleanup;
+            AIM_STATUS(aimInfo, status);
 
             status = nastran_writeSet1Card(fp,
                                            &astrosInstance->feaProblem.feaAero[i],
                                            &astrosInstance->feaProblem.feaFileFormat);
-            if (status != CAPS_SUCCESS) goto cleanup;
+            AIM_STATUS(aimInfo, status);
         }
     }
 
@@ -2653,17 +2666,17 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
             status = nastran_writeCAeroCard(fp,
                                             &astrosInstance->feaProblem.feaAero[i],
                                             &astrosInstance->feaProblem.feaFileFormat);
-            if (status != CAPS_SUCCESS) goto cleanup;
+            AIM_STATUS(aimInfo, status);
 
             status = astros_writeAeroSplineCard(fp,
                                                 &astrosInstance->feaProblem.feaAero[i],
                                                 &astrosInstance->feaProblem.feaFileFormat);
-            if (status != CAPS_SUCCESS) goto cleanup;
+            AIM_STATUS(aimInfo, status);
 
             status = nastran_writeSet1Card(fp,
                                            &astrosInstance->feaProblem.feaAero[i],
                                            &astrosInstance->feaProblem.feaFileFormat);
-            if (status != CAPS_SUCCESS) goto cleanup;
+            AIM_STATUS(aimInfo, status);
         }
     }
 
@@ -2718,22 +2731,26 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
 */
 
     status = CAPS_SUCCESS;
-    goto cleanup;
 
-    cleanup:
-        if (status != CAPS_SUCCESS) printf("\tPremature exit in astrosAIM preAnalysis, status = %d\n", status);
+cleanup:
+    if (feaLoad != NULL) {
+        for (i = 0; i < astrosInstance->feaProblem.numLoad; i++) {
+            destroy_feaLoadStruct(&feaLoad[i]);
+        }
+        AIM_FREE(feaLoad);
+    }
 
-        if (fp != NULL) fclose(fp);
+    if (fp != NULL) fclose(fp);
 
-        EG_free(tempIntegerArray);
-        tempIntegerArray = NULL;
+    AIM_FREE(tempIntegerArray);
+    AIM_FREE(filename);
 
-        return status;
+    return status;
 }
 
 
 // ********************** AIM Function Break *****************************
-int aimExecute(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo,
+int aimExecute(/*@unused@*/ const void *instStore, /*@unused@*/ void *aimInfo,
                int *state)
 {
   /*! \page aimExecuteAstros AIM Execution
@@ -2787,16 +2804,19 @@ int aimExecute(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo,
 
   snprintf(command, PATH_MAX, "%s%cASTRO.D01", env, SLASH);
   status = aim_cpFile(aimInfo, command, "");
-  if (status != CAPS_SUCCESS) return status;
+  AIM_STATUS(aimInfo, status);
 
   snprintf(command, PATH_MAX, "%s%cASTRO.IDX", env, SLASH);
   status = aim_cpFile(aimInfo, command, "");
-  if (status != CAPS_SUCCESS) return status;
+  AIM_STATUS(aimInfo, status);
 
   snprintf(command, PATH_MAX, "%s%castros.exe < %s.dat > %s.out",
            env, SLASH, astrosInstance->projectName, astrosInstance->projectName);
 
   return aim_system(aimInfo, NULL, command);
+
+cleanup:
+  return status;
 }
 
 
@@ -3094,42 +3114,6 @@ int aimDiscr(char *tname, capsDiscr *discr) {
 
     const char   *intents;
 
-#ifdef OLD_DISCR_IMPLEMENTATION_TO_REMOVE
-    int i, j, body, face, counter; // Indexing
-
-    // EGADS objects
-    ego tess, *bodies = NULL, *faces = NULL, tempBody;
-
-    const char *intents, *string = NULL, *capsGroup = NULL; // capsGroups strings
-
-    // EGADS function returns
-    int plen, tlen, qlen;
-    int atype, alen;
-    const int    *ptype, *pindex, *tris, *nei, *ints;
-    const double *xyz, *uv, *reals;
-
-    // Body Tessellation
-    int numFace = 0;
-    int numFaceFound = 0;
-    int numPoint = 0, numTri = 0, numQuad = 0, numGlobalPoint = 0;
-    int *bodyFaceMap = NULL; // size=[2*numFaceFound], [2*numFaceFound + 0] = body, [2*numFaceFoun + 1] = face
-
-    int *globalID = NULL, *localStitchedID = NULL, gID = 0;
-
-    int *storage= NULL; // Extra information to store into the discr void pointer
-
-    int numCAPSGroup = 0, attrIndex = 0, foundAttr = (int) false;
-    int *capsGroupList = NULL;
-    int dataTransferBodyIndex=-99;
-
-    int numElem, stride, tindex;
-
-    // Quading variables
-    int quad = (int)false;
-    int patch;
-    int numPatch, n1, n2;
-    const int *pvindex = NULL, *pbounds = NULL;
-#endif
 #ifdef DEBUG
     printf(" astrosAIM/aimDiscr: tname = %s, instance = %d!\n", tname);
 #endif
@@ -3146,10 +3130,8 @@ int aimDiscr(char *tname, capsDiscr *discr) {
 
     // Currently this ONLY works if the capsTranfer lives on single body!
     status = aim_getBodies(discr->aInfo, &intents, &numBody, &bodies);
-    if (status != CAPS_SUCCESS) {
-        printf(" astrosAIM/aimDiscr: aim_getBodies = %d!\n", status);
-        return status;
-    }
+    AIM_STATUS(discr->aInfo, status);
+
     if (bodies == NULL) {
         printf(" astrosAIM/aimDiscr: Null Bodies!\n");
         return CAPS_NULLOBJ;
@@ -3157,456 +3139,16 @@ int aimDiscr(char *tname, capsDiscr *discr) {
 
     // Check and generate/retrieve the mesh
     status = checkAndCreateMesh(discr->aInfo, astrosInstance);
-    if (status != CAPS_SUCCESS) goto cleanup;
+    AIM_STATUS(discr->aInfo, status);
 
     AIM_ALLOC(tess, astrosInstance->numMesh, ego, discr->aInfo, status);
     for (i = 0; i < astrosInstance->numMesh; i++) {
-      tess[i] = astrosInstance->feaMesh[i].bodyTessMap.egadsTess;
+      tess[i] = astrosInstance->feaMesh[i].egadsTess;
     }
 
     status = mesh_fillDiscr(tname, &astrosInstance->attrMap, astrosInstance->numMesh, tess, discr);
-    if (status != CAPS_SUCCESS) goto cleanup;
+    AIM_STATUS(discr->aInfo, status);
 
-#ifdef OLD_DISCR_IMPLEMENTATION_TO_REMOVE
-
-    numFaceFound = 0;
-    numPoint = numTri = numQuad = 0;
-    // Find any faces with our boundary marker and get how many points and triangles there are
-    for (body = 0; body < numBody; body++) {
-
-        status = EG_getBodyTopos(bodies[body], NULL, FACE, &numFace, &faces);
-        if ((status != EGADS_SUCCESS) || (faces == NULL)) {
-            printf("astrosAIM: getBodyTopos (Face) = %d for Body %d!\n",
-                   status, body);
-            if (status == EGADS_SUCCESS) status = CAPS_NULLOBJ;
-            return status;
-        }
-
-        tess = bodies[body + numBody];
-        if (tess == NULL) continue;
-
-        quad = (int) false;
-        status = EG_attributeRet(tess, ".tessType", &atype, &alen, &ints, &reals,
-                                 &string);
-        if (status == EGADS_SUCCESS)
-          if ((atype == ATTRSTRING) && (string != NULL))
-            if (strcmp(string, "Quad") == 0) quad = (int) true;
-
-        for (face = 0; face < numFace; face++) {
-
-            // Retrieve the string following a capsBound tag
-            status = retrieve_CAPSBoundAttr(faces[face], &string);
-            if ((status != CAPS_SUCCESS) || (string == NULL)) continue;
-            if (strcmp(string, tname) != 0) continue;
-
-            status = retrieve_CAPSIgnoreAttr(faces[face], &string);
-            if (status == CAPS_SUCCESS) {
-              printf("astrosAIM: WARNING: capsIgnore found on bound %s\n", tname);
-              continue;
-            }
-
-#ifdef DEBUG
-            printf(" astrosAIM/aimDiscr: Body %d/Face %d matches %s!\n",
-                   body, face+1, tname);
-#endif
-
-            status = retrieve_CAPSGroupAttr(faces[face], &capsGroup);
-            if ((status != CAPS_SUCCESS) || (capsGroup == NULL)) {
-                printf("capsBound found on face %d, but no capGroup found!!!\n",
-                       face);
-                continue;
-            } else {
-
-                status = get_mapAttrToIndexIndex(&astrosInstance->attrMap,
-                                                 capsGroup, &attrIndex);
-                if (status != CAPS_SUCCESS) {
-                    printf("capsGroup %s NOT found in attrMap\n", capsGroup);
-                    continue;
-                } else {
-
-                    // If first index create arrays and store index
-                    if (capsGroupList == NULL) {
-                        numCAPSGroup  = 1;
-                        capsGroupList = (int *) EG_alloc(numCAPSGroup*sizeof(int));
-                        if (capsGroupList == NULL) {
-                            status =  EGADS_MALLOC;
-                            goto cleanup;
-                        }
-
-                        capsGroupList[numCAPSGroup-1] = attrIndex;
-                    } else { // If we already have an index(es) let make sure it is unique
-                        foundAttr = (int) false;
-                        for (i = 0; i < numCAPSGroup; i++) {
-                            if (attrIndex == capsGroupList[i]) {
-                                foundAttr = (int) true;
-                                break;
-                            }
-                        }
-
-                        if (foundAttr == (int) false) {
-                            numCAPSGroup += 1;
-                            capsGroupList = (int *) EG_reall(capsGroupList,
-                                                             numCAPSGroup*sizeof(int));
-                            if (capsGroupList == NULL) {
-                                status =  EGADS_MALLOC;
-                                goto cleanup;
-                            }
-
-                            capsGroupList[numCAPSGroup-1] = attrIndex;
-                        }
-                    }
-                }
-            }
-
-            numFaceFound += 1;
-            dataTransferBodyIndex = body;
-            bodyFaceMap = (int *) EG_reall(bodyFaceMap, 2*numFaceFound*sizeof(int));
-            if (bodyFaceMap == NULL) { status = EGADS_MALLOC; goto cleanup; }
-
-            // Get number of points and triangles
-            bodyFaceMap[2*(numFaceFound-1) + 0] = body+1;
-            bodyFaceMap[2*(numFaceFound-1) + 1] = face+1;
-
-            // count Quads/triangles
-            status = EG_getQuads(bodies[body+numBody], face+1, &qlen, &xyz, &uv,
-                                 &ptype, &pindex, &numPatch);
-            if (status == EGADS_SUCCESS && numPatch != 0) {
-
-              // Sum number of points and quads
-              numPoint  += qlen;
-
-              for (patch = 1; patch <= numPatch; patch++) {
-                status = EG_getPatch(bodies[body+numBody], face+1, patch, &n1,
-                                     &n2, &pvindex, &pbounds);
-                if (status != EGADS_SUCCESS) goto cleanup;
-                numQuad += (n1-1)*(n2-1);
-              }
-            } else {
-                // Get face tessellation
-                status = EG_getTessFace(bodies[body+numBody], face+1, &plen,
-                                        &xyz, &uv, &ptype, &pindex, &tlen, &tris,
-                                        &nei);
-                if (status != EGADS_SUCCESS) {
-                    printf(" astrosAIM: EG_getTessFace %d = %d for Body %d!\n",
-                           face+1, status, body+1);
-                    continue;
-                }
-
-                // Sum number of points and triangles
-                numPoint += plen;
-                if (quad == (int)true)
-                    numQuad += tlen/2;
-                else
-                    numTri  += tlen;
-            }
-        }
-
-        EG_free(faces); faces = NULL;
-
-        if (dataTransferBodyIndex >=0) break; // Force that only one body can be used
-    }
-
-    if (numFaceFound == 0) {
-        printf(" astrosAIM/aimDiscr: No Faces match %s!\n", tname);
-        status = CAPS_NOTFOUND;
-        goto cleanup;
-    }
-
-    // Debug
-#ifdef DEBUG
-    printf(" astrosAIM/aimDiscr: ntris = %d, npts = %d!\n", numTri, numPoint);
-    printf(" astrosAIM/aimDiscr: nquad = %d, npts = %d!\n", numQuad, numPoint);
-#endif
-
-    if ( numPoint == 0 || (numTri == 0 && numQuad == 0) ) {
-#ifdef DEBUG
-      printf(" astrosAIM/aimDiscr: ntris = %d, npts = %d!\n", numTri, numPoint);
-      printf(" astrosAIM/aimDiscr: nquad = %d, npts = %d!\n", numQuad, numPoint);
-#endif
-      status = CAPS_SOURCEERR;
-      goto cleanup;
-    }
-
-#ifdef DEBUG
-    printf(" astrosAIM/aimDiscr: Body Index for data transfer = %d\n",
-           dataTransferBodyIndex);
-#endif
-
-    // Specify our element type
-    status = EGADS_MALLOC;
-    discr->nTypes = 2;
-
-    discr->types  = (capsEleType *) EG_alloc(discr->nTypes* sizeof(capsEleType));
-    if (discr->types == NULL) goto cleanup;
-
-    // Define triangle element type
-    status = aim_nodalTriangleType( &discr->types[0]);
-    if (status != CAPS_SUCCESS) goto cleanup;
-
-    // Define quad element type
-    status = aim_nodalQuadType( &discr->types[1]);
-    if (status != CAPS_SUCCESS) goto cleanup;
-
-    // Get the tessellation and make up a simple linear continuous triangle discretization */
-
-    discr->nElems = numTri + numQuad;
-
-    discr->elems = (capsElement *) EG_alloc(discr->nElems*sizeof(capsElement));
-    if (discr->elems == NULL) { status = EGADS_MALLOC; goto cleanup; }
-
-    discr->gIndices = (int *) EG_alloc(2*(discr->types[0].nref*numTri +
-                                          discr->types[1].nref*numQuad)*sizeof(int));
-    if (discr->gIndices == NULL) { status = EGADS_MALLOC; goto cleanup; }
-
-    discr->mapping = (int *) EG_alloc(2*numPoint*sizeof(int)); // Will be resized
-    if (discr->mapping == NULL) { status = EGADS_MALLOC; goto cleanup; }
-
-    globalID = (int *) EG_alloc(numPoint*sizeof(int));
-    if (globalID == NULL) { status = EGADS_MALLOC; goto cleanup; }
-
-    if (bodyFaceMap == NULL) {
-        printf(" astrosAIM/aimDiscr: Body Face Map is NULL!\n");
-        status = CAPS_NULLOBJ;
-        goto cleanup;
-    }
-
-    numPoint = 0;
-    numTri   = 0;
-    numQuad  = 0;
-
-    for (face = 0; face < numFaceFound; face++){
-
-        tess = bodies[bodyFaceMap[2*face + 0]-1 + numBody];
-
-        quad = (int) false;
-        status = EG_attributeRet(tess, ".tessType", &atype, &alen, &ints, &reals,
-                                 &string);
-        if (status == EGADS_SUCCESS)
-          if ((atype == ATTRSTRING) && (string != NULL))
-            if (strcmp(string, "Quad") == 0)
-              quad = (int) true;
-
-        if (localStitchedID == NULL) {
-            status = EG_statusTessBody(tess, &tempBody, &i, &numGlobalPoint);
-            if (status != EGADS_SUCCESS) goto cleanup;
-
-            localStitchedID = (int *) EG_alloc(numGlobalPoint*sizeof(int));
-            if (localStitchedID == NULL) { status = EGADS_MALLOC; goto cleanup; }
-
-            for (i = 0; i < numGlobalPoint; i++) localStitchedID[i] = 0;
-        }
-
-        // Get face tessellation
-        status = EG_getTessFace(tess, bodyFaceMap[2*face + 1], &plen, &xyz, &uv,
-                                &ptype, &pindex, &tlen, &tris, &nei);
-        if (status != EGADS_SUCCESS) {
-            printf(" astrosAIM: EG_getTessFace %d = %d for Body %d!\n",
-                   bodyFaceMap[2*face + 1], status, bodyFaceMap[2*face + 0]);
-            continue;
-        }
-
-        for (i = 0; i < plen; i++ ) {
-
-            status = EG_localToGlobal(tess, bodyFaceMap[2*face+1], i+1, &gID);
-            if (status != EGADS_SUCCESS) goto cleanup;
-
-            if (localStitchedID[gID -1] != 0) continue;
-
-            discr->mapping[2*numPoint  ] = bodyFaceMap[2*face + 0];
-            discr->mapping[2*numPoint+1] = gID;
-
-            localStitchedID[gID -1] = numPoint+1;
-
-            globalID[numPoint] = gID;
-
-            numPoint += 1;
-        }
-
-        // Attempt to retrieve quad information
-        status = EG_getQuads(tess, bodyFaceMap[2*face + 1], &i, &xyz, &uv,
-                             &ptype, &pindex, &numPatch);
-        if (status == EGADS_SUCCESS && numPatch != 0) {
-
-            if (numPatch != 1) {
-                status = CAPS_NOTIMPLEMENT;
-                printf("astrosAIM/aimDiscr: EG_localToGlobal accidentally only works for a single quad patch! FIXME!\n");
-                goto cleanup;
-            }
-
-            counter = 0;
-            for (patch = 1; patch <= numPatch; patch++) {
-
-                status = EG_getPatch(tess, bodyFaceMap[2*face + 1], patch, &n1,
-                                     &n2, &pvindex, &pbounds);
-                if ((status != EGADS_SUCCESS) || (pvindex == NULL)) goto cleanup;
-
-                for (j = 1; j < n2; j++) {
-                    for (i = 1; i < n1; i++) {
-
-                        discr->elems[numQuad+numTri].bIndex = bodyFaceMap[2*face + 0];
-                        discr->elems[numQuad+numTri].tIndex = 2;
-                        discr->elems[numQuad+numTri].eIndex = bodyFaceMap[2*face + 1];
-/*@-immediatetrans@*/
-                        discr->elems[numQuad+numTri].gIndices =
-                              &discr->gIndices[2*(discr->types[0].nref*numTri +
-                                                  discr->types[1].nref*numQuad)];
-/*@+immediatetrans@*/
-
-                        discr->elems[numQuad+numTri].dIndices = NULL;
-                      //discr->elems[numQuad+numTri].eTris.tq[0] = (numQuad*2 + numTri) + 1;
-                      //discr->elems[numQuad+numTri].eTris.tq[1] = (numQuad*2 + numTri) + 2;
-
-                        discr->elems[numQuad+numTri].eTris.tq[0] = counter*2 + 1;
-                        discr->elems[numQuad+numTri].eTris.tq[1] = counter*2 + 2;
-
-                        status = EG_localToGlobal(tess, bodyFaceMap[2*face + 1],
-                                                  pvindex[(i-1)+n1*(j-1)], &gID);
-                        if (status != EGADS_SUCCESS) goto cleanup;
-
-                        discr->elems[numQuad+numTri].gIndices[0] = localStitchedID[gID-1];
-                        discr->elems[numQuad+numTri].gIndices[1] = pvindex[(i-1)+n1*(j-1)];
-
-                        status = EG_localToGlobal(tess, bodyFaceMap[2*face + 1],
-                                                  pvindex[(i  )+n1*(j-1)], &gID);
-                        if (status != EGADS_SUCCESS) goto cleanup;
-
-                        discr->elems[numQuad+numTri].gIndices[2] = localStitchedID[gID-1];
-                        discr->elems[numQuad+numTri].gIndices[3] = pvindex[(i  )+n1*(j-1)];
-
-                        status = EG_localToGlobal(tess, bodyFaceMap[2*face + 1],
-                                                  pvindex[(i  )+n1*(j  )], &gID);
-                        if (status != EGADS_SUCCESS) goto cleanup;
-
-                        discr->elems[numQuad+numTri].gIndices[4] = localStitchedID[gID-1];
-                        discr->elems[numQuad+numTri].gIndices[5] = pvindex[(i  )+n1*(j  )];
-
-                        status = EG_localToGlobal(tess, bodyFaceMap[2*face + 1],
-                                                  pvindex[(i-1)+n1*(j  )], &gID);
-                        if (status != EGADS_SUCCESS) goto cleanup;
-
-                        discr->elems[numQuad+numTri].gIndices[6] = localStitchedID[gID-1];
-                        discr->elems[numQuad+numTri].gIndices[7] = pvindex[(i-1)+n1*(j  )];
-
-//                        printf("Quad %d, GIndice = %d %d %d %d %d %d %d %d\n", numQuad+numTri,
-//                                                                               discr->elems[numQuad+numTri].gIndices[0],
-//                                                                               discr->elems[numQuad+numTri].gIndices[1],
-//                                                                               discr->elems[numQuad+numTri].gIndices[2],
-//                                                                               discr->elems[numQuad+numTri].gIndices[3],
-//                                                                               discr->elems[numQuad+numTri].gIndices[4],
-//                                                                               discr->elems[numQuad+numTri].gIndices[5],
-//                                                                               discr->elems[numQuad+numTri].gIndices[6],
-//                                                                               discr->elems[numQuad+numTri].gIndices[7]);
-
-                        numQuad += 1;
-                        counter += 1;
-                    }
-                }
-            }
-
-        } else {
-
-            if (quad == (int)true) {
-                numElem = tlen/2;
-                stride = 6;
-                tindex = 2;
-            } else {
-                numElem = tlen;
-                stride = 3;
-                tindex = 1;
-            }
-
-            // Get triangle/quad connectivity in global sense
-            for (i = 0; i < numElem; i++) {
-
-                discr->elems[numQuad+numTri].bIndex      = bodyFaceMap[2*face + 0];
-                discr->elems[numQuad+numTri].tIndex      = tindex;
-                discr->elems[numQuad+numTri].eIndex      = bodyFaceMap[2*face + 1];
-/*@-immediatetrans@*/
-                discr->elems[numQuad+numTri].gIndices    =
-                             &discr->gIndices[2*(discr->types[0].nref*numTri +
-                                                 discr->types[1].nref*numQuad)];
-/*@+immediatetrans@*/
-                discr->elems[numQuad+numTri].dIndices    = NULL;
-
-                if (quad == (int)true) {
-                    discr->elems[numQuad+numTri].eTris.tq[0] = i*2 + 1;
-                    discr->elems[numQuad+numTri].eTris.tq[1] = i*2 + 2;
-                } else {
-                    discr->elems[numQuad+numTri].eTris.tq[0] = i + 1;
-                }
-
-                status = EG_localToGlobal(tess, bodyFaceMap[2*face + 1],
-                                          tris[stride*i + 0], &gID);
-                if (status != EGADS_SUCCESS) goto cleanup;
-
-                discr->elems[numQuad+numTri].gIndices[0] = localStitchedID[gID-1];
-                discr->elems[numQuad+numTri].gIndices[1] = tris[stride*i + 0];
-
-                status = EG_localToGlobal(tess, bodyFaceMap[2*face + 1],
-                                          tris[stride*i + 1], &gID);
-                if (status != EGADS_SUCCESS) goto cleanup;
-
-                discr->elems[numQuad+numTri].gIndices[2] = localStitchedID[gID-1];
-                discr->elems[numQuad+numTri].gIndices[3] = tris[stride*i + 1];
-
-                status = EG_localToGlobal(tess, bodyFaceMap[2*face + 1],
-                                          tris[stride*i + 2], &gID);
-                if (status != EGADS_SUCCESS) goto cleanup;
-
-                discr->elems[numQuad+numTri].gIndices[4] = localStitchedID[gID-1];
-                discr->elems[numQuad+numTri].gIndices[5] = tris[stride*i + 2];
-
-                if (quad == (int)true) {
-                    status = EG_localToGlobal(tess, bodyFaceMap[2*face + 1],
-                                              tris[stride*i + 5], &gID);
-                    if (status != EGADS_SUCCESS) goto cleanup;
-
-                    discr->elems[numQuad+numTri].gIndices[6] = localStitchedID[gID-1];
-                    discr->elems[numQuad+numTri].gIndices[7] = tris[stride*i + 5];
-                }
-
-                if (quad == (int)true) {
-                    numQuad += 1;
-                } else {
-                    numTri += 1;
-                }
-            }
-        }
-    }
-
-    discr->nPoints = numPoint;
-
-#ifdef DEBUG
-    printf(" astrosAIM/aimDiscr: ntris = %d, npts = %d!\n",
-           discr->nElems, discr->nPoints);
-#endif
-
-    // Resize mapping to stitched together number of points
-    discr->mapping = (int *) EG_reall(discr->mapping, 2*numPoint*sizeof(int));
-
-    // Local to global node connectivity + numCAPSGroup + sizeof(capGrouplist)
-    storage = (int *) EG_alloc((numPoint + 1 + numCAPSGroup) *sizeof(int));
-    if (storage == NULL) goto cleanup;
-    discr->ptrm = storage;
-
-    // Store the global node id
-    for (i = 0; i < numPoint; i++) {
-
-        storage[i] = globalID[i];
-
-        //#ifdef DEBUG
-        //    printf(" astrosAIM/aimDiscr: Instance = %d, Global Node ID %d\n", iIndex, storage[i]);
-        //#endif
-    }
-
-    // Save way the attrMap capsGroup list
-    if (capsGroupList != NULL) {
-        storage[numPoint] = numCAPSGroup;
-        for (i = 0; i < numCAPSGroup; i++) {
-            storage[numPoint+1+i] = capsGroupList[i];
-        }
-    }
-#endif
 #ifdef DEBUG
     printf(" astrosAIM/aimDiscr: Instance = %d, Finished!!\n", iIndex);
 #endif
@@ -3617,15 +3159,6 @@ cleanup:
     if (status != CAPS_SUCCESS)
         printf("\tPremature exit in astrosAIM aimDiscr, status = %d\n", status);
 
-#ifdef OLD_DISCR_IMPLEMENTATION_TO_REMOVE
-    EG_free(faces);
-
-    EG_free(globalID);
-    EG_free(localStitchedID);
-
-    EG_free(capsGroupList);
-    EG_free(bodyFaceMap);
-#endif
     AIM_FREE(tess);
     return status;
 }

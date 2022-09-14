@@ -1,0 +1,191 @@
+# collab3
+# John Dannenhoffer: basic wing OML with hardwired dimesnions
+# Nitin Bhagat:      update OML to use DESPMTRS  (wingOML)
+# Nitin Bhagat:      add flaps and aileron       (wingOMLwithControls)
+
+# dimensions in mm based upon printed 3-view
+DESPMTR   wing:area        1886.
+DESPMTR   wing:aspect      8.285
+DESPMTR   wing:ybreak      24.0
+DESPMTR   wing:taper_ob    0.333
+DESPMTR   wing:sweep       34.5
+DESPMTR   wing:dihedral    7.30
+
+DESPMTR   winglet:area     17.5   # both
+DESPMTR   winglet:aspect   1.43
+DESPMTR   winglet:taper    0.40
+DESPMTR   winglet:sweep    70.3
+DESPMTR   winglet:dihedral 21.8
+
+#----- Design Parameters: Control Deflectors -------
+DESPMTR   fuselage:width  6.5      # inboard span begins from here
+DESPMTR   flapgap         0.2      # mm
+
+DESPMTR   ibflap:spanbeg  0.2      # fraction of inboard span
+DESPMTR   ibflap:spanend  0.8      # fraction of inboard span
+DESPMTR   ibflap:chord    0.20     # fraction of tip chord
+DESPMTR   ibflap:angle    20.0
+
+DESPMTR   obflap:spanbeg  0.05     # fraction of outboard span 
+DESPMTR   obflap:spanend  0.65     # fraction of outboard span
+DESPMTR   obflap:chord    0.50     # fraction of tip chord
+DESPMTR   obflap:angle    25.0
+
+DESPMTR   aileron:spanbeg 0.67     # fraction of outboard span
+DESPMTR   aileron:spanend 0.85     # fraction of outboard span
+DESPMTR   aileron:chord   0.25     # fraction of tip chord
+DESPMTR   aileron:angle  -10.0
+
+
+SET        wing:span           sqrt(wing:area*wing:aspect)
+SET        delta               wing:ybreak*tand(wing:sweep)
+SET        num                 (wing:area+delta*wing:ybreak+delta*(1+wing:taper_ob)*(wing:span/2-wing:ybreak))
+SET        den                 (2*wing:ybreak+(1+wing:taper_ob)*(wing:span/2-wing:ybreak))
+SET        c1                  num/den
+SET        c2                  c1-delta
+SET        c3                  c2*wing:taper_ob
+
+SET        winglet:span        sqrt(winglet:area*winglet:aspect)
+SET        c4                  c3*winglet:taper
+
+SET         dy                  wing:span/2-wing:ybreak
+SET         dx                  (wing:span/2*tand(wing:sweep)+c3)-(delta+c2)
+SET         wing:TEsweep        atand(dy/dx)
+
+
+UDPRIM    naca      thickness 0.12   camber 0.06
+SCALE     c1
+ROTATEX   90
+
+UDPRIM    naca      thickness 0.12   camber 0.04
+SCALE     c2
+ROTATEX   90
+TRANSLATE delta                      wing:ybreak       wing:ybreak*tand(wing:dihedral)
+
+UDPRIM    naca      thickness 0.04   camber 0.04
+SCALE     c3
+ROTATEX   90
+TRANSLATE wing:span/2*tand(wing:sweep)   wing:span/2   wing:span/2*tand(wing:dihedral)
+
+UDPRIM    naca      thickness 0.04   camber 0.00
+SCALE     c4
+ROTATEX   90
+TRANSLATE wing:span/2*tand(wing:sweep)+winglet:span/2*tand(winglet:sweep)\
+          (wing:span+winglet:span)/2\
+	  wing:span/2*tand(wing:dihedral)+winglet:span/2*tand(winglet:dihedral)
+
+RULE
+SET       ruleBody  @nbody
+
+#----- Control Deflectors ------------------------------------------------------
+STORE wing
+
+RESTORE wing
+ROTATEX -wing:dihedral #lay wing flat in XY-plane for flapz
+
+
+#---- Inboard Flap ----
+DIMENSION flapx 1 4
+DIMENSION flapy 1 4
+
+SET dy wing:ybreak
+SET dx ((delta+c2)-c1)
+
+SET yo fuselage:width+(ibflap:spanend)*(wing:ybreak-fuselage:width)
+SET xo c1+(yo*dx/dy)
+
+SET yi fuselage:width+(ibflap:spanbeg)*(wing:ybreak-fuselage:width)
+SET xi c1+(yi*dx/dy)
+
+SET flapx "xo+flapgap;           \
+           xo-(ibflap:chord)*c3; \
+           xi-(ibflap:chord)*c3; \
+           xi+flapgap            "
+
+SET flapy "yo; \
+           yo; \
+           yi; \
+           yi  "
+
+#---- Debug----
+# skbeg      flapx[1,1] flapy[1,1] 0
+#     linseg flapx[1,2] flapy[1,2] 0
+#     linseg flapx[1,3] flapy[1,3] 0
+#     linseg flapx[1,4] flapy[1,4] 0
+#     linseg flapx[1,1] flapy[1,1] 0
+# skend 0
+#---- End Debug----
+
+UDPARG    $$/flapz   xflap   flapx
+UDPARG    $$/flapz   yflap   flapy
+UDPARG    $$/flapz   theta   ibflap:angle
+UDPARG    $$/flapz   gap     flapgap
+UDPRIM    $$/flapz   openEnd 1
+
+
+#---- Outboard Flap ----
+SET dy           (wing:span/2-wing:ybreak)
+SET dx           (wing:span/2*tand(wing:sweep)+c3)-(delta+c2)
+
+SET yi wing:ybreak+obflap:spanbeg*(wing:span/2-wing:ybreak)
+SET xi (delta+c2)+((yi-wing:ybreak)*dx/dy)
+
+SET yo wing:ybreak+obflap:spanend*(wing:span/2-wing:ybreak)
+SET xo (delta+c2)+((yo-wing:ybreak)*dx/dy)
+
+SET flapx "xo+flapgap;                      \
+           xo-obflap:chord*c3*cosd(90-wing:TEsweep); \
+           xi-obflap:chord*c3*cosd(90-wing:TEsweep); \
+           xi+flapgap                       "
+
+SET flapy "yo;                              \
+           yo+obflap:chord*c3*sind(90-wing:TEsweep); \
+           yi+obflap:chord*c3*sind(90-wing:TEsweep); \
+           yi;                              "
+
+UDPARG    $$/flapz   xflap   flapx
+UDPARG    $$/flapz   yflap   flapy
+UDPARG    $$/flapz   theta   obflap:angle
+UDPARG    $$/flapz   gap     flapgap
+UDPRIM    $$/flapz   openEnd 1
+
+
+#---- Aileron ----
+SET yi wing:ybreak+aileron:spanbeg*(wing:span/2-wing:ybreak)
+SET xi (delta+c2)+((yi-wing:ybreak)*dx/dy)
+
+SET yo wing:ybreak+aileron:spanend*(wing:span/2-wing:ybreak)
+SET xo (delta+c2)+((yo-wing:ybreak)*dx/dy)
+
+SET flapx "xo+flapgap;                      \
+           xo-aileron:chord*c3*cosd(90-wing:TEsweep); \
+           xi-aileron:chord*c3*cosd(90-wing:TEsweep); \
+           xi+flapgap                       "
+
+SET flapy "yo;                              \
+           yo+aileron:chord*c3*sind(90-wing:TEsweep); \
+           yi+aileron:chord*c3*sind(90-wing:TEsweep); \
+           yi;                              "
+
+UDPARG    $$/flapz   xflap   flapx
+UDPARG    $$/flapz   yflap   flapy
+UDPARG    $$/flapz   theta   aileron:angle
+UDPARG    $$/flapz   gap     flapgap
+UDPRIM    $$/flapz   openEnd 1
+
+ROTATEX wing:dihedral #Return wing to its original dihedral angle
+
+# color the control surfaces
+SELECT    FACE   ruleBody  0  2
+   ATTRIBUTE   _color  $red
+   ATTRIBUTE  _bcolor  $red
+SELECT    FACE   ruleBody  0  3
+   ATTRIBUTE   _color  $red
+   ATTRIBUTE  _bcolor  $red
+
+#---- End Control Deflectors ---------------------------------------------------
+
+# scale to ft
+SCALE     197/2/65
+
+END

@@ -1,0 +1,8 @@
+name = "egads"
+uuid = "bba4f53b-aa41-4608-a097-29d2775fda82"
+authors = ["XuliaDS <juliadocampo@gmail.com>"]
+version = "0.1.0"
+
+[deps]
+Clang = "40e3b903-d033-50b4-a0cc-940c62c95e31"
+Libdl = "8f399da3-3557-5675-b5ff-fb832c97cbdb"

@@ -1,0 +1,46 @@
+# pipeNetwork2
+# written by John Dannenhoffer
+
+# make the pipes
+SKBEG     0.00   2.00   0.00
+   LINSEG 1.00   2.00   0.00
+   LINSEG 2.00   2.00   0.00
+   LINSEG 3.00   2.00   0.00
+   LINSEG 4.00   2.00   0.00
+   LINSEG 5.00   2.00   0.00
+   LINSEG 6.00   1.00   0.00
+   LINSEG 6.00   0.00   0.00
+SKEND
+SELECT    EDGE
+ATTRIBUTE _color  $red
+
+SKBEG     2.00   2.00   0.00
+   LINSEG 2.00   0.00   0.00
+SKEND
+SELECT    EDGE
+ATTRIBUTE _color  $green
+
+SKBEG     3.00   0.00   0.00
+   LINSEG 3.00   2.00   0.00
+SKEND
+SELECT    EDGE
+ATTRIBUTE _color  $blue
+
+SKBEG     5.00   0.00   0.00
+   LINSEG 4.00   0.00   0.00
+   LINSEG 4.00   1.00   0.00
+   LINSEG 5.00   1.00   0.00
+SKEND
+SELECT    EDGE
+ATTRIBUTE _color  $cyan
+
+SKBEG     4.00   1.00   0.00
+   LINSEG 4.00   2.00   0.00
+SKEND
+SELECT    EDGE
+ATTRIBUTE _color  $magenta
+
+# combine the pipes into a network
+COMBINE
+
+END

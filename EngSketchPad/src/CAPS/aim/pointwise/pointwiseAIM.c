@@ -1,11 +1,10 @@
-// Replace "Pointwise" and "pointwise" the "Name" and "name" of AIM respectfully!
 
 /*
  *      CAPS: Computational Aircraft Prototype Syntheses
  *
  *             Pointwise AIM
  *
- *      Modified from code written by Author, Affiliation
+ *      Modified from code written by Marshall Galbriath
  *
  */
 
@@ -1087,8 +1086,7 @@ static int set_autoQuiltAttr(ego *body) {
 
 static int setPWAttr(void *aimInfo,
                      ego body,
-        /*@unused@*/ mapAttrToIndexStruct *groupMap,
-                     mapAttrToIndexStruct *meshMap,
+                     const mapAttrToIndexStruct *meshMap,
                      int numMeshProp,
                      meshSizingStruct *meshProp,
                      double capsMeshLength,
@@ -1135,7 +1133,7 @@ static int setPWAttr(void *aimInfo,
 /*@-nullpass@*/
         status = get_mapAttrToIndexIndex(meshMap, meshName, &attrIndex);
         if (status != CAPS_SUCCESS) {
-          printf("Error: Unable to retrieve index from capsMesh %s\n", meshName);
+          AIM_ERROR(aimInfo, "Unable to retrieve index from capsMesh %s", meshName);
           goto cleanup;
         }
 /*@+nullpass@*/
@@ -1153,13 +1151,13 @@ static int setPWAttr(void *aimInfo,
                 // add the attribute
                 status = EG_attributeAdd(nodes[nodeIndex], "PW:NodeSpacing",
                                          ATTRREAL, 1, NULL, &real, NULL);
-                if (status != EGADS_SUCCESS) goto cleanup;
+                AIM_STATUS(aimInfo, status);
             }
         }
     }
 
     status = EG_getBodyTopos(body, NULL, EDGE, &numEdge, &edges);
-    if (status != EGADS_SUCCESS) goto cleanup;
+    AIM_STATUS(aimInfo, status);
     if (edges == NULL) {
         status = CAPS_NULLOBJ;
         goto cleanup;
@@ -1193,7 +1191,7 @@ static int setPWAttr(void *aimInfo,
                 status = EG_attributeAdd(edges[edgeIndex],
                                          "PW:ConnectorMaxEdge", ATTRREAL, 1,
                                          NULL, &real, NULL);
-                if (status != EGADS_SUCCESS) goto cleanup;
+                AIM_STATUS(aimInfo, status);
             }
 
             // Is the attribute set?
@@ -1205,7 +1203,7 @@ static int setPWAttr(void *aimInfo,
                 status = EG_attributeAdd(edges[edgeIndex],
                                          "PW:ConnectorEndSpacing", ATTRREAL, 1,
                                          NULL, &real, NULL);
-                if (status != EGADS_SUCCESS) goto cleanup;
+                AIM_STATUS(aimInfo, status);
             }
 
             // Is the attribute set?
@@ -1216,7 +1214,7 @@ static int setPWAttr(void *aimInfo,
                                          "PW:ConnectorDimension", ATTRINT, 1,
                                          &meshProp[propIndex].numEdgePoints,
                                          NULL, NULL);
-                if (status != EGADS_SUCCESS) goto cleanup;
+                AIM_STATUS(aimInfo, status);
             }
 
             // Is the attribute set?
@@ -1228,7 +1226,7 @@ static int setPWAttr(void *aimInfo,
                 status = EG_attributeAdd(edges[edgeIndex],
                                          "PW:ConnectorAverageDS", ATTRREAL, 1,
                                          NULL, &real, NULL);
-                if (status != EGADS_SUCCESS) goto cleanup;
+                AIM_STATUS(aimInfo, status);
             }
 
             // Is the attribute set?
@@ -1239,7 +1237,7 @@ static int setPWAttr(void *aimInfo,
                 // add the attribute
                 status = EG_attributeAdd(edges[edgeIndex], "PW:ConnectorMaxAngle",
                                          ATTRREAL, 1, NULL, &real, NULL);
-                if (status != EGADS_SUCCESS) goto cleanup;
+                AIM_STATUS(aimInfo, status);
             }
 
             // Is the attribute set?
@@ -1251,13 +1249,13 @@ static int setPWAttr(void *aimInfo,
                 status = EG_attributeAdd(edges[edgeIndex],
                                          "PW:ConnectorMaxDeviation", ATTRREAL, 1,
                                          NULL, &real, NULL);
-                if (status != EGADS_SUCCESS) goto cleanup;
+                AIM_STATUS(aimInfo, status);
             }
         }
     }
 
     status = EG_getBodyTopos(body, NULL, FACE, &numFace, &faces);
-    if (status != EGADS_SUCCESS) goto cleanup;
+    AIM_STATUS(aimInfo, status);
     if (faces == NULL) {
         status = CAPS_NULLOBJ;
         goto cleanup;
@@ -1271,7 +1269,7 @@ static int setPWAttr(void *aimInfo,
 
             status = EG_attributeAdd(faces[faceIndex], "PW:Name",
                                      ATTRSTRING, 0, NULL, NULL, groupName);
-            if (status != EGADS_SUCCESS) goto cleanup;
+            AIM_STATUS(aimInfo, status);
 
         } else {
             AIM_ERROR(aimInfo, "No capsGroup attribute found on Face %d",
@@ -1305,7 +1303,7 @@ static int setPWAttr(void *aimInfo,
                     // add the attribute
                     status = EG_attributeAdd(faces[faceIndex], "PW:DomainMinEdge",
                                              ATTRREAL, 1, NULL, &real, NULL);
-                    if (status != EGADS_SUCCESS) goto cleanup;
+                    AIM_STATUS(aimInfo, status);
                 }
 
                 // Is the attribute set?
@@ -1316,7 +1314,7 @@ static int setPWAttr(void *aimInfo,
                     // add the attribute
                     status = EG_attributeAdd(faces[faceIndex], "PW:DomainMaxEdge",
                                              ATTRREAL, 1, NULL, &real, NULL);
-                    if (status != EGADS_SUCCESS) goto cleanup;
+                    AIM_STATUS(aimInfo, status);
                 }
 
                 // Is the attribute set?
@@ -1327,7 +1325,7 @@ static int setPWAttr(void *aimInfo,
                     // add the attribute
                     status = EG_attributeAdd(faces[faceIndex], "PW:DomainMaxAngle",
                                              ATTRREAL, 1, NULL, &real, NULL);
-                    if (status != EGADS_SUCCESS) goto cleanup;
+                    AIM_STATUS(aimInfo, status);
                 }
 
                 // Is the attribute set?
@@ -1338,7 +1336,7 @@ static int setPWAttr(void *aimInfo,
                     // add the attribute
                     status = EG_attributeAdd(faces[faceIndex], "PW:DomainMaxDeviation",
                                              ATTRREAL, 1, NULL, &real, NULL);
-                    if (status != EGADS_SUCCESS) goto cleanup;
+                    AIM_STATUS(aimInfo, status);
                 }
 
                 // Is the attribute set?
@@ -1349,7 +1347,7 @@ static int setPWAttr(void *aimInfo,
                     // add the attribute
                     status = EG_attributeAdd(faces[faceIndex], "PW:DomainDecay",
                                              ATTRREAL, 1, NULL, &real, NULL);
-                    if (status != EGADS_SUCCESS) goto cleanup;
+                    AIM_STATUS(aimInfo, status);
                 }
 
                 // Is the attribute set?
@@ -1360,7 +1358,7 @@ static int setPWAttr(void *aimInfo,
                                              ATTRINT, 1,
                                              &meshProp[propIndex].boundaryLayerMaxLayers,
                                              NULL, NULL);
-                    if (status != EGADS_SUCCESS) goto cleanup;
+                    AIM_STATUS(aimInfo, status);
                 }
 
                 // Is the attribute set?
@@ -1371,7 +1369,7 @@ static int setPWAttr(void *aimInfo,
                                              ATTRINT, 1,
                                              &meshProp[propIndex].boundaryLayerFullLayers,
                                              NULL, NULL);
-                    if (status != EGADS_SUCCESS) goto cleanup;
+                    AIM_STATUS(aimInfo, status);
                 }
 
                 // Is the attribute set?
@@ -1383,7 +1381,7 @@ static int setPWAttr(void *aimInfo,
                                              ATTRREAL, 1, NULL,
                                              &meshProp[propIndex].boundaryLayerGrowthRate,
                                              NULL);
-                    if (status != EGADS_SUCCESS) goto cleanup;
+                    AIM_STATUS(aimInfo, status);
                 }
 
                 // Is the attribute set?
@@ -1394,7 +1392,7 @@ static int setPWAttr(void *aimInfo,
                     // add the attribute
                     status = EG_attributeAdd(faces[faceIndex], "PW:WallSpacing",
                                              ATTRREAL, 1, NULL, &real, NULL);
-                    if (status != EGADS_SUCCESS) goto cleanup;
+                    AIM_STATUS(aimInfo, status);
                 }
             }
         }
@@ -2009,7 +2007,7 @@ int aimInputs(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo,
 
         /*! \page aimInputsPointwise
          * - <B> Mesh_Format = NULL</B> <br>
-         * Mesh output format. Available format names include: "AFLR3", "VTK", "TECPLOT", SU2, "Nastran".
+         * Mesh output format. Available format names include: "AFLR3", "VTK", "TECPLOT", "SU2", "Nastran".
          * This file format is written from CAPS, and is not the CAE solver in Pointwise.
          */
     } else if (index == Mesh_ASCII_Flag) {
@@ -2650,8 +2648,63 @@ int aimInputs(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo,
 }
 
 
-// AIM preAnalysis function
-int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
+// ********************** AIM Function Break *****************************
+int aimUpdateState(void *instStore, void *aimInfo,
+                   capsValue *aimInputs)
+{
+    int status; // Function return status
+
+    char aimFile[PATH_MAX];
+
+    const char *intents;
+    int numBody = 0; // Number of bodies
+    ego *bodies = NULL; // EGADS body objects
+
+    aimStorage *pointwiseInstance;
+
+    AIM_NOTNULL(aimInputs, aimInfo, status);
+
+    pointwiseInstance = (aimStorage *) instStore;
+
+    // Cleanup previous aimStorage for the instance in case this is the second time through for the same instance
+    status = destroy_aimStorage(pointwiseInstance);
+    AIM_STATUS(aimInfo, status, "pointwiseAIM aimStorage cleanup!!!");
+
+    // Get AIM bodies
+    status = aim_getBodies(aimInfo, &intents, &numBody, &bodies);
+    AIM_STATUS(aimInfo, status);
+    if (numBody <= 0 || bodies == NULL) {
+        AIM_ERROR(aimInfo, "No Bodies!");
+        return CAPS_SOURCEERR;
+    }
+
+    // set the filename without extensions where the grid is written for solvers
+    status = aim_file(aimInfo, "caps.GeomToMesh", aimFile);
+    AIM_STATUS(aimInfo, status);
+    AIM_STRDUP(pointwiseInstance->meshRef.fileName, aimFile, aimInfo, status);
+
+
+    // Get capsGroup name and index mapping to make sure all faces have a capsGroup value
+    status = create_CAPSGroupAttrToIndexMap(numBody,
+                                            bodies,
+                                            2, // Only search down to the face level of the EGADS bodyIndex
+                                            &pointwiseInstance->groupMap);
+    AIM_STATUS(aimInfo, status);
+
+    status = create_CAPSMeshAttrToIndexMap(numBody,
+                                           bodies,
+                                           3, // Only search down to the face level of the EGADS bodyIndex
+                                           &pointwiseInstance->meshMap);
+    AIM_STATUS(aimInfo, status);
+
+    status = CAPS_SUCCESS;
+cleanup:
+    return status;
+}
+
+
+// ********************** AIM Function Break *****************************
+int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
 {
     int status; // Status return
 
@@ -2663,17 +2716,24 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
 
     double capsMeshLength = 0;
 
+    const char ugrid[] = "caps.GeomToMesh.ugrid";
+    const char ugrid_lb8[] = "caps.GeomToMesh.lb8.ugrid";
+
     const char *intents;
     int numBody = 0; // Number of bodies
     ego *bodies = NULL; // EGADS body objects
     ego *bodyCopy = NULL;
 
     ego context, model = NULL;
-    aimStorage *pointwiseInstance;
+    const aimStorage *pointwiseInstance;
     char aimEgadsFile[PATH_MAX];
-    char aimFile[PATH_MAX];
 
     int quilting = (int)false;
+
+    status = aim_rmFile(aimInfo, ugrid);
+    AIM_STATUS(aimInfo, status);
+    status = aim_rmFile(aimInfo, ugrid_lb8);
+    AIM_STATUS(aimInfo, status);
 
     // Get AIM bodies
     status = aim_getBodies(aimInfo, &intents, &numBody, &bodies);
@@ -2684,39 +2744,15 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
 #endif
 
     if (numBody <= 0 || bodies == NULL) {
-#ifdef DEBUG
-        printf(" pointwiseAIM/aimPreAnalysis No Bodies!\n");
-#endif
+        AIM_ERROR(aimInfo, "No Bodies!");
         return CAPS_SOURCEERR;
     }
-    if (aimInputs == NULL) return CAPS_NULLOBJ;
-  
-    pointwiseInstance = (aimStorage *) instStore;
+    AIM_NOTNULL(aimInputs, aimInfo, status);
 
-    // Cleanup previous aimStorage for the instance in case this is the second time through preAnalysis for the same instance
-    status = destroy_aimStorage(pointwiseInstance);
-    AIM_STATUS(aimInfo, status, "pointwiseAIM aimStorage cleanup!!!");
-
-    // set the filename without extensions where the grid is written for solvers
-    status = aim_file(aimInfo, "caps.GeomToMesh", aimFile);
-    AIM_STATUS(aimInfo, status);
-    AIM_STRDUP(pointwiseInstance->meshRef.fileName, aimFile, aimInfo, status);
+    pointwiseInstance = (const aimStorage *) instStore;
 
     // remove previous mesh
     status = aim_deleteMeshes(aimInfo, &pointwiseInstance->meshRef);
-    AIM_STATUS(aimInfo, status);
-
-    // Get capsGroup name and index mapping to make sure all faces have a capsGroup value
-    status = create_CAPSGroupAttrToIndexMap(numBody,
-                                            bodies,
-                                            2, // Only search down to the face level of the EGADS bodyIndex
-                                            &pointwiseInstance->groupMap);
-    AIM_STATUS(aimInfo, status);
-
-    status = create_CAPSMeshAttrToIndexMap(numBody,
-                                            bodies,
-                                            3, // Only search down to the face level of the EGADS bodyIndex
-                                            &pointwiseInstance->meshMap);
     AIM_STATUS(aimInfo, status);
 
     // Get mesh sizing parameters
@@ -2738,7 +2774,7 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
         AIM_STATUS(aimInfo, status);
     }
 
-    // Get the capsMeshLenght if boundary layer meshing has been requested
+    // Get the capsMeshLength if boundary layer meshing has been requested
     status = check_CAPSMeshLength(numBody, bodies, &capsMeshLength);
 
     if (capsMeshLength <= 0 || status != CAPS_SUCCESS) {
@@ -2769,7 +2805,7 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
 
     // Get context
     status = EG_getContext(bodies[0], &context);
-    if (status != EGADS_SUCCESS) goto cleanup;
+    AIM_STATUS(aimInfo, status);
 
     // Make a copy of the bodies
     for (i = 0; i < numBody; i++) {
@@ -2777,7 +2813,6 @@ int aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
         if (status != EGADS_SUCCESS) goto cleanup;
 /*@-nullpass@*/
         status = setPWAttr(aimInfo, bodyCopy[i],
-                           &pointwiseInstance->groupMap,
                            &pointwiseInstance->meshMap,
                            numMeshProp, meshProp, capsMeshLength, &quilting);
 /*@+nullpass@*/
@@ -2873,12 +2908,14 @@ aimPostAnalysis(void *instStore, void *aimInfo, /*@unused@*/ int restart,
     int        i, j, n, ib, ie, it, in;
     int        ivp, npts, nVolPts, iper, iline = 0, cID = 0, nglobal, iglobal;
     int        oclass, mtype, numBody = 0, *senses = NULL, *ivec = NULL;
-    int        numFaces = 0, iface, numEdges = 0, ibody, iedge, numNodes = 0, nDegen = 0;
+    int        numFaces = 0, iface, ibody, iedge, numNodes = 0, nDegen = 0;
     int        ntri = 0, nquad = 0, elem[4], velem[4], *face_tris, elemIndex;
     int        GMA_MAJOR = 0, GMA_MINOR = 0, numConnector = 0, iCon, numDomain = 0, iDom;
     int        egadsID, edgeID, faceID, bodyID, *bodyIndex=NULL, *faceVertID=NULL;
     const char gmafilename[]   = "caps.GeomToMesh.gma";
-    const char ugridfilename[] = "caps.GeomToMesh.ugrid";
+    const char ugrid[] = "caps.GeomToMesh.ugrid";
+    const char ugrid_lb8[] = "caps.GeomToMesh.lb8.ugrid";
+    const char mapbcfilename[] = "caps.GeomToMesh.mapbc";
     const char *intents = NULL, *groupName = NULL;
     char       aimFile[PATH_MAX];
     char       *line = NULL, aimEgadsFile[PATH_MAX];
@@ -2906,17 +2943,28 @@ aimPostAnalysis(void *instStore, void *aimInfo, /*@unused@*/ int restart,
 
 //    initiate_hashTable(&table);
 
-    fp = aim_fopen(aimInfo, ugridfilename, "rb");
-    if (fp == NULL) {
-      AIM_ERROR(aimInfo, "Pointwise did not generate %s!\n\n", ugridfilename);
+    if (aim_isFile(aimInfo, ugrid) == CAPS_SUCCESS) {
+      status = aim_file(aimInfo, ugrid, aimFile);
+      AIM_STATUS(aimInfo, status);
+      status = aim_symLink(aimInfo, aimFile, ugrid_lb8);
+      AIM_STATUS(aimInfo, status);
+    } else if (aim_isFile(aimInfo, ugrid_lb8) == CAPS_SUCCESS) {
+      status = aim_file(aimInfo, ugrid_lb8, aimFile);
+      AIM_STATUS(aimInfo, status);
+      status = aim_symLink(aimInfo, aimFile, ugrid);
+      AIM_STATUS(aimInfo, status);
+    } else {
+      AIM_ERROR(aimInfo, "Pointwise did not generate %s or %s!\n\n", ugrid, ugrid_lb8);
       status = CAPS_IOERR;
       goto cleanup;
     }
 
-    status = aim_file(aimInfo, ugridfilename, aimFile);
-    AIM_STATUS(aimInfo, status);
-    status = aim_symLink(aimInfo, aimFile, "caps.GeomToMesh.lb8.ugrid");
-    AIM_STATUS(aimInfo, status);
+    fp = aim_fopen(aimInfo, ugrid_lb8, "rb");
+    if (fp == NULL) {
+      AIM_ERROR(aimInfo, "Failed to open %s!\n\n", ugrid_lb8);
+      status = CAPS_IOERR;
+      goto cleanup;
+    }
 
     pointwiseInstance = (aimStorage *) instStore;
 
@@ -3029,8 +3077,6 @@ aimPostAnalysis(void *instStore, void *aimInfo, /*@unused@*/ int restart,
       status = EG_getBodyTopos(bodies[i], NULL, EDGE, &bodydata[i].nedges,
                                &bodydata[i].edges);
       AIM_STATUS(aimInfo, status);
-
-      numEdges += bodydata[i].nedges; // Accumulate the total number of edges
 
       status = EG_getBodyTopos(bodies[i], NULL, FACE, &bodydata[i].nfaces,
                                &bodydata[i].faces);
@@ -3668,13 +3714,10 @@ aimPostAnalysis(void *instStore, void *aimInfo, /*@unused@*/ int restart,
 
 /*@-kepttrans@*/
         // reference the surface mesh object
-        surfaceMeshes[ib].bodyTessMap.egadsTess = tess;
+        surfaceMeshes[ib].egadsTess = tess;
         pointwiseInstance->meshRef.maps[ib].tess = tess;
         tess = NULL;
 /*@+kepttrans@*/
-
-        surfaceMeshes[ib].bodyTessMap.numTessFace = bodydata[ib].nfaces; // Number of faces in the tessellation
-        surfaceMeshes[ib].bodyTessMap.tessFaceQuadMap = NULL; // Save off the quad map
 
         status = mesh_surfaceMeshEGADSTess(aimInfo, &surfaceMeshes[ib]);
         AIM_STATUS(aimInfo, status);
@@ -3694,11 +3737,52 @@ aimPostAnalysis(void *instStore, void *aimInfo, /*@unused@*/ int restart,
                        numVolumeMesh, volumeMesh);
     AIM_STATUS(aimInfo, status);
 
+    // Read in the BND group ID and groupName
+    fp = aim_fopen(aimInfo, mapbcfilename, "r");
+    if (fp == NULL) {
+      AIM_ERROR(aimInfo, "Failed to open %s", mapbcfilename);
+      status = CAPS_IOERR;
+      goto cleanup;
+    }
+    status = fscanf(fp, "%d", &pointwiseInstance->meshRef.nbnd);
+    if (status != 1) {
+      AIM_ERROR(aimInfo, "Failed to read %s", mapbcfilename);
+      status = CAPS_IOERR;
+      goto cleanup;
+    }
+
+#ifdef THIS_DOES_NOT_WORK_WITH_BAFFLES
+    if (pointwiseInstance->meshRef.nbnd != pointwiseInstance->groupMap.numAttribute) {
+      AIM_ERROR(aimInfo, "Number of maps in %s (%d) should be %d",
+                mapbcfilename, pointwiseInstance->meshRef.nbnd, pointwiseInstance->groupMap.numAttribute);
+      status = CAPS_IOERR;
+      goto cleanup;
+    }
+#endif
+
+    AIM_ALLOC(pointwiseInstance->meshRef.bnds, pointwiseInstance->meshRef.nbnd, aimMeshBnd, aimInfo, status);
+    for (i = 0; i < pointwiseInstance->meshRef.nbnd; i++) {
+      status = aim_initMeshBnd(pointwiseInstance->meshRef.bnds + i);
+      AIM_STATUS(aimInfo, status);
+    }
+
+    for (i = 0; i < pointwiseInstance->meshRef.nbnd; i++) {
+      status = fscanf(fp, "%d %d %s", &cID, &j, aimFile);
+      if (status != 3) {
+        AIM_ERROR(aimInfo, "Failed to read %s", mapbcfilename);
+        status = CAPS_IOERR;
+        goto cleanup;
+      }
+
+      AIM_STRDUP(pointwiseInstance->meshRef.bnds[i].groupName, aimFile, aimInfo, status);
+      pointwiseInstance->meshRef.bnds[i].ID = cID;
+    }
+
     status = CAPS_SUCCESS;
 
 cleanup:
     if (status != CAPS_SUCCESS) {
-      AIM_ADDLINE(aimInfo, "Please make sure you are using Pointwise V18.4 or newer.\n");
+      AIM_ADDLINE(aimInfo, "Please make sure you are using Pointwise V18.4 or newer.");
     }
 
     // Destroy volume mesh allocated arrays
@@ -3779,7 +3863,6 @@ int aimCalcOutput(void *instStore, /*@unused@*/ void *aimInfo,
     int        status = CAPS_SUCCESS;
     aimStorage *pointwiseInstance;
     aimMesh    mesh;
-
 #ifdef DEBUG
     printf(" pointwiseAIM/aimCalcOutput  index = %d!\n", index);
 #endif
@@ -3798,6 +3881,7 @@ int aimCalcOutput(void *instStore, /*@unused@*/ void *aimInfo,
           status = aim_readBinaryUgrid(aimInfo, &mesh);
           AIM_STATUS(aimInfo, status);
 
+          // Write out the desired mesh
           status = aim_writeMeshes(aimInfo, Volume_Mesh, &mesh);
           AIM_STATUS(aimInfo, status);
 
@@ -3822,7 +3906,6 @@ int aimCalcOutput(void *instStore, /*@unused@*/ void *aimInfo,
     }
 
 cleanup:
-
     return status;
 }
 

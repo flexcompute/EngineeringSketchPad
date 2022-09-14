@@ -43,8 +43,8 @@ cleanup:
 /*
  * Write AERO card
  */
-int astrosCard_aero(FILE *fp, int *acsid, double *refc, double *rhoref,
-                     feaFileTypeEnum formatType) {
+int astrosCard_aero(FILE *fp, const int *acsid, const double *refc, const double *rhoref,
+                    feaFileTypeEnum formatType) {
     
     int status;
 
@@ -86,9 +86,9 @@ cleanup:
 /*
  * Write AEROS card
  */
-int astrosCard_aeros(FILE *fp, int *acsid, int *rcsid, double *refc,
-                     double *refb, double *refs, /*@null@*/ int *gref,
-                     /*@null@*/ double *refd, /*@null@*/ double *refl,
+int astrosCard_aeros(FILE *fp, const int *acsid, const int *rcsid, const double *refc,
+                     const double *refb, const double *refs, /*@null@*/ const int *gref,
+                     /*@null@*/ const double *refd, /*@null@*/ const double *refl,
                      feaFileTypeEnum formatType)
 {
     int status;
@@ -312,9 +312,9 @@ cleanup:
 /*
  * Write CELAS2 card
  */
-int astrosCard_celas2(FILE *fp, int *eid, double *k, int G[2], int C[2],
-                      double *ge, /*@unused@*/ double *s,
-                      /*@null@*/ double *tmin, /*@null@*/ double *tmax,
+int astrosCard_celas2(FILE *fp, const int *eid, const double *k, const int G[2], const int C[2],
+                      const double *ge, /*@unused@*/ const double *s,
+                      /*@null@*/ const double *tmin, /*@null@*/ const double *tmax,
                       feaFileTypeEnum formatType)
 {
     int i, status;
@@ -416,8 +416,8 @@ cleanup:
 /*
  * Write CMASS2 card
  */
-int astrosCard_cmass2(FILE *fp, int *eid, double *m, int G[2], int C[2],
-                      /*@null@*/ double *tmin, /*@null@*/ double *tmax,
+int astrosCard_cmass2(FILE *fp, const int *eid, const double *m, const int G[2], const int C[2],
+                      /*@null@*/ const double *tmin, /*@null@*/ const double *tmax,
                        feaFileTypeEnum formatType)
 {
     int i, status;
@@ -472,9 +472,9 @@ cleanup:
 /*
  * Write CONM2 card
  */
-int astrosCard_conm2(FILE *fp, int *eid, int *g, int *cid, double *m,
-                     double X[3], double I[6], /*@null@*/ double *tmin,
-                     /*@null@*/ double *tmax, feaFileTypeEnum formatType)
+int astrosCard_conm2(FILE *fp, const int *eid, const int *g, const int *cid, const double *m,
+                     const double X[3], const double I[6], /*@null@*/ const double *tmin,
+                     /*@null@*/ const double *tmax, feaFileTypeEnum formatType)
 {
     int status;
 
@@ -1239,9 +1239,9 @@ cleanup:
 /*
  * Write EIGR card
  */
-int astrosCard_eigr(FILE *fp, int *sid, char *method, double *f1,
-                    double *f2, int *ne, int *nd, /*@null@*/ double *e,
-                    char *norm, int *gid, int *dof, feaFileTypeEnum formatType)
+int astrosCard_eigr(FILE *fp, const int *sid, const char *method, const double *f1,
+                    const double *f2, const int *ne, const int *nd, /*@null@*/ const double *e,
+                    const char *norm, const int *gid, const int *dof, feaFileTypeEnum formatType)
 {
     int status;
 
@@ -1321,7 +1321,7 @@ cleanup:
 /*
  * Write FLFACT card
  */
-int astrosCard_flfact(FILE *fp, int *sid, int numF, double *F,
+int astrosCard_flfact(FILE *fp, const int *sid, int numF, const double *F,
                       feaFileTypeEnum formatType)
 {
     int status;
@@ -1355,7 +1355,7 @@ cleanup:
 /*
  * Write FLUTTER card
  */
-int astrosCard_flutter(FILE *fp, int *sid, char *method, int *dens,
+int astrosCard_flutter(FILE *fp, const int *sid, char *method, int *dens,
                        double *mach, int *vel, /*@null@*/ int *mlist,
                        /*@null@*/ int *klist, /*@null@*/ int *effid,
                        int *symxz, int *symxy, /*@null@*/ double *eps,
@@ -1473,8 +1473,8 @@ cleanup:
 /*
  * Write FORCE card
  */
-int astrosCard_force(FILE *fp, int *sid, int *g, int *cid, double *f,
-                     double N[3], feaFileTypeEnum formatType)
+int astrosCard_force(FILE *fp, const int *sid, const int *g, const int *cid, const double *f,
+                     const double N[3], feaFileTypeEnum formatType)
 {
     int status;
 
@@ -1522,7 +1522,7 @@ cleanup:
 /*
  * Write GRAV card
  */
-int astrosCard_grav(FILE *fp, int *sid, int *cid, double *g, double N[3],
+int astrosCard_grav(FILE *fp, const int *sid, const int *cid, const double *g, const double N[3],
                     feaFileTypeEnum formatType)
 {
     int status;
@@ -1677,8 +1677,8 @@ cleanup:
 /*
  * Write MOMENT card
  */
-int astrosCard_moment(FILE *fp, int *sid, int *g, int *cid, double *m,
-                      double N[3], feaFileTypeEnum formatType)
+int astrosCard_moment(FILE *fp, const int *sid, const int *g, const int *cid, const double *m,
+                      const double N[3], feaFileTypeEnum formatType)
 {
     int status;
 
@@ -2106,7 +2106,7 @@ cleanup:
 /*
  * Write PLOAD card
  */
-int astrosCard_pload(FILE *fp, int *sid, double *p, int numG, int *G,
+int astrosCard_pload(FILE *fp, const int *sid, const double *p, int numG, const int *G,
                      feaFileTypeEnum formatType)
 {
     int status;
@@ -2144,8 +2144,8 @@ cleanup:
 /*
  * Write PLOAD4 card
  */
-int astrosCard_pload4(FILE *fp, int *lid, int *eid, int numP, double *P,
-                      /*@null@*/ int *cid, /*@null@*/ double *V,
+int astrosCard_pload4(FILE *fp, const int *lid, const int *eid, int numP, const double *P,
+                      /*@null@*/ const int *cid, /*@null@*/ const double *V,
                       feaFileTypeEnum formatType)
 {
     int status;
@@ -2549,8 +2549,8 @@ cleanup:
 /*
  * Write RBE2 card
  */
-int astrosCard_rbe2(FILE *fp, int *setid, int *eid, int *gn, int *cm,
-                    int numGM, int *GM, feaFileTypeEnum formatType)
+int astrosCard_rbe2(FILE *fp, const int *setid, const int *eid, const int *gn, const int *cm,
+                    int numGM, const int *GM, feaFileTypeEnum formatType)
 {
     int status;
 
@@ -2595,9 +2595,9 @@ cleanup:
 /*
  * Write RBE3 card
  */
-int astrosCard_rbe3(FILE *fp, int *setid, int *eid, int *refg, int *refc,
-                    int numG, double *wt, int *c, int *g,
-                    int numM, /*@null@*/ int *gm, /*@null@*/ int *cm,
+int astrosCard_rbe3(FILE *fp, const int *setid, const int *eid, const int *refg, const int *refc,
+                    int numG, const double *wt, const int *c, const int *g,
+                    int numM, /*@null@*/ const int *gm, /*@null@*/ const int *cm,
                     feaFileTypeEnum formatType)
 {
     int i, status;
@@ -2690,7 +2690,7 @@ cleanup:
 /*
  * Write SPC card
  */
-int astrosCard_spc(FILE *fp, int *sid, int numSPC, int *G, int *C, double *D,
+int astrosCard_spc(FILE *fp, const int *sid, int numSPC, const int *G, const int *C, const double *D,
                    feaFileTypeEnum formatType)
 {
     int i, status;
@@ -2738,8 +2738,8 @@ cleanup:
 /*
  * Write SPC1 card
  */
-int astrosCard_spc1(FILE *fp, int *sid, int *c, int numSPC, int *G,
-                     feaFileTypeEnum formatType)
+int astrosCard_spc1(FILE *fp, const int *sid, const int *c, int numSPC, const int *G,
+                    feaFileTypeEnum formatType)
 {
     int status;
 
@@ -2879,7 +2879,7 @@ cleanup:
 /*
  * Write TEMP card
  */
-int astrosCard_temp(FILE *fp, int *sid, int numT, int *G, double *T,
+int astrosCard_temp(FILE *fp, const int *sid, int numT, const int *G, const double *T,
                     feaFileTypeEnum formatType)
 {
     int i, status;
@@ -2920,7 +2920,7 @@ cleanup:
 /*
  * Write TEMPD card
  */
-int astrosCard_tempd(FILE *fp, int numT, int *SID, double *T,
+int astrosCard_tempd(FILE *fp, int numT, const int *SID, const double *T,
                      feaFileTypeEnum formatType)
 {
     int i, status;
@@ -2981,9 +2981,9 @@ int astrosCard_destroyTrimParam(astrosCardTrimParamStruct *param)
     return CAPS_SUCCESS;
 }
 
-int astrosCard_trim(FILE *fp, int *trimid, double *mach, double *qdp,
-                    /*@null@*/ char *trmtyp, /*@null@*/ int *effid,
-                    /*@null@*/ double *vo, int numParam,
+int astrosCard_trim(FILE *fp, const int *trimid, const double *mach, const double *qdp,
+                    /*@null@*/ const char *trmtyp, /*@null@*/ const int *effid,
+                    /*@null@*/ const double *vo, int numParam,
                     astrosCardTrimParamStruct *param, feaFileTypeEnum formatType)
 {
     int i, status;

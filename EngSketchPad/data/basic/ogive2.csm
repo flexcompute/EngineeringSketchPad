@@ -1,0 +1,30 @@
+# ogive2
+# writeen by John Dannenhoffer
+# adapted from a contribution by a user
+
+#input takes in a circle of radius r
+DESPMTR length     1
+DESPMTR radius     0.2
+CFGPMTR type       1
+DESPMTR resolution 404
+
+SET     rho (radius^2+length^2)/(2*radius)
+
+# sketch of ogive
+SKBEG     0  0  0
+   PATBEG    i  resolution
+      SET    X  length*i/resolution
+      SET    Y  sqrt(rho^2-(length-X)^2)+radius-rho
+      SPLINE X  Y  0
+   PATEND
+   LINSEG length 0  0
+   LINSEG 0      0  0
+SKEND
+
+# make Body in two halves and UNION them
+REVOLVE   0  0  0  1  0  0  180
+RESTORE   .
+MIRROR    0  0  1
+UNION
+
+END

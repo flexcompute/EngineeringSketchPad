@@ -16,201 +16,84 @@ class TestBound(unittest.TestCase):
     def setUpClass(cls):
 
         cls.file = "unitGeom.csm"
-        cls.analysisDir = "UnitTest"
-        cls.projectName = "basicTest"
+        cls.problemName = "basicTest"
         cls.iProb = 1
 
         cls.cleanUp()
 
-        cls.boundName = "test"
+        cls.capsBound = "Upper_Left"
 
-        cls.myProblem = pyCAPS.capsProblem()
+        cls.myProblem = pyCAPS.Problem(cls.problemName, capsFile=cls.file, outLevel=0)
 
-        cls.myGeometry = cls.myProblem.loadCAPS(cls.file, cls.projectName, verbosity=0)
+        cls.su2 = cls.myProblem.analysis.create(aim = "su2AIM")
 
-        cls.myAnalysis1 = cls.myProblem.loadAIM(aim = "fun3dAIM",
-                                               analysisDir = cls.analysisDir + "1")
-        
-        cls.myAnalysis2 = cls.myProblem.loadAIM(aim = "nastranAIM",
-                                               analysisDir = cls.analysisDir + "2")
+        cls.astros = cls.myProblem.analysis.create(aim = "astrosAIM")
 
     @classmethod
     def tearDownClass(cls):
-        del cls.myGeometry
-        del cls.myAnalysis1
-        del cls.myAnalysis2
-        del cls.myProblem
+        cls.myProblem.close()
         cls.cleanUp()
 
     @classmethod
     def cleanUp(cls):
 
         # Remove analysis directories
-        dirs = glob.glob( cls.projectName + '*')
+        dirs = glob.glob( cls.problemName + '*')
         for dir in dirs:
             if os.path.isdir(dir):
                 shutil.rmtree(dir)
-
-        # Remove default projectName
-        base = os.path.basename(__main__.__file__)
-        projectName = os.path.splitext(base)[0]
-        if os.path.isdir(projectName):
-            shutil.rmtree(projectName)
 
         # Remove created files
         if os.path.isfile("unitGeom.egads"):
             os.remove("unitGeom.egads")
 
-#         if os.path.isfile("myAnalysisGeometry.egads"):
-#             os.remove("myAnalysisGeometry.egads")
-
-         # \param capsBound Name of capsBound to use for the data bound. 
-    # \param variableName Single or list of variables names to add. 
-    # \param aimSrc Single or list of AIM names that will be the data sources for the bound.
-    # \param aimDest Single or list of AIM names that will be the data destinations during the transfer. 
-    # \param transferMethod Single or list of transfer methods to use during the transfer.
-    # \param initValueDest Single or list of initial values for the destication data.
-    #
-    # \return Optionally returns the reference to the data bound dictionary (\ref dataBound) entry created 
-    # for the bound class object (\ref pyCAPS.capsBound).
-    
+#==============================================================================
     # Test bound creation
     def test_boundInit(self):
-        name = self.boundName + "1"
 
-        myBound= self.myProblem.createDataBound(capsBound = name,
-                                                variableName = "Pressure",
-                                                aimSrc = self.myAnalysis1.aimName,
-                                                aimDest = self.myAnalysis2.aimName)
+        myProblem = pyCAPS.Problem(self.problemName + str(self.iProb), capsFile=self.file, outLevel=0); self.iProb += 1
 
-        self.assertEqual(myBound, self.myProblem.dataBound[name])
-        
-        # Repeat bound name
+        su2    = myProblem.analysis.create(aim = "su2AIM")
+        astros = myProblem.analysis.create(aim = "astrosAIM")
+
+        bound = myProblem.bound.create(capsBound = self.capsBound)
+
+        self.assertEqual(bound, myProblem.bound[self.capsBound])
+
+        # Repeat bound name is not allowed
         with self.assertRaises(pyCAPS.CAPSError) as e:
-             myBound= self.myProblem.createDataBound(capsBound = name,
-                                                     variableName = "Pressure",
-                                                     aimSrc = self.myAnalysis1.aimName,
-                                                     aimDest = self.myAnalysis2.aimName)
-             
-        
-    
-    # Test bound creation
-    def test_boundInit2(self):
-        name = self.boundName + "2"
-        
-        myBound = pyCAPS.capsBound(self.myProblem, 
-                                   capsBound = name,
-                                   variableName = "Pressure",
-                                   aimSrc = self.myAnalysis1.aimName,
-                                   aimDest = self.myAnalysis2.aimName)
+            myProblem.bound.create(capsBound = self.capsBound)
 
-        self.assertEqual(myBound, self.myProblem.dataBound[name])
-        
-    # Test bound creation with analysis object
-    def test_boundInit2(self):
-        name = self.boundName + "3"
-        
-        myBound = pyCAPS.capsBound(self.myProblem, 
-                                   capsBound = name,
-                                   variableName = "Pressure",
-                                   aimSrc = self.myAnalysis1,
-                                   aimDest = self.myAnalysis2.aimName)
+        # Create the vertex sets on the bound for su2 and astros analysis
+        su2Vset    = bound.vertexSet.create(self.su2)
+        astrosVset = bound.vertexSet.create(self.astros)
 
-        self.assertEqual(myBound, self.myProblem.dataBound[name])
-    
-    # Test bound creation without a problem object
-    def test_boundInit3(self):
-     
-        name = self.boundName + "Dummy"
+        self.assertEqual(su2Vset   , bound.vertexSet[self.su2.name])
+        self.assertEqual(astrosVset, bound.vertexSet[self.astros.name])
 
-        with self.assertRaises(TypeError) as e:
-            myBound = pyCAPS.capsBound("Not an problme", 
-                                       capsBound = name,
-                                       variableName = "Pressure",
-                                       aimSrc = self.myAnalysis1.aimName,
-                                       aimDest = self.myAnalysis2.aimName)
+        # Create pressure data sets
+        su2_Pressure    = su2Vset.dataSet.create("Pressure", pyCAPS.fType.FieldOut)
+        astros_Pressure = astrosVset.dataSet.create("Pressure", pyCAPS.fType.FieldIn)
 
-        
-    # Test lack of inputs 
-    def test_noInputs(self):
-        name = self.boundName + "Dummy"
+        self.assertEqual(su2_Pressure   , su2Vset.dataSet["Pressure"])
+        self.assertEqual(astros_Pressure, astrosVset.dataSet["Pressure"])
 
-        # no name
-        with self.assertRaises(pyCAPS.CAPSError) as e:
-            myBound= self.myProblem.createDataBound(variableName = "Pressure",
-                                                    aimSrc = self.myAnalysis1.aimName,
-                                                    aimDest = self.myAnalysis2.aimName)
+        # Create displacement data sets
+        su2_Displacement    = su2Vset.dataSet.create("Displacement", pyCAPS.fType.FieldIn, init=[0,0,0])
+        astros_Displacement = astrosVset.dataSet.create("Displacement", pyCAPS.fType.FieldOut)
 
-        # variable name 
-        with self.assertRaises(pyCAPS.CAPSError) as e:
-            myBound= self.myProblem.createDataBound(capsBound = name,
-                                                    aimSrc = self.myAnalysis1.aimName,
-                                                    aimDest = self.myAnalysis2.aimName)
+        self.assertEqual(su2_Displacement   , su2Vset.dataSet["Displacement"])
+        self.assertEqual(astros_Displacement, astrosVset.dataSet["Displacement"])
 
-        # aim source name 
-  
-        with self.assertRaises(pyCAPS.CAPSError) as e:
-            myBound= self.myProblem.createDataBound(capsBound = name,
-                                                    variableName = "Pressure",
-                                                    aimDest = self.myAnalysis2.aimName)
+        # Link the data sets
+        astros_Pressure.link(su2_Pressure, "Conserve")
+        su2_Displacement.link(astros_Displacement, "Interpolate")
 
-    # Test mismatch of inputs 
-    def test_mismatchInputs(self):
-        name = self.boundName + "Dummy"
+        # Close the bound as complete (cannot create more vertex or data sets)
+        bound.close()
 
-        # Src
-        with self.assertRaises(pyCAPS.CAPSError) as e:
-            myBound = pyCAPS.capsBound(self.myProblem, 
-                                       capsBound = name,
-                                       variableName = ["Pressure",  "Displacement"],
-                                       aimSrc = self.myAnalysis1.aimName,
-                                       aimDest = self.myAnalysis2.aimName)
+        bound.markForDelete()
 
-        # Dest
-        with self.assertRaises(pyCAPS.CAPSError) as e:
-            myBound = pyCAPS.capsBound(self.myProblem, 
-                                       capsBound = name,
-                                       variableName = "Pressure",
-                                       aimSrc = [self.myAnalysis1.aimName, self.myAnalysis2.aimName],
-                                       aimDest = self.myAnalysis2.aimName)
-    
-    # Bad analysis name
-    def test_invalidAnalysisName(self):
-        name = self.boundName + "Dummy"
-
-        # aim source name 
-        with self.assertRaises(pyCAPS.CAPSError) as e:
-            myBound = pyCAPS.capsBound(self.myProblem, 
-                                          capsBound = name,
-                                          variableName = "Pressure",
-                                          aimSrc = "x",
-                                          aimDest = self.myAnalysis2.aimName)
-            
-        # aim destination name 
-        with self.assertRaises(pyCAPS.CAPSError) as e:
-            myBound = pyCAPS.capsBound(self.myProblem, 
-                                          capsBound = name,
-                                          variableName = "Pressure",
-                                          aimSrc = self.myAnalysis1.aimName,
-                                          aimDest = "Y")
-            
-
-    # Test bound to make sure variables in bound are being set correctly 
-    def test_variableSet(self):
-        name = self.boundName + "4"
-        
-        myBound = pyCAPS.capsBound(self.myProblem, 
-                                   capsBound = name,
-                                   variableName = "Pressure",
-                                   aimSrc = self.myAnalysis1.aimName,
-                                   aimDest = self.myAnalysis2.aimName)
-
-        self.assertEqual(myBound.variables, ["Pressure"])
-        
-        if pyVersion.major > 2:
-            self.assertCountEqual(list(myBound.vertexSet.keys()), [self.myAnalysis1.aimName, self.myAnalysis2.aimName]) 
-        else: 
-            self.assertItemsEqual(list(myBound.vertexSet.keys()), [self.myAnalysis1.aimName, self.myAnalysis2.aimName]) 
 
 if __name__ == '__main__':
-    unittest.main() 
+    unittest.main()

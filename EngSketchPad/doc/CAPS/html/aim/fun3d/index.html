@@ -77,11 +77,11 @@ $(function() {
 FUN3D AIM Overview</h1>
 <p>A module in the Computational Aircraft Prototype Syntheses (CAPS) has been developed to interact (primarily through input files) with NASA LaRC's unstructured flow solver FUN3D <a class="el" href="citelist.html#CITEREF_FUN3D">[1]</a>. FUN3D is a parallelized flow analysis and design suite capable of addressing a wide variety of complex aerodynamic configurations by utilizing a mixed-element, node-based, finite volume discretization. The suite can simulate perfect gas (both incompressible and compressible), as well as multi-species equilibrium and non-equilibrium flows. Turbulence effects may be represented through a wide variety of models. Currently only a subset of FUN3D's input options have been exposed in the analysis interface module (AIM), but features can easily be included as future needs arise.</p>
 <p>Current issues include:</p><ul>
-<li>A thorough bug testing needs to be undertaken.</li>
 <li>Not all parameters/variables in fun3d.nml are currently available.</li>
 </ul>
 <p>An outline of the AIM's inputs and outputs are provided in <a class="el" href="aimInputsFUN3D.html">AIM Inputs</a> and <a class="el" href="aimOutputsFUN3D.html">AIM Outputs</a>, respectively.</p>
-<p>Details of the AIM's automated data transfer capabilities are outlined in <a class="el" href="dataTransferFUN3D.html">AIM Data Transfer</a></p>
+<p>Details on the use of units are outlined in <a class="el" href="aimUnitsFUN3D.html">AIM Units</a>.</p>
+<p>Details of the AIM's automated data transfer capabilities are outlined in <a class="el" href="dataTransferFUN3D.html">FUN3D Data Transfer</a></p>
 <h1><a class="anchor" id="fun3dNML"></a>
 Generating fun3d.nml</h1>
 <p>FUN3D's primarily input file is a master FORTRAN namelist, fun3d.nml. To generate a bare-bones fun3d.nml file based on the variables set in <a class="el" href="aimInputsFUN3D.html">AIM Inputs</a>, nothing else besides the AIM needs to be provided. Since this will create a new fun3d.nml file every time the AIM is executed it is essential to set the Overwrite_NML input variable to "True". This gives the user ample warning that their fun3d.nml (if it exists) will be over written.</p>
@@ -97,7 +97,7 @@ Clearance Statement</h1>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Fri Sep 17 2021 06:42:05 for FUN3D Analysis Interface Module (AIM) by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1
+Generated on Sat Jul 2 2022 10:12:29 for FUN3D Analysis Interface Module (AIM) by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1
 </small></address>
 </body>
 </html>

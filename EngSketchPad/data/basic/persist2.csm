@@ -158,7 +158,7 @@ catbeg    $node_not_found
 catend
 
 select    edge  $name  $hole2Edge
-catbeg    $node_not_found
+catbeg    $edge_not_found
 catend
 
 select    face  $name  $hole2Face

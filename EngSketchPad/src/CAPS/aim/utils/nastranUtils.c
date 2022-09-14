@@ -44,7 +44,7 @@ static int nastranOP2Reader_Initialized = (int)false;
 #define PI        3.1415926535897931159979635
 
 
-static int _getDesignVariableIDSet(feaProblemStruct *feaProblem, 
+static int _getDesignVariableIDSet(const feaProblemStruct *feaProblem,
                                    int numDesignVariableNames, 
                                    char **designVariableNames, 
                                    int *numDesignVariableID,
@@ -91,7 +91,7 @@ static int _getDesignVariableIDSet(feaProblemStruct *feaProblem,
         return status;
 }
 
-static int _getDesignResponseIDSet(feaProblemStruct *feaProblem, 
+static int _getDesignResponseIDSet(const feaProblemStruct *feaProblem,
                                    int numDesignResponseNames, 
                                    char **designResponseNames, 
                                    int *numDesignResponseID,
@@ -138,11 +138,11 @@ static int _getDesignResponseIDSet(feaProblemStruct *feaProblem,
         return status;
 }
 
-static int _getEquationResponseIDSet(feaProblemStruct *feaProblem, 
-                                   int numEquationResponseNames, 
-                                   char **equationResponseNames, 
-                                   int *numEquationResponseID,
-                                   int **equationResponseIDSet) {
+static int _getEquationResponseIDSet(const feaProblemStruct *feaProblem,
+                                     int numEquationResponseNames,
+                                     char **equationResponseNames,
+                                     int *numEquationResponseID,
+                                     int **equationResponseIDSet) {
     int i, status;
 
     int numEquationResponses;
@@ -185,7 +185,7 @@ static int _getEquationResponseIDSet(feaProblemStruct *feaProblem,
         return status;
 }
 
-static int _getEquationID(feaProblemStruct *feaProblem, char *equationName, int *equationID) {
+static int _getEquationID(const feaProblemStruct *feaProblem, char *equationName, int *equationID) {
 
     int status;
 
@@ -251,7 +251,7 @@ int nastran_writeSetCard(FILE *fp, int n, int numSetID, int *setID) {
 
 
 // Write a Nastran element cards not supported by mesh_writeNastran in meshUtils.c
-int nastran_writeSubElementCard(FILE *fp, meshStruct *feaMesh, int numProperty, feaPropertyStruct *feaProperty, feaFileFormatStruct *feaFileFormat) {
+int nastran_writeSubElementCard(FILE *fp, const meshStruct *feaMesh, int numProperty, const feaPropertyStruct *feaProperty, const feaFileFormatStruct *feaFileFormat) {
 
     int status;
 
@@ -468,7 +468,7 @@ int nastran_writeSubElementCard(FILE *fp, meshStruct *feaMesh, int numProperty, 
 }
 
 // Write a Nastran connections card from a feaConnection structure
-int nastran_writeConnectionCard(FILE *fp, feaConnectionStruct *feaConnect, feaFileFormatStruct *feaFileFormat) {
+int nastran_writeConnectionCard(FILE *fp, const feaConnectionStruct *feaConnect, const feaFileFormatStruct *feaFileFormat) {
 
     int status;
 
@@ -564,7 +564,7 @@ int nastran_writeConnectionCard(FILE *fp, feaConnectionStruct *feaConnect, feaFi
 }
 
 // Write a Nastran AERO card from a feaAeroRef structure
-int nastran_writeAEROCard(FILE *fp, feaAeroRefStruct *feaAeroRef, feaFileFormatStruct *feaFileFormat) {
+int nastran_writeAEROCard(FILE *fp, const feaAeroRefStruct *feaAeroRef, const feaFileFormatStruct *feaFileFormat) {
 
     double refDensity = 1.0;
 
@@ -585,7 +585,7 @@ int nastran_writeAEROCard(FILE *fp, feaAeroRefStruct *feaAeroRef, feaFileFormatS
 }
 
 // Write a Nastran AEROS card from a feaAeroRef structure
-int nastran_writeAEROSCard(FILE *fp, feaAeroRefStruct *feaAeroRef, feaFileFormatStruct *feaFileFormat) {
+int nastran_writeAEROSCard(FILE *fp, const feaAeroRefStruct *feaAeroRef, const feaFileFormatStruct *feaFileFormat) {
 
     if (fp == NULL) return CAPS_IOERR;
     if (feaAeroRef == NULL) return CAPS_NULLVALUE;
@@ -606,7 +606,7 @@ int nastran_writeAEROSCard(FILE *fp, feaAeroRefStruct *feaAeroRef, feaFileFormat
 }
 
 // Write Nastran SET1 card from a feaAeroStruct
-int nastran_writeSet1Card(FILE *fp, feaAeroStruct *feaAero, feaFileFormatStruct *feaFileFormat) {
+int nastran_writeSet1Card(FILE *fp, const feaAeroStruct *feaAero, const feaFileFormatStruct *feaFileFormat) {
 
     if (fp == NULL) return CAPS_IOERR;
     if (feaAero == NULL) return CAPS_NULLVALUE;
@@ -621,7 +621,7 @@ int nastran_writeSet1Card(FILE *fp, feaAeroStruct *feaAero, feaFileFormatStruct 
 }
 
 // Write Nastran Spline1 cards from a feaAeroStruct
-int nastran_writeAeroSplineCard(FILE *fp, feaAeroStruct *feaAero, feaFileFormatStruct *feaFileFormat) {
+int nastran_writeAeroSplineCard(FILE *fp, const feaAeroStruct *feaAero, const feaFileFormatStruct *feaFileFormat) {
 
     int numSpanWise;
     int boxBegin, boxEnd;
@@ -754,10 +754,10 @@ static int _getControlSurfaceBoxIDs(int boxBeginID, int numChordDivs,
 }
 
 static int _writeAesurfCard(FILE *fp, 
-                            feaAeroStruct *feaAero, 
+                            const feaAeroStruct *feaAero,
                             vlmSectionStruct *rootSection, 
                             vlmSectionStruct *tipSection, 
-                            feaFileFormatStruct *feaFileFormat) {
+                            const feaFileFormatStruct *feaFileFormat) {
     
     int i, j, status;
 
@@ -887,13 +887,14 @@ static int _writeAesurfCard(FILE *fp,
 }
 
 // Write Nastran CAERO1 cards from a feaAeroStruct
-int nastran_writeCAeroCard(FILE *fp, feaAeroStruct *feaAero, feaFileFormatStruct *feaFileFormat) {
+int nastran_writeCAeroCard(FILE *fp, const feaAeroStruct *feaAero, const feaFileFormatStruct *feaFileFormat) {
 
     int status;
 
     int i, sectionIndex; // Indexing
 
-    int *nspan, *nchord, *lspan, *lchord, defaultIGroupID = 1;
+    const int *nspan, *nchord, *lspan, *lchord;
+    int defaultIGroupID = 1;
 
     double chordLength12, chordLength43;
     double *xyz1, *xyz4;
@@ -974,7 +975,7 @@ int nastran_writeCAeroCard(FILE *fp, feaAeroStruct *feaAero, feaFileFormatStruct
 }
 
 // Write Nastran coordinate system card from a feaCoordSystemStruct structure
-int nastran_writeCoordinateSystemCard(FILE *fp, feaCoordSystemStruct *feaCoordSystem, feaFileFormatStruct *feaFileFormat) {
+int nastran_writeCoordinateSystemCard(FILE *fp, const feaCoordSystemStruct *feaCoordSystem, const feaFileFormatStruct *feaFileFormat) {
 
     double pointA[3] = {0, 0, 0};
     double pointB[3] = {0, 0, 0};
@@ -1044,7 +1045,7 @@ int nastran_writeCoordinateSystemCard(FILE *fp, feaCoordSystemStruct *feaCoordSy
 
 // Write combined Nastran constraint card from a set of constraint IDs.
 // 	The combined constraint ID is set through the constraintID variable.
-int nastran_writeConstraintADDCard(FILE *fp, int constraintID, int numSetID, int constraintSetID[], feaFileFormatStruct *feaFileFormat) {
+int nastran_writeConstraintADDCard(FILE *fp, int constraintID, int numSetID, int constraintSetID[], const feaFileFormatStruct *feaFileFormat) {
 
     if (fp == NULL) return CAPS_IOERR;
     if (feaFileFormat == NULL) return CAPS_NULLVALUE;
@@ -1054,7 +1055,7 @@ int nastran_writeConstraintADDCard(FILE *fp, int constraintID, int numSetID, int
 }
 
 // Write Nastran constraint card from a feaConstraint structure
-int nastran_writeConstraintCard(FILE *fp, feaConstraintStruct *feaConstraint, feaFileFormatStruct *feaFileFormat) {
+int nastran_writeConstraintCard(FILE *fp, const feaConstraintStruct *feaConstraint, const feaFileFormatStruct *feaFileFormat) {
 
     int status;
     int i; // Indexing;
@@ -1100,7 +1101,7 @@ int nastran_writeConstraintCard(FILE *fp, feaConstraintStruct *feaConstraint, fe
 }
 
 // Write Nastran support card from a feaSupport structure - withID = NULL or false SUPORT, if withID = true SUPORT1
-int nastran_writeSupportCard(FILE *fp, feaSupportStruct *feaSupport, feaFileFormatStruct *feaFileFormat, int *withID) {
+int nastran_writeSupportCard(FILE *fp, const feaSupportStruct *feaSupport, const feaFileFormatStruct *feaFileFormat, const int *withID) {
 
     int status;
 
@@ -1141,12 +1142,12 @@ int nastran_writeSupportCard(FILE *fp, feaSupportStruct *feaSupport, feaFileForm
 }
 
 // Write a Nastran Material card from a feaMaterial structure
-int nastran_writeMaterialCard(FILE *fp, feaMaterialStruct *feaMaterial, feaFileFormatStruct *feaFileFormat) {
+int nastran_writeMaterialCard(FILE *fp, const feaMaterialStruct *feaMaterial, const feaFileFormatStruct *feaFileFormat) {
 
     double strainAllowable = 1.0;
-    double *g1z = NULL, *g2z = NULL, *xt = NULL, *xc = NULL;
-    double *yt = NULL, *yc = NULL, *s = NULL, *strn = NULL;
-    double *g = NULL;
+    const double *g1z = NULL, *g2z = NULL, *xt = NULL, *xc = NULL;
+    const double *yt = NULL, *yc = NULL, *s = NULL, *strn = NULL;
+    const double *g = NULL;
 
     if (fp == NULL) return CAPS_IOERR;
     if (feaMaterial == NULL) return CAPS_NULLVALUE;
@@ -1165,9 +1166,9 @@ int nastran_writeMaterialCard(FILE *fp, feaMaterialStruct *feaMaterial, feaFileF
             &feaMaterial->thermalExpCoeff, // a
             &feaMaterial->temperatureRef, // tref
             &feaMaterial->dampingCoeff, // ge
-            NULL, // &feaMaterial->tensionAllow, // st
-            NULL, // &feaMaterial->compressAllow, // sc
-            NULL, // &feaMaterial->sheerAllow, // ss
+            &feaMaterial->tensionAllow, // st
+            &feaMaterial->compressAllow, // sc
+            &feaMaterial->shearAllow, // ss
             NULL, // mcsid
             feaFileFormat->fileType
         );
@@ -1229,13 +1230,13 @@ int nastran_writeMaterialCard(FILE *fp, feaMaterialStruct *feaMaterial, feaFileF
 }
 
 // Write a Nastran Property card from a feaProperty structure
-int nastran_writePropertyCard(FILE *fp, feaPropertyStruct *feaProperty, feaFileFormatStruct *feaFileFormat) {
+int nastran_writePropertyCard(FILE *fp, const feaPropertyStruct *feaProperty, const feaFileFormatStruct *feaFileFormat) {
 
-    double *nsm = NULL; // massPerLength, massPerArea field
+    const double *nsm = NULL; // massPerLength, massPerArea field
 
     // pshell
-    int *mid2 = NULL, *mid3 = NULL;
-    double *i12t3 = NULL, *tst = NULL;
+    const int *mid2 = NULL, *mid3 = NULL;
+    const double *i12t3 = NULL, *tst = NULL;
 
     // pcomp
     char *lam = NULL;
@@ -1408,7 +1409,7 @@ int nastran_writePropertyCard(FILE *fp, feaPropertyStruct *feaProperty, feaFileF
 
 // Write a combined Nastran load card from a set of load IDs. Uses the feaLoad structure to get the local scale factor
 // 	for the load. The overall load scale factor is set to 1. The combined load ID is set through the loadID variable.
-int nastran_writeLoadADDCard(FILE *fp, int loadID, int numSetID, int loadSetID[], feaLoadStruct feaLoad[], feaFileFormatStruct *feaFileFormat) {
+int nastran_writeLoadADDCard(FILE *fp, int loadID, int numSetID, int loadSetID[], feaLoadStruct feaLoad[], const feaFileFormatStruct *feaFileFormat) {
 
     int status;
 
@@ -1446,7 +1447,7 @@ int nastran_writeLoadADDCard(FILE *fp, int loadID, int numSetID, int loadSetID[]
 }
 
 // Write a Nastran Load card from a feaLoad structure
-int nastran_writeLoadCard(FILE *fp, feaLoadStruct *feaLoad, feaFileFormatStruct *feaFileFormat)
+int nastran_writeLoadCard(FILE *fp, const feaLoadStruct *feaLoad, const feaFileFormatStruct *feaFileFormat)
 {
     int status;
 
@@ -1609,7 +1610,9 @@ int nastran_writeLoadCard(FILE *fp, feaLoadStruct *feaLoad, feaFileFormatStruct 
 }
 
 // Write a Nastran Analysis card from a feaAnalysis structure
-int nastran_writeAnalysisCard(FILE *fp, feaAnalysisStruct *feaAnalysis, feaFileFormatStruct *feaFileFormat) {
+int nastran_writeAnalysisCard(FILE *fp,
+                              const feaAnalysisStruct *feaAnalysis,
+                              const feaFileFormatStruct *feaFileFormat) {
 
     int status;
 
@@ -1715,8 +1718,8 @@ int nastran_writeAnalysisCard(FILE *fp, feaAnalysisStruct *feaAnalysis, feaFileF
             feaFileFormat->fileType
         );
 
-        EG_free(paramLabels);
-        EG_free(paramMags);
+        AIM_FREE(paramLabels);
+        AIM_FREE(paramMags);
 
         if (status != CAPS_SUCCESS) return status;
     }
@@ -1805,7 +1808,7 @@ int nastran_writeAnalysisCard(FILE *fp, feaAnalysisStruct *feaAnalysis, feaFileF
 
 // Write a combined Nastran design constraint card from a set of constraint IDs.
 //  The combined design constraint ID is set through the constraint ID variable.
-int nastran_writeDesignConstraintADDCard(FILE *fp, int constraintID, int numSetID, int designConstraintSetID[], feaFileFormatStruct *feaFileFormat) {
+int nastran_writeDesignConstraintADDCard(FILE *fp, int constraintID, int numSetID, const int designConstraintSetID[], const feaFileFormatStruct *feaFileFormat) {
 
     if (fp == NULL) return CAPS_IOERR;
     if (numSetID > 0 && designConstraintSetID == NULL) return CAPS_NULLVALUE;
@@ -1825,7 +1828,7 @@ int nastran_writeDesignConstraintADDCard(FILE *fp, int constraintID, int numSetI
 }
 
 // Write design constraint/optimization information from a feaDesignConstraint structure
-int nastran_writeDesignConstraintCard(FILE *fp, feaDesignConstraintStruct *feaDesignConstraint, feaFileFormatStruct *feaFileFormat) {
+int nastran_writeDesignConstraintCard(FILE *fp, const feaDesignConstraintStruct *feaDesignConstraint, const feaFileFormatStruct *feaFileFormat) {
 
     int status;
 
@@ -2104,14 +2107,14 @@ static char * _getElementTypeIdentifier(int elementType, int elementSubType) {
 }
 
 // Write design variable/optimization information from a feaDesignVariable structure
-int nastran_writeDesignVariableCard(FILE *fp, feaDesignVariableStruct *feaDesignVariable, feaFileFormatStruct *feaFileFormat) {
+int nastran_writeDesignVariableCard(FILE *fp, const feaDesignVariableStruct *feaDesignVariable, const feaFileFormatStruct *feaFileFormat) {
 
     // int  i;
 
     int status; // Function return status
 
-    int *ddval = NULL;
-    double *xlb = NULL, *xub = NULL, *delxv = NULL;
+    const int *ddval = NULL;
+    const double *xlb = NULL, *xub = NULL, *delxv = NULL;
     // char *type = NULL;
 
     int dlinkID;//, uniqueID;
@@ -2181,9 +2184,9 @@ int nastran_writeDesignVariableCard(FILE *fp, feaDesignVariableStruct *feaDesign
 // Write design variable relation information from a feaDesignVariableRelation structure
 int nastran_writeDesignVariableRelationCard(void *aimInfo,
                                             FILE *fp,
-                                            feaDesignVariableRelationStruct *feaDesignVariableRelation,
-                                            feaProblemStruct *feaProblem,
-                                            feaFileFormatStruct *feaFileFormat)
+                                            const feaDesignVariableRelationStruct *feaDesignVariableRelation,
+                                            const feaProblemStruct *feaProblem,
+                                            const feaFileFormatStruct *feaFileFormat)
 {
     int i, j, status, uniqueID;
 
@@ -2349,7 +2352,7 @@ int nastran_writeDesignVariableRelationCard(void *aimInfo,
                 feaFileFormat->fileType
             );
 
-            if (status != CAPS_SUCCESS) goto cleanup;
+            AIM_STATUS(aimInfo, status);
         }
     }
 
@@ -2392,7 +2395,7 @@ int nastran_writeDesignVariableRelationCard(void *aimInfo,
                 feaFileFormat->fileType
             );
 
-            if (status != CAPS_SUCCESS) goto cleanup;
+            AIM_STATUS(aimInfo, status);
         }
     }
 
@@ -2406,9 +2409,11 @@ int nastran_writeDesignVariableRelationCard(void *aimInfo,
             // Element subtypes: UnknownMeshSubElement, ConcentratedMassElement, BarElement, BeamElement, ShellElement, ShearElement
             type = _getElementTypeIdentifier(relationSetType[i], relationSetSubType[i]);
             if (type == NULL) {
-                PRINT_WARNING("Unknown element type and/or subtype: %d %d", 
-                              relationSetType[i],
-                              relationSetSubType[i]);
+                AIM_ERROR(aimInfo, "Unknown element type and/or subtype: %d %d",
+                                   relationSetType[i],
+                                   relationSetSubType[i]);
+                status = CAPS_BADVALUE;
+                goto cleanup;
             }
 
             status = nastranCard_dvcrel1(
@@ -2426,9 +2431,9 @@ int nastran_writeDesignVariableRelationCard(void *aimInfo,
                 feaFileFormat->fileType
             );
 
-            if (type != NULL) EG_free(type);
+            AIM_FREE(type);
 
-            if (status != CAPS_SUCCESS) goto cleanup;
+            AIM_STATUS(aimInfo, status);
         }
     }
 
@@ -2439,33 +2444,16 @@ int nastran_writeDesignVariableRelationCard(void *aimInfo,
     }
 
 
-    cleanup:
+cleanup:
 
-        if (fieldName != NULL) {
-            EG_free(fieldName);
-        }
+    AIM_FREE(fieldName);
+    AIM_FREE(designVariableSet);
+    AIM_FREE(designVariableSetID);
+    AIM_FREE(relationSetID);
+    AIM_FREE(relationSetType);
+    AIM_FREE(relationSetSubType);
 
-        if (designVariableSet != NULL) {
-            EG_free(designVariableSet);
-        }
-
-        if (designVariableSetID != NULL) {
-            EG_free(designVariableSetID);
-        }
-
-        if (relationSetID != NULL) {
-            EG_free(relationSetID);
-        }
-
-        if (relationSetType != NULL) {
-            EG_free(relationSetType);
-        }
-
-        if (relationSetSubType != NULL) {
-            EG_free(relationSetSubType);
-        }
-
-        return status;
+    return status;
 }
 
 static int _getNextEquationLine(char **equationLines, const int lineIndex, 
@@ -2492,7 +2480,7 @@ static int _getNextEquationLine(char **equationLines, const int lineIndex,
     return numPrint;
 }
 
-static int _getEquationLines(feaDesignEquationStruct *feaEquation, 
+static int _getEquationLines(const feaDesignEquationStruct *feaEquation,
                              int *numEquationLines, 
                              char ***equationLines) {
 
@@ -2567,8 +2555,8 @@ static int _getEquationLines(feaDesignEquationStruct *feaEquation,
 
 // Write equation information from a feaDesignEquation structure
 int nastran_writeDesignEquationCard(FILE *fp,
-                                    feaDesignEquationStruct *feaEquation,
-                       /*@unused@*/ feaFileFormatStruct *fileFormat) {
+                                    const feaDesignEquationStruct *feaEquation,
+                       /*@unused@*/ const feaFileFormatStruct *fileFormat) {
 
     int status;
 
@@ -2592,7 +2580,7 @@ int nastran_writeDesignEquationCard(FILE *fp,
 }
 
 // Write design table constants information from a feaDesignTable structure 
-int nastran_writeDesignTableCard(FILE *fp, feaDesignTableStruct *feaDesignTable, feaFileFormatStruct *fileFormat) {
+int nastran_writeDesignTableCard(FILE *fp, const feaDesignTableStruct *feaDesignTable, const feaFileFormatStruct *fileFormat) {
 
     if (feaDesignTable->numConstant > 0) {
 
@@ -2611,7 +2599,7 @@ int nastran_writeDesignTableCard(FILE *fp, feaDesignTableStruct *feaDesignTable,
 }
 
 // Write design response type "DISP"
-static int _writeDesignResponseDISP(FILE *fp, feaDesignResponseStruct *feaDesignResponse, feaFileFormatStruct *fileFormat) {
+static int _writeDesignResponseDISP(FILE *fp, const feaDesignResponseStruct *feaDesignResponse, const feaFileFormatStruct *fileFormat) {
 
     int status;
 
@@ -2634,7 +2622,7 @@ static int _writeDesignResponseDISP(FILE *fp, feaDesignResponseStruct *feaDesign
 }
 
 // Write design response information from a feaDesignResponse structure 
-int nastran_writeDesignResponseCard(FILE *fp, feaDesignResponseStruct *feaDesignResponse, feaFileFormatStruct *fileFormat) {
+int nastran_writeDesignResponseCard(FILE *fp, const feaDesignResponseStruct *feaDesignResponse, const feaFileFormatStruct *fileFormat) {
 
     const char *responseType = feaDesignResponse->responseType;
 
@@ -2648,7 +2636,7 @@ int nastran_writeDesignResponseCard(FILE *fp, feaDesignResponseStruct *feaDesign
 }
 
 // Write design equation response information from a feaDesignEquationResponse structure 
-int nastran_writeDesignEquationResponseCard(FILE *fp, feaDesignEquationResponseStruct *feaEquationResponse, feaProblemStruct *feaProblem, feaFileFormatStruct *fileFormat) {
+int nastran_writeDesignEquationResponseCard(FILE *fp, const feaDesignEquationResponseStruct *feaEquationResponse, const feaProblemStruct *feaProblem, const feaFileFormatStruct *fileFormat) {
 
     int status;
 
@@ -2733,7 +2721,7 @@ int nastran_writeDesignEquationResponseCard(FILE *fp, feaDesignEquationResponseS
 }
 
 // Write design optimization parameter information from a feaDesignOptParam structure 
-int nastran_writeDesignOptParamCard(FILE *fp, feaDesignOptParamStruct *feaDesignOptParam, feaFileFormatStruct *fileFormat) {
+int nastran_writeDesignOptParamCard(FILE *fp, const feaDesignOptParamStruct *feaDesignOptParam, const feaFileFormatStruct *fileFormat) {
 
     if (feaDesignOptParam->numParam > 0) {
 
@@ -3385,8 +3373,9 @@ static double _getPanelDownwash(double wroot, double wtip, double yroot, double 
     return wroot + (wtip - wroot) * ((yj - yroot) / (ytip - yroot));
 }
 
-static int _getSectionCamberTwist(vlmSectionStruct *sectionRoot, vlmSectionStruct *sectionTip,
-                                 int numChord, int numSpan, int *numPanelOut, double **downwashOut) {
+static int _getSectionCamberTwist(void *aimInfo,
+                                  vlmSectionStruct *sectionRoot, vlmSectionStruct *sectionTip,
+                                  int numChord, int numSpan, int *numPanelOut, double **downwashOut) {
 
     int status;
 
@@ -3406,16 +3395,16 @@ static int _getSectionCamberTwist(vlmSectionStruct *sectionRoot, vlmSectionStruc
 
     // get normalized chordwise coordinates and camber line
 
-    status = vlm_getSectionCamberLine(sectionRoot,
-                                    1.0, // Cosine distribution
-                                    (int) true, numChordDiv,
-                                    &xCoordRoot, &zCamberRoot);
+    status = vlm_getSectionCamberLine(aimInfo, sectionRoot,
+                                      1.0, // Cosine distribution
+                                      (int) true, numChordDiv,
+                                      &xCoordRoot, &zCamberRoot);
     if (status != CAPS_SUCCESS) goto cleanup;
 
-    status = vlm_getSectionCamberLine(sectionTip,
-                                    1.0, // Cosine distribution
-                                    (int) true, numChordDiv,
-                                    &xCoordTip, &zCamberTip);
+    status = vlm_getSectionCamberLine(aimInfo, sectionTip,
+                                      1.0, // Cosine distribution
+                                      (int) true, numChordDiv,
+                                      &xCoordTip, &zCamberTip);
     if (status != CAPS_SUCCESS) goto cleanup;
 
     // printf("camberRoot: ");
@@ -3503,7 +3492,7 @@ static int _getSectionCamberTwist(vlmSectionStruct *sectionRoot, vlmSectionStruc
 }
 
 // Write Nastran DMI cards for downwash matrix from collection of feaAeroStructs
-int nastran_writeAeroCamberTwist(FILE *fp, int numAero, feaAeroStruct *feaAero, feaFileFormatStruct *feaFileFormat) {
+int nastran_writeAeroCamberTwist(void *aimInfo, FILE *fp, int numAero, feaAeroStruct *feaAero, feaFileFormatStruct *feaFileFormat) {
 
     int i, j, iAero, status;
 
@@ -3526,7 +3515,8 @@ int nastran_writeAeroCamberTwist(FILE *fp, int numAero, feaAeroStruct *feaAero, 
 
         for (i = 0; i < aero->vlmSurface.numSection-1; i++) {
 
-            status = _getSectionCamberTwist(&aero->vlmSurface.vlmSection[i], 
+            status = _getSectionCamberTwist(aimInfo,
+                                            &aero->vlmSurface.vlmSection[i],
                                             &aero->vlmSurface.vlmSection[i+1],
                                             aero->vlmSurface.Nchord,
                                             aero->vlmSurface.NspanTotal,

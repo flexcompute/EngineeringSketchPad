@@ -1,0 +1,357 @@
+# collab5
+# John Dannenhoffer: basic wing OML with hardwired dimesnions
+# Nitin Bhagat:      update OML to use DESPMTRS  (wingOML)
+# Nitin Bhagat:      add flaps and aileron       (wingOMLwithControls)
+# team:              added structure             (wingWaffle, wingSkin, wingInternals,  and wingBEM)
+# team:              remove portion of BEM adjacent toleading and trailing edges, dimesnions in ft
+
+# dimensions in ft
+#----- Design Parameters: Wing OML -----
+DESPMTR   wing:area        4330.
+DESPMTR   wing:aspect      8.285
+DESPMTR   wing:ybreak      36.4
+DESPMTR   wing:taper_ob    0.333
+DESPMTR   wing:sweep       34.5
+DESPMTR   wing:dihedral    7.30
+DESPMTR   wing:LEspar      0.2     # fraction of tip chord
+DESPMTR   wing:TEspar      0.5     # fraction of tip chord
+
+DESPMTR   winglet:area     40.1    # both left and right winglets
+DESPMTR   winglet:aspect   1.43
+DESPMTR   winglet:taper    0.40
+DESPMTR   winglet:sweep    70.3
+DESPMTR   winglet:dihedral 21.8
+
+#----- Design Parameters: Wing IML -----
+CFGPMTR wing:nrib 15
+
+#----- Design Parameters: Control Deflectors -----
+DESPMTR   fuselage:width  6.5      # inboard span begins from here
+DESPMTR   flapgap         0.3      # ft
+
+DESPMTR   ibflap:spanbeg  0.2      # fraction of inboard span
+DESPMTR   ibflap:spanend  0.8      # fraction of inboard span
+SET       ibflap:chord    wing:TEspar
+DESPMTR   ibflap:angle    20.0
+
+DESPMTR   obflap:spanbeg  0.05     # fraction of outboard span
+DESPMTR   obflap:spanend  0.65     # fraction of outboard span
+SET       obflap:chord    wing:TEspar
+DESPMTR   obflap:angle    25.0
+
+DESPMTR   aileron:spanbeg 0.67     # fraction of outboard span
+DESPMTR   aileron:spanend 0.85     # fraction of outboard span
+SET       aileron:chord   wing:TEspar
+DESPMTR   aileron:angle  -10.0
+
+#----- wing geometry calculations -----
+SET        wing:span           sqrt(wing:area*wing:aspect)
+SET        delta               wing:ybreak*tand(wing:sweep)
+SET        num                 (wing:area+delta*wing:ybreak+delta*(1+wing:taper_ob)*(wing:span/2-wing:ybreak))
+SET        den                 (2*wing:ybreak+(1+wing:taper_ob)*(wing:span/2-wing:ybreak))
+SET        c1                  num/den
+SET        c2                  c1-delta
+SET        c3                  c2*wing:taper_ob
+
+SET        winglet:span        sqrt(winglet:area*winglet:aspect)
+SET        c4                  c3*winglet:taper
+
+SET        dy                  (wing:span/2-wing:ybreak)
+SET        dx                  (wing:span/2*tand(wing:sweep)+c3)-(delta+c2)
+SET        wing:TEsweep        atand(dy/dx)
+
+#----- make wingOML -----
+UDPRIM    naca      thickness 0.12   camber 0.06
+SCALE     c1
+ROTATEX   90
+
+UDPRIM    naca      thickness 0.12   camber 0.04
+SCALE     c2
+ROTATEX   90
+TRANSLATE delta                      wing:ybreak       wing:ybreak*tand(wing:dihedral)
+
+UDPRIM    naca      thickness 0.04   camber 0.04
+SCALE     c3
+ROTATEX   90
+TRANSLATE wing:span/2*tand(wing:sweep)   wing:span/2   wing:span/2*tand(wing:dihedral)
+
+UDPRIM    naca      thickness 0.04   camber 0.00
+SCALE     c4
+ROTATEX   90
+TRANSLATE wing:span/2*tand(wing:sweep)+winglet:span/2*tand(winglet:sweep)\
+          (wing:span+winglet:span)/2\
+          wing:span/2*tand(wing:dihedral)+winglet:span/2*tand(winglet:dihedral)
+
+RULE
+SET       ruleBody  @nbody
+
+# remember extrema (so that we know where to put the waffle)
+SET       zminOML @zmin
+SET       zmaxOML @zmax
+
+# mark the LeadingEdge and TrailingEdge edges
+SELECT    EDGE  @nbody 3 @nbody 6
+SELECT    ADD   @nbody 4 @nbody 7
+   ATTRIBUTE  LeadingEdge $1
+
+SELECT    EDGE  @nbody 3 @nbody 9
+SELECT    ADD   @nbody 6 @nbody 9
+SELECT    ADD   @nbody 4 @nbody 10
+SELECT    ADD   @nbody 7 @nbody 10
+   ATTRIBUTE  TrailingEdge $1
+
+SELECT    FACE  @nbody 2
+   ATTRIBUTE  TipFace $1
+
+STORE wingOML
+
+#----- Control Deflectors -----
+
+RESTORE wingOML
+ROTATEX -wing:dihedral #lay wing flat in XY-plane for flapz
+
+#---- Inboard Flap ----
+DIMENSION flapx 1 4
+DIMENSION flapy 1 4
+
+SET       dy wing:ybreak
+SET       dx ((delta+c2)-c1)
+
+SET       yo fuselage:width+(ibflap:spanend)*(wing:ybreak-fuselage:width)
+SET       xo c1+(yo*dx/dy)
+
+SET       yi fuselage:width+(ibflap:spanbeg)*(wing:ybreak-fuselage:width)
+SET       xi c1+(yi*dx/dy)
+
+SET       flapx "xo+flapgap;           \
+                 xo-(ibflap:chord)*c3; \
+                 xi-(ibflap:chord)*c3; \
+                 xi+flapgap            "
+
+SET       flapy "yo; \
+                 yo; \
+                 yi; \
+                 yi  "
+
+UDPARG    $$/flapz   xflap   flapx
+UDPARG    $$/flapz   yflap   flapy
+UDPARG    $$/flapz   theta   ibflap:angle
+UDPARG    $$/flapz   gap     flapgap
+UDPRIM    $$/flapz   openEnd 1
+
+#---- Outboard Flap ----
+SET       dy (wing:span/2-wing:ybreak)
+SET       dx (wing:span/2*tand(wing:sweep)+c3)-(delta+c2)
+
+SET       yi wing:ybreak+obflap:spanbeg*(wing:span/2-wing:ybreak)
+SET       xi (delta+c2)+((yi-wing:ybreak)*dx/dy)
+
+SET       yo wing:ybreak+obflap:spanend*(wing:span/2-wing:ybreak)
+SET       xo (delta+c2)+((yo-wing:ybreak)*dx/dy)
+
+SET       flapx "xo+flapgap;                      \
+                 xo-obflap:chord*c3*cosd(90-wing:TEsweep); \
+                 xi-obflap:chord*c3*cosd(90-wing:TEsweep); \
+                 xi+flapgap                       "
+
+SET       flapy "yo;                              \
+                 yo+obflap:chord*c3*sind(90-wing:TEsweep); \
+                 yi+obflap:chord*c3*sind(90-wing:TEsweep); \
+                 yi;                              "
+
+UDPARG    $$/flapz   xflap   flapx
+UDPARG    $$/flapz   yflap   flapy
+UDPARG    $$/flapz   theta   obflap:angle
+UDPARG    $$/flapz   gap     flapgap
+UDPRIM    $$/flapz   openEnd 1
+
+#---- Aileron ----
+SET       yi wing:ybreak+aileron:spanbeg*(wing:span/2-wing:ybreak)
+SET       xi (delta+c2)+((yi-wing:ybreak)*dx/dy)
+
+SET       yo wing:ybreak+aileron:spanend*(wing:span/2-wing:ybreak)
+SET       xo (delta+c2)+((yo-wing:ybreak)*dx/dy)
+
+SET       flapx "xo+flapgap;                      \
+                 xo-aileron:chord*c3*cosd(90-wing:TEsweep); \
+                 xi-aileron:chord*c3*cosd(90-wing:TEsweep); \
+                 xi+flapgap                       "
+
+SET       flapy "yo;                              \
+                 yo+aileron:chord*c3*sind(90-wing:TEsweep); \
+                 yi+aileron:chord*c3*sind(90-wing:TEsweep); \
+                 yi;                              "
+
+UDPARG    $$/flapz   xflap   flapx
+UDPARG    $$/flapz   yflap   flapy
+UDPARG    $$/flapz   theta   aileron:angle
+UDPARG    $$/flapz   gap     flapgap
+UDPRIM    $$/flapz   openEnd 1
+
+ROTATEX   wing:dihedral    #Return wing to its original dihedral angle
+
+# color the control surfaces
+SELECT    FACE   ruleBody  0  2
+   ATTRIBUTE   _color  $red
+   ATTRIBUTE  _bcolor  $red
+SELECT    FACE   ruleBody  0  3
+   ATTRIBUTE   _color  $red
+   ATTRIBUTE  _bcolor  $red
+
+STORE     wingOMLwithControls
+
+#----- Waffle -----
+SET       fracf1 wing:LEspar
+SET       fracf2 (1.0-obflap:chord)
+
+SET       xle    wing:span/2*tand(wing:sweep)
+SET       yle    wing:span/2
+
+SET       xte    wing:span/2*tand(wing:sweep)+c3
+SET       yte    wing:span/2
+
+SET       xbr    wing:ybreak*tand(wing:sweep)+c2
+SET       tbr    wing:ybreak
+
+UDPRIM waffle filename << depth (zmaxOML-zminOML)+2
+
+        # set up line BC (parallel to leading edge)
+        CPOINT B1  AT  0    0
+        CPOINT C1  AT  xle  yle
+        CLINE  C1B1    C1   B1
+
+        CPOINT B2 OFF C1B1  fracf1*c3*tand(wing:sweep)  B1
+        CPOINT C2 OFF C1B1  fracf1*c3*tand(wing:sweep)  C1
+        CLINE  C2B2    C2  B2
+
+        POINT  B  ON  C2B2  yloc  fuselage:width
+        POINT  C  ON  C2B2  yloc  wing:span/2.0
+        LINE   BC B   C  tagComp=wing tagType=spar tagIndex=1
+
+        # set up line EF (parallel to outboard trailing edge)
+        CPOINT E1 AT xbr tbr
+        CPOINT F1 AT xte yte
+        CLINE  E1F1 E1 F1
+
+        CPOINT E2 OFF E1F1 (1.0-fracf2)*c3 F1
+        CPOINT F2 OFF E1F1 (1.0-fracf2)*c3 E1
+        CLINE  E2F2 E2 F2
+
+        POINT  E  ON E2F2 yloc fuselage:width
+        POINT  F  ON E2F2 yloc wing:span/2.0
+        LINE   EF E F tagComp=wing tagType=spar tagIndex=2
+
+        # set up the line IH (parallel to inboard trailing edge)
+        POINT  H  ON EF yloc wing:ybreak
+        POINT I  AT x@H fuselage:width
+        LINE   IH I H tagComp=wing tagType=spar tagIndex=3
+
+        # create the header (at the side of the fuselage)
+        LINE  BI B I tagComp=wing tagType=header
+
+        # create the rib at the tip
+        LINE CF C F tagComp=wing tagType=rib tagIndex=!val2str(wing:nrib+1,0)
+
+        # create the spar extensions (inside the fuselage)
+        POINT A  AT x@B -.001
+        LINE  AB A B  tagComp=wing tagType=sparExt tagIndex=1
+
+        POINT D  AT x@E -.001
+        LINE  DE D E  tagComp=wing tagType=sparExt tagIndex=2
+
+        POINT G  AT x@I -.001
+        LINE  GI G I  tagComp=wing tagType=sparExt tagIndex=3
+
+        # add the ribs
+        PATBEG irib wing:nrib
+           POINT R_LE ON BC frac irib/(wing:nrib+1)
+           POINT R_TE ON EF perp R_LE
+
+           # if intersects with trailing edge, make line
+           IFTHEN y@R_TE GT y@E
+              LINE . R_LE R_TE tagComp=wing tagType=rib tagIndex=!val2str(irib,0)
+
+              # if intersects inboard of H, add little axial rib
+              IFTHEN y@R_TE LT y@H
+                 POINT R_TEE AT x@G y@R_TE
+                 LINE . R_TE R_TEE tagComp=wing tagType=rib tagIndex=!val2str(irib,0)+$_rear
+              ENDIF
+           ENDIF
+
+           # otherwise it intersects the header
+           IFTHEN y@R_TE LE y@E
+              CLINE temp R_LE R_TE
+              POINT R_TE ON temp XSECT BI
+              LINE . R_LE R_TE tagComp=wing tagType=rib tagIndex=!val2str(irib,0)
+           ENDIF
+        PATEND
+>>
+
+# move waffle down so that intersects the wingOML
+TRANSLATE 0  0  zminOML-1
+STORE     wingWaffle
+
+# extract the skin by scribing the wingOML with the wingWaffle
+#    and the extracting only the exposed portion that is not adjacent
+#    to the LeadingEdge or TrailingEdge
+RESTORE   wingOML
+RESTORE   wingWaffle
+SUBTRACT
+
+UDPRIM    editAttr  filename <<  verbose 1
+   NODE   ADJ2EDGE  LeadingEdge=1
+   SET              LeadingEdge=1
+   FACE   ADJ2NODE  LeadingEdge=1
+   SET              LeadingEdge=1
+
+   NODE   ADJ2EDGE  TrailingEdge=1
+   SET              TrailingEdge=1
+   FACE   ADJ2NODE  TrailingEdge=1
+   SET              TrailingEdge=1
+>>
+SELECT    FACE
+SELECT    SUB   $LeadingEdge  $1
+SELECT    SUB   $TrailingEdge $1
+SELECT    SUB   $TipFace      $1
+EXTRACT   @sellist
+STORE     wingSkin
+
+# get the ribs and spars by intersection the wingWaffle with the wingOML
+RESTORE   wingOML
+RESTORE   wingWaffle
+INTERSECT
+STORE     wingInternals
+
+# combine to make the wingBEM
+RESTORE   wingSkin
+RESTORE   wingInternals
+JOIN
+   ATTRIBUTE _makeQuads 1
+
+# color the wingBEM
+UDPRIM editAttr filename << verbose 1
+   FACE HAS tagType=spar
+   SET       _color=green
+   SET      _bcolor=green
+   
+   FACE HAS tagType=rib
+   SET       _color=magenta
+   SET      _bcolor=magenta
+   
+   FACE HAS tagType=sparExt
+   SET        _color=cyan
+   SET       _bcolor=cyan
+   
+   FACE HAS tagType=header
+   SET        _color=blue
+   SET       _bcolor=blue
+>>
+STORE     wingBEM
+
+# show the final configuration
+RESTORE wingOMLwithControls
+    ATTRIBUTE _name $wingOML
+RESTORE wingBEM
+    ATTRIBUTE _name $wingBEM
+
+END

@@ -3,7 +3,7 @@
  *
  *             masstran AIM
  *
- *      Copyright 2014-2021, Massachusetts Institute of Technology
+ *      Copyright 2014-2022, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -242,7 +242,7 @@ static int checkAndCreateMesh(void *aimInfo, aimStorage *masstranInstance)
   capsValue *QuadMesh = NULL;
 
   for (i = 0; i < masstranInstance->numMesh; i++) {
-      remesh = remesh && (masstranInstance->feaMesh[i].bodyTessMap.egadsTess->oclass == EMPTY);
+      remesh = remesh && (masstranInstance->feaMesh[i].egadsTess->oclass == EMPTY);
   }
   if (remesh == (int) false) return CAPS_SUCCESS;
 
@@ -346,7 +346,7 @@ int aimInitialize(int inst, const char *unitSys, void *aimInfo,
                   int *nFields, char ***fnames, int **franks, int **fInOut)
 {
   int status = CAPS_SUCCESS;
-  aimStorage *masstranInstance;
+  aimStorage *masstranInstance=NULL;
   const char *keyWord;
   char *keyValue = NULL, *tmpUnits = NULL;
   double real = 1.0;
@@ -371,8 +371,7 @@ int aimInitialize(int inst, const char *unitSys, void *aimInfo,
   *fInOut  = NULL;
 
   /* create our "local" storage for anything that needs to be persistent */
-  masstranInstance = (aimStorage *) EG_alloc((inst+1)*sizeof(aimStorage));
-  if (masstranInstance == NULL) return EGADS_MALLOC;
+  AIM_ALLOC(masstranInstance, 1, aimStorage, aimInfo, status);
 
   initiate_aimStorage(masstranInstance);
   *instStore = masstranInstance;
@@ -598,87 +597,22 @@ cleanup:
   return status;
 }
 
-/* aimPreAnalysis: Parse Inputs, Generate Input File(s) & Possibly Tessellate */
-int
-aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
+
+// ********************** AIM Function Break *****************************
+int aimUpdateState(void *instStore, void *aimInfo,
+                   capsValue *aimInputs)
 {
-  int i, j;   // Indexing
-  int status; // Status return
-  int found;
+  int status; // Function return status
 
-  double area   = 0;
-  double cgxmom = 0;
-  double cgymom = 0;
-  double cgzmom = 0;
-  double cxmom  = 0;
-  double cymom  = 0;
-  double czmom  = 0;
-  double mass   = 0;
-  double Ixx    = 0;
-  double Ixy    = 0;
-  double Izz    = 0;
-  double Ixz    = 0;
-  double Iyy    = 0;
-  double Iyz    = 0;
-  double Cx, Cy, Cz, CGx, CGy, CGz;
-  double xelem[4], yelem[4], zelem[4], elemArea, thick, density, elemWeight;
-  double xcent, ycent, zcent;
-  double dx1[3], dx2[3], n[3];
-  double Lscale = 1;
-
-  int elem[4];
-  int *n2a = NULL;
-
-  int numBody = 0;
-  ego *bodies=NULL;
-
-  const char *bodyLunits=NULL;
-  const char *intents=NULL;
-
-  feaMeshDataStruct *feaData = NULL;
-  int propertyID, materialID;
-  //meshElementSubTypeEnum elementSubType;
-  feaPropertyStruct *feaProperty;
-  feaMaterialStruct *feaMaterial;
-  feaUnitsStruct *units=NULL;
-
-  meshStruct     *nasMesh;
-  massProperties *massProp;
-  aimStorage     *masstranInstance;
+  aimStorage *masstranInstance;
 
   masstranInstance = (aimStorage *) instStore;
-
-  if (aimInputs == NULL) return CAPS_NULLVALUE;
+  AIM_NOTNULL(aimInputs, aimInfo, status);
 
   // Get FEA mesh if we don't already have one
-  if (aim_newGeometry(aimInfo) == CAPS_SUCCESS) {
+  if (masstranInstance->feaProblem.feaMesh.numNode == 0 ||
+      aim_newGeometry(aimInfo) == CAPS_SUCCESS) {
     status = checkAndCreateMesh(aimInfo, masstranInstance);
-    if (status != CAPS_SUCCESS) goto cleanup;
-  }
-
-  if (masstranInstance->units.length != NULL) {
-    units = &masstranInstance->units;
-
-    status = aim_getBodies(aimInfo, &intents, &numBody, &bodies);
-    AIM_STATUS(aimInfo, status);
-
-    if (numBody == 0 || bodies == NULL) {
-      AIM_ERROR(aimInfo, "No Bodies!");
-      status = CAPS_SOURCEERR;
-      goto cleanup;
-    }
-
-    // Get length units
-    status = check_CAPSLength(numBody, bodies, &bodyLunits);
-    if (status != CAPS_SUCCESS) {
-      AIM_ERROR(aimInfo, "capsLength is not set in *.csm file!");
-      status = CAPS_BADVALUE;
-      goto cleanup;
-    }
-
-    // conversion of the csm model units into units of Lunits
-    Lscale = 1.0;
-    status = aim_convert(aimInfo, 1, bodyLunits, &Lscale, units->length, &Lscale);
     AIM_STATUS(aimInfo, status);
   }
 
@@ -717,8 +651,92 @@ aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
 
   } else printf("Property tuple is NULL - No properties set\n");
 
+
+  status = CAPS_SUCCESS;
+cleanup:
+
+  return status;
+}
+
+
+// ********************** AIM Function Break *****************************
+int
+aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
+{
+  int i, j;   // Indexing
+  int status; // Status return
+  int found;
+
+  double area   = 0;
+  double cgxmom = 0;
+  double cgymom = 0;
+  double cgzmom = 0;
+  double cxmom  = 0;
+  double cymom  = 0;
+  double czmom  = 0;
+  double mass   = 0;
+  double Ixx    = 0;
+  double Ixy    = 0;
+  double Izz    = 0;
+  double Ixz    = 0;
+  double Iyy    = 0;
+  double Iyz    = 0;
+  double Cx, Cy, Cz, CGx, CGy, CGz;
+  double xelem[4], yelem[4], zelem[4], elemArea, thick, density, elemWeight;
+  double xcent, ycent, zcent;
+  double dx1[3], dx2[3], n[3];
+  double Lscale = 1;
+
+  int elem[4];
+  int *n2a = NULL;
+
+  int numBody = 0;
+  ego *bodies=NULL;
+
+  const char *bodyLunits=NULL;
+  const char *intents=NULL;
+  FILE *fp=NULL;
+
+  feaMeshDataStruct *feaData = NULL;
+  int propertyID, materialID;
+  //meshElementSubTypeEnum elementSubType;
+  feaPropertyStruct *feaProperty;
+  feaMaterialStruct *feaMaterial;
+  const feaUnitsStruct *units=NULL;
+
+  const meshStruct *nasMesh;
+  const aimStorage *masstranInstance;
+
+  masstranInstance = (const aimStorage *) instStore;
+  AIM_NOTNULL(aimInputs, aimInfo, status);
+
+  if (masstranInstance->units.length != NULL) {
+    units = &masstranInstance->units;
+
+    status = aim_getBodies(aimInfo, &intents, &numBody, &bodies);
+    AIM_STATUS(aimInfo, status);
+
+    if (numBody == 0 || bodies == NULL) {
+      AIM_ERROR(aimInfo, "No Bodies!");
+      status = CAPS_SOURCEERR;
+      goto cleanup;
+    }
+
+    // Get length units
+    status = check_CAPSLength(numBody, bodies, &bodyLunits);
+    if (status != CAPS_SUCCESS) {
+      AIM_ERROR(aimInfo, "capsLength is not set in *.csm file!");
+      status = CAPS_BADVALUE;
+      goto cleanup;
+    }
+
+    // conversion of the csm model units into units of Lunits
+    Lscale = 1.0;
+    status = aim_convert(aimInfo, 1, bodyLunits, &Lscale, units->length, &Lscale);
+    AIM_STATUS(aimInfo, status);
+  }
+
   nasMesh = &masstranInstance->feaProblem.feaMesh;
-  massProp = &masstranInstance->massProp;
 
   // maps from nodeID to mesh->node index
   mesh_nodeID2Array(nasMesh, &n2a);
@@ -929,35 +947,46 @@ aimPreAnalysis(void *instStore, void *aimInfo, capsValue *aimInputs)
   Iyz -= mass *  CGy * CGz;
 
   // store the mass properties
-  massProp->area = area;
-  massProp->mass = mass;
+  fp = aim_fopen(aimInfo, "masstran.out", "w");
+  if (fp == NULL) {
+    AIM_ERROR(aimInfo, "Failed to open masstran.out");
+    status = CAPS_IOERR;
+    goto cleanup;
+  }
 
-  massProp->Cx = Cx;
-  massProp->Cy = Cy;
-  massProp->Cz = Cz;
+  fprintf(fp, "%16.12e\n", area);
+  fprintf(fp, "%16.12e\n", mass);
 
-  massProp->CGx = CGx;
-  massProp->CGy = CGy;
-  massProp->CGz = CGz;
+  fprintf(fp, "%16.12e\n", Cx);
+  fprintf(fp, "%16.12e\n", Cy);
+  fprintf(fp, "%16.12e\n", Cz);
 
-  massProp->Ixx = Ixx;
-  massProp->Iyy = Iyy;
-  massProp->Izz = Izz;
-  massProp->Ixy = Ixy;
-  massProp->Ixz = Ixz;
-  massProp->Iyz = Iyz;
+  fprintf(fp, "%16.12e\n", CGx);
+  fprintf(fp, "%16.12e\n", CGy);
+  fprintf(fp, "%16.12e\n", CGz);
+
+  fprintf(fp, "%16.12e\n", Ixx);
+  fprintf(fp, "%16.12e\n", Iyy);
+  fprintf(fp, "%16.12e\n", Izz);
+  fprintf(fp, "%16.12e\n", Ixy);
+  fprintf(fp, "%16.12e\n", Ixz);
+  fprintf(fp, "%16.12e\n", Iyz);
+
+  fclose(fp); fp = NULL;
 
   status = CAPS_SUCCESS;
 
 cleanup:
   AIM_FREE(n2a);
 
+  if (fp != NULL) fclose(fp);
+
   return status;
 }
 
 
-/* the execution code from above should be moved here */
-int aimExecute(/*@unused@*/ void *instStore, /*@unused@*/ void *aimStruc,
+// ********************** AIM Function Break *****************************
+int aimExecute(/*@unused@*/ const void *instStore, /*@unused@*/ void *aimInfo,
                int *state)
 {
   *state = 0;
@@ -965,17 +994,52 @@ int aimExecute(/*@unused@*/ void *instStore, /*@unused@*/ void *aimStruc,
 }
 
 
-/* no longer optional and needed for restart */
-int aimPostAnalysis(/*@unused@*/ void *instStore, /*@unused@*/ void *aimStruc,
+// ********************** AIM Function Break *****************************
+int aimPostAnalysis( void *instStore, /*@unused@*/ void *aimInfo,
                     /*@unused@*/ int restart, /*@unused@*/ capsValue *inputs)
 {
+  FILE *fp = NULL;
+  massProperties *massProp;
+  aimStorage *masstranInstance;
+
+  masstranInstance = (aimStorage *) instStore;
+
+  massProp = &masstranInstance->massProp;
+
+  fp = aim_fopen(aimInfo, "masstran.out", "r");
+  if (fp == NULL) {
+    AIM_ERROR(aimInfo, "Failed to open masstran.out");
+    return CAPS_IOERR;
+  }
+
+  // read the mass properties
+  fscanf(fp, "%lf", &massProp->area);
+  fscanf(fp, "%lf", &massProp->mass);
+
+  fscanf(fp, "%lf", &massProp->Cx);
+  fscanf(fp, "%lf", &massProp->Cy);
+  fscanf(fp, "%lf", &massProp->Cz);
+
+  fscanf(fp, "%lf", &massProp->CGx);
+  fscanf(fp, "%lf", &massProp->CGy);
+  fscanf(fp, "%lf", &massProp->CGz);
+
+  fscanf(fp, "%lf", &massProp->Ixx);
+  fscanf(fp, "%lf", &massProp->Iyy);
+  fscanf(fp, "%lf", &massProp->Izz);
+  fscanf(fp, "%lf", &massProp->Ixy);
+  fscanf(fp, "%lf", &massProp->Ixz);
+  fscanf(fp, "%lf", &massProp->Iyz);
+
+  fclose(fp); fp = NULL;
+
   return CAPS_SUCCESS;
 }
 
 
-/* aimOutputs: Output Information for the AIM */
-int aimOutputs(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo,
-               /*@unused@*/ int index, char **aoname, capsValue *form)
+// ********************** AIM Function Break *****************************
+int aimOutputs( void *instStore, void *aimInfo,
+                int index, char **aoname, capsValue *form)
 {
   int status = CAPS_SUCCESS;
 
