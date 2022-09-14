@@ -1,0 +1,28 @@
+# wing1 - simple rectangular wing
+# written by John Dannenhoffer
+
+# design parameters
+DESPMTR   wing:area    20.0
+DESPMTR   wing:aspect   4.0
+DESPMTR   wing:thick   0.12
+DESPMTR   wing:camber  0.04
+DESPMTR   wing:maxloc  0.04
+
+# local variables
+SET       wing:span    sqrt(wing:area*wing:aspect)
+SET       wing:chord   wing:area/wing:span
+
+OUTPMTR   wing:span
+
+# construct wing (left-to-right)
+UDPARG    naca         thickness wing:thick
+UDPARG    naca         camber    wing:camber
+UDPARG    naca         maxloc    wing:maxloc
+UDPRIM    naca         sharpte   1
+ROTATEX   90
+SCALE     wing:chord
+TRANSLATE 0   -wing:span/2   0
+
+EXTRUDE   0    wing:span     0
+
+END

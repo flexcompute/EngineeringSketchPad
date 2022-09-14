@@ -1,0 +1,18 @@
+# nmWireBody2 (REVOLVE)
+# written by John Dannenhoffer
+
+# non-manifold WireBody
+SKBEG     1  1  0
+   LINSEG 0  0  0
+   LINSEG 2  0  0
+SKEND
+SKBEG     2  0  0
+   LINSEG 1  1  0
+   LINSEG 1  2  0
+SKEND
+COMBINE
+
+# SheetBody
+REVOLVE   0 -1  0  1  0  0  90
+
+END

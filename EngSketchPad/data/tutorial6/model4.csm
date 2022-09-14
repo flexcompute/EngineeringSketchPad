@@ -1,0 +1,219 @@
+# tutorial6/model4 - deformed tapered wing with tail
+# written by John Dannenhoffer
+
+# view switch
+CFGPMTR   view:OML      1
+CFGPMTR   view:AVL      1
+
+# wing design parameters
+DESPMTR   wing:area    20.0
+DESPMTR   wing:aspect   4.0
+DESPMTR   wing:taper   1.00
+DESPMTR   wing:thick   0.01
+DESPMTR   wing:camber  0.06
+DESPMTR   wing:ztip    0.00
+
+# tail design parameters
+DESPMTR   tail:len     2.00
+DESPMTR   tail:Vh      0.45
+DESPMTR   tail:Vv      0.025
+DESPMTR   tail:aspect  5.00
+DESPMTR   tail:thick   0.02
+DESPMTR   tail:camber  0.02
+
+# ball design parameters
+DESPMTR   ball:xloc    0.00
+CFGPMTR   ball:radius  0.05
+
+# wing local variables
+OUTPMTR   wing:croot
+SET       wing:span    sqrt(wing:area*wing:aspect)
+SET       wing:croot   wing:area/wing:span*2/(wing:taper+1)
+SET       wing:ctip    wing:croot*wing:taper
+SET       wing:xtip   (wing:croot-wing:ctip)/2
+
+OUTPMTR   wing:span
+
+# construct wing (left-to-right with C0 at root)
+MARK
+   # left tip
+   SET       chord        wing:ctip
+   SET       dx           wing:xtip
+   SET       dz           wing:ztip
+   UDPARG    naca         thickness wing:thick
+   UDPARG    naca         camber    wing:camber
+   UDPRIM    naca         sharpte   1
+      ATTRIBUTE capsAIM           $avlAIM
+      ATTRIBUTE capsIntent        $wing
+      ATTRIBUTE capsGroup         $wing
+   ROTATEX   90
+   SCALE     chord
+   TRANSLATE dx          -wing:span/2   dz
+   STORE     wing  -1  1
+
+   SET       chord       (wing:ctip+wing:croot)/2
+   SET       dx           wing:xtip/2
+   SET       dz           wing:ztip/4
+   UDPARG    naca         thickness wing:thick
+   UDPARG    naca         camber    wing:camber
+   UDPRIM    naca         sharpte   1
+      ATTRIBUTE capsAIM           $avlAIM
+      ATTRIBUTE capsIntent        $wing
+      ATTRIBUTE capsGroup         $wing
+   ROTATEX   90
+   SCALE     chord
+   TRANSLATE dx          -wing:span/4   dz
+   STORE     wing -1  1
+
+   SET       chord       (wing:ctip+3*wing:croot)/4
+   SET       dx           wing:xtip/4
+   SET       dz           wing:ztip/16
+   UDPARG    naca         thickness wing:thick
+   UDPARG    naca         camber    wing:camber
+   UDPRIM    naca         sharpte   1
+      ATTRIBUTE capsAIM           $avlAIM
+      ATTRIBUTE capsIntent        $wing
+      ATTRIBUTE capsGroup         $wing
+   ROTATEX   90
+   SCALE     chord
+   TRANSLATE dx          -wing:span/8   dz
+   STORE     wing -1  1
+
+   # root
+   UDPARG    naca         thickness wing:thick
+   UDPARG    naca         camber    wing:camber
+   UDPRIM    naca         sharpte   1
+      ATTRIBUTE capsAIM           $avlAIM
+      ATTRIBUTE capsIntent        $wing
+      ATTRIBUTE capsGroup         $wing
+   ROTATEX   90
+   SCALE     wing:croot
+   STORE     wing -1  1
+
+   RESTORE   .
+   RESTORE   .
+
+   SET       chord       (wing:ctip+3*wing:croot)/4
+   SET       dx           wing:xtip/4
+   SET       dz           wing:ztip/16
+   UDPARG    naca         thickness wing:thick
+   UDPARG    naca         camber    wing:camber
+   UDPRIM    naca         sharpte   1
+      ATTRIBUTE capsAIM           $avlAIM
+      ATTRIBUTE capsIntent        $wing
+      ATTRIBUTE capsGroup         $wing
+   ROTATEX   90
+   SCALE     chord
+   TRANSLATE dx          +wing:span/8   dz
+   STORE     wing -1  1
+
+   SET       chord       (wing:ctip+wing:croot)/2
+   SET       dx           wing:xtip/2
+   SET       dz           wing:ztip/4
+   UDPARG    naca         thickness wing:thick
+   UDPARG    naca         camber    wing:camber
+   UDPRIM    naca         sharpte   1
+      ATTRIBUTE capsAIM           $avlAIM
+      ATTRIBUTE capsIntent        $wing
+      ATTRIBUTE capsGroup         $wing
+   ROTATEX   90
+   SCALE     chord
+   TRANSLATE dx          +wing:span/4   dz
+   STORE     wing -1  1
+
+   # rite tip
+   SET       chord        wing:ctip
+   SET       dx           wing:xtip
+   SET       dz           wing:ztip
+   UDPARG    naca         thickness wing:thick
+   UDPARG    naca         camber    wing:camber
+   UDPRIM    naca         sharpte   1
+      ATTRIBUTE capsAIM           $avlAIM
+      ATTRIBUTE capsIntent        $wing
+      ATTRIBUTE capsGroup         $wing
+   ROTATEX   90
+   SCALE     chord
+   TRANSLATE dx          +wing:span/2   wing:ztip
+   STORE     wing -1  1
+BLEND
+   ATTRIBUTE _name             $wing
+   ATTRIBUTE capsGroup         $wing
+STORE     wingOML
+
+# horizontal tail local variables
+SET       htail:area      tail:Vh*(wing:croot+wing:ctip)/2*wing:area/tail:len
+SET       htail:span      sqrt(htail:area*tail:aspect)
+SET       htail:chord     htail:area/htail:span
+SET       tail:xloc       tail:len+wing:croot/4-htail:chord/4
+
+# construct horizontal tail
+MARK
+   UDPARG    naca         thickness tail:thick
+   UDPARG    naca         camber    tail:camber
+   UDPRIM    naca         sharpte   1
+      ATTRIBUTE capsAIM           $avlAIM
+      ATTRIBUTE capsIntent        $htail;tail
+      ATTRIBUTE capsGroup         $htail
+   ROTATEX   90
+   SCALE     htail:chord
+   TRANSLATE tail:xloc  -htail:span/2  0
+   STORE     htail -1  1
+
+   RESTORE   .
+   TRANSLATE 0          htail:span    0
+   STORE     htail -1  1
+RULE
+   ATTRIBUTE _name             $htail
+   ATTRIBUTE capsGroup         $htail
+STORE     htailOML
+
+# vertical tail local variables (same chord as htail)
+SET       vtail:area      tail:Vv*wing:span*wing:area/tail:len
+SET       vtail:chord     htail:chord
+SET       vtail:span      vtail:area/vtail:chord
+
+# construct vertical tail
+MARK
+   UDPARG    naca         thickness tail:thick
+   UDPRIM    naca         sharpte   1
+      ATTRIBUTE capsAIM           $avlAIM
+      ATTRIBUTE capsIntent        $vtail;tail
+      ATTRIBUTE capsGroup         $vtail
+   SCALE     vtail:chord
+   TRANSLATE tail:xloc  0  0
+   STORE     vtail -1  1
+
+   RESTORE   .
+   TRANSLATE 0         0  vtail:span
+   STORE     vtail -1  1
+RULE
+   ATTRIBUTE _name             $vtail
+   ATTRIBUTE capsGroup         $vtail
+STORE     vtailOML
+
+# place ball
+SPHERE    ball:xloc  0  0  ball:radius
+   ATTRIBUTE _color $blue
+   ATTRIBUTE _name  $ball
+STORE     ball
+
+# to run AVL, restore the various sections
+IFTHEN view:AVL NE 0
+   RESTORE  wing  -1
+   RESTORE  htail -1
+   RESTORE  vtail -1
+      ATTRIBUTE capsReferenceArea  wing:area
+      ATTRIBUTE capsReferenceSpan  wing:span
+      ATTRIBUTE capsReferenceChord wing:croot
+      ATTRIBUTE capsReferenceX     wing:croot/4
+ENDIF
+
+# to view OML and ball, restore them
+IFTHEN view:OML NE 0
+   RESTORE  wingOML
+   RESTORE  htailOML
+   RESTORE  vtailOML
+   RESTORE  ball
+ENDIF
+
+END

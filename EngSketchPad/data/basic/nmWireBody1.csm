@@ -1,0 +1,18 @@
+# nmWireBody1 (EXTRUDE)
+# written by John Dannenhoffer
+
+# non-manifold WireBody
+SKBEG     1  1  0
+   LINSEG 0  0  0
+   LINSEG 2  0  0
+SKEND
+SKBEG     2  0  0
+   LINSEG 1  1  0
+   LINSEG 1  2  0
+SKEND
+COMBINE
+
+# SheetBody
+EXTRUDE   0  0  2
+
+END

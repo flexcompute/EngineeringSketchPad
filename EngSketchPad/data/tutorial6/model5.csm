@@ -1,0 +1,44 @@
+# tutorial6/model5 - simple rectangular wing (two ways)
+# written by John Dannenhoffer
+
+ATTRIBUTE capsLength $cm
+
+# design parameters
+DESPMTR   wing:area    20.0
+DESPMTR   wing:aspect   4.0
+DESPMTR   wing:thick   0.01
+DESPMTR   wing:camber  0.06
+
+# local variables
+SET       wing:span    sqrt(wing:area*wing:aspect)
+SET       wing:chord   wing:area/wing:span
+
+OUTPMTR   wing:span
+
+# construct wing via an EXTRUDE
+UDPARG    naca         thickness wing:thick
+UDPARG    naca         camber    wing:camber
+UDPRIM    naca         sharpte   1
+ROTATEX   90
+SCALE     wing:chord
+TRANSLATE 0   -wing:span/2   0
+
+EXTRUDE   0    wing:span     0
+ATTRIBUTE capsAIM     $skeletonAIM
+ATTRIBUTE capsIntent  $Body_1
+
+SELECT    FACE        @nbody 3
+ATTRIBUTE capsBound   $upperWing
+SELECT    FACE        @nbody 4
+ATTRIBUTE capsBound   $lowerWing
+
+# use a .udc from the system directory
+UDPRIM    $$/applyTparams   factor 1.0
+
+# construct wing via a 5-section RULE in pwd
+UDPRIM    /model5a
+
+# call a UDC in same directory as .csm
+UDPRIM    $/model5b
+
+END

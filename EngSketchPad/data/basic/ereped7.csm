@@ -1,0 +1,28 @@
+# ereped7
+# written by John Dannenhoffer
+
+BOX       0   0   0   1   1   0
+ATTRIBUTE myFace  3
+
+PATBEG    i   4
+   PATBEG     j   4
+      IFTHEN  i GT 1  OR  j GT 1
+         BOX  i-1  j-1  0  1  1  0
+
+         IFTHEN   i EQ 2   AND   j EQ 2
+            SELECT     FACE
+            ATTRIBUTE  myFace  1
+         ELSEIF   i EQ 3   AND   j EQ 3
+            SELECT     FACE
+            ATTRIBUTE  myFace  2
+         ELSE
+            SELECT     FACE
+            ATTRIBUTE  myFace  3
+         ENDIF
+         
+         UNION
+      ENDIF
+   PATEND
+PATEND
+
+END

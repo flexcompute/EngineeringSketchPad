@@ -1,0 +1,190 @@
+                     ESP-TUTORIAL6 testing script
+                     ============================
+
+rm -rfv ostrich
+setenv ESP_PREFIX "../data/tutorial6/"
+
+serveESP ../data/tutorial6/model1.csm
+   File->Edit model1.csm
+   Tool->Caps ostrich   (uses model1.csm)
+         initial sizing of rectangular wing            (phase 1.1)
+      DesignParameters->ExpandAll
+      CapsValues -> nball  1
+      CapsValues -> badValue 77 88 99
+      Tool->Pyscript  ../data/tutorial6/sizeWing.py
+      CapsValues->ExpandAll
+      DesignParameters->ExpandAll
+   Caps->CommitPhase
+
+   Tool->Caps <ostrich:1.1>  (uses model1.csm)
+         mark badValue for deletion                    (phase 1.2)
+      CapsValues->ExpandAll
+      DesignParameters->ExpandAll
+      Tool->Pyscript  ../data/tutorial6/stub.py
+         myProblem.parameter.delete("badValue")
+      CapsValues->ExpandAll
+      DesignParameters->ExpandAll
+      Caps->ListPhases
+      Caps->ListAnalyses
+   Caps->CommitPhase
+[1]
+
+serveESP ../data/tutorial6/model2a
+   File->Edit ../data/tutorial6/model2a.csm
+   File->Open ../data/tutorial6/model2b.csm
+   File->Edit ../data/tutorial6/model2b.csm
+   File->Edit <new file>
+      insert  ../data/tutorial6/model2c.csm
+      save    ../data/tutorial6/model2.csm
+   Tool->Caps ostrich   (uses model2.csm)
+         find taper to maximize oswald                 (phase 1.3)
+      CapsValues->ExpandAll
+      DesignParameters->ExpandAll
+      Tool->Pyscript  ../data/tutorial6/optTaper.py
+      CapsValues->ExpandAll
+      DesignParameters->ExpandAll
+      Caps->ListPhases
+      Caps->ListAnalyses
+   Caps->CommitPhase
+
+   File->Open  ../data/tutorial6/model3
+   Tool->Caps <ostrich:1.3>  (uses model3.csm)
+         account for wing flexibility                  (phase 1.4)
+      Tool->Pyscript  ../data/tutorial6/bendWing.py
+   <implicit suspension>
+[2]
+
+phaseUtil ostrich
+serveESP
+   Tool->Caps ostrich   (uses model3.csm - cont)
+      File->Edit model3.csm
+   Caps->CommitPhase
+[3]
+
+phaseUtil ostrich
+serveESP ../data/tutorial6/model4
+   Tool->Caps ostrich   (uses model4.csm)
+         set up AVL and view MODL and AVL Bodys        (phase 1.5)
+      Tool->Pyscript  ../data/tutorial6/viewBodys.py
+      Caps->ListPhases
+      Caps->ListAnalyses
+   Caps->CommitPhase
+[4]
+
+cp ../data/tutorial6/model5a.udc_orig ./model5a.udc
+
+phaseUtil ostrich
+serveESP ../data/tutorial6/model5
+   Tool->Caps ostrich:1.2   (uses model5.csm)
+         interpolate upper                             (phase 2.1a)
+      Tool->Pyscript  ../data/tutorial6/interpolateUpper.py
+      Caps->ListPhases
+      Caps->ListAnalyses
+      Caps->ListBounds
+   Caps->QuitPhase
+
+   File->Open ../data/tutorial6/model5
+   Tool->Caps ostrich:1.2   (uses model5.csm)
+         conserve upper                                (phase 2.1b)
+      Caps->ListPhases
+      Caps->ListAnalyses
+      Caps->ListBounds
+      Tool->Pyscript  ../data/tutorial6/conserveUpper.py
+      Caps->ListPhases
+      Caps->ListAnalyses
+      Caps->ListBounds
+   Caps->CommitPhase
+[5]
+
+phaseUtil ostrich
+serveESP
+   Tool->Caps ostrich:1.3   (uses model2.csm)
+         look at 2 balls                               (phase 3.1)
+      CapsValues -> nball  2
+      Tool->Pyscript  ../data/tutorial6/sizeWing.py
+      Tool->Pyscript  ../data/tutorial6/optTaper.py
+   Caps->SuspendPhase
+[6]
+
+phaseUtil ostrich
+serveESP
+   Tool->Caps ostrich:3   (continues model2.csm)       (phase 3.1)
+      Caps->ListHistory (CLcruise)
+      Caps->ListPhases
+      Caps->ListAnalyses
+      Caps->ListBounds
+   Caps->CommitPhase
+
+   Tool->Caps <ostrich:3.1>  (uses model2.csm)
+         look at 3 balls                               (phase 3.2)
+      CapsValues -> nball  3
+      Tool->Pyscript  ../data/tutorial6/sizeWing.py
+      Tool->Pyscript  ../data/tutorial6/optTaper.py
+   <Kill>
+[7]
+
+phaseUtil ostrich
+serveESP
+   Tool->Caps ostrich:3  (continues model2.com)        (phase 3.2)
+      Caps->ListHistory (wing:area)
+      Caps->ListHistory (wing:span)
+      Caps->ListHistory (CLcruise)
+   Caps->CommitPhase
+
+   Tool->Caps ostrich*  (uses model4.csm)
+         back to Branch 1                              (phase 1.6a)
+      Caps->ListPhases
+      Caps->ListAnalyses
+      Caps->ListBounds
+   Caps->QuitPhase
+
+   File->Open ../data/tutorial6/model4
+   Tool->Caps ostrich:2*   (uses model5.csm)
+         back to Branch 2                              (phase 2.2)
+      Caps->ListPhases
+      Caps->ListAnalyses
+      Caps->ListBounds
+      Caps->UpdateIntent
+         back to Branch 2; remove analyses and bound
+      Tool->Pyscript  ../data/tutorial6/stub.py
+      Caps->ListAnalyses
+      Caps->ListBounds
+   Caps->CommitPhase
+
+   Tool->Caps ostrich:2
+         look at Branch 2                              (phase 2.3)
+      Caps->ListPhases
+      Caps->ListAnalyses
+      Caps->ListBounds
+   Caps->QuitPhase
+
+   File->Open ../data/tutorial6/model5
+   Tool->Caps ostrich  (uses model5.csm)
+         back to Branch 1                              (phase 1.6b)
+      Caps->ListPhases
+      Caps->ListAnalyses
+      Caps->ListBounds
+   Caps->CommitPhase
+
+   File->Edit  model5a.udc  (comment gen_rot)
+   Tool->Caps ostrich   (uses modified model5.udc)     (phase 1.7)
+         modified model5.udc
+      Caps->ListPhases
+      Caps->ListAnalyses
+      Caps->ListBounds
+   Caps->CommitPhase
+
+   Tool->Caps ostrich:1.1    (uses modified model5.csm)
+         new branch 4                                  (phase 4.1)
+      Caps->ListPhases
+      Caps->ListAnalyses
+      Caps->ListBounds
+   Caps->CommitPhase
+
+   Tool->Caps ostrich:1.1*   (uses model1.csm)
+         new branch 5                                  (phase 5.1)
+      Caps->ListPhases
+      Caps->ListAnalyses
+      Caps->ListBounds
+   Caps->CommitPhase
+[8]

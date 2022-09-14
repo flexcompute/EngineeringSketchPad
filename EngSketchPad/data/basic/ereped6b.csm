@@ -1,0 +1,34 @@
+# ereped6b
+# written by John Dannenhoffer
+
+CFGPMTR   nsect    60
+CFGPMTR   hole      1
+
+TORUS   0.0  0.0  0.0  0.0  0.0  1.0  10.0  0.5
+SELECT  FACE  @nbody  2
+   ATTRIBUTE myFace   1
+SELECT  FACE  @nbody  3
+   ATTRIBUTE myFace   2
+
+# optionally add hole
+IFTHEN    hole NE 0
+   CYLINDER   0.0  0.0  0.0  12.0  0.0  0.0  0.1
+   ROTATEZ    180/nsect
+   SUBTRACT
+ENDIF
+
+# take pie-like slice
+SET       theta 360/nsect
+SKBEG      0.0              0.0               -2.0
+   LINSEG 30.0              0.0               -2.0
+   LINSEG 30.0*cosd(theta)  30.0*sind(theta)  -2.0
+   LINSEG  0.0              0.0               -2.0
+SKEND
+EXTRUDE    0.0              0.0                4.0
+INTERSECT
+
+# make replicates
+UDPRIM    $$/replicate   ncopy  nsect
+MESSAGE   nunion_=_+@@nunion
+
+END

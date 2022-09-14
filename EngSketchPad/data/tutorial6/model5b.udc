@@ -1,0 +1,8 @@
+# tutorial6/model5b - does nothing
+# written by John Dannenhoffer
+
+INTERFACE . ALL
+
+SCALE     1
+
+END

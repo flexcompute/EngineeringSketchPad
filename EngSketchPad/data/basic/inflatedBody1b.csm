@@ -1,0 +1,33 @@
+# inflatedBody1b (smart unions)
+# written by John Dannenhoffer
+
+TORUS     0  0  0  0  0  1  10  1
+BOX       0 -8.1 -8  20  16.2  16
+INTERSECT
+STORE     sector
+
+# make sector with varying copies
+RESTORE  sector
+SET      angle   10
+
+PATBEG   i  5
+   RESTORE  .
+   ROTATEY  angle
+   UNION
+   STORE    sector  i  1
+   SET      angle   angle*2
+PATEND
+STORE    .
+
+# mak ethe whole wheel by combining the various sectors
+RESTORE  sector  2
+ROTATEY  320
+
+RESTORE  sector  5
+UNION
+
+# trim the caps
+BOX   -20  -8  -20  40  16  40
+INTERSECT
+
+END

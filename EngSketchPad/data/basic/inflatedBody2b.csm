@@ -1,0 +1,88 @@
+# inflatedBody2b (smart unions)
+# written by John Dannenhoffer
+
+DESPMTR   Rdish     30.0
+DESPMTR   Rring     1.00
+DESPMTR   Rspoke    0.05
+DESPMTR   dtheta    5.00
+CFGPMTR   Nring     8
+
+# make the revolved feature and extract a sector
+PATBEG    iring   Nring
+   SET    z       Rdish-Rdish*cosd(iring*dtheta)
+   SET    x             Rdish*sind(iring*dtheta)
+   TORUS  0  0  z  0  0  1  x  Rring
+      SELECT    FACE  @nbody 1
+      ATTRIBUTE _erep iring
+      SELECT    FACE  @nbody 4
+      ATTRIBUTE _erep iring+Nring
+   ROTATEZ 90
+   STORE   body  iring
+PATEND
+
+# spine 1
+MARK
+   SET       Roff    0.90*Rring
+   PATBEG    iring   Nring
+      UDPRIM    supell  rx Rspoke   ry Rspoke   n 2
+      ROTATEY   90
+      TRANSLATE 0  0  Roff
+      ROTATEY   -iring*dtheta   Rdish  0
+      SET       Roff  -Roff
+   PATEND
+RULE
+ROTATEZ    +1.5
+RESTORE    body -1
+UDPRIM     ganged  op $UNION
+
+# spine 2
+MARK
+   SET       Roff    0.90*Rring
+   PATBEG    iring   Nring
+      SET       z       -Roff
+      UDPRIM    supell  rx Rspoke   ry Rspoke   n 2
+      ROTATEY   90
+      TRANSLATE 0  0  -Roff
+      ROTATEY   -iring*dtheta   Rdish  0
+      SET       Roff  -Roff
+   PATEND
+RULE
+ROTATEZ   -1.5
+UNION
+
+# extract a wedge of the configuration
+SKBEG      0            0           -20
+   LINSEG 40*cosd(-3)  40*sind(-3)  -20
+   LINSEG 40*cosd(+3)  40*sind(+3)  -20
+   LINSEG  0            0           -20
+SKEND
+EXTRUDE   0  0  40
+INTERSECT
+
+# make extended copies of the sector
+SET      angle   6
+PATBEG   i  5
+   RESTORE  .
+   ROTATEZ  angle
+   UNION
+   STORE    sector  i  1
+   SET      angle   angle*2
+PATEND
+STORE    .
+
+# make the whole wheel by combining the various sectors
+RESTORE  sector  2
+ROTATEZ  6*(32+16+8)
+
+RESTORE  sector  3
+ROTATEZ  6*(32+16)
+UNION
+
+RESTORE  sector  4
+ROTATEZ  6*(32)
+UNION
+
+RESTORE  sector  5
+UNION
+
+END

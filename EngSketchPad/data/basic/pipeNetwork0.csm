@@ -1,0 +1,29 @@
+# pipeNetwork0
+# written by John Dannenhoffer
+
+SKBEG     0  0  0
+   LINSEG 0  1  0
+   LINSEG 1  1  0
+SKEND
+SELECT    EDGE
+ATTRIBUTE _color  $red
+
+SKBEG     3  0  0
+   LINSEG 3  1  0
+   LINSEG 2  1  0
+SKEND
+SELECT    EDGE
+ATTRIBUTE _color  $green
+
+SKBEG     1  1  0
+   LINSEG 1  2  1
+   LINSEG 2  2  1
+   LINSEG 2  1  0
+SKEND
+SELECT    EDGE
+ATTRIBUTE _color  $blue
+
+# combine the pipes into a network
+COMBINE
+
+END

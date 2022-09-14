@@ -1,0 +1,40 @@
+# duct7
+# written by John Dannenhoffer
+
+# crescent
+SKBEG     -1.0  -1.0   0.0
+   ARC    -1.0   1.0   0.0   2.0
+   ARC    -1.0  -1.0   0.0  -0.5
+SKEND
+
+# square
+SKBEG     -1.0  -1.0   2.0
+   LINSEG  1.0  -1.0   2.0
+   LINSEG  1.0   1.0   2.0
+   LINSEG -1.0   1.0   2.0
+   LINSEG -1.0  -1.0   2.0
+SKEND
+
+# diamond
+SKBEG     -1.0   0.0   4.0
+   LINSEG  0.0  -1.0   4.0
+   LINSEG  1.0   0.0   4.0
+   LINSEG  0.0   1.0   4.0
+   LINSEG -1.0   0.0   4.0
+SKEND
+
+# left-triangle
+SKBEG     -1.0   0.0   6.0
+   LINSEG  1.0  -1.0   6.0
+   LINSEG  1.0   1.0   6.0
+   LINSEG -1.0   0.0   6.0
+SKEND
+
+# right-triangle
+SKBEG     -1.0  -1.0   8.0
+   LINSEG  1.0   0.0   8.0
+   LINSEG -1.0   1.0   8.0
+   LINSEG -1.0  -1.0   8.0
+SKEND
+
+END

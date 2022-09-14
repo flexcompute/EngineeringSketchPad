@@ -1,0 +1,59 @@
+# replicate.udc
+# written by John Dannenhoffer
+
+INTERFACE ncopy     IN   0      # number of copies
+INTERFACE xcent     IN   0      # center of rotation
+INTERFACE ycent     IN   0
+INTERFACE nunion    OUT  0      # umber of unions performed
+
+# make sure we have at least 2 copies
+ASSERT    1  ifpos(ncopy-1,1,0)
+
+SET        nunion       0
+SET        mneed        0
+STORE      myReplicate  0
+
+# make sections that are a power of 2
+PATBEG     i   20
+   SET     ii  2^i
+   PATBREAK ifneg(ncopy-ii,1,0)
+
+   SET      mneed  mneed+1
+   RESTORE  myReplicate  i-1
+   RESTORE  .
+   ROTATEZ  (2^(i-1))*(360/ncopy)
+   UNION
+   SET      nunion       nunion+1
+   STORE    myReplicate  i
+   SET      mneed        i+1
+PATEND
+
+# determine how many of each section will be needed
+SET       nleft  ncopy
+DIMENSION need   mneed  1
+SET       need   0
+
+PATBEG    i  mneed
+   SET    j  mneed-i
+   IFTHEN 2^j LE nleft
+      SET need[j+1]  1
+      SET nleft    nleft-2^j
+   ENDIF
+PATEND
+
+# now assemble the sections into the whole configuration
+SET       theta  0
+PATBEG    i  mneed
+   IFTHEN need[i] EQ 1
+      RESTORE  myReplicate  i-1
+      ROTATEZ  theta   xcent  ycent
+      IFTHEN   theta GT 0
+         UNION
+         SET   nunion   nunion+1
+      ENDIF
+      SET      theta theta+(2^(i-1))*(360/ncopy)
+   ENDIF
+PATEND
+
+END
+

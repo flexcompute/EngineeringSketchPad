@@ -1,0 +1,205 @@
+# wingBEM
+# written by John Dannenhoffer
+
+# Design Parameters for OML
+DESPMTR   thick     0.12      frac of local chord
+DESPMTR   camber    0.04      frac of loacl chord
+
+DESPMTR   area      10.0
+DESPMTR   aspect    6.00
+DESPMTR   taper     0.60
+DESPMTR   sweep     20.0      deg (of c/4)
+
+DESPMTR   washout   5.00      deg (down at tip)
+DESPMTR   dihedral  4.00      deg
+
+# Design Parameters for BEM
+DESPMTR   nrib      11        number of ribs
+DESPMTR   spar1     0.20      frac of local chord
+DESPMTR   spar2     0.75      frac of local chord
+
+# OML
+SET       span      sqrt(aspect*area)
+SET       croot     2*area/span/(1+taper)
+SET       ctip      croot*taper
+SET       dxtip     (croot-ctip)/4+span/2*tand(sweep)
+SET       dztip     span/2*tand(dihedral)
+
+MARK
+   # rite tip
+   UDPRIM    naca      Thickness thick     Camber    camber
+   SCALE     ctip
+   ROTATEX   90
+   ROTATEZ   washout   ctip/4    0
+   TRANSLATE dxtip    -span/2    dztip
+
+   # root
+   UDPRIM    naca      Thickness thick     Camber    camber
+   SCALE     croot
+   ROTATEX   90
+
+   # left tip
+   UDPRIM    naca      Thickness thick     Camber    camber
+   SCALE     ctip
+   ROTATEX   90
+   ROTATEZ   washout   ctip/4    0
+   TRANSLATE dxtip    +span/2    dztip     +span/2
+RULE
+   ATTRIBUTE OML   1
+
+# attribute each of the Faces of the OML
+SELECT face @nbody 1
+   ATTRIBUTE type  $tip
+   ATTRIBUTE side  $left
+SELECT face @nbody 2
+   ATTRIBUTE type  $tip
+   ATTRIBUTE side  $rite
+SELECT face @nbody 3
+   ATTRIBUTE type  $skin
+   ATTRIBUTE side  $left
+   ATTRIBUTE index $upper
+SELECT face @nbody 4
+   ATTRIBUTE type  $skin
+   ATTRIBUTE side  $rite
+   ATTRIBUTE index $upper
+SELECT face @nbody 5
+   ATTRIBUTE type  $skin
+   ATTRIBUTE side  $left
+   ATTRIBUTE index $lower
+SELECT face @nbody 6
+   ATTRIBUTE type  $skin
+   ATTRIBUTE side  $rite
+   ATTRIBUTE index $lower
+SELECT face @nbody 7
+   ATTRIBUTE type  $skin
+   ATTRIBUTE side  $left
+   ATTRIBUTE index $TE
+SELECT face @nbody 8
+   ATTRIBUTE type  $skin
+   ATTRIBUTE side  $rite
+   ATTRIBUTE index $TE
+STORE     OML
+
+# wing waffle
+SET       eps      0.01*span
+UDPRIM    waffle   filename <<   Depth +6*thick*croot
+
+   # forward spar
+   POINT  A  at  spar1*ctip+dxtip -span/2-eps
+   POINT  B  at  spar1*croot       0
+   POINT  C  at  spar1*ctip+dxtip  span/2+eps
+   LINE   .       A  B  type=spar  side=left  index=fwd
+   LINE   .       B  C  type=spar  side=rite  index=fwd
+
+   # aft spar
+   POINT  A  at  spar2*ctip+dxtip -span/2-eps
+   POINT  B  at  spar2*croot       0
+   POINT  C  at  spar2*ctip+dxtip  span/2+eps
+   LINE   .       A  B  type=spar  side=left  index=aft
+   LINE   .       B  C  type=spar  side=rite  index=aft
+
+   # ribs (left-to-rite)
+   PATBEG irib  nrib
+      POINT  D  at  -1       (irib/(nrib+1)-1/2)*span
+      POINT  E  at  croot+5  (irib/(nrib+1)-1/2)*span
+      LINE   .      D  E  type=rib  index=!val2str(irib,0)
+   PATEND
+>>
+   ATTRIBUTE wing_structure 1
+TRANSLATE 0      0  -3*thick*croot
+STORE     waffle
+
+# keep part of waffle inside OML
+RESTORE   waffle
+RESTORE   OML
+INTERSECT
+
+# scribe the OML with the waffle and extract the shell
+RESTORE   OML
+RESTORE   waffle
+SUBTRACT
+EXTRACT   0
+
+# sew the two SHEET Bodies together
+UNION
+STORE     BEM
+
+# find the bounding points for the wingbox portion of each rib
+PATBEG    irib  nrib
+
+   # attribute the Nodes associated with the rib/spar intersections
+   RESTORE   BEM
+   UDPRIM    editAttr   filename <<
+      NODE   ADJ2FACE   type=rib  index=!val2str(irib,0)
+      AND    ADJ2FACE   type=spar index=fwd
+      AND    ADJ2FACE   type=skin index=upper
+      SET               pnt=A
+
+      NODE   ADJ2FACE   type=rib  index=!val2str(irib,0)
+      AND    ADJ2FACE   type=spar index=fwd
+      AND    ADJ2FACE   type=skin index=lower
+      SET               pnt=B
+
+      NODE   ADJ2FACE   type=rib  index=!val2str(irib,0)
+      AND    ADJ2FACE   type=spar index=aft
+      AND    ADJ2FACE   type=skin index=upper
+      SET               pnt=C
+
+      NODE   ADJ2FACE   type=rib  index=!val2str(irib,0)
+      AND    ADJ2FACE   type=spar index=aft
+      AND    ADJ2FACE   type=skin index=lower
+      SET               pnt=D
+   >>
+
+   # get the coordinates at the corners of each rib (between spars)
+   SELECT    NODE   $pnt  $A
+   SET       xA     @xcg
+   SET       yA     @ycg
+   SET       zA     @zcg
+
+   SELECT    NODE   $pnt  $B
+   SET       xB     @xcg
+   SET       yB     @ycg
+   SET       zB     @zcg
+
+   SELECT    NODE   $pnt  $C
+   SET       xC     @xcg
+   SET       yC     @ycg
+   SET       zC     @zcg
+
+   SELECT    NODE   $pnt  $D
+   SET       xD     @xcg
+   SET       yD     @ycg
+   SET       zD     @zcg
+
+   STORE     .
+
+   # create a point at the intersection of AD and BC
+   SET       M11  (xD-xA)*(xD-xA)+(yD-yA)*(yD-yA)+(zD-zA)*(zD-zA)
+   SET       M12  (xD-xA)*(xB-xC)+(yD-yA)*(yB-yC)+(zD-zA)*(zB-zC)
+   SET       R1   (xD-xA)*(xB-xA)+(yD-yA)*(yB-yA)+(zD-zA)*(zB-zA)
+   SET       M21  M12
+   SET       M22  (xB-xC)*(xB-xC)+(yB-yC)*(yB-yC)+(zB-zC)*(zB-zC)
+   SET       R2   (xB-xA)*(xB-xC)+(yB-yA)*(yB-yC)+(zB-zA)*(zB-zC)
+
+   SET       S    (R1*M22-R2*M12)/(M11*M22-M12*M21)
+   SET       T    (M11*R2-M12*R1)/(M11*M22-M12*M21)
+
+   POINT     (xA+xB+S*(xD-xA)+T*(xC-xB))/2 \
+             (yA+yB+S*(yD-yA)+T*(yC-yB))/2 \
+             (zA+zB+S*(zD-zA)+T*(zC-zB))/2
+      SELECT     NODE
+      ATTRIBUTE  type  $center
+      ATTRIBUTE  index val2str(irib,0)
+
+   # clean the pnt attributes
+   UDPRIM    editAttr   filename <<
+      NODE   HAS        pnt=*
+      SET               pnt=
+   >>
+PATEND
+
+# show the BEM in addition to the points on the ribs
+RESTORE   BEM
+
+END
