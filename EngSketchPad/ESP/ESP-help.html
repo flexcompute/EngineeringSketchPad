@@ -10011,7 +10011,8 @@ UDPRIM kulfan
             always generates airfoil with 3 edges (upper, lower, TE)
             leading edge is at (0,0,0)
             airfoil generated in x-y plane
-
+      </pre>
+      <pre id="naca">
 UDPRIM naca
        input arguments (specified as name/value pairs):
            series     NACA 4-digit designator             [default 0012]
@@ -10035,7 +10036,8 @@ UDPRIM naca
            trailing edge is at (1,0,0)
            airfoil generated in x-y plane
            if sharpte=1, the x^4 coefficient in thickness eqn is changed
-
+      </pre>
+      <pre>
 UDPRIM naca456
        input arguments (specified as name/value pairs):
            thkcode    thickness code: $4, $4M, $63, $63A, $64, $64A, $65, $65A,
@@ -10310,8 +10312,9 @@ UDPRIM stiffener
        output arguments:
        usage:
            create a stiffener for the SheetBody on the stack
-
-UDPRIM supell
+      </pre>
+      <pre id="supell">
+UDPRIM supell 
        input arguments (specified as name/value pairs):
            rx        width  in X-direction                     [default 0]
            rx_w      width  on left   (west)  side             [default 0]
@@ -10357,7 +10360,8 @@ UDPRIM supell
            negative slpfac prescribes correct slopes at junctions
            super-ellipse centered at (0,0,0)
            super-ellipse generated in x-y plane
-
+      </pre>
+      <pre>
 UDPRIM tblade
        input arguments (specified as name/value pairs):
            filename       Tblade input file
