@@ -53,6 +53,7 @@ udpExecute(ego  emodel,                 /* (in)  Model containing Body */
     char    *message = NULL;
     double  data[4], uv[2], xyz[3], d, dist, mdist, *xyza;
     ego     eref, *ebodys, *edges = NULL;
+    udp_T   *udps = *Udps;
 
     ROUTINE(udpExecute);
 
