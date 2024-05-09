@@ -3,14 +3,6 @@ ifndef ESP_ROOT
 $(error ESP_ROOT must be set -- Please fix the environment...)
 endif
 #
-ifndef AFLR
-$(error AFLR must be set -- Please fix the environment...)
-endif
-#
-ifndef AFLR_ARCH
-$(error AFLR_ARCH must be set -- Please fix the environment...)
-endif
-#
 IDIR  = $(ESP_ROOT)/include
 include $(IDIR)/$(ESP_ARCH)
 LDIR  = $(ESP_ROOT)/lib
@@ -20,10 +12,24 @@ else
 ODIR  = .
 endif
 
-AFLR3_LIB  = -laflr3 -lsurf_auto_cpp -lsurf_auto -laflr4 -lrec3
-AFLR3_LIB += -lug3 -lug -lug_mp -lanbl3 -laflr2c -lrec2 -lbl1
-AFLR3_LIB += -ldgeom -lotb -legen -lug2 -lice2 -lice3  -ldftr2 -ldftr3
-AFLR3_LIB += -lug_io -lug_gq -lug_cpp -lcgns -lqtb
+ifndef AFLR
+lint default:
+	@echo "Not compiling aflr3AIM: AFLR must be set -- Please fix the environment...."
+else
+ifndef AFLR_ARCH
+lint default:
+	@echo "Not compiling aflr3AIM: AFLR_ARCH must be set -- Please fix the environment...."
+else
+default:	$(LDIR)/aflr3AIM.so
+
+lint: aflrlint
+endif
+endif
+
+AFLR3_LIB  = -laflr3 -laflr43 -laflr4 -lsurf_auto_cpp -lsurf_auto -lrec3
+AFLR3_LIB += -lug_mp -lanbl3 -laflr2c -lrec2 -lbl1
+AFLR3_LIB += -lotb -legen -lice2 -lice3  -ldftr2 -ldftr3 -ldgeom
+AFLR3_LIB += -lug_io -lug_gq -lug_cpp -lcgns -lqtb -lug3 -lug -lug2
 
 ifeq ("$(ESP_ARCH)","LINUX64")
 AFLR3_LIB += -lrt
@@ -78,8 +84,9 @@ egads_eval_uv_bounds.c            \
 egads_eval_xyz_at_u.c             \
 egads_eval_xyz_at_uv.c            \
 egads_face_node_map.c             \
-egads_get_model.c                 \
-egads_set_ext_cad_data.c
+egads_cad_geom_faceMatch.c        \
+egads_data.c                      \
+egads_mzone.c
 
 EGADS_AFLR4_OBJS  = $(addprefix $(ODIR)/,$(EGADS_AFLR4_FILES:.c=.o))
 
@@ -94,6 +101,7 @@ OBJS=$(EGADS_AFLR4_OBJS)
 #UG_FILES=$(wildcard $(AFLR)/src/ug/*.c)
 #UG_OBJS=$(patsubst %.c,%.o,$(UG_FILES))
 
+#VPATH      += $(AFLR)/src/ug3
 #UG3_FILES=$(wildcard $(AFLR)/src/ug3/*.c)
 #UG3_OBJS=$(patsubst %.c,%.o,$(UG3_FILES))
 
@@ -113,7 +121,15 @@ OBJS=$(EGADS_AFLR4_OBJS)
 #AFLR4_FILES = $(wildcard $(AFLR)/src/aflr4/*.c)
 #AFLR4_OBJS  = $(subst $(AFLR)/src/aflr4,$(ODIR),$(AFLR4_FILES:.c=.o))
 
-OBJS+=$(AFLR3_OBJS) $(UG_OBJS) $(UG3_OBJS) $(UG_IO_OBJS) $(AFLR4_OBJS) $(DGEOM_OBJS) $(OTB_OBJS)
+#VPATH       += $(AFLR)/src/aflr43
+#AFLR43_FILES = $(wildcard $(AFLR)/src/aflr43/*.c)
+#AFLR43_OBJS  = $(subst $(AFLR)/src/aflr43,$(ODIR),$(AFLR43_FILES:.c=.o))
+
+#VPATH      += $(AFLR)/src/anbl3
+#ANBL3_FILES = $(wildcard $(AFLR)/src/anbl3/*.c)
+#ANBL3_OBJS  = $(subst $(AFLR)/src/anbl3,$(ODIR),$(ANBL3_FILES:.c=.o))
+
+OBJS+=$(AFLR3_OBJS) $(UG_OBJS) $(UG3_OBJS) $(UG_IO_OBJS) $(AFLR4_OBJS) $(AFLR43_OBJS) $(DGEOM_OBJS) $(OTB_OBJS) $(ANBL3_OBJS)
 ###############################################################################
 
 $(LDIR)/aflr3AIM.so:	$(ODIR)/aflr3AIM.o $(ODIR)/aflr3_Interface.o \
@@ -122,18 +138,17 @@ $(LDIR)/aflr3AIM.so:	$(ODIR)/aflr3AIM.o $(ODIR)/aflr3_Interface.o \
 	rm $(LDIR)/aflr3AIM.so
 	$(CC) $(SOFLGS) -o $(LDIR)/aflr3AIM.so $(ODIR)/aflr3AIM.o \
 		$(ODIR)/aflr3_Interface.o $(OBJS) -L$(AFLR)/$(AFLR_ARCH)/lib \
-		$(AFLR3_LIB) $(AFLR3_LIB) $(AFLR3_LIB) -L$(LDIR) -lutils \
+		$(AFLR3_LIB) -L$(LDIR) -lutils \
 		-laimUtil -locsm -legads -ludunits2 -ldl $(RPATH) $(CPPSLB) -lm
 
 $(ODIR)/aflr3AIM.o:	$(ODIR)/aflr3_version aflr3AIM.c aflr3_Interface.h $(IDIR)/capsTypes.h \
 			$(IDIR)/aimUtil.h $(IDIR)/aimMesh.h ../utils/meshUtils.h
-	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I../utils aflr3AIM.c \
-		-o $(ODIR)/aflr3AIM.o
+	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I../utils -I$(AFLR)/src \
+		aflr3AIM.c -o $(ODIR)/aflr3AIM.o
 
 $(ODIR)/aflr3_Interface.o:	$(ODIR)/aflr3_version aflr3_Interface.c aflr3_Interface.h \
 				../utils/meshUtils.h
-	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) \
-		-I$(AFLR)/src/aflr3 -I$(AFLR)/src -I../utils \
+	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I../utils -I$(AFLR)/src \
 		aflr3_Interface.c -o $(ODIR)/aflr3_Interface.o
 
 # Compile and execute to check the version number
@@ -146,9 +161,9 @@ $(ODIR)/aflr3_version:	aflr3_version.c $(AFLR)/src/aflr3/aflr3_version.h
 
 # Build for each AFLR C source file
 $(ODIR)/%.o: %.c $(EGADS_INC_FILES) | $(ODIR)/aflr3_version
-	$(CC) -c $(COPTS) $(DEFINE) -w -I$(IDIR) -I$(AFLR)/src $< -o $@
+	$(CC) -c $(COPTS) $(DEFINE) -D_ENABLE_EGADS_ -w -I$(IDIR) -I$(AFLR)/src $< -o $@
 
-lint:
+aflrlint:
 	$(LINT) -I../../include -I$(IDIR) -I../utils -I$(AFLR)/src -I$(AFLR)/src/aflr3 $(wildcard *.c) -nullpass -exportlocal -bufferoverflowhigh
 
 clean:

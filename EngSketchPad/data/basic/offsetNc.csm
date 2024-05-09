@@ -1,0 +1,33 @@
+# offsetNc
+# written by John Dannenhoffer
+
+SKBEG     0  0 -2
+   LINSEG 3  0 -2
+   LINSEG 5  3 -2
+   LINSEG 0  0 -2
+SKEND
+
+EXTRUDE   0  0  4
+
+CYLINDER  2.0  -1.0  -3.0  2.0  4.0  -3.0  4.0
+ROTATEY   90   -3.0   2.0
+INTERSECT
+
+CYLINDER  2.0  -1.0  +3.0  2.0  4.0  +3.0  4.0
+ROTATEY   90   +3.0   2.0
+INTERSECT
+
+SELECT    EDGE
+ATTRIBUTE _color   $magenta
+
+UDPRIM    nuscale
+
+UDPARG    offset    edgeList  1;2;3;4
+UDPARG    offset    faceList  2;3;4;5
+UDPRIM    offset    dist      0.5
+
+SELECT    FACE     $__offsetFace__  $*
+ATTRIBUTE _color   $white
+ASSERT    @sellist.size  4
+
+END

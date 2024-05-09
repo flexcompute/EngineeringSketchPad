@@ -1,0 +1,28 @@
+# bspline_udp_1
+# written by John Dannenhoffer
+
+DESPMTR   dy        0.3
+
+# make NACA airfoil
+UDPRIM    naca      series 0012
+
+# extract the knot vector and control points
+EVALUATE  EDGEKT    @nbody       1
+DIMENSION edgekt    @edata.size  1
+SET       edgekt    @edata
+
+EVALUATE  EDGECP    @nbody       1
+DIMENSION edgecp    @edata.size  1
+SET       edgecp    @edata
+
+# translate the y control points
+PATBEG    i         edgecp.size/3
+   SET    edgecp[3*i-1]  edgecp[3*i-1]+dy
+PATEND
+
+# create a bspline curve with those knots and control points
+UDPARG    bspline   uknots   edgekt
+UDPARG    bspline   cps      edgecp
+UDPRIM    bspline
+
+END

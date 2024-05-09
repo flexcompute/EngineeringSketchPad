@@ -54,13 +54,10 @@ myMesh = myProblem.analysis.create(aim = "tetgenAIM",
 ## [loadMeshAIM]
 
 ## [setMeshpmtrs]
-# Set project name so a mesh file is generated
-mySurfMesh.input.Proj_Name = "egadsTessMesh"
-
 # Set new EGADS body tessellation parameters
 mySurfMesh.input.Tess_Params = [0.5, 0.1, 20.0]
 
-# Set output grid format since a project name is being supplied - Tecplot file
+# Optional: Explicitly write mesh files
 mySurfMesh.input.Mesh_Format = "Tecplot"
 
 # Link surface mesh from EGADS to TetGen
@@ -86,7 +83,7 @@ myAnalysis = myProblem.analysis.create(aim = "su2AIM", name = "su2")
 myAnalysis.input["Mesh"].link(myMesh.output["Volume_Mesh"])
 
 # Set SU2 Version
-myAnalysis.input.SU2_Version = "Blackbird"
+myAnalysis.input.SU2_Version = "Harrier"
 
 # Set project name
 myAnalysis.input.Proj_Name = "pyCAPS_SU2_Tetgen"

@@ -9,7 +9,7 @@
  */
 
 /*
- * Copyright (C) 2018/2022  John F. Dannenhoffer, III (Syracuse University)
+ * Copyright (C) 2018/2024  John F. Dannenhoffer, III (Syracuse University)
  *
  * This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
@@ -446,7 +446,7 @@ eggGenerate(double uv[],                /* (in)  array of coordinates for Bounda
         int  indgr    = 1+2+4+16+64;
         char pltitl[80];
 
-        sprintf(pltitl, "~u~v~after pass %3d", ipass);
+        snprintf(pltitl, 79, "~u~v~after pass %3d", ipass);
 
         grctrl_(plotGrid, &indgr, pltitl,
                 (void*)(grid),

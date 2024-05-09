@@ -1,0 +1,45 @@
+#
+!IFNDEF ESP_ROOT
+!ERROR ESP_ROOT must be set -- Please fix the environment...
+!ENDIF
+#
+IDIR = $(ESP_ROOT)\include
+!include $(IDIR)\$(ESP_ARCH).$(MSVC)
+LDIR = $(ESP_ROOT)\lib
+!IFDEF ESP_BLOC
+ODIR = $(ESP_BLOC)\obj
+TDIR = $(ESP_BLOC)\test
+!ELSE
+ODIR = .
+TDIR = $(ESP_ROOT)\bin
+!ENDIF
+
+OBJECTS = $(ODIR)\zaeroAIM.obj $(ODIR)\zaeroUtils.obj \
+          $(ODIR)\zaeroLinearFlutter.obj \
+          $(ODIR)\zaeroTrim.obj $(ODIR)\zaeroTypes.obj \
+          $(ODIR)\zaeroCards.obj $(ODIR)\zaeroGeneral.obj \
+          $(ODIR)\zaeroGraphical.obj
+
+HEADER  = zaeroCards.h zaeroDiscipline.h \
+          zaeroGeneral.h zaeroGraphical.h zaeroTypes.h \
+          zaeroUtils.h
+
+$(LDIR)\zaeroAIM.dll:	$(OBJECTS) $(LDIR)\utils.lib
+	-del $(LDIR)\zaeroAIM.dll $(LDIR)\zaeroAIM.lib \
+		$(LDIR)\zaeroAIM.exp
+	link /out:$(LDIR)\zaeroAIM.dll /dll /def:zaeroAIM.def \
+		$(OBJECTS) /LIBPATH:$(LDIR) utils.lib aimUtil.lib \
+		ocsm.lib egads.lib udunits2.lib
+	$(MCOMP) /manifest $(LDIR)\zaeroAIM.dll.manifest \
+		/outputresource:$(LDIR)\zaeroAIM.dll;2
+
+.c{$(ODIR)}.obj::
+	cl /c $(COPTS) $(DEFINE) /I$(IDIR) /I..\utils /Fo"$(ODIR)"\ $<
+
+clean:
+	-del $(OBJECTS)
+
+cleanall:	clean
+	-del $(LDIR)\zaeroAIM.dll $(LDIR)\zaeroAIM.lib \
+		$(LDIR)\zaeroAIM.exp
+	-del $(TDIR)\zaero.exe

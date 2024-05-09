@@ -126,8 +126,6 @@ myProblem.analysis["fun3d"].input["Mesh"].link(myProblem.analysis["aflr2"].outpu
 # Set project name
 myProblem.analysis["fun3d"].input.Proj_Name = "pyCAPS_FUN3D_aflr2"
 
-myProblem.analysis["fun3d"].input.Mesh_ASCII_Flag = True
-
 # Set AoA number
 myProblem.analysis["fun3d"].input.Alpha = 0.0
 
@@ -177,8 +175,7 @@ inflow = {"bcType" : "SubsonicInflow",
 myProblem.analysis["fun3d"].input.Boundary_Condition = {"Airfoil"   : wallBC,
                                                         "TunnelWall": wallBC,
                                                         "InFlow"    : inflow,
-                                                        "OutFlow"   : backPressureBC,
-                                                        "2DSlice"   : "SymmetryY"}
+                                                        "OutFlow"   : backPressureBC}
 
 # Run AIM pre-analysis
 myProblem.analysis["fun3d"].preAnalysis()

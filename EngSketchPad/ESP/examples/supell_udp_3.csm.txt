@@ -1,0 +1,25 @@
+# supell_udp_3
+# written by John Dannenhoffer
+
+# one quadrant
+UDPARG    supell    rx        2.0
+UDPARG    supell    ry        3.0
+UDPARG    supell    n         5.0
+UDPRIM    supell    nquad     1
+TRANSLATE -5.0  0.0  0.0
+
+# two quadrants
+UDPARG    supell    rx        2.0
+UDPARG    supell    ry        3.0
+UDPARG    supell    n         5.0
+UDPRIM    supell    nquad     2
+TRANSLATE  0.0  0.0  0.0
+
+# four quadrants (face)
+UDPARG    supell    rx        2.0
+UDPARG    supell    ry        3.0
+UDPARG    supell    n         5.0
+UDPRIM    supell    nquad     4
+TRANSLATE +5.0  0.0  0.0
+
+END

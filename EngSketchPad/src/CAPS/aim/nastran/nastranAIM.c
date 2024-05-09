@@ -6,6 +6,11 @@
  *     Written by Dr. Ryan Durscher and Dr. Ed Alyanak AFRL/RQVC
  *
  *     This software has been cleared for public release on 05 Nov 2020, case number 88ABW-2020-3462.
+ *
+ *      Copyright 2014-2024, Massachusetts Institute of Technology
+ *      Licensed under The GNU Lesser General Public License, version 2.1
+ *      See http://www.opensource.org/licenses/lgpl-2.1.php
+ *
  */
 
 /*! \mainpage Introduction
@@ -108,6 +113,8 @@
 #ifdef WIN32
 #define snprintf   _snprintf
 #define strcasecmp stricmp
+#else
+#include <unistd.h>
 #endif
 
 #define MXCHAR     255
@@ -137,18 +144,49 @@ enum aimInputs
   Design_Response,
   Design_Equation_Response,
   Design_Opt_Param,
-  ObjectiveMinMax,
-  ObjectiveResponseType,
+  Objective_Min_Max,
+  Objective_Response_Type,
+  Mass_Increment,
   VLM_Surface,
   VLM_Control,
+  VLM_Camber_Twist,
+  Visualize_Flutter,
   Support,
   Connect,
   Parameter,
+  Model_Parameter,
+  Aero_Reference,
+  Mesh_Morph,
   Mesh,
   NUMINPUT = Mesh              /* Total number of inputs */
 };
 
-#define NUMOUTPUT  7
+ enum aimOutputs
+ {
+   outEigenValue = 1,          /* index is 1-based */
+   outEigenRadian,
+   outEigenFrequency,
+   outEigenGeneralMass,
+   outEigenGeneralStiffness,
+   outObjective,
+   outObjectiveHistory,
+   outMass,
+   outCG,
+   outIxx,
+   outIyy,
+   outIzz,
+   outIxy,
+   outIxz,
+   outIyz,
+   outI_Vector,
+   outI_Lower,
+   outI_Upper,
+   outI_Tensor,
+   outMassProp,
+   outMassPropLink,
+   outF06FileLink,
+   NUMOUTPUT = outF06FileLink  /* Total number of outputs */
+ };
 
 
 typedef struct {
@@ -178,9 +216,21 @@ typedef struct {
     // Attribute to response map
     mapAttrToIndexStruct responseMap;
 
+    // Attribute to reference map
+    mapAttrToIndexStruct referenceMap;
+
     // Mesh holders
     int numMesh;
     meshStruct *feaMesh;
+
+    // mass properties
+    capsValue mass;
+    capsValue Ixx, Iyy, Izz;
+    capsValue Ixy, Ixz, Iyz;
+    capsValue CG;
+
+    feaMassPropStruct feaMassProp;
+    feaSolFileStruct feaF06File;
 
 } aimStorage;
 
@@ -189,10 +239,13 @@ typedef struct {
 static int initiate_aimStorage(aimStorage *nastranInstance)
 {
 
-    int status;
+    int i, status;
 
     // Set initial values for nastranInstance
     nastranInstance->projectName = NULL;
+
+#define NUMVAR 8
+    capsValue *values[NUMVAR];
 
 /*
     // Check to make sure data transfer is ok
@@ -226,12 +279,38 @@ static int initiate_aimStorage(aimStorage *nastranInstance)
     status = initiate_mapAttrToIndexStruct(&nastranInstance->responseMap);
     if (status != CAPS_SUCCESS) return status;
 
+    // Container for reference to index map
+    status = initiate_mapAttrToIndexStruct(&nastranInstance->referenceMap);
+    if (status != CAPS_SUCCESS) return status;
+
     status = initiate_feaProblemStruct(&nastranInstance->feaProblem);
     if (status != CAPS_SUCCESS) return status;
 
     // Mesh holders
     nastranInstance->numMesh = 0;
     nastranInstance->feaMesh = NULL;
+
+    // Mass properties
+    values[0] = &nastranInstance->mass;
+    values[1] = &nastranInstance->Ixx;
+    values[2] = &nastranInstance->Iyy;
+    values[3] = &nastranInstance->Izz;
+    values[4] = &nastranInstance->Ixy;
+    values[5] = &nastranInstance->Ixz;
+    values[6] = &nastranInstance->Iyz;
+    values[7] = &nastranInstance->CG;
+#if NUMVAR != 8
+#error "Developer error! Update values array!"
+#endif
+    for (i = 0; i < NUMVAR; i++) {
+      aim_initValue(values[i]);
+      values[i]->type = Double;
+    }
+#undef NUMVAR
+
+    initiate_feaMassPropStruct(&nastranInstance->feaMassProp);
+
+    initiate_feaSolFileStruct(&nastranInstance->feaF06File);
 
     return CAPS_SUCCESS;
 }
@@ -276,6 +355,10 @@ static int destroy_aimStorage(aimStorage *nastranInstance)
     if (status != CAPS_SUCCESS)
       printf("Error: Status %d during destroy_mapAttrToIndexStruct!\n", status);
 
+    // Reference to index map
+    status = destroy_mapAttrToIndexStruct(&nastranInstance->referenceMap);
+    if (status != CAPS_SUCCESS) printf("Error: Status %d during destroy_mapAttrToIndexStruct!\n", status);
+
     // Cleanup meshes
     if (nastranInstance->feaMesh != NULL) {
 
@@ -285,7 +368,7 @@ static int destroy_aimStorage(aimStorage *nastranInstance)
               printf("Error: Status %d during destroy_meshStruct!\n", status);
         }
 
-        EG_free(nastranInstance->feaMesh);
+        AIM_FREE(nastranInstance->feaMesh);
     }
 
     nastranInstance->feaMesh = NULL;
@@ -298,6 +381,20 @@ static int destroy_aimStorage(aimStorage *nastranInstance)
 
     // NULL projetName
     nastranInstance->projectName = NULL;
+
+    // mass properties
+    aim_freeValue(&nastranInstance->mass);
+    aim_freeValue(&nastranInstance->Ixx);
+    aim_freeValue(&nastranInstance->Iyy);
+    aim_freeValue(&nastranInstance->Izz);
+    aim_freeValue(&nastranInstance->Ixy);
+    aim_freeValue(&nastranInstance->Ixz);
+    aim_freeValue(&nastranInstance->Iyz);
+    aim_freeValue(&nastranInstance->CG);
+
+    destroy_feaMassPropStruct(&nastranInstance->feaMassProp);
+
+    destroy_feaSolFileStruct(&nastranInstance->feaF06File);
 
     return CAPS_SUCCESS;
 }
@@ -368,7 +465,7 @@ static int checkAndCreateMesh(void *aimInfo, aimStorage *nastranInstance)
     return CAPS_BADVALUE;
   }
 
-  if (QuadMesh != NULL) quadMesh = QuadMesh->vals.integer;
+  if (QuadMesh != NULL) quadMesh = 2*QuadMesh->vals.integer;
 
   status = fea_createMesh(aimInfo,
                           tessParam,
@@ -381,10 +478,11 @@ static int checkAndCreateMesh(void *aimInfo, aimStorage *nastranInstance)
                           &nastranInstance->transferMap,
                           &nastranInstance->connectMap,
                           &nastranInstance->responseMap,
+                          &nastranInstance->referenceMap,
                           &nastranInstance->numMesh,
                           &nastranInstance->feaMesh,
                           &nastranInstance->feaProblem );
-  if (status != CAPS_SUCCESS) return status;
+  AIM_STATUS(aimInfo, status);
 
 cleanup:
   return status;
@@ -414,8 +512,6 @@ static int createVLMMesh(void *aimInfo, aimStorage *nastranInstance,
     int numVLMControl = 0;
     vlmControlStruct *vlmControl = NULL;
 
-    feaAeroStruct *feaAeroTemp = NULL;
-
     // Vector variables
     double A[3], B[3], C[3], D[3], P[3], p[3], N[3], n[3], d_proj[3];
 
@@ -443,17 +539,17 @@ static int createVLMMesh(void *aimInfo, aimStorage *nastranInstance,
     // Get aerodynamic reference quantities
     status = fea_retrieveAeroRef(numBody, bodies,
                                  &nastranInstance->feaProblem.feaAeroRef);
-    if (status != CAPS_SUCCESS) goto cleanup;
+    AIM_STATUS(aimInfo, status);
 
     // Cleanup Aero storage first
     if (nastranInstance->feaProblem.feaAero != NULL) {
 
         for (i = 0; i < nastranInstance->feaProblem.numAero; i++) {
             status = destroy_feaAeroStruct(&nastranInstance->feaProblem.feaAero[i]);
-            if (status != CAPS_SUCCESS) goto cleanup;
+            AIM_STATUS(aimInfo, status);
         }
 
-        EG_free(nastranInstance->feaProblem.feaAero);
+        AIM_FREE(nastranInstance->feaProblem.feaAero);
     }
 
     nastranInstance->feaProblem.numAero = 0;
@@ -461,13 +557,14 @@ static int createVLMMesh(void *aimInfo, aimStorage *nastranInstance,
     // Get VLM surface information
     if (aimInputs[VLM_Surface-1].nullVal != IsNull) {
 
-        status = get_vlmSurface(aimInputs[VLM_Surface-1].length,
+        status = get_vlmSurface(aimInfo,
+                                aimInputs[VLM_Surface-1].length,
                                 aimInputs[VLM_Surface-1].vals.tuple,
                                 &nastranInstance->attrMap,
                                 0.0, // default Cspace
                                 &numVLMSurface,
                                 &vlmSurface);
-        if (status != CAPS_SUCCESS) goto cleanup;
+        AIM_STATUS(aimInfo, status);
 
     } else {
         AIM_ERROR(aimInfo, "An analysis type of Aeroelastic set but no VLM_Surface tuple specified\n");
@@ -484,7 +581,7 @@ static int createVLMMesh(void *aimInfo, aimStorage *nastranInstance,
                                 &numVLMControl,
                                 &vlmControl);
 
-        if (status != CAPS_SUCCESS) goto cleanup;
+        AIM_STATUS(aimInfo, status);
     }
 
     printf("\nGetting FEA vortex lattice mesh\n");
@@ -497,7 +594,7 @@ static int createVLMMesh(void *aimInfo, aimStorage *nastranInstance,
                              vlmGENERIC,
                              numVLMSurface,
                              &vlmSurface);
-    if (status != CAPS_SUCCESS) goto cleanup;
+    AIM_STATUS(aimInfo, status);
     if (vlmSurface == NULL) {
         status = CAPS_NULLVALUE;
         goto cleanup;
@@ -540,7 +637,7 @@ static int createVLMMesh(void *aimInfo, aimStorage *nastranInstance,
             printf("\tA corresponding capsBound name not found for \"%s\". Surface will be ignored!\n",
                    vlmSurface[i].name);
             continue;
-        } else if (status != CAPS_SUCCESS) goto cleanup;
+        } else AIM_STATUS(aimInfo, status);
 
         for (j = 0; j < vlmSurface[i].numSection-1; j++) {
 
@@ -550,43 +647,18 @@ static int createVLMMesh(void *aimInfo, aimStorage *nastranInstance,
             surfaceIndex = nastranInstance->feaProblem.numAero - 1;
 
             // Allocate
-            if (nastranInstance->feaProblem.numAero == 1) {
-
-                feaAeroTemp = (feaAeroStruct *)
-                                  EG_alloc(nastranInstance->feaProblem.numAero*
-                                           sizeof(feaAeroStruct));
-
-            } else {
-
-                feaAeroTemp = (feaAeroStruct *)
-                               EG_reall(nastranInstance->feaProblem.feaAero,
-                                        nastranInstance->feaProblem.numAero*
-                                        sizeof(feaAeroStruct));
-            }
-
-            if (feaAeroTemp == NULL) {
-                nastranInstance->feaProblem.numAero -= 1;
-                status = EGADS_MALLOC;
-                goto cleanup;
-            }
-
-            nastranInstance->feaProblem.feaAero = feaAeroTemp;
+            AIM_REALL(nastranInstance->feaProblem.feaAero, nastranInstance->feaProblem.numAero, feaAeroStruct, aimInfo, status);
 
             // Initiate feaAeroStruct
             status = initiate_feaAeroStruct(&nastranInstance->feaProblem.feaAero[surfaceIndex]);
-            if (status != CAPS_SUCCESS) goto cleanup;
+            AIM_STATUS(aimInfo, status);
 
             // Get surface Name - copy from original surface
-            nastranInstance->feaProblem.feaAero[surfaceIndex].name =
-                                                EG_strdup(vlmSurface[i].name);
-            if (nastranInstance->feaProblem.feaAero[surfaceIndex].name == NULL) {
-                status = EGADS_MALLOC;
-                goto cleanup;
-            }
+            AIM_STRDUP(nastranInstance->feaProblem.feaAero[surfaceIndex].name, vlmSurface[i].name, aimInfo, status);
 
-            // Get surface ID - Multiple by 1000 !!
+            // Get surface ID - Multiple by 10000 !!
             nastranInstance->feaProblem.feaAero[surfaceIndex].surfaceID =
-                1000*nastranInstance->feaProblem.numAero;
+                10000*nastranInstance->feaProblem.numAero;
 
             // ADD something for coordinate systems
 
@@ -608,12 +680,7 @@ static int createVLMMesh(void *aimInfo, aimStorage *nastranInstance,
             // Copy section information
             nastranInstance->feaProblem.feaAero[surfaceIndex].vlmSurface.numSection = 2;
 
-            nastranInstance->feaProblem.feaAero[surfaceIndex].vlmSurface.vlmSection =
-                       (vlmSectionStruct *) EG_alloc(2*sizeof(vlmSectionStruct));
-            if (nastranInstance->feaProblem.feaAero[surfaceIndex].vlmSurface.vlmSection == NULL) {
-                status = EGADS_MALLOC;
-                goto cleanup;
-            }
+            AIM_ALLOC(nastranInstance->feaProblem.feaAero[surfaceIndex].vlmSurface.vlmSection, 2, vlmSectionStruct, aimInfo, status);
 
             for (k = 0; k < nastranInstance->feaProblem.feaAero[surfaceIndex].vlmSurface.numSection; k++) {
 
@@ -623,25 +690,27 @@ static int createVLMMesh(void *aimInfo, aimStorage *nastranInstance,
                 sectionIndex = vlmSurface[i].vlmSection[j+k].sectionIndex;
 
                 status = initiate_vlmSectionStruct(&nastranInstance->feaProblem.feaAero[surfaceIndex].vlmSurface.vlmSection[k]);
-                if (status != CAPS_SUCCESS) goto cleanup;
+                AIM_STATUS(aimInfo, status);
 
                 // Copy the section data - This also copies the control data for the section
                 status = copy_vlmSectionStruct(&vlmSurface[i].vlmSection[sectionIndex],
                                               &nastranInstance->feaProblem.feaAero[surfaceIndex].vlmSurface.vlmSection[k]);
-                if (status != CAPS_SUCCESS) goto cleanup;
+                AIM_STATUS(aimInfo, status);
 
                 // Reset the sectionIndex that is keeping track of the section order.
                 nastranInstance->feaProblem.feaAero[surfaceIndex].vlmSurface.vlmSection[k].sectionIndex = k;
             }
 
-            // transfer control surface data to sections
-/*@-nullpass@*/
-            status = get_ControlSurface(bodies,
-                                        numVLMControl,
-                                        vlmControl,
-                                        &nastranInstance->feaProblem.feaAero[surfaceIndex].vlmSurface);
-/*@+nullpass@*/
-            if (status != CAPS_SUCCESS) goto cleanup;
+
+            if (numVLMControl > 0) {
+                AIM_NOTNULL(vlmControl, aimInfo, status);
+                // transfer control surface data to sections
+                status = get_ControlSurface(bodies,
+                                            numVLMControl,
+                                            vlmControl,
+                                            &nastranInstance->feaProblem.feaAero[surfaceIndex].vlmSurface);
+                AIM_STATUS(aimInfo, status);
+            }
         }
     }
 
@@ -649,6 +718,7 @@ static int createVLMMesh(void *aimInfo, aimStorage *nastranInstance,
         status = CAPS_NULLVALUE;
         goto cleanup;
     }
+
     // Determine which grid points are to be used for each spline
     for (i = 0; i < nastranInstance->feaProblem.numAero; i++) {
 
@@ -681,14 +751,7 @@ static int createVLMMesh(void *aimInfo, aimStorage *nastranInstance,
                 nastranInstance->feaProblem.feaAero[i].numGridID += 1;
                 k = nastranInstance->feaProblem.feaAero[i].numGridID;
 
-                nastranInstance->feaProblem.feaAero[i].gridIDSet = (int *)
-                      EG_reall(nastranInstance->feaProblem.feaAero[i].gridIDSet,
-                               k*sizeof(int));
-
-                if (nastranInstance->feaProblem.feaAero[i].gridIDSet == NULL) {
-                    status = EGADS_MALLOC;
-                    goto cleanup;
-                }
+                AIM_REALL(nastranInstance->feaProblem.feaAero[i].gridIDSet, k, int, aimInfo, status);
 
                 nastranInstance->feaProblem.feaAero[i].gridIDSet[k-1] =
                     nastranInstance->feaProblem.feaMesh.node[j].nodeID;
@@ -704,13 +767,13 @@ static int createVLMMesh(void *aimInfo, aimStorage *nastranInstance,
              *
              *   p = D - (D * n)*n/ ||n||^2 , projection of point p on plane created by AxB
              *
-             * 				           (section 2)
+             *                            (section 2)
              *                     LE(c)---------------->TE(d)
              *   Grid Point       -^                   ^ -|
              *           |^      -            -         - |
              *           | -     A      -   C          - d_proj
              *           |  D   -    -                 -
-             *           |   - - -     (section 1     -
+             *           |   - - -     (section 1)    -
              *           p    LE(a)----------B------->TE(b)
              */
 
@@ -855,21 +918,8 @@ static int createVLMMesh(void *aimInfo, aimStorage *nastranInstance,
 
                 nastranInstance->feaProblem.feaAero[i].numGridID += 1;
 
-                if (nastranInstance->feaProblem.feaAero[i].numGridID == 1) {
-                    nastranInstance->feaProblem.feaAero[i].gridIDSet = (int *)
-                    EG_alloc(nastranInstance->feaProblem.feaAero[i].numGridID*
-                             sizeof(int));
-                } else {
-                    nastranInstance->feaProblem.feaAero[i].gridIDSet = (int *)
-                     EG_reall(nastranInstance->feaProblem.feaAero[i].gridIDSet,
-                              nastranInstance->feaProblem.feaAero[i].numGridID*
-                              sizeof(int));
-                }
-
-                if (nastranInstance->feaProblem.feaAero[i].gridIDSet == NULL) {
-                    status = EGADS_MALLOC;
-                    goto cleanup;
-                }
+                AIM_REALL(nastranInstance->feaProblem.feaAero[i].gridIDSet,
+                          nastranInstance->feaProblem.feaAero[i].numGridID, int, aimInfo, status);
 
                 nastranInstance->feaProblem.feaAero[i].gridIDSet[
                     nastranInstance->feaProblem.feaAero[i].numGridID-1] =
@@ -897,8 +947,17 @@ cleanup:
         }
     }
 
-    if (vlmSurface != NULL) EG_free(vlmSurface);
+    AIM_FREE(vlmSurface);
     numVLMSurface = 0;
+
+    // Destroy Control
+    if (vlmControl != NULL) {
+        for (i = 0; i < numVLMControl; i++) {
+            (void) destroy_vlmControlStruct(&vlmControl[i]);
+        }
+        AIM_FREE(vlmControl);
+    }
+    numVLMControl = 0;
 
     return status;
 }
@@ -926,7 +985,7 @@ int aimInitialize(int inst, /*@unused@*/ const char *unitSys, void *aimInfo,
     if (inst == -1) return CAPS_SUCCESS;
 
     /* specify the field variables this analysis can generate and consume */
-    *nFields = 4;
+    *nFields = 5;
 
     /* specify the name of each field variable */
     AIM_ALLOC(strs, *nFields, char *, aimInfo, status);
@@ -935,6 +994,7 @@ int aimInitialize(int inst, /*@unused@*/ const char *unitSys, void *aimInfo,
     strs[1]  = EG_strdup("EigenVector");
     strs[2]  = EG_strdup("EigenVector_#");
     strs[3]  = EG_strdup("Pressure");
+    strs[4]  = EG_strdup("Temperature");
     for (i = 0; i < *nFields; i++)
       if (strs[i] == NULL) { status = EGADS_MALLOC; goto cleanup; }
     *fnames  = strs;
@@ -945,6 +1005,7 @@ int aimInitialize(int inst, /*@unused@*/ const char *unitSys, void *aimInfo,
     ints[1]  = 3;
     ints[2]  = 3;
     ints[3]  = 1;
+    ints[4]  = 1;
     *franks  = ints;
     ints = NULL;
 
@@ -955,6 +1016,7 @@ int aimInitialize(int inst, /*@unused@*/ const char *unitSys, void *aimInfo,
     ints[1]  = FieldOut;
     ints[2]  = FieldOut;
     ints[3]  = FieldIn;
+    ints[4]  = FieldIn;
     *fInOut  = ints;
     ints = NULL;
 
@@ -1019,12 +1081,10 @@ int aimInputs(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo,
         defval->ncol          = 1;
         defval->units         = NULL;
         defval->lfixed        = Fixed;
-        defval->vals.reals    = (double *) EG_alloc(defval->nrow*sizeof(double));
-        if (defval->vals.reals != NULL) {
-            defval->vals.reals[0] = 0.025;
-            defval->vals.reals[1] = 0.001;
-            defval->vals.reals[2] = 15.00;
-        } else return EGADS_MALLOC;
+        AIM_ALLOC(defval->vals.reals, defval->nrow, double, aimInfo, status);
+        defval->vals.reals[0] = 0.025;
+        defval->vals.reals[1] = 0.001;
+        defval->vals.reals[2] = 15.00;
 
         /*! \page aimInputsNastran
          * - <B> Tess_Params = [0.025, 0.001, 15.0]</B> <br>
@@ -1286,32 +1346,47 @@ int aimInputs(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo,
 
         /*! \page aimInputsNastran
          * - <B> Design_Opt_Param = NULL</B> <br>
-         * The design optimization parameter tuple used to input parameters used in design optimization.
+         * The design optimization parameter tuple used to input parameters used in design optimization, see \ref feaDesignOptParam for additional details.
          */
 
-    } else if (index == ObjectiveMinMax) {
-        *ainame              = EG_strdup("ObjectiveMinMax");
+    } else if (index == Objective_Min_Max) {
+        *ainame              = EG_strdup("Objective_Min_Max");
         defval->type         = String;
         defval->nullVal      = NotNull;
         defval->vals.string  = EG_strdup("Max"); // Max, Min
         defval->lfixed       = Change;
 
         /*! \page aimInputsNastran
-         * - <B> ObjectiveMinMax = "Max"</B> <br>
+         * - <B> Objective_Min_Max = "Max"</B> <br>
          * Maximize or minimize the design objective during an optimization. Option: "Max" or "Min".
          */
 
-    } else if (index == ObjectiveResponseType) {
-        *ainame              = EG_strdup("ObjectiveResponseType");
+    } else if (index == Objective_Response_Type) {
+        *ainame              = EG_strdup("Objective_Response_Type");
         defval->type         = String;
         defval->nullVal      = NotNull;
         defval->vals.string  = EG_strdup("Weight"); // Weight
         defval->lfixed       = Change;
 
         /*! \page aimInputsNastran
-         * - <B> ObjectiveResponseType = "Weight"</B> <br>
+         * - <B> Objective_Response_Type = "Weight"</B> <br>
          * Object response type (see Nastran manual).
          */
+
+    } else if (index == Mass_Increment) {
+        *ainame              = EG_strdup("Mass_Increment");
+        defval->type         = Tuple;
+        defval->nullVal      = IsNull;
+        //defval->units        = NULL;
+        defval->lfixed       = Change;
+        defval->vals.tuple   = NULL;
+        defval->dim          = Vector;
+
+        /*! \page aimInputsNastran
+         * - <B> Mass_Increment = NULL </B> <br>
+         * Object response type (see Nastran manual).
+         */
+
     } else if (index == VLM_Surface) {
         *ainame              = EG_strdup("VLM_Surface");
         defval->type         = Tuple;
@@ -1323,8 +1398,9 @@ int aimInputs(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo,
 
         /*! \page aimInputsNastran
          * - <B>VLM_Surface = NULL </B> <br>
-         * Vortex lattice method tuple input. See \ref vlmSurface for additional details.
+         * Vortex lattice method tuple input,  see \ref vlmSurface for additional details.
          */
+
     }  else if (index == VLM_Control) {
         *ainame              = EG_strdup("VLM_Control");
         defval->type         = Tuple;
@@ -1336,7 +1412,7 @@ int aimInputs(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo,
 
         /*! \page aimInputsNastran
          * - <B>VLM_Control = NULL </B> <br>
-         * Vortex lattice method control surface tuple input. See \ref vlmControl for additional details.
+         * Vortex lattice method control surface tuple input, see \ref vlmControl for additional details.
          */
     } else if (index == Support) {
         *ainame              = EG_strdup("Support");
@@ -1378,21 +1454,88 @@ int aimInputs(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo,
          * Parameter tuple used to define PARAM entries. Note, entries are output exactly as inputed, that is, if the PARAM entry
          * requires an integer entry the user must input an integer!
          */
+    } else if (index == Model_Parameter) {
+        *ainame              = EG_strdup("Model_Parameter");
+        defval->type         = Tuple;
+        defval->nullVal      = IsNull;
+        //defval->units        = NULL;
+        defval->lfixed       = Change;
+        defval->vals.tuple   = NULL;
+        defval->dim          = Vector;
+
+        /*! \page aimInputsNastran
+         * - <B> Model_Parameter = NULL</B> <br>
+         * Model_Parameter tuple used to define MDLPRM entries. Note, entries are output exactly as inputed, that is, if the MDLPRM entry
+         * requires an integer entry the user must input an integer!
+         */
+
+    } else if (index == Aero_Reference) {
+        *ainame              = EG_strdup("Aero_Reference");
+        defval->type         = Tuple;
+        defval->nullVal      = IsNull;
+        //defval->units        = NULL;
+        defval->lfixed       = Change;
+        defval->vals.tuple   = NULL;
+        defval->dim          = Vector;
+
+        /*! \page aimInputsNastran
+         * - <B> Aero_Reference = NULL</B> <br>
+         * A JSON dictionary used to define aerodynamic reference parameters. see \ref feaAeroReference for additional details
+         */
+
+    } else if (index == VLM_Camber_Twist) {
+        *ainame              = EG_strdup("VLM_Camber_Twist");
+        defval->type         = Boolean;
+        defval->nullVal      = NotNull;
+        defval->vals.integer = (int) true;
+
+        /*! \page aimInputsNastran
+         * - <B> VLM_Camber_Twist = True</B> <br>
+         * Apply camber & twist to VLM sections. Option: True or False.
+         */
+
+    } else if (index == Visualize_Flutter) {
+        *ainame              = EG_strdup("Visualize_Flutter");
+        defval->type         = Boolean;
+        defval->nullVal      = NotNull;
+        defval->vals.integer = (int) false;
+
+        /*! \page aimInputsNastran
+        * - <B> Visualize_Flutter = False</B> <br>
+        * Determines if flutter cards are written for visualization. Option: True or False.
+        */
+
+    } else if (index == Mesh_Morph) {
+        *ainame              = EG_strdup("Mesh_Morph");
+        defval->type         = Boolean;
+        defval->lfixed       = Fixed;
+        defval->vals.integer = (int) false;
+        defval->dim          = Scalar;
+        defval->nullVal      = NotNull;
+
+        /*! \page aimInputsNastran
+         * - <B> Mesh_Morph = False</B> <br>
+         * Project previous surface mesh onto new geometry.
+         */
 
     } else if (index == Mesh) {
         *ainame             = AIM_NAME(Mesh);
-        defval->type        = Pointer;
+        defval->type        = PointerMesh;
         defval->dim         = Vector;
         defval->lfixed      = Change;
         defval->sfixed      = Change;
         defval->vals.AIMptr = NULL;
         defval->nullVal     = IsNull;
-        AIM_STRDUP(defval->units, "meshStruct", aimInfo, status);
 
         /*! \page aimInputsNastran
          * - <B>Mesh = NULL</B> <br>
          * A Mesh link.
          */
+
+    } else {
+      AIM_ERROR(aimInfo, "Unknown input index %d", index);
+      status = CAPS_BADINDEX;
+      goto cleanup;
     }
 
     AIM_NOTNULL(*ainame, aimInfo, status);
@@ -1419,11 +1562,12 @@ int aimUpdateState(void *instStore, void *aimInfo,
     int   numBody; // Number of Bodies
     ego  *bodies;
 
+    //vlmControlStruct *dummyControlSurface=NULL;
+
     aimStorage *nastranInstance;
 
     nastranInstance = (aimStorage *) instStore;
     AIM_NOTNULL(aimInputs, aimInfo, status);
-
 
     // Get project name
     nastranInstance->projectName = aimInputs[Proj_Name-1].vals.string;
@@ -1432,41 +1576,50 @@ int aimUpdateState(void *instStore, void *aimInfo,
     analysisType = aimInputs[Analysis_Type-1].vals.string;
 
     // Get FEA mesh if we don't already have one
-    if (aim_newGeometry(aimInfo) == CAPS_SUCCESS) {
+    status = checkAndCreateMesh(aimInfo, nastranInstance);
+    AIM_STATUS(aimInfo, status);
 
-        status = checkAndCreateMesh(aimInfo, nastranInstance);
-        if (status != CAPS_SUCCESS) goto cleanup;
+    // Get Aeroelastic mesh
+    if ((strcasecmp(analysisType, "Aeroelastic") == 0) ||
+        (strcasecmp(analysisType, "AeroelasticTrim") == 0) ||
+        (strcasecmp(analysisType, "AeroelasticFlutter") == 0) ||
+        (strcasecmp(analysisType, "Gust") == 0) ||
+        (strcasecmp(analysisType, "Optimization") == 0)) {
 
-        // Get Aeroelastic mesh
-        if ((strcasecmp(analysisType, "Aeroelastic") == 0) ||
-            (strcasecmp(analysisType, "AeroelasticTrim") == 0) ||
-            (strcasecmp(analysisType, "AeroelasticFlutter") == 0) ||
-            (strcasecmp(analysisType, "Optimization") == 0)) {
+        found = (int) true;
+        if (strcasecmp(analysisType, "Optimization") == 0) { // Is this aeroelastic optimization?
+            found = (int) false;
 
-            found = (int) true;
-            if (strcasecmp(analysisType, "Optimization") == 0) { // Is this aeroelastic optimization?
-                found = (int) false;
+            status = aim_getBodies(aimInfo, &intents, &numBody, &bodies);
+            AIM_STATUS(aimInfo, status);
 
-                status = aim_getBodies(aimInfo, &intents, &numBody, &bodies);
-                AIM_STATUS(aimInfo, status);
-
-                for (i = 0; i < numBody; i++) {
-                    status = retrieve_CAPSDisciplineAttr(bodies[i], &discipline);
-                    if ((status == CAPS_SUCCESS) && (discipline != NULL)) {
-                        if (strcasecmp(discipline, "Aerodynamic") == 0) {
-                            found = (int) true; // We at least have aerodynamic bodies
-                            break;
-                        }
+            for (i = 0; i < numBody; i++) {
+                status = retrieve_CAPSDisciplineAttr(bodies[i], &discipline);
+                if ((status == CAPS_SUCCESS) && (discipline != NULL)) {
+                    if (strcasecmp(discipline, "Aerodynamic") == 0) {
+                        found = (int) true; // We at least have aerodynamic bodies
+                        break;
                     }
                 }
             }
+        }
 
-            if (found == (int) true) {
-                status = createVLMMesh(aimInfo, nastranInstance, aimInputs);
-                if (status != CAPS_SUCCESS) goto cleanup;
-            }
+        if (found == (int) true) {
+            status = createVLMMesh(aimInfo, nastranInstance, aimInputs);
+            AIM_STATUS(aimInfo, status);
         }
     }
+
+
+    // Set aero reference parameters
+    if (aimInputs[Aero_Reference-1].nullVal == NotNull) {
+        status = fea_getAeroReference(aimInfo,
+                                      aimInputs[Aero_Reference-1].length,
+                                      aimInputs[Aero_Reference-1].vals.tuple,
+                                      &nastranInstance->referenceMap,
+                                      &nastranInstance->feaProblem);
+        AIM_STATUS(aimInfo, status);
+    } else printf("Aero_Reference value is NULL - No aero reference parameters set\n");
 
     // Note: Setting order is important here.
     // 1. Materials should be set before properties.
@@ -1507,7 +1660,8 @@ int aimUpdateState(void *instStore, void *aimInfo,
 
     // Set constraint properties
     if (aimInputs[Constraint-1].nullVal == NotNull) {
-        status = fea_getConstraint(aimInputs[Constraint-1].length,
+        status = fea_getConstraint(aimInfo,
+                                   aimInputs[Constraint-1].length,
                                    aimInputs[Constraint-1].vals.tuple,
                                    &nastranInstance->constraintMap,
                                    &nastranInstance->feaProblem);
@@ -1525,7 +1679,8 @@ int aimUpdateState(void *instStore, void *aimInfo,
 
     // Set connection properties
     if (aimInputs[Connect-1].nullVal == NotNull) {
-        status = fea_getConnection(aimInputs[Connect-1].length,
+        status = fea_getConnection(aimInfo,
+                                   aimInputs[Connect-1].length,
                                    aimInputs[Connect-1].vals.tuple,
                                    &nastranInstance->connectMap,
                                    &nastranInstance->feaProblem);
@@ -1534,7 +1689,8 @@ int aimUpdateState(void *instStore, void *aimInfo,
 
     // Set load properties
     if (aimInputs[Load-1].nullVal == NotNull) {
-        status = fea_getLoad(aimInputs[Load-1].length,
+        status = fea_getLoad(aimInfo,
+                             aimInputs[Load-1].length,
                              aimInputs[Load-1].vals.tuple,
                              &nastranInstance->loadMap,
                              &nastranInstance->feaProblem);
@@ -1556,7 +1712,8 @@ int aimUpdateState(void *instStore, void *aimInfo,
 
     // Set design constraints
     if (aimInputs[Design_Constraint-1].nullVal == NotNull) {
-        status = fea_getDesignConstraint(aimInputs[Design_Constraint-1].length,
+        status = fea_getDesignConstraint(aimInfo,
+                                         aimInputs[Design_Constraint-1].length,
                                          aimInputs[Design_Constraint-1].vals.tuple,
                                          &nastranInstance->feaProblem);
         AIM_STATUS(aimInfo, status);
@@ -1586,9 +1743,18 @@ int aimUpdateState(void *instStore, void *aimInfo,
         AIM_STATUS(aimInfo, status);
     } else printf("Design_Opt_Param tuple is NULL - No design optimization parameters applied\n");
 
+    // Set design constraints
+    if (aimInputs[Mass_Increment-1].nullVal == NotNull) {
+        status = fea_getMassIncrement(aimInputs[Mass_Increment-1].length,
+                                      aimInputs[Mass_Increment-1].vals.tuple,
+                                      &nastranInstance->feaProblem);
+        AIM_STATUS(aimInfo, status);
+    } else printf("Mass_Increment tuple is NULL - No mass increments applied\n");
+
     // Set design responses
     if (aimInputs[Design_Response-1].nullVal == NotNull) {
-        status = fea_getDesignResponse(aimInputs[Design_Response-1].length,
+        status = fea_getDesignResponse(aimInfo,
+                                       aimInputs[Design_Response-1].length,
                                        aimInputs[Design_Response-1].vals.tuple,
                                        &nastranInstance->responseMap,
                                        &nastranInstance->feaProblem);
@@ -1605,13 +1771,14 @@ int aimUpdateState(void *instStore, void *aimInfo,
 
     // Set analysis settings
     if (aimInputs[Analysix-1].nullVal == NotNull) {
-        status = fea_getAnalysis(aimInputs[Analysix-1].length,
+        status = fea_getAnalysis(aimInfo,
+                                 aimInputs[Analysix-1].length,
                                  aimInputs[Analysix-1].vals.tuple,
                                  &nastranInstance->feaProblem);
         AIM_STATUS(aimInfo, status); // It ok to not have an analysis tuple
     } else {
         printf("Analysis tuple is NULL\n");
-        status = fea_createDefaultAnalysis(&nastranInstance->feaProblem, analysisType);
+        status = fea_createDefaultAnalysis(aimInfo, &nastranInstance->feaProblem, analysisType);
         AIM_STATUS(aimInfo, status);
     }
 
@@ -1667,6 +1834,7 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
 
     // File format information
     char *tempString = NULL, *delimiter = NULL;
+    char fieldString[16];
 
     // File IO
     char *filename = NULL; // Output file name
@@ -1680,18 +1848,26 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
 
     const char *analysisType = NULL;
 
+    vlmControlStruct *dummyControlSurface=NULL;
+
+
     const aimStorage *nastranInstance;
 
     nastranInstance = (const aimStorage *) instStore;
     AIM_NOTNULL(aimInputs, aimInfo, status);
 
+    if ( aimInputs[Mesh_Morph-1].vals.integer == (int) true &&
+         aimInputs[Mesh-1].nullVal == NotNull) { // If we are mighty morphing
+        // store the current mesh for future iterations
+        status = aim_storeMeshRef(aimInfo, (aimMeshRef *) aimInputs[Mesh-1].vals.AIMptr, NULL);
+        AIM_STATUS(aimInfo, status);
+    }
+
     // Analysis type
     analysisType = aimInputs[Analysis_Type-1].vals.string;
 
     // Write Nastran Mesh
-    filename = EG_alloc(MXCHAR +1);
-    if (filename == NULL) return EGADS_MALLOC;
-
+    AIM_ALLOC(filename, (MXCHAR +1), char, aimInfo, status);
     strcpy(filename, nastranInstance->projectName);
 
     if (nastranInstance->feaProblem.numLoad > 0) {
@@ -1708,6 +1884,12 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
                                                       &nastranInstance->feaProblem.feaMesh,
                                                       &feaLoad[i]);
                 AIM_STATUS(aimInfo, status);
+            } else if (feaLoad[i].loadType == ThermalExternal) {
+
+                // Transfer external temperature from the AIM discrObj
+                status = fea_transferExternalTemperature(aimInfo,
+                                                         &feaLoad[i]);
+                AIM_STATUS(aimInfo, status);
             }
         }
     }
@@ -1716,6 +1898,8 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
                                filename,
                                1,
                                &nastranInstance->feaProblem.feaMesh,
+                               nastranInstance->feaProblem.numProperty,
+                               nastranInstance->feaProblem.feaProperty,
                                nastranInstance->feaProblem.feaFileFormat.gridFileType,
                                1.0);
     AIM_STATUS(aimInfo, status);
@@ -1731,12 +1915,12 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
     AIM_FREE(filename);
 
     printf("Writing subElement types (if any) - appending mesh file\n");
-    status = nastran_writeSubElementCard(fp,
+    status = nastran_writeSubElementCard(aimInfo, fp,
                                          &nastranInstance->feaProblem.feaMesh,
                                          nastranInstance->feaProblem.numProperty,
                                          nastranInstance->feaProblem.feaProperty,
                                          &nastranInstance->feaProblem.feaFileFormat);
-    if (status != CAPS_SUCCESS) goto cleanup;
+    AIM_STATUS(aimInfo, status);
 
     // Connections
     for (i = 0; i < nastranInstance->feaProblem.numConnect; i++) {
@@ -1748,17 +1932,31 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
         status = nastran_writeConnectionCard(fp,
                                              &nastranInstance->feaProblem.feaConnect[i],
                                              &nastranInstance->feaProblem.feaFileFormat);
-        if (status != CAPS_SUCCESS) goto cleanup;
+        AIM_STATUS(aimInfo, status);
     }
+
+    // Multiple Mass Conditions Set
+    for (i = 0; i < nastranInstance->feaProblem.numAnalysis; i++) {
+        if (i == 0) printf("\tWriting mass increment set\n");
+
+        if (nastranInstance->feaProblem.feaAnalysis[i].numMassIncrement > 0) {
+
+          status = nastran_writeMassIncrementSet(fp,
+                                                 i+1,
+                                                 nastranInstance->feaProblem.feaAnalysis[i].numMassIncrement,
+                                                 nastranInstance->feaProblem.feaAnalysis[i].massIncrementSetID,
+                                                 nastranInstance->feaProblem.feaMassIncrement,
+                                                 &nastranInstance->feaProblem.feaFileFormat);
+
+            if (status != CAPS_SUCCESS) goto cleanup;
+        }
+    }
+
     if (fp != NULL) fclose(fp);
     fp = NULL;
 
     // Write nastran input file
-    filename = EG_alloc(MXCHAR +1);
-    if (filename == NULL) {
-        status = EGADS_MALLOC;
-        goto cleanup;
-    }
+    AIM_ALLOC(filename, (MXCHAR +1), char, aimInfo, status);
     strcpy(filename, nastranInstance->projectName);
     strcat(filename, ".dat");
 
@@ -1766,11 +1964,11 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
     fp = aim_fopen(aimInfo, filename, "w");
     if (fp == NULL) {
         AIM_ERROR(aimInfo, "Unable to open file: %s\n", filename);
-        EG_free(filename);
+        AIM_FREE(filename);
         status = CAPS_IOERR;
         goto cleanup;
     }
-    EG_free(filename);
+    AIM_FREE(filename);
 
     // define file format delimiter type
     if (nastranInstance->feaProblem.feaFileFormat.fileType == FreeField) {
@@ -1783,14 +1981,15 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
     fprintf(fp, "ID CAPS generated Problem FOR Nastran\n");
 
     // Analysis type
-    if     (strcasecmp(analysisType, "Modal")         		== 0) fprintf(fp, "SOL 3\n");
-    else if(strcasecmp(analysisType, "Static")        		== 0) fprintf(fp, "SOL 1\n");
-    else if(strcasecmp(analysisType, "Craig-Bampton") 		== 0) fprintf(fp, "SOL 31\n");
-    else if(strcasecmp(analysisType, "StaticOpt")     		== 0) fprintf(fp, "SOL 200\n");
-    else if(strcasecmp(analysisType, "Optimization")  		== 0) fprintf(fp, "SOL 200\n");
-    else if(strcasecmp(analysisType, "Aeroelastic")   		== 0) fprintf(fp, "SOL 144\n");
-    else if(strcasecmp(analysisType, "AeroelasticTrim") 	== 0) fprintf(fp, "SOL 144\n");
-    else if(strcasecmp(analysisType, "AeroelasticFlutter") 	== 0) fprintf(fp, "SOL 145\n");
+    if     (strcasecmp(analysisType, "Modal")               == 0) fprintf(fp, "SOL 103\n");
+    else if(strcasecmp(analysisType, "Static")              == 0) fprintf(fp, "SOL 101\n");
+    else if(strcasecmp(analysisType, "Craig-Bampton")       == 0) fprintf(fp, "SOL 31\n");
+    else if(strcasecmp(analysisType, "StaticOpt")           == 0) fprintf(fp, "SOL 200\n");
+    else if(strcasecmp(analysisType, "Optimization")        == 0) fprintf(fp, "SOL 200\n");
+    else if(strcasecmp(analysisType, "Aeroelastic")         == 0) fprintf(fp, "SOL 144\n");
+    else if(strcasecmp(analysisType, "AeroelasticTrim")     == 0) fprintf(fp, "SOL 144\n");
+    else if(strcasecmp(analysisType, "AeroelasticFlutter")  == 0) fprintf(fp, "SOL 145\n");
+    else if(strcasecmp(analysisType, "Gust")                == 0) fprintf(fp, "SOL 146\n");
     else {
         AIM_ERROR(aimInfo, "Unrecognized \"Analysis_Type\", %s", analysisType);
         status = CAPS_BADVALUE;
@@ -1812,8 +2011,18 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
 
     //////////////// Case control ////////////////
 
+    // Set flutter visualization
+    nastranInstance->feaProblem.feaAnalysis->visualFlutter = aimInputs[Visualize_Flutter -1].vals.integer;
+
     // Write output request information
-    fprintf(fp, "DISP (PRINT,PUNCH) = ALL\n"); // Output all displacements
+    if (nastranInstance->feaProblem.feaAnalysis->visualFlutter == (int) true) {
+      printf("\tFLFACT VELOCITIES WILL BE NEGATIVE, FLUTTER VISUALIZATION IS TRUE\n");
+
+      fprintf(fp, "DISP (PRINT,PUNCH,PHASE) = ALL\n"); // Output all displacements with phase
+    }
+    else{
+      fprintf(fp, "DISP (PRINT,PUNCH) = ALL\n"); // Output all displacements
+    }
 
     fprintf(fp, "STRE (PRINT,PUNCH) = ALL\n"); // Output all stress
 
@@ -1823,11 +2032,11 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
     if ((strcasecmp(analysisType, "StaticOpt") == 0) ||
         (strcasecmp(analysisType, "Optimization") == 0)) {
 
-        objectiveMinMax = aimInputs[ObjectiveMinMax-1].vals.string;
+        objectiveMinMax = aimInputs[Objective_Min_Max-1].vals.string;
         if     (strcasecmp(objectiveMinMax, "Min") == 0) fprintf(fp, "DESOBJ(MIN) = 1\n");
         else if(strcasecmp(objectiveMinMax, "Max") == 0) fprintf(fp, "DESOBJ(MAX) = 1\n");
         else {
-            printf("Unrecognized \"ObjectiveMinMax\", %s, defaulting to \"Min\"\n", objectiveMinMax);
+            printf("Unrecognized \"Objective_Min_Max\", %s, defaulting to \"Min\"\n", objectiveMinMax);
             //objectiveMinMax = "Min";
             fprintf(fp, "DESOBJ(MIN) = 1\n");
         }
@@ -1836,24 +2045,22 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
 
     // Write sub-case information if multiple analysis tuples were provide - will always have at least 1
     for (i = 0; i < nastranInstance->feaProblem.numAnalysis; i++) {
-        //printf("SUBCASE = %d\n", i);
-
         fprintf(fp, "SUBCASE %d\n", i+1);
-        fprintf(fp, "\tLABEL = %s\n", nastranInstance->feaProblem.feaAnalysis[i].name);
+        fprintf(fp, "    LABEL = %s\n", nastranInstance->feaProblem.feaAnalysis[i].name);
 
         if (nastranInstance->feaProblem.feaAnalysis[i].analysisType == Static) {
-            fprintf(fp,"\tANALYSIS = STATICS\n");
+            fprintf(fp,"    ANALYSIS = STATICS\n");
         } else if (nastranInstance->feaProblem.feaAnalysis[i].analysisType == Modal) {
-            fprintf(fp,"\tANALYSIS = MODES\n");
+            fprintf(fp,"    ANALYSIS = MODES\n");
         } else if (nastranInstance->feaProblem.feaAnalysis[i].analysisType == AeroelasticTrim) {
-            fprintf(fp,"\tANALYSIS = SAERO\n");
+            fprintf(fp,"    ANALYSIS = SAERO\n");
             haveSubAeroelasticTrim = (int) true;
         } else if (nastranInstance->feaProblem.feaAnalysis[i].analysisType == AeroelasticFlutter) {
-            fprintf(fp,"\tANALYSIS = FLUTTER\n");
+            fprintf(fp,"    ANALYSIS = FLUTTER\n");
             haveSubAeroelasticFlutter = (int) true;
         } else if (nastranInstance->feaProblem.feaAnalysis[i].analysisType == Optimization) {
             printf("\t *** WARNING :: INPUT TO ANALYSIS CASE INPUT analysisType should NOT be Optimization or StaticOpt - Defaulting to Static\n");
-            fprintf(fp,"\tANALYSIS = STATICS\n");
+            fprintf(fp,"    ANALYSIS = STATICS\n");
             }
 
         // Write support for sub-case
@@ -1862,13 +2069,13 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
                 printf("\tWARNING: More than 1 support is not supported at this time for sub-cases!\n");
 
             } else {
-                fprintf(fp, "\tSUPORT1 = %d\n", nastranInstance->feaProblem.feaAnalysis[i].supportSetID[0]);
+                fprintf(fp, "    SUPORT1 = %d\n", nastranInstance->feaProblem.feaAnalysis[i].supportSetID[0]);
             }
         }
 
         // Write constraint for sub-case
         if (nastranInstance->feaProblem.numConstraint != 0) {
-            fprintf(fp, "\tSPC = %d\n", nastranInstance->feaProblem.numConstraint+i+1); //TODO - change to i+1 to just i
+            fprintf(fp, "    SPC = %d\n", nastranInstance->feaProblem.numConstraint+i+1); //TODO - change to i+1 to just i
         }
 
         // Issue some warnings regarding constraints if necessary
@@ -1883,29 +2090,30 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
         }
 
   //        // Write MPC for sub-case - currently only supported when we have RBE2 elements - see above for unification - TODO - investigate
-  //        for (j = 0; j < astrosInstance[iIndex].feaProblem.numConnect; j++) {
+  //        for (j = 0; j < astrosInstance->feaProblem.numConnect; j++) {
   //
-  //            if (astrosInstance[iIndex].feaProblem.feaConnect[j].connectionType == RigidBody) {
+  //            if (astrosInstance->feaProblem.feaConnect[j].connectionType == RigidBody) {
   //
   //                if (addComma == (int) true) fprintf(fp,",");
   //
-  //                fprintf(fp, " MPC = %d ", astrosInstance[iIndex].feaProblem.feaConnect[j].connectionID);
+  //                fprintf(fp, " MPC = %d ", astrosInstance->feaProblem.feaConnect[j].connectionID);
   //                addComma = (int) true;
   //                break;
   //            }
   //        }
 
-        if (nastranInstance->feaProblem.feaAnalysis[i].analysisType == Modal) {
-            fprintf(fp,"\tMETHOD = %d\n", nastranInstance->feaProblem.feaAnalysis[i].analysisID);
+        if (nastranInstance->feaProblem.feaAnalysis[i].analysisType == Modal ||
+            nastranInstance->feaProblem.feaAnalysis[i].analysisType == Gust) {
+            fprintf(fp,"    METHOD = %d\n", nastranInstance->feaProblem.feaAnalysis[i].analysisID);
         }
 
         if (nastranInstance->feaProblem.feaAnalysis[i].analysisType == AeroelasticFlutter) {
-            fprintf(fp,"\tMETHOD = %d\n", nastranInstance->feaProblem.feaAnalysis[i].analysisID);
-            fprintf(fp,"\tFMETHOD = %d\n", 100+nastranInstance->feaProblem.feaAnalysis[i].analysisID);
+            fprintf(fp,"    METHOD = %d\n", nastranInstance->feaProblem.feaAnalysis[i].analysisID);
+            fprintf(fp,"    FMETHOD = %d\n", 100+nastranInstance->feaProblem.feaAnalysis[i].analysisID);
         }
 
         if (nastranInstance->feaProblem.feaAnalysis[i].analysisType == AeroelasticTrim) {
-            fprintf(fp,"\tTRIM = %d\n", nastranInstance->feaProblem.feaAnalysis[i].analysisID);
+            fprintf(fp,"    TRIM = %d\n", nastranInstance->feaProblem.feaAnalysis[i].analysisID);
         }
 
         if (nastranInstance->feaProblem.feaAnalysis[i].analysisType == AeroelasticTrim ||
@@ -1914,17 +2122,17 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
             if (nastranInstance->feaProblem.feaAnalysis[i].aeroSymmetryXY != NULL) {
 
                 if(strcmp("SYM",nastranInstance->feaProblem.feaAnalysis->aeroSymmetryXY) == 0) {
-                    fprintf(fp,"\tAESYMXY = %s\n","SYMMETRIC");
+                    fprintf(fp,"    AESYMXY = %s\n","SYMMETRIC");
                 } else if(strcmp("ANTISYM",nastranInstance->feaProblem.feaAnalysis->aeroSymmetryXY) == 0) {
-                    fprintf(fp,"\tAESYMXY = %s\n","ANTISYMMETRIC");
+                    fprintf(fp,"    AESYMXY = %s\n","ANTISYMMETRIC");
                 } else if(strcmp("ASYM",nastranInstance->feaProblem.feaAnalysis->aeroSymmetryXY) == 0) {
-                    fprintf(fp,"\tAESYMXY = %s\n","ASYMMETRIC");
+                    fprintf(fp,"    AESYMXY = %s\n","ASYMMETRIC");
                 } else if(strcmp("SYMMETRIC",nastranInstance->feaProblem.feaAnalysis->aeroSymmetryXY) == 0) {
-                    fprintf(fp,"\tAESYMXY = %s\n","SYMMETRIC");
+                    fprintf(fp,"    AESYMXY = %s\n","SYMMETRIC");
                 } else if(strcmp("ANTISYMMETRIC",nastranInstance->feaProblem.feaAnalysis->aeroSymmetryXY) == 0) {
-                    fprintf(fp,"\tAESYMXY = %s\n","ANTISYMMETRIC");
+                    fprintf(fp,"    AESYMXY = %s\n","ANTISYMMETRIC");
                 } else if(strcmp("ASYMMETRIC",nastranInstance->feaProblem.feaAnalysis->aeroSymmetryXY) == 0) {
-                    fprintf(fp,"\tAESYMXY = %s\n","ASYMMETRIC");
+                    fprintf(fp,"    AESYMXY = %s\n","ASYMMETRIC");
                 } else {
                     printf("\t*** Warning *** aeroSymmetryXY Input %s to nastranAIM not understood!\n",nastranInstance->feaProblem.feaAnalysis->aeroSymmetryXY );
                 }
@@ -1933,17 +2141,17 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
             if (nastranInstance->feaProblem.feaAnalysis[i].aeroSymmetryXZ != NULL) {
 
                 if(strcmp("SYM",nastranInstance->feaProblem.feaAnalysis->aeroSymmetryXZ) == 0) {
-                    fprintf(fp,"\tAESYMXZ = %s\n","SYMMETRIC");
+                    fprintf(fp,"    AESYMXZ = %s\n","SYMMETRIC");
                 } else if(strcmp("ANTISYM",nastranInstance->feaProblem.feaAnalysis->aeroSymmetryXZ) == 0) {
-                    fprintf(fp,"\tAESYMXZ = %s\n","ANTISYMMETRIC");
+                    fprintf(fp,"    AESYMXZ = %s\n","ANTISYMMETRIC");
                 } else if(strcmp("ASYM",nastranInstance->feaProblem.feaAnalysis->aeroSymmetryXZ) == 0) {
-                    fprintf(fp,"\tAESYMXZ = %s\n","ASYMMETRIC");
+                    fprintf(fp,"    AESYMXZ = %s\n","ASYMMETRIC");
                 } else if(strcmp("SYMMETRIC",nastranInstance->feaProblem.feaAnalysis->aeroSymmetryXZ) == 0) {
-                    fprintf(fp,"\tAESYMXZ = %s\n","SYMMETRIC");
+                    fprintf(fp,"    AESYMXZ = %s\n","SYMMETRIC");
                 } else if(strcmp("ANTISYMMETRIC",nastranInstance->feaProblem.feaAnalysis->aeroSymmetryXZ) == 0) {
-                    fprintf(fp,"\tAESYMXZ = %s\n","ANTISYMMETRIC");
+                    fprintf(fp,"    AESYMXZ = %s\n","ANTISYMMETRIC");
                 } else if(strcmp("ASYMMETRIC",nastranInstance->feaProblem.feaAnalysis->aeroSymmetryXZ) == 0) {
-                    fprintf(fp,"\tAESYMXZ = %s\n","ASYMMETRIC");
+                    fprintf(fp,"    AESYMXZ = %s\n","ASYMMETRIC");
                 } else {
                     printf("\t*** Warning *** aeroSymmetryXZ Input %s to nastranAIM not understood!\n",nastranInstance->feaProblem.feaAnalysis->aeroSymmetryXZ );
                 }
@@ -1980,7 +2188,7 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
 
                 if (feaLoad[k].loadType == Thermal && numThermalLoad == 0) {
 
-                    fprintf(fp, "\tTemperature = %d\n", feaLoad[k].loadID);
+                    fprintf(fp, "    Temperature = %d\n", feaLoad[k].loadID);
                     numThermalLoad += 1;
                     if (numThermalLoad > 1) {
                         printf("More than 1 Thermal load found - nastranAIM does NOT currently doesn't support multiple thermal loads in a given case!\n");
@@ -1993,17 +2201,17 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
             }
 
             if (found == (int) true) {
-                fprintf(fp, "\tLOAD = %d\n", nastranInstance->feaProblem.numLoad+i+1);
+                fprintf(fp, "    LOAD = %d\n", nastranInstance->feaProblem.numLoad+i+1);
             }
         }
 
         //if (nastranInstance->feaProblem.feaAnalysis[i].analysisType == Optimization) {
             // Write objective function
-            //fprintf(fp, "\tDESOBJ(%s) = %d\n", nastranInstance->feaProblem.feaAnalysis[i].objectiveMinMax,
+            //fprintf(fp, "    DESOBJ(%s) = %d\n", nastranInstance->feaProblem.feaAnalysis[i].objectiveMinMax,
             //                                   nastranInstance->feaProblem.feaAnalysis[i].analysisID);
             // Write optimization constraints
         if (nastranInstance->feaProblem.feaAnalysis[i].numDesignConstraint != 0) {
-            fprintf(fp, "\tDESSUB = %d\n", nastranInstance->feaProblem.numDesignConstraint+i+1);
+            fprintf(fp, "    DESSUB = %d\n", nastranInstance->feaProblem.numDesignConstraint+i+1);
         }
         //}
 
@@ -2012,11 +2220,7 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
 
             numSetID = nastranInstance->feaProblem.feaAnalysis[i].numDesignResponse;
             // setID = nastranInstance->feaProblem.feaAnalysis[i].designResponseSetID;
-            setID = EG_alloc(numSetID * sizeof(int));
-            if (setID == NULL) {
-                status = EGADS_MALLOC;
-                goto cleanup;
-            }
+            AIM_ALLOC(setID, numSetID, int, aimInfo, status);
 
             for (j = 0; j < numSetID; j++) {
                 tempID = nastranInstance->feaProblem.feaAnalysis[i].designResponseSetID[j];
@@ -2026,12 +2230,16 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
             tempID = i+1;
             status = nastran_writeSetCard(fp, tempID, numSetID, setID);
 
-            EG_free(setID);
+            AIM_FREE(setID);
 
             AIM_STATUS(aimInfo, status);
-            fprintf(fp, "\tDRSPAN = %d\n", tempID);
+            fprintf(fp, "    DRSPAN = %d\n", tempID);
         }
 
+        // Add MASSET information to sub-case case control
+        if (nastranInstance->feaProblem.feaAnalysis[i].numMassIncrement != 0) {
+            fprintf(fp, "\tMASSSET = %d\n", 100+i+1);
+        }
     }
 
 //
@@ -2140,7 +2348,7 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
 //
 //            // Write design constraints
 //            if (nastranInstance->feaProblem.numDesignConstraint != 0) {
-//                fprintf(fp, "\tDESSUB = %d\n", nastranInstance->feaProblem.numDesignConstraint+1);
+//                fprintf(fp, "    DESSUB = %d\n", nastranInstance->feaProblem.numDesignConstraint+1);
 //            }
 //        }
 //    }
@@ -2153,12 +2361,43 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
 
     if (aimInputs[Parameter-1].nullVal == NotNull) {
         for (i = 0; i < aimInputs[Parameter-1].length; i++) {
+
+            tempString = string_removeQuotation(aimInputs[Parameter-1].vals.tuple[i].value);
+            AIM_NOTNULL(tempString, aimInfo, status);
+
             fprintf(fp, "PARAM, %s, %s\n", aimInputs[Parameter-1].vals.tuple[i].name,
-                                           aimInputs[Parameter-1].vals.tuple[i].value);
+                                           tempString);
+            AIM_FREE(tempString);
         }
     }
 
-	fprintf(fp, "PARAM, %s\n", "POST, -1\n"); // Output OP2 file
+    fprintf(fp, "PARAM, %s\n", "POST, -1\n"); // Output OP2 file
+    fprintf(fp, "PARAM, %s\n", "GRDPNT, 0\n"); // Write out mass properties to F06 file
+
+    // Add MDLPRM for HDF5 Output
+    if (aimInputs[Model_Parameter-1].nullVal == NotNull) {
+        for (i = 0; i < aimInputs[Model_Parameter-1].length; i++) {
+
+            tempString = string_removeQuotation(aimInputs[Model_Parameter-1].vals.tuple[i].value);
+            AIM_NOTNULL(tempString, aimInfo, status);
+
+            fprintf(fp, "MDLPRM, %s, %s\n", aimInputs[Model_Parameter-1].vals.tuple[i].name, tempString);
+            AIM_FREE(tempString);
+        }
+    }
+
+    // Mass increment
+    for (i = 0; i < nastranInstance->feaProblem.numAnalysis; i++) {
+        if (i == 0) printf("\tWriting mass increment cards\n");
+
+        if (nastranInstance->feaProblem.feaAnalysis[i].numMassIncrement > 0) {
+
+            status = nastran_writeMasssetCard(fp,
+                                              i+1,
+                                              &nastranInstance->feaProblem.feaFileFormat);
+            AIM_STATUS(aimInfo, status);
+        }
+    }
 
     // Turn off auto SPC
     //fprintf(fp, "%-8s %7s %7s\n", "PARAM", "AUTOSPC", "N");
@@ -2166,19 +2405,18 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
     // Optimization Objective Response Response, SOL 200 only
     if (strcasecmp(analysisType, "StaticOpt") == 0 || strcasecmp(analysisType, "Optimization") == 0) {
 
-        objectiveResp = aimInputs[ObjectiveResponseType-1].vals.string;
+        objectiveResp = aimInputs[Objective_Response_Type-1].vals.string;
         if     (strcasecmp(objectiveResp, "Weight") == 0) objectiveResp = "WEIGHT";
         else {
-            printf("\tUnrecognized \"ObjectiveResponseType\", %s, defaulting to \"Weight\"\n", objectiveResp);
+            printf("\tUnrecognized \"Objective_Response_Type\", %s, defaulting to \"Weight\"\n", objectiveResp);
             objectiveResp = "WEIGHT";
         }
 
         fprintf(fp,"%-8s", "DRESP1");
 
-        tempString = convert_integerToString(1, 7, 1);
-        AIM_NOTNULL(tempString, aimInfo, status);
-        fprintf(fp, "%s%s", delimiter, tempString);
-        AIM_FREE(tempString);
+        status = convert_integerToString(1, 7, 1, fieldString);
+        AIM_STATUS(aimInfo, status);
+        fprintf(fp, "%s%s", delimiter, fieldString);
 
         fprintf(fp, "%s%7s", delimiter, objectiveResp);
         fprintf(fp, "%s%7s", delimiter, objectiveResp);
@@ -2189,6 +2427,7 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
 
     // Write AEROS, AESTAT and AESURF cards
     if (strcasecmp(analysisType, "AeroelasticFlutter") == 0 ||
+        strcasecmp(analysisType, "Gust") == 0 ||
         haveSubAeroelasticFlutter == (int) true) {
 
         printf("\tWriting aero card\n");
@@ -2237,15 +2476,38 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
                 // If already found continue
                 if (found == (int) true) continue;
 
+                // Make sure constraint isn't already in rigid variables too!
+                for (k = 0; k < i; k++) {
+                    for (l = 0; l < nastranInstance->feaProblem.feaAnalysis[k].numRigidVariable; l++) {
+
+                        // If current rigid constraint was previous written - mark as found
+                        if (strcmp(nastranInstance->feaProblem.feaAnalysis[i].rigidConstraint[j],
+                                   nastranInstance->feaProblem.feaAnalysis[k].rigidVariable[l]) == 0) {
+                            found = (int) true;
+                            break;
+                        }
+                    }
+                }
+
+                // If already found continue
+                if (found == (int) true) continue;
+
+                // Check if is control surface (will be defined by AESURF)
+                status = fea_findControlSurfaceByName(&nastranInstance->feaProblem,
+                                                      nastranInstance->feaProblem.feaAnalysis[i].rigidVariable[j],
+                                                      &dummyControlSurface);
+                if (status == CAPS_SUCCESS) {
+                    continue;
+                }
+
                 // If not write out an aestat card
                 numAEStatSurf += 1;
 
                 fprintf(fp,"%-8s", "AESTAT");
 
-                tempString = convert_integerToString(numAEStatSurf, 7, 1);
-                AIM_NOTNULL(tempString, aimInfo, status);
-                fprintf(fp, "%s%s", delimiter, tempString);
-                AIM_FREE(tempString);
+                status = convert_integerToString(numAEStatSurf, 7, 1, fieldString);
+                AIM_STATUS(aimInfo, status);
+                fprintf(fp, "%s%s", delimiter, fieldString);
 
                 fprintf(fp, "%s%7s\n", delimiter, nastranInstance->feaProblem.feaAnalysis[i].rigidVariable[j]);
             }
@@ -2287,15 +2549,22 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
                 // If already found continue
                 if (found == (int) true) continue;
 
+                // Check if is control surface (will be defined by AESURF)
+                status = fea_findControlSurfaceByName(&nastranInstance->feaProblem,
+                                                      nastranInstance->feaProblem.feaAnalysis[i].rigidConstraint[j],
+                                                      &dummyControlSurface);
+                if (status == CAPS_SUCCESS) {
+                    continue;
+                }
+
                 // If not write out an aestat card
                 numAEStatSurf += 1;
 
                 fprintf(fp,"%-8s", "AESTAT");
 
-                tempString = convert_integerToString(numAEStatSurf, 7, 1);
-                AIM_NOTNULL(tempString, aimInfo, status);
-                fprintf(fp, "%s%s", delimiter, tempString);
-                AIM_FREE(tempString);
+                status = convert_integerToString(numAEStatSurf, 7, 1, fieldString);
+                AIM_STATUS(aimInfo, status);
+                fprintf(fp, "%s%s", delimiter, fieldString);
 
                 fprintf(fp, "%s%7s\n", delimiter, nastranInstance->feaProblem.feaAnalysis[i].rigidConstraint[j]);
             }
@@ -2307,7 +2576,10 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
     // Analysis Cards - Eigenvalue and design objective included, as well as combined load, constraint, and design constraints
     for (i = 0; i < nastranInstance->feaProblem.numAnalysis; i++) {
 
-        if (i == 0) printf("\tWriting analysis cards\n");
+        if (i == 0) printf("\tWriting analysis cards, %d\n", i);
+
+        // TODO: FIX THIS
+        nastranInstance->feaProblem.feaAnalysis[i].visualFlutter = aimInputs[Visualize_Flutter -1].vals.integer;
 
         status = nastran_writeAnalysisCard(fp,
                                            &nastranInstance->feaProblem.feaAnalysis[i],
@@ -2318,11 +2590,7 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
             AIM_NOTNULL(feaLoad, aimInfo, status);
 
             // Create a temporary list of load IDs
-            tempIntegerArray = (int *) EG_alloc(nastranInstance->feaProblem.feaAnalysis[i].numLoad*sizeof(int));
-            if (tempIntegerArray == NULL) {
-                status = EGADS_MALLOC;
-                goto cleanup;
-            }
+            AIM_ALLOC(tempIntegerArray, nastranInstance->feaProblem.feaAnalysis[i].numLoad, int, aimInfo, status);
 
             k = 0;
             for (j = 0; j <  nastranInstance->feaProblem.feaAnalysis[i].numLoad; j++) {
@@ -2333,12 +2601,9 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
                 tempIntegerArray[j] = feaLoad[l].loadID;
                 k += 1;
             }
+            if (k == 0) { AIM_FREE(tempIntegerArray); continue; }
 
-            tempIntegerArray = (int *) EG_reall(tempIntegerArray, k*sizeof(int));
-            if (tempIntegerArray == NULL)  {
-                status = EGADS_MALLOC;
-                goto cleanup;
-            }
+            AIM_REALL(tempIntegerArray, k, int, aimInfo, status);
 
             // Write combined load card
             printf("\tWriting load ADD cards\n");
@@ -2348,22 +2613,17 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
                                                tempIntegerArray,
                                                feaLoad,
                                                &nastranInstance->feaProblem.feaFileFormat);
-            if (status != CAPS_SUCCESS) goto cleanup;
+            AIM_STATUS(aimInfo, status);
 
             // Free temporary load ID list
-            EG_free(tempIntegerArray);
-            tempIntegerArray = NULL;
+            AIM_FREE(tempIntegerArray);
 
         } else { // If no loads for an individual analysis are specified assume that all loads should be applied
 
             if (feaLoad != NULL) {
 
                 // Create a temporary list of load IDs
-                tempIntegerArray = (int *) EG_alloc(nastranInstance->feaProblem.numLoad*sizeof(int));
-                if (tempIntegerArray == NULL) {
-                    status = EGADS_MALLOC;
-                    goto cleanup;
-                }
+                AIM_ALLOC(tempIntegerArray, nastranInstance->feaProblem.numLoad, int, aimInfo, status);
 
                 k = 0;
                 for (j = 0; j < nastranInstance->feaProblem.numLoad; j++) {
@@ -2372,18 +2632,7 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
                     k += 1;
                 }
 
-                AIM_ERROR(aimInfo, "Writing load ADD cards is not properly implemented!");
-                status = CAPS_NOTIMPLEMENT;
-                goto cleanup;
-
-#ifdef FIX_tempIntegerArray_INIT
-                //      tempIntegerArray needs to be initialized!!!
-
-                tempIntegerArray = (int *) EG_reall(tempIntegerArray, k*sizeof(int));
-                if (tempIntegerArray == NULL)  {
-                    status = EGADS_MALLOC;
-                    goto cleanup;
-                }
+                AIM_REALL(tempIntegerArray, k, int, aimInfo, status);
 
                 //TOOO: eliminate load add card?
                 // Write combined load card
@@ -2394,12 +2643,10 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
                                                   tempIntegerArray,
                                                   feaLoad,
                                                   &nastranInstance->feaProblem.feaFileFormat);
-                if (status != CAPS_SUCCESS) goto cleanup;
+                AIM_STATUS(aimInfo, status);
 
                 // Free temporary load ID list
-                EG_free(tempIntegerArray);
-                tempIntegerArray = NULL;
-#endif
+                AIM_FREE(tempIntegerArray);
             }
 
         }
@@ -2433,7 +2680,7 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
                                                         nastranInstance->feaProblem.numConstraint,
                                                         tempIntegerArray,
                                                         &nastranInstance->feaProblem.feaFileFormat);
-                if (status != CAPS_SUCCESS) goto cleanup;
+                AIM_STATUS(aimInfo, status);
 
                 // Free temporary constraint ID list
                 AIM_FREE(tempIntegerArray);
@@ -2470,8 +2717,7 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
                                                               tempIntegerArray,
                                                               &nastranInstance->feaProblem.feaFileFormat);
                 // Free temporary design constraint ID list
-                if (tempIntegerArray != NULL) EG_free(tempIntegerArray);
-                tempIntegerArray = NULL;
+                AIM_FREE(tempIntegerArray);
                 AIM_STATUS(aimInfo, status);
             }
 
@@ -2488,7 +2734,7 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
         status = nastran_writeLoadCard(fp,
                                        &feaLoad[i],
                                        &nastranInstance->feaProblem.feaFileFormat);
-        if (status != CAPS_SUCCESS) goto cleanup;
+        AIM_STATUS(aimInfo, status);
     }
 
     // Constraints
@@ -2499,7 +2745,7 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
         status = nastran_writeConstraintCard(fp,
                                              &nastranInstance->feaProblem.feaConstraint[i],
                                              &nastranInstance->feaProblem.feaFileFormat);
-        if (status != CAPS_SUCCESS) goto cleanup;
+        AIM_STATUS(aimInfo, status);
     }
 
     // Supports
@@ -2511,7 +2757,7 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
                                           &nastranInstance->feaProblem.feaSupport[i],
                                           &nastranInstance->feaProblem.feaFileFormat,
                                           &j);
-        if (status != CAPS_SUCCESS) goto cleanup;
+        AIM_STATUS(aimInfo, status);
     }
 
 
@@ -2523,7 +2769,7 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
         status = nastran_writeMaterialCard(fp,
                                            &nastranInstance->feaProblem.feaMaterial[i],
                                            &nastranInstance->feaProblem.feaFileFormat);
-        if (status != CAPS_SUCCESS) goto cleanup;
+        AIM_STATUS(aimInfo, status);
     }
 
     // Properties
@@ -2534,7 +2780,7 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
         status = nastran_writePropertyCard(fp,
                                            &nastranInstance->feaProblem.feaProperty[i],
                                            &nastranInstance->feaProblem.feaFileFormat);
-        if (status != CAPS_SUCCESS) goto cleanup;
+        AIM_STATUS(aimInfo, status);
     }
 
     // Coordinate systems
@@ -2546,7 +2792,7 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
         status = nastran_writeCoordinateSystemCard(fp,
                                                    &nastranInstance->feaProblem.feaCoordSystem[i],
                                                    &nastranInstance->feaProblem.feaFileFormat);
-        if (status != CAPS_SUCCESS) goto cleanup;
+        AIM_STATUS(aimInfo, status);
     }
 
     // Optimization - design variables
@@ -2554,10 +2800,10 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
 
         if (i == 0) printf("\tWriting design variable cards\n");
 
-        status = nastran_writeDesignVariableCard(fp,
+        status = nastran_writeDesignVariableCard(aimInfo, fp,
                                                  &nastranInstance->feaProblem.feaDesignVariable[i],
                                                  &nastranInstance->feaProblem.feaFileFormat);
-        if (status != CAPS_SUCCESS) goto cleanup;
+        AIM_STATUS(aimInfo, status);
     }
 
     // Optimization - design variable relations
@@ -2570,7 +2816,7 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
                                                          &nastranInstance->feaProblem.feaDesignVariableRelation[i],
                                                          &nastranInstance->feaProblem,
                                                          &nastranInstance->feaProblem.feaFileFormat);
-        if (status != CAPS_SUCCESS) goto cleanup;
+        AIM_STATUS(aimInfo, status);
     }
 
     // Optimization - design constraints
@@ -2580,8 +2826,9 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
 
         status = nastran_writeDesignConstraintCard(fp,
                                                    &nastranInstance->feaProblem.feaDesignConstraint[i],
+                                                   &nastranInstance->feaProblem,
                                                    &nastranInstance->feaProblem.feaFileFormat);
-        if (status != CAPS_SUCCESS) goto cleanup;
+        AIM_STATUS(aimInfo, status);
     }
 
     // Optimization - design equations
@@ -2592,7 +2839,7 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
         status = nastran_writeDesignEquationCard(fp,
                                                  &nastranInstance->feaProblem.feaEquation[i],
                                                  &nastranInstance->feaProblem.feaFileFormat);
-        if (status != CAPS_SUCCESS) goto cleanup;
+        AIM_STATUS(aimInfo, status);
     }
 
     // Optimization - design table constants
@@ -2601,7 +2848,7 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
     status = nastran_writeDesignTableCard(fp,
                                           &nastranInstance->feaProblem.feaDesignTable,
                                           &nastranInstance->feaProblem.feaFileFormat);
-    if (status != CAPS_SUCCESS) goto cleanup;
+    AIM_STATUS(aimInfo, status);
 
     // Optimization - design optimization parameters
     if (nastranInstance->feaProblem.feaDesignOptParam.numParam > 0)
@@ -2609,7 +2856,7 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
     status = nastran_writeDesignOptParamCard(fp,
                                              &nastranInstance->feaProblem.feaDesignOptParam,
                                              &nastranInstance->feaProblem.feaFileFormat);
-    if (status != CAPS_SUCCESS) goto cleanup;
+    AIM_STATUS(aimInfo, status);
 
     // Optimization - design responses
     for( i = 0; i < nastranInstance->feaProblem.numDesignResponse; i++) {
@@ -2619,7 +2866,7 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
         status = nastran_writeDesignResponseCard(fp,
                                                  &nastranInstance->feaProblem.feaDesignResponse[i],
                                                  &nastranInstance->feaProblem.feaFileFormat);
-        if (status != CAPS_SUCCESS) goto cleanup;
+        AIM_STATUS(aimInfo, status);
     }
 
     // Optimization - design equation responses
@@ -2631,13 +2878,14 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
                                                  &nastranInstance->feaProblem.feaEquationResponse[i],
                                                  &nastranInstance->feaProblem,
                                                  &nastranInstance->feaProblem.feaFileFormat);
-        if (status != CAPS_SUCCESS) goto cleanup;
+        AIM_STATUS(aimInfo, status);
     }
 
     // Aeroelastic
     if (strcasecmp(analysisType, "Aeroelastic") == 0 ||
         strcasecmp(analysisType, "AeroelasticTrim") == 0 ||
         strcasecmp(analysisType, "AeroelasticFlutter") == 0 ||
+        strcasecmp(analysisType, "Gust") == 0 ||
         haveSubAeroelasticTrim == (int) true ||
         haveSubAeroelasticFlutter == (int) true ) {
 
@@ -2646,26 +2894,32 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
             status = nastran_writeCAeroCard(fp,
                                             &nastranInstance->feaProblem.feaAero[i],
                                             &nastranInstance->feaProblem.feaFileFormat);
-            if (status != CAPS_SUCCESS) goto cleanup;
+            AIM_STATUS(aimInfo, status);
 
             status = nastran_writeAeroSplineCard(fp,
                                                  &nastranInstance->feaProblem.feaAero[i],
                                                  &nastranInstance->feaProblem.feaFileFormat);
-            if (status != CAPS_SUCCESS) goto cleanup;
+            AIM_STATUS(aimInfo, status);
 
             status = nastran_writeSet1Card(fp,
                                            &nastranInstance->feaProblem.feaAero[i],
                                            &nastranInstance->feaProblem.feaFileFormat);
-            if (status != CAPS_SUCCESS) goto cleanup;
+            AIM_STATUS(aimInfo, status);
         }
 
+        if (aimInputs[VLM_Camber_Twist-1].vals.integer == (int) true ) {
 
-        // status = nastran_writeAeroCamberTwist(fp,
-        //                                       nastranInstance->feaProblem.numAero,
-        //                                       nastranInstance->feaProblem.feaAero,
-        //                                       &nastranInstance->feaProblem.feaFileFormat);
-        // if (status != CAPS_SUCCESS) goto cleanup;
+
+            status = nastran_writeAeroCamberTwist(aimInfo,
+                                                  fp,
+                                                  nastranInstance->feaProblem.numAero,
+                                                  nastranInstance->feaProblem.feaAero,
+                                                  &nastranInstance->feaProblem.feaFileFormat);
+            AIM_STATUS(aimInfo, status);
+        }
     }
+
+    printf("\tDone writing aeroelastic cards\n");
 
     // Include mesh file
     fprintf(fp,"\nINCLUDE \'%s.bdf\'\n\n", nastranInstance->projectName);
@@ -2675,6 +2929,9 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
 
     fclose(fp);
     fp = NULL;
+
+    printf("\tDone writing files\n");
+
 /*
 ////////////////////////////////////////
     printf("\n\n\nTESTING F06 READER\n\n");
@@ -2686,12 +2943,12 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
     filename = (char *) EG_alloc((strlen(nastranInstance->projectName) +
                                       strlen(".f06") + 2)*sizeof(char));
 
-    sprintf(filename,"%s%s", nastranInstance->projectName, ".f06");
+    snprintf(filename,strlen(nastranInstance->projectName) +
+                                      strlen(".f06") + 2,"%s%s", nastranInstance->projectName, ".f06");
 
     // Open file
     fp = aim_fopen(aimInfo, filename, "r");
-    if (filename != NULL) EG_free(filename);
-    filename = NULL;
+    AIM_FREE(filename);
 
     if (fp == NULL) {
         printf("Unable to open file: %s\n", filename);
@@ -2731,6 +2988,7 @@ cleanup:
         AIM_FREE(feaLoad);
     }
 
+    AIM_FREE(filename);
     AIM_FREE(tempIntegerArray);
 
     if (fp != NULL) fclose(fp);
@@ -2740,17 +2998,83 @@ cleanup:
 
 
 /* no longer optional and needed for restart */
-int aimPostAnalysis(/*@unused@*/ void *instStore, /*@unused@*/ void *aimStruc,
+int aimPostAnalysis(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo,
                     /*@unused@*/ int restart, /*@unused@*/ capsValue *inputs)
 {
-  return CAPS_SUCCESS;
+  int status = CAPS_SUCCESS; // Function return status
+
+  int i; //Indexing
+  aimStorage *nastranInstance;
+
+  char filename[PATH_MAX]; // File to open
+  char extF06[] = ".f06";
+  FILE *fp = NULL; // File pointer
+
+  double mass = 0.0;
+  double CG[3];
+  double inertia[6];
+  double inertiaAboutCG[3];
+  double transformMatrix[9];
+
+  nastranInstance = (aimStorage *) instStore;
+
+  // initialize matrices to zero
+  for (i = 0; i < 3; i++) {
+    CG[i] = 0.0;
+    inertiaAboutCG[i] = 0.0;
+  }
+
+  for (i = 0; i < 6; i++)
+    inertia[i] = 0.0;
+
+  for (i = 0; i < 9; i++)
+    transformMatrix[i] = 0.0;
+
+  snprintf(filename, PATH_MAX, "%s%s", nastranInstance->projectName, extF06);
+
+  fp = aim_fopen(aimInfo, filename, "r");
+  if (fp == NULL) {
+    AIM_ERROR(aimInfo, "Unable to open file: %s", filename);
+    return CAPS_IOERR;
+  }
+
+  status = nastran_readF06GridPointWeightGeneratorOutput(
+      fp, &mass, CG, inertia, inertiaAboutCG, transformMatrix);
+  if (status == CAPS_NOTFOUND) {
+    AIM_ERROR(aimInfo, "Unable to find Grid Point Weight Generator Output "
+                       "section in f06.");
+    goto cleanup;
+  }
+  else if (status != CAPS_SUCCESS) {
+    AIM_ERROR(aimInfo, "Failed to extract mass properties from F06 file");
+    goto cleanup;
+  }
+
+  nastranInstance->mass.vals.real   = mass;
+  nastranInstance->CG.vals.reals[0] = CG[0];
+  nastranInstance->CG.vals.reals[1] = CG[1];
+  nastranInstance->CG.vals.reals[1] = CG[1];
+
+  nastranInstance->Ixx.vals.real = inertia[I11];
+  nastranInstance->Iyy.vals.real = inertia[I22];
+  nastranInstance->Izz.vals.real = inertia[I33];
+  nastranInstance->Ixy.vals.real = inertia[I21];
+  nastranInstance->Ixz.vals.real = inertia[I31];
+  nastranInstance->Iyz.vals.real = inertia[I32];
+
+cleanup:
+  if (fp != NULL) fclose(fp);
+
+  return status;
 }
 
 
 // Set Nastran output variables
-int aimOutputs(/*@unused@*/ void *instStore, /*@unused@*/ void *aimStruc,
+int aimOutputs(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo,
                int index, char **aoname, capsValue *form)
 {
+    int status = CAPS_SUCCESS;
+
     /*! \page aimOutputsNastran AIM Outputs
      * The following list outlines the Nastran outputs available through the AIM interface.
      */
@@ -2769,36 +3093,162 @@ int aimOutputs(/*@unused@*/ void *instStore, /*@unused@*/ void *aimStruc,
      * - <B>ObjectiveHistory</B> = List of objective value for the history of a design optimization case.
      */
 
-    if (index == 1) {
+    if (index == outEigenValue) {
         *aoname = EG_strdup("EigenValue");
 
-    } else if (index == 2) {
+    } else if (index == outEigenRadian) {
         *aoname = EG_strdup("EigenRadian");
 
-    } else if (index == 3) {
+    } else if (index == outEigenFrequency) {
         *aoname = EG_strdup("EigenFrequency");
 
-    } else if (index == 4) {
+    } else if (index == outEigenGeneralMass) {
         *aoname = EG_strdup("EigenGeneralMass");
 
-    } else if (index == 5) {
+    } else if (index == outEigenGeneralStiffness) {
         *aoname = EG_strdup("EigenGeneralStiffness");
 
-    } else if (index == 6) {
+    } else if (index == outObjective) {
         *aoname = EG_strdup("Objective");
 
-    } else if (index == 7) {
+    } else if (index == outObjectiveHistory) {
         *aoname = EG_strdup("ObjectiveHistory");
+
+
+    /*! \page aimOutputsNastran AIM Outputs
+     * - <B>Mass</B> = Total mass of the model.
+     * - <B>CG</B> = Center of gravity of the model.
+     * - <B>Ixx</B> = Moment of inertia
+     * - <B>Iyy</B> = Moment of inertia
+     * - <B>Izz</B> = Moment of inertia
+     * - <B>Ixy</B> = Moment of inertia
+     * - <B>Izy</B> = Moment of inertia
+     * - <B>Iyz</B> = Moment of inertia
+     * - <B>I_Vector</B> = Moment of inertia vector
+     *  \f[
+     *    \vec{I} = \begin{bmatrix} I_{xx} & I_{yy} & I_{zz} & I_{xy} & I_{xz} & I_{yz} \end{bmatrix}
+     *  \f]
+     * - <B>I_Lower</B> = Moment of inertia lower triangular tensor
+     * \f[
+     *  \vec{I}_{lower} = \begin{bmatrix} I_{xx} & -I_{xy} & I_{yy} & -I_{xz} & -I_{yz} & I_{zz} \end{bmatrix},
+     * \f]
+     * - <B>I_Upper</B> = Moment of inertia upper triangular tensor
+     * \f[
+     *  \vec{I}_{upper} = \begin{bmatrix} I_{xx} & -I_{xy} & -I_{xz} & I_{yy} & -I_{yz} & I_{zz} \end{bmatrix},
+     * \f]
+     * - <B>I_Tensor</B> = Moment of inertia tensor
+     * \f[
+     * \bar{\bar{I}} =
+     *  \begin{bmatrix}
+     *    I_{xx} & -I_{xy} & -I_{xz} \\
+     *   -I_{xy} &  I_{yy} & -I_{yz} \\
+     *   -I_{xz} & -I_{yz} &  I_{zz}
+     *  \end{bmatrix}
+     * \f]
+     * - <B>MassProp</B> = JSON String Mass Properties
+     * - <B>MassPropLink</B> = Mass Properties
+     * Mass properties that can be linked to analysis input MassPropLink
+     */
+
+    } else if (index == outMass) {
+        *aoname = EG_strdup("Mass");
+        form->dim  = Scalar;
+
+    } else if (index == outCG) {
+        *aoname = EG_strdup("CG");
+        form->nrow = 3;
+        form->dim  = Vector;
+
+    } else if (index == outIxx) {
+        *aoname = EG_strdup("Ixx");
+        form->dim  = Scalar;
+
+    } else if (index == outIyy) {
+        *aoname = EG_strdup("Iyy");
+        form->dim  = Scalar;
+
+    } else if (index == outIzz) {
+        *aoname = EG_strdup("Izz");
+        form->dim  = Scalar;
+
+    } else if (index == outIxy) {
+        *aoname = EG_strdup("Ixy");
+        form->dim  = Scalar;
+
+    } else if (index == outIxz) {
+        *aoname = EG_strdup("Ixz");
+        form->dim  = Scalar;
+
+    } else if (index == outIyz) {
+        *aoname = EG_strdup("Iyz");
+        form->dim  = Scalar;
+
+    } else if (index == outI_Vector) {
+        *aoname = EG_strdup("I_Vector");
+        form->nrow = 6;
+        form->dim  = Vector;
+
+    } else if (index == outI_Lower) {
+        *aoname = EG_strdup("I_Lower");
+        form->nrow = 6;
+        form->dim  = Vector;
+
+    } else if (index == outI_Upper) {
+        *aoname = EG_strdup("I_Upper");
+        form->nrow = 6;
+        form->dim  = Vector;
+
+    } else if (index == outI_Tensor) {
+        *aoname = EG_strdup("I_Tensor");
+        form->nrow = 9;
+        form->dim  = Array2D;
+
+    } else if (index == outMassProp) {
+        *aoname = EG_strdup("MassProp");
+        form->type = String;
+        form->nullVal = IsNull;
+        goto cleanup;
+
+    } else if (index == outMassPropLink) {
+        *aoname = EG_strdup("MassPropLink");
+        form->type = Pointer;
+        form->nullVal = IsNull;
+        AIM_STRDUP(form->units, "feaMassPropStruct", aimInfo, status);
+        goto cleanup;
+
+    } else if (index == outF06FileLink) {
+        *aoname = EG_strdup("F06FileLink");
+        form->type = Pointer;
+        form->nullVal = IsNull;
+        AIM_STRDUP(form->units, "feaSolFileStruct", aimInfo, status);
+        goto cleanup;
     }
 
+    if (*aoname == NULL) return EGADS_MALLOC;
+
     form->type       = Double;
-    form->units      = NULL;
-    form->lfixed     = Change;
-    form->sfixed     = Change;
+    form->lfixed     = Fixed;
+    form->sfixed     = Fixed;
     form->vals.reals = NULL;
     form->vals.real  = 0;
 
-    return CAPS_SUCCESS;
+    if (form->nrow > 1) {
+      AIM_ALLOC(form->vals.reals, form->nrow, double, aimInfo, status);
+      memset(form->vals.reals, 0, form->nrow*sizeof(double));
+    }
+
+//    if (units->momentOfInertia != NULL &&
+//        index >= outI_Vector && index <= outI_Tensor) {
+//      AIM_STRDUP(form->units, units->momentOfInertia, aimInfo, status);
+//    }
+
+    if (index == outI_Tensor) {
+        form->nrow     = 3;
+        form->ncol     = 3;
+    }
+
+cleanup:
+    return status;
 }
 
 
@@ -2810,32 +3260,41 @@ int aimCalcOutput(void *instStore, /*@unused@*/ void *aimInfo, int index,
 
     int i; //Indexing
 
+    double mass = 0, CGx = 0, CGy = 0, CGz = 0;
+    double Ixx = 0;
+    double Ixy = 0;
+    double Izz = 0;
+    double Ixz = 0;
+    double Iyy = 0;
+    double Iyz = 0;
+    double *I;
+    char massProp[512];
+
     int numData = 0;
     double *dataVector = NULL;
     double **dataMatrix = NULL;
     aimStorage *nastranInstance;
 
-    char *filename = NULL; // File to open
+    char filename[PATH_MAX]; // File to open
+    char aimFile[PATH_MAX];
     char extF06[] = ".f06", extOP2[] = ".op2";
     FILE *fp = NULL; // File pointer
+    feaUnitsStruct *units=NULL;
 
     nastranInstance = (aimStorage *) instStore;
+    units = &nastranInstance->units;
 
-    if (index <= 5) {
-        filename = (char *) EG_alloc((strlen(nastranInstance->projectName) +
-                                      strlen(extF06) +1)*sizeof(char));
-        if (filename == NULL) return EGADS_MALLOC;
+    if (index >= outEigenValue &&
+        index <= outEigenGeneralStiffness) {
 
-        sprintf(filename, "%s%s", nastranInstance->projectName, extF06);
+        snprintf(filename, PATH_MAX, "%s%s", nastranInstance->projectName, extF06);
 
         fp = aim_fopen(aimInfo, filename, "r");
-
-        EG_free(filename); // Free filename allocation
-
         if (fp == NULL) {
 #ifdef DEBUG
             printf(" nastranAIM/aimCalcOutput Cannot open Output file!\n");
 #endif
+            AIM_ERROR(aimInfo, "Cannot open %s", filename);
             return CAPS_IOERR;
         }
 
@@ -2852,7 +3311,7 @@ int aimCalcOutput(void *instStore, /*@unused@*/ void *aimInfo, int index,
                 val->vals.real = dataMatrix[0][index-1];
             } else {
 
-                val->vals.reals = (double *) EG_alloc(val->length*sizeof(double));
+                AIM_ALLOC(val->vals.reals, val->length, double, aimInfo, status);
                 if (val->vals.reals != NULL) {
 
                     for (i = 0; i < val->length; i++) {
@@ -2863,17 +3322,10 @@ int aimCalcOutput(void *instStore, /*@unused@*/ void *aimInfo, int index,
                 } else status = EGADS_MALLOC;
             }
         }
-    } else if (index == 6 || index == 7) {
-        filename = (char *) EG_alloc((strlen(nastranInstance->projectName) +
-                                      strlen(extOP2) +1)*sizeof(char));
-        if (filename == NULL) return EGADS_MALLOC;
+    } else if (index == outObjective || index == outObjectiveHistory) {
+        snprintf(filename, PATH_MAX, "%s%s", nastranInstance->projectName, extOP2);
 
-        sprintf(filename, "%s%s", nastranInstance->projectName, extOP2);
-
-       status = nastran_readOP2Objective(filename, &numData, &dataVector);
-
-        EG_free(filename); // Free filename allocation
-
+        status = nastran_readOP2Objective(filename, &numData, &dataVector);
         if (status == CAPS_SUCCESS && dataVector != NULL && numData > 0) {
 
             if (index == 6) val->nrow = 1;
@@ -2889,7 +3341,7 @@ int aimCalcOutput(void *instStore, /*@unused@*/ void *aimInfo, int index,
                 val->vals.real = dataVector[numData-1];
             } else {
 
-                val->vals.reals = (double *) EG_alloc(val->length*sizeof(double));
+                AIM_ALLOC(val->vals.reals, val->length, double, aimInfo, status);
                 if (val->vals.reals != NULL) {
 
                     for (i = 0; i < val->length; i++) {
@@ -2900,19 +3352,169 @@ int aimCalcOutput(void *instStore, /*@unused@*/ void *aimInfo, int index,
                 } else status = EGADS_MALLOC;
             }
         }
+
+    } else if (index == outMass) {
+      status = aim_copyValue(&nastranInstance->mass, val);
+      AIM_STATUS(aimInfo, status);
+
+    } else if (index == outCG) {
+      status = aim_copyValue(&nastranInstance->CG, val);
+      AIM_STATUS(aimInfo, status);
+
+    } else if (index == outIxx) {
+      status = aim_copyValue(&nastranInstance->Ixx, val);
+      AIM_STATUS(aimInfo, status);
+
+    } else if (index == outIyy) {
+      status = aim_copyValue(&nastranInstance->Iyy, val);
+      AIM_STATUS(aimInfo, status);
+
+    } else if (index == outIzz) {
+      status = aim_copyValue(&nastranInstance->Izz, val);
+      AIM_STATUS(aimInfo, status);
+
+    } else if (index == outIxy) {
+      status = aim_copyValue(&nastranInstance->Ixy, val);
+      AIM_STATUS(aimInfo, status);
+
+    } else if (index == outIxz) {
+      status = aim_copyValue(&nastranInstance->Ixz, val);
+      AIM_STATUS(aimInfo, status);
+
+    } else if (index == outIyz) {
+      status = aim_copyValue(&nastranInstance->Iyz, val);
+      AIM_STATUS(aimInfo, status);
+
+    } else if (index == outI_Vector) {
+      val->type = Double;
+      AIM_ALLOC(val->vals.reals, val->length, double, aimInfo, status);
+
+      val->vals.reals[0] = nastranInstance->Ixx.vals.real;
+      val->vals.reals[1] = nastranInstance->Iyy.vals.real;
+      val->vals.reals[2] = nastranInstance->Izz.vals.real;
+      val->vals.reals[3] = nastranInstance->Ixy.vals.real;
+      val->vals.reals[4] = nastranInstance->Ixz.vals.real;
+      val->vals.reals[5] = nastranInstance->Iyz.vals.real;
+
+    } else if (index == outI_Lower) {
+      val->type = Double;
+      AIM_ALLOC(val->vals.reals, val->length, double, aimInfo, status);
+
+      val->vals.reals[0] =  nastranInstance->Ixx.vals.real;
+      val->vals.reals[1] = -nastranInstance->Ixy.vals.real;
+      val->vals.reals[2] =  nastranInstance->Iyy.vals.real;
+      val->vals.reals[3] = -nastranInstance->Ixz.vals.real;
+      val->vals.reals[4] = -nastranInstance->Iyz.vals.real;
+      val->vals.reals[5] =  nastranInstance->Izz.vals.real;
+
+    } else if (index == outI_Upper) {
+      val->type = Double;
+      AIM_ALLOC(val->vals.reals, val->length, double, aimInfo, status);
+
+      val->vals.reals[0] =  nastranInstance->Ixx.vals.real;
+      val->vals.reals[1] = -nastranInstance->Ixy.vals.real;
+      val->vals.reals[2] = -nastranInstance->Ixz.vals.real;
+      val->vals.reals[3] =  nastranInstance->Iyy.vals.real;
+      val->vals.reals[4] = -nastranInstance->Iyz.vals.real;
+      val->vals.reals[5] =  nastranInstance->Izz.vals.real;
+
+    } else if (index == outI_Tensor) {
+      val->type = Double;
+      AIM_ALLOC(val->vals.reals, val->length, double, aimInfo, status);
+
+      Ixx = nastranInstance->Ixx.vals.real;
+      Iyy = nastranInstance->Iyy.vals.real;
+      Iyz = nastranInstance->Iyz.vals.real;
+      Ixy = nastranInstance->Ixy.vals.real;
+      Ixz = nastranInstance->Ixz.vals.real;
+      Izz = nastranInstance->Izz.vals.real;
+      I = val->vals.reals;
+
+      // populate the tensor
+      I[0] =  Ixx; I[1] = -Ixy; I[2] = -Ixz;
+      I[3] = -Ixy; I[4] =  Iyy; I[5] = -Iyz;
+      I[6] = -Ixz; I[7] = -Iyz; I[8] =  Izz;
+
+    } else if (index == outMassProp) {
+
+      mass = nastranInstance->mass.vals.real;
+
+      CGx = nastranInstance->CG.vals.reals[0];
+      CGy = nastranInstance->CG.vals.reals[1];
+      CGz = nastranInstance->CG.vals.reals[2];
+
+      Ixx = nastranInstance->Ixx.vals.real;
+      Iyy = nastranInstance->Iyy.vals.real;
+      Iyz = nastranInstance->Iyz.vals.real;
+      Ixy = nastranInstance->Ixy.vals.real;
+      Ixz = nastranInstance->Ixz.vals.real;
+      Izz = nastranInstance->Izz.vals.real;
+
+      if (units->mass != NULL) {
+
+        snprintf(massProp, 512, "{\"mass\":[%20.14le, %s], \"CG\":[[%20.14le,%20.14le,%20.14le], %s], \"massInertia\":[[%20.14le, %20.14le, %20.14le, %20.14le, %20.14le, %20.14le], %s]}",
+            mass, units->mass, CGx, CGy, CGz, units->length, Ixx, Iyy, Izz, Ixy, Ixz, Iyz, units->momentOfInertia);
+
+      } else {
+
+        snprintf(massProp, 512, "{\"mass\":%20.14le, \"CG\":[%20.14le,%20.14le,%20.14le], \"massInertia\":[%20.14le, %20.14le, %20.14le, %20.14le, %20.14le, %20.14le]}",
+            mass, CGx, CGy, CGz, Ixx, Iyy, Izz, Ixy, Ixz, Iyz);
+
+      }
+
+      AIM_STRDUP(val->vals.string, massProp, aimInfo, status);
+    } else if (index == outMassPropLink) {
+
+      nastranInstance->feaMassProp.mass = nastranInstance->mass.vals.real;
+      for (i = 0; i < 3; i++)
+        nastranInstance->feaMassProp.CG[i] = nastranInstance->CG.vals.reals[i];
+
+      nastranInstance->feaMassProp.massInertia[I11] = nastranInstance->Ixx.vals.real;
+      nastranInstance->feaMassProp.massInertia[I22] = nastranInstance->Iyy.vals.real;
+      nastranInstance->feaMassProp.massInertia[I32] = nastranInstance->Iyz.vals.real;
+      nastranInstance->feaMassProp.massInertia[I21] = nastranInstance->Ixy.vals.real;
+      nastranInstance->feaMassProp.massInertia[I31] = nastranInstance->Ixz.vals.real;
+      nastranInstance->feaMassProp.massInertia[I33] = nastranInstance->Izz.vals.real;
+
+      nastranInstance->feaMassProp.massUnit = units->mass;
+      nastranInstance->feaMassProp.lengthUnit = units->length;
+      nastranInstance->feaMassProp.momentOfInertiaUnit = units->momentOfInertia;
+
+      /*@-immediatetrans@*/
+      val->vals.AIMptr = (void*)&nastranInstance->feaMassProp;
+      /*@+immediatetrans@*/
+
+    } else if (index == outF06FileLink) {
+
+      // Get the local filename in the analysis directory
+      snprintf(filename, PATH_MAX, "%s%s", nastranInstance->projectName, extF06);
+
+      // Get the absolute path to the file
+      status = aim_file(aimInfo, filename, aimFile);
+      AIM_STATUS(aimInfo, status);
+
+      AIM_FREE(nastranInstance->feaF06File.filename);
+
+      nastranInstance->feaF06File.fileForm = MSC_NASTRAN;
+      AIM_STRDUP(nastranInstance->feaF06File.filename, aimFile, aimInfo, status);
+
+      /*@-immediatetrans@*/
+      val->vals.AIMptr = (void*)&nastranInstance->feaF06File;
+      /*@+immediatetrans@*/
     }
 
+cleanup:
     // Restore the path we came in with
     if (fp != NULL) fclose(fp);
 
     if (dataMatrix != NULL) {
         for (i = 0; i < numData; i++) {
-            if (dataMatrix[i] != NULL) EG_free(dataMatrix[i]);
+            if (dataMatrix[i] != NULL) AIM_FREE(dataMatrix[i]);
         }
-        EG_free(dataMatrix);
+        AIM_FREE(dataMatrix);
     }
 
-    if (dataVector != NULL) EG_free(dataVector);
+    if (dataVector != NULL) AIM_FREE(dataVector);
 
     return status;
 }
@@ -2932,7 +3534,7 @@ void aimCleanup(void *instStore)
     if (status != CAPS_SUCCESS)
         printf("Error: Status %d during clean up of instance\n", status);
 
-    EG_free(nastranInstance);
+    AIM_FREE(nastranInstance);
 }
 
 
@@ -2952,7 +3554,7 @@ int aimDiscr(char *tname, capsDiscr *discr)
 
     // Check and generate/retrieve the mesh
     status = checkAndCreateMesh(discr->aInfo, nastranInstance);
-    if (status != CAPS_SUCCESS) goto cleanup;
+    AIM_STATUS(discr->aInfo, status);
 
     AIM_ALLOC(tess, nastranInstance->numMesh, ego, discr->aInfo, status);
     for (i = 0; i < nastranInstance->numMesh; i++) {
@@ -2960,7 +3562,7 @@ int aimDiscr(char *tname, capsDiscr *discr)
     }
 
     status = mesh_fillDiscr(tname, &nastranInstance->attrMap, nastranInstance->numMesh, tess, discr);
-    if (status != CAPS_SUCCESS) goto cleanup;
+    AIM_STATUS(discr->aInfo, status);
 
 #ifdef DEBUG
     printf(" nastranAIM/aimDiscr: Instance = %d, Finished!!\n", iIndex);
@@ -2982,7 +3584,7 @@ int aimTransfer(capsDiscr *discr, const char *dataName, int numPoint,
                 int dataRank, double *dataVal, /*@unused@*/ char **units)
 {
 
-    /*! \page dataTransferNastran Nastran Data Transfer
+    /*! \page dataTransferNastran AIM Data Transfer
      *
      * The Nastran AIM has the ability to transfer displacements and eigenvectors from the AIM and pressure
      * distributions to the AIM using the conservative and interpolative data transfer schemes in CAPS.
@@ -3029,8 +3631,9 @@ int aimTransfer(capsDiscr *discr, const char *dataName, int numPoint,
     int globalNodeID;
 
     // Filename stuff
+    size_t stringLength;
     char *filename = NULL;
-    FILE *fp; // File pointer
+    FILE *fp=NULL; // File pointer
 
 #ifdef DEBUG
     printf(" nastranAIM/aimTransfer name = %s  npts = %d/%d!\n",
@@ -3049,21 +3652,20 @@ int aimTransfer(capsDiscr *discr, const char *dataName, int numPoint,
         return CAPS_NOTFOUND;
     }
 
-    filename = (char *) EG_alloc((strlen(nastranInstance->projectName) +
-                                  strlen(extF06) + 1)*sizeof(char));
-    if (filename == NULL) return EGADS_MALLOC;
-    sprintf(filename,"%s%s", nastranInstance->projectName, extF06);
+    stringLength = strlen(nastranInstance->projectName) + strlen(extF06) + 1;
+    AIM_ALLOC(filename, stringLength, char, discr->aInfo, status);
+
+    snprintf(filename,stringLength,"%s%s", nastranInstance->projectName, extF06);
 
     // Open file
     fp = aim_fopen(discr->aInfo, filename, "r");
     if (fp == NULL) {
         printf("Unable to open file: %s\n", filename);
-        if (filename != NULL) EG_free(filename);
+        AIM_FREE(filename);
         return CAPS_IOERR;
     }
 
-    if (filename != NULL) EG_free(filename);
-    filename = NULL;
+    AIM_FREE(filename);
 
     if (strcasecmp(dataName, "Displacement") == 0) {
 
@@ -3143,10 +3745,7 @@ int aimTransfer(capsDiscr *discr, const char *dataName, int numPoint,
         }
 
     }
-    if (dataMatrix == NULL) {
-        status = CAPS_NULLVALUE;
-        goto cleanup;
-    }
+    AIM_NOTNULL(dataMatrix, discr->aInfo, status);
 
     for (i = 0; i < numPoint; i++) {
 
@@ -3157,7 +3756,7 @@ int aimTransfer(capsDiscr *discr, const char *dataName, int numPoint,
         if (strcasecmp(dataName, "Displacement") == 0) {
 
             for (dataPoint = 0; dataPoint < numGridPoint; dataPoint++) {
-                if ((int) dataMatrix[dataPoint][0] ==  globalNodeID) break;
+                if ((int) dataMatrix[dataPoint][0] == globalNodeID) break;
             }
 
             if (dataPoint == numGridPoint) {
@@ -3208,9 +3807,9 @@ cleanup:
         else if (strncmp(dataName, "EigenVector", 11) == 0) j = numEigenVector;
 
         for (i = 0; i < j; i++) {
-            if (dataMatrix[i] != NULL) EG_free(dataMatrix[i]);
+            AIM_FREE(dataMatrix[i]);
         }
-        EG_free(dataMatrix);
+        AIM_FREE(dataMatrix);
     }
 
     return status;
@@ -3220,7 +3819,7 @@ cleanup:
 void aimFreeDiscrPtr(void *ptr)
 {
     // Extra information to store into the discr void pointer - just a int array
-    EG_free(ptr);
+    AIM_FREE(ptr);
 }
 
 

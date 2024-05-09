@@ -1,0 +1,18 @@
+# ganged_udf_2
+# written by John Dannenhoffer
+
+# spine
+CYLINDER  -5.0  0.0  0.0  5.0  0.0  0.0  0.5
+   ATTRIBUTE _color $red
+
+# ten trunks
+PATBEG    itrunk  10
+   SET    X       itrunk-5.5
+   CYLINDER  X  -5.0  0  X  +5.0  0  0.3
+   ATTRIBUTE _color $green
+PATEND
+
+# subtract the ten trunks from the spine in one operation
+UDPRIM    ganged   op  $SUBTRACT
+
+END

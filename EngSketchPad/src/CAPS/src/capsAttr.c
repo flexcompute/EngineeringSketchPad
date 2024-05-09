@@ -3,7 +3,7 @@
  *
  *             Attribute Functions
  *
- *      Copyright 2014-2022, Massachusetts Institute of Technology
+ *      Copyright 2014-2024, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -22,24 +22,26 @@ extern int  caps_makeValueX(capsObject *pobject, const char *vname,
                             int ncol, const void *data, /*@null@*/ int *partial,
                             /*@null@*/ const char *units, capsObject **vobj);
 extern int  caps_writeObject(capsObject *object);
-extern void caps_jrnlWrite(int funID, capsProblem *problem, capsObject *obj,
-                           int status, int nargs, capsJrnl *args, CAPSLONG sNm0,
-                           CAPSLONG sNum);
+extern int  capsInputSum(int nargs, capsJrnl *args, CAPSLONG *md5);
+extern void caps_jrnlWrite(int funID, CAPSLONG *md5, capsProblem *problem,
+                           capsObject *obj, int status, int nargs,
+                           capsJrnl *args, CAPSLONG sNm0, CAPSLONG sNum);
 extern int  caps_jrnlEnd(capsProblem *problem);
-extern int  caps_jrnlRead(int funID, capsProblem *problem, capsObject *obj,
-                          int nargs, capsJrnl *args, CAPSLONG *sNum, int *stat);
+extern int  caps_jrnlRead(int funID, CAPSLONG *md5, capsProblem *problem,
+                          capsObject *obj, int nargs, capsJrnl *args,
+                          CAPSLONG *sNum, int *stat);
 
 
 int
 caps_attrByName(capsObject *cobj, char *name, capsObject **attr)
 {
   int            i, status, ret, atype, len, nrow, ncol;
-  CAPSLONG       sNum;
+  CAPSLONG       sNum, md5[2];
   const void     *data;
   enum capsvType type;
   capsObject     *object, *pobject;
   capsProblem    *problem;
-  capsJrnl       args[1];
+  capsJrnl       args[2];
 
   *attr = NULL;
   if (cobj              == NULL)         return CAPS_NULLOBJ;
@@ -54,8 +56,15 @@ caps_attrByName(capsObject *cobj, char *name, capsObject **attr)
     if (strcmp(name, cobj->attrs->attrs[i].name) == 0) break;
   if (i == cobj->attrs->nattrs) return CAPS_NOTFOUND;
   
-  args[0].type = jObject;
-  status = caps_jrnlRead(CAPS_ATTRBYNAME, problem, *attr, 1, args, &sNum, &ret);
+  args[0].type           = jObject;
+  args[0].members.obj    = cobj;
+  args[1].type           = jString;
+  args[1].members.string = name;
+  status = capsInputSum(2, args, md5);
+  if (status != CAPS_SUCCESS) return status;
+
+  status = caps_jrnlRead(CAPS_ATTRBYNAME, md5, problem, *attr, 1, args, &sNum,
+                         &ret);
   if (status == CAPS_JOURNALERR) return status;
   if (status == CAPS_JOURNAL) {
     if (ret == CAPS_SUCCESS) *attr = args[0].members.obj;
@@ -95,7 +104,7 @@ caps_attrByName(capsObject *cobj, char *name, capsObject **attr)
   if (status == CAPS_SUCCESS) *attr = object;
 
   args[0].members.obj = *attr;
-  caps_jrnlWrite(CAPS_ATTRBYNAME, problem, *attr, status, 1, args, sNum,
+  caps_jrnlWrite(CAPS_ATTRBYNAME, md5, problem, *attr, status, 1, args, sNum,
                  problem->sNum);
   
   return status;
@@ -106,12 +115,12 @@ int
 caps_attrByIndex(capsObject *cobj, int in, capsObject **attr)
 {
   int            i, status, ret, atype, len, nrow, ncol;
-  CAPSLONG       sNum;
+  CAPSLONG       sNum, md5[2];
   const void     *data;
   enum capsvType type;
   capsObject     *object, *pobject;
   capsProblem    *problem;
-  capsJrnl       args[1];
+  capsJrnl       args[2];
   
   *attr = NULL;
   if (cobj              == NULL)              return CAPS_NULLOBJ;
@@ -122,8 +131,15 @@ caps_attrByIndex(capsObject *cobj, int in, capsObject **attr)
   if (status            != CAPS_SUCCESS)      return status;
   problem = (capsProblem *) pobject->blind;
   
-  args[0].type = jObject;
-  status = caps_jrnlRead(CAPS_ATTRBYINDEX, problem, *attr, 1, args, &sNum, &ret);
+  args[0].type            = jObject;
+  args[0].members.obj     = cobj;
+  args[1].type            = jInteger;
+  args[1].members.integer = in;
+  status = capsInputSum(2, args, md5);
+  if (status != CAPS_SUCCESS) return status;
+
+  status = caps_jrnlRead(CAPS_ATTRBYINDEX, md5, problem, *attr, 1, args, &sNum,
+                         &ret);
   if (status == CAPS_JOURNALERR) return status;
   if (status == CAPS_JOURNAL) {
     if (ret == CAPS_SUCCESS) *attr = args[0].members.obj;
@@ -164,7 +180,7 @@ caps_attrByIndex(capsObject *cobj, int in, capsObject **attr)
   if (status == CAPS_SUCCESS) *attr = object;
 
   args[0].members.obj = *attr;
-  caps_jrnlWrite(CAPS_ATTRBYINDEX, problem, *attr, status, 1, args, sNum,
+  caps_jrnlWrite(CAPS_ATTRBYINDEX, md5, problem, *attr, status, 1, args, sNum,
                  problem->sNum);
   
   return status;

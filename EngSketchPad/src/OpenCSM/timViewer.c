@@ -9,7 +9,7 @@
  */
 
 /*
- * Copyright (C) 2013/2022  John F. Dannenhoffer, III (Syracuse University)
+ * Copyright (C) 2013/2024  John F. Dannenhoffer, III (Syracuse University)
  *
  * This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
@@ -33,8 +33,6 @@
 #include <string.h>
 #include <math.h>
 
-#include "egads.h"
-#include "common.h"
 #include "OpenCSM.h"
 #include "caps.h"
 #include "tim.h"
@@ -49,7 +47,7 @@
 #define TESS_PARAM_1      0.0075
 #define TESS_PARAM_2      20.0
 
-static void       addToSgMetaData(int *sgMetaDataUsed, int sgMetaDataSize, char sgMetaData[], char format[], ...);
+static void       addToSgMetaData(int *sgMetaDataUsed, int *sgMetaDataSize, char *sgMetaData[], char format[], ...);
 static int        buildSceneGraphAIM(esp_T *ESP, char aimName[]);
 static int        buildSceneGraphBOUND(esp_T *esp, char boundName[], char aimName[], char dataName[]);
 static int        buildSceneGraphMODL(esp_T *ESP);
@@ -60,8 +58,6 @@ static void       spec_col(float scalar, float out[]);
 /* macros (including those that go along with common.h)                */
 /*                                                                     */
 /***********************************************************************/
-
-static void *realloc_temp=NULL;            /* used by RALLOC macro */
 
 #define  RED(COLOR)      (float)(COLOR / 0x10000        ) / (float)(255)
 #define  GREEN(COLOR)    (float)(COLOR / 0x00100 % 0x100) / (float)(255)
@@ -231,7 +227,7 @@ timMesg(esp_T *ESP,                     /* (in)  pointer to ESP structure */
         buildSceneGraphAIM(ESP, arg1);
 
         FREE(arg1);
-        
+
         /* automatically hold ESP if "nohold" is not given */
         if (arg2 != NULL && strncmp(arg2, "nohold", 6) != 0) {
             tim_hold("pyscript", "viewer");
@@ -493,7 +489,7 @@ buildSceneGraphMODL(esp_T  *ESP)
     sgMetaData[ 0] = '\0';
     sgMetaDataUsed = 0;
 
-    addToSgMetaData(&sgMetaDataUsed, sgMetaDataSize, sgMetaData, "sgData|{");
+    addToSgMetaData(&sgMetaDataUsed, &sgMetaDataSize, &sgMetaData, "sgData|{");
 
     /* loop through the Bodys */
     for (ibody = 1; ibody <= MODL->nbody; ibody++) {
@@ -545,9 +541,9 @@ buildSceneGraphMODL(esp_T  *ESP)
 
         /* add Node to meta data (if there is room) */
         if (nattr > 0) {
-            addToSgMetaData(&sgMetaDataUsed, sgMetaDataSize, sgMetaData, "\"%s\":[", gpname);
+            addToSgMetaData(&sgMetaDataUsed, &sgMetaDataSize, &sgMetaData, "\"%s\":[", gpname);
         } else {
-            addToSgMetaData(&sgMetaDataUsed, sgMetaDataSize, sgMetaData, "\"%s\":[\"body\",\"%d\"", gpname, ibody);
+            addToSgMetaData(&sgMetaDataUsed, &sgMetaDataSize, &sgMetaData, "\"%s\":[\"body\",\"%d\"", gpname, ibody);
         }
 
         for (iattr = 1; iattr <= nattr; iattr++) {
@@ -559,29 +555,37 @@ buildSceneGraphMODL(esp_T  *ESP)
 
             if (attrType == ATTRCSYS) continue;
 
-            addToSgMetaData(&sgMetaDataUsed, sgMetaDataSize, sgMetaData, "\"%s\",\"", attrName);
+            addToSgMetaData(&sgMetaDataUsed, &sgMetaDataSize, &sgMetaData, "\"%s\",\"", attrName);
 
             if        (attrType == ATTRINT) {
                 for (i = 0; i < attrLen ; i++) {
-                    addToSgMetaData(&sgMetaDataUsed, sgMetaDataSize, sgMetaData, " %d", tempIlist[i]);
+                    addToSgMetaData(&sgMetaDataUsed, &sgMetaDataSize, &sgMetaData, " %d", tempIlist[i]);
                 }
             } else if (attrType == ATTRREAL) {
                 for (i = 0; i < attrLen ; i++) {
-                    addToSgMetaData(&sgMetaDataUsed, sgMetaDataSize, sgMetaData, " %f", tempRlist[i]);
+                    addToSgMetaData(&sgMetaDataUsed, &sgMetaDataSize, &sgMetaData, " %f", tempRlist[i]);
                 }
             } else if (attrType == ATTRSTRING) {
-                addToSgMetaData(&sgMetaDataUsed, sgMetaDataSize, sgMetaData, " %s ", tempClist);
+                addToSgMetaData(&sgMetaDataUsed, &sgMetaDataSize, &sgMetaData, " %s ", tempClist);
             }
 
-            addToSgMetaData(&sgMetaDataUsed, sgMetaDataSize, sgMetaData, "\",");
+            addToSgMetaData(&sgMetaDataUsed, &sgMetaDataSize, &sgMetaData, "\",");
         }
         sgMetaDataUsed--;
-        addToSgMetaData(&sgMetaDataUsed, sgMetaDataSize, sgMetaData, "],");
+        addToSgMetaData(&sgMetaDataUsed, &sgMetaDataSize, &sgMetaData, "],");
 
-        if (MODL->body[ibody].eetess == NULL) {
+        if         (MODL->body[ibody].eetess != NULL) {
+            etess = MODL->body[ibody].eetess;
+        } else if  (MODL->body[ibody].etess  != NULL) {
             etess = MODL->body[ibody].etess;
         } else {
-            etess = MODL->body[ibody].eetess;
+            status = ocsmTessellate(MODL, ibody);
+            if (status == EGADS_SUCCESS) {
+                etess = MODL->body[ibody].etess;
+            } else {
+                SPRINT2(0, "ERROR:: ocsmTessellate(%d) -> status=%d", ibody, status);
+                continue;
+            }
         }
 
         /* loop through the Faces within the current Body */
@@ -905,9 +909,9 @@ buildSceneGraphMODL(esp_T  *ESP)
 
             /* add Face to meta data (if there is room) */
             if (nattr > 0) {
-                addToSgMetaData(&sgMetaDataUsed, sgMetaDataSize, sgMetaData, "\"%s\":[",  gpname);
+                addToSgMetaData(&sgMetaDataUsed, &sgMetaDataSize, &sgMetaData, "\"%s\":[",  gpname);
             } else {
-                addToSgMetaData(&sgMetaDataUsed, sgMetaDataSize, sgMetaData, "\"%s\":[]", gpname);
+                addToSgMetaData(&sgMetaDataUsed, &sgMetaDataSize, &sgMetaData, "\"%s\":[]", gpname);
             }
 
             for (iattr = 1; iattr <= nattr; iattr++) {
@@ -919,24 +923,24 @@ buildSceneGraphMODL(esp_T  *ESP)
 
                 if (attrType == ATTRCSYS) continue;
 
-                addToSgMetaData(&sgMetaDataUsed, sgMetaDataSize, sgMetaData, "\"%s\",\"", attrName);
+                addToSgMetaData(&sgMetaDataUsed, &sgMetaDataSize, &sgMetaData, "\"%s\",\"", attrName);
 
                 if        (attrType == ATTRINT) {
                     for (i = 0; i < attrLen ; i++) {
-                        addToSgMetaData(&sgMetaDataUsed, sgMetaDataSize, sgMetaData, " %d", tempIlist[i]);
+                        addToSgMetaData(&sgMetaDataUsed, &sgMetaDataSize, &sgMetaData, " %d", tempIlist[i]);
                     }
                 } else if (attrType == ATTRREAL) {
                     for (i = 0; i < attrLen ; i++) {
-                        addToSgMetaData(&sgMetaDataUsed, sgMetaDataSize, sgMetaData, " %f", tempRlist[i]);
+                        addToSgMetaData(&sgMetaDataUsed, &sgMetaDataSize, &sgMetaData, " %f", tempRlist[i]);
                     }
                 } else if (attrType == ATTRSTRING) {
-                    addToSgMetaData(&sgMetaDataUsed, sgMetaDataSize, sgMetaData, " %s ", tempClist);
+                    addToSgMetaData(&sgMetaDataUsed, &sgMetaDataSize, &sgMetaData, " %s ", tempClist);
                 }
 
-                addToSgMetaData(&sgMetaDataUsed, sgMetaDataSize, sgMetaData, "\",");
+                addToSgMetaData(&sgMetaDataUsed, &sgMetaDataSize, &sgMetaData, "\",");
             }
             sgMetaDataUsed--;
-            addToSgMetaData(&sgMetaDataUsed, sgMetaDataSize, sgMetaData, "],");
+            addToSgMetaData(&sgMetaDataUsed, &sgMetaDataSize, &sgMetaData, "],");
         }
 
         /* loop through the Edges within the current Body */
@@ -1057,9 +1061,9 @@ buildSceneGraphMODL(esp_T  *ESP)
 
             /* add Edge to meta data (if there is room) */
             if (nattr > 0) {
-                addToSgMetaData(&sgMetaDataUsed, sgMetaDataSize, sgMetaData, "\"%s\":[",  gpname);
+                addToSgMetaData(&sgMetaDataUsed, &sgMetaDataSize, &sgMetaData, "\"%s\":[",  gpname);
             } else {
-                addToSgMetaData(&sgMetaDataUsed, sgMetaDataSize, sgMetaData, "\"%s\":[]", gpname);
+                addToSgMetaData(&sgMetaDataUsed, &sgMetaDataSize, &sgMetaData, "\"%s\":[]", gpname);
             }
 
             for (iattr = 1; iattr <= nattr; iattr++) {
@@ -1071,24 +1075,24 @@ buildSceneGraphMODL(esp_T  *ESP)
 
                 if (attrType == ATTRCSYS) continue;
 
-                addToSgMetaData(&sgMetaDataUsed, sgMetaDataSize, sgMetaData, "\"%s\",\"", attrName);
+                addToSgMetaData(&sgMetaDataUsed, &sgMetaDataSize, &sgMetaData, "\"%s\",\"", attrName);
 
                 if        (attrType == ATTRINT) {
                     for (i = 0; i < attrLen ; i++) {
-                        addToSgMetaData(&sgMetaDataUsed, sgMetaDataSize, sgMetaData, " %d", tempIlist[i]);
+                        addToSgMetaData(&sgMetaDataUsed, &sgMetaDataSize, &sgMetaData, " %d", tempIlist[i]);
                     }
                 } else if (attrType == ATTRREAL) {
                     for (i = 0; i < attrLen ; i++) {
-                        addToSgMetaData(&sgMetaDataUsed, sgMetaDataSize, sgMetaData, " %f", tempRlist[i]);
+                        addToSgMetaData(&sgMetaDataUsed, &sgMetaDataSize, &sgMetaData, " %f", tempRlist[i]);
                     }
                 } else if (attrType == ATTRSTRING) {
-                    addToSgMetaData(&sgMetaDataUsed, sgMetaDataSize, sgMetaData, " %s ", tempClist);
+                    addToSgMetaData(&sgMetaDataUsed, &sgMetaDataSize, &sgMetaData, " %s ", tempClist);
                 }
 
-                addToSgMetaData(&sgMetaDataUsed, sgMetaDataSize, sgMetaData, "\",");
+                addToSgMetaData(&sgMetaDataUsed, &sgMetaDataSize, &sgMetaData, "\",");
             }
             sgMetaDataUsed--;
-            addToSgMetaData(&sgMetaDataUsed, sgMetaDataSize, sgMetaData, "],");
+            addToSgMetaData(&sgMetaDataUsed, &sgMetaDataSize, &sgMetaData, "],");
         }
 
         /* loop through the Nodes within the current Body */
@@ -1162,9 +1166,9 @@ buildSceneGraphMODL(esp_T  *ESP)
 
             /* add Node to meta data (if there is room) */
             if (nattr > 0) {
-                addToSgMetaData(&sgMetaDataUsed, sgMetaDataSize, sgMetaData, "\"%s\":[",  gpname);
+                addToSgMetaData(&sgMetaDataUsed, &sgMetaDataSize, &sgMetaData, "\"%s\":[",  gpname);
             } else {
-                addToSgMetaData(&sgMetaDataUsed, sgMetaDataSize, sgMetaData, "\"%s\":[]", gpname);
+                addToSgMetaData(&sgMetaDataUsed, &sgMetaDataSize, &sgMetaData, "\"%s\":[]", gpname);
             }
 
             for (iattr = 1; iattr <= nattr; iattr++) {
@@ -1176,24 +1180,24 @@ buildSceneGraphMODL(esp_T  *ESP)
 
                 if (attrType == ATTRCSYS) continue;
 
-                addToSgMetaData(&sgMetaDataUsed, sgMetaDataSize, sgMetaData, "\"%s\",\"", attrName);
+                addToSgMetaData(&sgMetaDataUsed, &sgMetaDataSize, &sgMetaData, "\"%s\",\"", attrName);
 
                 if        (attrType == ATTRINT) {
                     for (i = 0; i < attrLen ; i++) {
-                        addToSgMetaData(&sgMetaDataUsed, sgMetaDataSize, sgMetaData, " %d", tempIlist[i]);
+                        addToSgMetaData(&sgMetaDataUsed, &sgMetaDataSize, &sgMetaData, " %d", tempIlist[i]);
                     }
                 } else if (attrType == ATTRREAL) {
                     for (i = 0; i < attrLen ; i++) {
-                        addToSgMetaData(&sgMetaDataUsed, sgMetaDataSize, sgMetaData, " %f", tempRlist[i]);
+                        addToSgMetaData(&sgMetaDataUsed, &sgMetaDataSize, &sgMetaData, " %f", tempRlist[i]);
                     }
                 } else if (attrType == ATTRSTRING) {
-                    addToSgMetaData(&sgMetaDataUsed, sgMetaDataSize, sgMetaData, " %s ", tempClist);
+                    addToSgMetaData(&sgMetaDataUsed, &sgMetaDataSize, &sgMetaData, " %s ", tempClist);
                 }
 
-                addToSgMetaData(&sgMetaDataUsed, sgMetaDataSize, sgMetaData, "\",");
+                addToSgMetaData(&sgMetaDataUsed, &sgMetaDataSize, &sgMetaData, "\",");
             }
             sgMetaDataUsed--;
-            addToSgMetaData(&sgMetaDataUsed, sgMetaDataSize, sgMetaData, "],");
+            addToSgMetaData(&sgMetaDataUsed, &sgMetaDataSize, &sgMetaData, "],");
         }
 
         /* loop through the Csystems associated with the current Body */
@@ -1277,7 +1281,7 @@ buildSceneGraphMODL(esp_T  *ESP)
             }
 
             /* add Csystem to meta data (if there is room) */
-            addToSgMetaData(&sgMetaDataUsed, sgMetaDataSize, sgMetaData, "\"%s\":[],", gpname);
+            addToSgMetaData(&sgMetaDataUsed, &sgMetaDataSize, &sgMetaData, "\"%s\":[],", gpname);
         }
     }
 
@@ -1325,7 +1329,7 @@ buildSceneGraphMODL(esp_T  *ESP)
 
     /* finish the scene graph meta data */
     sgMetaDataUsed--;
-    addToSgMetaData(&sgMetaDataUsed, sgMetaDataSize, sgMetaData, "}");
+    addToSgMetaData(&sgMetaDataUsed, &sgMetaDataSize, &sgMetaData, "}");
 
     /* send the scene graph meta data if it has not already been sent */
     if (STRLEN(sgMetaData) > 0) {
@@ -1506,7 +1510,7 @@ buildSceneGraphAIM(esp_T  *ESP,
     sgMetaData[ 0] = '\0';
     sgMetaDataUsed = 0;
 
-    addToSgMetaData(&sgMetaDataUsed, sgMetaDataSize, sgMetaData, "sgData|{");
+    addToSgMetaData(&sgMetaDataUsed, &sgMetaDataSize, &sgMetaData, "sgData|{");
 
     /* loop through the Bodys */
     for (ibody = 1; ibody <= nbody; ibody++) {
@@ -1537,9 +1541,9 @@ buildSceneGraphAIM(esp_T  *ESP,
 
         /* add Node to meta data (if there is room) */
         if (nattr > 0) {
-            addToSgMetaData(&sgMetaDataUsed, sgMetaDataSize, sgMetaData, "\"%s\":[", gpname);
+            addToSgMetaData(&sgMetaDataUsed, &sgMetaDataSize, &sgMetaData, "\"%s\":[", gpname);
         } else {
-            addToSgMetaData(&sgMetaDataUsed, sgMetaDataSize, sgMetaData, "\"%s\":[\"body\",\"%d\"", gpname, ibody);
+            addToSgMetaData(&sgMetaDataUsed, &sgMetaDataSize, &sgMetaData, "\"%s\":[\"body\",\"%d\"", gpname, ibody);
         }
 
         for (iattr = 1; iattr <= nattr; iattr++) {
@@ -1551,24 +1555,24 @@ buildSceneGraphAIM(esp_T  *ESP,
 
             if (attrType == ATTRCSYS) continue;
 
-            addToSgMetaData(&sgMetaDataUsed, sgMetaDataSize, sgMetaData, "\"%s\",\"", attrName);
+            addToSgMetaData(&sgMetaDataUsed, &sgMetaDataSize, &sgMetaData, "\"%s\",\"", attrName);
 
             if        (attrType == ATTRINT) {
                 for (i = 0; i < attrLen ; i++) {
-                    addToSgMetaData(&sgMetaDataUsed, sgMetaDataSize, sgMetaData, " %d", tempIlist[i]);
+                    addToSgMetaData(&sgMetaDataUsed, &sgMetaDataSize, &sgMetaData, " %d", tempIlist[i]);
                 }
             } else if (attrType == ATTRREAL) {
                 for (i = 0; i < attrLen ; i++) {
-                    addToSgMetaData(&sgMetaDataUsed, sgMetaDataSize, sgMetaData, " %f", tempRlist[i]);
+                    addToSgMetaData(&sgMetaDataUsed, &sgMetaDataSize, &sgMetaData, " %f", tempRlist[i]);
                 }
             } else if (attrType == ATTRSTRING) {
-                addToSgMetaData(&sgMetaDataUsed, sgMetaDataSize, sgMetaData, " %s ", tempClist);
+                addToSgMetaData(&sgMetaDataUsed, &sgMetaDataSize, &sgMetaData, " %s ", tempClist);
             }
 
-            addToSgMetaData(&sgMetaDataUsed, sgMetaDataSize, sgMetaData, "\",");
+            addToSgMetaData(&sgMetaDataUsed, &sgMetaDataSize, &sgMetaData, "\",");
         }
         sgMetaDataUsed--;
-        addToSgMetaData(&sgMetaDataUsed, sgMetaDataSize, sgMetaData, "],");
+        addToSgMetaData(&sgMetaDataUsed, &sgMetaDataSize, &sgMetaData, "],");
 
         etess = NULL;
 
@@ -1929,9 +1933,9 @@ buildSceneGraphAIM(esp_T  *ESP,
 
             /* add Face to meta data (if there is room) */
             if (nattr > 0) {
-                addToSgMetaData(&sgMetaDataUsed, sgMetaDataSize, sgMetaData, "\"%s\":[",  gpname);
+                addToSgMetaData(&sgMetaDataUsed, &sgMetaDataSize, &sgMetaData, "\"%s\":[",  gpname);
             } else {
-                addToSgMetaData(&sgMetaDataUsed, sgMetaDataSize, sgMetaData, "\"%s\":[]", gpname);
+                addToSgMetaData(&sgMetaDataUsed, &sgMetaDataSize, &sgMetaData, "\"%s\":[]", gpname);
             }
 
             for (iattr = 1; iattr <= nattr; iattr++) {
@@ -1943,24 +1947,24 @@ buildSceneGraphAIM(esp_T  *ESP,
 
                 if (attrType == ATTRCSYS) continue;
 
-                addToSgMetaData(&sgMetaDataUsed, sgMetaDataSize, sgMetaData, "\"%s\",\"", attrName);
+                addToSgMetaData(&sgMetaDataUsed, &sgMetaDataSize, &sgMetaData, "\"%s\",\"", attrName);
 
                 if        (attrType == ATTRINT) {
                     for (i = 0; i < attrLen ; i++) {
-                        addToSgMetaData(&sgMetaDataUsed, sgMetaDataSize, sgMetaData, " %d", tempIlist[i]);
+                        addToSgMetaData(&sgMetaDataUsed, &sgMetaDataSize, &sgMetaData, " %d", tempIlist[i]);
                     }
                 } else if (attrType == ATTRREAL) {
                     for (i = 0; i < attrLen ; i++) {
-                        addToSgMetaData(&sgMetaDataUsed, sgMetaDataSize, sgMetaData, " %f", tempRlist[i]);
+                        addToSgMetaData(&sgMetaDataUsed, &sgMetaDataSize, &sgMetaData, " %f", tempRlist[i]);
                     }
                 } else if (attrType == ATTRSTRING) {
-                    addToSgMetaData(&sgMetaDataUsed, sgMetaDataSize, sgMetaData, " %s ", tempClist);
+                    addToSgMetaData(&sgMetaDataUsed, &sgMetaDataSize, &sgMetaData, " %s ", tempClist);
                 }
 
-                addToSgMetaData(&sgMetaDataUsed, sgMetaDataSize, sgMetaData, "\",");
+                addToSgMetaData(&sgMetaDataUsed, &sgMetaDataSize, &sgMetaData, "\",");
             }
             sgMetaDataUsed--;
-            addToSgMetaData(&sgMetaDataUsed, sgMetaDataSize, sgMetaData, "],");
+            addToSgMetaData(&sgMetaDataUsed, &sgMetaDataSize, &sgMetaData, "],");
         }
 
         /* loop through the Edges within the current Body */
@@ -2069,9 +2073,9 @@ buildSceneGraphAIM(esp_T  *ESP,
 
             /* add Edge to meta data (if there is room) */
             if (nattr > 0) {
-                addToSgMetaData(&sgMetaDataUsed, sgMetaDataSize, sgMetaData, "\"%s\":[",  gpname);
+                addToSgMetaData(&sgMetaDataUsed, &sgMetaDataSize, &sgMetaData, "\"%s\":[",  gpname);
             } else {
-                addToSgMetaData(&sgMetaDataUsed, sgMetaDataSize, sgMetaData, "\"%s\":[]", gpname);
+                addToSgMetaData(&sgMetaDataUsed, &sgMetaDataSize, &sgMetaData, "\"%s\":[]", gpname);
             }
 
             for (iattr = 1; iattr <= nattr; iattr++) {
@@ -2083,24 +2087,24 @@ buildSceneGraphAIM(esp_T  *ESP,
 
                 if (attrType == ATTRCSYS) continue;
 
-                addToSgMetaData(&sgMetaDataUsed, sgMetaDataSize, sgMetaData, "\"%s\",\"", attrName);
+                addToSgMetaData(&sgMetaDataUsed, &sgMetaDataSize, &sgMetaData, "\"%s\",\"", attrName);
 
                 if        (attrType == ATTRINT) {
                     for (i = 0; i < attrLen ; i++) {
-                        addToSgMetaData(&sgMetaDataUsed, sgMetaDataSize, sgMetaData, " %d", tempIlist[i]);
+                        addToSgMetaData(&sgMetaDataUsed, &sgMetaDataSize, &sgMetaData, " %d", tempIlist[i]);
                     }
                 } else if (attrType == ATTRREAL) {
                     for (i = 0; i < attrLen ; i++) {
-                        addToSgMetaData(&sgMetaDataUsed, sgMetaDataSize, sgMetaData, " %f", tempRlist[i]);
+                        addToSgMetaData(&sgMetaDataUsed, &sgMetaDataSize, &sgMetaData, " %f", tempRlist[i]);
                     }
                 } else if (attrType == ATTRSTRING) {
-                    addToSgMetaData(&sgMetaDataUsed, sgMetaDataSize, sgMetaData, " %s ", tempClist);
+                    addToSgMetaData(&sgMetaDataUsed, &sgMetaDataSize, &sgMetaData, " %s ", tempClist);
                 }
 
-                addToSgMetaData(&sgMetaDataUsed, sgMetaDataSize, sgMetaData, "\",");
+                addToSgMetaData(&sgMetaDataUsed, &sgMetaDataSize, &sgMetaData, "\",");
             }
             sgMetaDataUsed--;
-            addToSgMetaData(&sgMetaDataUsed, sgMetaDataSize, sgMetaData, "],");
+            addToSgMetaData(&sgMetaDataUsed, &sgMetaDataSize, &sgMetaData, "],");
         }
 
         /* loop through the Nodes within the current Body */
@@ -2168,9 +2172,9 @@ buildSceneGraphAIM(esp_T  *ESP,
 
             /* add Node to meta data (if there is room) */
             if (nattr > 0) {
-                addToSgMetaData(&sgMetaDataUsed, sgMetaDataSize, sgMetaData, "\"%s\":[",  gpname);
+                addToSgMetaData(&sgMetaDataUsed, &sgMetaDataSize, &sgMetaData, "\"%s\":[",  gpname);
             } else {
-                addToSgMetaData(&sgMetaDataUsed, sgMetaDataSize, sgMetaData, "\"%s\":[]", gpname);
+                addToSgMetaData(&sgMetaDataUsed, &sgMetaDataSize, &sgMetaData, "\"%s\":[]", gpname);
             }
 
             for (iattr = 1; iattr <= nattr; iattr++) {
@@ -2182,24 +2186,24 @@ buildSceneGraphAIM(esp_T  *ESP,
 
                 if (attrType == ATTRCSYS) continue;
 
-                addToSgMetaData(&sgMetaDataUsed, sgMetaDataSize, sgMetaData, "\"%s\",\"", attrName);
+                addToSgMetaData(&sgMetaDataUsed, &sgMetaDataSize, &sgMetaData, "\"%s\",\"", attrName);
 
                 if        (attrType == ATTRINT) {
                     for (i = 0; i < attrLen ; i++) {
-                        addToSgMetaData(&sgMetaDataUsed, sgMetaDataSize, sgMetaData, " %d", tempIlist[i]);
+                        addToSgMetaData(&sgMetaDataUsed, &sgMetaDataSize, &sgMetaData, " %d", tempIlist[i]);
                     }
                 } else if (attrType == ATTRREAL) {
                     for (i = 0; i < attrLen ; i++) {
-                        addToSgMetaData(&sgMetaDataUsed, sgMetaDataSize, sgMetaData, " %f", tempRlist[i]);
+                        addToSgMetaData(&sgMetaDataUsed, &sgMetaDataSize, &sgMetaData, " %f", tempRlist[i]);
                     }
                 } else if (attrType == ATTRSTRING) {
-                    addToSgMetaData(&sgMetaDataUsed, sgMetaDataSize, sgMetaData, " %s ", tempClist);
+                    addToSgMetaData(&sgMetaDataUsed, &sgMetaDataSize, &sgMetaData, " %s ", tempClist);
                 }
 
-                addToSgMetaData(&sgMetaDataUsed, sgMetaDataSize, sgMetaData, "\",");
+                addToSgMetaData(&sgMetaDataUsed, &sgMetaDataSize, &sgMetaData, "\",");
             }
             sgMetaDataUsed--;
-            addToSgMetaData(&sgMetaDataUsed, sgMetaDataSize, sgMetaData, "],");
+            addToSgMetaData(&sgMetaDataUsed, &sgMetaDataSize, &sgMetaData, "],");
         }
 
         /* loop through the Csystems associated with the current Body */
@@ -2283,7 +2287,7 @@ buildSceneGraphAIM(esp_T  *ESP,
             }
 
             /* add Csystem to meta data (if there is room) */
-            addToSgMetaData(&sgMetaDataUsed, sgMetaDataSize, sgMetaData, "\"%s\":[],", gpname);
+            addToSgMetaData(&sgMetaDataUsed, &sgMetaDataSize, &sgMetaData, "\"%s\":[],", gpname);
         }
 
         if (enodes != NULL) EG_free(enodes);
@@ -2339,7 +2343,7 @@ buildSceneGraphAIM(esp_T  *ESP,
 
     /* finish the scene graph meta data */
     sgMetaDataUsed--;
-    addToSgMetaData(&sgMetaDataUsed, sgMetaDataSize, sgMetaData, "}");
+    addToSgMetaData(&sgMetaDataUsed, &sgMetaDataSize, &sgMetaData, "}");
 
     /* send the scene graph meta data if it has not already been sent */
     if (STRLEN(sgMetaData) > 0) {
@@ -2477,12 +2481,16 @@ buildSceneGraphBOUND(esp_T  *ESP,
     (void) caps_printErrors(NULL, nerror, errors);
     if (status != SUCCESS || nerror > 0 || rank != 3) {
         SPRINT3(0, "ERROR:: caps_getData(xyz) -> status=%d, rank=%d, nerror=%d", status, rank, nerror);
+        goto cleanup;
     }
+
+    SPLINT_CHECK_FOR_NULL(xyz);
 
     status = caps_getData(dsetObj, &npnt, &rank, &data, &units, &nerror, &errors);
     (void) caps_printErrors(NULL, nerror, errors);
     if (status != SUCCESS || nerror > 0) {
         SPRINT2(0, "ERROR:: caps_getData(data) -> status=%d, nerror=%d", status, nerror);
+        goto cleanup;
     }
 
     /* open the key */
@@ -2551,7 +2559,7 @@ buildSceneGraphBOUND(esp_T  *ESP,
     sgMetaData[ 0] = '\0';
     sgMetaDataUsed = 0;
 
-    addToSgMetaData(&sgMetaDataUsed, sgMetaDataSize, sgMetaData, "sgData|{");
+    addToSgMetaData(&sgMetaDataUsed, &sgMetaDataSize, &sgMetaData, "sgData|{");
 
     /* loop through the Faces within the current Body */
     ibody = 0;
@@ -2655,7 +2663,7 @@ buildSceneGraphBOUND(esp_T  *ESP,
         }
 
         sgMetaDataUsed--;
-        addToSgMetaData(&sgMetaDataUsed, sgMetaDataSize, sgMetaData, "],");
+        addToSgMetaData(&sgMetaDataUsed, &sgMetaDataSize, &sgMetaData, "],");
 
         /* we can have at most one link */
         if (ibody == 1) break;
@@ -2769,7 +2777,7 @@ buildSceneGraphBOUND(esp_T  *ESP,
 
     /* finish the scene graph meta data */
     sgMetaDataUsed--;
-    addToSgMetaData(&sgMetaDataUsed, sgMetaDataSize, sgMetaData, "}");
+    addToSgMetaData(&sgMetaDataUsed, &sgMetaDataSize, &sgMetaData, "}");
 
     /* send the scene graph meta data if it has not already been sent */
     if (STRLEN(sgMetaData) > 0) {
@@ -2812,13 +2820,14 @@ cleanup:
 
 static void
 addToSgMetaData(int   *sgMetaDataUsed,  /* (both)SG data used so far */
-                int    sgMetaDataSize,  /* (in)  size of SG meta data */
-                char   sgMetaData[],    /* (in)  SG meta data */
+                int   *sgMetaDataSize,  /* (both)size of SG meta data */
+                char  *sgMetaData[],    /* (both)SG meta data */
                 char   format[],        /* (in)  format specifier */
                  ...)                   /* (in)  variable arguments */
 {
     int      status=SUCCESS, newchars;
 
+    void     *realloc_temp = NULL;            /* used by RALLOC macro */
     va_list  args;
 
     ROUTINE(addToSgMetaData);
@@ -2826,15 +2835,15 @@ addToSgMetaData(int   *sgMetaDataUsed,  /* (both)SG data used so far */
     /* --------------------------------------------------------------- */
 
     /* make sure sgMetaData is big enough */
-    if ((*sgMetaDataUsed)+1024 >= sgMetaDataSize) {
-        sgMetaDataSize += 1024 + MAX_METADATA_CHUNK;
-        RALLOC(sgMetaData, char, sgMetaDataSize);
+    if ((*sgMetaDataUsed)+1024 >= *sgMetaDataSize) {
+        *sgMetaDataSize += 1024 + MAX_METADATA_CHUNK;
+        RALLOC(*sgMetaData, char, *sgMetaDataSize);
     }
 
     /* set up the va structure */
     va_start(args, format);
 
-    newchars = vsnprintf(sgMetaData+(*sgMetaDataUsed), 1024, format, args);
+    newchars = vsnprintf(*sgMetaData+(*sgMetaDataUsed), 1024, format, args);
     (*sgMetaDataUsed) += newchars;
 
     /* clean up the va structure */

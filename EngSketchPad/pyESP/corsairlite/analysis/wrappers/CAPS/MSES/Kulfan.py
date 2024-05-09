@@ -18,7 +18,7 @@ def msesRunKulfan_Alpha(Aupper,Alower,Mach,Re,Alpha,
                          Acrit = Acrit, Airfoil_Points = Airfoil_Points, GridAlpha = GridAlpha, 
                          Coarse_Iteration = Coarse_Iteration, Fine_Iteration = Fine_Iteration,
                          xTransition_Upper = xTransition_Upper, xTransition_Lower = xTransition_Lower,
-                         xGridRange = xGridRange, yGridRange = yGridRange, cleanup = cleanup, problemObj = None )
+                         xGridRange = xGridRange, yGridRange = yGridRange, cleanup = cleanup, problemObj = problemObj )
     
 def msesRunKulfan_CL(Aupper,Alower,Mach,Re,CL,
                          Acrit = None, Airfoil_Points = None, GridAlpha = None, 
@@ -33,7 +33,7 @@ def msesRunKulfan_CL(Aupper,Alower,Mach,Re,CL,
                          Acrit = Acrit, Airfoil_Points = Airfoil_Points, GridAlpha = GridAlpha, 
                          Coarse_Iteration = Coarse_Iteration, Fine_Iteration = Fine_Iteration,
                          xTransition_Upper = xTransition_Upper, xTransition_Lower = xTransition_Lower,
-                         xGridRange = xGridRange, yGridRange = yGridRange, cleanup = cleanup, problemObj = None )
+                         xGridRange = xGridRange, yGridRange = yGridRange, cleanup = cleanup, problemObj = problemObj )
 
 
 
@@ -55,10 +55,10 @@ def msesRunKulfan(Aupper,Alower,
     
     if problemObj is not None:
         myProblem = problemObj
-        try:
-            mses = problemObj.analysis.create(aim="msesAIM", name="mses")
-        except:
+        if "mses" in problemObj.analysis:
             mses = problemObj.analysis["mses"]
+        else:
+            mses = problemObj.analysis.create(aim="msesAIM", name="mses")
         problemObj.geometry.despmtr["aupper"].value = Aupper
         problemObj.geometry.despmtr["alower"].value = Alower
     else:
@@ -89,7 +89,6 @@ def msesRunKulfan(Aupper,Alower,
         f = open(geometryScript_path,'w')
         f.write(pstr)
         f.close()
-
         myProblem = pyCAPS.Problem(problemName=workDir, capsFile=geometryScript_path, outLevel=0)
         mses = myProblem.analysis.create(aim = "msesAIM")
 
@@ -141,6 +140,18 @@ def msesRunKulfan(Aupper,Alower,
     outputValues = {}
     outputDerivatives = {}
 
+    if problemObj is None:
+        runMSES = mses.output.CD
+        msesOutput = os.path.join(".",runDirectory,"Scratch","msesAIM0","msesOutput.txt")
+        f = open(msesOutput,'r')
+        outputText = f.read()
+        f.close()
+        outputLines = outputText.split('\n')
+        lastSection = '\n'.join(outputLines[-32:])
+        if 'Converged on tolerance' not in lastSection:
+            print('Case may not be converged')
+            print("Mach: %f CL: %f Re: %e Aupper: {} Alower: {}"%(Mach, CL, Re, Aupper, Alower))
+
     if Alpha is not None:
         outputValues["CL"]                = mses.output.CL
     if CL is not None:
@@ -183,8 +194,6 @@ def msesRunKulfan(Aupper,Alower,
         outputDerivatives["CM"]["aupper"]    = mses.output["CM"].deriv("aupper")
         outputDerivatives["CM"]["alower"]    = mses.output["CM"].deriv("alower")
 
-
-        # if Alpha is not None:
         outputDerivatives["CL"] = {}
         outputDerivatives["CL"]["Alpha"]     = mses.output["CL"].deriv("Alpha")
         outputDerivatives["CL"]["Mach"]      = mses.output["CL"].deriv("Mach")

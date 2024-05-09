@@ -1,0 +1,17 @@
+# cylinder_1
+# written by John Dannenhoffer
+
+# x-aligned cylinder (SolidBody)
+CYLINDER  2  0  0  5  0  0  1
+ASSERT    @itype  3
+
+SELECT    FACE   @nbody 1     # iford=1 in red
+ATTRIBUTE _color $red
+SELECT    FACE   @nbody 2     # iford=2 in green
+ATTRIBUTE _color $green
+SELECT    FACE   @nbody 3     # iford=3 in blue
+ATTRIBUTE _color $blue
+SELECT    FACE   @nbody 4     # iford=4 in cyan
+ATTRIBUTE _color $cyan
+
+END

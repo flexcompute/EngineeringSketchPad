@@ -1,0 +1,25 @@
+# skbeg_1
+# written by John Dannenhoffer
+
+# closed sketch (SheetBody)
+SKBEG     -4  0  0
+   LINSEG -2  0  0
+   LINSEG -3  1  0
+   LINSEG -4  0  0
+SKEND
+
+# closed sketch (WireBody because wirebody=1 on SKEND)
+SKBEG     -1  0  0
+   LINSEG  1  0  0
+   LINSEG  0  1  0
+   LINSEG -1  0  0
+SKEND  1
+
+# open sketch (WireBody)
+SKBEG      2  0  0
+   LINSEG  4  0  0
+   LINSEG  3  1  0
+SKEND
+
+END
+

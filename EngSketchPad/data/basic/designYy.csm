@@ -1,0 +1,14 @@
+# designYy
+# written by John Dannenhoffer
+
+DESPMTR   D   1.0
+DESPMTR   x0  0.5
+DESPMTR   y0  0.4
+DESPMTR   z0  0.3
+
+SKBEG     x0     y0     z0
+SKEND
+
+EXTRUDE   0  0  D
+
+END

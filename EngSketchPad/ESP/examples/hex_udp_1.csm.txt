@@ -1,0 +1,16 @@
+# hex_udp_1
+# written by John Dannenhoffer
+
+DIMENSION corners 8 3 0
+SET       corners "0.0; 0.0; 0.0; \
+                   1.0; 0.0; 0.0; \
+		   0.0; 1.0; 0.0; \
+		   1.0; 1.0; 0.0; \
+		   0.0; 0.0; 1.0; \
+		   1.0; 0.0; 1.0; \
+		   0.0; 1.0; 1.0; \
+		   1.0; 1.0; 1.0"
+
+UDPRIM    hex   corners  corners
+
+END

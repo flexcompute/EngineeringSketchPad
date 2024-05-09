@@ -1,0 +1,25 @@
+# slices_udf_2 (25 slices along y)
+# written by John Dannenhoffer
+
+# fuselage with rectangular swept wing
+CYLINDER  0  0  0  10  0  0  2
+
+MARK
+BOX       7 -8 -1/2   4  0  1
+BOX       1  0 -1/2   4  0  1
+BOX       7  8 -1/2   4  0  1
+RULE
+
+UNION
+STORE     theAirplane
+
+# show outline of theAirplane
+RESTORE   theAirplane
+ATTRIBUTE _name  $theAirplane
+ATTRIBUTE _viz   $off
+
+# generate the slices
+RESTORE   theAirplane
+UDPRIM    slices   nslice 25   dirn $y
+
+END

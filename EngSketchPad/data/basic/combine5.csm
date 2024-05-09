@@ -1,48 +1,12 @@
 # combine5
 # written by John Dannenhoffer
 
-mark
-   skbeg     -1  -1  -1
-      linseg  1  -1  -1
-      linseg  1   1  -1
-      linseg -1   1  -1
-      linseg -1  -1  -1
-   skend
+# make planar closed WireBodys that will produce a SheetBody
+BOX       0  0  0  1  0  0
+BOX       0  1  0  1  0  0
+BOX       0  0  0  0  1  0
+BOX       1  0  0  0  1  0
 
-   skbeg     -1  -1   1
-      linseg  1  -1   1
-      linseg  1   1   1
-      linseg -1   1   1
-      linseg -1  -1   1
-   skend
+COMBINE
 
-   skbeg     -1  -1  -1
-      linseg -1  -1   1
-      linseg  1  -1   1
-      linseg  1  -1  -1
-      linseg -1  -1  -1
-   skend
-
-   skbeg     -1   1  -1
-      linseg -1   1   1
-      linseg  1   1   1
-      linseg  1   1  -1
-      linseg -1   1  -1
-   skend
-
-   skbeg     -1  -1  -1
-      linseg -1   1  -1
-      linseg -1   1   1
-      linseg -1  -1   1
-      linseg -1  -1  -1
-   skend
-
-   skbeg      1  -1  -1
-      linseg  1   1  -1
-      linseg  1   1   1
-      linseg  1  -1   1
-      linseg  1  -1  -1
-   skend
-combine
-
-end
+END

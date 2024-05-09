@@ -284,3 +284,67 @@ int array_maxDoubleValue(int numRow, double *arr, int *index, double *value) {
         if (status != CAPS_SUCCESS) printf("\tPremature exit in array_maxDoubleValue, status = %d\n", status);
         return status;
 }
+
+// Remove duplicates in a integer array - if in2 == NULL, in1 is simply copied
+int array_removeIntegerDuplicate(int numIn1, int *in1, int numIn2, /*@null@*/ int *in2, int *numOut, int **out) {
+
+    int status = CAPS_SUCCESS;
+    int i, j, k;
+
+    int found;
+    int *array = NULL;
+
+    *numOut = 0;
+    *out = NULL;
+
+    if (in1 == NULL) return CAPS_NULLVALUE;
+
+    array = (int *) EG_alloc((numIn1+numIn2)*sizeof(int));
+    if (array == NULL) {
+        status = EGADS_MALLOC;
+        goto cleanup;
+    }
+
+    // Copy the first array
+    for (i = 0; i < numIn1; i++) {
+        array[i] = in1[i];
+    }
+
+    k = numIn1;
+
+    for (j = 0; j < numIn2; j++) {
+
+        found = (int) false;
+        for (i = 0; i < numIn1; i++) {
+
+            if (in2[j] == in1[i]) {
+                found = (int) true;
+                break;
+            }
+        }
+
+        if (found == (int) false) {
+            array[k] = in2[j];
+            k += 1;
+        }
+    }
+
+    if (k > 0) {
+        array = (int *) EG_reall(array, k*sizeof(int));
+        if (array == NULL) {
+            status = EGADS_MALLOC;
+            goto cleanup;
+        }
+    } else {
+        EG_free(array);
+        array = NULL;
+    }
+
+    *numOut = k;
+    *out = array;
+
+    cleanup:
+        if (status != CAPS_SUCCESS) printf("\tPremature exit in array_removeIntegerDuplicate, status = %d\n", status);
+        return status;
+
+}

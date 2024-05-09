@@ -69,22 +69,32 @@ $(function() {
 <div class="textblock"><p>Structure for the design variable tuple = ("DesignVariableRelation Name", "Value"). "DesignVariableRelation Name" defines the reference name for the design variable being specified. This string will be used in the FEA input directly. The "Value" must be a JSON String dictionary (see Section <a class="el" href="feaDesignVariableRelation.html#jsonStringDesignVariableRelation">JSON String Dictionary</a>).</p>
 <h1><a class="anchor" id="jsonStringDesignVariableRelation"></a>
 JSON String Dictionary</h1>
-<p>If "Value" is JSON string dictionary (eg. "Value" = {"variableType": "Property", "groupName": "plate", "fieldName": "TM"}) the following keywords ( = default values) may be used:</p>
+<p>If "Value" is JSON string dictionary (eg. "Value" = {"componentType": "Property", "componentName": "plate", "fieldName": "TM", "variableName": "MyDesVar"}) the following keywords ( = default values) may be used:</p>
 <ul>
 <li>
-<b>variableType = "Property"</b>  <br  />
- Type of design variable relation. Options: "Material", "Property", "Element". </li>
+<b>componentType = "Property"</b>  <br  />
+ The type of component for this design variable relation. Options: "Material", "Property", "Element". </li>
 </ul>
 <ul>
 <li>
-<b>groupName = "(no default)"</b>  <br  />
+<b>componentName = "(no default)"</b>  <br  />
+ Single or list of FEA Property(ies), or FEA Material name(s) linked to the design variable relation (e.g. "Name1" or ["Name1","Name2",...].<ul>
+<li>For <code>componentType</code> Property a <a class="el" href="feaProperty.html">FEA Property</a> name (or names) is given.</li>
+<li>For <code>componentType</code> Material a <a class="el" href="feaMaterial.html">FEA Material</a> name (or names) is given.</li>
+<li>For <code>componentType</code> Element a <code>capsGroup</code> Name (or names) is given. </li>
+</ul>
+</li>
+</ul>
+<ul>
+<li>
+<b>variableName = "(no default)"</b>  <br  />
  Single or list of names of design variables linked to this relation </li>
 </ul>
 <ul>
 <li>
 <b>fieldName = "(no default)"</b>  <br  />
  Fieldname of variable relation (e.g. "E" for Young's Modulus). Design Variable Relations can be defined as three types based on the <code>variableType</code> value. These are Material, Property, or Element. This means that an aspect of a material, property, or element input can change in the optimization problem. This input specifies what aspect of the Material, Property, or Element is changing.<ol type="1">
-<li><b> Material Types</b> Selected based on the material type (see <a class="el" href="feaMaterial.html">FEA Material</a>, materialType) referenced in the <code>groupName</code> above.<ul>
+<li><b> Material Types</b> Selected based on the material type (see <a class="el" href="feaMaterial.html">FEA Material</a>, materialType) referenced in the <code>componentName</code> above.<ul>
 <li><code><b> MAT1</b>, materialType = "Isotropic" </code><ul>
 <li>"E", "G", "NU", "RHO", "A"</li>
 </ul>
@@ -117,7 +127,7 @@ JSON String Dictionary</h1>
 <li>"A", "I1", "I2", "J"</li>
 </ul>
 </li>
-<li><code><b> PSHELL</b> </code><code>propertyType = "Shell"</code><ul>
+<li><code><b> PSHELL</b> </code> <code>propertyType = "Shell"</code><ul>
 <li>"T"</li>
 </ul>
 </li>
@@ -125,7 +135,7 @@ JSON String Dictionary</h1>
 <li>"T1", "THETA1", "T2", "THETA2", ... "Ti", "THETAi"</li>
 </ul>
 </li>
-<li><code><b> PSOLID</b> </code><code>propertyType = "Solid"</code><ul>
+<li><code><b> PSOLID</b> </code> <code>propertyType = "Solid"</code><ul>
 <li>not supported</li>
 </ul>
 </li>
@@ -154,13 +164,13 @@ JSON String Dictionary</h1>
 <ul>
 <li>
 <b>linearCoeff = 1.0</b>  <br  />
- Single or list of coefficients of linear relation. Must be same length as <code>groupName</code>. </li>
+ Single or list of coefficients of linear relation. Must be same length as <code>variableName</code>. </li>
 </ul>
 </div></div><!-- contents -->
 </div><!-- PageDoc -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Sat Jul 2 2022 10:12:44 for Nastran Analysis Interface Module (AIM) by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1
+Generated on Sat Apr 27 2024 16:51:38 for Nastran Analysis Interface Module (AIM) by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1
 </small></address>
 </body>
 </html>

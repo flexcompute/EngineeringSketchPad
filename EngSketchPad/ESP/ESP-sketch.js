@@ -1,7 +1,7 @@
 // ESP-sketch.js implements Sketcher functions for the Engineering Sketch Pad (ESP)
 // written by John Dannenhoffer and Bob Haimes
 
-// Copyright (C) 2010/2022  John F. Dannenhoffer, III (Syracuse University)
+// Copyright (C) 2010/2024  John F. Dannenhoffer, III (Syracuse University)
 //
 // This library is free software; you can redistribute it and/or
 //    modify it under the terms of the GNU Lesser General Public
@@ -975,9 +975,9 @@ sketch.keyPress = function (e) {
         var xold = sketch.scale * (wv.cursorX - sketch.xorig);
         var yold = sketch.scale * (sketch.yorig - wv.cursorY);
 
-        var xnew = prompt("Enter approximate X location at cursor: ", xold);
+        var xnew = prompt("Enter approximate X location at cursor ", xold);
         if (xnew !== null) {
-            var ynew = prompt("Enter approximate Y location at cursor: ", yold);
+            var ynew = prompt("Enter approximate Y location at cursor ", yold);
             if (ynew !== null) {
                 postMessage("Resetting scale based upon cursor location");
 
@@ -1348,7 +1348,7 @@ sketch.keyPress = function (e) {
                             if (ibest == 0 && sketch.relative == 1) {
                                 alert("X cannot be changed at first point if in relative mode");
                             } else {
-                                xvalue = prompt("Enter x value: ", sketch.con.value[icon]);
+                                xvalue = prompt("Enter x value ", sketch.con.value[icon]);
                                 if (xvalue !== null) {
                                     sketch.con.value[icon] = xvalue;
                                 }
@@ -1358,7 +1358,7 @@ sketch.keyPress = function (e) {
                     }
                 } else {
                     if (sketch.scale === undefined && sketch.xorig === undefined) {
-                        xvalue = prompt("Enter x value: ");
+                        xvalue = prompt("Enter x value ");
                         if (xvalue !== null) {
                             for (var icon = 0; icon < ncon; icon++) {
                                 if (sketch.con.type[icon] == "X" && sketch.con.index1[icon] != ibest) {
@@ -1369,12 +1369,12 @@ sketch.keyPress = function (e) {
                             }
                         }
                     } else if (sketch.xorig === undefined) {
-                        xvalue = prompt("Enter x value: ");
+                        xvalue = prompt("Enter x value ");
                         if (xvalue !== null) {
                             sketch.xorig = sketch.pnt.x[ibest] + xvalue / sketch.scale;
                         }
                     } else if (sketch.scale === undefined) {
-                        xvalue = prompt("Enter x value: ");
+                        xvalue = prompt("Enter x value ");
                         if (xvalue !== null) {
                             for (var icon = 0; icon < ncon; icon++) {
                                 if (sketch.con.type[icon] == "X" && sketch.con.index1[icon] != ibest) {
@@ -1384,7 +1384,7 @@ sketch.keyPress = function (e) {
                             }
                         }
                     } else {
-                        xvalue = prompt("Enter x value: ", sketch.scale*(sketch.pnt.x[ibest]-sketch.xorig));
+                        xvalue = prompt("Enter x value ", sketch.scale*(sketch.pnt.x[ibest]-sketch.xorig));
                     }
 
                     if (xvalue !== null) {
@@ -1402,7 +1402,7 @@ sketch.keyPress = function (e) {
                         if (sketch.con.type[  icon] == "X" &&
                             sketch.con.index1[icon] == sketch.seg.ibeg[jbest] &&
                             sketch.con.index2[icon] == sketch.seg.iend[jbest]   ) {
-                            xvalue = prompt("Enter x value: ", sketch.con.value[icon]);
+                            xvalue = prompt("Enter x value ", sketch.con.value[icon]);
                             if (xvalue !== null) {
                                 sketch.con.value[icon] = xvalue;
                             }
@@ -1410,7 +1410,7 @@ sketch.keyPress = function (e) {
                         }
                     }
                 } else {
-                    xvalue = prompt("Enter x value: ");
+                    xvalue = prompt("Enter x value ");
                     if (xvalue !== null) {
                         sketch.con.type[  ncon] = "X";
                         sketch.con.index1[ncon] = sketch.seg.ibeg[jbest];
@@ -1454,7 +1454,7 @@ sketch.keyPress = function (e) {
                             if (ibest == 0 && sketch.relative == 1) {
                                 alert("Y cannot be changed at first point if in relative mode");
                             } else {
-                                yvalue = prompt("Enter y value: ", sketch.con.value[icon]);
+                                yvalue = prompt("Enter y value ", sketch.con.value[icon]);
                                 if (yvalue !== null) {
                                     sketch.con.value[icon] = yvalue;
                                 }
@@ -1464,7 +1464,7 @@ sketch.keyPress = function (e) {
                     }
                 } else {
                     if (sketch.scale === undefined && sketch.yorig === undefined) {
-                        yvalue = prompt("Enter y value: ");
+                        yvalue = prompt("Enter y value ");
                         if (yvalue !== null) {
                             for (var icon = 0; icon < ncon; icon++) {
                                 if (sketch.con.type[icon] == "Y" && sketch.con.index1[icon] != ibest) {
@@ -1475,12 +1475,12 @@ sketch.keyPress = function (e) {
                             }
                         }
                     } else if (sketch.yorig === undefined) {
-                        yvalue = prompt("Enter y value: ");
+                        yvalue = prompt("Enter y value ");
                         if (yvalue !== null) {
                             sketch.yorig = sketch.pnt.y[ibest] - yvalue / sketch.scale;
                         }
                     } else if (sketch.scale === undefined) {
-                        yvalue = prompt("Enter y value: ");
+                        yvalue = prompt("Enter y value ");
                         if (yvalue !== null) {
                             for (var icon = 0; icon < ncon; icon++) {
                                 if (sketch.con.type[icon] == "Y" && sketch.con.index1[icon] != ibest) {
@@ -1490,7 +1490,7 @@ sketch.keyPress = function (e) {
                             }
                         }
                     } else {
-                        yvalue = prompt("Enter y value: ", sketch.scale*(sketch.yorig-sketch.pnt.y[ibest]));
+                        yvalue = prompt("Enter y value ", sketch.scale*(sketch.yorig-sketch.pnt.y[ibest]));
                     }
 
                     if (yvalue !== null) {
@@ -1508,7 +1508,7 @@ sketch.keyPress = function (e) {
                         if (sketch.con.type[  icon] == "Y" &&
                             sketch.con.index1[icon] == sketch.seg.ibeg[jbest] &&
                             sketch.con.index2[icon] == sketch.seg.iend[jbest]   ) {
-                            yvalue = prompt("Enter y value: ", sketch.con.value[icon]);
+                            yvalue = prompt("Enter y value ", sketch.con.value[icon]);
                             if (xvalue !== null) {
                                 sketch.con.value[icon] = yvalue;
                             }
@@ -1516,7 +1516,7 @@ sketch.keyPress = function (e) {
                         }
                     }
                 } else {
-                    yvalue = prompt("Enter y value: ");
+                    yvalue = prompt("Enter y value ");
                     if (yvalue !== null) {
                         sketch.con.type[  ncon] = "Y";
                         sketch.con.index1[ncon] = sketch.seg.ibeg[jbest];
@@ -1596,7 +1596,7 @@ sketch.keyPress = function (e) {
             } else if (sketch.pnt.lbl[ibest].indexOf("A") >= 0) {
                 for (var icon = 0; icon < ncon; icon++) {
                     if (sketch.con.type[icon] == "A" && sketch.con.index1[icon] == ibest) {
-                        avalue = prompt("Enter angle (deg): ", sketch.con.value[icon]);
+                        avalue = prompt("Enter angle (deg) ", sketch.con.value[icon]);
                         if (avalue !== null) {
                             sketch.con.value[icon] = avalue;
                         }
@@ -1632,7 +1632,7 @@ sketch.keyPress = function (e) {
                     avalue -= 360;
                 }
 
-                avalue = prompt("Enter angle (deg): ", avalue);
+                avalue = prompt("Enter angle (deg) ", avalue);
 
                 if (avalue !== null) {
                     sketch.con.type[  ncon] = "A";
@@ -1718,7 +1718,7 @@ sketch.keyPress = function (e) {
             } else if (sketch.seg.lbl[ibest].indexOf("I") >= 0) {
                 for (var icon = 0; icon < ncon; icon++) {
                     if (sketch.con.type[ icon] == "I" && sketch.con.index1[icon] == ibest) {
-                        ivalue = prompt("Enter inclination angle (deg): ", sketch.con.value[icon]);
+                        ivalue = prompt("Enter inclination angle (deg) ", sketch.con.value[icon]);
                         if (ivalue !== null) {
                             sketch.con.value[icon] = ivalue;
                         }
@@ -1731,7 +1731,7 @@ sketch.keyPress = function (e) {
 
                 var iprompt = Math.atan2(sketch.pnt.y[ibeg]-sketch.pnt.y[iend], sketch.pnt.x[iend]-sketch.pnt.x[ibeg]) * 180/Math.PI;
 
-                ivalue = prompt("Enter inclination angle (deg): ", iprompt);
+                ivalue = prompt("Enter inclination angle (deg) ", iprompt);
                 if (ivalue !== null) {
                     sketch.con.type[  ncon] = "I";
                     sketch.con.index1[ncon] = ibeg;
@@ -1756,7 +1756,7 @@ sketch.keyPress = function (e) {
             } else if (sketch.seg.lbl[ibest].indexOf("L") >= 0) {
                 for (var icon = 0; icon < ncon; icon++) {
                     if (sketch.con.type[ icon] == "L" && sketch.con.index1[icon] == ibest) {
-                        lvalue = prompt("Enter length: ", sketch.con.value[icon]);
+                        lvalue = prompt("Enter length ", sketch.con.value[icon]);
                         if (lvalue !== null) {
                             sketch.con.value[icon] = lvalue;
                         }
@@ -1774,12 +1774,12 @@ sketch.keyPress = function (e) {
                 var len  = Math.sqrt(Math.pow(xend-xbeg, 2) + Math.pow(yend-ybeg, 2));
 
                 if (sketch.scale === undefined) {
-                    lvalue = prompt("Enter length: ");
+                    lvalue = prompt("Enter length ");
                     if (lvalue !== null) {
                         sketch.scale = lvalue / len;
                     }
                 } else {
-                    lvalue = prompt("Enter length: ", sketch.scale*len);
+                    lvalue = prompt("Enter length ", sketch.scale*len);
                 }
 
                 if (lvalue !== null) {
@@ -1806,7 +1806,7 @@ sketch.keyPress = function (e) {
             } else if (sketch.seg.lbl[ibest].indexOf("R") >= 0) {
                 for (var icon = 0; icon < ncon; icon++) {
                     if (sketch.con.type[ icon] == "R" && sketch.con.index1[icon] == ibest) {
-                        rvalue = prompt("Enter radius: ", sketch.con.value[icon]);
+                        rvalue = prompt("Enter radius ", sketch.con.value[icon]);
                         if (rvalue !== null) {
                             sketch.con.value[icon] = rvalue;
                         }
@@ -1829,15 +1829,15 @@ sketch.keyPress = function (e) {
 
                 if (sketch.scale === undefined) {
                     if (Number(sketch.seg.dip[ibest]) >= 0) {
-                        rvalue = prompt("Enter radius (should be positive as drawn): ");
+                        rvalue = prompt("Enter radius (should be positive as drawn) ");
                     } else {
-                        rvalue = prompt("Enter radius (should be negative as drawn): ");
+                        rvalue = prompt("Enter radius (should be negative as drawn) ");
                     }
                     if (rvalue !== null) {
                         sketch.scale = rvalue / rad;
                     }
                 } else {
-                    rvalue = prompt("Enter radius: ", sketch.scale*rad);
+                    rvalue = prompt("Enter radius ", sketch.scale*rad);
                 }
 
                 if (rvalue !== null) {
@@ -1864,7 +1864,7 @@ sketch.keyPress = function (e) {
             } else if (sketch.seg.lbl[ibest].indexOf("S") >= 0) {
                 for (var icon = 0; icon < ncon; icon++) {
                     if (sketch.con.type[icon] == "S" && sketch.con.index1[icon] == ibest) {
-                        avalue = prompt("Enter sweep angle (deg): ", sketch.con.value[icon]);
+                        avalue = prompt("Enter sweep angle (deg) ", sketch.con.value[icon]);
                         if (avalue !== null) {
                             sketch.con.value[icon] = avalue;
                         }
@@ -1876,9 +1876,9 @@ sketch.keyPress = function (e) {
                 var iend = sketch.seg.iend[ibest];
 
                 if (Number(sketch.seg.dip[ibest]) >= 0) {
-                    avalue = prompt("Enter sweep angle (deg, should be positive as drawn): ");
+                    avalue = prompt("Enter sweep angle (deg, should be positive as drawn) ");
                 } else {
-                    avalue = prompt("Enter sweep angle (deg, should be negative as drawn): ");
+                    avalue = prompt("Enter sweep angle (deg, should be negative as drawn) ");
                 }
                 if (avalue !== null) {
                     sketch.con.type[  ncon] = "S";
@@ -1907,7 +1907,7 @@ sketch.keyPress = function (e) {
                          + Math.abs(ymid                - wv.cursorY);
 
                 if (dcon < dpnt) {
-                    var wvalue = prompt("Enter width: ", sketch.con.value[bestCon]);
+                    var wvalue = prompt("Enter width ", sketch.con.value[bestCon]);
                     if (wvalue !== null) {
                         sketch.con.value[bestCon] = wvalue;
                     }
@@ -1943,7 +1943,7 @@ sketch.keyPress = function (e) {
                          + Math.abs(ymid                - wv.cursorY);
 
                 if (dcon < dpnt) {
-                    var dvalue = prompt("Enter depth: ", sketch.con.value[bestCon]);
+                    var dvalue = prompt("Enter depth ", sketch.con.value[bestCon]);
                     if (dvalue !== null) {
                         sketch.con.value[bestCon] = dvalue;
                     }
@@ -2200,9 +2200,9 @@ sketch.keyPress = function (e) {
         } else {
             var wvalue = (sketch.pnt.x[target] - sketch.pnt.y[sketch.basePoint]) * sketch.scale;
             if (wvalue > 0) {
-                wvalue = prompt("Enter width (should be positive as drawn): ", wvalue);
+                wvalue = prompt("Enter width (should be positive as drawn) ", wvalue);
             } else {
-                wvalue = prompt("Enter width (should be negative as drawn): ", wvalue);
+                wvalue = prompt("Enter width (should be negative as drawn) ", wvalue);
             }
             if (wvalue !== null) {
                 sketch.con.type[  ncon] = "W";
@@ -2226,9 +2226,9 @@ sketch.keyPress = function (e) {
         } else {
             var dvalue = (sketch.pnt.y[sketch.basePoint] - sketch.pnt.y[target]) * sketch.scale;
             if (dvalue > 0) {
-                dvalue = prompt("Enter depth (should be positive as drawn): ", dvalue);
+                dvalue = prompt("Enter depth (should be positive as drawn) ", dvalue);
             } else {
-                dvalue = prompt("Enter depth (should be negative as drawn): ", dvalue);
+                dvalue = prompt("Enter depth (should be negative as drawn) ", dvalue);
             }
             if (dvalue !== null) {
                 sketch.con.type[  ncon] = "D";

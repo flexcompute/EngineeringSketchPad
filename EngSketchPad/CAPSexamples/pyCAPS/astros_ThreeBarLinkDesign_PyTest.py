@@ -36,7 +36,7 @@ myProblem = pyCAPS.Problem(problemName=workDir,
                            outLevel=args.outLevel)
 
 # Load astros aim
-astrosAIM = myProblem.analysis.create( aim = "nastranAIM", # TODO: Fix astrosAIM...
+astrosAIM = myProblem.analysis.create( aim = "astrosAIM",
                                        name = "astros",
                                        autoExec = False)
 
@@ -69,52 +69,54 @@ astrosAIM.input.Property = {"bar1": rod,
                             "bar2": rod2,
                             "bar3": rod}
 
-DesVar1    = {"groupName" : "bar1",
-              "initialValue" : rod["crossSecArea"],
+DesVar1    = {"initialValue" : rod["crossSecArea"],
               "lowerBound" : rod["crossSecArea"]*0.5,
               "upperBound" : rod["crossSecArea"]*1.5,
               "maxDelta"   : rod["crossSecArea"]*0.1}
 
-DesVar2    = {"groupName" : "bar2",
-              "initialValue" : rod2["crossSecArea"],
+DesVar2    = {"initialValue" : rod2["crossSecArea"],
               "lowerBound" : rod2["crossSecArea"]*0.5,
               "upperBound" : rod2["crossSecArea"]*1.5,
               "maxDelta"   : rod2["crossSecArea"]*0.1}
 
-DesVar3    = {"groupName" : "bar3",
-              "initialValue" : rod["crossSecArea"],
+DesVar3    = {"initialValue" : rod["crossSecArea"],
               "lowerBound" : rod["crossSecArea"]*0.5,
               "upperBound" : rod["crossSecArea"]*1.5,
-              "maxDelta"   : rod["crossSecArea"]*0.1,
-              "variableWeight" : [0.0, 1.0],
-              "independentVariableWeight" : 1.0,
-              "independentVariable" : "Bar1A"}
+              "maxDelta"   : rod["crossSecArea"]*0.1}
+            
+            ## Not supported in ASTROS/astrosAIM currently
+            #   "variableWeight" : [0.0, 1.0], 
+            #   "independentVariableWeight" : 1.0,
+            #   "independentVariable" : "Bar1A"}
 
 myProblem.analysis["astros"].input.Design_Variable = {"Bar1A": DesVar1,
                                                       "Bar2A": DesVar2,
                                                       "Bar3A": DesVar3}
 
-DesVarR1 = {"variableType": "Property",
+DesVarR1 = {"componentName": "bar1",
+            "componentType": "Property",
             "fieldName" : "A",
             "constantCoeff" : 0.0,
-            "groupName" : "Bar1A",
+            "variableName" : "Bar1A",
             "linearCoeff" : 1.0}
 
-DesVarR2 = {"variableType": "Property",
+DesVarR2 = {"componentName": "bar2",
+            "componentType": "Property",
             "fieldName" : "A",
             "constantCoeff" : 0.0,
-            "groupName" : "Bar2A",
+            "variableName" : "Bar2A",
             "linearCoeff" : 1.0}
 
-DesVarR3 = {"variableType": "Property",
+DesVarR3 = {"componentName": "bar3",
+            "componentType": "Property",
             "fieldName" : "A",
             "constantCoeff" : 0.0,
-            "groupName" : "Bar3A",
+            "variableName" : "Bar3A",
             "linearCoeff" : 1.0}
 
-myProblem.analysis["astros"].input.Design_Variable_Relation = {"Bar1A" : DesVarR1,
-                                                               "Bar2A" : DesVarR2,
-                                                               "Bar3A" : DesVarR3}
+astrosAIM.input.Design_Variable_Relation = {"Bar1A" : DesVarR1,
+                                            "Bar2A" : DesVarR2,
+                                            "Bar3A" : DesVarR3}
 
 # Set constraints
 constraint = {"groupName" : ["boundary"],
@@ -138,9 +140,9 @@ designConstraint3 = {"groupName" : "bar3",
                     "lowerBound" : -madeupium["yieldAllow"],
                     "upperBound" :  madeupium["yieldAllow"]}
 
-myProblem.analysis["astros"].input.Design_Constraint = {"stress1": designConstraint1,
-                                                        "stress2": designConstraint2,
-                                                        "stress3": designConstraint3}
+astrosAIM.input.Design_Constraint = {"stress1": designConstraint1,
+                                     "stress2": designConstraint2,
+                                     "stress3": designConstraint3}
 
 load = {"groupName" : "force",
         "loadType" : "GridForce",
@@ -154,7 +156,7 @@ value = {"analysisType"        : "Static",
          "analysisLoad"        : "appliedForce"}
 
 
-myProblem.analysis["astros"].input.Analysis = {"SingleLoadCase": value}
+astrosAIM.input.Analysis = {"SingleLoadCase": value}
 
 # Run AIM pre-analysis
 astrosAIM.preAnalysis()
@@ -172,9 +174,9 @@ for file in astros_files:
 
 if (args.noAnalysis == False):
     # Run Astros via system call
-    os.system("astros.exe < " + projectName +  ".dat > " + projectName + ".out");
+    os.system("astros.exe < " + projectName +  ".dat > " + projectName + ".out")
 
 os.chdir(currentDirectory) # Move back to working directory
 print ("Done running Astros!")
 
-astrosAIM.postAnalysis()
+# astrosAIM.postAnalysis()

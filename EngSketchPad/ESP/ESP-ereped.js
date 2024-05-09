@@ -1,7 +1,7 @@
 // ESP-ereped.js implements ErepEd functions for the Engineering Sketch Pad (ESP)
 // written by John Dannenhoffer
 
-// Copyright (C) 2010/2022  John F. Dannenhoffer, III (Syracuse University)
+// Copyright (C) 2010/2024  John F. Dannenhoffer, III (Syracuse University)
 //
 // This library is free software; you can redistribute it and/or
 //    modify it under the terms of the GNU Lesser General Public
@@ -51,7 +51,7 @@
 //    ereped.timLoadCB(text)              not provided
 //    ereped.timSaveCB(text)              not provided
 //    ereped.timQuitCB(text)              not provided
-//    ereped.timMesgCB(text)              not provided
+//    ereped.timMesgCB(text)
 
 // functions associated with ErepEd
 //    erepInitialize(getNewName)
@@ -96,6 +96,8 @@ ereped.launch = function () {
     ereped.lastColor = -1;
     ereped.dihedral  = -1;
     ereped.colors    = [];
+    ereped.ibody     = undefined;
+    ereped.bodyName  = undefined;
 
     // spectrum of colors
     ereped.spectrum = [0.87, 0.87, 0.87,       // light grey
@@ -112,12 +114,69 @@ ereped.launch = function () {
                        1.00, 0.50, 1.00,       // medium magenta
                        1.00, 1.00, 0.50];      // medium yellow
 
+    // determine the number visible Bodys
+    var bodynames = wv.bodynames.split("|");
+
+    if (bodynames.length < 3) {
+        alert("we have a problem");
+        return;
+
+    // if only one Body, get the Body number
+    } else if (bodynames.length == 3) {
+        ereped.bodyName = bodynames[1];
+        var attrs = wv.sgData[bodynames[1]];
+        for (var iattr = 0; iattr < attrs.length; iattr+=2) {
+            if (attrs[iattr] == "_body") {
+                ereped.ibody = attrs[iattr+1].trim();
+            }
+        }
+
+    // if more than one Body, present user with option
+    } else {
+        var mesg     = "There is more than one Body, so choose Body index from following list:";
+        var okayList = [];
+        var okayName = [];
+
+        for (var ibody = 1; ibody < bodynames.length-1; ibody++) {
+            okayName.push(bodynames[ibody]);
+            var attrs = wv.sgData[bodynames[ibody]];
+            for (var iattr = 0; iattr < attrs.length; iattr+=2) {
+                if (attrs[iattr] == "_body") {
+                    mesg += "\n   " + attrs[iattr+1] + " <-> " + bodynames[ibody];
+                    okayList.push(attrs[iattr+1]);
+                }
+            }
+        }
+
+        ereped.ibody    = prompt(mesg);
+        ereped.bodyName = undefined;
+
+        // make sure valid entry was given
+        if (isNaN(ereped.ibody)) {
+            alert("Illegal Body index given");
+            ereped.ibody = undefined;
+            return;
+        }
+
+        for (i = 0; i < okayList.length; i++) {
+            if (Number(ereped.ibody) == Number(okayList[i])) {
+                ereped.bodyName = okayName[i];
+                break;
+            }
+        }
+        if (ereped.bodyName === undefined) {
+            alert("\""+ereped.ibody+"\" is not a valid entry");
+            ereped.ibody = undefined;
+            return;
+        }
+    }
+
     // uncolor all entities
     for (var gprim in wv.sceneGraph) {
         ereped.colors[gprim] = -1;
     }
 
-    // initialize the application
+    // initialize the application (which may color some entities)
     if (erepInitialize(1) > 0) {
         return;
     }
@@ -160,22 +219,14 @@ ereped.cmdSolve = function () {
     if (button["innerHTML"] == "EditErep") {
         button["innerHTML"] = "ShowEBodys";
 
-        // get the Body number
-        var ibody = 0;
-        for (var gprim in wv.sceneGraph) {
-            var gprimList = gprim.trim().split(" ");
-
-            if (gprimList[0] == "Body") {
-                ibody = gprimList[1];
-                break;
-            }
-        }
-
         // remove the Ebody
-        browserToServer("timMesg|ereped|makeEBody|"+ibody+"|0|.|");
+        browserToServer("timMesg|ereped|makeEBody|"+ereped.ibody+"|0|.|");
 
         // update the display
         browserToServer("timDraw|ereped|");
+
+        // update the picture
+        wv.sceneUpd = 1;
 
         return;
     }
@@ -197,19 +248,7 @@ ereped.cmdSolve = function () {
 
     button["innerHTML"] = "EditErep";
 
-    // get the Body number
-    var ibody = 0;
-    for (var gprim in wv.sceneGraph) {
-        var gprimList = gprim.trim().split(" ");
-
-        if (gprimList[0] == "Body") {
-            ibody = gprimList[1];
-            break;
-        }
-    }
-
-    var mesg = "timMesg|ereped|makeEBody|" + ibody + "|" + ereped.dihedral + "|";
-
+    var mesg = "timMesg|ereped|makeEBody|" + ereped.ibody + "|" + ereped.dihedral + "|";
 
     // add Nodes to the mesg
     mesg += ereped.keptNodes + ";";
@@ -217,9 +256,13 @@ ereped.cmdSolve = function () {
     for (var gprim in wv.sceneGraph) {
         var gprimList = gprim.trim().split(" ");
 
-        if (gprimList[gprimList.length-2] == "Node") {
+        if        (gprimList.length == 3 && gprimList[0] == ereped.bodyName && gprimList[1] == "Node") {
             if (ereped.colors[gprim] == -3) {
-                mesg += gprimList[gprimList.length-1] + ";";
+                mesg += gprimList[2] + ";";
+            }
+        } else if (gprimList.length == 4 && gprimList[1] == ereped.ibody    && gprimList[2] == "Node") {
+            if (ereped.colors[gprim] == -3) {
+                mesg += gprimList[3] + ";";
             }
         }
     }
@@ -230,9 +273,13 @@ ereped.cmdSolve = function () {
     for (var gprim in wv.sceneGraph) {
         var gprimList = gprim.trim().split(" ");
 
-        if (gprimList[gprimList.length-2] == "Edge") {
+        if        (gprimList.length == 3 && gprimList[0] == ereped.bodyName && gprimList[1] == "Edge") {
             if (ereped.colors[gprim] == -2) {
-                mesg += gprimList[gprimList.length-1] + ";";
+                mesg += gprimList[2] + ";";
+            }
+        } else if (gprimList.length == 4 && gprimList[1] == ereped.ibody    && gprimList[2] == "Edge") {
+            if (ereped.colors[gprim] == -2) {
+                mesg += gprimList[3] + ";";
             }
         }
     }
@@ -245,12 +292,17 @@ ereped.cmdSolve = function () {
         }
     }
 
-    for (var igroup = 1; igroup < 99999; igroup++) {
+    for (var igroup = 1; igroup < 9999; igroup++) {
         var nface = 0;
-
         for (gprim in wv.sceneGraph) {
             if (ereped.colors[gprim] == igroup) {
-                nface++;
+                gprimList = gprim.trim().split(" ");
+
+                if        (gprimList.length == 3 && gprimList[0] == ereped.bodyName && gprimList[1] == "Face") {
+                    nface++;
+                } else if (gprimList.length == 4 && gprimList[1] == ereped.ibody    && gprimList[2] == "Face") {
+                    nface++;
+                }
             }
         }
 
@@ -261,8 +313,13 @@ ereped.cmdSolve = function () {
                 if (ereped.colors[gprim] == igroup) {
                     gprimList = gprim.trim().split(" ");
 
-                    mesg += gprimList[gprimList.length-1] + ";";
-                    colored--;
+                    if        (gprimList.length == 3 && gprimList[0] == ereped.bodyName && gprimList[1] == "Face") {
+                        mesg += gprimList[2] + ";";
+                        colored--;
+                    } else if (gprimList.length == 4 && gprimList[1] == ereped.ibody    && gprimList[2] == "Face") {
+                        mesg += gprimList[3] + ";";
+                        colored--;
+                    }
                 }
             }
         }
@@ -324,7 +381,13 @@ ereped.cmdSave = function () {
 
     // send the changed attributes on Faces back to the server
     for (var gprim in wv.sceneGraph) {
-        if (gprim.indexOf(" Face ") < 0) continue;
+        var nameList = gprim.trim().split(" ");
+
+        if        (nameList.length == 3 && nameList[1] != "Face") {
+            continue;
+        } else if (nameList.length == 4 && nameList[2] != "Face") {
+            continue;
+        }
 
         var icolor = ereped.colors[gprim];
         if (icolor > 0) {
@@ -342,36 +405,43 @@ ereped.cmdSave = function () {
             }
 
             // add SELECT and ATTRIBUTE statements
-            var nameList = gprim.trim().split(" ");
+            postMessage("adding new atribute to "+gprim);
 
-            if (nameList.length == 4) {
-                postMessage("adding new atribute to "+gprim);
-
-                if (nameList[1] != prevBody) {
-                    browserToServer("newBrch|"+ibrch+"|select|$BODY|"+nameList[1]+"|||||||||");
-                    ibrch++;
-
-                    prevBody = nameList[1];
-
-                    browserToServer("setAttr|"+ibrch+"|_erepAttr|1|$"+ereped.attrName+"|");
-                    browserToServer("setAttr|"+ibrch+"|_erepAngle|1|"+ereped.dihedral+"|");
-                }
-
-                browserToServer("newBrch|"+ibrch+"|select|$FACE|"+nameList[3]+"|||||||||");
+            if (ereped.ibody != prevBody) {
+                browserToServer("newBrch|"+ibrch+"|select|$BODY|"+ereped.ibody+"|||||||||");
                 ibrch++;
 
-                browserToServer("setAttr|"+ibrch+"|"+ereped.attrName+"|1|"+icolor+"|");
+                prevBody = ereped.ibody;
 
-                nchange++;
+                browserToServer("setAttr|"+ibrch+"|_erepAttr|1|$"+ereped.attrName+"|");
+                browserToServer("setAttr|"+ibrch+"|_erepAngle|1|"+ereped.dihedral+"|");
+            }
+
+            if (nameList.length == 3) {
+                browserToServer("newBrch|"+ibrch+"|select|$FACE|"+nameList[2]+"|||||||||");
+                ibrch++;
+            } else if (nameList.length == 4) {
+                browserToServer("newBrch|"+ibrch+"|select|$FACE|"+nameList[3]+"|||||||||");
+                ibrch++;
             } else {
                 alert("could not set Attribute on named (unnumbered) Body");
             }
+
+            browserToServer("setAttr|"+ibrch+"|"+ereped.attrName+"|1|"+icolor+"|");
+
+            nchange++;
         }
     }
 
     // send the changes to the .Keep attribute on Edges back to the server
     for (var gprim in wv.sceneGraph) {
-        if (gprim.indexOf(" Edge ") < 0) continue;
+        var nameList = gprim.trim().split(" ");
+
+        if        (nameList.length == 3 && nameList[1] != "Edge") {
+            continue;
+        } else if (nameList.length == 4 && nameList[2] != "Edge") {
+            continue;
+        }
 
         try {
             var attrs = wv.sgData[gprim];
@@ -382,13 +452,16 @@ ereped.cmdSave = function () {
                     if (attrs[i] == ".Keep") {
                         postMessage("removing .Keep from "+gprim);
 
-                        var nameList = gprim.trim().split(" ");
-
-                        browserToServer("newBrch|"+ibrch+"|select|$BODY|"+nameList[1]+"|||||||||");
+                        browserToServer("newBrch|"+ibrch+"|select|$BODY|"+ereped.ibody+"|||||||||");
                         ibrch++;
 
-                        browserToServer("newBrch|"+ibrch+"|select|$EDGE|"+nameList[3]+"|||||||||");
-                        ibrch++;
+                        if        (nameList.length == 3) {
+                            browserToServer("newBrch|"+ibrch+"|select|$EDGE|"+nameList[2]+"|||||||||");
+                            ibrch++;
+                        } else if (nameList.length == 4) {
+                            browserToServer("newBrch|"+ibrch+"|select|$EDGE|"+nameList[3]+"|||||||||");
+                            ibrch++;
+                        }
 
                         browserToServer("setAttr|"+ibrch+"|.Keep|1|<DeLeTe>|");
 
@@ -411,13 +484,16 @@ ereped.cmdSave = function () {
                 if (found == 0) {
                     postMessage("adding .Keep to "+gprim);
 
-                    var nameList = gprim.trim().split(" ");
-
-                    browserToServer("newBrch|"+ibrch+"|select|$BODY|"+nameList[1]+"|||||||||");
+                    browserToServer("newBrch|"+ibrch+"|select|$BODY|"+ereped.ibody+"|||||||||");
                     ibrch++;
 
-                    browserToServer("newBrch|"+ibrch+"|select|$EDGE|"+nameList[3]+"|||||||||");
-                    ibrch++;
+                    if        (nameList.length == 3) {
+                        browserToServer("newBrch|"+ibrch+"|select|$EDGE|"+nameList[2]+"|||||||||");
+                        ibrch++;
+                    } else if (nameList.length == 4) {
+                        browserToServer("newBrch|"+ibrch+"|select|$EDGE|"+nameList[3]+"|||||||||");
+                        ibrch++;
+                    }
 
                     browserToServer("setAttr|"+ibrch+"|.Keep|1|1|");
 
@@ -430,55 +506,73 @@ ereped.cmdSave = function () {
 
     // send the changes to the .Keep attribute on Nodes back to the server
     for (var gprim in wv.sceneGraph) {
-        if (gprim.indexOf(" Node ") < 0) continue;
+        var nameList = gprim.trim().split(" ");
+
+        if        (nameList.length == 3 && nameList[1] != "Node") {
+            continue;
+        } else if (nameList.length == 4 && nameList[2] != "Node") {
+            continue;
+        }
 
         // Node is black (so it should not be kept)
-        if (ereped.colors[gprim] == -1) {
-            for (var i = 0; i < attrs.length; i+=2) {
-                if (attrs[i] == ".Keep") {
-                    postMessage("removing .Keep from "+gprim);
+        try {
+            var attrs = wv.sgData[gprim];
 
-                    var nameList = gprim.trim().split(" ");
+            // Node is black (so it should not be kept)
+            if (ereped.colors[gprim] == -1) {
+                for (var i = 0; i < attrs.length; i+=2) {
+                    if (attrs[i] == ".Keep") {
+                        postMessage("removing .Keep from "+gprim);
 
-                    browserToServer("newBrch|"+ibrch+"|select|$BODY|"+nameList[1]+"|||||||||");
+                        browserToServer("newBrch|"+ibrch+"|select|$BODY|"+ereped.ibody+"|||||||||");
+                        ibrch++;
+
+                        if        (nameList.length == 3) {
+                            browserToServer("newBrch|"+ibrch+"|select|$NODE|"+nameList[2]+"|||||||||");
+                            ibrch++;
+                        } else if (nameList.length == 4) {
+                            browserToServer("newBrch|"+ibrch+"|select|$NODE|"+nameList[3]+"|||||||||");
+                            ibrch++;
+                        }
+
+                        browserToServer("setAttr|"+ibrch+"|.Keep|1|<DeLeTe>|");
+
+                        nchange++;
+
+                        break;
+                    }
+                }
+
+            // Node is red (so it should be kept)
+            } else {
+                var found = 0;
+                for (var i = 0; i < attrs.length; i+=2) {
+                    if (attrs[i] == ".Keep") {
+                        found++;
+                        break;
+                    }
+                }
+
+                if (found == 0) {
+                    postMessage("adding .Keep to "+gprim);
+
+                    browserToServer("newBrch|"+ibrch+"|select|$BODY|"+ereped.ibody+"|||||||||");
                     ibrch++;
 
-                    browserToServer("newBrch|"+ibrch+"|select|$NODE|"+nameList[3]+"|||||||||");
-                    ibrch++;
+                    if        (nameList.length == 3) {
+                        browserToServer("newBrch|"+ibrch+"|select|$NODE|"+nameList[2]+"|||||||||");
+                        ibrch++;
+                    } else if (nameList.length == 4) {
+                        browserToServer("newBrch|"+ibrch+"|select|$NODE|"+nameList[3]+"|||||||||");
+                        ibrch++;
+                    }
 
-                    browserToServer("setAttr|"+ibrch+"|.Keep|1|<DeLeTe>|");
+                    browserToServer("setAttr|"+ibrch+"|.Keep|1|1|");
 
                     nchange++;
-
-                    break;
                 }
             }
-
-        // Node is red (so it should be kept)
-        } else {
-            var found = 0;
-            for (var i = 0; i < attrs.length; i+=2) {
-                if (attrs[i] == ".Keep") {
-                    found++;
-                    break;
-                }
-            }
-
-            if (found == 0) {
-                postMessage("adding .Keep to "+gprim);
-
-                var nameList = gprim.trim().split(" ");
-
-                browserToServer("newBrch|"+ibrch+"|select|$BODY|"+nameList[1]+"|||||||||");
-                ibrch++;
-
-                browserToServer("newBrch|"+ibrch+"|select|$NODE|"+nameList[3]+"|||||||||");
-                ibrch++;
-
-                browserToServer("setAttr|"+ibrch+"|.Keep|1|1|");
-
-                nchange++;
-            }
+        } catch (e) {
         }
     }
 
@@ -491,6 +585,11 @@ ereped.cmdSave = function () {
 
         postMessage("====> Re-build is needed <====");
 //    }
+
+    // uncolor all entities
+    for (var gprim in wv.sceneGraph) {
+        ereped.colors[gprim] = -1;
+    }
 
     // update the key window if any changes were made
     if (nchange > 0) {
@@ -528,6 +627,11 @@ ereped.cmdQuit = function () {
 
     // execute quit in the tim (which does nothing)
     browserToServer("timQuit|ereped|");
+
+    // uncolor all entities
+    for (var gprim in wv.sceneGraph) {
+        ereped.colors[gprim] = -1;
+    }
 
     changeMode(0);
 
@@ -661,7 +765,6 @@ ereped.cmdQuit = function () {
 //
 ereped.keyPressPart1 = function(myKeyPress) {
     // alert("in ereped.keyPressPart1(myKeyPress="+myKeyPress+")");
-    console.trace();
 
     var button = document.getElementById("solveButton");
     var done = 0;
@@ -951,6 +1054,16 @@ ereped.sceneUpdated = function () {
     if (button["innerHTML"] != "EditErep") {
         erepRedraw();
     }
+
+    // make the Bodys (other than ereped.bodyName) invisible
+    for (var inode = 0; inode < myTree.name.length; inode++) {
+        if (myTree.name[inode].substring(0,9) == "\u00a0\u00a0\u00a0\u00a0Nodes") {
+            var jnode = myTree.parent[inode];
+            if (myTree.name[jnode].substring(2) != ereped.bodyName) {
+                changeProp(jnode, 1, "off");
+            }
+        }
+    }
 };
 
 
@@ -1007,9 +1120,9 @@ ereped.updateKeyWindow = function () {
 //
 // callback when timMesg returns
 //
-//ereped.timMesgCB = function (text) {
-//    postMessage("in ereped.timMesgCB: "+text);
-//}
+ereped.timMesgCB = function (text) {
+    postMessage("erep has been successfully built");
+}
 
 // /////////////////////////////////////////////////////////////////////
 
@@ -1021,7 +1134,7 @@ var erepInitialize = function (getNewName) {
     // alert("in erepInitialize(getNewName="+getNewName+")");
 
     if (getNewName == 1) {
-        var attrName = prompt("Enter attribute name:", ereped.attrName);
+        var attrName = prompt("Enter attribute name", ereped.attrName);
         if (attrName === null) {
             return 1;
         } else if (attrName.length <= 0) {
@@ -1035,8 +1148,8 @@ var erepInitialize = function (getNewName) {
     //    only a single number
     for (var gprim in wv.sceneGraph) {
         var gprimList = gprim.trim().split(" ");
-        if        ((gprimList.length == 3 && gprimList[1] == "Face") ||
-                   (gprimList.length == 4 && gprimList[2] == "Face")   ) {
+        if ((gprimList.length == 3 && gprimList[0] == ereped.bodyName && gprimList[1] == "Face") ||
+            (gprimList.length == 4 && gprimList[1] == ereped.ibody    && gprimList[2] == "Face")   ) {
             if (ereped.colors[gprim] == -1) {
                 ereped.colors[gprim] = 0;
                 ereped.uncolored++;
@@ -1090,8 +1203,8 @@ var erepRedraw = function () {
         var gprimList = gprim.trim().split(" ");
 
         // color Edges black (or red if they have a .Keep attribute */
-        if ((gprimList.length == 3 && gprimList[1] == "Edge") ||
-            (gprimList.length == 4 && gprimList[2] == "Edge")   ) {
+        if ((gprimList.length == 3 && gprimList[0] == ereped.bodyName && gprimList[1] == "Edge") ||
+            (gprimList.length == 4 && gprimList[1] == ereped.ibody    && gprimList[2] == "Edge")   ) {
             if (ereped.colors[gprim] == -2) {
                 wv.sceneGraph[gprim].lColor = [1.0, 0.0, 0.0];
             } else {
@@ -1114,8 +1227,8 @@ var erepRedraw = function () {
             }
 
         // color Nodes black (or red if they have a .Keep attribute */
-        } else if ((gprimList.length == 3 && gprimList[1] == "Node") ||
-                   (gprimList.length == 4 && gprimList[2] == "Node")   ) {
+        } else if ((gprimList.length == 3 && gprimList[0] == ereped.bodyName && gprimList[1] == "Node") ||
+                   (gprimList.length == 4 && gprimList[1] == ereped.ibody    && gprimList[2] == "Node")   ) {
             if (ereped.colors[gprim] == -3) {
                 wv.sceneGraph[gprim].pColor = [1.0, 0.0, 0.0];
             } else {

@@ -1,0 +1,36 @@
+# deform6
+# written by John Dannenhoffer
+
+# build configuration
+SET       s  1/sqrt(2)
+SKBEG              0  0  1
+   CIRARC 0  s  s  0  1  0
+   CIRARC 0  s -s  0  0 -1
+   CIRARC 0 -s -s  0 -1  0
+   CIRARC 0 -s  s  0  0  1
+SKEND
+STORE     circle
+
+MARK
+RESTORE   circle
+RESTORE   .
+TRANSLATE 1  0  0
+BLEND
+
+MARK
+RESTORE   circle
+TRANSLATE 1  0  0
+RESTORE   .
+TRANSLATE 1  0  0
+BLEND
+
+JOIN
+
+# deform 2 points in middle of two Faces
+UDPARG    deform   iface   "1;   1;   6;   6; "
+UDPARG    deform   iu      "4;   4;   4;   4; "
+UDPARG    deform   iv      "2;   3;   2;   3; "
+UDPARG    deform   dist    "0.5; 0.5; 0.5; 0.5"
+UDPRIM    deform
+
+END

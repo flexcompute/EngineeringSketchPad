@@ -3,7 +3,7 @@
  *
  *             Internal Geometry Evaluation Functions
  *
- *      Copyright 2011-2022, Massachusetts Institute of Technology
+ *      Copyright 2011-2024, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -285,21 +285,24 @@ TEMPLATE static int
 EG_spline1dDeriv(int *ivec, DOUBLE *data, DOUBLE t, DOUBLE *deriv)
 {
   int    der = 2;
-  int    i, j, k, degree, nKnots, span, dt;
+  int    i, j, k, degree, nKnots, span, dt, flat, rat;
   DOUBLE Nders[MAXDEG+1][MAXDEG+1], *Nder[MAXDEG+1], *CP, *w;
   DOUBLE x, y, z, wsum, v[12];  /* note: v is sized for der <= 2! */
   
   for (k = 0; k <= der; k++) deriv[3*k  ] = deriv[3*k+1] = deriv[3*k+2] = 0.0;
   
+  flat   = ivec[0]&1;
+  rat    = ivec[0]&2;
   degree = ivec[1];
   nKnots = ivec[3];
   CP     = data + ivec[3];
   w      = CP + 3*ivec[2];
   dt     = MIN(der, degree);
-  if ((ivec[0] != 0) && (ivec[0] != 2)) {
-    printf(" EG_spline1dDeriv: flag = %d!\n", ivec[0]);
-    return EGADS_GEOMERR;
-  }
+  if (flat == 0)
+    if ((ivec[0]&4) != 0) {
+      printf(" EG_spline1dDeriv: flag = %d!\n", ivec[0]);
+      return EGADS_GEOMERR;
+    }
   if (degree >= MAXDEG) {
     printf(" EG_spline1dDeriv: degree %d >= %d!\n", degree, MAXDEG);
     return EGADS_CONSTERR;
@@ -309,7 +312,7 @@ EG_spline1dDeriv(int *ivec, DOUBLE *data, DOUBLE t, DOUBLE *deriv)
   span = FindSpan(nKnots, degree, t, data);
   DersBasisFuns(span,     degree, t, data, dt, Nder);
   
-  if (ivec[0] == 0) {
+  if (rat == 0) {
     
     for (k = 0; k <= dt; k++)
       for (j = 0; j <= degree; j++) {
@@ -350,12 +353,14 @@ EG_spline1dDeriv(int *ivec, DOUBLE *data, DOUBLE t, DOUBLE *deriv)
 TEMPLATE static int
 EG_spline2dDeriv(int *ivec, DOUBLE *data, const DOUBLE *uv, DOUBLE *deriv)
 {
-  int    der = 2;
+  int    flat, rat, der = 2;
   int    i, j, k, l, m, s, degu, degv, nKu, nKv, nCPu, spanu, spanv, du, dv;
   DOUBLE *Kv, *CP, *w, *NderU[MAXDEG+1], *NderV[MAXDEG+1];
   DOUBLE Nu[MAXDEG+1][MAXDEG+1], Nv[MAXDEG+1][MAXDEG+1], temp[4*MAXDEG];
   DOUBLE v[24];  /* note: v is sized for der <= 2! */
   
+  flat = ivec[0]&1;
+  rat  = ivec[0]&2;
   degu = ivec[1];
   nCPu = ivec[2];
   nKu  = ivec[3];
@@ -371,10 +376,11 @@ EG_spline2dDeriv(int *ivec, DOUBLE *data, const DOUBLE *uv, DOUBLE *deriv)
       deriv[3*m  ] = deriv[3*m+1] = deriv[3*m+2] = 0.0;
           v[4*m  ] =     v[4*m+1] =     v[4*m+2] = v[4*m+3] = 0.0;
     }
-  if ((ivec[0] != 0) && (ivec[0] != 2)) {
-    printf(" EG_spline2dDeriv: flag = %d!\n", ivec[0]);
-    return EGADS_GEOMERR;
-  }
+  if (flat == 0)
+    if ((ivec[0]&12) != 0) {
+      printf(" EG_spline2dDeriv: flag = %d!\n", ivec[0]);
+      return EGADS_GEOMERR;
+    }
   if (degu >= MAXDEG) {
     printf(" EG_spline2dDeriv: degreeU %d >= %d!\n", degu, MAXDEG);
     return EGADS_CONSTERR;
@@ -389,9 +395,9 @@ EG_spline2dDeriv(int *ivec, DOUBLE *data, const DOUBLE *uv, DOUBLE *deriv)
   spanu = FindSpan(nKu, degu, uv[0], data);
   DersBasisFuns(spanu,  degu, uv[0], data, du, NderU);
   spanv = FindSpan(nKv, degv, uv[1], Kv);
-  DersBasisFuns(spanv,  degv, uv[1], Kv, dv, NderV);
+  DersBasisFuns(spanv,  degv, uv[1], Kv,   dv, NderV);
 
-  if (ivec[0] == 0) {
+  if (rat == 0) {
     
     for (m = l = 0; l <= dv; l++)
       for (k = 0; k <= der-l; k++, m++) {

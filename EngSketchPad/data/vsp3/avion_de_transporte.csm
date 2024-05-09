@@ -1,0 +1,6 @@
+# avion_de_transporte
+# written by John Dannenhoffer
+
+UDPRIM    vsp3   filename $$/avion_de_transporte.vsp3
+
+END

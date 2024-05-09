@@ -1,0 +1,17 @@
+# nacelle_udf_1
+# written by John Dannenhoffer
+
+# profile to be used
+UDPARG naca    thickness 0.12
+UDPRIM naca    camber    0.04
+
+# make the nacelle
+UDPARG nacelle f_rad    2;2;2;2    # front superellipse radii (e,n,w,e)
+UDPARG nacelle f_pow    2;2;4;4    # front superellipse power (ne,nw,sw,se)
+UDPARG nacelle a_rad    1;1;1;1    # aft   superellipse radii (e,n,w,e)
+UDPARG nacelle a_pow    2;2;2;2    # aft   superellipse power (ne,nw,sw,se)
+UDPARG nacelle length   8.0        # overall length
+UDPARG nacelle deltah   -.5        # difference in height between front and aft
+UDPRIM nacelle rakeang  15.0       # front rake angle (deg)
+
+END

@@ -10,7 +10,7 @@ cfgpmtr sharpTE 1
 
 # Global attributes:
 attribute capsIntent $CFD
-attribute capsAIM $fun3dAIM;su2AIM;egadsTessAIM;aflr2AIM;delaundoAIM #CFD Analysis
+attribute capsAIM $fun3dAIM;su2AIM;egadsTessAIM;aflr2AIM;delaundoAIM;platoAIM #CFD Analysis
 attribute capsMeshLength 1
 
 # Build wind tunnel
@@ -42,25 +42,23 @@ select face 1
     
 # Set capsGroup names around boundaries
 select    edge   1
-    attribute capsGroup   $TunnelWall
-     attribute capsMesh   $TunnelWall
+    attribute capsGroup $TunnelWall
+    attribute capsMesh  $TunnelWall
 select    edge   2
-    attribute capsGroup   $OutFlow
-    attribute capsMesh   $OutFlow
+    attribute capsGroup $OutFlow
+    attribute capsMesh  $OutFlow
 select    edge   3
-    attribute capsGroup   $InFlow
-    attribute capsMesh   $InFlow
+    attribute capsGroup $InFlow
+    attribute capsMesh  $InFlow
 select    edge   4
-    attribute capsGroup   $TunnelWall
-    attribute capsMesh   $TunnelWall
-
-select edge 5
+    attribute capsGroup $TunnelWall
+    attribute capsMesh  $TunnelWall
+select    edge   5
     attribute capsGroup $Airfoil
-    attribute capsMesh $Airfoil
-
-select edge 6
+    attribute capsMesh  $Airfoil
+select    edge   6
     attribute capsGroup $Airfoil
-    attribute capsMesh $Airfoil
+    attribute capsMesh  $Airfoil
 
 ifthen sharpTE eq 0 
 

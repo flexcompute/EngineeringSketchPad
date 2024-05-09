@@ -9,7 +9,7 @@
  */
 
 /*
- * Copyright (C) 2013/2022  John F. Dannenhoffer, III (Syracuse University)
+ * Copyright (C) 2013/2024  John F. Dannenhoffer, III (Syracuse University)
  *
  * This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
@@ -74,6 +74,7 @@ udpExecute(ego  context,                /* (in)  EGADS context */
     double  *uknots=NULL, *vknots=NULL, *wknots=NULL, *data=NULL;
     double  bounds[4], fraci, fracj, frack;
     ego     esurf, efaces[6], emodel, eref, *echilds;
+    udp_T   *udps = *Udps;
 
     ROUTINE(udpExecute);
 
@@ -528,8 +529,8 @@ udpExecute(ego  context,                /* (in)  EGADS context */
     status = EG_getMassProperties(*ebody, data);
     CHECK_STATUS(EG_getMassProperties);
 
-    AREA(0)   = data[1];
-    VOLUME(0) = data[0];
+    AREA(  numUdp)   = data[1];
+    VOLUME(numUdp) = data[0];
 
     /* remember this model (Body) */
     udps[numUdp].ebody = *ebody;

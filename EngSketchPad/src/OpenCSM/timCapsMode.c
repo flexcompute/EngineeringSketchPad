@@ -9,7 +9,7 @@
  */
 
 /*
- * Copyright (C) 2013/2022  John F. Dannenhoffer, III (Syracuse University)
+ * Copyright (C) 2013/2024  John F. Dannenhoffer, III (Syracuse University)
  *
  * This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
@@ -34,8 +34,6 @@
 #include <math.h>
 #include <assert.h>
 
-#include "egads.h"
-#include "common.h"
 #include "OpenCSM.h"
 #include "caps.h"
 #include "tim.h"
@@ -55,9 +53,6 @@
    #define SLEEP(msec)  usleep(1000*msec)
    #define SLASH '/'
 #endif
-
-/* macros */
-static void *realloc_temp=NULL;              /* used by RALLOC macro */
 
 /* global variables */
 static  int          outLevel=1;
@@ -939,7 +934,7 @@ timMesg(esp_T *ESP,                     /* (in)  pointer to ESP structure */
             addToResponse(entry, response, &max_resp_len, &response_len);
         }
 
-        /* unset caps_debug mode */
+        /* unset caps debug mode */
         status = caps_debug(capsMode->projObj);
         assert(status == 0);
 
@@ -1451,7 +1446,7 @@ timMesg(esp_T *ESP,                     /* (in)  pointer to ESP structure */
         FREE(brchUsed);
         FREE(revUsed );
 
-        /* unset caps_debug mode */
+        /* unset caps debug mode */
         status = caps_debug(capsMode->projObj);
         assert(status == 0);
 
@@ -1518,7 +1513,7 @@ timMesg(esp_T *ESP,                     /* (in)  pointer to ESP structure */
             addToResponse("  <none>\n", response, &max_resp_len, &response_len);
         }
 
-        /* unset caps_debug mode */
+        /* unset caps debug mode */
         status = caps_debug(capsMode->projObj);
         assert(status == 0);
 
@@ -1579,7 +1574,7 @@ timMesg(esp_T *ESP,                     /* (in)  pointer to ESP structure */
             addToResponse("  <none>\n", response, &max_resp_len, &response_len);
         }
 
-        /* unset caps_debug mode */
+        /* unset caps debug mode */
         status = caps_debug(capsMode->projObj);
         assert(status == 0);
 
@@ -1722,7 +1717,7 @@ timMesg(esp_T *ESP,                     /* (in)  pointer to ESP structure */
             }
         }
 
-        /* unset caps_debug mode */
+        /* unset caps debug mode */
         status = caps_debug(capsMode->projObj);
         assert(status == 0);
 
@@ -1946,6 +1941,8 @@ addToResponse(char   text[],            /* (in)  text to add */
 {
     int    status=SUCCESS, text_len;
 
+    void   *realloc_temp = NULL;            /* used by RALLOC macro */
+
     ROUTINE(addToResponse);
 
     /* --------------------------------------------------------------- */
@@ -2083,8 +2080,8 @@ makeCsmForCaps(capsMode_T *capsMode,      /* (in)  pointer to CAPS structure */
 {
     int       status = SUCCESS;
 
-    int       i, j;
-    char      *tempFile=NULL, *tempFilelist=NULL;
+    int       i, j, hasPrefix;
+    char      *tempFile=NULL, *prefix=NULL, *dirname=NULL, *tempFilelist=NULL;
     char      *tok1=NULL, *tok2=NULL, *buf1=NULL, *buf2=NULL;
     FILE      *fp_src=NULL, *fp_tgt=NULL;
     modl_T    *tempMODL;
@@ -2094,6 +2091,8 @@ makeCsmForCaps(capsMode_T *capsMode,      /* (in)  pointer to CAPS structure */
     /* --------------------------------------------------------------- */
 
     MALLOC(tempFile, char, MAX_FILENAME_LEN);
+    MALLOC(prefix,   char, MAX_FILENAME_LEN);
+    MALLOC(dirname,  char, MAX_FILENAME_LEN);
     MALLOC(tok1,     char, MAX_EXPR_LEN    );
     MALLOC(tok2,     char, MAX_EXPR_LEN    );
     MALLOC(buf1,     char, MAX_LINE_LEN    );
@@ -2136,24 +2135,70 @@ makeCsmForCaps(capsMode_T *capsMode,      /* (in)  pointer to CAPS structure */
     status = caps_mkDir(tempFile);
     CHECK_STATUS(caps_mkDir);
 
-    /* copy all .cpc, .csm, and ,udc files, modifing the UDPARG and UDPRIM
+    /* copy all .cpc, .csm, and .udc files, modifing the UDPARG and UDPRIM
        statements to change the primname to the form: $/primname (in same directory
        as .csm file) */
+    prefix[0] = '\0';
+
     for (i = 0; i < 100; i++) {
         getToken(tempFilelist, i, '|', tok1);
 
         if (strlen(tok1) == 0) break;
 
+        /* if this is the first (which is presumed to be the .csm or .cpc file)
+           remember te part up to the last slash */
+        if (i == 0) {
+            strncpy(prefix, tok1, MAX_FILENAME_LEN-1);
+
+            for (j = STRLEN(prefix)-1; j >= 0; j--) {
+                if (prefix[j] == SLASH) {
+                    prefix[j+1] = '\0';
+                    break;
+                }
+            }
+        }
+
+        /* pull out the filename (beyond the prefix) */
+        if (strncmp(prefix, tok1, strlen(prefix)) == 0) {
+            hasPrefix = 1;
+            j = strlen(prefix);
+
         /* pull out the filename (without the directory) */
-        for (j = strlen(tok1)-1; j > 0; j--) {
-            if (tok1[j] == SLASH) {
-                j++;
-                break;
+        } else {
+            hasPrefix = 0;
+            for (j = strlen(tok1)-1; j > 0; j--) {
+                if (tok1[j] == SLASH) {
+                    j++;
+                    break;
+                }
             }
         }
 
         snprintf(tempFile, MAX_FILENAME_LEN, "%s%c%s%ccapsCSMFiles%c%s",
                  capsMode->projName, SLASH, capsMode->curPhase, SLASH, SLASH, &(tok1[j]));
+
+        /* if tempFile includes a slash, make the directory(s) if they do not exist already */
+        if (hasPrefix == 1) {
+            for (j = strlen(capsMode->projName)+strlen(capsMode->curPhase)+4; j < strlen(tempFile); j++) {
+                if (tempFile[j] == SLASH) {
+                    strcpy(dirname, tempFile);
+                    dirname[j] = '\0';
+
+                    status = caps_statFile(dirname);
+                    if (status == EGADS_NOTFOUND) {             // does not exist
+                        status = caps_mkDir(dirname);
+                        if (status != EGADS_SUCCESS) {
+                            goto cleanup;
+                        }
+                    } else if (status == EGADS_OUTSIDE) {       // directory
+                    } else if (status == EGADS_SUCCESS) {       // file
+                        SPRINT1(0, "ERROR:: \"%s\" cannot be a directory since file already exists", dirname);
+                        status = OCSM_FILE_NOT_FOUND;
+                        goto cleanup;
+                    }
+                }
+            }
+        }
 
         fp_src = fopen(tok1,     "r");
         fp_tgt = fopen(tempFile, "w");
@@ -2176,6 +2221,10 @@ makeCsmForCaps(capsMode_T *capsMode,      /* (in)  pointer to CAPS structure */
             getToken(buf1, 1, ' ', tok2);
 
             if (strlen(tok1) != 6) {
+                strcpy(buf2, buf1);
+            } else if ((strcmp(tok1, "udparg") == 0 || strcmp(tok1, "UDPARG") == 0 ||
+                        strcmp(tok1, "udprim") == 0 || strcmp(tok1, "UDPRIM") == 0   ) &&
+                       (strncmp(tok2, "$$/", 3) == 0                                 )   ) {
                 strcpy(buf2, buf1);
             } else if ((strcmp(tok1, "udparg") == 0 || strcmp(tok1, "UDPARG") == 0 ||
                         strcmp(tok1, "udprim") == 0 || strcmp(tok1, "UDPRIM") == 0   ) &&
@@ -2274,6 +2323,8 @@ cleanup:
     EG_free(tempFilelist);
 
     FREE(tempFile);
+    FREE(prefix  );
+    FREE(dirname );
     FREE(tok1    );
     FREE(tok2    );
     FREE(buf1    );

@@ -17,7 +17,7 @@ endif
 
 $(LDIR)/tacsAIM.so:	$(ODIR)/tacsAIM.o $(LDIR)/libutils.a $(LDIR)/libaimUtil.a
 	$(CC) $(SOFLGS) -o $(LDIR)/tacsAIM.so $(ODIR)/tacsAIM.o \
-		-L$(LDIR) -lutils -laimUtil -locsm -legads -ludunits2 -ldl -lm $(CPPSLB) $(PYTHONLIB)
+		-L$(LDIR) -lutils -laimUtil -locsm -legads -ludunits2 -ldl -lm $(PYTHONLIB)
 
 $(ODIR)/tacsAIM.o:	tacsAIM.c $(IDIR)/capsTypes.h
 	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I../utils tacsAIM.c \

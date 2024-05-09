@@ -230,11 +230,46 @@ class TestGeometry(unittest.TestCase):
         myGeometry.despmtr.despRow = [11.,12.,13.]
         self.assertEqual(myGeometry.despmtr.despRow, [11.,12.,13.])
 
+        # Check limits on design parameter matrix array
+        self.assertEqual(myGeometry.despmtr["despMat"].limits, [[[-101,101]]*2]*3)
+        
+        limits = [[[-101-j-2*i,101+j+2*i] for j in range(2)] for i in range(3)]
+        myGeometry.despmtr["despMat"].limits = limits
+        self.assertEqual(myGeometry.despmtr["despMat"].limits, limits)
+
+        # Check limits on design parameter row array
+        self.assertEqual(myGeometry.despmtr["despRow"].limits, [[-51,51], [-52,52], [-53,53]])
+        
+        myGeometry.despmtr["despRow"].limits = [[-52,52], [-53,53], [-54, 54]]
+        self.assertEqual(myGeometry.despmtr["despRow"].limits, [[-52,52], [-53,53], [-54, 54]])
+
+        with self.assertRaises(pyCAPS.CAPSError):
+            myGeometry.despmtr["despRow"].limits = [[-53,53], [-54, 54]]
+
+        with self.assertRaises(pyCAPS.CAPSError):
+            myGeometry.despmtr["despRow"].limits = [[-52], [-53,53], [-54, 54]]
+
+        with self.assertRaises(pyCAPS.CAPSError):
+            myGeometry.despmtr["despRow"].limits = [[-52,52], [-53,53], [-54]]
+
+        with self.assertRaises(pyCAPS.CAPSError):
+            myGeometry.despmtr.despRow = [-60.,12.,13.]
+ 
+        # Check limits on design parameter col array
+        self.assertEqual(myGeometry.despmtr["despCol"].limits, [[-41,41], [-42,42], [-43,43]])
+        
+        myGeometry.despmtr["despCol"].limits = [[-42,42], [-43,43], [-44, 44]]
+        self.assertEqual(myGeometry.despmtr["despCol"].limits, [[-42,42], [-43,43], [-44, 44]])
+
+        # Check outpmtr
         self.assertEqual(myGeometry.outpmtr.dummyRow ,[1,2,3])
         self.assertEqual(myGeometry.outpmtr.dummyRow2,[1,2,None])
         self.assertEqual(myGeometry.outpmtr.dummyRow3,[2,3,1,1,1])
         self.assertEqual(myGeometry.outpmtr.dummyCol ,[3,2,1])
         self.assertEqual(myGeometry.outpmtr.dummyMat ,[[1,2],[3,4],[5,6]])
+
+        # Turn off limits on despMat to test setting values to none
+        myGeometry.despmtr["despMat"].limits = None
 
         # Test None values in matrix
         myGeometry.despmtr.despMat = [[None, None], [None, 14.0], [15.0, None]]
@@ -639,6 +674,26 @@ class TestGeometry(unittest.TestCase):
             for icol in range(ncol):
                 boxVol_despMat = problem.geometry.outpmtr["boxVol"].deriv("despMat[{},{}]".format(irow+1, icol+1))
                 self.assertAlmostEqual(boxVol_despMatTrue[ncol*irow + icol], boxVol_despMat, 5)
+
+#==============================================================================
+    # Test value derivatives via finite difference
+    def test_stepSize(self):
+
+        problem = pyCAPS.Problem(self.problemName+str(self.iProb), capsFile=self.file, outLevel=0); self.__class__.iProb += 1
+
+        self.assertEqual(problem.geometry.despmtr["aspect"].stepSize, None)
+
+        problem.geometry.despmtr["aspect"].stepSize = 0.001
+        self.assertEqual(problem.geometry.despmtr["aspect"].stepSize, 0.001)
+
+        despMat = problem.geometry.despmtr.despMat
+        nrow = len(despMat)
+        ncol = len(despMat[0])
+        
+        sizes = [[0.1*i*ncol + j for j in range(ncol)] for i in range(nrow)]
+        
+        problem.geometry.despmtr["despMat"].stepSize = sizes
+        self.assertEqual(problem.geometry.despmtr["despMat"].stepSize, sizes)
 
 #==============================================================================
     # Test value derivatives bug in OpenCSM. Remove this whenthe bug is fixed.

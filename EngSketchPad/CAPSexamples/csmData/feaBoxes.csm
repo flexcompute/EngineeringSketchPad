@@ -14,20 +14,19 @@
 BOX       0.0  0.0  0.0  1.0  1.0  1.0
 ATTRIBUTE capsGroup $box1
 SELECT body @nbody
-    ATTRIBUTE capsAIM $astrosAIM
+    ATTRIBUTE capsAIM $egadsTessAIM
     ATTRIBUTE _name   $allQuad
 
 # Quadding is dissabled on faces 3 and 6
 BOX       2.0  0.0  0.0  1.0  1.0  1.0
-ATTRIBUTE capsGroup $box2
+SELECT face
+    ATTRIBUTE capsGroup $box2
 SELECT face 3
     ATTRIBUTE .qParams $off
 SELECT face 4
     ATTRIBUTE .qParams $off
-SELECT face 6
-    ATTRIBUTE capsIgnore $true # ignore one face in the mesh
 SELECT body @nbody
-    ATTRIBUTE capsAIM $astrosAIM
+    ATTRIBUTE capsAIM $egadsTessAIM
     ATTRIBUTE _name   $partQuad
 
 # Quadding dissbled on all faces
@@ -39,6 +38,6 @@ SELECT face 6
     # Must be smaller than global tessellation parameters to impact tessellation
     ATTRIBUTE .tParams "0.05; 0.005; 15.0;" 
 SELECT body @nbody
-    ATTRIBUTE capsAIM  $astrosAIM
+    ATTRIBUTE capsAIM  $egadsTessAIM
     ATTRIBUTE .qParams $off
     ATTRIBUTE _name    $noQuad

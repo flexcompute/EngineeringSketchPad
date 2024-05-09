@@ -1,0 +1,400 @@
+# bentWaffle
+# written by John Dannenhoffer
+
+# see Projects/CAPS/examples/pyCAPS/mystran_PyTest.py
+
+DESPMTR   chord1            4.0     # root  chord
+DESPMTR   chord2            1.5     # break chord
+DESPMTR   chord3            1.0     # tip   chord
+DESPMTR   span1             4.0     # y at break
+DESPMTR   span2             3.0     # y at tip
+
+DESPMTR   sweep12          45.0     # inboard  sweep
+DESPMTR   sweep23          45.0     # outboard sweep
+DESPMTR   dihed12         -20.0     # inboard  dihedral
+DESPMTR   dihed23         +50.0     # outboard dihedrl
+
+CFGPMTR   nrib12              5     # number of inboard  internal ribs
+CFGPMTR   nrib23              6     # number of outboard internal ribs
+DESPMTR   spar1            0.10     # location of forward  spar
+DESPMTR   spar2            0.80     # location of rearward spar
+
+########## OML ##########
+
+# root section
+SET       x1        0
+SET       y1        0
+SET       z1        0
+
+UDPRIM    naca      series 4420   sharpTE 1
+ROTATEX   90
+SCALE     chord1
+TRANSLATE x1   y1   z1
+
+# break section
+SET       x2        x1+span1*tand(sweep12)
+SET       y2        y1+span1
+SET       z2        z1+span1*tand(dihed12)
+
+UDPRIM    naca      series 4420   sharpTE 1
+ROTATEX   90+(dihed12+dihed23)/2
+SCALE     chord2
+TRANSLATE x2  y2  z2
+
+# tip section
+SET       x3        x2+span2*tand(sweep23)
+SET       y3        y2+span2
+SET       z3        z2+span2*tand(dihed23)
+
+UDPRIM    naca      series 4420   sharpTE 1
+ROTATEX   90+dihed23
+SCALE     chord3
+TRANSLATE x3  y3  z3
+
+# make OML
+RULE
+
+SELECT    FACE      @nbody  1
+ATTRIBUTE tagType   $root
+SELECT    FACE      @nbody  2
+ATTRIBUTE tagType   $tip
+SELECT    FACE      @nbody  3
+ATTRIBUTE tagType   $upperSkin
+ATTRIBUTE tagPart   $inboard
+SELECT    FACE      @nbody  4
+ATTRIBUTE tagType   $upperSkin
+ATTRIBUTE tagPart   $outboard
+SELECT    FACE      @nbody  5
+ATTRIBUTE tagType   $lowerSkin
+ATTRIBUTE tagPart   $inboard
+SELECT    FACE      @nbody  6
+ATTRIBUTE tagType   $lowerSkin
+ATTRIBUTE tagPart   $outboard
+
+STORE     oml
+
+########## structure #########
+
+# waffle at root
+SET       xA        x1+spar1*chord1
+SET       yA        y1
+SET       xB        x1+spar2*chord1
+SET       yB        y1
+
+UDPRIM    waffle    filename <<   depth 2
+   POINT  A    AT  xA  yA
+   POINT  B    AT  xB  yB
+   LINE   .    A  B  tagType=rib  tagPart=root
+>>
+TRANSLATE  0  0  -1
+STORE     waffle1
+
+# inboard waffle
+SET       xA        spar1*chord1
+SET       yA        0
+SET       xB        spar2*chord1
+SET       yB        0
+
+SET       xC        (x2-x1)+spar1*chord2
+SET       yC        span1/cosd(dihed12)
+SET       xD        (x2-x1)+spar2*chord2
+SET       yD        span1/cosd(dihed12)
+
+UDPRIM    waffle    filename <<   depth 2
+   POINT  A    AT  xA  yA
+   POINT  B    AT  xB  yB
+   POINT  C    AT  xC  yC
+   POINT  D    AT  xD  yD
+
+   CLINE   AC   A  C
+   CLINE   BD   B  D
+
+   SET    frac_ 1/(nrib12+1)
+   POINT  E    ON AC FRAC frac_
+   POINT  F    ON BD FRAC frac_
+   LINE   .    E  F  tagType=rib  tagPart=inboard  tagIndex=1
+
+   PATBEG irib  nrib12-1
+      SET    frac_ (irib+1)/(nrib12+1)
+      POINT  G    ON AC FRAC frac_
+      POINT  H    ON BD FRAC frac_
+      LINE   .    G  H  tagType=rib  tagPart=inboard  tagIndex=!val2str(irib+1,0)
+   PATEND
+
+   LINE   .    E  G  tagType=spar  tagPart=inboard  tagIndex=1
+   LINE   .    F  H  tagType=spar  tagPart=inboard  tagIndex=2
+>>
+TRANSLATE  0   0   -1
+ROTATEX    dihed12
+TRANSLATE  x1  y1   z1
+STORE      waffle12
+
+# waffle at break
+SET       xA        spar1*chord2
+SET       yA        0
+SET       xB        spar2*chord2
+SET       yB        0
+
+UDPRIM    waffle    filename <<   depth 2
+   POINT  A    AT  xA  yA
+   POINT  B    AT  xB  yB
+   LINE   .    A  B  tagType=rib  tagPart=break
+>>
+TRANSLATE 0  0  -1
+ROTATEX   (dihed12+dihed23)/2
+TRANSLATE x2  y2  z2
+STORE     waffle2
+
+# outboard waffle
+SET       xA        spar1*chord2
+SET       yA        0
+SET       xB        spar2*chord2
+SET       yB        0
+
+SET       xC        (x3-x2)+spar1*chord3
+SET       yC        span2/cosd(dihed23)
+SET       xD        (x3-x2)+spar2*chord3
+SET       yD        span2/cosd(dihed23)
+
+UDPRIM    waffle    filename <<   depth 2
+   POINT  A    AT  xA  yA
+   POINT  B    AT  xB  yB
+   POINT  C    AT  xC  yC
+   POINT  D    AT  xD  yD
+
+   CLINE   AC   A  C
+   CLINE   BD   B  D
+
+   SET    frac_ 1/(nrib23+1)
+   POINT  E    ON AC FRAC frac_
+   POINT  F    ON BD FRAC frac_
+   LINE   .    E  F  tagType=rib  tagPart=outboard  tagIndex=1
+
+   PATBEG irib  nrib23-1
+      SET    frac_ (irib+1)/(nrib23+1)
+      POINT  G    ON AC FRAC frac_
+      POINT  H    ON BD FRAC frac_
+      LINE   .    G  H  tagType=rib  tagPart=outboard  tagIndex=!val2str(irib+1,0)
+   PATEND
+
+   LINE   .    E  G  tagType=spar  tagPart=outboard  tagIndex=1
+   LINE   .    F  H  tagType=spar  tagPart=outboard  tagIndex=2
+>>
+TRANSLATE  0   0   -1
+ROTATEX    dihed23
+TRANSLATE  x2  y2   z2
+STORE      waffle23
+
+# waffle at tip
+SET       xA        spar1*chord3
+SET       yA        0
+SET       xB        spar2*chord3
+SET       yB        0
+
+UDPRIM    waffle    filename <<   depth 2    rebuild xA;yA;xB;yB
+   POINT  A    AT  xA  yA
+   POINT  B    AT  xB  yB
+   LINE   .    A  B  tagType=rib  tagPart=tip
+>>
+TRANSLATE 0  0  -1
+ROTATEX   dihed23
+TRANSLATE x3  y3  z3
+STORE     waffle3
+
+# connect the waffes
+DIMENSION edgeList1  1  2
+DIMENSION edgeList2  1  2
+
+# connect root and inboard
+SET       frac   1/(2*nrib12+2)
+
+SET       xCon1  (1-frac)*x1+frac*x2
+SET       yCon1  (1-frac)*y1+frac*y2
+SET       zCon1  (1-frac)*z1+frac*z2
+
+SET       xCon2  (1-frac)*(x1+chord1)+frac*(x2+chord2)
+SET       yCon2  (1-frac)*y1+frac*y2
+SET       zCon2  (1-frac)*z1+frac*z2
+
+RESTORE   waffle1
+SELECT    EDGE          xCon1  yCon1  zCon1
+SET       edgeList1[1]  @iedge
+SELECT    EDGE          xCon2  yCon2  zCon2
+SET       edgeList1[2]  @iedge
+
+RESTORE   waffle12
+SELECT    EDGE          xCon1  yCon1  zCon1
+SET       edgeList2[1]  @iedge
+SELECT    EDGE          xCon2  yCon2  zCon2
+SET       edgeList2[2]  @iedge
+
+CONNECT   0  0  edgeList1  edgeList2
+
+SELECT    FACE     xCon1  xCon1  yCon1  yCon1  zCon1  zCon1
+ATTRIBUTE tagPart  $inboard
+ATTRIBUTE tagType  $spar
+ATTRIBUTE tagIndex $1
+SELECT    FACE     xCon2  xCon2  yCon2  yCon2  zCon2  zCon2
+ATTRIBUTE tagPart  $inboard
+ATTRIBUTE tagType  $spar
+ATTRIBUTE tagIndex $2
+
+# connect inboard and break
+SET       frac   (2*nrib12+1)/(2*nrib12+2)
+
+SET       xCon1  (1-frac)*x1+frac*x2
+SET       yCon1  (1-frac)*y1+frac*y2
+SET       zCon1  (1-frac)*z1+frac*z2
+
+SET       xCon2  (1-frac)*(x1+chord1)+frac*(x2+chord2)
+SET       yCon2  (1-frac)*y1+frac*y2
+SET       zCon2  (1-frac)*z1+frac*z2
+
+SELECT    EDGE          xCon1  yCon1  zCon1
+SET       edgeList1[1]  @iedge
+SELECT    EDGE          xCon2  yCon2  zCon2
+SET       edgeList1[2]  @iedge
+
+RESTORE   waffle2
+SELECT    EDGE          xCon1  yCon1  zCon1
+SET       edgeList2[1]  @iedge
+SELECT    EDGE          xCon2  yCon2  zCon2
+SET       edgeList2[2]  @iedge
+
+CONNECT   0  0  edgeList1  edgeList2
+
+SELECT    FACE     xCon1  xCon1  yCon1  yCon1  zCon1  zCon1
+ATTRIBUTE tagPart  $inboard
+ATTRIBUTE tagType  $spar
+ATTRIBUTE tagIndex $1
+SELECT    FACE     xCon2  xCon2  yCon2  yCon2  zCon2  zCon2
+ATTRIBUTE tagPart  $inboard
+ATTRIBUTE tagType  $spar
+ATTRIBUTE tagIndex $2
+
+# connect break and outboard
+SET       frac   1/(2*nrib23+2)
+
+SET       xCon1  (1-frac)*x2+frac*x3
+SET       yCon1  (1-frac)*y2+frac*y3
+SET       zCon1  (1-frac)*z2+frac*z3
+
+SET       xCon2  (1-frac)*(x2+chord2)+frac*(x3+chord3)
+SET       yCon2  (1-frac)*y2+frac*y3
+SET       zCon2  (1-frac)*z2+frac*z3
+
+SELECT    EDGE          xCon1  yCon1  zCon1
+SET       edgeList1[1]  @iedge
+SELECT    EDGE          xCon2  yCon2  zCon2
+SET       edgeList1[2]  @iedge
+
+RESTORE   waffle23
+SELECT    EDGE          xCon1  yCon1  zCon1
+SET       edgeList2[1]  @iedge
+SELECT    EDGE          xCon2  yCon2  zCon2
+SET       edgeList2[2]  @iedge
+
+CONNECT   0  0  edgeList1  edgeList2
+
+SELECT    FACE     xCon1  xCon1  yCon1  yCon1  zCon1  zCon1
+ATTRIBUTE tagPart  $outboard
+ATTRIBUTE tagType  $spar
+ATTRIBUTE tagIndex $1
+SELECT    FACE     xCon2  xCon2  yCon2  yCon2  zCon2  zCon2
+ATTRIBUTE tagPart  $outboard
+ATTRIBUTE tagType  $spar
+ATTRIBUTE tagIndex $2
+
+# connect outboard and tip
+SET       frac   (2*nrib23+1)/(2*nrib23+2)
+
+SET       xCon1  (1-frac)*x2+frac*x3
+SET       yCon1  (1-frac)*y2+frac*y3
+SET       zCon1  (1-frac)*z2+frac*z3
+
+SET       xCon2  (1-frac)*(x2+chord2)+frac*(x3+chord3)
+SET       yCon2  (1-frac)*y2+frac*y3
+SET       zCon2  (1-frac)*z2+frac*z3
+
+SELECT    EDGE          xCon1  yCon1  zCon1
+SET       edgeList1[1]  @iedge
+SELECT    EDGE          xCon2  yCon2  zCon2
+SET       edgeList1[2]  @iedge
+
+RESTORE   waffle3
+SELECT    EDGE          xCon1  yCon1  zCon1
+SET       edgeList2[1]  @iedge
+SELECT    EDGE          xCon2  yCon2  zCon2
+SET       edgeList2[2]  @iedge
+
+CONNECT   0  0  edgeList1  edgeList2
+
+SELECT    FACE     xCon1  xCon1  yCon1  yCon1  zCon1  zCon1
+ATTRIBUTE tagPart  $outboard
+ATTRIBUTE tagType  $spar
+ATTRIBUTE tagIndex $1
+SELECT    FACE     xCon2  xCon2  yCon2  yCon2  zCon2  zCon2
+ATTRIBUTE tagPart  $outboard
+ATTRIBUTE tagType  $spar
+ATTRIBUTE tagIndex $2
+
+STORE     waffle
+
+# combine waffle with oml
+RESTORE   oml
+RESTORE   waffle
+INTERSECT
+
+RESTORE   oml
+SELECT    FACE   $tagType  $upperSkin
+SELECT    ADD    $tagType  $lowerSkin
+EXTRACT   @sellist
+RESTORE   waffle
+SUBTRACT
+JOIN
+
+# mark the Faces associated with the wingBox
+UDPRIM   editAttr   filename <<   verbose 1
+   FACE  HAS       tagType=upperSkin
+   AND   ADJ2FACE  tagType=rib
+   SET             wingBox=1
+
+   FACE  HAS       tagType=lowerSkin
+   AND   ADJ2FACE  tagType=rib
+   SET             wingBox=1
+
+   FACE  HAS       tagType=root
+   AND   ADJ2FACE  wingBox=1
+   SET             wingBox=1
+
+   FACE  HAS       tagType=break
+   AND   ADJ2FACE  wingBox=1
+   SET             wingBox=1
+
+   FACE  HAS       tagType=tip
+   AND   ADJ2FACE  wingBox=1
+   SET             wingBox=1
+
+   FACE  HAS       tagType=spar
+   SET             wingBox=1
+
+   FACE  HAS       tagType=rib
+   SET             wingBox=1
+>>
+
+# remove those Faces that are not part of the wingBox
+SELECT    FACE     $wingBox  $*
+EXTRACT   @sellist
+
+# generate BDF
+UDPARG   createBEM  filename $testBEM.bdf
+UDPARG   createBEM  space    0.10
+UDPARG   createBEM  imin     5
+UDPARG   createBEM  imax     999
+UDPRIM   createBEM
+
+# rotate for viewing
+ROTATEX  -90
+ROTATEY  +90
+
+END

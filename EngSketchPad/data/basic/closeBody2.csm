@@ -27,13 +27,13 @@ PATBEG    i  @sellist.size
 PATEND
 EXTRACT   edges
 REORDER   0  1    # this is needed so that teh Face points outward
-COMBINE
+ELEVATE
 
 # join the new SheetBody with the original (SheetBody) config
 RESTORE   body
 JOIN
 
 # now promote to a SolidBody
-COMBINE
+ELEVATE
 
 END

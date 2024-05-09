@@ -1,0 +1,71 @@
+# extractNodes
+# written by John Dannenhoffer
+
+UDPRIM    biconvex  thick     0.12
+RESTORE   .
+SCALE     0.50
+TRANSLATE 0.50  0.00  5.00
+RULE
+STORE     oml
+
+SET       nrib      20
+UDPRIM    waffle    filename <<   depth 2
+   POINT  A   AT  0.25  0.00
+   POINT  B   AT  0.62  5.00
+   LINE   .   A  B   tagType=spar  tagIndex=1
+
+   POINT  C   AT  0.75  0.00
+   POINT  D   AT  0.87  5.00
+   LINE   .   C  D   tagType=spar  tagIndex=2
+
+   PATBEG irib nrib
+      POINT  E  AT -1.00  5.0*irib/(nrib+1)
+      POINT  F  AT  2.00  5.0*irib/(nrib+1)
+      LINE   .  E  F  tagType=rib  tagIndex=!val2str(irib,0)
+   PATEND
+>>
+ROTATEX   90
+TRANSLATE 0  1  0
+STORE     waffle
+
+# interior structure
+RESTORE   oml
+RESTORE   waffle
+INTERSECT
+STORE     structure
+
+# create NodeBody at all leading and trailing edges
+PATBEG    irib  nrib
+   RESTORE   structure
+
+   # add tagType/tagIndex to all Nodes on irib
+   UDPRIM    editAttr  filename <<  verbose 1
+      NODE   adj2face  tagType=rib  tagIndex=!val2str(irib,0)
+      SET    tagType=rib  tagIndex=!val2str(irib,0)
+   >>
+
+   # get the leading and trailing edge Nodes 
+   SELECT    NODE   $tagType $rib   $tagIndex  val2str(irib,0)
+   SELECT    SORT   $xcg
+   SET       ile    @sellist[1]
+   SET       ite    @sellist[@sellist.size]
+   SET       ibody  @nbody
+   STORE     .
+
+   # make a NodeBody at the leading edge
+   SELECT    BODY   ibody
+   SELECT    NODE   ile
+   POINT     @xcg   @ycg   @zcg
+      ATTRIBUTE  leadingEdge  val2str(irib,0)
+
+   # make a NodeBody at the trailing edge
+   SELECT    BODY   ibody
+   SELECT    NODE   ite
+   POINT     @xcg   @ycg   @zcg
+      ATTRIBUTE  trailingEdge  val2str(irib,0)
+PATEND
+
+# show the structure too
+RESTORE   structure
+
+END

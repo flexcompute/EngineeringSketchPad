@@ -1,0 +1,19 @@
+# sslope6a
+# written by John Dannenhoffer
+
+DESPMTR   npnt  6
+
+SKBEG       1   0   0
+   PATBEG  ipnt  npnt-1
+      SPLINE   cosd(360*ipnt/npnt)  sind(360*ipnt/npnt)  0
+   PATEND
+   SPLINE   1   0   0
+SKEND
+
+SKBEG       0  -1   0
+   CIRARC   1   0   0   0   1   0
+   CIRARC  -1   0   0   0  -1   0
+SKEND
+EXTRACT    -1;-2
+
+END

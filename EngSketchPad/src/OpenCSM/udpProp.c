@@ -13,7 +13,7 @@
  */
 
 /*
- * Copyright (C) 2022  John F. Dannenhoffer, III (Syracuse University)
+ * Copyright (C) 2024  John F. Dannenhoffer, III (Syracuse University)
  *
  * This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
@@ -80,7 +80,7 @@ static double   argDdefs[NUMUDPARGS] = {0.,        0.,         0.,       0.,    
 #include "udpUtilities.c"
 
 /* prototypes for routine defined below */
-static int    adkins(int iudp, int nsect, double r[], double chord[], double beta[], double *Tc);
+static int    adkins(int iudp, int nsect, double r[], double chord[], double beta[], double *Tc, int *NumUdp, udp_T *udps);
 static int    naca(double m, double p, double t, int npnt, double pnt[]);
 
 // number of airfoil cross-sections
@@ -112,6 +112,7 @@ udpExecute(ego  context,                /* (in)  EGADS context */
     char    *message=NULL;
     ego     ecurve, eline, enodes[5], eedges[3], eloop, eairfoil, eshaft, exform, esects[NSECT+2], eblade;
     ego     etemp1, etemp2, emodel, eref, *echilds, eface;
+    udp_T   *udps = *Udps;
 
     ROUTINE(udpExecute);
 
@@ -178,7 +179,7 @@ udpExecute(ego  context,                /* (in)  EGADS context */
     MALLOC(chord,  double, NSECT);
     MALLOC(beta,   double, NSECT);
 
-    status = adkins(numUdp, NSECT, radius, chord, beta, &Tc);
+    status = adkins(numUdp, NSECT, radius, chord, beta, &Tc, NumUdp, udps);
     CHECK_STATUS(adkins);
 
     /* since last chord is 0, make it half of the second-last chord */
@@ -622,8 +623,8 @@ udpExecute(ego  context,                /* (in)  EGADS context */
     *ebody = etemp1;
 
     /* set the output value(s) */
-    CTHRUST(0) = Tc;
-    EFF(    0) = Tc / CPOWER(0);
+    CTHRUST(numUdp) = Tc;
+    EFF(    numUdp) = Tc / CPOWER(0);
 
     /* remember this model (body) */
     udps[numUdp].ebody = *ebody;
@@ -706,7 +707,9 @@ adkins(int     iudp,                    /* (in)  iudp index */
        double  radius[],                /* (out) radial position */
        double  chord[],                 /* (out) chord distribution */
        double  beta[],                  /* (out) twist angle distribution */
-       double  *Tc)                     /* (out) thrust coefficient */
+       double  *Tc,                     /* (out) thrust coefficient */
+/*@unused@*/int *NumUdp,
+       udp_T   *udps)
 {
     int    status = EGADS_SUCCESS;
 

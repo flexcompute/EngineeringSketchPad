@@ -1,0 +1,26 @@
+# connect_1
+# written by John Dannenhoffer
+
+# red box
+BOX       0 -1 -1  2  2  2
+SELECT    FACE
+ATTRIBUTE _color $red
+
+# remember the xmax Face
+SELECT    FACE  @nbody  2
+SET       redFaces  @sellist[1]
+
+# blue rotated box
+BOX       4 -1 -1  2  2  2
+ROTATEX  45
+SELECT    FACE
+ATTRIBUTE _color $blue
+
+# remember the xmin Face
+SELECT    FACE  @nbody-1  1
+SET       blueFaces  @sellist
+
+# connect Bodys by removing red xmax Face and blue xmin Face
+CONNECT   redFaces  blueFaces
+
+END

@@ -273,6 +273,10 @@ BOOST_AUTO_TEST_CASE( assign_unary_accum )
 //----------------------------------------------------------------------------//
 BOOST_AUTO_TEST_CASE( addsubtract )
 {
+#ifdef __clang_analyzer__
+  return;
+#endif
+
   Real d[4] = {1, 2, 3, 4};
   SurrealD v1(1, d, 4);
   SurrealD v2(v1), v3(v1), v4(v1), v5(v1);

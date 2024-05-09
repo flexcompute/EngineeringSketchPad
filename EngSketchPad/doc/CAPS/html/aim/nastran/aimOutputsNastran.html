@@ -74,13 +74,39 @@ $(function() {
 <li><b>EigenGeneralMass</b> = List of generalized masses for the Eigen-Values.</li>
 <li><b>EigenGeneralStiffness</b> = List of generalized stiffness for the Eigen-Values.</li>
 <li><b>Objective</b> = Final objective value for a design optimization case.</li>
-<li><b>ObjectiveHistory</b> = List of objective value for the history of a design optimization case. </li>
+<li><b>ObjectiveHistory</b> = List of objective value for the history of a design optimization case.</li>
+<li><b>Mass</b> = Total mass of the model.</li>
+<li><b>CG</b> = Center of gravity of the model.</li>
+<li><b>Ixx</b> = Moment of inertia</li>
+<li><b>Iyy</b> = Moment of inertia</li>
+<li><b>Izz</b> = Moment of inertia</li>
+<li><b>Ixy</b> = Moment of inertia</li>
+<li><b>Izy</b> = Moment of inertia</li>
+<li><b>Iyz</b> = Moment of inertia</li>
+<li><b>I_Vector</b> = Moment of inertia vector <p class="formulaDsp">
+<img class="formulaDsp" alt="\[ \vec{I} = \begin{bmatrix} I_{xx} &amp; I_{yy} &amp; I_{zz} &amp; I_{xy} &amp; I_{xz} &amp; I_{yz} \end{bmatrix} \]" src="form_3.png"/>
+</p>
+</li>
+<li><b>I_Lower</b> = Moment of inertia lower triangular tensor <p class="formulaDsp">
+<img class="formulaDsp" alt="\[ \vec{I}_{lower} = \begin{bmatrix} I_{xx} &amp; -I_{xy} &amp; I_{yy} &amp; -I_{xz} &amp; -I_{yz} &amp; I_{zz} \end{bmatrix}, \]" src="form_4.png"/>
+</p>
+</li>
+<li><b>I_Upper</b> = Moment of inertia upper triangular tensor <p class="formulaDsp">
+<img class="formulaDsp" alt="\[ \vec{I}_{upper} = \begin{bmatrix} I_{xx} &amp; -I_{xy} &amp; -I_{xz} &amp; I_{yy} &amp; -I_{yz} &amp; I_{zz} \end{bmatrix}, \]" src="form_5.png"/>
+</p>
+</li>
+<li><b>I_Tensor</b> = Moment of inertia tensor <p class="formulaDsp">
+<img class="formulaDsp" alt="\[ \bar{\bar{I}} = \begin{bmatrix} I_{xx} &amp; -I_{xy} &amp; -I_{xz} \\ -I_{xy} &amp; I_{yy} &amp; -I_{yz} \\ -I_{xz} &amp; -I_{yz} &amp; I_{zz} \end{bmatrix} \]" src="form_6.png"/>
+</p>
+</li>
+<li><b>MassProp</b> = JSON String Mass Properties</li>
+<li><b>MassPropLink</b> = Mass Properties Mass properties that can be linked to analysis input MassPropLink </li>
 </ul>
 </div></div><!-- contents -->
 </div><!-- PageDoc -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Sat Jul 2 2022 10:12:44 for Nastran Analysis Interface Module (AIM) by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1
+Generated on Sat Apr 27 2024 16:51:37 for Nastran Analysis Interface Module (AIM) by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1
 </small></address>
 </body>
 </html>

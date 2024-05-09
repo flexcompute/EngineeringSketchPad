@@ -41,11 +41,11 @@ int aflr4_Surface_Mesh(void *aimInfo,
 
     ego *faces = NULL, *copy_bodies=NULL, context, tess, model=NULL;
 
-    int min_ncell, mer_all, no_prox;
+    int min_ncell, mer_all, no_prox, quad, skin;
     int EGADSQuad = (int) false;
 
     double ff_cdfr, abs_min_scale, BL_thickness, Re_l, curv_factor,
-           max_scale, min_scale, ref_len, erw_all;
+           max_scale, min_scale, ref_len, sf_global, erw_all;
 
     const char *aflr4_debug = "aflr4_debug.egads";
     char aimFile[PATH_MAX];
@@ -66,7 +66,7 @@ int aflr4_Surface_Mesh(void *aimInfo,
     egads_struct *ptr = NULL;
 
 
-    // Do some additional anity checks on the attributes
+    // Do some additional sanity checks on the attributes
     for (bodyIndex = 0; bodyIndex < numBody; bodyIndex++) {
 
         status = EG_getBodyTopos (bodies[bodyIndex], NULL, FACE, &numFace,
@@ -254,6 +254,8 @@ int aflr4_Surface_Mesh(void *aimInfo,
     min_ncell     = aimInputs[Min_ncell-1].vals.integer;
     mer_all       = aimInputs[Mer_all-1].vals.integer;
     no_prox       = aimInputs[No_prox-1].vals.integer;
+    quad          = aimInputs[AFLR4_Quad-1].vals.integer;
+    skin          = aimInputs[Skin-1].vals.integer;
 
     BL_thickness  = aimInputs[BL_Thickness-1].vals.real;
     Re_l          = aimInputs[RE_l-1].vals.real;
@@ -292,7 +294,8 @@ int aflr4_Surface_Mesh(void *aimInfo,
     }
 
     // compute the reference length used by AFLR4
-    ref_len = meshLenFac*capsMeshLength;
+    ref_len = capsMeshLength;
+    sf_global = meshLenFac;
 
     /*
     printf("ff_cdfr               = %d\n", ff_cdfr       );
@@ -324,6 +327,15 @@ int aflr4_Surface_Mesh(void *aimInfo,
     if (no_prox == True) {
       status = ug_add_flag_arg ("-no_prox"    , &prog_argc, &prog_argv); if (status != CAPS_SUCCESS) goto cleanup;
     }
+    if (quad == True) {
+      status = ug_add_flag_arg ("-quad"       , &prog_argc, &prog_argv); if (status != CAPS_SUCCESS) goto cleanup;
+
+      // proximity currently does not work with -quad. Dave says it's a long story
+      status = ug_add_flag_arg ("-no_prox"    , &prog_argc, &prog_argv); if (status != CAPS_SUCCESS) goto cleanup;
+    }
+    if (skin == True) {
+      status = ug_add_flag_arg ("-skin"       , &prog_argc, &prog_argv); if (status != CAPS_SUCCESS) goto cleanup;
+    }
     status = ug_add_flag_arg ( "ff_cdfr"      , &prog_argc, &prog_argv); if (status != CAPS_SUCCESS) goto cleanup;
     status = ug_add_double_arg (ff_cdfr       , &prog_argc, &prog_argv); if (status != CAPS_SUCCESS) goto cleanup;
     status = ug_add_flag_arg ( "BL_thickness" , &prog_argc, &prog_argv); if (status != CAPS_SUCCESS) goto cleanup;
@@ -342,6 +354,8 @@ int aflr4_Surface_Mesh(void *aimInfo,
     status = ug_add_double_arg (ref_len       , &prog_argc, &prog_argv); if (status != CAPS_SUCCESS) goto cleanup;
     status = ug_add_flag_arg ( "erw_all"      , &prog_argc, &prog_argv); if (status != CAPS_SUCCESS) goto cleanup;
     status = ug_add_double_arg (erw_all       , &prog_argc, &prog_argv); if (status != CAPS_SUCCESS) goto cleanup;
+    status = ug_add_flag_arg ( "sf_global"    , &prog_argc, &prog_argv); if (status != CAPS_SUCCESS) goto cleanup;
+    status = ug_add_double_arg (sf_global     , &prog_argc, &prog_argv); if (status != CAPS_SUCCESS) goto cleanup;
 
     // Add meshInputString arguments (if any) to argument vector.
     // Note that since this comes after setting aimInputs the
@@ -378,14 +392,18 @@ int aflr4_Surface_Mesh(void *aimInfo,
     // these calls are in aflr4_main_register - if that changes then these
     // need to change these
     aflr4_register_auto_cad_geom_setup (egads_auto_cad_geom_setup);
+    aflr4_register_cad_geom_create_tess (egads_aflr4_create_tess);
     aflr4_register_cad_geom_data_cleanup (egads_cad_geom_data_cleanup);
     aflr4_register_cad_geom_file_read (egads_cad_geom_file_read);
     aflr4_register_cad_geom_file_write (egads_cad_geom_file_write);
-    aflr4_register_cad_geom_create_tess (egads_aflr4_create_tess);
     aflr4_register_cad_geom_reset_attr (egads_cad_geom_reset_attr);
     aflr4_register_cad_geom_setup (egads_cad_geom_setup);
     aflr4_register_cad_tess_to_dgeom (egads_aflr4_tess_to_dgeom);
+    aflr4_register_get_mzone_bedge_data (egads_get_mzone_bedge_data);
+    aflr4_register_merge_mzone_data (egads_merge_mzone_data);
     aflr4_register_set_ext_cad_data (egads_set_ext_cad_data);
+    aflr4_register_set_mzone_data (egads_set_mzone_data);
+    aflr4_register_set_mzone_edge_data (egads_set_mzone_edge_data);
 
     dgeom_register_cad_eval_curv_at_uv (egads_eval_curv_at_uv);
     dgeom_register_cad_eval_edge_arclen (egads_eval_edge_arclen);
@@ -414,7 +432,7 @@ int aflr4_Surface_Mesh(void *aimInfo,
                                 &AFLR4_Param_Struct_Ptr);
 /*@+nullpass@*/
     AIM_STATUS(aimInfo, status, "aflr4_setup_param failed!");
-  
+
     // Allocate AFLR4-EGADS data structure, initialize, and link body data.
 
     AIM_ALLOC(copy_bodies, numBody, ego, aimInfo, status);
@@ -444,38 +462,14 @@ int aflr4_Surface_Mesh(void *aimInfo,
 
 /*@-nullpass@*/
     status = aflr4_setup_and_grid_gen (1, AFLR4_Param_Struct_Ptr);
-/*@+nullpass@*/
-    if (status != 0) {
-        status = aim_file(aimInfo, aflr4_debug, aimFile);
-        AIM_STATUS(aimInfo, status);
-
-        AIM_ERROR  (aimInfo, "AFLR4 mesh generation failed...");
-        AIM_ADDLINE(aimInfo, "An EGADS file with all AFLR4 parameters");
-        AIM_ADDLINE(aimInfo, "has been written to '%s'", aimFile);
-
-        remove(aimFile);
-/*@-nullpass@*/
-        (void) EG_saveModel(model, aimFile);
-/*@+nullpass@*/
-        status = CAPS_EXECERR;
-        goto cleanup;
-    }
-
-    // Reset CAD attribute data.
-
-/*@-nullpass@*/
-    status = aflr4_cad_geom_reset_attr (AFLR4_Param_Struct_Ptr);
-/*@+nullpass@*/
-    if (status != 0) {
-        AIM_ERROR(aimInfo, "aflr4_cad_geom_reset_attr failed!");
-        status = CAPS_EXECERR;
-        goto cleanup;
-    }
+    /*@+nullpass@*/
+    AIM_STATUS(aimInfo, status);
 
 //#define DUMP_TECPLOT_DEBUG_FILE
 #ifdef DUMP_TECPLOT_DEBUG_FILE
     {
       int surf = 0;
+      int numEdge = 0;
       int numSurface = 0;
       int numTriFace = 0;
       int numNodes = 0;
@@ -484,7 +478,9 @@ int aflr4_Surface_Mesh(void *aimInfo,
 
       // AFRL4 output arrays
       INT_1D *bcFlag = NULL;
+      INT_1D *ieFlag = NULL;
       INT_1D *idFlag = NULL;
+      INT_2D *edgeCon = NULL;
       INT_3D *triCon = NULL;
       INT_4D *quadCon = NULL;
       DOUBLE_2D *uv = NULL;
@@ -496,39 +492,46 @@ int aflr4_Surface_Mesh(void *aimInfo,
       FILE *fp = aim_fopen(aimInfo, "aflr4_debug.tec", "w");
       fprintf(fp, "VARIABLES = X, Y, Z, u, v\n");
 
-      numSurface = dgeom_def_get_ndef(); // Get number of surfaces meshed
+      numSurface = dgeom_get_ndef(); // Get number of surfaces meshed
 
       for (surf = 0; surf < numSurface ; surf++) {
 
         if (surf+1 == glueId) continue;
 
         status = aflr4_get_def (surf+1,
-                                0, // If there are quads, don't get them.
+                                0,
+                                &numEdge,
                                 &numTriFace,
                                 &numNodes,
                                 &numQuadFace,
                                 &bcFlag,
+                                &ieFlag,
                                 &idFlag,
+                                &edgeCon,
                                 &triCon,
                                 &quadCon,
                                 &uv,
                                 &xyz);
-        if (status != CAPS_SUCCESS) goto cleanup;
+        AIM_STATUS(aimInfo, status);
 
-        fprintf(fp, "ZONE T=\"def %d\" N=%d, E=%d, F=FEPOINT, ET=Triangle\n",
-                surf+1, numNodes, numTriFace);
+        fprintf(fp, "ZONE T=\"def %d\" N=%d, E=%d, F=FEPOINT, ET=Quadrilateral, DT=(DOUBLE DOUBLE DOUBLE DOUBLE DOUBLE)\n",
+                surf+1, numNodes, numTriFace+numQuadFace);
         for (int i = 0; i < numNodes; i++)
           fprintf(fp, "%22.15e %22.15e %22.15e %22.15e %22.15e\n",
                   xyz[i+1][0], xyz[i+1][1], xyz[i+1][2], uv[i+1][0], uv[i+1][1]);
         for (int i = 0; i < numTriFace; i++)
-          fprintf(fp, "%d %d %d\n", triCon[i+1][0], triCon[i+1][1], triCon[i+1][2]);
+          fprintf(fp, "%d %d %d %d\n", triCon[i+1][0], triCon[i+1][1], triCon[i+1][2], triCon[i+1][2]);
+        for (int i = 0; i < numQuadFace; i++)
+          fprintf(fp, "%d %d %d %d\n", quadCon[i+1][0], quadCon[i+1][1], quadCon[i+1][2], quadCon[i+1][3]);
 
-        ug_free (bcFlag); bcFlag = NULL;
-        ug_free (idFlag); idFlag = NULL;
-        ug_free (triCon); triCon = NULL;
+        ug_free (bcFlag);  bcFlag = NULL;
+        ug_free (ieFlag);  ieFlag = NULL;
+        ug_free (idFlag);  idFlag = NULL;
+        ug_free (edgeCon); edgeCon = NULL;
+        ug_free (triCon);  triCon = NULL;
         ug_free (quadCon); quadCon = NULL;
-        ug_free (uv); uv = NULL;
-        ug_free (xyz); xyz = NULL;
+        ug_free (uv);      uv = NULL;
+        ug_free (xyz);     xyz = NULL;
 
       }
       fclose(fp); fp = NULL;
@@ -581,8 +584,19 @@ int aflr4_Surface_Mesh(void *aimInfo,
     status = CAPS_SUCCESS;
 
 cleanup:
+    if (status != 0 && dgeom_get_ext_cad_data () != NULL) {
+        AIM_ERROR  (aimInfo, "AFLR4 mesh generation failed...");
+        AIM_ADDLINE(aimInfo, "An EGADS file with all AFLR4 parameters");
+        AIM_ADDLINE(aimInfo, "has been written to '%s'", aflr4_debug);
+
+        remove(aflr4_debug);
+    /*@-mustfreefresh@*/
+        (void) EG_saveModel(egads_get_model (0), aflr4_debug);
+    /*@+mustfreefresh@*/
+    }
+
     if (ptr != NULL) {
-        EG_free (ptr->bodies);
+        AIM_FREE (ptr->bodies);
         EG_deleteObject (ptr->model);
     }
 

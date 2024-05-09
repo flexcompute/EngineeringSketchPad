@@ -10,7 +10,7 @@ ODIR  = .
 TDIR  = .
 endif
 
-ifeq ("$(ESP_ARCH)","LINUX64")
+ifneq (,$(findstring LINUX,$(ESP_ARCH)))
 default:	$(TDIR)/server $(LDIR)/libwsserver.so
 else
 default:	$(TDIR)/server $(LDIR)/libwsserver.dylib
@@ -46,7 +46,7 @@ $(LDIR)/libwsserver.dylib: $(OBJS) map.o
 	touch $(LDIR)/libwsserver.dylib
 	rm $(LDIR)/libwsserver.dylib
 	(cd $(ODIR); $(CXX) -dynamiclib -o $(LDIR)/libwsserver.dylib \
-		$(OBJS) map.o -lz -undefined error \
+		$(OBJS) map.o -lz \
 		-install_name '@rpath/libwsserver.dylib' \
 		-compatibility_version $(CASREV) \
 		-current_version $(EGREV) )
@@ -74,9 +74,9 @@ clean:
 	-(cd $(ODIR); rm map.o fwv.o $(OBJS) servertest.o )
 
 cleanall:	clean
-	-rm $(TDIR)/server $(LDIR)/libwsserver.a
-ifeq ("$(ESP_ARCH)","LINUX64")
-	-rm $(LDIR)/libwsserver.so
+	-rm -f $(TDIR)/server $(LDIR)/libwsserver.a
+ifneq (,$(findstring LINUX,$(ESP_ARCH)))
+	-rm -f $(LDIR)/libwsserver.so
 else
-	-rm $(LDIR)/libwsserver.dylib
+	-rm -f $(LDIR)/libwsserver.dylib
 endif

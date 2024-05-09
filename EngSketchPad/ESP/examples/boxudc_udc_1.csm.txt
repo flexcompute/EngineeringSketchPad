@@ -1,0 +1,14 @@
+# boxudc_udc_1
+# written by John Dannenhoffer
+
+DESPMTR   DX   2
+DESPMTR   DY   1
+DESPMTR   DZ   3
+
+UDPARG    $$/boxudc dx  DX  dy  -1  dz  -1
+UDPARG    $$/boxudc         dy  DY  dz  -1        # overwrites
+UDPARG    $$/boxudc                 dz  DZ        # overwrites
+UDPRIM    $$/boxudc
+ASSERT    @@vol     DX*DY*DZ
+
+END

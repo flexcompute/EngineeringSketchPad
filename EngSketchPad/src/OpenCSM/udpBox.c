@@ -11,7 +11,7 @@
  */
 
 /*
- * Copyright (C) 2013/2022  John F. Dannenhoffer, III (Syracuse University)
+ * Copyright (C) 2013/2024  John F. Dannenhoffer, III (Syracuse University)
  *
  * This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
@@ -53,8 +53,6 @@ static double argDdefs[NUMUDPARGS] = {0.,          0.,          0.,          0.,
                          udpGet, udpVel, udpClean, udpMesh */
 #include "udpUtilities.c"
 
-#define  EPS06   1.0e-6
-
 
 /*
  ************************************************************************
@@ -71,12 +69,13 @@ udpExecute(ego  context,                /* (in)  EGADS context */
            char *string[])              /* (out) error message */
 {
     int     status = EGADS_SUCCESS;
-    int     wire, sense[8], nedges, add=1;
+    int     wire, sense[8], nedges;
     double  node1[3], node2[3], node3[3], node4[3], node5[3], node6[3], node7[3], node8[3];
     double  cent1[3], cent2[3], cent3[3], cent4[3], axis1[3], axis2[3];
     double  data[18], trange[2];
     char    *message=NULL;
     ego     enodes[9], ecurve, eedges[8], eloop, eface, etemp, *eedges2;
+    udp_T   *udps = *Udps;
 
     ROUTINE(udpExecute);
 
@@ -201,8 +200,8 @@ udpExecute(ego  context,                /* (in)  EGADS context */
         status = EG_getMassProperties(*ebody, data);
         CHECK_STATUS(EG_getMassProperties);
 
-        AREA(0)   = data[1];
-        VOLUME(0) = data[0];
+        AREA(  numUdp)   = data[1];
+        VOLUME(numUdp) = data[0];
 
         /* remember this model (body) */
         udps[numUdp].ebody = *ebody;
@@ -337,8 +336,8 @@ udpExecute(ego  context,                /* (in)  EGADS context */
         status = EG_getMassProperties(*ebody, data);
         CHECK_STATUS(EG_getMassProperties);
 
-        AREA(0)   = data[1];
-        VOLUME(0) = data[0];
+        AREA(  numUdp)   = data[1];
+        VOLUME(numUdp) = data[0];
 
         /* remember this model (body) */
         udps[numUdp].ebody = *ebody;
@@ -470,12 +469,6 @@ udpExecute(ego  context,                /* (in)  EGADS context */
         status = EG_makeFace(eloop, SREVERSE, NULL, &eface);
         CHECK_STATUS(EG_makeFace);
 
-        /* since this will make a PLANE, we need to add an Attribute
-           to tell OpenCSM to scale the UVs when computing sensitivities */
-        status = EG_attributeAdd(eface, "_scaleuv", ATTRINT, 1,
-                                 &add, NULL, NULL);
-        CHECK_STATUS(EG_attributeAdd);
-
         /* create the FaceBody (which will be returned) */
         status = EG_makeTopology(context, NULL, BODY, FACEBODY, NULL, 1, &eface, NULL, ebody);
         CHECK_STATUS(EG_makeTopology);
@@ -485,8 +478,8 @@ udpExecute(ego  context,                /* (in)  EGADS context */
         status = EG_getMassProperties(*ebody, data);
         CHECK_STATUS(EG_getMassProperties);
 
-        AREA(0)   = data[1];
-        VOLUME(0) = data[0];
+        AREA(  numUdp)   = data[1];
+        VOLUME(numUdp) = data[0];
 
         /* remember this model (body) */
         udps[numUdp].ebody = *ebody;
@@ -954,12 +947,6 @@ udpExecute(ego  context,                /* (in)  EGADS context */
         status = EG_makeFace(eloop, SFORWARD, NULL, &eface);
         CHECK_STATUS(EG_makeFace);
 
-        /* since this will make a PLANE, we need to add an Attribute
-           to tell OpenCSM to scale the UVs when computing sensitivities */
-        status = EG_attributeAdd(eface, "_scaleuv", ATTRINT, 1,
-                                 &add, NULL, NULL);
-        CHECK_STATUS(EG_attributeAdd);
-
         /* create the FaceBody (which will be returned) */
         status = EG_makeTopology(context, NULL, BODY, FACEBODY, NULL, 1, &eface, NULL, ebody);
         CHECK_STATUS(EG_makeTopology);
@@ -969,8 +956,8 @@ udpExecute(ego  context,                /* (in)  EGADS context */
         status = EG_getMassProperties(*ebody, data);
         CHECK_STATUS(EG_getMassProperties);
 
-        AREA(0)   = data[1];
-        VOLUME(0) = data[0];
+        AREA(  numUdp)   = data[1];
+        VOLUME(numUdp) = data[0];
 
         /* remember this model (body) */
         udps[numUdp].ebody = *ebody;
@@ -1023,8 +1010,13 @@ udpSensitivity(ego    ebody,            /* (in)  Body pointer */
     /* --------------------------------------------------------------- */
     
 #ifdef DEBUG
-    printf("udpSensitivity(ebody=%llx, npnt=%d, entType=%d, entIndex=%d, uvs=%f)\n",
-           (long long)ebody, npnt, entType, entIndex, uvs[0]);
+    if (uvs != NULL) {
+        printf("udpSensitivity(ebody=%llx, npnt=%d, entType=%d, entIndex=%d, uvs=%f)\n",
+               (long long)ebody, npnt, entType, entIndex, uvs[0]);
+    } else {
+        printf("udpSensitivity(ebody=%llx, npnt=%d, entType=%d, entIndex=%d, uvs=NULL)\n",
+               (long long)ebody, npnt, entType, entIndex);
+    }
 #endif
 
     /* check that ebody matches one of the ebodys */

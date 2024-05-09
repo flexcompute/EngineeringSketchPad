@@ -1,0 +1,39 @@
+# offsetPd
+# written by John Dannenhoffer
+
+SKBEG     0  0  0
+   LINSEG 2  0  0
+   LINSEG 2  1  0
+   LINSEG 3  1.5 0
+   LINSEG 2  2  0
+   LINSEG 2  3  0
+   LINSEG 0  3  0
+   LINSEG 0  2  0
+   LINSEG 1  1.5 0
+   LINSEG 0  1  0
+   LINSEG 0  0  0
+SKEND
+
+EXTRUDE   0  0  1
+
+SELECT    EDGE   4
+SELECT    ADD    7
+SELECT    ADD    10
+SELECT    ADD    13
+SELECT    ADD    16
+SELECT    ADD    19
+SELECT    ADD    22
+SELECT    ADD    25
+SELECT    ADD    28
+SELECT    ADD    30
+ATTRIBUTE _color $magenta
+
+UDPARG    offset    faceList  12
+UDPARG    offset    edgeList  4;7;10;13;16;19;22;25;28;30
+UDPRIM    offset    dist      0.2
+
+SELECT    FACE      $__offsetFace__ $*
+ATTRIBUTE _color    $white
+ASSERT    @sellist.size  10
+
+END

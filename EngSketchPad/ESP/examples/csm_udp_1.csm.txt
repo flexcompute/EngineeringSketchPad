@@ -1,0 +1,13 @@
+# csm_udp_1
+# written by John Dannenhoffer
+
+DESPMTR   dx       2
+DESPMTR   dy       3
+
+# box
+UDPARG    csm      filename   $$/csm_base_1.csm
+UDPARG    csm      pmtrname   $xsize;ysize
+UDPARG    csm      pmtrvalue  "dx   ;dy   "
+UDPRIM    csm
+
+end

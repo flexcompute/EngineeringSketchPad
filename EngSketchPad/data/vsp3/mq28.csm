@@ -1,0 +1,6 @@
+# mq28
+# written by John Dannenhoffer
+
+UDPRIM    vsp3   filename $$/mq28.vsp3
+
+END

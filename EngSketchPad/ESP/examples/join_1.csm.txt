@@ -1,0 +1,31 @@
+# join_1
+# written by John Dannenhoffer
+
+# red box
+BOX       0  -1  -1  2  2  2
+ATTRIBUTE _color $red
+
+# green box
+BOX       2  -1  -1  2  2  2
+ATTRIBUTE _color $green
+
+# join at their common Face
+JOIN
+
+# small blue box
+BOX       4  -1/2 -1/2  2  1  1
+ATTRIBUTE _color $blue
+
+# join will fail because no common Faces (but will leave Bodys on stack)
+JOIN
+
+CATBEG    $face_not_found
+   MESSAGE green/blue_join_failed_as_expected
+CATEND
+
+# make last (blue) body on stack transparent
+SELECT    FACE
+ATTRIBUTE _trn $on
+
+END
+

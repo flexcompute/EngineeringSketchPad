@@ -36,13 +36,7 @@ myProblem.geometry.despmtr.area = 50
 aflr4 = myProblem.analysis.create(aim = "aflr4AIM",
                                   name = "aflr4")
 
-# Set project name so a mesh file is generated
-aflr4.input.Proj_Name = "AFLR4_Mesh"
-
-# Set mesh ascii flag
-aflr4.input.Mesh_ASCII_Flag = True
-
-# Set output mesh format
+# Optional: Explicitly write mesh files
 aflr4.input.Mesh_Format = "Tecplot"
 
 # Set AIM verbosity
@@ -62,13 +56,7 @@ aflr3 = myProblem.analysis.create(aim = "aflr3AIM",
 # Link the aflr4 output Surface_Mesh to the aflr3 input Surface_Mesh
 aflr3.input["Surface_Mesh"].link(aflr4.output["Surface_Mesh"])
 
-# Set project name so a mesh file is generated
-aflr3.input.Proj_Name = "AFLR3_Mesh"
-
-# Set mesh ascii flag
-aflr3.input.Mesh_ASCII_Flag = True
-
-# Set project name - so a mesh file is generated
+# Optional: Explicitly write mesh files
 aflr3.input.Mesh_Format = "Tecplot"
 
 # Set AIM verbosity
@@ -85,7 +73,7 @@ su2.input["Mesh"].link(aflr3.output["Volume_Mesh"])
 projectName = "su2AFLRTest"
 
 # Set SU2 Version
-su2.input.SU2_Version = "Blackbird"
+su2.input.SU2_Version = "Harrier"
 
 # Set project name
 su2.input.Proj_Name = projectName

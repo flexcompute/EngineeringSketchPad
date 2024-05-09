@@ -1,0 +1,55 @@
+# areaRule1
+# written by John Dannenhoffer
+
+DESPMTR   fuse:length   30
+CFGPMTR   fuse:nsect    20
+DIMENSION fuse:xsect     1  fuse:nsect
+OUTPMTR   fuse:xsect
+DIMENSION fuse:radius    1  fuse:nsect
+DESPMTR   fuse:radius  1.5
+LBOUND    fuse:radius  0.2
+
+DIMENSION aircraft:area  1  fuse:nsect
+OUTPMTR   aircraft:area
+
+# build the wing
+UDPRIM    $/areaRuleWing1
+
+# build the fuselage
+MARK
+   POINT     0  0  0
+   PATBEG    isect  fuse:nsect
+      SET    fuse:xsect[isect]  (isect)/(fuse:nsect+1)*fuse:length
+      
+      UDPARG    supell    rx  fuse:radius[isect]
+      UDPARG    supell    ry  fuse:radius[isect]
+      UDPRIM    supell    n   2
+      ROTATEY   90
+      TRANSLATE fuse:xsect[isect] 0 0
+   PATEND
+   POINT     fuse:length  0  0
+BLEND
+
+# combine them
+UNION
+STORE     aircraft
+STORE     ...
+
+# find the cross-sectional areas
+PATBEG   isect fuse:nsect
+   RESTORE   aircraft
+   BOX       fuse:xsect[isect]  -wing:span  -wing:span  0  2*wing:span  2*wing:span
+   INTERSECT none -1
+   SET       nstack  @stack.size
+   SET       aircraft:area[isect]  0
+   PATBEG    istack  nstack
+      SELECT BODY  @stack[istack]
+      SET    aircraft:area[isect]  aircraft:area[isect]+@area
+   PATEND
+   STORE     ...
+PATEND
+
+# get the original aircraft back on the stack
+RESTORE   aircraft
+
+END

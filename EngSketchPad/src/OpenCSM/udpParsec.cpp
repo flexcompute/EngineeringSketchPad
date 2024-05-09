@@ -11,7 +11,7 @@
  */
 
 /*
- * Copyright (C) 2011/2020
+ * Copyright (C) 2011/2024
  *
  * This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
@@ -29,6 +29,8 @@
  *     MA  02110-1301  USA
  */
 
+// #define DEBUG
+
 /* set to 1 for arc-lenght knots, -1 for equally spaced knots */
 #define KNOTS -1
 
@@ -42,20 +44,20 @@ extern "C" {
 } /* extern "C" */
 
 /* shorthands for accessing argument values and velocities */
-#define YTE_VAL(   IUDP  ) ((double *) (udps[IUDP].arg[0].val))[0]
-#define YTE_DOT(   IUDP  ) ((double *) (udps[IUDP].arg[0].dot))[0]
-#define POLY_VAL(  IUDP,I) ((double *) (udps[IUDP].arg[1].val))[I]
-#define POLY_DOT(  IUDP,I) ((double *) (udps[IUDP].arg[1].dot))[I]
-#define PARAM_VAL( IUDP,I) ((double *) (udps[IUDP].arg[2].val))[I]
-#define PARAM_DOT( IUDP,I) ((double *) (udps[IUDP].arg[2].dot))[I]
-#define MEANLINE(  IUDP  ) ((int    *) (udps[IUDP].arg[3].val))[0]
-#define ZTAIL_VAL( IUDP,I) (udps[IUDP].arg[4].size == 1 ? 0 : ((double *) (udps[IUDP].arg[4].val))[I])
-#define ZTAIL_DOT( IUDP,I) (udps[IUDP].arg[4].size == 1 ? 0 : ((double *) (udps[IUDP].arg[4].dot))[I])
+#define YTE_VAL(   UDP  ) ((double *) ((UDP)->arg[0].val))[0]
+#define YTE_DOT(   UDP  ) ((double *) ((UDP)->arg[0].dot))[0]
+#define POLY_VAL(  UDP,I) ((double *) ((UDP)->arg[1].val))[I]
+#define POLY_DOT(  UDP,I) ((double *) ((UDP)->arg[1].dot))[I]
+#define PARAM_VAL( UDP,I) ((double *) ((UDP)->arg[2].val))[I]
+#define PARAM_DOT( UDP,I) ((double *) ((UDP)->arg[2].dot))[I]
+#define MEANLINE(  UDP  ) ((int    *) ((UDP)->arg[3].val))[0]
+#define ZTAIL_VAL( UDP,I) ((UDP)->arg[4].size == 1 ? 0 : ((double *) ((UDP)->arg[4].val))[I])
+#define ZTAIL_DOT( UDP,I) ((UDP)->arg[4].size == 1 ? 0 : ((double *) ((UDP)->arg[4].dot))[I])
 
-#define YTE_SURREAL(   IUDP  ) SurrealS<1>( YTE_VAL(  IUDP  ), YTE_DOT(  IUDP  ) )
-#define POLY_SURREAL(  IUDP,I) SurrealS<1>( POLY_VAL( IUDP,I), POLY_DOT( IUDP,I) )
-#define PARAM_SURREAL( IUDP,I) SurrealS<1>( PARAM_VAL(IUDP,I), PARAM_DOT(IUDP,I) )
-#define ZTAIL_SURREAL( IUDP,I) SurrealS<1>( ZTAIL_VAL(IUDP,I), ZTAIL_DOT(IUDP,I) )
+#define YTE_SURREAL(   UDP  ) SurrealS<1>( YTE_VAL(  UDP  ), YTE_DOT(  UDP  ) )
+#define POLY_SURREAL(  UDP,I) SurrealS<1>( POLY_VAL( UDP,I), POLY_DOT( UDP,I) )
+#define PARAM_SURREAL( UDP,I) SurrealS<1>( PARAM_VAL(UDP,I), PARAM_DOT(UDP,I) )
+#define ZTAIL_SURREAL( UDP,I) SurrealS<1>( ZTAIL_VAL(UDP,I), ZTAIL_DOT(UDP,I) )
 
 /* data about possible arguments */
 static const char  *argNames[NUMUDPARGS] = {"yte",      "poly",       "param",     "meanline", "ztail",     };
@@ -63,30 +65,12 @@ static       int    argTypes[NUMUDPARGS] = {ATTRREALSEN, ATTRREALSEN, ATTRREALSE
 static       int    argIdefs[NUMUDPARGS] = {0,           0,           0,           0,          0,           };
 static       double argDdefs[NUMUDPARGS] = {0.,          0.,          0.,          0.,         0.,          };
 
-struct udpDotCache_T
-{
-  int    sharpte;
-  double yte_dot;
-  double *poly_dot;
-  double *param_dot;
-  double ztail_dot[2];
-} ;
-
-#define FREEUDPDATA(A) freePrivateData(A)
-static int freePrivateData(void *data)
-{
-  udpDotCache_T *cache = (udpDotCache_T*)data;
-  EG_free(cache->poly_dot);
-  EG_free(cache->param_dot);
-  EG_free(cache);
-  return EGADS_SUCCESS;
-}
-
 extern "C" {
 /* get utility routines: udpErrorStr, udpInitialize, udpReset, udpSet,
                          udpGet, udpVel, udpClean, udpMesh */
 #include "udpUtilities.c"
 } /* extern "C" */
+
 
 /* functions for accessing argument values and surreal velocities
  * the compiler should inline these and they will go away in the shared library
@@ -94,52 +78,52 @@ extern "C" {
  * the function prototypes are declared, and then specializations are used to
  * return the appropriate macro
  */
-template<class T> T    YTE(int iudp);
-template<> double      YTE< double      >( int iudp ) { return YTE_VAL(iudp); }
-template<> SurrealS<1> YTE< SurrealS<1> >( int iudp ) { return YTE_SURREAL(iudp); }
+template<class T> T    YTE(udp_T *udp);
+template<> double      YTE< double      >( udp_T *udp ) { return YTE_VAL(udp); }
+template<> SurrealS<1> YTE< SurrealS<1> >( udp_T *udp ) { return YTE_SURREAL(udp); }
 
-template<class T> T    POLY(int iudp, int i);
-template<> double      POLY< double      >( int iudp, int i ) { return POLY_VAL(iudp,i); }
-template<> SurrealS<1> POLY< SurrealS<1> >( int iudp, int i ) { return POLY_SURREAL(iudp,i); }
+template<class T> T    POLY(udp_T *udp, int i);
+template<> double      POLY< double      >( udp_T *udp, int i ) { return POLY_VAL(udp,i); }
+template<> SurrealS<1> POLY< SurrealS<1> >( udp_T *udp, int i ) { return POLY_SURREAL(udp,i); }
 
-template<class T> T    PARAM(int iudp, int i);
-template<> double      PARAM< double      >( int iudp, int i ) { return PARAM_VAL(iudp,i); }
-template<> SurrealS<1> PARAM< SurrealS<1> >( int iudp, int i ) { return PARAM_SURREAL(iudp,i); }
+template<class T> T    PARAM(udp_T *udp, int i);
+template<> double      PARAM< double      >( udp_T *udp, int i ) { return PARAM_VAL(udp,i); }
+template<> SurrealS<1> PARAM< SurrealS<1> >( udp_T *udp, int i ) { return PARAM_SURREAL(udp,i); }
 
-template<class T> T    ZTAIL(int iudp, int i);
-template<> double      ZTAIL< double      >( int iudp, int i ) { return ZTAIL_VAL(iudp,i); }
-template<> SurrealS<1> ZTAIL< SurrealS<1> >( int iudp, int i ) { return ZTAIL_SURREAL(iudp,i); }
+template<class T> T    ZTAIL(udp_T *udp, int i);
+template<> double      ZTAIL< double      >( udp_T *udp, int i ) { return ZTAIL_VAL(udp,i); }
+template<> SurrealS<1> ZTAIL< SurrealS<1> >( udp_T *udp, int i ) { return ZTAIL_SURREAL(udp,i); }
 
 /* generating a FaceBody airfoil */
 static int
-buildFaceBodyAirfoil(ego context, int iudp, ego  *ebody);
+buildFaceBodyAirfoil(ego context, udp_T *udp, ego  *ebody);
 
 /* computing the FaceBody airfoil sensitivity */
 static int
-sensFaceBodyAirfoil(ego ebody, int iudp, int npts, int *header, SurrealS<1> *pts, SurrealS<1> *rdata);
+sensFaceBodyAirfoil(ego ebody, udp_T *udp, int npts, int *header, SurrealS<1> *pts, SurrealS<1> *rdata);
 
 /* generating a WireBody meanline airfoil */
 static int
-buildWireBodyMeanline(ego context, int iudp, ego  *ebody);
+buildWireBodyMeanline(ego context, udp_T *udp, ego  *ebody);
 
 /* computing the WireBody meanline sensitivity */
 static int
-sensWireBodyMeanline(ego ebody, int iudp, int npts, int *header, SurrealS<1> *pts, SurrealS<1> *rdata);
+sensWireBodyMeanline(ego ebody, udp_T *udp, int npts, int *header, SurrealS<1> *pts, SurrealS<1> *rdata);
 
 /* constructs a B-spline of the airfoil (or meanline) */
 template<class T>
 static int
-parsecSplineFit(int iudp, int& npts, T **pts, int* header, T **rdata);
+parsecSplineFit(udp_T *udp, int& npts, T **pts, int* header, T **rdata);
 
 /* constructs the points used to for the airfoil (or meanline) B-spline */
 template<class T>
 static int
-parsecPoints(int iudp, int& npts, T **pts);
+parsecPoints(udp_T *udp, int& npts, T **pts);
 
 /* constructs the top and bottom parsec polynomials */
 template<class T>
 static int
-parsecPolyCoeff(int iudp, int& npoly, T **polyTop, T **polyBot);
+parsecPolyCoeff(udp_T *udp, int& npoly, T **polyTop, T **polyBot);
 
 /* function for computing polynomial fit */
 template<class T>
@@ -175,9 +159,10 @@ udpExecute(ego  context,                /* (in)  EGADS context */
 {
     int     status = EGADS_SUCCESS;     /* (out) return status */
 
-    int     i, iudp, npoly, nparam;
+    int     npoly, nparam;
     double  rle, xtop, xbot;
-    udpDotCache_T *cache;
+    udp_T   *udps = *Udps;
+    udp_T   *udp = &udps[0];
 
     /* default return values */
     *ebody  = NULL;
@@ -185,10 +170,10 @@ udpExecute(ego  context,                /* (in)  EGADS context */
     *string = NULL;
 
     /* check arguments */
-    npoly  = udps[0].arg[1].size;
-    nparam = udps[0].arg[2].size;
+    npoly  = udp->arg[1].size;
+    nparam = udp->arg[2].size;
 
-    if (udps[0].arg[0].size > 1) {
+    if (udp->arg[0].size > 1) {
         printf(" udpParsec.udpExecute: yte should be a scalar\n");
         status  = EGADS_RANGERR;
         goto cleanup;
@@ -213,7 +198,7 @@ udpExecute(ego  context,                /* (in)  EGADS context */
         status  = EGADS_NODATA;
         goto cleanup;
 
-    } else if (!((udps[0].arg[4].size == 1 && ZTAIL_VAL(0,0) == 0) || udps[0].arg[4].size == 2)) {
+    } else if (!((udp->arg[4].size == 1 && ZTAIL_VAL(udp,0) == 0) || udp->arg[4].size == 2)) {
         printf(" udpExecute: ztail should contain 0 or 2 values (upper,lower)\n");
         status = EGADS_RANGERR;
         goto cleanup;
@@ -221,11 +206,10 @@ udpExecute(ego  context,                /* (in)  EGADS context */
 
     /* more input checks */
     if (nparam > 1) {
-        /* don't use iudp here because it has not been cached yet. */
-        rle  = PARAM_VAL(0,0);
+        rle  = PARAM_VAL(udp,0);
 
-        xtop = PARAM_VAL(0,1);
-        xbot = PARAM_VAL(0,5);
+        xtop = PARAM_VAL(udp,1);
+        xbot = PARAM_VAL(udp,5);
 
         if (rle <= 0) {
             printf(" udpParsec.udpExecute: rle = %f <= 0\n", rle);
@@ -252,64 +236,31 @@ udpExecute(ego  context,                /* (in)  EGADS context */
         printf(" udpParsec.udpExecute: problem caching arguments\n");
         goto cleanup;
     }
-
-    /* Set iudp to be consistent with udpSensitivity */
-    iudp = numUdp;
-
-
-    /* setup the cache for tracking dot changes */
-    cache = (udpDotCache_T*)EG_alloc(sizeof(udpDotCache_T));
-    udps[iudp].data = (void*)cache;
-
-    cache->sharpte   = 0;
-    cache->yte_dot   = 0;
-    cache->poly_dot  = NULL;
-    cache->param_dot = NULL;
-
-    cache->poly_dot = (double*)EG_alloc(udps[iudp].arg[1].size*sizeof(double));
-    if (cache->poly_dot == NULL && udps[iudp].arg[1].size > 0) {
-      status = EGADS_MALLOC;
-      goto cleanup;
-    }
-    for (i = 0; i < udps[iudp].arg[1].size; i++) {
-      cache->poly_dot[i] = 0;
-    }
-
-    cache->param_dot = (double*)EG_alloc(udps[iudp].arg[2].size*sizeof(double));
-    if (cache->param_dot == NULL && udps[iudp].arg[2].size > 0) {
-      status = EGADS_MALLOC;
-      goto cleanup;
-    }
-    for (i = 0; i < udps[iudp].arg[2].size; i++) {
-      cache->param_dot[i] = PARAM_DOT(iudp,i);
-    }
-    for (i = 0; i < 2; i++) {
-      cache->ztail_dot[i] = ZTAIL_DOT(iudp,i);
-    }
+    udp = &udps[numUdp];
 
 #ifdef DEBUG
     printf("udpParsec.udpExecute\n");
-    printf("yte(%d)      = %f\n", numUdp, YTE_VAL(     numUdp));
+    printf("yte(%d)      = %f\n", numUdp, YTE_VAL(     udp));
     for (int n = 0; n < npoly; n++) {
-        printf("poly(%d,%d)  = %f\n", numUdp, n, POLY_VAL(numUdp,n) );
+        printf("poly(%d,%d)  = %f\n", numUdp, n, POLY_VAL(udp,n) );
     }
     for (int n = 0; n < nparam; n++) {
-        printf("param(%d,%d) = %f\n", numUdp, n, PARAM_VAL(numUdp,n) );
+        printf("param(%d,%d) = %f\n", numUdp, n, PARAM_VAL(udp,n) );
     }
-    printf("meanline(%d) = %d\n", numUdp, MEANLINE(numUdp));
+    printf("meanline(%d) = %d\n", numUdp, MEANLINE(udp));
     printf("\n");
 #endif
 
-    /* if meanline[iudp] is zero, then create a FaceBody (the default) */
-    if (MEANLINE(iudp) == 0) {
+    /* if meanline[udp] is zero, then create a FaceBody (the default) */
+    if (MEANLINE(udp) == 0) {
 
-        status = buildFaceBodyAirfoil(context, iudp, ebody);
+        status = buildFaceBodyAirfoil(context, udp, ebody);
         if (status != EGADS_SUCCESS) goto cleanup;
 
     /* otherwise create a WireBody of the meanline */
     } else {
 
-        status = buildWireBodyMeanline(context, iudp, ebody);
+        status = buildWireBodyMeanline(context, udp, ebody);
         if (status != EGADS_SUCCESS) goto cleanup;
 
     }
@@ -345,16 +296,13 @@ udpSensitivity(ego    ebody,            /* (in)  Body pointer */
                double vels[])           /* (out) velocities */
 {
     int    status = EGADS_SUCCESS;
-    int    npts, iudp, judp, i, ipnt, idotChange, nchild, stride, header[4];
+    int    npts, iudp, judp, ipnt, nchild, stride, header[4];
     double point[18], point_dot[18];
     ego    eent, *echildren;
     SurrealS<1> *pts=NULL, *rdata=NULL;
-    udpDotCache_T *cache;
+    udp_T   *udp = NULL;
 
-    /* check that ebody matches one of the ebodys
-     * this seems to be done for every udpSensitivity,
-     * why isn't iudp just an argument to udpSensitivity?
-     */
+    /* check that ebody matches one of the ebodys */
     iudp = 0;
     for (judp = 1; judp <= numUdp; judp++) {
         if (ebody == udps[judp].ebody) {
@@ -365,83 +313,51 @@ udpSensitivity(ego    ebody,            /* (in)  Body pointer */
     if (iudp <= 0) {
         return EGADS_NOTMODEL;
     }
+    udp = &udps[iudp];
 
 #ifdef DEBUG
     int n, npoly, nparam;
 
     /* get arguments */
-    npoly  = udps[iudp].arg[1].size;
-    nparam = udps[iudp].arg[2].size;
+    npoly  = udp->arg[1].size;
+    nparam = udp->arg[2].size;
 
     printf("udpParsec.udpSensitivity\n");
-    printf("YTE_VAL(%d) = %f\n", iudp, YTE_VAL(iudp) );
-    printf("YTE_DOT(%d) = %f\n", iudp, YTE_DOT(iudp) );
+    printf("ndotchg    = %d\n", udp->ndotchg);
+    printf("YTE_VAL(%d) = %f\n", iudp, YTE_VAL(udp) );
+    printf("YTE_DOT(%d) = %f\n", iudp, YTE_DOT(udp) );
     for (n = 0; n < npoly; n++) {
-        printf("POLY_VAL(%d,%d) = %f\n", iudp, n, POLY_VAL(iudp,n) );
+        printf("POLY_VAL(%d,%d) = %f\n", iudp, n, POLY_VAL(udp,n) );
     }
     for (n = 0; n < npoly; n++) {
-        printf("POLY_DOT(%d,%d) = %f\n", iudp, n, POLY_DOT(iudp,n) );
+        printf("POLY_DOT(%d,%d) = %f\n", iudp, n, POLY_DOT(udp,n) );
     }
     for (n = 0; n < nparam; n++) {
-        printf("PARAM_VAL(%d,%d) = %f\n", iudp, n, PARAM_VAL(iudp,n) );
+        printf("PARAM_VAL(%d,%d) = %f\n", iudp, n, PARAM_VAL(udp,n) );
     }
     for (n = 0; n < nparam; n++) {
-        printf("PARAM_DOT(%d,%d) = %f\n", iudp, n, PARAM_DOT(iudp,n) );
+        printf("PARAM_DOT(%d,%d) = %f\n", iudp, n, PARAM_DOT(udp,n) );
     }
     printf("\n");
 #endif
 
-
-    /* check if velocities have changed */
-    cache = (udpDotCache_T*)udps[iudp].data;
-    idotChange = 0;
-    if ( cache->yte_dot != YTE_DOT(iudp) ) {
-        idotChange = 1;
-    }
-    for (i = 0; i < udps[iudp].arg[1].size; i++)
-          if ( cache->poly_dot[i] != POLY_DOT(iudp,i) ) {
-              idotChange = 1;
-              break;
-          }
-    for (i = 0; i < udps[iudp].arg[2].size; i++)
-        if ( cache->param_dot[i] != PARAM_DOT(iudp,i) ) {
-            idotChange = 1;
-            break;
-        }
-    for (i = 0; i < 2; i++)
-        if ( cache->ztail_dot[i] != ZTAIL_DOT(iudp,i) ) {
-            idotChange = 1;
-            break;
-        }
-
-    /* build the sensitvity if needed */
-    if (idotChange == 1) {
-
-        cache->yte_dot = YTE_DOT(iudp);
-        for (i = 0; i < udps[iudp].arg[1].size; i++) {
-          cache->poly_dot[i] = POLY_DOT(iudp,i);
-        }
-        for (i = 0; i < udps[iudp].arg[2].size; i++) {
-          cache->param_dot[i] = PARAM_DOT(iudp,i);
-        }
-        for (i = 0; i < 2; i++) {
-          cache->ztail_dot[i] = ZTAIL_DOT(iudp,i);
-        }
+    /* build the sensitivity if needed */
+    if (udp->ndotchg > 0) {
 
         /* get airfoil B-spline with it's sensitivities */
-        status = parsecSplineFit(iudp, npts, &pts, header, &rdata);
+        status = parsecSplineFit(udp, npts, &pts, header, &rdata);
         if (status != EGADS_SUCCESS) goto cleanup;
 
-        /* if meanline[iudp] is zero, then this is a FaceBody (the default) */
-        if (MEANLINE(iudp) == 0) {
+        /* if meanline[udp] is zero, then this is a FaceBody (the default) */
+        if (MEANLINE(udp) == 0) {
 
-            status = sensFaceBodyAirfoil(ebody, iudp, npts, header, pts, rdata);
+            status = sensFaceBodyAirfoil(ebody, udp, npts, header, pts, rdata);
             if (status != EGADS_SUCCESS) goto cleanup;
 
         /* otherwise this is a WireBody of the meanline */
         } else {
 
-            status = sensWireBodyMeanline(ebody, iudp, npts, header, pts, rdata);
+            status = sensWireBodyMeanline(ebody, udp, npts, header, pts, rdata);
             if (status != EGADS_SUCCESS) goto cleanup;
 
         }
@@ -531,7 +447,7 @@ cleanup:
 
 static int
 buildFaceBodyAirfoil(ego  context,      /* (in)  the EGADS context */
-                     int  iudp,         /* (in)  udp index */
+                     udp_T *udp,        /* (in)  udp */
                      ego  *ebody)       /* (out) Body pointer */
 {
     int status = EGADS_SUCCESS;         /* (out) return status */
@@ -541,12 +457,9 @@ buildFaceBodyAirfoil(ego  context,      /* (in)  the EGADS context */
     double *rdata=NULL, *pts=NULL;
     ego    ecurve, enodes[2], eedges[3], enode1, enode2, enode3, eline, eloop, eplane, eface;
     int header[4];
-    udpDotCache_T *cache;
-
-    cache = (udpDotCache_T*)udps[iudp].data;
 
     /* get the B-spline and points used to construct the spline */
-    status = parsecSplineFit(iudp, npts, &pts, header, &rdata);
+    status = parsecSplineFit(udp, npts, &pts, header, &rdata);
     if (status != EGADS_SUCCESS) goto cleanup;
 
     /* convert the B-spline to a CURVE */
@@ -596,7 +509,6 @@ buildFaceBodyAirfoil(ego  context,      /* (in)  the EGADS context */
 
     if (fabs(data[3]) > EPS06 || fabs(data[4]) > EPS06 || fabs(data[5]) > EPS06) {
         nedge = 3;
-        cache->sharpte = 0;
 
         /* make the 3rd node on lower trailing edge */
         status = EG_makeTopology(context, NULL, NODE, 0,
@@ -630,7 +542,6 @@ buildFaceBodyAirfoil(ego  context,      /* (in)  the EGADS context */
         if (status != EGADS_SUCCESS) goto cleanup;
     } else {
         nedge = 2;
-        cache->sharpte = 1;
 
         /* make Edge for lower surface (edge 2)*/
         tdata[0] = tle;
@@ -690,7 +601,7 @@ cleanup:
 
 static int
 sensFaceBodyAirfoil(ego ebody,          /* (in)  Body pointer */
-                    int iudp,           /* (in)  udp index */
+                    udp_T *udp,         /* (in)  udp */
                     int npts,           /* (in)  number of points in the spline fit */
                     int *header,        /* (in)  spline header */
                     SurrealS<1> *pts,   /* (in)  spline points */
@@ -701,10 +612,7 @@ sensFaceBodyAirfoil(ego ebody,          /* (in)  Body pointer */
     int         i, ipnt, nchild, nedge, nnode, oclass, mtype, *senses;
     double      data[18];
     SurrealS<1> tle, sdata[18];
-    ego         eface, eref, eplane, eloop, *eedges, ecurve, eline, *enodes, *echildren;
-    udpDotCache_T *cache;
-
-    cache = (udpDotCache_T*)udps[iudp].data;
+    ego         eface, eref, eplane, eloop, *eedges, ecurve[2], eline, *enodes, *echildren;
 
     /* get the face from the FACEBODY */
     status = EG_getTopology(ebody, &eref, &oclass, &mtype, data, &nchild, &echildren,
@@ -723,14 +631,30 @@ sensFaceBodyAirfoil(ego ebody,          /* (in)  Body pointer */
                             &senses);
     if (status != EGADS_SUCCESS) goto cleanup;
 
-    /* get the nodes and the curve from the first edge */
-    status = EG_getTopology(eedges[0], &ecurve, &oclass, &mtype, data, &nnode, &enodes,
+    /* ocsmAdjoint makes a copy of the body,
+     * which duplicates the curve for each edge.
+     * So both edge curves must be set
+     */
+
+    /* get the curve from second edges */
+    status = EG_getTopology(eedges[1], &ecurve[1], &oclass, &mtype, data, &nnode, &enodes,
                             &senses);
     if (status != EGADS_SUCCESS) goto cleanup;
 
     /* set the sensitivity of the Curve */
-    status = EG_setGeometry_dot(ecurve, CURVE, BSPLINE, header, rdata);
+    status = EG_setGeometry_dot(ecurve[1], CURVE, BSPLINE, header, rdata);
     if (status != EGADS_SUCCESS) goto cleanup;
+
+    /* get the nodes and the curve from edges first */
+    status = EG_getTopology(eedges[0], &ecurve[0], &oclass, &mtype, data, &nnode, &enodes,
+                            &senses);
+    if (status != EGADS_SUCCESS) goto cleanup;
+
+    /* set the sensitivity of the Curve */
+    if (ecurve[0] != ecurve[1]) {
+        status = EG_setGeometry_dot(ecurve[0], CURVE, BSPLINE, header, rdata);
+        if (status != EGADS_SUCCESS) goto cleanup;
+    }
 
     /* set the sensitivity of the Node at upper trailing edge */
     ipnt = 0;
@@ -741,7 +665,7 @@ sensFaceBodyAirfoil(ego ebody,          /* (in)  Body pointer */
     i = (npts - 1) / 2 + 3; /* leading edge index, with knot offset of 3 (cubic)*/
     tle = rdata[i];         /* leading edge t-value (should be very close to (0,0,0) */
 
-    status = EG_evaluate(ecurve, &tle, sdata);
+    status = EG_evaluate(ecurve[0], &tle, sdata);
     if (status != EGADS_SUCCESS) goto cleanup;
 
     /* set the sensitivity of the Node at leading edge */
@@ -763,7 +687,7 @@ sensFaceBodyAirfoil(ego ebody,          /* (in)  Body pointer */
     if (status != EGADS_SUCCESS) goto cleanup;
 
 
-    if (cache->sharpte == 0) {
+    if (nedge == 3) {
         /* get trailing edge line and the lower trailing edge node from the 3rd edge */
         status = EG_getTopology(eedges[2], &eline, &oclass, &mtype, data, &nchild, &enodes,
                                 &senses);
@@ -834,7 +758,7 @@ cleanup:
 
 static int
 buildWireBodyMeanline(ego context,      /* (in)  the EGADS context */
-                      int iudp,         /* (in)  iudp index */
+                      udp_T *udp,       /* (in)  udp */
                       ego *ebody)       /* (out) Body pointer */
 {
     int status = EGADS_SUCCESS;         /* (out) return status */
@@ -847,7 +771,7 @@ buildWireBodyMeanline(ego context,      /* (in)  the EGADS context */
     int header[4];
 
     /* get the B-spline and points used to construct the spline */
-    status = parsecSplineFit(iudp, npts, &pts, header, &rdata);
+    status = parsecSplineFit(udp, npts, &pts, header, &rdata);
     if (status != EGADS_SUCCESS) goto cleanup;
 
     /* the leading and trailing edge indexes (must be consistent with parsecPoints) */
@@ -913,7 +837,7 @@ cleanup:
 
 static int
 sensWireBodyMeanline(ego ebody,          /* (in)  Body pointer */
-                     int iudp,           /* (in)  udp index */
+                     udp_T *udp,         /* (in)  udp */
                      int npts,           /* (in)  number of points in the spline fit */
                      int *header,
                      SurrealS<1> *pts,   /* (in)  spline points */
@@ -981,7 +905,7 @@ cleanup:
 
 template<class T>
 static int
-parsecSplineFit(int    iudp,         /* (in)  udp index */
+parsecSplineFit(udp_T  *udp,         /* (in)  udp */
                 int&   npts,         /* (out) number of points in the spline fit */
                 T      **pts,        /* (out) points used in the spline fit */
                 int*   header,       /* (out) spline header data */
@@ -993,11 +917,11 @@ parsecSplineFit(int    iudp,         /* (in)  udp index */
     double  dxytol=1.0e-6; /* EG_spline1dFit tolerance */
 
     /* get airfoil (or meanline) points */
-    status = parsecPoints(iudp, npts, pts);
+    status = parsecPoints(udp, npts, pts);
     if (status != EGADS_SUCCESS) goto cleanup;
 
-    /* if meanline[iudp] is zero, then create a FaceBody (the default) */
-    if (MEANLINE(iudp) == 0) {
+    /* if meanline[udp] is zero, then create a FaceBody (the default) */
+    if (MEANLINE(udp) == 0) {
 
         /* compute the spline fit
          * finite difference must use knots equally spaced (-npts in the argument below) in order for
@@ -1036,7 +960,7 @@ cleanup:
 
 template<class T>
 static int
-parsecPoints(int    iudp,         /* (in)  udp index */
+parsecPoints(udp_T  *udp,         /* (in)  udp */
              int&   npts,         /* (out) number of points */
              T      **ppts)       /* (out) airfoil (or meanline) points */
 {
@@ -1047,7 +971,7 @@ parsecPoints(int    iudp,         /* (in)  udp index */
     T      yy, *polyTop=NULL, *polyBot=NULL, *pts=NULL;
 
     /* construct the parsec polynomial coefficients */
-    status = parsecPolyCoeff(iudp, npoly, &polyTop, &polyBot);
+    status = parsecPolyCoeff(udp, npoly, &polyTop, &polyBot);
     if (status != EGADS_SUCCESS) goto cleanup;
 
     /* allocation required by Windows compiler */
@@ -1068,7 +992,7 @@ parsecPoints(int    iudp,         /* (in)  udp index */
             yy = parsec(xx, polyTop, npoly);
 
             pts[3*i  ] = xx;
-            pts[3*i+1] = yy + ZTAIL<T>(iudp,0)*xx;
+            pts[3*i+1] = yy + ZTAIL<T>(udp,0)*xx;
             pts[3*i+2] = 0;
         } else if (i == (npts - 1) / 2) {
             pts[3*i  ] = 0;
@@ -1078,13 +1002,13 @@ parsecPoints(int    iudp,         /* (in)  udp index */
             yy = parsec(xx, polyBot, npoly);
 
             pts[3*i  ] = xx;
-            pts[3*i+1] = yy + ZTAIL<T>(iudp,1)*xx;
+            pts[3*i+1] = yy + ZTAIL<T>(udp,1)*xx;
             pts[3*i+2] = 0;
         }
     }
 
-    /* if meanline[iudp] is zero, then create a FaceBody (the default) */
-    if (MEANLINE(iudp) == 0) {
+    /* if meanline[udp] is zero, then create a FaceBody (the default) */
+    if (MEANLINE(udp) == 0) {
 
         /* use the points as is */
 
@@ -1123,7 +1047,7 @@ cleanup:
 
 template<class T>
 static int
-parsecPolyCoeff(int    iudp,            /* (in)  udp index */
+parsecPolyCoeff(udp_T  *udp,            /* (in)  udp */
                 int&   npoly,           /* (out) number of polynomial coefficients */
                 T      **polyTop,       /* (out) polynomial coefficients for top */
                 T      **polyBot)       /* (out) polynomial coefficients for bottom */
@@ -1134,26 +1058,26 @@ parsecPolyCoeff(int    iudp,            /* (in)  udp index */
     T   yte, rle, lefac, xtop, ytop, ctop, ttop, xbot, ybot, cbot, tbot;
 
     /* get arguments */
-    npoly  = udps[iudp].arg[1].size;
-    nparam = udps[iudp].arg[2].size;
+    npoly  = udp->arg[1].size;
+    nparam = udp->arg[2].size;
 
     /* create the polynomial coefficients if Nparam > 0 */
     if (nparam > 1) {
         npoly = 6;
 
-        yte  = YTE<T>(iudp);
+        yte  = YTE<T>(udp);
 
-        rle  = PARAM<T>(iudp,0);
+        rle  = PARAM<T>(udp,0);
 
-        xtop = PARAM<T>(iudp,1);
-        ytop = PARAM<T>(iudp,2);
-        ctop = PARAM<T>(iudp,3);
-        ttop = PARAM<T>(iudp,4);
+        xtop = PARAM<T>(udp,1);
+        ytop = PARAM<T>(udp,2);
+        ctop = PARAM<T>(udp,3);
+        ttop = PARAM<T>(udp,4);
 
-        xbot = PARAM<T>(iudp,5);
-        ybot = PARAM<T>(iudp,6);
-        cbot = PARAM<T>(iudp,7);
-        tbot = PARAM<T>(iudp,8);
+        xbot = PARAM<T>(udp,5);
+        ybot = PARAM<T>(udp,6);
+        cbot = PARAM<T>(udp,7);
+        tbot = PARAM<T>(udp,8);
 
         /* create top polynomial */
         *polyTop = new T[npoly];
@@ -1202,16 +1126,16 @@ parsecPolyCoeff(int    iudp,            /* (in)  udp index */
         }
 
         /* copy polynomial coefficients and close airfoil */
-        (*polyTop)[npoly-1] = YTE<T>(iudp);
+        (*polyTop)[npoly-1] = YTE<T>(udp);
         for (ipoly = 0; ipoly < npoly-1; ipoly++) {
-            (*polyTop)[ipoly  ]  = POLY<T>(iudp,ipoly);
-            (*polyTop)[npoly-1] -= POLY<T>(iudp,ipoly);
+            (*polyTop)[ipoly  ]  = POLY<T>(udp,ipoly);
+            (*polyTop)[npoly-1] -= POLY<T>(udp,ipoly);
         }
 
-        (*polyBot)[npoly-1] = YTE<T>(iudp);
+        (*polyBot)[npoly-1] = YTE<T>(udp);
         for (ipoly = 0; ipoly < npoly-1; ipoly++) {
-            (*polyBot)[ipoly  ]  = POLY<T>(iudp,ipoly+npoly-1);
-            (*polyBot)[npoly-1] -= POLY<T>(iudp,ipoly+npoly-1);
+            (*polyBot)[ipoly  ]  = POLY<T>(udp,ipoly+npoly-1);
+            (*polyBot)[npoly-1] -= POLY<T>(udp,ipoly+npoly-1);
         }
     }
 

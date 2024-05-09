@@ -1375,7 +1375,7 @@ freeAttribute(const int n, p_tsXddmAttr p_a)
 }
 
 p_tsXmParent
-xddm_allocParent()
+xddm_allocParent(void)
 {
   p_tsXmParent p_p=NULL;
 
@@ -2646,7 +2646,7 @@ xddm_writeDesignPoint(xmlTextWriterPtr writer, const p_tsXddmDesP p_dp)
         ERR("xddm_writeVariable failed\n");
         return -1;
       }
-      
+
       rc = xmlTextWriterEndElement(writer);         /* end variable */
       if (rc < 0) {
         ERR("xmlTextWriterEndElement failed\n");
@@ -2668,7 +2668,7 @@ xddm_writeDesignPoint(xmlTextWriterPtr writer, const p_tsXddmDesP p_dp)
         ERR("xddm_writeVariable failed\n");
         return -1;
       }
-      
+
       rc = xmlTextWriterEndElement(writer);         /* end constant */
       if (rc < 0) {
         ERR("xmlTextWriterEndElement failed\n");
@@ -2691,7 +2691,7 @@ xddm_writeDesignPoint(xmlTextWriterPtr writer, const p_tsXddmDesP p_dp)
         ERR("xddm_writeAnalysis failed\n");
         return -1;
       }
-      
+
       rc = xmlTextWriterEndElement(writer);         /* end analysis */
       if (rc < 0) {
         ERR("xmlTextWriterEndElement failed\n");
@@ -2712,7 +2712,7 @@ xddm_writeDesignPoint(xmlTextWriterPtr writer, const p_tsXddmDesP p_dp)
       ERR("xddm_writeFunctional failed\n");
       return -1;
     }
-    
+
     rc = xmlTextWriterEndElement(writer);         /* end objective */
     if (rc < 0) {
       ERR("xmlTextWriterEndElement failed\n");
@@ -2734,7 +2734,7 @@ xddm_writeDesignPoint(xmlTextWriterPtr writer, const p_tsXddmDesP p_dp)
         ERR("xddm_writeFunctional failed\n");
         return -1;
       }
-      
+
       rc = xmlTextWriterEndElement(writer);         /* end constraint */
       if (rc < 0) {
         ERR("xmlTextWriterEndElement failed\n");

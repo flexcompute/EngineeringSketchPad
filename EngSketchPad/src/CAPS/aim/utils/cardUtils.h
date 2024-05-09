@@ -1,7 +1,7 @@
 // This software has been cleared for public release on 05 Nov 2020, case number 88ABW-2020-3462.
 
-#ifndef __CARD_UTILS_H__
-#define __CARD_UTILS_H__
+#ifndef _AIM_UTILS_CARDUTILS_H_
+#define _AIM_UTILS_CARDUTILS_H_
 
 #include "cardTypes.h"
 
@@ -31,10 +31,10 @@ int card_addBlanks(cardStruct *card, int numBlanks);
 int card_continue(cardStruct *card);
 
 // add character string field
-int card_addString(cardStruct *card, const char *fieldValue);
+int card_addString(cardStruct *card, /*@null@*/ const char *fieldValue);
 
 // add character string spanning `fieldSpan` fields
-int card_addLongString(cardStruct *card, const char *fieldValue, int fieldSpan);
+int card_addLongString(cardStruct *card, /*@null@*/ const char *fieldValue, int fieldSpan);
 
 // add character string fields
 int card_addStringArray(cardStruct *card, int numFieldValues, char *fieldValues[]);
@@ -45,8 +45,11 @@ int card_addInteger(cardStruct *card, int fieldValue);
 // add integer fields
 int card_addIntegerArray(cardStruct *card, int numFieldValues, const int fieldValues[]);
 
+// add integer fields
+int card_addIntegerOrBlankArray(cardStruct *card, int numFieldValues, const int *fieldValues[]);
+
 // // add integer field from pointer, if null add blank
-int card_addIntegerOrBlank(cardStruct *card, const int *fieldValue);
+int card_addIntegerOrBlank(cardStruct *card, /*@null@*/ const int *fieldValue);
 
 // add real field
 int card_addDouble(cardStruct *card, double fieldValue);
@@ -55,7 +58,7 @@ int card_addDouble(cardStruct *card, double fieldValue);
 int card_addDoubleArray(cardStruct *card, int numFieldValues, const double fieldValues[]);
 
 // // add real field from pointer, if null add blank
-int card_addDoubleOrBlank(cardStruct *card, const double *fieldValue);
+int card_addDoubleOrBlank(cardStruct *card, /*@null@*/ const double *fieldValue);
 
 // does `field` represent a blank field ?
 int card_isBlankField(const char *field);
@@ -75,4 +78,4 @@ void card_print(cardStruct *card);
 }
 #endif
 
-#endif // __CARD_UTILS_H__
+#endif // _AIM_UTILS_CARDUTILS_H_

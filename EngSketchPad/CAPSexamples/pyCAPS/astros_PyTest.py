@@ -72,7 +72,7 @@ eigen = { "extractionMethod"     : "MGIV",
           "frequencyRange"       : [0, 10000],
           "numEstEigenvalue"     : 1,
           "numDesiredEigenvalue" : 10,
-          "eigenNormaliztion"    : "MASS"}
+          "eigenNormalization"   : "MASS"}
 myProblem.analysis["astros"].input.Analysis = {"EigenAnalysis": eigen}
 
 # Set materials

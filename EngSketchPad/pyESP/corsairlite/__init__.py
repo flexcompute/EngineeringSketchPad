@@ -7,6 +7,17 @@ pint_custom.set_application_registry(units)
 Q_ = units.Quantity
 from .core.pint_custom.unit import _Unit
 
+import functools, re
+
+# Add parsing of UDUNITS-style power
+units.preprocessors.append(
+    functools.partial(
+        re.sub,
+        r"(?<=[A-Za-z])(?![A-Za-z])(?<![0-9\-][eE])(?<![0-9\-])(?=[0-9\-])",
+        "**",
+    )
+)
+
 import os
 pathHere = os.path.realpath(__file__)  
 path_to_corsairlite = pathHere[0:-21] # removes the trailing '/corsairlite/__init__.py' giving the package location

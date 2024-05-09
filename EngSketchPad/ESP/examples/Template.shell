@@ -1,0 +1,10 @@
+foreach f (../ESP/examples/*.csm)
+serveESP $f
+   full screen
+   <down> <right>   -or-   <left> <up> <up>
+   <apple> <shift> 4 <space> <click>
+   wait for capture to finish
+   close tab
+sleep 5
+mv ~/Desktop/Screen* $f:r.png
+end

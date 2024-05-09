@@ -1,0 +1,87 @@
+INTERFACE . ALL
+# for NACA (also need to change wing_uCRM.udc):
+
+CFGPMTR    Wing:sharpTE                 1   # 0=blunt trailing edge, 1=sharp
+CFGPMTR    Wing:roundedTip              0   # 0=flat, >0=rounded (describes aspect ratio of half circle I think?)
+
+SET        Wing:fuselageSec:Nsect       2
+SET        Wing:inboardSec:Nsect        9
+SET        Wing:outboardSec:Nsect       15
+DIMENSION  Wing:fuselageSec:thick       1   Wing:fuselageSec:Nsect
+DIMENSION  Wing:inboardSec:thick        1   Wing:inboardSec:Nsect
+DIMENSION  Wing:outboardSec:thick       1   Wing:outboardSec:Nsect
+DIMENSION  Wing:fuselageSec:Ynorm       1   Wing:fuselageSec:Nsect
+DIMENSION  Wing:inboardSec:Ynorm        1   Wing:inboardSec:Nsect
+DIMENSION  Wing:outboardSec:Ynorm       1   Wing:outboardSec:Nsect
+DIMENSION  Wing:fuselageSec:twist       1   Wing:fuselageSec:Nsect
+DIMENSION  Wing:inboardSec:twist        1   Wing:inboardSec:Nsect
+DIMENSION  Wing:outboardSec:twist       1   Wing:outboardSec:Nsect
+
+# fuselage section
+SET     Wing:fuselageSec:Ynorm          " 0.000000;   1.000000; "
+set Wing:fuselageSec:twist0         6.278826
+set Wing:fuselageSec:twist1         4.299427
+set Wing:fuselageSec:thick0         0.130770
+set Wing:fuselageSec:thick1         0.137138
+SET     Wing:fuselageSec:twist          "Wing:fuselageSec:twist0; Wing:fuselageSec:twist1"
+SET     Wing:fuselageSec:thick          "Wing:fuselageSec:thick0; Wing:fuselageSec:thick1"
+
+# inboard section
+SET     Wing:inboardSec:Ynorm           " 0.111111;   0.222222;   0.333333;   0.444444;   0.555556;   0.666667;   0.777778;   0.888889;   1.000000; "
+set Wing:inboardSec:twist0          3.679583
+set Wing:inboardSec:twist1          3.186469
+set Wing:inboardSec:twist2          2.744197
+set Wing:inboardSec:twist3          2.254707
+set Wing:inboardSec:twist4          1.758156
+set Wing:inboardSec:twist5          1.354535
+set Wing:inboardSec:twist6          1.069582
+set Wing:inboardSec:twist7          0.907272
+set Wing:inboardSec:twist8          0.837972
+set Wing:inboardSec:thick0          0.127514
+set Wing:inboardSec:thick1          0.118122
+set Wing:inboardSec:thick2          0.110264
+set Wing:inboardSec:thick3          0.104062
+set Wing:inboardSec:thick4          0.099641
+set Wing:inboardSec:thick5          0.097035
+set Wing:inboardSec:thick6          0.096302
+set Wing:inboardSec:thick7          0.096822
+set Wing:inboardSec:thick8          0.097828
+SET     Wing:inboardSec:twist           "Wing:inboardSec:twist0; Wing:inboardSec:twist1; Wing:inboardSec:twist2; Wing:inboardSec:twist3; Wing:inboardSec:twist4; Wing:inboardSec:twist5; Wing:inboardSec:twist6; Wing:inboardSec:twist7; Wing:inboardSec:twist8;"
+SET     Wing:inboardSec:thick           "Wing:inboardSec:thick0; Wing:inboardSec:thick1; Wing:inboardSec:thick2; Wing:inboardSec:thick3; Wing:inboardSec:thick4; Wing:inboardSec:thick5; Wing:inboardSec:thick6; Wing:inboardSec:thick7; Wing:inboardSec:thick8;"
+
+# outboard wing section
+SET     Wing:outboardSec:Ynorm          " 0.066667;   0.133333;   0.200000;   0.266667;   0.333333;   0.400000;   0.466667;   0.533333;   0.600000;   0.666667;   0.733333;   0.800000;   0.866667;   0.933333;   1.000000; "
+set Wing:outboardSec:twist0         0.978135
+set Wing:outboardSec:twist1         0.833151
+set Wing:outboardSec:twist2         0.932237
+set Wing:outboardSec:twist3         1.318864
+set Wing:outboardSec:twist4         1.882345
+set Wing:outboardSec:twist5         2.503829
+set Wing:outboardSec:twist6         3.142706
+set Wing:outboardSec:twist7         3.724735
+set Wing:outboardSec:twist8         4.187093
+set Wing:outboardSec:twist9         4.579495
+set Wing:outboardSec:twist10        4.953279
+set Wing:outboardSec:twist11        5.250473
+set Wing:outboardSec:twist12        5.276588
+set Wing:outboardSec:twist13        5.044212
+set Wing:outboardSec:twist14        4.612053
+set Wing:outboardSec:thick0         0.095964
+set Wing:outboardSec:thick1         0.090561
+set Wing:outboardSec:thick2         0.085728
+set Wing:outboardSec:thick3         0.084130
+set Wing:outboardSec:thick4         0.083462
+set Wing:outboardSec:thick5         0.081525
+set Wing:outboardSec:thick6         0.079160
+set Wing:outboardSec:thick7         0.078424
+set Wing:outboardSec:thick8         0.079616
+set Wing:outboardSec:thick9         0.080425
+set Wing:outboardSec:thick10        0.079127
+set Wing:outboardSec:thick11        0.075913
+set Wing:outboardSec:thick12        0.071840
+set Wing:outboardSec:thick13        0.068079
+set Wing:outboardSec:thick14        0.064689
+SET     Wing:outboardSec:twist          "Wing:outboardSec:twist0; Wing:outboardSec:twist1; Wing:outboardSec:twist2; Wing:outboardSec:twist3; Wing:outboardSec:twist4; Wing:outboardSec:twist5; Wing:outboardSec:twist6; Wing:outboardSec:twist7; Wing:outboardSec:twist8; Wing:outboardSec:twist9; Wing:outboardSec:twist10; Wing:outboardSec:twist11; Wing:outboardSec:twist12; Wing:outboardSec:twist13; Wing:outboardSec:twist14"
+SET     Wing:outboardSec:thick          "Wing:outboardSec:thick0; Wing:outboardSec:thick1; Wing:outboardSec:thick2; Wing:outboardSec:thick3; Wing:outboardSec:thick4; Wing:outboardSec:thick5; Wing:outboardSec:thick6; Wing:outboardSec:thick7; Wing:outboardSec:thick8; Wing:outboardSec:thick9; Wing:outboardSec:thick10; Wing:outboardSec:thick11; Wing:outboardSec:thick12; Wing:outboardSec:thick13; Wing:outboardSec:thick14"
+
+END

@@ -76,6 +76,7 @@ BLEND
 RESTORE   section 1
 RESTORE   section 3
 
-COMBINE
+JOIN   0.001 1
+ELEVATE
 
 END

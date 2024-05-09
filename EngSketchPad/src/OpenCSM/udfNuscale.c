@@ -10,7 +10,7 @@
  */
 
 /*
- * Copyright (C) 2011/2022  John F. Dannenhoffer, III (Syracuse University)
+ * Copyright (C) 2011/2024  John F. Dannenhoffer, III (Syracuse University)
  *
  * This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
@@ -28,32 +28,32 @@
  *     MA  02110-1301  USA
  */
 
-#define NUMUDPARGS       6
+#define NUMUDPARGS       8
 #define NUMUDPINPUTBODYS 1
 #include "udpUtilities.h"
 
 /* shorthands for accessing argument values and velocities */
-#define XSCALE(IUDP)  ((double *) (udps[IUDP].arg[0].val))[0]
-#define YSCALE(IUDP)  ((double *) (udps[IUDP].arg[1].val))[0]
-#define ZSCALE(IUDP)  ((double *) (udps[IUDP].arg[2].val))[0]
-#define XCENT( IUDP)  ((double *) (udps[IUDP].arg[3].val))[0]
-#define YCENT( IUDP)  ((double *) (udps[IUDP].arg[4].val))[0]
-#define ZCENT( IUDP)  ((double *) (udps[IUDP].arg[5].val))[0]
+#define XSCALE(  IUDP)  ((double *) (udps[IUDP].arg[0].val))[0]
+#define YSCALE(  IUDP)  ((double *) (udps[IUDP].arg[1].val))[0]
+#define ZSCALE(  IUDP)  ((double *) (udps[IUDP].arg[2].val))[0]
+#define XCENT(   IUDP)  ((double *) (udps[IUDP].arg[3].val))[0]
+#define YCENT(   IUDP)  ((double *) (udps[IUDP].arg[4].val))[0]
+#define ZCENT(   IUDP)  ((double *) (udps[IUDP].arg[5].val))[0]
+#define MINCP(   IUDP)  ((int    *) (udps[IUDP].arg[6].val))[0]
+#define SHOWSIZE(IUDP)  ((int    *) (udps[IUDP].arg[7].val))[0]
 
 /* data about possible arguments */
-static char  *argNames[NUMUDPARGS] = {"xscale", "yscale", "zscale", "xcent",  "ycent",  "zcent",  };
-static int    argTypes[NUMUDPARGS] = {ATTRREAL, ATTRREAL, ATTRREAL, ATTRREAL, ATTRREAL, ATTRREAL, };
-static int    argIdefs[NUMUDPARGS] = {1,        1,        1,        0,        0,        0,        };
-static double argDdefs[NUMUDPARGS] = {1.,       1.,       1.,       0.,       0.,       0.,       };
+static char  *argNames[NUMUDPARGS] = {"xscale", "yscale", "zscale", "xcent",  "ycent",  "zcent",  "mincp", "showsize", };
+static int    argTypes[NUMUDPARGS] = {ATTRREAL, ATTRREAL, ATTRREAL, ATTRREAL, ATTRREAL, ATTRREAL, ATTRINT, ATTRINT,    };
+static int    argIdefs[NUMUDPARGS] = {1,        1,        1,        0,        0,        0,        0.,      0.,         };
+static double argDdefs[NUMUDPARGS] = {1.,       1.,       1.,       0.,       0.,       0.,       1,       0,          };
 
 /* get utility routines: udpErrorStr, udpInitialize, udpReset, udpSet,
                          udpGet, udpVel, udpClean, udpMesh */
 #include "udpUtilities.c"
 
-#define  EPS06   1.0e-6
-
 /* unpublished routine in OpenCSM.c */
-extern int convertToBSplines(ego inbody, double mat[], ego *ebody);
+extern int convertToBSplines(ego inbody, double mat[], int mincp, ego *ebody);
 
 
 /*
@@ -73,8 +73,10 @@ udpExecute(ego  emodel,                 /* (in)  Model containing Body */
     int     status = EGADS_SUCCESS;
 
     int     oclass, mtype, nchild, *senses, ndum;
-    double  xyz[18], mat[12];
-    ego     *ebodys, eref, *edum;
+    int     nedge, iedge, nface, iface, *header=NULL;
+    double  xyz[18], mat[12], *rdata=NULL;
+    ego     *ebodys, eref, *edum, *eedges, ecurve, *efaces, esurface, *echilds;
+    udp_T   *udps = *Udps;
 
     char    *message=NULL;
 
@@ -84,12 +86,14 @@ udpExecute(ego  emodel,                 /* (in)  Model containing Body */
 
 #ifdef DEBUG
     printf("udpExecute(emodel=%llx)\n", (long long)emodel);
-    printf("xscale(0) = %f\n", XSCALE(0));
-    printf("yscale(0) = %f\n", YSCALE(0));
-    printf("zscale(0) = %f\n", ZSCALE(0));
-    printf("xcent( 0) = %f\n", XCENT( 0));
-    printf("ycent( 0) = %f\n", YCENT( 0));
-    printf("zcent( 0) = %f\n", ZCENT( 0));
+    printf("xscale(  0) = %f\n", XSCALE(  0));
+    printf("yscale(  0) = %f\n", YSCALE(  0));
+    printf("zscale(  0) = %f\n", ZSCALE(  0));
+    printf("xcent(   0) = %f\n", XCENT(   0));
+    printf("ycent(   0) = %f\n", YCENT(   0));
+    printf("zcent(   0) = %f\n", ZCENT(   0));
+    printf("mincp  ( 0) = %d\n", MINCP(   0));
+    printf("showsize(0) = %d\n", SHOWSIZE(0));
 #endif
 
     /* default return values */
@@ -150,6 +154,16 @@ udpExecute(ego  emodel,                 /* (in)  Model containing Body */
         status = EGADS_RANGERR;
         goto cleanup;
 
+    } else if (udps[0].arg[6].size > 1) {
+        snprintf(message, 100, "mincp should be a scalar");
+        status = EGADS_RANGERR;
+        goto cleanup;
+
+    } else if (udps[0].arg[7].size > 1) {
+        snprintf(message, 100, "showsize should be a scalar");
+        status = EGADS_RANGERR;
+        goto cleanup;
+
     } else if (XSCALE(0) < EPS06 && mtype == SOLIDBODY) {
         snprintf(message, 100, "xscale must be positive for a SolidBody");
         status = EGADS_RANGERR;
@@ -187,21 +201,92 @@ udpExecute(ego  emodel,                 /* (in)  Model containing Body */
 
 #ifdef DEBUG
     printf("udpExecute(emodel=%llx)\n", (long long)emodel);
-    printf("xscale(%d) = %f\n", numUdp, XSCALE(numUdp));
-    printf("yscale(%d) = %f\n", numUdp, YSCALE(numUdp));
-    printf("zscale(%d) = %f\n", numUdp, ZSCALE(numUdp));
-    printf("xcent( %d) = %f\n", numUdp, XCENT( numUdp));
-    printf("ycent( %d) = %f\n", numUdp, YCENT( numUdp));
-    printf("zcent( %d) = %f\n", numUdp, ZCENT( numUdp));
+    printf("xscale(  %d) = %f\n", numUdp, XSCALE(  numUdp));
+    printf("yscale(  %d) = %f\n", numUdp, YSCALE(  numUdp));
+    printf("zscale(  %d) = %f\n", numUdp, ZSCALE(  numUdp));
+    printf("xcent(   %d) = %f\n", numUdp, XCENT(   numUdp));
+    printf("ycent(   %d) = %f\n", numUdp, YCENT(   numUdp));
+    printf("zcent(   %d) = %f\n", numUdp, ZCENT(   numUdp));
+    printf("mincp(   %d) = %d\n", numUdp, MINCP(   numUdp));
+    printf("showsize(%d) = %d\n", numUdp, SHOWSIZE(numUdp));
 #endif
 
-    /* set up transformation matrix */
-    mat[ 0] = XSCALE(0);   mat[ 1] = 0;           mat[ 2] = 0;           mat[ 3] = XCENT(0) * (1-XSCALE(0));
-    mat[ 4] = 0;           mat[ 5] = YSCALE(0);   mat[ 6] = 0;           mat[ 7] = YCENT(0) * (1-YSCALE(0));
-    mat[ 8] = 0;           mat[ 9] = 0;           mat[10] = ZSCALE(0);   mat[11] = ZCENT(0) * (1-ZSCALE(0));
+    /* show the size of all BSPLINEs */
+    if (SHOWSIZE(0) > 0) {
+        SPLINT_CHECK_FOR_NULL(ebodys[0]);
 
-    status = convertToBSplines(ebodys[0], mat, ebody);
-    CHECK_STATUS(convertToBSplines);
+        status = EG_getBodyTopos(ebodys[0], NULL, EDGE, &nedge, &eedges);
+        CHECK_STATUS(EG_getBodyTopos);
+
+        for (iedge = 0; iedge < nedge; iedge++) {
+            SPLINT_CHECK_FOR_NULL(eedges);
+
+            status = EG_getTopology(eedges[iedge], &ecurve, &oclass, &mtype, xyz, &nchild, &echilds, &senses);
+            CHECK_STATUS(EG_getTopology);
+
+            if (ecurve != NULL) {
+                status = EG_getGeometry(ecurve, &oclass, &mtype, &eref, &header, &rdata);
+                CHECK_STATUS(EG_getGeometry);
+
+                if (header != NULL && mtype == BSPLINE) {
+                    printf("iedge=%3d, udeg=%4d nucp=%4d, nuknot=%4d\n", iedge+1,
+                           header[1], header[2], header[3]);
+                } else {
+                    printf("iedge=%3d,                                  <not BSPLINE>\n", iedge+1);
+                }
+                    
+                if (header != NULL) EG_free(header);
+                if (rdata  != NULL) EG_free(rdata );
+
+            } else {
+                printf("iedge=%3d,                                  <not CURVE>\n", iedge+1);
+            }
+        }
+
+        EG_free(eedges);
+
+        status = EG_getBodyTopos(ebodys[0], NULL, FACE, &nface, &efaces);
+        CHECK_STATUS(EG_getBodyTopos);
+
+        for (iface = 0; iface < nface; iface++) {
+            SPLINT_CHECK_FOR_NULL(efaces);
+
+            status = EG_getTopology(efaces[iface], &esurface, &oclass, &mtype, xyz, &nchild, &echilds, &senses);
+            CHECK_STATUS(EG_getTopology);
+
+            if (esurface != NULL) {
+                status = EG_getGeometry(esurface, &oclass, &mtype, &eref, &header, &rdata);
+                CHECK_STATUS(EG_getGeometry);
+
+                if (header != NULL && mtype == BSPLINE) {
+                    printf("iface=%3d, udeg=%4d, nucp=%4d, nuknot=%4d, vdeg=%3d, nvcp=%4d, nvknot=%4d\n", iface+1,
+                           header[1], header[2], header[3], header[4], header[5], header[6]);
+                } else {
+                    printf("iface=%3d,                                  <not BSPLINE>\n", iface+1);
+                }
+
+                if (header != NULL) EG_free(header);
+                if (rdata  != NULL) EG_free(rdata );
+
+            } else {
+                printf("iface=%3d,                                  <not SURFACE>\n", iface+1);
+            }
+        }
+
+        EG_free(efaces);
+
+        status = EG_copyObject(ebodys[0], NULL, ebody);
+        CHECK_STATUS(EG_copyObject);
+
+    /* set up transformation matrix */
+    } else {
+        mat[ 0] = XSCALE(0);   mat[ 1] = 0;           mat[ 2] = 0;           mat[ 3] = XCENT(0) * (1-XSCALE(0));
+        mat[ 4] = 0;           mat[ 5] = YSCALE(0);   mat[ 6] = 0;           mat[ 7] = YCENT(0) * (1-YSCALE(0));
+        mat[ 8] = 0;           mat[ 9] = 0;           mat[10] = ZSCALE(0);   mat[11] = ZCENT(0) * (1-ZSCALE(0));
+
+        status = convertToBSplines(ebodys[0], mat, MINCP(0), ebody);
+        CHECK_STATUS(convertToBSplines);
+    }
 
     /* set the output value */
 

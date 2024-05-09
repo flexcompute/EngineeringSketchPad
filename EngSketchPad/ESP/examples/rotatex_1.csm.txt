@@ -1,0 +1,33 @@
+# rotatex_1
+# written by John Dannenhoffer
+
+# make a colored cylinder
+CYLINDER  0  0  0  2  0  0  1/2
+
+SELECT    FACE   @nbody 1      # left end
+ATTRIBUTE _color $cyan
+
+SELECT    FACE   @nbody 2      # right end
+ATTRIBUTE _color $magenta
+
+SELECT    FACE   @nbody 3      # bottom
+ATTRIBUTE _color $lgreen
+
+SELECT    FACE   @nbody 4      # top
+ATTRIBUTE _color $lblue
+
+STORE     body
+
+# rotate 90 deg about (y=0, z=1)
+RESTORE   body
+ROTATEX   90  0  1
+
+# show rotation axis
+BOX      -1   0  1   4  0  0
+
+# show outline of original body
+RESTORE   body
+SELECT    FACE
+ATTRIBUTE _trn $on
+
+END

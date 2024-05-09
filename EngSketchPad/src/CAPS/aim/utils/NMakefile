@@ -9,71 +9,55 @@ ODIR  = $(ESP_BLOC)\obj
 ODIR  = .
 !ENDIF
 
-OBJS  =	attrUtils.obj meshUtils.obj cfdUtils.obj miscUtils.obj \
-        feaUtils.obj vlmUtils.obj nastranUtils.obj tecplotUtils.obj \
-		arrayUtils.obj deprecateUtils.obj cardUtils.obj nastranCards.obj jsonUtils.obj
-OBJSP =	vlmSpanSpace.obj
-OBJSPython = nastranOP2Reader.obj
+# Directory to install header files
+UTILDIR=$(IDIR)\aim\utils
 
-!IFDEF ESP_BLOC
-default:	start $(LDIR)\utils.lib $(IDIR)\meshTypes.h $(IDIR)\miscTypes.h end
-!ELSE
-default:	$(LDIR)\utils.lib $(IDIR)\meshTypes.h
+OBJS  =	$(ODIR)\attrUtils.obj $(ODIR)\meshUtils.obj $(ODIR)\cfdUtils.obj $(ODIR)\miscUtils.obj \
+	$(ODIR)\feaUtils.obj $(ODIR)\vlmUtils.obj $(ODIR)\nastranUtils.obj $(ODIR)\tecplotUtils.obj \
+	$(ODIR)\arrayUtils.obj $(ODIR)\deprecateUtils.obj $(ODIR)\cardUtils.obj $(ODIR)\nastranCards.obj $(ODIR)\jsonUtils.obj
+OBJSP =	$(ODIR)\vlmSpanSpace.obj
+!IFDEF PYTHONINC
+OBJSPython = $(ODIR)\nastranOP2Reader.obj
 !ENDIF
 
-start:
-	cd $(ODIR)
-	xcopy $(SDIR)\*.c     /Q /Y
-	xcopy $(SDIR)\*.cpp   /Q /Y
-	xcopy $(SDIR)\*.h     /Q /Y
+default:	$(LDIR)\utils.lib copy
 
-!IFDEF PYTHONINC
 $(LDIR)\utils.lib:	$(OBJS) $(OBJSP) $(OBJSPython)
 	-del $(LDIR)\utils.lib
 	lib /out:$(LDIR)\utils.lib $(OBJS) $(OBJSP) $(OBJSPython)
 
-!ELSE
-$(LDIR)\utils.lib:	$(OBJS) $(OBJSP)
-	-del $(LDIR)\utils.lib
-	lib /out:$(LDIR)\utils.lib $(OBJS) $(OBJSP)
-!ENDIF
+$(OBJS): *.h cython\*.h
+$(OBJSP): *.h
 
 !IFDEF PYTHONINC
-$(OBJS):	$(OBJS:.obj=.c)
-	cl /c $(COPTS) $(DEFINE) /I..\include /I$(IDIR) /I. /DHAVE_PYTHON  /I$(PYTHONINC) $*.c
-	
-!ELSE
-$(OBJS):	$(OBJS:.obj=.c)
-	cl /c $(COPTS) $(DEFINE) /I..\include /I$(IDIR) /I. $*.c
+{$(SDIR)\}.c{$(ODIR)}.obj::
+	cl /c $(COPTS) $(DEFINE) /Fo"$(ODIR)"\ /I$(IDIR) /Icython /DHAVE_PYTHON  /I$(PYTHONINC) $<
 
+{$(SDIR)\cython\}.c{$(ODIR)}.obj::
+	cl /c $(COPTS) $(DEFINE) /Fo"$(ODIR)"\ /I$(IDIR) /I$(PYTHONINC) $<
+
+!ELSE
+{$(SDIR)\}.c{$(ODIR)}.obj::
+	cl /c $(COPTS) $(DEFINE) /Fo"$(ODIR)"\ /I$(IDIR) $<
 !ENDIF
 
-$(OBJSPython): $(OBJSPython:.obj=.c)
-	cl /c $(COPTS) $(DEFINE) /I..\include /I$(IDIR) /I. /DHAVE_PYTHON  /I$(PYTHONINC) $*.c
-	
-$(OBJSP):	$(OBJSP:.obj=.cpp)
-	cl /c $(CPPOPT) $(DEFINE) /I..\include /I$(IDIR) /I. $*.cpp
+{$(SDIR)\}.cpp{$(ODIR)}.obj::
+	cl /c $(CPPOPT) $(DEFINE) /Fo"$(ODIR)"\ /I$(IDIR) $<
 
-$(IDIR)\meshTypes.h:	meshTypes.h
-	-del $(IDIR)\meshTypes.h
-	copy meshTypes.h $(IDIR)\meshTypes.h
+copy: $(UTILDIR)
+	cd $(UTILDIR)
+	xcopy $(SDIR)\*.h                    /Q /Y
 
-$(IDIR)\miscTypes.h:	miscTypes.h
-	-del $(IDIR)\miscTypes.h
-	copy miscTypes.h $(IDIR)\miscTypes.h
-
-end:
-	-del *.c *.cpp *.h
-	cd $(SDIR)
+$(UTILDIR):
+	if not exist $@ mkdir $@
 
 clean:
-	cd $(ODIR)
 	-del $(OBJS)
 	-del $(OBJSP)
 !IFDEF PYTHONINC
 	-del $(OBJSPython)
 !ENDIF
-	cd $(SDIR)
 
 cleanall:	clean
 	-del $(LDIR)\utils.lib
+	-del $(UTILDIR)\*.h

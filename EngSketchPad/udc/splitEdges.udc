@@ -1,0 +1,46 @@
+# splitEdges.udc
+# written by John Dannenhoffer
+
+INTERFACE  name  IN  $splitLocs
+
+# remember the input Body
+SET       myBody     @nbody
+SET       nedge      @nedge
+
+# loop through all Edges
+PATBEG    iedge  nedge
+
+   # get the Attribute (if it exists)
+   SELECT   BODY      myBody
+   SELECT   EDGE      iedge
+   GETATTR  mySplits  name
+
+   # remember the t range for this Edge
+   EVALUATE EDGERNG myBody iedge
+   SET      tmin   @edata[1]
+   SET      tmax   @edata[2]
+
+   # loop through the splits
+   PATBEG   isplit  mySplits.size
+      # check that tsplit is between 0 and 1
+      IFTHEN    mySplits[isplit]  LT  0
+         MESSAGE entry_+isplit+$_LT_0.0
+         THROW   -225
+      ELSEIF    mySplits[isplit]  GT  1
+         MESSAGE entry_+isplit+$_GT_1.0
+         THROW   -225
+      ENDIF
+
+      # do the split via a SUBTRACTion
+      SET       splitLoc   tmin+mySplits[isplit]*(tmax-tmin)
+      EVALUATE  EDGE       myBody  iedge  splitLoc
+      POINT     @edata[2]  @edata[3]  @edata[4]
+      SUBTRACT
+   PATEND
+
+   # if the Attribute did not exist, signal gets caught here
+   CATBEG   $illegal_attribute
+   CATEND
+PATEND
+
+END

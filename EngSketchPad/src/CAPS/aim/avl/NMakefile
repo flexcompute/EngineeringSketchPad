@@ -41,7 +41,7 @@ $(ODIR)\avlAIM.obj:	avlAIM.c $(IDIR)\capsTypes.h
 	cl /c $(COPTS) /Fo"$(ODIR)"\ -Iavlmrf $<
 
 clean:
-	-del $(ODIR)\avlAIM.obj
+	-del $(ODIR)\avlAIM.obj $(AVL_MRF_OBJS)
 
 cleanall:	clean
 	-del $(LDIR)\avlAIM.dll $(LDIR)\avlAIM.lib $(LDIR)\avlAIM.exp

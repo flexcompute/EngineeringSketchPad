@@ -11,15 +11,15 @@ UNION
 
 # do not check entities where analytic and finite difference are expected to disagree
 SELECT    FACE  2  1
-   ATTRIBUTE     _sensCheck $skip
+   ATTRIBUTE     __sensCheck__ $skip
 UDPRIM    editAttr  filename  <<
-   EDGE ADJ2FACE _sensCheck=skip
-   SET           _sensCheck=skip
+   EDGE ADJ2FACE __sensCheck__=skip
+   SET           __sensCheck__=skip
 
-   NODE ADJ2FACE _sensCheck=skip
-   SET           _sensCheck=skip
+   NODE ADJ2FACE __sensCheck__=skip
+   SET           __sensCheck__=skip
 >>
 SELECT    FACE  1  1
-   ATTRIBUTE     _sensCheck $skip
+   ATTRIBUTE     __sensCheck__ $skip
 
 END

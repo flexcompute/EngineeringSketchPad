@@ -6,7 +6,7 @@
 #                                                                 #
 ###################################################################
 
-# Copyright (C) 2022  John F. Dannenhoffer, III (Syracuse University)
+# Copyright (C) 2024  John F. Dannenhoffer, III (Syracuse University)
 #
 # This library is free software; you can redistribute it and/or
 #    modify it under the terms of the GNU Lesser General Public
@@ -1611,10 +1611,10 @@ class Ocsm(object):
             ibody       Body index (1:nbody)
             seltype     ocsm.EDGE or ocsm.FACE
             iselect     iedge or iface
-            npnt        number of points
-            xyz         x[0], y[0], z[0], x[1], ... z[npnt-1]
+            npnt        number of points (if <0, all starting locns)
+            xyz         x[0], y[0], z[0], x[1], ... z[abs(npnt)-1]
         outputs:
-            uv          u[0], v[0], u[1], ... v[npnt-1]
+            uv          u[0], v[0], u[1], ... v[abs(npnt)-1]
         """
         _ocsm.ocsmGetUV.argtypes = [ctypes.c_void_p,
                                     ctypes.c_int,
@@ -1625,16 +1625,16 @@ class Ocsm(object):
                                     ctypes.POINTER(ctypes.c_double)]
         _ocsm.ocsmGetUV.restype  =  ctypes.c_int
 
-        xyz_ = (ctypes.c_double * (3*npnt))(*xyz)
-        uv   = (ctypes.c_double * (2*npnt))()
+        xyz_ = (ctypes.c_double * (3*abs(npnt)))(*xyz)
+        uv   = (ctypes.c_double * (2*abs(npnt)))()
 
         status = _ocsm.ocsmGetUV(self._modl, ibody, seltype, iselect, npnt, xyz_, uv)
         _processStatus(status, "GetUV")
 
         if (seltype == EDGE):
-            return list(uv[0:npnt])
+            return list(uv[0:abs(npnt)])
         else:
-            return list(uv[0:2*npnt])
+            return list(uv[0:2*abs(npnt)])
 
 # ======================================================================
 
@@ -1955,6 +1955,44 @@ class Ocsm(object):
         outvals = list(vals[0:10])
 
         return (type.value, ichld.value, ileft.value, irite.value, outvals, nnode.value, nedge.value, nface.value)
+
+# ======================================================================
+
+    def Clearance(self, ibody1, ibody2):
+        """
+        ocsm.Clearance - compute clearance between Bodys
+
+        inputs:
+            ibody1      >0  Body index of enclosing Body */
+                        <0  Body index of neighboring Body */
+            ibody2      Body index of second Body
+        outputs:
+            dist        >0  distance between Bodys
+                        <0  penetration distance
+            iface1      Face  on ibody1 for closest point
+            uv1         (u,v) on ibody1 for closest point
+            iface2      Face  on ibody2 for closest point
+            uv2         (u,v) on ibody2 for closest point
+        """
+        _ocsm.ocsmClearance.argTypes = [ctypes.c_void_p,
+                                        ctypes.c_int,
+                                        ctypes.c_int,
+                                        ctypes.POINTER(ctypes.c_double),
+                                        ctypes.POINTER(ctypes.c_double),
+                                        ctypes.POINTER(ctypes.c_double)]
+        _ocsm.ocsmClearance.restype  =  ctypes.c_int
+
+        dist = (ctypes.c_double * 1)()
+        pnt1 = (ctypes.c_double * 3)()
+        pnt2 = (ctypes.c_double * 3)()
+
+        status = _ocsm.ocsmClearance(self._modl, ibody1, ibody2, dist, pnt1, pnt2)
+        _processStatus(status, "Clearance")
+
+        iface1 = round(pnt1[0])
+        iface2 = round(pnt2[0])
+
+        return (dist[0], iface1, (pnt1[1], pnt1[2]), iface2, (pnt2[1], pnt2[2]))
 
 # ======================================================================
 

@@ -1,0 +1,12 @@
+# udprim4
+# written by John Dannenhoffer
+
+# boxudc.udc in same folder as .csm
+UDPARG    $/udc/boxudc   dx 4
+UDPARG    $/udc/boxudc   dy 3
+UDPARG    $/udc/boxudc   dz 2
+UDPRIM    $/udc/boxudc
+
+ASSERT    @@vol   24
+
+END

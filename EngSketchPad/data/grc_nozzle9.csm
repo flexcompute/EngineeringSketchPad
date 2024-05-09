@@ -29,6 +29,8 @@ despmtr   turnVane  90.0      vane turning angle (deg)
 despmtr   npart     13        number of parts for each vane (should be about turnVane/30)
 
 # macro for shape of hole
+# note: MACBEG/MACEND/RECALL has been deprecated and is included here for backward-compatability testing
+#       new .csm files should use UDPRIM instead
 macbeg 2
    skbeg       0         0        0
       linseg   xModule   0        0
@@ -42,6 +44,8 @@ macbeg 2
 macend
 
 # macro for single vane
+# note: MACBEG/MACEND/RECALL has been deprecated and is included here for backward-compatability testing
+#       new .csm files should use UDPRIM instead
 macbeg 3
    mark
       patbeg ipart npart
@@ -55,10 +59,14 @@ macbeg 3
          rotatex   frac*turnVane          0 0
          translate frac*(xteVane-xleVane) 0 0
       patend
+   # note: LOFT has been deprecated and is included here for backward-compatability testing
+   #       new .csm files should use RULE or BLEND instead
    loft 1
 macend
 
 # macro for each module
+# note: MACBEG/MACEND/RECALL has been deprecated and is included here for backward-compatability testing
+#       new .csm files should use UDPRIM instead
 macbeg 1
    # block
    box       0 -yModule/2 -zModule/2 xModule yModule zModule

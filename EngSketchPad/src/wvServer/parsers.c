@@ -1896,7 +1896,7 @@ send_raw:
  */
 
 int libwebsockets_serve_http_file(struct libwebsocket *wsi, const char *file,
-						       const char *content_type)
+				  const char *content_type)
 {
 	int fd;
 	struct stat stat_buf;
@@ -1910,33 +1910,31 @@ int libwebsockets_serve_http_file(struct libwebsocket *wsi, const char *file,
 	fd = open(file, O_RDONLY);
 #endif
 	if (fd < 1) {
-		p += sprintf(p, "HTTP/1.0 400 Bad\x0d\x0a"
-			"Server: libwebsockets\x0d\x0a"
-			"\x0d\x0a"
-		);
+		p += snprintf(p, 512, "HTTP/1.0 400 Bad\x0d\x0a"
+			              "Server: libwebsockets\x0d\x0a"
+			              "\x0d\x0a");
 		libwebsocket_write(wsi, (unsigned char *)buf, p - buf,
-								LWS_WRITE_HTTP);
+                                   LWS_WRITE_HTTP);
 
 		return -1;
 	}
 
 	fstat(fd, &stat_buf);
-	p += sprintf(p, "HTTP/1.0 200 OK\x0d\x0a"
-			"Server: libwebsockets\x0d\x0a"
-			"Content-Type: %s\x0d\x0a"
-			"Content-Length: %u\x0d\x0a"
-			"\x0d\x0a", content_type,
-					(unsigned int)stat_buf.st_size);
+	p += snprintf(p, 512, "HTTP/1.0 200 OK\x0d\x0a"
+			      "Server: libwebsockets\x0d\x0a"
+			      "Content-Type: %s\x0d\x0a"
+			      "Content-Length: %u\x0d\x0a"
+			      "\x0d\x0a", content_type,
+                              (unsigned int)stat_buf.st_size);
 
 	libwebsocket_write(wsi, (unsigned char *)buf, p - buf, LWS_WRITE_HTTP);
 
 	n = 1;
 	while (n > 0) {
 		n = read(fd, buf, 512);
-		if (n <= 0)
-			continue;
+		if (n <= 0) continue;
 		libwebsocket_write(wsi, (unsigned char *)buf, n,
-								LWS_WRITE_HTTP);
+                                   LWS_WRITE_HTTP);
 	}
 
 	close(fd);

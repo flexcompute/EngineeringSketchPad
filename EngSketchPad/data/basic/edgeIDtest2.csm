@@ -1,0 +1,19 @@
+# edgeIDtest2
+# written by John Dannenhoffer
+
+DESPMTR   x1   1.0
+DESPMTR   x2   2.0
+
+BOX       0  0  0  3  2  0
+
+CYLINDER  x1 1 -1  x1 1 +1 0.25
+SUBTRACT
+
+CYLINDER  x2 1 -1  x2 1 +1 0.25
+ROTATEZ  180 x2 1
+SUBTRACT
+
+SELECT    EDGE  0  0  1  1
+ATTRIBUTE _color $magenta
+
+END

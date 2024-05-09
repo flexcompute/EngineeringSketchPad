@@ -7,6 +7,9 @@ import shutil
 
 import pyCAPS
 
+from Mesh_Formats import Mesh_Formats
+Mesh_Formats = Mesh_Formats.copy()
+
 class TestAFLR2(unittest.TestCase):
 
 
@@ -20,6 +23,7 @@ class TestAFLR2(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         cls.cleanUp()
+        pass
 
     @classmethod
     def cleanUp(cls):
@@ -42,7 +46,6 @@ class TestAFLR2(unittest.TestCase):
         myAnalysis.input.Tess_Params = [.25,.01,15]
         myAnalysis.input.Mesh_Quiet_Flag = True
         myAnalysis.input.Mesh_Format = "Tecplot"
-        myAnalysis.input.Mesh_ASCII_Flag = True
         myAnalysis.input.Mesh_Gen_Input_String = "mquad=1 mpp=3"
         myAnalysis.input.Edge_Point_Min = 5
         myAnalysis.input.Edge_Point_Max = 300
@@ -67,14 +70,14 @@ class TestAFLR2(unittest.TestCase):
 
         myAnalysis.input.Mesh_Quiet_Flag = True
 
-        myAnalysis.input.Mesh_Format = "Tecplot"
+        myAnalysis.input.Mesh_Format = Mesh_Formats
 
         airfoil = {"numEdgePoints" : 100, "edgeDistribution" : "Tanh", "initialNodeSpacing" : [0.001, 0.001]}
         myAnalysis.input.Mesh_Sizing = {"Airfoil"   : airfoil,
                                         "TunnelWall": {"numEdgePoints" : 50},
                                         "InFlow"    : {"numEdgePoints" : 25},
                                         "OutFlow"   : {"numEdgePoints" : 25},
-                                        "2DSlice"   : {"tessParams" : [0.50, .01, 45]}}
+                                        "2DSlice"   : {"tessParams" : [1.00, .01, 45]}}
 
         myAnalysis.input.Proj_Name = "pyCAPS_aflr2_Tri"
 
@@ -84,6 +87,10 @@ class TestAFLR2(unittest.TestCase):
         myAnalysis.input.Mesh_Gen_Input_String = "mquad=1 mpp=3"
         myAnalysis.input.Proj_Name = "pyCAPS_aflr2_Quad"
 
+        # 'fast' file format does not support quad
+        Mesh_Formats.remove("fast")
+        myAnalysis.input.Mesh_Format = Mesh_Formats
+
         # Run 2nd time to make quad mesh
         myAnalysis.runAnalysis()
 
@@ -92,7 +99,7 @@ class TestAFLR2(unittest.TestCase):
     def test_phase(self):
 
         file = os.path.join("..","csmData","cfd2D.csm")
-        
+
         problemName = self.problemName + "_Phase"
         myProblem = pyCAPS.Problem(problemName, phaseName="Phase0", capsFile=file, outLevel=0)
 
@@ -104,7 +111,7 @@ class TestAFLR2(unittest.TestCase):
 
         aflr2.input.Edge_Point_Min = 10
         aflr2.input.Edge_Point_Max = 30
-        
+
         NumberOfNode_1    = aflr2.output.NumberOfNode
         NumberOfElement_1 = aflr2.output.NumberOfElement
 
@@ -114,16 +121,15 @@ class TestAFLR2(unittest.TestCase):
         myProblem = pyCAPS.Problem(problemName, phaseName="Phase1", phaseStart="Phase0", outLevel=0)
 
         aflr2 = myProblem.analysis["aflr2"]
-        
+
         # Check that the same outputs are still available
         self.assertEqual(NumberOfNode_1   , aflr2.output.NumberOfNode   )
         self.assertEqual(NumberOfElement_1, aflr2.output.NumberOfElement)
 
         # Coarsen the mesh
         aflr2.input.Edge_Point_Min = 5
-        aflr2.input.Edge_Point_Max = 20
-        
-        
+        aflr2.input.Edge_Point_Max = 9
+
         NumberOfNode_2    = aflr2.output.NumberOfNode
         NumberOfElement_2 = aflr2.output.NumberOfElement
 
@@ -213,27 +219,27 @@ class TestAFLR2(unittest.TestCase):
 
         capsFile = os.path.join("..","csmData","cfd2D.csm")
         problemName = self.problemName+str(self.iProb)
-        
+
         myProblem = pyCAPS.Problem(problemName, capsFile=capsFile, outLevel=0)
 
         # Run once to get the total line count
         line_total = self.run_journal(myProblem, -1)
-        
+
         myProblem.close()
         shutil.rmtree(problemName)
-        
+
         #print(80*"=")
         #print(80*"=")
         # Create the problem to start journaling
         myProblem = pyCAPS.Problem(problemName, capsFile=capsFile, outLevel=0)
         myProblem.close()
-        
+
         for line_exit in range(line_total):
             #print(80*"=")
             myProblem = pyCAPS.Problem(problemName, phaseName="Scratch", capsFile=capsFile, outLevel=0)
             self.run_journal(myProblem, line_exit)
             myProblem.close()
-            
+
         self.__class__.iProb += 1
 
 

@@ -1,0 +1,53 @@
+# metaMaterial
+# written by John Dannenhoffer
+
+# arrays to describe material types and dimensions
+CONPMTR   nrow  5
+CONPMTR   ncol  5
+
+DIMENSION type  nrow  ncol
+DIMENSION rad   nrow  ncol
+DIMENSION thk   nrow  ncol
+
+CFGPMTR   type  "1; 1; 1; 1; 1;\
+                 1; 2; 2; 2; 1;\
+                 1; 2; 3; 2; 1;\
+                 1; 2; 2; 2; 1;\
+                 1; 1; 1; 1; 1"
+DESPMTR   rad   "0.4; 0.3; 0.2; 0.3; 0.4;\
+                 0.3; 0.2; 0.1; 0.2; 0.3;\
+                 0.2; 0.1; 0.1; 0.1; 0.2;\
+                 0.3; 0.2; 0.2; 0.2; 0.3;\
+                 0.4; 0.3; 0.2; 0.3; 0.4"
+DESPMTR   thk   "0.4; 0.3; 0.2; 0.3; 0.4;\
+                 0.3; 0.2; 0.1; 0.2; 0.3;\
+                 0.2; 0.1; 0.1; 0.1; 0.2;\
+                 0.3; 0.2; 0.1; 0.2; 0.3;\
+                 0.4; 0.3; 0.2; 0.3; 0.4"
+
+PATBEG    j  ncol
+   PATBEG    i  nrow
+      IFTHEN    type[i,j] EQ 1
+         UDPRIM    $/metaMaterial1   rad rad[i,j]                  dz 1
+      ELSEIF    type[i,j] EQ 2
+         UDPRIM    $/metaMaterial2                  thk thk[i,j]   dz 1
+      ELSEIF    type[i,j] EQ 3
+         UDPRIM    $/metaMaterial3   rad rad[i,j]   thk thk[i,j]   dz 1
+      ELSE
+         MESSAGE    bad_type
+         THROW      -999
+      ENDIF
+
+      TRANSLATE i-1  j-1  0
+
+      IFTHEN    i GT 1
+         JOIN
+      ENDIF
+   PATEND
+
+   IFTHEN    j GT 1
+      JOIN
+   ENDIF
+PATEND
+
+END

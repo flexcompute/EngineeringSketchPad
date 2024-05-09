@@ -11,7 +11,6 @@ enum aimInputs
   Proj_Name = 1,               /* index is 1-based */
   Mesh_Quiet_Flag,
   Mesh_Format,
-  Mesh_ASCII_Flag,
   Mesh_Gen_Input_String,
   Ff_cdfr,
   Min_ncell,
@@ -28,7 +27,9 @@ enum aimInputs
   Mesh_Sizing,
   Multiple_Mesh,
   EGADS_Quad,
-  NUMINPUT = EGADS_Quad        /* Total number of inputs */
+  AFLR4_Quad,
+  Skin,
+  NUMINPUT = Skin              /* Total number of inputs */
 };
 
 #define AFLR4TESSFILE "aflr4_%d.eto"

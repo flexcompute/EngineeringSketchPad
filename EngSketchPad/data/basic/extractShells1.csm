@@ -26,7 +26,7 @@ STORE      theBody
 MARK
 RESTORE    theBody
 EXTRACT    0
-COMBINE
+ELEVATE
 ATTRIBUTE  _name   $outer
 
 # extract the Faces from the first hole
@@ -34,7 +34,7 @@ MARK
 RESTORE    theBody
 SELECT     FACE    $myBody  $hole1
 EXTRACT    @sellist
-COMBINE
+ELEVATE
 ATTRIBUTE  _name   $hole1
 
 # extract the Faces from the second hole
@@ -42,7 +42,7 @@ MARK
 RESTORE    theBody
 SELECT     FACE    $myBody  $hole2
 EXTRACT    @sellist
-COMBINE
+ELEVATE
 ATTRIBUTE  _name   $hole2
 
 END

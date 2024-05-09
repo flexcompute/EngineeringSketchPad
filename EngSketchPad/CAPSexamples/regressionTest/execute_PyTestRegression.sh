@@ -106,6 +106,13 @@ fi
 if [ "$TYPE" == "MINIMAL" ]; then
     echo "Running.... MINIMAL PyTests"
 
+    ###### abaqus ######
+    if [[ `command -v abaqus` ]]; then
+         expectPythonSuccess "abaqus_SingleLoadCase_PyTest.py"
+    else
+        notRun="$notRun\nabaqus"
+    fi
+
     ###### avl ######
     if [[ `command -v avl` ]]; then
          expectPythonSuccess "avl_PyTest.py"
@@ -190,6 +197,7 @@ if [ "$TYPE" == "MINIMAL" ]; then
     if [[ `command -v flowCart` ]]; then
         ulimit -s unlimited || true # Cart3D requires unlimited stack size
         expectPythonSuccess "cart3d_PyTest.py"
+        #notRun="$notRun\nCart3D"
     else
         notRun="$notRun\nCart3D"
     fi
@@ -310,12 +318,10 @@ if [[ "$TYPE" == "MESH" || "$TYPE" == "ALL" ]]; then
 
     # EGADS Tess
     expectPythonSuccess "egadsTess_PyTest.py"
+    expectPythonSuccess "egadsTess_Box_Quad_Pytest.py"
     expectPythonSuccess "egadsTess_Spheres_Quad_PyTest.py"
     expectPythonSuccess "egadsTess_Nose_Quad_PyTest.py"
- 
-    # Example of controlling quading
-    expectPythonSuccess "quading_Pytest.py"
-    
+
     # AFLR
     if [[ -f $ESP_ROOT/lib/aflr2AIM.$EXT && \
           -f $ESP_ROOT/lib/aflr3AIM.$EXT && \
@@ -327,6 +333,7 @@ if [[ "$TYPE" == "MESH" || "$TYPE" == "ALL" ]]; then
         expectPythonSuccess "aflr4_TipTreat_PyTest.py" -noPlotData
         expectPythonSuccess "aflr4_and_aflr3_PyTest.py"
         expectPythonSuccess "aflr4_and_aflr3_Symmetry_PyTest.py"
+        expectPythonSuccess "aflr4_QuadMesh_PyTest.py"
 
         if [[ -f $ESP_ROOT/lib/tetgenAIM.$EXT ]]; then
             expectPythonSuccess "aflr4_and_Tetgen_PyTest.py"
@@ -374,6 +381,7 @@ if [[ "$TYPE" == "CFD" || "$TYPE" == "ALL" ]]; then
     echo "Running.... CFD PyTests"
     echo ""
     
+    # SU2
     if [ "$SU2_RUN" != "" ] && [ "$OS" != "Windows_NT" ]; then
         if [[ -f $ESP_ROOT/lib/aflr2AIM.$EXT ]]; then
             expectPythonSuccess "su2_and_AFLR2_NodeDist_PyTest.py"
@@ -382,6 +390,7 @@ if [[ "$TYPE" == "CFD" || "$TYPE" == "ALL" ]]; then
         if [[ -f $ESP_ROOT/lib/aflr3AIM.$EXT && 
               -f $ESP_ROOT/lib/aflr4AIM.$EXT ]]; then
             expectPythonSuccess "su2_and_AFLR4_AFLR3_PyTest.py"
+            expectPythonSuccess "su2_Morph_PyTest.py"
         fi
         if [[ `command -v delaundo` || `command -v delaundo.exe` ]]; then
             echo "delaundo: `which delaundo`"
@@ -399,6 +408,7 @@ if [[ "$TYPE" == "CFD" || "$TYPE" == "ALL" ]]; then
         notRun="$notRun\nSU2"
     fi
    
+    # Cart3D
     if [[ `command -v flowCart` ]]; then
         ulimit -s unlimited || true # Cart3D requires unlimited stack size
         echo "flowCart: `which flowCart`"
@@ -414,6 +424,7 @@ if [[ "$TYPE" == "CFD" || "$TYPE" == "ALL" ]]; then
         notRun="$notRun\nCart3D"
     fi
 
+    # Fun3D
     if [[ `command -v nodet_mpi` ]]; then
         if [[ -f $ESP_ROOT/lib/aflr2AIM.$EXT &&
               -f $ESP_ROOT/lib/aflr3AIM.$EXT &&
@@ -421,6 +432,8 @@ if [[ "$TYPE" == "CFD" || "$TYPE" == "ALL" ]]; then
             expectPythonSuccess "fun3d_and_AFLR2_NodeDist_PyTest.py"
             expectPythonSuccess "fun3d_and_AFLR2_PyTest.py"
             expectPythonSuccess "fun3d_and_AFLR4_AFLR3_PyTest.py"
+            expectPythonSuccess "fun3d_refine_PyTest.py"
+            expectPythonSuccess "fun3d_Morph_PyTest.py"
         fi
         if [[ `command -v delaundo` || `command -v delaundo.exe` ]]; then
             echo "delaundo: `which delaundo`"
@@ -432,6 +445,11 @@ if [[ "$TYPE" == "CFD" || "$TYPE" == "ALL" ]]; then
         fi
         expectPythonSuccess "fun3d_PyTest.py"
     else
+        if [[ -f $ESP_ROOT/lib/aflr2AIM.$EXT &&
+              -f $ESP_ROOT/lib/aflr3AIM.$EXT &&
+              -f $ESP_ROOT/lib/aflr4AIM.$EXT ]]; then
+            expectPythonSuccess "fun3d_Morph_PyTest.py" -noAnalysis
+        fi
         notRun="$notRun\nFun3D"
     fi
 
@@ -442,6 +460,13 @@ fi
 if [[ "$TYPE" == "STRUCTURE" || "$TYPE" == "ALL" ]]; then
     echo "Running.... STRUCTURE PyTests"
     echo ""
+
+    ###### abaqus ######
+    if [[ `command -v abaqus` ]]; then
+         expectPythonSuccess "abaqus_SingleLoadCase_PyTest.py"
+    else
+        notRun="$notRun\nabaqus"
+    fi
 
     ###### masstran ######
     expectPythonSuccess "masstran_PyTest.py"
@@ -517,6 +542,32 @@ if [[ "$TYPE" == "STRUCTURE" || "$TYPE" == "ALL" ]]; then
         notRun="$notRun\nMystran"
     fi
 
+    ###### Plato ######
+    if [[ -f $ESP_ROOT/lib/exodusWriter.$EXT ]]; then
+        if [[ -f $ESP_ROOT/lib/aflr2AIM.$EXT && \
+              -f $ESP_ROOT/lib/aflr3AIM.$EXT && \
+              -f $ESP_ROOT/lib/aflr4AIM.$EXT ]]; then
+            expectPythonSuccess "plato_aflr_airfoil_PyTest.py"
+            expectPythonSuccess "plato_aflr_table_PyTest.py"
+            expectPythonSuccess "plato_aflr_table_morph_PyTest.py"
+            expectPythonSuccess "plato_aflr_cyli_box_PyTest.py"
+            expectPythonSuccess "plato_aflr_airfoil_morph_PyTest.py"
+        fi
+        if [[ -f $ESP_ROOT/lib/tetgenAIM.$EXT ]]; then
+            expectPythonSuccess "plato_tetgen_table_PyTest.py"
+            expectPythonSuccess "plato_tetgen_cyli_box_PyTest.py"
+        fi
+        if [[ -f $ESP_ROOT/lib/aflr2AIM.$EXT && \
+              -f $ESP_ROOT/lib/aflr3AIM.$EXT && \
+              -f $ESP_ROOT/lib/aflr4AIM.$EXT && \
+              -f $ESP_ROOT/lib/tetgenAIM.$EXT ]]; then
+            expectPythonSuccess "plato_aflr_tetgen_table_PyTest.py"
+            expectPythonSuccess "plato_aflr_tetgen_cyli_box_PyTest.py"
+        fi
+    else
+        notRun="$notRun\nPlato"
+    fi
+
     testsRan=1
 fi
 
@@ -525,7 +576,7 @@ if [[ "$TYPE" == "AEROELASTIC" || "$TYPE" == "ALL" ]]; then
     echo "Running.... AEROELASTIC PyTests"
     echo ""
 
-    ###### Astros ######
+    ###### SU2 and Astros ######
     if [[ "$ASTROS_ROOT" != "" && "$SU2_RUN" != "" && "$OS" != "Windows_NT" ]]; then
         # SU2 6.0.0 on Windows is no longer supported
         expectPythonSuccess "aeroelasticSimple_Pressure_SU2_and_Astros.py" -noPlotData
@@ -537,7 +588,7 @@ if [[ "$TYPE" == "AEROELASTIC" || "$TYPE" == "ALL" ]]; then
         notRun="$notRun\nAstros"
     fi
 
-    ###### Mystran ######
+    ###### SU2 and Mystran ######
     if [[ (`command -v mystran.exe` || `command -v mystran`) && "$SU2_RUN" != "" && "$OS" != "Windows_NT" ]]; then
         echo "mystran: `which mystran`"
         # SU2 6.0.0 on Windows does not work with displacements
@@ -548,6 +599,14 @@ if [[ "$TYPE" == "AEROELASTIC" || "$TYPE" == "ALL" ]]; then
         notRun="$notRun\nMystran and SU2"
     fi
 
+    ###### SU2 and TACS ######
+    if [[ "$SU2_RUN" != "" && "$OS" != "Windows_NT" ]]; then
+        expectPythonSuccess "aeroelasticSimple_Temperature_SU2_and_TACS.py" -noPlotData
+    else
+        notRun="$notRun\nTACS and SU2"
+    fi
+
+    ###### Cart3D and Mystran ######
     if [[ (`command -v mystran.exe` || `command -v mystran`) && `command -v flowCart` ]]; then
         echo "mystran: `which mystran`"
         echo "flowCart: `which flowCart`"
@@ -564,7 +623,7 @@ if [[ "$TYPE" == "CORSAIRLITE" || "$TYPE" == "ALL" ]]; then
     echo "Running.... CORSAIRLITE PyTests"
     echo ""
     
-    cd ../corsairlite
+    cd $regTestDir/../corsairlite
     expectPythonSuccess "gp.py"
     expectPythonSuccess "qp.py"
     expectPythonSuccess "sp.py"
@@ -574,7 +633,7 @@ if [[ "$TYPE" == "CORSAIRLITE" || "$TYPE" == "ALL" ]]; then
       expectPythonSuccess "hoburg_blackbox.py"
     fi
 
-    cd capsPhase
+    cd $regTestDir/../corsairlite/capsPhase
     rm -rf ostrich
     expectPythonSuccess "pyCAPS/sizeWing.py"
     if [[ `command -v avl` ]]; then
@@ -582,7 +641,22 @@ if [[ "$TYPE" == "CORSAIRLITE" || "$TYPE" == "ALL" ]]; then
         expectPythonSuccess "pyCAPS/optTaperAvl.py"
         expectPythonSuccess "pyCAPS/optWingAvl.py"
     fi
- 
+
+    cd $regTestDir/../corsairlite/multifidelity
+    rm -rf hoburg
+    expectPythonSuccess "pyCAPS/GPSize.py"
+    if [[ `command -v mses` ]]; then
+        echo "mses: `which mses`"
+        expectPythonSuccess "pyCAPS/MSES.py"
+        expectPythonSuccess "pyCAPS/Camber.py"
+        expectPythonSuccess "pyCAPS/CMConstraint.py"
+        if ( python -c 'import torch' ); then
+            expectPythonSuccess "pyCAPS/Kulfan2.py"
+            expectPythonSuccess "pyCAPS/FlowTrip.py"
+            expectPythonSuccess "pyCAPS/Kulfan4.py"
+        fi
+    fi
+
     testsRan=1
 fi
 

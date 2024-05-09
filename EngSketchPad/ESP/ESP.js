@@ -1,7 +1,7 @@
 // ESP.js implements functions for the Engineering Sketch Pad (ESP)
 // written by John Dannenhoffer and Bob Haimes
 
-// Copyright (C) 2010/2022  John F. Dannenhoffer, III (Syracuse University)
+// Copyright (C) 2010/2024  John F. Dannenhoffer, III (Syracuse University)
 //
 // This library is free software; you can redistribute it and/or
 //    modify it under the terms of the GNU Lesser General Public
@@ -200,6 +200,7 @@
 //    cmdEditHint(line)
 //    cmdEditUndo(cm)
 //    cmdEditDebug()
+//    cmdEditTrace()
 //    printObject(obj)
 //    sprintf()
 //    sleep(milliseconds)
@@ -524,6 +525,10 @@ var wvInitUI = function () {
     wv.startY    = -1;
     wv.button    = -1;             // button pressed
     wv.modifier  =  0;             // modifier (shift,alt,cntl) bitflag
+    wv.lastViz   =  1;             // TreeWindow where Viz was last pressed
+    wv.lastGrd   =  1;             // TreeWindow where Viz was last pressed
+    wv.lastTrn   =  1;             // TreeWindow where Viz was last pressed
+    wv.lastOri   =  1;             // TreeWindow where Viz was last pressed
     wv.flying    =  1;             // flying multiplier (do not set to 0)
     wv.offTop    =  0;             // offset to upper-left corner of the canvas
     wv.offLeft   =  0;
@@ -562,13 +567,14 @@ var wvInitUI = function () {
     wv.userNames = "";             // bar-separatede list of userNames
     wv.myName    = "*host*";       // my username
     wv.lastXform = null;           // last xfrom received while not sync'd
-    wv.plotType  =  0;             // =0 mono, =1 ubar, =2 vbar, =3 cmin, =4 cmax, =5 gc, =6 normals, =10 erep, =11 plugs, =12 pyscript, =13 mitten
+    wv.plotType  =  0;             // =0 mono, =1 ubar, =2 vbar, =3 cmin, =4 cmax, =5 gc, =6 normals, =7 x-comp, =8 y-comp, =9 z-comp, =10 erep, =11 plugs, =12 pyscript, =13 mitten, =16 vspSetup
     wv.loLimit   = -1;             // lower limit in key
     wv.upLimit   = +1;             // upper limit in key
     wv.nchanges  = 0;              // number of Branch or Parameter changes by browser
     wv.pyname    = "";             // name of the .py file that started ESP
     wv.filenames = "|";            // name of the .csm file (and .udc files)
     wv.fileintro = false;          // =true if intro has been posted
+    wv.filecomp  = "";             // string returned from completeFilename
     wv.fileindx  = undefined;      // index of file being editted: -1 <new file>, 0 *.csm, >0 *.udc
     wv.linenum   = 0;              // line number to start editing
     wv.lastfile  = "";             // last file that was editted
@@ -593,7 +599,9 @@ var wvInitUI = function () {
                                    // 13 show WebViewer in canvas and run mitten
                                    // 14 show sketcherForm and run plotter
                                    // 15 show WebViewer in canvas and run capsMode
+                                   // 16 show WebViewer in canvas and run vspSetup
     wv.curTool   = main;           // current tool
+    wv.inPyscript = 0;             // =1 if in pyscript
     wv.timName   = "";             // name of TIM being held
     wv.overlay   = undefined;      // name of process that overlays the current mode
     wv.usingMain =  1;             // =1 if using 3D graphics window
@@ -686,7 +694,7 @@ var wvUpdateUI = function () {
                 while (1) {             // used to jump out on error
 
                     // get Attribute name and value
-                    var newAttrName = prompt("Enter new Attribute name:");
+                    var newAttrName = prompt("Enter new Attribute name");
                     if (newAttrName === null) {
                         break;
                     }
@@ -1278,7 +1286,7 @@ var wvUpdateUI = function () {
         // C-'>' or '.' -- save view to file
         } else if (((wv.keyPress == 46  && wv.modifier == 5) ||
                     (myKeyPress  == "." && wv.modifier == 0)   ) && checkIfWithBall()) {
-            var filename = prompt("Enter view filename to save:", "save.view");
+            var filename = prompt("Enter view filename to save", "save.view");
             if (filename !== null) {
                 postMessage("Saving view to \"" + filename + "\"");
                 browserToServer("saveView|"+filename+"|"+wv.scale+"|"+wv.mvMatrix.getAsArray()+"|");
@@ -1287,7 +1295,7 @@ var wvUpdateUI = function () {
         // C-'<' or ',' -- read view from file
         } else if (((wv.keyPress == 44  && wv.modifier == 5) ||
                     (myKeyPress  == "," && wv.modifier == 0)   ) && checkIfWithBall()) {
-            var filename = prompt("Enter view filename to read:", "save.view");
+            var filename = prompt("Enter view filename to read", "save.view");
             if (filename !== null) {
                 postMessage("Reading view from \"" + filename + "\"");
                 browserToServer("readView|"+filename+"|");
@@ -1606,7 +1614,7 @@ var wvServerMessage = function (text) {
                 wv.myName = null;
                 while (wv.myName === null) {
                     wv.myName = prompt("You are connection "+textList[2]+" to the server\n" +
-                                       "Enter your username:");
+                                       "Enter your username");
                 }
             }
             browserToServer("userName|"+wv.myName+"|");
@@ -1636,6 +1644,21 @@ var wvServerMessage = function (text) {
 
         wv.espPrefix = textList[1];
 
+    // if it starts with "completeFilename|" post the choices
+    //    and fulfill the promise to provide a possible response
+    } else if (text.substring(0,17) == "completeFilename|") {
+        var textList = text.split("|");
+
+        var cmd     = textList[1];
+        wv.filecomp = textList[2];
+
+        if (textList[3].length > 0) {
+            postMessage(textList[3]);
+        }
+
+        // re-enter the routine that caused completeFilename event
+        setTimeout(() => {let fn = new Function(cmd); fn();}, 100);
+        
     // if it starts with "userName|" store the list of current users
     } else if (text.substring(0,9) == "userName|") {
         var textList    = text.split("|");
@@ -1695,7 +1718,7 @@ var wvServerMessage = function (text) {
 
             var button = document.getElementById("collabMenuBtn");
             button.hidden = false;
-            button.style.backgroundColor = "#AFFFAF";    // greenish
+            button.style.backgroundColor = "#AFFFAF";       // greenish
 
             try {
                 wv.codeMirror.setOption("readOnly", false);
@@ -1715,9 +1738,9 @@ var wvServerMessage = function (text) {
             button.hidden = false;
 
             if (wv.myRole == 1) {
-                button.style.backgroundColor = "#FFFFAF";    // yellow
+                button.style.backgroundColor = "#FFFFAF";   // yellow
             } else {
-                button.style.backgroundColor = null;         // white
+                button.style.backgroundColor = null;        // white
             }
 
             try {
@@ -1896,11 +1919,11 @@ var wvServerMessage = function (text) {
         if (wv.filenames.split("|").length <= 3 || wv.server == "serveCAPS") {
             var button = document.getElementById("solveButton");
             button["innerHTML"] = "Re-building...";
-            button.style.backgroundColor = "#FFFF3F";
+            button.style.backgroundColor = "#FFFF3F";       // light yellow
 
             // turn the background of the message window back to original color
             var botm = document.getElementById("brframe");
-            botm.style.backgroundColor = "#F7F7F7";
+            botm.style.backgroundColor = "#F7F7F7";         // grey
 
             browserToServer("build|0|");
 
@@ -1936,30 +1959,33 @@ var wvServerMessage = function (text) {
 
         // turn the background of the message window back to original color
         var botm = document.getElementById("brframe");
-        botm.style.backgroundColor = "#F7F7F7";
+        botm.style.backgroundColor = "#F7F7F7";             // grey
 
         var textList = text.split("|");
 
         // post messages sent from OpenCSM
-        if (textList[3].length > 0) {
-            postMessage(textList[3]);
+        if (textList[4].length > 0) {
+            postMessage(textList[4]);
         }
 
         if (textList[1].substring(0,7) == "ERROR::") {
             alert("how did we get here???");
         } else {
             var ibrch  = Number(textList[1]);
-            var nbody  = Number(textList[2]);
+            var nbrch  = Number(textList[2]);
+            var nbody  = Number(textList[3]);
 
             wv.builtTo = ibrch;
 
-            if (ibrch == 0 && brch.length == 0) {
+            if (ibrch == 0 && nbrch == 0) {
+                postMessage("\nNothing to build");
+                changeMode(0);
                 // post nothing because we started without a file
-            } else if (ibrch == brch.length || brch.length == 0) {
+            } else if (ibrch == nbrch || nbrch == 0) {
                 postMessage("\nEntire build complete, which generated "+nbody+
                             " Body(s)");
                 changeMode(0);
-            } else if (ibrch >= brch.length) {
+            } else if (ibrch >= nbrch) {
                 postMessage("\nBuild complete through ibrch="+ibrch+
                             ", which generated "+nbody+" Body(s)");
                 changeMode(0);
@@ -2028,6 +2054,41 @@ var wvServerMessage = function (text) {
         postMessage(textList[3]);
         postMessage(" ");
 
+    // if it starts with "getTraceAttrs|", post the reposnse
+    } else if (text.substring(0,14) == "getTraceAttrs|") {
+        var textList = text.split("|");
+
+        postMessage(textList[1]);
+        postMessage(" ");
+
+    // if it starts with "getTracePmtrs|", post the reposnse
+    } else if (text.substring(0,14) == "getTracePmtrs|") {
+        var textList = text.split("|");
+
+        postMessage(textList[1]);
+        postMessage(" ");
+
+    // if it starts with "getTraceStors|", post the reposnse
+    } else if (text.substring(0,14) == "getTraceStors|") {
+        var textList = text.split("|");
+
+        postMessage(textList[1]);
+        postMessage(" ");
+
+    // if it starts with "getFiletree|", post the reposnse
+    } else if (text.substring(0,12) == "getFiletree|") {
+        var textList = text.split("|");
+
+        postMessage(textList[1]);
+        postMessage(" ");
+
+    // if it starts with "showTblOfContents|", post the reposnse
+    } else if (text.substring(0,18) == "showTblOfContents|") {
+        var textList = text.split("|");
+
+        postMessage(textList[1]);
+        postMessage(" ");
+
     // if it starts with "caps|list|" post a message */
     } else if (text.substring(0,9) == "caps|list") {
         var textList = text.split("|");
@@ -2064,6 +2125,11 @@ var wvServerMessage = function (text) {
 
     // if it starts with "timLoad|" pass to curTool or postMessage
     } else if (text.substring(0,8) == "timLoad|") {
+        if (text.substring(0,17) == "timLoad|pyscript|" && wv.curTool.timLoadCB === undefined) {
+            console.log("forcing pyscript mode");
+            changeMode(12);
+        }
+
         if (wv.overlay !== undefined && wv.overlay.timLoadCB !== undefined) {
             wv.overlay.timLoadCB(text.substring(8));
         } else if (wv.curTool.timLoadCB !== undefined) {
@@ -2092,12 +2158,19 @@ var wvServerMessage = function (text) {
 //            postMessage(text);
         }
 
+    // if it starts with "timMesg|" and contains "|ERROR::", post the error
+    } else if (text.substring(0,8) == "timMesg|" && text.indexOf("|ERROR::") > 0) {
+
+        alert(text.substring(text.indexOf("|ERROR::")+1));
+
     // if it starts with "timMesg|" pass to curTool or postMessage
     } else if (text.substring(0,8) == "timMesg|") {
         if (wv.overlay !== undefined && wv.overlay.timMesgCB !== undefined) {
             wv.overlay.timMesgCB(text.substring(8));
         } else if (wv.curTool.timMesgCB !== undefined) {
             wv.curTool.timMesgCB(text.substring(8));
+        } else if (wv.inPyscript == 1) {
+            pyscript.timMesgCB(text.substring(8));
         } else {
             postMessage(text);
         }
@@ -2111,7 +2184,7 @@ var wvServerMessage = function (text) {
 
         cmdOverlayBeg(text.substring(11));
 
-    // if it starts with "overlayEnd}" do nothing
+    // if it starts with "overlayEnd|" do nothing
     } else if (text.substring(0,11) == "overlayEnd|") {
 
     // if it starts with "postMessage|", post the message
@@ -2292,14 +2365,8 @@ var wvServerMessage = function (text) {
         // post the editorForm
         changeMode(7);
 
-    // if it starts with "setCsmFileBeg|" do nothing
-    } else if (text.substring(0,14) == "setCsmFileBeg|") {
-
-    // if it starts with "setCsmFileMid|" do nothing
-    } else if (text.substring(0,14) == "setCsmFileMid|") {
-
-    // if it starts with "setCsmFileEnd|" do nothing
-    } else if (text.substring(0,14) == "setCsmFileEnd|") {
+    // if it starts with "setCsmFile|" do nothing
+    } else if (text.substring(0,11) == "setCsmFile|") {
 
     // if it starts with "setWvKey|" turn key or logo on
     } else if (text.substring(0,9) == "setWvKey|") {
@@ -2517,20 +2584,41 @@ var wvServerMessage = function (text) {
         //        postMessage(textList[0]);
         if (text.endsWith("||") && text.length > 2) {
             postMessage(text.substring(7,text.length-2));
-        } else {
+        } else if (wv.curMode != 12) {
             postMessage(text.substring(7));
+        } else {
+            postMessage(text);
         }
 
-        // turn the background of the message window back to light-yellow
-        var botm = document.getElementById("brframe");
-        botm.style.backgroundColor = "#FFFF99";
+        // do not interpret errors as important if in pyscript
+        if (wv.curMode != 12) {
+
+            // turn the background of the message window back to light-yellow
+            var botm = document.getElementById("brframe");
+            botm.style.backgroundColor = "#FFFF99";             // yellow
+
+            var button = document.getElementById("solveButton");
+
+            button["innerHTML"] = "Fix before re-build";
+            button.style.backgroundColor = "#FF3F3F";           // red
+
+            changeMode(0);
+        }
+
+    // if it starts with "updateSolveBtn|" update the solve button
+    } else if (text.substring(0,15) == "updateSolveBtn|") {
+        var textList = text.split("|");
 
         var button = document.getElementById("solveButton");
 
-        button["innerHTML"] = "Fix before re-build";
-        button.style.backgroundColor = "#FF3F3F";
-
-        changeMode(0);
+        if        (textList[1] == "0") {                    // needs to be built
+            button.style.backgroundColor = "#3FFF3F";       // greenish
+        } else if (textList[1] == "1") {                    // building
+            button.style.backgroundColor = "#FFFF3F";       // light yellow
+        } else {
+            button.style.backgroundColor = null;            // done
+        }
+        button["innerHTML"] = textList[2];
 
     // if it starts with "message|" post the message
     } else if (text.substring(0,8) == "message|") {
@@ -2558,7 +2646,7 @@ var wvServerDown = function () {
 
     // turn the background of the message window pink
     var botm = document.getElementById("brframe");
-    botm.style.backgroundColor = "#FFAFAF";
+    botm.style.backgroundColor = "#FFAFAF";                 // red
 };
 
 
@@ -2800,6 +2888,19 @@ var cmdFile = function () {
                 menu.appendChild(document.createElement("br"));
                 menu.appendChild(button);
             }
+
+            if (ielem == 20 && ielem < filelist.length-1) {
+                button = document.createElement("input");
+                button.type     = "button";
+                button.title    = "Too many files to edit";
+                button.value    = "<more files>";
+                button.onclick  = function () {alert("Edit top file and use Trace->FileTree to access more files");};
+
+                menu.appendChild(document.createElement("br"));
+                menu.appendChild(button);
+
+                break;
+            }
         }
     }
 
@@ -2844,27 +2945,26 @@ var cmdFileNew = function () {
         }
     }
 
-    if (wv.curMode == 0) {
-        browserToServer("new|");
-
-        wv.filenames = "";
-        wv.nchanges  = 0;
-
-        // remove from editor
-        if (wv.codeMirror !== undefined) {
-            wv.codeMirror.toTextArea();
-            wv.codeMirror = undefined;
-        }
-
-        cval   = new Array();
-        pmtr   = new Array();
-        brch   = new Array();
-        sgData = {};
-    } else {
+    if (wv.curMode != 0) {
         alert("Command disabled.  Press 'Cancel' or 'OK' first");
         return;
-
     }
+    
+    browserToServer("new|");
+
+    wv.filenames = "";
+    wv.nchanges  = 0;
+
+    // remove from editor
+    if (wv.codeMirror !== undefined) {
+        wv.codeMirror.toTextArea();
+        wv.codeMirror = undefined;
+    }
+
+    cval   = new Array();
+    pmtr   = new Array();
+    brch   = new Array();
+    sgData = {};
 };
 
 
@@ -2893,74 +2993,80 @@ var cmdFileOpen = function () {
         }
     }
 
-    if (wv.curMode == 0) {
-        var filelist = wv.filenames.split("|");
-        if (wv.server != "serveCAPS") {
-            var filename = prompt("Enter filename to open:", filelist[1]);
-        } else {
-            filename = prompt("Enter filename to open:", wv.espPrefix);
-        }
-        if (filename !== null) {
-            if (filename.length == 0) {
-                alert("empty filename given");
-                return;
-            } else if (filename.search(/\.csm$/) > 0 ||
-                       filename.search(/\.cpc$/) > 0   ) {
-                // well-formed filename
-            } else if (filename.search(/\.udc$/) > 0   ) {
-                alert("cannot open .udc with File->Open");
-                return;
-            } else {
-                // add .csm extension
-                filename += ".csm";
-            }
-
-            if (wv.server == "serveCAPS") {
-                alert("we should not get here");
-            }
-
-            postMessage("Opening \""+filename+"\" ...");
-
-            browserToServer("open|"+filename+"|");
-
-            wv.savenames = wv.filenames;
-            wv.filenames = filename;
-            wv.nchanges  = 0;
-
-            // remove former editor
-            if (wv.codeMirror !== undefined) {
-                wv.codeMirror.toTextArea();
-                wv.codeMirror = undefined;
-            }
-
-            if (wv.server == "serveCAPS") {
-                browserToServer("timMesg|capsMode|getCvals|5|");
-                wv.cvalStat = 6000;
-            }
-
-            browserToServer("getPmtrs|");
-            wv.pmtrStat = 6000;
-
-            if (wv.server != "serveCAPS") {
-                browserToServer("getBrchs|3|");
-                wv.brchStat = 6000;
-            }
-
-            var button = document.getElementById("solveButton");
-            button["innerHTML"] = "Re-building...";
-            button.style.backgroundColor = "#FFFF3F";
-
-            //inactivate buttons until build is done
-            changeMode(-1);
-        } else {
-            postMessage("NOT opening since no filename specified");
-        }
-
-    } else {
+    if (wv.curMode != 0) {
         alert("Command disabled.  Press 'Cancel' or 'OK' first");
         return;
-
     }
+
+    var filelist = wv.filenames.split("|");
+    if (wv.filecomp.length > 0) {
+        var defaultText = wv.filecomp;
+        wv.filecomp = "";
+    } else if (wv.server != "serveCAPS") {
+        var defaultText = filelist[1];
+    } else {
+        defaultText = wv.espPrefix;
+    }
+
+    var filename = prompt("Enter filename to open (with * to complete)", defaultText);
+        
+    if (filename === null) {
+        postMessage("NOT opening since no filename specified");
+        return;
+    } else if (filename.length == 0) {
+        alert("empty filename given");
+        return;
+    } else if (filename.endsWith("*") === true) {
+        browserToServer("completeFilename|cmdFileOpen()|"+filename+"|");
+        return;
+    } else if (filename.endsWith(".csm") === true ||
+               filename.endsWith(".cpc") === true   ) {
+        // well-formed filename
+    } else if (filename.search(/\.udc$/) > 0   ) {
+        alert("cannot open .udc with File->Open");
+        return;
+    } else {
+        // add .csm extension
+        filename += ".csm";
+    }
+
+    if (wv.server == "serveCAPS") {
+        alert("we should not get here");
+    }
+
+    postMessage("Opening \""+filename+"\" ...");
+
+    browserToServer("open|"+filename+"|");
+
+    wv.savenames = wv.filenames;
+    wv.filenames = filename;
+    wv.nchanges  = 0;
+
+    // remove former editor
+    if (wv.codeMirror !== undefined) {
+        wv.codeMirror.toTextArea();
+        wv.codeMirror = undefined;
+    }
+
+    if (wv.server == "serveCAPS") {
+        browserToServer("timMesg|capsMode|getCvals|5|");
+        wv.cvalStat = 6000;
+    }
+
+    browserToServer("getPmtrs|");
+    wv.pmtrStat = 6000;
+
+    if (wv.server != "serveCAPS") {
+        browserToServer("getBrchs|3|");
+        wv.brchStat = 6000;
+    }
+
+    var button = document.getElementById("solveButton");
+    button["innerHTML"] = "Re-building...";
+    button.style.backgroundColor = "#FFFF3F";       // yellow
+
+    // inactivate buttons until build is done
+    changeMode(-1);
 };
 
 
@@ -2979,40 +3085,38 @@ var cmdFileExport = function () {
         }
     }
 
-    if (wv.curMode == 0) {
-        var filelist = wv.filenames.split("|");
-        var filename = prompt("Enter filename to write:", filelist[0]);
-        if (filename !== null) {
-            if (filename.search(/\.csm$/) > 0 ||
-                filename.search(/\.cpc$/) > 0 ||
-                filename.search(/\.udc$/) > 0   ) {
-                // well-formed filename
-            } else {
-                // add .csm extension
-                filename += ".csm";
-            }
-
-            // warn that formatting will be lost
-            if (confirm("This will export a file by reading the"
-                        + " FeatureTree and DesignParameters.\n  As"
-                        + " a result, you will lose all your"
-                        + " formatting and comments.  Continue?") !== true) {
-                return;
-            }
-
-            postMessage("Saving model to '"+filename+"'");
-            browserToServer("save|"+filename+"|");
-
-            wv.filenames = filename;
-            wv.nchanges  = 0;
-        } else {
-            postMessage("NOT saving since no filename specified");
-        }
-
-    } else {
+    if (wv.curMode != 0) {
         alert("Command disabled.  Press 'Cancel' or 'OK' first");
         return;
+    }
+    
+    var filelist = wv.filenames.split("|");
+    var filename = prompt("Enter filename to write", filelist[0]);
+    if (filename !== null) {
+        if (filename.search(/\.csm$/) > 0 ||
+            filename.search(/\.cpc$/) > 0 ||
+            filename.search(/\.udc$/) > 0   ) {
+            // well-formed filename
+        } else {
+            // add .csm extension
+            filename += ".csm";
+        }
 
+        // warn that formatting will be lost
+        if (confirm("This will export a file by reading the"
+                    + " FeatureTree and DesignParameters.\n  As"
+                    + " a result, you will lose all your"
+                    + " formatting and comments.  Continue?") !== true) {
+            return;
+        }
+        
+        postMessage("Saving model to '"+filename+"'");
+        browserToServer("save|"+filename+"|");
+        
+        wv.filenames = filename;
+        wv.nchanges  = 0;
+    } else {
+        postMessage("NOT saving since no filename specified");
     }
 };
 
@@ -3163,15 +3267,6 @@ var editorOk = function () {
 //$$$        return;
     }
 
-    // because of an apparent limit on the size of text
-    //    messages that can be sent from the browser to the
-    //    server, we need to send the new file back in
-    //    pieces and then reassemble on the server
-    var maxMessageSize = 800;
-
-    var ichar    = 0;
-    var part     = newFile.substring(ichar, ichar+maxMessageSize);
-
     if (wv.fileindx < 0) {
         var myFilename = wv.filenames;
     } else {
@@ -3179,16 +3274,7 @@ var editorOk = function () {
         var myFilename = filelist[wv.fileindx];
     }
 
-    browserToServer("setCsmFileBeg|"+myFilename+"|"+part);
-    ichar += maxMessageSize;
-
-    while (ichar < newFile.length) {
-        part = newFile.substring(ichar, ichar+maxMessageSize);
-        browserToServer("setCsmFileMid|"+part);
-        ichar += maxMessageSize;
-    }
-
-    browserToServer("setCsmFileEnd|");
+    browserToServer("setCsmFile|"+myFilename+"|"+newFile+"|");
 
     if (wv.server != "serveCAPS") {
         postMessage("'"+myFilename+"' file has been changed.");
@@ -3224,11 +3310,11 @@ var editorOk = function () {
     } else if (wv.filenames.split("|").length <= 3) {
         var button = document.getElementById("solveButton");
         button["innerHTML"] = "Re-building...";
-        button.style.backgroundColor = "#FFFF3F";
+        button.style.backgroundColor = "#FFFF3F";           // yellow
 
         // turn the background of the message window back to original color
         var botm = document.getElementById("brframe");
-        botm.style.backgroundColor = "#F7F7F7";
+        botm.style.backgroundColor = "#F7F7F7";             // grey
 
         // inactivate buttons until build is done
         changeMode( 0);
@@ -3348,6 +3434,13 @@ var cmdTool = function () {
         button.title   = "Launch Pyscript";
         button.value   = "Pyscript";
         button.onclick = pyscript.launch;
+        menu.appendChild(button);
+
+        button = document.createElement("input");
+        button.type    = "button";
+        button.title   = "Launch Vsp setup";
+        button.value   = "VspSetup";
+        button.onclick = vspSetup.launch;
         menu.appendChild(button);
 
 //        button = document.createElement("input");
@@ -3656,7 +3749,7 @@ var cmdCollabSync = function () {
 
     // update button
     var button = document.getElementById("collabMenuBtn");
-    button.style.backgroundColor = "#FFFFAF";    // yellow
+    button.style.backgroundColor = "#FFFFAF";               // yellow
 };
 
 
@@ -3678,7 +3771,7 @@ var cmdCollabUnsync = function () {
     wv.myRole = 2;
 
     var button = document.getElementById("collabMenuBtn");
-    button.style.backgroundColor = null;       // white
+    button.style.backgroundColor = null;                    // white
 };
 
 
@@ -3697,7 +3790,7 @@ var cmdCollabMessage = function () {
         }
     }
 
-    var message = prompt("Enter message to be sent to all users:");
+    var message = prompt("Enter message to be sent to all users");
     if (message !== null && message.length > 0) {
         browserToServer("message|"+wv.myName+" says: "+message+"|");
     }
@@ -3740,7 +3833,10 @@ var cmdOverlayBeg = function (text) {
         var button = document.getElementById("exitOlayBtn");
         button.hidden = false;
         button["innerHTML"] = "Exit " + textList[1];
-        button.style.backgroundColor = "#3FFF3F";
+        button.style.backgroundColor = "#3FFF3F";           // greenish
+
+        var botm = document.getElementById("brframe");
+        botm.style.backgroundColor = "#DFFFDF";             // light green
     }
 };
 
@@ -3756,7 +3852,6 @@ var cmdOverlayEnd = function () {
     } else if (checkIfWithBall() === false) {
 
     } else {
-
         // send the unlock message
         browserToServer("overlayEnd|"+wv.timName+"|");
 
@@ -3770,6 +3865,10 @@ var cmdOverlayEnd = function () {
         // we no longer have an overlay
         wv.overlay = undefined;
         wv.timName = "";
+
+        // turn the background of the message window back to original color
+        var botm = document.getElementById("brframe");
+        botm.style.backgroundColor = "#F7F7F7";         // grey
     }
 };
 
@@ -3788,7 +3887,7 @@ var addCval = function () {
     }
 
     // get the new name
-    var name = prompt("Enter new Caps Value name:");
+    var name = prompt("Enter new Caps Value name");
     if (name === null) {
         return;
     } else if (name.length <= 0) {
@@ -4338,7 +4437,7 @@ var compGeomSens = function () {
 
     var button = document.getElementById("solveButton");
     button["innerHTML"] = "Re-building...";
-    button.style.backgroundColor = "#FFFF3F";
+    button.style.backgroundColor = "#FFFF3F";               // yellow
 
     // inactivate buttons until build is done
     changeMode( 0);
@@ -4493,7 +4592,7 @@ var compTessSens = function () {
 
     var button = document.getElementById("solveButton");
     button["innerHTML"] = "Re-building...";
-    button.style.backgroundColor = "#FFFF3F";
+    button.style.backgroundColor = "#FFFF3F";               // yellow
 
     // inactivate buttons until build is done
     changeMode( 0);
@@ -5561,7 +5660,7 @@ var buildTo = function () {
 
     var button = document.getElementById("solveButton");
     button["innerHTML"] = "Re-building...";
-    button.style.backgroundColor = "#FFFF3F";
+    button.style.backgroundColor = "#FFFF3F";               // yellow
 
     // inactivate buttons until build is done
     changeMode(-1);
@@ -6088,7 +6187,7 @@ var chgDisplay = function () {
         return;
     }
 
-    var change = prompt("Enter type of display change:\n"+
+    var change = prompt("Enter type of display change\n"+
                         "  +1 show Nodes\n"+
                         "  -1 hide Nodes\n"+
                         "  +2 show Edges\n"+
@@ -6544,7 +6643,7 @@ main.cmdSolve = function () {
     var button  = document.getElementById("solveButton");
     var buttext = button["innerHTML"];
 
-    if (buttext == "Up to date") {
+    if (buttext == "Up to date" || buttext == "Fix before re-build") {
         if (confirm("The configuration is up to date.\n" +
                     "Do you want to force a rebuild?") === true) {
             postMessage("Forced re-building...");
@@ -6566,11 +6665,11 @@ main.cmdSolve = function () {
             }
 
             button["innerHTML"] = "Re-building...";
-            button.style.backgroundColor = "#FFFF3F";
+            button.style.backgroundColor = "#FFFF3F";       // yellow
 
             // turn the background of the message window back to original color
             var botm = document.getElementById("brframe");
-            botm.style.backgroundColor = "#F7F7F7";
+            botm.style.backgroundColor = "#F7F7F7";         // grey
 
             // inactivate buttons until build is done
             changeMode(-1);
@@ -6599,11 +6698,11 @@ main.cmdSolve = function () {
         }
 
         button["innerHTML"] = "Re-building...";
-        button.style.backgroundColor = "#FFFF3F";
+        button.style.backgroundColor = "#FFFF3F";           // yellow
 
         // turn the background of the message window back to original color
         var botm = document.getElementById("brframe");
-        botm.style.backgroundColor = "#F7F7F7";
+        botm.style.backgroundColor = "#F7F7F7";             // grey
 
         // inactivate buttons until build is done
         changeMode(-1);
@@ -6705,18 +6804,25 @@ var gotoCsmError = function (e) {
     if (beg >= 0 && end > beg) {
         var foo = thisLine.slice(beg+2, end).split(":");
         if (foo.length == 2) {
-            var filelist = wv.filenames.split("|");
-            for (var ielem = 0; ielem < filelist.length; ielem++) {
-                if (filelist[ielem] == foo[0]) {
-                    wv.linenum = Number(foo[1]);
-                    cmdFileEdit(null, ielem);
-                    return;
+            if (foo[0].endsWith(".py")) {
+                pyscript.startLine = foo[1] - 1;
+                pyscript.launch(pyscript.filename);
+
+                return;
+            } else {
+                var filelist = wv.filenames.split("|");
+                for (var ielem = 0; ielem < filelist.length; ielem++) {
+                    if (filelist[ielem] == foo[0]) {
+                        wv.linenum = Number(foo[1]);
+                        cmdFileEdit(null, ielem);
+                        return;
+                    }
                 }
             }
         }
     }
 
-    // if not found, look for last [[filename:lnenum]]
+    // if not found, look for last [[filename:linenum]]
     var msgText = botm.innerText;
     beg = msgText.lastIndexOf("[[");
     end = msgText.lastIndexOf("]]");
@@ -6724,12 +6830,19 @@ var gotoCsmError = function (e) {
     if (beg >= 0 && end > beg) {
         foo = msgText.slice(beg+2, end).split(":");
         if (foo.length == 2) {
-            filelist = wv.filenames.split("|");
-            for (var ielem = 0; ielem < filelist.length; ielem++) {
-                if (filelist[ielem] == foo[0]) {
-                    wv.linenum = Number(foo[1]);
-                    cmdFileEdit(null, ielem);
-                    return;
+            if (foo[0].endsWith(".py")) {
+                pyscript.startLine = foo[1] - 1;
+                pyscript.launch(pyscript.filename);
+
+                return;
+            } else {
+                filelist = wv.filenames.split("|");
+                for (var ielem = 0; ielem < filelist.length; ielem++) {
+                    if (filelist[ielem] == foo[0]) {
+                        wv.linenum = Number(foo[1]);
+                        cmdFileEdit(null, ielem);
+                        return;
+                    }
                 }
             }
         } else {
@@ -6758,6 +6871,63 @@ var toggleViz = function (e) {
     var inode = e["target"].id.substring(4);
     inode     = inode.substring(0,inode.length-4);
     inode     = Number(inode);
+    var jnode = wv.lastViz;
+    var knode = 0;
+
+    wv.lastViz = inode;
+    wv.lastGrd = 1;
+    wv.lastTrn = 1;
+    wv.lastOri = 1;
+
+    // special treatment to change viz on all entities since last toggleViz()
+    if (e.shiftKey) {
+        if (myTree.parent[inode] == myTree.parent[jnode]) {
+            if (myTree.gprim[inode] != "" && myTree.gprim[wv.jnode] != "") {
+
+                // if inode=off and jnode=on, make all intervening nodes on
+                if        ((wv.sceneGraph[myTree.gprim[inode]].attrs & wv.plotAttrs.ON) == 0 &&
+                           (wv.sceneGraph[myTree.gprim[jnode]].attrs & wv.plotAttrs.ON) != 0   ) {
+                    if (jnode < inode) {
+                        for (knode = jnode+1; knode <= inode; knode++) {
+                            changeProp(knode, 1, "on");
+                        }
+                    } else if (jnode > inode) {
+                        for (knode = jnode-1; knode >= inode; knode--) {
+                            changeProp(knode, 1, "on");
+                        }
+                    } else {
+                        changeProp(inode, 1, "on");
+                    }
+
+                // if inode=on and jnode=off, make all intervening nodes off
+                } else if ((wv.sceneGraph[myTree.gprim[inode]].attrs & wv.plotAttrs.ON) != 0 &&
+                           (wv.sceneGraph[myTree.gprim[jnode]].attrs & wv.plotAttrs.ON) == 0   ) {
+                    if (jnode < inode) {
+                        for (knode = jnode+1; knode <= inode; knode++) {
+                            changeProp(knode, 1, "off");
+                        }
+                    } else if (jnode > inode) {
+                        for (knode = jnode-1; knode >= inode; knode--) {
+                            changeProp(knode, 1, "off");
+                        }
+                    } else {
+                        changeProp(inode, 1, "off");
+                    }
+
+                // if inode and jnode are both off, turn inode on
+                } else if ((wv.sceneGraph[myTree.gprim[inode]].attrs & wv.plotAttrs.ON) == 0) {
+                    changeProp(inode, 1, "on");
+
+                // if inode and jnode are both on, turn inode off
+                } else {
+                    changeProp(inode, 1, "off");
+                }
+
+                myTree.update();
+                return;
+            }
+        }
+    }
 
     // toggle the Viz property
     if (myTree.gprim[inode] != "") {
@@ -6798,6 +6968,63 @@ var toggleGrd = function (e) {
     var inode = e["target"].id.substring(4);
     inode     = inode.substring(0,inode.length-4);
     inode     = Number(inode);
+    var jnode = wv.lastGrd;
+    var knode;
+
+    wv.lastViz = 1;
+    wv.lastGrd = inode;
+    wv.lastTrn = 1;
+    wv.lastOri = 1;
+
+    // special treatment to change grd on all entities since last toggleGrd()
+    if (e.shiftKey) {
+        if (myTree.parent[inode] == myTree.parent[jnode]) {
+            if (myTree.gprim[inode] != "" && myTree.gprim[wv.jnode] != "") {
+
+                // if inode=off and jnode=on, make all intervening nodes on
+                if        ((wv.sceneGraph[myTree.gprim[inode]].attrs & wv.plotAttrs.LINES) == 0 &&
+                           (wv.sceneGraph[myTree.gprim[jnode]].attrs & wv.plotAttrs.LINES) != 0   ) {
+                    if (jnode < inode) {
+                        for (knode = jnode+1; knode <= inode; knode++) {
+                            changeProp(knode, 2, "on");
+                        }
+                    } else if (jnode > inode) {
+                        for (knode = jnode-1; knode >= inode; knode--) {
+                            changeProp(knode, 2, "on");
+                        }
+                    } else {
+                        changeProp(inode, 2, "on");
+                    }
+
+                // if inode=on and jnode=off, make all intervening nodes off
+                } else if ((wv.sceneGraph[myTree.gprim[inode]].attrs & wv.plotAttrs.LINES) != 0 &&
+                           (wv.sceneGraph[myTree.gprim[jnode]].attrs & wv.plotAttrs.LINES) == 0   ) {
+                    if (jnode < inode) {
+                        for (knode = jnode+1; knode <= inode; knode++) {
+                            changeProp(knode, 2, "off");
+                        }
+                    } else if (jnode > inode) {
+                        for (knode = jnode-1; knode >= inode; knode--) {
+                            changeProp(knode, 2, "off");
+                        }
+                    } else {
+                        changeProp(inode, 2, "off");
+                    }
+
+                // if inode and jnode are both off, turn inode on
+                } else if ((wv.sceneGraph[myTree.gprim[inode]].attrs & wv.plotAttrs.LINES) == 0) {
+                    changeProp(inode, 2, "on");
+
+                // if inode and jnode are both on, turn inode off
+                } else {
+                    changeProp(inode, 2, "off");
+                }
+
+                myTree.update();
+                return;
+            }
+        }
+    }
 
     // toggle the Grd property
     if (myTree.gprim[inode] != "") {
@@ -6838,6 +7065,63 @@ var toggleTrn = function (e) {
     var inode = e["target"].id.substring(4);
     inode     = inode.substring(0,inode.length-4);
     inode     = Number(inode);
+    var jnode = wv.lastTrn;
+    var knode = 0;
+
+    wv.lastViz = 1;
+    wv.lastGrd = 1;
+    wv.lastTrn = inode;
+    wv.lastOri = 1;
+
+    // special treatment to change trn on all entities since last toggleTrn()
+    if (e.shiftKey) {
+        if (myTree.parent[inode] == myTree.parent[jnode]) {
+            if (myTree.gprim[inode] != "" && myTree.gprim[wv.jnode] != "") {
+
+                // if inode=off and jnode=on, make all intervening nodes on
+                if        ((wv.sceneGraph[myTree.gprim[inode]].attrs & wv.plotAttrs.TRANSPARENT) == 0 &&
+                           (wv.sceneGraph[myTree.gprim[jnode]].attrs & wv.plotAttrs.TRANSPARENT) != 0   ) {
+                    if (jnode < inode) {
+                        for (knode = jnode+1; knode <= inode; knode++) {
+                            changeProp(knode, 3, "on");
+                        }
+                    } else if (jnode > inode) {
+                        for (knode = jnode-1; knode >= inode; knode--) {
+                            changeProp(knode, 3, "on");
+                        }
+                    } else {
+                        changeProp(inode, 3, "on");
+                    }
+
+                // if inode=on and jnode=off, make all intervening nodes off
+                } else if ((wv.sceneGraph[myTree.gprim[inode]].attrs & wv.plotAttrs.TRANSPARENT) != 0 &&
+                           (wv.sceneGraph[myTree.gprim[jnode]].attrs & wv.plotAttrs.TRANSPARENT) == 0   ) {
+                    if (jnode < inode) {
+                        for (knode = jnode+1; knode <= inode; knode++) {
+                            changeProp(knode, 3, "off");
+                        }
+                    } else if (jnode > inode) {
+                        for (knode = jnode-1; knode >= inode; knode--) {
+                            changeProp(knode, 3, "off");
+                        }
+                    } else {
+                        changeProp(inode, 3, "off");
+                    }
+
+                // if inode and jnode are both off, turn inode on
+                } else if ((wv.sceneGraph[myTree.gprim[inode]].attrs & wv.plotAttrs.TRANSPARENT) == 0) {
+                    changeProp(inode, 3, "on");
+
+                // if inode and jnode are both on, turn inode off
+                } else {
+                    changeProp(inode, 3, "off");
+                }
+
+                myTree.update();
+                return;
+            }
+        }
+    }
 
     // toggle the Trn property (on a Face)
     if (myTree.gprim[inode] != "") {
@@ -6882,6 +7166,64 @@ var toggleOri = function (e) {
     var inode = e["target"].id.substring(4);
     inode     = inode.substring(0,inode.length-4);
     inode     = Number(inode);
+    var jnode = wv.lastOri;
+    var knode = 0;
+
+    wv.lastViz = 1;
+    wv.lastGrd = 1;
+    wv.lastTrn = 1;
+    wv.lastOri = inode;
+
+    // special treatment to change ori on all entities since last toggleOri()
+    if (e.shiftKey) {
+        if (myTree.parent[inode] == myTree.parent[jnode]) {
+            if (myTree.gprim[inode] != "" && myTree.gprim[wv.jnode] != "") {
+
+                // if inode=off and jnode=on, make all intervening nodes on
+                if        ((wv.sceneGraph[myTree.gprim[inode]].attrs & wv.plotAttrs.ORIENTATION) == 0 &&
+                           (wv.sceneGraph[myTree.gprim[jnode]].attrs & wv.plotAttrs.ORIENTATION) != 0   ) {
+                    if (jnode < inode) {
+                        for (knode = jnode+1; knode <= inode; knode++) {
+                            changeProp(knode, 3, "on");
+                        }
+                    } else if (jnode > inode) {
+                        for (knode = jnode-1; knode >= inode; knode--) {
+                            changeProp(knode, 3, "on");
+                        }
+                    } else {
+                        changeProp(inode, 3, "on");
+                    }
+
+                // if inode=on and jnode=off, make all intervening nodes off
+                } else if ((wv.sceneGraph[myTree.gprim[inode]].attrs & wv.plotAttrs.ORIENTATION) != 0 &&
+                           (wv.sceneGraph[myTree.gprim[jnode]].attrs & wv.plotAttrs.ORIENTATION) == 0   ) {
+                    if (jnode < inode) {
+                        for (knode = jnode+1; knode <= inode; knode++) {
+                            changeProp(knode, 3, "off");
+                        }
+                    } else if (jnode > inode) {
+                        for (knode = jnode-1; knode >= inode; knode--) {
+                            changeProp(knode, 3, "off");
+                        }
+                    } else {
+                        changeProp(inode, 3, "off");
+                    }
+
+                // if inode and jnode are both off, turn inode on
+                } else if ((wv.sceneGraph[myTree.gprim[inode]].attrs & wv.plotAttrs.ORIENTATION) == 0) {
+                    changeProp(inode, 3, "on");
+
+                // if inode and jnode are both on, turn inode off
+                } else {
+                    changeProp(inode, 3, "off");
+                }
+
+                myTree.update();
+                return;
+            }
+        }
+    }
+
 
     // toggle the Ori property (on an Edge)
     if (myTree.gprim[inode] != "") {
@@ -6930,14 +7272,17 @@ var modifyDisplayType = function (e) {
     // alert("in modifyDisplayType(e="+e+")");
 
     if (checkIfWithBall()) {
-        var ptype = prompt("Enter display type:\n"+
+        var ptype = prompt("Enter display type\n"+
                            "   0  monochrome\n"+
                            "   1  normalized U parameter\n"+
                            "   2  normalized V parameter\n"+
                            "   3  minimum curvature\n"+
-                           "   4  maximum curvature\n"+
+                           "   4  maximum curvature (zebra)\n"+
                            "   5  Gaussian curvature\n"+
                            "   6  normals\n"+
+                           "   7  x-component\n"+
+                           "   8  y-component\n"+
+                           "   9  z-component\n"+
                            "  10  Erep", "0");
 
         if (ptype === null) {
@@ -6948,7 +7293,7 @@ var modifyDisplayType = function (e) {
         } else {
             wv.plotType = Number(ptype);
 
-            if (wv.plotType > 0 && wv.plotType < 7) {
+            if (wv.plotType > 0 && wv.plotType < 10) {
                 setKeyLimits(null);
             } else {
                 // send the limits back to the server
@@ -6972,7 +7317,7 @@ var modifyDisplayFilter = function (e) {
     if (typeof e != "object") {
         var attrName = e;
     } else {
-        var attrName = prompt("Enter Attribute name (or * for all or ? for list)");
+        var attrName = prompt("Enter Attribute name (or ~ for not, * for all, or ? for list)");
     }
     if (attrName === null) {
         displayFilterOff();
@@ -7017,7 +7362,7 @@ var modifyDisplayFilter = function (e) {
         modifyDisplayFilter(null);
         return;
     } else {
-        var attrValue = prompt("Enter Attribute value (or * for all or ? for list)");
+        var attrValue = prompt("Enter Attribute value (or ~ for not, * for all, or ? for list)");
         if (attrValue === null) {
             displayFilterOff();
             return;
@@ -7068,8 +7413,17 @@ var modifyDisplayFilter = function (e) {
             wv.sceneGraph[gprim].attrs |= wv.plotAttrs.TRANSPARENT;
         }
 
-        var attrName2  = "^" +  attrName.replace(/\./g, "\\.").replace(/\*/g, ".*") + "$";
-        var attrValue2 = "^" + attrValue.replace(/\./g, "\\.").replace(/\*/g, ".*") + "$";
+        // start with "^", end with "$", and convert all "." to "\."
+        if (attrName[0] != "~") {
+            var attrName2  = "^" +  attrName.replace(/\./g, "\\.").replace(/\*/g, ".*") + "$";
+        } else {
+            var attrName2  = "^" +  attrName.substring(1).replace(/\./g, "\\.").replace(/\*/g, ".*") + "$";
+        }
+        if (attrValue[0] != "~") {
+            var attrValue2 = "^" + attrValue.replace(/\./g, "\\.").replace(/\*/g, ".*") + "$";
+        } else {
+            var attrValue2 = "^" + attrValue.substring(1).replace(/\./g, "\\.").replace(/\*/g, ".*") + "$";
+        }
 
         // loop through all Bodys.  if it matches the filter,
         //    make all of its graphics primitives non-transparent
@@ -7092,22 +7446,69 @@ var modifyDisplayFilter = function (e) {
             }
         }
 
-
         // loop through all graphics primitives.  if it matches the filter,
         //    make it non-transparent
-        if (isNaN(Number(attrValue2)) == true) {
+        if (attrValue[0] == "~" && isNaN(Number(attrValue.substring(1))) == false) {
+            postMessage("not (~) cannot be used with byneric attribute value");
+            return;
+        }
+
+        // special case of ~name *
+        if (attrName[0] == "~" && attrValue == "*") {
             for (gprim in wv.sceneGraph) {
                 try {
                     var attrs = wv.sgData[gprim];
+                    var okay  = 1;
                     for (var i = 0; i < attrs.length; i+=2) {
-                        if (attrs[i].trim().match(attrName2) !== null && attrs[i+1].trim().match(attrValue2) !== null) {
-                            wv.sceneGraph[gprim].attrs &= ~wv.plotAttrs.TRANSPARENT;
+                        if (attrs[i].trim().match(attrName2) !== null) {
+                            okay = 0;
+                            break;
+                        }
+                    }
+                    if (okay != 0) {
+                        wv.sceneGraph[gprim].attrs &= ~wv.plotAttrs.TRANSPARENT;
+                    }
+                } catch (x) {
+                }
+            }
+            postMessage("Display filtered to \""+attrName+"\" \""+attrValue+"\"");
+
+        // string-valued attrValue
+        } else if (isNaN(Number(attrValue)) == true) {
+            for (gprim in wv.sceneGraph) {
+                try {
+                    var attrs = wv.sgData[gprim];
+                    if        (attrName[0] != "~" && attrValue[0] != "~") {
+                        for (var i = 0; i < attrs.length; i+=2) {
+                            if (attrs[i].trim().match(attrName2) !== null && attrs[i+1].trim().match(attrValue2) !== null) {
+                                wv.sceneGraph[gprim].attrs &= ~wv.plotAttrs.TRANSPARENT;
+                            }
+                        }
+                    } else if (attrName[0] == "~" && attrValue[0] != "~") {
+                        for (var i = 0; i < attrs.length; i+=2) {
+                            if (attrs[i].trim().match(attrName2) === null && attrs[i+1].trim().match(attrValue2) !== null) {
+                                wv.sceneGraph[gprim].attrs &= ~wv.plotAttrs.TRANSPARENT;
+                            }
+                        }
+                    } else if (attrName[0] != "~" && attrValue[0] == "~") {
+                        for (var i = 0; i < attrs.length; i+=2) {
+                            if (attrs[i].trim().match(attrName2) !== null && attrs[i+1].trim().match(attrValue2) === null) {
+                                wv.sceneGraph[gprim].attrs &= ~wv.plotAttrs.TRANSPARENT;
+                            }
+                        }
+                    } else {
+                        for (var i = 0; i < attrs.length; i+=2) {
+                            if (attrs[i].trim().match(attrName2) === null && attrs[i+1].trim().match(attrValue2) === null) {
+                                wv.sceneGraph[gprim].attrs &= ~wv.plotAttrs.TRANSPARENT;
+                            }
                         }
                     }
                 } catch (x) {
                 }
             }
             postMessage("Display filtered to \""+attrName+"\" \""+attrValue+"\"");
+
+        // numeric attrValue
         } else {
             attrValue = Number(attrValue);
             var scale = 1.0 / Math.max(Math.abs(attrValue), 1e-6);
@@ -7115,11 +7516,17 @@ var modifyDisplayFilter = function (e) {
             for (gprim in wv.sceneGraph) {
                 try {
                     var attrs = wv.sgData[gprim];
-                    for (var i = 0; i < attrs.length; i+=2) {
-                        if (attrs[i].trim() == attrName && scale*Math.abs(Number(attrs[i+1].trim())-attrValue) < 1e-3) {
-                            wv.sceneGraph[gprim].attrs &= ~wv.plotAttrs.TRANSPARENT;
-                        } else if ("*"      == attrName && scale*Math.abs(Number(attrs[i+1].trim())-attrValue) < 1e-3) {
-                            wv.sceneGraph[gprim].attrs &= ~wv.plotAttrs.TRANSPARENT;
+                    if (attrName[0] != "~") {
+                        for (var i = 0; i < attrs.length; i+=2) {
+                            if (attrs[i].trim().match(attrName2) !== null && scale*Math.abs(Number(attrs[i+1].trim())-attrValue) < 1e-3) {
+                                wv.sceneGraph[gprim].attrs &= ~wv.plotAttrs.TRANSPARENT;
+                            }
+                        }
+                    } else {
+                        for (var i = 0; i < attrs.length; i+=2) {
+                            if (attrs[i].trim().match(attrName2) === null && scale*Math.abs(Number(attrs[i+1].trim())-attrValue) < 1e-3) {
+                                wv.sceneGraph[gprim].attrs &= ~wv.plotAttrs.TRANSPARENT;
+                            }
                         }
                     }
                 } catch (x) {
@@ -8018,7 +8425,7 @@ var activateBuildButton = function () {
     var button = document.getElementById("solveButton");
 
     button["innerHTML"] = "Press to Re-build";
-    button.style.backgroundColor = "#3FFF3F";
+    button.style.backgroundColor = "#3FFF3F";               // greenish
 };
 
 
@@ -8446,7 +8853,8 @@ var changeMode = function (newMode) {
         ESPlogo.hidden          = true;
 
         wv.curTool = pyscript;
-        wv.curMode = 12;
+        wv.curMode    = 12;
+        wv.inPyscript = 1;
     } else if (newMode == 13) {
         wv.usingMain = 1;
 
@@ -8506,6 +8914,24 @@ var changeMode = function (newMode) {
         wv.afterBrch = -1;
         wv.menuEvent = undefined;
         wv.keyPress  = -1;
+    } else if (newMode == 16) {
+        wv.usingMain = 1;
+
+        webViewer.hidden        = false;
+        addBrchForm.hidden      = true;
+        editBrchForm.hidden     = true;
+        editValuForm.hidden     = true;
+        showOutpmtrsForm.hidden = true;
+        editorForm.hidden       = true;
+        sketcherForm.hidden     = true;
+        glovesText.hidden       = true;
+        wvKey.hidden            = true;
+        sketcherStatus.hidden   = true;
+        timStatus.hidden        = false;
+        ESPlogo.hidden          = true;
+
+        wv.curTool = vspSetup;
+        wv.curMode = 16;
     } else {
         alert("Bad new mode = "+newMode);
     }
@@ -8536,7 +8962,7 @@ var rebuildTreeWindow = function (x) {
         wv.buildTree = 1;
     }
 
-    // if there was a previous Tree, keep track of whether or not
+    // if there wXas a previous Tree, keep track of whether or not
     //    the Parameters, Branches, and Display was open
     var cvalsOpen = 0;
     var pmtr1Open = 0;
@@ -9158,8 +9584,8 @@ var setupEditBrchForm = function () {
         defValue = ["",  "",  "" ];
         document.getElementById("EnterSketcher").style.display = "inline";
     } else if (type == "blend") {
-        argList  = ["begList", "endList", "reorder", "oneFace", "periodic"];
-        defValue = ["0",       "0",       "0",       "0"      , "0"       ];
+        argList  = ["begList", "endList", "reorder", "oneFace", "periodic", "copyAttr"];
+        defValue = ["0",       "0",       "0",       "0"      , "0"       , "0"       ];
         suppress = 1;
     } else if (type == "box") {
         argList  = ["xmin", "ymin", "zmin", "dx", "dy", "dz"];
@@ -9178,9 +9604,6 @@ var setupEditBrchForm = function () {
     } else if (type == "cirarc") {
         argList  = ["xon", "yon", "zon", "xend", "yend", "zend"];
         defValue = ["",    "",    "",    "",     "",     ""    ];
-    } else if (type == "combine") {
-        argList  = ["toler"];
-        defValue = ["0"    ];
     } else if (type == "cone") {
         argList  = ["xvrtx", "yvrtx", "zvrtx", "xbase", "ybase", "zbase", "radius"];
         defValue = ["",      "",      "",      "",      "",      "",      ""      ];
@@ -9196,8 +9619,11 @@ var setupEditBrchForm = function () {
         argList  = ["$pmtrName", "nrow", "ncol"];
         defValue = ["",          "",     ""    ];
     } else if (type == "dump") {
-        argList  = ["$filename", "remove", "tomark"];
-        defValue = ["",          "0",      "0"     ];
+        argList  = ["$filename", "remove", "tomark", "withTess", "grpName"];
+        defValue = ["",          "0",      "0",      "0",        "."      ];
+    } else if (type == "elevate") {
+        argList  = ["toler"];
+        defValue = ["0"    ];
     } else if (type == "else") {
         argList  = [];
         defValue = [];
@@ -9317,12 +9743,12 @@ var setupEditBrchForm = function () {
         defValue = ["",       "0",     "0"     ];
         suppress = 1;
     } else if (type == "rule") {
-        argList  = ["reorder", "periodic"];
-        defValue = ["0"      , "0"       ];
+        argList  = ["reorder", "periodic", "copyAttr"];
+        defValue = ["0"      , "0"       , "0"       ];
         suppress = 1;
     } else if (type == "scale") {
-        argList  = ["fact"];
-        defValue = [""    ];
+        argList  = ["fact", "xcent", "ycent", "zcent"];
+        defValue = ["",     "0",     "0",     "0"    ];
         suppress = 1;
     } else if (type == "select") {
         argList  = ["$type", "arg1", "arg2", "arg3", "arg4", "arg5", "arg6", "arg7", "arg8"];
@@ -9370,8 +9796,8 @@ var setupEditBrchForm = function () {
         argList  = ["$name", "index", "keep"];
         defValue = ["",      "0" ,    "0"   ];
     } else if (type == "subtract") {
-        argList  = ["$order", "index", "maxtol"];
-        defValue = ["none",   "1",     "0"     ];
+        argList  = ["$order", "index", "maxtol", "scribeAll"];
+        defValue = ["none",   "1",     "0"     , "0"        ];
     } else if (type == "sweep") {
         argList  = [];
         defValue = [];
@@ -9871,7 +10297,39 @@ var browserToServer = function (text) {
         console.log("("+date.toTimeString().substring(0,8)+") browser-->server: "+text.substring(0,40));
     }
 
-    wv.socketUt.send(text);
+//    wv.socketUt.send(text);
+
+    // because to a limit on the size of messages that can be sent
+    //   from te browser to the server, send the message in
+    //   chunks of chunkSize or less
+    var firstChar = 0;
+    var lastChar  = text.length - 1;
+    var chunkSize = 4000;
+    var chunkNum  = 1;
+    var prolog    = "";
+    var epilog    = "";
+
+    // send chunks if not the last
+    while (lastChar > firstChar+chunkSize) {
+        if (chunkNum.toString().length == 1) {
+            epilog = "#!00" + chunkNum + "!#";
+        } else if (chunkNum.toString().length == 2) {
+            epilog = "#!0"  + chunkNum + "!#";
+        } else {
+            epilog = "#!"   + chunkNum + "!#";
+        }
+
+        wv.socketUt.send(prolog + text.substring(firstChar, firstChar+chunkSize) + epilog);
+
+        firstChar += chunkSize;
+        chunkNum  ++;
+        prolog     = epilog;
+    }
+
+    // send the last chunk
+    if (lastChar > firstChar) {
+        wv.socketUt.send(prolog + text.substring(firstChar));
+    }
 };
 
 
@@ -10128,10 +10586,20 @@ var cmdEditInsert = function (cm) {
         return;
     }
 
-    var filename = prompt("Enter filename to insert");
+    if (wv.filecomp.length > 0) {
+        var defaultText = wv.filecomp;
+        wv.filecomp = "";
+    } else {
+        defaultText = "";
+    }
+
+    var filename = prompt("Enter filename to insert (with * to complete)", defaultText);
     if (filename === null) {
         return;
     } else if (filename.length == 0) {
+        return;
+    } else if (filename.endsWith("*") === true) {
+        browserToServer("completeFilename|cmdEditInsert()|"+filename+"|");
         return;
     }
 
@@ -10280,7 +10748,7 @@ var cmdEditHint = function () {
     } else if (curLine.match(/^\s*bezier/i) !== null) {
         hintText =        "hint:: BEZIER    x y z";
     } else if (curLine.match(/^\s*blend/i) !== null) {
-        hintText =        "hint:: BLEND     begList=0 endList=0 reorder=0 oneFace=0 periodic=0";
+        hintText =        "hint:: BLEND     begList=0 endList=0 reorder=0 oneFace=0 periodic=0 copyAttr=0";
     } else if (curLine.match(/^\s*box/i) !== null) {
         hintText =        "hint:: BOX       xbase ybase zbase dx dy dz";
     } else if (curLine.match(/^\s*catbeg/i) !== null) {
@@ -10293,8 +10761,6 @@ var cmdEditHint = function () {
         hintText =        "hint:: CHAMFER   radius edgeList=0 listStyle=0";
     } else if (curLine.match(/^\s*cirarc/i) !== null) {
         hintText =        "hint:: CIRARC    xon yon zon xend yend zend";
-    } else if (curLine.match(/^\s*combine/i) !== null) {
-        hintText =        "hint:: COMBINE   toler=0";
     } else if (curLine.match(/^\s*cone/i) !== null) {
         hintText =        "hint:: CONE      xvrtx yvrtx zvrtx xbase ybase zbase radius";
     } else if (curLine.match(/^\s*connect/i) !== null) {
@@ -10310,7 +10776,9 @@ var cmdEditHint = function () {
     } else if (curLine.match(/^\s*dimension/i) !== null) {
         hintText =        "hint:: DIMENSION $pmtrName nrow ncol despmtr=0";
     } else if (curLine.match(/^\s*dump/i) !== null) {
-        hintText =        "hint:: DUMP      $filename remove=0 toMark=0 withTess=0";
+        hintText =        "hint:: DUMP      $filename remove=0 toMark=0 withTess=0 $grpName=.";
+    } else if (curLine.match(/^\s*elevate/i) !== null) {
+        hintText =        "hint:: ELEVATE toler=0";
     } else if (curLine.match(/^\s*elseif/i) !== null) {
         hintText =        "hint:: ELSEIF    val1 $op1 val2 $op2=and val3=0 $op3=eq val4=0";
     } else if (curLine.match(/^\s*else/i) !== null) {
@@ -10342,7 +10810,7 @@ var cmdEditHint = function () {
     } else if (curLine.match(/^\s*intersect/i) !== null) {
         hintText =        "hint:: INTERSECT $order=none index=1 maxtol=0";
     } else if (curLine.match(/^\s*join/i) !== null) {
-        hintText =        "hint:: JOIN      toler=0";
+        hintText =        "hint:: JOIN      toler=0 toMark=0";
     } else if (curLine.match(/^\s*lbound/i) !== null) {
         hintText =        "hint:: LBOUND    $pmtrName bounds";
     } else if (curLine.match(/^\s*linseg/i) !== null) {
@@ -10356,7 +10824,7 @@ var cmdEditHint = function () {
     } else if (curLine.match(/^\s*mark/i) !== null) {
         hintText =        "hint:: MARK";
     } else if (curLine.match(/^\s*message/i) !== null) {
-        hintText =        "hint:: MESSAGE   $text $schar=_";
+        hintText =        "hint:: MESSAGE   $text $schar=_ $fileName=. $openType=a";
     } else if (curLine.match(/^\s*mirror/i) !== null) {
         hintText =        "hint:: MIRROR    nx ny nz dist=0";
     } else if (curLine.match(/^\s*name/i) !== null) {
@@ -10388,7 +10856,7 @@ var cmdEditHint = function () {
     } else if (curLine.match(/^\s*rotatez/i) !== null) {
         hintText =        "hint:: ROTATEZ   angDeg xaxis=0 yaxis=0";
     } else if (curLine.match(/^\s*rule/i) !== null) {
-        hintText =        "hint:: RULE      reorder=0 periodic=0";
+        hintText =        "hint:: RULE      reorder=0 periodic=0 copyAttr=0";
     } else if (curLine.match(/^\s*scale/i) !== null) {
         hintText =        "hint:: SCALE     fact xcent=0 ycent=0 zcent=0";
     } else if (curLine.match(/^\s*select/i) !== null) {
@@ -10418,7 +10886,7 @@ var cmdEditHint = function () {
     } else if (curLine.match(/^\s*store/i) !== null) {
         hintText =        "hint:: STORE     $name index=0 keep=0";
     } else if (curLine.match(/^\s*subtract/i) !== null) {
-        hintText =        "hint:: SUBTRACT  $order=none index=1 maxtol=0";
+        hintText =        "hint:: SUBTRACT  $order=none index=1 maxtol=0 scribeAll=0";
     } else if (curLine.match(/^\s*sweep/i) !== null) {
         hintText =        "hint:: SWEEP";
     } else if (curLine.match(/^\s*throw/i) !== null) {
@@ -10480,6 +10948,87 @@ var cmdEditDebug = function (cm) {
 
     // get the info from the server
     browserToServer("getBodyDetails|"+filelist[wv.fileindx]+"|"+curLine+"|");
+};
+
+
+//
+// callback from "Trace" button in .csm editor
+//
+var cmdEditTrace = function (cm) {
+    // alert("in cmdEditTrace()");
+
+    if (checkIfWithBall() === false) {
+        return;
+    }
+
+    var itype = prompt("Enter\n" +
+                       " 1 for Parameters\n" +
+                       " 2 for Storages\n" +
+                       " 3 for Attributes\n" +
+                       " 4 for File Tree\n" +
+                       " 5 for Table of Contents", 0);
+    if (itype == null) {
+        return;
+    }
+
+    var ans1, ans2;
+    if        (Number(itype) == 1) {
+        ans1 = prompt("Enter pattern to match Parameter (* for all)", "*");
+        if (ans1 === null) {
+            return;
+        }
+
+        // get the info from the server
+        browserToServer("getTracePmtrs|"+ans1+"|");
+
+    } else if (itype == 2) {
+        ans1 = prompt("Enter pattern to match Storage (* for all)", "*");
+        if (ans1 === null) {
+            return;
+        }
+
+        // get the info from the server
+        browserToServer("getTraceStors|"+ans1+"|");
+
+    } else if (itype == 3) {
+        ans1 = prompt("Enter pattern to match Attributes (* for all)", "*");
+        if (ans1 === null) {
+            return;
+        }
+
+        // get the info from the server
+        browserToServer("getTraceAttrs|"+ans1+"|");
+
+    } else if (itype == 4) {
+
+        // get the info from the server
+        browserToServer("getFiletree|");
+
+    } else if (itype == 5) {
+        ans1 = prompt("Enter dimension of provides to be used for rows", 1);
+        if (ans1 === null) {
+            return;
+        } else if (isNaN(ans1)) {
+            return;
+        } else if (Number(ans1) < 1 || Number(ans1) > 8) {
+            alert("row should be between 1 and 8");
+            return;
+        }
+
+        ans2 = prompt("Enter dimension of provides to be used for columns", 2);
+        if (ans2 === null) {
+            return;
+        } else if (isNaN(ans2)) {
+            return;
+        } else if (Number(ans2) < 1 || Number(ans2) > 8) {
+            alert("column should be between 1 and 8");
+            return;
+        }
+
+        // get the info from the server
+        browserToServer("showTblOfContents|"+ans1+"|"+ans2+"|");
+
+    }
 };
 
 
@@ -10578,6 +11127,7 @@ CodeMirror.defineSimpleMode("csm_mode", {
     {token: "keyword", regex: /\s*(despmtr|DESPMTR)\b/,     sol: true},
     {token: "keyword", regex: /\s*(dimension|DIMENSION)\b/, sol: true},
     {token: "keyword", regex: /\s*(dump|DUMP)\b/,           sol: true},
+    {token: "keyword", regex: /\s*(elevate|ELEVATE)\b/,     sol: true},
     {token: "keyword", regex: /\s*(else|ELSE)\b/,           sol: true, indent: true, dedent: true},
     {token: "keyword", regex: /\s*(elseif|ELSEIF)\b/,       sol: true, indent: true, dedent: true},
     {token: "keyword", regex: /\s*(end|END)\b/,             sol: true,               dedent: true},

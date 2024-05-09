@@ -1,0 +1,65 @@
+attribute capsIntent $LINEARAERO
+attribute capsAIM    $msesAIM
+
+cfgpmtr   view:MSES 0
+
+dimension params 1 3 0
+set params 0.10 0.1 6
+
+despmtr    camber    0.02
+despmtr    maxloc    0.40
+despmtr    thickness 0.12
+despmtr    area      30.0
+despmtr    aspect    20.0
+despmtr    taper     1.0
+
+set     span    sqrt(area*aspect)
+set     croot   area/span*2/(taper+1)
+set     ctip    croot*taper
+set     xtip    (croot-ctip)/2
+outpmtr span
+
+ifthen view:MSES NE 1
+    MARK
+        udparg naca thickness  thickness
+        udparg naca camber     camber
+        udparg naca maxloc     maxloc
+        udparg naca sharpte    1
+        udprim naca
+        rotatex   90
+        scale     ctip
+        translate xtip -span/2 0
+        store     wing -1 1
+
+        udparg naca thickness  thickness
+        udparg naca camber     camber
+        udparg naca maxloc     maxloc
+        udparg naca sharpte    1
+        udprim naca
+        rotatex   90
+        scale     croot
+        store     wing -1 1
+
+        udparg naca thickness  thickness
+        udparg naca camber     camber
+        udparg naca maxloc     maxloc
+        udparg naca sharpte    1
+        udprim naca
+        rotatex   90
+        scale     ctip
+        translate xtip span/2 0
+        store     wing -1 1
+    RULE
+
+    store tessBody
+    restore tessBody
+    attribute .tParams params
+else
+    udparg naca thickness  thickness
+    udparg naca camber     camber
+    udparg naca maxloc     maxloc
+    udparg naca sharpte    1
+    udprim naca
+endif
+
+end

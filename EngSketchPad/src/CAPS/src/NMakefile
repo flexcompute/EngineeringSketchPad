@@ -10,9 +10,10 @@ ODIR  = $(ESP_BLOC)\obj
 ODIR  = .
 !ENDIF
 
-OBJS  = capsBase.obj capsAnalysis.obj capsApprox.obj  capsAttr.obj \
-	capsAIM.obj  capsBound.obj    capsProblem.obj capsValue.obj \
-        capsUnits.obj conjGrad.obj capsFunIDs.obj   printObject.obj
+OBJS  = capsBase.obj  capsAnalysis.obj capsApprox.obj  capsAttr.obj \
+	capsAIM.obj   capsBound.obj    capsProblem.obj capsValue.obj \
+	capsUnits.obj capsChkInpt.obj  conjGrad.obj    capsFunIDs.obj \
+	printObject.obj
 
 !IFDEF ESP_BLOC
 default:	$(IDIR)\caps.h $(IDIR)\capsErrors.h $(IDIR)\capsTypes.h \

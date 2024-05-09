@@ -49,10 +49,10 @@ mark
     skend
 join  0  1
 
-# join above should not work because Edges do not match
+# join above should work because Edges do match
 catbeg    $edge_not_found
    set    ifail 1
 catend
-assert    ifail 1
+assert    ifail 0
 
 end

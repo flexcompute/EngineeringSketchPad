@@ -3,7 +3,7 @@
  *
  *             Effective (Virtual) Topology Functions
  *
- *      Copyright 2011-2022, Massachusetts Institute of Technology
+ *      Copyright 2011-2024, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -108,6 +108,10 @@ __PROTO_H_AND_D__ int  EG_getTopology( const egObject *topo, egObject **geom,
                                        int *oclass, int *mtype,
                                        /*@null@*/ double *limits, int *nChild,
                                        egObject ***children, int **senses );
+__PROTO_H_AND_D__ int  EG_getGeometry( const egObject *geom, int *oclass,
+                                       int *mtype, egObject **refGeom,
+                                       /*@null@*/ int **ivec,
+                                       /*@null@*/ double **rvec );
 __PROTO_H_AND_D__ int  EG_indexBodyTopo( const egObject *body,
                                          const egObject *src );
 __PROTO_H_AND_D__ int  EG_evaluatX( const egObject *geom,
@@ -134,6 +138,7 @@ __PROTO_H_AND_D__ int  EG_getBoundingBX( const egObject *topo, double *bbox );
 __PROTO_H_AND_D__ int  EG_curvaturX( const egObject *geom, const double *param,
                                      double *result );
 __PROTO_H_AND_D__ int  EG_getBody( const egObject *object, egObject **body );
+
 __PROTO_H_AND_D__ void EG_makeConnect( int k1, int k2, int *tri, int *kedge,
                                        int *ntable, connect *etable, int face );
 
@@ -1052,7 +1057,7 @@ EG_getEBodyTopos(const egObject *body, /*@null@*/ egObject *src,
           if (eobj == NULL) continue;
           if (eobj->blind == NULL) continue;
           eface = (egEFace *) eobj->blind;
-          n += eface->npatch;
+          n += abs(eface->npatch);
         }
         if (topos != NULL) {
           objs = (egObject **) EG_alloc(n*sizeof(egObject *));
@@ -1062,7 +1067,7 @@ EG_getEBodyTopos(const egObject *body, /*@null@*/ egObject *src,
             if (eobj == NULL) continue;
             if (eobj->blind == NULL) continue;
             eface = (egEFace *) eobj->blind;
-            for (j = 0; j < eface->npatch; j++, n++)
+            for (j = 0; j < abs(eface->npatch); j++, n++)
               objs[n] = eface->patches[j].face;
           }
           *topos = objs;
@@ -1204,12 +1209,13 @@ EG_getEBodyTopos(const egObject *body, /*@null@*/ egObject *src,
       
       eface = (egEFace *) src->blind;
       if (topos != NULL) {
-        objs = (egObject **) EG_alloc(eface->npatch*sizeof(egObject *));
+        objs = (egObject **) EG_alloc(abs(eface->npatch)*sizeof(egObject *));
         if (objs == NULL) return EGADS_MALLOC;
-        for (i = 0; i < eface->npatch; i++) objs[i] = eface->patches[i].face;
+        for (i = 0; i < abs(eface->npatch); i++)
+          objs[i] = eface->patches[i].face;
         *topos = objs;
       }
-      *ntopo = eface->npatch;
+      *ntopo = abs(eface->npatch);
     }
     
     return EGADS_SUCCESS;
@@ -1439,7 +1445,7 @@ EG_getEArea(egObject *object, /*@null@*/ const double *limits, double *area)
   if (object->oclass != EFACE)      return EGADS_TOPOERR;
   
   eface = (egEFace *) object->blind;
-  for (i = 0; i < eface->npatch; i++) {
+  for (i = 0; i < abs(eface->npatch); i++) {
     stat = EG_getAreX(eface->patches[i].face, limits, &a);
     if (stat != EGADS_SUCCESS) return stat;
     *area += fabs(a);
@@ -1462,7 +1468,7 @@ EG_inEFace(const egObject *object, const double *uv)
   if (object->oclass != EFACE)      return EGADS_TOPOERR;
   
   eface = (egEFace *) object->blind;
-  for (i = 0; i < eface->npatch; i++) {
+  for (i = 0; i < abs(eface->npatch); i++) {
     stat = EG_inFaceX(eface->patches[i].face, uv, NULL, NULL);
     if (stat <= EGADS_SUCCESS) return stat;
     if (stat == EGADS_SUCCESS) return stat;
@@ -1570,11 +1576,12 @@ EG_invEEvaluate(const egObject *object, double *xyz, double *param,
   if  (object->blind  == NULL)       return EGADS_NODATA;
   if ((object->oclass != EEDGE) &&
       (object->oclass != EFACE))     return EGADS_TOPOERR;
-  
+ 
+  param[0]  = 0.0;
+  result[0] = result[1] = result[2] = 0.0;
   if (object->oclass == EEDGE) {
     if (object->mtype == DEGENERATE) return EGADS_DEGEN;
-    param[0] = 0.0;
-    eedge    = (egEEdge *) object->blind;
+    eedge  = (egEEdge *) object->blind;
     for (i = 0; i < eedge->nsegs; i++) {
       ie   = eedge->segs[i].iedge - 1;
       stat = EG_invEvaluatX(eedge->sedges[ie].edge, xyz, uv, data);
@@ -1608,8 +1615,9 @@ EG_invEEvaluate(const egObject *object, double *xyz, double *param,
       param[0] += eedge->segs[index].tstart - eedge->sedges[ie].ts[0];
     }
   } else {
-    eface = (egEFace *) object->blind;
-    for (i = 0; i < eface->npatch; i++) {
+    param[1] = 0.0;
+    eface    = (egEFace *) object->blind;
+    for (i = 0; i < abs(eface->npatch); i++) {
       stat = EG_invEvaluatX(eface->patches[i].face, xyz, uv, data);
       if (stat != EGADS_SUCCESS) return stat;
       d = sqrt((xyz[0]-data[0])*(xyz[0]-data[0]) +
@@ -1659,6 +1667,9 @@ EG_getEEdgeUV(const egObject *face, const egObject *topo, int sensx, double t,
   int      i, n, stat, oclass, mtype, iloop, iedge, ie, iseg, *sens, sense;
   int      senses[2], *iuv;
   double   tx, w, range[2], uv1[2], uv2[2];
+#ifdef USEINVEVAL
+  double   uvx[2], result[9], xyi[3], xyz[18];
+#endif
   egObject *elobj, *geom, **nodes;
   egEFace  *eFace;
   egELoop  *eLoop;
@@ -1777,6 +1788,24 @@ EG_getEEdgeUV(const egObject *face, const egObject *topo, int sensx, double t,
             }
             uv[0] = (1.0-w)*uv1[0] + w*uv2[0];
             uv[1] = (1.0-w)*uv1[1] + w*uv2[1];
+#ifdef USEINVEVAL
+            if (eFace->npatch == 1) return EGADS_SUCCESS;
+            /* see if invEvaluation is closer */
+            if (EG_effectEvalEdge(eEdge, t, result) == EGADS_SUCCESS)
+              if (EG_invEEvaluate(face, result, uvx, xyi) == EGADS_SUCCESS)
+                if (EG_effectEvalFace(eFace, uv, xyz) == EGADS_SUCCESS)
+                  if ((result[0]-xyz[0])*(result[0]-xyz[0]) +
+                      (result[1]-xyz[1])*(result[1]-xyz[1]) +
+                      (result[2]-xyz[2])*(result[2]-xyz[2]) >
+                      (result[0]-xyi[0])*(result[0]-xyi[0]) +
+                      (result[1]-xyi[1])*(result[1]-xyi[1]) +
+                      (result[2]-xyi[2])*(result[2]-xyi[2])) {
+/*                      printf(" invEval closer: %lf %lf  %lf %lf\n",
+                               uv[0], uv[1], uvx[0], uvx[1]);  */
+                        uv[0] = uvx[0];
+                        uv[1] = uvx[1];
+                      }
+#endif
             return EGADS_SUCCESS;
           }
       }
@@ -2008,7 +2037,7 @@ EG_massEProps(const egObject *topo, double *data)
     eface = (egEFace *) topo->blind;
     if (eface->npatch == 1)
       return EG_massProperties(1, &eface->patches[0].face, data);
-    n = eface->npatch;
+    n = abs(eface->npatch);
   } else if (topo->oclass == ESHELL) {
     eshell = (egEShell *) topo->blind;
     for (i = 0; i < eshell->efaces.nobjs; i++) {
@@ -2016,7 +2045,7 @@ EG_massEProps(const egObject *topo, double *data)
       if (obj == NULL) continue;
       eface = (egEFace *) obj->blind;
       if (eface == NULL) continue;
-      n += eface->npatch;
+      n += abs(eface->npatch);
     }
   } else {
     ebody = (egEBody *) topo->blind;
@@ -2055,7 +2084,7 @@ EG_massEProps(const egObject *topo, double *data)
     }
   } else if (topo->oclass == EFACE) {
     eface = (egEFace *) topo->blind;
-    for (i = 0; i < eface->npatch; i++) topos[i] = eface->patches[i].face;
+    for (i = 0; i < abs(eface->npatch); i++) topos[i] = eface->patches[i].face;
   } else {
     eshell = (egEShell *) topo->blind;
     for (n = j = 0; j < eshell->efaces.nobjs; j++) {
@@ -2063,7 +2092,8 @@ EG_massEProps(const egObject *topo, double *data)
       if (obj == NULL) continue;
       eface = (egEFace *) obj->blind;
       if (eface == NULL) continue;
-      for (i = 0; i < eface->npatch; i++, n++) topos[n] = eface->patches[i].face;
+      for (i = 0; i < abs(eface->npatch); i++, n++)
+        topos[n] = eface->patches[i].face;
     }
   }
   
@@ -2126,7 +2156,7 @@ EG_tolEObject(const egObject *topo, double *tol)
   } else if (topo->oclass == EFACE) {
     eface = (egEFace *) topo->blind;
     if (eface == NULL) return EGADS_SUCCESS;
-    for (j = 0; j < eface->npatch; j++) {
+    for (j = 0; j < abs(eface->npatch); j++) {
       tolf = eface->patches[j].tol;
       if (tolf < 0.0) {
         tolf = 0.0;
@@ -2151,7 +2181,7 @@ EG_tolEObject(const egObject *topo, double *tol)
       if (obj == NULL) continue;
       eface = (egEFace *) obj->blind;
       if (eface == NULL) continue;
-      for (j = 0; j < eface->npatch; j++) {
+      for (j = 0; j < abs(eface->npatch); j++) {
         tolf = eface->patches[j].tol;
         if (tolf < 0.0) {
           tolf = 0.0;
@@ -2199,7 +2229,7 @@ EG_tolEObject(const egObject *topo, double *tol)
         if (obj == NULL) continue;
         eface = (egEFace *) obj->blind;
         if (eface == NULL) continue;
-        for (j = 0; j < eface->npatch; j++) {
+        for (j = 0; j < abs(eface->npatch); j++) {
           tolf = eface->patches[j].tol;
           if (tolf < 0.0) {
             tolf = 0.0;
@@ -2284,7 +2314,7 @@ EG_destroyEBody(egObject *ebobj, int flag)
       if (eface->trmap != NULL) EG_free(eface->trmap);
       if (eface->uvmap != NULL) uvmap_struct_free(eface->uvmap);
       if (eface->patches != NULL) {
-        for (j = 0; j < eface->npatch; j++) {
+        for (j = 0; j < abs(eface->npatch); j++) {
           EG_free(eface->patches[j].uvtric);
           EG_free(eface->patches[j].uvtris);
           EG_free(eface->patches[j].uvs);
@@ -2354,6 +2384,8 @@ EG_trimELoop(egObject *loop, egObject *e1, int sense, egObject *e2)
       if (eloop->eedges.objs[j] == e1) eloop->senses[k] *= sense;
       k++;
     }
+  if (k == eloop->eedges.nobjs)
+    printf(" EGADS Warning: Removed Edge not found (EG_trimELoop)!\n");
   eloop->eedges.nobjs = k;
 }
 
@@ -2361,14 +2393,14 @@ EG_trimELoop(egObject *loop, egObject *e1, int sense, egObject *e2)
 static int
 EG_eRemoveNode(egObject *EBody)
 {
-  int          i, j, k, ie, index, stat, nnode, sen1, sen2, last, fullAttr;
-  int          atype, alen, *ncnt, *ecnt, ei[2];
+  int          i, j, k, l, ie, index, stat, nnode, sen1, sen2, last, fullAttr;
+  int          atype, alen, nl, *ncnt, *ecnt, ei[2];
   double       result[9], maxdot, tang[3], range[2], dist, dot;
   egEBody      *ebody;
   egELoop      *eloop;
   egEEdge      *eedge, *ee1, *ee2, *eesav;
   egTessel     *btess;
-  egObject     *body, *e1, *e2, *esav, *loops[2], **nodes;
+  egObject     *body, *e1, *e2, *esav, **loops, **nodes;
   const int    *ints;
   const double *reals;
   const char   *str;
@@ -2585,54 +2617,47 @@ EG_eRemoveNode(egObject *EBody)
                ei[0], ei[1], i+1);  */
         continue;
       }
-      loops[0] = loops[1] = NULL;
-      for (j = 0; j < ebody->eloops.nobjs; j++) {
+      
+      /* get the loops */
+      for (nl = j = 0; j < ebody->eloops.nobjs; j++) {
+        if (ebody->eloops.objs[j] == NULL) continue;
+        eloop = (egELoop *) ebody->eloops.objs[j]->blind;
+        if (eloop == NULL) continue;
+        for (k = 0; k < eloop->eedges.nobjs; k++)
+          if (EG_indexEBodyTopo(EBody, eloop->eedges.objs[k]) == ei[0]) nl++;
+      }
+      if (nl == 0) {
+        printf(" EGADS Internal: Found No Loops for Node %d (EG_eRemoveNode)!\n",
+               i+1);
+        continue;
+      }
+      loops = (egObject **) EG_alloc(nl*sizeof(egObject *));
+      if (loops == NULL) continue;
+      
+      for (l = 0; l < nl; l++) loops[l] = NULL;
+      for (l = j = 0; j < ebody->eloops.nobjs; j++) {
         if (ebody->eloops.objs[j] == NULL) continue;
         eloop = (egELoop *) ebody->eloops.objs[j]->blind;
         if (eloop == NULL) continue;
         for (k = 0; k < eloop->eedges.nobjs; k++) {
           index = EG_indexEBodyTopo(EBody, eloop->eedges.objs[k]);
           if (index == ei[0]) {
-            if (loops[0] == NULL) {
-              loops[0] = ebody->eloops.objs[j];
-            } else {
-              if (loops[0] == ebody->eloops.objs[j]) continue;
-              loops[1] = ebody->eloops.objs[j];
-              break;
-            }
-          }
-          if (index == ei[1]) {
-            if (loops[0] == NULL) {
-              loops[0] = ebody->eloops.objs[j];
-            } else {
-              if (loops[0] == ebody->eloops.objs[j]) continue;
-              loops[1] = ebody->eloops.objs[j];
-              break;
-            }
+            loops[l] = ebody->eloops.objs[j];
+            l++;
           }
         }
       }
-      if (loops[0] == NULL) {
-        printf(" EGADS Internal: Found No Loops for Node %d (EG_eRemoveNode)!\n",
-               i+1);
-        continue;
-      }
       
       /* grab our 2 EEdges */
-      e1    = ebody->eedges.objs[abs(ei[0])-1];
-      ee1   = (egEEdge *) e1->blind;
-      e2    = ebody->eedges.objs[abs(ei[1])-1];
-      ee2   = (egEEdge *) e2->blind;
+      e1  = ebody->eedges.objs[abs(ei[0])-1];
+      ee1 = (egEEdge *) e1->blind;
+      e2  = ebody->eedges.objs[abs(ei[1])-1];
+      ee2 = (egEEdge *) e2->blind;
 #ifdef DEBUG
-      eloop = (egELoop *) loops[0]->blind;
-      printf("     ELoop0 %d  %d\n", ei[0], ei[1]);
-      printf("            %d", EG_indexEBodyTopo(EBody, eloop->eedges.objs[0]));
-      for (k = 1; k < eloop->eedges.nobjs; k++)
-        printf(" %d", EG_indexEBodyTopo(EBody, eloop->eedges.objs[k]));
-      printf("\n");
-      if (loops[1] != NULL) {
-        eloop = (egELoop *) loops[1]->blind;
-        printf("     ELoop1 %d  %d\n", ei[0], ei[1]);
+      for (l = 0; l < nl; l++) {
+        if (loops[l] == NULL) continue;
+        eloop = (egELoop *) loops[l]->blind;
+        printf("     ELoop%d %d  %d\n", l, ei[0], ei[1]);
         printf("            %d", EG_indexEBodyTopo(EBody, eloop->eedges.objs[0]));
         for (k = 1; k < eloop->eedges.nobjs; k++)
           printf(" %d", EG_indexEBodyTopo(EBody, eloop->eedges.objs[k]));
@@ -2651,6 +2676,7 @@ EG_eRemoveNode(egObject *EBody)
       if (eedge == NULL) {
         printf(" EGADS Error: Malloc on %d EEdge blind (EG_eRemoveNode)!\n",
                i+1);
+        EG_free(loops);
         EG_free(ncnt);
         EG_free(nodes);
         return EGADS_MALLOC;
@@ -2679,6 +2705,7 @@ EG_eRemoveNode(egObject *EBody)
         printf(" EGADS Internal: Cant find Node %d in Edges (EG_eRemoveNode)!\n",
                i+1);
         EG_free(eedge);
+        EG_free(loops);
         EG_free(ncnt);
         EG_free(nodes);
         return EGADS_TOPOERR;
@@ -2699,6 +2726,7 @@ EG_eRemoveNode(egObject *EBody)
         printf(" EGADS Error: Malloc on %d EEdge %d segs (EG_eRemoveNode)!\n",
                i+1, eedge->nsegs);
         EG_free(eedge);
+        EG_free(loops);
         EG_free(ncnt);
         EG_free(nodes);
         return EGADS_MALLOC;
@@ -2791,8 +2819,7 @@ EG_eRemoveNode(egObject *EBody)
 #endif
       
       /* adjust the loops */
-      EG_trimELoop(loops[0], e1, sen1, e2);
-      if (loops[1] != NULL) EG_trimELoop(loops[1], e1, sen1, e2);
+      for (l = 0; l < nl; l++) EG_trimELoop(loops[l], e1, sen1, e2);
       
       /* adjust the Edges */
       EG_free(ee1->segs);
@@ -2804,6 +2831,8 @@ EG_eRemoveNode(egObject *EBody)
           ebody->eedges.objs[k] = ebody->eedges.objs[j];
           k++;
         }
+      if (k == ebody->eedges.nobjs)
+        printf(" EGADS Warning: EEdge %d Not Found (EG_eRemoveNode)!\n", ei[1]);
       if (fullAttr == 1) {
         EG_attributeDup(e2, e1);
       } else {
@@ -2814,29 +2843,13 @@ EG_eRemoveNode(egObject *EBody)
       EG_free(ee2);
       e2->blind = NULL;
       EG_dereference(e2, 1);
+      
 #ifdef DEBUG
-      eloop = (egELoop *) loops[0]->blind;
-      printf("     ELoop0\n");
-      printf("            %d", EG_indexEBodyTopo(EBody, eloop->eedges.objs[0]));
-      for (k = 1; k < eloop->eedges.nobjs; k++)
-        printf(" %d", EG_indexEBodyTopo(EBody, eloop->eedges.objs[k]));
-      printf("\n");
-      printf("            ");
-      for (k = 0; k < eloop->eedges.nobjs; k++) {
-        ee2 = (egEEdge *) eloop->eedges.objs[k]->blind;
-        if (eloop->senses[k] == SFORWARD) {
-          printf("%d,%d ", EG_indexBodyTopo(body, ee2->nodes[0]),
-                           EG_indexBodyTopo(body, ee2->nodes[1]));
-        } else {
-          printf("%d,%d ", EG_indexBodyTopo(body, ee2->nodes[1]),
-                           EG_indexBodyTopo(body, ee2->nodes[0]));
-        }
-      }
-      printf("\n");
-      if (loops[1] != NULL) {
-        eloop = (egELoop *) loops[1]->blind;
-        printf("     ELoop1\n");
-        printf("            %d", EG_indexEBodyTopo(EBody, eloop->eedges.objs[0]));
+      for (l = 0; l < nl; l++) {
+        if (loops[l] == NULL) continue;
+        eloop = (egELoop *) loops[l]->blind;
+        printf("     ELoop %d\n", EG_indexEBodyTopo(EBody, loops[l]));
+        printf("            %d",  EG_indexEBodyTopo(EBody, eloop->eedges.objs[0]));
         for (k = 1; k < eloop->eedges.nobjs; k++)
           printf(" %d", EG_indexEBodyTopo(EBody, eloop->eedges.objs[k]));
         printf("\n");
@@ -2854,6 +2867,7 @@ EG_eRemoveNode(egObject *EBody)
         printf("\n");
       }
 #endif
+      EG_free(loops);
     }
   
   EG_free(ncnt);
@@ -3391,7 +3405,7 @@ EG_writeEBody(egObject *EBody, FILE *fp)
       if (((j+1)%20 == 0) && (j != eface->eloops.nobjs-1)) fprintf(fp, "\n");
     }
     fprintf(fp, "\n");
-    for (j = 0; j < eface->npatch; j++) {
+    for (j = 0; j < abs(eface->npatch); j++) {
       k = EG_indexBodyTopo(body, eface->patches[j].face);
       if (k <= EGADS_SUCCESS) {
         printf(" EGADS Error: Face %d index = %d in EFace %d (EG_writeEBody)!\n",
@@ -3821,14 +3835,14 @@ EG_readEBody(FILE *fp, egObject *body, egObject **EBody)
       n = fscanf(fp, "%d", &eface->senses[j]);
       if (n != 1) goto readerr;
     }
-    eface->patches = (egEPatch *) EG_alloc(eface->npatch*sizeof(egEPatch));
+    eface->patches = (egEPatch *) EG_alloc(abs(eface->npatch)*sizeof(egEPatch));
     if (eface->patches == NULL) {
       printf(" EGADS Error: Malloc on %d Patch Object %d (EG_readEBody)!\n",
-             i+1, eface->npatch);
+             i+1, abs(eface->npatch));
       EG_destroyEBody(eobj, 1);
       return EGADS_MALLOC;
     }
-    for (j = 0; j < eface->npatch; j++) {
+    for (j = 0; j < abs(eface->npatch); j++) {
       eface->patches[j].start    = 0;
       eface->patches[j].nuvs     = 0;
       eface->patches[j].ndeflect = 0;
@@ -3840,7 +3854,7 @@ EG_readEBody(FILE *fp, egObject *body, egObject **EBody)
       eface->patches[j].deflect  = NULL;
       eface->patches[j].face     = NULL;
     }
-    for (j = 0; j < eface->npatch; j++) {
+    for (j = 0; j < abs(eface->npatch); j++) {
       n = fscanf(fp, "%d %d %d %d %d", &nds[0], &eface->patches[j].start,
                  &eface->patches[j].nuvs,  &eface->patches[j].ndeflect,
                  &eface->patches[j].ntris);
@@ -4321,14 +4335,14 @@ EG_copyEBody(const egObject *body, /*@null@*/ void *ptr, egObject **EBody)
     }
     for (j = 0; j < eface->eloops.nobjs; j++)
       eface->senses[j] = sface->senses[j];
-    eface->patches = (egEPatch *) EG_alloc(eface->npatch*sizeof(egEPatch));
+    eface->patches = (egEPatch *) EG_alloc(abs(eface->npatch)*sizeof(egEPatch));
     if (eface->patches == NULL) {
       printf(" EGADS Error: Malloc on %d Patch Object %d (EG_copyEBody)!\n",
-             i+1, eface->npatch);
+             i+1, abs(eface->npatch));
       EG_destroyEBody(eobj, 1);
       return EGADS_MALLOC;
     }
-    for (j = 0; j < eface->npatch; j++) {
+    for (j = 0; j < abs(eface->npatch); j++) {
       eface->patches[j].face     = sface->patches[j].face;
       eface->patches[j].start    = sface->patches[j].start;
       eface->patches[j].nuvs     = sface->patches[j].nuvs;
@@ -4340,7 +4354,7 @@ EG_copyEBody(const egObject *body, /*@null@*/ void *ptr, egObject **EBody)
       eface->patches[j].uvs      = NULL;
       eface->patches[j].deflect  = NULL;
     }
-    for (j = 0; j < eface->npatch; j++) {
+    for (j = 0; j < abs(eface->npatch); j++) {
       eface->patches[j].uvtris = (int *) EG_alloc(3*eface->patches[j].ntris*
                                                   sizeof(int));
       if (eface->patches[j].uvtris == NULL) {
@@ -4533,7 +4547,7 @@ EG_copyEBody(const egObject *body, /*@null@*/ void *ptr, egObject **EBody)
     for (i = 0; i < ebody->efaces.nobjs; i++) {
       eface = (egEFace *) ebody->efaces.objs[i]->blind;
       if (eface == NULL) continue;
-      for (j = 0; j < eface->npatch; j++) {
+      for (j = 0; j < abs(eface->npatch); j++) {
         k = EG_indexBodyTopo(orig, eface->patches[j].face);
         if (k <= EGADS_SUCCESS) {
           printf(" EGADS Error: EFace %d %d indexBodyTopo = %d (EG_copyEBody)!\n",
@@ -5286,7 +5300,7 @@ EG_finishEBody(egObject *EBody)
     if (eobj->blind == NULL) continue;
     eface = (egEFace *) eobj->blind;
     if (eface->npatch == 1) continue;
-    for (j = 0; j < eface->npatch; j++) {
+    for (j = 0; j < abs(eface->npatch); j++) {
       EG_free(eface->patches[j].uvtric);
       eface->patches[j].uvtric = NULL;
     }
@@ -5308,7 +5322,7 @@ EG_makeEFace(egObject *EBody, int nFace, egObject **Faces, egObject **EFace)
 {
   int          i, j, k, m, n, ie, stat, index, neloop, nvrt, ntri, j0n, newel;
   int          atype, alen, i0, i1, i2, *iedge, *map, *tris, *itri, *trmap;
-  int          outLevel, fullAttr, iface = -1;
+  int          outLevel, fullAttr, oclass, mtype, FaceCurv = -1, iface = -1;
   double       *xyzs, range[4], angle, maxang, big, biga;
   void         *uvmap;
   egObject     *body, *obj, **objs, *eshell, *saved, **efaces, **eloops;
@@ -5349,6 +5363,7 @@ EG_makeEFace(egObject *EBody, int nFace, egObject **Faces, egObject **EFace)
       if (Faces[i] == Faces[j]) {
         printf(" EGADS Error: Face %d is same as %d (EG_makeEFace)!\n",
                i+1, j+1);
+/*      for (k = 0; k < nFace; k++) printf("  %3d: %lx\n", k+1, Faces[k]);  */
         return EGADS_NOTTOPO;
       }
   
@@ -5372,8 +5387,37 @@ EG_makeEFace(egObject *EBody, int nFace, egObject **Faces, egObject **EFace)
              i+1, j);
       return EGADS_TOPOERR;
     }
+    stat = EG_getTopology(Faces[i], &obj, &oclass, &mtype, range, &n, &objs,
+                          &map);
+    if (stat != EGADS_SUCCESS) {
+      printf(" EGADS Error: Face %d EG_getTopology = %d (EG_makeEFace)!\n",
+             i+1, stat);
+      return stat;
+    }
+    if (obj->mtype != PLANE) FaceCurv = 1;
+/*
+    if (obj->mtype != PLANE) {
+      while ((obj->mtype == TRIMMED) || (obj->mtype == OFFSET)) {
+        stat = EG_getGeometry(obj, &oclass, &mtype, &saved, NULL, NULL);
+        if (stat != EGADS_SUCCESS) {
+          printf(" EGADS Error: Face %d EG_getGeometry = %d (EG_makeEFace)!\n",
+                 i+1, stat);
+          return stat;
+        }
+        obj = saved;
+      }
+      stat = EG_getRangX(obj, range, &m);
+      if (stat != EGADS_SUCCESS) {
+        printf(" EGADS Error: Face %d EG_getRange = %d (EG_makeEFace)!\n",
+               i+1, stat);
+        return stat;
+      }
+      if (m == 0) FaceCurv = 1;
+    }
+ */
 #ifdef DEBUG
-    printf(" Face %d  or = %2d\n", j, Faces[i]->mtype);
+    printf(" Face %d  or = %2d  FaceCurv = %2d\n",
+           j, Faces[i]->mtype, FaceCurv);
 #endif
     for (j = 0; j < ebody->efaces.nobjs; j++) {
       obj   = ebody->efaces.objs[j];
@@ -5382,7 +5426,7 @@ EG_makeEFace(egObject *EBody, int nFace, egObject **Faces, egObject **EFace)
       if (eface == NULL) continue;
       neloop += eface->eloops.nobjs;
       if (eface->npatch == 1) continue;
-      for (k = 0; k < eface->npatch; k++)
+      for (k = 0; k < abs(eface->npatch); k++)
         if (Faces[i] == eface->patches[k].face) {
           printf(" EGADS Error: Face %d is already taken (EG_makeEFace)!\n",
                  i+1);
@@ -5402,13 +5446,23 @@ EG_makeEFace(egObject *EBody, int nFace, egObject **Faces, egObject **EFace)
   for (i = 0; i < nFace; i++) {
     stat = EG_getBodyTopos(body, Faces[i], EDGE, &n, &objs);
     if (stat != EGADS_SUCCESS) {
-      printf(" EGADS Error: EG_getBodyTopos %d = %d (EG_makeEFace)!\n",
+      printf(" EGADS Error: EG_getBodyTopos FACEs %d = %d (EG_makeEFace)!\n",
              i+1, stat);
       EG_free(iedge);
       return stat;
     }
     for (j = 0; j < n; j++) {
       if (objs[j]->mtype == DEGENERATE) continue;
+      /* reject nonmanifold Edges */
+      stat = EG_getBodyTopos(body, objs[j], FACE, &m, NULL);
+      if (stat != EGADS_SUCCESS) {
+        printf(" EGADS Error: EG_getBodyTopos EDGEs %d = %d (EG_makeEFace)!\n",
+               j+1, stat);
+        EG_free(iedge);
+        return stat;
+      }
+      if (m > 2) continue;
+      /* reject kept Edges */
       stat = EG_attributeRet(objs[j], ".Keep", &atype, &alen, &ints, &reals,
                              &str);
       if (stat == EGADS_SUCCESS) continue;
@@ -5433,7 +5487,8 @@ EG_makeEFace(egObject *EBody, int nFace, egObject **Faces, egObject **EFace)
     }
     EG_free(objs);
     if (j == n) {
-      printf(" EGADS Error: %d Not Connected (EG_makeEFace)!\n", i+1);
+      printf(" EGADS Error: %d Not Connected or NonManifold (EG_makeEFace)!\n",
+             i+1);
       EG_free(iedge);
       return EGADS_TOPOCNT;
     }
@@ -5516,6 +5571,7 @@ EG_makeEFace(egObject *EBody, int nFace, egObject **Faces, egObject **EFace)
       if (eloop->eedges.objs[j]->mtype == DEGENERATE) iedge[index-1] = 2;
     }
   }
+  
   /* mark non-manifold Edges w/ more than 2 Faces */
   for (i = 0; i < ebody->eedges.nobjs; i++)
     if (iedge[i] > 2) iedge[i] = -1;
@@ -5579,6 +5635,14 @@ EG_makeEFace(egObject *EBody, int nFace, egObject **Faces, egObject **EFace)
       if (k != eloop->eedges.nobjs) iedge[index-1] = -1;
     }
   }
+/*
+  for (i = 0; i < ebody->eedges.nobjs; i++)
+    if (iedge[i] != 0) {
+      eedge = (egEEdge *) ebody->eedges.objs[i]->blind;
+      printf(" iedge %d: %d   %d %d\n", i, iedge[i],
+             EG_indexBodyTopo(body, eedge->nodes[0]),
+             EG_indexBodyTopo(body, eedge->nodes[1]));
+    }  */
   
   /* n is the number of retained EEdges */
   for (k = n = i = 0; i < ebody->eedges.nobjs; i++) {
@@ -5718,9 +5782,14 @@ EG_makeEFace(egObject *EBody, int nFace, egObject **Faces, egObject **EFace)
         }
         if (map[k-1] < 0) k = -map[k-1];
         if (map[k-1] < 0) {
-          printf(" EGADS Warning: Edge- %d Double Mapping %d/%d (makeEFace)!\n",
+          printf(" EGADS Error: Edge- %d Figure 8 Mapping %d/%d (makeEFace)!\n",
                  i+1, j+1, edgsen[3*i  ]->npts);
-          k = -map[k-1];
+          EG_free(map);
+          EG_free(edgsen);
+          EG_free(iedge);
+          EG_free(efaces);
+          stat = EGADS_INDEXERR;
+          goto restore;
         }
         edgsen[3*i  ]->iuv[j] = map[k-1];
       }
@@ -5735,9 +5804,14 @@ EG_makeEFace(egObject *EBody, int nFace, egObject **Faces, egObject **EFace)
       }
       if (map[k-1] < 0) k = -map[k-1];
       if (map[k-1] < 0) {
-        printf(" EGADS Warning: Edge+ %d Double Mapping %d/%d (makeEFace)!\n",
+        printf(" EGADS Error: Edge+ %d Figure 8 Mapping %d/%d (makeEFace)!\n",
                i+1, j+1, edgsen[3*i+1]->npts);
-        k = -map[k-1];
+        EG_free(map);
+        EG_free(edgsen);
+        EG_free(iedge);
+        EG_free(efaces);
+        stat = EGADS_INDEXERR;
+        goto restore;
       }
       edgsen[3*i+1]->iuv[j] = map[k-1];
     }
@@ -5750,8 +5824,8 @@ EG_makeEFace(egObject *EBody, int nFace, egObject **Faces, egObject **EFace)
   tris = (int *) EG_alloc(4*ntri*sizeof(int));
   if (tris == NULL) {
     printf(" EGADS Error: Malloc of %d triangles (EG_makeEFace)!\n", ntri);
-    EG_free(edgsen);
     EG_free(map);
+    EG_free(edgsen);
     EG_free(iedge);
     EG_free(efaces);
     stat = EGADS_MALLOC;
@@ -5779,8 +5853,8 @@ EG_makeEFace(egObject *EBody, int nFace, egObject **Faces, egObject **EFace)
   if (xyzs == NULL) {
     printf(" EGADS Error: Malloc of %d points (EG_makeEFace)!\n", nvrt);
     EG_free(tris);
-    EG_free(edgsen);
     EG_free(map);
+    EG_free(edgsen);
     EG_free(iedge);
     EG_free(efaces);
     stat = EGADS_MALLOC;
@@ -5834,7 +5908,8 @@ EG_makeEFace(egObject *EBody, int nFace, egObject **Faces, egObject **EFace)
   EG_free(xyzs);
   EG_free(tris);
   if ((stat != EGADS_SUCCESS) || (range[0]*0.0 != 0.0)) {
-    printf(" EGADS Error: EG_uvmapMake = %d (EG_makeEFace)!\n", stat);
+    printf(" EGADS Error: Cannot Make UVmap -- stat = %d (EG_makeEFace)!\n",
+           stat);
     if (stat == EGADS_SUCCESS) {
       printf("              range = %lf %lf  %lf %lf\n", range[0], range[1],
                                                          range[2], range[3]);
@@ -5869,7 +5944,7 @@ EG_makeEFace(egObject *EBody, int nFace, egObject **Faces, egObject **EFace)
   eface->range[3]     = range[3];
   eface->last         = 0;
   eface->sedges       = ebody->edges;
-  eface->npatch       = nFace;
+  eface->npatch       = nFace*FaceCurv;
   eface->patches      = (egEPatch *) EG_alloc(nFace*sizeof(egEPatch));
   if (eface->patches == NULL) {
     printf(" EGADS Error: Malloc on %d Patches (EG_makeEFace)!\n", nFace);
@@ -5904,7 +5979,7 @@ EG_makeEFace(egObject *EBody, int nFace, egObject **Faces, egObject **EFace)
   for (n = i = 0; i < neloop; i++) {
     if (eloops[i] == NULL) continue;
     eloop = (egELoop *) eloops[i]->blind;
-    j0n = -1;
+    j0n   = -1;
     for (j = 0; j < eloop->eedges.nobjs; j++) {
       if (eloop->eedges.objs[j] == NULL) continue;
       eedge = (egEEdge *) eloop->eedges.objs[j]->blind;
@@ -6347,9 +6422,26 @@ EG_makeEFace(egObject *EBody, int nFace, egObject **Faces, egObject **EFace)
   ebody->eedges.nobjs = k;
   EG_free(iedge);
   /* remove old ELoops & insert new */
-  if (neloop < newel)
-    printf(" EGADS Internal: Old # ELoops = %d, New = %d (EG_makeEFace)!\n",
+  if (neloop < newel) {
+    printf(" EGADS Error: Topology -> Old # ELoops = %d, New = %d (EG_makeEFace)!\n",
            neloop, newel);
+    stat = EGADS_TOPOERR;
+    EG_free(eface->senses);
+    EG_free(eface->eloops.objs);
+    for (j = 0; j < newel; j++) {
+      EG_free(newels[j]->edgeUVs);
+      EG_free(newels[j]->eedges.objs);
+      EG_free(newels[j]->senses);
+      EG_free(newels[j]);
+    }
+    EG_free(newels);
+    EG_free(eface->patches);
+    if (eface->trmap != NULL) EG_free(eface->trmap);
+    EG_free(eface);
+    uvmap_struct_free(uvmap);
+    EG_free(efaces);
+    goto restore;
+  }
   for (j = i = 0; i < neloop; i++) {
     if (eloops[i] == NULL) continue;
     eloop = (egELoop *) eloops[i]->blind;
@@ -6486,6 +6578,57 @@ EG_makeEFace(egObject *EBody, int nFace, egObject **Faces, egObject **EFace)
   }
   EG_deleteObject(saved);
   
+#ifdef DEBUG
+  /* check EBody */
+  ebody = (egEBody *) EBody->blind;
+  for (i = 0; i < ebody->eshells.nobjs; i++) {
+    esh = (egEShell *) ebody->eshells.objs[i]->blind;
+    if (esh == NULL) {
+      printf(" EGADS Error: Bad EShell %d!\n", i+1);
+    } else {
+      for (j = 0; j < esh->efaces.nobjs; j++) {
+        for (k = 0; k < ebody->efaces.nobjs; k++)
+          if (esh->efaces.objs[j] == ebody->efaces.objs[k]) break;
+        if (k == ebody->efaces.nobjs) {
+          printf(" EGADS Error: EShell/EFace Not in Body %d/%d!\n", i+1, j+1);
+        }
+      }
+    }
+  }
+  for (i = 0; i < ebody->efaces.nobjs; i++) {
+    eface = (egEFace *) ebody->efaces.objs[i]->blind;
+    if (eface == NULL) {
+      printf(" EGADS Error: Bad EFace %d!\n", i+1);
+    } else {
+      for (j = 0; j < eface->eloops.nobjs; j++) {
+        for (k = 0; k < ebody->eloops.nobjs; k++)
+          if (eface->eloops.objs[j] == ebody->eloops.objs[k]) break;
+        if (k == ebody->eloops.nobjs) {
+          printf(" EGADS Error: EFace/ELoop Not in Body %d/%d!\n", i+1, j+1);
+        }
+      }
+    }
+  }
+  for (i = 0; i < ebody->eloops.nobjs; i++) {
+    eloop = (egELoop *) ebody->eloops.objs[i]->blind;
+    if (eloop == NULL) {
+      printf(" EGADS Error: Bad ELoop %d!\n", i+1);
+    } else {
+      for (j = 0; j < eloop->eedges.nobjs; j++) {
+        for (k = 0; k < ebody->eedges.nobjs; k++)
+          if (eloop->eedges.objs[j] == ebody->eedges.objs[k]) break;
+        if (k == ebody->eedges.nobjs) {
+          printf(" EGADS Error: ELoop/EEdge Not in Body %d/%d!\n", i+1, j+1);
+        }
+      }
+    }
+  }
+  for (i = 0; i < ebody->eedges.nobjs; i++) {
+    eedge = (egEEdge *) ebody->eedges.objs[i]->blind;
+    if (eedge == NULL) printf(" EGADS Error: Bad EEdge %d!\n", i+1);
+  }
+#endif
+  
   return EGADS_SUCCESS;
   
 restore:
@@ -6606,7 +6749,12 @@ EG_makeAttrEFaces(egObject *EBody, const char *attrName, int *nEFace,
         if (index > EGADS_SUCCESS) {
           mark[index-1]++;
 #ifdef DEBUG
-          printf(" ...Using Face %d\n", index);
+          {
+            double uvbox[4];
+            (void) EG_getRangX(faces[0], uvbox, &m);
+            printf(" ...Using Face %d  [%lf %lf  %lf %lf]\n",
+                   index, uvbox[0], uvbox[1], uvbox[2], uvbox[3]);
+          }
 #endif
         } else {
           printf(" EGADS Warning: EG_indexBodyTopo = %d (EG_makeAttrEFaces)!\n",
@@ -6619,7 +6767,12 @@ EG_makeAttrEFaces(egObject *EBody, const char *attrName, int *nEFace,
       if (index > EGADS_SUCCESS) {
         mark[index-1]++;
 #ifdef DEBUG
-        printf(" ...Using Face %d\n", index);
+        {
+          double uvbox[4];
+          (void) EG_getRangX(faces[nFace], uvbox, &m);
+          printf(" ...Using Face %d  [%lf %lf  %lf %lf]\n",
+                 index, uvbox[0], uvbox[1], uvbox[2], uvbox[3]);
+        }
 #endif
       } else {
         printf(" EGADS Warning: EG_indexBodyTopo = %d (EG_makeAttrEFaces)!\n",

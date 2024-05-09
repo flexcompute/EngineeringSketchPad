@@ -7,6 +7,9 @@ import shutil
 
 import pyCAPS
 
+from Mesh_Formats import Mesh_Formats
+Mesh_Formats = Mesh_Formats.copy()
+
 class TestAFLR4(unittest.TestCase):
 
 
@@ -44,12 +47,6 @@ class TestAFLR4(unittest.TestCase):
 
         myAnalysis.input.Mesh_Quiet_Flag = True
 
-        # Set project name so a mesh file is generated
-        myAnalysis.input.Proj_Name = "pyCAPS_AFLR4_Test"
-
-        # Set output grid format since a project name is being supplied - Tecplot  file
-        myAnalysis.input.Mesh_Format = "Tecplot"
-
         myAnalysis.input.Mesh_Length_Factor = -1
 
         with self.assertRaises(pyCAPS.CAPSError) as e:
@@ -67,8 +64,7 @@ class TestAFLR4(unittest.TestCase):
 
         myAnalysis.input.Proj_Name = "pyCAPS_AFLR4_Test"
         myAnalysis.input.Mesh_Quiet_Flag = True
-        myAnalysis.input.Mesh_Format = "Tecplot"
-        myAnalysis.input.Mesh_ASCII_Flag = True
+        myAnalysis.input.Mesh_Format = "tecplot"
         myAnalysis.input.Mesh_Gen_Input_String = "auto_mode=0"
         myAnalysis.input.ff_cdfr = 1.4
         myAnalysis.input.min_ncell = 20
@@ -80,9 +76,12 @@ class TestAFLR4(unittest.TestCase):
         myAnalysis.input.min_scale = 0.01
         myAnalysis.input.Mesh_Length_Factor = 1.05
         myAnalysis.input.erw_all = 0.7
+        myAnalysis.input.Multiple_Mesh = "MultiDomain"
+        myAnalysis.input.EGADS_Quad = False
+        myAnalysis.input.AFLR4_Quad = False
 
 #==============================================================================
-    def test_SingleBody_AnalysisOutVal(self):
+    def test_SingleBody_output(self):
 
         file = os.path.join("..","csmData","cfdSingleBody.csm")
         myProblem = pyCAPS.Problem(self.problemName+str(self.iProb), capsFile=file, outLevel=0); self.__class__.iProb += 1
@@ -110,7 +109,7 @@ class TestAFLR4(unittest.TestCase):
 
 
 #==============================================================================
-    def test_MultiBody(self):
+    def test_MultiBody_quad(self):
 
         file = os.path.join("..","csmData","cfdMultiBody.csm")
         myProblem = pyCAPS.Problem(self.problemName+str(self.iProb), capsFile=file, outLevel=0); self.__class__.iProb += 1
@@ -121,6 +120,19 @@ class TestAFLR4(unittest.TestCase):
 
         # Run
         myAnalysis.runAnalysis()
+
+        # Assert AnalysisOutVals
+        self.assertTrue(myAnalysis.output.Done)
+
+        numNodes = myAnalysis.output.NumberOfNode
+        self.assertGreater(numNodes, 0)
+        numElements = myAnalysis.output.NumberOfElement
+        self.assertGreater(numElements, 0)
+
+        myAnalysis.input.AFLR4_Quad= True
+
+        self.assertNotEqual(myAnalysis.output.NumberOfNode, numNodes)
+        self.assertNotEqual(myAnalysis.output.NumberOfElement, numElements)
 
 #==============================================================================
     def test_reenter(self):
@@ -133,6 +145,8 @@ class TestAFLR4(unittest.TestCase):
         myAnalysis.input.Mesh_Quiet_Flag = True
 
         myAnalysis.input.Mesh_Length_Factor = 1
+
+        myAnalysis.input.Mesh_Format = Mesh_Formats
 
         # Run 1st time
         myAnalysis.runAnalysis()
@@ -287,10 +301,163 @@ class TestAFLR4(unittest.TestCase):
         aflr4.input.ff_cdfr   = 1.4
 
         # Just make sure it runs without errors...
+        aflr4.input.Multiple_Mesh = 'SingleDomain'
+        aflr4.runAnalysis()
+        aflr4.input.Multiple_Mesh = 'MultiDomain'
+        aflr4.runAnalysis()
+        aflr4.input.Multiple_Mesh = 'MultiFile'
         aflr4.runAnalysis()
 
         #aflr4.geometry.view()
 
+#==============================================================================
+    def test_faceMatch(self):
+        
+        file = os.path.join("..","csmData","multiRegions.csm")
+        
+        problemName = self.problemName + "_faceMatch"
+        myProblem = pyCAPS.Problem(problemName, capsFile=file, outLevel=0)
+
+        aflr4 = myProblem.analysis.create(aim = "aflr4AIM",
+                                          name = "aflr4_2",
+                                          capsIntent = ["regions2"])
+        aflr4.input.Mesh_Quiet_Flag = True
+
+        # Just make sure it runs without errors...
+        aflr4.input.Multiple_Mesh = 'SingleDomain'
+        aflr4.runAnalysis()
+        aflr4.input.Multiple_Mesh = 'MultiDomain'
+        aflr4.runAnalysis()
+        aflr4.input.Multiple_Mesh = 'MultiFile'
+        aflr4.runAnalysis()
+            
+        #aflr4.geometry.view()
+
+        aflr4 = myProblem.analysis.create(aim = "aflr4AIM",
+                                          name = "aflr4_3",
+                                          capsIntent = ["regions2", "regions3"])
+        aflr4.input.Mesh_Quiet_Flag = True
+
+        # Just make sure it runs without errors...
+        aflr4.input.Multiple_Mesh = 'SingleDomain'
+        aflr4.runAnalysis()
+        aflr4.input.Multiple_Mesh = 'MultiDomain'
+        aflr4.runAnalysis()
+        aflr4.input.Multiple_Mesh = 'MultiFile'
+        aflr4.runAnalysis()
+
+        #aflr4.geometry.view()
+
+        aflr4 = myProblem.analysis.create(aim = "aflr4AIM",
+                                          name = "aflr4_4",
+                                          capsIntent = ["regions2", "regions3", "regions4"])
+        aflr4.input.Mesh_Quiet_Flag = True
+
+        # Just make sure it runs without errors...
+        aflr4.input.Multiple_Mesh = 'SingleDomain'
+        aflr4.runAnalysis()
+        aflr4.input.Multiple_Mesh = 'MultiDomain'
+        aflr4.runAnalysis()
+        aflr4.input.Multiple_Mesh = 'MultiFile'
+        aflr4.runAnalysis()
+
+        #aflr4.geometry.view()
+
+        aflr4 = myProblem.analysis.create(aim = "aflr4AIM",
+                                          name = "aflr4_5",
+                                          capsIntent = ["regions2", "regions3", "regions4", "regions5"])
+        aflr4.input.Mesh_Quiet_Flag = True
+
+        # Just make sure it runs without errors...
+        aflr4.input.Multiple_Mesh = 'SingleDomain'
+        aflr4.runAnalysis()
+        aflr4.input.Multiple_Mesh = 'MultiDomain'
+        aflr4.runAnalysis()
+        aflr4.input.Multiple_Mesh = 'MultiFile'
+        aflr4.runAnalysis()
+
+        #aflr4.geometry.view()
+
+        aflr4 = myProblem.analysis.create(aim = "aflr4AIM",
+                                          name = "aflr4_6",
+                                          capsIntent = ["regions2", "regions3", "regions4", "regions5", "regions6"])
+        aflr4.input.Mesh_Quiet_Flag = True
+
+        # Just make sure it runs without errors...
+        aflr4.input.Multiple_Mesh = 'SingleDomain'
+        aflr4.runAnalysis()
+        aflr4.input.Multiple_Mesh = 'MultiDomain'
+        aflr4.runAnalysis()
+        aflr4.input.Multiple_Mesh = 'MultiFile'
+        aflr4.runAnalysis()
+
+        #aflr4.geometry.view()
+
+        aflr4 = myProblem.analysis.create(aim = "aflr4AIM",
+                                          name = "aflr4_7",
+                                          capsIntent = ["regions2", "regions3", "regions4", "regions5", "regions6", "regions7"])
+        aflr4.input.Mesh_Quiet_Flag = True
+
+        # Just make sure it runs without errors...
+        aflr4.input.Multiple_Mesh = 'SingleDomain'
+        aflr4.runAnalysis()
+        aflr4.input.Multiple_Mesh = 'MultiDomain'
+        aflr4.runAnalysis()
+        aflr4.input.Multiple_Mesh = 'MultiFile'
+        aflr4.runAnalysis()
+
+        #aflr4.geometry.view()
+
+        aflr4 = myProblem.analysis.create(aim = "aflr4AIM",
+                                          name = "aflr4_8",
+                                          capsIntent = ["regions2", "regions3", "regions4", "regions5", "regions6", "regions7", "regions8"])
+        aflr4.input.Mesh_Quiet_Flag = True
+
+        # Just make sure it runs without errors...
+        aflr4.input.Multiple_Mesh = 'SingleDomain'
+        aflr4.runAnalysis()
+        aflr4.input.Multiple_Mesh = 'MultiDomain'
+        aflr4.runAnalysis()
+        aflr4.input.Multiple_Mesh = 'MultiFile'
+        aflr4.runAnalysis()
+
+        #aflr4.geometry.view()
+
+#==============================================================================
+    def test_faceMatch_MultiDomain(self):
+
+        for csm in [
+                    "example1", 
+                    "example2", 
+                    "example3", 
+                    "example4", 
+                   # "example5", 
+                    "example6", 
+                    "example7", 
+                    "example8", 
+                    "example9",
+                    "multi_prim",
+                    "cyl_seam",
+                    ]:
+            file = os.path.join("..","csmData","MultiDomain",csm+".csm")
+
+            print(file)
+            problemName = self.problemName + "_faceMatch_" + csm
+            myProblem = pyCAPS.Problem(problemName, capsFile=file, outLevel=0)
+            
+            aflr4 = myProblem.analysis.create(aim = "aflr4AIM")
+            
+            aflr4.input.Mesh_Format = "tecplot"
+            aflr4.input.Mesh_Quiet_Flag = True
+            aflr4.input.Mesh_Length_Factor = 1
+            aflr4.input.min_scale = 0.05
+            #aflr4.input.max_scale = 0.5
+            aflr4.input.Multiple_Mesh = 'SingleDomain'
+            aflr4.runAnalysis()
+            aflr4.input.Multiple_Mesh = 'MultiDomain'
+            aflr4.runAnalysis()
+            aflr4.input.Multiple_Mesh = 'MultiFile'
+            aflr4.runAnalysis()
 
 #==============================================================================
     def test_phase(self):
@@ -332,7 +499,6 @@ class TestAFLR4(unittest.TestCase):
         # Check that the counts have decreased
         self.assertGreater(NumberOfNode_1   , NumberOfNode_2   )
         self.assertGreater(NumberOfElement_1, NumberOfElement_2)
-
 
 #==============================================================================
     def run_journal(self, myProblem, line_exit):

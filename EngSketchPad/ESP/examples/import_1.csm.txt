@@ -1,0 +1,29 @@
+# import_1
+# written by John Dannenhoffer
+
+# create a box
+BOX       0  0  0  4  3  2
+
+# create the file dump_1.stp and remove the box from the stack
+DUMP      dump_1.stp 1
+
+# create a cylinder
+CYLINDER  0  5  1  4  5  1  1
+
+# create the file dump_1.egads with the tessellation and remove the cylinder from the stack
+DUMP      dump_1.egads  1  0  1
+
+# assure that the stack is empty
+ASSERT    @stack[1]  -1
+
+# import the cylinder and make it red
+IMPORT    dump_1.egads
+SELECT    FACE
+ATTRIBUTE _color $red
+
+# import the box and make it green
+IMPORT    dump_1.stp
+SELECT    FACE
+ATTRIBUTE _color $green
+
+END

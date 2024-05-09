@@ -3,6 +3,8 @@
 
 box             1.00      1.00     -1.00      3.00      4.00      2.00
 
+# note: MACBEG/MACEND/RECALL has been deprecated and is included here for backward-compatability testing
+#       new .csm files should use UDPRIM instead
 macbeg 1
    cylinder        0.00      0.00     -1.50      0.00      0.00      1.50      1.00
    box             0.00     -0.25     -1.00      1.50      0.500     2.00

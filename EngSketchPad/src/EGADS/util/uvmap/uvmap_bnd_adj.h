@@ -1,4 +1,4 @@
-void uvmap_bnd_adj (
+INT_ uvmap_bnd_adj (
   INT_ icc,
   INT_ nbedge,
   INT_ nnodei,

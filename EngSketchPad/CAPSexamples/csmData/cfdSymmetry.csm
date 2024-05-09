@@ -24,7 +24,7 @@ OUTPMTR  cmean
 
 # Specify Euler equations
 ## [capsAIM]
-ATTRIBUTE capsAIM $fun3dAIM;su2AIM;egadsTessAIM;aflr4AIM;pointwiseAIM;tetgenAIM;aflr3AIM #CFD Analysis
+ATTRIBUTE capsAIM $fun3dAIM;su2AIM;egadsTessAIM;aflr4AIM;pointwiseAIM;tetgenAIM;aflr3AIM;refineAIM #CFD Analysis
 ## [capsAIM]
 
 ## [capsAttributes]

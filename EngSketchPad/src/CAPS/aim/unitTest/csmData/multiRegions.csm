@@ -1,0 +1,75 @@
+
+ATTRIBUTE capsAIM $aflr4AIM;aflr3AIM
+ATTRIBUTE capsMeshLength 1
+
+MARK
+BOX 0 0 0 1 1 1
+   ATTRIBUTE capsIntent $regions2
+   ATTRIBUTE capsGroup $wall
+BOX 1 0 0 1 1 1
+   ATTRIBUTE capsIntent $regions2
+   ATTRIBUTE capsGroup $wall
+#DUMP regions2.egads 0 1
+
+BOX -1 0 0 1 1 1
+   ATTRIBUTE capsIntent $regions3
+   ATTRIBUTE capsGroup $wall
+#DUMP regions3.egads 0 1
+   
+BOX  0 -1 0 1 1 1
+   ATTRIBUTE capsIntent $regions4
+   ATTRIBUTE capsGroup $wall
+#DUMP regions4.egads 0 1
+
+BOX  0 0 -1 1 1 1
+   ATTRIBUTE capsIntent $regions5
+   ATTRIBUTE capsGroup $wall
+#DUMP regions5.egads 0 1
+
+BOX  0 1 0 1 1 1
+   ATTRIBUTE capsIntent $regions6
+   ATTRIBUTE capsGroup $wall
+#DUMP regions6.egads 0 1
+
+BOX  0 0 1 1 1 1
+   ATTRIBUTE capsIntent $regions7
+   ATTRIBUTE capsGroup $wall
+#DUMP regions7.egads 0 1
+
+BOX  -1 -1 0 1 1 1
+   ATTRIBUTE capsIntent $regions8
+   ATTRIBUTE capsGroup $wall
+BOX  -1  1 0 1 1 1
+   ATTRIBUTE capsIntent $regions8
+   ATTRIBUTE capsGroup $wall
+BOX   1 -1 0 1 1 1
+   ATTRIBUTE capsIntent $regions8
+   ATTRIBUTE capsGroup $wall
+BOX   1  1 0 1 1 1
+   ATTRIBUTE capsIntent $regions8
+   ATTRIBUTE capsGroup $wall
+BOX  -1 -1 -1 1 1 1
+   ATTRIBUTE capsIntent $regions8
+   ATTRIBUTE capsGroup $wall
+BOX  -1  1 -1 1 1 1
+   ATTRIBUTE capsIntent $regions8
+   ATTRIBUTE capsGroup $wall
+BOX   1 -1 -1 1 1 1
+   ATTRIBUTE capsIntent $regions8
+   ATTRIBUTE capsGroup $wall
+BOX   1  1 -1 1 1 1
+   ATTRIBUTE capsIntent $regions8
+   ATTRIBUTE capsGroup $wall
+BOX  -1 -1  1 1 1 1
+   ATTRIBUTE capsIntent $regions8
+   ATTRIBUTE capsGroup $wall
+BOX  -1  1  1 1 1 1
+   ATTRIBUTE capsIntent $regions8
+   ATTRIBUTE capsGroup $wall
+BOX   1 -1  1 1 1 1
+   ATTRIBUTE capsIntent $regions8
+   ATTRIBUTE capsGroup $wall
+BOX   1  1  1 1 1 1
+   ATTRIBUTE capsIntent $regions8
+   ATTRIBUTE capsGroup $wall
+#DUMP regions8.egads 0 1

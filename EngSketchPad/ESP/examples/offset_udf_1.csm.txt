@@ -1,0 +1,18 @@
+# offset_udf_1
+# written by John Dannenhoffer
+
+DIMENSION dist      1  5
+DESPMTR   dist      "0.001; 0.005; 0.01; 0.05; 0.10"
+
+# base shape (SheetBody)
+UDPARG    naca      thickness 0.12
+UDPRIM    naca      camber    0.12
+STORE     base  0  1
+
+# various offsets
+PATBEG    idist     dist.size
+   RESTORE   base
+   UDPRIM    offset    dist dist[idist]
+PATEND
+
+END

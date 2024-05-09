@@ -66,7 +66,7 @@ $(function() {
 <div class="title">AIM Inputs </div>  </div>
 </div><!--header-->
 <div class="contents">
-<div class="textblock"><p>For the description of the configuration variables, associated values, and available options refer to the template configuration file that is distributed with SU2. Note: The configuration file is dependent on the version of SU2 used. This configuration file that will be auto generated is compatible with SU2 4.1.1. (Cardinal), 5.0.0 (Raven), 6.2.0 (Falcon) or 7.3.1 (Blackbird - Default)</p>
+<div class="textblock"><p>For the description of the configuration variables, associated values, and available options refer to the template configuration file that is distributed with SU2. Note: The configuration file is dependent on the version of SU2 used. This configuration file that will be auto generated is compatible with SU2 4.1.1. (Cardinal), 5.0.0 (Raven), 6.2.0 (Falcon), 7.5.1 (Blackbird) or 8.0.1 (Harrier - Default)</p>
 <ul>
 <li><b> Proj_Name = "su2_CAPS"</b> <br  />
  This corresponds to the project "root" name.</li>
@@ -124,28 +124,32 @@ $(function() {
  Value to scale Cp or Pressure data when transferring data. Data is scaled based on Pressure = Pressure_Scale_Factor*Cp + Pressure_Scale_Offset.</li>
 <li><b>Pressure_Scale_Offset = 0.0</b> <br  />
  Value to offset Cp or Pressure data when transferring data. Data is scaled based on Pressure = Pressure_Scale_Factor*Cp + Pressure_Scale_Offset.</li>
+<li><b>Temperature_Scale_Factor = 1.0</b> <br  />
+ Value to scale Temperature data when transferring data.</li>
 <li><b> Output_Format = "Paraview"</b> <br  />
  Output file format; this corresponds to the OUTPUT_FORMAT keyword in the configuration file. See SU2 template for additional details.</li>
 <li><b>Two_Dimensional = False</b> <br  />
  Run SU2 in 2D mode.</li>
 <li><b> Convective_Flux = "Roe"</b> <br  />
  Numerical method for convective (inviscid) flux construction; this corresponds to the CONV_NUM_METHOD_FLOW keyword in the configuration file. See SU2 template for additional details.</li>
-<li><b>SU2_Version = "Blackbird"</b> <br  />
- SU2 version to generate specific configuration file. Options: "Cardinal(4.0)", "Raven(5.0)", "Falcon(6.2)" or "Blackbird(7.3.1)".</li>
+<li><b>SU2_Version = "Harrier"</b> <br  />
+ SU2 version to generate specific configuration file. Options: "Cardinal(4.0)", "Raven(5.0)", "Falcon(6.2)", "Blackbird(7.5.1)" or "Harrier(8.0.1)".</li>
 <li><b>Surface_Monitor = NULL</b> <br  />
  Array of surface names where the non-dimensional coefficients are evaluated</li>
 <li><b>Surface_Deform = NULL</b> <br  />
  Array of surface names that should be deformed. Defaults to all inviscid and viscous surfaces.</li>
 <li><b>Input_String = NULL</b> <br  />
  Array of input strings that will be written as is to the end of the SU2 cfg file.</li>
+<li><b> Mesh_Morph = False</b> <br  />
+ Project previous surface mesh onto new geometry.</li>
 <li><b>Mesh = NULL</b> <br  />
- A Area_Mesh or Volume_Mesh link for 2D and 3D calculations respectively. </li>
+ An Area_Mesh or Volume_Mesh link for 2D and 3D calculations respectively. </li>
 </ul>
 </div></div><!-- contents -->
 </div><!-- PageDoc -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Sat Jul 2 2022 10:12:56 for SU2 Analysis Interface Module (AIM) by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1
+Generated on Sat Apr 27 2024 16:51:50 for SU2 Analysis Interface Module (AIM) by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1
 </small></address>
 </body>
 </html>

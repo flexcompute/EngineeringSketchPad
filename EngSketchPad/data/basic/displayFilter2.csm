@@ -1,0 +1,57 @@
+# displayFilter2
+# written by John Dannenhoffer
+
+#   DisplayFilter ? <cr>                tag, ds
+#   DisplayFilter ds ? <cr>             0.1 -> 0.6
+
+#   DisplayFilter  * ~face*             all Nodes, Edges, and Faces
+#   DisplayFilter  tag node*            all Nodes
+#   DisplayFilter  tag *_2              one Node, Edge, and Face
+#   DisplayFilter  tag ~face*           all Nodes and Edges
+#   DisplayFilter ~tag ~face*           all Nodes and Edges
+#   DisplayFilter ~tag 0.2              one Edge
+
+#   DisplayFilter  ds *                 six Edges
+#   DisplayFilter  ds 0.2               one Edge
+#   DisplayFilter  ds ~0.2              report error
+#   DisplayFilter ~ds *                 all Faces, six Edges, all Nodes
+#   DisplayFilter ~ds 0.2               nothing
+
+#   DisplayFilter  myTag *              xmin, xmax, ymin, and ymax Faces
+#   DisplayFilter ~myTag *              All Node, all Edges, zmin and zmax Faces
+#   DisplayFilter  myTag ~x             ymin and ymax Faces
+
+BOX       0  0  0  4  3  2
+
+PATBEG    iface  6
+   SELECT    FACE  iface
+   ATTRIBUTE tag   !$face_+iface
+PATEND
+
+PATBEG    iedge  12
+   SELECT    EDGE  iedge
+   ATTRIBUTE tag   !$edge_+iedge
+PATEND
+
+PATBEG    iedge  6
+   SELECT    EDGE  iedge
+   ATTRIBUTE ds    iedge/10
+PATEND
+
+PATBEG    inode  8
+   SELECT    NODE  inode
+   ATTRIBUTE tag   !$node_+inode
+   ATTRIBUTE _viz  $on
+PATEND
+
+SELECT    FACE  1
+SELECT    ADD   2
+ATTRIBUTE myTag $x
+
+SELECT    FACE  3
+SELECT    ADD   4
+ATTRIBUTE myTag $y
+
+END
+
+

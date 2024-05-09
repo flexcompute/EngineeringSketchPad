@@ -3,7 +3,7 @@
  *
  *             Export a Model (via a string) for use in egadsLite
  *
- *      Copyright 2011-2022, Massachusetts Institute of Technology
+ *      Copyright 2011-2024, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -1744,7 +1744,7 @@ EG_exportEBody(egObject *EBody, stream_T *fp)
     }
     if (Fwrite(eface->senses, sizeof(int), eface->eloops.nobjs, fp) !=
         eface->eloops.nobjs) return EGADS_WRITERR;
-    for (j = 0; j < eface->npatch; j++) {
+    for (j = 0; j < abs(eface->npatch); j++) {
       k = EG_indexBodyTopo(body, eface->patches[j].face);
       if (k <= EGADS_SUCCESS) {
         printf(" EGADS Error: Face %d index = %d in EFace %d (EG_exportEBody)!\n",

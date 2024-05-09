@@ -482,11 +482,11 @@ class Fraction(OptimizationObject):
 # Evaluates the variable to a quantity by taking in a design point
 # =====================================================================================================================
     def evaluate(self, x_star):
-        res = self.substitute(substitutions = x_star)
-        if isinstance(res, Q_):
-            return res
-        else:
-            raise ValueError('Insufficent variables defined in the solution dictionary')
+        num = self.numerator.evaluate(x_star)
+        if num.magnitude == 0: 
+            return Q_(0, self.units)
+        dem = self.denominator.evaluate(x_star)
+        return num / dem
 # =====================================================================================================================
 # Evaluates the sensitivity of a constant
 # =====================================================================================================================

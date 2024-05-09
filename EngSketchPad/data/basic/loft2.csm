@@ -1542,6 +1542,8 @@ mark
      spline       1.20327   0.00000   0.61460
      linseg       1.20327   0.00000   0.81467
   skend
+# note: LOFT has been deprecated and is included here for backward-compatability testing
+#       new .csm files should use RULE or BLEND instead
 loft 1
 
 end

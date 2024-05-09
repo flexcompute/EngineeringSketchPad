@@ -469,7 +469,8 @@ static int createMesh(void *aimInfo, aimStorage *hsmInstance)
         }
 
         if (numFEAMesh > 0) printf("Combining multiple FEA meshes!\n");
-        status = mesh_combineMeshStruct(numFEAMesh,
+        status = mesh_combineMeshStruct(aimInfo,
+                                        numFEAMesh,
                                         (meshStruct *) meshVal->vals.AIMptr,
                                         &hsmInstance->feaProblem.feaMesh);
         AIM_STATUS(aimInfo, status);
@@ -551,7 +552,8 @@ static int createMesh(void *aimInfo, aimStorage *hsmInstance)
         if (hsmInstance->numMesh > 1) printf("Combining multiple FEA meshes!\n");
         // Combine fea meshes into a single mesh for the problem
 /*@-nullpass@*/
-        status = mesh_combineMeshStruct(hsmInstance->numMesh,
+        status = mesh_combineMeshStruct(aimInfo,
+                                        hsmInstance->numMesh,
                                         hsmInstance->feaMesh,
                                         &hsmInstance->feaProblem.feaMesh);
         AIM_STATUS(aimInfo, status);
@@ -775,15 +777,14 @@ int aimInputs(void *instStore, /*@unused@*/ void *aimInfo, int index,
          */
     } else if (index == Mesh) {
         *ainame             = AIM_NAME(Mesh);
-        defval->type        = Pointer;
+        defval->type        = PointerMesh;
         defval->dim         = Vector;
         defval->lfixed      = Change;
-        defval->sfixed      = Change;
+        defval->sfixed      = Fixed;
         defval->vals.AIMptr = NULL;
         defval->nullVal     = IsNull;
-        AIM_STRDUP(defval->units, "meshStruct", aimInfo, status);
 
-        /*! \page aimInputsAstros
+        /*! \page aimInputsHSM
          * - <B>Mesh = NULL</B> <br>
          * A Mesh link.
          */
@@ -857,7 +858,8 @@ int aimUpdateState(void *instStore, void *aimInfo,
 
     // Set constraint properties
     if (aimInputs[Constraint-1].nullVal == NotNull) {
-        status = fea_getConstraint(aimInputs[Constraint-1].length,
+        status = fea_getConstraint(aimInfo,
+                                   aimInputs[Constraint-1].length,
                                    aimInputs[Constraint-1].vals.tuple,
                                    &hsmInstance->constraintMap,
                                    &hsmInstance->feaProblem);
@@ -867,7 +869,8 @@ int aimUpdateState(void *instStore, void *aimInfo,
 
     // Set load properties
     if (aimInputs[Load-1].nullVal == NotNull) {
-        status = fea_getLoad(aimInputs[Load-1].length,
+        status = fea_getLoad(aimInfo,
+                             aimInputs[Load-1].length,
                              aimInputs[Load-1].vals.tuple,
                              &hsmInstance->loadMap,
                              &hsmInstance->feaProblem);
@@ -980,6 +983,12 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
                                                       &hsmInstance->feaProblem.feaMesh,
                                                       &feaLoad[i]);
                 AIM_STATUS(aimInfo, status);
+            } else if (feaLoad[i].loadType == ThermalExternal) {
+
+                // Transfer external temperature from the AIM discrObj
+                status = fea_transferExternalTemperature(aimInfo,
+                                                         &feaLoad[i]);
+                AIM_STATUS(aimInfo, status);
             }
         }
     }
@@ -1002,6 +1011,8 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
                                    filename,
                                    1,
                                    &hsmInstance->feaProblem.feaMesh,
+                                   hsmInstance->feaProblem.numProperty,
+                                   hsmInstance->feaProblem.feaProperty,
                                    SmallField,
                                    1.0);
         AIM_STATUS(aimInfo, status);

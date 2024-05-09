@@ -1,0 +1,24 @@
+# offsetIc
+# written by John Dannenhoffer
+
+BOX       0  0  0  2  0  2
+BOX       2  1  0  1  0  2
+RULE
+
+CYLINDER -1 -1  1  4 -1  1  1.5
+SUBTRACT
+
+SELECT    EDGE
+ATTRIBUTE _color   $magenta
+
+UDPRIM    nuscale
+
+UDPARG    offset    faceList  1;2;4;6
+UDPARG    offset    edgeList  2;6;10;12
+UDPRIM    offset    dist      0.2
+
+SELECT    FACE     $__offsetFace__  $*
+ATTRIBUTE _color   $white
+ASSERT    @sellist.size  4
+
+END

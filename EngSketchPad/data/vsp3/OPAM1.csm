@@ -1,0 +1,10 @@
+# OPAM1 (using VSP)
+# writen by John Dannenhoffer
+
+# import the geometry
+UDPRIM $/OPAM1
+
+# make a single Body
+UNION 1
+
+END

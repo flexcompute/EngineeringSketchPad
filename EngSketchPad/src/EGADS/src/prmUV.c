@@ -6,7 +6,7 @@
  * Written by John Dannenhoffer @ Syracuse University &                       *
  *            Bob Haimes @ MIT                                                *
  *                                                                            *
- * Copyright 2011-2022, Massachusetts Institute of Technology                 *
+ * Copyright 2011-2024, Massachusetts Institute of Technology                 *
  * Licensed under The GNU Lesser General Public License, version 2.1          *
  * See http://www.opensource.org/licenses/lgpl-2.1.php                        *
  ******************************************************************************
@@ -254,11 +254,11 @@ static int
 initSmat(int ni, sparseMat *mat)
 {
   int i;
-  
+
   mat->ni = ni;
   mat->is = NULL;
   if (ni <= 0) return EGADS_INDEXERR;
-  
+
   mat->is = (sparseM *) EG_alloc(ni*sizeof(sparseM));
   if (mat->is == NULL) return EGADS_MALLOC;
   for (i = 0; i < ni; i++) {
@@ -275,7 +275,7 @@ freeSmat(sparseMat *mat)
 {
   int     i;
   sparseM *next, *save;
-  
+
   if (mat->ni == 0) return;
   for (i = 0; i < mat->ni; i++) {
     next = mat->is[i].next;
@@ -285,7 +285,7 @@ freeSmat(sparseMat *mat)
       next = save;
     }
   }
-  
+
   EG_free(mat->is);
   mat->is = NULL;
   mat->ni = 0;
@@ -306,7 +306,7 @@ countSmat(sparseMat *mat)
       next = next->next;
     }
   }
-  
+
   return n;
 }
 
@@ -315,7 +315,7 @@ static int
 diagSmat(sparseMat *mat, int i)
 {
   sparseM *next, *save;
-  
+
   if ((i < 0) || (i >= mat->ni)) return EGADS_INDEXERR;
 
   next = mat->is[i].next;
@@ -325,7 +325,7 @@ diagSmat(sparseMat *mat, int i)
     next = save;
   }
   mat->is[i].next = NULL;
-  
+
   return EGADS_SUCCESS;
 }
 
@@ -334,14 +334,14 @@ static int
 setSmat(sparseMat *mat, int i, int j, double value)
 {
   sparseM *next, *save;
-  
+
   if ((i < 0) || (i >= mat->ni)) return EGADS_INDEXERR;
   if ((j < 0) || (j >= mat->ni)) return EGADS_INDEXERR;
   if (i == j) {
     mat->is[i].value = value;
     return EGADS_SUCCESS;
   }
-  
+
   /* look for existing entry */
   save = &mat->is[i];
   next =  mat->is[i].next;
@@ -353,7 +353,7 @@ setSmat(sparseMat *mat, int i, int j, double value)
     save = next;
     next = next->next;
   }
-  
+
   /* none found -- make one */
   next = (sparseM *) EG_alloc(sizeof(sparseM));
   if (next == NULL) return EGADS_MALLOC;
@@ -361,7 +361,7 @@ setSmat(sparseMat *mat, int i, int j, double value)
   next->j     = j;
   next->next  = NULL;
   save->next  = next;
-  
+
   return EGADS_SUCCESS;
 }
 
@@ -370,7 +370,7 @@ static int
 getSmat(sparseMat *mat, int i, int j, double *value)
 {
   sparseM *next;
-  
+
   *value = 0.0;
   if ((i < 0) || (i >= mat->ni)) return EGADS_INDEXERR;
   if ((j < 0) || (j >= mat->ni)) return EGADS_INDEXERR;
@@ -378,7 +378,7 @@ getSmat(sparseMat *mat, int i, int j, double *value)
     *value = mat->is[i].value;
     return EGADS_SUCCESS;
   }
-  
+
   /* look for existing entry */
   next = mat->is[i].next;
   while (next != NULL) {
@@ -388,7 +388,7 @@ getSmat(sparseMat *mat, int i, int j, double *value)
     }
     next = next->next;
   }
-  
+
   /* none found */
   return EGADS_NOTFOUND;
 }
@@ -398,7 +398,7 @@ static int
 sumSmat(sparseMat *mat, int i, double *sum)
 {
   sparseM *next;
-  
+
   *sum = 0.0;
   if ((i < 0) || (i >= mat->ni)) return EGADS_INDEXERR;
 
@@ -407,7 +407,7 @@ sumSmat(sparseMat *mat, int i, double *sum)
     *sum = next->value + *sum;
     next = next->next;
   }
-  
+
   return EGADS_SUCCESS;
 }
 
@@ -419,14 +419,14 @@ divSmat(sparseMat *mat, int i)
   sparseM *next;
 
   if ((i < 0) || (i >= mat->ni)) return EGADS_INDEXERR;
-  
+
   sum  = mat->is[i].value;
   next = mat->is[i].next;
   while (next != NULL) {
     sum += next->value;
     next = next->next;
   }
-  
+
   sum = -sum;
   mat->is[i].value /= sum;
   next = mat->is[i].next;
@@ -434,7 +434,7 @@ divSmat(sparseMat *mat, int i)
     next->value /= sum;
     next = next->next;
   }
-  
+
   return EGADS_SUCCESS;
 }
 
@@ -444,11 +444,11 @@ fillSmat(sparseMat *mat, int i, int *kk, double *asmf, int *ismf)
 {
   int     k;
   sparseM *next;
-  
+
   if ((i < 0) || (i >= mat->ni)) return EGADS_INDEXERR;
-  
+
   k = *kk;
-  
+
   next = mat->is[i].next;
   while (next != NULL) {
     k++;
@@ -456,7 +456,7 @@ fillSmat(sparseMat *mat, int i, int *kk, double *asmf, int *ismf)
     ismf[k] = next->j;
     next    = next->next;
   }
-  
+
   *kk = k;
   return EGADS_SUCCESS;
 }
@@ -1471,7 +1471,7 @@ floaterParameterization(int        ntri,     /* (in)   number of Triangles */
             routine, ntri, nvrt);
 
     /* ----------------------------------------------------------------------- */
-  
+
     amat.ni = 0;
     amat.is = NULL;
 
@@ -2102,9 +2102,9 @@ floaterParameterization(int        ntri,     /* (in)   number of Triangles */
       status = getSmat(&amat, j, j, &asmf[j]);
       CHECK_STATUS;
     }
-  
+
     ismf[0] = nvrt + 2;
-  
+
     k = nvrt + 1;
     for (i = 0; i < nvrt; i++) {
       status = fillSmat(&amat, i, &k, asmf, ismf);
@@ -2555,7 +2555,10 @@ simpleProjection(int      ntri,              /* (in)   number of Triangles */
 
     double      area, norm[3];
     int         itri, ivrt, iposx, inegx, iposy, inegy, iposz, inegz;
-    int         iv0, iv1, iv2, npos, nneg;
+    int         iv0, iv1, iv2, nneg;
+#ifdef DEBUG
+    int         npos;
+#endif
 
     double      sin10 = 0.17365;
 
@@ -2649,7 +2652,9 @@ simpleProjection(int      ntri,              /* (in)   number of Triangles */
      */
     if (status == PRM_OK_SIMPLE) {
         nneg = 0;
+#ifdef DEBUG
         npos = 0;
+#endif
         for (itri = 0; itri < ntri; itri++) {
             iv0 = tri[itri].indices[0] - 1;
             iv1 = tri[itri].indices[1] - 1;
@@ -2659,11 +2664,15 @@ simpleProjection(int      ntri,              /* (in)   number of Triangles */
                  - (uv[iv1].v - uv[iv0].v) * (uv[iv2].u - uv[iv0].u);
             if (area < 0) {
                 nneg++;
+#ifdef DEBUG
             } else if (area > 0) {
                 npos++;
+#endif
             }
         }
+#ifdef DEBUG
         DPRINT3("ntri=%d   nneg=%d   npos=%d", ntri, nneg, npos);
+#endif
 
         if (nneg != 0) {
             status = PRM_NOGLOBALUV;
@@ -3920,7 +3929,7 @@ sparseBCG(double   asmf[],                   /* (in)   sparse-matrix data */
 #ifdef DEBUG
     if (status == PRM_ZEROPIVOT || status == PRM_NOTCONVERGED) {
         double check;
-      
+
         DPRINT1("Sparse matrix that caused status=%d", status);
 
         for (i = 0; i < ismf[0]-1; i++) {
@@ -4630,7 +4639,7 @@ prm_SmoothUV(int      type,                  /* (in)   smoothing type =1 for bou
 
     status = initSmat(nvrt, &amat);
     CHECK_STATUS;
-  
+
     /*
      * malloc the necessary arrays
      */
@@ -5047,7 +5056,7 @@ prm_SmoothUV(int      type,                  /* (in)   smoothing type =1 for bou
         /*
          * store the matrix in sparse-matrix form
          */
-      
+
         for (j = 0; j < nvrt; j++) {
             status = getSmat(&amat, j, j, &asmf[j]);
             CHECK_STATUS;

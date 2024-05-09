@@ -24,21 +24,23 @@ class TestSU2(unittest.TestCase):
 
         cls.myGeometry = cls.myProblem.geometry
 
-        egadsTess = cls.myProblem.analysis.create(aim = "egadsTessAIM")
+        aflr4 = cls.myProblem.analysis.create(aim = "aflr4AIM",
+                                              name = "aflr4")
 
         # Modify local mesh sizing parameters
-        egadsTess.input.Tess_Params = [0.5, 0.01, 15.0]
-        Mesh_Sizing = {"Farfield": {"tessParams" : [7.,  2., 20.0]}}
-        egadsTess.input.Mesh_Sizing = Mesh_Sizing
+        aflr4.input.Mesh_Quiet_Flag = True
+        aflr4.input.Mesh_Length_Factor = 2
+        aflr4.input.min_scale = 0.1
+        aflr4.input.ff_cdfr = 1.1
 
-        tetgen = cls.myProblem.analysis.create(aim = "tetgenAIM",
-                                               name = "tetgen")
+        aflr3 = cls.myProblem.analysis.create(aim = "aflr3AIM",
+                                              name = "aflr3")
 
-        tetgen.input["Surface_Mesh"].link(egadsTess.output["Surface_Mesh"])
+        aflr3.input["Surface_Mesh"].link(aflr4.output["Surface_Mesh"])
 
         cls.myAnalysis = cls.myProblem.analysis.create(aim = "su2AIM")
 
-        cls.myAnalysis.input["Mesh"].link(tetgen.output["Volume_Mesh"])
+        cls.myAnalysis.input["Mesh"].link(aflr3.output["Volume_Mesh"])
 
     @classmethod
     def tearDownClass(cls):
@@ -58,7 +60,7 @@ class TestSU2(unittest.TestCase):
 #==============================================================================
     # Test inputs
     def test_inputs(self):
-        
+
         self.myAnalysis.input.Proj_Name = "su2_CAPS"
         self.myAnalysis.input.Mach = 0.5
         self.myAnalysis.input.Re = 1e6
@@ -94,14 +96,14 @@ class TestSU2(unittest.TestCase):
         self.myAnalysis.input.Surface_Monitor = ["Wing1", "Wing2"]
         self.myAnalysis.input.Surface_Deform = ["Wing1", "Wing2"]
         self.myAnalysis.input.Input_String = ["value1 = 1", "value2 = 2"]
-        
+
         for version in ["Cardinal", "Raven", "Falcon", "Blackbird"]:
-            
+
             self.myAnalysis.input.SU2_Version = version
-            
+
             self.myAnalysis.preAnalysis()
             self.myAnalysis.postAnalysis()
-        
+
             self.assertEqual(os.path.isfile(os.path.join(self.myAnalysis.analysisDir, self.configFile)), True)
             os.remove(os.path.join(self.myAnalysis.analysisDir, self.configFile))
 
@@ -110,17 +112,17 @@ class TestSU2(unittest.TestCase):
     def test_invalidBoundaryName(self):
         # Create a new instance
         self.su2 = self.myProblem.analysis.create(aim = "su2AIM")
-        
-        self.tetgen = self.myProblem.analysis["tetgen"]
 
-        self.su2.input["Mesh"].link(self.tetgen.output["Volume_Mesh"])
+        self.aflr3 = self.myProblem.analysis["aflr3"]
+
+        self.su2.input["Mesh"].link(self.aflr3.output["Volume_Mesh"])
 
         self.su2.input.Boundary_Condition = {"Wing1": {"bcType" : "Inviscid"}, # No capsGroup 'X'
                                              "X": {"bcType" : "Inviscid"},
                                              "Farfield":"farfield"}
         with self.assertRaises(pyCAPS.CAPSError) as e:
             self.su2.preAnalysis()
- 
+
         self.assertEqual(e.exception.errorName, "CAPS_NOTFOUND")
         del self.su2
 
@@ -129,41 +131,41 @@ class TestSU2(unittest.TestCase):
     def test_invalidBoundary(self):
         # Create a new instance
         self.su2 = self.myProblem.analysis.create(aim = "su2AIM")
-        
-        self.tetgen = self.myProblem.analysis["tetgen"]
 
-        self.su2.input["Mesh"].link(self.tetgen.output["Volume_Mesh"])
+        self.aflr3 = self.myProblem.analysis["aflr3"]
+
+        self.su2.input["Mesh"].link(self.aflr3.output["Volume_Mesh"])
 
         self.su2.input.Boundary_Condition = {"Wing1": {"bcType" : "X"}}
-        
+
         with self.assertRaises(pyCAPS.CAPSError) as e:
             self.su2.preAnalysis()
- 
+
         self.assertEqual(e.exception.errorName, "CAPS_NOTFOUND")
         del self.su2
-        
+
 #==============================================================================
-    # Test re-enter 
+    # Test re-enter
     def test_reenter(self):
-        
+
         self.myAnalysis.input.Boundary_Condition = {"Wing1": {"bcType" : "Inviscid"},
                                                     "Wing2": {"bcType" : "Inviscid"},
                                                     "Farfield":"farfield"}
         self.myAnalysis.preAnalysis()
         self.myAnalysis.postAnalysis()
-        
+
         self.assertEqual(os.path.isfile(os.path.join(self.myAnalysis.analysisDir, self.configFile)), True)
-        
+
         os.remove(os.path.join(self.myAnalysis.analysisDir, self.configFile))
-        
+
         self.myAnalysis.input.Boundary_Condition = {"Wing1": {"bcType" : "Viscous"},
                                                     "Wing2": {"bcType" : "Inviscid"},
                                                     "Farfield":"farfield"}
         self.myAnalysis.preAnalysis()
         self.myAnalysis.postAnalysis()
-        
+
         self.assertEqual(os.path.isfile(os.path.join(self.myAnalysis.analysisDir, self.configFile)), True)
- 
+
 #==============================================================================
     def test_units(self):
 
@@ -178,7 +180,7 @@ class TestSU2(unittest.TestCase):
 
         myAnalysis = self.myProblem.analysis.create(aim = "su2AIM", unitSystem=unitSystem)
 
-        myAnalysis.input["Mesh"].link(self.myProblem.analysis["tetgen"].output["Volume_Mesh"])
+        myAnalysis.input["Mesh"].link(self.myProblem.analysis["aflr3"].output["Volume_Mesh"])
 
         myAnalysis.input.Boundary_Condition = {"Wing1": {"bcType" : "Viscous"},
                                                "Wing2": {"bcType" : "Inviscid"},
@@ -196,32 +198,31 @@ class TestSU2(unittest.TestCase):
 #==============================================================================
     def test_phase(self):
         file = os.path.join("..","csmData","cfdMultiBody.csm")
-        
+
         problemName = self.problemName + "_Phase"
         myProblem = pyCAPS.Problem(problemName, phaseName="Phase0", capsFile=file, outLevel=0)
 
         myProblem.geometry.cfgpmtr.wake = 0
 
-        egadsTess = myProblem.analysis.create(aim = "egadsTessAIM",
-                                              name = "egadsTess")
+        aflr4 = myProblem.analysis.create(aim = "aflr4AIM",
+                                          name = "aflr4")
 
-        egadsTess.input.Mesh_Quiet_Flag = True
+        aflr4.input.Mesh_Quiet_Flag = True
+        aflr4.input.Mesh_Length_Factor = 2
+        aflr4.input.min_scale = 0.1
+        aflr4.input.ff_cdfr = 1.1
 
-        # Modify local mesh sizing parameters
-        Mesh_Sizing = {"Farfield": {"tessParams" : [0.3*80, 0.2*80, 30]}}
-        egadsTess.input.Mesh_Sizing = Mesh_Sizing
+        aflr3 = myProblem.analysis.create(aim = "aflr3AIM",
+                                          name = "aflr3")
 
-        tetgen = myProblem.analysis.create(aim = "tetgenAIM",
-                                           name = "tetgen")
+        aflr3.input["Surface_Mesh"].link(aflr4.output["Surface_Mesh"])
 
-        tetgen.input["Surface_Mesh"].link(egadsTess.output["Surface_Mesh"])
-
-        tetgen.input.Mesh_Quiet_Flag = True
+        aflr3.input.Mesh_Quiet_Flag = True
 
         su2 = myProblem.analysis.create(aim = "su2AIM",
                                         name = "su2")
 
-        su2.input["Mesh"].link(tetgen.output["Volume_Mesh"])
+        su2.input["Mesh"].link(aflr3.output["Volume_Mesh"])
 
         su2.input.Boundary_Condition = {"Wing1": {"bcType" : "Inviscid"},
                                         "Wing2": {"bcType" : "Inviscid"},
@@ -234,12 +235,12 @@ class TestSU2(unittest.TestCase):
         # Initialize Problem from the last phase and make a new phase
         myProblem = pyCAPS.Problem(problemName, phaseName="Phase1", phaseStart="Phase0", outLevel=0)
 
-        egadsTess = myProblem.analysis["egadsTess"]
-        tetgen    = myProblem.analysis["tetgen"]
-        su2       = myProblem.analysis["su2"]
-        
+        aflr4 = myProblem.analysis["aflr4"]
+        aflr3 = myProblem.analysis["aflr3"]
+        su2   = myProblem.analysis["su2"]
+
         su2.input.Alpha = 5
-        
+
         su2.preAnalysis()
         su2.postAnalysis()
 
@@ -257,61 +258,59 @@ class TestSU2(unittest.TestCase):
         if line == line_exit: return line
         if line_exit > 0: self.assertTrue(myProblem.journaling())
 
-        if verbose: print(6*"-", line,"Load egadsAIM")
-        egadsTess = myProblem.analysis.create(aim = "egadsTessAIM"); line += 1
+
+        # Load aflr4 AIM
+        if verbose: print(6*"-", line,"Load aflr4AIM")
+        aflr4 = myProblem.analysis.create(aim = "aflr4AIM"); line += 1
         if line == line_exit: return line
         if line_exit > 0: self.assertTrue(myProblem.journaling())
 
-        if verbose: print(6*"-", line,"egadsTess Mesh_Quiet_Flag")
-        egadsTess.input.Mesh_Quiet_Flag = True; line += 1
+        if verbose: print(6*"-", line,"Modify Mesh_Quiet_Flag")
+        aflr4.input.Mesh_Quiet_Flag = True; line += 1
         if line == line_exit: return line
         if line_exit > 0: self.assertTrue(myProblem.journaling())
 
-        # Modify local mesh sizing parameters
-        if verbose: print(6*"-", line,"egadsTess Tess_Params")
-        egadsTess.input.Tess_Params = [0.5, 0.01, 15.0]; line += 1
+        if verbose: print(6*"-", line,"Modify Mesh_Length_Factor")
+        aflr4.input.Mesh_Length_Factor = 2; line += 1
         if line == line_exit: return line
         if line_exit > 0: self.assertTrue(myProblem.journaling())
 
-        if verbose: print(6*"-", line,"egadsTess Mesh_Sizing")
-        Mesh_Sizing = {"Farfield": {"tessParams" : [7.,  2., 20.0]}}
-        egadsTess.input.Mesh_Sizing = Mesh_Sizing; line += 1
+        if verbose: print(6*"-", line,"Modify min_scale")
+        aflr4.input.min_scale = 0.1; line += 1
         if line == line_exit: return line
         if line_exit > 0: self.assertTrue(myProblem.journaling())
 
-        #if verbose: print(6*"-", line,"egadsTess runAnalysis")
-        #egadsTess.runAnalysis(); line += 1
-        #if line == line_exit: return line
-        #if line_exit > 0: self.assertTrue(myProblem.journaling())
-
-        if verbose: print(6*"-", line,"Load tetgenAIM")
-        tetgen = myProblem.analysis.create(aim = "tetgenAIM",
-                                           name = "tetgen"); line += 1
+        if verbose: print(6*"-", line,"Modify ff_cdfr")
+        aflr4.input.ff_cdfr = 1.1; line += 1
         if line == line_exit: return line
         if line_exit > 0: self.assertTrue(myProblem.journaling())
 
-        if verbose: print(6*"-", line,"tetgen Mesh_Quiet_Flag")
-        tetgen.input.Mesh_Quiet_Flag = True; line += 1
+
+        # Create the aflr3 AIM
+        if verbose: print(6*"-", line,"Load aflr3AIM")
+        aflr3 = myProblem.analysis.create(aim = "aflr3AIM"); line += 1
         if line == line_exit: return line
         if line_exit > 0: self.assertTrue(myProblem.journaling())
 
+        if verbose: print(6*"-", line,"Modify Mesh_Quiet_Flag")
+        aflr3.input.Mesh_Quiet_Flag = True; line += 1
+        if line == line_exit: return line
+        if line_exit > 0: self.assertTrue(myProblem.journaling())
+
+        # Link the surface mesh
         if verbose: print(6*"-", line,"Link Surface_Mesh")
-        tetgen.input["Surface_Mesh"].link(egadsTess.output["Surface_Mesh"]); line += 1
+        aflr3.input["Surface_Mesh"].link(aflr4.output["Surface_Mesh"]); line += 1
         if line == line_exit: return line
         if line_exit > 0: self.assertTrue(myProblem.journaling())
 
-        #if verbose: print(6*"-", line,"tetgen runAnalysis")
-        #tetgen.runAnalysis(); line += 1
-        #if line == line_exit: return line
-        #if line_exit > 0: self.assertTrue(myProblem.journaling())
-
+        # Load SU2 AIM
         if verbose: print(6*"-", line,"Load su2AIM")
         su2 = myProblem.analysis.create(aim = "su2AIM"); line += 1
         if line == line_exit: return line
         if line_exit > 0: self.assertTrue(myProblem.journaling())
 
         if verbose: print(6*"-", line,"Link Mesh")
-        su2.input["Mesh"].link(tetgen.output["Volume_Mesh"]); line += 1
+        su2.input["Mesh"].link(aflr3.output["Volume_Mesh"]); line += 1
         if line == line_exit: return line
         if line_exit > 0: self.assertTrue(myProblem.journaling())
 
@@ -343,7 +342,7 @@ class TestSU2(unittest.TestCase):
         su2.input.Alpha = 10; line += 1
         if line == line_exit: return line
         if line_exit > 0: self.assertTrue(myProblem.journaling())
-        
+
         # Run a 2nd time
         if verbose: print(6*"-", line,"su2 preAnalysis")
         su2.preAnalysis(); line += 1
@@ -367,21 +366,21 @@ class TestSU2(unittest.TestCase):
     def test_journal(self):
 
         problemName = self.problemName+"2"
-        
+
         myProblem = pyCAPS.Problem(problemName, capsFile=self.file, outLevel=0)
 
         # Run once to get the total line count
         line_total = self.run_journal(myProblem, -1)
-        
+
         myProblem.close()
         shutil.rmtree(problemName)
-        
+
         #print(80*"=")
         #print(80*"=")
         # Create the problem to start journaling
         myProblem = pyCAPS.Problem(problemName, capsFile=self.file, outLevel=0)
         myProblem.close()
-        
+
         for line_exit in range(line_total):
             #print(80*"=")
             myProblem = pyCAPS.Problem(problemName, phaseName="Scratch", capsFile=self.file, outLevel=0)

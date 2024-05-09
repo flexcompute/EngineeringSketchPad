@@ -1,0 +1,64 @@
+# overlaps_udc_1
+# written by John Dannenhoffer
+
+# basic shapes
+BOX       0   0   0   2   3   1
+STORE     body 1
+
+BOX       2   1   0   1   1   1
+STORE     body 2
+
+SPHERE    4   3   0   1
+STORE     body 3
+
+BOX       4   1   0   2   2   1
+STORE     body 4
+
+RESTORE   body 1
+RESTORE   body 2
+UDPRIM    $$/overlaps
+ASSERT    @@overlaps   0
+ASSERT    @stack.size  2      # two Bodys still on stack
+STORE     ...
+
+RESTORE   body 1
+RESTORE   body 3
+UDPRIM    $$/overlaps
+ASSERT    @@overlaps   0
+ASSERT    @stack.size  2
+STORE     ...
+
+RESTORE   body 1
+RESTORE   body 4
+UDPRIM    $$/overlaps
+ASSERT    @@overlaps   0
+ASSERT    @stack.size  2
+STORE     ...
+
+RESTORE   body 2
+RESTORE   body 3
+UDPRIM    $$/overlaps
+ASSERT    @@overlaps   0
+ASSERT    @stack.size  2
+STORE     ...
+
+RESTORE   body 2
+RESTORE   body 4
+UDPRIM    $$/overlaps
+ASSERT    @@overlaps   0
+ASSERT    @stack.size  2
+STORE     ...
+
+RESTORE   body 3
+RESTORE   body 4
+UDPRIM    $$/overlaps
+ASSERT    @@overlaps   1
+ASSERT    @stack.size  2
+STORE     ...
+
+RESTORE   body 4
+RESTORE   body 3
+RESTORE   body 2
+RESTORE   body 1
+
+END

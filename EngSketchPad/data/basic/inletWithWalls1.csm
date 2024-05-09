@@ -136,37 +136,37 @@ MARK
    RESTORE   lower  1
    RESTORE   upper  1
 RULE  1
-JOIN
-JOIN
+JOIN  0.0001   # with upper wall
+JOIN  0.0001   # with lower wall
 
 MARK
    RESTORE   lower  2
    RESTORE   upper  2
 RULE  1
-JOIN
+JOIN  0.0001
 
 MARK
    RESTORE   lower  3
    RESTORE   upper  3
 RULE  1
-JOIN
+JOIN  0.0001
 
 MARK
    RESTORE   lower  4
    RESTORE   upper  4
 RULE  1
-JOIN
+JOIN  0.0001
 
 MARK
    RESTORE   lower  5
    RESTORE   upper  5
 RULE  1
-JOIN
+JOIN  0.0001
 
 MARK
    RESTORE   lower  6
    RESTORE   upper  6
 RULE  1
-JOIN
+JOIN  0.0001
 
 END

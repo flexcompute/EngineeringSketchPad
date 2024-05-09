@@ -10,7 +10,7 @@
  */
 
 /*
- * Copyright (C) 2011/2022  John F. Dannenhoffer, III (Syracuse University)
+ * Copyright (C) 2011/2024  John F. Dannenhoffer, III (Syracuse University)
  *
  * This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
@@ -63,8 +63,6 @@ static int spline2d(ego context, int imax, int jmax, double *x, double *y, doubl
 static void plotData(int*, void*, void*, void*, void*, void*,
                            void*, void*, void*, void*, void*, float*, char*, int);
 #endif
-
-static void *realloc_temp=NULL;              /* used by RALLOC macro */
 
 
 /*
@@ -195,6 +193,8 @@ udpExecute(ego  context,                /* (in)  EGADS context */
     FILE    *fp=NULL;
     ego                ecurvs[12], esurfs[6];
     ego     enodes[8], eedges[12], efaces[6], etemp[8], eloop, eshell;
+    void    *realloc_temp = NULL;            /* used by RALLOC macro */
+    udp_T   *udps = *Udps;
 
     ROUTINE(udpExecute);
 
@@ -217,6 +217,19 @@ udpExecute(ego  context,                /* (in)  EGADS context */
     message[0] = '\0';
 
     /* check arguments */
+    if        (IMAX(0) <= 0) {
+        snprintf(message, 100, "\"imax\" should be positive");
+        status = EGADS_RANGERR;
+        goto cleanup;
+    } else if (JMAX(0) <= 0) {
+        snprintf(message, 100, "\"jmax\" should be positive");
+        status = EGADS_RANGERR;
+        goto cleanup;
+    } else if (KMAX(0) <= 0) {
+        snprintf(message, 100, "\"kmax\" should be positive");
+        status = EGADS_RANGERR;
+        goto cleanup;
+    }
 
     /* get the outLevel from OpenCSM */
     outLevel = ocsmSetOutLevel(-1);
@@ -408,7 +421,7 @@ udpExecute(ego  context,                /* (in)  EGADS context */
         int  io_kbd=5, io_scr=6, indgr=1+2+4+16+64;
         char pltitl[80];
 
-        sprintf(pltitl, "~x~y~ imax=%d  jmax=%d  kmax=%d", imax, jmax, kmax);
+        snprintf(pltitl, 79, "~x~y~ imax=%d  jmax=%d  kmax=%d", imax, jmax, kmax);
 
         grinit_(&io_kbd, &io_scr, "udpFreeform", strlen("udpFreeform"));
         grctrl_(plotData, &indgr, pltitl,
@@ -954,13 +967,13 @@ spline1d(ego    context,
             }
 
             if        (itype == 0) {
-                sprintf(pltitl, "~t~x~ iter=%d, dxyzmax=%12.3e", iter, dxyzmax);
+                snprintf(pltitl, 79, "~t~x~ iter=%d, dxyzmax=%12.3e", iter, dxyzmax);
                 grline_(ilin, isym, &nline, pltitl, &indgr, tplot, xplot, nper, strlen(pltitl));
             } else if (itype == 1) {
-                sprintf(pltitl, "~t~y~ iter=%d, dxyzmax=%12.3e", iter, dxyzmax);
+                snprintf(pltitl, 79, "~t~y~ iter=%d, dxyzmax=%12.3e", iter, dxyzmax);
                 grline_(ilin, isym, &nline, pltitl, &indgr, tplot, yplot, nper, strlen(pltitl));
             } else {
-                sprintf(pltitl, "~t~z~ iter=%d, dxyzmax=%12.3e", iter, dxyzmax);
+                snprintf(pltitl, 79, "~t~z~ iter=%d, dxyzmax=%12.3e", iter, dxyzmax);
                 grline_(ilin, isym, &nline, pltitl, &indgr, tplot, zplot, nper, strlen(pltitl));
             }
 

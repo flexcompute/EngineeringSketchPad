@@ -1,0 +1,36 @@
+#
+!IFNDEF ESP_ROOT
+!ERROR ESP_ROOT must be set -- Please fix the environment...
+!ENDIF
+#
+IDIR  = $(ESP_ROOT)\include
+!include $(IDIR)\$(ESP_ARCH).$(MSVC)
+LDIR  = $(ESP_ROOT)\lib
+!IFDEF ESP_BLOC
+ODIR  = $(ESP_BLOC)\obj
+TDIR  = $(ESP_BLOC)\test
+!ELSE
+ODIR  = .
+TDIR  = $(ESP_ROOT)\bin
+!ENDIF
+
+
+$(LDIR)\bvtkWriter.dll:	bvtkWriter.def $(ODIR)\bvtkWriter.obj $(LDIR)\aimUtil.lib
+	-del $(LDIR)\bvtkWriter.dll $(LDIR)\bvtkWriter.lib \
+		$(LDIR)\bvtkWriter.exp
+	 link /out:$(LDIR)\bvtkWriter.dll /dll /def:bvtkWriter.def \
+		$(ODIR)\bvtkWriter.obj /LIBPATH:$(LDIR) aimUtil.lib \
+		ocsm.lib egads.lib udunits2.lib
+	$(MCOMP) /manifest $(LDIR)\bvtkWriter.dll.manifest \
+		/outputresource:$(LDIR)\bvtkWriter.dll;2
+
+$(ODIR)\bvtkWriter.obj:	bvtkWriter.c $(IDIR)\capsTypes.h $(IDIR)\aimMesh.h
+	cl /c $(COPTS) $(DEFINE) /I$(IDIR) bvtkWriter.c \
+		/Fo$(ODIR)\bvtkWriter.obj
+		
+clean:
+	-del $(ODIR)\bvtkWriter.obj
+
+cleanall:	clean
+	-del $(LDIR)\bvtkWriter.dll $(LDIR)\bvtkWriter.lib \
+		$(LDIR)\bvtkWriter.exp

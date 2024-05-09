@@ -3,7 +3,7 @@
  *
  *             EGADS Effective Topo Tessellation using wv
  *
- *      Copyright 2011-2022, Massachusetts Institute of Technology
+ *      Copyright 2011-2024, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -611,7 +611,7 @@ void browserMessage(/*@unused@*/ void *uPtr, /*@unused@*/ void *wsi, char *text,
         printf(" EG_getTessFace %d/%d = %d\n", i+1, nface, stat);
         continue;
       }
-      sprintf(gpname, "Body %d Face %d", 1, i+1);
+      snprintf(gpname, 42, "Body %d Face %d", 1, i+1);
       index = wv_indexGPrim(cntxt, gpname);
       if (index < 0) {
         printf(" wv_indexGPrim = %d for %s (%d)!\n", i, gpname, index);

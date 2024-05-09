@@ -69,7 +69,22 @@ $(function() {
 <div class="textblock"><p>Structure for the constraint tuple = ("Constraint Name", "Value"). "Constraint Name" defines the reference name for the constraint being specified. The "Value" can either be a JSON String dictionary (see Section <a class="el" href="feaConstraint.html#jsonStringConstraint">JSON String Dictionary</a>) or a single string keyword (see Section <a class="el" href="feaConstraint.html#keyStringConstraint">Single Value String</a>).</p>
 <h1><a class="anchor" id="jsonStringConstraint"></a>
 JSON String Dictionary</h1>
-<p>If "Value" is JSON string dictionary the following keywords ( = default values) may be used:</p>
+<p>If "Value" is JSON string dictionary (eg. "Value" = {"groupName": "plateEdge", "dofConstraint": 123456}) the following keywords ( = default values) may be used:</p>
+<ul>
+<li>
+<b>constraintType = "ZeroDisplacement"</b>  <br  />
+ Type of constraint. Options: "Displacement", "ZeroDisplacement". </li>
+</ul>
+<ul>
+<li>
+<b>dofConstraint = 0 </b>  <br  />
+ Component numbers / degrees of freedom that will be constrained (123 - zero translation in all three directions). </li>
+</ul>
+<ul>
+<li>
+<b>gridDisplacement = 0.0 </b>  <br  />
+ Value of displacement for components defined in "dofConstraint". </li>
+</ul>
 <h1><a class="anchor" id="keyStringConstraint"></a>
 Single Value String</h1>
 <p>If "Value" is a string, the string value may correspond to an entry in a predefined constraint lookup table. NOT YET IMPLEMENTED!!!! </p>
@@ -77,7 +92,7 @@ Single Value String</h1>
 </div><!-- PageDoc -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Sat Jul 2 2022 10:13:17 for TACS Analysis Interface Module (AIM) by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1
+Generated on Sat Apr 27 2024 16:51:53 for TACS Analysis Interface Module (AIM) by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1
 </small></address>
 </body>
 </html>

@@ -1,12 +1,14 @@
 # flend5
 # written by John Dannenhoffer
 
+DESPMTR   flendSize  0.10
+
 # wing-like body
 MARK
-   UDPRIM    naca      thickness 0.12  camber 0.04
+   UDPRIM    naca      thickness 0.12  camber 0.04  sharpte 1
    TRANSLATE 0.0  0.1  0.0
 
-   UDPRIM    naca      thickness 0.08  camber 0.00
+   UDPRIM    naca      thickness 0.08  camber 0.00  sharpte 1
    SCALE     0.80
    TRANSLATE 0.3  0.1  2.0
 RULE
@@ -14,10 +16,12 @@ STORE     wing
 
 # offset wing-like body
 MARK
-   UDPRIM    naca      thickness 0.12  camber 0.04  offset 0.02
+   UDPRIM    naca      thickness 0.12  camber 0.04  sharpte 1
+   UDPRIM    offset    dist      flendSize
    TRANSLATE 0.0  0.1  0.0
 
-   UDPRIM    naca      thickness 0.08  camber 0.00  offset 0.02
+   UDPRIM    naca      thickness 0.08  camber 0.00  sharpte 1
+   UDPRIM    offset    dist      flendSize
    SCALE     0.80
    TRANSLATE 0.3  0.1  2.0
 RULE
@@ -33,42 +37,44 @@ RESTORE   fuse
 RESTORE   offset_wing
 EXTRACT   0
 SUBTRACT
-STORE     fuse
+STORE     newFuse
 
-# scribe wing with slightly-larger fuselage
+# scribe wing with slightly-translated fuselage
 RESTORE   wing
 RESTORE   fuse
-SCALE     1.1
+TRANSLATE 0  0  flendSize
 EXTRACT   0
 SUBTRACT
-STORE     wing
+STORE     newWing
 
 # pick series of Facess on wing-like body
-RESTORE   wing
-SELECT    face 6 1 1
+RESTORE   newWing
+SELECT    FACE
+SELECT    SORT   $zmin
+DIMENSION foo    3 1
+SET       foo    @sellist
+SELECT    FACE   foo[1]
+SELECT    ADD    foo[2]
+SELECT    ADD    foo[3]
    ATTRIBUTE _flend $remove
-SELECT    face 6 3 1
-   ATTRIBUTE _flend $remove
-SELECT    face 6 4 1
-   ATTRIBUTE _flend $remove
-SELECT    face 6 5 1
-   ATTRIBUTE _flend $remove
-STORE     wing
+STORE     newWing
 
 # pick series of Faces on fuselage-like body
-RESTORE   fuse
-SELECT    face 13 4 1
+RESTORE   newFuse
+SELECT    FACE   15 4 0
+SELECT    SORT   $area
+SELECT    face   @sellist[1]
    ATTRIBUTE _flend $remove
-STORE     fuse
+STORE     newFuse
 
 # generate the flend
 MARK
-   RESTORE   wing
+   RESTORE   newWing
    ROTATEY   90  0  0
    SELECT    face $_flend $*
       ATTRIBUTE _color $magenta
 
-   RESTORE   fuse
+   RESTORE   newFuse
    ROTATEY   90  0  0
    SELECT    face $_flend $*
       ATTRIBUTE _color $magenta

@@ -1,0 +1,24 @@
+# edgeIDtest6
+# written by John Dannenhoffer
+
+DESPMTR   x1   1.0
+DESPMTR   x2   2.0
+
+BOX       0  0  0  3  2  0
+
+SKBEG     x1 -1 -1
+   LINSEG x1  1 -1
+   LINSEG x1  3 -1
+SKEND
+EXTRUDE   0   0  2
+SUBTRACT
+
+BOX       x2 -1 -1 0  4  4
+SUBTRACT
+
+SELECT    EDGE  1  1  6  3  1
+SELECT    ADD   1  1  6  4  1
+SELECT    ADD   1  1  8  1  1
+ATTRIBUTE _color $magenta
+
+END

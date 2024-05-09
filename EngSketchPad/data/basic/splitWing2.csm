@@ -138,7 +138,8 @@ LINSEG \
 SKEND
 
 # make a SheetBody
-COMBINE
+JOIN   0 1
+ELEVATE
 
 # split at leading edge
 BOX       -0.01  0  -1  0.02  0  5

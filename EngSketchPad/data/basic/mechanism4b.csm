@@ -1,0 +1,162 @@
+# mechanism4a
+# written by John Dannenhoffer
+# measurements by Will Martin
+
+DESPMTR   angle  260  # deg
+LBOUND    angle  174  # fully extended
+UBOUND    angle  288  # fully retracted
+
+# fixed points
+POINT     0.00              0.00              0.00   # A
+POINT     0.44             -5.94              0.00   # B
+POINT     3.37*cosd(angle)  3.37*sind(angle)  0.00   # C
+POINT    -3.59              3.79              0.00   # D
+
+# attachments
+SKBEG      1.44   -6.94    0.00
+   LINSEG  1.44    4.79    0.00
+   LINSEG -4.59    4.79    0.00
+   LINSEG -4.59    2.79    0.00
+   LINSEG -0.56    2.79    0.00
+   LINSEG -0.56   -6.94    0.00
+   LINSEG  1.44   -6.94    0.00
+SKEND
+
+# crank
+SKBEG     -1.00   -1.00    0.00
+   LINSEG  4.37   -1.00    0.00
+   LINSEG  4.37    1.00    0.00
+   LINSEG -1.00    1.00    0.00
+   LINSEG -1.00   -1.00    0.00
+SKEND
+ROTATEZ    angle
+
+# bar DEFG
+SKBEG      -3.59   3.79   0.00
+   LINSEG  -7.59   3.79   0.00
+   LINSEG  -7.93   5.65   0.00
+   LINSEG -14.12   3.93   0.00
+SKEND
+CSYSTEM   D  " -3.59; 3.79;  0.00;  1;0;0;  0;1;0"
+CSYSTEM   E  " -7.59; 3.79;  0.00;  1;0;0;  0;1;0"
+CSYSTEM   F  " -7.93; 5.65;  0.00;  1;0;0;  0;1;0"
+CSYSTEM   G  "-14.12; 3.93;  0.00;  1;0;0;  0;1;0"
+SELECT    EDGE
+ATTRIBUTE _color  $green
+
+# bar BHI
+SKBEG       0.44  -5.94   0.00
+   LINSEG -14.83  -5.24   0.00
+   LINSEG -20.38  -5.94   0.00
+SKEND
+CSYSTEM   B  "  0.44;-5.94;  0.00;  1;0;0;  0;1;0"
+CSYSTEM   H  "-14.83;-5.24;  0.00;  1;0;0;  0;1;0"
+CSYSTEM   I  "-20.38;-5.94;  0.00;  1;0;0;  0;1;0"
+SELECT    EDGE
+ATTRIBUTE _color  $blue
+
+# bar FH
+SKBEG       0.00   0.00   0.00
+   LINSEG -10.39   0.00   0.00
+SKEND
+CSYSTEM   F  "  0.00; 0.00;  0.00;  1;0;0;  0;1;0"
+CSYSTEM   H  "-10.39; 0.00;  0.00;  1;0;0;  0;1;0"
+SELECT    EDGE
+ATTRIBUTE _color  $cyan
+
+# bar IJK
+SKBEG       0.00   0.00   0.00
+   LINSEG  -7.09  -0.22   0.00
+   LINSEG  -8.59   0.00   0.00
+SKEND
+CSYSTEM   I  "  0.00; 0.00;  0.00;  1;0;0;  0;1;0"
+CSYSTEM   J  " -7.09;-0.22;  0.00;  1;0;0;  0;1;0"
+CSYSTEM   K  " -8.59; 0.00;  0.00;  1;0;0;  0;1;0"
+SELECT    EDGE
+ATTRIBUTE _color  $magenta
+
+# bar GKM (flap)
+#SKBEG       0.00   0.00   0.00
+#   LINSEG -14.16   0.00   0.00
+#   LINSEG -21.02  -5.46   0.00
+#SKEND
+UDPRIM    naca    series 4412
+ROTATEY   180
+ROTATEZ   38
+SCALE     18
+TRANSLATE -14 0 0
+CSYSTEM   G  "  0.00; 0.00;  0.00;  1;0;0;  0;1;0"
+CSYSTEM   K  "-14.16; 0.00;  0.00;  1;0;0;  0;1;0"
+CSYSTEM   M  "-21.02;-5.46;  0.00;  1;0;0;  0;1;0"
+SELECT    EDGE
+ATTRIBUTE _color  $red
+
+# bar JL
+SKBEG       0.00   0.00   0.00
+   LINSEG  -8.05   0.00   0.00
+SKEND
+CSYSTEM   J  "  0.00; 0.00;  0.00;  1;0;0;  0;1;0"
+CSYSTEM   L  " -8.05; 0.00;  0.00;  1;0;0;  0;1;0"
+SELECT    EDGE
+ATTRIBUTE _color  $green
+store .
+# bar LMN
+SKBEG       0.00   0.00   0.00
+   LINSEG  -1.37   0.49   0.00
+   LINSEG  -6.26   0.00   0.00
+SKEND
+CSYSTEM   L  "  0.00; 0.00;  0.00;  1;0;0;  0;1;0"
+CSYSTEM   M  " -1.37; 0.49;  0.00;  1;0;0;  0;1;0"
+CSYSTEM   N  " -6.26; 0.00;  0.00;  1;0;0;  0;1;0"
+SELECT    EDGE
+ATTRIBUTE _color  $blue
+store .
+
+# bar CE
+SKBEG       0.00   0.00   0.00
+   LINSEG  -4.50   0.00   0.00
+SKEND
+CSYSTEM   C  "  0.00; 0.00;  0.00;  1;0;0;  0;1;0"
+CSYSTEM   E  " -4.50; 0.00;  0.00;  1;0;0;  0;1;0"
+SELECT    EDGE
+ATTRIBUTE _color  $red
+
+# start solving this fowler flap from full extended
+SET       dx      0
+SET       dy      0
+SET       ibreak  0
+
+# take up to 20 steps (changing the crank angle no more than 15 deg)
+PATBEG    i       20
+
+   # unset previous translation (if any)
+   TRANSLATE -dx -dy 0.0
+
+   # compute new angle and translation
+   IFTHEN    i  EQ  1
+      SET    ang  174
+   ELSE
+      set    ang  ang+15
+   ENDIF
+
+   IFTHEN    ang  GE  angle
+      SET    ang  angle
+      SET    ibreak  1
+   ENDIF
+
+   # apply new translation
+   SET       dx   3.37*cosd(ang)
+   SET       dy   3.37*sind(ang)
+   TRANSLATE dx  dy  0.00
+
+   # solve the mechanism
+   UDPRIM    mechanism   fixed  $A;B;C;D
+
+   # ungroup
+   GROUP     -1
+
+   PATBREAK  ibreak
+PATEND
+
+END
+

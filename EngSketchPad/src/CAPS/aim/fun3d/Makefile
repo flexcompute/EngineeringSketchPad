@@ -21,6 +21,14 @@ ifdef PYTHONINC
 PYTHONLPATH=$(filter -L%,$(PYTHONLIB))
 PYTHONRPATH=$(PYTHONLPATH:-L%=-Wl,-rpath %)
 
+#Extract the python include directory
+PYTHONIPATH0=$(word 1,$(filter -I%,$(PYTHONINC)))
+ifeq ("$(PYTHONIPATH0)","")
+PYTHONIPATH=$(PYTHONINC)
+else
+PYTHONIPATH=$(PYTHONIPATH0:-I%=%)
+endif
+
 $(LDIR)/fun3dAIM.so:	$(ODIR)/fun3dAIM.o $(ODIR)/fun3dUtils.o $(ODIR)/fun3dNamelist.o \
 			$(LDIR)/libaimUtil.a $(LDIR)/libutils.a
 	@echo "Building FUN3D with Python"
@@ -37,19 +45,20 @@ endif
 
 ifdef PYTHONINC
 
-$(ODIR)/fun3dAIM.o: fun3dAIM.c fun3dUtils.h fun3dNamelist.h $(IDIR)/capsTypes.h
-	$(CC) -c $(COPTS) $(DEFINE) -DHAVE_PYTHON -I$(IDIR) -I../utils -I../meshWriter/ugridWriter \
-		-I$(PYTHONINC) fun3dAIM.c -o $(ODIR)/fun3dAIM.o
+$(ODIR)/fun3dAIM.o: fun3dAIM.c fun3dUtils.h cython/fun3dNamelist.h $(IDIR)/capsTypes.h $(PYTHONIPATH)/Python.h
+	$(CC) -c $(COPTS) $(DEFINE) -DHAVE_PYTHON -DCYTHON_PEP489_MULTI_PHASE_INIT=0 \
+		-I$(IDIR) -I../utils -I../meshWriter/ugridWriter \
+		-I$(PYTHONINC) -Icython fun3dAIM.c -o $(ODIR)/fun3dAIM.o
 
+$(ODIR)/fun3dNamelist.o: cython/fun3dNamelist.c cython/fun3dNamelist.h $(PYTHONIPATH)/Python.h
+	$(CC) -c $(COPTS) $(DEFINE) -DCYTHON_PEP489_MULTI_PHASE_INIT=0 \
+		-I$(IDIR) -I../utils \
+		-I$(PYTHONINC) cython/fun3dNamelist.c -o $(ODIR)/fun3dNamelist.o
 else
 $(ODIR)/fun3dAIM.o: fun3dAIM.c fun3dUtils.h $(IDIR)/capsTypes.h
 	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I../utils -I../meshWriter/ugridWriter \
 		fun3dAIM.c -o $(ODIR)/fun3dAIM.o
 endif 
-
-$(ODIR)/fun3dNamelist.o: fun3dNamelist.c fun3dNamelist.h
-	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I../utils \
-		-I$(PYTHONINC) fun3dNamelist.c -o $(ODIR)/fun3dNamelist.o
 
 $(ODIR)/fun3dUtils.o: fun3dUtils.c fun3dUtils.h $(IDIR)/capsTypes.h
 	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I../utils -I../meshWriter/ugridWriter \
@@ -68,8 +77,9 @@ cleanall:	clean
 	-rm -f $(LDIR)/fun3dAIM.so
 
 # Run Cython - development only	
+.PHONY:  cython
 cython:
-	(cython -Wextra fun3dNamelist.pyx -I../../pyCAPS/src/ --capi-reexport-cincludes)
+	make -C cython
 
 dox: doc/html/index.html
 doc/html/index.html: \

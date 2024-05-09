@@ -1,0 +1,27 @@
+# droop_udf_1
+# written by John Dannenhoffer
+
+UDPARG    naca      thickness 0.12
+UDPARG    naca      camber    0.04
+UDPRIM    naca
+
+STORE     airfoil
+
+# droop leading and trailing edges down
+RESTORE   airfoil
+UDPARG    droop     xle  0.20   thetale  +20.0
+UDPARG    droop     xte  0.75   thetate  -30.0
+UDPRIM    droop
+
+# show original airfoil
+RESTORE   airfoil
+TRANSLATE 0  1/2  0
+
+# droop leading and trailing edges up
+RESTORE   airfoil
+UDPARG    droop     xle  0.20   thetale  -20.0
+UDPARG    droop     xte  0.75   thetate  +30.0
+UDPRIM    droop
+TRANSLATE 0  1  0
+
+END

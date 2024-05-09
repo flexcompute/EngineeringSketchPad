@@ -6,7 +6,7 @@
 #define BOXCYL
 
 
-extern int EG_sameBodyTopo(const egObject *bod1, const egObject *bod2);
+extern int EG_sameBodyTopo(const egObject *bod1, const egObject *bod2, const char *fAttr);
 
 
 
@@ -162,7 +162,7 @@ int main(int argc, char *argv[])
 
 #endif
 
-  stat = EG_sameBodyTopo(body1, body2);
+  stat = EG_sameBodyTopo(body1, body2, NULL);
   printf(" EG_sameBodyTopo       = %d\n", stat);
   
   params[0] =  0.05;

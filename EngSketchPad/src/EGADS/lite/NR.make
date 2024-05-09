@@ -49,7 +49,7 @@ $(LDIR)/libegadsliteNR.dylib:	$(OBJS) liteTess.o liteTris.o liteQuads.o \
                 $(OBJS) liteTess.o liteTris.o liteQuads.o liteTessInp.o \
 		egadsRobust.o emp.o ratLite.o liteRegQuads.o liteUVmap.o \
 		evaluateNR.o liteGeomNR.o liteTopoNR.o liteEffect.o \
-		-undefined error -install_name '@rpath/libegadsliteNR.dylib' \
+		-install_name '@rpath/libegadsliteNR.dylib' \
                 -current_version $(EGREV) )
 
 $(OBJS): %.o:	%.c ../include/egadsErrors.h ../src/egadsInternals.h \

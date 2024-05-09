@@ -1,0 +1,21 @@
+# outpmtr_1
+# written by John Dannenhoffer
+
+# outpmtr declared before definition
+OUTPMTR   A
+SET       A  10
+
+# outpmtr declared after definition
+SET       B  20
+OUTPMTR   B
+
+# outpmtr can be an array
+DIMENSION C  3  1
+SET       C  1;0;0
+OUTPMTR   C
+
+# make a point
+POINT     C[1]  C[2]  C[3]
+
+END
+

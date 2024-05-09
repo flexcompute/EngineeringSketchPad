@@ -1,0 +1,49 @@
+# rule28d
+# written by John Dannenhoffer
+
+SKBEG     -1   0  -2
+   CIRARC  0 -.2  -2   1   0  -2
+   CIRARC  0  .2  -2  -1   0  -2
+SKEND
+SELECT    NODE 1
+   ATTRIBUTE   .multiNode "1;1"
+SELECT    NODE 2
+   ATTRIBUTE   .multiNode 1
+
+SKBEG     -1   0  -1
+   CIRARC  0 -.2  -1   1   0  -1
+   CIRARC  0  .2  -1  -1   0  -1
+SKEND
+SELECT    NODE 1
+   ATTRIBUTE   .multiNode "1;1"
+SELECT    NODE 2
+   ATTRIBUTE   .multiNode 1
+
+SKBEG     -1  -1   0
+   LINSEG  1  -1   0
+   LINSEG  1   1   0
+   LINSEG -1   1   0
+   LINSEG -1  -1   0
+SKEND
+
+SKBEG      0  -1   1
+   CIRARC .2   0   1   0   1   1
+   CIRARC -.2  0   1   0  -1   1
+SKEND
+SELECT    NODE 1
+   ATTRIBUTE   .multiNode "1;0"
+SELECT    NODE 2
+   ATTRIBUTE   .multiNode 1
+
+SKBEG      0  -1   2
+   CIRARC .2   0   2   0   1   2
+   CIRARC -.2  0   2   0  -1   2
+SKEND
+SELECT    NODE 1
+   ATTRIBUTE   .multiNode "1;0"
+SELECT    NODE 2
+   ATTRIBUTE   .multiNode 1
+
+RULE
+
+END

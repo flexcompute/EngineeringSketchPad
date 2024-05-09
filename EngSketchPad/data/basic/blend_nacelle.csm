@@ -61,7 +61,8 @@ patbeg   j    nacelle_profile_n
          linseg nacelle_length   nacelle_top_thickness  0
       skend
 
-   combine 0
+   join    0 1
+   elevate
 
    translate 0   nacelle_radius+nacelle_bot_thickness   0
 

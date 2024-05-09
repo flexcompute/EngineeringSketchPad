@@ -1,0 +1,73 @@
+# persist3c
+# written by John Dannenhoffer
+
+# outside
+SKBEG     0  1  0
+   LINSEG 0  1  1
+   ATTRIBUTE myTag $botm-left
+   LINSEG 0  1  3
+   ATTRIBUTE myTag $botm-midl
+   LINSEG 0  1  4
+   ATTRIBUTE myTag $botm-rite
+   LINSEG 1  1  4
+   ATTRIBUTE myTag $rite-botm
+   LINSEG 3  1  4
+   ATTRIBUTE myTag $rite-midl
+   LINSEG 4  1  4
+   ATTRIBUTE myTag $rite-top
+   LINSEG 4  1  3
+   ATTRIBUTE myTag $top-rite
+   LINSEG 4  1  1
+   ATTRIBUTE myTag $top-midl
+   LINSEG 4  1  0
+   ATTRIBUTE myTag $top-left
+   LINSEG 3  1  0
+   ATTRIBUTE myTag $left-top
+   LINSEG 1  1  0
+   ATTRIBUTE myTag $left-midl
+   LINSEG 0  1  0
+   ATTRIBUTE myTag $left-botm
+SKEND
+
+# inside
+SKBEG     -1 0  0 -1
+   CIRARC 0  0  1  1  0  0
+   ATTRIBUTE myTag $hole-rite
+   CIRARC 0  0 -1 -1  0  0
+   ATTRIBUTE myTag $hole-left
+SKEND
+TRANSLATE 2  1  2
+
+# box with hole
+SUBTRACT
+EXTRUDE   0  1  0
+
+# checks
+SELECT    FACE      $myTag $botm-*
+ASSERT    @sellist.size    3
+
+SELECT    FACE      $myTag $top-*
+ASSERT    @sellist.size    3
+
+SELECT    FACE      $myTag $left-*
+ASSERT    @sellist.size    3
+
+SELECT    FACE      $myTag $rite-*
+ASSERT    @sellist.size    3
+
+SELECT    FACE      $myTag $hole-*
+ASSERT    @sellist.size    2
+
+SELECT    FACE      $myTag $*-top
+ASSERT    @sellist.size    2
+
+SELECT    FACE      $myTag $*-botm
+ASSERT    @sellist.size    2
+
+SELECT    FACE      $myTag $*-left
+ASSERT    @sellist.size    3
+
+SELECT    FACE      $myTag $*-rite
+ASSERT    @sellist.size    3
+
+END

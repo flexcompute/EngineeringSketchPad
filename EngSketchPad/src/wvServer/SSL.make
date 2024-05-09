@@ -53,7 +53,7 @@ $(LDIR)/libwsserver.dylib: $(OBJS) map.o
 	rm $(LDIR)/libwsserver.dylib
 	(cd $(ODIR); $(CXX) -dynamiclib -o $(LDIR)/libwsserver.dylib \
 		$(OBJS) map.o -lz -L$(OSSLIB) -lssl -lcrypto -lm \
-		-undefined error -install_name '@rpath/libwsserver.dylib' \
+		-install_name '@rpath/libwsserver.dylib' \
 		-compatibility_version $(CASREV) \
 		-current_version $(EGREV) )
 

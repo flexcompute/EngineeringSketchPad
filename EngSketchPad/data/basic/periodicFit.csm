@@ -1,0 +1,70 @@
+# periodicFit
+# written by John Dannenhoffer
+
+#
+# Create Sears-Haack body from radial slices
+#
+DESPMTR Rmax 0.25
+
+CONPMTR   nx    11
+CONPMTR   nt     9
+
+DIMENSION xSH    1  nx
+DIMENSION ySH    nt nx
+DIMENSION zSH    nt nx
+
+# set up array of points
+PATBEG it nt
+   PATBEG ix nx
+      SET theta      45*(it-1)
+      SET xSH[ix]    0.1*(ix-1)
+      SET ySH[it,ix] cosd(theta)*Rmax*(4*xSH[ix]*(1-xSH[ix]))^(0.75)
+      SET zSH[it,ix] sind(theta)*Rmax*(4*xSH[ix]*(1-xSH[ix]))^(0.75)
+   PATEND
+PATEND
+
+# lines in X direction (in red)
+PATBEG it nt
+   SKBEG          xSH[1]     ySH[it,1]     zSH[it,1]
+      PATBEG  ix  nx-1
+         SPLINE   xSH[ix+1]  ySH[it,ix+1]  zSH[it,ix+1]
+      PATEND
+   SKEND
+   SELECT    EDGE
+   ATTRIBUTE _color $red
+PATEND
+
+# lines in theta direction (in blue)
+POINT   xSH[1]  ySH[1,1]  zSH[1,1]
+
+PATBEG    ix  nx-2
+   SKBEG          xSH[ix+1]    ySH[1,ix+1]     zSH[1,ix+1]
+      PATBEG  it  nt-1
+         SPLINE   xSH[ix+1]    ySH[it+1,ix+1]    zSH[it+1,ix+1]
+      PATEND
+   SSLOPE    0  0  0
+   SKEND     1
+   SELECT    EDGE
+   ATTRIBUTE _color $blue
+PATEND
+
+POINT   xSH[nx]  ySH[1,nx]  zSH[1,nx]
+
+# make surface from theta lines
+MARK
+   POINT   xSH[1]  ySH[1,1]  zSH[1,1]
+
+   PATBEG   ix  nx-2
+      SKBEG          xSH[ix+1]    ySH[1,ix+1]     zSH[1,ix+1]
+         PATBEG  it  nt-1
+            SPLINE   xSH[ix+1]    ySH[it+1,ix+1]    zSH[it+1,ix+1]
+         PATEND
+      SSLOPE    0  0  0
+      SKEND
+   PATEND
+
+   POINT   xSH[nx]  ySH[1,nx]  zSH[1,nx]
+BLEND
+
+END
+

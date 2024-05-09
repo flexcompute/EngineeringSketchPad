@@ -1,0 +1,14 @@
+# parsec_udp_1
+# written by John Dannenhoffer
+
+DIMENSION param     1 9 1
+DESPMTR   param     "0.01; 0.35; 0.055; -.35; -6.00;\
+                           0.45; -.006; -.20;  0.05"
+
+UDPRIM    parsec    param     param
+
+UDPARG    parsec    param     param
+UDPRIM    parsec    meanline  1
+TRANSLATE 0  1/2  0
+
+END

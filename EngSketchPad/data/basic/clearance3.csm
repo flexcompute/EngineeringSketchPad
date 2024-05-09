@@ -1,0 +1,55 @@
+# clearance3 (neighbors)
+# written by John Dannenhoffer
+
+PATBEG    icase 6
+   IFTHEN    icase EQ 1
+      SET    xcent  0.4
+   ELSEIF    icase EQ 2
+      SET    xcent  0.5
+   ELSEIF    icase EQ 3
+      SET    xcent  0.6
+   ELSEIF    icase EQ 4
+      SET    xcent  1.4
+   ELSEIF    icase EQ 5
+      SET    xcent  1.5
+   ELSEIF    icase EQ 6
+      SET    xcent  1.6
+   ENDIF
+
+   BOX       -1 -1 -1  2  2  2
+   SET       payload1 @nbody
+   SELECT    FACE
+   ATTRIBUTE _trn  $on
+   STORE     payload1  0  1
+
+   SPHERE     0  0  0  1/2
+   ROTATEZ   30
+   TRANSLATE xcent  0  0
+   SET       payload2   @nbody
+   SELECT    FACE
+   ATTRIBUTE _trn  $on
+   STORE     payload2  0  1
+
+   SPECIAL   clearance  payload2  payload1
+   MESSAGE   !$distance=+@length
+
+   IFTHEN    icase EQ 1
+      ASSERT @sensitivity  -2.0  0.001
+   ELSEIF    icase EQ 2
+      ASSERT @sensitivity  -2.0  0.001
+   ELSEIF    icase EQ 3
+      ASSERT @sensitivity  -0.9  0.001
+   ELSEIF    icase EQ 4
+      ASSERT @sensitivity  -0.1  0.001
+   ELSEIF    icase EQ 5
+      ASSERT @sensitivity   0.0  0.003
+   ELSEIF    icase EQ 6
+      ASSERT @sensitivity   0.1  0.001
+   ENDIF
+PATEND
+
+STORE     ...
+RESTORE   payload1
+RESTORE   payload2
+
+END

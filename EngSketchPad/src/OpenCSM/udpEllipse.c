@@ -10,7 +10,7 @@
  */
 
 /*
- * Copyright (C) 2011/2022  John F. Dannenhoffer, III (Syracuse University)
+ * Copyright (C) 2011/2024  John F. Dannenhoffer, III (Syracuse University)
  *
  * This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
@@ -52,8 +52,6 @@ static double argDdefs[NUMUDPARGS] = {0.,          0.,          0.,          0.,
                          udpGet, udpVel, udpClean, udpMesh */
 #include "udpUtilities.c"
 
-#define  EPS06   1.0e-6
-
 
 /*
  ************************************************************************
@@ -71,10 +69,11 @@ udpExecute(ego  context,                /* (in)  EGADS context */
 {
     int     status = EGADS_SUCCESS;
 
-    int     *senses=NULL, periodic, nedge, iedge, i, add=1;
+    int     *senses=NULL, periodic, nedge, iedge, i;
     double  params[11], node[3], data[18], trange[4], tbeg;
     char    *message=NULL;
     ego     *enodes=NULL, ecurve, *eedges=NULL, eloop, eface;
+    udp_T   *udps = *Udps;
 
     ROUTINE(udpExecute);
 
@@ -359,12 +358,6 @@ udpExecute(ego  context,                /* (in)  EGADS context */
     /* make Face from the loop */
     status = EG_makeFace(eloop, SFORWARD, NULL, &eface);
     CHECK_STATUS(EG_makeFace);
-
-    /* since this will make a PLANE, we need to add an Attribute
-       to tell OpenCSM to scale the UVs when computing sensitivities */
-    status = EG_attributeAdd(eface, "_scaleuv", ATTRINT, 1,
-                             &add, NULL, NULL);
-    CHECK_STATUS(EG_attributeAdd);
 
     /* create the FaceBody (which will be returned) */
     status = EG_makeTopology(context, NULL, BODY, FACEBODY, NULL, 1, &eface, senses, ebody);

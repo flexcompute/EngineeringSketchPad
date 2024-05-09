@@ -1,0 +1,28 @@
+# extractBodys
+# written by John Dannenhoffer
+
+# make wing
+UDPRIM    naca      thickness 0.12   camber 0.04
+RESTORE   .
+TRANSLATE 0  0  3
+RULE
+SET       myBody    @nbody
+STORE     wing
+
+# make SheetBody from upper surface
+RESTORE   wing
+SELECT    FACE  myBody  3
+EXTRACT   @sellist[1]
+ATTRIBUTE _name $UpperSurface
+
+# make WireBody from leading edge
+RESTORE   wing
+SELECT    EDGE  myBody 3 myBody 4
+EXTRACT  -@sellist[1]
+ATTRIBUTE _name $LeadingEdge
+
+# put the wing back on the stack
+RESTORE   wing
+ATTRIBUTE _name $Wing
+
+END

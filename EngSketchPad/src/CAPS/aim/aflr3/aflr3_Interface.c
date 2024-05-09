@@ -21,8 +21,9 @@
 
 #define _ENABLE_BL_
 
-#include <AFLR3_LIB.h> // AFLR3_API Library include
+#include <aflr3/AFLR3_LIB.h> // AFLR3_API Library include
 #include <aflr4/AFLR4_LIB.h> // Bring in AFLR4 API library
+#include <aflr43/AFLR43_LIB.h>
 #include <egads_aflr4/EGADS_AFLR4_LIB_INC.h>
 
 // UG_IO Library (file I/O) include
@@ -64,22 +65,9 @@
 #include "aflr3_Interface.h"
 
 
-int aflr3_to_MeshStruct( INT_ Number_of_Nodes,
-                         INT_ Number_of_Surf_Trias,
-                         INT_ Number_of_Surf_Quads,
-                         INT_ Number_of_Vol_Tets,
-                         INT_ Number_of_Vol_Pents_5,
-                         INT_ Number_of_Vol_Pents_6,
-                         INT_ Number_of_Vol_Hexs,
-                         INT_1D *Surf_ID_Flag,
-                         INT_3D *Surf_Tria_Connectivity,
-                         INT_4D *Surf_Quad_Connectivity,
-                         INT_4D *Vol_Tet_Connectivity,
-                         INT_5D *Vol_Pent_5_Connectivity,
-                         INT_6D *Vol_Pent_6_Connectivity,
-                         INT_8D *Vol_Hex_Connectivity,
-                         DOUBLE_3D *Coordinates,
-                         meshStruct *genUnstrMesh) {
+int aflr3_to_MeshStruct( const AFLR_Grid *grid,
+                         meshStruct *genUnstrMesh)
+{
 
     int status; // Function return status
 
@@ -103,23 +91,23 @@ int aflr3_to_MeshStruct( INT_ Number_of_Nodes,
     //printf ("Transferring mesh to general unstructured structure\n");
 
     // Numbers
-    genUnstrMesh->numNode = Number_of_Nodes;
-    genUnstrMesh->numElement = Number_of_Surf_Trias  +
-                               Number_of_Surf_Quads  +
-                               Number_of_Vol_Tets    +
-                               Number_of_Vol_Pents_5 +
-                               Number_of_Vol_Pents_6 +
-                               Number_of_Vol_Hexs;
+    genUnstrMesh->numNode = grid->Number_of_Nodes;
+    genUnstrMesh->numElement = grid->Number_of_Surf_Trias  +
+                               grid->Number_of_Surf_Quads  +
+                               grid->Number_of_Vol_Tets    +
+                               grid->Number_of_Vol_Pents_5 +
+                               grid->Number_of_Vol_Pents_6 +
+                               grid->Number_of_Vol_Hexs;
 
     genUnstrMesh->meshQuickRef.useStartIndex = (int) true;
 
-    genUnstrMesh->meshQuickRef.numTriangle      = Number_of_Surf_Trias;
-    genUnstrMesh->meshQuickRef.numQuadrilateral = Number_of_Surf_Quads;
+    genUnstrMesh->meshQuickRef.numTriangle      = grid->Number_of_Surf_Trias;
+    genUnstrMesh->meshQuickRef.numQuadrilateral = grid->Number_of_Surf_Quads;
 
-    genUnstrMesh->meshQuickRef.numTetrahedral = Number_of_Vol_Tets;
-    genUnstrMesh->meshQuickRef.numPyramid     = Number_of_Vol_Pents_5;
-    genUnstrMesh->meshQuickRef.numPrism       = Number_of_Vol_Pents_6;
-    genUnstrMesh->meshQuickRef.numHexahedral  = Number_of_Vol_Hexs;
+    genUnstrMesh->meshQuickRef.numTetrahedral = grid->Number_of_Vol_Tets;
+    genUnstrMesh->meshQuickRef.numPyramid     = grid->Number_of_Vol_Pents_5;
+    genUnstrMesh->meshQuickRef.numPrism       = grid->Number_of_Vol_Pents_6;
+    genUnstrMesh->meshQuickRef.numHexahedral  = grid->Number_of_Vol_Hexs;
 
     // Allocation
 
@@ -170,9 +158,9 @@ int aflr3_to_MeshStruct( INT_ Number_of_Nodes,
         // Copy node data
         genUnstrMesh->node[i].nodeID = i+1;
 
-        genUnstrMesh->node[i].xyz[0] = Coordinates[i+1][0];
-        genUnstrMesh->node[i].xyz[1] = Coordinates[i+1][1];
-        genUnstrMesh->node[i].xyz[2] = Coordinates[i+1][2];
+        genUnstrMesh->node[i].xyz[0] = grid->Coordinates[i+1][0];
+        genUnstrMesh->node[i].xyz[1] = grid->Coordinates[i+1][1];
+        genUnstrMesh->node[i].xyz[2] = grid->Coordinates[i+1][2];
     }
 
 
@@ -180,16 +168,16 @@ int aflr3_to_MeshStruct( INT_ Number_of_Nodes,
     elementIndex = 0;
 
     // Elements-Set triangles
-    if (Number_of_Surf_Trias > 0)
+    if (grid->Number_of_Surf_Trias > 0)
         genUnstrMesh->meshQuickRef.startIndexTriangle = elementIndex;
 
     numPoint = 0;
-    for (i = 0; i < Number_of_Surf_Trias; i++) {
+    for (i = 0; i < grid->Number_of_Surf_Trias; i++) {
 
         genUnstrMesh->element[elementIndex].elementType = Triangle;
         genUnstrMesh->element[elementIndex].elementID   = elementIndex+1;
 
-        genUnstrMesh->element[elementIndex].markerID = Surf_ID_Flag[i+1];
+        genUnstrMesh->element[elementIndex].markerID = grid->Surf_ID_Flag[i+1];
 
         status = mesh_allocMeshElementConnectivity(&genUnstrMesh->element[elementIndex]);
         if (status != CAPS_SUCCESS) goto cleanup;
@@ -200,22 +188,22 @@ int aflr3_to_MeshStruct( INT_ Number_of_Nodes,
 
         for (j = 0; j < numPoint; j++ ) {
             genUnstrMesh->element[elementIndex].connectivity[j] =
-                Surf_Tria_Connectivity[i+1][j];
+                grid->Surf_Tria_Connectivity[i+1][j];
         }
 
         elementIndex += 1;
     }
 
     // Elements -Set quadrilateral
-    if (Number_of_Surf_Quads > 0)
+    if (grid->Number_of_Surf_Quads > 0)
         genUnstrMesh->meshQuickRef.startIndexQuadrilateral = elementIndex;
 
-    for (i = 0; i < Number_of_Surf_Quads; i++) {
+    for (i = 0; i < grid->Number_of_Surf_Quads; i++) {
 
         genUnstrMesh->element[elementIndex].elementType = Quadrilateral;
         genUnstrMesh->element[elementIndex].elementID   = elementIndex+1;
         genUnstrMesh->element[elementIndex].markerID    =
-            Surf_ID_Flag[Number_of_Surf_Trias+i+1];
+            grid->Surf_ID_Flag[grid->Number_of_Surf_Trias+i+1];
 
         status = mesh_allocMeshElementConnectivity(&genUnstrMesh->element[elementIndex]);
         if (status != CAPS_SUCCESS) goto cleanup;
@@ -226,17 +214,17 @@ int aflr3_to_MeshStruct( INT_ Number_of_Nodes,
 
         for (j = 0; j < numPoint; j++ ) {
             genUnstrMesh->element[elementIndex].connectivity[j] =
-                Surf_Quad_Connectivity[i+1][j];
+                grid->Surf_Quad_Connectivity[i+1][j];
         }
 
         elementIndex += 1;
     }
 
     // Elements -Set Tetrahedral
-    if (Number_of_Vol_Tets > 0)
+    if (grid->Number_of_Vol_Tets > 0)
         genUnstrMesh->meshQuickRef.startIndexTetrahedral = elementIndex;
 
-    for (i = 0; i < Number_of_Vol_Tets; i++) {
+    for (i = 0; i < grid->Number_of_Vol_Tets; i++) {
 
         genUnstrMesh->element[elementIndex].elementType = Tetrahedral;
         genUnstrMesh->element[elementIndex].elementID   = elementIndex+1;
@@ -251,17 +239,17 @@ int aflr3_to_MeshStruct( INT_ Number_of_Nodes,
 
         for (j = 0; j < numPoint; j++ ) {
             genUnstrMesh->element[elementIndex].connectivity[j] =
-                Vol_Tet_Connectivity[i+1][j];
+                grid->Vol_Tet_Connectivity[i+1][j];
         }
 
         elementIndex += 1;
     }
 
     // Elements -Set Pyramid
-    if (Number_of_Vol_Pents_5 > 0)
+    if (grid->Number_of_Vol_Pents_5 > 0)
         genUnstrMesh->meshQuickRef.startIndexPyramid = elementIndex;
 
-    for (i = 0; i < Number_of_Vol_Pents_5; i++) {
+    for (i = 0; i < grid->Number_of_Vol_Pents_5; i++) {
 
         genUnstrMesh->element[elementIndex].elementType = Pyramid;
         genUnstrMesh->element[elementIndex].elementID   = elementIndex+1;
@@ -276,17 +264,17 @@ int aflr3_to_MeshStruct( INT_ Number_of_Nodes,
 
         for (j = 0; j < numPoint; j++ ) {
             genUnstrMesh->element[elementIndex].connectivity[j] =
-                Vol_Pent_5_Connectivity[i+1][j];
+                grid->Vol_Pent_5_Connectivity[i+1][j];
         }
 
         elementIndex += 1;
     }
 
     // Elements -Set Prism
-    if (Number_of_Vol_Pents_6 > 0)
+    if (grid->Number_of_Vol_Pents_6 > 0)
         genUnstrMesh->meshQuickRef.startIndexPrism = elementIndex;
 
-    for (i = 0; i < Number_of_Vol_Pents_6; i++) {
+    for (i = 0; i < grid->Number_of_Vol_Pents_6; i++) {
 
         genUnstrMesh->element[elementIndex].elementType = Prism;
         genUnstrMesh->element[elementIndex].elementID   = elementIndex+1;
@@ -301,17 +289,17 @@ int aflr3_to_MeshStruct( INT_ Number_of_Nodes,
 
         for (j = 0; j < numPoint; j++ ) {
             genUnstrMesh->element[elementIndex].connectivity[j] =
-                Vol_Pent_6_Connectivity[i+1][j];
+                grid->Vol_Pent_6_Connectivity[i+1][j];
         }
 
         elementIndex += 1;
     }
 
     // Elements -Set Hexa
-    if (Number_of_Vol_Hexs > 0)
+    if (grid->Number_of_Vol_Hexs > 0)
         genUnstrMesh->meshQuickRef.startIndexHexahedral = elementIndex;
 
-    for (i = 0; i < Number_of_Vol_Hexs; i++) {
+    for (i = 0; i < grid->Number_of_Vol_Hexs; i++) {
 
         genUnstrMesh->element[elementIndex].elementType = Hexahedral;
         genUnstrMesh->element[elementIndex].elementID   = elementIndex+1;
@@ -326,7 +314,7 @@ int aflr3_to_MeshStruct( INT_ Number_of_Nodes,
 
         for (j = 0; j < numPoint; j++ ) {
             genUnstrMesh->element[elementIndex].connectivity[j] =
-                Vol_Hex_Connectivity[i+1][j];
+                grid->Vol_Hex_Connectivity[i+1][j];
         }
 
         elementIndex += 1;
@@ -343,11 +331,350 @@ cleanup:
 }
 
 
+void initialize_AFLR_Grid(AFLR_Grid* grid)
+{
+  grid->Edge_ID_Flag = NULL;
+  grid->Surf_Grid_BC_Flag = NULL;
+  grid->Surf_ID_Flag = NULL;
+  grid->Surf_Reconnection_Flag = NULL;
+  grid->Surf_Edge_Connectivity = NULL;
+  grid->Surf_Tria_Connectivity = NULL;
+  grid->Surf_Quad_Connectivity = NULL;
+  grid->Vol_ID_Flag = NULL;
+  grid->Vol_Tet_Connectivity = NULL;
+  grid->Vol_Pent_5_Connectivity = NULL;
+  grid->Vol_Pent_6_Connectivity = NULL;
+  grid->Vol_Hex_Connectivity = NULL;
+
+  grid->Coordinates = NULL;
+
+  grid->BL_Normal_Spacing = NULL;
+  grid->BL_Thickness = NULL;
+
+  grid->Number_of_BL_Vol_Tets = 0;
+  grid->Number_of_Nodes = 0;
+  grid->Number_of_Surf_Edges = 0;
+  grid->Number_of_Surf_Quads = 0;
+  grid->Number_of_Surf_Trias = 0;
+  grid->Number_of_Vol_Hexs = 0;
+  grid->Number_of_Vol_Pents_5 = 0;
+  grid->Number_of_Vol_Pents_6 = 0;
+  grid->Number_of_Vol_Tets = 0;
+
+  initiate_mapAttrToIndexStruct(&grid->groupMap);
+}
+
+
+void destroy_AFLR_Grid(AFLR_Grid* grid)
+{
+  // Free grid generation and parameter array space in structures.
+  // Note that aflr3_grid_generator frees all background data.
+  ug_free( grid->Edge_ID_Flag );
+  ug_free( grid->Surf_Grid_BC_Flag );
+  ug_free( grid->Surf_ID_Flag );
+  ug_free( grid->Surf_Reconnection_Flag );
+  ug_free( grid->Surf_Edge_Connectivity );
+  ug_free( grid->Surf_Quad_Connectivity );
+  ug_free( grid->Surf_Tria_Connectivity );
+  ug_free( grid->Vol_Hex_Connectivity );
+  ug_free( grid->Vol_ID_Flag );
+  ug_free( grid->Vol_Pent_5_Connectivity );
+  ug_free( grid->Vol_Pent_6_Connectivity );
+  ug_free( grid->Vol_Tet_Connectivity );
+  ug_free( grid->Coordinates );
+  ug_free( grid->BL_Normal_Spacing );
+  ug_free( grid->BL_Thickness );
+
+  destroy_mapAttrToIndexStruct(&grid->groupMap);
+
+  initialize_AFLR_Grid(grid);
+}
+
+int append_AFLR_Grid(void *aimInfo,
+                     AFLR_Grid* domain,
+                     int zone,
+                     AFLR_Grid* grid)
+{
+#if 0
+  int i, j, ig;
+  INT_ ierr = 0;
+
+  INT_ Number_of_BL_Vol_Tets = domain->Number_of_BL_Vol_Tets + grid->Number_of_BL_Vol_Tets;
+  INT_ Number_of_Nodes       = domain->Number_of_Nodes       + grid->Number_of_Nodes      ;
+  INT_ Number_of_Surf_Edges  = domain->Number_of_Surf_Edges  + grid->Number_of_Surf_Edges ;
+  INT_ Number_of_Surf_Trias  = domain->Number_of_Surf_Trias  + grid->Number_of_Surf_Trias ;
+  INT_ Number_of_Surf_Quads  = domain->Number_of_Surf_Quads  + grid->Number_of_Surf_Quads ;
+  INT_ Number_of_Vol_Tets    = domain->Number_of_Vol_Tets    + grid->Number_of_Vol_Tets   ;
+  INT_ Number_of_Vol_Pents_5 = domain->Number_of_Vol_Pents_5 + grid->Number_of_Vol_Pents_5;
+  INT_ Number_of_Vol_Pents_6 = domain->Number_of_Vol_Pents_6 + grid->Number_of_Vol_Pents_6;
+  INT_ Number_of_Vol_Hexs    = domain->Number_of_Vol_Hexs    + grid->Number_of_Vol_Hexs   ;
+
+  INT_ Number_of_Surf = Number_of_Surf_Trias + Number_of_Surf_Quads;
+  INT_ Number_of_Vol = Number_of_Vol_Hexs + Number_of_Vol_Pents_5 + Number_of_Vol_Pents_6 + Number_of_Vol_Tets;
+
+  if (Number_of_Surf_Quads > 0) {
+      AIM_ERROR(aimInfo, "Developer error! append_AFLR_Grid currently does not work correctly for Quad elements.");
+      return CAPS_NOTIMPLEMENT;
+  }
+
+  grid->Edge_ID_Flag            = (INT_1D *) ug_realloc (&ierr, grid->Edge_ID_Flag           , (Number_of_Surf_Edges +1) * sizeof (INT_1D));  AIM_STATUS(aimInfo, ierr);
+  grid->Surf_Grid_BC_Flag       = (INT_1D *) ug_realloc (&ierr, grid->Surf_Grid_BC_Flag      , (Number_of_Surf       +1) * sizeof (INT_1D));  AIM_STATUS(aimInfo, ierr);
+  grid->Surf_ID_Flag            = (INT_1D *) ug_realloc (&ierr, grid->Surf_ID_Flag           , (Number_of_Surf       +1) * sizeof (INT_1D));  AIM_STATUS(aimInfo, ierr);
+  grid->Surf_Reconnection_Flag  = (INT_1D *) ug_realloc (&ierr, grid->Surf_Reconnection_Flag , (Number_of_Surf       +1) * sizeof (INT_1D));  AIM_STATUS(aimInfo, ierr);
+  grid->Surf_Edge_Connectivity  = (INT_2D *) ug_realloc (&ierr, grid->Surf_Edge_Connectivity , (Number_of_Surf_Edges +1) * sizeof (INT_2D));  AIM_STATUS(aimInfo, ierr);
+  grid->Surf_Tria_Connectivity  = (INT_3D *) ug_realloc (&ierr, grid->Surf_Tria_Connectivity , (Number_of_Surf_Trias +1) * sizeof (INT_3D));  AIM_STATUS(aimInfo, ierr);
+  grid->Surf_Quad_Connectivity  = (INT_4D *) ug_realloc (&ierr, grid->Surf_Quad_Connectivity , (Number_of_Surf_Quads +1) * sizeof (INT_4D));  AIM_STATUS(aimInfo, ierr);
+
+  if (grid->Vol_ID_Flag != NULL) {
+    grid->Vol_ID_Flag           = (INT_1D *) ug_realloc (&ierr, grid->Vol_ID_Flag            , (Number_of_Vol        +1) * sizeof (INT_1D));  AIM_STATUS(aimInfo, ierr);
+  }
+  grid->Vol_Tet_Connectivity    = (INT_4D *) ug_realloc (&ierr, grid->Vol_Tet_Connectivity   , (Number_of_Vol_Tets   +1) * sizeof (INT_4D));  AIM_STATUS(aimInfo, ierr);
+  grid->Vol_Pent_5_Connectivity = (INT_5D *) ug_realloc (&ierr, grid->Vol_Pent_5_Connectivity, (Number_of_Vol_Pents_5+1) * sizeof (INT_5D));  AIM_STATUS(aimInfo, ierr);
+  grid->Vol_Pent_6_Connectivity = (INT_6D *) ug_realloc (&ierr, grid->Vol_Pent_6_Connectivity, (Number_of_Vol_Pents_6+1) * sizeof (INT_6D));  AIM_STATUS(aimInfo, ierr);
+  grid->Vol_Hex_Connectivity    = (INT_8D *) ug_realloc (&ierr, grid->Vol_Hex_Connectivity   , (Number_of_Vol_Hexs   +1) * sizeof (INT_8D));  AIM_STATUS(aimInfo, ierr);
+
+  grid->Coordinates       = (DOUBLE_3D *) ug_realloc (&ierr, grid->Coordinates      , (Number_of_Nodes+1) * sizeof (DOUBLE_3D));  AIM_STATUS(aimInfo, ierr);
+
+  if (grid->BL_Normal_Spacing != NULL) {
+      grid->BL_Normal_Spacing = (DOUBLE_1D *) ug_realloc (&ierr, grid->BL_Normal_Spacing, (Number_of_Nodes+1) * sizeof (DOUBLE_1D));  AIM_STATUS(aimInfo, ierr);
+  }
+  if (grid->BL_Thickness != NULL) {
+      grid->BL_Thickness      = (DOUBLE_1D *) ug_realloc (&ierr, grid->BL_Thickness     , (Number_of_Nodes+1) * sizeof (DOUBLE_1D));  AIM_STATUS(aimInfo, ierr);
+  }
+
+  ig = grid->Number_of_Nodes;
+  for (i = 0; i < domain->Number_of_Nodes; i++) {
+      grid->Coordinates[ig+i+1][0] = domain->Coordinates[i+1][0];
+      grid->Coordinates[ig+i+1][1] = domain->Coordinates[i+1][1];
+      grid->Coordinates[ig+i+1][2] = domain->Coordinates[i+1][2];
+  }
+
+  ig = grid->Number_of_Surf_Edges;
+  for (i = 0; i < domain->Number_of_Surf_Edges; i++) {
+      grid->Edge_ID_Flag[ig+i+1] = domain->Edge_ID_Flag[i+1];
+  }
+
+  ig = grid->Number_of_Surf_Trias + grid->Number_of_Surf_Quads;
+  for (i = 0; i < domain->Number_of_Surf_Trias + domain->Number_of_Surf_Quads; i++) {
+      grid->Surf_Grid_BC_Flag[ig+i+1] = domain->Surf_Grid_BC_Flag[i+1];
+  }
+
+  ig = grid->Number_of_Surf_Trias + grid->Number_of_Surf_Quads;
+  for (i = 0; i < domain->Number_of_Surf_Trias + domain->Number_of_Surf_Quads; i++) {
+      grid->Surf_ID_Flag[ig+i+1] = domain->Surf_ID_Flag[i+1];
+  }
+
+  ig = grid->Number_of_Surf_Trias + grid->Number_of_Surf_Quads;
+  for (i = 0; i < domain->Number_of_Surf_Trias + domain->Number_of_Surf_Quads; i++) {
+      grid->Surf_Reconnection_Flag[ig+i+1] = domain->Surf_Reconnection_Flag[i+1];
+  }
+
+  ig = grid->Number_of_Surf_Edges;
+  for (i = 0; i < domain->Number_of_Surf_Edges; i++) {
+      for (j = 0; j < 2; j++)
+          grid->Surf_Edge_Connectivity[ig+i+1][j] = domain->Surf_Edge_Connectivity[i+1][j] + grid->Number_of_Nodes;
+  }
+
+  ig = grid->Number_of_Surf_Trias;
+  for (i = 0; i < domain->Number_of_Surf_Trias; i++) {
+      for (j = 0; j < 3; j++)
+        grid->Surf_Tria_Connectivity[ig+i+1][j] = domain->Surf_Tria_Connectivity[i+1][j] + grid->Number_of_Nodes;
+  }
+
+  ig = grid->Number_of_Surf_Quads;
+  for (i = 0; i < domain->Number_of_Surf_Quads; i++) {
+      for (j = 0; j < 4; j++)
+          grid->Surf_Quad_Connectivity[ig+i+1][j] = domain->Surf_Quad_Connectivity[i+1][j] + grid->Number_of_Nodes;
+  }
+
+  if (grid->Vol_ID_Flag != NULL) {
+      ig = grid->Number_of_Vol_Hexs + grid->Number_of_Vol_Pents_5 + grid->Number_of_Vol_Pents_6 + grid->Number_of_Vol_Tets;
+      for (i = 0; i < Number_of_Vol - ig; i++) {
+          grid->Vol_ID_Flag[ig+i+1] = domain->Vol_ID_Flag[i+1];
+      }
+  }
+
+  ig = grid->Number_of_Vol_Tets;
+  for (i = 0; i < domain->Number_of_Vol_Tets; i++) {
+      for (j = 0; j < 4; j++)
+          grid->Vol_Tet_Connectivity[ig+i+1][j] = domain->Vol_Tet_Connectivity[i+1][j] + grid->Number_of_Nodes;
+  }
+
+  ig = grid->Number_of_Vol_Pents_5;
+  for (i = 0; i < domain->Number_of_Vol_Pents_5; i++) {
+      for (j = 0; j < 5; j++)
+          grid->Vol_Pent_5_Connectivity[ig+i+1][j] = domain->Vol_Pent_5_Connectivity[i+1][j] + grid->Number_of_Nodes;
+  }
+
+  ig = grid->Number_of_Vol_Pents_6;
+  for (i = 0; i < domain->Number_of_Vol_Pents_6; i++) {
+      for (j = 0; j < 6; j++)
+          grid->Vol_Pent_6_Connectivity[ig+i+1][j] = domain->Vol_Pent_6_Connectivity[i+1][j] + grid->Number_of_Nodes;
+  }
+
+  ig = grid->Number_of_Vol_Hexs;
+  for (i = 0; i < domain->Number_of_Vol_Hexs; i++) {
+      for (j = 0; j < 8; j++)
+          grid->Vol_Hex_Connectivity[ig+i+1][j] = domain->Vol_Hex_Connectivity[i+1][j] + grid->Number_of_Nodes;
+  }
+
+
+  if (grid->BL_Normal_Spacing != NULL) {
+    ig = grid->Number_of_Nodes;
+    for (i = 0; i < domain->Number_of_Nodes; i++) {
+      grid->BL_Normal_Spacing[ig+i+1]      = domain->BL_Normal_Spacing[i+1];
+    }
+  }
+
+  if (grid->BL_Thickness != NULL) {
+    ig = grid->Number_of_Nodes;
+    for (i = 0; i < domain->Number_of_Nodes; i++) {
+      grid->BL_Thickness[ig+i+1]      = domain->BL_Thickness[i+1];
+    }
+  }
+
+  grid->Number_of_BL_Vol_Tets = Number_of_BL_Vol_Tets;
+  grid->Number_of_Nodes       = Number_of_Nodes      ;
+  grid->Number_of_Surf_Edges  = Number_of_Surf_Edges ;
+  grid->Number_of_Surf_Trias  = Number_of_Surf_Trias ;
+  grid->Number_of_Surf_Quads  = Number_of_Surf_Quads ;
+  grid->Number_of_Vol_Tets    = Number_of_Vol_Tets   ;
+  grid->Number_of_Vol_Pents_5 = Number_of_Vol_Pents_5;
+  grid->Number_of_Vol_Pents_6 = Number_of_Vol_Pents_6;
+  grid->Number_of_Vol_Hexs    = Number_of_Vol_Hexs   ;
+#endif
+
+  int status = CAPS_SUCCESS;
+  INT_ final_mesh = 0;
+
+  status = ug3_merge_mesh (final_mesh,
+                           &domain->Number_of_Surf_Edges,
+                           &domain->Number_of_Surf_Trias,
+                           &domain->Number_of_Surf_Quads,
+                           &domain->Number_of_BL_Vol_Tets,
+                           &domain->Number_of_Vol_Tets,
+                           &domain->Number_of_Vol_Pents_5,
+                           &domain->Number_of_Vol_Pents_6,
+                           &domain->Number_of_Vol_Hexs,
+                           &domain->Number_of_Nodes,
+                           zone+1,
+                           &domain->Edge_ID_Flag,
+                           &domain->Surf_Edge_Connectivity,
+                           &domain->Surf_Grid_BC_Flag,
+                           &domain->Surf_ID_Flag,
+                           &domain->Surf_Reconnection_Flag,
+                           &domain->Surf_Tria_Connectivity,
+                           &domain->Surf_Quad_Connectivity,
+                           &domain->Vol_ID_Flag,
+                           &domain->Vol_Tet_Connectivity,
+                           &domain->Vol_Pent_5_Connectivity,
+                           &domain->Vol_Pent_6_Connectivity,
+                           &domain->Vol_Hex_Connectivity,
+                           &domain->Coordinates,
+                           &domain->BL_Normal_Spacing,
+                           &domain->BL_Thickness,
+
+                           &grid->Number_of_Surf_Edges,
+                           &grid->Number_of_Surf_Trias,
+                           &grid->Number_of_Surf_Quads,
+                           &grid->Number_of_BL_Vol_Tets,
+                           &grid->Number_of_Vol_Tets,
+                           &grid->Number_of_Vol_Pents_5,
+                           &grid->Number_of_Vol_Pents_6,
+                           &grid->Number_of_Vol_Hexs,
+                           &grid->Number_of_Nodes,
+                           &grid->Edge_ID_Flag,
+                           &grid->Surf_Edge_Connectivity,
+                           &grid->Surf_Grid_BC_Flag,
+                           &grid->Surf_ID_Flag,
+                           &grid->Surf_Reconnection_Flag,
+                           &grid->Surf_Tria_Connectivity,
+                           &grid->Surf_Quad_Connectivity,
+                           &grid->Vol_ID_Flag,
+                           &grid->Vol_Tet_Connectivity,
+                           &grid->Vol_Pent_5_Connectivity,
+                           &grid->Vol_Pent_6_Connectivity,
+                           &grid->Vol_Hex_Connectivity,
+                           &grid->Coordinates,
+                           &grid->BL_Normal_Spacing,
+                           &grid->BL_Thickness);
+  AIM_STATUS(aimInfo, status);
+
+  status = merge_mapAttrToIndexStruct(&domain->groupMap, &grid->groupMap, &grid->groupMap);
+  AIM_STATUS(aimInfo, status);
+
+cleanup:
+  return status;
+}
+
+
+int write_AFLR_Grid(void *aimInfo,
+                    const char *fileName,
+                    AFLR_Grid *grid)
+{
+    int status = CAPS_SUCCESS;
+    int i;
+    FILE *fp = NULL;
+    char aimFile[PATH_MAX];
+
+    INT_ Message_Flag = 0;
+
+    // Write the mesh to disk
+
+    snprintf(aimFile, PATH_MAX, "%s.lb8.ugrid", fileName);
+
+    status = ug_io_write_grid_file(aimFile,
+                                   Message_Flag,
+                                   grid->Number_of_BL_Vol_Tets,
+                                   grid->Number_of_Nodes,
+                                   grid->Number_of_Surf_Quads,
+                                   grid->Number_of_Surf_Trias,
+                                   grid->Number_of_Vol_Hexs,
+                                   grid->Number_of_Vol_Pents_5,
+                                   grid->Number_of_Vol_Pents_6,
+                                   grid->Number_of_Vol_Tets,
+                                   grid->Surf_Grid_BC_Flag,
+                                   grid->Surf_ID_Flag,
+                                   grid->Surf_Reconnection_Flag,
+                                   grid->Surf_Quad_Connectivity,
+                                   grid->Surf_Tria_Connectivity,
+                                   grid->Vol_Hex_Connectivity,
+                                   grid->Vol_ID_Flag,
+                                   grid->Vol_Pent_5_Connectivity,
+                                   grid->Vol_Pent_6_Connectivity,
+                                   grid->Vol_Tet_Connectivity,
+                                   grid->Coordinates,
+                                   grid->BL_Normal_Spacing,
+                                   grid->BL_Thickness);
+    AIM_STATUS(aimInfo, status);
+
+    snprintf(aimFile, PATH_MAX, "%s.mapbc", fileName);
+    fp = fopen(aimFile, "w");
+    if (fp == NULL) {
+      AIM_ERROR(aimInfo, "Cannot open file: %s", aimFile);
+      status = CAPS_IOERR;
+      goto cleanup;
+    }
+
+    fprintf(fp, "%d\n", grid->groupMap.numAttribute);
+    for (i = 0; i < grid->groupMap.numAttribute; i++) {
+      fprintf(fp, "%d 0 %s\n", grid->groupMap.attributeIndex[i], grid->groupMap.attributeName[i]);
+    }
+
+    status = CAPS_SUCCESS;
+cleanup:
+  /*@-dependenttrans@*/
+    if (fp != NULL) fclose(fp);
+  /*@+dependenttrans@*/
+
+  return status;
+}
+
+
 int aflr3_Volume_Mesh (void *aimInfo,
                        capsValue *aimInputs,
                        int ibodyOffset,
                        meshInputStruct meshInput,
-                       const char *fileName,
                        int boundingBoxIndex,
                        int createBL,
                        double globalBLSpacing,
@@ -357,12 +684,14 @@ int aflr3_Volume_Mesh (void *aimInfo,
                        const mapAttrToIndexStruct *meshMap,
                        int numMeshProp,
                        meshSizingStruct *meshProp,
-                       meshStruct *volumeMesh)
+                       int numSurfaceMesh,
+                       ego *surfaceMesh,
+                       AFLR_Grid *grid)
 {
     int i, d; // Indexing
 
     int propIndex;
-    int bodyIndex, state, np, ibody, nbody;
+    int bodyIndex, state, np, ibody;
 
     // Command line variables
     int  aflr3_argc   = 1;    // Number of arguments
@@ -376,12 +705,10 @@ int aflr3_Volume_Mesh (void *aimInfo,
     int numFace = 0, numModelFace = 0;
     int *faceBodyIndex = NULL;
     int *faceGroupIndex = NULL;
+    int newID;
 
-    int transp_intrnl = (int)false;
-    INT_ Input_Surf_Trias = 0;
-    int face_ntri, isurf, itri;
-    const double *face_xyz, *face_uv;
-    const int *face_ptype, *face_pindex, *face_tris, *face_tric;
+    const char *keyWord;
+    int index;
 
     int itransp = 0;
     int *transpBody = NULL;
@@ -396,37 +723,18 @@ int aflr3_Volume_Mesh (void *aimInfo,
     int atype, n;
 
     char bodyNumber[42], attrname[128];
-
-    INT_ create_tess_mode = 2;
-    INT_ set_node_map = 1;
-
-    int aflr4_argc = 1;
-    char **aflr4_argv = NULL;
-
-    UG_Param_Struct *AFLR4_Param_Struct_Ptr = NULL;
+    FILE *fp = NULL;
 
     const char* bcType = NULL;
     INT_ nbl, nbldiff;
-    INT_ index=0;
 
     // Declare AFLR3 grid generation variables.
-    INT_1D *Edge_ID_Flag = NULL;
-    INT_1D *Surf_Error_Flag= NULL;
-    INT_1D *Surf_Grid_BC_Flag = NULL;
-    INT_1D *Surf_ID_Flag = NULL;
-    INT_1D *Surf_Reconnection_Flag = NULL;
-    INT_2D *Surf_Edge_Connectivity = NULL;
-    INT_3D *Surf_Tria_Connectivity = NULL;
-    INT_4D *Surf_Quad_Connectivity = NULL;
-    INT_1D *Vol_ID_Flag = NULL;
-    INT_4D *Vol_Tet_Connectivity = NULL;
-    INT_5D *Vol_Pent_5_Connectivity = NULL;
-    INT_6D *Vol_Pent_6_Connectivity = NULL;
-    INT_8D *Vol_Hex_Connectivity = NULL;
+    INT_ nzone = 0;
+    INT_ zone = -1;
 
-    DOUBLE_3D *Coordinates = NULL;
-    DOUBLE_1D *BL_Normal_Spacing = NULL;
-    DOUBLE_1D *BL_Thickness = NULL;
+    DOUBLE_2D *u = NULL;
+
+    INT_1D *Surf_Error_Flag= NULL;
 
     INT_4D *BG_Vol_Tet_Neigbors = NULL;
     INT_4D *BG_Vol_Tet_Connectivity = NULL;
@@ -439,18 +747,6 @@ int aflr3_Volume_Mesh (void *aimInfo,
     DOUBLE_1D *Source_Spacing = NULL;
     DOUBLE_6D *Source_Metric = NULL;
 
-    INT_ status= 0;
-    INT_ Message_Flag = 1;
-    INT_ Number_of_BL_Vol_Tets = 0;
-    INT_ Number_of_Nodes = 0;
-    INT_ Number_of_Surf_Edges = 0;
-    INT_ Number_of_Surf_Quads = 0;
-    INT_ Number_of_Surf_Trias = 0;
-    INT_ Number_of_Vol_Hexs = 0;
-    INT_ Number_of_Vol_Pents_5 = 0;
-    INT_ Number_of_Vol_Pents_6 = 0;
-    INT_ Number_of_Vol_Tets = 0;
-
     INT_ Number_of_BG_Nodes = 0;
     INT_ Number_of_BG_Vol_Tets = 0;
 
@@ -458,12 +754,15 @@ int aflr3_Volume_Mesh (void *aimInfo,
 
     // Declare main program variables.
 
-    INT_ idef, noquad = 0;
-    INT_ mclosed = 1;
-    INT_ glue_trnsp = 1, nfree;
-    DOUBLE_2D *u = NULL;
+    INT_ status= 0;
+    INT_ Message_Flag = 1;
 
-    // INT_ M_BL_Thickness, M_Initial_Normal_Spacing;
+    INT_ bc_mod = 1; // use optional transparent BC modification
+    INT_ nlist = 0;
+    INT_2D *bclist = NULL;
+    INT_2D *idlist = NULL;
+
+    INT_ final_mesh;
 
     CHAR_UG_MAX Output_Case_Name;
 
@@ -477,9 +776,13 @@ int aflr3_Volume_Mesh (void *aimInfo,
     void *ext_cad_data = NULL;
     egads_struct *ptr = NULL;
 
+    AFLR_Grid grid_c;
+
+    initialize_AFLR_Grid(&grid_c);
+
     // Set and register program parameter functions.
 
-    ug_set_prog_param_code (3);
+    ug_set_prog_param_code (-3);
 
     ug_set_prog_param_function1 (ug_initialize_aflr_param);
     ug_set_prog_param_function1 (ug_gq_initialize_param); // optional
@@ -494,6 +797,7 @@ int aflr3_Volume_Mesh (void *aimInfo,
     aflr3_anbl3_register_initialize_param (anbl3_initialize_param);
     aflr3_anbl3_register_be_set_surf_edge_data (anbl3_be_set_surf_edge_data);
     aflr3_anbl3_register_be_get_surf_edge_data (anbl3_be_get_surf_edge_data);
+    aflr3_anbl3_register_be_set_surf_edge_data_def (anbl3_be_set_surf_edge_data_def);
     aflr3_anbl3_register_be_free_data (anbl3_be_free_data);
 #endif
 
@@ -521,14 +825,18 @@ int aflr3_Volume_Mesh (void *aimInfo,
     // these calls are in aflr4_main_register - if that changes then these
     // need to change
     aflr4_register_auto_cad_geom_setup (egads_auto_cad_geom_setup);
+    aflr4_register_cad_geom_create_tess (egads_aflr4_create_tess);
     aflr4_register_cad_geom_data_cleanup (egads_cad_geom_data_cleanup);
     aflr4_register_cad_geom_file_read (egads_cad_geom_file_read);
     aflr4_register_cad_geom_file_write (egads_cad_geom_file_write);
-    aflr4_register_cad_geom_create_tess (egads_aflr4_create_tess);
     aflr4_register_cad_geom_reset_attr (egads_cad_geom_reset_attr);
     aflr4_register_cad_geom_setup (egads_cad_geom_setup);
     aflr4_register_cad_tess_to_dgeom (egads_aflr4_tess_to_dgeom);
+    aflr4_register_get_mzone_bedge_data (egads_get_mzone_bedge_data);
+    aflr4_register_merge_mzone_data (egads_merge_mzone_data);
     aflr4_register_set_ext_cad_data (egads_set_ext_cad_data);
+    aflr4_register_set_mzone_data (egads_set_mzone_data);
+    aflr4_register_set_mzone_edge_data (egads_set_mzone_edge_data);
 
     dgeom_register_cad_eval_curv_at_uv (egads_eval_curv_at_uv);
     dgeom_register_cad_eval_edge_arclen (egads_eval_edge_arclen);
@@ -594,12 +902,12 @@ int aflr3_Volume_Mesh (void *aimInfo,
 
     // find all bodies with all AFLR_GBC TRANSP SRC/INTRNL
 
-    AIM_ALLOC(transpBody, volumeMesh->numReferenceMesh, int, aimInfo, status);
-    for (i = 0; i < volumeMesh->numReferenceMesh; i++) transpBody[i] = 0;
+    AIM_ALLOC(transpBody, numSurfaceMesh, int, aimInfo, status);
+    for (i = 0; i < numSurfaceMesh; i++) transpBody[i] = 0;
 
-    for (bodyIndex = 0; bodyIndex < volumeMesh->numReferenceMesh; bodyIndex++) {
+    for (bodyIndex = 0; bodyIndex < numSurfaceMesh; bodyIndex++) {
 
-      status = EG_statusTessBody(volumeMesh->referenceMesh[bodyIndex].egadsTess, &body, &state, &np);
+      status = EG_statusTessBody(surfaceMesh[bodyIndex], &body, &state, &np);
       AIM_STATUS(aimInfo, status);
 
       status = EG_getBodyTopos(body, NULL, FACE, &numFace, &faces);
@@ -639,16 +947,9 @@ int aflr3_Volume_Mesh (void *aimInfo,
           }
         }
 
-        // HACK to release ESP 1.21
-        if (bcType != NULL &&
-            strncasecmp(bcType, "TRANSP_INTRNL_UG3_GBC", 20) == 0) {
-          transp_intrnl = (int)true;
-        }
-
         // check to see if all faces on a body are TRANSP SRC/INTRNL
         if (bcType != NULL &&
-            (strncasecmp(bcType, "TRANSP_SRC_UG3_GBC", 18) == 0 ||
-             strncasecmp(bcType, "TRANSP_INTRNL_UG3_GBC", 20) == 0)) {
+            strncasecmp(bcType, "TRANSP_SRC_UG3_GBC", 18) == 0) {
           if (transpBody[bodyIndex] == -1) {
             AIM_ERROR(aimInfo, "Body %d has mixture of TRANSP_INTRNL_UG3_GBC/TRANSP_SRC_UG3_GBC and other BCs!");
             status = CAPS_BADTYPE;
@@ -667,42 +968,27 @@ int aflr3_Volume_Mesh (void *aimInfo,
       AIM_FREE(faces);
     }
 
-    for (bodyIndex = 0, nbody = 0; bodyIndex < volumeMesh->numReferenceMesh; bodyIndex++) {
-        if (transpBody[bodyIndex] != 1) nbody++;
-    }
-
-    AIM_ALLOC(copy_body_tess, 2*volumeMesh->numReferenceMesh, ego, aimInfo, status);
+    AIM_ALLOC(copy_body_tess, 2*numSurfaceMesh, ego, aimInfo, status);
 
     // Copy bodies making sure TRANSP bodies are last
     ibody = 0;
     for (itransp = 1; itransp >= -1; itransp -= 2) {
-      for (bodyIndex = 0; bodyIndex < volumeMesh->numReferenceMesh; bodyIndex++) {
+      for (bodyIndex = 0; bodyIndex < numSurfaceMesh; bodyIndex++) {
         if (transpBody[bodyIndex] == itransp) continue;
 
-        status = EG_statusTessBody(volumeMesh->referenceMesh[bodyIndex].egadsTess, &body, &state, &np);
+        status = EG_statusTessBody(surfaceMesh[bodyIndex], &body, &state, &np);
         AIM_STATUS(aimInfo, status);
 
         status = EG_copyObject(body, NULL, &copy_body_tess[ibody]);
         AIM_STATUS(aimInfo, status);
 
-        status = EG_copyObject(volumeMesh->referenceMesh[bodyIndex].egadsTess, copy_body_tess[ibody],
-                               &copy_body_tess[volumeMesh->numReferenceMesh+ibody]);
+        status = EG_copyObject(surfaceMesh[bodyIndex], copy_body_tess[ibody],
+                               &copy_body_tess[numSurfaceMesh+ibody]);
         AIM_STATUS(aimInfo, status);
 
         status = EG_getBodyTopos(copy_body_tess[ibody], NULL, FACE, &numFace, &faces);
         AIM_STATUS(aimInfo, status);
         AIM_NOTNULL(faces, aimInfo, status);
-
-        if (transpBody[bodyIndex] == -1) {
-            for (iface = 0; iface < numFace; iface++) {
-                status = EG_getTessFace(volumeMesh->referenceMesh[bodyIndex].egadsTess,
-                                        iface+1, &nnode_face, &face_xyz, &face_uv,
-                                        &face_ptype, &face_pindex, &face_ntri, &face_tris, &face_tric);
-                AIM_STATUS(aimInfo, status);
-
-                Input_Surf_Trias += face_ntri;
-            }
-        }
 
         // Build up an array of all faces in the model
         AIM_REALL(modelFaces, numModelFace+numFace, ego, aimInfo, status);
@@ -743,8 +1029,8 @@ int aflr3_Volume_Mesh (void *aimInfo,
     for (iface = 0; iface < numModelFace; iface++) {
 
       bc_ids_vector[iface] = iface+1;
-      bl_ds_vector[iface]  = globalBLSpacing;
-      bl_del_vector[iface] = globalBLThickness;
+      bl_ds_vector[iface]  = globalBLSpacing*capsMeshLength;
+      bl_del_vector[iface] = globalBLThickness*capsMeshLength;
 
       // check to see if AFLR_GBC is already set
       status = EG_attributeRet(modelFaces[iface], "AFLR_GBC", &atype, &n,
@@ -781,19 +1067,20 @@ int aflr3_Volume_Mesh (void *aimInfo,
           if ((meshProp[propIndex].bcType != NULL)) {
 
             if      (strncasecmp(meshProp[propIndex].bcType, "Farfield"             ,  8) == 0 ||
-                strncasecmp(meshProp[propIndex].bcType, "Freestream"           , 10) == 0 ||
-                strncasecmp(meshProp[propIndex].bcType, "FARFIELD_UG3_GBC"     , 16) == 0)
+                     strncasecmp(meshProp[propIndex].bcType, "Freestream"           , 10) == 0 ||
+                     strncasecmp(meshProp[propIndex].bcType, "FARFIELD_UG3_GBC"     , 16) == 0)
               bcType = "FARFIELD_UG3_GBC";
             else if (strncasecmp(meshProp[propIndex].bcType, "Viscous"              ,  7) == 0 ||
-                strncasecmp(meshProp[propIndex].bcType, "-STD_UG3_GBC"         , 12) == 0 ||
+                     strncasecmp(meshProp[propIndex].bcType, "-STD_UG3_GBC"         , 12) == 0 ||
                 (meshProp[propIndex].boundaryLayerSpacing > 0 &&
                     meshProp[propIndex].boundaryLayerThickness > 0))
               bcType = "-STD_UG3_GBC";
             else if (strncasecmp(meshProp[propIndex].bcType, "Inviscid"             ,  8) == 0 ||
-                strncasecmp(meshProp[propIndex].bcType, "STD_UG3_GBC"          , 11) == 0)
+                     strncasecmp(meshProp[propIndex].bcType, "STD_UG3_GBC"          , 11) == 0)
               bcType = "STD_UG3_GBC";
             else if (strncasecmp(meshProp[propIndex].bcType, "Symmetry"             ,  8) == 0 ||
-                strncasecmp(meshProp[propIndex].bcType, "BL_INT_UG3_GBC"       , 14) == 0)
+                     strncasecmp(meshProp[propIndex].bcType, "BoundaryLayerIntersect",22) == 0 ||
+                     strncasecmp(meshProp[propIndex].bcType, "BL_INT_UG3_GBC"       , 14) == 0)
               bcType = "BL_INT_UG3_GBC";
             else if (strncasecmp(meshProp[propIndex].bcType, "TRANSP_SRC_UG3_GBC"   , 18) == 0)
               bcType = "TRANSP_SRC_UG3_GBC";
@@ -826,69 +1113,8 @@ int aflr3_Volume_Mesh (void *aimInfo,
     status = EG_getContext(copy_body_tess[0], &context);
     AIM_STATUS(aimInfo, status);
 
-    status = EG_makeTopology(context, NULL, MODEL, 2*volumeMesh->numReferenceMesh, NULL, volumeMesh->numReferenceMesh,
+    status = EG_makeTopology(context, NULL, MODEL, 2*numSurfaceMesh, NULL, numSurfaceMesh,
                              copy_body_tess, NULL, &model);
-    AIM_STATUS(aimInfo, status);
-
-
-    // allocate and initialize a new argument vector
-
-    status = ug_add_new_arg (&aflr4_argv, "allocate_and_initialize_argv");
-    AIM_STATUS(aimInfo, status);
-
-    // setup input parameter structure
-
-    status = aflr4_setup_param (Message_Flag, 0, aflr4_argc, aflr4_argv,
-                                &AFLR4_Param_Struct_Ptr);
-    AIM_STATUS(aimInfo, status);
-
-    (void)ug_set_int_param ("geom_type", 1, AFLR4_Param_Struct_Ptr);
-    (void)ug_set_int_param ("mmsg", Message_Flag, AFLR4_Param_Struct_Ptr);
-
-    // set CAD geometry data structure
-
-    status = aflr4_set_ext_cad_data (&model);
-    AIM_STATUS(aimInfo, status);
-
-    // setup geometry data
-
-    status = aflr4_setup_and_grid_gen (0, AFLR4_Param_Struct_Ptr);
-    AIM_STATUS(aimInfo, status);
-
-    // set dgeom from input data
-
-    status = aflr4_cad_tess_to_dgeom ();
-    AIM_STATUS(aimInfo, status);
-
-    dgeom_def_get_idef (index, &idef);
-
-
-    // add and glue all individual surfaces within composite surface definition
-
-    status = dgeom_add_and_glue_comp (glue_trnsp, idef, mclosed, Message_Flag, &nfree);
-    AIM_STATUS(aimInfo, status);
-
-    //------------------------------------------------ GET COPY OF SURFACE MESH DATA
-
-    status = aflr4_get_def (idef, noquad,
-                            &Number_of_Surf_Edges,
-                            &Number_of_Surf_Trias,
-                            &Number_of_Nodes,
-                            &Number_of_Surf_Quads,
-                            &Surf_Grid_BC_Flag,
-                            &Edge_ID_Flag,
-                            &Surf_ID_Flag,
-                            &Surf_Edge_Connectivity,
-                            &Surf_Tria_Connectivity,
-                            &Surf_Quad_Connectivity,
-                            &u, &Coordinates);
-    AIM_STATUS(aimInfo, status);
-
-    aflr4_free_all (0);
-
-    // check that all the inputs
-
-    status = ug_check_prog_param(aflr3_argv, aflr3_argc, Message_Flag);
     AIM_STATUS(aimInfo, status);
 
     if (createBL == (int)true) {
@@ -921,170 +1147,365 @@ int aflr3_Volume_Mesh (void *aimInfo,
     // note that if mpfrmt is not set to 0 and BL mesh generation is on then only
     // the surface mesh is returned
 
-    if (transp_intrnl == (int)true) {
-        // HACK for TRANSP_INTRNL
+    // check that all the inputs
 
-        // This is needed aflr3 will segfault without it
-        Surf_Reconnection_Flag = (INT_1D*) ug_malloc (&status, (Number_of_Surf_Trias+Number_of_Surf_Quads+1) * sizeof (INT_1D));
-        if (status != 0) { status = EGADS_MALLOC; goto cleanup; }
-        for (i = 0; i < Number_of_Surf_Trias+Number_of_Surf_Quads; i++) {
-            Surf_Reconnection_Flag[i+1] = 7; // Do not allow swapping on the surface triangles
-        }
+    status = ug_check_prog_param(aflr3_argv, aflr3_argc, Message_Flag);
+    AIM_STATUS(aimInfo, status);
 
-        status = aflr3_grid_generator (aflr3_argc, aflr3_argv,
-                                       &Number_of_BL_Vol_Tets,
-                                       &Number_of_BG_Nodes,
-                                       &Number_of_BG_Vol_Tets,
-                                       &Number_of_Nodes,
-                                       &Number_of_Source_Nodes,
-                                       &Number_of_Surf_Quads,
-                                       &Number_of_Surf_Trias,
-                                       &Number_of_Vol_Hexs,
-                                       &Number_of_Vol_Pents_5,
-                                       &Number_of_Vol_Pents_6,
-                                       &Number_of_Vol_Tets,
-                                       &Surf_Error_Flag,
-                                       &Surf_Grid_BC_Flag,
-                                       &Surf_ID_Flag,
-                                       &Surf_Reconnection_Flag,
-                                       &Surf_Quad_Connectivity,
-                                       &Surf_Tria_Connectivity,
-                                       &Vol_Hex_Connectivity,
-                                       &Vol_Pent_5_Connectivity,
-                                       &Vol_Pent_6_Connectivity,
-                                       &Vol_Tet_Connectivity,
-                                       &BG_Vol_Tet_Neigbors,
-                                       &BG_Vol_Tet_Connectivity,
-                                       &Coordinates,
-                                       &BL_Normal_Spacing,
-                                       &BL_Thickness,
-                                       &BG_Coordinates,
-                                       &BG_Spacing,
-                                       &BG_Metric,
-                                       &Source_Coordinates,
-                                       &Source_Spacing,
-                                       &Source_Metric);
-    } else {
-      status = aflr3_vol_gen (aflr3_argc, aflr3_argv, Message_Flag,
-                              &Number_of_Surf_Edges,
-                              &Number_of_Surf_Trias,
-                              &Number_of_Surf_Quads,
-                              &Number_of_BL_Vol_Tets,
-                              &Number_of_Vol_Tets,
-                              &Number_of_Vol_Pents_5,
-                              &Number_of_Vol_Pents_6,
-                              &Number_of_Vol_Hexs,
-                              &Number_of_Nodes,
+    // set CAD geometry data structure
+
+    status = aflr43_tess_to_dgeom (Message_Flag, model);
+    AIM_STATUS(aimInfo, status);
+
+#if DUMP_DEBUG
+    remove("aflr3t_in_debug.egads");
+    EG_saveModel(egads_get_model (0), "aflr3t_in_debug.egads");
+#endif
+
+
+//#define DUMP_TECPLOT_DEBUG_FILE
+#ifdef DUMP_TECPLOT_DEBUG_FILE
+    {
+      int surf = 0;
+      int numEdge = 0;
+      int numSurface = 0;
+      int numTriFace = 0;
+      int numNodes = 0;
+      int numQuadFace = 0;
+      int glueId; // Id of glued composite surface
+
+      // AFRL4 output arrays
+      INT_1D *bcFlag = NULL;
+      INT_1D *ieFlag = NULL;
+      INT_1D *idFlag = NULL;
+      INT_2D *edgeCon = NULL;
+      INT_3D *triCon = NULL;
+      INT_4D *quadCon = NULL;
+      DOUBLE_2D *uv = NULL;
+      DOUBLE_3D *xyz = NULL;
+
+      // Get output id index (glue-only composite)
+      dgeom_def_get_idef (0, &glueId);
+
+      FILE *fp = aim_fopen(aimInfo, "aflr4_debug.tec", "w");
+      fprintf(fp, "VARIABLES = X, Y, Z, u, v\n");
+
+      numSurface = dgeom_get_ndef(); // Get number of surfaces meshed
+
+      for (surf = 0; surf < numSurface ; surf++) {
+
+        if (surf+1 == glueId) continue;
+
+        status = aflr4_get_def (surf+1,
+                                0,
+                                &numEdge,
+                                &numTriFace,
+                                &numNodes,
+                                &numQuadFace,
+                                &bcFlag,
+                                &ieFlag,
+                                &idFlag,
+                                &edgeCon,
+                                &triCon,
+                                &quadCon,
+                                &uv,
+                                &xyz);
+        AIM_STATUS(aimInfo, status);
+
+        fprintf(fp, "ZONE T=\"def %d\" N=%d, E=%d, F=FEPOINT, ET=Quadrilateral, DT=(DOUBLE DOUBLE DOUBLE DOUBLE DOUBLE)\n",
+                surf+1, numNodes, numTriFace+numQuadFace);
+        for (int i = 0; i < numNodes; i++)
+          fprintf(fp, "%22.15e %22.15e %22.15e %22.15e %22.15e\n",
+                  xyz[i+1][0], xyz[i+1][1], xyz[i+1][2], uv[i+1][0], uv[i+1][1]);
+        for (int i = 0; i < numTriFace; i++)
+          fprintf(fp, "%d %d %d %d\n", triCon[i+1][0], triCon[i+1][1], triCon[i+1][2], triCon[i+1][2]);
+        for (int i = 0; i < numQuadFace; i++)
+          fprintf(fp, "%d %d %d %d\n", quadCon[i+1][0], quadCon[i+1][1], quadCon[i+1][2], quadCon[i+1][3]);
+
+        ug_free (bcFlag);  bcFlag = NULL;
+        ug_free (ieFlag);  ieFlag = NULL;
+        ug_free (idFlag);  idFlag = NULL;
+        ug_free (edgeCon); edgeCon = NULL;
+        ug_free (triCon);  triCon = NULL;
+        ug_free (quadCon); quadCon = NULL;
+        ug_free (uv);      uv = NULL;
+        ug_free (xyz);     xyz = NULL;
+
+      }
+      fclose(fp); fp = NULL;
+
+    }
+#endif
+
+
+    //===================== IF THERE ARE MULTIPLE ZONES (BODIES) WITH MATCHING FACES
+    nzone = dgeom_get_nzone();
+
+    zone = (nzone) ? 0: -1;
+    //========================================================= THEN LOOP OVER ZONES
+
+    //................................................  GET LIST OF GRID BCs AND IDs
+
+    status = aflr43_bc_list (&bc_mod, &nlist, &bclist, &idlist);
+    AIM_STATUS(aimInfo, status);
+
+    do {
+
+    //------------------------------------------------ GET COPY OF SURFACE MESH DATA
+
+      status = aflr43_tess_to_surf (model, Message_Flag, zone,
+                                    &grid->Number_of_Surf_Edges,
+                                    &grid->Number_of_Surf_Trias,
+                                    &grid->Number_of_Surf_Quads,
+                                    &grid->Number_of_Nodes,
+                                    &grid->Edge_ID_Flag,
+                                    &grid->Surf_Edge_Connectivity,
+                                    &grid->Surf_Grid_BC_Flag,
+                                    &grid->Surf_ID_Flag,
+                                    &grid->Surf_Reconnection_Flag,
+                                    &grid->Surf_Tria_Connectivity,
+                                    &grid->Surf_Quad_Connectivity,
+                                    &grid->Coordinates);
+      AIM_STATUS(aimInfo, status);
+
+      //..................................... MODIFY SURFACE MESH TRANSPARENT GRID BCs
+
+      aflr43_bc_mod (bc_mod,
+                     grid->Number_of_Surf_Trias,
+                     grid->Number_of_Surf_Quads,
+                     nlist,
+                     grid->Surf_Grid_BC_Flag, grid->Surf_ID_Flag, bclist, idlist);
+
+      // ************************************************** GENERATE AFLR3 VOLUME MESH
+
+      status = aflr3_vol_gen (aflr3_argc, aflr3_argv, -3, Message_Flag,
+                              &grid->Number_of_Surf_Edges,
+                              &grid->Number_of_Surf_Trias,
+                              &grid->Number_of_Surf_Quads,
+                              &grid->Number_of_BL_Vol_Tets,
+                              &grid->Number_of_Vol_Tets,
+                              &grid->Number_of_Vol_Pents_5,
+                              &grid->Number_of_Vol_Pents_6,
+                              &grid->Number_of_Vol_Hexs,
+                              &grid->Number_of_Nodes,
                               &Number_of_BG_Vol_Tets,
                               &Number_of_BG_Nodes,
                               &Number_of_Source_Nodes,
-                              &Edge_ID_Flag,
-                              &Surf_Edge_Connectivity,
-                              &Surf_Grid_BC_Flag,
-                              &Surf_ID_Flag,
+                              &grid->Edge_ID_Flag,
+                              &grid->Surf_Edge_Connectivity,
+                              &grid->Surf_Grid_BC_Flag,
+                              &grid->Surf_ID_Flag,
                               &Surf_Error_Flag,
-                              &Surf_Reconnection_Flag,
-                              &Surf_Tria_Connectivity,
-                              &Surf_Quad_Connectivity,
-                              &Vol_ID_Flag,
-                              &Vol_Tet_Connectivity,
-                              &Vol_Pent_5_Connectivity,
-                              &Vol_Pent_6_Connectivity,
-                              &Vol_Hex_Connectivity,
+                              &grid->Surf_Reconnection_Flag,
+                              &grid->Surf_Tria_Connectivity,
+                              &grid->Surf_Quad_Connectivity,
+                              &grid->Vol_ID_Flag,
+                              &grid->Vol_Tet_Connectivity,
+                              &grid->Vol_Pent_5_Connectivity,
+                              &grid->Vol_Pent_6_Connectivity,
+                              &grid->Vol_Hex_Connectivity,
                               &BG_Vol_Tet_Neigbors,
                               &BG_Vol_Tet_Connectivity,
-                              &Coordinates,
-                              &BL_Normal_Spacing,
-                              &BL_Thickness,
+                              &grid->Coordinates,
+                              &grid->BL_Normal_Spacing,
+                              &grid->BL_Thickness,
                               &BG_Coordinates,
                               &BG_Spacing,
                               &BG_Metric,
                               &Source_Coordinates,
                               &Source_Spacing,
                               &Source_Metric);
+
+      if (status != 0) {
+          strcpy (Output_Case_Name, "debug");
+          ug3_write_surf_grid_error_file (Output_Case_Name,
+                                          status,
+                                          grid->Number_of_Nodes,
+                                          grid->Number_of_Surf_Trias,
+                                          Surf_Error_Flag,
+                                          grid->Surf_Grid_BC_Flag,
+                                          grid->Surf_ID_Flag,
+                                          grid->Surf_Tria_Connectivity,
+                                          grid->Coordinates);
+
+          strcpy(aimFile, "aflr3_surf_debug.tec");
+
+          fp = fopen(aimFile, "w");
+          if (fp == NULL) goto cleanup;
+          fprintf(fp, "VARIABLES = X, Y, Z, BC, ID\n");
+
+          fprintf(fp, "ZONE N=%d, E=%d, F=FEBLOCK, ET=Triangle\n",
+                  grid->Number_of_Nodes, grid->Number_of_Surf_Trias);
+          fprintf(fp, ", VARLOCATION=([1,2,3]=NODAL,[4,5]=CELLCENTERED)\n");
+          // write nodal coordinates
+          if (grid->Coordinates != NULL)
+              for (d = 0; d < 3; d++) {
+                  for (i = 0; i < grid->Number_of_Nodes; i++) {
+                      if (i % 5 == 0) fprintf( fp, "\n");
+                      fprintf(fp, "%22.15e ", grid->Coordinates[i+1][d]);
+                  }
+                  fprintf(fp, "\n");
+              }
+
+          if (grid->Surf_Grid_BC_Flag != NULL)
+              for (i = 0; i < grid->Number_of_Surf_Trias; i++) {
+                  if (i % 5 == 0) fprintf( fp, "\n");
+                  fprintf(fp, "%d ", grid->Surf_Grid_BC_Flag[i+1]);
+              }
+
+          if (grid->Surf_ID_Flag != NULL)
+              for (i = 0; i < grid->Number_of_Surf_Trias; i++) {
+                  if (i % 5 == 0) fprintf( fp, "\n");
+                  if ((Surf_Error_Flag != NULL) && (Surf_Error_Flag[i+1] < 0))
+                      fprintf(fp, "-1 ");
+                  else
+                      fprintf(fp, "%d ", grid->Surf_ID_Flag[i+1]);
+              }
+
+          // cell connectivity
+          if (grid->Surf_Tria_Connectivity != NULL)
+              for (i = 0; i < grid->Number_of_Surf_Trias; i++)
+                  fprintf(fp, "%d %d %d\n", grid->Surf_Tria_Connectivity[i+1][0],
+                                            grid->Surf_Tria_Connectivity[i+1][1],
+                                            grid->Surf_Tria_Connectivity[i+1][2]);
+  /*@-dependenttrans@*/
+          fclose(fp); fp = NULL;
+  /*@+dependenttrans@*/
+          AIM_ERROR(aimInfo, "AFLR3 Grid generation error. The input surfaces mesh has been written to: %s", aimFile);
+          goto cleanup;
+      }
+
+      ug_free(Surf_Error_Flag);
+      Surf_Error_Flag=NULL;
+
+      if (nzone) {
+
+        final_mesh = (zone == nzone-1) ? 1: 0;
+
+        status = ug3_merge_mesh (final_mesh,
+                                 &grid->Number_of_Surf_Edges,
+                                 &grid->Number_of_Surf_Trias,
+                                 &grid->Number_of_Surf_Quads,
+                                 &grid->Number_of_BL_Vol_Tets,
+                                 &grid->Number_of_Vol_Tets,
+                                 &grid->Number_of_Vol_Pents_5,
+                                 &grid->Number_of_Vol_Pents_6,
+                                 &grid->Number_of_Vol_Hexs,
+                                 &grid->Number_of_Nodes,
+                                 zone+1,
+                                 &grid->Edge_ID_Flag,
+                                 &grid->Surf_Edge_Connectivity,
+                                 &grid->Surf_Grid_BC_Flag,
+                                 &grid->Surf_ID_Flag,
+                                 &grid->Surf_Reconnection_Flag,
+                                 &grid->Surf_Tria_Connectivity,
+                                 &grid->Surf_Quad_Connectivity,
+                                 &grid->Vol_ID_Flag,
+                                 &grid->Vol_Tet_Connectivity,
+                                 &grid->Vol_Pent_5_Connectivity,
+                                 &grid->Vol_Pent_6_Connectivity,
+                                 &grid->Vol_Hex_Connectivity,
+                                 &grid->Coordinates,
+                                 &grid->BL_Normal_Spacing,
+                                 &grid->BL_Thickness,
+
+                                 &grid_c.Number_of_Surf_Edges,
+                                 &grid_c.Number_of_Surf_Trias,
+                                 &grid_c.Number_of_Surf_Quads,
+                                 &grid_c.Number_of_BL_Vol_Tets,
+                                 &grid_c.Number_of_Vol_Tets,
+                                 &grid_c.Number_of_Vol_Pents_5,
+                                 &grid_c.Number_of_Vol_Pents_6,
+                                 &grid_c.Number_of_Vol_Hexs,
+                                 &grid_c.Number_of_Nodes,
+                                 &grid_c.Edge_ID_Flag,
+                                 &grid_c.Surf_Edge_Connectivity,
+                                 &grid_c.Surf_Grid_BC_Flag,
+                                 &grid_c.Surf_ID_Flag,
+                                 &grid_c.Surf_Reconnection_Flag,
+                                 &grid_c.Surf_Tria_Connectivity,
+                                 &grid_c.Surf_Quad_Connectivity,
+                                 &grid_c.Vol_ID_Flag,
+                                 &grid_c.Vol_Tet_Connectivity,
+                                 &grid_c.Vol_Pent_5_Connectivity,
+                                 &grid_c.Vol_Pent_6_Connectivity,
+                                 &grid_c.Vol_Hex_Connectivity,
+                                 &grid_c.Coordinates,
+                                 &grid_c.BL_Normal_Spacing,
+                                 &grid_c.BL_Thickness);
+        AIM_STATUS(aimInfo, status);
+      }
+
+      //======================================================= END OF LOOP OVER ZONES
+
+      zone++;
+
+    } while (zone < nzone);
+
+    //======================================== GENERATE TESS FROM AFLR3 SURFACE MESH
+
+    status = aflr43_tess("",
+                         Message_Flag, 0, model,
+                         grid->Number_of_Surf_Edges,
+                         grid->Number_of_Surf_Trias,
+                         grid->Number_of_Surf_Quads,
+                         grid->Edge_ID_Flag,
+                         grid->Surf_ID_Flag,
+                         grid->Surf_Edge_Connectivity,
+                         grid->Surf_Tria_Connectivity,
+                         grid->Surf_Quad_Connectivity,
+                         grid->Coordinates);
+    AIM_STATUS(aimInfo, status);
+
+    //....................................... RESET VOLUME MESH TRANSPARENT GRID BCs
+
+    aflr43_bc_reset (bc_mod,
+                     &grid->Number_of_Surf_Trias,
+                     &grid->Number_of_Surf_Quads,
+                     nlist, bclist, idlist,
+                     grid->Surf_Grid_BC_Flag,
+                     grid->Surf_ID_Flag,
+                     grid->Surf_Reconnection_Flag,
+                     grid->Surf_Quad_Connectivity,
+                     grid->Surf_Tria_Connectivity);
+
+    //......................................... MERGE DUPLICATE FACES IN VOLUME MESH
+
+    if (nzone) {
+      status = aflr43_merge_vol_mesh_faces (aflr3_argc, aflr3_argv, -3,
+                                            &grid->Number_of_Surf_Trias,
+                                            &grid->Number_of_Surf_Quads,
+                                            grid->Number_of_Vol_Tets,
+                                            grid->Number_of_Vol_Pents_5,
+                                            grid->Number_of_Vol_Pents_6,
+                                            grid->Number_of_Vol_Hexs,
+                                            &grid->Number_of_Nodes,
+                                            nlist,
+                                            idlist,
+                                            grid->Surf_Grid_BC_Flag,
+                                            grid->Surf_ID_Flag,
+                                            grid->Surf_Reconnection_Flag,
+                                            grid->Surf_Quad_Connectivity,
+                                            grid->Surf_Tria_Connectivity,
+                                            grid->Vol_Tet_Connectivity,
+                                            grid->Vol_Pent_5_Connectivity,
+                                            grid->Vol_Pent_6_Connectivity,
+                                            grid->Vol_Hex_Connectivity,
+                                            grid->BL_Normal_Spacing,
+                                            grid->BL_Thickness,
+                                            grid->Coordinates);
+      AIM_STATUS(aimInfo, status);
     }
 
-    if (status != 0) {
-        FILE *fp;
+    status = egads_face_node_map_check (Message_Flag, grid->Coordinates);
+    AIM_STATUS(aimInfo, status);
 
-        strcpy (Output_Case_Name, "debug");
-        ug3_write_surf_grid_error_file (Output_Case_Name,
-                                        status,
-                                        Number_of_Nodes,
-                                        Number_of_Surf_Trias,
-                                        Surf_Error_Flag,
-                                        Surf_Grid_BC_Flag,
-                                        Surf_ID_Flag,
-                                        Surf_Tria_Connectivity,
-                                        Coordinates);
+    ext_cad_data = dgeom_get_ext_cad_data ();
+    ptr = (egads_struct *) ext_cad_data;
 
-        strcpy(aimFile, "aflr3_surf_debug.tec");
+    iface = 1;
 
-        fp = fopen(aimFile, "w");
-        if (fp == NULL) goto cleanup;
-        fprintf(fp, "VARIABLES = X, Y, Z, BC, ID\n");
-
-        fprintf(fp, "ZONE N=%d, E=%d, F=FEBLOCK, ET=Triangle\n",
-                Number_of_Nodes, Number_of_Surf_Trias);
-        fprintf(fp, ", VARLOCATION=([1,2,3]=NODAL,[4,5]=CELLCENTERED)\n");
-        // write nodal coordinates
-        if (Coordinates != NULL)
-            for (d = 0; d < 3; d++) {
-                for (i = 0; i < Number_of_Nodes; i++) {
-                    if (i % 5 == 0) fprintf( fp, "\n");
-                    fprintf(fp, "%22.15e ", Coordinates[i+1][d]);
-                }
-                fprintf(fp, "\n");
-            }
-
-        if (Surf_Grid_BC_Flag != NULL)
-            for (i = 0; i < Number_of_Surf_Trias; i++) {
-                if (i % 5 == 0) fprintf( fp, "\n");
-                fprintf(fp, "%d ", Surf_Grid_BC_Flag[i+1]);
-            }
-
-        if (Surf_ID_Flag != NULL)
-            for (i = 0; i < Number_of_Surf_Trias; i++) {
-                if (i % 5 == 0) fprintf( fp, "\n");
-                if ((Surf_Error_Flag != NULL) && (Surf_Error_Flag[i+1] < 0))
-                    fprintf(fp, "-1 ");
-                else
-                    fprintf(fp, "%d ", Surf_ID_Flag[i+1]);
-            }
-
-        // cell connectivity
-        if (Surf_Tria_Connectivity != NULL)
-            for (i = 0; i < Number_of_Surf_Trias; i++)
-                fprintf(fp, "%d %d %d\n", Surf_Tria_Connectivity[i+1][0],
-                                          Surf_Tria_Connectivity[i+1][1],
-                                          Surf_Tria_Connectivity[i+1][2]);
-/*@-dependenttrans@*/
-        fclose(fp);
-/*@+dependenttrans@*/
-        AIM_ERROR(aimInfo, "AFLR3 Grid generation error. The input surfaces mesh has been written to: %s", aimFile);
-        goto cleanup;
-    }
-
-
-    if (transp_intrnl == (int)true &&
-        Input_Surf_Trias != Number_of_Surf_Trias) {
-        printf("\nInfo: Use of TRANSP_INTRNL_UG3_GBC when the surface mesh is modified precludes mesh sensitivities and data transfer.\n");
-        printf("      Surface Mesh Number of Triangles: %d\n", Input_Surf_Trias);
-        printf("      Volume  Mesh Number of Triangles: %d\n", Number_of_Surf_Trias);
-        printf("\n");
-
-    } else if (transp_intrnl == (int)true) {
-
-      // TRANSP_INTRNL_UG3_GBC is used, so aflr4_cad_geom_create_tess does not work,
-      // but the surface mesh was preserved
-
-      AIM_NOTNULL(Surf_ID_Flag, aimInfo, status);
-      AIM_NOTNULL(Surf_Tria_Connectivity, aimInfo, status);
-
-      isurf = 1;
-      itri = 1;
-
-      for (bodyIndex = 0; bodyIndex < volumeMesh->numReferenceMesh; bodyIndex++) {
+    for (bodyIndex = 0, ibody = 0; bodyIndex < numSurfaceMesh; bodyIndex++) {
         if (transpBody[bodyIndex] == 1) continue;
 
         // set the file name to write the egads file
@@ -1092,189 +1513,51 @@ int aflr3_Volume_Mesh (void *aimInfo,
         status = aim_file(aimInfo, bodyNumber, aimFile);
         AIM_STATUS(aimInfo, status);
 
-        status = EG_statusTessBody(volumeMesh->referenceMesh[bodyIndex].egadsTess, &body, &state, &np);
+        status = EG_getBodyTopos(ptr->bodies[ibody], NULL, FACE, &nface, NULL);
         AIM_STATUS(aimInfo, status);
 
-        status = EG_getBodyTopos(body, NULL, FACE, &nface, NULL);
-        AIM_STATUS(aimInfo, status);
+        for (i = 0; i < nface; i++, iface++) {
 
-        for (iface = 0; iface < nface; iface++, isurf++) {
+            egads_face_node_map_get_ptr (iface, &nnode_face, &face_node_map);
 
-          status = EG_getTessFace(volumeMesh->referenceMesh[bodyIndex].egadsTess,
-                                  iface+1, &nnode_face, &face_xyz, &face_uv,
-                                  &face_ptype, &face_pindex, &face_ntri, &face_tris, &face_tric);
-          AIM_STATUS(aimInfo, status);
-
-          AIM_ALLOC(face_node_map, nnode_face, int, aimInfo, status);
-
-          for (i = 0; i < face_ntri; i++, itri++) {
-            if (Surf_ID_Flag[itri] != isurf) {
-              AIM_ERROR(aimInfo, "Developer error Surf_ID_Flag missmatch!");
-              status = CAPS_BADTYPE;
-              goto cleanup;
-            }
-
-            for (d = 0; d < 3; d++)
-              face_node_map[face_tris[3*i+d]-1] = Surf_Tria_Connectivity[itri][d];
-          }
-
-          // Add the unique indexing of the tessellation
-          snprintf(attrname, 128, "face_node_map_%d",iface+1);
-          status = EG_attributeAdd(volumeMesh->referenceMesh[bodyIndex].egadsTess, attrname, ATTRINT,
-                                   nnode_face, face_node_map, NULL, NULL);
-          AIM_FREE (face_node_map);
-          AIM_STATUS(aimInfo, status);
+            // Add the unique indexing of the tessellation
+            snprintf(attrname, 128, "face_node_map_%d",i+1);
+            status = EG_attributeAdd(ptr->tess[ibody], attrname, ATTRINT,
+                                     nnode_face, face_node_map+1, NULL, NULL); // face_node_map is index on [i+1]
+            AIM_STATUS(aimInfo, status);
         }
 
         remove(aimFile);
-        status = EG_saveTess(volumeMesh->referenceMesh[bodyIndex].egadsTess, aimFile);
+        status = EG_saveTess(ptr->tess[ibody], aimFile);
         AIM_STATUS(aimInfo, status);
-      }
-
-    } else {
-
-      // extract surface mesh data from an existing CAD Model with previously
-      // generated Tess Objects and save the data in the DGEOM data structure
-
-      // re-cerate the model without any TRANSP SRC/INTRNL bodies if necessary
-      if (nbody < volumeMesh->numReferenceMesh) {
-          status = EG_deleteObject(model);
-          AIM_STATUS(aimInfo, status);
-
-          for (bodyIndex = 0, ibody = 0; bodyIndex < volumeMesh->numReferenceMesh; bodyIndex++) {
-              if (transpBody[bodyIndex] == 1) continue;
-
-              status = EG_statusTessBody(volumeMesh->referenceMesh[bodyIndex].egadsTess, &body, &state, &np);
-              AIM_STATUS(aimInfo, status);
-
-              status = EG_copyObject(body, NULL, &copy_body_tess[ibody]);
-              AIM_STATUS(aimInfo, status);
-
-              status = EG_copyObject(volumeMesh->referenceMesh[bodyIndex].egadsTess, copy_body_tess[ibody], &copy_body_tess[nbody+ibody]);
-              AIM_STATUS(aimInfo, status);
-
-              ibody++;
-          }
-
-          status = EG_makeTopology(context, NULL, MODEL, 2*nbody, NULL, nbody,
-                                   copy_body_tess, NULL, &model);
-          AIM_STATUS(aimInfo, status);
-      }
-
-      status = aflr4_set_ext_cad_data (&model);
-      AIM_STATUS(aimInfo, status);
-
-      status = aflr4_setup_and_grid_gen (0, AFLR4_Param_Struct_Ptr);
-      AIM_STATUS(aimInfo, status);
-
-      // set dgeom from input data
-
-      status = aflr4_cad_tess_to_dgeom ();
-      AIM_STATUS(aimInfo, status);
-
-      // save the surface mesh from AFLR3
-
-      status = aflr4_input_to_dgeom (Number_of_Surf_Edges, Number_of_Surf_Trias, Number_of_Surf_Quads,
-                                     Edge_ID_Flag, Surf_Edge_Connectivity, Surf_ID_Flag, Surf_Tria_Connectivity, Surf_Quad_Connectivity, Coordinates);
-      AIM_STATUS(aimInfo, status);
-
-      // create tess object from input surface mesh
-
-      status = aflr4_cad_geom_create_tess (Message_Flag, create_tess_mode, set_node_map);
-      AIM_STATUS(aimInfo, status);
-
-      ext_cad_data = dgeom_get_ext_cad_data ();
-      ptr = (egads_struct *) ext_cad_data;
-
-      iface = 1;
-
-      for (bodyIndex = 0, ibody = 0; bodyIndex < volumeMesh->numReferenceMesh; bodyIndex++) {
-          if (transpBody[bodyIndex] == 1) continue;
-
-          // set the file name to write the egads file
-          snprintf(bodyNumber, 42, AFLR3TESSFILE, bodyIndex+ibodyOffset);
-          status = aim_file(aimInfo, bodyNumber, aimFile);
-          AIM_STATUS(aimInfo, status);
-
-          status = EG_getBodyTopos(ptr->bodies[ibody], NULL, FACE, &nface, NULL);
-          AIM_STATUS(aimInfo, status);
-
-          for (i = 0; i < nface; i++, iface++) {
-
-              status = egads_face_node_map_get (iface, &nnode_face, &face_node_map);
-              AIM_STATUS(aimInfo, status);
-
-              // Add the unique indexing of the tessellation
-              snprintf(attrname, 128, "face_node_map_%d",i+1);
-              status = EG_attributeAdd(ptr->tess[ibody], attrname, ATTRINT,
-                                       nnode_face, face_node_map+1, NULL, NULL); // face_node_map is index on [i+1]
-              AIM_STATUS(aimInfo, status);
-
-              ug_free (face_node_map);
-              face_node_map = NULL;
-          }
-
-          remove(aimFile);
-          status = EG_saveTess(ptr->tess[ibody], aimFile);
-          AIM_STATUS(aimInfo, status);
-          ibody++;
-      }
+        ibody++;
     }
 
     // map the face index to the capsGroup index
-    AIM_NOTNULL(Surf_ID_Flag, aimInfo, status);
+    AIM_NOTNULL(grid->Surf_ID_Flag, aimInfo, status);
     AIM_NOTNULL(faceGroupIndex, aimInfo, status);
 
-    for (i = 0; i < Number_of_Surf_Trias + Number_of_Surf_Quads; i++) {
-      Surf_ID_Flag[i+1] = faceGroupIndex[Surf_ID_Flag[i+1]-1];
+    newID = (int) true;
+    for (i = 0; i < grid->Number_of_Surf_Trias + grid->Number_of_Surf_Quads; i++) {
+      // Some attributes may be lost to interior domains
+      if (newID == (int) true) {
+        status = get_mapAttrToIndexKeyword(groupMap, faceGroupIndex[grid->Surf_ID_Flag[i+1]-1], &keyWord);
+        AIM_STATUS(aimInfo, status);
+
+        status = increment_mapAttrToIndexStruct(&grid->groupMap, keyWord);
+        if (status != CAPS_SUCCESS && status != EGADS_EXISTS)
+          AIM_STATUS(aimInfo, status);
+
+        status = get_mapAttrToIndexIndex(&grid->groupMap, keyWord, &index);
+        AIM_STATUS(aimInfo, status);
+      }
+
+      if (i < grid->Number_of_Surf_Trias + grid->Number_of_Surf_Quads-1)
+        newID = grid->Surf_ID_Flag[i+2] != grid->Surf_ID_Flag[i+1] ? (int) true : (int) false;
+      else
+        newID = (int)true;
+      grid->Surf_ID_Flag[i+1] = index;
     }
-
-    // Write the mesh to disk
-
-    snprintf(aimFile, PATH_MAX, "%s.lb8.ugrid", fileName);
-
-    status = ug_io_write_grid_file(aimFile,
-                                   Message_Flag,
-                                   Number_of_BL_Vol_Tets,
-                                   Number_of_Nodes,
-                                   Number_of_Surf_Quads,
-                                   Number_of_Surf_Trias,
-                                   Number_of_Vol_Hexs,
-                                   Number_of_Vol_Pents_5,
-                                   Number_of_Vol_Pents_6,
-                                   Number_of_Vol_Tets,
-                                   Surf_Grid_BC_Flag,
-                                   Surf_ID_Flag,
-                                   Surf_Reconnection_Flag,
-                                   Surf_Quad_Connectivity,
-                                   Surf_Tria_Connectivity,
-                                   Vol_Hex_Connectivity,
-                                   Vol_ID_Flag,
-                                   Vol_Pent_5_Connectivity,
-                                   Vol_Pent_6_Connectivity,
-                                   Vol_Tet_Connectivity,
-                                   Coordinates,
-                                   BL_Normal_Spacing,
-                                   BL_Thickness);
-    AIM_STATUS(aimInfo, status);
-
-    status = aflr3_to_MeshStruct(Number_of_Nodes,
-                                 Number_of_Surf_Trias,
-                                 Number_of_Surf_Quads,
-                                 Number_of_Vol_Tets,
-                                 Number_of_Vol_Pents_5,
-                                 Number_of_Vol_Pents_6,
-                                 Number_of_Vol_Hexs,
-                                 Surf_ID_Flag,
-                                 Surf_Tria_Connectivity,
-                                 Surf_Quad_Connectivity,
-                                 Vol_Tet_Connectivity,
-                                 Vol_Pent_5_Connectivity,
-                                 Vol_Pent_6_Connectivity,
-                                 Vol_Hex_Connectivity,
-                                 Coordinates,
-                                 volumeMesh);
-    AIM_STATUS(aimInfo, status);
 
     // Remove the temporary grid created by AFLR
     remove(".tmp.b8.ugrid");
@@ -1282,45 +1565,13 @@ int aflr3_Volume_Mesh (void *aimInfo,
     status = CAPS_SUCCESS;
 cleanup:
 
-    ug_free (face_node_map);
-    face_node_map = NULL;
-
     // Free program arguements
     ug_free_argv(aflr3_argv); aflr3_argv = NULL;
-    ug_free_argv(aflr4_argv); aflr4_argv = NULL;
-    ug_free_param (AFLR4_Param_Struct_Ptr); AFLR4_Param_Struct_Ptr = NULL;
-
-    // Free grid generation and parameter array space in structures.
-    // Note that aflr3_grid_generator frees all background data.
-    ug_io_free_grid(Surf_Grid_BC_Flag,
-                    Surf_ID_Flag,
-                    Surf_Reconnection_Flag,
-                    Surf_Quad_Connectivity,
-                    Surf_Tria_Connectivity,
-                    Vol_Hex_Connectivity,
-                    Vol_ID_Flag,
-                    Vol_Pent_5_Connectivity,
-                    Vol_Pent_6_Connectivity,
-                    Vol_Tet_Connectivity,
-                    Coordinates,
-                    BL_Normal_Spacing,
-                    BL_Thickness);
-    Surf_Grid_BC_Flag = NULL;
-    Surf_ID_Flag = NULL;
-    Surf_Reconnection_Flag = NULL;
-    Surf_Quad_Connectivity = NULL;
-    Surf_Tria_Connectivity = NULL;
-    Vol_Hex_Connectivity = NULL;
-    Vol_ID_Flag = NULL;
-    Vol_Pent_5_Connectivity = NULL;
-    Vol_Pent_6_Connectivity = NULL;
-    Vol_Tet_Connectivity = NULL;
-    Coordinates = NULL;
-    BL_Normal_Spacing = NULL;
-    BL_Thickness = NULL;
 
     ug_free(Surf_Error_Flag);
     Surf_Error_Flag= NULL;
+
+    ug_free(u);
 
     ug_free (BG_Vol_Tet_Neigbors);
     ug_free (BG_Vol_Tet_Connectivity);
@@ -1340,21 +1591,14 @@ cleanup:
     BG_U_Scalars = NULL;
     BG_U_Metrics = NULL;
 
-    ug_free (Edge_ID_Flag);
-    ug_free (Surf_ID_Flag);
-    ug_free (Surf_Edge_Connectivity);
-    ug_free (u);
-
-    Edge_ID_Flag = NULL;
-    Surf_ID_Flag = NULL;
-    Surf_Edge_Connectivity = NULL;
-    u = NULL;
-
     ug_io_free_node(Source_Coordinates, Source_Spacing, Source_Metric);
 
     Source_Coordinates = NULL;
     Source_Spacing = NULL;
     Source_Metric = NULL;
+
+    ug_free (bclist);
+    ug_free (idlist);
 
     ug_free (bc_ids_vector);
     ug_free (bl_ds_vector);
@@ -1385,6 +1629,10 @@ cleanup:
     AIM_FREE(faceBodyIndex);
     AIM_FREE(faceGroupIndex);
     AIM_FREE(transpBody);
+
+    destroy_AFLR_Grid(&grid_c);
+
+    if (fp != NULL) fclose(fp);
 
     return status;
 }

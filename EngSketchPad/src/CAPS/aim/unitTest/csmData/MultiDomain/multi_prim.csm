@@ -1,0 +1,65 @@
+# multi_prim.csm written by ocsmSave (v1.23)
+set MeshLength 4
+despmtr length 10 lbound 9 ubound 11 initial 10
+
+# Constant, Design, and Output Parameters:
+
+# Global Attributes:
+
+# Branches:
+BOX       0   0   0   10   10   10
+CYLINDER  2.5   1   2.5   2.5   4   2.5   1
+SUBTRACT  none   1   0
+SPHERE    7.5   2.5   2.5   2
+SUBTRACT  none   1   0
+BOX       1   6   1   3   3   3
+SUBTRACT  none   1   0
+CONE      7.5   9   7.5   7.5   6   7.5   1.5
+SUBTRACT  none   1   0
+
+select    BODY
+attribute _name   $block_1
+attribute capsAIM   $aflr4AIM;aflr3AIM;platoAIM;egadsTessAIM;tetgenAIM
+attribute capsMeshLength  4
+select    face
+attribute capsGroup   $dummy_att
+
+CYLINDER  2.5   1   2.5   2.5   4   2.5   1
+
+select    BODY
+attribute _name   $block_2
+attribute capsAIM   $aflr4AIM;aflr3AIM;platoAIM;egadsTessAIM;tetgenAIM
+attribute capsMeshLength  4
+select    face
+attribute capsGroup   $dummy_att
+
+SPHERE    7.5   2.5   2.5   2
+
+select    BODY
+attribute _name   $block_3
+attribute capsAIM   $aflr4AIM;aflr3AIM;platoAIM;egadsTessAIM;tetgenAIM
+attribute capsMeshLength  4
+select    face
+attribute capsGroup   $dummy_att
+
+BOX       1   6   1   3   3   3
+
+select    BODY
+attribute _name   $block_4
+attribute capsAIM   $aflr4AIM;aflr3AIM;platoAIM;egadsTessAIM;tetgenAIM
+attribute capsMeshLength  4
+select    face
+attribute capsGroup   $dummy_att
+
+CONE      7.5   9   7.5   7.5   6   7.5   1.5
+
+select    BODY
+attribute _name   $block_5
+attribute capsAIM   $aflr4AIM;aflr3AIM;platoAIM;egadsTessAIM;tetgenAIM
+attribute capsMeshLength  4
+select    face
+attribute capsGroup   $dummy_att
+
+#DUMP multi_prim.egads 0 1
+
+END

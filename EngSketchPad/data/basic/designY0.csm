@@ -1,0 +1,50 @@
+# designY0
+# written by John Dannenhoffer
+
+DESPMTR   L   5.0
+DESPMTR   H   3.0
+DESPMTR   S   2.0
+DESPMTR   T   1.0
+DESPMTR   D   1.0
+DESPMTR   x0  0.5
+DESPMTR   y0  0.4
+DESPMTR   z0  0.3
+
+SKBEG     x0   y0   z0   1
+   SKVAR     xy   "0.000000; 0.000000; 0.000000;\
+                   5.000000; 0.000000; 0.000000;\
+                   5.500000; 3.000000; 0.000000;\
+                   4.000000; 3.000000; 0.000000;\
+                   4.000000; 1.500000; 0.000000;\
+                   1.000000; 0.500000; 0.000000;\
+                   1.000000; 4.000000; 0.000000;\
+                   0.000000; 5.000000; 0.000000;"
+   SKCON     X   1   -1  0
+   SKCON     Y   1   -1  0
+   SKCON     H   1   2  0
+   SKCON     V   2   3  0
+   SKCON     H   3   4  0
+   SKCON     V   4   5  0
+   SKCON     H   5   6  0
+   SKCON     V   6   7  0
+   SKCON     H   7   8  0
+   SKCON     V   8   1  0
+   SKCON     L   1   2  L
+   SKCON     L   2   3  H
+   SKCON     L   8   1  H
+   SKCON     L   3   4  T
+   SKCON     L   7   8  T
+   SKCON     D   1   6  T
+   LINSEG    ::x[2]   ::y[2]   0
+   LINSEG    ::x[3]   ::y[3]   0
+   LINSEG    ::x[4]   ::y[4]   0
+   LINSEG    ::x[5]   ::y[5]   0
+   LINSEG    ::x[6]   ::y[6]   0
+   LINSEG    ::x[7]   ::y[7]   0
+   LINSEG    ::x[8]   ::y[8]   0
+   LINSEG    ::x[1]   ::y[1]   0
+SKEND
+
+EXTRUDE   0   0   D
+
+END

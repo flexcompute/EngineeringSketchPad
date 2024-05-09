@@ -1,0 +1,29 @@
+# waffleB1
+# written by John Dannenhoffer
+
+DIMENSION xloc  1  7
+DESPMTR   xloc  "0; 1; 2; 2; 2; 3; 4"
+
+UDPRIM    waffle    filename << progress 1
+    POINT  A     AT  xloc[1]  0
+    POINT  B     AT  xloc[1]  2
+    LINE   .     A  B  tagType=rib  tagIndex=1
+
+    PATBEG irib  6
+       IFTHEN  abs(xloc[irib+1]-xloc[irib]) GT 0.0001
+          POINT  C   AT  xloc[irib+1]  0
+          POINT  D   AT  xloc[irib+1]  2
+          LINE   .   C   D  tagType=rib   tagIndex=!val2str(irib+1,0)
+          LINE   .   A   C  tagType=spar  tagIndex=1  tagSubindex=!val2str(irib,0)
+          LINE   .   B   D  tagType=spar  tagIndex=2  tagSubindex=!val2str(irib,0)
+
+          POINT  A   AT  x@C  y@C
+          POINT  B   AT  x@D  y@D
+       ENDIF
+    PATEND
+>>
+
+# make sure Parameter defined in waffle has been deleted
+ASSERT    ifnan(irib,1,0)  1
+
+END

@@ -1,0 +1,26 @@
+# blend_4
+# written by John Dannenhoffer
+
+# generate five NodeBodys
+POINT     -4   1   1
+
+POINT     -2   1   1
+
+POINT      0   2   2
+
+POINT      2   1   1
+
+POINT      4   1   1
+
+# remember the sections (so that they can be plotted at the end)
+GROUP
+STORE     sections 0 1
+
+# perform the BLEND (WireBody)
+BLEND
+ASSERT    @itype  1
+
+# plot the sections too
+RESTORE   sections
+
+END

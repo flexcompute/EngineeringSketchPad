@@ -1,0 +1,27 @@
+# subtract_12 (coplanar Sheet/Sheet)
+# written by John Dannenhoffer
+
+# generate box and ellipse SheetBodys
+BOX       0  0  0  6  2  0
+STORE     theBox
+
+UDPRIM    ellipse   rx 1  ry 1/2
+TRANSLATE 3  1  0
+STORE     theEllipse
+
+# show outlines of theBox and theEllipse
+RESTORE   theBox
+ATTRIBUTE _name  $theBox
+ATTRIBUTE _viz   $off
+
+RESTORE   theEllipse
+ATTRIBUTE _name  $theEllipse
+ATTRIBUTE _viz   $off
+
+# perform SUBTRACTion (SheetBody)
+RESTORE   theBox
+RESTORE   theEllipse
+SUBTRACT
+ASSERT    @itype 2
+
+END

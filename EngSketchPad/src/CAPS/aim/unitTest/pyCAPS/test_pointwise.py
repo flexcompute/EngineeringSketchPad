@@ -9,6 +9,9 @@ import time
 # Import pyCAPS class file
 import pyCAPS
 
+from Mesh_Formats import Mesh_Formats
+Mesh_Formats = Mesh_Formats.copy()
+
 # Helper function to check if an executable exists
 def which(program):
     import os
@@ -66,6 +69,7 @@ class TestPointwise(unittest.TestCase):
             if which("pointwise") == None:
                 self.skipTest("No pointwise executable")
 
+#==============================================================================
     def run_pointwise(self, pointwise):
 
         # Run AIM pre-analysis
@@ -77,7 +81,7 @@ class TestPointwise(unittest.TestCase):
         # Run pointwise via system call
         # try up to 30 times in case license is not available
         CAPS_GLYPH = os.environ["CAPS_GLYPH"]
-        for i in range(30):
+        for i in range(60):
             try:
                 if platform.system() == "Windows":
                     PW_HOME = os.environ["PW_HOME"]
@@ -85,14 +89,14 @@ class TestPointwise(unittest.TestCase):
                 else:
                     pointwise.system("pointwise -b " + CAPS_GLYPH + "/GeomToMesh.glf caps.egads capsUserDefaults.glf")
             except pyCAPS.CAPSError:
-                time.sleep(10) # wait and try again
+                time.sleep(30) # wait and try again
                 continue
 
-            time.sleep(1) # let the harddrive breathe
+            time.sleep(5) # let the harddrive breathe
             if os.path.isfile(os.path.join(pointwise.analysisDir,'caps.GeomToMesh.gma')) and \
               (os.path.isfile(os.path.join(pointwise.analysisDir,'caps.GeomToMesh.ugrid')) or \
                os.path.isfile(os.path.join(pointwise.analysisDir,'caps.GeomToMesh.lb8.ugrid'))): break
-            time.sleep(10) # wait and try again
+            time.sleep(20) # wait and try again
 
         # make sure the execution was successful
         self.assertTrue( os.path.isfile(os.path.join(pointwise.analysisDir,'caps.GeomToMesh.gma')) and
@@ -102,6 +106,7 @@ class TestPointwise(unittest.TestCase):
         # Run AIM post-analysis
         pointwise.postAnalysis()
 
+#==============================================================================
     def test_executeError(self):
 
         # Load pointwise aim
@@ -118,6 +123,7 @@ class TestPointwise(unittest.TestCase):
         self.assertEqual(e.exception.errorName, "CAPS_IOERR")
         del self.pointwise
 
+#==============================================================================
     def test_SingleBody(self):
 
         file = os.path.join("..","csmData","cfdSingleBody.csm")
@@ -135,6 +141,7 @@ class TestPointwise(unittest.TestCase):
         # Run
         self.run_pointwise(pointwise)
 
+#==============================================================================
     def test_MultiBody(self):
 
         file = os.path.join("..","csmData","cfdMultiBody.csm")
@@ -152,6 +159,7 @@ class TestPointwise(unittest.TestCase):
         # Run
         self.run_pointwise(pointwise)
 
+#==============================================================================
     def test_reenter(self):
 
         file = "../csmData/cfdSingleBody.csm"
@@ -160,6 +168,8 @@ class TestPointwise(unittest.TestCase):
 
         pointwise = myProblem.analysis.create(aim = "pointwiseAIM",
                                               name = "SingleBody2")
+
+        pointwise.input.Mesh_Format = Mesh_Formats
 
         # Global Min/Max number of points on edges
         pointwise.input.Connector_Initial_Dim = 10
@@ -178,6 +188,7 @@ class TestPointwise(unittest.TestCase):
         self.run_pointwise(pointwise)
 
 
+#==============================================================================
     def test_box(self):
 
         # Load pointwise aim
@@ -195,6 +206,7 @@ class TestPointwise(unittest.TestCase):
         # Just make sure it runs without errors...
         self.run_pointwise(pointwise)
 
+#==============================================================================
     def test_cylinder(self):
 
         # Load pointwise aim
@@ -213,6 +225,7 @@ class TestPointwise(unittest.TestCase):
         self.run_pointwise(pointwise)
 
 
+#==============================================================================
     def test_cone(self):
 
         # Load pointwise aim
@@ -230,6 +243,7 @@ class TestPointwise(unittest.TestCase):
         # Just make sure it runs without errors...
         self.run_pointwise(pointwise)
 
+#==============================================================================
     def off_test_torus(self):
 
         # Load pointwise aim
@@ -247,6 +261,7 @@ class TestPointwise(unittest.TestCase):
         # Just make sure it runs without errors...
         self.run_pointwise(pointwise)
 
+#==============================================================================
     def test_sphere(self):
 
         # Load pointwise aim
@@ -264,8 +279,9 @@ class TestPointwise(unittest.TestCase):
         # Just make sure it runs without errors...
         self.run_pointwise(pointwise)
 
-        #pointwise.view()
+        #pointwise.geometry.view()
 
+#==============================================================================
     def off_test_boxhole(self):
 
         # Load pointwise aim
@@ -283,6 +299,7 @@ class TestPointwise(unittest.TestCase):
         # Just make sure it runs without errors...
         self.run_pointwise(pointwise)
 
+#==============================================================================
     def test_bullet(self):
 
         # Load pointwise aim
@@ -300,6 +317,7 @@ class TestPointwise(unittest.TestCase):
         # Just make sure it runs without errors...
         self.run_pointwise(pointwise)
 
+#==============================================================================
     def test_all(self):
 
         # Load pointwise aim
@@ -317,7 +335,7 @@ class TestPointwise(unittest.TestCase):
         # Just make sure it runs without errors...
         self.run_pointwise(pointwise)
 
-        #pointwise.view()
+        #pointwise.geometry.view()
 
 if __name__ == '__main__':
     unittest.main()

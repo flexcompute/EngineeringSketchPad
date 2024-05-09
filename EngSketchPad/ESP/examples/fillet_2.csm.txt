@@ -1,0 +1,16 @@
+# fillet_2
+# written by John Dannenhoffer
+
+# cyan box
+BOX       0  0  0  4  3  2
+ATTRIBUTE _color $cyan
+
+# small fillet on all Edges surrounding zmax
+SELECT    EDGE  0  0  @nbody  6
+FILLET    0.1  @sellist  1
+
+# big fillet on Edge adjacent to zmin,ymax
+SELECT    EDGE  1  4  1  5
+FILLET    0.5  @sellist  1
+
+END

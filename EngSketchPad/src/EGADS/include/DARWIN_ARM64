@@ -1,0 +1,55 @@
+#MAC OS 11.3 & up -- arm64 chip (clang):
+#
+EGREV   = 1.0.25
+
+LIBPATH = -L$(CASROOT)/$(CASARCH)/lib -L$(ESP_ROOT)/lib
+ifeq ($(CASREV),7.3)
+CPDS    = -std=c++11
+INCS    = -I$(CASROOT)/inc -I$(CASROOT)/include/opencascade -I$(CASROOT)
+LIBS    = -lTKBool -lTKernel -lTKFeat -lTKBO -lTKGeomAlgo -lTKMath -lTKOffset -lTKPrim -lTKTopAlgo -lTKBRep -lTKG2d -lTKG3d -lTKGeomBase -lTKShHealing -lTKSTEP -lTKSTEP209 -lTKSTEPBase -lTKSTEPAttr -lTKXSBase -lTKIGES -lTKFillet
+else ifeq ($(CASREV),7.4)
+CPDS    = -std=c++11
+INCS    = -I$(CASROOT)/inc -I$(CASROOT)/include/opencascade -I$(CASROOT)
+LIBS    = -lTKBool -lTKernel -lTKFeat -lTKBO -lTKGeomAlgo -lTKMath -lTKOffset -lTKPrim -lTKTopAlgo -lTKBRep -lTKG2d -lTKG3d -lTKGeomBase -lTKShHealing -lTKSTEP -lTKSTEP209 -lTKSTEPBase -lTKSTEPAttr -lTKXSBase -lTKIGES -lTKFillet
+else ifeq ($(CASREV),7.6)
+CPDS    = -std=c++11
+INCS    = -I$(CASROOT)/inc -I$(CASROOT)/include/opencascade -I$(CASROOT)
+LIBS    = -lTKBool -lTKernel -lTKFeat -lTKBO -lTKGeomAlgo -lTKMath -lTKOffset -lTKPrim -lTKTopAlgo -lTKBRep -lTKG2d -lTKG3d -lTKGeomBase -lTKShHealing -lTKSTEP -lTKSTEP209 -lTKSTEPBase -lTKSTEPAttr -lTKXSBase -lTKIGES -lTKFillet
+else ifeq ($(CASREV),7.7)
+CPDS    = -std=c++11
+INCS    = -I$(CASROOT)/inc -I$(CASROOT)/include/opencascade -I$(CASROOT)
+LIBS    = -lTKBool -lTKernel -lTKFeat -lTKBO -lTKGeomAlgo -lTKMath -lTKOffset -lTKPrim -lTKTopAlgo -lTKBRep -lTKG2d -lTKG3d -lTKGeomBase -lTKShHealing -lTKSTEP -lTKSTEP209 -lTKSTEPBase -lTKSTEPAttr -lTKXSBase -lTKIGES -lTKFillet
+else ifeq ($(CASREV),7.8)
+CPDS    = -std=c++11
+INCS    = -I$(CASROOT)/inc -I$(CASROOT)/include/opencascade -I$(CASROOT)
+LIBS    = -lTKBool -lTKernel -lTKFeat -lTKBO -lTKGeomAlgo -lTKMath -lTKOffset -lTKPrim -lTKTopAlgo -lTKBRep -lTKG2d -lTKG3d -lTKGeomBase -lTKShHealing -lTKDESTEP -lTKDEIGES -lTKXSBase -lTKFillet
+else 
+$(error Unsupported CASREV=$(CASREV) -- Must be one of: 7.3 7.4 7.6 7.7 7.8)
+endif
+
+DEFINE = -DREVISION=$(CASREV)
+CXX    = clang++ -g -target arm64-apple-darwin $(ESPFLAGS)
+CPPOPT = -O -fPIC -DOCC_CONVERT_SIGNALS -DNDEBUG -DNo_Exception -D_OCC64 -Wall -Wno-write-strings -Wno-dangling-else -Wno-unused-result $(CPDS) -ffp-model=strict
+CC     = clang -g -target arm64-apple-darwin $(ESPFLAGS)
+COPTS  = -O -Wall -Wno-dangling-else -Wno-unused-result
+OCOPT  = -O -Wall -Wno-dangling-else -Wno-unused-result
+ifeq ($(EFCOMP),gfortran)
+FCOMP     = gfortran -g $(ESPFFLAGS)
+FOPTS     = -O -frecursive -fcray-pointer
+FSOFLG    = -bundle
+ESPFLIBS += -static-libgfortran -static-libgcc -Wl,-w
+endif
+ifeq ($(EFCOMP),ifort)
+FCOMP  = ifort -g -traceback
+FOPTS  = -O -recursive
+FSOFLG = -nofor-main -Wl,-bundle
+endif
+LOPTS  = rs
+RANLB  =
+SHLIB  = libegads.dylib
+OSHLIB = libocsm.dylib
+CSHLIB = libcaps.dylib
+SOFLGS = -bundle
+RPATH  = -rpath $(ESP_ROOT)/lib -rpath @loader_path/ -rpath $(CASROOT)/$(CASARCH)/lib
+FRPATH = -Wl,-rpath,$(ESP_ROOT)/lib -Wl,-rpath,@loader_path/ -Wl,-rpath,$(CASROOT)/$(CASARCH)/lib
+CPPSLB = -lc++

@@ -7,6 +7,7 @@
 #include <assert.h>
 #include <ctype.h>
 
+#include "aimUtil.h"
 #include "miscUtils.h"
 #include "cardUtils.h"
 
@@ -201,7 +202,7 @@ static int _setNull(cardStruct *card) {
 /*@null@*/
 static char * _formatField(const char *fieldValue, const char *pad, int fieldWidth) {
 
-    int length, padlen;
+    int padlen;
     char *fieldFormatted = NULL;
 
     if (pad == NULL) {
@@ -216,10 +217,7 @@ static char * _formatField(const char *fieldValue, const char *pad, int fieldWid
         if (fieldFormatted == NULL) return NULL;
 
         // TODO: currently always pads right
-        length = sprintf(fieldFormatted, "%*.*s%s", fieldWidth-padlen, fieldWidth-padlen, fieldValue, pad);
-        assert(length == fieldWidth); // ensure `sprintf` did not overflow
-
-        fieldFormatted[length] = 0;
+        snprintf(fieldFormatted, fieldWidth+1, "%*.*s%s", fieldWidth-padlen, fieldWidth-padlen, fieldValue, pad);
 
     } else {
         fieldFormatted = EG_strdup(fieldValue);
@@ -268,9 +266,7 @@ static int _addFieldSmall(cardStruct *card, const char *fieldValue, int fieldSpa
 
     status = _addFormattedField(card, fieldFormatted, CARD_SMALLWIDTH, fieldSpan);
 
-    if (fieldFormatted != NULL) {
-        EG_free(fieldFormatted);
-    }
+    AIM_FREE (fieldFormatted);
 
     return status;
 }
@@ -324,7 +320,7 @@ static int _countTrailingBlankFields(cardStruct *card) {
 }
 
 static inline int _sprintEnd(char *buffer) {
-    return sprintf(buffer, "\n");
+    return snprintf(buffer, 3, "\n");
 }
 
 static int _calcTotalChars(cardStruct *card, int numCells, int numCont) {
@@ -359,7 +355,7 @@ static void _removeTrailingDecimalZeros(char *doubleString) {
     decPoint = strchr(doubleString, '.'); // find decimal point
     exp = strchr(doubleString, 'E');
 
-    // if has decimal point 
+    // if has decimal point
     if (decPoint != NULL) {
 
         // if no exponent
@@ -381,7 +377,7 @@ static void _removeTrailingDecimalZeros(char *doubleString) {
             // count trail zeros between decPoint and exp
             count = 0;
             for (c = exp-1; c != decPoint; c--) {
-                
+
                 if (*c == '0') {
                     count++;
                 }
@@ -398,52 +394,52 @@ static void _removeTrailingDecimalZeros(char *doubleString) {
     }
 }
 
-static inline int _sprintName(char *buffer, char *name, int nameWidth) {
+static inline int _sprintName(char *buffer, size_t blen, char *name, int nameWidth) {
     int length = 0;
-    length += sprintf(buffer, "%-*s", nameWidth, name);
+    length += snprintf(buffer, blen, "%-*s", nameWidth, name);
     return length;
 }
 
-static inline int _sprintNameLarge(char *buffer, char *name, int nameWidth) {
+static inline int _sprintNameLarge(char *buffer, size_t blen, char *name, int nameWidth) {
     int length = 0;
-    length += sprintf(buffer, "%-*s", nameWidth, name);
+    length += snprintf(buffer, blen, "%-*s", nameWidth, name);
     assert(strlen(name) < nameWidth);
     buffer[strlen(name)] = '*';
     return length;
 }
 
-static inline int _sprintFieldFixed(char *buffer, const char *field) {
-    return sprintf(buffer, "%s", field);
+static inline int _sprintFieldFixed(char *buffer, size_t blen, const char *field) {
+    return snprintf(buffer, blen, "%s", field);
 }
 
-static inline int _sprintFieldFree(char *buffer, const char *field, const char *delimiter) {
-    return sprintf(buffer, "%s%s", delimiter, field);
+static inline int _sprintFieldFree(char *buffer, size_t blen, const char *field, const char *delimiter) {
+    return snprintf(buffer, blen, "%s%s", delimiter, field);
 }
 
-static inline int _sprintContSmall(char *buffer, int contCount,
+static inline int _sprintContSmall(char *buffer, size_t blen, int contCount,
                       /*@unused@*/ const char *delimiter,
                                    int contWidth) {
     int length = 0;
-    length += sprintf(buffer + length, "+%-*d\n", contWidth-1, contCount);
-    length += sprintf(buffer + length, "+%-*d", contWidth-1, contCount);
+    length += snprintf(buffer + length, blen-length, "+%-*d\n", contWidth-1, contCount);
+    length += snprintf(buffer + length, blen-length, "+%-*d", contWidth-1, contCount);
     return length;
 }
 
-static inline int _sprintContFree(char *buffer, int contCount,
+static inline int _sprintContFree(char *buffer, size_t blen, int contCount,
                                   const char *delimiter, int contWidth) {
     int length = 0;
-    length += sprintf(buffer, "%s", delimiter);
-    length += sprintf(buffer + length, "+%-*d\n", contWidth-1, contCount);
-    length += sprintf(buffer + length, "+%-*d", contWidth-1, contCount);
+    length += snprintf(buffer + length, blen-length, "%s", delimiter);
+    length += snprintf(buffer + length, blen-length, "+%-*d\n", contWidth-1, contCount);
+    length += snprintf(buffer + length, blen-length, "+%-*d", contWidth-1, contCount);
     return length;
 }
 
-static inline int _sprintContLarge(char *buffer, int contCount,
+static inline int _sprintContLarge(char *buffer, size_t blen, int contCount,
                       /*@unused@*/ const char *delimiter,
                                    int contWidth) {
     int length = 0;
-    length += sprintf(buffer + length, "*%-*d\n", contWidth-1, contCount);
-    length += sprintf(buffer + length, "*%-*d", contWidth-1, contCount);
+    length += snprintf(buffer + length, blen-length, "*%-*d\n", contWidth-1, contCount);
+    length += snprintf(buffer + length, blen-length, "*%-*d", contWidth-1, contCount);
     return length;
 }
 
@@ -460,48 +456,48 @@ static inline int _requiresContLarge(int cellIndex) {
 }
 
 
-static int _concatName(cardStruct *card, char *buffer) {
+static int _concatName(cardStruct *card, char *buffer, size_t blen) {
 
     if (card->formatType == SmallField) {
-        return _sprintName(buffer, card->name, card->nameWidth);
+        return _sprintName(buffer, blen, card->name, card->nameWidth);
     }
     else if (card->formatType == FreeField) {
-        return _sprintName(buffer, card->name, card->nameWidth);
+        return _sprintName(buffer, blen, card->name, card->nameWidth);
     }
     else if (card->formatType == LargeField) {
-        return _sprintNameLarge(buffer, card->name, card->nameWidth);
+        return _sprintNameLarge(buffer, blen, card->name, card->nameWidth);
     }
     else {
         return CAPS_BADVALUE;
     }
 }
 
-static int _concatField(cardStruct *card, const int i, char *buffer) {
+static int _concatField(cardStruct *card, const int i, char *buffer, size_t blen) {
 
     if (card->formatType == SmallField) {
-        return _sprintFieldFixed(buffer, card->fields[i]);
+        return _sprintFieldFixed(buffer, blen, card->fields[i]);
     }
     else if (card->formatType == FreeField) {
-        return _sprintFieldFree(buffer, card->fields[i], card->delimiter);
+        return _sprintFieldFree(buffer, blen, card->fields[i], card->delimiter);
     }
     else if (card->formatType == LargeField) {
-        return _sprintFieldFixed(buffer, card->fields[i]);
+        return _sprintFieldFixed(buffer, blen, card->fields[i]);
     }
     else {
         return CAPS_BADVALUE;
     }
 }
 
-static int _concatContinuation(cardStruct *card, int contIndex, char *buffer) {
+static int _concatContinuation(cardStruct *card, int contIndex, char *buffer, size_t blen) {
 
     if (card->formatType == SmallField) {
-        return _sprintContSmall(buffer, contIndex, card->delimiter, card->contWidth);
+        return _sprintContSmall(buffer, blen, contIndex, card->delimiter, card->contWidth);
     }
     else if (card->formatType == FreeField) {
-        return _sprintContFree(buffer, contIndex, card->delimiter, card->contWidth);
+        return _sprintContFree(buffer, blen, contIndex, card->delimiter, card->contWidth);
     }
     else if (card->formatType == LargeField) {
-        return _sprintContLarge(buffer, contIndex, card->delimiter, card->contWidth);
+        return _sprintContLarge(buffer, blen, contIndex, card->delimiter, card->contWidth);
     }
     else {
         return CAPS_BADVALUE;
@@ -699,11 +695,11 @@ int card_addStringArray(cardStruct *card, int numFieldValues, char *fieldValues[
 int card_addInteger(cardStruct *card, int fieldValue) {
 
     int status = CAPS_SUCCESS;
-    char *integerString = NULL;
+    char integerString[42];
 
-    integerString = convert_integerToString(fieldValue, card->fieldWidth, card->leftOrRight);
+    status = convert_integerToString(fieldValue, card->fieldWidth, card->leftOrRight, integerString);
+    if (status != CAPS_SUCCESS) return status;
     status = card_addField(card, integerString, 1);
-    EG_free(integerString);
 
     return status;
 }
@@ -719,8 +715,19 @@ int card_addIntegerArray(cardStruct *card, int numFieldValues, const int fieldVa
     return status;
 }
 
-int card_addIntegerOrBlank(cardStruct *card, const int *fieldValue) {
-    
+int card_addIntegerOrBlankArray(cardStruct *card, int numFieldValues, const int *fieldValues[]) {
+
+    int i, status = CAPS_SUCCESS;
+
+    for (i = 0; i < numFieldValues; i++) {
+        status = card_addIntegerOrBlank(card, fieldValues[i]);
+        if (status != CAPS_SUCCESS) return status;
+    }
+    return status;
+}
+
+int card_addIntegerOrBlank(cardStruct *card, /*@null@*/ const int *fieldValue) {
+
     if (fieldValue == NULL) {
         return card_addBlank(card);
     }
@@ -731,12 +738,12 @@ int card_addIntegerOrBlank(cardStruct *card, const int *fieldValue) {
 
 int card_addDouble(cardStruct *card, double fieldValue) {
     int status = CAPS_SUCCESS;
-    char *doubleString = NULL;
+    char doubleString[42];
 
-    doubleString = convert_doubleToString(fieldValue, card->fieldWidth, card->leftOrRight);
+    status = convert_doubleToString(fieldValue, card->fieldWidth, card->leftOrRight, doubleString);
+    if (status != CAPS_SUCCESS) return status;
     _removeTrailingDecimalZeros(doubleString);
     status = card_addField(card, doubleString, 1);
-    EG_free(doubleString);
 
     return status;
 }
@@ -752,8 +759,8 @@ int card_addDoubleArray(cardStruct *card, int numFieldValues, const double field
     return status;
 }
 
-int card_addDoubleOrBlank(cardStruct *card, const double *fieldValue) {
-    
+int card_addDoubleOrBlank(cardStruct *card, /*@null@*/ const double *fieldValue) {
+
     if (fieldValue == NULL) {
         return card_addBlank(card);
     }
@@ -775,7 +782,8 @@ char * card_toString(cardStruct *card) {
     int i;
 
     int fieldCount, contCount, numFields;
-    int totalChars, cardLength;
+    int cardLength;
+    size_t totalChars;
     char *cardString = NULL;
 
     numFields = card->size - _countTrailingBlankFields(card);
@@ -795,7 +803,7 @@ char * card_toString(cardStruct *card) {
     if (cardString == NULL) return NULL;
 
     cardLength = 0;
-    cardLength += _concatName(card, cardString);
+    cardLength += _concatName(card, cardString, totalChars + 1);
 
     fieldCount = 0;
     contCount = 0;
@@ -803,12 +811,12 @@ char * card_toString(cardStruct *card) {
 
         if (_requiresContinuation(card, fieldCount)) {
             // write continuation
-            cardLength += _concatContinuation(card, contCount, cardString + cardLength);
+            cardLength += _concatContinuation(card, contCount, cardString + cardLength, totalChars + 1 - cardLength);
             contCount++;
         }
 
         // write field
-        cardLength += _concatField(card, i, cardString + cardLength);
+        cardLength += _concatField(card, i, cardString + cardLength, totalChars + 1 - cardLength);
         fieldCount++;
     }
     cardLength += _sprintEnd(cardString + cardLength);

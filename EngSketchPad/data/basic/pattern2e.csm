@@ -6,10 +6,14 @@ despmtr         ny  2
 
 box             0.00      0.00     -0.10      nx+1      ny+1      0.20
 
+# note: MACBEG/MACEND/RECALL has been deprecated and is included here for backward-compatability testing
+#       new .csm files should use UDPRIM instead
 macbeg 2
    box          -.20      -.50     -0.20      0.40      1.00      0.40
 macend
 
+# note: MACBEG/MACEND/RECALL has been deprecated and is included here for backward-compatability testing
+#       new .csm files should use UDPRIM instead
 macbeg 1
    cylinder     0.00      0.00     -0.20      0.00      0.00      0.20      0.30
    recall 2

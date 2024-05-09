@@ -1,0 +1,27 @@
+# udprim_3.udc
+# written by John Dannenhoffer
+
+# function-type UDC since it does not have an INTERFACE. ALL statement
+
+# define the UDC's input arguments and their default values
+INTERFACE firstArg   IN  0
+INTERFACE secondArg  IN  0
+
+# define the UDC's output arguments and their default values
+INTERFACE theSum     OUT 0
+INTERFACE theProduct OUT 0
+
+# verify that this UDC does not have access to its parents variables
+ASSERT    ifnan(A,1,0)  1
+
+# set a local variable
+SET       A  11
+
+ASSERT    ifnan(A,1,0)  0
+
+# perform the computations
+SET       theSum      firstArg+secondArg
+SET       theProduct  firstArg*secondArg
+
+# the END statement is not required, but is a best practice
+END

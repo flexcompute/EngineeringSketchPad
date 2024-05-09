@@ -1,0 +1,13 @@
+# droop9a
+# wreiiten by John Dannenhoffer
+
+UDPRIM    naca      series 4412   sharpte 1
+SCALE     5
+TRANSLATE 4  3  2
+
+RESTORE   .
+
+UDPARG    droop     xle 0.2   thetale  30.0
+UDPRIM    droop     xte 0.7   thetate -30.0
+
+END

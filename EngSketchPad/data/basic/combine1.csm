@@ -1,22 +1,13 @@
 # combine1
 # written by John Dannenhoffer
 
-mark
-   skbeg     -1.0  -1.0  -1.0
-      linseg -1.0   1.0  -1.0
-   skend
+# make SheetBodys that will produce an open SheetBody
+BOX       0  0  0  0  1  1    # xmin
+BOX       1  0  0  0  1  1    # xmax
+BOX       0  0  0  1  0  1    # ymin
+BOX       0  1  0  1  0  1    # ymax
+BOX       0  0  0  1  1  0    # zmin
 
-   skbeg     -1.0   1.0  -1.0
-      linseg  1.0   1.0  -1.0
-   skend
+COMBINE
 
-   skbeg      1.0   1.0  -1.0
-      linseg  1.0  -1.0  -1.0
-   skend
-
-   skbeg      1.0  -1.0  -1.0
-      linseg -1.0  -1.0  -1.0
-   skend
-combine
-
-end
+END

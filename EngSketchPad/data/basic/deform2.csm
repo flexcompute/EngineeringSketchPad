@@ -1,0 +1,25 @@
+# deform2
+# written by John Dannenhoffer
+
+# build configuration
+MARK
+BOX 0 0 0 0 1 1
+BOX 1 0 0 0 1 1
+BLEND
+
+RESTORE .
+TRANSLATE 1 0 0
+JOIN
+
+RESTORE .
+TRANSLATE 0 1 0
+JOIN
+
+# deform 2 points in middle of two Faces
+UDPARG    deform   iface   "3;   3;   7;   7; "
+UDPARG    deform   iu      "3;   3;   3;   3; "
+UDPARG    deform   iv      "2;   3;   2;   3; "
+UDPARG    deform   dist    "0.5; 0.5; 0.5; 0.5"
+UDPRIM    deform
+
+END

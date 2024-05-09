@@ -34,10 +34,10 @@ surface.input.Tess_Params = [.1, 0.001, 20.0]
 # Load TetGen aim with the surface mesh as the parent
 volume = problem.analysis.create(aim='tetgenAIM', name='V')
 
+# Set the volume analysis values
 volume.input["Surface_Mesh"].link(surface.output["Surface_Mesh"])
 
-# Set the volume analysis values
-volume.input.Proj_Name = 'volume'
+# Optional: Explicitly write mesh files
 volume.input.Mesh_Format = 'Tecplot'
 
 # Sepecify a point in each region with the different ID's

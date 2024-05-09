@@ -18,6 +18,13 @@ TIMLIST =	$(LDIR)/capsMode.so \
 		$(LDIR)/flowchart.so \
 		$(LDIR)/viewer.so
 
+#Adding the rpath is needed when compiling with Python
+ifdef PYTHONINC
+TIMLIST    += $(LDIR)/pyscript.so
+PYTHONLPATH = $(filter -L%,$(PYTHONLIB))
+PYTHONRPATH = $(PYTHONLPATH:-L%=-Wl,-rpath %)
+endif
+
 default:	$(TIMLIST)
 
 #
@@ -28,23 +35,34 @@ $(LDIR)/capsMode.so:	$(ODIR)/timCapsMode.o $(LDIR)/$(OSHLIB)
 	rm $(LDIR)/capsMode.so
 	$(CXX) $(SOFLGS) -o $(LDIR)/capsMode.so $(ODIR)/timCapsMode.o -L$(LDIR) -lcaps -locsm -lwsserver -legads -ldl -lm
 
-$(ODIR)/timCapsMode.o:	timCapsMode.c tim.h $(IDIR)/caps.h
+$(ODIR)/timCapsMode.o:	timCapsMode.c OpenCSM.h tim.h $(IDIR)/emp.h $(IDIR)/caps.h
 	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I. timCapsMode.c -o $(ODIR)/timCapsMode.o
+
 
 $(LDIR)/flowchart.so:	$(ODIR)/timFlowchart.o $(LDIR)/$(OSHLIB)
 	touch $(LDIR)/flowchart.so
 	rm $(LDIR)/flowchart.so
 	$(CXX) $(SOFLGS) -o $(LDIR)/flowchart.so $(ODIR)/timFlowchart.o -L$(LDIR) -lcaps -locsm -lwsserver -legads -ldl -lm
 
-$(ODIR)/timFlowchart.o:	timFlowchart.c tim.h $(IDIR)/caps.h
+$(ODIR)/timFlowchart.o:	timFlowchart.c OpenCSM.h tim.h $(IDIR)/emp.h $(IDIR)/wsserver.h $(IDIR)/caps.h
 	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I. timFlowchart.c -o $(ODIR)/timFlowchart.o
+
+
+$(LDIR)/pyscript.so:	$(ODIR)/timPyscript.o $(LDIR)/$(OSHLIB)
+	touch $(LDIR)/pyscript.so
+	rm $(LDIR)/pyscript.so
+	$(CXX) $(SOFLGS) -o $(LDIR)/pyscript.so $(ODIR)/timPyscript.o $(PYTHONLIB) -L$(LDIR) -lcaps -locsm -lwsserver -legads -ldl $(RPATH) $(PYTHONRPATH)
+
+$(ODIR)/timPyscript.o:	timPyscript.c OpenCSM.h tim.h $(IDIR)/emp.h $(IDIR)/caps.h
+	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I. -I$(PYTHONINC) timPyscript.c -o $(ODIR)/timPyscript.o
+
 
 $(LDIR)/viewer.so:	$(ODIR)/timViewer.o $(LDIR)/$(OSHLIB)
 	touch $(LDIR)/viewer.so
 	rm $(LDIR)/viewer.so
 	$(CXX) $(SOFLGS) -o $(LDIR)/viewer.so $(ODIR)/timViewer.o -L$(LDIR) -lcaps -locsm -lwsserver -legads -ldl -lm
 
-$(ODIR)/timViewer.o:	timViewer.c tim.h $(IDIR)/caps.h
+$(ODIR)/timViewer.o:	timViewer.c OpenCSM.h tim.h $(IDIR)/emp.h $(IDIR)/wsserver.h $(IDIR)/caps.h
 	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I. timViewer.c -o $(ODIR)/timViewer.o
 
 #
@@ -66,7 +84,7 @@ lint:
 	$(LINT) -I$(IDIR) timViewer.c
 
 clean:
-	(cd $(ODIR); rm -f timCapsMode.o timFlowchart.o timViewer.o )
+	(cd $(ODIR); rm -f timCapsMode.o timFlowchart.o timPyscript.o timViewer.o )
 
 cleanall:	clean
 	rm -f  $(TIMLIST)

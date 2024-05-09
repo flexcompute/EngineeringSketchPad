@@ -9,7 +9,7 @@
  */
 
 /*
- * Copyright (C) 2013/2022  John F. Dannenhoffer, III (Syracuse University)
+ * Copyright (C) 2013/2023  John F. Dannenhoffer, III (Syracuse University)
  *
  * This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
@@ -45,6 +45,10 @@
 #define CDOUBLE const double
 #define CCHAR   const char
 
+#ifndef  DEBUG
+    #define  DEBUG 0
+#endif
+
 #ifdef GRAFIC
     #include "grafic.h"
 #endif
@@ -71,11 +75,6 @@
  *                                                                     *
  ***********************************************************************
  */
-#ifdef DEBUG
-   #define DOPEN {if (dbg_fp == NULL) dbg_fp = fopen("Slugs.dbg", "w");}
-   static  FILE *dbg_fp=NULL;
-#endif
-
 static void *realloc_temp=NULL;            /* used by RALLOC macro */
 
 #define  RED(COLOR)      (float)(COLOR / 0x10000        ) / (float)(255)
@@ -253,6 +252,8 @@ typedef struct {
     double               *xyz;               /* array  of Point locations along Edge */
     int                  ncp;                /* number of control points */
     double               *cp;                /* array  of control points */
+    int                  rtype;              /* restriction type (1=x, 2=y, 3=z) */
+    int                  nsmth;              /* number of post-smoothing passes */
     ego                  eedge;              /* ego object */
 } edge_T;
 
@@ -265,10 +266,12 @@ typedef struct {
     int                  *lup;               /* index (in *edg) of first Edge in Loop */
     int                  npnt;               /* number of interior Points in Face */
     double               *xyz;               /* array  of interior Points in Face */
-    int                  ntrain;             /* number of training Points in Face */
-    double               *xyztrain;          /* array  of training Points in Face */
-    int                  ncp;                /* number of control points */
+    int                  nfit;               /* number of fitting  Points in Face */
+    double               *xyzfit;            /* array  of fitting  Points in Face */
+    int                  ncp;                /* number of control points (in each direction) */
     double               *cp;                /* array  of control points */
+    int                  rtype;              /* restriction type (1=x, 2=y, 3=z) */
+    int                  nsmth;              /* number of post-smoothing passes */
     int                  done;               /* =1 when done */
     ego                  eface;              /* ego object */
 } face_T;
@@ -281,9 +284,19 @@ typedef struct {
 } sgmt_T;
 
 typedef struct {
-    void      *mutex;                        /* the mutex or NULL for single thread */
-    long      master;                        /* master thread ID */
+    void                 *mutex;             /* the mutex or NULL for single thread */
+    long                 master;             /* master thread ID */
 } emp_T;
+
+typedef struct {
+    int                  icol;               /* color associated with restrictions */
+    int                  rtype;              /* restriction type (1=x, 2=y, 3=z) */
+} rest_T;
+
+typedef struct {
+    int                  icol;               /* color associated with smoothing */
+    int                  npass;              /* number of smoothing passes */
+} smth_T;
 
 /*
  ***********************************************************************
@@ -306,8 +319,15 @@ static   int             Mface = 0;          /* maximum   Faces */
 static   int             Nface = 0;          /* number of Faces */
 static   face_T          *face = NULL;       /* array  of Faces */
 
+static   int             Nrest = 0;          /* number of Restrictions */
+static   rest_T          *rest = NULL;       /* array  of Restrictions */
+static   int             Nsmth = 0;          /* number of Smoothings */
+static   smth_T          *smth = NULL;       /* array  of Smoothings */
+
 static int               outLevel = 1;       /* default output level */
 static char              casename[257];      /* name of case */
+static int               allBsplines = 0;    /* =1 if planar fits are available */
+static int               maxThreads  = 4;    /* maximum number of threads to use */
 
 /* global variables associated with graphical user interface (gui) */
 static wvContext         *cntxt;             /* context for the WebViewer */
@@ -319,21 +339,15 @@ static float             focus[4];
 #define MAX_METADATA_LEN 32000
 static char              *sgFocusData = NULL;
 
-/* global variables associated with scene graph */
-static int               Tris_pend    =   0;  /* =1 if awaiting update */
-
 /* global variables associated with CurPt */
 static int               CurPt_index  = -1;  /* index (or -1 for none) */
 static int               CurPt_gprim  = -1;  /* GPrim (or -1 for none) */
-static int               CurPt_pend   =  0;  /* =1 if awaiting update */
 
 /* global variables associated with Hangs */
 static int               Hangs_gprim  = -1;  /* GPrim (or -1 for none) */
-static int               Hangs_pend   = 0;   /* =1 if awaiting update */
 
 /* global variables associated with Links */
 static int               Links_gprim  = -1;  /* GPrim (or -1 for none) */
-static int               Links_pend   = 0;   /* =1 if awaiting update */
 
 /* global variables associated with the response buffer */
 static int               max_resp_len = 0;
@@ -363,6 +377,7 @@ static int        buildTriangles();
 static int        generateBrep(char message[]);
 static int        generateEgads(char egadsname[], char message[]);
 static int        generateFits(int ncp, char message[]);
+static int        generatePlot(char filename[], char message[]);
 static void       empFit2dCloud(void *struc);
 static int        makeNodesAndEdges(int nsgmt, sgmt_T sgmt[],
                                     int ibeg, int iend, int nodnum[], int icolr, int jcolr);
@@ -378,17 +393,13 @@ static void       spec_col(float scalar, float lims[], float out[]);
 #endif
        void       printEgo(ego obj);
 
-//$$$static int        fitPlane(double xyz[], int n, double *a, double *b, double *c, double *d);
-
 extern int        EG_getPlane(ego eloop, ego *eplane);
 
 #ifdef GRAFIC
-    static void   plotPoints_image(int*, void*, void*, void*, void*, void*,
-                                   void*, void*, void*, void*, void*, float*, char*, int);
-    extern int    plotCurve(int m, double XYZcloud[], /*@null@*/double Tcloud[],
+    extern int    plotCurve(int iedge, int m, double XYZcloud[], /*@null@*/double Tcloud[],
                             int n, double cp[], double normf, double dotmin, int nmin);
-    extern int    plotSurface(int m, double XYZcloud[], /*@null@*/double Ucloud[],
-                              int n, double cp[], double normf, int nmin);
+    extern int    plotSurface(int iface, int m, double XYZcloud[], /*@null@*/double Ucloud[],
+                              int n, double cp[], double normf, double dotmin, int nmin);
 #endif
 
 
@@ -404,7 +415,7 @@ main(int       argc,                /* (in)  number of arguments */
      char      *argv[])             /* (in)  array of arguments */
 {
 
-    int       status, status2, i, bias, showUsage=0, ihand;
+    int       status, status2, i, bias, showUsage=0;
     int       iedge, iface;
     float     fov, zNear, zFar;
     float     eye[3]    = {0.0, 0.0, 7.0};
@@ -439,16 +450,27 @@ main(int       argc,                /* (in)  number of arguments */
     jrnlname[0] = '\0';
 
     for (i = 1; i < argc; i++) {
-        if        (strcmp(argv[i], "-port") == 0) {
+        if        (strcmp(argv[i], "-allBsplines") == 0) {
+            allBsplines = 1;
+        } else if (strcmp(argv[i], "-batch") == 0) {
+            batch = 1;
+        } else if (strcmp(argv[i], "-jrnl") == 0) {
             if (i < argc-1) {
-                sscanf(argv[++i], "%d", &port);
+                STRNCPY(jrnlname, argv[++i], 257);
             } else {
                 showUsage = 1;
                 break;
             }
-        } else if (strcmp(argv[i], "-jrnl") == 0) {
+        } else if (strcmp(argv[i], "-maxThreads") == 0) {
             if (i < argc-1) {
-                STRNCPY(jrnlname, argv[++i], 257);
+                sscanf(argv[++i], "%d", &maxThreads);
+            } else {
+                showUsage = 1;
+                break;
+            }
+       } else if (strcmp(argv[i], "-nctrlpnt") == 0) {
+            if (i < argc-1) {
+                sscanf(argv[++i], "%d", &nctrlpnt);
             } else {
                 showUsage = 1;
                 break;
@@ -462,11 +484,9 @@ main(int       argc,                /* (in)  number of arguments */
                 showUsage = 1;
                 break;
             }
-        } else if (strcmp(argv[i], "-batch") == 0) {
-            batch = 1;
-       } else if (strcmp(argv[i], "-nctrlpnt") == 0) {
+        } else if (strcmp(argv[i], "-port") == 0) {
             if (i < argc-1) {
-                sscanf(argv[++i], "%d", &nctrlpnt);
+                sscanf(argv[++i], "%d", &port);
             } else {
                 showUsage = 1;
                 break;
@@ -482,14 +502,14 @@ main(int       argc,                /* (in)  number of arguments */
         } else if (strlen(casename) == 0) {
             STRNCPY(casename, argv[i], 257);
         } else {
-            SPRINT0(0, "two casenames given");
+            SPRINT2(0, "two casenames given (\"%s\" and \"%s\")", casename, argv[i]);
             showUsage = 1;
             break;
         }
     }
 
     if (showUsage) {
-        SPRINT0(0, "proper usage: 'Slugs [-port X] [-jrnl jrnlname] [-outLevel X] [-batch] [casename[.stl]]'");
+        SPRINT0(0, "proper usage: 'Slugs [-allBsplines] [-batch] [-jrnl jrnlname] [-maxThreads n] [-nctrlpnt n] [-outLevel X] [-port X] [-subsample n] [casename[.stl]]'");
         SPRINT0(0, "STOPPING...\a");
         exit(0);
     }
@@ -511,13 +531,13 @@ main(int       argc,                /* (in)  number of arguments */
     SPRINT0(1, "*                                                        *");
     SPRINT0(1, "*                    Program Slugs                       *");
     SPRINT0(1, "*                                                        *");
-    SPRINT0(1, "*        written by John Dannenhoffer, 2013/2022         *");
+    SPRINT0(1, "*        written by John Dannenhoffer, 2013/2023         *");
     SPRINT0(1, "*                                                        *");
     SPRINT0(1, "**********************************************************");
 
 #ifdef GRAFIC
     /* initialize the grafics */
-    sprintf(pltitl, "Program Fitter2D");
+    snprintf(pltitl, 254, "Program Fitter2D");
     grinit_(&io_kbd, &io_scr, pltitl, strlen(pltitl));
 #endif
 
@@ -539,7 +559,10 @@ main(int       argc,                /* (in)  number of arguments */
     /* read the .stl or .tri file */
     if (strstr(filename, ".tri") != NULL) {
         status = readTriAscii(&tess, filename);
-        SPRINT1(3, "--> readTriAscii 0> status=%d", status);
+        if (status != SUCCESS) {
+            SPRINT1(0, "ERROR:: status=%d during readStlAscii", status);
+            exit(0);
+        }
 
     } else if (strstr(filename, ".stl") != NULL) {
         fp = fopen(filename, "rb");
@@ -554,11 +577,17 @@ main(int       argc,                /* (in)  number of arguments */
         if (strncmp(test, "solid", 5) == 0) {
             SPRINT1(1, "--> \"%s\" is an ASCII file", filename);
             status = readStlAscii(&tess, filename);
-            SPRINT1(3, "--> readStlAscii -> status=%d", status);
+            if (status != SUCCESS) {
+                SPRINT1(0, "ERROR:: status=%d during readStlAscii", status);
+                exit(0);
+            }
         } else {
             SPRINT1(1, "--> \"%s\" is a binary file", filename);
             status = readStlBinary(&tess, filename);
-            SPRINT1(3, "--> readStlBinary -> status=%d", status);
+            if (status != SUCCESS) {
+                SPRINT1(0, "ERROR:: status=%d during readStlBinary", status);
+                exit(0);
+            }
         }
     } else {
         SPRINT1(0, "ERROR:: \"%s\" is not a .stl or .tri file", filename);
@@ -608,6 +637,8 @@ main(int       argc,                /* (in)  number of arguments */
             SPRINT0(0, "ERROR:: failed to create wvContext");
             exit(0);
         }
+
+        wv_setCallBack(cntxt, browserMessage);
     }
 
     /* build the initial Scene Graph */
@@ -680,58 +711,6 @@ main(int       argc,                /* (in)  number of arguments */
 
                     status2++;
                 }
-
-                /* start hand-shaking */
-                if (Tris_pend  != 0 ||
-                    Hangs_pend != 0 ||
-                    Links_pend != 0 ||
-                    CurPt_pend != 0   ) {
-                    ihand = 1;
-                    if (wv_handShake(cntxt) != 1) {
-                        SPRINT0(0, "ERROR:: handShake out of Sync 1");
-                    }
-                } else {
-                    ihand = 0;
-                }
-
-                /* update Triangles if there are changes pending */
-                if (Tris_pend != 0) {
-                    Tris_pend = 0;
-
-                    status = buildTriangles();
-                    SPRINT1(3, "buildTriangles -> status=%d", status);
-                }
-
-                /* update Hangs if there are changes pending */
-                if (Hangs_pend != 0) {
-                    Hangs_pend = 0;
-
-                    status = buildHangs();
-                    SPRINT1(3, "buildHangs -> status=%d", status);
-                }
-
-                /* update Links if there are changes pending */
-                if (Links_pend != 0) {
-                    Links_pend = 0;
-
-                    status = buildLinks();
-                    SPRINT1(3, "buildLinks -> status=%d", status);
-                }
-
-                /* update CurPt if there are changes pending */
-                if (CurPt_pend != 0) {
-                    CurPt_pend = 0;
-
-                    status = buildCurPt();
-                    SPRINT1(3, "buildCurPt -> status=%d", status);
-                }
-
-                /* complete hand-shaking since all changes have been made */
-                if (ihand == 1) {
-                    if (wv_handShake(cntxt) != 0) {
-                        SPRINT0(0, "ERROR:: handShake out of Sync 0");
-                    }
-                }
             }
         }
     }
@@ -747,14 +726,14 @@ main(int       argc,                /* (in)  number of arguments */
         FREE(face[iface].edg);
         FREE(face[iface].lup);
         FREE(face[iface].xyz);
-        FREE(face[iface].xyztrain);
-        FREE(face[iface].cp );
+        FREE(face[iface].xyzfit);
+        FREE(face[iface].cp);
     }
 
     for (iedge = 1; iedge <= Nedge; iedge++) {
         FREE(edge[iedge].pnt);
         FREE(edge[iedge].xyz);
-        FREE(edge[iedge].cp );
+        FREE(edge[iedge].cp);
     }
 
     FREE(face);
@@ -808,7 +787,11 @@ buildCurPt()
 
     /* --------------------------------------------------------------- */
 
-    if (CurPt_index < 0) {
+    if (outLevel > 1) printf("in buildCurPt\n");
+
+    if (batch == 1) {
+        goto cleanup;
+    } else if (CurPt_index < 0) {
         goto cleanup;
     }
 
@@ -874,6 +857,8 @@ buildHangs()
 
     /* --------------------------------------------------------------- */
 
+    if (outLevel > 1) printf("in buildHangs\n");
+
     /* determine the number of Hangs in the current tessellation */
     tess.nhang = 0;
     for (itri = 0; itri < tess.ntri; itri++) {
@@ -893,6 +878,10 @@ buildHangs()
         if (jtri < 0 || (tess.ttyp[jtri] & TRI_ACTIVE) == 0) {
             tess.nhang++;
         }
+    }
+
+    if (batch == 1) {
+        goto cleanup;
     }
 
     /* plot Hangs (if there are any) */
@@ -1025,6 +1014,12 @@ buildLinks()
     ROUTINE(buildLinks);
 
     /* --------------------------------------------------------------- */
+
+    if (outLevel > 1) printf("in buildLinks\n");
+
+    if (batch == 1) {
+        goto cleanup;
+    }
 
     /* plot Links (if there are any) */
     if (tess.nlink > 0) {
@@ -1159,6 +1154,12 @@ buildTriangles()
     ROUTINE(buildTriangles);
 
     /* --------------------------------------------------------------- */
+
+    if (outLevel > 1) printf("in buildTriangles\n");
+
+    if (batch == 1) {
+        goto cleanup;
+    }
 
     /* remove any graphic primitives that already exist */
     wv_removeAll(cntxt);
@@ -1402,10 +1403,11 @@ generateBrep(char   message[])          /* (out) error message */
     int       nchange, uncolored;
     int       icolr, jcolr, itri, jtri, ntri, ip0, ip1, ip2;
     int       isgmt, nsgmt, ibeg, iend, ilup, jlup, klup;
-    int       ipnt, jpnt, count, done, i, j, swap;
-    int       inode, iedge, jedge, iface;
+    int       ipnt, jpnt, count, done, i, j, swap, iadded;
+    int       inode, iedge, jedge, iface, irest, ismth, idistmin;
     int       *nodnum=NULL, *edgtmp=NULL, *luptmp=NULL;
-    double    areax, areay, areaz, amax, *area=NULL;
+    double    length, areax, areay, areaz, amax, *area=NULL;
+    double    dist, distmin;
     char      filename[257];
 
     sgmt_T     *sgmt=NULL;
@@ -1418,19 +1420,6 @@ generateBrep(char   message[])          /* (out) error message */
 
     SPRINT0(1, "\nGenerating Brep...");
 
-    /* determine if there are any coincident points */
-    for (ipnt = 0; ipnt < tess.npnt; ipnt++) {
-        for (jpnt = ipnt+1; jpnt < tess.npnt; jpnt++) {
-            if (fabs(tess.xyz[3*ipnt  ]-tess.xyz[3*jpnt  ]) < EPS06 &&
-                fabs(tess.xyz[3*ipnt+1]-tess.xyz[3*jpnt+1]) < EPS06 &&
-                fabs(tess.xyz[3*ipnt+2]-tess.xyz[3*jpnt+2]) < EPS06   ) {
-                printf("duplicate point found\n");
-                printf("ipnt=%6d %20.10f %20.10f %20.10f\n", ipnt, tess.xyz[3*ipnt], tess.xyz[3*ipnt+1], tess.xyz[3*ipnt+2]);
-                printf("jpnt=%6d %20.10f %20.10f %20.10f\n", jpnt, tess.xyz[3*jpnt], tess.xyz[3*jpnt+1], tess.xyz[3*jpnt+2]);
-            }
-        }
-    }
-
     /* clear the Node, Edge, and Face tables */
     Mnode = 0;
     Nnode = 0;
@@ -1439,7 +1428,7 @@ generateBrep(char   message[])          /* (out) error message */
     for (iedge = 1; iedge <= Nedge; iedge++) {
         FREE(edge[iedge].pnt);
         FREE(edge[iedge].xyz);
-        FREE(edge[iedge].cp );
+        FREE(edge[iedge].cp);
     }
     Medge = 0;
     Nedge = 0;
@@ -1449,8 +1438,8 @@ generateBrep(char   message[])          /* (out) error message */
         FREE(face[iface].edg);
         FREE(face[iface].lup);
         FREE(face[iface].xyz);
-        FREE(face[iface].xyztrain);
-        FREE(face[iface].cp );
+        FREE(face[iface].xyzfit);
+        FREE(face[iface].cp);
     }
 
     Mface = 0;
@@ -1466,7 +1455,7 @@ generateBrep(char   message[])          /* (out) error message */
     }
 
     if (uncolored > 0 && uncolored < tess.ntri) {
-        SPRINT1(-1,   "ERROR:: there are %d uncolored Triangles", uncolored);
+        SPRINT1(-1,   "WARNING:: there are %d uncolored Triangles", uncolored);
         if (uncolored < 20) {
             for (itri = 0; itri < tess.ntri; itri++) {
                 if ((tess.ttyp[itri] & TRI_COLOR) == 0) {
@@ -1481,8 +1470,8 @@ generateBrep(char   message[])          /* (out) error message */
             }
         }
         snprintf(message, 80, "there are %d uncolored Triangles", uncolored);
-        status = -999;
-        goto cleanup;
+    } else {
+        SPRINT0(1, "all Triangles are colored");
     }
 
     /* allocate Segment table (larger than needed) */
@@ -1540,11 +1529,25 @@ generateBrep(char   message[])          /* (out) error message */
         face[Nface].lup   = NULL;
         face[Nface].npnt  = 0;
         face[Nface].xyz   = NULL;
-        face[Nface].ntrain   = 0;
-        face[Nface].xyztrain = NULL;
+        face[Nface].nfit   = 0;
+        face[Nface].xyzfit = NULL;
         face[Nface].ncp   = 0;
         face[Nface].cp    = NULL;
+        face[Nface].rtype = 0;
+        face[Nface].nsmth = 0;
 //      face[Nface].eface = NULL;
+
+        for (irest = 0; irest < Nrest; irest++) {
+            if (rest[irest].icol == icolr) {
+                face[Nface].rtype = rest[irest].rtype;
+            }
+        }
+
+        for (ismth = 0; ismth < Nsmth; ismth++) {
+            if (smth[ismth].icol == icolr) {
+                face[Nface].nsmth = smth[ismth].npass;
+            }
+        }
 
         if (Nface == 1) {
             status = copyTess(&tess, &(face[Nface].tess));
@@ -1554,10 +1557,12 @@ generateBrep(char   message[])          /* (out) error message */
             CHECK_STATUS(extractColor);
         }
 
-        SPRINT4(1, "   created Face %3d .icol=%6d, .npnt=%6d, .ntri=%6d", Nface,
+        SPRINT6(1, "   created Face %3d .icol=%6d, .npnt=%8d, .ntri=%8d, .rtype=%2d, .nsmth=%2d", Nface,
                 face[Nface].icol,
                 face[Nface].tess.npnt,
-                face[Nface].tess.ntri);
+                face[Nface].tess.ntri,
+                face[Nface].rtype,
+                face[Nface].nsmth);
 
     } else {
         for (icolr = 1; icolr <= tess.ncolr; icolr++) {
@@ -1579,19 +1584,35 @@ generateBrep(char   message[])          /* (out) error message */
                 face[Nface].lup   = NULL;
                 face[Nface].npnt  = 0;
                 face[Nface].xyz   = NULL;
-                face[Nface].ntrain   = 0;
-                face[Nface].xyztrain = NULL;
+                face[Nface].nfit   = 0;
+                face[Nface].xyzfit = NULL;
                 face[Nface].ncp   = 0;
                 face[Nface].cp    = NULL;
+                face[Nface].rtype = 0;
+                face[Nface].nsmth = 0;
 //             face[Nface].eface = NULL;
+
+                for (irest = 0; irest < Nrest; irest++) {
+                    if (rest[irest].icol == icolr) {
+                        face[Nface].rtype = rest[irest].rtype;
+                    }
+                }
+
+                for (ismth = 0; ismth < Nsmth; ismth++) {
+                    if (smth[ismth].icol == icolr) {
+                        face[Nface].nsmth = smth[ismth].npass;
+                    }
+                }
 
                 status = extractColor(&tess, icolr, &(face[Nface].tess));
                 CHECK_STATUS(extractColor);
 
-                SPRINT4(1, "   created Face %3d .icol=%6d, .npnt=%6d, .ntri=%6d", Nface,
+                SPRINT6(1, "   created Face %3d .icol=%6d, .npnt=%8d, .ntri=%8d, .rtype=%2d, .nsmth=%2d", Nface,
                         face[Nface].icol,
                         face[Nface].tess.npnt,
-                        face[Nface].tess.ntri);
+                        face[Nface].tess.ntri,
+                        face[Nface].rtype,
+                        face[Nface].nsmth);
             }
         }
     }
@@ -1808,6 +1829,7 @@ generateBrep(char   message[])          /* (out) error message */
     } else {
         for (icolr = 1; icolr <= tess.ncolr; icolr++) {
             for (jcolr = icolr+1; jcolr <= tess.ncolr; jcolr++) {
+                length = 0;
 
                 /* find all posible Segments */
                 nsgmt = 0;
@@ -1816,10 +1838,17 @@ generateBrep(char   message[])          /* (out) error message */
                         jtri = tess.trit[3*itri  ];
                         if (jtri >= 0) {
                             if ((tess.ttyp[jtri] & TRI_COLOR) == jcolr) {
-                                sgmt[nsgmt].ibeg = tess.trip[3*itri+1];
-                                sgmt[nsgmt].iend = tess.trip[3*itri+2];
+                                ip1 = tess.trip[3*itri+1];
+                                ip2 = tess.trip[3*itri+2];
+
+                                sgmt[nsgmt].ibeg = ip1;
+                                sgmt[nsgmt].iend = ip2;
                                 sgmt[nsgmt].prev = -1;
                                 sgmt[nsgmt].next = -1;
+
+                                length += sqrt((tess.xyz[3*ip1  ]-tess.xyz[3*ip2  ])*(tess.xyz[3*ip1  ]-tess.xyz[3*ip2  ])
+                                              +(tess.xyz[3*ip1+1]-tess.xyz[3*ip2+1])*(tess.xyz[3*ip1+1]-tess.xyz[3*ip2+1])
+                                              +(tess.xyz[3*ip1+2]-tess.xyz[3*ip2+2])*(tess.xyz[3*ip1+2]-tess.xyz[3*ip2+2]));
                                 nsgmt++;
                             }
                         }
@@ -1827,10 +1856,17 @@ generateBrep(char   message[])          /* (out) error message */
                         jtri = tess.trit[3*itri+1];
                         if (jtri >= 0) {
                             if ((tess.ttyp[jtri] & TRI_COLOR) == jcolr) {
-                                sgmt[nsgmt].ibeg = tess.trip[3*itri+2];
-                                sgmt[nsgmt].iend = tess.trip[3*itri  ];
+                                ip2 = tess.trip[3*itri+2];
+                                ip0 = tess.trip[3*itri  ];
+
+                                sgmt[nsgmt].ibeg = ip2;
+                                sgmt[nsgmt].iend = ip0;
                                 sgmt[nsgmt].prev = -1;
                                 sgmt[nsgmt].next = -1;
+
+                                length += sqrt((tess.xyz[3*ip2  ]-tess.xyz[3*ip0  ])*(tess.xyz[3*ip2  ]-tess.xyz[3*ip0  ])
+                                              +(tess.xyz[3*ip2+1]-tess.xyz[3*ip0+1])*(tess.xyz[3*ip2+1]-tess.xyz[3*ip0+1])
+                                              +(tess.xyz[3*ip2+2]-tess.xyz[3*ip0+2])*(tess.xyz[3*ip2+2]-tess.xyz[3*ip0+2]));
                                 nsgmt++;
                             }
                         }
@@ -1838,16 +1874,23 @@ generateBrep(char   message[])          /* (out) error message */
                         jtri = tess.trit[3*itri+2];
                         if (jtri >= 0) {
                             if ((tess.ttyp[jtri] & TRI_COLOR) == jcolr) {
-                                sgmt[nsgmt].ibeg = tess.trip[3*itri  ];
-                                sgmt[nsgmt].iend = tess.trip[3*itri+1];
+                                ip0 = tess.trip[3*itri  ];
+                                ip1 = tess.trip[3*itri+1];
+
+                                sgmt[nsgmt].ibeg = ip0;
+                                sgmt[nsgmt].iend = ip1;
                                 sgmt[nsgmt].prev = -1;
                                 sgmt[nsgmt].next = -1;
+
+                                length += sqrt((tess.xyz[3*ip0  ]-tess.xyz[3*ip1  ])*(tess.xyz[3*ip0  ]-tess.xyz[3*ip1  ])
+                                              +(tess.xyz[3*ip0+1]-tess.xyz[3*ip1+1])*(tess.xyz[3*ip0+1]-tess.xyz[3*ip1+1])
+                                              +(tess.xyz[3*ip0+2]-tess.xyz[3*ip1+2])*(tess.xyz[3*ip0+2]-tess.xyz[3*ip1+2]));
                                 nsgmt++;
                             }
                         }
                     }
                 }
-                SPRINT3(2, "icolr=%2d  jcolr=%2d  nsgmt=%d", icolr, jcolr, nsgmt);
+                SPRINT4(2, "icolr=%2d  jcolr=%2d  nsgmt=%d  length=%f", icolr, jcolr, nsgmt, length);
 
                 /* if there are no Segments, there is nothing to do */
                 if (nsgmt <= 0) continue;
@@ -1855,16 +1898,23 @@ generateBrep(char   message[])          /* (out) error message */
                 /* arrange the Segments head to tail.  the while loop is needed
                    because there may be more than one set of disjoint segments
                    between two colors */
+                iadded = 0;
+                ibeg   = -1;
+                iend   = -1;
                 while (1) {
 
                     /* find the first segment that is not used */
-                    ibeg = -1;
-                    for (isgmt = 0; isgmt < nsgmt; isgmt++) {
-                        if (sgmt[isgmt].prev == -1 && sgmt[isgmt].next == -1) {
-                            ibeg = isgmt;         /* first Segment */
-                            iend = isgmt;         /* last  Segment */
-                            break;
+                    if (iadded == 0) {
+                        ibeg = -1;
+                        for (isgmt = 0; isgmt < nsgmt; isgmt++) {
+                            if (sgmt[isgmt].prev == -1 && sgmt[isgmt].next == -1) {
+                                ibeg = isgmt;         /* first Segment */
+                                iend = isgmt;         /* last  Segment */
+                                break;
+                            }
                         }
+                    } else {
+                        iadded = 0;
                     }
 
                     /* if all the segments are used, we are done */
@@ -1879,7 +1929,7 @@ generateBrep(char   message[])          /* (out) error message */
                             break;
                         }
 
-                        for (isgmt = 1; isgmt < nsgmt; isgmt++) {
+                        for (isgmt = 0; isgmt < nsgmt; isgmt++) {
                             if (sgmt[isgmt].prev >= 0) {
                                 continue;
                             } else if (sgmt[isgmt].ibeg == sgmt[iend].iend) {
@@ -1887,6 +1937,7 @@ generateBrep(char   message[])          /* (out) error message */
                                 sgmt[iend ].next = isgmt;
 
                                 iend = isgmt;
+
                                 nchange++;
                             }
                         }
@@ -1901,7 +1952,7 @@ generateBrep(char   message[])          /* (out) error message */
                             break;
                         }
 
-                        for (isgmt = 1; isgmt < nsgmt; isgmt++) {
+                        for (isgmt = 0; isgmt < nsgmt; isgmt++) {
                             if (sgmt[isgmt].next >= 0) {
                                 continue;
                             } else if (sgmt[isgmt].iend == sgmt[ibeg].ibeg) {
@@ -1909,9 +1960,110 @@ generateBrep(char   message[])          /* (out) error message */
                                 sgmt[ibeg ].prev = isgmt;
 
                                 ibeg = isgmt;
+
                                 nchange++;
                             }
                         }
+                    }
+
+                    /* find the smallest gap between the beginning of ibeg
+                       and the .end of all diconnected Segments */
+                    distmin  = HUGEQ;
+                    idistmin = -1;
+                    for (isgmt = 0; isgmt < nsgmt; isgmt++) {
+                        if (sgmt[isgmt].next >= 0) {
+                            continue;
+                        }
+
+                        dist = (tess.xyz[3*sgmt[ibeg].ibeg  ]-tess.xyz[3*sgmt[isgmt].iend  ])
+                             * (tess.xyz[3*sgmt[ibeg].ibeg  ]-tess.xyz[3*sgmt[isgmt].iend  ])
+                             + (tess.xyz[3*sgmt[ibeg].ibeg+1]-tess.xyz[3*sgmt[isgmt].iend+1])
+                             * (tess.xyz[3*sgmt[ibeg].ibeg+1]-tess.xyz[3*sgmt[isgmt].iend+1])
+                             + (tess.xyz[3*sgmt[ibeg].ibeg+2]-tess.xyz[3*sgmt[isgmt].iend+2])
+                             * (tess.xyz[3*sgmt[ibeg].ibeg+2]-tess.xyz[3*sgmt[isgmt].iend+2]);
+                        if (dist < distmin) {
+                            idistmin = isgmt;
+                            distmin  = dist;
+                        }
+                    }
+                    if (ibeg != iend) {
+                        distmin = sqrt(distmin);
+                    } else {
+                        distmin = HUGEQ;
+                    }
+
+                    /* if the gap is much smaller than the total Segment lengths,
+                       create a new Segment to bridge that gap */
+                    if (distmin < EPS03*length) {
+                        printf("adding a Segment for ibeg between %20.15f %20.15f %20.15f\n",
+                               tess.xyz[3*sgmt[ibeg].ibeg  ],
+                               tess.xyz[3*sgmt[ibeg].ibeg+1],
+                               tess.xyz[3*sgmt[ibeg].ibeg+2]);
+                        printf("                              and %20.15f %20.15f %20.15f\n",
+                               tess.xyz[3*sgmt[idistmin].iend  ],
+                               tess.xyz[3*sgmt[idistmin].iend+1],
+                               tess.xyz[3*sgmt[idistmin].iend+2]);
+                        sgmt[nsgmt].ibeg = sgmt[idistmin].iend;
+                        sgmt[nsgmt].iend = sgmt[ibeg    ].ibeg;
+                        sgmt[nsgmt].prev = -1;
+                        sgmt[nsgmt].next = ibeg;
+
+                        sgmt[ibeg ].prev = nsgmt;
+                        ibeg = nsgmt;
+                        nsgmt++;
+
+                        iadded++;
+                        continue;
+                    }
+
+                    /* find the smallest gap between the end of iend
+                       and the .beg of all disconnected Segments */
+                    distmin  = HUGEQ;
+                    idistmin = -1;
+                    for (isgmt = 0; isgmt < nsgmt; isgmt++) {
+                        if (sgmt[isgmt].prev >= 0) {
+                            continue;
+                        }
+
+                        dist = (tess.xyz[3*sgmt[iend].iend  ]-tess.xyz[3*sgmt[isgmt].ibeg  ])
+                             * (tess.xyz[3*sgmt[iend].iend  ]-tess.xyz[3*sgmt[isgmt].ibeg  ])
+                             + (tess.xyz[3*sgmt[iend].iend+1]-tess.xyz[3*sgmt[isgmt].ibeg+1])
+                             * (tess.xyz[3*sgmt[iend].iend+1]-tess.xyz[3*sgmt[isgmt].ibeg+1])
+                             + (tess.xyz[3*sgmt[iend].iend+2]-tess.xyz[3*sgmt[isgmt].ibeg+2])
+                             * (tess.xyz[3*sgmt[iend].iend+2]-tess.xyz[3*sgmt[isgmt].ibeg+2]);
+                        if (dist < distmin) {
+                            idistmin = isgmt;
+                            distmin  = dist;
+                        }
+                    }
+                    if (ibeg != iend) {
+                        distmin = sqrt(distmin);
+                    } else {
+                        distmin = HUGEQ;
+                    }
+
+                    /* if the gap is much smaller than the total Segment lengths,
+                       create a new Segment to bridge that gap */
+                    if (distmin < EPS03*length) {
+                        printf("adding a Segment for iend between %20.15f %20.15f %20.15f\n",
+                               tess.xyz[3*sgmt[iend].iend  ],
+                               tess.xyz[3*sgmt[iend].iend+1],
+                               tess.xyz[3*sgmt[iend].iend+2]);
+                        printf("                              and %20.15f %20.15f %20.15f\n",
+                               tess.xyz[3*sgmt[idistmin].ibeg  ],
+                               tess.xyz[3*sgmt[idistmin].ibeg+1],
+                               tess.xyz[3*sgmt[idistmin].ibeg+2]);
+                        sgmt[nsgmt].ibeg = sgmt[iend    ].iend;
+                        sgmt[nsgmt].iend = sgmt[idistmin].ibeg;
+                        sgmt[nsgmt].prev = iend;
+                        sgmt[nsgmt].next = -1;
+
+                        sgmt[iend ].next = nsgmt;
+                        iend = nsgmt;
+                        nsgmt++;
+
+                        iadded++;
+                        continue;
                     }
 
                     /* if only one Segment for this Edge, specially mark the Segment so that
@@ -1959,13 +2111,13 @@ generateBrep(char   message[])          /* (out) error message */
         for (i = 0; i < face[iface].nedg; i++) {
             iedge = face[iface].edg[i];
             if        (iedge > 0) {
-                printf("     Edge %6d, npnt=%6d, ibeg=%3d, iend=%3d\n",
+                printf("     Edge %6d, npnt=%8d, ibeg=%3d, iend=%3d\n",
                        iedge, edge[+iedge].npnt, edge[+iedge].ibeg, edge[+iedge].iend);
             } else if (iedge < 0) {
-                printf("     Edge %6d, npnt=%6d, iend=%3d, ibeg=%3d\n",
+                printf("     Edge %6d, npnt=%8d, iend=%3d, ibeg=%3d\n",
                        iedge, edge[-iedge].npnt, edge[-iedge].iend, edge[-iedge].ibeg);
             } else {
-                printf("     Edge %6d, degenerate,   ibeg=%3d, iend=%3d\n",
+                printf("     Edge %6d, degenerate,     ibeg=%3d, iend=%3d\n",
                        iedge,                    edge[+iedge].ibeg, edge[+iedge].iend);
             }
         }
@@ -2052,13 +2204,13 @@ generateBrep(char   message[])          /* (out) error message */
             for (i = face[iface].lup[ilup]; i < face[iface].lup[ilup+1]; i++) {
                 iedge = face[iface].edg[i];
                 if         (iedge > 0) {
-                    printf("     Edge %6d, npnt=%6d, ibeg=%3d, iend=%3d\n",
+                    printf("     Edge %6d, npnt=%8d, ibeg=%3d, iend=%3d\n",
                            iedge, edge[+iedge].npnt, edge[+iedge].ibeg, edge[+iedge].iend);
                 } else if (iedge < 0) {
-                    printf("     Edge %6d, npnt=%6d, iend=%3d, ibeg=%3d\n",
+                    printf("     Edge %6d, npnt=%8d, iend=%3d, ibeg=%3d\n",
                            iedge, edge[-iedge].npnt, edge[-iedge].iend, edge[-iedge].ibeg);
                 } else {
-                    printf("     Edge %6d, degenerate,   ibeg=%3d, iend=%3d\n",
+                    printf("     Edge %6d, degenerate,     ibeg=%3d, iend=%3d\n",
                            iedge,                    edge[+iedge].ibeg, edge[+iedge].iend);
                 }
             }
@@ -2180,13 +2332,13 @@ generateBrep(char   message[])          /* (out) error message */
                 for (i = face[iface].lup[ilup]; i < face[iface].lup[ilup+1]; i++) {
                     iedge = face[iface].edg[i];
                     if        (iedge > 0) {
-                        printf("     Edge %6d, npnt=%6d, ibeg=%3d, iend=%3d\n",
+                        printf("     Edge %6d, npnt=%8d, ibeg=%3d, iend=%3d\n",
                                iedge, edge[+iedge].npnt, edge[+iedge].ibeg, edge[+iedge].iend);
                     } else if (iedge < 0) {
-                        printf("     Edge %6d, npnt=%6d, iend=%3d, ibeg=%3d\n",
+                        printf("     Edge %6d, npnt=%8d, iend=%3d, ibeg=%3d\n",
                                iedge, edge[-iedge].npnt, edge[-iedge].iend, edge[-iedge].ibeg);
                     } else {
-                        printf("     Edge %6d, degenerate,   ibeg=%3d, iend=%3d\n",
+                        printf("     Edge %6d, degenerate,     ibeg=%3d, iend=%3d\n",
                                iedge,                    edge[+iedge].ibeg, edge[+iedge].iend);
                     }
                 }
@@ -2250,9 +2402,9 @@ generateBrep(char   message[])          /* (out) error message */
 
     /* finally print out the whole structure */
     SPRINT0(1, "\nSummary of Brep\n");
-    SPRINT0(1, " inode   ipnt   nedg          x          y          z");
+    SPRINT0(1, " inode   ipnt     nedg          x          y          z");
     for (inode = 1; inode <= Nnode; inode++) {
-        SPRINT6(1, "%6d %6d %6d %10.4f %10.4f %10.4f", inode,
+        SPRINT6(1, "%6d %8d %6d %10.4f %10.4f %10.4f", inode,
                 node[inode].ipnt,
                 node[inode].nedg,
                 node[inode].x,
@@ -2260,9 +2412,9 @@ generateBrep(char   message[])          /* (out) error message */
                 node[inode].z);
     }
 
-    SPRINT0(1, " iedge   ibeg   iend  ileft  irite   npnt");
+    SPRINT0(1, " iedge   ibeg     iend    ileft  irite   npnt");
     for (iedge = 1; iedge <= Nedge; iedge++) {
-        SPRINT6(1, "%6d %6d %6d %6d %6d %6d", iedge,
+        SPRINT6(1, "%6d %8d %8d %6d %6d %6d", iedge,
                 edge[iedge].ibeg,
                 edge[iedge].iend,
                 edge[iedge].ileft,
@@ -2316,7 +2468,7 @@ generateEgads(char   egadsname[],       /* (in)  name of file to write */
 
     int       i, j, k, ij, header[7], *senses=NULL, oclass, mtype, nchild, *senses2;
     double    xyz[3], *cpdata=NULL, tdata[4], data[18], data2[4];
-    double    rms, rmstrain, uv_out[2], xyz_out[18];
+    double    rms, rmsfit, uv_out[2], xyz_out[18];
     ego       context, eref, ecurv, esurf, *eloops=NULL, eshell, ebody, emodel;
     ego       enode, enodes[2], *eedges=NULL, *efaces=NULL, *echilds;
     FILE      *fpsum=NULL;
@@ -2417,6 +2569,10 @@ generateEgads(char   egadsname[],       /* (in)  name of file to write */
             cpdata[ndata++] = edge[iedge].cp[3*j+1];
             cpdata[ndata++] = edge[iedge].cp[3*j+2];
         }
+        j = 0;
+        printf("cp[%2d]: %12.5f %12.5f %12.5f\n", j, cpdata[3*j], cpdata[3*j+1], cpdata[3*j+2]);
+        j = ncp-1;
+        printf("cp[%2d]: %12.5f %12.5f %12.5f\n", j, cpdata[3*j], cpdata[3*j+1], cpdata[3*j+2]);
 
         status = EG_makeGeometry(context, CURVE, BSPLINE, NULL,
                                  header, cpdata, &ecurv);
@@ -2588,6 +2744,15 @@ generateEgads(char   egadsname[],       /* (in)  name of file to write */
                 cpdata[ndata++] = face[iface].cp[3*ij+1];
                 cpdata[ndata++] = face[iface].cp[3*ij+2];
             }
+
+            i = 0;     j = 0;     ij = i + j * ncp;
+            printf("cpdata[%2d,%2d]: %12.5f %12.5f %12.5f\n", i, j, face[iface].cp[3*ij], face[iface].cp[3*ij+1], face[iface].cp[3*ij+2]);
+            i = ncp-1; j = 0;     ij = i + j * ncp;
+            printf("cpdata[%2d,%2d]: %12.5f %12.5f %12.5f\n", i, j, face[iface].cp[3*ij], face[iface].cp[3*ij+1], face[iface].cp[3*ij+2]);
+            i = 0;     j = ncp-1; ij = i + j * ncp;
+            printf("cpdata[%2d,%2d]: %12.5f %12.5f %12.5f\n", i, j, face[iface].cp[3*ij], face[iface].cp[3*ij+1], face[iface].cp[3*ij+2]);
+            i = ncp-1; j = ncp-1; ij = i + j * ncp;
+            printf("cpdata[%2d,%2d]: %12.5f %12.5f %12.5f\n", i, j, face[iface].cp[3*ij], face[iface].cp[3*ij+1], face[iface].cp[3*ij+2]);
 
             status = EG_makeGeometry(context, SURFACE, BSPLINE, NULL,
                                      header, cpdata, &esurf);
@@ -2808,18 +2973,18 @@ generateEgads(char   egadsname[],       /* (in)  name of file to write */
 
         if (face[iface].npnt > 0) {
 
-            /* measure accuracy for both training and testing points */
-            rmstrain = 0;
-            for (ipnt = 0; ipnt < face[iface].ntrain; ipnt++) {
+            /* measure accuracy for both fitting and testing Points */
+            rmsfit = 0;
+            for (ipnt = 0; ipnt < face[iface].nfit; ipnt++) {
                 status = EG_invEvaluate(face[iface].eface,
-                                        &(face[iface].xyztrain[3*ipnt]), uv_out, xyz_out);
+                                        &(face[iface].xyzfit[3*ipnt]), uv_out, xyz_out);
                 CHECK_STATUS(EG_invEvaluate);
 
-                rmstrain += (face[iface].xyztrain[3*ipnt  ]-xyz_out[0]) * (face[iface].xyztrain[3*ipnt  ]-xyz_out[0])
-                         +  (face[iface].xyztrain[3*ipnt+1]-xyz_out[1]) * (face[iface].xyztrain[3*ipnt+1]-xyz_out[1])
-                         +  (face[iface].xyztrain[3*ipnt+2]-xyz_out[2]) * (face[iface].xyztrain[3*ipnt+2]-xyz_out[2]);
+                rmsfit += (face[iface].xyzfit[3*ipnt  ]-xyz_out[0]) * (face[iface].xyzfit[3*ipnt  ]-xyz_out[0])
+                         +  (face[iface].xyzfit[3*ipnt+1]-xyz_out[1]) * (face[iface].xyzfit[3*ipnt+1]-xyz_out[1])
+                         +  (face[iface].xyzfit[3*ipnt+2]-xyz_out[2]) * (face[iface].xyzfit[3*ipnt+2]-xyz_out[2]);
             }
-            rmstrain = sqrt(rmstrain / face[iface].ntrain);
+            rmsfit = sqrt(rmsfit / face[iface].nfit);
 
             rms = 0;
             for (ipnt = 0; ipnt < face[iface].npnt; ipnt++) {
@@ -2833,11 +2998,11 @@ generateEgads(char   egadsname[],       /* (in)  name of file to write */
             }
             rms = sqrt(rms / face[iface].npnt);
 
-            printf("\niface=%3d  ntrain=%6d  rms=%11.3e\n", iface, face[iface].ntrain, rmstrain);
-            printf(  "           npnt  =%6d  rms=%11.3e\n",        face[iface].npnt,   rms     );
+            printf("\niface=%3d  nfit=%8d  rms=%11.3e\n", iface, face[iface].nfit, rmsfit);
+            printf(  "           npnt=%8d  rms=%11.3e\n",        face[iface].npnt, rms   );
 
             if (fpsum != NULL && face[iface].npnt > 0) {
-                fprintf(fpsum, " %3d %11.3e %11.3e", iface, rmstrain, rms);
+                fprintf(fpsum, " %3d %11.3e %11.3e", iface, rmsfit, rms);
             }
         } else {
             printf("\niface=%3d  is planar, so accuracy is not computed\n", iface);
@@ -2977,13 +3142,16 @@ generateFits(int    ncp,                /* (in)  number of control points */
 {
     int       status = SUCCESS;
 
-    int       npnt, ntrain, ipnt, iloop, iedge, iface;
-    int       i, j, ii, jj, nmin, planar, numiter, bitflag, nsample;
+    int       npnt, ipnt, iloop, iedge, iface;
+    int       i, j, ii, jj, nmin, planar, numiter, bitflag;
+    int       jpnt, inode, jnode, nsamp, *octant=NULL;
     double    length, smooth, maxf;
-    double    xx[4], yy[4], zz[4], prod, normf, dotmin, prodmax;
-    double    dx1=0, dy1=0, dz1=0, dx2=0, dy2=0, dz2=0;
-    double    areax, areay, areaz, area, xdegen, ydegen, zdegen;
+    double    normf, dotmin, xdegen, ydegen, zdegen;
+    double    xx[4], yy[4], zz[4], dx1, dy1, dz1, dx2, dy2, dz2;
+    double    prod, prodmax, areax, areay, areaz, area;
     double    *Tcloud=NULL, *UVcloud=NULL;
+    double    xmin, xmax, ymin, ymax, zmin, zmax, dxtol, dytol, dztol;
+    double    dx, dy, dz;
 
     /* variables needed for multi-threading */
     int       nthread, ithread;
@@ -3015,6 +3183,7 @@ generateFits(int    ncp,                /* (in)  number of control points */
         }
 
         SPRINT3(1, "\n*********\nfitting iedge=%d (npnt=%3d, length=%10.5f)\n*********", iedge, edge[iedge].npnt, length);
+        printf("rtype=%d, nsmth=%d\n", edge[iedge].rtype, edge[iedge].nsmth);
 
         npnt = edge[iedge].npnt;
 
@@ -3035,19 +3204,27 @@ generateFits(int    ncp,                /* (in)  number of control points */
         /* allocate space for the T-parameters associated with the cloud */
         MALLOC(Tcloud, double, npnt);
 
-        /* fit the cloud of points  with ncp control points */
+        /* fit the cloud of points with ncp control points */
         bitflag = 1;
         smooth  = 1;
+        dotmin  = -.707;    // -45 deg
+        dotmin  = -.500;    // -60 deg
+        dotmin  = 0;
         numiter = 1000;
-        status = fit1dCloud(npnt, bitflag, edge[iedge].xyz, ncp, edge[iedge].cp, smooth,
-                            Tcloud, &normf, &maxf, &dotmin, &nmin, &numiter, stdout);
-        printf("fit1dCloud(npnt=%d, ncp=%d) -> status=%d,  numiter=%3d,  normf=%12.4e,  dotmin=%.4f,  nmin=%d\n",
+        if (outLevel > 1) {
+            status = fit1dCloud(iedge, npnt, bitflag, edge[iedge].xyz, ncp, edge[iedge].cp, smooth, edge[iedge].rtype, edge[iedge].nsmth,
+                                Tcloud, &normf, &maxf, &dotmin, &nmin, &numiter, stdout);
+        } else {
+            status = fit1dCloud(iedge, npnt, bitflag, edge[iedge].xyz, ncp, edge[iedge].cp, smooth, edge[iedge].rtype, edge[iedge].nsmth,
+                                Tcloud, &normf, &maxf, &dotmin, &nmin, &numiter, NULL);
+        }
+        printf("fit1dCloud(npnt=%d, ncp=%d) -> status=%d, numiter=%3d, normf=%12.4e, dotmin=%7.4f, nmin=%d\n",
                npnt, ncp, status, numiter, normf, dotmin, nmin);
         CHECK_STATUS(fit1dCloud);
 
 #ifdef GRAFIC
         /* plot the fit */
-        status = plotCurve(npnt, edge[iedge].xyz, Tcloud,
+        status = plotCurve(iedge, npnt, edge[iedge].xyz, Tcloud,
                            ncp,  edge[iedge].cp, normf, dotmin, nmin);
         printf("plotCurve -> status=%d\n", status);
         CHECK_STATUS(plotCurve);
@@ -3082,18 +3259,12 @@ generateFits(int    ncp,                /* (in)  number of control points */
 
         assert(npnt > 0);
 
-        /* determine size of training set (try to have at least 2 points per
-           control net cell) */
-        nsample = MIN(MAX(1, npnt / (2 * ncp * ncp)), subsample);
-
         /* create an array of the discrete points associated with this Face */
         face[iface].npnt = npnt;
         FREE(  face[iface].xyz);
         MALLOC(face[iface].xyz, double, 3*npnt);
-        MALLOC(face[iface].xyztrain, double, 3*npnt);
 
         npnt = 0;
-        ntrain = 0;
         for (iloop = 0; iloop < face[iface].nlup; iloop++) {
             for (i = face[iface].lup[iloop]; i < face[iface].lup[iloop+1]; i++) {
                 iedge = face[iface].edg[i];
@@ -3103,13 +3274,6 @@ generateFits(int    ncp,                /* (in)  number of control points */
                         face[iface].xyz[3*npnt+1] = edge[+iedge].xyz[3*ipnt+1];
                         face[iface].xyz[3*npnt+2] = edge[+iedge].xyz[3*ipnt+2];
                         npnt++;
-
-                        if (rand()%nsample == 0) {
-                            face[iface].xyztrain[3*ntrain  ] = edge[+iedge].xyz[3*ipnt  ];
-                            face[iface].xyztrain[3*ntrain+1] = edge[+iedge].xyz[3*ipnt+1];
-                            face[iface].xyztrain[3*ntrain+2] = edge[+iedge].xyz[3*ipnt+2];
-                            ntrain++;
-                        }
                     }
                 } else if (iedge < 0) {
                     for (ipnt = edge[-iedge].npnt-1; ipnt > 0; ipnt--) {
@@ -3117,13 +3281,6 @@ generateFits(int    ncp,                /* (in)  number of control points */
                         face[iface].xyz[3*npnt+1] = edge[-iedge].xyz[3*ipnt+1];
                         face[iface].xyz[3*npnt+2] = edge[-iedge].xyz[3*ipnt+2];
                         npnt++;
-
-                        if (rand()%nsample == 0) {
-                            face[iface].xyztrain[3*ntrain  ] = edge[-iedge].xyz[3*ipnt  ];
-                            face[iface].xyztrain[3*ntrain+1] = edge[-iedge].xyz[3*ipnt+1];
-                            face[iface].xyztrain[3*ntrain+2] = edge[-iedge].xyz[3*ipnt+2];
-                            ntrain++;
-                        }
                     }
                 }
             }
@@ -3134,111 +3291,389 @@ generateFits(int    ncp,                /* (in)  number of control points */
                 face[iface].xyz[3*npnt+1] = tess.xyz[3*ipnt+1];
                 face[iface].xyz[3*npnt+2] = tess.xyz[3*ipnt+2];
                 npnt++;
+            }
+        }
 
-                if (rand()%nsample == 0) {
-                    face[iface].xyztrain[3*ntrain  ] = tess.xyz[3*ipnt  ];
-                    face[iface].xyztrain[3*ntrain+1] = tess.xyz[3*ipnt+1];
-                    face[iface].xyztrain[3*ntrain+2] = tess.xyz[3*ipnt+2];
-                    ntrain++;
+        assert(npnt == face[iface].npnt);
+
+        printf("\niface=%3d   npnt=%8d\n",  iface, face[iface].npnt);
+
+        /* make the fitting Points, which is just a subset of
+           the original Points */
+
+        /* find the extrema of the Points */
+        xmin = face[iface].xyz[0];
+        xmax = face[iface].xyz[0];
+        ymin = face[iface].xyz[1];
+        ymax = face[iface].xyz[1];
+        zmin = face[iface].xyz[2];
+        zmax = face[iface].xyz[2];
+        for (ipnt = 1; ipnt < face[iface].npnt; ipnt++) {
+            if (face[iface].xyz[3*ipnt  ] < xmin) xmin = face[iface].xyz[3*ipnt  ];
+            if (face[iface].xyz[3*ipnt  ] > xmax) xmax = face[iface].xyz[3*ipnt  ];
+            if (face[iface].xyz[3*ipnt+1] < ymin) ymin = face[iface].xyz[3*ipnt+1];
+            if (face[iface].xyz[3*ipnt+1] > ymax) ymax = face[iface].xyz[3*ipnt+1];
+            if (face[iface].xyz[3*ipnt+2] < zmin) zmin = face[iface].xyz[3*ipnt+2];
+            if (face[iface].xyz[3*ipnt+2] > zmax) zmax = face[iface].xyz[3*ipnt+2];
+        }
+
+        /* set octree spacing based upon sampling factor */
+        nsamp = 4 * ncp;
+        dxtol = (xmax - xmin) / nsamp;
+        dytol = (ymax - ymin) / nsamp;
+        dztol = (zmax - zmin) / nsamp;
+
+        /* initialize the octree (too big) */
+        MALLOC(face[iface].xyzfit, double, 3*face[iface].npnt);
+        MALLOC(octant,             int,    8*face[iface].npnt);
+
+        for (inode = 0; inode < face[iface].npnt; inode++) {
+            octant[8*inode  ] = 0;
+            octant[8*inode+1] = 0;
+            octant[8*inode+2] = 0;
+            octant[8*inode+3] = 0;
+            octant[8*inode+4] = 0;
+            octant[8*inode+5] = 0;
+            octant[8*inode+6] = 0;
+            octant[8*inode+7] = 0;
+        }
+
+        /* set up root node */
+        face[iface].xyzfit[0] = face[iface].xyz[0];
+        face[iface].xyzfit[1] = face[iface].xyz[1];
+        face[iface].xyzfit[2] = face[iface].xyz[2];
+        face[iface].nfit      = 1;
+
+        /* we are going to pick random Points.  getting a duplicate
+           is not a problem since it will get skipped below */
+        srand(-12345);
+
+        /* special treatment when Face is restricted */
+        if (face[iface].rtype != 0) {
+            int    ibuck, jbuck, kbuck, kmin, kmax, nbuck=32, *buck=NULL;
+            int    ix, iy, iz;
+
+#define BUCK(I,J,K)   buck[I+nbuck*(J+nbuck*K)]
+
+            FREE(octant);
+
+            /* get the bounding box for the color */
+            xmin = face[iface].xyz[0];
+            xmax = face[iface].xyz[0];
+            ymin = face[iface].xyz[1];
+            ymax = face[iface].xyz[1];
+            zmin = face[iface].xyz[2];
+            zmax = face[iface].xyz[2];
+
+            for (ipnt = 1; ipnt < face[iface].npnt; ipnt++) {
+                xmin = MIN(xmin, face[iface].xyz[3*ipnt  ]);
+                xmax = MAX(xmax, face[iface].xyz[3*ipnt  ]);
+                ymin = MIN(ymin, face[iface].xyz[3*ipnt+1]);
+                ymax = MAX(ymax, face[iface].xyz[3*ipnt+1]);
+                zmin = MIN(zmin, face[iface].xyz[3*ipnt+2]);
+                zmax = MAX(zmax, face[iface].xyz[3*ipnt+2]);
+            }
+
+            printf("xmin=%12.5f, ymin=%12.5f, zmin=%12.5f\n", xmin, ymin, zmin);
+            printf("xmax=%12.5f, ymax=%12.5f, zmax=%12.5f\n", xmax, ymax, zmax);
+
+            /* create buckets */
+            MALLOC(buck, int, nbuck*nbuck*nbuck);
+
+            for (kbuck = 0; kbuck < nbuck; kbuck++) {
+                for (jbuck = 0; jbuck < nbuck; jbuck++) {
+                    for (ibuck = 0; ibuck < nbuck; ibuck++) {
+                        BUCK(ibuck,jbuck,kbuck) = 0;
+                    }
+                }
+            }
+
+            dx = (xmax - xmin) / nbuck;
+            dy = (ymax - ymin) / nbuck;
+            dz = (zmax - zmin) / nbuck;
+
+            /* put the points into buckets */
+            for (ipnt = 0; ipnt < face[iface].npnt; ipnt++) {
+                ix = (int) ((face[iface].xyz[3*ipnt  ] - xmin) / dx);
+                iy = (int) ((face[iface].xyz[3*ipnt+1] - ymin) / dy);
+                iz = (int) ((face[iface].xyz[3*ipnt+2] - zmin) / dz);
+
+                ix = MIN(ix, nbuck-1);
+                iy = MIN(iy, nbuck-1);
+                iz = MIN(iz, nbuck-1);
+
+                (BUCK(ix,iy,iz))++;
+            }
+
+            /* for each j-line */
+            for (jbuck = 0; jbuck < nbuck; jbuck++) {
+
+                /* remove any buckets with a small number of hits */
+                for (kbuck = 0; kbuck < nbuck; kbuck++) {
+                    for (ibuck = 0; ibuck < nbuck; ibuck++) {
+                        if (BUCK(ibuck,jbuck,kbuck) < 10) {
+                            BUCK(ibuck,jbuck,kbuck) = 0;
+                        } else {
+                            BUCK(ibuck,jbuck,kbuck) = 10;
+                        }
+                    }
+                }
+
+                /* find the minimum and maximum kbuck that has non-zero entries */
+                kmin = nbuck;
+                kmax = -1;
+                for (kbuck = 0; kbuck < nbuck; kbuck++) {
+                    for (ibuck = 0; ibuck < nbuck; ibuck++) {
+                        if (BUCK(ibuck,jbuck,kbuck) != 0) {
+                            kmin = MIN(kmin, kbuck);
+                            kmax = MAX(kmax, kbuck);
+                        }
+                    }
+                }
+
+                /* negate the non-zero entries on kmin and kmax */
+                if (kmin < nbuck) {
+                    for (ibuck = 0; ibuck < nbuck; ibuck++) {
+                        if (BUCK(ibuck,jbuck,kmin) != 0) {
+                            BUCK(ibuck,jbuck,kmin) = 10;
+                        } else {
+                            BUCK(ibuck,jbuck,kmin) = 0;
+                        }
+                    }
+                }
+                if (kmax >= 0) {
+                    for (ibuck = 0; ibuck < nbuck; ibuck++) {
+                        if (BUCK(ibuck,jbuck,kmax) != 0) {
+                            BUCK(ibuck,jbuck,kmax) = 10;
+                        } else {
+                            BUCK(ibuck,jbuck,kmax) = 0;
+                        }
+                    }
+                }
+
+                /* negate the left-most entry on each k-line */
+                for (kbuck = kmin+1; kbuck < kmax; kbuck++) {
+                    for (ibuck = 0; ibuck < nbuck; ibuck++) {
+                        if (BUCK(ibuck,jbuck,kbuck) != 0) {
+                            BUCK(ibuck,jbuck,kbuck) = 10;
+                            break;
+                        }
+                    }
+                    for (ibuck++; ibuck < nbuck; ibuck++) {
+                        BUCK(ibuck,jbuck,kbuck) = 0;
+                    }
+                }
+            }
+
+            /* randomly select fitting points (up to 10 per bucket) */
+            for (jpnt = 0; jpnt < face[iface].npnt; jpnt++) {
+                ipnt = rand() % face[iface].npnt;
+
+                                ix = (int) ((face[iface].xyz[3*ipnt  ] - xmin) / dx);
+                iy = (int) ((face[iface].xyz[3*ipnt+1] - ymin) / dy);
+                iz = (int) ((face[iface].xyz[3*ipnt+2] - zmin) / dz);
+
+                ix = MIN(ix, nbuck-1);
+                iy = MIN(iy, nbuck-1);
+                iz = MIN(iz, nbuck-1);
+
+                if (BUCK(ix,iy,iz) > 0) {
+                    face[iface].xyzfit[3*face[iface].nfit  ] = face[iface].xyz[3*ipnt  ];
+                    face[iface].xyzfit[3*face[iface].nfit+1] = face[iface].xyz[3*ipnt+1];
+                    face[iface].xyzfit[3*face[iface].nfit+2] = face[iface].xyz[3*ipnt+2];
+                    face[iface].nfit++;
+
+
+                    (BUCK(ix,iy,iz))--;
+                }
+            }
+
+            FREE(buck);
+
+        /* potentially add all other points to the octree */
+        } else {
+        for (jpnt = 1; jpnt < face[iface].npnt; jpnt++) {
+            ipnt = rand() % face[iface].npnt;
+
+            /* start at the root of the octree */
+            inode = 0;
+            while (inode >= 0) {
+
+                /* compute distance to octree node */
+                dx = face[iface].xyz[3*ipnt  ] - face[iface].xyzfit[3*inode  ];
+                dy = face[iface].xyz[3*ipnt+1] - face[iface].xyzfit[3*inode+1];
+                dz = face[iface].xyz[3*ipnt+2] - face[iface].xyzfit[3*inode+2];
+
+                /* if close to a point already in the octree, go to the next fitting Point */
+                if (fabs(dx) < dxtol && fabs(dy) < dytol && fabs(dz) < dztol) {
+                    break;
+                }
+
+                /* find the appropriate octant and either descend the octree
+                   or add a leaf node to the octree */
+                if (dz < 0) {
+                    if (dy < 0) {
+                        if (dx < 0) {
+                            jnode = octant[8*inode  ];
+                            if (jnode == 0) {
+                                octant[8*inode  ] = face[iface].nfit;
+                                inode = -1;
+                            } else {
+                                inode = jnode;
+                            }
+                        } else {
+                            jnode = octant[8*inode+1];
+                            if (jnode == 0) {
+                                octant[8*inode+1] = face[iface].nfit;
+                                inode = -1;
+                            } else {
+                                inode = jnode;
+                            }
+                        }
+                    } else {
+                        if (dx < 0) {
+                            jnode = octant[8*inode+2];
+                            if (jnode == 0) {
+                                octant[8*inode+2] = face[iface].nfit;
+                                inode = -1;
+                            } else {
+                                inode = jnode;
+                            }
+                        } else {
+                            jnode = octant[8*inode+3];
+                            if (jnode == 0) {
+                                octant[8*inode+3] = face[iface].nfit;
+                                inode = -1;
+                            } else {
+                                inode = jnode;
+                            }
+                        }
+                    }
+                } else {
+                    if (dy < 0) {
+                        if (dx < 0) {
+                            jnode = octant[8*inode+4];
+                            if (jnode == 0) {
+                                octant[8*inode+4] = face[iface].nfit;
+                                inode = -1;
+                            } else {
+                                inode = jnode;
+                            }
+                        } else {
+                            jnode = octant[8*inode+5];
+                            if (jnode == 0) {
+                                octant[8*inode+5] = face[iface].nfit;
+                                inode = -1;
+                            } else {
+                                inode = jnode;
+                            }
+                        }
+                    } else {
+                        if (dx < 0) {
+                            jnode = octant[8*inode+6];
+                            if (jnode == 0) {
+                                octant[8*inode+6] = face[iface].nfit;
+                                inode = -1;
+                            } else {
+                                inode = jnode;
+                            }
+                        } else {
+                            jnode = octant[8*inode+7];
+                            if (jnode == 0) {
+                                octant[8*inode+7] = face[iface].nfit;
+                                inode = -1;
+                            } else {
+                                inode = jnode;
+                            }
+                        }
+                    }
+                }
+
+                /* if we added a node to the octree, remember its location
+                   and get the next point */
+                if (inode < 0) {
+                    face[iface].xyzfit[3*face[iface].nfit  ] = face[iface].xyz[3*ipnt  ];
+                    face[iface].xyzfit[3*face[iface].nfit+1] = face[iface].xyz[3*ipnt+1];
+                    face[iface].xyzfit[3*face[iface].nfit+2] = face[iface].xyz[3*ipnt+2];
+                    face[iface].nfit++;
+                    break;
                 }
             }
         }
-        assert(npnt == face[iface].npnt);
 
-        face[iface].ntrain = ntrain;
-
-        printf("iface=%3d   npnt  =%6d\n",  iface, face[iface].npnt);
-        printf("            ntrain=%6d (%3d%%)\n", face[iface].ntrain, 100*face[iface].ntrain/face[iface].npnt);
-
-        /* create a plot of the "training" and "testing" points */
-#ifdef GRAFIC
-        {
-            int    indgr=1+2+4+16+64+1024, itype=0;
-            char   pltitl[80];
-
-            sprintf(pltitl, "~u~v~Face %d", iface);
-
-            grctrl_(plotPoints_image, &indgr, pltitl,
-                    (void*)(&itype),
-                    (void*)(&(face[iface].ntrain)),
-                    (void*)(face[iface].xyztrain),
-                    (void*)(&(face[iface].npnt)),
-                    (void*)(face[iface].xyz),
-                    (void*)NULL,
-                    (void*)NULL,
-                    (void*)NULL,
-                    (void*)NULL,
-                    (void*)NULL,
-                    strlen(pltitl));
+        FREE(octant);
         }
-#endif
+
+        printf("            nfit=%8d (%3d%%)\n", face[iface].nfit, 100*face[iface].nfit/face[iface].npnt);
 
         /* see if Points are co-planar by computing triple product
            of 4 Points at a time */
-        planar = 1;
+        if (allBsplines == 0) {
+            planar = 1;
 
-        ipnt = 0;
-        xx[0] = face[iface].xyz[3*ipnt  ];
-        yy[0] = face[iface].xyz[3*ipnt+1];
-        zz[0] = face[iface].xyz[3*ipnt+2];
+            ipnt = 0;
+            xx[0] = face[iface].xyz[3*ipnt  ];
+            yy[0] = face[iface].xyz[3*ipnt+1];
+            zz[0] = face[iface].xyz[3*ipnt+2];
 
-        ipnt = 1 * face[iface].npnt / 3;
-        xx[1] = face[iface].xyz[3*ipnt  ];
-        yy[1] = face[iface].xyz[3*ipnt+1];
-        zz[1] = face[iface].xyz[3*ipnt+2];
+            ipnt = 1 * face[iface].npnt / 3;
+            xx[1] = face[iface].xyz[3*ipnt  ];
+            yy[1] = face[iface].xyz[3*ipnt+1];
+            zz[1] = face[iface].xyz[3*ipnt+2];
 
-        ipnt = 2 * face[iface].npnt / 3;
-        xx[2] = face[iface].xyz[3*ipnt  ];
-        yy[2] = face[iface].xyz[3*ipnt+1];
-        zz[2] = face[iface].xyz[3*ipnt+2];
+            ipnt = 2 * face[iface].npnt / 3;
+            xx[2] = face[iface].xyz[3*ipnt  ];
+            yy[2] = face[iface].xyz[3*ipnt+1];
+            zz[2] = face[iface].xyz[3*ipnt+2];
 
-        dx1 = xx[1] - xx[0];
-        dy1 = yy[1] - yy[0];
-        dz1 = zz[1] - zz[0];
-        dx2 = xx[2] - xx[0];
-        dy2 = yy[2] - yy[0];
-        dz2 = zz[2] - zz[0];
+            dx1 = xx[1] - xx[0];
+            dy1 = yy[1] - yy[0];
+            dz1 = zz[1] - zz[0];
+            dx2 = xx[2] - xx[0];
+            dy2 = yy[2] - yy[0];
+            dz2 = zz[2] - zz[0];
 
-        areax = dy1 * dz2 - dz1 * dy2;
-        areay = dz1 * dx2 - dx1 * dz2;
-        areaz = dx1 * dy2 - dy1 * dx2;
-        area  = sqrt(areax * areax + areay * areay + areaz * areaz);
-        if (area < EPS06) {
-            int iii;
-            printf("points are colinear (%d, %d, %d)\n", 0, face[iface].npnt/3, 2*face[iface].npnt/3);
-            for (iii = 0; iii < face[iface].npnt; iii++) {
-                printf("%5d  %15.7f %15.7f %15.7f\n", iii, face[iface].xyz[3*iii], face[iface].xyz[3*iii+1], face[iface].xyz[3*iii+2]);
+            areax = dy1 * dz2 - dz1 * dy2;
+            areay = dz1 * dx2 - dx1 * dz2;
+            areaz = dx1 * dy2 - dy1 * dx2;
+            area  = sqrt(areax * areax + areay * areay + areaz * areaz);
+            if (area < EPS06) {
+                int iii;
+                printf("points are colinear (%d, %d, %d)\n", 0, face[iface].npnt/3, 2*face[iface].npnt/3);
+                for (iii = 0; iii < face[iface].npnt; iii++) {
+                    printf("%5d  %15.7f %15.7f %15.7f\n", iii, face[iface].xyz[3*iii], face[iface].xyz[3*iii+1], face[iface].xyz[3*iii+2]);
+                }
+                exit(0);
+            } else {
+                areax /= area;
+                areay /= area;
+                areaz /= area;
             }
-            exit(0);
-        } else {
-            areax /= area;
-            areay /= area;
-            areaz /= area;
-        }
 
-        prodmax = 0;
-        for (ipnt = 0; ipnt < face[iface].npnt; ipnt++) {
-            xx[3] = face[iface].xyz[3*ipnt  ];
-            yy[3] = face[iface].xyz[3*ipnt+1];
-            zz[3] = face[iface].xyz[3*ipnt+2];
+            prodmax = 0;
+            for (ipnt = 0; ipnt < face[iface].npnt; ipnt++) {
+                xx[3] = face[iface].xyz[3*ipnt  ];
+                yy[3] = face[iface].xyz[3*ipnt+1];
+                zz[3] = face[iface].xyz[3*ipnt+2];
 
-            /* if triple product is not zero, Points are not planar */
-            prod = (xx[3] - xx[0]) * areax + (yy[3] - yy[0]) * areay + (zz[3] - zz[0]) * areaz;
-            if (fabs(prod) > prodmax) prodmax = fabs(prod);
-            if (fabs(prod) > EPS03) {
-                printf("non-planar (fitting)  ipnt=%d, prod=%12.5f\n", ipnt, prod);
-                planar = 0;
-                break;
+                /* if triple product is not zero, Points are not planar */
+                prod = (xx[3] - xx[0]) * areax + (yy[3] - yy[0]) * areay + (zz[3] - zz[0]) * areaz;
+                if (fabs(prod) > prodmax) prodmax = fabs(prod);
+                if (fabs(prod) > EPS03) {
+                    printf("non-planar (fitting)  ipnt=%d, prod=%12.5f\n", ipnt, prod);
+                    planar = 0;
+                    break;
+                }
             }
-        }
 
-        if (planar == 1) {
-            SPRINT1(1, "planar (skipping)  prodmax=%12.5f", prodmax);
+            if (planar == 1) {
+                SPRINT1(1, "planar (skipping)  prodmax=%12.5f", prodmax);
 
-            FREE(face[iface].xyz);
-            face[iface].npnt = 0;
+                FREE(face[iface].xyz);
+                face[iface].npnt = 0;
 
-            continue;
+                continue;
+            }
         }
 
         /* for now, this only works with Faces bounded by 2, 3, or 4 Edges */
@@ -3341,8 +3776,8 @@ generateFits(int    ncp,                /* (in)  number of control points */
                 }
             }
             face[iface].npnt = npnt;
-            if (face[iface].ntrain > face[iface].npnt) {
-                face[iface].ntrain = face[iface].npnt;
+            if (face[iface].nfit > face[iface].npnt) {
+                face[iface].nfit = face[iface].npnt;
             }
         }
 
@@ -3425,8 +3860,8 @@ generateFits(int    ncp,                /* (in)  number of control points */
                 }
             }
             face[iface].npnt = npnt;
-            if (face[iface].ntrain > face[iface].npnt) {
-                face[iface].ntrain = face[iface].npnt;
+            if (face[iface].nfit > face[iface].npnt) {
+                face[iface].nfit = face[iface].npnt;
             }
 #endif
         }
@@ -3437,7 +3872,7 @@ generateFits(int    ncp,                /* (in)  number of control points */
     empFitter.master = EMP_ThreadID();
 
     nthread = EMP_Init(&start);
-    if (nthread > 4) nthread = 4;       // hyper-threading does not work on OSX
+    nthread = MIN(nthread, maxThreads);
 
     SPRINT1(1, "\n*********\nstarting multi-threaded fits with %d threads\n*********", nthread);
 
@@ -3515,6 +3950,57 @@ cleanup:
 /*
  ***********************************************************************
  *                                                                     *
+ *   generatePlot - generate .plot file (for comparison)               *
+ *                                                                     *
+ ***********************************************************************
+ */
+static int
+generatePlot(char   filename[],         /* (in)  name of plotfile */
+             char   message[])          /* (out) error message */
+{
+    int       status = SUCCESS;
+
+    int       iface, ipnt;
+    FILE      *fp_plot;
+
+    ROUTINE(generatePlot);
+
+    /* --------------------------------------------------------------- */
+
+    strcpy(message, "okay");
+
+    fp_plot = fopen(filename, "w");
+    if (fp_plot == NULL) {
+        snprintf(message, 79, "cannot open \"%s\" for writing", filename);
+        status = -1;
+        goto cleanup;
+    }
+
+    for (iface = 1; iface <= Nface; iface++) {
+        if (face[iface].npnt <= 0) continue;
+
+        fprintf(fp_plot, " %9d %9d face%d\n", face[iface].npnt, 0, iface);
+
+        for (ipnt = 0; ipnt < face[iface].npnt; ipnt++) {
+            fprintf(fp_plot, " %15.8f %15.8f %15.8f\n",
+                    face[iface].xyz[3*ipnt  ],
+                    face[iface].xyz[3*ipnt+1],
+                    face[iface].xyz[3*ipnt+2]);
+        }
+    }
+
+    fprintf(fp_plot, " %9d %9d end\n", 0, 0);
+
+    fclose(fp_plot);
+
+cleanup:
+    return status;
+}
+
+
+/*
+ ***********************************************************************
+ *                                                                     *
  *   empFit2dCloud - does fitting in a thread                          *
  *                                                                     *
  ***********************************************************************
@@ -3524,7 +4010,7 @@ empFit2dCloud(void *struc)              /* (both) emp structure */
 {
     int    status, iface, jface, numiter, nmin, nmax, bitflag;
     long   ID;
-    double *UVcloud=NULL, smooth, maxf, normf;
+    double *UVcloud=NULL, smooth, maxf, normf, dotmin;
 
     emp_T  *empFitter = (emp_T *)struc;
 
@@ -3537,7 +4023,7 @@ empFit2dCloud(void *struc)              /* (both) emp structure */
     if (ID == empFitter->master) {
         printf("ID %12lx: is master\n", ID);
     } else {
-        printf("ID %12lx: start thread\n", ID);
+        printf("ID %12lx:           start thread\n", ID);
     }
 
     /* look for next Face to process */
@@ -3550,30 +4036,52 @@ empFit2dCloud(void *struc)              /* (both) emp structure */
         }
 
         /* look for the Face with the most Points in the cloud */
-        iface = -1;
-        nmax  = -1;
+        if (maxThreads > 1) {
+            iface = -1;
+            nmax  =  0;
 
-        for (jface = 1; jface <= Nface; jface++) {
-            if (face[jface].done == 0) {
-                if (face[jface].npnt > nmax) {
-                    iface = jface;
-                    nmax  = face[jface].npnt;
+            for (jface = 1; jface <= Nface; jface++) {
+                if (face[jface].done == 0) {
+                    if (face[jface].nfit > nmax) {
+                        iface = jface;
+                        nmax  = face[jface].nfit;
+                    }
+                }
+            }
+
+        /* look for the Face with the fewest Points in the cloud */
+        } else {
+            iface = -1;
+            nmin  = 99999999;
+
+            for (jface = 1; jface <= Nface; jface++) {
+                if (face[jface].done == 0) {
+                    if (face[jface].nfit < nmin) {
+                        iface = jface;
+                        nmin  = face[jface].nfit;
+                    }
                 }
             }
         }
+
+        /* if there are no Faces to process, break out of while(1) loop */
+        if (iface < 1) {
+            if (empFitter->mutex != NULL) {
+                EMP_LockRelease(empFitter->mutex);
+            }
+
+            break;
+        }
+
+        /* mark this Face as being done (so that it does not get
+           scheduled again) */
+        face[iface].done = 1;
+        printf("ID %12lx: iface %3d has %5d fitting Points\n", ID, iface, face[iface].nfit);
 
         /* release the mutex */
         if (empFitter->mutex != NULL) {
             EMP_LockRelease(empFitter->mutex);
         }
-
-        /* if there are no Faces to process, break out of while(1) loop */
-        if (iface < 1) break;
-
-        /* mark this Face as being done (so that it does not get
-           scheduled again) */
-        face[iface].done = 1;
-        printf("ID %12lx: iface %3d has %5d training points\n", ID, iface, face[iface].ntrain);
 
         /* do not process planar faces */
         if (face[iface].npnt == 0) {
@@ -3586,36 +4094,99 @@ empFit2dCloud(void *struc)              /* (both) emp structure */
 
         bitflag = 0;
         smooth  = 1;
+        dotmin  = -.707;    // -45 deg
+        dotmin  = -.500;    // -60 deg
+        dotmin  = 0;
         numiter = 100;
 
-        if (outLevel > 1) {
-            status = fit2dCloud(face[iface].ntrain,
-                                bitflag,
-                                face[iface].xyztrain,
-                                face[iface].ncp,
-                                face[iface].ncp,
-                                face[iface].cp,
-                                smooth,
-                                UVcloud, &normf, &maxf, &nmin, &numiter, stdout);
-        } else {
-            status = fit2dCloud(face[iface].ntrain,
-                                bitflag,
-                                face[iface].xyztrain,
-                                face[iface].ncp,
-                                face[iface].ncp,
-                                face[iface].cp,
-                                smooth,
-                                UVcloud, &normf, &maxf, &nmin, &numiter, NULL);
+        if (DEBUG) {
+            int    ipnt, icp, jcp, kcp;
+            char   filename[80];
+            FILE   *fp;
+
+            snprintf(filename, 80, "face_%d.plot", iface);
+            fp = fopen(filename, "w");
+            fprintf(fp, " %9d %9d points\n", face[iface].nfit, 0);
+            for (ipnt = 0; ipnt < face[iface].nfit; ipnt++) {
+                fprintf(fp, " %14.8f %14.8f %14.8f\n",
+                        face[iface].xyzfit[3*ipnt  ],
+                        face[iface].xyzfit[3*ipnt+1],
+                        face[iface].xyzfit[3*ipnt+2]);
+            }
+            fprintf(fp, " %9d %9d south_edge|r\n", face[iface].ncp, 1);
+            jcp = 0;
+            for (icp = 0; icp < face[iface].ncp; icp++) {
+                kcp = icp + jcp * face[iface].ncp;
+                fprintf(fp, " %14.8f %14.8f %14.8f\n",
+                        face[iface].cp[3*kcp  ],
+                        face[iface].cp[3*kcp+1],
+                        face[iface].cp[3*kcp+2]);
+            }
+            fprintf(fp, " %9d %9d north_edge|r\n", face[iface].ncp, 1);
+            jcp = face[iface].ncp - 1;
+            for (icp = 0; icp < face[iface].ncp; icp++) {
+                kcp = icp + jcp * face[iface].ncp;
+                fprintf(fp, " %14.8f %14.8f %14.8f\n",
+                        face[iface].cp[3*kcp  ],
+                        face[iface].cp[3*kcp+1],
+                        face[iface].cp[3*kcp+2]);
+            }
+            fprintf(fp, " %9d %9d west_edge|g\n", face[iface].ncp, 1);
+            icp = 0;
+            for (jcp = 0; jcp < face[iface].ncp; jcp++) {
+                kcp = icp + jcp * face[iface].ncp;
+                fprintf(fp, " %14.8f %14.8f %14.8f\n",
+                        face[iface].cp[3*kcp  ],
+                        face[iface].cp[3*kcp+1],
+                        face[iface].cp[3*kcp+2]);
+            }
+            fprintf(fp, " %9d %9d east_edge|g\n", face[iface].ncp, 1);
+            icp = face[iface].ncp - 1;
+            for (jcp = 0; jcp < face[iface].ncp; jcp++) {
+                kcp = icp + jcp * face[iface].ncp;
+                fprintf(fp, " %14.8f %14.8f %14.8f\n",
+                        face[iface].cp[3*kcp  ],
+                        face[iface].cp[3*kcp+1],
+                        face[iface].cp[3*kcp+2]);
+            }
+            fprintf(fp, "0 0 end\n");
+            fclose(fp);
         }
 
-        printf("ID %12lx: iface %3d complete with status=%d, numiter=%3d, normf=%12.4e, nmin=%d\n",
-               ID, iface, status, numiter, normf, nmin);
+        if (outLevel > 1 || maxThreads == 1) {
+            status = fit2dCloud(iface,
+                                face[iface].nfit,
+                                bitflag,
+                                face[iface].xyzfit,
+                                face[iface].ncp,
+                                face[iface].ncp,
+                                face[iface].cp,
+                                smooth,
+                                face[iface].rtype,
+                                face[iface].nsmth,
+                                UVcloud, &normf, &maxf, &dotmin, &nmin, &numiter, stdout);
+        } else {
+            status = fit2dCloud(iface,
+                                face[iface].nfit,
+                                bitflag,
+                                face[iface].xyzfit,
+                                face[iface].ncp,
+                                face[iface].ncp,
+                                face[iface].cp,
+                                smooth,
+                                face[iface].rtype,
+                                face[iface].nsmth,
+                                UVcloud, &normf, &maxf, &dotmin, &nmin, &numiter, NULL);
+        }
+
+        printf("ID %12lx: iface %3d complete with status=%d, numiter=%3d, normf=%12.4e, dotmin=%7.4f, nmin=%3d\n",
+               ID, iface, status, numiter, normf, dotmin, nmin);
 
 #ifdef GRAFIC
         /* plot the fit */
         if (ID == empFitter->master) {
-            status = plotSurface(face[iface].npnt, face[iface].xyz, UVcloud,
-                                 face[iface].ncp,  face[iface].cp, normf, nmin);
+            status = plotSurface(iface, face[iface].npnt, face[iface].xyz, UVcloud,
+                                 face[iface].ncp,  face[iface].cp, normf, dotmin, nmin);
             printf("plotSurface -> status=%d\n", status);
             CHECK_STATUS(plotSurface);
         }
@@ -3627,7 +4198,7 @@ empFit2dCloud(void *struc)              /* (both) emp structure */
 
     /* all work is done, so exit (if not the master) */
     if (ID != empFitter->master) {
-        printf("ID %12lx: stop  thread\n", ID);
+        printf("ID %12lx:           stop  thread\n", ID);
         EMP_ThreadExit();
     }
 
@@ -3679,7 +4250,7 @@ makeNodesAndEdges(int    nsgmt,
         node[Nnode].z     = tess.xyz[3*ipnt+2];
         node[Nnode].enode = NULL;
 
-        SPRINT6(1, "   created Node %3d .ipnt=%6d, .nedg=%6d, .x=%10.4f, .y=%10.4f, .z=%10.4f", Nnode,
+        SPRINT6(1, "   created Node %3d .ipnt=%8d, .nedg=%8d, .x=%10.4f, .y=%10.4f, .z=%10.4f", Nnode,
                 node[Nnode].ipnt,
                 node[Nnode].nedg,
                 node[Nnode].x,
@@ -3706,7 +4277,7 @@ makeNodesAndEdges(int    nsgmt,
         node[Nnode].z     = tess.xyz[3*ipnt+2];
         node[Nnode].enode = NULL;
 
-        SPRINT6(1, "   created Node %3d .ipnt=%6d, .nedg=%6d, .x=%10.4f, .y=%10.4f, .z=%10.4f", Nnode,
+        SPRINT6(1, "   created Node %3d .ipnt=%8d, .nedg=%8d, .x=%10.4f, .y=%10.4f, .z=%10.4f", Nnode,
                 node[Nnode].ipnt,
                 node[Nnode].nedg,
                 node[Nnode].x,
@@ -3731,6 +4302,8 @@ makeNodesAndEdges(int    nsgmt,
     edge[Nedge].xyz   = NULL;
     edge[Nedge].ncp   = 0;
     edge[Nedge].cp    = NULL;
+    edge[Nedge].rtype = 0;
+    edge[Nedge].nsmth = 0;
     edge[Nedge].eedge = NULL;
 
     node[edge[Nedge].ibeg].nedg += 1;
@@ -3744,6 +4317,12 @@ makeNodesAndEdges(int    nsgmt,
             edge[Nedge].irite = iface;
             face[iface].nedg += 1;
         }
+    }
+
+    /* Edges get the minimum smoothing passes of its adjacent Faces */
+    if (edge[Nedge].ileft > 0 && edge[Nedge].irite > 0) {
+        edge[Nedge].nsmth = MAX(face[edge[Nedge].ileft].nsmth,
+                                face[edge[Nedge].irite].nsmth);
     }
 
     MALLOC(edge[Nedge].pnt, int, nsgmt+1);
@@ -3760,12 +4339,14 @@ makeNodesAndEdges(int    nsgmt,
         }
     }
 
-    SPRINT6(1, "   created Edge %3d .ibeg=%6d, .iend=%6d, .ileft=%4d, .irite=%4d, .npnt=%6d", Nedge,
+    SPRINT8(1, "   created Edge %3d .ibeg=%8d, .iend=%8d, .ileft=%4d, .irite=%4d, .npnt=%8d, .rtype=%2d, .nsmth=%2d", Nedge,
             edge[Nedge].ibeg,
             edge[Nedge].iend,
             edge[Nedge].ileft,
             edge[Nedge].irite,
-            edge[Nedge].npnt);
+            edge[Nedge].npnt,
+            edge[Nedge].rtype,
+            edge[Nedge].nsmth);
 
 cleanup:
 return status;
@@ -3801,7 +4382,7 @@ browserMessage(
     wv_sendText(wsi, response);
 
     if (strlen(sgFocusData) > 0) {
-        SPRINT1(3, "sgFocus-> %s", sgFocusData);
+        SPRINT1(2, "sgFocus-> %s", sgFocusData);
         wv_sendText(wsi, sgFocusData);
 
         /* nullify meta data so that it does not get sent again */
@@ -3906,13 +4487,13 @@ processMessage(char    *text)
         status = makeLinks(&tess);
         CHECK_FOR_ERROR(automaticLinks, makeLinks);
 
+        /* update the scene graph */
+        buildTriangles();
+        buildLinks();
+
         /* build the response */
         snprintf(response, max_resp_len, "automaticLinks;okay");
         response_len = strlen(response);
-
-        /* set flags */
-        Tris_pend  = 1;
-        Links_pend = 1;
 
     /* "bridgeToPoint;x;y;z;" */
     } else if (strncmp(text, "bridgeToPoint;", 14) == 0) {
@@ -3945,17 +4526,15 @@ processMessage(char    *text)
         /* reset the current Point */
         CurPt_index = -1;
 
+        /* update the scene graph */
+        buildTriangles();
+        buildHangs();
+        buildLinks();
+        buildCurPt();
+
         /* build the response */
         snprintf(response, max_resp_len, "bridgeToPoint;okay");
         response_len = strlen(response);
-
-        /* set flags */
-        CurPt_index = -1;
-
-        Tris_pend  = 1;
-        Hangs_pend = 1;
-        Links_pend = 1;
-        CurPt_pend = 1;
 
     /* "colorTriangles;x;y;z;icolor;" */
     } else if (strncmp(text, "colorTriangles;", 15) == 0) {
@@ -3990,17 +4569,18 @@ processMessage(char    *text)
         /* update the latest color number */
         tess.ncolr = MAX(tess.ncolr, icolr);
 
+        /* reset the current Point */
+        CurPt_index = -1;
+
+        /* update the scene graph */
+        buildTriangles();
+        buildHangs();
+        buildLinks();
+        buildCurPt();
+
         /* build the response */
         snprintf(response, max_resp_len, "colorTriangles;%d;okay", tess.ncolr);
         response_len = strlen(response);
-
-        /* set flags */
-        CurPt_index = -1;
-
-        Tris_pend  = 1;
-        Links_pend = 1;
-        Hangs_pend = 1;
-        CurPt_pend = 1;
 
     /* "cutTriangles;icolr;itype;xloc;yloc;zloc;" */
     } else if (strncmp(text, "cutTriangles;", 13) == 0) {
@@ -4090,17 +4670,18 @@ processMessage(char    *text)
         status = cutTriangles(&tess, icolr, data);
         CHECK_FOR_ERROR(cutTriangles, cutTriangles);
 
+        /* reset the current Point */
+        CurPt_index = -1;
+
+        /* update the scene graph */
+        buildTriangles();
+        buildHangs();
+        buildLinks();
+        buildCurPt();
+
         /* build the response */
         snprintf(response, max_resp_len, "cutTriangles;%d;okay", tess.ncolr);
         response_len = strlen(response);
-
-        /* set flags */
-        CurPt_index = -1;
-
-        Tris_pend  = 1;
-        Links_pend = 1;
-        Hangs_pend = 1;
-        CurPt_pend = 1;
 
     /* "deleteTriangle;x;y;z;" */
     } else if (strncmp(text, "deleteTriangle;", 15) == 0) {
@@ -4133,16 +4714,14 @@ processMessage(char    *text)
         /* reset the current Point */
         CurPt_index = -1;
 
+        /* update the scene graph */
+        buildTriangles();
+        buildHangs();
+        buildCurPt();
+
         /* build the response */
         snprintf(response, max_resp_len, "deleteTriangle;okay");
         response_len = strlen(response);
-
-        /* set flags */
-        CurPt_index = -1;
-
-        Tris_pend  = 1;
-        Hangs_pend = 1;
-        CurPt_pend = 1;
 
     /* "fillHole;x;y;z;" */
     } else if (strncmp(text, "fillHole;", 9) == 0) {
@@ -4175,16 +4754,14 @@ processMessage(char    *text)
         /* reset the current Point */
         CurPt_index = -1;
 
+        /* update the scene graph */
+        buildTriangles();
+        buildHangs();
+        buildCurPt();
+
         /* build the response */
         snprintf(response, max_resp_len, "fillHole;okay");
         response_len = strlen(response);
-
-        /* set flags */
-        CurPt_index = -1;
-
-        Tris_pend  = 1;
-        Hangs_pend = 1;
-        CurPt_pend = 1;
 
     /* "flattenColor;x;y;z;" */
     } else if (strncmp(text, "flattenColor;", 13) == 0) {
@@ -4217,17 +4794,17 @@ processMessage(char    *text)
         status = flattenColor(&tess, icolr, tol);
         CHECK_FOR_ERROR(flattenColor, flattenColor);
 
+        /* reset the current Point */
+        CurPt_index = -1;
+
+        /* update the scene graph */
+        buildLinks();
+        buildHangs();
+        buildCurPt();
+
         /* build the response */
         snprintf(response, max_resp_len, "flattenColor;okay");
         response_len = strlen(response);
-
-        /* set flags */
-        CurPt_index = -1;
-
-        Tris_pend  = 1;
-        Links_pend = 1;
-        Hangs_pend = 1;
-        CurPt_pend = 1;
 
     /* "generateEgads;filename;ncp;" */
     } else if (strncmp(text, "generateEgads;", 14) == 0) {
@@ -4260,16 +4837,40 @@ processMessage(char    *text)
         status = generateEgads(filename, message);
         CHECK_FOR_ERROR2(generateEgads, message);
 
+        /* reset the current Point */
+        CurPt_index = -1;
+
+        /* update the scene graph */
+        buildTriangles();
+        buildHangs();
+        buildCurPt();
+
         /* build the response */
         snprintf(response, max_resp_len, "generateEgads;%s", message);
         response_len = strlen(response);
 
-        /* set flags */
+    /* "generatePlot;filename;" */
+    } else if (strncmp(text, "generatePlot;", 13) == 0) {
+        char message[80];
+
+        /* extract argument */
+        if (getToken(text, 1, arg1)) strncpy(filename, arg1, 80);
+
+        /* generate the plot file */
+        status = generatePlot(filename, message);
+        CHECK_FOR_ERROR2(generatePlot, message);
+
+        /* reset the current Point */
         CurPt_index = -1;
 
-        Tris_pend  = 1;
-        Hangs_pend = 1;
-        CurPt_pend = 1;
+        /* update the scene graph */
+        buildTriangles();
+        buildHangs();
+        buildCurPt();
+
+        /* build the response */
+        snprintf(response, max_resp_len, "generatePlot;%s", message);
+        response_len = strlen(response);
 
     /* "joinPoints;x;y;z;" */
     } else if (strncmp(text, "joinPoints;", 11) == 0) {
@@ -4299,17 +4900,18 @@ processMessage(char    *text)
         status = joinPoints(&tess, ipnt, CurPt_index);
         CHECK_FOR_ERROR(joinPoints, joinPoints);
 
+        /* reset the current Point */
+        CurPt_index = -1;
+
+        /* update the scene graph */
+        buildTriangles();
+        buildHangs();
+        buildLinks();
+        buildCurPt();
+
         /* build the response */
         snprintf(response, max_resp_len, "joinPoints;okay");
         response_len = strlen(response);
-
-        /* set flags */
-        CurPt_index = ipnt;
-
-        Tris_pend  = 1;
-        Hangs_pend = 1;
-        Links_pend = 1;
-        CurPt_pend = 1;
 
     /* "linkToPoint;x;y;z;" */
     } else if (strncmp(text, "linkToPoint;", 11) == 0) {
@@ -4342,22 +4944,29 @@ processMessage(char    *text)
             status = createLinks(&tess, CurPt_index, ipnt);
             CHECK_FOR_ERROR(linkToPoint, createLinks);
 
+            /* set the current Point */
+            CurPt_index = ipnt;
+
+            /* update the scene graph */
+            buildTriangles();
+            buildLinks();
+            buildCurPt();
+
             /* build the response */
             snprintf(response, max_resp_len, "linkToPoint;%d;okay", CurPt_index);
             response_len = strlen(response);
         } else {
+            /* set the current Point */
             CurPt_index = ipnt;
+
+            /* update the scene graph */
+            buildTriangles();
+            buildLinks();
+            buildCurPt();
 
             snprintf(response, max_resp_len, "pickPoint;%d;okay", CurPt_index);
             response_len = strlen(response);
         }
-
-        /* set flags */
-        CurPt_index = ipnt;
-
-        Tris_pend  = 1;
-        Links_pend = 1;
-        CurPt_pend = 1;
 
     /* "markCreases;angdeg;" */
     } else if (strncmp(text, "markCreases;", 12) == 0) {
@@ -4380,16 +4989,17 @@ processMessage(char    *text)
         status = detectCreases(&tess, angdeg);
         CHECK_FOR_ERROR(detectCreases, detectCreases);
 
+        /* reset the current Point */
+        CurPt_index = -1;
+
+        /* update the scene graph */
+        buildTriangles();
+        buildLinks();
+        buildCurPt();
+
         /* build the response */
         snprintf(response, max_resp_len, "markCreases;okay");
         response_len = strlen(response);
-
-        /* set flags */
-        CurPt_index = -1;
-
-        Tris_pend  = 1;
-        Links_pend = 1;
-        CurPt_pend = 1;
 
     /* "identifyPoint;x;y;z" */
     } else if (strncmp(text, "identifyPoint;", 14) == 0) {
@@ -4412,12 +5022,12 @@ processMessage(char    *text)
         SPRINT1(3, "closestPoint -> CurPt_index=%d", ipnt);
 
         /* print out information */
-        printf("ipnt=%6d\n", ipnt);
+        printf("ipnt=%8d\n", ipnt);
         for (itri = 0; itri < tess.ntri; itri++) {
             if (tess.trip[3*itri  ] == ipnt ||
                 tess.trip[3*itri+1] == ipnt ||
                 tess.trip[3*itri+2] == ipnt   ) {
-                printf("     itri=%6d: points= %6d %6d %6d, tris= %6d (%3d) %6d (%3d) %6d (%3d)\n", itri,
+                printf("     itri=%8d: points= %8d %8d %8d, tris= %8d (%3d) %8d (%3d) %8d (%3d)\n", itri,
                        tess.trip[3*itri], tess.trip[3*itri+1], tess.trip[3*itri+2],
                        tess.trit[3*itri  ], tess.ttyp[tess.trit[3*itri  ]]&TRI_COLOR,
                        tess.trit[3*itri+1], tess.ttyp[tess.trit[3*itri+1]]&TRI_COLOR,
@@ -4428,8 +5038,6 @@ processMessage(char    *text)
         /* build the response */
         snprintf(response, max_resp_len, "identifyPoint;%d;okay", CurPt_index);
         response_len = strlen(response);
-
-        /* set flags */
 
     /* "pickPoint;x;y;z;" */
     } else if (strncmp(text, "pickPoint;", 10) == 0) {
@@ -4451,12 +5059,55 @@ processMessage(char    *text)
         CurPt_index = closestPoint(xloc, yloc, zloc);
         SPRINT1(3, "closestPoint -> CurPt_index=%d", CurPt_index);
 
+        /* update the scene graph */
+        buildCurPt();
+
         /* build the response */
         snprintf(response, max_resp_len, "pickPoint;%d;okay", CurPt_index);
         response_len = strlen(response);
 
-        /* set flags */
-        CurPt_pend = 1;
+    /* "restrictColor;icolr;rtype;" */
+    } else if (strncmp(text, "restrictColor;", 14) == 0) {
+        int    icolr=-1, rtype=1;
+
+        /* write journal entry */
+        if (jrnl_out != NULL) {
+            fprintf(jrnl_out, "%s\n", text);
+            fflush( jrnl_out);
+        }
+
+        /* make an undo copy */
+        status = storeUndo();
+        CHECK_FOR_ERROR(smoothColor, storeUndo);
+
+        /* extract arguments */
+        if (getToken(text, 1, arg1)) icolr = strtol(arg1, NULL, 10);
+        if (getToken(text, 2, arg2)) rtype = strtol(arg2, NULL, 10);
+        SPRINT2(3, "icolr=%d, rtype=%d", icolr, rtype);
+
+        /* restrict the given color */
+        if (Nrest == 0) {
+            MALLOC(rest, rest_T, 1);
+        } else {
+            RALLOC(rest, rest_T, Nrest+1);
+        }
+
+        rest[Nrest].icol  = icolr;
+        rest[Nrest].rtype = rtype;
+        Nrest++;
+
+        /* reset the current Point */
+        CurPt_index = -1;
+
+        /* update the scene graph */
+        buildTriangles();
+        buildLinks();
+        buildHangs();
+        buildCurPt();
+
+        /* build the response */
+        snprintf(response, max_resp_len, "restrictColor;okay");
+        response_len = strlen(response);
 
     /* "scribeToPoint;x;y;z;" */
     } else if (strncmp(text, "scribeToPoint;", 14) == 0) {
@@ -4492,22 +5143,73 @@ processMessage(char    *text)
             status = createLinks(&tess, CurPt_index, ipnt);
             CHECK_FOR_ERROR(linkToPoint, createLinks);
 
+            /* update the current Point */
+            CurPt_index = ipnt;
+
+            /* update the scene graph */
+            buildTriangles();
+            buildLinks();
+            buildCurPt();
+
             /* build the response */
             snprintf(response, max_resp_len, "scribeToPoint;%d;okay", CurPt_index);
             response_len = strlen(response);
         } else {
+            /* update the current Point */
             CurPt_index = ipnt;
 
+            /* update the scene graph */
+            buildTriangles();
+            buildLinks();
+            buildCurPt();
+
+            /* build the response */
             snprintf(response, max_resp_len, "scribeToPoint;%d;okay", CurPt_index);
             response_len = strlen(response);
         }
 
-        /* set flags */
-        CurPt_index = ipnt;
+    /* "smoothColor;icolr;npass;" */
+    } else if (strncmp(text, "smoothColor;", 12) == 0) {
+        int    icolr=-1, npass=1;
 
-        Tris_pend  = 1;
-        Links_pend = 1;
-        CurPt_pend = 1;
+        /* write journal entry */
+        if (jrnl_out != NULL) {
+            fprintf(jrnl_out, "%s\n", text);
+            fflush( jrnl_out);
+        }
+
+        /* make an undo copy */
+        status = storeUndo();
+        CHECK_FOR_ERROR(smoothColor, storeUndo);
+
+        /* extract arguments */
+        if (getToken(text, 1, arg1)) icolr = strtol(arg1, NULL, 10);
+        if (getToken(text, 2, arg2)) npass = strtol(arg2, NULL, 10);
+        SPRINT2(3, "icolr=%d, npass=%d", icolr, npass);
+
+        /* smooth the given color */
+        if (Nsmth == 0) {
+            MALLOC(smth, smth_T, 1);
+        } else {
+            RALLOC(smth, smth_T, Nsmth+1);
+        }
+
+        smth[Nsmth].icol  = icolr;
+        smth[Nsmth].npass = npass;
+        Nsmth++;
+
+        /* reset the current Point */
+        CurPt_index = -1;
+
+        /* update the scene graph */
+        buildTriangles();
+        buildLinks();
+        buildHangs();
+        buildCurPt();
+
+        /* build the response */
+        snprintf(response, max_resp_len, "smoothColor;okay");
+        response_len = strlen(response);
 
     /* "identifyTriangle;x;y;z;" */
     } else if (strncmp(text, "identifyTriangle;", 17) == 0) {
@@ -4533,17 +5235,61 @@ processMessage(char    *text)
         /* get its color */
         icolr = tess.ttyp[itri] & TRI_COLOR;
 
+        /* reset thej current Point */
+        CurPt_index = -1;
+
+        /* update the scene graph */
+        buildTriangles();
+        buildHangs();
+        buildLinks();
+        buildCurPt();
+
         /* build the response */
         snprintf(response, max_resp_len, "identifyTriangle;%d;%d;okay", itri, icolr);
         response_len = strlen(response);
 
-        /* set flags */
+    /* "transform;m0;m1;m2;m3;m4;m5;m6;m7;m8;m9;m10;m11;" */
+    } else if (strncmp(text, "transform;", 10) == 0) {
+        int    imat;
+        double mat[12];
+
+        /* write journal entry */
+        if (jrnl_out != NULL) {
+            fprintf(jrnl_out, "%s\n", text);
+            fflush( jrnl_out);
+        }
+
+        /* make an undo copy */
+        if (CurPt_index > 0) {
+            status = storeUndo();
+            CHECK_FOR_ERROR(linkToPoint, storeUndo);
+        }
+
+        /* extract arguments */
+        for (imat = 0; imat < 12; imat++) {
+            if (getToken(text, imat+1, arg1)) {
+                mat[imat] = strtod(arg1, NULL);
+            } else {
+                printf("mat[%d]=%s is an illegal value", imat, arg1);
+                goto cleanup;
+            }
+        }
+
+        status = transform(&tess, mat);
+        CHECK_FOR_ERROR(transform, transform);
+
+        /* reset the current Poimnt */
         CurPt_index = -1;
 
-        Tris_pend  = 1;
-        Links_pend = 1;
-        Hangs_pend = 1;
-        CurPt_pend = 1;
+        /* update the scene graph */
+        buildTriangles();
+        buildHangs();
+        buildLinks();
+        buildCurPt();
+
+        /* build the response */
+        snprintf(response, max_resp_len, "transform;okay");
+        response_len = strlen(response);
 
     /* "undo;" */
     } else if (strncmp(text, "undo;", 5) == 0) {
@@ -4565,18 +5311,18 @@ processMessage(char    *text)
             status = freeTess(&tess_undo);
             CHECK_FOR_ERROR(undo, freeTess);
 
+            /* reset the current Point */
+            CurPt_index = -1;
+
+            /* update the scene graph */
+            buildTriangles();
+            buildHangs();
+            buildLinks();
+            buildCurPt();
+
             /* build the response */
             snprintf(response, max_resp_len, "undo;okay");
             response_len = strlen(response);
-
-            /* set flags */
-            CurPt_index = -1;
-
-            Tris_pend  = 1;
-            Hangs_pend = 1;
-            Links_pend = 1;
-            CurPt_pend = 1;
-
         } else {
             /* build the response */
             snprintf(response, max_resp_len, "ERROR:: nothing to undo");
@@ -5183,284 +5929,3 @@ printEgo(ego    obj)                    /* (in)  ego to start */
         }
     }
 }
-
-
-
-//$$$/*
-//$$$ ************************************************************************
-//$$$ *                                                                      *
-//$$$ *   fitPlane - least-square fit a*x + b*y + c*z + d to  points         *
-//$$$ *                                                                      *
-//$$$ ************************************************************************
-//$$$ */
-//$$$
-//$$$static int
-//$$$fitPlane(double xyz[],                  /* (in)  array  of points */
-//$$$         int    n,                      /* (in)  number of points */
-//$$$         double *a,                     /* (out) x-coefficient */
-//$$$         double *b,                     /* (out) y-coefficient */
-//$$$         double *c,                     /* (out) z-coefficient */
-//$$$         double *d)                     /* (out) constant */
-//$$${
-//$$$    int       status = SUCCESS;         /* (out) return status */
-//$$$
-//$$$    int       i;
-//$$$    double    xcent, ycent, zcent, xdet, ydet, zdet;
-//$$$    double    xx, xy, xz, yy, yz, zz;
-//$$$
-//$$$    ROUTINE(fitPlane);
-//$$$
-//$$$    /* --------------------------------------------------------------- */
-//$$$
-//$$$    /* default returns */
-//$$$    *a = 1;
-//$$$    *b = 1;
-//$$$    *c = 1;
-//$$$    *d = 0;
-//$$$
-//$$$    /* make sure we have enough points */
-//$$$    if (n < 3) {
-//$$$        printf("not enough points\n");
-//$$$        status = -999;
-//$$$        goto cleanup;
-//$$$    }
-//$$$
-//$$$    /* find the centroid of the points */
-//$$$    xcent = 0;
-//$$$    ycent = 0;
-//$$$    zcent = 0;
-//$$$
-//$$$    for (i = 0; i < n; i++) {
-//$$$        xcent += xyz[3*i  ];
-//$$$        ycent += xyz[3*i+1];
-//$$$        zcent += xyz[3*i+2];
-//$$$    }
-//$$$
-//$$$    xcent /= n;
-//$$$    ycent /= n;
-//$$$    zcent /= n;
-//$$$
-//$$$    /* compute the covarience matrix (relative to the controid) */
-//$$$    xx = 0;
-//$$$    xy = 0;
-//$$$    xz = 0;
-//$$$    yy = 0;
-//$$$    yz = 0;
-//$$$    zz = 0;
-//$$$
-//$$$    for (i = 0; i < n; i++) {
-//$$$        xx += (xyz[3*i  ] - xcent) * (xyz[3*i  ] - xcent);
-//$$$        xy += (xyz[3*i  ] - xcent) * (xyz[3*i+1] - ycent);
-//$$$        xz += (xyz[3*i  ] - xcent) * (xyz[3*i+2] - zcent);
-//$$$        yy += (xyz[3*i+1] - ycent) * (xyz[3*i+1] - ycent);
-//$$$        yz += (xyz[3*i+1] - ycent) * (xyz[3*i+2] - zcent);
-//$$$        zz += (xyz[3*i+2] - zcent) * (xyz[3*i+2] - zcent);
-//$$$    }
-//$$$
-//$$$    /* find the deteminants associated with assuming normx=1,
-//$$$       normy=1, and normz=1 */
-//$$$    xdet = yy * zz - yz * yz;
-//$$$    ydet = zz * xx - xz * xz;
-//$$$    zdet = xx * yy - xy * xy;
-//$$$
-//$$$    /* use the determinant with the best conditioning */
-//$$$    if        (fabs(xdet) >= fabs(ydet) && fabs(xdet) >= fabs(zdet)) {
-//$$$        *a = 1;
-//$$$        *b = (xz * yz - xy * zz) / xdet;
-//$$$        *c = (xy * yz - xz * yy) / xdet;
-//$$$        *d = -xcent              / xdet;
-//$$$    } else if (fabs(ydet) >= fabs(zdet) && fabs(ydet) >= fabs(xdet)) {
-//$$$        *a = (yz * xz - xy * zz) / ydet;
-//$$$        *b = 1;
-//$$$        *c = (xy * yz - yz * xx) / ydet;
-//$$$        *d = -ycent              / ydet;
-//$$$    } else if (fabs(zdet) >= EPS12) {
-//$$$        *a = (yz * xy - xz * yy) / zdet;
-//$$$        *b = (xz * xy - yz * xx) / zdet;
-//$$$        *c = 1;
-//$$$        *d = -zcent              / zdet;
-//$$$    } else {
-//$$$        printf("cannot find big determinant (%f, %f, %f)\n", xdet, ydet, zdet);
-//$$$        status = -999;
-//$$$        goto cleanup;
-//$$$    }
-//$$$
-//$$$cleanup:
-//$$$    return status;
-//$$$}
-//$$$
-//$$$//$$$ http://www.ilikebigbits.com/blog/2015/3/2/plane-from-points
-//$$$//$$$// Constructs a plane from a collection of points
-//$$$//$$$// so that the summed squared distance to all points is minimzized
-//$$$//$$$fn plane_from_points(points: &[Vec3]) -> Plane {
-//$$$//$$$    let n = points.len();
-//$$$//$$$    assert!(n >= 3, "At least three points required");
-//$$$//$$$
-//$$$//$$$    let mut sum = Vec3{x:0.0, y:0.0, z:0.0};
-//$$$//$$$    for p in points {
-//$$$//$$$        sum = &sum + &p;
-//$$$//$$$    }
-//$$$//$$$    let centroid = &sum * (1.0 / (n as f64));
-//$$$//$$$
-//$$$//$$$    // Calc full 3x3 covariance matrix, excluding symmetries:
-//$$$//$$$    let mut xx = 0.0; let mut xy = 0.0; let mut xz = 0.0;
-//$$$//$$$    let mut yy = 0.0; let mut yz = 0.0; let mut zz = 0.0;
-//$$$//$$$
-//$$$//$$$    for p in points {
-//$$$//$$$        let r = p - &centroid;
-//$$$//$$$        xx += r.x * r.x;
-//$$$//$$$        xy += r.x * r.y;
-//$$$//$$$        xz += r.x * r.z;
-//$$$//$$$        yy += r.y * r.y;
-//$$$//$$$        yz += r.y * r.z;
-//$$$//$$$        zz += r.z * r.z;
-//$$$//$$$    }
-//$$$//$$$
-//$$$//$$$    let det_x = yy*zz - yz*yz;
-//$$$//$$$    let det_y = xx*zz - xz*xz;
-//$$$//$$$    let det_z = xx*yy - xy*xy;
-//$$$//$$$
-//$$$//$$$    let det_max = max3(det_x, det_y, det_z);
-//$$$//$$$    assert!(det_max > 0.0, "The points don't span a plane");
-//$$$//$$$
-//$$$//$$$    // Pick path with best conditioning:
-//$$$//$$$    let dir =
-//$$$//$$$        if det_max == det_x {
-//$$$//$$$            let a = (xz*yz - xy*zz) / det_x;
-//$$$//$$$            let b = (xy*yz - xz*yy) / det_x;
-//$$$//$$$            Vec3{x: 1.0, y: a, z: b}
-//$$$//$$$        } else if det_max == det_y {
-//$$$//$$$            let a = (yz*xz - xy*zz) / det_y;
-//$$$//$$$            let b = (xy*xz - yz*xx) / det_y;
-//$$$//$$$            Vec3{x: a, y: 1.0, z: b}
-//$$$//$$$        } else {
-//$$$//$$$            let a = (yz*xy - xz*yy) / det_z;
-//$$$//$$$            let b = (xz*xy - yz*xx) / det_z;
-//$$$//$$$            Vec3{x: a, y: b, z: 1.0}
-//$$$//$$$        };
-//$$$//$$$
-//$$$//$$$    plane_from_point_and_normal(&centroid, &normalize(dir))
-//$$$//$$$}
-
-
-/*
- ************************************************************************
- *                                                                      *
- *   plotCurve_image - plot curve data (level 3)                        *
- *                                                                      *
- ************************************************************************
- */
-#ifdef GRAFIC
-static void
-plotPoints_image(int   *ifunct,
-                 void  *itypeP,
-                 void  *ntrainP,
-                 void  *xyztrainP,
-                 void  *npntP,
-                 void  *xyzP,
-     /*@unused@*/void  *a5,
-     /*@unused@*/void  *a6,
-     /*@unused@*/void  *a7,
-     /*@unused@*/void  *a8,
-     /*@unused@*/void  *a9,
-                float *scale,
-                char  *text,
-                int   textlen)
-{
-    int    *itype    = (int    *)itypeP;
-    int    *ntrain   = (int    *)ntrainP;
-    double *xyztrain = (double *)xyztrainP;
-    int    *npnt     = (int    *)npntP;
-    double *xyz      = (double *)xyzP;
-
-    int    k;
-    float  x4, y4, z4;
-    double xmin, xmax, ymin, ymax, zmin, zmax;
-
-    int    icircle = GR_CIRCLE;
-//$$$    int    istar   = GR_STAR;
-    int    iplus   = GR_PLUS;
-//$$$    int    isolid  = GR_SOLID;
-//$$$    int    idotted = GR_DOTTED;
-//$$$    int    igreen  = GR_GREEN;
-    int    iblue   = GR_BLUE;
-    int    ired    = GR_RED;
-    int    iblack  = GR_BLACK;
-
-    ROUTINE(plot1dBspine_image);
-
-    /* --------------------------------------------------------------- */
-
-    if (*ifunct == 0) {
-        xmin = xyz[0];
-        xmax = xyz[0];
-        ymin = xyz[1];
-        ymax = xyz[1];
-        zmin = xyz[2];
-        zmax = xyz[2];
-
-        for (k = 1; k < *npnt; k++) {
-            if (xyz[3*k  ] < xmin) xmin = xyz[3*k  ];
-            if (xyz[3*k  ] > xmax) xmax = xyz[3*k  ];
-            if (xyz[3*k+1] < ymin) ymin = xyz[3*k+1];
-            if (xyz[3*k+1] > ymax) ymax = xyz[3*k+1];
-            if (xyz[3*k+2] < zmin) zmin = xyz[3*k+2];
-            if (xyz[3*k+2] > zmax) zmax = xyz[3*k+2];
-        }
-
-        if        (xmax-xmin >= zmax-zmin && ymax-ymin >= zmax-zmin) {
-            *itype = 0;
-            scale[0] = xmin - EPS06;
-            scale[1] = xmax + EPS06;
-            scale[2] = ymin - EPS06;
-            scale[3] = ymax + EPS06;
-        } else if (ymax-ymin >= xmax-xmin && zmax-zmin >= xmax-xmin) {
-            *itype = 1;
-            scale[0] = ymin - EPS06;
-            scale[1] = ymax + EPS06;
-            scale[2] = zmin - EPS06;
-            scale[3] = zmax + EPS06;
-        } else {
-            *itype = 2;
-            scale[0] = zmin - EPS06;
-            scale[1] = zmax + EPS06;
-            scale[2] = xmin - EPS06;
-            scale[3] = xmax + EPS06;
-        }
-
-        strcpy(text, " ");
-
-    } else if (*ifunct == 1) {
-
-        /* training points */
-        for (k = 0; k < *ntrain; k++) {
-            x4 = xyztrain[3*k  ];
-            y4 = xyztrain[3*k+1];
-            z4 = xyztrain[3*k+2];
-
-            grmov3_(&x4, &y4, &z4);
-            grcolr_(&ired);
-            grsymb_(&icircle);
-        }
-
-
-
-        /* cloud of points */
-        for (k = 0; k < *npnt; k++) {
-            x4 = xyz[3*k  ];
-            y4 = xyz[3*k+1];
-            z4 = xyz[3*k+2];
-
-            grmov3_(&x4, &y4, &z4);
-
-            grcolr_(&iblue);
-            grsymb_(&iplus);
-        }
-
-        grcolr_(&iblack);
-
-    } else {
-        printf("illegal option\n");
-    }
-}
-#endif

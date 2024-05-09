@@ -10,7 +10,7 @@
  */
 
 /*
- * Copyright (C) 2011/2022  John F. Dannenhoffer, III (Syracuse University)
+ * Copyright (C) 2011/2024  John F. Dannenhoffer, III (Syracuse University)
  *
  * This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
@@ -90,13 +90,13 @@ udpExecute(ego  context,                /* (in)  EGADS context */
     int     status = EGADS_SUCCESS;
 
     int     npnt, ipnt, jpnt, kpnt, ile, sense[3], sizes[2], periodic, sharpte, shorten, i;
-    int     add=1;
     double  m, p, t, zeta, s, yt, yc, theta, *pnt=NULL, *pnt_save=NULL;
     double  data[18], trange[2], tle, result[3], range[4], eval[18], norm[3];
     double  dx, dy, ds, x1, y1, x2, y2, x3, y3, x4, y4, dd, ss, tt, xx, yy, frac, dold;
     double  dxytol = 1.0e-6;
     char    *message=NULL;
     ego     enodes[4], eedges[3], ecurve, eline, eloop, eface, enew;
+    udp_T   *udps = *Udps;
 
 #ifdef GRAFIC
     float   xplot[1203], yplot[1203];
@@ -495,7 +495,7 @@ udpExecute(ego  context,                /* (in)  EGADS context */
         nper[nline] = 1001;
         nline++;
 
-        sprintf(pltitl, "~x~y~airfoil: offset=%6.3f +=orig, O=offset", OFFSET(0));
+        snprintf(pltitl, 79, "~x~y~airfoil: offset=%6.3f +=orig, O=offset", OFFSET(0));
         grinit_(&io_kbd, &io_scr, "udpNaca", strlen("udpNaca"));
         grline_(ilin, isym, &nline, pltitl, &indgr, xplot, yplot, nper, strlen(pltitl));
 #endif
@@ -565,12 +565,6 @@ udpExecute(ego  context,                /* (in)  EGADS context */
         /* make Face from the loop */
         status = EG_makeFace(eloop, SFORWARD, NULL, &eface);
         CHECK_STATUS(EG_makeFace);
-
-        /* since this will make a PLANE, we need to add an Attribute
-           to tell OpenCSM to scale the UVs when computing sensitivities */
-        status = EG_attributeAdd(eface, "_scaleuv", ATTRINT, 1,
-                                 &add, NULL, NULL);
-        CHECK_STATUS(EG_attributeAdd);
 
         /* find the direction of the Face normal */
         status = EG_getRange(eface, range, &periodic);
@@ -717,8 +711,8 @@ udpSensitivity(ego    ebody,            /* (in)  Body pointer */
     /* --------------------------------------------------------------- */
 
 #ifdef DEBUG
-    printf("udpSensitivity(ebody=%llx, npnt=%d, entType=%d, entIndex=%d, uvs=%f %f)\n",
-           (long long)ebody, npnt, entType, entIndex, uvs[0], uvs[1]);
+    printf("udpSensitivity(ebody=%llx, npnt=%d, entType=%s, entIndex=%d, uvs=%f %f)\n",
+           (long long)ebody, npnt, ocsmGetText(entType), entIndex, uvs[0], uvs[1]);
 #endif
 
     /* check that ebody matches one of the ebodys */
@@ -732,6 +726,12 @@ udpSensitivity(ego    ebody,            /* (in)  Body pointer */
     if (iudp <= 0) {
         return EGADS_NOTMODEL;
     }
+
+#ifdef DEBUG
+    printf("Thickness(%d) = %12.5f %12.5f\n", iudp, THICKNESS(iudp), THICKNESS_DOT(iudp));
+    printf("Camber(   %d) = %12.5f %12.5f\n", iudp, CAMBER(   iudp), CAMBER_DOT(   iudp));
+    printf("Maxloc(   %d) = %12.5f\n",        iudp, MAXLOC(   iudp)                     );
+#endif
 
     /* get parameters and their derivatives */
     if (THICKNESS(iudp) == 0  && CAMBER(iudp) == 0 && fabs(MAXLOC(iudp)-0.40) < EPS06) {
@@ -904,6 +904,19 @@ udpSensitivity(ego    ebody,            /* (in)  Body pointer */
         vels[3*ipnt  ] =        - yt_dot * sin(theta) - theta_dot * yt * cos(theta);
         vels[3*ipnt+1] = yc_dot + yt_dot * cos(theta) - theta_dot * yt * sin(theta);
         vels[3*ipnt+2] = 0;
+
+#ifdef DEBUG
+        if        (entType == OCSM_FACE) {
+            printf("ipnt=%5d, uvs=%12.6f %12.6f, data=%12.6f %12.6f %12.6f, st=%12.6f %12.6f, vels=%12.6f %12.6f %12.6f\n",
+                   ipnt, uvs[2*ipnt], uvs[2*ipnt+1], data[0], data[1], data[2], s, t, vels[3*ipnt], vels[3*ipnt+1], vels[3*ipnt+2]);
+        } else if (entType == OCSM_EDGE) {
+            printf("ipnt=%5d, uvs=%12.6f,  data=%12.6f %12.6f %12.6f, st=%12.6f %12.6f, vels=%12.6f %12.6f %12.6f\n",
+                   ipnt, uvs[ipnt], data[0], data[1], data[2], s, t, vels[3*ipnt], vels[3*ipnt+1], vels[3*ipnt+2]);
+        } else {
+            printf("ipnt=%5d, data=%12.6f %12.6f %12.6f, st=%12.6f %12.6f, vels=%12.6f %12.6f %12.6f\n",
+                   ipnt, data[0], data[1], data[2], s, t, vels[3*ipnt], vels[3*ipnt+1], vels[3*ipnt+2]);
+        }
+#endif
     }
 
 cleanup:

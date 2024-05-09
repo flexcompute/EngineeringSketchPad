@@ -1,0 +1,50 @@
+# sketch12a
+# written by John Dannenhoffer
+
+# design parameters
+DESPMTR   P1   5
+DESPMTR   P2   20
+DESPMTR   P3   25
+DESPMTR   P4   1
+
+# outline AB and CB
+SET       xA   0
+SET       yA   0
+
+SET       xB   xA+P2*cosd(P3)
+SET       yB   yA+P2*sind(P3)
+
+SET       xC   xA
+SET       yC   yA+P1
+
+# find circle, centered at D, with arc GFE  at end
+SET       ang  (P3-atan2d(yB-yC,xB-xC))/2
+SET       len  hypot(yB-(yA+yC)/2,xB-(xA+xC)/2)
+SET       frac P4*(1/sind(ang))/len
+SET       xD   (1-frac)*xB+frac*(xA+xC)/2
+SET       yD   (1-frac)*yB+frac*(yA+yC)/2
+
+SET       frac P4/tand(ang)/P2
+SET       xE   (1-frac)*xB+frac*xA
+SET       yE   (1-frac)*yB+frac*yA
+
+SET       frac P4*(1/sind(ang)-1)/len
+SET       xF   (1-frac)*xB+frac*(xA+xC)/2
+SET       yF   (1-frac)*yB+frac*(yA+yC)/2
+
+SET       frac P4/tand(ang)/hypot(yB-yC,xB-xC)
+SET       xG   (1-frac)*xB+frac*xC
+SET       yG   (1-frac)*yB+frac*yC
+
+# outer boundary
+SKBEG     xA  yA  0
+   LINSEG xE  yE  0
+   CIRARC xF  yF  0   xG  yG  0
+   LINSEG xC  yC  0
+   LINSEG xA  yA  0
+SKEND 
+
+# make an extruded solid
+EXTRUDE   0  0  1
+
+END

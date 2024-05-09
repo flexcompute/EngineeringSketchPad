@@ -1,0 +1,31 @@
+# restore3
+# written by John Dannenhoffer
+
+DESPMTR   dx  1
+DESPMTR   dy  1
+DESPMTR   dz  1
+
+BOX       0  0  0  dx dy dz   # A solid
+BOX       1  0  0  dx dy 0    # B sheet
+MARK
+BOX       0  1  0  dx 0  0    # C wire
+BOX       1  1  0  0  0  0    # D node
+
+# duplicate top Body on stack
+RESTORE   .                   # A B m C D D
+
+# duplicate Bodys and Marck back to Mark
+RESTORE   ..                  # A B m C D D m C D D
+
+# duplicate entire stack
+RESTORE   ...                 # A B m C D D m C D D A B m C D D m C D D
+
+SPHERE    1  1  1  1
+
+ASSERT    @stack.size   21
+ASSERT    @stack[3]      0
+ASSERT    @stack[7]      0
+ASSERT    @stack[13]     0
+ASSERT    @stack[17]     0
+
+END

@@ -1,0 +1,13 @@
+# csm_base_1    (to be used by csm_udp_1)
+# written by John Dannenhoffer
+
+DESPMTR   xbase   0
+DESPMTR   ybase   0
+DESPMTR   zbase   0
+DESPMTR   xsize   3
+DESPMTR   ysize   2
+DESPMTR   zsize   1
+
+BOX       xbase  ybase  zbase  xsize  ysize  zsize
+
+END

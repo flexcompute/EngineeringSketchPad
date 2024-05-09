@@ -68,8 +68,19 @@ $(function() {
 <div class="contents">
 <div class="textblock"><p>The following list outlines the EGADS Tessellation meshing options along with their default value available through the AIM interface.</p>
 <ul>
-<li><b> Proj_Name = NULL</b> <br  />
- This corresponds to the output name of the mesh. If left NULL, the mesh is not written to a file.</li>
+<li><b> Proj_Name = "egadsTess_CAPS"</b> <br  />
+ Output name prefix for meshes to be written in formats specified by Mesh_Format. These meshes are not linked to any analysis, but may be useful exploring meshing parameters.</li>
+</ul>
+<p><ul>
+<li><b> Mesh_Format = NULL</b> <br  />
+ Optional list of string mesh formats to generate meshes not linked to analysis. <br  />
+ Available format names include: "exodus", "fast", "libMeshb", "stl", "bstl", "su2", "tecplot", "ugrid", "vtk", and "bvtk".<br  />
+ where the "b" prefix indicates binary version. </li>
+</ul>
+</p>
+<ul>
+<li><b> Mesh_Quiet_Flag = False</b> <br  />
+ Complete suppression of mesh generator (not including errors)</li>
 <li><b> Mesh_Length_Factor = 1</b> <br  />
  Scaling factor to compute a meshing Reference_Length via:<br  />
  <br  />
@@ -78,17 +89,6 @@ $(function() {
  Reference_Length scales Tess_Params[0] and Tess_Params[1] in both aimInputs and Mesh_Sizing</li>
 <li><b> Tess_Params = [0.1, 0.01, 15.0]</b> <br  />
  Body tessellation parameters. Tess_Params[0] and Tess_Params[1] get scaled by Reference_Length if it is set, otherwise by the bounding box of the largest body. (From the EGADS manual) A set of 3 parameters that drive the EDGE discretization and the FACE triangulation. The first is the maximum length of an EDGE segment or triangle side (in physical space). A zero is flag that allows for any length. The second is a curvature-based value that looks locally at the deviation between the centroid of the discrete object and the underlying geometry. Any deviation larger than the input value will cause the tessellation to be enhanced in those regions. The third is the maximum interior dihedral angle (in degrees) between triangle facets (or Edge segment tangents for a WIREBODY tessellation), note that a zero ignores this phase</li>
-<li><b> Mesh_Format = "AFLR3"</b> <br  />
- Mesh output format. Available format names include: "AFLR3", "VTK", "TECPLOT", "STL" (quadrilaterals will be split into triangles), "Airfoil", "FAST", "Nastran".<ul>
-<li>"Airfoil" corresponds to the following file format in which the nodal coordinates of the body's edges are written. Bodies should be face bodies, planar, and have no holes. A *.af suffix is used for the file: <br  />
-"Character Name" <br  />
-x[0] y[0] x y coordinates <br  />
-x[1] y[1] <br  />
-... ...</li>
-</ul>
-</li>
-<li><b> Mesh_ASCII_Flag = True</b> <br  />
- Output mesh in ASCII format, otherwise write a binary file if applicable.</li>
 <li><b> Edge_Point_Min = NULL</b> <br  />
  Minimum number of points on an edge including end points to use when creating a surface mesh (min 2).</li>
 <li><b> Edge_Point_Max = NULL</b> <br  />
@@ -102,8 +102,13 @@ x[1] y[1] <br  />
 <li>"Mixed" - Quad elements for four-sided faces with TFI, triangle elements otherwise</li>
 </ul>
 </li>
-<li><b> Multiple_Mesh = True</b> <br  />
- If set to True (default) a surface mesh will be generated and output (given "Proj_Name" is set) for each body. When set to False only a single surface mesh will be created. Note, this only affects the mesh when writing to a file.</li>
+<li><b> Multiple_Mesh = "SingleDomain"</b> <br  />
+ If "SingleDomain": Generate a single surface mesh file is assuming multiple bodies define a single computational domain (i.e. CFD)<br  />
+ <br  />
+ If "MultiFile": Generate a surface mesh file for each body.<br  />
+ <br  />
+ If "MultiDomain": Generate a single mesh file containing multiple surface meshes for each body.<br  />
+</li>
 <li><b> TFI_Templates = True</b> <br  />
  Use Transfinite Interpolation and Templates to generate structured triangulations on FACEs with 3 or 4 "sides" with similar opposing vertex counts. </li>
 </ul>
@@ -111,7 +116,7 @@ x[1] y[1] <br  />
 </div><!-- PageDoc -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Sat Jul 2 2022 10:12:23 for EGADS Tessellation Analysis Interface Module (AIM) by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1
+Generated on Sat Apr 27 2024 16:51:16 for EGADS Tessellation Analysis Interface Module (AIM) by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1
 </small></address>
 </body>
 </html>

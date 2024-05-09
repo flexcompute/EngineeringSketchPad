@@ -29,6 +29,7 @@ enum aimInputs
   Reference_Area,
   Pressure_Scale_Factor,
   Pressure_Scale_Offset,
+  Temperature_Scale_Factor,
   Output_Format,
   Two_Dimensional,
   Convective_Flux,
@@ -36,6 +37,7 @@ enum aimInputs
   Surface_Monitor,
   Surface_Deform,
   Input_String,
+  Mesh_Morph,
   Mesh,
   NUMINPUT = Mesh       /* Total number of inputs */
 };
@@ -59,6 +61,10 @@ int su2_writeSurfaceMotion(void *aimInfo,
                            int numConnect,
                            int *connectMatrix);
 
+// Write SU2 surface file for Mesh_Morphing
+int su2_writeSurface(void *aimInfo,
+                     char *projectName,
+                     aimMeshRef *meshRef);
 
 // Write SU2 data transfer files
 int su2_dataTransfer(void *aimInfo,
@@ -84,8 +90,13 @@ int su2_writeCongfig_Falcon(void *aimInfo, capsValue *aimInputs,
                             const char *meshfilename,
                             cfdBoundaryConditionStruct bcProps, int withMotion);
 
-// Write SU2 configuration file for version Falcon (7.0.7)
+// Write SU2 configuration file for version Blackbird (7.5.1)
 int su2_writeCongfig_Blackbird(void *aimInfo, capsValue *aimInputs,
+                               const char *meshfilename,
+                               cfdBoundaryConditionStruct bcProps, int withMotion);
+
+// Write SU2 configuration file for version Harrier (8.0.0)
+int su2_writeCongfig_Harrier(void *aimInfo, capsValue *aimInputs,
                                const char *meshfilename,
                                cfdBoundaryConditionStruct bcProps, int withMotion);
 

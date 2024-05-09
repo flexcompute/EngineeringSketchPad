@@ -1,0 +1,19 @@
+# createBEM_udf_1
+# written by John Dannenhoffer
+
+# rule cross-sections
+BOX       0  -2    -2    0  4    4
+BOX       3  -1    -1    0  2    2
+BOX       6  -1/4  -1/4  0  1/2  1/2
+BOX       9  -1/4  -1/4  0  1/2  1/2
+RULE                          # since no mark, everything on stack
+
+# create the .bdf file and show the grid
+UDPARG    createBEM  filename $createBEM.bdf      # name of .bdf file to write
+UDPARG    createBEM  space    0.25                # nominal spacing
+UDPRIM    createBEM  imax     21                  # maximum points along any Edge
+
+SELECT    FACE
+ATTRIBUTE _grd  $on
+
+END

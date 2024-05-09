@@ -1,0 +1,48 @@
+# select_2
+# written by John Dannenhoffer
+
+# make a box (which automatically selects it)
+BOX       0  0  0  4  3  2
+ASSERT    @nface  6
+
+# make a cylinder (which automatically selects it)
+CYLINDER  0  5  1  4  5  1  1
+ASSERT    @nface  4
+
+# select the box
+SELECT    BODY  1
+ASSERT    @nface  6
+
+# turn the visibility of the Faces off
+SELECT    FACE
+ATTRIBUTE _viz  $off
+
+# select all the Edges and put the _color attribute on them
+SELECT    EDGE
+ATTRIBUTE _color $magenta
+ASSERT    @sellist.size   12
+
+# select Edges adjacent to the xmin and zmax Faces and turn its grid on
+SELECT    EDGE  @ibody  1  @ibody  6
+ATTRIBUTE _grd  $on
+
+# select the Edges in the bounding box and turn orientation on
+SELECT    EDGE  -.1  0.1  -.1  3.1 -.1  2.1
+ATTRIBUTE _ori  $on
+ASSERT    @sellist.size  4
+
+# select a Edge by attribute
+SELECT    EDGE  $_color  $magenta
+ASSERT    @sellist.size  12
+
+# select Edge whose midpoint is closest to (2,0,2) and color it cyan
+SELECT    EDGE  2.0 0.0 2.0
+ATTRIBUTE _color $cyan
+ASSERT    @sellist.size  1
+
+END
+
+
+
+
+

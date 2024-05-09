@@ -1,0 +1,27 @@
+# intersect_11 (Solid/Solid - multiple intersections)
+# written by John Dannenhoffer
+
+# generate box and torus SolidBodys
+BOX       0  0  0  6  2  1
+STORE     theBox
+
+TORUS     3  1  1/2  0  0  1  2  1/4
+STORE     theTorus
+
+# show outlines of theBox and theTorus
+RESTORE   theBox
+ATTRIBUTE _name  $theBox
+ATTRIBUTE _viz   $off
+
+RESTORE   theTorus
+ATTRIBUTE _name  $theTorus
+ATTRIBUTE _viz   $off
+
+# perform both INTERSECTions (SolidBodys)
+RESTORE   theBox
+RESTORE   theTorus
+INTERSECT none  -1
+SELECT    FACE
+ASSERT    @itype 3
+
+END

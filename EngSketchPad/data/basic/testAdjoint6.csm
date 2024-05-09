@@ -1,0 +1,32 @@
+# testAdjoint6
+# written by John Dannenhoffer
+
+DIMENSION thick     1  49
+DIMENSION camber    1  49
+DIMENSION radius    1  47
+
+DESPMTR   thick     0.12
+DESPMTR   camber    0.04
+DESPMTR   radius    0.1
+
+PATBEG    isect     thick.size
+   UDPRIM    naca      thickness thick[isect]   camber camber[isect]
+   ROTATEY   90
+   ROTATEX   isect*10-5
+   TRANSLATE isect-1   0   0
+PATEND
+BLEND
+
+PATBEG    ipost     radius.size
+   MARK
+      UDPRIM    ellipse   rx radius[ipost]   ry radius[ipost]
+      ROTATEX   90
+      TRANSLATE ipost  -1/2  -1/2
+      RESTORE   .
+      TRANSLATE 0       1    0
+   RULE
+   ROTATEX   ipost*10+5
+   UNION
+PATEND
+
+END

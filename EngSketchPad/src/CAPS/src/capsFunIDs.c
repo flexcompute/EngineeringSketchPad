@@ -3,7 +3,7 @@
  *
  *             Function ID & Journal Header
  *
- *      Copyright 2014-2022, Massachusetts Institute of Technology
+ *      Copyright 2014-2024, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -107,6 +107,9 @@ caps_initFunIDs()
   caps_funID[CAPS_LINKVALUE     ] = "linkValue";
   caps_funID[CAPS_HASDERIV      ] = "hasDeriv";
   caps_funID[CAPS_GETDERIV      ] = "getDeriv";
+  caps_funID[CAPS_GETVALUESIZE  ] = "getValueSize";
+  caps_funID[CAPS_SETSTEPSIZE   ] = "setStepSize";
+  caps_funID[CAPS_GETSTEPSIZE   ] = "getStepSize";
 /*@+observertrans@*/
 
 }

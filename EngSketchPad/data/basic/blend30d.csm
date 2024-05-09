@@ -1,0 +1,21 @@
+# blend30d
+# written by John Dannenhoffer
+
+SKBEG     0  0  0
+   LINSEG 1  0  0
+   LINSEG 2  0  0
+SKEND
+
+SKBEG     2  1  0
+   LINSEG 1  1  0
+   LINSEG 0  1  0
+SKEND
+
+SKBEG     2  2  0
+   LINSEG 1  2  0
+   LINSEG 0  2  0
+SKEND
+
+BLEND
+
+END

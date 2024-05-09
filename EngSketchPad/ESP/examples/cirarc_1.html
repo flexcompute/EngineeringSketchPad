@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+<!DOCTYPE HTML PUBLIC "~//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<meta charset="UTF-8">
+
+<html>
+  <head>
+    <title>cirarc_1.csm</title>
+
+    <style type="text/css">
+      body {font-size: 12pt;}
+    </style>
+
+    <script>
+      function resizeIframe() {
+          var thePicture = document.getElementById("picture");
+          var theCode    = document.getElementById("code");
+          theCode.height = thePicture.scrollHeight + 'px';
+      }
+    </script>
+  </head>
+
+  <body>
+    <img id="picture" src="cirarc_1.png" width="49%"/>
+    <iframe id="code" src="cirarc_1.csm.txt" width="49%" onload="resizeIframe(this)"/>
+  </body>
+</html>

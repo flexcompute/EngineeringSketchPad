@@ -10,7 +10,7 @@
  */
 
 /*
- * Copyright (C) 2011/2022  John F. Dannenhoffer, III (Syracuse University)
+ * Copyright (C) 2011/2024  John F. Dannenhoffer, III (Syracuse University)
  *
  * This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
@@ -28,21 +28,23 @@
  *     MA  02110-1301  USA
  */
 
-#define NUMUDPARGS 5
+#define NUMUDPARGS 6
 #include "udpUtilities.h"
 
 /* shorthands for accessing argument values and velocities */
-#define DEPTH(   IUDP)    ((double *) (udps[IUDP].arg[0].val))[0]
-#define SEGMENTS(IUDP,I)  ((double *) (udps[IUDP].arg[1].val))[I]
-#define FILENAME(IUDP)    ((char   *) (udps[IUDP].arg[2].val))
-#define PROGRESS(IUDP)    ((int    *) (udps[IUDP].arg[3].val))[0]
-#define LAYOUT(IUDP)      ((int    *) (udps[IUDP].arg[4].val))[0]
+#define DEPTH(       IUDP)    ((double *) (udps[IUDP].arg[0].val))[0]
+#define DEPTH_DOT(   IUDP)    ((double *) (udps[IUDP].arg[0].dot))[0]
+#define SEGMENTS(    IUDP,I)  ((double *) (udps[IUDP].arg[1].val))[I]
+#define SEGMENTS_DOT(IUDP,I)  ((double *) (udps[IUDP].arg[1].dot))[I]
+#define FILENAME(    IUDP)    ((char   *) (udps[IUDP].arg[2].val))
+#define PROGRESS(    IUDP)    ((int    *) (udps[IUDP].arg[3].val))[0]
+#define LAYOUT(      IUDP)    ((int    *) (udps[IUDP].arg[4].val))[0]
 
 /* data about possible arguments */
-static char  *argNames[NUMUDPARGS] = {"depth",  "segments", "filename", "progress", "layout", };
-static int    argTypes[NUMUDPARGS] = {ATTRREAL, ATTRREAL,   ATTRFILE,   ATTRINT,    ATTRINT,  };
-static int    argIdefs[NUMUDPARGS] = {0,        0,          0,          0,          0,        };
-static double argDdefs[NUMUDPARGS] = {1.,       0.,         0.,         0.,         0.,       };
+static char  *argNames[NUMUDPARGS] = {"depth",     "segments",  "filename", "progress", "layout",  "rebuild",   };
+static int    argTypes[NUMUDPARGS] = {ATTRREALSEN, ATTRREALSEN, ATTRFILE,   ATTRINT,    ATTRINT,   ATTRREBUILD, };
+static int    argIdefs[NUMUDPARGS] = {0,           0,           0,          0,          0,         0,           };
+static double argDdefs[NUMUDPARGS] = {1.,          0.,          0.,         0.,         0.,        0.,          };
 
 /* get utility routines: udpErrorStr, udpInitialize, udpReset, udpSet,
                          udpGet, udpVel, udpClean, udpMesh */
@@ -58,8 +60,10 @@ static double argDdefs[NUMUDPARGS] = {1.,       0.,         0.,         0.,     
 
 typedef struct {
     int    type;                        /* =0 for cpoint, =1 for point */
-    double x;                           /* X-coordinate */
-    double y;                           /* Y-coordinate */
+    double x;                           /*             X-coordinate */
+    double x_dot;                       /* velocity of X-coordinate */
+    double y;                           /*             Y-coordinate */
+    double y_dot;                       /* velocity of Y-coordinate */
     char   name[80];                    /* name */
 } pnt_T;
 
@@ -76,8 +80,9 @@ typedef struct {
 } seg_T;
 
 /* prototype for function defined below */
-static int processSegments(                         int *npnt, pnt_T *pnt_p[], int *nseg, seg_T *seg_p[]);
-static int processFile(ego context, char message[], int *npnt, pnt_T *pnt_p[], int *nseg, seg_T *seg_p[]);
+static int processSegments(int iudp,                int *npnt, pnt_T *pnt_p[], int *nseg, seg_T *seg_p[], int *NumUdp, udp_T *udps);
+static int processFile(ego context, char message[], int *npnt, pnt_T *pnt_p[], int *nseg, seg_T *seg_p[], int *NumUdp, udp_T *udps);
+static int modifySegments(                          int *npnt, pnt_T *pnt_p[], int *nseg, seg_T *seg_p[], char message[]);
 static int getToken(char *text, int nskip, char sep, int maxtok, char *token);
 
 #ifdef GRAFIC
@@ -85,8 +90,6 @@ static int     plotWaffle(int npnt, pnt_T pnt[], int nseg, seg_T seg[]);
 #endif
 
 #define           MAX(A,B)        (((A) < (B)) ? (B) : (A))
-
-static void *realloc_temp=NULL;              /* used by RALLOC macro */
 
 
 /*
@@ -105,16 +108,15 @@ udpExecute(ego  context,                /* (in)  EGADS context */
 {
     int     status = EGADS_SUCCESS;
 
-    int     ipnt, npnt, inode, nnode, iseg, jseg, nseg, jedge, jface, senses[4];
-    int     ibeg, iend, jbeg, jend, seginfo[2], jpnt, mpnt, mseg, iter, nchange, iattr;
-    double  xyz[20], data[6], xyz_out[20], D, s, t, xx, yy, frac, dist;
+    int     ipnt, npnt, nnode, iseg, jseg, nseg, jedge, jface, senses[4];
+    int     ibeg, iend, seginfo[2], iattr, nodes[2];
+    double  xyz[20], data[6], xyz_out[20];
     pnt_T   *pnt=NULL;
     seg_T   *seg=NULL;
     char    *message=NULL;
     ego     *enodes=NULL, *eedges=NULL, *efaces=NULL, ecurve, echild[4], eloop, eshell;
     ego     *ewires=NULL;
-
-    double  EPS06 = 1.0e-6;
+    udp_T   *udps = *Udps;
 
     ROUTINE(udpExecute);
 
@@ -186,19 +188,19 @@ udpExecute(ego  context,                /* (in)  EGADS context */
 
     /* if filename is given, process the file */
     if (STRLEN(FILENAME(numUdp)) > 0) {
-        status = processFile(context, message, &npnt, &pnt, &nseg, &seg);
+        status = processFile(context, message, &npnt, &pnt, &nseg, &seg, NumUdp, udps);
         CHECK_STATUS(processFile);
 
     /* otherwise, process the Segments */
     } else {
-        status = processSegments(&npnt, &pnt, &nseg, &seg);
+        status = processSegments(0, &npnt, &pnt, &nseg, &seg, NumUdp, udps);
         CHECK_STATUS(processSegments);
     }
 
     SPLINT_CHECK_FOR_NULL(pnt);
     SPLINT_CHECK_FOR_NULL(seg);
 
-    /* if layout was selected,, generate a MODEL with a WireBody for each Segment */
+    /* if layout was selected, generate a MODEL with a WireBody for each Segment */
     if (LAYOUT(0) != 0) {
         MALLOC(ewires, ego, nseg);
         MALLOC(enodes, ego, 2   );
@@ -266,266 +268,9 @@ udpExecute(ego  context,                /* (in)  EGADS context */
         goto cleanup;
     }
 
-    mpnt = npnt;
-    mseg = nseg;
-
-    if (pnt == NULL) goto cleanup;      // needed for splint
-    if (seg == NULL) goto cleanup;      // needed for splint
-
-    /* check for intersections of Lines only */
-    for (jseg = 0; jseg < nseg; jseg++) {
-        if (seg[jseg].type == 0) continue;
-
-        for (iseg = jseg+1; iseg < nseg; iseg++) {
-            if (seg[iseg].type == 0) continue;
-
-            ibeg = seg[iseg].ibeg;
-            iend = seg[iseg].iend;
-            jbeg = seg[jseg].ibeg;
-            jend = seg[jseg].iend;
-
-            D = (pnt[iend].x - pnt[ibeg].x) * (pnt[jbeg].y - pnt[jend].y) - (pnt[jbeg].x - pnt[jend].x) * (pnt[iend].y - pnt[ibeg].y);
-            if (fabs(D) > EPS06) {
-                s = ((pnt[jbeg].x - pnt[ibeg].x) * (pnt[jbeg].y - pnt[jend].y) - (pnt[jbeg].x - pnt[jend].x) * (pnt[jbeg].y - pnt[ibeg].y)) / D;
-                t = ((pnt[iend].x - pnt[ibeg].x) * (pnt[jbeg].y - pnt[ibeg].y) - (pnt[jbeg].x - pnt[ibeg].x) * (pnt[iend].y - pnt[ibeg].y)) / D;
-
-                if (s > -EPS06 && s < 1+EPS06 &&
-                    t > -EPS06 && t < 1+EPS06   ) {
-                    xx = (1 - s) * pnt[ibeg].x + s * pnt[iend].x;
-                    yy = (1 - s) * pnt[ibeg].y + s * pnt[iend].y;
-
-                    ipnt = -1;
-                    for (jpnt = 0; jpnt < npnt; jpnt++) {
-                        if (fabs(xx-pnt[jpnt].x) < EPS06 &&
-                            fabs(yy-pnt[jpnt].y) < EPS06   ) {
-                            ipnt = jpnt;
-                            break;
-                        }
-                    }
-
-                    if (ipnt < 0) {
-                        if (npnt+1 >= mpnt) {
-                            mpnt += 10;
-
-                            RALLOC(pnt, pnt_T, mpnt);
-                        }
-
-                        ipnt = npnt;
-
-                        pnt[npnt].type = 1;
-                        pnt[npnt].x    = xx;
-                        pnt[npnt].y    = yy;
-                        npnt++;
-                    }
-
-                    if ((ibeg != ipnt && iend != ipnt) ||
-                        (jbeg != ipnt && jend != ipnt)   ) {
-                        if (nseg+2 >= mseg) {
-                            mseg += 10;
-
-                            RALLOC(seg, seg_T, mseg);
-                        }
-                    }
-
-                    if (ibeg != ipnt && iend != ipnt) {
-                        seg[nseg].type    = seg[iseg].type;
-                        seg[nseg].ibeg    = ipnt;
-                        seg[nseg].iend    = iend;
-                        seg[nseg].num     = seg[iseg].num;
-                        seg[nseg].idx     = 0;
-                        seg[nseg].name[0] = '\0';
-
-                        seg[nseg].nattr = seg[iseg].nattr;
-                        seg[nseg].aname = NULL;
-                        seg[nseg].avalu = NULL;
-
-                        if (seg[nseg].nattr > 0) {
-                            MALLOC(seg[nseg].aname, char*, seg[nseg].nattr);
-                            MALLOC(seg[nseg].avalu, char*, seg[nseg].nattr);
-                        }
-
-                        for (iattr = 0; iattr < seg[nseg].nattr; iattr++) {
-                            seg[nseg].aname[iattr] = NULL;
-                            seg[nseg].avalu[iattr] = NULL;
-
-                            MALLOC(seg[nseg].aname[iattr], char, 80);
-                            MALLOC(seg[nseg].avalu[iattr], char, 80);
-
-                            strncpy(seg[nseg].aname[iattr], seg[iseg].aname[iattr], 80);
-                            strncpy(seg[nseg].avalu[iattr], seg[iseg].avalu[iattr], 80);
-                        }
-
-                        nseg++;
-
-                        seg[iseg].iend = ipnt;
-                    }
-
-                    if (jbeg != ipnt && jend != ipnt) {
-                        seg[nseg].type    = seg[jseg].type;
-                        seg[nseg].ibeg    = ipnt;
-                        seg[nseg].iend    = jend;
-                        seg[nseg].num     = seg[jseg].num;
-                        seg[nseg].idx     = 0;
-                        seg[nseg].name[0] = '\0';
-
-                        seg[nseg].nattr = seg[jseg].nattr;
-                        seg[nseg].aname = NULL;
-                        seg[nseg].avalu = NULL;
-
-                        if (seg[nseg].nattr > 0) {
-                            MALLOC(seg[nseg].aname, char*, seg[nseg].nattr);
-                            MALLOC(seg[nseg].avalu, char*, seg[nseg].nattr);
-                        }
-
-                        for (iattr = 0; iattr < seg[nseg].nattr; iattr++) {
-                            seg[nseg].aname[iattr] = NULL;
-                            seg[nseg].avalu[iattr] = NULL;
-
-                            MALLOC(seg[nseg].aname[iattr], char, 80);
-                            MALLOC(seg[nseg].avalu[iattr], char, 80);
-
-                            strncpy(seg[nseg].aname[iattr], seg[jseg].aname[iattr], 80);
-                            strncpy(seg[nseg].avalu[iattr], seg[jseg].avalu[iattr], 80);
-                        }
-
-                        nseg++;
-
-                        seg[jseg].iend = ipnt;
-                    }
-                }
-            }
-        }
-    }
-
-    /* break Lines at Points */
-    for (iseg = 0; iseg < nseg; iseg++) {
-        if (seg[iseg].type == 0) continue;
-
-        ibeg = seg[iseg].ibeg;
-        iend = seg[iseg].iend;
-
-        for (ipnt = 0; ipnt < npnt; ipnt++) {
-            if (pnt[ipnt].type == 0) continue;
-
-            /* distance from Point to line */
-            frac   = ( (pnt[ipnt].x - pnt[ibeg].x) * (pnt[iend].x - pnt[ibeg].x)
-                     + (pnt[ipnt].y - pnt[ibeg].y) * (pnt[iend].y - pnt[ibeg].y))
-                   / ( (pnt[iend].x - pnt[ibeg].x) * (pnt[iend].x - pnt[ibeg].x)
-                     + (pnt[iend].y - pnt[ibeg].y) * (pnt[iend].y - pnt[ibeg].y));
-
-            if (frac < EPS06 || frac > 1-EPS06) continue;
-
-            xx = (1-frac) * pnt[ibeg].x + frac * pnt[iend].x;
-            yy = (1-frac) * pnt[ibeg].y + frac * pnt[iend].y;
-
-            dist = sqrt( (xx - pnt[ipnt].x) * (xx - pnt[ipnt].x)
-                       + (yy - pnt[ipnt].y) * (yy - pnt[ipnt].y));
-
-
-            if (dist < EPS06) {
-
-                /* make room for new Segment */
-                if (nseg+1 >= mseg) {
-                    mseg += 10;
-
-                    RALLOC(seg, seg_T, mseg);
-                }
-
-                /* make second half */
-                seg[nseg].type    = seg[iseg].type;
-                seg[nseg].ibeg    = ipnt;
-                seg[nseg].iend    = seg[iseg].iend;
-                seg[nseg].num     = seg[iseg].num;
-                seg[nseg].idx     = 0;
-                seg[nseg].name[0] = '\0';
-
-                seg[nseg].nattr = seg[iseg].nattr;
-                seg[nseg].aname = NULL;
-                seg[nseg].avalu = NULL;
-
-                if (seg[nseg].nattr > 0) {
-                    MALLOC(seg[nseg].aname, char*, seg[nseg].nattr);
-                    MALLOC(seg[nseg].avalu, char*, seg[nseg].nattr);
-                }
-
-                for (iattr = 0; iattr < seg[nseg].nattr; iattr++) {
-                    seg[nseg].aname[iattr] = NULL;
-                    seg[nseg].avalu[iattr] = NULL;
-                    
-                    MALLOC(seg[nseg].aname[iattr], char, 80);
-                    MALLOC(seg[nseg].avalu[iattr], char, 80);
-
-                    strncpy(seg[nseg].aname[iattr], seg[iseg].aname[iattr], 80);
-                    strncpy(seg[nseg].avalu[iattr], seg[iseg].avalu[iattr], 80);
-                }
-
-                /* revise first half */
-                seg[iseg].iend = ipnt;
-
-                nseg++;
-
-                /* start again at this Segment */
-                iseg--;
-                break;
-            }
-        }
-    }
-
-
-    /* remove the "cline" Segments */
-    for (iseg = 0; iseg < nseg; iseg++) {
-        if (seg[iseg].type == 0) {
-            FREE(seg[iseg].aname);
-            FREE(seg[iseg].avalu);
-
-            for (jseg = iseg; jseg < nseg-1; jseg++) {
-                seg[jseg].type  = seg[jseg+1].type;
-                seg[jseg].ibeg  = seg[jseg+1].ibeg;
-                seg[jseg].iend  = seg[jseg+1].iend;
-                seg[jseg].num   = seg[jseg+1].num;
-                seg[jseg].idx   = seg[jseg+1].idx;
-                seg[jseg].nattr = seg[jseg+1].nattr;
-                seg[jseg].aname = seg[jseg+1].aname;
-                seg[jseg].avalu = seg[jseg+1].avalu;
-
-                strcpy(seg[jseg].name, seg[jseg+1].name);
-            }
-
-            iseg--;
-            nseg--;
-        }
-    }
-
-    /* check for degenerate Segments */
-    for (jseg = 0; jseg < nseg; jseg++) {
-        if (seg[jseg].ibeg == seg[jseg].iend) {
-            snprintf(message, 1024, "Segment %d is degenerate", iseg);
-            status = EGADS_DEGEN;
-            goto cleanup;
-        }
-    }
-
-    /* assign the Segment indices */
-    for (iter = 0; iter < nseg; iter++) {
-        nchange = 0;
-
-        for (iseg = 0; iseg < nseg; iseg++) {
-            if (seg[iseg].idx > 0) continue;
-
-            for (jseg = 0; jseg < nseg; jseg++) {
-                if (jseg == iseg || seg[jseg].idx <= 0) continue;
-
-                if (seg[iseg].num  == seg[jseg].num  &&
-                    seg[iseg].ibeg == seg[jseg].iend   ) {
-                    seg[iseg].idx = seg[jseg].idx + 1;
-                    nchange++;
-                    break;
-                }
-            }
-        }
-
-        if (nchange == 0) break;
-    }
+    /* modify Segments so that they are connected end to end */
+    status = modifySegments(&npnt, &pnt, &nseg, &seg, message);
+    CHECK_STATUS(modifySegments);
 
     /* show Points and Segments after intersections */
     if (PROGRESS(numUdp) != 0) {
@@ -557,6 +302,10 @@ udpExecute(ego  context,                /* (in)  EGADS context */
                                  xyz, 0, NULL, NULL, &(enodes[nnode]));
         CHECK_STATUS(EG_makeTopology);
 
+        status = EG_attributeAdd(enodes[nnode], "__nodes__", ATTRINT, 1,
+                                 &nnode, NULL, NULL);
+        CHECK_STATUS(EG_attributeAdd);
+
         nnode++;
     }
 
@@ -568,6 +317,10 @@ udpExecute(ego  context,                /* (in)  EGADS context */
         status = EG_makeTopology(context, NULL, NODE, 0, xyz, 0,
                                  NULL, NULL, &(enodes[nnode]));
         CHECK_STATUS(EG_makeTopology);
+
+        status = EG_attributeAdd(enodes[nnode], "__nodes__", ATTRINT, 1,
+                                 &nnode, NULL, NULL);
+        CHECK_STATUS(EG_attributeAdd);
 
         nnode++;
     }
@@ -604,6 +357,13 @@ udpExecute(ego  context,                /* (in)  EGADS context */
                                  data, 2, echild, NULL, &(eedges[jedge]));
         CHECK_STATUS(EG_makeTopology);
 
+        nodes[0] = seg[iseg].ibeg;
+        nodes[1] = seg[iseg].iend;
+
+        status = EG_attributeAdd(eedges[jedge], "__nodes__", ATTRINT, 2,
+                                 nodes, NULL, NULL);
+        CHECK_STATUS(EG_attributeAdd);
+
         jedge++;
     }
 
@@ -637,13 +397,20 @@ udpExecute(ego  context,                /* (in)  EGADS context */
                                  data, 2, echild, NULL, &(eedges[jedge]));
         CHECK_STATUS(EG_makeTopology);
 
+        nodes[0] = seg[iseg].ibeg + npnt;
+        nodes[1] = seg[iseg].iend + npnt;
+
+        status = EG_attributeAdd(eedges[jedge], "__nodes__", ATTRINT, 2,
+                                 nodes, NULL, NULL);
+        CHECK_STATUS(EG_attributeAdd);
+
         jedge++;
     }
 
-    /* set up the edges between z=0 and Depth */
-    for (inode = 0; inode < nnode/2; inode++) {
-        xyz[0] = pnt[inode].x;
-        xyz[1] = pnt[inode].y;
+    /* set up the edges betwe-en z=0 and Depth */
+    for (ipnt = 0; ipnt < npnt; ipnt++) {
+        xyz[0] = pnt[ipnt].x;
+        xyz[1] = pnt[ipnt].y;
         xyz[2] = 0;
         xyz[3] = 0;
         xyz[4] = 0;
@@ -653,14 +420,14 @@ udpExecute(ego  context,                /* (in)  EGADS context */
                                  NULL, xyz, &ecurve);
         CHECK_STATUS(EG_makeGeometry);
 
-        echild[0] = enodes[inode        ];
-        echild[1] = enodes[inode+nnode/2];
+        echild[0] = enodes[ipnt     ];
+        echild[1] = enodes[ipnt+npnt];
 
         status = EG_invEvaluate(ecurve, xyz, &(data[0]), xyz_out);
         CHECK_STATUS(EG_invEvaluate);
 
-        xyz[0] = pnt[inode].x;
-        xyz[1] = pnt[inode].y;
+        xyz[0] = pnt[ipnt].x;
+        xyz[1] = pnt[ipnt].y;
         xyz[2] = DEPTH(0);
 
         status = EG_invEvaluate(ecurve, xyz, &(data[1]), xyz_out);
@@ -669,6 +436,13 @@ udpExecute(ego  context,                /* (in)  EGADS context */
         status = EG_makeTopology(context, ecurve, EDGE, TWONODE,
                                  data, 2, echild, NULL, &(eedges[jedge]));
         CHECK_STATUS(EG_makeTopology);
+
+        nodes[0] = ipnt;
+        nodes[1] = ipnt + npnt;
+
+        status = EG_attributeAdd(eedges[jedge], "__nodes__", ATTRINT, 2,
+                                 nodes, NULL, NULL);
+        CHECK_STATUS(EG_attributeAdd);
 
         jedge++;
     }
@@ -710,6 +484,10 @@ udpExecute(ego  context,                /* (in)  EGADS context */
                                      1, NULL, NULL, seg[iseg].avalu[iattr]);
             CHECK_STATUS(EG_attributeAdd);
         }
+
+        status = EG_attributeAdd(efaces[jface], "__jface__", ATTRINT, 1,
+                                 &jface, NULL, NULL);
+        CHECK_STATUS(EG_attributeAdd);
 
         jface++;
     }
@@ -777,10 +555,13 @@ cleanup:
  */
 
 static int
-processSegments(int    *npnt,           /* (out) number of Points */
+processSegments(int    iudp,            /* (in)  udp index */
+                int    *npnt,           /* (out) number of Points */
                 pnt_T  *pnt_p[],        /* (out) array  of Points */
                 int    *nseg,           /* (both)number of Segments */
-                seg_T  *seg_P[])        /* (out) array  of Segments */
+                seg_T  *seg_p[],        /* (out) array  of Segments */
+    /*@unused@*/int    *NumUdp,
+                udp_T  *udps)
 {
     int     status = EGADS_SUCCESS;
 
@@ -788,13 +569,13 @@ processSegments(int    *npnt,           /* (out) number of Points */
     pnt_T   *pnt=NULL;
     seg_T   *seg=NULL;
 
-    double  EPS06 = 1.0e-6;
-
     ROUTINE(processSegments);
+
+    /* --------------------------------------------------------------- */
 
     /* get number of Segments from size of SEGMENTS() */
     *npnt = 0;
-    *nseg = udps[0].arg[1].size / 4;
+    *nseg = udps[iudp].arg[1].size / 4;
 
     /* default (empty) Point and Segment tables */
     mpnt = *nseg * 2;   /* perhaps too big */
@@ -809,8 +590,8 @@ processSegments(int    *npnt,           /* (out) number of Points */
         /* check if beginning of Segment matches any Points so far */
         seg[iseg].ibeg = -1;
         for (jpnt = 0; jpnt < *npnt; jpnt++) {
-            if (fabs(SEGMENTS(0,4*iseg  )-pnt[jpnt].x) < EPS06 &&
-                fabs(SEGMENTS(0,4*iseg+1)-pnt[jpnt].y) < EPS06   ) {
+            if (fabs(SEGMENTS(iudp,4*iseg  )-pnt[jpnt].x) < EPS06 &&
+                fabs(SEGMENTS(iudp,4*iseg+1)-pnt[jpnt].y) < EPS06   ) {
                 seg[iseg].ibeg = jpnt;
                 break;
             }
@@ -819,17 +600,20 @@ processSegments(int    *npnt,           /* (out) number of Points */
         if (seg[iseg].ibeg < 0) {
             seg[iseg].ibeg = *npnt;
 
-            pnt[*npnt].type = 1;
-            pnt[*npnt].x    = SEGMENTS(0,4*iseg  );
-            pnt[*npnt].y    = SEGMENTS(0,4*iseg+1);
+            pnt[*npnt].type  = 1;
+            pnt[*npnt].x     = SEGMENTS(    iudp,4*iseg  );
+            pnt[*npnt].x_dot = SEGMENTS_DOT(iudp,4*iseg  );
+            pnt[*npnt].y     = SEGMENTS(    iudp,4*iseg+1);
+            pnt[*npnt].y_dot = SEGMENTS_DOT(iudp,4*iseg+1);
+            pnt[*npnt].name[0] = '\0';
             (*npnt)++;
         }
 
         /* check if end of Segment matches any Points so far */
         seg[iseg].iend = -1;
         for (jpnt = 0; jpnt < *npnt; jpnt++) {
-            if (fabs(SEGMENTS(0,4*iseg+2)-pnt[jpnt].x) < EPS06 &&
-                fabs(SEGMENTS(0,4*iseg+3)-pnt[jpnt].y) < EPS06   ) {
+            if (fabs(SEGMENTS(iudp,4*iseg+2)-pnt[jpnt].x) < EPS06 &&
+                fabs(SEGMENTS(iudp,4*iseg+3)-pnt[jpnt].y) < EPS06   ) {
                 seg[iseg].iend = jpnt;
                 break;
             }
@@ -838,9 +622,12 @@ processSegments(int    *npnt,           /* (out) number of Points */
         if (seg[iseg].iend < 0) {
             seg[iseg].iend = *npnt;
 
-            pnt[*npnt].type = 1;
-            pnt[*npnt].x    = SEGMENTS(0,4*iseg+2);
-            pnt[*npnt].y    = SEGMENTS(0,4*iseg+3);
+            pnt[*npnt].type  = 1;
+            pnt[*npnt].x     = SEGMENTS(    iudp,4*iseg+2);
+            pnt[*npnt].x_dot = SEGMENTS_DOT(iudp,4*iseg+2);
+            pnt[*npnt].y     = SEGMENTS(    iudp,4*iseg+3);
+            pnt[*npnt].y_dot = SEGMENTS_DOT(iudp,4*iseg+3);
+            pnt[*npnt].name[0] = '\0';
             (*npnt)++;
         }
 
@@ -855,7 +642,7 @@ processSegments(int    *npnt,           /* (out) number of Points */
 cleanup:
     /* return pointers to freeable memory */
     *pnt_p = pnt;
-    *seg_P = seg;
+    *seg_p = seg;
 
     return status;
 }
@@ -889,7 +676,10 @@ cleanup:
     LINE   linename  pointname pointname [attrName1=attrValue1 [...]]
                                                         creates line between points with given attributes
     CLINE  -------------- same as LINE ---------------- creates construction line ...
+    SET    varname expression                           sets varname to expression
     PATBEG varname ncopy                                loops ncopy times with varname=1,...,ncopy
+    PATBREAK val1 op val2                               op is LT LE EQ GE GT or NE
+                                                        breaks if (val1 op val2) > 0
     PATEND
     IFTHEN val1 op val2                                 op is LT LE EQ GE GT or NE
     ENDIF
@@ -901,28 +691,33 @@ processFile(ego    context,             /* (in)  EGADS context */
             int    *npnt,               /* (out) number of Points */
             pnt_T  *pnt_p[],            /* (out) array  of Points */
             int    *nseg,               /* (both)number of Segments */
-            seg_T  *seg_p[])            /* (out) array  of Segments */
+            seg_T  *seg_p[],            /* (out) array  of Segments */
+            int    *NumUdp,
+            udp_T  *udps)
 {
     int    status = EGADS_SUCCESS;      /* (out) default return */
 
-    int    nbrch, npmtr, npmtr_save, ipmtr, nbody, type, nrow, ncol, itoken, ichar;
+    int    nbrch, npmtr, npmtr_save=999999, ipmtr, nbody, type, nrow, ncol, itoken, ichar;
     int    mpnt=0, ipnt, jpnt, mseg=0, iseg, jseg, ibeg, iend, jbeg, jend, itype;
-    int    mline, nline=0, i;
+    int    mline, nline=0, mset=0, nset=0, i, *set_pmtr=NULL;
     int    *begline=NULL, *endline=NULL;
     int    pat_pmtr[ ]={ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
     int    pat_value[]={ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
     int    pat_end[  ]={-1,-1,-1,-1,-1,-1,-1,-1,-1,-1};
     long   pat_seek[ ]={ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-    int    istream, ieof, iskip, ifthen, npat=0, outLevel;
-    double xloc, yloc, xvalue, yvalue, value, dot, val1, val2, frac, D, s, dist, dx, dy, alen;
+    int    istream, ieof, iskip, ifthen, npat=0, patbreak, outLevel;
+    double xloc,     yloc,     xvalue,     yvalue,     value,     val1,     val2;
+    double xloc_dot, yloc_dot, xvalue_dot, yvalue_dot, value_dot, val1_dot, val2_dot;
+    double frac,     N,     D,     s,     dist,     dx,     dy,     alen;
+    double frac_dot, N_dot, D_dot, s_dot, dist_dot, dx_dot, dy_dot, alen_dot;
     pnt_T  *pnt=NULL;
     seg_T  *seg=NULL;
     char   templine[256], token[256], pname1[256], pname2[256], lname1[256], lname2[256];
     char   *filename, name[MAX_NAME_LEN], str[256];
+    modl_T *MODL=NULL;
     void   *modl;
+    void   *realloc_temp = NULL;            /* used by RALLOC macro */
     FILE   *fp=NULL;
-
-    double  EPS06 = 1.0e-6;
 
     ROUTINE(processFile);
 
@@ -936,16 +731,21 @@ processFile(ego    context,             /* (in)  EGADS context */
     status = EG_getUserPointer(context, (void**)(&(modl)));
     CHECK_STATUS(EG_getUserPointer);
 
+    MODL = (modl_T *)modl;
+    if (MODL->perturb != NULL) {
+        MODL = MODL->perturb;
+    }
+
     /* get the outLevel from OpenCSM */
     outLevel = ocsmSetOutLevel(-1);
 
     /* make sure that there are no Parameters whose names start with
        x@ or y@ */
-    status = ocsmInfo(modl, &nbrch, &npmtr_save, &nbody);
+    status = ocsmInfo(MODL, &nbrch, &npmtr_save, &nbody);
     CHECK_STATUS(ocsmInfo);
 
     for (ipmtr = 1; ipmtr <= npmtr_save; ipmtr++) {
-        status = ocsmGetPmtr(modl, ipmtr, &type, &nrow, &ncol, name);
+        status = ocsmGetPmtr(MODL, ipmtr, &type, &nrow, &ncol, name);
         CHECK_STATUS(ocsmGetPmtr);
 
         if (strncmp(name, "x@", 2) == 0 ||
@@ -1147,7 +947,7 @@ processFile(ego    context,             /* (in)  EGADS context */
                     goto cleanup;
                 }
 
-                status = ocsmEvalExpr(modl, token, &xloc, &dot, str);
+                status = ocsmEvalExpr(MODL, token, &xloc, &xloc_dot, str);
                 if (status < SUCCESS) {
                     snprintf(message, 1024, "cannot evaluate \"%s\"\nwhile processing: %s", token, templine);
                     goto cleanup;
@@ -1166,7 +966,7 @@ processFile(ego    context,             /* (in)  EGADS context */
                     goto cleanup;
                 }
 
-                status = ocsmEvalExpr(modl, token, &yloc, &dot, str);
+                status = ocsmEvalExpr(MODL, token, &yloc, &yloc_dot, str);
                 if (status < SUCCESS) {
                     snprintf(message, 1024, "cannot evaluate \"%s\"\nwhile processing: %s", token, templine);
                     goto cleanup;
@@ -1177,8 +977,10 @@ processFile(ego    context,             /* (in)  EGADS context */
                 }
 
                 /* compute (xvalue,yvalue) */
-                xvalue = xloc;
-                yvalue = yloc;
+                xvalue     = xloc;
+                xvalue_dot = xloc_dot;
+                yvalue     = yloc;
+                yvalue_dot = yloc_dot;
 
             /* POINT pname1 ON lname1 ... */
             } else if (strcmp(token, "on") == 0 ||
@@ -1224,15 +1026,17 @@ processFile(ego    context,             /* (in)  EGADS context */
                         goto cleanup;
                     }
 
-                    status = ocsmEvalExpr(modl, token, &frac, &dot, str);
+                    status = ocsmEvalExpr(MODL, token, &frac, &frac_dot, str);
                     if (status < SUCCESS) {
                         snprintf(message, 1024, "cannot evaluate \"%s\"\nwhile processing: %s", token, templine);
                         goto cleanup;
                     }
 
                     /* compute (xvalue,yvalue) */
-                    xvalue = (1-frac) * pnt[ibeg].x + frac * pnt[iend].x;
-                    yvalue = (1-frac) * pnt[ibeg].y + frac * pnt[iend].y;
+                    xvalue     = (1-frac) * pnt[ibeg].x     + frac * pnt[iend].x;
+                    xvalue_dot = (1-frac) * pnt[ibeg].x_dot + frac * pnt[iend].x_dot + frac_dot * (pnt[iend].x - pnt[ibeg].x);
+                    yvalue     = (1-frac) * pnt[ibeg].y     + frac * pnt[iend].y;
+                    yvalue_dot = (1-frac) * pnt[ibeg].y_dot + frac * pnt[iend].y_dot + frac_dot * (pnt[iend].y - pnt[ibeg].y);
 
                 /* POINT pname1 ON lname1 XLOC xloc */
                 } else if (strcmp(token, "xloc") == 0 ||
@@ -1251,17 +1055,23 @@ processFile(ego    context,             /* (in)  EGADS context */
                         goto cleanup;
                     }
 
-                    status = ocsmEvalExpr(modl, token, &xloc, &dot, str);
+                    status = ocsmEvalExpr(MODL, token, &xloc, &xloc_dot, str);
                     if (status < SUCCESS) {
                         snprintf(message, 1024, "cannot evaluate \"%s\"\nwhile processing: %s", token, templine);
                         goto cleanup;
                     }
-                                 
+
 
                     /* compute (xvalue,yvalue) */
-                    frac   = (xloc - pnt[ibeg].x) / (pnt[iend].x - pnt[ibeg].x);
-                    xvalue = xloc;
-                    yvalue = (1-frac) * pnt[ibeg].y + frac * pnt[iend].y;
+                    frac     = (xloc - pnt[ibeg].x) / (pnt[iend].x - pnt[ibeg].x);
+                    frac_dot = ((pnt[iend].x - pnt[ibeg].x) * (xloc_dot        - pnt[ibeg].x_dot)
+                               -(xloc        - pnt[ibeg].x) * (pnt[iend].x_dot - pnt[ibeg].x_dot))
+                             /  (pnt[iend].x - pnt[ibeg].x) / (pnt[iend].x     - pnt[ibeg].x);
+
+                    xvalue     = xloc;
+                    xvalue_dot = xloc_dot;
+                    yvalue     = (1-frac) * pnt[ibeg].y     + frac * pnt[iend].y;
+                    yvalue_dot = (1-frac) * pnt[ibeg].y_dot + frac * pnt[iend].y_dot + frac_dot * (pnt[iend].y - pnt[ibeg].y);
 
                 /* POINT pname1 ON lname1 YLOC yloc */
                 } else if (strcmp(token, "yloc") == 0 ||
@@ -1280,16 +1090,22 @@ processFile(ego    context,             /* (in)  EGADS context */
                         goto cleanup;
                     }
 
-                    status = ocsmEvalExpr(modl, token, &yloc, &dot, str);
+                    status = ocsmEvalExpr(MODL, token, &yloc, &yloc_dot, str);
                     if (status < SUCCESS) {
                         snprintf(message, 1024, "cannot evaluate \"%s\"\nwhile processing: %s", token, templine);
                         goto cleanup;
                     }
 
                     /* compute (xvalue,yvalue) */
-                    frac   = (yloc - pnt[ibeg].y) / (pnt[iend].y - pnt[ibeg].y);
-                    xvalue = (1-frac) * pnt[ibeg].x + frac * pnt[iend].x;
-                    yvalue = yloc;
+                    frac     = (yloc - pnt[ibeg].y) / (pnt[iend].y - pnt[ibeg].y);
+                    frac_dot = ((pnt[iend].y - pnt[ibeg].y) * (yloc_dot        - pnt[ibeg].y_dot)
+                               -(yloc        - pnt[ibeg].y) * (pnt[iend].y_dot - pnt[ibeg].y_dot))
+                             /  (pnt[iend].y - pnt[ibeg].y) / (pnt[iend].y     - pnt[ibeg].y);
+
+                    xvalue     = (1-frac) * pnt[ibeg].x     + frac * pnt[iend].x;
+                    xvalue_dot = (1-frac) * pnt[ibeg].x_dot + frac * pnt[iend].x_dot + frac_dot * (pnt[iend].x - pnt[ibeg].x);
+                    yvalue     = yloc;
+                    yvalue_dot = yloc_dot;
 
                 /* POINT pname1 ON lname1 PERP pname2 */
                 } else if (strcmp(token, "perp") == 0 ||
@@ -1315,12 +1131,26 @@ processFile(ego    context,             /* (in)  EGADS context */
                     }
 
                     /* compute (xvalue,yvalue) */
-                    frac   = ( (pnt[ipnt].x - pnt[ibeg].x) * (pnt[iend].x - pnt[ibeg].x)
-                             + (pnt[ipnt].y - pnt[ibeg].y) * (pnt[iend].y - pnt[ibeg].y))
-                           / ( (pnt[iend].x - pnt[ibeg].x) * (pnt[iend].x - pnt[ibeg].x)
-                             + (pnt[iend].y - pnt[ibeg].y) * (pnt[iend].y - pnt[ibeg].y));
-                    xvalue = (1-frac) * pnt[ibeg].x + frac * pnt[iend].x;
-                    yvalue = (1-frac) * pnt[ibeg].y + frac * pnt[iend].y;
+                    N     = (pnt[ipnt].x     - pnt[ibeg].x    ) * (pnt[iend].x     - pnt[ibeg].x    )
+                          + (pnt[ipnt].y     - pnt[ibeg].y    ) * (pnt[iend].y     - pnt[ibeg].y    );
+                    N_dot = (pnt[ipnt].x_dot - pnt[ibeg].x_dot) * (pnt[iend].x     - pnt[ibeg].x    )
+                          + (pnt[ipnt].x     - pnt[ibeg].x    ) * (pnt[iend].x_dot - pnt[ibeg].x_dot)
+                          + (pnt[ipnt].y_dot - pnt[ibeg].y_dot) * (pnt[iend].y     - pnt[ibeg].y    )
+                          + (pnt[ipnt].y     - pnt[ibeg].y    ) * (pnt[iend].y_dot - pnt[ibeg].y_dot);
+                    D     = (pnt[iend].x     - pnt[ibeg].x    ) * (pnt[iend].x     - pnt[ibeg].x    )
+                          + (pnt[iend].y     - pnt[ibeg].y    ) * (pnt[iend].y     - pnt[ibeg].y    );
+                    D_dot = (pnt[iend].x_dot - pnt[ibeg].x_dot) * (pnt[iend].x     - pnt[ibeg].x    )
+                          + (pnt[iend].x     - pnt[ibeg].x    ) * (pnt[iend].x_dot - pnt[ibeg].x_dot)
+                          + (pnt[iend].y_dot - pnt[ibeg].y_dot) * (pnt[iend].y     - pnt[ibeg].y    )
+                          + (pnt[iend].y     - pnt[ibeg].y    ) * (pnt[iend].y_dot - pnt[ibeg].y_dot);
+
+                    frac     = N / D;
+                    frac_dot = (D * N_dot - N * D_dot) / D / D;
+
+                    xvalue     = (1-frac) * pnt[ibeg].x     + frac * pnt[iend].x;
+                    xvalue_dot = (1-frac) * pnt[ibeg].x_dot + frac * pnt[iend].x_dot + frac_dot * (pnt[iend].x - pnt[ibeg].x);
+                    yvalue     = (1-frac) * pnt[ibeg].y     + frac * pnt[iend].y;
+                    yvalue_dot = (1-frac) * pnt[ibeg].y_dot + frac * pnt[iend].y_dot + frac_dot * (pnt[iend].y - pnt[ibeg].y);
 
                 /* POINT pname1 ON lname1 XSECT lname2 */
                 } else if (strcmp(token, "xsect") == 0 ||
@@ -1349,13 +1179,28 @@ processFile(ego    context,             /* (in)  EGADS context */
                     jend = seg[iseg].iend;
 
                     /* compute (xvalue,yvalue) */
-                    D = (pnt[iend].x - pnt[ibeg].x) * (pnt[jbeg].y - pnt[jend].y) - (pnt[jbeg].x - pnt[jend].x) * (pnt[iend].y - pnt[ibeg].y);
-                    if (fabs(D) > EPS06) {
-                        s = ((pnt[jbeg].x - pnt[ibeg].x) * (pnt[jbeg].y - pnt[jend].y) - (pnt[jbeg].x - pnt[jend].x) * (pnt[jbeg].y - pnt[ibeg].y)) / D;
-//                        t = ((pnt[iend].x - pnt[ibeg].x) * (pnt[jbeg].y - pnt[ibeg].y) - (pnt[jbeg].x - pnt[ibeg].x) * (pnt[iend].y - pnt[ibeg].y)) / D;
+                    D     = (pnt[iend].x     - pnt[ibeg].x    ) * (pnt[jbeg].y     - pnt[jend].y    )
+                          - (pnt[jbeg].x     - pnt[jend].x    ) * (pnt[iend].y     - pnt[ibeg].y    );
+                    D_dot = (pnt[iend].x_dot - pnt[ibeg].x_dot) * (pnt[jbeg].y     - pnt[jend].y    )
+                          + (pnt[iend].x     - pnt[ibeg].x    ) * (pnt[jbeg].y_dot - pnt[jend].y_dot)
+                          - (pnt[jbeg].x_dot - pnt[jend].x_dot) * (pnt[iend].y     - pnt[ibeg].y    )
+                          - (pnt[jbeg].x     - pnt[jend].x    ) * (pnt[iend].y_dot - pnt[ibeg].y_dot);
 
-                        xvalue = (1 - s) * pnt[ibeg].x + s * pnt[iend].x;
-                        yvalue = (1 - s) * pnt[ibeg].y + s * pnt[iend].y;
+                    if (fabs(D) > EPS06) {
+                        N     = (pnt[jbeg].x     - pnt[ibeg].x    ) * (pnt[jbeg].y     - pnt[jend].y    )
+                              - (pnt[jbeg].x     - pnt[jend].x    ) * (pnt[jbeg].y     - pnt[ibeg].y    );
+                        N_dot = (pnt[jbeg].x_dot - pnt[ibeg].x_dot) * (pnt[jbeg].y     - pnt[jend].y    )
+                              + (pnt[jbeg].x     - pnt[ibeg].x    ) * (pnt[jbeg].y_dot - pnt[jend].y_dot)
+                              - (pnt[jbeg].x_dot - pnt[jend].x_dot) * (pnt[jbeg].y     - pnt[ibeg].y    )
+                              - (pnt[jbeg].x     - pnt[jend].x    ) * (pnt[jbeg].y_dot - pnt[ibeg].y_dot);
+
+                        s     = N / D;
+                        s_dot = (D * N_dot - N * D_dot) / D / D;
+
+                        xvalue     = (1-s) * pnt[ibeg].x     + s * pnt[iend].x;
+                        xvalue_dot = (1-s) * pnt[ibeg].x_dot + s * pnt[iend].x_dot + s_dot * (pnt[iend].x - pnt[ibeg].x);
+                        yvalue     = (1-s) * pnt[ibeg].y     + s * pnt[iend].y;
+                        yvalue_dot = (1-s) * pnt[ibeg].y_dot + s * pnt[iend].y_dot + s_dot * (pnt[iend].y - pnt[ibeg].y);
                     } else {
                         snprintf(message, 1024, "segments do not intersect\nwhile processing: %s", templine);
                         status = EGADS_NOTFOUND;
@@ -1401,7 +1246,7 @@ processFile(ego    context,             /* (in)  EGADS context */
                     goto cleanup;
                 }
 
-                status = ocsmEvalExpr(modl, token, &dist, &dot, str);
+                status = ocsmEvalExpr(MODL, token, &dist, &dist_dot, str);
                 if (status < SUCCESS) {
                     snprintf(message, 1024, "cannot evaluate \"%s\"\nwhile processing: %s", token, templine);
                     goto cleanup;
@@ -1427,12 +1272,18 @@ processFile(ego    context,             /* (in)  EGADS context */
                 }
 
                 /* compute (xvalue,yvalue) */
-                dx   = pnt[iend].x - pnt[ibeg].x;
-                dy   = pnt[iend].y - pnt[ibeg].y;
-                alen = sqrt(dx * dx + dy * dy);
+                dx       = pnt[iend].x     - pnt[ibeg].x;
+                dx_dot   = pnt[iend].x_dot - pnt[ibeg].x_dot;
+                dy       = pnt[iend].y     - pnt[ibeg].y;
+                dy_dot   = pnt[iend].y_dot - pnt[ibeg].y_dot;
 
-                xvalue = pnt[ipnt].x - dist * dy / alen;
-                yvalue = pnt[ipnt].y + dist * dx / alen;
+                alen     = sqrt(dx * dx + dy * dy);
+                alen_dot = (dx * dx_dot + dy * dy_dot) / alen;
+
+                xvalue     = pnt[ipnt].x     - dist     * dy / alen;
+                xvalue_dot = pnt[ipnt].x_dot - dist_dot * dy / alen - dy_dot * dist / alen + alen_dot * dist * dy / alen / alen;
+                yvalue     = pnt[ipnt].y     + dist     * dx / alen;
+                yvalue_dot = pnt[ipnt].y_dot + dist_dot * dx / alen + dx_dot * dist / alen - alen_dot * dist * dx / alen / alen;
 
             } else {
                 snprintf(message, 1024, "third token should be AT, ON, or OFF\nwhile processing: %s", templine);
@@ -1473,9 +1324,11 @@ processFile(ego    context,             /* (in)  EGADS context */
             } else {
                 strcpy(pnt[*npnt].name, pname1);
 
-                pnt[*npnt].type = itype;
-                pnt[*npnt].x    = xvalue;
-                pnt[*npnt].y    = yvalue;
+                pnt[*npnt].type  = itype;
+                pnt[*npnt].x     = xvalue;
+                pnt[*npnt].x_dot = xvalue_dot;
+                pnt[*npnt].y     = yvalue;
+                pnt[*npnt].y_dot = yvalue_dot;
                 (*npnt)++;
 
             }
@@ -1484,26 +1337,28 @@ processFile(ego    context,             /* (in)  EGADS context */
             (void) strcpy(str, "x@");
             (void) strcat(str, pname1);
 
-            status = ocsmFindPmtr(modl, str, OCSM_LOCALVAR, 1, 1, &ipmtr);
+            status = ocsmFindPmtr(MODL, str, OCSM_LOCALVAR, 1, 1, &ipmtr);
             if (status < SUCCESS) {
                 snprintf(message, 1024, "cannot find \"%s\"\nwhile processing: %s", str, templine);
                 goto cleanup;
             }
 
-            status = ocsmSetValuD(modl, ipmtr, 1, 1, xvalue);
-            CHECK_STATUS(ocsmSetValuD);
+            /* note that we cannot call ocsmSetVeluD and ocsmSetVelD because
+               they remove a perturbation and remove the velocities */
+            MODL->pmtr[ipmtr].value[0] = xvalue;
+            MODL->pmtr[ipmtr].dot[  0] = xvalue_dot;
 
             (void) strcpy(str, "y@");
             (void) strcat(str, pname1);
 
-            status = ocsmFindPmtr(modl, str, OCSM_LOCALVAR, 1, 1, &ipmtr);
+            status = ocsmFindPmtr(MODL, str, OCSM_LOCALVAR, 1, 1, &ipmtr);
             if (status < SUCCESS) {
                 snprintf(message, 1024, "cannot find \"%s\"\nwhile processing: %s", str, templine);
                 goto cleanup;
             }
 
-            status = ocsmSetValuD(modl, ipmtr, 1, 1, yvalue);
-            CHECK_STATUS(ocsmSetValuD);
+            MODL->pmtr[ipmtr].value[0] = yvalue;
+            MODL->pmtr[ipmtr].dot[  0] = yvalue_dot;
 
         } else if (strcmp(token,  "line") == 0 ||
                    strcmp(token,  "LINE") == 0 ||
@@ -1620,7 +1475,7 @@ processFile(ego    context,             /* (in)  EGADS context */
                     strncpy(seg[*nseg].aname[seg[*nseg].nattr], token, 80);
 
                     token[ichar] = '$';
-                    status = ocsmEvalExpr(modl, &(token[ichar]), &value, &dot, str);
+                    status = ocsmEvalExpr(MODL, &(token[ichar]), &value, &value_dot, str);
                     if (status < SUCCESS) {
                         snprintf(message, 1024, "cannot evaluate \"%s\"\nwhile processing: %s", &(token[ichar]), templine);
                         goto cleanup;
@@ -1639,6 +1494,47 @@ processFile(ego    context,             /* (in)  EGADS context */
             }
 
             (*nseg)++;
+
+        } else if (strcmp(token, "set") == 0 ||
+                   strcmp(token, "SET") == 0   ) {
+
+            if (nset >= mset) {
+                mset += 10;
+                RALLOC(set_pmtr, int, mset);
+            }
+
+            SPLINT_CHECK_FOR_NULL(set_pmtr);
+
+            /* get the expression */
+            status = getToken(templine, 2, ' ', 255, token);
+            if (status < SUCCESS) {
+                snprintf(message, 1024, "cannot find second token\nwhile processing: %s", templine);
+                goto cleanup;
+            }
+
+            status = ocsmEvalExpr(MODL, token, &value, &value_dot, str);
+            if (status < SUCCESS) {
+                snprintf(message, 1024, "cannot evaluate \"%s\"\nwhile processing: %s", token, templine);
+                goto cleanup;
+            }
+
+            /* set up Parameter */
+            status = getToken(templine, 1, ' ', 255, token);
+            if (status < SUCCESS) {
+                snprintf(message, 1024, "cannot find first token\nwhile processing: %s", templine);
+                goto cleanup;
+            }
+
+            status = ocsmFindPmtr(MODL, token, OCSM_LOCALVAR, 1, 1, &set_pmtr[nset]);
+            CHECK_STATUS(ocsm_localvar);
+
+            if (set_pmtr[nset] <= npmtr_save) {
+                snprintf(message, 1024, "cannot use \"%s\" since it was previously defined\nwhile processing: %s", token, templine);
+                status = EGADS_NONAME;
+                goto cleanup;
+            }
+
+            MODL->pmtr[set_pmtr[nset]].value[0] = value;
 
         } else if (strcmp(token, "patbeg") == 0 ||
                    strcmp(token, "PATBEG") == 0   ) {
@@ -1676,7 +1572,7 @@ processFile(ego    context,             /* (in)  EGADS context */
                 goto cleanup;
             }
 
-            status = ocsmEvalExpr(modl, token, &value, &dot, str);
+            status = ocsmEvalExpr(MODL, token, &value, &value_dot, str);
             if (status < SUCCESS) {
                 snprintf(message, 1024, "cannot evaluate \"%s\"\nwhile processing: %s", token, templine);
                 goto cleanup;
@@ -1698,7 +1594,7 @@ processFile(ego    context,             /* (in)  EGADS context */
                 goto cleanup;
             }
 
-            status = ocsmFindPmtr(modl, token, OCSM_LOCALVAR, 1, 1, &pat_pmtr[npat]);
+            status = ocsmFindPmtr(MODL, token, OCSM_LOCALVAR, 1, 1, &pat_pmtr[npat]);
             CHECK_STATUS(ocsm_localvar);
 
             if (pat_pmtr[npat] <= npmtr_save) {
@@ -1707,8 +1603,88 @@ processFile(ego    context,             /* (in)  EGADS context */
                 goto cleanup;
             }
 
-            status = ocsmSetValuD(modl, pat_pmtr[npat], 1, 1, (double)pat_value[npat]);
-            CHECK_STATUS(ocsmSetValuD);
+            MODL->pmtr[pat_pmtr[npat]].value[0] = pat_value[npat];
+
+        } else if (strcmp(token, "patbreak") == 0 ||
+                   strcmp(token, "PATBREAK") == 0   ) {
+
+            if (pat_end[npat] < 0) {
+                snprintf(message, 1024, "PATBREAK without PATBEG\nwhile processing: %s", templine);
+                status = EGADS_RANGERR;
+                goto cleanup;
+            }
+
+            if (iskip > 0) {
+                iskip--;
+                continue;
+            }
+
+            /* if the expression is not positive, get the next line */
+            /* get val1, op, and val2 */
+            status = getToken(templine, 1, ' ', 256, token);
+            if (status < SUCCESS) {
+                snprintf(message, 1024, "cannot find first token\nwhile processing: %s", templine);
+                goto cleanup;
+            }
+
+            status = ocsmEvalExpr(MODL, token, &val1, &val1_dot, str);
+            if (status < SUCCESS) {
+                snprintf(message, 1024, "cannot evaluate \"%s\"\nwhile processing: %s", token, templine);
+                goto cleanup;
+            }
+
+            status = getToken(templine, 3, ' ', 256, token);
+            if (status < SUCCESS) {
+                snprintf(message, 1024, "cannot find third token\nwhile processing: %s", templine);
+                goto cleanup;
+            }
+
+            status = ocsmEvalExpr(MODL, token, &val2, &val2_dot, str);
+            if (status < SUCCESS) {
+                snprintf(message, 1024, "cannot evaluate \"%s\"\nwhile processing: %s", token, templine);
+                goto cleanup;
+            }
+
+            status = getToken(templine, 2, ' ', 256, token);
+            if (status < SUCCESS) {
+                snprintf(message, 1024, "cannot find second token\nwhile processing: %s", templine);
+                goto cleanup;
+            }
+
+            patbreak = 0;
+            if (strcmp(token, "lt") == 0 || strcmp(token, "LT") == 0) {
+                if (val1 < val2) {
+                    patbreak = 1;
+                }
+            } else if (strcmp(token, "le") == 0 || strcmp(token, "LE") == 0) {
+                if (val1 <= val2) {
+                    patbreak = 1;
+                }
+            } else if (strcmp(token, "eq") == 0 || strcmp(token, "EQ") == 0) {
+                if (val1 == val2) {
+                    patbreak = 1;
+                }
+            } else if (strcmp(token, "ge") == 0 || strcmp(token, "GE") == 0) {
+                if (val1 >= val2) {
+                    patbreak = 1;
+                }
+            } else if (strcmp(token, "gt") == 0 || strcmp(token, "GT") == 0) {
+                if (val1 > val2) {
+                    patbreak = 1;
+                }
+            } else if (strcmp(token, "ne") == 0 || strcmp(token, "NE") == 0) {
+                if (val1 != val2) {
+                    patbreak = 1;
+                }
+            } else {
+                snprintf(message, 1024, "op must be LT LE EQ GE GT or NE\nwhile processing: %s", templine);
+                status = EGADS_RANGERR;
+                goto cleanup;
+            }
+
+            if (patbreak == 1) {
+                iskip++;
+            }
 
         } else if (strcmp(token, "patend") == 0 ||
                    strcmp(token, "PATEND") == 0   ) {
@@ -1729,8 +1705,7 @@ processFile(ego    context,             /* (in)  EGADS context */
             if (pat_value[npat] < pat_end[npat]) {
                 (pat_value[npat])++;
 
-                status = ocsmSetValuD(modl, pat_pmtr[npat], 1, 1, (double)pat_value[npat]);
-                CHECK_STATUS(ocsm);
+                MODL->pmtr[pat_pmtr[npat]].value[0] = pat_value[npat];
 
                 if (pat_seek[npat] != 0) {
                     if (fp != NULL) {
@@ -1752,14 +1727,14 @@ processFile(ego    context,             /* (in)  EGADS context */
         } else if (strcmp(token, "ifthen") == 0 ||
                    strcmp(token, "IFTHEN") == 0   ) {
 
-            /* get val1, op and val2 */
+            /* get val1, op, and val2 */
             status = getToken(templine, 1, ' ', 256, token);
             if (status < SUCCESS) {
                 snprintf(message, 1024, "cannot find first token\nwhile processing: %s", templine);
                 goto cleanup;
             }
 
-            status = ocsmEvalExpr(modl, token, &val1, &dot, str);
+            status = ocsmEvalExpr(MODL, token, &val1, &val1_dot, str);
             if (status < SUCCESS) {
                 snprintf(message, 1024, "cannot evaluate \"%s\"\nwhile processing: %s", token, templine);
                 goto cleanup;
@@ -1771,7 +1746,7 @@ processFile(ego    context,             /* (in)  EGADS context */
                 goto cleanup;
             }
 
-            status = ocsmEvalExpr(modl, token, &val2, &dot, str);
+            status = ocsmEvalExpr(MODL, token, &val2, &val2_dot, str);
             if (status < SUCCESS) {
                 snprintf(message, 1024, "cannot evaluate \"%s\"\nwhile processing: %s", token, templine);
                 goto cleanup;
@@ -1839,19 +1814,21 @@ processFile(ego    context,             /* (in)  EGADS context */
 #endif
     }
 
-    /* delete any Parameters that were added */
-    status = ocsmInfo(modl, &nbrch, &npmtr, &nbody);
-    CHECK_STATUS(ocsmInfo);
+cleanup:
 
-    for (ipmtr = npmtr; ipmtr > npmtr_save; ipmtr--) {
-        status = ocsmDelPmtr(modl, ipmtr);
-        CHECK_STATUS(ocsmDelPmtr);
+    /* delete any Parameters that were added */
+    if (MODL != NULL) {
+        (void) ocsmInfo(MODL, &nbrch, &npmtr, &nbody);
+
+        for (ipmtr = npmtr; ipmtr > npmtr_save; ipmtr--) {
+            (void) ocsmDelPmtr(MODL, ipmtr);
+        }
     }
 
-cleanup:
     /*@ignore@*/
     FREE(begline);
     FREE(endline);
+    FREE(set_pmtr);
     /*@end@*/
 
     /* return pointers to freeable memory */
@@ -1864,6 +1841,363 @@ cleanup:
     }
 
     return status;
+}
+
+
+/*
+ ************************************************************************
+ *                                                                      *
+ *   modifySegments - make Segments link end to end                     *
+ *                                                                      *
+ ************************************************************************
+ */
+
+static int
+modifySegments(int     *npnt,           /* (both) number of points */
+               pnt_T   *pnt[],          /* (both) array  of points */
+               int     *nseg,           /* (both) number of segments */
+               seg_T   *seg[],          /* (both) array  of segments */
+               char    message[])       /* (out)  error message */
+{
+    int     status = EGADS_SUCCESS;     /* (out)  return status */
+
+    int     ipnt, iseg, jseg;
+    int     ibeg, iend, jbeg, jend, jpnt, mpnt, mseg, iter, nchange, iattr;
+    double  N,     D,     s,     t,     xx,     yy,     frac, dist;
+    double  N_dot, D_dot, s_dot,        xx_dot, yy_dot;
+    void    *realloc_temp = NULL;            /* used by RALLOC macro */
+
+    ROUTINE(modifySegments);
+
+    /* --------------------------------------------------------------- */
+
+#ifdef DEBUG
+    printf("entering modifySegments\n");
+    for (ipnt = 0; ipnt < *npnt; ipnt++) {
+        printf("Pnt %3d: type=%d, x=%10.5f,%10.5f, y=%10.5f,%10.5f, name=%s\n", ipnt,
+               (*pnt)[ipnt].type,
+               (*pnt)[ipnt].x,
+               (*pnt)[ipnt].x_dot,
+               (*pnt)[ipnt].y,
+               (*pnt)[ipnt].y_dot,
+               (*pnt)[ipnt].name);
+    }
+    for (iseg = 0; iseg < *nseg; iseg++) {
+        printf("Seg %3d: type=%d, ibeg=%3d, iend=%3d, num=%3d, idx=%3d, name=%s\n", iseg,
+               (*seg)[iseg].type,
+               (*seg)[iseg].ibeg,
+               (*seg)[iseg].iend,
+               (*seg)[iseg].num,
+               (*seg)[iseg].idx,
+               (*seg)[iseg].name);
+    }
+#endif
+
+    /* current size of arrays */
+    mpnt = *npnt;
+    mseg = *nseg;
+
+    /* check for intersections of Lines only */
+    for (jseg = 0; jseg < *nseg; jseg++) {
+        if ((*seg)[jseg].type == 0) continue;
+
+        for (iseg = jseg+1; iseg < *nseg; iseg++) {
+            if ((*seg)[iseg].type == 0) continue;
+
+            ibeg = (*seg)[iseg].ibeg;
+            iend = (*seg)[iseg].iend;
+            jbeg = (*seg)[jseg].ibeg;
+            jend = (*seg)[jseg].iend;
+
+            D     = ((*pnt)[iend].x     - (*pnt)[ibeg].x    ) * ((*pnt)[jbeg].y     - (*pnt)[jend].y    )
+                  - ((*pnt)[jbeg].x     - (*pnt)[jend].x    ) * ((*pnt)[iend].y     - (*pnt)[ibeg].y    );
+            D_dot = ((*pnt)[iend].x_dot - (*pnt)[ibeg].x_dot) * ((*pnt)[jbeg].y     - (*pnt)[jend].y    )
+                  - ((*pnt)[jbeg].x_dot - (*pnt)[jend].x_dot) * ((*pnt)[iend].y     - (*pnt)[ibeg].y    )
+                  + ((*pnt)[iend].x     - (*pnt)[ibeg].x    ) * ((*pnt)[jbeg].y_dot - (*pnt)[jend].y_dot)
+                  - ((*pnt)[jbeg].x     - (*pnt)[jend].x    ) * ((*pnt)[iend].y_dot - (*pnt)[ibeg].y_dot);
+            if (fabs(D) > EPS06) {
+                N      = ((*pnt)[jbeg].x     - (*pnt)[ibeg].x    ) * ((*pnt)[jbeg].y     - (*pnt)[jend].y    )
+                       - ((*pnt)[jbeg].x     - (*pnt)[jend].x    ) * ((*pnt)[jbeg].y     - (*pnt)[ibeg].y    );
+                N_dot  = ((*pnt)[jbeg].x_dot - (*pnt)[ibeg].x_dot) * ((*pnt)[jbeg].y     - (*pnt)[jend].y    )
+                       - ((*pnt)[jbeg].x_dot - (*pnt)[jend].x_dot) * ((*pnt)[jbeg].y     - (*pnt)[ibeg].y    )
+                       + ((*pnt)[jbeg].x     - (*pnt)[ibeg].x    ) * ((*pnt)[jbeg].y_dot - (*pnt)[jend].y_dot)
+                       - ((*pnt)[jbeg].x     - (*pnt)[jend].x    ) * ((*pnt)[jbeg].y_dot - (*pnt)[ibeg].y_dot);
+
+                s     = N / D;
+                s_dot = (D * N_dot - N * D_dot) / D / D;
+
+                N     = ((*pnt)[iend].x     - (*pnt)[ibeg].x    ) * ((*pnt)[jbeg].y     - (*pnt)[ibeg].y    )
+                      - ((*pnt)[jbeg].x     - (*pnt)[ibeg].x    ) * ((*pnt)[iend].y     - (*pnt)[ibeg].y    );
+
+                t     = N / D;
+
+                if (s > -EPS06 && s < 1+EPS06 &&
+                    t > -EPS06 && t < 1+EPS06   ) {
+                    xx     = (1 - s) * (*pnt)[ibeg].x     + s * (*pnt)[iend].x;
+                    xx_dot = (1 - s) * (*pnt)[ibeg].x_dot + s * (*pnt)[iend].x_dot + s_dot * ((*pnt)[iend].x - (*pnt)[ibeg].x);
+                    yy     = (1 - s) * (*pnt)[ibeg].y     + s * (*pnt)[iend].y;
+                    yy_dot = (1 - s) * (*pnt)[ibeg].y_dot + s * (*pnt)[iend].y_dot + s_dot * ((*pnt)[iend].y - (*pnt)[ibeg].y);
+
+                    ipnt = -1;
+                    for (jpnt = 0; jpnt < *npnt; jpnt++) {
+                        if (fabs(xx-(*pnt)[jpnt].x) < EPS06 &&
+                            fabs(yy-(*pnt)[jpnt].y) < EPS06   ) {
+                            ipnt = jpnt;
+                            break;
+                        }
+                    }
+
+                    if (ipnt < 0) {
+                        if (*npnt+1 >= mpnt) {
+                            mpnt += 10;
+
+                            RALLOC(*pnt, pnt_T, mpnt);
+                        }
+
+                        ipnt = *npnt;
+
+                        (*pnt)[*npnt].type  = 1;
+                        (*pnt)[*npnt].x     = xx;
+                        (*pnt)[*npnt].x_dot = xx_dot;
+                        (*pnt)[*npnt].y     = yy;
+                        (*pnt)[*npnt].y_dot = yy_dot;
+                        (*pnt)[*npnt].name[0] = '\0';
+                        (*npnt)++;
+                    }
+
+                    if ((ibeg != ipnt && iend != ipnt) ||
+                        (jbeg != ipnt && jend != ipnt)   ) {
+                        if (*nseg+2 >= mseg) {
+                            mseg += 10;
+
+                            RALLOC(*seg, seg_T, mseg);
+                        }
+                    }
+
+                    if (ibeg != ipnt && iend != ipnt) {
+                        (*seg)[*nseg].type    = (*seg)[iseg].type;
+                        (*seg)[*nseg].ibeg    = ipnt;
+                        (*seg)[*nseg].iend    = iend;
+                        (*seg)[*nseg].num     = (*seg)[iseg].num;
+                        (*seg)[*nseg].idx     = 0;
+                        (*seg)[*nseg].name[0] = '\0';
+
+                        (*seg)[*nseg].nattr = (*seg)[iseg].nattr;
+                        (*seg)[*nseg].aname = NULL;
+                        (*seg)[*nseg].avalu = NULL;
+
+                        if ((*seg)[*nseg].nattr > 0) {
+                            MALLOC((*seg)[*nseg].aname, char*, (*seg)[*nseg].nattr);
+                            MALLOC((*seg)[*nseg].avalu, char*, (*seg)[*nseg].nattr);
+                        }
+
+                        for (iattr = 0; iattr < (*seg)[*nseg].nattr; iattr++) {
+                            (*seg)[*nseg].aname[iattr] = NULL;
+                            (*seg)[*nseg].avalu[iattr] = NULL;
+
+                            MALLOC((*seg)[*nseg].aname[iattr], char, 80);
+                            MALLOC((*seg)[*nseg].avalu[iattr], char, 80);
+
+                            strncpy((*seg)[*nseg].aname[iattr], (*seg)[iseg].aname[iattr], 80);
+                            strncpy((*seg)[*nseg].avalu[iattr], (*seg)[iseg].avalu[iattr], 80);
+                        }
+
+                        (*nseg)++;
+
+                        (*seg)[iseg].iend = ipnt;
+                    }
+
+                    if (jbeg != ipnt && jend != ipnt) {
+                        (*seg)[*nseg].type    = (*seg)[jseg].type;
+                        (*seg)[*nseg].ibeg    = ipnt;
+                        (*seg)[*nseg].iend    = jend;
+                        (*seg)[*nseg].num     = (*seg)[jseg].num;
+                        (*seg)[*nseg].idx     = 0;
+                        (*seg)[*nseg].name[0] = '\0';
+
+                        (*seg)[*nseg].nattr = (*seg)[jseg].nattr;
+                        (*seg)[*nseg].aname = NULL;
+                        (*seg)[*nseg].avalu = NULL;
+
+                        if ((*seg)[*nseg].nattr > 0) {
+                            MALLOC((*seg)[*nseg].aname, char*, (*seg)[*nseg].nattr);
+                            MALLOC((*seg)[*nseg].avalu, char*, (*seg)[*nseg].nattr);
+                        }
+
+                        for (iattr = 0; iattr < (*seg)[*nseg].nattr; iattr++) {
+                            (*seg)[*nseg].aname[iattr] = NULL;
+                            (*seg)[*nseg].avalu[iattr] = NULL;
+
+                            MALLOC((*seg)[*nseg].aname[iattr], char, 80);
+                            MALLOC((*seg)[*nseg].avalu[iattr], char, 80);
+
+                            strncpy((*seg)[*nseg].aname[iattr], (*seg)[jseg].aname[iattr], 80);
+                            strncpy((*seg)[*nseg].avalu[iattr], (*seg)[jseg].avalu[iattr], 80);
+                        }
+
+                        (*nseg)++;
+
+                        (*seg)[jseg].iend = ipnt;
+                    }
+                }
+            }
+        }
+    }
+
+    /* break Lines at Points */
+    for (iseg = 0; iseg < *nseg; iseg++) {
+        if ((*seg)[iseg].type == 0) continue;
+
+        ibeg = (*seg)[iseg].ibeg;
+        iend = (*seg)[iseg].iend;
+
+        for (ipnt = 0; ipnt < *npnt; ipnt++) {
+            if ((*pnt)[ipnt].type == 0) continue;
+
+            /* distance from Point to line */
+            frac = ( ((*pnt)[ipnt].x - (*pnt)[ibeg].x) * ((*pnt)[iend].x - (*pnt)[ibeg].x)
+                   + ((*pnt)[ipnt].y - (*pnt)[ibeg].y) * ((*pnt)[iend].y - (*pnt)[ibeg].y))
+                 / ( ((*pnt)[iend].x - (*pnt)[ibeg].x) * ((*pnt)[iend].x - (*pnt)[ibeg].x)
+                   + ((*pnt)[iend].y - (*pnt)[ibeg].y) * ((*pnt)[iend].y - (*pnt)[ibeg].y));
+
+            if (frac < EPS06 || frac > 1-EPS06) continue;
+
+            xx = (1-frac) * (*pnt)[ibeg].x + frac * (*pnt)[iend].x;
+            yy = (1-frac) * (*pnt)[ibeg].y + frac * (*pnt)[iend].y;
+
+            dist = sqrt( (xx - (*pnt)[ipnt].x) * (xx - (*pnt)[ipnt].x)
+                       + (yy - (*pnt)[ipnt].y) * (yy - (*pnt)[ipnt].y));
+
+
+            if (dist < EPS06) {
+
+                /* make room for new Segment */
+                if (*nseg+1 >= mseg) {
+                    mseg += 10;
+
+                    RALLOC(*seg, seg_T, mseg);
+                }
+
+                /* make second half */
+                (*seg)[*nseg].type    = (*seg)[iseg].type;
+                (*seg)[*nseg].ibeg    = ipnt;
+                (*seg)[*nseg].iend    = (*seg)[iseg].iend;
+                (*seg)[*nseg].num     = (*seg)[iseg].num;
+                (*seg)[*nseg].idx     = 0;
+                (*seg)[*nseg].name[0] = '\0';
+
+                (*seg)[*nseg].nattr = (*seg)[iseg].nattr;
+                (*seg)[*nseg].aname = NULL;
+                (*seg)[*nseg].avalu = NULL;
+
+                if ((*seg)[*nseg].nattr > 0) {
+                    MALLOC((*seg)[*nseg].aname, char*, (*seg)[*nseg].nattr);
+                    MALLOC((*seg)[*nseg].avalu, char*, (*seg)[*nseg].nattr);
+                }
+
+                for (iattr = 0; iattr < (*seg)[*nseg].nattr; iattr++) {
+                    (*seg)[*nseg].aname[iattr] = NULL;
+                    (*seg)[*nseg].avalu[iattr] = NULL;
+
+                    MALLOC((*seg)[*nseg].aname[iattr], char, 80);
+                    MALLOC((*seg)[*nseg].avalu[iattr], char, 80);
+
+                    strncpy((*seg)[*nseg].aname[iattr], (*seg)[iseg].aname[iattr], 80);
+                    strncpy((*seg)[*nseg].avalu[iattr], (*seg)[iseg].avalu[iattr], 80);
+                }
+
+                /* revise first half */
+                (*seg)[iseg].iend = ipnt;
+
+                (*nseg)++;
+
+                /* start again at this Segment */
+                iseg--;
+                break;
+            }
+        }
+    }
+
+
+    /* remove the "cline" Segments */
+    for (iseg = 0; iseg < *nseg; iseg++) {
+        if ((*seg)[iseg].type == 0) {
+            FREE((*seg)[iseg].aname);
+            FREE((*seg)[iseg].avalu);
+
+            for (jseg = iseg; jseg < *nseg-1; jseg++) {
+                (*seg)[jseg].type  = (*seg)[jseg+1].type;
+                (*seg)[jseg].ibeg  = (*seg)[jseg+1].ibeg;
+                (*seg)[jseg].iend  = (*seg)[jseg+1].iend;
+                (*seg)[jseg].num   = (*seg)[jseg+1].num;
+                (*seg)[jseg].idx   = (*seg)[jseg+1].idx;
+                (*seg)[jseg].nattr = (*seg)[jseg+1].nattr;
+                (*seg)[jseg].aname = (*seg)[jseg+1].aname;
+                (*seg)[jseg].avalu = (*seg)[jseg+1].avalu;
+
+                strcpy((*seg)[jseg].name, (*seg)[jseg+1].name);
+            }
+
+            iseg--;
+            (*nseg)--;
+        }
+    }
+
+    /* check for degenerate Segments */
+    for (jseg = 0; jseg < *nseg; jseg++) {
+        if ((*seg)[jseg].ibeg == (*seg)[jseg].iend) {
+            snprintf(message, 1024, "Segment %d is degenerate", iseg);
+            status = EGADS_DEGEN;
+            goto cleanup;
+        }
+    }
+
+    /* assign the Segment indices */
+    for (iter = 0; iter < *nseg; iter++) {
+        nchange = 0;
+
+        for (iseg = 0; iseg < *nseg; iseg++) {
+            if ((*seg)[iseg].idx > 0) continue;
+
+            for (jseg = 0; jseg < *nseg; jseg++) {
+                if (jseg == iseg || (*seg)[jseg].idx <= 0) continue;
+
+                if ((*seg)[iseg].num  == (*seg)[jseg].num  &&
+                    (*seg)[iseg].ibeg == (*seg)[jseg].iend   ) {
+                    (*seg)[iseg].idx = (*seg)[jseg].idx + 1;
+                    nchange++;
+                    break;
+                }
+            }
+        }
+
+        if (nchange == 0) break;
+    }
+
+#ifdef DEBUG
+    printf("exiting modifySegments\n");
+    for (ipnt = 0; ipnt < *npnt; ipnt++) {
+        printf("Pnt %3d: type=%d, x=%10.5f,%10.5f, y=%10.5f,%10.5f, name=%s\n", ipnt,
+               (*pnt)[ipnt].type,
+               (*pnt)[ipnt].x,
+               (*pnt)[ipnt].x_dot,
+               (*pnt)[ipnt].y,
+               (*pnt)[ipnt].y_dot,
+               (*pnt)[ipnt].name);
+    }
+    for (iseg = 0; iseg < *nseg; iseg++) {
+        printf("Seg %3d: type=%d, ibeg=%3d, iend=%3d, num=%3d, idx=%3d, name=%s\n", iseg,
+               (*seg)[iseg].type,
+               (*seg)[iseg].ibeg,
+               (*seg)[iseg].iend,
+               (*seg)[iseg].num,
+               (*seg)[iseg].idx,
+               (*seg)[iseg].name);
+    }
+#endif
+
+cleanup:
+return status;
 }
 
 
@@ -1961,13 +2295,26 @@ cleanup:
 
 int
 udpSensitivity(ego    ebody,            /* (in)  Body pointer */
-   /*@unused@*/int    npnt,             /* (in)  number of points */
-   /*@unused@*/int    entType,          /* (in)  OCSM entity type */
-   /*@unused@*/int    entIndex,         /* (in)  OCSM entity index (bias-1) */
-   /*@unused@*/double uvs[],            /* (in)  parametric coordinates for evaluation */
-   /*@unused@*/double vels[])           /* (out) velocities */
+               int    npnt_in,          /* (in)  number of points */
+               int    entType,          /* (in)  OCSM entity type */
+               int    entIndex,         /* (in)  OCSM entity index (bias-1) */
+               double uvs[],            /* (in)  parametric coordinates for evaluation */
+               double vels[])           /* (out) velocities */
 {
-    int iudp, judp;
+    int     status = EGADS_SUCCESS;
+
+    int     iudp, judp;
+
+    int     ipnt_in, ipnt, npnt, iseg, nseg, ibeg, iend, outLevel_save;
+    int     nnode, nedge, nface, periodic, attrType, attrLen, iattr;
+    CINT    *tempIlist;
+    double  frac, fracu, fracv, z_pnt_dot, z_beg_dot, z_end_dot, data[18], uvrange[4];
+    CDOUBLE *tempRlist;
+    char    message[80];
+    CCHAR   *tempClist;
+    pnt_T   *pnt=NULL;
+    seg_T   *seg=NULL;
+    ego     context, *enodes, *eedges, *efaces, eface;
 
     ROUTINE(udpSensitivity);
 
@@ -1985,8 +2332,184 @@ udpSensitivity(ego    ebody,            /* (in)  Body pointer */
         return EGADS_NOTMODEL;
     }
 
-    /* this routine is not written yet */
-    return EGADS_NOLOAD;
+    status = EG_getContext(ebody, &context);
+    CHECK_STATUS(EG_getContext);
+
+    /* re-process the Segments (to propagate the velocities) */
+    if (STRLEN(FILENAME(iudp)) > 0) {
+        outLevel_save = ocsmSetOutLevel(0);
+        status = processFile(context, message, &npnt, &pnt, &nseg, &seg, NumUdp, udps);
+        CHECK_STATUS(processFile);
+        (void) ocsmSetOutLevel(outLevel_save);
+
+        status = modifySegments(&npnt, &pnt, &nseg, &seg, message);
+        CHECK_STATUS(modifySegments);
+    } else {
+        status = processSegments(iudp, &npnt, &pnt, &nseg, &seg, NumUdp, udps);
+        CHECK_STATUS(processSegments);
+
+        status = modifySegments(&npnt, &pnt, &nseg, &seg, message);
+        CHECK_STATUS(modifySegments);
+    }
+
+    SPLINT_CHECK_FOR_NULL(pnt);
+    SPLINT_CHECK_FOR_NULL(seg);
+
+    /* get the velocity for a Node */
+    if (entType == OCSM_NODE) {
+        if (npnt_in > 1) {
+            printf("for OCSM_NODE, npnt_in should be 1 (not %d)\n", npnt_in);
+            status = EGADS_INDEXERR;
+            goto cleanup;
+        } else if (entIndex < 1 || entIndex > 2*npnt) {
+            printf("entIndex=%d is not between 1 and %d\n", entIndex, 2*npnt);
+            status = EGADS_INDEXERR;
+            goto cleanup;
+        }
+
+        status = EG_getBodyTopos(ebody, NULL, NODE, &nnode, &enodes);
+        CHECK_STATUS(EG_getBodyTopos);
+
+        status = EG_attributeRet(enodes[entIndex-1], "__nodes__", &attrType, &attrLen,
+                                 &tempIlist, &tempRlist, &tempClist);
+        CHECK_STATUS(EG_attributeRet);
+
+        EG_free(enodes);
+
+        if (tempIlist[0] < npnt) {
+            ipnt      = tempIlist[0];
+            z_pnt_dot = 0;
+        } else {
+            ipnt      = tempIlist[0] - npnt;
+            z_pnt_dot = DEPTH_DOT(iudp);
+        }
+
+        vels[0] = pnt[ipnt].x_dot;
+        vels[1] = pnt[ipnt].y_dot;
+        vels[2] = z_pnt_dot;
+
+    } else if (entType == OCSM_EDGE) {
+        if (entIndex < 1 || entIndex > 2*nseg+npnt) {
+            printf("entIndex=%d is not between 1 and %d\n", entIndex, 2*nseg+npnt);
+            status = EGADS_INDEXERR;
+            goto cleanup;
+        }
+
+        status = EG_getBodyTopos(ebody, NULL, EDGE, &nedge, &eedges);
+        CHECK_STATUS(EG_getBodyTopos);
+
+        status = EG_attributeRet(eedges[entIndex-1], "__nodes__", &attrType, &attrLen,
+                                 &tempIlist, &tempRlist, &tempClist);
+        CHECK_STATUS(EG_attributeRet);
+
+        status = EG_getRange(eedges[entIndex-1], uvrange, &periodic);
+        CHECK_STATUS(EG_getRange);
+
+        EG_free(eedges);
+
+        if (tempIlist[0] < npnt) {
+            ibeg      = tempIlist[0];
+            z_beg_dot = 0;
+        } else {
+            ibeg      = tempIlist[0] - npnt;
+            z_beg_dot = DEPTH_DOT(iudp);
+        }
+        if (tempIlist[1] < npnt) {
+            iend      = tempIlist[1];
+            z_end_dot = 0;
+        } else {
+            iend      = tempIlist[1] - npnt;
+            z_end_dot = DEPTH_DOT(iudp);
+        }
+
+        for (ipnt_in = 0; ipnt_in < npnt_in; ipnt_in++) {
+            frac = (uvs[ipnt_in] - uvrange[0]) / (uvrange[1] - uvrange[0]);
+            if (frac < 0 || frac > 1) {
+                printf("frac out of range: entIndex=%d, uvs[%d]=%12.6f, frac=%12.6f\n", entIndex, ipnt_in, uvs[ipnt_in], frac);
+                exit(0);
+            }
+
+            vels[3*ipnt_in  ] = (1-frac) * pnt[ibeg].x_dot + frac * pnt[iend].x_dot;
+            vels[3*ipnt_in+1] = (1-frac) * pnt[ibeg].y_dot + frac * pnt[iend].y_dot;
+            vels[3*ipnt_in+2] = (1-frac) * z_beg_dot       + frac * z_end_dot;
+        }
+
+    } else if (entType == OCSM_FACE) {
+        if (entIndex < 1 || entIndex > nseg) {
+            printf("entIndex=%d is not between 1 and %d\n", entIndex, nseg);
+            status = EGADS_INDEXERR;
+            goto cleanup;
+        }
+
+        iseg = entIndex - 1;
+        ibeg = seg[iseg].ibeg;
+        iend = seg[iseg].iend;
+
+        status = EG_getBodyTopos(ebody, NULL, FACE, &nface, &efaces);
+        CHECK_STATUS(EG_getBodyTopos);
+
+        eface = efaces[entIndex-1];
+
+        EG_free(efaces);
+
+        for (ipnt_in = 0; ipnt_in < npnt_in; ipnt_in++) {
+            status = EG_evaluate(eface, &(uvs[2*ipnt_in]), data);
+            CHECK_STATUS(EG_evaluate);
+
+            fracu = ((data[0]    -pnt[ibeg].x) * (pnt[iend].x-pnt[ibeg].x)
+                    +(data[1]    -pnt[ibeg].y) * (pnt[iend].y-pnt[ibeg].y))
+                  / ((pnt[iend].x-pnt[ibeg].x) * (pnt[iend].x-pnt[ibeg].x)
+                    +(pnt[iend].y-pnt[ibeg].y) * (pnt[iend].y-pnt[ibeg].y));
+            fracv = data[2] / DEPTH(iudp);
+
+            if        (fracu < -EPS06 || fracu > 1+EPS06) {
+                printf("frac out of range: iseg=%d, fracu=%12.6f\n", iseg, fracu);
+                printf("data    :%12.6f,%12.6f,%12.6f\n", data[0], data[1], data[2]);
+                printf("ibeg=%3d:%12.6f,%12.6f,%12.6f\n", ibeg, pnt[ibeg].x, pnt[ibeg].y, 0.);
+                printf("iend=%3d:%12.6f,%12.6f,%12.6f\n", iend, pnt[iend].x, pnt[iend].y, DEPTH(iudp));
+                exit(0);
+            } else if (fracv < -EPS06 || fracv > 1+EPS06) {
+                printf("frac out of range: iseg=%d, fracv=%12.6f\n", iseg, fracv);
+                printf("data    :%12.6f,%12.6f,%12.6f\n", data[0], data[1], data[2]);
+                printf("ibeg=%3d:%12.6f,%12.6f,%12.6f\n", ibeg, pnt[ibeg].x, pnt[ibeg].y, 0.);
+                printf("iend=%3d:%12.6f,%12.6f,%12.6f\n", iend, pnt[iend].x, pnt[iend].y, DEPTH(iudp));
+                exit(0);
+            }
+
+            vels[3*ipnt_in  ] = (1-fracu) * pnt[ibeg].x_dot + fracu * pnt[iend].x_dot;
+            vels[3*ipnt_in+1] = (1-fracu) * pnt[ibeg].y_dot + fracu * pnt[iend].y_dot;
+            vels[3*ipnt_in+2] =                               fracv * DEPTH_DOT(iudp);
+        }
+
+    } else {
+        status = EGADS_ATTRERR;
+        goto cleanup;
+    }
+
+    status = EGADS_SUCCESS;
+
+cleanup:
+    FREE(pnt);
+
+    if (seg != NULL) {
+        for (iseg = 0; iseg < nseg; iseg++) {
+            if (seg[iseg].aname != NULL) {
+                for (iattr = 0; iattr < seg[iseg].nattr; iattr++) {
+                    FREE(seg[iseg].aname[iattr]);
+                }
+                FREE(seg[iseg].aname);
+            }
+            if (seg[iseg].avalu != NULL) {
+                for (iattr = 0; iattr < seg[iseg].nattr; iattr++) {
+                    FREE(seg[iseg].avalu[iattr]);
+                }
+                FREE(seg[iseg].avalu);
+            }
+        }
+        FREE(seg);
+    }
+
+    return status;
 }
 
 

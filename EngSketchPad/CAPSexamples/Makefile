@@ -67,6 +67,8 @@ CSMTEST=$(patsubst csmData/%,$(TDIR)/csmData/%,$(CSMFILES))
 CORSAIRFILES=$(wildcard corsairlite/*.p*)
 CORSAIRFILES+=$(wildcard corsairlite/capsPhase/csm/*.csm)
 CORSAIRFILES+=$(wildcard corsairlite/capsPhase/pyCAPS/*.py)
+CORSAIRFILES+=$(wildcard corsairlite/multifidelity/csm/*.csm)
+CORSAIRFILES+=$(wildcard corsairlite/multifidelity/pyCAPS/*.py)
 CORSAIRTEST=$(patsubst corsairlite/%,$(TDIR)/corsairlite/%,$(CORSAIRFILES))
 
 REGFILES=$(wildcard regressionTest/*.*)
@@ -85,8 +87,14 @@ $(TDIR)/csmData: | $(TDIR)
 	mkdir -p $(TDIR)/csmData
 $(TDIR)/corsairlite: | $(TDIR)
 	mkdir -p $(TDIR)/corsairlite
+$(TDIR)/corsairlite/capsPhase/csm: | $(TDIR)
 	mkdir -p $(TDIR)/corsairlite/capsPhase/csm
+$(TDIR)/corsairlite/capsPhase/pyCAPS: | $(TDIR)
 	mkdir -p $(TDIR)/corsairlite/capsPhase/pyCAPS
+$(TDIR)/corsairlite/multifidelity/csm: | $(TDIR)
+	mkdir -p $(TDIR)/corsairlite/multifidelity/csm
+$(TDIR)/corsairlite/multifidelity/pyCAPS: | $(TDIR)
+	mkdir -p $(TDIR)/corsairlite/multifidelity/pyCAPS
 $(TDIR)/regressionTest: | $(TDIR)
 	mkdir -p $(TDIR)/regressionTest
 	
@@ -96,7 +104,11 @@ $(PYTEST): $(TDIR)/pyCAPS/%.py: pyCAPS/%.py | $(TDIR)/pyCAPS
 $(CSMTEST): $(TDIR)/csmData/%: csmData/% | $(TDIR)/csmData
 	cp -p -f $< $@
 
-$(CORSAIRTEST): $(TDIR)/corsairlite/%: corsairlite/% | $(TDIR)/corsairlite
+$(CORSAIRTEST): $(TDIR)/corsairlite/%: corsairlite/% | $(TDIR)/corsairlite \
+	$(TDIR)/corsairlite/capsPhase/csm \
+	$(TDIR)/corsairlite/capsPhase/pyCAPS \
+	$(TDIR)/corsairlite/multifidelity/csm \
+	$(TDIR)/corsairlite/multifidelity/pyCAPS
 	cp -p -f $< $@
 
 $(REGTEST): $(TDIR)/regressionTest/%: regressionTest/% | $(TDIR)/regressionTest

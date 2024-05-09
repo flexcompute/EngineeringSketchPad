@@ -1,0 +1,60 @@
+# select_4
+# written by John Dannenhoffer
+
+# make a box (which automatically selects it)
+BOX       0  0  0  4  3  2
+ASSERT    @nface  6
+
+# make a cylinder (which automatically selects it)
+CYLINDER  0  5  1  4  5  1  1
+ASSERT    @nface  4
+
+# select the box
+SELECT    BODY  1
+ASSERT    @nface  6
+
+# turn the visibility of the Faces off
+SELECT    FACE
+ATTRIBUTE _viz  $off
+
+# select both the xmin and xmax Faces
+SELECT    FACE  @ibody  1
+SELECT    ADD   @ibody  2
+ASSERT    @sellist.size 2
+
+# select all Faces except the xmax Face
+SELECT    FACE
+SELECT    SUB   @ibody  2
+ASSERT    @sellist.size 5
+
+# now select only the xmax Face
+SELECT    NOT
+ASSERT    @sellist.size 1
+ASSERT    @sellist[1]   2
+
+# select all Faces and sort in based upon zcg
+SELECT    FACE               # xmin, xmax, ymin, ymax, zmin, zmax
+SELECT    SORT  $zcg         # zmin, xmin, xmax, ymin, ymax, zmax
+
+DIMENSION myList  @sellist.size  1
+SET       myList  @sellist
+
+SELECT    FACE  @ibody  5               # zmin
+ASSERT    myList[1]     @sellist[1]
+SELECT    FACE  @ibody  1               # xmin
+ASSERT    myList[2]     @sellist[1]
+SELECT    FACE  @ibody  2               # xmax
+ASSERT    myList[3]     @sellist[1]
+SELECT    FACE  @ibody  3               # ymin
+ASSERT    myList[4]     @sellist[1]
+SELECT    FACE  @ibody  4               # ymax
+ASSERT    myList[5]     @sellist[1]
+SELECT    FACE  @ibody  6               # zmax
+ASSERT    myList[6]     @sellist[1]
+
+END
+
+
+
+
+

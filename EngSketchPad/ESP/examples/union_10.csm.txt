@@ -1,0 +1,35 @@
+# union_10 (Solid/Solid/Solid)
+# written by John Dannenhoffer
+
+# generate box and two cylinder SolidBodys
+BOX       0  0  0  3  2  1
+STORE     theBox
+
+CYLINDER  3/2  -1  1/2  3/2  3  1/2  1/4
+STORE     theCylinder1
+
+CYLINDER  3/2   1  -1   3/2  1   2   1/4
+STORE     theCylinder2
+
+# show outlines of theBox, theCylinder1, and theCylinder2
+RESTORE   theBox
+ATTRIBUTE _name  $theBox
+ATTRIBUTE _viz   $off
+
+RESTORE   theCylinder1
+ATTRIBUTE _name  $theCylinder1
+ATTRIBUTE _viz   $off
+
+RESTORE   theCylinder2
+ATTRIBUTE _name  $theCylinder2
+ATTRIBUTE _viz   $off
+
+# perform the UNION (SolidBody)
+MARK
+RESTORE   theBox
+RESTORE   theCylinder1
+RESTORE   theCylinder2
+UNION     1
+ASSERT    @itype 3
+
+END

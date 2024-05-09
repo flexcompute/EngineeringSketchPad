@@ -7,13 +7,14 @@
 #include "cardUtils.h" // Card writing utility
 #include "nastranCards.h"
 
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
 
 /*
  * Write AELIST card
  */
 int nastranCard_aelist(FILE *fp, int *sid, int numE, int *e,
                        feaFileTypeEnum formatType){
-    
+
     int status;
 
     cardStruct card;
@@ -48,7 +49,7 @@ int nastranCard_aelist(FILE *fp, int *sid, int numE, int *e,
 int nastranCard_aero(FILE *fp, const int *acsid, const double *velocity, const double *refc,
                      const double *rhoref, const int *symxz, const int *symxy,
                      feaFileTypeEnum formatType) {
-    
+
     int status;
 
     cardStruct card;
@@ -99,7 +100,7 @@ int nastranCard_aero(FILE *fp, const int *acsid, const double *velocity, const d
 int nastranCard_aeros(FILE *fp, const int *acsid, const int *rcsid, const double *refc,
                       const double *refb, const double *refs, const int *symxz,
                       const int *symxy, feaFileTypeEnum formatType) {
-    
+
     int status;
 
     cardStruct card;
@@ -152,10 +153,10 @@ int nastranCard_aeros(FILE *fp, const int *acsid, const int *rcsid, const double
  * Write AESURF card
  */
 int nastranCard_aesurf(FILE *fp, int *id, char *label, int *cid, int *alid,
-                       double *eff, char *ldw, int *crefc, int *crefs, 
+                       double *eff, char *ldw, int *crefc, int *crefs,
                        double *pllim, double *pulim, double *hmllim, double *hmulim,
                        int *tqllim, int *tqulim, feaFileTypeEnum formatType) {
-    
+
     int status;
 
     cardStruct card;
@@ -235,12 +236,13 @@ int nastranCard_aesurf(FILE *fp, int *id, char *label, int *cid, int *alid,
 /*
  * Write CAERO1 card
  */
-int nastranCard_caero1(FILE *fp, const int *eid, const int *pid, const int *cp,
-                       const int *nspan, const int *nchord, const int *lspan, const int *lchord,
+int nastranCard_caero1(FILE *fp, const int *eid, const int *pid, /*@null@*/ const int *cp,
+                       /*@null@*/ const int *nspan, /*@null@*/ const int *nchord,
+                       /*@null@*/ const int *lspan, /*@null@*/ const int *lchord,
                        const int *igid, const double xyz1[3], const double xyz4[3],
                        const double *x12, const double *x43,
                        feaFileTypeEnum formatType) {
-    
+
     int status;
 
     cardStruct card;
@@ -316,7 +318,7 @@ int nastranCard_cbar(FILE *fp, const int *eid, const int *pid, const int g[2],
                      const double x[3], const int *g0, const int *pa, const int *pb,
                      const double wa[3], const double wb[3],
                      feaFileTypeEnum formatType) {
-    
+
     int status;
 
     cardStruct card;
@@ -376,7 +378,7 @@ int nastranCard_cbar(FILE *fp, const int *eid, const int *pid, const int g[2],
         status = card_addDoubleArray(&card, 3, wb);
         if (status != CAPS_SUCCESS) goto cleanup;
     }
-    
+
 
     // write card to file
     card_write(&card, fp);
@@ -393,7 +395,7 @@ int nastranCard_cbar(FILE *fp, const int *eid, const int *pid, const int g[2],
  */
 int nastranCard_cdamp2(FILE *fp, const int *eid, const double *b, const int *g1, const int *g2,
                        const int *c1, const int *c2, feaFileTypeEnum formatType) {
-    
+
     int status;
 
     cardStruct card;
@@ -444,7 +446,7 @@ int nastranCard_cdamp2(FILE *fp, const int *eid, const double *b, const int *g1,
 int nastranCard_celas2(FILE *fp, const int *eid, const double *k, const int *g1, const int *g2,
                        const int *c1, const int *c2, const double *ge, const double *s,
                        feaFileTypeEnum formatType) {
-    
+
     int status;
 
     cardStruct card;
@@ -502,7 +504,7 @@ int nastranCard_celas2(FILE *fp, const int *eid, const double *k, const int *g1,
  */
 int nastranCard_cmass2(FILE *fp, const int *eid, const double *m, const int *g1, const int *g2,
                        const int *c1, const int *c2, feaFileTypeEnum formatType) {
-    
+
     int status;
 
     cardStruct card;
@@ -553,7 +555,7 @@ int nastranCard_cmass2(FILE *fp, const int *eid, const double *m, const int *g1,
 int nastranCard_conm2(FILE *fp, const int *eid, const int *g, const int *cid, const double *m,
                       const double x[3], const double i[6],
                       feaFileTypeEnum formatType) {
-    
+
     int status;
 
     cardStruct card;
@@ -614,7 +616,7 @@ int nastranCard_conm2(FILE *fp, const int *eid, const int *g, const int *cid, co
 static int _cord2Card(const char *cardname, FILE *fp, const int *cid, const int *rid,
                       double a[3], double b[3], double c[3],
                       feaFileTypeEnum formatType) {
-    
+
     int status;
 
     cardStruct card;
@@ -667,7 +669,7 @@ int nastranCard_cord2c(FILE *fp, const int *cid, const int *rid,
 /*
  * Write CORD2R card
  */
-int nastranCard_cord2r(FILE *fp, const int *cid, const int *rid,
+int nastranCard_cord2r(FILE *fp, const int *cid, /*@null@*/ const int *rid,
                        double a[3], double b[3], double c[3],
                        feaFileTypeEnum formatType) {
     return _cord2Card("CORD2R", fp, cid, rid, a, b, c, formatType);
@@ -685,10 +687,10 @@ int nastranCard_cord2s(FILE *fp, const int *cid, const int *rid,
 /*
  * Write CQUAD4 card
  */
-int nastranCard_cquad4(FILE *fp, int *eid, int *pid, int g[4], 
+int nastranCard_cquad4(FILE *fp, int *eid, int *pid, int g[4],
                        double *theta, int *mcid, double *zoffs,
                        double t[4], feaFileTypeEnum formatType) {
-    
+
     int status;
 
     cardStruct card;
@@ -750,10 +752,10 @@ int nastranCard_cquad4(FILE *fp, int *eid, int *pid, int g[4],
 /*
  * Write CQUAD8 card
  */
-int nastranCard_cquad8(FILE *fp, int *eid, int *pid, int g[8], 
+int nastranCard_cquad8(FILE *fp, int *eid, int *pid, int g[8],
                        double *theta, int *mcid, double *zoffs,
                        double t[4], feaFileTypeEnum formatType) {
-    
+
     int status;
 
     cardStruct card;
@@ -816,7 +818,7 @@ int nastranCard_cquad8(FILE *fp, int *eid, int *pid, int g[8],
  */
 int nastranCard_cshear(FILE *fp, int *eid, int *pid, int g[4],
                        feaFileTypeEnum formatType) {
-    
+
     int status;
 
     cardStruct card;
@@ -852,10 +854,10 @@ int nastranCard_cshear(FILE *fp, int *eid, int *pid, int g[4],
 /*
  * Write CTRIA3 card
  */
-int nastranCard_ctria3(FILE *fp, int *eid, int *pid, int g[3], 
+int nastranCard_ctria3(FILE *fp, int *eid, int *pid, int g[3],
                        double *theta, int *mcid, double *zoffs,
                        double t[3], feaFileTypeEnum formatType) {
-    
+
     int status;
 
     cardStruct card;
@@ -920,10 +922,10 @@ int nastranCard_ctria3(FILE *fp, int *eid, int *pid, int g[3],
 /*
  * Write CTRIA6 card
  */
-int nastranCard_ctria6(FILE *fp, int *eid, int *pid, int g[6], 
+int nastranCard_ctria6(FILE *fp, int *eid, int *pid, int g[6],
                        double *theta, int *mcid, double *zoffs,
                        double t[3], feaFileTypeEnum formatType) {
-    
+
     int status;
 
     cardStruct card;
@@ -978,12 +980,12 @@ int nastranCard_ctria6(FILE *fp, int *eid, int *pid, int g[6],
         return status;
 }
 
-/* 
+/*
  * Write DCONADD card
  */
 int nastranCard_dconadd(FILE *fp, const int *dcid, int numDC, const int *dc,
                         feaFileTypeEnum formatType) {
-    
+
     int status;
 
     cardStruct card;
@@ -1017,7 +1019,7 @@ int nastranCard_dconadd(FILE *fp, const int *dcid, int numDC, const int *dc,
 int nastranCard_dconstr(FILE *fp, const int *dcid, const int *rid,
                         const double *lallow, const double *uallow,
                         feaFileTypeEnum formatType) {
-    
+
     int status;
 
     cardStruct card;
@@ -1059,7 +1061,7 @@ int nastranCard_dconstr(FILE *fp, const int *dcid, const int *rid,
  */
 int nastranCard_ddval(FILE *fp, const int *id, int numDV, const double *dval,
                       feaFileTypeEnum formatType) {
-    
+
     int status;
 
     cardStruct card;
@@ -1145,7 +1147,7 @@ static void _freeFields(int numFields, char **fields) {
 int nastranCard_deqatn(FILE *fp, const int *eqid, int numEquation,
                        char **equation) {
 
-    
+
     int i, status;
     char **fields = NULL;
 
@@ -1197,7 +1199,7 @@ int nastranCard_deqatn(FILE *fp, const int *eqid, int numEquation,
 int nastranCard_desvar(FILE *fp, const int *id, const char *label, const double *xinit,
                        const double *xlb, const double *xub, const double *delxv, const int *ddval,
                        feaFileTypeEnum formatType) {
-    
+
     int status;
 
     cardStruct card;
@@ -1253,7 +1255,7 @@ int nastranCard_desvar(FILE *fp, const int *id, const char *label, const double 
 int nastranCard_dlink(FILE *fp, const int *id, const int *ddvid, const double *c0,
                       const double *cmult, const int numDV, const int *idv, const double *c,
                       feaFileTypeEnum formatType) {
-    
+
     int i, status;
 
     cardStruct card;
@@ -1303,11 +1305,11 @@ int nastranCard_dlink(FILE *fp, const int *id, const int *ddvid, const double *c
 /*
  * Write DMI card
  */
-int nastranCard_dmi(FILE *fp, char *name, int *form, 
-                    int *tin, int* tout, int m, int n, 
+int nastranCard_dmi(FILE *fp, char *name, int *form,
+                    int *tin, int* tout, int m, int n,
                     double *a, double *b,
                     feaFileTypeEnum formatType) {
-    
+
     int i, j, k, status;
 
     cardStruct card;
@@ -1352,6 +1354,8 @@ int nastranCard_dmi(FILE *fp, char *name, int *form,
     // write header card to file
     card_write(&card, fp);
 
+    card_destroy(&card);
+
     // columns
     for (i = 0; i < n; i++) {
 
@@ -1387,7 +1391,6 @@ int nastranCard_dmi(FILE *fp, char *name, int *form,
             }
         }
 
-
         // write column card to file
         card_write(&card, fp);
         card_destroy(&card);
@@ -1403,10 +1406,10 @@ int nastranCard_dmi(FILE *fp, char *name, int *form,
 /*
  * Write DOPTPRM card
  */
-int nastranCard_doptprm(FILE *fp, int numParam, char **param, 
+int nastranCard_doptprm(FILE *fp, int numParam, char **param,
                         int *paramType, void **val,
                         feaFileTypeEnum formatType){
-    
+
     int i, status;
 
     cardStruct card;
@@ -1452,11 +1455,13 @@ cleanup:
  * Write DRESP1 card
  */
 int nastranCard_dresp1(FILE *fp, const int *id, const char *label, const char *rtype,
-                       const char *ptype, const int *region, int attaType, const void *atta,
+                       const char *ptype, const int *region,
+                       int attaType, const void *atta,
                        int attbType, const void *attb,
                        int attsType, int numAtts, const void *atts,
+                       int blankIntegerMode, // flag for if there are blank integers in array
                        feaFileTypeEnum formatType) {
-    
+
     int status;
 
     cardStruct card;
@@ -1526,10 +1531,14 @@ int nastranCard_dresp1(FILE *fp, const int *id, const char *label, const char *r
         card_addBlank(&card);
     }
     else if (attsType == Integer) {
-        status = card_addIntegerArray(&card, numAtts, (int*) atts);
+        if (blankIntegerMode) {
+            status = card_addIntegerOrBlankArray(&card, numAtts, (const int**) atts);
+        } else {
+            status = card_addIntegerArray(&card, numAtts, (const int*) atts);
+        }
     }
     else if (attsType == Double) {
-        status = card_addDoubleArray(&card, numAtts, (double*) atts);
+        status = card_addDoubleArray(&card, numAtts, (const double*) atts);
     }
     else {
         status = CAPS_BADVALUE;
@@ -1552,12 +1561,15 @@ int nastranCard_dresp1(FILE *fp, const int *id, const char *label, const char *r
 /*
  * Write DRESP2 card
  */
-int nastranCard_dresp2(FILE *fp, int *id, char *label, int *eqid,
-                       int *region, int numDV, int *dvid, int numLabl,
-                       char **labl, int numNR, int *nr, int numG, 
-                       int *g, int *c, int numNRR, int *nrr,
+int nastranCard_dresp2(FILE *fp, int *id, char *label, int *eqid, int *region,
+                       int numDV, int *dvid,
+                       int numLabl, char **labl,
+                       int numNR, int *nr,
+                       int numG, int *g,
+                       int *c,
+                       int numNRR, int *nrr,
                        feaFileTypeEnum formatType) {
-    
+
     int i, status;
 
     cardStruct card;
@@ -1710,7 +1722,7 @@ int nastranCard_dresp2(FILE *fp, int *id, char *label, int *eqid,
  */
 int nastranCard_dtable(FILE *fp, int numVal, char **labl, double *valu,
                        feaFileTypeEnum formatType) {
-    
+
     int i, status;
 
     cardStruct card;
@@ -1748,7 +1760,7 @@ int nastranCard_dvcrel1(FILE *fp, const int *id, const char *type, const int *ei
                         const char *cpname, const double *cpmin, const double *cpmax,
                         const double *c0, int numDV, const int *dvid, const double *coeff,
                         feaFileTypeEnum formatType) {
-    
+
     int i, status;
 
     cardStruct card;
@@ -1817,7 +1829,7 @@ int nastranCard_dvmrel1(FILE *fp, const int *id, const char *type, const int *mi
                         const char *mpname, const double *mpmin, const double *mpmax,
                         const double *c0, int numDV, const int *dvid, const double *coeff,
                         feaFileTypeEnum formatType) {
-    
+
     int i, status;
 
     cardStruct card;
@@ -1887,7 +1899,7 @@ int nastranCard_dvprel1(FILE *fp, const int *id, const char *type, const int *pi
                         const double *pmax, const double *c0,
                         int numDV, const int *dvid, const double *coef,
                         feaFileTypeEnum formatType) {
-    
+
     int i, status;
 
     cardStruct card;
@@ -1913,7 +1925,7 @@ int nastranCard_dvprel1(FILE *fp, const int *id, const char *type, const int *pi
     // FID/PNAME
     if (fid != NULL)
         status = card_addInteger(&card, *fid);
-    else 
+    else
         status = card_addString(&card, pname);
     if (status != CAPS_SUCCESS) goto cleanup;
 
@@ -1959,7 +1971,7 @@ int nastranCard_dvprel1(FILE *fp, const int *id, const char *type, const int *pi
 int nastranCard_eigr(FILE *fp, const int *sid, const char *method, const double *f1,
                      const double *f2, const int *ne, const int *nd, const char *norm,
                      const int *g, const int *c, feaFileTypeEnum formatType) {
-    
+
     int status;
 
     cardStruct card;
@@ -2001,13 +2013,15 @@ int nastranCard_eigr(FILE *fp, const int *sid, const char *method, const double 
     status = card_addString(&card, norm);
     if (status != CAPS_SUCCESS) goto cleanup;
 
-    // G
-    status = card_addIntegerOrBlank(&card, g);
-    if (status != CAPS_SUCCESS) goto cleanup;
+    if (strcmp(norm,"POINT") == 0) {
+        // G
+        status = card_addIntegerOrBlank(&card, g);
+        if (status != CAPS_SUCCESS) goto cleanup;
 
-    // C
-    status = card_addIntegerOrBlank(&card, c);
-    if (status != CAPS_SUCCESS) goto cleanup;
+        // C
+        status = card_addIntegerOrBlank(&card, c);
+        if (status != CAPS_SUCCESS) goto cleanup;
+    }
 
     // write card to file
     card_write(&card, fp);
@@ -2026,7 +2040,7 @@ int nastranCard_eigrl(FILE *fp, const int *sid, const double *v1, const double *
                       const int *nd, int *msglvl, int *maxset,
                       double *shfscl, char *norm,
                       feaFileTypeEnum formatType) {
-    
+
     int status;
 
     cardStruct card;
@@ -2084,7 +2098,7 @@ int nastranCard_eigrl(FILE *fp, const int *sid, const double *v1, const double *
  */
 int nastranCard_flfact(FILE *fp, const int *sid, int numF, const double *f,
                        feaFileTypeEnum formatType) {
-    
+
     int status;
 
     cardStruct card;
@@ -2121,7 +2135,7 @@ int nastranCard_flutter(FILE *fp, const int *sid, const char *method, const int 
                         const int *mach, const int *rfreq, const char *imeth,
                         const int *nvalue, const double *eps,
                         feaFileTypeEnum formatType) {
-    
+
     int status;
 
     cardStruct card;
@@ -2180,7 +2194,7 @@ int nastranCard_flutter(FILE *fp, const int *sid, const char *method, const int 
 int nastranCard_force(FILE *fp, const int *sid, const int *g, const int *cid,
                       const double *f, const double n[3],
                       feaFileTypeEnum formatType) {
-    
+
     int status;
 
     cardStruct card;
@@ -2227,7 +2241,7 @@ int nastranCard_force(FILE *fp, const int *sid, const int *g, const int *cid,
 int nastranCard_grav(FILE *fp, const int *sid, const int *cid,
                      const double *g, const double n[3],
                      feaFileTypeEnum formatType) {
-    
+
     int status;
 
     cardStruct card;
@@ -2267,9 +2281,9 @@ int nastranCard_grav(FILE *fp, const int *sid, const int *cid,
 /*
  * Write LOAD card
  */
-int nastranCard_load(FILE *fp, int *sid, double *s, int numL, 
+int nastranCard_load(FILE *fp, int *sid, double *s, int numL,
                      double *ls, int *l, feaFileTypeEnum formatType)  {
-    
+
     int i, status;
 
     cardStruct card;
@@ -2310,13 +2324,62 @@ int nastranCard_load(FILE *fp, int *sid, double *s, int numL,
 }
 
 /*
+ * Write MASSSET card
+ */
+int nastranCard_massset(FILE *fp, const int *eid, const int *id2, feaFileTypeEnum formatType) {
+
+    int status;
+
+    cardStruct card;
+
+    if (fp == NULL) return CAPS_IOERR;
+
+    // begin card
+    status = card_initiate(&card, "MASSSET", formatType);
+    if (status != CAPS_SUCCESS) goto cleanup;
+
+    // EID
+    status = card_addInteger(&card, *eid);
+    if (status != CAPS_SUCCESS) goto cleanup;
+
+    // S0
+    status = card_addDouble(&card, 1.0);
+    if (status != CAPS_SUCCESS) goto cleanup;
+
+    // S1
+    status = card_addDouble(&card, 1.0);
+    if (status != CAPS_SUCCESS) goto cleanup;
+
+    // ID1 - Baseline model is ID=0
+    status = card_addInteger(&card, 0);
+    if (status != CAPS_SUCCESS) goto cleanup;
+
+    // S2
+    status = card_addDouble(&card, 1.0);
+    if (status != CAPS_SUCCESS) goto cleanup;
+
+    // ID2
+    status = card_addInteger(&card, *id2);
+    if (status != CAPS_SUCCESS) goto cleanup;
+
+    // write card to file
+    card_write(&card, fp);
+
+    cleanup:
+
+        card_destroy(&card);
+
+        return status;
+}
+
+/*
  * Write MAT1 card
  */
 int nastranCard_mat1(FILE *fp, const int *mid, const double *e, const double* g,
                      const double *nu, const double *rho, const double *a, const double *tref,
                      const double *ge, const double *st, const double *sc, const double *ss,
                      const int *mcsid, feaFileTypeEnum formatType) {
-    
+
     int status;
 
     cardStruct card;
@@ -2348,7 +2411,7 @@ int nastranCard_mat1(FILE *fp, const int *mid, const double *e, const double* g,
     if (status != CAPS_SUCCESS) goto cleanup;
 
     // A
-    status = card_addDouble(&card, *a);
+    status = card_addDoubleOrBlank(&card, a);
     if (status != CAPS_SUCCESS) goto cleanup;
 
     // TREF
@@ -2356,7 +2419,7 @@ int nastranCard_mat1(FILE *fp, const int *mid, const double *e, const double* g,
     if (status != CAPS_SUCCESS) goto cleanup;
 
     // GE
-    status = card_addDouble(&card, *ge);
+    status = card_addDoubleOrBlank(&card, ge);
     if (status != CAPS_SUCCESS) goto cleanup;
 
     // ST
@@ -2386,6 +2449,200 @@ int nastranCard_mat1(FILE *fp, const int *mid, const double *e, const double* g,
 }
 
 /*
+ * Write MAT2 card
+ */
+int nastranCard_mat2(FILE *fp, const int *mid, const double *g11, const double *g12,
+                     const double *g13, const double *g22, const double *g23, const double *g33,
+                     const double *rho, const double *a1, const double *a2, const double *a3,
+                     const double *tref, const double *ge, const double *st, const double *sc, const double *ss,
+                     const int *mcsid, const double *ge11, const double *ge12, const double *ge13,
+                     const double *ge22, const double *ge23, const double *ge33,
+                     feaFileTypeEnum formatType) {
+
+    int status;
+
+    cardStruct card;
+
+    if (fp == NULL) return CAPS_IOERR;
+
+    // begin card
+    status = card_initiate(&card, "MAT2", formatType);
+    if (status != CAPS_SUCCESS) goto cleanup;
+
+    // MID
+    status = card_addInteger(&card, *mid);
+    if (status != CAPS_SUCCESS) goto cleanup;
+
+    // G11, G12, G13, G22, G23, G33
+    status = card_addDoubleOrBlank(&card, g11);
+    if (status != CAPS_SUCCESS) goto cleanup;
+    status = card_addDoubleOrBlank(&card, g12);
+    if (status != CAPS_SUCCESS) goto cleanup;
+    status = card_addDoubleOrBlank(&card, g13);
+    if (status != CAPS_SUCCESS) goto cleanup;
+    status = card_addDoubleOrBlank(&card, g22);
+    if (status != CAPS_SUCCESS) goto cleanup;
+    status = card_addDoubleOrBlank(&card, g23);
+    if (status != CAPS_SUCCESS) goto cleanup;
+    status = card_addDoubleOrBlank(&card, g33);
+    if (status != CAPS_SUCCESS) goto cleanup;
+
+    // RHO
+    status = card_addDouble(&card, *rho);
+    if (status != CAPS_SUCCESS) goto cleanup;
+
+    // A1, A2, A3
+    status = card_addDoubleOrBlank(&card, a1);
+    if (status != CAPS_SUCCESS) goto cleanup;
+    status = card_addDoubleOrBlank(&card, a2);
+    if (status != CAPS_SUCCESS) goto cleanup;
+    status = card_addDoubleOrBlank(&card, a3);
+    if (status != CAPS_SUCCESS) goto cleanup;
+
+    // TREF
+    status = card_addDoubleOrBlank(&card, tref);
+    if (status != CAPS_SUCCESS) goto cleanup;
+
+    // GE
+    status = card_addDoubleOrBlank(&card, ge);
+    if (status != CAPS_SUCCESS) goto cleanup;
+
+    // ST, SC, SS
+    status = card_addDoubleOrBlank(&card, st);
+    if (status != CAPS_SUCCESS) goto cleanup;
+    status = card_addDoubleOrBlank(&card, sc);
+    if (status != CAPS_SUCCESS) goto cleanup;
+    status = card_addDoubleOrBlank(&card, ss);
+    if (status != CAPS_SUCCESS) goto cleanup;
+
+    // MCSID
+    status = card_addIntegerOrBlank(&card, mcsid);
+    if (status != CAPS_SUCCESS) goto cleanup;
+
+    // GEij
+    status = card_addDoubleOrBlank(&card, ge11);
+    if (status != CAPS_SUCCESS) goto cleanup;
+    status = card_addDoubleOrBlank(&card, ge12);
+    if (status != CAPS_SUCCESS) goto cleanup;
+    status = card_addDoubleOrBlank(&card, ge13);
+    if (status != CAPS_SUCCESS) goto cleanup;
+    status = card_addDoubleOrBlank(&card, ge22);
+    if (status != CAPS_SUCCESS) goto cleanup;
+    status = card_addDoubleOrBlank(&card, ge23);
+    if (status != CAPS_SUCCESS) goto cleanup;
+    status = card_addDoubleOrBlank(&card, ge33);
+    if (status != CAPS_SUCCESS) goto cleanup;
+
+    // write card to file
+    card_write(&card, fp);
+
+    cleanup:
+
+        card_destroy(&card);
+
+        return status;
+}
+
+/*
+ * Write MAT4 card
+ */
+int nastranCard_mat4(FILE *fp, const int *mid, const double *k, const double *cp,
+                    const double *rho, const double *H, const double *HGEN, feaFileTypeEnum formatType) {
+
+    int status;
+
+    cardStruct card;
+
+    if (fp == NULL) return CAPS_IOERR;
+
+    // begin card
+    status = card_initiate(&card, "MAT4", formatType);
+    if (status != CAPS_SUCCESS) goto cleanup;
+
+    // MID
+    status = card_addInteger(&card, *mid+100); // for TACS to associate the cards
+    if (status != CAPS_SUCCESS) goto cleanup;
+
+    // K
+    status = card_addDouble(&card, *k);
+    if (status != CAPS_SUCCESS) goto cleanup;
+
+    // CP
+    status = card_addDouble(&card, *cp);
+    if (status != CAPS_SUCCESS) goto cleanup;
+
+    // RHO
+    status = card_addDouble(&card, *rho);
+    if (status != CAPS_SUCCESS) goto cleanup;
+
+    // H
+    status = card_addDoubleOrBlank(&card, H);
+    if (status != CAPS_SUCCESS) goto cleanup;
+
+    // HGEN
+    status = card_addDoubleOrBlank(&card, HGEN);
+    if (status != CAPS_SUCCESS) goto cleanup;
+
+    // write card to file
+    card_write(&card, fp);
+
+    cleanup:
+
+        card_destroy(&card);
+
+        return status;
+}
+
+
+/*
+ * Write MAT5 card
+ */
+int nastranCard_mat5(FILE *fp, const int *mid, const double *k, const double *cp,
+                     const double *rho, const double *HGEN, feaFileTypeEnum formatType) {
+
+    int i, status;
+
+    cardStruct card;
+
+    if (fp == NULL) return CAPS_IOERR;
+
+    // begin card
+    status = card_initiate(&card, "MAT5", formatType);
+    if (status != CAPS_SUCCESS) goto cleanup;
+
+    // MID
+    status = card_addInteger(&card, *mid+100); // for TACS to associate the cards
+    if (status != CAPS_SUCCESS) goto cleanup;
+
+    // KXX, KXY, KXZ, KYY, KYZ, KZZ
+    for (i = 0; i < 6; i++) {
+      status = card_addDouble(&card, k[i]);
+      if (status != CAPS_SUCCESS) goto cleanup;
+    }
+
+    // CP
+    status = card_addDouble(&card, *cp);
+    if (status != CAPS_SUCCESS) goto cleanup;
+
+    // RHO
+    status = card_addDouble(&card, *rho);
+    if (status != CAPS_SUCCESS) goto cleanup;
+
+    // HGEN
+    status = card_addDoubleOrBlank(&card, HGEN);
+    if (status != CAPS_SUCCESS) goto cleanup;
+
+    // write card to file
+    card_write(&card, fp);
+
+cleanup:
+
+    card_destroy(&card);
+
+    return status;
+}
+
+/*
  * Write MAT8 card
  */
 int nastranCard_mat8(FILE *fp, const int *mid, const double *e1, const double *e2,
@@ -2394,8 +2651,19 @@ int nastranCard_mat8(FILE *fp, const int *mid, const double *e1, const double *e
                      const double *tref, const double *xt, const double *xc,
                      const double *yt, const double *yc, const double *s, const double *ge,
                      const double *f12, const double *strn,
+                     const double *cs, const double *ec, const double *gc,
+                     const double *alpha0, const double *sb, const double *ef1,
+                     const double *nuf12, const double *msmf,
+                     const double *pnpt, const double *pnpc,
+                     const char *ft,
+                     const double *nb, const double *e3,
+                     const double *nu23, const double *nu31,
+                     const double *e1rsf, const double *e2rsf,
+                     const double *g12rsf, const double *g1zrsf, const double *g2zrsf,
+                     const int *te1rsf, const int *te2rsf,
+                     const int *tg12rsf, const int *tg1zrsf, const int *tg2zrsf,
                      feaFileTypeEnum formatType) {
-    
+
     int status;
 
     cardStruct card;
@@ -2474,6 +2742,112 @@ int nastranCard_mat8(FILE *fp, const int *mid, const double *e1, const double *e
     status = card_addDoubleOrBlank(&card, strn);
     if (status != CAPS_SUCCESS) goto cleanup;
 
+    // CS, EC, GC
+    status = card_addDoubleOrBlank(&card, cs);
+    if (status != CAPS_SUCCESS) goto cleanup;
+    status = card_addDoubleOrBlank(&card, ec);
+    if (status != CAPS_SUCCESS) goto cleanup;
+    status = card_addDoubleOrBlank(&card, gc);
+    if (status != CAPS_SUCCESS) goto cleanup;
+
+    // ALPHA0
+    status = card_addDoubleOrBlank(&card, alpha0);
+    if (status != CAPS_SUCCESS) goto cleanup;
+
+    // SB
+    status = card_addDoubleOrBlank(&card, sb);
+    if (status != CAPS_SUCCESS) goto cleanup;
+
+    // EF1
+    status = card_addDoubleOrBlank(&card, ef1);
+    if (status != CAPS_SUCCESS) goto cleanup;
+
+    // NUF12
+    status = card_addDoubleOrBlank(&card, nuf12);
+    if (status != CAPS_SUCCESS) goto cleanup;
+
+    // MSMF
+    status = card_addDoubleOrBlank(&card, msmf);
+    if (status != CAPS_SUCCESS) goto cleanup;
+
+    // PNPT
+    status = card_addDoubleOrBlank(&card, pnpt);
+    if (status != CAPS_SUCCESS) goto cleanup;
+
+    // PNPC
+    status = card_addDoubleOrBlank(&card, pnpc);
+    if (status != CAPS_SUCCESS) goto cleanup;
+
+    status = card_addBlank(&card);
+    if (status != CAPS_SUCCESS) goto cleanup;
+
+    // FT
+    status = card_addString(&card, ft);
+    if (status != CAPS_SUCCESS) goto cleanup;
+
+    // NB
+    status = card_addDoubleOrBlank(&card, nb);
+    if (status != CAPS_SUCCESS) goto cleanup;
+
+    // E3
+    status = card_addDoubleOrBlank(&card, e3);
+    if (status != CAPS_SUCCESS) goto cleanup;
+
+    // NU23
+    status = card_addDoubleOrBlank(&card, nu23);
+    if (status != CAPS_SUCCESS) goto cleanup;
+
+    // NU31
+    status = card_addDoubleOrBlank(&card, nu31);
+    if (status != CAPS_SUCCESS) goto cleanup;
+
+    // E1RSF
+    status = card_addDoubleOrBlank(&card, e1rsf);
+    if (status != CAPS_SUCCESS) goto cleanup;
+
+    // E2RSF
+    status = card_addDoubleOrBlank(&card, e2rsf);
+    if (status != CAPS_SUCCESS) goto cleanup;
+
+    // G12RSF
+    status = card_addDoubleOrBlank(&card, g12rsf);
+    if (status != CAPS_SUCCESS) goto cleanup;
+
+    // G1ZRSF
+    status = card_addDoubleOrBlank(&card, g1zrsf);
+    if (status != CAPS_SUCCESS) goto cleanup;
+
+    // G2ZRSF
+    status = card_addDoubleOrBlank(&card, g2zrsf);
+    if (status != CAPS_SUCCESS) goto cleanup;
+
+    status = card_addBlank(&card);
+    if (status != CAPS_SUCCESS) goto cleanup;
+    status = card_addBlank(&card);
+    if (status != CAPS_SUCCESS) goto cleanup;
+    status = card_addBlank(&card);
+    if (status != CAPS_SUCCESS) goto cleanup;
+
+    // TE1RSF
+    status = card_addIntegerOrBlank(&card, te1rsf);
+    if (status != CAPS_SUCCESS) goto cleanup;
+
+    // TE2RSF
+    status = card_addIntegerOrBlank(&card, te2rsf);
+    if (status != CAPS_SUCCESS) goto cleanup;
+
+    // TG12RSF
+    status = card_addIntegerOrBlank(&card, tg12rsf);
+    if (status != CAPS_SUCCESS) goto cleanup;
+
+    // TG1ZRSF
+    status = card_addIntegerOrBlank(&card, tg1zrsf);
+    if (status != CAPS_SUCCESS) goto cleanup;
+
+    // TG2ZRSF
+    status = card_addIntegerOrBlank(&card, tg2zrsf);
+    if (status != CAPS_SUCCESS) goto cleanup;
+
     // write card to file
     card_write(&card, fp);
 
@@ -2489,7 +2863,7 @@ int nastranCard_mat8(FILE *fp, const int *mid, const double *e1, const double *e
  */
 int nastranCard_mkaero1(FILE *fp, int numM, double *m, int numK,
                         double *k, feaFileTypeEnum formatType) {
-    
+
     int status;
 
     cardStruct card;
@@ -2537,7 +2911,7 @@ int nastranCard_moment(FILE *fp, const int *sid,
            /*@unused@*/const int *g,
                        const int *cid, const double *m,
                        const double n[3], feaFileTypeEnum formatType) {
-    
+
     int status;
 
     cardStruct card;
@@ -2577,9 +2951,9 @@ int nastranCard_moment(FILE *fp, const int *sid,
 /*
  * Write PAERO1 card
  */
-int nastranCard_paero1(FILE *fp, const int *pid, int numB, const int *b,
+int nastranCard_paero1(FILE *fp, const int *pid, int numB, /*@null@*/ const int *b,
                        feaFileTypeEnum formatType) {
-    
+
     int status;
 
     cardStruct card;
@@ -2616,7 +2990,7 @@ int nastranCard_pbar(FILE *fp, const int *pid, const int *mid, const double *a,
                      const double *nsm, const double c[2], const double d[2],
                      const double e[2], const double f[2], const double *k1, double *k2,
                      feaFileTypeEnum formatType) {
-    
+
     int status;
 
     cardStruct card;
@@ -2684,7 +3058,7 @@ int nastranCard_pbar(FILE *fp, const int *pid, const int *mid, const double *a,
         status = card_addBlanks(&card, 2);
     }
     if (status != CAPS_SUCCESS) goto cleanup;
-    
+
     // F1, F2
     if (f != NULL) {
         status = card_addDoubleArray(&card, 2, f);
@@ -2722,7 +3096,7 @@ int nastranCard_pbar(FILE *fp, const int *pid, const int *mid, const double *a,
 int nastranCard_pbarl(FILE *fp, const int *pid, const int *mid, const char *type,
                       const double *f0, const int numDim, const double *dim, const double *nsm,
                       feaFileTypeEnum formatType) {
-    
+
     int status;
 
     cardStruct card;
@@ -2781,7 +3155,7 @@ int nastranCard_pcomp(FILE *fp, const int *pid, const double *z0, const double* 
                       const char *lam, int numLayers, const int *mid, const double *t,
                       const double *theta, const char **sout,
                       feaFileTypeEnum formatType) {
-    
+
     int i, status;
 
     cardStruct card;
@@ -2830,28 +3204,28 @@ int nastranCard_pcomp(FILE *fp, const int *pid, const double *z0, const double* 
         // MIDi
         if (mid != NULL)
             status = card_addInteger(&card, mid[i]);
-        else 
+        else
             card_addBlank(&card);
         if (status != CAPS_SUCCESS) goto cleanup;
 
         // Ti
         if (t != NULL)
             status = card_addDouble(&card, t[i]);
-        else 
+        else
             card_addBlank(&card);
         if (status != CAPS_SUCCESS) goto cleanup;
 
         // THi
         if (theta != NULL)
             status = card_addDouble(&card, theta[i]);
-        else 
+        else
             card_addBlank(&card);
         if (status != CAPS_SUCCESS) goto cleanup;
 
         // SOUTi
         if (sout != NULL)
             status = card_addString(&card, sout[i]);
-        else 
+        else
             card_addBlank(&card);
         if (status != CAPS_SUCCESS) goto cleanup;
     }
@@ -2871,7 +3245,7 @@ int nastranCard_pcomp(FILE *fp, const int *pid, const double *z0, const double* 
  */
 int nastranCard_pload2(FILE *fp, const int *sid, const double *p, int numE,
                        const int *eid, feaFileTypeEnum formatType) {
-    
+
     int status;
 
     cardStruct card;
@@ -2910,7 +3284,7 @@ int nastranCard_pload2(FILE *fp, const int *sid, const double *p, int numE,
 int nastranCard_pload4(FILE *fp, const int *sid, const int *eid, const double p[4],
                        const int *g1, const int *g3, const int *cid, const double n[3],
                        feaFileTypeEnum formatType) {
-    
+
     int status;
 
     cardStruct card;
@@ -2967,7 +3341,7 @@ int nastranCard_pload4(FILE *fp, const int *sid, const int *eid, const double p[
 int nastranCard_prod(FILE *fp, const int *pid, const int *mid, const double *a, const double *j,
                      const double *c, const double *nsm,
                      feaFileTypeEnum formatType) {
-    
+
     int status;
 
     cardStruct card;
@@ -3018,7 +3392,7 @@ int nastranCard_prod(FILE *fp, const int *pid, const int *mid, const double *a, 
 int nastranCard_pshear(FILE *fp, const int *pid, const int *mid, const double *t,
                        const double *nsm, const double *f1, const double *f2,
                        feaFileTypeEnum formatType) {
-    
+
     int status;
 
     cardStruct card;
@@ -3071,7 +3445,7 @@ int nastranCard_pshell(FILE *fp, const int *pid, const int *mid1, const double *
                        const double *tst, const double *nsm, const double *z1,
                        const double *z2, const int *mid4,
                        feaFileTypeEnum formatType) {
-    
+
     int status;
 
     cardStruct card;
@@ -3142,7 +3516,7 @@ int nastranCard_pshell(FILE *fp, const int *pid, const int *mid1, const double *
 int nastranCard_psolid(FILE *fp, const int *pid, const int *mid, const int *cordm,
                        const char *in, const char *stress, const char *isop, const char *fctn,
                        feaFileTypeEnum formatType) {
-    
+
     int status;
 
     cardStruct card;
@@ -3239,7 +3613,7 @@ int nastranCard_rbe3(FILE *fp, const int *eid, const int *refgrid, const int *re
                      int numG, const double *wt, const int *c, const int *g,
                      int numGM, const int *gm, const int *cm,
                      feaFileTypeEnum formatType) {
-    
+
     int i, status;
 
     cardStruct card;
@@ -3270,10 +3644,10 @@ int nastranCard_rbe3(FILE *fp, const int *eid, const int *refgrid, const int *re
 
         status = card_addDouble(&card, wt[i]);
         if (status != CAPS_SUCCESS) goto cleanup;
-        
+
         status = card_addInteger(&card, c[i]);
         if (status != CAPS_SUCCESS) goto cleanup;
-        
+
         status = card_addInteger(&card, g[i]);
         if (status != CAPS_SUCCESS) goto cleanup;
     }
@@ -3321,7 +3695,7 @@ int nastranCard_rbe3(FILE *fp, const int *eid, const int *refgrid, const int *re
 int nastranCard_rforce(FILE *fp, const int *sid, const int *g, const int *cid, const double *a,
                        const double r[3], const int *method, const double *racc,
                        feaFileTypeEnum formatType) {
-    
+
     int status;
 
     cardStruct card;
@@ -3373,9 +3747,10 @@ int nastranCard_rforce(FILE *fp, const int *sid, const int *g, const int *cid, c
 /*
  * Write SET1 card
  */
-int nastranCard_set1(FILE *fp, const int *sid, int numG, const int *g,
+int nastranCard_set1(FILE *fp, const int *sid,
+                     int numG, const int *g,
                      feaFileTypeEnum formatType) {
-    
+
     int status;
 
     cardStruct card;
@@ -3409,7 +3784,7 @@ int nastranCard_set1(FILE *fp, const int *sid, int numG, const int *g,
  */
 int nastranCard_spc(FILE *fp, const int *sid, int numSPC, const int *g, const int *c,
                     const double *d, feaFileTypeEnum formatType) {
-    
+
     int i, status;
 
     cardStruct card;
@@ -3452,7 +3827,7 @@ int nastranCard_spc(FILE *fp, const int *sid, int numSPC, const int *g, const in
  */
 int nastranCard_spc1(FILE *fp, const int *sid, const int *c, int numSPC, const int *g,
                      feaFileTypeEnum formatType) {
-    
+
     int status;
 
     cardStruct card;
@@ -3490,7 +3865,7 @@ int nastranCard_spc1(FILE *fp, const int *sid, const int *c, int numSPC, const i
  */
 int nastranCard_spcadd(FILE *fp, int *sid, int numSPC, int *s,
                        feaFileTypeEnum formatType) {
-    
+
     int status;
 
     cardStruct card;
@@ -3525,7 +3900,7 @@ int nastranCard_spcadd(FILE *fp, int *sid, int numSPC, int *s,
 int nastranCard_spline1(FILE *fp, const int *eid, const int *caero, const int *box1,
                         const int *box2, const int *setg, const double *dz,
                         feaFileTypeEnum formatType) {
-    
+
     int status;
 
     cardStruct card;
@@ -3575,7 +3950,7 @@ int nastranCard_spline1(FILE *fp, const int *eid, const int *caero, const int *b
  */
 int nastranCard_suport(FILE *fp, int numID, const int *id, const int *c,
                        feaFileTypeEnum formatType){
-    
+
     int i, status;
 
     cardStruct card;
@@ -3611,7 +3986,7 @@ int nastranCard_suport(FILE *fp, int numID, const int *id, const int *c,
  */
 int nastranCard_suport1(FILE *fp, const int *sid, int numID, const int *id, const int *c,
                        feaFileTypeEnum formatType){
-    
+
     int i, status;
 
     cardStruct card;
@@ -3650,39 +4025,45 @@ int nastranCard_suport1(FILE *fp, const int *sid, int numID, const int *id, cons
  */
 int nastranCard_temp(FILE *fp, const int *sid, int numG, const int *g, const double *t,
                      feaFileTypeEnum formatType) {
-    
-    int i, status;
+
+    int i, j, status;
 
     cardStruct card;
 
     if (fp == NULL) return CAPS_IOERR;
 
-    // begin card
-    status = card_initiate(&card, "TEMP", formatType);
-    if (status != CAPS_SUCCESS) goto cleanup;
+    for (i = 0; i < numG; i+=3) {
 
-    // SID
-    status = card_addInteger(&card, *sid);
+      // begin card
+      status = card_initiate(&card, "TEMP", formatType);
+      if (status != CAPS_SUCCESS) goto cleanup;
 
-    // Gi, Ti
-    for (i = 0; i < numG; i++) {
+      // SID
+      status = card_addInteger(&card, *sid);
+      if (status != CAPS_SUCCESS) goto cleanup;
 
-        status = card_addInteger(&card, g[i]);
-        if (status != CAPS_SUCCESS) goto cleanup;
+      // Gi, Ti
+      for (j = i; j < MIN(i+3,numG); j++) {
 
-        status = card_addInteger(&card, t[i]);
-        if (status != CAPS_SUCCESS) goto cleanup;
+          status = card_addInteger(&card, g[j]);
+          if (status != CAPS_SUCCESS) goto cleanup;
+
+          status = card_addDouble(&card, t[j]);
+          if (status != CAPS_SUCCESS) goto cleanup;
+      }
+      
+      // write card to file
+      card_write(&card, fp);
+      card_destroy(&card);
     }
 
+    status = CAPS_SUCCESS;
+cleanup:
 
-    // write card to file
-    card_write(&card, fp);
+    if (status != CAPS_SUCCESS)
+      card_destroy(&card);
 
-    cleanup:
-
-        card_destroy(&card);
-
-        return status;
+    return status;
 }
 
 /*
@@ -3690,7 +4071,7 @@ int nastranCard_temp(FILE *fp, const int *sid, int numG, const int *g, const dou
  */
 int nastranCard_tempd(FILE *fp, int numSID, const int *sid, const double *t,
                       feaFileTypeEnum formatType) {
-    
+
     int i, status;
 
     cardStruct card;
@@ -3707,18 +4088,18 @@ int nastranCard_tempd(FILE *fp, int numSID, const int *sid, const double *t,
         status = card_addInteger(&card, sid[i]);
         if (status != CAPS_SUCCESS) goto cleanup;
 
-        status = card_addInteger(&card, t[i]);
+        status = card_addDouble(&card, t[i]);
         if (status != CAPS_SUCCESS) goto cleanup;
     }
 
     // write card to file
     card_write(&card, fp);
 
-    cleanup:
+cleanup:
 
-        card_destroy(&card);
+    card_destroy(&card);
 
-        return status;
+    return status;
 }
 
 /*
@@ -3727,7 +4108,7 @@ int nastranCard_tempd(FILE *fp, int numSID, const int *sid, const double *t,
 int nastranCard_trim(FILE *fp, const int *id, const double *mach, const double *q,
                      int numVar, char **label, const double *ux,
                      feaFileTypeEnum formatType) {
-    
+
     int i, status;
 
     cardStruct card;
@@ -3752,12 +4133,26 @@ int nastranCard_trim(FILE *fp, const int *id, const double *mach, const double *
 
     // LABELi, UXi
     for (i = 0; i < numVar; i++) {
+        if (i == 2) {
+            status = card_addBlank(&card);
+            if (status != CAPS_SUCCESS) goto cleanup;
 
-        status = card_addString(&card, label[i]);
-        if (status != CAPS_SUCCESS) goto cleanup;
+            // force continuation
+            status = card_continue(&card);
+            if (status != CAPS_SUCCESS) goto cleanup;
 
-        status = card_addDouble(&card, ux[i]);
-        if (status != CAPS_SUCCESS) goto cleanup;
+            status = card_addString(&card, label[i]);
+            if (status != CAPS_SUCCESS) goto cleanup;
+
+            status = card_addDouble(&card, ux[i]);
+            if (status != CAPS_SUCCESS) goto cleanup;
+        } else {
+            status = card_addString(&card, label[i]);
+            if (status != CAPS_SUCCESS) goto cleanup;
+
+            status = card_addDouble(&card, ux[i]);
+            if (status != CAPS_SUCCESS) goto cleanup;
+        }
     }
 
     // write card to file

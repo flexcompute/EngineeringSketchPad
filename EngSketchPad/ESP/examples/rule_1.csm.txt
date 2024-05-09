@@ -1,0 +1,90 @@
+# rule_1
+# written by John Dannenhoffer
+
+# generate five SheetBodys
+SKBEG     -4  -1  -1
+   LINSEG -4   1  -1
+   LINSEG -4   1   1
+   LINSEG -4  -1   1
+   LINSEG -4  -1  -1
+SKEND
+
+SKBEG     -2  -1  -1
+   LINSEG -2   1  -1
+   LINSEG -2   1   1
+   LINSEG -2  -1   1
+   LINSEG -2  -1  -1
+SKEND
+
+SKBEG      0  -2  -2
+   LINSEG  0   2  -2
+   LINSEG  0   2   2
+   LINSEG  0  -2   2
+   LINSEG  0  -2  -2
+SKEND
+
+SKBEG      2  -1  -1
+   LINSEG  2   1  -1
+   LINSEG  2   1   1
+   LINSEG  2  -1   1
+   LINSEG  2  -1  -1
+SKEND
+
+SKBEG      4  -1  -1
+   LINSEG  4   1  -1
+   LINSEG  4   1   1
+   LINSEG  4  -1   1
+   LINSEG  4  -1  -1
+SKEND
+
+# perform the RULE (SolidBody)
+RULE
+ASSERT    @itype  3
+
+SELECT    FACE   @nbody 1     # iford=1 in red
+ATTRIBUTE _color $red
+SELECT    FACE   @nbody 2     # iford=2 in green
+ATTRIBUTE _color $green
+SELECT    FACE   @nbody 3     # iford=3 in blue
+ATTRIBUTE _color $blue
+SELECT    FACE   @nbody 4     # iford=4 in cyan
+ATTRIBUTE _color $cyan
+SELECT    FACE   @nbody 5     # iford=5 in magenta
+ATTRIBUTE _color $magenta
+SELECT    FACE   @nbody 6     # iford=6 in yellow
+ATTRIBUTE _color $yellow
+SELECT    FACE   @nbody 7     # iford=7 in lightred
+ATTRIBUTE _color $lred
+SELECT    FACE   @nbody 8     # iford=8 in lightgreen
+ATTRIBUTE _color $lgreen
+SELECT    FACE   @nbody 9     # iford=9 in lightblue
+ATTRIBUTE _color $lblue
+SELECT    FACE   @nbody 10    # iford=10 in red with grid
+ATTRIBUTE _color $red
+ATTRIBUTE _grd   $on
+SELECT    FACE   @nbody 11    # iford=11 in green with grid
+ATTRIBUTE _color $green
+ATTRIBUTE _grd   $on
+SELECT    FACE   @nbody 12    # iford=12 in blue with grid
+ATTRIBUTE _color $blue
+ATTRIBUTE _grd   $on
+SELECT    FACE   @nbody 13    # iford=13 in cyan with grid
+ATTRIBUTE _color $cyan
+ATTRIBUTE _grd   $on
+SELECT    FACE   @nbody 14    # iford=14 in magenta with grid
+ATTRIBUTE _color $magenta
+ATTRIBUTE _grd   $on
+SELECT    FACE   @nbody 15    # iford=15 in yellow with grid
+ATTRIBUTE _color $yellow
+ATTRIBUTE _grd   $on
+SELECT    FACE   @nbody 16    # iford=16 in lightred with grid
+ATTRIBUTE _color $lred
+ATTRIBUTE _grd   $on
+SELECT    FACE   @nbody 17    # iford=17 in lightgreen with grid
+ATTRIBUTE _color $lgreen
+ATTRIBUTE _grd   $on
+SELECT    FACE   @nbody 18    # iford=18 in lightblue with grid
+ATTRIBUTE _color $lblue
+ATTRIBUTE _grd   $on
+
+END

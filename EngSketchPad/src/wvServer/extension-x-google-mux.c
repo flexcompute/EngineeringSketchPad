@@ -85,13 +85,13 @@ static int lws_ext_x_google_mux__send_addchannel(
 {
 
 	unsigned char send_buf[LWS_SEND_BUFFER_PRE_PADDING + 2048 +
-						  LWS_SEND_BUFFER_POST_PADDING];
+                               LWS_SEND_BUFFER_POST_PADDING];
 	unsigned char *pb = &send_buf[LWS_SEND_BUFFER_PRE_PADDING];
 	char *p;
 	char delta_headers[1536];
-	int delta_headers_len;
-	int subcommand_length;
-	int n;
+	int  delta_headers_len = 1536;
+	int  subcommand_length;
+	int  n;
 /*
 	if (channel == 0) {
 		muxdebug("lws_ext_x_google_mux__send_addchannel: given ch 0\n");
@@ -104,7 +104,8 @@ static int lws_ext_x_google_mux__send_addchannel(
 
 	client_handshake_generation_is_for_mux_child = 1;
 	p = libwebsockets_generate_client_handshake(context, wsi_child,
-								 delta_headers);
+                                                    delta_headers,
+                                                    delta_headers_len);
 	client_handshake_generation_is_for_mux_child = 0;
 	delta_headers_len = p - delta_headers;
 

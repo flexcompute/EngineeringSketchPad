@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.9.1"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>TACS Analysis Interface Module (AIM): FEA DesignVariable</title>
+<title>TACS Analysis Interface Module (AIM): FEA Design Variables</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -63,18 +63,64 @@ $(function() {
 </div><!-- top -->
 <div class="PageDoc"><div class="header">
   <div class="headertitle">
-<div class="title">FEA DesignVariable </div>  </div>
+<div class="title">FEA Design Variables </div>  </div>
 </div><!--header-->
 <div class="contents">
-<div class="textblock"><p>Structure for the design variable tuple = ("DesignVariable Name", "Value"). "DesignVariable Name" defines the reference name for the design variable being specified. This string will be used in the FEA input directly. The "Value" must be a JSON String dictionary (see Section <a class="el" href="feaDesignVariable.html#jsonStringDesignVariable">JSON String Dictionary</a>).</p>
+<div class="textblock"><p>Structure for the design variable tuple = ("DesignVariable Name", "Value"). "DesignVariable Name" defines the reference name for the design variable being specified. This string will be used in the FEA input directly. The "Value" must be a JSON String dictionary (see Section <a class="el" href="feaDesignVariable.html#jsonStringDesignVariable">JSON String Dictionary</a>). In Nastran the DesignVariable Name will be the LABEL used in the DESVAR input. For this reason the user should keep the length of this input to a minimum number of characters, ideally 7 or less.</p>
+<ul>
+<li><code>DESVAR ID LABEL XINIT XLB XUB DELXV DDVAL</code></li>
+</ul>
 <h1><a class="anchor" id="jsonStringDesignVariable"></a>
 JSON String Dictionary</h1>
-<p>If "Value" is JSON string dictionary the following keywords ( = default values) may be used:</p>
+<p>If "Value" is JSON string dictionary (eg. "Value" = {"initialValue": 5.0, "upperBound": 10.0}) the following keywords ( = default values) may be used:</p>
+<ul>
+<li>
+<b>initialValue = 0.0</b>  <br  />
+ Initial value for the design variable. </li>
+</ul>
+<ul>
+<li>
+<b>lowerBound = 0.0</b>  <br  />
+ Lower bound for the design variable. </li>
+</ul>
+<ul>
+<li>
+<b>upperBound = 0.0</b>  <br  />
+ Upper bound for the design variable. </li>
+</ul>
+<ul>
+<li>
+<b>maxDelta = 0.0</b>  <br  />
+ Move limit for the design variable. </li>
+</ul>
+<ul>
+<li>
+<b>discreteValue = 0.0</b>  <br  />
+ List of discrete values to use for the design variable (e.g. [0.0,1.0,1.5,3.0]. </li>
+</ul>
+<ul>
+<li>
+<b>independentVariable = "(no default)"</b>  <br  />
+ Single or list of "DesignVariable Name"s (that is the Tuple name) used to create/designate a dependent design variable.<ul>
+<li>independentValue = variableWeight[1] + variableWeight[2] * SUM{independentVariableWeight[i] * independentVariable[i]} </li>
+</ul>
+</li>
+</ul>
+<ul>
+<li>
+<b>independentVariableWeight = 1.0 or [1.0, 1.0, ...]</b>  <br  />
+ Single or list of weighting constants with respect to the variables set for "independentVariable". If the length of this list doesn't match the length of the "independentVariable" list, the list is either truncated [ &gt;length("independentVariable")] or expanded [ &lt;length("independentVariable")] in which case the <b>last weight is repeated</b>. </li>
+</ul>
+<ul>
+<li>
+<b>variableWeight = [1.0, 1.0]</b>  <br  />
+ Weighting constants for a dependent variable - used if "independentVariable"(s) have been provided. </li>
+</ul>
 </div></div><!-- contents -->
 </div><!-- PageDoc -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Sat Jul 2 2022 10:13:17 for TACS Analysis Interface Module (AIM) by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1
+Generated on Sat Apr 27 2024 16:51:53 for TACS Analysis Interface Module (AIM) by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1
 </small></address>
 </body>
 </html>

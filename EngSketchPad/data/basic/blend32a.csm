@@ -1,0 +1,35 @@
+# blend32a
+# written by John Dannenhoffer
+
+MARK
+   UDPRIM    naca      series 4412
+   RESTORE   .
+   TRANSLATE 0  0  3
+BLEND     -1;0.5  -1;0.5
+ASSERT    @itype 3
+
+MARK
+   UDPRIM    naca      series 4412
+   TRANSLATE 2  0  0
+   RESTORE   .
+   TRANSLATE 0  0  3
+BLEND     -1;1.0  -1;1.0
+ASSERT    @itype 3
+
+MARK
+   UDPRIM    naca      series 4412
+   TRANSLATE 0  2  0
+   RESTORE   .
+   TRANSLATE 0  0  3
+BLEND     -1;2.0  -1;2.0
+ASSERT    @itype 3
+
+MARK
+   UDPRIM    naca      series 4412
+   TRANSLATE 2  2  0
+   RESTORE   .
+   TRANSLATE 0  0  3
+BLEND     -1;5.0  -1;5.0
+ASSERT    @itype 3
+
+END

@@ -1,0 +1,24 @@
+# udprim_2
+# written by John Dannenhoffer
+
+# examples of calling a UDC (include-type user-defined component)
+
+# make a box
+BOX       0  0  0  1  1  1
+
+# set some variables
+SET       A  1
+SET       B  2
+
+# call a include-type UDC (has no arguments nor returns)
+
+# note: the name of the UDP starts with $/, which means it is
+#       in the same directory as this .csm file
+UDPRIM    $/udprim_2
+
+# make sure we get the updates which were made in the UDC
+ASSERT    A  11
+ASSERT    B  22
+ASSERT    C  33
+
+END

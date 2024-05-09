@@ -1,0 +1,27 @@
+# prop_udp_1
+# written John Dannenhoffer
+
+# make the propeller
+UDPARG    prop      nblade     2
+UDPARG    prop      cpower     0.2969
+UDPARG    prop      lambda     0.2233
+UDPARG    prop      reyr       2.95e+6
+UDPARG    prop      rtip       2.875   # ft
+UDPARG    prop      rhub       0.500   # ft
+UDPARG    prop      clift      0.700
+UDPARG    prop      cdrag      0.075
+UDPARG    prop      alfa       2.000   # deg
+
+# shaft/spinner parameters (all dimensions in ft)
+UDPARG    prop      shdiam     0.10
+UDPARG    prop      shxmin     -.10
+UDPARG    prop      shxmax     0.10
+UDPARG    prop      spdiam     0.20
+UDPARG    prop      spxmin     -.30
+
+UDPRIM    prop
+
+MESSAGE   ThrustCoef_=_+@@cthrust
+MESSAGE   Efficiency_=_+@@eff
+
+END

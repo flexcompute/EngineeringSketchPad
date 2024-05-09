@@ -3,7 +3,7 @@
  *
  *             FRICTION AIM
  *
- *      Copyright 2014-2022, Massachusetts Institute of Technology
+ *      Copyright 2014-2024, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -485,7 +485,7 @@ int aimPreAnalysis(/*@unused@*/ const void *instStore, void *aimInfo,
     // File
     FILE        *fp = NULL;
 
-    char *tempString = NULL; // Temp. string holde
+    char tempString[16]; // Temp. string hold
 
     // EGADS function returns
     int atype, alen;
@@ -558,7 +558,7 @@ int aimPreAnalysis(/*@unused@*/ const void *instStore, void *aimInfo,
     }
 
     // Get length units
-    status = check_CAPSLength(numBody, bodies, &lengthUnitsIn);
+    status = aim_capsLength(aimInfo, &lengthUnitsIn);
     if (status == CAPS_NOTFOUND) {
         printf(" *** WARNING: frictionAIM: No units assigned *** capsLength is not set in *.csm file!\n");
         lengthUnitsIn = "ft";
@@ -896,13 +896,11 @@ int aimPreAnalysis(/*@unused@*/ const void *instStore, void *aimInfo,
            nsec, nsecrev+1-nsecrevfound);
 
     // Create char for number of sections in the friction input (lifting + bodyOfRev)
-/*@-bufferoverflowhigh@*/
     if (nsec+nsecrev+1-nsecrevfound >= 10) {
-        sprintf(tmpInt,"%d.       ",nsec+nsecrev+1-nsecrevfound);
+        snprintf(tmpInt,12,"%d.       ",nsec+nsecrev+1-nsecrevfound);
     } else {
-        sprintf(tmpInt,"%d.        ",nsec+nsecrev+1-nsecrevfound);
+        snprintf(tmpInt,12,"%d.        ",nsec+nsecrev+1-nsecrevfound);
     }
-/*@+bufferoverflowhigh@*/
 
     // Create input file for friction
     fp = aim_fopen(aimInfo, "frictionInput.txt","w");
@@ -913,10 +911,9 @@ int aimPreAnalysis(/*@unused@*/ const void *instStore, void *aimInfo,
 
     fprintf(fp,"CAPS Generated Friction Input File\n");
 
-    tempString = convert_doubleToString(Sref,8,0); // 8 spaces, left justified (0)
-    AIM_NOTNULL(tempString, aimInfo, status);
+    status = convert_doubleToString(Sref,8,0,tempString); // 8 spaces, left justified (0)
+    AIM_STATUS(aimInfo, status);
     fprintf(fp,"%s  1.0       %s0.0\n",tempString,tmpInt);
-    AIM_FREE(tempString);
 
     //fprintf(fp,"1234567890123456789012345678901234567890123456789012345678901234567890\n");
 
@@ -931,34 +928,29 @@ int aimPreAnalysis(/*@unused@*/ const void *instStore, void *aimInfo,
         }
 
         // SWET spaces 21-30
-        tempString = convert_doubleToString(secLift[i].swet,8,0); // 8 spaces, left justified (0)
-        AIM_NOTNULL(tempString, aimInfo, status);
+        status = convert_doubleToString(secLift[i].swet,8,0,tempString); // 8 spaces, left justified (0)
+        AIM_STATUS(aimInfo, status);
         fprintf(fp,"%s  ",tempString);
-        AIM_FREE(tempString); tempString = NULL;
 
         // RefL spaces 31-40
-        tempString = convert_doubleToString(secLift[i].refLength,8,0);
-        AIM_NOTNULL(tempString, aimInfo, status);
+        status = convert_doubleToString(secLift[i].refLength,8,0,tempString);
+        AIM_STATUS(aimInfo, status);
         fprintf(fp,"%s  ",tempString);
-        AIM_FREE(tempString);
 
         // ToC spaces 41-50
-        tempString = convert_doubleToString(secLift[i].thickOverChord,8,0);
-        AIM_NOTNULL(tempString, aimInfo, status);
+        status = convert_doubleToString(secLift[i].thickOverChord,8,0,tempString);
+        AIM_STATUS(aimInfo, status);
         fprintf(fp,"%s  ",tempString);
-        AIM_FREE(tempString);
 
         // Component type 51-60
-        tempString = convert_doubleToString(secLift[i].type,8,0);
-        AIM_NOTNULL(tempString, aimInfo, status);
+        status = convert_doubleToString(secLift[i].type,8,0,tempString);
+        AIM_STATUS(aimInfo, status);
         fprintf(fp,"%s  ",tempString);
-        AIM_FREE(tempString);
 
         // FTrans 61-70
-        tempString = convert_doubleToString(secLift[i].turbTrans,8,0);
-        AIM_NOTNULL(tempString, aimInfo, status);
+        status = convert_doubleToString(secLift[i].turbTrans,8,0,tempString);
+        AIM_STATUS(aimInfo, status);
         fprintf(fp,"%s  ",tempString);
-        AIM_FREE(tempString);
 
         //
         fprintf(fp,"\n");
@@ -975,34 +967,29 @@ int aimPreAnalysis(/*@unused@*/ const void *instStore, void *aimInfo,
             }
 
             // SWET spaces 21-30
-            tempString = convert_doubleToString(secBody[i].swet,8,0);
-            AIM_NOTNULL(tempString, aimInfo, status);
+            status = convert_doubleToString(secBody[i].swet,8,0,tempString);
+            AIM_STATUS(aimInfo, status);
             fprintf(fp,"%s  ",tempString);
-            AIM_FREE(tempString);
 
             // RefL spaces 31-40
-            tempString = convert_doubleToString(secBody[i].refLength,8,0);
-            AIM_NOTNULL(tempString, aimInfo, status);
+            status = convert_doubleToString(secBody[i].refLength,8,0,tempString);
+            AIM_STATUS(aimInfo, status);
             fprintf(fp,"%s  ",tempString);
-            AIM_FREE(tempString);
 
             // ToC spaces 41-50
-            tempString = convert_doubleToString(secBody[i].thickOverChord,8,0);
-            AIM_NOTNULL(tempString, aimInfo, status);
+            status = convert_doubleToString(secBody[i].thickOverChord,8,0,tempString);
+            AIM_STATUS(aimInfo, status);
             fprintf(fp,"%s  ",tempString);
-            AIM_FREE(tempString);
 
             // Component type 51-60
-            tempString = convert_doubleToString(secBody[i].type,8,0);
-            AIM_NOTNULL(tempString, aimInfo, status);
+            status = convert_doubleToString(secBody[i].type,8,0,tempString);
+            AIM_STATUS(aimInfo, status);
             fprintf(fp,"%s  ",tempString);
-            AIM_FREE(tempString);
 
             // FTrans 61-70
-            tempString = convert_doubleToString(secBody[i].turbTrans,8,0);
-            AIM_NOTNULL(tempString, aimInfo, status);
+            status = convert_doubleToString(secBody[i].turbTrans,8,0,tempString);
+            AIM_STATUS(aimInfo, status);
             fprintf(fp,"%s  ",tempString);
-            AIM_FREE(tempString);
 
             //
             fprintf(fp,"\n");
@@ -1013,34 +1000,28 @@ int aimPreAnalysis(/*@unused@*/ const void *instStore, void *aimInfo,
 
     if (inputs[0].length == 1) {
         // MACH
-        tempString = convert_doubleToString(inputs[inMach-1].vals.real, 8, 0);
-        AIM_NOTNULL(tempString, aimInfo, status);
+        status = convert_doubleToString(inputs[inMach-1].vals.real, 8, 0, tempString);
+        AIM_STATUS(aimInfo, status);
         fprintf(fp,"%s  ",tempString);
-        AIM_FREE(tempString);
 
         // ALTITUDE
-        tempString = convert_doubleToString(inputs[inAltitude-1].vals.real, 8, 0);
-        AIM_NOTNULL(tempString, aimInfo, status);
+        status = convert_doubleToString(inputs[inAltitude-1].vals.real, 8, 0, tempString);
+        AIM_STATUS(aimInfo, status);
         fprintf(fp,"%s\n",tempString);
-        AIM_FREE(tempString);
 
     } else {
 
         for (i = 0; i < inputs[inMach-1].length; i++) { // Multiple Mach, Altitude pairs
 
             // MACH
-            tempString = convert_doubleToString(inputs[inMach-1].vals.reals[i],
-                                                8, 0);
-            AIM_NOTNULL(tempString, aimInfo, status);
+            status = convert_doubleToString(inputs[inMach-1].vals.reals[i], 8, 0, tempString);
+            AIM_STATUS(aimInfo, status);
             fprintf(fp,"%s  ",tempString);
-            AIM_FREE(tempString);
 
             // ALTITUDE
-            tempString = convert_doubleToString(inputs[inAltitude-1].vals.reals[i],
-                                                8, 0);
-            AIM_NOTNULL(tempString, aimInfo, status);
+            status = convert_doubleToString(inputs[inAltitude-1].vals.reals[i], 8, 0, tempString);
+            AIM_STATUS(aimInfo, status);
             fprintf(fp,"%s\n",tempString);
-            AIM_FREE(tempString);
         }
     }
 
@@ -1063,7 +1044,6 @@ cleanup:
     EG_free(secBody);
 
     EG_free(surfaces);
-    EG_free(tempString);
 
     return status;
 }

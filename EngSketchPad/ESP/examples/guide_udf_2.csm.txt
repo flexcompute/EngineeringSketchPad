@@ -1,0 +1,26 @@
+# guide_udf_2
+# written by John Dannenhoffer
+
+DESPMTR   rad   2.0
+DESPMTR   dz    3.0
+
+# constant cross-section
+SKBEG       -.5  -.5  0.0
+   LINSEG   0.0  -.5  0.0
+   CIRARC   0.5  0.0  0.0  0.0  0.5  0.0
+   LINSEG   -.5  0.5  0.0
+   LINSEG   -.5  -.5  0.0
+SKEND
+
+# guide curve
+SKBEG        rad              0.0              0.0
+   PATBEG    isect  8
+      SET    theta  min(isect*45,180)
+      SPLINE rad*cosd(theta)  rad*sind(theta)  isect*dz
+   PATEND
+SKEND
+
+UDPARG    guide     nxsect  17
+UDPRIM    guide     origin  "0;0;0"   # xsect point to put on guide curve
+
+END

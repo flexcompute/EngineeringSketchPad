@@ -21,14 +21,10 @@ VPATH = $(ODIR)
 OBJS  = liteBase.o liteMemory.o liteGeom.o liteTopo.o liteAttrs.o liteImport.o \
 	liteString.o
 
-ifeq ($(ESP_ARCH),DARWIN64)
-default:	$(LDIR)/libegadslite.dylib $(LDIR)/libegadslitestatic.a
-else
-ifeq ($(ESP_ARCH),DARWINM1)
+ifneq (,$(findstring DARWIN,$(ESP_ARCH)))
 default:	$(LDIR)/libegadslite.dylib $(LDIR)/libegadslitestatic.a
 else
 default:	$(LDIR)/libegadslite.so    $(LDIR)/libegadslitestatic.a
-endif
 endif
 
 $(LDIR)/libegadslite.so:	$(OBJS) liteTess.o liteTris.o liteQuads.o \
@@ -53,7 +49,7 @@ $(LDIR)/libegadslite.dylib:	$(OBJS) liteTess.o liteTris.o liteQuads.o \
                 $(OBJS) liteTess.o liteTris.o liteQuads.o liteTessInp.o \
 		egadsRobust.o emp.o evaLite.o ratLite.o liteRegQuads.o \
 		liteEffect.o liteUVmap.o \
-		-undefined error -install_name '@rpath/libegadslite.dylib' \
+		-install_name '@rpath/libegadslite.dylib' \
                 -current_version $(EGREV) )
 
 $(LDIR)/libegadslitestatic.a:	$(OBJS) liteTess.o liteTris.o liteQuads.o \

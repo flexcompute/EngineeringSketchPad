@@ -52,6 +52,10 @@ int astros_writeAeroData(void *aimInfo, FILE *fp,
 int astros_writeCAeroCard(FILE *fp, feaAeroStruct *feaAero,
                           const feaFileFormatStruct *feaFileFormat);
 
+// Write Astros CAERO1 cards from a feaAeroStruct
+int astros_writeUnsteadyCAeroCard(FILE *fp, feaAeroStruct *feaAero,
+                                  const feaFileFormatStruct *feaFileFormat);
+
 // Write out all the Airfoil cards for each each of a surface
 int astros_writeAirfoilCard(FILE *fp,
                             int useAirfoilShape, // = true use the airfoils shape, = false panel
@@ -60,6 +64,7 @@ int astros_writeAirfoilCard(FILE *fp,
 
 // Write Astros Spline1 cards from a feaAeroStruct
 int astros_writeAeroSplineCard(FILE *fp, feaAeroStruct *feaAero,
+                               int isUnsteady,
                                const feaFileFormatStruct *feaFileFormat);
 
 // Write Astros constraint card from a feaConstraint structure

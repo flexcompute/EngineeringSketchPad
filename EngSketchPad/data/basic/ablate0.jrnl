@@ -1,0 +1,8 @@
+getFilenames|
+timLoad|plugs|../data/basic/ablate0.cloud|
+timMesg|plugs|phase2|
+timMesg|plugs|draw|
+timMesg|plugs|phase2|
+timMesg|plugs|draw|
+timSave|plugs|
+build|-1|

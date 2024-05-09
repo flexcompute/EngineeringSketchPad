@@ -1,0 +1,43 @@
+# project_1
+# written by John Dannenhoffer
+
+# transparent box
+BOX       0  0  0  2  2  2
+SELECT    FACE
+ATTRIBUTE _trn  $on
+STORE     theBox
+
+# project from (-1.0,0.2,0.2) in <1,0,0> direction
+RESTORE   theBox
+PROJECT   -1.0  0.2  0.2  1  0  0
+SET       xProj  @xcg
+SET       yProj  @ycg
+SET       zProj  @zcg
+STORE     .                   # remove theBox from the stack
+
+# draw a red line from (-1.0,0.2,0.2) to projected point
+SKBEG     -1.0  0.2   0.2
+   LINSEG xProj yProj zProj
+SKEND
+SELECT    EDGE
+ATTRIBUTE _color $red
+
+# project from (-1.0,0.2,0.2) in <1,1,1> direction
+RESTORE   theBox
+PROJECT   -1.0  0.2  0.2  1  1  1
+SET       xProj  @xcg
+SET       yProj  @ycg
+SET       zProj  @zcg
+STORE     .                   # remove theBox from the stack
+
+# draw a blue line from (-1.0,0.2,0.2) to projected point
+SKBEG     -1.0  0.2   0.2
+   LINSEG xProj yProj zProj
+SKEND
+SELECT    EDGE
+ATTRIBUTE _color $blue
+
+# show theBox
+RESTORE   theBox
+
+END

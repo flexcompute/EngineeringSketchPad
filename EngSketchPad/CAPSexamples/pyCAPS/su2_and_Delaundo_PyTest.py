@@ -49,10 +49,7 @@ myProblem.analysis["delaundo"].input.Mesh_Sizing = {"Airfoil"   : airfoil,
 myProblem.analysis["delaundo"].input.Delta_Thickness = .1
 myProblem.analysis["delaundo"].input.Max_Aspect = 90.0
 
-# Set project name and output mesh type
-projectName = "delaundoMesh"
-myProblem.analysis["delaundo"].input.Proj_Name = projectName 
-
+# Optional: Explicitly write mesh files
 myProblem.analysis["delaundo"].input.Mesh_Format = "Tecplot"
 
 
@@ -62,11 +59,8 @@ su2 = myProblem.analysis.create(aim = "su2AIM",
 
 su2.input["Mesh"].link(myProblem.analysis["delaundo"].output["Area_Mesh"])
 
-# Set project name
-su2.input.Proj_Name = projectName
-
 # Set SU2 Version
-su2.input.SU2_Version = "Blackbird"
+su2.input.SU2_Version = "Harrier"
 
 # Set Physical problem
 su2.input.Physical_Problem = "Euler"
@@ -128,7 +122,7 @@ currentDirectory = os.getcwd() # Get our current working directory
 
 os.chdir(myProblem.analysis["su2"].analysisDir) # Move into test directory
 
-su2Run(projectName + ".cfg", args.numberProc); # Run SU2
+su2Run(su2.input.Proj_Name + ".cfg", args.numberProc); # Run SU2
 
 os.chdir(currentDirectory) # Move back to top directory
 #######################################

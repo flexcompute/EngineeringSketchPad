@@ -1,0 +1,31 @@
+# extrude_3 (plate with hole)
+# written by John Dannenhoffer
+
+# generate plate SheetBody with hole
+BOX       0  2  0  3  2  0
+UDPRIM    ellipse   rx 1/2  ry 1/2
+TRANSLATE 3/2  3  0
+SUBTRACT
+
+# perform the EXTRUDEion (SolidBody)
+EXTRUDE   0.1  0.3  2.0
+ASSERT    @itype  3
+
+SELECT    FACE   @nbody 1     # iford=1 in red
+ATTRIBUTE _color $red
+SELECT    FACE   @nbody 2     # iford=2 in green
+ATTRIBUTE _color $green
+SELECT    FACE   @nbody 3     # iford=3 in blue
+ATTRIBUTE _color $blue
+SELECT    FACE   @nbody 4     # iford=4 in cyan
+ATTRIBUTE _color $cyan
+SELECT    FACE   @nbody 5     # iford=5 in magenta
+ATTRIBUTE _color $magenta
+SELECT    FACE   @nbody 6     # iford=6 in yellow
+ATTRIBUTE _color $yellow
+SELECT    FACE   @nbody 7     # iford=7 in lightred
+ATTRIBUTE _color $lred
+SELECT    FACE   @nbody 8     # iford=8 in lightgreen
+ATTRIBUTE _color $lgreen
+
+END

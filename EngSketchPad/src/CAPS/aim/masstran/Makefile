@@ -19,11 +19,11 @@ default: $(LDIR)/masstranAIM.so #$(BDIR)/Masstran
 
 $(LDIR)/masstranAIM.so:	$(ODIR)/masstranAIM.o $(LDIR)/libutils.a \
 		$(LDIR)/libaimUtil.a
-	$(CC) $(SOFLGS) -o $(LDIR)/masstranAIM.so $(ODIR)/masstranAIM.o \
+	$(CXX) $(SOFLGS) -o $(LDIR)/masstranAIM.so $(ODIR)/masstranAIM.o \
 		-L$(LDIR) -lutils -laimUtil -locsm -legads -ludunits2 -ldl -lm
 
-$(ODIR)/masstranAIM.o:	masstranAIM.c $(IDIR)/capsTypes.h
-	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I../utils masstranAIM.c \
+$(ODIR)/masstranAIM.o:	masstranAIM.cpp $(IDIR)/capsTypes.h
+	$(CXX) -c $(CPPOPT) $(DEFINE) -I$(IDIR) -I../utils masstranAIM.cpp \
 		-o $(ODIR)/masstranAIM.o
 
 #$(BDIR)/Masstran: Masstran.c

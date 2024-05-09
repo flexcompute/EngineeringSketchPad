@@ -5,7 +5,7 @@
  *
  *             OpenCASCADE Headers Used
  *
- *      Copyright 2011-2022, Massachusetts Institute of Technology
+ *      Copyright 2011-2024, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -17,6 +17,11 @@
 #endif // _MSC_VER >= 1000
 #pragma warning( disable : 4786 )
 #endif // WIN32
+
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#endif
 
 #define CASVER  (OCC_VERSION_MAJOR*100 + OCC_VERSION_MINOR*10 + OCC_VERSION_MAINTENANCE)
 
@@ -176,6 +181,8 @@
 #include <BOPTools_AlgoTools.hxx>
 #include <GProp_GProps.hxx>
 
+#include <Quantity_Color.hxx>
+
 #include <ShapeAnalysis.hxx>
 #include <ShapeBuild_Edge.hxx>
 #include <ShapeBuild_ReShape.hxx>
@@ -211,5 +218,9 @@
 #include <STEPControl_StepModelType.hxx>
 #include <STEPControl_Reader.hxx>
 #include <STEPControl_Writer.hxx>
+
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 
 #endif

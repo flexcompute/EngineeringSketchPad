@@ -1,0 +1,36 @@
+# designY2
+# written by John Dannenhoffer
+
+DESPMTR   D    2
+
+# xc=1; yc=2; r=2
+DESPMTR   x1   2.732051
+DESPMTR   y1   3.000000
+DESPMTR   x2   2.532089
+DESPMTR   y2   3.285575
+DESPMTR   x3   1.347296
+DESPMTR   y3   3.969616
+
+# xc=1.520945; yc=4.954424; r=1
+DESPMTR   x4   1.178925
+DESPMTR   y4   4.014731
+DESPMTR   x5   0.520945
+DESPMTR   y5   4.954424
+
+# xc=-.979055; yc=4.954424; r=1.5
+DESPMTR   x6   -.979055
+DESPMTR   y6   6.454424
+DESPMTR   x7   -.979055
+DESPMTR   y7   3.454424
+
+SKBEG     x1  y1  0
+   CIRARC x2  y2  0  x3  y3  0
+   CIRARC x4  y4  0  x5  y5  0
+   CIRARC x6  y6  0  x7  y7  0
+   LINSEG x1  y1  0
+SKEND
+
+EXTRUDE   0   0   D
+
+END
+

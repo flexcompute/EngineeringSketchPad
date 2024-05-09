@@ -1,0 +1,66 @@
+# tester1
+# written by John Dannenhoffer
+
+# dummy Body that passes through tester1
+SPHERE    0  0  0  1
+
+# first matricies (2x3) * (3x1)
+DIMENSION A   2  3
+DESPMTR   A  "1; 2; 3; \
+              4; 5; 6"
+
+DIMENSION B   3  1
+DESPMTR   B  "7; \
+              8; \
+              9"
+
+UDPRIM    tester1 amat A   bmat B
+
+CATBEG    $udp_error1
+   ASSERT 0  1   # this should not be executed
+CATEND
+
+ASSERT    @@cmat.nrow  2
+ASSERT    @@cmat.ncol  1
+
+ASSERT    @@cmat[1,1]  50
+ASSERT    @@cmat[2,1]  122
+
+# second matricies (3x1) * (1x2)
+DIMENSION D   3  1
+DESPMTR   D  "1; \
+              2; \
+              3"
+
+DIMENSION E   1  2
+DESPMTR   E  "4; 5"
+
+UDPRIM    tester1 amat D   bmat E
+
+CATBEG    $udp_error1
+   ASSERT 0  2   # this should not be executed
+CATEND
+
+ASSERT    @@cmat.nrow  3
+ASSERT    @@cmat.ncol  2
+
+DIMENSION myC       @@cmat.nrow  @@cmat.ncol
+OUTPMTR   myC
+SET       myC       @@cmat
+
+ASSERT    myC[1,1]  4
+ASSERT    myC[1,2]  5
+ASSERT    myC[2,1]  8
+ASSERT    myC[2,2]  10
+ASSERT    myC[3,1]  12
+ASSERT    myC[3,2]  15
+
+# third matricies (1x2) * (3x1) --- illegal multiplication
+UDPRIM    tester1 amat E   bmat D
+
+ASSERT    0  3   # this should not be executed
+
+CATBEG    $udp_error1
+CATEND
+
+END

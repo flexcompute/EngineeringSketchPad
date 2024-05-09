@@ -1,0 +1,31 @@
+# designYr
+# written by John Dannenhoffer
+
+DESPMTR   L   5.0
+DESPMTR   H   3.0
+DESPMTR   S   2.0
+DESPMTR   T   1.0
+DESPMTR   D   1.0
+DESPMTR   x0  0.5
+DESPMTR   y0  0.4
+DESPMTR   z0  0.3
+
+SET       a   (L-S)/2
+SET       b   (L+S)/2
+SET       c   T+a/2
+
+SKBEG     0   0   0   1
+   LINSEG 0   T   0
+   SPLINE 0   H   0
+   SPLINE a   H   0
+   SPLINE a   T   0
+   LINSEG b   T   0
+   LINSEG b   H   0
+   LINSEG L   H   0
+   LINSEG L   0   0
+   LINSEG 0   0   0
+SKEND
+
+EXTRUDE   0  0  D
+
+END

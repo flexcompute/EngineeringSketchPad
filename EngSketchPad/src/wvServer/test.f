@@ -3,7 +3,7 @@ C	The Web Viewer
 C
 C		WV simple server FORTRAN test code
 C
-C	Copyright 2011-2012, Massachusetts Institute of Technology
+C	Copyright 2011-2024, Massachusetts Institute of Technology
 C	Licensed under The GNU Lesser General Public License, version 2.1
 C	See http://www.opensource.org/licenses/lgpl-2.1.php
 C

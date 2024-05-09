@@ -1,0 +1,99 @@
+# plateHoles6
+# written by John Dannenhoffer
+# adapted from snap.cell by Ryan Alberdi
+
+# Constant, Design, and Output Parameters:
+# In this order:
+# t
+# h
+# L
+# T
+# H
+# w
+DESPMTR    ligament_thickness  5.0 # lbound  3.0 ubound 10.0 initial  5.0
+DESPMTR    apex_height        24.0 # lbound 10.0 ubound 40.0 initial 24.0
+CONPMTR    span               27.3
+CONPMTR    base_thickness     35.0 
+CONPMTR    pillar_height      54.0  
+CONPMTR    pillar_width       27.3
+
+CONPMTR    num_cells_x        1
+CONPMTR    num_cells_y        1
+
+# Global Attributes:
+OUTPMTR    MeshLength
+SET        MeshLength 0.5*pillar_width
+
+SET       ligament_angle atand(apex_height/span)
+SET       ligament_height ligament_thickness/cosd(ligament_angle)
+
+SET       X0  0
+SET       X1  X0+span
+SET       X2  X1+pillar_width
+SET       X3  X2+2*pillar_width
+SET       X4  X3+pillar_width
+SET       X5  X4+span
+
+SET       Y0  0
+SET       Y1  Y0+base_thickness
+SET       Y2  Y1+pillar_height-ligament_height
+SET       Y3  Y1+pillar_height
+SET       Y4  Y3+apex_height
+SET       Y5  Y4+ligament_height
+SET       Y6  Y3+pillar_height+apex_height
+
+SKBEG     X0 Y0 0
+   LINSEG X5 Y0 0
+       ATTRIBUTE label     $bottom
+   LINSEG X5 Y3 0
+       ATTRIBUTE label     $right
+   LINSEG X4 Y3 0
+   LINSEG X3 Y5 0
+       ATTRIBUTE capsMesh  $ligament
+   LINSEG X3 Y6 0
+       ATTRIBUTE capsGroup $right_roller_sideset
+   LINSEG X2 Y6 0
+       ATTRIBUTE label     $top
+   LINSEG X2 Y5 0
+       ATTRIBUTE capsGroup $left_roller_sideset
+   LINSEG X1 Y3 0
+       ATTRIBUTE capsMesh  $ligament
+   LINSEG X0 Y3 0
+   LINSEG X0 Y0 0
+       ATTRIBUTE label $left
+SKEND
+
+SKBEG     X1 Y1 0
+   LINSEG X2 Y1 0
+   LINSEG X3 Y1 0
+   LINSEG X4 Y1 0
+   LINSEG X4 Y2 0
+   LINSEG X3 Y4 0
+       ATTRIBUTE capsMesh   $ligament
+   LINSEG X2 Y4 0
+   LINSEG X1 Y2 0
+       ATTRIBUTE capsMesh   $ligament
+   LINSEG X1 Y1 0
+SKEND
+
+SUBTRACT
+
+UDPRIM    editAttr  filename <<
+   EDGE   HAS _nface=*
+   ANDNOT HAS capsGroup=*
+   SET              capsGroup=remaining_surface_sideset
+   
+   EDGE   HAS label=bottom
+   SET              capsGroup=bottom_sideset
+
+   EDGE   HAS label=right
+   SET              capsGroup=right_sideset
+
+   EDGE   HAS label=top
+   SET              capsGroup=top_sideset
+
+   EDGE   HAS label=left
+   SET              capsGroup=left_sideset
+END
+
+END

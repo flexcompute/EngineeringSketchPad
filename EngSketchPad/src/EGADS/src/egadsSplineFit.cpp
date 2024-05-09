@@ -3,7 +3,7 @@
  *
  *             Spline Fitting Functions w/ Derivatives
  *
- *      Copyright 2011-2022, Massachusetts Institute of Technology
+ *      Copyright 2011-2024, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -387,8 +387,8 @@ static int
 EG_spline1dFit_impl(int endx, int imaxx, const T *t1, const T *xyz, const T *tn,
                     const T *kn, double tol, int *header, T *rdata)
 {
-    int i, kk, iknot, icp, iter, endc, imax, *mdata;
-    T   du, dx, dy, dz, dxyzmax, rj[3], u21, u20, data[9];
+    int i, kk, iknot, icp, iter, endc, imax, *mdata, periodic = 0;
+    T   du, dx, dy, dz, dxyzmax, del0, del1, del2, rj[3], u21, u20, data[9];
     T   d2xdt2L, d2ydt2L, d2zdt2L, d2sdt2L, d2xdt2R, d2ydt2R, d2zdt2R, d2sdt2R;
     T   *cp, *knots, *cps;
 
@@ -396,8 +396,14 @@ EG_spline1dFit_impl(int endx, int imaxx, const T *t1, const T *xyz, const T *tn,
     imax = imaxx;
     if (imax < 0)                   imax = -imax;
     if (imax < 2)                   return EGADS_DEGEN;
-    if ((endx <  0) || (endx >  2)) return EGADS_RANGERR;
+    if ((endx < -1) || (endx >  2)) return EGADS_RANGERR;
     if ((imax == 2) && (endc == 2)) endc = 1;
+    if (endx == -1) {
+        periodic = 1;
+        endc     = 0;
+        if ((xyz[0] != xyz[3*(imax-1)  ]) || (xyz[1] != xyz[3*(imax-1)+1]) ||
+            (xyz[2] != xyz[3*(imax-1)+2])) return EGADS_SEQUERR;
+    }
 
     /* indices associated with various arrays:
               xyz       knot       cp
@@ -442,7 +448,7 @@ EG_spline1dFit_impl(int endx, int imaxx, const T *t1, const T *xyz, const T *tn,
       knots[kk++] = 0.0;
 
       knots[kk++] = 0.0;
-      if (imaxx > 0) {
+      if ((imaxx > 0) && (periodic == 0)) {
         /* arc-length spaced */
         for (i = 1; i < imax; i++) {
           knots[kk] = knots[kk-1] +
@@ -467,9 +473,9 @@ EG_spline1dFit_impl(int endx, int imaxx, const T *t1, const T *xyz, const T *tn,
 
       /* normalize */
       for (i = 0; i < kk; i++) knots[i] /= knots[kk-1];
-      
+
     } else {
-      
+
       /* note: the start and end knots are added */
       kk          = 0;
       knots[kk++] = kn[0];
@@ -767,6 +773,22 @@ EG_spline1dFit_impl(int endx, int imaxx, const T *t1, const T *xyz, const T *tn,
     if (dxyzmax >= tol)
         printf(" Warning: Not Converged (EG_spline1dFit)!\n");
 
+    /* apply periodicity condition by making sure first and last
+       intervals are the same (equally spaced knots) */
+    if (periodic == 1) {
+        del0 = (2*cps[0] - cps[3] - cps[3*imax  ]) / 2;
+        del1 = (2*cps[1] - cps[4] - cps[3*imax+1]) / 2;
+        del2 = (2*cps[2] - cps[5] - cps[3*imax+2]) / 2;
+
+        cps[3]        += del0;
+        cps[4]        += del1;
+        cps[5]        += del2;
+
+        cps[3*imax  ] += del0;
+        cps[3*imax+1] += del1;
+        cps[3*imax+2] += del2;
+    }
+
     EG_free(mdata);
     return EGADS_SUCCESS;
 }
@@ -779,9 +801,9 @@ EG_spline1dFit(int endx, int imaxx, const T *xyz, const T *kn,
 {
   *rdata   = NULL;
   int imax = imaxx;
-  if (imax < 0)                   imax = -imax;
-  if (imax < 2)                   return EGADS_DEGEN;
-  if ((endx <  0) || (endx >  2)) return EGADS_RANGERR;
+  if (imax < 0)                  imax = -imax;
+  if (imax < 2)                  return EGADS_DEGEN;
+  if ((endx < -1) || (endx > 2)) return EGADS_RANGERR;
 
   int icp   = imax + 2;
   int iknot = imax + 6;
@@ -831,10 +853,10 @@ EG_spline1dFit_dot(int endx, int imaxx, const double *xyz, const double *xyz_dot
   SurrealS<1> *xyzS = NULL, *knS = NULL, *rdataS = NULL;
 
   int imax = imaxx;
-  if (imax == 0)                  return EGADS_DEGEN;
-  if (imax < 0)                   imax = -imax;
-  if (imax < 2)                   return EGADS_DEGEN;
-  if ((endx <  0) || (endx >  2)) return EGADS_RANGERR;
+  if (imax == 0)                 return EGADS_DEGEN;
+  if (imax < 0)                  imax = -imax;
+  if (imax < 2)                  return EGADS_DEGEN;
+  if ((endx < -1) || (endx > 2)) return EGADS_RANGERR;
 
   int icp   = imax + 2;
   int iknot = imax + 6;
@@ -983,7 +1005,7 @@ EG_spline1dTan_dot(int imaxx,
     tns[2].deriv() = tn_dot[2];
     tnsp           = (SurrealS<1> *) &tns;
   }
-  
+
   int icp   = imax + 2;
   int iknot = imax + 6;
   xyzS      = new SurrealS<1>[3*imax];
@@ -1063,7 +1085,7 @@ EG_spline1d(egObject *context, int endx, int imaxx, const double *xyz,
   if (context->oclass != CONTXT)     return EGADS_NOTCNTX;
   if (imax < 0)                      imax = -imax;
   if (imax < 2)                      return EGADS_DEGEN;
-  if ((endx <  0) || (endx >  2))    return EGADS_RANGERR;
+  if ((endx < -1) || (endx > 2))     return EGADS_RANGERR;
 
   fixed = EG_fixedKnots(context);
   icp   = imax + 2;
@@ -1095,7 +1117,7 @@ EG_spline1dPCrv(egObject *context, int endx, int imax, const double *xy,
   if (context->magicnumber != MAGIC) return EGADS_NOTOBJ;
   if (context->oclass != CONTXT)     return EGADS_NOTCNTX;
   if (imax < 2)                      return EGADS_DEGEN;
-  if ((endx <  0) || (endx >  2))    return EGADS_RANGERR;
+  if ((endx < -1) || (endx > 2))     return EGADS_RANGERR;
 
   xyz = (double *) EG_alloc(3*imax*sizeof(double));
   if (xyz == NULL) return EGADS_MALLOC;
@@ -1393,7 +1415,7 @@ EG_getEllRad(const T *drnd, T *nell)
 
 template<class T>
 int
-EG_spline2dAppr(int endc, int imaxx, int jmaxx, const T *xyz,
+EG_spline2dAppr(int endcx, int imaxx, int jmaxx, const T *xyz,
                 /*@null@*/ const T   *uknot, /*@null@*/ const T *vknot,
                 /*@null@*/ const int *vdata,
                 /*@null@*/ const T   *wesT,  /*@null@*/ const T *easT,
@@ -1401,14 +1423,26 @@ EG_spline2dAppr(int endc, int imaxx, int jmaxx, const T *xyz,
                 /*@null@*/ const T   *north, /*@null@*/       T *nnor,
                 double tol, int *header, T **rdata)
 {
-    int i, j, iknot, jknot, icp, jcp, iter, tanOK;
+    int i, j, endc, iknot, jknot, icp, jcp, iter, tanOK, perU = 0;
     int endi, endj, imax, jmax, jj, kk, ms, mn;
+    T   del0, del1, del2;
     T   ns[3], nn[3], rs[3][3], rn[3][3], thet, q0, q1, q2, q3, x2[3];
     T   r, tt, du, dv, dx, dy, dz, dist, mmu, con, con2, dxyzmax, normnell;
     T   dD, eE, F, G, rj[3], u21, u20, norm[3], nell[3], x0[3], x1[3], t[3][3];
     T   basis[4], uv[2], eval[18], *rvec, *knotu, *knotv, *cp, *cpsav;
     double box[6], rsize;
 
+    endc = endcx;
+    if (endcx < 0) {
+      endc = -endcx - 1;
+      perU = 1;
+      if (uknot != NULL) {
+        printf(" EGADS Internal: Specified knots with periodic (EG_spline2d)!\n");
+        return EGADS_GEOMERR;
+      }
+      /* set equally spaced knots */
+      if (imaxx > 0) imaxx = -imaxx;
+    }
     imax = imaxx;
     if (imax < 0) imax = -imax;
     jmax = jmaxx;
@@ -1495,6 +1529,16 @@ EG_spline2dAppr(int endc, int imaxx, int jmaxx, const T *xyz,
             printf(" easT[%d] = %lf %lf %lf\n", j, value(easT[3*j  ]),
                    value(easT[3*j+1]), value(easT[3*j+2]));
 #endif
+
+    if (perU != 0)
+      for (j = 0; j < jmax; j++)
+        if ((xyz[3*(0+j*imax)  ] != xyz[3*(imax-1+j*imax)  ]) ||
+            (xyz[3*(0+j*imax)+1] != xyz[3*(imax-1+j*imax)+1]) ||
+            (xyz[3*(0+j*imax)+2] != xyz[3*(imax-1+j*imax)+2])) {
+          printf(" EGADS Error: U periodic but EndPoints for %d (EG_spline2d)!\n",
+                 j+1);
+          return EGADS_SEQUERR;
+        }
 
     ms       = 1;
     rs[0][0] = rs[1][1] = rs[2][2] = 1.0;
@@ -3816,6 +3860,20 @@ EG_spline2dAppr(int endc, int imaxx, int jmaxx, const T *xyz,
     for (i = 0; i < 3*icp*jcp; i++) cpsav[i] = cp[i];
     EG_free(cp);
 
+    /* adjust the control points for periodic in U */
+    if (perU != 0)
+      for (j = 0; j < jcp; j++) {
+        del0 = (2*cpsav[3*j*icp  ] - cpsav[3*j*icp+3] - cpsav[3*(j+1)*icp-6])/2;
+        del1 = (2*cpsav[3*j*icp+1] - cpsav[3*j*icp+4] - cpsav[3*(j+1)*icp-5])/2;
+        del2 = (2*cpsav[3*j*icp+2] - cpsav[3*j*icp+5] - cpsav[3*(j+1)*icp-4])/2;
+        cpsav[3* j   *icp+3] += del0;
+        cpsav[3* j   *icp+4] += del1;
+        cpsav[3* j   *icp+5] += del2;
+        cpsav[3*(j+1)*icp-6] += del0;
+        cpsav[3*(j+1)*icp-5] += del1;
+        cpsav[3*(j+1)*icp-4] += del2;
+      }
+
     *rdata = rvec;
     return EGADS_SUCCESS;
 }
@@ -3910,8 +3968,8 @@ EG_spline2dAppx(egObject *context,  int endc,   /*@null@*/ const double *uknot,
 #endif
 
   fixed = EG_fixedKnots(context);
-  if ((uknot == NULL) && (fixed != 0)) imax = -imax;
-  if ((vknot == NULL) && (fixed != 0)) jmax = -jmax;
+  if ((uknot == NULL) && ((fixed != 0) || endc < 0)) imax = -imax;
+  if ((vknot == NULL) &&  (fixed != 0))              jmax = -jmax;
   stat = EG_spline2dAppr(endc, imax, jmax, xyz, uknot, vknot, vdata, wesT, easT,
                          south, snor, north, nnor, tol, header, &rdata);
   if (stat != EGADS_SUCCESS) return stat;
@@ -3940,10 +3998,10 @@ EG_spline2dAppx(egObject *context, int endc,
   int         stat, header[7], size, i, fixed;
   double      *data = NULL, *data_dot = NULL;
   SurrealS<1> *rdata = NULL;
-  
+
   fixed = EG_fixedKnots(context);
-  if ((uknot == NULL) && (fixed != 0)) imax = -imax;
-  if ((vknot == NULL) && (fixed != 0)) jmax = -jmax;
+  if ((uknot == NULL) && ((fixed != 0) || endc < 0)) imax = -imax;
+  if ((vknot == NULL) &&  (fixed != 0))              jmax = -jmax;
   stat = EG_spline2dAppr(endc, imax, jmax, xyz, uknot, vknot, vdata, wesT, easT,
                          south, snor, north, nnor, tol, header, &rdata);
   if (stat != EGADS_SUCCESS) return stat;
@@ -4620,7 +4678,7 @@ EG_subSpline2d(const int *fheader, const T *fdata,
       scp[3*(i+j*sicp)+2] = fcp[3*(i+i1-1+(j+j1-1)*ficp)+2];
     }
   }
-  
+
   // do we need to adjust C0 settings so we get derivatives?
   for (i = 0; i < sicp; i++)
     if ((scp[3*i  ] != scp[3*(i+sicp)  ]) ||
@@ -4632,7 +4690,7 @@ EG_subSpline2d(const int *fheader, const T *fdata,
       scp[3*(i+sicp)+1] = 0.99*scp[3*(i+sicp)+1] + 0.01*scp[3*(i+2*sicp)+1];
       scp[3*(i+sicp)+2] = 0.99*scp[3*(i+sicp)+2] + 0.01*scp[3*(i+2*sicp)+2];
     }
-  
+
   for (i = 0; i < sicp; i++)
     if ((scp[3*(i+(sjcp-1)*sicp)  ] != scp[3*(i+(sjcp-2)*sicp)  ]) ||
         (scp[3*(i+(sjcp-1)*sicp)+1] != scp[3*(i+(sjcp-2)*sicp)+1]) ||

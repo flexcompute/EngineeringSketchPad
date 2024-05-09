@@ -1,0 +1,30 @@
+# attribute_1
+# written by John Dannenhoffer
+
+# global attribute
+ATTRIBUTE units $ft
+
+# create a box
+BOX       0  0  0  1  1  1
+
+# a scalar value attribute attached to the box
+ATTRIBUTE scalarValue  1
+
+# a vector value attribute attached to the box
+ATTRIBUTE vectorValue  2;3;4;5
+
+# a string value attribute attached to the box
+ATTRIBUTE _color $green
+
+# a scalar value attribute attached to Face 1 of the box
+SELECT    FACE  1
+ATTRIBUTE faceAttr  5
+
+# a string value attribute attached to the same Face
+ATTRIBUTE _grd  $on
+
+# a string value attribute attached to all Edges of the box
+SELECT    EDGE
+ATTRIBUTE _color   $red
+
+END

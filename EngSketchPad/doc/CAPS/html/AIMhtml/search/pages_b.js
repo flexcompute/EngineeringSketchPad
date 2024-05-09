@@ -1,4 +1,5 @@
 var searchData=
 [
-  ['xfoil_20aim_20example_259',['xFoil AIM Example',['../../aim/xfoil/xfoilExample.html',1,'']]]
+  ['vortex_20lattice_20control_20surface_282',['Vortex Lattice Control Surface',['../../aim/zaero/vlmControl.html',1,'']]],
+  ['vortex_20lattice_20surface_283',['Vortex Lattice Surface',['../../aim/zaero/vlmSurface.html',1,'']]]
 ];

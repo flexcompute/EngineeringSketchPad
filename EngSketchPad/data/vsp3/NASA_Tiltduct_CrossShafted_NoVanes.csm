@@ -1,0 +1,6 @@
+# NASA_Tiltduct_CrossShafted_NoVanes
+# written by John Dannenhoffer
+
+UDPRIM    vsp3   filename $$/NASA_Tiltduct_CrossShafted_NoVanes.vsp3
+
+END

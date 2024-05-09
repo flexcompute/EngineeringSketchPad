@@ -98,9 +98,58 @@ JSON String Dictionary</h1>
 <ul>
 <li>
 <b>bcType = (no default) </b>  <br  />
- bcType sets the AFLR_GBC attribute on faces.<br  />
- <br  />
- See AFLR_GBC in attributeAFLR4 for additional details. </li>
+ Sets the AFLR_GBC attribute on faces. Options:<br  />
+<ul>
+<li>Farfield or Freestream or FARFIELD_UG3_GBC <br  />
+ Farfield surface same as a standard surface except w/AFLR4</li>
+<li>Viscous or -STD_UG3_GBC <br  />
+ Standard BL generating surface</li>
+<li>Inviscid or STD_UG3_GBC <br  />
+ Standard surface</li>
+<li>Symmetry or BL_INT_UG3_GBC or BoundaryLayerIntersect <br  />
+ Symmetry or standard surface that intersects BL region</li>
+<li>TRANSP_SRC_UG3_GBC <br  />
+ Embedded/transparent surface converted to source nodes by AFLR</li>
+<li>TRANSP_BL_INT_UG3_GBC <br  />
+ Embedded/transparent surface that intersects BL region</li>
+<li>TRANSP_UG3_GBC <br  />
+ Embedded/transparent surface</li>
+<li>-TRANSP_UG3_GBC <br  />
+ Embedded/transparent BL generating surface</li>
+<li>TRANSP_INTRNL_UG3_GBC <br  />
+ Embedded/transparent surface converted to internal faces by AFLR</li>
+<li>FIXED_BL_INT_UG3_GBC <br  />
+ Fixed surface with BL region that intersects BL region </li>
+</ul>
+</li>
+</ul>
+<ul>
+<li>
+<b>bcType = (no default) </b>  <br  />
+ Sets the AFLR_GBC attribute on faces. Options:<br  />
+<ul>
+<li>Farfield or Freestream or FARFIELD_UG3_GBC <br  />
+ Farfield surface same as a standard surface except w/AFLR4</li>
+<li>Viscous or -STD_UG3_GBC <br  />
+ Standard BL generating surface</li>
+<li>Inviscid or STD_UG3_GBC <br  />
+ Standard surface</li>
+<li>Symmetry or BoundaryLayerIntersect or BL_INT_UG3_GBC <br  />
+ Standard surface that intersects BL region</li>
+<li>TRANSP_SRC_UG3_GBC <br  />
+ Embedded/transparent surface converted to source nodes by AFLR</li>
+<li>TRANSP_BL_INT_UG3_GBC <br  />
+ Embedded/transparent surface that intersects BL region</li>
+<li>TRANSP_UG3_GBC <br  />
+ Embedded/transparent surface</li>
+<li>-TRANSP_UG3_GBC <br  />
+ Embedded/transparent BL generating surface</li>
+<li>TRANSP_INTRNL_UG3_GBC <br  />
+ Embedded/transparent surface converted to internal faces by AFLR</li>
+<li>FIXED_BL_INT_UG3_GBC <br  />
+ Fixed surface with BL region that intersects BL region </li>
+</ul>
+</li>
 </ul>
 <h1><a class="anchor" id="keyStringMeshSizing"></a>
 Single Value String</h1>
@@ -111,7 +160,7 @@ Single Value String</h1>
 </div><!-- PageDoc -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Sat Jul 2 2022 10:13:04 for AFLR3 Analysis Interface Module (AIM) by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1
+Generated on Sat Apr 27 2024 16:50:53 for AFLR3 Analysis Interface Module (AIM) by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1
 </small></address>
 </body>
 </html>

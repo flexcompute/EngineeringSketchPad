@@ -1,0 +1,4 @@
+LIBRARY exodusWriter
+EXPORTS
+meshExtension
+meshWrite

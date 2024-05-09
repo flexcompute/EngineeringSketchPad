@@ -1,0 +1,39 @@
+# bezier_1
+# written by John Dannenhoffer
+
+# points
+POINT     0  0  0
+POINT     1  0  0
+POINT     2  1  0
+POINT     3  1  0
+
+# single red bezier
+SKBEG     0  0  0
+   BEZIER 1  0  0
+   BEZIER 2  1  0
+   BEZIER 3  1  0
+SKEND
+SELECT    EDGE
+ATTRIBUTE _color $red
+
+# blue line/bezier
+SKBEG     0  0  0
+   LINSEG 1  0  0
+   BEZIER 2  1  0
+   BEZIER 3  1  0
+SKEND
+SELECT    EDGE
+ATTRIBUTE _color $blue
+
+# green bezier/line
+SKBEG     0  0  0
+   BEZIER 1  0  0
+   BEZIER 2  1  0
+   LINSEG 3  1  0
+SKEND
+SELECT    EDGE
+ATTRIBUTE _color $green
+
+END
+
+

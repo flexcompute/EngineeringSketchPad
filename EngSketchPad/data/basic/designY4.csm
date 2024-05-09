@@ -1,0 +1,36 @@
+# designY4
+# written by John Dannenhoffer
+
+DESPMTR   D    2
+
+# zc=1; xc=2; r=2
+DESPMTR   z1   2.732051
+DESPMTR   x1   3.000000
+DESPMTR   z2   2.532089
+DESPMTR   x2   3.285575
+DESPMTR   z3   1.347296
+DESPMTR   x3   3.969616
+
+# zc=1.520945; xc=4.954424; r=1
+DESPMTR   z4   1.178925
+DESPMTR   x4   4.014731
+DESPMTR   z5   0.520945
+DESPMTR   x5   4.954424
+
+# zc=-.979055; xc=4.954424; r=1.5
+DESPMTR   z6   -.979055
+DESPMTR   x6   6.454424
+DESPMTR   z7   -.979055
+DESPMTR   x7   3.454424
+
+SKBEG     x1  0  z1
+   CIRARC x2  0  z2  x3  0  z3
+   CIRARC x4  0  z4  x5  0  z5
+   CIRARC x6  0  z6  x7  0  z7
+   LINSEG x1  0  z1
+SKEND
+
+EXTRUDE   0   D   0
+
+END
+

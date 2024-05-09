@@ -76,82 +76,7 @@ $(function() {
 <div class="textblock"><p>Structure for the analysis tuple = (&lsquo;Analysis Name&rsquo;, &lsquo;Value&rsquo;). 'Analysis Name' defines the reference name for the analysis being specified. The "Value" can either be a JSON String dictionary (see Section <a class="el" href="feaAnalysis.html#jsonStringAnalysis">JSON String Dictionary</a>) or a single string keyword (see Section <a class="el" href="feaAnalysis.html#keyStringAnalysis">Single Value String</a>).</p>
 <h1><a class="anchor" id="jsonStringAnalysis"></a>
 JSON String Dictionary</h1>
-<p>If "Value" is JSON string dictionary (e.g. "Value" = {"numDesiredEigenvalue": 10, "eigenNormaliztion": "MASS", "numEstEigenvalue": 1, "extractionMethod": "GIV", "frequencyRange": [0, 10000]}) the following keywords ( = default values) may be used:</p>
-<ul>
-<li>
-<b>analysisType = "Modal"</b>  <br  />
- Type of load. Options: "Modal", "Static". </li>
-</ul>
-<ul>
-<li>
-<b>analysisLoad = "(no default)"</b>  <br  />
- Single or list of "Load Name"s defined in <a class="el" href="feaLoad.html">FEA Load</a> in which to use for the analysis (e.g. "Name1" or ["Name1","Name2",...]. </li>
-</ul>
-<ul>
-<li>
-<b>analysisConstraint = "(no default)"</b>  <br  />
- Single or list of "Constraint Name"s defined in <a class="el" href="feaConstraint.html">FEA Constraint</a> in which to use for the analysis (e.g. "Name1" or ["Name1","Name2",...]. </li>
-</ul>
-<ul>
-<li>
-<b>analysisSupport = "(no default)"</b>  <br  />
- Single or list of "Support Name"s defined in <a class="el" href="feaSupport.html">FEA Support</a> in which to use for the analysis (e.g. "Name1" or ["Name1","Name2",...]. </li>
-</ul>
-<ul>
-<li>
-<b>extractionMethod = "(no default)"</b>  <br  />
- Extraction method for modal analysis. </li>
-</ul>
-<ul>
-<li>
-<b>frequencyRange = [0.0, 0.0] </b>  <br  />
- Frequency range of interest for modal analysis. </li>
-</ul>
-<ul>
-<li>
-<b>numEstEigenvalue = 0 </b>  <br  />
- Number of estimated eigenvalues for modal analysis. </li>
-</ul>
-<ul>
-<li>
-<b>numDesiredEigenvalue = 0</b>  <br  />
- Number of desired eigenvalues for modal analysis. </li>
-</ul>
-<ul>
-<li>
-<b>eigenNormaliztion = "(no default)"</b>  <br  />
- Method of eigenvector renormalization. Options: "POINT", "MAX", "MASS" </li>
-</ul>
-<ul>
-<li>
-<b>gridNormaliztion = 0 </b>  <br  />
- Grid point to be used in normalizing eigenvector to 1.0 when using eigenNormaliztion = "POINT" </li>
-</ul>
-<ul>
-<li>
-<b>componentNormaliztion = 0</b>  <br  />
- Degree of freedom about "gridNormalization" to be used in normalizing eigenvector to 1.0 when using eigenNormaliztion = "POINT" </li>
-</ul>
-<ul>
-<li>
-<b>lanczosMode = 2</b>  <br  />
- Mode refers to the Lanczos mode type to be used in the solution. In mode 3 the mass matrix, Maa,must be nonsingular whereas in mode 2 the matrix K aa - sigma*Maa must be nonsingular </li>
-</ul>
-<ul>
-<li>
-<b>lanczosType = "(no default)"</b>  <br  />
- Lanczos matrix type. Options: DPB, DGB. </li>
-</ul>
-<ul>
-<li>
-<b>aeroSymmetryXY = "(no default)"</b>  <br  />
- Aerodynamic symmetry about the XY Plane. Options: SYM, ANTISYM, ASYM. Aerodynamic symmetry about the XY Plane. Options: SYM, ANTISYM, ASYM. SYMMETRIC Indicates that a half span aerodynamic model is moving in a symmetric manner with respect to the XY plane. ANTISYMMETRIC Indicates that a half span aerodynamic model is moving in an antisymmetric manner with respect to the XY plane. ASYMMETRIC Indicates that a full aerodynamic model is provided. </li>
-</ul>
-<ul>
-<li>
-<b>aeroSymmetryXZ = "(no default)"</b>  <br  />
- Aerodynamic symmetry about the XZ Plane. Options: SYM, ANTISYM, ASYM. SYMMETRIC Indicates that a half span aerodynamic model is moving in a symmetric manner with respect to the XZ plane. ANTISYMMETRIC Indicates that a half span aerodynamic model is moving in an antisymmetric manner with respect to the XZ plane. ASYMMETRIC Indicates that a full aerodynamic model is provided. </li>
-</ul>
+<p>If "Value" is JSON string dictionary the following keywords ( = default values) may be used:</p>
 <h1><a class="anchor" id="keyStringAnalysis"></a>
 Single Value String</h1>
 <p>If "Value" is a string, the string value may correspond to an entry in a predefined analysis lookup table. NOT YET IMPLEMENTED!!!! </p>
@@ -159,7 +84,7 @@ Single Value String</h1>
 </div><!-- PageDoc -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Sat Jul 2 2022 10:12:39 for Masstran Analysis Interface Module (AIM) by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1
+Generated on Sat Apr 27 2024 16:51:29 for Masstran Analysis Interface Module (AIM) by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1
 </small></address>
 </body>
 </html>

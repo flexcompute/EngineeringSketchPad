@@ -1746,7 +1746,9 @@ __HOST_AND_DEVICE__ int EG_createMeshMap(bodyQuad *bodydata)
   int          f, stat = 0, j, q, k, kk, kOK, len, iA, iB, iC;
   int          ntri, nquad, e4[4] ;
   const int    *tris, *tric, *ptype, *pindex;
-  double       angle, xyz[18], norm1, norm2, u01[3], u02[3], v01[3], v02[3], uC[3], vC[3];
+  double       angle, xyz[18], norm1, norm2;
+  double       u01[3], u02[3], uC[3];
+  /*double       v01[3], v02[3], vC[3];*/
   const double *xyzs, *uvs;
   int          qV[6]    = { 0, 1, 2, 5, 0, 1};
   int          qLoop[5] = { 0, 1, 2, 3, 0   };
@@ -1797,6 +1799,7 @@ __HOST_AND_DEVICE__ int EG_createMeshMap(bodyQuad *bodydata)
             f +1, q + 1 );
             bodydata->qm[f]->fID       = 0;
          }
+#ifdef THIS_CHECK_IS_NOT_SENSIBLE
          uC[0] /= norm1;
          uC[1] /= norm1;
          uC[2] /= norm1;
@@ -1831,6 +1834,7 @@ __HOST_AND_DEVICE__ int EG_createMeshMap(bodyQuad *bodydata)
               bodydata->qm[f]->fID       = 0;
            }
         }
+#endif
       }
       nquad                   = (int) ntri/2;
       bodydata->qm[f]->oriV   = len;

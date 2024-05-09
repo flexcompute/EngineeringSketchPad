@@ -1,0 +1,15 @@
+# edgeIDtest5
+# written by John Dannenhoffer
+
+DESPMTR   x1   1.0
+DESPMTR   x2   2.0
+
+BOX       0  0  0  3  2  0
+
+TORUS     1.5  1.0  0.0  0.0  1.0  0.0  0.5  0.23
+SUBTRACT
+
+SELECT    EDGE  0  0  1  1
+ATTRIBUTE _color $magenta
+
+END

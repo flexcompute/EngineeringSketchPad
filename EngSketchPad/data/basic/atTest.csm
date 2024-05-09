@@ -18,6 +18,8 @@ despmtr        feat[2,2] -0.50
 despmtr        radius     0.50
 
 # macro to print parameters
+# note: MACBEG/MACEND/RECALL has been deprecated and is included here for backward-compatability testing
+#       new .csm files should use UDPRIM instead
 macbeg 1
     set        nbody_     @nbody
     set        nface_     @nface

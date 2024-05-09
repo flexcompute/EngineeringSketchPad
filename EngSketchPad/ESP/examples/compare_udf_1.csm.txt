@@ -1,0 +1,27 @@
+# compare_udf_1
+# written by John Dannenhoffer
+
+# base box
+BOX       0   0   0   3   2   1
+SELECT    FACE
+ATTRIBUTE _trn  $on
+
+DUMP      compare.tess
+
+# perturbed box
+BOX       0   0   0   3.1  2.01  1.001
+SELECT    FACE
+ATTRIBUTE _viz  $off
+
+# compute/report compares
+UDPARG    compare  tessfile  $compare.tess        # tessellation file to compare with
+UDPARG    compare  plotfile  $compare.plot        # an output plotfile (see comment below)
+UDPARG    compare  histfile  $compare.hist        # an output histogram file
+UDPARG    compare  toler     0.05                 # comparison tolerance
+UDPRIM    compare
+
+# to see points above tolerance (on xmax Face), re-run as:
+# serveESP ../ESP/examples/compare_1 -plot compare.plot
+
+END
+

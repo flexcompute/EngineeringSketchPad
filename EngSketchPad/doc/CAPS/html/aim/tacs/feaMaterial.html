@@ -69,11 +69,221 @@ $(function() {
 <div class="textblock"><p>Structure for the material tuple = ("Material Name", "Value"). "Material Name" defines the reference name for the material being specified. The "Value" can either be a JSON String dictionary (see Section <a class="el" href="feaMaterial.html#jsonStringMaterial">JSON String Dictionary</a>) or a single string keyword (see Section <a class="el" href="feaMaterial.html#keyStringMaterial">Single Value String</a>).</p>
 <h1><a class="anchor" id="jsonStringMaterial"></a>
 JSON String Dictionary</h1>
-<p>If "Value" is JSON string dictionary the following keywords ( = default values) may be used:</p>
+<p>If "Value" is JSON string dictionary (e.g. "Value" = {"density": 7850, "youngModulus": 120000.0, "poissonRatio": 0.5, "materialType": "isotropic"}) the following keywords ( = default values) may be used:</p>
 <ul>
 <li>
 <b>materialType = "Isotropic"</b>  <br  />
  Material property type. Options: Isotropic, Anisothotropic, Orthotropic, or Anisotropic. </li>
+</ul>
+<ul>
+<li>
+<b>youngModulus = 0.0</b>  <br  />
+ Also known as the elastic modulus, defines the relationship between stress and strain. Default if &lsquo;shearModulus&rsquo; and &lsquo;poissonRatio&rsquo; != 0, youngModulus = 2*(1+poissonRatio)*shearModulus </li>
+</ul>
+<ul>
+<li>
+<b>shearModulus = 0.0</b>  <br  />
+ Also known as the modulus of rigidity, is defined as the ratio of shear stress to the shear strain. Default if &lsquo;youngModulus&rsquo; and &lsquo;poissonRatio&rsquo; != 0, shearModulus = youngModulus/(2*(1+poissonRatio)) </li>
+</ul>
+<ul>
+<li>
+<b>poissonRatio = 0.0</b>  <br  />
+ The fraction of expansion divided by the fraction of compression. Default if &lsquo;youngModulus&rsquo; and &lsquo;shearModulus&rsquo; != 0, poissonRatio = (2*youngModulus/shearModulus) - 1 </li>
+</ul>
+<ul>
+<li>
+<b>density = 0.0</b>  <br  />
+ Density of the material. </li>
+</ul>
+<ul>
+<li>
+<b>thermalExpCoeff = 0.0</b>  <br  />
+ Thermal expansion coefficient of the material. </li>
+</ul>
+<ul>
+<li>
+<b>thermalExpCoeffLateral = 0.0</b>  <br  />
+ Thermal expansion coefficient of the material. </li>
+</ul>
+<ul>
+<li>
+<b>temperatureRef = 0.0</b>  <br  />
+ Reference temperature for material properties. </li>
+</ul>
+<ul>
+<li>
+<b>dampingCoeff = 0.0</b>  <br  />
+ Damping coefficient for the material. </li>
+</ul>
+<ul>
+<li>
+<b>yieldAllow = 0.0</b>  <br  />
+ Yield strength/allowable for the material. </li>
+</ul>
+<ul>
+<li>
+<b>tensionAllow = 0.0</b>  <br  />
+ Tension allowable for the material. </li>
+</ul>
+<ul>
+<li>
+<b>tensionAllowLateral = 0.0</b>  <br  />
+ Lateral tension allowable for the material. </li>
+</ul>
+<ul>
+<li>
+<b>compressAllow = 0.0</b>  <br  />
+ Compression allowable for the material. </li>
+</ul>
+<ul>
+<li>
+<b>compressAllowLateral = 0.0</b>  <br  />
+ Lateral compression allowable for the material. </li>
+</ul>
+<ul>
+<li>
+<b>shearAllow = 0.0</b>  <br  />
+ Shear allowable for the material. </li>
+</ul>
+<ul>
+<li>
+<b>allowType = 0 </b>  <br  />
+ This flag defines if the above allowables <code>compressAllow</code> etc. are defined in terms of stress (0) or strain (1). The default is stress (0). </li>
+</ul>
+<ul>
+<li>
+<b>youngModulusLateral = 0.0</b>  <br  />
+ Elastic modulus in lateral direction for an orthotropic material </li>
+</ul>
+<ul>
+<li>
+<b>shearModulusTrans1Z = 0.0</b>  <br  />
+ Transverse shear modulus in the 1-Z plane for an orthotropic material </li>
+</ul>
+<ul>
+<li>
+<b>shearModulusTrans2Z = 0.0</b>  <br  />
+ Transverse shear modulus in the 2-Z plane for an orthotropic material </li>
+</ul>
+<ul>
+<li>
+<b>kappa = 0.0</b>  <br  />
+ Thermal conductivity for an isotropic solid </li>
+</ul>
+<ul>
+<li>
+<b>K = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]</b>  <br  />
+ Thermal conductivity for an anisotropic solid (KXX, KXY, KXZ, KYY, KYZ, KZZ) </li>
+</ul>
+<ul>
+<li>
+<b>specificHeat = 0.0</b>  <br  />
+ Specific heat constant pressure (per unit mass) for an isotropic solid </li>
+</ul>
+<ul>
+<li>
+<b> Gij = (no default) </b>  <br  />
+ List of Gij material properties (e.g. [G11, G12, G13, G22, fG23, G33]). Length must be 6. </li>
+</ul>
+<ul>
+<li>
+<b>honeycombCellSize = NULL</b>  <br  />
+ Honeycomb sandwich core cell size. Required if material defines the core of a honeycomb sandwich and dimpling stability index is desired </li>
+</ul>
+<ul>
+<li>
+<b>honeycombYoungModulus = NULL</b>  <br  />
+ Honeycomb sandwich core Young's modulus used for stability index analysis </li>
+</ul>
+<ul>
+<li>
+<b>honeycombShearModulus = NULL</b>  <br  />
+ Honeycomb sandwich core shear modulus used for stability index analysis </li>
+</ul>
+<ul>
+<li>
+<b>fractureAngle = NULL</b>  <br  />
+ Fracture angle for uniaxial transverse compression in degrees. Used in the NASA LaRC02 failure theory only </li>
+</ul>
+<ul>
+<li>
+<b>interlaminarShearAllow = NULL</b>  <br  />
+ Allowable inter-laminar shear stress of the composite laminate bonding material </li>
+</ul>
+<ul>
+<li>
+<b>fiberYoungModulus = NULL</b>  <br  />
+ Modulus of elasticity of fiber </li>
+</ul>
+<ul>
+<li>
+<b>fiberPoissonRatio = NULL</b>  <br  />
+ Poisson's ratio of fiber </li>
+</ul>
+<ul>
+<li>
+<b>meanStressFactor = NULL</b>  <br  />
+ Mean stress magnification factor </li>
+</ul>
+<ul>
+<li>
+<b>transTensionSlope = NULL</b>  <br  />
+ Failure envelop slope parameter for transverse tension </li>
+</ul>
+<ul>
+<li>
+<b>transCompressionSlope = NULL</b>  <br  />
+ Failure envelop slope parameter for transverse compression </li>
+</ul>
+<ul>
+<li>
+<b>compositeFailureTheory = NULL</b>  <br  />
+ Composite failure theory (string value) </li>
+</ul>
+<ul>
+<li>
+<b>interlaminarNormalStressAllow = NULL</b>  <br  />
+ Allowable inter-laminar normal stress of the composite laminate bonding material (allowable interlaminar normal stress) </li>
+</ul>
+<ul>
+<li>
+<b>youngModulusThick = NULL</b>  <br  />
+ Modulus of elasticity in thickness direction, also defined as the matrix direction or 3-direction </li>
+</ul>
+<ul>
+<li>
+<b>poissonRatio23 = 0.0</b>  <br  />
+ Poisson's ratio ( for uniaxial loading in 2-direction) </li>
+</ul>
+<ul>
+<li>
+<b>poissonRatio31 = 0.0</b>  <br  />
+ Poisson's ratio ( for uniaxial loading in 3-direction) </li>
+</ul>
+<ul>
+<li>
+<b>youngModulusFactor = NULL</b>  <br  />
+ Longitudinal modulus of elasticity reduction scale factor for nonlinear composite Progressive Ply Failure Analysis (PPFA) </li>
+</ul>
+<ul>
+<li>
+<b>youngModulusLateralFactor = NULL</b>  <br  />
+ Lateral modulus of elasticity reduction scale factor for nonlinear composite Progressive Ply Failure Analysis (PPFA) </li>
+</ul>
+<ul>
+<li>
+<b>shearModulusFactor = NULL</b>  <br  />
+ In-plane shear modulus reduction scale factor for nonlinear composite Progressive Ply Failure Analysis (PPFA) </li>
+</ul>
+<ul>
+<li>
+<b>shearModulusTrans1ZFactor = NULL</b>  <br  />
+ Transverse shear modulus reduction scale factor in 1-Z plane for nonlinear composite Progressive Ply Failure Analysis (PPFA) </li>
+</ul>
+<ul>
+<li>
+<b>shearModulusTrans2ZFactor = NULL</b>  <br  />
+ Transverse shear modulus reduction scale factor in 2-Z plane for nonlinear composite Progressive Ply Failure Analysis (PPFA) </li>
 </ul>
 <h1><a class="anchor" id="keyStringMaterial"></a>
 Single Value String</h1>
@@ -82,7 +292,7 @@ Single Value String</h1>
 </div><!-- PageDoc -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Sat Jul 2 2022 10:13:17 for TACS Analysis Interface Module (AIM) by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1
+Generated on Sat Apr 27 2024 16:51:53 for TACS Analysis Interface Module (AIM) by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1
 </small></address>
 </body>
 </html>

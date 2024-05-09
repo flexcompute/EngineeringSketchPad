@@ -68,18 +68,28 @@ $(function() {
 <div class="contents">
 <div class="textblock"><p>The following list outlines the AFLR3 meshing options along with their default value available through the AIM interface.</p>
 <ul>
-<li><b> Proj_Name = NULL</b> <br  />
- This corresponds to the output name of the mesh. If left NULL, the mesh is not written to a file.</li>
+<li><b> Proj_Name = "aflr3_CAPS"</b> <br  />
+ Output name prefix for meshes to be written in formats specified by Mesh_Format. These meshes are not linked to any analysis, but may be useful exploring meshing parameters.</li>
+</ul>
+<p><ul>
+<li><b> Mesh_Format = NULL</b> <br  />
+ Optional list of string mesh formats to generate meshes not linked to analysis. <br  />
+ Available format names include: "exodus", "fast", "libMeshb", "stl", "bstl", "su2", "tecplot", "ugrid", "vtk", and "bvtk".<br  />
+ where the "b" prefix indicates binary version. </li>
+</ul>
+</p>
+<ul>
 <li><b> Mesh_Quiet_Flag = False</b> <br  />
  Suppression of mesh generator (not including errors)</li>
-<li><b> Mesh_Format = "AFLR3"</b> <br  />
- Mesh output format. Available format names include: "AFLR3", "SU2", "Nastran", "Tecplot", and "VTK".</li>
-<li><b> Mesh_ASCII_Flag = True</b> <br  />
- Output mesh in ASCII format, otherwise write a binary file, if applicable.</li>
 <li><b> Mesh_Gen_Input_String = NULL</b> <br  />
  Meshing program command line string (as if called in bash mode). Use this to specify more complicated options/use features of the mesher not currently exposed through other AIM input variables. Note that this is the exact string that will be provided to the volume mesher; no modifications will be made. If left NULL an input string will be created based on default values of the relevant AIM input variables.</li>
-<li><b> Multiple_Mesh = False</b> <br  />
- If set to True a volume will be generated for each body. When set to False (default value) only a single volume mesh will be created.</li>
+<li><b> Multiple_Mesh = "SingleDomain"</b> <br  />
+ If "SingleDomain": Generate a single volume mesh file is assuming multiple bodies define a single computational domain (i.e. CFD)<br  />
+ <br  />
+ If "MultiFile": Generate a volume mesh file for each body.<br  />
+ <br  />
+ If "MultiDomain": Generate a single mesh file containing multiple volume meshes for each body.<br  />
+</li>
 <li><b>Mesh_Sizing = NULL </b> <br  />
  See <a class="el" href="meshSizingProp.html">Mesh Sizing</a> for additional details.</li>
 <li><b> BL_Initial_Spacing = 0.0</b> <br  />
@@ -107,7 +117,7 @@ $(function() {
 </div><!-- PageDoc -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Sat Jul 2 2022 10:13:04 for AFLR3 Analysis Interface Module (AIM) by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1
+Generated on Sat Apr 27 2024 16:50:53 for AFLR3 Analysis Interface Module (AIM) by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1
 </small></address>
 </body>
 </html>

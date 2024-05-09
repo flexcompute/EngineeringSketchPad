@@ -1,0 +1,82 @@
+# winglet1
+# written by John Dannenhoffer
+
+# root
+DESPMTR   x1       0.0
+DESPMTR   y1       0.0
+DESPMTR   c1       2.0
+DESPMTR   thick1   0.12
+DESPMTR   cambr1   0.04
+
+# main wing before transition
+DESPMTR   x2       1.5
+DESPMTR   y2       6.0
+DESPMTR   c2       1.0
+DESPMTR   thick2   0.06
+DESPMTR   cambr2   0.02
+
+# middle of transition
+DESPMTR   x3       1.55
+DESPMTR   y3       6.10
+DESPMTR   c3       0.95
+DESPMTR   thick3   0.06
+DESPMTR   cambr3   0.00
+
+# winglet near transition
+DESPMTR   x4       1.6
+DESPMTR   y4       6.2
+DESPMTR   c4       0.9
+DESPMTR   thick4   0.06
+DESPMTR   cambr4   0.00
+
+# tip of winglet
+DESPMTR   x5       1.9
+DESPMTR   y5       7.0
+DESPMTR   c5       0.5
+DESPMTR   thick5   0.06
+DESPMTR   cambr5   0.00
+
+DESPMTR  dihedral  60
+
+MARK
+
+   # main wing
+   UDPRIM    naca    thickness thick1   camber cambr1
+   ROTATEX   90
+   SCALE     c1
+   TRANSLATE x1  y1  0
+
+   UDPRIM    naca    thickness thick2   camber cambr2
+   ROTATEX   90
+   SCALE     c2
+   TRANSLATE x2  y2  0
+
+   RESTORE   .       # repeat for C1 inboard
+
+   # transition
+   UDPRIM    naca    thickness thick3   camber cambr3
+   ROTATEX   90
+   UDPRIM    nuscale  xscale c3   yscale c3/cosd(dihedral/2)
+   TRANSLATE x3  y3  thick3/2/cosd(dihedral/2)
+   ROTATEX   dihedral/2  y3  0.0
+
+   # winglet
+   UDPRIM    naca    thickness thick4   camber cambr4
+   ROTATEX   90
+   SCALE     c4
+   TRANSLATE x4  y4  0
+   ROTATEX   dihedral  y3  thick3/2
+
+   RESTORE   .       # repeat for C1 outboard
+
+   UDPRIM    naca    thickness thick5   camber cambr5
+   ROTATEX   90
+   SCALE     c5
+   TRANSLATE x5  y5  0
+   ROTATEX   dihedral  y3  thick3/2
+BLEND
+
+# fine grid (to show how smooth transition is)
+UDPRIM    $$/applyTparams   factor 0.2
+
+END

@@ -1,0 +1,6 @@
+# NASA_Tiltduct_DirectDrive_5Vanes
+# written by John Dannenhoffer
+
+UDPRIM    vsp3   filename $$/NASA_Tiltduct_DirectDrive_5Vanes.vsp3
+
+END

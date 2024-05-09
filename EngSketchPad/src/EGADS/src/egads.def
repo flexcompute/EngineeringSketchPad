@@ -24,6 +24,7 @@ EG_setFixedKnots
 EG_setFullAttrs
 EG_getInfo
 EG_copyObject
+EG_contextCopy
 EG_flipObject
 EG_close
 EG_setUserPointer
@@ -69,6 +70,7 @@ EG_approximate_dot
 EG_fitTriangles
 EG_otherCurve
 EG_isoCline
+EG_isIsoPCurve
 EG_isoCurve
 EG_isoCurve_dot
 EG_isSame
@@ -116,6 +118,7 @@ EG_sewFaces
 EG_makeNmWireBody
 EG_replaceFaces
 EG_mapBody
+EG_mapBody2
 EG_matchBodyEdges
 EG_matchBodyFaces
 EG_fillTris
@@ -164,6 +167,7 @@ EG_hollowBody
 EG_extrude
 EG_extrude_dot
 EG_rotate
+EG_rotate_dot
 EG_sweep
 EG_loft
 EG_blend

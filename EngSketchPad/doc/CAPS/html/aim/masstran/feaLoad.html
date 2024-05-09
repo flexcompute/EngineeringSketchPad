@@ -76,77 +76,7 @@ $(function() {
 <div class="textblock"><p>Structure for the load tuple = ("Load Name", "Value"). "Load Name" defines the reference name for the load being specified. The "Value" can either be a JSON String dictionary (see Section <a class="el" href="feaLoad.html#jsonStringLoad">JSON String Dictionary</a>) or a single string keyword (see Section <a class="el" href="feaLoad.html#keyStringLoad">Single Value String</a>).</p>
 <h1><a class="anchor" id="jsonStringLoad"></a>
 JSON String Dictionary</h1>
-<p>If "Value" is JSON string dictionary (e.g. "Value" = {"groupName": "plate", "loadType": "Pressure", "pressureForce": 2000000.0}) the following keywords ( = default values) may be used:</p>
-<ul>
-<li>
-<b>loadType = "(no default)"</b>  <br  />
- Type of load. Options: "GridForce", "GridMoment", "Rotational", "Thermal", "Pressure", "PressureDistribute", "PressureExternal", "Gravity". </li>
-</ul>
-<ul>
-<li>
-<b>groupName = "(no default)"</b>  <br  />
- Single or list of <code>capsLoad</code> names on which to apply the load (e.g. "Name1" or ["Name1","Name2",...]. If not provided, the load tuple name will be used. </li>
-</ul>
-<ul>
-<li>
-<b>loadScaleFactor = 1.0 </b>  <br  />
- Scale factor to use when combining loads. </li>
-</ul>
-<ul>
-<li>
-<b>forceScaleFactor = 0.0 </b>  <br  />
- Overall scale factor for the force for a "GridForce" load. </li>
-</ul>
-<ul>
-<li>
-<b>directionVector = [0.0, 0.0, 0.0] </b>  <br  />
- X-, y-, and z- components of the force vector for a "GridForce", "GridMoment", or "Gravity" load. </li>
-</ul>
-<ul>
-<li>
-<b>momentScaleFactor = 0.0 </b>  <br  />
- Overall scale factor for the moment for a "GridMoment" load. </li>
-</ul>
-<ul>
-<li>
-<b>gravityAcceleration = 0.0 </b>  <br  />
- Acceleration value for a "Gravity" load. </li>
-</ul>
-<ul>
-<li>
-<b>pressureForce = 0.0 </b>  <br  />
- Uniform pressure force for a "Pressure" load (only applicable to 2D elements). </li>
-</ul>
-<ul>
-<li>
-<b>pressureDistributeForce = [0.0, 0.0, 0.0, 0.0] </b>  <br  />
- Distributed pressure force for a "PressureDistribute" load (only applicable to 2D elements). The four values correspond to the 4 (quadrilateral elements) or 3 (triangle elements) node locations. </li>
-</ul>
-<ul>
-<li>
-<b>angularVelScaleFactor = 0.0 </b>  <br  />
- An overall scale factor for the angular velocity in revolutions per unit time for a "Rotational" load. </li>
-</ul>
-<ul>
-<li>
-<b>angularAccScaleFactor = 0.0 </b>  <br  />
- An overall scale factor for the angular acceleration in revolutions per unit time squared for a "Rotational" load. </li>
-</ul>
-<ul>
-<li>
-<b>coordinateSystem = "(no default)" </b>  <br  />
- Name of coordinate system in which defined force components are in reference to. If no value is provided the global system is assumed. </li>
-</ul>
-<ul>
-<li>
-<b>temperature = 0.0 </b>  <br  />
- Temperature at a given node for a "Temperature" load. </li>
-</ul>
-<ul>
-<li>
-<b>temperatureDefault = 0.0 </b>  <br  />
- Default temperature at a node not explicitly being used for a "Temperature" load. </li>
-</ul>
+<p>If "Value" is JSON string dictionary the following keywords ( = default values) may be used:</p>
 <h1><a class="anchor" id="keyStringLoad"></a>
 Single Value String</h1>
 <p>If "Value" is a string, the string value may correspond to an entry in a predefined load lookup table. NOT YET IMPLEMENTED!!!! </p>
@@ -154,7 +84,7 @@ Single Value String</h1>
 </div><!-- PageDoc -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Sat Jul 2 2022 10:12:39 for Masstran Analysis Interface Module (AIM) by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1
+Generated on Sat Apr 27 2024 16:51:29 for Masstran Analysis Interface Module (AIM) by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1
 </small></address>
 </body>
 </html>

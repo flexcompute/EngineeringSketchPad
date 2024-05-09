@@ -246,6 +246,111 @@ int su2_writeSurfaceMotion(void *aimInfo,
     return CAPS_SUCCESS;
 }
 
+int su2_writeSurface(void *aimInfo,
+                     char *projectName,
+                     aimMeshRef *meshRef)
+{
+  int status; // Function return status
+  int i, j, iglobal; // Indexing
+
+  int stringLength = 0;
+
+  char *filename = NULL;
+
+  int state, nGlobal, *globalOffset=NULL;
+  ego body;
+
+  // Variables used in global node mapping
+  int ptype, pindex;
+  double xyz[3];
+
+  // Data transfer Out variables
+
+  double **dataOutMatrix = NULL;
+  int dataOutFormat[] = {Integer, Double, Double, Double};
+
+  int numOutVariable = 4; // ID and x,y,z
+  int numOutDataPoint = 0;
+
+  const char fileExt[] = "_motion.dat";
+
+  AIM_ALLOC(dataOutMatrix, numOutVariable, double*, aimInfo, status);
+  for (i = 0; i < numOutVariable; i++) dataOutMatrix[i] = NULL;
+
+  printf("Writing SU2 surface file\n");
+
+  // first construct the complete boundary mesh
+  // SU2 will initialize all active MARKER boundaries to the motion file values,
+  // so the safest thing to do is write out all boundary points
+  AIM_ALLOC(globalOffset, meshRef->nmap+1, int, aimInfo, status);
+  numOutDataPoint = 0;
+  globalOffset[0] = 0;
+  for (i = 0; i < meshRef->nmap; i++) {
+    if (meshRef->maps[i].tess == NULL) continue;
+
+    status = EG_statusTessBody(meshRef->maps[i].tess, &body, &state, &nGlobal);
+    AIM_STATUS(aimInfo, status);
+
+    // re-allocate data arrays
+    for (j = 0; j < numOutVariable; j++) {
+      AIM_REALL(dataOutMatrix[j], numOutDataPoint + nGlobal, double, aimInfo, status);
+    }
+
+    for (iglobal = 0; iglobal < nGlobal; iglobal++) {
+      status = EG_getGlobal(meshRef->maps[i].tess,
+                            iglobal+1, &ptype, &pindex, xyz);
+      AIM_STATUS(aimInfo, status);
+
+      // Volume mesh node ID (0-based for SU2)
+      dataOutMatrix[0][globalOffset[i]+iglobal] = meshRef->maps[i].map[iglobal]-1;
+
+      // First just set the Coordinates
+      dataOutMatrix[1][globalOffset[i]+iglobal] = xyz[0];
+      dataOutMatrix[2][globalOffset[i]+iglobal] = xyz[1];
+      dataOutMatrix[3][globalOffset[i]+iglobal] = xyz[2];
+    }
+
+    numOutDataPoint += nGlobal;
+    globalOffset[i+1] = globalOffset[i] + nGlobal;
+  }
+
+  stringLength = strlen(projectName) + strlen(fileExt) + 1;
+  AIM_ALLOC(filename, stringLength, char, aimInfo, status);
+  strcpy(filename, projectName);
+  strcat(filename, fileExt);
+
+  // Write out displacement in tecplot file
+/*@-nullpass@*/
+  status = su2_writeSurfaceMotion(aimInfo,
+                                  filename,
+                                  numOutVariable,
+                                  numOutDataPoint,
+                                  dataOutMatrix,
+                                  dataOutFormat,
+                                  0, // numConnectivity
+                                  NULL); // connectivity matrix
+/*@+nullpass@*/
+  AIM_STATUS(aimInfo, status);
+
+  status = CAPS_SUCCESS;
+
+// Clean-up
+cleanup:
+
+  if (dataOutMatrix != NULL) {
+      for (i = 0; i < numOutVariable; i++) {
+        AIM_FREE(dataOutMatrix[i]);
+      }
+  }
+
+  AIM_FREE(dataOutMatrix);
+  AIM_FREE(filename);
+  AIM_FREE(globalOffset);
+
+  return status;
+
+}
+
 // Write SU2 data transfer files
 int su2_dataTransfer(void *aimInfo,
                      char *projectName,
@@ -342,7 +447,7 @@ int su2_dataTransfer(void *aimInfo,
     printf("Writing SU2 data transfer files\n");
 
     // first construct the complete boundary mesh
-    // SU2 will initailize all active MARKER boundaries to the motion file values,
+    // SU2 will initialize all active MARKER boundaries to the motion file values,
     // so the safest thing to do is write out all boundary points
     AIM_ALLOC(globalOffset, meshRef->nmap+1, int, aimInfo, status);
     numOutDataPoint = 0;

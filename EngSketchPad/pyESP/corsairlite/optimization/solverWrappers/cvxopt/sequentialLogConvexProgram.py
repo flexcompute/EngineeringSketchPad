@@ -11,6 +11,16 @@ from corsairlite.core.pickleFunctions import setPickle, unsetPickle
 from corsairlite.optimization.solverWrappers.cvxopt.sequentialQuadraticProgram import stripUnitsMat, substituteMatrix
 
 import cvxopt
+import time
+
+printerFile = "printer.txt"
+def printer(txt, out=False):
+    f = open(printerFile,'a')
+    f.write(str(txt))
+    f.write('\n')
+    f.close()
+    if out:
+        print(txt)
 
 def meritFunction(  vrs,
                     rho,
@@ -73,14 +83,14 @@ def meritFunction(  vrs,
         # gpc
         for con in constraints[0]:
             constraintIndex += 1
-            vl = con.LHS.substitute(x_k_dict)
+            vl = con.LHS.evaluate(x_k_dict)
             constraintFunctionEvaluations[0].append(vl)
             constraintValues.append(vl)
             c_1Norm.append(returncval(vl,constraint_operators[constraintIndex]))
         # ngpc
         for fr in constraints[1]:
             constraintIndex += 1
-            vl = fr.substitute(x_k_dict)
+            vl = fr.evaluate(x_k_dict)
             constraintFunctionEvaluations[1].append(vl)
             constraintValues.append(vl)
             c_1Norm.append(returncval(vl,constraint_operators[constraintIndex]))
@@ -101,7 +111,7 @@ def meritFunction(  vrs,
                 constraintValues.append(cval)
                 c_1Norm.append(returncval(cval,constraint_operators[constraintIndex]))
 
-    objectiveValue = objective.substitute(x_k_dict)
+    objectiveValue = objective.evaluate(x_k_dict)
     lagrangeMultipliers = [lagrangeMultipliersRaw[i]*objectiveValue/constraintValues[i] for i in range(0,len(lagrangeMultipliersRaw))] 
 #     lagrangeMultipliers = [lagrangeMultipliersRaw[i]/constraintValues[i] for i in range(0,len(lagrangeMultipliersRaw))] 
         
@@ -119,15 +129,16 @@ def meritFunction(  vrs,
         for i in range(0,Ncons):
             mu_k[i] = max([abs(lagrangeMultipliers[i]), 0.5*(mu_k[i] + abs(lagrangeMultipliers[i]))])
         D = delfp - sum([mu_k[i] * c_1Norm[i] for i in range(0,Ncons)])
-        phi_k = objective.substitute(x_k_dict) + sum([mu_k[i] * c_1Norm[i] for i in range(0,Ncons)])
+        phi_k = objective.evaluate(x_k_dict) + sum([mu_k[i] * c_1Norm[i] for i in range(0,Ncons)])
         return phi_k, D, mu_k, constraintFunctionEvaluations, lagrangeMultipliers
     else:
         delfp = sum([objectiveGradient[i] * fullStep_x[i] for i in range(0,Nvars)])
         D = delfp - sum([mu_k[i] * c_1Norm[i] for i in range(0,Ncons)])
-        phi_k = objective.substitute(x_k_dict) + sum([mu_k[i] * c_1Norm[i] for i in range(0,Ncons)])
+        phi_k = objective.evaluate(x_k_dict) + sum([mu_k[i] * c_1Norm[i] for i in range(0,Ncons)])
         return phi_k, D, constraintFunctionEvaluations, lagrangeMultipliers
 
 def SequentialLogConvexProgramSolver(formulation):
+    startTime = time.perf_counter()
     cvxopt.solvers.options['show_progress'] = False
     cvxopt.solvers.options['maxiters'] = 1000
     cvxopt.solvers.options['abstol'] = 1e-7
@@ -300,7 +311,7 @@ def SequentialLogConvexProgramSolver(formulation):
 
     # Main Iterative Loop
     x_k_dict = dict(zip(names,x_k))
-    objectiveValue = formulation.objective.substitute(x_k_dict)
+    objectiveValue = formulation.objective.evaluate(x_k_dict)
     res.objectiveFunctionValues.append(objectiveValue)
     watchdogCounter = 0
     stepNumberIndex = -1
@@ -311,7 +322,19 @@ def SequentialLogConvexProgramSolver(formulation):
     hstatic = None
     posyCons = None
     posyInd = None
+    if formulation.solverOptions.debugOutput:
+        with open(printerFile,'w') as f:
+            f.write('Starting...\n')
     for iterate in range(0,formulation.solverOptions.maxIterations):
+        if formulation.solverOptions.debugOutput:
+            printer('================================='*3)
+            printer('Iteration ' + str(iterate))
+            printer('X_k')
+            toc = time.perf_counter()
+            printer(f"Starting iteration {iterate} at {toc - startTime:0.4f} seconds", out=True)
+            # plst = [asdf.magnitude for asdf in x_k]
+            for i in range(0,len(vrs)):
+                printer('%s : %s'%(vrs[i].name, str(x_k[i])), out=True)
         stepNumberIndex += 1
         res.stepNumber.append(stepNumberIndex)
 
@@ -326,10 +349,10 @@ def SequentialLogConvexProgramSolver(formulation):
         if constraintFunctionEvaluations is None: # should only be first iteration
             constraintFunctionEvaluations = [[],[],[]]
             for con in gpcConstraints:
-                vl = con.LHS.substitute(x_k_dict)
+                vl = con.LHS.evaluate(x_k_dict)
                 constraintFunctionEvaluations[0].append(vl)
             for fr in ngpcConstraintsLHS:
-                vl = fr.substitute(x_k_dict)
+                vl = fr.evaluate(x_k_dict)
                 constraintFunctionEvaluations[1].append(vl)
             for con in runtimeConstraints:
                 rc_varnames = [ip.name for ip in con.inputs] + [op.name for op in con.outputs] 
@@ -434,7 +457,7 @@ def SequentialLogConvexProgramSolver(formulation):
         cs2 = [ cs1[i] + K[i] for i in range(mnl+1) ]
         ind = list(zip(range(mnl+1), cs1, cs2))
             
-        objVal = formulation.objective.substitute(x_k_dict)
+        objVal = formulation.objective.evaluate(x_k_dict)
         TS0 = np.log(objVal.magnitude)
         TS1 = [(subbedOG[i] * x_k[i] / objVal).magnitude for i in range(0,Nvars)]
         TS2 = stripUnitsMat(Bmat).tolist()
@@ -514,8 +537,8 @@ def SequentialLogConvexProgramSolver(formulation):
             log_feval = np.log(feval.magnitude)
             log_grad = []
             for ii in range(0,len(x_k)):
-                if hasattr(grad[ii],'substitute'):
-                    log_grad.append( (grad[ii].substitute(x_k_dict) * x_k[ii] / feval).magnitude )
+                if hasattr(grad[ii],'evaluate'):
+                    log_grad.append( (grad[ii].evaluate(x_k_dict) * x_k[ii] / feval).magnitude )
                 else:
                     log_grad.append( (grad[ii] * x_k[ii] / feval).magnitude )
             if ngpcConstraints[i].operator == '==':
@@ -584,8 +607,17 @@ def SequentialLogConvexProgramSolver(formulation):
         # b = cvxopt.matrix(b)
 
         # writeData = {'Fpre':copy.deepcopy(Fnonlin),'Gpre':copy.deepcopy(G),'hpre':copy.deepcopy(h),'Apre':copy.deepcopy(A),'bpre':copy.deepcopy(b)}
+        if formulation.solverOptions.debugOutput:
+            toc = time.perf_counter()
+            printer(f"Calling cvxopt.solvers.cp at {toc - startTime:0.4f} seconds", out=True)
 
         sol = cvxopt.solvers.cp(F=Fnonlin, G=G, h=h, A=A, b=b)
+
+        if formulation.solverOptions.debugOutput:
+            toc = time.perf_counter()
+            printer(f"Got sol from cvxopt at {toc - startTime:0.4f} seconds", out=True)
+            for key in sol:
+                print(key, sol[key])
         # writeData['sol'] = copy.deepcopy(sol)
         # writeData['F'] = copy.deepcopy(Fnonlin)
         # writeData['G'] = copy.deepcopy(G)
@@ -619,7 +651,7 @@ def SequentialLogConvexProgramSolver(formulation):
         # =====================================================
         # =====================================================
         for watchdog_Iterate in [0,1]:
-            newObj = sol['primal objective'] * formulation.objective.units + formulation.objective.substitute(x_k_dict)
+            newObj = sol['primal objective'] * formulation.objective.units + formulation.objective.evaluate(x_k_dict)
             
             slacks = LCP_slacks
             fullStep_x = LCP_stepVars #[rs.variables[nm] for nm in stepNames]
@@ -773,10 +805,10 @@ def SequentialLogConvexProgramSolver(formulation):
             tmp_x_k_dict = dict(zip(names,[x_k[i]  + stepSize * fullStep_x[i] for i in range(0,Nvars)]))
             constraintFunctionEvaluations = [[],[],[]]
             for con in gpcConstraints:
-                vl = con.LHS.substitute(tmp_x_k_dict)
+                vl = con.LHS.evaluate(tmp_x_k_dict)
                 constraintFunctionEvaluations[0].append(vl)
             for fr in ngpcConstraintsLHS:
-                vl = fr.substitute(tmp_x_k_dict)
+                vl = fr.evaluate(tmp_x_k_dict)
                 constraintFunctionEvaluations[1].append(vl)
             for con in runtimeConstraints:
                 rc_varnames = [ip.name for ip in con.inputs] + [op.name for op in con.outputs] 
@@ -799,8 +831,8 @@ def SequentialLogConvexProgramSolver(formulation):
         res.designPoints.append(x_kp1)
         res.lagrangeMultipliers.append(lamSubs)
         x_kp1_dict = dict(zip(names,x_kp1))
-        prevObj =formulation.objective.substitute(x_k_dict) 
-        newObj = formulation.objective.substitute(x_kp1_dict)
+        prevObj =formulation.objective.evaluate(x_k_dict) 
+        newObj = formulation.objective.evaluate(x_kp1_dict)
         res.objectiveFunctionValues.append(newObj)
         
         lamDict = dict(zip(lamNames,copy.deepcopy(lamSubs)))
@@ -836,13 +868,16 @@ def SequentialLogConvexProgramSolver(formulation):
         combinedDict_kp1 = copy.deepcopy(x_kp1_dict)
 
         # In logspace
+        if formulation.solverOptions.debugOutput:
+            toc = time.perf_counter()
+            printer(f"logspace stuff at {toc - startTime:0.4f} seconds", out=True)
         for ky, vl in lamDict.items():
             combinedDict_k[ky] = vl
             combinedDict_kp1[ky] = vl
         for i in range(0,len(vrs)):
-            if hasattr(objectiveGradient[i],'substitute'):
-                ogv_k = objectiveGradient[i].substitute(combinedDict_k)
-                ogv_kp1 = objectiveGradient[i].substitute(combinedDict_kp1)
+            if hasattr(objectiveGradient[i],'evaluate'):
+                ogv_k = objectiveGradient[i].evaluate(combinedDict_k)
+                ogv_kp1 = objectiveGradient[i].evaluate(combinedDict_kp1)
             else: # is a quantity
                 ogv_k = objectiveGradient[i]
                 ogv_kp1 = objectiveGradient[i]
@@ -861,16 +896,16 @@ def SequentialLogConvexProgramSolver(formulation):
                 else:
                     conval_k   = constraintFunctionEvaluations_previousIteration[1][ii-len(gpcConstraints)]
                     conval_kp1 = constraintFunctionEvaluations[1][ii-len(gpcConstraints)]
-                    if hasattr(cg[i],'substitute'):
-                        lgb_k   += LCP_dualVariablesRaw[ii] * cg[i].substitute(combinedDict_k)   * x_k[i]   / conval_k
-                        lgb_kp1 += LCP_dualVariablesRaw[ii] * cg[i].substitute(combinedDict_kp1) * x_kp1[i] / conval_kp1
+                    if hasattr(cg[i],'evaluate'):
+                        lgb_k   += LCP_dualVariablesRaw[ii] * cg[i].evaluate(combinedDict_k)   * x_k[i]   / conval_k
+                        lgb_kp1 += LCP_dualVariablesRaw[ii] * cg[i].evaluate(combinedDict_kp1) * x_kp1[i] / conval_kp1
                     else: # is quantity
                         lgb_k   += LCP_dualVariablesRaw[ii] * cg[i] * x_k[i]   / conval_k
                         lgb_kp1 += LCP_dualVariablesRaw[ii] * cg[i] * x_kp1[i] / conval_kp1
                 
-                if hasattr(cg[i],'substitute'):
-                    lg_k   += LCP_dualVariablesRaw[ii] * cg[i].substitute(combinedDict_k)   * x_k[i]   / conval_k
-                    lg_kp1 += LCP_dualVariablesRaw[ii] * cg[i].substitute(combinedDict_kp1) * x_kp1[i] / conval_kp1
+                if hasattr(cg[i],'evaluate'):
+                    lg_k   += LCP_dualVariablesRaw[ii] * cg[i].evaluate(combinedDict_k)   * x_k[i]   / conval_k
+                    lg_kp1 += LCP_dualVariablesRaw[ii] * cg[i].evaluate(combinedDict_kp1) * x_kp1[i] / conval_kp1
                 else: # is quantity
                     lg_k   += LCP_dualVariablesRaw[ii] * cg[i] * x_k  [i] / conval_k
                     lg_kp1 += LCP_dualVariablesRaw[ii] * cg[i] * x_kp1[i] / conval_kp1
@@ -913,7 +948,7 @@ def SequentialLogConvexProgramSolver(formulation):
             res.terminationFlag = True
             break
         elif tc3:
-            res.terminationStatus = ('Converged, relative change in the objective funciton (%.2e)'%(relchange) +
+            res.terminationStatus = ('Converged, relative change in the objective function (%.2e)'%(relchange) +
                                      ' is witin specified tolerance (%.2e)'%(formulation.solverOptions.relativeTolerance))
             res.terminationFlag = True
             break

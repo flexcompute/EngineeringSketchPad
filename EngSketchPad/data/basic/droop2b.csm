@@ -4,9 +4,7 @@
 UDPRIM    biconvex  thick  0.12
 
 # droop leading edge down
-UDPRIM    droop     xle  0.20   thetale  +20.0
+UDPARG    droop     xle  0.20   thetale  +20.0
+UDPRIM    droop
 
-SELECT    FACE   1  1  1
-ASSERT    @sellist.size 1
-
-end
+END

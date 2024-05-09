@@ -3,7 +3,7 @@
  *
  *             Tessellation Input Functions
  *
- *      Copyright 2011-2022, Massachusetts Institute of Technology
+ *      Copyright 2011-2024, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -209,7 +209,7 @@ EG_initTessBody(egObject *object, egObject **tess)
   outLevel = EG_outLevel(object);
   context  = EG_context(object);
   if (context == NULL)              return EGADS_NULLOBJ;
-  
+
 #ifdef SETTESSOUT
   snprintf(outName, 24, "tessOut%d.egads", outNum);
   EG_saveModel(object, outName);
@@ -404,7 +404,7 @@ EG_initTessBody(egObject *object, egObject **tess)
       }
     }
     EG_free(faces);
-    
+
     btess->tess2d = (egTess2D *) EG_alloc(2*nface*sizeof(egTess2D));
     if (btess->tess2d == NULL) {
       printf(" EGADS Error: Alloc %d Faces (EG_initTessBody)!\n", nface);
@@ -760,7 +760,7 @@ EG_statusTessBody(egObject *tess, egObject **body, int *state, int *npts)
 
     /* are we done? */
     for (i = 0; i < btess->nEdge; i++) {
-      
+
       /* fill in empty degenerte Edge */
       if ((btess->tess1d[i].obj->mtype == DEGENERATE) &&
           (btess->tess1d[i].npts == 0)) {
@@ -916,11 +916,11 @@ EG_setTessEdge(const egObject *tess, int index, int len, const double *xyz,
   if  (len <= 1)                     return EGADS_NODATA;
   if ((xyz == NULL) || (t == NULL))  return EGADS_NODATA;
   outLevel = EG_outLevel(tess);
-  
+
 #ifdef SETTESSOUT
   {
     FILE *fp;
-    
+
     fp = fopen(outName, "a");
     if (fp != NULL) {
       fprintf(fp, " %d %d -1\n", index, len);
@@ -1218,7 +1218,7 @@ EG_findSide(const int *tris, int *trix, int nt, const int *itris,
             const int *mapi, int k0, int kx, int *index)
 {
   int i, j, k1, hit, cnt, last, ix[3];
-  
+
   *index = last = -1;
   k1     = kx;
   for (cnt = 0; cnt < nt; cnt++) {
@@ -1263,7 +1263,7 @@ EG_mapTri1(int index, int ntri, const int *tris, int *trix, const int *map,
 {
   int        i, j, i0, i1, i2, j0, j1, hit, nt, pi, pivot, indx, *itris;
   static int sides[3][2] = {{1,2}, {2,0}, {0,1}};
-  
+
   itris = (int *) EG_alloc(ntri*sizeof(int));
   if (itris == NULL) {
     printf(" EGADS Error: Cannot allocate %d integers!\n", ntri);
@@ -1278,7 +1278,7 @@ EG_mapTri1(int index, int ntri, const int *tris, int *trix, const int *map,
     i2  = mapi[tris[3*i+2]-1];
     if (i2 < 0) hit++;
     if (hit != 1) continue;
-    
+
     if (i0 < 0) {
       j1    = i0;
       pivot =  0;
@@ -1291,7 +1291,7 @@ EG_mapTri1(int index, int ntri, const int *tris, int *trix, const int *map,
     }
     indx = map[-j1-2];
     pi   = table[2*indx+1];
-    
+
     /* NonManifold Node */
     if (table[2*indx] == 0) {
       for (j = 0; j < nfig8; j++)
@@ -1301,7 +1301,7 @@ EG_mapTri1(int index, int ntri, const int *tris, int *trix, const int *map,
         }
       if (j != nfig8) continue;
     }
-    
+
     for (nt = j = 0; j < ntri; j++) {
       if (i == j) continue;
       if ((mapi[tris[3*j  ]-1] != j1) && (mapi[tris[3*j+1]-1] != j1) &&
@@ -1324,7 +1324,7 @@ EG_mapTri1(int index, int ntri, const int *tris, int *trix, const int *map,
       trix[3*i+pivot] = indx;
     }
   }
-  
+
   EG_free(itris);
 }
 
@@ -1335,7 +1335,7 @@ EG_mapTri2(int index, int fori, int itri, const int *tris, int *trix,
            int nseg, const triSeg *segs)
 {
   int i, i0, i1, i2, j0, j1, indx, hit = 0;
-  
+
   i0 = mapi[tris[0]-1];
   if (i0 < 0) hit++;
   trix[0] = i0 + 1;
@@ -1346,7 +1346,7 @@ EG_mapTri2(int index, int fori, int itri, const int *tris, int *trix,
   if (i2 < 0) hit++;
   trix[2] = i2 + 1;
   if (hit == 0) return;
-  
+
   if (hit != 2) {
     if (hit == 3)
       printf(" EGADS Internal: Face %d Tri %d -- hit 3 times!\n",
@@ -1356,7 +1356,7 @@ EG_mapTri2(int index, int fori, int itri, const int *tris, int *trix,
     if (i2 < 0) trix[2] = -i2 - 1;
     return;
   }
-  
+
   /* match to segment */
   if (i0 >= 0) {
     j0 = -i1 - 2;
@@ -1403,7 +1403,7 @@ EG_mapTri2(int index, int fori, int itri, const int *tris, int *trix,
       }
       return;
     }
-  
+
   indx = map[j0];
   printf(" EGADS Info: Face %d Tri %d match not found  %d (%d/%d)",
          index, itri+1, indx, table[2*indx], table[2*indx+1]);
@@ -1419,12 +1419,12 @@ __HOST_AND_DEVICE__ static int
 EG_getLoopIndex(int nloop, const int *frlps, int index)
 {
   int i, tot;
-  
+
   for (tot = i = 0; i < nloop; i++) {
     tot += frlps[i];
     if (index < tot) return i;
   }
-  
+
   printf(" EGADS Internal: Cannot find Index in Loop %d %d\n", index, tot);
   return 0;
 }
@@ -1482,7 +1482,7 @@ EG_setTessFacX(const egObject *tess, int index, int len, const double *xyz,
   }
   face = faces[index-1];
   EG_free(faces);
-  
+
   /* reorder based on loops */
   stat = EG_getTopology(face, &geom, &oclass, &ori, range, &nloop, &loops,
                         &lsenses);
@@ -1790,9 +1790,9 @@ EG_setTessFacX(const egObject *tess, int index, int len, const double *xyz,
   }
   if (np != ntot) printf(" EGADS Internal: len check = %d %d\n", np, ntot);
   nseg = np;
-  
+
   /* handle Loops that touch each other at a Node */
-  
+
   for (i = 0; i < nfig8; i++) {
     mm = EG_getLoopIndex(nloop, frlps, fig8[3*i+1]);
     mp = EG_getLoopIndex(nloop, frlps, fig8[3*i+2]);
@@ -1822,7 +1822,7 @@ EG_setTessFacX(const egObject *tess, int index, int len, const double *xyz,
     mp = st + 1;
     if (mm <  m) mm = n-1;
     if (mp >= n) mp = m;
-    
+
     uvm[0] = (uvs[2*mm+2] + uvs[2*st+2] + uvs[2*mp+2])/3.0;
     uvm[1] = (uvs[2*mm+3] + uvs[2*st+3] + uvs[2*mp+3])/3.0;
     uvp[0] = uvm[0] - uvs[2*st+2];
@@ -1994,7 +1994,7 @@ EG_setTessFacX(const egObject *tess, int index, int len, const double *xyz,
     xyzs[3*j+2] = xyz[3*i+2];
   }
   EG_free(map);
-  
+
   /* are we OK with the Frame? */
   for (i = 0; i < ntri; i++)
     for (j = 0; j < 3; j++)
@@ -2070,11 +2070,11 @@ EG_setTessFace(const egObject *tess, int index, int len, const double *xyz,
   if ((xyz == NULL) || (uv == NULL)) return EGADS_NODATA;
   if  (tris == NULL)                 return EGADS_NODATA;
   outLevel = EG_outLevel(tess);
-  
+
 #ifdef SETTESSOUT
   {
     FILE *fp;
-    
+
     fp = fopen(outName, "a");
     if (fp != NULL) {
       fprintf(fp, " %d %d %d\n", index, len, ntri);
@@ -2241,7 +2241,7 @@ EG_setTessFace(const egObject *tess, int index, int len, const double *xyz,
     }
   }
   EG_free(edges);
-  
+
   /* duplicate vertices? */
   stat = EG_getRange(face, range, &i);
   if (stat  != EGADS_SUCCESS) {
@@ -2272,7 +2272,7 @@ EG_setTessFace(const egObject *tess, int index, int len, const double *xyz,
     EG_free(table);
     return stat;
   }
-  
+
   /* fill with reduced vertex count */
   lenx = len - hit;
   for (j = i = 0; i < len; i++)
@@ -2290,7 +2290,7 @@ EG_setTessFace(const egObject *tess, int index, int len, const double *xyz,
     EG_free(table);
     return EGADS_INDEXERR;
   }
-  
+
   xyzx = (double *) EG_alloc(5*lenx*sizeof(double));
   if (xyzx == NULL) {
     if (outLevel > 0)
@@ -2329,7 +2329,7 @@ EG_setTessFace(const egObject *tess, int index, int len, const double *xyz,
   EG_free(trix);
   EG_free(xyzx);
   EG_free(table);
-  
+
   return stat;
 }
 
@@ -2337,7 +2337,7 @@ EG_setTessFace(const egObject *tess, int index, int len, const double *xyz,
 __HOST_AND_DEVICE__ int
 EG_localToGlobal(const egObject *tess, int index, int local, int *global)
 {
-  int      stat, n;
+  int      stat, i, n;
   egTessel *btess;
   egObject *node, **edges;
 
@@ -2365,13 +2365,13 @@ EG_localToGlobal(const egObject *tess, int index, int local, int *global)
     if (btess->tess1d[-index-1].global == NULL) return EGADS_DEGEN;
     if (local > btess->tess1d[-index-1].npts) return EGADS_RANGERR;
     *global = btess->tess1d[-index-1].global[local-1];
-    
+
   } else if (index > 0) {
     /* Face */
     if (btess->tess2d[ index-1].global == NULL) return EGADS_DEGEN;
     if (local > btess->tess2d[ index-1].npts) return EGADS_RANGERR;
     *global = btess->tess2d[ index-1].global[local-1];
-    
+
   } else {
     /* Node */
     stat = EG_objectBodyTopo(btess->src, NODE, local, &node);
@@ -2392,17 +2392,38 @@ EG_localToGlobal(const egObject *tess, int index, int local, int *global)
       printf(" EGADS Error: No Edges for Node (EG_localToGlobal)!\n");
       return EGADS_TOPOERR;
     }
-    stat = EG_indexBodyTopo(btess->src, edges[0]);
-    if (stat <= EGADS_SUCCESS) {
-      printf(" EGADS Error: EG_indexBodyTopo = %d (EG_localToGlobal)!\n", stat);
-      return stat;
+    /* make sure the Edge we are looking at is not DEGENERATE */
+    stat = EGADS_NOTFOUND;
+    for (i = 0; i < n; i++) {
+      if (edges[i]->mtype == DEGENERATE) continue;
+      stat = EG_indexBodyTopo(btess->src, edges[i]);
+      if (stat <= EGADS_SUCCESS) {
+        printf(" EGADS Error: EG_indexBodyTopo %d = %d (EG_localToGlobal)!\n",
+               i, stat);
+        EG_free(edges);
+        return stat;
+      }
+      break;
     }
     EG_free(edges);
-    if (btess->tess1d[stat-1].global == NULL) return EGADS_DEGEN;
+    if (stat <= EGADS_SUCCESS) {
+      printf(" EGADS Error: Node %d does not have an Edge (EG_localToGlobal)!\n",
+             local);
+      return EGADS_TOPOERR;
+    }
+    if (btess->tess1d[stat-1].global == NULL) {
+      printf(" EGADS Error: Edge %d has no global storage (EG_localToGlobal)!\n",
+             stat);
+      return EGADS_DEGEN;
+    }
     if (btess->tess1d[stat-1].nodes[0] == local) {
       *global = btess->tess1d[stat-1].global[0];
-    } else {
+    } else if (btess->tess1d[stat-1].nodes[1] == local) {
       *global = btess->tess1d[stat-1].global[btess->tess1d[stat-1].npts-1];
+    } else {
+      printf(" EGADS Error: Edge %d does not have Node %d (EG_localToGlobal)!\n",
+             stat, local);
+      return EGADS_TOPOERR;
     }
   }
 
@@ -2559,7 +2580,7 @@ EG_singleFace(ego efobj, const double *uvA, const double *uvB,
   int     stat;
   ego     facex;
   egEFace *eface;
-  
+
   stat  = EGADS_SUCCESS;
   if (efobj->oclass == FACE) goto cleanup;
   eface = (egEFace *) efobj->blind;
@@ -2580,13 +2601,13 @@ EG_singleFace(ego efobj, const double *uvA, const double *uvB,
     }
     return stat;
   }
-  
+
   stat = EG_effectiveMap(efobj, (double *) uvA, face,   UVa);
   if (stat  != EGADS_SUCCESS) goto cleanup;
   stat = EG_effectiveMap(efobj, (double *) uvB, &facex, UVb);
   if (stat  != EGADS_SUCCESS) goto cleanup;
   if (*face != facex) goto cleanup;
-  
+
   if ((uvC != NULL) && (UVc != NULL)) {
     stat = EG_effectiveMap(efobj, (double *) uvC, &facex, UVc);
     if (stat  != EGADS_SUCCESS) goto cleanup;
@@ -2597,10 +2618,10 @@ EG_singleFace(ego efobj, const double *uvA, const double *uvB,
     if (stat  != EGADS_SUCCESS) goto cleanup;
     if (*face != facex) goto cleanup;
   }
-  
+
   /* all the same Face -- inform the calling function! */
   return EGADS_OUTSIDE;
-  
+
 cleanup:
   *face    = efobj;
   UVa[0]   = uvA[0];
@@ -2615,7 +2636,7 @@ cleanup:
     UVd[0] = uvD[0];
     UVd[1] = uvD[1];
   }
-  
+
   return stat;
 }
 
@@ -2646,7 +2667,7 @@ EG_baryInsert(ego facex, double w1, double w2, double w3, const double *uvAx,
 #ifdef DEBUGG
   double  x0 = 0.0, x1 = 0.0;
 #endif
-  
+
   singleFace = EG_singleFace(facex, uvAx, uvBx, uvCx, NULL,
                              &face, uvA,  uvB,  uvC,  NULL);
   if (singleFace < EGADS_SUCCESS) {
@@ -2852,7 +2873,7 @@ EG_baryInsert(ego facex, double w1, double w2, double w3, const double *uvAx,
       x0 = x1;
       x1 = rsdnrm;
     }
-    
+
     printf(" Xn = (%lf %lf %lf %lf )\n", uvIT[0], uvIT[1], uvIT[2], uvIT[3]);
     printf(" L = %lf %lf %lf %lf DELTA %lf %lf %lf %lf SIZE  %1.8le < %1.8le\n",
            L[0], L[1], L[2], L[3], delta[0], delta[1], delta[2], delta[3],
@@ -3027,7 +3048,7 @@ EG_baryInsert(ego facex, double w1, double w2, double w3, const double *uvAx,
 #endif
     return EGADS_TESSTATE;
   }
-  
+
   /* put UV back to Effective Face */
   if (singleFace == EGADS_OUTSIDE) {
     eface = (egEFace *) facex->blind;
@@ -3110,7 +3131,7 @@ EG_minArc4(const ego facex, double fact1, double fact2, const double *uv0x,
     printf(" EG_minArc4: EG_evaluate %d!\n", i);
     return;
   }
-  
+
 #ifdef DEBUG
   r0[0] = pIT[0] - p0[0]; r0[1] = pIT[1] - p0[1]; r0[2] = pIT[2] - p0[2];
   r1[0] = pIT[0] - p1[0]; r1[1] = pIT[1] - p1[1]; r1[2] = pIT[2] - p1[2];
@@ -3133,7 +3154,7 @@ EG_minArc4(const ego facex, double fact1, double fact2, const double *uv0x,
          l[1] / lt02, l[3]/lt02, fact2, (1.0 - fact2));
   printf(" --------------------------------------------------- \n");
 #endif
-  
+
   k02 = (fact1*fact1) / ((1.0 - fact1)*(1.0 - fact1)) ;
   k13 = (fact2*fact2) / ((1.0 - fact2)*(1.0 - fact2));
   for (it   = 0; it < nT; it++) {
@@ -3354,7 +3375,7 @@ EG_minArc4(const ego facex, double fact1, double fact2, const double *uv0x,
 
   uvOUT[0] = uvIT[0];
   uvOUT[1] = uvIT[1];
-  
+
   /* put UV back to Effective Face */
   if (singleFace == EGADS_OUTSIDE) {
     eface = (egEFace *) facex->blind;
@@ -3388,7 +3409,7 @@ EG_getEdgepoint(const ego edge, double w, double tm, double tp, double *tOUT)
 #ifdef DEBUG
   double lt, x0 = 0.0, x1 = 0.0, x2 = 0.0, e1 = -1.0, e2 = -1.0;
 #endif
-  
+
   k     = (w * w) / ((1.0 - w) * (1.0 - w));
   tIT   = tp * w + tm * (1.0 - w);
   *tOUT = tIT;
@@ -3400,7 +3421,7 @@ EG_getEdgepoint(const ego edge, double w, double tm, double tp, double *tOUT)
            stat);
     return;
   }
-  
+
 #ifdef DEBUG
   r0[0] = pIT[0] - pm[0]; r1[0] = pIT[0] - pp[0];
   r0[1] = pIT[1] - pm[1]; r1[1] = pIT[1] - pp[1];
@@ -3411,7 +3432,7 @@ EG_getEdgepoint(const ego edge, double w, double tm, double tp, double *tOUT)
   printf("\n Initial l0 = %lf l1 = %lf split edge in fracs %lf %lf (expected %lf %lf)\n",
          l0, l1, l0 / lt, l1 / lt, w, 1.0 - w);
 #endif
-  
+
   for (it = 0 ; it < nT; it++) {
     /* perform a line search such that residual decreases from the previous iteration */
     s = 1.0; f = 0.0;
@@ -3490,7 +3511,7 @@ EG_getEdgepoint(const ego edge, double w, double tm, double tp, double *tOUT)
 #endif
     if (fabs(dt) < nEPS) break;
   }
-  
+
 #ifdef DEBUG
   if (e1 >= 0.0 && e2 >= 0.0)
     printf("Newton iterations %d convergence %lf (e1 %lf e2 %lf)\n",
@@ -3504,15 +3525,15 @@ EG_getEdgepoint(const ego edge, double w, double tm, double tp, double *tOUT)
   printf(" FINAL l0 = %lf l1 = %lf split edge in fracs %lf %lf (expected %lf %lf)\n",
          l0, l1, l0 / lt, l1 / lt, w, 1.0 - w);
 #endif
-  
+
   if (res >= nEPS && fabs(dt) >= nEPS)
     printf(" EG_getEdgepoint: not converged -- residual %1.2le delta %1.2le (%1.2le)!\n",
            res, fabs(dt), nEPS);
-  
+
   /* found a solution out of range -- report it (for now) */
   if (tIT < tm || tIT > tp )
     printf(" EG_getEdgepoint: solution out-of-range!\n");
-  
+
   *tOUT = tIT;
 }
 
@@ -3554,7 +3575,8 @@ EG_getSidepoint(const ego facex, double fact, const double *uvmx,
   double  pM[18], pP[18], pL[18], pR[18], pIT[18], J[3][3], ATJ[3][3];
   double  range[4], r0[3] = {0.,0.,0.}, r1[3] = {0.,0.,0.}, l[2] = {0.,0.};
   double  delta[3] = {0.,0.,0.}, L[3] = {0.,0.,0.}, uv[3], uvIT[3], xyz[3];
-  double  MR[3], RP[3], PL[3], LM[3], RO[3], MO[3], LO[3], PO[3];
+  double  MR[3]={0.,0.,0.}, RP[3]={0.,0.,0.};
+  double  PL[3], LM[3], RO[3], MO[3], LO[3], PO[3];
   double  crMR[3], crRP[3], crPL[3], crLM[3], crITL[3], crITR[3];
   double  uvm[2], uvp[2], uvl[2] = {0.,0.}, uvr[2] = {0.,0.};
   ego     face;
@@ -3572,7 +3594,7 @@ EG_getSidepoint(const ego facex, double fact, const double *uvmx,
     printf(" EG_getSidepoint: EG_singleFace = %d!\n ", singleFace);
     singleFace = EGADS_SUCCESS;
   }
-  
+
   stat = EG_getRange(face, range, &it);
   if (stat != EGADS_SUCCESS) {
     printf(" EG_getSidepoint: EG_getRange = %d!\n ", stat);
@@ -3898,7 +3920,7 @@ EG_getSidepoint(const ego facex, double fact, const double *uvmx,
   if (rsdnrm >= EPS10 && delnrm >= EPS10)
     printf(" EG_getSidepoint: not converged -- residual %1.2le delta %1.2le (%1.2le)!\n",
            rsdnrm, delnrm, EPS10);
-  
+
   /* found a solution out of range -- report it (for now) */
   if (uvIT[0] < range[0] || uvIT[0] > range[1] ||
       uvIT[1] < range[2] || uvIT[1] > range[3])
@@ -3939,7 +3961,7 @@ EG_getSidepoint(const ego facex, double fact, const double *uvmx,
 
   uvOUT[0] = uvIT[0];
   uvOUT[1] = uvIT[1];
-  
+
   /* put UV back to Effective Face */
   if (singleFace == EGADS_OUTSIDE) {
     eface = (egEFace *) facex->blind;
@@ -4617,7 +4639,7 @@ EG_quadTess(const egObject *tess, egObject **quadTess)
       return stat;
     }
 #ifdef TRIOUT
-    sprintf(filename, "Components.%d.i.tri", i+1);
+    snprintf(filename, 100, "Components.%d.i.tri", i+1);
     fp = fopen(filename, "w");
     fprintf(fp," %d %d\n", iv, 6*nt);
     for (j = 0; j < iv; j++)
@@ -4954,7 +4976,7 @@ EG_quadTess(const egObject *tess, egObject **quadTess)
     /* set tfi flag in new tessellation */
     ntess->tess2d[i].tfi = 1;
 #ifdef TRIOUT
-    sprintf(filename, "Components.%d.i.tri", i+1);
+    snprintf(filename, 100, "Components.%d.i.tri", i+1);
     fp = fopen(filename, "w");
     fprintf(fp," %d %d\n", iv, 4*nt);
     for (j = 0; j < iv; j++)

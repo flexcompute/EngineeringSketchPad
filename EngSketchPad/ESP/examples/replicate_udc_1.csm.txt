@@ -1,0 +1,66 @@
+# replicate_udc_1
+# written by John Dannenhoffer
+
+DESPMTR   Rdish     30.0
+DESPMTR   Rring     1.00
+DESPMTR   Rspoke    0.05
+DESPMTR   dtheta    5.00
+CFGPMTR   Nsect     60
+CFGPMTR   Nring     8
+
+# make the revolved feature and extract a sector
+PATBEG    iring   Nring
+   SET    z       Rdish-Rdish*cosd(iring*dtheta)
+   SET    x             Rdish*sind(iring*dtheta)
+   TORUS  0  0  z  0  0  1  x  Rring
+      SELECT    FACE  @nbody 1
+      ATTRIBUTE _erep iring
+      SELECT    FACE  @nbody 4
+      ATTRIBUTE _erep iring+Nring
+   ROTATEZ 90
+   STORE   body  iring
+PATEND
+
+# spine 1
+MARK
+   SET       Roff    0.90*Rring
+   PATBEG    iring   Nring
+      UDPRIM    supell  rx Rspoke   ry Rspoke   n 2
+      ROTATEY   90
+      TRANSLATE 0  0  Roff
+      ROTATEY   -iring*dtheta   Rdish  0
+      SET       Roff  -Roff
+   PATEND
+RULE
+ROTATEZ    +1.5
+RESTORE    body -1
+UDPRIM     ganged  op $UNION
+
+# spine 2
+MARK
+   SET       Roff    0.90*Rring
+   PATBEG    iring   Nring
+      SET       z       -Roff
+      UDPRIM    supell  rx Rspoke   ry Rspoke   n 2
+      ROTATEY   90
+      TRANSLATE 0  0  -Roff
+      ROTATEY   -iring*dtheta   Rdish  0
+      SET       Roff  -Roff
+   PATEND
+RULE
+ROTATEZ   -1.5
+UNION
+
+# extract a wedge of the configuration
+SKBEG      0                    0                   -20
+   LINSEG 40*cosd(-180/Nsect)  40*sind(-180/Nsect)  -20
+   LINSEG 40*cosd(+180/Nsect)  40*sind(+180/Nsect)  -20
+   LINSEG  0                    0                   -20
+SKEND
+EXTRUDE   0  0  40
+INTERSECT
+
+# replicate all around the wheel
+UDPRIM    $$/replicate   ncopy Nsect
+
+END

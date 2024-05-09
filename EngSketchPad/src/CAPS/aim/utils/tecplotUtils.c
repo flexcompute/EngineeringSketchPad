@@ -95,7 +95,7 @@ int tecplot_writeFEPOINT(void *aimInfo,
 
                 } else if (dataFormat[j] == (int) Double) {
 
-                    fprintf(fp, "%e ", dataMatrix[j][i]);
+                    fprintf(fp, "%.17e ", dataMatrix[j][i]);
 
                 } else {
 
@@ -106,7 +106,7 @@ int tecplot_writeFEPOINT(void *aimInfo,
 
             } else {
 
-                fprintf(fp, "%e ", dataMatrix[j][i]);
+                fprintf(fp, "%.17e ", dataMatrix[j][i]);
             }
         }
 

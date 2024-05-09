@@ -3,10 +3,6 @@
 !ERROR ESP_ROOT must be set -- Please fix the environment...
 !ENDIF
 #
-!IFNDEF TETGEN
-!ERROR TETGEN must be set -- Please fix the environment...
-!ENDIF
-#
 IDIR  = $(ESP_ROOT)\include
 !include $(IDIR)\$(ESP_ARCH).$(MSVC)
 LDIR  = $(ESP_ROOT)\lib
@@ -15,7 +11,13 @@ ODIR  = $(ESP_BLOC)\obj
 !ELSE
 ODIR  = .
 !ENDIF
-
+#
+!IFNDEF TETGEN
+default:
+	@echo "Not compiling tetgenAIM: TETGEN must be set -- Please fix the environment...."
+!ELSE
+default: $(LDIR)\tetgenAIM.dll
+!ENDIF
 
 $(LDIR)\tetgenAIM.dll:	tetgenAIM.def $(ODIR)\tetgenAIM.obj $(ODIR)\tetgen_Interface.obj \
 		$(ODIR)\tetgen.obj $(ODIR)\predicates.obj $(LDIR)\utils.lib tetgenAIM.def

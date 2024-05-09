@@ -9,7 +9,7 @@
  */
 
 /*
- * Copyright (C) 2013/2022  John F. Dannenhoffer, III (Syracuse University)
+ * Copyright (C) 2013/2024  John F. Dannenhoffer, III (Syracuse University)
  *
  * This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
@@ -33,7 +33,6 @@
 #include <string.h>
 #include <math.h>
 
-#include "egads.h"
 #include "OpenCSM.h"
 #include "tim.h"
 

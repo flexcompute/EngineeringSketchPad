@@ -7,6 +7,9 @@ import shutil
 
 import pyCAPS
 
+from Mesh_Formats import Mesh_Formats
+Mesh_Formats = Mesh_Formats.copy()
+
 class TestTETGEN(unittest.TestCase):
 
     @classmethod
@@ -46,7 +49,7 @@ class TestTETGEN(unittest.TestCase):
         tetgen.input.Mesh_Format = "Tecplot"
         tetgen.input.Mesh_Gen_Input_String = ""
         tetgen.input.Mesh_Tolerance = 1e-16
-        tetgen.input.Multiple_Mesh = False
+        tetgen.input.Multiple_Mesh = 'SingleDomain'
 
         tetgen.input.Regions = {
               'A': { 'id': 10, 'seed': [0, 0,  1] },
@@ -70,9 +73,6 @@ class TestTETGEN(unittest.TestCase):
         Mesh_Sizing = {"Farfield": {"tessParams" : [0.3*80, 0.2*80, 30]}}
         egadsTess.input.Mesh_Sizing = Mesh_Sizing
 
-        egadsTess.input.Proj_Name = "test"
-        egadsTess.input.Mesh_Format = "Tecplot"
-
         tetgen = myProblem.analysis.create(aim = "tetgenAIM",
                                            name = "tetgen")
 
@@ -80,7 +80,7 @@ class TestTETGEN(unittest.TestCase):
 
         tetgen.input.Mesh_Quiet_Flag = True
         tetgen.input.Proj_Name = "test"
-        tetgen.input.Mesh_Format = "Tecplot"
+        tetgen.input.Mesh_Format = Mesh_Formats
 
         # Explicitly trigger mesh generation
         tetgen.runAnalysis()
@@ -111,14 +111,62 @@ class TestTETGEN(unittest.TestCase):
                                            capsIntent = ["box", "cylinder", "cone", "torus", "sphere", "bullet", "boxhole"])
 
         tetgen.input["Surface_Mesh"].link(egadsTess.output["Surface_Mesh"])
+        tetgen.input.Mesh_Quiet_Flag = True
 
-        # Set project name
-        tetgen.input.Proj_Name = "tetgenMesh"
-
-        tetgen.input.Multiple_Mesh = True
+        tetgen.input.Multiple_Mesh = 'MultiFile'
 
         # Just make sure it runs without errors...
         tetgen.runAnalysis()
+
+        tetgen.input.Multiple_Mesh = 'MultiDomain'
+
+        # Just make sure it runs without errors...
+        tetgen.runAnalysis()
+
+        tetgen.input.Multiple_Mesh = 'SingleDomain'
+
+        # Just make sure it runs without errors...
+        tetgen.runAnalysis()
+
+#==============================================================================
+    def test_faceMatch_MultiDomain(self):
+
+        for csm in [
+                    "example1", 
+                    "example2", 
+                    "example3", 
+                    "example4", 
+                #    "example5", 
+                    "example6", 
+                    "example7", 
+                    "example8", 
+                    "example9",
+                    "multi_prim",
+                    "cyl_seam",
+                    ]:
+            file = os.path.join("..","csmData","MultiDomain",csm+".csm")
+
+            print(file)
+            problemName = self.problemName + "_faceMatch_" + csm
+            myProblem = pyCAPS.Problem(problemName, capsFile=file, outLevel=0)
+            
+            # Load egadsTess aim
+            egadsTess = myProblem.analysis.create(aim = "egadsTessAIM")
+    
+            # Set new EGADS body tessellation parameters
+            egadsTess.input.Tess_Params = [0.5, 0.1, 20.0]
+            
+            # Load TetGen aim
+            tetgen = myProblem.analysis.create(aim = "tetgenAIM")
+
+            tetgen.input["Surface_Mesh"].link(egadsTess.output["Surface_Mesh"])
+            
+            tetgen.input.Mesh_Quiet_Flag = True
+            # Single domain does not work with these examples
+            tetgen.input.Multiple_Mesh = 'MultiDomain'
+            tetgen.runAnalysis()
+            tetgen.input.Multiple_Mesh = 'MultiFile'
+            tetgen.runAnalysis()
 
 #==============================================================================
     def test_phase(self):
@@ -143,7 +191,6 @@ class TestTETGEN(unittest.TestCase):
 
         tetgen.input.Mesh_Quiet_Flag = True
         tetgen.input.Proj_Name = "test"
-        tetgen.input.Mesh_Format = "Tecplot"
 
         VolNumberOfNode_1    = tetgen.output.NumberOfNode
         VolNumberOfElement_1 = tetgen.output.NumberOfElement

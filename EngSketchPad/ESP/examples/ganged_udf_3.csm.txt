@@ -1,0 +1,24 @@
+# ganged_udf_3
+# written by John Dannenhoffer
+
+# spine
+CYLINDER  -5.0  0.0  0.0  5.0  0.0  0.0  0.5
+   ATTRIBUTE _color $red
+
+# convert spine to SheetBody so that SPLITTER operation scribes
+EXTRACT   0
+
+# ten trunks
+PATBEG    itrunk  10
+   SET    X       itrunk-5.5
+   CYLINDER  X  -5.0  0  X  +5.0  0  0.3
+   ATTRIBUTE _color $green
+PATEND
+
+# scribe the ten trunks into the spine in one operation
+UDPRIM    ganged   op  $SPLITTER
+
+# make the spine a SolidBody again
+ELEVATE
+
+END

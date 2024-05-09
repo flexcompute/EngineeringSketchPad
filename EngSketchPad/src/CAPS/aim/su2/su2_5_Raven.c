@@ -1252,7 +1252,7 @@ int su2_writeCongfig_Raven(void *aimInfo,  capsValue *aimInputs,
     fprintf(fp,"MESH_FORMAT= SU2\n");
     fprintf(fp,"%%\n");
     fprintf(fp,"%% Mesh output file\n");
-    fprintf(fp,"MESH_OUT_FILENAME= %s.su2\n", aimInputs[Proj_Name-1].vals.string);
+    fprintf(fp,"MESH_OUT_FILENAME= %s\n", meshfilename);
     fprintf(fp,"%%\n");
     fprintf(fp,"%% Restart flow input file\n");
     fprintf(fp,"SOLUTION_FLOW_FILENAME= solution_flow.dat\n");

@@ -9,7 +9,7 @@
  */
 
 /*
- * Copyright (C) 2013/2022  John F. Dannenhoffer, III (Syracuse University)
+ * Copyright (C) 2013/2024  John F. Dannenhoffer, III (Syracuse University)
  *
  * This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
@@ -83,6 +83,7 @@ udpExecute(ego  context,                /* (in)  EGADS context */
     ego     *enodes=NULL, *eedges=NULL, *efaces=NULL;
     void    *save_modl;
     modl_T  *MODL;
+    udp_T   *udps = *Udps;
 
     ROUTINE(udpExecute);
 
@@ -100,7 +101,7 @@ udpExecute(ego  context,                /* (in)  EGADS context */
     outLevel = EG_setOutLevel(context, 1       );
     (void)     EG_setOutLevel(context, outLevel);
 
-    /* remember pointer to calling progrm's modl */
+    /* remember pointer to calling program's modl */
     status = EG_getUserPointer(context, (void**)(&(save_modl)));
     CHECK_STATUS(EG_getUserPointer);
 
@@ -135,11 +136,12 @@ udpExecute(ego  context,                /* (in)  EGADS context */
     status = cacheUdp(NULL);
     CHECK_STATUS(cacheUdp);
 
+    /* the name of the calling UDP */
     myUdp = numUdp;
 
 #ifdef DEBUG
-    printf("filename[ %d]  = %s\n", myUdp, FILENAME( myUdp));
-    printf("pmtrname[ %d]  = %s\n", myUdp, PMTRNAME( myUdp));
+    printf("filename[ %d]  = %s\n", myUdp, FILENAME(myUdp));
+    printf("pmtrname[ %d]  = %s\n", myUdp, PMTRNAME(myUdp));
     for (i = 0; i < udps[myUdp].arg[2].size; i++) {
         printf("pmtrvalue[%3d]= %f\n", i, PMTRVALUE(myUdp,i));
     }
@@ -156,6 +158,14 @@ udpExecute(ego  context,                /* (in)  EGADS context */
     SPLINT_CHECK_FOR_NULL(modl);
 
     MODL = (modl_T *)modl;
+
+    /* set some flags to match parent */
+    MODL->tessAtEnd  = ((modl_T *)save_modl)->tessAtEnd;
+    MODL->printStack = ((modl_T *)save_modl)->printStack;
+    MODL->erepAtEnd  = ((modl_T *)save_modl)->erepAtEnd;
+
+    /* tell MODL that it is embedded so that udp cache is not cleared */
+    MODL->embedded = 1;
 
     /* make the new MODL use the same context as the caller */
     EG_deleteObject(MODL->context);
@@ -237,7 +247,7 @@ udpExecute(ego  context,                /* (in)  EGADS context */
         }
     }
 
-    EG_free(enodes);   
+    EG_free(enodes);
 
     status = EG_getBodyTopos(*ebody, NULL, EDGE, &nedge, &eedges);
     printf("nedge=%d\n", nedge);
@@ -283,7 +293,7 @@ udpExecute(ego  context,                /* (in)  EGADS context */
     EG_free(efaces);
 
     if (outLevel > 0) {
-        printf("<<< returning from diversion to \"%s\"\n\n", FILENAME(myUdp));
+        printf("<<< reverting from \"%s\"\n\n", FILENAME(myUdp));
     }
 
     /* restore user data to original modl */
@@ -294,10 +304,10 @@ udpExecute(ego  context,                /* (in)  EGADS context */
     status = EG_getMassProperties(*ebody, mprop);
     CHECK_STATUS(EG_getMassProperties);
 
-    VOLUME(0) = mprop[0];
+    VOLUME(numUdp) = mprop[0];
 
     /* remember this model (Body) */
-    udps[myUdp].ebody = *ebody;
+    udps[numUdp].ebody = *ebody;
     goto cleanup;
 
 #ifdef DEBUG

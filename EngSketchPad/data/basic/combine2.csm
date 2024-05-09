@@ -1,19 +1,14 @@
 # combine2
 # written by John Dannenhoffer
 
-mark
-   skbeg     -1.0  -1.0  -1.0
-      linseg -1.0   1.0  -1.0
-   skend
+# make SheetBodys that will produce a SolidBody
+BOX       0  0  0  0  1  1    # xmin
+BOX       1  0  0  0  1  1    # xmax
+BOX       0  0  0  1  0  1    # ymin
+BOX       0  1  0  1  0  1    # ymax
+BOX       0  0  0  1  1  0    # zmin
+BOX       0  0  1  1  1  0    # zmax
 
-   skbeg     -1.0   1.0  -1.0
-      linseg  1.0   1.0  -1.0
-   skend
+COMBINE
 
-   skbeg      1.0   1.0  -1.0
-      linseg  1.0  -1.0  -1.0
-      linseg -1.0  -1.0  -1.0
-   skend
-combine
-
-end
+END

@@ -2,6 +2,8 @@
 # written by John Dannenhoffer
 
 # cutter (store in 1)
+# note: MACBEG/MACEND/RECALL has been deprecated and is included here for backward-compatability testing
+#       new .csm files should use UDPRIM instead
 macbeg 1
    skbeg       9  -2   0
       linseg   9   1   0
@@ -18,6 +20,8 @@ macbeg 1
 macend
 
 # rod (store in 2)
+# note: MACBEG/MACEND/RECALL has been deprecated and is included here for backward-compatability testing
+#       new .csm files should use UDPRIM instead
 macbeg 2
    cylinder    0   0  1.5  10   0   1.5  0.4
 macend

@@ -39,7 +39,8 @@ mark
    skbeg     1.2   0.8   -.2
       linseg 1.2   0.0   -.2
    skend
-combine
+join   0 1
+elevate
 skbeg     1.2   0.0   -.2
    linseg 1.2   0.0   +.2
 skend

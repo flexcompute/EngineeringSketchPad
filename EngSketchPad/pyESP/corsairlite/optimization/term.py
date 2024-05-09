@@ -1101,11 +1101,13 @@ class Term(OptimizationObject):
 # Evaluates the variable to a quantity by taking in a design point
 # =====================================================================================================================
     def evaluate(self, x_star):
-        res = self.substitute(substitutions = x_star)
-        if isinstance(res, Q_):
-            return res
-        else:
-            raise ValueError('Insufficent variables defined in the solution dictionary')
+        res = self.constant.magnitude
+        for i in range(0,len(self.variables)):
+            v = self.variables[i]
+            expnt = self.exponents[i]
+            val = x_star[v.name].magnitude ** expnt
+            res *= val
+        return Q_(res, self.units)
 # =====================================================================================================================
 # Find the constant sensitivity
 # =====================================================================================================================

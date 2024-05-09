@@ -1,0 +1,115 @@
+# reorder_1
+# written by John Dannenhoffer
+
+# make a sketch with the Edges colored
+SKBEG     0  0  0
+   LINSEG 1  0  0
+   LINSEG 0  1  0
+   LINSEG 0  0  0
+SKEND
+
+SELECT    FACE
+ATTRIBUTE _viz   $off
+SELECT    EDGE   1
+ATTRIBUTE _color $red
+SELECT    EDGE   2
+ATTRIBUTE _color $green
+SELECT    EDGE   3
+ATTRIBUTE _color $blue
+
+STORE     theShape 0 1
+
+# copy and reorder (without flipping)
+RESTORE   theShape
+TRANSLATE 2  0  0
+REORDER   1
+
+SELECT    FACE
+ATTRIBUTE _viz   $off
+SELECT    EDGE   1
+ATTRIBUTE _color $red
+SELECT    EDGE   2
+ATTRIBUTE _color $green
+SELECT    EDGE   3
+ATTRIBUTE _color $blue
+
+RESTORE   theShape
+TRANSLATE 4  0  0
+REORDER   2
+
+SELECT    FACE
+ATTRIBUTE _viz   $off
+SELECT    EDGE   1
+ATTRIBUTE _color $red
+SELECT    EDGE   2
+ATTRIBUTE _color $green
+SELECT    EDGE   3
+ATTRIBUTE _color $blue
+
+RESTORE   theShape
+TRANSLATE 6  0  0
+REORDER   3
+
+SELECT    FACE
+ATTRIBUTE _viz   $off
+SELECT    EDGE   1
+ATTRIBUTE _color $red
+SELECT    EDGE   2
+ATTRIBUTE _color $green
+SELECT    EDGE   3
+ATTRIBUTE _color $blue
+
+# copy and reorder (with flipping)
+RESTORE   theShape
+TRANSLATE 0  2  0
+REORDER   0  1
+
+SELECT    FACE
+ATTRIBUTE _viz   $off
+SELECT    EDGE   1
+ATTRIBUTE _color $red
+SELECT    EDGE   2
+ATTRIBUTE _color $green
+SELECT    EDGE   3
+ATTRIBUTE _color $blue
+
+RESTORE   theShape
+TRANSLATE 2  2  0
+REORDER   1  1
+
+SELECT    FACE
+ATTRIBUTE _viz   $off
+SELECT    EDGE   1
+ATTRIBUTE _color $red
+SELECT    EDGE   2
+ATTRIBUTE _color $green
+SELECT    EDGE   3
+ATTRIBUTE _color $blue
+
+RESTORE   theShape
+TRANSLATE 4  2  0
+REORDER   2  1
+
+SELECT    FACE
+ATTRIBUTE _viz   $off
+SELECT    EDGE   1
+ATTRIBUTE _color $red
+SELECT    EDGE   2
+ATTRIBUTE _color $green
+SELECT    EDGE   3
+ATTRIBUTE _color $blue
+
+RESTORE   theShape
+TRANSLATE 6  2  0
+REORDER   3  1
+
+SELECT    FACE
+ATTRIBUTE _viz   $off
+SELECT    EDGE   1
+ATTRIBUTE _color $red
+SELECT    EDGE   2
+ATTRIBUTE _color $green
+SELECT    EDGE   3
+ATTRIBUTE _color $blue
+
+END

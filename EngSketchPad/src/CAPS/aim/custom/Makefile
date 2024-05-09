@@ -6,9 +6,14 @@ DIRS = $(filter-out NMakefile, $(filter-out Makefile, $(wildcard *)))
 default:	$(DIRS)
 
 $(DIRS):
-	-(cd $@; make $(MAKECMDGOALS))
+	$(MAKE) -C $@ $(MAKECMDGOALS)
+
+lint:		$(DIRS)
 
 clean:		$(DIRS)
 
 cleanall:	$(DIRS)
 
+dox:		$(DIRS)
+
+doxclean:	$(DIRS)

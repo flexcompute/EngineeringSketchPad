@@ -33,13 +33,10 @@ mySurfMesh = myProblem.analysis.create(aim = "aflr4AIM")
 mySurfMesh.input.Mesh_Sizing = {"Farfield": {"bcType":"Farfield"},
                                 "Symmetry": {"bcType":"Symmetry"}}
 
-# Set project name so a mesh file is generated
-mySurfMesh.input.Proj_Name = "pyCAPS_AFLR4_Test"
-
 # Set AIM verbosity
 mySurfMesh.input.Mesh_Quiet_Flag = True if args.outLevel == 0 else False
 
-# Set output grid format since a project name is being supplied - Tecplot  file
+# Optional: Explicitly write mesh files
 mySurfMesh.input.Mesh_Format = "Tecplot"
 
 # Farfield growth factor
@@ -71,10 +68,7 @@ myVolMesh.input["Surface_Mesh"].link(mySurfMesh.output["Surface_Mesh"])
 # Set AIM verbosity
 myVolMesh.input.Mesh_Quiet_Flag = True if args.outLevel == 0 else False
 
-# Set project name - so a mesh file is generated
-myVolMesh.input.Proj_Name = "pyCAPS_AFLR3_VolMesh"
-
-# Set output grid format since a project name is being supplied - Tecplot tetrahedral file
+# Optional: Explicitly write mesh files
 myVolMesh.input.Mesh_Format = "Tecplot"
 
 # Set either global or local boundary layer thickness spacings

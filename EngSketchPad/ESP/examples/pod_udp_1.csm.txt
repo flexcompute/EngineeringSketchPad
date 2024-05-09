@@ -1,0 +1,7 @@
+# pod_udp_1
+# written by John Dannenhoffer
+
+UDPARG    pod       Length    5.0
+UDPRIM    pod       Fineness  8.0
+
+END

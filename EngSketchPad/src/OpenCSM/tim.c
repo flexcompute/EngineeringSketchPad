@@ -9,7 +9,7 @@
  */
 
 /*
- * Copyright (C) 2010/2022  John F. Dannenhoffer, III (Syracuse University)
+ * Copyright (C) 2010/2024  John F. Dannenhoffer, III (Syracuse University)
  *
  * This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
@@ -51,14 +51,11 @@
 
 #define  SHOW_STATES  0
 
-#include "egads.h"
-#include "OpenCSM.h"
-#include "common.h"
-#include "tim.h"
-#include "emp.h"
-
 #include <unistd.h>
 
+#include "OpenCSM.h"
+#include "tim.h"
+#include "emp.h"
 #include "wsserver.h"
 
 #define MAX_TIMS 32
@@ -125,7 +122,7 @@ typedef struct {
 //$$$int             tim_bcst(char myTimName[], char text[]);
 //$$$int             tim_save(char myTimName[]);
 //$$$int             tim_quit(char myTimName[]);
-//$$$void            tim_lock();
+//$$$void            tim_lock(int finalize);
 //$$$void            tim_free();
 //$$$int             update_esp();
 
@@ -166,6 +163,11 @@ tim_load(char       myTimName[],        /* (in)  name of TIM */
 
     if (SHOW_STATES) printf("tim_load(%s)\n", myTimName);
 
+    if (ESP == NULL) {
+        printf("WARNING:: not running from serveESP\n");
+        goto cleanup;
+    }
+
     /* skip this TIM if spawned from pyscript while in continuation mode */
     if (OverlayInContMode("tim_load", myTimName) == 1) {
         goto cleanup;
@@ -188,7 +190,7 @@ tim_load(char       myTimName[],        /* (in)  name of TIM */
     }
 
     /* if not currently "inactive", return an error */
-    if (timState[i] != TIM_INACTIVE) {
+    if (timState[i] != TIM_INACTIVE && timState[i] != TIM_READY) {
         printf("ERROR:: tim_load(%s) is not inactive, state=%d\n", myTimName, timState[i]);
         status = EGADS_SEQUERR;
         goto cleanup;
@@ -257,7 +259,7 @@ tim_getEsp(char myTimName[])            /* (in)  name of TIM */
 
     /* if not loaded, return an error */
     if (i == -1) {
-        printf("WARNING:: tim_getEsp(%s) is not currently loaded\n", myTimName);
+        printf("WARNING:: \"%s\" is not currently loaded (from tim_getEsp)\n", myTimName);
         return NULL;
     }
 
@@ -295,9 +297,9 @@ tim_mesg(char   myTimName[],            /* (in)  name of TIM */
     /* determine if dynamic library is already loaded */
     i = timDLoaded(myTimName);
 
-    /* if not loaded, return an error */
+    /* if not loaded, return a warning */
     if (i == -1) {
-        printf("ERROR:: tim_mesg(%s) is not currently loaded\n", myTimName);
+        printf("WARNING:: \"%s\" is not currently loaded (from tim_mesg)\n", myTimName);
 //$$$        status = EGADS_NOTFOUND;
         goto cleanup;
     }
@@ -318,7 +320,7 @@ tim_mesg(char   myTimName[],            /* (in)  name of TIM */
             strcmp(myTimName, "plotter")   == 0 ||
             strcmp(myTimName, "flowchart") == 0   ) {
             timState[i] = TIM_READY;
-            if (SHOW_STATES) printf("tim_mesg(%s): changing TIM_EXECUTING to TIM_READT\n", myTimName);
+            if (SHOW_STATES) printf("tim_mesg(%s): changing TIM_EXECUTING to TIM_READY\n", myTimName);
         }
     }
 
@@ -341,10 +343,13 @@ tim_mesg(char   myTimName[],            /* (in)  name of TIM */
     /* if we are holding until released, call the message routine directly */
     if (timHold[i] == 1) {
         status = tim_Mesg[i](timEsp[i], command);
-        if (status < EGADS_SUCCESS) {
-            printf("ERROR:: tim_mesg(%s, %s) returned status=%d\n", myTimName, command, status);
-            goto cleanup;
-        }
+
+        /* the following is being commented out because if the tim returns an
+           error, we want to get back to ready mode so that we can try agaon */
+//$$$        if (status < EGADS_SUCCESS) {
+//$$$            printf("ERROR:: tim_mesg(%s, %s) returned status=%d\n", myTimName, command, status);
+//$$$            goto cleanup;
+//$$$        }
 
         /* mark the TIM as being ready */
         timState[i] = TIM_READY;
@@ -403,9 +408,9 @@ tim_hold(char   myTimName[],            /* (in)  name of TIM to hold */
     /* determine if dynamic library is already loaded */
     i = timDLoaded(myTimName);
 
-    /* if not loaded, return an error */
+    /* if not loaded, return a warning */
     if (i == -1) {
-        printf("ERROR:: tim_hold(%s) is not currently loaded\n", myTimName);
+        printf("WARNING:: \"%s\" is not currently loaded (from tim_hold)\n", myTimName);
         goto cleanup;
     }
 
@@ -463,9 +468,9 @@ tim_lift(char   myTimName[])            /* (in)  name of TIM */
     /* determine if dynamic library is already loaded */
     i = timDLoaded(myTimName);
 
-    /* if not loaded, return an error */
+    /* if not loaded, return a warning */
     if (i == -1) {
-        printf("ERROR:: tim_lift(%s) is not currently loaded\n", myTimName);
+        printf("WARNING:: \"%s\" is not currently loaded (from tim_left)\n", myTimName);
 //$$$        status = EGADS_NOTFOUND;
         goto cleanup;
     }
@@ -497,9 +502,9 @@ tim_bcst(char   myTimName[],            /* (in)  name of TIM */
     /* determine if dynamic library is already loaded */
     i = timDLoaded(myTimName);
 
-    /* if not loaded, return an error */
+    /* if not loaded, return a warning */
     if (i == -1) {
-        printf("ERROR:: tim_bcst(%s) is not currently loaded\n", myTimName);
+        printf("WARNING:: \"%s\" is not currently loaded (from tim_bcst)\n", myTimName);
 //$$$        status = EGADS_NOTFOUND;
         goto cleanup;
     }
@@ -517,6 +522,10 @@ tim_bcst(char   myTimName[],            /* (in)  name of TIM */
 
     /* only broadcast if wv is currently running */
     if (ESP->cntxt == NULL) {
+//$$$        printf("WARNING:: message \"%s\" not broadcast because wv not started\n", text);
+        goto cleanup;
+    } else if (wv_nClientServer(0) < 1) {
+        printf("WARNING:: message \"%s\" not broadcast because no browsers\n", text);
         goto cleanup;
     }
 
@@ -561,9 +570,9 @@ tim_save(char   myTimName[])            /* (in)  name of TIM */
     /* determine if dynamic library is already loaded */
     i = timDLoaded(myTimName);
 
-    /* if not loaded, return an error */
+    /* if not loaded, return a warning */
     if (i == -1) {
-        printf("ERROR:: tim_save(%s) is not currently loaded\n", myTimName);
+        printf("WARNING:: \"%s\" is not currently loaded (from tim_save)\n", myTimName);
 //$$$        status = EGADS_NOTFOUND;
         goto cleanup;
     }
@@ -635,9 +644,9 @@ tim_quit(char   myTimName[])            /* (in)  name of TIM */
     /* determine if dynamic library is already loaded */
     i = timDLoaded(myTimName);
 
-    /* if not loaded, return an error */
+    /* if not loaded, return a warning */
     if (i == -1) {
-        printf("ERROR:: tim_quit(%s) is not currently loaded\n", myTimName);
+        printf("WARNING:: \"%s\" is not currently loaded (from tim_quit)\n", myTimName);
 //$$$        status = EGADS_NOTFOUND;
         goto cleanup;
     }
@@ -699,7 +708,7 @@ cleanup:
 /***********************************************************************/
 
 void
-tim_lock(int finalize)
+tim_lock(int finalize)                  /* (in)  =1 to finalize python */
 {
     int i, j, status; //, ival;
 
@@ -834,9 +843,9 @@ update_esp()
     /* determine if dynamic library is already loaded */
     i = timDLoaded("pyscript");
 
-    /* if not loaded, return an error */
+    /* if not loaded, return a warning */
     if (i == -1) {
-        printf("ERROR:: tim_bcst(%s) is not currently loaded\n", "pyscript");
+        printf("WARNING:: \"%s\" is not currently loaded (from update_esp)\n", "pyscript");
 //$$$        status = EGADS_NOTFOUND;
         goto cleanup;
     }
@@ -1266,12 +1275,13 @@ OverlayInContMode(char   command[],     /* (in)  command name */
      * the parent is currently running is "CaPsTeMpFiLe.py" */
     if (strcmp(myTimName, "pyscript") != 0) {
         ESP = (esp_T *)timEsp[tim_nTim-1];
-        SPLINT_CHECK_FOR_NULL(ESP);
+//$$$        SPLINT_CHECK_FOR_NULL(ESP);
+        if (ESP == NULL) goto cleanup;
 
         if (ESP->nudata > 0) {
             if (strcmp(ESP->timName[ESP->nudata-1], "pyscript") == 0) {
                 if (strcmp((char *)(ESP->udata[ESP->nudata-1]), "CaPsTeMpFiLe.py") == 0) {
-                    printf("skipping \"%s %s\" since we are in continuation mode \n", command, myTimName);
+                    printf("WARNING:: skipping \"%s %s\" since we are in continuation mode \n", command, myTimName);
                     status = 1;
                 }
             }

@@ -1,0 +1,29 @@
+# designYi
+# written by John Dannenhoffer
+
+DESPMTR   L   5.0
+DESPMTR   H   3.0
+DESPMTR   S   2.0
+DESPMTR   T   1.0
+DESPMTR   D   1.0
+DESPMTR   x0  0.5
+DESPMTR   y0  0.4
+DESPMTR   z0  0.3
+
+SET       a   (L-S)/2
+SET       b   (L+S)/2
+SET       c   T+a/2
+
+SKBEG     x0     y0     z0
+   LINSEG x0+L   y0     z0
+   LINSEG x0+L   y0+H   z0
+   LINSEG x0+b   y0+H   z0
+   LINSEG x0+b   y0+T   z0
+   LINSEG x0+a   y0+T   z0
+   ARC    x0     y0+T   z0   a/2
+   LINSEG x0     y0     z0
+SKEND
+
+EXTRUDE   0  0  D
+
+END

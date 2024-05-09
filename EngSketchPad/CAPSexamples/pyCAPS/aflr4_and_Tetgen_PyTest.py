@@ -32,13 +32,10 @@ myProblem.geometry.cfgpmtr.wake = 0
 # Load AFLR4 aim
 mySurfMesh = myProblem.analysis.create(aim = "aflr4AIM")
 
-# Set project name - so a mesh file is generated
-mySurfMesh.input.Proj_Name = "pyCAPS_AFLR4_Tetgen"
-
 # Set AIM verbosity
 mySurfMesh.input.Mesh_Quiet_Flag = True if args.outLevel == 0 else False
 
-# Set output grid format since a project name is being supplied - Tecplot  file
+# Optional: Explicitly write mesh files
 mySurfMesh.input.Mesh_Format = "Tecplot"
 
 # Farfield growth factor
@@ -69,11 +66,8 @@ myVolMesh.input.Mesh_Quiet_Flag = True if args.outLevel == 0 else False
 # Set surface mesh preservation
 myVolMesh.input.Preserve_Surf_Mesh = True
 
-# Set project name - so a mesh file is generated
-myVolMesh.input.Proj_Name = "pyCAPS_AFLR4_Tetgen_VolMesh"
-
-# Set output grid format since a project name is being supplied - Tecplot tetrahedral file
-myVolMesh.input.Mesh_Format = "Tecplot"
+# Optional: Explicitly write mesh files
+myVolMesh.input.Mesh_Format = ["Tecplot", "ugrid"]
 
 # Don't extract the update the local-to-global node connectivity
 myVolMesh.input.Ignore_Surface_Mesh_Extraction = True

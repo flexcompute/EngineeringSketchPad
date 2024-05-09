@@ -64,7 +64,7 @@ IFTHEN    thetau  GT  0  OR  gap  GT  0
    # make the plug between the main and upper
    IFTHEN    gap  LE  0
       JOIN
-      COMBINE
+      ELEVATE
    ELSE
       CONNECT 0  0  1  1
    ENDIF
@@ -102,7 +102,7 @@ IFTHEN    thetal  LT  0  OR  gap  GT  0
    # make the plug between the main and lower
    IFTHEN    gap  LE  0
       JOIN
-      COMBINE
+      ELEVATE
    ELSE
       CONNECT 0  0  1  1
    ENDIF

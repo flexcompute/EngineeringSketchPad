@@ -132,7 +132,7 @@ case_name		: Case Name for input file case_name.surf,\n\
   // open output log file
 
   if (log_file) {
-    sprintf (File_Name, "%s.uvmap.log", Case_Name);
+    snprintf (File_Name, 521, "%s.uvmap.log", Case_Name);
     UVMAP_Output_File = fopen (File_Name, "w");
   }
 

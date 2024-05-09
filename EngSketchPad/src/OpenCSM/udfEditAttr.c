@@ -10,7 +10,7 @@
  */
 
 /*
- * Copyright (C) 2011/2022  John F. Dannenhoffer, III (Syracuse University)
+ * Copyright (C) 2011/2024  John F. Dannenhoffer, III (Syracuse University)
  *
  * This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
@@ -39,11 +39,11 @@
 #define OVERWRITE(IUDP)  ((int    *) (udps[IUDP].arg[3].val))[0]
 #define FILENAME( IUDP)  ((char   *) (udps[IUDP].arg[4].val))
 #define VERBOSE(  IUDP)  ((int    *) (udps[IUDP].arg[5].val))[0]
-#define NCHANGE(  IUDP)  ((double *) (udps[IUDP].arg[6].val))[0]
+#define NCHANGE(  IUDP)  ((int    *) (udps[IUDP].arg[6].val))[0]
 
 /* data about possible arguments */
 static char  *argNames[NUMUDPARGS] = {"attrname",  "input",     "output",   "overwrite", "filename", "verbose", "nchange", };
-static int    argTypes[NUMUDPARGS] = {ATTRSTRING,  ATTRSTRING,  ATTRSTRING, ATTRINT,     ATTRFILE,   ATTRINT,   -ATTRREAL  };
+static int    argTypes[NUMUDPARGS] = {ATTRSTRING,  ATTRSTRING,  ATTRSTRING, ATTRINT,     ATTRFILE,   ATTRINT,   -ATTRINT   };
 static int    argIdefs[NUMUDPARGS] = {0,           0,           0,          0,           0,          0,         0,         };
 static double argDdefs[NUMUDPARGS] = {0.,          0.,          0.,         0.,          0.,         0.,        0.,        };
 
@@ -55,12 +55,11 @@ static double argDdefs[NUMUDPARGS] = {0.,          0.,          0.,         0., 
 
 #define           MIN(A,B)        (((A) < (B)) ? (A) : (B))
 #define           MAX(A,B)        (((A) < (B)) ? (B) : (A))
-#define           EPS06           1.0e-6
 
 /* prototype for function defined below */
 static int editAttrs(ego ebody, char attrname[], char input[], char output[],
                      int overwrite, char message[], int *nchange);
-static int processFile(ego context, ego ebody, char filename[], char message[], int *nchange);
+static int processFile(ego context, ego ebody, char filename[], char message[], int *nchange, int *NumUdp, udp_T *udps);
 static int matches(char pattern[], const char string[]);
 static int editEgo(const char attrname[], int atype, int alen,
                      const int *tempIlist, const double *tempRlist, const char *tempClist,
@@ -70,8 +69,6 @@ static int getBodyTopos(ego ebody, ego esrc, int oclass, int *nlist, ego **elist
 #ifdef DEBUG
 static int printAttrs(ego ebody);
 #endif
-
-static void *realloc_temp=NULL;              /* used by RALLOC macro */
 
 
 /*
@@ -94,6 +91,7 @@ udpExecute(ego  emodel,                 /* (in)  Model containing Body */
     double  data[4];
     char    *message=NULL;
     ego     context, eref, *ebodys;
+    udp_T   *udps = *Udps;
 
     ROUTINE(udpExecute);
 
@@ -182,7 +180,7 @@ udpExecute(ego  emodel,                 /* (in)  Model containing Body */
 
     /* edit the attributes */
     if (STRLEN(FILENAME(numUdp)) > 0) {
-        status = processFile(context, *ebody, FILENAME(numUdp), message, &nchange);
+        status = processFile(context, *ebody, FILENAME(numUdp), message, &nchange, NumUdp, udps);
         CHECK_STATUS(processFile);
     } else {
         status = editAttrs(*ebody, ATTRNAME(numUdp), INPUT(numUdp), OUTPUT(numUdp), OVERWRITE(numUdp), message, &nchange);
@@ -197,7 +195,7 @@ udpExecute(ego  emodel,                 /* (in)  Model containing Body */
     CHECK_STATUS(EG_attributeAdd);
 
     /* set the output value */
-    NCHANGE(0) = (double)nchange;
+    NCHANGE(numUdp) = nchange;
 
     /* the copy of the Body that was annotated is returned */
     udps[numUdp].ebody = *ebody;
@@ -679,7 +677,9 @@ processFile(ego    context,             /* (in)  EGADS context */
             ego    ebody,               /* (in)  EGADS Body */
             char   filename[],          /* (in)  file that contains directives */
             char   message[],           /* (out) error message */
-            int    *nchange)            /* (out) number of changes */
+            int    *nchange,            /* (out) number of changes */
+/*@unused@*/int    *NumUdp,
+            udp_T  *udps)
 {
     int       status = 0;               /* (out) return status */
 
@@ -701,6 +701,7 @@ processFile(ego    context,             /* (in)  EGADS context */
     CCHAR     *tempClist;
     ego       *esel=NULL, *elist=NULL, *enbor=NULL;
     void      *modl;
+    void      *realloc_temp = NULL;            /* used by RALLOC macro */
     FILE      *fp=NULL;
 
     ROUTINE(processFile);
@@ -1305,7 +1306,7 @@ processFile(ego    context,             /* (in)  EGADS context */
             continue;
         }
 
-        /* do not process rest of tokens (in this line) if PATBEG or PATEND */
+        /* do not process rest of tokens (on this line) if PATBEG or PATEND */
         if (strcmp(token1, "PATBEG") == 0 || strcmp(token1, "patbeg") == 0 ||
             strcmp(token1, "PATEND") == 0 || strcmp(token1, "patend") == 0   ) {
             continue;
@@ -1351,6 +1352,14 @@ processFile(ego    context,             /* (in)  EGADS context */
         }
 
         if (elist == NULL) goto cleanup;     // needed for splint
+
+        if (VERBOSE(0) > 1) {
+            printf("initial eiist");
+            for (ilist = 0; ilist < nlist; ilist++) {
+                printf(" %3d", EG_indexBodyTopo(ebody, elist[ilist]));
+            }
+            printf("\n");
+        }
 
          /* remove entries from elist if they don't match all mentioned name/value pairs */
         for (itoken = 2; itoken < 10; itoken++) {
@@ -1436,6 +1445,19 @@ processFile(ego    context,             /* (in)  EGADS context */
                     }
                 }
 
+            /* attrValue is a star (*) */
+            } else if (strcmp(attrValu, "*") == 0) {
+                if (strcmp(attrName, "*") != 0) {
+                    for (ilist = nlist-1; ilist >= 0; ilist--) {
+                        status = EG_attributeRet(elist[ilist], attrName,
+                                                 &atype, &alen, &tempIlist, &tempRlist, &tempClist);
+                        if (status != EGADS_SUCCESS) {
+                            elist[ilist] = elist[nlist-1];
+                            nlist--;
+                        }
+                    }
+                }
+
             /* attrValue is an implicit string */
             } else {
                 for (ilist = nlist-1; ilist >= 0; ilist--) {
@@ -1455,6 +1477,14 @@ processFile(ego    context,             /* (in)  EGADS context */
                     }
                 }
             }
+        }
+
+        if (VERBOSE(0) > 1) {
+            printf("elist after removing those that do not match attrName=attrValu\n");
+            for (ilist = 0; ilist < nlist; ilist++) {
+                printf(" %3d", EG_indexBodyTopo(ebody, elist[ilist]));
+            }
+            printf("\n");
         }
 
         /* if ANDNOT command, remove those entries from esel that are
@@ -1550,8 +1580,8 @@ processFile(ego    context,             /* (in)  EGADS context */
                 }
             }
 
-        /* otherwise, remove this entries from esel that are NOT
-           contained in elist */
+        /* otherwise, remove those entries from esel that are NOT
+           contained in elist (because this is an AND) */
         } else {
 
             if        (strcmp(token2, "ADJ2FACE") == 0 || strcmp(token2, "adj2face") == 0) {
@@ -2004,12 +2034,15 @@ getBodyTopos(ego    ebody,
 
     int    status = EGADS_SUCCESS;
 
-    int    inode, nnode, iedge, nedge, iface, nface, ilist;
+    int    inode, nnode, iedge, nedge, iface, nface, ilist, outLevel;
     ego    *enodes, *eedges, *efaces;
 
     ROUTINE(getBodyTopos);
 
     /* --------------------------------------------------------------- */
+
+    /* get the outLevel from OpenCSM */
+    outLevel = ocsmSetOutLevel(-1);
 
     *nlist = 0;
     *elist = NULL;
@@ -2050,6 +2083,7 @@ getBodyTopos(ego    ebody,
             printf(" cannot process EDGE/?\n");
             status = OCSM_UDP_ERROR5;
         } else {
+            SPRINT1(2, "source Edge is %d", EG_indexBodyTopo(ebody, esrc));
 
             /* allocate the returned array (big enough for all Edges,
                which is probably a bit wasteful) */
@@ -2065,10 +2099,14 @@ getBodyTopos(ego    ebody,
             /* loop through all Nodes (that are adjacent to esrc) and add
                its Edges to elist (if not esrc and if not already in list) */
             for (inode = 0; inode < nnode; inode++) {
+                SPRINT1(2, "   adjcent Node is %d", EG_indexBodyTopo(ebody, enodes[inode]));
+
                 status = EG_getBodyTopos(ebody, enodes[inode], EDGE, &nedge, &eedges);
                 CHECK_STATUS(EG_getBodyTopos);
 
                 for (iedge = 0; iedge < nedge; iedge++) {
+                    SPRINT1(2, "      adjacent Edge is %d", EG_indexBodyTopo(ebody, eedges[iedge]));
+
                     if (eedges[iedge] == esrc) continue;
 
                     /* add the Edge to the list (possibly removed below) */
@@ -2095,6 +2133,7 @@ getBodyTopos(ego    ebody,
             printf(" cannot process FACE/?\n");
             status = OCSM_UDP_ERROR5;
         } else {
+            SPRINT1(2, "source Face is %d", EG_indexBodyTopo(ebody, esrc));
 
             /* allocate the returned array (big enough for all Faces,
                which is probably a bit wasteful) */
@@ -2110,10 +2149,14 @@ getBodyTopos(ego    ebody,
             /* loop through all Edges (that are adjacent to esrc) and add
                its Faces to elist (if not esrc and if not already in list) */
             for (iedge = 0; iedge < nedge; iedge++) {
+                SPRINT1(2, "   adjacent Edge is %d", EG_indexBodyTopo(ebody, eedges[iedge]));
+
                 status = EG_getBodyTopos(ebody, eedges[iedge], FACE, &nface, &efaces);
                 CHECK_STATUS(EG_getBodyTopos);
 
                 for (iface = 0; iface < nface; iface++) {
+                    SPRINT1(2, "      adjacent Face id %d", EG_indexBodyTopo(ebody, efaces[iface]));
+
                     if (efaces[iface] == esrc) continue;
 
                     /* add the Face to the list (possibly removed below) */

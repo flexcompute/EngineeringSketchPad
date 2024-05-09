@@ -41,6 +41,6 @@ SELECT    EDGE
 ATTRIBUTE _color  $magenta
 
 # combine the pipes into a network
-COMBINE
+JOIN 0 1
 
 END

@@ -1,0 +1,18 @@
+LIBRARY sierraAIM
+EXPORTS
+aimInitialize
+aimCleanup
+aimInputs
+aimUpdateState
+aimPreAnalysis
+aimPostAnalysis
+aimOutputs
+aimCalcOutput
+aimFreeDiscrPtr
+aimDiscr
+aimLocateElement
+aimTransfer
+aimInterpolation
+aimInterpolateBar
+aimIntegration
+aimIntegrateBar

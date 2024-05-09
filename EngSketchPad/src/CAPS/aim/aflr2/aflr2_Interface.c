@@ -23,7 +23,7 @@
 #endif
 
 //TODO: xplt_Case_Name is needed for OSX at the moment to resolve a link error. Remove it as soon as you can...
-char xplt_Case_Name[133];
+char xplt_Case_Name[1024];
 
 //#define AFLR2_BOUNDARY_LAYER
 
@@ -33,7 +33,7 @@ char xplt_Case_Name[133];
 
 
 static INT_
-egads_eval_bedge(void *aimInfo, ego tess,
+egads_eval_bedge(void *aimInfo, ego body, ego face, ego tess,
                  const mapAttrToIndexStruct *groupMap, const mapAttrToIndexStruct *meshMap,
                  INT_ *nbedge, INT_2D ** inibe, INT_1D **Bnd_Edge_ID_Flag,
                  INT_1D **Bnd_Edge_Mesh_ID_Flag, DOUBLE_2D ** x)
@@ -84,24 +84,9 @@ egads_eval_bedge(void *aimInfo, ego tess,
 
     ego          geom, *loops = NULL, *edges = NULL, *nodes = NULL;
 
-    int tessStatus, numPoints, numEdge, numFace;
-    ego body, *bodyFaces = NULL, *bodyEdges = NULL;
     const char *groupName = NULL, *meshName=NULL;
 
-    // Get body from tessellation
-    status = EG_statusTessBody(tess, &body, &tessStatus, &numPoints);
-    AIM_STATUS(aimInfo, status);
-
-    // Get edges
-    status = EG_getBodyTopos(body, NULL, EDGE, &numEdge, &bodyEdges);
-    AIM_STATUS(aimInfo, status);
-
-    // Get faces
-    status = EG_getBodyTopos(body, NULL, FACE, &numFace, &bodyFaces);
-    AIM_STATUS(aimInfo, status);
-    AIM_NOTNULL(bodyFaces, aimInfo, status);
-
-    status = EG_getTopology(bodyFaces[0], &geom, &oclass, &mtype, uvbox,
+    status = EG_getTopology(face, &geom, &oclass, &mtype, uvbox,
                             &nloop, &loops, &senses);
     AIM_STATUS(aimInfo, status);
     AIM_NOTNULL(loops, aimInfo, status);
@@ -127,13 +112,18 @@ egads_eval_bedge(void *aimInfo, ego tess,
             status = EG_getTessEdge(tess, index, &n, &xyzs, &ts);
             AIM_STATUS(aimInfo, status);
 
-            
+
             cnt += n-1;
         }
     }
 
     ierr = 0;
     *nbedge = cnt;
+
+    ug_free(*inibe);
+    ug_free(*Bnd_Edge_ID_Flag);
+    ug_free(*Bnd_Edge_Mesh_ID_Flag);
+    ug_free(*x);
 
     *inibe                 = (INT_2D *) ug_malloc (&ierr, ((*nbedge)+1) * sizeof (INT_2D));
     *Bnd_Edge_ID_Flag      = (INT_1D *) ug_malloc (&ierr, ((*nbedge)+1) * sizeof (INT_1D));
@@ -195,7 +185,7 @@ egads_eval_bedge(void *aimInfo, ego tess,
 
             AIM_REALL(uvs, 2*n, double, aimInfo, status);
 
-            status = EG_getEdgeUVs(bodyFaces[0], edges[iedge], senses[iedge], n, ts, uvs);
+            status = EG_getEdgeUVs(face, edges[iedge], senses[iedge], n, ts, uvs);
             AIM_STATUS(aimInfo, status);
 
             for (i = 0; i < n-1; i++, cnt++) {
@@ -222,8 +212,6 @@ egads_eval_bedge(void *aimInfo, ego tess,
 
 cleanup:
 
-    AIM_FREE(bodyEdges);
-    AIM_FREE(bodyFaces);
     AIM_FREE(uvs);
 
     return status;
@@ -231,7 +219,7 @@ cleanup:
 
 
 static int
-egads_xyz_bedge(void *aimInfo, ego tess, int ix, int iy,
+egads_xyz_bedge(void *aimInfo, ego body, ego face, ego tess, int ix, int iy,
                 double *face_xyz, DOUBLE_2D* Coordiantes)
 {
     int          cnt, i, iloop, iedge, mtype, oclass,
@@ -244,23 +232,7 @@ egads_xyz_bedge(void *aimInfo, ego tess, int ix, int iy,
 
     ego          geom, *loops = NULL, *edges = NULL, *nodes = NULL;
 
-    int tessStatus, numPoints, numEdge, numFace;
-    ego body, *bodyFaces = NULL, *bodyEdges = NULL;
-
-    // Get body from tessellation
-    status = EG_statusTessBody(tess, &body, &tessStatus, &numPoints);
-    AIM_STATUS(aimInfo, status);
-
-    // Get edges
-    status = EG_getBodyTopos(body, NULL, EDGE, &numEdge, &bodyEdges);
-    AIM_STATUS(aimInfo, status);
-
-    // Get faces
-    status = EG_getBodyTopos(body, NULL, FACE, &numFace, &bodyFaces);
-    AIM_STATUS(aimInfo, status);
-    AIM_NOTNULL(bodyFaces, aimInfo, status);
-
-    status = EG_getTopology(bodyFaces[0], &geom, &oclass, &mtype, uvbox,
+    status = EG_getTopology(face, &geom, &oclass, &mtype, uvbox,
                             &nloop, &loops, &senses);
     AIM_STATUS(aimInfo, status);
     AIM_NOTNULL(loops, aimInfo, status);
@@ -310,9 +282,6 @@ egads_xyz_bedge(void *aimInfo, ego tess, int ix, int iy,
 
 cleanup:
 
-    AIM_FREE(bodyEdges);
-    AIM_FREE(bodyFaces);
-
     //printf("egads_eval_bedge- cleanup complete\n");
     return status;
 }
@@ -323,24 +292,26 @@ int aflr2_Surface_Mesh(void *aimInfo,
                        const meshInputStruct *meshInput,
                        const mapAttrToIndexStruct *groupMap,
                        const mapAttrToIndexStruct *meshMap,
+                       const char *cProj_Name,
                        meshStruct *surfaceMesh,
                        const aimMeshRef *meshRef)
 {
 
     int status; // Function return status
 
-    int i, j, elementIndex; // Indexing
-    int faceAttr = 0;
+    int i, j; //, elementIndex; // Indexing
+    //int faceAttr = 0;
     int numFace;
+    FILE *fp = NULL;
 
-    double box[6], size, params[3]; // Bounding box variables
+    int *mixed = NULL, iface, nquad = 0;
+    double params[3]; // Bounding box variables
 
     ego tess = NULL, body, *bodyFaces = NULL;
 
 #ifdef AFLR2_BOUNDARY_LAYER
     // Boundary Layer meshing related variables
     int propIndex, attrIndex = 0; // Indexing
-    double capsMeshLength = 0;
     int createBL = (int) false; // Indicate if boundary layer meshes should be generated
 #endif
 
@@ -356,7 +327,7 @@ int aflr2_Surface_Mesh(void *aimInfo,
 
     DOUBLE_2D *Coordinates = NULL;
     DOUBLE_1D *Initial_Normal_Spacing = NULL;
-    DOUBLE_1D *BL_Thickness = NULL;
+    //DOUBLE_1D *BL_Thickness = NULL;
 
     INT_1D *BG_Bnd_Edge_Grid_BC_Flag = NULL;
     INT_1D *BG_Bnd_Edge_ID_Flag = NULL;
@@ -395,172 +366,6 @@ int aflr2_Surface_Mesh(void *aimInfo,
     char **prog_argv = NULL; // String arrays
     char *meshInputString = NULL;
     char *rest = NULL, *token = NULL;
-
-    // Get bounding box for scaling
-    status = EG_getBoundingBox(bodyIn, box);
-    if (status != EGADS_SUCCESS) goto cleanup;
-
-    size = sqrt((box[0]-box[3])*(box[0]-box[3]) +
-                (box[1]-box[4])*(box[1]-box[4]) +
-                (box[2]-box[5])*(box[2]-box[5]));
-
-    // Negating the first parameter triggers EGADS to only put vertexes on edges
-    params[0] = -meshInput->paramTess[0]*size;
-    params[1] =  meshInput->paramTess[1]*size;
-    params[2] =  meshInput->paramTess[2];
-
-    // Get Tessellation  - save to global variable
-    status = EG_makeTessBody(bodyIn, params, &tess);
-    AIM_STATUS(aimInfo, status);
-    AIM_NOTNULL(tess, aimInfo, status);
-
-    // Get bodyFaces
-    status = EG_getBodyTopos(bodyIn, NULL, FACE, &numFace, &bodyFaces);
-    AIM_STATUS(aimInfo, status);
-
-    if (numFace != 1) {
-      AIM_ERROR(aimInfo, "Body must have only one Face!!");
-      status = CAPS_BADVALUE;
-      goto cleanup;
-    }
-    AIM_NOTNULL(bodyFaces, aimInfo, status);
-
-    status = EG_getTopology(bodyFaces[0], &geom, &oclass, &mtype, uvbox,
-                            &nloop, &loops, &senses);
-    AIM_STATUS(aimInfo, status);
-
-    if (geom->mtype != PLANE) {
-      AIM_ERROR(aimInfo, "Body must be a PLANE surface!!");
-      status = CAPS_BADVALUE;
-      goto cleanup;
-    }
-
-    status = EG_getGeometry(geom, &oclass, &mtype, &ref, &ivec, &rvec);
-    AIM_STATUS(aimInfo, status);
-    CROSS(result, rvec+3, rvec+6);
-
-    if        (fabs(result[0])     < 1e-7 &&
-               fabs(result[1])     < 1e-7 &&
-               fabs(result[2] - 1) < 1e-7) { // z-constant plane
-      ix = 0;
-      iy = 1;
-    } else if (fabs(result[0])     < 1e-7 &&
-               fabs(result[1] - 1) < 1e-7 &&
-               fabs(result[2])     < 1e-7) { // y-constant plane
-      ix = 0;
-      iy = 2;
-    } else if (fabs(result[0] - 1) < 1e-7 &&
-               fabs(result[1])     < 1e-7 &&
-               fabs(result[2])     < 1e-7) { // x-constant plane
-      ix = 2;
-      iy = 1;
-    } else {
-      AIM_ERROR(aimInfo, "Body must be a PLANE surface aligned in a Cartesian plane!!");
-      status = CAPS_BADVALUE;
-      goto cleanup;
-    }
-
-    // extract the boundary tessellation from the egads body in uv-space
-    status = egads_eval_bedge (aimInfo, tess, groupMap, meshMap,
-                               &Number_of_Bnd_Edges, &Bnd_Edge_Connectivity,
-                               &Bnd_Edge_ID_Flag, &Bnd_Edge_Mesh_ID_Flag, &Coordinates);
-    AIM_STATUS(aimInfo, status);
-
-    Number_of_Nodes = Number_of_Bnd_Edges;
-
-//#define DUMP_TECPLOT_DEBUG_FILE
-#ifdef DUMP_TECPLOT_DEBUG_FILE
-    {
-        FILE *fp = aim_fopen(aimInfo, "aflr2_debug.dat", "w");
-        fprintf(fp, "VARIABLES = U, V, ID\n");
-
-        fprintf(fp, "ZONE N=%d, E=%d, F=FEPOINT, ET=LINESEG\n", Number_of_Nodes, Number_of_Bnd_Edges);
-        for (int i = 0; i < Number_of_Nodes; i++)
-            fprintf(fp, "%22.15e %22.15e %d\n", Coordinates[i+1][0], Coordinates[i+1][1], Bnd_Edge_ID_Flag[i+1]);
-        for (int i = 0; i < Number_of_Bnd_Edges; i++)
-            fprintf(fp, "%d %d\n", Bnd_Edge_Connectivity[i+1][0], Bnd_Edge_Connectivity[i+1][1]);
-
-        fclose(fp); fp = NULL;
-    }
-#endif
-
-
-#ifdef AFLR2_BOUNDARY_LAYER
-    // Loop through meshing properties and see if boundaryLayerThickness and boundaryLayerSpacing have been specified
-    for (propIndex = 0; propIndex < numMeshProp && createBL == (int) false; propIndex++) {
-
-      // If no boundary layer specified in meshProp continue
-      if (meshProp[propIndex].boundaryLayerSpacing == 0) continue;
-
-      // Loop through Elements and see if marker match
-      for (i = 1; i <= Number_of_Bnd_Edges && createBL == (int) false; i++) {
-
-        //If they don't match continue
-        if (Bnd_Edge_ID_Flag[i] != meshProp[propIndex].attrIndex) continue;
-
-        // Set face "bl" flag
-        createBL = (int) true;
-      }
-    }
-
-    // Get the capsMeshLenght if boundary layer meshing has been requested
-    if (createBL == (int) true) {
-        status = check_CAPSMeshLength(1, &bodyIn, &capsMeshLength);
-
-        if (capsMeshLength <= 0 || status != CAPS_SUCCESS) {
-            printf("**********************************************************\n");
-            if (status != CAPS_SUCCESS)
-              printf("capsMeshLength is not set on any body.\n");
-            else
-              printf("capsMeshLength: %f\n", capsMeshLength);
-            printf("\n");
-            printf("The capsMeshLength attribute must present on at least\n"
-                   "one body for boundary layer generation.\n"
-                   "\n"
-                   "capsMeshLength should be a a positive value representative\n"
-                   "of a characteristic length of the geometry,\n"
-                   "e.g. the MAC of a wing or diameter of a fuselage.\n");
-            printf("**********************************************************\n");
-            status = CAPS_BADVALUE;
-            goto cleanup;
-        }
-    }
-
-    // Loop through surface meshes to set boundary layer parameters
-
-    // Allocate Initial_Normal_Spacing
-    Initial_Normal_Spacing = (DOUBLE_1D *) ug_malloc (&status, (Number_of_Nodes+1) * sizeof (DOUBLE_1D));
-    if (Initial_Normal_Spacing == NULL) {
-        status = EGADS_MALLOC;
-        goto cleanup;
-    }
-
-    // Set default to none
-    for (i = 1; i <= Number_of_Nodes; i++) {
-        Initial_Normal_Spacing[i] = 0.0;
-    }
-
-    // Loop through meshing properties and see if boundaryLayerThickness and boundaryLayerSpacing have been specified
-    for (propIndex = 0; propIndex < numMeshProp; propIndex++) {
-
-        // If no boundary layer specified in meshProp continue
-        if (meshProp[propIndex].boundaryLayerSpacing == 0) continue;
-
-        // Loop through Elements and see if marker match
-        for (i = 1; i <= Number_of_Bnd_Edges; i++) {
-
-            //If they don't match continue
-            if (Bnd_Edge_Mesh_ID_Flag[i] != meshProp[propIndex].attrIndex) continue;
-
-            // Set boundary layer spacing
-            Initial_Normal_Spacing[Bnd_Edge_Connectivity[i][0]] =
-                        meshProp[propIndex].boundaryLayerSpacing*capsMeshLength;
-            Initial_Normal_Spacing[Bnd_Edge_Connectivity[i][1]] =
-                        meshProp[propIndex].boundaryLayerSpacing*capsMeshLength;
-        }
-    }
-#endif //AFLR2_BOUNDARY_LAYER
-
 
     // Initialize and setup AFLR2 input parameter structure
 
@@ -604,98 +409,312 @@ int aflr2_Surface_Mesh(void *aimInfo,
     status = ug_check_prog_param (prog_argv, prog_argc, Message_Flag);
     AIM_STATUS(aimInfo, status); // Add error code
 
-    status = aflr2_grid_generator (prog_argc, prog_argv,
-                                   Message_Flag,
-                                   &Number_of_Bnd_Edges, &Number_of_Nodes,
-                                   &Number_of_Quads, &Number_of_Trias,
-                                   &Number_of_BG_Bnd_Edges,
-                                   &Number_of_BG_Nodes, &Number_of_BG_Trias,
-                                   &Number_of_Source_Nodes,
-                                   &Bnd_Edge_Connectivity,
-                                   &Bnd_Edge_Error_Flag,
-                                   &Bnd_Edge_Grid_BC_Flag,
-                                   &Bnd_Edge_ID_Flag,
-                                   &Quad_Connectivity, &Tria_Connectivity,
-                                   &BG_Bnd_Edge_Connectivity,
-                                   &BG_Bnd_Edge_Grid_BC_Flag,
-                                   &BG_Bnd_Edge_ID_Flag,
-                                   &BG_Tria_Neighbors,
-                                   &BG_Tria_Connectivity,
-                                   &Coordinates,
-                                   Initial_Normal_Spacing,
-                                   &BG_Coordinates,
-                                   &BG_Spacing,
-                                   &BG_Metric,
-                                   &Source_Coordinates,
-                                   &Source_Spacing,
-                                   &Source_Metric);
-    AIM_STATUS(aimInfo, status); // Add error code
-/*@+nullpass*/
-    AIM_NOTNULL(Coordinates          , aimInfo, status);
-    AIM_NOTNULL(Tria_Connectivity    , aimInfo, status);
-    AIM_NOTNULL(Quad_Connectivity    , aimInfo, status);
-    AIM_NOTNULL(Bnd_Edge_ID_Flag     , aimInfo, status);
-    AIM_NOTNULL(Bnd_Edge_Connectivity, aimInfo, status);
 
-    ntris = Number_of_Trias + 2*Number_of_Quads;
+    // Negating the first parameter triggers EGADS to only put vertexes on edges
+    params[0] = -fabs(meshInput->paramTess[0]);
+    params[1] =       meshInput->paramTess[1];
+    params[2] =       meshInput->paramTess[2];
 
-    AIM_ALLOC(face_xyz , 3*Number_of_Nodes, double, aimInfo, status);
-    AIM_ALLOC(face_uv  , 2*Number_of_Nodes, double, aimInfo, status);
-    AIM_ALLOC(face_tris, 3*ntris          , int   , aimInfo, status);
+    // make Tessellation without triangles
+    status = EG_makeTessBody(bodyIn, params, &tess);
+    AIM_STATUS(aimInfo, status);
+    AIM_NOTNULL(tess, aimInfo, status);
 
-    for (i = 0; i < Number_of_Nodes; i++) {
-      status = EG_evaluate(bodyFaces[0], Coordinates[i+1], result);
-      AIM_STATUS(aimInfo, status);
+    // Zero length to trigger an empty mesh generation (triangles with vertexes only on edges)
+    params[0] = 0;
+    params[1] = meshInput->paramTess[1];
+    params[2] = meshInput->paramTess[2];
 
-      face_uv[2*i+0] = Coordinates[i+1][0];
-      face_uv[2*i+1] = Coordinates[i+1][1];
-
-      for (j = 0; j < 3; j++)
-        face_xyz[3*i+j] = result[j];
-
-      // replace uv-coordinates with Cartesian coordinates
-      Coordinates[i+1][0] = result[ix];
-      Coordinates[i+1][1] = result[iy];
-    }
-
-    // get the xyz coordinates on the boundary loops
-    status = egads_xyz_bedge(aimInfo, tess, ix, iy, face_xyz, Coordinates);
+    status = EG_openTessBody(tess);
+    AIM_STATUS(aimInfo, status);
+    status = EG_finishTess( tess, params );
     AIM_STATUS(aimInfo, status);
 
-    // Initiate triangle elements
-    for (i = 0; i < Number_of_Trias; i++) {
-      face_tris[3*i+0] = Tria_Connectivity[i+1][0];
-      face_tris[3*i+1] = Tria_Connectivity[i+1][1];
-      face_tris[3*i+2] = Tria_Connectivity[i+1][2];
-    }
-
-    // Initiate triangle elements
-    for (i = 0; i < Number_of_Quads; i++) {
-      face_tris[3*Number_of_Trias + 6*i+0] = Quad_Connectivity[i+1][0];
-      face_tris[3*Number_of_Trias + 6*i+1] = Quad_Connectivity[i+1][1];
-      face_tris[3*Number_of_Trias + 6*i+2] = Quad_Connectivity[i+1][2];
-
-      face_tris[3*Number_of_Trias + 6*i+3] = Quad_Connectivity[i+1][0];
-      face_tris[3*Number_of_Trias + 6*i+4] = Quad_Connectivity[i+1][2];
-      face_tris[3*Number_of_Trias + 6*i+5] = Quad_Connectivity[i+1][3];
-    }
-
-    /* open the tessellation and set the face */
+    /* open the tessellation again to set the faces */
     status = EG_openTessBody( tess );
     AIM_STATUS(aimInfo, status);
 
-    status = EG_setTessFace(tess, 1,
-                            Number_of_Nodes,
-                            face_xyz,
-                            face_uv,
-                            ntris,
-                            face_tris);
-    AIM_STATUS(aimInfo, status);
 
-    if (Number_of_Quads > 0) {
-      status = EG_attributeAdd(tess, ".mixed", ATTRINT, 1, &Number_of_Quads, NULL, NULL);
+    // Get bodyFaces
+    status = EG_getBodyTopos(bodyIn, NULL, FACE, &numFace, &bodyFaces);
+    AIM_STATUS(aimInfo, status);
+    AIM_NOTNULL(bodyFaces, aimInfo, status);
+
+    AIM_ALLOC(mixed, numFace, int, aimInfo, status);
+
+    for (iface = 0; iface < numFace; iface++) {
+
+      status = EG_getTopology(bodyFaces[iface], &geom, &oclass, &mtype, uvbox,
+                              &nloop, &loops, &senses);
+      AIM_STATUS(aimInfo, status);
+
+      if (geom->mtype != PLANE) {
+        AIM_ERROR(aimInfo, "Body must be a PLANE surface!!");
+        status = CAPS_BADVALUE;
+        goto cleanup;
+      }
+
+      status = EG_getGeometry(geom, &oclass, &mtype, &ref, &ivec, &rvec);
+      AIM_STATUS(aimInfo, status);
+      CROSS(result, rvec+3, rvec+6);
+      result[0] = fabs(result[0]);
+      result[1] = fabs(result[1]);
+      result[2] = fabs(result[2]);
+
+      if        (     result[0]      < 1e-7 &&
+                      result[1]      < 1e-7 &&
+                 fabs(result[2] - 1) < 1e-7) { // z-constant plane
+        ix = 0;
+        iy = 1;
+      } else if (     result[0]      < 1e-7 &&
+                 fabs(result[1] - 1) < 1e-7 &&
+                      result[2]      < 1e-7) { // y-constant plane
+        ix = 0;
+        iy = 2;
+      } else if (fabs(result[0] - 1) < 1e-7 &&
+                      result[1]      < 1e-7 &&
+                      result[2]      < 1e-7) { // x-constant plane
+        ix = 2;
+        iy = 1;
+      } else {
+        AIM_ERROR(aimInfo, "Body must be a PLANE surface aligned in a Cartesian plane!!");
+        status = CAPS_BADVALUE;
+        goto cleanup;
+      }
+
+      // extract the boundary tessellation from the egads body in uv-space
+      status = egads_eval_bedge (aimInfo, bodyIn, bodyFaces[iface], tess, groupMap, meshMap,
+                                 &Number_of_Bnd_Edges, &Bnd_Edge_Connectivity,
+                                 &Bnd_Edge_ID_Flag, &Bnd_Edge_Mesh_ID_Flag, &Coordinates);
+      AIM_STATUS(aimInfo, status);
+
+      Number_of_Nodes = Number_of_Bnd_Edges;
+
+//#define DUMP_TECPLOT_DEBUG_FILE
+#ifdef DUMP_TECPLOT_DEBUG_FILE
+      {
+        FILE *fp = aim_fopen(aimInfo, "aflr2_debug.dat", "w");
+        fprintf(fp, "VARIABLES = U, V, ID\n");
+
+        fprintf(fp, "ZONE N=%d, E=%d, F=FEPOINT, ET=LINESEG, DT=(DOUBLE,DOUBLE)\n", Number_of_Nodes, Number_of_Bnd_Edges);
+        for (int i = 0; i < Number_of_Nodes; i++)
+          fprintf(fp, "%22.15e %22.15e %d\n", Coordinates[i+1][0], Coordinates[i+1][1], Bnd_Edge_ID_Flag[i+1]);
+        for (int i = 0; i < Number_of_Bnd_Edges; i++)
+          fprintf(fp, "%d %d\n", Bnd_Edge_Connectivity[i+1][0], Bnd_Edge_Connectivity[i+1][1]);
+
+        fclose(fp); fp = NULL;
+      }
+#endif
+
+
+#ifdef AFLR2_BOUNDARY_LAYER
+      // Loop through meshing properties and see if boundaryLayerThickness and boundaryLayerSpacing have been specified
+      for (propIndex = 0; propIndex < numMeshProp && createBL == (int) false; propIndex++) {
+
+        // If no boundary layer specified in meshProp continue
+        if (meshProp[propIndex].boundaryLayerSpacing == 0) continue;
+
+        // Loop through Elements and see if marker match
+        for (i = 1; i <= Number_of_Bnd_Edges && createBL == (int) false; i++) {
+
+          //If they don't match continue
+          if (Bnd_Edge_ID_Flag[i] != meshProp[propIndex].attrIndex) continue;
+
+          // Set face "bl" flag
+          createBL = (int) true;
+        }
+      }
+
+      // Get the capsMeshLenght if boundary layer meshing has been requested
+      if (createBL == (int) true) {
+        status = check_CAPSMeshLength(1, &bodyIn, &capsMeshLength);
+
+        if (capsMeshLength <= 0 || status != CAPS_SUCCESS) {
+          printf("**********************************************************\n");
+          if (status != CAPS_SUCCESS)
+            printf("capsMeshLength is not set on any body.\n");
+          else
+            printf("capsMeshLength: %f\n", capsMeshLength);
+          printf("\n");
+          printf("The capsMeshLength attribute must present on at least\n"
+              "one body for boundary layer generation.\n"
+              "\n"
+              "capsMeshLength should be a a positive value representative\n"
+              "of a characteristic length of the geometry,\n"
+              "e.g. the MAC of a wing or diameter of a fuselage.\n");
+          printf("**********************************************************\n");
+          status = CAPS_BADVALUE;
+          goto cleanup;
+        }
+      }
+
+      // Loop through surface meshes to set boundary layer parameters
+
+      // Allocate Initial_Normal_Spacing
+      Initial_Normal_Spacing = (DOUBLE_1D *) ug_malloc (&status, (Number_of_Nodes+1) * sizeof (DOUBLE_1D));
+      if (Initial_Normal_Spacing == NULL) {
+        status = EGADS_MALLOC;
+        goto cleanup;
+      }
+
+      // Set default to none
+      for (i = 1; i <= Number_of_Nodes; i++) {
+        Initial_Normal_Spacing[i] = 0.0;
+      }
+
+      // Loop through meshing properties and see if boundaryLayerThickness and boundaryLayerSpacing have been specified
+      for (propIndex = 0; propIndex < numMeshProp; propIndex++) {
+
+        // If no boundary layer specified in meshProp continue
+        if (meshProp[propIndex].boundaryLayerSpacing == 0) continue;
+
+        // Loop through Elements and see if marker match
+        for (i = 1; i <= Number_of_Bnd_Edges; i++) {
+
+          //If they don't match continue
+          if (Bnd_Edge_Mesh_ID_Flag[i] != meshProp[propIndex].attrIndex) continue;
+
+          // Set boundary layer spacing
+          Initial_Normal_Spacing[Bnd_Edge_Connectivity[i][0]] =
+              meshProp[propIndex].boundaryLayerSpacing*capsMeshLength;
+          Initial_Normal_Spacing[Bnd_Edge_Connectivity[i][1]] =
+              meshProp[propIndex].boundaryLayerSpacing*capsMeshLength;
+        }
+      }
+#endif //AFLR2_BOUNDARY_LAYER
+
+      status = aflr2_grid_generator (prog_argc, prog_argv,
+                                     Message_Flag,
+                                     &Number_of_Bnd_Edges,
+                                     &Number_of_Nodes,
+                                     &Number_of_Quads,
+                                     &Number_of_Trias,
+                                     &Number_of_BG_Bnd_Edges,
+                                     &Number_of_BG_Nodes,
+                                     &Number_of_BG_Trias,
+                                     &Number_of_Source_Nodes,
+                                     &Bnd_Edge_Grid_BC_Flag,
+                                     &Bnd_Edge_ID_Flag,
+                                     &Bnd_Edge_Error_Flag,
+                                     &Bnd_Edge_Connectivity,
+                                     &Quad_Connectivity,
+                                     &Tria_Connectivity,
+                                     &BG_Bnd_Edge_ID_Flag,
+                                     &BG_Bnd_Edge_Connectivity,
+//                                     &BG_Bnd_Edge_Grid_BC_Flag,
+                                     &BG_Tria_Connectivity,
+                                     Initial_Normal_Spacing,
+                                     &Coordinates,
+                                     &BG_Spacing,
+                                     &BG_Metric,
+                                     &BG_Coordinates,
+                                     &Source_Spacing,
+                                     &Source_Metric,
+                                     &Source_Coordinates);
+      AIM_STATUS(aimInfo, status); // Add error code
+      /*@+nullpass*/
+      AIM_NOTNULL(Coordinates          , aimInfo, status);
+      AIM_NOTNULL(Tria_Connectivity    , aimInfo, status);
+      AIM_NOTNULL(Quad_Connectivity    , aimInfo, status);
+      AIM_NOTNULL(Bnd_Edge_ID_Flag     , aimInfo, status);
+      AIM_NOTNULL(Bnd_Edge_Connectivity, aimInfo, status);
+
+      nquad += Number_of_Quads;
+      mixed[iface] = Number_of_Quads;
+
+      ntris = Number_of_Trias + 2*Number_of_Quads;
+
+      AIM_ALLOC(face_xyz , 3*Number_of_Nodes, double, aimInfo, status);
+      AIM_ALLOC(face_uv  , 2*Number_of_Nodes, double, aimInfo, status);
+      AIM_ALLOC(face_tris, 3*ntris          , int   , aimInfo, status);
+
+      for (i = 0; i < Number_of_Nodes; i++) {
+        status = EG_evaluate(bodyFaces[iface], Coordinates[i+1], result);
+        AIM_STATUS(aimInfo, status);
+
+        face_uv[2*i+0] = Coordinates[i+1][0];
+        face_uv[2*i+1] = Coordinates[i+1][1];
+
+        for (j = 0; j < 3; j++)
+          face_xyz[3*i+j] = result[j];
+
+        // replace uv-coordinates with Cartesian coordinates
+        Coordinates[i+1][0] = result[ix];
+        Coordinates[i+1][1] = result[iy];
+      }
+
+      // get the xyz coordinates on the boundary loops
+      status = egads_xyz_bedge(aimInfo, bodyIn, bodyFaces[iface], tess, ix, iy, face_xyz, Coordinates);
+      AIM_STATUS(aimInfo, status);
+
+      // Initiate triangle elements
+      for (i = 0; i < Number_of_Trias; i++) {
+        face_tris[3*i+0] = Tria_Connectivity[i+1][0];
+        face_tris[3*i+1] = Tria_Connectivity[i+1][1];
+        face_tris[3*i+2] = Tria_Connectivity[i+1][2];
+      }
+
+      // Initiate triangle elements
+      for (i = 0; i < Number_of_Quads; i++) {
+        face_tris[3*Number_of_Trias + 6*i+0] = Quad_Connectivity[i+1][0];
+        face_tris[3*Number_of_Trias + 6*i+1] = Quad_Connectivity[i+1][1];
+        face_tris[3*Number_of_Trias + 6*i+2] = Quad_Connectivity[i+1][2];
+
+        face_tris[3*Number_of_Trias + 6*i+3] = Quad_Connectivity[i+1][0];
+        face_tris[3*Number_of_Trias + 6*i+4] = Quad_Connectivity[i+1][2];
+        face_tris[3*Number_of_Trias + 6*i+5] = Quad_Connectivity[i+1][3];
+      }
+      
+
+      status = EG_setTessFace(tess, iface+1,
+                              Number_of_Nodes,
+                              face_xyz,
+                              face_uv,
+                              ntris,
+                              face_tris);
+      AIM_STATUS(aimInfo, status);
+
+      AIM_FREE(face_xyz);
+      AIM_FREE(face_uv);
+      AIM_FREE(face_tris);
+      
+      Number_of_Bnd_Edges = Number_of_Nodes = 0;
+      Number_of_Quads = Number_of_Trias = 0;
+      Number_of_BG_Bnd_Edges = 0;
+      Number_of_BG_Nodes = Number_of_BG_Trias = 0;
+      Number_of_Source_Nodes = 0;
+
+      ug_free(Bnd_Edge_Grid_BC_Flag); Bnd_Edge_Grid_BC_Flag = NULL;
+      ug_free(Bnd_Edge_ID_Flag     ); Bnd_Edge_ID_Flag      = NULL;
+      ug_free(Bnd_Edge_Mesh_ID_Flag); Bnd_Edge_Mesh_ID_Flag = NULL;
+      ug_free(Bnd_Edge_Error_Flag  ); Bnd_Edge_Error_Flag   = NULL;
+      ug_free(Bnd_Edge_Connectivity); Bnd_Edge_Connectivity = NULL;
+      ug_free(Tria_Connectivity    ); Tria_Connectivity     = NULL;
+      ug_free(Quad_Connectivity    ); Quad_Connectivity     = NULL;
+
+      ug_free(Coordinates           ); Coordinates            = NULL;
+      ug_free(Initial_Normal_Spacing); Initial_Normal_Spacing = NULL;
+
+      ug_free(BG_Bnd_Edge_Grid_BC_Flag); BG_Bnd_Edge_Grid_BC_Flag = NULL;
+      ug_free(BG_Bnd_Edge_ID_Flag     ); BG_Bnd_Edge_ID_Flag      = NULL;
+      ug_free(BG_Bnd_Edge_Connectivity); BG_Bnd_Edge_Connectivity = NULL;
+      ug_free(BG_Tria_Neighbors       ); BG_Tria_Neighbors        = NULL;
+      ug_free(BG_Tria_Connectivity    ); BG_Tria_Connectivity     = NULL;
+
+      ug_free(BG_Spacing    ); BG_Spacing     = NULL;
+      ug_free(BG_Coordinates); BG_Coordinates = NULL;
+      ug_free(BG_Metric     ); BG_Metric      = NULL;
+
+      ug_free(Source_Spacing    ); Source_Spacing     = NULL;
+      ug_free(Source_Coordinates); Source_Coordinates = NULL;
+      ug_free(Source_Metric     ); Source_Metric      = NULL;
+    }
+
+    if (nquad > 0) {
+      status = EG_attributeAdd(tess, ".mixed", ATTRINT, numFace, mixed, NULL, NULL);
       AIM_STATUS(aimInfo, status);
     }
+
 
     status = EG_statusTessBody(tess, &body, &i, &j);
     AIM_STATUS(aimInfo, status, "Tessellation object was not built correctly!!!");
@@ -704,9 +723,11 @@ int aflr2_Surface_Mesh(void *aimInfo,
     status = aim_newTess(aimInfo, tess);
     AIM_STATUS(aimInfo, status);
 
+
+#if 0
     snprintf(aimFile, PATH_MAX, "%s.lb8.ugrid", meshRef->fileName);
 
-/*@-nullpass*/
+    /*@-nullpass*/
     status = ug_io_write_2d_grid_file(aimFile,
                                       Message_Flag,
                                       Number_of_Bnd_Edges,
@@ -723,7 +744,46 @@ int aflr2_Surface_Mesh(void *aimInfo,
                                       BL_Thickness);
     AIM_STATUS(aimInfo, status);
 /*@+nullpass*/
+#endif
 
+    /* write out mapbc file */
+    snprintf(aimFile, PATH_MAX, "%s.mapbc", meshRef->fileName);
+    fp = fopen(aimFile, "w");
+    if (fp == NULL) {
+      AIM_ERROR(aimInfo, "Cannot open file: %s", aimFile);
+      status = CAPS_IOERR;
+      goto cleanup;
+    }
+
+    fprintf(fp, "%d\n", groupMap->numAttribute);
+    for (i = 0; i < groupMap->numAttribute; i++) {
+      fprintf(fp, "%d 0 %s\n", groupMap->attributeIndex[i], groupMap->attributeName[i]);
+    }
+/*@-dependenttrans@*/
+    fclose(fp); fp = NULL;
+/*@+dependenttrans@*/
+
+
+    surfaceMesh->egadsTess = tess;
+    status = mesh_surfaceMeshEGADSTess(aimInfo, surfaceMesh, (int)true);
+    AIM_STATUS(aimInfo, status);
+
+    status = mesh_writeAFLR3(aimInfo, (char*)cProj_Name,
+                             0, // 0 for binary, anything else for ascii
+                             surfaceMesh,
+                             1); // Scale factor for coordinates
+    AIM_STATUS(aimInfo, status);
+
+
+    // Store the tessellation for post analysis map
+    status = aim_file(aimInfo, AFLR2TESSFILE, aimFile);
+    AIM_STATUS(aimInfo, status);
+
+    remove(aimFile);
+    status = EG_saveTess(tess, aimFile);
+    AIM_STATUS(aimInfo, status);
+
+#if 0
     surfaceMesh->meshType = Surface2DMesh;
     surfaceMesh->meshQuickRef.numTriangle      = Number_of_Trias;
     surfaceMesh->meshQuickRef.numQuadrilateral = Number_of_Quads;
@@ -810,6 +870,7 @@ int aflr2_Surface_Mesh(void *aimInfo,
         surfaceMesh->element[elementIndex].elementID = elementIndex+1;
         surfaceMesh->element[elementIndex].markerID = Bnd_Edge_ID_Flag[i+1];
     }
+#endif
 
     status = CAPS_SUCCESS;
 
@@ -817,6 +878,7 @@ cleanup:
     if (status != CAPS_SUCCESS)
       (void) EG_deleteObject(tess);
 
+    AIM_FREE(mixed);
     AIM_FREE(meshInputString);
     AIM_FREE(bodyFaces);
     AIM_FREE(ivec);
@@ -824,6 +886,8 @@ cleanup:
     AIM_FREE(face_uv);
     AIM_FREE(face_xyz);
     AIM_FREE(face_tris);
+
+    if (fp != NULL) fclose(fp);
 
     //Free the arguments
     if (prog_argv != NULL)

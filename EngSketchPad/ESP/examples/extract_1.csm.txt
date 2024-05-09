@@ -1,0 +1,23 @@
+# extract_1
+# written by John Dannenhoffer
+
+# box (SheetBody)
+BOX       0  0  0  1  1  0
+ASSERT    @itype  2
+
+# make a translated copy
+RESTORE   .
+TRANSLATE 2  0  0
+
+# extract all the Edges (WireBody)
+EXTRACT   0
+ASSERT    @itype  1
+
+# another box (SheetBody)
+BOX       4  0  0  1  1  0
+
+# extract Edges 1 and 4 (WireBody)
+EXTRACT   -1;-4
+ASSERT    @itype  1
+
+END

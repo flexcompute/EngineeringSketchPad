@@ -12,10 +12,13 @@ despmtr   lesweep[1,1]      30.00000
 despmtr   dihedral[1,1]     1.00000
 ## [despmtrs]
 
+cfgpmtr  farfield 1
+
 # Specify Euler equations
 ## [capsIntent]
 attribute capsIntent $CFD #CFD Analysis
-attribute capsAIM $fun3dAIM;su2AIM;egadsTessAIM;aflr4AIM;pointwiseAIM;tetgenAIM;aflr3AIM #CFD Analysis
+attribute capsAIM $fun3dAIM;su2AIM;egadsTessAIM;aflr4AIM;pointwiseAIM;tetgenAIM;aflr3AIM;refineAIM;cbaeroAIM #CFD Analysis
+attribute capsLength $meter
 ## [capsIntent]
 
 ## [local]
@@ -67,34 +70,43 @@ join     0
 rotatex 90 0 0
 ## [orient]
 
-## [attribute]
-# Store the wing 
-store     Wing 0 0
-
-# Create a bounding box as a farfied 
-## [farfield]
-#sphere    0   0   0   80
-#    attribute capsGroup $Farfield
-#    attribute capsMesh $Farfield
-BOX    -40   -40   -40   80   80   80
-    attribute capsGroup $Farfield
-    attribute capsMesh $Farfield
-    attribute AFLR_GBC  $FARFIELD_UG3_GBC
-
-# Wing 1 - Restore
-restore   Wing 0
-    attribute capsGroup $Wing1
-    attribute capsMesh $Wing1
+# Wing 1 - Attributes
+select face
+attribute capsGroup $Wing1
+attribute capsMesh $Wing1
 ## [attribute]
 
-# Subtract wing from farfield
-subtract
+
+ifthen farfield EQ 1
+  ## [attribute]
+  # Store the wing 
+  store     Wing 0 0
+  
+  # Create a bounding box as a farfied 
+  ## [farfield]
+  #sphere    0   0   0   80
+  #    attribute capsGroup $Farfield
+  #    attribute capsMesh $Farfield
+  BOX    -40   -40   -40   80   80   80
+      attribute capsGroup $Farfield
+      attribute capsMesh $Farfield
+      attribute AFLR_GBC  $FARFIELD_UG3_GBC
+  
+  # Wing 1 - Restore
+  restore   Wing 0
+  
+  # Subtract wing from farfield
+  subtract
+endif
 
     # Set reference values on the body
 select body
     attribute capsReferenceArea     area
     attribute capsReferenceChord    cmean
     attribute capsReferenceSpan     span
+    attribute capsReferenceX        cmean*0.25
+    attribute capsReferenceY        0
+    attribute capsReferenceZ        0
     attribute capsMeshLength        cmean
 
 ## [closeCSM]

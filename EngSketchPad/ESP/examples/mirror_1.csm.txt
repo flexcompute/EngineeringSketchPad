@@ -1,0 +1,34 @@
+# mirror_1
+# written by John Dannenhoffer
+
+# make a colored cylinder
+CYLINDER  0  0  0  2  0  0  1/2
+
+SELECT    FACE   @nbody 1      # left end
+ATTRIBUTE _color $cyan
+
+SELECT    FACE   @nbody 2      # right end
+ATTRIBUTE _color $magenta
+
+SELECT    FACE   @nbody 3      # bottom
+ATTRIBUTE _color $lgreen
+
+SELECT    FACE   @nbody 4      # top
+ATTRIBUTE _color $lblue
+
+STORE     body
+
+# mirror about x=-1 plane (where unit normal is <1,0,0>)
+RESTORE   body
+MIRROR    1  0  0  -1
+
+# show mirror plane
+BOX      -1  -1  -1  0  2  2
+ATTRIBUTE _viz $off
+
+# show outline of original body
+RESTORE   body
+SELECT    FACE
+ATTRIBUTE _trn $on
+
+END

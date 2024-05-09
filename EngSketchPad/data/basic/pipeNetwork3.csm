@@ -61,7 +61,7 @@ SKEND
 SELECT    EDGE
 ATTRIBUTE _color $green
 
-# combine the pipes into a network
-COMBINE
+# join the pipes into a network
+JOIN  0  1
 
 END

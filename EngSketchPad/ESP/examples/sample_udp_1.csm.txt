@@ -1,0 +1,19 @@
+# sample_udp_1
+# written by John Dannenhoffer
+
+DESPMTR   DX   4.0
+DESPMTR   DY   2.0
+DESPMTR   DZ   5.0
+
+# 1D wire
+UDPRIM    sample   dx  DX
+TRANSLATE -5  0  0   
+
+# 2D plate
+UDPRIM    sample   dx  DX  dy  DY
+
+# 3D box 
+UDPRIM    sample   dx  DX  dy  DY  dz  DZ
+TRANSLATE +5  0  0
+
+END

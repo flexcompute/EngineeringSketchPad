@@ -72,138 +72,13 @@ JSON String Dictionary</h1>
 <p>If "Value" is JSON string dictionary the following keywords ( = default values) may be used:</p>
 <ul>
 <li>
-<b>propertyType = No Default value</b>  <br  />
- Type of property to apply to a give capsGroup <code>Name</code>. Options: ConcentratedMass, Rod, Bar, Shear, Shell, Membrane, Composite, and Solid </li>
-</ul>
-<ul>
-<li>
-<b>material = &lsquo;Material Name&rsquo; (<a class="el" href="feaMaterial.html">FEA Material</a>) </b>  <br  />
- &lsquo;Material Name&rsquo; from <a class="el" href="feaMaterial.html">FEA Material</a> to use for property. If no material is set the first material created will be used </li>
-</ul>
-<ul>
-<li>
-<b>crossSecArea = 0.0</b>  <br  />
- Cross sectional area. </li>
-</ul>
-<ul>
-<li>
-<b>torsionalConst = 0.0</b>  <br  />
- Torsional constant. </li>
-</ul>
-<ul>
-<li>
-<b>torsionalStressReCoeff = 0.0</b>  <br  />
- Torsional stress recovery coefficient. </li>
-</ul>
-<ul>
-<li>
 <b>massPerLength = 0.0</b>  <br  />
  Mass per unit length. </li>
 </ul>
 <ul>
 <li>
-<b>zAxisInertia = 0.0</b>  <br  />
- Section moment of inertia about the element z-axis. </li>
-</ul>
-<ul>
-<li>
-<b>yAxisInertia = 0.0</b>  <br  />
- Section moment of inertia about the element y-axis. </li>
-</ul>
-<ul>
-<li>
-<b>yCoords[4] = [0.0, 0.0, 0.0, 0.0]</b>  <br  />
- Element y-coordinates, in the bar cross-section, of four points at which to recover stresses </li>
-</ul>
-<ul>
-<li>
-<b>zCoords[4] = [0.0, 0.0, 0.0, 0.0]</b>  <br  />
- Element z-coordinates, in the bar cross-section, of four points at which to recover stresses </li>
-</ul>
-<ul>
-<li>
-<b>areaShearFactors[2] = [0.0, 0.0]</b>  <br  />
- Area factors for shear. </li>
-</ul>
-<ul>
-<li>
-<b>crossProductInertia = 0.0</b>  <br  />
- Section cross-product of inertia. </li>
-</ul>
-<ul>
-<li>
-<b>membraneThickness = 0.0</b>  <br  />
- Membrane thickness. </li>
-</ul>
-<ul>
-<li>
-<b>bendingInertiaRatio = 1.0</b>  <br  />
- Ratio of actual bending moment inertia to the bending inertia of a solid plate of thickness "membraneThickness" </li>
-</ul>
-<ul>
-<li>
-<b>shearMembraneRatio = 5.0/6.0</b>  <br  />
- Ratio shear thickness to membrane thickness. </li>
-</ul>
-<ul>
-<li>
-<b>materialBending = "Material Name" (<a class="el" href="feaMaterial.html">FEA Material</a>)</b>  <br  />
- "Material Name" from <a class="el" href="feaMaterial.html">FEA Material</a> to use for property bending. </li>
-</ul>
-<ul>
-<li>
-<b>materialShear = "Material Name" (<a class="el" href="feaMaterial.html">FEA Material</a>)</b>  <br  />
- "Material Name" from <a class="el" href="feaMaterial.html">FEA Material</a> to use for property shear. </li>
-</ul>
-<ul>
-<li>
 <b>massPerArea = 0.0</b>  <br  />
  Mass per unit area. </li>
-</ul>
-<ul>
-<li>
-<b>compositeMaterial = "no default" </b>  <br  />
- List of "Material Name"s, ["Material Name -1", "Material Name -2", ...], from <a class="el" href="feaMaterial.html">FEA Material</a> to use for composites. </li>
-</ul>
-<ul>
-<li>
-<b>shearBondAllowable = 0.0 </b>  <br  />
- Allowable interlaminar shear stress. </li>
-</ul>
-<ul>
-<li>
-<b>symmetricLaminate = False </b>  <br  />
- Symmetric lamination option. True- SYM only half the plies are specified, for odd number plies 1/2 thickness of center ply is specified with the first ply being the bottom ply in the stack, default (False) all plies specified </li>
-</ul>
-<ul>
-<li>
-<b>compositeFailureTheory = "(no default)" </b>  <br  />
- Composite failure theory. </li>
-</ul>
-<ul>
-<li>
-<b>compositeThickness = (no default) </b>  <br  />
- List of composite thickness for each layer (e.g. [1.2, 4.0, 3.0]). If the length of this list doesn't match the length of the "compositeMaterial" list, the list is either truncated [ &gt;length("compositeMaterial")] or expanded [ &lt;length("compositeMaterial")] in which case the last thickness provided is repeated. </li>
-</ul>
-<ul>
-<li>
-<b>compositeOrientation = (no default) </b>  <br  />
- List of composite orientations (angle relative element material axis) for each layer (eg. [5.0, 10.0, 30.0]). If the length of this list doesn't match the length of the "compositeMaterial" list, the list is either truncated [ &gt;length("compositeMaterial")] or expanded [ &lt;length("compositeMaterial")] in which case the last orientation provided is repeated. </li>
-</ul>
-<ul>
-<li>
-<b>mass = 0.0</b>  <br  />
- Mass value. </li>
-</ul>
-<ul>
-<li>
-<b>massOffset = [0.0, 0.0, 0.0]</b>  <br  />
- Offset distance from the grid point to the center of gravity for a concentrated mass. </li>
-</ul>
-<ul>
-<li>
-<b>massInertia = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]</b>  <br  />
- Mass moment of inertia measured at the mass center of gravity. </li>
 </ul>
 <h1><a class="anchor" id="keyStringProperty"></a>
 Single Value String</h1>
@@ -212,7 +87,7 @@ Single Value String</h1>
 </div><!-- PageDoc -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Sat Jul 2 2022 10:12:53 for HSM Analysis Interface Module (AIM) by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1
+Generated on Sat Apr 27 2024 16:51:24 for HSM Analysis Interface Module (AIM) by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1
 </small></address>
 </body>
 </html>

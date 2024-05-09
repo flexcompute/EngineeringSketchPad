@@ -1,0 +1,45 @@
+# rule28b
+# written by John Dannenhoffer
+
+SKBEG     -1   0  -2
+   LINSEG  1  -1  -2
+   LINSEG  1   1  -2
+   LINSEG -1   0  -2
+SKEND
+SELECT    NODE 1
+   ATTRIBUTE   .multiNode "1;1"
+
+SKBEG     -1   0  -1
+   LINSEG  1  -1  -1
+   LINSEG  1   1  -1
+   LINSEG -1   0  -1
+SKEND
+SELECT    NODE 1
+   ATTRIBUTE   .multiNode "1;1"
+
+SKBEG     -1  -1   0
+   LINSEG  1  -1   0
+   LINSEG  1   1   0
+   LINSEG -1   1   0
+   LINSEG -1  -1   0
+SKEND
+
+SKBEG     -1  -1   1
+   LINSEG  1   0   1
+   LINSEG -1   1   1
+   LINSEG -1  -1   1
+SKEND
+SELECT    NODE 2
+   ATTRIBUTE   .multiNode 1
+
+SKBEG     -1  -1   2
+   LINSEG  1   0   2
+   LINSEG -1   1   2
+   LINSEG -1  -1   2
+SKEND
+SELECT    NODE 2
+   ATTRIBUTE   .multiNode 1
+
+RULE
+
+END

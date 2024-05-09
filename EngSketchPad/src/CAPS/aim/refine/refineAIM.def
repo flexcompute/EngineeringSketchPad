@@ -1,0 +1,11 @@
+LIBRARY refineAIM
+EXPORTS
+aimInitialize
+aimCleanup
+aimInputs
+aimUpdateState
+aimPreAnalysis
+aimExecute
+aimPostAnalysis
+aimOutputs
+aimCalcOutput

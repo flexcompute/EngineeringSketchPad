@@ -10,7 +10,7 @@
 #endif
 
 // the minimum version of AFLR3 API that aflr3AIM is designed for
-const int AFLR3_MIN_VERSION[3] = { 16,32,32 };
+const int AFLR3_MIN_VERSION[3] = { 16,32,50 };
 
 int main(/*@unused@*/ int argc, /*@unused@*/ char *argv[])
 {

@@ -1,0 +1,14 @@
+# hollow_7
+# written by John Dannenhoffer
+
+# the outline of three joined plates
+BOX       0  0  0  1  1  0
+BOX       1  0  0  1  1  0
+JOIN
+BOX       2  0  0  1  1  0
+JOIN
+
+# hollow out all  the Faces
+HOLLOW    0.1
+
+END

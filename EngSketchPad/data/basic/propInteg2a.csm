@@ -1,0 +1,28 @@
+# propInteg2a
+# written by John Dannenhoffer
+
+# wing
+UDPRIM    naca      thickness 0.12   camber 0.04
+ROTATEY   90
+SCALE     3.0
+EXTRUDE   6.0  0.0  0.0
+
+# duct 1
+SKBEG     1.1   0.0  -1.1
+   LINSEG 1.1   0.0  -1.9
+   CIRARC 1.0   0.0  -2.0   0.9   0.0   -1.9
+   LINSEG 0.9   0.0  -1.1
+   CIRARC 1.0   0.0  -1.0   1.1   0.0   -1.1
+SKEND
+REVOLVE   2.0   0.0  1.0  0.0  0.0  1.0  -180.
+
+# duct 2
+RESTORE   .
+TRANSLATE 2.0   0.0  0.0
+
+# combine and fillet
+UNION
+UNION
+FILLET    0.1
+
+END

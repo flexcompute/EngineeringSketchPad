@@ -39,13 +39,14 @@ $(LDIR)\fun3dAIM.dll:	$(ODIR)\fun3dAIM.obj $(ODIR)\fun3dUtils.obj $(LDIR)\aimUti
 
 !ifdef PYTHONINC
 
-$(ODIR)\fun3dAIM.obj:	fun3dAIM.c fun3dNamelist.c $(IDIR)\capsTypes.h \
+$(ODIR)\fun3dAIM.obj:	fun3dAIM.c cython/fun3dNamelist.h $(IDIR)\capsTypes.h \
 			..\utils\meshUtils.h
-	cl /c $(COPTS) $(DEFINE) /I$(IDIR) /I..\utils /I..\meshWriter\ugridWriter /I$(PYTHONINC) /I. \
+	cl /c $(COPTS) $(DEFINE) /I$(IDIR) /I..\utils /I..\meshWriter\ugridWriter /I$(PYTHONINC) /Icython \
 		/DHAVE_PYTHON fun3dAIM.c /Fo$(ODIR)\fun3dAIM.obj
-		
+
+$(ODIR)\fun3dNamelist.obj:	cython/fun3dNamelist.h cython/fun3dNamelist.c
 	cl /c $(COPTS) $(DEFINE) /I$(IDIR) /I..\utils /I$(PYTHONINC) \
-		fun3dNamelist.c /Fo$(ODIR)\fun3dNamelist.obj	
+		cython/fun3dNamelist.c /Fo$(ODIR)\fun3dNamelist.obj	
 !else
 
 $(ODIR)\fun3dAIM.obj:	fun3dAIM.c $(IDIR)\capsTypes.h ..\utils\meshUtils.h

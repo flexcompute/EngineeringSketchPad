@@ -15,11 +15,11 @@ TDIR  = $(ESP_ROOT)\bin
 !ENDIF
 
 
-$(LDIR)\ugridWriter.dll:	ugridWriter.def $(ODIR)\ugridWriter.obj $(LDIR)\aimUtil.lib $(LDIR)\aimMesh.lib
+$(LDIR)\ugridWriter.dll:	ugridWriter.def $(ODIR)\ugridWriter.obj $(LDIR)\aimUtil.lib
 	-del $(LDIR)\ugridWriter.dll $(LDIR)\ugridWriter.lib \
 		$(LDIR)\ugridWriter.exp
 	 link /out:$(LDIR)\ugridWriter.dll /dll /def:ugridWriter.def \
-		$(ODIR)\ugridWriter.obj /LIBPATH:$(LDIR) aimUtil.lib aimMesh.lib \
+		$(ODIR)\ugridWriter.obj /LIBPATH:$(LDIR) aimUtil.lib \
 		ocsm.lib egads.lib udunits2.lib
 	$(MCOMP) /manifest $(LDIR)\ugridWriter.dll.manifest \
 		/outputresource:$(LDIR)\ugridWriter.dll;2

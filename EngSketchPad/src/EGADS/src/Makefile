@@ -56,7 +56,7 @@ $(LDIR)/libegads.so:	$(OBJSP) $(OBJSOCC) $(OBJS) emp.o evaluate.o rational.o \
 			regQuads.o $(LDIR)/libuvmap.a
 	touch $(LDIR)/libegads.so
 	rm $(LDIR)/libegads.so
-	(cd $(ODIR); $(CC) -shared -Wl,-no-undefined -o $(LDIR)/libegads.so \
+	(cd $(ODIR); $(CC) $(SOFLGS) -o $(LDIR)/libegads.so \
 		$(OBJSP) $(OBJSOCC) $(OBJS) emp.o evaluate.o rational.o regQuads.o \
 		$(LIBPATH) -luvmap $(LIBS) $(CPPSLB) $(RPATH) )
 
@@ -66,7 +66,7 @@ $(LDIR)/libegads.dylib:	$(OBJSP) $(OBJSOCC) $(OBJS) emp.o evaluate.o rational.o 
 	rm $(LDIR)/libegads.dylib
 	(cd $(ODIR); $(CC) -dynamiclib -o $(LDIR)/libegads.dylib $(OBJSP) $(OBJSOCC) \
 		$(OBJS) emp.o evaluate.o rational.o regQuads.o \
-		$(RPATH) $(LIBPATH) -luvmap $(LIBS) $(CPPSLB) -undefined error \
+		$(RPATH) $(LIBPATH) -luvmap $(LIBS) $(CPPSLB) \
 		-install_name '@rpath/libegads.dylib' \
 		-compatibility_version $(CASREV) \
 		-current_version $(EGREV) )
@@ -102,19 +102,19 @@ $(LDIR)/libemp.a:		emp.o
 	rm $(LDIR)/libemp.a
 	(cd $(ODIR); ar $(LOPTS) $(LDIR)/libemp.a emp.o; $(RANLB) )
 
-$(ODIR)/SurrealD1:	../util/SurrealD1_btest.cpp
+$(ODIR)/SurrealD1:	../util/SurrealD1_btest.cpp $(SRINC)
 	$(CXX) -o $(ODIR)/SurrealD1 -O -std=c++11 -I. ../util/SurrealD1_btest.cpp
 	$(ODIR)/SurrealD1
 
-$(ODIR)/SurrealD4:	../util/SurrealD4_btest.cpp
+$(ODIR)/SurrealD4:	../util/SurrealD4_btest.cpp $(SRINC)
 	$(CXX) -o $(ODIR)/SurrealD4 -O -std=c++11 -I. ../util/SurrealD4_btest.cpp
 	$(ODIR)/SurrealD4
 
-$(ODIR)/SurrealS1:	../util/SurrealS1_btest.cpp
+$(ODIR)/SurrealS1:	../util/SurrealS1_btest.cpp $(SRINC)
 	$(CXX) -o $(ODIR)/SurrealS1 -O -std=c++11 -I. ../util/SurrealS1_btest.cpp
 	$(ODIR)/SurrealS1
 
-$(ODIR)/SurrealS4:	../util/SurrealS4_btest.cpp
+$(ODIR)/SurrealS4:	../util/SurrealS4_btest.cpp $(SRINC)
 	$(CXX) -o $(ODIR)/SurrealS4 -O -std=c++11 -I. ../util/SurrealS4_btest.cpp
 	$(ODIR)/SurrealS4
 
@@ -140,7 +140,7 @@ $(OBJSOCC): %.o:	OCC/%.cpp
 	$(CXX) -c $(CPPOPT) $(DEFINE) $(XDEF) -IOCC $(INCS) $< -o $(ODIR)/$@
 
 emp.o:		../util/emp.c
-	$(CC) -c $(COPTS) $(DEFINE) -D$(ESP_ARCH) -I../include ../util/emp.c \
+	$(CC) -c $(COPTS) $(DEFINE) -I../include ../util/emp.c \
 		-o $(ODIR)/emp.o
 
 evaluate.o:	../util/evaluate.c

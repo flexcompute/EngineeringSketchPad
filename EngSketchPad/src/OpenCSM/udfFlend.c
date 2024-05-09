@@ -9,7 +9,7 @@
  */
 
 /*
- * Copyright (C) 2013/2022  John F. Dannenhoffer, III (Syracuse University)
+ * Copyright (C) 2013/2024  John F. Dannenhoffer, III (Syracuse University)
  *
  * This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
@@ -28,23 +28,24 @@
  */
 
 #define NUMUDPINPUTBODYS -2
-#define NUMUDPARGS        6
+#define NUMUDPARGS        7
 
 /* set up the necessary structures (uses NUMUDPARGS) */
 #include "udpUtilities.h"
 
 /* shorthands for accessing argument values and velocities */
-#define SLOPEA(IUDP)     ((double *) (udps[IUDP].arg[0].val))[0]
-#define SLOPEB(IUDP)     ((double *) (udps[IUDP].arg[1].val))[0]
-#define TOLER( IUDP)     ((double *) (udps[IUDP].arg[2].val))[0]
-#define EQUIS( IUDP)     ((int    *) (udps[IUDP].arg[3].val))[0]
-#define NPNT(  IUDP)     ((int    *) (udps[IUDP].arg[4].val))[0]
-#define PLOT(  IUDP)     ((int    *) (udps[IUDP].arg[5].val))[0]
+#define SLOPEA(IUDP)   ((double *) (udps[IUDP].arg[0].val))[0]
+#define SLOPEB(IUDP)   ((double *) (udps[IUDP].arg[1].val))[0]
+#define TOLER( IUDP)   ((double *) (udps[IUDP].arg[2].val))[0]
+#define EQUIS( IUDP)   ((int    *) (udps[IUDP].arg[3].val))[0]
+#define NPNT(  IUDP)   ((int    *) (udps[IUDP].arg[4].val))[0]
+#define PLOT(  IUDP)   ((int    *) (udps[IUDP].arg[5].val))[0]
+#define METHOD(IUDP)   ((int    *) (udps[IUDP].arg[6].val))[0]
 
-static char  *argNames[NUMUDPARGS] = {"slopea",  "slopeb",  "toler",  "equis", "npnt",  "plot",  };
-static int    argTypes[NUMUDPARGS] = {ATTRREAL,  ATTRREAL,  ATTRREAL, ATTRINT, ATTRINT, ATTRINT, };
-static int    argIdefs[NUMUDPARGS] = {0,         0,         0,        0,       33,      0,       };
-static double argDdefs[NUMUDPARGS] = {1.00,      1.00,      1.0e-6,   0.,      0.,      0.,      };
+static char  *argNames[NUMUDPARGS] = {"slopea",  "slopeb",  "toler",  "equis", "npnt",  "plot",  "method", };
+static int    argTypes[NUMUDPARGS] = {ATTRREAL,  ATTRREAL,  ATTRREAL, ATTRINT, ATTRINT, ATTRINT, ATTRINT,  };
+static int    argIdefs[NUMUDPARGS] = {0,         0,         0,        0,       33,      0,       1,        };
+static double argDdefs[NUMUDPARGS] = {1.00,      1.00,      1.0e-6,   0.,      0.,      0.,      0.,       };
 
 /* get utility routines: udpErrorStr, udpInitialize, udpReset, udpSet,
                          udpGet, udpVel, udpClean, udpMesh */
@@ -56,10 +57,9 @@ static double argDdefs[NUMUDPARGS] = {1.00,      1.00,      1.0e-6,   0.,      0
 static int exposedLoops(ego ebody, int *nloop, ego eloops[]);
 static int fillPointsFromEdge(ego eedgeA, int senseA,
                               ego eedgeB, int senseB,
-                              int npnt, double tA[], double pntA[], double tB[], double pntB[]);
+                              int npnt, double tA[], double pntA[], double tB[], double pntB[], int *NumUdp, udp_T *udps);
 static int fillSlopesFromEdge(ego eedge, int sense, ego eface,
                               int npnt, double t[], double slp[]);
-static int flipLoop(ego *eloop);
 static int reorderLoop(ego eloopA, ego *eloopB);
 static int slopeAtNode(ego eedge, int sense, ego eface1, ego eface2, ego ebody, double newSlope[]);
 
@@ -80,8 +80,6 @@ extern int EG_spline2dAppx(      ego    context,      // EGADS context
                                  const  double *xyz,  // x00, y00, z00, x10, ...  (3*imax*jmax)
                                  double tol,          // tolerance (or 0)
                                  ego    *esurf);
-
-#define   HUGEQ   1.0e+20
 
 
 /*
@@ -106,12 +104,16 @@ udpExecute(ego  emodel,                 /* (in)  input model */
     int     nedgeB, nfaceB, ifaceB, nloopB, *sensesB;
     int     ipnt, nfacelist, brchattr[2], bodyattr[2];
     int     oclass, mtype, nchild, *senses, ntemp, atype, alen, itemp, iedge, jedge, npnt;
-    int     senseA, senseB, nloop, iloop, indx;
+    int     senseA, senseB, nloop, iloop, indx, ij3;
+    int     ismth, nsmth=100;
     CINT    *tempIlist;
-    double  data[18], value, dot, fraci, dist;
+    double  data[18], value, dot, fraci, dist, uvFace[2];
     double  oldSlope[3], newSlope[4], toler=1.0e-8;
+    double  normAi[3], normAj[3], tangA[3], normBi[3], normBj[3], tangB[3];
+    double  det, t1, t2, rhsA, rhsB, dt, dtmax;
     double  *spln=NULL, *west=NULL, *east=NULL;
     double  *tA=NULL, *pntA=NULL, *slpA=NULL, *tB=NULL, *pntB=NULL, *slpB=NULL;
+    double  *pntC=NULL, *pntD=NULL, *dCdt=NULL, *tD=NULL;
     CDOUBLE *tempRlist;
     char    temp[1], *message=NULL;
     CCHAR   *tempClist;
@@ -119,6 +121,7 @@ udpExecute(ego  emodel,                 /* (in)  input model */
     ego     ebodyB, eloopsB[2], *eedgesB, *efacesB=NULL, *efacesB2=NULL;
     ego     eref, esurf, *etemps, *echilds, *eloops, emodel2, *efacelist=NULL;
     void    *modl;
+    udp_T   *udps = *Udps;
 
     ROUTINE(udpExecute);
 
@@ -132,6 +135,7 @@ udpExecute(ego  emodel,                 /* (in)  input model */
     printf("equis( 0) = %d\n", EQUIS( 0));
     printf("npnt ( 0) = %d\n", NPNT(  0));
     printf("plot(  0) = %d\n", PLOT(  0));
+    printf("method(0) = %d\n", METHOD(0));
 #endif
 
     /* default return values */
@@ -163,8 +167,13 @@ udpExecute(ego  emodel,                 /* (in)  input model */
         status  =  EGADS_RANGERR;
         goto cleanup;
 
-    } else if (udps[0].arg[3].size > 1) {
-        snprintf(message, 100, "plot should be a scalar");
+    } else if (udps[0].arg[5].size > 1) {
+        snprintf(message, 100, "\"plot\" should be a scalar");
+        status  = EGADS_RANGERR;
+        goto cleanup;
+
+    } else if (udps[0].arg[6].size > 1) {
+        snprintf(message, 100, "\"method\" should be a scalar");
         status  = EGADS_RANGERR;
         goto cleanup;
 
@@ -206,6 +215,7 @@ udpExecute(ego  emodel,                 /* (in)  input model */
     printf("equis( %d) = %d\n", numUdp, EQUIS( numUdp));
     printf("npnt(  %d) = %d\n", numUdp, NPNT(  numUdp));
     printf("plot(  %d) = %d\n", numUdp, PLOT(  numUdp));
+    printf("method(%d) = %d\n", numUdp, METHOD(numUdp));
 #endif
 
     status = EG_getContext(emodel, &context);
@@ -229,7 +239,7 @@ udpExecute(ego  emodel,                 /* (in)  input model */
             eloopsB[0] = eloopsA[1];
         } else {
             snprintf(message, 100, "FLEND found BodyA contains %d Loops (expecting 2)", nloopA);
-            status = -999;
+            status = OCSM_UDP_ERROR1;
             goto cleanup;
         }
 
@@ -240,7 +250,7 @@ udpExecute(ego  emodel,                 /* (in)  input model */
 
         status = EG_copyObject(ebodys[1], NULL, &ebodyB);
         CHECK_STATUS(EG_copyObject);
-        
+
         /* make a list of the exposed Loops in BodyA (when Faces with the
            _flend=remove attribute are removed) */
         status = exposedLoops(ebodyA, &nloopA, eloopsA);
@@ -248,7 +258,7 @@ udpExecute(ego  emodel,                 /* (in)  input model */
 
         if (nloopA != 1) {
             snprintf(message, 100, "FLEND found BodyA contains %d Loops (expecting 1)", nloopA);
-            status = -999;
+            status = OCSM_UDP_ERROR1;
             goto cleanup;
         }
 
@@ -259,16 +269,16 @@ udpExecute(ego  emodel,                 /* (in)  input model */
 
         if (nloopB != 1) {
             snprintf(message, 100, "FLEND found BodyB contains %d Loops (expecting 1)", nloopB);
-            status = -999;
+            status = OCSM_UDP_ERROR1;
             goto cleanup;
         }
 
     /* error */
     } else {
         snprintf(message, 100, "FLEND found Model contains %d Bodys (expecting 1 or 2)", nchild);
-        status = -999;
+        status = OCSM_UDP_ERROR1;
         goto cleanup;
-    }    
+    }
 
     /* make sure both Loops have the same number of Edges */
     status = EG_getTopology(eloopsA[0], &eref, &oclass, &mtype,
@@ -286,7 +296,7 @@ udpExecute(ego  emodel,                 /* (in)  input model */
         ocsmPrintEgo(eloopsB[0]);
 
         snprintf(message, 100, "nedgeA=%d does not match nedgeB=%d", nedgeA, nedgeB);
-        status = -281;
+        status = OCSM_UDP_ERROR2;
         goto cleanup;
     }
 
@@ -331,7 +341,7 @@ udpExecute(ego  emodel,                 /* (in)  input model */
 
         if (efacesA[iedge] == NULL) {
             snprintf(message, 100, "eedgesA[%d] is not adjecent to one Face", iedge);
-            status = -284;
+            status = OCSM_UDP_ERROR3;
             goto cleanup;
         }
     }
@@ -356,20 +366,24 @@ udpExecute(ego  emodel,                 /* (in)  input model */
 
         if (efacesB[iedge] == NULL) {
             snprintf(message, 100, "eedgesB[%d] is not adjacent to one Face", iedge);
-            status = -285;
+            status = OCSM_UDP_ERROR4;
             goto cleanup;
         }
     }
 
     /* get arrays to hold the west and east points and slopes */
     npnt = NPNT(0);
-    
+
     MALLOC(tA,   double,   npnt*nedgeA);
     MALLOC(pntA, double, 3*npnt*nedgeA);
     MALLOC(slpA, double, 3*npnt*nedgeA);
     MALLOC(tB,   double,   npnt*nedgeA);
     MALLOC(pntB, double, 3*npnt*nedgeA);
     MALLOC(slpB, double, 3*npnt*nedgeA);
+    MALLOC(pntC, double, 3*npnt*nedgeA);
+    MALLOC(pntD, double, 3*npnt*nedgeA);
+    MALLOC(tD,   double,   npnt       );
+    MALLOC(dCdt, double, 3*npnt*nedgeA);
 
     /* get the (initial) Points from the Loops */
     for (iedge = 0; iedge < nedgeA; iedge++) {
@@ -380,12 +394,12 @@ udpExecute(ego  emodel,                 /* (in)  input model */
         status = EG_getTopology(efacesA[iedge], &eref, &oclass, &mtype,
                                 data, &nloop, &eloops, &senses);
         CHECK_STATUS(EG_getTopology);
-        
+
         for (iloop = 0; iloop < nloop; iloop++) {
             status = EG_getTopology(eloops[iloop], &eref, &oclass, &mtype,
                                     data, &ntemp, &etemps, &senses);
             CHECK_STATUS(EG_getTopology);
-            
+
             for (itemp = 0; itemp < ntemp; itemp++) {
                 if (eedgesA[iedge] == etemps[itemp]) {
                     senseA = senses[itemp];
@@ -398,12 +412,12 @@ udpExecute(ego  emodel,                 /* (in)  input model */
         status = EG_getTopology(efacesB[iedge], &eref, &oclass, &mtype,
                                 data, &nloop, &eloops, &senses);
         CHECK_STATUS(EG_getTopology);
-        
+
         for (iloop = 0; iloop < nloop; iloop++) {
             status = EG_getTopology(eloops[iloop], &eref, &oclass, &mtype,
                                     data, &ntemp, &etemps, &senses);
             CHECK_STATUS(EG_getTopology);
-            
+
             for (itemp = 0; itemp < ntemp; itemp++) {
                 if (eedgesB[iedge] == etemps[itemp]) {
                     senseB = senses[itemp];
@@ -412,12 +426,12 @@ udpExecute(ego  emodel,                 /* (in)  input model */
             }
             if (senseB != 0) break;
         }
-        
+
         /* get the (initial) Points from the Loops */
         status = fillPointsFromEdge(eedgesA[iedge], sensesA[iedge],
                                     eedgesB[iedge], sensesB[iedge], npnt,
                                     &tA[npnt*iedge], &pntA[3*npnt*iedge],
-                                    &tB[npnt*iedge], &pntB[3*npnt*iedge]);
+                                    &tB[npnt*iedge], &pntB[3*npnt*iedge], NumUdp, udps);
         CHECK_STATUS(fillPointsFromEdge);
 
         /* get the (initial) slopes from the Loops */
@@ -439,145 +453,806 @@ udpExecute(ego  emodel,                 /* (in)  input model */
                                     npnt, &tB[npnt*iedge], &slpB[3*npnt*iedge]);
         CHECK_STATUS(fillSlopesFromEdge);
     }
-    
-    /* find the slope at the Nodes and ajust the slopes for
-       the adjacent Edges */
-    for (iedge = 0; iedge < nedgeA; iedge++) {
-        jedge = (nedgeA + iedge - 1) % nedgeA;
 
-        /* find A slope at corner */
-        if (efacesA[iedge] != efacesA[jedge]) {
-            status = slopeAtNode(eedgesA[iedge], sensesA[iedge], efacesA[iedge], efacesA[jedge],
-                                 ebodyA, newSlope);
-            CHECK_STATUS(slopeAtNode);
-        } else {
-            newSlope[0] = slpA[3*(       iedge*npnt)  ] + slpA[3*(npnt-1+jedge*npnt)  ];
-            newSlope[1] = slpA[3*(       iedge*npnt)+1] + slpA[3*(npnt-1+jedge*npnt)+1];
-            newSlope[2] = slpA[3*(       iedge*npnt)+2] + slpA[3*(npnt-1+jedge*npnt)+2];
+    /* find the slope at the Nodes and adjust the slopes for the adjacent Edges */
+    if (METHOD(0) == 1) {
+        for (iedge = 0; iedge < nedgeA; iedge++) {
+            jedge = (nedgeA + iedge - 1) % nedgeA;
 
-            newSlope[3] = sqrt(newSlope[0]*newSlope[0] + newSlope[1]*newSlope[1] + newSlope[2]*newSlope[2]);
-            newSlope[0] /= newSlope[3];
-            newSlope[1] /= newSlope[3];
-            newSlope[2] /= newSlope[3];
+            /* find A slope at corner */
+            if (efacesA[iedge] != efacesA[jedge]) {
+                status = slopeAtNode(eedgesA[iedge], sensesA[iedge], efacesA[iedge], efacesA[jedge],
+                                     ebodyA, newSlope);
+                CHECK_STATUS(slopeAtNode);
+            } else {
+                newSlope[0] = slpA[3*(       iedge*npnt)  ] + slpA[3*(npnt-1+jedge*npnt)  ];
+                newSlope[1] = slpA[3*(       iedge*npnt)+1] + slpA[3*(npnt-1+jedge*npnt)+1];
+                newSlope[2] = slpA[3*(       iedge*npnt)+2] + slpA[3*(npnt-1+jedge*npnt)+2];
+
+                newSlope[3] = sqrt(newSlope[0]*newSlope[0] + newSlope[1]*newSlope[1] + newSlope[2]*newSlope[2]);
+                newSlope[0] /= newSlope[3];
+                newSlope[1] /= newSlope[3];
+                newSlope[2] /= newSlope[3];
+            }
+
+            /* adjust A slopes on iedge */
+            oldSlope[0] = slpA[3*(iedge*npnt)  ];
+            oldSlope[1] = slpA[3*(iedge*npnt)+1];
+            oldSlope[2] = slpA[3*(iedge*npnt)+2];
+
+            for (ipnt = 0; ipnt < npnt; ipnt++) {
+                fraci = (double)(ipnt) / (double)(npnt-1);
+
+                slpA[3*(ipnt+iedge*npnt)  ] += (1-fraci) * (newSlope[0] - oldSlope[0]);
+                slpA[3*(ipnt+iedge*npnt)+1] += (1-fraci) * (newSlope[1] - oldSlope[1]);
+                slpA[3*(ipnt+iedge*npnt)+2] += (1-fraci) * (newSlope[2] - oldSlope[2]);
+            }
+
+            /* adjust A slopes on jedge */
+            oldSlope[0] = slpA[3*(npnt-1+jedge*npnt)  ];
+            oldSlope[1] = slpA[3*(npnt-1+jedge*npnt)+1];
+            oldSlope[2] = slpA[3*(npnt-1+jedge*npnt)+2];
+
+            for (ipnt = 0; ipnt < npnt; ipnt++) {
+                fraci = (double)(ipnt) / (double)(npnt-1);
+
+                slpA[3*(ipnt+jedge*npnt)  ] += (  fraci) * (newSlope[0] - oldSlope[0]);
+                slpA[3*(ipnt+jedge*npnt)+1] += (  fraci) * (newSlope[1] - oldSlope[1]);
+                slpA[3*(ipnt+jedge*npnt)+2] += (  fraci) * (newSlope[2] - oldSlope[2]);
+            }
+
+            /* find B slope at corner */
+            if (efacesB[iedge] != efacesB[jedge]) {
+                status = slopeAtNode(eedgesB[iedge], sensesB[iedge], efacesB[iedge], efacesB[jedge],
+                                     ebodyB, newSlope);
+                CHECK_STATUS(slopeAtNode);
+            } else {
+                newSlope[0] = slpB[3*(       iedge*npnt)  ] + slpB[3*(npnt-1+jedge*npnt)  ];
+                newSlope[1] = slpB[3*(       iedge*npnt)+1] + slpB[3*(npnt-1+jedge*npnt)+1];
+                newSlope[2] = slpB[3*(       iedge*npnt)+2] + slpB[3*(npnt-1+jedge*npnt)+2];
+
+                newSlope[3] = sqrt(newSlope[0]*newSlope[0] + newSlope[1]*newSlope[1] + newSlope[2]*newSlope[2]);
+                newSlope[0] /= newSlope[3];
+                newSlope[1] /= newSlope[3];
+                newSlope[2] /= newSlope[3];
+            }
+
+            /* adjust B slopes on iedge */
+            oldSlope[0] = slpB[3*(iedge*npnt)  ];
+            oldSlope[1] = slpB[3*(iedge*npnt)+1];
+            oldSlope[2] = slpB[3*(iedge*npnt)+2];
+
+            for (ipnt = 0; ipnt < npnt; ipnt++) {
+                fraci = (double)(ipnt) / (double)(npnt-1);
+
+                slpB[3*(ipnt+iedge*npnt)  ] += (1-fraci) * (newSlope[0] - oldSlope[0]);
+                slpB[3*(ipnt+iedge*npnt)+1] += (1-fraci) * (newSlope[1] - oldSlope[1]);
+                slpB[3*(ipnt+iedge*npnt)+2] += (1-fraci) * (newSlope[2] - oldSlope[2]);
+            }
+
+            /* adjust B slopes on jedge */
+            oldSlope[0] = slpB[3*(npnt-1+jedge*npnt)  ];
+            oldSlope[1] = slpB[3*(npnt-1+jedge*npnt)+1];
+            oldSlope[2] = slpB[3*(npnt-1+jedge*npnt)+2];
+
+            for (ipnt = 0; ipnt < npnt; ipnt++) {
+                fraci = (double)(ipnt) / (double)(npnt-1);
+
+                slpB[3*(ipnt+jedge*npnt)  ] += (  fraci) * (newSlope[0] - oldSlope[0]);
+                slpB[3*(ipnt+jedge*npnt)+1] += (  fraci) * (newSlope[1] - oldSlope[1]);
+                slpB[3*(ipnt+jedge*npnt)+2] += (  fraci) * (newSlope[2] - oldSlope[2]);
+            }
         }
 
-        /* adjust A slopes on iedge */
-        oldSlope[0] = slpA[3*(iedge*npnt)  ];
-        oldSlope[1] = slpA[3*(iedge*npnt)+1];
-        oldSlope[2] = slpA[3*(iedge*npnt)+2];
+        /* modify the slopes by the distances across the flend */
+        for (iedge = 0; iedge < nedgeA; iedge++) {
+            for (ipnt = 0; ipnt < npnt; ipnt++) {
+                indx = 3 * (ipnt + iedge * npnt);
 
-        for (ipnt = 0; ipnt < npnt; ipnt++) {
-            fraci = (double)(ipnt) / (double)(npnt-1);
+                dist = sqrt((pntA[indx  ]-pntB[indx  ]) * (pntA[indx  ]-pntB[indx  ])
+                           +(pntA[indx+1]-pntB[indx+1]) * (pntA[indx+1]-pntB[indx+1])
+                           +(pntA[indx+2]-pntB[indx+2]) * (pntA[indx+2]-pntB[indx+2]));
 
-            slpA[3*(ipnt+iedge*npnt)  ] += (1-fraci) * (newSlope[0] - oldSlope[0]);
-            slpA[3*(ipnt+iedge*npnt)+1] += (1-fraci) * (newSlope[1] - oldSlope[1]);
-            slpA[3*(ipnt+iedge*npnt)+2] += (1-fraci) * (newSlope[2] - oldSlope[2]);
+                slpA[indx  ] *= dist;
+                slpA[indx+1] *= dist;
+                slpA[indx+2] *= dist;
+
+                slpB[indx  ] *= dist;
+                slpB[indx+1] *= dist;
+                slpB[indx+2] *= dist;
+            }
         }
 
-        /* adjust A slopes on jedge */
-        oldSlope[0] = slpA[3*(npnt-1+jedge*npnt)  ];
-        oldSlope[1] = slpA[3*(npnt-1+jedge*npnt)+1];
-        oldSlope[2] = slpA[3*(npnt-1+jedge*npnt)+2];
+    } else if (METHOD(0) == 2) {
 
-        for (ipnt = 0; ipnt < npnt; ipnt++) {
-            fraci = (double)(ipnt) / (double)(npnt-1);
+        /* pntA is at tangent to faceA */
+        /* pntB is at tangent to faceB */
+        /* pntC is arbitrary point on intersection of faceA and faceB */
+        /* dCdt is vector through C that points in intersection direction */
+        /* pntD is evenly spaced points along intersection of faceA and faceB */
 
-            slpA[3*(ipnt+jedge*npnt)  ] += (  fraci) * (newSlope[0] - oldSlope[0]);
-            slpA[3*(ipnt+jedge*npnt)+1] += (  fraci) * (newSlope[1] - oldSlope[1]);
-            slpA[3*(ipnt+jedge*npnt)+2] += (  fraci) * (newSlope[2] - oldSlope[2]);
+        /* first set up points on Nodes (at the end of iedge) */
+        for (iedge = 0; iedge < nedgeA; iedge++) {
+            jedge = (iedge + 1) % nedgeA;
+            ipnt  = npnt - 1;
+            ij3   = 3 * (ipnt + iedge * npnt);
+
+#ifdef DEBUG
+            printf("iedge=%d, jedge=%d\n", iedge, jedge);
+#endif
+
+            /* normalized normal at pntA for iedge */
+            status = EG_getEdgeUV(efacesA[iedge], eedgesA[iedge], 0, tA[ipnt+iedge*npnt], uvFace);
+            CHECK_STATUS(EG_getEdgeUV);
+
+            status = EG_evaluate(efacesA[iedge], uvFace, data);
+            CHECK_STATUS(EG_evaluate);
+
+            normAi[0]  = data[4] * data[8] - data[5] * data[7];
+            normAi[1]  = data[5] * data[6] - data[3] * data[8];
+            normAi[2]  = data[3] * data[7] - data[4] * data[6];
+            det        = sqrt(normAi[0]*normAi[0] + normAi[1]*normAi[1] + normAi[2]*normAi[2]);
+            normAi[0] /= det;
+            normAi[1] /= det;
+            normAi[2] /= det;
+
+            /* iedge and jedge are associated with the same Face on the A side */
+            if (efacesA[iedge] == efacesA[jedge]) {
+                normAj[0] = normAi[0];
+                normAj[1] = normAi[1];
+                normAj[2] = normAi[2];
+                tangA[ 0] = 0;
+                tangA[ 1] = 0;
+                tangA[ 2] = 0;
+
+            } else {
+
+                /* normalized normal at pntA for jedge */
+                status = EG_getEdgeUV(efacesA[jedge], eedgesA[jedge], 0, tA[jedge*npnt], uvFace);
+                CHECK_STATUS(EG_getEdgeUV);
+
+                status = EG_evaluate(efacesA[jedge], uvFace, data);
+                CHECK_STATUS(EG_evaluate);
+
+                normAj[0]  = data[4] * data[8] - data[5] * data[7];
+                normAj[1]  = data[5] * data[6] - data[3] * data[8];
+                normAj[2]  = data[3] * data[7] - data[4] * data[6];
+                det        = sqrt(normAj[0]*normAj[0] + normAj[1]*normAj[1] + normAj[2]*normAj[2]);
+                normAj[0] /= det;
+                normAj[1] /= det;
+                normAj[2] /= det;
+
+                /* if nearly parallel, use average norm */
+                if (fabs(normAi[0]*normAj[0]+normAi[1]*normAj[1]+normAi[2]*normAj[2]-1) < EPS06) {
+                    normAi[0] = normAj[0] = (normAi[0] + normAj[0]) / 2;
+                    normAi[1] = normAj[1] = (normAi[1] + normAj[1]) / 2;
+                    normAi[2] = normAj[2] = (normAi[2] + normAj[2]) / 2;
+                    tangA[ 0] = 0;
+                    tangA[ 1] = 0;
+                    tangA[ 2] = 0;
+
+                /* otherwise set up tangent that is perpendicular to normAi and normAj */
+                } else {
+                    tangA[0]  = normAi[1] * normAj[2] - normAj[1] * normAi[2];
+                    tangA[1]  = normAi[2] * normAj[0] - normAj[2] * normAi[0];
+                    tangA[2]  = normAi[0] * normAj[1] - normAj[0] * normAi[1];
+                    det       = sqrt(tangA[0]*tangA[0] + tangA[1]*tangA[1] + tangA[2]*tangA[2]);
+                    tangA[0] /= det;
+                    tangA[1] /= det;
+                    tangA[2] /= det;
+                }
+            }
+
+#ifdef DEBUG
+            printf("   pntA  =%10.5f %10.5f %10.5f\n", data[0], data[1], data[2]);
+            printf("   normAi=%10.5f %10.5f %10.5f\n", normAi[0], normAi[1], normAi[2]);
+            printf("   normAj=%10.5f %10.5f %10.5f\n", normAj[0], normAj[1], normAj[2]);
+            printf("   tangA =%10.5f %10.5f %10.5f\n", tangA[ 0], tangA[ 1], tangA[ 2]);
+#endif
+
+            /* normalized normal at pntB for iedge */
+            status = EG_getEdgeUV(efacesB[iedge], eedgesB[iedge], 0, tB[ipnt+iedge*npnt], uvFace);
+            CHECK_STATUS(EG_getEdgeUV);
+
+            status = EG_evaluate(efacesB[iedge], uvFace, data);
+            CHECK_STATUS(EG_evaluate);
+
+            normBi[0]  = data[4] * data[8] - data[5] * data[7];
+            normBi[1]  = data[5] * data[6] - data[3] * data[8];
+            normBi[2]  = data[3] * data[7] - data[4] * data[6];
+            det        = sqrt(normBi[0]*normBi[0] + normBi[1]*normBi[1] + normBi[2]*normBi[2]);
+            normBi[0] /= det;
+            normBi[1] /= det;
+            normBi[2] /= det;
+
+            /* iedge and jedge are associated with the same Face on the B side */
+            if (efacesB[iedge] == efacesB[jedge]) {
+                normBj[0] = normBi[0];
+                normBj[1] = normBi[1];
+                normBj[2] = normBi[2];
+                tangB[ 0] = 0;
+                tangB[ 1] = 0;
+                tangB[ 2] = 0;
+
+            } else {
+
+                /* normalized normal at pntB for jedge */
+                status = EG_getEdgeUV(efacesB[jedge], eedgesB[jedge], 0, tB[jedge*npnt], uvFace);
+                CHECK_STATUS(EG_getEdgeUV);
+
+                status = EG_evaluate(efacesB[jedge], uvFace, data);
+                CHECK_STATUS(EG_evaluate);
+
+                normBj[0]  = data[4] * data[8] - data[5] * data[7];
+                normBj[1]  = data[5] * data[6] - data[3] * data[8];
+                normBj[2]  = data[3] * data[7] - data[4] * data[6];
+                det        = sqrt(normBj[0]*normBj[0] + normBj[1]*normBj[1] + normBj[2]*normBj[2]);
+                normBj[0] /= det;
+                normBj[1] /= det;
+                normBj[2] /= det;
+
+                /* if nearly parallel, use average norm */
+                if (fabs(normBi[0]*normBj[0]+normBi[1]*normBj[1]+normBi[2]*normBj[2]-1) < EPS06) {
+                    normBi[0] = normBj[0] = (normBi[0] + normBj[0]) / 2;
+                    normBi[1] = normBj[1] = (normBi[1] + normBj[1]) / 2;
+                    normBi[2] = normBj[2] = (normBi[2] + normBj[2]) / 2;
+                    tangB[ 0] = 0;
+                    tangB[ 1] = 0;
+                    tangB[ 2] = 0;
+
+                /* otherwise set up tangent that is perpendicular to normBi and normBj */
+                } else {
+                    tangB[0]  = normBi[1] * normBj[2] - normBj[1] * normBi[2];
+                    tangB[1]  = normBi[2] * normBj[0] - normBj[2] * normBi[0];
+                    tangB[2]  = normBi[0] * normBj[1] - normBj[0] * normBi[1];
+                    det       = sqrt(tangB[0]*tangB[0] + tangB[1]*tangB[1] + tangB[2]*tangB[2]);
+                    tangB[0] /= det;
+                    tangB[1] /= det;
+                    tangB[2] /= det;
+                }
+            }
+
+#ifdef DEBUG
+            printf("   pntB  =%10.5f %10.5f %10.5f\n", data[0], data[1], data[2]);
+            printf("   normBi=%10.5f %10.5f %10.5f\n", normBi[0], normBi[1], normBi[2]);
+            printf("   normBj=%10.5f %10.5f %10.5f\n", normBj[0], normBj[1], normBj[2]);
+            printf("   tangB =%10.5f %10.5f %10.5f\n", tangB[ 0], tangB[ 1], tangB[ 2]);
+#endif
+
+            /* set up en conditions (arbirary --- not used) */
+            dCdt[ij3  ] = 1;
+            dCdt[ij3+1] = 0;
+            dCdt[ij3+2] = 0;
+
+            /* both A-side and B-side have corners */
+            if ((tangA[0] != 0 || tangA[1] != 0 || tangA[2] != 0) &&
+                (tangB[0] != 0 || tangB[1] != 0 || tangB[2] != 0)   ) {
+                /* average of A nd B projections (see below) */
+                t1 = (normBi[0] * (pntB[ij3  ]-pntA[ij3  ]) + normBi[1] * (pntB[ij3+1]-pntA[ij3+1]) + normBi[2] * (pntB[ij3+2]-pntA[ij3+2]))
+                   / (normBi[0] * (           tangA[    0]) + normBi[1] * (           tangA[    1]) + normBi[2] * (           tangA[    2]));
+                t2 = (normAi[0] * (pntA[ij3  ]-pntB[ij3  ]) + normAi[1] * (pntA[ij3+1]-pntB[ij3+1]) + normAi[2] * (pntA[ij3+2]-pntB[ij3+2]))
+                   / (normAi[0] * (           tangB[    0]) + normAi[1] * (           tangB[    1]) + normAi[2] * (           tangB[    2]));
+
+                pntC[ij3  ] = (pntA[ij3  ] + t1 * tangA[0] + pntB[ij3  ] + t2 * tangB[0]) / 2;
+                pntC[ij3+1] = (pntA[ij3+1] + t1 * tangA[1] + pntB[ij3+1] + t2 * tangB[1]) / 2;
+                pntC[ij3+2] = (pntA[ij3+2] + t1 * tangA[2] + pntB[ij3+2] + t2 * tangB[2]) / 2;
+
+            /* A-side has a corner */
+            } else if (tangA[0] != 0 || tangA[1] != 0 || tangA[2] != 0) {
+                /* projection of pntA (in dirn tangA) onto plane B */
+                t1 = (normBi[0] * (pntB[ij3  ]-pntA[ij3  ]) + normBi[1] * (pntB[ij3+1]-pntA[ij3+1]) + normBi[2] * (pntB[ij3+2]-pntA[ij3+2]))
+                   / (normBi[0] * (           tangA[    0]) + normBi[1] * (           tangA[    1]) + normBi[2] * (           tangA[    2]));
+
+                pntC[ij3  ] = pntA[ij3  ] + t1 * tangA[0];
+                pntC[ij3+1] = pntA[ij3+1] + t1 * tangA[1];
+                pntC[ij3+2] = pntA[ij3+2] + t1 * tangA[2];
+
+            /* B-side has a corner */
+            } else if (tangB[0] != 0 || tangB[1] != 0 || tangB[2] != 0) {
+                /* projection of pntB (in dirn tangB) onto plane A */
+                t2 = (normAi[0] * (pntA[ij3  ]-pntB[ij3  ]) + normAi[1] * (pntA[ij3+1]-pntB[ij3+1]) + normAi[2] * (pntA[ij3+2]-pntB[ij3+2]))
+                   / (normAi[0] * (           tangB[    0]) + normAi[1] * (           tangB[    1]) + normAi[2] * (           tangB[    2]));
+
+                pntC[ij3  ] = pntB[ij3  ] + t2 * tangB[0];
+                pntC[ij3+1] = pntB[ij3+1] + t2 * tangB[1];
+                pntC[ij3+2] = pntB[ij3+2] + t2 * tangB[2];
+
+            /* neither side has a corner */
+            } else {
+                /* pntC is on plane intersection; dCdt is tangent along intersection */
+                if        (fabs(det = normAi[1]*normBi[2]-normAi[2]*normBi[1]) > EPS03) {
+#ifdef DEBUG
+                    printf("   case X, det=%12.4e\n", det);
+#endif
+                    pntC[ij3  ] = (pntA[ij3  ] + pntB[ij3  ]) / 2;
+                    rhsA        = normAi[0] * (pntA[ij3  ] - pntC[ij3  ]) + normAi[1] * pntA[ij3+1] + normAi[2] * pntA[ij3+2];
+                    rhsB        = normBi[0] * (pntB[ij3  ] - pntC[ij3  ]) + normBi[1] * pntB[ij3+1] + normBi[2] * pntB[ij3+2];
+                    pntC[ij3+1] = (rhsA     * normBi[2] - normAi[2] * rhsB    ) / det;
+                    pntC[ij3+2] = (normAi[1] * rhsB     - rhsA     * normBi[1]) / det;
+
+                    dCdt[ij3  ] = 1;
+                    rhsA       -= normAi[0] + normAi[1] * pntC[ij3+1] + normAi[2] * pntC[ij3+2];
+                    rhsB       -= normBi[0] + normBi[1] * pntC[ij3+1] + normBi[2] * pntC[ij3+2];
+                    dCdt[ij3+1] = (rhsA     * normBi[2] - normAi[2] * rhsB    ) / det;
+                    dCdt[ij3+2] = (normAi[1] * rhsB     - rhsA     * normBi[1]) / det;
+
+                } else if (fabs(det = normAi[2]*normBi[0]-normAi[0]*normBi[2]) > EPS03) {
+#ifdef DEBUG
+                    printf("   case Y, det=%12.4e\n", det);
+#endif
+                    pntC[ij3+1] = (pntA[ij3+1] + pntB[ij3+1]) / 2;
+                    rhsA        = normAi[1] * (pntA[ij3+1] - pntC[ij3+1]) + normAi[2] * pntA[ij3+2] + normAi[0] * pntA[ij3  ];
+                    rhsB        = normBi[1] * (pntB[ij3+1] - pntC[ij3+1]) + normBi[2] * pntB[ij3+2] + normBi[0] * pntB[ij3  ];
+                    pntC[ij3+2] = (rhsA     * normBi[0] - normAi[0] * rhsB    ) / det;
+                    pntC[ij3  ] = (normAi[2] * rhsB     - rhsA     * normBi[2]) / det;
+
+                    dCdt[ij3+1] = 1;
+                    rhsA       -= normAi[1] + normAi[2] * pntC[ij3+2] + normAi[0] * pntC[ij3  ];
+                    rhsB       -= normBi[1] + normBi[2] * pntC[ij3+2] + normBi[0] * pntC[ij3  ];
+                    dCdt[ij3+2] = (rhsA     * normBi[0] - normAi[0] * rhsB    ) / det;
+                    dCdt[ij3  ] = (normAi[2] * rhsB     - rhsA     * normBi[2]) / det;
+
+                } else if (fabs(det = normAi[0]*normBi[1]-normAi[1]*normBi[0]) > EPS03) {
+#ifdef DEBUG
+                    printf("   case Z, det=%12.4e\n", det);
+#endif
+                    pntC[ij3+2] = (pntA[ij3+2] + pntB[ij3+2]) / 2;
+                    rhsA        = normAi[2] * (pntA[ij3+2] - pntC[ij3+2]) + normAi[0] * pntA[ij3  ] + normAi[1] * pntA[ij3+1];
+                    rhsB        = normBi[2] * (pntB[ij3+2] - pntC[ij3+2]) + normBi[0] * pntB[ij3  ] + normBi[1] * pntB[ij3+1];
+                    pntC[ij3  ] = (rhsA     * normBi[1] - normAi[1] * rhsB    ) / det;
+                    pntC[ij3+1] = (normAi[0] * rhsB     - rhsA     * normBi[0]) / det;
+
+                    dCdt[ij3+2] = 1;
+                    rhsA       -= normAi[2] + normAi[0] * pntC[ij3  ] + normAi[1] * pntC[ij3+1];
+                    rhsB       -= normBi[2] + normBi[0] * pntC[ij3  ] + normBi[1] * pntC[ij3+1];
+                    dCdt[ij3  ] = (rhsA     * normBi[1] - normAi[1] * rhsB    ) / det;
+                    dCdt[ij3+1] = (normAi[0] * rhsB     - rhsA     * normBi[0]) / det;
+
+                } else {
+                    printf("cannot find plane-plane intersection\n");
+                    exit(0);
+                }
+
+                /* adjust pntC so that it is at the average of the shortest distance
+                   to both pntA and pntB */
+                t1 = (dCdt[ij3] * (pntA[ij3]-pntC[ij3]) + dCdt[ij3+1] * (pntA[ij3+1]-pntC[ij3+1]) + dCdt[ij3+2] * (pntA[ij3+2]-pntC[ij3+2]))
+                   / (dCdt[ij3] * (          dCdt[ij3]) + dCdt[ij3+1] * (            dCdt[ij3+1]) + dCdt[ij3+2] * (            dCdt[ij3+2]));
+                t2 = (dCdt[ij3] * (pntB[ij3]-pntC[ij3]) + dCdt[ij3+1] * (pntB[ij3+1]-pntC[ij3+1]) + dCdt[ij3+2] * (pntB[ij3+2]-pntC[ij3+2]))
+                   / (dCdt[ij3] * (          dCdt[ij3]) + dCdt[ij3+1] * (            dCdt[ij3+1]) + dCdt[ij3+2] * (            dCdt[ij3+2]));
+
+                pntC[ij3  ] += (t1 + t2) / 2 * dCdt[ij3  ];
+                pntC[ij3+1] += (t1 + t2) / 2 * dCdt[ij3+1];
+                pntC[ij3+2] += (t1 + t2) / 2 * dCdt[ij3+2];
+            }
+
+#ifdef DEBUG
+            printf("   pntC  =%10.5f %10.5f %10.5f\n", pntC[ij3], pntC[ij3+1], pntC[ij3+2]);
+            printf("   dCdt  =%10.5f %10.5f %10.5f\n", dCdt[ij3], dCdt[ij3+1], dCdt[ij3+2]);
+#endif
+
+            /* copy pntC from end of iedge to beg of jedge */
+            pntC[3*(jedge*npnt)  ] = pntC[ij3  ];
+            pntC[3*(jedge*npnt)+1] = pntC[ij3+1];
+            pntC[3*(jedge*npnt)+2] = pntC[ij3+2];
+
+            dCdt[3*(jedge*npnt)  ] = dCdt[ij3  ];
+            dCdt[3*(jedge*npnt)+1] = dCdt[ij3+1];
+            dCdt[3*(jedge*npnt)+2] = dCdt[ij3+2];
         }
-        
-        /* find B slope at corner */
-        if (efacesB[iedge] != efacesB[jedge]) {
-            status = slopeAtNode(eedgesB[iedge], sensesB[iedge], efacesB[iedge], efacesB[jedge],
-                                 ebodyB, newSlope);
-            CHECK_STATUS(slopeAtNode);
-        } else {
-            newSlope[0] = slpB[3*(       iedge*npnt)  ] + slpB[3*(npnt-1+jedge*npnt)  ];
-            newSlope[1] = slpB[3*(       iedge*npnt)+1] + slpB[3*(npnt-1+jedge*npnt)+1];
-            newSlope[2] = slpB[3*(       iedge*npnt)+2] + slpB[3*(npnt-1+jedge*npnt)+2];
 
-            newSlope[3] = sqrt(newSlope[0]*newSlope[0] + newSlope[1]*newSlope[1] + newSlope[2]*newSlope[2]);
-            newSlope[0] /= newSlope[3];
-            newSlope[1] /= newSlope[3];
-            newSlope[2] /= newSlope[3];
+        /* now set up pntC and dCdt for all the intermediate points on iedge */
+        for (iedge = 0; iedge < nedgeA; iedge++) {
+            for (ipnt = 1; ipnt < npnt-1; ipnt++) {
+                ij3 = 3 * (ipnt + iedge * npnt);
+
+                /* normalized normal at pntA */
+                status = EG_getEdgeUV(efacesA[iedge], eedgesA[iedge], 0, tA[ipnt+iedge*npnt], uvFace);
+                CHECK_STATUS(EG_getEdgeUV);
+
+                status = EG_evaluate(efacesA[iedge], uvFace, data);
+                CHECK_STATUS(EG_evaluate);
+
+                normAi[0]  = data[4] * data[8] - data[5] * data[7];
+                normAi[1]  = data[5] * data[6] - data[3] * data[8];
+                normAi[2]  = data[3] * data[7] - data[4] * data[6];
+                det        = sqrt(normAi[0]*normAi[0] + normAi[1]*normAi[1] + normAi[2]*normAi[2]);
+                normAi[0] /= det;
+                normAi[1] /= det;
+                normAi[2] /= det;
+
+                /* normalized normal at pntB */
+                status = EG_getEdgeUV(efacesB[iedge], eedgesB[iedge], 0, tB[ipnt+iedge*npnt], uvFace);
+                CHECK_STATUS(EG_getEdgeUV);
+
+                status = EG_evaluate(efacesB[iedge], uvFace, data);
+                CHECK_STATUS(EG_evaluate);
+
+                normBi[0]  = data[4] * data[8] - data[5] * data[7];
+                normBi[1]  = data[5] * data[6] - data[3] * data[8];
+                normBi[2]  = data[3] * data[7] - data[4] * data[6];
+                det        = sqrt(normBi[0]*normBi[0] + normBi[1]*normBi[1] + normBi[2]*normBi[2]);
+                normBi[0] /= det;
+                normBi[1] /= det;
+                normBi[2] /= det;
+
+                /* parametric equation for the intersection of the normal plane at A
+                   and normal plane at B */
+                if        (fabs(det = normAi[1]*normBi[2]-normAi[2]*normBi[1]) > EPS03) {
+                    pntC[ij3  ] = (pntA[ij3  ] + pntB[ij3  ]) / 2;
+                    rhsA        = normAi[0] * (pntA[ij3  ] - pntC[ij3  ]) + normAi[1] * pntA[ij3+1] + normAi[2] * pntA[ij3+2];
+                    rhsB        = normBi[0] * (pntB[ij3  ] - pntC[ij3  ]) + normBi[1] * pntB[ij3+1] + normBi[2] * pntB[ij3+2];
+                    pntC[ij3+1] = (rhsA     * normBi[2] - normAi[2] * rhsB    ) / det;
+                    pntC[ij3+2] = (normAi[1] * rhsB     - rhsA     * normBi[1]) / det;
+
+                    dCdt[ij3  ] = 1;
+                    rhsA       -= normAi[0] + normAi[1] * pntC[ij3+1] + normAi[2] * pntC[ij3+2];
+                    rhsB       -= normBi[0] + normBi[1] * pntC[ij3+1] + normBi[2] * pntC[ij3+2];
+                    dCdt[ij3+1] = (rhsA     * normBi[2] - normAi[2] * rhsB    ) / det;
+                    dCdt[ij3+2] = (normAi[1] * rhsB     - rhsA     * normBi[1]) / det;
+
+                } else if (fabs(det = normAi[2]*normBi[0]-normAi[0]*normBi[2]) > EPS03) {
+                    pntC[ij3+1] = (pntA[ij3+1] + pntB[ij3+1]) / 2;
+                    rhsA        = normAi[1] * (pntA[ij3+1] - pntC[ij3+1]) + normAi[2] * pntA[ij3+2] + normAi[0] * pntA[ij3  ];
+                    rhsB        = normBi[1] * (pntB[ij3+1] - pntC[ij3+1]) + normBi[2] * pntB[ij3+2] + normBi[0] * pntB[ij3  ];
+                    pntC[ij3+2] = (rhsA     * normBi[0] - normAi[0] * rhsB    ) / det;
+                    pntC[ij3  ] = (normAi[2] * rhsB     - rhsA     * normBi[2]) / det;
+
+                    dCdt[ij3+1] = 1;
+                    rhsA       -= normAi[1] + normAi[2] * pntC[ij3+2] + normAi[0] * pntC[ij3  ];
+                    rhsB       -= normBi[1] + normBi[2] * pntC[ij3+2] + normBi[0] * pntC[ij3  ];
+                    dCdt[ij3+2] = (rhsA     * normBi[0] - normAi[0] * rhsB    ) / det;
+                    dCdt[ij3  ] = (normAi[2] * rhsB     - rhsA     * normBi[2]) / det;
+
+                } else if (fabs(det = normAi[0]*normBi[1]-normAi[1]*normBi[0]) > EPS03) {
+                    pntC[ij3+2] = (pntA[ij3+2] + pntB[ij3+2]) / 2;
+                    rhsA        = normAi[2] * (pntA[ij3+2] - pntC[ij3+2]) + normAi[0] * pntA[ij3  ] + normAi[1] * pntA[ij3+1];
+                    rhsB        = normBi[2] * (pntB[ij3+2] - pntC[ij3+2]) + normBi[0] * pntB[ij3  ] + normBi[1] * pntB[ij3+1];
+                    pntC[ij3  ] = (rhsA     * normBi[1] - normAi[1] * rhsB    ) / det;
+                    pntC[ij3+1] = (normAi[0] * rhsB     - rhsA     * normBi[0]) / det;
+
+                    dCdt[ij3+2] = 1;
+                    rhsA       -= normAi[2] + normAi[0] * pntC[ij3  ] + normAi[1] * pntC[ij3+1];
+                    rhsB       -= normBi[2] + normBi[0] * pntC[ij3  ] + normBi[1] * pntC[ij3+1];
+                    dCdt[ij3  ] = (rhsA     * normBi[1] - normAi[1] * rhsB    ) / det;
+                    dCdt[ij3+1] = (normAi[0] * rhsB     - rhsA     * normBi[0]) / det;
+
+                } else {
+                    printf("cannot find plane-plane intersection\n");
+                    exit(0);
+                }
+
+                /* adjust pntC so that it is at the average of the shortest distance
+                   to both pntA and pntB */
+                t1 = (dCdt[ij3] * (pntA[ij3]-pntC[ij3]) + dCdt[ij3+1] * (pntA[ij3+1]-pntC[ij3+1]) + dCdt[ij3+2] * (pntA[ij3+2]-pntC[ij3+2]))
+                   / (dCdt[ij3] * (          dCdt[ij3]) + dCdt[ij3+1] * (            dCdt[ij3+1]) + dCdt[ij3+2] * (            dCdt[ij3+2]));
+                t2 = (dCdt[ij3] * (pntB[ij3]-pntC[ij3]) + dCdt[ij3+1] * (pntB[ij3+1]-pntC[ij3+1]) + dCdt[ij3+2] * (pntB[ij3+2]-pntC[ij3+2]))
+                   / (dCdt[ij3] * (          dCdt[ij3]) + dCdt[ij3+1] * (            dCdt[ij3+1]) + dCdt[ij3+2] * (            dCdt[ij3+2]));
+
+                pntC[ij3  ] += (t1 + t2) / 2 * dCdt[ij3  ];
+                pntC[ij3+1] += (t1 + t2) / 2 * dCdt[ij3+1];
+                pntC[ij3+2] += (t1 + t2) / 2 * dCdt[ij3+2];
+            }
+
+            /* find tD such that pntD are evenly spaced */
+            for (ipnt = 0; ipnt < npnt; ipnt++) {
+                tD[ipnt] = 0;
+            }
+
+            for (ismth = 0; ismth < nsmth; ismth++) {
+                dtmax = 0;
+
+                /* update pntD */
+                for (ipnt = 0; ipnt < npnt; ipnt++) {
+                    ij3 = 3 * (ipnt + iedge * npnt);
+
+                    pntD[ij3  ] = pntC[ij3  ] + tD[ipnt] * dCdt[ij3  ];
+                    pntD[ij3+1] = pntC[ij3+1] + tD[ipnt] * dCdt[ij3+1];
+                    pntD[ij3+2] = pntC[ij3+2] + tD[ipnt] * dCdt[ij3+2];
+                }
+
+                /* adjust t such the projections before and after i (in the dCdt direction)
+                   are the same */
+                for (ipnt = 1; ipnt < npnt-1; ipnt++) {
+                    ij3 = 3 * (ipnt + iedge * npnt);
+
+                    dt = (dCdt[ij3  ] * (pntD[ij3-3] - 2*pntD[ij3  ] + pntD[ij3+3])
+                        + dCdt[ij3+1] * (pntD[ij3-2] - 2*pntD[ij3+1] + pntD[ij3+4])
+                        + dCdt[ij3+2] * (pntD[ij3-1] - 2*pntD[ij3+2] + pntD[ij3+5]))
+                       / 2 / (dCdt[ij3]*dCdt[ij3] + dCdt[ij3+1]*dCdt[ij3+1] + dCdt[ij3+2]*dCdt[ij3+2]);
+                    if (fabs(dt) > dtmax) {
+                        dtmax = fabs(dt);
+                    }
+
+                    tD[ipnt] += 0.5 * dt;
+                }
+
+                if (dtmax < EPS06) break;
+            }
+
+            /* slopes point to pntD */
+            for (ipnt = 0; ipnt < npnt; ipnt++) {
+                ij3 = 3 * (ipnt + iedge * npnt);
+
+                slpA[ij3  ] = pntD[ij3  ] - pntA[ij3  ];
+                slpA[ij3+1] = pntD[ij3+1] - pntA[ij3+1];
+                slpA[ij3+2] = pntD[ij3+2] - pntA[ij3+2];
+
+                slpB[ij3  ] = pntD[ij3  ] - pntB[ij3  ];
+                slpB[ij3+1] = pntD[ij3+1] - pntB[ij3+1];
+                slpB[ij3+2] = pntD[ij3+2] - pntB[ij3+2];
+            }
         }
 
-        /* adjust B slopes on iedge */
-        oldSlope[0] = slpB[3*(iedge*npnt)  ];
-        oldSlope[1] = slpB[3*(iedge*npnt)+1];
-        oldSlope[2] = slpB[3*(iedge*npnt)+2];
+    /* compute slpA and slpB by subtracting the local normal components of
+       the lines that connect pntA and pntB */
+    } else if (METHOD(0) == 3) {
+        double  norm[4], dxyz[3], A, B, C, D, E, F, factA, factB, proj;
+        double  dslpi[3], dslpj[3];
 
-        for (ipnt = 0; ipnt < npnt; ipnt++) {
-            fraci = (double)(ipnt) / (double)(npnt-1);
+        for (iedge = 0; iedge < nedgeA; iedge++) {
+            for (ipnt = 0; ipnt < npnt; ipnt++) {
+                ij3 = 3 * (ipnt + iedge * npnt);
 
-            slpB[3*(ipnt+iedge*npnt)  ] += (1-fraci) * (newSlope[0] - oldSlope[0]);
-            slpB[3*(ipnt+iedge*npnt)+1] += (1-fraci) * (newSlope[1] - oldSlope[1]);
-            slpB[3*(ipnt+iedge*npnt)+2] += (1-fraci) * (newSlope[2] - oldSlope[2]);
+                /* line between pntA and pntB */
+                dxyz[0] = pntB[ij3  ] - pntA[ij3  ];
+                dxyz[1] = pntB[ij3+1] - pntA[ij3+1];
+                dxyz[2] = pntB[ij3+2] - pntA[ij3+2];
+
+                /* subtract out normal for faceA */
+                status = EG_getEdgeUV(efacesA[iedge], eedgesA[iedge], 0, tA[ipnt+iedge*npnt], uvFace);
+                CHECK_STATUS(EG_getEdgeUV);
+
+                status = EG_evaluate(efacesA[iedge], uvFace, data);
+                CHECK_STATUS(EG_evaluate);
+
+                norm[0] = data[4] * data[8] - data[5] * data[7];
+                norm[1] = data[5] * data[6] - data[3] * data[8];
+                norm[2] = data[3] * data[7] - data[4] * data[6];
+                norm[3] = norm[0]*norm[0] + norm[1]*norm[1] + norm[2]*norm[2];
+
+                proj = dxyz[0] * norm[0] + dxyz[1] * norm[1] + dxyz[2] * norm[2];
+
+                slpA[ij3  ] = dxyz[0] - proj * norm[0] / norm[3];
+                slpA[ij3+1] = dxyz[1] - proj * norm[1] / norm[3];
+                slpA[ij3+2] = dxyz[2] - proj * norm[2] / norm[3];
+
+                /* subtract out normal for faceB */
+                status = EG_getEdgeUV(efacesB[iedge], eedgesB[iedge], 0, tB[ipnt+iedge*npnt], uvFace);
+                CHECK_STATUS(EG_getEdgeUV);
+
+                status = EG_evaluate(efacesB[iedge], uvFace, data);
+                CHECK_STATUS(EG_evaluate);
+
+                norm[0] = data[4] * data[8] - data[5] * data[7];
+                norm[1] = data[5] * data[6] - data[3] * data[8];
+                norm[2] = data[3] * data[7] - data[4] * data[6];
+                norm[3] = norm[0]*norm[0] + norm[1]*norm[1] + norm[2]*norm[2];
+
+                proj = dxyz[0] * norm[0] + dxyz[1] * norm[1] + dxyz[2] * norm[2];
+
+                slpB[ij3  ] = -(dxyz[0] - proj * norm[0] / norm[3]);
+                slpB[ij3+1] = -(dxyz[1] - proj * norm[1] / norm[3]);
+                slpB[ij3+2] = -(dxyz[2] - proj * norm[2] / norm[3]);
+
+                /* find factA and factB such that the distance between (pntA+factA*slpA) and
+                   (pntB+factB*slpb) is minimized */
+                A =   slpA[ij3  ]*slpA[ij3  ] + slpA[ij3+1]*slpA[ij3+1] + slpA[ij3+2]*slpA[ij3+2];
+                B = - slpA[ij3  ]*slpB[ij3  ] - slpA[ij3+1]*slpB[ij3+1] - slpA[ij3+2]*slpB[ij3+2];
+                C = - slpB[ij3  ]*slpA[ij3  ] - slpB[ij3+1]*slpA[ij3+1] - slpB[ij3+2]*slpA[ij3+2];
+                D =   slpB[ij3  ]*slpB[ij3  ] + slpB[ij3+1]*slpB[ij3+1] + slpB[ij3+2]*slpB[ij3+2];
+
+                det = A * D - B * C;
+
+                if (fabs(det) > EPS20) {
+                    E = + slpA[ij3  ] * (pntB[ij3  ] - pntA[ij3  ])
+                        + slpA[ij3+1] * (pntB[ij3+1] - pntA[ij3+1])
+                        + slpA[ij3+2] * (pntB[ij3+2] - pntA[ij3+2]);
+                    F = + slpB[ij3  ] * (pntA[ij3  ] - pntB[ij3  ])
+                        + slpB[ij3+1] * (pntA[ij3+1] - pntB[ij3+1])
+                        + slpB[ij3+2] * (pntA[ij3+2] - pntB[ij3+2]);
+
+                    factA = (E * D - B * F) / det;
+                    factB = (A * F - E * C) / det;
+
+                    /* modify the slopes by factA and factB */
+                    slpA[ij3  ] *= factA;
+                    slpA[ij3+1] *= factA;
+                    slpA[ij3+2] *= factA;
+
+                    slpB[ij3  ] *= factB;
+                    slpB[ij3+1] *= factB;
+                    slpB[ij3+2] *= factB;
+                } else {
+                    printf("WARNING in udfFlend: slopes could not be modified for (iedge=%d, ipnt=%d)\n", iedge, ipnt);
+                }
+            }
         }
 
-        /* adjust B slopes on jedge */
-        oldSlope[0] = slpB[3*(npnt-1+jedge*npnt)  ];
-        oldSlope[1] = slpB[3*(npnt-1+jedge*npnt)+1];
-        oldSlope[2] = slpB[3*(npnt-1+jedge*npnt)+2];
+        /* if the slopes at the end of one segment and the beginning of the next disagree,
+           apply a correction that get extended into the adjoining Edge */
+        for (iedge = 0; iedge < nedgeA; iedge++) {
+            jedge = (iedge + 1) % nedgeA;
 
-        for (ipnt = 0; ipnt < npnt; ipnt++) {
-            fraci = (double)(ipnt) / (double)(npnt-1);
+            /* remove normal component associated with beg of jedge from iedge's last slope */
+            status = EG_getEdgeUV(efacesA[jedge], eedgesA[jedge], 0, tA[0+jedge*npnt], uvFace);
+            CHECK_STATUS(EG_getEdgeUV);
 
-            slpB[3*(ipnt+jedge*npnt)  ] += (  fraci) * (newSlope[0] - oldSlope[0]);
-            slpB[3*(ipnt+jedge*npnt)+1] += (  fraci) * (newSlope[1] - oldSlope[1]);
-            slpB[3*(ipnt+jedge*npnt)+2] += (  fraci) * (newSlope[2] - oldSlope[2]);
+            status = EG_evaluate(efacesA[jedge], uvFace, data);
+            CHECK_STATUS(EG_evaluate);
+
+            norm[0] = data[4] * data[8] - data[5] * data[7];
+            norm[1] = data[5] * data[6] - data[3] * data[8];
+            norm[2] = data[3] * data[7] - data[4] * data[6];
+            norm[3] = norm[0]*norm[0] + norm[1]*norm[1] + norm[2]*norm[2];
+
+            proj = slpA[3*(npnt-1+iedge*npnt)  ] * norm[0]
+                 + slpA[3*(npnt-1+iedge*npnt)+1] * norm[1]
+                 + slpA[3*(npnt-1+iedge*npnt)+2] * norm[2];
+
+            newSlope[0] = slpA[3*(npnt-1+iedge*npnt)  ] - proj * norm[0] / norm[3];
+            newSlope[1] = slpA[3*(npnt-1+iedge*npnt)+1] - proj * norm[1] / norm[3];
+            newSlope[2] = slpA[3*(npnt-1+iedge*npnt)+2] - proj * norm[2] / norm[3];
+
+            /* remove normal component assoaiated with end of iedge from jedge's first slope */
+            status = EG_getEdgeUV(efacesA[iedge], eedgesA[iedge], 0, tA[npnt-1+iedge*npnt], uvFace);
+            CHECK_STATUS(EG_getEdgeUV);
+
+            status = EG_evaluate(efacesA[iedge], uvFace, data);
+            CHECK_STATUS(EG_evaluate);
+
+            norm[0] = data[4] * data[8] - data[5] * data[7];
+            norm[1] = data[5] * data[6] - data[3] * data[8];
+            norm[2] = data[3] * data[7] - data[4] * data[6];
+            norm[3] = norm[0]*norm[0] + norm[1]*norm[1] + norm[2]*norm[2];
+
+            proj = slpA[3*(0+jedge*npnt)  ] * norm[0]
+                 + slpA[3*(0+jedge*npnt)+1] * norm[1]
+                 + slpA[3*(0+jedge*npnt)+2] * norm[2];
+
+            newSlope[0] = (newSlope[0] + slpA[3*(0+jedge*npnt)  ] - proj * norm[0] / norm[3]) / 2;
+            newSlope[1] = (newSlope[1] + slpA[3*(0+jedge*npnt)+1] - proj * norm[1] / norm[3]) / 2;
+            newSlope[2] = (newSlope[2] + slpA[3*(0+jedge*npnt)+2] - proj * norm[2] / norm[3]) / 2;
+
+            dslpi[0] = newSlope[0] - slpA[3*(npnt-1+iedge*npnt)  ];
+            dslpi[1] = newSlope[1] - slpA[3*(npnt-1+iedge*npnt)+1];
+            dslpi[2] = newSlope[2] - slpA[3*(npnt-1+iedge*npnt)+2];
+
+            dslpj[0] = newSlope[0] - slpA[3*(0     +jedge*npnt)  ];
+            dslpj[1] = newSlope[1] - slpA[3*(0     +jedge*npnt)+1];
+            dslpj[2] = newSlope[2] - slpA[3*(0     +jedge*npnt)+2];
+
+            /* adjust end of iedge and beginning of jedge */
+            for (ipnt = 0; ipnt < npnt; ipnt++) {
+                fraci = 1 - (double)(ipnt) / (double)(npnt-1);
+
+                slpA[3*(npnt-1-ipnt+iedge*npnt)  ] += fraci * dslpi[0];
+                slpA[3*(npnt-1-ipnt+iedge*npnt)+1] += fraci * dslpi[1];
+                slpA[3*(npnt-1-ipnt+iedge*npnt)+2] += fraci * dslpi[2];
+
+                slpA[3*(       ipnt+jedge*npnt)  ] += fraci * dslpj[0];
+                slpA[3*(       ipnt+jedge*npnt)+1] += fraci * dslpj[1];
+                slpA[3*(       ipnt+jedge*npnt)+2] += fraci * dslpj[2];
+            }
         }
+
+        for (iedge = 0; iedge < nedgeB; iedge++) {
+            jedge = (iedge + 1) % nedgeB;
+
+            /* remove normal component associated with beg of jedge from iedge's last slope */
+            status = EG_getEdgeUV(efacesB[jedge], eedgesB[jedge], 0, tB[0+jedge*npnt], uvFace);
+            CHECK_STATUS(EG_getEdgeUV);
+
+            status = EG_evaluate(efacesB[jedge], uvFace, data);
+            CHECK_STATUS(EG_evaluate);
+
+            norm[0] = data[4] * data[8] - data[5] * data[7];
+            norm[1] = data[5] * data[6] - data[3] * data[8];
+            norm[2] = data[3] * data[7] - data[4] * data[6];
+            norm[3] = norm[0]*norm[0] + norm[1]*norm[1] + norm[2]*norm[2];
+
+            proj = slpB[3*(npnt-1+iedge*npnt)  ] * norm[0]
+                 + slpB[3*(npnt-1+iedge*npnt)+1] * norm[1]
+                 + slpB[3*(npnt-1+iedge*npnt)+2] * norm[2];
+
+            newSlope[0] = slpB[3*(npnt-1+iedge*npnt)  ] - proj * norm[0] / norm[3];
+            newSlope[1] = slpB[3*(npnt-1+iedge*npnt)+1] - proj * norm[1] / norm[3];
+            newSlope[2] = slpB[3*(npnt-1+iedge*npnt)+2] - proj * norm[2] / norm[3];
+
+            /* remove normal component assoaiated with end of iedge from jedge's first slope */
+            status = EG_getEdgeUV(efacesB[iedge], eedgesB[iedge], 0, tB[npnt-1+iedge*npnt], uvFace);
+            CHECK_STATUS(EG_getEdgeUV);
+
+            status = EG_evaluate(efacesB[iedge], uvFace, data);
+            CHECK_STATUS(EG_evaluate);
+
+            norm[0] = data[4] * data[8] - data[5] * data[7];
+            norm[1] = data[5] * data[6] - data[3] * data[8];
+            norm[2] = data[3] * data[7] - data[4] * data[6];
+            norm[3] = norm[0]*norm[0] + norm[1]*norm[1] + norm[2]*norm[2];
+
+            proj = slpB[3*(0+jedge*npnt)  ] * norm[0]
+                 + slpB[3*(0+jedge*npnt)+1] * norm[1]
+                 + slpB[3*(0+jedge*npnt)+2] * norm[2];
+
+            newSlope[0] = (newSlope[0] + slpB[3*(0+jedge*npnt)  ] - proj * norm[0] / norm[3]) / 2;
+            newSlope[1] = (newSlope[1] + slpB[3*(0+jedge*npnt)+1] - proj * norm[1] / norm[3]) / 2;
+            newSlope[2] = (newSlope[2] + slpB[3*(0+jedge*npnt)+2] - proj * norm[2] / norm[3]) / 2;
+
+            dslpi[0] = newSlope[0] - slpB[3*(npnt-1+iedge*npnt)  ];
+            dslpi[1] = newSlope[1] - slpB[3*(npnt-1+iedge*npnt)+1];
+            dslpi[2] = newSlope[2] - slpB[3*(npnt-1+iedge*npnt)+2];
+
+            dslpj[0] = newSlope[0] - slpB[3*(0     +jedge*npnt)  ];
+            dslpj[1] = newSlope[1] - slpB[3*(0     +jedge*npnt)+1];
+            dslpj[2] = newSlope[2] - slpB[3*(0     +jedge*npnt)+2];
+
+            /* adjust end of iedge and beginning of jedge */
+            for (ipnt = 0; ipnt < npnt; ipnt++) {
+                fraci = 1 - (double)(ipnt) / (double)(npnt-1);
+
+                slpB[3*(npnt-1-ipnt+iedge*npnt)  ] += fraci * dslpi[0];
+                slpB[3*(npnt-1-ipnt+iedge*npnt)+1] += fraci * dslpi[1];
+                slpB[3*(npnt-1-ipnt+iedge*npnt)+2] += fraci * dslpi[2];
+
+                slpB[3*(       ipnt+jedge*npnt)  ] += fraci * dslpj[0];
+                slpB[3*(       ipnt+jedge*npnt)+1] += fraci * dslpj[1];
+                slpB[3*(       ipnt+jedge*npnt)+2] += fraci * dslpj[2];
+            }
+        }
+
+    } else {
+        printf("bad method=%d\n", METHOD(0));
+        exit(0);
     }
-    
-    /* plot the slope directions */
-    if (PLOT(0) != 0) {
+
+    /* plot A-B connections and slopes */
+    if (PLOT(0) == 1) {
         FILE *fp;
 
         fp = fopen("flend.plot", "w");
         if (fp != NULL) {
-            for (iedge = 0; iedge < nedgeA; iedge++) {
-                fprintf(fp, "%5d %5d dirA_edge_%d\n", npnt, -1, iedge);
-                for (ipnt = 0; ipnt < npnt; ipnt++) {
-                    fprintf(fp, " %9.5f %9.5f %9.5f\n", pntA[3*(ipnt+iedge*npnt)  ],
-                                                        pntA[3*(ipnt+iedge*npnt)+1],
-                                                        pntA[3*(ipnt+iedge*npnt)+2]);
-                    fprintf(fp, " %9.5f %9.5f %9.5f\n", pntA[3*(ipnt+iedge*npnt)  ]+slpA[3*(ipnt+iedge*npnt)  ],
-                                                        pntA[3*(ipnt+iedge*npnt)+1]+slpA[3*(ipnt+iedge*npnt)+1],
-                                                        pntA[3*(ipnt+iedge*npnt)+2]+slpA[3*(ipnt+iedge*npnt)+2]);
-                }
 
-                fprintf(fp, "%5d %5d dirB_edge_%d\n", npnt, -1, iedge);
+            for (iedge = 0; iedge < nedgeA; iedge++) {
+                fprintf(fp, "%5d %5d flend_AB_%d|y\n", npnt, -1, iedge);
                 for (ipnt = 0; ipnt < npnt; ipnt++) {
-                    fprintf(fp, " %9.5f %9.5f %9.5f\n", pntB[3*(ipnt+iedge*npnt)  ],
-                                                        pntB[3*(ipnt+iedge*npnt)+1],
-                                                        pntB[3*(ipnt+iedge*npnt)+2]);
-                    fprintf(fp, " %9.5f %9.5f %9.5f\n", pntB[3*(ipnt+iedge*npnt)  ]+slpB[3*(ipnt+iedge*npnt)  ],
-                                                        pntB[3*(ipnt+iedge*npnt)+1]+slpB[3*(ipnt+iedge*npnt)+1],
-                                                        pntB[3*(ipnt+iedge*npnt)+2]+slpB[3*(ipnt+iedge*npnt)+2]);
+                    fprintf(fp, " %9.5f %9.5f %9.5f %9.5f %9.5f %9.5f\n",
+                            pntA[3*(ipnt+iedge*npnt)  ],
+                            pntA[3*(ipnt+iedge*npnt)+1],
+                            pntA[3*(ipnt+iedge*npnt)+2],
+                            pntB[3*(ipnt+iedge*npnt)  ],
+                            pntB[3*(ipnt+iedge*npnt)+1],
+                            pntB[3*(ipnt+iedge*npnt)+2]);
                 }
             }
+
+            for (iedge = 0; iedge < nedgeA; iedge++) {
+                fprintf(fp, "%5d %5d flend_slpA_%d|m\n", npnt, -1, iedge);
+                for (ipnt = 0; ipnt < npnt; ipnt++) {
+                    fprintf(fp, " %9.5f %9.5f %9.5f %9.5f %9.5f %9.5f\n",
+                            pntA[3*(ipnt+iedge*npnt)  ],
+                            pntA[3*(ipnt+iedge*npnt)+1],
+                            pntA[3*(ipnt+iedge*npnt)+2],
+                            pntA[3*(ipnt+iedge*npnt)  ]+slpA[3*(ipnt+iedge*npnt)  ],
+                            pntA[3*(ipnt+iedge*npnt)+1]+slpA[3*(ipnt+iedge*npnt)+1],
+                            pntA[3*(ipnt+iedge*npnt)+2]+slpA[3*(ipnt+iedge*npnt)+2]);
+                }
+            }
+
+            for (iedge = 0; iedge < nedgeB; iedge++) {
+                fprintf(fp, "%5d %5d flend_slpB_%d|c\n", npnt, -1, iedge);
+                for (ipnt = 0; ipnt < npnt; ipnt++) {
+                    fprintf(fp, " %9.5f %9.5f %9.5f %9.5f %9.5f %9.5f\n",
+                            pntB[3*(ipnt+iedge*npnt)  ],
+                            pntB[3*(ipnt+iedge*npnt)+1],
+                            pntB[3*(ipnt+iedge*npnt)+2],
+                            pntB[3*(ipnt+iedge*npnt)  ]+slpB[3*(ipnt+iedge*npnt)  ],
+                            pntB[3*(ipnt+iedge*npnt)+1]+slpB[3*(ipnt+iedge*npnt)+1],
+                            pntB[3*(ipnt+iedge*npnt)+2]+slpB[3*(ipnt+iedge*npnt)+2]);
+                }
+            }
+            
             fprintf(fp, "    0    0 end\n");
             fclose(fp);
-        }
-    }
-
-    /* modify the slopes by the distances across the flend */
-    for (iedge = 0; iedge < nedgeA; iedge++) {
-        for (ipnt = 0; ipnt < npnt; ipnt++) {
-            indx = 3 * (ipnt + iedge * npnt);
-
-            dist = sqrt((pntA[indx  ]-pntB[indx  ]) * (pntA[indx  ]-pntB[indx  ])
-                       +(pntA[indx+1]-pntB[indx+1]) * (pntA[indx+1]-pntB[indx+1])
-                       +(pntA[indx+2]-pntB[indx+2]) * (pntA[indx+2]-pntB[indx+2]));
-
-            slpA[indx  ] *= dist;
-            slpA[indx+1] *= dist;
-            slpA[indx+2] *= dist;
-
-            slpB[indx  ] *= dist;
-            slpB[indx+1] *= dist;
-            slpB[indx+2] *= dist;
         }
     }
 
@@ -678,8 +1353,8 @@ udpExecute(ego  emodel,                 /* (in)  input model */
     CHECK_STATUS(EG_getTopology);
 
     if (nchild != 1) {
-        snprintf(message, 100, "expecting emodel to have only one child, but has %d", nchild);
-        status = -287;
+        snprintf(message, 100, "expecting emodel to have only one child during SEW, but has %d... increase toler", nchild);
+        status = OCSM_UDP_ERROR5;
         goto cleanup;
     }
 
@@ -693,13 +1368,25 @@ udpExecute(ego  emodel,                 /* (in)  input model */
     CHECK_STATUS(EG_getTopology);
 
     if (mtype != SOLIDBODY) {
-        snprintf(message, 100, "expecting SolidBody");
-        status = -288;
+        snprintf(message, 100, "sewing resulted in mtype=%d (not %d)... increase toler", mtype, SOLIDBODY);
+        status = OCSM_UDP_ERROR6;
         goto cleanup;
     }
 
     status = EG_deleteObject(emodel2);
     CHECK_STATUS(EG_deleteObject);
+
+    /* clean up */
+    status = EG_deleteObject(context);
+    CHECK_STATUS(EG_deleteObject);
+
+    status = EG_deleteObject(ebodyA);
+    CHECK_STATUS(EG_deleteObject);
+
+    if (ebodyB != ebodyA) {
+        status = EG_deleteObject(ebodyB);
+        CHECK_STATUS(EG_deleteObject);
+    }
 
     /* return output value(s) */
 
@@ -713,7 +1400,7 @@ udpExecute(ego  emodel,                 /* (in)  input model */
 cleanup:
     if (efacesA2 != NULL) EG_free(efacesA2);
     if (efacesB2 != NULL) EG_free(efacesB2);
-    
+
     FREE(efacelist);
     FREE(spln     );
     FREE(west     );
@@ -727,10 +1414,13 @@ cleanup:
     FREE(tB     );
     FREE(pntB   );
     FREE(slpB   );
+    FREE(pntC   );
+    FREE(pntD   );
+    FREE(dCdt   );
+    FREE(tD     );
 
     if (strlen(message) > 0) {
         *string = message;
-        printf("%s\n", message);
     } else if (status != EGADS_SUCCESS) {
         FREE(message);
         *string = udpErrorStr(status);
@@ -890,7 +1580,7 @@ exposedLoops(ego    ebody,              /* (in)  Body */
 
 cleanup:
     FREE(elist);
-    
+
     return status;
 }
 
@@ -912,14 +1602,16 @@ fillPointsFromEdge(ego    eedgeA,       /* (in)  Edge in BodyA */
                    double tA[],         /* (out) t for Points along EdgeA */
                    double pntA[],       /* (out) Points along EdgeA */
                    double tB[],         /* (out) t for Points along EdgeB */
-                   double pntB[])       /* (out) Points along EdgeB */
+                   double pntB[],       /* (out) Points along EdgeB */
+       /*@unused@*/int    *NumUdp,
+                   udp_T  *udps)
 {
     int     status = EGADS_SUCCESS;     /* (out) return status */
 
     int     periodic, ipnt;
     double  trangeA[2], trangeB[2], lenA, lenB, data[18];
     double  fraci, stgt, tleft, trite, tt, ss;
-    
+
     ROUTINE(fillPointsFromEdge);
 
     /* --------------------------------------------------------------- */
@@ -1151,9 +1843,9 @@ fillSlopesFromEdge(ego    eedge,
     int     ipnt, oclass, mtype;
     double  edata[18], uv[2], fdata[18], vec[4];
     ego     topRef, prev, next;
-    
+
     ROUTINE(fillSlopesFromEdge);
-    
+
     /* --------------------------------------------------------------- */
 
     status = EG_getInfo(eface, &oclass, &mtype, &topRef, &prev, &next);
@@ -1183,7 +1875,7 @@ fillSlopesFromEdge(ego    eedge,
                - edata[3] * (fdata[3] * fdata[7] - fdata[4] * fdata[6]);
         vec[2] = edata[3] * (fdata[5] * fdata[6] - fdata[3] * fdata[8])
                - edata[4] * (fdata[4] * fdata[8] - fdata[5] * fdata[7]);
-        
+
         vec[3] = sense * mtype * sqrt(vec[0]*vec[0] + vec[1]*vec[1] + vec[2]*vec[2]);
 
         slp[3*ipnt  ] = vec[0] / vec[3];
@@ -1209,69 +1901,6 @@ cleanup:
 /*
  ************************************************************************
  *                                                                      *
- *   flipLoop - flip Loop using original Edges                          *
- *                                                                      *
- ************************************************************************
- */
-
-static int
-flipLoop(ego    *eloop)                 /* (both) Loop to be flipped */
-{
-    int    status = SUCCESS;            /* (out)  return status */
-
-    int    oclass, mtype, nedge, *oldSenses, *newSenses=NULL, i, j;
-    double data[4];
-    ego    context, eref, *oldEedges, *newEedges=NULL;
-
-    ROUTINE(flipLoop);
-
-    /* --------------------------------------------------------------- */
-
-    status = EG_getContext(*eloop, &context);
-    CHECK_STATUS(EG_getContext);
-
-    status = EG_getTopology(*eloop, &eref, &oclass, &mtype,
-                            data, &nedge, &oldEedges, &oldSenses);
-    CHECK_STATUS(EG_getTopology);
-
-    /* if eref!=NULL, we might need to take care of Pcurves too */
-    if (oclass != LOOP || mtype != CLOSED || eref != NULL) {
-        status = -289;
-        goto cleanup;
-    }
-
-    MALLOC(newEedges, ego, nedge);
-    MALLOC(newSenses, int, nedge);
-
-    i = 0;
-    j = nedge - 1;
-
-    while (i <= j) {
-        newEedges[i] =  oldEedges[j];
-        newSenses[i] = -oldSenses[j];
-
-        newEedges[j] =  oldEedges[i];
-        newSenses[j] = -oldSenses[i];
-
-        i++;
-        j--;
-    }
-
-    status = EG_makeTopology(context, eref, LOOP, CLOSED, data,
-                             nedge, newEedges, newSenses, eloop);
-    CHECK_STATUS(EG_makeTopology);
-
-cleanup:
-    FREE(newEedges);
-    FREE(newSenses);
-
-    return status;
-}
-
-
-/*
- ************************************************************************
- *                                                                      *
  *   reorderLoop - reorder eloopsB to give minimum twist from eloopA    *
  *                                                                      *
  ************************************************************************
@@ -1287,9 +1916,9 @@ reorderLoop(ego    eloopA,            /* (in)  base Loop */
     int      oclassi, oclassj, oclassk, oclassg, mtypei, mtypej, mtypek, mtypeg, nedgei, nedgej, nedgek;
     int      *sensesi, *sensesj, *sensesk, nnode, *sensesnew=NULL;
     double   uvlimitsi[4], uvlimitsj[4], uvlimitsk[4], data[18], *xyzi=NULL, *xyzj=NULL;
-    double   areai[3], areaj[3], dotprod, ltest, lshift;
+    double   ltest, lshift;
     ego      erefi, erefj, erefk, erefg, *eedgesi, *eedgesj, *eedgesk;
-    ego      *enodes, *elist, *eedgesnew=NULL, etemp, context;
+    ego      *enodes, *elist, *eedgesnew=NULL, context;
 
     ROUTINE(reorderLoop);
 
@@ -1371,68 +2000,15 @@ reorderLoop(ego    eloopA,            /* (in)  base Loop */
         }
     }
 
-    /* find the area of eloopA and eloopB */
-    areai[0] = areai[1] = areai[2] = 0;
-    areaj[0] = areaj[1] = areaj[2] = 0;
-
-    for (iedge = 1; iedge < 2*nedgei-1; iedge++) {
-        areai[0] += (xyzi[1] - xyzi[6*nedgei-2]) * (xyzi[3*iedge+2] - xyzi[6*nedgei-1])
-                  - (xyzi[2] - xyzi[6*nedgei-1]) * (xyzi[3*iedge+1] - xyzi[6*nedgei-2]);
-        areai[1] += (xyzi[2] - xyzi[6*nedgei-1]) * (xyzi[3*iedge  ] - xyzi[6*nedgei-3])
-                  - (xyzi[0] - xyzi[6*nedgei-3]) * (xyzi[3*iedge+2] - xyzi[6*nedgei-1]);
-        areai[2] += (xyzi[0] - xyzi[6*nedgei-3]) * (xyzi[3*iedge+1] - xyzi[6*nedgei-2])
-                  - (xyzi[1] - xyzi[6*nedgei-2]) * (xyzi[3*iedge  ] - xyzi[6*nedgei-3]);
-
-        areaj[0] += (xyzj[1] - xyzj[6*nedgej-2]) * (xyzj[3*iedge+2] - xyzj[6*nedgej-1])
-                  - (xyzj[2] - xyzj[6*nedgej-1]) * (xyzj[3*iedge+1] - xyzj[6*nedgej-2]);
-        areaj[1] += (xyzj[2] - xyzj[6*nedgej-1]) * (xyzj[3*iedge  ] - xyzj[6*nedgej-3])
-                  - (xyzj[0] - xyzj[6*nedgej-3]) * (xyzj[3*iedge+2] - xyzj[6*nedgej-1]);
-        areaj[2] += (xyzj[0] - xyzj[6*nedgej-3]) * (xyzj[3*iedge+1] - xyzj[6*nedgej-2])
-                  - (xyzj[1] - xyzj[6*nedgej-2]) * (xyzj[3*iedge  ] - xyzj[6*nedgej-3]);
-    }
-
-    /* if the dot products of the areas is negative, flip the direction of eloopB */
-    dotprod = areai[0] * areaj[0] + areai[1] * areaj[1] + areai[2] * areaj[2];
-    if (dotprod < 0) {
-        status = flipLoop(eloopB);
-        CHECK_STATUS(flipLoop);
-
-        status = EG_getTopology(*eloopB, &erefj,
-                                &oclassj, &mtypej, uvlimitsj, &nedgej, &eedgesj, &sensesj);
-        CHECK_STATUS(EG_getTopology);
-
-        if (oclassj == FACE) {
-            etemp  = eedgesj[0];
-            status = EG_getTopology(etemp, &erefj,
-                                    &oclassj, &mtypej, uvlimitsj, &nedgej, &eedgesj, &sensesj);
-            CHECK_STATUS(EG_getTopology);
-        }
-
-        for (iedge = 0; iedge < nedgej; iedge++) {
-            status = EG_getTopology(eedgesj[iedge], &erefk,
-                                    &oclassk, &mtypek, uvlimitsk, &nnode, &enodes, &sensesk);
-            CHECK_STATUS(EG_getTopology);
-
-            if (sensesj[iedge] > 0) {
-                status = EG_getTopology(enodes[0], &erefk,
-                                        &oclassk, &mtypek, &(xyzj[6*iedge]), &nnode, &elist, &sensesk);
-                CHECK_STATUS(EG_getTopology);
-            } else {
-                status = EG_getTopology(enodes[1], &erefk,
-                                        &oclassk, &mtypek, &(xyzj[6*iedge]), &nnode, &elist, &sensesk);
-                CHECK_STATUS(EG_getTopology);
-            }
-        }
-    }
-
     /* find the shift of eloopB that minimizes the distance between the Nodes of eloopA
        and the Nodes of eloopB */
     ishift = 0;
     lshift = HUGEQ;
 
     /* compute the sum of the distances for each candidate shift */
-    for (itest = 0; itest < 2*nedgei; itest++) {
+    for (itest = 0; itest < 2*nedgei; itest+=2) {
 
+        /* simple shifts */
         ltest = 0;
         for (iedge = 0; iedge < 2*nedgei; iedge++) {
             jedge = (iedge + itest) % (2*nedgei);
@@ -1442,21 +2018,43 @@ reorderLoop(ego    eloopA,            /* (in)  base Loop */
                          +(xyzi[3*iedge+2]-xyzj[3*jedge+2])*(xyzi[3*iedge+2]-xyzj[3*jedge+2]));
         }
         if (ltest < lshift) {
-            ishift = itest / 2;
+            ishift = itest/2;
+            lshift = ltest;
+        }
+
+        /* flipped shifts */
+        ltest = 0;
+        for (iedge = 0; iedge < 2*nedgei; iedge++) {
+            jedge = (2 * nedgei - iedge + itest) % (2*nedgei);
+
+            ltest += sqrt((xyzi[3*iedge  ]-xyzj[3*jedge  ])*(xyzi[3*iedge  ]-xyzj[3*jedge  ])
+                         +(xyzi[3*iedge+1]-xyzj[3*jedge+1])*(xyzi[3*iedge+1]-xyzj[3*jedge+1])
+                         +(xyzi[3*iedge+2]-xyzj[3*jedge+2])*(xyzi[3*iedge+2]-xyzj[3*jedge+2]));
+        }
+        if (ltest < lshift) {
+            ishift = - (itest/2 + 1);
             lshift = ltest;
         }
     }
 
     /* create the new rotated Loop */
-    if (ishift > 0) {
+    if (ishift != 0) {
         MALLOC(eedgesnew, ego, 2*nedgej);
         MALLOC(sensesnew, int, 2*nedgej);
 
         /* shift the Loop by ishift */
-        for (iedge = 0; iedge < nedgej; iedge++) {
-            jedge = (iedge + ishift) % nedgej;
-            eedgesnew[iedge] = eedgesj[jedge];
-            sensesnew[iedge] = sensesj[jedge];
+        if (ishift > 0) {
+            for (iedge = 0; iedge < nedgei; iedge++) {
+                jedge = (iedge + ishift) % nedgei;
+                eedgesnew[iedge] =  eedgesj[jedge];
+                sensesnew[iedge] = +sensesj[jedge];
+            }
+        } else {
+            for (iedge = 0; iedge < nedgei; iedge++) {
+                jedge = (2 * nedgei - iedge - ishift - 2) % nedgei;
+                eedgesnew[iedge] =  eedgesj[jedge];
+                sensesnew[iedge] = -sensesj[jedge];
+            }
         }
 
         status = EG_getTopology(*eloopB, &erefk,
@@ -1468,10 +2066,18 @@ reorderLoop(ego    eloopA,            /* (in)  base Loop */
             CHECK_STATUS(EG_getGeometry);
 
             if (mtypeg != PLANE) {
-                for (iedge = 0; iedge < nedgej; iedge++) {
-                    jedge = (iedge + ishift) % nedgej;
-                    eedgesnew[iedge+nedgej] = eedgesj[jedge+nedgej];
-                    sensesnew[iedge+nedgej] = sensesj[jedge+nedgej];
+                if (ishift > 0) {
+                    for (iedge = 0; iedge < nedgei; iedge++) {
+                        jedge = (iedge + ishift) % nedgei;
+                        eedgesnew[iedge+nedgei] =  eedgesj[jedge+nedgei];
+                        sensesnew[iedge+nedgei] = +sensesj[jedge+nedgei];
+                    }
+                } else {
+                    for (iedge = 0; iedge < nedgei; iedge++) {
+                        jedge = (2 * nedgei - iedge - ishift - 2) % nedgei;
+                        eedgesnew[iedge+nedgei] =  eedgesj[jedge+nedgei];
+                        sensesnew[iedge+nedgei] = -sensesj[jedge+nedgei];
+                    }
                 }
             }
         }
@@ -1518,11 +2124,11 @@ slopeAtNode(ego    eedge,               /* (in)  Edge starting at Node */
     double  tang[18], uv[2], trange[2], tt, data[18];
     double  tlen;
     ego     eref, enode, *enodes, eedge2, *eedges2=NULL, *eefaces2=NULL;
-    
+
     ROUTINE(fixSlopeAtNode);
-    
+
     /* --------------------------------------------------------------- */
-    
+
     status = EG_getRange(eedge, trange, &periodic);
     CHECK_STATUS(EG_getRange);
 

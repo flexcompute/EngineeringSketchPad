@@ -3,10 +3,6 @@ ifndef ESP_ROOT
 $(error ESP_ROOT must be set -- Please fix the environment...)
 endif
 #
-ifndef TETGEN
-$(error TETGEN must be set -- Please fix the environment...)
-endif
-#
 IDIR  = $(ESP_ROOT)/include
 include $(IDIR)/$(ESP_ARCH)
 LDIR  = $(ESP_ROOT)/lib
@@ -15,7 +11,15 @@ ODIR  = $(ESP_BLOC)/obj
 else
 ODIR  = .
 endif
+#
+ifndef TETGEN
+lint default:
+	@echo "Not compiling tetgenAIM: TETGEN must be set -- Please fix the environment...."
+else
+default:	$(LDIR)/tetgenAIM.so
 
+lint: tetlint
+endif
 
 $(LDIR)/tetgenAIM.so:	$(ODIR)/tetgenAIM.o $(ODIR)/tetgen_Interface.o \
 			$(ODIR)/tetgen.o $(ODIR)/predicates.o $(LDIR)/libutils.a $(LDIR)/libaimUtil.a
@@ -39,7 +43,7 @@ $(ODIR)/predicates.o:	$(TETGEN)/predicates.cxx
 $(ODIR)/tetgen.o:	$(TETGEN)/tetgen.cxx
 	$(CXX) -c $(COPTS) -DTETLIBRARY -w $(TETGEN)/tetgen.cxx -o $(ODIR)/tetgen.o
 
-lint:
+tetlint:
 	$(LINT) -I../../include -I$(IDIR) $(wildcard *.c) -uniondef -exportlocal -nullpass
 
 clean:

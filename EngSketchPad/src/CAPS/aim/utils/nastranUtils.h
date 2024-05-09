@@ -1,5 +1,8 @@
 // This software has been cleared for public release on 05 Nov 2020, case number 88ABW-2020-3462.
 
+#ifndef _AIM_UTILS_NASTRANUTILS_H_
+#define _AIM_UTILS_NASTRANUTILS_H_
+
 #include "feaTypes.h"  // Bring in FEA structures
 #include "vlmTypes.h"  // Bring in VLM structures
 
@@ -12,7 +15,7 @@ extern "C" {
 int nastran_writeSetCard(FILE *fp, int n, int numSetID, int *setID);
 
 // Write a Nastran element cards not supported by mesh_writeNastran in meshUtils.c
-int nastran_writeSubElementCard(FILE *fp, const meshStruct *feaMesh, int numProperty, const feaPropertyStruct *feaProperty, const feaFileFormatStruct *feaFileFormat);
+int nastran_writeSubElementCard(void *aimInfo, FILE *fp, const meshStruct *feaMesh, int numProperty, const feaPropertyStruct *feaProperty, const feaFileFormatStruct *feaFileFormat);
 
 // Write a Nastran connections card from a feaConnection structure
 int nastran_writeConnectionCard(FILE *fp, const feaConnectionStruct *feaConnect, const feaFileFormatStruct *feaFileFormat);
@@ -59,17 +62,17 @@ int nastran_writeLoadADDCard(FILE *fp, int loadID, int numSetID, int loadSetID[]
 int nastran_writeLoadCard(FILE *fp, const feaLoadStruct *feaLoad, const feaFileFormatStruct *feaFileFormat);
 
 // Write Nastran analysis card from a feaAnalysis structure
-int nastran_writeAnalysisCard(FILE *fp, const feaAnalysisStruct *feaAnalysis, const feaFileFormatStruct *feaFileFormat);
+int nastran_writeAnalysisCard(FILE *fp, feaAnalysisStruct *feaAnalysis, const feaFileFormatStruct *feaFileFormat);
 
 // Write a combined Nastran design constraint card from a set of constraint IDs.
 //  The combined design constraint ID is set through the constraint ID variable.
 int nastran_writeDesignConstraintADDCard(FILE *fp, int constraintID, int numSetID, const int designConstraintSetID[], const feaFileFormatStruct *feaFileFormat);
 
 // Write design constraint/optimization information from a feaDesignConstraint structure
-int nastran_writeDesignConstraintCard(FILE *fp, const feaDesignConstraintStruct *feaDesignConstraint, const feaFileFormatStruct *feaFileFormat);
+int nastran_writeDesignConstraintCard(FILE *fp, const feaDesignConstraintStruct *feaDesignConstraint, const feaProblemStruct *feaProblem, const feaFileFormatStruct *feaFileFormat);
 
 // Write design variable/optimization information from a feaDesignVariable structure
-int nastran_writeDesignVariableCard(FILE *fp, const feaDesignVariableStruct *feaDesignVariable, const feaFileFormatStruct *feaFileFormat);
+int nastran_writeDesignVariableCard(void *aimInfo, FILE *fp, const feaDesignVariableStruct *feaDesignVariable, const feaFileFormatStruct *feaFileFormat);
 
 // Write design variable relation information from a feaDesignVariableRelation structure
 int nastran_writeDesignVariableRelationCard(void *aimInfo, FILE *fp, const feaDesignVariableRelationStruct *feaDesignVariableRelation, const feaProblemStruct *feaProblem, const feaFileFormatStruct *feaFileFormat);
@@ -77,17 +80,23 @@ int nastran_writeDesignVariableRelationCard(void *aimInfo, FILE *fp, const feaDe
 // Write equation information from a feaDesignEquation structure
 int nastran_writeDesignEquationCard(FILE *fp, const feaDesignEquationStruct *feaEquation, const feaFileFormatStruct *fileFormat);
 
-// Write design table constants information from a feaDesignTable structure 
+// Write design table constants information from a feaDesignTable structure
 int nastran_writeDesignTableCard(FILE *fp, const feaDesignTableStruct *feaDesignTable, const feaFileFormatStruct *fileFormat);
 
-// Write design response information from a feaDesignResponse structure 
+// Write design response information from a feaDesignResponse structure
 int nastran_writeDesignResponseCard(FILE *fp, const feaDesignResponseStruct *feaDesignResponse, const feaFileFormatStruct *fileFormat);
 
-// Write design equation response information from a feaDesignEquationResponse structure 
+// Write design equation response information from a feaDesignEquationResponse structure
 int nastran_writeDesignEquationResponseCard(FILE *fp, const feaDesignEquationResponseStruct *feaDesignEquationResponse, const feaProblemStruct *feaProblem, const feaFileFormatStruct *fileFormat);
 
 // Write design optimization parameter information from a feaDesignOptParam struct
 int nastran_writeDesignOptParamCard(FILE *fp, const feaDesignOptParamStruct *feaDesignOptParam, const feaFileFormatStruct *fileFormat);
+
+// Write mass increment information from a feaMassIncrement structure
+int nastran_writeMasssetCard(FILE *fp, int incrementID, const feaFileFormatStruct *feaFileFormat);
+
+// Write mass increment information from a feaMassIncrement structure
+int nastran_writeMassIncrementSet(FILE *fp, int incrementID, int numIncrementID, const int massIncrementSetID[], const feaMassIncrementStruct *feaMassIncrement, const feaFileFormatStruct *feaFileFormat);
 
 // Read data from a Nastran F06 file to determine the number of eignevalues
 int nastran_readF06NumEigenValue(FILE *fp, int *numEigenVector);
@@ -104,11 +113,17 @@ int nastran_readF06EigenValue(FILE *fp, int *numEigenVector, double ***dataMatri
 // where variables are Grid Id, Coord Id, T1, T2, T3, R1, R2, R3
 int nastran_readF06Displacement(FILE *fp, int subcaseId, int *numGridPoint, double ***dataMatrix);
 
+// Read weight value from a Nastran F06 file
+int nastran_readF06GridPointWeightGeneratorOutput(FILE *fp, double *mass, double cg[3],
+                                                  double is[3], double iq[3], double q[9]);
+
 // Read objective values for a Nastran OP2 file  and liad it into a dataMatrix[numPoint]
 int nastran_readOP2Objective(char *filename, int *numPoint,  double **dataMatrix);
 
-int nastran_writeAeroCamberTwist(void *aimInfo, FILE *fp, int numAero, feaAeroStruct *feaAero, feaFileFormatStruct *feaFileFormat);
+int nastran_writeAeroCamberTwist(void *aimInfo, FILE *fp, int numAero, feaAeroStruct *feaAero, const feaFileFormatStruct *feaFileFormat);
 
 #ifdef __cplusplus
 }
 #endif
+
+#endif // _AIM_UTILS_NASTRANUTILS_H_

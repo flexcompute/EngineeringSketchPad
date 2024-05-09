@@ -39,16 +39,15 @@ STORE      lower
 # combine upper flap with main
 IFTHEN    thetau  GT  0
    # make insert
-   MARK
-      RESTORE   main
-      SELECT    EDGE     2  2  4  2  1
-      EXTRACT   -@sellist[1]
+   RESTORE   main
+   SELECT    EDGE     2  2  4  2  1
+   EXTRACT   -@sellist[1]
 
-      RESTORE   upper
-      SELECT    EDGE     2  2  7  1  1
-      EXTRACT   -@sellist[1]
-      JOIN
-   COMBINE
+   RESTORE   upper
+   SELECT    EDGE     2  2  7  1  1
+   EXTRACT   -@sellist[1]
+   JOIN
+   ELEVATE
    
    EXTRUDE   0  0  -span
    RESTORE   main
@@ -64,16 +63,15 @@ ENDIF
 # combine lower flap with main
 IFTHEN    thetal  LT  0
    # make insert
-   MARK
-      RESTORE   main
-      SELECT    EDGE     2  2  4  2  1
-      EXTRACT   -@sellist[1]
+   RESTORE   main
+   SELECT    EDGE     2  2  4  2  1
+   EXTRACT   -@sellist[1]
 
-      RESTORE   lower
-      SELECT    EDGE     2  2  10  1  1
-      EXTRACT   -@sellist[1]
-      JOIN
-   COMBINE
+   RESTORE   lower
+   SELECT    EDGE     2  2  10  1  1
+   EXTRACT   -@sellist[1]
+   JOIN
+   ELEVATE
 
    EXTRUDE   0  0  -span
    RESTORE   lower

@@ -1,0 +1,7 @@
+# OPAM1_raw (using VSP)
+# writen by John Dannenhoffer
+
+# import the geometry
+UDPRIM $/OPAM1
+
+END

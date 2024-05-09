@@ -1,0 +1,20 @@
+# elevate2
+# written by John Dannenhoffer
+
+mark
+   skbeg     -1.0  -1.0  -1.0
+      linseg -1.0   1.0  -1.0
+   skend
+
+   skbeg     -1.0   1.0  -1.0
+      linseg  1.0   1.0  -1.0
+   skend
+
+   skbeg      1.0   1.0  -1.0
+      linseg  1.0  -1.0  -1.0
+      linseg -1.0  -1.0  -1.0
+   skend
+join   0  1
+elevate
+
+end

@@ -126,6 +126,10 @@ AIAApaper2022-1734
  Aircraft Design"
 Marshall Galbraith and Robert Haimes
 
+AIAApaper2022-1735
+"Towards Modeling for Design: Aspects of Multi-fidelity Geometry using CAPS"
+Nitin Bhagat, Ryan Durscher and Dean Bryson
+
 AIAApaper2022-1736
 "On Analysis Driven Shape Design Using B-Splines"
 Marlena Gomez, Marshall Galbraith and Robert Haimes 
@@ -134,3 +138,35 @@ AIAApaper2022-2248
 "Towards Modeling for Design: Using a Real-time Collaborative Environment 
  in CAPS"
 John Dannenhoffer and Nitin Bhagat 
+
+AIAApaper2022-3493
+"GLOVES: A Graphical Layout of Vehicle Systems for the Engineering Sketch Pad"
+Paul Mokotoff and John Dannenhoffer
+
+AIAApaper2023-0550
+"An Integrated Design Environment for the Engineering Sketch Pad"
+John Dannenhoffer and Robert Haimes
+
+AIAApaper2023-1162
+"A Parametric Design Process based on Optimization-Guided Incremental Design Decisions"
+Dongjoon Lee, Cody Karcher, Robert Haimes, Marshall Galbraith and John Dannenhoffer
+
+AIAApaper2023-3599
+"On Managing Geometric Models for Multi-component, Multi-disciplinary Analysis and Design"
+John Dannenhoffer and Nitin Bhagat
+
+AIAApaper2023-3601
+"Free-Form Deformation of Parametric CAD Geometryvia B-Spline Transformations"
+Marlena Gomez, Marshall Galbraith† and Robert Haimes
+
+AIAApaper2024-1315
+"An Overview of the Engineering Sketch Pad"
+John F. Dannenhoffer, III
+
+AIAApaper2024-1316
+"Using Faceted Geometries for Analysis and Design"
+John F. Dannenhoffer, III
+
+AIAApaper2024-1317
+"Analysis Driven Shape Design using Free-form Deformation of Parametric CAD Geometry"
+Marlena Gomez and Marshall Galbraith

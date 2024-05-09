@@ -1,0 +1,38 @@
+# solbeg_1
+# written by John Dannenhoffer
+
+# design parameters
+DESPMTR   L1   3.5
+DESPMTR   L2   2.0
+
+# initial guesses for corner locations
+SET       t1   45.0
+SET       t2  135.0
+
+# make outline of sketch before solving
+SKBEG     0            0            0
+   LINSEG 2            0            0
+   LINSEG L1*cosd(t1)  L1*sind(t1)  0
+   LINSEG 0            0            0
+SKEND  1
+
+# start the solver with these dependent variables
+SOLBEG    t1;t2;
+
+   # apply the constraints (which are 0 when satisfied)
+   SOLCON   (0+L1*cosd(t1))-(2+L2*cosd(t2))
+   SOLCON   (0+L1*sind(t1))-(0+L2*sind(t2))
+SOLEND
+
+# show converged results
+MESSAGE   !$t1=+t1
+MESSAGE   !$t2=+t2
+
+# show sketch after solving
+SKBEG     0            0            0
+   LINSEG 2            0            0
+   LINSEG L1*cosd(t1)  L1*sind(t1)  0
+   LINSEG 0            0            0
+SKEND
+
+END

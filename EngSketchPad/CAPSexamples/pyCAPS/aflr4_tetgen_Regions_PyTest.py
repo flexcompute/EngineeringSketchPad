@@ -38,8 +38,7 @@ volume = problem.analysis.create(aim='tetgenAIM', name='V')
 volume.input["Surface_Mesh"].link(surface.output["Surface_Mesh"])
 
 # Set the volume analysis values
-volume.input.Proj_Name = 'volume'
-volume.input.Mesh_Format = 'VTK'
+volume.input.Mesh_Format = ["vtk", "Tecplot"]
 
 # Sepecify a point in each region with the different ID's
 regions = {'a': { 'id' : 10, 'seed' : [0.0, 0.0, -1.0] },

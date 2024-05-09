@@ -9,7 +9,7 @@
  */
 
 /*
- * Copyright (C) 2013/2022  John F. Dannenhoffer, III (Syracuse University)
+ * Copyright (C) 2013/2024  John F. Dannenhoffer, III (Syracuse University)
  *
  * This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
@@ -30,12 +30,12 @@
 /*
    timLoad|plotter|
 
-   timMesg|plotter|new|title|xlabel|ylabel|
+   timMesg|plotter|new|title|xlabel|ylabel|ylabel2|
 
    timMesg|plotter|add|xvalue1;xvalue2;...|yvalue1;yvalue2;...|type|
 
    type:
-     r red      - solid     o circle
+     r red      - solid     o circle       2 ylabel2
      g green    : dotted    x x-mark
      b blue     _ dashed    + plus
      c cyan     ; dot-dash  * star
@@ -55,9 +55,7 @@
 #include <math.h>
 #include <assert.h>
 
-#include "egads.h"
 #include "OpenCSM.h"
-#include "common.h"
 #include "tim.h"
 #include "wsserver.h"
 
@@ -78,11 +76,10 @@ typedef struct {
     char   *title;
     char   *xlabel;
     char   *ylabel;
+    char   *ylabel2;
     int    nline;
     line_T *lines;
 } plotter_T;
-
-static void *realloc_temp=NULL;              /* used by RALLOC macro */
 
 
 /***********************************************************************/
@@ -116,7 +113,7 @@ timLoad(esp_T *ESP,                     /* (in)  pointer to ESP structure */
         printf("ERROR:: cannot nest more than %d TIMs\n", MAX_TIM_NESTING);
         exit(0);
     }
-    
+
     ESP->nudata++;
     MALLOC(ESP->udata[ESP->nudata-1], plotter_T, 1);
 
@@ -125,11 +122,12 @@ timLoad(esp_T *ESP,                     /* (in)  pointer to ESP structure */
     plotter = (plotter_T *) (ESP->udata[ESP->nudata-1]);
 
     /* initialize the structure */
-    plotter->title  = NULL;
-    plotter->xlabel = NULL;
-    plotter->ylabel = NULL;
-    plotter->nline  = 0;
-    plotter->lines  = NULL;
+    plotter->title   = NULL;
+    plotter->xlabel  = NULL;
+    plotter->ylabel  = NULL;
+    plotter->ylabel2 = NULL;
+    plotter->nline   = 0;
+    plotter->lines   = NULL;
 
     /* hold the UI when executing */
     status = 1;
@@ -152,10 +150,11 @@ timMesg(esp_T *ESP,                     /* (in)  pointer to ESP structure */
     int    status = EGADS_SUCCESS;      /* (out) return status */
 
     int    iline, i;
-    char   *arg1=NULL, *arg2=NULL, *arg3=NULL, *xystr=NULL;
+    char   *arg1=NULL, *arg2=NULL, *arg3=NULL, *arg4=NULL, *xystr=NULL;
     char   *pEnd;
     int    nresponse=0;
     char   *response=NULL;
+    void   *realloc_temp = NULL;            /* used by RALLOC macro */
 
     plotter_T *plotter = (plotter_T *) (ESP->udata[ESP->nudata-1]);
 
@@ -163,7 +162,7 @@ timMesg(esp_T *ESP,                     /* (in)  pointer to ESP structure */
 
     /* --------------------------------------------------------------- */
 
-    /* "new|title|xlabel|ylabel|" */
+    /* "new|title|xlabel|ylabel|ylabel2|" */
     if (strncmp(command, "new|", 4) == 0) {
 
         /* extract arguments */
@@ -176,6 +175,9 @@ timMesg(esp_T *ESP,                     /* (in)  pointer to ESP structure */
         GetToken(command, 3, '|', &arg3);
         SPLINT_CHECK_FOR_NULL(arg3);
 
+        GetToken(command, 4, '|', &arg4);
+        SPLINT_CHECK_FOR_NULL(arg4);
+
         /* delete any previous plots */
         for (iline = 0; iline < plotter->nline; iline++) {
             FREE(plotter->lines[iline].x     );
@@ -183,21 +185,29 @@ timMesg(esp_T *ESP,                     /* (in)  pointer to ESP structure */
             FREE(plotter->lines[iline].style);
         }
 
-        FREE(plotter->title );
-        FREE(plotter->xlabel);
-        FREE(plotter->ylabel);
-        FREE(plotter->lines );
+        FREE(plotter->title  );
+        FREE(plotter->xlabel );
+        FREE(plotter->ylabel );
+        FREE(plotter->ylabel2);
+        FREE(plotter->lines  );
 
         plotter->nline = 0;
 
         /* store title, xlabel, and ylabel */
         MALLOC(plotter->title,  char, strlen(arg1)+1);
         MALLOC(plotter->xlabel, char, strlen(arg2)+1);
-        MALLOC(plotter->ylabel, char, strlen(arg2)+1);
+        MALLOC(plotter->ylabel, char, strlen(arg3)+1);
 
         strcpy(plotter->title,  arg1);
         strcpy(plotter->xlabel, arg2);
         strcpy(plotter->ylabel, arg3);
+
+        /* stroe ylabel if given */
+        if (arg4 != NULL) {
+            MALLOC(plotter->ylabel2, char, strlen(arg4)+1);
+
+            strcpy(plotter->ylabel2, arg4);
+        }
 
     /* "add|x1;x2;...|y1;y2;...|style|" */
     } else if (strncmp(command, "add|", 4) == 0) {
@@ -264,8 +274,13 @@ timMesg(esp_T *ESP,                     /* (in)  pointer to ESP structure */
         nresponse = 10000;
         MALLOC(response, char, nresponse);
 
-        snprintf(response, nresponse, "timMesg|plotter|show|{\"title\":\"%s\", \"xlabel\":\"%s\", \"ylabel\":\"%s\", \"lines\":[",
-                 plotter->title, plotter->xlabel, plotter->ylabel);
+        if (plotter->ylabel2 == NULL) {
+            snprintf(response, nresponse, "timMesg|plotter|show|{\"title\":\"%s\", \"xlabel\":\"%s\", \"ylabel\":\"%s\", \"lines\":[",
+                     plotter->title, plotter->xlabel, plotter->ylabel);
+        } else {
+            snprintf(response, nresponse, "timMesg|plotter|show|{\"title\":\"%s\", \"xlabel\":\"%s\", \"ylabel\":\"%s\", \"ylabel2\":\"%s\", \"lines\":[",
+                     plotter->title, plotter->xlabel, plotter->ylabel, plotter->ylabel2);
+        }
 
         MALLOC(xystr, char, 25);
 
@@ -310,6 +325,7 @@ cleanup:
     FREE(arg1);
     FREE(arg2);
     FREE(arg3);
+    FREE(arg4);
     FREE(xystr);
     FREE(response);
 
@@ -371,7 +387,7 @@ timQuit(esp_T *ESP,                     /* (in)  pointer to ESP structure */
     } else {
         plotter = (plotter_T *)(ESP->udata[ESP->nudata-1]);
     }
-    
+
     /* do nothing if we have already cleared plotter data */
     if (plotter == NULL) goto cleanup;
 

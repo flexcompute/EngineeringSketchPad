@@ -68,6 +68,25 @@ $(function() {
 <div class="contents">
 <div class="textblock"><p>The following list of attributes are available to guide the mesh generation with the AFLR4 AIM.</p>
 <ul>
+<li><b> capsMeshLength</b> [Required BODY attribute] This numeric <code>BODY</code> attribute sets the AFLR4 <code>ref_len</code> input. <code>capsMeshLength</code> should be a a positive value representative of a characteristic length of the geometry, e.g. the MAC of a wing or diameter of a fuselage. The AIM input <code>Mesh_Length_Factor</code> may be used to apply a global scaling to increase or decrease the mesh resolution.<br  />
+</li>
+</ul>
+<p>From the AFLR4 documentation:<br  />
+<br  />
+ ref_len:<br  />
+ Reference length for components/bodies in grid units. Reference length should<br  />
+ be set to a physically relevant characteristic length for the configuration<br  />
+ such as wing chord length or pipe diameter. If ref_len = 0 then it will be set<br  />
+ to the bounding box for the largest component/body of interest.<br  />
+ The parameters ref_len, max_scale, min_scale and abs_min_scale are all used to<br  />
+ set spacing values on all component/body surfaces (those that are not on the<br  />
+ farfield or symmetry plane-if any).<br  />
+ <br  />
+ max_spacing = max_scale * ref_len<br  />
+ min_spacing = min_scale * ref_len<br  />
+ abs_min_spacing = abs_min_scale * ref_len<br  />
+</p>
+<ul>
 <li><b> AFLR_GBC</b> [Optional FACE attribute: Default STD_UG3_GBC] This string <code>FACE</code> attribute informs AFLR4 what BC treatment should be employed for each geometric <code>FACE</code>. The BC defaults to the string STD_UG3_GBC if none is specified.</li>
 </ul>
 <p>Predefined AFLR Grid BC string values are:</p>
@@ -142,13 +161,18 @@ that intersects BL region   </td></tr>
 <li><b> AFLR4_Scale_Factor</b> [Optional FACE or EDGE attribute: Default 1.0]<br  />
  EGADS attribute AFLR4_Scale_Factor represents the AFLR4 mesh spacing scale factor for a given face/edge. Curvature dependent spacing can be scaled on the face/edge by the value of the scale factor set with AFLR4_Scale_Factor.<br  />
  <br  />
- </li>
+</li>
+<li><b> AFLR4_quad_local</b> [Optional FACE attribute: Default 0.0]<br  />
+ Local quad-face combination flag.<br  />
+ If AFLR4_quad_local is set to 0, then do not combine tria-faces to form quad-faces.<br  />
+ If AFLR4_quad_local is set to 1, then combine tria-faces to form quad-faces.<br  />
+ This option also locally selects advancing-point point placement rather than the default advancing-front point placement. Note that if not set then the local quad-face combination flag is set to the global quad-face combination flag AFLR4_quad. </li>
 </ul>
 </div></div><!-- contents -->
 </div><!-- PageDoc -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Sat Jul 2 2022 10:13:08 for AFLR4 Analysis Interface Module (AIM) by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1
+Generated on Sat Apr 27 2024 16:50:56 for AFLR4 Analysis Interface Module (AIM) by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1
 </small></address>
 </body>
 </html>

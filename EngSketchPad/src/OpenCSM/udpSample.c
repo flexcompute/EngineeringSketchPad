@@ -14,7 +14,7 @@
  */
 
 /*
- * Copyright (C) 2013/2022  John F. Dannenhoffer, III (Syracuse University)
+ * Copyright (C) 2013/2024  John F. Dannenhoffer, III (Syracuse University)
  *
  * This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
@@ -52,6 +52,9 @@
 #define FREEUDPDATA(A) freePrivateData(A)
 static int freePrivateData(void *data);
 
+#define COPYUDPDATA(SRC,TGT) copyPrivateData(SRC,TGT)
+static int copyPrivateData(/*@null@*/void *src, void **tgt);
+
 /* the number of arguments (specified below) */
 #define NUMUDPARGS 6
 
@@ -73,15 +76,9 @@ static int freePrivateData(void *data);
 
 /* data about possible arguments
       argNames: argument name
-      argTypes: argument type: ATTRSTRING   string
-                               ATTRINT      integer input
-                              -ATTRINT      integer output
-                               ATTRREAL     double  input
-                              -ATTRREAL     double  output
-                               ATTRREALSENS double input (for which a sensitivity can be calculated)
-                               ATTRFILE     file input
+      argTypes: argument type: (see udp.h)
       argIdefs: default value for ATTRINT
-      argDdefs: default value for ATTRREAL or ATTRREALSENS */
+      argDdefs: default value for ATTRREAL or ATTRREALSEN */
 static char  *argNames[NUMUDPARGS] = {"dx",        "dy",        "dz",        "center",    "area",    "volume", };
 static int    argTypes[NUMUDPARGS] = {ATTRREALSEN, ATTRREALSEN, ATTRREALSEN, ATTRREALSEN, -ATTRREAL, -ATTRREAL,};
 static int    argIdefs[NUMUDPARGS] = {0,           0,           0,           0,           0,         0,        };
@@ -112,6 +109,7 @@ udpExecute(ego  context,                /* (in)  EGADS context */
     double  data[18], trange[2];
     char    *message=NULL;
     ego     enodes[9], ecurve, eedges[8], eloop, eface;
+    udp_T   *udps = *Udps;
 
     ROUTINE(udpExecute);
 
@@ -184,6 +182,14 @@ udpExecute(ego  context,                /* (in)  EGADS context */
         goto cleanup;
     }
 
+    /* make private data (not needed here, but included to
+       show how one would do this */
+    if (numUdp == 0) {
+        MALLOC(udps[0].data, char, 30);
+    }
+
+    strcpy((char*)(udps[0].data), "this is test private data");
+
     /* cache copy of arguments for future use */
     status = cacheUdp(NULL);
     CHECK_STATUS(cacheUdp);
@@ -200,12 +206,6 @@ udpExecute(ego  context,                /* (in)  EGADS context */
         printf("center_dot[%d] = %f %f %f\n", numUdp, CENTER_DOT(numUdp,0), CENTER_DOT(numUdp,1), CENTER_DOT(numUdp,2));
     }
 #endif
-
-    /* make private data (not needed here, but included to
-       show how one would do this */
-    MALLOC(udps[numUdp].data, char, 30);
-
-    strcpy((char*)(udps[numUdp].data), "this is test private data");
 
     /* check for 3D SolidBody (and make if requested) */
     if (DX(0) > 0 && DY(0) > 0 && DZ(0) > 0)  {
@@ -251,8 +251,8 @@ udpExecute(ego  context,                /* (in)  EGADS context */
         status = EG_getMassProperties(*ebody, data);
         CHECK_STATUS(EG_getMassProperties);
 
-        AREA(0)   = data[1];
-        VOLUME(0) = data[0];
+        AREA(  numUdp)   = data[1];
+        VOLUME(numUdp) = data[0];
 
         /* remember this model (Body) */
         udps[numUdp].ebody = *ebody;
@@ -361,8 +361,8 @@ udpExecute(ego  context,                /* (in)  EGADS context */
         status = EG_getMassProperties(*ebody, data);
         CHECK_STATUS(EG_getMassProperties);
 
-        AREA(0)   = data[1];
-        VOLUME(0) = data[0];
+        AREA(  numUdp)   = data[1];
+        VOLUME(numUdp) = data[0];
 
         /* remember this model (Body) */
         udps[numUdp].ebody = *ebody;
@@ -523,8 +523,8 @@ udpExecute(ego  context,                /* (in)  EGADS context */
         status = EG_getMassProperties(*ebody, data);
         CHECK_STATUS(EG_getMassProperties);
 
-        AREA(0)   = data[1];
-        VOLUME(0) = data[0];
+        AREA(  numUdp)   = data[1];
+        VOLUME(numUdp) = data[0];
 
         /* remember this model (Body) */
         udps[numUdp].ebody = *ebody;
@@ -996,5 +996,47 @@ freePrivateData(void  *data)            /* (in)  pointer to private data */
     EG_free(data);
 
 //cleanup:
+    return status;
+}
+
+
+
+/*
+ ************************************************************************
+ *                                                                      *
+ *   copyPrivateData - copy private data (just an example)              *
+ *                                                                      *
+ ************************************************************************
+ */
+
+static int
+copyPrivateData(
+      /*@null@*/void  *src,             /* (in)  pointer to source private data */
+                void  **tgt)            /* (in)  pointer to target private data */
+{
+    int    status = EGADS_SUCCESS;
+
+    *tgt = NULL;
+
+    if (src == NULL) goto cleanup;
+    
+    printf("copyPrivateData(%s)\n", (char*)(src));
+
+    /* note: this function would not be necessary if we are only calling
+             EG_free (and then COPYUDPDATA would not be defined above).
+             It is simply included here to show how one would write
+             such a function if the allocation was more complicated
+             than a simple EG_alloc() */
+
+
+    *tgt = (void *) malloc(sizeof(char)*(strlen((char*)src)+1));
+    if (*tgt == NULL) {
+        status = EGADS_MALLOC;
+        goto cleanup;
+    }
+
+    strcpy(*tgt, src);
+
+cleanup:
     return status;
 }

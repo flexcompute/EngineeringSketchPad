@@ -12,7 +12,7 @@ written by John Dannenhoffer
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 
       <!--
-          Copyright (C) 2010/2022  John F. Dannenhoffer, III (Syracuse University)
+          Copyright (C) 2010/2024  John F. Dannenhoffer, III (Syracuse University)
 
           This library is free software; you can redistribute it and/or
           modify it under the terms of the GNU Lesser General Public
@@ -31,7 +31,7 @@ written by John Dannenhoffer
         -->
 
     <title>
-      ESP (Engineering Sketch Pad, V1.21)
+      ESP (Engineering Sketch Pad, V1.25)
     </title>
 
     <script type="text/javascript" src="WebViewer/webgl-utils.js"> </script>
@@ -48,6 +48,7 @@ written by John Dannenhoffer
       var   mitten   = {};          // object to store "mitten"
       var   plotter  = {};          // object to store "plotter"
       var   plugs    = {};          // object to store "plugs"
+      var   vspSetup = {};          // object to store "vspSetup"
       var   pyscript = {};          // object to store "pyscript"
       var   sketch   = {};          // object to store "sketch"
       var   viewer   = {};          // object to store "viewer"
@@ -68,6 +69,7 @@ written by John Dannenhoffer
     <script type="text/javascript" src="ESP-mitten.js">            </script>
     <script type="text/javascript" src="ESP-plotter.js">           </script>
     <script type="text/javascript" src="ESP-plugs.js">             </script>
+    <script type="text/javascript" src="ESP-vspSetup.js">          </script>
     <script type="text/javascript" src="ESP-pyscript.js">          </script>
     <script type="text/javascript" src="ESP-sketch.js">            </script>
     <script type="text/javascript" src="ESP-viewer.js">            </script>
@@ -121,6 +123,7 @@ written by John Dannenhoffer
     <link rel="stylesheet"    type="text/css"  href="ESP-mitten.css"   />
     <link rel="stylesheet"    type="text/css"  href="ESP-plotter.css"  />
     <link rel="stylesheet"    type="text/css"  href="ESP-plugs.css"    />
+    <link rel="stylesheet"    type="text/css"  href="ESP-vspSetup.css" />
     <link rel="stylesheet"    type="text/css"  href="ESP-pyscript.css" />
     <link rel="stylesheet"    type="text/css"  href="ESP-sketch.css"   />
     <link rel="shortcut icon" type="image/png" href="esp_logo.png"     />
@@ -160,7 +163,6 @@ written by John Dannenhoffer
           -->
         <br>
           <button title="Build or solve"         type="button" id="solveButton" onclick="cmdSolve()"      >Up to date</button>
-          <button title="Undo last action"       type="button" id="undoButton"  onclick="cmdUndo()"       >Undo      </button>
           <div class="collabMenu">
             <button id="collabMenuBtn"           class="collabMenuBtn"          onclick="cmdCollab()"     >Collab    </button>
             <div id="myCollabMenu"               class="collabMenu-contents">
@@ -174,6 +176,7 @@ written by John Dannenhoffer
           <button title="Top view"               type="button" id="topButton"   onclick="cmdTop()"        >T         </button>
           <button title="Zoom in"                type="button" id="inButton"    onclick="cmdIn()"         >+         </button>
           <button title="Zoom out"               type="button" id="outButton"   onclick="cmdOut()"        >-         </button>
+          <button title="Undo last action"       type="button" id="undoButton"  onclick="cmdUndo()"       >Undo      </button>
         <br>
         </p>
       </div>
@@ -256,7 +259,7 @@ written by John Dannenhoffer
             <td><input type="radio" name="brchType" value="import">    import    </input></td>
             <td>                                                                         </td>
             <td>                                                                         </td>
-            <td><input type="radio" name="brchType" value="combine">   combine   </input></td>
+            <td><input type="radio" name="brchType" value="elevate">   elevate   </input></td>
             <td><input type="radio" name="brchType" value="applycsys"> applycsys </input></td>
             <td><input type="radio" name="brchType" value="spline">    spline    </input></td>
             <td>                                                                         </td>
@@ -556,6 +559,7 @@ written by John Dannenhoffer
           <input type="button" id="editorHintBtn"    value="Hint"    onclick="cmdEditHint();">
           <input type="button" id="editorUndoBtn"    value="Undo"    onclick="cmdEditUndo(wv.codeMirror);">
           <input type="button" id="editorDebugBtn"   value="Debug"   onclick="cmdEditDebug();">
+          <input type="button" id="editorTraceBtn"   value="Trace"   onclick="cmdEditTrace();">
             &nbsp;&nbsp;&nbsp;
           <input type="button" id="editorCancelBtn"  value="Cancel"  onclick="editorCancel();">
           <input type="button" id="editorSaveBtn"    value="Save"    onclick="editorOk();">

@@ -75,8 +75,6 @@ fun3dAIM.input.Proj_Name = "fun3dTetgenTest"
 # Link the mesh
 fun3dAIM.input["Mesh"].link(meshAIM.output["Volume_Mesh"])
 
-fun3dAIM.input.Mesh_ASCII_Flag = False
-
 # Set AoA number
 myProblem.analysis["fun3d"].input.Alpha = 1.0
 

@@ -1,0 +1,35 @@
+# offsetLd
+# written by John Dannenhoffer
+
+SKBEG     0  0 -6
+   LINSEG 2  0 -6
+   LINSEG 2  2 -6
+   LINSEG 4  1 -6
+   LINSEG 4  4 -6
+   LINSEG 1  4 -6
+   LINSEG 0  3 -6
+   LINSEG 0  0 -6
+SKEND
+EXTRUDE   0  0 12
+
+CYLINDER -5  2  0  5  2  0  2.2
+ROTATEX  90  2  0
+INTERSECT
+
+BOX      -6 -6  0 12 12  0
+SUBTRACT
+
+SELECT    EDGE
+ATTRIBUTE _color   $magenta
+
+UDPRIM    nuscale
+
+UDPARG    offset    faceList  4;5;9;10
+UDPARG    offset    edgeList  2;5;12;13;17;19;26;28
+UDPRIM    offset    dist      0.2
+
+SELECT    FACE     $__offsetFace__  $*
+ATTRIBUTE _color   $white
+ASSERT    @sellist.size  8
+
+END

@@ -325,10 +325,20 @@ INT_ uvmap_gen_uv (
 
         if (cpu_timer) uvmap_cpu_timer ("start", "uvmap_bnd_adj");
 
-        uvmap_bnd_adj (icc, *nbedge, nnodei,
-                       ibeibe, ibfibe, ibfin, iccibe, *inibe, *inibf,
-                       libfin, mben_disc,
-                       &dumaxb, urelaxb, urelaxb, w_ortho_i, *u);
+        status = uvmap_bnd_adj (icc, *nbedge, nnodei,
+                                ibeibe, ibfibe, ibfin, iccibe, *inibe, *inibf,
+                                libfin, mben_disc,
+                                &dumaxb, urelaxb, urelaxb, w_ortho_i, *u);
+        if (status) {
+          uvmap_free (ibeibe);
+          uvmap_free (ibfibe);
+          uvmap_free (ibfin);
+          uvmap_free (iccibe);
+          uvmap_free (iccin);
+          uvmap_free (libfin);
+          uvmap_free (mben_disc);
+          return status;
+        }
 
         if (cpu_timer) uvmap_cpu_timer ("stop", "uvmap_bnd_adj");
 
@@ -440,10 +450,20 @@ INT_ uvmap_gen_uv (
 
             if (cpu_timer) uvmap_cpu_timer ("start", "uvmap_bnd_adj");
 
-            uvmap_bnd_adj (icc, *nbedge, nnodei,
-                           ibeibe, ibfibe, ibfin, iccibe, *inibe, *inibf,
-                           libfin, mben_disc,
-                           &dumaxb, urelaxb, urelaxb_i, w_ortho, *u);
+            status = uvmap_bnd_adj (icc, *nbedge, nnodei,
+                                    ibeibe, ibfibe, ibfin, iccibe, *inibe,
+                                    *inibf, libfin, mben_disc,
+                                    &dumaxb, urelaxb, urelaxb_i, w_ortho, *u);
+            if (status) {
+              uvmap_free (ibeibe);
+              uvmap_free (ibfibe);
+              uvmap_free (ibfin);
+              uvmap_free (iccibe);
+              uvmap_free (iccin);
+              uvmap_free (libfin);
+              uvmap_free (mben_disc);
+              return status;
+            }
 
             if (cpu_timer) uvmap_cpu_timer ("stop", "uvmap_bnd_adj");
           }
@@ -516,8 +536,19 @@ INT_ uvmap_gen_uv (
 
   status = uvmap_chk_area_uv (1, *nbface, *inibf, tol, *u);
 
-  if (status)
+  if (status) {
+    uvmap_free (*ibfibf);
+    uvmap_free (*inibe);
+    uvmap_free (*inibf);
+    uvmap_free (*x);
+    uvmap_free (*u);
+    *ibfibf = NULL;
+    *inibe = NULL;
+    *inibf = NULL;
+    *x = NULL;
+    *u = NULL;
     return status;
+  }
 
   // output CPU usuage information
 

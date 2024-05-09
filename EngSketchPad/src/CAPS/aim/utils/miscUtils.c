@@ -338,11 +338,10 @@ int string_freeArray(int numString, char **strings[]) {
             // Debugging
             // printf("Strings %d = %s\n", i, (*strings)[i]);
 
-            if ((*strings)[i] != NULL) EG_free((*strings)[i]);
+            AIM_FREE((*strings)[i]);
         }
 
-        EG_free(*strings);
-        *strings = NULL;
+        AIM_FREE(*strings);
     }
 
     return CAPS_SUCCESS;
@@ -1348,6 +1347,15 @@ void string_toUpperCase ( char *sPtr )
     }
 }
 
+// Force a string to lower case
+void string_toLowerCase ( char *sPtr )
+{
+    while ( *sPtr != '\0' ) {
+        *sPtr = tolower ( ( unsigned char ) *sPtr );
+        ++sPtr;
+    }
+}
+
 // Return newly allocated string formatted by `format` and any variadic string args
 // NOTE: sentinel denoting end of variadic args is NULL, if NULL is not provided,
 //       behavior may be undefined
@@ -1392,14 +1400,14 @@ char *string_format(char *format, ...) {
 
     // create formatted string
     va_start(args, format);
-    vsprintf(formatted, format, args);
+    vsnprintf(formatted, length + 1, format, args);
     va_end(args);
 
     return formatted;
 }
 
 // Return whether string `find` is in `array`
-int string_isInArray(char *find, int arraySize, char **array) {
+int string_isInArray(const char *find, int arraySize, char *const*array) {
     int i;
     for (i = 0; i < arraySize; i++) {
         if (strcmp(array[i], find) == 0) {
@@ -1525,7 +1533,7 @@ double dist_DoubleVal(double a[], double b[]){
 }
 
 // Convert an integer to a string of a given field width and justification
-char * convert_integerToString(int integerVal, int fieldWidth, int leftOrRight)
+int convert_integerToString(int integerVal, int fieldWidth, int leftOrRight, char *stringVal)
 {
 
     // Input:
@@ -1537,10 +1545,6 @@ char * convert_integerToString(int integerVal, int fieldWidth, int leftOrRight)
     //  stringVal - Returned integer in string format. Returned as a const char *
 
     int inputTest = 0; // Input check
-
-    char tmp[42];
-    char *stringVal = NULL; // Returned string array
-
 
     // First check input parameters
     if( fieldWidth > 15 ) {
@@ -1562,38 +1566,35 @@ char * convert_integerToString(int integerVal, int fieldWidth, int leftOrRight)
         }
 
         printf("\tReturning a 'NaN' string.\n");
-        stringVal = EG_strdup("NaN");
-        return stringVal;
+        strcpy(stringVal, "NaN");
+        return CAPS_BADVALUE;
     }
 
 
     // Populate output string array with blank spaces and integer depending on justification
     if (leftOrRight == 0) {
 
-        inputTest = sprintf(tmp, "%-*d", fieldWidth, integerVal);
+        inputTest = snprintf(stringVal, fieldWidth+1, "%-*d", fieldWidth, integerVal);
 
     } else {
 
-        inputTest = sprintf(tmp, "%*d", fieldWidth, integerVal);
+        inputTest = snprintf(stringVal, fieldWidth+1, "%*d", fieldWidth, integerVal);
     }
 
     if (inputTest < 0 || inputTest > fieldWidth) {
         printf("Error in convert_integerToString: Input %i fails with requested fieldWidth of %d\n", integerVal,
                                                                                                      fieldWidth);
         printf("\tReturning a 'NaN' string.\n");
-        stringVal = EG_strdup("NaN");
-        return stringVal;
+        strcpy(stringVal, "NaN");
+        return CAPS_BADVALUE;
     }
 
-    // Copy over the output
-    stringVal = EG_strdup(tmp);
-
     // Return string array
-    return stringVal;
+    return CAPS_SUCCESS;
 }
 
 // Convert an double to a string (scientific notation is used depending on the fieldwidth and value) of a given field width
-char * convert_doubleToString(double doubleVal, int fieldWidth, int leftOrRight)
+int convert_doubleToString(double doubleVal, int fieldWidth, int leftOrRight, char *stringVal)
 {
 
     // Input:
@@ -1612,7 +1613,6 @@ char * convert_doubleToString(double doubleVal, int fieldWidth, int leftOrRight)
 
     //int powerExpUpper, powerExpLower; // Exponent powers for max width number comparison
 
-    char *stringVal = NULL;
     const char *nan = "NaN";
     char numString[255];
     char sci[10], tmp[42];
@@ -1642,24 +1642,21 @@ char * convert_doubleToString(double doubleVal, int fieldWidth, int leftOrRight)
     if (inputTest == 1) {
         printf("Error in convert_doubleToString: Input fieldWidth of %d must be greater than %d for the input value %E\n", fieldWidth, minfieldWidth,doubleVal);
         printf("\tReturning a 'NaN' string.\n");
-        stringVal = EG_strdup(nan);
-        return stringVal;
+        strcpy(stringVal, nan);
+        return CAPS_BADVALUE;
     }
-
-    // allocate the string
-    stringVal = (char *) EG_alloc((fieldWidth+1)*sizeof(char));
 
     // If zero, and yes the sign matters!?!
     if (doubleVal == 0.0 || doubleVal == +0.0 || doubleVal == -0.0) {
-        sprintf(stringVal, "%#.*f", fieldWidth-2, 0.0);
-        return stringVal;
+        snprintf(stringVal, fieldWidth+1, "%#.*f", fieldWidth-2, 0.0);
+        return CAPS_SUCCESS;
     }
 
     offset = 2;                  // the period and the 'E'
     if (doubleVal < 0) offset++; // account for the negative sign
 
     // extract the exponent with rounding to check for simple float formatting
-    sprintf(tmp, "%1.*E", fieldWidth-offset, doubleVal);
+    snprintf(tmp, 42, "%1.*E", fieldWidth-offset, doubleVal);
     i = fieldWidth;
     tmp[i++] = '\0';
     scival = atoi(tmp+i);
@@ -1668,12 +1665,12 @@ char * convert_doubleToString(double doubleVal, int fieldWidth, int leftOrRight)
     // sized to make sure the '.' is included in the string (otherwise Fortran isn't happy)
     if (scival > -2 && scival < fieldWidth-(offset-2)-1) {
 
-        sprintf(numString, "%#*.*f", fieldWidth, fieldWidth-MAX(scival,0)-offset, doubleVal);
+        snprintf(numString, 255, "%#*.*f", fieldWidth, fieldWidth-MAX(scival,0)-offset, doubleVal);
 
     } else {
 
         // do loop as the exponent might change due to rounding
-        sprintf(sci, "%+d", scival);
+        snprintf(sci, 10, "%+d", scival);
         do {
             remain = (int)(fieldWidth-offset-strlen(sci)-1);
           
@@ -1681,13 +1678,12 @@ char * convert_doubleToString(double doubleVal, int fieldWidth, int leftOrRight)
             if (remain < 0) {
                 printf("Error in convert_doubleToString: Cannot write %E with field with %d!\n", doubleVal, fieldWidth);
                 printf("\tReturning a 'NaN' string.\n");
-                EG_free(stringVal);
-                stringVal = EG_strdup(nan);
-                return stringVal;
+                strcpy(stringVal, nan);
+                return CAPS_BADVALUE;
             }
 
             // construct the format statement based on the available digits
-            sprintf(tmp, "%#1.*E", remain, doubleVal);
+            snprintf(tmp, 42, "%#1.*E", remain, doubleVal);
 
             // truncate at 'E'
             i = fieldWidth-strlen(sci)-1;
@@ -1695,10 +1691,10 @@ char * convert_doubleToString(double doubleVal, int fieldWidth, int leftOrRight)
 
             // get the exponent again and minimize it's size
             scival = atoi(tmp+i);
-            sprintf(sci, "%+d", scival);
+            snprintf(sci, 10, "%+d", scival);
 
             // print the final string with the exponent
-            sprintf(numString, "%sE%s", tmp, sci);
+            snprintf(numString, 255, "%sE%s", tmp, sci);
           
             // catch situations where 2 charachters are changed
             diff = abs(len - (int)strlen(numString));
@@ -1736,7 +1732,7 @@ char * convert_doubleToString(double doubleVal, int fieldWidth, int leftOrRight)
     // Add termination character to the end of the string
     stringVal[fieldWidth] = '\0';
 
-    return stringVal;
+    return CAPS_SUCCESS;
 }
 
 // Factorizes in place the square linear system A x = b using simple LU decomposition
@@ -1885,7 +1881,7 @@ int get_mapAttrToIndexIndex(const mapAttrToIndexStruct *attrMap, const char *key
 }
 
 // Search a mapAttrToIndex structure for a given index and return the corresponding keyword
-int get_mapAttrToIndexKeyword(mapAttrToIndexStruct *attrMap, int index, const char **keyWord) {
+int get_mapAttrToIndexKeyword(const mapAttrToIndexStruct *attrMap, int index, const char **keyWord) {
 
     // If the keyword is not found a CAPS_NOTFOUND is returned
 
@@ -1961,7 +1957,7 @@ int increment_mapAttrToIndexStruct(mapAttrToIndexStruct *attrMap, const char *ke
     }
 
     //printf("KEY WORD = %s\n",keyWord);
-    sprintf(attrMap->attributeName[attrMap->numAttribute-1], "%s", keyWord);
+    snprintf(attrMap->attributeName[attrMap->numAttribute-1], strlen(keyWord) + 1, "%s", keyWord);
 
     status = set_mapAttrToIndexStruct(attrMap, keyWord, attrMap->numAttribute);
     if (status != CAPS_SUCCESS) return status;
@@ -2014,7 +2010,7 @@ int destroy_mapAttrToIndexStruct(mapAttrToIndexStruct *attrMap) {
 }
 
 // Make a copy of attribute map (attrMapIn)
-int copy_mapAttrToIndexStruct(mapAttrToIndexStruct *attrMapIn, mapAttrToIndexStruct *attrMapOut) {
+int copy_mapAttrToIndexStruct(const mapAttrToIndexStruct *attrMapIn, mapAttrToIndexStruct *attrMapOut) {
 
     int status; // Function return status
     int i, j; // Indexing
@@ -2061,7 +2057,7 @@ int copy_mapAttrToIndexStruct(mapAttrToIndexStruct *attrMapIn, mapAttrToIndexStr
             return EGADS_MALLOC;
         }
 
-        sprintf(attrMapOut->attributeName[i], "%s", keyWord);
+        snprintf(attrMapOut->attributeName[i], strlen(keyWord)+1, "%s", keyWord);
     }
 
 
@@ -2078,23 +2074,33 @@ int merge_mapAttrToIndexStruct(mapAttrToIndexStruct *attrMap1, mapAttrToIndexStr
     if (attrMap2  == NULL) return CAPS_NULLVALUE;
     if (attrMapOut == NULL) return CAPS_NULLVALUE;
 
-    // Destroy attrMapOut in case it is already allocated - this implies that it must have at least been initiated
-    status =  destroy_mapAttrToIndexStruct(attrMapOut);
-    if (status != CAPS_SUCCESS) return status;
+    // allow attrMap2 == attrMapOut to effectively append the structure
+    if (attrMap2 != attrMapOut) {
 
-    status = copy_mapAttrToIndexStruct(attrMap1, attrMapOut);
-    if (status != CAPS_SUCCESS) goto cleanup;
+      // Destroy attrMapOut in case it is already allocated - this implies that it must have at least been initiated
+      status =  destroy_mapAttrToIndexStruct(attrMapOut);
+      if (status != CAPS_SUCCESS) goto cleanup;
 
-    for (i = 0; i < attrMap2->numAttribute; i++) {
+      status = copy_mapAttrToIndexStruct(attrMap1, attrMapOut);
+      if (status != CAPS_SUCCESS) goto cleanup;
+      
+      for (i = 0; i < attrMap2->numAttribute; i++) {
         status = increment_mapAttrToIndexStruct(attrMapOut, attrMap2->attributeName[i]);
         if (status != CAPS_SUCCESS && status != EGADS_EXISTS) goto cleanup;
+      }
+    } else {
+      
+      for (i = 0; i < attrMap1->numAttribute; i++) {
+        status = increment_mapAttrToIndexStruct(attrMapOut, attrMap1->attributeName[i]);
+        if (status != CAPS_SUCCESS && status != EGADS_EXISTS) goto cleanup;
+      }
     }
 
     status = CAPS_SUCCESS;
-    cleanup:
-        if (status != CAPS_SUCCESS) printf("\tPremature exit in merge_mapAttrToIndexStruct, status = %d\n", status);
+cleanup:
+    if (status != CAPS_SUCCESS) printf("\tPremature exit in merge_mapAttrToIndexStruct, status = %d\n", status);
 
-        return status;
+    return status;
 }
 
 // Retrieve the string following a generic tag (given by attributeKey)
@@ -2262,6 +2268,16 @@ int retrieve_CAPSResponseAttr(ego geomEntity, const char **string) {
     return status;
 }
 
+// Retrieve the string following a capsReference tag
+int retrieve_CAPSReferenceAttr(ego geomEntity, const char **string) {
+
+    int status;
+    char *attributeKey = "capsReference";
+
+    status = retrieve_stringAttr(geomEntity, attributeKey, string);
+    return status;
+}
+
 // Retrieve the value following a capsDiscipline
 int retrieve_CAPSDisciplineAttr(ego geomEntity, const char **string) {
 
@@ -2352,10 +2368,14 @@ int create_genericAttrToIndexMap(int numBody, ego bodies[], int attrLevelIn, con
     // In:
     //    numBody   = Number of incoming bodies
     //    bodies    = Array of ego bodies
-    //    attrLevel = Level of depth to traverse the body:  0 - search just body attributes
+    //    attrLevel = Level of depth to traverse the body:
+    //                              0 - search just body attributes
     //                              1 - search the body and all the faces
+    //                             -1 - search the only faces
     //                              2 - search the body, faces, and all the edges
-    //                             >2 - search the body, faces, edges, and all the nodes
+    //                             -2 - search the only edges
+    //                              3 - search the body, faces, edges, and all the nodes
+    //                             -3 - search the only nodes
     // Out:
     //         attrMap = A filled mapAttrToIndex structure
 
@@ -2396,17 +2416,19 @@ int create_genericAttrToIndexMap(int numBody, ego bodies[], int attrLevelIn, con
         if (oclass == NODE) attrLevel = 0; // If we have a node body - change attrLevel to just the body
 
         // Get groupName following mapName
-        status = retrieve_stringAttr(bodies[body], mapName, &groupName);
-        if (status != EGADS_SUCCESS && status != EGADS_NOTFOUND) goto cleanup;
+        if (attrLevel >= 0) {
+            status = retrieve_stringAttr(bodies[body], mapName, &groupName);
+            if (status != EGADS_SUCCESS && status != EGADS_NOTFOUND) goto cleanup;
 
-        // Set attribute map
-        if (status == CAPS_SUCCESS) {
-            status = increment_mapAttrToIndexStruct(attrMap, groupName);
-            if (status != CAPS_SUCCESS && status != EGADS_EXISTS) goto cleanup;
+            // Set attribute map
+            if (status == CAPS_SUCCESS) {
+                status = increment_mapAttrToIndexStruct(attrMap, groupName);
+                if (status != CAPS_SUCCESS && status != EGADS_EXISTS) goto cleanup;
+            }
         }
 
         // Search through faces
-        if (attrLevel > 0) {
+        if (attrLevel > 0 || attrLevel == -1) {
 
             // Determine the number of faces
             status = EG_getBodyTopos(bodies[body], NULL, FACE, &numFace, &faces);
@@ -2428,7 +2450,7 @@ int create_genericAttrToIndexMap(int numBody, ego bodies[], int attrLevelIn, con
         } // End face loop
 
         // Search through edges
-        if (attrLevel > 1) {
+        if (attrLevel > 1 || attrLevel == -2) {
             status = EG_getBodyTopos(bodies[body], NULL, EDGE, &numEdge, &edges);
             if (status != EGADS_SUCCESS) goto cleanup;
 
@@ -2448,7 +2470,7 @@ int create_genericAttrToIndexMap(int numBody, ego bodies[], int attrLevelIn, con
         } // End edge loop
 
         // Search through nodes
-        if (attrLevel > 2) {
+        if (attrLevel > 2 || attrLevel == -3) {
             status = EG_getBodyTopos(bodies[body], NULL, NODE, &numNode, &nodes);
             if (status != EGADS_SUCCESS) goto cleanup;
 
@@ -2495,11 +2517,14 @@ int create_CAPSGroupAttrToIndexMap(int numBody, ego bodies[], int attrLevel, map
     // In:
     //      numBody   = Number of incoming bodies
     //      bodies    = Array of ego bodies
-    //      attrLevel = Level of depth to traverse the body:  0 - search just body attributes
-    //                                                        1 - search the body and all the faces
-    //                                                        2 - search the body, faces, and all the edges
-    //                                                       >2 - search the body, faces, edges, and all the nodes
-    // Out:
+    //      attrLevel = Level of depth to traverse the body:
+    //                              0 - search just body attributes
+    //                              1 - search the body and all the faces
+    //                             -1 - search the only faces
+    //                              2 - search the body, faces, and all the edges
+    //                             -2 - search the only edges
+    //                              3 - search the body, faces, edges, and all the nodes
+    //                             -3 - search the only nodes    // Out:
     //         attrMap = A filled mapAttrToIndex structure
 
     int status; // Function return integer
@@ -2786,6 +2811,28 @@ int create_CAPSResponseAttrToIndexMap(int numBody, ego bodies[], int attrLevel, 
     return status;
 }
 
+// Create a mapping between unique capsReference attribute names and an index value
+int create_CAPSReferenceAttrToIndexMap(int numBody, ego bodies[], int attrLevel, mapAttrToIndexStruct *attrMap) {
+
+    // In:
+    //      numBody   = Number of incoming bodies
+    //      bodies    = Array of ego bodies
+    //      attrLevel = Level of depth to traverse the body:  0 - search just body attributes
+    //                                                        1 - search the body and all the faces
+    //                                                        2 - search the body, faces, and all the edges
+    //                                                       >2 - search the body, faces, edges, and all the nodes
+    // Out:
+    //      attrMap = A filled mapAttrToIndex structure
+
+    int status; // Function return integer
+
+    char *mapName = "capsReference";
+
+    status = create_genericAttrToIndexMap(numBody, bodies, attrLevel, mapName, attrMap);
+
+    return status;
+}
+
 // Create a mapping between unique capsMesh attribute names and an index value
 int create_CAPSMeshAttrToIndexMap(int numBody, ego bodies[], int attrLevel, mapAttrToIndexStruct *attrMap) {
 
@@ -2806,45 +2853,6 @@ int create_CAPSMeshAttrToIndexMap(int numBody, ego bodies[], int attrLevel, mapA
     status = create_genericAttrToIndexMap(numBody, bodies, attrLevel, mapName, attrMap);
 
     return status;
-}
-
-// Check capsLength consistency in the bodies and return the value. No check is done to make sure ALL bodies have
-// a capsLength, just that if present it is consistent.
-int check_CAPSLength(int numBody, ego bodies[], const char **lengthString) {
-
-    int i;
-    int status;
-
-    int found = (int) false;
-
-    // EGADS return values
-    const char   *string;
-
-    *lengthString = NULL;
-
-    for (i =0; i < numBody; i++) {
-
-        status = retrieve_stringAttr(bodies[i], "capsLength", &string);
-        if (status != CAPS_SUCCESS)    continue;
-
-        // Save the string
-        if (found == (int) false) {
-            found = true;
-            *lengthString = string;
-
-        } else { // Compare the strings
-
-            if (strcasecmp(*lengthString, string) != 0) {
-                printf("Inconsistent length units on bodies, capsLength %s found on one body, "
-                        "while %s found on another\n", *lengthString, string);
-                return CAPS_MISMATCH;
-            }
-        }
-    }
-
-    if (found == (int) false) return CAPS_NOTFOUND;
-
-    return CAPS_SUCCESS;
 }
 
 

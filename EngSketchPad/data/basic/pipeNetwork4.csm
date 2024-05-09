@@ -15,11 +15,11 @@ SKEND
 SELECT    EDGE
 ATTRIBUTE _color $green
 
-COMBINE    # should fail since no chared Nodes
+JOIN      # should fail since no shared Nodes
 ASSERT    0  1
 
 CATBEG    $did_not_create_body
-   MESSAGE COMBINE_failed_as_expected
+   MESSAGE JOIN_failed_as_expected
 CATEND
 
 END

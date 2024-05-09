@@ -1,0 +1,59 @@
+# rule29
+# written by John Dannenhoffer
+
+BOX       0  0  0  2  1  0
+SELECT    FACE
+ATTRIBUTE myFace $face1
+SELECT    EDGE   0.0 0.5 0.0
+ATTRIBUTE myEdge $west1
+SELECT    EDGE   2.0 0.5 0.0
+ATTRIBUTE myEdge $east1
+SELECT    EDGE   1.0 0.0 0.0
+ATTRIBUTE myEdge $south1
+SELECT    EDGE   1.0 1.0 0.0
+ATTRIBUTE myEdge $north1
+
+BOX  0  0  2  2  1  0
+SELECT    FACE
+ATTRIBUTE myFace $face2
+SELECT    EDGE   0.0 0.5 2.0
+ATTRIBUTE myEdge $west2
+SELECT    EDGE   2.0 0.5 2.0
+ATTRIBUTE myEdge $east2
+SELECT    EDGE   1.0 0.0 2.0
+ATTRIBUTE myEdge $south2
+SELECT    EDGE   1.0 1.0 2.0
+ATTRIBUTE myEdge $north2
+
+BOX  0  0  5  2  1  0
+SELECT    FACE
+ATTRIBUTE myFace $face3
+SELECT    EDGE   0.0 0.5 5.0
+ATTRIBUTE myEdge $west3
+SELECT    EDGE   2.0 0.5 5.0
+ATTRIBUTE myEdge $east3
+SELECT    EDGE   1.0 0.0 5.0
+ATTRIBUTE myEdge $south3
+SELECT    EDGE   1.0 1.0 5.0
+ATTRIBUTE myEdge $north3
+
+BOX  0  0  7  2  1  0
+SELECT    FACE
+ATTRIBUTE myFace $face4
+SELECT    EDGE   0.0 0.5 7.0
+ATTRIBUTE myEdge $west4
+SELECT    EDGE   2.0 0.5 7.0
+ATTRIBUTE myEdge $east4
+SELECT    EDGE   1.0 0.0 7.0
+ATTRIBUTE myEdge $south4
+SELECT    EDGE   1.0 1.0 7.0
+ATTRIBUTE myEdge $north4
+
+# copyAttr=1 in RULE
+RULE      0  0  1
+
+# verify that we have the correct number of Edge attributes
+SELECT    EDGE  $myEdge  $*
+ASSERT    @sellist.size  16
+
+END

@@ -1,0 +1,20 @@
+INTERFACE . ALL
+
+# number of ribs
+CFGPMTR    Wing:fuselageSec:nRibs  3                    # from centerline (y=0) to wing-fuselage junction, including the junction
+CFGPMTR    Wing:inoutboard:nRibs   52                   # LE-aligned ribs going from wing-fuselage junction to wingtip
+
+# leading edge spar locations [fraction of local chord]
+SET        Wing:sparLE_fuseWing    0.109015612471110    # wing-fuselage junction
+#SET        Wing:sparLE_yehudi      0.166956066029118    # yehudi
+SET        Wing:sparLE_tip         0.346470580721904    # wing tip
+
+# trailing edge spar locations [fraction of local chord]
+SET        Wing:sparTE_fuseWing    0.608075243595561    # wing-fuselage junction
+SET        Wing:sparTE_yehudi      0.703399964079894    # yehudi
+SET        Wing:sparTE_tip         0.594541444046337    # wing tip
+
+# [deg] optional argument for inboard/outboard rib angle (set to -999 to make perpendicular to wingbox LE)
+CFGPMTR    Wingbox:ribAngle     -999 # for reference, baseline is ~30.12deg
+
+END

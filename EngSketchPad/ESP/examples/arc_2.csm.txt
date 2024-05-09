@@ -1,0 +1,42 @@
+# arc_2
+# written by John Dannenhoffer
+
+# red circular arc
+SKBEG     0  0  0
+   ARC    4  0  0  2
+SKEND
+SELECT    EDGE
+ATTRIBUTE _color $red
+
+# green flattened arc
+SKBEG     0  0  0
+   ARC    4  0  0  1
+SKEND
+SELECT    EDGE
+ATTRIBUTE _color $green
+
+# blue straight arc
+SKBEG     0  0  0
+   ARC    4  0  0  0
+SKEND
+SELECT    EDGE
+ATTRIBUTE _color $blue
+
+# magenta flattened are (other side)
+SKBEG     0  0  0
+   ARC    4  0  0  -1
+SKEND
+SELECT    EDGE
+ATTRIBUTE _color $magenta
+
+# cyan circular arc (other side)
+SKBEG     0  0  0
+   ARC    4  0  0  -2
+SKEND
+SELECT    EDGE
+ATTRIBUTE _color $cyan
+
+END
+
+
+

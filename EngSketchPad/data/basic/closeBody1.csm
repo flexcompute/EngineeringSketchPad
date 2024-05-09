@@ -26,6 +26,6 @@ RESTORE   body
 JOIN      1e-4
 
 # promote to a SolidBody
-COMBINE
+ELEVATE
 
 END

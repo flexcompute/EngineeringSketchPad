@@ -7,7 +7,7 @@
 /************************************************************************/
 
 /*
- * Copyright (C) 2013/2022  John F. Dannenhoffer, III (Syracuse University)
+ * Copyright (C) 2013/2023  John F. Dannenhoffer, III (Syracuse University)
  *
  * This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
@@ -202,7 +202,7 @@ main(int    argc,                       /* (in)  number of arguments */
     printf("*                                                   *\n");
     printf("*                  Program StlEdit                  *\n");
     printf("*                                                   *\n");
-    printf("*        written by John Dannenhoffer, 2013/2022    *\n");
+    printf("*        written by John Dannenhoffer, 2013/2023    *\n");
     printf("*                                                   *\n");
     printf("*****************************************************\n");
     printf("\n");
@@ -1679,7 +1679,7 @@ makeSurface2(int    ifac,               /* (in)  Face index (bias-0) */
             float   xplot[10000], yplot[10000];
             char    pltitl[80];
 
-            sprintf(pltitl, "~xbar~ybar~ zcut=%f", zcut);
+            snprintf(pltitl, 79, "~xbar~ybar~ zcut=%f", zcut);
 
             for (m = 0; m < ncut; m++) {
                 xplot[m] = (float)x[m];
@@ -3332,7 +3332,7 @@ gvdata(int       ngraphics,             /* (in)  number of graphic objects to fi
         color.green = 0.0;
         color.blue  = 1.0;
 
-        sprintf(title, "Node %4d", inod);
+        snprintf(title, 79, "Node %4d", inod);
 
         attr        = GV_FOREGROUND | GV_FORWARD;
         utype       = 2;
@@ -3362,7 +3362,7 @@ gvdata(int       ngraphics,             /* (in)  number of graphic objects to fi
         color.green = 0.0;
         color.blue  = 1.0;
 
-        sprintf(title, "Edge %4d", iedg);
+        snprintf(title, 79, "Edge %4d", iedg);
 
         if (edg[iedg].mark >= 0) {
             attr    = GV_FOREGROUND | GV_FORWARD | GV_MESH;
@@ -3405,7 +3405,7 @@ gvdata(int       ngraphics,             /* (in)  number of graphic objects to fi
         color.green = 1.0;
         color.blue  = 0.5;
 
-        sprintf(title, "Face %4d", ifac);
+        snprintf(title, 79, "Face %4d", ifac);
 
         attr   = GV_FOREGROUND | GV_ORIENTATION | GV_FACETLIGHT | GV_FORWARD;
         utype  = 4;
@@ -3457,7 +3457,7 @@ gvdata(int       ngraphics,             /* (in)  number of graphic objects to fi
         color.green = 1.0;
         color.blue  = 0.0;
 
-        sprintf(title, "Grid %4d", ifac);
+        snprintf(title, 79, "Grid %4d", ifac);
 
         attr        = GV_ORIENTATION | GV_FACETLIGHT | GV_FORWARD | GV_MESH;
         utype       = 5;
@@ -4303,7 +4303,7 @@ gvevent(int    *win,                    /* (in)  window that fielded event */
                     printf("    subTess1.npnt = %d\n", subTess1.npnt);
                     printf("    subTess1.ntri = %d\n", subTess1.ntri);
 
-//$$$                    sprintf(pltitl, "~x~y~ 3D plot of color %d", icolr);
+//$$$                    snprintf(pltitl, 254, "~x~y~ 3D plot of color %d", icolr);
 //$$$                    grinit_(&io_kbd, &io_scr, "test", strlen("test"));
 //$$$                    grctrl_(plot3D, &indgr, pltitl,
 //$$$                            (void*)(&subTess1),
@@ -4353,7 +4353,7 @@ gvevent(int    *win,                    /* (in)  window that fielded event */
                                status, nneg, npos, subTess1.ntri);
                     }
 
-//$$$                    sprintf(pltitl, "~u~v~ 2D plot of color %d", icolr);
+//$$$                    snprintf(pltitl, 254, "~u~v~ 2D plot of color %d", icolr);
 //$$$                    grinit_(&io_kbd, &io_scr, "test", strlen("test"));
 //$$$                    grctrl_(plot2D, &indgr, pltitl,
 //$$$                            (void*)(&subTess2),
@@ -4384,7 +4384,7 @@ gvevent(int    *win,                    /* (in)  window that fielded event */
                     }
 
 #ifdef GRAFIC
-                    sprintf(pltitl, "~u~v~ 2D plot of color %d", icolr);
+                    snprintf(pltitl, 254, "~u~v~ 2D plot of color %d", icolr);
                     grinit_(&io_kbd, &io_scr, "test", strlen("test"));
                     grctrl_(plot2D, &indgr, pltitl,
                             (void*)(&subTess1),
@@ -4619,10 +4619,10 @@ gvevent(int    *win,                    /* (in)  window that fielded event */
             } else if (*state == '>') {
                 printf("==> Option '>' \n");
                 if (numarg >= 0) {
-                    sprintf(filename, "ViewMatrix%d.dat", numarg);
+                    snprintf(filename, 80, "ViewMatrix%d.dat", numarg);
                     numarg = -1;
                 } else {
-                    sprintf(filename, "ViewMatrix.dat");
+                    snprintf(filename, 80, "ViewMatrix.dat");
                 }
 
                 fp = fopen(filename, "w");
@@ -4646,10 +4646,10 @@ gvevent(int    *win,                    /* (in)  window that fielded event */
             } else if (*state == '<') {
                 printf("==> Option '<' \n");
                 if (numarg >= 0) {
-                    sprintf(filename, "ViewMatrix%d.dat", numarg);
+                    snprintf(filename, 80, "ViewMatrix%d.dat", numarg);
                     numarg = -1;
                 } else {
-                    sprintf(filename, "ViewMatrix.dat");
+                    snprintf(filename, 80, "ViewMatrix.dat");
                 }
 
                 fp = fopen(filename, "r");

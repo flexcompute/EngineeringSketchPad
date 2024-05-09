@@ -1,0 +1,60 @@
+#
+!IFNDEF ESP_ROOT
+!ERROR ESP_ROOT must be set -- Please fix the environment...
+!ENDIF
+#
+IDIR  = $(ESP_ROOT)\include
+!include $(IDIR)\$(ESP_ARCH).$(MSVC)
+LDIR  = $(ESP_ROOT)\lib
+!IFDEF ESP_BLOC
+ODIR  = $(ESP_BLOC)\obj
+TDIR  = $(ESP_BLOC)\test
+!ELSE
+ODIR  = .
+TDIR  = $(ESP_ROOT)\bin
+!ENDIF
+
+!ifdef PYTHONINC
+OBJSPython = $(ODIR)\abaqusFILReader.obj
+!endif
+
+$(LDIR)\abaqusAIM.dll:	$(ODIR)\abaqusAIM.obj $(ODIR)\abaqusUtils.obj $(LDIR)\aimUtil.lib \
+			$(LDIR)\utils.lib $(OBJSPython)
+			
+	-del $(LDIR)\abaqusAIM.dll $(LDIR)\abaqusAIM.lib $(LDIR)\abaqusAIM.exp
+	 link /out:$(LDIR)\abaqusAIM.dll /dll /def:abaqusAIM.def \
+		$(ODIR)\abaqusAIM.obj $(ODIR)\abaqusUtils.obj $(OBJSPython) \
+		/LIBPATH:$(LDIR) utils.lib aimUtil.lib \
+		ocsm.lib egads.lib udunits2.lib $(PYTHONLIB)
+	$(MCOMP) /manifest $(LDIR)\abaqusAIM.dll.manifest \
+		/outputresource:$(LDIR)\abaqusAIM.dll;2
+
+$(ODIR)\abaqusAIM.obj:	abaqusAIM.c $(IDIR)\capsTypes.h
+	cl /c $(COPTS) $(DEFINE) /I$(IDIR) /I..\utils /I. abaqusAIM.c \
+		/Fo$(ODIR)\abaqusAIM.obj
+		
+!ifdef PYTHONINC
+$(ODIR)\abaqusUtils.obj:	abaqusUtils.c $(IDIR)\capsTypes.h cython\abaqusFILReader.h
+	cl /c $(COPTS) $(DEFINE) /I$(IDIR) /I..\utils /I. /I$(PYTHONINC) /Icython /DHAVE_PYTHON abaqusUtils.c \
+		/Fo$(ODIR)\abaqusUtils.obj
+
+$(ODIR)\abaqusFILReader.obj:	cython\abaqusFILReader.*
+	cl /c $(COPTS) $(DEFINE) /I$(IDIR) /I..\utils /I. /I$(PYTHONINC) cython\abaqusFILReader.c \
+		/Fo$(ODIR)\abaqusFILReader.obj
+!else
+
+$(ODIR)\abaqusUtils.obj:	abaqusUtils.c $(IDIR)\capsTypes.h
+	cl /c $(COPTS) $(DEFINE) /I$(IDIR) /I..\utils /I. abaqusUtils.c \
+		/Fo$(ODIR)\abaqusUtils.obj
+
+!endif	
+					
+clean:
+	-del $(ODIR)\abaqusAIM.obj
+	-del $(ODIR)\abaqusUtils.obj
+!ifdef PYTHONINC
+	-del $(OBJSPython)
+!endif
+
+cleanall:	clean
+	-del $(LDIR)\abaqusAIM.dll $(LDIR)\abaqusAIM.lib $(LDIR)\abaqusAIM.exp

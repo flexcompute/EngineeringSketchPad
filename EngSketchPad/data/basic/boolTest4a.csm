@@ -1,0 +1,25 @@
+# boolTest4a (returns 3 SolidBodys)
+# written by John Dannenhoffer
+
+BOX       0  1  0  1  2  1
+BOX       2  1  0  1  2  1
+BOX       4  1  0  1  2  1
+
+SKBEG     0  0  0
+   LINSEG 5  0  0
+   LINSEG 5  1  0
+   LINSEG 4  1  0
+   LINSEG 3  1  0
+   LINSEG 2  1  0
+   LINSEG 1  1  0
+   LINSEG 0  1  0
+   LINSEG 0  0  0
+SKEND
+
+EXTRUDE   0  0  1
+
+JOIN
+SELECT    FACE
+ATTRIBUTE _grd  $on
+
+END

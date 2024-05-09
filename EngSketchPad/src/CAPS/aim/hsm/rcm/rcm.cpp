@@ -453,7 +453,7 @@ void adj_perm_show ( int node_num, int adj_num, int adj_row[], int adj[],
     }
     cout << "\n";
   }
-  
+
   delete [] band;
 
   cout << "\n";
@@ -3366,7 +3366,7 @@ void rcm ( int root, int adj_num, int adj_row[], int adj[], int mask[],
     }
   }
 //
-//  We now have the Cuthill-McKee ordering.  
+//  We now have the Cuthill-McKee ordering.
 //  Reverse it to get the Reverse Cuthill-McKee ordering.
 //
   i4vec_reverse ( *iccsze, perm );
@@ -3917,7 +3917,9 @@ int *triangulation_neighbor_triangles ( int triangle_order, int triangle_num,
   int *triangle_neighbor;
 
   triangle_neighbor = new int[3*triangle_num];
+  for ( j = 0; j < 3*triangle_num; j++ ) triangle_neighbor[j] = -1;
   col = new int[4*(3*triangle_num)];
+  for ( j = 0; j < 4*(3*triangle_num); j++ ) col[j] = -1;
 //
 //  Step 1.
 //  From the list of nodes for triangle T, of the form: (I,J,K)

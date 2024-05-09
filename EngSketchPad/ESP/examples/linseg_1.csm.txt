@@ -1,0 +1,24 @@
+# linseg_1
+# written by John Dannenhoffer
+
+SKBEG     0  0  0
+   LINSEG 4  0  0
+SKEND
+SELECT    EDGE
+ATTRIBUTE _color $red
+
+SKBEG     0  0  0
+   LINSEG 0  3  0
+SKEND
+SELECT    EDGE
+ATTRIBUTE _color $green
+
+SKBEG     0  0  0
+   LINSEG 0  0  2
+SKEND
+SELECT    EDGE
+ATTRIBUTE _color $blue
+
+END
+
+

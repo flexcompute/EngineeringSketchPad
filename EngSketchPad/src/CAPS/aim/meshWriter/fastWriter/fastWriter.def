@@ -1,0 +1,4 @@
+LIBRARY fastWriter
+EXPORTS
+meshExtension
+meshWrite

@@ -79,8 +79,8 @@ class TestBound(unittest.TestCase):
         self.assertEqual(astros_Pressure, astrosVset.dataSet["Pressure"])
 
         # Create displacement data sets
-        su2_Displacement    = su2Vset.dataSet.create("Displacement", pyCAPS.fType.FieldIn, init=[0,0,0])
-        astros_Displacement = astrosVset.dataSet.create("Displacement", pyCAPS.fType.FieldOut)
+        su2_Displacement    = su2Vset.dataSet.create("Displacement", init=[0,0,0])
+        astros_Displacement = astrosVset.dataSet.create("Displacement")
 
         self.assertEqual(su2_Displacement   , su2Vset.dataSet["Displacement"])
         self.assertEqual(astros_Displacement, astrosVset.dataSet["Displacement"])

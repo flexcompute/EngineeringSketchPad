@@ -56,6 +56,9 @@ class TestTACS(unittest.TestCase):
         # Set analysis type
         tacs.input.Analysis_Type = "Static"
 
+        # Use mesh morphing
+        tacs.input.Mesh_Morph = True
+
         # Set materials
         madeupium    = {"materialType" : "isotropic",
                         "youngModulus" : 72.0E9 ,
@@ -98,19 +101,19 @@ class TestTACS(unittest.TestCase):
 
         # Setup an AnalysisIn design variable
         thickness = 0.1;
-        desvar = {"groupName" : "plate",
-                  "initialValue" : thickness,
+        desvar = {"initialValue" : thickness,
                   "lowerBound" : thickness*0.5,
                   "upperBound" : thickness*1.5,
                   "maxDelta"   : thickness*0.1}
 
         tacs.input.Design_Variable = {"plateLength" : {},
                                       "thick1" : desvar}
-        
-        desvarR = {"variableType": "Property",
+
+        desvarR = {"componentType": "Property",
+                   "componentName": "plate",
                    "fieldName" : "T",
-                   "constantCoeff" : 0.0,
-                   "groupName" : "thick1",
+                   "constantCoeff" : thickness,
+                   "variableName" : "thick1",
                    "linearCoeff" : 1.0}
 
         tacs.input.Design_Variable_Relation = {"thick1" : desvarR}
@@ -171,6 +174,8 @@ class TestTACS(unittest.TestCase):
             self.assertAlmostEqual(Func2_plateLength, xyz[inode][0], 5)
             self.assertEqual(Func2_thick1, 126)
 
+        # unlink the mesh to test Mesh_Morphing
+        tacs.input["Mesh"].unlink()
 
         tacs.input.Design_Variable = {"plateWidth" : {}}
         tacs.input.Design_Variable_Relation = None

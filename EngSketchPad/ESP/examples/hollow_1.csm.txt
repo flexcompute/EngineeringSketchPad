@@ -1,0 +1,27 @@
+# hollow_1
+# written by John Dannenhoffer
+
+# box with colored Faces
+BOX       0  0  0  3  2  1
+ASSERT    @itype   3
+
+SELECT    FACE   @nbody 1     # iford=1 in red
+ATTRIBUTE _color $red
+SELECT    FACE   @nbody 2     # iford=2 in green
+ATTRIBUTE _color $green
+SELECT    FACE   @nbody 3     # iford=3 in blue
+ATTRIBUTE _color $blue
+SELECT    FACE   @nbody 4     # iford=4 in lightred
+ATTRIBUTE _color $lred
+SELECT    FACE   @nbody 5     # iford=5 in lightgreen
+ATTRIBUTE _color $lgreen
+SELECT    FACE   @nbody 6     # iford=6 in lightblue
+ATTRIBUTE _color $lblue
+
+# hollow out the xmin and zmax Faces
+SELECT    FACE   @nbody  1
+SELECT    ADD    @nbody  6
+
+HOLLOW    0.1    @sellist  1
+
+END

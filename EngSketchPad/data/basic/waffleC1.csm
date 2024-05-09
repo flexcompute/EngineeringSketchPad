@@ -1,0 +1,32 @@
+# waffleC1
+# written by John Dannenhoffer
+
+UDPRIM    waffle  filename <<
+   SET  A  1
+   SET  B  2
+   SET  C  3
+   SET  D  4
+   SET  E  5
+   SET  F  6
+   SET  G  7
+   SET  H  8
+   SET  I  9
+   SET  J  10
+   SET  K  11
+   SET  L  12
+   SET  M  13
+   SET  N  14
+   PATBEG  j  20
+      POINT  A  AT j  4
+      POINT  B  AT j  5
+      PATBREAK  j GT 5
+      LINE   .  A  B  myName=!$sheet_+j
+      SET    n  15
+   PATEND
+
+   POINT  C  AT  0.0  4.5
+   POINT  D  AT  5.5  4.5
+   LINE   .  C   D  myName=!$spine_+N
+>>
+
+END

@@ -16,6 +16,11 @@
 
 #include <algorithm>
 
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#define ESP_M_PI
+#endif
+
 #include "always_inline.h"
 
 class SurrealDTypeBase {};
@@ -215,6 +220,8 @@ SurrealD::operator=( const SurrealD& z )
     return *this;
   }
 
+  assert( N_ == z.N_ );
+
   v_ = z.v_;
   for (int i = 0; i < N_; i++)
     d_[i] = z.d_[i];
@@ -353,6 +360,7 @@ SurrealD::operator+=( const SurrealD& z )
   {
     N_ = z.N_;
     d_ = new double[N_]();    // NOTE: d_ is value-initialized here
+    for (int i = 0; i < N_; i++) d_[i] = 0;
   }
   else if ( z.N_ == 0 )
   {
@@ -389,6 +397,7 @@ SurrealD::operator-=( const SurrealD& z )
   {
     N_ = z.N_;
     d_ = new double[N_]();    // NOTE: d_ is value-initialized here
+    for (int i = 0; i < N_; i++) d_[i] = 0;
   }
   else if ( z.N_ == 0 )
   {
@@ -425,7 +434,7 @@ SurrealD::operator*=( const SurrealD& z )
   {
     N_ = z.N_;
     d_ = new double[N_]();    // NOTE: d_ is value-initialized here
-
+    for (int i = 0; i < N_; i++) d_[i] = 0;
   }
   else if ( z.N_ == 0 )
   {
@@ -466,7 +475,7 @@ SurrealD::operator/=( const SurrealD& z)
   {
     N_ = z.N_;
     d_ = new double[N_]();    // NOTE: d_ is value-initialized here
-
+    for (int i = 0; i < N_; i++) d_[i] = 0;
   }
   else if ( z.N_ == 0 )
   {
@@ -1191,6 +1200,9 @@ operator<<( std::ostream& os, const SurrealDType<Expr>& ztype )
   return os;
 }
 
-
+#ifdef ESP_M_PI
+#undef M_PI
+#undef ESP_M_PI
+#endif
 
 #endif // SURREALD_LAZY_H

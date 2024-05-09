@@ -9,7 +9,7 @@
  */
 
 /*
- * Copyright (C) 2010/2022  John F. Dannenhoffer, III (Syracuse University)
+ * Copyright (C) 2010/2024  John F. Dannenhoffer, III (Syracuse University)
  *
  * This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
@@ -31,7 +31,7 @@
 #define _OPENCSM_H_
 
 #define OCSM_MAJOR_VERSION  1
-#define OCSM_MINOR_VERSION 21
+#define OCSM_MINOR_VERSION 25
 
 #define MAX_NAME_LEN       64           /* maximum chars in name */
 #define MAX_EXPR_LEN      512           /* maximum chars in expression */
@@ -47,6 +47,7 @@
 #define MAX_NUM_MACROS    100           /* maximum number of storage locations */
 
 #include <time.h>
+#include "common.h"
 #include "egads.h"
 
 /*
@@ -179,7 +180,7 @@ Special characters:
    ;          multi-value item separator
    ( )        groups expressions and function arguments
    [ ]        specifies subscripts in form [row,column] or [index]
-   { } < >    characters used in strings
+   { } < > ~  characters used in strings
    + - * / ^  arithmetic operators
    $          as first character, introduces a string that is terminated
                  by end-of-line or un-escaped plus, comma, or
@@ -191,7 +192,6 @@ Special characters:
                  as an expression
 
    |          cannot be used (reserved for OpenCSM internals)
-   ~          cannot be used (reserved for OpenCSM internals)
    &          cannot be used (reserved for OpenCSM internals)
 */
 
@@ -305,8 +305,8 @@ ATTRIBUTE $attrName attrValue
                   does not create a Branch
                   if before first Branch that creates a Body,
                      the Attribute is a string-valued global Attribute
-                  if after BLEND, BOX, CHAMFER, COMBINE, CONE, CONNECT,
-                        CYLINDER, EXTRUDE, FILLET, HOLLOW, IMPORT, LOFT,
+                  if after BLEND, BOX, CHAMFER, CONE, CONNECT, CYLINDER,
+                        ELEVATE, EXTRUDE, FILLET, HOLLOW, IMPORT, LOFT,
                         RESTORE, REVOLVE, RULE, SPHERE, SWEEP, TORUS,
                         or UDPRIM
                      the Attribute is added to the Body and its Faces
@@ -324,7 +324,7 @@ BEZIER    x y z
                   sensitivity computed w.r.t. x, y, z
                   signals that may be thrown/caught:
 
-BLEND     begList=0 endList=0 reorder=0 oneFace=0 periodic=0
+BLEND     begList=0 endList=0 reorder=0 oneFace=0 periodic=0 copyAttr=0
           use:    create a Body by blending through Xsects since Mark
           pops:   Xsect1 ... Mark
           pushes: Body
@@ -374,14 +374,28 @@ BLEND     begList=0 endList=0 reorder=0 oneFace=0 periodic=0
                           endList describes inward tangency at end
                   if begList!=0 and endList!=0, there must be at least
                      three interior Xsects
-                  interior Xsects can be repeated once for C1 continuity
-                  interior Xsects can be repeated twice for C0 continuity
+                  blend is by default C2 at Xsects, except:
+                     Xsects repeated once yields C1 continuity
+                        if     either Xsects has attribute .C1side=fwd
+                           the slopes at the C1 comes from the next Xsect
+                        elseif either Xsects has attribute .C1side=rev
+                           the slopes at the C1 comes from the prior Xsect
+                        elseif there is only one Xsect before the repeat
+                           the slopes at the C1 comes from the prior Xsect
+                        elseif there is only one Xsect after the repeat
+                           the slopes at the C1 comes from the next Xsect
+                        else
+                           the slopes at the C1 comes from the prior Xsect
+                       note: the .C1side at the repeated Xsects cannot differ
+                     Xsects repeated twice yield C0 continuity
                   if reorder!=0 then Xsects are reordered to minimize Edge
                      lengths in the direction between Xsects
                   first Xsect is unaltered if reorder>0
                   last  Xsect is unaltered if reorder<0
                   if oneFace==1 then do not split at C0 (multiplicity=3)
                   if periodic=1 then connect the first and last Xsects
+                  if copyAttr=1 then user Attributes are copied
+                     from Xsects to new Edges
                   sensitivity computed w.r.t. begList, endList
                   sets up @-parameters
                   the Faces all receive the Branch's Attributes
@@ -443,6 +457,15 @@ CATBEG    sigCode
                      $self_intersecting
                      $wrong_types_on_stack
                      $assert_failed
+                     $udp_error1
+                     $udp_error2
+                     $udp_error3
+                     $udp_error4
+                     $udp_error5
+                     $udp_error6
+                     $udp_error7
+                     $udp_error8
+                     $udp_error9
                   if sigCode does not match current signal, skip to matching
                      CATEND
                   Block contains all Branches up to matching CATEND
@@ -457,7 +480,7 @@ CATEND
                   cannot be followed by ATTRIBUTE or CSYSTEM
 
 CFGPMTR   $pmtrName value
-          use:    define a configuration Paramater
+          use:    define a configuration Parameter
           pops:   -
           pushes: -
           notes:  Sketch may not be open
@@ -499,6 +522,7 @@ CHAMFER   radius edgeList=0
                   sets up @-parameters
                   new Faces all receive the Branch's Attributes
                   face-order is based upon order that is returned from EGADS
+                  causes finite difference sensitivities
                   signals that may be thrown/caught:
                      $illegal_argument
                      $illegal_value
@@ -516,30 +540,10 @@ CIRARC    xon yon zon xend yend zend
                   signals that may be thrown/caught:
 
 COMBINE   toler=0
-          use:    combine Bodys since Mark into next higher type
-          pops:   Body1 ... Mark
-          pushes: Body
-          notes:  Sketch may not be open
-                  Solver may not be open
-                  Mark must be set
-                  if all Bodys since Mark are SheetBodys
-                     create either a SolidBody from closed Shell or an
-                     (open) SheetBody
-                  elseif there is 1 planar WireBody that is closed
-                     create SheetBody from Loop
-                  elseif there is 1 planar WireBody that is open
-                     create SheetBody from Loop after closing Loop first
-                  elseif there are multiple planar WireBodys that are closed
-                     create SheetBody from closed Loop
-                  elseif there are multiple WireBodys that have common Nodes
-                     create non-manifold WireBody
-                  endif
-                  if maxtol>0, then tolerance can be relaxed until successful
-                  sets up @-parameters
-                  signals that may be thrown/caught:
-                     $did_not_create_body
-                     $insufficient_bodys_on_stack
-                     $wrong_types_on_stack
+          use:    this command was not designed well and has been replaced
+          notes:  the equivalent capability can be obtained by replacing with:
+                     JOIN   toler  1
+                     ELEVATE
 
 CONE      xvrtx yvrtx zvrtx xbase ybase zbase radius
           use:    create a cone Body
@@ -587,6 +591,7 @@ CONNECT   faceList1 faceList2 edgeList1=0 edgeList2=0 toler=0
                       face-order is same as edgeList
                   else
                       face-order is arbitrary
+                  causes finite difference sensitivities
                   signals that may be thrown/caught:
                      $illegal_argument
                      $illegal_value
@@ -700,7 +705,7 @@ DIMENSION $pmtrName nrow ncol
                   old values are not overwritten
                   cannot be followed by ATTRIBUTE or CSYSTEM
 
-DUMP      $filename remove=0 toMark=0 withTess=0
+DUMP      $filename remove=0 toMark=0 withTess=0 $grpName=.
           use:    write a file that contains the Body
           pops:   Body1 (if remove=1)
           pushes: -
@@ -722,6 +727,7 @@ DUMP      $filename remove=0 toMark=0 withTess=0
                      .egg    .EGG    --> EGG restart output
                      .iges   .IGES   --> IGES        output
                      .igs    .IGS    --> IGES        output
+                     .obj            --> WaveFront   output
                      .plot   .PLOT   --> ASCII plot  output
                      .sens   .SENS   --> ASCII sens  output
                      .step   .STEP   --> STEP        output
@@ -731,9 +737,31 @@ DUMP      $filename remove=0 toMark=0 withTess=0
                      .ugrid  .UGRID  --> ASCII AFRL3 output
                   if .bstl, use _stlColor from Face, Body, or 0 for color
                   if .egads, set _despmtr_* and _outpmtr_ Attributes on Model
+                  if .obj, Faces are grouped based upon grpName attribute
                   signals that may be thrown/caught:
                      $file_not_found
                      $insufficient_bodys_on_stack
+
+ELEVATE   toler=0
+          use:    elevate Body into next higher type
+          pops:   Body1
+          pushes: Body
+          notes:  Sketch may not be open
+                  Solver may not be open
+                  Mark must be set
+                  if Body1 is closed SheetBody
+                     create a SolidBody from closed Shell
+                  elseif Body1 is a planar manifold WireBody that is closed
+                     create SheetBody from Loop
+                  elseif Body1 is a planar manifold WireBody that is open
+                     close Loop and then create SheetBody
+                  endif
+                  if maxtol>0, then tolerance can be relaxed until successful
+                  sets up @-parameters
+                  signals that may be thrown/caught:
+                     $did_not_create_body
+                     $insufficient_bodys_on_stack
+                     $wrong_types_on_stack
 
 ELSE
           use:    execute or skip a Block of Branches
@@ -826,6 +854,16 @@ EVALUATE  $type arg1 ...
                      return in @edata:
                         t,
                         xclose,  yclose,  zclose
+                  elseif arguments are: "edgekt ibody iedge"
+                     ibody is Body number (1:nbody)
+                     iedge is Edge number (1:nedge)
+                     return in @edata:
+                        knot1, knot2, ...
+                  elseif arguments are: "edgecp ibody iedge"
+                     ibody is Body number (1:nbody)
+                     iedge is Edge number (1:nedge)
+                     return in @edata:
+                        xcp1 ycp1 zcp1 xcp2 ycp2 ...
                   elseif arguments are: "face ibody iface u v"
                      ibody is Body number (1:nbody)
                      iface is Face number (1:nface)
@@ -851,7 +889,23 @@ EVALUATE  $type arg1 ...
                      return in @edata:
                         u,       v,
                         xclose,  yclose,  zclose
+                  elseif arguments are: "faceukt ibody iface"
+                     ibody is Body number (1:nbody)
+                     iface is Face number (1:nface)
+                     return in @edata:
+                        uknot1, uknot2, ...
+                  elseif arguments are: "facevkt ibody iface"
+                     ibody is Body number (1:nbody)
+                     iface is Face number (1:nface)
+                     return in @edata:
+                        vknot1, vknot2,...
+                  elseif arguments are: "facecp ibody iface"
+                     ibody is Body number (1:nbody)
+                     iface is Face number (1:nface)
+                     return in @edata:
+                        xcp1, ycp1, zcp1, xcp2, ycp2, ...
                   cannot be followed by ATTRIBUTE or CSYSTEM
+                  causes finite difference sensitivities
                   signals that may be thrown/caught:
                      $body_not_found
                      $edge_not_found
@@ -934,6 +988,7 @@ FILLET    radius edgeList=0 listStyle=0
                   sets up @-parameters
                   new Faces all receive the Branch's Attributes
                   face-order is based upon order that is returned from EGADS
+                  causes finite difference sensitivities
                   signals that may be thrown/caught:
                      $illegal_argument
                      $illegal_value
@@ -1033,6 +1088,7 @@ HOLLOW    thick=0 entList=0 listStyle=0
                   sets up @-parameters
                   new Faces all receive the Branch's Attributes
                   face-order is based upon order that is returned from EGADS
+                  causes finite difference sensitivities
                   signals that may be thrown/caught:
                      $illegal_argument
                      $did_not_create_body
@@ -1062,11 +1118,12 @@ IMPORT    $filename bodynumber=1
                   sets up @-parameters
                   the Faces all receive the Branch's Attributes
                   face-order is based upon order in file
+                  causes finite difference sensitivities
                   signals that may be thrown/caught:
                      $did_not_create_body
                      udp-specific code
 
-INTERFACE $argName $argTypet default=0
+INTERFACE $argName $argType default=0
           use:    defines an argument for a .udc file
           pops:   -
           pushes: -
@@ -1155,19 +1212,16 @@ JOIN      toler=0 toMark=0
           pushes: Body
           notes:  Sketch may not be open
                   Solver may not be open
-                  if toMark=1 and all Bodys to Mark are SheetBodys
-                     create SheetBody
-                  elseif toMark=1 and all Bodys to Mark are WireBodys
-                     create WireBody
-                  elseif Body1=SolidBody and Body2=SolidBody
+                  if toMark!=0 use all Bodys since Mark
+                  if Body1=SolidBody and Body2=SolidBody
                      create SolidBody formed by joining Body1 and Body2 at
                         common Faces
                   elseif Body1=SheetBody and Body2=SheetBody
                      create SheetBody formed by joining Body1 and Body2 at
                         common Edges
                   elseif Body1=WireBody and Body2=WireBody
-                     create WireBody formed by joining Body1 and Body2 at
-                        common end Node
+                     create (possibly non-manifold) WireBody by joining
+                        Body1 and Body2 at common Nodes
                   endif
                   change in v1.19: if common Edges are not found, return
                                    $edge_not_found
@@ -1237,6 +1291,7 @@ LOFT      smooth
                   LOFT (through OpenCASCADE) is not very robust
                   use BLEND or RULE if possible
                   sets up @-parameters
+                  causes finite difference sensitivities
                   MAY BE DEPRECATED (use RULE or BLEND)
                   signals that may be thrown/caught:
                      $insufficient_bodys_on_stack
@@ -1268,13 +1323,15 @@ MARK
                   Solver may not be open
                   cannot be followed by ATTRIBUTE or CSYSTEM
 
-MESSAGE   $text $schar=_
+MESSAGE   $text $schar=_ $fileName=. $openType=a
           use:    generate a message to be displayed
           pops:   -
           pushes: -
           notes:  schar must contain a single character
                   any character in text that matches schar will
                      be converted to a space
+                  if fileName is not . the text is written to fileName
+                  openType should be n (new file) or a (append)
                   cannot be followed by ATTRIBUTE or CSYSTEM
 
 MIRROR    nx ny nz dist=0
@@ -1401,6 +1458,8 @@ RESTORE   $name index=0
                   Solver may not be open
                   $name is used directly (without evaluation)
                   if $name is . (dot), then duplicate Body on stack
+                  if $name is .. then duplicate Bodys to Mark (incl Mark)
+                  if $name is ... then duplicate whole stack
                   if index<0, get all Bodys that match $name
                   sets up @-parameters
                   error results if nothing has been stored in name
@@ -1427,6 +1486,7 @@ REVOLVE   xorig yorig zorig dxaxis dyaxis dzaxis angDeg
                      . or _ are placed on the associated Faces
                   Attributes on Xsect Edges are not placed on Edges
                   face-order is: (base), (end), feat1, ...
+                  causes finite difference sensitivities
                   signals that may be thrown/caught:
                      $illegal_value
                      $insufficient_bodys_on_stack
@@ -1460,7 +1520,7 @@ ROTATEY   angDeg zaxis=0 xaxis=0
 
 ROTATEZ   angDeg xaxis=0 yaxis=0
           use:    rotates Group on top of Stack around an axis that
-                  passes tgrough (xaxis, yaxis, 0) and is parallel
+                  passes through (xaxis, yaxis, 0) and is parallel
                   to the z-axis
           pops:   any
           pushes: any
@@ -1471,7 +1531,7 @@ ROTATEZ   angDeg xaxis=0 yaxis=0
                   signals that may be thrown/caught:
                      $insufficient_bodys_on_stack
 
-RULE      reorder=0 periodic=0
+RULE      reorder=0 periodic=0 copyAttr=0
           use:    create a Body by creating ruled surfaces thru Xsects
                      since Mark
           pops:   Xsect1 ... Mark
@@ -1482,7 +1542,13 @@ RULE      reorder=0 periodic=0
                      lengths
                   first Xsect is unaltered if reorder>0
                   last  Xsect is unaltered if reorder<0
-                  all Xsects must have the same number of Edges
+                  if no Nodes in the Xsects have Attribute .multiNode,
+                      all Xsects must have the same number of Edges
+                  if a Node in a Xsect has Attribute .multiNode, the
+                      integer value of the Attribute tells the multiplicity-1
+                  if the first Node has Attribute .multiNode, then a second
+                      integer value tells which replicate (bias-0) should be
+                      considered the beginning of the Xsect
                   Xsects cannot be non-manifold WireBody
                   if all Xsects are NodeBodys
                      a WireBody is created
@@ -1492,6 +1558,8 @@ RULE      reorder=0 periodic=0
                      a SolidBody is created
                   the first and/or last Xsect can be a NodeBody
                   if periodic=1 then connect the first and last Xsects
+                  if copyAttr=1 then user Attributes are copied
+                     from Xsects to new Edges
                   computes Face sensitivities analytically
                   sets up @-parameters
                   the Faces all receive the Branch's Attributes
@@ -1561,7 +1629,18 @@ SELECT    $type arg1 ...
                   elseif arguments are: "face xmin xmax ymin ymax zmin zmax"
                      sets @seltype to 2
                      uses @selbody
-                     sets @sellist to Faces whose bboxs are completely in given range
+                     if xmin=xmax and ymin=ymax and zmin=zmax
+                        sets @sellist to Face whose center is closest to xmin,ymin,zmin
+                     else
+                        sets @sellist to Faces whose bboxs are completely in given range
+                  elseif arguments are: "face -1 ibody1"
+                     sets @seltype to 2
+                     uses @selbody
+                     sets @sellist to Faces that are in common with a Face in ibody1
+                  elseif arguments are: "face -2 ibody1"
+                     sets @seltype to 2
+                     uses @selbody
+                     sets @sellist to Faces that are within SolidBody ibody1
                   elseif arguments are: "face attrName1    attrValue1
                                               attrName2=$* attrValue2=$*
                                               attrName3=$* attrValue3=$*"
@@ -1592,10 +1671,21 @@ SELECT    $type arg1 ...
                         ibody1/iford1 and ibody2/iford2
                      (note that 0 can be used as a wildcard in any numeric field)
                      (note that if any fields are 0, the default iseq=0)
+                  elseif arguments are: "edge -1 ibody1"
+                     sets @seltype to 1
+                     uses @selbody
+                     sets @sellist to Edges that are in common with an Edge in ibody1
+                  elseif arguments are: "edge -2 ibody1"
+                     sets @seltype to 1
+                     uses @selbody
+                     sets @sellist to Edges that are within SolidBody ibody1
                   elseif arguments are: "edge xmin xmax ymin ymax zmin zmax"
                      sets @seltype to 1
                      uses @selbody
-                     sets @sellist to Edges whose bboxs are completely in given range
+                     if xmin=xmax and ymin=ymax and zmin=zmax
+                        sets @sellist to Edge whose center is closest to xmin,ymin,zmin
+                     else
+                        sets @sellist to Edges whose bboxs are completely in given range
                   elseif arguments are: "edge attrName1    attrValue1
                                               attrName2=$* attrValue2=$*
                                               attrName3=$* attrValue3=$*"
@@ -1618,6 +1708,14 @@ SELECT    $type arg1 ...
                      sets @seltype to 0
                      uses @selbody
                      sets @sellist to inode
+                  elseif arguments are: "node -1 ibody1"
+                     sets @seltype to 0
+                     uses @selbody
+                     sets @sellist to Nodes that are in common with a Node in ibody1
+                  elseif arguments are: "node -2 ibody1"
+                     sets @seltype to 0
+                     uses @selbody
+                     sets @sellist to Nodes that are within SolidBody ibody1
                   elseif arguments are: "node x y z"
                      sets @seltype to 0
                      uses @selbodt
@@ -1625,7 +1723,10 @@ SELECT    $type arg1 ...
                   elseif arguments are: "node xmin xmax ymin ymax zmin zmax"
                      sets @seltype to 0
                      uses @selbody
-                     sets @sellist to Nodes that are in given range
+                     if xmin=xmax and ymin=ymax and zmin=zmax
+                        sets @sellist to Node that is closest to xmin,ymin,zmin
+                     else
+                        sets @sellist to Nodes that are in given range
                   elseif arguments are: "node attrName1    attrValue1
                                               attrName2=$* attrValue2=$*
                                               attrName3=$* attrValue3=$*"
@@ -1675,6 +1776,14 @@ SELECT    $type arg1 ...
                   elseif arguments are: "sub ient" and ient is in @sellist
                      removes from @sellist ient
                      (wildcarding is not allowed)
+                  elseif arguments are: "not" and @seltype==2
+                     make @sellist contain all Faces not in previous @sellist
+                  elseif arguments are: "not" and @seltype==1
+                     make @sellist contain all Edges not in previous @sellist
+                  elseif arguments are: "not" and @seltype==0
+                     make @sellist contain all Nodes not in previous @sellist
+                  elseif arguments are: "flip"
+                     the order of entities in @sellist are flipped
                   elseif arguments are: "sort $key"
                      sorts @sellist based upon $key which can be: $xmin, $ymin, $zmin,
                         $xmax, $ymax, $zmax, $xcg, $ycg, $zcg, $area, or $length
@@ -1895,8 +2004,11 @@ SSLOPE    dx dy dz
                   for definiing slope at end:
                       must      follow a SPLINE statement
                       must not precede a SPLINE statement
-                  dx, dy, and dz must not all be zero
-                  sensitivity computed w.r.t. x, y, z
+                  if dx=dy=dz=0 and splne is closed
+                      generate periodic spline
+                  else
+                      dx, dy, and dz must not all be zero
+                  causes finite difference sensitivities
                   signals that may be thrown/caught:
                      $illegal_value
 
@@ -1919,7 +2031,7 @@ STORE     $name index=0 keep=0
                   signals that may be thrown/caught:
                      $insufficient_bodys_on_stack
 
-SUBTRACT  $order=none index=1 maxtol=0
+SUBTRACT  $order=none index=1 maxtol=0 scribeAll=0
           use:    perform Boolean subtraction (Body2 - Body1)
           pops:   Body1 Body2
           pushes: Body
@@ -1932,13 +2044,19 @@ SUBTRACT  $order=none index=1 maxtol=0
                   elseif Body1=SolidBody and Body2=SheetBody
                      create SolidBody that is Body1 scribed with Edges at
                         intersection with Body2
+                     if scribeAll=1, then even coincident Edges are scribed
+                     if scribeAll=2, then all concident Edges are scribed
+                                     if original scribing failed
                   elseif Body1=SheetBody and Body2=SolidBody
                      create SheetBody that is part of Body1 that is
                         outside Body2
                      if index=-1, then all Bodys are returned
-                  elseif Body1=SheetBody and Body2=SheetBody
+                  elseif Body1=SheetBody and Body2=SheetBody (see special rule below)
                      create SheetBody that is Body1 scribed with Edges at
-                        intersection with Body2
+                         intersection with Body2
+                     if scribeAll=1, then even coincident Edges are scribed
+                     if scribeAll=2, then all concident Edges are scribed
+                                     if original scribing failed
                   elseif Body1=WireBody and Body2=SolidBody
                      create WireBody that is part of Body1 that is outside Body2
                      CURRENTLY NOT IMPLEMENTED
@@ -1949,6 +2067,14 @@ SUBTRACT  $order=none index=1 maxtol=0
                   elseif Body2=NodeBody
                      split Edges in Body1 at Body2
                   endif
+                  special rule for SUBTRACTing two SheetBodys:
+                     if     Body1 and Body2 both contain one Face
+                     and if Body1 and Body2 are co-planar
+                     and if Body2 has only one Loop
+                     then a new SheetBody is created that is Body1 with an
+                         extra hole as prescribed by the Loop of Body2
+                     NOTE that the Loop from Body2 can now intersect one
+                         or more of the Loops in Body1
                   if subtraction does not produce at least index Bodys,
                      an error is returned
                   order may be one of:
@@ -1988,6 +2114,7 @@ SWEEP
                   the Faces all receive the Branch's Attributes
                   Attributes on Xsect are maintained
                   face-order is: (base), (end), feat1a, feat1b, ...
+                  causes finite difference sensitivities
                   signals that may be thrown/caught:
                      $insufficient_bodys_on_stack
                      $wrong_types_on_stack
@@ -2012,6 +2139,7 @@ TORUS     xcent ycent zcent dxaxis dyaxis dzaxis majorRad minorRad
                   sets up @-parameters
                   the Faces all receive the Branch's Attributes
                   face-order is: xmin/ymin, xmin/ymax, xmax/ymin, xmax/ymax
+                  causes finite difference sensitivities
                   signals that may be thrown/caught:
                      $illegal_value
 
@@ -2087,16 +2215,26 @@ UDPRIM    $primtype $argName1 argValue1 $argName2 argValue2 ...
                   Solver may not be open
                   primtype  determines the type of primitive and the number of
                      argName/argValue pairs
-                  if primtype begins with a letter
+                  if primtype begins with a letter (a-z or A-Z)
                      then a compiled udp whose name is primtype.so is used
-                  if primtype starts with a /
+                     *  name -> path($root)/lib/name.so
+                  if primtype starts with /
                      then a .udc file in the current directory will be used
+                     *  /path/name -> path($pwd)/path/name.udc
+                  if primtype starts with //
+                     then a .udc file from the file system root will be used
+                     *  //path/name -> /path/name.udc
+                  if primtype starts with /~/
+                     then a .udc file relative to $HOME will be used
+                     *  /~/path/name -> $HOME/path/name.udc
                   if primtype starts with $/
-                     then a .udc file in the parent (.csm or .udc)
-                     directory will be used
+                     then a .udc file in the parent directory will be used
+                     *  $/path/name -> path($csm)/path/name.udc
                   if primtype starts with $$/
-                     then a .udc file in ESP_ROOT/udc will be used
+                     then a .udc file in $ESP_ROOT/udc will be used
+                     *  $$/name -> path($root)/udc/name.udc
                   primtype  is used directly (without evaluation)
+                  path may be omitted
                   arguments are specified in name/value pairs and are
                       not positional
                   argName#  is used directly (without evaluation)
@@ -2120,7 +2258,7 @@ UDPRIM    $primtype $argName1 argValue1 $argName2 argValue2 ...
                               level-1
                               the values are copied into the new Parameter
                            else
-                              argValueX is evalued and stored in the new
+                              argValueX is evaluated and stored in the new
                                  Parameter
                         else
                            an error is returned
@@ -2314,7 +2452,7 @@ Types:
         values can be overwritten by subsequent statements
         are only available in the .csm or .udc file in which
             it is defined or in an include-type UDC that is
-            called by the program unit in which iit was defined
+            called by the program unit in which it was defined
     SOLVER
         is a scalar defined by a SOLBEG statement
         only available between SOLBEG and SOLEND
@@ -2352,15 +2490,17 @@ Types:
 
         @nbody    x    x    x    x   number of Bodys
         @ibody    x    x    x    x   current   Body
-        @nface    x    x    x    x   number of Faces in @ibody
+        @nface    x    x    x    x   number of Faces in @ibody or
+                                     number of EFaces if @itype=4
         @iface   -1    x   -1   -1   current   Face  in @ibody (or -2)
-        @nedge    x    x    x    x   number of Edges in @ibody
+        @nedge    x    x    x    x   number of Edges in @ibody or
+                                     number of EEdges if @itype=4
         @iedge   -1   -1    x   -1   current   Edge  in @ibody (or -2)
         @nnode    x    x    x    x   number of Nodes in @ibody
         @inode   -1   -1   -1    x   current   Node  in @ibody (or -2)
         @igroup   x    x    x    x   group of @ibody
-        @itype    x    x    x    x   0=NodeBody, 1=WireBody,
-                                                 2=SheetBody, 3=SolidBody
+        @itype    x    x    x    x   0=NodeBody, 1=WireBody, 2=SheetBody,
+                                     3=SolidBody, 4=ErepBody
         @nbors   -1    x    -    x   number of incident Edges
         @nbors   -1    -    x    -   number of incident Faces
 
@@ -2426,7 +2566,7 @@ Valid operators (in order of precedence):
     * /            multiply and divide        (evaluated left to right)
     + -            add/concat and subtract    (evaluated left to right)
 
-    An expression that consists of only the name of a Parameter my be
+    An expression that consists of only the name of a Parameter may be
     prepended by a unary + or -
 
 Valid function calls:
@@ -2622,12 +2762,18 @@ Special User-defined Attributes for Faces:
 
     _color      color of front of Face in ESP
                 either R,G,B in three 0-1 reals
-                or $red, $green, $blue, $yellow, $magenta,
-                $cyan, $white, or $black
+                or $red, $lred, $green, $lgreen, $blue, $lblue,
+                $yellow, $magenta, $cyan, $white, or $black
 
     _bcolor     color of back of Face in ESP (see _color)
 
     _gcolor     color of grid of Face in ESP (see _color)
+
+    _viz        if set to $off, then Face is initially not shown
+
+    _grd        if set to $on,  the grid on Face is initially shown
+
+    _trn        if set to $on,  then Face is initially shown transparent
 
     _makeQuads  to make old-style quads for this Face.  This is only
                 available if there is no _makeQuads Attribute on the Body.
@@ -2645,13 +2791,56 @@ Attributes assigned to Edges:
                 (or -3 if non-manifold)
 
     _edgeID     unique 5-tuple that is assigned automatically
-          [0]   _faceID[0] of Face 1 (or 0 if non-manifold)
-          [1]   _faceID[1] of Face 1 (or 0 if non-manifold)
-          [2]   _faceID[0] of Face 2 (or 0 if non-manifold)
-          [3]   _faceID[1] of Face 2 (or 0 if non-manifold)
+          for an ordinary manifold Edge between two Faces
+          [0]   _faceID[0] of Face 1
+          [1]   _faceID[1] of Face 1
+          [2]   _faceID[0] of Face 2
+          [3]   _faceID[1] of Face 2
           [4]   sequence number
 
-                _edgeID[0]/[1] swapped with edge[2]/[3]
+          for an Edge supported by more than 2 Faces
+          [0]   _faceID[0] of Face 1  (Face chosen arbitrarily)
+          [1]   _faceID[1] of Face 1  (Face chosen arbitrarily)
+          [2]   _faceID[0] of Face 2  (Face chosen arbitrarily)
+          [3]   _faceID[1] of Face 2  (Face chosen arbitrarily)
+          [4]   sequence number
+
+          or if a DEGENERATE Edge
+          [0]   -99999
+          [1]   -99999
+          [2]   _faceID[0] of Face 1
+          [3]   _faceID[1] of Face 1
+          [4]   sequence number
+
+          or if from a Sketch
+          [0]   0
+          [1]   0
+          [2]   _faceID[0]
+          [3]   segment in Sketch
+          [4]   sequence number (always 1 when Sketch is created)
+
+          or if from a SheetBody generated by the BOX command
+          [0]   0
+          [1]   0
+          [2]   _faceID[0]
+          [3]   _faceID[1]
+          [4]   sequence number
+
+          or if generated by SUBTRACTing two co-planar SheetBodys
+          [0]   0
+          [1]   0
+          [2]   _faceID[0]                  of exterior SheetBody
+          [3]   _faceID[1]                  of exterior SheetBody
+          [4]   sequence number
+
+          or if generated by scribing (SUBTRACTing a non-co-planar SheetBody)
+          [0]   0
+          [1]   0
+          [2]   _faceID[0]                  of scribed  Face
+          [3]   _faceID[1]                  of scribed  Face
+          [4]   sequence number
+
+                _edgeID[0]/[1] swapped with edge[2]/[3] if
                    10000*_edgeID[0]+_edgeID[1] > 10000*_edgeID[2]+_edgeID[3]
                 if multiple Edges have same _edgeID[0], _edgeID[1],
                    _edgeID[2], and _edgeID[3], then the sequence number
@@ -2669,10 +2858,16 @@ Special User-defined Attributes for Edges:
 
     _color      color of front of Edge in ESP
                 either R,G,B in three 0-1 reals
-                or $red, $green, $blue, $yellow, $magenta,
-                $cyan, $white, or $black
+                or $red, $lred, $green, $lgreen, $blue, $lblue,
+                $yellow, $magenta, $cyan, $white, or $black
 
     _gcolor     color of grid of Edge in ESP (see _color)
+
+    _viz        if set to $off, then Edge is initially not shown
+
+    _grd        if set to $on,  then grid on Edge is initially shown
+
+    _ori        if set to $on,  then orientation is initially shown for Edge
 
 Attributes assigned to Nodes:
 
@@ -2686,8 +2881,10 @@ Special User-defined Attributes for Nodes:
 
     _color      color of Node in ESP
                 either R,G,B in three 0-1 reals
-                or $red, $green, $blue, $yellow, $magenta,
-                $cyan, $white, or $black
+                or $red, $lred, $green, $lgreen, $blue, $lblue,
+                $yellow, $magenta, $cyan, $white, or $black
+
+    _viz        if set to $on, then Node is initially shown
 */
 
 /*
@@ -2872,6 +3069,27 @@ typedef struct {
     ego           *ebody;               /* array  of EGADS Bodys stored */
 } stor_T;
 
+/* definition of the udp structures */
+#define MAXPRIM   32          // maximum different type of primitives
+typedef struct {
+    int       type;           /* type of argument */
+    void      *val;           /* values (across rows) */
+    double    *dot;           /* velocities */
+
+    int       size;           /* total size (nrow*ncol) */
+    int       nrow;           /* number of rows */
+    int       ncol;           /* number of columns */
+} udparg_T;
+
+typedef struct {
+    ego       ebody;          /* Body (or Model) output from UDP/UDF */
+    int       narg;           /* number of arguments */
+    udparg_T  *arg;           /* array  of arguments */
+    int       ndotchg;        /* number of dot   changes since udpSensitivity */
+    int       *bodyList;      /* list of Bodys used (0 terminated) */
+    void      *data;          /* private data */
+} udp_T;
+
 /* "Prof" is profile data */
 typedef struct {
     int           ncall;                /* number of calls */
@@ -2895,6 +3113,7 @@ typedef int (*eggFree_H)     (void*);
 typedef struct modl_T {
     int           magic;                /* magic number to check for valid *modl */
     int           checked;              /* =1 if successfully passed checks */
+    int           embedded;             /* =1 if embedded MODL (udp storage not cleared) */
     int           ibrch;                /* Branch number being executed */
     int           nextseq;              /* number of next automatcally-numbered item */
     int           ngroup;               /* number of Groups */
@@ -2902,7 +3121,7 @@ typedef struct modl_T {
     int           verify;               /* =1 if verification ASSERTs are checked */
     int           cleanup;              /* number of Branches before context is cleaned up */
     int           dumpEgads;            /* =1 if Bodys are dumped during build */
-    int           loadEgads;            /* =1 if Bodys are loaded during build */
+    int           loadEgads;            /* =1 if Bodys are loaded during build, =-1 if error encountered */
     int           hasMPs;               /* =1 if mass properties have been calculated */
     int           printStack;           /* =1 to print stack after every command */
     int           tessAtEnd;            /* =1 to tessellate Bodys on stack at end of ocsmBuild */
@@ -2941,10 +3160,12 @@ typedef struct modl_T {
     int           mbody;                /* maximum   Bodys */
     body_T        *body;                /* array  of Bodys */
 
+    double        forceFDs;             /* !=0 to forcs FDs with given step */
     int           needFDs;              /* =1 if finite differences are needed */
     int           numdots;              /* number of non-zero dots associated with DESPMTRS */
     struct modl_T *perturb;             /* model of perturbed body for sensitivty */
     struct modl_T *basemodl;            /* base MODL while creating perturbation */
+    struct modl_T *matchSeq;            /* MODL from which to derive sequence in _faceID and _edgeID */
     double        dtime;                /* time step in sensitivity */
                                         /*  0.001 = initial value */
                                         /* -2     = problem with previous attempt to create perturb */
@@ -2952,7 +3173,9 @@ typedef struct modl_T {
     ego           context;              /* EGADS context */
     void          *userdata;            /* pointer for user data */
     mesgCB_H      mesgCB;               /* handle of message function (or NULL) */
+    mesgCB_H      bcstCB;               /* handle of broadcast function (or NULL) */
     sizeCB_H      sizeCB;               /* handle of size change function (or NULL) */
+
     char          eggname[256];         /* name of external grid generator (or NULL) */
     eggGenerate_H eggGenerate;          /* handle of egg_generate function */
     eggMorph_H    eggMorph;             /* handle of egg_morph function */
@@ -2961,12 +3184,26 @@ typedef struct modl_T {
     eggLoad_H     eggLoad;              /* handle of egg_load function */
     eggFree_H     eggFree;              /* handle of egg_free function */
 
+    int           NumUdp[MAXPRIM];      /* number of instances for each type of UDP/UDF */
+    udp_T         *Udps[ MAXPRIM];      /* array  of instances for each type of UDP/UDF */
+
     int           nwarn;                /* number of warnings */
     int           sigCode;              /* current signal code */
     char          *sigMesg;             /* current signal message */
 
     prof_T        profile[101];         /* profile data */
 } modl_T;
+
+/* allow for compilation by C++ */
+#ifdef __ProtoExt__
+   #undef __ProtoExt__
+#endif
+#ifdef __cplusplus
+   extern "C" {
+   #define __ProtoExt__
+#else
+   #define __ProtoExt__ extern
+#endif
 
 /*
  ************************************************************************
@@ -2977,10 +3214,12 @@ typedef struct modl_T {
  */
 
 /* return current version */
+__ProtoExt__
 int ocsmVersion(int   *imajor,          /* (out) major version number */
                 int   *iminor);         /* (out) minor version number */
 
 /* set output level */
+__ProtoExt__
 int ocsmSetOutLevel(int    ilevel);     /* (in)  output level: */
                                         /*       <0 do not change */
                                         /*       =0 errors only */
@@ -2989,36 +3228,50 @@ int ocsmSetOutLevel(int    ilevel);     /* (in)  output level: */
                                         /* (out) previous outLevel */
 
 /* set (global) auxiliary pointer */
+__ProtoExt__
 int ocsmSetAuxPtr(void  *newAuxPtr);    /* (in)  auxiliary pointer */
 
 /* get (global auxiliary pointer */
+__ProtoExt__
 int ocsmGetAuxPtr(void  **oldAuxPtr);   /* (out) auxiliary pointer */
 
 /* create a MODL by reading a .csm file */
+__ProtoExt__
 int ocsmLoad(char   filename[],         /* (in)  file to be read (with .csm) */
              void   **modl);            /* (out) pointer to MODL */
 
 /* create a MODL from an ego */
+__ProtoExt__
 int ocsmLoadFromModel(ego    emodel,    /* (in)  egads MODEL */
                       void   **modl);   /* (out) pointer to MODL */
 
 /* load dictionary from dictname */
+__ProtoExt__
 int ocsmLoadDict(void   *modl,          /* (in)  pointer to MODL */
                  char   dictname[]);    /* (in)  file that contains dictionary */
 
 /* adjust UDCs to be colocated with the .csm file */
+__ProtoExt__
 int ocsmAdjustUDCs(void   *modl);       /* (in)  pointer to MODL */
 
 /* update CFGPMTRs and DESPMTRs from filename */
+__ProtoExt__
 int ocsmUpdateDespmtrs(void   *modl,    /* (in)  pointer to MODL */
                        char   filename[]); /* (in) file that contains DESPMTRs */
 
 /* get a list of all .csm, .cpc. and .udc files */
+__ProtoExt__
 int ocsmGetFilelist(void   *modl,       /* (in)  pointer to MODL */
                     char   *filelist[]);/* (out) bar-sepatared list of files */
                                         /*       must be freed by user */
 
+/* get file tree info */
+__ProtoExt__
+int ocsmGetFiletree(void   *modl,       /* (in)  pointer to MODL */
+                    char   *info[]);    /* (out) info about the file tree */
+
 /* save a MODL to a file */
+__ProtoExt__
 int ocsmSave(void   *modl,              /* (in)  pointer to MODL */
              char   filename[]);        /* (in)  file to be written (with extension) */
                                         /*       .csm -> write outer .csm file */
@@ -3026,35 +3279,48 @@ int ocsmSave(void   *modl,              /* (in)  pointer to MODL */
                                         /*       .udc -> write a .udc file */
 
 /* save CFGPMTRs and DESPMTRs to file */
+__ProtoExt__
 int ocsmSaveDespmtrs(void   *modl,      /* (in)  pointer to MODL */
                      char   filename[]);/* (in)  file to which DESPMTRS should be written */
 
 /* copy a MODL (but not the Bodys) */
+__ProtoExt__
 int ocsmCopy(void   *srcModl,           /* (in)  pointer to source MODL */
              void   **newModl);         /* (out) pointer to new    MODL */
 
 /* free up all storage associated with a MODL */
+__ProtoExt__
 int ocsmFree(
    /*@null@*/void   *modl);             /* (in)  pointer to MODL (or NULL) */
 
 /* get info about a MODL */
+__ProtoExt__
 int ocsmInfo(void   *modl,              /* (in)  pointer to MODL */
              int    *nbrch,             /* (out) number of Branches */
              int    *npmtr,             /* (out) number of Parameters */
              int    *nbody);            /* (out) number of Bodys */
 
 /* check that Branches are properly ordered */
+__ProtoExt__
 int ocsmCheck(void   *modl);            /* (in)  pointer to MODL */
 
 /* register a callback function for exporting messages */
+__ProtoExt__
 int ocsmRegMesgCB(void    *modl,        /* (in)  pointer to MODL */
                   void    (*callback)(char[]));   /* (in)  handle of callback function */
 
+/* register a callback function for broadcasting messages */
+__ProtoExt__
+int ocsmRegBcstCB(void    *modl,        /* (in)  pointer to MODL */
+                  void    (*callback)(char[]));   /* (in)  handle of callback function */
+
 /* register a callback function for DESPMTR size changes */
+__ProtoExt__
 int ocsmRegSizeCB(void    *modl,        /* (in)  pointer to MODL */
                   void    (*callback)(void*, int, int, int));   /* (in)  handle of callback function */
 
 /* build Bodys by executing the MODL up to a given Branch */
+__ProtoExt__
 int ocsmBuild(void   *modl,             /* (in)  pointer to MODL */
               int    buildTo,           /* (in)  last Branch to execute (or 0 for all, or -1 for no recycling) */
               int    *builtTo,          /* (out) last Branch executed successfully */
@@ -3064,20 +3330,24 @@ int ocsmBuild(void   *modl,             /* (in)  pointer to MODL */
                                                  (at least nbody long) */
 
 /* print profile from last ocsmBuild() */
+__ProtoExt__
 int ocsmPrintProfile(void   *modl,      /* (in)  pointer to MODL */
                      char   filename[]);/* (in)  file to which output is appended (or "" for stdout) */
 
 /* tessellate one or more Bodys */
+__ProtoExt__
 int ocsmTessellate(void   *modl,        /* (in)  pointer to MODL */
                    int    ibody);       /* (in)  Body index (1:nbody) or 0 for all on stack */
 
 /* get information about one Body */
+__ProtoExt__
 int ocsmBodyDetails(void   *modl,       /* (in)  pointer to MODL */
-                    char   fiename[],   /* (in)  name of file from which Bdy was created */
+                    char   fiename[],   /* (in)  name of file from which Body was created */
                     int    linenum,     /* (in)  line in filename from which Body was created */
                     char   *info[]);    /* (out) info about the Body (freeable) */
 
 /* create a perturbed MODL */
+__ProtoExt__
 int ocsmPerturb(void   *modl,           /* (in)  pointer to MODL */
                 int    npmtrs,          /* (in)  number of perturbed Parameters (or 0 to remove) */
       /*@null@*/int    ipmtrs[],        /* (in)  array of Parameter indices (1:npmtr) */
@@ -3086,11 +3356,31 @@ int ocsmPerturb(void   *modl,           /* (in)  pointer to MODL */
       /*@null@*/double values[]);       /* (in)  array of perturbed values */
 
 /* update a tessellation from a file */
+__ProtoExt__
 int ocsmUpdateTess(void   *modl,        /* (in)  pointer to MODL */
                    int    ibody,        /* (in)  Body index (1:nbody) */
                    char   filename[]);  /* (in)  name of .tess file */
 
+/* compute clearance between Bodys */
+__ProtoExt__
+int ocsmClearance(void   *modl,         /* (in)  pointer to MODL */
+                  int    ibody1,        /* (in)  >0  Body index of enclosing Body */
+                                        /*       <0  Body index of neighboring Body */
+                  int    ibody2,        /* (in)  Body index of second Body */
+                  double *dist,         /* (out) >0 distance between Bodys */
+                                        /*       <0 penetration distance */
+                  double pnt1[],        /* (out) closest point on ibody1 (iface, u, v) */
+                  double pnt2[]);       /* (out) closest point on ibody2 (iface, u, v) */
+
+/* show matrix of "SPECIAL provide" statements */
+__ProtoExt__
+int ocsmShowTblOfContents(void   *modl, /* (in)  pointer to MODL */
+                          int    irow,  /* (in)  dimension to be associated with rows (1-8) */
+                          int    icol,  /* (in)  dimension to ba associated with columns (1-8) */
+                          char   *info[]); /* (out) info containing matrix (freeable) */
+
 /* create a new Branch */
+__ProtoExt__
 int ocsmNewBrch(void   *modl,           /* (in)  pointer to MODL */
                 int    iafter,          /* (in)  Branch index (0-nbrch) after which to add */
                 int    type,            /* (in)  Branch type (see below) */
@@ -3107,6 +3397,7 @@ int ocsmNewBrch(void   *modl,           /* (in)  pointer to MODL */
       /*@null@*/char   arg9[]);         /* (in)  Argument 9 (or NULL) */
 
 /* get info about a Branch */
+__ProtoExt__
 int ocsmGetBrch(void   *modl,           /* (in)  pointer to MODL */
                 int    ibrch,           /* (in)  Branch index (1:nbrch) */
                 int    *type,           /* (out) Branch type (see below) */
@@ -3119,19 +3410,23 @@ int ocsmGetBrch(void   *modl,           /* (in)  pointer to MODL */
                 int    *nattr);         /* (out) number of Attributes */
 
 /* set activity for a Branch */
+__ProtoExt__
 int ocsmSetBrch(void   *modl,           /* (in)  pointer to MODL */
                 int    ibrch,           /* (in)  Branch index (1:nbrch) */
                 int    actv);           /* (in)  Branch activity (see below) */
 
 /* delete a Branch (or whole Sketch if SKBEG) */
+__ProtoExt__
 int ocsmDelBrch(void   *modl,           /* (in)  pointer to MODL */
                 int    ibrch);          /* (in)  Branch index (1:nbrch) */
 
 /* print Branches to file */
+__ProtoExt__
 int ocsmPrintBrchs(void   *modl,        /* (in)  pointer to MODL */
                    char   filename[]);  /* (in)  file to which output is appended (or "" for stdout) */
 
 /* get an Argument for a Branch */
+__ProtoExt__
 int ocsmGetArg(void   *modl,            /* (in)  pointer to MODL */
                int    ibrch,            /* (in)  Branch index (1:nbrch) */
                int    iarg,             /* (in)  Argument index (1:narg) */
@@ -3140,12 +3435,14 @@ int ocsmGetArg(void   *modl,            /* (in)  pointer to MODL */
                double *dot);            /* (out) Argument velocity */
 
 /* set an Argument for a Branch */
+__ProtoExt__
 int ocsmSetArg(void   *modl,            /* (in)  pointer to MODL */
                int    ibrch,            /* (in)  Branch index (1:nbrch) */
                int    iarg,             /* (in)  Argument index (1:narg) */
                char   defn[]);          /* (in)  Argument definition */
 
 /* return an Attribute for a Branch by index */
+__ProtoExt__
 int ocsmRetAttr(void   *modl,           /* (in)  pointer to MODL */
                 int    ibrch,           /* (in)  Branch index (1:nbrch) */
                 int    iattr,           /* (in)  Attribute index (1:nattr) */
@@ -3153,18 +3450,27 @@ int ocsmRetAttr(void   *modl,           /* (in)  pointer to MODL */
                 char   avalue[]);       /* (out) Attribute value (at least MAX_STRVAL_LEN long) */
 
 /* get an Attribute for a Branch by name */
+__ProtoExt__
 int ocsmGetAttr(void   *modl,           /* (in)  pointer to MODL */
                 int    ibrch,           /* (in)  Branch index (1:nbrch) or 0 for global */
                 char   aname[],         /* (in)  Attribute name */
                 char   avalue[]);       /* (out) Attribute value (at least MAX_STRVAL_LEN long) */
 
 /* set an Attribute for a Branch */
+__ProtoExt__
 int ocsmSetAttr(void   *modl,           /* (in)  pointer to MODL */
                 int    ibrch,           /* (in)  Branch index (1:nbrch) or 0 for global */
                 char   aname[],         /* (in)  Attribute name */
                 char   avalue[]);       /* (in)  Attribute value (or blank to delete) */
 
+/* trace definition of all Attributes */
+__ProtoExt__
+int ocsmTraceAttrs(void   *modl,        /* (in)  pointer to MODL */
+                   char   pattern[],    /* (in)  pattern of Attributes to match */
+                   char   *info[]);     /* (out) info about the Attributes (freeable) */
+
 /* return a Csystem for a Branch by index */
+__ProtoExt__
 int ocsmRetCsys(void   *modl,           /* (in)  pointer to MODL */
                 int    ibrch,           /* (in)  Branch index (1:nbrch) */
                 int    icsys,           /* (in)  Csystem index (1:nattr) */
@@ -3172,32 +3478,38 @@ int ocsmRetCsys(void   *modl,           /* (in)  pointer to MODL */
                 char   cvalue[]);       /* (out) Csystem value (at least MAX_STRVAL_LEN long) */
 
 /* get a Csystem for a Branch by name */
+__ProtoExt__
 int ocsmGetCsys(void   *modl,           /* (in)  pointer to MODL */
                 int    ibrch,           /* (in)  Branch index (1:nbrch) */
                 char   cname[],         /* (in)  Csystem name */
                 char   cvalue[]);       /* (out) Csystem value (at least MAX_STRVAL_LEN long) */
 
 /* set a Csystem for a Branch */
+__ProtoExt__
 int ocsmSetCsys(void   *modl,           /* (in)  pointer to MODL */
                 int    ibrch,           /* (in)  Branch index (1:nbrch)  */
                 char   cname[],         /* (in)  Csystem name */
                 char   cvalue[]);       /* (in)  Csystem value (or blank to delete) */
 
 /* print global Attributes to file */
+__ProtoExt__
 int ocsmPrintAttrs(void   *modl,        /* (in)  pointer to MODL */
                    char   filename[]);  /* (in)  file to which output is appended (or "" for stdout) */
 
 /* get the name of a Branch */
+__ProtoExt__
 int ocsmGetName(void   *modl,           /* (in)  pointer to MODL */
                 int    ibrch,           /* (in)  Branch index (1:nbrch) */
                 char   name[]);         /* (out) Branch name (at least MAX_STRVAL_LEN long) */
 
 /* set the name for a Branch */
+__ProtoExt__
 int ocsmSetName(void   *modl,           /* (in)  pointer to MODL */
                 int    ibrch,           /* (in)  Branch index (1:nbrch) */
                 char   name[]);         /* (in)  Branch name */
 
 /* get string data associated with a Sketch */
+__ProtoExt__
 int ocsmGetSketch(void   *modl,         /* (in)  pointer to MODL */
                   int    ibrch,         /* (in)  Branch index (1:nbrch) within Sketch */
                   int    maxlen,        /* (in)  length of begs, vars, cons, and segs */
@@ -3213,12 +3525,14 @@ int ocsmGetSketch(void   *modl,         /* (in)  pointer to MODL */
                                         /*       ibeg and iend are bias-1 */
 
 /* solve for new Sketch variables */
+__ProtoExt__
 int ocsmSolveSketch(void   *modl,       /* (in)  pointer to MODL */
                     char   vars_in[],   /* (in)  string with Sketch variables */
                     char   cons[],      /* (in)  string with Sketch constraints */
                     char   vars_out[]); /* (out) string (1024 long) with new Sketch variables */
 
 /* overwrite Branches associated with a Sketch */
+__ProtoExt__
 int ocsmSaveSketch(void   *modl,        /* (in)  pointer to MODL */
                    int    ibrch,        /* (in)  Branch index (1:nbrch) within Sketch */
                    char   vars[],       /* (in)  string with Sketch variables */
@@ -3226,12 +3540,14 @@ int ocsmSaveSketch(void   *modl,        /* (in)  pointer to MODL */
                    char   segs[]);      /* (in)  string with Sketch segments */
 
 /* make an EBody from a given Body */
+__ProtoExt__
 int ocsmMakeEBody(void   *modl,         /* (in)  pointer to MODL */
                   int    ibody,         /* (in)  Body index (1:nbody) */
                   double dihedral,      /* (in)  dihedral angle (deg) for implicit .Keeps */
         /*@null@*/char   entList[]);    /* (in)  entities to use in make EBody (or NULL to delete) */
 
 /* create a new Parameter */
+__ProtoExt__
 int ocsmNewPmtr(void   *modl,           /* (in)  pointer to MODL */
                 char   name[],          /* (in)  Parameter name */
                 int    type,            /* (in)  Parameter type */
@@ -3239,10 +3555,12 @@ int ocsmNewPmtr(void   *modl,           /* (in)  pointer to MODL */
                 int    ncol);           /* (in)  number of columns */
 
 /* delete a Parameter */
+__ProtoExt__
 int ocsmDelPmtr(void   *modl,           /* (in)  pointer to MODL */
                 int    ipmtr);          /* (in)  Parameter index (1:npmtr) */
 
 /* find (or create) a Parameter */
+__ProtoExt__
 int ocsmFindPmtr(void   *modl,          /* (in)  pointer to MODL */
                  char   name[],         /* (in)  Parameter name */
                  int    type,           /* (in)  Parameter type    (or 0 to not create) */
@@ -3251,6 +3569,7 @@ int ocsmFindPmtr(void   *modl,          /* (in)  pointer to MODL */
                  int    *ipmtr);        /* (out) Parameter index (1:npmtr) (or 0 if not found) */
 
 /* get info about a Parameter */
+__ProtoExt__
 int ocsmGetPmtr(void   *modl,           /* (in)  pointer to MODL */
                 int    ipmtr,           /* (in)  Parameter index (1:npmtr) */
                 int    *type,           /* (out) Parameter type */
@@ -3259,10 +3578,18 @@ int ocsmGetPmtr(void   *modl,           /* (in)  pointer to MODL */
                 char   name[]);         /* (out) Parameter name (at least MAX_NAME_LEN long) */
 
 /* print DESPMTRs and OUTPMTRs to file */
+__ProtoExt__
 int ocsmPrintPmtrs(void   *modl,        /* (in)  pointer to MODL */
                    char   filename[]);  /* (in)  file to which output is appended (or "" for stdout) */
 
+/* trace definition and uses of all Paremeters */
+__ProtoExt__
+int ocsmTracePmtrs(void   *modl,        /* (in)  pointer to MODL */
+                   char   pattern[],    /* (in)  pattern of Parameters to match */
+                   char   *info[]);     /* (out) info about the Parameters (freeable) */
+
 /* get the Value of a Parameter */
+__ProtoExt__
 int ocsmGetValu(void   *modl,           /* (in)  pointer to MODL */
                 int    ipmtr,           /* (in)  Parameter index (1:npmtr) */
                 int    irow,            /* (in)  row    index (1:nrow) */
@@ -3271,11 +3598,13 @@ int ocsmGetValu(void   *modl,           /* (in)  pointer to MODL */
                 double *dot);           /* (out) Parameter velocity */
 
 /* get the Value of a string Parameter */
+__ProtoExt__
 int ocsmGetValuS(void   *modl,          /* (in)  pointer to MODL */
                  int    ipmtr,          /* (in)  Parameter index (1:npmtr) */
                  char   str[]);         /* (out) Parameter value (at least MAX_STRVAL_LEN long) */
 
 /* set a Value for a Parameter */
+__ProtoExt__
 int ocsmSetValu(void   *modl,           /* (in)  pointer to MODL */
                 int    ipmtr,           /* (in)  Parameter index (1:npmtr) */
                 int    irow,            /* (in)  row    index (1:nrow) */
@@ -3283,6 +3612,7 @@ int ocsmSetValu(void   *modl,           /* (in)  pointer to MODL */
                 char   defn[]);         /* (in)  definition of Value */
 
 /* set a (double) Value for a Parameter */
+__ProtoExt__
 int ocsmSetValuD(void   *modl,          /* (in)  pointer to MODL */
                  int    ipmtr,          /* (in)  Parameter index (1:npmtr) */
                  int    irow,           /* (in)  row    index (1:nrow) */
@@ -3290,6 +3620,7 @@ int ocsmSetValuD(void   *modl,          /* (in)  pointer to MODL */
                  double value);         /* (in)  value to set */
 
 /* get the Bounds of a Parameter */
+__ProtoExt__
 int ocsmGetBnds(void   *modl,           /* (in)  pointer to MODL */
                 int    ipmtr,           /* (in)  Parameter index (1:npmtr) */
                 int    irow,            /* (in)  row    index (1:nrow) */
@@ -3298,6 +3629,7 @@ int ocsmGetBnds(void   *modl,           /* (in)  pointer to MODL */
                 double *ubound);        /* (out) upper Bound */
 
 /* set the Bounds of a Parameter */
+__ProtoExt__
 int ocsmSetBnds(void   *modl,           /* (in)  pointer to MODL */
                 int    ipmtr,           /* (in)  Parameter index (1:npmtr) */
                 int    irow,            /* (in)  row    index (1:nrow) */
@@ -3306,10 +3638,12 @@ int ocsmSetBnds(void   *modl,           /* (in)  pointer to MODL */
                 double ubound);         /* (in)  upper Bound to set */
 
 /* set sensitivity FD time step (or select analytic) */
+__ProtoExt__
 int ocsmSetDtime(void   *modl,          /* (in)  pointer to MODL */
                  double dtime);         /* (in)  time step (or 0 to choose analytic) */
 
 /* set the velocity for a Parameter */
+__ProtoExt__
 int ocsmSetVel(void   *modl,            /* (in)  pointer to MODL */
                int    ipmtr,            /* (in)  Parameter index (1:npmtr) or 0 for all */
                int    irow,             /* (in)  row    index (1:nrow)     or 0 for all */
@@ -3317,6 +3651,7 @@ int ocsmSetVel(void   *modl,            /* (in)  pointer to MODL */
                char   defn[]);          /* (in)  definition of Velocity */
 
 /* set the (double) velocity for a Parameter */
+__ProtoExt__
 int ocsmSetVelD(void   *modl,           /* (in)  pointer to MODL */
                 int    ipmtr,           /* (in)  Parameter index (1:npmtr) or 0 for all */
                 int    irow,            /* (in)  row    index (1:nrow)     or 0 for all */
@@ -3324,6 +3659,7 @@ int ocsmSetVelD(void   *modl,           /* (in)  pointer to MODL */
                 double dot);            /* (in)  velocity to set */
 
 /* get the EGO associated with a Body or its parts */
+__ProtoExt__
 int ocsmGetEgo(void   *modl,            /* (in)  pointer to MODL */
                int    ibody,            /* (in)  Body index (1:nbody) */
                int    seltype,          /* (in)  OCSM_BODY, OCSM_NODE, OCSM_EDGE, or OCSM_FACE */
@@ -3335,6 +3671,7 @@ int ocsmGetEgo(void   *modl,            /* (in)  pointer to MODL */
                ego    *theEgo);         /* (out) context or associated EGO */
 
 /* set a tessellation or EBody for a Body */
+__ProtoExt__
 int ocsmSetEgo(void   *modl,            /* (in)  pointer to MODL */
                int    ibody,            /* (in)  Body index (1:nbody) */
                int    iselect,          /* (in)  1 for Tessellation,
@@ -3342,6 +3679,7 @@ int ocsmSetEgo(void   *modl,            /* (in)  pointer to MODL */
                ego    theEgo);          /* (in)  associated EGO */
 
 /* find the entity nnumber given FaceID or EdgeID */
+__ProtoExt__
 int ocsmFindEnt(void   *modl,           /* (in)  pointer to MODL */
                 int    ibody,           /* (in)  Body index (1:nbody) */
                 int    seltype,         /* (in)  OCSM_EDGE, or OCSM_FACE */
@@ -3349,15 +3687,18 @@ int ocsmFindEnt(void   *modl,           /* (in)  pointer to MODL */
                 int    *ient);          /* (out) entity number */
 
 /* get the parametric coordinates on an Edge or Face */
+__ProtoExt__
 int ocsmGetUV(void   *modl,             /* (in)  pointer to MODL */
               int    ibody,             /* (in)  Body index (1:nbody) */
               int    seltype,           /* (in)  OCSM_EDGE, or OCSM_FACE */
               int    iselect,           /* (in)  Edge or Face index (1:nent) */
-              int    npnt,              /* (in)  number of points */
-    /*@null@*/double xyz[],             /* (in)  coordinates (NULL or 3*npnt in length) */
-              double uv[]);             /* (out) para coords (1*npnt or 2*npnt in length) */
+              int    npnt,              /* (in)  >0  number of points */
+                                        /*       <0 -number of points (but all starting locns) */
+    /*@null@*/double xyz[],             /* (in)  coordinates (NULL or 3*abs(npnt) in length) */
+              double uv[]);             /* (out) para coords (1*abs(npnt) or 2*abs(npnt) in length) */
 
 /* get the coordinates on a Node, Edge, or Face */
+__ProtoExt__
 int ocsmGetXYZ(void   *modl,            /* (in)  pointer to MODL */
                int    ibody,            /* (in)  Body index (1:nbody) */
                int    seltype,          /* (in)  OCSM_NODE, OCSM_EDGE, or OCSM_FACE */
@@ -3367,6 +3708,7 @@ int ocsmGetXYZ(void   *modl,            /* (in)  pointer to MODL */
                double xyz[]);           /* (out) coordinates (3*npnt in length) */
 
 /* get the unit normals for a Face */
+__ProtoExt__
 int ocsmGetNorm(void   *modl,           /* (in)  pointer to MODL */
                 int    ibody,           /* (in)  Body index (1:nbody) */
                 int    iface,           /* (in)  Face index (1:nface) */
@@ -3375,6 +3717,7 @@ int ocsmGetNorm(void   *modl,           /* (in)  pointer to MODL */
                 double norm[]);         /* (out) normals (3*npnt in length) */
 
 /* get the velocities of coordinates on a Node, Edge, or Face */
+__ProtoExt__
 int ocsmGetVel(void   *modl,            /* (in)  pointer to MODL */
                int    ibody,            /* (in)  Body index (1:nbody) */
                int    seltype,          /* (in)  OCSM_NODE, OCSM_EDGE, or OCSM_FACE */
@@ -3390,10 +3733,12 @@ int ocsmGetVel(void   *modl,            /* (in)  pointer to MODL */
                                                     3*npnt for OCSM_FACE */
 
 /* set up alternative tessellation by an external grid generator */
+__ProtoExt__
 int ocsmSetEgg(void   *modl,            /* (in)  pointer to MODL */
                char   *eggname);        /* (in)  name of dynamically-loadable file */
 
 /* get the number of tess points on an Edge or Face */
+__ProtoExt__
 int ocsmGetTessNpnt(void   *modl,       /* (in)  pointer to MODL */
                     int    ibody,       /* (in)  Body index (1:nbody)) */
                     int    seltype,     /* (in)  OCSM_EDGE , or OCSM_FACE */
@@ -3401,13 +3746,33 @@ int ocsmGetTessNpnt(void   *modl,       /* (in)  pointer to MODL */
                     int    *npnt);      /* (out) number of tessellation points */
 
 /* get the tessellation velocities on a Node, Edge, or Face */
+__ProtoExt__
 int ocsmGetTessVel(void   *modl,        /* (in)  pointer to MODL */
                    int    ibody,        /* (in)  Body index (1:nbody)) */
                    int    seltype,      /* (in)  OCSM_NODE, OCSM_EDGE, or OCSM_FACE */
                    int    iselect,      /* (in)  Node, Edge, or Face index (1:nent) */
              const double *dxyz[]);     /* (out) pointer to storage containing velocities */
 
+/* get the adjoint multiplication for selected DESPMTRs */
+__ProtoExt__
+int ocsmAdjoint(void   *modl,           /* (in)  pointer to MODL */
+                int    ibody,           /* (in)  BBody index (1:nbody) */
+                int    ndp,             /* (in)  number of selected DESPMTRs */
+                int    ipmtr[],         /* (in)  array  of selected DESPMTR indices (1:npmtr) */
+                int    irow[],          /* (in)  array  of selected DESPMTR row    numbers */
+                int    icol[],          /* (in)  array  of selected DESPMTR column numbers */
+                int    nobj,            /* (in)  number of objectives/constraints */
+                double dOdX[],          /* (in)  array of d(obj)/d(xyz)   nobj*3*nglob */
+                double dOdD[]);         /* (out) array of d(obj)/d(dp)    nobj*ndp     */
+
+/* trace definition and uses of all Storage */
+__ProtoExt__
+int ocsmTraceStors(void   *modl,        /* (in)  pointer to MODL */
+                   char   pattern[],    /* (in)  pattern of Stores to match */
+                   char   *info[]);     /* (out) info about the Stores (freeable) */
+
 /* get info about a Body */
+__ProtoExt__
 int ocsmGetBody(void   *modl,           /* (in)  pointer to MODL */
                 int    ibody,           /* (in)  Body index (1:nbody) */
                 int    *type,           /* (out) Branch type (see below) */
@@ -3420,15 +3785,18 @@ int ocsmGetBody(void   *modl,           /* (in)  pointer to MODL */
                 int    *nface);         /* (out) number of Faces */
 
 /* print all Bodys to file */
+__ProtoExt__
 int ocsmPrintBodys(void   *modl,        /* (in)  pointer to MODL */
                    char   filename[]);  /* (in)  file to which output is appended (or "" for stdout) */
 
 /* print the BRep associated with a specific Body */
+__ProtoExt__
 int ocsmPrintBrep(void   *modl,         /* (in)  pointer to MODL */
                   int    ibody,         /* (in)  Body index (1:nbody) */
                   char   filename[]);   /* (in)  file to which output is appended (or "" for stdout) */
 
 /* evaluate an expression */
+__ProtoExt__
 int ocsmEvalExpr(void   *modl,          /* (in)  pointer to MODL */
                  char   expr[],         /* (in)  expression */
                  double *value,         /* (out) value */
@@ -3436,15 +3804,22 @@ int ocsmEvalExpr(void   *modl,          /* (in)  pointer to MODL */
                  char   str[]);         /* (out) value if string-valued (w/o leading $) */
 
 /* print the contents of an EGADS ego */
+__ProtoExt__
 void ocsmPrintEgo(
         /*@null@*/ego    obj);          /* (in)  EGADS ego */
 
 /* convert an OCSM code to text */
 /*@observer@*/
+__ProtoExt__
 char *ocsmGetText(int    icode);        /* (in)  code to look up */
 
 /* convert text to an OCSM code */
+__ProtoExt__
 int ocsmGetCode(char   *text);          /* (in)  text to look up */
+
+#ifdef __cplusplus
+}
+#endif
 
 /*
  ************************************************************************
@@ -3488,7 +3863,7 @@ int ocsmGetCode(char   *text);          /* (in)  text to look up */
 #define           OCSM_UNION      143
 #define           OCSM_JOIN       144
 #define           OCSM_EXTRACT    145
-#define           OCSM_COMBINE    146
+#define           OCSM_ELEVATE    146
 
 #define           OCSM_TRANSLATE  151   /* OCSM_TRANSFORM */
 #define           OCSM_ROTATEX    152

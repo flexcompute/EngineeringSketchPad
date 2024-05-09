@@ -1,7 +1,7 @@
 // This software has been cleared for public release on 05 Nov 2020, case number 88ABW-2020-3462.
 
-#ifndef CARDTYPES_H
-#define CARDTYPES_H
+#ifndef _AIM_UTILS_CARDTYPES_H_
+#define _AIM_UTILS_CARDTYPES_H_
 
 #include "feaTypes.h" // Bring in fea structures
 
@@ -36,4 +36,4 @@ typedef struct {
 
 } cardStruct;
 
-#endif
+#endif // _AIM_UTILS_CARDTYPES_H_

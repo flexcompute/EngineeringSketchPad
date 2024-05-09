@@ -29,7 +29,8 @@ store     forebody
          restore   forebody
          select    edge  1  2  1  4  2
          extract   -@iedge
-      combine
+      join   0 1
+      elevate
 
       udprim    supell    rx  2  ry  2  n  4
       rotatex   180  0  0

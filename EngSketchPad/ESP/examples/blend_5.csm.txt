@@ -1,0 +1,36 @@
+# blend_5
+# written by John Dannenhoffer
+
+# generate four SheetBodys
+BOX       2  0  -1  2  0  2
+
+RESTORE   .
+ROTATEZ   90
+
+RESTORE   .
+ROTATEZ   90
+
+RESTORE   .
+ROTATEZ   90
+
+# remember the sections (so that they can be plotted at the end)
+GROUP
+STORE     sections 0 1
+
+# perform the BLEND (SolidBody)
+BLEND      0  0  0  0  1
+ASSERT    @itype  3
+
+SELECT    FACE   @nbody 1     # iford=1 in red
+ATTRIBUTE _color $red
+SELECT    FACE   @nbody 2     # iford=2 in green
+ATTRIBUTE _color $green
+SELECT    FACE   @nbody 3     # iford=3 in blue
+ATTRIBUTE _color $blue
+SELECT    FACE   @nbody 4     # iford=4 in cyan
+ATTRIBUTE _color $cyan
+
+# plot the sections too
+RESTORE   sections
+
+END

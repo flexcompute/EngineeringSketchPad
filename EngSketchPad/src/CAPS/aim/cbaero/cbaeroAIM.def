@@ -1,0 +1,10 @@
+LIBRARY cbaeroAIM
+EXPORTS
+aimInitialize
+aimInputs
+aimUpdateState
+aimPreAnalysis
+aimPostAnalysis
+aimOutputs
+aimCalcOutput
+aimCleanup

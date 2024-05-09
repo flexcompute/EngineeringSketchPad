@@ -1,0 +1,27 @@
+# assert_1
+# written by John Dannenhoffer
+
+SET       A  5
+SET       B  4.999
+
+# assert that A and B are within toler (default toler = 1e-6)
+ASSERT    A  B
+CATBEG    $assert_failed
+CATEND
+
+# assert that A and B are within 1e-2
+ASSERT    A  B   1e-2
+
+# assert that A and B are within 5e-2 (= A*1e-2)
+ASSERT    A  B  -1e-2
+
+# assert that A and B are within toler (default toler = 1e-6)
+#    (but only if the verification flag is set)
+ASSERT    A  B  0  1
+CATBEG    $assert_failed
+CATEND
+
+# create a point NodeBody
+POINT     0  0  0
+
+END

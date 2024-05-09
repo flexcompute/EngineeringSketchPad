@@ -1,0 +1,43 @@
+#
+!IFNDEF ESP_ROOT
+!ERROR ESP_ROOT must be set -- Please fix the environment...
+!ENDIF
+#
+IDIR  = $(ESP_ROOT)\include
+!include $(IDIR)\$(ESP_ARCH).$(MSVC)
+LDIR  = $(ESP_ROOT)\lib
+!IFDEF ESP_BLOC
+ODIR  = $(ESP_BLOC)\obj
+TDIR  = $(ESP_BLOC)\test
+!ELSE
+ODIR  = .
+TDIR  = $(ESP_ROOT)\bin
+!ENDIF
+
+!IFNDEF SEACAS
+default:
+	@echo "Not compiling platoAIM: SEACAS must be set -- Please fix the environment...."
+!ELSE
+default: $(LDIR)\platoAIM.dll
+!ENDIF
+
+OBJS =	$(ODIR)\platoAIM.obj
+
+$(LDIR)\platoAIM.dll:	platoAIM.def $(OBJS) $(LDIR)\utils.lib
+	-del $(LDIR)\platoAIM.dll $(LDIR)\platoAIM.lib $(LDIR)\platoAIM.exp
+	 link /out:$(LDIR)\platoAIM.dll /dll /def:platoAIM.def \
+		$(OBJS) /LIBPATH:$(LDIR) utils.lib aimUtil.lib \
+		ocsm.lib egads.lib udunits2.lib
+	$(MCOMP) /manifest $(LDIR)\platoAIM.dll.manifest \
+		/outputresource:$(LDIR)\platoAIM.dll;2
+
+$(ODIR)\platoAIM.obj:	platoAIM.c $(IDIR)\capsTypes.h \
+			..\utils\meshUtils.h
+	cl /c $(COPTS) $(DEFINE) /I$(IDIR) /I..\meshWriter\exodusWriter /I..\utils platoAIM.c \
+		/Fo$(ODIR)\platoAIM.obj
+
+clean:
+	-del $(OBJS)
+
+cleanall:	clean
+	-del $(LDIR)\platoAIM.dll $(LDIR)\platoAIM.lib $(LDIR)\platoAIM.exp

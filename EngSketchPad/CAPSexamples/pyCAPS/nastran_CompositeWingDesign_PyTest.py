@@ -18,7 +18,7 @@ args = parser.parse_args()
 
 workDir = os.path.join(str(args.workDir[0]), "NastranCompositeWing")
 
-# Load CSM file
+# Initialize CAPS Problem
 geometryScript = os.path.join("..","csmData","compositeWing.csm")
 myProblem = pyCAPS.Problem(problemName=workDir,
                            capsFile=geometryScript,
@@ -26,7 +26,8 @@ myProblem = pyCAPS.Problem(problemName=workDir,
 
 # Load nastran aim
 nastranAIM = myProblem.analysis.create(aim = "nastranAIM",
-                                       name = "nastran")
+                                       name = "nastran", 
+                                       autoExec = False)
 
 # Set project name so a mesh file is generated
 projectName = "nastran_Composite_Wing"
@@ -88,76 +89,31 @@ load = {"groupName" : "wing",
 nastranAIM.input.Load = {"appliedPressure": load}
 
 value = {"analysisType"         : "Static",
-         "analysisConstraint"     : "BoundaryCondition",
+         "analysisConstraint"   : "BoundaryCondition",
          "analysisLoad"         : "appliedPressure"}
 
 nastranAIM.input.Analysis = {"StaticAnalysis": value}
 
-DesVar1    = {"groupName" : "wing",
-              "initialValue" : 0.00525,
-              "lowerBound" : 0.00525*0.5,
-              "upperBound" : 0.00525*1.5,
-              "maxDelta"   : 0.00525*0.1,
-              "fieldName" : "T1"}
+designVariables = {}
+designVarRelations = {}
+numT = 8
+for i in range(1, numT+1):
+    dvName = "L{}".format(i)
+    dv =  {"initialValue" : 0.00525,
+            "lowerBound" : 0.00525*0.5,
+            "upperBound" : 0.00525*1.5,
+            "maxDelta"   : 0.00525*0.1}
+    designVariables[dvName] = dv
 
-DesVar2    = {"groupName" : "wing",
-              "initialValue" : 0.00525,
-              "lowerBound" : 0.00525*0.5,
-              "upperBound" : 0.00525*1.5,
-              "maxDelta"   : 0.00525*0.1,
-              "fieldName" : "T2"}
-
-DesVar3    = {"groupName" : "wing",
-              "initialValue" : 0.00525,
-              "lowerBound" : 0.00525*0.5,
-              "upperBound" : 0.00525*1.5,
-              "maxDelta"   : 0.00525*0.1,
-              "fieldName" : "T3"}
-
-DesVar4    = {"groupName" : "wing",
-              "initialValue" : 0.00525,
-              "lowerBound" : 0.00525*0.5,
-              "upperBound" : 0.00525*1.5,
-              "maxDelta"   : 0.00525*0.1,
-              "fieldName" : "T4"}
-
-DesVar5    = {"groupName" : "wing",
-              "initialValue" : 0.00525,
-              "lowerBound" : 0.00525*0.5,
-              "upperBound" : 0.00525*1.5,
-              "maxDelta"   : 0.00525*0.1,
-              "fieldName" : "T5"}
-
-DesVar6    = {"groupName" : "wing",
-              "initialValue" : 0.00525,
-              "lowerBound" : 0.00525*0.5,
-              "upperBound" : 0.00525*1.5,
-              "maxDelta"   : 0.00525*0.1,
-              "fieldName" : "T6"}
-
-DesVar7    = {"groupName" : "wing",
-              "initialValue" : 0.00525,
-              "lowerBound" : 0.00525*0.5,
-              "upperBound" : 0.00525*1.5,
-              "maxDelta"   : 0.00525*0.1,
-              "fieldName" : "T7"}
-
-DesVar8    = {"groupName" : "wing",
-              "initialValue" : 0.00525,
-              "lowerBound" : 0.00525*0.5,
-              "upperBound" : 0.00525*1.5,
-              "maxDelta"   : 0.00525*0.1,
-              "fieldName" : "T8"}
-
-
-myProblem.analysis["nastran"].input.Design_Variable = {"L1": DesVar1,
-                                                       "L2": DesVar2,
-                                                       "L3": DesVar3,
-                                                       "L4": DesVar4,
-                                                       "L5": DesVar5,
-                                                       "L6": DesVar6,
-                                                       "L7": DesVar7,
-                                                       "L8": DesVar8}
+    dvRelName = "L{}R".format(i)
+    dvRel = {"componentType": "Property",
+             "componentName": "wing",
+             "variableName": dvName,
+             "fieldName": "T{}".format(i)}  # T1, T2, ..., T8
+    designVarRelations[dvRelName] = dvRel
+              
+myProblem.analysis["nastran"].input.Design_Variable = designVariables
+myProblem.analysis["nastran"].input.Design_Variable_Relation = designVarRelations
 
 designConstraint1 = {"groupName" : "wing",
                     "responseType" : "CFAILURE",

@@ -30,11 +30,14 @@ SELECT    EDGE  0 0 6 3 2
 SELECT    SUB   $_nface  2
 EXTRACT   -@sellist
 
-COMBINE
-COMBINE
+JOIN   0 1
+ELEVATE
+
+JOIN   0 1
+ELEVATE
 
 # hollow out
-SELECT   FACE  @nbody-1 1
+SELECT   FACE  @nbody-2 1
 HOLLOW   W  @sellist[1]  1
 
 END

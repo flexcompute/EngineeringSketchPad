@@ -16,6 +16,8 @@ mark
    udprim    box  dx  1  dy  2  rad  0.4
    rotatey   +90  0   0
    translate  6   0   0
+# note: LOFT has been deprecated and is included here for backward-compatability testing
+#       new .csm files should use RULE or BLEND instead
 loft  0
 
 end

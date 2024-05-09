@@ -35,3 +35,7 @@ clean:
 
 cleanall:	clean
 	-rm $(LDIR)/skeletonAIM.so
+
+dox:
+
+doxclean:

@@ -1,0 +1,283 @@
+#
+interface . all
+  
+
+
+
+CFGPMTR    Wing:sharpTE                 1
+CFGPMTR    Wing:roundedTip              0
+
+SET        Wing:fuselageSec:Nsect       2
+SET        Wing:inboardSec:Nsect        4
+SET        Wing:outboardSec:Nsect       6
+DIMENSION  Wing:fuselageSec:Ynorm       1   Wing:fuselageSec:Nsect
+DIMENSION  Wing:inboardSec:Ynorm        1   Wing:inboardSec:Nsect
+DIMENSION  Wing:outboardSec:Ynorm       1   Wing:outboardSec:Nsect
+DIMENSION  Wing:fuselageSec:twist       1   Wing:fuselageSec:Nsect
+DIMENSION  Wing:inboardSec:twist        1   Wing:inboardSec:Nsect
+DIMENSION  Wing:outboardSec:twist       1   Wing:outboardSec:Nsect
+
+# fuselage wing section
+SET        Wing:fuselageSec:Ynorm       " 0.000000;   1.000000; "
+SET        Wing:fuselageSec:twist0      6.278826
+SET        Wing:fuselageSec:twist1      4.299427
+SET        Wing:fuselageSec:twist       "Wing:fuselageSec:twist0; Wing:fuselageSec:twist1"
+
+# inboard wing section
+SET        Wing:inboardSec:Ynorm        " 0.97;     0.98;     0.99;     1.00; "
+DESPMTR    Wing:yehudiTwist             0.837972
+SET        Wing:inboardSec:twist        "Wing:yehudiTwist; Wing:yehudiTwist; Wing:yehudiTwist; Wing:yehudiTwist"
+
+# outboard wing section
+SET        Wing:outboardSec:Ynorm       " 0.01;     0.02;     0.03;     0.98;     0.99;    1.00; "
+DESPMTR    Wing:tipTwist                4.612053
+SET        Wing:outboardSec:twist       " Wing:yehudiTwist; Wing:yehudiTwist; Wing:yehudiTwist; Wing:tipTwist; Wing:tipTwist; Wing:tipTwist"
+
+
+
+
+
+## outside of fuselage: ####
+despmtr kulfan3x3_inboard102_aupper1 0.10719
+#lbound    kulfan3x3_inboard102_aupper1 0.050000
+#ubound    kulfan3x3_inboard102_aupper1 0.500000
+
+despmtr kulfan3x3_inboard102_aupper2 0.11250
+#lbound    kulfan3x3_inboard102_aupper2 0.050000
+#ubound    kulfan3x3_inboard102_aupper2 0.500000
+
+despmtr kulfan3x3_inboard102_aupper3 0.19100
+
+despmtr kulfan3x3_inboard102_ztail2 0.00500
+#lbound    kulfan3x3_inboard102_ztail2 -0.005000
+#ubound    kulfan3x3_inboard102_ztail2 0.005000
+
+despmtr kulfan3x3_inboard102_adelta2 -0.33296
+#ubound    kulfan3x3_inboard102_adelta2 -0.010000
+
+despmtr kulfan3x3_inboard102_adelta1 -0.21020
+#ubound    kulfan3x3_inboard102_adelta1 -0.010000
+
+despmtr kulfan3x3_inboard102_adelta3 -0.19474
+#ubound    kulfan3x3_inboard102_adelta3 0.000000
+
+despmtr kulfan3x3_outboard152_aupper1 0.07237
+#lbound    kulfan3x3_outboard152_aupper1 0.050000
+#ubound    kulfan3x3_outboard152_aupper1 0.500000
+
+despmtr kulfan3x3_outboard152_aupper2 0.05538
+#lbound    kulfan3x3_outboard152_aupper2 0.050000
+#ubound    kulfan3x3_outboard152_aupper2 0.500000
+
+despmtr kulfan3x3_outboard152_aupper3 0.13601
+
+despmtr kulfan3x3_outboard152_ztail2 -0.00135
+#lbound    kulfan3x3_outboard152_ztail2 -0.005000
+#ubound    kulfan3x3_outboard152_ztail2 0.005000
+
+despmtr kulfan3x3_outboard152_adelta2 -0.14027
+#ubound    kulfan3x3_outboard152_adelta2 -0.010000
+
+despmtr kulfan3x3_outboard152_adelta1 -0.14198
+#ubound    kulfan3x3_outboard152_adelta1 -0.010000
+
+despmtr kulfan3x3_outboard152_adelta3 -0.28142
+#ubound    kulfan3x3_outboard152_adelta3 0.000000
+
+# (using set instead of despmtr allows adjoint grid velocities to be computed quicker)
+#set kulfan3x3_inboard102_aupper1 0.10719
+#set kulfan3x3_inboard102_aupper2 0.11250
+#set kulfan3x3_inboard102_aupper3 0.19100
+#set kulfan3x3_inboard102_ztail2 0.00500
+#set kulfan3x3_inboard102_adelta2 -0.33296
+#set kulfan3x3_inboard102_adelta1 -0.21020
+#set kulfan3x3_inboard102_adelta3 -0.19474
+#set kulfan3x3_outboard152_aupper1 0.07237
+#set kulfan3x3_outboard152_aupper2 0.05538
+#set kulfan3x3_outboard152_aupper3 0.13601
+#set kulfan3x3_outboard152_ztail2 -0.00135
+#set kulfan3x3_outboard152_adelta2 -0.14027
+#set kulfan3x3_outboard152_adelta1 -0.14198
+#set kulfan3x3_outboard152_adelta3 -0.28142
+
+
+
+
+
+
+
+
+#### within fuselage?: ####
+#despmtr kulfan3x3_fuselage001_aupper1 0.18020
+#lbound    kulfan3x3_fuselage001_aupper1 0.050000
+#ubound    kulfan3x3_fuselage001_aupper1 0.500000
+#
+#despmtr kulfan3x3_fuselage001_aupper2 0.06972
+#lbound    kulfan3x3_fuselage001_aupper2 0.050000
+#ubound    kulfan3x3_fuselage001_aupper2 0.500000
+#
+#despmtr kulfan3x3_fuselage001_aupper3 0.16676
+#
+#despmtr kulfan3x3_fuselage001_ztail2 -0.00190
+#lbound    kulfan3x3_fuselage001_ztail2 -0.005000
+#ubound    kulfan3x3_fuselage001_ztail2 0.005000
+#
+#despmtr kulfan3x3_fuselage001_adelta2 -0.40245
+#ubound    kulfan3x3_fuselage001_adelta2 -0.010000
+#
+#despmtr kulfan3x3_fuselage001_adelta1 -0.30236
+#ubound    kulfan3x3_fuselage001_adelta1 -0.010000
+#
+#despmtr kulfan3x3_fuselage001_adelta3 -0.15358
+#ubound    kulfan3x3_fuselage001_adelta3 0.000000
+#
+#despmtr kulfan3x3_inboard002_aupper1 0.19254
+#lbound    kulfan3x3_inboard002_aupper1 0.050000
+#ubound    kulfan3x3_inboard002_aupper1 0.500000
+#
+#despmtr kulfan3x3_inboard002_aupper2 0.08271
+#lbound    kulfan3x3_inboard002_aupper2 0.050000
+#ubound    kulfan3x3_inboard002_aupper2 0.500000
+#
+#despmtr kulfan3x3_inboard002_aupper3 0.15872
+#
+#despmtr kulfan3x3_inboard002_ztail2 -0.00200
+#lbound    kulfan3x3_inboard002_ztail2 -0.005000
+#ubound    kulfan3x3_inboard002_ztail2 0.005000
+#
+#despmtr kulfan3x3_inboard002_adelta2 -0.44711
+#ubound    kulfan3x3_inboard002_adelta2 -0.010000
+#
+#despmtr kulfan3x3_inboard002_adelta1 -0.30162
+#ubound    kulfan3x3_inboard002_adelta1 -0.010000
+#
+#despmtr kulfan3x3_inboard002_adelta3 -0.12129
+#ubound    kulfan3x3_inboard002_adelta3 0.000000
+
+set kulfan3x3_fuselage001_aupper1 0.18020
+set kulfan3x3_fuselage001_aupper2 0.06972
+set kulfan3x3_fuselage001_aupper3 0.16676
+set kulfan3x3_fuselage001_ztail2 -0.00190
+set kulfan3x3_fuselage001_adelta2 -0.40245
+set kulfan3x3_fuselage001_adelta1 -0.30236
+set kulfan3x3_fuselage001_adelta3 -0.15358
+set kulfan3x3_inboard002_aupper1 0.19254
+set kulfan3x3_inboard002_aupper2 0.08271
+set kulfan3x3_inboard002_aupper3 0.15872
+set kulfan3x3_inboard002_ztail2 -0.00200
+set kulfan3x3_inboard002_adelta2 -0.44711
+set kulfan3x3_inboard002_adelta1 -0.30162
+set kulfan3x3_inboard002_adelta3 -0.12129
+
+
+
+
+
+
+### Fuselage parameters
+
+dimension Wing:fuselageSec:aupper 3 Wing:fuselageSec:Nsect
+set Wing:fuselageSec:aupper[1,1] kulfan3x3_fuselage001_aupper1
+set Wing:fuselageSec:aupper[2,1] kulfan3x3_fuselage001_aupper2
+set Wing:fuselageSec:aupper[3,1] kulfan3x3_fuselage001_aupper3
+set Wing:fuselageSec:aupper[1,2] kulfan3x3_inboard002_aupper1
+set Wing:fuselageSec:aupper[2,2] kulfan3x3_inboard002_aupper2
+set Wing:fuselageSec:aupper[3,2] kulfan3x3_inboard002_aupper3
+
+dimension Wing:fuselageSec:adelta 3 Wing:fuselageSec:Nsect
+set Wing:fuselageSec:adelta[1,1] kulfan3x3_fuselage001_adelta1
+set Wing:fuselageSec:adelta[2,1] kulfan3x3_fuselage001_adelta2
+set Wing:fuselageSec:adelta[3,1] kulfan3x3_fuselage001_adelta3
+set Wing:fuselageSec:adelta[1,2] kulfan3x3_inboard002_adelta1
+set Wing:fuselageSec:adelta[2,2] kulfan3x3_inboard002_adelta2
+set Wing:fuselageSec:adelta[3,2] kulfan3x3_inboard002_adelta3
+
+dimension Wing:fuselageSec:ztail2 1 Wing:fuselageSec:Nsect
+set Wing:fuselageSec:ztail2[1,1] kulfan3x3_fuselage001_ztail2
+set Wing:fuselageSec:ztail2[1,2] kulfan3x3_inboard002_ztail2
+
+### Inboard parameters
+
+dimension Wing:inboardSec:aupper 3 Wing:inboardSec:Nsect
+set Wing:inboardSec:aupper[1,1] kulfan3x3_inboard102_aupper1
+set Wing:inboardSec:aupper[2,1] kulfan3x3_inboard102_aupper2
+set Wing:inboardSec:aupper[3,1] kulfan3x3_inboard102_aupper3
+set Wing:inboardSec:aupper[1,2] kulfan3x3_inboard102_aupper1
+set Wing:inboardSec:aupper[2,2] kulfan3x3_inboard102_aupper2
+set Wing:inboardSec:aupper[3,2] kulfan3x3_inboard102_aupper3
+set Wing:inboardSec:aupper[1,3] kulfan3x3_inboard102_aupper1
+set Wing:inboardSec:aupper[2,3] kulfan3x3_inboard102_aupper2
+set Wing:inboardSec:aupper[3,3] kulfan3x3_inboard102_aupper3
+set Wing:inboardSec:aupper[1,4] kulfan3x3_inboard102_aupper1
+set Wing:inboardSec:aupper[2,4] kulfan3x3_inboard102_aupper2
+set Wing:inboardSec:aupper[3,4] kulfan3x3_inboard102_aupper3
+
+dimension Wing:inboardSec:adelta 3 Wing:inboardSec:Nsect
+set Wing:inboardSec:adelta[1,1] kulfan3x3_inboard102_adelta1
+set Wing:inboardSec:adelta[2,1] kulfan3x3_inboard102_adelta2
+set Wing:inboardSec:adelta[3,1] kulfan3x3_inboard102_adelta3
+set Wing:inboardSec:adelta[1,2] kulfan3x3_inboard102_adelta1
+set Wing:inboardSec:adelta[2,2] kulfan3x3_inboard102_adelta2
+set Wing:inboardSec:adelta[3,2] kulfan3x3_inboard102_adelta3
+set Wing:inboardSec:adelta[1,3] kulfan3x3_inboard102_adelta1
+set Wing:inboardSec:adelta[2,3] kulfan3x3_inboard102_adelta2
+set Wing:inboardSec:adelta[3,3] kulfan3x3_inboard102_adelta3
+set Wing:inboardSec:adelta[1,4] kulfan3x3_inboard102_adelta1
+set Wing:inboardSec:adelta[2,4] kulfan3x3_inboard102_adelta2
+set Wing:inboardSec:adelta[3,4] kulfan3x3_inboard102_adelta3
+
+dimension Wing:inboardSec:ztail2 1 Wing:inboardSec:Nsect
+set Wing:inboardSec:ztail2[1,1] kulfan3x3_inboard102_ztail2
+set Wing:inboardSec:ztail2[1,2] kulfan3x3_inboard102_ztail2
+set Wing:inboardSec:ztail2[1,3] kulfan3x3_inboard102_ztail2
+set Wing:inboardSec:ztail2[1,4] kulfan3x3_inboard102_ztail2
+
+### Outboard parameters
+
+dimension Wing:outboardSec:aupper 3 Wing:outboardSec:Nsect
+set Wing:outboardSec:aupper[1,1] kulfan3x3_inboard102_aupper1
+set Wing:outboardSec:aupper[2,1] kulfan3x3_inboard102_aupper2
+set Wing:outboardSec:aupper[3,1] kulfan3x3_inboard102_aupper3
+set Wing:outboardSec:aupper[1,2] kulfan3x3_inboard102_aupper1
+set Wing:outboardSec:aupper[2,2] kulfan3x3_inboard102_aupper2
+set Wing:outboardSec:aupper[3,2] kulfan3x3_inboard102_aupper3
+set Wing:outboardSec:aupper[1,3] kulfan3x3_inboard102_aupper1
+set Wing:outboardSec:aupper[2,3] kulfan3x3_inboard102_aupper2
+set Wing:outboardSec:aupper[3,3] kulfan3x3_inboard102_aupper3
+set Wing:outboardSec:aupper[1,4] kulfan3x3_outboard152_aupper1
+set Wing:outboardSec:aupper[2,4] kulfan3x3_outboard152_aupper2
+set Wing:outboardSec:aupper[3,4] kulfan3x3_outboard152_aupper3
+set Wing:outboardSec:aupper[1,5] kulfan3x3_outboard152_aupper1
+set Wing:outboardSec:aupper[2,5] kulfan3x3_outboard152_aupper2
+set Wing:outboardSec:aupper[3,5] kulfan3x3_outboard152_aupper3
+set Wing:outboardSec:aupper[1,6] kulfan3x3_outboard152_aupper1
+set Wing:outboardSec:aupper[2,6] kulfan3x3_outboard152_aupper2
+set Wing:outboardSec:aupper[3,6] kulfan3x3_outboard152_aupper3
+
+dimension Wing:outboardSec:adelta 3 Wing:outboardSec:Nsect
+set Wing:outboardSec:adelta[1,1] kulfan3x3_inboard102_adelta1
+set Wing:outboardSec:adelta[2,1] kulfan3x3_inboard102_adelta2
+set Wing:outboardSec:adelta[3,1] kulfan3x3_inboard102_adelta3
+set Wing:outboardSec:adelta[1,2] kulfan3x3_inboard102_adelta1
+set Wing:outboardSec:adelta[2,2] kulfan3x3_inboard102_adelta2
+set Wing:outboardSec:adelta[3,2] kulfan3x3_inboard102_adelta3
+set Wing:outboardSec:adelta[1,3] kulfan3x3_inboard102_adelta1
+set Wing:outboardSec:adelta[2,3] kulfan3x3_inboard102_adelta2
+set Wing:outboardSec:adelta[3,3] kulfan3x3_inboard102_adelta3
+set Wing:outboardSec:adelta[1,4] kulfan3x3_outboard152_adelta1
+set Wing:outboardSec:adelta[2,4] kulfan3x3_outboard152_adelta2
+set Wing:outboardSec:adelta[3,4] kulfan3x3_outboard152_adelta3
+set Wing:outboardSec:adelta[1,5] kulfan3x3_outboard152_adelta1
+set Wing:outboardSec:adelta[2,5] kulfan3x3_outboard152_adelta2
+set Wing:outboardSec:adelta[3,5] kulfan3x3_outboard152_adelta3
+set Wing:outboardSec:adelta[1,6] kulfan3x3_outboard152_adelta1
+set Wing:outboardSec:adelta[2,6] kulfan3x3_outboard152_adelta2
+set Wing:outboardSec:adelta[3,6] kulfan3x3_outboard152_adelta3
+
+dimension Wing:outboardSec:ztail2 1 Wing:outboardSec:Nsect
+set Wing:outboardSec:ztail2[1,1] kulfan3x3_inboard102_ztail2
+set Wing:outboardSec:ztail2[1,2] kulfan3x3_inboard102_ztail2
+set Wing:outboardSec:ztail2[1,3] kulfan3x3_inboard102_ztail2
+set Wing:outboardSec:ztail2[1,4] kulfan3x3_outboard152_ztail2
+set Wing:outboardSec:ztail2[1,5] kulfan3x3_outboard152_ztail2
+set Wing:outboardSec:ztail2[1,6] kulfan3x3_outboard152_ztail2

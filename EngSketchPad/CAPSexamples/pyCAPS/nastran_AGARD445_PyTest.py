@@ -31,20 +31,30 @@ myProblem = pyCAPS.Problem(problemName=workDir,
 #myProblem.geometry.despmtr.sweepAngle = 5 # From 45 to 5 degrees
 #myProblem.geometry.despmtr.semiSpan   = 5 # From 2.5 ft to 5 ft
 
+# Meshing 
+myMesh = myProblem.analysis.create(aim = "egadsTessAIM", 
+                                   name = "egadsTess" )
+ 
+# Set meshing parameters
+myMesh.input.Edge_Point_Max = 10
+myMesh.input.Edge_Point_Min = 6
+
+myMesh.input.Mesh_Elements = "Quad"
+
+myMesh.input.Tess_Params = [.25,.01,15]
+
 # Load nastran aim
 myAnalysis = myProblem.analysis.create(aim = "nastranAIM",
                                        name = "nastran")
+
+# Set mesh
+myAnalysis.input["Mesh"].link(myMesh.output["Surface_Mesh"])
 
 # Set project name so a mesh file is generated
 myAnalysis.input.Proj_Name = projectName
 
 # Set meshing parameters
-myAnalysis.input.Edge_Point_Max = 10
-myAnalysis.input.Edge_Point_Min = 6
-
-myAnalysis.input.Quad_Mesh = True
-
-myAnalysis.input.Tess_Params = [.25,.01,15]
+myAnalysis.input.File_Format = "Free"
 
 # Set analysis type
 myAnalysis.input.Analysis_Type = "Modal"
@@ -54,7 +64,7 @@ eigen = { "extractionMethod"     : "MGIV", # "Lanczos",
           "frequencyRange"       : [0.1, 200],
           "numEstEigenvalue"     : 1,
           "numDesiredEigenvalue" : 2,
-          "eigenNormaliztion"    : "MASS",
+          "eigenNormalization"   : "MASS",
           "lanczosMode"          : 2,  # Default - not necesssary
           "lanczosType"          : "DPB"} # Default - not necesssary
 

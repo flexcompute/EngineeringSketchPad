@@ -1,0 +1,64 @@
+# supell_udp_2
+# written by John Dannenhoffer
+
+UDPARG    supell    rx  2.0  ry  2.0
+UDPRIM    supell    n   0.5
+TRANSLATE -10  5  0
+
+UDPARG    supell    rx  2.0  ry  2.0
+UDPRIM    supell    n   1.0
+TRANSLATE  -5  5  0
+
+UDPARG    supell    rx  2.0  ry  2.0
+UDPRIM    supell
+TRANSLATE   0  5  0
+
+UDPARG    supell    rx  2.0  ry  2.0
+UDPRIM    supell    n   3.0
+TRANSLATE  +5  5  0
+
+UDPARG    supell    rx  2.0  ry  2.0
+UDPRIM    supell    n   5.0
+TRANSLATE +10  5  0
+
+UDPARG    supell    rx_w  1.0  rx_e  2.0  ry  2.0
+UDPRIM    supell    n   0.5
+TRANSLATE -10  0  0
+
+UDPARG    supell    rx_w  1.0  rx_e  2.0  ry  2.0
+UDPRIM    supell    n   1.0
+TRANSLATE  -5  0  0
+
+UDPARG    supell    rx_w  1.0  rx_e  2.0  ry  2.0
+UDPRIM    supell
+TRANSLATE   0  0  0
+
+UDPARG    supell    rx_w  1.0  rx_e  2.0  ry  2.0
+UDPRIM    supell    n   3.0
+TRANSLATE  +5  0  0
+
+UDPARG    supell    rx_w  1.0  rx_e  2.0  ry  2.0
+UDPRIM    supell    n   5.0
+TRANSLATE +10  0  0
+
+UDPARG    supell    rx_w  2.0  rx_e  1.0  ry  2.0
+UDPRIM    supell    n   0.5
+TRANSLATE -10 -5  0
+
+UDPARG    supell    rx_w  2.0  rx_e  1.0  ry  2.0
+UDPRIM    supell    n   1.0
+TRANSLATE  -5 -5  0
+
+UDPARG    supell    rx_w  2.0  rx_e  1.0  ry  2.0
+UDPRIM    supell
+TRANSLATE   0 -5  0
+
+UDPARG    supell    rx_w  2.0  rx_e  1.0  ry  2.0
+UDPRIM    supell    n   3.0
+TRANSLATE  +5 -5  0
+
+UDPARG    supell    rx_w  2.0  rx_e  1.0  ry  2.0
+UDPRIM    supell    n   5.0
+TRANSLATE +10 -5  0
+
+END

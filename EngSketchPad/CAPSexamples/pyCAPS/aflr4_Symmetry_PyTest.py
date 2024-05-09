@@ -22,35 +22,32 @@ workDir = os.path.join(str(args.workDir[0]), "AFLR4SymmetryAnalysisTest")
 
 # Load CSM file and build the geometry explicitly
 geometryScript = os.path.join("..","csmData","cfdSymmetry.csm")
-myProblem = pyCAPS.Problem(problemName = workDir,
-                           capsFile=geometryScript, 
-                           outLevel=args.outLevel)
+capsProblem = pyCAPS.Problem(problemName = workDir,
+                             capsFile=geometryScript, 
+                             outLevel=args.outLevel)
 
 # Load AFLR4 aim
-myAnalysis = myProblem.analysis.create(aim = "aflr4AIM")
+aflr4 = capsProblem.analysis.create(aim = "aflr4AIM")
 
 # Mesing boundary conditions
-myAnalysis.input.Mesh_Sizing = {"Farfield": {"bcType":"Farfield"},
+aflr4.input.Mesh_Sizing = {"Farfield": {"bcType":"Farfield"},
                                 "Symmetry": {"bcType":"Symmetry"}}
 
-# Set project name so a mesh file is generated
-myAnalysis.input.Proj_Name = "pyCAPS_AFLR4_Test"
-
 # Set AIM verbosity
-myAnalysis.input.Mesh_Quiet_Flag = True if args.outLevel == 0 else False
+aflr4.input.Mesh_Quiet_Flag = True if args.outLevel == 0 else False
 
-# Set output grid format since a project name is being supplied - Tecplot  file
-myAnalysis.input.Mesh_Format = "Tecplot"
+# Optional: Explicitly write mesh files
+aflr4.input.Mesh_Format = ["Tecplot", "ugrid"]
 
 # Farfield growth factor
-myAnalysis.input.ff_cdfr = 1.4
+aflr4.input.ff_cdfr = 1.4
 
 # Generate quads and tris
-# myAnalysis.input.Mesh_Gen_Input_String = "mquad=1 mpp=3"
+# aflr4.input.Mesh_Gen_Input_String = "mquad=1 mpp=3"
 
 # Set maximum and minimum edge lengths relative to capsMeshLength
-myAnalysis.input.max_scale = 0.2
-myAnalysis.input.min_scale = 0.01
+aflr4.input.max_scale = 0.2
+aflr4.input.min_scale = 0.01
 
 # Run AIM
-myAnalysis.runAnalysis()
+aflr4.runAnalysis()

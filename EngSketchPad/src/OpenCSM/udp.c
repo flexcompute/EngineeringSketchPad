@@ -1,10 +1,15 @@
 /*
- * OpenCSM/EGADS -- Extended User Defined Primitive/Function Interface
- *
+ ************************************************************************
+ *                                                                      *
+ * OpenCSM/EGADS -- Extended User Defined Primitive/Function Interface  *
+ *                                                                      *
+ *            Written by John Dannenhoffer @ Syracuse University        *
+ *                                                                      *
+ ************************************************************************
  */
 
 /*
- * Copyright (C) 2010/2022  John F. Dannenhoffer, III (Syracuse University)
+ * Copyright (C) 2010/2024  John F. Dannenhoffer, III (Syracuse University)
  *
  * This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
@@ -39,8 +44,7 @@
 #endif
 
 #include "egads.h"
-
-#define MAXPRIM 32
+#include "udp.h"
 
 typedef int (*udpDLLfunc) (void);
 static char *udpName[MAXPRIM];
@@ -52,50 +56,57 @@ static DLL   udpDLL[ MAXPRIM];
 // ----- defined in udpUtilities.c -----
 
 // udpInit[]      udpInitialize()   udp_initialize()    initialize and get info about list of arguments
-typedef int (*udpI) (int *nArgs, char **namex[], int *typex[], int *idefault[], double *ddefault[]);
+typedef int (*udpI) (int *nArgs, char **namex[], int *typex[], int *idefault[], double *ddefault[], udp_T *Udps[]);
 static        udpI  udpInit[ MAXPRIM];
 
-// udpNumB[]      udpNumBodys()     udp_numBodys()      number of Bodys expecte in first arg to udpExecute
+// udpNumB[]      udpNumBodys()     udp_numBodys()      number of Bodys expected in first arg to udpExecute
 typedef int (*udpN) ();
 static        udpN  udpNumB[ MAXPRIM];
 
 // udpBodyL[]     udpBodyList()     udp_bodyList()      list of Bodys input to a UDF
-typedef int (*udpB) (ego, /*@null@*/const int**);
+typedef int (*udpB) (ego, /*@null@*/const int**, int numudp, udp_T Udps[]);
 static        udpB  udpBodyL[MAXPRIM];
 
-// udpReset[]     udpReset(0)       udp_clrArguments()  reset the argument to their defaults
-//                udpReset(1)       udp_cleanupAll()    close all UDPs
-typedef int (*udpR) (int flag);
+// udpReset[]     udpReset()        udp_clrArguments()  reset the argument to their defaults
+typedef int (*udpR) (/*@null@*/int *NumUdp, /*@null@*/udp_T Udps[]);
 static        udpR  udpReset[MAXPRIM];
 
+// udpFree[]      udpFree()        udp_free()           free memory associated with UDP/UDFs
+typedef int (*udpF) (int numudp, udp_T Udps[]);
+static        udpF  udpFree[MAXPRIM];
+
 // udpClean[]     udpClean()        udp_clean()         clean the udp cache
-typedef int (*udpC) (ego ebody);
+typedef int (*udpC) (int *NumUdp, udp_T Udps[]);
 static        udpC  udpClean[MAXPRIM];
 
 // udpSet[]       udpSetArgument()  udp_setArgument()   sets value of an argument
-typedef int (*udpS) (char name[], void *value, int nvalue, /*@null@*/char message[]);
+typedef int (*udpS) (char name[], void *value, int nrow, int ncol, /*@null@*/char message[], udp_T Udps[]);
 static        udpS  udpSet[MAXPRIM];
 
 // udpGet[]       udpGet()          udp_getOutput()     return an output parameter
-typedef int (*udpG) (ego ebody, char name[], void *value, char message[]);
+typedef int (*udpG) (ego ebody, char name[], int *nrow, int *ncol, void **val, void **dot, char message[], int numudp, udp_T Udps[]);
 static        udpG  udpGet[MAXPRIM];
 
 // udpMesh[]      udpMesh()         udp_getMesh()       return mesh associated with primitive
-typedef int (*udpM) (ego ebody, int iMesh, int *imax, int *jmax, int *kmax, double *mesh[]);
-static        udpM  udpMesh[MAXPRIM];
+typedef int (*udpM) (ego ebody, int iMesh, int *imax, int *jmax, int *kmax, double *mesh[], int *NumUdp, udp_T Udps[]);
+static        udpM  udpGrid[MAXPRIM];
 
 // udpVel[]       udpVel()          udp_setVelocity()   set velocity of an argument
-typedef int (*udpV) (ego ebody, char name[], double dot[], int ndot);
+typedef int (*udpV) (ego ebody, char name[], double dot[], int ndot, int numudp, udp_T Udps[]);
 static        udpV  udpVel[MAXPRIM];
+
+// udpPost[]      udpPost()         udp_postSens()      reset ndotchg flag */
+typedef int (*udpO) (ego ebody, int numudp, udp_T Udps[]);
+static        udpO  udpPost[MAXPRIM];
 
 // ----- defined in udpXXX -----
 
 // udpExec[]      udpExecute()      udp_executePrim()   execute the primitive
-typedef int (*udpE) (ego, ego *, int *, char **);
+typedef int (*udpE) (ego context, ego *ebody, int *nMesh, char *string[], int *NumUdp, udp_T *Udps[]);
 static        udpE  udpExec[MAXPRIM];
 
 // udpSens[]      udpSensitivity    udp_sensitivity()   return sensitivity derivatives for the "real" argument
-typedef int (*udpP) (ego, int, int, int, /*@null@*/double *, double *);
+typedef int (*udpP) (ego ebody, int npnt, int entType, int entIndex, /*@null@*/double uvs[], double vels[], int *NumUdp, udp_T Udps[]);
 static        udpP  udpSens[MAXPRIM];
 
 static int udp_nPrim = 0;
@@ -285,21 +296,25 @@ static int udpDYNload(const char *name)
     udpNumB[ ret] = (udpN) udpDLget(dll, "udpNumBodys",    name);
     udpBodyL[ret] = (udpB) udpDLget(dll, "udpBodyList",    name);
     udpReset[ret] = (udpR) udpDLget(dll, "udpReset",       name);
+    udpFree[ ret] = (udpF) udpDLget(dll, "udpFree",        name);
     udpClean[ret] = (udpC) udpDLget(dll, "udpClean",       name);
     udpSet[  ret] = (udpS) udpDLget(dll, "udpSet",         name);
-    udpExec[ ret] = (udpE) udpDLget(dll, "udpExecute",     name);
+    udpExec[ ret] = (udpE) udpDLget(dll, "UdpExecute",     name);
     udpGet[  ret] = (udpG) udpDLget(dll, "udpGet",         NULL);
-    udpMesh[ ret] = (udpM) udpDLget(dll, "udpMesh",        NULL);
+    udpGrid[ ret] = (udpM) udpDLget(dll, "UdpMesh",        NULL);
     udpVel[  ret] = (udpV) udpDLget(dll, "udpVel",         name);
-    udpSens[ ret] = (udpP) udpDLget(dll, "udpSensitivity", name);
+    udpPost[ ret] = (udpO) udpDLget(dll, "udpPost",        name);
+    udpSens[ ret] = (udpP) udpDLget(dll, "UdpSensitivity", name);
     if ((udpInit[ ret] == NULL) ||
         (udpNumB[ ret] == NULL) ||
         (udpBodyL[ret] == NULL) ||
         (udpReset[ret] == NULL) ||
+        (udpFree[ ret] == NULL) ||
         (udpClean[ret] == NULL) ||
         (udpSet[  ret] == NULL) ||
         (udpExec[ ret] == NULL) ||
         (udpVel[  ret] == NULL) ||
+        (udpPost[ ret] == NULL) ||
         (udpSens[ ret] == NULL)   ) {
         udpDLclose(dll);
         return EGADS_EMPTY;
@@ -323,6 +338,7 @@ static int udpDYNload(const char *name)
 
 
 int udp_initialize(const char primName[],
+                   modl_T     *MODL,
                    int        *nArgs,
                    char       **name[],
                    int        *type[],
@@ -331,6 +347,8 @@ int udp_initialize(const char primName[],
 {
     int i;
 
+    if (UDP_TRACE) printf("udp_initialize(primName=%s)\n", primName);
+
     i = udpDLoaded(primName);
 
     if (i == -1) {
@@ -338,7 +356,7 @@ int udp_initialize(const char primName[],
         if (i < 0) return i;
     }
 
-    return udpInit[i](nArgs, name, type, idefault, ddefault);
+    return udpInit[i](nArgs, name, type, idefault, ddefault, &(MODL->Udps[i]));
 }
 
 
@@ -346,69 +364,99 @@ int udp_numBodys(const char primName[])
 {
     int i;
 
+    if (UDP_TRACE) printf("udp_numBodys(primName=%s)\n", primName);
+
     i = udpDLoaded(primName);
     if (i == -1) return EGADS_NOTFOUND;
 
 /*@-nullpass@*/
-    return udpNumB[i](0);
+    return udpNumB[i]();
 /*@+nullpass@*/
 }
 
 
 int udp_bodyList(const char primName[],
+                 modl_T     *MODL,
                  ego        body,
                  const int  **bodyList)
 {
     int i;
 
+    if (UDP_TRACE) printf("udp_bodyList(primName=%s)\n", primName);
+
     i = udpDLoaded(primName);
     if (i == -1) return EGADS_NOTFOUND;
 
 /*@-nullpass@*/
-    return udpBodyL[i](body, bodyList);
+    return udpBodyL[i](body, bodyList, MODL->NumUdp[i], MODL->Udps[i]);
 /*@+nullpass@*/
 }
 
 
-int udp_clrArguments(const char primName[])
+int udp_clrArguments(const char primName[],
+                     modl_T     *MODL)
 {
     int i;
+
+    if (UDP_TRACE) printf("udp_clrArguments(primName=%s)\n", primName);
 
     i = udpDLoaded(primName);
     if (i == -1) return EGADS_NOTFOUND;
 
-    return udpReset[i](0);
+    return udpReset[i](&(MODL->NumUdp[i]), MODL->Udps[i]);
 }
 
 
 int udp_clean(const char primName[],
-             ego         body)
+              modl_T     *MODL)
 {
     int i;
+
+    if (UDP_TRACE) printf("udp_clean(primName=%s)\n", primName);
 
     i = udpDLoaded(primName);
     if (i == -1) return EGADS_NOTFOUND;
 
-    return udpClean[i](body);
+    return udpClean[i](&(MODL->NumUdp[i]), MODL->Udps[i]);
 }
 
 
 int udp_setArgument(const char primName[],
+                    modl_T     *MODL,
                     char       name[],
                     void       *value,
-                    int        nvalue,
+                    int        nrow,
+                    int        ncol,
           /*@null@*/char       message[])
 {
     int i;
 
+    if (UDP_TRACE) printf("udp_setArgument(primName=%s, name=%s, nrow=%d, ncol=%d)\n", primName, name, nrow, ncol);
+
     i = udpDLoaded(primName);
     if (i == -1) return EGADS_NOTFOUND;
 
-    return udpSet[i](name, value, nvalue, message);
+    return udpSet[i](name, value, nrow, ncol, message, MODL->Udps[i]);
+}
+
+
+int udp_free(modl_T     *MODL)
+{
+    int i, status;
+
+    if (UDP_TRACE) printf("udp_free()\n");
+
+    for (i = 0; i < udp_nPrim; i++) {
+        status = udpFree[i](MODL->NumUdp[i], MODL->Udps[i]);
+        if (status != EGADS_SUCCESS) return status;
+    }
+
+    return EGADS_SUCCESS;
 }
 
 
 int udp_executePrim(const char primName[],
+                    modl_T     *MODL,
                     ego        context,
                     ego        *body,
                     int        *nMesh,
@@ -416,30 +464,39 @@ int udp_executePrim(const char primName[],
 {
     int i;
 
+    if (UDP_TRACE) printf("udp_executePrim(primName=%s)\n", primName);
+
     i = udpDLoaded(primName);
     if (i == -1) return EGADS_NOTFOUND;
 
-    return udpExec[i](context, body, nMesh, string);
+    return udpExec[i](context, body, nMesh, string, &(MODL->NumUdp[i]), &(MODL->Udps[i]));
 }
 
 
 int udp_getOutput(const char primName[],
+                  modl_T     *MODL,
                   ego        body,
                   char       name[],
-                  void       *value,
+                  int        *nrow,
+                  int        *ncol,
+                  void       *val[],
+                  void       *dot[],
                   char       message[])
 {
-  int i;
+    int i;
 
-  i = udpDLoaded(primName);
-  if (i == -1) return EGADS_NOTFOUND;
-  if (udpGet[i] == NULL) return EGADS_EMPTY;
+    if (UDP_TRACE) printf("udp_getOutput(primName=%s, body=%llx)\n", primName, (long long)body);
 
-  return udpGet[i](body, name, value, message);
+    i = udpDLoaded(primName);
+    if (i == -1) return EGADS_NOTFOUND;
+    if (udpGet[i] == NULL) return EGADS_EMPTY;
+
+    return udpGet[i](body, name, nrow, ncol, val, dot, message, MODL->NumUdp[i], MODL->Udps[i]);
 }
 
 
 int udp_getMesh(const char primName[],
+                modl_T     *MODL,
                 ego        body,
                 int        imesh,
                 int        *imax,
@@ -449,15 +506,18 @@ int udp_getMesh(const char primName[],
 {
     int i;
 
+    if (UDP_TRACE) printf("udp_getMesh(primName=%s, body=%llx\n", primName, (long long)body);
+
     i = udpDLoaded(primName);
     if (i == -1) return EGADS_NOTFOUND;
-    if (udpMesh[i] == NULL) return EGADS_EMPTY;
+    if (udpGrid[i] == NULL) return EGADS_EMPTY;
 
-    return udpMesh[i](body, imesh, imax, jmax, kmax, mesh);
+    return udpGrid[i](body, imesh, imax, jmax, kmax, mesh, &(MODL->NumUdp[i]), MODL->Udps[i]);
 }
 
 
 int udp_setVelocity(const char primName[],
+                    modl_T     *MODL,
                     ego        body,
                     char       name[],
                     double     value[],
@@ -465,14 +525,17 @@ int udp_setVelocity(const char primName[],
 {
     int i;
 
+    if (UDP_TRACE) printf("udp_setVelocity(primName=%s, body=%llx, name=%s, nvalue=%d)\n", primName, (long long)body, name, nvalue);
+
     i = udpDLoaded(primName);
     if (i == -1) return EGADS_NOTFOUND;
 
-    return udpVel[i](body, name, value, nvalue);
+    return udpVel[i](body, name, value, nvalue, MODL->NumUdp[i], MODL->Udps[i]);
 }
 
 
 int udp_sensitivity(const char primName[],
+                    modl_T     *MODL,
                     ego        body,
                     int        npts,
                     int        entType,
@@ -482,10 +545,27 @@ int udp_sensitivity(const char primName[],
 {
     int i;
 
+    if (UDP_TRACE) printf("udp_sensitivity(primName=%s, body=%llx, npts=%d, entType=%d, entIndex=%d)\n", primName, (long long)body, npts, entType, entIndex);
+
     i = udpDLoaded(primName);
     if (i == -1) return EGADS_NOTFOUND;
 
-    return udpSens[i](body, npts, entType, entIndex, uvs, vels);
+    return udpSens[i](body, npts, entType, entIndex, uvs, vels, &(MODL->NumUdp[i]), MODL->Udps[i]);
+}
+
+
+int udp_postSens(const char primName[],
+                 modl_T     *MODL,
+                 ego        body)
+{
+    int i;
+
+    if (UDP_TRACE) printf("udp_postSens(primName=%s)\n", primName);
+
+    i = udpDLoaded(primName);
+    if (i == -1) return EGADS_NOTFOUND;
+
+    return udpPost[i](body, MODL->NumUdp[i], MODL->Udps[i]);
 }
 
 
@@ -493,10 +573,11 @@ void udp_cleanupAll()
 {
     int i;
 
+    if (UDP_TRACE) printf("udp_cleanupAll()\n");
+
     if (udp_nPrim == 0) return;
 
     for (i = 0; i < udp_nPrim; i++) {
-        udpReset[i](1);
         free(udpName[i]);
         udpDLclose(udpDLL[i]);
     }

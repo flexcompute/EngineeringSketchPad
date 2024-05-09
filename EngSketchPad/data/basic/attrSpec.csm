@@ -1,0 +1,32 @@
+# attrSpec
+# written by John Dannenhoffer
+
+# specify myName=sheet_* via ATTRIBUTE statement
+PATBEG    i  5
+   BOX    i  0  0  0  1  1
+   ATTRIBUTE myName $sheet_+i
+PATEND
+
+# specify myName=sheet_* via editAttr
+PATBEG    i  5
+   BOX    i  2  0  0  1  1
+   UDPRIM editAttr filename << verbose 1
+      FACE  HAS  *=*
+      SET        myName=!$sheet_+i
+   >>
+PATEND
+
+# specify myName=sheet_* via waffle
+UDPRIM    waffle  filename << progress 1
+   PATBEG  j  5
+      POINT  A  AT j  4
+      POINT  B  AT j  5
+      LINE   .  A  B  myName=!$sheet_+j
+   PATEND
+
+   POINT  C  AT  0.0  4.5
+   POINT  D  AT  5.5  4.5
+   LINE   .  C   D  myName=spine
+>>
+
+END

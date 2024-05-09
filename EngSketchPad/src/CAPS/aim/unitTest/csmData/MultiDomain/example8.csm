@@ -1,0 +1,55 @@
+# example2.csm written by ocsmSave (v1.23)
+set MeshLength 10
+# Constant, Design, and Output Parameters:
+despmtr length 10 lbound 9 ubound 11 initial 10
+# Global Attributes:
+
+# Branches:
+BOX       0   0   0   length   10   10
+BOX       9   1   1   2   8   8
+SELECT    face   @nbody   4   1
+SELECT    add   @nbody   6   1
+SELECT    add   @nbody   3   1
+SELECT    add   @nbody   5   1
+EXTRACT   @sellist
+SUBTRACT  none   1   0
+BOX       9   2   2   2   6   6
+SELECT    face   @nbody   5   1
+SELECT    add   @nbody   3   1
+SELECT    add   @nbody   4   1
+SELECT    add   @nbody   6   1
+EXTRACT   @sellist
+SUBTRACT  none   1   0
+BOX       9   4   4   2   2   2
+SELECT    face   @nbody   5   1
+SELECT    add   @nbody   3   1
+SELECT    add   @nbody   4   1
+SELECT    add   @nbody   6   1
+EXTRACT   @sellist
+SUBTRACT  none   1   0
+select    BODY
+attribute _name   $block_1
+attribute capsAIM   $aflr4AIM;aflr3AIM;platoAIM;egadsTessAIM;tetgenAIM
+attribute capsMeshLength  10
+select    face
+attribute capsGroup   $dummy_att
+BOX       10   1   1   5   8   8
+BOX       10   2   2   5   6   6
+SUBTRACT none 1 0
+select    BODY
+attribute _name   $block_2
+attribute capsAIM   $aflr4AIM;aflr3AIM;platoAIM;egadsTessAIM;tetgenAIM
+attribute capsMeshLength  10
+select    face
+attribute capsGroup   $dummy_att
+BOX       10   4   4   5   2   2
+select    BODY
+attribute _name   $block_3
+attribute capsAIM   $aflr4AIM;aflr3AIM;platoAIM;egadsTessAIM;tetgenAIM
+attribute capsMeshLength  10
+select    face
+attribute capsGroup   $dummy_att
+
+#DUMP example8.egads 0 1
+
+END

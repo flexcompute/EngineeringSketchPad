@@ -10,10 +10,15 @@ ODIR  = .
 TDIR  = $(ESP_ROOT)\bin
 !ENDIF
 
-$(TDIR)\egadsSpline_dot.exe:	$(ODIR)\egadsSpline_dot.obj $(LDIR)\egads.lib
-	cl /Fe$(TDIR)\egadsSpline_dot.exe $(ODIR)\egadsSpline_dot.obj $(LIBPTH) egads.lib
+$(TDIR)\egadsSpline_dot.exe:	$(ODIR)\egadsSpline_dot.obj $(ODIR)\egadsTools_dot.obj $(LDIR)\egads.lib
+	cl /Fe$(TDIR)\egadsSpline_dot.exe $(ODIR)\egadsSpline_dot.obj $(ODIR)\egadsTools_dot.obj $(LIBPTH) egads.lib
 	$(MCOMP) /manifest $(TDIR)\egadsSpline_dot.exe.manifest \
 		/outputresource:$(TDIR)\egadsSpline_dot.exe;1
+
+$(ODIR)\egadsTools_dot.obj:	egadsTools_dot.c $(IDIR)\egads.h $(IDIR)\egadsTypes.h \
+		$(IDIR)\egadsErrors.h
+	cl /c $(COPTS) $(DEFINE) -I$(IDIR) egadsTools_dot.c \
+		/Fo$(ODIR)\egadsTools_dot.obj
 
 $(ODIR)\egadsSpline_dot.obj:	egadsSpline_dot.c $(IDIR)\egads.h $(IDIR)\egadsTypes.h \
 		$(IDIR)\egadsErrors.h

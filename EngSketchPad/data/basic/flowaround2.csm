@@ -77,6 +77,7 @@ mark
    extract -@iedge
    join
 rule
-combine             # combine is used here to promote to SolidBody
+join   0 1
+elevate             # elevate is used here to promote to SolidBody
 
 end

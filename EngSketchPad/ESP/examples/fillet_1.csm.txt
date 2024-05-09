@@ -1,0 +1,11 @@
+# fillet_1
+# written by John Dannenhoffer
+
+# cyan box
+BOX       0  0  0  4  3  2
+ATTRIBUTE _color $cyan
+
+# small fillet on all Edges
+FILLET    0.1
+
+END

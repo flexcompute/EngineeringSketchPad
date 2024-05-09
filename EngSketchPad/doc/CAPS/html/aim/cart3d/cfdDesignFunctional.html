@@ -66,7 +66,7 @@ $(function() {
 <div class="title">CFD Functional </div>  </div>
 </div><!--header-->
 <div class="contents">
-<div class="textblock"><p>Structure for the design functional tuple = ("Functional Name", "Expresson"). "Functional Name" is a user specified unique name, and the Expression is a mathematical expression parsed by Cart3D symbolically.</p>
+<div class="textblock"><p>Structure for the design functional tuple = {"Functional Name": "Expression"}. "Functional Name" is a user specified unique name, and the Expression is a mathematical expression parsed by Cart3D symbolically.</p>
 <p>The variables that can be used to form an expression are:</p>
 <table class="markdownTable">
 <tr class="markdownTableHead">
@@ -78,11 +78,41 @@ $(function() {
 <tr class="markdownTableRowOdd">
 <td class="markdownTableBodyLeft">"cx", "cy", "cz"   </td><td class="markdownTableBodyLeft">x/y/z-axis force coefficients   </td></tr>
 </table>
+<h1><a class="anchor" id="jsonStringcfdDesignFunctional"></a>
+JSON String Dictionary</h1>
+<p>If "Value" is a JSON string dictionary (eg. "Value" = "Composite":[{"function": "cl", "weight": 3.0, "target": 10.7}, {"function": "cd", "weight": 2.0, "power": 2.0}])<br  />
+ which represents the composite functional: <img class="formulaInl" alt="$Composite = 3 (c_l-10.7) + 2 c_d^2$" src="form_0.png" width="171" height="15"/><br  />
+ The following keywords ( = default values) may be used:</p>
+<ul>
+<li>
+<b>capsGroup = "GroupName"</b>  <br  />
+ Name of boundary to apply for the function <img class="formulaInl" alt="$C_i$" src="form_1.png" width="13" height="13"/>. </li>
+</ul>
+<ul>
+<li>
+<b>function = NULL</b>  <br  />
+ The name of the function <img class="formulaInl" alt="$C_i$" src="form_1.png" width="13" height="13"/>, e.g. "cl", "cd", etc. </li>
+</ul>
+<ul>
+<li>
+<b>weight = 1.0</b>  <br  />
+ This weighting <img class="formulaInl" alt="$w_i$" src="form_2.png" width="14" height="9"/> of the function. </li>
+</ul>
+<ul>
+<li>
+<b>target = 0.0</b>  <br  />
+ This is the target value <img class="formulaInl" alt="$C_i^*$" src="form_3.png" width="14" height="14"/> of the function. </li>
+</ul>
+<ul>
+<li>
+<b>power = 1.0</b>  <br  />
+ This is the user defined power operator <img class="formulaInl" alt="$p_i$" src="form_4.png" width="11" height="9"/> for the function. </li>
+</ul>
 </div></div><!-- contents -->
 </div><!-- PageDoc -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Sat Jul 2 2022 10:13:31 for CART3D Analysis Interface Module (AIM) by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1
+Generated on Sat Apr 27 2024 16:51:08 for CART3D Analysis Interface Module (AIM) by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1
 </small></address>
 </body>
 </html>

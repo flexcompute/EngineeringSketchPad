@@ -1,0 +1,28 @@
+# cirarc_1
+# written by John Dannenhoffer
+
+# red circular arc in x-y plane
+SKBEG     0  0  0
+   CIRARC 2  2  0  4  0  0
+SKEND
+SELECT    EDGE
+ATTRIBUTE _color $red
+
+# blue circular arc in y-z plane
+SKBEG     0  0    0
+   CIRARC 3/2  3/2  0  0  3  0
+SKEND
+SELECT    EDGE
+ATTRIBUTE _color $blue
+
+# green circular arc in z-x plane
+SKBEG     0  0  0
+   CIRARC 0  1  1  0  0  2
+SKEND
+SELECT    EDGE
+ATTRIBUTE _color $green
+
+END
+
+
+

@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.9.1"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>CART3D Analysis Interface Module (AIM): AIM Data Transfer</title>
+<title>CART3D Analysis Interface Module (AIM): Cart3D Data Transfer</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -63,10 +63,17 @@ $(function() {
 </div><!-- top -->
 <div class="PageDoc"><div class="header">
   <div class="headertitle">
-<div class="title">AIM Data Transfer </div>  </div>
+<div class="title">Cart3D Data Transfer </div>  </div>
 </div><!--header-->
 <div class="contents">
-<div class="textblock"><p>The Cart3D AIM has the ability to transfer surface data (e.g. pressure distributions) to and from the AIM using the conservative and interpolative data transfer schemes in CAPS. Currently these transfers may only take place on triangular meshes.</p>
+<div class="textblock"><h1><a class="anchor" id="dataToCart3D"></a>
+Data transfer to Cart3D (FieldIn)</h1>
+<ul>
+<li>
+<b>"Displacement"</b>  <br  />
+ Retrieves nodal displacements (as from a structural solver) and updates Cart3D's surface mesh. </li>
+</ul>
+<p>The Cart3D AIM has the ability to transfer surface data (e.g. pressure distributions) to and from the AIM using the conservative and interpolative data transfer schemes in CAPS. Currently these transfers may only take place on triangular meshes.</p>
 <h1><a class="anchor" id="dataFromCart3D"></a>
 Data transfer from Cart3D (FieldOut)</h1>
 <ul>
@@ -78,7 +85,7 @@ Data transfer from Cart3D (FieldOut)</h1>
 </div><!-- PageDoc -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Sat Jul 2 2022 10:13:31 for CART3D Analysis Interface Module (AIM) by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1
+Generated on Sat Apr 27 2024 16:51:08 for CART3D Analysis Interface Module (AIM) by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1
 </small></address>
 </body>
 </html>

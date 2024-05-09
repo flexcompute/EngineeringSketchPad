@@ -1,0 +1,31 @@
+# join_2
+# written by John Dannenhoffer
+
+# red plate
+BOX       0  -1   0  2  2  0
+ATTRIBUTE _color $red
+
+# green plate
+BOX       2  -1   0  2  2  0
+ATTRIBUTE _color $green
+
+# join at their common Edge
+JOIN
+
+# small blue plate
+BOX       4  -1/2  0  2  1  0
+ATTRIBUTE _color $blue
+
+# join will fail because no common Edges (but will leave Bodys on stack)
+JOIN
+
+CATBEG    $edge_not_found
+   MESSAGE green/blue_join_failed_as_expected
+CATEND
+
+# make last (blue) body on stack transparent
+SELECT    FACE
+ATTRIBUTE _trn $on
+
+END
+

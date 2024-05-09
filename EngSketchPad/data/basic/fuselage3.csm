@@ -19,6 +19,8 @@ patbeg    i 9
     udprim ellipse  ry ry[i,1]  rz rz[i,1]
     translate       x0[i,1]     y0[i,1]      0.0
 patend
+# note: LOFT has been deprecated and is included here for backward-compatability testing
+#       new .csm files should use RULE or BLEND instead
 loft 0
 
 end

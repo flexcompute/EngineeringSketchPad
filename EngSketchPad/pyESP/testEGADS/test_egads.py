@@ -3,6 +3,7 @@ from pyEGADS import egads
 import os
 import math
 import sys
+import gc
 
 class TestEGADS(unittest.TestCase):
 
@@ -13,6 +14,7 @@ class TestEGADS(unittest.TestCase):
 
     # make sure the context is clean before it is closed
     def tearDown(self):
+        gc.collect() # ensure garbage collection has occured
         oclass, mtype, topObj, prev, next = self.context.getInfo()
         self.assertFalse( next , "Context is not properly clean!")
         del self.context
@@ -1305,9 +1307,20 @@ class TestEGADS(unittest.TestCase):
         self.assertTrue( all([edges[i].isEquivalent(bodyEdges[i]) for i in range(4)]) )
         self.assertTrue( face.isEquivalent(bodyFaces[0]) )
 
-        body = bodyFaces[0].getBody()
-        self.assertTrue( body.isEquivalent(faceBody) )
-        self.assertEqual( body, faceBody )
+        for node in bodyNodes:
+            body = node.getBody()
+            self.assertTrue( body.isEquivalent(faceBody) )
+            self.assertEqual( body, faceBody )
+
+        for edge in bodyEdges:
+            body = edge.getBody()
+            self.assertTrue( body.isEquivalent(faceBody) )
+            self.assertEqual( body, faceBody )
+
+        for face in bodyFaces:
+            body = face.getBody()
+            self.assertTrue( body.isEquivalent(faceBody) )
+            self.assertEqual( body, faceBody )
 
         for i in range(4):
             self.assertEqual( faceBody.indexBodyTopo(bodyNodes[i]), i+1 )
@@ -1317,8 +1330,10 @@ class TestEGADS(unittest.TestCase):
             self.assertEqual( faceBody.objectBodyTopo(egads.NODE, i+1), bodyNodes[i] )
             self.assertEqual( faceBody.objectBodyTopo(egads.EDGE, i+1), bodyEdges[i] )
 
+        tess = faceBody.makeTessBody([0.1, 0.1, 15])
+
         # Make a model
-        # Modules take ownership if bodies, so a body placed in a model can no longer be deleted
+        # Models take ownership if bodies, so a body placed in a model can no longer be deleted
         model = self.context.makeTopology(egads.MODEL, children=[faceBody])
 
         # exlicitly test deleting in reverse order to test referencing
@@ -1332,6 +1347,21 @@ class TestEGADS(unittest.TestCase):
         del loop
         del plane
         del face
+        del tess
+        
+        faceBody = self._makeFaceBody(self.context)
+        
+        nodes = faceBody.getBodyTopos(egads.NODE)
+        edges = faceBody.getBodyTopos(egads.EDGE)
+        faces = faceBody.getBodyTopos(egads.FACE)
+        
+        # try deleting the face body before the children
+        del faceBody
+        
+        # Check that the children are still alive
+        nodes[0].evaluate(None)
+        edges[0].evaluate(0.5)
+        faces[0].evaluate([0.5,0.5])
 
 #==============================================================================
     def _makeFaceBody(self, context):
@@ -1981,8 +2011,9 @@ class TestEGADS(unittest.TestCase):
         faces0 = box0.getBodyTopos(egads.FACE)
         faces1 = box1.getBodyTopos(egads.FACE)
 
-        faces0[1].attributeAdd("faceMap", [1])
-        faces1[0].attributeAdd("faceMap", [1])
+        for i in range(len(faces0)):
+            faces0[i].attributeAdd("faceMap", [i])
+            faces1[i].attributeAdd("faceMap", [i])
 
         map = box0.mapBody(box1, "faceMap")
 
@@ -2006,6 +2037,113 @@ class TestEGADS(unittest.TestCase):
         
         angle = edges[0].getWindingAngle(t)
         self.assertAlmostEqual(270.0, angle, 5)
+
+#==============================================================================
+    def test_addKnots(self):
+
+        #---------------
+        # Curve example
+        #---------------
+        npts = 10
+        pts = [None]*npts
+        for i in range(npts):
+            pts[i] = (math.cos(math.pi*i/npts), math.sin(math.pi*i/npts), 0.0)
+
+        bspline = self.context.approximate([npts, 0], pts)
+        oclass, mtype, reals, ints, geom = bspline.getGeometry()
+        
+        Us = []
+        degU   = ints[1]
+        nKnots = ints[3]
+        for i in range(degU,nKnots-degU-1):
+            Us.append((reals[0][i+1]+reals[0][i])/2)
+        
+        # Only add knots
+        minDegU = degU
+        newCurve = bspline.addKnots(minDegU, Us, 0, None)
+        
+        new_oclass, new_mtype, new_reals, new_ints, geom = newCurve.getGeometry()
+
+        self.assertEqual( oclass, new_oclass)
+        self.assertEqual( mtype, new_mtype)
+        self.assertEqual( minDegU, new_ints[1])
+        self.assertEqual( len(reals[0])+len(Us), len(new_reals[0]))
+
+        # Increase degree
+        minDegU = degU+1
+        newCurve = bspline.addKnots(minDegU, None, 0, None)
+        
+        new_oclass, new_mtype, new_reals, new_ints, geom = newCurve.getGeometry()
+
+        self.assertEqual( oclass, new_oclass)
+        self.assertEqual( mtype, new_mtype)
+        self.assertEqual( minDegU, new_ints[1])
+
+        #---------------
+        # Surface example
+        #---------------
+        nCPu = 4;
+        nCPv = 4;
+        pts = [(0.00, 0.00, 0.00),
+               (1.00, 0.00, 0.10),
+               (1.50, 1.00, 0.70),
+               (0.25, 0.75, 0.60),
+
+               (0.00, 0.00, 1.00),
+               (1.00, 0.00, 1.10),
+               (1.50, 1.00, 1.70),
+               (0.25, 0.75, 1.60),
+
+               (0.00, 0.00, 2.00),
+               (1.00, 0.00, 2.10),
+               (1.50, 1.00, 2.70),
+               (0.25, 0.75, 2.60),
+
+               (0.00, 0.00, 3.00),
+               (1.00, 0.00, 3.10),
+               (1.50, 1.00, 3.70),
+               (0.25, 0.75, 3.60)]
+
+        bspline = self.context.approximate([nCPu, nCPv], pts)
+        oclass, mtype, reals, ints, geom = bspline.getGeometry()
+
+        Us = []
+        degU   = ints[1]
+        nKnots = len(reals[0])
+        for i in range(degU,nKnots-degU-1):
+            Us.append((reals[0][i+1]+reals[0][i])/2)
+
+        Vs = []
+        degV   = ints[4]
+        nKnots = len(reals[1])
+        for i in range(degV,nKnots-degV-1):
+            Vs.append((reals[1][i+1]+reals[1][i])/2)
+
+        # Only add knots
+        minDegU = degU
+        minDegV = degV
+        newSurface = bspline.addKnots(minDegU, Us, minDegV, Vs)
+        
+        new_oclass, new_mtype, new_reals, new_ints, geom = newSurface.getGeometry()
+
+        self.assertEqual( oclass, new_oclass)
+        self.assertEqual( mtype, new_mtype)
+        self.assertEqual( minDegU, new_ints[1])
+        self.assertEqual( minDegV, new_ints[4])
+        self.assertEqual( len(reals[0])+len(Us), len(new_reals[0]))
+        self.assertEqual( len(reals[1])+len(Vs), len(new_reals[1]))
+
+        # Increase degree
+        minDegU = degU+1
+        minDegV = degV+2
+        newSurface = bspline.addKnots(minDegU, None, minDegV, None)
+        
+        new_oclass, new_mtype, new_reals, new_ints, geom = newSurface.getGeometry()
+
+        self.assertEqual( oclass, new_oclass)
+        self.assertEqual( mtype, new_mtype)
+        self.assertEqual( minDegU, new_ints[1])
+        self.assertEqual( minDegV, new_ints[4])
 
 #==============================================================================
     def test_otherCurve(self):
@@ -2036,6 +2174,32 @@ class TestEGADS(unittest.TestCase):
         vcurv = geom.isoCline(1, (uvrange[2]+uvrange[3])/2)
         data = vcurv.getInfo()
         self.assertEqual((egads.CURVE, egads.LINE), data[:2])
+
+#==============================================================================
+    def test_isIsoPCurve(self):
+
+        box0 = self.context.makeSolidBody(egads.BOX, [0,0,0, 1,1,1])
+
+        faces = box0.getBodyTopos(egads.FACE)
+        uvrange, periodic = faces[0].getRange()
+
+        (oclass, mtype, geom, lim, children, sens) = faces[0].getTopology()
+
+        ucurv = geom.isoCline(0, (uvrange[0]+uvrange[1])/2)
+        pcurve = faces[0].otherCurve(ucurv)
+        isIso, iUV, value, fwd = pcurve.isIsoPCurve()
+        self.assertEqual(isIso, True)
+        self.assertEqual(iUV, egads.UISO)
+        self.assertAlmostEqual(value, (uvrange[0]+uvrange[1])/2, delta = 1e-6)
+        self.assertEqual(fwd, egads.SFORWARD)
+
+        vcurv = geom.isoCline(1, (uvrange[2]+uvrange[3])/2)
+        pcurve = faces[0].otherCurve(vcurv)
+        isIso, iUV, value, fwd = pcurve.isIsoPCurve()
+        self.assertEqual(isIso, True)
+        self.assertEqual(iUV, egads.VISO)
+        self.assertAlmostEqual(value, (uvrange[2]+uvrange[3])/2, delta = 1e-6)
+        self.assertEqual(fwd, egads.SFORWARD)
 
 #==============================================================================
     def test_convertToBSpline(self):
@@ -2416,15 +2580,10 @@ class TestEGADS(unittest.TestCase):
                 (oclass, mtype, geom, lim, eloops, sens) = eface.getTopology()
                 self.assertEqual(oclass, egads.EFACE)
                 self.assertEqual(1, len(eloops))
-                
-                for eface in efaces:
-                    (oclass, mtype, geom, lim, eloops, sens) = eface.getTopology()
-                    self.assertEqual(oclass, egads.EFACE)
-                    self.assertEqual(1, len(eloops))
-                    
-                    for eloop in eloops:
-                        (oclass, mtype, geom, lim, eedges, sens) = eloop.getTopology()
-                        self.assertEqual(oclass, egads.ELOOPX)
+
+                for eloop in eloops:
+                    (oclass, mtype, geom, lim, eedges, sens) = eloop.getTopology()
+                    self.assertEqual(oclass, egads.ELOOPX)
 
         # check getting the original FACES
         faces = ebody.getBodyTopos(egads.FACE)

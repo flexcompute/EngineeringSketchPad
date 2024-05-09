@@ -9,7 +9,7 @@
  */
 
 /*
- * Copyright (C) 2010/2022  John F. Dannenhoffer, III (Syracuse University)
+ * Copyright (C) 2010/2024  John F. Dannenhoffer, III (Syracuse University)
  *
  * This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
@@ -57,7 +57,7 @@ tim_mesg(char   timName[],              /* (in)  name of TIM */
 
 /* set a lock on all TIMs */
 extern void
-tim_lock();
+tim_lock(int    finalize);              /* (in)  =1 to finalize python */
 
 /* hold a TIM until the lock is lifted */
 extern int

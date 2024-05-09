@@ -1,0 +1,34 @@
+# extract_2
+# written by John Dannenhoffer
+
+# box (SolidBody)
+BOX       0  0  0  1  1  1
+ASSERT    @itype  3
+
+# make a translated copy
+RESTORE   .
+TRANSLATE 2  0  0
+
+# extract all Faces into a SheetBody
+EXTRACT   0
+ASSERT    @itype  2
+
+# another box (SolidBody)
+BOX       4  0  0  1  1  1
+
+# extract xmin, ymin, and zmin Faces (SheetBody)
+SELECT    FACE   @nbody  1   # xmin
+SELECT    ADD    @nbody  3   # ymin
+SELECT    ADD    @nbody  5   # zmin
+EXTRACT   @sellist
+ASSERT    @itype  2
+
+# still another box (SolidBody)
+BOX       6  0  0  1  1  1
+
+# extract Edges arount zmax (WireBody)
+SELECT    EDGE  0  0  @nbody  6
+EXTRACT   -@sellist
+ASSERT    @itype  1
+
+END

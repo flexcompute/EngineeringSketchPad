@@ -3,7 +3,7 @@
  *
  *             Global Tessellation Tester
  *
- *      Copyright 2011-2022, Massachusetts Institute of Technology
+ *      Copyright 2011-2024, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -161,8 +161,8 @@ int main(int argc, char *argv[])
           printf(" Body %d/Vert %d: EG_getGlobal = %d\n",
                  i+1, global, status);
         }
-        printf("  GlobalF %6d: %lf %lf %lf\n", global, coord[0],
-               coord[1], coord[2]);
+        printf("  Global %6d: %6d  %6d -- %lf %lf %lf\n", global, pt, pi,
+               coord[0], coord[1], coord[2]);
     }
 #endif
 
@@ -210,8 +210,8 @@ int main(int argc, char *argv[])
     }
 
     for (j = 1; j <= nedge; j++) {
+      if (edges[j-1]->mtype == DEGENERATE) continue;
       status = EG_getTessEdge(tess, j, &plen, &points, &uv);
-      if (status == EGADS_DEGEN) continue;
       if (status != EGADS_SUCCESS) {
         printf(" %d EG_getTessEdge %d = %d\n", i+1, j, status);
         continue;

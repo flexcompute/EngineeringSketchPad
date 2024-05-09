@@ -9,7 +9,7 @@
  */
 
 /*
- * Copyright (C) 2018/2022  John F. Dannenhoffer, III (Syracuse University)
+ * Copyright (C) 2018/2023  John F. Dannenhoffer, III (Syracuse University)
  *
  * This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
@@ -265,6 +265,10 @@ int splitTriangle(tess_T  *tess,        /* (in) pointer to TESS */
 int swapTriangles(tess_T  *tess,        /* (in)  pointer to TESS */
                   int     itri,         /* (in)  index of first  Triangle (bias-0) */
                   int     jtri);        /* (in)  index of second Triangle (bias-0) */
+
+/* transform Points */
+int transform(tess_T  *tess,            /* (in)  pointer to TESS */
+              double  mat[]);           /* (in)  trnsformtion matrix */
 
 /* evaluate at a given parametric coordinate */
 int UVtoXYZ(tess_T  *tess,              /* (in)  pointer ot TESS */

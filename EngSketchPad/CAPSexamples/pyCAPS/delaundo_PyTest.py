@@ -22,7 +22,7 @@ workDir = str(args.workDir[0]) + "/DelaundoAnalysisTest"
 # Load CSM file
 geometryScript = os.path.join("..","csmData","cfd2D.csm")
 myProblem = pyCAPS.Problem(problemName=workDir,
-                           capsFile=geometryScript, 
+                           capsFile=geometryScript,
                            outLevel=args.outLevel)
 
 # Set the sharp trailing edge geometry design parameter
@@ -47,11 +47,8 @@ myMesh.input.Delta_Thickness = .1
 # Maximum aspect ratio
 myMesh.input.Max_Aspect = 90.0
 
-# Set project name and output mesh type
-projectName = "delaundoMesh"
-myMesh.input.Proj_Name = projectName
-
-myMesh.input.Mesh_Format = "Tecplot"
+# Optional: Explicitly write mesh files
+myMesh.input.Mesh_Format = ["Tecplot", "ugrid"]
 
 # Run AIM
 myMesh.runAnalysis()

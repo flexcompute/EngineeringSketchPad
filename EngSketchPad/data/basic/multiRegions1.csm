@@ -1,0 +1,31 @@
+# multiRegions1
+# written by John Dannenhoffer
+
+# region to be meshed
+BOX       0.0  0.0  0.0  3.0  2.0  1.0
+
+BOX       1.0  0.8  0.5  1.0  0.4  1.0
+UDPRIM    $$/applyTparams  factor  0.05
+SELECT    FACE
+ATTRIBUTE _color  $cyan
+
+SUBTRACT
+STORE     region
+
+# splitter plane
+BOX       1.5  -.5  -.5  0.0  3.0  2.0
+STORE     splitter
+
+# generate a SheetBody that contains all required Faces
+RESTORE   region
+RESTORE   splitter
+INTERSECT
+
+RESTORE   region
+EXTRACT   0
+RESTORE   splitter
+SUBTRACT
+
+JOIN
+
+END

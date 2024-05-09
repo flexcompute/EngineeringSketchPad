@@ -1,0 +1,137 @@
+# flend8n
+# written by John Dannenhoffer
+
+DESPMTR   power     4.0
+DESPMTR   dx       -1.5
+DESPMTR   dy        0.2
+CFGPMTR   sharpte   1
+
+DESPMTR   wingDist   0.10
+DESPMTR   fuseDist   0.10
+
+# fuselge
+UDPARG    supell    rx  1.0
+UDPARG    supell    ry  0.5
+UDPRIM    supell    n   power
+ROTATEY   90
+STORE     bulkhead
+
+MARK
+   RESTORE   bulkhead
+   TRANSLATE -1.0  0.0  0.0
+
+   RESTORE   bulkhead
+   TRANSLATE  2.0  0.0  0.0
+BLEND
+
+SELECT    FACE
+ATTRIBUTE tagComp  $fuse
+SELECT    EDGE
+ATTRIBUTE tagComp  $fuse
+
+# wing
+UDPARG    naca      thickness  0.12
+UDPARG    naca      camber     0.04
+UDPRIM    naca      sharpte    sharpte
+STORE     airfoil
+
+MARK
+   RESTORE   airfoil
+   SCALE     0.80
+   TRANSLATE 0.2  0.0  -2.0
+
+   RESTORE   airfoil
+   SCALE     1.20
+   TRANSLATE -.2  0.0   0.0
+
+   RESTORE   airfoil
+   SCALE     0.80
+   TRANSLATE 0.2  0.0  +2.0
+RULE
+TRANSLATE dx  dy  0.0
+
+SELECT    FACE
+ATTRIBUTE tagComp  $wing
+SELECT    EDGE
+ATTRIBUTE tagComp  $wing
+
+# combine
+UNION
+
+SELECT    EDGE   $tagComp  $*
+SELECT    NOT
+ATTRIBUTE tagComp  $xsect
+
+# try to fillet
+#FILLET    (wingDist+fuseDist)/2   @sellist  1
+
+# scribe the wing Faces based upon the intersection Edges
+SELECT    FACE      $tagComp  $wing
+DIMENSION faceList  @sellist.size  1
+SET       faceList  @sellist
+
+SELECT    EDGE      $tagComp  $xsect
+DIMENSION edgeList  @sellist.size  1
+SET       edgeList  @sellist
+
+UDPARG    offset    faceList  faceList
+UDPARG    offset    edgeList  edgeList
+UDPRIM    offset    dist      wingDist
+
+CATBEG    0
+   MESSAGE error_in_wing_offset
+   THROW  -998
+CATEND
+
+# scribe the fuselage Faces based upon the intersection Edges
+SELECT    FACE      $tagComp  $fuse
+DIMENSION faceList  @sellist.size  1
+SET       faceList  @sellist
+
+SELECT    EDGE      $tagComp  $xsect
+DIMENSION edgeList  @sellist.size  1
+SET       edgeList  @sellist
+
+UDPARG    offset    faceList  faceList
+UDPARG    offset    edgeList  edgeList
+UDPRIM    offset    dist      fuseDist
+
+CATBEG    0
+   MESSAGE error_in_fuse_offset
+   THROW  -999
+CATEND
+
+# try to make a single flend
+SELECT    FACE      $__offsetFace__  $*
+   ATTRIBUTE _flend  $remove
+
+UDPRIM    flend     toler  0.001   equis 1   method 2
+
+# if we get a udp_error1, it means we should actually make two flends
+CATBEG    $udp_error1
+   UDPRIM    editAttr  filename  <<
+      FACE   HAS       _flend=remove
+      SET              _flend=
+   >>
+   SELECT    FACE      $__offsetFace__  $*
+   SELECT    SORT      $zcg
+
+   DIMENSION half      @sellist.size/2 1
+   SET       half      @sellist
+
+   PATBEG    i         half.size
+      SELECT FACE half[i]
+         ATTRIBUTE _flend   $remove
+   PATEND
+
+   UDPRIM    flend     toler  0.001   equis 1   method 2
+
+   SELECT    FACE      $__offsetFace__  $*
+      ATTRIBUTE _flend   $remove
+
+   UDPRIM    flend     toler  0.001   equis 1   method 2
+CATEND
+
+UDPRIM     $$/applyTparams   factor 0.2
+
+END

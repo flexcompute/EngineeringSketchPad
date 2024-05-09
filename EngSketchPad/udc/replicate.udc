@@ -4,7 +4,8 @@
 INTERFACE ncopy     IN   0      # number of copies
 INTERFACE xcent     IN   0      # center of rotation
 INTERFACE ycent     IN   0
-INTERFACE nunion    OUT  0      # umber of unions performed
+INTERFACE toler     in   0      # tolerance for UNION
+INTERFACE nunion    OUT  0      # number of unions performed
 
 # make sure we have at least 2 copies
 ASSERT    1  ifpos(ncopy-1,1,0)
@@ -22,7 +23,7 @@ PATBEG     i   20
    RESTORE  myReplicate  i-1
    RESTORE  .
    ROTATEZ  (2^(i-1))*(360/ncopy)
-   UNION
+   UNION    toler
    SET      nunion       nunion+1
    STORE    myReplicate  i
    SET      mneed        i+1
@@ -48,7 +49,7 @@ PATBEG    i  mneed
       RESTORE  myReplicate  i-1
       ROTATEZ  theta   xcent  ycent
       IFTHEN   theta GT 0
-         UNION
+         UNION toler
          SET   nunion   nunion+1
       ENDIF
       SET      theta theta+(2^(i-1))*(360/ncopy)

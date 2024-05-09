@@ -1,7 +1,7 @@
 // ESP-viewer.js implements viewer functions for the Engineering Sketch Pad (ESP)
 // written by John Dannenhoffer
 
-// Copyright (C) 2010/2022  John F. Dannenhoffer, III (Syracuse University)
+// Copyright (C) 2010/2024  John F. Dannenhoffer, III (Syracuse University)
 //
 // This library is free software; you can redistribute it and/or
 //    modify it under the terms of the GNU Lesser General Public
@@ -296,6 +296,24 @@ viewer.keyPressPart2 = function(picking, gprim) {
 
 
 //
+// callback when timLoad returns
+//
+viewer.timLoadCB = function (text) {
+    alert("in viewer.timLoadCB: "+text);
+
+};
+
+
+//
+// callback when timSave returns
+//
+viewer.timSaveCB = function (text) {
+    alert("in viewer.timSaveCB: "+text);
+
+};
+
+
+//
 // callback when timQuit returns
 //
 viewer.timQuitCB = function (text) {
@@ -313,4 +331,3 @@ viewer.timMesgCB = function (text) {
 };
 
 // /////////////////////////////////////////////////////////////////////
-

@@ -1,0 +1,16 @@
+# chamfer_2
+# written by John Dannenhoffer
+
+# cyan box
+BOX       0  0  0  4  3  2
+ATTRIBUTE _color $cyan
+
+# small chamfer on all Edges surrounding zmax
+SELECT    EDGE  0  0  @nbody  6
+CHAMFER   0.1  @sellist  1
+
+# big chamfer on Edge adjacent to zmin,ymax
+SELECT    EDGE  1  4  1  5
+CHAMFER   0.5  @sellist  1
+
+END

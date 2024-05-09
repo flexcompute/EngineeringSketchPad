@@ -1,0 +1,28 @@
+# arc_1
+# written by John Dannenhoffer
+
+# red circular arc in x-y plane
+SKBEG     0  0  0
+   ARC    4  0  0  4/2
+SKEND
+SELECT    EDGE
+ATTRIBUTE _color $red
+
+# blue circular arc in y-z plane
+SKBEG     0  0  0
+   ARC    0  3  0  3/2  yz
+SKEND
+SELECT    EDGE
+ATTRIBUTE _color $blue
+
+# green circular arc in z-x plane
+SKBEG     0  0  0
+   ARC    0  0  2  2/2  zx
+SKEND
+SELECT    EDGE
+ATTRIBUTE _color $green
+
+END
+
+
+

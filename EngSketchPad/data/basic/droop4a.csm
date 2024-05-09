@@ -1,0 +1,11 @@
+# droop4a
+# written by John Dannenhoffer
+
+UDPRIM    naca      thickness  0.12
+
+# droop leading and trailing edges down
+UDPARG    droop     xle  0.20   thetale  +20.0   powle  1.5
+UDPARG    droop     xte  0.75   thetate  -30.0   powte  1.5
+UDPRIM    droop
+
+END

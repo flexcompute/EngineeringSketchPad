@@ -3,7 +3,7 @@
  *
  *             FORTRAN Bindings for Base & Effective Topo Functions
  *
- *      Copyright 2011-2022, Massachusetts Institute of Technology
+ *      Copyright 2011-2024, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -36,6 +36,8 @@
                          egObject **top, egObject **prev, egObject **next);
   extern int  EG_copyObject(const egObject *object, /*@null@*/ void *ptr,
                             egObject **copy);
+  extern int  EG_contextCopy(egObject *context, const egObject *object,
+                             egObject **copy);
   extern int  EG_flipObject(const egObject *object, egObject **copy);
   extern int  EG_close(egObject *context);
   extern int  EG_initEBody(egObject *tess, double angle, egObject **EBody);
@@ -280,6 +282,25 @@ ig_copyobject_(INT8 *obj, INT8 *ofrm, INT8 *cp)
   object = (egObject *) *obj;
   xform  = (egObject *) *ofrm;
   stat   = EG_copyObject(object, xform, &copy);
+  if (stat == EGADS_SUCCESS) *cp = (INT8) copy;
+  return stat;
+}
+
+
+int
+#ifdef WIN32
+IG_CONTEXTCOPY (INT8 *cntxt, INT8 *obj, INT8 *cp)
+#else
+ig_contextcopy_(INT8 *cntxt, INT8 *obj, INT8 *cp)
+#endif
+{
+  int      stat;
+  egObject *contxt, *object, *copy;
+
+  *cp    = 0;
+  contxt = (egObject *) *cntxt;
+  object = (egObject *) *obj;
+  stat   = EG_contextCopy(contxt, object, &copy);
   if (stat == EGADS_SUCCESS) *cp = (INT8) copy;
   return stat;
 }

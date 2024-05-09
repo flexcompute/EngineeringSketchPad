@@ -33,7 +33,9 @@ int fun3d_writeNML(void *aimInfo, capsValue *aimInputs,
 // Write FUN3D movingbody.input file
 int fun3d_writeMovingBody(void *aimInfo, double fun3dVersion,
                           cfdBoundaryConditionStruct bcProps,
-                          cfdModalAeroelasticStruct *modalAeroelastic);
+               /*@null@*/ const char *motion_driver,
+               /*@null@*/ const char *mesh_movement,
+               /*@null@*/ cfdModalAeroelasticStruct *modalAeroelastic);
 
 // Write FUN3D parametrization/sensitivity file
 // Will not calculate shape sensitivities if there are no geometry design variable; will
@@ -42,6 +44,16 @@ int fun3d_writeParameterization(void *aimInfo,
                                 int numDesignVariable,
                                 cfdDesignVariableStruct designVariable[],
                                 aimMeshRef *meshRef);
+
+// Write FUN3D surface file
+// Will dump out the body meshes in 'filename'_body#.dat  files.
+// If combine == True all surfaces will be added to a single file; if
+// combine == False each surface representing a geometric body will be
+// written to an individual file.
+int  fun3d_writeSurface(void *aimInfo,
+                        aimMeshRef *meshRef,
+                        char *filename,
+                        int combine);
 
 // Write FUN3D rubber.data file
 // Will not write shape entries unless explicitly told to check if they are need

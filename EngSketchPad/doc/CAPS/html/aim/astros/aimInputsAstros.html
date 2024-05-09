@@ -89,29 +89,37 @@ $(function() {
 <li><b> Analysis = NULL</b> <br  />
  Analysis tuple used to input analysis/case information for the model, see <a class="el" href="feaAnalysis.html">FEA Analysis</a> for additional details.</li>
 <li><b> Analysis_Type = "Modal"</b> <br  />
- Type of analysis to generate files for, options include "Modal", "Static", "AeroelasticTrim", "AeroelasticTrimOpt", "AeroelasticFlutter", and "Optimization". Note: "Aeroelastic" and "StaticOpt" are still supported and refer to "AeroelasticTrim" and "Optimization".</li>
+ Type of analysis to generate files for, options include "Modal", "Static", "AeroelasticTrim", "AeroelasticTrimOpt", "AeroelasticFlutter", "Optimization", "AeroelasticOptimization". For optimizations involving both steady and unsteady aerodynamic models, use "AeroelasticOptimization". Note: "Aeroelastic" and "StaticOpt" are still supported and refer to "AeroelasticTrim" and "Optimization".</li>
 <li><b> File_Format = "Small"</b> <br  />
  Formatting type for the bulk file. Options: "Small", "Large", "Free".</li>
 <li><b> Mesh_File_Format = "Free"</b> <br  />
  Formatting type for the mesh file. Options: "Small", "Large", "Free".</li>
 <li><b> Design_Variable = NULL</b> <br  />
- The design variable tuple used to input design variable information for the model optimization, see <a class="el" href="feaDesignVariable.html">FEA DesignVariable</a> for additional details.</li>
+ The design variable tuple used to input design variable information for the model optimization, see <a class="el" href="feaDesignVariable.html">FEA Design Variables</a> for additional details.</li>
 <li><b> Design_Variable_Relation = NULL</b> <br  />
  The design variable relation tuple is used to input design variable relation information for the model optimization, see <a class="el" href="feaDesignVariableRelation.html">FEA DesignVariableRelation</a> for additional details.</li>
 <li><b> Design_Constraint = NULL</b> <br  />
- The design constraint tuple used to input design constraint information for the model optimization, see <a class="el" href="feaDesignConstraint.html">FEA DesignConstraint</a> for additional details.</li>
-<li><b> ObjectiveMinMax = "Max"</b> <br  />
+ The design constraint tuple used to input design constraint information for the model optimization, see <a class="el" href="feaDesignConstraint.html">FEA Design Constraints</a> for additional details.</li>
+<li><b> Objective_Min_Max = "Max"</b> <br  />
  Maximize or minimize the design objective during an optimization. Option: "Max" or "Min".</li>
-<li><b> ObjectiveResponseType = "Weight"</b> <br  />
+<li><b> Objective_Response_Type = "Weight"</b> <br  />
  Object response type (see Astros manual).</li>
+<li><b> Optimization_Control = NULL</b> <br  />
+ Optimization case control (see Astros manual).</li>
 <li><b>VLM_Surface = NULL </b> <br  />
  Vortex lattice method tuple input. See <a class="el" href="vlmSurface.html">Vortex Lattice Surface</a> for additional details.</li>
+<li><b>VLM_Control = NULL </b> <br  />
+ Vortex lattice method control surface tuple input. See <a class="el" href="vlmControl.html">Vortex Lattice Control Surface</a> for additional details.</li>
 <li><b> Support = NULL</b> <br  />
  Support tuple used to input support information for the model, see <a class="el" href="feaSupport.html">FEA Support</a> for additional details.</li>
 <li><b> Connect = NULL</b> <br  />
  Connect tuple used to define connection to be made in the, see <a class="el" href="feaConnection.html">FEA Connection</a> for additional details.</li>
 <li><b> Parameter = NULL</b> <br  />
  Parameter tuple used to define user entries. This can be used to input things to ASTROS such as CONVERT or MFORM etc. The input is in Tuple form ("DATACARD", "DATAVALUE"). All inputs are strings. Example: ("CONVERT","MASS,  0.00254"). Note: Inputs assume a "," delimited entry. Notice the "," after MASS in the Example.</li>
+<li><b> Aero_Reference = NULL</b> <br  />
+ Parameter tuple to define aerodynamic reference parameters. see <a class="el" href="feaAeroReference.html">FEA Aerodynamic References</a> for additional details</li>
+<li><b> Mesh_Morph = False</b> <br  />
+ Project previous surface mesh onto new geometry.</li>
 <li><b>Mesh = NULL</b> <br  />
  A Mesh link. </li>
 </ul>
@@ -119,7 +127,7 @@ $(function() {
 </div><!-- PageDoc -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Sat Jul 2 2022 10:12:49 for Astros Analysis Interface Module (AIM) by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1
+Generated on Sat Apr 27 2024 16:51:00 for Astros Analysis Interface Module (AIM) by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1
 </small></address>
 </body>
 </html>

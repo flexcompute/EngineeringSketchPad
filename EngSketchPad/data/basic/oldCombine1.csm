@@ -1,0 +1,22 @@
+# combine1
+# written by John Dannenhoffer
+
+mark
+   skbeg     -1.0  -1.0  -1.0
+      linseg -1.0   1.0  -1.0
+   skend
+
+   skbeg     -1.0   1.0  -1.0
+      linseg  1.0   1.0  -1.0
+   skend
+
+   skbeg      1.0   1.0  -1.0
+      linseg  1.0  -1.0  -1.0
+   skend
+
+   skbeg      1.0  -1.0  -1.0
+      linseg -1.0  -1.0  -1.0
+   skend
+combine
+
+end

@@ -48,6 +48,8 @@ scale     ctip
 rotatez   washout   ctip/4    0
 translate dxtip     dytip     +span/2
 
+# note: LOFT has been deprecated and is included here for backward-compatability testing
+#       new .csm files should use RULE or BLEND instead
 loft      0
 
 dump      design5_msa.egads
@@ -72,6 +74,8 @@ scale     ctip
 rotatez   washout   ctip/4    0
 translate dxtip     dytip     +span/2
 
+# note: LOFT has been deprecated and is included here for backward-compatability testing
+#       new .csm files should use RULE or BLEND instead
 loft      0
 
 dump      design5_wing.egads

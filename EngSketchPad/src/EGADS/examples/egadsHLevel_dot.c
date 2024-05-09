@@ -1,285 +1,6 @@
-#include <math.h>
-#include "egads.h"
-#include "egads_dot.h"
 
-#include "../src/egadsStack.h"
+#include "egadsTools_dot.h"
 
-#if defined(_MSC_VER) && (_MSC_VER < 1900)
-#define __func__  __FUNCTION__
-#endif
-
-#define TWOPI 6.2831853071795862319959269
-#define PI    (TWOPI/2.0)
-#define MAX(a,b) ((a) > (b) ? (a) : (b))
-#define DOT(a,b)          (a[0]*b[0] + a[1]*b[1] + a[2]*b[2])
-#define CROSS(a,b,c)       a[0] = (b[1]*c[2]) - (b[2]*c[1]);\
-                           a[1] = (b[2]*c[0]) - (b[0]*c[2]);\
-                           a[2] = (b[0]*c[1]) - (b[1]*c[0])
-#define CROSS_DOT(a_dot,b,b_dot,c,c_dot) a_dot[0] = (b_dot[1]*c[2]) + (b[1]*c_dot[2]) - (b_dot[2]*c[1]) - (b[2]*c_dot[1]);\
-                                         a_dot[1] = (b_dot[2]*c[0]) + (b[2]*c_dot[0]) - (b_dot[0]*c[2]) - (b[0]*c_dot[2]);\
-                                         a_dot[2] = (b_dot[0]*c[1]) + (b[0]*c_dot[1]) - (b_dot[1]*c[0]) - (b[1]*c_dot[0])
-
-/*****************************************************************************/
-/*                                                                           */
-/*  pingBodies                                                               */
-/*                                                                           */
-/*****************************************************************************/
-
-int
-pingBodies(ego tess1, ego tess2, double dtime, int iparam, const char *shape, double ftol, double etol, double ntol)
-{
-  int    status = EGADS_SUCCESS;
-  int    n, d, np1, np2, nt1, nt2, periodic, nerr=0;
-  int    nface, nedge, nnode, iface, iedge, inode, oclass, mtype;
-  double p1_dot[18], p1[18], p2[18], fd_dot[3], range1[4], range2[4], range_dot[4];
-  const int    *pt1, *pi1, *pt2, *pi2, *ts1, *tc1, *ts2, *tc2;
-  const double *t1, *t2, *x1, *x2, *uv1, *uv2;
-  ego    ebody1, ebody2;
-  ego    *efaces1=NULL, *efaces2=NULL, *eedges1=NULL, *eedges2=NULL, *enodes1=NULL, *enodes2=NULL;
-  ego    top, prev, next;
-
-  status = EG_statusTessBody( tess1, &ebody1, &np1, &np2 );
-  if (status != EGADS_SUCCESS) goto cleanup;
-
-  status = EG_statusTessBody( tess2, &ebody2, &np1, &np2 );
-  if (status != EGADS_SUCCESS) goto cleanup;
-
-  /* get the Faces from the Body 1 */
-  status = EG_getBodyTopos(ebody1, NULL, FACE, &nface, &efaces1);
-  if (status != EGADS_SUCCESS) goto cleanup;
-
-  /* get the Edges from the Body 1 */
-  status = EG_getBodyTopos(ebody1, NULL, EDGE, &nedge, &eedges1);
-  if (status != EGADS_SUCCESS) goto cleanup;
-
-  /* get the Nodes from the Body 1 */
-  status = EG_getBodyTopos(ebody1, NULL, NODE, &nnode, &enodes1);
-  if (status != EGADS_SUCCESS) goto cleanup;
-
-
-  /* get the Faces from the Body 2 */
-  status = EG_getBodyTopos(ebody2, NULL, FACE, &nface, &efaces2);
-  if (status != EGADS_SUCCESS) goto cleanup;
-
-  /* get the Edges from the Body 2 */
-  status = EG_getBodyTopos(ebody2, NULL, EDGE, &nedge, &eedges2);
-  if (status != EGADS_SUCCESS) goto cleanup;
-
-  /* get the Nodes from the Body 2 */
-  status = EG_getBodyTopos(ebody2, NULL, NODE, &nnode, &enodes2);
-  if (status != EGADS_SUCCESS) goto cleanup;
-
-
-  for (iface = 0; iface < nface; iface++) {
-
-    /* extract the face tessellation */
-    status = EG_getTessFace(tess1, iface+1, &np1, &x1, &uv1, &pt1, &pi1,
-                                            &nt1, &ts1, &tc1);
-    if (status != EGADS_SUCCESS) goto cleanup;
-
-    status = EG_getTessFace(tess2, iface+1, &np2, &x2, &uv2, &pt2, &pi2,
-                                            &nt2, &ts2, &tc2);
-    if (status != EGADS_SUCCESS) goto cleanup;
-
-    for (n = 0; n < np1; n++) {
-
-      /* evaluate original edge and velocities*/
-      status = EG_evaluate_dot(efaces1[iface], &uv1[2*n], NULL, p1, p1_dot);
-      if (status != EGADS_SUCCESS) goto cleanup;
-
-      /* evaluate perturbed edge */
-      status = EG_evaluate(efaces2[iface], &uv2[2*n], p2);
-      if (status != EGADS_SUCCESS) goto cleanup;
-
-      /* compute the configuration velocity based on finite difference */
-      fd_dot[0] = (p2[0] - p1[0])/dtime - p1[3]*(uv2[2*n] - uv1[2*n])/dtime - p1[6]*(uv2[2*n+1] - uv1[2*n+1])/dtime;
-      fd_dot[1] = (p2[1] - p1[1])/dtime - p1[4]*(uv2[2*n] - uv1[2*n])/dtime - p1[7]*(uv2[2*n+1] - uv1[2*n+1])/dtime;
-      fd_dot[2] = (p2[2] - p1[2])/dtime - p1[5]*(uv2[2*n] - uv1[2*n])/dtime - p1[8]*(uv2[2*n+1] - uv1[2*n+1])/dtime;
-
-      for (d = 0; d < 3; d++) {
-        if (fabs(p1_dot[d] - fd_dot[d]) > ftol) {
-          printf("%s Face %d iparam=%d, p1[%d]=%+le fabs(%+le - %+le) = %+le > %e\n",
-                 shape, iface+1, iparam, d, p1[d], p1_dot[d], fd_dot[d], fabs(p1_dot[d] - fd_dot[d]), ftol);
-          nerr++;
-        }
-      }
-
-      //printf("p1_dot = (%+f, %+f, %+f)\n", p1_dot[0], p1_dot[1], p1_dot[2]);
-      //printf("fd_dot = (%+f, %+f, %+f)\n", fd_dot[0], fd_dot[1], fd_dot[2]);
-      //printf("\n");
-    }
-  }
-
-  for (iedge = 0; iedge < nedge; iedge++) {
-
-    status = EG_getInfo(eedges1[iedge], &oclass, &mtype, &top, &prev, &next);
-    if (status != EGADS_SUCCESS) goto cleanup;
-    if (mtype == DEGENERATE) continue;
-
-    /* extract the tessellation from the original edge */
-    status = EG_getTessEdge(tess1, iedge+1, &np1, &x1, &t1);
-    if (status != EGADS_SUCCESS) goto cleanup;
-
-    /* get the tessellation from the perturbed edge */
-    status = EG_getTessEdge(tess2, iedge+1, &np2, &x2, &t2);
-    if (status != EGADS_SUCCESS) goto cleanup;
-
-    for (n = 0; n < np1; n++) {
-
-      /* evaluate original edge and velocities*/
-      status = EG_evaluate_dot(eedges1[iedge], &t1[n], NULL, p1, p1_dot);
-      if (status != EGADS_SUCCESS) goto cleanup;
-
-      /* evaluate perturbed edge */
-      status = EG_evaluate(eedges2[iedge], &t2[n], p2);
-      if (status != EGADS_SUCCESS) goto cleanup;
-
-      /* compute the configuration velocity based on finite difference */
-      fd_dot[0] = (p2[0] - p1[0])/dtime - p1[3]*(t2[n] - t1[n])/dtime;
-      fd_dot[1] = (p2[1] - p1[1])/dtime - p1[4]*(t2[n] - t1[n])/dtime;
-      fd_dot[2] = (p2[2] - p1[2])/dtime - p1[5]*(t2[n] - t1[n])/dtime;
-
-      for (d = 0; d < 3; d++) {
-        if (fabs(p1_dot[d] - fd_dot[d]) > etol) {
-          printf("%s Edge %d iparam=%d, p1[%d]=%+le fabs(%+le - %+le) = %+le > %e\n",
-                 shape, iedge+1, iparam, d, p1[d], p1_dot[d], fd_dot[d], fabs(p1_dot[d] - fd_dot[d]), etol);
-          nerr++;
-        }
-      }
-
-      //printf("p1_dot = (%+f, %+f, %+f)\n", p1_dot[0], p1_dot[1], p1_dot[2]);
-      //printf("fd_dot = (%+f, %+f, %+f)\n", fd_dot[0], fd_dot[1], fd_dot[2]);
-      //printf("\n");
-
-
-      /* check t-range sensitivity */
-      status = EG_getRange_dot( eedges1[iedge], range1, range_dot, &periodic );
-      if (status != EGADS_SUCCESS) goto cleanup;
-
-      status = EG_getRange( eedges2[iedge], range2, &periodic );
-      if (status != EGADS_SUCCESS) goto cleanup;
-
-      fd_dot[0] = (range2[0] - range1[0])/dtime;
-      fd_dot[1] = (range2[1] - range1[1])/dtime;
-
-      for (d = 0; d < 2; d++) {
-        if (fabs(range_dot[d] - fd_dot[d]) > etol) {
-          printf("%s Edge %d iparam=%d, trng[%d]=%+le fabs(%+le - %+le) = %+le > %e\n",
-                 shape, iedge+1, iparam, d, range1[d], range_dot[d], fd_dot[d], fabs(range_dot[d] - fd_dot[d]), etol);
-          nerr++;
-        }
-      }
-    }
-  }
-
-  for (inode = 0; inode < nnode; inode++) {
-
-    /* evaluate original node and velocities*/
-    status = EG_evaluate_dot(enodes1[inode], NULL, NULL, p1, p1_dot);
-    if (status != EGADS_SUCCESS) goto cleanup;
-
-    /* evaluate perturbed edge */
-    status = EG_evaluate(enodes2[inode], NULL, p2);
-    if (status != EGADS_SUCCESS) goto cleanup;
-
-    /* compute the configuration velocity based on finite difference */
-    fd_dot[0] = (p2[0] - p1[0])/dtime;
-    fd_dot[1] = (p2[1] - p1[1])/dtime;
-    fd_dot[2] = (p2[2] - p1[2])/dtime;
-
-    for (d = 0; d < 3; d++) {
-      if (fabs(p1_dot[d] - fd_dot[d]) > etol) {
-        printf("%s Node %d iparam=%d, p1[%d]=%+le fabs(%+le - %+le) = %+le > %e\n",
-               shape, inode+1, iparam, d, p1[d], p1_dot[d], fd_dot[d], fabs(p1_dot[d] - fd_dot[d]), etol);
-        nerr++;
-      }
-    }
-
-    //printf("p1_dot = (%+f, %+f, %+f)\n", p1_dot[0], p1_dot[1], p1_dot[2]);
-    //printf("fd_dot = (%+f, %+f, %+f)\n", fd_dot[0], fd_dot[1], fd_dot[2]);
-    //printf("\n");
-  }
-
-cleanup:
-  if (status != EGADS_SUCCESS) {
-    printf(" Failure %d in %s\n", status, __func__);
-  }
-  EG_free(efaces1);
-  EG_free(eedges1);
-  EG_free(enodes1);
-
-  EG_free(efaces2);
-  EG_free(eedges2);
-  EG_free(enodes2);
-
-  return status + nerr;
-}
-
-/*****************************************************************************/
-/*                                                                           */
-/*  Re-make Topology from getTopology                                        */
-/*                                                                           */
-/*****************************************************************************/
-
-int
-remakeTopology(ego etopo)
-{
-  int    status = EGADS_SUCCESS;
-  int    i, oclass, mtype, *senses, nchild, *ivec=NULL;
-  double data[4], *rvec=NULL, tol, tolNew;
-  ego    context, eref, egeom, eNewTopo=NULL, eNewGeom=NULL, *echild;
-
-  status = EG_getContext(etopo, &context);
-  if (status != EGADS_SUCCESS) goto cleanup;
-
-  status = EG_getTopology(etopo, &egeom, &oclass, &mtype,
-                          data, &nchild, &echild, &senses);
-  if (status != EGADS_SUCCESS) goto cleanup;
-
-  status = EG_makeTopology(context, egeom, oclass, mtype,
-                          data, nchild, echild, senses, &eNewTopo);
-  if (status != EGADS_SUCCESS) goto cleanup;
-
-  status = EG_isEquivalent(etopo, eNewTopo);
-  if (status != EGADS_SUCCESS) goto cleanup;
-
-  status = EG_getTolerance(etopo, &tol);
-  if (status != EGADS_SUCCESS) goto cleanup;
-  status = EG_getTolerance(eNewTopo, &tolNew);
-  if (status != EGADS_SUCCESS) goto cleanup;
-  if (tolNew > 1.001*tol) {
-    printf("Tolerance missmatch!! %le %le\n", tol, tolNew);
-    status = EGADS_BADSCALE;
-    goto cleanup;
-  }
-
-  if (egeom != NULL) {
-    status = EG_getGeometry(egeom, &oclass, &mtype, &eref, &ivec, &rvec);
-    if (status != EGADS_SUCCESS) goto cleanup;
-
-    status = EG_makeGeometry(context, oclass, mtype, eref, ivec,
-                             rvec, &eNewGeom);
-    if (status != EGADS_SUCCESS) goto cleanup;
-    EG_deleteObject(eNewGeom);
-  }
-
-  for (i = 0; i < nchild; i++) {
-    status = remakeTopology(echild[i]);
-    if (status != EGADS_SUCCESS) goto cleanup;
-  }
-
-cleanup:
-  EG_deleteObject(eNewTopo);
-
-  EG_free(ivec);
-  EG_free(rvec);
-
-  if (status != EGADS_SUCCESS) {
-    printf(" Failure %d in %s\n", status, __func__);
-  }
-
-  return status;
-}
 /*****************************************************************************/
 /*                                                                           */
 /*  Extrude                                                                  */
@@ -296,7 +17,7 @@ pingExtrudeParam(ego src, double dist, double *dir, double *params, double dtime
   const double *t1, *x1, *uv1;
   ego    ebody1, ebody2, tess1, tess2;
 
-  /* test extrude in both dkrections */
+  /* test extrude in both directions */
   for (sgn = 1; sgn >= -1; sgn -=2) {
 
     vec[0] = sgn*dist;
@@ -322,14 +43,14 @@ pingExtrudeParam(ego src, double dist, double *dir, double *params, double dtime
     for (iedge = 0; iedge < nedge; iedge++) {
       status = EG_getTessEdge(tess1, iedge+1, &np1, &x1, &t1);
       if (status != EGADS_SUCCESS) goto cleanup;
-      printf(" Extrude %s Edge %d np1 = %d\n", shape, iedge+1, np1);
+      printf(" Rotate %s Edge %d np1 = %d\n", shape, iedge+1, np1);
     }
 
     for (iface = 0; iface < nface; iface++) {
       status = EG_getTessFace(tess1, iface+1, &np1, &x1, &uv1, &pt1, &pi1,
                                               &nt1, &ts1, &tc1);
       if (status != EGADS_SUCCESS) goto cleanup;
-      printf(" Extrude %s Face %d np1 = %d\n", shape, iface+1, np1);
+      printf(" Rotate %s Face %d np1 = %d\n", shape, iface+1, np1);
     }
 
     /* zero out velocities */
@@ -396,6 +117,142 @@ pingExtrude(ego src, double dist, double *dir, double *params, double dtime, con
   if (status != EGADS_SUCCESS) goto cleanup;
 
   status = pingExtrudeParam(echld[0], dist, dir, params, dtime, shape, ftol, etol, ntol);
+  if (status != EGADS_SUCCESS) goto cleanup;
+
+cleanup:
+  if (status != EGADS_SUCCESS) {
+    printf(" Failure %d in %s\n", status, __func__);
+  }
+
+  return status;
+}
+
+
+/*****************************************************************************/
+/*                                                                           */
+/*  Rotate                                                                   */
+/*                                                                           */
+/*****************************************************************************/
+
+int
+pingRotateParam(ego src, double angle, const double *axis, double *params, double dtime, const char *shape, double ftol, double etol, double ntol)
+{
+  int    status = EGADS_SUCCESS;
+  int    i, np1, nt1, iedge, nedge, iface, nface, sgn;
+  double vec[7], vec_dot[7];
+  const int    *pt1, *pi1, *ts1, *tc1;
+  const double *t1, *x1, *uv1;
+  ego    ebody1, ebody2, tess1, tess2;
+
+  /* test rotate in both directions */
+  for (sgn = 1; sgn >= -1; sgn -=2) {
+
+    vec[0] = sgn*angle;
+    vec[1] = axis[0];
+    vec[2] = axis[1];
+    vec[3] = axis[2];
+    vec[4] = axis[3];
+    vec[5] = axis[4];
+    vec[6] = axis[5];
+
+    /* make the rotated body */
+    status = EG_rotate(src, vec[0], &vec[1], &ebody1);
+    if (status != EGADS_SUCCESS) goto cleanup;
+
+    //remove("ebody1.egads");
+    //EG_saveModel(ebody1, "ebody1.egads");
+
+    /* get the Faces from the Body */
+    status = EG_getBodyTopos(ebody1, NULL, FACE, &nface, NULL);
+    if (status != EGADS_SUCCESS) goto cleanup;
+
+    /* get the Edges from the Body */
+    status = EG_getBodyTopos(ebody1, NULL, EDGE, &nedge, NULL);
+    if (status != EGADS_SUCCESS) goto cleanup;
+
+    /* make the tessellation */
+    status = EG_makeTessBody(ebody1, params, &tess1);
+
+    for (iedge = 0; iedge < nedge; iedge++) {
+      status = EG_getTessEdge(tess1, iedge+1, &np1, &x1, &t1);
+      if (status != EGADS_SUCCESS) goto cleanup;
+      printf(" Rotate %s Edge %d np1 = %d\n", shape, iedge+1, np1);
+    }
+
+    for (iface = 0; iface < nface; iface++) {
+      status = EG_getTessFace(tess1, iface+1, &np1, &x1, &uv1, &pt1, &pi1,
+                                              &nt1, &ts1, &tc1);
+      if (status != EGADS_SUCCESS) goto cleanup;
+      printf(" Rotate %s Face %d np1 = %d\n", shape, iface+1, np1);
+    }
+
+    /* zero out velocities */
+    for (i = 0; i < 7; i++) vec_dot[i] = 0;
+
+    for (i = 0; i < 7; i++) {
+
+      /* set the velocity of the rotated body */
+      vec_dot[i] = 1.0;
+      status = EG_rotate_dot(ebody1, src, vec[0], vec_dot[0], &vec[1], &vec_dot[1]);
+      if (status != EGADS_SUCCESS) goto cleanup;
+      vec_dot[i] = 0.0;
+
+      status = EG_hasGeometry_dot(ebody1);
+      if (status != EGADS_SUCCESS) goto cleanup;
+
+      /* make a perturbed body for finite difference */
+      vec[i] += dtime;
+      status = EG_rotate(src, vec[0], &vec[1], &ebody2);
+      if (status != EGADS_SUCCESS) goto cleanup;
+      vec[i] -= dtime;
+
+      //remove("ebody2.egads");
+      //EG_saveModel(ebody2, "ebody2.egads");
+
+      /* map the tessellation */
+      status = EG_mapTessBody(tess1, ebody2, &tess2);
+      if (status != EGADS_SUCCESS) goto cleanup;
+
+      /* ping the bodies */
+      status = pingBodies(tess1, tess2, dtime, i, shape, ftol, etol, ntol);
+      if (status != EGADS_SUCCESS) goto cleanup;
+
+      EG_deleteObject(tess2);
+      EG_deleteObject(ebody2);
+    }
+
+    EG_deleteObject(tess1);
+    EG_deleteObject(ebody1);
+
+  }
+
+cleanup:
+  if (status != EGADS_SUCCESS) {
+    printf(" Failure %d in %s\n", status, __func__);
+  }
+
+  return status;
+}
+
+
+int
+pingRotate(ego src, double angle, const double *axis, double *params, double dtime, const char *shape, double ftol, double etol, double ntol)
+{
+  int    status = EGADS_SUCCESS;
+  int    nchld, oclass, mtype, *senses;
+  double data[18];
+  ego    eref, *echld;
+
+  /* ping with the body */
+  status = pingRotateParam(src, angle, axis, params, dtime, shape, ftol, etol, ntol);
+  if (status != EGADS_SUCCESS) goto cleanup;
+
+  /* ping with the underlying Loop/Face directly */
+  status = EG_getTopology(src, &eref, &oclass, &mtype,
+                          data, &nchld, &echld, &senses);
+  if (status != EGADS_SUCCESS) goto cleanup;
+
+  status = pingRotateParam(echld[0], angle, axis, params, dtime, shape, ftol, etol, ntol);
   if (status != EGADS_SUCCESS) goto cleanup;
 
 cleanup:
@@ -634,6 +491,114 @@ pingLineExtrude(ego context, objStack *stack)
     if (status != EGADS_SUCCESS) goto cleanup;
 
     status = EG_extrude(src2, dist, dir, &ebody2);
+    if (status != EGADS_SUCCESS) goto cleanup;
+    x[iparam] -= dtime;
+
+    /* map the tessellation */
+    status = EG_mapTessBody(tess1, ebody2, &tess2);
+    if (status != EGADS_SUCCESS) goto cleanup;
+
+    /* ping the bodies */
+    status = pingBodies(tess1, tess2, dtime, iparam, "Line", 1e-7, 1e-7, 1e-7);
+    if (status != EGADS_SUCCESS) goto cleanup;
+
+    EG_deleteObject(tess2);
+    EG_deleteObject(ebody2);
+  }
+
+  EG_deleteObject(tess1);
+  EG_deleteObject(ebody1);
+
+cleanup:
+  if (status != EGADS_SUCCESS) {
+    printf(" Failure %d in %s\n", status, __func__);
+  }
+  return status;
+}
+
+
+int
+pingLineRotate(ego context, objStack *stack)
+{
+  int    status = EGADS_SUCCESS;
+  int    iparam, np1;
+  double x[6], x_dot[6], *p1, *p2, *p1_dot, *p2_dot, params[3], dtime = 1e-7;
+  double angle, angle_dot=0, axis[6], axis_dot[6]={0,0,0,0,0,0};
+  const double *t1, *x1;
+  ego    src1, src2, ebody1, ebody2, tess1, tess2;
+
+  p1 = x;
+  p2 = x+3;
+
+  p1_dot = x_dot;
+  p2_dot = x_dot+3;
+
+  angle = 90.;
+  axis[0] = 0.;
+  axis[1] = 0.;
+  axis[2] = 2.;
+  axis[3] = 1.5; // Non-unit axis on purpose
+  axis[4] = 0.;
+  axis[5] = 0.;
+
+  /* make the Line body */
+  p1[0] = 0.00; p1[1] = 0.00; p1[2] = 0.00;
+  p2[0] = 0.50; p2[1] = 0.75; p2[2] = 1.00;
+  status = makeLineBody(context, stack, p1, p2, &src1);
+  if (status != EGADS_SUCCESS) goto cleanup;
+
+  /* tessellation parameters */
+  params[0] =  0.2;
+  params[1] =  0.05;
+  params[2] = 20.0;
+
+  /* zero out velocities */
+  for (iparam = 0; iparam < 6; iparam++) x_dot[iparam] = 0;
+
+  /* zero out sensitivities */
+  status = setLineBody_dot(p1, p1_dot, p2, p2_dot, src1);
+  if (status != EGADS_SUCCESS) goto cleanup;
+
+  /* check rotate sensitivities */
+  status = pingRotate(src1, angle, axis, params, dtime, "Line", 5e-7, 5e-7, 1e-7);
+  if (status != EGADS_SUCCESS) goto cleanup;
+
+
+  /* make the rotated body */
+  status = EG_rotate(src1, angle, axis, &ebody1);
+  if (status != EGADS_SUCCESS) goto cleanup;
+
+  /* test re-making the topology */
+  status = remakeTopology(ebody1);
+  if (status != EGADS_SUCCESS) goto cleanup;
+
+  /* make the tessellation */
+  status = EG_makeTessBody(ebody1, params, &tess1);
+
+  /* extract the tessellation from the edge */
+  status = EG_getTessEdge(tess1, 1, &np1, &x1, &t1);
+  if (status != EGADS_SUCCESS) goto cleanup;
+
+  printf(" Line np1 = %d\n", np1);
+
+  for (iparam = 0; iparam < 6; iparam++) {
+
+    /* set the velocity of the original body */
+    x_dot[iparam] = 1.0;
+    status = setLineBody_dot(p1, p1_dot, p2, p2_dot, src1);
+    if (status != EGADS_SUCCESS) goto cleanup;
+
+    status = EG_rotate_dot(ebody1, src1, angle, angle_dot, axis, axis_dot);
+    if (status != EGADS_SUCCESS) goto cleanup;
+    x_dot[iparam] = 0.0;
+
+
+    /* make a perturbed Line for finite difference */
+    x[iparam] += dtime;
+    status = makeLineBody(context, stack, p1, p2, &src2);
+    if (status != EGADS_SUCCESS) goto cleanup;
+
+    status = EG_rotate(src2, angle, axis, &ebody2);
     if (status != EGADS_SUCCESS) goto cleanup;
     x[iparam] -= dtime;
 
@@ -991,7 +956,7 @@ pingCircleExtrude(ego context, objStack *stack)
 #if 0
       {
         char filename[42];
-        sprintf(filename, "circle.egads");
+        snprintf(filename, 42, "circle.egads");
         EG_saveModel(ebody1, filename);
       }
 #endif
@@ -1035,6 +1000,135 @@ pingCircleExtrude(ego context, objStack *stack)
 
       /* ping the bodies */
       status = pingBodies(tess1, tess2, dtime, iparam, "Circle", 1e-7, 1e-7, 1e-7);
+      if (status != EGADS_SUCCESS) goto cleanup;
+
+      EG_deleteObject(tess2);
+      EG_deleteObject(ebody2);
+    }
+
+    EG_deleteObject(tess1);
+    EG_deleteObject(ebody1);
+  }
+
+cleanup:
+  if (status != EGADS_SUCCESS) {
+    printf(" Failure %d in %s\n", status, __func__);
+  }
+  return status;
+}
+
+
+int
+pingCircleRotate(ego context, objStack *stack)
+{
+  int    status = EGADS_SUCCESS;
+  int    iparam, np1, btype[2] = {FACEBODY, WIREBODY}, i;
+  double x[10], x_dot[10], params[3], dtime = 1e-8;
+  double *xcent, *xax, *yax, *xcent_dot, *xax_dot, *yax_dot;
+  double angle, angle_dot=0, axis[6], axis_dot[6]={0,0,0,0,0,0};
+  const double *t1, *x1;
+  ego    src1, src2, ebody1, ebody2, tess1, tess2;
+
+  xcent = x;
+  xax   = x+3;
+  yax   = x+6;
+
+  xcent_dot = x_dot;
+  xax_dot   = x_dot+3;
+  yax_dot   = x_dot+6;
+
+  angle = 90.;
+  axis[0] = 2.;
+  axis[1] = 0.;
+  axis[2] = 0.;
+  axis[3] = 0.;
+  axis[4] = 1.5;
+  axis[5] = 0.;
+
+  for (i = 0; i < 2; i++) {
+    /* make the Circle body */
+    xcent[0] = 0.0; xcent[1] = 0.0; xcent[2] = 0.0;
+    xax[0]   = 1.0; xax[1]   = 0.0; xax[2]   = 0.0;
+    yax[0]   = 0.0; yax[1]   = 1.0; yax[2]   = 0.0;
+    x[9] = 1.0;
+    status = makeCircleBody(context, stack, btype[i], xcent, xax, yax, x[9], &src1);
+    if (status != EGADS_SUCCESS) goto cleanup;
+
+    /* tessellation parameters */
+    params[0] =  0.5;
+    params[1] =  0.2;
+    params[2] = 20.0;
+
+    /* zero out velocities */
+    for (iparam = 0; iparam < 10; iparam++) x_dot[iparam] = 0;
+
+    /* zero out sensitivities */
+    status = setCircleBody_dot(btype[i],
+                               xcent, xcent_dot,
+                               xax, xax_dot,
+                               yax, yax_dot,
+                               x[9], x_dot[9], src1);
+    if (status != EGADS_SUCCESS) goto cleanup;
+
+    /* check rotate sensitivities */
+    status = pingRotate(src1, angle, axis, params, dtime, "Circle", 5e-7, 5e-7, 1e-7);
+    if (status != EGADS_SUCCESS) goto cleanup;
+
+    /* make the rotated body */
+    status = EG_rotate(src1, angle, axis, &ebody1);
+    if (status != EGADS_SUCCESS) goto cleanup;
+
+    /* test re-making the topology */
+    status = remakeTopology(ebody1);
+    if (status != EGADS_SUCCESS) goto cleanup;
+
+#if 0
+      {
+        const char filename[] = "circle.egads";
+        remove(filename);
+        EG_saveModel(ebody1, filename);
+      }
+#endif
+
+    /* make the tessellation */
+    status = EG_makeTessBody(ebody1, params, &tess1);
+
+    /* extract the tessellation from the edge */
+    status = EG_getTessEdge(tess1, 1, &np1, &x1, &t1);
+    if (status != EGADS_SUCCESS) goto cleanup;
+
+    printf(" Circle np1 = %d\n", np1);
+
+    for (iparam = 0; iparam < 10; iparam++) {
+
+      /* set the velocity of the original body */
+      x_dot[iparam] = 1.0;
+      status = setCircleBody_dot(btype[i],
+                                 xcent, xcent_dot,
+                                 xax, xax_dot,
+                                 yax, yax_dot,
+                                 x[9], x_dot[9], src1);
+      if (status != EGADS_SUCCESS) goto cleanup;
+
+      status = EG_rotate_dot(ebody1, src1, angle, angle_dot, axis, axis_dot);
+      if (status != EGADS_SUCCESS) goto cleanup;
+      x_dot[iparam] = 0.0;
+
+      /* make a perturbed Circle for finite difference */
+      x[iparam] += dtime;
+      status = makeCircleBody(context, stack, btype[i], xcent, xax, yax, x[9], &src2);
+      if (status != EGADS_SUCCESS) goto cleanup;
+
+      status = EG_rotate(src2, angle, axis, &ebody2);
+      if (status != EGADS_SUCCESS) goto cleanup;
+      x[iparam] -= dtime;
+
+      /* map the tessellation */
+      status = EG_mapTessBody(tess1, ebody2, &tess2);
+      if (status != EGADS_SUCCESS) goto cleanup;
+
+      /* ping the bodies */
+      status = pingBodies(tess1, tess2, dtime, iparam, "Circle", 5e-7, 1e-7, 1e-7);
       if (status != EGADS_SUCCESS) goto cleanup;
 
       EG_deleteObject(tess2);
@@ -1290,7 +1384,7 @@ pingArcExtrude(ego context, objStack *stack)
   dir[1] = sin(45.*PI/180.);
   dir[2] = 0.4;
 
-  /* make the Circle body */
+  /* make the Arc body */
   xcent[0] = 0.0; xcent[1] = 0.0; xcent[2] = 0.0;
   xax[0]   = 1.0; xax[1]   = 0.0; xax[2]   = 0.0;
   yax[0]   = 0.0; yax[1]   = 1.0; yax[2]   = 0.0;
@@ -1356,6 +1450,123 @@ pingArcExtrude(ego context, objStack *stack)
     if (status != EGADS_SUCCESS) goto cleanup;
 
     status = EG_extrude(src2, dist, dir, &ebody2);
+    if (status != EGADS_SUCCESS) goto cleanup;
+    x[iparam] -= dtime;
+
+    /* map the tessellation */
+    status = EG_mapTessBody(tess1, ebody2, &tess2);
+    if (status != EGADS_SUCCESS) goto cleanup;
+
+    /* ping the bodies */
+    status = pingBodies(tess1, tess2, dtime, iparam, "Arc", 1e-7, 1e-7, 1e-7);
+    if (status != EGADS_SUCCESS) goto cleanup;
+
+    EG_deleteObject(tess2);
+    EG_deleteObject(ebody2);
+  }
+
+  EG_deleteObject(tess1);
+  EG_deleteObject(ebody1);
+
+cleanup:
+  if (status != EGADS_SUCCESS) {
+    printf(" Failure %d in %s\n", status, __func__);
+  }
+  return status;
+}
+
+
+int
+pingArcRotate(ego context, objStack *stack)
+{
+  int    status = EGADS_SUCCESS;
+  int    iparam, np1;
+  double x[10], x_dot[10], params[3], dtime = 1e-8;
+  double *xcent, *xax, *yax, *xcent_dot, *xax_dot, *yax_dot;
+  double angle, angle_dot=0, axis[6], axis_dot[6]={0,0,0,0,0,0};
+  const double *t1, *x1;
+  ego    src1, src2, ebody1, ebody2, tess1, tess2;
+
+  xcent = x;
+  xax   = x+3;
+  yax   = x+6;
+
+  xcent_dot = x_dot;
+  xax_dot   = x_dot+3;
+  yax_dot   = x_dot+6;
+
+  /* direction in the plane of the arc! */
+  angle = 2.;
+  axis[0] = cos(45.*PI/180.);
+  axis[1] = sin(45.*PI/180.);
+  axis[2] = 0.4;
+
+  /* make the Arc body */
+  xcent[0] = 0.0; xcent[1] = 0.0; xcent[2] = 0.0;
+  xax[0]   = 1.0; xax[1]   = 0.0; xax[2]   = 0.0;
+  yax[0]   = 0.0; yax[1]   = 1.0; yax[2]   = 0.0;
+  x[9] = 1.0;
+  status = makeArcBody(context, stack, xcent, xax, yax, x[9], &src1);
+  if (status != EGADS_SUCCESS) goto cleanup;
+
+  /* tessellation parameters */
+  params[0] =  0.1;
+  params[1] =  0.1;
+  params[2] = 20.0;
+
+  /* zero out velocities */
+  for (iparam = 0; iparam < 10; iparam++) x_dot[iparam] = 0;
+
+
+  /* zero out sensitivities */
+  status = setArcBody_dot(xcent, xcent_dot,
+                          xax, xax_dot,
+                          yax, yax_dot,
+                          x[9], x_dot[9], src1);
+  if (status != EGADS_SUCCESS) goto cleanup;
+
+  /* check rotate sensitivities */
+  status = pingRotate(src1, angle, axis, params, dtime, "Arc", 5e-7, 5e-7, 1e-7);
+  if (status != EGADS_SUCCESS) goto cleanup;
+
+
+  /* make the rotated body */
+  status = EG_rotate(src1, angle, axis, &ebody1);
+  if (status != EGADS_SUCCESS) goto cleanup;
+
+  /* test re-making the topology */
+  status = remakeTopology(ebody1);
+  if (status != EGADS_SUCCESS) goto cleanup;
+
+  /* make the tessellation */
+  status = EG_makeTessBody(ebody1, params, &tess1);
+
+  /* extract the tessellation from the edge */
+  status = EG_getTessEdge(tess1, 1, &np1, &x1, &t1);
+  if (status != EGADS_SUCCESS) goto cleanup;
+
+  printf(" Arc np1 = %d\n", np1);
+
+  for (iparam = 0; iparam < 10; iparam++) {
+
+    /* set the velocity of the original body */
+    x_dot[iparam] = 1.0;
+    status = setArcBody_dot(xcent, xcent_dot,
+                            xax, xax_dot,
+                            yax, yax_dot,
+                            x[9], x_dot[9], src1);
+    if (status != EGADS_SUCCESS) goto cleanup;
+
+    status = EG_rotate_dot(ebody1, src1, angle, angle_dot, axis, axis_dot);
+    if (status != EGADS_SUCCESS) goto cleanup;
+    x_dot[iparam] = 0.0;
+
+    /* make a perturbed Arc for finite difference */
+    x[iparam] += dtime;
+    status = makeArcBody(context, stack, xcent, xax, yax, x[9], &src2);
+    if (status != EGADS_SUCCESS) goto cleanup;
+
+    status = EG_rotate(src2, angle, axis, &ebody2);
     if (status != EGADS_SUCCESS) goto cleanup;
     x[iparam] -= dtime;
 
@@ -1893,6 +2104,146 @@ pingPlaneExtrude(ego context, objStack *stack)
 
   EG_deleteObject(tess1);
   EG_deleteObject(ebody1);
+
+cleanup:
+  if (status != EGADS_SUCCESS) {
+    printf(" Failure %d in %s\n", status, __func__);
+  }
+
+  return status;
+}
+
+
+int
+pingPlaneRotate(ego context, objStack *stack)
+{
+  int    status = EGADS_SUCCESS;
+  int    iang, iparam, nparam, np1, nt1, iedge, nedge, iface, nface;
+  double angles[2] = {90., 360.};
+  double x[10], x_dot[10], params[3], dtime = 1e-8;
+  double *xcent, *xax, *yax, *xcent_dot, *xax_dot, *yax_dot;
+  double angle, angle_dot=0, axis[6], axis_dot[6]={0,0,0,0,0,0};
+  const int    *pt1, *pi1, *ts1, *tc1;
+  const double *t1, *x1, *uv1;
+  ego    src1, src2, ebody1, ebody2, tess1, tess2;
+
+  xcent = x;
+  xax   = x+3;
+  yax   = x+6;
+
+  xcent_dot = x_dot;
+  xax_dot   = x_dot+3;
+  yax_dot   = x_dot+6;
+
+  angle = angles[0];
+  axis[0] =  0.;
+  axis[1] = -1.5;
+  axis[2] =  0.;
+  axis[3] =  1.;
+  axis[4] =  0.;
+  axis[5] =  0.;
+
+  /* make the Plane Face body */
+  xcent[0] = 0.00; xcent[1] = 0.00; xcent[2] = 0.00;
+  xax[0]   = 1.00; xax[1]   = 0.00; xax[2]   = 0.00;
+  yax[0]   = 0.00; yax[1]   = 1.00; yax[2]   = 0.00;
+  status = makePlaneBody(context, stack, xcent, xax, yax, &src1);
+  if (status != EGADS_SUCCESS) goto cleanup;
+
+  /* tessellation parameters */
+  params[0] =  0.5;
+  params[1] =  0.1;
+  params[2] = 20.0;
+
+  /* zero out velocities */
+  for (iparam = 0; iparam < 10; iparam++) x_dot[iparam] = 0;
+
+  /* zero out sensitivities */
+  status = setPlaneBody_dot(xcent, xcent_dot,
+                            xax, xax_dot,
+                            yax, yax_dot, src1);
+  if (status != EGADS_SUCCESS) goto cleanup;
+
+  /* check rotate sensitivities */
+  status = pingRotate(src1, angle, axis, params, dtime, "Plane", 5e-7, 5e-7, 1e-7);
+  if (status != EGADS_SUCCESS) goto cleanup;
+
+  for (iang = 0; iang < 2; iang++) {
+    angle = angles[iang];
+
+    /* make the rotated body */
+    status = EG_rotate(src1, angle, axis, &ebody1);
+    if (status != EGADS_SUCCESS) goto cleanup;
+
+    /* test re-making the topology */
+    status = remakeTopology(ebody1);
+    if (status != EGADS_SUCCESS) goto cleanup;
+
+
+    /* make the tessellation */
+    status = EG_makeTessBody(ebody1, params, &tess1);
+
+    /* get the Faces from the Body */
+    status = EG_getBodyTopos(ebody1, NULL, FACE, &nface, NULL);
+    if (status != EGADS_SUCCESS) goto cleanup;
+
+    /* get the Edges from the Body */
+    status = EG_getBodyTopos(ebody1, NULL, EDGE, &nedge, NULL);
+    if (status != EGADS_SUCCESS) goto cleanup;
+
+    for (iedge = 0; iedge < nedge; iedge++) {
+      status = EG_getTessEdge(tess1, iedge+1, &np1, &x1, &t1);
+      if (status != EGADS_SUCCESS) goto cleanup;
+      printf(" Plane Edge %d np1 = %d\n", iedge+1, np1);
+    }
+
+    for (iface = 0; iface < nface; iface++) {
+      status = EG_getTessFace(tess1, iface+1, &np1, &x1, &uv1, &pt1, &pi1,
+                                              &nt1, &ts1, &tc1);
+      if (status != EGADS_SUCCESS) goto cleanup;
+      printf(" Plane Face %d np1 = %d\n", iface+1, np1);
+    }
+
+    if (iang == 0) nparam = 10;
+    else nparam = 3;
+
+    for (iparam = 0; iparam < nparam; iparam++) {
+
+      /* set the velocity of the original body */
+      x_dot[iparam] = 1.0;
+      status = setPlaneBody_dot(xcent, xcent_dot,
+                                xax, xax_dot,
+                                yax, yax_dot, src1);
+      if (status != EGADS_SUCCESS) goto cleanup;
+
+      status = EG_rotate_dot(ebody1, src1, angle, angle_dot, axis, axis_dot);
+      if (status != EGADS_SUCCESS) goto cleanup;
+      x_dot[iparam] = 0.0;
+
+      /* make a perturbed Circle for finite difference */
+      x[iparam] += dtime;
+      status = makePlaneBody(context, stack, xcent, xax, yax, &src2);
+      if (status != EGADS_SUCCESS) goto cleanup;
+
+      status = EG_rotate(src2, angle, axis, &ebody2);
+      if (status != EGADS_SUCCESS) goto cleanup;
+      x[iparam] -= dtime;
+
+      /* map the tessellation */
+      status = EG_mapTessBody(tess1, ebody2, &tess2);
+      if (status != EGADS_SUCCESS) goto cleanup;
+
+      /* ping the bodies */
+      status = pingBodies(tess1, tess2, dtime, iparam, "Plane", 1e-7, 1e-7, 1e-7);
+      if (status != EGADS_SUCCESS) goto cleanup;
+
+      EG_deleteObject(tess2);
+      EG_deleteObject(ebody2);
+    }
+
+    EG_deleteObject(tess1);
+    EG_deleteObject(ebody1);
+  }
 
 cleanup:
   if (status != EGADS_SUCCESS) {
@@ -2721,24 +3072,6 @@ pingHolyPlaneExtrude(ego context, objStack *stack)
   if (status != EGADS_SUCCESS) goto cleanup;
 
 
-//  ego model;
-//  status = EG_makeTopology(context, NULL, MODEL, 0,
-//                           NULL, 1, &src1, NULL, &model);
-//  EG_saveModel(model, "holyPlane.egads");
-
-  /* make the extruded body */
-
-//  status = EG_extrude(src1, dist, dir, &ebody1);
-//  if (status != EGADS_SUCCESS) goto cleanup;
-//
-//
-//  ego model;
-//  status = EG_makeTopology(context, NULL, MODEL, 0,
-//                           NULL, 1, &ebody1, NULL, &model);
-//  EG_saveModel(model, "holyPlane.egads");
-
-
-
   /* tessellation parameters */
   params[0] =  0.5;
   params[1] =  0.1;
@@ -2839,6 +3172,147 @@ cleanup:
 }
 
 
+int
+pingHolyPlaneRotate(ego context, objStack *stack)
+{
+  int    status = EGADS_SUCCESS;
+  int    iang, iparam, np1, nt1, iedge, nedge, iface, nface;
+  double x[10], x_dot[10], params[3], dtime = 1e-8;
+  double *xcent, *xax, *yax, *xcent_dot, *xax_dot, *yax_dot;
+  double angles[2] = {90., 180.};
+  double angle=90., angle_dot=0, axis[6], axis_dot[6]={0,0,0,0,0,0};
+  const int    *pt1, *pi1, *ts1, *tc1;
+  const double *t1, *x1, *uv1;
+  ego    src1, src2, ebody1, ebody2, tess1, tess2;
+
+  xcent = x;
+  xax   = x+3;
+  yax   = x+6;
+
+  xcent_dot = x_dot;
+  xax_dot   = x_dot+3;
+  yax_dot   = x_dot+6;
+
+  axis[0] =  0.;
+  axis[1] = -1.5;
+  axis[2] =  0.;
+  axis[3] =  1.;
+  axis[4] =  0.;
+  axis[5] =  0.;
+
+  /* make the Plane Face body */
+  xcent[0] = 0.00; xcent[1] = 0.00; xcent[2] = 0.00;
+//  xax[0]   = 1.10; xax[1]   = 0.10; xax[2]   = 0.05;
+//  yax[0]   = 0.05; yax[1]   = 1.20; yax[2]   = 0.10;
+  xax[0]   = 1.0; xax[1]   = 0.0; xax[2]   = 0.0;
+  yax[0]   = 0.0; yax[1]   = 1.0; yax[2]   = 0.0;
+  status = makeHolyPlaneBody(context, stack, xcent, xax, yax, &src1);
+  if (status != EGADS_SUCCESS) goto cleanup;
+
+  /* tessellation parameters */
+  params[0] =  0.5;
+  params[1] =  0.1;
+  params[2] = 20.0;
+
+
+  for (iang = 0; iang < 2; iang++) {
+    angle = angles[iang];
+
+    /* zero out velocities */
+    for (iparam = 0; iparam < 10; iparam++) x_dot[iparam] = 0;
+
+    /* set zero sensitivities */
+    status = setHolyPlaneBody_dot(xcent, xcent_dot,
+                                  xax, xax_dot,
+                                  yax, yax_dot, src1);
+    if (status != EGADS_SUCCESS) goto cleanup;
+
+    /* check rotate sensitivities */
+    status = pingRotate(src1, angle, axis, params, dtime, "HolyPlane", 5e-7, 5e-7, 1e-7);
+    if (status != EGADS_SUCCESS) goto cleanup;
+
+    /* make the rotated body */
+    status = EG_rotate(src1, angle, axis, &ebody1);
+    if (status != EGADS_SUCCESS) goto cleanup;
+
+    //EG_saveModel(ebody1, "holyPlane.egads");
+
+    /* test re-making the topology */
+    status = remakeTopology(ebody1);
+    if (status != EGADS_SUCCESS) goto cleanup;
+
+
+    /* make the tessellation */
+    status = EG_makeTessBody(ebody1, params, &tess1);
+
+    /* get the Faces from the Body */
+    status = EG_getBodyTopos(ebody1, NULL, FACE, &nface, NULL);
+    if (status != EGADS_SUCCESS) goto cleanup;
+
+    /* get the Edges from the Body */
+    status = EG_getBodyTopos(ebody1, NULL, EDGE, &nedge, NULL);
+    if (status != EGADS_SUCCESS) goto cleanup;
+
+    for (iedge = 0; iedge < nedge; iedge++) {
+      status = EG_getTessEdge(tess1, iedge+1, &np1, &x1, &t1);
+      if (status != EGADS_SUCCESS) goto cleanup;
+      printf(" HolyPlane Edge %d np1 = %d\n", iedge+1, np1);
+    }
+
+    for (iface = 0; iface < nface; iface++) {
+      status = EG_getTessFace(tess1, iface+1, &np1, &x1, &uv1, &pt1, &pi1,
+                                              &nt1, &ts1, &tc1);
+      if (status != EGADS_SUCCESS) goto cleanup;
+      printf(" HolyPlane Face %d np1 = %d\n", iface+1, np1);
+    }
+
+    for (iparam = 0; iparam < 10; iparam++) {
+
+      /* set the velocity of the original body */
+      x_dot[iparam] = 1.0;
+      status = setHolyPlaneBody_dot(xcent, xcent_dot,
+                                    xax, xax_dot,
+                                    yax, yax_dot, src1);
+      if (status != EGADS_SUCCESS) goto cleanup;
+
+      status = EG_rotate_dot(ebody1, src1, angle, angle_dot, axis, axis_dot);
+      if (status != EGADS_SUCCESS) goto cleanup;
+      x_dot[iparam] = 0.0;
+
+      /* make a perturbed Circle for finite difference */
+      x[iparam] += dtime;
+      status = makeHolyPlaneBody(context, stack, xcent, xax, yax, &src2);
+      if (status != EGADS_SUCCESS) goto cleanup;
+
+      status = EG_rotate(src2, angle, axis, &ebody2);
+      if (status != EGADS_SUCCESS) goto cleanup;
+      x[iparam] -= dtime;
+
+      /* map the tessellation */
+      status = EG_mapTessBody(tess1, ebody2, &tess2);
+      if (status != EGADS_SUCCESS) goto cleanup;
+
+      /* ping the bodies */
+      status = pingBodies(tess1, tess2, dtime, iparam, "HolyPlane", 5e-7, 5e-7, 1e-7);
+      if (status != EGADS_SUCCESS) goto cleanup;
+
+      EG_deleteObject(tess2);
+      EG_deleteObject(ebody2);
+    }
+
+    EG_deleteObject(tess1);
+    EG_deleteObject(ebody1);
+  }
+
+cleanup:
+  if (status != EGADS_SUCCESS) {
+    printf(" Failure %d in %s\n", status, __func__);
+  }
+
+  return status;
+}
+
+
 int main(int argc, char *argv[])
 {
   int status, i, oclass, mtype;
@@ -2856,6 +3330,8 @@ int main(int argc, char *argv[])
   status  = EG_stackInit(&stack);
   if (status != EGADS_SUCCESS) goto cleanup;
 
+
+  // Extrude
   status = pingLineExtrude(context, &stack);
   if (status != EGADS_SUCCESS) goto cleanup;
 
@@ -2869,6 +3345,23 @@ int main(int argc, char *argv[])
   if (status != EGADS_SUCCESS) goto cleanup;
 
   status = pingHolyPlaneExtrude(context, &stack);
+  if (status != EGADS_SUCCESS) goto cleanup;
+
+
+  // Rotate
+  status = pingLineRotate(context, &stack);
+  if (status != EGADS_SUCCESS) goto cleanup;
+
+  status = pingCircleRotate(context, &stack);
+  if (status != EGADS_SUCCESS) goto cleanup;
+
+  status = pingArcRotate(context, &stack);
+  if (status != EGADS_SUCCESS) goto cleanup;
+
+  status = pingPlaneRotate(context, &stack);
+  if (status != EGADS_SUCCESS) goto cleanup;
+
+  status = pingHolyPlaneRotate(context, &stack);
   if (status != EGADS_SUCCESS) goto cleanup;
 
 cleanup:

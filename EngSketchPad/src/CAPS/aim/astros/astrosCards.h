@@ -31,7 +31,8 @@ int astrosCard_aefact(FILE *fp, int *sid, int numD, double *D,
  * refc    Reference length (Real >= 0.0)
  * rhoref  Reference density (Real >= 0.0)
  */
-int astrosCard_aero(FILE *fp, const int *acsid, const double *refc, const double *rhoref,
+int astrosCard_aero(FILE *fp, /*@null@*/ const int *acsid,
+                    const double *refc, const double *rhoref,
                     feaFileTypeEnum formatType);
 
 /*
@@ -49,10 +50,28 @@ int astrosCard_aero(FILE *fp, const int *acsid, const double *refc, const double
  * refd    Fuselage reference diameter (Real > 0.0, Default = 1.0)
  * refl    Fuselage reference length (Real > 0.0, Default = 1.0)
  */
-int astrosCard_aeros(FILE *fp, const int *acsid, const int *rcsid, const double *refc,
-                     const double *refb, const double *refs, /*@null@*/ const int *gref,
+int astrosCard_aeros(FILE *fp, /*@null@*/ const int *acsid, /*@null@*/ const int *rcsid,
+                     const double *refc, const double *refb,
+                     const double *refs, /*@null@*/ const int *gref,
                      /*@null@*/ const double *refd, /*@null@*/ const double *refl,
                      feaFileTypeEnum formatType);
+
+/* 
+ * AESURF
+ * 
+ * label   Unique alphanumeric string of up to eight characters used to
+ *         identify the control surface 
+ * type    Surface type (One of: "SYM", "ANTISYM", "ASYM")
+ * acid    Identification number of the aircraft component (CAERO6) on
+ *         which the surface lies
+ * cid     Identification number of a rectangular coordinate system whose
+ *         y-axis defines the hingeline of the control surface
+ *         (Integer > 0 or blank)
+ * fboxid  First aero box on the control surface relative to ACID (Integer > 0)
+ * lboxid  Last aero box on the control surface relative to ACID (Integer > 0)
+ */
+int astrosCard_aesurf(FILE *fp, char *label, char *type, int *acid, int *cid,
+                      int* fboxid, int *lboxid, feaFileTypeEnum formatType);
 
 /*
  * AIRFOIL
@@ -87,6 +106,37 @@ int astrosCard_airfoil(FILE *fp, int *acid, char *cmpnt, /*@null@*/ int *cp,
                        /*@null@*/ int *ipanel, feaFileTypeEnum formatType);
 
 /*
+ * CAERO1
+ * 
+ * eid     Element identification number (Integer > 0)
+ * pid     Identification of property entry (Integer > 0, or blank)
+ * cp      Coordinate system for location points 1 and 4 (Integer >= 0 or blank)
+ * nspan   Number of spanwise boxes; if a positive value is given, NSPAN equal
+ *         divisions are assumed; if zero or blank, a list of division points
+ *         is given at LSPAN (Integer >= 0 or blank)
+ * nchord  Number of chordwise boxes; if a positive value is given, NCHORD equal
+ *         divisions are assumed; if zero or blank, a list of division points
+ *         is given at LCHORD (Integer >= 0 or blank)
+ * lspan   Indentification number of an AEFACT data entry containing a list of 
+ *         division points for spanwise boxes. Used only if NSPAN is zero
+ *         or blank (Integer >= 0 or blank)
+ * lchord  Indentification number of an AEFACT data entry containing a list of 
+ *         division points for chordwise boxes. Used only if NCHORD is zero
+ *         or blank (Integer >= 0 or blank)
+ * igid    Interference gorup identification (Integer > 0)
+ * xyz1    Location of point 1 in coordinate system CP (Real)
+ * xyz4    Location of point 4 in coordinate system CP (Real)
+ * x12     
+ * x43     Edge chord lengths (in aerodynamic coordinate system) (Real >= 0)
+ */
+int astrosCard_caero1(FILE *fp, int *eid, /*@null@*/ int *pid, 
+                      /*@null@*/ int *cp, /*@null@*/ int *nspan,
+                      /*@null@*/ int *nchord, /*@null@*/int *lspan,
+                      /*@null@*/ int *lchord, int *igid, double xyz1[3],
+                      double xyz4[3], double *x12, double *x43,
+                      feaFileTypeEnum formatType);
+
+/*
  * CAERO6
  * 
  * acid    Component identification number (Integer > 0)
@@ -101,6 +151,34 @@ int astrosCard_airfoil(FILE *fp, int *acid, char *cmpnt, /*@null@*/ int *cp,
 int astrosCard_caero6(FILE *fp, int *acid, char *cmpnt, /*@null@*/ int *cp,
                       int *igrp, int *lchord, int *lspan,
                       feaFileTypeEnum formatType);
+
+
+/* CBAR
+ * eid    Unique element identification number (Integer > 0)
+ * pid    Identification number of a PBAR property entry (Default = `eid`,
+ *        Integer > 0)
+ * G      Grid point identification numbers of the connection points
+ *        (Integer > 0)
+ * X      Components of vector v, at end A, measured at end A, parallel to
+ *        the components of the displacement coordinate system for G[0],
+ *        to determine the orientation of the element coordinate system
+ *        for the BAR element (Real)
+ * go     Grid point identification number to optionally supply `X`
+ *        (Integer > 0). Direction of the orientation vector is G[0] to `go`.
+ * tmax   Maximum allowable cross-sectional area in design 
+ *        (Real > 0.0, or blank)
+ * pa     Pin flag for bar end A (Integer > 0, or blank)
+ * pb     Pin flag for bar end B (Integer > 0, or blank)
+ * Wa     Components of offset vector wa in displacement coordinate system
+ *        at point G[0] (Real or blank)
+ * Wb     Components of offset vector wb in displacement coordinate system
+ *        at point G[1] (Real or blank)
+ */
+int astrosCard_cbar(FILE *fp, int *eid, int *pid, int G[2], double X[3],
+                    /*@null@*/ int *go, /*@null@*/ double *tmax,
+                    /*@null@*/ int *pa, /*@null@*/ int *pb,
+                    /*@null@*/ double Wa[3], /*@null@*/ double Wb[3],
+                    feaFileTypeEnum formatType);
 
 /*
  * CELAS2
@@ -343,7 +421,7 @@ int astrosCard_dconvmp(FILE *fp, int *sid, double *st, /*@null@*/ double *sc,
  * label   Optional user supplied label to define the design variable
  */
 int astrosCard_desvarp(FILE *fp, int *dvid, int *linkid, double *vmin,
-                       double *vmax, double *vinit, /*@null@*/ int *layrnum,
+                       /*@null@*/ double *vmax, double *vinit, /*@null@*/ int *layrnum,
                        /*@null@*/ int *layrlst, /*@null@*/ char *label,
                        feaFileTypeEnum formatType);
 
@@ -418,10 +496,10 @@ int astrosCard_flfact(FILE *fp, const int *sid, int numF, const double *F,
 int astrosCard_flutter(FILE *fp, const int *sid, char *method, int *dens,
                        double *mach, int *vel, /*@null@*/ int *mlist,
                        /*@null@*/ int *klist, /*@null@*/ int *effid,
-                       int *symxz, int *symxy, /*@null@*/ double *eps,
+                       int *symxz, int *symxy, /*@null@*/ const double *eps,
                        /*@null@*/ char *curfit, /*@null@*/ int *nroot,
                        /*@null@*/ char *vtype, /*@null@*/ double *gflut,
-                       /*@null@*/ double *gfilter, feaFileTypeEnum formatType);
+                       /*@null@*/ double *gfilter, const feaFileTypeEnum formatType);
 
 /*
  * FORCE
@@ -514,6 +592,20 @@ int astrosCard_pbar(FILE *fp, int *pid, int *mid, double *a, double *i1,
                     /*@null@*/ double *E, /*@null@*/ double *F,
                     /*@null@*/ double *r12, /*@null@*/ double *r22,
                     /*@null@*/ double *alpha, feaFileTypeEnum formatType);
+
+/*
+ * PBAR1
+ * 
+ * pid     Property identification number (Integer > 0)
+ * mid     Material identification number (Integer > 0)
+ * shape   Cross-sectional shape (Character I, T, BOX, BAR,
+ *         TUBE, ROD, HAT, or GBOX)
+ * D       Cross-sectional dimensions (Real > 0.0)
+ * nsm     Nonstructural mass per unit length (Real)
+ */
+int astrosCard_pbar1(FILE *fp, int *pid, int *mid, char *shape,
+                     int numD, double *D, double *nsm,
+                     feaFileTypeEnum formatType);
 
 /*
  * PCOMP
@@ -623,9 +715,9 @@ int astrosCard_plylist(FILE *fp, int *sid, int numP, int *P,
  * nsm    Nonstructural mass per unit length (Real >= 0, or blank)
  * tmin   Minimum rod area for design (Real > 0.0, or blank, Default = 0.0001)
  */
-int astrosCard_prod(FILE *fp, int *pid, int *mid, double *a, double *j,
-                     double *c, double *nsm, /*@null@*/ double *tmin,
-                     feaFileTypeEnum formatType);
+int astrosCard_prod(FILE *fp, int *pid, int *mid, double *a, /*@null@*/ double *j,
+                    /*@null@*/ double *c, /*@null@*/ double *nsm, /*@null@*/ double *tmin,
+                    feaFileTypeEnum formatType);
 
 /*
  * PSHEAR

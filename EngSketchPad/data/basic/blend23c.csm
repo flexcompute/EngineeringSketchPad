@@ -1,0 +1,23 @@
+# blend23c
+# written by John Dannenhoffer
+
+# blend with two C1s (using slopes outside the C1s)
+MARK
+   BOX       -2  -2  -2   0   4   4
+
+   BOX       -1  -1  -1   0   2   2
+   ATTRIBUTE .C1side $rev
+   RESTORE   .
+
+   BOX        1  -1  -1   0   2   2
+   ATTRIBUTE .C1side $fwd
+   RESTORE   .
+
+   BOX        2  -2  -2   0   4   4
+BLEND
+
+# refernce xsects
+BOX       -1  -1  -1   0   2   2
+BOX        1  -1  -1   0   2   2
+
+END

@@ -10,7 +10,7 @@ SKBEG     2  0  0
    LINSEG 1  1  0
    LINSEG 1  2  0
 SKEND
-COMBINE
+JOIN
 
 # guide curve
 SKBEG     0  0  0

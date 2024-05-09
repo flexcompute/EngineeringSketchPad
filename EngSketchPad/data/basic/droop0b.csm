@@ -3,7 +3,4 @@
 
 UDPRIM    biconvex  thick  0.12
 
-SELECT    FACE   1  1  1
-ASSERT    @sellist.size 1
-
-end
+END

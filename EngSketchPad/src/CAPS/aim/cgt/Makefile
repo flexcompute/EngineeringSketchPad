@@ -27,11 +27,15 @@ $(ODIR)/aflr4egads.o:	aflr4egads.c
 	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) aflr4egads.c \
 		-o $(ODIR)/aflr4egads.o
 
-lint:
-	$(LINT) -I../../include -I$(IDIR) $(wildcard *.c) -uniondef -exportlocal -nullpass
-
 clean:
 	-rm $(ODIR)/egads2cgt.o $(ODIR)/aflr4egads.o
 
 cleanall:	clean
 	-rm $(TDIR)/egads2cgt
+
+lint:
+	$(LINT) -I../../include -I$(IDIR) $(wildcard *.c) -uniondef -exportlocal -nullpass
+
+dox:
+
+doxclean:

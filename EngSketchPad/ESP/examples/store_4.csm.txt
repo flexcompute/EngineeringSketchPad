@@ -1,0 +1,30 @@
+# store_4
+# written by John Dannenhoffer
+
+# red box
+BOX       0  0  0  1  1  1
+ATTRIBUTE _color $red
+
+# green box
+BOX       1  0  0  1  1  1
+ATTRIBUTE _color $green
+
+MARK
+
+# blue box
+BOX       2  0  0  1  1  1
+ATTRIBUTE _color $blue
+
+# magenta box
+BOX       3  0  0  1  1  1
+ATTRIBUTE _color $magenta
+
+# remove all boxes
+STORE     ...
+
+# add a point
+POINT     0  0  0
+
+END
+
+

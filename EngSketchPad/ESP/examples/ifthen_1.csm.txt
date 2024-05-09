@@ -1,0 +1,47 @@
+# ifthen_1
+# written by John Dannenhoffer
+
+# set some parameters
+SET       A  5
+SET       B  3
+SET       C  2
+
+# general form of arguments is:    val1 op1 val2
+#                           or:    val1 op1 val2  op2  val3 op3 val4
+# where op1 and op3 take the form: LT  or lt   for less then
+#                                  LE  or le   for less then or equal to
+#                                  EQ  or eq   for equal to
+#                                  GE  or ge   for greater than or equal to
+#                                  GT  or gt   for greater than
+#                                  NE  or ne   for not equal to
+# and where op2 takes the form:    OR  or or   for boolean or
+#                                  AND or and  for boolean and
+#                                  XOR or xor  for boolean exclusive or
+
+# check if A == B
+IFTHEN    A  eq  B
+
+   # this code is not executed
+   BOX    0  0  0  1  1  1
+
+# check if A/B <= C
+ELSEIF    A/B  le  C
+
+   # this code is executed
+   SPHERE 0  0  0  1
+
+# check if C != 0 and A == 5  (which is not executed since previous ELSEIF succeeded)
+ELSEIF    C ne 0  and  A eq 5
+
+   # this code is not executed
+   CYLINDER 0 0 0 1 0 0 1
+
+# this will only be executed if all of the previous checks failed
+ELSE
+
+   # this code is not executed
+   POINT  0  0  0
+
+ENDIF
+
+END

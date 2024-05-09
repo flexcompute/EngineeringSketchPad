@@ -1,0 +1,44 @@
+# capNacelle11 - separate IML and OML
+# written by John Dannenhoffer
+
+# generate OML can
+CYLINDER  0  0  0  3  0  0  1
+SELECT    FACE
+SELECT    SUB   @nbody 2
+EXTRACT   @sellist
+STORE     OML
+
+# generate IML can
+CYLINDER  1  0  0  3  0  0  5/6
+SELECT    FACE
+SELECT    SUB   @nbody 2
+EXTRACT   @sellist
+STORE     IML
+
+# generate cap on right side
+RESTORE   OML
+SELECT    EDGE  2.9 3.1 -10 +10 -10 +10
+EXTRACT   -@sellist
+ELEVATE
+
+RESTORE   IML
+SELECT    EDGE  2.9 3.1 -10 +10 -10 +10
+EXTRACT   -@sellist
+ELEVATE
+
+SUBTRACT
+SELECT    FACE
+ATTRIBUTE _color $cyan
+STORE     CAP
+
+# combine into one SolidBody
+RESTORE   CAP
+RESTORE   OML
+JOIN
+RESTORE   IML
+JOIN
+ELEVATE
+
+END
+
+

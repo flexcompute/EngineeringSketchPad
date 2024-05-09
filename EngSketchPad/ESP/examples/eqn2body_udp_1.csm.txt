@@ -1,0 +1,17 @@
+# eqn2body_udp_1
+# written by John Dannenhoffer
+
+DESPMTR   radx      1.0   # radius of helix in x direction
+DESPMTR   rady      2.0   # radius of helix in y direction
+DESPMTR   pitch     0.5   # pitch
+CFGPMTR   nturn     2.5   # number of turns
+CFGPMTR   toler     0.01  # fitting tolerance
+
+# generate Body
+UDPARG    eqn2body    urange   0;pi(2)*nturn
+UDPARG    eqn2body    xeqn     $radx*cos(u')
+UDPARG    eqn2body    yeqn     $rady*sin(u')
+UDPARG    eqn2body    zeqn     $pitch*u/pi(2')
+UDPRIM    eqn2body
+
+END

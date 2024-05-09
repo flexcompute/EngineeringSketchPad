@@ -1,0 +1,19 @@
+# offset7y
+# written by John Dannenhoffer
+
+DIMENSION dist      1  10
+DESPMTR   dist      "-.10; -.05; -.01; -.005; -.001; 0.001; 0.005; 0.01; 0.05; 0.10"
+
+SKBEG     0  0  0
+   LINSEG 0  0  3
+   CIRARC 1  0  4  2  0  3
+   LINSEG 2  0  0
+SKEND
+STORE     base  0  1
+
+PATBEG    idist     dist.size
+   RESTORE   base
+   UDPRIM    offset    dist dist[idist]
+PATEND
+
+END
