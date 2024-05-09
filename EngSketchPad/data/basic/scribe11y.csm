@@ -1,0 +1,19 @@
+# scribe11y
+# written by John Dannenhoffer
+
+# outer box
+BOX       -2.0  -2.0  -2.0   4.0   0.0   4.0
+
+# circle that should create an inner loop
+UDPRIM    supell     rx 1.0   ry 1.0
+ROTATEX   90
+TRANSLATE  -.5  -2.0    0.5
+SUBTRACT
+
+# circle that should alter outer loop
+UDPRIM    supell     rx 1.0   ry 1.0
+ROTATEX   90
+TRANSLATE  2.5  -2.0    0.5
+SUBTRACT
+
+END

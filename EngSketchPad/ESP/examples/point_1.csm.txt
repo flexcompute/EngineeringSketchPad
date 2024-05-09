@@ -1,0 +1,10 @@
+# point_1
+# written by John Dannenhoffer
+
+# NodeBody at (0,0,0)
+POINT     0  0  0
+
+# NodeBody at (4,3,2)
+POINT     4  3  2
+
+END

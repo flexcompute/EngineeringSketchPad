@@ -1,0 +1,24 @@
+# combine_udc_1
+# written by John Dannenhoffer
+
+# make planar closed WireBodys that will produce a SheetBody
+BOX       0  0  0  1  0  0
+SELECT    EDGE
+ATTRIBUTE _color $red
+
+BOX       0  1  0  1  0  0
+SELECT    EDGE
+ATTRIBUTE _color $green
+
+BOX       0  0  0  0  1  0
+SELECT    EDGE
+ATTRIBUTE _color $blue
+
+BOX       1  0  0  0  1  0
+SELECT    EDGE
+ATTRIBUTE _color $cyan
+
+# note: this exists because the COMBINE command has been removed
+UDPRIM    $$/combine
+
+END

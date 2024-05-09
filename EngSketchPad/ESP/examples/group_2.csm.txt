@@ -1,0 +1,54 @@
+# group_2
+# written by John Dannenhoffer
+
+# red box
+BOX       0  0  0  1  1  1
+SELECT    FACE
+ATTRIBUTE _color $red
+
+# green box
+BOX       1  0  0  1  1  1
+SELECT    FACE
+ATTRIBUTE _color $green
+
+# blue box
+BOX       2  0  0  1  1  1
+SELECT    FACE
+ATTRIBUTE _color $blue
+
+# put last two bodys (green in blue) into a group
+GROUP     2
+
+# store the group (but leave copy on stack)
+STORE     myGroup  0  1
+
+# make a transparent copy of the bodys in the group
+RESTORE   myGroup
+ATTRIBUTE _trn  $on
+
+# translate the (new) group up
+TRANSLATE 0  1  0
+
+# make another copy of the (new) group
+STORE     myGroup  1  1
+
+# make an opaque copy of the bodys in the group
+RESTORE   myGroup  1
+ATTRIBUTE _trn  $off
+
+# translate the (newer) group up
+TRANSLATE 0  1  0
+
+# ungroup the new moved-up boxes
+GROUP     -1
+
+# make a copy of the bodys in the last group (which is only one body)
+RESTORE   .
+
+# translate it up and make it transparent
+TRANSLATE 0  1  0
+SELECT    FACE
+ATTRIBUTE _trn  $on
+
+END
+

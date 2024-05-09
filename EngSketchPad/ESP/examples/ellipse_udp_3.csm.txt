@@ -1,0 +1,22 @@
+# ellipse_udp_3
+# written by John Dannenhoffer
+
+UDPRIM    ellipse    rx  3.0   ry  1.0
+TRANSLATE 5.0  0.0  0.0
+
+UDPRIM    ellipse    rx  1.0   ry  3.0
+TRANSLATE 0.0 -5.0  0.0
+
+UDPRIM    ellipse              ry  3.0   rz  1.0
+TRANSLATE 0.0  5.0  0.0
+
+UDPRIM    ellipse              ry  1.0   rz  3.0
+TRANSLATE 0.0  0.0 -5.0
+
+UDPRIM    ellipse    rx  1.0             rz  3.0
+TRANSLATE 0.0  0.0  5.0
+
+UDPRIM    ellipse    rx  3.0             rz  1.0
+TRANSLATE -5.0 0.0  0.0
+
+END

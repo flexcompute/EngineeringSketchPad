@@ -1,0 +1,77 @@
+# linalg1
+# written by John Dannenhoffer
+
+# dummy point
+POINT     0  0  0
+
+# scalar addition
+DIMENSION M1  1  1
+DIMENSION M2  2  3
+SET       M1  10
+SET       M2  "1;2;3;4;5;6"
+UDPRIM        linalg   OPER $add   M1 M1   M2 M2
+DIMENSION ANS @@ans.nrow  @@ans.ncol
+SET       ANS @@ans
+
+# matrix addition
+DIMENSION M1  2  3
+DIMENSION M2  2  3
+SET       M1  "1;2;3;4;5;6"
+SET       M2  "6;5;4;3;2;1"
+UDPRIM        linalg   OPER $add   M1 M1   M2 M2
+DIMENSION ANS @@ans.nrow  @@ans.ncol
+SET       ANS @@ans
+
+# scalar subtraction
+DIMENSION M1  1  1
+DIMENSION M2  2  3
+SET       M1  10
+SET       M2  "1;2;3;4;5;6"
+UDPRIM        linalg   OPER $sub   M1 M1   M2 M2
+DIMENSION ANS @@ans.nrow  @@ans.ncol
+SET       ANS @@ans
+
+# matrix subtraction
+DIMENSION M1  2  3
+DIMENSION M2  2  3
+SET       M1  "1;2;3;4;5;6"
+SET       M2  "6;5;4;3;2;1"
+UDPRIM        linalg   OPER $sub   M1 M1   M2 M2
+DIMENSION ANS @@ans.nrow  @@ans.ncol
+SET       ANS @@ans
+
+# scalar multiplication
+DIMENSION M1  1  1
+DIMENSION M2  2  3
+SET       M1  10
+SET       M2  "1;2;3;4;5;6"
+UDPRIM        linalg   OPER $mult   M1 M1   M2 M2
+DIMENSION ANS @@ans.nrow  @@ans.ncol
+SET       ANS @@ans
+
+# matrix multiplication
+DIMENSION M1  2  3
+DIMENSION M2  3  2
+SET       M1  "1;2;3;4;5;6"
+SET       M2  "1;2;3;4;5;6"
+UDPRIM        linalg   OPER $mult   M1 M1   M2 M2
+DIMENSION ANS @@ans.nrow  @@ans.ncol
+SET       ANS @@ans
+
+# matrix division (solve)
+DIMENSION M1  2  2
+DIMENSION M2  2  3
+SET       M1  "1;2;3;4"
+SET       M2  "5;50;500;11;110;1100"
+UDPRIM        linalg   OPER $div   M1 M1   M2 M2
+DIMENSION ANS @@ans.nrow  @@ans.ncol
+SET       ANS @@ans
+
+# matrix transpose
+DIMENSION M1  2  3
+SET       M1  "1;2;3;4;5;6"
+UDPRIM        linalg   OPER $trans   M1 M1
+DIMENSION ANS @@ans.nrow  @@ans.ncol
+SET       ANS @@ans
+
+END 

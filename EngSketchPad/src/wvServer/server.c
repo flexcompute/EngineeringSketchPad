@@ -3,7 +3,7 @@
  *
  *		WV simple server code
  *
- *      Copyright 2011-2022, Massachusetts Institute of Technology
+ *      Copyright 2011-2024, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -15,6 +15,7 @@
 #include <unistd.h>
 #ifndef WIN32
 #include <pthread.h>
+#include <limits.h>
 #endif
 
 #include "libwebsockets.h"
@@ -68,13 +69,32 @@ static int ThreadCreate(void (*entry)(), void *arg)
 
 #else
 
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
+
 static int ThreadCreate(void (*entry)(), void *arg)
 {
   pthread_t thread;
   pthread_attr_t attr;
   int stat;
+#ifdef __APPLE__
+  size_t default_stack_size = 0;
+  struct rlimit stack_rlimit;
+#endif
 
   pthread_attr_init(&attr);
+
+#ifdef __APPLE__
+  //From: https://chromium.googlesource.com/chromium/src/base/+/master/threading/platform_thread_mac.mm
+  if (pthread_attr_getstacksize(&attr, &default_stack_size) == 0 &&
+      getrlimit(RLIMIT_STACK, &stack_rlimit) == 0 &&
+      stack_rlimit.rlim_cur != RLIM_INFINITY) {
+
+    default_stack_size = MAX(MAX(default_stack_size, PTHREAD_STACK_MIN), stack_rlimit.rlim_cur);
+
+    pthread_attr_setstacksize(&attr, default_stack_size);
+  }
+#endif
+
   stat = pthread_create(&thread, &attr,
                         (void*(*) (void *)) entry, arg);
   if (stat != 0) return -1;

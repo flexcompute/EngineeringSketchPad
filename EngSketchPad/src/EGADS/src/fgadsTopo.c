@@ -3,7 +3,7 @@
  *
  *             FORTRAN Bindings for Topological Functions
  *
- *      Copyright 2011-2022, Massachusetts Institute of Technology
+ *      Copyright 2011-2024, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -24,22 +24,22 @@
   extern int EG_getTolerance(const egObject *topo, double *tol);
   extern int EG_setTolerance(      egObject *topo, double  tol);
   extern int EG_getTopology(const egObject *topo, egObject **geom,
-                             int *oclass, int *mtype, 
-                             /*@null@*/ double *limits, int *nChildren, 
+                             int *oclass, int *mtype,
+                             /*@null@*/ double *limits, int *nChildren,
                              egObject ***children, int **senses);
   extern int EG_delSmallEdges(const egObject *body, double tol,
                               egObject **newBody);
-  extern int EG_makeTopology(egObject *context, /*@null@*/ egObject *geom, 
-                             int oclass, int mtype, /*@null@*/ double *limits, 
-                             int nChildren, /*@null@*/ egObject **children, 
+  extern int EG_makeTopology(egObject *context, /*@null@*/ egObject *geom,
+                             int oclass, int mtype, /*@null@*/ double *limits,
+                             int nChildren, /*@null@*/ egObject **children,
                              /*@null@*/ int *senses, egObject **topo);
-  extern int EG_makeLoop(int nedge, const egObject **edges, 
+  extern int EG_makeLoop(int nedge, const egObject **edges,
                          /*@null@*/ egObject *geom, double toler, ego *result);
-  extern int EG_makeFace(egObject *object, int mtype, 
+  extern int EG_makeFace(egObject *object, int mtype,
                          /*@null@*/ const double *limits, egObject **face);
-  extern int EG_getArea(egObject *object, /*@null@*/ const double *limits, 
+  extern int EG_getArea(egObject *object, /*@null@*/ const double *limits,
                         double *area);
-  extern int EG_getBodyTopos(const egObject *body, /*@null@*/ egObject *src, 
+  extern int EG_getBodyTopos(const egObject *body, /*@null@*/ egObject *src,
                              int oclass, int *ntopo, egObject ***topos);
   extern int EG_indexBodyTopo( const egObject *body, const egObject *src );
   extern int EG_objectBodyTopo( const egObject *body, int oclass, int index,
@@ -49,7 +49,7 @@
   extern int EG_getBoundingBox(const egObject *topo, double *box);
   extern int EG_getMassProperties(const egObject *topo, /*@null@*/ double *dat);
   extern int EG_isEquivalent(const egObject *topo1, const egObject *topo2);
-  extern int EG_loadModel(egObject *context, int bflg, const char *name, 
+  extern int EG_loadModel(egObject *context, int bflg, const char *name,
                           egObject **model);
   extern int EG_saveModel(const egObject *model, const char *name);
   extern int EG_getEdgeUV(const egObject *face, const egObject *topo, int sense,
@@ -68,11 +68,13 @@
   extern int EG_replaceFaces(const egObject *body,  int nobj,
                              const egObject **objs, egObject **result);
   extern int EG_matchBodyEdges(const egObject *bod1, const egObject *bod2,
-                               double toler, int *nmatch, int **match);
+                               double tolScale, int *nmatch, int **match);
   extern int EG_matchBodyFaces(const egObject *bod1, const egObject *bod2,
-                               double toler, int *nmatch, int **match);
+                               double tolScale, int *nmatch, int **match);
   extern int EG_mapBody(const egObject *sBody, const egObject *dBody,
                         const char *fAttr, egObject **mBody);
+  extern int  EG_mapBody2(const egObject *sBody,
+                          const char *fAttr, const char *eAttr, egObject *dBody);
 
 
 int
@@ -83,7 +85,7 @@ ig_tolerance_(INT8 *iobj, double *tol)
 #endif
 {
   egObject *object;
-  
+
   object = (egObject *) *iobj;
   return EG_tolerance(object, tol);
 }
@@ -97,7 +99,7 @@ ig_gettolerance_(INT8 *iobj, double *tol)
 #endif
 {
   egObject *object;
-  
+
   object = (egObject *) *iobj;
   return EG_getTolerance(object, tol);
 }
@@ -111,7 +113,7 @@ ig_settolerance_(INT8 *iobj, double *tol)
 #endif
 {
   egObject *object;
-  
+
   object = (egObject *) *iobj;
   return EG_setTolerance(object, *tol);
 }
@@ -126,7 +128,7 @@ ig_delsmalledges_(INT8 *iobj, double *tol, INT8 *inew)
 {
   int      stat;
   egObject *object, *newObj;
-  
+
   *inew  = 0;
   object = (egObject *) *iobj;
   stat   = EG_delSmallEdges(object, *tol, &newObj);
@@ -137,12 +139,12 @@ ig_delsmalledges_(INT8 *iobj, double *tol, INT8 *inew)
 
 int
 #ifdef WIN32
-IG_GETTOPOLOGY (INT8 *topo, INT8 *igeom, int *oclass, int *mtype, 
-                double *limits, int *nchildren, INT8 **children, 
+IG_GETTOPOLOGY (INT8 *topo, INT8 *igeom, int *oclass, int *mtype,
+                double *limits, int *nchildren, INT8 **children,
                 int **senses)
 #else
-ig_gettopology_(INT8 *topo, INT8 *igeom, int *oclass, int *mtype, 
-                double *limits, int *nchildren, INT8 **children, 
+ig_gettopology_(INT8 *topo, INT8 *igeom, int *oclass, int *mtype,
+                double *limits, int *nchildren, INT8 **children,
                 int **senses)
 #endif
 {
@@ -156,7 +158,7 @@ ig_gettopology_(INT8 *topo, INT8 *igeom, int *oclass, int *mtype,
   *children  = NULL;
   *senses    = NULL;
   object     = (egObject *) *topo;
-  stat       = EG_getTopology(object, &geom, oclass, mtype, 
+  stat       = EG_getTopology(object, &geom, oclass, mtype,
                               limits, &nobj, &objs, senses);
   if (stat == EGADS_SUCCESS) {
     if (nobj != 0) {
@@ -174,18 +176,18 @@ ig_gettopology_(INT8 *topo, INT8 *igeom, int *oclass, int *mtype,
 
 int
 #ifdef WIN32
-IG_MAKETOPOLOGY (INT8 *cntxt, INT8 *igeom, int *oclass, int *mtype, 
-                double *limits, int *nchildren, INT8 *children, 
+IG_MAKETOPOLOGY (INT8 *cntxt, INT8 *igeom, int *oclass, int *mtype,
+                double *limits, int *nchildren, INT8 *children,
                 int *senses, INT8 *topo)
 #else
-ig_maketopology_(INT8 *cntxt, INT8 *igeom, int *oclass, int *mtype, 
-                double *limits, int *nchildren, INT8 *children, 
+ig_maketopology_(INT8 *cntxt, INT8 *igeom, int *oclass, int *mtype,
+                double *limits, int *nchildren, INT8 *children,
                 int *senses, INT8 *topo)
 #endif
 {
   int      i, stat, n = 1;
   egObject *context, *object, *geom, **objs = NULL;
-  
+
   *topo   = 0;
   context = (egObject *) *cntxt;
   geom    = (egObject *) *igeom;
@@ -196,7 +198,7 @@ ig_maketopology_(INT8 *cntxt, INT8 *igeom, int *oclass, int *mtype,
     for (i = 0; i < *nchildren*n; i++)
       objs[i] = (egObject *) children[i];
   }
-  stat = EG_makeTopology(context, geom, *oclass, *mtype, limits, 
+  stat = EG_makeTopology(context, geom, *oclass, *mtype, limits,
                          *nchildren, objs, senses, &object);
   if (objs != NULL) EG_free(objs);
   if (stat == EGADS_SUCCESS) *topo = (INT8) object;
@@ -263,10 +265,10 @@ ig_getarea_(INT8 *iobj, double *limits, double *area)
 
 int
 #ifdef WIN32
-IG_GETBODYTOPOS (INT8 *ibody, INT8 *source, int *oclass, int *ntopo, 
+IG_GETBODYTOPOS (INT8 *ibody, INT8 *source, int *oclass, int *ntopo,
                  INT8 **topos)
 #else
-ig_getbodytopos_(INT8 *ibody, INT8 *source, int *oclass, int *ntopo, 
+ig_getbodytopos_(INT8 *ibody, INT8 *source, int *oclass, int *ntopo,
                  INT8 **topos)
 #endif
 {
@@ -294,7 +296,7 @@ ig_getbodytopos_(INT8 *ibody, INT8 *source, int *oclass, int *ntopo,
     EG_free(objs);
   }
   *ntopo = nobj;
-  return EGADS_SUCCESS;  
+  return EGADS_SUCCESS;
 }
 
 
@@ -306,7 +308,7 @@ ig_indexbodytopo_(INT8 *ibody, INT8 *itopo)
 #endif
 {
   egObject *body, *topo;
-  
+
   body = (egObject *) *ibody;
   topo = (egObject *) *itopo;
   return EG_indexBodyTopo(body, topo);
@@ -322,7 +324,7 @@ ig_objectbodytopo_(INT8 *ibody, int *oclass, int *index, INT8 *iobj)
 {
   int      stat;
   egObject *body, *topo;
-  
+
   *iobj = 0;
   body  = (egObject *) *ibody;
   stat  = EG_objectBodyTopo(body, *oclass, *index, &topo);
@@ -357,7 +359,7 @@ ig_getboundingbox_(INT8 *topo, double *box)
 #endif
 {
   egObject *object;
-  
+
   object = (egObject *) *topo;
   return EG_getBoundingBox(object, box);
 }
@@ -371,7 +373,7 @@ ig_getmassproperties_(INT8 *topo, double *props)
 #endif
 {
   egObject *object;
-  
+
   object = (egObject *) *topo;
   return EG_getMassProperties(object, props);
 }
@@ -385,7 +387,7 @@ ig_isequivalent_(INT8 *itopo1, INT8 *itopo2)
 #endif
 {
   egObject *topo1, *topo2;
-  
+
   topo1 = (egObject *) *itopo1;
   topo2 = (egObject *) *itopo2;
   return EG_isEquivalent(topo1, topo2);
@@ -397,7 +399,7 @@ int
 IG_LOADMODEL (INT8 *cntxt, int *bflg, const char *name, INT8 *model,
               int nameLen)
 #else
-ig_loadmodel_(INT8 *cntxt, int *bflg, const char *name, INT8 *model, 
+ig_loadmodel_(INT8 *cntxt, int *bflg, const char *name, INT8 *model,
               int nameLen)
 #endif
 {
@@ -444,10 +446,10 @@ ig_getedgeuv_(INT8 *iface, INT8 *itopo, int *sense, double *t, double *uv)
 #endif
 {
   egObject *face, *topo;
-  
+
   face = (egObject *) *iface;
   topo = (egObject *) *itopo;
-  
+
   return EG_getEdgeUV(face, topo, *sense, *t, uv);
 }
 
@@ -462,10 +464,10 @@ ig_getedgeuvs_(INT8 *iface, INT8 *itopo, int *sense, int *nt, double *ts,
 #endif
 {
   egObject *face, *topo;
-  
+
   face = (egObject *) *iface;
   topo = (egObject *) *itopo;
-  
+
   return EG_getEdgeUVs(face, topo, *sense, *nt, ts, uvs);
 }
 
@@ -479,7 +481,7 @@ ig_getbody_(INT8 *iobj, INT8 *ibody)
 {
   int      stat;
   egObject *obj, *body;
-  
+
   obj  = (egObject *) *iobj;
   stat = EG_getBody(obj, &body);
   if (stat == EGADS_SUCCESS) *ibody = (INT8) body;
@@ -495,7 +497,7 @@ ig_intopology_(INT8 *itopo, const double *xyz)
 #endif
 {
   egObject *topo;
-  
+
   topo = (egObject *) *itopo;
   return EG_inTopology(topo, xyz);
 }
@@ -509,7 +511,7 @@ ig_inface_(INT8 *iface, const double *uv)
 #endif
 {
   egObject *face;
-  
+
   face = (egObject *) *iface;
   return EG_inFace(face, uv);
 }
@@ -523,7 +525,7 @@ ig_infaceocc_(INT8 *iface, double *tol, const double *uv)
 #endif
 {
   egObject *face;
-  
+
   face = (egObject *) *iface;
   return EG_inFaceOCC(face, *tol, uv);
 }
@@ -537,7 +539,7 @@ ig_getwindingangle_(INT8 *iedge, double *t, double *angle)
 #endif
 {
   egObject *edge;
-  
+
   edge = (egObject *) *iedge;
   return EG_getWindingAngle(edge, *t, angle);
 }
@@ -601,7 +603,7 @@ ig_replacefaces_(INT8 *ibody, int *nobj, INT8 *obj, INT8 *result)
   int            i, stat;
   egObject       *object, *body;
   const egObject **objs = NULL;
-  
+
   *result = 0;
   body    = (egObject *) *ibody;
   if (*nobj <= 1) return EGADS_RANGERR;
@@ -618,35 +620,35 @@ ig_replacefaces_(INT8 *ibody, int *nobj, INT8 *obj, INT8 *result)
 
 int
 #ifdef WIN32
-IG_MATCHBODYEDGES (INT8 *bdy1, INT8 *bdy2, double *toler,
+IG_MATCHBODYEDGES (INT8 *bdy1, INT8 *bdy2, double *tolScale,
                    int *nMatch, int **matches)
 #else
-ig_matchbodyedges_(INT8 *bdy1, INT8 *bdy2, double *toler,
+ig_matchbodyedges_(INT8 *bdy1, INT8 *bdy2, double *tolScale,
                    int *nMatch, int **matches)
 #endif
 {
   egObject *body1, *body2;
-  
+
   body1  = (egObject *) *bdy1;
   body2  = (egObject *) *bdy2;
-  return EG_matchBodyEdges(body1, body2, *toler, nMatch, matches);
+  return EG_matchBodyEdges(body1, body2, *tolScale, nMatch, matches);
 }
 
 
 int
 #ifdef WIN32
-IG_MATCHBODYFACES (INT8 *bdy1, INT8 *bdy2, double *toler,
+IG_MATCHBODYFACES (INT8 *bdy1, INT8 *bdy2, double *tolScale,
                    int *nMatch, int **matches)
 #else
-ig_matchbodyfaces_(INT8 *bdy1, INT8 *bdy2, double *toler,
+ig_matchbodyfaces_(INT8 *bdy1, INT8 *bdy2, double *tolScale,
                    int *nMatch, int **matches)
 #endif
 {
   egObject *body1, *body2;
-  
+
   body1  = (egObject *) *bdy1;
   body2  = (egObject *) *bdy2;
-  return EG_matchBodyFaces(body1, body2, *toler, nMatch, matches);
+  return EG_matchBodyFaces(body1, body2, *tolScale, nMatch, matches);
 }
 
 
@@ -660,7 +662,7 @@ ig_mapbody_(INT8 *sbody, INT8 *dbody, const char *fattr, INT8 *mbody, int flen)
   int      stat;
   char     *fAttr;
   egObject *object, *sBody, *dBody;
-  
+
   *mbody = 0;
   sBody  = (egObject *) *sbody;
   dBody  = (egObject *) *dbody;
@@ -672,3 +674,32 @@ ig_mapbody_(INT8 *sbody, INT8 *dbody, const char *fattr, INT8 *mbody, int flen)
   EG_free(fAttr);
   return stat;
 }
+
+
+int
+#ifdef WIN32
+IG_MAPBODY2 (INT8 *sbody, const char *fattr, const char *eattr, INT8 *dbody, int flen, int elen)
+#else
+ig_mapbody2_(INT8 *sbody, const char *fattr, const char *eattr, INT8 *dbody, int flen, int elen)
+#endif
+{
+  int      stat;
+  char     *fAttr, *eAttr;
+  egObject *sBody, *dBody;
+
+  sBody  = (egObject *) *sbody;
+  dBody  = (egObject *) *dbody;
+  fAttr  = EG_f2c(fattr, flen);
+  if (fAttr == NULL) return EGADS_NONAME;
+  eAttr  = EG_f2c(eattr, elen);
+  if (eAttr == NULL) {
+    EG_free(fAttr);
+    return EGADS_NONAME;
+  }
+
+  stat = EG_mapBody2(sBody, fAttr, eAttr, dBody);
+  EG_free(fAttr);
+  EG_free(eAttr);
+  return stat;
+}
+

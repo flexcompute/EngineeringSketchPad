@@ -1,0 +1,28 @@
+# ellipse_udp_2
+# written by John Dannenhoffer
+
+UDPARG    ellipse   rx  0.5   ry  1.0
+UDPRIM    ellipse   theta  0;pi(120/180);pi(240/180)
+TRANSLATE -2  +2  0
+EXTRUDE    0  0  1
+
+UDPARG    ellipse   rx  0.5   ry  1.0
+UDPRIM    ellipse   theta  pi(-180/180);pi(-60/180);pi(60/180)
+TRANSLATE +2  +2  0
+EXTRUDE    0  0  1
+
+UDPARG    ellipse   rx  0.5   ry  1.0
+UDPRIM    ellipse   theta  0;pi(10/180);pi(170/180);pi(180/180)
+TRANSLATE -2  -2  0
+EXTRUDE    0  0  1
+
+UDPARG    ellipse   rx  0.5   ry  1.0
+UDPRIM    ellipse   theta  pi(80/180);pi(100/180);pi(240/180);pi(270/180);pi(300/180)
+TRANSLATE +2  -2  0
+EXTRUDE    0  0  1
+
+END
+
+
+
+

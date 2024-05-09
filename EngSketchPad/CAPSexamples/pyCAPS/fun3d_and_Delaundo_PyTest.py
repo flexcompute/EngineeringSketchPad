@@ -43,10 +43,7 @@ myProblem.analysis["delaundo"].input.Mesh_Sizing = {"Airfoil"   : airfoil,
 myProblem.analysis["delaundo"].input.Delta_Thickness = .1
 myProblem.analysis["delaundo"].input.Max_Aspect = 90.0
 
-# Set project name and output mesh type
-projectName = "delaundoMesh"
-myProblem.analysis["delaundo"].input.Proj_Name = projectName
-
+# Optional: Explicitly write mesh files
 myProblem.analysis["delaundo"].input.Mesh_Format = "Tecplot"
 
 
@@ -58,8 +55,6 @@ myProblem.analysis["fun3d"].input["Mesh"].link(myProblem.analysis["delaundo"].ou
 
 # Set project name
 myProblem.analysis["fun3d"].input.Proj_Name = "pyCAPS_FUN3D_Delaundo"
-
-myProblem.analysis["fun3d"].input.Mesh_ASCII_Flag = True
 
 # Set AoA number
 myProblem.analysis["fun3d"].input.Alpha = 0.0

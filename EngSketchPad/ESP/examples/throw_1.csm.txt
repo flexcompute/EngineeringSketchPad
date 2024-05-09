@@ -1,0 +1,30 @@
+# throw_1
+# written by John Dannenhoffer
+
+MESSAGE   this_is_executed_1
+
+# throw a user-defined signal
+THROW     123
+
+# this statement is not executed since there is a pending signal
+MESSAGE   this_is_not_executed_2
+
+# this catch block is not executed since it does not match the current signal
+CATBEG    $face_not_found
+   MESSAGE   this_is_not_executed_3
+CATEND
+
+# this statement is not executed since there is a pending signal
+MESSAGE   this_is_not_executed_4
+
+# this catch block is executed since it does match the current signal
+# it also cancels the signal
+CATBEG    123
+   MESSAGE   this_is_executed_5
+   SPHERE   0  0  0  1
+CATEND
+
+# since the signal was caught and is no longer active
+MESSAGE   this_is_executed_6
+
+END

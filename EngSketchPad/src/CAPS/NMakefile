@@ -4,12 +4,17 @@ IDIR = $(ESP_ROOT)\include
 LDIR = $(ESP_ROOT)\lib
 BDIR = $(ESP_ROOT)\bin
 
-
-default:	$(LDIR)\udunits2.dll $(LDIR)\libwinpthread-1.dll \
+DEFAULTS =	$(LDIR)\udunits2.dll $(LDIR)\libwinpthread-1.dll \
 		$(IDIR)\udunits2.h \
 		$(BDIR)\avl.exe $(BDIR)\pplot.exe $(BDIR)\pxplot.exe \
 		$(BDIR)\xfoil.exe $(BDIR)\ASTRO.D01 $(BDIR)\ASTRO.IDX \
-		$(BDIR)\mastros.exe $(BDIR)\mses.exe $(BDIR)\mset.exe
+		$(BDIR)\mastros.exe $(BDIR)\mses.exe $(BDIR)\mset.exe 
+
+!IFNDEF AFLR
+DEFAULTS = $(DEFAULTS) $(LDIR)\aflr2AIM.dll $(LDIR)\aflr3AIM.dll $(LDIR)\aflr4AIM.dll $(LDIR)\AFLR.dll
+!ENDIF
+
+default:	$(DEFAULTS)
 
 $(LDIR)\udunits2.dll:	udunits\$(ESP_ARCH)\udunits2.dll
 	cd $(LDIR)
@@ -21,52 +26,72 @@ $(LDIR)\libwinpthread-1.dll:	Libraries\$(ESP_ARCH)\libwinpthread-1.dll
 	xcopy $(SDIR)\Libraries\$(ESP_ARCH)\*.dll /Q /Y
 	cd $(SDIR)
 
+!IFNDEF AFLR
+$(LDIR)\aflr2AIM.dll:	Libraries\$(ESP_ARCH)\aflr2AIM.dll
+	cd $(LDIR)
+	xcopy $(SDIR)\Libraries\$(ESP_ARCH)\aflr2AIM.dll /Q /Y
+	cd $(SDIR)
+
+$(LDIR)\aflr3AIM.dll:	Libraries\$(ESP_ARCH)\aflr3AIM.dll
+	cd $(LDIR)
+	xcopy $(SDIR)\Libraries\$(ESP_ARCH)\aflr3AIM.dll /Q /Y
+	cd $(SDIR)
+
+$(LDIR)\aflr4AIM.dll:	Libraries\$(ESP_ARCH)\aflr4AIM.dll
+	cd $(LDIR)
+	xcopy $(SDIR)\Libraries\$(ESP_ARCH)\aflr4AIM.dll /Q /Y
+	cd $(SDIR)
+
+$(LDIR)\AFLR.dll: Libraries\$(ESP_ARCH)\AFLR.dll
+	xcopy /Q /Y Libraries\$(ESP_ARCH)\AFLR.dll $(LDIR)
+!ENDIF
+
 $(IDIR)\udunits2.h:		udunits\include\udunits2.h
 	cd $(IDIR)
 	xcopy $(SDIR)\udunits\include\* /Q /Y
 	cd $(SDIR)
 
-$(BDIR)\avl.exe:	Executables\WIN32\avl.exe
+$(BDIR)\avl.exe:	Executables\$(ESP_ARCH)\avl.exe
 	cd $(BDIR)
-	xcopy $(SDIR)\Executables\WIN32\avl.exe /Q /Y
+	xcopy $(SDIR)\Executables\$(ESP_ARCH)\avl.exe /Q /Y
 	cd $(SDIR)
 
-$(BDIR)\pplot.exe:	Executables\WIN32\pplot.exe
+$(BDIR)\pplot.exe:	Executables\$(ESP_ARCH)\pplot.exe
 	cd $(BDIR)
-	xcopy $(SDIR)\Executables\WIN32\pplot.exe /Q /Y
+	xcopy $(SDIR)\Executables\$(ESP_ARCH)\pplot.exe /Q /Y
 	cd $(SDIR)
 
-$(BDIR)\pxplot.exe:	Executables\WIN32\pxplot.exe
+$(BDIR)\pxplot.exe:	Executables\$(ESP_ARCH)\pxplot.exe
 	cd $(BDIR)
-	xcopy $(SDIR)\Executables\WIN32\pxplot.exe /Q /Y
+	xcopy $(SDIR)\Executables\$(ESP_ARCH)\pxplot.exe /Q /Y
 	cd $(SDIR)
 
-$(BDIR)\xfoil.exe:	Executables\WIN32\xfoil.exe
+$(BDIR)\xfoil.exe:	Executables\$(ESP_ARCH)\xfoil.exe
 	cd $(BDIR)
-	xcopy $(SDIR)\Executables\WIN32\xfoil.exe /Q /Y
+	xcopy $(SDIR)\Executables\$(ESP_ARCH)\xfoil.exe /Q /Y
 	cd $(SDIR)
 
-$(BDIR)\ASTRO.D01:	Executables\WIN32\ASTRO.D01
+$(BDIR)\ASTRO.D01:	Executables\$(ESP_ARCH)\ASTRO.D01
 	cd $(BDIR)
-	xcopy $(SDIR)\Executables\WIN32\ASTRO.D01 /Q /Y
+	xcopy $(SDIR)\Executables\$(ESP_ARCH)\ASTRO.D01 /Q /Y
 	cd $(SDIR)
 
-$(BDIR)\ASTRO.IDX:	Executables\WIN32\ASTRO.IDX
+$(BDIR)\ASTRO.IDX:	Executables\$(ESP_ARCH)\ASTRO.IDX
 	cd $(BDIR)
-	xcopy $(SDIR)\Executables\WIN32\ASTRO.IDX /Q /Y
+	xcopy $(SDIR)\Executables\$(ESP_ARCH)\ASTRO.IDX /Q /Y
 	cd $(SDIR)
 
-$(BDIR)\mastros.exe:	Executables\WIN32\mastros.exe
+$(BDIR)\mastros.exe:	Executables\$(ESP_ARCH)\mastros.exe
 	cd $(BDIR)
-	xcopy $(SDIR)\Executables\WIN32\mastros.exe /Q /Y
+	xcopy $(SDIR)\Executables\$(ESP_ARCH)\mastros.exe /Q /Y
 	cd $(SDIR)
 
-$(BDIR)\mses.exe:	Executables\WIN32\mses.exe
+$(BDIR)\mses.exe:	Executables\$(ESP_ARCH)\mses.exe
 	cd $(BDIR)
-	xcopy $(SDIR)\Executables\WIN32\mses.exe /Q /Y
+	xcopy $(SDIR)\Executables\$(ESP_ARCH)\mses.exe /Q /Y
 	cd $(SDIR)
 
-$(BDIR)\mset.exe:	Executables\WIN32\mset.exe
+$(BDIR)\mset.exe:	Executables\$(ESP_ARCH)\mset.exe
 	cd $(BDIR)
-	xcopy $(SDIR)\Executables\WIN32\mset.exe /Q /Y
+	xcopy $(SDIR)\Executables\$(ESP_ARCH)\mset.exe /Q /Y
 	cd $(SDIR)

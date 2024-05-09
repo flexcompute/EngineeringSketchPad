@@ -1,0 +1,19 @@
+# import_2
+# written by John Dannenhoffer
+
+# create a box
+BOX       0  0  0  4  3  2
+
+# create a cylinder
+CYLINDER  0  5  1  4  5  1  1
+
+# create the file dump_1.egads that contains both bodys and removes them from the stack
+DUMP      dump_1.egads  1  1
+
+# assure that the stack is empty
+ASSERT    @stack[1]  -1
+
+# import all the Bodys
+IMPORT    dump_1.egads  -1
+
+END

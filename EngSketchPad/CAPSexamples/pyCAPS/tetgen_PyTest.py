@@ -30,13 +30,10 @@ myProblem.geometry.cfgpmtr.wake = 0
 # Load EGADS Tess aim
 myProblem.analysis.create(aim = "egadsTessAIM", name = "egadsTess")
 
-# Set project name so a mesh file is generated
-myProblem.analysis["egadsTess"].input.Proj_Name = "egadsTessMesh"
-
 # Set new EGADS body tessellation parameters
 myProblem.analysis["egadsTess"].input.Tess_Params = [0.5, 0.1, 20.0]
 
-# Set output grid format since a project name is being supplied - Tecplot file
+# Optional: Explicitly write mesh files
 myProblem.analysis["egadsTess"].input.Mesh_Format = "Tecplot"
 
 
@@ -56,12 +53,8 @@ myProblem.analysis["tetgen"].input.Quality_Rad_Edge = 1.5
 # Set surface mesh preservation
 myProblem.analysis["tetgen"].input.Preserve_Surf_Mesh = True
 
-# Set project name
-myProblem.analysis["tetgen"].input.Proj_Name = "pyCAPS_Tetgen_Test"
-
-# Set output grid format since a project name is being supplied - Tecplot tetrahedral file
+# Optional: Explicitly write mesh files
 myProblem.analysis["tetgen"].input.Mesh_Format = "Tecplot"
-myProblem.analysis["tetgen"].input.Mesh_ASCII_Flag = False
 
 
 # Run AIM

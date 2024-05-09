@@ -163,7 +163,10 @@ class TestUnit(unittest.TestCase):
         s  = caps.Unit("s")
 
         lengths = [3, 4]*m
+
+        self.assertEqual(len(lengths), 2)
         
+        self.assertEqual(lengths, [3, 4]*m)
         self.assertEqual(lengths[0], 3*m)
         self.assertEqual(lengths[1], 4*m)
 
@@ -176,6 +179,18 @@ class TestUnit(unittest.TestCase):
 
         self.assertEqual(accels[0], 1.5*m/s**2)
         self.assertEqual(accels[1], 2.0*m/s**2)
+
+        lengths = [[3, 4]]*2*m
+
+        self.assertEqual(len(lengths), 2)
+        self.assertEqual(len(lengths[0]), 2)
+        self.assertEqual(len(lengths[1]), 2)
+
+        self.assertEqual(lengths, [[3, 4]]*2*m)
+        self.assertEqual(lengths[0][0], 3*m)
+        self.assertEqual(lengths[0][1], 4*m)
+        self.assertEqual(lengths[1][0], 3*m)
+        self.assertEqual(lengths[1][1], 4*m)
 
 if __name__ == '__main__':
     unittest.main() 

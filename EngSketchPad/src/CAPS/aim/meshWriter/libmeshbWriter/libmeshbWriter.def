@@ -1,0 +1,4 @@
+LIBRARY libMeshbWriter
+EXPORTS
+meshExtension
+meshWrite

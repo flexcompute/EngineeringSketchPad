@@ -1,0 +1,8 @@
+# box_udp_2
+# written by John Dannenhoffer
+
+UDPRIM    box       dx  4.0  dy  2.0
+UDPRIM    box       dx  4.0           dz  7.0
+UDPRIM    box                dy  2.0  dz  7.0
+
+END

@@ -10,7 +10,7 @@
  */
 
 /*
- * Copyright (C) 2011/2022  John F. Dannenhoffer, III (Syracuse University)
+ * Copyright (C) 2011/2024  John F. Dannenhoffer, III (Syracuse University)
  *
  * This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
@@ -29,8 +29,38 @@
  */
 
 #include "OpenCSM.h"
+#include "common.h"
 
 #define STRLEN(A)   (int)strlen(A)
+
+static int  findInstance(ego ebody, int numudp, udp_T udps[]);
+
+/*
+  functions defined in the UDP/UDF:
+    udpExecute      execute teh primitive
+    udpSensitivity  return sensitivity
+    udpMesh         return mesh associated with primitive (optional)
+  functions defined below:
+    udpErrorStr     print error string
+    udpInitialize   initialize and get info about the list of areguments
+    udpNumBodys     number of Bodys expected
+    udpBodyList     list of Bodys input to a UDF
+    udpReset        reset the arguments to their defaults
+    udpSet          set an argument
+    udpGet          return an output parameter
+    udpVel          set velocity of an argument
+    udpNumCals      number of calls to udpSet since last udpExecute
+    udpNumVels      number of calls to udpVel since last udpSensitivity
+    udpClean        clean the udp cache
+    udpMesh         return mesh associated with primitive
+    udpFree         free all memory associated with UDP/UDF
+    CacheUdp        cache arguments of current instance
+    findInstance    find UDP instance that matches ebody
+    udpCleanupAll   free up UDP/UDF dispatch table
+  macros that can be defined in UDP/UDP for the provate data:
+    FREEUDPDATA     free private data
+    COPYUDPDATA     copy private data
+*/
 
 
 /*
@@ -71,70 +101,73 @@ udpInitialize(int    *nArgs,            /* (out) number of arguments */
               char   **namex[],         /* (out) array  of argument names */
               int    *typex[],          /* (out) array  of argument types */
               int    *idefault[],       /* (out) array  of argument integer defaults */
-              double *ddefault[])       /* (out) array  of argument double  defaults */
+              double *ddefault[],       /* (out) array  of argument double  defaults */
+              udp_T  *Udps[])           /* (both)array  of instances */
 {
+    int    status = EGADS_SUCCESS;
+
     int    iarg, ival, *pint;
     double *p1dbl, *p2dbl;
     char   *pchar;
+    udp_T  *udps;
+    void   *realloc_temp = NULL;            /* used by RALLOC macro */
+
+    ROUTINE(udpInitialize);
 
     /* --------------------------------------------------------------- */
 
 #ifdef DEBUG
-    printf("udpInitialize()\n");
+    printf("enter udpInitialize()\n");
 #endif
 
     /* make the initial array that holds the udps */
-    if (udps == NULL) {
+    if (*Udps == NULL) {
 
-        udps = (udp_T *) EG_alloc(sizeof(udp_T));
-        if (udps == NULL) return EGADS_MALLOC;
+        MALLOC(*Udps, udp_T, 1);
+        udps = *Udps;
 
+        udps[0].narg = NUMUDPARGS;
+        udps[0].arg  = NULL;
+        RALLOC(udps[0].arg, udparg_T, NUMUDPARGS);
         for (iarg = 0; iarg < NUMUDPARGS; iarg++) {
+            udps[0].arg[iarg].type = argTypes[iarg];
             udps[0].arg[iarg].size = 1;
+            udps[0].arg[iarg].nrow = 1;
+            udps[0].arg[iarg].ncol = 1;
+            udps[0].arg[iarg].val  = NULL;
+            udps[0].arg[iarg].dot  = NULL;
 
             if        (argTypes[iarg] == +ATTRSTRING) {
-                udps[0].arg[iarg].val = (char   *) EG_alloc(MAX_EXPR_LEN*sizeof(char  ));
-                udps[0].arg[iarg].dot = NULL;
-                if (udps[0].arg[iarg].val == NULL) return EGADS_MALLOC;
+                MALLOC(udps[0].arg[iarg].val, char, MAX_EXPR_LEN);
             } else if (argTypes[iarg] == +ATTRFILE) {
-                udps[0].arg[iarg].val = (char   *) EG_alloc(MAX_EXPR_LEN*sizeof(char  ));
-                udps[0].arg[iarg].dot = NULL;
-                if (udps[0].arg[iarg].val == NULL) return EGADS_MALLOC;
-            } else if (argTypes[iarg] == +ATTRINT) {
-                udps[0].arg[iarg].val = (int    *) EG_alloc(  sizeof(int   ));
-                udps[0].arg[iarg].dot = NULL;
-                if (udps[0].arg[iarg].val == NULL) return EGADS_MALLOC;
-            } else if (argTypes[iarg] == -ATTRINT) {
-                udps[0].arg[iarg].val = (int    *) EG_alloc(  sizeof(int   ));
-                udps[0].arg[iarg].dot = NULL;
-                if (udps[0].arg[iarg].val == NULL) return EGADS_MALLOC;
-            } else if (argTypes[iarg] == +ATTRREAL) {
-                udps[0].arg[iarg].val = (double *) EG_alloc(  sizeof(double));
-                udps[0].arg[iarg].dot = NULL;
-                if (udps[0].arg[iarg].val == NULL) return EGADS_MALLOC;
-            } else if (argTypes[iarg] == -ATTRREAL) {
-                udps[0].arg[iarg].val = (double *) EG_alloc(  sizeof(double));
-                udps[0].arg[iarg].dot = NULL;
-                if (udps[0].arg[iarg].val == NULL) return EGADS_MALLOC;
-            } else if (argTypes[iarg] == +ATTRREALSEN) {
-                udps[0].arg[iarg].val = (double *) EG_alloc(  sizeof(double));
-                udps[0].arg[iarg].dot = (double *) EG_alloc(  sizeof(double));
-                if (udps[0].arg[iarg].val == NULL || udps[0].arg[iarg].dot == NULL) return EGADS_MALLOC;
+                MALLOC(udps[0].arg[iarg].val, char, MAX_EXPR_LEN);
+            } else if (argTypes[iarg] == +ATTRINT ||
+                       argTypes[iarg] == -ATTRINT   ) {
+                MALLOC(udps[0].arg[iarg].val, int, 1);
+            } else if (argTypes[iarg] == +ATTRREAL ||
+                       argTypes[iarg] == -ATTRREAL   ) {
+                MALLOC(udps[0].arg[iarg].val, double, 1);
+            } else if (argTypes[iarg] == +ATTRREALSEN ||
+                       argTypes[iarg] == -ATTRREALSEN   ) {
+                MALLOC(udps[0].arg[iarg].val, double, 1);
+                MALLOC(udps[0].arg[iarg].dot, double, 1);
+            } else if (argTypes[iarg] == +ATTRREBUILD) {
+            } else if (argTypes[iarg] == +ATTRRECYCLE) {
             } else if (argTypes[iarg] == 0) {
-                udps[0].arg[iarg].val = (double *) EG_alloc(  sizeof(double));
-                udps[0].arg[iarg].dot = NULL;
-                if (udps[0].arg[iarg].val == NULL) return EGADS_MALLOC;
+                MALLOC(udps[0].arg[iarg].val, double, 1);
             } else {
                 printf("bad argType[%d]=%d in udpInitialize\n", iarg, argTypes[iarg]);
                 exit(0);
             }
         }
+        udps[0].data = NULL;
     }
+    udps = *Udps;
 
     /* initialize the array elements that will hold the "current" settings */
     udps[0].ebody    = NULL;
+    udps[0].ndotchg  = 1;
     udps[0].bodyList = NULL;
-    udps[0].data     = NULL;
 
     for (iarg = 0; iarg < NUMUDPARGS; iarg++) {
         if        (argTypes[iarg] == +ATTRSTRING) {
@@ -146,8 +179,7 @@ udpInitialize(int    *nArgs,            /* (out) number of arguments */
 
             strcpy(pchar, "");
         } else if (argTypes[iarg] == +ATTRINT) {
-            udps[0].arg[iarg].val = (int *) EG_reall(udps[0].arg[iarg].val, udps[0].arg[iarg].size*sizeof(int));
-            if (udps[0].arg[iarg].val == NULL) return EGADS_MALLOC;
+            RALLOC(udps[0].arg[iarg].val, int, udps[0].arg[iarg].size);
 
             pint  = (int    *) (udps[0].arg[iarg].val);
 
@@ -155,8 +187,7 @@ udpInitialize(int    *nArgs,            /* (out) number of arguments */
                 pint[ival] = argIdefs[iarg];
             }
         } else if (argTypes[iarg] == +ATTRREAL) {
-            udps[0].arg[iarg].val = (double *) EG_reall(udps[0].arg[iarg].val, udps[0].arg[iarg].size*sizeof(double));
-            if (udps[0].arg[iarg].val == NULL) return EGADS_MALLOC;
+            RALLOC(udps[0].arg[iarg].val, double, udps[0].arg[iarg].size);
 
             p1dbl  = (double *) (udps[0].arg[iarg].val);
 
@@ -164,9 +195,8 @@ udpInitialize(int    *nArgs,            /* (out) number of arguments */
                 p1dbl[ival] = argDdefs[iarg];
             }
         } else if (argTypes[iarg] == +ATTRREALSEN) {
-            udps[0].arg[iarg].val = (double *) EG_reall(udps[0].arg[iarg].val, udps[0].arg[iarg].size*sizeof(double));
-            udps[0].arg[iarg].dot = (double *) EG_reall(udps[0].arg[iarg].dot, udps[0].arg[iarg].size*sizeof(double));
-            if (udps[0].arg[iarg].val == NULL || udps[0].arg[iarg].dot == NULL) return EGADS_MALLOC;
+            RALLOC(udps[0].arg[iarg].val, double, udps[0].arg[iarg].size);
+            RALLOC(udps[0].arg[iarg].dot, double, udps[0].arg[iarg].size);
 
             p1dbl = (double *) (udps[0].arg[iarg].val);
             p2dbl = (double *) (udps[0].arg[iarg].dot);
@@ -175,6 +205,10 @@ udpInitialize(int    *nArgs,            /* (out) number of arguments */
                 p1dbl[ival] = argDdefs[iarg];
                 p2dbl[ival] = 0;
             }
+        } else if (argTypes[iarg] == +ATTRREBUILD) {
+            /* do nothing */
+        } else if (argTypes[iarg] == +ATTRRECYCLE) {
+            /* do nothing */
         }
     }
 
@@ -185,7 +219,11 @@ udpInitialize(int    *nArgs,            /* (out) number of arguments */
     *idefault = argIdefs;
     *ddefault = argDdefs;
 
-    return EGADS_SUCCESS;
+cleanup:
+#ifdef DEBUG
+    printf("exit  udpInitialize -> status=%d\n", status);
+#endif
+    return status;
 }
 
 
@@ -198,22 +236,28 @@ udpInitialize(int    *nArgs,            /* (out) number of arguments */
  */
 
 int
-udpNumBodys()
+udpNumBodys()                           /* (out) number of expected Bodys */
+                                        /*       >0 number of Bodys */
+                                        /*       <0 maximum number of Bodys */
 {
+    int    num=0;
 
     /* --------------------------------------------------------------- */
 
 #ifdef DEBUG
-    printf("udpNumBodys()\n");
+    printf("enter udpNumBodys()\n");
 #endif
 
 #ifdef NUMUDPINPUTBODYS
-    return NUMUDPINPUTBODYS;
-#else
-    return 0;
+    num = NUMUDPINPUTBODYS;
 #endif
-}
 
+//cleanup:
+#ifdef DEBUG
+    printf("exit  udpNumBodys -> num=%d\n", num);
+#endif
+    return num;
+}
 
 
 /*
@@ -225,35 +269,36 @@ udpNumBodys()
  */
 
 int
-udpBodyList(ego    ebody,               /* (in)  Body pointer */
-            const int **bodyList)       /* (out) 0-terminated list of Bodys used by UDF */
+udpBodyList(ego       ebody,            /* (in)  Body pointer */
+            const int **bodyList,       /* (out) 0-terminated list of Bodys used by UDF */
+            int       numudp,           /* (in)  number of instances */
+            udp_T     udps[])           /* (in)  array  of instances */
 {
-    int     iudp, judp;
+    int    status = EGADS_SUCCESS;
+
+    int    iudp;
+
+    ROUTINE(udpBodyList);
 
     /* --------------------------------------------------------------- */
 
 #ifdef DEBUG
-    printf("udpBodyList(ebody=%llx)\n", (long long)ebody);
+    printf("enter udpBodyList(ebody=%llx)\n", (long long)ebody);
 #endif
 
     /* check that ebody matches one of the ebodys */
-    iudp = 0;
-    for (judp = 1; judp <= numUdp; judp++) {
-        if (ebody == udps[judp].ebody) {
-            iudp = judp;
-            break;
-        }
-    }
-    if (iudp <= 0) {
-        return EGADS_NOTMODEL;
-    }
+    iudp = status = findInstance(ebody, numudp, udps);
+    CHECK_STATUS(findBody);
 
     /* return the bodyList */
     *bodyList = udps[iudp].bodyList;
 
-    return EGADS_SUCCESS;
+cleanup:
+#ifdef DEBUG
+    printf("exit  udpBodyList -> status=%d\n", status);
+#endif
+    return status;
 }
-
 
 
 /*
@@ -265,99 +310,137 @@ udpBodyList(ego    ebody,               /* (in)  Body pointer */
  */
 
 int
-udpReset(int flag)                      /* (in)  flag: 0=reset current, 1=close up */
+udpReset(int   *NumUdp,                 /* (both)number of instances */
+         udp_T udps[])                  /* (in)  array  of instances */
 {
-    int  iarg, ival, iudp;
+    int    status = EGADS_SUCCESS;
+
+    int    iarg, ival, iudp;
 
     /* --------------------------------------------------------------- */
 
 #ifdef DEBUG
-    printf("udpReset(flag=%d)\n", flag);
+    printf("enter udpReset()\n");
 #endif
 
-    /* reset the "current" settings */
-    if (flag == 0) {
+    for (iarg = 0; iarg < NUMUDPARGS; iarg++) {
+        udps[0].arg[iarg].size = 1;
+
+        if        (argTypes[iarg] == +ATTRSTRING) {
+            strcpy((char*)(udps[0].arg[iarg].val), "");
+        } else if (argTypes[iarg] == +ATTRFILE) {
+            strcpy((char*)(udps[0].arg[iarg].val), "");
+        } else if (argTypes[iarg] == +ATTRINT) {
+            int    *p  = (int    *) (udps[0].arg[iarg].val);
+
+            for (ival = 0; ival < udps[0].arg[iarg].size; ival++) {
+                p[ival] = argIdefs[iarg];
+            }
+        } else if (argTypes[iarg] == +ATTRREAL) {
+            double *p  = (double *) (udps[0].arg[iarg].val);
+
+            for (ival = 0; ival < udps[0].arg[iarg].size; ival++) {
+                p[ival] = argDdefs[iarg];
+            }
+        } else if (argTypes[iarg] == +ATTRREALSEN) {
+            double *p1 = (double *) (udps[0].arg[iarg].val);
+            double *p2 = (double *) (udps[0].arg[iarg].dot);
+
+            for (ival = 0; ival < udps[0].arg[iarg].size; ival++) {
+                p1[ival] = argDdefs[iarg];
+                p2[ival] = 0;
+            }
+        } else if (argTypes[iarg] == +ATTRREBUILD) {
+            /* do nothing */
+        } else if (argTypes[iarg] == +ATTRRECYCLE) {
+            /* do nothing */
+        }
+    }
+
+    /* reset all the velocities */
+    for (iudp = 0; iudp <= numUdp; iudp++) {
         for (iarg = 0; iarg < NUMUDPARGS; iarg++) {
-            udps[0].arg[iarg].size = 1;
+            if (argTypes[iarg] == +ATTRREALSEN) {
+                double *p2 = (double *) (udps[iudp].arg[iarg].dot);
 
-            if        (argTypes[iarg] == +ATTRSTRING) {
-                strcpy((char*)(udps[0].arg[iarg].val), "");
-            } else if (argTypes[iarg] == +ATTRFILE) {
-                strcpy((char*)(udps[0].arg[iarg].val), "");
-            } else if (argTypes[iarg] == +ATTRINT) {
-                int    *p  = (int    *) (udps[0].arg[iarg].val);
-
-                for (ival = 0; ival < udps[0].arg[iarg].size; ival++) {
-                    p[ival] = argIdefs[iarg];
-                }
-            } else if (argTypes[iarg] == +ATTRREAL) {
-                double *p  = (double *) (udps[0].arg[iarg].val);
-
-                for (ival = 0; ival < udps[0].arg[iarg].size; ival++) {
-                    p[ival] = argDdefs[iarg];
-                }
-            } else if (argTypes[iarg] == +ATTRREALSEN) {
-                double *p1 = (double *) (udps[0].arg[iarg].val);
-                double *p2 = (double *) (udps[0].arg[iarg].dot);
-
-                for (ival = 0; ival < udps[0].arg[iarg].size; ival++) {
-                    p1[ival] = argDdefs[iarg];
+                for (ival = 0; ival < udps[iudp].arg[iarg].size; ival++) {
                     p2[ival] = 0;
                 }
             }
         }
-
-        /* reset all the velocities */
-        for (iudp = 0; iudp <= numUdp; iudp++) {
-            for (iarg = 0; iarg < NUMUDPARGS; iarg++) {
-                if (argTypes[iarg] == +ATTRREALSEN) {
-                    double *p2 = (double *) (udps[iudp].arg[iarg].dot);
-
-                    for (ival = 0; ival < udps[iudp].arg[iarg].size; ival++) {
-                        p2[ival] = 0;
-                    }
-                }
-            }
-        }
-
-    /* called when closing up */
-    } else if (udps != NULL) {
-        for (iudp = 0; iudp <= numUdp; iudp++) {
-
-            /* arguments */
-            for (iarg = 0; iarg < NUMUDPARGS; iarg++) {
-                if (udps[iudp].arg[iarg].val != NULL) {
-                    EG_free(udps[iudp].arg[iarg].val);
-                }
-
-                if (udps[iudp].arg[iarg].dot != NULL) {
-                    EG_free(udps[iudp].arg[iarg].dot);
-                }
-            }
-
-            /* bodyList (but not 0 because it is same as another) */
-            if (iudp > 0 && udps[iudp].bodyList != NULL) {
-                EG_free(udps[iudp].bodyList);
-                udps[iudp].bodyList = NULL;
-            }
-
-            /* private data (but not 0 because it is same as another) */
-            if (iudp > 0 && udps[iudp].data != NULL) {
-#ifdef FREEUDPDATA
-                FREEUDPDATA(udps[iudp].data);
-#else
-                EG_free(udps[iudp].data);
-#endif
-                udps[iudp].data = NULL;
-            }
-        }
-
-        EG_free(udps);
-        udps   = NULL;
-        numUdp = 0;
     }
 
-    return EGADS_SUCCESS;
+//cleanup:
+#ifdef DEBUG
+    printf("exit  udpReset -> status=%d\n", status);
+#endif
+    return status;
+}
+
+
+/*
+ ************************************************************************
+ *                                                                      *
+ *   udpFree - free up all memory associated with UDP/UDF               *
+ *                                                                      *
+ ************************************************************************
+ */
+
+int
+udpFree(int   numudp,                   /* (in)  number of instances */
+        udp_T udps[])                   /* (in)  array  of instances */
+{
+    int    status = EGADS_SUCCESS;
+
+    int    iarg, iudp;
+
+    /* --------------------------------------------------------------- */
+
+#ifdef DEBUG
+    printf("enter udpFree(numudp=%d, udps=%llx)\n", numudp, (long long)udps);
+#endif
+
+    if (udps == NULL) goto cleanup;
+
+    for (iudp = 0; iudp <= numudp; iudp++) {
+
+        /* arguments */
+        for (iarg = 0; iarg < NUMUDPARGS; iarg++) {
+            if (udps[iudp].arg[iarg].val != NULL) {
+                EG_free(udps[iudp].arg[iarg].val);
+            }
+
+            if (udps[iudp].arg[iarg].dot != NULL) {
+                EG_free(udps[iudp].arg[iarg].dot);
+            }
+        }
+        EG_free(udps[iudp].arg);
+        udps[iudp].arg = NULL;
+
+        /* bodyList (but not 0 because it is same as another) */
+        if (iudp > 0 && udps[iudp].bodyList != NULL) {
+            EG_free(udps[iudp].bodyList);
+            udps[iudp].bodyList = NULL;
+        }
+
+        /* private data */
+        if (udps[iudp].data != NULL) {
+#ifdef FREEUDPDATA
+            FREEUDPDATA(udps[iudp].data);
+#else
+            EG_free(udps[iudp].data);
+#endif
+            udps[iudp].data = NULL;
+        }
+    }
+
+    EG_free(udps);
+
+cleanup:
+#ifdef DEBUG
+    printf("exit  udpFree -> status=%d\n", status);
+#endif
+    return status;
 }
 
 
@@ -370,18 +453,25 @@ udpReset(int flag)                      /* (in)  flag: 0=reset current, 1=close 
  */
 
 int
-udpSet(char name[],                     /* (in)  argument name */
-       void *value,                     /* (in)  pointer to values (can be char* or double*) */
-       int  nvalue,                     /* (in)  number  of values */
-       char message[])                  /* (out) error message (if any) */
+udpSet(char   name[],                   /* (in)  argument name */
+       void   *value,                   /* (in)  pointer to values (can be char* or double*) */
+       int    nrow,                     /* (in)  number of rows */
+       int    ncol,                     /* (in)  number of columns */
+       char   message[],                /* (out) error message (if any) */
+       udp_T  udps[])                   /* (in)  array  of instances */
 {
-    int  i, iarg, ivalue;
-    char lowername[257];
+    int    status = EGADS_SUCCESS;
+
+    int    i, iarg, nvalue, ivalue;
+    char   lowername[257];
+    void   *realloc_temp = NULL;            /* used by RALLOC macro */
+
+    ROUTINE(udpSet);
 
     /* --------------------------------------------------------------- */
 
 #ifdef DEBUG
-    printf("udpSet(name=%s, nvalue=%d)\n", name, nvalue);
+    printf("enter udpSet(name=%s, nrow=%d, ncol=%d)\n", name, nrow, ncol);
 #endif
 
     if (message != NULL) {
@@ -389,20 +479,27 @@ udpSet(char name[],                     /* (in)  argument name */
     }
 
     if        (name  == NULL) {
-        return EGADS_NONAME;
+        status = EGADS_NONAME;
+        goto cleanup;
     } else if (STRLEN(name) == 0 || STRLEN(name) > 255) {
-        return EGADS_NONAME;
+        status = EGADS_NONAME;
+        goto cleanup;
     } else if (value == NULL) {
-        return EGADS_NULLOBJ;
+        status = EGADS_NULLOBJ;
+        goto cleanup;
     }
 
     for (i = 0; i <= STRLEN(name); i++) {
         lowername[i] = tolower(name[i]);
     }
 
+    nvalue = nrow * MAX(ncol, 1);
+
     for (iarg = 0; iarg < NUMUDPARGS; iarg++) {
         if (strcmp(lowername, argNames[iarg]) == 0) {
-            udps[0].arg[iarg].size = nvalue;
+            udps[0].arg[iarg].nrow = nrow;
+            udps[0].arg[iarg].ncol = ncol;
+            udps[0].arg[iarg].size = nrow * MAX(ncol, 1);
 
             if        (argTypes[iarg] == +ATTRSTRING) {
                 char   *p;
@@ -412,12 +509,11 @@ udpSet(char name[],                     /* (in)  argument name */
                 printf("   value=%s\n", valueP);
 #endif
 
-                udps[0].arg[iarg].val = (char *) EG_reall(udps[0].arg[iarg].val, (nvalue+1)*sizeof(char  ));
-                if (udps[0].arg[iarg].val == NULL) return EGADS_MALLOC;
+                RALLOC(udps[0].arg[iarg].val, char, nvalue+1);
                 p = (char   *) (udps[0].arg[iarg].val);
 
                 memcpy(p, valueP, (nvalue+1)*sizeof(char));
-                return EGADS_SUCCESS;
+                goto cleanup;
             } else if (argTypes[iarg] == +ATTRFILE) {
                 char   *p;
                 char   *valueP = (char   *) value;
@@ -426,12 +522,11 @@ udpSet(char name[],                     /* (in)  argument name */
                 printf("   value=%s\n", valueP);
 #endif
 
-                udps[0].arg[iarg].val = (char *) EG_reall(udps[0].arg[iarg].val, (nvalue+1)*sizeof(char  ));
-                if (udps[0].arg[iarg].val == NULL) return EGADS_MALLOC;
+                RALLOC(udps[0].arg[iarg].val, char, nvalue+1);
                 p = (char   *) (udps[0].arg[iarg].val);
 
                 memcpy(p, valueP, (nvalue+1)*sizeof(char));
-                return EGADS_SUCCESS;
+                goto cleanup;
             } else if (argTypes[iarg] == +ATTRINT) {
                 int    *p;
                 double *valueP = (double *) value;
@@ -444,14 +539,13 @@ udpSet(char name[],                     /* (in)  argument name */
                 printf("\n");
 #endif
 
-                udps[0].arg[iarg].val = (int   *) EG_reall(udps[0].arg[iarg].val, nvalue*sizeof(int   ));
-                if (udps[0].arg[iarg].val == NULL) return EGADS_MALLOC;
+                RALLOC(udps[0].arg[iarg].val, int, nvalue);
                 p = (int    *) (udps[0].arg[iarg].val);
 
                 for (ivalue = 0; ivalue < nvalue; ivalue++) {
                     p[ivalue] = NINT(valueP[ivalue]);
                 }
-                return EGADS_SUCCESS;
+                goto cleanup;
             } else if (argTypes[iarg] == +ATTRREAL) {
                 double *p;
                 double *valueP = (double *) value;
@@ -464,14 +558,13 @@ udpSet(char name[],                     /* (in)  argument name */
                 printf("\n");
 #endif
 
-                udps[0].arg[iarg].val = (double *) EG_reall(udps[0].arg[iarg].val, nvalue*sizeof(double));
-                if (udps[0].arg[iarg].val == NULL) return EGADS_MALLOC;
+                RALLOC(udps[0].arg[iarg].val, double, nvalue);
                 p = (double *) (udps[0].arg[iarg].val);
 
                 for (ivalue = 0; ivalue < nvalue; ivalue++) {
                     p[ivalue] = valueP[ivalue];
                 }
-                return EGADS_SUCCESS;
+                goto cleanup;
             } else if (argTypes[iarg] == +ATTRREALSEN) {
                 double *p1, *p2;
                 double *valueP = (double *) value;
@@ -484,9 +577,8 @@ udpSet(char name[],                     /* (in)  argument name */
                 printf("\n");
 #endif
 
-                udps[0].arg[iarg].val = (double *) EG_reall(udps[0].arg[iarg].val, nvalue*sizeof(double));
-                udps[0].arg[iarg].dot = (double *) EG_reall(udps[0].arg[iarg].dot, nvalue*sizeof(double));
-                if (udps[0].arg[iarg].val == NULL || udps[0].arg[iarg].dot == NULL) return EGADS_MALLOC;
+                RALLOC(udps[0].arg[iarg].val, double, nvalue);
+                RALLOC(udps[0].arg[iarg].dot, double, nvalue);
                 p1 = (double *) (udps[0].arg[iarg].val);
                 p2 = (double *) (udps[0].arg[iarg].dot);
 
@@ -494,7 +586,13 @@ udpSet(char name[],                     /* (in)  argument name */
                     p1[ivalue] = valueP[ivalue];
                     p2[ivalue] = 0;
                 }
-                return EGADS_SUCCESS;
+                goto cleanup;
+            } else if (argTypes[iarg] == +ATTRREBUILD) {
+                /* do nothing */
+                goto cleanup;
+            } else if (argTypes[iarg] == +ATTRRECYCLE) {
+                /* do nothing */
+                goto cleanup;
             }
         }
     }
@@ -502,33 +600,27 @@ udpSet(char name[],                     /* (in)  argument name */
     if (message != NULL) {
         snprintf(message, 256, "Parameter \"%s\" not known.  should be one of:", name);
         for (iarg = 0; iarg < NUMUDPARGS; iarg++) {
-            if (argTypes[iarg] == +ATTRSTRING ||
-                argTypes[iarg] == +ATTRFILE   ||
-                argTypes[iarg] == +ATTRINT    ||
-                argTypes[iarg] == +ATTRREAL   ||
-                argTypes[iarg] == +ATTRREALSEN  ) {
+            if (argTypes[iarg] == +ATTRSTRING  ||
+                argTypes[iarg] == +ATTRFILE    ||
+                argTypes[iarg] == +ATTRINT     ||
+                argTypes[iarg] == +ATTRREAL    ||
+                argTypes[iarg] == +ATTRREALSEN ||
+                argTypes[iarg] == +ATTRREBUILD ||
+                argTypes[iarg] == +ATTRRECYCLE   ) {
                 strncat(message, " ",            256);
                 strncat(message, argNames[iarg], 256);
 //$$$                snprintf(message, 256, "%s %s", message, argNames[iarg]);
             }
         }
-
-        printf(" udpSet: %s\n", message);
-    } else {
-        printf(" udpSet: Parameter \"%s\" not known.  should be one of:", name);
-        for (iarg = 0; iarg < NUMUDPARGS; iarg++) {
-            if (argTypes[iarg] == +ATTRSTRING ||
-                argTypes[iarg] == +ATTRFILE   ||
-                argTypes[iarg] == +ATTRINT    ||
-                argTypes[iarg] == +ATTRREAL   ||
-                argTypes[iarg] == +ATTRREALSEN  ) {
-                printf(" %s", argNames[iarg]);
-            }
-        }
-        printf("\n");
     }
 
-    return EGADS_INDEXERR;
+    status = EGADS_INDEXERR;
+
+cleanup:
+#ifdef DEBUG
+    printf("exit  udpSet -> status=%d\n", status);
+#endif
+    return status;
 }
 
 
@@ -543,26 +635,41 @@ udpSet(char name[],                     /* (in)  argument name */
 int
 udpGet(ego    ebody,                    /* (in)  Body pointer */
        char   name[],                   /* (in)  argument name */
-       void   *value,                   /* (out) argument value (can be int* or double*) */
-       char   message[])
+       int    *nrow,                    /* (out) number of rows */
+       int    *ncol,                    /* (out) number of columns */
+       void   **val,                    /* (out) argument values (can be int* or double*) */
+       void   **dot,                    /* (out) argument velocities (double*) */
+       char   message[],                /* (out) error message */
+       int    numudp,                   /* (in)  number of instances */
+       udp_T  udps[])                   /* (in)  array  of instances */
 {
-    int  i, iudp, judp, iarg;
-    char lowername[257];
+    int    status = EGADS_SUCCESS;
+
+    int    i, iudp, iarg;
+    char   lowername[257];
+    void   *realloc_temp = NULL;            /* used by RALLOC macro */
+
+    ROUTINE(udpGet);
 
     /* --------------------------------------------------------------- */
 
 #ifdef DEBUG
-    printf("udpGet(ebody=%llx, name=%s)\n", (long long)ebody, name);
+    printf("enter udpGet(ebody=%llx, name=%s)\n", (long long)ebody, name);
 #endif
+
+    *nrow = 0;
+    *ncol = 0;
 
     if (message != NULL) {
         message[0] = '\0';
     }
 
     if (name == NULL) {
-        return EGADS_NONAME;
+        status = EGADS_NONAME;
+        goto cleanup;
     } else if (STRLEN(name) == 0 || STRLEN(name) > 255) {
-        return EGADS_NONAME;
+        status =  EGADS_NONAME;
+        goto cleanup;
     }
 
     for (i = 0; i <= STRLEN(name); i++) {
@@ -570,34 +677,74 @@ udpGet(ego    ebody,                    /* (in)  Body pointer */
     }
 
     /* check that ebody matches one of the ebodys */
-    iudp = 0;
-    for (judp = 1; judp <= numUdp; judp++) {
-#ifdef DEBUG
-        printf("udpGet: udps[%d].ebody=%lx\n", judp, (long)(udps[judp].ebody));
-#endif
-        if (ebody == udps[judp].ebody) {
-            iudp = judp;
-            break;
-        }
-    }
-    if (iudp <= 0) {
-        return EGADS_NOTMODEL;
-    }
+    iudp = status = findInstance(ebody, numudp, udps);
+    CHECK_STATUS(findBody);
 
     for (iarg = 0; iarg < NUMUDPARGS; iarg++) {
         if (strcmp(lowername, argNames[iarg]) == 0) {
             if        (argTypes[iarg] == -ATTRINT) {
-                int    *p      = (int    *) (udps[0].arg[iarg].val);
-                int    *valueP = (int    *) value;
+                int *ival, *valP=NULL;
 
-                *valueP = p[0];
-                return EGADS_SUCCESS;
+                *nrow = udps[iudp].arg[iarg].nrow;
+                *ncol = udps[iudp].arg[iarg].ncol;
+
+                RALLOC(valP, int, (*nrow)*(*ncol));
+
+                ival = (int*)(udps[iudp].arg[iarg].val);
+
+                for (i = 0; i < (*nrow)*(*ncol); i++) {
+                    valP[i] = ival[i];
+#ifdef DEBUG
+                    printf("   ival[%d]=%d\n", i, valP[i]);
+#endif
+                }
+
+                *val = valP;
+                *dot = NULL;
+                goto cleanup;
             } else if (argTypes[iarg] == -ATTRREAL) {
-                double *p      = (double *) (udps[0].arg[iarg].val);
-                double *valueP = (double *) value;
+                double *dval, *valP=NULL;
 
-                *valueP = p[0];
-                return EGADS_SUCCESS;
+                *nrow = udps[iudp].arg[iarg].nrow;
+                *ncol = udps[iudp].arg[iarg].ncol;
+
+                RALLOC(valP, double, (*nrow)*(*ncol));
+
+                dval = (double*)(udps[iudp].arg[iarg].val);
+
+                for (i = 0; i < (*nrow)*(*ncol); i++) {
+                    valP[i] = dval[i];
+#ifdef DEBUG
+                    printf("   dval[%d]=%f\n", i, valP[i]);
+#endif
+                }
+
+                *val = valP;
+                *dot = NULL;
+                goto cleanup;
+            } else if (argTypes[iarg] == -ATTRREALSEN) {
+                double *dval, *ddot, *valP=NULL, *dotP=NULL;
+
+                *nrow = udps[iudp].arg[iarg].nrow;
+                *ncol = udps[iudp].arg[iarg].ncol;
+
+                RALLOC(valP, double, (*nrow)*(*ncol));
+                RALLOC(dotP, double, (*nrow)*(*ncol));
+
+                dval = (double*)(udps[iudp].arg[iarg].val);
+                ddot = (double*)(udps[iudp].arg[iarg].dot);
+
+                for (i = 0; i < (*nrow)*(*ncol); i++) {
+                    valP[i] = dval[i];
+                    dotP[i] = ddot[i];
+#ifdef DEBUG
+                    printf("   dval[%d]=%f, ddot[%d]=%f\n", i, valP[i], i, dotP[i]);
+#endif
+                }
+
+                *val = valP;
+                *dot = dotP;
+                goto cleanup;
             }
         }
     }
@@ -605,27 +752,23 @@ udpGet(ego    ebody,                    /* (in)  Body pointer */
     if (message != NULL) {
         snprintf(message, 256, "Parameter \"%s\" not known.  should be one of:", name);
         for (iarg = 0; iarg < NUMUDPARGS; iarg++) {
-            if (argTypes[iarg] == -ATTRINT ||
-                argTypes[iarg] == -ATTRREAL  ) {
+            if (argTypes[iarg] == -ATTRINT    ||
+                argTypes[iarg] == -ATTRREAL   ||
+                argTypes[iarg] == -ATTRREALSEN  ) {
                 strncat(message, " ",            256);
                 strncat(message, argNames[iarg], 256);
 //$$$                snprintf(message, 256, "%s %s", message, argNames[iarg]);
             }
         }
-
-        printf(" udpGet: %s\n", message);
-    } else {
-        printf(" udpGet: Parameter \"%s\" not known.  should be one of:", name);
-        for (iarg = 0; iarg < NUMUDPARGS; iarg++) {
-            if (argTypes[iarg] == -ATTRINT ||
-                argTypes[iarg] == -ATTRREAL  ) {
-                printf(" %s", argNames[iarg]);
-            }
-        }
-        printf("\n");
     }
 
-    return EGADS_INDEXERR;
+    status = EGADS_INDEXERR;
+
+cleanup:
+#ifdef DEBUG
+    printf("exit  udpGet -> status=%d, nrow=%d, ncol=%d\n", status, *nrow, *ncol);
+#endif
+    return status;
 }
 
 
@@ -641,15 +784,21 @@ int
 udpVel(ego    ebody,                    /* (in)  Body pointer */
        char   name[],                   /* (in)  argument name */
        double dot[],                    /* (in)  argument velocity(s) */
-       int    ndot)                     /* (in)  number of velocities */
+       int    ndot,                     /* (in)  number of velocities */
+       int    numudp,                   /* (in)  number of instances */
+       udp_T  udps[])                   /* (in)  array  of instances */
 {
-    int  i, iudp, judp, iarg, idot, hasdots;
-    char lowername[257];
+    int    status = EGADS_SUCCESS;
+
+    int    i, iudp, iarg, idot, hasdots;
+    char   lowername[257];
+
+    ROUTINE(udpVel);
 
     /* --------------------------------------------------------------- */
 
 #ifdef DEBUG
-    printf("udpVel(ebody=%llx, name=%s, dot=%f", (long long)ebody, name, dot[0]);
+    printf("enter udpVel(ebody=%llx, name=%s, dot=%f", (long long)ebody, name, dot[0]);
     for (i = 1; i < ndot; i++) {
         printf(" %f", dot[i]);
     }
@@ -657,27 +806,20 @@ udpVel(ego    ebody,                    /* (in)  Body pointer */
 #endif
 
     if        (name  == NULL) {
-        return EGADS_NONAME;
+        status = EGADS_NONAME;
+        goto cleanup;
     } else if (STRLEN(name) == 0 || STRLEN(name) > 255) {
-        return EGADS_NONAME;
+        status = EGADS_NONAME;
+        goto cleanup;
     } else if (dot == NULL) {
-        return EGADS_NULLOBJ;
+        status = EGADS_NULLOBJ;
+        goto cleanup;
     }
 
     /* check that ebody matches one of the ebodys */
-    iudp = 0;
-    for (judp = 1; judp <= numUdp; judp++) {
-#ifdef DEBUG
-        printf("udpVel: udps[%d].ebody=%lx\n", judp, (long)(udps[judp].ebody));
-#endif
-        if (ebody == udps[judp].ebody) {
-            iudp = judp;
-            break;
-        }
-    }
-    if (iudp <= 0) {
-        return EGADS_NOTMODEL;
-    }
+    iudp = status = findInstance(ebody, numudp, udps);
+    if (status == EGADS_NOTMODEL) goto cleanup;
+    CHECK_STATUS(findBody);
 
     for (i = 0; i <= STRLEN(name); i++) {
         lowername[i] = tolower(name[i]);
@@ -689,26 +831,29 @@ udpVel(ego    ebody,                    /* (in)  Body pointer */
                 double *p = (double *) (udps[iudp].arg[iarg].dot);
 
                 if (ndot != udps[iudp].arg[iarg].size) {
-                    printf("size of value and dot do not agree\n");
-                    return EGADS_RANGERR;
+                    printf("size of value and dot do not agree for name=%s, ndot=%d, udps[%d].arg[%d].size=%d\n",
+                           lowername, ndot, iudp, iarg, udps[iudp].arg[iarg].size);
+                    status = EGADS_RANGERR;
+                    goto cleanup;
                 }
 
                 for (idot = 0; idot < ndot; idot++) {
+                    if (fabs(p[idot]-dot[idot]) > EPS12) {
+                        udps[iudp].ndotchg++;
+                        }
+
                     p[idot] = dot[idot];
                 }
-                return EGADS_SUCCESS;
-//$$$            } else if (argTypes[iarg] == +ATTRREAL) {
-//$$$                double *p = (double *) (udps[iudp].arg[iarg].dot);
-//$$$
-//$$$                if (ndot != udps[iudp].arg[iarg].size) {
-//$$$                    printf("size of value and dot do not agree\n");
-//$$$                    return EGADS_RANGERR;
-//$$$                }
-//$$$
-//$$$                for (idot = 0; idot < ndot; idot++) {
-//$$$                    p[idot] = dot[idot];
-//$$$                }
-//$$$                return EGADS_NOTFOUND;
+                status = EGADS_SUCCESS;
+                goto cleanup;
+            } else if (argTypes[iarg] == +ATTRREBUILD) {
+                /* do nothing */
+                status = EGADS_SUCCESS;
+                goto cleanup;
+            } else if (argTypes[iarg] == +ATTRRECYCLE) {
+                /* do nothing */
+                status = EGADS_SUCCESS;
+                goto cleanup;
             } else {
                 hasdots = 0;
                 for (idot = 0; idot < ndot; idot++) {
@@ -717,15 +862,63 @@ udpVel(ego    ebody,                    /* (in)  Body pointer */
                     }
                 }
                 if (hasdots == 0) {
-                    return EGADS_SUCCESS;
+                    status = EGADS_SUCCESS;
+                    goto cleanup;
                 } else {
-                    return EGADS_INDEXERR;
+                    status = EGADS_INDEXERR;
+                    goto cleanup;
                 }
             }
         }
     }
 
-    return EGADS_INDEXERR;
+    status = EGADS_INDEXERR;
+
+cleanup:
+#ifdef DEBUG
+    printf("exit  udpVel -> status=%d\n", status);
+#endif
+    return status;
+}
+
+
+/*
+ ************************************************************************
+ *                                                                      *
+ *   udpPost - reset ndotchg flag                                       *
+ *                                                                      *
+ ************************************************************************
+ */
+
+int
+udpPost(ego    ebody,                   /* (in)  Body pointer */
+        int    numudp,                  /* (in)  number of instances */
+        udp_T  udps[])                  /* (in)  array  of instances */
+{
+    int    status = EGADS_SUCCESS;
+
+    int    iudp;
+
+    ROUTINE(udpPost);
+
+    /* --------------------------------------------------------------- */
+
+#ifdef DEBUG
+    printf("enter udpPost(ebody=%llx)\n", (long long)ebody);
+#endif
+
+    /* check that ebody matches one of the ebodys */
+    iudp = status = findInstance(ebody, numudp, udps);
+    if (status == EGADS_NOTMODEL) goto cleanup;
+    CHECK_STATUS(findBody);
+
+    udps[iudp].ndotchg = 0;
+
+cleanup:
+#ifdef DEBUG
+    printf("exit  udpPost -> status=%d\n", status);
+#endif
+    return status;
 }
 
 
@@ -738,44 +931,20 @@ udpVel(ego    ebody,                    /* (in)  Body pointer */
  */
 
 int
-udpClean(ego ebody)                     /* (in)   Body pointer to clean from cache */
+udpClean(int   *NumUdp,                 /* (both)number of instances */
+         udp_T udps[])                  /* (in)  array  of instances */
 {
-    int iudp, judp, iarg;
+    int    status = EGADS_SUCCESS;
+
+    int    iarg;
+
+    ROUTINE(udpClean);
 
     /* --------------------------------------------------------------- */
 
 #ifdef DEBUG
-    printf("udpClean(ebody=%llx)\n", (long long)ebody);
+    printf("enter udpClean()\n");
 #endif
-
-    /* check that ebody matches one of the ebodys */
-    iudp = 0;
-    for (judp = 1; judp <= numUdp; judp++) {
-#ifdef DEBUG
-        printf("udpClean: udps[%d].ebody=%lx\n", judp, (long)(udps[judp].ebody));
-#endif
-        if (ebody == udps[judp].ebody) {
-            iudp = judp;
-
-            break;
-        }
-    }
-    if (iudp <= 0) {
-        return EGADS_NOTMODEL;
-    }
-
-    /* remove ebody from the udp's cache */
-    udps[iudp].ebody = NULL;
-
-    /* remove any private data from udp's cache */
-    if (udps[iudp].data != NULL) {
-#ifdef FREEUDPDATA
-        FREEUDPDATA(udps[iudp].data);
-#else
-        EG_free(udps[iudp].data);
-#endif
-        udps[iudp].data = NULL;
-    }
 
     /* decrement number of udps based upon NULL ebody entries */
     while (numUdp > 0) {
@@ -791,6 +960,7 @@ udpClean(ego ebody)                     /* (in)   Body pointer to clean from cac
                     EG_free(udps[numUdp].arg[iarg].dot);
                 }
             }
+            EG_free(udps[numUdp].arg);
 
             /* bodyList */
             if (udps[numUdp].bodyList != NULL) {
@@ -814,7 +984,11 @@ udpClean(ego ebody)                     /* (in)   Body pointer to clean from cac
         }
     }
 
-    return EGADS_SUCCESS;
+//cleanup:
+#ifdef DEBUG
+    printf("exit  udpClean -> status=%d\n", status);
+#endif
+    return status;
 }
 
 
@@ -834,12 +1008,14 @@ udpMesh(ego    ebody,                   /* (in)  Body pointer for mesh */
         int    *kmax,                   /* (out) k-dimension of mesh */
         double *mesh[])                 /* (out) array of mesh points */
 {
-    int    iudp, judp;
+    int    status = EGADS_SUCCESS;
+
+    ROUTINE(udpMesh);
 
     /* --------------------------------------------------------------- */
 
 #ifdef DEBUG
-    printf("udpMesh(ebody=%llx)\n", (long long)ebody);
+    printf("enter udpMesh(ebody=%llx)\n", (long long)ebody);
 #endif
 
     *imax = 0;
@@ -848,21 +1024,14 @@ udpMesh(ego    ebody,                   /* (in)  Body pointer for mesh */
     *mesh = NULL;
 
     /* check that ebody matches one of the ebodys */
-    iudp = 0;
-    for (judp = 1; judp <= numUdp; judp++) {
-#ifdef DEBUG
-        printf("udpMesh: udps[%d].ebody=%lx\n", judp, (long)(udps[judp].ebody));
-#endif
-        if (ebody == udps[judp].ebody) {
-            iudp = judp;
-            break;
-        }
-    }
-    if (iudp <= 0) {
-        return EGADS_NOTMODEL;
-    }
+    status = findInstance(ebody, numUdp, udps);
+    CHECK_STATUS(findBody);
 
-    return EGADS_SUCCESS;
+cleanup:
+#ifdef DEBUG
+    printf("exit  udpMesg -> status=%d, imax=%d, jmax=%d, kmax=%d\n", status, *imax, *jmax, *kmax);
+#endif
+    return status;
 }
 
 
@@ -875,22 +1044,28 @@ udpMesh(ego    ebody,                   /* (in)  Body pointer for mesh */
  */
 
 static int
-cacheUdp(/*@null@*/ego emodel)          /* (in)  Model with __bodyList__ */
+CacheUdp(/*@null@*/ego emodel,          /* (in)  Model with __bodyList__ */
+         int   *NumUdp,                 /* (both)number of instances */
+         udp_T *Udps[])                 /* (both)array  of instances */
 {
     int     status = SUCCESS;
-    
+
     int     iarg, isize, attrType, attrLen, i;
     CINT    *tempIlist;
     CDOUBLE *tempRlist;
     CCHAR   *tempClist;
+    udp_T   *udps;
+    void    *realloc_temp = NULL;            /* used by RALLOC macro */
 
     ROUTINE(cacheUdp);
 
     /* --------------------------------------------------------------- */
 
 #ifdef DEBUG
-    printf("cacheUdp(emodel=%lx)\n", (long)emodel);
+    printf("enter cacheUdp(emodel=%lx)\n", (long)emodel);
 #endif
+
+    udps = *Udps;
 
     /* create the BodyList (0-terminated) */
     if (emodel != NULL) {
@@ -910,85 +1085,118 @@ cacheUdp(/*@null@*/ego emodel)          /* (in)  Model with __bodyList__ */
     /* increment number of UDPs in the cache */
     numUdp++;
 
+#ifdef DEBUG
+    printf("copying from udps[0] to udps[%d]\n", numUdp);
+#endif
+
     /* increase the arrays to make room for the new UDP */
-    udps = (udp_T *) EG_reall(udps, (numUdp+1)*sizeof(udp_T));
-    if (udps == NULL) return EGADS_MALLOC;
+    RALLOC(*Udps, udp_T, numUdp+1);
+    udps = *Udps;
+
     udps[numUdp].ebody = NULL;
 
     /* copy info from udps[0] into udps[numUdp] */
+    udps[numUdp].ndotchg  = udps[0].ndotchg;
     udps[numUdp].bodyList = udps[0].bodyList;
-    udps[numUdp].data     = udps[0].data;
 
+#ifdef COPYUDPDATA
+    COPYUDPDATA(udps[0].data, &(udps[numUdp].data));
+#else
+    udps[numUdp].data = NULL;
+#endif
+
+    udps[numUdp].narg = NUMUDPARGS;
+    udps[numUdp].arg  = NULL;
+    RALLOC(udps[numUdp].arg, udparg_T, NUMUDPARGS);
     for (iarg = 0; iarg < NUMUDPARGS; iarg++) {
-        isize = udps[numUdp].arg[iarg].size = udps[0].arg[iarg].size;
+        udps[numUdp].arg[iarg].type = argTypes[iarg];
+        udps[numUdp].arg[iarg].nrow = udps[0].arg[iarg].nrow;
+        udps[numUdp].arg[iarg].ncol = udps[0].arg[iarg].ncol;
+        udps[numUdp].arg[iarg].size = udps[0].arg[iarg].size;
+        udps[numUdp].arg[iarg].val  = NULL;
+        udps[numUdp].arg[iarg].dot  = NULL;
+        isize = udps[numUdp].arg[iarg].size;
 
         if        (argTypes[iarg] == +ATTRSTRING) {
-            udps[numUdp].arg[iarg].val = (char *) EG_alloc((isize+1)*sizeof(char  ));
-            udps[numUdp].arg[iarg].dot = NULL;
-            if (udps[numUdp].arg[iarg].val == NULL) return EGADS_MALLOC;
+            MALLOC(udps[numUdp].arg[iarg].val, char, isize+1);
 
             memcpy(udps[numUdp].arg[iarg].val, udps[0].arg[iarg].val, (isize+1)*sizeof(char  ));
         } else if (argTypes[iarg] == +ATTRFILE) {
-            udps[numUdp].arg[iarg].val = (char *) EG_alloc((isize+1)*sizeof(char  ));
-            udps[numUdp].arg[iarg].dot = NULL;
-            if (udps[numUdp].arg[iarg].val == NULL) return EGADS_MALLOC;
+            MALLOC(udps[numUdp].arg[iarg].val, char, isize+1);
 
             memcpy(udps[numUdp].arg[iarg].val, udps[0].arg[iarg].val, (isize+1)*sizeof(char  ));
         } else if (argTypes[iarg] == +ATTRINT ||
                    argTypes[iarg] == -ATTRINT   ) {
-            if (isize > 0) {
-                udps[numUdp].arg[iarg].val = (int *) EG_alloc(isize*sizeof(int   ));
-                udps[numUdp].arg[iarg].dot = NULL;
-                if (udps[numUdp].arg[iarg].val == NULL) return EGADS_MALLOC;
+            MALLOC(udps[numUdp].arg[iarg].val, int, isize);
 
-                memcpy(udps[numUdp].arg[iarg].val, udps[0].arg[iarg].val, isize*sizeof(int   ));
-            } else {
-                udps[numUdp].arg[iarg].val = NULL;
-                udps[numUdp].arg[iarg].dot = NULL;
-            }
+            memcpy(udps[numUdp].arg[iarg].val, udps[0].arg[iarg].val, isize*sizeof(int   ));
         } else if (argTypes[iarg] == +ATTRREAL ||
                    argTypes[iarg] == -ATTRREAL   ) {
-            if (isize > 0) {
-                udps[numUdp].arg[iarg].val = (double *) EG_alloc(isize*sizeof(double));
-                udps[numUdp].arg[iarg].dot = NULL;
-                if (udps[numUdp].arg[iarg].val == NULL) return EGADS_MALLOC;
+            MALLOC(udps[numUdp].arg[iarg].val, double, isize);
 
-                memcpy(udps[numUdp].arg[iarg].val, udps[0].arg[iarg].val, isize*sizeof(double));
-            } else {
-                udps[numUdp].arg[iarg].val = NULL;
-                udps[numUdp].arg[iarg].dot = NULL;
-            }
-        } else if (argTypes[iarg] == +ATTRREALSEN) {
-            if (isize > 0) {
-                udps[numUdp].arg[iarg].val = (double *) EG_alloc(isize*sizeof(double));
-                if (udps[numUdp].arg[iarg].val == NULL) return EGADS_MALLOC;
+            memcpy(udps[numUdp].arg[iarg].val, udps[0].arg[iarg].val, isize*sizeof(double));
+        } else if (argTypes[iarg] == +ATTRREALSEN ||
+                   argTypes[iarg] == -ATTRREALSEN   ) {
+            MALLOC(udps[numUdp].arg[iarg].val, double, isize);
+            MALLOC(udps[numUdp].arg[iarg].dot, double, isize);
 
-                memcpy(udps[numUdp].arg[iarg].val, udps[0].arg[iarg].val, isize*sizeof(double));
-
-                udps[numUdp].arg[iarg].dot = (double *) EG_alloc(isize*sizeof(double));
-                if (udps[numUdp].arg[iarg].dot == NULL) return EGADS_MALLOC;
-
-                memcpy(udps[numUdp].arg[iarg].dot, udps[0].arg[iarg].dot, isize*sizeof(double));
-            } else {
-                udps[numUdp].arg[iarg].val = NULL;
-                udps[numUdp].arg[iarg].dot = NULL;
-            }
+            memcpy(udps[numUdp].arg[iarg].val, udps[0].arg[iarg].val, isize*sizeof(double));
+            memcpy(udps[numUdp].arg[iarg].dot, udps[0].arg[iarg].dot, isize*sizeof(double));
+        } else if (argTypes[iarg] == +ATTRREBUILD) {
+        } else if (argTypes[iarg] == +ATTRRECYCLE) {
         } else if (argTypes[iarg] == 0) {
-            if (isize > 0) {
-                udps[numUdp].arg[iarg].val = (double *) EG_alloc(isize*sizeof(double));
-                udps[numUdp].arg[iarg].dot = NULL;
-                if (udps[numUdp].arg[iarg].val == NULL) return EGADS_MALLOC;
+            MALLOC(udps[numUdp].arg[iarg].val, double, 1);
 
-                memcpy(udps[numUdp].arg[iarg].val, udps[0].arg[iarg].val, isize*sizeof(double));
-            } else {
-                udps[numUdp].arg[iarg].val = NULL;
-                udps[numUdp].arg[iarg].dot = NULL;
-            }
+            memcpy(udps[numUdp].arg[iarg].val, udps[0].arg[iarg].val, isize*sizeof(double));
+        } else {
+            printf("bad argType[%d]=%d in CacheUdp\n", iarg, argTypes[iarg]);
+            exit(0);
         }
     }
 
-    status = EGADS_SUCCESS;
+cleanup:
+#ifdef DEBUG
+    printf("exit  cacheUdp -> status=%d\n", status);
+#endif
+    return status;
+}
+
+
+/*
+ ************************************************************************
+ *                                                                      *
+ *   findInstance - find UDP instance that matches ebody                *
+ *                                                                      *
+ ************************************************************************
+ */
+
+static int
+findInstance(ego    ebody,              /* (in)  Body to match */
+             int    numudp,             /* (in)  number of instances */
+             udp_T  udps[])             /* (in)  array  of instances */
+{
+    int    iudp, judp;
+
+    ROUTINE(finBody);
+
+    /* --------------------------------------------------------------- */
+
+    iudp = EGADS_NOTMODEL;
+
+    for (judp = 1; judp <= numudp; judp++) {
+        if (ebody == udps[judp].ebody) {
+            iudp = judp;
+            goto cleanup;
+        }
+    }
+
+#ifdef DEBUG
+    printf("in findInstance(ebody=%llx)\n", (long long)ebody);
+    for (judp = 1; judp <= numudp; judp++) {
+        printf("    udps[%2d]=%llx\n", judp, (long long)(udps[judp].ebody));
+    }
+#endif
 
 cleanup:
-    return status;
+    return iudp;
 }

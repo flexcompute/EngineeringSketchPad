@@ -1,0 +1,19 @@
+# hollow_6
+# written by John Dannenhoffer
+
+# plate shown as wireframe
+BOX       0  0  0  3  2  0
+SELECT    FACE
+ATTRIBUTE _viz $off
+
+# same plate
+BOX       0  0  0  3  2  0
+
+# make larger (transparent) body with blue Edges
+HOLLOW    -.1
+SELECT    FACE
+ATTRIBUTE _trn $on
+SELECT    EDGE
+ATTRIBUTE _color $blue
+
+END

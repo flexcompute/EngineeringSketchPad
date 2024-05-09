@@ -1,0 +1,52 @@
+# ablate0a
+# written by John Dannenhoffer
+
+# instructions:
+#    cd ../data/basic
+#    clang ablate0.c -o ablate0
+#    ablate0
+#    rm ablate0
+#
+#    cd ../../bin
+#    serveESP ../data/basic/ablate0a       (this sets up ablate0a.egads)
+#    serveESP ../data/basic/ablate0a
+#       Tools -> Plugs  ../data/basic/ablate0.cloud
+#          ExecutePhase1  0
+#          ExecutePhase2  25
+#          Plugs->Save
+#    mv plugs.despmtrs ../data/basic/ablate0a.despmtrs
+#    serveESP ../data/basic/ablate0a -despmtrs ../data/basic/ablate0a.despmtrs -plot ../data/basic/ablate0.cloud
+
+CFGPMTR   numcp     5
+
+DIMENSION dist      (numcp-2)  (numcp-2)
+DESPMTR   dist      0
+
+# try to run the case with Plugs
+UDPARG    warp      egadsfile  $$/ablate0a.egads
+UDPARG    warp      iface      6
+UDPARG    warp      toler      1e-5
+UDPRIM    warp      dist       dist
+
+# if the .egads file is not found, set up the .egads file instead
+CATBEG    -1
+    # basic configuration
+    BOX      0  0  0  4  3  2
+
+    # we will only apply Plugs to Face 6
+    SELECT    FACE
+    SELECT    SUB   @nbody 6
+    ATTRIBUTE _plugsIgnore 1
+
+    # convert to Bsplines
+    UDPRIM    nuscale   mincp numcp
+
+    # write .egads file
+    DUMP      $/ablate0a.egads
+
+    MESSAGE   ***********************************************
+    MESSAGE   Run_again_now_that_.egads_file_has_been_created
+    MESSAGE   ***********************************************
+CATEND
+
+END

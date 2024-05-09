@@ -10,7 +10,7 @@
  */
 
 /*
- * Copyright (C) 2013/2022  John F. Dannenhoffer, III (Syracuse University)
+ * Copyright (C) 2013/2024  John F. Dannenhoffer, III (Syracuse University)
  *
  * This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
@@ -125,6 +125,7 @@ udpExecute(ego  context,                /* (in)  EGADS context */
     double  axis[6] = { 0, 0, 0, 1, 0, 0};
     ego     enodes[2], ecurve, eedge, eloop, eref, *echilds, elist[2];
     ego     ewire, esheet;
+    udp_T   *udps = *Udps;
 
 #ifndef UDP
     double  myVolume;
@@ -246,7 +247,7 @@ udpExecute(ego  context,                /* (in)  EGADS context */
     status = EG_getMassProperties(*ebody, data);
     CHECK_STATUS(EG_getMassProperties);
 
-    VOLUME(0) = data[0];
+    VOLUME(numUdp) = data[0];
 
     /* remember this model (body) */
 #ifdef UDP

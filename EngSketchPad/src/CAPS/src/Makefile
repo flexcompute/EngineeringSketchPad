@@ -11,9 +11,9 @@ endif
 
 VPATH = $(ODIR)
 
-OBJS  = capsBase.o  capsAnalysis.o capsApprox.o capsAttr.o  capsAIM.o \
-	capsBound.o capsProblem.o  capsValue.o  capsUnits.o conjGrad.o \
-	capsFunIDs.o printObject.o
+OBJS  = capsBase.o   capsAnalysis.o capsApprox.o capsAttr.o  capsAIM.o \
+	capsBound.o  capsProblem.o  capsValue.o  capsUnits.o conjGrad.o \
+	capsFunIDs.o capsChkInpt.o  printObject.o
 
 default:	includes $(LDIR)/libaimUtil.a $(LDIR)/$(CSHLIB) \
 		$(LDIR)/libcapsstatic.a $(LDIR)/testingAIM.so \
@@ -77,15 +77,15 @@ $(LDIR)/libcapsstatic.a:	$(OBJS)
 $(LDIR)/libcaps.so:	$(OBJS)
 	touch $(LDIR)/libcaps.so
 	rm $(LDIR)/libcaps.so
-	(cd $(ODIR); $(CC) -shared -Wl,-no-undefined -o $(LDIR)/libcaps.so \
-			$(OBJS) -L$(LDIR) -ludunits2 -locsm -legads -ldl -lm )
+	(cd $(ODIR); $(CC) $(SOFLGS) -o $(LDIR)/libcaps.so \
+			$(OBJS) -L$(LDIR) -ludunits2 -locsm -legads -ldl \
+			$(RPATH) -lm )
 
 $(LDIR)/libcaps.dylib:	$(OBJS)
 	touch $(LDIR)/libcaps.dylib
 	rm $(LDIR)/libcaps.dylib
 	(cd $(ODIR); $(CC) -dynamiclib -o $(LDIR)/libcaps.dylib $(OBJS) \
 			$(RPATH) -L$(LDIR) -ludunits2 -locsm -legads -ldl \
-			-undefined error \
 			-install_name '@rpath/libcaps.dylib' \
 			-compatibility_version $(EGREV) \
 			-current_version $(EGREV) )
@@ -138,7 +138,7 @@ lint:
 	$(LINT) -I../include -I$(IDIR) phaseUtil.c capsBase.c -uniondef -exportlocal -nullpass -bufferoverflowhigh -Dclosedir=free
 	@echo " "
 	@echo "CAPS library:"
-	$(LINT) -I../include -I$(IDIR) $(patsubst %.o,%.c,$(OBJS)) -uniondef -exportlocal -nullpass -bufferoverflowhigh -Dclosedir=free
+	$(LINT) -I../include -I$(IDIR) $(patsubst %.o,%.c,$(OBJS)) -uniondef -exportlocal -nullpass -bufferoverflowhigh -evalorder -Dclosedir=free
 	@echo " "
 	@echo "AIM utility library:"
 	$(LINT) -I../include -I$(IDIR) aimUtil.c aimMesh.c aimTransferUtil.c -uniondef -exportlocal -initallelements -Dclosedir=free

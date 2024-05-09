@@ -50,6 +50,6 @@ SELECT ADD  @nbody 4
    ATTRIBUTE _bcolor $green
 
 # inflate to solid Body
-COMBINE
+ELEVATE
 
 END

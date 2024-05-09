@@ -1,0 +1,49 @@
+#
+!IFNDEF ESP_ROOT
+!ERROR ESP_ROOT must be set -- Please fix the environment...
+!ENDIF
+#
+IDIR  = $(ESP_ROOT)\include
+!include $(IDIR)\$(ESP_ARCH).$(MSVC)
+LDIR  = $(ESP_ROOT)\lib
+!IFDEF ESP_BLOC
+ODIR  = $(ESP_BLOC)\obj
+TDIR  = $(ESP_BLOC)\test
+!ELSE
+ODIR  = .
+TDIR  = $(ESP_ROOT)\bin
+!ENDIF
+
+!IFNDEF SEACAS
+
+default:
+clean:
+cleanall:
+
+!ELSE
+
+!IFNDEF NETCDFINC
+NETCDFINC = .
+!ENDIF
+
+$(LDIR)\exodusWriter.dll:	exodusWriter.def $(ODIR)\exodusWriter.obj $(LDIR)\aimUtil.lib
+	-del $(LDIR)\exodusWriter.dll $(LDIR)\exodusWriter.lib \
+		$(LDIR)\exodusWriter.exp
+	 link /out:$(LDIR)\exodusWriter.dll /dll /def:exodusWriter.def \
+		$(ODIR)\exodusWriter.obj /LIBPATH:$(SEACAS)\lib\exodus.lib /LIBPATH:$(LDIR) aimUtil.lib \
+		ocsm.lib egads.lib udunits2.lib
+	$(MCOMP) /manifest $(LDIR)\exodusWriter.dll.manifest \
+		/outputresource:$(LDIR)\exodusWriter.dll;2
+
+$(ODIR)\exodusWriter.obj:	exodusWriter.cpp $(IDIR)\capsTypes.h $(IDIR)\aimMesh.h
+	cl /c $(CPPOPT) $(DEFINE) /I$(IDIR) /I$(SEACAS)\include /I$(NETCDFINC) exodusWriter.cpp \
+		/Fo$(ODIR)\exodusWriter.obj
+		
+clean:
+	-del $(ODIR)\exodusWriter.obj
+
+cleanall:	clean
+	-del $(LDIR)\exodusWriter.dll $(LDIR)\exodusWriter.lib \
+		$(LDIR)\exodusWriter.exp
+
+!ENDIF

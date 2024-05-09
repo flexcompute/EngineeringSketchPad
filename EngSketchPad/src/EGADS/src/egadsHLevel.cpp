@@ -3,7 +3,7 @@
  *
  *             High-Level Functions
  *
- *      Copyright 2011-2022, Massachusetts Institute of Technology
+ *      Copyright 2011-2024, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -212,7 +212,7 @@ EG_matchSplitter(BRepAlgoAPI_BuilderAlgo& BSO, egObject *src,
                  egObject *tool, TopoDS_Shape result,
                  egObject ***emapping, egObject ***fmapping)
 {
-  int         i, j, index, nbody, fullAttrs;
+  int         i, j, index, nbody, fullAttrs, outLevel;
   egObject    **emap = NULL, **fmap = NULL, **bodies;
   TopoDS_Edge edge, genedge;
   TopoDS_Face face, genface;
@@ -220,6 +220,28 @@ EG_matchSplitter(BRepAlgoAPI_BuilderAlgo& BSO, egObject *src,
   *emapping = NULL;
   *fmapping = NULL;
   fullAttrs = EG_fullAttrs(src);
+  outLevel  = EG_outLevel(src);
+
+  BRepCheck_Analyzer sCheck(result);
+  if (!sCheck.IsValid()) {
+    ShapeFix_Shape sfs(result);
+    sfs.Perform();
+    TopoDS_Shape fixedShape = sfs.Shape();
+    if (fixedShape.IsNull()) {
+      if (outLevel > 0)
+        printf(" EGADS Error: Resultant is invalid (EG_generalBoolean)!\n");
+      return EGADS_GEOMERR;
+    } else {
+      BRepCheck_Analyzer sfCheck(fixedShape);
+      if (!sfCheck.IsValid()) {
+        if (outLevel > 0)
+          printf(" EGADS Error: Fixed is invalid (EG_generalBoolean)!\n");
+        return EGADS_GEOMERR;
+      } else {
+        result = fixedShape;
+      }
+    }
+  }
 
   TopTools_IndexedMapOfShape rmape, rmap;
   TopExp::MapShapes(result, TopAbs_EDGE, rmape);
@@ -237,7 +259,10 @@ EG_matchSplitter(BRepAlgoAPI_BuilderAlgo& BSO, egObject *src,
       return EGADS_MALLOC;
     }
   }
-  if ((emap == NULL) && (fmap == NULL)) return EGADS_CONSTERR;
+  if ((emap == NULL) && (fmap == NULL)) {
+    if ((fullAttrs == 0) && (rmap.Extent() == 0)) return EGADS_SUCCESS;
+    return EGADS_CONSTERR;
+  }
 
   if (emap != NULL)
     for (i = 0; i < rmape.Extent(); i++) emap[i] = NULL;
@@ -465,7 +490,7 @@ EG_matchGeneral(BRepAlgoAPI_BooleanOperation& BSO, egObject *src,
                 egObject *tool, TopoDS_Shape& result,
                 egObject ***emapping, egObject ***fmapping)
 {
-  int          i, j, index, nbody, fullAttrs;
+  int          i, j, index, nbody, fullAttrs, outLevel;
   egObject     **emap = NULL, **fmap = NULL, **bodies;
   TopoDS_Edge  edge, genedge;
   TopoDS_Face  face, genface;
@@ -474,122 +499,262 @@ EG_matchGeneral(BRepAlgoAPI_BooleanOperation& BSO, egObject *src,
   *emapping = NULL;
   *fmapping = NULL;
   fullAttrs = EG_fullAttrs(src);
+  outLevel  = EG_outLevel(src);
 
   /* remove spurious Nodes -- note: Face mapping remains the same */
   EG_removeSpuriousNodes(BSO, result, newShape);
 
-  TopTools_IndexedMapOfShape rmape, rmap;
-  TopExp::MapShapes(newShape, TopAbs_EDGE, rmape);
+  /* allocate Face and Edge maps */
+  TopTools_IndexedMapOfShape rmape, rmapf;
   if (fullAttrs != 0) {
+    TopExp::MapShapes(newShape, TopAbs_EDGE, rmape);
     if (rmape.Extent() != 0) {
       emap = (egObject **) EG_alloc(rmape.Extent()*sizeof(egObject *));
       if (emap == NULL) return EGADS_MALLOC;
     }
   }
-  TopExp::MapShapes(result, TopAbs_FACE, rmap);
-  if (rmap.Extent() != 0) {
-    fmap = (egObject **) EG_alloc(rmap.Extent()*sizeof(egObject *));
+  TopExp::MapShapes(result, TopAbs_FACE, rmapf);
+  if (rmapf.Extent() != 0) {
+    fmap = (egObject **) EG_alloc(rmapf.Extent()*sizeof(egObject *));
     if (fmap == NULL) {
       if (emap != NULL) EG_free(emap);
       return EGADS_MALLOC;
     }
   }
-  if ((emap == NULL) && (fmap == NULL)) return EGADS_CONSTERR;
+  if ((emap == NULL) && (fmap == NULL)) {
+    if ((fullAttrs == 0) && (rmapf.Extent() == 0)) return EGADS_SUCCESS;
+    return EGADS_CONSTERR;
+  }
 
   if (emap != NULL)
     for (i = 0; i < rmape.Extent(); i++) emap[i] = NULL;
   if (fmap != NULL)
-    for (i = 0; i < rmap.Extent();  i++) fmap[i] = NULL;
+    for (i = 0; i < rmapf.Extent(); i++) fmap[i] = NULL;
 
-  if (src->oclass == MODEL) {
-    egadsModel *pmdl = (egadsModel *) src->blind;
-    nbody            = pmdl->nbody;
-    bodies           = pmdl->bodies;
-  } else {
-    nbody            = 1;
-    bodies           = &src;
+  /* check and attempt to fix bodies
+   * fixing the COMPOUND directly does not work...
+   */
+  TopTools_ListOfShape bods;
+  TopExp_Explorer Exp;
+  for (Exp.Init(newShape, TopAbs_WIRE,  TopAbs_FACE);
+       Exp.More(); Exp.Next()) {
+    bods.Append(Exp.Current());
+  }
+  for (Exp.Init(newShape, TopAbs_FACE,  TopAbs_SHELL);
+       Exp.More(); Exp.Next()) {
+    bods.Append(Exp.Current());
+  }
+  for (Exp.Init(newShape, TopAbs_SHELL, TopAbs_SOLID);
+       Exp.More(); Exp.Next()) {
+    bods.Append(Exp.Current());
+  }
+  for (Exp.Init(newShape, TopAbs_SOLID);
+       Exp.More(); Exp.Next()) {
+    bods.Append(Exp.Current());
   }
 
-  for (i = 0; i < nbody; i++) {
-    if (bodies[i]        == NULL) return EGADS_NULLOBJ;
-    if (bodies[i]->blind == NULL) return EGADS_NODATA;
-    egadsBody *pbody = (egadsBody *) bodies[i]->blind;
-    if (emap != NULL)
-      for (j = 1; j <= pbody->edges.map.Extent(); j++) {
-        edge = TopoDS::Edge(pbody->edges.map(j));
-        if (BSO.IsDeleted(edge)) continue;
-        const TopTools_ListOfShape& listEdges = BSO.Modified(edge);
-        if (listEdges.Extent() > 0) {
-          /* modified Edges */
-          TopTools_ListIteratorOfListOfShape it(listEdges);
-          for (; it.More(); it.Next()) {
-            genedge = TopoDS::Edge(it.Value());
-            index   = rmape.FindIndex(genedge);
-            if (index > 0) emap[index-1] = pbody->edges.objs[j-1];
-          }
+  TopoDS_Compound fixedCompound;
+  BRep_Builder    builder3D;
+  builder3D.MakeCompound(fixedCompound);
+  TopTools_ListIteratorOfListOfShape it(bods);
+  bool fixed = false;
+  for (i=0; it.More(); it.Next(), i++) {
+    BRepCheck_Analyzer sCheck(it.Value());
+    if (!sCheck.IsValid()) {
+      ShapeFix_Shape sfs(it.Value());
+      sfs.Perform();
+      TopoDS_Shape fixedShape = sfs.Shape();
+      if (fixedShape.IsNull()) {
+        if (outLevel > 0)
+          printf(" EGADS Error: Resultant %d/%d is invalid (EG_generalBoolean)!\n",
+                 i+1, bods.Extent());
+        return EGADS_GEOMERR;
+      } else {
+        BRepCheck_Analyzer sfCheck(fixedShape);
+        if (!sfCheck.IsValid()) {
+          if (outLevel > 0)
+            printf(" EGADS Error: Fixed %d/%d is invalid (EG_generalBoolean)!\n",
+                   i+1, bods.Extent());
+          return EGADS_GEOMERR;
+        } else {
+          builder3D.Add(fixedCompound, fixedShape);
+          fixed = true;
+          if (outLevel > 1)
+            printf(" EGADS Info: Fixed %d/%d (EG_generalBoolean)!\n",
+                   i+1, bods.Extent());
         }
       }
-    if (fmap != NULL)
-      for (j = 1; j <= pbody->faces.map.Extent(); j++) {
-        face = TopoDS::Face(pbody->faces.map(j));
-        if (BSO.IsDeleted(face)) continue;
-        const TopTools_ListOfShape& listFaces = BSO.Modified(face);
-        if (listFaces.Extent() > 0) {
-          /* modified Faces */
-          TopTools_ListIteratorOfListOfShape it(listFaces);
-          for (; it.More(); it.Next()) {
-            genface = TopoDS::Face(it.Value());
-            index   = rmap.FindIndex(genface);
-            if (index > 0) fmap[index-1] = pbody->faces.objs[j-1];
+    } else {
+      builder3D.Add(fixedCompound, it.Value());
+    }
+  }
+
+  /* fixes were applied. map Faces and Edges from the original to fixed bodies */
+  if (fixed) {
+    TopTools_IndexedMapOfShape nmape, nmapf;
+    if (fullAttrs != 0) {
+      TopExp::MapShapes(fixedCompound, TopAbs_EDGE, nmape);
+      if (nmape.Extent() != rmape.Extent()) {
+        if (outLevel > 0)
+          printf(" EGADS Error: Fixed Shape Changed Edge Count (EG_generalBoolean)!\n");
+        return EGADS_GEOMERR;
+      }
+
+      for (i = 1; i <= rmape.Extent(); i++) {
+        if (rmape.FindIndex(nmape(i)) == 0) {
+
+          edge = TopoDS::Edge(rmape(i));
+
+          bool notfound = true;
+          for (int k = 0; k < 2 && notfound; k++) {
+
+            if (k == 0) {
+              if (src->oclass == MODEL) {
+                egadsModel *pmdl = (egadsModel *) src->blind;
+                nbody            = pmdl->nbody;
+                bodies           = pmdl->bodies;
+              } else {
+                nbody            = 1;
+                bodies           = &src;
+              }
+            } else {
+              if (tool->oclass == MODEL) {
+                egadsModel *pmdl = (egadsModel *) tool->blind;
+                nbody            = pmdl->nbody;
+                bodies           = pmdl->bodies;
+              } else {
+                nbody  = 1;
+                bodies = &tool;
+              }
+            }
+
+            for (j = 0; j < nbody && notfound; j++) {
+              if (bodies[j]        == NULL) return EGADS_NULLOBJ;
+              if (bodies[j]->blind == NULL) return EGADS_NODATA;
+              egadsBody *pbody = (egadsBody *) bodies[j]->blind;
+              index = pbody->edges.map.FindIndex(edge);
+              if (index > 0) {
+                emap[i-1] = pbody->edges.objs[index-1];
+                notfound = false;
+              }
+            }
           }
         }
       }
     }
 
-  if (tool->oclass == MODEL) {
-    egadsModel *pmdl = (egadsModel *) tool->blind;
-    nbody            = pmdl->nbody;
-    bodies           = pmdl->bodies;
-  } else {
-    nbody  = 1;
-    bodies = &tool;
+    TopExp::MapShapes(fixedCompound, TopAbs_FACE, nmapf);
+    if (nmapf.Extent() != rmapf.Extent()) {
+      if (outLevel > 0)
+        printf(" EGADS Error: Fixed Shape Changed Face Count (EG_generalBoolean)!\n");
+      return EGADS_GEOMERR;
+    }
+
+    for (i = 1; i <= rmapf.Extent(); i++) {
+      if (rmapf.FindIndex(nmapf(i)) == 0) {
+
+        face = TopoDS::Face(rmapf(i));
+
+        bool notfound = true;
+        for (int k = 0; k < 2 && notfound; k++) {
+
+          if (k == 0) {
+            if (src->oclass == MODEL) {
+              egadsModel *pmdl = (egadsModel *) src->blind;
+              nbody            = pmdl->nbody;
+              bodies           = pmdl->bodies;
+            } else {
+              nbody            = 1;
+              bodies           = &src;
+            }
+          } else {
+            if (tool->oclass == MODEL) {
+              egadsModel *pmdl = (egadsModel *) tool->blind;
+              nbody            = pmdl->nbody;
+              bodies           = pmdl->bodies;
+            } else {
+              nbody  = 1;
+              bodies = &tool;
+            }
+          }
+
+          for (j = 0; j < nbody && notfound; j++) {
+            if (bodies[j]        == NULL) return EGADS_NULLOBJ;
+            if (bodies[j]->blind == NULL) return EGADS_NODATA;
+            egadsBody *pbody = (egadsBody *) bodies[j]->blind;
+            index = pbody->faces.map.FindIndex(face);
+            if (index > 0) {
+              fmap[i-1] = pbody->faces.objs[index-1];
+              notfound = false;
+            }
+          }
+        }
+      }
+    }
+
+    newShape = fixedCompound;
   }
 
-  for (i = 0; i < nbody; i++) {
-    if (bodies[i]        == NULL)  return EGADS_NULLOBJ;
-    if (bodies[i]->blind == NULL)  return EGADS_NODATA;
-    if (bodies[i]->oclass != BODY) continue;
-    egadsBody *pbody = (egadsBody *) bodies[i]->blind;
-    if (emap != NULL)
-      for (j = 1; j <= pbody->edges.map.Extent(); j++) {
-        edge = TopoDS::Edge(pbody->edges.map(j));
-        if (BSO.IsDeleted(edge)) continue;
-        const TopTools_ListOfShape& listEdges = BSO.Modified(edge);
-        if (listEdges.Extent() > 0) {
-          /* modified Edges */
-          TopTools_ListIteratorOfListOfShape it(listEdges);
-          for (; it.More(); it.Next()) {
-            genedge = TopoDS::Edge(it.Value());
-            index   = rmape.FindIndex(genedge);
-            if (index > 0) emap[index-1] = pbody->edges.objs[j-1];
+  /* map modified Faces and Edges */
+  for (int k = 0; k < 2; k++) {
+
+    if (k == 0) {
+      if (src->oclass == MODEL) {
+        egadsModel *pmdl = (egadsModel *) src->blind;
+        nbody            = pmdl->nbody;
+        bodies           = pmdl->bodies;
+      } else {
+        nbody            = 1;
+        bodies           = &src;
+      }
+    } else {
+      if (tool->oclass == MODEL) {
+        egadsModel *pmdl = (egadsModel *) tool->blind;
+        nbody            = pmdl->nbody;
+        bodies           = pmdl->bodies;
+      } else {
+        nbody  = 1;
+        bodies = &tool;
+      }
+    }
+
+    for (i = 0; i < nbody; i++) {
+      if (bodies[i]        == NULL) return EGADS_NULLOBJ;
+      if (bodies[i]->blind == NULL) return EGADS_NODATA;
+      egadsBody *pbody = (egadsBody *) bodies[i]->blind;
+      if (emap != NULL) {
+        for (j = 1; j <= pbody->edges.map.Extent(); j++) {
+          edge = TopoDS::Edge(pbody->edges.map(j));
+          if (BSO.IsDeleted(edge)) continue;
+          const TopTools_ListOfShape& listEdges = BSO.Modified(edge);
+          if (listEdges.Extent() > 0) {
+            /* modified Edges */
+            TopTools_ListIteratorOfListOfShape it(listEdges);
+            for (; it.More(); it.Next()) {
+              genedge = TopoDS::Edge(it.Value());
+              index   = rmape.FindIndex(genedge);
+              if (index > 0) emap[index-1] = pbody->edges.objs[j-1];
+            }
           }
         }
       }
-    if (fmap != NULL)
-      for (j = 1; j <= pbody->faces.map.Extent(); j++) {
-        face = TopoDS::Face(pbody->faces.map(j));
-        if (BSO.IsDeleted(face)) continue;
-        const TopTools_ListOfShape& listFaces = BSO.Modified(face);
-        if (listFaces.Extent() > 0) {
-          /* modified Faces */
-          TopTools_ListIteratorOfListOfShape it(listFaces);
-          for (; it.More(); it.Next()) {
-            genface = TopoDS::Face(it.Value());
-            index   = rmap.FindIndex(genface);
-            if (index > 0) fmap[index-1] = pbody->faces.objs[j-1];
+      if (fmap != NULL) {
+        for (j = 1; j <= pbody->faces.map.Extent(); j++) {
+          face = TopoDS::Face(pbody->faces.map(j));
+          if (BSO.IsDeleted(face)) continue;
+          const TopTools_ListOfShape& listFaces = BSO.Modified(face);
+          if (listFaces.Extent() > 0) {
+            /* modified Faces */
+            TopTools_ListIteratorOfListOfShape it(listFaces);
+            for (; it.More(); it.Next()) {
+              genface = TopoDS::Face(it.Value());
+              index   = rmapf.FindIndex(genface);
+              if (index > 0) fmap[index-1] = pbody->faces.objs[j-1];
+            }
           }
         }
       }
+    }
   }
 
   result    = newShape;
@@ -1206,6 +1371,7 @@ EG_generalBoolean(egObject *src, egObject *tool, int oper, double tol,
     return EGADS_ATTRERR;
   }
 
+
   // parse the result
   int nWire  = 0;
   int nFace  = 0;
@@ -1218,7 +1384,8 @@ EG_generalBoolean(egObject *src, egObject *tool, int oper, double tol,
        Exp.More(); Exp.Next()) nFace++;
   for (Exp.Init(result, TopAbs_SHELL, TopAbs_SOLID);
        Exp.More(); Exp.Next()) nSheet++;
-  for (Exp.Init(result, TopAbs_SOLID); Exp.More(); Exp.Next()) nSolid++;
+  for (Exp.Init(result, TopAbs_SOLID);
+       Exp.More(); Exp.Next()) nSolid++;
   if (outLevel > 1)
     printf(" Info: result has %d Solids, %d Sheets, %d Faces and %d Wires\n",
            nSolid, nSheet, nFace, nWire);
@@ -1296,7 +1463,7 @@ EG_generalBoolean(egObject *src, egObject *tool, int oper, double tol,
     BRepCheck_Analyzer sCheck(pbody->shape);
     if (!sCheck.IsValid()) {
       if (outLevel > 0)
-        printf(" EGADS Error: Result %d/%d is inValid (EG_solidBoolean)!\n",
+        printf(" EGADS Error: Result %d/%d is inValid (EG_generalBoolean)!\n",
                i+1, nBody);
       for (j = 0; j < nBody; j++) {
         egObject  *obj   = mshape->bodies[j];
@@ -1615,14 +1782,12 @@ EG_modelBoolean(const egObject *src, const egObject *tool, int oper,
                                                 aLCB);
         TopoDS_Shape aRC;
         BOPTools_AlgoTools::MakeContainer(TopAbs_COMPOUND, aRC);
-        int nbdy = 0;
         for (aItLCB.Initialize(aLCB); aItLCB.More(); aItLCB.Next()) {
           TopoDS_Shape aRCB;
           BOPTools_AlgoTools::MakeContainer(TopAbs_SHELL, aRCB);
           const TopoDS_Shape& aCB = aItLCB.Value();
           for (aIt.Initialize(aCB); aIt.More(); aIt.Next())
             aBB.Add(aRCB, aIt.Value());
-          nbdy++;
           aBB.Add(aRC, aRCB);
         }
         result = aRC;
@@ -1737,14 +1902,12 @@ EG_modelBoolean(const egObject *src, const egObject *tool, int oper,
                                                 aLCB);
         TopoDS_Shape aRC;
         BOPTools_AlgoTools::MakeContainer(TopAbs_COMPOUND, aRC);
-        int nbdy = 0;
         for (aItLCB.Initialize(aLCB); aItLCB.More(); aItLCB.Next()) {
           TopoDS_Shape aRCB;
           BOPTools_AlgoTools::MakeContainer(TopAbs_SHELL, aRCB);
           const TopoDS_Shape& aCB = aItLCB.Value();
           for (aIt.Initialize(aCB); aIt.More(); aIt.Next())
             aBB.Add(aRCB, aIt.Value());
-          nbdy++;
           aBB.Add(aRC, aRCB);
         }
         result = aRC;
@@ -3541,6 +3704,7 @@ EG_imprintBody(const egObject *src, int nedge, const egObject **facEdg,
     printf(" EGADS Warning: Split Construction Error (EG_imprintBody)!\n");
     return EGADS_CONSTERR;
   }
+
   TopTools_IndexedMapOfShape mapE;
   TopExp::MapShapes(newShape, TopAbs_EDGE, mapE);
   if (mapE.Extent() <= pbody->edges.map.Extent()) {
@@ -3548,6 +3712,46 @@ EG_imprintBody(const egObject *src, int nedge, const egObject **facEdg,
       printf(" EGADS Error: # new Edges = %d, # on src = %d (EG_imprintBody)!\n",
              mapE.Extent(), pbody->edges.map.Extent());
     return EGADS_CONSTERR;
+  }
+
+  /* check all new edges are in the new body */
+  for (int i = 0; i < nedge; i++) {
+    if (facEdg[2*i+1]->oclass == EDGE) {
+      egadsEdge *pedge = (egadsEdge *) facEdg[2*i+1]->blind;
+      bool found = false;
+      for (int j = 1; j <= mapE.Extent(); j++) {
+        if (mapE(j).IsSame(pedge->edge)) {
+          found = true;
+          break;
+        }
+      }
+      if (!found) {
+        if (outLevel > 0)
+          printf(" EGADS Error: new Edges = %d not imprinted (EG_imprintBody)!\n",
+                 i+1);
+        return EGADS_CONSTERR;
+      }
+    } else {
+      /* check all loop edges are in the new body */
+      egadsLoop *ploop = (egadsLoop *) facEdg[2*i+1]->blind;
+      TopTools_IndexedMapOfShape ledges;
+      TopExp::MapShapes(ploop->loop, TopAbs_EDGE, ledges);
+      for (int j = 1; j <= ledges.Extent(); j++) {
+        bool found = false;
+        for (int k = 1; k <= mapE.Extent(); k++) {
+          if (mapE(k).IsSame(ledges(j))) {
+            found = true;
+            break;
+          }
+        }
+        if (!found) {
+          if (outLevel > 0)
+            printf(" EGADS Error: new Loop %d Edge %d not imprinted (EG_imprintBody)!\n",
+                   i+1, j);
+          return EGADS_CONSTERR;
+        }
+      }
+    }
   }
 
   stat = EG_makeObject(context, &obj);
@@ -6800,7 +7004,7 @@ EG_rotate_loop(objStack *stack, const egObject *loop0, const egObject *loop1,
                                NULL, 1, &body, NULL, &model);
 
         char filename[42];
-        sprintf(filename, "circle_%d.egads", i);
+        snprintf(filename, 42, "circle_%d.egads", i);
         EG_saveModel(model, filename);
       }
 #endif
@@ -6904,7 +7108,7 @@ EG_rotate_loop(objStack *stack, const egObject *loop0, const egObject *loop1,
                                NULL, 1, &body, NULL, &model);
 
         char filename[42];
-        sprintf(filename, "loop_%d.egads", i);
+        snprintf(filename, 42, "loop_%d.egads", i);
         EG_saveModel(model, filename);
       }
 #endif
@@ -6972,7 +7176,7 @@ EG_rotate_loop(objStack *stack, const egObject *loop0, const egObject *loop1,
                                NULL, 1, &body, NULL, &model);
 
         char filename[42];
-        sprintf(filename, "face_%d.egads", i);
+        snprintf(filename, 42, "face_%d.egads", i);
         EG_saveModel(model, filename);
       }
 #endif
@@ -7312,7 +7516,7 @@ EG_rotate(const egObject *src, double angle, const double *axis,
                            NULL, 1, &body, NULL, &model);
 
     char filename[42];
-    sprintf(filename, "face_%d.egads", i);
+    snprintf(filename, 42, "face_%d.egads", i);
     EG_saveModel(model, filename);
   }
 #endif
@@ -8741,7 +8945,7 @@ EG_loft(int nsec, const egObject **secs, int opt, egObject **result)
   }
   if (newShape.ShapeType() == TopAbs_COMPOUND) {
     if (outLevel > 0)
-      printf(" EGADS Error: Result is Compound (EG_loft)!\n");
+      printf(" EGADS Error: Result is multiple Bodies (EG_loft)!\n");
     return EGADS_CONSTERR;
   }
   if (isSolid) {

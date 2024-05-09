@@ -1,12 +1,14 @@
 EXPORTS
 udpBodyList
 udpClean
-udpExecute
+UdpExecute
+udpFree
 udpGet
 udpInitialize
-udpMesh
+UdpMesh
 udpNumBodys
+udpPost
 udpReset
-udpSensitivity
+UdpSensitivity
 udpSet
 udpVel

@@ -1,0 +1,4 @@
+LIBRARY bvtkWriter
+EXPORTS
+meshExtension
+meshWrite

@@ -1,0 +1,24 @@
+# edgeIDtest3
+# written by John Dannenhoffer
+
+DESPMTR   x1   1.0
+DESPMTR   x2   2.0
+
+BOX       0  0  0  3  2  0
+
+SKBEG     x1-0.25  1.00  0.00
+   CIRARC x1       0.75  0.00  x1+0.25  1.00  0.00
+   CIRARC x1       1.25  0.00  x1-0.25  1.00  0.00
+SKEND
+SUBTRACT
+
+SKBEG     x2+0.25  1.00  0.00
+   CIRARC x2       1.25  0.00  x2-0.25  1.00  0.00
+   CIRARC x2       0.75  0.00  x2+0.25  1.00  0.00
+SKEND
+SUBTRACT
+
+SELECT    EDGE  0  0  1  1
+ATTRIBUTE _color $magenta
+
+END

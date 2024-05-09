@@ -1,0 +1,31 @@
+# testAdjoint7
+# written by John Dannenhoffer
+
+DIMENSION param     1   9
+DIMENSION radius    1  47
+
+DESPMTR   param     "0.01; 0.35; 0.055; -.35; -6.00;\
+                           0.45; -.006; -.20;  0.05"
+DESPMTR   radius    0.1
+
+PATBEG    isect     radius.size+2
+   UDPRIM    parsec    Param param
+   ROTATEY   90
+   ROTATEX   isect*10-5
+   TRANSLATE isect-1   0   0
+PATEND
+BLEND
+
+PATBEG    ipost     radius.size
+   MARK
+      UDPRIM    ellipse   rx radius[ipost]   ry radius[ipost]
+      ROTATEX   90
+      TRANSLATE ipost  -1/2  -1/2
+      RESTORE   .
+      TRANSLATE 0       1    0
+   RULE
+   ROTATEX   ipost*10+5
+   UNION
+PATEND
+
+END

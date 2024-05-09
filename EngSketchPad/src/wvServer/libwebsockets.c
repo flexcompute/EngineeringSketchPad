@@ -504,7 +504,7 @@ libwebsockets_get_peer_addresses(void *user, char *name, int name_len,
 			continue;
 
 		if (host1->h_addrtype == AF_INET)
-			sprintf(ip, "%u.%u.%u.%u", p[0], p[1], p[2], p[3]);
+			snprintf(ip, 128, "%u.%u.%u.%u", p[0],p[1],p[2],p[3]);
 #ifdef AF_LOCAL
 		else {
 			un = (struct sockaddr_un *)p;
@@ -814,16 +814,17 @@ libwebsocket_create_new_server_wsi(struct libwebsocket_context *context)
 
 /*@null@*/ /*@kept@*/ char *
 libwebsockets_generate_client_handshake(struct libwebsocket_context *context,
-		struct libwebsocket *wsi, char *pkt)
+                                        struct libwebsocket *wsi, char *pkt,
+                                        size_t pkt_len)
 {
 	char hash[20];
 	char *p = pkt;
-	int n;
+	int  n, remain;
 	struct libwebsocket_extension *ext;
 	struct libwebsocket_extension *ext1;
 	int ext_count = 0;
 	unsigned char buf[LWS_SEND_BUFFER_PRE_PADDING + 1 +
-			 MAX_BROADCAST_PAYLOAD + LWS_SEND_BUFFER_POST_PADDING];
+			  MAX_BROADCAST_PAYLOAD + LWS_SEND_BUFFER_POST_PADDING];
 	static const char magic_websocket_guid[] =
 					 "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
 
@@ -834,20 +835,17 @@ libwebsockets_generate_client_handshake(struct libwebsocket_context *context,
 	n = libwebsockets_get_random(context, hash, 16);
 	if (n != 16) {
 		fprintf(stderr, "Unable to read from random dev %s\n",
-						SYSTEM_RANDOM_FILEPATH);
+                        SYSTEM_RANDOM_FILEPATH);
 		free(wsi->c_path);
 		free(wsi->c_host);
-		if (wsi->c_origin)
-			free(wsi->c_origin);
-		if (wsi->c_protocol)
-			free(wsi->c_protocol);
+		if (wsi->c_origin)   free(wsi->c_origin);
+		if (wsi->c_protocol) free(wsi->c_protocol);
 		libwebsocket_close_and_free_session(context, wsi,
-					     LWS_CLOSE_STATUS_NOSTATUS);
+                                                    LWS_CLOSE_STATUS_NOSTATUS);
 		return NULL;
 	}
 
-	lws_b64_encode_string(hash, 16, wsi->key_b64,
-						   sizeof wsi->key_b64);
+	lws_b64_encode_string(hash, 16, wsi->key_b64, sizeof wsi->key_b64);
 
 	/*
 	 * 00 example client handshake
@@ -875,7 +873,8 @@ libwebsockets_generate_client_handshake(struct libwebsocket_context *context,
 	 * Sec-WebSocket-Version: 4
 	 */
 
-	p += sprintf(p, "GET %s HTTP/1.1\x0d\x0a", wsi->c_path);
+        remain = pkt_len - (p - pkt);
+	p += snprintf(p, remain, "GET %s HTTP/1.1\x0d\x0a", wsi->c_path);
 
 	if (wsi->ietf_spec_revision == 0) {
 		unsigned char spaces_1, spaces_2;
@@ -916,8 +915,8 @@ libwebsockets_generate_client_handshake(struct libwebsocket_context *context,
 		product_1 = num_1 * spaces_1;
 		product_2 = num_2 * spaces_2;
 
-		sprintf(key_1, "%lu", product_1);
-		sprintf(key_2, "%lu", product_2);
+		snprintf(key_1, 40, "%lu", product_1);
+		snprintf(key_2, 40, "%lu", product_2);
 
 		libwebsockets_get_random(context, &seed, sizeof(int));
 		libwebsockets_get_random(context, &count, sizeof(int));
@@ -934,18 +933,26 @@ libwebsockets_generate_client_handshake(struct libwebsocket_context *context,
 		libwebsockets_00_spaceout(key_1, spaces_1, seed);
 		libwebsockets_00_spaceout(key_2, spaces_2, seed >> 16);
 
-		p += sprintf(p, "Upgrade: WebSocket\x0d\x0a"
-			"Connection: Upgrade\x0d\x0aHost: %s\x0d\x0a",
-			wsi->c_host);
-		if (wsi->c_origin)
-			p += sprintf(p, "Origin: %s\x0d\x0a", wsi->c_origin);
+                remain = pkt_len - (p - pkt);
+		p += snprintf(p, remain, "Upgrade: WebSocket\x0d\x0a"
+                              "Connection: Upgrade\x0d\x0aHost: %s\x0d\x0a",
+                              wsi->c_host);
+                if (wsi->c_origin) {
+                        remain = pkt_len - (p - pkt);
+			p += snprintf(p, remain, "Origin: %s\x0d\x0a",
+                                      wsi->c_origin);
+                }
 
-		if (wsi->c_protocol)
-			p += sprintf(p, "Sec-WebSocket-Protocol: %s"
-					 "\x0d\x0a", wsi->c_protocol);
+                if (wsi->c_protocol) {
+                        remain = pkt_len - (p - pkt);
+			p += snprintf(p, remain, "Sec-WebSocket-Protocol: %s"
+                                      "\x0d\x0a", wsi->c_protocol);
+                }
 
-		p += sprintf(p, "Sec-WebSocket-Key1: %s\x0d\x0a", key_1);
-		p += sprintf(p, "Sec-WebSocket-Key2: %s\x0d\x0a", key_2);
+                remain = pkt_len - (p - pkt);
+		p += snprintf(p,remain,"Sec-WebSocket-Key1: %s\x0d\x0a", key_1);
+                remain = pkt_len - (p - pkt);
+		p += snprintf(p,remain,"Sec-WebSocket-Key2: %s\x0d\x0a", key_2);
 
 		/* give userland a chance to append, eg, cookies */
 
@@ -953,38 +960,47 @@ libwebsockets_generate_client_handshake(struct libwebsocket_context *context,
 			            LWS_CALLBACK_CLIENT_APPEND_HANDSHAKE_HEADER,
 				    NULL, &p, (pkt + sizeof(pkt)) - p - 12);
 
-		p += sprintf(p, "\x0d\x0a");
+                remain = pkt_len - (p - pkt);
+		p += snprintf(p, remain, "\x0d\x0a");
 
-		if (libwebsockets_get_random(context, p, 8) != 8)
-			return NULL;
+		if (libwebsockets_get_random(context, p, 8) != 8) return NULL;
 		memcpy(&challenge[8], p, 8);
 		p += 8;
 
 		/* precompute what we want to see from the server */
 
-		MD5((unsigned char *)challenge, 16,
-		   (unsigned char *)wsi->initial_handshake_hash_base64);
+		MD5((unsigned char *) challenge, 16,
+                    (unsigned char *) wsi->initial_handshake_hash_base64);
 
 		goto issue_hdr;
 	}
 
-	p += sprintf(p, "Host: %s\x0d\x0a", wsi->c_host);
-	p += sprintf(p, "Upgrade: websocket\x0d\x0a");
-	p += sprintf(p, "Connection: Upgrade\x0d\x0a"
-				"Sec-WebSocket-Key: ");
+        remain = pkt_len - (p - pkt);
+	p += snprintf(p, remain, "Host: %s\x0d\x0a", wsi->c_host);
+        remain = pkt_len - (p - pkt);
+	p += snprintf(p, remain, "Upgrade: websocket\x0d\x0a");
+        remain = pkt_len - (p - pkt);
+	p += snprintf(p, remain, "Connection: Upgrade\x0d\x0a"
+                      "Sec-WebSocket-Key: ");
 	strcpy(p, wsi->key_b64);
 	p += strlen(wsi->key_b64);
-	p += sprintf(p, "\x0d\x0a");
-	if (wsi->c_origin)
-		p += sprintf(p, "Sec-WebSocket-Origin: %s\x0d\x0a",
-							 wsi->c_origin);
-	if (wsi->c_protocol)
-		p += sprintf(p, "Sec-WebSocket-Protocol: %s\x0d\x0a",
-						       wsi->c_protocol);
+        remain = pkt_len - (p - pkt);
+	p += snprintf(p, remain, "\x0d\x0a");
+        if (wsi->c_origin) {
+                remain = pkt_len - (p - pkt);
+		p += snprintf(p, remain, "Sec-WebSocket-Origin: %s\x0d\x0a",
+                              wsi->c_origin);
+        }
+        if (wsi->c_protocol) {
+                remain = pkt_len - (p - pkt);
+		p += snprintf(p, remain, "Sec-WebSocket-Protocol: %s\x0d\x0a",
+                              wsi->c_protocol);
+        }
 
 	/* tell the server what extensions we could support */
 
-	p += sprintf(p, "Sec-WebSocket-Extensions: ");
+        remain = pkt_len - (p - pkt);
+	p += snprintf(p, remain, "Sec-WebSocket-Extensions: ");
 
 	ext = context->extensions;
 	while (ext && ext->callback) {
@@ -1024,19 +1040,22 @@ libwebsockets_generate_client_handshake(struct libwebsocket_context *context,
 
 		/* apply it */
 
-		if (ext_count)
-			*p++ = ',';
-		p += sprintf(p, "%s", ext->name);
+		if (ext_count) *p++ = ',';
+                remain = pkt_len - (p - pkt);
+		p += snprintf(p, remain, "%s", ext->name);
 		ext_count++;
 
 		ext++;
 	}
 
-	p += sprintf(p, "\x0d\x0a");
+        remain = pkt_len - (p - pkt);
+	p += snprintf(p, remain, "\x0d\x0a");
 
-	if (wsi->ietf_spec_revision)
-		p += sprintf(p, "Sec-WebSocket-Version: %d\x0d\x0a",
-					       wsi->ietf_spec_revision);
+        if (wsi->ietf_spec_revision) {
+                remain = pkt_len - (p - pkt);
+		p += snprintf(p, remain, "Sec-WebSocket-Version: %d\x0d\x0a",
+                              wsi->ietf_spec_revision);
+        }
 
 	/* give userland a chance to append, eg, cookies */
 
@@ -1044,7 +1063,8 @@ libwebsockets_generate_client_handshake(struct libwebsocket_context *context,
                                     LWS_CALLBACK_CLIENT_APPEND_HANDSHAKE_HEADER,
 		                    NULL, &p, (pkt + sizeof(pkt)) - p - 12);
 
-	p += sprintf(p, "\x0d\x0a");
+        remain = pkt_len - (p - pkt);
+	p += snprintf(p, remain, "\x0d\x0a");
 
 	/* prepare the expected server accept response */
 
@@ -1485,7 +1505,7 @@ bail2:
 
 int
 libwebsocket_service_fd(struct libwebsocket_context *context,
-							  struct pollfd *pollfd)
+                        struct pollfd *pollfd)
 {
 	unsigned char buf[LWS_SEND_BUFFER_PRE_PADDING + 1 +
 			 MAX_BROADCAST_PAYLOAD + LWS_SEND_BUFFER_POST_PADDING];
@@ -1498,6 +1518,7 @@ libwebsocket_service_fd(struct libwebsocket_context *context,
 	unsigned int clilen;
 	struct sockaddr_in cli_addr;
 	struct timeval tv;
+        int  remain, pkt_len = 1024;
 	char pkt[1024];
 	char *p = &pkt[0];
 	int more = 1;
@@ -1525,7 +1546,7 @@ libwebsocket_service_fd(struct libwebsocket_context *context,
 			wsi = wsi_from_fd(context, context->fds[n].fd);
 
 			libwebsocket_service_timeout_check(context, wsi,
-								     tv.tv_sec);
+                                                           tv.tv_sec);
 		}
 	}
 
@@ -1558,7 +1579,7 @@ libwebsocket_service_fd(struct libwebsocket_context *context,
 
 		clilen = sizeof(cli_addr);
 		accept_fd  = accept(pollfd->fd, (struct sockaddr *)&cli_addr,
-								       &clilen);
+                                    &clilen);
 		if (accept_fd < 0) {
 			fprintf(stderr, "ERROR on accept");
 			break;
@@ -1567,7 +1588,7 @@ libwebsocket_service_fd(struct libwebsocket_context *context,
 		/* Disable Nagle */
 		opt = 1;
 		setsockopt(accept_fd, IPPROTO_TCP, TCP_NODELAY,
-					      (const void *)&opt, sizeof(opt));
+                           (const void *)&opt, sizeof(opt));
 
 		/*
 		 * look at who we connected to and give user code a chance
@@ -1590,8 +1611,7 @@ libwebsocket_service_fd(struct libwebsocket_context *context,
 		/* accepting connection to main listener */
 
 		new_wsi = libwebsocket_create_new_server_wsi(context);
-		if (new_wsi == NULL)
-			break;
+		if (new_wsi == NULL) break;
 
 		new_wsi->sock = accept_fd;
 
@@ -1604,9 +1624,9 @@ libwebsocket_service_fd(struct libwebsocket_context *context,
 			new_wsi->ssl = SSL_new(context->ssl_ctx);
 			if (new_wsi->ssl == NULL) {
 				fprintf(stderr, "SSL_new failed: %s\n",
-				    ERR_error_string(SSL_get_error(
-				    new_wsi->ssl, 0), NULL));
-				    libwebsockets_decode_ssl_error();
+				        ERR_error_string(SSL_get_error(
+				        new_wsi->ssl, 0), NULL));
+				        libwebsockets_decode_ssl_error();
 				free(new_wsi);
 				break;
 			}
@@ -1632,13 +1652,13 @@ libwebsocket_service_fd(struct libwebsocket_context *context,
 
 			debug("accepted new SSL conn  "
 			      "port %u on fd=%d SSL ver %s\n",
-				ntohs(cli_addr.sin_port), accept_fd,
-				  SSL_get_version(new_wsi->ssl));
+                              ntohs(cli_addr.sin_port), accept_fd,
+                              SSL_get_version(new_wsi->ssl));
 
 		} else
 #endif
 			debug("accepted new conn  port %u on fd=%d\n",
-					  ntohs(cli_addr.sin_port), accept_fd);
+                              ntohs(cli_addr.sin_port), accept_fd);
 
 		insert_wsi(context, new_wsi);
 
@@ -1670,7 +1690,7 @@ libwebsocket_service_fd(struct libwebsocket_context *context,
 
 		clilen = sizeof(cli_addr);
 		accept_fd  = accept(pollfd->fd, (struct sockaddr *)&cli_addr,
-								       &clilen);
+                                    &clilen);
 		if (accept_fd < 0) {
 			fprintf(stderr, "ERROR on accept");
 			break;
@@ -1678,7 +1698,7 @@ libwebsocket_service_fd(struct libwebsocket_context *context,
 
 		if (context->fds_count >= MAX_CLIENTS) {
 			fprintf(stderr, "too busy to accept new broadcast "
-							      "proxy client\n");
+                                         "proxy client\n");
 #ifdef WIN32
 			closesocket(accept_fd);
 #else
@@ -1878,7 +1898,9 @@ libwebsocket_service_fd(struct libwebsocket_context *context,
 			wsi->ssl = NULL;
 	#endif
 
-		p = libwebsockets_generate_client_handshake(context, wsi, p);
+                remain = pkt_len - (p - &pkt[0]);
+		p = libwebsockets_generate_client_handshake(context, wsi, p,
+                                                            remain);
 		if (p == NULL) return 1;
 
 		/* send our request to the server */

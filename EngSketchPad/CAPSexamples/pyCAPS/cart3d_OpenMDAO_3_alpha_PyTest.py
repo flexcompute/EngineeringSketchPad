@@ -21,6 +21,18 @@ if openmdao.__version__[:openmdao.__version__.find(".")] != "3":
     print( "Installed OpenMDAO :", openmdao.__version__ )
     exit()
 
+# Setup and read command line options. Please note that this isn't required for pyCAPS
+parser = argparse.ArgumentParser(description = 'Cart3D and OpenMDAO v3 PyTest Example',
+                                 prog = 'cart3d_OpenMDAO_3_alpha_PyTest',
+                                 formatter_class = argparse.ArgumentDefaultsHelpFormatter)
+
+#Setup the available commandline options
+parser.add_argument('-workDir', default = "." + os.sep, nargs=1, type=str, help = 'Set working/run directory')
+parser.add_argument("-outLevel", default = 1, type=int, choices=[0, 1, 2], help="Set output verbosity")
+parser.add_argument("-plotFunctional", action='store_true', default = False, help="Plot the functional and gradient")
+args = parser.parse_args()
+
+
 class Cart3dAnalysis(om.ExplicitComponent):
 
     def initialize(self):
@@ -53,9 +65,13 @@ class Cart3dAnalysis(om.ExplicitComponent):
             # Don't compute geometric sensitivities
             cart3d.input.Design_Sensitivity = False
 
+        print('-'*40)
+        print('>>> alpha', inputs['alpha'])
+
         # Grab functional and attach as an output
         outputs['CL2'] = cart3d.dynout["CL2"].value
-        print('alpha', inputs['alpha'], ' CL2', outputs['CL2'], " CL", cart3d.output.C_L)
+        print('>>> CL2', outputs['CL2'], " CL", cart3d.output.C_L)
+        print('-'*40)
 
     def setup_partials(self):
     # declare the partial derivatives
@@ -69,23 +85,18 @@ class Cart3dAnalysis(om.ExplicitComponent):
         capsProblem = self.options['capsProblem']
         cart3d = capsProblem.analysis['cart3d']
 
+        # Update input values if changed
+        if cart3d.input.alpha != inputs['alpha']:
+            cart3d.input.alpha = inputs['alpha']
+
         # Request analysis and/or geometric design sensitivities for the Design_Functional
         cart3d.input.Design_Sensitivity = True
 
         # Get derivatives and set partials
+        print('='*40)
         partials['CL2', 'alpha']  = cart3d.dynout["CL2"].deriv("alpha")
-        print('CL2_alpha', partials['CL2', 'alpha'])
-
-# Setup and read command line options. Please note that this isn't required for pyCAPS
-parser = argparse.ArgumentParser(description = 'Cart3D and OpenMDAO v3 PyTest Example',
-                                 prog = 'cart3d_OpenMDAO_3_alpha_PyTest',
-                                 formatter_class = argparse.ArgumentDefaultsHelpFormatter)
-
-#Setup the available commandline options
-parser.add_argument('-workDir', default = "." + os.sep, nargs=1, type=str, help = 'Set working/run directory')
-parser.add_argument("-outLevel", default = 1, type=int, choices=[0, 1, 2], help="Set output verbosity")
-parser.add_argument("-plotFunctional", action='store_true', default = False, help="Plot the functional and gradient")
-args = parser.parse_args()
+        print('>>> CL2_alpha', partials['CL2', 'alpha'])
+        print('='*40)
 
 # Working directory
 workDir = os.path.join(str(args.workDir[0]), "Cart3D_OpenMDAO_v3_alpha")
@@ -137,10 +148,13 @@ if args.plotFunctional:
         # Turn on sensitivity calculations
         cart3d.input.Design_Sensitivity = True
 
-        alphas = npy.linspace(-10, 10, 7)
+        alphas = npy.linspace(-10, 10, 21)
         CL2 = []
         CL2_alpha = []
         for alpha in alphas:
+            print("-"*20)
+            print("alpha", alpha)
+            print("-"*20)
             cart3d.input.alpha = alpha
 
             CL2.append(cart3d.dynout["CL2"].value)
@@ -150,8 +164,14 @@ if args.plotFunctional:
             #os.system("cd " + cart3d.analysisDir + " && c3d_objGrad.csh -clean")
             #os.rename(os.path.join(cart3d.analysisDir, "design"),  os.path.join(cart3d.analysisDir, "design_G"+str(incidence)))
 
+        dCL2_alpha = []
+        for i in range(1,len(alphas)-1):
+            dCL2_alpha.append( (CL2[i+1]-CL2[i-1])/(alphas[i+1]-alphas[i-1]) )
+
         fig, ax1 = plt.subplots()
         ax2 = ax1.twinx()
+        
+        ax2.axhline(0., linewidth=1, linestyle=":", color='red')
 
         # Plot the functional
         lns1 = ax1.plot(alphas, CL2, 'o--', label = r"$C_L^2$", color="blue")
@@ -159,16 +179,26 @@ if args.plotFunctional:
         # Plot plot the derivative
         lns2 = ax2.plot(alphas, CL2_alpha, 's-', label = r"$\partial C_L^2/\partial \alpha$", color="red")
 
-        # add legend
-        lns = lns1+lns2
-        labs = [l.get_label() for l in lns]
-        ax1.legend(lns, labs, loc=0)
+        # Plot plot the FD derivative
+        lns3 = ax2.plot(alphas[1:-1], dCL2_alpha, '.--', label = r"$\Delta C_L^2/\Delta \alpha$", color='red', mec='k')
 
-        plt.title("(window must be closed to continue Python script)\n")
         ax1.set_xlabel(r"$\alpha$ $(^o)$")
         ax1.set_ylabel(r"$C_L^2$", color="blue")
         ax2.set_ylabel(r"$\partial C_L^2/\partial \alpha$", color="red")
         fig.tight_layout()  # otherwise the right y-label is slightly clipped
+        
+        # Shrink current axis's height by 15% on the top
+        box = ax1.get_position()
+        ax1.set_position([box.x0, box.y0, box.width, box.height * 0.85])
+        ax2.set_position([box.x0, box.y0, box.width, box.height * 0.85])
+        ax1.set_title("(window must be closed to continue Python script)", y=1.0, pad=34)
+
+        # add legend
+        lns = lns1+lns2+lns3
+        labs = [l.get_label() for l in lns]
+        ax1.legend(lns, labs, loc='lower center', bbox_to_anchor=(0.5, 1.01), fancybox=True, ncol=3)
+
+        #plt.savefig("cart3d_alpha.png")
         plt.show()
 
     except ImportError:

@@ -3,7 +3,7 @@
  *
  *             Geometry Functions
  *
- *      Copyright 2011-2022, Massachusetts Institute of Technology
+ *      Copyright 2011-2024, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -15,16 +15,25 @@
 #include "egadsTypes.h"
 #include "egadsInternals.h"
 #include "egadsClasses.h"
+
+#include <GeomConvert.hxx>
+#include <Geom2dConvert.hxx>
+#include <GeomConvert_ApproxCurve.hxx>
+#include <GeomConvert_ApproxSurface.hxx>
+#include <Geom2dConvert_ApproxCurve.hxx>
+
 #define TEMPLATE template<class TT>
 #define DOUBLE TT
 #define CROSS(a,b,c)       (a)[0] = ((b)[1]*(c)[2]) - ((b)[2]*(c)[1]);\
                            (a)[1] = ((b)[2]*(c)[0]) - ((b)[0]*(c)[2]);\
                            (a)[2] = ((b)[0]*(c)[1]) - ((b)[1]*(c)[0])
 #define DOT(a,b)          (a[0]*b[0] + a[1]*b[1] + a[2]*b[2])
+#define MAX(a,b)          (((a) > (b)) ? (a) : (b))
 
-
-#define PARAMACC 1.0e-4         // parameter accuracy
+#define PARAMACC 1.0e-4   // parameter accuracy
 #define KNACC    1.0e-12	// knot accuracy
+
+#define DOTACC   1.0e-7   // Geometry_dot accuracy
 
 #ifdef WIN32
 #define DllExport   __declspec( dllexport )
@@ -110,8 +119,9 @@
                                    /*@null@*/ egObject *refGeo, const int *ivec,
                                    const double *rvec, egObject **geom );
   extern "C" int  EG_makeGeometry_dot( egObject *context, int oclass, int mtype,
-                                      /*@null@*/ egObject *refGeo, const int *ivec,
-                                      const double *rvec, const double *rvec_dot, egObject **geom );
+                                       /*@null@*/ egObject *refGeo, const int *ivec,
+                                       const double *rvec, const double *rvec_dot,
+                                       egObject **geom );
   DllExport  int  EG_makeGeometry( egObject *context, int oclass, int mtype,
                                    /*@null@*/ egObject *refGeo, const int *ivec,
                                    const SurrealS<1> *rvec, egObject **geom );
@@ -160,18 +170,22 @@
                                  double tol, egObject **newcurve );
   extern "C" int  EG_isoCline( const egObject *surface, int UV, double value,
                                egObject **newcurve );
+  extern "C" int  EG_isIsoPCurve( const egObject *pcurve,
+                                  int *iUV, double *value, int *fwd );
   extern "C" int  EG_convertToBSplineRange( egObject *geom, const double *range,
                                             egObject **bspline );
   extern "C" int  EG_convertToBSpline( egObject *geom, egObject **bspline );
   extern "C" int  EG_flattenBSpline( egObject *geom, egObject **bspline );
-  extern "C" int  EG_addKnots( const egObject *object, int nU,
-                               /*@null@*/ double *Us, int nV,
-                               /*@null@*/ double *Vs, egObject **result );
+  extern "C" int  EG_addKnots( const egObject *object,
+                               int minDegU, int nU, /*@null@*/ double *Us,
+                               int minDegV, int nV, /*@null@*/ double *Vs,
+                               egObject **result );
   extern "C" int  EG_mapKnots( egObject *src, egObject *dst, egObject **rslt );
   extern "C" int  EG_mapSequen( egObject *src, egObject *dst, egObject **rslt );
   extern "C" void EG_mapTessTs( egTess1D src, egTess1D dst );
   extern "C" int  EG_relPosTs( egObject *geom, int n, const double *rel,
                                double *ts, double *xyzs );
+  extern "C" int  EG_sampleSame( const egObject *obj1, const egObject *obj2 );
 
 
 int
@@ -1523,11 +1537,6 @@ EG_setGeometry_dot(egObject *obj, int oclass, int mtype,
         }
         return EGADS_GEOMERR;
       }
-      pnode->filled = 1;
-      for (i = 0; i < 3; i++) {
-        pnode->xyz_dot[i].value() = pnode->xyz[i];
-        pnode->xyz_dot[i].deriv() = rvec_dot[i];
-      }
 
       /* check consistency in the data */
       stat = EGADS_SUCCESS;
@@ -1536,18 +1545,36 @@ EG_setGeometry_dot(egObject *obj, int oclass, int mtype,
         if (fabs(pnode->xyz[i]) > scale) scale = fabs(pnode->xyz[i]);
       }
       if (scale == 0.0) scale = 1.0;
+      scale *= DOTACC;
+      scale = MAX(scale, DOTACC);
       for (i = 0; i < 3; i++)
-        if (fabs(pnode->xyz[i] - rvec[i]) > 1.e-14*scale) {
+        if (fabs(pnode->xyz[i] - rvec[i]) > scale) {
           stat++;
           break;
         }
       if (stat != EGADS_SUCCESS) {
         if (outLevel > 0) {
           printf(" EGADS Error: Inconsistent NODE geometry data! (EG_setGeometry_dot)\n");
-          for (i = 0; i < 3; i++)
-            printf("     data[%d] %lf : %lf\n", i, pnode->xyz[i], rvec[i]);
+          printf("               %21s : %21s     diffrence\n", "ego data", "input data");
+          for (i = 0; i < 3; i++) {
+            printf("     data[%3d] %21.14le : %21.14le", i, pnode->xyz[i], rvec[i]);
+
+            double diff = pnode->xyz[i] - rvec[i];
+            if (fabs(diff) > scale) {
+              printf(" <-- %21.14le", diff);
+            }
+            printf("\n");
+          }
+          printf("Maximum allowed difference: %21.14le\n", scale);
         }
         return EGADS_GEOMERR;
+      }
+
+      /* set dot data */
+      pnode->filled = 1;
+      for (i = 0; i < 3; i++) {
+        pnode->xyz_dot[i].value() = pnode->xyz[i];
+        pnode->xyz_dot[i].deriv() = rvec_dot[i];
       }
     }
     return EGADS_SUCCESS;
@@ -2185,8 +2212,10 @@ EG_setGeometry_dot(egObject *obj, int oclass, int mtype,
     if (fabs(data[i]) > scale) scale = fabs(data[i]);
   }
   if (scale == 0.0) scale = 1.0;
+  scale *= DOTACC;
+  scale = MAX(scale, DOTACC);
   for (i = 0; i < len; i++)
-    if (fabs(data[i] - (*data_dot)[i].value()) > 1.e-14*scale) {
+    if (fabs(data[i] - (*data_dot)[i].value()) > scale) {
       stat++;
       break;
     }
@@ -2210,11 +2239,12 @@ EG_setGeometry_dot(egObject *obj, int oclass, int mtype,
         printf("     data[%3d] %21.14le : %21.14le", i, data[i], (*data_dot)[i].value());
 
         double diff = data[i] - (*data_dot)[i].value();
-        if (fabs(diff) > 1.e-14*scale) {
+        if (fabs(diff) > scale) {
           printf(" <-- %21.14le", diff);
         }
         printf("\n");
       }
+      printf("Maximum allowed difference: %21.14le\n", scale);
     }
     return EGADS_GEOMERR;
   }
@@ -3308,8 +3338,10 @@ EG_copyGeometry_dot(const egObject *obj, /*@null@*/ const double *xform,
       if (fabs(pnode2->xyz[i]) > scale) scale = fabs(pnode2->xyz[i]);
     }
     if (scale == 0.0) scale = 1.0;
+    scale *= DOTACC;
+    scale = MAX(scale, DOTACC);
     for (i = 0; i < 3; i++)
-      if (fabs(pnode2->xyz[i] - pnode2->xyz_dot[i].value()) > 1.e-14*scale) {
+      if (fabs(pnode2->xyz[i] - pnode2->xyz_dot[i].value()) > scale) {
         stat++;
         break;
       }
@@ -3319,6 +3351,7 @@ EG_copyGeometry_dot(const egObject *obj, /*@null@*/ const double *xform,
         for (i = 0; i < 3; i++)
           printf("     data[%d] %lf : %lf\n",
                  i, pnode2->xyz[i], pnode2->xyz_dot[i].value());
+        printf("Maximum allowed difference: %21.14le\n", scale);
       }
       return EGADS_GEOMERR;
     }
@@ -3369,8 +3402,10 @@ EG_copyGeometry_dot(const egObject *obj, /*@null@*/ const double *xform,
       if (fabs(pedge2->trange[i]) > scale) scale = fabs(pedge2->trange[i]);
     }
     if (scale == 0.0) scale = 1.0;
+    scale *= DOTACC;
+    scale = MAX(scale, DOTACC);
     for (i = 0; i < 2; i++)
-      if (fabs(pedge2->trange[i] - pedge2->trange_dot[i].value()) > 1.e-14*scale) {
+      if (fabs(pedge2->trange[i] - pedge2->trange_dot[i].value()) > scale) {
         stat++;
         break;
       }
@@ -3380,6 +3415,7 @@ EG_copyGeometry_dot(const egObject *obj, /*@null@*/ const double *xform,
         for (i = 0; i < 2; i++)
           printf("     data[%d] %lf : %lf\n",
                  i, pedge2->trange[i], pedge2->trange_dot[i].value());
+        printf("Maximum allowed difference: %21.14le\n", scale);
       }
       return EGADS_GEOMERR;
     }
@@ -3880,8 +3916,10 @@ EG_copyGeometry_dot(const egObject *obj, /*@null@*/ const double *xform,
     if (fabs(cdata[i]) > scale) scale = fabs(cdata[i]);
   }
   if (scale == 0.0) scale = 1.0;
+  scale *= DOTACC;
+  scale = MAX(scale, DOTACC);
   for (i = 0; i < len; i++)
-    if (fabs(cdata[i] - cdata_dot[i].value()) > 1.e-14*scale) {
+    if (fabs(cdata[i] - cdata_dot[i].value()) > scale) {
       stat++;
       break;
     }
@@ -3900,11 +3938,12 @@ EG_copyGeometry_dot(const egObject *obj, /*@null@*/ const double *xform,
         printf("     data[%3d] %21.14le : %21.14le", i, cdata[i], cdata_dot[i].value());
 
         double diff = cdata[i] - cdata_dot[i].value();
-        if (fabs(diff) > 1.e-14*scale) {
+        if (fabs(diff) > scale) {
           printf(" <-- %21.14le", diff);
         }
         printf("\n");
       }
+      printf("Maximum allowed difference: %21.14le\n", scale);
     }
     return EGADS_GEOMERR;
   }
@@ -4434,12 +4473,12 @@ EG_copyGeometry(/*@null@*/ egObject *context, const egObject *geom,
   int      stat, outLevel;
   egObject *obj;
 
-  if  (geom == NULL)               return EGADS_NULLOBJ;
-  if  (context == NULL)            return EGADS_NOTCNTX;
-  if  (geom->magicnumber != MAGIC) return EGADS_NOTOBJ;
-  if ((geom->oclass != CURVE) && (geom->oclass != SURFACE))
-                                   return EGADS_NOTGEOM;
-  if  (geom->blind == NULL)        return EGADS_NODATA;
+  if  (geom == NULL)                return EGADS_NULLOBJ;
+  if  (context == NULL)             return EGADS_NOTCNTX;
+  if  (geom->magicnumber != MAGIC)  return EGADS_NOTOBJ;
+  if ((geom->oclass != PCURVE) && (geom->oclass != CURVE)
+      && (geom->oclass != SURFACE)) return EGADS_NOTGEOM;
+  if  (geom->blind == NULL)         return EGADS_NODATA;
   outLevel = EG_outLevel(geom);
 
   gp_Trsf form = gp_Trsf();
@@ -4448,7 +4487,19 @@ EG_copyGeometry(/*@null@*/ egObject *context, const egObject *geom,
                    xform[ 4], xform[ 5], xform[ 6], xform[ 7],
                    xform[ 8], xform[ 9], xform[10], xform[11]);
 
-  if (geom->oclass == CURVE) {
+  if (geom->oclass == PCURVE) {
+
+    egadsPCurve            *ppcurve = (egadsPCurve *) geom->blind;
+    Handle(Geom2d_Curve)    hCurve = ppcurve->handle;
+    stat = EG_makeObject(context, &obj);
+    if (stat != EGADS_SUCCESS) {
+      if (outLevel > 0)
+        printf(" EGADS Error: makeObject = %d (EG_copyGeometry)!\n", stat);
+      return EGADS_CONSTERR;
+    }
+    EG_completePCurve(obj, hCurve);
+
+  } else if (geom->oclass == CURVE) {
 
     egadsCurve           *pcurve = (egadsCurve *) geom->blind;
     Handle(Geom_Curve)    hCurve = pcurve->handle;
@@ -5993,8 +6044,10 @@ EG_setRange_dot(egObject *geom, int oclass,
         if (fabs(pedge->trange[i]) > scale) scale = fabs(pedge->trange[i]);
       }
       if (scale == 0.0) scale = 1.0;
+      scale *= DOTACC;
+      scale = MAX(scale, DOTACC);
       for (i = 0; i < 2; i++)
-        if (fabs(pedge->trange[i] - range[i]) > 1.e-14*scale) {
+        if (fabs(pedge->trange[i] - range[i]) > scale) {
           stat++;
           break;
         }
@@ -6003,6 +6056,7 @@ EG_setRange_dot(egObject *geom, int oclass,
           printf(" EGADS Error: Inconsistent Edge t-range data! (EG_setRange_dot)\n");
           for (i = 0; i < 2; i++)
             printf("     data[%d] %lf : %lf\n", i, pedge->trange[i], range[i]);
+          printf("Maximum allowed difference: %21.14le\n", scale);
         }
         return EGADS_GEOMERR;
       }
@@ -7381,19 +7435,29 @@ EG_approximate(egObject *context, int maxdeg, double tol, const int *sizes,
   outLevel = EG_outLevel(context);
   fixed    = EG_fixedKnots(context);
 
-  if ((maxdeg < 0) || (maxdeg > 8)) {
+  if ((maxdeg < -3) || (maxdeg > 8)) {
     if (outLevel > 0)
       printf(" EGADS Warning: maxDeg = %d (EG_approximate)!\n", maxdeg);
     return EGADS_RANGERR;
   }
 
-  if (sizes[1] == -1)
+  if (sizes[1] == -1) {
+    if (maxdeg < -1) {
+      if (outLevel > 0)
+        printf(" EGADS Warning: maxDeg curve = %d (EG_approximate)!\n", maxdeg);
+      return EGADS_RANGERR;
+    }
     if ((maxdeg < 3) && (sizes[0] > 2))
       return EG_spline1d(context, maxdeg, -sizes[0], data, tol, bspline);
+  }
 
   if (sizes[1] == 0) {
-
     if ((maxdeg < 3) && (sizes[0] > 2)) {
+      if (maxdeg < -1) {
+        if (outLevel > 0)
+          printf(" EGADS Warning: maxDeg curve = %d (EG_approximate)!\n", maxdeg);
+        return EGADS_RANGERR;
+      }
       imax = sizes[0];
       if (fixed != 0) imax = -imax;
       return EG_spline1d(context, maxdeg, imax, data, tol, bspline);
@@ -7538,27 +7602,32 @@ int
 EG_approximate_dot(egObject *bspline, int maxdeg, double tol, const int *sizes,
                    const SurrealS<1> *data)
 {
-  int      outLevel, stat, imax, fixed, header[7];
+  int         outLevel, stat, imax, fixed, header[7];
   SurrealS<1> *rdata=NULL;
-  egObject *context;
+  egObject    *context;
 
   if (bspline == NULL)               return EGADS_NULLOBJ;
   if (bspline->magicnumber != MAGIC) return EGADS_NOTOBJ;
   if (bspline->mtype != BSPLINE)     return EGADS_NOTGEOM;
   if (data == NULL)                  return EGADS_NODATA;
-  context  = EG_context(bspline);
+  context = EG_context(bspline);
   if (context == NULL)               return EGADS_NOTCNTX;
   if (EG_sameThread(context))        return EGADS_CNTXTHRD;
   outLevel = EG_outLevel(context);
   fixed    = EG_fixedKnots(context);
 
-  if ((maxdeg < 0) || (maxdeg > 8)) {
+  if ((maxdeg < -3) || (maxdeg > 8)) {
     if (outLevel > 0)
       printf(" EGADS Warning: maxDeg = %d (EG_approximate_dot)!\n", maxdeg);
     return EGADS_RANGERR;
   }
 
-  if (sizes[1] == -1)
+  if (sizes[1] == -1) {
+    if (maxdeg < -1) {
+      if (outLevel > 0)
+        printf(" EGADS Warning: maxDeg curve = %d (EG_approximate)!\n", maxdeg);
+      return EGADS_RANGERR;
+    }
     if ((maxdeg < 3) && (sizes[0] > 2)) {
 
       stat = EG_spline1dFit< SurrealS<1> >(maxdeg, -sizes[0], data,
@@ -7571,9 +7640,14 @@ EG_approximate_dot(egObject *bspline, int maxdeg, double tol, const int *sizes,
 
       goto cleanup;
     }
+  }
 
   if (sizes[1] == 0) {
-
+    if (maxdeg < -1) {
+      if (outLevel > 0)
+        printf(" EGADS Warning: maxDeg curve = %d (EG_approximate)!\n", maxdeg);
+      return EGADS_RANGERR;
+    }
     if ((maxdeg < 3) && (sizes[0] > 2)) {
 
       imax = sizes[0];
@@ -7605,7 +7679,6 @@ EG_approximate_dot(egObject *bspline, int maxdeg, double tol, const int *sizes,
   } else {
 
     if (maxdeg < 3) {
-
       stat = EG_spline2dAppr< SurrealS<1> >(maxdeg, sizes[0], sizes[1], data,
                                             NULL, NULL, NULL, NULL, NULL,
                                             NULL, NULL, NULL, NULL,
@@ -7740,7 +7813,7 @@ EG_otherCurve(const egObject *surface, const egObject *curve,
 
   if (curve->oclass == PCURVE) {
 
-    Standard_Real maxDev, aveDev;
+    Standard_Real maxDev=0, aveDev=0;
 
     egadsPCurve *ppcurv         = (egadsPCurve *) curve->blind;
     Handle(Geom2d_Curve) hCurve = ppcurv->handle;
@@ -7753,6 +7826,32 @@ EG_otherCurve(const egObject *surface, const egObject *curve,
     Handle(Geom2dAdaptor_Curve)  Crv   = new Geom2dAdaptor_Curve(hCurve);
 #endif
     Adaptor3d_CurveOnSurface ConS(Crv, aHGAS);
+
+    if (surface->mtype != PLANE &&
+        (Precision::IsInfinite(hCurve->FirstParameter()) ||
+         Precision::IsInfinite(hCurve->LastParameter())) )
+    {
+#if CASVER < 760
+      if (outLevel > 0)
+      {
+        printf(" EGADS Error: Non-planar surface with infinite PCurve!\n");
+        printf("              Use a TRIMMED PCurve (EG_otherCurve)!\n");
+      }
+      return EGADS_GEOMERR;
+#else
+      Standard_Boolean isU, isForward;
+      Standard_Real aParam;
+      if (!GeomLib::isIsoLine(Crv, isU, aParam, isForward))
+      {
+        if (outLevel > 0)
+        {
+          printf(" EGADS Error: Non-planar surface with infinite PCurve not an IsoLine!\n");
+          printf("              Use a TRIMMED PCurve (EG_otherCurve)!\n");
+        }
+        return EGADS_GEOMERR;
+      }
+#endif
+    }
 
     Handle(Geom_Curve) newcrv;
     GeomLib::BuildCurve3d(prec, ConS, hCurve->FirstParameter(),
@@ -8273,13 +8372,47 @@ EG_isoCline(const egObject *surface, int UV, double value,
 
 
 int
+EG_isIsoPCurve( const egObject *pcurve,
+                int *iUV, double *value, int *fwd )
+{
+  if (pcurve == NULL)                return EGADS_NULLOBJ;
+  if (pcurve->magicnumber != MAGIC)  return EGADS_NOTOBJ;
+  if (pcurve->oclass != PCURVE)      return EGADS_NOTGEOM;
+  if (pcurve->blind == NULL)         return EGADS_NODATA;
+  if (EG_sameThread(pcurve))         return EGADS_CNTXTHRD;
+
+#if CASVER < 760
+  printf(" EGADS Error: EG_isIsoPCurve requires OCC 7.6 or higher!\n");
+  return EGADS_GEOMERR;
+#else
+  egadsPCurve *ppcurv = (egadsPCurve *) pcurve->blind;
+  Handle(Geom2d_Curve) hPCurve = ppcurv->handle;
+
+  Handle(Geom2dAdaptor_Curve)  Crv = new Geom2dAdaptor_Curve(hPCurve);
+
+  Standard_Boolean theIsU, theIsForward;
+  Standard_Real theParam;
+  Standard_Boolean isIsoLine = GeomLib::isIsoLine(Crv, theIsU, theParam, theIsForward);
+
+  if (iUV   != NULL) *iUV   = theIsU ? UISO : VISO;
+  if (value != NULL) *value = theParam;
+  if (fwd   != NULL) *fwd   = theIsForward ? SFORWARD : SREVERSE;
+
+  return isIsoLine ? EGADS_SUCCESS : EGADS_NOTFOUND;
+#endif
+}
+
+
+int
 EG_convertToBSplineRange(egObject *object, const double *range,
                          egObject **bspline)
 {
   int      i, j, n, m, outLevel, stat, header[4];
-  double   data[8], d, x0[2], x1[2];
+  double   data[8], d, x0[2], x1[2], brange[4];
   gp_Pnt2d pnt;
   egObject *obj, *geom, *context, *ref;
+  const Standard_Integer MaxSegments = 100;
+  const Standard_Integer MaxDegree = 20;
 
   if  (object == NULL)               return EGADS_NULLOBJ;
   if  (object->magicnumber != MAGIC) return EGADS_NOTOBJ;
@@ -8327,19 +8460,31 @@ EG_convertToBSplineRange(egObject *object, const double *range,
 
     try {
       Handle(Geom2d_BSplineCurve) hBSpline;
-      if (geom->mtype == BSPLINE) {
-        ShapeConstruct_Curve ShapeCC;
-        hBSpline = ShapeCC.ConvertToBSpline(hCurve, range[0], range[1],
-                                            Precision::Confusion());
-      } else {
-        hBSpline = ShapeConstruct::ConvertCurveToBSpline(hCurve, range[0],
-                                                         range[1],
-                                                         Precision::Confusion(),
-                                                         GeomAbs_C2, 100, 20);
+      try {
+        if (geom->mtype == BSPLINE) {
+          hBSpline = Handle(Geom2d_BSplineCurve)::DownCast(hCurve->Copy());
+          hBSpline->Segment(range[0], range[1]);
+        } else {
+          // Taken and refactored from ShapeConstruct::ConvertCurveToBSpline
+          const GeomAbs_Shape aCont = GeomAbs_C2;
+          Geom2dConvert_ApproxCurve approx (hCurve, Precision::Confusion(), aCont, MaxSegments, MaxDegree);
+          if ( approx.HasResult() )
+            hBSpline = approx.Curve();
+          else
+            hBSpline = Geom2dConvert::CurveToBSplineCurve(hCurve, Convert_QuasiAngular);
+        }
+      } catch (const Standard_Failure& e) {
+        printf(" EGADS Error: PCurve Geometry Creation Error (EG_convertToBSplineRange)!\n");
+        printf("              %s\n", e.GetMessageString());
+        return EGADS_GEOMERR;
+      }
+      catch (...) {
+        printf(" EGADS Error: PCurve Geometry Creation Error (EG_convertToBSplineRange)!\n");
+        return EGADS_GEOMERR;
       }
       if (hBSpline.IsNull()) {
         if (outLevel > 0)
-          printf(" EGADS Warning: Failure to convert (EG_convertToBSplineRange)!\n");
+          printf(" EGADS Error: Failure to convert PCurve (EG_convertToBSplineRange)!\n");
         return EGADS_GEOMERR;
       }
 
@@ -8410,19 +8555,51 @@ EG_convertToBSplineRange(egObject *object, const double *range,
     egadsCurve *pcurve        = (egadsCurve *) geom->blind;
     Handle(Geom_Curve) hCurve = pcurve->handle;
     Handle(Geom_BSplineCurve) hBSpline;
-    if (geom->mtype == BSPLINE) {
-      ShapeConstruct_Curve ShapeCC;
-      hBSpline = ShapeCC.ConvertToBSpline(hCurve, range[0], range[1],
-                                          Precision::Confusion());
-    } else {
-      hBSpline = ShapeConstruct::ConvertCurveToBSpline(hCurve, range[0],
-                                                       range[1],
-                                                       Precision::Confusion(),
-                                                       GeomAbs_C2, 100, 20);
+    try {
+      if (geom->mtype == BSPLINE) {
+        hBSpline = Handle(Geom_BSplineCurve)::DownCast(hCurve->Copy());
+        hBSpline->Segment(range[0], range[1]);
+      } else {
+        // Taken and refactored from ShapeConstruct::ConvertCurveToBSpline
+        if (hCurve->IsKind(STANDARD_TYPE(Geom_TrimmedCurve))) {
+          hCurve = Handle(Geom_TrimmedCurve)::DownCast(hCurve)->BasisCurve();
+        }
+
+        GeomAbs_Shape aCont = GeomAbs_C2;
+        Handle(Geom_Curve) hBasisCurve = hCurve;
+        if (hBasisCurve->IsKind(STANDARD_TYPE(Geom_OffsetCurve))) {
+          hBasisCurve = Handle(Geom_OffsetCurve)::DownCast(hBasisCurve)->BasisCurve();
+        }
+        if (hBasisCurve->IsKind(STANDARD_TYPE(Geom_Line))) {
+          aCont = GeomAbs_C0;
+        }
+
+        Handle(Geom_Curve) tCurve = new Geom_TrimmedCurve(hCurve, range[0], range[1]);
+        GeomConvert_ApproxCurve approx (tCurve, Precision::Confusion(), aCont, MaxSegments, MaxDegree);
+        if ( approx.HasResult() )
+          hBSpline = approx.Curve();
+        else
+          hBSpline = GeomConvert::CurveToBSplineCurve(tCurve, Convert_QuasiAngular);
+
+        if (hBSpline.IsNull()) {
+          if (outLevel > 0)
+            printf(" EGADS Error: Failure to convert Curve (EG_convertToBSplineRange)!\n");
+          return EGADS_GEOMERR;
+        }
+
+        /* Preserve periodicity */
+        if (hCurve->IsPeriodic() && !hBSpline->IsPeriodic() &&
+            Abs(range[0] - hCurve->FirstParameter()) < Precision::Confusion() &&
+            Abs(range[1] - hCurve->LastParameter() ) < Precision::Confusion())
+          hBSpline->SetPeriodic();
+      }
+    } catch (const Standard_Failure& e) {
+      printf(" EGADS Error: Curve Geometry Creation Error (EG_convertToBSplineRange)!\n");
+      printf("              %s\n", e.GetMessageString());
+      return EGADS_GEOMERR;
     }
-    if (hBSpline.IsNull()) {
-      if (outLevel > 0)
-        printf(" EGADS Warning: Failure to convert (EG_convertToBSplineRange)!\n");
+    catch (...) {
+      printf(" EGADS Error: Curve Geometry Creation Error (EG_convertToBSplineRange)!\n");
       return EGADS_GEOMERR;
     }
 
@@ -8451,48 +8628,88 @@ EG_convertToBSplineRange(egObject *object, const double *range,
 
     egadsSurface *psurface        = (egadsSurface *) geom->blind;
     Handle(Geom_Surface) hSurface = psurface->handle;
+    Handle(Geom_BSplineSurface) hBSpline;
     try {
-      Handle(Geom_BSplineSurface)
-        hBSpline = ShapeConstruct::ConvertSurfaceToBSpline(hSurface,
-                                   range[0], range[1], range[2], range[3],
-                                   Precision::Confusion(), GeomAbs_C2, 100, 20);
-      if (hBSpline.IsNull()) {
-        if (outLevel > 0)
-          printf(" EGADS Warning: Failure to Convert (EG_convertToBSplineRange)!\n");
-        return EGADS_GEOMERR;
-      }
+      if (geom->mtype == BSPLINE) {
+        hBSpline = Handle(Geom_BSplineSurface)::DownCast(hSurface->Copy());
+        hBSpline->Segment(range[0],range[1], range[2],range[3]);
+      } else {
+        Handle(Geom_Surface) hBasisSurface = hSurface;
+        if (hSurface->IsKind(STANDARD_TYPE(Geom_RectangularTrimmedSurface))) {
+          hSurface = Handle(Geom_RectangularTrimmedSurface)::DownCast(hSurface)->BasisSurface();
+          hBasisSurface = hSurface;
+        }
+        hSurface->Bounds(brange[0],brange[1], brange[2],brange[3]);
 
-      stat = EG_makeObject(context, &obj);
-      if (stat != EGADS_SUCCESS) {
-        printf(" EGADS Error: make Surface = %d (EG_convertToBSplineRange)!\n",
-               stat);
-        return stat;
+        Standard_Boolean TrimU = (range[0] > brange[0] || range[1] < brange[1]);
+        Standard_Boolean TrimV = (range[2] > brange[2] || range[3] < brange[3]);
+
+        // Limit trimming to preserve periodicity
+        if (TrimU && TrimV)
+          hSurface = new Geom_RectangularTrimmedSurface(hSurface, range[0],range[1], range[2],range[3]);
+        else if (TrimU)
+          hSurface = new Geom_RectangularTrimmedSurface(hSurface, range[0],range[1], Standard_True);
+        else if (TrimV)
+          hSurface = new Geom_RectangularTrimmedSurface(hSurface, range[2],range[3], Standard_False);
+
+        GeomAbs_Shape aCont = GeomAbs_C2;
+        if (hBasisSurface->IsKind(STANDARD_TYPE(Geom_OffsetSurface))) {
+          hBasisSurface = Handle(Geom_OffsetSurface)::DownCast(hBasisSurface)->BasisSurface();
+        }
+        if (hBasisSurface->IsKind(STANDARD_TYPE(Geom_Plane))) {
+          aCont = GeomAbs_C0;
+        }
+
+        GeomConvert_ApproxSurface approx(hSurface, Precision::Confusion(),aCont,aCont,MaxDegree,MaxDegree,MaxSegments,0);
+        if (approx.IsDone()) {
+          hBSpline = approx.Surface();
+        } else {
+          // Try falling back on an analytical conversion
+          hBSpline = GeomConvert::SurfaceToBSplineSurface(hSurface);
+        }
+
+        if (hBSpline.IsNull()) {
+          if (outLevel > 0)
+            printf(" EGADS Error: Failure to Convert Surface (EG_convertToBSplineRange)!\n");
+          return EGADS_GEOMERR;
+        }
+
+        /* Preserve periodicity */
+        if (hSurface->IsUPeriodic() && !hBSpline->IsUPeriodic())
+          hBSpline->SetUPeriodic();
+        if (hSurface->IsVPeriodic() && !hBSpline->IsVPeriodic())
+          hBSpline->SetVPeriodic();
       }
-      obj->oclass         = SURFACE;
-      obj->mtype          = BSPLINE;
-      egadsSurface *psurf = new egadsSurface;
-      psurf->handle       = hBSpline;
-      psurf->ref          = NULL;
-      psurf->topFlg       = 0;
-      psurf->header       = NULL;
-      psurf->data         = NULL;
-      psurf->data_dot     = NULL;
-      obj->blind          = psurf;
-      EG_getGeometry(obj, &i, &j, &ref, &psurf->header, &psurf->data);
-      EG_getGeometryLen(obj, &i, &psurf->dataLen);
-      hBSpline->Bounds(psurf->urange[0], psurf->urange[1],
-                       psurf->vrange[0], psurf->vrange[1]);
     }
     catch (const Standard_Failure& e) {
-      printf(" EGADS Warning: Geometry Creation Error (EG_convertToBSplineRange)!\n");
-      printf("                %s\n", e.GetMessageString());
+      printf(" EGADS Error: Surface Geometry Creation Error (EG_convertToBSplineRange)!\n");
+      printf("              %s\n", e.GetMessageString());
       return EGADS_GEOMERR;
     }
     catch (...) {
-      printf(" EGADS Warning: Geometry Creation Error (EG_convertToBSplineRange)!\n");
+      printf(" EGADS Error: Surface Geometry Creation Error (EG_convertToBSplineRange)!\n");
       return EGADS_GEOMERR;
     }
-
+    stat = EG_makeObject(context, &obj);
+    if (stat != EGADS_SUCCESS) {
+      printf(" EGADS Error: make Surface = %d (EG_convertToBSplineRange)!\n",
+             stat);
+      return stat;
+    }
+    obj->oclass         = SURFACE;
+    obj->mtype          = BSPLINE;
+    egadsSurface *psurf = new egadsSurface;
+    psurf->handle       = hBSpline;
+    psurf->ref          = NULL;
+    psurf->topFlg       = 0;
+    psurf->header       = NULL;
+    psurf->data         = NULL;
+    psurf->data_dot     = NULL;
+    obj->blind          = psurf;
+    EG_getGeometry(obj, &i, &j, &ref, &psurf->header, &psurf->data);
+    EG_getGeometryLen(obj, &i, &psurf->dataLen);
+    hBSpline->Bounds(psurf->urange[0], psurf->urange[1],
+                     psurf->vrange[0], psurf->vrange[1]);
   }
 
   *bspline = obj;
@@ -8508,7 +8725,9 @@ EG_convertToBSpline(egObject *object, egObject **bspline)
   int           i, j, n, m, outLevel, stat;
   double        d, x0[2], x1[2];
   egObject      *obj, *geom, *context, *ref;
-  Standard_Real range[4];
+  Standard_Real range[4], frange[4];
+  const Standard_Integer MaxSegments = 100;
+  const Standard_Integer MaxDegree = 20;
 
   if  (object == NULL)               return EGADS_NULLOBJ;
   if  (object->magicnumber != MAGIC) return EGADS_NOTOBJ;
@@ -8553,14 +8772,44 @@ EG_convertToBSpline(egObject *object, egObject **bspline)
     Handle(Geom2d_Curve) hCurve = ppcurv->handle;
     range[0] = hCurve->FirstParameter();
     range[1] = hCurve->LastParameter();
-    Handle(Geom2d_BSplineCurve)
-      hBSpline = ShapeConstruct::ConvertCurveToBSpline(hCurve, range[0],
-                                                       range[1],
-                                                       Precision::Confusion(),
-                                                       GeomAbs_C2, 100, 20);
+    Handle(Geom2d_BSplineCurve) hBSpline;
+    try {
+      if (geom->mtype == BSPLINE) {
+        hBSpline = Handle(Geom2d_BSplineCurve)::DownCast(hCurve->Copy());
+        hBSpline->Segment(range[0], range[1]);
+      } else {
+
+        GeomAbs_Shape aCont = GeomAbs_C2;
+        Handle(Geom2d_Curve) hBasisCurve = hCurve;
+        if (hBasisCurve->IsKind(STANDARD_TYPE(Geom2d_TrimmedCurve))) {
+          hBasisCurve = Handle(Geom2d_OffsetCurve)::DownCast(hBasisCurve)->BasisCurve();
+        }
+        if (hBasisCurve->IsKind(STANDARD_TYPE(Geom2d_OffsetCurve))) {
+          hBasisCurve = Handle(Geom2d_OffsetCurve)::DownCast(hBasisCurve)->BasisCurve();
+        }
+        if (hBasisCurve->IsKind(STANDARD_TYPE(Geom2d_Line))) {
+          aCont = GeomAbs_C0;
+        }
+
+        // Taken and refactored from ShapeConstruct::ConvertCurveToBSpline
+        Geom2dConvert_ApproxCurve approx (hCurve, Precision::Confusion(), aCont, MaxSegments, MaxDegree);
+        if ( approx.HasResult() )
+          hBSpline = approx.Curve();
+        else
+          hBSpline = Geom2dConvert::CurveToBSplineCurve(hCurve, Convert_QuasiAngular);
+      }
+    } catch (const Standard_Failure& e) {
+      printf(" EGADS Error: PCurve Geometry Creation Error (EG_convertToBSpline)!\n");
+      printf("              %s\n", e.GetMessageString());
+      return EGADS_GEOMERR;
+    }
+    catch (...) {
+      printf(" EGADS Error: PCurve Geometry Creation Error (EG_convertToBSpline)!\n");
+      return EGADS_GEOMERR;
+    }
     if (hBSpline.IsNull()) {
       if (outLevel > 0)
-        printf(" EGADS Warning: Failure to convert (EG_convertToBSpline)!\n");
+        printf(" EGADS Error: Failure to convert PCurve (EG_convertToBSpline)!\n");
       return EGADS_GEOMERR;
     }
 
@@ -8625,19 +8874,52 @@ EG_convertToBSpline(egObject *object, egObject **bspline)
     }
 
     Handle(Geom_BSplineCurve) hBSpline;
-    if (geom->mtype == BSPLINE) {
-      ShapeConstruct_Curve ShapeCC;
-      hBSpline = ShapeCC.ConvertToBSpline(hCurve, range[0], range[1],
-                                          Precision::Confusion());
-    } else {
-      hBSpline = ShapeConstruct::ConvertCurveToBSpline(hCurve, range[0],
-                                                       range[1],
-                                                       Precision::Confusion(),
-                                                       GeomAbs_C2, 100, 20);
+    try {
+      if (geom->mtype == BSPLINE) {
+        hBSpline = Handle(Geom_BSplineCurve)::DownCast(hCurve->Copy());
+        hBSpline->Segment(range[0], range[1]);
+      } else {
+
+        // Taken and refactored from ShapeConstruct::ConvertCurveToBSpline
+        if (hCurve->IsKind(STANDARD_TYPE(Geom_TrimmedCurve))) {
+          hCurve = Handle(Geom_TrimmedCurve)::DownCast(hCurve)->BasisCurve();
+        }
+
+        GeomAbs_Shape aCont = GeomAbs_C2;
+        Handle(Geom_Curve) hBasisCurve = hCurve;
+        if (hBasisCurve->IsKind(STANDARD_TYPE(Geom_OffsetCurve))) {
+          hBasisCurve = Handle(Geom_OffsetCurve)::DownCast(hBasisCurve)->BasisCurve();
+        }
+        if (hBasisCurve->IsKind(STANDARD_TYPE(Geom_Line))) {
+          aCont = GeomAbs_C0;
+        }
+
+        Handle(Geom_Curve) tCurve = new Geom_TrimmedCurve(hCurve, range[0], range[1]);
+        GeomConvert_ApproxCurve approx (tCurve, Precision::Confusion(), aCont, MaxSegments, MaxDegree);
+        if ( approx.HasResult() )
+          hBSpline = approx.Curve();
+        else
+          hBSpline = GeomConvert::CurveToBSplineCurve(tCurve, Convert_QuasiAngular);
+
+        if (hBSpline.IsNull()) {
+          if (outLevel > 0)
+            printf(" EGADS Error: Failure to convert Curve (EG_convertToBSpline)!\n");
+          return EGADS_GEOMERR;
+        }
+
+        /* Preserve periodicity */
+        if (hCurve->IsPeriodic() && !hBSpline->IsPeriodic() &&
+            Abs(range[0] - hCurve->FirstParameter()) < Precision::Confusion() &&
+            Abs(range[1] - hCurve->LastParameter() ) < Precision::Confusion())
+          hBSpline->SetPeriodic();
+      }
+    } catch (const Standard_Failure& e) {
+      printf(" EGADS Error: Curve Geometry Creation Error (EG_convertToBSpline)!\n");
+      printf("              %s\n", e.GetMessageString());
+      return EGADS_GEOMERR;
     }
-    if (hBSpline.IsNull()) {
-      if (outLevel > 0)
-        printf(" EGADS Warning: Failure to convert (EG_convertToBSpline)!\n");
+    catch (...) {
+      printf(" EGADS Error: Curve Geometry Creation Error (EG_convertToBSpline)!\n");
       return EGADS_GEOMERR;
     }
 
@@ -8667,69 +8949,100 @@ EG_convertToBSpline(egObject *object, egObject **bspline)
     egadsSurface *psurface        = (egadsSurface *) geom->blind;
     Handle(Geom_Surface) hSurface = psurface->handle;
     hSurface->Bounds(range[0],range[1], range[2],range[3]);
-    if (object->oclass == FACE) {
-      egadsFace *pface = (egadsFace *) object->blind;
-      BRepTools::UVBounds(pface->face, range[0],range[1], range[2],range[3]);
-    }
+    Handle(Geom_BSplineSurface) hBSpline;
     try {
-      Handle(Geom_BSplineSurface)
-        hBSpline = ShapeConstruct::ConvertSurfaceToBSpline(hSurface,
-                                   range[0], range[1], range[2], range[3],
-                                   Precision::Confusion(), GeomAbs_C2, 100, 20);
-      if (hBSpline.IsNull()) {
-        if (outLevel > 0)
-          printf(" EGADS Warning: Failure to Convert (EG_convertToBSpline)!\n");
-        return EGADS_GEOMERR;
-      }
-      /* relimit EXTRUSION Surfaces
-      if ((object->oclass == FACE) && (geom->mtype == EXTRUSION)) {
-        Standard_Real srange[4];
-        hBSpline->Bounds(srange[0],srange[1], srange[2],srange[3]);
-        if ((srange[0] != range[0]) || (srange[1] != range[1]) ||
-            (srange[2] != range[2]) || (srange[3] != range[3])) {
-            hBSpline = ShapeConstruct::ConvertSurfaceToBSpline(hBSpline,
-                                       range[0], range[1], range[2], range[3],
-                                       Precision::Confusion(), GeomAbs_C2, 100,
-                                       20);
-          if (hBSpline.IsNull()) {
-            if (outLevel > 0)
-              printf(" EGADS Warning: Fail 2 Convert (EG_convertToBSpline)!\n");
-            return EGADS_GEOMERR;
+      if (geom->mtype == BSPLINE) {
+        if (object->oclass == FACE) {
+          egadsFace *pface = (egadsFace *) object->blind;
+          BRepTools::UVBounds(pface->face, range[0],range[1], range[2],range[3]);
+        }
+        hBSpline = Handle(Geom_BSplineSurface)::DownCast(hSurface->Copy());
+        hBSpline->Segment(range[0],range[1], range[2],range[3]);
+      } else {
+
+        Handle(Geom_Surface) hBasisSurface = hSurface;
+        if (object->oclass == FACE) {
+          if (hSurface->IsKind(STANDARD_TYPE(Geom_RectangularTrimmedSurface))) {
+            hSurface = Handle(Geom_RectangularTrimmedSurface)::DownCast(hSurface)->BasisSurface();
+            hSurface->Bounds(range[0],range[1], range[2],range[3]);
+            hBasisSurface = hSurface;
+          }
+          egadsFace *pface = (egadsFace *) object->blind;
+          BRepTools::UVBounds(pface->face, frange[0],frange[1], frange[2],frange[3]);
+
+          Standard_Boolean TrimU = (frange[0] > range[0] || frange[1] < range[1]);
+          Standard_Boolean TrimV = (frange[2] > range[2] || frange[3] < range[3]);
+
+          if (TrimU || TrimV) {
+
+            // Limit trimming to preserve periodicity
+            if (TrimU && TrimV)
+              hSurface = new Geom_RectangularTrimmedSurface(hSurface, frange[0],frange[1], frange[2],frange[3]);
+            else if (TrimU)
+              hSurface = new Geom_RectangularTrimmedSurface(hSurface, frange[0],frange[1], Standard_True);
+            else if (TrimV)
+              hSurface = new Geom_RectangularTrimmedSurface(hSurface, frange[2],frange[3], Standard_False);
           }
         }
-      } */
 
-      stat = EG_makeObject(context, &obj);
-      if (stat != EGADS_SUCCESS) {
-        printf(" EGADS Error: make Surface = %d (EG_convertToBSpline)!\n",
-               stat);
-        return stat;
+        GeomAbs_Shape aCont = GeomAbs_C2;
+        if (hBasisSurface->IsKind(STANDARD_TYPE(Geom_OffsetSurface))) {
+          hBasisSurface = Handle(Geom_OffsetSurface)::DownCast(hBasisSurface)->BasisSurface();
+        }
+        if (hBasisSurface->IsKind(STANDARD_TYPE(Geom_Plane))) {
+          aCont = GeomAbs_C0;
+        }
+
+        GeomConvert_ApproxSurface approx(hSurface, Precision::Confusion(),aCont,aCont,MaxDegree,MaxDegree,MaxSegments,0);
+        if (approx.IsDone()) {
+          hBSpline = approx.Surface();
+        } else {
+          // Try falling back on an analytical conversion
+          hBSpline = GeomConvert::SurfaceToBSplineSurface(hSurface);
+        }
+
+        if (hBSpline.IsNull()) {
+          if (outLevel > 0)
+            printf(" EGADS Error: Failure to Convert Surface (EG_convertToBSpline)!\n");
+          return EGADS_GEOMERR;
+        }
+
+        /* Preserve periodicity */
+        if (hSurface->IsUPeriodic() && !hBSpline->IsUPeriodic())
+          hBSpline->SetUPeriodic();
+        if (hSurface->IsVPeriodic() && !hBSpline->IsVPeriodic())
+          hBSpline->SetVPeriodic();
       }
-      obj->oclass         = SURFACE;
-      obj->mtype          = BSPLINE;
-      egadsSurface *psurf = new egadsSurface;
-      psurf->handle       = hBSpline;
-      psurf->ref          = NULL;
-      psurf->topFlg       = 0;
-      psurf->header       = NULL;
-      psurf->data         = NULL;
-      psurf->data_dot     = NULL;
-      obj->blind          = psurf;
-      EG_getGeometry(obj, &i, &j, &ref, &psurf->header, &psurf->data);
-      EG_getGeometryLen(obj, &i, &psurf->dataLen);
-      hBSpline->Bounds(psurf->urange[0], psurf->urange[1],
-                       psurf->vrange[0], psurf->vrange[1]);
     }
     catch (const Standard_Failure& e) {
-      printf(" EGADS Warning: Geometry Creation Error (EG_convertToBSpline)!\n");
-      printf("                %s\n", e.GetMessageString());
+      printf(" EGADS Error: Surface Geometry Creation Error (EG_convertToBSpline)!\n");
+      printf("              %s\n", e.GetMessageString());
       return EGADS_GEOMERR;
     }
     catch (...) {
-      printf(" EGADS Warning: Geometry Creation Error (EG_convertToBSpline)!\n");
+      printf(" EGADS Error: Surface Geometry Creation Error (EG_convertToBSpline)!\n");
       return EGADS_GEOMERR;
     }
-
+    stat = EG_makeObject(context, &obj);
+    if (stat != EGADS_SUCCESS) {
+      printf(" EGADS Error: make Surface = %d (EG_convertToBSpline)!\n",
+             stat);
+      return stat;
+    }
+    obj->oclass         = SURFACE;
+    obj->mtype          = BSPLINE;
+    egadsSurface *psurf = new egadsSurface;
+    psurf->handle       = hBSpline;
+    psurf->ref          = NULL;
+    psurf->topFlg       = 0;
+    psurf->header       = NULL;
+    psurf->data         = NULL;
+    psurf->data_dot     = NULL;
+    obj->blind          = psurf;
+    EG_getGeometry(obj, &i, &j, &ref, &psurf->header, &psurf->data);
+    EG_getGeometryLen(obj, &i, &psurf->dataLen);
+    hBSpline->Bounds(psurf->urange[0], psurf->urange[1],
+                     psurf->vrange[0], psurf->vrange[1]);
   }
 
   *bspline = obj;
@@ -8762,7 +9075,7 @@ EG_flattenBSpline(egObject *object, egObject **result)
       printf(" EGADS Warning: Already flat PCurve EG_flattenBSpline)!\n");
       return EGADS_GEOMERR;
     }
-    
+
     Handle(Geom2d_Curve)    hCurve = pcurve->handle;
     gp_Trsf2d               form   = gp_Trsf2d();
     Handle(Geom2d_Geometry) nGeom  = hCurve->Transformed(form);
@@ -8903,8 +9216,9 @@ EG_flattenBSpline(egObject *object, egObject **result)
 
 
 int
-EG_addKnots(const egObject *object, int nU, /*@null@*/ double *Us,
-            int nV, /*@null@*/ double *Vs, egObject **result)
+EG_addKnots(const egObject *object,
+            int minDegU, int nU, /*@null@*/ double *Us,
+            int minDegV, int nV, /*@null@*/ double *Vs, egObject **result)
 {
   int      i, stat, ot, mc, len, nmult;
   egObject *obj, *context, *ref;
@@ -8919,31 +9233,30 @@ EG_addKnots(const egObject *object, int nU, /*@null@*/ double *Us,
   if  (EG_sameThread(object))        return EGADS_CNTXTHRD;
 
   context = EG_context(object);
-  gp_Trsf form = gp_Trsf();
 
   if (object->oclass == CURVE) {
 
     egadsCurve *pcurve = (egadsCurve *) object->blind;
     Handle(Geom_Curve)    hCurve = pcurve->handle;
-    Handle(Geom_Geometry) nGeom  = hCurve->Transformed(form);
+    Handle(Geom_Geometry) nGeom  = hCurve->Copy();
     Handle(Geom_Curve)    nCurve = Handle(Geom_Curve)::DownCast(nGeom);
     Handle(Geom_BSplineCurve)
                         hBSpline = Handle(Geom_BSplineCurve)::DownCast(nCurve);
 
-    if (nU <= 0) {
-      try {
-        hBSpline->IncreaseDegree(3);
-      }
-      catch (const Standard_Failure& e) {
-        printf(" EGADS Warning: Geometry Creation Error Elev (EG_addKnots)!\n");
-        printf("                %s\n", e.GetMessageString());
-        return EGADS_GEOMERR;
-      }
-      catch (...) {
-        printf(" EGADS Warning: Geometry Creation Error Elev (EG_addKnots)!\n");
-        return EGADS_GEOMERR;
-      }
-    } else {
+    try {
+      hBSpline->IncreaseDegree(MAX(minDegU,hBSpline->Degree()));
+    }
+    catch (const Standard_Failure& e) {
+      printf(" EGADS Error: Geometry Creation Error Elev (EG_addKnots)!\n");
+      printf("              %s\n", e.GetMessageString());
+      return EGADS_GEOMERR;
+    }
+    catch (...) {
+      printf(" EGADS Error: Geometry Creation Error Elev (EG_addKnots)!\n");
+      return EGADS_GEOMERR;
+    }
+
+    if ((nU > 0) && (Us != NULL)) {
       for (len = i = 1; i < nU; i++)
         if (fabs(Us[i]-Us[i-1]) > KNACC) len++;
       TColStd_Array1OfReal    aKnots(1, len);
@@ -8960,16 +9273,15 @@ EG_addKnots(const egObject *object, int nU, /*@null@*/ double *Us,
           aMults(len) = nmult;
         }
       try {
-        hBSpline->IncreaseDegree(3);
         hBSpline->InsertKnots(aKnots, aMults, KNACC, Standard_True);
       }
       catch (const Standard_Failure& e) {
-        printf(" EGADS Warning: Geometry Creation Error (EG_addKnots)!\n");
-        printf("                %s\n", e.GetMessageString());
+        printf(" EGADS Error: Geometry Creation Error (EG_addKnots)!\n");
+        printf("              %s\n", e.GetMessageString());
         return EGADS_GEOMERR;
       }
       catch (...) {
-        printf(" EGADS Warning: Geometry Creation Error (EG_addKnots)!\n");
+        printf(" EGADS Error: Geometry Creation Error (EG_addKnots)!\n");
         return EGADS_GEOMERR;
       }
     }
@@ -9000,24 +9312,22 @@ EG_addKnots(const egObject *object, int nU, /*@null@*/ double *Us,
 
     egadsSurface *psurface = (egadsSurface *) object->blind;
     Handle(Geom_Surface)  hSurf = psurface->handle;
-    Handle(Geom_Geometry) nGeom = hSurf->Transformed(form);
+    Handle(Geom_Geometry) nGeom = hSurf->Copy();
     Handle(Geom_Surface)  nSurf = Handle(Geom_Surface)::DownCast(nGeom);
     Handle(Geom_BSplineSurface)
                        hBSpline = Handle(Geom_BSplineSurface)::DownCast(nSurf);
 
-    if ((nU <= 0) && (nV <= 0)) {
-      try {
-        hBSpline->IncreaseDegree(3, 3);
-      }
-      catch (const Standard_Failure& e) {
-        printf(" EGADS Warning: Geometry Creation Error Elev (EG_addKnots)!\n");
-        printf("                %s\n", e.GetMessageString());
-        return EGADS_GEOMERR;
-      }
-      catch (...) {
-        printf(" EGADS Warning: Geometry Creation Error Elev (EG_addKnots)!\n");
-        return EGADS_GEOMERR;
-      }
+    try {
+      hBSpline->IncreaseDegree(MAX(minDegU,hBSpline->UDegree()), MAX(minDegV,hBSpline->VDegree()));
+    }
+    catch (const Standard_Failure& e) {
+      printf(" EGADS Warning: Geometry Creation Error Elev (EG_addKnots)!\n");
+      printf("                %s\n", e.GetMessageString());
+      return EGADS_GEOMERR;
+    }
+    catch (...) {
+      printf(" EGADS Warning: Geometry Creation Error Elev (EG_addKnots)!\n");
+      return EGADS_GEOMERR;
     }
 
     if ((nU > 0) && (Us != NULL)) {
@@ -9037,7 +9347,6 @@ EG_addKnots(const egObject *object, int nU, /*@null@*/ double *Us,
           aMults(len) = nmult;
         }
       try {
-        hBSpline->IncreaseDegree(3, 3);
         hBSpline->InsertUKnots(aKnots, aMults, KNACC, Standard_True);
       }
       catch (const Standard_Failure& e) {
@@ -9068,7 +9377,6 @@ EG_addKnots(const egObject *object, int nU, /*@null@*/ double *Us,
           aMults(len) = nmult;
         }
       try {
-        if ((nU <= 0) || (Us == NULL)) hBSpline->IncreaseDegree(3, 3);
         hBSpline->InsertVKnots(aKnots, aMults, KNACC, Standard_True);
       }
       catch (const Standard_Failure& e) {
@@ -9112,7 +9420,10 @@ EG_addKnots(const egObject *object, int nU, /*@null@*/ double *Us,
 int
 EG_mapSequen(egObject *src, egObject *dst, egObject **result)
 {
-  int      i, j, hit, outLevel, stat;
+  int      i, j, outLevel, stat;
+#ifdef KNOTREMOVE
+  int      hit;
+#endif
   egObject *context, *obj;
 
   if  (src == NULL)                return EGADS_NULLOBJ;
@@ -9159,7 +9470,9 @@ EG_mapSequen(egObject *src, egObject *dst, egObject **result)
     TColStd_Array1OfReal knotd(1, len);
     hBSpline->Knots(knots);
     hBSplind->Knots(knotd);
+#ifdef KNOTREMOVE
     hit = 0;
+#endif
     for (i = 2; i < len; i++) {
       double scaledKnot = (knots(i)-knots(1))/(knots(len)-knots(1));
       scaledKnot *= knotd(len)-knotd(1);
@@ -9168,7 +9481,9 @@ EG_mapSequen(egObject *src, egObject *dst, egObject **result)
         if (fabs(scaledKnot-knotd(j)) <= 0.5*KNDIFF) break;
       if (j != len) continue;
       hBSplind->InsertKnot(scaledKnot);
+#ifdef KNOTREMOVE
       hit++;
+#endif
       if (outLevel > 1)
         printf("   inserting knot = %lf (%lf)\n", scaledKnot, knots(i));
     }
@@ -9233,7 +9548,9 @@ EG_mapSequen(egObject *src, egObject *dst, egObject **result)
     TColStd_Array1OfReal knotd(1, len);
     hBSpline->Knots(knots);
     hBSplind->Knots(knotd);
+#ifdef KNOTREMOVE
     hit = 0;
+#endif
     for (i = 2; i < len; i++) {
       double scaledKnot = (knots(i)-knots(1))/(knots(len)-knots(1));
       scaledKnot *= knotd(len)-knotd(1);
@@ -9242,7 +9559,9 @@ EG_mapSequen(egObject *src, egObject *dst, egObject **result)
         if (fabs(scaledKnot-knotd(j)) <= 0.5*KNDIFF) break;
       if (j != len) continue;
       hBSplind->InsertKnot(scaledKnot);
+#ifdef KNOTREMOVE
       hit++;
+#endif
       if (outLevel > 1)
         printf("   inserting knot = %lf (%lf)\n", scaledKnot, knots(i));
     }
@@ -9316,7 +9635,9 @@ EG_mapSequen(egObject *src, egObject *dst, egObject **result)
     hBSplind->VKnots(vKnotd);
 
     // u knots
+#ifdef KNOTREMOVE
     hit = 0;
+#endif
     for (i = 2; i < uLen; i++) {
       double scaledKnot = (uKnots(i)-uKnots(1))/(uKnots(uLen)-uKnots(1));
       scaledKnot *= uKnotd(uLen)-uKnotd(1);
@@ -9325,7 +9646,9 @@ EG_mapSequen(egObject *src, egObject *dst, egObject **result)
         if (fabs(scaledKnot-uKnotd(j)) <= 0.5*KNDIFF) break;
       if (j != uLen) continue;
       hBSplind->InsertUKnot(scaledKnot, 1, 0.5*KNDIFF);
+#ifdef KNOTREMOVE
       hit++;
+#endif
       if (outLevel > 1)
         printf("   inserting u knot = %lf (%lf)\n", scaledKnot, uKnots(i));
     }
@@ -9352,7 +9675,9 @@ EG_mapSequen(egObject *src, egObject *dst, egObject **result)
 #endif
 
     // v knots
+#ifdef KNOTREMOVE
     hit = 0;
+#endif
     for (i = 2; i < vLen; i++) {
       double scaledKnot = (vKnots(i)-vKnots(1))/(vKnots(vLen)-vKnots(1));
       scaledKnot *= vKnotd(vLen)-vKnotd(1);
@@ -9361,7 +9686,9 @@ EG_mapSequen(egObject *src, egObject *dst, egObject **result)
         if (fabs(scaledKnot-vKnotd(j)) <= 0.5*KNDIFF) break;
       if (j != vLen) continue;
       hBSplind->InsertVKnot(scaledKnot, 1, 0.5*KNDIFF);
+#ifdef KNOTREMOVE
       hit++;
+#endif
       if (outLevel > 1)
         printf("   inserting v knot = %lf (%lf)\n", scaledKnot, vKnots(i));
     }
@@ -9539,4 +9866,30 @@ EG_relPosTs(egObject *geom, int n, const double *rel, double *ts, double *xyzs)
   }
 
   return EGADS_SUCCESS;
+}
+
+
+int
+EG_sampleSame(const egObject *geom1, const egObject *geom2)
+{
+  int    i, stat;
+  double uv[2], result[18], xyz[3], dist;
+
+  if (geom1->mtype == PLANE) {
+    double uvs[4][2] = {{-1.0, -1.0}, {-1.0, 1.0}, {1.0, -1.0}, {1.0, 1.0}};
+
+    for (i = 0; i < 4; i++) {
+      stat = EG_evaluate(geom1, uvs[i], result);
+      if (stat != EGADS_SUCCESS) return EGADS_OUTSIDE;
+      stat = EG_invEvaluate(geom2, result, uv, xyz);
+      if (stat != EGADS_SUCCESS) return EGADS_OUTSIDE;
+      dist = sqrt((xyz[0]-result[0])*(xyz[0]-result[0]) +
+                  (xyz[1]-result[1])*(xyz[1]-result[1]) +
+                  (xyz[2]-result[2])*(xyz[2]-result[2]));
+      if (dist > 1.e-7) return EGADS_OUTSIDE;
+    }
+    return EGADS_SUCCESS;
+  }
+
+  return EGADS_OUTSIDE;
 }

@@ -1,0 +1,23 @@
+# offsetQb
+# written by John Dannenhoffer
+
+BOX       0  0  0  7  4  1
+
+BOX       1  1 -1  2  2  3
+SUBTRACT
+
+CYLINDER  5  2 -1  5  2  3  1
+SUBTRACT
+
+SELECT    EDGE
+ATTRIBUTE _color   $magenta
+
+UDPARG    offset    faceList  3
+UDPARG    offset    edgeList  14;15
+UDPRIM    offset    dist      0.2
+
+SELECT    FACE     $__offsetFace__  $*
+ATTRIBUTE _color   $white
+ASSERT    @sellist.size  2
+
+END

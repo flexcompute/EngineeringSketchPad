@@ -1,0 +1,23 @@
+# offset8z
+# written by John Dannenhoffer
+
+DIMENSION dist      1  10
+DESPMTR   dist      "-.10; -.05; -.01; -.005; -.001; 0.001; 0.005; 0.01; 0.05; 0.10"
+
+SKBEG     0.00  0.0  0
+   LINSEG 0.00  3.0  0
+   LINSEG 2.00  3.0  0
+   LINSEG 2.00  0.0  0
+   LINSEG 4.00  0.0  0
+   LINSEG 4.00  3.0  0
+   LINSEG 6.00  3.0  0
+   LINSEG 6.00  0.0  0
+SKEND
+STORE     base  0  1
+
+PATBEG    idist     dist.size
+   RESTORE   base
+   UDPRIM    offset    dist dist[idist]
+PATEND
+
+END

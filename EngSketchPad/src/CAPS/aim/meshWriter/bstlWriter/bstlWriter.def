@@ -1,0 +1,4 @@
+LIBRARY bstlWriter
+EXPORTS
+meshExtension
+meshWrite

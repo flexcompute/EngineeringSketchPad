@@ -1,0 +1,53 @@
+# waffleB3
+# written by John Dannenhoffer
+
+DIMENSION xloc      5 1
+
+DESPMTR   rad       1.0
+DESPMTR   xloc      -2;-1;0;1;2
+CFGPMTR   filenum   0
+
+
+# interior structure
+UDPARG    WAFFLE    rebuild  rad    # this forces waffle to get re-executed if
+UDPARG    WAFFLE    rebuild  xloc   #     either rad or xloc changes
+UDPRIM    WAFFLE    depth 2*rad+2   filename <<
+    SET    N    xloc.size
+    
+    POINT  A    AT  xloc[1]-1  0
+    POINT  B    AT  xloc[N]+1  0
+    LINE   .    A  B
+
+    PATBEG   irib  N-2
+       POINT  C  AT  xloc[irib+1]  -rad-1
+       POINT  D  AT  xloc[irib+1]  +rad+1
+       LINE   .  C  D
+    PATEND
+>>
+TRANSLATE 0  0  -rad-1
+STORE     waffle
+
+# outer mold line
+CYLINDER  xloc[1]  0  0  xloc[xloc.size]  0  0  rad
+STORE     oml
+
+# interior structure
+RESTORE   waffle
+RESTORE   oml
+INTERSECT
+
+# skins
+RESTORE   oml
+EXTRACT   0
+RESTORE   waffle
+SUBTRACT
+
+# full structure
+JOIN
+
+# dump a .sens file
+IFTHEN    filenum  GT  0
+    DUMP  !$myFile_+filenum+$.sens
+ENDIF
+
+END

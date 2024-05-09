@@ -97,6 +97,7 @@ Creating Geometry using ESP</h1>
 </div><!-- fragment --><p>as well as the following configuration paramters. Configuration quantities cannot be used with sensitivities. </p><div class="fragment"><div class="line">CFGPMTR   series            8412</div>
 <div class="line">CFGPMTR   series2           0020</div>
 <div class="line">CFGPMTR   sharpte           0</div>
+<div class="line">CFGPMTR   wake              1</div>
 </div><!-- fragment --><p> Next, internal CAPS reference attributes are set. </p><div class="fragment"><div class="line"># Set reference values</div>
 <div class="line">ATTRIBUTE capsReferenceArea     area</div>
 <div class="line">ATTRIBUTE capsReferenceChord    sqrt(area/aspect)</div>
@@ -154,7 +155,7 @@ Creating Geometry using ESP</h1>
 <div class="line">    ATTRIBUTE capsMesh    $Farfield</div>
 <div class="line">    ATTRIBUTE _name       $Farfield</div>
 <div class="line">    ATTRIBUTE AFLR_GBC    $FARFIELD_UG3_GBC</div>
-<div class="line">    ATTRIBUTE AFLR4_Cmp_ID 3</div>
+<div class="line">    ATTRIBUTE AFLR4_Cmp_ID 4</div>
 <div class="line">    ATTRIBUTE capsMeshLength  cmean #Charachteristic length for meshing</div>
 <div class="line">    ATTRIBUTE .tParam &quot;30.;5.;30;&quot;</div>
 </div><!-- fragment --> <h1><a class="anchor" id="fun3dPyCAPS"></a>
@@ -169,6 +170,8 @@ Performing analysis using pyCAPS</h1>
 <div class="line">                           capsFile=geometryScript,</div>
 <div class="line">                           outLevel=args.outLevel)</div>
 </div><!-- fragment --><p> Any design parameters available in *.csm file are also available within the pyCAPS script. The following snippet changes the despmtr "area" which will force a rebuild of the geometry that FUN3D will now use. </p><div class="fragment"><div class="line">myProblem.geometry.despmtr.area = 50</div>
+<div class="line"><span class="comment"># TetGen does not support wakes</span></div>
+<div class="line">myProblem.geometry.cfgpmtr.wake = 0</div>
 </div><!-- fragment --><p> A typical high-fidelity CFD analysis requires meshing AIMs to be coupled to the analysis AIM (unless a mesh already exists).For surface meshing, the face tessellation from the ESP geometry can be directly used as the surface mesh. If the face tessellation is not satisfactory, a surface meshing AIM may be coupled to the volume meshing AIM. In this example, the face tessellation is used as the surface mesh and TetGen for volumetric mesh generation. The TetGen AIM in loaded using the following </p><div class="fragment"><div class="line"><span class="comment"># Load egadsTess aim</span></div>
 <div class="line">myProblem.analysis.create(aim = <span class="stringliteral">&quot;egadsTessAIM&quot;</span>, name = <span class="stringliteral">&quot;egadsTess&quot;</span>)</div>
 <div class="line"> </div>
@@ -193,8 +196,6 @@ Performing analysis using pyCAPS</h1>
 <div class="line"> </div>
 <div class="line"><span class="comment"># Link the mesh</span></div>
 <div class="line">fun3dAIM.input[<span class="stringliteral">&quot;Mesh&quot;</span>].link(meshAIM.output[<span class="stringliteral">&quot;Volume_Mesh&quot;</span>])</div>
-<div class="line"> </div>
-<div class="line">fun3dAIM.input.Mesh_ASCII_Flag = <span class="keyword">False</span></div>
 <div class="line"> </div>
 <div class="line"><span class="comment"># Set AoA number</span></div>
 <div class="line">myProblem.analysis[<span class="stringliteral">&quot;fun3d&quot;</span>].input.Alpha = 1.0</div>
@@ -301,7 +302,7 @@ FUN3D coupled to TetGen example</div></div>
 </div><!-- PageDoc -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Sat Jul 2 2022 10:12:29 for FUN3D Analysis Interface Module (AIM) by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1
+Generated on Sat Apr 27 2024 16:51:21 for FUN3D Analysis Interface Module (AIM) by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1
 </small></address>
 </body>
 </html>

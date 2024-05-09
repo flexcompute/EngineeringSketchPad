@@ -1,4 +1,4 @@
-#LINUX 64 bit:
+#LINUX 64 bit x86_64:
 #
 
 INCS    = -I$(CASROOT)/inc -I$(CASROOT)/include/opencascade -I$(CASROOT) -I../include
@@ -12,24 +12,31 @@ LIBS    = -lTKBool -lTKernel -lTKFeat -lTKBO -lTKGeomAlgo -lTKMath -lTKOffset -l
 else ifeq ($(CASREV),7.6)
 CPDS    = -std=c++11
 LIBS    = -lTKBool -lTKernel -lTKFeat -lTKBO -lTKGeomAlgo -lTKMath -lTKOffset -lTKPrim -lTKTopAlgo -lTKBRep -lTKG2d -lTKG3d -lTKGeomBase -lTKShHealing -lTKSTEP -lTKSTEP209 -lTKSTEPBase -lTKSTEPAttr -lTKXSBase -lTKIGES -lTKFillet
+else ifeq ($(CASREV),7.7)
+CPDS    = -std=c++11
+LIBS    = -lTKBool -lTKernel -lTKFeat -lTKBO -lTKGeomAlgo -lTKMath -lTKOffset -lTKPrim -lTKTopAlgo -lTKBRep -lTKG2d -lTKG3d -lTKGeomBase -lTKShHealing -lTKSTEP -lTKSTEP209 -lTKSTEPBase -lTKSTEPAttr -lTKXSBase -lTKIGES -lTKFillet
+else ifeq ($(CASREV),7.8)
+CPDS    = -std=c++11
+INCS    = -I$(CASROOT)/inc -I$(CASROOT)/include/opencascade -I$(CASROOT)
+LIBS    = -lTKBool -lTKernel -lTKFeat -lTKBO -lTKGeomAlgo -lTKMath -lTKOffset -lTKPrim -lTKTopAlgo -lTKBRep -lTKG2d -lTKG3d -lTKGeomBase -lTKShHealing -lTKDESTEP -lTKDEIGES -lTKXSBase -lTKFillet
 else 
-$(error Unsupported CASREV=$(CASREV) -- Must be one of: 7.3 7.4 7.6)
+$(error Unsupported CASREV=$(CASREV) -- Must be one of: 7.3 7.4 7.6 7.7 7.8)
 endif
 
 LIBS    += -pthread -lm
 WARNINGS = -Wall -Wno-dangling-else -Wno-parentheses -Wno-unused-result -Wno-format-truncation
 DEFINE   = -DREVISION=$(CASREV)
-CXX      = g++ -m64 -g $(ESPFLAGS)
+CXX      = g++ -g $(ESPFLAGS)
 CPPOPT   = -O -fPIC -DOCC_CONVERT_SIGNALS -D_GNU_SOURCE=1 -DNDEBUG -DNo_Exception -D_OCC64 $(WARNINGS) $(CPDS)
-CC       = gcc -m64 -g $(ESPFLAGS)
+CC       = gcc -g $(ESPFLAGS)
 COPTS    = -O -fno-unit-at-a-time -fPIC $(WARNINGS)
 OCOPT    = -O -fno-unit-at-a-time -fPIC $(WARNINGS)
 ifeq ($(EFCOMP),gfortran)
-FCOMP    = gfortran -m64 -g $(ESPFFLAGS)
+FCOMP    = gfortran -g $(ESPFFLAGS)
 FOPTS    = -O -fPIC -frecursive -fcray-pointer
 endif
 ifeq ($(EFCOMP),ifort)
-FCOMP    = ifort -m64 -g -traceback
+FCOMP    = ifort -g -traceback
 FOPTS    = -O -fPIC -recursive
 endif
 LOPTS  = rs
@@ -37,8 +44,15 @@ RANLB  =
 SHLIB  = libegads.so
 OSHLIB = libocsm.so
 CSHLIB = libcaps.so
+ifeq ($(USE_RPATH), yes)
+SOFLGS = -shared -Wl,-no-undefined -Wl,--no-as-needed -Wl,--disable-new-dtags
+FSOFLG = -shared -Wl,-no-undefined -Wl,--no-as-needed -Wl,--disable-new-dtags
+RPATH  = -Wl,-rpath,$(ESP_ROOT)/lib -Wl,-rpath,$(CASROOT)/$(CASARCH)/lib -lrt
+else
 SOFLGS = -shared -Wl,-no-undefined 
 FSOFLG = -shared -Wl,-no-undefined 
 RPATH  = -lrt
+endif
 CPPSLB = -lstdc++
+#
 LINT   = splint -usedef -realcompare +relaxtypes -compdef -nullassign -retvalint -usereleased -mustfreeonly -branchstate -temptrans -nullstate -compmempass -onlytrans -globstate -statictrans -initsize -type -fixedformalarray -shiftnegative -compdestroy -unqualifiedtrans -warnposix -predboolint -Dstrcasecmp=strcmp -Dstrncasecmp=strncmp -Dstrtok_r=strtok

@@ -1,0 +1,64 @@
+# blend_8
+# written by John Dannenhoffer
+
+# generate one NodeBody, four SheetBodys, and one WireBody
+POINT     -5   0   0
+
+SKBEG     -4  -1  -1
+   LINSEG -4   1  -1
+   LINSEG -4   1   1
+   LINSEG -4  -1   1
+   LINSEG -4  -1  -1
+SKEND
+
+SKBEG     -2  -1  -1
+   LINSEG -2   1  -1
+   LINSEG -2   1   1
+   LINSEG -2  -1   1
+   LINSEG -2  -1  -1
+SKEND
+
+SKBEG      0  -2  -2
+   LINSEG  0   2  -2
+   LINSEG  0   2   2
+   LINSEG  0  -2   2
+   LINSEG  0  -2  -2
+SKEND
+
+SKBEG      2  -1  -1
+   LINSEG  2   1  -1
+   LINSEG  2   1   1
+   LINSEG  2  -1   1
+   LINSEG  2  -1  -1
+SKEND
+
+SKBEG      4  -1  -1
+   LINSEG  4   1  -1
+   LINSEG  4   1   1
+   LINSEG  4  -1   1
+   LINSEG  4  -1  -1
+SKEND  1
+
+# remember the sections (so that they can be plotted at the end)
+GROUP
+STORE     sections 0 1
+
+# perform the BLEND (SheetBody)
+BLEND     1/2;0;1;0;1;0;0;1
+ASSERT    @itype  2
+
+                              # iford=1 does not exist
+                              # iford=2 does not exist
+SELECT    FACE   @nbody 3     # iford=3 in blue
+ATTRIBUTE _color $blue
+SELECT    FACE   @nbody 4     # iford=4 in cyan
+ATTRIBUTE _color $cyan
+SELECT    FACE   @nbody 5     # iford=5 in magenta
+ATTRIBUTE _color $magenta
+SELECT    FACE   @nbody 6     # iford=6 in yellow
+ATTRIBUTE _color $yellow
+
+# plot the sections too
+RESTORE   sections
+
+END

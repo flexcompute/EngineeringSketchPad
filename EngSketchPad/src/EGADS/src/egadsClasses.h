@@ -5,7 +5,7 @@
  *
  *             C++/OpenCASCADE Object Header
  *
- *      Copyright 2011-2022, Massachusetts Institute of Technology
+ *      Copyright 2011-2024, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -163,5 +163,50 @@ public:
   egObject     **bodies;                // vector of pointers to egObjects
   egadsBox     bbox;
 };
+
+
+// Used to track labels from STEP/IGES readers
+class egadsShapeData
+{
+  class Label
+  {
+  public:
+    Label(const char* shapeName) : shapeName(EG_strdup(shapeName)) {}
+    Label(const Label& label) : shapeName(EG_strdup(label.shapeName)) {}
+    ~Label() { EG_free(shapeName); }
+
+    char  *shapeName;
+  };
+  typedef NCollection_IndexedDataMap<TopoDS_Shape, Label> Label_IndexedDataMap;
+  typedef NCollection_IndexedDataMap<TopoDS_Shape, Quantity_Color> Color_IndexedDataMap;
+public:
+
+  egadsShapeData() {}
+
+  void Add(const TopoDS_Shape& shape, const char* shapeName) { labels.Add(shape, Label(shapeName)); }
+  void Add(const TopoDS_Shape& shape, const Quantity_Color& color) { colors.Add(shape, color); }
+
+  Standard_Integer LabelExtent() const { return labels.Extent(); }
+  Standard_Integer LabelFindIndex(const TopoDS_Shape& shape) const { return labels.FindIndex(shape); }
+  const TopoDS_Shape& LabelFindKey(Standard_Integer i) const { return labels.FindKey(i); }
+  const Label& label(Standard_Integer i) const { return labels(i); }
+
+  Standard_Integer ColorExtent() const { return colors.Extent(); }
+  Standard_Integer ColorFindIndex(const TopoDS_Shape& shape) const { return colors.FindIndex(shape); }
+  const TopoDS_Shape& ColorFindKey(Standard_Integer i) const { return colors.FindKey(i); }
+  const Quantity_Color& color(Standard_Integer i) const { return colors(i); }
+
+  TopoDS_Shape Update(const TopoDS_Shape& oldShape, const TopoDS_Shape& newShape);
+  TopoDS_Shape Update(const TopoDS_Shape& oldShape, BRepBuilderAPI_ModifyShape& xForm);
+  TopoDS_Shape Update(const TopoDS_Shape& oldShape, const Handle(BRepTools_ReShape)& reShape);
+  TopoDS_Shape Update(const TopoDS_Shape& oldShape, const TopoDS_Shape& newShape, const Handle(BRepTools_History)& history);
+
+protected:
+  Label_IndexedDataMap labels;
+  Color_IndexedDataMap colors;
+};
+
+
+
 
 #endif

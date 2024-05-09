@@ -1,0 +1,39 @@
+# spline_1
+# written by John Dannenhoffer
+
+# points
+POINT     0  0  0
+POINT     1  0  0
+POINT     2  1  0
+POINT     3  1  0
+
+# single red spline
+SKBEG     0  0  0
+   SPLINE 1  0  0
+   SPLINE 2  1  0
+   SPLINE 3  1  0
+SKEND
+SELECT    EDGE
+ATTRIBUTE _color $red
+
+# blue line/spline
+SKBEG     0  0  0
+   LINSEG 1  0  0
+   SPLINE 2  1  0
+   SPLINE 3  1  0
+SKEND
+SELECT    EDGE
+ATTRIBUTE _color $blue
+
+# green spline/line
+SKBEG     0  0  0
+   SPLINE 1  0  0
+   SPLINE 2  1  0
+   LINSEG 3  1  0
+SKEND
+SELECT    EDGE
+ATTRIBUTE _color $green
+
+END
+
+

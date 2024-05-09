@@ -9,7 +9,7 @@
 */
 
 /*
- * Copyright (C) 2013/2022  John F. Dannenhoffer, III (Syracuse University)
+ * Copyright (C) 2013/2023  John F. Dannenhoffer, III (Syracuse University)
  *
  * This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
@@ -176,7 +176,7 @@ main(int       argc,                /* (in)  number of arguments */
 
     int       status;
     int       nnode=0, inode, nedge=0, iedge, nface=0, iface, npnt=0, ipnt, ntri=0, itri;
-    int       ncp_in=7, nu, nv, nmin, numiter, bitflag=1;
+    int       ncp_in=7, nu, nv, nmin, numiter, bitflag=1, rtype, nsmth;
     int       ip0, ip1, ip2, it0, it1, it2, ptype, pindx, i, j, ii, jj, next;
     int       *ncp=NULL;
     double    *xyz=NULL, **edgecp=NULL, **edget=NULL, *cp=NULL, *uv=NULL;
@@ -229,13 +229,13 @@ main(int       argc,                /* (in)  number of arguments */
     printf("*                                                        *\n");
     printf("*                   Program TestFit                      *\n");
     printf("*                                                        *\n");
-    printf("*           written by John Dannenhoffer, 2013/2022      *\n");
+    printf("*           written by John Dannenhoffer, 2013/2023      *\n");
     printf("*                                                        *\n");
     printf("**********************************************************\n");
 
 #ifdef GRAFIC
     /* initialize the grafics */
-    sprintf(pltitl, "Program TestFit.  casename=%s", casename);
+    snprintf(pltitl, 254, "Program TestFit.  casename=%s", casename);
     grinit_(&io_kbd, &io_scr, pltitl, strlen(pltitl));
 #endif
 
@@ -338,7 +338,9 @@ main(int       argc,                /* (in)  number of arguments */
         old_time = clock();
         bitflag = 1;
         numiter = 0;
-        status = fit1dCloud(npnt-2, bitflag, &(xyz[3]), ncp[iedge], edgecp[iedge], smooth, edget[iedge],
+        rtype   = 0;
+        nsmth   = 0;
+        status = fit1dCloud(iedge, npnt-2, bitflag, &(xyz[3]), ncp[iedge], edgecp[iedge], smooth, rtype, nsmth, edget[iedge],
                             &normf, &maxf, &dotmin, &nmin, &numiter, stdout);
         new_time = clock();
         fit1d_time += (new_time - old_time);
@@ -630,11 +632,14 @@ main(int       argc,                /* (in)  number of arguments */
         old_time = clock();
         bitflag = 0;
         numiter = 0;
-        status = fit2dCloud(ncloud, bitflag, xyz, nu, nv, cp, smooth, uv, &normf, &maxf, &nmin, &numiter, stdout);
+        rtype   = 0;
+        nsmth   = 0;
+        status = fit2dCloud(iface, ncloud, bitflag, xyz, nu, nv, cp,
+                            smooth, rtype, nsmth, uv, &normf, &maxf, &dotmin, &nmin, &numiter, stdout);
         new_time = clock();
         fit2d_time += (new_time - old_time);
-        printf("fit2dcloud -> status=%d, normf=%10.3e, maxf=%10.3e, nmin=%d, numiter=%d, CPU=%.4f\n\n",
-               status, normf, maxf, nmin, numiter, (double)(new_time-old_time) / (double)(CLOCKS_PER_SEC));
+        printf("fit2dcloud -> status=%d, normf=%10.3e, maxf=%10.3e, dotmin=%6.4f, nmin=%d, numiter=%d, CPU=%.4f\n\n",
+               status, normf, maxf, dotmin, nmin, numiter, (double)(new_time-old_time) / (double)(CLOCKS_PER_SEC));
 
 #ifdef GRAFIC
         status = plotSurface2(iface+1, ncloud, xyz, uv, nu, nv, cp, normf, nmin);
@@ -786,8 +791,8 @@ plotCurve2(int    iedge,                /* (in)  Edge number */
 
     /* --------------------------------------------------------------- */
 
-    sprintf(pltitl, "~x~y~ m=%d,  n=%d,  normf=%10.3e,  dotmin=%.4f,  nmin=%d",
-            m, n, normf, dotmin, nmin);
+    snprintf(pltitl, 254, "~x~y~ m=%d,  n=%d,  normf=%10.3e,  dotmin=%.4f,  nmin=%d",
+             m, n, normf, dotmin, nmin);
 
     grctrl_(plotCurve_image, &indgr, pltitl,
             (void*)(&iedge),
@@ -893,7 +898,7 @@ plotCurve_image(int   *ifunct,
 
             int iset=1;
             float zero=0;
-            sprintf(lablgr, "~x~y~Edge %d", *iedge);
+            snprintf(lablgr, 79, "~x~y~Edge %d", *iedge);
             grvalu_("LABLGR", &iset, &zero, lablgr, strlen("LABLGR"), strlen(lablgr));
         } else if (ymax-ymin >= xmax-xmin && zmax-zmin >= xmax-xmin) {
             *itype = 1;
@@ -904,7 +909,7 @@ plotCurve_image(int   *ifunct,
 
             int iset=1;
             float zero=0;
-            sprintf(lablgr, "~y~z~Edge %d", *iedge);
+            snprintf(lablgr, 79, "~y~z~Edge %d", *iedge);
             grvalu_("LABLGR", &iset, &zero, lablgr, strlen("LABLGR"), strlen(lablgr));
         } else {
             *itype = 2;
@@ -915,7 +920,7 @@ plotCurve_image(int   *ifunct,
 
             int iset=1;
             float zero=0;
-            sprintf(lablgr, "~z~x~Edge %d", *iedge);
+            snprintf(lablgr, 79, "~z~x~Edge %d", *iedge);
             grvalu_("LABLGR", &iset, &zero, lablgr, strlen("LABLGR"), strlen(lablgr));
         }
 
@@ -1088,8 +1093,8 @@ plotSurface2(int    iface,              /* (in)  Face nummber */
 
     /* --------------------------------------------------------------- */
 
-    sprintf(pltitl, "~x~y~Face %d: m=%d,  nu=%d,  nv=%d,  normf=%10.3e,  nmin=%d",
-            iface, m, nu, nv, normf, nmin);
+    snprintf(pltitl, 254, "~x~y~Face %d: m=%d,  nu=%d,  nv=%d,  normf=%10.3e,  nmin=%d",
+             iface, m, nu, nv, normf, nmin);
 
     grctrl_(plotSurface_image, &indgr, pltitl,
             (void*)(&iface),

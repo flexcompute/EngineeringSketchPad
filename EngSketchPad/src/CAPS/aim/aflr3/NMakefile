@@ -3,14 +3,6 @@
 !ERROR ESP_ROOT must be set -- Please fix the environment...
 !ENDIF
 #
-!IFNDEF AFLR
-!ERROR AFLR must be set -- Please fix the environment...
-!ENDIF
-#
-!IFNDEF AFLR_ARCH
-!ERROR AFLR_ARCH must be set -- Please fix the environment...
-!ENDIF
-#
 IDIR  = $(ESP_ROOT)\include
 !include $(IDIR)\$(ESP_ARCH).$(MSVC)
 LDIR  = $(ESP_ROOT)\lib
@@ -18,6 +10,18 @@ LDIR  = $(ESP_ROOT)\lib
 ODIR  = $(ESP_BLOC)\obj
 !ELSE
 ODIR  = .
+!ENDIF
+#
+!IFNDEF AFLR
+default:
+	@echo "Not compiling aflr3AIM: AFLR must be set -- Please fix the environment...."
+!ELSE
+!IFNDEF AFLR_ARCH
+default:
+	@echo "Not compiling aflr3AIM: AFLR_ARCH must be set -- Please fix the environment...."
+!ELSE
+default: $(LDIR)\aflr3AIM.dll $(LDIR)\AFLR.dll
+!ENDIF
 !ENDIF
 
 AFLR3_LIB = AFLR.lib
@@ -66,12 +70,14 @@ EGADS_AFLR4_OBJS = 	\
 			$(ODIR)\egads_eval_xyz_at_u.obj \
 			$(ODIR)\egads_eval_xyz_at_uv.obj \
 			$(ODIR)\egads_face_node_map.obj \
-			$(ODIR)\egads_get_model.obj \
-			$(ODIR)\egads_set_ext_cad_data.obj
+			$(ODIR)\egads_cad_geom_faceMatch.obj \
+			$(ODIR)\egads_data.obj \
+			$(ODIR)\egads_mzone.obj \
+			$(ODIR)\aflr43_bc_mod.obj \
+			$(ODIR)\aflr43_bc_reset.obj
 
-default: clear_version $(ODIR)\aflr3_version.exe $(LDIR)\aflr3AIM.dll
-
-$(LDIR)\aflr3AIM.dll:	aflr3AIM.def $(ODIR)\aflr3AIM.obj $(ODIR)\aflr3_Interface.obj \
+$(LDIR)\aflr3AIM.dll:	$(ODIR)\aflr3_version.exe \
+			aflr3AIM.def $(ODIR)\aflr3AIM.obj $(ODIR)\aflr3_Interface.obj \
 			$(EGADS_AFLR4_OBJS) $(LDIR)\utils.lib
 	-del $(LDIR)\aflr3AIM.dll
 	link /out:$(LDIR)\aflr3AIM.dll /dll /def:aflr3AIM.def \
@@ -85,17 +91,21 @@ $(LDIR)\aflr3AIM.dll:	aflr3AIM.def $(ODIR)\aflr3AIM.obj $(ODIR)\aflr3_Interface.
 
 $(ODIR)\aflr3AIM.obj:	aflr3AIM.c $(IDIR)\capsTypes.h \
 			..\utils\meshUtils.h
-	cl /c $(COPTS) $(DEFINE) -I$(IDIR) -I..\utils aflr3AIM.c \
-		/Fo$(ODIR)\aflr3AIM.obj
+	cl /c $(COPTS) $(DEFINE) -I$(IDIR) -I..\utils \
+		-I$(AFLR)\src \
+		aflr3AIM.c /Fo$(ODIR)\aflr3AIM.obj
 
 $(ODIR)\aflr3_Interface.obj:	aflr3_Interface.c ..\utils\meshUtils.h
-	cl /c $(COPTS) $(DEFINE) -I$(IDIR) \
-		-I$(AFLR)\src\aflr3 -I$(AFLR)\src -I..\utils \
+	cl /c $(COPTS) $(DEFINE) -I$(IDIR) -I..\utils \
+		-I$(AFLR)\src \
 		aflr3_Interface.c /Fo$(ODIR)\aflr3_Interface.obj
 
 # Compile each AFLR source file
 {$(AFLR)\src\egads_aflr4\}.c{$(ODIR)}.obj::
-	cl /c $(CPPOPT) /W0 /Fo"$(ODIR)"\ /Dstrcasecmp=stricmp -I$(IDIR) -I$(AFLR)\src\egads_aflr4 $<
+	cl /c $(CPPOPT) /W0 /Fo"$(ODIR)"\ /Dstrcasecmp=stricmp -D_ENABLE_EGADS_ -I$(IDIR) -I$(AFLR)\src\egads_aflr4 $<
+
+{$(AFLR)\src\aflr43\}.c{$(ODIR)}.obj::
+	cl /c $(CPPOPT) /W0 /Fo"$(ODIR)"\ /Dstrcasecmp=stricmp -D_ENABLE_EGADS_ -I$(IDIR) -I$(AFLR)\src\aflr43 $<
 
 $(LDIR)\AFLR.dll: $(AFLR)\$(AFLR_ARCH)\bin\AFLR.dll
 	xcopy /Q /Y $(AFLR)\$(AFLR_ARCH)\bin\AFLR.dll $(LDIR)
@@ -104,14 +114,14 @@ clear_version:
 	-del $(ODIR)\aflr3_version.exe
 
 # Compile and execute to check the version number
-$(ODIR)\aflr3_version.exe:	aflr3_version.c $(AFLR)\src\aflr3\aflr3_version.h
+$(ODIR)\aflr3_version.exe:	clear_version aflr3_version.c $(AFLR)\src\aflr3\aflr3_version.h
 	cl /Fe$(ODIR)\aflr3_version.exe /Fo$(ODIR)\aflr3_version.obj \
 		$(COPTS) $(DEFINE) -I$(IDIR) -I$(AFLR)\src aflr3_version.c \
 		/link /LIBPATH:$(AFLR)\$(AFLR_ARCH)\lib aflr3.lib
 	$(ODIR)\aflr3_version.exe
 
 clean:
-	-del $(ODIR)\aflr3_Interface.obj $(ODIR)\aflr3AIM.obj
+	-del $(ODIR)\aflr3_Interface.obj $(ODIR)\aflr3AIM.obj $(EGADS_AFLR4_OBJS)
 
 cleanall:	clean
-	-del $(LDIR)\aflr3AIM.dll $(LDIR)\aflr3AIM.lib $(LDIR)\aflr3AIM.exp
+	-del $(LDIR)\AFLR.dll $(LDIR)\aflr3AIM.dll $(LDIR)\aflr3AIM.lib $(LDIR)\aflr3AIM.exp

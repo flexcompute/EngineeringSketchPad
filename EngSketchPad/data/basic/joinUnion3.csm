@@ -1,0 +1,35 @@
+# joinUnion3
+# written by John Dannenhoffer
+
+#     +-----+
+#     |     |
+#     |     |  +-----+
+#     |     |  |     |
+#     |  1  +  +  2  |
+#     |     |  |     |
+#     +-----+  +-----+
+
+SKBEG     0  0  0
+   LINSEG 1  0  0
+   LINSEG 1  1  0
+   LINSEG 1  3  0
+   LINSEG 0  3  0
+   LINSEG 0  0  0
+SKEND
+
+SKBEG     1  0  0
+   LINSEG 2  0  0
+   LINSEG 2  2  0
+   LINSEG 1  2  0
+   LINSEG 1  1  0
+   LINSEG 1  0  0
+SKEND
+
+SET       ifail 0
+JOIN                     # should fail
+CATBEG    $edge_not_found
+   SET    ifail 1
+CATEND
+ASSERT    ifail 1
+
+END

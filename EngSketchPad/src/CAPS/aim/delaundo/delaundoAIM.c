@@ -53,7 +53,6 @@ enum aimInputs
   Proj_Name = 1,               /* index is 1-based */
   Tess_Params,
   Mesh_Format,
-  Mesh_ASCII_Flag,
   Edge_Point_Min,
   Edge_Point_Max,
   Mesh_Sizing,
@@ -415,7 +414,7 @@ int aimInitialize(int inst, /*@unused@*/ const char *unitSys, void *aimInfo,
     delaundoInstance->egadsTess = NULL;
 
     // Mesh reference passed to solver
-    status = aim_initMeshRef(&delaundoInstance->meshRef);
+    status = aim_initMeshRef(&delaundoInstance->meshRef, aimAreaMesh);
     AIM_STATUS(aimInfo, status);
 
 cleanup:
@@ -443,13 +442,25 @@ int aimInputs(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo,
     if (index == Proj_Name) {
         *ainame              = EG_strdup("Proj_Name");
         defval->type         = String;
-        defval->vals.string  = NULL;
-        defval->vals.string  = EG_strdup("delaundoCAPS");
-        defval->lfixed       = Change;
+        defval->vals.string  = EG_strdup("delaundo_CAPS");
+        defval->nullVal      = NotNull;
 
         /*! \page aimInputsDelaundo
-         * - <B> Proj_Name = delaundoCAPS</B> <br>
-         * This corresponds to the output name of the mesh.
+         * - <B> Proj_Name = NULL</B> <br>
+         * Output name prefix for meshes to be written in formats specified by Mesh_Format.
+         * These meshes are not linked to any analysis, but may be useful exploring meshing parameters.
+         */
+
+    } else if (index == Mesh_Format) {
+        *ainame               = EG_strdup("Mesh_Format");
+        defval->type          = String;
+        defval->vals.string   = NULL;
+        defval->nullVal       = IsNull;
+        defval->dim           = Vector;
+        defval->lfixed        = Change;
+
+        /*! \page aimInputsDelaundo
+         * \include{doc} Mesh_Format.dox
          */
 
     } else if (index == Tess_Params) {
@@ -478,27 +489,6 @@ int aimInputs(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo,
          * be enhanced in those regions. The third is the maximum interior dihedral angle (in degrees)
          * between triangle facets (or Edge segment tangents for a WIREBODY tessellation), note that a
          * zero ignores this phase
-         */
-    } else if (index == Mesh_Format) {
-        *ainame               = EG_strdup("Mesh_Format");
-        defval->type          = String;
-        defval->nullVal       = IsNull;
-        defval->vals.string   = EG_strdup("AFLR3"); // VTK, AFLR3
-        defval->lfixed        = Change;
-
-        /*! \page aimInputsDelaundo
-         * - <B> Mesh_Format = NULL</B> <br>
-         * Mesh output format. If left NULL, the mesh is not written in the new file format.
-         * Available format names include: "AFLR3", "VTK", "TECPLOT", "STL".
-         */
-    } else if (index == Mesh_ASCII_Flag) {
-        *ainame               = EG_strdup("Mesh_ASCII_Flag");
-        defval->type          = Boolean;
-        defval->vals.integer  = true;
-
-        /*! \page aimInputsDelaundo
-         * - <B> Mesh_ASCII_Flag = True</B> <br>
-         * Output mesh in ASCII format, otherwise write a binary file if applicable.
          */
 
     } else if (index == Edge_Point_Min) {
@@ -780,8 +770,13 @@ int aimUpdateState(void *instStore, void *aimInfo,
     AIM_STATUS(aimInfo, status);
 
     // set the filename without extensions where the grid is written for solvers
-    status = aim_file(aimInfo, "delaundoMesh", aimFile);
-    AIM_STATUS(aimInfo, status);
+    if (aimInputs[Proj_Name-1].nullVal != IsNull) {
+      status = aim_file(aimInfo, aimInputs[Proj_Name-1].vals.string, aimFile);
+      AIM_STATUS(aimInfo, status);
+    } else {
+      status = aim_file(aimInfo, "delaundo", aimFile);
+      AIM_STATUS(aimInfo, status);
+    }
     AIM_STRDUP(delaundoInstance->meshRef.fileName, aimFile, aimInfo, status);
 
 
@@ -811,18 +806,6 @@ int aimUpdateState(void *instStore, void *aimInfo,
     delaundoInstance->meshInput.paramTess[0] = aimInputs[Tess_Params-1].vals.reals[0]; // Gets multiplied by bounding box size
     delaundoInstance->meshInput.paramTess[1] = aimInputs[Tess_Params-1].vals.reals[1]; // Gets multiplied by bounding box size
     delaundoInstance->meshInput.paramTess[2] = aimInputs[Tess_Params-1].vals.reals[2];
-
-    if (aimInputs[Mesh_Format-1].nullVal != IsNull) {
-        AIM_STRDUP(delaundoInstance->meshInput.outputFormat,
-                   aimInputs[Mesh_Format-1].vals.string, aimInfo, status);
-    }
-
-    delaundoInstance->meshInput.outputASCIIFlag  = aimInputs[Mesh_ASCII_Flag-1].vals.integer;
-
-    if (aimInputs[Proj_Name-1].nullVal != IsNull) {
-        AIM_STRDUP(delaundoInstance->meshInput.outputFileName,
-                   aimInputs[Proj_Name-1].vals.string, aimInfo, status);
-    }
 
     // Max and min number of points
     if (aimInputs[Edge_Point_Min-1].nullVal != IsNull) {
@@ -985,7 +968,7 @@ int aimUpdateState(void *instStore, void *aimInfo,
         AIM_FREE(edges);
 
         if (zMeshConstant != (int) true) {
-            printf("\tDelaundo expects 2D meshes be in the x-y plane... attempting to rotate mesh through node swapping!\n");
+            printf("\tDelaundo expects 2D meshes in the x-y plane... attempting to rotate mesh through node swapping!\n");
 
             if (xMeshConstant == (int) true && yMeshConstant == (int) false) {
 
@@ -1136,13 +1119,12 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
     // Run delaundo for each body
     for (bodyIndex = 0 ; bodyIndex < numBody; bodyIndex++) {
 
-        stringLength = strlen(delaundoInstance->meshInput.outputFileName) +
+        stringLength = strlen(aimInputs[Proj_Name-1].vals.string) +
                        strlen(fileExt) + 1;
 
-        AIM_ALLOC(filename, stringLength+1, char, aimInfo, status);
+        AIM_ALLOC(filename, stringLength, char, aimInfo, status);
 
-        sprintf(filename, "%s%s", delaundoInstance->meshInput.outputFileName, fileExt);
-        filename[stringLength] = '\0';
+        snprintf(filename, stringLength, "%s%s", aimInputs[Proj_Name-1].vals.string, fileExt);
 
         fp = aim_fopen(aimInfo, filename, "w");
         if (fp == NULL) {
@@ -1384,8 +1366,9 @@ int aimPostAnalysis(void *instStore, void *aimInfo,
 
     char *filename = NULL;
     char fileExt[] = ".mesh";
-    char bodyNumber[11];
+//    char bodyNumber[11];
     aimStorage *delaundoInstance;
+    aimMesh    mesh;
 
     int stringLength = 0;
 
@@ -1400,18 +1383,18 @@ int aimPostAnalysis(void *instStore, void *aimInfo,
 
     char *line = NULL;
 
+    AIM_NOTNULL(inputs, aimInfo, status);
 #ifdef DEBUG
     printf(" delaundoAIM/aimCalcOutput index = %d!\n", index);
 #endif
     delaundoInstance = (aimStorage *) instStore;
 
-    stringLength  = strlen(delaundoInstance->meshInput.outputFileName) +
-                    strlen(fileExt);
+    stringLength  = strlen(inputs[Proj_Name-1].vals.string) +
+                    strlen(fileExt) + 1;
 
-    AIM_ALLOC(filename, stringLength + 1, char, aimInfo, status);
+    AIM_ALLOC(filename, stringLength, char, aimInfo, status);
 
-    sprintf(filename, "%s%s", delaundoInstance->meshInput.outputFileName,fileExt);
-    filename[stringLength] = '\0';
+    snprintf(filename, stringLength, "%s%s", inputs[Proj_Name-1].vals.string,fileExt);
 
     printf("Reading delaundo mesh file - %s\n", filename);
 
@@ -1583,77 +1566,6 @@ int aimPostAnalysis(void *instStore, void *aimInfo,
   /*@+nullpass@*/
     }
 
-    if (delaundoInstance->meshInput.outputFormat   != NULL &&
-        delaundoInstance->meshInput.outputFileName != NULL) {
-
-        if (filename != NULL) EG_free(filename);
-        filename = NULL;
-
-        for (surf = 0; surf < delaundoInstance->numSurface; surf++) {
-
-            if (delaundoInstance->numSurface > 1) {
-                sprintf(bodyNumber, "%d", surf);
-                filename = (char *) EG_alloc((strlen(delaundoInstance->meshInput.outputFileName)  +
-                                              strlen("_Surf_") + 2 +
-                                              strlen(bodyNumber))*sizeof(char));
-            } else {
-                filename = (char *) EG_alloc((strlen(delaundoInstance->meshInput.outputFileName) +
-                                              2)*sizeof(char));
-            }
-            if (filename == NULL) { status = EGADS_MALLOC; goto cleanup; }
-
-            strcpy(filename, delaundoInstance->meshInput.outputFileName);
-
-            if (delaundoInstance->numSurface > 1) {
-                strcat(filename,"_Surf_");
-                strcat(filename, bodyNumber);
-            }
-
-
-            if (strcasecmp(delaundoInstance->meshInput.outputFormat, "AFLR3") == 0) {
-
-                status = mesh_writeAFLR3(aimInfo, filename,
-                                         delaundoInstance->meshInput.outputASCIIFlag,
-                                         &delaundoInstance->surfaceMesh[surf],
-                                         1.0);
-                AIM_STATUS(aimInfo, status);
-
-            } else if (strcasecmp(delaundoInstance->meshInput.outputFormat, "VTK") == 0) {
-
-                status = mesh_writeVTK(aimInfo, filename,
-                                       delaundoInstance->meshInput.outputASCIIFlag,
-                                       &delaundoInstance->surfaceMesh[surf],
-                                       1.0);
-                AIM_STATUS(aimInfo, status);
-
-            } else if (strcasecmp(delaundoInstance->meshInput.outputFormat, "Tecplot") == 0) {
-
-                status = mesh_writeTecplot(aimInfo, filename,
-                                           delaundoInstance->meshInput.outputASCIIFlag,
-                                           &delaundoInstance->surfaceMesh[surf],
-                                           1.0);
-                AIM_STATUS(aimInfo, status);
-
-            } else if (strcasecmp(delaundoInstance->meshInput.outputFormat, "STL") == 0) {
-
-                status = mesh_writeSTL(aimInfo, filename,
-                                       delaundoInstance->meshInput.outputASCIIFlag,
-                                       &delaundoInstance->surfaceMesh[surf],
-                                       1.0);
-                AIM_STATUS(aimInfo, status);
-
-            } else {
-                AIM_ERROR(aimInfo, "Unrecognized mesh format, \"%s\", the mesh will not be written out",
-                          delaundoInstance->meshInput.outputFormat);
-                status = CAPS_NOTFOUND;
-                goto cleanup;
-            }
-
-            AIM_FREE(filename);
-        }
-    }
-
-
     AIM_ALLOC(delaundoInstance->meshRef.bnds, delaundoInstance->groupMap.numAttribute, aimMeshBnd, aimInfo, status);
     delaundoInstance->meshRef.nbnd = delaundoInstance->groupMap.numAttribute;
     for (j = 0; j < delaundoInstance->meshRef.nbnd; j++) {
@@ -1665,6 +1577,27 @@ int aimPostAnalysis(void *instStore, void *aimInfo,
       AIM_STRDUP(delaundoInstance->meshRef.bnds[j].groupName, delaundoInstance->groupMap.attributeName[j], aimInfo, status);
       delaundoInstance->meshRef.bnds[j].ID = delaundoInstance->groupMap.attributeIndex[j];
     }
+
+    status = aim_queryMeshes( aimInfo, Mesh_Format, ANALYSISIN, &delaundoInstance->meshRef );
+    if (status > 0) {
+
+/*@-immediatetrans@*/
+        mesh.meshData = NULL;
+        mesh.meshRef = &delaundoInstance->meshRef;
+/*@+immediatetrans@*/
+
+        status = getMeshData(aimInfo, delaundoInstance, &mesh);
+        AIM_STATUS(aimInfo, status);
+
+        status = aim_writeMeshes(aimInfo, Mesh_Format, ANALYSISIN, &mesh);
+        AIM_STATUS(aimInfo, status);
+
+        status = aim_freeMeshData(mesh.meshData);
+        AIM_STATUS(aimInfo, status);
+        AIM_FREE(mesh.meshData);
+    }
+    else
+        AIM_STATUS(aimInfo, status);
 
     status = CAPS_SUCCESS;
 
@@ -1730,7 +1663,7 @@ int aimCalcOutput(void *instStore, /*@unused@*/ void *aimInfo,
 
     if (Area_Mesh == index) {
 
-        status = aim_queryMeshes( aimInfo, Area_Mesh, &delaundoInstance->meshRef );
+        status = aim_queryMeshes( aimInfo, Area_Mesh, ANALYSISOUT, &delaundoInstance->meshRef );
         if (status > 0) {
 
 /*@-immediatetrans@*/
@@ -1741,7 +1674,7 @@ int aimCalcOutput(void *instStore, /*@unused@*/ void *aimInfo,
             status = getMeshData(aimInfo, delaundoInstance, &mesh);
             AIM_STATUS(aimInfo, status);
 
-            status = aim_writeMeshes(aimInfo, Area_Mesh, &mesh);
+            status = aim_writeMeshes(aimInfo, Area_Mesh, ANALYSISOUT, &mesh);
             AIM_STATUS(aimInfo, status);
 
             status = aim_freeMeshData(mesh.meshData);

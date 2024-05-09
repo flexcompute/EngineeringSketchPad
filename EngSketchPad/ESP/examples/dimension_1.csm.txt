@@ -1,0 +1,54 @@
+# dimension_1
+# written by John Dannenhoffer
+
+# A is 3x2 array of all 1's
+DIMENSION A  3  2
+SET       A  1
+
+ASSERT    A.nrow   3
+ASSERT    A.ncol   2
+ASSERT    A.size   6
+ASSERT    A[3,2]   1
+ASSERT    A[6]     1          # counts rowwise
+ASSERT    A.sum    6
+
+SET       A[2]     2
+SET       A[3]     0
+
+# B is a 3x1 row matrix of all 2's
+DIMENSION B  A.nrow  1
+SET       B  2
+
+ASSERT    B.nrow   3
+ASSERT    B.ncol   1
+ASSERT    B.size   3
+ASSERT    B[3,1]   2
+ASSERT    B[3]     2
+ASSERT    B.sum    6
+
+# B is a 1x2 column vector of all 3's
+DIMENSION B  1  A.ncol
+SET       B  3
+
+ASSERT    B.nrow   1
+ASSERT    B.ncol   2
+ASSERT    B.size   2
+ASSERT    B[1,2]   3
+ASSERT    B[2]     3
+ASSERT    B.sum    6
+
+# B is a scalar 4
+DIMENSION B  1  1
+SET       B  4
+
+ASSERT    B.nrow   1
+ASSERT    B.ncol   1
+ASSERT    B.size   1
+ASSERT    B[1,1]   4
+ASSERT    B[1]     4
+ASSERT    B.sum    4
+
+# make a sphere at (4,2,0)
+SPHERE    A[1]  A[2]  A[3]  A[4]
+
+END

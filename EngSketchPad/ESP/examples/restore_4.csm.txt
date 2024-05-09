@@ -1,0 +1,31 @@
+# restore_4
+# written by John Dannenhoffer
+
+MARK     # used by GROUP
+
+# red box
+BOX       0  0  0  1  1  1
+ATTRIBUTE _color $red
+
+# green box
+BOX       1  0  0  1  1  1
+ATTRIBUTE _color $green
+
+# blue box
+BOX       2  0  0  1  1  1
+ATTRIBUTE _color $blue
+
+# magenta box
+BOX       3  0  0  1  1  1
+ATTRIBUTE _color $magenta
+
+# duplicate all boxes
+RESTORE   ...
+
+# translate them up (as a group)
+GROUP
+TRANSLATE 0  1  0
+
+END
+
+

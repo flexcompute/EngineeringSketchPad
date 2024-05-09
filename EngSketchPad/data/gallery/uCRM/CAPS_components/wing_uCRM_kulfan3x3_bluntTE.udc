@@ -1,0 +1,247 @@
+#
+INTERFACE . ALL
+#----------------------------------------------------------#
+#
+# inputs:
+#
+#   Switches (1=true, 0=false):
+#       Wing:roundedTip
+#       Wing:sharpTE
+#
+#   From centerline (y=0) to wing-fuselage junction:
+#     Scalars:
+#       Wing:fuselageSec:Croot
+#       Wing:fuselageSec:taper
+#       Wing:fuselageSec:c4rootX
+#       Wing:fuselageSec:c4rootZ
+#       Wing:fuselageSec:c4hedral
+#       Wing:fuselageSec:c4sweep
+#       Wing:fuselageSec:halfSpan
+#     Array-types:
+#       Wing:fuselageSec:Y
+#       Wing:fuselageSec:twist
+#
+#   From junction to yehudi:
+#     Scalars:
+#       Wing:inboardSec:c4hedral
+#       Wing:inboardSec:c4sweep
+#       Wing:inboardSec:halfSpan
+#     Array-types (with first spanwise station defined by last fuselageSec section):
+#       Wing:inboardSec:Y
+#       Wing:inboardSec:twist
+#
+#   From yehudi to wingtip:
+#     Scalars:
+#       Wing:outboardSec:c4hedral
+#       Wing:outboardSec:c4sweep
+#       Wing:outboardSec:halfSpan
+#     Array-types (with first spanwise station defined by last inboardSec section):
+#       Wing:outboardSec:Y
+#       Wing:outboardSec:twist
+#
+#--------------------- fuselage section -------------------#
+
+#udprim $/te_height
+#udprim $/parameters_kulfan3x3
+#udprim csm filename $parameters_kulfan3x3.csm
+
+dimension class 1 2
+dimension ztail 1 2
+dimension aupper 1 3
+dimension alower 1 3
+
+set class[1] 0.5
+set class[2] 1.0
+set ztail[1] 0.0
+
+
+MARK
+
+    SET Wing:fuselageSec:c4rootY Wing:fuselageSec:Y[1]
+
+    PATBEG      isect   Wing:fuselageSec:Nsect
+        set ztail[2]  -Wing:fuselageSec:ztail2[1,isect]
+        set aupper[1]  Wing:fuselageSec:aupper[1,isect]
+        set aupper[2]  Wing:fuselageSec:aupper[2,isect]
+        set aupper[3]  Wing:fuselageSec:aupper[3,isect]
+        set alower[1]  Wing:fuselageSec:aupper[1,isect]+Wing:fuselageSec:adelta[1,isect]
+        set alower[2]  Wing:fuselageSec:aupper[2,isect]+Wing:fuselageSec:adelta[2,isect]
+        set alower[3]  Wing:fuselageSec:aupper[3,isect]+Wing:fuselageSec:adelta[3,isect]
+        udparg kulfan class class
+        udparg kulfan ztail ztail
+        udparg kulfan aupper aupper
+        udprim kulfan alower alower
+        ROTATEX         90 0 0
+
+        # determine local chord length
+        SET             spanRatio       (Wing:fuselageSec:Y[isect]-Wing:fuselageSec:Y[1])/(Wing:fuselageSec:Y[Wing:fuselageSec:Nsect]-Wing:fuselageSec:Y[1])
+        SET             localChord      Wing:fuselageSec:Croot*(1-spanRatio*(1-Wing:fuselageSec:taper))
+
+        # determine local quarter chord location
+        SET             c4X             Wing:fuselageSec:c4rootX+(Wing:fuselageSec:Y[isect]-Wing:fuselageSec:Y[1])*tand(Wing:fuselageSec:c4sweep)
+        SET             c4Z             Wing:fuselageSec:c4rootZ+(Wing:fuselageSec:Y[isect]-Wing:fuselageSec:Y[1])*tand(Wing:fuselageSec:c4hedral)
+
+        # scale by local chord length
+        SCALE           localChord
+
+        # rotate about c/4 line based on local twist angle
+        TRANSLATE       -0.25*localChord 0 0
+        ROTATEY         Wing:fuselageSec:twist[isect] 0 0
+
+        # translate based on local quarter chord location
+        TRANSLATE       c4X  Wing:fuselageSec:Y[isect]  c4Z
+
+    PATEND
+
+    SET Wing:fuselageSec:c4tipX c4X
+    SET Wing:fuselageSec:c4tipY Wing:fuselageSec:Y[isect]
+    SET Wing:fuselageSec:c4tipZ c4Z
+
+#--------------------- inboard section -------------------#
+
+    SET Wing:inboardSec:c4rootY Wing:fuselageSec:Y[isect]
+
+    # last section of fuselageSec
+    set ztail[2]  -Wing:fuselageSec:ztail2[1,Wing:fuselageSec:Nsect]
+    set aupper[1]  Wing:fuselageSec:aupper[1,Wing:fuselageSec:Nsect]
+    set aupper[2]  Wing:fuselageSec:aupper[2,Wing:fuselageSec:Nsect]
+    set aupper[3]  Wing:fuselageSec:aupper[3,Wing:fuselageSec:Nsect]
+    set alower[1]  Wing:fuselageSec:aupper[1,Wing:fuselageSec:Nsect]+Wing:fuselageSec:adelta[1,Wing:fuselageSec:Nsect]
+    set alower[2]  Wing:fuselageSec:aupper[2,Wing:fuselageSec:Nsect]+Wing:fuselageSec:adelta[2,Wing:fuselageSec:Nsect]
+    set alower[3]  Wing:fuselageSec:aupper[3,Wing:fuselageSec:Nsect]+Wing:fuselageSec:adelta[3,Wing:fuselageSec:Nsect]
+    udparg kulfan class class
+    udparg kulfan ztail ztail
+    udparg kulfan aupper aupper
+    udprim kulfan alower alower
+    ROTATEX         90 0 0
+    SCALE           localChord
+    TRANSLATE       -0.25*localChord 0 0
+    ROTATEY         Wing:fuselageSec:twist[Wing:fuselageSec:Nsect] 0 0
+    TRANSLATE       c4X  Wing:fuselageSec:Y[Wing:fuselageSec:Nsect]  c4Z
+
+    # save c/4 x- and z-coordinates
+    SET  Wing:inboardSec:c4rootX  c4X
+    SET  Wing:inboardSec:c4rootZ  c4Z
+
+    # for each sectional property
+    PATBEG      isect   Wing:inboardSec:Nsect
+        set ztail[2]  -Wing:inboardSec:ztail2[1,isect]
+        set aupper[1]  Wing:inboardSec:aupper[1,isect]
+        set aupper[2]  Wing:inboardSec:aupper[2,isect]
+        set aupper[3]  Wing:inboardSec:aupper[3,isect]
+        set alower[1]  Wing:inboardSec:aupper[1,isect]+Wing:inboardSec:adelta[1,isect]
+        set alower[2]  Wing:inboardSec:aupper[2,isect]+Wing:inboardSec:adelta[2,isect]
+        set alower[3]  Wing:inboardSec:aupper[3,isect]+Wing:inboardSec:adelta[3,isect]
+        udparg kulfan class class
+        udparg kulfan ztail ztail
+        udparg kulfan aupper aupper
+        udprim kulfan alower alower
+        ROTATEX         90 0 0
+
+        # determine local chord length
+        SET             spanRatio       (Wing:inboardSec:Y[isect]-Wing:fuselageSec:Y[Wing:fuselageSec:Nsect])/(Wing:inboardSec:Y[Wing:inboardSec:Nsect]-Wing:fuselageSec:Y[Wing:fuselageSec:Nsect])
+        SET             localChord      Wing:inboardSec:Croot*(1-spanRatio*(1-Wing:inboardSec:taper))
+
+        # determine local quarter chord location
+        SET             c4X             Wing:inboardSec:c4rootX+(Wing:inboardSec:Y[isect]-Wing:fuselageSec:Y[Wing:fuselageSec:Nsect])*tand(Wing:inboardSec:c4sweep)
+        SET             c4Z             Wing:inboardSec:c4rootZ+(Wing:inboardSec:Y[isect]-Wing:fuselageSec:Y[Wing:fuselageSec:Nsect])*tand(Wing:inboardSec:c4hedral)
+
+        # scale by local chord length
+        SCALE           localChord
+
+        # rotate about c/4 line based on local twist angle
+        TRANSLATE       -0.25*localChord 0 0
+        ROTATEY         Wing:inboardSec:twist[isect] 0 0
+
+        # translate based on local quarter chord location
+        TRANSLATE       c4X  Wing:inboardSec:Y[isect]  c4Z
+
+    PATEND
+
+    SET Wing:inboardSec:c4tipX c4X
+    SET Wing:inboardSec:c4tipY Wing:inboardSec:Y[isect]
+    SET Wing:inboardSec:c4tipZ c4Z
+
+#--------------------- outboard section -------------------#
+
+    SET Wing:outboardSec:c4rootY Wing:inboardSec:Y[isect]
+
+    # last section of inboardSec
+    set ztail[2]  -Wing:inboardSec:ztail2[1,Wing:inboardSec:Nsect]
+    set aupper[1]  Wing:inboardSec:aupper[1,Wing:inboardSec:Nsect]
+    set aupper[2]  Wing:inboardSec:aupper[2,Wing:inboardSec:Nsect]
+    set aupper[3]  Wing:inboardSec:aupper[3,Wing:inboardSec:Nsect]
+    set alower[1]  Wing:inboardSec:aupper[1,Wing:inboardSec:Nsect]+Wing:inboardSec:adelta[1,Wing:inboardSec:Nsect]
+    set alower[2]  Wing:inboardSec:aupper[2,Wing:inboardSec:Nsect]+Wing:inboardSec:adelta[2,Wing:inboardSec:Nsect]
+    set alower[3]  Wing:inboardSec:aupper[3,Wing:inboardSec:Nsect]+Wing:inboardSec:adelta[3,Wing:inboardSec:Nsect]
+    udparg kulfan class class
+    udparg kulfan ztail ztail
+    udparg kulfan aupper aupper
+    udprim kulfan alower alower
+    ROTATEX         90 0 0
+    SCALE           localChord
+    TRANSLATE       -0.25*localChord 0 0
+    ROTATEY         Wing:inboardSec:twist[Wing:inboardSec:Nsect] 0 0
+    TRANSLATE       c4X  Wing:inboardSec:Y[Wing:inboardSec:Nsect]  c4Z
+
+    # save c/4 x- and z-coordinates
+    SET  Wing:outboardSec:c4rootX  c4X
+    SET  Wing:outboardSec:c4rootZ  c4Z
+
+    # for each sectional property
+    PATBEG      isect   Wing:outboardSec:Nsect
+        set ztail[2]  -Wing:outboardSec:ztail2[1,isect]
+        set aupper[1]  Wing:outboardSec:aupper[1,isect]
+        set aupper[2]  Wing:outboardSec:aupper[2,isect]
+        set aupper[3]  Wing:outboardSec:aupper[3,isect]
+        set alower[1]  Wing:outboardSec:aupper[1,isect]+Wing:outboardSec:adelta[1,isect]
+        set alower[2]  Wing:outboardSec:aupper[2,isect]+Wing:outboardSec:adelta[2,isect]
+        set alower[3]  Wing:outboardSec:aupper[3,isect]+Wing:outboardSec:adelta[3,isect]
+        udparg kulfan class class
+        udparg kulfan ztail ztail
+        udparg kulfan aupper aupper
+        udprim kulfan alower alower
+        ROTATEX         90 0 0 
+
+        # determine local chord length
+        SET             spanRatio       (Wing:outboardSec:Y[isect]-Wing:inboardSec:Y[Wing:inboardSec:Nsect])/(Wing:outboardSec:Y[Wing:outboardSec:Nsect]-Wing:inboardSec:Y[Wing:inboardSec:Nsect])
+        SET             localChord      Wing:outboardSec:Croot*(1-spanRatio*(1-Wing:outboardSec:taper))
+
+        # determine local quarter chord location
+        SET             c4X             Wing:outboardSec:c4rootX+(Wing:outboardSec:Y[isect]-Wing:inboardSec:Y[Wing:inboardSec:Nsect])*tand(Wing:outboardSec:c4sweep)
+        SET             c4Z             Wing:outboardSec:c4rootZ+(Wing:outboardSec:Y[isect]-Wing:inboardSec:Y[Wing:inboardSec:Nsect])*tand(Wing:outboardSec:c4hedral)
+
+        # scale by local chord length
+        SCALE           localChord
+
+        # rotate about c/4 line based on local twist angle
+        TRANSLATE       -0.25*localChord 0 0 
+        ROTATEY         Wing:outboardSec:twist[isect] 0 0 
+
+        # translate based on local quarter chord location
+        TRANSLATE       c4X  Wing:outboardSec:Y[isect]  c4Z 
+
+        ATTRIBUTE  tagComp    $Wing:outboardSec
+        ATTRIBUTE  capsBound  $Wing:outboardSec
+
+    PATEND
+
+    SET Wing:outboardSec:c4tipX c4X
+    SET Wing:outboardSec:c4tipY Wing:outboardSec:Y[isect]
+    SET Wing:outboardSec:c4tipZ c4Z
+
+BLEND # 0  -1;Wing:roundedTip
+  ATTRIBUTE _name       $Wing
+  ATTRIBUTE  tagComp    $Wing
+  ATTRIBUTE  capsBound  $Wing
+  ATTRIBUTE _color      "0.43922; 0.48235; 0.56078"
+  ATTRIBUTE _bcolor     "0.43922; 0.48235; 0.56078"
+
+TRANSLATE -Wing:fuselageSec:c4rootX 0 -Wing:fuselageSec:c4rootZ
+ROTATEY Wing:globalTwist 0 0
+TRANSLATE Wing:fuselageSec:c4rootX 0 Wing:fuselageSec:c4rootZ
+
+STORE wing
+RESTORE wing
+
+END

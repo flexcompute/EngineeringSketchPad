@@ -1,0 +1,16 @@
+# createPoly_udf_1
+# written by John Dannenhoffer
+
+# inner Body (with tessellation forced by project command)
+CYLINDER  -1  0  0  +1  0  0  0.5
+PROJECT    0  0  0  +1  0  0 
+
+# outer Body (with tessellation forced by project command)
+SPHERE     0  0  0  100
+PROJECT    0  0  0  +1  0  0 
+
+# create the AFLR .poly file of the mesh between these Bodys
+#    and leave the out Body (the cylinder) on the stack
+UDPRIM    createPoly  filename $createPoly.poly
+
+END

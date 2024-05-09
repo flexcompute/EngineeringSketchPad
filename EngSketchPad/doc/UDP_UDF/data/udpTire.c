@@ -11,7 +11,7 @@
  */
 
 /*
- * Copyright (C) 2013/2020  John F. Dannenhoffer, III (Syracuse University)
+ * Copyright (C) 2013/2024  John F. Dannenhoffer, III (Syracuse University)
  *
  * This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
@@ -29,8 +29,13 @@
  *     MA  02110-1301  USA
  */
 
+/*@-nullpass@*/
+/*@-paramuse@*/
+
 #define NUMUDPARGS 9
 #include "udpUtilities.h"
+
+#include "OpenCSM.h"
 
 /* shorthands for accessing argument values and velocities */
 #ifdef UDP
@@ -92,7 +97,7 @@ main(/*@unused@*/ int  argc,                    /* (in)  number of arguments */
     if (status < 0) exit(EXIT_FAILURE);
 
     /* call the execute routine */
-    status = udpExecute(context, &ebody, &nMesh, &string);
+    status = UdpExecute(context, &ebody, &nMesh, &string, 0, NULL);
     printf("udpExecute -> status=%d\n", status);
     if (status < 0) exit(EXIT_FAILURE);
 
@@ -145,7 +150,7 @@ periodicSeam(ego eedge,                 /* (in)  Edge associated with seam */
     if (status != EGADS_SUCCESS) goto cleanup;
 
     /* set up u and v at ends */
-    data[0] = TWOPI;
+    data[0] = 2 * PI;
     data[1] = range[0];
     data[2] = 0;
     data[3] = sense;
@@ -182,6 +187,9 @@ udpExecute(ego  context,                /* (in)  EGADS context */
     ego     enodes[8], ecurve[16], eedges[16], eloop, efaces[8], eshell;
     ego     esurface[4], epcurve[4], ebody1, ebody2, ebody3, ebody4;
     ego     elist[20], emodel, *echilds2, source, *echilds, eref;
+#ifdef UDP
+    udp_T   *udps = *Udps;
+#endif
 
 #ifndef UDP
     double  myVolume;
@@ -910,7 +918,7 @@ udpExecute(ego  context,                /* (in)  EGADS context */
         goto cleanup;
     }
 
-    VOLUME(0) = data[0];
+    VOLUME(numUdp) = data[0];
 
     /* remember this model (body) */
 #ifdef UDP

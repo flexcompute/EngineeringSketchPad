@@ -10,7 +10,7 @@
  */
 
 /*
- * Copyright (C) 2011/2022  John F. Dannenhoffer, III (Syracuse University)
+ * Copyright (C) 2011/2024  John F. Dannenhoffer, III (Syracuse University)
  *
  * This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
@@ -53,7 +53,7 @@ static double argDdefs[NUMUDPARGS] = {0.,          0.,       0.,      0.,      0
 #define           MAX(A,B)        (((A) < (B)) ? (B) : (A))
 
 /* prototype for function defined below */
-static int createBemFile(ego ebody, char filename[], double space, int imin, int imax);
+static int createBemFile(ego ebody, char filename[], double space, int imin, int imax, int *NumUdp, udp_T *udps);
 
 
 /*
@@ -75,6 +75,7 @@ udpExecute(ego  emodel,                 /* (in)  Model containing Body */
     int     oclass, mtype, nchild, *senses;
     double  data[4];
     ego     context, eref, *ebodys;
+    udp_T   *udps = *Udps;
 
     ROUTINE(udpExecute);
 
@@ -164,7 +165,7 @@ udpExecute(ego  emodel,                 /* (in)  Model containing Body */
 
     /* annotate the Body and create the BEM file */
     status = createBemFile(*ebody, FILENAME(numUdp), SPACE(numUdp),
-                          IMIN(numUdp), IMAX(numUdp));
+                           IMIN(numUdp), IMAX(numUdp), NumUdp, udps);
     CHECK_STATUS(createBemFile);
 
     /* the copy of the Body that was annotated is returned */
@@ -231,7 +232,9 @@ createBemFile(ego    ebody,             /* (in)  EGADS Body */
               char   filename[],        /* (in)  file to be written */
               double space,             /* (in)  nominal spacing along Edges */
               int    imin,              /* (in)  minimum points along any Edge */
-              int    imax)              /* (in)  maximum points along any Edge */
+              int    imax,              /* (in)  maximum points along any Edge */
+              int    *NumUdp,
+              udp_T  *udps)
 {
     int       status = 0;               /* (out) return status */
 
@@ -423,7 +426,7 @@ createBemFile(ego    ebody,             /* (in)  EGADS Body */
 
     /* make "opposite" sides of four-sided Faces (with only one loop) match */
     nchange = 1;
-    for (i = 0; i < 20; i++) {
+    for (i = 0; i < MAX(nface,20); i++) {
         nchange = 0;
 
         for (iface = 1; iface <= nface; iface++) {

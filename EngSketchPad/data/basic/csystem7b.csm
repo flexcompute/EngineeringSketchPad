@@ -1,0 +1,44 @@
+# csystem7b
+# written by John Dannenhoffer
+
+DESPMTR   nnozzle  9
+
+# nozzle
+MARK
+   UDPRIM    supell    rx 0.1   ry 0.1
+   ROTATEY   90
+
+   UDPRIM    supell    rx 0.1   ry 0.1
+   ROTATEY   90
+   TRANSLATE 1.0  0.0  0.0
+
+   UDPRIM    supell    rx 0.2   ry 0.2
+   ROTATEY   90
+   TRANSLATE 1.5  0.0  0.0
+BLEND
+STORE    nozzle
+
+# cylinder (with csystems)
+CYLINDER  0  0  0  10  0  0  1
+CSYSTEM   nozl_1  "1;0;0; 0;cosd(  0);sind(  0); 0;sind(  0);-cosd(  0)"
+CSYSTEM   nozl_2  "2;0;0; 0;cosd( 45);sind( 45); 0;sind( 45);-cosd( 45)"
+CSYSTEM   nozl_3  "3;0;0; 0;cosd( 90);sind( 90); 0;sind( 90);-cosd( 90)"
+CSYSTEM   nozl_4  "4;0;0; 0;cosd(135);sind(135); 0;sind(135);-cosd(135)"
+CSYSTEM   nozl_5  "5;0;0; 0;cosd(180);sind(180); 0;sind(180);-cosd(180)"
+CSYSTEM   nozl_6  "6;0;0; 0;cosd(225);sind(225); 0;sind(225);-cosd(225)"
+CSYSTEM   nozl_7  "7;0;0; 0;cosd(270);sind(270); 0;sind(270);-cosd(270)"
+CSYSTEM   nozl_8  "8;0;0; 0;cosd(315);sind(315); 0;sind(315);-cosd(315)"
+CSYSTEM   nozl_9  "9;0;0; 0;cosd(360);sind(360); 0;sind(360);-cosd(360)"
+
+# transform the cylinder
+ROTATEZ   45
+TRANSLATE 2  3  0
+
+# union in a nozzle at each csystem
+PATBEG    inozzle  nnozzle
+   RESTORE   nozzle
+   APPLYCSYS !$nozl_+inozzle
+   UNION
+PATEND
+
+END

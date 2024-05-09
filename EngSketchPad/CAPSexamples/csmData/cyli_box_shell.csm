@@ -1,0 +1,80 @@
+#
+# Construct a shell box with segregated cylindrical regions
+#
+ATTRIBUTE capsAIM $egadsTessAIM;tetgenAIM;aflr4AIM;aflr3AIM;platoAIM
+ATTRIBUTE capsMeshLength 1
+
+DESPMTR Lx 1
+DESPMTR Ly 1
+DESPMTR Lz 1
+
+DESPMTR r1 0.1
+DESPMTR r2 0.2
+
+# Construct the box
+BOX -Lx/2 -Ly/2 -Lz/2   Lx Ly Lz
+SELECT face
+    ATTRIBUTE capsGroup $box
+    ATTRIBUTE AFLR_GBC $STD_UG3_GBC
+STORE box 0 1                           # keep a copy on the stack
+
+# construct cyl1
+CYLINDER 0 -Ly/2*1.1 0  0 Ly/2*1.1 0 r1 # smaller cylinder
+SELECT face
+   ATTRIBUTE capsGroup $cyl1
+   ATTRIBUTE AFLR_GBC $TRANSP_UG3_GBC
+SET cyl1_body @nbody                    # remember the Body associated with cyl1
+STORE cyl1 0 1                          # keep a copy on the stack
+
+# scribe the box with cyl1
+EXTRACT 0                               # get the cylinder's shell
+SUBTRACT                                # scribe the cylinder's shell into the box
+SELECT face 1 3 1
+SELECT add  1 4 1
+   ATTRIBUTE capsGroup $cyl1;box;cyl2
+
+# construct cyl2
+CYLINDER 0 -Ly/2*1.1 0  0 Ly/2*1.1 0 r2 # larger cylinder
+SELECT face
+   ATTRIBUTE capsGroup $cyl2
+   ATTRIBUTE AFLR_GBC $TRANSP_UG3_GBC
+SET cyl2_body @nbody                    # remember the Body associated with cyl2
+STORE cyl2 0 1                          # keep a copy on the stack
+
+# scribe the box with cyl2
+EXTRACT 0                               # get the cylinder's shell
+SUBTRACT                                # scribe the cylinder's shell into the box
+SELECT face 1 3 2
+SELECT add  1 4 2
+   ATTRIBUTE capsGroup $box;cyl2
+
+# extract the (scribed) shell from the box
+EXTRACT 0
+STORE boxShell
+
+# add the interior Faces associated with cyl1
+RESTORE cyl1
+SELECT face cyl1_body 3 1               # extract just the sides of cyl1 (note using ibody/iford)
+SELECT add  cyl1_body 4 1
+EXTRACT @sellist
+
+RESTORE box                             # find the parts of the extracted cyl1 inside the box
+INTERSECT
+
+RESTORE boxShell                        # join with the box's (scribed) shell
+JOIN
+STORE   boxShell
+
+# add the interior faces associated with cyl2
+RESTORE cyl2
+SELECT face cyl2_body 3 1               # extract just the sides of cyl2 (note using ibody/iford)
+SELECT add  cyl2_body 4 1
+EXTRACT @sellist
+
+RESTORE box                             # find the parts of the extracted cyl2 inside the box
+INTERSECT
+
+RESTORE boxShell                        # join with the box's (scribed) shell
+JOIN
+
+END

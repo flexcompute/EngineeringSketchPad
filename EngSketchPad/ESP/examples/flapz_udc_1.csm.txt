@@ -1,0 +1,33 @@
+# flap_udc_1
+# written by John Dannenhoffer
+
+# basic config
+MARK
+   # root
+   UDPRIM    naca  series 4412
+   SCALE     2.0
+   ROTATEX   90  0  0
+
+   # tip
+   UDPRIM    naca  series 4412
+   SCALE     2.0
+   ROTATEX   90  0  0
+   TRANSLATE 0  6.0  0
+RULE
+
+# add in the inboard flap (connected to wing)
+UDPARG    $$/flapz   xflap     "2.25; 1.25; 1.25; 2.25;"
+UDPARG    $$/flapz   yflap     "2.75; 2.75; 1.00; 1.00;"
+UDPARG    $$/flapz   theta      30.0
+UDPARG    $$/flapz   gap        0.10
+UDPRIM    $$/flapz
+
+# add in the outboard flap (not connected at ends to wing)
+UDPARG    $$/flapz   xflap     "2.25; 1.50; 1.50; 2.25;"
+UDPARG    $$/flapz   yflap     "5.00; 5.00; 3.25; 3.25;"
+UDPARG    $$/flapz   theta      0.10
+UDPARG    $$/flapz   gap        0.10
+UDPARG    $$/flapz   openEnd    1
+UDPRIM    $$/flapz
+
+END

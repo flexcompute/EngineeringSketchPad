@@ -17,11 +17,11 @@ SET     scribe2  @nbody
 SUBTRACT
 
 # attribute Edges created by first scribe operation
-SELECT    EDGE   $__scribeID__  scribe1;1;1
+SELECT    EDGE   $__scribeID__  scribe1;1
 ATTRIBUTE _color $red
 
 # attribute Edges created by second scribe operation
-SELECT    EDGE   $__scribeID__  scribe2;1;1
+SELECT    EDGE   $__scribeID__  scribe2;1
 ATTRIBUTE _color $cyan
 
 END

@@ -26,7 +26,8 @@ mark
    udprim  poly  points  "0; 0; 0; \
                           3;-3; 0; \
                           3; 3; 0;"
-combine
+join   0 1
+elevate
 
 end
 

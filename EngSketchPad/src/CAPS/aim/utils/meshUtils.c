@@ -4,6 +4,7 @@
 
 #include "egads.h"
 #include "aimUtil.h"
+#include "aimMesh.h"
 #include <math.h>
 #include <string.h>
 #include <stdio.h>
@@ -221,7 +222,7 @@ static int mesh_edgeVertexTFI( ego ebody,
     }
 
     // make "opposite" sides of four-sided Faces (with only one loop) match
-    for (i = 0; i < 10*numFace; i++) {
+    for (i = 0; i < MAX(10*numFace,20); i++) {
         nchange = 0;
 
         for (face = 1; face <= numFace; face++) {
@@ -401,7 +402,7 @@ int mesh_addTess2Dbc(void *aimInfo, meshStruct *surfaceMesh, const mapAttrToInde
               AIM_ERROR(aimInfo ,"Unable to retrieve boundary index from capsGroup %s", groupName);
               goto cleanup;
           }
-
+#if 0
           status = retrieve_CAPSIgnoreAttr(edges[edge-1], &groupName);
           if (status == CAPS_SUCCESS) {
               AIM_ERROR(aimInfo, "Both capsGroup and capsIgnore attribute found for edge - %d!!", edge);
@@ -409,6 +410,7 @@ int mesh_addTess2Dbc(void *aimInfo, meshStruct *surfaceMesh, const mapAttrToInde
               status = CAPS_BADVALUE;
               goto cleanup;
           }
+#endif
         } else {
 
             status = retrieve_CAPSIgnoreAttr(edges[edge-1], &groupName);
@@ -454,7 +456,7 @@ int mesh_addTess2Dbc(void *aimInfo, meshStruct *surfaceMesh, const mapAttrToInde
     }
 
     // fill the quick ref list
-    status = mesh_fillQuickRefList(surfaceMesh);
+    status = mesh_fillQuickRefList(aimInfo, surfaceMesh);
     if (status != CAPS_SUCCESS) goto cleanup;
 
     status = CAPS_SUCCESS;
@@ -477,7 +479,7 @@ int mesh_bodyTessellation(void *aimInfo, ego tess, const mapAttrToIndexStruct *a
                           int *numTriFace, int *triFaceConn[], int *triFaceCompID[], int *triFaceTopoID[],
                           int *numBndEdge, int *bndEdgeConn[], int *bndEdgeCompID[], int *bndEdgeTopoID[],
                           int *numNodeEle, int *nodeEleConn[], int *nodeEleCompID[], int *nodeEleTopoID[],
-                          int *twoDMesh,
+                          int twoDMesh,
                           const int *tessFaceQuadMap,
                           int *numQuadFace, int *quadFaceConn[], int *quadFaceCompID[], int *quadFaceTopoID[])
 {
@@ -657,29 +659,33 @@ int mesh_bodyTessellation(void *aimInfo, ego tess, const mapAttrToIndexStruct *a
 
         // Look for component/boundary ID for attribute mapper based on capsGroup
 
-        status = retrieve_CAPSGroupAttr(faces[face-1], &groupName);
-        if (status == CAPS_SUCCESS) {
-
-            status = get_mapAttrToIndexIndex(attrMap, groupName, &cID);
-            AIM_STATUS(aimInfo, status, "Unable to retrieve boundary index from capsGroup %s", groupName);
-
-            status = retrieve_CAPSIgnoreAttr(faces[face-1], &groupName);
+        cID = -1;
+        if (twoDMesh == (int)false) {
+            status = retrieve_CAPSGroupAttr(faces[face-1], &groupName);
             if (status == CAPS_SUCCESS) {
-                AIM_ERROR(aimInfo, "Both capsGroup and capsIgnore attribute found for face - %d!!", face);
-                print_AllAttr(aimInfo, faces[face-1] );
-                status = CAPS_BADVALUE;
-                goto cleanup;
-            }
-        } else {
 
-            status = retrieve_CAPSIgnoreAttr(faces[face-1], &groupName);
-            if (status == CAPS_SUCCESS) {
-                printf("\tcapsIgnore attribute found for face - %d!!\n", face);
-                cID = -1;
+                status = get_mapAttrToIndexIndex(attrMap, groupName, &cID);
+                AIM_STATUS(aimInfo, status, "Unable to retrieve boundary index from capsGroup %s", groupName);
+#if 0
+                status = retrieve_CAPSIgnoreAttr(faces[face-1], &groupName);
+                if (status == CAPS_SUCCESS) {
+                    AIM_ERROR(aimInfo, "Both capsGroup and capsIgnore attribute found for face - %d!!", face);
+                    print_AllAttr(aimInfo, faces[face-1] );
+                    status = CAPS_BADVALUE;
+                    goto cleanup;
+                }
+#endif
             } else {
-                AIM_ERROR(aimInfo, "No capsGroup/capsIgnore attribute found on Face %d, unable to assign a boundary index value", face);
-                print_AllAttr(aimInfo, faces[face-1] );
-                goto cleanup;
+
+                status = retrieve_CAPSIgnoreAttr(faces[face-1], &groupName);
+                if (status == CAPS_SUCCESS) {
+                    printf("\tcapsIgnore attribute found for face - %d!!\n", face);
+                    cID = -1;
+                } else {
+                    AIM_ERROR(aimInfo, "No capsGroup/capsIgnore attribute found on Face %d, unable to assign a boundary index value", face);
+                    print_AllAttr(aimInfo, faces[face-1] );
+                    goto cleanup;
+                }
             }
         }
 
@@ -721,7 +727,7 @@ int mesh_bodyTessellation(void *aimInfo, ego tess, const mapAttrToIndexStruct *a
 
                 quadConn[4*numQuad + 3] = gID;
 
-                quadCompID[numQuad] = cID;
+                quadCompID[numQuad] = cID == -1 ? 2 : cID;
                 quadTopoID[numQuad] = face;
 
                 numQuad +=1;
@@ -748,7 +754,7 @@ int mesh_bodyTessellation(void *aimInfo, ego tess, const mapAttrToIndexStruct *a
 
             triConn[3*numTri + 2] = gID;
 
-            triCompID[numTri] = cID;
+            triCompID[numTri] = cID == -1 ? 1 : cID;
             triTopoID[numTri] = face;
 
             numTri += 1;
@@ -794,7 +800,7 @@ int mesh_bodyTessellation(void *aimInfo, ego tess, const mapAttrToIndexStruct *a
 
             status = get_mapAttrToIndexIndex(attrMap, groupName, &cID);
             AIM_STATUS(aimInfo, status, "Unable to retrieve edge index from capsGroup %s", groupName);
-
+#if 0
             status = retrieve_CAPSIgnoreAttr(edges[edge-1], &groupName);
             if (status == CAPS_SUCCESS) {
                 AIM_ERROR(aimInfo, "Both capsGroup and capsIgnore attribute found for edge - %d!!", edge);
@@ -802,6 +808,7 @@ int mesh_bodyTessellation(void *aimInfo, ego tess, const mapAttrToIndexStruct *a
                 status = CAPS_BADVALUE;
                 goto cleanup;
             }
+#endif
         } else {
             status = retrieve_CAPSIgnoreAttr(edges[edge-1], &groupName);
             if (status == CAPS_SUCCESS) {
@@ -874,7 +881,7 @@ int mesh_bodyTessellation(void *aimInfo, ego tess, const mapAttrToIndexStruct *a
 
             status = get_mapAttrToIndexIndex(attrMap, groupName, &cID);
             AIM_STATUS(aimInfo, status, "Unable to retrieve node index from capsGroup %s", groupName);
-
+#if 0
             status = retrieve_CAPSIgnoreAttr(nodes[node-1], &groupName);
             if (status == CAPS_SUCCESS) {
                 AIM_ERROR(aimInfo, "Both capsGroup and capsIgnore attribute found for node - %d!!", node);
@@ -882,6 +889,7 @@ int mesh_bodyTessellation(void *aimInfo, ego tess, const mapAttrToIndexStruct *a
                 status = CAPS_BADVALUE;
                 goto cleanup;
             }
+#endif
         } else {
             status = retrieve_CAPSIgnoreAttr(nodes[node-1], &groupName);
             if (status == CAPS_SUCCESS) {
@@ -933,7 +941,6 @@ int mesh_bodyTessellation(void *aimInfo, ego tess, const mapAttrToIndexStruct *a
     *bndEdgeConn = lineConn;
     *bndEdgeCompID = lineCompID;
     *bndEdgeTopoID = lineTopoID;
-    *twoDMesh = hardFail;
 
     *numNodeEle = numNodesEle;
     *nodeEleConn = nodeConn;
@@ -944,8 +951,6 @@ int mesh_bodyTessellation(void *aimInfo, ego tess, const mapAttrToIndexStruct *a
 
 cleanup:
     if (status != CAPS_SUCCESS) {
-        printf("Error: Premature exit in mesh_bodyTessellation status = %d\n", status);
-
         AIM_FREE(xyzs);
         AIM_FREE(triConn);
         AIM_FREE(triCompID);
@@ -977,7 +982,7 @@ cleanup:
 
 
 // Create a surface mesh in meshStruct format using the EGADS body tessellation
-int mesh_surfaceMeshEGADSTess(void *aimInfo, meshStruct *surfMesh) {
+int mesh_surfaceMeshEGADSTess(void *aimInfo, meshStruct *surfMesh, int twoDMesh) {
 
     int status; // Function return integer
 
@@ -999,7 +1004,6 @@ int mesh_surfaceMeshEGADSTess(void *aimInfo, meshStruct *surfMesh) {
     int *localBoundaryEdgeList = NULL;
     int *boundaryEdgeMarkList = NULL;
     int *boundaryEdgeTopoList = NULL;
-    int twoDMesh;
     int numQuadFace;
     int *localQuadFaceList = NULL;
     int *quadFaceMarkList = NULL;
@@ -1014,12 +1018,10 @@ int mesh_surfaceMeshEGADSTess(void *aimInfo, meshStruct *surfMesh) {
     const double *reals = NULL;
     const char *string = NULL;
 
-    // check if the tessellation has a mixture of quad and tess
+    // check if the tessellation has a mixture of quad and tri
     status = EG_attributeRet(surfMesh->egadsTess, ".mixed",
                              &atype, &alen, &tessFaceQuadMap, &reals, &string);
-    if (status != EGADS_SUCCESS &&
-        status != EGADS_NOTFOUND) AIM_STATUS(aimInfo, status);
-
+    AIM_NOTFOUND(aimInfo, status);
 
     status = mesh_bodyTessellation(aimInfo,
                                    surfMesh->egadsTess,
@@ -1038,13 +1040,13 @@ int mesh_surfaceMeshEGADSTess(void *aimInfo, meshStruct *surfMesh) {
                                    &locaNodeList,
                                    &nodeMarkList,
                                    &nodeTopoList,
-                                   &twoDMesh,
+                                   twoDMesh,
                                    tessFaceQuadMap,
                                    &numQuadFace,
                                    &localQuadFaceList,
                                    &quadFaceMarkList,
                                    &quadFaceTopoList);
-    if (status != CAPS_SUCCESS) goto cleanup;
+    AIM_STATUS(aimInfo, status);
 
     if (twoDMesh == (int) true) surfMesh->meshType = Surface2DMesh;
     else surfMesh->meshType = SurfaceMesh;
@@ -1077,7 +1079,7 @@ int mesh_surfaceMeshEGADSTess(void *aimInfo, meshStruct *surfMesh) {
 
     // Cleanup mesh Quick reference guide
     status = destroy_meshQuickRefStruct(&surfMesh->meshQuickRef);
-    if (status != CAPS_SUCCESS) goto cleanup;
+    AIM_STATUS(aimInfo, status);
 
     // Allocate nodes
     surfMesh->numNode = numNode;
@@ -1101,7 +1103,7 @@ int mesh_surfaceMeshEGADSTess(void *aimInfo, meshStruct *surfMesh) {
     // Get body from tessellation and total number of global points
     status = EG_statusTessBody(surfMesh->egadsTess, &body, &tessStatus, &numPoints);
     if (tessStatus != 1) { status = EGADS_TESSTATE; goto cleanup; }
-    if (status != EGADS_SUCCESS) goto cleanup;
+    AIM_STATUS(aimInfo, status);
 
     if (aim_isNodeBody(body, coord) == CAPS_SUCCESS) {
         numNodeElem = 1;
@@ -1244,25 +1246,24 @@ int mesh_surfaceMeshEGADSTess(void *aimInfo, meshStruct *surfMesh) {
 
     status = CAPS_SUCCESS;
 
-    cleanup:
-        if (status != CAPS_SUCCESS) printf("Error: Premature exit in mesh_surfaceMeshEGADSTess, status = %d\n", status);
+cleanup:
 
-        EG_free(xyz);
-        EG_free(localTriFaceList);
-        EG_free(triFaceMarkList);
-        EG_free(triFaceTopoList);
-        EG_free(localBoundaryEdgeList);
-        EG_free(boundaryEdgeMarkList);
-        EG_free(boundaryEdgeTopoList);
-        EG_free(localQuadFaceList);
-        EG_free(quadFaceMarkList);
-        EG_free(quadFaceTopoList);
+    EG_free(xyz);
+    EG_free(localTriFaceList);
+    EG_free(triFaceMarkList);
+    EG_free(triFaceTopoList);
+    EG_free(localBoundaryEdgeList);
+    EG_free(boundaryEdgeMarkList);
+    EG_free(boundaryEdgeTopoList);
+    EG_free(localQuadFaceList);
+    EG_free(quadFaceMarkList);
+    EG_free(quadFaceTopoList);
 
-        EG_free(locaNodeList);
-        EG_free(nodeMarkList);
-        EG_free(nodeTopoList);
+    EG_free(locaNodeList);
+    EG_free(nodeMarkList);
+    EG_free(nodeTopoList);
 
-        return status;
+    return status;
 }
 
 // Create a surface mesh in meshStruct format using the EGADS body object
@@ -1778,13 +1779,13 @@ int mesh_modifyBodyTess(int numMeshProp,
                                      ".rPos", ATTRREAL, numEdgePoint-2, NULL, rPos+1, NULL);
             if (status != EGADS_SUCCESS) goto cleanup;
 
-            EG_free(rPos); rPos = NULL;
+            AIM_FREE(rPos);
         }
 
-        EG_free(edges); edges = NULL;
-        EG_free(faces); faces = NULL;
-        EG_free(points); points = NULL;
-        EG_free(userSet); userSet = NULL;
+        AIM_FREE(edges);
+        AIM_FREE(faces);
+        AIM_FREE(points);
+        AIM_FREE(userSet);
     }
 
     status = CAPS_SUCCESS;
@@ -1794,11 +1795,11 @@ cleanup:
 
     EG_deleteObject(tess);
 
-    EG_free(points);
-    EG_free(userSet);
-    EG_free(faces);
-    EG_free(edges);
-    EG_free(rPos);
+    AIM_FREE(points);
+    AIM_FREE(userSet);
+    AIM_FREE(faces);
+    AIM_FREE(edges);
+    AIM_FREE(rPos);
 
     return status;
 }
@@ -1905,7 +1906,8 @@ int destroy_bndCondStruct(bndCondStruct *bndCond) {
     return CAPS_SUCCESS;
 }
 
-int populate_regions(tetgenRegionsStruct* regions,
+int populate_regions(void *aimInfo,
+                     tetgenRegionsStruct* regions,
                      int length,
                      const capsTuple* tuples)
 {
@@ -1917,21 +1919,23 @@ int populate_regions(tetgenRegionsStruct* regions,
   char* val = NULL;
   char* dict = NULL;
 
+  status = destroy_regions(regions);
+  AIM_STATUS(aimInfo, status);
+
   // Resize the regions data structure arrays.
+  AIM_ALLOC(regions->names, length, char*, aimInfo, status);
+  for (n = 0; n < length; n++) regions->names[n] = NULL;
+  AIM_ALLOC(regions->x, length, double, aimInfo, status);
+  AIM_ALLOC(regions->y, length, double, aimInfo, status);
+  AIM_ALLOC(regions->z, length, double, aimInfo, status);
+  AIM_ALLOC(regions->attribute, length, int, aimInfo, status);
+  AIM_ALLOC(regions->volume_constraint, length, double, aimInfo, status);
   regions->size = length;
-  if (regions->x != NULL) EG_free(regions->x);
-  if (regions->y != NULL) EG_free(regions->y);
-  if (regions->z != NULL) EG_free(regions->z);
-  if (regions->attribute != NULL) EG_free(regions->attribute);
-  if (regions->volume_constraint != NULL) EG_free(regions->volume_constraint);
-  regions->x = (double*) EG_alloc(length * sizeof(double));
-  regions->y = (double*) EG_alloc(length * sizeof(double));
-  regions->z = (double*) EG_alloc(length * sizeof(double));
-  regions->attribute = (int*) EG_alloc(length * sizeof(int));
-  regions->volume_constraint = (double*) EG_alloc(length * sizeof(double));
 
   for (n = 0; n < length; ++n)
   {
+    AIM_STRDUP(regions->names[n], tuples[n].name, aimInfo, status);
+
     dict = tuples[n].value;
 
     // Store the seed point that is known to lie strictly inside of the region.
@@ -1985,11 +1989,14 @@ int populate_regions(tetgenRegionsStruct* regions,
     }
   }
 
-  return CAPS_SUCCESS;
+cleanup:
+  return status;
 }
 
-int initiate_regions(tetgenRegionsStruct* regions) {
+int initiate_regions(tetgenRegionsStruct* regions)
+{
   regions->size = 0;
+  regions->names = NULL;
   regions->x = NULL;
   regions->y = NULL;
   regions->z = NULL;
@@ -1999,14 +2006,52 @@ int initiate_regions(tetgenRegionsStruct* regions) {
   return CAPS_SUCCESS;
 }
 
-int destroy_regions(tetgenRegionsStruct* regions) {
-  EG_free(regions->x);
-  EG_free(regions->y);
-  EG_free(regions->z);
-  EG_free(regions->attribute);
-  EG_free(regions->volume_constraint);
+int destroy_regions(tetgenRegionsStruct* regions)
+{
+  int i;
+  for (i = 0; i < regions->size; i++)
+    AIM_FREE(regions->names[i]);
+  AIM_FREE(regions->names);
+  AIM_FREE(regions->x);
+  AIM_FREE(regions->y);
+  AIM_FREE(regions->z);
+  AIM_FREE(regions->attribute);
+  AIM_FREE(regions->volume_constraint);
 
   return initiate_regions(regions);
+}
+
+int copy_regions(void *aimInfo,
+                 const tetgenRegionsStruct* regions,
+                 tetgenRegionsStruct* copy)
+{
+  int status = CAPS_SUCCESS;
+  int n;
+
+  status = destroy_regions(copy);
+  AIM_STATUS(aimInfo, status);
+
+  // Resize the regions data structure arrays.
+  AIM_ALLOC(copy->names, regions->size, char*, aimInfo, status);
+  for (n = 0; n < regions->size; n++) copy->names[n] = NULL;
+  AIM_ALLOC(copy->x, regions->size, double, aimInfo, status);
+  AIM_ALLOC(copy->y, regions->size, double, aimInfo, status);
+  AIM_ALLOC(copy->z, regions->size, double, aimInfo, status);
+  AIM_ALLOC(copy->attribute, regions->size, int, aimInfo, status);
+  AIM_ALLOC(copy->volume_constraint, regions->size, double, aimInfo, status);
+  copy->size = regions->size;
+
+  for (n = 0; n < regions->size; n++) {
+    AIM_STRDUP(copy->names[n], regions->names[n], aimInfo, status);
+    copy->x[n] = regions->x[n];
+    copy->y[n] = regions->y[n];
+    copy->z[n] = regions->z[n];
+    copy->attribute[n] = regions->attribute[n];
+    copy->volume_constraint[n] = regions->volume_constraint[n];
+  }
+
+cleanup:
+  return status;
 }
 
 int populate_holes(tetgenHolesStruct* holes,
@@ -2185,9 +2230,6 @@ int initiate_meshInputStruct(meshInputStruct *meshInput) {
     meshInput->preserveSurfMesh = (int) false; // 0 = False , anything else True - Use the body tessellation as the surface mesh
 
     meshInput->quiet = (int) false; // 0 = False , anything else True - No output from mesh generator
-    meshInput->outputFormat = NULL;   // Mesh output formats - AFLR3, TECPLOT, VTK, SU2
-    meshInput->outputFileName = NULL; // Filename prefix for mesh
-    meshInput->outputASCIIFlag = (int) true;  // 0 = Binary output, anything else for ASCII
 
     status = initiate_bndCondStruct(&meshInput->bndConds);
     if (status != CAPS_SUCCESS) return status;
@@ -2219,11 +2261,6 @@ int destroy_meshInputStruct(meshInputStruct *meshInput) {
     meshInput->preserveSurfMesh = (int) false; // 0 = False , anything else True - Use the body tessellation as the surface mesh
 
     meshInput->quiet = (int) false;    // 0 = False , anything else True - No output from mesh generator
-    AIM_FREE(meshInput->outputFormat); // Mesh output formats - AFLR3, TECPLOT, VTK, SU2
-
-    AIM_FREE(meshInput->outputFileName); // Filename prefix for mesh
-
-    meshInput->outputASCIIFlag = (int) true; // 0 = Binary output, anything else for ASCII
 
     status = destroy_bndCondStruct(&meshInput->bndConds);
     if (status != CAPS_SUCCESS) return status;
@@ -2255,6 +2292,7 @@ int write_MAPBC(void *aimInfo,
     int i, j; // Indexing
 
     FILE *fp = NULL;
+    size_t stringLength;
     char *filename = NULL;
     char fileExt[] = ".mapbc";
 
@@ -2277,9 +2315,10 @@ int write_MAPBC(void *aimInfo,
 
     for (i = 0; i < numBnds; i++) wroteBnd[i] = (int) false;
 
-    AIM_ALLOC(filename, (strlen(fname) + 1 + strlen(fileExt)), char, aimInfo, status);
+    stringLength = strlen(fname) + strlen(fileExt) + 1;
+    AIM_ALLOC(filename, stringLength, char, aimInfo, status);
 
-    sprintf(filename,"%s%s",fname, fileExt);
+    snprintf(filename,stringLength,"%s%s",fname, fileExt);
 
     fp = aim_fopen(aimInfo, filename, "w");
 
@@ -2350,10 +2389,10 @@ static void get_TriangleArea(double p1[3],
 }
 #endif
 
-void get_Surface_Norm(double p1[3],
-                      double p2[3],
-                      double p3[3],
-                      double norm[3])
+void get_Surface_Norm(double p1[],
+                      double p2[],
+                      double p3[],
+                      double norm[])
 {
     double a[3]={0.0,0.0,0.0};
     double b[3]={0.0,0.0,0.0};
@@ -3000,9 +3039,59 @@ int mesh_getSizingProp(void *aimInfo,
              *
              * <ul>
              * <li>  <B>bcType = (no default) </B> </li> <br>
-             * bcType sets the AFLR_GBC attribute on faces.<br>
-             * <br>
-             * See AFLR_GBC in \ref attributeAFLR4 for additional details.
+             * Sets the AFLR_GBC attribute on faces. Options:<br>
+             *  - Farfield or Freestream or FARFIELD_UG3_GBC <br>
+             *     Farfield surface same as a standard surface except w/AFLR4
+             *  - Viscous or -STD_UG3_GBC <br>
+             *     Standard BL generating surface
+             *  - Inviscid or STD_UG3_GBC <br>
+             *     Standard surface
+             *  - Symmetry or BL_INT_UG3_GBC or BoundaryLayerIntersect <br>
+             *     Symmetry or standard surface that intersects BL region
+             *  - TRANSP_SRC_UG3_GBC <br>
+             *     Embedded/transparent surface converted to source nodes by AFLR
+             *  - TRANSP_BL_INT_UG3_GBC <br>
+             *     Embedded/transparent surface that intersects BL region
+             *  - TRANSP_UG3_GBC <br>
+             *     Embedded/transparent surface
+             *  - -TRANSP_UG3_GBC <br>
+             *     Embedded/transparent BL generating surface
+             *  - TRANSP_INTRNL_UG3_GBC <br>
+             *     Embedded/transparent surface converted to internal faces by AFLR
+             *  - FIXED_BL_INT_UG3_GBC <br>
+             *     Fixed surface with BL region that intersects BL region
+             * </ul>
+             *
+             * \endif
+             *
+             */
+            /*! \page meshSizingProp
+             *
+             * \if (AFLR3 || AFLR4)
+             *
+             * <ul>
+             * <li>  <B>bcType = (no default) </B> </li> <br>
+             * Sets the AFLR_GBC attribute on faces. Options:<br>
+             *  - Farfield or Freestream or FARFIELD_UG3_GBC <br>
+             *     Farfield surface same as a standard surface except w/AFLR4
+             *  - Viscous or -STD_UG3_GBC <br>
+             *     Standard BL generating surface
+             *  - Inviscid or STD_UG3_GBC <br>
+             *     Standard surface
+             *  - Symmetry or BoundaryLayerIntersect or BL_INT_UG3_GBC <br>
+             *     Standard surface that intersects BL region
+             *  - TRANSP_SRC_UG3_GBC <br>
+             *     Embedded/transparent surface converted to source nodes by AFLR
+             *  - TRANSP_BL_INT_UG3_GBC <br>
+             *     Embedded/transparent surface that intersects BL region
+             *  - TRANSP_UG3_GBC <br>
+             *     Embedded/transparent surface
+             *  - -TRANSP_UG3_GBC <br>
+             *     Embedded/transparent BL generating surface
+             *  - TRANSP_INTRNL_UG3_GBC <br>
+             *     Embedded/transparent surface converted to internal faces by AFLR
+             *  - FIXED_BL_INT_UG3_GBC <br>
+             *     Fixed surface with BL region that intersects BL region
              * </ul>
              *
              * \endif
@@ -3020,6 +3109,7 @@ int mesh_getSizingProp(void *aimInfo,
                     status = CAPS_BADVALUE;
                     goto cleanup;
                 }
+
                 AIM_FREE(keyValue);
             }
 
@@ -3142,6 +3232,7 @@ int initiate_feaMeshDataStruct (feaMeshDataStruct *data) {
     data->connectLinkIndex = 0;
 
     data->responseIndex = 0;
+    data->referenceIndex = 0;
 
     data->elementSubType = UnknownMeshSubElement;
 
@@ -3166,6 +3257,7 @@ int destroy_feaMeshDataStruct (feaMeshDataStruct *data) {
     data->connectLinkIndex = 0;
 
     data->responseIndex = 0;
+    data->referenceIndex = 0;
 
     data->elementSubType = UnknownMeshSubElement;
 
@@ -3191,6 +3283,7 @@ int copy_feaMeshDataStruct (feaMeshDataStruct *dataIn, feaMeshDataStruct *dataOu
     dataOut->connectLinkIndex = dataIn->connectLinkIndex;
 
     dataOut->responseIndex = dataIn->responseIndex;
+    dataOut->referenceIndex = dataIn->referenceIndex;
 
     dataOut->elementSubType = dataIn->elementSubType;
 
@@ -3645,38 +3738,17 @@ int destroy_meshQuickRefStruct(meshQuickRefStruct *quickRef) {
     quickRef->startIndexHexahedral = -1;
 
     // Array of element indexes containing a specific element type
-    if (quickRef->listIndexNode != NULL) EG_free(quickRef->listIndexNode);
-    quickRef->listIndexNode = NULL; // size[numNode]
-
-    if (quickRef->listIndexLine != NULL) EG_free(quickRef->listIndexLine);
-    quickRef->listIndexLine = NULL; // size[numLine]
-
-    if (quickRef->listIndexTriangle != NULL) EG_free(quickRef->listIndexTriangle);
-    quickRef->listIndexTriangle = NULL; // size[numTriangle]
-
-    if (quickRef->listIndexTriangle_6 != NULL) EG_free(quickRef->listIndexTriangle_6);
-    quickRef->listIndexTriangle_6 = NULL; // size[numTriangle_6]
-
-    if (quickRef->listIndexQuadrilateral != NULL) EG_free(quickRef->listIndexQuadrilateral);
-    quickRef->listIndexQuadrilateral = NULL; // size[numQuadrilateral]
-
-    if (quickRef->listIndexQuadrilateral_8 != NULL) EG_free(quickRef->listIndexQuadrilateral_8);
-       quickRef->listIndexQuadrilateral_8 = NULL; // size[numQuadrilateral_8]
-
-    if (quickRef->listIndexTetrahedral != NULL) EG_free(quickRef->listIndexTetrahedral);
-    quickRef->listIndexTetrahedral = NULL; // size[numTetrahedral]
-
-    if (quickRef->listIndexTetrahedral_10 != NULL) EG_free(quickRef->listIndexTetrahedral_10);
-    quickRef->listIndexTetrahedral_10 = NULL; // size[numTetrahedral_10]
-
-    if (quickRef->listIndexPyramid != NULL) EG_free(quickRef->listIndexPyramid);
-    quickRef->listIndexPyramid = NULL; // size[numPyramid]
-
-    if (quickRef->listIndexPrism != NULL) EG_free(quickRef->listIndexPrism);
-    quickRef->listIndexPrism = NULL; // size[numPrism]
-
-    if (quickRef->listIndexHexahedral != NULL) EG_free(quickRef->listIndexHexahedral);
-    quickRef->listIndexHexahedral = NULL; // size[numHexahedral]
+    AIM_FREE(quickRef->listIndexNode);
+    AIM_FREE(quickRef->listIndexLine);
+    AIM_FREE(quickRef->listIndexTriangle);
+    AIM_FREE(quickRef->listIndexTriangle_6);
+    AIM_FREE(quickRef->listIndexQuadrilateral);
+    AIM_FREE(quickRef->listIndexQuadrilateral_8);
+    AIM_FREE(quickRef->listIndexTetrahedral);
+    AIM_FREE(quickRef->listIndexTetrahedral_10);
+    AIM_FREE(quickRef->listIndexPyramid);
+    AIM_FREE(quickRef->listIndexPrism);
+    AIM_FREE(quickRef->listIndexHexahedral);
 
     return CAPS_SUCCESS;
 }
@@ -3920,170 +3992,74 @@ int mesh_retrieveStartIndexMeshElements(int numElement,
     }
 }
 
-// Retrieve list of mesh element of a given type - elementTypeList is freeable
-int mesh_retrieveMeshElements(int numElement,
-                              meshElementStruct element[],
-                              meshElementTypeEnum elementType,
-                              int *numElementType,
-                              int *elementTypeList[]) {
-
-    int i; // Indexing
-
-    int *tempList = NULL;
-
-    if (element == NULL) return CAPS_NULLVALUE;
-
-    if (*elementTypeList != NULL) EG_free(*elementTypeList);
-    *elementTypeList = NULL;
-
-    if (numElement == 0) return CAPS_BADVALUE;
-
-    tempList = (int *) EG_alloc(numElement*sizeof(int));
-    if (tempList == NULL) return EGADS_MALLOC;
-
-    *numElementType = 0;
-    for (i = 0; i < numElement; i++) {
-        tempList[i] = (int) false;
-
-        if (element[i].elementType != elementType) continue;
-
-        tempList[i] = (int) true;
-        *numElementType += 1;
-    }
-
-    if (*numElementType == 0) {
-        EG_free(tempList);
-        return CAPS_NOTFOUND;
-    }
-
-    *elementTypeList = (int *) EG_alloc((*numElementType)*sizeof(int));
-    if (*elementTypeList == NULL) {
-        EG_free(tempList);
-        return EGADS_MALLOC;
-    }
-
-    *numElementType = 0;
-    for (i = 0; i < numElement; i++ ) {
-        if (tempList[i] == (int) true) {
-            (*elementTypeList)[*numElementType] = i;
-            *numElementType += 1;
-        }
-    }
-
-    EG_free(tempList);
-
-    return CAPS_SUCCESS;
-
-}
-
 // Fill out the QuickRef lists for all element types
-int mesh_fillQuickRefList( meshStruct *mesh) {
+int mesh_fillQuickRefList( void *aimInfo, meshStruct *mesh ) {
 
     int status;
+    int i;
 
     status = destroy_meshQuickRefStruct(&mesh->meshQuickRef);
     if (status != CAPS_SUCCESS) goto cleanup;
 
-    // Node
-    status = mesh_retrieveMeshElements(mesh->numElement,
-                                       mesh->element,
-                                       Node,
-                                       &mesh->meshQuickRef.numNode,
-                                       &mesh->meshQuickRef.listIndexNode);
-    if (status != CAPS_NOTFOUND && status != CAPS_SUCCESS) goto cleanup;
+    for (i = 0; i < mesh->numElement; i++) {
+           if (mesh->element[i].elementType == Node           ) mesh->meshQuickRef.numNode++;
+      else if (mesh->element[i].elementType == Line           ) mesh->meshQuickRef.numLine++;
+      else if (mesh->element[i].elementType == Triangle       ) mesh->meshQuickRef.numTriangle++;
+      else if (mesh->element[i].elementType == Triangle_6     ) mesh->meshQuickRef.numTriangle_6++;
+      else if (mesh->element[i].elementType == Quadrilateral  ) mesh->meshQuickRef.numQuadrilateral++;
+      else if (mesh->element[i].elementType == Quadrilateral_8) mesh->meshQuickRef.numQuadrilateral_8++;
+      else if (mesh->element[i].elementType == Tetrahedral    ) mesh->meshQuickRef.numTetrahedral++;
+      else if (mesh->element[i].elementType == Tetrahedral_10 ) mesh->meshQuickRef.numTetrahedral_10++;
+      else if (mesh->element[i].elementType == Pyramid        ) mesh->meshQuickRef.numPyramid++;
+      else if (mesh->element[i].elementType == Prism          ) mesh->meshQuickRef.numPrism++;
+      else if (mesh->element[i].elementType == Hexahedral     ) mesh->meshQuickRef.numHexahedral++;
+    }
 
-    // Line
-    status = mesh_retrieveMeshElements(mesh->numElement,
-                                       mesh->element,
-                                       Line,
-                                       &mesh->meshQuickRef.numLine,
-                                       &mesh->meshQuickRef.listIndexLine);
-    if (status != CAPS_NOTFOUND && status != CAPS_SUCCESS) goto cleanup;
+    AIM_ALLOC(mesh->meshQuickRef.listIndexNode           , mesh->meshQuickRef.numNode           , int, aimInfo, status);
+    AIM_ALLOC(mesh->meshQuickRef.listIndexLine           , mesh->meshQuickRef.numLine           , int, aimInfo, status);
+    AIM_ALLOC(mesh->meshQuickRef.listIndexTriangle       , mesh->meshQuickRef.numTriangle       , int, aimInfo, status);
+    AIM_ALLOC(mesh->meshQuickRef.listIndexTriangle_6     , mesh->meshQuickRef.numTriangle_6     , int, aimInfo, status);
+    AIM_ALLOC(mesh->meshQuickRef.listIndexQuadrilateral  , mesh->meshQuickRef.numQuadrilateral  , int, aimInfo, status);
+    AIM_ALLOC(mesh->meshQuickRef.listIndexQuadrilateral_8, mesh->meshQuickRef.numQuadrilateral_8, int, aimInfo, status);
+    AIM_ALLOC(mesh->meshQuickRef.listIndexTetrahedral    , mesh->meshQuickRef.numTetrahedral    , int, aimInfo, status);
+    AIM_ALLOC(mesh->meshQuickRef.listIndexTetrahedral_10 , mesh->meshQuickRef.numTetrahedral_10 , int, aimInfo, status);
+    AIM_ALLOC(mesh->meshQuickRef.listIndexPyramid        , mesh->meshQuickRef.numPyramid        , int, aimInfo, status);
+    AIM_ALLOC(mesh->meshQuickRef.listIndexPrism          , mesh->meshQuickRef.numPrism          , int, aimInfo, status);
+    AIM_ALLOC(mesh->meshQuickRef.listIndexHexahedral     , mesh->meshQuickRef.numHexahedral     , int, aimInfo, status);
 
-    // Triangle
-    status = mesh_retrieveMeshElements(mesh->numElement,
-                                       mesh->element,
-                                       Triangle,
-                                       &mesh->meshQuickRef.numTriangle,
-                                       &mesh->meshQuickRef.listIndexTriangle);
-    if (status != CAPS_NOTFOUND && status != CAPS_SUCCESS) goto cleanup;
+    mesh->meshQuickRef.numNode = 0;
+    mesh->meshQuickRef.numLine = 0;
+    mesh->meshQuickRef.numTriangle = 0;
+    mesh->meshQuickRef.numTriangle_6 = 0;
+    mesh->meshQuickRef.numQuadrilateral = 0;
+    mesh->meshQuickRef.numQuadrilateral_8 = 0;
+    mesh->meshQuickRef.numTetrahedral = 0;
+    mesh->meshQuickRef.numTetrahedral_10 = 0;
+    mesh->meshQuickRef.numPyramid = 0;
+    mesh->meshQuickRef.numPrism = 0;
+    mesh->meshQuickRef.numHexahedral = 0;
 
-    // Triangle - 6
-    status = mesh_retrieveMeshElements(mesh->numElement,
-                                       mesh->element,
-                                       Triangle_6,
-                                       &mesh->meshQuickRef.numTriangle_6,
-                                       &mesh->meshQuickRef.listIndexTriangle_6);
-    if (status != CAPS_NOTFOUND && status != CAPS_SUCCESS) goto cleanup;
-
-
-    // Quadrilataral
-    status = mesh_retrieveMeshElements(mesh->numElement,
-                                       mesh->element,
-                                       Quadrilateral,
-                                       &mesh->meshQuickRef.numQuadrilateral,
-                                       &mesh->meshQuickRef.listIndexQuadrilateral);
-    if (status != CAPS_NOTFOUND && status != CAPS_SUCCESS) goto cleanup;
-
-    // Quadrilataral - 8
-    status = mesh_retrieveMeshElements(mesh->numElement,
-                                       mesh->element,
-                                       Quadrilateral_8,
-                                       &mesh->meshQuickRef.numQuadrilateral_8,
-                                       &mesh->meshQuickRef.listIndexQuadrilateral_8);
-    if (status != CAPS_NOTFOUND && status != CAPS_SUCCESS) goto cleanup;
-
-
-    // Tetrahedral
-    status = mesh_retrieveMeshElements(mesh->numElement,
-                                       mesh->element,
-                                       Tetrahedral,
-                                       &mesh->meshQuickRef.numTetrahedral,
-                                       &mesh->meshQuickRef.listIndexTetrahedral);
-    if (status != CAPS_NOTFOUND && status != CAPS_SUCCESS) goto cleanup;
-
-    // Tetrahedral - 10
-    status = mesh_retrieveMeshElements(mesh->numElement,
-                                       mesh->element,
-                                       Tetrahedral_10,
-                                       &mesh->meshQuickRef.numTetrahedral_10,
-                                       &mesh->meshQuickRef.listIndexTetrahedral_10);
-    if (status != CAPS_NOTFOUND && status != CAPS_SUCCESS) goto cleanup;
-
-
-    // Pyramid
-    status = mesh_retrieveMeshElements(mesh->numElement,
-                                       mesh->element,
-                                       Pyramid,
-                                       &mesh->meshQuickRef.numPyramid,
-                                       &mesh->meshQuickRef.listIndexPyramid );
-    if (status != CAPS_NOTFOUND && status != CAPS_SUCCESS) goto cleanup;
-
-    // Prism
-    status = mesh_retrieveMeshElements(mesh->numElement,
-                                       mesh->element,
-                                       Prism,
-                                       &mesh->meshQuickRef.numPrism,
-                                       &mesh->meshQuickRef.listIndexPrism );
-    if (status != CAPS_NOTFOUND && status != CAPS_SUCCESS) goto cleanup;
-
-    // Hexahedral
-    status = mesh_retrieveMeshElements(mesh->numElement,
-                                       mesh->element,
-                                       Hexahedral,
-                                       &mesh->meshQuickRef.numHexahedral,
-                                       &mesh->meshQuickRef.listIndexHexahedral);
-    if (status != CAPS_NOTFOUND && status != CAPS_SUCCESS) goto cleanup;
+    for (i = 0; i < mesh->numElement; i++) {
+           if (mesh->element[i].elementType == Node           ) mesh->meshQuickRef.listIndexNode           [mesh->meshQuickRef.numNode++           ] = i;
+      else if (mesh->element[i].elementType == Line           ) mesh->meshQuickRef.listIndexLine           [mesh->meshQuickRef.numLine++           ] = i;
+      else if (mesh->element[i].elementType == Triangle       ) mesh->meshQuickRef.listIndexTriangle       [mesh->meshQuickRef.numTriangle++       ] = i;
+      else if (mesh->element[i].elementType == Triangle_6     ) mesh->meshQuickRef.listIndexTriangle_6     [mesh->meshQuickRef.numTriangle_6++     ] = i;
+      else if (mesh->element[i].elementType == Quadrilateral  ) mesh->meshQuickRef.listIndexQuadrilateral  [mesh->meshQuickRef.numQuadrilateral++  ] = i;
+      else if (mesh->element[i].elementType == Quadrilateral_8) mesh->meshQuickRef.listIndexQuadrilateral_8[mesh->meshQuickRef.numQuadrilateral_8++] = i;
+      else if (mesh->element[i].elementType == Tetrahedral    ) mesh->meshQuickRef.listIndexTetrahedral    [mesh->meshQuickRef.numTetrahedral++    ] = i;
+      else if (mesh->element[i].elementType == Tetrahedral_10 ) mesh->meshQuickRef.listIndexTetrahedral_10 [mesh->meshQuickRef.numTetrahedral_10++ ] = i;
+      else if (mesh->element[i].elementType == Pyramid        ) mesh->meshQuickRef.listIndexPyramid        [mesh->meshQuickRef.numPyramid++        ] = i;
+      else if (mesh->element[i].elementType == Prism          ) mesh->meshQuickRef.listIndexPrism          [mesh->meshQuickRef.numPrism++          ] = i;
+      else if (mesh->element[i].elementType == Hexahedral     ) mesh->meshQuickRef.listIndexHexahedral     [mesh->meshQuickRef.numHexahedral++     ] = i;
+    }
 
     mesh->meshQuickRef.useListIndex = (int) true;
 
     status = CAPS_SUCCESS;
-    goto cleanup;
 
-    cleanup:
-        if (status != CAPS_SUCCESS) printf("Error: Premature exit in mesh_fillQuickRefList, status %d\n", status);
+cleanup:
 
-        return status;
+    return status;
 }
 
 // Copy the QuickRef structure
@@ -4385,7 +4361,7 @@ int mesh_copyMeshStruct( meshStruct *in, meshStruct *out ) {
 }
 
 // Combine mesh structures
-int mesh_combineMeshStruct(int numMesh, meshStruct mesh[], meshStruct *combineMesh ) {
+int mesh_combineMeshStruct(void *aimInfo, int numMesh, meshStruct mesh[], meshStruct *combineMesh ) {
 
     int status;
     int i, j; //Indexing
@@ -4516,7 +4492,7 @@ int mesh_combineMeshStruct(int numMesh, meshStruct mesh[], meshStruct *combineMe
         elementIndexOffSet += mesh[i].numElement;
     }
 
-    status = mesh_fillQuickRefList( combineMesh );
+    status = mesh_fillQuickRefList( aimInfo, combineMesh );
     if (status != CAPS_SUCCESS) goto cleanup;
 
     status = CAPS_SUCCESS;
@@ -4547,6 +4523,7 @@ int mesh_writeAFLR3(void *aimInfo,
 
     //int numBytes = 0; // Number bytes written (unformatted option) // Un-comment if writing an unformatted file
     int machineENDIANNESS = 99;
+    size_t stringLength;
     char *filename = NULL;
     char *postFix = NULL;
 
@@ -4559,7 +4536,7 @@ int mesh_writeAFLR3(void *aimInfo,
     if (mesh->meshQuickRef.useStartIndex == (int) false &&
         mesh->meshQuickRef.useListIndex  == (int) false) {
 
-        status = mesh_fillQuickRefList( mesh);
+        status = mesh_fillQuickRefList( aimInfo, mesh );
         if (status != CAPS_SUCCESS) goto cleanup;
     }
 
@@ -4586,13 +4563,11 @@ int mesh_writeAFLR3(void *aimInfo,
             goto cleanup;
         }
 
-        filename = (char *) EG_alloc((strlen(fname) + 1 + strlen(postFix)) *sizeof(char));
-        if (filename == NULL) {
-            status = EGADS_MALLOC;
-            goto cleanup;
-        }
+        stringLength = strlen(fname) + strlen(postFix) + 1;
+        AIM_ALLOC(filename, stringLength, char, aimInfo, status);
 
-        sprintf(filename, "%s%s", fname, postFix);
+        snprintf(filename,stringLength,"%s%s",fname, postFix);
+
         fp = aim_fopen(aimInfo, filename, "wb");
 
         if (fp == NULL) {
@@ -4604,7 +4579,7 @@ int mesh_writeAFLR3(void *aimInfo,
         //numBytes = 7 * sint; // Un-comment if writing an unformatted file
         //fwrite(&numBytes, sint,1,fp); // Un-comment if writing an unformatted file
 
-        fwrite(&mesh->numNode, sint ,1,fp);
+        fwrite(&mesh->numNode,                       sint ,1,fp);
         fwrite(&mesh->meshQuickRef.numTriangle,      sint ,1,fp);
         fwrite(&mesh->meshQuickRef.numQuadrilateral, sint ,1,fp);
         fwrite(&mesh->meshQuickRef.numTetrahedral,   sint ,1,fp);
@@ -4851,13 +4826,10 @@ int mesh_writeAFLR3(void *aimInfo,
     } else {
 
         postFix = ".ugrid";
-        filename = (char *) EG_alloc((strlen(fname) + 1 + strlen(postFix)) *sizeof(char));
-        if (filename == NULL) {
-            status = EGADS_MALLOC;
-            goto cleanup;
-        }
+        stringLength = strlen(fname) + strlen(postFix) + 1;
+        AIM_ALLOC(filename, stringLength, char, aimInfo, status);
 
-        sprintf(filename, "%s%s", fname, postFix);
+        snprintf(filename, stringLength, "%s%s", fname, postFix);
 
         fp = aim_fopen(aimInfo, filename, "w");
         if (fp == NULL) {
@@ -5410,7 +5382,7 @@ int mesh_readAFLR3(void *aimInfo,
 //            goto cleanup;
 //        }
 //
-//        sprintf(filename, "%s%s", fname, postFix);
+//        snprintf(filename, "%s%s", fname, postFix);
 //
 //        fp = aim_fopen(aimInfo, filename, "w");
 //        if (fp == NULL) {
@@ -5586,6 +5558,7 @@ int mesh_writeVTK(void *aimInfo,
     int sdouble = sizeof(double);
     double tempDouble;
 
+    size_t stringLength;
     char *filename = NULL;
 
     // NEED to change if indices already start at 0
@@ -5596,7 +5569,7 @@ int mesh_writeVTK(void *aimInfo,
     if (mesh->meshQuickRef.useStartIndex == (int) false &&
         mesh->meshQuickRef.useListIndex  == (int) false) {
 
-        status = mesh_fillQuickRefList( mesh);
+        status = mesh_fillQuickRefList( aimInfo, mesh );
         if (status != CAPS_SUCCESS) goto cleanup;
     }
 
@@ -5605,8 +5578,10 @@ int mesh_writeVTK(void *aimInfo,
         scaleFactor = 1;
     }
 
-    filename = (char *) EG_alloc((strlen(fname) + 1 + 4) *sizeof(char));
-    sprintf(filename,"%s.vtk",fname);
+    stringLength = strlen(fname) + 4 + 1;
+    AIM_ALLOC(filename, stringLength, char, aimInfo, status);
+
+    snprintf(filename,stringLength,"%s.vtk",fname);
 
     printf("\nWriting VTK file: %s....\n", filename);
 
@@ -5817,14 +5792,12 @@ int mesh_writeVTK(void *aimInfo,
 
     status = CAPS_SUCCESS;
 
-    goto cleanup;
+cleanup:
+    if (status != CAPS_SUCCESS) printf("\tPremature exit in mesh_writeVTK, status = %d\n", status);
 
-    cleanup:
-        if (status != CAPS_SUCCESS) printf("\tPremature exit in mesh_writeVTK, status = %d\n", status);
-
-        if (fp != NULL) fclose(fp);
-        if (filename != NULL) EG_free(filename);
-        return status;
+    if (fp != NULL) fclose(fp);
+    if (filename != NULL) EG_free(filename);
+    return status;
 }
 
 // Write a mesh contained in the mesh structure in SU2 format (*.su2)
@@ -5844,6 +5817,7 @@ int mesh_writeSU2(void *aimInfo,
     FILE *fp = NULL;
     int  i, j, m1 = -1, *numMarkerList = NULL;
     int  length, elementType, elementID = 0, elementIndex, markerID;
+    size_t stringLength;
     char *filename = NULL;
     char fileExt[] = ".su2";
 
@@ -5861,7 +5835,7 @@ int mesh_writeSU2(void *aimInfo,
     if (mesh->meshQuickRef.useStartIndex == (int) false &&
         mesh->meshQuickRef.useListIndex  == (int) false) {
 
-        status = mesh_fillQuickRefList( mesh);
+        status = mesh_fillQuickRefList( aimInfo, mesh );
         if (status != CAPS_SUCCESS) goto cleanup;
     }
 
@@ -5878,13 +5852,10 @@ int mesh_writeSU2(void *aimInfo,
         scaleFactor = 1;
     }
 
-    filename = (char *) EG_alloc((strlen(fname) + 1 + strlen(fileExt)) *sizeof(char));
-    if (filename == NULL) {
-        status  = EGADS_MALLOC;
-        goto cleanup;
-    }
+    stringLength = strlen(fname) + strlen(fileExt) + 1;
+    AIM_ALLOC(filename, stringLength, char, aimInfo, status);
 
-    sprintf(filename,"%s%s",fname, fileExt);
+    snprintf(filename,stringLength,"%s%s",fname, fileExt);
 
     fp = aim_fopen(aimInfo, filename, "w");
 
@@ -6152,14 +6123,17 @@ int mesh_writeNASTRAN(void *aimInfo,
                       char *fname,
                       int asciiFlag, // 0 for binary, anything else for ascii
                       const meshStruct *nasMesh,
+                      int numProperty,
+                      const feaPropertyStruct *feaProperty,
                       feaFileTypeEnum gridFileType,
                       double scaleFactor) // Scale factor for coordinates
 {
     int status; // Function return status
     FILE *fp = NULL;
-    int i, j, gridFields;
+    int i, j, iprop, gridFields;
     int coordID, propertyID;
-    char *filename = NULL, *delimiter = NULL, *tempString = NULL;
+    size_t stringLength;
+    char *filename = NULL, *delimiter = NULL, tempString[16];
     //char x[20], y[20], z[20];
     char fileExt[] = ".bdf";
 
@@ -6190,13 +6164,10 @@ int mesh_writeNASTRAN(void *aimInfo,
         scaleFactor = 1;
     }
 
-    filename = (char *) EG_alloc((strlen(fname) + 1 + strlen(fileExt)) *sizeof(char));
-    if (filename == NULL) {
-        status = EGADS_MALLOC;
-        goto cleanup;
-    }
+    stringLength = strlen(fname) + strlen(fileExt) + 1;
+    AIM_ALLOC(filename, stringLength, char, aimInfo, status);
 
-    sprintf(filename,"%s%s", fname, fileExt);
+    snprintf(filename,stringLength,"%s%s",fname, fileExt);
 
     fp = aim_fopen(aimInfo, filename, "w");
     if (fp == NULL) {
@@ -6239,28 +6210,20 @@ int mesh_writeNASTRAN(void *aimInfo,
                 fprintf(fp,"%16s", "");
             }
 
-            // This function always has 15 characters
-//            doubleToString_LargeField(nasMesh->node[i].xyz[0]*scaleFactor, x);
-//            doubleToString_LargeField(nasMesh->node[i].xyz[1]*scaleFactor, y);
-//            doubleToString_LargeField(nasMesh->node[i].xyz[2]*scaleFactor, z);
-//
-//            fprintf(fp," %s %s%-8s\n", x, y, "*");
-//            fprintf(fp,"%-8s %s\n", "*", z);
-
             // x
-            tempString = convert_doubleToString(nasMesh->node[i].xyz[0]*scaleFactor, 15, 1);
+            status = convert_doubleToString(nasMesh->node[i].xyz[0]*scaleFactor, 15, 1, tempString);
+            AIM_STATUS(aimInfo, status);
             fprintf(fp," %s", tempString);
-            EG_free(tempString); tempString = NULL;
 
             // y
-            tempString = convert_doubleToString(nasMesh->node[i].xyz[1]*scaleFactor, 15, 1);
+            status = convert_doubleToString(nasMesh->node[i].xyz[1]*scaleFactor, 15, 1, tempString);
+            AIM_STATUS(aimInfo, status);
             fprintf(fp," %s%-8s\n", tempString, "*");
-            EG_free(tempString); tempString = NULL;
 
             // z
-            tempString = convert_doubleToString(nasMesh->node[i].xyz[2]*scaleFactor, 15, 1);
+            status = convert_doubleToString(nasMesh->node[i].xyz[2]*scaleFactor, 15, 1, tempString);
+            AIM_STATUS(aimInfo, status);
             fprintf(fp,"%-8s %s\n", "*", tempString);
-            EG_free(tempString); tempString = NULL;
         }
 
     } else {
@@ -6269,9 +6232,9 @@ int mesh_writeNASTRAN(void *aimInfo,
 
             fprintf(fp,"%-8s", "GRID");
 
-            tempString = convert_integerToString(nasMesh->node[i].nodeID  , 7, 1);
+            status = convert_integerToString(nasMesh->node[i].nodeID, 7, 1, tempString);
+            AIM_STATUS(aimInfo, status);
             fprintf(fp, "%s%s", delimiter, tempString);
-            EG_free(tempString); tempString = NULL;
 
             // If the coord ID == 0 leave blank
             if (nasMesh->node[i].analysisType == MeshStructure) {
@@ -6285,9 +6248,9 @@ int mesh_writeNASTRAN(void *aimInfo,
             }
 
             for (j = 0; j < 3; j++) {
-                tempString = convert_doubleToString(nasMesh->node[i].xyz[j]*scaleFactor, gridFields, 1);
+                status = convert_doubleToString(nasMesh->node[i].xyz[j]*scaleFactor, gridFields, 1, tempString);
+                AIM_STATUS(aimInfo, status);
                 fprintf(fp,"%s%s", delimiter, tempString);
-                EG_free(tempString); tempString = NULL;
             }
 
             fprintf(fp,"\n");
@@ -6296,64 +6259,130 @@ int mesh_writeNASTRAN(void *aimInfo,
 
     fprintf(fp,"$---1---|---2---|---3---|---4---|---5---|---6---|---7---|---8---|---9---|---10--|\n");
 
-    for (i = 0; i < nasMesh->numElement; i++) {
 
-        // If we have a volume mesh skip the surface elements
-        if (nasMesh->meshType == VolumeMesh) {
-            if (nasMesh->element[i].elementType != Tetrahedral &&
-                nasMesh->element[i].elementType != Pyramid     &&
-                nasMesh->element[i].elementType != Prism       &&
-                nasMesh->element[i].elementType != Hexahedral) continue;
-        }
+    // Always loop over at least one property
+    if (numProperty == 0) numProperty = 1;
 
-        // Grab Structure specific related data if available
-        if (nasMesh->element[i].analysisType == MeshStructure) {
-            feaData = (feaMeshDataStruct *) nasMesh->element[i].analysisData;
-            propertyID = feaData->propertyID;
-            coordID = feaData->coordID;
-            elementSubType = feaData->elementSubType;
-        } else {
-            propertyID = nasMesh->element[i].markerID;
-            coordID = 0;
-            elementSubType = UnknownMeshSubElement;
-        }
+    // loop over elements in order of property ID
+    for (iprop = 0; iprop < numProperty; iprop++) {
 
-        if ( nasMesh->element[i].elementType == Line &&
-                elementSubType == UnknownMeshSubElement) { // Non-default subtype handled by nastran_writeSubElementCard
-            // in nastranUtils.c because of additional information needed
-            // that isn't stored in the mesh structure.
+        // hyper mesh style comment
+        if (feaProperty != NULL)
+          fprintf(fp, "$ Femap Property : %s\n", feaProperty[iprop].name);
 
-            fprintf(fp,"%-8s%s%7d%s%7d%s%7d%s%7d\n", "CROD",
-                                                     delimiter, nasMesh->element[i].elementID,
-                                                     delimiter, propertyID,
-                                                     delimiter, nasMesh->element[i].connectivity[0],
-                                                     delimiter, nasMesh->element[i].connectivity[1]);
-        }
+        for (i = 0; i < nasMesh->numElement; i++) {
 
-        if ( nasMesh->element[i].elementType == Triangle &&
-                elementSubType == UnknownMeshSubElement) {
-
-            fprintf(fp,"%-8s%s%7d%s%7d%s%7d%s%7d%s%7d", "CTRIA3",
-                                                        delimiter, nasMesh->element[i].elementID,
-                                                        delimiter, propertyID,
-                                                        delimiter, nasMesh->element[i].connectivity[0],
-                                                        delimiter, nasMesh->element[i].connectivity[1],
-                                                        delimiter, nasMesh->element[i].connectivity[2]);
-
-            // Write coordinate id
-            if (coordID != 0){
-                fprintf(fp, "%s%7d", delimiter, coordID);
+            // If we have a volume mesh skip the surface elements
+            if (nasMesh->meshType == VolumeMesh) {
+                if (nasMesh->element[i].elementType != Tetrahedral &&
+                    nasMesh->element[i].elementType != Pyramid     &&
+                    nasMesh->element[i].elementType != Prism       &&
+                    nasMesh->element[i].elementType != Hexahedral) continue;
             }
 
-            fprintf(fp,"\n");
-        }
+            // Grab Structure specific related data if available
+            if (nasMesh->element[i].analysisType == MeshStructure) {
+                feaData = (feaMeshDataStruct *) nasMesh->element[i].analysisData;
+                propertyID = feaData->propertyID;
+                coordID = feaData->coordID;
+                elementSubType = feaData->elementSubType;
+            } else {
+                propertyID = nasMesh->element[i].markerID;
+                coordID = 0;
+                elementSubType = UnknownMeshSubElement;
+            }
 
-        if ( nasMesh->element[i].elementType == Triangle_6 &&
-                elementSubType == UnknownMeshSubElement) {
+            // Only consider one property at a time
+            if (feaProperty != NULL) {
+              if (feaProperty[iprop].propertyID != propertyID) continue;
+            }
 
-            // Write coordinate id
-            if (coordID != 0){
-                fprintf(fp,"%-8s%s%7d%s%7d%s%7d%s%7d%s%7d%s%7d%s%7d%s%7d%s%-8s\n", "CTRIA6",
+            if ( nasMesh->element[i].elementType == Line &&
+                    elementSubType == UnknownMeshSubElement) { // Non-default subtype handled by nastran_writeSubElementCard
+                // in nastranUtils.c because of additional information needed
+                // that isn't stored in the mesh structure.
+
+                fprintf(fp,"%-8s%s%7d%s%7d%s%7d%s%7d\n", "CROD",
+                                                         delimiter, nasMesh->element[i].elementID,
+                                                         delimiter, propertyID,
+                                                         delimiter, nasMesh->element[i].connectivity[0],
+                                                         delimiter, nasMesh->element[i].connectivity[1]);
+            }
+
+            if ( nasMesh->element[i].elementType == Triangle &&
+                    elementSubType == UnknownMeshSubElement) {
+
+                fprintf(fp,"%-8s%s%7d%s%7d%s%7d%s%7d%s%7d", "CTRIA3",
+                                                            delimiter, nasMesh->element[i].elementID,
+                                                            delimiter, propertyID,
+                                                            delimiter, nasMesh->element[i].connectivity[0],
+                                                            delimiter, nasMesh->element[i].connectivity[1],
+                                                            delimiter, nasMesh->element[i].connectivity[2]);
+
+                // Write coordinate id
+                if (coordID != 0){
+                    fprintf(fp, "%s%7d", delimiter, coordID);
+                }
+
+                fprintf(fp,"\n");
+            }
+
+            if ( nasMesh->element[i].elementType == Triangle_6 &&
+                    elementSubType == UnknownMeshSubElement) {
+
+                // Write coordinate id
+                if (coordID != 0){
+                    fprintf(fp,"%-8s%s%7d%s%7d%s%7d%s%7d%s%7d%s%7d%s%7d%s%7d%s%-8s\n", "CTRIA6",
+                                                                                 delimiter, nasMesh->element[i].elementID,
+                                                                                 delimiter, propertyID,
+                                                                                 delimiter, nasMesh->element[i].connectivity[0],
+                                                                                 delimiter, nasMesh->element[i].connectivity[1],
+                                                                                 delimiter, nasMesh->element[i].connectivity[2],
+                                                                                 delimiter, nasMesh->element[i].connectivity[3],
+                                                                                 delimiter, nasMesh->element[i].connectivity[4],
+                                                                                 delimiter, nasMesh->element[i].connectivity[5],
+                                                                                 delimiter, "+CT");
+
+                    fprintf(fp, "%-8s%s%7d\n", "+CT", delimiter, coordID);
+
+                } else {
+                    fprintf(fp,"%-8s%s%7d%s%7d%s%7d%s%7d%s%7d%s%7d%s%7d%s%7d\n", "CTRIA6",
+                                                                                  delimiter, nasMesh->element[i].elementID,
+                                                                                  delimiter, propertyID,
+                                                                                  delimiter, nasMesh->element[i].connectivity[0],
+                                                                                  delimiter, nasMesh->element[i].connectivity[1],
+                                                                                  delimiter, nasMesh->element[i].connectivity[2],
+                                                                                  delimiter, nasMesh->element[i].connectivity[3],
+                                                                                  delimiter, nasMesh->element[i].connectivity[4],
+                                                                                  delimiter, nasMesh->element[i].connectivity[5]);
+                }
+            }
+
+
+            if ( nasMesh->element[i].elementType == Quadrilateral &&
+                    elementSubType == UnknownMeshSubElement) {
+
+                fprintf(fp,"%-8s%s%7d%s%7d%s%7d%s%7d%s%7d%s%7d", "CQUAD4",
+                                                                 delimiter, nasMesh->element[i].elementID,
+                                                                 delimiter, propertyID,
+                                                                 delimiter, nasMesh->element[i].connectivity[0],
+                                                                 delimiter, nasMesh->element[i].connectivity[1],
+                                                                 delimiter, nasMesh->element[i].connectivity[2],
+                                                                 delimiter, nasMesh->element[i].connectivity[3]);
+
+                // Write coordinate id
+                if (coordID != 0){
+                    fprintf(fp, "%s%7d", delimiter, coordID);
+                }
+
+                fprintf(fp,"\n");
+
+            }
+
+            if ( nasMesh->element[i].elementType == Quadrilateral_8 &&
+                    elementSubType == UnknownMeshSubElement) {
+
+                fprintf(fp,"%-8s%s%7d%s%7d%s%7d%s%7d%s%7d%s%7d%s%7d%s%7d%s%-8s\n", "CQUAD8",
                                                                              delimiter, nasMesh->element[i].elementID,
                                                                              delimiter, propertyID,
                                                                              delimiter, nasMesh->element[i].connectivity[0],
@@ -6362,150 +6391,101 @@ int mesh_writeNASTRAN(void *aimInfo,
                                                                              delimiter, nasMesh->element[i].connectivity[3],
                                                                              delimiter, nasMesh->element[i].connectivity[4],
                                                                              delimiter, nasMesh->element[i].connectivity[5],
-                                                                             delimiter, "+CT");
+                                                                             delimiter, "+CQ");
 
-                fprintf(fp, "%-8s%s%7d\n", "+CT", delimiter, coordID);
+                fprintf(fp,"%-8s%s%7d%s%7d", "+CQ",
+                                             delimiter, nasMesh->element[i].connectivity[6],
+                                             delimiter, nasMesh->element[i].connectivity[7]);
 
-            } else {
-                fprintf(fp,"%-8s%s%7d%s%7d%s%7d%s%7d%s%7d%s%7d%s%7d%s%7d\n", "CTRIA6",
-                                                                              delimiter, nasMesh->element[i].elementID,
-                                                                              delimiter, propertyID,
-                                                                              delimiter, nasMesh->element[i].connectivity[0],
-                                                                              delimiter, nasMesh->element[i].connectivity[1],
-                                                                              delimiter, nasMesh->element[i].connectivity[2],
-                                                                              delimiter, nasMesh->element[i].connectivity[3],
-                                                                              delimiter, nasMesh->element[i].connectivity[4],
-                                                                              delimiter, nasMesh->element[i].connectivity[5]);
-            }
-        }
+                if (coordID != 0){
+                    fprintf(fp, "%s%7s%s%7s%s%7s%s%7s%s%7d", delimiter, "",
+                                                             delimiter, "",
+                                                             delimiter, "",
+                                                             delimiter, "",
+                                                             delimiter, coordID);
+                }
 
 
-        if ( nasMesh->element[i].elementType == Quadrilateral &&
-                elementSubType == UnknownMeshSubElement) {
-
-            fprintf(fp,"%-8s%s%7d%s%7d%s%7d%s%7d%s%7d%s%7d", "CQUAD4",
-                                                             delimiter, nasMesh->element[i].elementID,
-                                                             delimiter, propertyID,
-                                                             delimiter, nasMesh->element[i].connectivity[0],
-                                                             delimiter, nasMesh->element[i].connectivity[1],
-                                                             delimiter, nasMesh->element[i].connectivity[2],
-                                                             delimiter, nasMesh->element[i].connectivity[3]);
-
-            // Write coordinate id
-            if (coordID != 0){
-                fprintf(fp, "%s%7d", delimiter, coordID);
-            }
-
-            fprintf(fp,"\n");
-
-        }
-
-        if ( nasMesh->element[i].elementType == Quadrilateral_8 &&
-                elementSubType == UnknownMeshSubElement) {
-
-            fprintf(fp,"%-8s%s%7d%s%7d%s%7d%s%7d%s%7d%s%7d%s%7d%s%7d%s%-8s\n", "CQUAD8",
-                                                                         delimiter, nasMesh->element[i].elementID,
-                                                                         delimiter, propertyID,
-                                                                         delimiter, nasMesh->element[i].connectivity[0],
-                                                                         delimiter, nasMesh->element[i].connectivity[1],
-                                                                         delimiter, nasMesh->element[i].connectivity[2],
-                                                                         delimiter, nasMesh->element[i].connectivity[3],
-                                                                         delimiter, nasMesh->element[i].connectivity[4],
-                                                                         delimiter, nasMesh->element[i].connectivity[5],
-                                                                         delimiter, "+CQ");
-
-            fprintf(fp,"%-8s%s%7d%s%7d", "+CQ",
-                                         delimiter, nasMesh->element[i].connectivity[6],
-                                         delimiter, nasMesh->element[i].connectivity[7]);
-
-            if (coordID != 0){
-                fprintf(fp, "%s%7s%s%7s%s%7s%s%7s%s%7d", delimiter, "",
-                                                         delimiter, "",
-                                                         delimiter, "",
-                                                         delimiter, "",
-                                                         delimiter, coordID);
+                fprintf(fp,"\n");
             }
 
 
-            fprintf(fp,"\n");
-        }
+            if ( nasMesh->element[i].elementType == Tetrahedral)   {
+
+                fprintf(fp,"%-8s%s%7d%s%7d%s%7d%s%7d%s%7d%s%7d\n", "CTETRA",
+                                                                   delimiter, nasMesh->element[i].elementID,
+                                                                   delimiter, propertyID,
+                                                                   delimiter, nasMesh->element[i].connectivity[0],
+                                                                   delimiter, nasMesh->element[i].connectivity[1],
+                                                                   delimiter, nasMesh->element[i].connectivity[2],
+                                                                   delimiter, nasMesh->element[i].connectivity[3]);
+            }
+
+            if ( nasMesh->element[i].elementType == Tetrahedral_10)   {
+
+                fprintf(fp,"%-8s%s%7d%s%7d%s%7d%s%7d%s%7d%s%7d%s%7d%s%7d%s%-8s\n", "CTETRA",
+                                                                                  delimiter, nasMesh->element[i].elementID,
+                                                                                  delimiter, propertyID,
+                                                                                  delimiter, nasMesh->element[i].connectivity[0],
+                                                                                  delimiter, nasMesh->element[i].connectivity[1],
+                                                                                  delimiter, nasMesh->element[i].connectivity[2],
+                                                                                  delimiter, nasMesh->element[i].connectivity[3],
+                                                                                  delimiter, nasMesh->element[i].connectivity[4],
+                                                                                  delimiter, nasMesh->element[i].connectivity[5],
+                                                                                  delimiter, "+CT");
+
+                fprintf(fp,"%-8s%s%7d%s%7d%s%7d%s%7d", "+CT",
+                                                         delimiter, nasMesh->element[i].connectivity[6],
+                                                         delimiter, nasMesh->element[i].connectivity[7],
+                                                         delimiter, nasMesh->element[i].connectivity[8],
+                                                         delimiter, nasMesh->element[i].connectivity[9]);
+
+                fprintf(fp,"\n");
+            }
 
 
-        if ( nasMesh->element[i].elementType == Tetrahedral)   {
+            if ( nasMesh->element[i].elementType == Pyramid) {
 
-            fprintf(fp,"%-8s%s%7d%s%7d%s%7d%s%7d%s%7d%s%7d\n", "CTETRA",
-                                                               delimiter, nasMesh->element[i].elementID,
-                                                               delimiter, propertyID,
-                                                               delimiter, nasMesh->element[i].connectivity[0],
-                                                               delimiter, nasMesh->element[i].connectivity[1],
-                                                               delimiter, nasMesh->element[i].connectivity[2],
-                                                               delimiter, nasMesh->element[i].connectivity[3]);
-        }
+                fprintf(fp,"%-8s%s%7d%s%7d%s%7d%s%7d%s%7d%s%7d%s%7d\n", "CPYRAM",
+                                                                        delimiter, nasMesh->element[i].elementID,
+                                                                        delimiter, propertyID,
+                                                                        delimiter, nasMesh->element[i].connectivity[0],
+                                                                        delimiter, nasMesh->element[i].connectivity[1],
+                                                                        delimiter, nasMesh->element[i].connectivity[2],
+                                                                        delimiter, nasMesh->element[i].connectivity[3],
+                                                                        delimiter, nasMesh->element[i].connectivity[4]);
+            }
 
-        if ( nasMesh->element[i].elementType == Tetrahedral_10)   {
+            if ( nasMesh->element[i].elementType == Prism)   {
 
-            fprintf(fp,"%-8s%s%7d%s%7d%s%7d%s%7d%s%7d%s%7d%s%7d%s%7d%s%-8s\n", "CTETRA",
-                                                                              delimiter, nasMesh->element[i].elementID,
-                                                                              delimiter, propertyID,
-                                                                              delimiter, nasMesh->element[i].connectivity[0],
-                                                                              delimiter, nasMesh->element[i].connectivity[1],
-                                                                              delimiter, nasMesh->element[i].connectivity[2],
-                                                                              delimiter, nasMesh->element[i].connectivity[3],
-                                                                              delimiter, nasMesh->element[i].connectivity[4],
-                                                                              delimiter, nasMesh->element[i].connectivity[5],
-                                                                              delimiter, "+CT");
+                fprintf(fp,"%-8s%s%7d%s%7d%s%7d%s%7d%s%7d%s%7d%s%7d%s%7d\n", "CPENTA",
+                                                                             delimiter, nasMesh->element[i].elementID,
+                                                                             delimiter, propertyID,
+                                                                             delimiter, nasMesh->element[i].connectivity[0],
+                                                                             delimiter, nasMesh->element[i].connectivity[1],
+                                                                             delimiter, nasMesh->element[i].connectivity[2],
+                                                                             delimiter, nasMesh->element[i].connectivity[3],
+                                                                             delimiter, nasMesh->element[i].connectivity[4],
+                                                                             delimiter, nasMesh->element[i].connectivity[5]);
 
-            fprintf(fp,"%-8s%s%7d%s%7d%s%7d%s%7d", "+CT",
-                                                     delimiter, nasMesh->element[i].connectivity[6],
-                                                     delimiter, nasMesh->element[i].connectivity[7],
-                                                     delimiter, nasMesh->element[i].connectivity[8],
-                                                     delimiter, nasMesh->element[i].connectivity[9]);
+            }
 
-            fprintf(fp,"\n");
-        }
+            if ( nasMesh->element[i].elementType == Hexahedral) {
 
-
-        if ( nasMesh->element[i].elementType == Pyramid) {
-
-            fprintf(fp,"%-8s%s%7d%s%7d%s%7d%s%7d%s%7d%s%7d%s%7d\n", "CPYRAM",
-                                                                    delimiter, nasMesh->element[i].elementID,
-                                                                    delimiter, propertyID,
-                                                                    delimiter, nasMesh->element[i].connectivity[0],
-                                                                    delimiter, nasMesh->element[i].connectivity[1],
-                                                                    delimiter, nasMesh->element[i].connectivity[2],
-                                                                    delimiter, nasMesh->element[i].connectivity[3],
-                                                                    delimiter, nasMesh->element[i].connectivity[4]);
-        }
-
-        if ( nasMesh->element[i].elementType == Prism)   {
-
-            fprintf(fp,"%-8s%s%7d%s%7d%s%7d%s%7d%s%7d%s%7d%s%7d%s%7d\n", "CPENTA",
-                                                                         delimiter, nasMesh->element[i].elementID,
-                                                                         delimiter, propertyID,
-                                                                         delimiter, nasMesh->element[i].connectivity[0],
-                                                                         delimiter, nasMesh->element[i].connectivity[1],
-                                                                         delimiter, nasMesh->element[i].connectivity[2],
-                                                                         delimiter, nasMesh->element[i].connectivity[3],
-                                                                         delimiter, nasMesh->element[i].connectivity[4],
-                                                                         delimiter, nasMesh->element[i].connectivity[5]);
-
-        }
-
-        if ( nasMesh->element[i].elementType == Hexahedral) {
-
-            fprintf(fp,"%-8s%s%7d%s%7d%s%7d%s%7d%s%7d%s%7d%s%7d%s%7d%s%-8s\n", "CHEXA",
-                                                                               delimiter, nasMesh->element[i].elementID,
-                                                                               delimiter, propertyID,
-                                                                               delimiter, nasMesh->element[i].connectivity[0],
-                                                                               delimiter, nasMesh->element[i].connectivity[1],
-                                                                               delimiter, nasMesh->element[i].connectivity[2],
-                                                                               delimiter, nasMesh->element[i].connectivity[3],
-                                                                               delimiter, nasMesh->element[i].connectivity[4],
-                                                                               delimiter, nasMesh->element[i].connectivity[5],
-                                                                               delimiter, "+CH");
-            fprintf(fp,"%-8s%s%7d%s%7d\n", "+CH",
-                                           delimiter, nasMesh->element[i].connectivity[6],
-                                           delimiter, nasMesh->element[i].connectivity[7]);
+                fprintf(fp,"%-8s%s%7d%s%7d%s%7d%s%7d%s%7d%s%7d%s%7d%s%7d%s%-8s\n", "CHEXA",
+                                                                                   delimiter, nasMesh->element[i].elementID,
+                                                                                   delimiter, propertyID,
+                                                                                   delimiter, nasMesh->element[i].connectivity[0],
+                                                                                   delimiter, nasMesh->element[i].connectivity[1],
+                                                                                   delimiter, nasMesh->element[i].connectivity[2],
+                                                                                   delimiter, nasMesh->element[i].connectivity[3],
+                                                                                   delimiter, nasMesh->element[i].connectivity[4],
+                                                                                   delimiter, nasMesh->element[i].connectivity[5],
+                                                                                   delimiter, "+CH");
+                fprintf(fp,"%-8s%s%7d%s%7d\n", "+CH",
+                                               delimiter, nasMesh->element[i].connectivity[6],
+                                               delimiter, nasMesh->element[i].connectivity[7]);
+            }
         }
     }
 
@@ -6518,7 +6498,6 @@ int mesh_writeNASTRAN(void *aimInfo,
     cleanup:
         if (status != CAPS_SUCCESS) printf("\tPremature exit in mesh_writeNastran, status = %d\n", status);
 
-        EG_free(tempString);
         EG_free(filename);
 
         if (fp != NULL) fclose(fp);
@@ -6531,14 +6510,16 @@ int mesh_writeAstros(void *aimInfo,
                      int asciiFlag, // 0 for binary, anything else for ascii
                      const meshStruct *mesh,
                      feaFileTypeEnum gridFileType,
-                     int numDesignVariable, feaDesignVariableStruct feaDesignVariable[],
+       /*@unused@*/  int numDesignVariable,
+       /*@unused@*/  feaDesignVariableStruct feaDesignVariable[],
                      double scaleFactor) // Scale factor for coordinates
 {
     int status; // Function return status
     FILE *fp = NULL;
     int i, j, gridFields;
     int coordID, propertyID;
-    char *filename = NULL, *delimiter = NULL, *tempString = NULL;
+    size_t stringLength;
+    char *filename = NULL, *delimiter = NULL, tempString[16];
     //char x[20], y[20], z[20];
     char fileExt[] = ".bdf";
 
@@ -6546,12 +6527,18 @@ int mesh_writeAstros(void *aimInfo,
     meshElementSubTypeEnum elementSubType;
 
     // Design variables
-    int foundDesignVar, designIndex;
+    int foundDesignVar; //, designIndex;
     double maxDesignVar = 0.0;
 
     if (mesh == NULL) return CAPS_NULLVALUE;
 
-    printf("\nWriting Astros grid and connectivity file (in large field format) ....\n");
+    if (gridFileType == LargeField) {
+        printf("\nWriting Astros grid and connectivity file (in large field format) ....\n");
+    } else if (gridFileType == FreeField){
+        printf("\nWriting Astros grid and connectivity file (in free field format) ....\n");
+    } else {
+        printf("\nWriting Astros grid and connectivity file ....\n");
+    }
 
     if (asciiFlag == 0) {
         printf("\tBinary output is not currently supported for working with Astros\n");
@@ -6564,13 +6551,10 @@ int mesh_writeAstros(void *aimInfo,
         scaleFactor = 1;
     }
 
-    filename = (char *) EG_alloc((strlen(fname) + 1 + strlen(fileExt)) *sizeof(char));
-    if (filename == NULL) {
-        status = EGADS_MALLOC;
-        goto cleanup;
-    }
+    stringLength = strlen(fname) + strlen(fileExt) + 1;
+    AIM_ALLOC(filename, stringLength, char, aimInfo, status);
 
-    sprintf(filename,"%s%s", fname, fileExt);
+    snprintf(filename,stringLength,"%s%s", fname, fileExt);
 
     fp = aim_fopen(aimInfo, filename, "w");
     if (fp == NULL) {
@@ -6613,38 +6597,20 @@ int mesh_writeAstros(void *aimInfo,
                 fprintf(fp,"%16s", "");
             }
 
-            // This function always has 15 characters
-//            doubleToString_LargeField(mesh->node[i].xyz[0]*scaleFactor, x);
-//            doubleToString_LargeField(mesh->node[i].xyz[1]*scaleFactor, y);
-//            doubleToString_LargeField(mesh->node[i].xyz[2]*scaleFactor, z);
-
-//            fprintf(fp," %s %s%-8s\n", x, y, "*C");
-//            fprintf(fp,"%-8s %s\n", "*C", z);
-
             // x
-            tempString = convert_doubleToString(mesh->node[i].xyz[0]*scaleFactor, 15, 1);
+            status = convert_doubleToString(mesh->node[i].xyz[0]*scaleFactor, 15, 1, tempString);
+            AIM_STATUS(aimInfo, status);
             fprintf(fp," %s", tempString);
-            EG_free(tempString); tempString = NULL;
 
             // y
-            tempString = convert_doubleToString(mesh->node[i].xyz[1]*scaleFactor, 15, 1);
+            status = convert_doubleToString(mesh->node[i].xyz[1]*scaleFactor, 15, 1, tempString);
+            AIM_STATUS(aimInfo, status);
             fprintf(fp," %s%-8s\n", tempString, "*C");
-            EG_free(tempString); tempString = NULL;
 
             // z
-            tempString = convert_doubleToString(mesh->node[i].xyz[2]*scaleFactor, 15, 1);
+            status = convert_doubleToString(mesh->node[i].xyz[2]*scaleFactor, 15, 1, tempString);
+            AIM_STATUS(aimInfo, status);
             fprintf(fp,"%-8s %s\n", "*C", tempString);
-            EG_free(tempString); tempString = NULL;
-
-            /*
-             * This implementation does not guarantee 15 characters because there is no
-             * control over the number of digits in the exponent
-            fprintf(fp," %+14.8e %+14.8e%-8s\n", mesh->node[i].xyz[0]*scaleFactor,
-                                                 mesh->node[i].xyz[1]*scaleFactor,
-                                                 "*C");
-
-            fprintf(fp,"%-8s %+14.8e\n", "*C", mesh->node[i].xyz[2]*scaleFactor);
-             */
         }
 
     } else {
@@ -6653,9 +6619,9 @@ int mesh_writeAstros(void *aimInfo,
 
             fprintf(fp,"%-8s", "GRID");
 
-            tempString = convert_integerToString(mesh->node[i].nodeID  , 7, 1);
+            status = convert_integerToString(mesh->node[i].nodeID  , 7, 1, tempString);
+            AIM_STATUS(aimInfo, status);
             fprintf(fp, "%s%s", delimiter, tempString);
-            EG_free(tempString);
 
             // If the coord ID == 0 leave blank
             if (mesh->node[i].analysisType == MeshStructure) {
@@ -6669,9 +6635,9 @@ int mesh_writeAstros(void *aimInfo,
             }
 
             for (j = 0; j < 3; j++) {
-                tempString = convert_doubleToString(mesh->node[i].xyz[j], gridFields, 1);
+                status = convert_doubleToString(mesh->node[i].xyz[j]*scaleFactor, gridFields, 1, tempString);
+                AIM_STATUS(aimInfo, status);
                 fprintf(fp,"%s%s", delimiter, tempString);
-                EG_free(tempString); tempString = NULL;
             }
 
             fprintf(fp,"\n");
@@ -6705,23 +6671,25 @@ int mesh_writeAstros(void *aimInfo,
         // Check for design minimum area
         foundDesignVar = (int) false;
 
-        for (designIndex = 0; designIndex < numDesignVariable; designIndex++) {
-            for (j = 0; j < feaDesignVariable[designIndex].numPropertyID; j++) {
+        /* NOTE: mdlk - the TMAX field is ignored unless elem linked to global design variables
+            by SHAPE entries which we do not currently use, so this is commented out for now */
+        // for (designIndex = 0; designIndex < numDesignVariable; designIndex++) {
+        //     for (j = 0; j < feaDesignVariable[designIndex].numPropertyID; j++) {
 
-                if (feaDesignVariable[designIndex].propertySetID[j] == propertyID) {
-                    foundDesignVar = (int) true;
+        //         if (feaDesignVariable[designIndex].propertySetID[j] == propertyID) {
+        //             foundDesignVar = (int) true;
 
-                    maxDesignVar = feaDesignVariable[designIndex].upperBound;
+        //             maxDesignVar = feaDesignVariable[designIndex].upperBound;
 
-                    // If 0.0 don't do anything
-                    if (maxDesignVar == 0.0) foundDesignVar = (int) false;
+        //             // If 0.0 don't do anything
+        //             if (maxDesignVar == 0.0) foundDesignVar = (int) false;
 
-                    break;
-                }
-            }
+        //             break;
+        //         }
+        //     }
 
-            if (foundDesignVar == (int) true) break;
-        }
+        //     if (foundDesignVar == (int) true) break;
+        // }
 
         if ( mesh->element[i].elementType == Line &&
                 elementSubType == UnknownMeshSubElement) { // Non-default subtype handled by astros_writeSubElementCard
@@ -6736,10 +6704,9 @@ int mesh_writeAstros(void *aimInfo,
 
             if (foundDesignVar == (int) true) {
 
-                tempString = convert_doubleToString( maxDesignVar, gridFields, 1);
-
+                status = convert_doubleToString( maxDesignVar, gridFields, 1, tempString);
+                AIM_STATUS(aimInfo, status);
                 fprintf(fp, "%s%s", delimiter, tempString);
-                EG_free(tempString); tempString = NULL;
             }
 
             fprintf(fp, "\n");
@@ -6923,16 +6890,13 @@ int mesh_writeAstros(void *aimInfo,
 
     status = CAPS_SUCCESS;
 
-    goto cleanup;
+cleanup:
+    if (status != CAPS_SUCCESS) printf("\tPremature exit in mesh_writeAstros, status = %d\n", status);
 
-    cleanup:
-        if (status != CAPS_SUCCESS) printf("\tPremature exit in mesh_writeAstros, status = %d\n", status);
+    AIM_FREE(filename);
 
-        if (filename != NULL) EG_free(filename);
-
-        if (fp != NULL) fclose(fp);
-        return status;
-
+    if (fp != NULL) fclose(fp);
+    return status;
 }
 
 // Write a mesh contained in the mesh structure in STL format (*.stl)
@@ -6950,6 +6914,7 @@ int mesh_writeSTL(void *aimInfo,
 
     double norm[3] = {0,0,0}, p1[3] = {0,0,0}, p2[3] = {0,0,0}, p3[3] = {0,0,0};
     float temp;
+    size_t stringLength;
     char *filename = NULL;
     char fileExt[] = ".stl";
     char header[80] = "CAPS_STL";
@@ -6996,13 +6961,10 @@ int mesh_writeSTL(void *aimInfo,
         scaleFactor = 1;
     }
 
-    filename = (char *) EG_alloc((strlen(fname) + 1 + strlen(fileExt)) *sizeof(char));
-    if (filename == NULL) {
-        status = EGADS_MALLOC;
-        goto cleanup;
-    }
+    stringLength = strlen(fname) + strlen(fileExt) + 1;
+    AIM_ALLOC(filename, stringLength, char, aimInfo, status);
 
-    sprintf(filename,"%s%s",fname, fileExt);
+    snprintf(filename,stringLength,"%s%s",fname, fileExt);
 
     fp = aim_fopen(aimInfo, filename,"w");
 
@@ -7199,15 +7161,15 @@ int mesh_writeSTL(void *aimInfo,
                                  p3,
                                  norm);
 
-                fprintf(fp,"\tfacet normal %f %f %f\n",norm[0],norm[1],norm[2]);
-                fprintf(fp,"\t\touter loop\n");
+                fprintf(fp," facet normal %2.16e %2.16e %2.16e\n",norm[0],norm[1],norm[2]);
+                fprintf(fp,"  touter loop\n");
 
-                fprintf(fp,"\t\t\tvertex %f %f %f\n",p1[0],p1[1],p1[2]);
-                fprintf(fp,"\t\t\tvertex %f %f %f\n",p2[0],p2[1],p2[2]);
-                fprintf(fp,"\t\t\tvertex %f %f %f\n",p3[0],p3[1],p3[2]);
+                fprintf(fp,"   vertex %2.16e %2.16e %2.16e\n",p1[0],p1[1],p1[2]);
+                fprintf(fp,"   vertex %2.16e %2.16e %2.16e\n",p2[0],p2[1],p2[2]);
+                fprintf(fp,"   vertex %2.16e %2.16e %2.16e\n",p3[0],p3[1],p3[2]);
 
-                fprintf(fp,"\t\tendloop\n");
-                fprintf(fp,"\tendfacet\n");
+                fprintf(fp,"  endloop\n");
+                fprintf(fp," endfacet\n");
             }
 
             if (mesh->element[i].elementType == Quadrilateral) {
@@ -7229,15 +7191,15 @@ int mesh_writeSTL(void *aimInfo,
                                  p3,
                                  norm);
 
-                fprintf(fp,"\tfacet normal %f %f %f\n",norm[0],norm[1],norm[2]);
-                fprintf(fp,"\t\touter loop\n");
+                fprintf(fp," facet normal %2.16e %2.16e %2.16e\n",norm[0],norm[1],norm[2]);
+                fprintf(fp,"  outer loop\n");
 
-                fprintf(fp,"\t\t\tvertex %f %f %f\n",p1[0],p1[1],p1[2]);
-                fprintf(fp,"\t\t\tvertex %f %f %f\n",p2[0],p2[1],p2[2]);
-                fprintf(fp,"\t\t\tvertex %f %f %f\n",p3[0],p3[1],p3[2]);
+                fprintf(fp,"   vertex %2.16e %2.16e %2.16e\n",p1[0],p1[1],p1[2]);
+                fprintf(fp,"   vertex %2.16e %2.16e %2.16e\n",p2[0],p2[1],p2[2]);
+                fprintf(fp,"   vertex %2.16e %2.16e %2.16e\n",p3[0],p3[1],p3[2]);
 
-                fprintf(fp,"\t\tendloop\n");
-                fprintf(fp,"\tendfacet\n");
+                fprintf(fp,"  endloop\n");
+                fprintf(fp," endfacet\n");
 
                 // Second triangle
                 p1[0] = mesh->node[mesh->element[i].connectivity[0]-1].xyz[0]*scaleFactor;
@@ -7257,15 +7219,15 @@ int mesh_writeSTL(void *aimInfo,
                                  p3,
                                  norm);
 
-                fprintf(fp,"\tfacet normal %f %f %f\n",norm[0],norm[1],norm[2]);
-                fprintf(fp,"\t\touter loop\n");
+                fprintf(fp," facet normal %2.16e %2.16e %2.16e\n",norm[0],norm[1],norm[2]);
+                fprintf(fp,"  outer loop\n");
 
-                fprintf(fp,"\t\t\tvertex %f %f %f\n",p1[0],p1[1],p1[2]);
-                fprintf(fp,"\t\t\tvertex %f %f %f\n",p2[0],p2[1],p2[2]);
-                fprintf(fp,"\t\t\tvertex %f %f %f\n",p3[0],p3[1],p3[2]);
+                fprintf(fp,"   vertex %2.16e %2.16e %2.16e\n",p1[0],p1[1],p1[2]);
+                fprintf(fp,"   vertex %2.16e %2.16e %2.16e\n",p2[0],p2[1],p2[2]);
+                fprintf(fp,"   vertex %2.16e %2.16e %2.16e\n",p3[0],p3[1],p3[2]);
 
-                fprintf(fp,"\t\tendloop\n");
-                fprintf(fp,"\tendfacet\n");
+                fprintf(fp,"  endloop\n");
+                fprintf(fp," endfacet\n");
 
             }
         }
@@ -7314,12 +7276,12 @@ int mesh_writeTecplot(void *aimInfo,
         scaleFactor = 1;
     }
 */
-    sprintf(filename,"%s.dat",fname);
+    snprintf(filename,512,"%s.dat",fname);
 
 
     if (mesh->meshQuickRef.useStartIndex == (int) false &&
         mesh->meshQuickRef.useListIndex  == (int) false) {
-        status = mesh_fillQuickRefList( mesh);
+        status = mesh_fillQuickRefList( aimInfo, mesh );
         if (status != CAPS_SUCCESS) goto cleanup;
     }
 
@@ -7481,6 +7443,7 @@ int mesh_writeAirfoil(void *aimInfo,
 
     int firstLineElement = (int) false;
 
+    size_t stringLength;
     char *filename = NULL;
     char fileExt[] = ".af";
 
@@ -7506,10 +7469,10 @@ int mesh_writeAirfoil(void *aimInfo,
         scaleFactor = 1;
     }
 
-    filename = (char *) EG_alloc((strlen(fname) + 1 + strlen(fileExt)) *sizeof(char));
-    if (filename == NULL) return EGADS_MALLOC;
+    stringLength = strlen(fname) + strlen(fileExt) + 1;
+    AIM_ALLOC(filename, stringLength, char, aimInfo, status);
 
-    sprintf(filename,"%s%s",fname, fileExt);
+    snprintf(filename,stringLength,"%s%s",fname, fileExt);
 
     fp = aim_fopen(aimInfo, filename,"w");
 
@@ -7665,6 +7628,7 @@ int mesh_writeFAST(void *aimInfo,
 
     cfdMeshDataStruct *cfdData;
 
+    size_t stringLength;
     char *filename = NULL;
     char fileExt[] = ".msh";
 
@@ -7685,10 +7649,10 @@ int mesh_writeFAST(void *aimInfo,
         scaleFactor = 1;
     }
 
-    filename = (char *) EG_alloc((strlen(fname) + 1 + strlen(fileExt)) *sizeof(char));
-    if (filename == NULL) return EGADS_MALLOC;
+    stringLength = strlen(fname) + strlen(fileExt) + 1;
+    AIM_ALLOC(filename, stringLength, char, aimInfo, status);
 
-    sprintf(filename,"%s%s",fname, fileExt);
+    snprintf(filename,stringLength,"%s%s",fname, fileExt);
 
     fp = aim_fopen(aimInfo, filename,"w");
 
@@ -7701,7 +7665,7 @@ int mesh_writeFAST(void *aimInfo,
     if (mesh->meshQuickRef.useStartIndex == (int) false &&
         mesh->meshQuickRef.useListIndex  == (int) false) {
 
-        status = mesh_fillQuickRefList(mesh);
+        status = mesh_fillQuickRefList( aimInfo, mesh );
         if (status != CAPS_SUCCESS) goto cleanup;
     }
 
@@ -7782,9 +7746,9 @@ int mesh_writeFAST(void *aimInfo,
 
 // Write a mesh contained in the mesh structure in Abaqus mesh format (*_Mesh.inp)
 int mesh_writeAbaqus(void *aimInfo,
-                     char *fname,
+                     const char *fname,
                      int asciiFlag,
-                     meshStruct *mesh,
+                     const meshStruct *mesh,
                      double scaleFactor) // Scale factor for coordinates
 {
 
@@ -7792,6 +7756,7 @@ int mesh_writeAbaqus(void *aimInfo,
 
     int i, j; // Indexing
 
+    size_t stringLength;
     char *filename = NULL;
     char fileExt[] = "_Mesh.inp";
 
@@ -7818,10 +7783,10 @@ int mesh_writeAbaqus(void *aimInfo,
         scaleFactor = 1;
     }
 
-    filename = (char *) EG_alloc((strlen(fname) + 1 + strlen(fileExt)) *sizeof(char));
-    if (filename == NULL) return EGADS_MALLOC;
+    stringLength = strlen(fname) + strlen(fileExt) + 1;
+    AIM_ALLOC(filename, stringLength, char, aimInfo, status);
 
-    sprintf(filename,"%s%s",fname, fileExt);
+    snprintf(filename,stringLength,"%s%s",fname, fileExt);
 
     fp = aim_fopen(aimInfo, filename,"w");
 
@@ -7834,7 +7799,7 @@ int mesh_writeAbaqus(void *aimInfo,
     if (mesh->meshQuickRef.useStartIndex == (int) false &&
         mesh->meshQuickRef.useListIndex  == (int) false) {
 
-        status = mesh_fillQuickRefList(mesh);
+        status = mesh_fillQuickRefList( aimInfo, (meshStruct *)mesh );
         if (status != CAPS_SUCCESS) goto cleanup;
     }
 
@@ -7862,7 +7827,7 @@ int mesh_writeAbaqus(void *aimInfo,
         if ( mesh->element[i].elementType == Line) {
             type = "B21";
         } else if (mesh->element[i].elementType == Triangle) {
-            type = "S3";
+            type = "S3R";
         } else if (mesh->element[i].elementType == Quadrilateral) {
             type = "S4";
         } else if (mesh->element[i].elementType == Tetrahedral) {
@@ -7891,19 +7856,19 @@ int mesh_writeAbaqus(void *aimInfo,
 
     printf("Finished writing Abaqus grid file\n\n");
 
-    cleanup:
-        if (status != CAPS_SUCCESS) printf("Error: Premature exit in mesh_writeAbaqus, status %d\n", status);
+cleanup:
+    if (status != CAPS_SUCCESS) printf("Error: Premature exit in mesh_writeAbaqus, status %d\n", status);
 
-        if (filename != NULL) EG_free(filename);
-        if (fp != NULL) fclose(fp);
+    if (filename != NULL) EG_free(filename);
+    if (fp != NULL) fclose(fp);
 
-        return status;
+    return status;
 }
 
 
 // Extrude a surface mesh a single unit the length of extrusionLength - return a
 // volume mesh, cell volume and left-handness is not checked
-int extrude_SurfaceMesh(double extrusionLength, int extrusionMarker, meshStruct *surfaceMesh, meshStruct *volumeMesh)
+int extrude_SurfaceMesh(void *aimInfo, double extrusionLength, int extrusionMarker, meshStruct *surfaceMesh, meshStruct *volumeMesh)
 {
 
     int status; // Status return
@@ -7931,7 +7896,7 @@ int extrude_SurfaceMesh(double extrusionLength, int extrusionMarker, meshStruct 
     if (surfaceMesh->meshQuickRef.useStartIndex == (int) false &&
         surfaceMesh->meshQuickRef.useListIndex  == (int) false) {
 
-        status = mesh_fillQuickRefList(surfaceMesh);
+        status = mesh_fillQuickRefList( aimInfo, surfaceMesh );
         if (status != CAPS_SUCCESS) goto bail;
     }
 
@@ -8458,7 +8423,7 @@ int mesh_nodeID2Array(const meshStruct *mesh,
 {
     int status; // Function status
 
-    int inode, j, k; // Indexing
+    int inode; // Indexing
 
     int numNodeID = 0;
     int *n2a = NULL;
@@ -8468,10 +8433,8 @@ int mesh_nodeID2Array(const meshStruct *mesh,
     *n2a_out = NULL;
 
     // get the maximum nodeID value from the elements
-    for (j = 0; j < mesh->numElement; j++) {
-        for (k = 0; k < mesh_numMeshConnectivity(mesh->element[j].elementType); k++) {
-            numNodeID = MAX(numNodeID, mesh->element[j].connectivity[k]);
-        }
+    for (inode = 0; inode < mesh->numNode; inode++) {
+        numNodeID = MAX(numNodeID, mesh->node[inode].nodeID);
     }
     numNodeID++; // change to a count rather than ID
 
@@ -8490,19 +8453,64 @@ int mesh_nodeID2Array(const meshStruct *mesh,
     *n2a_out = n2a;
     status = CAPS_SUCCESS;
 
-    cleanup:
-        if (status != CAPS_SUCCESS) {
-            printf("Error: Premature exit in mesh_nodeID2Array, status %d\n", status);
+cleanup:
+    if (status != CAPS_SUCCESS) {
+        printf("Error: Premature exit in mesh_nodeID2Array, status %d\n", status);
+        AIM_FREE(n2a);
+    }
 
-            if (n2a != NULL) EG_free(n2a);
-            n2a = NULL;
-        }
-
-        return status;
+    return status;
 }
 
+
+// Constructs a map that maps from elementID to the mesh->element array index
+int mesh_elementID2Array(const meshStruct *mesh,
+                         int **e2a_out)
+{
+    int status; // Function status
+
+    int ielem; // Indexing
+
+    int numElementID = 0;
+    int *e2a = NULL;
+
+    if (mesh    == NULL) { status = CAPS_NULLVALUE; goto cleanup; }
+    if (e2a_out == NULL) { status = CAPS_NULLVALUE; goto cleanup; }
+    *e2a_out = NULL;
+
+    // get the maximum nodeID value from the elements
+    for (ielem = 0; ielem < mesh->numElement; ielem++) {
+        numElementID = MAX(numElementID, mesh->element[ielem].elementID);
+    }
+    numElementID++; // change to a count rather than ID
+
+    // allocate the output array and initialize the map to -1
+    e2a = (int*)EG_alloc(numElementID*sizeof(int));
+    for (ielem = 0; ielem < numElementID; ielem++) {
+        e2a[ielem] = -1;
+    }
+
+    for (ielem = 0; ielem < mesh->numElement; ielem++) {
+        if (mesh->element[ielem].elementID < 1) continue;
+        // map the elementID to the array mesh->element array index
+        e2a[mesh->element[ielem].elementID] = ielem;
+    }
+
+    *e2a_out = e2a;
+    status = CAPS_SUCCESS;
+
+cleanup:
+    if (status != CAPS_SUCCESS) {
+        printf("Error: Premature exit in mesh_nodeID2Array, status %d\n", status);
+        AIM_FREE(e2a);
+    }
+
+    return status;
+}
+
+
 // Create a new mesh with topology tagged with capsIgnore being removed, if capsIgnore isn't found the mesh is simply copied.
-int mesh_createIgnoreMesh(meshStruct *mesh, meshStruct *meshIgnore) {
+int mesh_createIgnoreMesh(void *aimInfo, meshStruct *mesh, meshStruct *meshIgnore) {
     int status;
 
     int i, j; // Indexing
@@ -8696,7 +8704,7 @@ int mesh_createIgnoreMesh(meshStruct *mesh, meshStruct *meshIgnore) {
         status = mesh_removeUnusedNodes( meshIgnore );
         if (status != CAPS_SUCCESS) goto cleanup;
 
-        status = mesh_fillQuickRefList( meshIgnore );
+        status = mesh_fillQuickRefList( aimInfo, meshIgnore );
         if (status != CAPS_SUCCESS) goto cleanup;
 
 
@@ -8768,8 +8776,8 @@ int mesh_setAnalysisType(meshAnalysisTypeEnum analysisType, meshStruct *mesh) {
         return status;
 }
 
-// Function used by mesh_findGroupElements to determined which nodes match the attribute index
-static int _matchAttrIndex(meshElementStruct *element, void *attrIndex) {
+// Function used by mesh_findGroupElements to determined which elements match the attribute index
+int mesh_matchElementAttrIndex(meshElementStruct *element, void *attrIndex) {
 
     feaMeshDataStruct *feaData;
 
@@ -8819,7 +8827,7 @@ int mesh_findGroupElements(meshStruct *mesh,
 
         // Get elements with matching attribute index
         status = mesh_findElements(
-            mesh, _matchAttrIndex, &attrIndex, &numFound, &foundSet);
+            mesh, mesh_matchElementAttrIndex, &attrIndex, &numFound, &foundSet);
         if (status != CAPS_SUCCESS) goto cleanup;
 
         for (foundIndex = 0; foundIndex < numFound; foundIndex++) {
@@ -8920,6 +8928,23 @@ int mesh_findElements(meshStruct *mesh,
         return status;
 }
 
+
+// Function used to determined if node matches the attribute index
+int mesh_matchNodeAttrIndex(meshNodeStruct *node, void *attrIndex) {
+
+    feaMeshDataStruct *feaData;
+
+    if (node->analysisType == MeshStructure) {
+
+        feaData = (feaMeshDataStruct *) node->analysisData;
+
+        if (feaData->attrIndex == *((int *) attrIndex)) {
+            return (int) true;
+        }
+    }
+    return (int) false;
+}
+
 // Find meshNodeStructs with `isMatch` function
 // Returns array of borrowed pointers
 int mesh_findNodes(meshStruct *mesh,
@@ -9002,7 +9027,7 @@ int mesh_fillDiscr(char *tname, mapAttrToIndexStruct *groupMap,
     // EGADS function returns
     int plen, tlen, qlen;
     int atype, alen;
-    const int    *ptype, *pindex, *tris, *nei, *ints;
+    const int    *ptype, *pindex, *tris, *nei, *tessFaceQuadMap;
     const double *xyz, *uv, *reals;
 
     // Body Tessellation
@@ -9018,7 +9043,7 @@ int mesh_fillDiscr(char *tname, mapAttrToIndexStruct *groupMap,
     int numCAPSGroup = 0, attrIndex = 0, foundAttr = (int) false;
     int *capsGroupList = NULL;
 
-    int numElem, stride, tindex;
+    int numElem, stride, tindex, tq;
 
     // Quading variables
     int quad = (int)false;
@@ -9057,10 +9082,10 @@ int mesh_fillDiscr(char *tname, mapAttrToIndexStruct *groupMap,
         AIM_FREE(faceList);
         AIM_ALLOC(faceList, numFace, int, discr->aInfo, status);
 
-        quad = (int)false;
-        status = EG_attributeRet(tess[ibody], ".tessType", &atype, &alen, &ints, &reals, &string);
-        if (status == EGADS_SUCCESS && atype == ATTRSTRING && strcmp(string, "Quad") == 0)
-          quad = (int)true;
+        // check if the tessellation has a mixture of quad and tri
+        status = EG_attributeRet(tess[ibody], ".mixed",
+                                 &atype, &alen, &tessFaceQuadMap, &reals, &string);
+        AIM_NOTFOUND(discr->aInfo, status);
 
         for (iface = 0; iface < numFace; iface++) {
 
@@ -9135,10 +9160,12 @@ int mesh_fillDiscr(char *tname, mapAttrToIndexStruct *groupMap,
                 AIM_STATUS(discr->aInfo, status);
 
                 // Sum number of elements
-                if (quad == (int)true)
-                    numQuad += tlen/2;
-                else
+                if (tessFaceQuadMap != NULL) {
+                    numQuad += tessFaceQuadMap[iface];
+                    numTri  += tlen - 2*tessFaceQuadMap[iface];
+                } else {
                     numTri  += tlen;
+                }
             }
         }
         if (numFaceFound == 0) continue;
@@ -9184,11 +9211,6 @@ int mesh_fillDiscr(char *tname, mapAttrToIndexStruct *groupMap,
 
             iface = faceList[ifaceFound];
 
-            quad = (int)false;
-            status = EG_attributeRet(tess[ibody], ".tessType", &atype, &alen, &ints, &reals, &string);
-            if (status == EGADS_SUCCESS && atype == ATTRSTRING && strcmp(string, "Quad") == 0)
-              quad = (int)true;
-
             // Get face tessellation
             status = EG_getTessFace(tess[ibody], iface+1, &plen, &xyz, &uv, &ptype, &pindex, &tlen, &tris, &nei);
             if (status != EGADS_SUCCESS) {
@@ -9199,7 +9221,7 @@ int mesh_fillDiscr(char *tname, mapAttrToIndexStruct *groupMap,
             /* construct a continuous vertex index */
             for (i = 0; i < plen; i++ ) {
                 status = EG_localToGlobal(tess[ibody], iface+1, i+1, &gID);
-                if (status != EGADS_SUCCESS) goto cleanup;
+                AIM_STATUS(discr->aInfo, status);
 
                 if (localStitchedID[gID-1] != 0) continue;
 
@@ -9276,18 +9298,27 @@ int mesh_fillDiscr(char *tname, mapAttrToIndexStruct *groupMap,
 
             } else {
 
-                if (quad == (int)true) {
-                    numElem = tlen/2;
-                    stride = 6;
-                    tindex = 2;
-                } else {
-                    numElem = tlen;
-                    stride = 3;
-                    tindex = 1;
+                tq = 0;
+                stride = 0;
+
+                numElem = tlen;
+                // subtract off the number of quad elements
+                if (tessFaceQuadMap != NULL) {
+                    numElem -= tessFaceQuadMap[iface];
                 }
 
                 // Get triangle/quad connectivity in global sense
                 for (i = 0; i < numElem; i++) {
+
+                    // Do we have split quads?
+                    if (tessFaceQuadMap != NULL &&
+                        i >= tlen-2*tessFaceQuadMap[iface] ) {
+                        quad = (int)true;
+                        tindex = 2;
+                    } else {
+                        quad = (int)false;
+                        tindex = 1;
+                    }
 
                     discBody->elems[numQuad+numTri].tIndex      = tindex;
                     discBody->elems[numQuad+numTri].eIndex      = iface+1;
@@ -9296,41 +9327,45 @@ int mesh_fillDiscr(char *tname, mapAttrToIndexStruct *groupMap,
                     discBody->elems[numQuad+numTri].dIndices    = NULL;
 
                     if (quad == (int)true) {
-                        discBody->elems[numQuad+numTri].eTris.tq[0] = i*2 + 1;
-                        discBody->elems[numQuad+numTri].eTris.tq[1] = i*2 + 2;
+                        discBody->elems[numQuad+numTri].eTris.tq[0] = tq + 1;
+                        discBody->elems[numQuad+numTri].eTris.tq[1] = tq + 2;
+                        tq += 2;
                     } else {
                         discBody->elems[numQuad+numTri].eTris.tq[0] = i + 1;
+                        tq += 1;
                     }
 
-                    status = EG_localToGlobal(tess[ibody], iface+1, tris[stride*i + 0], &gID);
+                    status = EG_localToGlobal(tess[ibody], iface+1, tris[stride + 0], &gID);
                     AIM_STATUS(discr->aInfo, status);
 
                     discBody->elems[numQuad+numTri].gIndices[0] = localStitchedID[gID-1];
-                    discBody->elems[numQuad+numTri].gIndices[1] = tris[stride*i + 0];
+                    discBody->elems[numQuad+numTri].gIndices[1] = tris[stride + 0];
 
-                    status = EG_localToGlobal(tess[ibody], iface+1, tris[stride*i + 1], &gID);
+                    status = EG_localToGlobal(tess[ibody], iface+1, tris[stride + 1], &gID);
                     AIM_STATUS(discr->aInfo, status);
 
                     discBody->elems[numQuad+numTri].gIndices[2] = localStitchedID[gID-1];
-                    discBody->elems[numQuad+numTri].gIndices[3] = tris[stride*i + 1];
+                    discBody->elems[numQuad+numTri].gIndices[3] = tris[stride + 1];
 
-                    status = EG_localToGlobal(tess[ibody], iface+1, tris[stride*i + 2], &gID);
+                    status = EG_localToGlobal(tess[ibody], iface+1, tris[stride + 2], &gID);
                     AIM_STATUS(discr->aInfo, status);
 
                     discBody->elems[numQuad+numTri].gIndices[4] = localStitchedID[gID-1];
-                    discBody->elems[numQuad+numTri].gIndices[5] = tris[stride*i + 2];
+                    discBody->elems[numQuad+numTri].gIndices[5] = tris[stride + 2];
 
                     if (quad == (int)true) {
-                        status = EG_localToGlobal(tess[ibody], iface+1, tris[stride*i + 5], &gID);
+                        status = EG_localToGlobal(tess[ibody], iface+1, tris[stride + 5], &gID);
                         AIM_STATUS(discr->aInfo, status);
 
                         discBody->elems[numQuad+numTri].gIndices[6] = localStitchedID[gID-1];
-                        discBody->elems[numQuad+numTri].gIndices[7] = tris[stride*i + 5];
+                        discBody->elems[numQuad+numTri].gIndices[7] = tris[stride + 5];
                     }
 
                     if (quad == (int)true) {
+                        stride += 6;
                         numQuad += 1;
                     } else {
+                        stride += 3;
                         numTri += 1;
                     }
                 }
@@ -9360,3 +9395,310 @@ cleanup:
     return status;
 }
 
+
+// Computes elemental data averaged to grid points
+int mesh_gridAvg(void *aimInfo, const meshStruct *mesh,
+                 const int numElement, int *elementIDs, int rankData,
+                 double *elemData,
+                 double **gridData)
+{
+  int status = CAPS_SUCCESS;
+  int i, j, k;
+
+  int numGridPoints;
+
+  int *numElemAvg = NULL, *n2a=NULL, *e2a=NULL;
+
+  meshElementStruct *element=NULL;
+
+  if (gridData == NULL) return CAPS_NULLVALUE;
+
+  AIM_FREE(*gridData);
+
+  AIM_ALLOC(numElemAvg, mesh->numNode, int, aimInfo, status);
+  AIM_ALLOC(*gridData, mesh->numNode, double, aimInfo, status);
+
+  for (i = 0; i < mesh->numNode; i++) {
+    numElemAvg[i] = 0;
+    for (k = 0; k < rankData; k++)
+      (*gridData)[rankData*i + k] = 0;
+  }
+
+  status = mesh_nodeID2Array(mesh, &n2a);
+  AIM_STATUS(aimInfo, status);
+  AIM_NOTNULL(n2a, aimInfo, status);
+
+  status = mesh_elementID2Array(mesh, &e2a);
+  AIM_STATUS(aimInfo, status);
+  AIM_NOTNULL(e2a, aimInfo, status);
+
+  for (i = 0; i < numElement; i++) {
+    if (elementIDs[i] <= 0) continue;
+
+    element = &mesh->element[e2a[elementIDs[i]]];
+
+    numGridPoints = mesh_numMeshConnectivity(element->elementType);
+
+    for (j = 0; j < numGridPoints; j++) {
+      for (k = 0; k < rankData; k++)
+        (*gridData)[rankData*n2a[element->connectivity[j]]+k] += elemData[rankData*i+k];
+      numElemAvg[n2a[element->connectivity[j]]] += 1;
+    }
+  }
+
+  for (i = 0; i < mesh->numNode; i++) {
+    if (numElemAvg[i] > 0)
+      for (k = 0; k < rankData; k++)
+        (*gridData)[rankData*i+k] /= numElemAvg[i];
+  }
+
+cleanup:
+  AIM_FREE(numElemAvg);
+  AIM_FREE(n2a);
+  AIM_FREE(e2a);
+
+  if (status != CAPS_SUCCESS) AIM_FREE(*gridData);
+  return status;
+}
+
+
+int
+mesh_surfaceMeshData(void *aimInfo, const mapAttrToIndexStruct *groupMap, aimMesh *mesh)
+{
+  int    status = CAPS_SUCCESS;
+
+  typedef int INT_2[2];
+
+  int i, j, ivert, igroup, nPoint, maxID = 0;
+  int nFace, iface;
+  int ptype, pindex, plen, tlen;
+  int nglobal, state, elem[4];
+  int faceID, nElems;
+  int atype, alen, stride;
+  INT_2 *elemGroup = NULL;
+  const double *points, *uv, *reals;
+  const int *ptypes, *pindexs, *tris, *tric, *tessFaceQuadMap=NULL;
+  const char *string = NULL;
+  const char *groupName = NULL;
+  double xyz[3];
+  enum aimMeshElem elementTopo;
+  aimMeshData *meshData = NULL;
+  aimMeshRef *meshRef = NULL;
+  ego body, *faces=NULL;
+
+  if (mesh           == NULL) return CAPS_NULLOBJ;
+  if (mesh->meshRef  == NULL) return CAPS_NULLOBJ;
+  if (mesh->meshRef->fileName  == NULL) return CAPS_NULLOBJ;
+
+  meshRef = mesh->meshRef;
+
+  status = aim_freeMeshData(mesh->meshData);
+  AIM_STATUS(aimInfo, status);
+  AIM_FREE(mesh->meshData);
+
+  AIM_ALLOC(meshData, 1, aimMeshData, aimInfo, status);
+  status = aim_initMeshData(meshData);
+  AIM_STATUS(aimInfo, status);
+
+  meshData->dim = 3;
+
+  for (i = 0; i < meshRef->nmap; i++) {
+    status = EG_statusTessBody(meshRef->maps[i].tess, &body, &state, &nglobal);
+    AIM_STATUS(aimInfo, status);
+    meshData->nVertex += nglobal;
+  }
+
+  AIM_ALLOC(meshData->verts, meshData->nVertex, aimMeshCoords, aimInfo, status);
+
+  // Get vertex values
+  ivert = 0;
+  for (i = 0; i < meshRef->nmap; i++) {
+    status = EG_statusTessBody(meshRef->maps[i].tess, &body, &state, &nglobal);
+    AIM_STATUS(aimInfo, status);
+
+    for (j = 0; j < nglobal; j++) {
+      status = EG_getGlobal(meshRef->maps[i].tess, j + 1, &ptype, &pindex, xyz);
+      AIM_STATUS(aimInfo, status);
+
+      meshData->verts[ivert][0] = xyz[0];
+      meshData->verts[ivert][1] = xyz[1];
+      meshData->verts[ivert][2] = xyz[2];
+      ivert++;
+    }
+  }
+
+#if 0
+  // Get line elements on each edge
+  nPoint = 2;
+  elementTopo = aimLine;
+  ivert = edgeOffset = 0;
+  for (i = 0; i < meshRef->nmap; i++) {
+    status = EG_statusTessBody(meshRef->maps[i].tess, &body, &state, &nglobal);
+    AIM_STATUS(aimInfo, status);
+
+    status = EG_getBodyTopos(body, NULL, EDGE, &nEdge, NULL);
+    AIM_STATUS(aimInfo, status);
+
+    for (iedge = 0; iedge < nEdge; iedge++) {
+      status = EG_getTessEdge(meshRef->maps[i].tess, iedge + 1, &plen, &points, &t);
+      if (status == EGADS_DEGEN) continue;
+      AIM_STATUS(aimInfo, status);
+
+      status = aim_addMeshElemGroup(aimInfo, NULL, iedge+edgeOffset+1, elementTopo, 1, nPoint, meshData);
+      AIM_STATUS(aimInfo, status);
+
+      /* add the element to the group */
+      status = aim_addMeshElem(aimInfo, plen-1, &meshData->elemGroups[iedge+edgeOffset]);
+      AIM_STATUS(aimInfo, status);
+
+      for (j = 0; j < plen-1; j++) {
+        status = EG_localToGlobal(meshRef->maps[i].tess, -(iedge + 1), j + 1, &elem[0]);
+        if (status == EGADS_DEGEN) continue;
+        AIM_STATUS(aimInfo, status);
+
+        status = EG_localToGlobal(meshRef->maps[i].tess, -(iedge + 1), j + 2, &elem[1]);
+        if (status == EGADS_DEGEN) continue;
+        AIM_STATUS(aimInfo, status);
+
+        meshData->elemGroups[iedge+edgeOffset].elements[nPoint*j + 0] = elem[0] + ivert;
+        meshData->elemGroups[iedge+edgeOffset].elements[nPoint*j + 1] = elem[1] + ivert;
+      }
+    }
+
+    edgeOffset += nEdge;
+    ivert += nglobal;
+  }
+#endif
+
+  // Get elements on each face
+
+  for (i = 0; i < groupMap->numAttribute; i++)
+    maxID = MAX(maxID, groupMap->attributeIndex[i]);
+
+  AIM_ALLOC(elemGroup, maxID, INT_2, aimInfo, status);
+  for (i = 0; i < maxID; i++) elemGroup[i][0] = elemGroup[i][1] = -1;
+
+  ivert = 0;
+  for (i = 0; i < meshRef->nmap; i++) {
+
+    // check if the tessellation has a mixture of quad and tri
+    status = EG_attributeRet(meshRef->maps[i].tess, ".mixed",
+                             &atype, &alen, &tessFaceQuadMap, &reals, &string);
+    AIM_NOTFOUND(aimInfo, status);
+
+    status = EG_statusTessBody(meshRef->maps[i].tess, &body, &state, &nglobal);
+    AIM_STATUS(aimInfo, status);
+
+    status = EG_getBodyTopos(body, NULL, FACE, &nFace, &faces);
+    AIM_STATUS(aimInfo, status);
+
+    for (iface = 0; iface < nFace; iface++) {
+
+      // Look for component/boundary ID for attribute mapper based on capsGroup
+      status = retrieve_CAPSGroupAttr(faces[iface], &groupName);
+      if (status != CAPS_SUCCESS) {
+        AIM_ERROR(aimInfo, "No capsGroup attribute found on Face %d, unable to assign a index value",
+                  iface+1);
+        print_AllAttr( aimInfo, faces[iface] );
+        goto cleanup;
+      }
+
+      /*@-nullpass@*/
+      status = get_mapAttrToIndexIndex(groupMap, groupName, &faceID);
+      AIM_STATUS(aimInfo, status, "Unable to retrieve index from capsGroup: %s", groupName);
+      /*@+nullpass@*/
+
+      status = EG_getTessFace(meshRef->maps[i].tess, iface + 1, &plen, &points, &uv, &ptypes, &pindexs,
+                              &tlen, &tris, &tric);
+      AIM_STATUS(aimInfo, status);
+
+      if (tessFaceQuadMap != NULL) {
+        tlen -= 2*tessFaceQuadMap[iface];
+      }
+
+      stride = 0;
+
+      if (tlen > 0) {
+
+        nPoint = 3;
+        elementTopo = aimTri;
+        igroup = elemGroup[faceID-1][0];
+
+        if (igroup < 0) {
+          status = aim_addMeshElemGroup(aimInfo, groupName, faceID, elementTopo, 1, nPoint, meshData);
+          AIM_STATUS(aimInfo, status);
+
+          igroup = elemGroup[faceID-1][0] = meshData->nElemGroup-1;
+        }
+
+        /* add the element to the group */
+        nElems = meshData->elemGroups[igroup].nElems;
+        status = aim_addMeshElem(aimInfo, tlen, &meshData->elemGroups[igroup]);
+        AIM_STATUS(aimInfo, status);
+
+        for (j = 0; j < tlen; j++, stride += 3) {
+          status = EG_localToGlobal(meshRef->maps[i].tess, iface + 1, tris[stride + 0], &elem[0]);
+          AIM_STATUS(aimInfo, status);
+          status = EG_localToGlobal(meshRef->maps[i].tess, iface + 1, tris[stride + 1], &elem[1]);
+          AIM_STATUS(aimInfo, status);
+          status = EG_localToGlobal(meshRef->maps[i].tess, iface + 1, tris[stride + 2], &elem[2]);
+          AIM_STATUS(aimInfo, status);
+
+
+          meshData->elemGroups[igroup].elements[nPoint*(nElems + j) + 0] = elem[0] + ivert;
+          meshData->elemGroups[igroup].elements[nPoint*(nElems + j) + 1] = elem[1] + ivert;
+          meshData->elemGroups[igroup].elements[nPoint*(nElems + j) + 2] = elem[2] + ivert;
+        }
+      }
+
+      if (tessFaceQuadMap != NULL && tessFaceQuadMap[iface] > 0) {
+
+        nPoint = 4;
+        elementTopo = aimQuad;
+        igroup = elemGroup[faceID-1][1];
+
+        if (igroup < 0) {
+          status = aim_addMeshElemGroup(aimInfo, groupName, faceID, elementTopo, 1, nPoint, meshData);
+          AIM_STATUS(aimInfo, status);
+          igroup = elemGroup[faceID-1][1] = meshData->nElemGroup-1;
+        }
+
+        /* add the element to the group */
+        nElems = meshData->elemGroups[igroup].nElems;
+        status = aim_addMeshElem(aimInfo, tessFaceQuadMap[iface], &meshData->elemGroups[igroup]);
+        AIM_STATUS(aimInfo, status);
+
+        for (j = 0; j < tessFaceQuadMap[iface]; j++, stride += 6) {
+          status = EG_localToGlobal(meshRef->maps[i].tess, iface + 1, tris[stride + 0], &elem[0]);
+          AIM_STATUS(aimInfo, status);
+          status = EG_localToGlobal(meshRef->maps[i].tess, iface + 1, tris[stride + 1], &elem[1]);
+          AIM_STATUS(aimInfo, status);
+          status = EG_localToGlobal(meshRef->maps[i].tess, iface + 1, tris[stride + 2], &elem[2]);
+          AIM_STATUS(aimInfo, status);
+          status = EG_localToGlobal(meshRef->maps[i].tess, iface + 1, tris[stride + 5], &elem[3]);
+          AIM_STATUS(aimInfo, status);
+
+
+          meshData->elemGroups[igroup].elements[nPoint*(nElems + j) + 0] = elem[0] + ivert;
+          meshData->elemGroups[igroup].elements[nPoint*(nElems + j) + 1] = elem[1] + ivert;
+          meshData->elemGroups[igroup].elements[nPoint*(nElems + j) + 2] = elem[2] + ivert;
+          meshData->elemGroups[igroup].elements[nPoint*(nElems + j) + 3] = elem[3] + ivert;
+        }
+     }
+    }
+
+    AIM_FREE(faces);
+    ivert += nglobal;
+  }
+
+  mesh->meshData = meshData;
+  meshData = NULL;
+
+  status = CAPS_SUCCESS;
+
+cleanup:
+  AIM_FREE(elemGroup);
+  AIM_FREE(faces);
+
+  return status;
+}

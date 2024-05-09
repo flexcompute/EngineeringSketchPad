@@ -10,7 +10,7 @@
  */
 
 /*
- * Copyright (C) 2011/2022  John F. Dannenhoffer, III (Syracuse University)
+ * Copyright (C) 2011/2024  John F. Dannenhoffer, III (Syracuse University)
  *
  * This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
@@ -76,6 +76,7 @@ udpExecute(ego  emodel,                 /* (in)  Model containing Body */
     ego     context, eref, *ebodys, enodes[4], eedges[8], eloop, eface, etemp[2], exform;
     ego     eshell, *echilds;
     ego     *efaces=NULL, epcurve, epcurve2, esurf, ecurves[4];
+    udp_T   *udps = *Udps;
 
     ROUTINE(udpExecute);
 
@@ -388,6 +389,7 @@ udpExecute(ego  emodel,                 /* (in)  Model containing Body */
     CHECK_STATUS(EG_makeTopology);
     if (*ebody == NULL) goto cleanup;   // needed for splint
 
+    /* tell OpenCSM to put _body, _brch, and Branch Attribites on the Faces */
     status = EG_attributeAdd(*ebody, "__markFaces__", ATTRSTRING, 1, NULL, NULL, "true");
     CHECK_STATUS(EG_attributeAdd);
 

@@ -1,0 +1,29 @@
+# waffleB3.jrnl
+# demonstrates process for generating a .sens file for every
+#     DESPMTR without rebuilding
+# written by John Dannenhoffer
+getFilenames|
+setPmtr|filenum|1|1|1|
+clrVels|tess|
+setVel|xloc|1|1|1|
+build|0|
+setPmtr|filenum|1|1|2|
+clrVels|tess|
+setVel|xloc|2|1|1|
+build|0|
+setPmtr|filenum|1|1|3|
+clrVels|tess|
+setVel|xloc|3|1|1|
+build|0|
+setPmtr|filenum|1|1|4|
+clrVels|tess|
+setVel|xloc|4|1|1|
+build|0|
+setPmtr|filenum|1|1|5|
+clrVels|tess|
+setVel|xloc|5|1|1|
+build|0|
+setPmtr|filenum|1|1|6|
+clrVels|tess|
+setVel|rad|1|1|1|
+build|0|

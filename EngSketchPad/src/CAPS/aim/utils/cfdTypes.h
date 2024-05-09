@@ -157,13 +157,14 @@ typedef struct {
     char *temperature; // temperature unit
 
     // derived units
-    char *density;      // density unit
-    char *pressure;     // pressure unit
-    char *speed;        // speed unit
-    char *acceleration; // acceleration unit
-    char *force;        // force unit
-    char *viscosity;    // viscosity unit
-    char *area;         // area unit
+    char *density;         // density unit
+    char *pressure;        // pressure unit
+    char *speed;           // speed unit
+    char *acceleration;    // acceleration unit
+    char *force;           // force unit
+    char *viscosity;       // viscosity unit
+    char *area;            // area unit
+    char *momentOfInertia; // moment of inertia [mass*length^2]
 
     // coefficient units
     char *Cpressure; // Pressure Coefficient unit

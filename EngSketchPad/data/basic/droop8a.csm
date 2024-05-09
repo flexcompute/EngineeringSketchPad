@@ -1,0 +1,33 @@
+# droop8a
+# written by John Dannenhoffer
+
+UDPRIM    naca      thickness  0.12
+STORE     airfoil
+
+# droop leading and trailing edges down
+RESTORE   airfoil
+UDPARG    droop     xle  0.20   thetale  +20.0   powle  1.0
+UDPARG    droop     xte  0.75   thetate  -10.0   powte  1.0
+UDPRIM    droop
+
+RESTORE   airfoil
+UDPARG    droop     xle  0.20   thetale  +20.0   powle  1.5
+UDPARG    droop     xte  0.75   thetate  -10.0   powte  1.5
+UDPRIM    droop
+
+RESTORE   airfoil
+UDPARG    droop     xle  0.20   thetale  +20.0   powle  2.0
+UDPARG    droop     xte  0.75   thetate  -10.0   powte  2.0
+UDPRIM    droop
+
+RESTORE   airfoil
+UDPARG    droop     xle  0.20   thetale  +20.0   powle  2.5
+UDPARG    droop     xte  0.75   thetate  -10.0   powte  2.5
+UDPRIM    droop
+
+RESTORE   airfoil
+UDPARG    droop     xle  0.20   thetale  +20.0   powle  3.0
+UDPARG    droop     xte  0.75   thetate  -10.0   powte  3.0
+UDPRIM    droop
+
+END

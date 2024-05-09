@@ -1,6 +1,7 @@
 # message
 # written by John Dannenhoffer
 
+# simple messages
 MESSAGE   This_is_a_test_(with_underscores')  .
 MESSAGE   This_is_another_test_(without_underscores')
 
@@ -8,6 +9,25 @@ BOX       0  0  0  4  3  2
 
 MESSAGE   !$Box^volume^=^+val2str(@volume,-3)+$^^^^Box^area^=^+val2str(@area,3)  ^
 
-MESSAGE   Complete
+# write a file
+UDPRIM  naca   thickness 0  camber .04
+SET     myBody    @nbody
+SET     myEdge    1
+
+EVALUATE EDGERNG myBody myEdge
+SET      tbeg     @edata[1]
+SET      tend     @edata[2]
+
+SET      npnt     11
+SET      openType $n            # new file first time through
+PATBEG       ipnt  npnt
+   SET       frac  (ipnt-1)/(npnt-1)
+   EVALUATE  EDGE  myBody myEdge (1-frac)*tbeg+frac*tend
+
+   MESSAGE   !val2str(@edata[2],-6)+$__+val2str(@edata[3],-6)+$__+val2str(@edata[4],-6) _ message.dat !openType
+   SET       openType $a        # append to existing file next time
+PATEND
+
+MESSAGE   message.dat_has_been_written
 
 END

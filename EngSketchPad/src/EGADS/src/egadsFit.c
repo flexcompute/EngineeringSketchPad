@@ -3,7 +3,7 @@
  *
  *             BSpline Fit Functions
  *
- *      Copyright 2011-2022, Massachusetts Institute of Technology
+ *      Copyright 2011-2024, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -298,8 +298,8 @@ int EG_spline2d(ego context, int endc, /*@null@*/ const double **drnd,
   if (context == NULL)               return EGADS_NULLOBJ;
   if (context->magicnumber != MAGIC) return EGADS_NOTOBJ;
   if (context->oclass != CONTXT)     return EGADS_NOTCNTX;
-  if ((imax < 2) || (jmax < 2))      return EGADS_DEGEN;
-  if ((endc < 0) || (endc > 2))      return EGADS_RANGERR;
+  if ((imax <  2) || (jmax < 2))     return EGADS_DEGEN;
+  if ((endc < -3) || (endc > 2))     return EGADS_RANGERR;
   outLevel = EG_outLevel(context);
   
   /* check for degenerate sides */
@@ -484,6 +484,12 @@ int EG_spline2d(ego context, int endc, /*@null@*/ const double **drnd,
                            south, souT, north, norT, imax, jmax, xyz, tol,
                            esurf);
   
+  if (endc < 0) {
+    if (outLevel > 0)
+      printf(" EGADS Error: Periodic U but required rotation (EG_spline2d)!\n");
+    return EGADS_GEOMERR;
+  }
+
   /* rotate to get special treatment as north/south */
   rot = (double *) EG_alloc(3*imax*jmax*sizeof(double));
   if (rot == NULL) return EGADS_MALLOC;

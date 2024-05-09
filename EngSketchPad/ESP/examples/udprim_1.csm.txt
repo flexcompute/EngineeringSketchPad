@@ -1,0 +1,25 @@
+# udprim_1
+# written by John Dannenhoffer
+
+# examples of calling a UDP (user-defined primitive)
+
+# this are all the same airfoils
+UDPRIM    naca      thickness 0.12   camber 0.04
+
+UDPARG    naca      thickness 0.12
+UDPRIM    naca      camber    0.04
+TRANSLATE 0  1/2  0
+
+UDPARG    naca      thickness 0.12
+UDPARG    naca      camber    0.04
+UDPRIM    naca
+TRANSLATE 0  2/2  0
+
+UDPARG    naca      thickness 0.06      # over-written below
+UDPARG    naca      camber    0.04
+UDPARG    naca      thickness 0.12
+UDPRIM    naca
+TRANSLATE 0  3/2  0
+
+END
+

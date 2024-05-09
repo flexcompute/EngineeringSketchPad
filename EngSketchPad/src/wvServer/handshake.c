@@ -225,7 +225,7 @@ handshake_0405(struct libwebsocket_context *context, struct libwebsocket *wsi)
 	char nonce_buf[256];
 	char mask_summing_buf[256 + MAX_WEBSOCKET_04_KEY_LEN + 37];
 	unsigned char hash[20];
-	int n;
+	int n, resplen, remain;
 	char *response;
 	char *p = NULL;
 	char *m = mask_summing_buf;
@@ -275,10 +275,11 @@ handshake_0405(struct libwebsocket_context *context, struct libwebsocket *wsi)
 
 	/* make a buffer big enough for everything */
 
-	response = malloc(256 +
-		wsi->utf8_token[WSI_TOKEN_UPGRADE].token_len +
-		wsi->utf8_token[WSI_TOKEN_CONNECTION].token_len +
-		wsi->utf8_token[WSI_TOKEN_PROTOCOL].token_len);
+        resplen  = 256 +
+                   wsi->utf8_token[WSI_TOKEN_UPGRADE].token_len +
+                   wsi->utf8_token[WSI_TOKEN_CONNECTION].token_len +
+                   wsi->utf8_token[WSI_TOKEN_PROTOCOL].token_len;
+	response = malloc(resplen);
 	if (!response) {
 		fprintf(stderr, "Out of memory for response buffer\n");
 		goto bail;
@@ -298,10 +299,10 @@ handshake_0405(struct libwebsocket_context *context, struct libwebsocket *wsi)
 		/* select the nonce */
 
 		n = libwebsockets_get_random(wsi->protocol->owning_server,
-								      hash, 16);
+                                             hash, 16);
 		if (n != 16) {
 			fprintf(stderr, "Unable to read random device %s %d\n",
-						     SYSTEM_RANDOM_FILEPATH, n);
+				SYSTEM_RANDOM_FILEPATH, n);
 			if (wsi->user_space) free(wsi->user_space);
 			goto bail;
 		}
@@ -341,15 +342,14 @@ handshake_0405(struct libwebsocket_context *context, struct libwebsocket *wsi)
 
 		c = wsi->utf8_token[WSI_TOKEN_EXTENSIONS].token;
 		debug("wsi->utf8_token[WSI_TOKEN_EXTENSIONS].token = %s\n",
-				  wsi->utf8_token[WSI_TOKEN_EXTENSIONS].token);
+                       wsi->utf8_token[WSI_TOKEN_EXTENSIONS].token);
 		wsi->count_active_extensions = 0;
 		n = 0;
 		while (more) {
 
 			if (*c && (*c != ',' && *c != ' ' && *c != '\t')) {
 				ext_name[n] = *c++;
-				if (n < sizeof(ext_name) - 1)
-					n++;
+				if (n < sizeof(ext_name) - 1) n++;
 				continue;
 			}
 			ext_name[n] = '\0';
@@ -357,8 +357,7 @@ handshake_0405(struct libwebsocket_context *context, struct libwebsocket *wsi)
 				more = 0;
 			else {
 				c++;
-				if (!n)
-					continue;
+				if (!n) continue;
 			}
 
 			/* check a client's extension against our support */
@@ -405,7 +404,8 @@ handshake_0405(struct libwebsocket_context *context, struct libwebsocket *wsi)
 				else
 					LWS_CPYAPP(p,
 					 "\x0d\x0aSec-WebSocket-Extensions: ");
-				p += sprintf(p, "%s", ext_name);
+                                remain = resplen - (p - response);
+				p += snprintf(p, remain, "%s", ext_name);
 				ext_count++;
 
 				/* instantiate the extension on this conn */

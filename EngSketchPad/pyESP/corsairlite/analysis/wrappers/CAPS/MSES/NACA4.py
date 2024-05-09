@@ -111,7 +111,7 @@ def msesRunNACA4(camber, maxloc, thickness,
     elif Alpha is not None:
         mses.input.GridAlpha        = Alpha # Default 0.0
     else:
-        mses.input.GridAlpha        = float(math.ceil(180.0 * CL / (4*np.pi**2)))  # Approximating alpha wiht thin airfoil theory, best thought I have
+        mses.input.GridAlpha        = float(math.ceil(180.0 * CL / (4*np.pi**2))) # Approximating alpha wiht thin airfoil theory, best thought I have
     if Coarse_Iteration is not None:
         mses.input.Coarse_Iteration = Coarse_Iteration # Default 20
     if Fine_Iteration is not None:
@@ -134,8 +134,6 @@ def msesRunNACA4(camber, maxloc, thickness,
     outputDerivatives = {}
 
     firstOutput = mses.output.CD # this runs mses
-    # print("CD:", firstOutput)
-    
     if problemObj is None:
         msesOutput = os.path.join(".",runDirectory,"Scratch","msesAIM0","msesOutput.txt")
         f = open(msesOutput,'r')

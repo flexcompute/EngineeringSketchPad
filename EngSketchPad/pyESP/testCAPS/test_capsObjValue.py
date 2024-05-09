@@ -83,8 +83,8 @@ class TestValue(unittest.TestCase):
         value = self.problemObj.makeValue("Altitude2", caps.sType.USER, [0.0, 30000.0, 60000.0]*ft)
 
         limits = [0.0, 80000.0]*ft
-        value.setLimits(limits)
-        limits_out = value.getLimits()
+        value.setLimitsSize(limits)
+        limits_out = value.getLimitsSize()
         self.assertEqual(limits, limits_out)
 
 #=============================================================================-

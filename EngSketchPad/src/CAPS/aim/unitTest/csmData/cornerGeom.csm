@@ -3,113 +3,163 @@
 # Unit meshing reference length
 ATTRIBUTE capsMeshLength   1.0
 
-SET meshingAIMs $pointwiseAIM;aflr4AIM;aflr3AIM;egadsTessAIM;tetgenAIM
+SET meshingAIMs $pointwiseAIM;aflr4AIM;aflr3AIM;egadsTessAIM;tetgenAIM;refineAIM
+
+CFGPMTR single   0
+CFGPMTR box      1
+CFGPMTR cylinder 1
+CFGPMTR cone     1
+CFGPMTR torus    1
+CFGPMTR sphere   1
+CFGPMTR boxhole  1
+CFGPMTR bullet   1
+CFGPMTR nodebody 1
 
 # Box
-BOX 0 -0.5 -0.5  1 1 1 
-    ATTRIBUTE capsAIM meshingAIMs
-    ATTRIBUTE capsIntent $box
-    ATTRIBUTE capsGroup $box
-    ATTRIBUTE capsMesh $box
-    ATTRIBUTE _name $box
-# Set only 2 points on one edge to test edges without a vertex
-SELECT edge 1
-    ATTRIBUTE PW:ConnectorDimension 2
+IFTHEN box EQ 1
+    BOX 0 -0.5 -0.5  1 1 1 
+        ATTRIBUTE capsAIM meshingAIMs
+        ATTRIBUTE capsIntent $box
+        ATTRIBUTE capsGroup $box
+        ATTRIBUTE capsMesh $box
+        ATTRIBUTE _name $box
+    # Set only 2 points on one edge to test edges without a vertex
+    SELECT edge 1
+        ATTRIBUTE PW:ConnectorDimension 2
+ENDIF
 
 # Cylinder
-BOX  2 0 0  1 0 0.5
-REVOLVE 2 0 0 1 0 0 360
-    ATTRIBUTE capsAIM meshingAIMs
-    ATTRIBUTE capsIntent $cylinder
-    ATTRIBUTE capsGroup $cylinder
-    ATTRIBUTE _name $cylinder
+IFTHEN cylinder EQ 1
+    BOX  2 0 0  1 0 0.5
+    REVOLVE 2 0 0 1 0 0 360
+        ATTRIBUTE capsAIM meshingAIMs
+        ATTRIBUTE capsIntent $cylinder
+        ATTRIBUTE capsGroup $cylinder
+        ATTRIBUTE _name $cylinder
+ENDIF
 
 # Cone
-CONE 4 0 0  5 0 0  0.5
-    ATTRIBUTE capsAIM meshingAIMs
-    ATTRIBUTE capsIntent $cone
-    ATTRIBUTE capsGroup $cone
-    ATTRIBUTE _name $cone
+IFTHEN cone EQ 1
+    CONE 4 0 0  5 0 0  0.5
+        ATTRIBUTE capsAIM meshingAIMs
+        ATTRIBUTE capsIntent $cone
+        ATTRIBUTE capsGroup $cone
+        ATTRIBUTE _name $cone
+ENDIF
 
 # Torus
-SKBEG 7 0 0
-   LINSEG 7.25 0 0
-SKEND
-REVOLVE 7 0 0 0 1 0 360
-REVOLVE 6.5 0 0 0 0 1 360
-    ATTRIBUTE capsAIM meshingAIMs
-    ATTRIBUTE capsIntent $torus
-    ATTRIBUTE capsGroup $torus
-    ATTRIBUTE _name $torus
-SELECT edge 1
-    ATTRIBUTE PW:ConnectorDimension 20
-SELECT edge 2
-    ATTRIBUTE PW:ConnectorDimension 20
+IFTHEN torus EQ 1
+    SKBEG 7 0 0
+       LINSEG 7.25 0 0
+    SKEND
+    REVOLVE 7 0 0 0 1 0 360
+    REVOLVE 6.5 0 0 0 0 1 360
+        ATTRIBUTE capsAIM meshingAIMs
+        ATTRIBUTE capsIntent $torus
+        ATTRIBUTE capsGroup $torus
+        ATTRIBUTE _name $torus
+    SELECT edge 1
+        ATTRIBUTE PW:ConnectorDimension 20
+    SELECT edge 2
+        ATTRIBUTE PW:ConnectorDimension 20
+ENDIF
 
 # Sphere
-SPHERE 8.5 0 0  0.5
-    ATTRIBUTE capsAIM meshingAIMs
-    ATTRIBUTE capsIntent $sphere
-    ATTRIBUTE capsGroup $sphere
-    ATTRIBUTE _name $sphere
+IFTHEN sphere EQ 1
+    SPHERE 8.5 0 0  0.5
+        ATTRIBUTE capsAIM meshingAIMs
+        ATTRIBUTE capsIntent $sphere
+        ATTRIBUTE capsGroup $sphere
+        ATTRIBUTE _name $sphere
+ENDIF
 
-# Box with a hold
-BOX 10 -0.5 -0.5  1 1 1
-CYLINDER  10.5 0 -1  10.5 0 1  0.25
-SUBTRACT
-BOX 10.5 0 -1  1 0 2
-SUBTRACT
-SELECT body
-    ATTRIBUTE capsAIM meshingAIMs
-    ATTRIBUTE capsIntent $boxhole
-    ATTRIBUTE _name $boxhole
-SELECT face
-    ATTRIBUTE capsGroup $boxhole
-
+# Box with a hole
+IFTHEN boxhole EQ 1
+    BOX 10 -0.5 -0.5  1 1 1
+    CYLINDER  10.5 0 -1  10.5 0 1  0.25
+    SUBTRACT
+    BOX 10.5 0 -1  1 0 2
+    SUBTRACT
+    SELECT body
+        ATTRIBUTE capsAIM meshingAIMs
+        ATTRIBUTE capsIntent $boxhole
+        ATTRIBUTE _name $boxhole
+    SELECT face
+        ATTRIBUTE capsGroup $boxhole
+ENDIF
 
 # Bullet
-SET fs:radius                0.5
-SET fs:nose:radius           0.25
-SET fs:nose:ogive_radius     10.0
-SKBEG    12   0   0   1
-    SKVAR     xy " 0.00; 0.00;0.00;\
-                   0.07;-0.12;0.02;\
-                   1.00;-0.50;0.09;\
-                   1.00; 0.00;0.00;"
-    SKCON     X   1 
-    SKCON     Y   1
-    SKCON     P   1
-    SKCON     R   1   2  fs:nose:radius
-    SKCON     T   2
-    SKCON     R   2   3  fs:nose:ogive_radius
-    SKCON     V   3   4
-    SKCON     P   4
-    SKCON     L   3   4  fs:radius
-    SKCON     H   4   1
-    ARC       ::x[2]   ::y[2]   0   ::d[2]   xy
-    ARC       ::x[3]   ::y[3]   0   ::d[3]   xy
-    LINSEG    ::x[4]   ::y[4]   0
-    LINSEG    ::x[1]   ::y[1]   0
-SKEND 0
-REVOLVE   0   0   0   1   0   0   360
-SELECT body
-    ATTRIBUTE capsAIM meshingAIMs
-    ATTRIBUTE capsIntent $bullet
-    ATTRIBUTE _name $bullet
-SELECT face
-    ATTRIBUTE capsGroup $bullet
+IFTHEN bullet EQ 1
+    SET fs:radius                0.5
+    SET fs:nose:radius           0.25
+    SET fs:nose:ogive_radius     10.0
+    SKBEG    12   0   0   1
+        SKVAR     xy " 0.00; 0.00;0.00;\
+                       0.07;-0.12;0.02;\
+                       1.00;-0.50;0.09;\
+                       1.00; 0.00;0.00;"
+        SKCON     X   1 
+        SKCON     Y   1
+        SKCON     P   1
+        SKCON     R   1   2  fs:nose:radius
+        SKCON     T   2
+        SKCON     R   2   3  fs:nose:ogive_radius
+        SKCON     V   3   4
+        SKCON     P   4
+        SKCON     L   3   4  fs:radius
+        SKCON     H   4   1
+        ARC       ::x[2]   ::y[2]   0   ::d[2]   xy
+        ARC       ::x[3]   ::y[3]   0   ::d[3]   xy
+        LINSEG    ::x[4]   ::y[4]   0
+        LINSEG    ::x[1]   ::y[1]   0
+    SKEND 0
+    REVOLVE   0   0   0   1   0   0   360
+    SELECT body
+        ATTRIBUTE capsAIM meshingAIMs
+        ATTRIBUTE capsIntent $bullet
+        ATTRIBUTE _name $bullet
+    SELECT face
+        ATTRIBUTE capsGroup $bullet
+ENDIF
 
-# Sphere
-POINT 14.5 0 0  0.5
-    ATTRIBUTE capsAIM $egadsTessAIM
-    ATTRIBUTE capsIntent $nodeBody
-    ATTRIBUTE capsGroup $nodeBody
-    ATTRIBUTE _name $nodeBody
+IFTHEN single EQ 1
+   SET anyOn box+cylinder+cone+torus+sphere+boxhole+bullet
+   IFTHEN anyOn GT 0
+      SET nstack @stack.size
+      PATBEG i nstack
+         STORE shape i
+      PATEND
+   ELSE
+      SET nstack 0
+   ENDIF
+ENDIF
+
+# Nodebody
+IFTHEN nodebody EQ 1
+    IFTHEN single EQ 0
+        POINT 14.5 0 0  0.5
+            ATTRIBUTE capsAIM $egadsTessAIM
+            ATTRIBUTE capsIntent $nodeBody
+            ATTRIBUTE capsGroup $nodeBody
+            ATTRIBUTE _name $nodeBody
+    ENDIF
+    CATBEG $all
+    CATEND
+ENDIF
 
 # Farfield bounding box
 BOX -1 -2 -2  17 4 4
+SELECT face
+    ATTRIBUTE capsGroup $farfield
+    ATTRIBUTE AFLR_GBC $FARFIELD_UG3_GBC
+
+IFTHEN single EQ 1
+   PATBEG i nstack
+      RESTORE shape i
+      SUBTRACT
+   PATEND
+ENDIF
+SELECT body
     ATTRIBUTE capsAIM meshingAIMs
     ATTRIBUTE capsIntent $farfield
-    ATTRIBUTE capsGroup $farfield
     ATTRIBUTE _name $farfield
-    ATTRIBUTE AFLR_GBC $FARFIELD_UG3_GBC

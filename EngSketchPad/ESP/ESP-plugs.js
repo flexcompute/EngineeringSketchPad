@@ -1,7 +1,7 @@
 // ESP-plugs.js implements plugs functions for the Engineering Sketch Pad (ESP)
 // written by John Dannenhoffer
 
-// Copyright (C) 2010/2022  John F. Dannenhoffer, III (Syracuse University)
+// Copyright (C) 2010/2024  John F. Dannenhoffer, III (Syracuse University)
 //
 // This library is free software; you can redistribute it and/or
 //    modify it under the terms of the GNU Lesser General Public
@@ -76,9 +76,22 @@ plugs.launch = function () {
     }
 
     // get name of cloudfile
-    var name = prompt("Enter name of cloudfile");
+    if (wv.filecomp.length > 0) {
+        var defaultText = wv.filecomp;
+        wv.filecomp = "";
+    } else {
+        defaultText = "";
+    }
+    
+    var name = prompt("Enter name of cloudfile (with * to complete)", defaultText);
     if (name === null) {
         alert("A cloudfile name must be given");
+        return;
+    } else if (name.length == 0) {
+        alert("empty filename given");
+        return;
+    } else if (name.endsWith("*") === true) {
+        browserToServer("completeFilename|plugs.launch()|"+name+"|");
         return;
     }
 
@@ -461,6 +474,7 @@ plugs.timMesgCB = function (text) {
         var mesg = "Phase2, pass "+plugs.ipass+" returned unclass="+tokens[3]+", reclass="+tokens[4]+", RMS="+tokens[2];
 
         if        (tokens[5] == 0) {
+            postMessage(mesg);
             postMessage("Phase2 converged");
             plugs.npass = -1;
             button["innerHTML"] =  "ExecutePhase1";

@@ -9,7 +9,7 @@
  */
 
 /*
- * Copyright (C) 2013/2022  John F. Dannenhoffer, III (Syracuse University)
+ * Copyright (C) 2013/2024  John F. Dannenhoffer, III (Syracuse University)
  *
  * This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
@@ -77,6 +77,7 @@ udpExecute(ego  emodel,                 /* (in)  input model */
     double   data[18];
     ego      eref, *ebodysB=NULL, etools, eresult, *echilds;
     void     *modl;
+    udp_T    *udps = *Udps;
 
 #ifdef PRINT_TIMES
     struct rusage  beg_rusage, end_rusage;
@@ -100,8 +101,10 @@ udpExecute(ego  emodel,                 /* (in)  input model */
     *string = NULL;
 
     /* check/process arguments */
-    if (strcmp(OP(0), "SUBTRACT") != 0 && strcmp(OP(0), "UNION") != 0   ) {
-        printf(" udpExecute: op should be SUBTRACT or UNION\n");
+    if (strcmp(OP(0), "SUBTRACT") != 0 &&
+        strcmp(OP(0), "SPLITTER") != 0 &&
+        strcmp(OP(0), "UNION"   ) != 0   ) {
+        printf(" udpExecute: op should be SUBTRACT, UNION, or SPLITTER\n");
         status  = EGADS_RANGERR;
         goto cleanup;
 
@@ -173,10 +176,13 @@ udpExecute(ego  emodel,                 /* (in)  input model */
     getrusage(RUSAGE_SELF, &beg_rusage);
 #endif
     if (strcmp(OP(0), "SUBTRACT") == 0) {
-        status = EG_generalBoolean(ebodys[0], etools, 1, TOLER(0), &eresult);
+        status = EG_generalBoolean(ebodys[0], etools, SUBTRACTION, TOLER(0), &eresult);
+        CHECK_STATUS(EG_generalBoolean);
+    } else if (strcmp(OP(0), "SPLITTER") == 0) {
+        status = EG_generalBoolean(ebodys[0], etools, SPLITTER, TOLER(0), &eresult);
         CHECK_STATUS(EG_generalBoolean);
     } else {
-        status = EG_generalBoolean(ebodys[0], etools, 3, TOLER(0), &eresult);
+        status = EG_generalBoolean(ebodys[0], etools, FUSION, TOLER(0), &eresult);
         CHECK_STATUS(EG_generalBoolean);
     }
 #ifdef PRINT_TIMES

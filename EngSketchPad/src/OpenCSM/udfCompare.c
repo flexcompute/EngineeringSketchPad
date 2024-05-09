@@ -9,7 +9,7 @@
  */
 
 /*
- * Copyright (C) 2013/2022  John F. Dannenhoffer, III (Syracuse University)
+ * Copyright (C) 2013/2024  John F. Dannenhoffer, III (Syracuse University)
  *
  * This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
@@ -89,8 +89,6 @@ static int      printHistogram(FILE *fp, int nhist, double dhist[], int hist[]);
 #define  EPS03     1.0e-03
 #define  MAX(A,B)  (((A) < (B)) ? (B) : (A))
 
-static void *realloc_temp=NULL;              /* used by RALLOC macro */
-
 #define TESS_PARAM_0      0.0250
 #define TESS_PARAM_1      0.0075
 #define TESS_PARAM_2      20.0
@@ -129,6 +127,8 @@ udpExecute(ego  emodel,                 /* (in)  input model */
     edge_TT *edges=NULL;
     face_TT *faces=NULL;
     ego     context, eref, topref, prev, next, *ebodys, etess;
+    void    *realloc_temp = NULL;            /* used by RALLOC macro */
+    udp_T   *udps = *Udps;
 
     int     ihist, nhist=28, hist[28];
     double  dhist[] = {1e-8, 2e-8, 5e-8,

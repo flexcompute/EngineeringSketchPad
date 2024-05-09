@@ -10,6 +10,10 @@ attribute capsAIM $xfoilAIM;tsfoilAIM;msesAIM
 # -----------------------------------------------------------------
 despmtr   thick     0.12      #frac of local chord
 despmtr   camber    0.00      #frac of local chord
+despmtr   chord     1.00      #chord length
+despmtr   alpha     0.00      #geometric angle of attack
+dimension offset    3 1
+despmtr   offset    0.00      #geometric offset
 
 # -----------------------------------------------------------------
 # 1. Create Airfoil using the User Defined Primitive (UDP) naca
@@ -17,3 +21,6 @@ despmtr   camber    0.00      #frac of local chord
 #  > Cross sections are in the X-Y plane and are rotated to the X-Z plane
 # -----------------------------------------------------------------
 udprim    naca      Thickness thick     Camber    camber sharpte 1
+scale chord
+rotatez alpha
+translate offset[1] offset[2] offset[3]

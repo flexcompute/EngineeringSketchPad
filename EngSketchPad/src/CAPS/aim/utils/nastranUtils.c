@@ -37,6 +37,8 @@ static int nastranOP2Reader_Initialized = (int)false;
 
 #ifdef WIN32
 #define strcasecmp  stricmp
+#else
+#include <unistd.h>
 #endif
 
 
@@ -44,9 +46,10 @@ static int nastranOP2Reader_Initialized = (int)false;
 #define PI        3.1415926535897931159979635
 
 
+
 static int _getDesignVariableIDSet(const feaProblemStruct *feaProblem,
-                                   int numDesignVariableNames, 
-                                   char **designVariableNames, 
+                                   int numDesignVariableNames,
+                                   char **designVariableNames,
                                    int *numDesignVariableID,
                                    int **designVariableIDSet) {
     int i, status;
@@ -68,7 +71,7 @@ static int _getDesignVariableIDSet(const feaProblemStruct *feaProblem,
     );
 
     if (status == CAPS_NOTFOUND) {
-        PRINT_WARNING("Only %d of %d design variables found", 
+        PRINT_WARNING("Only %d of %d design variables found",
                       numDesignVariables, numDesignVariableNames);
     }
     else if (status != CAPS_SUCCESS) goto cleanup;
@@ -92,8 +95,8 @@ static int _getDesignVariableIDSet(const feaProblemStruct *feaProblem,
 }
 
 static int _getDesignResponseIDSet(const feaProblemStruct *feaProblem,
-                                   int numDesignResponseNames, 
-                                   char **designResponseNames, 
+                                   int numDesignResponseNames,
+                                   char **designResponseNames,
                                    int *numDesignResponseID,
                                    int **designResponseIDSet) {
     int i, status;
@@ -109,13 +112,13 @@ static int _getDesignResponseIDSet(const feaProblemStruct *feaProblem,
     }
 
     status = fea_findDesignResponsesByNames(
-        feaProblem, 
+        feaProblem,
         numDesignResponseNames, designResponseNames,
         &numDesignResponses, &designResponses
     );
 
     if (status == CAPS_NOTFOUND) {
-        PRINT_WARNING("Only %d of %d design responses found", 
+        PRINT_WARNING("Only %d of %d design responses found",
                       numDesignResponses, numDesignResponseNames);
     }
     else if (status != CAPS_SUCCESS) goto cleanup;
@@ -138,9 +141,10 @@ static int _getDesignResponseIDSet(const feaProblemStruct *feaProblem,
         return status;
 }
 
+
 static int _getEquationResponseIDSet(const feaProblemStruct *feaProblem,
                                      int numEquationResponseNames,
-                                     char **equationResponseNames,
+                                     char *const*equationResponseNames,
                                      int *numEquationResponseID,
                                      int **equationResponseIDSet) {
     int i, status;
@@ -154,15 +158,13 @@ static int _getEquationResponseIDSet(const feaProblemStruct *feaProblem,
         *equationResponseIDSet = NULL;
         return CAPS_SUCCESS;
     }
-
     status = fea_findEquationResponsesByNames(
-        feaProblem, 
+        feaProblem,
         numEquationResponseNames, equationResponseNames,
         &numEquationResponses, &equationResponses
     );
-
     if (status == CAPS_NOTFOUND) {
-        PRINT_WARNING("Only %d of %d design equation responses found", 
+        PRINT_WARNING("Only %d of %d design equation responses found",
                       numEquationResponses, numEquationResponseNames);
     }
     else if (status != CAPS_SUCCESS) goto cleanup;
@@ -210,21 +212,21 @@ int nastran_writeSetCard(FILE *fp, int n, int numSetID, int *setID) {
 
     if (numSetID == 0) {
         PRINT_ERROR("Empty case control set, n = %d", n);
-    }   
+    }
     else if (numSetID == 1) {
         fprintf(fp, "\tSET %d = %d\n", n, setID[0]);
     }
     else {
 
-        buffer = EG_alloc(sizeof(char) * (maxCharPerID * numSetID 
+        buffer = EG_alloc(sizeof(char) * (maxCharPerID * numSetID
                                           + 100 * strlen(continuation) // enough for 100 continuations
-                                          + 1)); 
+                                          + 1));
         if (buffer == NULL) {
             return EGADS_MALLOC;
         }
-        
+
         for (i = 0; i < numSetID-1; i++) {
-            
+
             // dry run, do we pass the 72-char limit ?
             addLength = snprintf(NULL, 0, "%d, ", setID[i]);
 
@@ -251,17 +253,26 @@ int nastran_writeSetCard(FILE *fp, int n, int numSetID, int *setID) {
 
 
 // Write a Nastran element cards not supported by mesh_writeNastran in meshUtils.c
-int nastran_writeSubElementCard(FILE *fp, const meshStruct *feaMesh, int numProperty, const feaPropertyStruct *feaProperty, const feaFileFormatStruct *feaFileFormat) {
+// Elements are ordered by property ID with the property name label above
+int nastran_writeSubElementCard(void *aimInfo,
+                                FILE *fp,
+                                const meshStruct *feaMesh,
+                                int numProperty,
+                                const feaPropertyStruct *feaProperty,
+                                const feaFileFormatStruct *feaFileFormat) {
 
     int status;
 
     int i, j; // Indexing
+    int iprop;
 
     int *mcid;
     double *theta, zoff;
-    
 
-    int found;
+    int gID;
+    meshNodeStruct *nodeA, *nodeB;
+    double vectorX[3];
+
     feaMeshDataStruct *feaData;
 
     if (numProperty > 0 && feaProperty == NULL) return CAPS_NULLVALUE;
@@ -269,202 +280,228 @@ int nastran_writeSubElementCard(FILE *fp, const meshStruct *feaMesh, int numProp
 
     if (feaMesh->meshType == VolumeMesh) return CAPS_SUCCESS;
 
-    for (i = 0; i < feaMesh->numElement; i++) {
+    // loop over elements in order of property ID
+    for (iprop = 0; iprop < numProperty; iprop++) {
 
-        if (feaMesh->element[i].analysisType != MeshStructure) continue;
+        fprintf(fp, "$ Femap Property : %s\n", feaProperty[iprop].name);
 
-        feaData = (feaMeshDataStruct *) feaMesh->element[i].analysisData;
+        // Write all elements for the current property ID
+        for (i = 0; i < feaMesh->numElement; i++) {
 
-        found = (int) false;
-        for (j = 0; j < numProperty; j++) {
-            if (feaData->propertyID == feaProperty[j].propertyID) {
-                found = (int) true;
-                break;
+            if (feaMesh->element[i].analysisType != MeshStructure) continue;
+
+            feaData = (feaMeshDataStruct *) feaMesh->element[i].analysisData;
+
+            // only consider the current property
+            if (feaData->propertyID != feaProperty[iprop].propertyID) continue;
+
+            if (feaData->coordID != 0){
+                mcid = &feaData->coordID;
+                theta = NULL;
+            } else {
+                mcid = NULL;
+                theta = NULL;
             }
-        }
 
-        if (feaData->coordID != 0){
-            mcid = &feaData->coordID;
-            theta = NULL;
-        } else {
-            mcid = NULL;
-            theta = NULL;
-        }
+            zoff = feaProperty[iprop].membraneThickness * feaProperty[iprop].zOffsetRel / 100.0;
 
-        if (found == (int) true) {
-            zoff = feaProperty[j].membraneThickness * feaProperty[j].zOffsetRel / 100.0;
-        } else {
-            zoff = 0.0;
-        }
+            if (feaMesh->element[i].elementType == Node &&
+                feaData->elementSubType == ConcentratedMassElement) {
 
-        if (feaMesh->element[i].elementType == Node &&
-            feaData->elementSubType == ConcentratedMassElement) {
+//                if (found == (int) false) {
+//                    printf("No property information found for element %d of type \"ConcentratedMass\"!", feaMesh->element[i].elementID);
+//                    continue;
+//                }
 
-            if (found == (int) false) {
-                printf("No property information found for element %d of type \"ConcentratedMass\"!", feaMesh->element[i].elementID);
-                continue;
-            }
-            
-            status = nastranCard_conm2(
-                fp,
-                &feaMesh->element[i].elementID, // eid
-                feaMesh->element[i].connectivity, // g
-                &feaData->coordID, // cid
-                &feaProperty[j].mass, // m
-                feaProperty[j].massOffset, // x
-                feaProperty[j].massInertia, // i
-                feaFileFormat->gridFileType
-            );
-            if (status != CAPS_SUCCESS) return status;
-        }
-
-        if (feaMesh->element[i].elementType == Line) {
-
-            if (feaData->elementSubType == BarElement) {
-
-                if (found == (int) false) {
-                    printf("No property information found for element %d of type \"Bar\"!", feaMesh->element[i].elementID);
-                    continue;
-                }
-                
-                status = nastranCard_cbar(
-                    fp, 
+                status = nastranCard_conm2(
+                    fp,
                     &feaMesh->element[i].elementID, // eid
-                    &feaData->propertyID, // pid
                     feaMesh->element[i].connectivity, // g
-                    feaProperty[j].orientationVec, // x
-                    NULL, // g0 
-                    NULL, // pa
-                    NULL, // pb
-                    NULL, // wa
-                    NULL, // wb
-                    feaFileFormat->gridFileType
-                );
-                if (status != CAPS_SUCCESS) return status;
-
-            }
-
-            if (feaData->elementSubType == BeamElement) {
-                printf("Beam elements not supported yet - Sorry !\n");
-                return CAPS_NOTIMPLEMENT;
-            }
-        }
-
-        if ( feaMesh->element[i].elementType == Triangle) {
-
-            if (feaData->elementSubType == ShellElement) {
-
-                if (found == (int) false) {
-                    printf("No property information found for element %d of type \"ShellElement\"!", feaMesh->element[i].elementID);
-                    continue;
-                }
-
-                status = nastranCard_ctria3(
-                    fp, 
-                    &feaMesh->element[i].elementID, // eid
-                    &feaData->propertyID, //pid
-                    feaMesh->element[i].connectivity, // g
-                    theta, // theta
-                    mcid, // mcid
-                    &zoff, // zoffs
-                    NULL, // t
-                    feaFileFormat->gridFileType
-                );
-                if (status != CAPS_SUCCESS) return status;
-            }
-        }
-
-
-        if ( feaMesh->element[i].elementType == Triangle_6) {
-
-            if (feaData->elementSubType == ShellElement) {
-
-                if (found == (int) false) {
-                    printf("No property information found for element %d of type \"ShellElement\"!", feaMesh->element[i].elementID);
-                    continue;
-                }
-
-                status = nastranCard_ctria6(
-                    fp, 
-                    &feaMesh->element[i].elementID, // eid
-                    &feaData->propertyID, //pid
-                    feaMesh->element[i].connectivity, // g
-                    theta, // theta
-                    mcid, // mcid
-                    &zoff, // zoffs
-                    NULL, // t
-                    feaFileFormat->gridFileType
-                );
-                if (status != CAPS_SUCCESS) return status;
-            }
-        }
-
-        if ( feaMesh->element[i].elementType == Quadrilateral) {
-
-            if (feaData->elementSubType == ShearElement) {
-
-                if (found == (int) false) {
-                    printf("No property information found for element %d of type \"ShearElement\"!", feaMesh->element[i].elementID);
-                    continue;
-                }
-
-                status = nastranCard_cshear(
-                    fp, 
-                    &feaMesh->element[i].elementID, // eid
-                    &feaData->propertyID, //pid
-                    feaMesh->element[i].connectivity, // g
-                    feaFileFormat->gridFileType
-                );
-                if (status != CAPS_SUCCESS) return status;
-            }
-
-
-            if (feaData->elementSubType == ShellElement) {
-
-                if (found == (int) false) {
-                    printf("No property information found for element %d of type \"ShellElement\"!", feaMesh->element[i].elementID);
-                    continue;
-                }
-
-                status = nastranCard_cquad4(
-                    fp, 
-                    &feaMesh->element[i].elementID, // eid
-                    &feaData->propertyID, //pid
-                    feaMesh->element[i].connectivity, // g
-                    theta, // theta
-                    mcid, // mcid
-                    &zoff, // zoffs
-                    NULL, // t
+                    &feaData->coordID, // cid
+                    &feaProperty[iprop].mass, // m
+                    feaProperty[iprop].massOffset, // x
+                    feaProperty[iprop].massInertia, // i
                     feaFileFormat->gridFileType);
-                if (status != CAPS_SUCCESS) return status;
+                AIM_STATUS(aimInfo, status);
             }
-        }
 
-        if ( feaMesh->element[i].elementType == Quadrilateral_8) {
+            if (feaMesh->element[i].elementType == Line) {
 
-            if (feaData->elementSubType == ShellElement) {
+                if (feaData->elementSubType == BarElement) {
 
-                if (found == (int) false) {
-                    printf("No property information found for element %d of type \"ShellElement\"!", feaMesh->element[i].elementID);
-                    continue;
+//                    if (found == (int) false) {
+//                        printf("No property information found for element %d of type \"Bar\"!", feaMesh->element[i].elementID);
+//                        continue;
+//                    }
+
+                    gID = feaMesh->element[i].connectivity[0];
+                    nodeA = &feaMesh->node[gID];
+
+                    gID = feaMesh->element[i].connectivity[1];
+                    nodeB = &feaMesh->node[gID];
+
+                    double vec[3];
+
+                    vec[0] = nodeB->xyz[0] - nodeA->xyz[0];
+                    vec[1] = nodeB->xyz[1] - nodeA->xyz[1];
+                    vec[2] = nodeB->xyz[2] - nodeA->xyz[2];
+
+                    double flat_vec[3] = {vec[0], vec[1], 0.0};
+                    double vec_dot;
+                    double flat_norm;
+                    double vec_proj[3];
+
+                    const double pi = 4.0 * atan(1.0);
+                    double ang = -pi/2;
+                    double rot_z[9] = {cos(ang), -sin(ang), 0.,
+                                       sin(ang), cos(ang), 0.,
+                                       1., 0., 0.};
+
+                    vec_dot = dot_DoubleVal(vec, flat_vec);
+                    flat_norm = sqrt(pow(flat_vec[0], 2) + pow(flat_vec[1], 2) + pow(flat_vec[2], 2));
+
+                    for (j = 0; j < 3; j++) {
+                        vec_proj[j] = (vec_dot/flat_norm) * (flat_vec[j]/flat_norm);
+                        vectorX[j] = rot_z[3*j]*vec_proj[j] + rot_z[(3*j)+1]*vec_proj[j] + rot_z[(3*j)+2]*vec_proj[j];
+                    }
+
+                    status = nastranCard_cbar(
+                        fp,
+                        &feaMesh->element[i].elementID, // eid
+                        &feaData->propertyID, // pid
+                        feaMesh->element[i].connectivity, // g
+                        vectorX,
+    //                    feaProperty[j].orientationVec, // x
+                        NULL, // g0
+                        NULL, // pa
+                        NULL, // pb
+                        NULL, // wa
+                        NULL, // wb
+                        feaFileFormat->gridFileType);
+                    AIM_STATUS(aimInfo, status);
                 }
 
-                status = nastranCard_cquad8(
-                    fp, 
-                    &feaMesh->element[i].elementID, // eid
-                    &feaData->propertyID, //pid
-                    feaMesh->element[i].connectivity, // g
-                    theta, // theta
-                    mcid, // mcid
-                    &zoff, // zoffs
-                    NULL, // t
-                    feaFileFormat->gridFileType);
-                if (status != CAPS_SUCCESS) return status;
+                if (feaData->elementSubType == BeamElement) {
+                    printf("Beam elements not supported yet - Sorry !\n");
+                    return CAPS_NOTIMPLEMENT;
+                }
+            }
+
+            if ( feaMesh->element[i].elementType == Triangle) {
+
+                if (feaData->elementSubType == ShellElement) {
+
+//                    if (found == (int) false) {
+//                        printf("No property information found for element %d of type \"ShellElement\"!", feaMesh->element[i].elementID);
+//                        continue;
+//                    }
+
+                    status = nastranCard_ctria3(
+                        fp,
+                        &feaMesh->element[i].elementID, // eid
+                        &feaData->propertyID, //pid
+                        feaMesh->element[i].connectivity, // g
+                        theta, // theta
+                        mcid, // mcid
+                        &zoff, // zoffs
+                        NULL, // t
+                        feaFileFormat->gridFileType);
+                    AIM_STATUS(aimInfo, status);
+                }
+            }
+
+
+            if ( feaMesh->element[i].elementType == Triangle_6) {
+
+                if (feaData->elementSubType == ShellElement) {
+
+//                    if (found == (int) false) {
+//                        printf("No property information found for element %d of type \"ShellElement\"!", feaMesh->element[i].elementID);
+//                        continue;
+//                    }
+
+                    status = nastranCard_ctria6(
+                        fp,
+                        &feaMesh->element[i].elementID, // eid
+                        &feaData->propertyID, //pid
+                        feaMesh->element[i].connectivity, // g
+                        theta, // theta
+                        mcid, // mcid
+                        &zoff, // zoffs
+                        NULL, // t
+                        feaFileFormat->gridFileType);
+                    AIM_STATUS(aimInfo, status);
+                }
+            }
+
+            if ( feaMesh->element[i].elementType == Quadrilateral) {
+
+                if (feaData->elementSubType == ShearElement) {
+
+//                    if (found == (int) false) {
+//                        printf("No property information found for element %d of type \"ShearElement\"!", feaMesh->element[i].elementID);
+//                        continue;
+//                    }
+
+                    status = nastranCard_cshear(
+                        fp,
+                        &feaMesh->element[i].elementID, // eid
+                        &feaData->propertyID, //pid
+                        feaMesh->element[i].connectivity, // g
+                        feaFileFormat->gridFileType);
+                    AIM_STATUS(aimInfo, status);
+                }
+
+
+                if (feaData->elementSubType == ShellElement) {
+
+//                    if (found == (int) false) {
+//                        printf("No property information found for element %d of type \"ShellElement\"!", feaMesh->element[i].elementID);
+//                        continue;
+//                    }
+
+                    status = nastranCard_cquad4(
+                        fp,
+                        &feaMesh->element[i].elementID, // eid
+                        &feaData->propertyID, //pid
+                        feaMesh->element[i].connectivity, // g
+                        theta, // theta
+                        mcid, // mcid
+                        &zoff, // zoffs
+                        NULL, // t
+                        feaFileFormat->gridFileType);
+                    AIM_STATUS(aimInfo, status);
+                }
+            }
+
+            if ( feaMesh->element[i].elementType == Quadrilateral_8) {
+
+                if (feaData->elementSubType == ShellElement) {
+
+//                    if (found == (int) false) {
+//                        printf("No property information found for element %d of type \"ShellElement\"!", feaMesh->element[i].elementID);
+//                        continue;
+//                    }
+
+                    status = nastranCard_cquad8(
+                        fp,
+                        &feaMesh->element[i].elementID, // eid
+                        &feaData->propertyID, //pid
+                        feaMesh->element[i].connectivity, // g
+                        theta, // theta
+                        mcid, // mcid
+                        &zoff, // zoffs
+                        NULL, // t
+                        feaFileFormat->gridFileType);
+                    AIM_STATUS(aimInfo, status);
+                }
             }
         }
     }
 
-    return CAPS_SUCCESS;
+    status = CAPS_SUCCESS;
+cleanup:
+    return status;
 }
 
 // Write a Nastran connections card from a feaConnection structure
@@ -480,7 +517,7 @@ int nastran_writeConnectionCard(FILE *fp, const feaConnectionStruct *feaConnect,
     if (feaConnect->connectionType == Mass) {
 
         status = nastranCard_cmass2(
-            fp, 
+            fp,
             &feaConnect->elementID, // eid
             &feaConnect->mass, // m
             &feaConnect->connectivity[0], // g1
@@ -496,7 +533,7 @@ int nastran_writeConnectionCard(FILE *fp, const feaConnectionStruct *feaConnect,
     if (feaConnect->connectionType == Spring) {
 
         status = nastranCard_celas2(
-            fp, 
+            fp,
             &feaConnect->elementID, // eid
             &feaConnect->stiffnessConst, // k
             &feaConnect->connectivity[0], // g1
@@ -514,7 +551,7 @@ int nastran_writeConnectionCard(FILE *fp, const feaConnectionStruct *feaConnect,
     if (feaConnect->connectionType == Damper) {
 
         status = nastranCard_cdamp2(
-            fp, 
+            fp,
             &feaConnect->elementID, // eid
             &feaConnect->dampingConst, // b
             &feaConnect->connectivity[0], // g1
@@ -530,10 +567,10 @@ int nastran_writeConnectionCard(FILE *fp, const feaConnectionStruct *feaConnect,
     if (feaConnect->connectionType == RigidBody) {
 
         status = nastranCard_rbe2(
-            fp, 
+            fp,
             &feaConnect->elementID, // eid
             &feaConnect->connectivity[0], // gn
-            &feaConnect->dofDependent, // cm 
+            &feaConnect->dofDependent, // cm
             1, &feaConnect->connectivity[1], // gm
             feaFileFormat->gridFileType
         );
@@ -544,15 +581,15 @@ int nastran_writeConnectionCard(FILE *fp, const feaConnectionStruct *feaConnect,
     if (feaConnect->connectionType == RigidBodyInterpolate) {
 
         status = nastranCard_rbe3(
-            fp, 
+            fp,
             &feaConnect->elementID, // eid
             &feaConnect->connectivity[1], // refgrid
-            &feaConnect->dofDependent, // refc 
+            &feaConnect->dofDependent, // refc
             feaConnect->numMaster,
             feaConnect->masterWeighting, // wt
             feaConnect->masterComponent, // c
             feaConnect->masterIDSet, // g
-            0, 
+            0,
             NULL, // gm
             NULL, // cm
             feaFileFormat->gridFileType
@@ -566,18 +603,16 @@ int nastran_writeConnectionCard(FILE *fp, const feaConnectionStruct *feaConnect,
 // Write a Nastran AERO card from a feaAeroRef structure
 int nastran_writeAEROCard(FILE *fp, const feaAeroRefStruct *feaAeroRef, const feaFileFormatStruct *feaFileFormat) {
 
-    double refDensity = 1.0;
-
     if (fp == NULL) return CAPS_IOERR;
     if (feaAeroRef == NULL) return CAPS_NULLVALUE;
     if (feaFileFormat == NULL) return CAPS_NULLVALUE;
 
     return nastranCard_aero(
-        fp, 
+        fp,
         &feaAeroRef->coordSystemID, // acsid
-        NULL, // velocity
+        &feaAeroRef->refVelocity, // velocity
         &feaAeroRef->refChord, // refc
-        &refDensity, // rhoref
+        &feaAeroRef->refDensity, // rhoref
         NULL, // symxz
         NULL, // symxy
         feaFileFormat->fileType
@@ -669,7 +704,7 @@ static inline int _getDivisions(int numDivs, double **divisionsOut) {
     int i;
 
     double *divisions = NULL;
-    
+
     divisions = EG_alloc(numDivs * sizeof(double));
     if (divisions == NULL) return EGADS_MALLOC;
 
@@ -714,7 +749,7 @@ static int _getControlSurfaceBoxIDs(int boxBeginID, int numChordDivs,
                        /*@unused@*/ double *spanDivs,
                                     int hingelineIndex,
                                     int isTrailing, int *numBoxIDsOut, int **boxIDsOut) {
-    
+
     int ichord, ispan, csBoxIndex, boxCount, chordDivIndex;
 
     int boxID, numBoxIDs, *boxIDs = NULL;
@@ -728,13 +763,13 @@ static int _getControlSurfaceBoxIDs(int boxBeginID, int numChordDivs,
     boxCount = 0;
     csBoxIndex = 0;
 
-    for (ichord = 0; ichord < numChordDivs-1; ichord++) {
+    for (ispan = 0; ispan < numSpanDivs-1; ispan++) {
 
-        chordDivIndex = ichord + 1;
+        for (ichord = 0; ichord < numChordDivs-1; ichord++) {
 
-        for (ispan = 0; ispan < numSpanDivs-1; ispan++) {
-            
             boxID = boxBeginID + boxCount++;
+
+            chordDivIndex = ichord + 1;
 
             if (!isTrailing && chordDivIndex <= hingelineIndex) {
                 boxIDs[csBoxIndex++] = boxID;
@@ -753,12 +788,13 @@ static int _getControlSurfaceBoxIDs(int boxBeginID, int numChordDivs,
     return CAPS_SUCCESS;
 }
 
-static int _writeAesurfCard(FILE *fp, 
+
+static int _writeAesurfCard(FILE *fp,
                             const feaAeroStruct *feaAero,
-                            vlmSectionStruct *rootSection, 
-                            vlmSectionStruct *tipSection, 
+                            vlmSectionStruct *rootSection,
+                            vlmSectionStruct *tipSection,
                             const feaFileFormatStruct *feaFileFormat) {
-    
+
     int i, j, status;
 
     int controlID, coordSystemID, aelistID;
@@ -766,6 +802,7 @@ static int _writeAesurfCard(FILE *fp,
     double *chordDivs = NULL, *spanDivs = NULL;
     int *boxIDs = NULL, hingelineDivIndex;
     double xyzHingeVec[3] = {0.0, 0.0, 0.0};
+    double xyzHingeVecNorm[3] = {0.0, 0.0, 0.0};
     double pointA[3] = {0.0, 0.0, 0.0};
     double pointB[3] = {0.0, 0.0, 0.0};
     double pointC[3] = {0.0, 0.0, 0.0};
@@ -775,7 +812,7 @@ static int _writeAesurfCard(FILE *fp,
     vlmControlStruct *controlSurface, *controlSurface2 = NULL;
 
     for (i = 0; i < rootSection->numControl; i++) {
-        
+
         controlSurface = &rootSection->vlmControl[i];
 
         // find matching control surface info on tip section
@@ -790,26 +827,54 @@ static int _writeAesurfCard(FILE *fp,
         }
         if (!found) continue;
 
-        // get hingeline vector
-        for (j = 0; j < 3; j++) {
+//        // get hingeline vector
+//        for (j = 0; j < 3; j++) {
+//            xyzHingeVec[j] = controlSurface2->xyzHinge[j] - controlSurface->xyzHinge[j];
+//        }
+//
+//        controlID = feaAero->surfaceID + i;
+//
+//        // get control surface coordinate system points
+//        pointA[0] = controlSurface->xyzHinge[0];
+//        pointA[1] = controlSurface->xyzHinge[1];
+//        pointA[2] = controlSurface->xyzHinge[2];
+//
+//        pointB[0] = pointA[0];
+//        pointB[1] = pointA[1];
+//        pointB[2] = pointA[2] + 1;
+//
+//        pointC[0] = pointA[0] + 1;
+//        pointC[1] = xyzHingeVec[0]/xyzHingeVec[1] * pointC[0];
+//        pointC[2] = pointA[2] + 0.5;
+
+
+//        printf("X: %f: %f\n", controlSurface2->xyzHinge[0], controlSurface->xyzHinge[0]);
+//        printf("Y: %f: %f\n", controlSurface2->xyzHinge[1], controlSurface->xyzHinge[1]);
+//        printf("Z: %f: %f\n", controlSurface2->xyzHinge[2], controlSurface->xyzHinge[2]);
+
+        // get hingeline vector : only in x-y, assum Z is zero
+        for (j = 0; j < 2; j++) {
             xyzHingeVec[j] = controlSurface2->xyzHinge[j] - controlSurface->xyzHinge[j];
         }
 
-        controlID = feaAero->surfaceID + i;
+        for (j = 0; j < 2; j++) {
+            xyzHingeVecNorm[j] = xyzHingeVec[j] / sqrt(pow(xyzHingeVec[0],2) + pow(xyzHingeVec[1],2) + pow(xyzHingeVec[2],2));
+        }
 
-        // get control surface coordinate system points
+        controlID = feaAero->surfaceID + i;
+        // get control surface coordinate system points, average the z location
         pointA[0] = controlSurface->xyzHinge[0];
         pointA[1] = controlSurface->xyzHinge[1];
-        pointA[2] = controlSurface->xyzHinge[2];
+        pointA[2] = (controlSurface->xyzHinge[2]+controlSurface2->xyzHinge[2])/2;
 
         pointB[0] = pointA[0];
         pointB[1] = pointA[1];
-        pointB[2] = pointA[2] + 1;
+        pointB[2] = pointA[2] + 10.0;
 
-        pointC[0] = pointA[0] + 1;
-        pointC[1] = xyzHingeVec[0]/xyzHingeVec[1] * pointC[0];
-        pointC[2] = pointA[2] + 0.5;
-        
+        pointC[0] = pointA[0] + xyzHingeVecNorm[1]*10;
+        pointC[1] = pointA[1] - xyzHingeVecNorm[0]*10;
+        pointC[2] = pointA[2] + 1.0;
+
         // get chordwise division fractions
         numChordDivs = feaAero->vlmSurface.Nchord + 1;
         status = _getDivisions(numChordDivs, &chordDivs);
@@ -825,9 +890,9 @@ static int _writeAesurfCard(FILE *fp,
             numChordDivs, chordDivs, controlSurface->percentChord, &hingelineDivIndex);
         if (status != CAPS_SUCCESS) goto cleanup;
 
-        status = _getControlSurfaceBoxIDs(feaAero->surfaceID, 
-                                            numChordDivs, chordDivs, 
-                                            numSpanDivs, spanDivs, 
+        status = _getControlSurfaceBoxIDs(feaAero->surfaceID,
+                                            numChordDivs, chordDivs,
+                                            numSpanDivs, spanDivs,
                                             hingelineDivIndex, controlSurface->leOrTe,
                                             &numBoxes, &boxIDs);
         if (status != CAPS_SUCCESS) goto cleanup;
@@ -855,7 +920,7 @@ static int _writeAesurfCard(FILE *fp,
         if (status != CAPS_SUCCESS) goto cleanup;
 
         status = nastranCard_aesurf(
-            fp, 
+            fp,
             &controlID, // id, ignored
             controlSurface->name, // label
             &coordSystemID, // cid
@@ -873,6 +938,19 @@ static int _writeAesurfCard(FILE *fp,
             feaFileFormat->fileType
         );
         if (status != CAPS_SUCCESS) goto cleanup;
+
+        if (chordDivs != NULL) {
+            EG_free(chordDivs);
+            chordDivs = NULL;
+        }
+        if (spanDivs != NULL) {
+            EG_free(spanDivs);
+            spanDivs = NULL;
+        }
+        if (boxIDs != NULL) {
+            EG_free(boxIDs);
+            boxIDs = NULL;
+        }
     }
 
     status = CAPS_SUCCESS;
@@ -1069,7 +1147,7 @@ int nastran_writeConstraintCard(FILE *fp, const feaConstraintStruct *feaConstrai
         for (i = 0; i < feaConstraint->numGridID; i++) {
 
             status = nastranCard_spc(
-                fp, 
+                fp,
                 &feaConstraint->constraintID, // sid
                 1, // currently always 1 single tuple of Gi Ci Di
                 &feaConstraint->gridIDSet[i], // g
@@ -1086,7 +1164,7 @@ int nastran_writeConstraintCard(FILE *fp, const feaConstraintStruct *feaConstrai
         for (i = 0; i < feaConstraint->numGridID; i++) {
 
             status = nastranCard_spc1(
-                fp, 
+                fp,
                 &feaConstraint->constraintID, // sid
                 &feaConstraint->dofConstraint, // c
                 1, // currently always 1 single Gi value
@@ -1145,68 +1223,184 @@ int nastran_writeSupportCard(FILE *fp, const feaSupportStruct *feaSupport, const
 int nastran_writeMaterialCard(FILE *fp, const feaMaterialStruct *feaMaterial, const feaFileFormatStruct *feaFileFormat) {
 
     double strainAllowable = 1.0;
+    int status = 0;
+
     const double *g1z = NULL, *g2z = NULL, *xt = NULL, *xc = NULL;
     const double *yt = NULL, *yc = NULL, *s = NULL, *strn = NULL;
-    const double *g = NULL;
+    const double *g = NULL, *a = NULL, *tref = NULL, *ge = NULL;
+
+    const double *cs=NULL, *ec=NULL, *gc=NULL;
+    const double *alpha0=NULL, *sb=NULL, *ef1=NULL;
+    const double *nuf12=NULL, *msmf=NULL;
+    const double *pnpt=NULL, *pnpc=NULL;
+    const char   *ft=NULL;
+    const double *nb=NULL, *e3=NULL;
+    const double *nu23=NULL, *nu31=NULL;
+    const double *e1rsf=NULL, *e2rsf=NULL;
+    const double *g12rsf=NULL, *g1zrsf=NULL, *g2zrsf=NULL;
+    const int    *te1rsf=NULL, *te2rsf=NULL;
+    const int    *tg12rsf=NULL, *tg1zrsf=NULL, *tg2zrsf=NULL;
 
     if (fp == NULL) return CAPS_IOERR;
     if (feaMaterial == NULL) return CAPS_NULLVALUE;
     if (feaFileFormat == NULL) return CAPS_NULLVALUE;
 
+    if (feaMaterial->thermalExpCoeff != 0.0) {
+        a = &feaMaterial->thermalExpCoeff;
+    }
+    if (feaMaterial->temperatureRef != 0.0) {
+        tref = &feaMaterial->temperatureRef;
+    }
+    if (feaMaterial->dampingCoeff != 0.0) {
+        ge = &feaMaterial->dampingCoeff;
+    }
+
     // Isotropic
     if (feaMaterial->materialType == Isotropic) {
 
-        return nastranCard_mat1(
+        status = nastranCard_mat1(
             fp,
             &feaMaterial->materialID, // mid
             &feaMaterial->youngModulus, // e
             g, // g
             &feaMaterial->poissonRatio, // nu
             &feaMaterial->density, // rho
-            &feaMaterial->thermalExpCoeff, // a
-            &feaMaterial->temperatureRef, // tref
-            &feaMaterial->dampingCoeff, // ge
+            a, // a
+            tref, // tref
+            ge, // ge
             &feaMaterial->tensionAllow, // st
             &feaMaterial->compressAllow, // sc
             &feaMaterial->shearAllow, // ss
             NULL, // mcsid
             feaFileFormat->fileType
         );
+        if (status != CAPS_SUCCESS) return status;
+
+        // thermal properties
+        if (feaMaterial->kappa != 0.0) {
+            status = nastranCard_mat4(fp,
+                &feaMaterial->materialID, // mid, shifted for pyTACS to read
+                &feaMaterial->kappa, // k
+                &feaMaterial->specificHeat, // cp
+                &feaMaterial->density, // rho
+                NULL, // H
+                NULL, // HGEN
+                feaFileFormat->fileType);
+            if (status != CAPS_SUCCESS) return status;
+        }
+
     }
 
     // Orthotropic
     if (feaMaterial->materialType == Orthotropic) {
 
-        if (feaMaterial->shearModulusTrans1Z != 0) 
+        // thermal properties
+        if (feaMaterial->K[0] != 0.0 ||
+            feaMaterial->K[1] != 0.0 ||
+            feaMaterial->K[2] != 0.0 ||
+            feaMaterial->K[3] != 0.0 ||
+            feaMaterial->K[4] != 0.0 ||
+            feaMaterial->K[5] != 0.0) {
+            status = nastranCard_mat5(fp,
+                &feaMaterial->materialID,
+                feaMaterial->K, // K
+                &feaMaterial->specificHeat, // cp
+                &feaMaterial->density, // rho
+                NULL, // HGEN
+                feaFileFormat->fileType);
+            if (status != CAPS_SUCCESS) return status;
+        }
+
+        if (feaMaterial->shearModulusTrans1Z != 0)
             g1z = &feaMaterial->shearModulusTrans1Z;
 
-        if (feaMaterial->shearModulusTrans2Z != 0) 
+        if (feaMaterial->shearModulusTrans2Z != 0)
             g2z = &feaMaterial->shearModulusTrans2Z;
 
-        if (feaMaterial->tensionAllow != 0) 
+        if (feaMaterial->tensionAllow != 0)
             xt = &feaMaterial->tensionAllow;
 
-        if (feaMaterial->compressAllow != 0) 
+        if (feaMaterial->compressAllow != 0)
             xc = &feaMaterial->compressAllow;
 
-        if (feaMaterial->tensionAllowLateral != 0) 
+        if (feaMaterial->tensionAllowLateral != 0)
             yt = &feaMaterial->tensionAllowLateral;
 
-        if (feaMaterial->compressAllowLateral != 0) 
+        if (feaMaterial->compressAllowLateral != 0)
             yc = &feaMaterial->compressAllowLateral;
 
-        if (feaMaterial->shearAllow != 0) 
+        if (feaMaterial->shearAllow != 0)
             s = &feaMaterial->shearAllow;
 
-        if (feaMaterial->allowType != 0) 
+        if (feaMaterial->allowType != 0)
             strn = &strainAllowable;
+
+        if (feaMaterial->honeycombCellSize >= 0)
+            cs = &feaMaterial->honeycombCellSize;
+
+        if (feaMaterial->honeycombYoungModulus >= 0)
+            ec = &feaMaterial->honeycombYoungModulus;
+
+        if (feaMaterial->honeycombShearModulus >= 0)
+            gc = &feaMaterial->honeycombShearModulus;
+
+        if (feaMaterial->fractureAngle > 0)
+            alpha0 = &feaMaterial->fractureAngle;
+
+        if (feaMaterial->interlaminarShearAllow >= 0)
+            sb = &feaMaterial->interlaminarShearAllow;
+
+        if (feaMaterial->fiberYoungModulus > 0)
+            ef1 = &feaMaterial->fiberYoungModulus;
+
+        if (feaMaterial->fiberPoissonRatio >= 0)
+            nuf12 = &feaMaterial->fiberPoissonRatio;
+
+        if (feaMaterial->meanStressFactor >= 0)
+            msmf = &feaMaterial->meanStressFactor;
+
+        if (feaMaterial->transTensionSlope >= 0)
+            pnpt = &feaMaterial->transTensionSlope;
+
+        if (feaMaterial->transCompressionSlope >= 0)
+            pnpc = &feaMaterial->transCompressionSlope;
+
+        if (feaMaterial->compositeFailureTheory != NULL)
+            ft = feaMaterial->compositeFailureTheory;
+
+        if (feaMaterial->interlaminarNormalStressAllow >= 0)
+            nb = &feaMaterial->interlaminarNormalStressAllow;
+
+        if (feaMaterial->youngModulusThick >= 0)
+            e3 = &feaMaterial->youngModulusThick;
+
+        if (feaMaterial->poissonRatio23 != 0)
+            nu23 = &feaMaterial->poissonRatio23;
+
+        if (feaMaterial->poissonRatio31 != 0)
+            nu31 = &feaMaterial->poissonRatio31;
+
+        if (feaMaterial->youngModulusFactor >= 0)
+            e1rsf = &feaMaterial->youngModulusFactor;
+
+        if (feaMaterial->youngModulusLateralFactor >= 0)
+            e2rsf = &feaMaterial->youngModulusLateralFactor;
+
+        if (feaMaterial->shearModulusFactor >= 0)
+            g12rsf = &feaMaterial->shearModulusFactor;
+
+        if (feaMaterial->shearModulusTrans1ZFactor >= 0)
+            g1zrsf = &feaMaterial->shearModulusTrans1ZFactor;
+
+        if (feaMaterial->shearModulusTrans2ZFactor >= 0)
+            g2zrsf = &feaMaterial->shearModulusTrans2ZFactor;
 
         return nastranCard_mat8(
             fp,
             &feaMaterial->materialID, // mid
             &feaMaterial->youngModulus, // e1
             &feaMaterial->youngModulusLateral, // e2
-            &feaMaterial->poissonRatio, // nu
+            &feaMaterial->poissonRatio, // nu12
             &feaMaterial->shearModulus, // g12
             g1z, // g1z
             g2z, // g2z
@@ -1222,6 +1416,49 @@ int nastran_writeMaterialCard(FILE *fp, const feaMaterialStruct *feaMaterial, co
             &feaMaterial->dampingCoeff, // ge
             NULL, // f12
             strn, // strn
+            cs, ec, gc,
+            alpha0, sb, ef1,
+            nuf12, msmf,
+            pnpt, pnpc,
+            ft,
+            nb, e3,
+            nu23, nu31,
+            e1rsf, e2rsf,
+            g12rsf, g1zrsf, g2zrsf,
+            te1rsf, te2rsf,
+            tg12rsf, tg1zrsf, tg2zrsf,
+            feaFileFormat->fileType
+        );
+    }
+
+    // Anisothotropic
+    if (feaMaterial->materialType == Anisothotropic) {
+
+        return nastranCard_mat2(
+            fp,
+            &feaMaterial->materialID, // mid
+            &feaMaterial->gmat[0], // g11
+            &feaMaterial->gmat[1], // g12
+            &feaMaterial->gmat[2], // g13
+            &feaMaterial->gmat[3], // g22
+            &feaMaterial->gmat[4], // g23
+            &feaMaterial->gmat[5], // g33
+            &feaMaterial->density, // rho
+            NULL, // a1
+            NULL, // a2
+            NULL, // a3
+            NULL, // &feaMaterial->temperatureRef, // tref
+            NULL, // &feaMaterial->dampingCoeff, // ge
+            NULL, // st
+            NULL, // sc
+            NULL, // ss
+            NULL, // mcsid
+            NULL, // ge11
+            NULL, // ge12
+            NULL, // ge13
+            NULL, // ge22
+            NULL, // ge23
+            NULL, // ge33
             feaFileFormat->fileType
         );
     }
@@ -1244,6 +1481,8 @@ int nastran_writePropertyCard(FILE *fp, const feaPropertyStruct *feaProperty, co
     if (fp == NULL) return CAPS_IOERR;
     if (feaProperty == NULL) return CAPS_NULLVALUE;
     if (feaFileFormat == NULL) return CAPS_NULLVALUE;
+
+    fprintf(fp, "$ Femap Property  : %s\n", feaProperty->name);
 
     //          1D Elements        //
 
@@ -1309,7 +1548,7 @@ int nastran_writePropertyCard(FILE *fp, const feaPropertyStruct *feaProperty, co
         if (feaProperty->materialBendingID != 0) {
             mid2 = &feaProperty->materialBendingID;
             i12t3 = &feaProperty->bendingInertiaRatio;
-        } 
+        }
 
         if (feaProperty->materialShearID != 0) {
             mid3 = &feaProperty->materialShearID;
@@ -1319,7 +1558,7 @@ int nastran_writePropertyCard(FILE *fp, const feaPropertyStruct *feaProperty, co
         if (feaProperty->massPerArea != 0) {
             nsm = &feaProperty->massPerArea;
         }
-        
+
         return nastranCard_pshell(
             fp,
             &feaProperty->propertyID, // pid
@@ -1435,7 +1674,7 @@ int nastran_writeLoadADDCard(FILE *fp, int loadID, int numSetID, int loadSetID[]
         fp,
         &loadID,
         &overallScale,
-        numSetID, 
+        numSetID,
         loadScaleFactors,
         loadSetID,
         feaFileFormat->fileType
@@ -1582,8 +1821,10 @@ int nastran_writeLoadCard(FILE *fp, const feaLoadStruct *feaLoad, const feaFileF
             if (status != CAPS_SUCCESS) return status;
         }
     }
-    // Thermal load at a grid point
-    if (feaLoad->loadType ==  Thermal) {
+
+    // Default Thermal load at all unspecified grid point
+    if (feaLoad->loadType == Thermal ||
+        feaLoad->loadType == ThermalExternal) {
 
         status = nastranCard_tempd(
             fp,
@@ -1592,6 +1833,10 @@ int nastran_writeLoadCard(FILE *fp, const feaLoadStruct *feaLoad, const feaFileF
             feaFileFormat->fileType
         );
         if (status != CAPS_SUCCESS) return status;
+    }
+
+    // Thermal load at a grid point
+    if (feaLoad->loadType == Thermal) {
 
         for (i = 0; i < feaLoad->numGridID; i++) {
 
@@ -1606,20 +1851,30 @@ int nastran_writeLoadCard(FILE *fp, const feaLoadStruct *feaLoad, const feaFileF
         }
     }
 
+    // Thermal load distributed at grid coordinates
+    if (feaLoad->loadType == ThermalExternal) {
+
+        status = nastranCard_temp(
+            fp,
+            &feaLoad->loadID, // sid
+            feaLoad->numGridID, feaLoad->gridIDSet, // g
+            feaLoad->temperatureMultiDistribute, // t
+            feaFileFormat->fileType
+        );
+        if (status != CAPS_SUCCESS) return status;
+    }
+
     return CAPS_SUCCESS;
 }
 
 // Write a Nastran Analysis card from a feaAnalysis structure
 int nastran_writeAnalysisCard(FILE *fp,
-                              const feaAnalysisStruct *feaAnalysis,
+                              feaAnalysisStruct *feaAnalysis,
                               const feaFileFormatStruct *feaFileFormat) {
 
     int status;
 
     int i; // Indexing
-    int numVel = 23;
-    double velocity, dv, vmin, vmax, velocityArray[23];
-
     int analysisID, densityID, machID, velocityID;
 
     double *mach = NULL;
@@ -1634,7 +1889,7 @@ int nastran_writeAnalysisCard(FILE *fp,
     if (feaFileFormat == NULL) return CAPS_NULLVALUE;
 
     // Eigenvalue
-    if (feaAnalysis->analysisType == Modal || feaAnalysis->analysisType == AeroelasticFlutter) {
+    if (feaAnalysis->analysisType == Modal || feaAnalysis->analysisType == AeroelasticFlutter || feaAnalysis->analysisType == Gust ) {
 
         if (feaAnalysis->extractionMethod != NULL &&
             strcasecmp(feaAnalysis->extractionMethod, "Lanczos") == 0) {
@@ -1648,7 +1903,7 @@ int nastran_writeAnalysisCard(FILE *fp,
                 NULL, // msglvl
                 NULL, // maxset
                 NULL, // shfscl
-                feaAnalysis->eigenNormaliztion,
+                feaAnalysis->eigenNormalization,
                 feaFileFormat->fileType
             );
             if (status != CAPS_SUCCESS) return status;
@@ -1663,9 +1918,9 @@ int nastran_writeAnalysisCard(FILE *fp,
                 &feaAnalysis->frequencyRange[1], // v2
                 &feaAnalysis->numEstEigenvalue, // ne
                 &feaAnalysis->numDesiredEigenvalue, // nd
-                feaAnalysis->eigenNormaliztion, // norm
-                &feaAnalysis->gridNormaliztion, // g
-                &feaAnalysis->componentNormaliztion, //c 
+                feaAnalysis->eigenNormalization, // norm
+                &feaAnalysis->gridNormalization, // g
+                &feaAnalysis->componentNormalization, //c
                 feaFileFormat->fileType
             );
             if (status != CAPS_SUCCESS) return status;
@@ -1687,7 +1942,7 @@ int nastran_writeAnalysisCard(FILE *fp,
             AIM_FREE(paramLabels);
             return EGADS_MALLOC;
         }
-        
+
         paramIndex = 0;
 
         // Rigid Constraints
@@ -1712,7 +1967,7 @@ int nastran_writeAnalysisCard(FILE *fp,
             &feaAnalysis->analysisID, // id
             mach, // mach
             &feaAnalysis->dynamicPressure, // q
-            numParams, 
+            numParams,
             paramLabels, // label
             paramMags, // ux
             feaFileFormat->fileType
@@ -1762,45 +2017,116 @@ int nastran_writeAnalysisCard(FILE *fp,
 
         fprintf(fp,"$ DENSITY\n");
         status = nastranCard_flfact(
-            fp, 
-            &densityID, 
-            1, &feaAnalysis->density, 
+            fp,
+            &densityID,
+            1, &feaAnalysis->density,
             feaFileFormat->fileType
         );
         if (status != CAPS_SUCCESS) return status;
 
         fprintf(fp,"$ MACH\n");
         status = nastranCard_flfact(
-            fp, 
-            &machID, 
-            feaAnalysis->numMachNumber, feaAnalysis->machNumber, 
+            fp,
+            &machID,
+            feaAnalysis->numMachNumber, feaAnalysis->machNumber,
             feaFileFormat->fileType
         );
         if (status != CAPS_SUCCESS) return status;
 
         fprintf(fp,"$ DYANMIC PRESSURE=%f\n", feaAnalysis->dynamicPressure);
 
-        velocity = sqrt(2*feaAnalysis->dynamicPressure/feaAnalysis->density);
-        vmin = velocity / 2.0;
-        vmax = 2 * velocity;
-        dv = (vmax - vmin) / (double) (numVel-3);
+        // Setup the default flutter velocities  if not specified
+        status = fea_defaultFlutterVelocity(feaAnalysis);
+        if (status != CAPS_SUCCESS) return status;
 
-        for (i = 0; i < numVel-2; i++) {
-            velocityArray[i+1] = vmin + (double) i * dv;
+        if (feaAnalysis->visualFlutter == (int) true) {
+            for ( i = 0; i < feaAnalysis->numFlutterVel; i++) {
+                feaAnalysis->flutterVel[i] = feaAnalysis->flutterVel[i] * -1;
+            }
         }
 
-        velocityArray[0] = velocity/10;
-        velocityArray[numVel-1] = velocity*10;
-
         fprintf(fp,"$ VELOCITY\n");
-        status = nastranCard_flfact(
-            fp, 
-            &velocityID, 
-            numVel, velocityArray, 
+        status = nastranCard_flfact(fp,
+                                    &velocityID,
+                                    feaAnalysis->numFlutterVel,
+                                    feaAnalysis->flutterVel,
+                                    feaFileFormat->fileType);
+        if (status != CAPS_SUCCESS) return status;
+    }
+
+    if (feaAnalysis->analysisType == Gust) {
+
+        fprintf(fp,"%s\n","$---1---|---2---|---3---|---4---|---5---|---6---|---7---|---8---|---9---|---10--|");
+        // MKAERO1, FLUTTER, FLFACT for density, mach and velocity
+
+        // Write MKAERO1 INPUT
+        status = nastranCard_mkaero1(
+            fp,
+            feaAnalysis->numMachNumber, feaAnalysis->machNumber, // m
+            feaAnalysis->numReducedFreq, feaAnalysis->reducedFreq, // k
             feaFileFormat->fileType
         );
         if (status != CAPS_SUCCESS) return status;
 
+        //fprintf(fp,"%s","$LUTTER SID     METHOD  DENS    MACH    RFREQ     IMETH   NVAL/OMAX   EPS   CONT\n");
+
+        analysisID = 100 + feaAnalysis->analysisID;
+        densityID = 10 * feaAnalysis->analysisID + 1;
+        machID = 10 * feaAnalysis->analysisID + 2;
+        velocityID = 10 * feaAnalysis->analysisID + 3;
+
+//        // Write FLUTTER INPUT
+//        status = nastranCard_flutter(
+//            fp,
+//            &analysisID, // sid
+//            "PK", // method
+//            &densityID, // dens
+//            &machID, // mach
+//            &velocityID, // rfreq
+//            "L", // imeth
+//            &feaAnalysis->numDesiredEigenvalue, // nvalue
+//            NULL, // eps
+//            feaFileFormat->fileType
+//        );
+//        if (status != CAPS_SUCCESS) return status;
+//
+//        fprintf(fp,"$ DENSITY\n");
+//        status = nastranCard_flfact(
+//            fp,
+//            &densityID,
+//            1, &feaAnalysis->density,
+//            feaFileFormat->fileType
+//        );
+//        if (status != CAPS_SUCCESS) return status;
+
+        fprintf(fp,"$ MACH\n");
+        status = nastranCard_flfact(
+            fp,
+            &machID,
+            feaAnalysis->numMachNumber, feaAnalysis->machNumber,
+            feaFileFormat->fileType
+        );
+        if (status != CAPS_SUCCESS) return status;
+//
+//        fprintf(fp,"$ DYANMIC PRESSURE=%f\n", feaAnalysis->dynamicPressure);
+//
+//        // Setup the default flutter velocities  if not specified
+//        status = fea_defaultFlutterVelocity(feaAnalysis);
+//        if (status != CAPS_SUCCESS) return status;
+//
+//        if (feaAnalysis->visualFlutter == (int) true) {
+//            for ( i = 0; i < feaAnalysis->numFlutterVel; i++) {
+//                feaAnalysis->flutterVel[i] = feaAnalysis->flutterVel[i] * -1;
+//            }
+//        }
+//
+//        fprintf(fp,"$ VELOCITY\n");
+//        status = nastranCard_flfact(fp,
+//                                    &velocityID,
+//                                    feaAnalysis->numFlutterVel,
+//                                    feaAnalysis->flutterVel,
+//                                    feaFileFormat->fileType);
+//        if (status != CAPS_SUCCESS) return status;
     }
 
     return CAPS_SUCCESS;
@@ -1816,7 +2142,7 @@ int nastran_writeDesignConstraintADDCard(FILE *fp, int constraintID, int numSetI
 
     if (numSetID > 0) {
         return nastranCard_dconadd(
-            fp, 
+            fp,
             &constraintID, // dcid
             numSetID, designConstraintSetID, // dc
             feaFileFormat->fileType
@@ -1828,82 +2154,133 @@ int nastran_writeDesignConstraintADDCard(FILE *fp, int constraintID, int numSetI
 }
 
 // Write design constraint/optimization information from a feaDesignConstraint structure
-int nastran_writeDesignConstraintCard(FILE *fp, const feaDesignConstraintStruct *feaDesignConstraint, const feaFileFormatStruct *feaFileFormat) {
+int nastran_writeDesignConstraintCard(FILE *fp,
+                                      const feaDesignConstraintStruct *feaDesignConstraint,
+                                      const feaProblemStruct *feaProblem,
+                                      const feaFileFormatStruct *feaFileFormat) {
 
     int status;
 
     int  i, j, found; // Index
 
-    int elementStressLocation[4], drespID, responseAttrB;
+    int elementStressLocation[4], drespID, dresp2ID, responseAttrB;
+    int modeID, densityID, machID, velocityID, *atti_array[4];
     char label[9];
 
     int axialStressCode = 2; //torsionalStressCode = 4;
     int failureCriterionCode = 5;
+    int numEquationResponseID = 0, *equationResponseIDSet = NULL;
 
-    char *tempString = NULL;
+    char tempString[16];
     char *valstr;
 
     if (fp == NULL) return CAPS_IOERR;
     if (feaDesignConstraint == NULL) return CAPS_NULLVALUE;
     if (feaFileFormat == NULL) return CAPS_NULLVALUE;
 
-    for (i = 0; i < feaDesignConstraint->numPropertyID; i++) {
+    if (feaDesignConstraint->designConstraintType == PropertyDesignCon) {
 
-        if (feaDesignConstraint->propertySetType[i] == Rod) {
+        for (i = 0; i < feaDesignConstraint->numPropertyID; i++) {
 
-            drespID = feaDesignConstraint->designConstraintID + 10000;
+            if (feaDesignConstraint->propertySetType[i] == Rod) {
 
-            status = nastranCard_dconstr(
-                fp,
-                &feaDesignConstraint->designConstraintID,
-                &drespID,
-                &feaDesignConstraint->lowerBound,
-                &feaDesignConstraint->upperBound,
-                feaFileFormat->fileType
-            );
-            if (status != CAPS_SUCCESS) return status;
+                drespID = feaDesignConstraint->designConstraintID + 10000;
 
-            //$...STRUCTURAL RESPONSE IDENTIFICATION
-            //$DRESP1 ID      LABEL   RTYPE   PTYPE   REGION  ATTA    ATTB    ATT1    +
-            //$+      ATT2    ...
-
-            // ------------- STRESS RESPONSE ---------------------------------------------------------------------
-            if (strcmp(feaDesignConstraint->responseType,"STRESS") == 0) {
-
-                // make label field value
-                tempString = convert_integerToString(drespID, 6, 0);
-                snprintf(label, 9, "R%s", tempString);
-                EG_free(tempString);
-
-                status = nastranCard_dresp1(
+                status = nastranCard_dconstr(
                     fp,
-                    &drespID, // id
-                    label, // label
-                    feaDesignConstraint->responseType, // rtype
-                    "PROD", // ptype
-                    NULL, // region
-                    Integer, &axialStressCode, // atta
-                    Integer, NULL, // attb
-                    Integer, 1, &feaDesignConstraint->propertySetID[i], // att
+                    &feaDesignConstraint->designConstraintID,
+                    &drespID,
+                    &feaDesignConstraint->lowerBound,
+                    &feaDesignConstraint->upperBound,
                     feaFileFormat->fileType
                 );
                 if (status != CAPS_SUCCESS) return status;
-            }
-        } else if (feaDesignConstraint->propertySetType[i] == Bar) {
-            // Nothing set yet
-        } else if (feaDesignConstraint->propertySetType[i] == Shell) {
 
-            // ------------- STRESS RESPONSE ---------------------------------------------------------------------
-            if (strcmp(feaDesignConstraint->responseType,"STRESS") == 0) {
-                elementStressLocation[0] = 7; // Major principal at Z1
-                elementStressLocation[1] = 9; // Von Mises (or max shear) at Z1
-                elementStressLocation[2] = 16; // Minor principal at Z2
-                elementStressLocation[3] = 17; // von Mises (or max shear) at Z2
+                //$...STRUCTURAL RESPONSE IDENTIFICATION
+                //$DRESP1 ID      LABEL   RTYPE   PTYPE   REGION  ATTA    ATTB    ATT1    +
+                //$+      ATT2    ...
 
-                for (j = 0; j < 4; j++) {
+                // ------------- STRESS RESPONSE ---------------------------------------------------------------------
+                if (strcmp(feaDesignConstraint->responseType,"STRESS") == 0) {
+
+                    // make label field value
+                    status = convert_integerToString(drespID, 6, 0, tempString);
+                    if (status != CAPS_SUCCESS) return status;
+                    snprintf(label, 9, "R%s", tempString);
+
+                    status = nastranCard_dresp1(
+                        fp,
+                        &drespID, // id
+                        label, // label
+                        feaDesignConstraint->responseType, // rtype
+                        "PROD", // ptype
+                        NULL, // region
+                        Integer, &axialStressCode, // atta
+                        Integer, NULL, // attb
+                        Integer, 1, &feaDesignConstraint->propertySetID[i], // att
+                        (int) false, // blankIntegerMode
+                        feaFileFormat->fileType
+                    );
+                    if (status != CAPS_SUCCESS) return status;
+                }
+            } else if (feaDesignConstraint->propertySetType[i] == Bar) {
+                // Nothing set yet
+            } else if (feaDesignConstraint->propertySetType[i] == Shell) {
+
+                // ------------- STRESS RESPONSE ---------------------------------------------------------------------
+                if (strcmp(feaDesignConstraint->responseType,"STRESS") == 0) {
+                    // elementStressLocation[0] = 7; // Major principal at Z1
+                    elementStressLocation[0] = 9; // Von Mises (or max shear) at Z1
+                    // elementStressLocation[2] = 16; // Minor principal at Z2
+                    // elementStressLocation[3] = 17; // von Mises (or max shear) at Z2
+
+                    for (j = 0; j < 1; j++) {
+
+                        // DCONSTR
+                        drespID = feaDesignConstraint->designConstraintID + 10000 + j*1000;
+
+                        status = nastranCard_dconstr(
+                            fp,
+                            &feaDesignConstraint->designConstraintID,
+                            &drespID,
+                            &feaDesignConstraint->lowerBound,
+                            &feaDesignConstraint->upperBound,
+                            feaFileFormat->fileType
+                        );
+                        if (status != CAPS_SUCCESS) return status;
+
+                        // DRESP1
+
+                        // make label field value
+                        status = convert_integerToString(drespID, 6, 0, tempString);
+                        if (status != CAPS_SUCCESS) return status;
+                        snprintf(label, 9, "R%s", tempString);
+
+                        status = nastranCard_dresp1(
+                            fp,
+                            &drespID, // id
+                            label, // label
+                            feaDesignConstraint->responseType, // rtype
+                            "PSHELL", // ptype
+                            NULL, // region
+                            Integer, &elementStressLocation[j], // atta
+                            Integer, NULL, // attb
+                            Integer, 1, &feaDesignConstraint->propertySetID[i], // att
+                            (int) false, // blankIntegerMode
+                            feaFileFormat->fileType
+                        );
+                        if (status != CAPS_SUCCESS) return status;
+                    }
+                }
+
+            } else if (feaDesignConstraint->propertySetType[i] == Composite) {
+
+                // ------------- CFAILURE RESPONSE ---------------------------------------------------------------------
+                if (strcmp(feaDesignConstraint->responseType,"CFAILURE") == 0) {
 
                     // DCONSTR
-                    drespID = feaDesignConstraint->designConstraintID + 10000 + j*1000;
+
+                    drespID = feaDesignConstraint->designConstraintID + 10000;
 
                     status = nastranCard_dconstr(
                         fp,
@@ -1918,112 +2295,203 @@ int nastran_writeDesignConstraintCard(FILE *fp, const feaDesignConstraintStruct 
                     // DRESP1
 
                     // make label field value
-                    tempString = convert_integerToString(drespID, 6, 0);
-                    snprintf(label, 9, "R%s", tempString);
+                    status = convert_integerToString(drespID, 6, 0, tempString);
+                    if (status != CAPS_SUCCESS) return status;
+                    snprintf(label, 9, "L%s", tempString);
                     EG_free(tempString);
+
+                     if (feaDesignConstraint->fieldPosition == 0) {
+                        found = 0;
+                        // OPTIONS ARE "Ti", "THETAi", "LAMINAi" all = Integer i
+                        valstr = NULL;
+                        // skan for T, THETA or LAMINA
+
+                        valstr = strstr(feaDesignConstraint->fieldName, "THETA");
+                        if (valstr != NULL) {
+                            // little trick to get integer value of character digit, i.e. '1' - '0' = 1
+                            responseAttrB = feaDesignConstraint->fieldName[5] - '0';
+                            found = 1;
+                        }
+
+                        if (found == 0) {
+                            valstr = strstr(feaDesignConstraint->fieldName, "LAMINA");
+                            if (valstr != NULL) {
+                                responseAttrB = feaDesignConstraint->fieldName[6] - '0';
+                                found = 1;
+                            }
+                        }
+
+                        if (found == 0) {
+                            valstr = strstr(feaDesignConstraint->fieldName, "T");
+                            if (valstr != NULL) {
+                                responseAttrB = feaDesignConstraint->fieldName[1] - '0';
+                                found = 1;
+                            }
+                        }
+
+                        if (found == 0) {
+                            printf("  WARNING: Could not determine what Lamina to apply constraint too, using default = 1\n");
+                            printf("  String Entered: %s\n", feaDesignConstraint->fieldName);
+                            responseAttrB = 1;
+                        }
+                    } else {
+                        responseAttrB = feaDesignConstraint->fieldPosition;
+                    }
 
                     status = nastranCard_dresp1(
                         fp,
                         &drespID, // id
                         label, // label
                         feaDesignConstraint->responseType, // rtype
-                        "PSHELL", // ptype
+                        "PCOMP", // ptype
                         NULL, // region
-                        Integer, &elementStressLocation[j], // atta
-                        Integer, NULL, // attb
+                        Integer, &failureCriterionCode, // atta
+                        Integer, &responseAttrB, // attb
                         Integer, 1, &feaDesignConstraint->propertySetID[i], // att
+                        (int) false, // blankIntegerMode
                         feaFileFormat->fileType
                     );
                     if (status != CAPS_SUCCESS) return status;
                 }
+
+            } else if (feaDesignConstraint->propertySetType[i] == Solid) {
+                // Nothing set yet
             }
-
-        } else if (feaDesignConstraint->propertySetType[i] == Composite) {
-
-            // ------------- CFAILURE RESPONSE ---------------------------------------------------------------------
-            if (strcmp(feaDesignConstraint->responseType,"CFAILURE") == 0) {
-
-                // DCONSTR
-
-                drespID = feaDesignConstraint->designConstraintID + 10000;
-
-                status = nastranCard_dconstr(
-                    fp,
-                    &feaDesignConstraint->designConstraintID,
-                    &drespID,
-                    &feaDesignConstraint->lowerBound,
-                    &feaDesignConstraint->upperBound,
-                    feaFileFormat->fileType
-                );
-                if (status != CAPS_SUCCESS) return status;
-
-                // DRESP1
-
-                // make label field value
-                tempString = convert_integerToString(drespID, 6, 0);
-                snprintf(label, 9, "L%s", tempString);
-                EG_free(tempString);
-
-                 if (feaDesignConstraint->fieldPosition == 0) {
-                    found = 0;
-                    // OPTIONS ARE "Ti", "THETAi", "LAMINAi" all = Integer i
-                    valstr = NULL;
-                    // skan for T, THETA or LAMINA
-
-                    valstr = strstr(feaDesignConstraint->fieldName, "THETA");
-                    if (valstr != NULL) {
-                        // little trick to get integer value of character digit, i.e. '1' - '0' = 1
-                        responseAttrB = feaDesignConstraint->fieldName[5] - '0';
-                        found = 1;
-                    }
-
-                    if (found == 0) {
-                        valstr = strstr(feaDesignConstraint->fieldName, "LAMINA");
-                        if (valstr != NULL) {
-                            responseAttrB = feaDesignConstraint->fieldName[6] - '0';
-                            found = 1;
-                        }
-                    }
-
-                    if (found == 0) {
-                        valstr = strstr(feaDesignConstraint->fieldName, "T");
-                        if (valstr != NULL) {
-                            responseAttrB = feaDesignConstraint->fieldName[1] - '0';
-                            found = 1;
-                        }
-                    }
-
-                    if (found == 0) {
-                        printf("  WARNING: Could not determine what Lamina to apply constraint too, using default = 1\n");
-                        printf("  String Entered: %s\n", feaDesignConstraint->fieldName);
-                        responseAttrB = 1;
-                    }
-                } else {
-                    responseAttrB = feaDesignConstraint->fieldPosition;
-                }
-
-                status = nastranCard_dresp1(
-                    fp,
-                    &drespID, // id
-                    label, // label
-                    feaDesignConstraint->responseType, // rtype
-                    "PCOMP", // ptype
-                    NULL, // region
-                    Integer, &failureCriterionCode, // atta
-                    Integer, &responseAttrB, // attb
-                    Integer, 1, &feaDesignConstraint->propertySetID[i], // att
-                    feaFileFormat->fileType
-                );
-                if (status != CAPS_SUCCESS) return status;
-            }
-
-        } else if (feaDesignConstraint->propertySetType[i] == Solid) {
-            // Nothing set yet
         }
+
+    } else if (feaDesignConstraint->designConstraintType == FlutterDesignCon) {
+
+        drespID = feaDesignConstraint->designConstraintID + 10000;
+        dresp2ID = feaDesignConstraint->designConstraintID + 20000;
+
+        if (feaDesignConstraint->numModes > 0) {
+            modeID = 1000 + (10 * feaDesignConstraint->designConstraintID + 1);
+        } else {
+            modeID = 0;
+        }
+
+        densityID = 1000 + (10 * feaDesignConstraint->designConstraintID + 2);
+        machID = 1000 + (10 * feaDesignConstraint->designConstraintID + 3);
+        velocityID = 1000 + (10 * feaDesignConstraint->designConstraintID + 4);
+
+        if (modeID == 0) {
+            atti_array[0] = NULL;
+
+        } else {
+            atti_array[0] = &modeID;
+        }
+
+        atti_array[1] = &densityID;
+        atti_array[2] = &machID;
+        atti_array[3] = &velocityID;
+
+        status = nastranCard_dconstr(fp,
+                                     &feaDesignConstraint->designConstraintID,
+                                     &dresp2ID,
+                                     &feaDesignConstraint->lowerBound,
+                                     &feaDesignConstraint->upperBound,
+                                     feaFileFormat->fileType);
+        if (status != CAPS_SUCCESS) return status;
+
+        // Flutter design response
+        status = nastranCard_dresp1(fp,
+                                    &drespID, // id
+                                    "FLUTTER", // label
+                                    "FLUTTER", // rtype
+                                    NULL, // ptype
+                                    NULL, // region
+                                    Integer, NULL, // atta
+                                    Integer, NULL, // attb
+                                    Integer, 4, atti_array, // atti
+                                    (int) true, // blankIntegerMode
+                                    feaFileFormat->fileType);
+        if (status != CAPS_SUCCESS) return status;
+
+        char *equationLines = "F(A) = (A-0.03)/0.1";
+        int numEquationLines = 1;
+        int equationID = 1000 + (10 * feaDesignConstraint->designConstraintID + 5);
+
+        status = nastranCard_deqatn(fp,
+                                    &equationID,
+                                    numEquationLines,
+                                    &equationLines);
+        if (status != CAPS_SUCCESS) return status;
+
+        status = nastranCard_dresp2(fp,
+                                    &dresp2ID, // id
+                                    "GDAMP", // label
+                                    &equationID, // eqid
+                                    NULL, //region
+                                    0, NULL, // dvid
+                                    0, NULL, // labl
+                                    1, &drespID, // nr
+                                    0, NULL, // g
+                                    NULL, // c
+                                    0, NULL, // nrr
+                                    feaFileFormat->fileType);
+
+        if (status != CAPS_SUCCESS) return status;
+
+        // Modes for flutter constraint
+        if (feaDesignConstraint->numModes > 0) {
+            status = nastranCard_set1(fp,
+                                      &modeID,
+                                      feaDesignConstraint->numModes,
+                                      feaDesignConstraint->modes,
+                                      feaFileFormat->fileType);
+            if (status != CAPS_SUCCESS) return status;
+        }
+
+        // Density for flutter constraint
+        status = nastranCard_flfact(fp,
+                                    &densityID,
+                                    feaDesignConstraint->numDensity,
+                                    feaDesignConstraint->density,
+                                    feaFileFormat->fileType);
+        if (status != CAPS_SUCCESS) return status;
+
+        // Mach number for flutter constraint
+        status = nastranCard_flfact(fp,
+                                    &machID,
+                                    feaDesignConstraint->numMach,
+                                    feaDesignConstraint->Mach,
+                                    feaFileFormat->fileType);
+        if (status != CAPS_SUCCESS) return status;
+
+        // Velocities for flutter constraint
+        status = nastranCard_flfact(fp,
+                                    &velocityID,
+                                    feaDesignConstraint->numVelocity,
+                                    feaDesignConstraint->velocity,
+                                    feaFileFormat->fileType);
+        if (status != CAPS_SUCCESS) return status;
+
+
+    } else if (feaDesignConstraint->designConstraintType == EquationResponseDesignCon) {
+        // DRESP2
+        status = _getEquationResponseIDSet(feaProblem,
+                                           1,
+                                           &feaDesignConstraint->responseType,
+                                           &numEquationResponseID,
+                                           &equationResponseIDSet);
+        if (status != CAPS_SUCCESS) return status;
+
+        status = nastranCard_dconstr(fp,
+                                     &feaDesignConstraint->designConstraintID,
+                                     equationResponseIDSet,
+                                     &feaDesignConstraint->lowerBound,
+                                     &feaDesignConstraint->upperBound,
+                                     feaFileFormat->fileType);
+        if (status != CAPS_SUCCESS) return status;
+    }
+
+    if (equationResponseIDSet != NULL) {
+        EG_free(equationResponseIDSet);
     }
 
     return CAPS_SUCCESS;
 }
+
 
 // get element type value for TYPE field in DVCREL* card
 /*@null@*/
@@ -2032,7 +2500,7 @@ static char * _getElementTypeIdentifier(int elementType, int elementSubType) {
     char *identifier = NULL;
 
     if (elementType == Node) {
-        
+
         if (elementSubType == ConcentratedMassElement) {
             identifier = "CONM2";
         }
@@ -2107,7 +2575,7 @@ static char * _getElementTypeIdentifier(int elementType, int elementSubType) {
 }
 
 // Write design variable/optimization information from a feaDesignVariable structure
-int nastran_writeDesignVariableCard(FILE *fp, const feaDesignVariableStruct *feaDesignVariable, const feaFileFormatStruct *feaFileFormat) {
+int nastran_writeDesignVariableCard(void *aimInfo, FILE *fp, const feaDesignVariableStruct *feaDesignVariable, const feaFileFormatStruct *feaFileFormat) {
 
     // int  i;
 
@@ -2139,13 +2607,13 @@ int nastran_writeDesignVariableCard(FILE *fp, const feaDesignVariableStruct *fea
         &feaDesignVariable->designVariableID, // id
         feaDesignVariable->name, // label
         &feaDesignVariable->initialValue, // xinit
-        xlb, // xlb 
+        xlb, // xlb
         xub, // xub
         delxv, // delxv
         ddval, // ddval
         feaFileFormat->fileType
     );
-    if (status != CAPS_SUCCESS) return status;
+    AIM_STATUS(aimInfo, status);
 
     if (ddval != NULL) {
 
@@ -2157,7 +2625,7 @@ int nastran_writeDesignVariableCard(FILE *fp, const feaDesignVariableStruct *fea
             feaDesignVariable->discreteValue, // dval
             feaFileFormat->fileType
         );
-        if (status != CAPS_SUCCESS) return status;
+        AIM_STATUS(aimInfo, status);
     }
 
     if (feaDesignVariable->numIndependVariable > 0) {
@@ -2170,30 +2638,32 @@ int nastran_writeDesignVariableCard(FILE *fp, const feaDesignVariableStruct *fea
             &feaDesignVariable->designVariableID, // ddvid
             &feaDesignVariable->variableWeight[0], // c0
             &feaDesignVariable->variableWeight[1], // cmult
-            feaDesignVariable->numIndependVariable, 
+            feaDesignVariable->numIndependVariable,
             feaDesignVariable->independVariableID, // idv
             feaDesignVariable->independVariableWeight, // c
             feaFileFormat->fileType
         );
-        if (status != CAPS_SUCCESS) return status;
+        AIM_STATUS(aimInfo, status);
     }
 
-    return CAPS_SUCCESS;
+cleanup:
+    return status;
 }
 
 // Write design variable relation information from a feaDesignVariableRelation structure
 int nastran_writeDesignVariableRelationCard(void *aimInfo,
                                             FILE *fp,
                                             const feaDesignVariableRelationStruct *feaDesignVariableRelation,
-                                            const feaProblemStruct *feaProblem,
+                               /*@unused@*/ const feaProblemStruct *feaProblem,
                                             const feaFileFormatStruct *feaFileFormat)
 {
-    int i, j, status, uniqueID;
+    int status = CAPS_SUCCESS;
+    int i, j, uniqueID;
 
     int numDesignVariable, *designVariableSetID = NULL;
-    feaDesignVariableStruct **designVariableSet = NULL, *designVariable;
+    feaDesignVariableStruct **designVariableSet = NULL, *designVariable=NULL;
 
-    int numRelation, relationIndex; 
+    int numRelation, relationIndex;
     int *relationSetID = NULL, *relationSetType = NULL, *relationSetSubType = NULL;
 
     char *type = NULL, *fieldName = NULL;
@@ -2202,19 +2672,8 @@ int nastran_writeDesignVariableRelationCard(void *aimInfo,
     if (feaDesignVariableRelation == NULL) return CAPS_NULLVALUE;
     if (feaFileFormat == NULL) return CAPS_NULLVALUE;
 
-    // Get design variable relation set data from associated design variable(s)
-
-    status = fea_findDesignVariablesByNames(
-        feaProblem, 
-        feaDesignVariableRelation->numDesignVariable, feaDesignVariableRelation->designVariableNameSet,
-        &numDesignVariable, &designVariableSet
-    );
-
-    if (status == CAPS_NOTFOUND) {
-        PRINT_WARNING("Only %d of %d design variables found", 
-                      numDesignVariable, feaDesignVariableRelation->numDesignVariable);
-    }
-    else if (status != CAPS_SUCCESS) goto cleanup;
+    numDesignVariable = feaDesignVariableRelation->numDesignVariable;
+    designVariableSet = feaDesignVariableRelation->designVariableSet;
 
     designVariableSetID = EG_alloc(sizeof(int) * numDesignVariable);
     if (designVariableSetID == NULL) {
@@ -2225,20 +2684,20 @@ int nastran_writeDesignVariableRelationCard(void *aimInfo,
     numRelation = 0;
     relationIndex = 0;
     for (i = 0; i < numDesignVariable; i++) {
-        
+
         designVariable = designVariableSet[i];
 
         designVariableSetID[i] = designVariable->designVariableID;
 
-        if (feaDesignVariableRelation->relationType == MaterialDesignVar) {
+        if (feaDesignVariableRelation->componentType == MaterialDesignVar) {
 
             if (numRelation == 0) {
-                numRelation = designVariable->numMaterialID;
+                numRelation = feaDesignVariableRelation->numMaterialID;
                 relationSetID = EG_alloc(numRelation * sizeof(int));
                 relationSetType = EG_alloc(numRelation * sizeof(int));
             }
             else {
-                numRelation += designVariable->numMaterialID;
+                numRelation += feaDesignVariableRelation->numMaterialID;
                 relationSetID = EG_reall(relationSetID, numRelation * sizeof(int));
                 relationSetType = EG_reall(relationSetType, numRelation * sizeof(int));
             }
@@ -2248,23 +2707,23 @@ int nastran_writeDesignVariableRelationCard(void *aimInfo,
                 goto cleanup;
             }
 
-            for (j = 0; j < designVariable->numMaterialID; j++) {
+            for (j = 0; j < feaDesignVariableRelation->numMaterialID; j++) {
 
-                relationSetID[relationIndex] = designVariable->materialSetID[j];
-                relationSetType[relationIndex] = designVariable->materialSetType[j];
+                relationSetID[relationIndex] = feaDesignVariableRelation->materialSetID[j];
+                relationSetType[relationIndex] = feaDesignVariableRelation->materialSetType[j];
                 relationIndex++;
             }
         }
 
-        else if (feaDesignVariableRelation->relationType == PropertyDesignVar) {
+        else if (feaDesignVariableRelation->componentType == PropertyDesignVar) {
 
             if (numRelation == 0) {
-                numRelation = designVariable->numPropertyID;
+                numRelation = feaDesignVariableRelation->numPropertyID;
                 relationSetID = EG_alloc(numRelation * sizeof(int));
                 relationSetType = EG_alloc(numRelation * sizeof(int));
             }
             else {
-                numRelation += designVariable->numPropertyID;
+                numRelation += feaDesignVariableRelation->numPropertyID;
                 relationSetID = EG_reall(relationSetID, numRelation * sizeof(int));
                 relationSetType = EG_reall(relationSetType, numRelation * sizeof(int));
             }
@@ -2274,23 +2733,23 @@ int nastran_writeDesignVariableRelationCard(void *aimInfo,
                 goto cleanup;
             }
 
-            for (j = 0; j < designVariable->numPropertyID; j++) {
-                relationSetID[relationIndex] = designVariable->propertySetID[j];
-                relationSetType[relationIndex] = designVariable->propertySetType[j];
+            for (j = 0; j < feaDesignVariableRelation->numPropertyID; j++) {
+                relationSetID[relationIndex] = feaDesignVariableRelation->propertySetID[j];
+                relationSetType[relationIndex] = feaDesignVariableRelation->propertySetType[j];
                 relationIndex++;
             }
         }
 
-        else if (feaDesignVariableRelation->relationType == ElementDesignVar) {
+        else if (feaDesignVariableRelation->componentType == ElementDesignVar) {
 
             if (numRelation == 0) {
-                numRelation = designVariable->numElementID;
+                numRelation = feaDesignVariableRelation->numElementID;
                 relationSetID = EG_alloc(numRelation * sizeof(int));
                 relationSetType = EG_alloc(numRelation * sizeof(int));
                 relationSetSubType = EG_alloc(numRelation * sizeof(int));
             }
             else {
-                numRelation += designVariable->numElementID;
+                numRelation += feaDesignVariableRelation->numElementID;
                 relationSetID = EG_reall(relationSetID, numRelation * sizeof(int));
                 relationSetType = EG_reall(relationSetType, numRelation * sizeof(int));
                 relationSetSubType = EG_reall(relationSetSubType, numRelation * sizeof(int));
@@ -2301,11 +2760,11 @@ int nastran_writeDesignVariableRelationCard(void *aimInfo,
                 goto cleanup;
             }
 
-            for (j = 0; j < designVariable->numElementID; j++) {
+            for (j = 0; j < feaDesignVariableRelation->numElementID; j++) {
 
-                relationSetID[relationIndex] = designVariable->elementSetID[j];
-                relationSetType[relationIndex] = designVariable->elementSetType[j];
-                relationSetSubType[relationIndex] = designVariable->elementSetSubType[j];
+                relationSetID[relationIndex] = feaDesignVariableRelation->elementSetID[j];
+                relationSetType[relationIndex] = feaDesignVariableRelation->elementSetType[j];
+                relationSetSubType[relationIndex] = feaDesignVariableRelation->elementSetSubType[j];
                 relationIndex++;
             }
         }
@@ -2313,17 +2772,19 @@ int nastran_writeDesignVariableRelationCard(void *aimInfo,
 
     // get *PNAME field value
     if (feaDesignVariableRelation->fieldPosition == 0) {
-        fieldName = EG_strdup(feaDesignVariableRelation->fieldName);
+        AIM_STRDUP(fieldName, feaDesignVariableRelation->fieldName, aimInfo, status);
     } else {
-        fieldName = convert_integerToString(feaDesignVariableRelation->fieldPosition, 7, 1);
+        AIM_ALLOC(fieldName, 8, char, aimInfo, status);
+        status = convert_integerToString(feaDesignVariableRelation->fieldPosition, 7, 1, fieldName);
+        AIM_STATUS(aimInfo, status);
     }
 
-    if (feaDesignVariableRelation->relationType == MaterialDesignVar) {
+    if (feaDesignVariableRelation->componentType == MaterialDesignVar) {
 
         for (i = 0; i < numRelation; i++) {
 
             uniqueID = feaDesignVariableRelation->relationID * 100 + i;
-            
+
             // UnknownMaterial, Isotropic, Anisothotropic, Orthotropic, Anisotropic
             if (relationSetType[i] == Isotropic) {
                 type = "MAT1";
@@ -2334,29 +2795,33 @@ int nastran_writeDesignVariableRelationCard(void *aimInfo,
             } else if (relationSetType[i] == Anisotropic) {
                 type = "MAT9";
             } else {
-                PRINT_WARNING("Unknown material type: %d", relationSetType[i]);
+                AIM_ERROR(aimInfo, "Unknown material type: %d", relationSetType[i]);
+                status = CAPS_NOTIMPLEMENT;
+                goto cleanup;
             }
 
-            status = nastranCard_dvmrel1(
-                fp,
-                &uniqueID, // id
-                type, // type
-                &relationSetID[i], // mid
-                fieldName, // mpname
-                NULL, // mpmin
-                NULL, // mpmax
-                &feaDesignVariableRelation->constantRelationCoeff, // c0
-                numDesignVariable,
-                designVariableSetID, // dvid
-                feaDesignVariableRelation->linearRelationCoeff, // coeff
-                feaFileFormat->fileType
-            );
-
-            AIM_STATUS(aimInfo, status);
+            if (feaDesignVariableRelation->isEquation == (int)true)
+            {
+              status = nastranCard_dvmrel1(
+                  fp,
+                  &uniqueID, // id
+                  type, // type
+                  &relationSetID[i], // mid
+                  fieldName, // mpname
+                  NULL, // mpmin
+                  NULL, // mpmax
+                  &feaDesignVariableRelation->constantRelationCoeff, // c0
+                  numDesignVariable,
+                  designVariableSetID, // dvid
+                  feaDesignVariableRelation->linearRelationCoeff, // coeff
+                  feaFileFormat->fileType
+              );
+              AIM_STATUS(aimInfo, status);
+            }
         }
     }
 
-    else if (feaDesignVariableRelation->relationType == PropertyDesignVar) {
+    else if (feaDesignVariableRelation->componentType == PropertyDesignVar) {
 
         for (i = 0; i < numRelation; i++) {
 
@@ -2376,7 +2841,9 @@ int nastran_writeDesignVariableRelationCard(void *aimInfo,
             } else if (relationSetType[i] == Solid) {
                 type = "PSOLID";
             } else {
-                PRINT_WARNING("Unknown property type: %d", relationSetType[i]);
+                AIM_ERROR(aimInfo, "Unknown property type: %d", relationSetType[i]);
+                status = CAPS_NOTIMPLEMENT;
+                goto cleanup;
             }
 
             status = nastranCard_dvprel1(
@@ -2399,21 +2866,23 @@ int nastran_writeDesignVariableRelationCard(void *aimInfo,
         }
     }
 
-    else if (feaDesignVariableRelation->relationType == ElementDesignVar) {
+    else if (feaDesignVariableRelation->componentType == ElementDesignVar) {
 
         for (i = 0; i < numRelation; i++) {
-            
+
             uniqueID = feaDesignVariableRelation->relationID * 10000 + i;
 
             // Element types:    UnknownMeshElement, Node, Line, Triangle, Triangle_6, Quadrilateral, Quadrilateral_8, Tetrahedral, Tetrahedral_10, Pyramid, Prism, Hexahedral
             // Element subtypes: UnknownMeshSubElement, ConcentratedMassElement, BarElement, BeamElement, ShellElement, ShearElement
             type = _getElementTypeIdentifier(relationSetType[i], relationSetSubType[i]);
             if (type == NULL) {
+
                 AIM_ERROR(aimInfo, "Unknown element type and/or subtype: %d %d",
                                    relationSetType[i],
                                    relationSetSubType[i]);
                 status = CAPS_BADVALUE;
                 goto cleanup;
+
             }
 
             status = nastranCard_dvcrel1(
@@ -2438,16 +2907,18 @@ int nastran_writeDesignVariableRelationCard(void *aimInfo,
     }
 
     else {
+
         AIM_ERROR(aimInfo, "Unknown design variable relation type: %d",
-                    feaDesignVariableRelation->relationType);
+                    feaDesignVariableRelation->componentType);
         status = CAPS_BADVALUE;
+        goto cleanup;
     }
 
 
 cleanup:
 
     AIM_FREE(fieldName);
-    AIM_FREE(designVariableSet);
+    // AIM_FREE(designVariableSet);
     AIM_FREE(designVariableSetID);
     AIM_FREE(relationSetID);
     AIM_FREE(relationSetType);
@@ -2456,9 +2927,9 @@ cleanup:
     return status;
 }
 
-static int _getNextEquationLine(char **equationLines, const int lineIndex, 
+static int _getNextEquationLine(char **equationLines, const int lineIndex,
                                 const char *equationString, const int lineMaxChar) {
-    
+
     int numPrint, equationLength;
 
     char lineBuffer[80];
@@ -2480,8 +2951,9 @@ static int _getNextEquationLine(char **equationLines, const int lineIndex,
     return numPrint;
 }
 
+
 static int _getEquationLines(const feaDesignEquationStruct *feaEquation,
-                             int *numEquationLines, 
+                             int *numEquationLines,
                              char ***equationLines) {
 
     int i;
@@ -2534,7 +3006,7 @@ static int _getEquationLines(const feaDesignEquationStruct *feaEquation,
 
     // for each remaining equation string
     for (i = 1; i < feaEquation->equationArraySize; i++) {
-        
+
         equationString = feaEquation->equationArray[i];
         equationLength = strlen(equationString);
         numPrint = 0;
@@ -2576,17 +3048,17 @@ int nastran_writeDesignEquationCard(FILE *fp,
             string_freeArray(numEquationLines, &equationLines);
         }
 
-        return status; 
+        return status;
 }
 
-// Write design table constants information from a feaDesignTable structure 
+// Write design table constants information from a feaDesignTable structure
 int nastran_writeDesignTableCard(FILE *fp, const feaDesignTableStruct *feaDesignTable, const feaFileFormatStruct *fileFormat) {
 
     if (feaDesignTable->numConstant > 0) {
 
         return nastranCard_dtable(
-            fp, 
-            feaDesignTable->numConstant, 
+            fp,
+            feaDesignTable->numConstant,
             feaDesignTable->constantLabel, // labl
             feaDesignTable->constantValue, // valu
             fileFormat->fileType
@@ -2596,6 +3068,49 @@ int nastran_writeDesignTableCard(FILE *fp, const feaDesignTableStruct *feaDesign
         return CAPS_SUCCESS;
     }
 
+}
+
+int nastran_writeMasssetCard(FILE *fp,
+                             int incrementID,
+                             const feaFileFormatStruct *fileFormat) {
+
+    int status;
+    int masssetID;
+
+    masssetID = 100 + incrementID;
+    status = nastranCard_massset(fp,
+                                 &masssetID, // eid
+                                 &incrementID,        // id2
+                                 fileFormat->gridFileType);
+    return status;
+}
+
+int nastran_writeMassIncrementSet(FILE *fp,
+                                  int incrementID,
+                                  int numIncrementID,
+                                  const int massIncrementID[],
+                                  const feaMassIncrementStruct *feaMassIncrement,
+                                  const feaFileFormatStruct *fileFormat) {
+
+    int eid, i, status = CAPS_SUCCESS;
+
+    fprintf(fp,"%s\n","$---1---|---2---|---3---|---4---|---5---|---6---|---7---|---8---|---9---|---10--|");
+    fprintf(fp,"begin massid=%d label='subcase %d'\n", incrementID, incrementID);
+
+    for (i = 0; i < numIncrementID; i++) {
+//        printf("ID: %d %d\n", massIncrementID[i], feaMassIncrement[massIncrementID[i]-1].propertySetID[0]);
+        eid = incrementID*10000 + massIncrementID[i];
+        status = nastranCard_conm2(fp,
+                                   &eid, // eid
+                                   &feaMassIncrement[massIncrementID[i]-1].propertySetID[0], // g
+                                   NULL, // cid
+                                   &feaMassIncrement[massIncrementID[i]-1].increment, // m
+                                   NULL, // x
+                                   NULL, // i
+                                   fileFormat->gridFileType);
+    }
+
+    return status;
 }
 
 // Write design response type "DISP"
@@ -2613,15 +3128,39 @@ static int _writeDesignResponseDISP(FILE *fp, const feaDesignResponseStruct *fea
         NULL, // ptype
         NULL, // region
         Integer, &feaDesignResponse->component, // atta
-        Integer, NULL, // attb
+        Integer, &feaDesignResponse->attb, // attb
         Integer, 1, &feaDesignResponse->gridID, // atti
+        (int) false, // blankIntegerMode
         fileFormat->fileType
     );
 
     return status;
 }
 
-// Write design response information from a feaDesignResponse structure 
+//// Write design response type "FREQ"
+//static int _writeDesignResponseFREQ(FILE *fp, const feaDesignResponseStruct *feaDesignResponse, const feaFileFormatStruct *fileFormat) {
+//
+//    int status;
+//
+//    int drespID = 100000 + feaDesignResponse->responseID;
+//
+//    status = nastranCard_dresp1(
+//        fp,
+//        &drespID,
+//        feaDesignResponse->name, // label
+//        feaDesignResponse->responseType, // rtype
+//        NULL, // ptype
+//        NULL, // region
+//        Integer, &feaDesignResponse->component, // atta
+//        Integer, NULL, // attb
+//        Integer, 1, NULL, // atti
+//        fileFormat->fileType
+//    );
+//
+//    return status;
+//}
+
+// Write design response information from a feaDesignResponse structure
 int nastran_writeDesignResponseCard(FILE *fp, const feaDesignResponseStruct *feaDesignResponse, const feaFileFormatStruct *fileFormat) {
 
     const char *responseType = feaDesignResponse->responseType;
@@ -2629,14 +3168,20 @@ int nastran_writeDesignResponseCard(FILE *fp, const feaDesignResponseStruct *fea
     if (strcmp(responseType, "DISP") == 0) {
         return _writeDesignResponseDISP(fp, feaDesignResponse, fileFormat);
     }
+//    else if (strcmp(responseType, "FREQ") == 0) {
+//        return _writeDesignResponseFREQ(fp, feaDesignResponse, fileFormat);
+//    }
     else {
         PRINT_ERROR("Unknown responseType: %s", responseType);
         return CAPS_BADVALUE;
     }
 }
 
-// Write design equation response information from a feaDesignEquationResponse structure 
-int nastran_writeDesignEquationResponseCard(FILE *fp, const feaDesignEquationResponseStruct *feaEquationResponse, const feaProblemStruct *feaProblem, const feaFileFormatStruct *fileFormat) {
+// Write design equation response information from a feaDesignEquationResponse structure
+int nastran_writeDesignEquationResponseCard(FILE *fp,
+                                            const feaDesignEquationResponseStruct *feaEquationResponse,
+                                            const feaProblemStruct *feaProblem,
+                                            const feaFileFormatStruct *fileFormat) {
 
     int status;
 
@@ -2650,7 +3195,7 @@ int nastran_writeDesignEquationResponseCard(FILE *fp, const feaDesignEquationRes
 
     status = _getEquationID(feaProblem, feaEquationResponse->equationName, &equationID);
     if (status != CAPS_SUCCESS) {
-        PRINT_ERROR("Unable to get equation ID for name: %s - status: %d", 
+        PRINT_ERROR("Unable to get equation ID for name: %s - status: %d",
                     feaEquationResponse->equationName,
                     status);
         goto cleanup;
@@ -2658,8 +3203,8 @@ int nastran_writeDesignEquationResponseCard(FILE *fp, const feaDesignEquationRes
 
     // DESVAR
     status = _getDesignVariableIDSet(
-        feaProblem, 
-        feaEquationResponse->numDesignVariable, feaEquationResponse->designVariableNameSet, 
+        feaProblem,
+        feaEquationResponse->numDesignVariable, feaEquationResponse->designVariableNameSet,
         &numDesignVariableID, &designVariableIDSet
     );
     if (status != CAPS_SUCCESS) goto cleanup;
@@ -2670,8 +3215,8 @@ int nastran_writeDesignEquationResponseCard(FILE *fp, const feaDesignEquationRes
 
     // DRESP1
     status = _getDesignResponseIDSet(
-        feaProblem, 
-        feaEquationResponse->numResponse, feaEquationResponse->responseNameSet, 
+        feaProblem,
+        feaEquationResponse->numResponse, feaEquationResponse->responseNameSet,
         &numResponseID, &responseIDSet
     );
     if (status != CAPS_SUCCESS) goto cleanup;
@@ -2683,8 +3228,8 @@ int nastran_writeDesignEquationResponseCard(FILE *fp, const feaDesignEquationRes
 
     // DRESP2
     status = _getEquationResponseIDSet(
-        feaProblem, 
-        feaEquationResponse->numEquationResponse, feaEquationResponse->equationResponseNameSet, 
+        feaProblem,
+        feaEquationResponse->numEquationResponse, feaEquationResponse->equationResponseNameSet,
         &numEquationResponseID, &equationResponseIDSet
     );
     if (status != CAPS_SUCCESS) goto cleanup;
@@ -2720,14 +3265,14 @@ int nastran_writeDesignEquationResponseCard(FILE *fp, const feaDesignEquationRes
         return status;
 }
 
-// Write design optimization parameter information from a feaDesignOptParam structure 
+// Write design optimization parameter information from a feaDesignOptParam structure
 int nastran_writeDesignOptParamCard(FILE *fp, const feaDesignOptParamStruct *feaDesignOptParam, const feaFileFormatStruct *fileFormat) {
 
     if (feaDesignOptParam->numParam > 0) {
 
         return nastranCard_doptprm(
-            fp, 
-            feaDesignOptParam->numParam, 
+            fp,
+            feaDesignOptParam->numParam,
             feaDesignOptParam->paramLabel, // param
             feaDesignOptParam->paramType,
             feaDesignOptParam->paramValue, // val
@@ -2837,8 +3382,8 @@ int nastran_readF06EigenVector(FILE *fp, int *numEigenVector, int *numGridPoint,
     if (fp == NULL) return CAPS_IOERR;
 
     // See how many Eigen-Values we have
-    //status = nastran_readF06NumEigenValue(fp, numEigenVector);
-    *numEigenVector = 10;
+    status = nastran_readF06NumEigenValue(fp, numEigenVector);
+    // *numEigenVector = 10;
     printf("\tNumber of Eigen-Vectors = %d\n", *numEigenVector);
     if (status != CAPS_SUCCESS) return status;
 
@@ -3073,7 +3618,7 @@ int nastran_readF06Displacement(FILE *fp, int subcaseId, int *numGridPoint, doub
         beginSubcaseLine = (char *) EG_alloc((strlen(outputSubcaseLine)+intLength+1)*sizeof(char));
         if (beginSubcaseLine == NULL) return EGADS_MALLOC;
 
-        sprintf(beginSubcaseLine,"%s%d",outputSubcaseLine, subcaseId);
+        snprintf(beginSubcaseLine,strlen(outputSubcaseLine)+intLength+1,"%s%d",outputSubcaseLine, subcaseId);
 
         beginSubcaseLine[strlen(outputSubcaseLine)+intLength] = '\0';
 
@@ -3083,7 +3628,7 @@ int nastran_readF06Displacement(FILE *fp, int subcaseId, int *numGridPoint, doub
 
         beginSubcaseLine = (char *) EG_alloc((strlen(displacementLine)+1)*sizeof(char));
         if (beginSubcaseLine == NULL) return EGADS_MALLOC;
-        sprintf(beginSubcaseLine,"%s",displacementLine);
+        snprintf(beginSubcaseLine,strlen(displacementLine)+1,"%s",displacementLine);
 
         //beginSubcaseLine[strlen(displacementLine)] = '\0';
 
@@ -3200,6 +3745,168 @@ int nastran_readF06Displacement(FILE *fp, int subcaseId, int *numGridPoint, doub
     return CAPS_SUCCESS;
 }
 
+// Read weight value from a Nastran F06 file
+int nastran_readF06GridPointWeightGeneratorOutput(FILE *fp, double *mass, double cg[3],
+                                                  double is[3], double iq[3], double q[9])
+{
+    int i, j, status;
+
+    char labelArray[3];
+    double massArray[3];
+    double cgMatrix[3][3], isMatrix[3][3], iqArray[3], qMatrix[3][3];
+
+    char *beginGRDPNTLine = "                           O U T P U T   F R O M   G R I D   P O I N T   W E I G H T   G E N E R A T O R";
+
+    size_t linecap = 0;
+    char *line = NULL; // Temporary line holder
+
+    int foundGRDPNT = (int) false;
+
+    if (fp == NULL) return CAPS_IOERR;
+
+    while (!foundGRDPNT) {
+
+        // Get line from file
+        status = getline(&line, &linecap, fp);
+        if (status < 0) break;
+
+        // If we enter the Grid Point Generator section, get weight
+        if (strncmp(beginGRDPNTLine, line, strlen(beginGRDPNTLine)) == 0) {
+
+            // Skip to line containing MASS (15 lines down)
+            for (i = 0; i < 15; i++) {
+                status = getline(&line, &linecap, fp);
+                if (status < 0) break;
+            }
+
+            // Get XYZ label, MASS, and C.G. values in next 3 lines
+            for (i = 0; i < 3; i++) {
+
+                sscanf(line, " %c%lf%lf%lf%lf", &labelArray[i],
+                                                &massArray[i],
+                                                &cgMatrix[i][0],
+                                                &cgMatrix[i][1],
+                                                &cgMatrix[i][2]);
+
+                status = getline(&line, &linecap, fp);
+                if (status < 0) break;
+            }
+
+            // All mass values should be equal
+            if (massArray[0] != massArray[1] ||
+                massArray[1] != massArray[2] ||
+                massArray[2] != massArray[0]) {
+                printf("Not all extracted MASS values are equal\n");
+                if (line != NULL) free(line);
+                return CAPS_BADVALUE;
+            }
+
+            // Set mass
+            if (mass != NULL) {
+                *mass = massArray[0];
+                // printf("\tMASS: %lf\n", *mass);
+            }
+
+            // Set C.G.
+            if (cg != NULL) {
+                cg[0] = cgMatrix[1][0];
+                cg[1] = cgMatrix[0][1];
+                cg[2] = cgMatrix[0][2];
+                // printf("\tC.G.: [%lf, %lf, %lf]\n", cg[0], cg[1], cg[2]);
+            }
+
+            // Skip to I(S) matrix, (1 line down)
+            status = getline(&line, &linecap, fp);
+            if (status < 0) break;
+
+            // Get I(S) values in next 3 lines
+            for (i = 0; i < 3; i++) {
+
+                sscanf(line, " * %lf%lf%lf *", &isMatrix[i][0],
+                                               &isMatrix[i][1],
+                                               &isMatrix[i][2]);
+
+                status = getline(&line, &linecap, fp);
+                if (status < 0) break;
+            }
+
+            // set I(S)
+            if (is != NULL) {
+                is[I11] = isMatrix[0][0]; // ixx
+                is[I21] = isMatrix[0][1]; // ixy
+                is[I22] = isMatrix[1][1]; // iyy
+                is[I31] = isMatrix[0][2]; // ixz
+                is[I32] = isMatrix[1][2]; // iyz
+                is[I33] = isMatrix[2][2]; // izz
+                // printf("\tI(S): [%lf, %lf, %lf, %lf, %lf, %lf]\n",
+                //         is[0], is[1], is[2], is[3], is[4], is[5]);
+            }
+
+            // Skip to I(Q) matrix, (1 line down)
+            status = getline(&line, &linecap, fp);
+            if (status < 0) break;
+
+            // Get I(Q) values in next 3 lines
+            for (i = 0; i < 3; i++) {
+                // Get I(Q) value
+                sscanf(line, " * %lf *", &iqArray[i]);
+
+                status = getline(&line, &linecap, fp);
+                if (status < 0) break;
+            }
+
+            // set I(Q)
+            if (iq != NULL) {
+                iq[0] = iqArray[0];
+                iq[1] = iqArray[1];
+                iq[2] = iqArray[2];
+                // printf("\tI(Q): [%lf, %lf, %lf]\n", iq[0], iq[1], iq[2]);
+            }
+
+            // Skip to Q matrix, (1 line down)
+            status = getline(&line, &linecap, fp);
+            if (status < 0) break;
+
+            // Get Q values in next 3 lines
+            for (i = 0; i < 3; i++) {
+
+                sscanf(line, " * %lf%lf%lf *", &qMatrix[i][0],
+                                               &qMatrix[i][1],
+                                               &qMatrix[i][2]);
+
+                status = getline(&line, &linecap, fp);
+                if (status < 0) break;
+            }
+
+            // set Q
+            if (q != NULL) {
+                for (i = 0; i < 3; i++) {
+                    for (j = 0; j < 3; j++) {
+                        q[i + 3 * j] = qMatrix[i][j];
+                    }
+                }
+                // printf("\tQ   : [[%lf, %lf, %lf],\n"
+                //        "\t       [%lf, %lf, %lf],\n"
+                //        "\t       [%lf, %lf, %lf]]\n", q[0], q[1], q[2],
+                //                                       q[3], q[4], q[5],
+                //                                       q[6], q[7], q[9]);
+            }
+
+            foundGRDPNT = (int) true;
+        }
+
+    }
+
+    if (line != NULL) free(line);
+
+    // Rewind the file
+    rewind(fp);
+
+    if (!foundGRDPNT) return CAPS_NOTFOUND;
+
+    return CAPS_SUCCESS;
+}
+
 // Read objective values for a Nastran OP2 file  and liad it into a dataMatrix[numPoint]
 int nastran_readOP2Objective(/*@unused@*/char *filename, int *numData,  double **dataMatrix) {
 
@@ -3226,7 +3933,7 @@ int nastran_readOP2Objective(/*@unused@*/char *filename, int *numData,  double *
             // Initialize python
             if (Py_IsInitialized() == 0) {
                 printf("\tInitializing Python within AIM\n\n");
-                Py_Initialize();
+                Py_InitializeEx(0);
                 initPy = (int) true;
             } else {
                 initPy = (int) false;
@@ -3267,8 +3974,6 @@ int nastran_readOP2Objective(/*@unused@*/char *filename, int *numData,  double *
                 status = CAPS_BADOBJECT;
                 goto cleanup;
             }
-
-            Py_XDECREF(mobj);
 
             status = nastran_getObjective((const char *) filename, numData, dataMatrix);
             if (status == -1) {
@@ -3319,7 +4024,7 @@ static double _dL(double x, double x0, double x1, double x2) {
     return ((x-x2) + (x-x1)) / ((x0-x1) * (x0-x2));
 }
 
-// Get interpolated z coordinate, using 3 bracketing points 
+// Get interpolated z coordinate, using 3 bracketing points
 // from xi, zi to define interpolating function
 static double _dzdx(double x, int n, double *xi, double *zi) {
 
@@ -3368,6 +4073,16 @@ static double _getEndDownwash(double x, int n, double *xi, double *zi) {
     return atan(_dzdx(x, n, xi, zi));
 }
 
+static double _getEndGlobalDownwash(vlmSectionStruct *section) {
+
+    double xVec, zVec;
+
+    xVec = section->xyzTE[0] - section->xyzLE[0];
+    zVec = section->xyzTE[2] - section->xyzLE[2];
+
+    return atan(zVec/xVec);
+}
+
 static double _getPanelDownwash(double wroot, double wtip, double yroot, double ytip, double yj) {
 
     return wroot + (wtip - wroot) * ((yj - yroot) / (ytip - yroot));
@@ -3407,24 +4122,12 @@ static int _getSectionCamberTwist(void *aimInfo,
                                       &xCoordTip, &zCamberTip);
     if (status != CAPS_SUCCESS) goto cleanup;
 
-    // printf("camberRoot: ");
-    // for (i = 0; i < numChordDiv; i++) {
-    //     printf("%f, ", zCamberRoot[i]);
-    // }
-    // printf("\n");
-
-    // printf("camberTip: ");
-    // for (i = 0; i < numChordDiv; i++) {
-    //     printf("%f, ", zCamberTip[i]);
-    // }
-    // printf("\n");
-
     // get normalized spanwise coordinates
 
     yCoord = EG_alloc(numSpanDiv * sizeof(double));
 
     for (i = 0; i < numSpanDiv; i++) {
-        yCoord[i] = i / (numSpanDiv-1.0); 
+        yCoord[i] = i / (numSpanDiv-1.0);
     }
 
     // get panel downwashes
@@ -3448,9 +4151,11 @@ static int _getSectionCamberTwist(void *aimInfo,
 
             // wroot
             wroot = _getEndDownwash(xmid, numChordDiv, xCoordRoot, zCamberRoot);
+            wroot += _getEndGlobalDownwash(sectionRoot);
 
-            // wtip (same as wroot because normalized ?)
+            // wtip
             wtip = _getEndDownwash(xmid, numChordDiv, xCoordTip, zCamberTip);
+            wtip += _getEndGlobalDownwash(sectionTip);
 
             // yroot, ytip
             yroot = yCoord[0];
@@ -3492,7 +4197,7 @@ static int _getSectionCamberTwist(void *aimInfo,
 }
 
 // Write Nastran DMI cards for downwash matrix from collection of feaAeroStructs
-int nastran_writeAeroCamberTwist(void *aimInfo, FILE *fp, int numAero, feaAeroStruct *feaAero, feaFileFormatStruct *feaFileFormat) {
+int nastran_writeAeroCamberTwist(void *aimInfo, FILE *fp, int numAero, feaAeroStruct *feaAero, const feaFileFormatStruct *feaFileFormat) {
 
     int i, j, iAero, status;
 
@@ -3510,7 +4215,7 @@ int nastran_writeAeroCamberTwist(void *aimInfo, FILE *fp, int numAero, feaAeroSt
     numSectionPanel = 0;
 
     for (iAero = 0; iAero < numAero; iAero++) {
-        
+
         aero = &feaAero[iAero];
 
         for (i = 0; i < aero->vlmSurface.numSection-1; i++) {

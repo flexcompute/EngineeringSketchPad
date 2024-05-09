@@ -1,0 +1,28 @@
+# ereped8
+# written by John DAnnenhoffer
+
+# first Body
+MARK
+   BOX    0  0  0  0  1  1
+   BOX    1  0  0  0  1  1
+   BOX    2  0  0  0  1  1
+   BOX    3  0  0  0  1  1
+RULE
+ATTRIBUTE _name      $RuledBody
+ATTRIBUTE _erepAttr  $_erep
+ATTRIBUTE _erepAngle 5
+SELECT    FACE       @nbody 12
+SELECT    ADD        @nbody 13
+ATTRIBUTE _erep      1
+SELECT    FACE       @nbody 10
+SELECT    ADD        @nbody 11
+ATTRIBUTE _erep      5
+
+# second Body
+BOX       4  0  0  1  1  1
+BOX       4  1  0  1  1  1
+UNION
+BOX       4  2  0  1  1  1
+UNION
+
+END

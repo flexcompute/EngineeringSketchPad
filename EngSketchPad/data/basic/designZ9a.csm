@@ -1,0 +1,119 @@
+# designZ9a
+# written by John Dannenhoffer
+
+DESPMTR   right_side  4.0
+DESPMTR   top_side    2.0
+DESPMTR   left_side   0
+DESPMTR   btm_side    0
+DESPMTR   circ_r      0.25  
+
+# plate with 3-segment right end
+SKBEG         left_side   btm_side    0
+    LINSEG    right_side  btm_side    0
+    ATTRIBUTE name    $bottom
+    ATTRIBUTE spacing 4.00000000e-04;3.00000000e-04
+    ATTRIBUTE growth  2.00000000e-04
+
+    LINSEG    right_side  top_side/3    0
+    ATTRIBUTE name    $lower_right
+    ATTRIBUTE spacing 4.00000000e-04;3.00000000e-04
+    ATTRIBUTE growth  2.00000000e-04
+
+    LINSEG    right_side  top_side*2/3    0
+    ATTRIBUTE name    $mid_right
+    ATTRIBUTE spacing 4.00000000e-04;3.00000000e-04
+    ATTRIBUTE growth  2.00000000e-04
+
+    LINSEG    right_side  top_side    0
+    ATTRIBUTE name    $upper_right
+    ATTRIBUTE spacing 4.00000000e-04;3.00000000e-04
+    ATTRIBUTE growth  2.00000000e-04
+
+    LINSEG    left_side   top_side    0
+    ATTRIBUTE name    $top
+    ATTRIBUTE spacing 4.00000000e-04;3.00000000e-04
+    ATTRIBUTE growth  2.00000000e-04
+
+    LINSEG    left_side   btm_side    0
+    ATTRIBUTE name    $left
+    ATTRIBUTE spacing 4.00000000e-04;3.00000000e-04
+    ATTRIBUTE growth  2.00000000e-04
+SKEND
+SET       plateBody  @nbody
+
+# first (right-most) scribe
+UDPRIM    ellipse rx  circ_r  ry  circ_r  rz  0
+TRANSLATE right_side*3/4     top_side/2     0
+TRANSLATE 0  0 -1
+EXTRUDE   0  0  2
+SET       holeBody  @nbody
+EXTRACT   0
+
+SUBTRACT
+SELECT    edge   plateBody 0 holeBody 0
+ATTRIBUTE name    $hole_punch_1
+ATTRIBUTE spacing 4.00000000e-04;3.00000000e-04
+ATTRIBUTE growth  2.00000000e-04
+
+# second (left-most) scribe
+UDPRIM    ellipse rx  circ_r  ry  circ_r  rz  0
+TRANSLATE right_side/4     top_side/2     0
+TRANSLATE 0  0 -1
+EXTRUDE   0  0  2
+SET       holeBody  @nbody
+EXTRACT   0
+
+SUBTRACT
+SELECT    edge   plateBody 0 holeBody 0
+ATTRIBUTE name    $hole_punch_2
+ATTRIBUTE spacing 4.00000000e-04;3.00000000e-04
+ATTRIBUTE growth  2.00000000e-04
+ATTRIBUTE num     1
+
+# third (center) scribe
+UDPRIM    ellipse rx  circ_r  ry  circ_r  rz  0
+TRANSLATE right_side/2     top_side/2     0
+TRANSLATE 0  0 -1
+EXTRUDE   0  0  2
+SET       holeBody  @nbody
+EXTRACT   0
+
+SUBTRACT
+SELECT    edge   plateBody 0 holeBody 0
+ATTRIBUTE name    $hole_punch_3
+ATTRIBUTE spacing 4.00000000e-04;3.00000000e-04
+ATTRIBUTE growth  2.00000000e-04
+
+# make the Nodes visible
+SELECT    node
+ATTRIBUTE _viz  $on
+
+# make sure we got all the name Attributes
+SELECT    edge  $name    $bottom
+ASSERT    @sellist.size  1
+
+SELECT    edge  $name    $lower_right
+ASSERT    @sellist.size  1
+
+SELECT    edge  $name    $mid_right
+ASSERT    @sellist.size  1
+
+SELECT    edge  $name    $upper_right
+ASSERT    @sellist.size  1
+
+SELECT    edge  $name    $top
+ASSERT    @sellist.size  1
+
+SELECT    edge  $name    $left
+ASSERT    @sellist.size  1
+
+SELECT    edge  $name    $hole_punch_1
+ASSERT    @sellist.size  3
+
+SELECT    edge  $name    $hole_punch_2
+ASSERT    @sellist.size  3
+
+SELECT    edge  $name    $hole_punch_3
+ASSERT    @sellist.size  3
+
+END

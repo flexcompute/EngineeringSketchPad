@@ -1,0 +1,10 @@
+# printEgo_udf_1
+# written by John Dannenhoffer
+
+# make a torus
+TORUS     0  0  0  0  0  1  4  1
+
+# print info about the EGADS ego
+UDPRIM    printEgo
+
+END

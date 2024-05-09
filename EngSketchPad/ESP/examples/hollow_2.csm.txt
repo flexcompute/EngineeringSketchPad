@@ -1,0 +1,19 @@
+# hollow_2
+# written by John Dannenhoffer
+
+# box shown as wireframe
+BOX       0  0  0  3  2  1
+SELECT    FACE
+ATTRIBUTE _viz $off
+
+# same box
+BOX       0  0  0  3  2  1
+
+# make larger (transparent) body with blue Edges
+HOLLOW    0.1
+SELECT    FACE
+ATTRIBUTE _trn $on
+SELECT    EDGE
+ATTRIBUTE _color $blue
+
+END

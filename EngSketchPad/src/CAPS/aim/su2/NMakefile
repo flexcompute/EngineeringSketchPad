@@ -15,7 +15,7 @@ TDIR  = $(ESP_ROOT)\bin
 !ENDIF
 
 OBJS =	$(ODIR)\su2AIM.obj $(ODIR)\su2Utils.obj $(ODIR)\su2_4_Cardinal.obj \
-	$(ODIR)\su2_5_Raven.obj $(ODIR)\su2_6_Falcon.obj $(ODIR)\su2_7_Blackbird.obj
+	$(ODIR)\su2_5_Raven.obj $(ODIR)\su2_6_Falcon.obj $(ODIR)\su2_7_Blackbird.obj $(ODIR)\su2_801_Harrier.obj
 
 $(LDIR)\su2AIM.dll:	su2AIM.def $(OBJS) $(LDIR)\utils.lib
 	-del $(LDIR)\su2AIM.dll $(LDIR)\su2AIM.lib $(LDIR)\su2AIM.exp
@@ -49,6 +49,10 @@ $(ODIR)\su2_6_Falcon.obj:	su2_6_Falcon.c su2Utils.h
 $(ODIR)\su2_7_Blackbird.obj:	su2_7_Blackbird.c su2Utils.h
 	cl /c $(COPTS) $(DEFINE) /I$(IDIR) /I..\utils su2_7_Blackbird.c \
 		/Fo$(ODIR)\su2_7_Blackbird.obj
+
+$(ODIR)\su2_801_Harrier.obj:	su2_801_Harrier.c su2Utils.h
+	cl /c $(COPTS) $(DEFINE) /I$(IDIR) /I..\utils su2_801_Harrier.c \
+		/Fo$(ODIR)\su2_801_Harrier.obj
 
 clean:
 	-del $(OBJS)

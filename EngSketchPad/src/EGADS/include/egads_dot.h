@@ -5,7 +5,7 @@
  *
  *             Function Prototypes for Sensitivities
  *
- *      Copyright 2011-2022, Massachusetts Institute of Technology
+ *      Copyright 2011-2024, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -117,6 +117,15 @@ int  EG_approximate_dot( ego bspline, int maxdeg, double tol,
 
 /* Surreal topology functions */
 
+template<int N> // Only N == 1 instantiated
+int  EG_getTopology( const egObject *topo, ego *geom, int *oclass,
+                     int *type, /*@null@*/ SurrealS<N> *limits,
+                     int *nChildren, ego **children, int **sense );
+template<int N> // Only N == 1 instantiated
+int  EG_makeTopology( ego context, /*@null@*/ ego geom, int oclass,
+                      int mtype, /*@null@*/ SurrealS<N> *limits,
+                      int nChildren, /*@null@*/ ego *children,
+                      /*@null@*/ int *senses, ego *topo );
 int  EG_setRange_dot( ego geom, int oclass, const SurrealS<1> *range);
 int  EG_getRange( const egObject *geom, SurrealS<1> *range, int *periodic );
 

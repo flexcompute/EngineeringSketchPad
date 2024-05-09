@@ -6,6 +6,8 @@
 extern "C" {
 #endif
 
+typedef double DOUBLE_19[19];
+
 // Read data from Mystran OUTPUT4 file and load it into a capsValue
 int mystran_readOutput4Data(FILE *fp, const char *keyword, capsValue *val);
 
@@ -16,6 +18,14 @@ int mystran_readF06EigenVector(FILE *fp, int *numEigenVector, int *numGridPoint,
 // Read data from a Mystran F06 file and load it into a dataMatrix[numGridPoint][8]
 // where variables are Grid Id, Coord Id, T1, T2, T3, R1, R2, R3
 int mystran_readF06Displacement(FILE *fp, int subcaseId, int *numGridPoint, double ***dataMatrix);
+
+// Read Stress data from a Mystran F06 file and load it into a dataMatrix[numGridPoint][19]
+int mystran_readF06Stress(void *aimInfo, FILE *fp, int subcaseId, int *numElement,
+                          DOUBLE_19 **dataMatrix);
+
+// Read Element Strain data from a Mystran F06 file and load it into a dataMatrix[numGridPoint][19]
+int mystran_readF06Strain(void *aimInfo, FILE *fp, int subcaseId, int *numElement,
+                          DOUBLE_19 **dataMatrix);
 
 #ifdef __cplusplus
 }

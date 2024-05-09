@@ -2,6 +2,9 @@
 
 // Mesh related utility functions - Written by Dr. Ryan Durscher AFRL/RQVC
 
+#ifndef _AIM_UTILS_MESHUTILS_H_
+#define _AIM_UTILS_MESHUTILS_H_
+
 #include "meshTypes.h"  // Bring in mesh structures
 #include "capsTypes.h"  // Bring in CAPS types
 #include "cfdTypes.h"   // Bring in cfd structures
@@ -20,7 +23,7 @@ int mesh_bodyTessellation(void *aimInfo, ego tess, const mapAttrToIndexStruct *a
                           int *numTriFace, int *triFaceConn[], int *triFaceCompID[], int *triFaceTopoID[],
                           int *numBndEdge, int *bndEdgeConn[], int *bndEdgeCompID[], int *bndEdgeTopoID[],
                           int *numNodeEle, int *nodeEleConn[], int *nodeEleCompID[], int *nodeEleTopoID[],
-                          int *twoDMesh,
+                          int twoDMesh,
                /*@null@*/ const int *tessFaceQuadMap,
                           int *numQuadFace, int *quadFaceConn[], int *quadFaceCompID[], int *quadFaceTopoID[]);
 
@@ -28,7 +31,7 @@ int mesh_bodyTessellation(void *aimInfo, ego tess, const mapAttrToIndexStruct *a
 int mesh_surfaceMeshEGADSBody(void *aimInfo, ego body, double refLen, const double tessParams[3], int quadMesh, ego *tess);
 
 // Create a surface mesh in meshStruct format using the EGADS body tessellation
-int mesh_surfaceMeshEGADSTess(void *aimInfo, meshStruct *surfMesh);
+int mesh_surfaceMeshEGADSTess(void *aimInfo, meshStruct *surfMesh, int twoDMesh);
 
 // Modify the EGADS body tessellation based on given inputs
 int mesh_modifyBodyTess(int numMeshProp,
@@ -48,10 +51,10 @@ int write_MAPBC(void *aimInfo,
                 int *bndIds,
                 int *bndVals);
 
-void get_Surface_Norm(double p1[3],
-                      double p2[3],
-                      double p3[3],
-                      double norm[3]);
+void get_Surface_Norm(double p1[],
+                      double p2[],
+                      double p3[],
+                      double norm[]);
 
 // Populate bndCondStruct boundary condition information - Boundary condition values get filled with 99
 int populate_bndCondStruct_from_bcPropsStruct(const cfdBoundaryConditionStruct *bcProps,
@@ -68,7 +71,8 @@ int initiate_bndCondStruct(bndCondStruct *bndCond);
 int destroy_bndCondStruct(bndCondStruct *bndCond);
 
 // Populate a tetgenRegionsStruct regions data structure
-int populate_regions(tetgenRegionsStruct* regions,
+int populate_regions(void *aimInfo,
+                     tetgenRegionsStruct* regions,
                      int length,
                      const capsTuple* tuples);
 
@@ -77,6 +81,11 @@ int initiate_regions(tetgenRegionsStruct* regions);
 
 // Destroy a tetgenRegionsStruct regions data structure
 int destroy_regions(tetgenRegionsStruct* regions);
+
+// Copy a tetgenRegionsStruct
+int copy_regions(void *aimInfo,
+                 const tetgenRegionsStruct* regions,
+                 tetgenRegionsStruct* copy);
 
 // Populate a tetgenHolesStruct holes data structure
 int populate_holes(tetgenHolesStruct* holes,
@@ -211,7 +220,7 @@ int mesh_retrieveMeshElements(int numElement,
                               int *elementTypeList[]);
 
 // Fill out the QuickRef lists for all element types
-int mesh_fillQuickRefList( meshStruct *mesh);
+int mesh_fillQuickRefList( void *aimInfo, meshStruct *mesh );
 
 // Make a copy of the analysis Data
 int mesh_copyMeshAnalysisData(void *in, meshAnalysisTypeEnum analysisType, void *out);
@@ -226,7 +235,7 @@ int mesh_copyMeshNodeStruct(meshNodeStruct *in, int nodeOffSetIndex, meshNodeStr
 int mesh_copyMeshStruct( meshStruct *in, meshStruct *out );
 
 // Combine mesh structures
-int mesh_combineMeshStruct(int numMesh, meshStruct mesh[], meshStruct *combineMesh );
+int mesh_combineMeshStruct(void *aimInfo, int numMesh, meshStruct mesh[], meshStruct *combineMesh );
 
 // Write a mesh contained in the mesh structure in AFLR3 format (*.ugrid, *.lb8.ugrid, *.b8.ugrid)
 int mesh_writeAFLR3(void *aimInfo,
@@ -262,6 +271,8 @@ int mesh_writeNASTRAN(void *aimInfo,
                       char *fname,
                       int asciiFlag, // 0 for binary, anything else for ascii
                       const meshStruct *nasMesh,
+                      int numProperty,
+           /*@null@*/ const feaPropertyStruct *feaProperty,
                       feaFileTypeEnum gridFileType,
                       double scaleFactor); // Scale factor for coordinates
 
@@ -308,14 +319,15 @@ int mesh_writeFAST(void *aimInfo,
 
 // Write a mesh contained in the mesh structure in Abaqus mesh format (*_Mesh.inp)
 int mesh_writeAbaqus(void *aimInfo,
-                     char *fname,
+                     const char *fname,
                      int asciiFlag,
-                     meshStruct *mesh,
+                     const meshStruct *mesh,
                      double scaleFactor); // Scale factor for coordinates
 
 // Extrude a surface mesh a single unit the length of extrusionLength - return a
 // volume mesh, cell volume and left-handness is not checked
-int extrude_SurfaceMesh(double extrusionLength,
+int extrude_SurfaceMesh(void *aimInfo,
+                        double extrusionLength,
                         int extrusionMarker,
                         meshStruct *surfaceMesh, meshStruct *volumeMesh);
 
@@ -333,41 +345,63 @@ int mesh_removeUnusedNodes(meshStruct *mesh);
 int mesh_nodeID2Array(const meshStruct *mesh,
                       int **n2a);
 
+// Constructs a map that maps from elementID to the mesh->element array index
+int mesh_elementID2Array(const meshStruct *mesh,
+                         int **e2a);
+
+
 // Create a new mesh with topology tagged with capsIgnore being removed, if capsIgnore isn't found the mesh is simply copied.
-int mesh_createIgnoreMesh(meshStruct *mesh, meshStruct *meshIgnore);
+int mesh_createIgnoreMesh(void *aimInfo, meshStruct *mesh, meshStruct *meshIgnore);
 
 // Changes the analysisType of a mesh
 int mesh_setAnalysisType(meshAnalysisTypeEnum analysisType, meshStruct *mesh);
 
+// Function used to determine if node matches the attribute index
+int mesh_matchNodeAttrIndex(meshNodeStruct *node, void *attrIndex);
+
 // Find meshNodeStructs with `isMatch` function
 // Returns array of borrowed pointers
-int mesh_findNodes(meshStruct *mesh, 
-                   int (*isMatch)(meshNodeStruct *, void *), 
-                   void *isMatchArg, 
-                   int *numFound, 
+int mesh_findNodes(meshStruct *mesh,
+                   int (*isMatch)(meshNodeStruct *, void *),
+                   void *isMatchArg,
+                   int *numFound,
                    meshNodeStruct ***foundSet);
+
+// Function used to determine which element matches the attribute index
+int mesh_matchElementAttrIndex(meshElementStruct *element, void *attrIndex);
 
 // Find meshElementStructs with `isMatch` function
 // Returns array of borrowed pointers
-int mesh_findElements(meshStruct *mesh, 
-                      int (*isMatch)(meshElementStruct *, void *), 
-                      void *isMatchArg, 
-                      int *numFound, 
+int mesh_findElements(meshStruct *mesh,
+                      int (*isMatch)(meshElementStruct *, void *),
+                      void *isMatchArg,
+                      int *numFound,
                       meshElementStruct ***foundSet);
 
 // Find meshElementStructs with given groupName(s)
 // Returns array of borrowed pointers
 int mesh_findGroupElements(meshStruct *mesh,
-                      mapAttrToIndexStruct *attrMap, 
-                      int numGroupName, 
-                      char **groupName, 
-                      int *numGroupElement, 
+                      mapAttrToIndexStruct *attrMap,
+                      int numGroupName,
+                      char **groupName,
+                      int *numGroupElement,
                       meshElementStruct ***groupElementSet);
 
 // General routine to do fill up a AIM capsDiscr data structure
 int mesh_fillDiscr(char *tname, mapAttrToIndexStruct *groupMap,
                    int numBody, ego *tess, capsDiscr *discr);
 
+// Computes elemental data averaged to grid points
+int mesh_gridAvg(void *aimInfo, const meshStruct *mesh,
+                 const int numElement, int *elementIDs, int rankData,
+                 double *elemData,
+                 double **gridData);
+
+// Generate a surface mesh from EGADS Tessellation object
+int mesh_surfaceMeshData(void *aimInfo, const mapAttrToIndexStruct *groupMap, aimMesh *mesh);
+
 #ifdef __cplusplus
 }
 #endif
+
+#endif // _AIM_UTILS_MESHUTILS_H_

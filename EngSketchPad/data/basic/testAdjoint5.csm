@@ -1,0 +1,32 @@
+# testAdjoint5
+# written by John Dannenhoffer
+
+DIMENSION width     1  49
+DIMENSION height    1  49
+DIMENSION radius    1  47
+
+DESPMTR   width     2.0
+DESPMTR   height    1.0
+DESPMTR   radius    0.1
+
+PATBEG    isect     width.size
+   UDPRIM    supell    rx width[isect]   ry height[isect]   n 4.0
+   ROTATEY   90
+   ROTATEX   isect*10-5
+   TRANSLATE isect-1   0   0
+PATEND
+BLEND
+
+PATBEG    ipost     radius.size
+   MARK
+      UDPRIM    ellipse   rx radius[ipost]   ry radius[ipost]
+      ROTATEX   90
+      TRANSLATE ipost  -3  0
+      RESTORE   .
+      TRANSLATE 0       6  0
+   RULE
+   ROTATEX   ipost*10+45
+   UNION
+PATEND
+
+END

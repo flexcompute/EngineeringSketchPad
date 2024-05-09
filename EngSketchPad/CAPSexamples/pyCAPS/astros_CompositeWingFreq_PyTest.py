@@ -55,7 +55,7 @@ for boundName in boundNames:
     
     # Create eigenVector data sets
     for eigenVector in eigenVectors:
-        astros_eigenVector = astrosVset.dataSet.create(eigenVector, pyCAPS.fType.FieldOut)
+        astros_eigenVector = astrosVset.dataSet.create(eigenVector)
 
     # Close the bound as complete (cannot create more vertex or data sets)
     bound.close()
@@ -117,7 +117,7 @@ eigen = { "extractionMethod"     : "MGIV",
           "frequencyRange"       : [0, 1000],
           "numEstEigenvalue"     : 1,
           "numDesiredEigenvalue" : 10,
-          "eigenNormaliztion"    : "MASS"}
+          "eigenNormalization"   : "MASS"}
 
 astros.input.Analysis = {"EigenAnalysis": eigen}
 

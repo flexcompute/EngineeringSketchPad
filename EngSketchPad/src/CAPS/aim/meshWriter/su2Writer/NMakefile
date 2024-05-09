@@ -15,11 +15,11 @@ TDIR  = $(ESP_ROOT)\bin
 !ENDIF
 
 
-$(LDIR)\su2Writer.dll:	su2Writer.def $(ODIR)\su2Writer.obj $(LDIR)\aimUtil.lib $(LDIR)\aimMesh.lib
+$(LDIR)\su2Writer.dll:	su2Writer.def $(ODIR)\su2Writer.obj $(LDIR)\aimUtil.lib
 	-del $(LDIR)\su2Writer.dll $(LDIR)\su2Writer.lib \
 		$(LDIR)\su2Writer.exp
 	 link /out:$(LDIR)\su2Writer.dll /dll /def:su2Writer.def \
-		$(ODIR)\su2Writer.obj /LIBPATH:$(LDIR) aimUtil.lib aimMesh.lib \
+		$(ODIR)\su2Writer.obj /LIBPATH:$(LDIR) aimUtil.lib \
 		ocsm.lib egads.lib udunits2.lib
 	$(MCOMP) /manifest $(LDIR)\su2Writer.dll.manifest \
 		/outputresource:$(LDIR)\su2Writer.dll;2

@@ -1,0 +1,26 @@
+# dumpPmtrs
+# written by John Dannenhoffer
+
+DIMENSION a   1 3
+DESPMTR   a   1.0
+CFGPMTR   b   2.0
+CONPMTR   c   3.0
+
+SET       d   4
+DIMENSION e   3 1
+SET       e   5;55;555
+DIMENSION f   3 4
+OUTPMTR   f
+PATBEG    irow  f.nrow
+   PATBEG icol  f.ncol
+      SET f[irow,icol] 10*irow+icol
+   PATEND
+PATEND
+
+SET       g   $myG
+
+BOX       0  0  0  1  1  1
+
+UDPRIM    dumpPmtrs  filename  $dumpPmtrs.txt
+
+END

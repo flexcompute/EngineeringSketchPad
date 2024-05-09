@@ -1,0 +1,33 @@
+# intersect_8 (Wire/Sheet - does not work)
+# written by John Dannenhoffer
+
+# generate box SheetBody and wire WireBody
+BOX       0  0  0  3  2  1
+EXTRACT   0
+STORE     theBox
+
+BOX       3/2  -1  1/2  0  4  0
+STORE     theWire
+
+# show outline of theBox and endpoints of theWire
+RESTORE   theBox
+ATTRIBUTE _name  $theBox
+ATTRIBUTE _viz   $off
+
+POINT     3/2  -1  1/2
+ATTRIBUTE _name  $theWire[beg]
+POINT     3/2   3  1/2
+ATTRIBUTE _name  $theWire[end]
+
+# perform the INTERSECTion (does not work - leaves theWire and theBox on the stack)
+RESTORE   theWire
+RESTORE   theBox
+INTERSECT
+
+CATBEG    $wrong_types_on_stack
+   MESSAGE =========================
+   MESSAGE does_not_work_as_expected
+   MESSAGE =========================
+CATEND
+
+END

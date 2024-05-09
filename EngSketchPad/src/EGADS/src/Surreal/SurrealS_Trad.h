@@ -16,6 +16,11 @@
 
 #include <string>
 
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#define ESP_M_PI
+#endif
+
 #include "always_inline.h"
 
 //----------------------------------------------------------------------------//
@@ -918,5 +923,9 @@ operator<<( std::ostream& os, const SurrealS<N,T>& z )
 #undef SURREALS_FUNC1
 #undef SURREALS_FUNC2
 
+#ifdef ESP_M_PI
+#undef M_PI
+#undef ESP_M_PI
+#endif
 
 #endif // SURREALS_TRAD_H

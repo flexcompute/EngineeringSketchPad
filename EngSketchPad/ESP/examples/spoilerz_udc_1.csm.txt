@@ -1,0 +1,28 @@
+# spoiler_udc_1
+# written by John Dannenhoffer
+
+# basic config
+MARK
+   # root
+   UDPRIM    naca  series 4412
+   SCALE     2.0
+   ROTATEX   90  0  0
+
+   # tip
+   UDPRIM    naca  series 4412
+   SCALE     2.0
+   ROTATEX   90  0  0
+   TRANSLATE 0  6.0  0
+RULE
+
+# add the spoiler
+UDPARG   $$/spoilerz  xbox      "1.50; 1.00; 1.00; 1.50;"
+UDPARG   $$/spoilerz  ybox      "1.00; 1.00; 5.00; 5.00;"
+UDPARG   $$/spoilerz  depth      0.10
+UDPARG   $$/spoilerz  thick      0.02
+UDPARG   $$/spoilerz  theta      30.0
+UDPARG   $$/spoilerz  overlap    0.002
+UDPARG   $$/spoilerz  extend     0.200
+UDPRIM   $$/spoilerz
+
+END

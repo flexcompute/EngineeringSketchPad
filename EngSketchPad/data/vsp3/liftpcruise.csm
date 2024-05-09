@@ -1,0 +1,6 @@
+# liftpcruise
+# written by John Dannenhoffer
+
+UDPRIM    vsp3   filename $$/liftpcruise.vsp3
+
+END

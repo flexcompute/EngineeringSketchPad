@@ -17,60 +17,64 @@ LIBLIST =	$(LDIR)\ocsm.dll \
 		$(LDIR)\bezier.dll \
 		$(LDIR)\biconvex.dll \
 		$(LDIR)\box.dll \
+		$(LDIR)\bspline.dll \
 		$(LDIR)\catmull.dll \
 		$(LDIR)\compare.dll \
 		$(LDIR)\createBEM.dll \
 		$(LDIR)\createPoly.dll \
-		$(LDIR)\droop.dll \
 		$(LDIR)\csm.dll \
+		$(LDIR)\deform.dll \
+		$(LDIR)\droop.dll \
+		$(LDIR)\dumpPmtrs.dll \
 		$(LDIR)\editAttr.dll \
-		$(LDIR)\printBbox.dll \
-		$(LDIR)\printBrep.dll \
-		$(LDIR)\printEgo.dll \
-		$(LDIR)\shadow.dll \
+		$(LDIR)\ellipse.dll \
+		$(LDIR)\eqn2body.dll \
+		$(LDIR)\fitcurve.dll \
 		$(LDIR)\flend.dll \
+		$(LDIR)\freeform.dll \
 		$(LDIR)\ganged.dll \
 		$(LDIR)\guide.dll \
-		$(LDIR)\matchBodys.dll \
-		$(LDIR)\nacelle.dll \
-		$(LDIR)\nuscale.dll \
-		$(LDIR)\ellipse.dll \
-		$(LDIR)\fitcurve.dll \
-		$(LDIR)\freeform.dll \
 		$(LDIR)\hex.dll \
 		$(LDIR)\import.dll \
 		$(LDIR)\kulfan.dll \
+		$(LDIR)\linalg.dll \
+		$(LDIR)\matchBodys.dll \
+		$(LDIR)\mechanism.dll \
 		$(LDIR)\naca.dll \
+		$(LDIR)\naca6mc.dll \
+		$(LDIR)\nacelle.dll \
 		$(LDIR)\nurbbody.dll \
+		$(LDIR)\nuscale.dll \
+		$(LDIR)\offset.dll \
 		$(LDIR)\parabaloid.dll \
 		$(LDIR)\parsec.dll \
 		$(LDIR)\pod.dll \
 		$(LDIR)\poly.dll \
+		$(LDIR)\printBbox.dll \
+		$(LDIR)\printBrep.dll \
+		$(LDIR)\printEgo.dll \
 		$(LDIR)\prop.dll \
 		$(LDIR)\radwaf.dll \
 		$(LDIR)\sample.dll \
 		$(LDIR)\sew.dll \
-		$(LDIR)\stag.dll \
+		$(LDIR)\shadow.dll \
 		$(LDIR)\slices.dll \
+		$(LDIR)\stag.dll \
 		$(LDIR)\stiffener.dll \
 		$(LDIR)\supell.dll \
+		$(LDIR)\tester1.dll \
+		$(LDIR)\tester2.dll \
+		$(LDIR)\vsp3.dll \
 		$(LDIR)\waffle.dll \
+		$(LDIR)\warp.dll \
 		$(LDIR)\PDT2.dll
 LIBFLIST = 	$(LDIR)\naca456.dll
-!ifdef PYTHONINC
 TIMLIST  =      $(LDIR)\ereped.dll \
                 $(LDIR)\mitten.dll \
                 $(LDIR)\plotter.dll \
                 $(LDIR)\plugs.dll \
-                $(LDIR)\pyscript.dll \
-                $(LDIR)\slugs.dll
-!else
-TIMLIST  =      $(LDIR)\ereped.dll \
-                $(LDIR)\mitten.dll \
-                $(LDIR)\plotter.dll \
-                $(LDIR)\plugs.dll \
-                $(LDIR)\slugs.dll
-!endif
+                $(LDIR)\slugs.dll \
+                $(LDIR)\vspSetup.dll
 INCLIST = 	$(IDIR)\OpenCSM.h \
 		$(IDIR)\common.h \
 		$(IDIR)\udp.h \
@@ -93,21 +97,21 @@ $(BDIR)\serveCSM.exe:	$(ODIR)\serveCSM.obj $(LDIR)\ocsm.dll
 	cl /Fe$(BDIR)\serveCSM.exe $(ODIR)\serveCSM.obj /link /LIBPATH:$(LDIR) ocsm.lib wsserver.lib egads.lib
         $(MCOMP) /manifest $(BDIR)\serveCSM.exe.manifest               /outputresource:$(BDIR)\serveCSM.exe;1
 
-$(ODIR)\serveCSM.obj:	OpenCSM.h common.h serveCSM.c
+$(ODIR)\serveCSM.obj:	serveCSM.c OpenCSM.h udp.h egg.h $(IDIR)\emp.h $(IDIR)\wsserver.h
 	cl /c $(COPTS) $(DEFINE) /I$(IDIR) /I$(IDIR)\winhelpers serveCSM.c /Fo$(ODIR)\serveCSM.obj
 
 $(BDIR)\serveESP.exe:	$(ODIR)\serveESP.obj $(LDIR)\ocsm.dll
 	cl /Fe$(BDIR)\serveESP.exe $(ODIR)\serveESP.obj /link /LIBPATH:$(LDIR) ocsm.lib wsserver.lib egads.lib
         $(MCOMP) /manifest $(BDIR)\serveESP.exe.manifest               /outputresource:$(BDIR)\serveESP.exe;1
 
-$(ODIR)\serveESP.obj:	OpenCSM.h common.h serveESP.c
+$(ODIR)\serveESP.obj:	serveESP.c OpenCSM.h $(IDIR)\emp.h udp.h esp.h tim.h
 	cl /c $(COPTS) $(DEFINE) /I$(IDIR) /I$(IDIR)\winhelpers serveESP.c /Fo$(ODIR)\serveESP.obj
 
 $(BDIR)\sensCSM.exe:	$(ODIR)\sensCSM.obj $(LDIR)\ocsm.dll
 	cl /Fe$(BDIR)\sensCSM.exe $(ODIR)\sensCSM.obj /link /LIBPATH:$(LDIR) ocsm.lib egads.lib
         $(MCOMP) /manifest $(BDIR)\sensCSM.exe.manifest               /outputresource:$(BDIR)\sensCSM.exe;1
 
-$(ODIR)\sensCSM.obj:	OpenCSM.h common.h sensCSM.c
+$(ODIR)\sensCSM.obj:	sensCSM.c OpenCSM.h udp.h
 	cl /c $(COPTS) $(DEFINE) /I$(IDIR) sensCSM.c /Fo$(ODIR)\sensCSM.obj
 
 #
@@ -118,13 +122,13 @@ $(LDIR)\ocsm.dll:      $(ODIR)\OpenCSM.obj $(ODIR)\udp.obj $(ODIR)\tim.obj $(ODI
 	link /out:$(LDIR)\ocsm.dll /dll /def:ocsm.def $(ODIR)\OpenCSM.obj $(ODIR)\udp.obj $(ODIR)\tim.obj $(ODIR)\ocsm.res /LIBPATH:$(LDIR) wsserver.lib egads.lib
 	$(MCOMP) /manifest $(LDIR)\ocsm.dll.manifest /outputresource:$(LDIR)\ocsm.dll;2
 
-$(ODIR)\OpenCSM.obj:	OpenCSM.h common.h OpenCSM.c
+$(ODIR)\OpenCSM.obj:	OpenCSM.c OpenCSM.h udp.h egg.h $(IDIR)\egads_dot.h $(IDIR)\egadsSplineVels.h
 	cl /c $(OCOPT) $(DEFINE) /I$(IDIR) OpenCSM.c /Fo$(ODIR)\OpenCSM.obj
 
-$(ODIR)\udp.obj:	udp.c
+$(ODIR)\udp.obj:	udp.c $(IDIR)\egads.h
 	cl /c $(COPTS) $(DEFINE) /I$(IDIR) udp.c /Fo$(ODIR)\udp.obj
 
-$(ODIR)\tim.obj:	tim.c
+$(ODIR)\tim.obj:	tim.c OpenCSM.h tim.h $(IDIR)\emp.h $(IDIR)\wsserver.h
 	cl /c $(COPTS) $(DEFINE) /I$(IDIR) /I$(IDIR)\winhelpers tim.c /Fo$(ODIR)\tim.obj
 
 $(ODIR)\ocsm.res:	ocsm.rc
@@ -145,6 +149,7 @@ $(LDIR)\bezier.dll:	$(ODIR)\udpBezier.obj $(LDIR)\ocsm.dll
 $(ODIR)\udpBezier.obj:	udpBezier.c udpUtilities.c udpUtilities.h
 	cl /c $(COPTS) $(DEFINE) /I$(IDIR) udpBezier.c /Fo$(ODIR)\udpBezier.obj
 
+
 $(LDIR)\biconvex.dll:	$(ODIR)\udpBiconvex.obj $(LDIR)\ocsm.dll
 	-del $(LDIR)\biconvex.dll $(LDIR)\biconvex.lib $(LDIR)\biconvex.exp
 	link /out:$(LDIR)\biconvex.dll /dll /def:udp.def $(ODIR)\udpBiconvex.obj $(LDIR)\ocsm.lib $(LDIR)\egads.lib
@@ -152,6 +157,7 @@ $(LDIR)\biconvex.dll:	$(ODIR)\udpBiconvex.obj $(LDIR)\ocsm.dll
 
 $(ODIR)\udpBiconvex.obj:	udpBiconvex.c udpUtilities.c udpUtilities.h
 	cl /c $(COPTS) $(DEFINE) /I$(IDIR) udpBiconvex.c /Fo$(ODIR)\udpBiconvex.obj
+
 
 $(LDIR)\box.dll:	$(ODIR)\udpBox.obj $(LDIR)\ocsm.dll
 	-del $(LDIR)\box.dll $(LDIR)\box.lib $(LDIR)\box.exp
@@ -161,6 +167,16 @@ $(LDIR)\box.dll:	$(ODIR)\udpBox.obj $(LDIR)\ocsm.dll
 $(ODIR)\udpBox.obj:	udpBox.c udpUtilities.c udpUtilities.h
 	cl /c $(COPTS) $(DEFINE) /I$(IDIR) udpBox.c /Fo$(ODIR)\udpBox.obj
 
+
+$(LDIR)\bspline.dll:	$(ODIR)\udpBspline.obj $(LDIR)\ocsm.dll
+	-del $(LDIR)\bspline.dll $(LDIR)\bspline.lib $(LDIR)\bspline.exp
+	link /out:$(LDIR)\bspline.dll /dll /def:udp.def $(ODIR)\udpBspline.obj $(LDIR)\ocsm.lib $(LDIR)\egads.lib
+	$(MCOMP) /manifest $(LDIR)\bspline.dll.manifest /outputresource:$(LDIR)\bspline.dll;2
+
+$(ODIR)\udpBspline.obj:	udpBspline.c udpUtilities.c udpUtilities.h
+	cl /c $(COPTS) $(DEFINE) /I$(IDIR) udpBspline.c /Fo$(ODIR)\udpBspline.obj
+
+
 $(LDIR)\catmull.dll:	$(ODIR)\udfCatmull.obj $(LDIR)\ocsm.dll
 	-del $(LDIR)\catmull.dll $(LDIR)\catmull.lib $(LDIR)\catmull.exp
 	link /out:$(LDIR)\catmull.dll /dll /def:udp.def $(ODIR)\udfCatmull.obj $(LDIR)\ocsm.lib $(LDIR)\egads.lib
@@ -168,6 +184,7 @@ $(LDIR)\catmull.dll:	$(ODIR)\udfCatmull.obj $(LDIR)\ocsm.dll
 
 $(ODIR)\udfCatmull.obj:	udfCatmull.c udpUtilities.c udpUtilities.h
 	cl /c $(COPTS) $(DEFINE) /I$(IDIR) udfCatmull.c /Fo$(ODIR)\udfCatmull.obj
+
 
 $(LDIR)\compare.dll:	$(ODIR)\udfCompare.obj $(LDIR)\ocsm.dll
 	-del $(LDIR)\compare.dll $(LDIR)\compare.lib $(LDIR)\compare.exp
@@ -177,6 +194,7 @@ $(LDIR)\compare.dll:	$(ODIR)\udfCompare.obj $(LDIR)\ocsm.dll
 $(ODIR)\udfCompare.obj:	udfCompare.c udpUtilities.c udpUtilities.h
 	cl /c $(COPTS) $(DEFINE) /I$(IDIR) udfCompare.c /Fo$(ODIR)\udfCompare.obj
 
+
 $(LDIR)\createBEM.dll:	$(ODIR)\udfCreateBEM.obj $(LDIR)\ocsm.dll
 	-del $(LDIR)\createBEM.dll $(LDIR)\createBEM.lib $(LDIR)\createBEM.exp
 	link /out:$(LDIR)\createBEM.dll /dll /def:udp.def $(ODIR)\udfCreateBEM.obj $(LDIR)\ocsm.lib $(LDIR)\egads.lib
@@ -184,6 +202,7 @@ $(LDIR)\createBEM.dll:	$(ODIR)\udfCreateBEM.obj $(LDIR)\ocsm.dll
 
 $(ODIR)\udfCreateBEM.obj:	udfCreateBEM.c udpUtilities.c udpUtilities.h
 	cl /c $(COPTS) $(DEFINE) /I$(IDIR) udfCreateBEM.c /Fo$(ODIR)\udfCreateBEM.obj
+
 
 $(LDIR)\createPoly.dll:	$(ODIR)\udfCreatePoly.obj $(LDIR)\ocsm.dll
 	-del $(LDIR)\createPoly.dll $(LDIR)\createPoly.lib $(LDIR)\createPoly.exp
@@ -193,6 +212,7 @@ $(LDIR)\createPoly.dll:	$(ODIR)\udfCreatePoly.obj $(LDIR)\ocsm.dll
 $(ODIR)\udfCreatePoly.obj:	udfCreatePoly.c udpUtilities.c udpUtilities.h
 	cl /c $(COPTS) $(DEFINE) /I$(IDIR) udfCreatePoly.c /Fo$(ODIR)\udfCreatePoly.obj
 
+
 $(LDIR)\csm.dll:	$(ODIR)\udpCsm.obj $(LDIR)\ocsm.dll
 	-del $(LDIR)\csm.dll $(LDIR)\csm.lib $(LDIR)\csm.exp
 	link /out:$(LDIR)\csm.dll /dll /def:udp.def $(ODIR)\udpCsm.obj $(LDIR)\ocsm.lib $(LDIR)\egads.lib
@@ -201,21 +221,42 @@ $(LDIR)\csm.dll:	$(ODIR)\udpCsm.obj $(LDIR)\ocsm.dll
 $(ODIR)\udpCsm.obj:	udpCsm.c udpUtilities.c udpUtilities.h OpenCSM.h
 	cl /c $(COPTS) $(DEFINE) /I$(IDIR) udpCsm.c /Fo$(ODIR)\udpCsm.obj
 
+
+$(LDIR)\deform.dll:	$(ODIR)\udfDeform.obj $(LDIR)\ocsm.dll
+	-del $(LDIR)\deform.dll $(LDIR)\deform.lib $(LDIR)\deform.exp
+	link /out:$(LDIR)\deform.dll /dll /def:udp.def $(ODIR)\udfDeform.obj $(LDIR)\ocsm.lib $(LDIR)\egads.lib
+	$(MCOMP) /manifest $(LDIR)\deform.dll.manifest /outputresource:$(LDIR)\deform.dll;2
+
+$(ODIR)\udfDeform.obj:	udfDeform.c udpUtilities.c udpUtilities.h OpenCSM.h
+	cl /c $(COPTS) $(DEFINE) /I$(IDIR) udfDeform.c /Fo$(ODIR)\udfDeform.obj
+
+
 $(LDIR)\droop.dll:	$(ODIR)\udfDroop.obj $(LDIR)\ocsm.dll
 	-del $(LDIR)\droop.dll $(LDIR)\droop.lib $(LDIR)\droop.exp
 	link /out:$(LDIR)\droop.dll /dll /def:udp.def $(ODIR)\udfDroop.obj $(LDIR)\ocsm.lib $(LDIR)\egads.lib
 	$(MCOMP) /manifest $(LDIR)\droop.dll.manifest /outputresource:$(LDIR)\droop.dll;2
 
-$(ODIR)\udfDroop.obj:	udfDroop.c udpUtilities.c udpUtilities.h
+$(ODIR)\udfDroop.obj:	udfDroop.c udpUtilities.c udpUtilities.h OpenCSM.h
 	cl /c $(COPTS) $(DEFINE) /I$(IDIR) udfDroop.c /Fo$(ODIR)\udfDroop.obj
+
+
+$(LDIR)\dumpPmtrs.dll:	$(ODIR)\udfDumpPmtrs.obj $(LDIR)\ocsm.dll
+	-del $(LDIR)\dumpPmtrs.dll $(LDIR)\dumpPmtrs.lib $(LDIR)\dumpPmtrs.exp
+	link /out:$(LDIR)\dumpPmtrs.dll /dll /def:udp.def $(ODIR)\udfDumpPmtrs.obj $(LDIR)\ocsm.lib $(LDIR)\egads.lib
+	$(MCOMP) /manifest $(LDIR)\dumpPmtrs.dll.manifest /outputresource:$(LDIR)\dumpPmtrs.dll;2
+
+$(ODIR)\udfDumpPmtrs.obj:	udfDumpPmtrs.c udpUtilities.c udpUtilities.h
+	cl /c $(COPTS) $(DEFINE) /I$(IDIR) udfDumpPmtrs.c /Fo$(ODIR)\udfDumpPmtrs.obj
+
 
 $(LDIR)\editAttr.dll:	$(ODIR)\udfEditAttr.obj $(LDIR)\ocsm.dll
 	-del $(LDIR)\editAttr.dll $(LDIR)\editAttr.lib $(LDIR)\editAttr.exp
 	link /out:$(LDIR)\editAttr.dll /dll /def:udp.def $(ODIR)\udfEditAttr.obj $(LDIR)\ocsm.lib $(LDIR)\egads.lib
 	$(MCOMP) /manifest $(LDIR)\editAttr.dll.manifest /outputresource:$(LDIR)\editAttr.dll;2
 
-$(ODIR)\udfEditAttr.obj:	udfEditAttr.c udpUtilities.c udpUtilities.h
+$(ODIR)\udfEditAttr.obj:	udfEditAttr.c udpUtilities.c udpUtilities.h OpenCSM.h
 	cl /c $(COPTS) $(DEFINE) /I$(IDIR) udfEditAttr.c /Fo$(ODIR)\udfEditAttr.obj
+
 
 $(LDIR)\ellipse.dll:	$(ODIR)\udpEllipse.obj $(LDIR)\ocsm.dll
 	-del $(LDIR)\ellipse.dll $(LDIR)\ellipse.lib $(LDIR)\ellipse.exp
@@ -225,6 +266,16 @@ $(LDIR)\ellipse.dll:	$(ODIR)\udpEllipse.obj $(LDIR)\ocsm.dll
 $(ODIR)\udpEllipse.obj:	udpEllipse.c udpUtilities.c udpUtilities.h
 	cl /c $(COPTS) $(DEFINE) /I$(IDIR) udpEllipse.c /Fo$(ODIR)\udpEllipse.obj
 
+
+$(LDIR)\eqn2body.dll:	$(ODIR)\udpEqn2body.obj $(LDIR)\ocsm.dll
+	-del $(LDIR)\eqn2body.dll $(LDIR)\eqn2body.lib $(LDIR)\eqn2body.exp
+	link /out:$(LDIR)\eqn2body.dll /dll /def:udp.def $(ODIR)\udpEqn2body.obj $(LDIR)\ocsm.lib $(LDIR)\egads.lib
+	$(MCOMP) /manifest $(LDIR)\eqn2body.dll.manifest /outputresource:$(LDIR)\eqn2body.dll;2
+
+$(ODIR)\udpEqn2body.obj:	udpEqn2body.c udpUtilities.c udpUtilities.h
+	cl /c $(COPTS) $(DEFINE) /I$(IDIR) udpEqn2body.c /Fo$(ODIR)\udpEqn2body.obj
+
+
 $(LDIR)\fitcurve.dll:	$(ODIR)\udpFitcurve.obj $(LDIR)\ocsm.dll
 	-del $(LDIR)\fitcurve.dll $(LDIR)\fitcurve.lib $(LDIR)\fitcurve.exp
 	link /out:$(LDIR)\fitcurve.dll /dll /def:udp.def $(ODIR)\udpFitcurve.obj $(LDIR)\ocsm.lib $(LDIR)\egads.lib
@@ -232,6 +283,16 @@ $(LDIR)\fitcurve.dll:	$(ODIR)\udpFitcurve.obj $(LDIR)\ocsm.dll
 
 $(ODIR)\udpFitcurve.obj:	udpFitcurve.c udpUtilities.c udpUtilities.h
 	cl /c $(COPTS) $(DEFINE) /I$(IDIR) udpFitcurve.c /Fo$(ODIR)\udpFitcurve.obj
+
+
+$(LDIR)\flend.dll:	$(ODIR)\udfFlend.obj $(LDIR)\ocsm.dll
+	-del $(LDIR)\flend.dll $(LDIR)\flend.lib $(LDIR)\flend.exp
+	link /out:$(LDIR)\flend.dll /dll /def:udp.def $(ODIR)\udfFlend.obj $(LDIR)\ocsm.lib $(LDIR)\egads.lib
+	$(MCOMP) /manifest $(LDIR)\flend.dll.manifest /outputresource:$(LDIR)\flend.dll;2
+
+$(ODIR)\udfFlend.obj:	udfFlend.c udpUtilities.c udpUtilities.h OpenCSM.h
+	cl /c $(COPTS) $(DEFINE) /I$(IDIR) udfFlend.c /Fo$(ODIR)\udfFlend.obj
+
 
 $(LDIR)\freeform.dll:	$(ODIR)\udpFreeform.obj $(LDIR)\ocsm.dll
 	-del $(LDIR)\freeform.dll $(LDIR)\freeform.lib $(LDIR)\freeform.exp
@@ -241,53 +302,24 @@ $(LDIR)\freeform.dll:	$(ODIR)\udpFreeform.obj $(LDIR)\ocsm.dll
 $(ODIR)\udpFreeform.obj:	udpFreeform.c udpUtilities.c udpUtilities.h
 	cl /c $(COPTS) $(DEFINE) /I$(IDIR) udpFreeform.c /Fo$(ODIR)\udpFreeform.obj
 
-$(LDIR)\flend.dll:	$(ODIR)\udfFlend.obj $(LDIR)\ocsm.dll
-	-del $(LDIR)\flend.dll $(LDIR)\flend.lib $(LDIR)\flend.exp
-	link /out:$(LDIR)\flend.dll /dll /def:udp.def $(ODIR)\udfFlend.obj $(LDIR)\ocsm.lib $(LDIR)\egads.lib
-	$(MCOMP) /manifest $(LDIR)\flend.dll.manifest /outputresource:$(LDIR)\flend.dll;2
-
-$(ODIR)\udfFlend.obj:	udfFlend.c udpUtilities.c udpUtilities.h
-	cl /c $(COPTS) $(DEFINE) /I$(IDIR) udfFlend.c /Fo$(ODIR)\udfFlend.obj
 
 $(LDIR)\ganged.dll:	$(ODIR)\udfGanged.obj $(LDIR)\ocsm.dll
 	-del $(LDIR)\ganged.dll $(LDIR)\ganged.lib $(LDIR)\ganged.exp
 	link /out:$(LDIR)\ganged.dll /dll /def:udp.def $(ODIR)\udfGanged.obj $(LDIR)\ocsm.lib $(LDIR)\egads.lib
 	$(MCOMP) /manifest $(LDIR)\ganged.dll.manifest /outputresource:$(LDIR)\ganged.dll;2
 
-$(ODIR)\udfGanged.obj:	udfGanged.c udpUtilities.c udpUtilities.h
+$(ODIR)\udfGanged.obj:	udfGanged.c udpUtilities.c udpUtilities.h OpenCSM.h
 	cl /c $(COPTS) $(DEFINE) /I$(IDIR) udfGanged.c /Fo$(ODIR)\udfGanged.obj
+
 
 $(LDIR)\guide.dll:	$(ODIR)\udfGuide.obj $(LDIR)\ocsm.dll
 	-del $(LDIR)\guide.dll $(LDIR)\guide.lib $(LDIR)\guide.exp
 	link /out:$(LDIR)\guide.dll /dll /def:udp.def $(ODIR)\udfGuide.obj $(LDIR)\ocsm.lib $(LDIR)\egads.lib
 	$(MCOMP) /manifest $(LDIR)\guide.dll.manifest /outputresource:$(LDIR)\guide.dll;2
 
-$(ODIR)\udfGuide.obj:	udfGuide.c udpUtilities.c udpUtilities.h
+$(ODIR)\udfGuide.obj:	udfGuide.c udpUtilities.c udpUtilities.h OpenCSM.h
 	cl /c $(COPTS) $(DEFINE) /I$(IDIR) udfGuide.c /Fo$(ODIR)\udfGuide.obj
 
-$(LDIR)\matchBodys.dll:	$(ODIR)\udfMatchBodys.obj $(LDIR)\ocsm.dll
-	-del $(LDIR)\matchBodys.dll $(LDIR)\matchBodys.lib $(LDIR)\matchBodys.exp
-	link /out:$(LDIR)\matchBodys.dll /dll /def:udp.def $(ODIR)\udfMatchBodys.obj $(LDIR)\ocsm.lib $(LDIR)\egads.lib
-	$(MCOMP) /manifest $(LDIR)\matchBodys.dll.manifest /outputresource:$(LDIR)\matchBodys.dll;2
-
-$(ODIR)\udfMatchBodys.obj:	udfMatchBodys.c udpUtilities.c udpUtilities.h
-	cl /c $(COPTS) $(DEFINE) /I$(IDIR) udfMatchBodys.c /Fo$(ODIR)\udfMatchBodys.obj
-
-$(LDIR)\nacelle.dll:	$(ODIR)\udfNacelle.obj $(LDIR)\ocsm.dll
-	-del $(LDIR)\nacelle.dll $(LDIR)\nacelle.lib $(LDIR)\nacelle.exp
-	link /out:$(LDIR)\nacelle.dll /dll /def:udp.def $(ODIR)\udfNacelle.obj $(LDIR)\ocsm.lib $(LDIR)\egads.lib
-	$(MCOMP) /manifest $(LDIR)\nacelle.dll.manifest /outputresource:$(LDIR)\nacelle.dll;2
-
-$(ODIR)\udfNacelle.obj:	udfNacelle.c udpUtilities.c udpUtilities.h
-	cl /c $(COPTS) $(DEFINE) /I$(IDIR) udfNacelle.c /Fo$(ODIR)\udfNacelle.obj
-
-$(LDIR)\nuscale.dll:	$(ODIR)\udfNuscale.obj $(LDIR)\ocsm.dll
-	-del $(LDIR)\nuscale.dll $(LDIR)\nuscale.lib $(LDIR)\nuscale.exp
-	link /out:$(LDIR)\nuscale.dll /dll /def:udp.def $(ODIR)\udfNuscale.obj $(LDIR)\ocsm.lib $(LDIR)\egads.lib
-	$(MCOMP) /manifest $(LDIR)\nuscale.dll.manifest /outputresource:$(LDIR)\nuscale.dll;2
-
-$(ODIR)\udfNuscale.obj:	udfNuscale.c udpUtilities.c udpUtilities.h
-	cl /c $(COPTS) $(DEFINE) /I$(IDIR) udfNuscale.c /Fo$(ODIR)\udfNuscale.obj
 
 $(LDIR)\hex.dll:	$(ODIR)\udpHex.obj $(LDIR)\ocsm.dll
 	-del $(LDIR)\hex.dll $(LDIR)\hex.lib $(LDIR)\hex.exp
@@ -297,6 +329,7 @@ $(LDIR)\hex.dll:	$(ODIR)\udpHex.obj $(LDIR)\ocsm.dll
 $(ODIR)\udpHex.obj:	udpHex.c udpUtilities.c udpUtilities.h
 	cl /c $(COPTS) $(DEFINE) /I$(IDIR) udpHex.c /Fo$(ODIR)\udpHex.obj
 
+
 $(LDIR)\import.dll:	$(ODIR)\udpImport.obj $(LDIR)\ocsm.dll
 	-del $(LDIR)\import.dll $(LDIR)\import.lib $(LDIR)\import.exp
 	link /out:$(LDIR)\import.dll /dll /def:udp.def $(ODIR)\udpImport.obj $(LDIR)\ocsm.lib $(LDIR)\egads.lib
@@ -304,6 +337,7 @@ $(LDIR)\import.dll:	$(ODIR)\udpImport.obj $(LDIR)\ocsm.dll
 
 $(ODIR)\udpImport.obj:	udpImport.c udpUtilities.c udpUtilities.h
 	cl /c $(COPTS) $(DEFINE) /I$(IDIR) udpImport.c /Fo$(ODIR)\udpImport.obj
+
 
 $(LDIR)\kulfan.dll:	$(ODIR)\udpKulfan.obj $(LDIR)\ocsm.dll
 	-del $(LDIR)\kulfan.dll $(LDIR)\kulfan.lib $(LDIR)\kulfan.exp
@@ -313,6 +347,34 @@ $(LDIR)\kulfan.dll:	$(ODIR)\udpKulfan.obj $(LDIR)\ocsm.dll
 $(ODIR)\udpKulfan.obj:	udpKulfan.c udpUtilities.c udpUtilities.h
 	cl /c $(COPTS) $(DEFINE) /I$(IDIR) udpKulfan.c /Fo$(ODIR)\udpKulfan.obj
 
+
+$(LDIR)\linalg.dll:	$(ODIR)\udfLinalg.obj $(LDIR)\ocsm.dll
+	-del $(LDIR)\linalg.dll $(LDIR)\linalg.lib $(LDIR)\linalg.exp
+	link /out:$(LDIR)\linalg.dll /dll /def:udp.def $(ODIR)\udfLinalg.obj $(LDIR)\ocsm.lib $(LDIR)\egads.lib
+	$(MCOMP) /manifest $(LDIR)\linalg.dll.manifest /outputresource:$(LDIR)\linalg.dll;2
+
+$(ODIR)\udfLinalg.obj:	udfLinalg.c udpUtilities.c udpUtilities.h OpenCSM.h
+	cl /c $(COPTS) $(DEFINE) /I$(IDIR) udfLinalg.c /Fo$(ODIR)\udfLinalg.obj
+
+
+$(LDIR)\matchBodys.dll:	$(ODIR)\udfMatchBodys.obj $(LDIR)\ocsm.dll
+	-del $(LDIR)\matchBodys.dll $(LDIR)\matchBodys.lib $(LDIR)\matchBodys.exp
+	link /out:$(LDIR)\matchBodys.dll /dll /def:udp.def $(ODIR)\udfMatchBodys.obj $(LDIR)\ocsm.lib $(LDIR)\egads.lib
+	$(MCOMP) /manifest $(LDIR)\matchBodys.dll.manifest /outputresource:$(LDIR)\matchBodys.dll;2
+
+$(ODIR)\udfMatchBodys.obj:	udfMatchBodys.c udpUtilities.c udpUtilities.h OpenCSM.h
+	cl /c $(COPTS) $(DEFINE) /I$(IDIR) udfMatchBodys.c /Fo$(ODIR)\udfMatchBodys.obj
+
+
+$(LDIR)\mechanism.dll:	$(ODIR)\udfMechanism.obj $(LDIR)\ocsm.dll
+	-del $(LDIR)\mechanism.dll $(LDIR)\mechanism.lib $(LDIR)\mechanism.exp
+	link /out:$(LDIR)\mechanism.dll /dll /def:udp.def $(ODIR)\udfMechanism.obj $(LDIR)\ocsm.lib $(LDIR)\egads.lib
+	$(MCOMP) /manifest $(LDIR)\mechanism.dll.manifest /outputresource:$(LDIR)\mechanism.dll;2
+
+$(ODIR)\udfMechanism.obj:	udfMechanism.c udpUtilities.c udpUtilities.h
+	cl /c $(COPTS) $(DEFINE) /I$(IDIR) udfMechanism.c /Fo$(ODIR)\udfMechanism.obj
+
+
 $(LDIR)\naca.dll:	$(ODIR)\udpNaca.obj $(LDIR)\ocsm.dll
 	-del $(LDIR)\naca.dll $(LDIR)\naca.lib $(LDIR)\naca.exp
 	link /out:$(LDIR)\naca.dll /dll /def:udp.def $(ODIR)\udpNaca.obj $(LDIR)\ocsm.lib $(LDIR)\egads.lib
@@ -320,6 +382,7 @@ $(LDIR)\naca.dll:	$(ODIR)\udpNaca.obj $(LDIR)\ocsm.dll
 
 $(ODIR)\udpNaca.obj:	udpNaca.c udpUtilities.c udpUtilities.h
 	cl /c $(COPTS) $(DEFINE) /I$(IDIR) udpNaca.c /Fo$(ODIR)\udpNaca.obj
+
 
 $(LDIR)\naca456.dll:	$(ODIR)\udpNaca456.obj $(ODIR)\naca456.obj $(LDIR)\ocsm.dll
 	-del $(LDIR)\naca456.dll $(LDIR)\naca456.lib $(LDIR)\naca456.exp
@@ -332,6 +395,25 @@ $(ODIR)\udpNaca456.obj:	udpNaca456.c udpUtilities.c udpUtilities.h
 $(ODIR)\naca456.obj:	naca456.f90
 	ifort /c $(FOPTS) naca456.f90 /Fo$(ODIR)\naca456.obj
 
+
+$(LDIR)\naca6mc.dll:	$(ODIR)\udfNaca6mc.obj $(LDIR)\ocsm.dll
+	-del $(LDIR)\naca6mc.dll $(LDIR)\naca6mc.lib $(LDIR)\naca6mc.exp
+	link /out:$(LDIR)\naca6mc.dll /dll /def:udp.def $(ODIR)\udfNaca6mc.obj $(LDIR)\ocsm.lib $(LDIR)\egads.lib
+	$(MCOMP) /manifest $(LDIR)\naca6mc.dll.manifest /outputresource:$(LDIR)\naca6mc.dll;2
+
+$(ODIR)\udfNaca6mc.obj:	udfNaca6mc.c udpUtilities.c udpUtilities.h
+	cl /c $(COPTS) $(DEFINE) /I$(IDIR) udfNaca6mc.c /Fo$(ODIR)\udfNaca6mc.obj
+
+
+$(LDIR)\nacelle.dll:	$(ODIR)\udfNacelle.obj $(LDIR)\ocsm.dll
+	-del $(LDIR)\nacelle.dll $(LDIR)\nacelle.lib $(LDIR)\nacelle.exp
+	link /out:$(LDIR)\nacelle.dll /dll /def:udp.def $(ODIR)\udfNacelle.obj $(LDIR)\ocsm.lib $(LDIR)\egads.lib
+	$(MCOMP) /manifest $(LDIR)\nacelle.dll.manifest /outputresource:$(LDIR)\nacelle.dll;2
+
+$(ODIR)\udfNacelle.obj:	udfNacelle.c udpUtilities.c udpUtilities.h
+	cl /c $(COPTS) $(DEFINE) /I$(IDIR) udfNacelle.c /Fo$(ODIR)\udfNacelle.obj
+
+
 $(LDIR)\nurbbody.dll:	$(ODIR)\udpNurbbody.obj $(LDIR)\ocsm.dll
 	-del $(LDIR)\nurbbody.dll $(LDIR)\nurbbody.lib $(LDIR)\nurbbody.exp
 	link /out:$(LDIR)\nurbbody.dll /dll /def:udp.def $(ODIR)\udpNurbbody.obj $(LDIR)\ocsm.lib $(LDIR)\egads.lib
@@ -339,6 +421,25 @@ $(LDIR)\nurbbody.dll:	$(ODIR)\udpNurbbody.obj $(LDIR)\ocsm.dll
 
 $(ODIR)\udpNurbbody.obj:	udpNurbbody.c udpUtilities.c udpUtilities.h
 	cl /c $(COPTS) $(DEFINE) /I$(IDIR) udpNurbbody.c /Fo$(ODIR)\udpNurbbody.obj
+
+
+$(LDIR)\nuscale.dll:	$(ODIR)\udfNuscale.obj $(LDIR)\ocsm.dll
+	-del $(LDIR)\nuscale.dll $(LDIR)\nuscale.lib $(LDIR)\nuscale.exp
+	link /out:$(LDIR)\nuscale.dll /dll /def:udp.def $(ODIR)\udfNuscale.obj $(LDIR)\ocsm.lib $(LDIR)\egads.lib
+	$(MCOMP) /manifest $(LDIR)\nuscale.dll.manifest /outputresource:$(LDIR)\nuscale.dll;2
+
+$(ODIR)\udfNuscale.obj:	udfNuscale.c udpUtilities.c udpUtilities.h
+	cl /c $(COPTS) $(DEFINE) /I$(IDIR) udfNuscale.c /Fo$(ODIR)\udfNuscale.obj
+
+
+$(LDIR)\offset.dll:	$(ODIR)\udfOffset.obj $(LDIR)\ocsm.dll
+	-del $(LDIR)\offset.dll $(LDIR)\offset.lib $(LDIR)\offset.exp
+	link /out:$(LDIR)\offset.dll /dll /def:udp.def $(ODIR)\udfOffset.obj $(LDIR)\ocsm.lib $(LDIR)\egads.lib
+	$(MCOMP) /manifest $(LDIR)\offset.dll.manifest /outputresource:$(LDIR)\offset.dll;2
+
+$(ODIR)\udfOffset.obj:	udfOffset.c udpUtilities.c udpUtilities.h OpenCSM.h
+	cl /c $(COPTS) $(DEFINE) /I$(IDIR) udfOffset.c /Fo$(ODIR)\udfOffset.obj
+
 
 $(LDIR)\parabaloid.dll:	$(ODIR)\udpParabaloid.obj $(LDIR)\ocsm.dll
 	-del $(LDIR)\parabaloid.dll $(LDIR)\parabaloid.lib $(LDIR)\parabaloid.exp
@@ -348,6 +449,7 @@ $(LDIR)\parabaloid.dll:	$(ODIR)\udpParabaloid.obj $(LDIR)\ocsm.dll
 $(ODIR)\udpParabaloid.obj:	udpParabaloid.c udpUtilities.c udpUtilities.h
 	cl /c $(COPTS) $(DEFINE) /I$(IDIR) udpParabaloid.c /Fo$(ODIR)\udpParabaloid.obj
 
+
 $(LDIR)\parsec.dll:	$(ODIR)\udpParsec.obj $(LDIR)\ocsm.dll
 	-del $(LDIR)\parsec.dll $(LDIR)\parsec.lib $(LDIR)\parsec.exp
 	link /out:$(LDIR)\parsec.dll /dll /def:udp.def $(ODIR)\udpParsec.obj $(LDIR)\ocsm.lib $(LDIR)\egads.lib
@@ -355,6 +457,7 @@ $(LDIR)\parsec.dll:	$(ODIR)\udpParsec.obj $(LDIR)\ocsm.dll
 
 $(ODIR)\udpParsec.obj:	udpParsec.cpp udpUtilities.c udpUtilities.h $(IDIR)/Surreal/SurrealS.h $(IDIR)/egads.h $(IDIR)/egads_dot.h
 	cl /c $(CPPOPT) $(DEFINE) /I$(IDIR) udpParsec.cpp /Fo$(ODIR)\udpParsec.obj
+
 
 $(LDIR)\pod.dll:	$(ODIR)\udpPod.obj $(LDIR)\ocsm.dll
 	-del $(LDIR)\pod.dll $(LDIR)\pod.lib $(LDIR)\pod.exp
@@ -364,6 +467,7 @@ $(LDIR)\pod.dll:	$(ODIR)\udpPod.obj $(LDIR)\ocsm.dll
 $(ODIR)\udpPod.obj:	udpPod.c udpUtilities.c udpUtilities.h
 	cl /c $(COPTS) $(DEFINE) /I$(IDIR) udpPod.c /Fo$(ODIR)\udpPod.obj
 
+
 $(LDIR)\poly.dll:	$(ODIR)\udpPoly.obj $(LDIR)\ocsm.dll
 	-del $(LDIR)\poly.dll $(LDIR)\poly.lib $(LDIR)\poly.exp
 	link /out:$(LDIR)\poly.dll /dll /def:udp.def $(ODIR)\udpPoly.obj $(LDIR)\ocsm.lib $(LDIR)\egads.lib
@@ -372,13 +476,6 @@ $(LDIR)\poly.dll:	$(ODIR)\udpPoly.obj $(LDIR)\ocsm.dll
 $(ODIR)\udpPoly.obj:	udpPoly.c udpUtilities.c udpUtilities.h
 	cl /c $(COPTS) $(DEFINE) /I$(IDIR) udpPoly.c /Fo$(ODIR)\udpPoly.obj
 
-$(LDIR)\prop.dll:	$(ODIR)\udpProp.obj $(LDIR)\ocsm.dll
-	-del $(LDIR)\prop.dll $(LDIR)\prop.lib $(LDIR)\prop.exp
-	link /out:$(LDIR)\prop.dll /dll /def:udp.def $(ODIR)\udpProp.obj $(LDIR)\ocsm.lib $(LDIR)\egads.lib
-	$(MCOMP) /manifest $(LDIR)\prop.dll.manifest /outputresource:$(LDIR)\prop.dll;2
-
-$(ODIR)\udpProp.obj:	udpProp.c udpUtilities.c udpUtilities.h
-	cl /c $(COPTS) $(DEFINE) /I$(IDIR) udpProp.c /Fo$(ODIR)\udpProp.obj
 
 $(LDIR)\printBbox.dll:	$(ODIR)\udfPrintBbox.obj $(LDIR)\ocsm.dll
 	-del $(LDIR)\printBbox.dll $(LDIR)\printBbox.lib $(LDIR)\printBbox.exp
@@ -388,29 +485,33 @@ $(LDIR)\printBbox.dll:	$(ODIR)\udfPrintBbox.obj $(LDIR)\ocsm.dll
 $(ODIR)\udfPrintBbox.obj:	udfPrintBbox.c udpUtilities.c udpUtilities.h
 	cl /c $(COPTS) $(DEFINE) /I$(IDIR) udfPrintBbox.c /Fo$(ODIR)\udfPrintBbox.obj
 
+
 $(LDIR)\printBrep.dll:	$(ODIR)\udfPrintBrep.obj $(LDIR)\ocsm.dll
 	-del $(LDIR)\printBrep.dll $(LDIR)\printBrep.lib $(LDIR)\printBrep.exp
 	link /out:$(LDIR)\printBrep.dll /dll /def:udp.def $(ODIR)\udfPrintBrep.obj $(LDIR)\ocsm.lib $(LDIR)\egads.lib
 	$(MCOMP) /manifest $(LDIR)\printBrep.dll.manifest /outputresource:$(LDIR)\printBrep.dll;2
 
-$(ODIR)\udfPrintBrep.obj:	udfPrintBrep.c udpUtilities.c udpUtilities.h
+$(ODIR)\udfPrintBrep.obj:	udfPrintBrep.c udpUtilities.c udpUtilities.h OpenCSM.h
 	cl /c $(COPTS) $(DEFINE) /I$(IDIR) udfPrintBrep.c /Fo$(ODIR)\udfPrintBrep.obj
+
 
 $(LDIR)\printEgo.dll:	$(ODIR)\udfPrintEgo.obj $(LDIR)\ocsm.dll
 	-del $(LDIR)\printEgo.dll $(LDIR)\printEgo.lib $(LDIR)\printEgo.exp
 	link /out:$(LDIR)\printEgo.dll /dll /def:udp.def $(ODIR)\udfPrintEgo.obj $(LDIR)\ocsm.lib $(LDIR)\egads.lib
 	$(MCOMP) /manifest $(LDIR)\printEgo.dll.manifest /outputresource:$(LDIR)\printEgo.dll;2
 
-$(ODIR)\udfPrintEgo.obj:	udfPrintEgo.c udpUtilities.c udpUtilities.h
+$(ODIR)\udfPrintEgo.obj:	udfPrintEgo.c udpUtilities.c udpUtilities.h OpenCSM.h
 	cl /c $(COPTS) $(DEFINE) /I$(IDIR) udfPrintEgo.c /Fo$(ODIR)\udfPrintEgo.obj
 
-$(LDIR)\shadow.dll:	$(ODIR)\udfShadow.obj $(LDIR)\ocsm.dll
-	-del $(LDIR)\shadow.dll $(LDIR)\shadow.lib $(LDIR)\shadow.exp
-	link /out:$(LDIR)\shadow.dll /dll /def:udp.def $(ODIR)\udfShadow.obj $(LDIR)\ocsm.lib $(LDIR)\egads.lib
-	$(MCOMP) /manifest $(LDIR)\shadow.dll.manifest /outputresource:$(LDIR)\shadow.dll;2
 
-$(ODIR)\udfShadow.obj:	udfShadow.c udpUtilities.c udpUtilities.h
-	cl /c $(COPTS) $(DEFINE) /I$(IDIR) udfShadow.c /Fo$(ODIR)\udfShadow.obj
+$(LDIR)\prop.dll:	$(ODIR)\udpProp.obj $(LDIR)\ocsm.dll
+	-del $(LDIR)\prop.dll $(LDIR)\prop.lib $(LDIR)\prop.exp
+	link /out:$(LDIR)\prop.dll /dll /def:udp.def $(ODIR)\udpProp.obj $(LDIR)\ocsm.lib $(LDIR)\egads.lib
+	$(MCOMP) /manifest $(LDIR)\prop.dll.manifest /outputresource:$(LDIR)\prop.dll;2
+
+$(ODIR)\udpProp.obj:	udpProp.c udpUtilities.c udpUtilities.h
+	cl /c $(COPTS) $(DEFINE) /I$(IDIR) udpProp.c /Fo$(ODIR)\udpProp.obj
+
 
 $(LDIR)\radwaf.dll:	$(ODIR)\udpRadwaf.obj $(LDIR)\ocsm.dll
 	-del $(LDIR)\radwaf.dll $(LDIR)\radwaf.lib $(LDIR)\radwaf.exp
@@ -436,6 +537,24 @@ $(LDIR)\sew.dll:	$(ODIR)\udpSew.obj $(LDIR)\ocsm.dll
 $(ODIR)\udpSew.obj:	udpSew.c udpUtilities.c udpUtilities.h
 	cl /c $(COPTS) $(DEFINE) /I$(IDIR) udpSew.c /Fo$(ODIR)\udpSew.obj
 
+$(LDIR)\shadow.dll:	$(ODIR)\udfShadow.obj $(LDIR)\ocsm.dll
+	-del $(LDIR)\shadow.dll $(LDIR)\shadow.lib $(LDIR)\shadow.exp
+	link /out:$(LDIR)\shadow.dll /dll /def:udp.def $(ODIR)\udfShadow.obj $(LDIR)\ocsm.lib $(LDIR)\egads.lib
+	$(MCOMP) /manifest $(LDIR)\shadow.dll.manifest /outputresource:$(LDIR)\shadow.dll;2
+
+$(ODIR)\udfShadow.obj:	udfShadow.c udpUtilities.c udpUtilities.h OpenCSM.h
+	cl /c $(COPTS) $(DEFINE) /I$(IDIR) udfShadow.c /Fo$(ODIR)\udfShadow.obj
+
+
+$(LDIR)\slices.dll:	$(ODIR)\udfSlices.obj $(LDIR)\ocsm.dll
+	-del $(LDIR)\slices.dll $(LDIR)\slices.lib $(LDIR)\slices.exp
+	link /out:$(LDIR)\slices.dll /dll /def:udp.def $(ODIR)\udfSlices.obj $(LDIR)\ocsm.lib $(LDIR)\egads.lib
+	$(MCOMP) /manifest $(LDIR)\slices.dll.manifest /outputresource:$(LDIR)\slices.dll;2
+
+$(ODIR)\udfSlices.obj:	udfSlices.c udpUtilities.c udpUtilities.h OpenCSM.h
+	cl /c $(COPTS) $(DEFINE) /I$(IDIR) udfSlices.c /Fo$(ODIR)\udfSlices.obj
+
+
 $(LDIR)\stag.dll:	$(ODIR)\udpStag.obj $(LDIR)\ocsm.dll
 	-del $(LDIR)\stag.dll $(LDIR)\stag.lib $(LDIR)\stag.exp
 	link /out:$(LDIR)\stag.dll /dll /def:udp.def $(ODIR)\udpStag.obj $(LDIR)\ocsm.lib $(LDIR)\egads.lib
@@ -444,13 +563,6 @@ $(LDIR)\stag.dll:	$(ODIR)\udpStag.obj $(LDIR)\ocsm.dll
 $(ODIR)\udpStag.obj:	udpStag.c udpUtilities.c udpUtilities.h
 	cl /c $(COPTS) $(DEFINE) /I$(IDIR) udpStag.c /Fo$(ODIR)\udpStag.obj
 
-$(LDIR)\slices.dll:	$(ODIR)\udfSlices.obj $(LDIR)\ocsm.dll
-	-del $(LDIR)\slices.dll $(LDIR)\slices.lib $(LDIR)\slices.exp
-	link /out:$(LDIR)\slices.dll /dll /def:udp.def $(ODIR)\udfSlices.obj $(LDIR)\ocsm.lib $(LDIR)\egads.lib
-	$(MCOMP) /manifest $(LDIR)\slices.dll.manifest /outputresource:$(LDIR)\slices.dll;2
-
-$(ODIR)\udfSlices.obj:	udfSlices.c udpUtilities.c udpUtilities.h
-	cl /c $(COPTS) $(DEFINE) /I$(IDIR) udfSlices.c /Fo$(ODIR)\udfSlices.obj
 
 $(LDIR)\stiffener.dll:	$(ODIR)\udfStiffener.obj $(LDIR)\ocsm.dll
 	-del $(LDIR)\stiffener.dll $(LDIR)\stiffener.lib $(LDIR)\stiffener.exp
@@ -460,6 +572,7 @@ $(LDIR)\stiffener.dll:	$(ODIR)\udfStiffener.obj $(LDIR)\ocsm.dll
 $(ODIR)\udfStiffener.obj:	udfStiffener.c udpUtilities.c udpUtilities.h
 	cl /c $(COPTS) $(DEFINE) /I$(IDIR) udfStiffener.c /Fo$(ODIR)\udfStiffener.obj
 
+
 $(LDIR)\supell.dll:	$(ODIR)\udpSupell.obj $(LDIR)\ocsm.dll
 	-del $(LDIR)\supell.dll $(LDIR)\supell.lib $(LDIR)\supell.exp
 	link /out:$(LDIR)\supell.dll /dll /def:udp.def $(ODIR)\udpSupell.obj $(LDIR)\ocsm.lib $(LDIR)\egads.lib
@@ -468,13 +581,46 @@ $(LDIR)\supell.dll:	$(ODIR)\udpSupell.obj $(LDIR)\ocsm.dll
 $(ODIR)\udpSupell.obj:	udpSupell.c udpUtilities.c udpUtilities.h
 	cl /c $(COPTS) $(DEFINE) /I$(IDIR) udpSupell.c /Fo$(ODIR)\udpSupell.obj
 
+
+$(LDIR)\tester1.dll:	$(ODIR)\udfTester1.obj $(LDIR)\ocsm.dll
+	-del $(LDIR)\tester1.dll $(LDIR)\tester1.lib $(LDIR)\tester1.exp
+	link /out:$(LDIR)\tester1.dll /dll /def:udp.def $(ODIR)\udfTester1.obj $(LDIR)\ocsm.lib $(LDIR)\egads.lib
+	$(MCOMP) /manifest $(LDIR)\tester1.dll.manifest /outputresource:$(LDIR)\tester1.dll;2
+
+$(ODIR)\udfTester1.obj:	udfTester1.c udpUtilities.c udpUtilities.h OpenCSM.h
+	cl /c $(COPTS) $(DEFINE) /I$(IDIR) udfTester1.c /Fo$(ODIR)\udfTester1.obj
+
+$(LDIR)\tester2.dll:	$(ODIR)\udpTester2.obj $(LDIR)\ocsm.dll
+	-del $(LDIR)\tester2.dll $(LDIR)\tester2.lib $(LDIR)\tester2.exp
+	link /out:$(LDIR)\tester2.dll /dll /def:udp.def $(ODIR)\udpTester2.obj $(LDIR)\ocsm.lib $(LDIR)\egads.lib
+	$(MCOMP) /manifest $(LDIR)\tester2.dll.manifest /outputresource:$(LDIR)\tester2.dll;2
+
+$(ODIR)\udpTester2.obj:	udpTester2.c udpUtilities.c udpUtilities.h OpenCSM.h
+	cl /c $(COPTS) $(DEFINE) /I$(IDIR) udpTester2.c /Fo$(ODIR)\udpTester2.obj
+
+$(LDIR)\vsp3.dll:	$(ODIR)\udpVsp3.obj $(LDIR)\ocsm.dll
+	-del $(LDIR)\vsp3.dll $(LDIR)\vsp3.lib $(LDIR)\vsp3.exp
+	link /out:$(LDIR)\vsp3.dll /dll /def:udp.def $(ODIR)\udpVsp3.obj $(LDIR)\ocsm.lib $(LDIR)\egads.lib
+	$(MCOMP) /manifest $(LDIR)\vsp3.dll.manifest /outputresource:$(LDIR)\vsp3.dll;2
+
+$(ODIR)\udpVsp3.obj:	udpVsp3.c udpUtilities.c udpUtilities.h OpenCSM.h
+	cl /c $(COPTS) $(DEFINE) /I$(IDIR) udpVsp3.c /Fo$(ODIR)\udpVsp3.obj
+
 $(LDIR)\waffle.dll:	$(ODIR)\udpWaffle.obj $(LDIR)\ocsm.dll
 	-del $(LDIR)\waffle.dll $(LDIR)\waffle.lib $(LDIR)\waffle.exp
 	link /out:$(LDIR)\waffle.dll /dll /def:udp.def $(ODIR)\udpWaffle.obj $(LDIR)\ocsm.lib $(LDIR)\egads.lib
 	$(MCOMP) /manifest $(LDIR)\waffle.dll.manifest /outputresource:$(LDIR)\waffle.dll;2
 
-$(ODIR)\udpWaffle.obj:	udpWaffle.c udpUtilities.c udpUtilities.h
+$(ODIR)\udpWaffle.obj:	udpWaffle.c udpUtilities.c udpUtilities.h OpenCSM.h
 	cl /c $(COPTS) $(DEFINE) /I$(IDIR) udpWaffle.c /Fo$(ODIR)\udpWaffle.obj
+
+$(LDIR)\warp.dll:	$(ODIR)\udpWarp.obj $(LDIR)\ocsm.dll
+	-del $(LDIR)\warp.dll $(LDIR)\warp.lib $(LDIR)\warp.exp
+	link /out:$(LDIR)\warp.dll /dll /def:udp.def $(ODIR)\udpWarp.obj $(LDIR)\ocsm.lib $(LDIR)\egads.lib
+	$(MCOMP) /manifest $(LDIR)\warp.dll.manifest /outputresource:$(LDIR)\warp.dll;2
+
+$(ODIR)\udpWarp.obj:	udpWarp.c udpUtilities.c udpUtilities.h OpenCSM.h
+	cl /c $(COPTS) $(DEFINE) /I$(IDIR) udpWarp.c /Fo$(ODIR)\udpWarp.obj
 
 #
 #	external grid generators (EGGs)
@@ -484,7 +630,7 @@ $(LDIR)\PDT2.dll:	$(ODIR)\eggPDT2.obj
 	link /out:$(LDIR)\PDT2.dll /dll /def:egg.def $(ODIR)\eggPDT2.obj $(LDIR)\egads.lib
 	$(MCOMP) /manifest $(LDIR)\PDT2.dll.manifest /outputresource:$(LDIR)\PDT2.dll;2
 
-$(ODIR)\eggPDT2.obj:	eggPDT2.c udpUtilities.c udpUtilities.h
+$(ODIR)\eggPDT2.obj:	eggPDT2.c egg.h
 	cl /c $(COPTS) $(DEFINE) /I$(IDIR) eggPDT2.c /Fo$(ODIR)\eggPDT2.obj
 
 #
@@ -496,53 +642,57 @@ $(LDIR)\ereped.dll:	$(ODIR)\timEreped.obj $(LDIR)\ocsm.dll
 	link /out:$(LDIR)\ereped.dll /dll /def:tim.def $(ODIR)\timEreped.obj $(LDIR)\ocsm.lib $(LDIR)\wsserver.lib $(LDIR)\egads.lib
 	$(MCOMP) /manifest $(LDIR)\ereped.dll.manifest /outputresource:$(LDIR)\ereped.dll;2
 
-$(ODIR)\timEreped.obj:	timEreped.c tim.h
+$(ODIR)\timEreped.obj:	timEreped.c OpenCSM.h tim.h
 	cl /c $(COPTS) $(DEFINE) /I$(IDIR) timEreped.c /Fo$(ODIR)\timEreped.obj
+
 
 $(LDIR)\mitten.dll:	$(ODIR)\timMitten.obj $(LDIR)\ocsm.dll
 	-del $(LDIR)\mitten.dll $(LDIR)\mitten.lib $(LDIR)\mitten.exp
 	link /out:$(LDIR)\mitten.dll /dll /def:tim.def $(ODIR)\timMitten.obj $(LDIR)\ocsm.lib $(LDIR)\wsserver.lib $(LDIR)\egads.lib
 	$(MCOMP) /manifest $(LDIR)\mitten.dll.manifest /outputresource:$(LDIR)\mitten.dll;2
 
-$(ODIR)\timMitten.obj:	timMitten.c tim.h
+$(ODIR)\timMitten.obj:	timMitten.c OpenCSM.h tim.h $(IDIR)\wsserver.h
 	cl /c $(COPTS) $(DEFINE) /I$(IDIR) timMitten.c /Fo$(ODIR)\timMitten.obj
+
 
 $(LDIR)\plotter.dll:	$(ODIR)\timPlotter.obj $(LDIR)\ocsm.dll
 	-del $(LDIR)\plotter.dll $(LDIR)\plotter.lib $(LDIR)\plotter.exp
 	link /out:$(LDIR)\plotter.dll /dll /def:tim.def $(ODIR)\timPlotter.obj $(LDIR)\ocsm.lib $(LDIR)\wsserver.lib $(LDIR)\egads.lib
 	$(MCOMP) /manifest $(LDIR)\plotter.dll.manifest /outputresource:$(LDIR)\plotter.dll;2
 
-$(ODIR)\timPlotter.obj:	timPlotter.c tim.h
+$(ODIR)\timPlotter.obj:	timPlotter.c OpenCSM.h tim.h $(IDIR)\wsserver.h
 	cl /c $(COPTS) $(DEFINE) /I$(IDIR) timPlotter.c /Fo$(ODIR)\timPlotter.obj
+
 
 $(LDIR)\plugs.dll:	$(ODIR)\timPlugs.obj $(LDIR)\ocsm.dll
 	-del $(LDIR)\plugs.dll $(LDIR)\plugs.lib $(LDIR)\plugs.exp
 	link /out:$(LDIR)\plugs.dll /dll /def:tim.def $(ODIR)\timPlugs.obj $(LDIR)\ocsm.lib $(LDIR)\wsserver.lib $(LDIR)\egads.lib
 	$(MCOMP) /manifest $(LDIR)\plugs.dll.manifest /outputresource:$(LDIR)\plugs.dll;2
 
-$(ODIR)\timPlugs.obj:	timPlugs.c tim.h
+$(ODIR)\timPlugs.obj:	timPlugs.c OpenCSM.h tim.h $(IDIR)\wsserver.h
 	cl /c $(COPTS) $(DEFINE) /I$(IDIR) timPlugs.c /Fo$(ODIR)\timPlugs.obj
 
-$(LDIR)\pyscript.dll:	$(ODIR)\timPyscript.obj $(LDIR)\ocsm.dll
-	-del $(LDIR)\pyscript.dll $(LDIR)\pyscript.lib $(LDIR)\pyscript.exp
-	link /out:$(LDIR)\pyscript.dll /dll /def:timPyscript.def $(ODIR)\timPyscript.obj $(LDIR)\ocsm.lib $(LDIR)\wsserver.lib $(LDIR)\egads.lib $(PYTHONLIB)
-	$(MCOMP) /manifest $(LDIR)\pyscript.dll.manifest /outputresource:$(LDIR)\pyscript.dll;2
-
-$(ODIR)\timPyscript.obj:	timPyscript.c tim.h
-	cl /c $(COPTS) $(DEFINE) /I$(IDIR) /I$(PYTHONINC) timPyscript.c /Fo$(ODIR)\timPyscript.obj
 
 $(LDIR)\slugs.dll:	$(ODIR)\timSlugs.obj $(LDIR)\ocsm.dll
 	-del $(LDIR)\slugs.dll $(LDIR)\slugs.lib $(LDIR)\slugs.exp
 	link /out:$(LDIR)\slugs.dll /dll /def:tim.def $(ODIR)\timSlugs.obj $(LDIR)\ocsm.lib $(LDIR)\wsserver.lib $(LDIR)\egads.lib
 	$(MCOMP) /manifest $(LDIR)\slugs.dll.manifest /outputresource:$(LDIR)\slugs.dll;2
 
-$(ODIR)\timSlugs.obj:	timSlugs.c tim.h
+$(ODIR)\timSlugs.obj:	timSlugs.c OpenCSM.h tim.h
 	cl /c $(COPTS) $(DEFINE) /I$(IDIR) timSlugs.c /Fo$(ODIR)\timSlugs.obj
+
+$(LDIR)\vspSetup.dll:	$(ODIR)\timVspSetup.obj $(LDIR)\ocsm.dll
+	-del $(LDIR)\vspSetup.dll $(LDIR)\vspSetup.lib $(LDIR)\vspSetup.exp
+	link /out:$(LDIR)\vspSetup.dll /dll /def:tim.def $(ODIR)\timVspSetup.obj $(LDIR)\ocsm.lib $(LDIR)\wsserver.lib $(LDIR)\egads.lib
+	$(MCOMP) /manifest $(LDIR)\vspSetup.dll.manifest /outputresource:$(LDIR)\vspSetup.dll;2
+
+$(ODIR)\timVspSetup.obj:	timVspSetup.c OpenCSM.h tim.h
+	cl /c $(COPTS) $(DEFINE) /I$(IDIR) timVspSetup.c /Fo$(ODIR)\timVspSetup.obj
 
 #
 #	include files
 #
-$(IDIR)\OpenCSM.h:	OpenCSM.h
+$(IDIR)\OpenCSM.h:	OpenCSM.h common.h $(IDIR)\egads.h
 	-del $(IDIR)\OpenCSM.h
 	copy OpenCSM.h $(IDIR)\OpenCSM.h
 
@@ -586,53 +736,65 @@ clean:
 	-del $(ODIR)\udpBezier.obj
 	-del $(ODIR)\udpBiconvex.obj
 	-del $(ODIR)\udpBox.obj
+	-del $(ODIR)\udpBspline.obj
 	-del $(ODIR)\udfCatmull.obj
 	-del $(ODIR)\udfCompare.obj
 	-del $(ODIR)\udfCreateBEM.obj
 	-del $(ODIR)\udfCreatePoly.obj
 	-del $(ODIR)\udpCsm.obj
+	-del $(ODIR)\udfDeform.obj
 	-del $(ODIR)\udfDroop.obj
+	-del $(ODIR)\udfDumpPmtrs.obj
 	-del $(ODIR)\udfEditAttr.obj
 	-del $(ODIR)\udpEllipse.obj
+	-del $(ODIR)\udpEqn2body.obj
 	-del $(ODIR)\udpFitcurve.obj
 	-del $(ODIR)\udpFreeform.obj
 	-del $(ODIR)\udfFlend.obj
 	-del $(ODIR)\udfGanged.obj
 	-del $(ODIR)\udfGuide.obj
-	-del $(ODIR)\udfMatchBodys.obj
-	-del $(ODIR)\udfNacelle.obj
-	-del $(ODIR)\udfNuscale.obj
 	-del $(ODIR)\udpHex.obj
 	-del $(ODIR)\udpImport.obj
 	-del $(ODIR)\udpKulfan.obj
+	-del $(ODIR)\udfLinalg.obj
+	-del $(ODIR)\udfMatchBodys.obj
+	-del $(ODIR)\udfMechanism.obj
 	-del $(ODIR)\udpNaca.obj
-	-del $(ODIR)\naca456.obj
 	-del $(ODIR)\udpNaca456.obj
+	-del $(ODIR)\naca456.obj
+	-del $(ODIR)\udfNaca6mc.obj
+	-del $(ODIR)\udfNacelle.obj
 	-del $(ODIR)\udpNurbbody.obj
+	-del $(ODIR)\udfNuscale.obj
+	-del $(ODIR)\udfOffset.obj
 	-del $(ODIR)\udpParabaloid.obj
 	-del $(ODIR)\udpParsec.obj
 	-del $(ODIR)\udpPod.obj
 	-del $(ODIR)\udpPoly.obj
-	-del $(ODIR)\udpProp.obj
 	-del $(ODIR)\udfPrintBbox.obj
 	-del $(ODIR)\udfPrintBrep.obj
 	-del $(ODIR)\udfPrintEgo.obj
-	-del $(ODIR)\udfShadow.obj
+	-del $(ODIR)\udpProp.obj
 	-del $(ODIR)\udpRadwaf.obj
 	-del $(ODIR)\udpSample.obj
 	-del $(ODIR)\udpSew.obj
-	-del $(ODIR)\udpStag.obj
+	-del $(ODIR)\udfShadow.obj
 	-del $(ODIR)\udfSlices.obj
+	-del $(ODIR)\udpStag.obj
 	-del $(ODIR)\udfStiffener.obj
 	-del $(ODIR)\udpSupell.obj
+	-del $(ODIR)\udfTester1.obj
+	-del $(ODIR)\udpTester2.obj
+	-del $(ODIR)\udpVsp3.obj
 	-del $(ODIR)\udpWaffle.obj
+	-del $(ODIR)\udpWarp.obj
 	-del $(ODIR)\eggPDT2.obj
 	-del $(ODIR)\timEreped.obj
 	-del $(ODIR)\timMitten.obj
 	-del $(ODIR)\timPlotter.obj
 	-del $(ODIR)\timPlugs.obj
-	-del $(ODIR)\timPyscript.obj
 	-del $(ODIR)\timSlugs.obj
+	-del $(ODIR)\timVspSetup.obj
 
 cleanall:	clean
 	-del $(BDIR)\serveCSM.exe
@@ -642,52 +804,64 @@ cleanall:	clean
 	-del $(LDIR)\bezier.dll     $(LDIR)\bezier.lib     $(LDIR)\bezier.exp
 	-del $(LDIR)\biconvex.dll   $(LDIR)\biconvex.lib   $(LDIR)\biconvex.exp
 	-del $(LDIR)\box.dll        $(LDIR)\box.lib        $(LDIR)\box.exp
+	-del $(LDIR)\bspline.dll    $(LDIR)\bspline.lib    $(LDIR)\bspline.exp
 	-del $(LDIR)\catmull.dll    $(LDIR)\catmull.lib    $(LDIR)\catmull.exp
 	-del $(LDIR)\compare.dll    $(LDIR)\compare.lib    $(LDIR)\compare.exp
 	-del $(LDIR)\createBEM.dll  $(LDIR)\createBEM.lib  $(LDIR)\createBEM.exp
 	-del $(LDIR)\createPoly.dll $(LDIR)\createPoly.lib $(LDIR)\createPoly.exp
 	-del $(LDIR)\csm.dll        $(LDIR)\csm.lib        $(LDIR)\csm.exp
+	-del $(LDIR)\deform.dll     $(LDIR)\deform.lib     $(LDIR)\deform.exp
 	-del $(LDIR)\droop.dll      $(LDIR)\droop.lib      $(LDIR)\droop.exp
+	-del $(LDIR)\dumpPmtrs.dll  $(LDIR)\dumpPmtrs.lib  $(LDIR)\dumpPmtrs.exp
 	-del $(LDIR)\editAttr.dll   $(LDIR)\editAttr.lib   $(LDIR)\editAttr.exp
 	-del $(LDIR)\ellipse.dll    $(LDIR)\ellipse.lib    $(LDIR)\ellipse.exp
+	-del $(LDIR)\eqn2body.dll   $(LDIR)\eqn2body.lib   $(LDIR)\eqn2body.exp
 	-del $(LDIR)\fitcurve.dll   $(LDIR)\fitcurve.lib   $(LDIR)\fitcurve.exp
-	-del $(LDIR)\freeform.dll   $(LDIR)\freeform.lib   $(LDIR)\freeform.exp
 	-del $(LDIR)\flend.dll      $(LDIR)\flend.lib      $(LDIR)\flend.exp
+	-del $(LDIR)\freeform.dll   $(LDIR)\freeform.lib   $(LDIR)\freeform.exp
 	-del $(LDIR)\ganged.dll     $(LDIR)\ganged.lib     $(LDIR)\ganged.exp
 	-del $(LDIR)\guide.dll      $(LDIR)\guide.lib      $(LDIR)\guide.exp
-	-del $(LDIR)\matchBodys.dll $(LDIR)\matchBodys.lib $(LDIR)\matchBodys.exp
-	-del $(LDIR)\nacelle.dll    $(LDIR)\nacelle.lib    $(LDIR)\nacelle.exp
-	-del $(LDIR)\nuscale.dll    $(LDIR)\nuscale.lib    $(LDIR)\nuscale.exp
 	-del $(LDIR)\hex.dll        $(LDIR)\hex.lib        $(LDIR)\hex.exp
 	-del $(LDIR)\import.dll     $(LDIR)\import.lib     $(LDIR)\import.exp
 	-del $(LDIR)\kulfan.dll     $(LDIR)\kulfan.lib     $(LDIR)\kulfan.exp
+	-del $(LDIR)\linalg.dll     $(LDIR)\linalg.lib     $(LDIR)\linalg.exp
+	-del $(LDIR)\matchBodys.dll $(LDIR)\matchBodys.lib $(LDIR)\matchBodys.exp
+	-del $(LDIR)\mechanism.dll  $(LDIR)\mechanism.lib  $(LDIR)\mechanism.exp
 	-del $(LDIR)\naca.dll       $(LDIR)\naca.lib       $(LDIR)\naca.exp
 	-del $(LDIR)\naca456.dll    $(LDIR)\naca456.lib    $(LDIR)\naca456.exp
+	-del $(LDIR)\naca6mc.dll    $(LDIR)\naca6mc.lib    $(LDIR)\naca6mc.exp
+	-del $(LDIR)\nacelle.dll    $(LDIR)\nacelle.lib    $(LDIR)\nacelle.exp
+	-del $(LDIR)\nuscale.dll    $(LDIR)\nuscale.lib    $(LDIR)\nuscale.exp
 	-del $(LDIR)\nurbbody.dll   $(LDIR)\nurbbody.lib   $(LDIR)\nurbbody.exp
+	-del $(LDIR)\offset.dll     $(LDIR)\offset.lib     $(LDIR)\offset.exp
 	-del $(LDIR)\parabaloid.dll $(LDIR)\parabaloid.lib $(LDIR)\parabaloid.exp
 	-del $(LDIR)\parsec.dll     $(LDIR)\parsec.lib     $(LDIR)\parsec.exp
 	-del $(LDIR)\pod.dll        $(LDIR)\pod.lib        $(LDIR)\pod.exp
 	-del $(LDIR)\poly.dll       $(LDIR)\poly.lib       $(LDIR)\poly.exp
-	-del $(LDIR)\prop.dll       $(LDIR)\prop.lib       $(LDIR)\prop.exp
 	-del $(LDIR)\printBbox.dll  $(LDIR)\printBbox.lib  $(LDIR)\printBbox.exp
 	-del $(LDIR)\printBrep.dll  $(LDIR)\printBrep.lib  $(LDIR)\printBrep.exp
 	-del $(LDIR)\printEgo.dll   $(LDIR)\printEgo.lib   $(LDIR)\printEgo.exp
-	-del $(LDIR)\shadow.dll     $(LDIR)\shadow.lib     $(LDIR)\shadow.exp
+	-del $(LDIR)\prop.dll       $(LDIR)\prop.lib       $(LDIR)\prop.exp
 	-del $(LDIR)\radwaf.dll     $(LDIR)\radwaf.lib     $(LDIR)\radwaf.exp
 	-del $(LDIR)\sample.dll     $(LDIR)\sample.lib     $(LDIR)\sample.exp
 	-del $(LDIR)\sew.dll        $(LDIR)\sew.lib        $(LDIR)\sew.exp
-	-del $(LDIR)\stag.dll       $(LDIR)\stag.lib       $(LDIR)\stag.exp
+	-del $(LDIR)\shadow.dll     $(LDIR)\shadow.lib     $(LDIR)\shadow.exp
 	-del $(LDIR)\slices.dll     $(LDIR)\slices.lib     $(LDIR)\slices.exp
+	-del $(LDIR)\stag.dll       $(LDIR)\stag.lib       $(LDIR)\stag.exp
 	-del $(LDIR)\stiffener.dll  $(LDIR)\stiffener.lib  $(LDIR)\stiffener.exp
 	-del $(LDIR)\supell.dll     $(LDIR)\supell.lib     $(LDIR)\supell.exp
+	-del $(LDIR)\tester1.dll    $(LDIR)\tester1.lib    $(LDIR)\tester1.exp
+	-del $(LDIR)\tester2.dll    $(LDIR)\tester2.lib    $(LDIR)\tester2.exp
+	-del $(LDIR)\vsp3.dll       $(LDIR)\vsp3.lib       $(LDIR)\vsp3.exp
 	-del $(LDIR)\waffle.dll     $(LDIR)\waffle.lib     $(LDIR)\waffle.exp
+	-del $(LDIR)\warp.dll       $(LDIR)\warp.lib       $(LDIR)\warp.exp
 	-del $(LDIR)\PDT2.dll       $(LDIR)\PDT2.lib       $(LDIR)\PDT2.exp
 	-del $(LDIR)\ereped.dll     $(LDIR)\ereped.lib     $(LDIR)\ereped.exp
 	-del $(LDIR)\mitten.dll     $(LDIR)\mitten.lib     $(LDIR)\mitten.exp
 	-del $(LDIR)\plotter.dll    $(LDIR)\plotter.lib    $(LDIR)\plotter.exp
 	-del $(LDIR)\plugs.dll      $(LDIR)\plugs.lib      $(LDIR)\plugs.exp
-	-del $(LDIR)\pyscript.dll   $(LDIR)\pyscript.lib   $(LDIR)\pyscript.exp
 	-del $(LDIR)\slugs.dll      $(LDIR)\slugs.lib      $(LDIR)\slugs.exp
+	-del $(LDIR)\vspSetup.dll   $(LDIR)\vspSetup.lib   $(LDIR)\vspSetup.exp
 	-del $(IDIR)\OpenCSM.h      $(IDIR)\common.h       $(IDIR)\udp.h
 	-del $(IDIR)\esp.h          $(IDIR)\tim.h
 	-del $(IDIR)\udpUtilities.h $(IDIR)\udpUtilities.c $(IDIR)\egg.h

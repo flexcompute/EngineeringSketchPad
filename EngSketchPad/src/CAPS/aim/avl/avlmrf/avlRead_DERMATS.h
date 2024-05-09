@@ -33,9 +33,9 @@ typedef struct
 {
   char *wrt;
   // z' force CL  : CLd*
-  // y force CY   : CYd*
+  // y  force CY  : CYd*
   // x' mom.  Cl' : Cld*
-  // y mom.  Cm   : Cmd*
+  // y  mom.  Cm  : Cmd*
   // z' mom.  Cn  : Cnd*
   // Trefftz drag : CDffd*
   // span eff.    : ed*
@@ -79,12 +79,12 @@ typedef struct
   double Cma, Cmb;
   double Cna, Cnb;
 
-  // roll rate  p, pitch rate  q, yaw rate  r
-  // z' force CL  : CLp, CLq, CLr
-  // y force CY   : CYp, CYq, CYr
-  // x' mom.  Cl' : Clp, Clq, Clr
-  // y  mom.  Cm  : Cmp, Cmq, Cmr
-  // z' mom.  Cn' : Cnp, Cnq, Cnr
+  // roll rate  p', pitch rate  q', yaw rate  r'
+  // z' force CL  : CLp', CLq', CLr'
+  // y  force CY  : CYp', CYq', CYr'
+  // x' mom.  Cl' : Clp', Clq', Clr'
+  // y  mom.  Cm  : Cmp', Cmq', Cmr'
+  // z' mom.  Cn' : Cnp', Cnq', Cnr'
   double CLp, CLq, CLr;
   double CYp, CYq, CYr;
   double Clp, Clq, Clr;

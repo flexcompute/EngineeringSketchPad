@@ -23,7 +23,7 @@ parser.add_argument("-outLevel", default = 1, type=int, choices=[0, 1, 2], help=
 args = parser.parse_args()
 
 # Create working directory variable
-workDir = os.path.join(str(args.workDir[0]), "AeroelasticSimple_Pressure")
+workDir = os.path.join(str(args.workDir[0]), "AeroelasticSimple_Pressure_SU2_and_Mystran")
 
 # Create projectName vairbale
 projectName = "aeroelasticSimple_Pressure_SM"
@@ -35,25 +35,30 @@ myProblem = pyCAPS.Problem(problemName=workDir,
                            outLevel=args.outLevel)
 
 # Load AIMs
-surfMesh = myProblem.analysis.create(aim = "egadsTessAIM", 
-                                     name= "egads",
-                                     capsIntent = "CFD")
+surfMesh = myProblem.analysis.create(aim = "aflr4AIM",
+                                     name= "aflr4",
+                                     capsIntent = "Aerodynamic")
 
-mesh = myProblem.analysis.create(aim = "tetgenAIM", 
-                                 name= "tetgen",
-                                 capsIntent = "CFD")
+mesh = myProblem.analysis.create(aim = "aflr3AIM",
+                                 name= "aflr3",
+                                 capsIntent = "Aerodynamic")
 
 mesh.input["Surface_Mesh"].link(surfMesh.output["Surface_Mesh"])
 
-su2 = myProblem.analysis.create(aim = "su2AIM", 
-                                name = "su2", 
-                                capsIntent = "CFD")
+su2 = myProblem.analysis.create(aim = "su2AIM",
+                                name = "su2",
+                                capsIntent = "Aerodynamic")
 
 su2.input["Mesh"].link(mesh.output["Volume_Mesh"])
 
+strucMesh = myProblem.analysis.create(aim = 'aflr4AIM',
+                                      name = "afr4Struct",
+                                      capsIntent = 'Structure')
+
+
 mystran = myProblem.analysis.create(aim = "mystranAIM",
                                     name = "mystran",
-                                    capsIntent = "STRUCTURE",
+                                    capsIntent = "Structure",
                                     autoExec = False)
 
 # Create the data transfer connections
@@ -67,8 +72,8 @@ for boundName in boundNames:
     mystranVset = bound.vertexSet.create(mystran)
 
     # Create displacement data sets
-    su2_Pressure     = su2Vset.dataSet.create("Pressure", pyCAPS.fType.FieldOut)
-    mystran_Pressure = mystranVset.dataSet.create("Pressure", pyCAPS.fType.FieldIn)
+    su2_Pressure     = su2Vset.dataSet.create("Pressure")
+    mystran_Pressure = mystranVset.dataSet.create("Pressure")
 
     # Link the data set
     mystran_Pressure.link(su2_Pressure, "Conserve")
@@ -76,12 +81,15 @@ for boundName in boundNames:
     # Close the bound as complete (cannot create more vertex or data sets)
     bound.close()
 
-# Set inputs for egads 
-surfMesh.input.Tess_Params = [.3, 0.01, 20.0]
-surfMesh.input.Edge_Point_Max = 6
 
-# Set inputs for tetgen 
-mesh.input.Preserve_Surf_Mesh = True
+# Farfield growth factor
+surfMesh.input.ff_cdfr = 1.4
+
+# Set maximum and minimum edge lengths relative to capsMeshLength
+surfMesh.input.max_scale = 0.75
+surfMesh.input.min_scale = 0.1
+
+# Set inputs for volume mesh
 mesh.input.Mesh_Quiet_Flag = True if args.outLevel == 0 else False
 
 # Set inputs for su2
@@ -94,7 +102,7 @@ su2.input.Mach = refVelocity/speedofSound
 su2.input.Equation_Type = "compressible"
 su2.input.Num_Iter = 3
 su2.input.Output_Format = "Tecplot"
-su2.input.SU2_Version = "Blackbird"
+su2.input.SU2_Version = "Harrier"
 su2.input.Pressure_Scale_Factor = 0.5*refDensity*refVelocity**2
 su2.input.Surface_Monitor = ["Skin"]
 
@@ -103,13 +111,18 @@ su2.input.Boundary_Condition = {"Skin"     : inviscid,
                                 "SymmPlane": "SymmetryY",
                                 "Farfield" : "farfield"}
 
+# Surface meshing inputs
+strucMesh.input['AFLR4_Quad'].value = True
+strucMesh.input['Mesh_Gen_Input_String'].value = 'skin_mode=1'
+strucMesh.input['min_scale'].value = 0.1
+strucMesh.input['max_scale'].value = 0.75
+strucMesh.input['Mesh_Length_Factor'].value = 1.5
+
 # Set inputs for mystran
 mystran.input.Proj_Name = projectName
-mystran.input.Edge_Point_Max = 10
-mystran.input.Edge_Point_Min = 10
 
-mystran.input.Quad_Mesh = True
-mystran.input.Tess_Params = [.5, .1, 15]
+mystran.input["Mesh"].link(strucMesh.output["Surface_Mesh"])
+
 mystran.input.Analysis_Type = "Static"
 
 madeupium    = {"materialType" : "isotropic",
@@ -139,7 +152,7 @@ mystran.input.Constraint = {"edgeConstraint": constraint}
 
 # External pressure load to mystran that we will inherited from su2
 load = {"loadType" : "PressureExternal"}
-mystran.input.Load = {"pressureAero": load}
+mystran.input.Load = {"Skin": load}
 
 
 ####### SU2 ###########################

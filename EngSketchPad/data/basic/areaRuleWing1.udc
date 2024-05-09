@@ -1,0 +1,43 @@
+# areaRuleWing1
+# written by John Dannenhoffer
+
+INTERFACE . ALL
+
+DESPMTR   wing:area    225
+DESPMTR   wing:aspect  2.0
+DESPMTR   wing:taper   0.1
+DESPMTR   wing:sweep    58
+DESPMTR   wing:xlocr    10
+DESPMTR   wing:thick   .04
+DESPMTR   wing:camber  .02
+
+# build the wing
+SET       wing:span   sqrt(wing:area*wing:aspect)
+SET       wing:chordr 2*wing:area/wing:span/(wing:taper+1)
+SET       wing:chordt wing:taper*wing:chordr
+SET       wing:xloct  wing:xlocr+(wing:span/2)*tand(wing:sweep)
+
+MARK
+   UDPARG    naca      thickness wing:thick
+   UDPARG    naca      camber    wing:camber
+   UDPRIM    naca      sharpte   1
+   ROTATEX   90
+   SCALE     wing:chordt
+   TRANSLATE wing:xloct  -wing:span/2  0
+
+   UDPARG    naca      thickness wing:thick
+   UDPARG    naca      camber    wing:camber
+   UDPRIM    naca      sharpte   1
+   ROTATEX   90
+   SCALE     wing:chordr
+   TRANSLATE wing:xlocr  0  0
+
+   UDPARG    naca      thickness wing:thick
+   UDPARG    naca      camber    wing:camber
+   UDPRIM    naca      sharpte   1
+   ROTATEX   90
+   SCALE     wing:chordt
+   TRANSLATE wing:xloct  +wing:span/2  0
+RULE
+
+END

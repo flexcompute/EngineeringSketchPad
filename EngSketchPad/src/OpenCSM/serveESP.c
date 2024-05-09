@@ -9,7 +9,7 @@
  */
 
 /*
- * Copyright (C) 2012/2022  John F. Dannenhoffer, III (Syracuse University)
+ * Copyright (C) 2012/2024  John F. Dannenhoffer, III (Syracuse University)
  *
  * This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
@@ -54,15 +54,13 @@
 #define CCHAR   const char
 
 #define STRNCPY(A, B, LEN) strncpy(A, B, LEN); A[LEN-1] = '\0';
+#define STRNCAT(A, B, LEN) strncat(A, B, LEN); A[LEN-1] = '\0';
 
-#include "common.h"
 #include "OpenCSM.h"
-
 #include "emp.h"
 #include "udp.h"
 #include "esp.h"
 #include "egg.h"
-
 #include "tim.h"
 
 /***********************************************************************/
@@ -70,8 +68,6 @@
 /* macros (including those that go along with common.h)                */
 /*                                                                     */
 /***********************************************************************/
-
-static void *realloc_temp=NULL;            /* used by RALLOC macro */
 
 #define  RED(COLOR)      (float)(COLOR / 0x10000        ) / (float)(255)
 #define  GREEN(COLOR)    (float)(COLOR / 0x00100 % 0x100) / (float)(255)
@@ -233,6 +229,7 @@ static int        addVerify  = 0;      /* =1 to create .csm_verify file */
 static int        allVels    = 0;      /* =1 to compute Node/Edge/Faces vels */
 static int        batch      = 0;      /* =0 to enable visualization */
 static int        dumpEgads  = 0;      /* =1 to dump Bodys as they are created */
+static double     forceFDs   = 0;      /* !=0 FD step for sensitivities, 0 for analytic (if possible) */
 static double     histDist   = 0;      /* >0 to generate histograms of distance from points to brep */
 static int        loadEgads  = 0;      /* =1 to read Bodys instead of creating */
 static int        onormal    = 0;      /* =1 to use orthonormal (not perspective) */
@@ -243,6 +240,7 @@ static int        skipBuild  = 0;      /* =1 to skip initial build */
 static int        skipTess   = 0;      /* -1 to skip tessellation at end of build */
 static int        tessel     = 0;      /* =1 for tessellation sensitivities */
 static int        verify     = 0;      /* =1 to enable verification */
+static int        reportTime = 0;      /* =1 to write timing info to timingReport.txt */
 static char       *filename  = NULL;   /* name of .csm file */
 static char       *vrfyname  = NULL;   /* name of .vfy file */
 static char       *despname  = NULL;   /* name of DESPMTRs file */
@@ -299,6 +297,11 @@ static char       *skbuff = NULL;
 /* global variables associated with StepThru mode */
 static int        curStep = 0;
 
+/* global variables associated with the text buffer */
+static int        max_textbuff = 0;     // allocated size
+static int        seq_textbuff = 0;     // last seen sequence number
+static char       *textbuff    = NULL;  // buffer
+
 /* global variables associated with the response buffer */
 static int        max_resp_len = 0;
 static int        response_len = 0;
@@ -327,11 +330,14 @@ static FILE       *jrnl_out = NULL;    /* output journal file */
 static void       addToResponse(char text[]);
 static void       addToSgMetaData(char format[], ...);
 static int        applyDisplacement(esp_T *ESP, int ipmtr);
+       void       bcstCallbackFromOpenCSM(char mesg[]);
        void       browserMessage(void *esp, void *wsi, char text[],int lena);
 static int        buildBodys(esp_T *ESP, int buildTo, int *builtTo, int *buildStatus, int *nwarn);
 static int        buildSceneGraph(esp_T *ESP);
 static int        buildSceneGraphBody(esp_T *ESP, int ibody);
 static void       cleanupMemory(modl_T *MODL, int quiet);
+static int        completeFilename(char input[], char *answer[]);
+static int        generateVfyFile(modl_T *MODL);
 static int        getToken(char text[], int nskip, char sep, char token[]);
 static int        maxDistance(modl_T *MODL1, modl_T *MODL2, int ibody, double *dist);
        void       mesgCallbackFromOpenCSM(char mesg[]);
@@ -341,10 +347,14 @@ static void       spec_col(float scalar, float out[]);
 static int        storeUndo(modl_T *MODL, char cmd[], char arg[]);
 static int        updateModl(modl_T *src_MODL, modl_T *tgt_MODL);
 
+static int        generateHistogram(modl_T *MODL);
 static int        addToHistogram(double entry, int nhist, double dhist[], int hist[]);
 static int        printHistogram(int nhist, double dhist[], int hist[]);
 
 static int        writeSensFile(modl_T *MODL, int ibody, char filename[]);
+
+static int        testOcsmAdjoint(modl_T *MODL);
+
 
 
 /***********************************************************************/
@@ -360,13 +370,12 @@ main(int       argc,                    /* (in)  number of arguments */
     int       imajor, iminor, status, i, bias, showUsage=0;
     int       builtTo, buildStatus, nwarn=0;
     int       npmtrs, type, nrow, irow, ncol, icol, ii, *ipmtrs=NULL, *irows=NULL, *icols=NULL;
-    int       ipmtr, jpmtr, iundo, nbody;
+    int       ipmtr, jpmtr, iundo, nbody, oldLoadEgads;
     float     fov, zNear, zFar;
     float     eye[3]    = {0.0, 0.0, 7.0};
     float     center[3] = {0.0, 0.0, 0.0};
     float     up[3]     = {0.0, 1.0, 0.0};
-    double    data[18], bbox[6], value, dot, *values=NULL, dist;
-    double    *cloud=NULL;
+    double    data[18], value, dot, *values=NULL, dist;
     char      *casename=NULL, *jrnlname=NULL, *tempname=NULL, *pmtrname=NULL;
     char      *dirname=NULL, *basename=NULL;
     char      pname[MAX_NAME_LEN], strval[MAX_STRVAL_LEN];
@@ -451,7 +460,7 @@ main(int       argc,                    /* (in)  number of arguments */
         } else if (strcmp(argv[i], "-allVels") == 0) {
             allVels = 1;
         } else if (strcmp(argv[i], "-batch") == 0) {
-            batch = 1;
+            batch   = 1;
         } else if (strcmp(argv[i], "-despmtrs") == 0) {
             if (i < argc-1) {
                 STRNCPY(despname, argv[++i], MAX_FILENAME_LEN);
@@ -485,6 +494,13 @@ main(int       argc,                    /* (in)  number of arguments */
         } else if (strcmp(argv[i], "-egg") == 0) {
             if (i < argc-1) {
                 STRNCPY(eggname, argv[++i], MAX_FILENAME_LEN);
+            } else {
+                showUsage = 1;
+                break;
+            }
+        } else if (strcmp(argv[i], "-forceFDs") == 0) {
+            if (i < argc-1) {
+                sscanf(argv[++i], "%lf", &forceFDs);
             } else {
                 showUsage = 1;
                 break;
@@ -552,7 +568,9 @@ main(int       argc,                    /* (in)  number of arguments */
                 showUsage = 1;
                 break;
             }
-        } else if (strcmp(argv[i], "-tessel") == 0 || strcmp(argv[i], "-sensTess") == 0) {
+        } else if (strcmp(argv[i], "-reportTime") == 0) {
+            reportTime = 1;
+        } else if (strcmp(argv[i], "-sensTess") == 0) {
             tessel = 1;
         } else if (strcmp(argv[i], "-skipBuild") == 0) {
             skipBuild = 1;
@@ -598,6 +616,7 @@ main(int       argc,                    /* (in)  number of arguments */
         SPRINT0(0, "                        -dxdd despmtr");
         SPRINT0(0, "                        -egg eggname");
         SPRINT0(0, "                        -help  -or-  -h");
+        SPRINT0(0, "                        -forceFDs step");
         SPRINT0(0, "                        -histDist dist");
         SPRINT0(0, "                        -jrnl jrnlname");
         SPRINT0(0, "                        -loadEgads");
@@ -630,7 +649,7 @@ main(int       argc,                    /* (in)  number of arguments */
     SPRINT0(1, "*                    Program serveESP                    *");
     SPRINT2(1, "*                     version %2d.%02d                      *", imajor, iminor);
     SPRINT0(1, "*                                                        *");
-    SPRINT0(1, "*        written by John Dannenhoffer, 2010/2022         *");
+    SPRINT0(1, "*        written by John Dannenhoffer, 2010/2024         *");
     SPRINT0(1, "*                                                        *");
     SPRINT0(1, "**********************************************************\n");
 
@@ -643,6 +662,7 @@ main(int       argc,                    /* (in)  number of arguments */
     SPRINT1(1, "    dxddname    = %s", dxddname   );
     SPRINT1(1, "    dumpEgads   = %d", dumpEgads  );
     SPRINT1(1, "    eggname     = %s", eggname    );
+    SPRINT1(1, "    forceFDs    = %f", forceFDs   );
     SPRINT1(1, "    jrnl        = %s", jrnlname   );
     SPRINT1(1, "    loadEgads   = %d", loadEgads  );
     SPRINT1(1, "    onormal     = %d", onormal    );
@@ -667,6 +687,7 @@ main(int       argc,                    /* (in)  number of arguments */
     ESP->MODL       = NULL;
     ESP->MODLorig   = NULL;
     ESP->CAPS       = NULL;
+    ESP->batch      = batch;
     ESP->cntxt      = NULL;
     ESP->sgFocus[0] = 0;
     ESP->sgFocus[1] = 0;
@@ -689,6 +710,9 @@ main(int       argc,                    /* (in)  number of arguments */
 
     /* set OCSMs output level */
     (void) ocsmSetOutLevel(outLevel);
+
+    /* remember if -loadEgads was set so that we can disable ocsmAdjoint testing */
+    oldLoadEgads = loadEgads;
 
     /* allocate nominal response and messages buffers */
     max_resp_len = 4096;
@@ -832,6 +856,9 @@ main(int       argc,                    /* (in)  number of arguments */
 
     if (pendingError == 0) {
         status = ocsmRegMesgCB(MODL, mesgCallbackFromOpenCSM);
+        if (status < SUCCESS) goto cleanup;
+
+        status = ocsmRegBcstCB(MODL, bcstCallbackFromOpenCSM);
         if (status < SUCCESS) goto cleanup;
 
         status = ocsmRegSizeCB(MODL, sizeCallbackFromOpenCSM);
@@ -990,7 +1017,9 @@ somewhere:
 
     /* build the Bodys from the MODL */
     if (pendingError == 0) {
+        old_time = clock();
         status = buildBodys(ESP, 0, &builtTo, &buildStatus, &nwarn);
+        new_time = clock();
 
         if (status != SUCCESS || buildStatus != SUCCESS || builtTo < 0) {
             successBuild = -1;
@@ -1002,7 +1031,12 @@ somewhere:
         if (batch == 0) {
 
             /* uncaught signal */
-            if (builtTo < 0) {
+            if (builtTo == -99999) {
+                SPRINT1(0, "build() detected \"%s\" during initialization",
+                        ocsmGetText(buildStatus));
+                pendingError = -builtTo;
+
+            } else if (builtTo < 0) {
                 SPRINT2(0, "build() detected \"%s\" at %s",
                         ocsmGetText(buildStatus), MODL->brch[1-builtTo].name);
                 SPRINT0(0, "Configuration only built up to detected error\a");
@@ -1041,6 +1075,16 @@ somewhere:
             } else if (buildStatus != SUCCESS) {
                 goto cleanup;
 
+            }
+        }
+
+        if (reportTime == 1) {
+            FILE *fp_time;
+
+            fp_time = fopen("timingReport.txt", "a");
+            if (fp_time != NULL) {
+                fprintf(fp_time, "%10.3f %s\n", (double)(new_time-old_time) / (double)(CLOCKS_PER_SEC), casename);
+                fclose(fp_time);
             }
         }
 
@@ -1406,294 +1450,27 @@ somewhere:
        (via assertions) for all Bodys on the stack.  note: this makes
        a copy of the "*.csm" file and calls it "*.csm_verify" */
     if (addVerify) {
-        SPRINT1(0, "WARNING:: writing verification data to \"%s\"", vrfyname);
-
-        vrfy_fp = fopen(vrfyname, "w");
-        if (vrfy_fp == NULL) {
-            SPRINT1(0, "ERROR:: \"%s\" could not be created", vrfyname);
-            status = -999;
-            goto cleanup;
-        }
-
-        fprintf(vrfy_fp, "#======================================#\n");
-        fprintf(vrfy_fp, "# automatically generated verification #\n");
-        fprintf(vrfy_fp, "# OpenCSM %2d.%02d      %s #\n", imajor, iminor, &(OCC_ver[strlen(OCC_ver)-17]));
-        fprintf(vrfy_fp, "#======================================#\n");
-
-        for (ibody = 1; ibody <= MODL->nbody; ibody++) {
-            if (MODL->body[ibody].onstack != 1) continue;
-
-            fprintf(vrfy_fp, "select    body %d\n", ibody);
-
-            if        (MODL->body[ibody].botype == OCSM_NODE_BODY) {
-                fprintf(vrfy_fp, "   assert  %8d      @itype       0  1\n", 0);
-            } else if (MODL->body[ibody].botype == OCSM_WIRE_BODY) {
-                fprintf(vrfy_fp, "   assert  %8d      @itype       0  1\n", 1);
-            } else if (MODL->body[ibody].botype == OCSM_SHEET_BODY) {
-                fprintf(vrfy_fp, "   assert  %8d      @itype       0  1\n", 2);
-            } else if (MODL->body[ibody].botype == OCSM_SOLID_BODY) {
-                fprintf(vrfy_fp, "   assert  %8d      @itype       0  1\n", 3);
-            }
-
-            status = EG_getBoundingBox(MODL->body[ibody].ebody, bbox);
-            if (status != SUCCESS) {
-                SPRINT2(0, "ERROR:: EG_getBoundingBox(%d) -> status=%d\n", ibody, status);
-            }
-
-            status = EG_getMassProperties(MODL->body[ibody].ebody, data);
-            if (status != SUCCESS) {
-                SPRINT2(0, "ERROR:: EG_getMassProperties(%d) -> status=%d\n", ibody, status);
-            }
-
-            if (MODL->body[ibody].botype == OCSM_SHEET_BODY ||
-                MODL->body[ibody].botype == OCSM_SOLID_BODY   ) {
-                if        (fabs(data[0]) > 0.001) {
-                    fprintf(vrfy_fp, "   assert %15.7e  @volume  -.001  1\n", data[0]);
-                } else if (fabs(data[0]) < 1e-10) {
-                    fprintf(vrfy_fp, "   assert %15.7e  @volume  0.001  1\n", 0.0);
-                } else {
-                    fprintf(vrfy_fp, "   assert %15.7e  @volume  0.001  1\n", data[0]);
-                }
-                if        (fabs(data[1]) > 0.001) {
-                    fprintf(vrfy_fp, "   assert %15.7e  @area    -.001  1\n", data[1]);
-                } else if (fabs(data[1]) < 1e-10) {
-                    fprintf(vrfy_fp, "   assert %15.7e  @area    0.001  1\n", 0.0);
-                } else {
-                    fprintf(vrfy_fp, "   assert %15.7e  @area    0.001  1\n", data[1]);
-                }
-            } else if (MODL->body[ibody].botype == OCSM_WIRE_BODY) {
-                if        (fabs(data[1]) > 0.001) {
-                    fprintf(vrfy_fp, "   assert %15.7e  @length  -.001  1\n", data[1]);
-                } else if (fabs(data[1]) < 1e-10) {
-                    fprintf(vrfy_fp, "   assert %15.7e  @length  0.001  1\n", 0.0);
-                } else {
-                    fprintf(vrfy_fp, "   assert %15.7e  @length  0.001  1\n", data[1]);
-                }
-            }
-
-            if        (fabs(data[2]) < 1e-10) {
-                fprintf(vrfy_fp, "   assert %15.7e  @xcg     0.001  1\n", 0.0);
-            } else if (bbox[3]-bbox[0] < 0.001) {
-                fprintf(vrfy_fp, "   assert %15.7e  @xcg     -.001  1\n", data[2]);
-            } else {
-                fprintf(vrfy_fp, "   assert %15.7e  @xcg    %15.7e  1\n", data[2], 0.001*(bbox[3]-bbox[0]));
-            }
-
-            if        (fabs(data[3]) < 1e-10) {
-                fprintf(vrfy_fp, "   assert %15.7e  @ycg     0.001  1\n", 0.0);
-            } else if (bbox[4]-bbox[1] < 0.001) {
-                fprintf(vrfy_fp, "   assert %15.7e  @ycg     -.001  1\n", data[3]);
-            } else {
-                fprintf(vrfy_fp, "   assert %15.7e  @ycg    %15.7e  1\n", data[3], 0.001*(bbox[4]-bbox[1]));
-            }
-
-            if        (fabs(data[4]) < 1e-10) {
-                fprintf(vrfy_fp, "   assert %15.7e  @zcg     0.001  1\n", 0.0);
-            } else if (bbox[5]-bbox[2] < 0.001) {
-                fprintf(vrfy_fp, "   assert %15.7e  @zcg     -.001  1\n", data[4]);
-            } else {
-                fprintf(vrfy_fp, "   assert %15.7e  @zcg    %15.7e  1\n", data[4], 0.001*(bbox[5]-bbox[2]));
-            }
-
-            fprintf(vrfy_fp, "   assert  %8d      @nnode       0  1\n", MODL->body[ibody].nnode);
-            fprintf(vrfy_fp, "   assert  %8d      @nedge       0  1\n", MODL->body[ibody].nedge);
-            fprintf(vrfy_fp, "   assert  %8d      @nface       0  1\n", MODL->body[ibody].nface);
-
-            fprintf(vrfy_fp, "\n");
-        }
-
-        fprintf(vrfy_fp, "end\n");
-        fclose(vrfy_fp);
+        status = generateVfyFile(MODL);
+        CHECK_STATUS(generateVfyFile);
     }
 
     /* generate a histogram of the distance of plot points to Brep */
     if (histDist > 0 && strlen(plotfile) == 0) {
         SPRINT0(0, "WARNING:: Cannot choose -histDist without -plot");
     } else if (histDist > 0) {
-        int     imax, jmax, j, iface, atype, alen, count=0;
-        int     ibest, jbest;
-        CINT    *tempIlist;
-        double  dtest, dbest=0, xbest=0, ybest=0, zbest=0, ubest=0, vbest=0;
-        double  dworst, drms, dultim, xyz_in[3], uv_out[2], xyz_out[3];
-        CDOUBLE *tempRlist;
-        char    templine[128];
-        CCHAR   *tempClist;
-        FILE    *fp_plot, *fp_all, *fp_bad;
-
-        /* initialize the histogram */
-        int    nhist=28, hist[28];
-        double dhist[] = {1e-8, 2e-8, 5e-8,
-                          1e-7, 2e-7, 5e-7,
-                          1e-6, 2e-6, 5e-6,
-                          1e-5, 2e-5, 5e-5,
-                          1e-4, 2e-4, 5e-4,
-                          1e-3, 2e-3, 5e-3,
-                          1e-2, 2e-2, 5e-2,
-                          1e-1, 2e-1, 5e-1,
-                          1e+0, 2e+0, 5e+0,
-                          1e+1};
-        for (i = 0; i < 28; i++) {
-            hist[i] = 0;
-        }
-
-        /* put the bounding box info as an attribute on each Face */
-        for (ibody = 1; ibody <= MODL->nbody; ibody++) {
-            if (MODL->body[ibody].onstack != 1) continue;
-
-            for (iface = 1; iface <= MODL->body[ibody].nface; iface++) {
-                status = EG_getBoundingBox(MODL->body[ibody].face[iface].eface, bbox);
-                CHECK_STATUS(EG_getBoundingBox);
-
-                status = EG_attributeAdd(MODL->body[ibody].face[iface].eface,
-                                         "..bbox..", ATTRREAL, 6, NULL, bbox, NULL);
-                CHECK_STATUS(EG_attributeAdd);
-            }
-        }
-
-        /* open the plotfile */
-        fp_plot = fopen(plotfile, "r");
-        if (fp_plot == NULL) {
-            SPRINT1(0, "ERROR:: pntsfile \"%s\" does not exist", plotfile);
-            goto cleanup;
-        } else {
-            SPRINT1(1, "Computing distances to \"%s\"", plotfile);
-        }
-
-        /* open the bad point file */
-        fp_bad = fopen("bad.points", "w");
-        if (fp_bad == NULL) {
-            SPRINT0(0, "ERROR:: could not create \"bad.points\"");
-            goto cleanup;
-        }
-
-        /* open the all point file */
-        fp_all = fopen("all.points", "w");
-        if (fp_all == NULL) {
-            SPRINT0(0, "ERROR:: could not create \"all.points\"");
-            goto cleanup;
-        }
-
-        /* process each point in the plotfile */
-        old_time = clock();
-        dultim = 0;
-        while (1) {
-            if (fscanf(fp_plot, "%d %d %s", &imax, &jmax, templine) != 3) break;
-            if (jmax == 0) jmax = 1;
-
-            SPRINT3x(1, "imax=%8d, jmax=%8d, %-32s", imax, jmax, templine); fflush(NULL);
-
-            dworst = 0;
-            dbest = HUGEQ;
-            drms  = 0;
-            xbest = 0;
-            ybest = 0;
-            zbest = 0;
-            ubest = -10;
-            vbest = -10;
-            ibest = -1;
-            jbest = -1;
-
-            for (j = 0; j < jmax; j++) {
-                for (i = 0; i < imax; i++) {
-
-                    /* read the point */
-                    fscanf(fp_plot, "%lf %lf %lf", &(xyz_in[0]), &(xyz_in[1]), &(xyz_in[2]));
-
-                    /* first look at the best Faces from last time, since the new point
-                       tends to be near the previous point (and we can take advantage
-                       of the bounding box screening) */
-                    if (ibest > 0) {
-                        status = EG_invEvaluate(MODL->body[ibest].face[jbest].eface,xyz_in, uv_out, xyz_out);
-                        if (status != EGADS_DEGEN) {      // this happens if we try to inv eval along a degenerate Edge
-                            CHECK_STATUS(EG_invEvaluate);
-
-                            dbest = sqrt(SQR(xyz_out[0]-xyz_in[0]) + SQR(xyz_out[1]-xyz_in[1]) + SQR(xyz_out[2]-xyz_in[2]));
-                            xbest = xyz_out[0];
-                            ybest = xyz_out[1];
-                            zbest = xyz_out[2];
-                            ubest = uv_out[ 0];
-                        }
-                    }
-
-                    /* now look at all Faces */
-                    for (ibody = 1; ibody <= MODL->nbody; ibody++) {
-                        if (MODL->body[ibody].onstack != 1) continue;
-
-                        for (iface = 1; iface <= MODL->body[ibody].nface; iface++) {
-                            status = EG_attributeRet(MODL->body[ibody].face[iface].eface, "..bbox..",
-                                                     &atype, &alen, &tempIlist, &tempRlist, &tempClist);
-                            CHECK_STATUS(EG_attributeRet);
-
-                            if (xyz_in[0] > tempRlist[0]-dbest && xyz_in[0] < tempRlist[3]+dbest &&
-                                xyz_in[1] > tempRlist[1]-dbest && xyz_in[1] < tempRlist[4]+dbest &&
-                                xyz_in[2] > tempRlist[2]-dbest && xyz_in[2] < tempRlist[5]+dbest   ) {
-
-                                status = EG_invEvaluate(MODL->body[ibody].face[iface].eface, xyz_in, uv_out, xyz_out);
-                                if (status != EGADS_DEGEN) {      // this happens if we try to inv eval along a degenerate Edge
-                                    CHECK_STATUS(EG_invEvaluate);
-
-                                    dtest = sqrt(SQR(xyz_out[0]-xyz_in[0]) + SQR(xyz_out[1]-xyz_in[1]) + SQR(xyz_out[2]-xyz_in[2]));
-                                    if (dtest < dbest) {
-                                        dbest = dtest;
-                                        xbest = xyz_out[0];
-                                        ybest = xyz_out[1];
-                                        zbest = xyz_out[2];
-                                        ubest = uv_out[ 0];
-                                        vbest = uv_out[ 1];
-                                        ibest = ibody;
-                                        jbest = iface;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    if (dbest > dworst) {
-                        dworst = dbest;
-                    }
-                    drms += dbest;
-
-                    fprintf(fp_all, "%20.12f %20.12f %20.12f %5d %5d %20.12f %20.12f %20.12f %12.3e\n",
-                            xyz_in[0], xyz_in[1], xyz_in[2], ibest, jbest, xbest, ybest, zbest, dbest);
-
-                    if (dbest > histDist) {
-                        fprintf(fp_bad, "%5d%5d point_%d_%d_%d\n",   1, 0, count, ibest, jbest);
-                        fprintf(fp_bad, "%20.12f %20.12f %20.12f\n", xyz_in[0], xyz_in[1], xyz_in[2]);
-                        fprintf(fp_bad, "%5d%5d line_%d_%f_%f\n",    2, 1, count, ubest, vbest);
-                        fprintf(fp_bad, "%20.12f %20.12f %20.12f\n", xyz_in[0], xyz_in[1], xyz_in[2]);
-                        fprintf(fp_bad, "%20.12f %20.12f %20.12f\n", xbest,     ybest,     zbest    );
-                        count++;
-                    }
-
-                    /* add to histogram */
-                    status = addToHistogram(dbest, nhist, dhist, hist);
-                    CHECK_STATUS(addToHistogram);
-                }
-            }
-            SPRINT2(1, " dworst=%12.3e, drms=%12.3e", dworst, sqrt(drms/imax/jmax));
-            if (dworst > dultim) {
-                dultim = dworst;
-            }
-        }
-        SPRINT1(1, "dultim=%12.3e", dultim);
-
-        /* close the plotfile and points files */
-        fclose(fp_plot);
-        fclose(fp_bad );
-        fclose(fp_all );
-
-        /* print the histogram */
-        new_time = clock();
-        SPRINT1(0, "Distance of plot points from Bodys on stack\nCPUtime=%9.3f sec",
-                (double)(new_time-old_time) / (double)(CLOCKS_PER_SEC));
-        status = printHistogram(nhist, dhist, hist);
-        CHECK_STATUS(printHistogram);
+        status = generateHistogram(MODL);
+        CHECK_STATUS(generateHistogram);
     }
 
-    cleanupMemory(MODL, 0);
-
-    /* free up stoage associated with GUI */
-    wv_cleanupServers();
-    ESP->cntxt = NULL;
+    /* special test of ocsmAdjoint */
+    if (strstr(casename, "testAdjoint") != NULL) {
+        if (oldLoadEgads == 0) {
+            status = testOcsmAdjoint(MODL);
+            CHECK_STATUS(testOcsmAdjoint);
+        } else {
+            SPRINT0(0, "WARNING:: ocsmAdjoint not tested because -loadEgads was enabled");
+        }
+    }
 
     /* free up undo storage */
     for (iundo = nundo-1; iundo >= 0; iundo--) {
@@ -1710,6 +1487,12 @@ somewhere:
     FREE(undo_modl  );
 
     nundo = 0;
+
+    cleanupMemory(MODL, 0);
+
+    /* free up stoage associated with GUI */
+    wv_cleanupServers();
+    ESP->cntxt = NULL;
 
     /* finalize Python (if it was used) */
     tim_lock(1);
@@ -1803,8 +1586,7 @@ cleanup:
     FREE(irows );
     FREE(ipmtrs);
 
-    FREE(cloud);
-
+    FREE(textbuff);
     FREE(response);
     FREE(messages);
     FREE(skbuff  );
@@ -1830,6 +1612,8 @@ static void
 addToResponse(char   text[])            /* (in)  text to add */
 {
     int    status=SUCCESS, text_len;
+
+    void   *realloc_temp = NULL;            /* used by RALLOC macro */
 
     ROUTINE(addToResponse);
 
@@ -1869,6 +1653,7 @@ addToSgMetaData(char   format[],        /* (in)  format specifier */
 {
     int      status=SUCCESS, newchars;
 
+    void     *realloc_temp = NULL;            /* used by RALLOC macro */
     va_list  args;
 
     ROUTINE(addToSgMetaData);
@@ -1906,8 +1691,8 @@ cleanup:
 /***********************************************************************/
 
 static int
-applyDisplacement(esp_T  *ESP,
-                  int    ipmtr)
+applyDisplacement(esp_T  *ESP,          /* (in)  pointer to ESP structure */
+                  int    ipmtr)         /* (in)  Paremeter index (1:npmtr) */
 {
     int       status = SUCCESS;         /* return status */
 
@@ -2068,6 +1853,31 @@ cleanup:
 
 /***********************************************************************/
 /*                                                                     */
+/*   bcstCallbackFromOpenCSM - broadcast a message from OpenCSM        */
+/*                                                                     */
+/***********************************************************************/
+
+void
+bcstCallbackFromOpenCSM(char mesg[])    /* (in)  message */
+{
+//    int  status=SUCCESS;
+
+    ROUTINE(bcstCallbackFromOpenCSM);
+
+    /* --------------------------------------------------------------- */
+
+    if (wv_nClientServer(0) >= 1) {
+        TRACE_BROADCAST( mesg);
+        wv_broadcastText(mesg);
+    }
+
+//cleanup:
+    return;
+}
+
+
+/***********************************************************************/
+/*                                                                     */
 /*   browserMessage - called when client sends a message to the server */
 /*                                                                     */
 /***********************************************************************/
@@ -2076,12 +1886,13 @@ void
 browserMessage(void    *esp,
    /*@unused@*/void    *wsi,
                char    text[],
-   /*@unused@*/int     lena)
+               int     lena)
 {
     int       status;
 
-    int       sendKeyData, ibody, onstack;
+    int       sendKeyData, ibody, onstack, test;
     char      message2[MAX_LINE_LEN];
+    void      *realloc_temp = NULL;            /* used by RALLOC macro */
 
     esp_T     *ESP   = (esp_T *)esp;
     modl_T    *MODL;
@@ -2100,6 +1911,58 @@ browserMessage(void    *esp,
         goto cleanup;
     }
 
+    /* allocate nominal textbuff */
+    if (max_textbuff == 0) {
+        max_textbuff = 5000;
+        seq_textbuff =   -1;
+        MALLOC(textbuff, char, max_textbuff);
+    }
+
+    /* if this is a short simple text, just copy text into textbuff */
+    if (strncmp(text,          "#!", 2) != 0 &&
+        strncmp(text+(lena-2), "!#", 2) != 0   ) {
+        strcpy(textbuff, text);
+        seq_textbuff = -1;
+
+    /* if this is the beginning of a continued text, copy into textbuff */
+    } else if (strncmp(text, "#!", 2) != 0) {
+        strcpy(textbuff, text);
+
+        /* get the sequence number at the end of the text */
+        seq_textbuff = atoi(text+(strlen(textbuff)-5));
+        textbuff[strlen(textbuff)-7] = '\0';
+
+        /* we have to delay processing until we get the whole text */
+        goto cleanup;
+
+    /* if this is a continuation, make sure it matches the sequence number */
+    } else {
+        test = atoi(text+2);
+        if (test != seq_textbuff) {
+            printf("ERROR:: test=%d, seq_textbuff=%d\n", test, seq_textbuff);
+            goto cleanup;
+        }
+
+        /* extend textbuff and append text into textbuff */
+        if (strlen(textbuff)+lena > max_textbuff-3) {
+            max_textbuff += lena;
+            RALLOC(textbuff, char, max_textbuff);
+        }
+
+        strcat(textbuff, text+7);
+
+        /* if it is also continued, get the new sequence number */
+        if (strncmp(textbuff+(strlen(textbuff)-2), "!#", 2) == 0) {
+            seq_textbuff = atoi(textbuff+(strlen(textbuff)-5));
+            textbuff[strlen(textbuff)-7] = '\0';
+
+            /* delay processing because we dp not have the end f the text yet */
+            goto cleanup;
+        }
+    }
+
+    seq_textbuff = -1;
+
     /* update the thread using the context */
     if (MODL->context != NULL) {
         status = EG_updateThread(MODL->context);
@@ -2114,7 +1977,7 @@ browserMessage(void    *esp,
     }
 
     /* process the Message */
-    (void) processBrowserToServer(ESP, text);
+    (void) processBrowserToServer(ESP, textbuff);
 
     /* make sure we have the latest MODL */
     MODL = ESP->MODL;
@@ -2128,7 +1991,15 @@ browserMessage(void    *esp,
     /* if the sensitivities were just computed, send a message to
        inform the user about the lowest and highest sensitivity values */
     if (sensPost > 0) {
-        snprintf(message2, MAX_LINE_LEN-1, "Sensitivities are in the range between %f and %f", sensLo, sensHi);
+        if        (plotType == 7) {
+            snprintf(message2, MAX_LINE_LEN-1, "X-sensitivities are in the range between %f and %f", sensLo, sensHi);
+        } else if (plotType == 8) {
+            snprintf(message2, MAX_LINE_LEN-1, "Y-sensitivities are in the range between %f and %f", sensLo, sensHi);
+        } else if (plotType == 9) {
+            snprintf(message2, MAX_LINE_LEN-1, "Z-sensitivities are in the range between %f and %f", sensLo, sensHi);
+        } else {
+            snprintf(message2, MAX_LINE_LEN-1, "Sensitivities are in the range between %f and %f", sensLo, sensHi);
+        }
         TRACE_BROADCAST( message2);
         wv_broadcastText(message2);
 
@@ -2176,13 +2047,19 @@ browserMessage(void    *esp,
         if (haveDots >  1) {
             if (tessel == 0) {
                 status = wv_setKey(cntxt, 256, color_map, lims[0], lims[1], "Geom: d(norm)/d(***)");
+            } else if (plotType == 7) {
+                status = wv_setKey(cntxt, 256, color_map, lims[0], lims[1], "Tess: d(x-norm)/d(***)");
+            } else if (plotType == 8) {
+                status = wv_setKey(cntxt, 256, color_map, lims[0], lims[1], "Tess: d(y-norm)/d(***)");
+            } else if (plotType == 9) {
+                status = wv_setKey(cntxt, 256, color_map, lims[0], lims[1], "Tess: d(z-norm)/d(***)");
             } else {
                 status = wv_setKey(cntxt, 256, color_map, lims[0], lims[1], "Tess: d(norm)/d(***)");
             }
             TRACE_BROADCAST( "setWvKey|on|");
             wv_broadcastText("setWvKey|on|");
         } else if (haveDots == 1) {
-            status = wv_setKey(cntxt, 256, color_map, lims[0], lims[1], dotName         );
+            status = wv_setKey(cntxt, 256, color_map, lims[0], lims[1], dotName       );
             TRACE_BROADCAST( "setWvKey|on|");
             wv_broadcastText("setWvKey|on|");
         } else if (plotType == 1) {
@@ -2246,8 +2123,8 @@ browserMessage(void    *esp,
             onstack += MODL->body[ibody].onstack;
         }
 
-        snprintf(response, max_resp_len, "build|%d|%d|%s|",
-                 successBuild, onstack, messages);
+        snprintf(response, max_resp_len, "build|%d|%d|%d|%s|",
+                 successBuild, MODL->nbrch, onstack, messages);
 
         TRACE_BROADCAST( response);
         wv_broadcastText(response);
@@ -2333,6 +2210,9 @@ buildBodys(esp_T   *ESP,
 
         /* set the skip tessellation flag */
         MODL->tessAtEnd = 1 - skipTess;
+
+        /* set the forceFDs flag */
+        MODL->forceFDs = forceFDs;
 
         /* set the build erep flag */
         if (plotType == 10) {
@@ -2495,7 +2375,7 @@ buildSceneGraph(esp_T  *ESP)
 {
     int       status = SUCCESS;         /* return status */
 
-    int       ibody, jbody, iface, iedge, inode, iattr, nattr, ipmtr, irc, atype, alen;
+    int       ibody, jbody, iface, iedge, inode, iattr, nattr, ipmtr, irc, atype, alen, icolr;
     int       npnt, ipnt, ntri, itri, igprim, nseg, i, j, k, ij, ij1, ij2, ngrid, ncrod, nctri3, ncquad4;
     int       imax, jmax, ibeg, iend, isw, ise, ine, inw;
     int       attrs, head[3], nitems, nnode, nedge, nface;
@@ -2750,12 +2630,24 @@ buildSceneGraph(esp_T  *ESP)
                             if (haveDots == 0) {
                                 if (tessel == 0) {
                                     snprintf(dotName, MAX_STRVAL_LEN-1, "Geom: d(norm)/d(%s)", MODL->pmtr[ipmtr].name);
+                                } else if (plotType == 7) {
+                                    snprintf(dotName, MAX_STRVAL_LEN-1, "Tess: d(x-norm)/d(%s)", MODL->pmtr[ipmtr].name);
+                                } else if (plotType == 8) {
+                                    snprintf(dotName, MAX_STRVAL_LEN-1, "Tess: d(y-norm)/d(%s)", MODL->pmtr[ipmtr].name);
+                                } else if (plotType == 9) {
+                                    snprintf(dotName, MAX_STRVAL_LEN-1, "Tess: d(z-norm)/d(%s)", MODL->pmtr[ipmtr].name);
                                 } else {
                                     snprintf(dotName, MAX_STRVAL_LEN-1, "Tess: d(norm)/d(%s)", MODL->pmtr[ipmtr].name);
                                 }
                             } else {
                                 if (tessel == 0) {
                                     snprintf(dotName, MAX_STRVAL_LEN-1, "Geom: d(norm)/d(***)");
+                                } else if (plotType == 7) {
+                                    snprintf(dotName, MAX_STRVAL_LEN-1, "Tess: d(x-norm)/d(***)");
+                                } else if (plotType == 8) {
+                                    snprintf(dotName, MAX_STRVAL_LEN-1, "Tess: d(y-norm)/d(***)");
+                                } else if (plotType == 9) {
+                                    snprintf(dotName, MAX_STRVAL_LEN-1, "Tess: d(z-norm)/d(***)");
                                 } else {
                                     snprintf(dotName, MAX_STRVAL_LEN-1, "Tess: d(norm)/d(***)");
                                 }
@@ -2764,6 +2656,12 @@ buildSceneGraph(esp_T  *ESP)
                         } else if (MODL->pmtr[ipmtr].dot[irc] != 0) {
                             if (tessel == 0) {
                                 snprintf(dotName, MAX_STRVAL_LEN-1, "Geom: d(norm)/d(***)");
+                            } else if (plotType == 7) {
+                                snprintf(dotName, MAX_STRVAL_LEN-1, "Tess: d(x-norm)/d(***)");
+                            } else if (plotType == 8) {
+                                snprintf(dotName, MAX_STRVAL_LEN-1, "Tess: d(y-norm)/d(***)");
+                            } else if (plotType == 9) {
+                                snprintf(dotName, MAX_STRVAL_LEN-1, "Tess: d(z-norm)/d(***)");
                             } else {
                                 snprintf(dotName, MAX_STRVAL_LEN-1, "Tess: d(norm)/d(***)");
                             }
@@ -2794,15 +2692,39 @@ buildSceneGraph(esp_T  *ESP)
 
             /* name and attributes */
             snprintf(gpname, MAX_STRVAL_LEN-1, "%s Face %d", bname, iface);
+
             if (haveDots >= 1 || plotType > 0) {
-                attrs = WV_ON | WV_SHADING;
+                attrs = WV_SHADING;
             } else {
-                attrs = WV_ON | WV_ORIENTATION;
+                attrs = WV_ORIENTATION;
+            }
+
+            status = EG_attributeRet(MODL->body[ibody].face[iface].eface, "_viz",
+                                     &atype, &alen, &tempIlist, &tempRlist, &tempClist);
+            if (status == EGADS_SUCCESS && atype == ATTRSTRING && strcmp(tempClist, "off") == 0) {
+
+            } else {
+                attrs |= WV_ON;
+            }
+
+            status = EG_attributeRet(MODL->body[ibody].face[iface].eface, "_grd",
+                                     &atype, &alen, &tempIlist, &tempRlist, &tempClist);
+            if (status == EGADS_SUCCESS && atype == ATTRSTRING && strcmp(tempClist, "on") == 0) {
+                attrs |= WV_LINES;
+            }
+
+            status = EG_attributeRet(MODL->body[ibody].face[iface].eface, "_trn",
+                                     &atype, &alen, &tempIlist, &tempRlist, &tempClist);
+            if (status == EGADS_SUCCESS && atype == ATTRSTRING && strcmp(tempClist, "on") == 0) {
+                attrs |= WV_TRANSPARENT;
             }
 
             status = EG_getQuads(etess, iface,
                                  &npnt, &xyz, &uv, &ptype, &pindx, &npatch);
-            if (status != SUCCESS) {
+            if (status == EGADS_NODATA) {
+                SPRINT3(0, "WARNING:: EG_getQuads(%d,%d) -> status=%d", ibody, iface, status);
+                continue;
+            } else if (status != SUCCESS) {
                 SPRINT3(0, "ERROR:: EG_getQuads(%d,%d) -> status=%d", ibody, iface, status);
             }
 
@@ -2816,7 +2738,10 @@ buildSceneGraph(esp_T  *ESP)
                 status = EG_getTessFace(etess, iface,
                                         &npnt, &xyz, &uv, &ptype, &pindx,
                                         &ntri, &tris, &tric);
-                if (status != SUCCESS) {
+                if (status == EGADS_NODATA) {
+                    SPRINT3(0, "WARNING:: EG_getTessFace(%d,%d) -> status=%d", ibody, iface, status);
+                    continue;
+                } else if (status != SUCCESS) {
                     SPRINT3(0, "ERROR:: EG_getTessFace(%d,%d) -> status=%d", ibody, iface, status);
                 }
 
@@ -3120,6 +3045,12 @@ buildSceneGraph(esp_T  *ESP)
                         }
 
                     /* find unsigned velocity magnitude */
+                    } else if (plotType == 7) {
+                        velmag = vel[3*ipnt  ];
+                    } else if (plotType == 8) {
+                        velmag = vel[3*ipnt+1];
+                    } else if (plotType == 9) {
+                        velmag = vel[3*ipnt+2];
                     } else {
                         velmag = sqrt( vel[3*ipnt  ] * vel[3*ipnt  ]
                                      + vel[3*ipnt+1] * vel[3*ipnt+1]
@@ -3241,7 +3172,7 @@ buildSceneGraph(esp_T  *ESP)
 
                 FREE(pcolors);
 
-            /* smooth colors (maximum Curv) */
+            /* zebra-stripe colors (maximum Curv) */
             } else if (plotType == 4) {
                 status = EG_getTessFace(etess, iface,
                                         &npnt, &xyz, &uv, &ptype, &pindx,
@@ -3261,7 +3192,17 @@ buildSceneGraph(esp_T  *ESP)
                     } else {
                         rcurv = MAX(data[0], data[4]) * sqrt(size2);
                     }
-                    spec_col((float)(rcurv), &(pcolors[3*ipnt]));
+//$$$                    spec_col((float)(rcurv), &(pcolors[3*ipnt]));
+                    icolr = 32 * (rcurv - lims[0]) / (lims[1] - lims[0]);
+                    if (icolr%2 == 0) {
+                        pcolors[3*ipnt  ] = 0;
+                        pcolors[3*ipnt+1] = 0;
+                        pcolors[3*ipnt+2] = 1;
+                    } else {
+                        pcolors[3*ipnt  ] = 1;
+                        pcolors[3*ipnt+1] = 1;
+                        pcolors[3*ipnt+2] = 1;
+                    }
                 }
 
                 status = wv_setData(WV_REAL32, npnt, (void*)pcolors, WV_COLORS, &(items[nitems]));
@@ -3595,7 +3536,7 @@ buildSceneGraph(esp_T  *ESP)
 
                     normx = (data[4] * data[8] - data[5] * data[7]);
                     normy = (data[5] * data[6] - data[3] * data[8]);
-                    normz = (data[6] * data[7] - data[4] * data[6]);
+                    normz = (data[3] * data[7] - data[4] * data[6]);
                     norm  = sqrt(normx*normx + normy*normy + normz*normz);
 
                     tuft[6*ipnt  ] = xyz[3*ipnt  ];
@@ -3664,7 +3605,26 @@ buildSceneGraph(esp_T  *ESP)
 
             /* name and attributes */
             snprintf(gpname, MAX_STRVAL_LEN-1, "%s Edge %d", bname, iedge);
-            attrs = WV_ON;
+
+            status = EG_attributeRet(MODL->body[ibody].edge[iedge].eedge, "_viz",
+                                     &atype, &alen, &tempIlist, &tempRlist, &tempClist);
+            if (status == EGADS_SUCCESS && atype == ATTRSTRING && strcmp(tempClist, "off") == 0) {
+                attrs = 0;
+            } else {
+                attrs = WV_ON;
+            }
+
+            status = EG_attributeRet(MODL->body[ibody].edge[iedge].eedge, "_grd",
+                                     &atype, &alen, &tempIlist, &tempRlist, &tempClist);
+            if (status == EGADS_SUCCESS && atype == ATTRSTRING && strcmp(tempClist, "on") == 0) {
+                attrs |= WV_POINTS;
+            }
+
+            status = EG_attributeRet(MODL->body[ibody].edge[iedge].eedge, "_ori",
+                                     &atype, &alen, &tempIlist, &tempRlist, &tempClist);
+            if (status == EGADS_SUCCESS && atype == ATTRSTRING && strcmp(tempClist, "on") == 0) {
+                attrs |= WV_ORIENTATION;
+            }
 
             /* vertices */
             status = wv_setData(WV_REAL64, npnt, (void*)xyz, WV_VERTICES, &(items[nitems]));
@@ -3787,45 +3747,58 @@ buildSceneGraph(esp_T  *ESP)
                 status = ocsmGetTessVel(MODL, ibody, OCSM_EDGE, iedge, (const double**)(&vel));
                 CHECK_STATUS(ocsmGetTessVel);
 
-                SPLINT_CHECK_FOR_NULL(vel);
+                if (vel != NULL) {
 
-                /* create tufts */
-                MALLOC(tuft, float, 6*npnt);
+                    /* create tufts */
+                    MALLOC(tuft, float, 6*npnt);
 
-                for (ipnt = 0; ipnt < npnt; ipnt++) {
-                    tuft[6*ipnt  ] = xyz[3*ipnt  ];
-                    tuft[6*ipnt+1] = xyz[3*ipnt+1];
-                    tuft[6*ipnt+2] = xyz[3*ipnt+2];
-                    tuft[6*ipnt+3] = xyz[3*ipnt  ] + vel[3*ipnt  ];
-                    tuft[6*ipnt+4] = xyz[3*ipnt+1] + vel[3*ipnt+1];
-                    tuft[6*ipnt+5] = xyz[3*ipnt+2] + vel[3*ipnt+2];
+                    for (ipnt = 0; ipnt < npnt; ipnt++) {
+                        tuft[6*ipnt  ] = xyz[3*ipnt  ];
+                        tuft[6*ipnt+1] = xyz[3*ipnt+1];
+                        tuft[6*ipnt+2] = xyz[3*ipnt+2];
+                        tuft[6*ipnt+3] = xyz[3*ipnt  ] + vel[3*ipnt  ];
+                        tuft[6*ipnt+4] = xyz[3*ipnt+1] + vel[3*ipnt+1];
+                        tuft[6*ipnt+5] = xyz[3*ipnt+2] + vel[3*ipnt+2];
+
+                        if        (plotType == 7) {
+                            velmag = vel[3*ipnt  ];
+                        } else if (plotType == 8) {
+                            velmag = vel[3*ipnt+1];
+                        } else if (plotType == 9) {
+                            velmag = vel[3*ipnt+2];
+                        } else {
+                            velmag = sqrt(vel[3*ipnt]*vel[3*ipnt] + vel[3*ipnt+1]*vel[3*ipnt+1] + vel[3*ipnt+2]*vel[3*ipnt+2]);
+                        }
+
+                        if (velmag < sensLo) sensLo = velmag;
+                        if (velmag > sensHi) sensHi = velmag;
+                    }
+
+                    status = wv_setData(WV_REAL32, 2*npnt, (void*)tuft, WV_VERTICES, &(items[nitems]));
+
+                    FREE(tuft);
+
+                    if (status != SUCCESS) {
+                        SPRINT3(0, "ERROR:: wv_setData(%d,%d) -> status=%d", ibody, iedge, status);
+                    }
+
+                    wv_adjustVerts(&(items[nitems]), ESP->sgFocus);
+                    nitems++;
+
+                    /* tuft color */
+                    color[0] = 1;   color[1] = 0;   color[2] = 0;
+                    status = wv_setData(WV_REAL32, 1, (void*)color, WV_COLORS, &(items[nitems]));
+                    if (status != SUCCESS) {
+                        SPRINT3(0, "ERROR:: wv_setData(%d,%d) -> status=%d", ibody, iedge, status);
+                    }
+                    nitems++;
+
+                    /* make graphic primitive for tufts */
+                    igprim = wv_addGPrim(cntxt, gpname, WV_LINE, attrs, nitems, items);
+                    if (igprim < 0) {
+                        SPRINT2(0, "ERROR:: wv_addGPrim(%s) -> igprim=%d", gpname, igprim);
+                    }
                 }
-
-                status = wv_setData(WV_REAL32, 2*npnt, (void*)tuft, WV_VERTICES, &(items[nitems]));
-
-                FREE(tuft);
-
-                if (status != SUCCESS) {
-                    SPRINT3(0, "ERROR:: wv_setData(%d,%d) -> status=%d", ibody, iedge, status);
-                }
-
-                wv_adjustVerts(&(items[nitems]), ESP->sgFocus);
-                nitems++;
-
-                /* tuft color */
-                color[0] = 1;   color[1] = 0;   color[2] = 0;
-                status = wv_setData(WV_REAL32, 1, (void*)color, WV_COLORS, &(items[nitems]));
-                if (status != SUCCESS) {
-                    SPRINT3(0, "ERROR:: wv_setData(%d,%d) -> status=%d", ibody, iedge, status);
-                }
-                nitems++;
-
-                /* make graphic primitive for tufts */
-                igprim = wv_addGPrim(cntxt, gpname, WV_LINE, attrs, nitems, items);
-                if (igprim < 0) {
-                    SPRINT2(0, "ERROR:: wv_addGPrim(%s) -> igprim=%d", gpname, igprim);
-                }
-
             }
 
             /* add Edge to meta data (if there is room) */
@@ -3885,10 +3858,20 @@ buildSceneGraph(esp_T  *ESP)
             snprintf(gpname, MAX_STRVAL_LEN-1, "%s Node %d", bname, inode);
 
             /* default for NodeBodys is to turn the Node on */
+            status = EG_attributeRet(MODL->body[ibody].node[inode].enode, "_viz",
+                                     &atype, &alen, &tempIlist, &tempRlist, &tempClist);
             if (MODL->body[ibody].botype == OCSM_NODE_BODY) {
-                attrs = WV_ON;
+                if (status == EGADS_SUCCESS && atype == ATTRSTRING && strcmp(tempClist, "off") == 0) {
+                    attrs = 0;
+                } else {
+                    attrs = WV_ON;
+                }
             } else {
-                attrs = 0;
+                if (status == EGADS_SUCCESS && atype == ATTRSTRING && strcmp(tempClist, "on") == 0) {
+                    attrs = WV_ON;
+                } else {
+                    attrs = 0;
+                }
             }
 
             SPLINT_CHECK_FOR_NULL(enodes);
@@ -5452,6 +5435,258 @@ cleanupMemory(modl_T *MODL,
 
 /***********************************************************************/
 /*                                                                     */
+/*   completeFilename - do filename completion                         */
+/*                                                                     */
+/***********************************************************************/
+
+static int
+completeFilename(char   input[],        /* (in)  input filename */
+                 char   *answer[])      /* (out) |common|possibles| */
+                                        /*       must be freed by user */
+{
+    int    status = SUCCESS;
+
+    int    nlist=0, ilist, ichar, found, len;
+    char   templine[MAX_FILENAME_LEN], command[MAX_FILENAME_LEN];
+    char   common[MAX_FILENAME_LEN];
+    char   **list=NULL, *myAnswer=NULL;
+    FILE   *fp;
+    void   *temp;
+
+    ROUTINE(completeFilename);
+
+    /* --------------------------------------------------------------- */
+
+    /* use a system call to get a list of possible completions */
+    remove("TeMpLs.txt");
+
+#ifndef WIN32
+    snprintf(command, MAX_FILENAME_LEN, "/bin/ls -pd %s > TeMpLs.txt", input);
+#else
+    snprintf(command, MAX_FILENAME_LEN, "for %%f in (%s) do echo %%f >> TeMpLs.txt", input);
+#endif
+
+    system(command);
+
+    fp = fopen("TeMpLs.txt", "r");
+    if (fp == NULL) {
+        input[strlen(input)] = '\0';    // remove trailing star (*)
+
+        len = strlen(input) + 14;
+        MALLOC(myAnswer, char, len);
+        snprintf(myAnswer, len, "|%s|*No match*|", input);
+        goto cleanup;
+    }
+
+    /* determine number of returned filenames */
+    while (1) {
+        temp = fgets(templine, MAX_FILENAME_LEN, fp);
+        if (temp == NULL) break;
+
+        nlist++;
+    }
+
+    /* if TeMpLs.txt is empty, return an error message */
+    if (nlist == 0) {
+        input[strlen(input)] = '\0';    // remove trailing *
+
+        len = strlen(input) + 14;
+        MALLOC(myAnswer, char, len);
+        snprintf(myAnswer, len, "|%s|*No match*|", input);
+        goto cleanup;
+    }
+
+    /* make a list of the returned filenames */
+    rewind(fp);
+
+    MALLOC(list, char*, nlist);
+    for (ilist = 0; ilist < nlist; ilist++) {
+        list[ilist] = NULL;
+        MALLOC(list[ilist], char, MAX_FILENAME_LEN);
+        (void) fgets(list[ilist], MAX_FILENAME_LEN, fp);
+#ifndef WIN32
+        list[ilist][strlen(list[ilist])-1] = '\0';
+#else
+        list[ilist][strlen(list[ilist])-2] = '\0';
+#endif
+    }
+
+    /* cleanup TeMpLs.txt */
+    fclose(fp);
+    remove("TeMpLs.txt");
+
+    /* figure out the common parts of the returned filenames */
+    strncpy(common, list[0], MAX_FILENAME_LEN);
+
+    for (ichar = 0; ichar < strlen(list[0]); ichar++) {
+        found = 1;
+        for (ilist = 1; ilist < nlist; ilist++) {
+            if (list[ilist][ichar] != list[0][ichar]) {
+                common[ichar] = '\0';
+                found = 0;
+                break;
+            }
+        }
+        if (found == 0) {
+            break;
+        }
+    }
+
+    /* myAnswer contains common part and possible completions */
+    len = strlen(common) + 25;
+    for (ilist = 0; ilist < nlist; ilist++) {
+        len += strlen(list[ilist]) + 1;
+    }
+
+    MALLOC(myAnswer, char, len);
+    snprintf(myAnswer, len, "|%s|Possible completions:", common);
+    for (ilist = 0; ilist < nlist; ilist++) {
+        snprintf(templine, MAX_FILENAME_LEN, "\n%s", list[ilist]);
+        strncat(myAnswer, templine, len);
+    }
+    strncat(myAnswer, "|", len);
+
+cleanup:
+    /* return the answer (which must be freed by the user) */
+    *answer = myAnswer;
+
+    if (list != NULL) {
+        for (ilist = 0; ilist < nlist; ilist++) {
+            FREE(list[ilist]);
+        }
+    }
+    FREE(list);
+
+    return status;
+}
+
+
+/***********************************************************************/
+/*                                                                     */
+/*   generateVfyFile - generate .vfy file                              */
+/*                                                                     */
+/***********************************************************************/
+
+static int
+generateVfyFile(modl_T *MODL)           /* (in)  pointer to MODL */
+{
+    int   status = EGADS_SUCCESS;
+
+    int       imajor, iminor, ibody;
+    double    bbox[6], data[18];
+    CCHAR     *OCC_ver;
+    FILE      *vrfy_fp;
+
+    /* --------------------------------------------------------------- */
+
+    SPRINT1(0, "WARNING:: writing verification data to \"%s\"", vrfyname);
+
+    vrfy_fp = fopen(vrfyname, "w");
+    if (vrfy_fp == NULL) {
+        SPRINT1(0, "ERROR:: \"%s\" could not be created", vrfyname);
+        status = -999;
+        goto cleanup;
+    }
+
+    EG_revision(&imajor, &iminor, &OCC_ver);
+
+    fprintf(vrfy_fp, "#======================================#\n");
+    fprintf(vrfy_fp, "# automatically generated verification #\n");
+    fprintf(vrfy_fp, "# OpenCSM %2d.%02d      %s #\n", imajor, iminor, &(OCC_ver[strlen(OCC_ver)-17]));
+    fprintf(vrfy_fp, "#======================================#\n");
+
+    for (ibody = 1; ibody <= MODL->nbody; ibody++) {
+        if (MODL->body[ibody].onstack != 1) continue;
+
+        fprintf(vrfy_fp, "select    body %d\n", ibody);
+
+        if        (MODL->body[ibody].botype == OCSM_NODE_BODY) {
+            fprintf(vrfy_fp, "   assert  %8d      @itype       0  1\n", 0);
+        } else if (MODL->body[ibody].botype == OCSM_WIRE_BODY) {
+            fprintf(vrfy_fp, "   assert  %8d      @itype       0  1\n", 1);
+        } else if (MODL->body[ibody].botype == OCSM_SHEET_BODY) {
+            fprintf(vrfy_fp, "   assert  %8d      @itype       0  1\n", 2);
+        } else if (MODL->body[ibody].botype == OCSM_SOLID_BODY) {
+            fprintf(vrfy_fp, "   assert  %8d      @itype       0  1\n", 3);
+        }
+
+        status = EG_getBoundingBox(MODL->body[ibody].ebody, bbox);
+        if (status != SUCCESS) {
+            SPRINT2(0, "ERROR:: EG_getBoundingBox(%d) -> status=%d\n", ibody, status);
+        }
+
+        status = EG_getMassProperties(MODL->body[ibody].ebody, data);
+        if (status != SUCCESS) {
+            SPRINT2(0, "ERROR:: EG_getMassProperties(%d) -> status=%d\n", ibody, status);
+        }
+
+        if (MODL->body[ibody].botype == OCSM_SHEET_BODY ||
+            MODL->body[ibody].botype == OCSM_SOLID_BODY   ) {
+            if        (fabs(data[0]) > 0.001) {
+                fprintf(vrfy_fp, "   assert %15.7e  @volume  -.001  1\n", data[0]);
+            } else if (fabs(data[0]) < 1e-10) {
+                fprintf(vrfy_fp, "   assert %15.7e  @volume  0.001  1\n", 0.0);
+            } else {
+                fprintf(vrfy_fp, "   assert %15.7e  @volume  0.001  1\n", data[0]);
+            }
+            if        (fabs(data[1]) > 0.001) {
+                fprintf(vrfy_fp, "   assert %15.7e  @area    -.001  1\n", data[1]);
+            } else if (fabs(data[1]) < 1e-10) {
+                fprintf(vrfy_fp, "   assert %15.7e  @area    0.001  1\n", 0.0);
+            } else {
+                fprintf(vrfy_fp, "   assert %15.7e  @area    0.001  1\n", data[1]);
+            }
+        } else if (MODL->body[ibody].botype == OCSM_WIRE_BODY) {
+            if        (fabs(data[1]) > 0.001) {
+                fprintf(vrfy_fp, "   assert %15.7e  @length  -.001  1\n", data[1]);
+            } else if (fabs(data[1]) < 1e-10) {
+                fprintf(vrfy_fp, "   assert %15.7e  @length  0.001  1\n", 0.0);
+            } else {
+                fprintf(vrfy_fp, "   assert %15.7e  @length  0.001  1\n", data[1]);
+            }
+        }
+
+        if        (fabs(data[2]) < 1e-10) {
+            fprintf(vrfy_fp, "   assert %15.7e  @xcg     0.001  1\n", 0.0);
+        } else if (bbox[3]-bbox[0] < 0.001) {
+            fprintf(vrfy_fp, "   assert %15.7e  @xcg     -.001  1\n", data[2]);
+        } else {
+            fprintf(vrfy_fp, "   assert %15.7e  @xcg    %15.7e  1\n", data[2], 0.001*(bbox[3]-bbox[0]));
+        }
+
+        if        (fabs(data[3]) < 1e-10) {
+            fprintf(vrfy_fp, "   assert %15.7e  @ycg     0.001  1\n", 0.0);
+        } else if (bbox[4]-bbox[1] < 0.001) {
+            fprintf(vrfy_fp, "   assert %15.7e  @ycg     -.001  1\n", data[3]);
+        } else {
+            fprintf(vrfy_fp, "   assert %15.7e  @ycg    %15.7e  1\n", data[3], 0.001*(bbox[4]-bbox[1]));
+        }
+
+        if        (fabs(data[4]) < 1e-10) {
+            fprintf(vrfy_fp, "   assert %15.7e  @zcg     0.001  1\n", 0.0);
+        } else if (bbox[5]-bbox[2] < 0.001) {
+            fprintf(vrfy_fp, "   assert %15.7e  @zcg     -.001  1\n", data[4]);
+        } else {
+            fprintf(vrfy_fp, "   assert %15.7e  @zcg    %15.7e  1\n", data[4], 0.001*(bbox[5]-bbox[2]));
+        }
+
+        fprintf(vrfy_fp, "   assert  %8d      @nnode       0  1\n", MODL->body[ibody].nnode);
+        fprintf(vrfy_fp, "   assert  %8d      @nedge       0  1\n", MODL->body[ibody].nedge);
+        fprintf(vrfy_fp, "   assert  %8d      @nface       0  1\n", MODL->body[ibody].nface);
+
+        fprintf(vrfy_fp, "\n");
+    }
+
+    fprintf(vrfy_fp, "end\n");
+    fclose(vrfy_fp);
+
+cleanup:
+    return status;
+}
+
+
+/***********************************************************************/
+/*                                                                     */
 /*   getToken - get a token from a string                              */
 /*                                                                     */
 /***********************************************************************/
@@ -5792,6 +6027,8 @@ mesgCallbackFromOpenCSM(char mesg[])    /* (in)  message */
 {
     int  status=SUCCESS;
 
+    void   *realloc_temp = NULL;            /* used by RALLOC macro */
+
     ROUTINE(mesgCallbackFromOpenCSM);
 
     /* --------------------------------------------------------------- */
@@ -5831,14 +6068,16 @@ processBrowserToServer(esp_T   *ESP,
 {
     int       status = SUCCESS;
 
-    int       i, ibrch, itype, nlist, builtTo, buildStatus, ichar, iundo;
+    int       i, ibrch, itype, nlist, builtTo, buildStatus, ichar, iundo, nbody;
     int       ipmtr, jpmtr, nrow, ncol, irow, icol, index, iattr, actv, itemp, linenum;
-    int       itoken1, itoken2, itoken3, ibody, onstack, direction=1, nwarn;
+    int       itoken1, itoken2, itoken3, ibody, onstack, direction=1, nwarn, dim1, dim2;
     int       nclient;
     CINT      *tempIlist;
     double    scale, value, dot;
+    double    toler, value1, dot1, value2, dot2;
     CDOUBLE   *tempRlist;
-    char      *pEnd, bname[MAX_NAME_LEN+1], *bodyinfo=NULL, *tempEnv;
+    char      *pEnd, bname[MAX_NAME_LEN+1], *bodyinfo=NULL, *tempEnv, *answer;
+    char      str1[MAX_STRVAL_LEN], str2[MAX_STRVAL_LEN];
     CCHAR     *tempClist;
 
     char      *name=NULL,   *type=NULL, *valu=NULL;
@@ -5851,6 +6090,7 @@ processBrowserToServer(esp_T   *ESP,
 #define  MAX_TOKN_LEN  16384
 
     char      *begs=NULL, *vars=NULL, *cons=NULL, *segs=NULL, *vars_out=NULL;
+    void      *realloc_temp = NULL;            /* used by RALLOC macro */
 
     static FILE  *fp=NULL;
 
@@ -5909,6 +6149,21 @@ processBrowserToServer(esp_T   *ESP,
         snprintf(response, max_resp_len, "identify|serveESP|%d|%s|||", nclient, pyname);
         response_len = STRLEN(response);
 
+    /* "completeFilename|callback|input|" */
+    } else if (strncmp(text, "completeFilename|", 17) == 0) {
+
+        /* extract arguments */
+        getToken(text, 1, '|', arg1);
+        getToken(text, 2, '|', arg2);
+
+        (void) completeFilename(arg2, &answer);
+
+        addToResponse("completeFilename|");
+        addToResponse(arg1);
+        addToResponse(answer);
+
+        free(answer);
+
     /* "getEspPrefix|" */
     } else if (strncmp(text, "getEspPrefix|", 13) == 0) {
         tempEnv = getenv("ESP_PREFIX");
@@ -5952,8 +6207,8 @@ processBrowserToServer(esp_T   *ESP,
 
                 /* user still exists */
                 } else {
-                    strncat(usernames, arg3, 1023);
-                    strncat(usernames, "|",  1023);
+                    STRNCAT(usernames, arg3, 1023);
+                    STRNCAT(usernames, "|",  1023);
                 }
             }
 
@@ -5961,8 +6216,8 @@ processBrowserToServer(esp_T   *ESP,
         } else {
             snprintf(temp, MAX_EXPR_LEN,  "|%s|", arg1);
             if (strstr(usernames, temp) == 0) {
-                strncat(usernames, arg1, 1023);
-                strncat(usernames, "|",  1023);
+                STRNCAT(usernames, arg1, 1023);
+                STRNCAT(usernames, "|",  1023);
             }
         }
 
@@ -6330,7 +6585,7 @@ processBrowserToServer(esp_T   *ESP,
 
                 /* build the response */
                 if (status == SUCCESS) {
-                    snprintf(response, max_resp_len, "setPmtr|");
+                    snprintf(response, max_resp_len, "setPmtr|%s|", arg1);
                 } else {
                     snprintf(response, max_resp_len, "setPmtr|ERROR:: %s",
                              ocsmGetText(status));
@@ -7001,6 +7256,9 @@ processBrowserToServer(esp_T   *ESP,
         status = ocsmRegMesgCB(MODL, mesgCallbackFromOpenCSM);
         CHECK_STATUS(ocsmRegMesgCB);
 
+        status = ocsmRegBcstCB(MODL, bcstCallbackFromOpenCSM);
+        CHECK_STATUS(ocsmRegBcstCB);
+
         status = ocsmRegSizeCB(MODL, sizeCallbackFromOpenCSM);
         CHECK_STATUS(ocsmRegSizeCB);
 
@@ -7073,6 +7331,9 @@ processBrowserToServer(esp_T   *ESP,
             status = ocsmRegMesgCB(MODL, mesgCallbackFromOpenCSM);
             CHECK_STATUS(ocsmRegMesgCB);
 
+            status = ocsmRegBcstCB(MODL, bcstCallbackFromOpenCSM);
+            CHECK_STATUS(ocsmRegBcstCB);
+
             status = ocsmRegSizeCB(MODL, sizeCallbackFromOpenCSM);
             CHECK_STATUS(ocsmRegSizeCB);
 
@@ -7101,8 +7362,8 @@ processBrowserToServer(esp_T   *ESP,
                     onstack += MODL->body[ibody].onstack;
                 }
 
-                snprintf(response, max_resp_len, "build|%d|%d|%s|",
-                         abs(builtTo), onstack, messages);
+                snprintf(response, max_resp_len, "build|%d|%d|%d|%s|",
+                         abs(builtTo), MODL->nbrch, onstack, messages);
             }
 
             messages[0] = '\0';
@@ -7184,7 +7445,7 @@ processBrowserToServer(esp_T   *ESP,
         updatedFilelist = 0;
 
         /* remember the first name in the filelist */
-        strncpy(filename, filelist, MAX_FILENAME_LEN);
+        STRNCPY(filename, filelist, MAX_FILENAME_LEN);
         for (i = 0; i < strlen(filename); i++) {
             if (filename[i] == '|') {
                 filename[i] = '\0';
@@ -7230,7 +7491,115 @@ processBrowserToServer(esp_T   *ESP,
         }
 
     /* "setCsmFileBeg|" */
-    } else if (strncmp(text, "setCsmFileBeg|", 14) == 0) {
+//$$$    } else if (strncmp(text, "setCsmFileBeg|", 14) == 0) {
+//$$$        char subfilename[MAX_FILENAME_LEN];
+//$$$
+        /* extract argument */
+//$$$        getToken(text, 1, '|', subfilename);
+//$$$
+        /* over-writing the .csm file means that everything that was
+           done previous cannot be re-done (since the original input
+           file no longer exists).  therefore, start a new journal file */
+//$$$        if (jrnl_out != NULL) {
+//$$$            rewind(jrnl_out);
+//$$$            response_len = 0;
+//$$$            response[0]  = '\0';
+//$$$
+//$$$            fprintf(jrnl_out, "open|%s|\n", subfilename);
+//$$$        }
+//$$$
+        /* open the casefile and overwrite */
+//$$$        fp = fopen(subfilename, "w");
+//$$$        SPLINT_CHECK_FOR_NULL(fp);
+//$$$
+//$$$        ichar = 14;
+//$$$        while (text[ichar++] != '|') {
+//$$$        }
+//$$$        while (text[ichar] != '\0') {
+//$$$            fprintf(fp, "%c", text[ichar++]);
+//$$$        }
+//$$$
+        /* update filename if file was the .csm file */
+//$$$        if (strstr(subfilename, ".csm") != NULL) {
+//$$$            strcpy(filename, subfilename);
+//$$$        }
+//$$$
+    /* "setCsmFileMid|" */
+//$$$    } else if (strncmp(text, "setCsmFileMid|", 14) == 0) {
+//$$$        SPLINT_CHECK_FOR_NULL(fp);
+//$$$
+//$$$        ichar = 14;
+//$$$        while (text[ichar] != '\0') {
+//$$$            fprintf(fp, "%c", text[ichar++]);
+//$$$        }
+//$$$
+    /* "setCsmFileEnd|" */
+//$$$    } else if (strncmp(text, "setCsmFileEnd|", 14) == 0) {
+//$$$        SPLINT_CHECK_FOR_NULL(fp);
+//$$$
+//$$$        fclose(fp);
+//$$$        fp = NULL;
+//$$$
+        /* save the current MODL (to be deleted below) */
+//$$$        saved_MODL = MODL;
+//$$$
+        /* load the new MODL */
+//$$$        status = ocsmLoad(filename, (void **)&(MODL));
+//$$$        ESP->MODL     = MODL;
+//$$$        ESP->MODLorig = MODL;
+//$$$
+//$$$        if (status != SUCCESS) {
+//$$$            snprintf(response, max_resp_len, "%s||",
+//$$$                     MODL->sigMesg);
+//$$$
+            /* clear any previous builds from the scene graph */
+//$$$            buildSceneGraph(ESP);
+//$$$        } else {
+//$$$            status = ocsmLoadDict(MODL, dictname);
+//$$$            if (status != SUCCESS) {
+//$$$                SPRINT1(0, "ERROR:: ocsmLoadDict -> status=%d", status);
+//$$$            }
+//$$$
+//$$$            status = ocsmRegMesgCB(MODL, mesgCallbackFromOpenCSM);
+//$$$            CHECK_STATUS(ocsmRegMesgCB);
+//$$$
+//$$$            status = ocsmRegBcstCB(MODL, bcstCallbackFromOpenCSM);
+//$$$            CHECK_STATUS(ocsmRegBcstCB);
+//$$$
+//$$$            status = ocsmRegSizeCB(MODL, sizeCallbackFromOpenCSM);
+//$$$            CHECK_STATUS(ocsmRegSizeCB);
+//$$$
+//$$$            if (strlen(despname) > 0) {
+//$$$                status = ocsmUpdateDespmtrs(MODL, despname);
+//$$$                CHECK_STATUS(ocsmUpdateDespmtrs);
+//$$$            }
+//$$$
+//$$$            status = updateModl(saved_MODL, MODL);
+//$$$            CHECK_STATUS(updateModl);
+//$$$
+//$$$            snprintf(response, max_resp_len, "load|");
+//$$$        }
+//$$$
+//$$$        if (filelist != NULL) EG_free(filelist);
+//$$$        status = ocsmGetFilelist(MODL, &filelist);
+//$$$        if (status != SUCCESS) {
+//$$$            SPRINT1(0, "ERROR:: ocsmGetFilelist -> status=%d", status);
+//$$$        }
+//$$$        updatedFilelist = 1;
+//$$$
+        /* free up the saved MODL */
+//$$$        status = ocsmFree(saved_MODL);
+//$$$        if (status != SUCCESS) {
+//$$$            SPRINT1(0, "ERROR:: ocsmFree -> status=%d", status);
+//$$$        }
+//$$$
+        /* disable -loadEgads */
+//$$$        loadEgads = 0;
+//$$$
+//$$$        response_len = STRLEN(response);
+
+    /* "setCsmFile|" */
+    } else if (strncmp(text, "setCsmFile|", 11) == 0) {
         char subfilename[MAX_FILENAME_LEN];
 
         /* extract argument */
@@ -7254,7 +7623,7 @@ processBrowserToServer(esp_T   *ESP,
         ichar = 14;
         while (text[ichar++] != '|') {
         }
-        while (text[ichar] != '\0') {
+        while (text[ichar] != '\0' && text[ichar] != '|') {
             fprintf(fp, "%c", text[ichar++]);
         }
 
@@ -7262,19 +7631,6 @@ processBrowserToServer(esp_T   *ESP,
         if (strstr(subfilename, ".csm") != NULL) {
             strcpy(filename, subfilename);
         }
-
-    /* "setCsmFileMid|" */
-    } else if (strncmp(text, "setCsmFileMid|", 14) == 0) {
-        SPLINT_CHECK_FOR_NULL(fp);
-
-        ichar = 14;
-        while (text[ichar] != '\0') {
-            fprintf(fp, "%c", text[ichar++]);
-        }
-
-    /* "setCsmFileEnd|" */
-    } else if (strncmp(text, "setCsmFileEnd|", 14) == 0) {
-        SPLINT_CHECK_FOR_NULL(fp);
 
         fclose(fp);
         fp = NULL;
@@ -7301,6 +7657,9 @@ processBrowserToServer(esp_T   *ESP,
 
             status = ocsmRegMesgCB(MODL, mesgCallbackFromOpenCSM);
             CHECK_STATUS(ocsmRegMesgCB);
+
+            status = ocsmRegBcstCB(MODL, bcstCallbackFromOpenCSM);
+            CHECK_STATUS(ocsmRegBcstCB);
 
             status = ocsmRegSizeCB(MODL, sizeCallbackFromOpenCSM);
             CHECK_STATUS(ocsmRegSizeCB);
@@ -7367,8 +7726,8 @@ processBrowserToServer(esp_T   *ESP,
                 onstack += MODL->body[ibody].onstack;
             }
 
-            snprintf(response, max_resp_len, "build|%d|%d|%s|",
-                     abs(builtTo), onstack, messages);
+            snprintf(response, max_resp_len, "build|%d|%d|%d|%s|",
+                     abs(builtTo), MODL->nbrch, onstack, messages);
         }
 
         messages[0] = '\0';
@@ -7428,6 +7787,142 @@ processBrowserToServer(esp_T   *ESP,
 
             /* build the response */
             snprintf(response, max_resp_len, "getBodyDetails|%s|%d|%s|", arg1, linenum, bodyinfo);
+            response_len = STRLEN(response);
+        }
+
+        FREE(bodyinfo);
+
+    /* "getTraceAttrs|pattern||" */
+    } else if (strncmp(text, "getTraceAttrs|", 14) == 0) {
+
+        /* extract arguments */
+        getToken(text, 1, '|', arg1);
+
+        status = ocsmTraceAttrs(MODL, arg1, &bodyinfo);
+        CHECK_STATUS(ocsmTraceAttrs);
+
+        SPLINT_CHECK_FOR_NULL(bodyinfo);
+
+        if (status == SUCCESS) {
+            itemp = 25 + STRLEN(bodyinfo);
+
+            if (itemp > max_resp_len) {
+                max_resp_len = itemp + 1;
+
+                RALLOC(response, char, max_resp_len+1);
+            }
+
+            /* build the response */
+            snprintf(response, max_resp_len, "getTraceAttrs|%s|", bodyinfo);
+            response_len = STRLEN(response);
+        }
+
+        FREE(bodyinfo);
+
+    /* "getTracePmtrs|pattern||" */
+    } else if (strncmp(text, "getTracePmtrs|", 14) == 0) {
+
+        /* extract arguments */
+        getToken(text, 1, '|', arg1);
+
+        status = ocsmTracePmtrs(MODL, arg1, &bodyinfo);
+        CHECK_STATUS(ocsmTracePmtrs);
+
+        SPLINT_CHECK_FOR_NULL(bodyinfo);
+
+        if (status == SUCCESS) {
+            itemp = 25 + STRLEN(bodyinfo);
+
+            if (itemp > max_resp_len) {
+                max_resp_len = itemp + 1;
+
+                RALLOC(response, char, max_resp_len+1);
+            }
+
+            /* build the response */
+            snprintf(response, max_resp_len, "getTracePmtrs|%s|", bodyinfo);
+            response_len = STRLEN(response);
+        }
+
+        FREE(bodyinfo);
+
+    /* "getTraceStors|pattern||" */
+    } else if (strncmp(text, "getTraceStors|", 14) == 0) {
+
+        /* extract arguments */
+        getToken(text, 1, '|', arg1);
+
+        status = ocsmTraceStors(MODL, arg1, &bodyinfo);
+        CHECK_STATUS(ocsmTraceStors);
+
+        SPLINT_CHECK_FOR_NULL(bodyinfo);
+
+        if (status == SUCCESS) {
+            itemp = 25 + STRLEN(bodyinfo);
+
+            if (itemp > max_resp_len) {
+                max_resp_len = itemp + 1;
+
+                RALLOC(response, char, max_resp_len+1);
+            }
+
+            /* build the response */
+            snprintf(response, max_resp_len, "getTraceStors|%s|", bodyinfo);
+            response_len = STRLEN(response);
+        }
+
+        FREE(bodyinfo);
+
+    /* "getFileTree|" */
+    } else if (strncmp(text, "getFiletree|", 12) == 0) {
+
+        status = ocsmGetFiletree(MODL, &bodyinfo);
+        CHECK_STATUS(ocsmGetFiletree);
+
+        SPLINT_CHECK_FOR_NULL(bodyinfo);
+
+        if (status == SUCCESS) {
+            itemp = 25 + STRLEN(bodyinfo);
+
+            if (itemp > max_resp_len) {
+                max_resp_len = itemp + 1;
+
+                RALLOC(response, char, max_resp_len+1);
+            }
+
+            /* build the response */
+            snprintf(response, max_resp_len, "getFiletree|%s|", bodyinfo);
+            response_len = STRLEN(response);
+        }
+
+        FREE(bodyinfo);
+
+    /* "showProvides|dim1|dim2|" */
+    } else if (strncmp(text, "showTblOfContents|", 17) == 0) {
+
+        /* extrct aarguments */
+        dim1 = -1;
+        dim2 = -1;
+
+        if (getToken(text, 1, '|', arg1)) dim1 = strtol(arg1, &pEnd, 10);
+        if (getToken(text, 2, '|', arg2)) dim2 = strtol(arg2, &pEnd, 10);
+
+        status = ocsmShowTblOfContents(MODL, dim1, dim2, &bodyinfo);
+        CHECK_STATUS(ocsmShowTblOfContents);
+
+        SPLINT_CHECK_FOR_NULL(bodyinfo);
+
+        if (status == SUCCESS) {
+            itemp = 25 + STRLEN(bodyinfo);
+
+            if (itemp > max_resp_len) {
+                max_resp_len = itemp + 1;
+
+                RALLOC(response, char, max_resp_len+1);
+            }
+
+            /* build the response */
+            snprintf(response, max_resp_len, "showTblOfContents|%s|", bodyinfo);
             response_len = STRLEN(response);
         }
 
@@ -7529,7 +8024,7 @@ processBrowserToServer(esp_T   *ESP,
         }
 
         /* start saving into a buffer */
-        strncpy(skbuff, &(text[14]), MAX_STR_LEN);
+        STRNCPY(skbuff, &(text[14]), MAX_STR_LEN);
 
     /* "saveSketchMid|" */
     } else if (strncmp(text, "saveSketchMid|", 14) == 0) {
@@ -7540,7 +8035,7 @@ processBrowserToServer(esp_T   *ESP,
             fflush( jrnl_out);
         }
 
-        strncat(skbuff, &(text[14]), MAX_STR_LEN);
+        STRNCAT(skbuff, &(text[14]), MAX_STR_LEN);
 
     /* "saveSketchEnd|" */
     } else if (strncmp(text, "saveSketchEnd|", 11) == 0) {
@@ -7551,7 +8046,7 @@ processBrowserToServer(esp_T   *ESP,
             fflush( jrnl_out);
         }
 
-        strncat(skbuff, &(text[14]), MAX_STR_LEN);
+        STRNCAT(skbuff, &(text[14]), MAX_STR_LEN);
 
         /* extract arguments */
         ibrch = 0;
@@ -7622,7 +8117,7 @@ processBrowserToServer(esp_T   *ESP,
         if (getToken(text, 3, '|', arg3)) lims[1]  = strtod(arg3, &pEnd);
 
         /* handle special case of Ereps */
-        if (plotType < 7) {
+        if (plotType < 10) {
             if (MODL->erepAtEnd == 1) {
                 status = buildBodys(ESP, 0, &builtTo, &buildStatus, &nwarn);
                 CHECK_STATUS(buildStatus);
@@ -7717,6 +8212,9 @@ processBrowserToServer(esp_T   *ESP,
         status = ocsmRegMesgCB(MODL, mesgCallbackFromOpenCSM);
         CHECK_STATUS(ocsmRegMesgCB);
 
+        status = ocsmRegBcstCB(MODL, bcstCallbackFromOpenCSM);
+        CHECK_STATUS(ocsmRegBcstCB);
+
         status = ocsmRegSizeCB(MODL, sizeCallbackFromOpenCSM);
         CHECK_STATUS(ocsmRegSizeCB);
 
@@ -7748,6 +8246,9 @@ processBrowserToServer(esp_T   *ESP,
         /* reset the callbacks in case they were changed */
         status = ocsmRegMesgCB(MODL, mesgCallbackFromOpenCSM);
         CHECK_STATUS(ocsmRegMesgCB);
+
+        status = ocsmRegBcstCB(MODL, bcstCallbackFromOpenCSM);
+        CHECK_STATUS(ocsmRegBcstCB);
 
         status = ocsmRegSizeCB(MODL, sizeCallbackFromOpenCSM);
         CHECK_STATUS(ocsmRegSizeCB);
@@ -7798,6 +8299,62 @@ processBrowserToServer(esp_T   *ESP,
         getToken(text, 1, '|', arg1);
 
         tim_lift(arg1);
+
+        /* update the display */
+        onstack = 0;
+        for (ibody = 1; ibody <= MODL->nbody; ibody++) {
+            onstack += MODL->body[ibody].onstack;
+        }
+
+        snprintf(response, max_resp_len, "build|%d|%d|%d|%s|",
+                 MODL->nbrch, MODL->nbrch, onstack, "");
+
+    /* "showErep|" */
+    } else if (strncmp(text, "makeErep|", 9) == 0) {
+        MODL->erepAtEnd = 1;
+
+        nbody  = 0;
+        status = ocsmBuild(MODL, 0, &builtTo, &nbody, NULL);
+        CHECK_STATUS(ocsmBuild);
+
+        MODL->erepAtEnd = 0;
+
+    /* "assert|val1|val2|toler|" */
+    } else if (strncmp(text, "assert|", 7) == 0) {
+
+        /* extract arguments */
+        getToken(text, 1, '|', arg1);
+        getToken(text, 2, '|', arg2);
+
+        if (getToken(text, 3, '|', arg3)) {
+            toler = strtod(arg1, &pEnd);
+        } else {
+            toler = 0;
+        }
+
+        status = ocsmEvalExpr(MODL, arg1, &value1, &dot1, str1);
+        if (status < 0) {
+            status = OCSM_ASSERT_FAILED;
+            goto cleanup;
+        }
+
+        status = ocsmEvalExpr(MODL, arg2, &value2, &dot2, str2);
+        if (status < 0) {
+            status = OCSM_ASSERT_FAILED;
+            goto cleanup;
+        }
+
+        if (toler == 0) {
+            toler = EPS06;
+        } else if (toler < 0) {
+            toler = fabs(value1 * toler);
+        }
+
+        if (fabs(value1-value2) > toler) {
+            printf("ERROR:: assert(%.8f, %.8f, %.8f) failed\n", value1, value2, toler);
+            status = OCSM_ASSERT_FAILED;
+            goto cleanup;
+        }
     }
 
     status = SUCCESS;
@@ -8014,8 +8571,10 @@ sizeCallbackFromOpenCSM(void   *modl,   /* (in)  pointer to MODL */
     }
 
     /* send to browsers */
-    TRACE_BROADCAST( response);
-    wv_broadcastText(response);
+    if (batch == 0) {
+        TRACE_BROADCAST( response);
+        wv_broadcastText(response);
+    }
 
     response[0]  = '\0';
     response_len = 0;
@@ -8278,6 +8837,208 @@ cleanup:
 
 /***********************************************************************/
 /*                                                                     */
+/*   generateHistogram - generate histogram of distances to Bodys      */
+/*                                                                     */
+/***********************************************************************/
+
+static int
+generateHistogram(modl_T *MODL)         /* (in)  pointer to MODL */
+{
+    int    status = SUCCESS;
+
+    int     imax, jmax, j, iface, atype, alen, count=0;
+    int     ibest, jbest, i, ibody;
+    CINT    *tempIlist;
+    double  dtest, dbest=0, xbest=0, ybest=0, zbest=0, ubest=0, vbest=0;
+    double  dworst, drms, dultim, xyz_in[3], uv_out[2], xyz_out[3], bbox[6];
+    CDOUBLE *tempRlist;
+    char    templine[128];
+    CCHAR   *tempClist;
+    FILE    *fp_plot, *fp_all, *fp_bad;
+
+    int    nhist=28, hist[28];
+    double dhist[] = {1e-8, 2e-8, 5e-8,
+                      1e-7, 2e-7, 5e-7,
+                      1e-6, 2e-6, 5e-6,
+                      1e-5, 2e-5, 5e-5,
+                      1e-4, 2e-4, 5e-4,
+                      1e-3, 2e-3, 5e-3,
+                      1e-2, 2e-2, 5e-2,
+                      1e-1, 2e-1, 5e-1,
+                      1e+0, 2e+0, 5e+0,
+                      1e+1};
+
+    clock_t old_time, new_time;
+
+    ROUTINE(generateHistogram);
+
+    /* --------------------------------------------------------------- */
+
+
+    /* initialize the histogram */
+    for (i = 0; i < 28; i++) {
+        hist[i] = 0;
+    }
+
+    /* put the bounding box info as an attribute on each Face */
+    for (ibody = 1; ibody <= MODL->nbody; ibody++) {
+        if (MODL->body[ibody].onstack != 1) continue;
+
+        for (iface = 1; iface <= MODL->body[ibody].nface; iface++) {
+            status = EG_getBoundingBox(MODL->body[ibody].face[iface].eface, bbox);
+            CHECK_STATUS(EG_getBoundingBox);
+
+            status = EG_attributeAdd(MODL->body[ibody].face[iface].eface,
+                                     "..bbox..", ATTRREAL, 6, NULL, bbox, NULL);
+            CHECK_STATUS(EG_attributeAdd);
+        }
+    }
+
+    /* open the plotfile */
+    fp_plot = fopen(plotfile, "r");
+    if (fp_plot == NULL) {
+        SPRINT1(0, "ERROR:: pntsfile \"%s\" does not exist", plotfile);
+        goto cleanup;
+    } else {
+        SPRINT1(1, "Computing distances to \"%s\"", plotfile);
+    }
+
+    /* open the bad point file */
+    fp_bad = fopen("bad.points", "w");
+    if (fp_bad == NULL) {
+        SPRINT0(0, "ERROR:: could not create \"bad.points\"");
+        goto cleanup;
+    }
+
+    /* open the all point file */
+    fp_all = fopen("all.points", "w");
+    if (fp_all == NULL) {
+        SPRINT0(0, "ERROR:: could not create \"all.points\"");
+        goto cleanup;
+    }
+
+    /* process each point in the plotfile */
+    old_time = clock();
+    dultim = 0;
+    while (1) {
+        if (fscanf(fp_plot, "%d %d %s", &imax, &jmax, templine) != 3) break;
+        if (jmax == 0) jmax = 1;
+
+        SPRINT3x(1, "imax=%8d, jmax=%8d, %-32s", imax, jmax, templine); fflush(NULL);
+
+        dworst = 0;
+        dbest = HUGEQ;
+        drms  = 0;
+        xbest = 0;
+        ybest = 0;
+        zbest = 0;
+        ubest = -10;
+        vbest = -10;
+        ibest = -1;
+        jbest = -1;
+
+        for (j = 0; j < jmax; j++) {
+            for (i = 0; i < imax; i++) {
+
+                /* read the point */
+                fscanf(fp_plot, "%lf %lf %lf", &(xyz_in[0]), &(xyz_in[1]), &(xyz_in[2]));
+
+                /* first look at the best Faces from last time, since the new point
+                   tends to be near the previous point (and we can take advantage
+                   of the bounding box screening) */
+                if (ibest > 0) {
+                    status = EG_invEvaluate(MODL->body[ibest].face[jbest].eface,xyz_in, uv_out, xyz_out);
+                    if (status != EGADS_DEGEN) {      // this happens if we try to inv eval along a degenerate Edge
+                        CHECK_STATUS(EG_invEvaluate);
+
+                        dbest = sqrt(SQR(xyz_out[0]-xyz_in[0]) + SQR(xyz_out[1]-xyz_in[1]) + SQR(xyz_out[2]-xyz_in[2]));
+                        xbest = xyz_out[0];
+                        ybest = xyz_out[1];
+                        zbest = xyz_out[2];
+                        ubest = uv_out[ 0];
+                    }
+                }
+
+                /* now look at all Faces */
+                for (ibody = 1; ibody <= MODL->nbody; ibody++) {
+                    if (MODL->body[ibody].onstack != 1) continue;
+
+                    for (iface = 1; iface <= MODL->body[ibody].nface; iface++) {
+                        status = EG_attributeRet(MODL->body[ibody].face[iface].eface, "..bbox..",
+                                                 &atype, &alen, &tempIlist, &tempRlist, &tempClist);
+                        CHECK_STATUS(EG_attributeRet);
+
+                        if (xyz_in[0] > tempRlist[0]-dbest && xyz_in[0] < tempRlist[3]+dbest &&
+                            xyz_in[1] > tempRlist[1]-dbest && xyz_in[1] < tempRlist[4]+dbest &&
+                            xyz_in[2] > tempRlist[2]-dbest && xyz_in[2] < tempRlist[5]+dbest   ) {
+
+                            status = EG_invEvaluate(MODL->body[ibody].face[iface].eface, xyz_in, uv_out, xyz_out);
+                            if (status != EGADS_DEGEN) {      // this happens if we try to inv eval along a degenerate Edge
+                                CHECK_STATUS(EG_invEvaluate);
+
+                                dtest = sqrt(SQR(xyz_out[0]-xyz_in[0]) + SQR(xyz_out[1]-xyz_in[1]) + SQR(xyz_out[2]-xyz_in[2]));
+                                if (dtest < dbest) {
+                                    dbest = dtest;
+                                    xbest = xyz_out[0];
+                                    ybest = xyz_out[1];
+                                    zbest = xyz_out[2];
+                                    ubest = uv_out[ 0];
+                                    vbest = uv_out[ 1];
+                                    ibest = ibody;
+                                    jbest = iface;
+                                }
+                            }
+                        }
+                    }
+                }
+                if (dbest > dworst) {
+                    dworst = dbest;
+                }
+                drms += dbest;
+
+                fprintf(fp_all, "%20.12f %20.12f %20.12f %5d %5d %20.12f %20.12f %20.12f %12.3e\n",
+                        xyz_in[0], xyz_in[1], xyz_in[2], ibest, jbest, xbest, ybest, zbest, dbest);
+
+                if (dbest > histDist) {
+                    fprintf(fp_bad, "%5d%5d point_%d_%d_%d\n",   1, 0, count, ibest, jbest);
+                    fprintf(fp_bad, "%20.12f %20.12f %20.12f\n", xyz_in[0], xyz_in[1], xyz_in[2]);
+                    fprintf(fp_bad, "%5d%5d line_%d_%f_%f\n",    2, 1, count, ubest, vbest);
+                    fprintf(fp_bad, "%20.12f %20.12f %20.12f\n", xyz_in[0], xyz_in[1], xyz_in[2]);
+                    fprintf(fp_bad, "%20.12f %20.12f %20.12f\n", xbest,     ybest,     zbest    );
+                    count++;
+                }
+
+                /* add to histogram */
+                status = addToHistogram(dbest, nhist, dhist, hist);
+                CHECK_STATUS(addToHistogram);
+            }
+        }
+        SPRINT2(1, " dworst=%12.3e, drms=%12.3e", dworst, sqrt(drms/imax/jmax));
+        if (dworst > dultim) {
+            dultim = dworst;
+        }
+    }
+    SPRINT1(1, "dultim=%12.3e", dultim);
+
+    /* close the plotfile and points files */
+    fclose(fp_plot);
+    fclose(fp_bad );
+    fclose(fp_all );
+
+    /* print the histogram */
+    new_time = clock();
+    SPRINT1(0, "Distance of plot points from Bodys on stack\nCPUtime=%9.3f sec",
+            (double)(new_time-old_time) / (double)(CLOCKS_PER_SEC));
+    status = printHistogram(nhist, dhist, hist);
+    CHECK_STATUS(printHistogram);
+
+cleanup:
+        return status;
+}
+
+
+/***********************************************************************/
+/*                                                                     */
 /*   addToHistogram - add entry to histogram                           */
 /*                                                                     */
 /***********************************************************************/
@@ -8477,6 +9238,8 @@ writeSensFile(modl_T *MODL,             /* (in)  pointer to MODL */
 
     /* write Edges to the file */
     for (iedge = 1; iedge <= MODL->body[ibody].nedge; iedge++) {
+        if (MODL->body[ibody].edge[iedge].itype == DEGENERATE) continue;
+
         status = EG_getTessEdge(MODL->body[ibody].etess, iedge,
                                 &npnt, &xyz, &uv);
         CHECK_STATUS(EG_getTessEdge);
@@ -8522,5 +9285,399 @@ writeSensFile(modl_T *MODL,             /* (in)  pointer to MODL */
     fclose(fp);
 
 cleanup:
+    return status;
+}
+
+
+/*
+ ************************************************************************
+ *                                                                      *
+ *   testOcsmAdjoint - test ocsmAdjoint (volume, area, xcg, ycg, zcg)   *
+ *                                                                      *
+ ************************************************************************
+ */
+
+static int
+testOcsmAdjoint(modl_T *MODL)           /* (in)  pointer to MODL */
+{
+    int    status = SUCCESS;            /* (out) return status */
+
+    int     stat, iglob, nglob, idp, jdp, ndp, mdp, iobj, nobj;
+    int     *ipmtr=NULL, *irow=NULL, *icol=NULL, ip, ir, ic;
+
+    int     ibody, iface, itri, ntri, ipnt, npnt, ip0, ip1, ip2, tottri;
+    CINT    *ptype, *pindx, *tris, *tric;
+    double  area,     vol,     xcg,     ycg,     zcg;
+    double  area_bar, vol_bar, xcg_bar, ycg_bar, zcg_bar;
+    double  areax,     areay,     areaz,     xcen,     ycen,     zcen;
+    double  areax_bar, areay_bar, areaz_bar, xcen_bar, ycen_bar, zcen_bar;
+    double  xa,     ya,     za,     xb,     yb,     zb;
+    double  xa_bar, ya_bar, za_bar, xb_bar, yb_bar, zb_bar;
+    CDOUBLE *xyz, *uv;
+    void    *realloc_temp = NULL;            /* used by RALLOC macro */
+    clock_t old_time, new_time;
+
+    double  *dOdX=NULL, *dOdD=NULL, *xyz_bar=NULL;
+    ego     ebody;
+
+#define  DODX(iobj,ix)    dOdX[(iobj)*3*nglob+3*(ix-1)  ]
+#define  DODY(iobj,iy)    dOdX[(iobj)*3*nglob+3*(iy-1)+1]
+#define  DODZ(iobj,iz)    dOdX[(iobj)*3*nglob+3*(iz-1)+2]
+
+    ROUTINE(testOcsmAdjoint);
+
+    /* --------------------------------------------------------------- */
+
+    SPRINT0(1, "\ntesting ocsmAdjoint\n");
+    old_time = clock();
+
+    /* storage for DESPMTRs */
+    mdp = 50;
+    MALLOC(ipmtr, int, mdp);
+    MALLOC(irow,  int, mdp);
+    MALLOC(icol,  int, mdp);
+
+    /* use last Body created */
+    ibody = MODL->nbody;
+    nobj  = 5;   // area, vol, xcg, ycg, zcg
+
+    /* use all the DESPMTRs */
+    ndp = 0;
+    for (ip = 1; ip < MODL->npmtr; ip++) {
+        if (MODL->pmtr[ip].type == OCSM_DESPMTR) {
+            for (ir = 1; ir <= MODL->pmtr[ip].nrow; ir++) {
+                for (ic = 1; ic <= MODL->pmtr[ip].ncol; ic++) {
+                    if (ndp >= mdp) {
+                        mdp += 50;
+                        RALLOC(ipmtr, int, mdp);
+                        RALLOC(irow,  int, mdp);
+                        RALLOC(icol,  int, mdp);
+                    }
+
+                    ipmtr[ndp] = ip;
+                    irow[ ndp] = ir;
+                    icol[ ndp] = ic;
+                    ndp++;
+                }
+            }
+        }
+    }
+
+    /* determine the number of global IDs and allocate arrays */
+    status = EG_statusTessBody(MODL->body[ibody].etess, &ebody, &stat, &nglob);
+    CHECK_STATUS(EG_statusTessBody);
+
+    MALLOC(dOdX, double, nobj*3*nglob);
+    MALLOC(dOdD, double, nobj*ndp);
+
+    /* get the sensitivity of the objectives with respect to the surface point locations */
+
+    /* initialize the sums */
+    area = 0;
+    vol  = 0;
+    xcg  = 0;
+    ycg  = 0;
+    zcg  = 0;
+
+    /* loop over all Faces and accumulate sums */
+    tottri = 0;
+    for (iface = 1; iface <= MODL->body[ibody].nface; iface++) {
+        status = EG_getTessFace(MODL->body[ibody].etess, iface,
+                                &npnt, &xyz, &uv, &ptype, &pindx,
+                                &ntri, &tris, &tric);
+        CHECK_STATUS(EG_getTessFace);
+
+        for (itri = 0; itri < ntri; itri++) {
+            ip0 = 3 * (tris[3*itri  ] - 1);
+            ip1 = 3 * (tris[3*itri+1] - 1);
+            ip2 = 3 * (tris[3*itri+2] - 1);
+
+            /*  triangle centroid */
+            xcen = xyz[ip0  ] + xyz[ip1  ] + xyz[ip2  ];
+            ycen = xyz[ip0+1] + xyz[ip1+1] + xyz[ip2+1];
+            zcen = xyz[ip0+2] + xyz[ip1+2] + xyz[ip2+2];
+
+            /* area components */
+            xa = xyz[ip1  ] - xyz[ip0  ];
+            ya = xyz[ip1+1] - xyz[ip0+1];
+            za = xyz[ip1+2] - xyz[ip0+2];
+
+            xb = xyz[ip2  ] - xyz[ip0  ];
+            yb = xyz[ip2+1] - xyz[ip0+1];
+            zb = xyz[ip2+2] - xyz[ip0+2];
+
+            areax = ya * zb - za * yb;
+            areay = za * xb - xa * zb;
+            areaz = xa * yb - ya * xb;
+
+            /* accumulate sums */
+            area += sqrt(    areax * areax +         areay * areay +         areaz * areaz) / 2;
+            vol  += (         xcen * areax +          ycen * areay +          zcen * areaz) / 18;
+
+            xcg  += (xcen/2 * xcen * areax + xcen   * ycen * areay + xcen   * zcen * areaz) / 54;
+            ycg  += (ycen   * xcen * areax + ycen/2 * ycen * areay + ycen   * zcen * areaz) / 54;
+            zcg  += (zcen   * xcen * areax + zcen   * ycen * areay + zcen/2 * zcen * areaz) / 54;
+
+            tottri++;
+        }
+    }
+
+    xcg /= vol;
+    ycg /= vol;
+    zcg /= vol;
+
+    /* print forward mode results */
+    SPRINT1(1, "tottri = %7d",    tottri);
+    SPRINT1(1, "vol    = %12.5f", vol );
+    SPRINT1(1, "area   = %12.5f", area);
+    SPRINT1(1, "xcg    = %12.5f", xcg );
+    SPRINT1(1, "ycg    = %12.5f", ycg );
+    SPRINT1(1, "zcg    = %12.5f", zcg );
+
+    /* compute a row of the jacobian matrix by looping through all
+       the objective functions */
+    for (iobj = 0; iobj < nobj; iobj++) {
+        SPRINT1x(1, "...processing iobj=%d", iobj);
+
+        for (iglob = 1; iglob <= nglob; iglob++) {
+            DODX(iobj,iglob) = 0;
+            DODY(iobj,iglob) = 0;
+            DODZ(iobj,iglob) = 0;
+        }
+
+        area_bar = 0;
+        vol_bar  = 0;
+        xcg_bar  = 0;
+        ycg_bar  = 0;
+        zcg_bar  = 0;
+
+        if        (iobj == 0) {
+            SPRINT0(1, " (vol)");
+            vol_bar  = 1;
+        } else if (iobj == 1) {
+            SPRINT0(1, " (area)");
+            area_bar = 1;
+        } else if (iobj == 2) {
+            SPRINT0(1, " (xcg)");
+            xcg_bar  = 1;
+        } else if (iobj == 3) {
+            SPRINT0(1, " (ycg)");
+            ycg_bar  = 1;
+        } else if (iobj == 4) {
+            SPRINT0(1, " (zcg)");
+            zcg_bar  = 1;
+        }
+
+        /* zcg = zcg / vol */
+        zcg_bar  = zcg_bar / vol;
+        vol_bar -= zcg_bar * zcg;
+
+        /* ycg = ycg / vol */
+        ycg_bar  = ycg_bar / vol;
+        vol_bar -= ycg_bar * ycg;
+
+        /* xcg = xcg / vol */
+        xcg_bar  = xcg_bar / vol;
+        vol_bar -= xcg_bar * xcg;
+
+        /* initialize the vars of the objectives */
+        for (iface = 1; iface <= MODL->body[ibody].nface; iface++) {
+            status = EG_getTessFace(MODL->body[ibody].etess, iface,
+                                    &npnt, &xyz, &uv, &ptype, &pindx,
+                                    &ntri, &tris, &tric);
+            CHECK_STATUS(EG_getTessFace);
+
+            MALLOC(xyz_bar, double, 3*npnt);
+
+            for (ipnt = 0; ipnt < npnt; ipnt++) {
+                xyz_bar[3*ipnt  ] = 0;
+                xyz_bar[3*ipnt+1] = 0;
+                xyz_bar[3*ipnt+2] = 0;
+            }
+
+            /* compute the mass properties - backward mode */
+            for (itri = ntri-1; itri > -1; --itri) {
+                ip0 = 3 * (tris[3*itri  ] - 1);
+                ip1 = 3 * (tris[3*itri+1] - 1);
+                ip2 = 3 * (tris[3*itri+2] - 1);
+
+                xcen = xyz[ip0  ] + xyz[ip1  ] + xyz[ip2  ];
+                ycen = xyz[ip0+1] + xyz[ip1+1] + xyz[ip2+1];
+                zcen = xyz[ip0+2] + xyz[ip1+2] + xyz[ip2+2];
+
+                xa = xyz[ip1  ] - xyz[ip0  ];
+                ya = xyz[ip1+1] - xyz[ip0+1];
+                za = xyz[ip1+2] - xyz[ip0+2];
+
+                xb = xyz[ip2  ] - xyz[ip0  ];
+                yb = xyz[ip2+1] - xyz[ip0+1];
+                zb = xyz[ip2+2] - xyz[ip0+2];
+
+                areax = ya * zb - za * yb;
+                areay = za * xb - xa * zb;
+                areaz = xa * yb - ya * xb;
+
+                /* initialize for backward mode (within loop) */
+                xa_bar    = 0;
+                ya_bar    = 0;
+                za_bar    = 0;
+                xb_bar    = 0;
+                yb_bar    = 0;
+                zb_bar    = 0;
+                xcen_bar  = 0;
+                ycen_bar  = 0;
+                zcen_bar  = 0;
+                areax_bar = 0;
+                areay_bar = 0;
+                areaz_bar = 0;
+
+                /* zcg += (zcen   * xcen * areax + zcen   * ycen * areay + zcen/2 * zcen * areaz) / 54 */
+                xcen_bar  += zcg_bar *  areax*zcen                            / 54;
+                ycen_bar  += zcg_bar *  areay*zcen                            / 54;
+                zcen_bar  += zcg_bar * (areaz*zcen + areay*ycen + areax*xcen) / 54;
+                areax_bar += zcg_bar * zcen*xcen                              / 54;
+                areay_bar += zcg_bar * zcen*ycen                              / 54;
+                areaz_bar += zcg_bar * zcen*zcen/2                            / 54;
+
+                /* ycg += (ycen   * xcen * areax + ycen/2 * ycen * areay + ycen   * zcen * areaz) / 54 */
+                xcen_bar  += ycg_bar *  areax*ycen                            / 54;
+                ycen_bar  += ycg_bar * (areaz*zcen + areay*ycen + areax*xcen) / 54;
+                zcen_bar  += ycg_bar *  areaz*ycen                            / 54;
+                areax_bar += ycg_bar * ycen*xcen                              / 54;
+                areay_bar += ycg_bar * ycen*ycen/2                            / 54;
+                areaz_bar += ycg_bar * ycen*zcen                              / 54;
+
+                /* xcg += (xcen/2 * xcen * areax + xcen   * ycen * areay + xcen   * zcen * areaz) / 54 */
+                xcen_bar  += xcg_bar * (areaz*zcen + areay*ycen + areax*xcen) / 54;
+                ycen_bar  += xcg_bar *  areay*xcen                            / 54;
+                zcen_bar  += xcg_bar *  areaz*xcen                            / 54;
+                areax_bar += xcg_bar * xcen*xcen/2                            / 54;
+                areay_bar += xcg_bar * xcen*ycen                              / 54;
+                areaz_bar += xcg_bar * xcen*zcen                              / 54;
+
+                /* vol += (xcen * areax + ycen * areay + zcen * areaz) / 18 */
+                zcen_bar  += vol_bar * areaz / 18;
+                ycen_bar  += vol_bar * areay / 18;
+                xcen_bar  += vol_bar * areax / 18;
+                areax_bar += vol_bar * xcen  / 18;
+                areay_bar += vol_bar * ycen  / 18;
+                areaz_bar += vol_bar * zcen  / 18;
+
+                /* area += sqrt(    areax * areax+        areay * areay+        areaz * areaz) / 2 */
+                areax_bar += area_bar * areax / sqrt(areax*areax+areay*areay+areaz*areaz) / 2;
+                areay_bar += area_bar * areay / sqrt(areax*areax+areay*areay+areaz*areaz) / 2;
+                areaz_bar += area_bar * areaz / sqrt(areax*areax+areay*areay+areaz*areaz) / 2;
+
+                /* areaz = xa * yb - ya * xb */
+                xa_bar += areaz_bar * yb;
+                yb_bar += areaz_bar * xa;
+                ya_bar -= areaz_bar * xb;
+                xb_bar -= areaz_bar * ya;
+
+                /* areay = za * xb - xa * zb */
+                za_bar += areay_bar * xb;
+                xb_bar += areay_bar * za;
+                xa_bar -= areay_bar * zb;
+                zb_bar -= areay_bar * xa;
+
+                /* areax = ya * zb - za * yb */
+                ya_bar += areax_bar * zb;
+                zb_bar += areax_bar * ya;
+                za_bar -= areax_bar * yb;
+                yb_bar -= areax_bar * za;
+
+                /* zb =  xyz[ip2+2] - xyz[ip0+2] */
+                xyz_bar[ip2+2] += zb_bar;
+                xyz_bar[ip0+2] -= zb_bar;
+
+                /* yb =  xyz[ip2+1] - xyz[ip0+1] */
+                xyz_bar[ip2+1] += yb_bar;
+                xyz_bar[ip0+1] -= yb_bar;
+
+                /* xb =  xyz[ip2  ] - xyz[ip0  ] */
+                xyz_bar[ip2  ] += xb_bar;
+                xyz_bar[ip0  ] -= xb_bar;
+
+                /* za =  xyz[ip2+2] - xyz[ip0+2] */
+                xyz_bar[ip1+2] += za_bar;
+                xyz_bar[ip0+2] -= za_bar;
+
+                /* ya =  xyz[ip2+1] - xyz[ip0+ ] */
+                xyz_bar[ip1+1] += ya_bar;
+                xyz_bar[ip0+1] -= ya_bar;
+
+                /* xa =  xyz[ip2  ] - xyz[ip0  ] */
+                xyz_bar[ip1  ] += xa_bar;
+                xyz_bar[ip0  ] -= xa_bar;
+
+                /* zcen = xyz[ip0+2] + xyz[ip1+2] + xyz[ip2+2] */
+                xyz_bar[ip0+2] += zcen_bar;
+                xyz_bar[ip1+2] += zcen_bar;
+                xyz_bar[ip2+2] += zcen_bar;
+
+                /* ycen = xyz[ip0+1] + xyz[ip1+1] + xyz[ip2+1] */
+                xyz_bar[ip0+1] += ycen_bar;
+                xyz_bar[ip1+1] += ycen_bar;
+                xyz_bar[ip2+1] += ycen_bar;
+
+                /* xcen = xyz[ip0  ] + xyz[ip1  ] + xyz[ip2  ] */
+                xyz_bar[ip0  ] += xcen_bar;
+                xyz_bar[ip1  ] += xcen_bar;
+                xyz_bar[ip2  ] += xcen_bar;
+            }
+
+            /* put the results into dOdX */
+            for (ipnt = 0; ipnt < npnt; ipnt++) {
+                status = EG_localToGlobal(MODL->body[ibody].etess, +iface, ipnt+1, &iglob);
+                CHECK_STATUS(EG_localToGlobal);
+
+                DODX(iobj,iglob) += xyz_bar[3*ipnt  ];
+                DODY(iobj,iglob) += xyz_bar[3*ipnt+1];
+                DODZ(iobj,iglob) += xyz_bar[3*ipnt+2];
+            }
+
+            FREE(xyz_bar);
+        }
+    }
+    new_time = clock();
+    SPRINT1(1, "computed dOdX (CPU=%.3f)", (double)(new_time-old_time)/(double)(CLOCKS_PER_SEC));
+
+    /* find  dO/dD = dO/dX * dX/dD
+       where dO/dX comes from the adjoint "flow" solver
+             dX/dD comes from the tessellation sensitivities */
+    old_time = clock();
+    status = ocsmAdjoint(MODL, MODL->nbody, ndp, ipmtr, irow, icol,
+                         nobj, dOdX, dOdD);
+    CHECK_STATUS(ocsmAdjoint);
+    new_time = clock();
+    SPRINT1(1, "computed dOdD (CPU=%.3f)", (double)(new_time-old_time)/(double)(CLOCKS_PER_SEC));
+
+    /* print out the results */
+    for (jdp = 0; jdp < ndp; jdp+=12) {
+        SPRINT0x(1, "dO/dD   ");
+        for (idp = jdp; idp < MIN(jdp+12,ndp); idp++) {
+            SPRINT3x(1, " %7s[%1d,%1d]", MODL->pmtr[ipmtr[idp]].name, irow[idp], icol[idp]);
+        }
+        SPRINT0(1, " ");
+        for (iobj = 0; iobj < nobj; iobj++) {
+            SPRINT1x(1, "iobj=%2d:", iobj);
+            for (idp = jdp; idp < MIN(jdp+12,ndp); idp++) {
+                SPRINT1x(1, " %12.6f", dOdD[iobj*ndp+idp]);
+            }
+            SPRINT0(1, " ");
+        }
+    }
+
+cleanup:
+    FREE(ipmtr);
+    FREE(irow );
+    FREE(icol );
+    FREE(dOdX );
+    FREE(dOdD );
+
+#undef DODX
+#undef DODY
+#undef DODZ
+
     return status;
 }

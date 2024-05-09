@@ -1,0 +1,39 @@
+# metaMaterial2.udc (square hole)
+# written by John Dannenhoffer
+
+INTERFACE thk  IN  0
+INTERFACE dz   IN  0
+
+IFTHEN    thk LE 0   OR thk GE 1/2
+   MESSAGE thk_should_be_between_0_and_1/2
+   THROW   -999
+ELSEIF    dz EQ 0
+   MESSAGE dz_should_be_nonzero
+   THROW   -999
+ENDIF
+
+SET       d1  1/2
+SET       d2  1/2-thk
+
+# quadrant 1
+SKBEG     d1   d1   0
+   LINSEG 0    d1   0
+   LINSEG 0    d2   0
+   LINSEG d2   d2   0
+   LINSEG d2   0    0
+   LINSEG d1   0    0
+   LINSEG d1   d1   0
+SKEND
+EXTRUDE   0  0  dz
+
+# quadrants 2 + 1
+RESTORE   .
+MIRROR    1  0  0
+JOIN
+
+# all quadrants
+RESTORE   .
+MIRROR    0  1  0
+JOIN
+
+END

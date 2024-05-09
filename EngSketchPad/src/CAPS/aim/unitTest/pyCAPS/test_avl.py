@@ -127,35 +127,75 @@ class TestAVL(unittest.TestCase):
             self.assertAlmostEqual(avl.output["CLa"].value, avl.output["CLtot"].deriv("Alpha"), 8)
             self.assertAlmostEqual(avl.output["CLb"].value, avl.output["CLtot"].deriv("Beta"), 8)
 
+            self.assertAlmostEqual(avl.output["CLp'"].value, avl.output["CLtot"].deriv("p'"), 8)
+            self.assertAlmostEqual(avl.output["CLq'"].value, avl.output["CLtot"].deriv("q'"), 8)
+            self.assertAlmostEqual(avl.output["CLr'"].value, avl.output["CLtot"].deriv("r'"), 8)
+
             self.assertAlmostEqual(avl.output["Cl'a"].value, avl.output["Cl'tot"].deriv("Alpha"), 8)
             self.assertAlmostEqual(avl.output["Cl'b"].value, avl.output["Cl'tot"].deriv("Beta"), 8)
+
+            self.assertAlmostEqual(avl.output["Cl'p'"].value, avl.output["Cl'tot"].deriv("p'"), 8)
+            self.assertAlmostEqual(avl.output["Cl'q'"].value, avl.output["Cl'tot"].deriv("q'"), 8)
+            self.assertAlmostEqual(avl.output["Cl'r'"].value, avl.output["Cl'tot"].deriv("r'"), 8)
 
             self.assertAlmostEqual(avl.output["Cma"].value, avl.output["Cmtot"].deriv("Alpha"), 8)
             self.assertAlmostEqual(avl.output["Cmb"].value, avl.output["Cmtot"].deriv("Beta"), 8)
 
+            self.assertAlmostEqual(avl.output["Cmp'"].value, avl.output["Cmtot"].deriv("p'"), 8)
+            self.assertAlmostEqual(avl.output["Cmq'"].value, avl.output["Cmtot"].deriv("q'"), 8)
+            self.assertAlmostEqual(avl.output["Cmr'"].value, avl.output["Cmtot"].deriv("r'"), 8)
+
             self.assertAlmostEqual(avl.output["Cn'a"].value, avl.output["Cn'tot"].deriv("Alpha"), 8)
             self.assertAlmostEqual(avl.output["Cn'b"].value, avl.output["Cn'tot"].deriv("Beta"), 8)
 
+            self.assertAlmostEqual(avl.output["Cn'p'"].value, avl.output["Cn'tot"].deriv("p'"), 8)
+            self.assertAlmostEqual(avl.output["Cn'q'"].value, avl.output["Cn'tot"].deriv("q'"), 8)
+            self.assertAlmostEqual(avl.output["Cn'r'"].value, avl.output["Cn'tot"].deriv("r'"), 8)
+
             # Body axis rotation rates
+            self.assertAlmostEqual(avl.output["CXu"].value, avl.output["CXtot"].deriv("u"), 8)
+            self.assertAlmostEqual(avl.output["CXv"].value, avl.output["CXtot"].deriv("v"), 8)
+            self.assertAlmostEqual(avl.output["CXw"].value, avl.output["CXtot"].deriv("w"), 8)
+
             self.assertAlmostEqual(avl.output["CXp"].value, avl.output["CXtot"].deriv("RollRate"), 8)
             self.assertAlmostEqual(avl.output["CXq"].value, avl.output["CXtot"].deriv("PitchRate"), 8)
             self.assertAlmostEqual(avl.output["CXr"].value, avl.output["CXtot"].deriv("YawRate"), 8)
+
+            self.assertAlmostEqual(avl.output["CYu"].value, avl.output["CYtot"].deriv("u"), 8)
+            self.assertAlmostEqual(avl.output["CYv"].value, avl.output["CYtot"].deriv("v"), 8)
+            self.assertAlmostEqual(avl.output["CYw"].value, avl.output["CYtot"].deriv("w"), 8)
 
             self.assertAlmostEqual(avl.output["CYp"].value, avl.output["CYtot"].deriv("RollRate"), 8)
             self.assertAlmostEqual(avl.output["CYq"].value, avl.output["CYtot"].deriv("PitchRate"), 8)
             self.assertAlmostEqual(avl.output["CYr"].value, avl.output["CYtot"].deriv("YawRate"), 8)
 
+            self.assertAlmostEqual(avl.output["CZu"].value, avl.output["CZtot"].deriv("u"), 8)
+            self.assertAlmostEqual(avl.output["CZv"].value, avl.output["CZtot"].deriv("v"), 8)
+            self.assertAlmostEqual(avl.output["CZw"].value, avl.output["CZtot"].deriv("w"), 8)
+
             self.assertAlmostEqual(avl.output["CZp"].value, avl.output["CZtot"].deriv("RollRate"), 8)
             self.assertAlmostEqual(avl.output["CZq"].value, avl.output["CZtot"].deriv("PitchRate"), 8)
             self.assertAlmostEqual(avl.output["CZr"].value, avl.output["CZtot"].deriv("YawRate"), 8)
+
+            self.assertAlmostEqual(avl.output["Clu"].value, avl.output["Cltot"].deriv("u"), 8)
+            self.assertAlmostEqual(avl.output["Clv"].value, avl.output["Cltot"].deriv("v"), 8)
+            self.assertAlmostEqual(avl.output["Clw"].value, avl.output["Cltot"].deriv("w"), 8)
 
             self.assertAlmostEqual(avl.output["Clp"].value, avl.output["Cltot"].deriv("RollRate"), 8)
             self.assertAlmostEqual(avl.output["Clq"].value, avl.output["Cltot"].deriv("PitchRate"), 8)
             self.assertAlmostEqual(avl.output["Clr"].value, avl.output["Cltot"].deriv("YawRate"), 8)
 
+            self.assertAlmostEqual(avl.output["Cmu"].value, avl.output["Cmtot"].deriv("u"), 8)
+            self.assertAlmostEqual(avl.output["Cmv"].value, avl.output["Cmtot"].deriv("v"), 8)
+            self.assertAlmostEqual(avl.output["Cmw"].value, avl.output["Cmtot"].deriv("w"), 8)
+
             self.assertAlmostEqual(avl.output["Cmp"].value, avl.output["Cmtot"].deriv("RollRate"), 8)
             self.assertAlmostEqual(avl.output["Cmq"].value, avl.output["Cmtot"].deriv("PitchRate"), 8)
             self.assertAlmostEqual(avl.output["Cmr"].value, avl.output["Cmtot"].deriv("YawRate"), 8)
+
+            self.assertAlmostEqual(avl.output["Cnu"].value, avl.output["Cntot"].deriv("u"), 8)
+            self.assertAlmostEqual(avl.output["Cnv"].value, avl.output["Cntot"].deriv("v"), 8)
+            self.assertAlmostEqual(avl.output["Cnw"].value, avl.output["Cntot"].deriv("w"), 8)
 
             self.assertAlmostEqual(avl.output["Cnp"].value, avl.output["Cntot"].deriv("RollRate"), 8)
             self.assertAlmostEqual(avl.output["Cnq"].value, avl.output["Cntot"].deriv("PitchRate"), 8)
@@ -650,8 +690,9 @@ class TestAVL(unittest.TestCase):
 
         # Set new Mach/Alt parameters
         avl.input.Mach  = 0.5
-        avl.input.Alpha = 1.0
+        avl.input.CL = 0.5
         avl.input.Beta  = 0.0
+        avl.input.CLAF = 0.77
 
         wing = {"groupName"         : "Wing",
                 "numChord"          : 8,
@@ -669,13 +710,17 @@ class TestAVL(unittest.TestCase):
                                  "VTail2": vtail}
 
         # Retrieve results
+        Alpha = avl.output.Alpha
         CLtot = avl.output.CLtot
         CDtot = avl.output.CDtot
+        #print("Alpha = ", Alpha)
         #print("CLtot = ", CLtot)
         #print("CDtot = ", CDtot)
 
-        CLtotTrue  = 0.14681
-        CDtotTrue  = 0.02022
+        AlphaTrue  = 5.577333286722181
+        CLtotTrue  = 0.5
+        CDtotTrue  = 0.0431820577374429
+        self.assertAlmostEqual(AlphaTrue, Alpha, 4)
         self.assertAlmostEqual(CLtotTrue, CLtot, 4)
         self.assertAlmostEqual(CDtotTrue, CDtot, 4)
 

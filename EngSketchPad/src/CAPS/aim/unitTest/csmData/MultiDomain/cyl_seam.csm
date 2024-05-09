@@ -1,0 +1,51 @@
+# cyl_seam.csm written by ocsmSave (v1.23)
+set MeshLength 4
+despmtr length 10 lbound 9 ubound 11 initial 10
+
+# Constant, Design, and Output Parameters:
+
+# Global Attributes:
+
+# Branches:
+CYLINDER  0   0   0   10   0   0   5
+ROTATEX   45   0   0
+CYLINDER  1   0   0   9   0   0   6
+CYLINDER  1   0   0   9   0   0   4.9
+SUBTRACT  none   1   0
+EXTRACT   0
+SUBTRACT  none   1   0
+CYLINDER  1   0   0   9   0   0   6
+BOX       1   -7   -10   8   7   20
+SUBTRACT  none   1   0
+SELECT    face   9   4   1
+EXTRACT   @sellist
+SUBTRACT  none   1   0
+
+select    BODY
+attribute _name   $block_1
+attribute capsAIM   $aflr4AIM;aflr3AIM;platoAIM;egadsTessAIM;tetgenAIM
+attribute capsMeshLength  4
+select    face
+attribute capsGroup   $dummy_att
+
+CYLINDER  1   0   0   9   0   0   6
+CYLINDER  1   0   0   9   0   0   5
+SUBTRACT  none   1   0
+CYLINDER  0   0   0   10   0   0   5.1
+BOX       -1   -6   -6   11   6   12
+SUBTRACT  none   1   0
+ROTATEX   45   0   0
+SELECT    face   17   4   1
+EXTRACT   @sellist
+SUBTRACT  none   1   0
+
+select    BODY
+attribute _name   $block_2
+attribute capsAIM   $aflr4AIM;aflr3AIM;platoAIM;egadsTessAIM;tetgenAIM
+attribute capsMeshLength  4
+select    face
+attribute capsGroup   $dummy_att
+
+#DUMP cyl_seam.egads 0 1
+
+END

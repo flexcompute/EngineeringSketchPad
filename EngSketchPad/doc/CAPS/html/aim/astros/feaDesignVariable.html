@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.9.1"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Astros Analysis Interface Module (AIM): FEA DesignVariable</title>
+<title>Astros Analysis Interface Module (AIM): FEA Design Variables</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -63,18 +63,43 @@ $(function() {
 </div><!-- top -->
 <div class="PageDoc"><div class="header">
   <div class="headertitle">
-<div class="title">FEA DesignVariable </div>  </div>
+<div class="title">FEA Design Variables </div>  </div>
 </div><!--header-->
 <div class="contents">
 <div class="textblock"><p>Structure for the design variable tuple = ("DesignVariable Name", "Value"). "DesignVariable Name" defines the reference name for the design variable being specified. This string will be used in the FEA input directly. The "Value" must be a JSON String dictionary (see Section <a class="el" href="feaDesignVariable.html#jsonStringDesignVariable">JSON String Dictionary</a>).</p>
 <h1><a class="anchor" id="jsonStringDesignVariable"></a>
 JSON String Dictionary</h1>
-<p>If "Value" is JSON string dictionary the following keywords ( = default values) may be used:</p>
+<p>If "Value" is JSON string dictionary (eg. "Value" = {"initialValue": 5.0, "upperBound": 10.0}) the following keywords ( = default values) may be used:</p>
+<ul>
+<li>
+<b>initialValue = 0.0</b>  <br  />
+ Initial value for the design variable. </li>
+</ul>
+<ul>
+<li>
+<b>lowerBound = 0.0</b>  <br  />
+ Lower bound for the design variable. </li>
+</ul>
+<ul>
+<li>
+<b>upperBound = 0.0</b>  <br  />
+ Upper bound for the design variable. </li>
+</ul>
+<ul>
+<li>
+<b>maxDelta = 0.0</b>  <br  />
+ Move limit for the design variable. </li>
+</ul>
+<ul>
+<li>
+<b>discreteValue = 0.0</b>  <br  />
+ List of discrete values to use for the design variable (e.g. [0.0,1.0,1.5,3.0]. </li>
+</ul>
 </div></div><!-- contents -->
 </div><!-- PageDoc -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Sat Jul 2 2022 10:12:49 for Astros Analysis Interface Module (AIM) by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1
+Generated on Sat Apr 27 2024 16:51:00 for Astros Analysis Interface Module (AIM) by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1
 </small></address>
 </body>
 </html>

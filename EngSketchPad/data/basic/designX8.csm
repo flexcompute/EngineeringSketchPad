@@ -1,0 +1,54 @@
+# designX8
+# written by John Dannenhoffer
+
+DESPMTR   L        5.0
+DESPMTR   R        2.5
+DESPMTR   xA       1.0
+DESPMTR   yA      -3.0
+DESPMTR   xB       6.0
+DESPMTR   xD       3.0
+
+# outer Body (cylinder)
+CYLINDER  0.0   0.0   0.0   L   0.0   0.0   R
+ROTATEX   90
+STORE     outer
+
+# inner Body (waffle)
+UDPRIM    waffle    filename <<   depth 2*(R+1)  rebuild xA;yA;xB;xD
+   POINT  A    at  xA  yA
+   POINT  B    at  xB  0.0
+   POINT  C    at  x@A -y@A
+   LINE   AB   A B
+   LINE   CB   C B
+   LINE   AC   A C
+
+   POINT  D    on  AB  xloc  xD
+   POINT  E    on  AC  yloc  y@D
+   LINE   DE   D E
+
+   POINT  F    on  CB  perp  D
+   LINE   DF   D F
+
+   CPOINT G    at  0.0  0.0
+   CLINE  FG   F G
+   POINT  H    on  AC  xsect FG
+   LINE   .    F H
+>>
+TRANSLATE 0.0  0.0  -R-1
+STORE     inner
+
+# trim inner
+RESTORE   inner
+RESTORE   outer
+INTERSECT
+
+# scribe outer
+RESTORE   outer
+RESTORE   inner
+SUBTRACT
+EXTRACT   0
+
+# combine into BEM
+JOIN
+
+END

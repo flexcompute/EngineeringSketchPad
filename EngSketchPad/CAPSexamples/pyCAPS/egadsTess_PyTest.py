@@ -23,30 +23,27 @@ workDir = os.path.join(str(args.workDir[0]), "egadsTessAnalysisTest")
 
 # Load CSM file and build the geometry explicitly
 geometryScript = os.path.join("..","csmData","feaWingBEMAero.csm")
-myProblem = pyCAPS.Problem(problemName=workDir,
-                           capsFile=geometryScript, 
-                           outLevel=args.outLevel)
+capsProblem = pyCAPS.Problem(problemName=workDir,
+                             capsFile=geometryScript, 
+                             outLevel=args.outLevel)
 
 # Load EGADS Tess aim
-myAnalysis = myProblem.analysis.create(aim = "egadsTessAIM")
-
-# Set project name so a mesh file is generated
-myAnalysis.input.Proj_Name = "egadsTessMesh"
+egadsTess = capsProblem.analysis.create(aim = "egadsTessAIM")
 
 # Set new EGADS body tessellation parameters
-myAnalysis.input.Tess_Params = [.1, 0.1, 20.0]
+egadsTess.input.Tess_Params = [.1, 0.1, 20.0]
 
-# Set output grid format since a project name is being supplied - Tecplot file
-myAnalysis.input.Mesh_Format = "Tecplot"
+# Optional: Explicitly write mesh files
+egadsTess.input.Mesh_Format = ["Tecplot", "stl", "ugrid"]
 
-myAnalysis.input.Mesh_Elements = "Quad"
+egadsTess.input.Mesh_Elements = "Quad"
 
 Mesh_Sizing = {"LeadingEdge":  {"tessParams" : [0.5, .1, 30]}}
 #Mesh_Sizing = {"LeadingEdge":  {"numEdgePoints" : 3}}
 
-myAnalysis.input.Mesh_Sizing = Mesh_Sizing
+egadsTess.input.Mesh_Sizing = Mesh_Sizing
 
 # Run AIM
-myAnalysis.runAnalysis()
+egadsTess.runAnalysis()
 
-#myAnalysis.geometry.view()
+#egadsTess.geometry.view()

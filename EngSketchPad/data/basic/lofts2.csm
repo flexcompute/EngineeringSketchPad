@@ -10,6 +10,8 @@ udprim    box       Dx   2    Dy   1    Rad  0.25
 translate      0    0   10
 skbeg          0    0   14
 skend
+# note: LOFT has been deprecated and is included here for backward-compatability testing
+#       new .csm files should use RULE or BLEND instead
 loft 1
 
 mark
@@ -21,6 +23,8 @@ udprim    box       Dx   1    Dy   2    Rad  0.25
 translate      0    0  -10
 skbeg          0    0  -14
 skend
+# note: LOFT has been deprecated and is included here for backward-compatability testing
+#       new .csm files should use RULE or BLEND instead
 loft 1
 
 mark
@@ -32,6 +36,8 @@ udprim    box       Dy   2    Dz   1    Rad  0.25
 translate     10    0    0
 skbeg         14    0    0
 skend
+# note: LOFT has been deprecated and is included here for backward-compatability testing
+#       new .csm files should use RULE or BLEND instead
 loft 1
 
 mark
@@ -43,6 +49,8 @@ udprim    box       Dy   1    Dz   2    Rad  0.25
 translate     -10   0    0
 skbeg         -14   0    0
 skend
+# note: LOFT has been deprecated and is included here for backward-compatability testing
+#       new .csm files should use RULE or BLEND instead
 loft 1
 
 mark
@@ -54,6 +62,8 @@ udprim    box       Dz   2    Dx   1    Rad  0.25
 translate      0   10    0
 skbeg          0   14    0
 skend
+# note: LOFT has been deprecated and is included here for backward-compatability testing
+#       new .csm files should use RULE or BLEND instead
 loft 1
 
 mark
@@ -65,6 +75,8 @@ udprim    box       Dz   1    Dx   2    Rad  0.25
 translate      0  -10    0
 skbeg          0  -14    0
 skend
+# note: LOFT has been deprecated and is included here for backward-compatability testing
+#       new .csm files should use RULE or BLEND instead
 loft 1
 
 end

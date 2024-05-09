@@ -76,7 +76,7 @@ $(function() {
 <li><b> capsConnect</b> This is a name assigned to any geometric body where the user wishes to create "fictitious" connections such as springs, dampers, and/or rigid body connections to. The user must manually specify the connection between two <code>capsConnect</code> entities using the "Connect" tuple (see <a class="el" href="aimInputsNastran.html">AIM Inputs</a>). Recall that a string in ESP starts with a $. For example, attribute <code>capsConnect $springStart</code>.</li>
 <li><b> capsConnectLink</b> Similar to <code>capsConnect</code>, this is a name assigned to any geometric body where the user wishes to create "fictitious" connections to. A connection is automatically made if a <code>capsConnectLink</code> matches a <code>capsConnect</code> group. Again further specifics of the connection are input using the "Connect" tuple (see <a class="el" href="aimInputsNastran.html">AIM Inputs</a>). Recall that a string in ESP starts with a $. For example, attribute <code>capsConnectLink $springEnd</code>.</li>
 <li><b> capsResponse</b> This is a name assigned to any geometric body that will be used to define design sensitivity responses for optimization. Specific information for the responses are input using the "Design_Response" tuple (see <a class="el" href="aimInputsNastran.html">AIM Inputs</a>). Recall that a string in ESP starts with a $. For examples, attribute <code>capsResponse $displacementNode</code>.</li>
-<li><b> capsBound </b> This is used to mark surfaces on the structural grid in which data transfer with an external solver will take place. See <a class="el" href="dataTransferNastran.html">Nastran Data Transfer</a> for additional details.</li>
+<li><b> capsBound </b> This is used to mark surfaces on the structural grid in which data transfer with an external solver will take place. See <a class="el" href="dataTransferNastran.html">AIM Data Transfer</a> for additional details.</li>
 </ul>
 <p>Internal Aeroelastic Analysis</p>
 <ul>
@@ -89,7 +89,7 @@ $(function() {
 </div><!-- PageDoc -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Sat Jul 2 2022 10:12:44 for Nastran Analysis Interface Module (AIM) by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1
+Generated on Sat Apr 27 2024 16:51:37 for Nastran Analysis Interface Module (AIM) by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1
 </small></address>
 </body>
 </html>

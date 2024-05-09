@@ -142,6 +142,7 @@ UDPRIM fitcurve filename << ncp 7
 SET npnt_lower @@npnt
 SET rms_lower  @@rms
 
-COMBINE
+JOIN   0  1
+ELEVATE
 
 end

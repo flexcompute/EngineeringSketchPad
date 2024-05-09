@@ -1,0 +1,10 @@
+# edgeGrid1
+# written by John Dannenhoffer
+
+DESPMTR   DX    1
+DESPMTR   DY    1
+
+BOX       0  0  0  DX  DY  0
+ATTRIBUTE .tParams    "-.05;.05;20"
+
+END

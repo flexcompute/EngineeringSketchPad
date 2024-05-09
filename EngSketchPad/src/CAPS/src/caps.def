@@ -61,10 +61,17 @@ caps_getTriangles
 caps_getValue
 caps_makeValue
 caps_setValue
+caps_getValueSize
 caps_getLimits
 caps_setLimits
+caps_getLimitsSize
+caps_setLimitsSize
 caps_getValueProps
 caps_setValueProps
+caps_getStepSize
+caps_setStepSize
+caps_getStepSizeSize
+caps_setStepSizeSize
 caps_convertValue
 caps_transferValues
 caps_linkValue

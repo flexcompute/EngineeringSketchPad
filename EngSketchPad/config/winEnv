@@ -216,6 +216,17 @@ if [ -n "$pyt" ]; then
 		echo "Info: Ignoring Python exec $pyt older than 3.8!"
 	fi
 fi
+if [ "$PYTH" == UNKNOWN ]; then
+	pyt="`which python3`"
+	if [ -n "$pyt" ]; then
+		if python3 -c "import sys; assert sys.version_info >= (3,8)" >& /dev/null; then 
+			PYTH=python3
+			echo "Info: Python exec $pyt found!"
+		else
+			echo "Info: Ignoring Python exec $pyt older than 3.8!"
+		fi
+	fi
+fi
 
 if [ "$PYTH" != UNKNOWN ]; then
 	if [ "$PYTHONINC" = UNKNOWN ]; then
@@ -358,8 +369,8 @@ if [ "$PYTHONINC" != UNKNOWN ] && [ "$PYTHONLIB" != UNKNOWN ]; then
 	echo "set PYTHONLIB=\"$PYTHONLIB\""                >> tmp
 	echo "set PATH="$PYTHONINC/..";%PATH%"             >> tmp
 else
-	echo "rem set PYTHONINC=C:\Python39\include"               >> tmp
-	echo "rem set PYTHONLIB=C:\Python39\Libs\python39.lib"     >> tmp
+	echo "rem set PYTHONINC=C:\Python311\include"              >> tmp
+	echo "rem set PYTHONLIB=C:\Python311\Libs\python311.lib"   >> tmp
 	echo "rem set PATH="$PYTHONINC/..";%PATH%"                 >> tmp
 fi
 echo "set PYTHONPATH="$BASE/lib";"$BASE/pyESP";%PYTHONPATH%"       >> tmp

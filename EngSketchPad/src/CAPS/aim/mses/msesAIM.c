@@ -11,7 +11,7 @@
  * \section overviewMSES MSES AIM Overview
  *
  * A module in the Computational Aircraft Prototype Syntheses (CAPS) has been developed to interact (through input
- * files) with the airfoil analysis tool MSES. MSES is not open-source and not freelay available. However,
+ * files) with the airfoil analysis tool MSES. MSES is not open-source and not freely available. However,
  * a 'lite' version of MSES is provided with EngSketchPad that supports analysis of a single airfoil element.
  *
  * An outline of the AIM's inputs and outputs are provided in \ref aimInputsMSES and \ref aimOutputsMSES, respectively.
@@ -264,7 +264,7 @@ int aimInputs(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo,
 {
   int status = CAPS_SUCCESS;
   /*! \page aimInputsMSES AIM Inputs
-   * The following list outlines the xFoil inputs along with their default values available
+   * The following list outlines the MSES inputs along with their default values available
    * through the AIM interface.
    */
 
@@ -347,7 +347,7 @@ int aimInputs(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo,
 
     /*! \page aimInputsMSES
      * - <B> xTransition_Lower = NULL</B> <br>
-     *  List of forced transition location on the lower surface of each blade element.
+     *  List of forced transition location on the lower surface of each blade element. <br>
      *  Must be equal in length to the number of blade elements.
      */
 
@@ -383,7 +383,11 @@ int aimInputs(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo,
 
     /*! \page aimInputsMSES
      * - <B> ISMOM = 4</B> <br>
-     *  MSES ISMOM input to select the momentum equation. Valid inputs: [1-4]
+     *  MSES ISMOM input to select the momentum equation. Valid inputs: [1-4] <br>
+     *  1 -> use S-momentum equation <br>
+     *  2 -> use isentropic condition <br>
+     *  3 -> use S-momentum equation, with isentropic condition only near leading edge <br>
+     *  4 -> use isentropic condition, with S-momentum equation only where dissipation is active
      */
 
   } else if (index == inIFFBC) {
@@ -752,7 +756,7 @@ int aimUpdateState(void *instStore, void *aimInfo,
 
       status = vlm_getSectionCoord(aimInfo,
                                    &msesInstance->vlmSections[ibody],
-                                   (int) true, // Normalize by chord (true/false)
+                                   (int) false, // Normalize by chord (true/false)
                                    NUMPOINT,
                                    &msesInstance->xCoord[ibody],
                                    &msesInstance->yCoord[ibody],
@@ -1359,7 +1363,7 @@ int aimPostAnalysis(void *instStore, void *aimInfo,
   char *line=NULL;
   FILE *fp=NULL;
 
-  msesSensx *sensx;
+  msesSensx *sensx=NULL;
   double coord[3], data[18], tm, tp, ism_dot[9], isp_dot[9];
 
   double *M=NULL, *rhs=NULL, *dmod_dvar=NULL, ds;
@@ -1432,7 +1436,15 @@ int aimPostAnalysis(void *instStore, void *aimInfo,
 
   // read in the sensx.airfoil file
   status = msesSensxRead(aimInfo, sensxfile, &sensx);
-  AIM_STATUS(aimInfo, status);
+  if (status != CAPS_SUCCESS) {
+    if (getenv("F_UFMTENDIAN") != NULL) {
+      AIM_ERROR(aimInfo, "The environment variable F_UFMTENDIAN is set in your shell,");
+      AIM_ADDLINE(aimInfo, "which is likely preventing CAPS from reading mses output files.");
+      AIM_ADDLINE(aimInfo, "Please unset F_UFMTENDIAN in your shell.");
+    }
+    AIM_STATUS(aimInfo, status, "Failed to read mses sensx file!");
+  }
+  AIM_NOTNULL(sensx, aimInfo, status);
 
   numFunctional = 7;
   AIM_ALLOC(values, numFunctional, capsValue*, aimInfo, status);
@@ -1890,7 +1902,9 @@ int aimOutputs(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo,
                int index, char **aoname, capsValue *form)
 {
     /*! \page aimOutputsMSES AIM Outputs
-     * The following list outlines the xFoil outputs available through the AIM interface.
+     * The following list outlines the MSES outputs available through the AIM interface.
+     *
+     * Angle of attack and coefficients have derivatives w.r.t Alpha, Mach, and Re
      */
 
     int status = CAPS_SUCCESS;

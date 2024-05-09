@@ -5,6 +5,7 @@ DESPMTR   Rdish     30.0
 DESPMTR   Rring     1.00
 DESPMTR   Rspoke    0.05
 DESPMTR   dtheta    5.00
+CFGPMTR   Nsect     60
 CFGPMTR   Nring     8
 
 # make the revolved feature and extract a sector
@@ -51,38 +52,15 @@ ROTATEZ   -1.5
 UNION
 
 # extract a wedge of the configuration
-SKBEG      0            0           -20
-   LINSEG 40*cosd(-3)  40*sind(-3)  -20
-   LINSEG 40*cosd(+3)  40*sind(+3)  -20
-   LINSEG  0            0           -20
+SKBEG      0                    0                   -20
+   LINSEG 40*cosd(-180/Nsect)  40*sind(-180/Nsect)  -20
+   LINSEG 40*cosd(+180/Nsect)  40*sind(+180/Nsect)  -20
+   LINSEG  0                    0                   -20
 SKEND
 EXTRUDE   0  0  40
 INTERSECT
 
-# make extended copies of the sector
-SET      angle   6
-PATBEG   i  5
-   RESTORE  .
-   ROTATEZ  angle
-   UNION
-   STORE    sector  i  1
-   SET      angle   angle*2
-PATEND
-STORE    .
-
-# make the whole wheel by combining the various sectors
-RESTORE  sector  2
-ROTATEZ  6*(32+16+8)
-
-RESTORE  sector  3
-ROTATEZ  6*(32+16)
-UNION
-
-RESTORE  sector  4
-ROTATEZ  6*(32)
-UNION
-
-RESTORE  sector  5
-UNION
+# replicate all around the wheel
+UDPRIM    $$/replicate   ncopy Nsect
 
 END

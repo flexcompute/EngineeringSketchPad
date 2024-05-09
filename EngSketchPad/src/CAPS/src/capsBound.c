@@ -3,7 +3,7 @@
  *
  *             Bound, VertexSet & DataSet Object Functions
  *
- *      Copyright 2014-2022, Massachusetts Institute of Technology
+ *      Copyright 2014-2024, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -71,14 +71,17 @@ extern int  caps_mkDir(const char *path);
 extern int  caps_rename(const char *src, const char *dst);
 extern int  caps_isNameOK(const char *name);
 extern int  caps_dumpBound(capsObject *pobject, capsObject *bobject);
+extern int  caps_writeBound(capsObject *bobject);
 extern int  caps_writeVertexSet(capsObject *vobject);
 extern int  caps_writeDataSet(capsObject *dobject);
-extern void caps_jrnlWrite(int funID, capsProblem *problem, capsObject *obj,
-                           int status, int nargs, capsJrnl *args, CAPSLONG sNm0,
-                           CAPSLONG sNum);
+extern int  capsInputSum(int nargs, capsJrnl *args, CAPSLONG *md5);
+extern void caps_jrnlWrite(int funID, CAPSLONG *md5, capsProblem *problem,
+                           capsObject *obj, int status, int nargs,
+                           capsJrnl *args, CAPSLONG sNm0, CAPSLONG sNum);
 extern int  caps_jrnlEnd(capsProblem *problem);
-extern int  caps_jrnlRead(int funID, capsProblem *problem, capsObject *obj,
-                          int nargs, capsJrnl *args, CAPSLONG *sNum, int *stat);
+extern int  caps_jrnlRead(int funID, CAPSLONG *md5, capsProblem *problem,
+                          capsObject *obj, int nargs, capsJrnl *args,
+                          CAPSLONG *sNum, int *stat);
 extern int  caps_buildBound(capsObject *bobject, int *nErr, capsErrs **errors);
 extern int  caps_unitParse(/*@null@*/ const char *unit);
 extern int  caps_getDataX(capsObject *dobj, int *npts, int *rank, double **data,
@@ -196,7 +199,7 @@ caps_boundInfo(capsObject *object, enum capsState *state, int *dim,
 {
   int         status, ret;
   double      *reals;
-  CAPSLONG    sNum;
+  CAPSLONG    sNum, md5[2];
   capsObject  *pobject;
   capsProblem *problem;
   capsBound   *bound;
@@ -211,13 +214,18 @@ caps_boundInfo(capsObject *object, enum capsState *state, int *dim,
   status = caps_findProblem(object, CAPS_BOUNDINFO, &pobject);
   if (status              != CAPS_SUCCESS) return status;
   problem  = (capsProblem *) pobject->blind;
+  
+  args[0].type        = jObject;
+  args[0].members.obj = object;
+  status = capsInputSum(1, args, md5);
+  if (status != CAPS_SUCCESS) return status;
 
   args[0].type = jInteger;
   args[1].type = jInteger;
   args[2].type = jPointer;
   if (problem->dbFlag == 0) {
-    status     = caps_jrnlRead(CAPS_BOUNDINFO, problem, object, 3, args, &sNum,
-                               &ret);
+    status     = caps_jrnlRead(CAPS_BOUNDINFO, md5, problem, object, 3, args,
+                               &sNum, &ret);
     if (status == CAPS_JOURNALERR) return status;
     if (status == CAPS_JOURNAL) {
       if (ret == CAPS_SUCCESS) {
@@ -255,7 +263,7 @@ caps_boundInfo(capsObject *object, enum capsState *state, int *dim,
   args[0].members.integer = *state;
   args[1].members.integer = *dim;
   args[2].members.pointer = plims;
-  caps_jrnlWrite(CAPS_BOUNDINFO, problem, object, CAPS_SUCCESS, 3, args,
+  caps_jrnlWrite(CAPS_BOUNDINFO, md5, problem, object, CAPS_SUCCESS, 3, args,
                  problem->sNum, problem->sNum);
 
   return CAPS_SUCCESS;
@@ -268,11 +276,11 @@ caps_makeBound(capsObject *pobject, int dim, const char *bname,
 {
   int         i, j, status, ret, *index;
   char        filename[PATH_MAX], temp[PATH_MAX];
-  CAPSLONG    sNum;
+  CAPSLONG    sNum, md5[2];
   capsProblem *problem;
   capsBound   *bound, *bnd;
   capsObject  *object, **tmp;
-  capsJrnl    args[1];
+  capsJrnl    args[2];
   FILE        *fp;
 
   *bobj = NULL;
@@ -284,10 +292,17 @@ caps_makeBound(capsObject *pobject, int dim, const char *bname,
   if ((dim < 1) || (dim > 3))            return CAPS_RANGEERR;
   problem = (capsProblem *) pobject->blind;
   if (problem->dbFlag == 1)              return CAPS_READONLYERR;
+  
+  args[0].type            = jInteger;
+  args[0].members.integer = dim;
+  args[1].type            = jString;
+  args[1].members.string  = (char *) bname;
+  status = capsInputSum(2, args, md5);
+  if (status != CAPS_SUCCESS) return status;
 
   args[0].type = jObject;
-  status       = caps_jrnlRead(CAPS_MAKEBOUND, problem, *bobj, 1, args, &sNum,
-                               &ret);
+  status       = caps_jrnlRead(CAPS_MAKEBOUND, md5, problem, *bobj, 1, args,
+                               &sNum, &ret);
   if (status == CAPS_JOURNALERR) return status;
   if (status == CAPS_JOURNAL) {
     if (ret == CAPS_SUCCESS) *bobj = args[0].members.obj;
@@ -434,7 +449,7 @@ caps_makeBound(capsObject *pobject, int dim, const char *bname,
 
 bout:
   args[0].members.obj = *bobj;
-  caps_jrnlWrite(CAPS_MAKEBOUND, problem, *bobj, status, 1, args, sNum,
+  caps_jrnlWrite(CAPS_MAKEBOUND, md5, problem, *bobj, status, 1, args, sNum,
                  problem->sNum);
 
   return status;
@@ -500,12 +515,23 @@ caps_closeBound(capsObject *bobject)
       }
     }
   }
-
+  
+  /* write the bound */
   bound->state = Empty;
+  status = caps_writeBound(bobject);
+  if (status != CAPS_SUCCESS)
+    printf(" CAPS Warning: caps_writeBound = %d (caps_closeBound)!\n", status);
   status = caps_dumpBound(pobject, bobject);
   if (status != CAPS_SUCCESS)
-    printf(" CAPS Warning: caps_dumpBound = %d (caps_closeBound)!\n",
-           status);
+    printf(" CAPS Warning: caps_dumpBound = %d (caps_closeBound)!\n", status);
+  
+  /* write the empty vertexSets */
+  for (i = 0; i < bound->nVertexSet; i++) {
+    status = caps_writeVertexSet(bound->vertexSet[i]);
+    if (status != CAPS_SUCCESS)
+      printf(" CAPS Warning: caps_writeVertexSet %d = %d (caps_closeBound)!\n",
+             i+1, status);
+  }
 
   return CAPS_SUCCESS;
 }
@@ -776,12 +802,12 @@ caps_makeDataSet(capsObject *vobject, const char *dname, enum capsfType ftype,
                  int rank, capsObject **dobj, int *nErr, capsErrs **errors)
 {
   int           status, ret;
-  CAPSLONG      sNum;
+  CAPSLONG      sNum, md5[2];
   capsObject    *bobject, *pobject, *aobject;
   capsVertexSet *vertexset;
   capsBound     *bound;
   capsProblem   *problem;
-  capsJrnl      args[1];
+  capsJrnl      args[4];
 
   if (nErr                 == NULL)      return CAPS_NULLVALUE;
   if (errors               == NULL)      return CAPS_NULLVALUE;
@@ -812,9 +838,19 @@ caps_makeDataSet(capsObject *vobject, const char *dname, enum capsfType ftype,
   problem = (capsProblem *) pobject->blind;
   if (problem->dbFlag == 1)              return CAPS_READONLYERR;
 
-  args[0].type = jObject;
-  status       = caps_jrnlRead(CAPS_MAKEDATASET, problem, *dobj, 1, args, &sNum,
-                               &ret);
+  args[0].type            = jObject;
+  args[0].members.obj     = vobject;
+  args[1].type            = jString;
+  args[1].members.string  = (char *) dname;
+  args[2].type            = jInteger;
+  args[2].members.integer = ftype;
+  args[3].type            = jInteger;
+  args[3].members.integer = rank;
+  status = capsInputSum(4, args, md5);
+  if (status != CAPS_SUCCESS) return status;
+  
+  status = caps_jrnlRead(CAPS_MAKEDATASET, md5, problem, *dobj, 1, args, &sNum,
+                         &ret);
   if (status == CAPS_JOURNALERR) return status;
   if (status == CAPS_JOURNAL) {
     if (ret == CAPS_SUCCESS) *dobj = args[0].members.obj;
@@ -829,7 +865,7 @@ caps_makeDataSet(capsObject *vobject, const char *dname, enum capsfType ftype,
     ret  = caps_makeDataSeX(vobject, dname, ftype, rank, dobj, nErr, errors);
     args[0].members.obj = *dobj;
   }
-  caps_jrnlWrite(CAPS_MAKEDATASET, problem, *dobj, ret, 1, args, sNum,
+  caps_jrnlWrite(CAPS_MAKEDATASET, md5, problem, *dobj, ret, 1, args, sNum,
                  problem->sNum);
 
   return ret;
@@ -841,7 +877,7 @@ caps_dataSetInfo(capsObject *dobject, enum capsfType *ftype, capsObject **link,
                  enum capsdMethod *dmeth)
 {
   int         status, ret;
-  CAPSLONG    sNum;
+  CAPSLONG    sNum, md5[2];
   capsObject  *pobject;
   capsProblem *problem;
   capsDataSet *dataset;
@@ -856,12 +892,17 @@ caps_dataSetInfo(capsObject *dobject, enum capsfType *ftype, capsObject **link,
   status = caps_findProblem(dobject, CAPS_DATASETINFO, &pobject);
   if (status                != CAPS_SUCCESS) return status;
   problem  = (capsProblem *) pobject->blind;
+  
+  args[0].type        = jObject;
+  args[0].members.obj = dobject;
+  status = capsInputSum(1, args, md5);
+  if (status != CAPS_SUCCESS) return status;
 
   args[0].type = jInteger;
   args[1].type = jObject;
   args[2].type = jInteger;
   if (problem->dbFlag == 0) {
-    status     = caps_jrnlRead(CAPS_DATASETINFO, problem, dobject, 3, args,
+    status     = caps_jrnlRead(CAPS_DATASETINFO, md5, problem, dobject, 3, args,
                                &sNum, &ret);
     if (status == CAPS_JOURNALERR) return status;
     if (status == CAPS_JOURNAL) {
@@ -880,7 +921,7 @@ caps_dataSetInfo(capsObject *dobject, enum capsfType *ftype, capsObject **link,
   *dmeth  = args[2].members.integer = dataset->linkMethod;
   if (problem->dbFlag == 1) return CAPS_SUCCESS;
 
-  caps_jrnlWrite(CAPS_DATASETINFO, problem, dobject, CAPS_SUCCESS, 3, args,
+  caps_jrnlWrite(CAPS_DATASETINFO, md5, problem, dobject, CAPS_SUCCESS, 3, args,
                  problem->sNum, problem->sNum);
 
   return CAPS_SUCCESS;
@@ -1139,13 +1180,13 @@ caps_makeVertexSet(capsObject *bobject, /*@null@*/ capsObject *aobject,
                    /*@null@*/ const char *vname, capsObject **vobj,
                    int *nErr, capsErrs **errors)
 {
-  int         status, ret;
+  int         status, ret, len;
   const char  *name;
-  CAPSLONG    sNum;
+  CAPSLONG    sNum, md5[2];
   capsBound   *bound;
   capsProblem *problem;
   capsObject  *pobject, *ds[4] = {NULL, NULL, NULL, NULL};
-  capsJrnl    args[1];
+  capsJrnl    args[3];
 
   if (nErr                 == NULL)         return CAPS_NULLVALUE;
   if (errors               == NULL)         return CAPS_NULLVALUE;
@@ -1171,9 +1212,25 @@ caps_makeVertexSet(capsObject *bobject, /*@null@*/ capsObject *aobject,
     if (vname == NULL) name = aobject->name;
   }
   if (name                   == NULL)      return CAPS_NULLNAME;
+  
+  len                 = 1;
+  args[0].type        = jObject;
+  args[0].members.obj = bobject;
+  if (aobject != NULL) {
+    args[len].type        = jObject;
+    args[len].members.obj = aobject;
+    len++;
+  }
+  if (vname != NULL) {
+    args[len].type           = jString;
+    args[len].members.string = (char *) vname;
+    len++;
+  }
+  status = capsInputSum(len, args, md5);
+  if (status != CAPS_SUCCESS) return status;
 
   args[0].type = jObject;
-  status       = caps_jrnlRead(CAPS_MAKEVERTEXSET, problem, *vobj, 1, args,
+  status       = caps_jrnlRead(CAPS_MAKEVERTEXSET, md5, problem, *vobj, 1, args,
                                &sNum, &ret);
   if (status == CAPS_JOURNALERR) return status;
   if (status == CAPS_JOURNAL) {
@@ -1189,7 +1246,7 @@ caps_makeVertexSet(capsObject *bobject, /*@null@*/ capsObject *aobject,
     ret = caps_makeVertexSeX(bobject, aobject, name, vobj, nErr, errors, ds);
     args[0].members.obj = *vobj;
   }
-  caps_jrnlWrite(CAPS_MAKEVERTEXSET, problem, *vobj, ret, 1, args, sNum,
+  caps_jrnlWrite(CAPS_MAKEVERTEXSET, md5, problem, *vobj, ret, 1, args, sNum,
                  problem->sNum);
 
   return ret;
@@ -1201,7 +1258,7 @@ caps_vertexSetInfo(capsObject *vobject, int *nGpts, int *nDpts,
                    capsObject **bobj, capsObject **aobj)
 {
   int           status, ret;
-  CAPSLONG      sNum;
+  CAPSLONG      sNum, md5[2];
   capsProblem   *problem;
   capsObject    *pobject;
   capsVertexSet *vertexset;
@@ -1220,11 +1277,17 @@ caps_vertexSetInfo(capsObject *vobject, int *nGpts, int *nDpts,
 
   *bobj = vobject->parent;
   *aobj = vertexset->analysis;
+  
+  args[0].type        = jObject;
+  args[0].members.obj = vobject;
+  status = capsInputSum(1, args, md5);
+  if (status != CAPS_SUCCESS) return status;
+  
   args[0].type = jInteger;
   args[1].type = jInteger;
   if (problem->dbFlag == 0) {
-    status     = caps_jrnlRead(CAPS_VERTEXSETINFO, problem, vobject, 2, args,
-                               &sNum, &ret);
+    status     = caps_jrnlRead(CAPS_VERTEXSETINFO, md5, problem, vobject,
+                               2, args, &sNum, &ret);
     if (status == CAPS_JOURNALERR) return status;
     if (status == CAPS_JOURNAL) {
       if (ret == CAPS_SUCCESS) {
@@ -1243,8 +1306,8 @@ caps_vertexSetInfo(capsObject *vobject, int *nGpts, int *nDpts,
 
   args[0].members.integer = *nGpts;
   args[1].members.integer = *nDpts;
-  caps_jrnlWrite(CAPS_VERTEXSETINFO, problem, vobject, CAPS_SUCCESS, 2, args,
-                 problem->sNum, problem->sNum);
+  caps_jrnlWrite(CAPS_VERTEXSETINFO, md5, problem, vobject, CAPS_SUCCESS,
+                 2, args, problem->sNum, problem->sNum);
 
   return CAPS_SUCCESS;
 }
@@ -1796,7 +1859,7 @@ caps_getTriangles(capsObject *vobject, int *nGtris,            int **gtris,
                                        int *nDsegs, /*@null@*/ int **dsegs)
 {
   int           i, j, ib, n, status, ret, ntris, nsegs, eType, *tris, *segs;
-  CAPSLONG      sNum;
+  CAPSLONG      sNum, md5[2];
   capsObject    *pobject;
   capsProblem   *problem;
   capsVertexSet *vertexset;
@@ -1818,6 +1881,11 @@ caps_getTriangles(capsObject *vobject, int *nGtris,            int **gtris,
   status = caps_findProblem(vobject, CAPS_GETTRIANGLES, &pobject);
   if (status               != CAPS_SUCCESS) return status;
   problem  = (capsProblem *) pobject->blind;
+  
+  args[0].type        = jObject;
+  args[0].members.obj = vobject;
+  status = capsInputSum(1, args, md5);
+  if (status != CAPS_SUCCESS) return status;
 
   args[0].type   = jInteger;
   args[1].type   = jPtrFree;
@@ -1832,8 +1900,8 @@ caps_getTriangles(capsObject *vobject, int *nGtris,            int **gtris,
   args[7].type   = jPtrFree;
   args[7].length = 0;
   if (problem->dbFlag == 0) {
-    status       = caps_jrnlRead(CAPS_GETTRIANGLES, problem, vobject, 8, args,
-                                 &sNum, &ret);
+    status       = caps_jrnlRead(CAPS_GETTRIANGLES, md5, problem, vobject,
+                                 8, args, &sNum, &ret);
     if (status == CAPS_JOURNALERR) return status;
     if (status == CAPS_JOURNAL) {
       if (ret == CAPS_SUCCESS) {
@@ -1991,7 +2059,7 @@ vout:
   args[6].members.integer = *nDsegs;
   args[7].members.pointer = NULL;
   if (dsegs != NULL) args[7].members.pointer = *dsegs;
-  caps_jrnlWrite(CAPS_GETTRIANGLES, problem, vobject, status, 8, args,
+  caps_jrnlWrite(CAPS_GETTRIANGLES, md5, problem, vobject, status, 8, args,
                  problem->sNum, problem->sNum);
 
   return status;
@@ -2554,11 +2622,9 @@ caps_getData(capsObject *dobject, int *npts, int *rank, double **data,
              char **units, int *nErr, capsErrs **errors)
 {
   int           ret, stat;
-  CAPSLONG      sNum;
-  capsObject    *vobject, *bobject, *pobject, *aobject;
-  capsVertexSet *vertexset;
+  CAPSLONG      sNum, md5[2];
+  capsObject    *vobject, *bobject, *pobject;
   capsDataSet   *dataset;
-  capsAnalysis  *analysis;
   capsBound     *bound;
   capsProblem   *problem;
   capsJrnl      args[6];
@@ -2580,8 +2646,6 @@ caps_getData(capsObject *dobject, int *npts, int *rank, double **data,
   if (vobject->magicnumber != CAPSMAGIC) return CAPS_BADOBJECT;
   if (vobject->type        != VERTEXSET) return CAPS_BADTYPE;
   if (vobject->blind       == NULL)      return CAPS_NULLBLIND;
-  vertexset = (capsVertexSet *) vobject->blind;
-  aobject   = vertexset->analysis;
   bobject   = vobject->parent;
   if (bobject              == NULL)      return CAPS_NULLOBJ;
   if (bobject->magicnumber != CAPSMAGIC) return CAPS_BADOBJECT;
@@ -2601,17 +2665,10 @@ caps_getData(capsObject *dobject, int *npts, int *rank, double **data,
     return CAPS_SUCCESS;
   }
 
-  if (aobject != NULL) {
-    if (aobject->magicnumber  != CAPSMAGIC)          return CAPS_BADOBJECT;
-    if (aobject->type         != ANALYSIS)           return CAPS_BADTYPE;
-    if (aobject->blind        == NULL)               return CAPS_NULLBLIND;
-    analysis = (capsAnalysis *) aobject->blind;
-    if ((dataset->ftype == GeomSens) || (dataset->ftype == TessSens) ||
-        (dataset->ftype == FieldOut)) {
-      if (problem->geometry.sNum > analysis->pre.sNum) return CAPS_MISMATCH;
-      if (analysis->pre.sNum     > aobject->last.sNum) return CAPS_MISMATCH;
-    }
-  }
+  args[0].type        = jObject;
+  args[0].members.obj = dobject;
+  stat = capsInputSum(1, args, md5);
+  if (stat != CAPS_SUCCESS) return stat;
 
   args[0].type = jInteger;
   args[1].type = jInteger;
@@ -2619,8 +2676,8 @@ caps_getData(capsObject *dobject, int *npts, int *rank, double **data,
   args[3].type = jString;
   args[4].type = jInteger;
   args[5].type = jErr;
-  stat         = caps_jrnlRead(CAPS_GETDATA, problem, dobject, 6, args, &sNum,
-                               &ret);
+  stat         = caps_jrnlRead(CAPS_GETDATA, md5, problem, dobject, 6, args,
+                               &sNum, &ret);
   if (stat == CAPS_JOURNALERR) return stat;
   if (stat == CAPS_JOURNAL) {
     *npts   = args[0].members.integer;
@@ -2645,7 +2702,7 @@ caps_getData(capsObject *dobject, int *npts, int *rank, double **data,
   args[3].members.string  = *units;
   args[4].members.integer = *nErr;
   args[5].members.errs    = *errors;
-  caps_jrnlWrite(CAPS_GETDATA, problem, dobject, ret, 6, args, sNum,
+  caps_jrnlWrite(CAPS_GETDATA, md5, problem, dobject, ret, 6, args, sNum,
                  problem->sNum);
 
   return ret;
@@ -2657,13 +2714,13 @@ caps_getDataSets(capsObject *bobject, const char *dname, int *nobj,
                  capsObject ***dobjs)
 {
   int           i, j, n, status, ret;
-  CAPSLONG      sNum;
+  CAPSLONG      sNum, md5[2];
   capsObject    *pobject;
   capsProblem   *problem;
   capsBound     *bound;
   capsVertexSet *vertexset;
   capsObject    **objs;
-  capsJrnl      args[1];
+  capsJrnl      args[2];
 
   *nobj  = 0;
   *dobjs = NULL;
@@ -2676,10 +2733,17 @@ caps_getDataSets(capsObject *bobject, const char *dname, int *nobj,
   if (status               != CAPS_SUCCESS) return status;
   problem = (capsProblem *) pobject->blind;
   bound   = (capsBound *)   bobject->blind;
+  
+  args[0].type           = jObject;
+  args[0].members.obj    = bobject;
+  args[1].type           = jString;
+  args[1].members.string = (char *) dname;
+  status = capsInputSum(2, args, md5);
+  if (status != CAPS_SUCCESS) return status;
 
   args[0].type = jObjs;
   if (problem->dbFlag == 0) {
-    status     = caps_jrnlRead(CAPS_GETDATASETS, problem, bobject, 1, args,
+    status     = caps_jrnlRead(CAPS_GETDATASETS, md5, problem, bobject, 1, args,
                                &sNum, &ret);
     if (status == CAPS_JOURNALERR) return status;
     if (status == CAPS_JOURNAL) {
@@ -2742,7 +2806,7 @@ gdone:
   if (problem->dbFlag == 1) return status;
   args[0].num          = *nobj;
   args[0].members.objs = *dobjs;
-  caps_jrnlWrite(CAPS_GETDATASETS, problem, bobject, status, 1, args,
+  caps_jrnlWrite(CAPS_GETDATASETS, md5, problem, bobject, status, 1, args,
                  problem->sNum, problem->sNum);
   return status;
 }

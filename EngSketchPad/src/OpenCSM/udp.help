@@ -1,0 +1,45 @@
+There has been a change in UDP/UDFs in order to remove global
+variables.  As a result, UDP/UDFs are now thread-safe and can be run
+simultaneously, such as by ocsmAdjoint.  This was done via macros
+(near line 48 of udpUtilities.h) that automagically adds arguments in
+the calls to udpExecute, udpSensitivity, and udpMesh.  It also makes
+behind-the-scene changes to cacheUdp in such a way that should not
+concern UDP/UDF writers.
+
+Unfortunately, this has required that a small change be made in all
+UDP/UDFs.  In the udpExecute function, you must add the following line:
+
+    udp_T  *udps = *Udps;
+
+In addition, if you have a function within the UDP/UDP that requires
+access to either numUdp or udps (which were formerly globals), you
+must also make additional changes.  For example, if your included
+function was named foo, you must change its prototype from:
+
+    static int foo(...);
+
+to:
+
+    static int foo(... , int *NumUdp, udp_T *udps);
+
+Then, in the call that looked like:
+
+    something = foo(...)
+
+should be changed to
+
+    something = foo(... , NumUdp, udps)
+
+Lastly, the header of the file definition must be changed from:
+
+   static int foo(...)
+
+to:
+
+    static int foo(... , int *NumUdp, udp_T *udps)
+
+The exact names NumUdp, udps, and Udps must be used.
+
+
+
+

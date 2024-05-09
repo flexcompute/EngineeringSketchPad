@@ -1,7 +1,7 @@
 #
 test:
 	python --version
-	$(VALGRIND_COMMAND) python -u -m unittest discover
+	$(VALGRIND_COMMAND) python -u -m unittest discover --verbose
 
 clean:
 	rm -rf __pycache__

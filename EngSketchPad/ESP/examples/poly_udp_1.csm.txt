@@ -1,0 +1,139 @@
+# poly3
+# written by John Dannenhoffer
+
+UDPRIM poly points "3; 2; 1; \
+                    4; 2; 1; \
+                    4; 3; 1; \
+                    3; 3; 1; \
+                    3; 2; 4; \
+                    4; 2; 4; \
+                    4; 3; 4; \
+                    3; 3; 4; "
+ATTRIBUTE _name $hexahedron
+
+UDPRIM poly points "3; 2; 1; \
+                    4; 2; 1; \
+                    4; 3; 1; \
+                    3; 3; 1; \
+                    3; 2; 4; \
+                    4; 2; 4; \
+                    4; 2; 4; \
+                    3; 3; 4; "
+ATTRIBUTE _name $pinched
+TRANSLATE 3 0 0
+
+UDPRIM poly points "3; 2; 1; \
+                    4; 2; 1; \
+                    4; 3; 1; \
+                    4; 2; 4; \
+                    4; 2; 4; \
+                    4; 2; 4; "
+ATTRIBUTE _name $tetrahedron
+TRANSLATE 3 3 0
+
+UDPRIM poly points "3; 2; 1; \
+                    4; 2; 1; \
+                    4; 3; 1; \
+                    3; 2; 4; \
+                    4; 2; 4; \
+                    4; 3; 4; "
+ATTRIBUTE _name $wedge_a
+TRANSLATE 6 0 0
+
+UDPRIM poly points "3; 2; 1; \
+                    4; 2; 1; \
+                    4; 3; 1; \
+                    4; 3; 1; \
+                    3; 2; 4; \
+                    4; 2; 4; \
+                    4; 3; 4; \
+                    4; 3; 4; "
+ATTRIBUTE _name $wedge_b
+TRANSLATE 6 3 0
+
+UDPRIM poly points "3; 2; 1; \
+                    4; 2; 1; \
+                    4; 3; 1; \
+                    3; 3; 1; \
+                    3; 2; 4; "
+ATTRIBUTE _name $pyramid_a
+TRANSLATE 9 0 0
+
+UDPRIM poly points "3; 2; 1; \
+                    4; 2; 1; \
+                    4; 3; 1; \
+                    3; 3; 1; \
+                    3; 2; 4; \
+                    3; 2; 4; \
+                    3; 2; 4; \
+                    3; 2; 4; "
+ATTRIBUTE _name $pyramid_b
+TRANSLATE 9 3 0
+
+UDPRIM poly points "3; 2; 1; "
+ATTRIBUTE _name $point_a
+TRANSLATE 12 0 0
+
+UDPRIM poly points "3; 2; 1; \
+                    3; 2; 1; \
+                    3; 2; 1; \
+                    3; 2; 1; \
+                    3; 2; 1; \
+                    3; 2; 1; \
+                    3; 2; 1; \
+                    3; 2; 1; "
+ATTRIBUTE _name $point_b
+TRANSLATE 12 3 0
+
+UDPRIM poly points "3; 2; 1; \
+                    4; 2; 1; "
+ATTRIBUTE _name $line_a
+TRANSLATE 15 0 0
+
+UDPRIM poly points "3; 2; 1; \
+                    3; 2; 1; \
+                    3; 2; 1; \
+                    3; 2; 1; \
+                    4; 2; 1; \
+                    4; 2; 1; \
+                    4; 2; 1; \
+                    4; 2; 1; "
+ATTRIBUTE _name $line_b
+TRANSLATE 15 3 0
+
+UDPRIM poly points "3; 2; 1; \
+                    4; 2; 1; \
+                    4; 3; 1; "
+ATTRIBUTE _name $triangle_a
+TRANSLATE 18 0 0
+
+UDPRIM poly points "3; 2; 1; \
+                    4; 2; 1; \
+                    4; 3; 1; \
+                    4; 3; 1; \
+                    3; 2; 1; \
+                    4; 2; 1; \
+                    4; 3; 1; \
+                    4; 3; 1; "
+ATTRIBUTE _name $triangle_b
+TRANSLATE 18 3 0
+
+UDPRIM poly points "3; 2; 1; \
+                    4; 2; 1; \
+                    4; 3; 1; \
+                    3; 3; 1; "
+ATTRIBUTE _name $quad_a
+TRANSLATE 21 0 0
+
+UDPRIM poly points "3; 2; 1; \
+                    4; 2; 1; \
+                    4; 3; 1; \
+                    3; 3; 1; \
+                    3; 2; 1; \
+                    4; 2; 1; \
+                    4; 3; 1; \
+                    3; 3; 1; "
+ATTRIBUTE _name $quad_b
+TRANSLATE 21 3 0
+
+END

@@ -1,0 +1,21 @@
+# unionSolids1
+# written by John Dannenhoffer
+
+CYLINDER   -1  1/2  1/2  6  1/2  1/2  1/4
+
+SET        ifail 0
+MARK
+   BOX     0  0  0  1  1  1
+   BOX     2  0  0  1  1  1
+   BOX     4  0  0  1  1  1
+   BOX     1  0  0  1  1  1
+   BOX     3  0  0  1  1  1
+UNION     1
+
+CATBEG     $did_not_create_body
+   SET     ifail 1
+CATEND
+ASSERT     ifail 0
+
+END
+

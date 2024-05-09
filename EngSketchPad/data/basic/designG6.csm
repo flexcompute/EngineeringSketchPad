@@ -37,6 +37,9 @@ mark
       rotatez   -twist   0   0
       translate xtip   ytip   -sspan
 blend     0 "-1; tiprad"
+select   face  @nbody  2
+select   add   @nbody  5
+attribute __sensCheck__ $skip
 store     HalfWing
 
 # restore the half wing 

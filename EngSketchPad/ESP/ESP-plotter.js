@@ -1,7 +1,7 @@
 // ESP-plotter.js implements plotter functions for the Engineering Sketch Pad (ESP)
 // written by John Dannenhoffer
 
-// Copyright (C) 2010/2022  John F. Dannenhoffer, III (Syracuse University)
+// Copyright (C) 2010/2024  John F. Dannenhoffer, III (Syracuse University)
 //
 // This library is free software; you can redistribute it and/or
 //    modify it under the terms of the GNU Lesser General Public
@@ -313,10 +313,12 @@ plotter.timMesgCB = function (text) {
     context.lineJoin = "round";
 
     // find the extrema of the data
-    var xmin = data.lines[0].x[0];
-    var xmax = data.lines[0].x[0];
-    var ymin = data.lines[0].y[0];
-    var ymax = data.lines[0].y[0];
+    var xmin  = +1e20;
+    var xmax  = -1e20;
+    var ymin  = +1e20;
+    var ymax  = -1e20;
+    var ymin2 = +1e20;
+    var ymax2 = -1e20;
 
     for (var iline = 0; iline < data.lines.length; iline++) {
         for (var ipnt = 0; ipnt < data.lines[iline].x.length; ipnt++) {
@@ -326,11 +328,20 @@ plotter.timMesgCB = function (text) {
             if (xmax < data.lines[iline].x[ipnt]) {
                 xmax = data.lines[iline].x[ipnt];
             }
-            if (ymin > data.lines[iline].y[ipnt]) {
-                ymin = data.lines[iline].y[ipnt];
-            }
-            if (ymax < data.lines[iline].y[ipnt]) {
-                ymax = data.lines[iline].y[ipnt];
+            if (data.lines[iline].style.indexOf("2") < 0) {
+                if (ymin > data.lines[iline].y[ipnt]) {
+                    ymin = data.lines[iline].y[ipnt];
+                }
+                if (ymax < data.lines[iline].y[ipnt]) {
+                    ymax = data.lines[iline].y[ipnt];
+                }
+            } else {
+                if (ymin2 > data.lines[iline].y[ipnt]) {
+                    ymin2 = data.lines[iline].y[ipnt];
+                }
+                if (ymax2 < data.lines[iline].y[ipnt]) {
+                    ymax2 = data.lines[iline].y[ipnt];
+                }
             }
         }
     }
@@ -344,15 +355,21 @@ plotter.timMesgCB = function (text) {
     }
 
     // compute the scale factors
-    var ixmin =                100;
-    var ixmax = canvas.width  - 20;
-    var iymin = canvas.height - 50;
-    var iymax =                 20;
+    var ixmin =                 100;
+    var ixmax = canvas.width  -  20;
+    var iymin = canvas.height -  50;
+    var iymax =                  20;
 
-    var xm = (ixmax - ixmin) / (xmax - xmin);
-    var xa =  ixmin - xmin * xm;
-    var ym = (iymin - iymax) / (ymin - ymax);
-    var ya =  iymax - ymax * ym;
+    if (data.ylabel2.length > 0) {
+        ixmax = canvas.width  - 100;
+    }
+
+    var xm  = (ixmax - ixmin) / (xmax  - xmin) ;
+    var xa  =  ixmin - xmin  * xm;
+    var ym  = (iymin - iymax) / (ymin  - ymax );
+    var ya  =  iymax - ymax  * ym;
+    var ym2 = (iymin - iymax) / (ymin2 - ymax2);
+    var ya2 =  iymax - ymax2 * ym2;
 
     // draw axes
     context.lineWidth = 1;
@@ -388,6 +405,26 @@ plotter.timMesgCB = function (text) {
         var iy = iymin + jj/3 * (iymax - iymin);
         var yy =  ymin + jj/3 * ( ymax -  ymin);
         context.fillText(yy.toPrecision(3), ixmin-10, iy);
+    }
+
+    // ylabel2
+    if (data.ylabel2.length > 0) {
+
+        context.beginPath();
+        context.moveTo(ixmax, iymin);
+        context.lineTo(ixmax, iymax);
+        context.stroke();
+
+        context.textAlign = "right"
+        context.fillText(data.ylabel2, canvas.width-10, (iymin+iymax)/2);
+
+        context.textAlign = "left";
+
+        for (var jj = 0; jj < 4; jj++) {
+            var iy = iymin  + jj/3 * (iymax  - iymin );
+            var yy =  ymin2 + jj/3 * ( ymax2 -  ymin2);
+            context.fillText(yy.toPrecision(3), ixmax+10, iy);
+        }
     }
 
     // draw the lines
@@ -440,13 +477,23 @@ plotter.timMesgCB = function (text) {
         // draw the lines
         if (showLine > 0) {
             context.beginPath();
-            var x = xa + xm * data.lines[iline].x[0];
-            var y = ya + ym * data.lines[iline].y[0];
+            if (data.lines[iline].style.indexOf("2") < 0) {
+                var x = xa  + xm  * data.lines[iline].x[0];
+                var y = ya  + ym  * data.lines[iline].y[0];
+            } else {
+                var x = xa  + xm  * data.lines[iline].x[0];
+                var y = ya2 + ym2 * data.lines[iline].y[0];
+            }
             context.moveTo(x, y);
 
             for (var ipnt = 1; ipnt < data.lines[iline].x.length; ipnt++) {
-                x = xa + xm * data.lines[iline].x[ipnt];
-                y = ya + ym * data.lines[iline].y[ipnt];
+                if (data.lines[iline].style.indexOf("2") < 0) {
+                    x = xa  + xm  * data.lines[iline].x[ipnt];
+                    y = ya  + ym  * data.lines[iline].y[ipnt];
+                } else {
+                    x = xa  + xm  * data.lines[iline].x[ipnt];
+                    y = ya2 + ym2 * data.lines[iline].y[ipnt];
+                }
                 context.lineTo(x, y);
             }
             context.stroke();
@@ -456,16 +503,26 @@ plotter.timMesgCB = function (text) {
         // add the symbols
         if        (data.lines[iline].style.indexOf("o") >= 0) {     // circle
             for (ipnt = 0; ipnt < data.lines[iline].x.length; ipnt++) {
-                x = xa + xm * data.lines[iline].x[ipnt];
-                y = ya + ym * data.lines[iline].y[ipnt];
+                if (data.lines[iline].style.indexOf("2") < 0) {
+                    x = xa  + xm  * data.lines[iline].x[ipnt];
+                    y = ya  + ym  * data.lines[iline].y[ipnt];
+                } else {
+                    x = xa  + xm  * data.lines[iline].x[ipnt];
+                    y = ya2 + ym2 * data.lines[iline].y[ipnt];
+                }
                 context.beginPath();
                 context.arc(x, y, 5, 0, 2*Math.PI);
                 context.fill();
             }
         } else if (data.lines[iline].style.indexOf("x") >= 0) {     // X
             for (ipnt = 0; ipnt < data.lines[iline].x.length; ipnt++) {
-                x = xa + xm * data.lines[iline].x[ipnt];
-                y = ya + ym * data.lines[iline].y[ipnt];
+                if (data.lines[iline].style.indexOf("2") < 0) {
+                    x = xa  + xm  * data.lines[iline].x[ipnt];
+                    y = ya  + ym  * data.lines[iline].y[ipnt];
+                } else {
+                    x = xa  + xm  * data.lines[iline].x[ipnt];
+                    y = ya2 + ym2 * data.lines[iline].y[ipnt];
+                }
                 context.beginPath();
                 context.moveTo(x-5, y-5);
                 context.lineTo(x+5, y+5);
@@ -478,8 +535,13 @@ plotter.timMesgCB = function (text) {
             }
         } else if (data.lines[iline].style.indexOf("+") >= 0) {     // +
             for (ipnt = 0; ipnt < data.lines[iline].x.length; ipnt++) {
-                x = xa + xm * data.lines[iline].x[ipnt];
-                y = ya + ym * data.lines[iline].y[ipnt];
+                if (data.lines[iline].style.indexOf("2") < 0) {
+                    x = xa  + xm  * data.lines[iline].x[ipnt];
+                    y = ya  + ym  * data.lines[iline].y[ipnt];
+                } else {
+                    x = xa  + xm  * data.lines[iline].x[ipnt];
+                    y = ya2 + ym2 * data.lines[iline].y[ipnt];
+                }
                 context.beginPath();
                 context.moveTo(x, y-5);
                 context.lineTo(x, y+5);
@@ -492,8 +554,13 @@ plotter.timMesgCB = function (text) {
             }
         } else if (data.lines[iline].style.indexOf("s") >= 0) {     // square
             for (ipnt = 0; ipnt < data.lines[iline].x.length; ipnt++) {
-                x = xa + xm * data.lines[iline].x[ipnt];
-                y = ya + ym * data.lines[iline].y[ipnt];
+                if (data.lines[iline].style.indexOf("2") < 0) {
+                    x = xa  + xm  * data.lines[iline].x[ipnt];
+                    y = ya  + ym  * data.lines[iline].y[ipnt];
+                } else {
+                    x = xa  + xm  * data.lines[iline].x[ipnt];
+                    y = ya2 + ym2 * data.lines[iline].y[ipnt];
+                }
                 context.fillRect(x-5, y-5, 10, 10);
             }
         }

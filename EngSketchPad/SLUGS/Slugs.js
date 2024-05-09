@@ -1,7 +1,7 @@
-// Slugs.js implements functions for the Static Legacy Unstructured Geometry System
+o// Slugs.js implements functions for the Static Legacy Unstructured Geometry System
 // written by John Dannenhoffer and Bob Haimes
 
-// Copyright (C) 2010/2022  John F. Dannenhoffer, III (Syracuse University)
+// Copyright (C) 2010/2023  John F. Dannenhoffer, III (Syracuse University)
 //
 // This library is free software; you can redistribute it and/or
 //    modify it under the terms of the GNU Lesser General Public
@@ -42,14 +42,18 @@
 //    bridgeToPointButton(e)
 //    colorTrianglesButton(e)
 //    flattenColorButton(e)
+//    restrictColorButton(e)
+//    smoothColorButton(e)
 //    deleteTriangleButton(e)
 //    fillHoleButton(e)
 //    generateEgadsButton(e)
 //    joinPointsButton(e)
+//    kutTrianglesButton(e)
 //    linkToPointButton(e)
 //    markCreasesButton(e)
 //    pickPointButton(e)
 //    scribeToPointButton(e)
+//    transformButton(e)
 //    writeEgadsButton(e)
 //    writeStlButton(e)
 //    addCommentButton(e)
@@ -494,13 +498,17 @@ function wvUpdateUI()
         myTree.addNode(4, "\u00a0\u00a0\u00a0\u00a0Bridge to Point",   "", bridgeToPointButton,  "*", "(b)");
         myTree.addNode(4, "\u00a0\u00a0\u00a0\u00a0Fill hole",         "", fillHoleButton,       "*", "(f)");
         myTree.addNode(4, "\u00a0\u00a0\u00a0\u00a0Delete Triangle",   "", deleteTriangleButton, "*", "(d)");
+        myTree.addNode(4, "\u00a0\u00a0\u00a0\u00a0Transform",         "", transformButton,      "*", "(T)");
 
         myTree.addNode(5, "\u00a0\u00a0\u00a0\u00a0Pick Point",        "", pickPointButton,      "*", "(p)");
         myTree.addNode(5, "\u00a0\u00a0\u00a0\u00a0Link to Point",     "", linkToPointButton,    "*", "(l)");
         myTree.addNode(5, "\u00a0\u00a0\u00a0\u00a0Scribe to Point",   "", scribeToPointButton,  "*", "(s)");
+        myTree.addNode(5, "\u00a0\u00a0\u00a0\u00a0Kut Triangles",     "", kutTrianglesButton,   "*", "(k)");
         myTree.addNode(5, "\u00a0\u00a0\u00a0\u00a0Mark Creases",      "", markCreasesButton,    "*", "(m)");
         myTree.addNode(5, "\u00a0\u00a0\u00a0\u00a0Color Triangles",   "", colorTrianglesButton, "*", "(c)");
         myTree.addNode(5, "\u00a0\u00a0\u00a0\u00a0Flatten Color",     "", flattenColorButton,   "*", "(F)");
+        myTree.addNode(5, "\u00a0\u00a0\u00a0\u00a0Restrict Color",    "", restrictColorButton,  "*", "(R)");
+        myTree.addNode(5, "\u00a0\u00a0\u00a0\u00a0Smooth Color",      "", smoothColorButton,    "*", "(S)");
         myTree.addNode(5, "\u00a0\u00a0\u00a0\u00a0Auto. Links",       "", automaticLinksButton, "*", "(a)");
 
         myTree.addNode(7, "\u00a0\u00a0\u00a0\u00a0Write .stl file",   "", writeStlButton,       "*"       );
@@ -637,10 +645,22 @@ function wvUpdateUI()
             wv.locating = 112;
             wv.locate   = 1;
 
+        // 'R' -- restrict Color
+        } else if (myKeyPress == 'R') {
+            restrictColorButton(0);
+
         // 's' -- scribe to Point
         } else if (myKeyPress == 's') {
             wv.locating = 115;
             wv.locate   = 1;
+
+        // 'S' -- smooth Color
+        } else if (myKeyPress == 'S') {
+            smoothColorButton(0);
+
+        // 'T' -- transform
+        } else if (myKeyPress == 'T') {
+            transformButton(0);
 
         // 't' -- identify Triangle
         } else if (myKeyPress == 't') {
@@ -1288,6 +1308,64 @@ function flattenColorButton(e) {
 
 
 //
+// callback when "RestrictColor" is pressed in Tree
+//
+function restrictColorButton(e) {
+//    alert("in restrictColorButton(e="+e+")");
+
+    var icolr = prompt("Enter color number:");
+    if (icolr === null) {
+        return;
+    } else if (icolr.length < 1) {
+        return;
+    } else if (isNaN(icolr)) {
+        return;
+    }
+
+    var rtype = prompt("Enter type (1=x, 2=y, 3=z:", "2");
+    if (rtype === null) {
+        return;
+    } else if (rtype.length < 1) {
+        return;
+    } else if (isNaN(rtype)) {
+        return;
+    }
+
+    alert("calling restrictColor");
+    wv.socketUt.send("restrictColor;"+icolr+";"+rtype+";");
+}
+
+
+//
+// callback when "SmoothColor" is pressed in Tree
+//
+function smoothColorButton(e) {
+//    alert("in smoothColorButton(e="+e+")");
+
+    var icolr = prompt("Enter color number:");
+    if (icolr === null) {
+        return;
+    } else if (icolr.length < 1) {
+        return;
+    } else if (isNaN(icolr)) {
+        return;
+    }
+
+    var npass = prompt("Enter number of smoothing passes:", "0");
+    if (npass === null) {
+        return;
+    } else if (npass.length < 1) {
+        return;
+    } else if (isNaN(npass)) {
+        return;
+    }
+
+    alert("calling smoothColor");
+    wv.socketUt.send("smoothColor;"+icolr+";"+npass+";");
+}
+
+
+//
 // callback when "DeleteTriangle" is pressed in Tree
 //
 function deleteTriangleButton(e) {
@@ -1358,6 +1436,20 @@ function joinPointsButton(e) {
 
 
 //
+// callback when "KutTriangles" is pressed in Tree
+//
+function kutTrianglesButton(e) {
+//    alert("in kutTrianglesButton(e="+e+")");
+
+    alert("> Put cursor over Point and use the \"k\"command\n"+
+          "-----\n"+
+          "< Triangles are kut.\n"+
+          "-----\n"+
+          "The \"k\" command can be undone.");
+}
+
+
+//
 // callback when "LinkToPoint" is pressed in Tree
 //
 function linkToPointButton(e) {
@@ -1413,6 +1505,40 @@ function scribeToPointButton(e) {
           "< CurrentPoint is moved to Point at \"s\" command.\n"+
           "-----\n"+
           "The \"s\" command can be undone.");
+}
+
+
+//
+// callback when "transform" is pressed in Tree
+//
+function transformButton(e) {
+//    alert("in transformButton(e="+e+")");
+
+    var mesg = "transform;";
+
+    for (var i = 1; i <= 3; i++) {
+        for (var j = 1; j <= 4; j++) {
+            
+            var def;
+            if (i == j) {
+                def = "1";
+            } else {
+                def = "0";
+            }
+        
+            var ans = prompt("Enter mat["+i+","+j+"]:", def);
+            if (ans === null) {
+                return;
+            } else if (isNaN(ans)) {
+                alert("\""+ans+"\" is not a number");
+                return;
+            } else {
+                mesg += ans + ";";
+            }
+        }
+    }
+
+    wv.socketUt.send(mesg);
 }
 
 

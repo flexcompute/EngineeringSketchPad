@@ -69,11 +69,16 @@ $(function() {
 <div class="textblock"><p>The following list outlines the Pointwise options along with their default value available through the AIM interface.</p>
 <ul>
 <li><b> Proj_Name = NULL</b> <br  />
- This corresponds to the output name of the mesh. If left NULL, the mesh is not written to a file.</li>
+ Output name prefix for meshes to be written in formats specified by Mesh_Format. These meshes are not linked to any analysis, but may be useful exploring meshing parameters.</li>
+</ul>
+<p><ul>
 <li><b> Mesh_Format = NULL</b> <br  />
- Mesh output format. Available format names include: "AFLR3", "VTK", "TECPLOT", "SU2", "Nastran". This file format is written from CAPS, and is not the CAE solver in Pointwise.</li>
-<li><b> Mesh_ASCII_Flag = True</b> <br  />
- Output mesh in ASCII format, otherwise write a binary file, if applicable.</li>
+ Optional list of string mesh formats to generate meshes not linked to analysis. <br  />
+ Available format names include: "exodus", "fast", "libMeshb", "stl", "bstl", "su2", "tecplot", "ugrid", "vtk", and "bvtk".<br  />
+ where the "b" prefix indicates binary version. </li>
+</ul>
+</p>
+<ul>
 <li><b>Mesh_Sizing = NULL </b> <br  />
  These parameters are implemented by overriding PW: attributes. See <a class="el" href="meshSizingProp.html">Mesh Sizing</a> for additional details.</li>
 <li><b> Mesh_Length_Factor = 1</b> <br  />
@@ -177,7 +182,7 @@ $(function() {
 </div><!-- PageDoc -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Sat Jul 2 2022 10:13:34 for Pointwise Analysis Interface Module (AIM) by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1
+Generated on Sat Apr 27 2024 16:51:44 for Pointwise Analysis Interface Module (AIM) by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1
 </small></address>
 </body>
 </html>

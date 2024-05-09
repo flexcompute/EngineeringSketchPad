@@ -1,0 +1,20 @@
+# naca_udp_1
+# written by John Dannenhoffer
+
+DIMENSION thicks    4  1
+SET       thicks    "0; 0.04; 0.08; 0.12"
+
+DIMENSION cambers   5  1
+SET       cambers   "-.12; -.06; 0; 0.06; 0.12"
+
+PATBEG    ithick   thicks.size
+   PATBEG    icamber  cambers.size
+
+      UDPARG    naca      thickness  thicks[ithick]
+      UDPRIM    naca      camber     cambers[icamber]
+
+      TRANSLATE 1.50*(ithick-1)  0.25*(icamber-1)  0
+   PATEND
+PATEND
+
+END

@@ -1,0 +1,13 @@
+# diamond_udc_1
+# written by John Dannenhoffer
+
+DIMENSION thicks    3  1
+SET       thicks    "0.04; 0.08; 0.12"
+
+PATBEG    ithick   thicks.size
+   UDPRIM    $$/diamond    thick  thicks[ithick]
+
+   TRANSLATE 1.50*(ithick-1)  0  0
+PATEND
+
+END

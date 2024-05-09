@@ -1,0 +1,24 @@
+# bspline1
+# written by John Dannenhoffer
+
+DESPMTR   dy        0.3
+
+UDPRIM    naca      series 0012
+
+EVALUATE  EDGEKT    @nbody       1
+DIMENSION edgekt    @edata.size  1
+SET       edgekt    @edata
+
+EVALUATE  EDGECP    @nbody       1
+DIMENSION edgecp    @edata.size  1
+SET       edgecp    @edata
+
+PATBEG    i         edgecp.size/3
+   SET    edgecp[3*i-1]  edgecp[3*i-1]+dy
+PATEND
+
+UDPARG    bspline   uknots   edgekt
+UDPARG    bspline   cps      edgecp
+UDPRIM    bspline
+
+END

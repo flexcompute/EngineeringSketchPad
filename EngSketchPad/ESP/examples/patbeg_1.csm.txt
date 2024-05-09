@@ -1,0 +1,25 @@
+# patbeg_1
+# written by John Dannenhoffer
+
+# i varies from 1 to at most 4
+PATBEG   i  4
+
+   # j varies from 1 to 3
+   PATBEG   j  3
+   
+      # make point at (i,j,0)
+      POINT   i  j  0
+
+      # printout current i and j
+      MESSAGE !$i=+i+$_j=+j
+   PATEND
+
+   # break out if i > 1 (or i-1 > 0)
+   PATBREAK  i-1
+PATEND
+
+# print i after loop (pattern)
+MESSAGE !$i=+i+$_after_loop
+MESSAGE !$j=+j+$_after_loop
+
+END

@@ -97,7 +97,7 @@ JSON String Dictionary</h1>
 </ul>
 <ul>
 <li>
-<b>massPerArea = 0.0</b>  <br  />
+<b>massPerLength = 0.0</b>  <br  />
  Non-structural mass per unit length. </li>
 </ul>
 <ul>
@@ -129,6 +129,16 @@ JSON String Dictionary</h1>
 <li>
 <b>crossProductInertia = 0.0</b>  <br  />
  Section cross-product of inertia. </li>
+</ul>
+<ul>
+<li>
+<b>crossSecType = NULL</b>  <br  />
+ Cross-section type. Must be one of following character variables: I, T, BOX, BAR, TUBE, ROD, HAT, or GBOX. </li>
+</ul>
+<ul>
+<li>
+<b>crossSecDimension = [0,0,0,....]</b>  <br  />
+ Cross-sectional dimensions (length of array is dependent on the "crossSecType"). Max supported length array is 10! </li>
 </ul>
 <ul>
 <li>
@@ -219,7 +229,7 @@ Single Value String</h1>
 </div><!-- PageDoc -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Sat Jul 2 2022 10:12:49 for Astros Analysis Interface Module (AIM) by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1
+Generated on Sat Apr 27 2024 16:51:00 for Astros Analysis Interface Module (AIM) by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1
 </small></address>
 </body>
 </html>

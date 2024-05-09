@@ -95,8 +95,14 @@ typedef struct {
     // Pointer to caps input value for offset pressure during data transfer
     capsValue *pressureScaleOffset;
 
+    // Pointer to caps input value for scaling temperature during data transfer
+    capsValue *temperatureScaleFactor;
+
     // Units structure
     cfdUnitsStruct units;
+
+    // Mesh reference obtained from meshing AIM
+    aimMeshRef *meshRef, meshRefObj;
 
 } aimStorage;
 
@@ -130,7 +136,7 @@ int aimInitialize(int inst, /*@null@*/ /*@unused@*/ const char *unitSys, void *a
     if (inst == -1) return CAPS_SUCCESS;
 
     /* specify the field variables this analysis can generate and consume */
-    *nFields = 5;
+    *nFields = 6;
 
     /* specify the name of each field variable */
     AIM_ALLOC(strs, *nFields, char *, aimInfo, status);
@@ -138,7 +144,8 @@ int aimInitialize(int inst, /*@null@*/ /*@unused@*/ const char *unitSys, void *a
     strs[1]  = EG_strdup("P");
     strs[2]  = EG_strdup("Cp");
     strs[3]  = EG_strdup("CoefficientOfPressure");
-    strs[4]  = EG_strdup("Displacement");
+    strs[4]  = EG_strdup("Temperature");
+    strs[5]  = EG_strdup("Displacement");
     for (i = 0; i < *nFields; i++)
       if (strs[i] == NULL) {
         status = EGADS_MALLOC;
@@ -153,7 +160,8 @@ int aimInitialize(int inst, /*@null@*/ /*@unused@*/ const char *unitSys, void *a
     ints[1]  = 1;
     ints[2]  = 1;
     ints[3]  = 1;
-    ints[4]  = 3;
+    ints[4]  = 1;
+    ints[5]  = 3;
     *franks   = ints;
     ints = NULL;
 
@@ -164,7 +172,8 @@ int aimInitialize(int inst, /*@null@*/ /*@unused@*/ const char *unitSys, void *a
     ints[1]  = FieldOut;
     ints[2]  = FieldOut;
     ints[3]  = FieldOut;
-    ints[4]  = FieldIn;
+    ints[4]  = FieldOut;
+    ints[5]  = FieldIn;
     *fInOut  = ints;
     ints = NULL;
 
@@ -192,7 +201,12 @@ int aimInitialize(int inst, /*@null@*/ /*@unused@*/ const char *unitSys, void *a
     // Pointer to caps input value for off setting pressure during data transfer
     su2Instance->pressureScaleOffset = NULL;
 
+    su2Instance->temperatureScaleFactor = NULL;
+
     initiate_cfdUnitsStruct(&su2Instance->units);
+
+    su2Instance->meshRef = NULL;
+    aim_initMeshRef(&su2Instance->meshRefObj, aimUnknownMeshType);
 
     /*! \page aimUnitsSU2 AIM Units
      *  A unit system may be optionally specified during AIM instance initiation. If
@@ -333,7 +347,8 @@ int aimInputs(void *instStore, /*@unused@*/ void *aimInfo, int index,
      * distributed with SU2.
      * Note: The configuration file is dependent on the version of SU2 used.
      * This configuration file that will be auto generated is compatible with
-     * SU2 4.1.1. (Cardinal), 5.0.0 (Raven), 6.2.0 (Falcon) or 7.3.1 (Blackbird - Default)
+     * SU2 4.1.1. (Cardinal), 5.0.0 (Raven), 6.2.0 (Falcon), 7.5.1 (Blackbird)
+     * or 8.0.1 (Harrier - Default)
      */
 
     su2Instance = (aimStorage *) instStore;
@@ -433,7 +448,7 @@ int aimInputs(void *instStore, /*@unused@*/ void *aimInfo, int index,
         defval->nullVal      = NotNull;
         defval->units        = NULL;
         defval->lfixed       = Change;
-        defval->vals.string  = EG_strdup("SA_NEG");
+        defval->vals.string  = EG_strdup("SA");
 
         /*! \page aimInputsSU2
          * - <B> Turbulence_Model = "SA_NEG"</B> <br>
@@ -760,6 +775,21 @@ int aimInputs(void *instStore, /*@unused@*/ void *aimInfo, int index,
          * Data is scaled based on Pressure = Pressure_Scale_Factor*Cp + Pressure_Scale_Offset.
          */
 
+    } else if (index == Temperature_Scale_Factor) {
+        *ainame              = EG_strdup("Temperature_Scale_Factor");
+        defval->type         = Double;
+        defval->vals.real    = 1.0;
+        if (units != NULL && units->pressure != NULL) {
+            AIM_STRDUP(defval->units, units->temperature, aimInfo, status);
+        }
+
+        if (su2Instance != NULL) su2Instance->temperatureScaleFactor = defval;
+
+        /*! \page aimInputsSU2
+         * - <B>Temperature_Scale_Factor = 1.0</B> <br>
+         * Value to scale Temperature data when transferring data.
+         */
+
     } else if (index == Output_Format) {
         *ainame              = EG_strdup("Output_Format");
         defval->type         = String;
@@ -800,53 +830,66 @@ int aimInputs(void *instStore, /*@unused@*/ void *aimInfo, int index,
         *ainame              = EG_strdup("SU2_Version");
         defval->type         = String;
         defval->nullVal      = NotNull;
-        defval->vals.string  = EG_strdup("Blackbird");
+        defval->vals.string  = EG_strdup("Harrier");
         defval->lfixed       = Change;
 
         /*! \page aimInputsSU2
-         * - <B>SU2_Version = "Blackbird"</B> <br>
-         * SU2 version to generate specific configuration file. Options: "Cardinal(4.0)", "Raven(5.0)", "Falcon(6.2)" or "Blackbird(7.3.1)".
+         * - <B>SU2_Version = "Harrier"</B> <br>
+         * SU2 version to generate specific configuration file. Options: "Cardinal(4.0)", "Raven(5.0)", "Falcon(6.2)", "Blackbird(7.5.1)" or "Harrier(8.0.1)".
          */
 
-      if (su2Instance != NULL) su2Instance->su2Version = defval;
+        if (su2Instance != NULL) su2Instance->su2Version = defval;
 
     } else if (index == Surface_Monitor) {
-      *ainame             = EG_strdup("Surface_Monitor");
-      defval->type        = String;
-      defval->dim         = Vector;
-      defval->vals.string = NULL;
-      defval->nullVal     = IsNull;
-      defval->lfixed      = Change;
+        *ainame             = EG_strdup("Surface_Monitor");
+        defval->type        = String;
+        defval->dim         = Vector;
+        defval->vals.string = NULL;
+        defval->nullVal     = IsNull;
+        defval->lfixed      = Change;
 
-      /*! \page aimInputsSU2
-       * - <B>Surface_Monitor = NULL</B> <br>
-       * Array of surface names where the non-dimensional coefficients are evaluated
-       */
+        /*! \page aimInputsSU2
+         * - <B>Surface_Monitor = NULL</B> <br>
+         * Array of surface names where the non-dimensional coefficients are evaluated
+         */
     } else if (index == Surface_Deform) {
-      *ainame             = EG_strdup("Surface_Deform");
-      defval->type        = String;
-      defval->dim         = Vector;
-      defval->vals.string = NULL;
-      defval->nullVal     = IsNull;
-      defval->lfixed      = Change;
+        *ainame             = EG_strdup("Surface_Deform");
+        defval->type        = String;
+        defval->dim         = Vector;
+        defval->vals.string = NULL;
+        defval->nullVal     = IsNull;
+        defval->lfixed      = Change;
 
-      /*! \page aimInputsSU2
-       * - <B>Surface_Deform = NULL</B> <br>
-       * Array of surface names that should be deformed. Defaults to all inviscid and viscous surfaces.
-       */
+        /*! \page aimInputsSU2
+         * - <B>Surface_Deform = NULL</B> <br>
+         * Array of surface names that should be deformed. Defaults to all inviscid and viscous surfaces.
+         */
 
     } else if (index == Input_String) {
-      *ainame             = EG_strdup("Input_String");
-      defval->type        = String;
-      defval->vals.string = NULL;
-      defval->nullVal     = IsNull;
-      defval->lfixed      = Change;
-      defval->dim         = Vector;
+        *ainame             = EG_strdup("Input_String");
+        defval->type        = String;
+        defval->vals.string = NULL;
+        defval->nullVal     = IsNull;
+        defval->lfixed      = Change;
+        defval->dim         = Vector;
 
-      /*! \page aimInputsSU2
-       * - <B>Input_String = NULL</B> <br>
-       * Array of input strings that will be written as is to the end of the SU2 cfg file.
-       */
+        /*! \page aimInputsSU2
+         * - <B>Input_String = NULL</B> <br>
+         * Array of input strings that will be written as is to the end of the SU2 cfg file.
+         */
+
+    } else if (index == Mesh_Morph) {
+        *ainame              = EG_strdup("Mesh_Morph");
+        defval->type         = Boolean;
+        defval->lfixed       = Fixed;
+        defval->vals.integer = (int) false;
+        defval->dim          = Scalar;
+        defval->nullVal      = NotNull;
+
+        /*! \page aimInputsSU2
+         * - <B> Mesh_Morph = False</B> <br>
+         * Project previous surface mesh onto new geometry.
+         */
 
     } else if (index == Mesh) {
         *ainame             = AIM_NAME(Mesh);
@@ -856,10 +899,13 @@ int aimInputs(void *instStore, /*@unused@*/ void *aimInfo, int index,
         defval->vals.AIMptr = NULL;
         defval->nullVal     = IsNull;
         AIM_STRDUP(defval->meshWriter, MESHWRITER, aimInfo, status);
+        if (units != NULL && units->length != NULL) {
+          AIM_STRDUP(defval->units, units->length, aimInfo, status);
+        }
 
         /*! \page aimInputsSU2
          * - <B>Mesh = NULL</B> <br>
-         * A Area_Mesh or Volume_Mesh link for 2D and 3D calculations respectively.
+         * An Area_Mesh or Volume_Mesh link for 2D and 3D calculations respectively.
          */
 
     } else {
@@ -881,8 +927,10 @@ int aimUpdateState(void *instStore, void *aimInfo,
 {
     int status; // Function return status
 
-    // Volume Mesh obtained from meshing AIM
-    aimMeshRef *meshRef = NULL;
+    // AIM input bodies
+    int  numBody;
+    ego *bodies = NULL;
+    const char *intents;
 
     cfdUnitsStruct *units=NULL;
 
@@ -890,6 +938,9 @@ int aimUpdateState(void *instStore, void *aimInfo,
 
     su2Instance = (aimStorage *) instStore;
     AIM_NOTNULL(aimInputs, aimInfo, status);
+
+    // Free our meshRef
+    (void) aim_freeMeshRef(&su2Instance->meshRefObj);
 
     // Get units
     units = &su2Instance->units;
@@ -923,18 +974,39 @@ int aimUpdateState(void *instStore, void *aimInfo,
     // Get project name
     su2Instance->projectName = aimInputs[Proj_Name-1].vals.string;
 
-    if (aimInputs[Mesh-1].nullVal == IsNull) {
+    if (aimInputs[Mesh-1].nullVal == IsNull &&
+        aimInputs[Mesh_Morph-1].vals.integer == (int) false) {
         AIM_ANALYSISIN_ERROR(aimInfo, Mesh, "'Mesh' input must be linked to an output 'Area_Mesh' or 'Volume_Mesh'");
         status = CAPS_BADVALUE;
         goto cleanup;
     }
 
+    // Get AIM bodies
+    status = aim_getBodies(aimInfo, &intents, &numBody, &bodies);
+    AIM_STATUS(aimInfo, status);
+    AIM_NOTNULL(bodies, aimInfo, status);
+
     // Get mesh
-    meshRef = (aimMeshRef *)aimInputs[Mesh-1].vals.AIMptr;
-    AIM_NOTNULL(meshRef, aimInfo, status);
+    su2Instance->meshRef = (aimMeshRef *) aimInputs[Mesh-1].vals.AIMptr;
+
+    if ( aimInputs[Mesh_Morph-1].vals.integer == (int) true &&
+        su2Instance->meshRef == NULL) { // If we are mighty morphing
+
+        // Lets "load" the meshRef now since it's not linked
+        status = aim_loadMeshRef(aimInfo, &su2Instance->meshRefObj);
+        AIM_STATUS(aimInfo, status);
+
+        // Mighty Morph the mesh
+        status = aim_morphMeshUpdate(aimInfo, &su2Instance->meshRefObj, numBody, bodies);
+        AIM_STATUS(aimInfo, status);
+        /*@-immediatetrans@*/
+        su2Instance->meshRef = &su2Instance->meshRefObj;
+        /*@+immediatetrans@*/
+    }
+    AIM_NOTNULL(su2Instance->meshRef, aimInfo, status);
 
     // Get attribute to index mapping
-    status = create_MeshRefToIndexMap(aimInfo, meshRef, &su2Instance->groupMap);
+    status = create_MeshRefToIndexMap(aimInfo, su2Instance->meshRef, &su2Instance->groupMap);
     AIM_STATUS(aimInfo, status);
 
     if (aimInputs[Boundary_Condition-1].nullVal ==  IsNull) {
@@ -1026,7 +1098,7 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
 
     if (units->length != NULL) {
       // Get length units
-      status = check_CAPSLength(numBody, bodies, &bodyLunits);
+      status = aim_capsLength(aimInfo, &bodyLunits);
       if (status != CAPS_SUCCESS) {
         AIM_ERROR(aimInfo, "No units assigned *** capsLength is not set in *.csm file!");
         status = CAPS_BADVALUE;
@@ -1150,15 +1222,24 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
     }
     */
 
-    if (aimInputs[Mesh-1].nullVal == IsNull) {
-        AIM_ANALYSISIN_ERROR(aimInfo, Mesh, "'Mesh' input must be linked to an output 'Area_Mesh' or 'Volume_Mesh'");
-        status = CAPS_BADVALUE;
-        goto cleanup;
+    // Get mesh
+    meshRef = su2Instance->meshRef;
+    AIM_NOTNULL(meshRef, aimInfo, status);
+
+    if ( aimInputs[Mesh_Morph-1].vals.integer == (int) true &&
+         aimInputs[Mesh-1].nullVal == NotNull) { // If we are mighty morphing
+        // store the current mesh for future iterations
+        status = aim_storeMeshRef(aimInfo, (aimMeshRef *) aimInputs[Mesh-1].vals.AIMptr, MESHEXTENSION);
+        AIM_STATUS(aimInfo, status);
     }
 
-    // Get mesh
-    meshRef = (aimMeshRef *)aimInputs[Mesh-1].vals.AIMptr;
-    AIM_NOTNULL(meshRef, aimInfo, status);
+    if (aimInputs[Mesh_Morph-1].vals.integer == (int) true) {
+        status = su2_writeSurface(aimInfo,
+                                  su2Instance->projectName,
+                                  meshRef);
+        AIM_STATUS(aimInfo, status);
+        withMotion = (int) true;
+    }
 
     if (status == CAPS_SUCCESS) {
 
@@ -1201,7 +1282,6 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
     }
 
     // If data transfer is ok ....
-    withMotion = (int) false;
     if (meshRef->nmap > 0) {
         //See if we have data transfer information
         status = aim_getBounds(aimInfo, &numBoundName, &boundNames);
@@ -1251,9 +1331,14 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
 
                 status = su2_writeCongfig_Blackbird(aimInfo, aimInputs, meshfilename, su2Instance->bcProps, withMotion);
 
+            } else if (strcasecmp(aimInputs[SU2_Version-1].vals.string, "Harrier") == 0) {
+
+                status = su2_writeCongfig_Harrier(aimInfo, aimInputs, meshfilename, su2Instance->bcProps, withMotion);
+
+
             } else {
 
-                AIM_ERROR(aimInfo, "Unrecognized 'SU2_Version' = %s! Valid choices are Cardinal, Raven, Falcon, or Blackbird.\n",
+                AIM_ERROR(aimInfo, "Unrecognized 'SU2_Version' = %s! Valid choices are Cardinal, Raven, Falcon, Blackbird or Harrier.\n",
                           aimInputs[SU2_Version-1].vals.string);
                 status = CAPS_BADVALUE;
             }
@@ -1405,6 +1490,7 @@ int aimCalcOutput(void *instStore, void *aimInfo, int index, capsValue *val)
 
     char *strValue;    // Holder string for value of keyword
 
+    size_t stringLength;
     char *filename = NULL; // File to open
     char fileExtension[] = ".dat";
     char fileSuffix[] = "forces_breakdown_";
@@ -1464,13 +1550,10 @@ int aimCalcOutput(void *instStore, void *aimInfo, int index, capsValue *val)
     }
 
     // Open SU2 force file
-    filename = (char *) EG_alloc((strlen(su2Instance->projectName) +
-                                  strlen(fileSuffix) + strlen(fileExtension) +1)*sizeof(char));
-    if (filename == NULL) return EGADS_MALLOC;
+    stringLength = strlen(su2Instance->projectName) + strlen(fileSuffix) + strlen(fileExtension) + 1;
+    AIM_ALLOC(filename, stringLength, char, aimInfo, status);
 
-/*@-bufferoverflowhigh@*/
-    sprintf(filename, "%s%s%s", fileSuffix, su2Instance->projectName, fileExtension);
-/*@+bufferoverflowhigh@*/
+    snprintf(filename, stringLength, "%s%s%s", fileSuffix, su2Instance->projectName, fileExtension);
 
     fp = aim_fopen(aimInfo, filename, "r");
     AIM_FREE(filename); // Free filename allocation
@@ -1574,6 +1657,10 @@ void aimCleanup(void *instStore)
 
     // Cleanup units
     destroy_cfdUnitsStruct(&su2Instance->units);
+
+    // Mesh reference
+    aim_freeMeshRef(&su2Instance->meshRefObj);
+    su2Instance->meshRef = NULL;
 
     AIM_FREE(su2Instance);
 }
@@ -1712,6 +1799,13 @@ int aimTransfer(capsDiscr *discr, const char *dataName, int numPoint,
      *  and "Pressure_Scale_Offset" are AIM inputs (\ref aimInputsSU2)
      * </ul>
      *
+     * <li> <B>"Temperature"</B> </li> <br>
+     *  Loads the temperature distribution from surface_flow_[project_name].cvs file.
+     *  This distribution may be scaled based on
+     *  Temperature = Temperature_Scale_Factor*Temp, where "Temperature_Scale_Factor"
+     *  is an AIM input (\ref aimInputsSU2)
+     * </ul>
+     *
      */ // Reset of this block comes from su2Util.c
 
     int status, status2; // Function return status
@@ -1739,6 +1833,7 @@ int aimTransfer(capsDiscr *discr, const char *dataName, int numPoint,
     int found = (int) false;
 
     // Filename stuff
+    size_t stringLength;
     char *filename = NULL; //"pyCAPS_SU2_Tetgen_ddfdrive_bndry1.dat";
 
 #ifdef DEBUG
@@ -1749,7 +1844,8 @@ int aimTransfer(capsDiscr *discr, const char *dataName, int numPoint,
     if (strcasecmp(dataName, "Pressure") != 0 &&
         strcasecmp(dataName, "P")        != 0 &&
         strcasecmp(dataName, "Cp")       != 0 &&
-        strcasecmp(dataName, "CoefficientOfPressure") != 0) {
+        strcasecmp(dataName, "CoefficientOfPressure") != 0 &&
+        strcasecmp(dataName, "Temperature") != 0) {
 
         printf("Unrecognized data transfer variable - %s\n", dataName);
         return CAPS_NOTFOUND;
@@ -1767,12 +1863,10 @@ int aimTransfer(capsDiscr *discr, const char *dataName, int numPoint,
         }
     }
 
-    AIM_ALLOC(filename, (strlen(su2Instance->projectName) +
-                         strlen("surface_flow_.csv") + 1), char, discr->aInfo, status);
+    stringLength = strlen(su2Instance->projectName) + strlen("surface_flow_.csv") + 1;
+    AIM_ALLOC(filename, stringLength, char, discr->aInfo, status);
 
-/*@-bufferoverflowhigh@*/
-    sprintf(filename,"%s%s%s", "surface_flow_", su2Instance->projectName, ".csv");
-/*@+bufferoverflowhigh@*/
+    snprintf(filename,stringLength,"%s%s%s", "surface_flow_", su2Instance->projectName, ".csv");
 
     status = su2_readAeroLoad(discr->aInfo,
                               filename,
@@ -1856,6 +1950,25 @@ int aimTransfer(capsDiscr *discr, const char *dataName, int numPoint,
                     break;
                 }
             }
+        }
+
+        if (strcasecmp(dataName, "Temperature") == 0) {
+
+          if (dataRank != 1) {
+            AIM_ERROR(discr->aInfo, "Data transfer rank should be 1 not %d\n", dataRank);
+            status = CAPS_BADRANK;
+            goto cleanup;
+          }
+
+          dataScaleFactor = su2Instance->temperatureScaleFactor->vals.real;
+          dataScaleOffset = 0;
+
+          if (strcasecmp("Temperature", variableName[i]) == 0) {
+            variableIndex = i;
+            if (su2Instance->units.temperature != NULL)
+              AIM_STRDUP(*units, su2Instance->units.temperature, discr->aInfo, status);
+            break;
+          }
         }
     }
 

@@ -3,7 +3,8 @@
 
 set cutLoc 2.07055-.25
 
-set structureAIMs $nastranAIM;astrosAIM;mystranAIM
+set structureAIMs $nastranAIM;astrosAIM;mystranAIM;egadsTessAIM
+set aeroAIMs $nastranAIM;astrosAIM;mystranAIM;
 
 mark
 skbeg 0 0 0
@@ -83,7 +84,7 @@ attribute capsReferenceChord 2.07055
 attribute capsReferenceSpan 11.0502
 attribute capsGroup $Wing
 select body @nbody
-attribute capsAIM structureAIMs
+attribute capsAIM aeroAIMs
 attribute capsDiscipline $Aerodynamic
 
 store airfoil

@@ -1,0 +1,32 @@
+# ubound_1
+# written by John Dannenhoffer
+
+# scalar DESPMTR
+DESPMTR   A     1
+
+# vector DESPMTR (of all 2's)
+DIMENSION B     2  1
+DESPMTR   B     2
+
+# vector DESPMTR
+DIMENSION C     3  1
+DESPMTR   C     3;4;5
+
+# vector DESPMTR (of all 6's)
+DIMENSION D     2  1
+DESPMTR   D     6
+
+# set upper bounds
+UBOUND    A     2
+
+UBOUND    B     3             # applies to all elements
+
+UBOUND    C     4;5;6         # applies to each element
+
+UBOUND    D[1]  7             # applies to one element
+UBOUND    D[2]  8             # applies to one element
+
+# make a point
+POINT     C[1]  C[2]  C[3]
+
+END

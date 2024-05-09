@@ -40,6 +40,21 @@ class TestJournal(unittest.TestCase):
         if line < line_exit and line_exit > 0: self.assertTrue(myProblem.journaling())
         if line == line_exit: return line
 
+        # Set the limits on a design parameter
+        myProblem.geometry.despmtr["camber"].limits = [0., 0.5]; line += 1
+        if line == line_exit: return line
+        if line_exit > 0: self.assertTrue(myProblem.journaling())
+
+        # Get the limits on a design parameter
+        limits = myProblem.geometry.despmtr["camber"].limits; line += 1
+        if line == line_exit: return line
+        if line_exit > 0: self.assertTrue(myProblem.journaling())
+
+        # Remove the limits on a design parameter
+        myProblem.geometry.despmtr["camber"].limits = None; line += 1
+        if line == line_exit: return line
+        if line_exit > 0: self.assertTrue(myProblem.journaling())
+
         # Change a design parameter - camber in the geometry
         myProblem.geometry.despmtr.camber = 0.1; line += 1
         if line == line_exit: return line

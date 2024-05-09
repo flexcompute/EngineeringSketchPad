@@ -1,0 +1,34 @@
+# udprim_3
+# written by John Dannenhoffer
+
+# examples of calling a UDC (function-type user-defined component)
+
+# make a box
+BOX       0  0  0  1  1  1
+
+# set some variables
+SET       A  1
+SET       B  2
+
+# call a function-type UDC (may have arguments and/or returns)
+
+# note: the name of the UDP starts with $/, which means it is
+#       in the same directory as this .csm file
+UDPRIM    $/udprim_3   # no arguments, so use the defaults
+
+# return variables start with @@
+ASSERT    @@theSum     0
+ASSERT    @@theProduct 0
+
+# make sure our local variables have not changed
+ASSERT    A  1
+ASSERT    B  2
+
+# call the UDC with arguments
+UDPARG   $/udprim_3  firstArg   10
+UDPRIM   $/udprim_3  secondArg  10
+
+ASSERT   @@theSum     20
+ASSERT   @@theProduct 100
+
+END

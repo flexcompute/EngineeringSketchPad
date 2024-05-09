@@ -1,0 +1,6 @@
+# Airbus_Beluga
+# written by John Dannenhoffer
+
+UDPRIM    vsp3   filename $$/Airbus_Beluga.vsp3
+
+END

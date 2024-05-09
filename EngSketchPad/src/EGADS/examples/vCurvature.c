@@ -3,7 +3,7 @@
  *
  *             Display the Curvature using wv (the WebViewer)
  *
- *      Copyright 2011-2022, Massachusetts Institute of Technology
+ *      Copyright 2011-2024, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -263,7 +263,7 @@ void browserMessage(/*@unused@*/ void *uPtr, /*@unused@*/ void *wsi,
                               &xyzs, &uvs, &ptype, &pindex, &ntri,
                               &tris, &tric);
         if (stat != EGADS_SUCCESS) continue;
-        sprintf(gpname, "Body %d Face %d", ibody+1, i+1);
+        snprintf(gpname, 42, "Body %d Face %d", ibody+1, i+1);
         index = wv_indexGPrim(cntxt, gpname);
         if (index < 0) {
           printf(" wv_indexGPrim = %d for %s (%d)!\n", i, gpname, index);
@@ -331,7 +331,7 @@ void browserMessage(/*@unused@*/ void *uPtr, /*@unused@*/ void *wsi,
                             &xyzs, &uvs, &ptype, &pindex, &ntri,
                             &tris, &tric);
       if (stat != EGADS_SUCCESS) continue;
-      sprintf(gpname, "Body %d Face %d", ibody+1, i+1);
+      snprintf(gpname, 42, "Body %d Face %d", ibody+1, i+1);
       index = wv_indexGPrim(cntxt, gpname);
       if (index < 0) {
         printf(" wv_indexGPrim = %d for %s (%d)!\n", i, gpname, index);
@@ -407,7 +407,7 @@ void browserMessage(/*@unused@*/ void *uPtr, /*@unused@*/ void *wsi,
       if (len == 0) continue;
       norms = (double *) malloc(6*len*sizeof(double));
       if (norms == NULL) continue;
-      sprintf(gpname, "Body %d Edge %d", ibody+1, i+1);
+      snprintf(gpname, 42, "Body %d Edge %d", ibody+1, i+1);
 
       pu = &result[3];
       pv = &result[6];
@@ -524,7 +524,7 @@ void browserMessage(/*@unused@*/ void *uPtr, /*@unused@*/ void *wsi,
           }
           nh++;
         }
-        sprintf(gpname, "Body %d Loop %d/%d", ibody+1, i+1, j+1);
+        snprintf(gpname, 42, "Body %d Loop %d/%d", ibody+1, i+1, j+1);
         index = wv_indexGPrim(cntxt, gpname);
         if (index < 0) {
           printf(" wv_indexGPrim = %d for %s (%d)!\n", i, gpname, index);
@@ -859,7 +859,7 @@ int main(int argc, char *argv[])
           }
           nh++;
         }
-        sprintf(gpname, "Body %d Loop %d/%d", ibody+1, i+1, j+1);
+        snprintf(gpname, 42, "Body %d Loop %d/%d", ibody+1, i+1, j+1);
         stat = wv_setData(WV_REAL32, nseg, (void *) lsegs,  WV_VERTICES, &items[0]);
         if (stat < 0) printf(" wv_setData = %d for %s/item 0!\n", i, gpname);
         wv_adjustVerts(&items[0], focus);

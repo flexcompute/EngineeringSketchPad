@@ -3,7 +3,7 @@
  *
  *             Awave AIM
  *
- *      Copyright 2014-2022, Massachusetts Institute of Technology
+ *      Copyright 2014-2024, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -209,12 +209,12 @@ static void printAwaveArray(int length, double array[], char *str,
                             /*@null@*/ FILE *fp)
 {
     int i;
-    char * tmp;
+    char tmp[8];
 
     for (i = 0; i < length; i++) {
 
         //d2s7fld(array[i], tmp);
-        tmp = convert_doubleToString(array[i],7,0);
+        convert_doubleToString(array[i],7,0,tmp);
 
         if (fp == NULL) {
             printf("%s",tmp);
@@ -235,9 +235,6 @@ static void printAwaveArray(int length, double array[], char *str,
                 }
             }
         }
-
-        if(tmp != NULL) EG_free(tmp);
-
     }
 
     if ((double) (length) / 10.0 != (double) ((length)/10)) {
@@ -968,7 +965,7 @@ int aimPreAnalysis(/*@unused@*/ const void *instStore, void *aimInfo,
     double      xyzPod[3];
     double      Mach, AoA;
     char        tmpName[50];
-    char        *tmpChar;
+    char        tmpChar[16];
     const int   *ints;
     const char  *string, *intents;
     const double *reals;
@@ -1682,62 +1679,35 @@ int aimPreAnalysis(/*@unused@*/ const void *instStore, void *aimInfo,
     // ****************************************************************** //
     // ****************************************************************** //
     // Write Awave HEADER //
-    tmpChar = convert_integerToString(J0,3,0); fprintf(fp,"%s",tmpChar);
-    if (tmpChar != NULL) EG_free(tmpChar);
+    convert_integerToString(J0,3,0,tmpChar); fprintf(fp,"%s",tmpChar);
+    convert_integerToString(J1,3,0,tmpChar); fprintf(fp,"%s",tmpChar);
+    convert_integerToString(J2,3,0,tmpChar); fprintf(fp,"%s",tmpChar);
+    convert_integerToString(J3,3,0,tmpChar); fprintf(fp,"%s",tmpChar);
+    convert_integerToString(J4,3,0,tmpChar); fprintf(fp,"%s",tmpChar);
+    convert_integerToString(J5,3,0,tmpChar); fprintf(fp,"%s",tmpChar);
+    convert_integerToString(J6,3,0,tmpChar); fprintf(fp,"%s",tmpChar);
 
-    tmpChar = convert_integerToString(J1,3,0); fprintf(fp,"%s",tmpChar);
-    if (tmpChar != NULL) EG_free(tmpChar);
-
-    tmpChar = convert_integerToString(J2,3,0); fprintf(fp,"%s",tmpChar);
-    if (tmpChar != NULL) EG_free(tmpChar);
-
-    tmpChar = convert_integerToString(J3,3,0); fprintf(fp,"%s",tmpChar);
-    if (tmpChar != NULL) EG_free(tmpChar);
-
-    tmpChar = convert_integerToString(J4,3,0); fprintf(fp,"%s",tmpChar);
-    if (tmpChar != NULL) EG_free(tmpChar);
-
-    tmpChar = convert_integerToString(J5,3,0); fprintf(fp,"%s",tmpChar);
-    if (tmpChar != NULL) EG_free(tmpChar);
-
-    tmpChar = convert_integerToString(J6,3,0); fprintf(fp,"%s",tmpChar);
-    if (tmpChar != NULL) EG_free(tmpChar);
-
-    tmpChar = convert_integerToString(NWAF,3,0); fprintf(fp,"%s",tmpChar);
-    if (tmpChar != NULL) EG_free(tmpChar);
-
-    tmpChar = convert_integerToString(NWAFOR,3,0); fprintf(fp,"%s",tmpChar);
-    if (tmpChar != NULL) EG_free(tmpChar);
-
-    tmpChar = convert_integerToString(NFUS,3,0); fprintf(fp,"%s",tmpChar);
-    if (tmpChar != NULL) EG_free(tmpChar);
+    convert_integerToString(NWAF  ,3,0,tmpChar); fprintf(fp,"%s",tmpChar);
+    convert_integerToString(NWAFOR,3,0,tmpChar); fprintf(fp,"%s",tmpChar);
+    convert_integerToString(NFUS  ,3,0,tmpChar); fprintf(fp,"%s",tmpChar);
 
     for (i = 0; i < 4; i++) {
 
-        tmpChar = convert_integerToString(NRADX[i],3,0); fprintf(fp,"%s",tmpChar);
-        if (tmpChar != NULL) EG_free(tmpChar);
-
-        tmpChar = convert_integerToString(NFORX[i],3,0); fprintf(fp,"%s",tmpChar);
-        if (tmpChar != NULL) EG_free(tmpChar);
+        convert_integerToString(NRADX[i],3,0,tmpChar); fprintf(fp,"%s",tmpChar);
+        convert_integerToString(NFORX[i],3,0,tmpChar); fprintf(fp,"%s",tmpChar);
     }
 
-    tmpChar = convert_integerToString(NP,3,0); fprintf(fp,"%s",tmpChar);
-    if (tmpChar != NULL) EG_free(tmpChar);
+    convert_integerToString(NP    ,3,0,tmpChar); fprintf(fp,"%s",tmpChar);
 
-    tmpChar = convert_integerToString(NPODOR,3,0); fprintf(fp,"%s",tmpChar);
-    if (tmpChar != NULL) EG_free(tmpChar);
+    convert_integerToString(NPODOR,3,0,tmpChar); fprintf(fp,"%s",tmpChar);
 
-    tmpChar = convert_integerToString(NF,3,0); fprintf(fp,"%s",tmpChar);
-    if (tmpChar != NULL) EG_free(tmpChar);
+    convert_integerToString(NF    ,3,0,tmpChar); fprintf(fp,"%s",tmpChar);
 
-    tmpChar = convert_integerToString(NFINOR,3,0); fprintf(fp,"%s",tmpChar);
-    if (tmpChar != NULL) EG_free(tmpChar);
+    convert_integerToString(NFINOR,3,0,tmpChar); fprintf(fp,"%s",tmpChar);
 
-    tmpChar = convert_integerToString(NCAN,3,0); fprintf(fp,"%s",tmpChar);
-    if (tmpChar != NULL) EG_free(tmpChar);
+    convert_integerToString(NCAN  ,3,0,tmpChar); fprintf(fp,"%s",tmpChar);
 
-    tmpChar = convert_integerToString(NCANOR,3,0); fprintf(fp,"%s",tmpChar);
-    if (tmpChar != NULL) EG_free(tmpChar);
+    convert_integerToString(NCANOR,3,0,tmpChar); fprintf(fp,"%s",tmpChar);
 
     fprintf(fp,"\n");
     // END WRITE HEADER
@@ -1745,10 +1715,9 @@ int aimPreAnalysis(/*@unused@*/ const void *instStore, void *aimInfo,
     // REF AREA
     if (J0 == 1) {
 
-        tmpChar = convert_doubleToString(Sref,7,0);
+        convert_doubleToString(Sref,7,0,tmpChar);
         fprintf(fp,"%s                                                                 ",
                 tmpChar);
-        if (tmpChar != NULL) EG_free(tmpChar);
 
         // In Awave colums 73+ on each line are used for comment space
         fprintf(fp,"REF AREA\n");
@@ -1773,21 +1742,17 @@ int aimPreAnalysis(/*@unused@*/ const void *instStore, void *aimInfo,
 
                 // Print Leading Edge x,y,z then chord length for each section
                 // did not use printAwaveArray because xyz and chordLength are not in the same array
-                tmpChar = convert_doubleToString(surfaces[i].xyz[0],7,0);
+                convert_doubleToString(surfaces[i].xyz[0],7,0,tmpChar);
                 fprintf(fp,"%s",tmpChar);
-                if (tmpChar != NULL) EG_free(tmpChar);
 
-                tmpChar = convert_doubleToString(surfaces[i].xyz[1],7,0);
+                convert_doubleToString(surfaces[i].xyz[1],7,0,tmpChar);
                 fprintf(fp,"%s",tmpChar);
-                if (tmpChar != NULL) EG_free(tmpChar);
 
-                tmpChar = convert_doubleToString(surfaces[i].xyz[2],7,0);
+                convert_doubleToString(surfaces[i].xyz[2],7,0,tmpChar);
                 fprintf(fp,"%s",tmpChar);
-                if (tmpChar != NULL) EG_free(tmpChar);
 
-                tmpChar = convert_doubleToString(surfaces[i].chordLength,7,0);
+                convert_doubleToString(surfaces[i].chordLength,7,0,tmpChar);
                 fprintf(fp,"%s",tmpChar);
-                if (tmpChar != NULL) EG_free(tmpChar);
                 fprintf(fp,"                                            CS%d X,Y,Z,CHORD\n",i);
             }
         }
@@ -1796,16 +1761,11 @@ int aimPreAnalysis(/*@unused@*/ const void *instStore, void *aimInfo,
         for (i = 0; i < nbody; i++) {
 
             if (locWing[i]) {
+                snprintf(tmpName,50,"CS%d CAMBER",i);
+                printAwaveArray(surfaces[i].ndiv, surfaces[i].camber, tmpName, fp);
 
-/*@-bufferoverflowhigh@*/
-                sprintf(tmpName,"CS%d CAMBER",i);
-                printAwaveArray(surfaces[i].ndiv, surfaces[i].camber, tmpName,
-                                fp);
-
-                sprintf(tmpName,"CS%d HALF THICK",i);
-                printAwaveArray(surfaces[i].ndiv, surfaces[i].halfThick, tmpName,
-                                fp);
-/*@+bufferoverflowhigh@*/
+                snprintf(tmpName,50,"CS%d HALF THICK",i);
+                printAwaveArray(surfaces[i].ndiv, surfaces[i].halfThick, tmpName, fp);
             }
         }
     }
@@ -1893,9 +1853,7 @@ int aimPreAnalysis(/*@unused@*/ const void *instStore, void *aimInfo,
             printf(" awaveAIM/aimPreAnalysis defineAwavePod = %d\n", status);
         }
 
-        /*@-bufferoverflowhigh@*/
-        sprintf(tmpName,"POD %i",n);
-        /*@+bufferoverflowhigh@*/
+        snprintf(tmpName,50,"POD %i",n);
 
         printAwaveArray(3, xyzPod, tmpName , fp);
         printAwaveArray(NPODOR, xPod, "   X" , fp);
@@ -1917,29 +1875,17 @@ int aimPreAnalysis(/*@unused@*/ const void *instStore, void *aimInfo,
             }
             // Fin input is
             // x y z chord x y z chord for first and last section
-            tmpChar = convert_doubleToString(surfaces[iloc[0]].xyz[0],7,0); fprintf(fp,"%s",tmpChar);
-            if (tmpChar != NULL) EG_free(tmpChar);
+            convert_doubleToString(surfaces[iloc[0]].xyz[0],7,0,tmpChar); fprintf(fp,"%s",tmpChar);
+            convert_doubleToString(surfaces[iloc[0]].xyz[1],7,0,tmpChar); fprintf(fp,"%s",tmpChar);
+            convert_doubleToString(surfaces[iloc[0]].xyz[2],7,0,tmpChar); fprintf(fp,"%s",tmpChar);
 
-            tmpChar = convert_doubleToString(surfaces[iloc[0]].xyz[1],7,0); fprintf(fp,"%s",tmpChar);
-            if (tmpChar != NULL) EG_free(tmpChar);
+            convert_doubleToString(surfaces[iloc[0]].chordLength,7,0,tmpChar); fprintf(fp,"%s",tmpChar);
 
-            tmpChar = convert_doubleToString(surfaces[iloc[0]].xyz[2],7,0); fprintf(fp,"%s",tmpChar);
-            if (tmpChar != NULL) EG_free(tmpChar);
+            convert_doubleToString(surfaces[iloc[j-1]].xyz[0],7,0,tmpChar); fprintf(fp,"%s",tmpChar);
+            convert_doubleToString(surfaces[iloc[j-1]].xyz[1],7,0,tmpChar); fprintf(fp,"%s",tmpChar);
+            convert_doubleToString(surfaces[iloc[j-1]].xyz[2],7,0,tmpChar); fprintf(fp,"%s",tmpChar);
 
-            tmpChar = convert_doubleToString(surfaces[iloc[0]].chordLength,7,0); fprintf(fp,"%s",tmpChar);
-            if (tmpChar != NULL) EG_free(tmpChar);
-
-            tmpChar = convert_doubleToString(surfaces[iloc[j-1]].xyz[0],7,0); fprintf(fp,"%s",tmpChar);
-            if (tmpChar != NULL) EG_free(tmpChar);
-
-            tmpChar = convert_doubleToString(surfaces[iloc[j-1]].xyz[1],7,0); fprintf(fp,"%s",tmpChar);
-            if (tmpChar != NULL) EG_free(tmpChar);
-
-            tmpChar = convert_doubleToString(surfaces[iloc[j-1]].xyz[2],7,0); fprintf(fp,"%s",tmpChar);
-            if (tmpChar != NULL) EG_free(tmpChar);
-
-            tmpChar = convert_doubleToString(surfaces[iloc[j-1]].chordLength,7,0); fprintf(fp,"%s",tmpChar);
-            if (tmpChar != NULL) EG_free(tmpChar);
+            convert_doubleToString(surfaces[iloc[j-1]].chordLength,7,0,tmpChar); fprintf(fp,"%s",tmpChar);
 
             fprintf(fp,"                FIN %d \n",n);
 
@@ -1967,29 +1913,17 @@ int aimPreAnalysis(/*@unused@*/ const void *instStore, void *aimInfo,
             }
             // Fin input is
             // x y z chord x y z chord for first and last section
-            tmpChar = convert_doubleToString(surfaces[iloc[0]].xyz[0],7,0); fprintf(fp,"%s",tmpChar);
-            if (tmpChar != NULL) EG_free(tmpChar);
+            convert_doubleToString(surfaces[iloc[0]].xyz[0],7,0,tmpChar); fprintf(fp,"%s",tmpChar);
+            convert_doubleToString(surfaces[iloc[0]].xyz[1],7,0,tmpChar); fprintf(fp,"%s",tmpChar);
+            convert_doubleToString(surfaces[iloc[0]].xyz[2],7,0,tmpChar); fprintf(fp,"%s",tmpChar);
 
-            tmpChar = convert_doubleToString(surfaces[iloc[0]].xyz[1],7,0); fprintf(fp,"%s",tmpChar);
-            if (tmpChar != NULL) EG_free(tmpChar);
+            convert_doubleToString(surfaces[iloc[0]].chordLength,7,0,tmpChar); fprintf(fp,"%s",tmpChar);
 
-            tmpChar = convert_doubleToString(surfaces[iloc[0]].xyz[2],7,0); fprintf(fp,"%s",tmpChar);
-            if (tmpChar != NULL) EG_free(tmpChar);
+            convert_doubleToString(surfaces[iloc[j-1]].xyz[0],7,0,tmpChar); fprintf(fp,"%s",tmpChar);
+            convert_doubleToString(surfaces[iloc[j-1]].xyz[1],7,0,tmpChar); fprintf(fp,"%s",tmpChar);
+            convert_doubleToString(surfaces[iloc[j-1]].xyz[2],7,0,tmpChar); fprintf(fp,"%s",tmpChar);
 
-            tmpChar = convert_doubleToString(surfaces[iloc[0]].chordLength,7,0); fprintf(fp,"%s",tmpChar);
-            if (tmpChar != NULL) EG_free(tmpChar);
-
-            tmpChar = convert_doubleToString(surfaces[iloc[j-1]].xyz[0],7,0); fprintf(fp,"%s",tmpChar);
-            if (tmpChar != NULL) EG_free(tmpChar);
-
-            tmpChar = convert_doubleToString(surfaces[iloc[j-1]].xyz[1],7,0); fprintf(fp,"%s",tmpChar);
-            if (tmpChar != NULL) EG_free(tmpChar);
-
-            tmpChar = convert_doubleToString(surfaces[iloc[j-1]].xyz[2],7,0); fprintf(fp,"%s",tmpChar);
-            if (tmpChar != NULL) EG_free(tmpChar);
-
-            tmpChar = convert_doubleToString(surfaces[iloc[j-1]].chordLength,7,0); fprintf(fp,"%s",tmpChar);
-            if (tmpChar != NULL) EG_free(tmpChar);
+            convert_doubleToString(surfaces[iloc[j-1]].chordLength,7,0,tmpChar); fprintf(fp,"%s",tmpChar);
 
             fprintf(fp,"                CANARD %d \n",n);
 

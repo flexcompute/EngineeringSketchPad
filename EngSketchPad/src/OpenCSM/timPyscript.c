@@ -9,7 +9,7 @@
  */
 
 /*
- * Copyright (C) 2013/2022  John F. Dannenhoffer, III (Syracuse University)
+ * Copyright (C) 2013/2024  John F. Dannenhoffer, III (Syracuse University)
  *
  * This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
@@ -43,11 +43,10 @@
 #include <math.h>
 #include <assert.h>
 
-#include "egads.h"
-#include "common.h"
 #include "OpenCSM.h"
 #include "tim.h"
 #include "emp.h"
+#include "caps.h"
 
 #define CINT    const int
 #define CDOUBLE const double
@@ -62,8 +61,12 @@
    #define FSEEK(fp,st,op) _fseeki64(fp, st, op)
    #define FTELL(fp)       _ftelli64(fp)
    #define SLASH '\\'
+
+   #define getcwd          _getcwd
+   #define PATH_MAX        _MAX_PATH
 #else
    #include <unistd.h>
+   #include <limits.h>
    #define LONG long
    #define SLEEP(msec)     usleep(1000*msec)
    #define FSEEK(fp,st,op) fseek(fp, st, op)
@@ -72,8 +75,6 @@
 #endif
 
 /* macros */
-static void *realloc_temp=NULL;              /* used by RALLOC macro */
-
 void executePyscript(void *esp);
 static void tee(void *arg);
 
@@ -86,6 +87,9 @@ static void   *thread       = NULL;
 #define       MMODLS  10
 static int    nmodls = 0;
 static modl_T *modls[MMODLS];
+
+static char   stdout_name[PATH_MAX+12];
+static char   stderr_name[PATH_MAX+12];
 
 /* globals to keep track of the lines executed */
 static int    curLine = 0;                   /* last    line executed */
@@ -150,7 +154,9 @@ timLoad(esp_T *ESP,                     /* (in)  pointer to ESP structure */
 
     int      len, i, count, nbuffer=1024;
     char     *env, *buffer=NULL, templine[MAX_LINE_LEN], *filename=(char*)data;
+    char     cwd[PATH_MAX];
     void     *temp;
+    void     *realloc_temp = NULL;            /* used by RALLOC macro */
     FILE     *fp;
 
     ROUTINE(timLoad(pyscript));
@@ -161,6 +167,13 @@ timLoad(esp_T *ESP,                     /* (in)  pointer to ESP structure */
         printf("ERROR:: cannot nest more than %d TIMs\n", MAX_TIM_NESTING);
         exit(0);
     }
+
+    /* set up the names of the stdout and stderr files */
+    (void) getcwd(cwd, PATH_MAX);
+
+    snprintf(stdout_name, PATH_MAX+12, "%s%cstdout.txt", cwd, SLASH);
+    snprintf(stderr_name, PATH_MAX+12, "%s%cstderr.txt", cwd, SLASH);
+    (void) getcwd(stderr_name, PATH_MAX);
 
     /* remember the filename */
     len = strlen(filename);
@@ -247,6 +260,10 @@ timLoad(esp_T *ESP,                     /* (in)  pointer to ESP structure */
         goto cleanup;
     }
 
+    /* wait a second to make sure that the browser has had
+       a chance to change its mode */
+    SLEEP(1000);
+
     /* send the pyscript file over to the browser */
     MALLOC(buffer, char, nbuffer);
     snprintf(buffer, nbuffer, "timLoad|pyscript|%s|", filename);
@@ -295,6 +312,7 @@ timMesg(esp_T *ESP,                     /* (in)  pointer to ESP structure */
     char     *response=NULL;
     static FILE  *fp=NULL;;
     void     *temp;
+    void     *realloc_temp = NULL;            /* used by RALLOC macro */
 
     ROUTINE(timMesg(pyscript));
 
@@ -348,14 +366,14 @@ timMesg(esp_T *ESP,                     /* (in)  pointer to ESP structure */
 
         strcpy(response, "timMesg|pyscript|stderr|");
 
-        fp = fopen("stderr.txt", "r");
+        fp = fopen(stderr_name, "r");
         if (fp != NULL) {
             while (1) {
                 temp = fgets(templine, 1023, fp);
                 if (temp == NULL) {
                     fclose(fp);
                     fp = NULL;
-                    remove("stderr.txt");
+                    remove(stderr_name);
                     break;
                 }
 
@@ -376,7 +394,7 @@ timMesg(esp_T *ESP,                     /* (in)  pointer to ESP structure */
         response_len = 1000;
         MALLOC(response, char, response_len);
 
-        snprintf(response, response_len, "timMesg|lineNums|%d|%d|", curLine, maxLine);
+        snprintf(response, response_len, "timMesg|pyscript|lineNums|%d|%d|", curLine, maxLine);
 
         tim_bcst("pyscript", response);
     }
@@ -453,6 +471,23 @@ timQuit(esp_T *ESP,                     /* (in)  pointer to ESP structure */
         }
         goto cleanup;
     }
+
+    /* if we entered pyscript from somewhere other than capsMode,
+       restore the original MODL */
+    if (ESP->nudata == 1 || strcmp(ESP->timName[ESP->nudata-2], "capsMode") != 0) {
+        ESP->MODL = ESP->MODLorig;
+        ESP->CAPS = NULL;
+
+        tim_bcst("pyscript", "returnMessage|build|0|");
+
+        /* also clear the udp cache */
+        status = ocsmFree(NULL);
+    }
+
+    /* update the display to the way it was before pyscript was executed if
+       not in capsMode */
+    tim_bcst("pyscript", "returnMessage|getPmtrs|");
+    tim_bcst("pyscript", "returnMessage|getBrchs|");
 
     /* free up the filename */
     FREE(ESP->udata[ESP->nudata-1]);
@@ -539,7 +574,8 @@ timSetModl(void  *myModl,               /* (in)  pointer to active MODL */
         }
 
         /* update the ESP structure */
-        ESP->MODL = myModl;
+        ESP->MODL     = myModl;
+        ESP->MODLorig = myModl;
     }
 
 //cleanup:
@@ -586,6 +622,12 @@ timSetCaps(void  *myCaps,               /* (in)  pointer to active CAPS */
 {
     int    status = EGADS_SUCCESS;      /* (out) return status */
 
+//$$$    int         builtTo, nbody=0;
+    int         oclass, mtype;
+    ego         topRef, prev, next;
+    capsObject  *myObject;
+    capsProblem *myProblem;
+
     ROUTINE(timSetCaps);
 
     /* --------------------------------------------------------------- */
@@ -594,9 +636,33 @@ timSetCaps(void  *myCaps,               /* (in)  pointer to active CAPS */
         printf("WARNING:: not running via serveESP\n");
     } else {
         ESP->CAPS = myCaps;
+        myObject  = (capsObject *) myCaps;
+        myProblem = (capsProblem *) myObject->blind;
+        ESP->MODL = myProblem->modl;
+
+        status = EG_getInfo((ego)(ESP->MODL), &oclass, &mtype, &topRef, &prev, &next);
+        if (status == EGADS_SUCCESS && oclass == MODEL) {
+            printf("WARNING:: starting from a .egads file is not supported\n");
+            goto cleanup;
+        } else {
+            status = EGADS_SUCCESS;
+        }
+
+        /* there is no need to build the configuration since CAPS will
+           build it in a lazy manner whenever it is needed */
+
+        /* if there are no Bodys but Branches, build and tessellate now */
+//$$$        if (ESP->MODL->nbrch > 0 && ESP->MODL->nbody == 0) {
+//$$$            printf("this is ocsmBuild(4)\n");
+//$$$            status = ocsmBuild(ESP->MODL, 0, &builtTo, &nbody, NULL);
+//$$$            CHECK_STATUS(ocsmBuild);
+//$$$
+//$$$            status = ocsmTessellate(ESP->MODL, 0);
+//$$$            CHECK_STATUS(ocsmTessellate);
+//$$$        }
     }
 
-//cleanup:
+cleanup:
     return status;
 }
 
@@ -625,6 +691,14 @@ timBegPython()
     /* initialize the preconfiguration */
     PyPreConfig_InitPythonConfig(&preConfig);
     Py_PreInitialize(&preConfig);
+
+    /* initialize the python interpreter */
+    PyConfig_InitPythonConfig(&config);
+    config.buffered_stdio          = 0;
+    config.install_signal_handlers = 0;
+#ifdef WIN32
+    config.legacy_windows_stdio    = 1;
+#endif
 
     /* set Python Home if not set */
     if (getenv("PYTHONHOME") == NULL) {
@@ -665,19 +739,15 @@ timBegPython()
         }
         buffer[i-start] = 0;
 
+        fprintf(stdout, "config.home being set to \"%s\"\n", buffer);
+
         pHome = Py_DecodeLocale(buffer, NULL);
         free(buffer);
 
-        Py_SetPythonHome(pHome);
+        config.home = pHome;
+//$$$        Py_SetPythonHome(pHome);
     }
 
-    /* initialize the python interpreter */
-    PyConfig_InitPythonConfig(&config);
-    config.buffered_stdio          = 0;
-    config.install_signal_handlers = 0;
-#ifdef WIN32
-    config.legacy_windows_stdio    = 1;
-#endif
     Py_InitializeFromConfig(&config);
 
     /* import numpy (which MUST be done from the main thread) */
@@ -732,6 +802,7 @@ void executePyscript(void *esp)
 
     int         saved_stdout, saved_stderr, i;
     char        templine[MAX_LINE_LEN];
+    char        cmd[PATH_MAX+20];
     FILE        *fp, *fp2, *fp_stdout, *fp_stderr;
     wchar_t     *pHome=NULL;
     void        *temp;
@@ -795,6 +866,7 @@ void executePyscript(void *esp)
                 fprintf(fp2,   "    if JfD3key[0:2] != \"__\":\n");
                 fprintf(fp2,   "        del globals()[JfD3key]\n");
                 fprintf(fp2,   "del JfD3key\n");
+                fprintf(fp2,   "import gc; gc.collect()\n");
                 fprintf(fp2,   "# --------------------------------------------------\n\n");
             }
 
@@ -847,8 +919,8 @@ void executePyscript(void *esp)
         saved_stdout = dup(fileno(stdout));
         saved_stderr = dup(fileno(stderr));
 
-        fp_stdout = freopen("stdout.txt", "w", stdout);
-        fp_stderr = freopen("stderr.txt", "w", stderr);
+        fp_stdout = freopen(stdout_name, "w", stdout);
+        fp_stderr = freopen(stderr_name, "w", stderr);
     }
 
     /* set an auxiliary pointer so that caps_open will know that we are
@@ -857,7 +929,7 @@ void executePyscript(void *esp)
     (void) ocsmSetAuxPtr(ESP->CAPS);
 
     /* create a thread to broadcast stdout back to ESP */
-    thread = EMP_ThreadCreate(tee, "stdout.txt");
+    thread = EMP_ThreadCreate(tee, stdout_name);
     if (thread == NULL) exit(0);
 
 //$$$    /* import esp into python */
@@ -870,6 +942,9 @@ void executePyscript(void *esp)
 
     PyEval_SetTrace(traceFunc, NULL);
 
+    /* inform python that we are running from pyscript */
+    PyRun_SimpleString("from pyOCSM import ocsm\nfrom pyOCSM import esp\nocsm.PyScRiPt = 1");
+
     /* run from the file */
     fp = fopen(filename, "r");
     PyRun_SimpleFile(fp, filename);
@@ -879,7 +954,7 @@ void executePyscript(void *esp)
     PyRun_SimpleString("esp.UpdateESP()\n");
 
     /* clean up all variables */
-    PyRun_SimpleString("for JfD3key in dir():\n    if JfD3key[0:2] != \"__\":\n        del globals()[JfD3key]\ndel JfD3key\n");
+    PyRun_SimpleString("for JfD3key in dir():\n    if JfD3key[0:2] != \"__\":\n        del globals()[JfD3key]\ndel JfD3key\nimport gc\ngc.collect()\n");
 
     /* wait a second and then tell the tee thread to kill itself */
     SLEEP(1000);
@@ -898,7 +973,7 @@ void executePyscript(void *esp)
 
     /* delete all modls except the last one saved */
     for (i = 0; i < nmodls; i++) {
-        if (modls[i] != ESP->MODL && modls[i] != NULL) {
+        if (modls[i] != ESP->MODL && modls[i] != ESP->MODLorig && modls[i] != NULL) {
             status = ocsmFree(modls[i]);
             if (status < EGADS_SUCCESS) {
                 printf("ERROR:: ocsmFree failed for i=%d\n", i);
@@ -923,17 +998,21 @@ void executePyscript(void *esp)
         if (SHOW_STDOUT_STDERR) {
             printf("^^^^^ start of stdout ^^^^^\n"); fflush(stdout);
 #ifndef WIN32
-            system("cat   stdout.txt");
+            snprintf(cmd, PATH_MAX+20, "cat  %s", stdout_name);
+            system(cmd);
 #else
-            system("type  stdout.txt");
+            snprintf(cmd, PATH_MAX+20, "type %s", stdout_name);
+            system(cmd);
 #endif
             printf("vvvvv end   of stdout vvvvv\n");
 
             printf("^^^^^ start of stderr ^^^^^\n"); fflush(stdout);
 #ifndef WIN32
-            system("cat   stderr.txt");
+            snprintf(cmd, PATH_MAX+20, "cat  %s", stderr_name);
+            system(cmd);
 #else
-            system("type  stderr.txt");
+            snprintf(cmd, PATH_MAX+20, "type %s", stderr_name);
+            system(cmd);
 #endif
             printf("vvvvv end   of stderr vvvvv\n");
         }
@@ -942,6 +1021,11 @@ void executePyscript(void *esp)
     /* cleanup and delete the thread state structure */
     PyThreadState_Clear(myThreadState);
     PyThreadState_DeleteCurrent();
+
+    /* if this was not run from CAPSmode, restore from the original MODL pointer */
+    if (ESP->nudata == 1) {
+        ESP->MODL = ESP->MODLorig;
+    }
 
 cleanup:
     if (status < SUCCESS) {
@@ -1034,7 +1118,7 @@ tee(void *arg)
                     return;
                 }
 
-                sprintf(newline, "%s\n", line);
+                snprintf(newline, linecap+9, "%s\n", line);
                 wv_broadcastText(newline);
                 free(newline);
             }

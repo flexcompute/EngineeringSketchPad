@@ -1,0 +1,194 @@
+#
+INTERFACE . ALL
+#----------------------------------------------------------#
+#
+# inputs:
+#
+#   Switches (1=true, 0=false):
+#       Wing:roundedTip
+#       Wing:sharpTE
+#
+#   From centerline (y=0) to wing-fuselage junction:
+#     Scalars:
+#       Wing:fuselageSec:Croot
+#       Wing:fuselageSec:taper
+#       Wing:fuselageSec:c4rootX
+#       Wing:fuselageSec:c4rootZ
+#       Wing:fuselageSec:c4hedral
+#       Wing:fuselageSec:c4sweep
+#       Wing:fuselageSec:halfSpan
+#     Array-types:
+#       Wing:fuselageSec:Y
+#       Wing:fuselageSec:twist
+#       Wing:fuselageSec:thick
+#
+#   From junction to yehudi:
+#     Scalars:
+#       Wing:inboardSec:c4hedral
+#       Wing:inboardSec:c4sweep
+#       Wing:inboardSec:halfSpan
+#     Array-types (with first spanwise station defined by last fuselageSec section):
+#       Wing:inboardSec:Y
+#       Wing:inboardSec:twist
+#       Wing:inboardSec:thick
+#
+#   From yehudi to wingtip:
+#     Scalars:
+#       Wing:outboardSec:c4hedral
+#       Wing:outboardSec:c4sweep
+#       Wing:outboardSec:halfSpan
+#     Array-types (with first spanwise station defined by last inboardSec section):
+#       Wing:outboardSec:Y
+#       Wing:outboardSec:twist
+#       Wing:outboardSec:thick
+#
+#--------------------- fuselage section -------------------#
+
+MARK
+
+    SET Wing:fuselageSec:c4rootY Wing:fuselageSec:Y[1]
+
+    PATBEG      isect   Wing:fuselageSec:Nsect
+        UDPRIM  naca    thickness       Wing:fuselageSec:thick[isect]\
+                        sharpte         Wing:sharpTE
+        ROTATEX         90 0 0
+
+        # determine local chord length
+        SET             spanRatio       (Wing:fuselageSec:Y[isect]-Wing:fuselageSec:Y[1])/(Wing:fuselageSec:Y[Wing:fuselageSec:Nsect]-Wing:fuselageSec:Y[1])
+        SET             localChord      Wing:fuselageSec:Croot*(1-spanRatio*(1-Wing:fuselageSec:taper))
+
+        # determine local quarter chord location
+        SET             c4X             Wing:fuselageSec:c4rootX+(Wing:fuselageSec:Y[isect]-Wing:fuselageSec:Y[1])*tand(Wing:fuselageSec:c4sweep)
+        SET             c4Z             Wing:fuselageSec:c4rootZ+(Wing:fuselageSec:Y[isect]-Wing:fuselageSec:Y[1])*tand(Wing:fuselageSec:c4hedral)
+
+        # scale by local chord length
+        SCALE           localChord
+
+        # rotate about c/4 line based on local twist angle
+        TRANSLATE       -0.25*localChord 0 0
+        ROTATEY         Wing:fuselageSec:twist[isect] 0 0
+
+        # translate based on local quarter chord location
+        TRANSLATE       c4X  Wing:fuselageSec:Y[isect]  c4Z
+
+    PATEND
+
+    SET Wing:fuselageSec:c4tipX c4X
+    SET Wing:fuselageSec:c4tipY Wing:fuselageSec:Y[isect]
+    SET Wing:fuselageSec:c4tipZ c4Z
+
+#--------------------- inboard section -------------------#
+
+    SET Wing:inboardSec:c4rootY Wing:fuselageSec:Y[isect]
+
+#    # last section of fuselageSec
+#    UDPRIM  naca    thickness       Wing:fuselageSec:thick[Wing:fuselageSec:Nsect]\
+#                    sharpte         Wing:sharpTE
+#    ROTATEX         90 0 0
+#    SCALE           localChord
+#    TRANSLATE       -0.25*localChord 0 0
+#    ROTATEY         Wing:fuselageSec:twist[Wing:fuselageSec:Nsect] 0 0
+#    TRANSLATE       c4X  Wing:fuselageSec:Y[Wing:fuselageSec:Nsect]  c4Z
+
+    # save c/4 x- and z-coordinates
+    SET  Wing:inboardSec:c4rootX  c4X
+    SET  Wing:inboardSec:c4rootZ  c4Z
+
+    # for each sectional property
+    PATBEG      isect   Wing:inboardSec:Nsect
+        UDPRIM  naca    thickness       Wing:inboardSec:thick[isect]\
+                        sharpte         Wing:sharpTE
+        ROTATEX         90 0 0
+
+        # determine local chord length
+        SET             spanRatio       (Wing:inboardSec:Y[isect]-Wing:fuselageSec:Y[Wing:fuselageSec:Nsect])/(Wing:inboardSec:Y[Wing:inboardSec:Nsect]-Wing:fuselageSec:Y[Wing:fuselageSec:Nsect])
+        SET             localChord      Wing:inboardSec:Croot*(1-spanRatio*(1-Wing:inboardSec:taper))
+
+        # determine local quarter chord location
+        SET             c4X             Wing:inboardSec:c4rootX+(Wing:inboardSec:Y[isect]-Wing:fuselageSec:Y[Wing:fuselageSec:Nsect])*tand(Wing:inboardSec:c4sweep)
+        SET             c4Z             Wing:inboardSec:c4rootZ+(Wing:inboardSec:Y[isect]-Wing:fuselageSec:Y[Wing:fuselageSec:Nsect])*tand(Wing:inboardSec:c4hedral)
+
+        # scale by local chord length
+        SCALE           localChord
+
+        # rotate about c/4 line based on local twist angle
+        TRANSLATE       -0.25*localChord 0 0
+        ROTATEY         Wing:inboardSec:twist[isect] 0 0
+
+        # translate based on local quarter chord location
+        TRANSLATE       c4X  Wing:inboardSec:Y[isect]  c4Z
+
+    PATEND
+
+    SET Wing:inboardSec:c4tipX c4X
+    SET Wing:inboardSec:c4tipY Wing:inboardSec:Y[isect]
+    SET Wing:inboardSec:c4tipZ c4Z
+
+#--------------------- outboard section -------------------#
+
+    SET Wing:outboardSec:c4rootY Wing:inboardSec:Y[isect]
+
+#    # last section of inboardSec
+#    UDPRIM  naca    thickness       Wing:inboardSec:thick[Wing:inboardSec:Nsect]\
+#                    sharpte         Wing:sharpTE
+#    ROTATEX         90 0 0
+#    SCALE           localChord
+#    TRANSLATE       -0.25*localChord 0 0
+#    ROTATEY         Wing:inboardSec:twist[Wing:inboardSec:Nsect] 0 0
+#    TRANSLATE       c4X  Wing:inboardSec:Y[Wing:inboardSec:Nsect]  c4Z
+
+    # save c/4 x- and z-coordinates
+    SET  Wing:outboardSec:c4rootX  c4X
+    SET  Wing:outboardSec:c4rootZ  c4Z
+
+    # for each sectional property
+    PATBEG      isect   Wing:outboardSec:Nsect
+        UDPRIM  naca    thickness       Wing:outboardSec:thick[isect]\
+                        sharpte         Wing:sharpTE
+        ROTATEX         90 0 0 
+
+        # determine local chord length
+        SET             spanRatio       (Wing:outboardSec:Y[isect]-Wing:inboardSec:Y[Wing:inboardSec:Nsect])/(Wing:outboardSec:Y[Wing:outboardSec:Nsect]-Wing:inboardSec:Y[Wing:inboardSec:Nsect])
+        SET             localChord      Wing:outboardSec:Croot*(1-spanRatio*(1-Wing:outboardSec:taper))
+
+        # determine local quarter chord location
+        SET             c4X             Wing:outboardSec:c4rootX+(Wing:outboardSec:Y[isect]-Wing:inboardSec:Y[Wing:inboardSec:Nsect])*tand(Wing:outboardSec:c4sweep)
+        SET             c4Z             Wing:outboardSec:c4rootZ+(Wing:outboardSec:Y[isect]-Wing:inboardSec:Y[Wing:inboardSec:Nsect])*tand(Wing:outboardSec:c4hedral)
+
+        # scale by local chord length
+        SCALE           localChord
+
+        # rotate about c/4 line based on local twist angle
+        TRANSLATE       -0.25*localChord 0 0 
+        ROTATEY         Wing:outboardSec:twist[isect] 0 0 
+
+        # translate based on local quarter chord location
+        TRANSLATE       c4X  Wing:outboardSec:Y[isect]  c4Z 
+
+        ATTRIBUTE  tagComp    $Wing:outboardSec
+        ATTRIBUTE  capsBound  $Wing:outboardSec
+
+    PATEND
+
+    SET Wing:outboardSec:c4tipX c4X
+    SET Wing:outboardSec:c4tipY Wing:outboardSec:Y[isect]
+    SET Wing:outboardSec:c4tipZ c4Z
+
+# !!!
+#RULE
+#BLEND # 0  -1;Wing:roundedTip
+BLEND 0 -1;Wing:roundedTip
+  ATTRIBUTE _name       $Wing
+  ATTRIBUTE  tagComp    $Wing
+  ATTRIBUTE  capsBound  $Wing
+#  ATTRIBUTE _color      "0.43922; 0.48235; 0.56078"
+#  ATTRIBUTE _bcolor     "0.43922; 0.48235; 0.56078"
+
+TRANSLATE -Wing:fuselageSec:c4rootX 0 -Wing:fuselageSec:c4rootZ
+ROTATEY Wing:globalTwist 0 0
+TRANSLATE Wing:fuselageSec:c4rootX 0 Wing:fuselageSec:c4rootZ
+
+STORE wing
+RESTORE wing
+
+END

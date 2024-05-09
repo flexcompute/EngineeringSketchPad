@@ -12,6 +12,7 @@
 
 #include "hsmTypes.h" // Bring in hsm structures
 
+#define MAX(A,B)  (((A) < (B)) ? (B) : (A))
 
 // Initiate hsmMemory structure
 int initiate_hsmMemoryStruct(hsmMemoryStruct *mem)
@@ -559,7 +560,7 @@ int hsm_bodyToBEM(void *aimInfo,
 
     // make "opposite" sides of four-sided Faces (with only one loop) match
     nchange = 1;
-    for (i = 0; i < 20; i++) {
+    for (i = 0; i < MAX(10*numFace,20); i++) {
         nchange = 0;
 
         for (face = 1; face <= numFace; face++) {
@@ -993,7 +994,7 @@ int hsm_bodyToBEM(void *aimInfo,
                                          loadMap,
                                          transferMap,
                                          connectMap,
-                                         NULL,
+                                         NULL, NULL,
                                          feaMesh->node[j].geomData->type,
                                          feaMesh->node[j].geomData->topoIndex,
                                          feaData);
@@ -1633,7 +1634,7 @@ int hsm_setNodeBCParameter(feaProblemStruct feaProblem, int permutation[],
                     }
                 }
 
-                sprintf(numString, "%d", feaConstraint->dofConstraint);
+                snprintf(numString, 10, "%d", feaConstraint->dofConstraint);
 
                 // Index
                 hsmMemory->kbcnode[j] = k;

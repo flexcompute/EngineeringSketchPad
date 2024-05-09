@@ -1,0 +1,32 @@
+INTERFACE . ALL
+
+# planform DVs
+DESPMTR    planform:Sref                    422.397987  # [m^2] planform area
+DESPMTR    planform:yehudiYloc              0.307778    # [-] yehudi semispan over tip semispan
+DESPMTR    planform:aspectRatio             12.272786   # [-] wing aspect ratio
+DESPMTR    planform:LEsweep                 0 #36.616845   # [deg] leading edge sweep angle
+DESPMTR    planform:inboardBackangle        0 #26 #8.6         # [deg] TE sweep angle
+DESPMTR    planform:taperRatio              1.0 #0.187739    # [-] taper ratio w.r.t. tip and wing-fuselage junction
+
+# global twist angle
+SET        Wing:globalTwist 0.0
+#DESPMTR    Wing:globalTwist                 0.0
+#LBOUND     Wing:globalTwist                -3.0
+#UBOUND     Wing:globalTwist                 3.0
+
+# wing and tail locations, normalized based on fuselage dimensions
+SET        Wing:fuselageSec:halfSpanNorm    1.025561
+SET        Wing:fuselageSec:c4rootXnorm     0.358176
+SET        Wing:fuselageSec:c4rootZnorm    -0.304806
+
+# c/4 dihedral angles [deg]
+SET        Wing:fuselageSec:c4hedral        0 #3.457948
+SET        Wing:inboardSec:c4hedral         0 #1.470709
+SET        Wing:outboardSec:c4hedral        0.000000
+
+# choose how many VLM strips are used for lofi aero
+SET        Wing:fuselageSec:VLM_strips      1
+SET        Wing:inboardSec:VLM_strips       1
+SET        Wing:outboardSec:VLM_strips      1
+
+END

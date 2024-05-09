@@ -1,0 +1,32 @@
+#
+IDIR  = $(ESP_ROOT)\include
+!include $(IDIR)\$(ESP_ARCH).$(MSVC)
+LDIR  = $(ESP_ROOT)\lib
+!IFDEF ESP_BLOC
+ODIR  = $(ESP_BLOC)\obj
+TDIR  = $(ESP_BLOC)\test
+!ELSE
+ODIR  = .
+TDIR  = $(ESP_ROOT)\bin
+!ENDIF
+
+
+$(LDIR)\cbaeroAIM.dll:	$(ODIR)\cbaeroAIM.obj $(LDIR)\aimUtil.lib \
+			$(LDIR)\utils.lib
+	-del $(LDIR)\cbaeroAIM.dll $(LDIR)\cbaeroAIM.lib $(LDIR)\cbaeroAIM.exp
+	 link /out:$(LDIR)\cbaeroAIM.dll /dll /def:cbaeroAIM.def \
+		$(ODIR)\cbaeroAIM.obj /LIBPATH:$(LDIR) utils.lib aimUtil.lib \
+		ocsm.lib egads.lib udunits2.lib
+	$(MCOMP) /manifest $(LDIR)\cbaeroAIM.dll.manifest \
+		/outputresource:$(LDIR)\cbaeroAIM.dll;2
+
+$(ODIR)\cbaeroAIM.obj:	cbaeroAIM.c $(IDIR)\capsTypes.h ..\utils\meshUtils.h
+	cl /c $(COPTS) $(DEFINE) /I$(IDIR) /I..\utils /I..\meshWriter\fastWriter \
+		cbaeroAIM.c /Fo$(ODIR)\cbaeroAIM.obj
+
+
+clean:
+	-del $(ODIR)\cbaeroAIM.obj
+
+cleanall:	clean
+	-del $(LDIR)\cbaeroAIM.dll $(LDIR)\cbaeroAIM.lib $(LDIR)\cbaeroAIM.exp

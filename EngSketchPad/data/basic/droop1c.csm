@@ -4,9 +4,7 @@
 UDPRIM    $$/diamond   thick  0.12
 
 # droop trailing edge down
-UDPRIM    droop     xte  0.75   thetate  -10.0
+UDPARG    droop     xte  0.75   thetate  -30.0
+UDPRIM    droop
 
-SELECT    FACE   6  0  1
-ASSERT    @sellist.size 1
-
-end
+END

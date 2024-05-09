@@ -144,6 +144,8 @@ patbeg  foo  makeMSA
    rotatex   90        0         0
    scale     ctip_w
    translate xtip_w    +ytip_w   ztip_w
+   # note: LOFT has been deprecated and is included here for backward-compatability testing
+   #       new .csm files should use RULE or BLEND instead
    loft 0
 
    # required for union to work when going from OpenCASCADE 6.5.2 to 6.6.0
@@ -174,6 +176,8 @@ patbeg  foo  makeMSA
    rotatex   90        0         0
    scale     ctip_h
    translate xtip_h    ytip_h    ztip_h
+   # note: LOFT has been deprecated and is included here for backward-compatability testing
+   #       new .csm files should use RULE or BLEND instead
    loft 0
    attribute htailMSA  0
 
@@ -190,6 +194,8 @@ patbeg  foo  makeMSA
    udprim    naca      Series    camber
    scale     ctip_v
    translate xtip_v    0         ztip_v
+   # note: LOFT has been deprecated and is included here for backward-compatability testing
+   #       new .csm files should use RULE or BLEND instead
    loft 0
    attribute vtailMSA  0
 
@@ -208,6 +214,8 @@ patbeg  foo  ifpos(makeOML+makeSSM+makeBEM,1,0)
        udprim ellipse  ry abs(ymin_fO[i,1]) rz (zmax_fO[i,1]-zmin_fO[i,1])/2
        translate       x_fO[i,1] 0 (zmax_fO[i,1]+zmin_fO[i,1])/2
    patend
+   # note: LOFT has been deprecated and is included here for backward-compatability testing
+   #       new .csm files should use RULE or BLEND instead
    loft 0
    attribute fuselageOML 0
 
@@ -217,6 +225,8 @@ patbeg  foo  ifpos(makeOML+makeSSM+makeBEM,1,0)
        udprim ellipse  ry abs(ymin_pO[i,1]) rz (zmax_pO[i,1]-zmin_pO[i,1])/2
        translate       x_pO[i,1] 0 (zmax_pO[i,1]+zmin_pO[i,1])/2
    patend
+   # note: LOFT has been deprecated and is included here for backward-compatability testing
+   #       new .csm files should use RULE or BLEND instead
    loft 0
    attribute propulsionOML 0
 
@@ -253,6 +263,8 @@ patbeg  foo  ifpos(makeOML+makeSSM+makeBEM,1,0)
    rotatex   90        0         0
    scale     ctip_w
    translate xtip_w    +ytip_w   ztip_w
+   # note: LOFT has been deprecated and is included here for backward-compatability testing
+   #       new .csm files should use RULE or BLEND instead
    loft 0
 
    # required for union to work when going from OpenCASCADE 6.5.2 to 6.6.0
@@ -281,6 +293,8 @@ patbeg  foo  ifpos(makeOML+makeSSM+makeBEM,1,0)
    rotatex   90        0         0
    scale     ctip_h
    translate xtip_h    ytip_h    ztip_h
+   # note: LOFT has been deprecated and is included here for backward-compatability testing
+   #       new .csm files should use RULE or BLEND instead
    loft 0
    attribute htailOML  0
 
@@ -295,6 +309,8 @@ patbeg  foo  ifpos(makeOML+makeSSM+makeBEM,1,0)
    udprim    naca      Series    series_v
    scale     ctip_v
    translate xtip_v    0         ztip_v
+   # note: LOFT has been deprecated and is included here for backward-compatability testing
+   #       new .csm files should use RULE or BLEND instead
    loft 0
    attribute vtailOML  0
 
@@ -306,6 +322,8 @@ patbeg  foo  ifpos(makeOML+makeSSM+makeBEM,1,0)
        udprim ellipse  ry abs(ymin_fI[i,1]) rz (zmax_fI[i,1]-zmin_fI[i,1])/2
        translate       x_fI[i,1] 0 (zmax_fI[i,1]+zmin_fI[i,1])/2
    patend
+   # note: LOFT has been deprecated and is included here for backward-compatability testing
+   #       new .csm files should use RULE or BLEND instead
    loft 0
    attribute cockpit 0
 
@@ -317,6 +335,8 @@ patbeg  foo  ifpos(makeOML+makeSSM+makeBEM,1,0)
        udprim ellipse  ry abs(ymin_pI[i,1]) rz (zmax_pI[i,1]-zmin_pI[i,1])/2
        translate       x_pI[i,1] 0 (zmax_pI[i,1]+zmin_pI[i,1])/2
    patend
+   # note: LOFT has been deprecated and is included here for backward-compatability testing
+   #       new .csm files should use RULE or BLEND instead
    loft 0
    attribute propulsionIML 0
 

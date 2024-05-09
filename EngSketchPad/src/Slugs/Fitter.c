@@ -14,7 +14,7 @@
  */
 
 /*
- * Copyright (C) 2012/2022  John F. Dannenhoffer, III (Syracuse University)
+ * Copyright (C) 2012/2023  John F. Dannenhoffer, III (Syracuse University)
  *
  * This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
@@ -41,6 +41,8 @@
 
 #include "Fitter.h"
 
+#include "egads.h"
+
 #define  EPS06      1.0e-06
 #define  EPS10      1.0e-10
 #define  EPS12      1.0e-12
@@ -57,6 +59,8 @@
     #include "grafic.h"
 #endif
 
+#define MAKE_NORMALS_PLOTFILE   0
+
 /*
  ************************************************************************
  *                                                                      *
@@ -66,6 +70,7 @@
  */
 
 typedef struct {
+    int       iedge;          /* Edge index */
     int       bitflag;        /* 1=ordered, 2=uPeriodic, 8=intGiven */
 
     int       m;              /* number of points in cloud */
@@ -75,10 +80,13 @@ typedef struct {
     int       n;              /* number of control points */
     double    *cp;            /* array  of control points (normalized) */
     double    *srat;          /* stretching ratio between initial cp's */
+    double    *norm;          /* normal direction */
     double    *f;             /* objective function components:
                                  3*(m)   distances between cloud and surface
                                 +3*(n-2) relative smoothness measure */
 
+    int       rtype;          /* restriction type (1-x, 2=y, 3=z) */
+    int       nsmth;          /* number of post-smoothing passes */
     int       iter;           /* number of iterations so far */
     double    lambda;         /* LM switching parameter */
 
@@ -91,6 +99,7 @@ typedef struct {
 } fit1d_T;
 
 typedef struct {
+    int       iface;          /* Face index */
     int       bitflag;        /* 2=uPeriodic, 4=vPeriodic, 8=intGiven */
 
     int       m;              /* number of points in cloud */
@@ -100,10 +109,13 @@ typedef struct {
     int       nu;             /* number of control points in u direction */
     int       nv;             /* number of control points in v direction */
     double    *cp;            /* array  of control points */
+    double    *norm;          /* array  of initial normals */
     double    *f;             /* objective function components:
                                  3*(m)           distances between cloud and surface
                                 +3*(nu-2)*(nv-2) relative smoothness measure */
 
+    int       rtype;          /* restriction type (1=x, 2=y, 3=z) */
+    int       nsmth;          /* number of post-smoothing passes */
     int       iter;           /* number of iterations so far */
     double    lambda;         /* LM switching parameter */
 
@@ -190,6 +202,7 @@ static int    cubicBsplineBases(int ncp, double t, double N[], double dN[]);
 static int    interp1d(double T, int ntab, double Ttab[], double XYZtab[], double XYZ[]);
 static double L2norm(double f[], int n);
 static double Linorm(double f[], int n);
+static int    fitPlane(double xyz[], int n, double *a, double *b, double *c, double *d);
 static int    matsol(double A[], double b[], int n, double x[]);
 
 #ifdef GRAFIC
@@ -208,35 +221,42 @@ static int    matsol(double A[], double b[], int n, double x[]);
  ************************************************************************
  */
 int
-fit1dCloud(int    m,                    /* (in)  number of points in cloud */
+fit1dCloud(int    iedge,                /* (in)  Edge index */
+           int    m,                    /* (in)  number of points in cloud */
            int    bitflag,              /* (in)  1=ordered, 2=uPeriodic, 8=intGiven */
            double XYZcloud[],           /* (in)  array  of points in cloud (x,y,z,x,... ) */
            int    n,                    /* (in)  number of control points */
            double cp[],                 /* (in)  array  of control points (first and last are set) */
                                         /* (out) array  of control points (all set) */
            double smooth,               /* (in)  initial control net smoothing */
+           int    rtype,                /* (in)  restriction type (1=x, 2=y, 3=z) */
+           int    nsmth,                /* (in)  number of post-smoothing passes */
            double Tcloud[],             /* (out) T-parameters of points in cloud */
            double *normf,               /* (out) RMS of distances between cloud and fit */
            double *maxf,                /* (out) maximum distance between cloud and fit */
- /*@null@*/double *dotmin,              /* (out) minimum normalized dot product of control polygon */
+           double *dotmin,              /* (in)  minimum allowable normalized dot product of control polygon */
+                                        /* (out) minimum actual    normalized dot product of control polygon */
  /*@null@*/int    *nmin,                /* (out) minimum number of cloud points in any interval */
-           int    *numiter,             /* (in)  if >0, number of iterations allowed */
+           int    *numiter,             /* (in)  if >=0, number of iterations allowed */
                                         /* (out) number of iterations executed */
  /*@null@*/FILE   *fp)                  /* (in)  file for progress outputs (or NULL) */
 {
     int    status = FIT_SUCCESS;        /* (out)  return status */
 
-    int    iter, accept, niter=100;
-    double old_normf, old_maxf, toler=EPS06;
+    int    j, iter, accept, niter=100, ismth;
+    double old_normf, old_maxf, dotallow, toler=EPS06;
+    double xavg, yavg, zavg, *cpsmth=NULL;
 
-    void    *myContext;
+    void    *myFit1d;
+    fit1d_T *fit1d;
 
     ROUTINE(fit1dCloud);
 
     /* --------------------------------------------------------------- */
 
     if (fp != NULL) {
-        fprintf(fp, "enter fit1dCloud(bitflag=%d, m=%d, n=%d)\n", bitflag, m, n);
+        fprintf(fp, "enter fit1dCloud(iedge=%d, bitflag=%d, m=%d, n=%d, smooth=%f, rtype=%d, nsmth=%d)\n",
+                iedge, bitflag, m, n, smooth, rtype, nsmth);
     }
 
     if (m <= 1 || XYZcloud == NULL) {
@@ -250,20 +270,31 @@ fit1dCloud(int    m,                    /* (in)  number of points in cloud */
         goto cleanup;
     }
 
-    if (*numiter > 0) {
+    if (*numiter >= 0) {
         niter = *numiter;
     }
 
     /* default returns */
     *normf   = EPS12;
     *maxf    = 0;
-    if (dotmin != NULL) *dotmin = -1;
     if (nmin   != NULL) *nmin   = -1;
     *numiter = 0;
 
+    /* minimum allowable normalized dot product */
+    if (m >= 3) {
+        dotallow = *dotmin;
+    } else {
+        dotallow = 0;
+        *dotmin  = 1;
+    }
+
     /* initialize */
-    status = fit1d_init(m, bitflag, smooth, XYZcloud, n, cp, fp, normf, maxf, &myContext);
+    status = fit1d_init(m, bitflag, smooth, XYZcloud, n, cp, rtype, fp, normf, maxf, &myFit1d);
     CHECK_STATUS(fit1d_init);
+
+    fit1d = (fit1d_T *)myFit1d;
+    fit1d->iedge = iedge;
+    fit1d->nsmth = nsmth;
 
     /* Levenberg-Marquardt iterations (if not satisfied with initial guess) */
     if (*normf > toler) {
@@ -272,8 +303,9 @@ fit1dCloud(int    m,                    /* (in)  number of points in cloud */
 
             old_normf = *normf;
             old_maxf  = *maxf;
+            *dotmin   = dotallow;
 
-            status = fit1d_step(myContext, smooth, normf, maxf, &accept);
+            status = fit1d_step(myFit1d, smooth, normf, maxf, dotmin, &accept);
             CHECK_STATUS(fit1d_step);
 
             /* check for convergence */
@@ -293,9 +325,68 @@ fit1dCloud(int    m,                    /* (in)  number of points in cloud */
         }
     }
 
+    if (DEBUG) {
+        FILE *fp_plot;
+        fp_plot = fopen("slugs.plot", "a");
+        if (fp_plot != NULL) {
+            fprintf(fp_plot, " %9d %9d edge_%d|c\n", n, 1, iedge);
+            for (j = 0; j < n; j++) {
+                fprintf(fp_plot, "%12.6f %12.6f %12.6f\n",
+                        fit1d->scale * fit1d->cp[3*j  ] + fit1d->xavg,
+                        fit1d->scale * fit1d->cp[3*j+1] + fit1d->yavg,
+                        fit1d->scale * fit1d->cp[3*j+2] + fit1d->zavg);
+            }
+
+            fprintf(fp_plot, " %9d %9d norm_%d|g\n", 2, 1, iedge);
+
+            xavg = 0;
+            yavg = 0;
+            zavg = 0;
+
+            for (j = 0; j < m; j++) {
+                xavg += XYZcloud[3*j  ];
+                yavg += XYZcloud[3*j+1];
+                zavg += XYZcloud[3*j+2];
+            }
+
+            xavg = (xavg/m);
+            yavg = (yavg/m);
+            zavg = (zavg/m);
+
+            fprintf(fp_plot, "%12.6f %12.6f %12.6f  %12.6f %12.6f %12.6f\n",
+                    xavg, yavg, zavg, xavg+fit1d->norm[0], yavg+fit1d->norm[1], zavg+fit1d->norm[2]);
+            fclose(fp_plot);
+        }
+    }
+
     /* compute outputs, statistics, and clean up */
-    status = fit1d_done(myContext, Tcloud, cp, normf, maxf, dotmin, nmin);
+    status = fit1d_done(myFit1d, Tcloud, cp, normf, maxf, nmin);
     CHECK_STATUS(fit1d_done);
+
+    /* smooth the control polygon */
+    MALLOC(cpsmth, double, 3*n);
+
+    for (ismth = 0; ismth < nsmth; ismth++) {
+        printf("                 iedge %3d smoothing pass %2d\n", iedge, ismth);
+        for (j = 1; j < n-1; j++) {
+            cpsmth[3*(j)  ] = ( cp[3*(j-1)  ]
+                              + cp[3*(j+1)  ]) / 2;
+            cpsmth[3*(j)+1] = ( cp[3*(j-1)+1]
+                              + cp[3*(j+1)+1]) / 2;
+            cpsmth[3*(j)+2] = ( cp[3*(j-1)+2]
+                              + cp[3*(j+1)+2]) / 2;
+        }
+        for (j = 1; j < n-1; j++) {
+            cp[3*(j)  ] = ( cp[    3*(j)  ]
+                          + cpsmth[3*(j)  ]) / 2;
+            cp[3*(j)+1] = ( cp[    3*(j)+1]
+                          + cpsmth[3*(j)+1]) / 2;
+            cp[3*(j)+2] = ( cp[    3*(j)+2]
+                          + cpsmth[3*(j)+2]) / 2;
+        }
+    }
+
+    FREE(cpsmth);
 
 cleanup:
     return status;
@@ -316,6 +407,7 @@ fit1d_init(int     m,                   /* (in)  number of points in cloud */
            double  XYZcloud[],          /* (in)  array  of points in cloud (x,y,z,x,...) */
            int     n,                   /* (in)  number of control points */
            double  cp[],                /* (in)  array  of control points (first and last set) */
+           int     rtype,               /* (in)  restriction type (1=x, 2=y, 3=z) */
  /*@null@*/FILE    *fp,                 /* (in)  file pointer for progress prints */
            double  *normf,              /* (out) initil RMS between cloud and fit */
            double  *maxf,               /* (out) maximum distance between cloud and fit */
@@ -323,11 +415,12 @@ fit1d_init(int     m,                   /* (in)  number of points in cloud */
 {
     int    status = FIT_SUCCESS;        /* (out)  return status */
 
-    int    ordered=0, uPeriodic=0, intGiven=0;
+    int    ordered=0, uPeriodic=0, intGiven=0, nchange=1;
     int    nobj, j, k;
     double frac, xmin, xmax, ymin, ymax, zmin, zmax, del1, del2;
-    double dbest, dtest, v0[3], v1[3], dot;
+    double dbest, dtest, v0[3], v1[3], dot, a, b, c, d, worst;
     double xa, ya, za, xb, yb, zb, tt, xx, yy, zz;
+    double dx0, dy0, dz0, dx1, dy1, dz1, ddotn, len0, len1, dotallow=0;
 
     fit1d_T *fit1d=NULL;
 
@@ -364,6 +457,7 @@ fit1d_init(int     m,                   /* (in)  number of points in cloud */
     fit1d->n        = n;
     fit1d->cp       = NULL;
     fit1d->srat     = NULL;
+    fit1d->norm     = NULL;
     fit1d->f        = NULL;
 
     MALLOC(fit1d->XYZcloud, double, 3*fit1d->m);
@@ -371,8 +465,11 @@ fit1d_init(int     m,                   /* (in)  number of points in cloud */
 
     MALLOC(fit1d->cp,   double,            3*fit1d->n  );
     MALLOC(fit1d->srat, double,              fit1d->n  );
+    MALLOC(fit1d->norm, double,            3           );
     MALLOC(fit1d->f,    double, 3*fit1d->m+3*fit1d->n-6);
 
+    fit1d->rtype    = rtype;
+    fit1d->nsmth    = 0;
     fit1d->iter     = 0;
     fit1d->lambda   = 1;
 
@@ -596,6 +693,80 @@ fit1d_init(int     m,                   /* (in)  number of points in cloud */
         }
     }
 
+    /* find best-fit plane to the data */
+    if (fit1d->m >= 3) {
+        status = fitPlane(fit1d->XYZcloud, fit1d->m, &a, &b, &c, &d);
+        CHECK_STATUS(fit1d);
+
+        if        (fabs(a) >= fabs(b) && fabs(a) >= fabs(c)) {
+            fit1d->norm[0] = 1;
+            fit1d->norm[1] = b / a;
+            fit1d->norm[2] = c / a;
+        } else if (fabs(b) >= fabs(c) && fabs(b) >= fabs(a)) {
+            fit1d->norm[0] = a / b;
+            fit1d->norm[1] = 1;
+            fit1d->norm[2] = c / b;
+        } else {
+            fit1d->norm[0] = a / c;
+            fit1d->norm[1] = b / c;
+            fit1d->norm[2] = 1;
+        }
+    } else {
+        fit1d->norm[0] = 0;
+        fit1d->norm[1] = 0;
+        fit1d->norm[2] = 1;
+    }
+
+    if (DEBUG) {
+        printf("norm=%12.6f, %12.6f, %12.6f\n",
+               fit1d->norm[0],
+               fit1d->norm[1],
+               fit1d->norm[2]);
+    }
+
+    /* make sure initial control net does not have any very acute angles */
+    while (nchange > 0) {
+        nchange = 0;
+        worst   = 1;
+
+        for (j = 1; j < fit1d->n-1; j++) {
+            dx0 = fit1d->cp[3*j  ] - fit1d->cp[3*j-3];
+            dy0 = fit1d->cp[3*j+1] - fit1d->cp[3*j-2];
+            dz0 = fit1d->cp[3*j+2] - fit1d->cp[3*j-1];
+
+            ddotn = dx0 * fit1d->norm[0] + dy0 * fit1d->norm[1] + dz0 * fit1d->norm[2];
+            dx0  -= ddotn * fit1d->norm[0];
+            dy0  -= ddotn * fit1d->norm[1];
+            dz0  -= ddotn * fit1d->norm[2];
+
+            dx1 = fit1d->cp[3*j+3] - fit1d->cp[3*j  ];
+            dy1 = fit1d->cp[3*j+4] - fit1d->cp[3*j+1];
+            dz1 = fit1d->cp[3*j+5] - fit1d->cp[3*j+2];
+
+            ddotn = dx1 * fit1d->norm[0] + dy1 * fit1d->norm[1] + dz1 * fit1d->norm[2];
+            dx1  -= ddotn * fit1d->norm[0];
+            dy1  -= ddotn * fit1d->norm[1];
+            dz1  -= ddotn * fit1d->norm[2];
+
+            len0 = sqrt(dx0 * dx0 + dy0 * dy0 + dz0 * dz0);
+            len1 = sqrt(dx1 * dx1 + dy1 * dy1 + dz1 * dz1);
+
+            if (len0 < EPS12 || len1 < EPS12) {
+                printf("j=%2d, len0=%12.4e, len1=%12.4e\n", j, len0, len1);
+            } else {
+                dot = (dx0 * dx1 + dy0 * dy1 + dz0 * dz1) / len0 / len1;
+
+                worst = MIN(worst, dot);
+                if (dot < dotallow) {
+                    fit1d->cp[3*j  ] = (fit1d->cp[3*j-3] + 2 * fit1d->cp[3*j  ] + fit1d->cp[3*j+3]) / 4;
+                    fit1d->cp[3*j+1] = (fit1d->cp[3*j-2] + 2 * fit1d->cp[3*j+1] + fit1d->cp[3*j+4]) / 4;
+                    fit1d->cp[3*j+2] = (fit1d->cp[3*j-1] + 2 * fit1d->cp[3*j+2] + fit1d->cp[3*j+5]) / 4;
+                    nchange++;
+                }
+            }
+        }
+    }
+
     /* compute the initial objective function */
     status = fit1d_objf(fit1d, smooth, fit1d->Tcloud, fit1d->cp, fit1d->srat, fit1d->f);
     CHECK_STATUS(fit1d_objf);
@@ -616,6 +787,7 @@ cleanup:
         FREE(fit1d->Tcloud  );
         FREE(fit1d->cp      );
         FREE(fit1d->srat    );
+        FREE(fit1d->norm    );
         FREE(fit1d->f       );
 
         FREE(fit1d);
@@ -637,6 +809,8 @@ fit1d_step(void    *context,            /* (in)  context */
            double  smooth,              /* (in)  control net smoothing parameter */
            double  *normf,              /* (out) RMS of distances between cloud and fit */
            double  *maxf,               /* (out) maximum distance between cloud and fit */
+           double  *dotmin,             /* (in)  minimum allowable normalized dot product of control polygon */
+                                        /* (out) minimum actual    normalized dot product of control polygon */
            int     *accept)             /* (out) =1 if step was accepted */
 {
     int    status = FIT_SUCCESS;        /* (out)  return status */
@@ -644,7 +818,7 @@ fit1d_step(void    *context,            /* (in)  context */
     int    nvar, ivar, jvar, nobj, iobj, i, j, k, next, uPeriodic=0;
 
     double normfnew, maxfnew, tempw3=0, tempw2=0, tempw1=0, tempc, tempe1, tempe2, tempe3;
-    double delta0, delta1, delta2;
+    double delta0, delta1, delta2, dotallow, dx0, dy0, dz0, dx1, dy1, dz1, ddotn, len0, len1, dot;
     double XYZ[3], dXYZdT[3], *dXYZdP=NULL;
     double *cpnew=NULL, *beta=NULL, *betanew=NULL, *delta=NULL;
     double *fnew=NULL;
@@ -666,6 +840,7 @@ fit1d_step(void    *context,            /* (in)  context */
 
     *accept = 0;
 
+    /* note: first 5 iterations only adjust U */
     (fit1d->iter)++;
 
     /* number of design variables, objectives, and interior control points*3 */
@@ -695,6 +870,10 @@ fit1d_step(void    *context,            /* (in)  context */
         beta[next++] = fit1d->cp[3*j+2];
     }
     assert(next == nvar);
+
+    /* minimum allowable dot product */
+    dotallow = *dotmin;
+    *dotmin  = 1;
 
     /*
           trans(J) * J =  [   A      B ]      trans(J) * Q =  [ D ]
@@ -946,6 +1125,54 @@ fit1d_step(void    *context,            /* (in)  context */
     }
     assert (next == nvar);
 
+    /* reject changes if it exceeds the allowable minimum
+       normalized dot product or if control points get too
+       close to each other */
+    for (j = 0; j < fit1d->n; j++) {
+        if (j == 0 || j == fit1d->n-1) {
+            continue;
+        } else if (fit1d->iter <= 5) {
+            continue;
+        } else {
+            dx0 = cpnew[3*j  ] - cpnew[3*j-3];
+            dy0 = cpnew[3*j+1] - cpnew[3*j-2];
+            dz0 = cpnew[3*j+2] - cpnew[3*j-1];
+
+            ddotn = dx0 * fit1d->norm[0] + dy0 * fit1d->norm[1] + dz0 * fit1d->norm[2];
+            dx0  -= ddotn * fit1d->norm[0];
+            dy0  -= ddotn * fit1d->norm[1];
+            dz0  -= ddotn * fit1d->norm[2];
+
+            dx1 = cpnew[3*j+3] - cpnew[3*j  ];
+            dy1 = cpnew[3*j+4] - cpnew[3*j+1];
+            dz1 = cpnew[3*j+5] - cpnew[3*j+2];
+
+            ddotn = dx1 * fit1d->norm[0] + dy1 * fit1d->norm[1] + dz1 * fit1d->norm[2];
+            dx1  -= ddotn * fit1d->norm[0];
+            dy1  -= ddotn * fit1d->norm[1];
+            dz1  -= ddotn * fit1d->norm[2];
+
+            len0 = sqrt(dx0 * dx0 + dy0 * dy0 + dz0 * dz0);
+            len1 = sqrt(dx1 * dx1 + dy1 * dy1 + dz1 * dz1);
+
+            if (len0 < EPS12 || len1 < EPS12) {
+                cpnew[3*j  ] = fit1d->cp[3*j  ];
+                cpnew[3*j+1] = fit1d->cp[3*j+1];
+                cpnew[3*j+2] = fit1d->cp[3*j+2];
+                continue;
+            }
+
+            dot = (dx0 * dx1 + dy0 * dy1 + dz0 * dz1) / len0 / len1;
+            if (dot < dotallow) {
+                cpnew[3*j  ] = fit1d->cp[3*j  ];
+                cpnew[3*j+1] = fit1d->cp[3*j+1];
+                cpnew[3*j+2] = fit1d->cp[3*j+2];
+            } else {
+                *dotmin = MIN(*dotmin, dot);
+            }
+        }
+    }
+
     /* apply periodicity condition by making sure first and last
        intervals are the same */
 #ifndef __clang_analyzer__
@@ -973,7 +1200,7 @@ fit1d_step(void    *context,            /* (in)  context */
     maxfnew  = Linorm(fnew, 3*fit1d->m);
     normfnew = L2norm(fnew, nobj) / sqrt(nobj);
     if (fit1d->iter%10 == 0 && fit1d->fp != NULL) {
-        fprintf(fit1d->fp, "iter=%4d normf=%10.4e, maxf=%10.4e  ", fit1d->iter, normfnew, maxfnew);
+        fprintf(fit1d->fp, "iter=%4d normf=%10.4e, maxf=%10.4e, dotmin=%7.4f  ", fit1d->iter, normfnew, maxfnew, *dotmin);
     }
 
     /* if this was a better step, accept it and decrease
@@ -1047,14 +1274,12 @@ fit1d_done(void    *context,            /* (in)  context */
            double  cp[],                /* (out) array of control points */
            double  *normf,              /* (out) RMS of distances between cloud and fit */
            double  *maxf,               /* (out) maximum distance between cloud and fit */
- /*@null@*/double  *dotmin,             /* (out) minimum normalized dot product of control polygon (or NULL) */
  /*@null@*/int     *nmin)               /* (out) minimum number of cloud points in any interval (or NULL) */
 {
     int    status = FIT_SUCCESS;        /* (out)  return status */
 
     int    j, k;
     int    *nper=NULL;
-    double dx0, dy0, dz0, dx1, dy1, dz1, dtest;
 
     fit1d_T *fit1d = (fit1d_T *) context;
 
@@ -1085,28 +1310,6 @@ fit1d_done(void    *context,            /* (in)  context */
         }
     }
 
-    /* find the smallest included angle in control points */
-    if (dotmin != NULL) {
-        *dotmin = 1;
-        for (j = 1; j < fit1d->n-1; j++) {
-            dx0 = fit1d->cp[3*j  ] - fit1d->cp[3*j-3];
-            dy0 = fit1d->cp[3*j+1] - fit1d->cp[3*j-2];
-            dz0 = fit1d->cp[3*j+2] - fit1d->cp[3*j-1];
-
-            dx1 = fit1d->cp[3*j+3] - fit1d->cp[3*j  ];
-            dy1 = fit1d->cp[3*j+4] - fit1d->cp[3*j+1];
-            dz1 = fit1d->cp[3*j+5] - fit1d->cp[3*j+2];
-
-            dtest =   (dx0 * dx1 + dy0 * dy1 + dz0 * dz1)
-                / sqrt(dx0 * dx0 + dy0 * dy0 + dz0 * dz0)
-                / sqrt(dx1 * dx1 + dy1 * dy1 + dz1 * dz1);
-
-            if (dtest < *dotmin) {
-                *dotmin = dtest;
-            }
-        }
-    }
-
     /* extract the T parameters from the structure */
     for (k = 0; k < fit1d->m; k++) {
         Tcloud[k] = fit1d->Tcloud[k];
@@ -1119,6 +1322,8 @@ fit1d_done(void    *context,            /* (in)  context */
         cp[3*j+2] = fit1d->scale * fit1d->cp[3*j+2] + fit1d->zavg;
     }
 
+    /* print the dot products on the interior of the control net */
+
     /* return the norm of the error (un-normlized) */
     *normf *= fit1d->scale;
     *maxf  *= fit1d->scale;
@@ -1128,6 +1333,7 @@ fit1d_done(void    *context,            /* (in)  context */
     FREE(fit1d->Tcloud  );
     FREE(fit1d->cp      );
     FREE(fit1d->srat    );
+    FREE(fit1d->norm    );
     FREE(fit1d->f       );
 
     FREE(fit1d);
@@ -1193,35 +1399,45 @@ cleanup:
  ************************************************************************
  */
 int
-fit2dCloud(int    m,                    /* (in)  number of points in cloud */
+fit2dCloud(int    iface,                /* (in)  Face index */
+           int    m,                    /* (in)  number of points in cloud */
            int    bitflag,              /* (in)  2=uPeriodic, 4=vPeriodic, 8=intGiven */
            double XYZcloud[],           /* (in)  array  of points in cloud (x,y,z,x,...) */
            int    nu,                   /* (in)  number of control points in U direction */
            int    nv,                   /* (in)  number of control points in V direction */
            double cp[],                 /* (in)  array  of control points (boundaries set) */
                                         /* (out) array  of control points (all set) */
-           double smooth,               /* (in)  initial control net smoothing prmeter */
-           double UVcloud[],            /* (out) UV-parameters  of points in cloud (u,v,u,...) */
+           double smooth,               /* (in)  initial control net smoothing parameter */
+           int    rtype,                /* (in)  restriction type (1=x, 2=y, 3=z) */
+           int    nsmth,                /* (in)  number of post-smoothing passes */
+           double UVcloud[],            /* (out) UV-parameters of points in cloud (u,v,u,...) */
            double *normf,               /* (out) RMS of distances between cloud and fit */
            double *maxf,                /* (out) maximum distance between cloud and fit */
+           double *dotmin,              /* (in)  minimum allowable normalized dot product of control polygon */
+                                        /* (out) minimum actual    normalized dot product of control polygon */
  /*@null@*/int    *nmin,                /* (out) minimum number of cloud points in any interval */
-           int    *numiter,             /* (in)  if >0, number of iterations allowed */
+           int    *numiter,             /* (in)  if >=0, number of iterations allowed */
                                         /* (out) number of iterations executed */
  /*@null@*/FILE   *fp)                  /* (in)  file for progress outputs (or NULL) */
 {
     int    status = FIT_SUCCESS;        /* (out)  return status */
 
-    int    iter, accept, niter=100;
-    double old_normf, old_maxf, toler=EPS06;
+    int    i, j, iter, accept, niter=100, ismth;
+    double old_normf, old_maxf, dotallow, toler=EPS06;
+    double *cpsmth=NULL;
 
-    void    *myContext;
+    fit2d_T *fit2d;
+    void    *myFit2d;
+
+#define IJ(I,J,XYZ) 3*((I)+(J)*fit2d->nu)+(XYZ)
 
     ROUTINE(fit2dCloud);
 
     /* --------------------------------------------------------------- */
 
     if (fp != NULL) {
-        fprintf(fp, "enter fit2dCloud(m=%d, bitflag=%d, nu=%d, nv=%d)\n", m, bitflag, nu, nv);
+        fprintf(fp, "enter fit2dCloud(iface=%d, m=%d, bitflag=%d, nu=%d, nv=%d, smooth=%f, rtype=%d, nsmth=%d)\n",
+                iface, m, bitflag, nu, nv, smooth, rtype, nsmth);
     }
 
     if (m <= 1 || XYZcloud == NULL) {
@@ -1235,7 +1451,7 @@ fit2dCloud(int    m,                    /* (in)  number of points in cloud */
         goto cleanup;
     }
 
-    if (*numiter > 0) {
+    if (*numiter >= 0) {
         niter = *numiter;
     }
 
@@ -1245,11 +1461,93 @@ fit2dCloud(int    m,                    /* (in)  number of points in cloud */
     if (nmin != NULL) *nmin = m;
     *numiter = 0;
 
-#define IJ(I,J,XYZ) 3*((I)+(J)*fit2d->nu)+(XYZ)
+    /* minimum allowable normalized dot product */
+    if (m >= 3) {
+        dotallow = *dotmin;
+    } else {
+        dotallow = 0;
+        *dotmin  = 1;
+    }
 
     /* initialize */
-    status = fit2d_init(m, bitflag, smooth, XYZcloud, nu, nv, cp, fp, normf, maxf, &myContext);
+    status = fit2d_init(m, bitflag, smooth, XYZcloud, nu, nv, cp, rtype, fp, normf, maxf, &myFit2d);
     CHECK_STATUS(fit2d_init);
+
+    fit2d = (fit2d_T *) myFit2d;
+    fit2d->iface = iface;
+    fit2d->nsmth = nsmth;
+
+    /* create a plotfile for the original control net and the normals */
+    if (MAKE_NORMALS_PLOTFILE) {
+        char   filename[80];
+        FILE   *fp_plot2;
+
+        snprintf(filename, 79, "normals_%d.plot", fit2d->iface);
+        fp_plot2 = fopen(filename, "w");
+
+        /* control net */
+        fprintf(fp_plot2, " %9d %9d init_%d|b", fit2d->nu, fit2d->nv, fit2d->iface);
+
+        for (j = 0; j < fit2d->nv; j++) {
+            for (i = 0; i < fit2d->nu; i++) {
+                fprintf(fp_plot2, "%15.7f %15.7f %15.7f\n",
+                        fit2d->scale * fit2d->cp[IJ(i,j,0)] + fit2d->xavg,
+                        fit2d->scale * fit2d->cp[IJ(i,j,1)] + fit2d->yavg,
+                        fit2d->scale * fit2d->cp[IJ(i,j,2)] + fit2d->zavg);
+            }
+        }
+
+        /* normals */
+        fprintf(fp_plot2, " %9d %9d tuft_%d|r\n", (fit2d->nu)*(fit2d->nv), -1, fit2d->iface);
+
+        for (j = 0; j < fit2d->nv; j++) {
+            for (i = 0; i < fit2d->nu; i++) {
+                fprintf(fp_plot2, "%15.7f %15.7f %15.7f  ",
+                        fit2d->scale * fit2d->cp[IJ(i,j,0)] + fit2d->xavg,
+                        fit2d->scale * fit2d->cp[IJ(i,j,1)] + fit2d->yavg,
+                        fit2d->scale * fit2d->cp[IJ(i,j,2)] + fit2d->zavg);
+                fprintf(fp_plot2, "%15.7f %15.7f %15.7f\n",
+                        fit2d->scale * (fit2d->cp[IJ(i,j,0)] + 0.01 * fit2d->norm[IJ(i,j,0)]) + fit2d->xavg,
+                        fit2d->scale * (fit2d->cp[IJ(i,j,1)] + 0.01 * fit2d->norm[IJ(i,j,1)]) + fit2d->yavg,
+                        fit2d->scale * (fit2d->cp[IJ(i,j,2)] + 0.01 * fit2d->norm[IJ(i,j,2)]) + fit2d->zavg);
+            }
+        }
+
+        fprintf(fp_plot2, "%9d %9d end\n", 0, 0);
+
+        fclose(fp_plot2);
+    }
+
+    if (DEBUG) {
+        int  ip0, ip1, ip2, ip3;
+        FILE *fp_plot;
+        fp_plot = fopen("slugs.plot", "a");
+        if (fp_plot != NULL) {
+            fprintf(fp_plot, " %9d %9d init_%d\n", (nu-1)*(nv-1), -4, iface);
+
+            for (j = 1; j < nv; j++) {
+                for (i = 1; i < nu; i++) {
+                    ip0 = 3 * ((i-1) + nu * (j-1));
+                    ip1 = 3 * ((i  ) + nu * (j-1));
+                    ip2 = 3 * ((i  ) + nu * (j  ));
+                    ip3 = 3 * ((i-1) + nu * (j  ));
+                    fprintf(fp_plot, "%12.6f %12.6f %12.6f %4.0f  ", fit2d->scale * fit2d->cp[ip0  ] + fit2d->xavg,
+                                                                     fit2d->scale * fit2d->cp[ip0+1] + fit2d->yavg,
+                                                                     fit2d->scale * fit2d->cp[ip0+2] + fit2d->zavg, -1.);
+                    fprintf(fp_plot, "%12.6f %12.6f %12.6f %4.0f  ", fit2d->scale * fit2d->cp[ip1  ] + fit2d->xavg,
+                                                                     fit2d->scale * fit2d->cp[ip1+1] + fit2d->yavg,
+                                                                     fit2d->scale * fit2d->cp[ip1+2] + fit2d->zavg,  0.);
+                    fprintf(fp_plot, "%12.6f %12.6f %12.6f %4.0f  ", fit2d->scale * fit2d->cp[ip2  ] + fit2d->xavg,
+                                                                     fit2d->scale * fit2d->cp[ip2+1] + fit2d->yavg,
+                                                                     fit2d->scale * fit2d->cp[ip2+2] + fit2d->zavg,  1.);
+                    fprintf(fp_plot, "%12.6f %12.6f %12.6f %4.0f\n", fit2d->scale * fit2d->cp[ip3  ] + fit2d->xavg,
+                                                                     fit2d->scale * fit2d->cp[ip3+1] + fit2d->yavg,
+                                                                     fit2d->scale * fit2d->cp[ip3+2] + fit2d->zavg,  0.);
+                }
+            }
+            fclose(fp_plot);
+        }
+    }
 
     /* Levenberg-Marquardt iterations (if not satisfied with initial guess) */
     if (*normf > toler) {
@@ -1258,8 +1556,9 @@ fit2dCloud(int    m,                    /* (in)  number of points in cloud */
 
             old_normf = *normf;
             old_maxf  = *maxf;
+            *dotmin   = dotallow;
 
-            status = fit2d_step(myContext, smooth, normf, maxf, &accept);
+            status = fit2d_step(myFit2d, smooth, normf, maxf, dotmin, &accept);
             CHECK_STATUS(fit2d_step);
 
             /* check for convergence */
@@ -1279,9 +1578,134 @@ fit2dCloud(int    m,                    /* (in)  number of points in cloud */
         }
     }
 
+    /* if rtype>0, update the uv parametric coordinates by inverse
+       evaluations (which may be slow) */
+    if (fit2d->rtype > 0) {
+        /*@-shadow@*/
+        int    ipnt;
+        int    header[7], ndata, ij, ncp=nu, periodic;
+        double *cpdata=NULL, data[18], uvrange[4];
+        double dist_old, dist_new, uvbest[2];
+        ego    context, esurf, eface;
+        int nkeep=0;
+        double data2[18];
+
+        /* new EGADS context */
+        status = EG_open(&context);
+        CHECK_STATUS(EG_open);
+
+        /* create the Surface */
+        header[0] = 0;            // bitflag
+        header[1] = 3;            // u degree
+        header[2] = ncp;          // u number of control points
+        header[3] = ncp + 4;      // u number of knots
+        header[4] = 3;            // v degree
+        header[5] = ncp;          // v number of control points
+        header[6] = ncp + 4;      // v number of knots
+
+        ndata = 2 * (ncp+4) + 3 * ncp * ncp;
+        MALLOC(cpdata, double, ndata);
+
+        ndata = 0;
+
+        /* knot vectors for u and v */
+        for (i = 0; i < 2; i++) {
+            cpdata[ndata++] = 0;
+            cpdata[ndata++] = 0;
+            cpdata[ndata++] = 0;
+            cpdata[ndata++] = 0;
+
+            for (j = 1; j < ncp-3; j++) {
+                cpdata[ndata++] = j;
+            }
+
+            cpdata[ndata++] = ncp-3;
+            cpdata[ndata++] = ncp-3;
+            cpdata[ndata++] = ncp-3;
+            cpdata[ndata++] = ncp-3;
+        }
+
+        /* control points */
+        for (ij = 0; ij < ncp*ncp; ij++) {
+            cpdata[ndata++] = fit2d->scale * fit2d->cp[3*ij  ] + fit2d->xavg;
+            cpdata[ndata++] = fit2d->scale * fit2d->cp[3*ij+1] + fit2d->yavg;
+            cpdata[ndata++] = fit2d->scale * fit2d->cp[3*ij+2] + fit2d->zavg;
+        }
+
+        status = EG_makeGeometry(context, SURFACE, BSPLINE, NULL,
+                                 header, cpdata, &esurf);
+        FREE(cpdata);
+        CHECK_STATUS(EG_makeGeometry);
+
+        (void) EG_getRange(esurf, uvrange, &periodic);
+
+        status = EG_makeFace(esurf, SFORWARD, uvrange, &eface);
+        CHECK_STATUS(EG_makeFace);
+
+        /* reassign UVcloud by inverse evaluations */
+        printf("start inverse evaluations, iface=%d\n", fit2d->iface);
+        for (ipnt = 0; ipnt < m; ipnt++) {
+            status = EG_evaluate(eface, &(fit2d->UVcloud[2*ipnt]), data2);
+            CHECK_STATUS(EG_evaluate);
+
+            dist_old = (XYZcloud[3*ipnt  ]-data2[0]) * (XYZcloud[3*ipnt  ]-data2[0])
+                     + (XYZcloud[3*ipnt+1]-data2[1]) * (XYZcloud[3*ipnt+1]-data2[1])
+                     + (XYZcloud[3*ipnt+2]-data2[2]) * (XYZcloud[3*ipnt+2]-data2[2]);
+
+            status = EG_invEvaluate(eface, &(XYZcloud[3*ipnt]), uvbest, data);
+            CHECK_STATUS(EG_invEvaluate);
+
+            dist_new = (XYZcloud[3*ipnt  ]-data[0]) * (XYZcloud[3*ipnt  ]-data[0])
+                     + (XYZcloud[3*ipnt+1]-data[1]) * (XYZcloud[3*ipnt+1]-data[1])
+                     + (XYZcloud[3*ipnt+2]-data[2]) * (XYZcloud[3*ipnt+2]-data[2]);
+
+            if (dist_new < dist_old) {
+                fit2d->UVcloud[2*ipnt  ] = uvbest[0];
+                fit2d->UVcloud[2*ipnt+1] = uvbest[1];
+            } else {
+                nkeep++;
+            }
+        }
+        printf("end inverse evaluations, iface=%d, nkeep=%d\n", fit2d->iface, nkeep);
+    }
+
     /* compute outputs, statistics, and clean up */
-    status = fit2d_done(myContext, UVcloud, cp, normf, maxf, nmin);
+    status = fit2d_done(myFit2d, UVcloud, cp, normf, maxf, nmin);
     CHECK_STATUS(fit2d_done);
+
+    /* smooth the control net */
+    MALLOC(cpsmth, double, 3*nu*nv);
+
+    for (ismth = 0; ismth < nsmth; ismth++) {
+        printf("                 iface %3d smoothing pass %2d\n", iface, ismth);
+        for (j = 1; j < nv-1; j++) {
+            for (i = 1; i < nu-1; i++) {
+                cpsmth[3*((i)+nu*(j))  ] = ( cp[3*((i-1)+nu*(j  ))  ]
+                                           + cp[3*((i+1)+nu*(j  ))  ]
+                                           + cp[3*((i  )+nu*(j-1))  ]
+                                           + cp[3*((i  )+nu*(j+1))  ]) / 4;
+                cpsmth[3*((i)+nu*(j))+1] = ( cp[3*((i-1)+nu*(j  ))+1]
+                                           + cp[3*((i+1)+nu*(j  ))+1]
+                                           + cp[3*((i  )+nu*(j-1))+1]
+                                           + cp[3*((i  )+nu*(j+1))+1]) / 4;
+                cpsmth[3*((i)+nu*(j))+2] = ( cp[3*((i-1)+nu*(j  ))+2]
+                                           + cp[3*((i+1)+nu*(j  ))+2]
+                                           + cp[3*((i  )+nu*(j-1))+2]
+                                           + cp[3*((i  )+nu*(j+1))+2]) / 4;
+            }
+        }
+        for (j = 1; j < nv-1; j++) {
+            for (i = 1; i < nu-1; i++) {
+                cp[3*((i)+nu*(j))  ] = ( cp[    3*((i)+nu*(j))  ]
+                                       + cpsmth[3*((i)+nu*(j))  ]) / 2;
+                cp[3*((i)+nu*(j))+1] = ( cp[    3*((i)+nu*(j))+1]
+                                       + cpsmth[3*((i)+nu*(j))+1]) / 2;
+                cp[3*((i)+nu*(j))+2] = ( cp[    3*((i)+nu*(j))+2]
+                                       + cpsmth[3*((i)+nu*(j))+2]) / 2;
+            }
+        }
+    }
+    FREE(cpsmth);
 
 cleanup:
     return status;
@@ -1297,12 +1721,13 @@ cleanup:
  */
 int
 fit2d_init(int     m,                   /* (in)  number of points in cloud */
-           int    bitflag,              /* (in)  2=uPeriodic, 4=vPeriodic, 8=intGiven */
+           int     bitflag,             /* (in)  2=uPeriodic, 4=vPeriodic, 8=intGiven */
            double  smooth,              /* (in)  control net smoothing parameter */
            double  XYZcloud[],          /* (in)  array  of points in cloud (x,y,z,x,...) */
            int     nu,                  /* (in)  number of control points in u direction */
            int     nv,                  /* (in)  number of control points in v direction */
            double  cp[],                /* (in)  array  of control points (with outline set) */
+           int     rtype,               /* (in)  restriction type (1=x, 2=y, 3=z) */
  /*@null@*/FILE    *fp,                 /* (in)  file pointer for progress prints */
            double  *normf,              /* (out) initial RMS between cloud and fit */
            double  *maxf,               /* (out) maximum distance between cloud and fit */
@@ -1311,9 +1736,12 @@ fit2d_init(int     m,                   /* (in)  number of points in cloud */
     int    status = FIT_SUCCESS;        /* (out)  return status */
 
     int    uPeriodic=0, vPeriodic=0, intGiven=0;
-    int    nobj, nmask, i, j, k, ivar, jvar;
+    int    nobj, nmask, i, j, k, ivar, jvar, nchange;
+    double xavg, yavg, zavg, dx, dy, dz, dotprod;
     double fraci, fracj, dbest, dtest;
     double xmin, xmax, ymin, ymax, zmin, zmax;
+    double vec1x, vec1y, vec1z, vec2x, vec2y, vec2z, vec3x, vec3y, vec3z, vec3;
+    double *temp=NULL, *normsmth=NULL;
 
     fit2d_T *fit2d=NULL;
 
@@ -1352,15 +1780,19 @@ fit2d_init(int     m,                   /* (in)  number of points in cloud */
     fit2d->nu       = nu;
     fit2d->nv       = nv;
     fit2d->cp       = NULL;
+    fit2d->norm     = NULL;
     fit2d->f        = NULL;
 
     MALLOC(fit2d->XYZcloud, double, 3*fit2d->m);
     MALLOC(fit2d->UVcloud,  double, 2*fit2d->m);
 
-    MALLOC(fit2d->cp, double,            3*fit2d->nu*fit2d->nv);
-    MALLOC(fit2d->f,  double, 3*fit2d->m+3*fit2d->nu*fit2d->nv);    /* a little too big */
+    MALLOC(fit2d->cp,    double,            3*fit2d->nu*fit2d->nv);
+    MALLOC(fit2d->norm,  double,            3*fit2d->nu*fit2d->nv);
+    MALLOC(fit2d->f,     double, 3*fit2d->m+3*fit2d->nu*fit2d->nv);    /* a little too big */
 
     fit2d->bitflag  = bitflag;
+    fit2d->rtype    = rtype;
+    fit2d->nsmth    = 0;
     fit2d->iter     = 0;
     fit2d->lambda   = 1;
 
@@ -1494,6 +1926,136 @@ fit2d_init(int     m,                   /* (in)  number of points in cloud */
         printf("\n");
     }
 
+    /* compute the normals to the original control net */
+    nchange = 1;
+    while (nchange > 0) {
+        nchange = 0;
+
+#ifndef __clang_analyzer__
+        for (j = 0; j < fit2d->nv; j++) {
+            for (i = 0; i < fit2d->nu; i++) {
+                if        (i == 0) {
+                    vec1x  = fit2d->cp[IJ(i+1,j,0)] - fit2d->cp[IJ(i  ,j,0)];
+                    vec1y  = fit2d->cp[IJ(i+1,j,1)] - fit2d->cp[IJ(i  ,j,1)];
+                    vec1z  = fit2d->cp[IJ(i+1,j,2)] - fit2d->cp[IJ(i  ,j,2)];
+                } else if (i == fit2d->nu-1) {
+                    vec1x  = fit2d->cp[IJ(i  ,j,0)] - fit2d->cp[IJ(i-1,j,0)];
+                    vec1y  = fit2d->cp[IJ(i  ,j,1)] - fit2d->cp[IJ(i-1,j,1)];
+                    vec1z  = fit2d->cp[IJ(i  ,j,2)] - fit2d->cp[IJ(i-1,j,2)];
+                } else {
+                    vec1x  = fit2d->cp[IJ(i+1,j,0)] - fit2d->cp[IJ(i-1,j,0)];
+                    vec1y  = fit2d->cp[IJ(i+1,j,1)] - fit2d->cp[IJ(i-1,j,1)];
+                    vec1z  = fit2d->cp[IJ(i+1,j,2)] - fit2d->cp[IJ(i-1,j,2)];
+                }
+
+                if        (j == 0) {
+                    vec2x  = fit2d->cp[IJ(i,j+1,0)] - fit2d->cp[IJ(i,j  ,0)];
+                    vec2y  = fit2d->cp[IJ(i,j+1,1)] - fit2d->cp[IJ(i,j  ,1)];
+                    vec2z  = fit2d->cp[IJ(i,j+1,2)] - fit2d->cp[IJ(i,j  ,2)];
+                } else if (j == fit2d->nv-1) {
+                    vec2x  = fit2d->cp[IJ(i,j  ,0)] - fit2d->cp[IJ(i,j-1,0)];
+                    vec2y  = fit2d->cp[IJ(i,j  ,1)] - fit2d->cp[IJ(i,j-1,1)];
+                    vec2z  = fit2d->cp[IJ(i,j  ,2)] - fit2d->cp[IJ(i,j-1,2)];
+                } else {
+                    vec2x  = fit2d->cp[IJ(i,j+1,0)] - fit2d->cp[IJ(i,j-1,0)];
+                    vec2y  = fit2d->cp[IJ(i,j+1,1)] - fit2d->cp[IJ(i,j-1,1)];
+                    vec2z  = fit2d->cp[IJ(i,j+1,2)] - fit2d->cp[IJ(i,j-1,2)];
+                }
+
+                vec3x = vec1y * vec2z - vec1z * vec2y;
+                vec3y = vec1z * vec2x - vec1x * vec2z;
+                vec3z = vec1x * vec2y - vec1y * vec2x;
+                vec3  = sqrt(vec3x*vec3x + vec3y*vec3y + vec3z*vec3z);
+
+                fit2d->norm[IJ(i,j,0)] = vec3x / vec3;
+                fit2d->norm[IJ(i,j,1)] = vec3y / vec3;
+                fit2d->norm[IJ(i,j,2)] = vec3z / vec3;
+            }
+        }
+#endif
+
+        /* smooth the normals */
+#ifndef __clang_analyzer__
+        MALLOC(normsmth, double, 3*fit2d->nu*fit2d->nv);
+
+        for (j = 1; j < fit2d->nv-1; j++) {
+            for (i = 1; i < fit2d->nu-1; i++) {
+                normsmth[IJ(i,j,0)] = ( fit2d->norm[IJ(i-1,j  ,0)]
+                                      + fit2d->norm[IJ(i+1,j  ,0)]
+                                      + fit2d->norm[IJ(i  ,j-1,0)]
+                                      + fit2d->norm[IJ(i  ,j+1,0)]) / 4;
+                normsmth[IJ(i,j,1)] = ( fit2d->norm[IJ(i-1,j  ,1)]
+                                      + fit2d->norm[IJ(i+1,j  ,1)]
+                                      + fit2d->norm[IJ(i  ,j-1,1)]
+                                      + fit2d->norm[IJ(i  ,j+1,1)]) / 4;
+                normsmth[IJ(i,j,2)] = ( fit2d->norm[IJ(i-1,j  ,2)]
+                                      + fit2d->norm[IJ(i+1,j  ,2)]
+                                      + fit2d->norm[IJ(i  ,j-1,2)]
+                                      + fit2d->norm[IJ(i  ,j+1,2)]) / 4;
+            }
+        }
+
+        for (j = 1; j < fit2d->nv-1; j++) {
+            for (i = 1; i < fit2d->nu-1; i++) {
+                fit2d->norm[IJ(i,j,0)] = (fit2d->norm[IJ(i,j,0)] + normsmth[IJ(i,j,0)]) / 2;
+                fit2d->norm[IJ(i,j,1)] = (fit2d->norm[IJ(i,j,1)] + normsmth[IJ(i,j,1)]) / 2;
+                fit2d->norm[IJ(i,j,2)] = (fit2d->norm[IJ(i,j,2)] + normsmth[IJ(i,j,2)]) / 2;
+            }
+        }
+
+        FREE(normsmth);
+#endif
+
+        /* bump out any control points to relieve any local concavities */
+#ifndef __clang_analyzer__
+        if (fit2d->rtype > 0) {
+            for (j = 1; j < fit2d->nv-1; j++) {
+                for (i = 1; i < fit2d->nu-1; i++) {
+                    xavg = (fit2d->cp[IJ(i-1,j,0)] + fit2d->cp[IJ(i+1,j,0)]) / 2;
+                    yavg = (fit2d->cp[IJ(i-1,j,1)] + fit2d->cp[IJ(i+1,j,1)]) / 2;
+                    zavg = (fit2d->cp[IJ(i-1,j,2)] + fit2d->cp[IJ(i+1,j,2)]) / 2;
+
+                    dx = fit2d->cp[IJ(i,j,0)] - xavg;
+                    dy = fit2d->cp[IJ(i,j,1)] - yavg;
+                    dz = fit2d->cp[IJ(i,j,2)] - zavg;
+
+                    dotprod = dx * fit2d->norm[IJ(i,j,0)]
+                            + dy * fit2d->norm[IJ(i,j,1)]
+                            + dz * fit2d->norm[IJ(i,j,2)];
+
+                    if (dotprod < -EPS06) {
+                        fit2d->cp[IJ(i,j,0)] = xavg;
+                        fit2d->cp[IJ(i,j,1)] = yavg;
+                        fit2d->cp[IJ(i,j,2)] = zavg;
+
+                        nchange++;
+                    }
+
+                    xavg = (fit2d->cp[IJ(i,j-1,0)] + fit2d->cp[IJ(i,j+1,0)]) / 2;
+                    yavg = (fit2d->cp[IJ(i,j-1,1)] + fit2d->cp[IJ(i,j+1,1)]) / 2;
+                    zavg = (fit2d->cp[IJ(i,j-1,2)] + fit2d->cp[IJ(i,j+1,2)]) / 2;
+
+                    dx = fit2d->cp[IJ(i,j,0)] - xavg;
+                    dy = fit2d->cp[IJ(i,j,1)] - yavg;
+                    dz = fit2d->cp[IJ(i,j,2)] - zavg;
+
+                    dotprod = dx * fit2d->norm[IJ(i,j,0)]
+                            + dy * fit2d->norm[IJ(i,j,1)]
+                            + dz * fit2d->norm[IJ(i,j,2)];
+
+                    if (dotprod < -EPS06) {
+                        fit2d->cp[IJ(i,j,0)] = xavg;
+                        fit2d->cp[IJ(i,j,1)] = yavg;
+                        fit2d->cp[IJ(i,j,2)] = zavg;
+
+                        nchange++;
+                    }
+                }
+            }
+        }
+#endif
+    }
+
     /* for each point in the cloud, assign the values of "u" and "v"
        that are associated with the closest interior control point.
        note: only interior control points are used since corner points
@@ -1593,10 +2155,13 @@ cleanup:
         FREE(fit2d->XYZcloud);
         FREE(fit2d->UVcloud );
         FREE(fit2d->cp      );
+        FREE(fit2d->norm    );
         FREE(fit2d->f       );
 
         FREE(fit2d);
     }
+
+    FREE(temp);
 
     return status;
 }
@@ -1614,6 +2179,8 @@ fit2d_step(void    *context,            /* (in)  context */
            double  smooth,              /* (in)  control net smoothing parameter */
            double  *normf,              /* (out) RMS of distances between cloud and fit */
            double  *maxf,               /* (out) maximum distance between cloud and fit */
+           double  *dotmin,             /* (in)  minimum allowable normalized dot product of control polygon */
+                                        /* (out) minimum actual    normalized dot product of control polygon */
            int     *accept)             /* (out) =1 if step was accepted */
 {
     int    status = FIT_SUCCESS;        /* (out)  return status */
@@ -1642,6 +2209,7 @@ fit2d_step(void    *context,            /* (in)  context */
 
     *accept = 0;
 
+    /* note: first 5 iterations only adjust U and V */
     (fit2d->iter)++;
 
     /* number of design variables and objectives */
@@ -1677,6 +2245,9 @@ fit2d_step(void    *context,            /* (in)  context */
         }
     }
     assert(next == nvar);
+
+    /* minimum allowable dot product */
+    *dotmin  = 1;
 
     /*
           trans(J) * J =  [   A      B ]      trans(J) * Q =  [ D ]
@@ -1894,6 +2465,32 @@ fit2d_step(void    *context,            /* (in)  context */
     }
     assert (next == nvar);
 
+    /* for restricted Faces, adjust or reject the proposed control point movement */
+    if (fit2d->rtype > 0) {
+        for (j = 1; j < fit2d->nv-1; j++) {
+            for (i = 1; i < fit2d->nu-1; i++) {
+                double dotprod;
+
+                dotprod = fit2d->norm[IJ(i,j,0)] * (cpnew[IJ(i,j,0)] - fit2d->cp[IJ(i,j,0)])
+                        + fit2d->norm[IJ(i,j,1)] * (cpnew[IJ(i,j,1)] - fit2d->cp[IJ(i,j,1)])
+                        + fit2d->norm[IJ(i,j,2)] * (cpnew[IJ(i,j,2)] - fit2d->cp[IJ(i,j,2)]);
+
+                /* reject changes if it causes the control polygon to become concave */
+                if (dotprod < 0) {
+                    cpnew[IJ(i,j,0)] = fit2d->cp[IJ(i,j,0)];
+                    cpnew[IJ(i,j,1)] = fit2d->cp[IJ(i,j,1)];
+                    cpnew[IJ(i,j,2)] = fit2d->cp[IJ(i,j,2)];
+
+                /* otherwise, make sure control poit movement is along local normal */
+                } else {
+                    cpnew[IJ(i,j,0)] = fit2d->cp[IJ(i,j,0)] + fit2d->norm[IJ(i,j,0)] * dotprod;
+                    cpnew[IJ(i,j,1)] = fit2d->cp[IJ(i,j,1)] + fit2d->norm[IJ(i,j,1)] * dotprod;
+                    cpnew[IJ(i,j,2)] = fit2d->cp[IJ(i,j,2)] + fit2d->norm[IJ(i,j,2)] * dotprod;
+                }
+            }
+        }
+    }
+
     /* compute the objective function based upon the new beta */
     status = fit2d_objf(fit2d, smooth, betanew, cpnew, fnew);
     CHECK_STATUS(fit2d_objf);
@@ -1901,7 +2498,7 @@ fit2d_step(void    *context,            /* (in)  context */
     maxfnew  = Linorm(fnew, 3*fit2d->m);
     normfnew = L2norm(fnew, nobj) / sqrt(nobj);
     if (fit2d->iter%10 == 0 && fit2d->fp != NULL) {
-        fprintf(fit2d->fp, "iter=%4d normf=%10.4e, maxf=%10.4e  ", fit2d->iter, normfnew, maxfnew);
+        fprintf(fit2d->fp, "iter=%4d normf=%10.4e, maxf=%10.4e, dotmin=%7.4f  ", fit2d->iter, normfnew, maxfnew, *dotmin);
     }
 
     /* if this was a better step, accept it and decrease
@@ -2046,6 +2643,7 @@ fit2d_done(void    *context,            /* (in)  context */
     FREE(fit2d->XYZcloud);
     FREE(fit2d->UVcloud );
     FREE(fit2d->cp      );
+    FREE(fit2d->norm    );
     FREE(fit2d->f       );
     FREE(fit2d->mask    );
 
@@ -2488,6 +3086,112 @@ Linorm(double f[],                      /* (in)  vector */
 /*
  ************************************************************************
  *                                                                      *
+ *   fitPlane - least-square fit a*x + b*y + c*z + d to  points         *
+ *                                                                      *
+ ************************************************************************
+ */
+
+static int
+fitPlane(double xyz[],                  /* (in)  array  of points */
+         int    n,                      /* (in)  number of points */
+         double *a,                     /* (out) x-coefficient */
+         double *b,                     /* (out) y-coefficient */
+         double *c,                     /* (out) z-coefficient */
+         double *d)                     /* (out) constant */
+{
+    int       status = FIT_SUCCESS;     /* (out) return status */
+
+    int       i;
+    double    xcent, ycent, zcent, xdet, ydet, zdet;
+    double    xx, xy, xz, yy, yz, zz;
+
+    ROUTINE(fitPlane);
+
+    /* --------------------------------------------------------------- */
+
+    /* default returns */
+    *a = 1;
+    *b = 1;
+    *c = 1;
+    *d = 0;
+
+    /* make sure we have enough points */
+    if (n < 3) {
+        printf("not enough points\n");
+        status = -999;
+        goto cleanup;
+    }
+
+    /* find the centroid of the points */
+    xcent = 0;
+    ycent = 0;
+    zcent = 0;
+
+    for (i = 0; i < n; i++) {
+        xcent += xyz[3*i  ];
+        ycent += xyz[3*i+1];
+        zcent += xyz[3*i+2];
+    }
+
+    xcent /= n;
+    ycent /= n;
+    zcent /= n;
+
+    /* compute the covarience matrix (relative to the controid) */
+    xx = 0;
+    xy = 0;
+    xz = 0;
+    yy = 0;
+    yz = 0;
+    zz = 0;
+
+    for (i = 0; i < n; i++) {
+        xx += (xyz[3*i  ] - xcent) * (xyz[3*i  ] - xcent);
+        xy += (xyz[3*i  ] - xcent) * (xyz[3*i+1] - ycent);
+        xz += (xyz[3*i  ] - xcent) * (xyz[3*i+2] - zcent);
+        yy += (xyz[3*i+1] - ycent) * (xyz[3*i+1] - ycent);
+        yz += (xyz[3*i+1] - ycent) * (xyz[3*i+2] - zcent);
+        zz += (xyz[3*i+2] - zcent) * (xyz[3*i+2] - zcent);
+    }
+
+    /* find the deteminants associated with assuming normx=1,
+       normy=1, and normz=1 */
+    xdet = yy * zz - yz * yz;
+    ydet = zz * xx - xz * xz;
+    zdet = xx * yy - xy * xy;
+
+    /* use the determinant with the best conditioning */
+    if        (fabs(xdet) >= fabs(ydet) && fabs(xdet) >= fabs(zdet)) {
+        *a = 1;
+        *b = (xz * yz - xy * zz) / xdet;
+        *c = (xy * yz - xz * yy) / xdet;
+        *d = -xcent              / xdet;
+    } else if (fabs(ydet) >= fabs(zdet) && fabs(ydet) >= fabs(xdet)) {
+        *a = (yz * xz - xy * zz) / ydet;
+        *b = 1;
+        *c = (xy * yz - yz * xx) / ydet;
+        *d = -ycent              / ydet;
+    } else if (fabs(zdet) >= 0) {
+        *a = (yz * xy - xz * yy) / zdet;
+        *b = (xz * xy - yz * xx) / zdet;
+        *c = 1;
+        *d = -zcent              / zdet;
+    } else {
+        printf("cannot find big determinant\n");
+        printf("xx=%e, xy=%e, xz=%e, yy=%e, yz=%e, zz=%e\n", xx, xy, xz, yy, yz, zz);
+        printf("xdet=%e, ydet=%e, zdet=%e\n", xdet, ydet, zdet);
+        status = -999;
+        goto cleanup;
+    }
+
+cleanup:
+    return status;
+}
+
+
+/*
+ ************************************************************************
+ *                                                                      *
  *   matsol - Gaussian elimination with partial pivoting                *
  *                                                                      *
  ************************************************************************
@@ -2582,7 +3286,8 @@ cleanup:
  */
 #ifdef GRAFIC
 int
-plotCurve(int    m,                     /* (in)  number of points in cloud */
+plotCurve(int    iedge,                 /* (in)  Edge index */
+          int    m,                     /* (in)  number of points in cloud */
           double XYZcloud[],            /* (in)  array  of points in cloud */
 /*@null@*/double Tcloud[],              /* (in)  T-parameters of points in cloud (or NULL) */
           int    n,                     /* (in)  number of control points */
@@ -2593,18 +3298,18 @@ plotCurve(int    m,                     /* (in)  number of points in cloud */
 {
     int    status = FIT_SUCCESS;        /* (out) return status */
 
-    int    indgr=1+2+4+16+64+1024, itype=0;
+    int    indgr=1+2+4+16+64+1024, ixyz=0;
     char   pltitl[255];
 
     ROUTINE(plotCurve);
 
     /* --------------------------------------------------------------- */
 
-    sprintf(pltitl, "~x~y~ m=%d,  n=%d,  normf=%.7f,  dotmin=%.4f,  nmin=%d",
-            m, n, normf, dotmin, nmin);
+    snprintf(pltitl, 254, "~x~y~ iedge=%d, m=%d, n=%d, normf=%.7f, dotmin=%7.4f, nmin=%d",
+             iedge, m, n, normf, dotmin, nmin);
 
     grctrl_(plotCurve_image, &indgr, pltitl,
-            (void*)(&itype),
+            (void*)(&ixyz),
             (void*)(&m),
             (void*)(XYZcloud),
             (void*)(Tcloud),
@@ -2631,36 +3336,37 @@ plotCurve(int    m,                     /* (in)  number of points in cloud */
  */
 #ifdef GRAFIC
 int
-plotSurface(int    m,                   /* (in)  number of points in cloud */
+plotSurface(int    iface,               /* (in)  Face index */
+            int    m,                   /* (in)  number of points in cloud */
             double XYZcloud[],          /* (in)  array  of points in cloud */
   /*@null@*/double UVcloud[],           /* (in)  UV-parameters of points in cloud (or NULL) */
             int    n,                   /* (in)  number of control points in each direction */
             double cp[],                /* (in)  array  of control points */
             double normf,               /* (in)  RMS of distances between cloud and fit */
+            double dotmin,              /* (in)  minimum normalized dot product of control polygon */
             int    nmin)                /* (in)  minimum number of cloud points in any interval */
 {
     int    status = FIT_SUCCESS;        /* (out) return status */
 
-    int    indgr=1+2+4+16+64+1024;
+    int    indgr=1+2+4+16+64+1024, ixyz=0, kcp=0, ijcp=0;
     char   pltitl[255];
 
     ROUTINE(plotSurface);
 
     /* --------------------------------------------------------------- */
 
-    sprintf(pltitl, "~x~y~ m=%d,  n=%d,  normf=%.7f,  nmin=%d",
-            m, n, normf, nmin);
+    snprintf(pltitl, 254, "~x~y~ iface=%d, i=0", iface);
 
     grctrl_(plotSurface_image, &indgr, pltitl,
+            (void*)(&iface),
+            (void*)(&ixyz),
+            (void*)(&kcp),
+            (void*)(&ijcp),
             (void*)(&m),
             (void*)(XYZcloud),
             (void*)(UVcloud),
             (void*)(&n),
             (void*)(cp),
-            (void*)NULL,
-            (void*)NULL,
-            (void*)NULL,
-            (void*)NULL,
             (void*)NULL,
             strlen(pltitl));
 
@@ -2680,7 +3386,7 @@ plotSurface(int    m,                   /* (in)  number of points in cloud */
 #ifdef GRAFIC
 static void
 plotCurve_image(int   *ifunct,
-                void  *itypeP,
+                void  *ixyzP,
                 void  *mP,
                 void  *XYZcloudP,
                 void  *TcloudP,
@@ -2694,7 +3400,7 @@ plotCurve_image(int   *ifunct,
                 char  *text,
                 int   textlen)
 {
-    int    *itype    = (int    *)itypeP;
+    int    *ixyz     = (int    *)ixyzP;
     int    *m        = (int    *)mP;
     double *XYZcloud = (double *)XYZcloudP;
     double *Tcloud   = (double *)TcloudP;
@@ -2702,12 +3408,13 @@ plotCurve_image(int   *ifunct,
     double *cp       = (double *)cpP;
 
     int    i, k, status;
-    float  x4, y4, z4;
+    float  x4, y4, z4, dum;
     double xmin, xmax, ymin, ymax, zmin, zmax;
     double TT, XYZ[3];
+    char   anot[24], lablgr[81];
 
     int    icircle = GR_CIRCLE;
-    int    istar   = GR_STAR;
+    int    iplus   = GR_PLUS;
     int    isolid  = GR_SOLID;
     int    idotted = GR_DOTTED;
     int    igreen  = GR_GREEN;
@@ -2715,48 +3422,68 @@ plotCurve_image(int   *ifunct,
     int    ired    = GR_RED;
     int    iblack  = GR_BLACK;
 
+    int    izero   = 0;
+    int    ione    = 1;
+
     ROUTINE(plot1dBspine_image);
 
     /* --------------------------------------------------------------- */
 
     if (*ifunct == 0) {
-        xmin = XYZcloud[0];
-        xmax = XYZcloud[0];
-        ymin = XYZcloud[1];
-        ymax = XYZcloud[1];
-        zmin = XYZcloud[2];
-        zmax = XYZcloud[2];
+        if (*ixyz == 0) {               // y vs. x
+            xmin = XYZcloud[0];
+            xmax = XYZcloud[0];
+            ymin = XYZcloud[1];
+            ymax = XYZcloud[1];
 
-        for (k = 1; k < *m; k++) {
-            if (XYZcloud[3*k  ] < xmin) xmin = XYZcloud[3*k  ];
-            if (XYZcloud[3*k  ] > xmax) xmax = XYZcloud[3*k  ];
-            if (XYZcloud[3*k+1] < ymin) ymin = XYZcloud[3*k+1];
-            if (XYZcloud[3*k+1] > ymax) ymax = XYZcloud[3*k+1];
-            if (XYZcloud[3*k+2] < zmin) zmin = XYZcloud[3*k+2];
-            if (XYZcloud[3*k+2] > zmax) zmax = XYZcloud[3*k+2];
-        }
+            for (k = 1; k < *m; k++) {
+                if (XYZcloud[3*k  ] < xmin) xmin = XYZcloud[3*k  ];
+                if (XYZcloud[3*k  ] > xmax) xmax = XYZcloud[3*k  ];
+                if (XYZcloud[3*k+1] < ymin) ymin = XYZcloud[3*k+1];
+                if (XYZcloud[3*k+1] > ymax) ymax = XYZcloud[3*k+1];
+            }
 
-        if        (xmax-xmin >= zmax-zmin && ymax-ymin >= zmax-zmin) {
-            *itype = 0;
             scale[0] = xmin - EPS06;
             scale[1] = xmax + EPS06;
             scale[2] = ymin - EPS06;
             scale[3] = ymax + EPS06;
-        } else if (ymax-ymin >= xmax-xmin && zmax-zmin >= xmax-xmin) {
-            *itype = 1;
+        } else if (*ixyz == 1) {        // z vs. y
+            ymin = XYZcloud[1];
+            ymax = XYZcloud[1];
+            zmin = XYZcloud[2];
+            zmax = XYZcloud[2];
+
+            for (k = 1; k < *m; k++) {
+                if (XYZcloud[3*k+1] < ymin) ymin = XYZcloud[3*k+1];
+                if (XYZcloud[3*k+1] > ymax) ymax = XYZcloud[3*k+1];
+                if (XYZcloud[3*k+2] < zmin) zmin = XYZcloud[3*k+2];
+                if (XYZcloud[3*k+2] > zmax) zmax = XYZcloud[3*k+2];
+            }
+
             scale[0] = ymin - EPS06;
             scale[1] = ymax + EPS06;
             scale[2] = zmin - EPS06;
             scale[3] = zmax + EPS06;
-        } else {
-            *itype = 2;
+        } else {                        // x vs. z
+            xmin = XYZcloud[0];
+            xmax = XYZcloud[0];
+            zmin = XYZcloud[2];
+            zmax = XYZcloud[2];
+
+            for (k = 1; k < *m; k++) {
+                if (XYZcloud[3*k  ] < xmin) xmin = XYZcloud[3*k  ];
+                if (XYZcloud[3*k  ] > xmax) xmax = XYZcloud[3*k  ];
+                if (XYZcloud[3*k+2] < zmin) zmin = XYZcloud[3*k+2];
+                if (XYZcloud[3*k+2] > zmax) zmax = XYZcloud[3*k+2];
+            }
+
             scale[0] = zmin - EPS06;
             scale[1] = zmax + EPS06;
             scale[2] = xmin - EPS06;
             scale[3] = xmax + EPS06;
         }
 
-        strcpy(text, " ");
+        strcpy(text, "ChgXYZ");
 
     } else if (*ifunct == 1) {
 
@@ -2767,12 +3494,12 @@ plotCurve_image(int   *ifunct,
             x4 = XYZcloud[3*k  ];
             y4 = XYZcloud[3*k+1];
             z4 = XYZcloud[3*k+2];
-            if (*itype == 0) {
-                grmov3_(&x4, &y4, &z4);
-            } else if (*itype == 1) {
-                grmov3_(&y4, &z4, &x4);
+            if (*ixyz == 0) {
+                grmov2_(&x4, &y4);
+            } else if (*ixyz == 1) {
+                grmov2_(&y4, &z4);
             } else {
-                grmov3_(&z4, &x4, &y4);
+                grmov2_(&z4, &x4);
             }
             grsymb_(&icircle);
         }
@@ -2784,27 +3511,31 @@ plotCurve_image(int   *ifunct,
         x4 = cp[0];
         y4 = cp[1];
         z4 = cp[2];
-        if (*itype == 0) {
-            grmov3_(&x4, &y4, &z4);
-        } else if (*itype == 1) {
-            grmov3_(&y4, &z4, &x4);
+        if (*ixyz == 0) {
+            grmov2_(&x4, &y4);
+        } else if (*ixyz == 1) {
+            grmov2_(&y4, &z4);
         } else {
-            grmov3_(&z4, &x4, &y4);
+            grmov2_(&z4, &x4);
         }
-        grsymb_(&istar);
+        grsymb_(&iplus);
+        snprintf(anot, 23, "~~%d", 0);
+        granot_(anot, strlen(anot));
 
         for (i = 1; i < *n; i++) {
             x4 = cp[3*i  ];
             y4 = cp[3*i+1];
             z4 = cp[3*i+2];
-            if (*itype == 0) {
-                grdrw3_(&x4, &y4, &z4);
-            } else if (*itype == 1) {
-                grdrw3_(&y4, &z4, &x4);
+            if (*ixyz == 0) {
+                grdrw2_(&x4, &y4);
+            } else if (*ixyz == 1) {
+                grdrw2_(&y4, &z4);
             } else {
-                grdrw3_(&z4, &x4, &y4);
+                grdrw2_(&z4, &x4);
             }
-            grsymb_(&istar);
+            grsymb_(&iplus);
+            snprintf(anot, 23, "~~%d", i);
+            granot_(anot, strlen(anot));
         }
 
         /* Bspline curve */
@@ -2814,12 +3545,12 @@ plotCurve_image(int   *ifunct,
         x4 = cp[0];
         y4 = cp[1];
         z4 = cp[2];
-        if (*itype == 0) {
-            grmov3_(&x4, &y4, &z4);
-        } else if (*itype == 1) {
-            grmov3_(&y4, &z4, &x4);
+        if (*ixyz == 0) {
+            grmov2_(&x4, &y4);
+        } else if (*ixyz == 1) {
+            grmov2_(&y4, &z4);
         } else {
-            grmov3_(&z4, &x4, &y4);
+            grmov2_(&z4, &x4);
         }
 
         for (i = 1; i < 201; i++) {
@@ -2833,12 +3564,12 @@ plotCurve_image(int   *ifunct,
             x4 = XYZ[0];
             y4 = XYZ[1];
             z4 = XYZ[2];
-            if (*itype == 0) {
-                grdrw3_(&x4, &y4, &z4);
-            } else if (*itype == 1) {
-                grdrw3_(&y4, &z4, &x4);
+            if (*ixyz == 0) {
+                grdrw2_(&x4, &y4);
+            } else if (*ixyz == 1) {
+                grdrw2_(&y4, &z4);
             } else {
-                grdrw3_(&z4, &x4, &y4);
+                grdrw2_(&z4, &x4);
             }
         }
 
@@ -2850,12 +3581,12 @@ plotCurve_image(int   *ifunct,
                 x4 = XYZcloud[3*k  ];
                 y4 = XYZcloud[3*k+1];
                 z4 = XYZcloud[3*k+2];
-                if (*itype == 0) {
-                    grmov3_(&x4, &y4, &z4);
-                } else if (*itype == 1) {
-                    grmov3_(&y4, &z4, &x4);
+                if (*ixyz == 0) {
+                    grmov2_(&x4, &y4);
+                } else if (*ixyz == 1) {
+                    grmov2_(&y4, &z4);
                 } else {
-                    grmov3_(&z4, &x4, &y4);
+                    grmov2_(&z4, &x4);
                 }
 
                 status = eval1dBspline(Tcloud[k], *n, cp, XYZ, NULL, NULL);
@@ -2866,17 +3597,36 @@ plotCurve_image(int   *ifunct,
                 x4 = XYZ[0];
                 y4 = XYZ[1];
                 z4 = XYZ[2];
-                if (*itype == 0) {
-                    grdrw3_(&x4, &y4, &z4);
-                } else if (*itype == 1) {
-                    grdrw3_(&y4, &z4, &x4);
+                if (*ixyz == 0) {
+                    grdrw2_(&x4, &y4);
+                } else if (*ixyz == 1) {
+                    grdrw2_(&y4, &z4);
                 } else {
-                    grdrw3_(&z4, &x4, &y4);
+                    grdrw2_(&z4, &x4);
                 }
             }
         }
 
         grcolr_(&iblack);
+
+    /* C option (change orientation) */
+    } else if (*ifunct == -3) {
+        *ixyz = (*ixyz + 1) % 3;
+
+        grvalu_("LABLGR", &izero, &dum, lablgr, strlen("LABLGR"), 80);
+
+        if (*ixyz == 0) {
+            lablgr[1] = 'x';
+            lablgr[3] = 'y';
+        } else if (*ixyz == 1) {
+            lablgr[1] = 'y';
+            lablgr[3] = 'z';
+        } else {
+            lablgr[1] = 'z';
+            lablgr[3] = 'x';
+        }
+        grvalu_("LABLGR", &ione, &dum, lablgr, strlen("LABLGR"), strlen(lablgr));
+        grscpt_(&ione, "O", strlen("O"));
 
     } else {
         printf("ERROR:: illegal option\n");
@@ -2895,126 +3645,246 @@ plotCurve_image(int   *ifunct,
 #ifdef GRAFIC
 static void
 plotSurface_image(int    *ifunct,
-                  void   *mP,
-                  void   *XYZcloudP,
-                  void   *UVcloudP,
+                  void   *ifaceP,
+                  void   *ixyzP,
+                  void   *kcpP,
+                  void   *ijcpP,
+      /*@unused@*/void   *mP,
+      /*@unused@*/void   *XYZcloudP,
+      /*@unused@*/void   *UVcloudP,
                   void   *nP,
                   void   *cpP,
-                  void   *a5,
-                  void   *a6,
-                  void   *a7,
-                  void   *a8,
-                  void   *a9,
+      /*@unused@*/void   *a9,
                   float  *scale,
                   char   *text,
                   int    textlen)
 {
-    int      *m        = (int    *) mP;
-    double   *XYZcloud = (double *) XYZcloudP;
-    double   *UVcloud  = (double *) UVcloudP;
+    int      *iface    = (int    *) ifaceP;
+    int      *ixyz     = (int    *) ixyzP;
+    int      *kcp      = (int    *) kcpP;
+    int      *ijcp     = (int    *) ijcpP;
+//$$$    int      *m        = (int    *) mP;
+//$$$    double   *XYZcloud = (double *) XYZcloudP;
+//$$$    double   *UVcloud  = (double *) UVcloudP;
     int      *n        = (int    *) nP;
     double   *cp       = (double *) cpP;
 
     int      status = FIT_SUCCESS;
 
-    int      i, j, k;
-    float    x4, y4, z4;
-    double   xmin, xmax, ymin, ymax, UV[2], XYZ[3];
+    int      i, j;
+    float    x4, y4, z4, dum;
+    double   xmin, xmax, ymin, ymax, zmin, zmax, UV[2], XYZ[3];
+    char     anot[24], lablgr[81];
 
-    int      icircle  = GR_CIRCLE;
 
-    int      ired     = GR_RED;
-    int      igreen   = GR_GREEN;
     int      iblue    = GR_BLUE;
-    int      iyellow  = GR_YELLOW;
     int      iblack   = GR_BLACK;
 
     int      isolid   = GR_SOLID;
     int      idotted  = GR_DOTTED;
 
+    int      ione     = 1;
+
     ROUTINE(plotSurface_image);
+
+#undef  IJ
+#define IJ(I,J,XYZ) 3*((I)+(J)*(*n))+(XYZ)
 
     /* --------------------------------------------------------------- */
 
     /* return scales */
     if (*ifunct == 0) {
-        xmin = XYZcloud[0];
-        xmax = XYZcloud[0];
-        ymin = XYZcloud[1];
-        ymax = XYZcloud[1];
+        if (*ixyz == 0) {               // y vs. x
+            if (*kcp == 0) {
+                j = *ijcp;
 
-        for (k = 0; k < *m; k++) {
-            if (XYZcloud[3*k  ] < xmin) xmin = XYZcloud[3*k  ];
-            if (XYZcloud[3*k  ] > xmax) xmax = XYZcloud[3*k  ];
-            if (XYZcloud[3*k+1] < ymin) ymin = XYZcloud[3*k+1];
-            if (XYZcloud[3*k+1] > ymax) ymax = XYZcloud[3*k+1];
+                xmin = cp[IJ(0,j,0)];
+                xmax = cp[IJ(0,j,0)];
+                ymin = cp[IJ(0,j,1)];
+                ymax = cp[IJ(0,j,1)];
+
+                for (i = 1; i < *n; i++) {
+                    xmin = MIN(xmin, cp[IJ(i,j,0)]);
+                    xmax = MAX(xmax, cp[IJ(i,j,0)]);
+                    ymin = MIN(ymin, cp[IJ(i,j,1)]);
+                    ymax = MAX(ymax, cp[IJ(i,j,1)]);
+                }
+            } else {
+                i = *ijcp;
+
+                xmin = cp[IJ(i,0,0)];
+                xmax = cp[IJ(i,0,0)];
+                ymin = cp[IJ(i,0,1)];
+                ymax = cp[IJ(i,0,1)];
+
+                for (j = 1; j < *n; j++) {
+                    xmin = MIN(xmin, cp[IJ(i,j,0)]);
+                    xmax = MAX(xmax, cp[IJ(i,j,0)]);
+                    ymin = MIN(ymin, cp[IJ(i,j,1)]);
+                    ymax = MAX(ymax, cp[IJ(i,j,1)]);
+                }
+            }
+
+            scale[0] = xmin;
+            scale[1] = xmax;
+            scale[2] = ymin;
+            scale[3] = ymax;
+        } else if (*ixyz == 1) {        // z vs. y
+            if (*kcp == 0) {
+                j = *ijcp;
+
+                ymin = cp[IJ(0,j,1)];
+                ymax = cp[IJ(0,j,1)];
+                zmin = cp[IJ(0,j,2)];
+                zmax = cp[IJ(0,j,2)];
+
+                for (i = 1; i < *n; i++) {
+                    ymin = MIN(ymin, cp[IJ(i,j,1)]);
+                    ymax = MAX(ymax, cp[IJ(i,j,1)]);
+                    zmin = MIN(zmin, cp[IJ(i,j,2)]);
+                    zmax = MAX(zmax, cp[IJ(i,j,2)]);
+                }
+            } else {
+                i = *ijcp;
+
+                ymin = cp[IJ(i,0,1)];
+                ymax = cp[IJ(i,0,1)];
+                zmin = cp[IJ(i,0,2)];
+                zmax = cp[IJ(i,0,2)];
+
+                for (j = 1; j < *n; j++) {
+                    ymin = MIN(ymin, cp[IJ(i,j,1)]);
+                    ymax = MAX(ymax, cp[IJ(i,j,1)]);
+                    zmin = MIN(zmin, cp[IJ(i,j,2)]);
+                    zmax = MAX(zmax, cp[IJ(i,j,2)]);
+                }
+            }
+
+            scale[0] = ymin;
+            scale[1] = ymax;
+            scale[2] = zmin;
+            scale[3] = zmax;
+        } else {                        // x vs. z
+            if (*kcp == 0) {
+                j = *ijcp;
+
+                zmin = cp[IJ(0,j,2)];
+                zmax = cp[IJ(0,j,2)];
+                xmin = cp[IJ(0,j,0)];
+                xmax = cp[IJ(0,j,0)];
+
+                for (i = 1; i < *n; i++) {
+                    zmin = MIN(zmin, cp[IJ(i,j,2)]);
+                    zmax = MAX(zmax, cp[IJ(i,j,2)]);
+                    xmin = MIN(xmin, cp[IJ(i,j,0)]);
+                    xmax = MAX(xmax, cp[IJ(i,j,0)]);
+                }
+            } else {
+                i = *ijcp;
+
+                zmin = cp[IJ(i,0,2)];
+                zmax = cp[IJ(i,0,2)];
+                xmin = cp[IJ(i,0,0)];
+                xmax = cp[IJ(i,0,0)];
+
+                for (j = 1; j < *n; j++) {
+                    zmin = MIN(zmin, cp[IJ(i,j,2)]);
+                    zmax = MAX(zmax, cp[IJ(i,j,2)]);
+                    xmin = MIN(xmin, cp[IJ(i,j,0)]);
+                    xmax = MAX(xmax, cp[IJ(i,j,0)]);
+                }
+            }
+
+            scale[0] = zmin;
+            scale[1] = zmax;
+            scale[2] = xmin;
+            scale[3] = xmax;
         }
 
-        scale[0] = xmin;
-        scale[1] = xmax;
-        scale[2] = ymin;
-        scale[3] = ymax;
+        strcpy(text, "ChgXYZ SwitchIJ NextIJ");
 
-        text[0] = '\0';
-
+        goto cleanup;
 
     /* plot image */
     } else if (*ifunct == 1) {
-
-        /* points in cloud */
-        grcolr_(&igreen);
-        for (k = 0; k < *m; k++) {
-            x4 = XYZcloud[3*k  ];
-            y4 = XYZcloud[3*k+1];
-            z4 = XYZcloud[3*k+2];
-
-            grmov3_(&x4, &y4, &z4);
-            grsymb_(&icircle);
-        }
 
         /* draw the control net */
         grcolr_(&iblue);
         grdash_(&idotted);
 
-        for (j = 0; j < *n; j++) {
+        if (*kcp == 0) {                // constant i
+            j = *ijcp;
 
             x4 = cp[3*((0)+(*n)*(j))  ];
             y4 = cp[3*((0)+(*n)*(j))+1];
             z4 = cp[3*((0)+(*n)*(j))+2];
-            grmov3_(&x4, &y4, &z4);
+            if (*ixyz == 0) {
+                grmov2_(&x4, &y4);
+            } else if (*ixyz == 1) {
+                grmov2_(&y4, &z4);
+            } else {
+                grmov2_(&z4, &x4);
+            }
+            snprintf(anot, 23, "~~%d,%d", 0, j);
+            granot_(anot, strlen(anot));
 
             for (i = 1; i < *n; i++) {
                 x4 = cp[3*((i)+(*n)*(j))  ];
                 y4 = cp[3*((i)+(*n)*(j))+1];
                 z4 = cp[3*((i)+(*n)*(j))+2];
-                grdrw3_(&x4, &y4, &z4);
+                if (*ixyz == 0) {
+                    grdrw2_(&x4, &y4);
+                } else if (*ixyz == 1) {
+                    grdrw2_(&y4, &z4);
+                } else {
+                    grdrw2_(&z4, &x4);
+                }
+                snprintf(anot, 23, "~~%d,%d", i, j);
+                granot_(anot, strlen(anot));
             }
-        }
-
-        for (i = 0; i < *n; i++) {
-            grcolr_(&iblack);
+        } else {                        // constant j
+            i = *ijcp;
 
             x4 = cp[3*((i)+(*n)*(0))  ];
             y4 = cp[3*((i)+(*n)*(0))+1];
             z4 = cp[3*((i)+(*n)*(0))+2];
-            grmov3_(&x4, &y4, &z4);
+            if (*ixyz == 0) {
+                grmov2_(&x4, &y4);
+            } else if (*ixyz == 1) {
+                grmov2_(&y4, &z4);
+            } else {
+                grmov2_(&z4, &x4);
+            }
+            snprintf(anot, 23, "~~%d,%d", i, 0);
+            granot_(anot, strlen(anot));
 
             for (j = 1; j < *n; j++) {
                 x4 = cp[3*((i)+(*n)*(j))  ];
                 y4 = cp[3*((i)+(*n)*(j))+1];
                 z4 = cp[3*((i)+(*n)*(j))+2];
-                grdrw3_(&x4, &y4, &z4);
+                if (*ixyz == 0) {
+                    grdrw2_(&x4, &y4);
+                } else if (*ixyz == 1) {
+                    grdrw2_(&y4, &z4);
+                } else {
+                    grdrw2_(&z4, &x4);
+                }
+                snprintf(anot, 23, "~~%d,%d", i, j);
+                granot_(anot, strlen(anot));
             }
         }
 
-        /* Bspline surface */
-        grcolr_(&iyellow);
+        /* Bspline iso-cut */
+        grcolr_(&iblack);
         grdash_(&isolid);
 
-        for (j = 0; j < 21; j++) {
-            UV[1] = (*n-3) * (double)(j) / (double)(21-1);
+        if (*kcp == 0) {                // constant i
+            j = *ijcp;
 
-            status= eval2dBspline(0, UV[1], *n, *n, cp, XYZ, NULL, NULL, NULL);
+            UV[0] = (double)(0);
+            UV[1] = (*n-3) * (double)(j) / (double)(*n-1);
+
+            status= eval2dBspline(UV[0], UV[1], *n, *n, cp, XYZ, NULL, NULL, NULL);
             if (status < FIT_SUCCESS) {
                 printf("ERROR:: eval2dBspline -> status=%d\n", status);
             }
@@ -3022,10 +3892,16 @@ plotSurface_image(int    *ifunct,
             x4 = XYZ[0];
             y4 = XYZ[1];
             z4 = XYZ[2];
-            grmov3_(&x4, &y4, &z4);
+            if (*ixyz == 0) {
+                grmov2_(&x4, &y4);
+            } else if (*ixyz == 1) {
+                grmov2_(&y4, &z4);
+            } else {
+                grmov2_(&z4, &x4);
+            }
 
-            for (i = 1; i < 21; i++) {
-                UV[0] = (*n-3) * (double)(i) / (double)(21-1);
+            for (i = 1; i < 201; i++) {
+                UV[0] = (*n-3) * (double)(i) / (double)(201-1);
 
                 status= eval2dBspline(UV[0], UV[1], *n, *n, cp, XYZ, NULL, NULL, NULL);
                 if (status < FIT_SUCCESS) {
@@ -3035,14 +3911,21 @@ plotSurface_image(int    *ifunct,
                 x4 = XYZ[0];
                 y4 = XYZ[1];
                 z4 = XYZ[2];
-                grdrw3_(&x4, &y4, &z4);
+                if (*ixyz == 0) {
+                    grdrw2_(&x4, &y4);
+                } else if (*ixyz == 1) {
+                    grdrw2_(&y4, &z4);
+                } else {
+                    grdrw2_(&z4, &x4);
+                }
             }
-        }
+        } else {                        // constant j
+            i = *ijcp;
 
-        for (i = 0; i < 21; i++) {
-            UV[0] = (*n-3) * (double)(i) / (double)(21-1);
+            UV[0] = (*n-3) * (double)(i) / (double)(*n-1);
+            UV[1] = (double)(0);
 
-            status= eval2dBspline(UV[0], 0, *n, *n, cp, XYZ, NULL, NULL, NULL);
+            status= eval2dBspline(UV[0], UV[1], *n, *n, cp, XYZ, NULL, NULL, NULL);
             if (status < FIT_SUCCESS) {
                 printf("ERROR:: eval2dBspline -> status=%d\n", status);
             }
@@ -3050,10 +3933,16 @@ plotSurface_image(int    *ifunct,
             x4 = XYZ[0];
             y4 = XYZ[1];
             z4 = XYZ[2];
-            grmov3_(&x4, &y4, &z4);
+            if (*ixyz == 0) {
+                grmov2_(&x4, &y4);
+            } else if (*ixyz == 1) {
+                grmov2_(&y4, &z4);
+            } else {
+                grmov2_(&z4, &x4);
+            }
 
-            for (j = 1; j < 21; j++) {
-                UV[1] = (*n-3) * (double)(j) / (double)(21-1);
+            for (j = 1; j < 201; j++) {
+                UV[1] = (*n-3) * (double)(j) / (double)(201-1);
 
                 status= eval2dBspline(UV[0], UV[1], *n, *n, cp, XYZ, NULL, NULL, NULL);
                 if (status < FIT_SUCCESS) {
@@ -3063,37 +3952,71 @@ plotSurface_image(int    *ifunct,
                 x4 = XYZ[0];
                 y4 = XYZ[1];
                 z4 = XYZ[2];
-                grdrw3_(&x4, &y4, &z4);
-            }
-        }
-
-        /* distance from point to surface */
-        if (UVcloud != NULL) {
-            grcolr_(&ired);
-
-            for (k = 0; k < *m; k++) {
-                x4 = XYZcloud[3*k  ];
-                y4 = XYZcloud[3*k+1];
-                z4 = XYZcloud[3*k+2];
-                grmov3_(&x4, &y4, &z4);
-
-                status = eval2dBspline(UVcloud[2*k], UVcloud[2*k+1], *n, *n, cp, XYZ, NULL, NULL, NULL);
-                if (status < FIT_SUCCESS) {
-                    printf("ERROR:: eval2dBspline -> status=%d\n", status);
+                if (*ixyz == 0) {
+                    grdrw2_(&x4, &y4);
+                } else if (*ixyz == 1) {
+                    grdrw2_(&y4, &z4);
+                } else {
+                    grdrw2_(&z4, &x4);
                 }
-
-                x4 = XYZ[0];
-                y4 = XYZ[1];
-                z4 = XYZ[2];
-                grdrw3_(&x4, &y4, &z4);
             }
         }
 
         grcolr_(&iblack);
+
+        goto cleanup;
+
+    /* C option (change orientation) */
+    } else if (*ifunct == -3) {
+        *ixyz = (*ixyz + 1) % 3;
+
+    /* N option (next icp or jcp) */
+    } else if (*ifunct == -14) {
+        *ijcp = *ijcp + 1;
+
+        if        (*kcp == 0 && *ijcp >= *n-1) {
+            *ijcp = 0;
+        } else if (*kcp == 1 && *ijcp >= *n-1) {
+            *ijcp = 0;
+        }
+
+        grscpt_(&ione, "O", strlen("O"));
+
+    /* S option (change i or j) */
+    } else if (*ifunct == -19) {
+        *kcp  = (*kcp + 1) % 2;
+        *ijcp = 0;
+
+        grscpt_(&ione, "O", strlen("O"));
+
     } else {
         printf("ERROR:: illegal option\n");
     }
 
-//cleanup:
+    if (*ixyz == 0) {
+        if (*kcp == 0) {
+            snprintf(lablgr, 79, "~x~y~ iface=%d, i=%d", *iface, *ijcp);
+        } else {
+            snprintf(lablgr, 79, "~x~y~ iface=%d, j=%d", *iface, *ijcp);
+        }
+    } else if (*ixyz == 1) {
+        if (*kcp == 0) {
+            snprintf(lablgr, 79, "~y~z~ iface=%d, i=%d", *iface, *ijcp);
+        } else {
+            snprintf(lablgr, 79, "~y~z~ iface=%d, j=%d", *iface, *ijcp);
+        }
+    } else {
+        if (*kcp == 0) {
+            snprintf(lablgr, 79, "~z~x~ iface=%d, i=%d", *iface, *ijcp);
+        } else {
+            snprintf(lablgr, 79, "~z~x~ iface=%d, j=%d", *iface, *ijcp);
+        }
+    }
+
+    grvalu_("LABLGR", &ione, &dum, lablgr, strlen("LABLGR"), strlen(lablgr));
+    grscpt_(&ione, "O", strlen("O"));
+
+cleanup:
+    return;
 }
 #endif

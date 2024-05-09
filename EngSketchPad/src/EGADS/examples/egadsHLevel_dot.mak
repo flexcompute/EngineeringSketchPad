@@ -10,18 +10,23 @@ ODIR  = .
 TDIR  = $(ESP_ROOT)\bin
 !ENDIF
 
-$(TDIR)\egadsHLevel_dot.exe:	$(ODIR)\egadsHLevel_dot.obj $(LDIR)\egads.lib
-	cl /Fe$(TDIR)\egadsHLevel_dot.exe $(ODIR)\egadsHLevel_dot.obj $(LIBPTH) egads.lib
+$(TDIR)\egadsHLevel_dot.exe:	$(ODIR)\egadsHLevel_dot.obj $(ODIR)\egadsTools_dot.obj $(LDIR)\egads.lib
+	cl /Fe$(TDIR)\egadsHLevel_dot.exe $(ODIR)\egadsHLevel_dot.obj $(ODIR)\egadsTools_dot.obj $(LIBPTH) egads.lib
 	$(MCOMP) /manifest $(TDIR)\egadsHLevel_dot.exe.manifest \
 		/outputresource:$(TDIR)\egadsHLevel_dot.exe;1
 
-$(ODIR)\egadsHLevel_dot.obj:	egadsHLevel_dot.c $(IDIR)\egads.h $(IDIR)\egadsTypes.h \
+$(ODIR)\egadsTools_dot.obj:	egadsTools_dot.c $(IDIR)\egads.h $(IDIR)\egadsTypes.h \
+		$(IDIR)\egadsErrors.h
+	cl /c $(COPTS) $(DEFINE) -I$(IDIR) egadsTools_dot.c \
+		/Fo$(ODIR)\egadsTools_dot.obj
+
+$(ODIR)\egadsHLevel_dot.obj:	egadsHLevel_dot.c $(IDIR)\egads.h $(IDIR)\egads_dot.h $(IDIR)\egadsTypes.h \
 		$(IDIR)\egadsErrors.h
 	cl /c $(COPTS) $(DEFINE) -I$(IDIR) egadsHLevel_dot.c \
 		/Fo$(ODIR)\egadsHLevel_dot.obj
 
 clean:
-	-del $(ODIR)\egadsHLevel_dot.obj
+	-del $(ODIR)\egadsHLevel_dot.obj $(ODIR)\egadsTools_dot.obj
 
 cleanall:	clean
 	-del $(TDIR)\egadsHLevel_dot.exe $(TDIR)\egadsHLevel_dot.exe.manifest

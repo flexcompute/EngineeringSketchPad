@@ -23,30 +23,30 @@ workDir = os.path.join(str(args.workDir[0]), "AFLR4TipTreatAnalysisTest")
 
 # Load CSM file
 geometryScript = os.path.join("..","csmData","tiptreat.csm")
-myProblem = pyCAPS.Problem(problemName=workDir,
-                           capsFile=geometryScript, 
-                           outLevel=args.outLevel)
+capsProblem = pyCAPS.Problem(problemName=workDir,
+                             capsFile=geometryScript, 
+                             outLevel=args.outLevel)
 
 # Load AFLR4 aim
-myAnalysis = myProblem.analysis.create(aim = "aflr4AIM")
+aflr4 = capsProblem.analysis.create(aim = "aflr4AIM")
 
 # Set AIM outLevel
-myAnalysis.input.Mesh_Quiet_Flag = True if args.outLevel == 0 else False
+aflr4.input.Mesh_Quiet_Flag = True if args.outLevel == 0 else False
 
-# Set output grid format since a project name is being supplied - Tecplot  file
-myAnalysis.input.Mesh_Format = "Tecplot"
+# Optional: Explicitly write mesh files
+aflr4.input.Mesh_Format = "Tecplot"
 
 # Farfield growth factor
-myAnalysis.input.ff_cdfr = 1.4
+aflr4.input.ff_cdfr = 1.4
 
 # Set maximum and minimum edge lengths relative to capsMeshLength
-myAnalysis.input.max_scale = 0.2
-myAnalysis.input.min_scale = 0.01
+aflr4.input.max_scale = 0.2
+aflr4.input.min_scale = 0.01
 
 # Dissable curvature refinement when AFLR4 cannot generate a mesh
-# myAnalysis.input.Mesh_Gen_Input_String = "auto_mode=0"
+# aflr4.input.Mesh_Gen_Input_String = "auto_mode=0"
 
-#myAnalysis.input.Mesh_Length_Factor = 0.25
+#aflr4.input.Mesh_Length_Factor = 0.25
 
 # Run through a range of geometry configurations and generate surface meshes
 BS = "BS"
@@ -58,21 +58,21 @@ for begFac in begFacs:
     for sharpte in sharptes:
         for cont in conts:
 
-            myProblem.geometry.despmtr.begFac  = begFac
-            myProblem.geometry.cfgpmtr.sharpte = sharpte
-            myProblem.geometry.cfgpmtr.cont    = cont
+            capsProblem.geometry.despmtr.begFac  = begFac
+            capsProblem.geometry.cfgpmtr.sharpte = sharpte
+            capsProblem.geometry.cfgpmtr.cont    = cont
 
             geom = str(begFac) + BS[sharpte] + str(cont)
 
             # Set project name so a mesh file is generated for each configuration
-            myAnalysis.input.Proj_Name = "pyCAPS_AFLR4_" + geom + "_Test"
+            aflr4.input.Proj_Name = "pyCAPS_AFLR4_" + geom + "_Test"
 
             # Save the gometry configuration
             filename = "wing" + geom + ".egads"
-            myAnalysis.geometry.save(filename)
+            aflr4.geometry.save(filename)
 
             # Run AIM
-            myAnalysis.runAnalysis()
+            aflr4.runAnalysis()
 
             if args.noPlotData == False:
-                myAnalysis.geometry.view()
+                aflr4.geometry.view()

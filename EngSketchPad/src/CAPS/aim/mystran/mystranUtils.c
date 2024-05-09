@@ -5,14 +5,17 @@
 
 #include "aimUtil.h"
 #include "miscUtils.h" //Bring in misc. utility functions
+#include "meshUtils.h" //Bring in mesh utility functions
 #include "mystranUtils.h" // Bring in mystran utility header
 
 #ifdef WIN32
 #define strcasecmp  stricmp
+#define strtok_r   strtok_s
 #endif
 
+#define MIN(a,b) (a) < (b) ? (a) : (b)
 
-// Read data from Mystran OUTPUT4 file and load it into a capsvalue
+// Read data from Mystran OUTPUT4 file and load it into a capsValue
 int mystran_readOutput4Data(FILE *fp, const char *keyword, capsValue *val)
 {
     int matrix, i; // Indexing
@@ -220,10 +223,10 @@ int mystran_readF06EigenVector(FILE *fp, int *numEigenVector, int *numGridPoint,
 
     char *line = NULL; // Temporary line holder
 
-    char *numEigenLine = "                                NUMBER OF EIGENVALUES EXTRACTED  . . . . . .";
-    char *outputEigenLine = " OUTPUT FOR EIGENVECTOR        ";
+    const char *numEigenLine = "                                NUMBER OF EIGENVALUES EXTRACTED  . . . . . .";
+    const char *outputEigenLine = " OUTPUT FOR EIGENVECTOR        ";
     char *beginEigenLine=NULL;
-    char *endEigenLine = "                         ------------- ------------- ------------- ------------- ------------- -------------";
+    const char *endEigenLine = "                         ------------- ------------- ------------- ------------- ------------- -------------";
 
     int numVariable = 8; // Grid Id, Coord Id, T1, T2, T3, R1, R2, R3
     int intLength;
@@ -252,7 +255,7 @@ int mystran_readF06EigenVector(FILE *fp, int *numEigenVector, int *numGridPoint,
                 return EGADS_MALLOC;
             }
 
-            sprintf(beginEigenLine, "%s%d", outputEigenLine, 1);
+            snprintf(beginEigenLine, strlen(outputEigenLine)+2, "%s%d", outputEigenLine, 1);
             beginEigenLine[strlen(outputEigenLine)+1] = '\0';
         }
 
@@ -342,7 +345,8 @@ int mystran_readF06EigenVector(FILE *fp, int *numEigenVector, int *numGridPoint,
                 return EGADS_MALLOC;
             }
 
-            sprintf(beginEigenLine,"%s%d",outputEigenLine, eigenValue);
+            snprintf(beginEigenLine,strlen(outputEigenLine)+
+                intLength+1,"%s%d",outputEigenLine, eigenValue);
             beginEigenLine[strlen(outputEigenLine)+intLength] = '\0';
         }
 
@@ -394,9 +398,9 @@ int mystran_readF06Displacement(FILE *fp, int subcaseId, int *numGridPoint,
 
     char *line = NULL; // Temporary line holder
 
-    char *outputSubcaseLine = " OUTPUT FOR SUBCASE        ";
+    const char *outputSubcaseLine = " OUTPUT FOR SUBCASE        ";
     char *beginSubcaseLine=NULL;
-    char *endSubcaseLine = "                         ------------- ------------- ------------- ------------- ------------- -------------";
+    const char *endSubcaseLine = "                         ------------- ------------- ------------- ------------- ------------- -------------";
 
     int numVariable = 8; // Grid Id, Coord Id, T1, T2, T3, R1, R2, R3
     int intLength;
@@ -415,7 +419,7 @@ int mystran_readF06Displacement(FILE *fp, int subcaseId, int *numGridPoint,
                                          sizeof(char));
     if (beginSubcaseLine == NULL) return EGADS_MALLOC;
 
-    sprintf(beginSubcaseLine,"%s%d",outputSubcaseLine, subcaseId);
+    snprintf(beginSubcaseLine,strlen(outputSubcaseLine)+intLength+1,"%s%d",outputSubcaseLine, subcaseId);
     beginSubcaseLine[strlen(outputSubcaseLine)+intLength] = '\0';
 
     // Loop through file line by line until we have determined how many grid points we have
@@ -521,4 +525,190 @@ int mystran_readF06Displacement(FILE *fp, int subcaseId, int *numGridPoint,
     }
 
     return CAPS_SUCCESS;
+}
+
+
+// Read Elemental data from a Mystran F06 file and load it into a dataMatrix[numGridPoint][19]
+static
+int mystran_readF06Element(void *aimInfo, const char *subCaseTitle,
+                           FILE *fp, int subcaseId, int *numElement,
+                           DOUBLE_19 **dataMatrix)
+{
+    int status; // Function return
+
+    int i, j, n; // Indexing
+
+    size_t linecap = 0;
+
+    char *line = NULL; // Temporary line holder
+    char *rest = NULL, *token = NULL;
+
+    const char *outputSubcaseLine = " OUTPUT FOR SUBCASE        ";
+    char *beginSubcaseLine=NULL;
+    const char *endSubcaseLine = "---------";
+
+    const int numVariable = 19;
+    int intLength;
+    int numDataRead = 0;
+
+    printf("Reading Mystran FO6 file!\n");
+
+    if (numElement == NULL) return CAPS_NULLVALUE;
+    if (dataMatrix == NULL) return CAPS_NULLVALUE;
+
+    *numElement = 0;
+    AIM_FREE (*dataMatrix);
+
+    // Rewind the file
+    rewind(fp);
+
+    if      (subcaseId >= 1000) intLength = 4;
+    else if (subcaseId >= 100) intLength = 3;
+    else if (subcaseId >= 10) intLength = 2;
+    else intLength = 1;
+
+    AIM_ALLOC(beginSubcaseLine, (strlen(outputSubcaseLine)+intLength+1), char, aimInfo, status);
+
+    snprintf(beginSubcaseLine,strlen(outputSubcaseLine)+intLength+1,"%s%d",outputSubcaseLine, subcaseId);
+    beginSubcaseLine[strlen(outputSubcaseLine)+intLength] = '\0';
+
+    // Loop through file line by line until we have determined how many grid points we have
+    while (*numElement == 0) {
+
+        // Get line from file
+        status = getline(&line, &linecap, fp);
+        if ((status < 0) || (line == NULL)) break;
+
+        // Look for start of subcaseId
+        if (strncmp(beginSubcaseLine, line, MIN(strlen(beginSubcaseLine),strlen(line))) == 0) {
+
+            // Skip 1 line
+            for (i = 0; i < 2; i++) {
+              status = getline(&line, &linecap, fp);
+              if (status < 0) break;
+            }
+
+            // Check for Title
+            if (strstr(line, subCaseTitle) == NULL) continue;
+
+            // Skip title
+            while (line[0] != '\n') {
+                status = getline(&line, &linecap, fp);
+                if (status < 0) break;
+            }
+
+            // Loop through lines counting the number of grid points
+            while (getline(&line, &linecap, fp) >= 0) {
+                // Skip 2 lines
+                for (i = 0; i < 2; i++) {
+                  status = getline(&line, &linecap, fp);
+                  if (status < 0) break;
+                }
+                *numElement +=1;
+                if (strstr(line, endSubcaseLine) != NULL) {
+                    break;
+                }
+            }
+        }
+    }
+
+    printf("\tNumber of Elements = %d\n", *numElement);
+
+    if (*numElement == 0) {
+        printf("\tEither the number of data points  = 0 and/or subcase wasn't found!!!\n");
+
+        if (beginSubcaseLine != NULL) EG_free(beginSubcaseLine);
+        if (line != NULL) EG_free(line);
+        return CAPS_NOTFOUND;
+    }
+
+    // Rewind the file
+    rewind(fp);
+
+    // Allocate dataMatrix array
+    AIM_ALLOC( *dataMatrix, *numElement, DOUBLE_19, aimInfo, status);
+
+    // Loop through the file again and pull out data
+    while (getline(&line, &linecap, fp) >= 0) {
+        if (line == NULL) continue;
+
+        // Look for start of Eigen-Vector
+        if (strncmp(beginSubcaseLine, line, strlen(beginSubcaseLine)) == 0) {
+
+            // Skip 1 line
+            for (i = 0; i < 2; i++) {
+              status = getline(&line, &linecap, fp);
+              if (status < 0) break;
+            }
+
+            // Check for Title
+            if (strstr(line, subCaseTitle) == NULL) continue;
+
+            printf("\tLoading %s for Subcase = %d\n", subCaseTitle, subcaseId);
+
+            // Skip title
+            while (line[0] != '\n') {
+              status = getline(&line, &linecap, fp);
+              if (status < 0) break;
+            }
+
+            // Loop through the file and fill up the data matrix
+            for (i = 0; i < (*numElement); i++) {
+              j = 0;
+
+              for (n = 0; n < 2; n++) {
+                status = getline(&line, &linecap, fp);
+                if (status < 0) break;
+
+                rest = line;
+                while( (token = strtok_r(rest, " ", &rest)) ) {
+                  status = sscanf(token, "%lf", &(*dataMatrix)[i][j]);
+                  if (status == 1) { j++; numDataRead++; }
+                }
+              }
+              // skip one line
+              status = getline(&line, &linecap, fp);
+              if (status < 0) break;
+            }
+
+            break;
+        }
+    }
+
+    if (numDataRead/numVariable != *numElement) {
+        AIM_ERROR(aimInfo, "Failed to read %d elements. Only found %d.",
+                  *numElement, numDataRead/numVariable);
+        status = CAPS_IOERR;
+        goto cleanup;
+    }
+
+    status = CAPS_SUCCESS;
+cleanup:
+    AIM_FREE(beginSubcaseLine);
+    if (line != NULL) free(line);
+
+    if (status != CAPS_SUCCESS) AIM_FREE(*dataMatrix);
+    return status;
+}
+
+
+// Read Element Stress data from a Mystran F06 file and load it into a dataMatrix[numGridPoint][19]
+int mystran_readF06Stress(void *aimInfo, FILE *fp, int subcaseId, int *numElement,
+                          DOUBLE_19 **dataMatrix)
+{
+  const char *subCaseTitle = "E L E M E N T   S T R E S S E S";
+  return mystran_readF06Element(aimInfo, subCaseTitle,
+                                fp, subcaseId, numElement,
+                                dataMatrix);
+}
+
+
+// Read Element Strain data from a Mystran F06 file and load it into a dataMatrix[numGridPoint][19]
+int mystran_readF06Strain(void *aimInfo, FILE *fp, int subcaseId, int *numElement,
+                          DOUBLE_19 **dataMatrix)
+{
+  const char *subCaseTitle = "E L E M E N T   S T R A I N S";
+  return mystran_readF06Element(aimInfo, subCaseTitle,
+                                fp, subcaseId, numElement,
+                                dataMatrix);
 }

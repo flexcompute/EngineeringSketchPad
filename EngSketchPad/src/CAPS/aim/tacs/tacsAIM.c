@@ -5,13 +5,17 @@
  *
  *     Written by Dr. Marshall C. Galbraith MIT, and Dr. Ryan Durscher and Dr. Ed Alyanak
  *
+ *      Copyright 2014-2024, Massachusetts Institute of Technology
+ *      Licensed under The GNU Lesser General Public License, version 2.1
+ *      See http://www.opensource.org/licenses/lgpl-2.1.php
+ *
  */
 
 /*! \mainpage Introduction
  *
  * \section overviewTACS TACS AIM Overview
  * A module in the Computational Aircraft Prototype Syntheses (CAPS) has been developed to interact (primarily
- * through input files) with the finite element structural solver TACS \cite TACS.
+ * through input files) with the finite element structural solver <a href="https://github.com/smdogroup/tacs">TACS</a>.
  *
  * An outline of the AIM's inputs, outputs and attributes are provided in \ref aimInputsTACS and
  * \ref aimOutputsTACS and \ref attributeTACS, respectively.
@@ -120,6 +124,7 @@ enum aimInputs
   Support,
   Connect,
   Parameter,
+  Mesh_Morph,
   Mesh,
   NUMINPUT = Mesh              /* Total number of inputs */
 };
@@ -153,6 +158,9 @@ typedef struct {
 
     // Attribute to response map
     mapAttrToIndexStruct responseMap;
+
+    // Attribute to reference map
+    mapAttrToIndexStruct referenceMap;
 
     // Mesh holders
     int numMesh;
@@ -200,6 +208,10 @@ static int initiate_aimStorage(aimStorage *tacsInstance)
 
     // Container for response to index map
     status = initiate_mapAttrToIndexStruct(&tacsInstance->responseMap);
+    if (status != CAPS_SUCCESS) return status;
+
+    // Container for reference to index map
+    status = initiate_mapAttrToIndexStruct(&tacsInstance->referenceMap);
     if (status != CAPS_SUCCESS) return status;
 
     status = initiate_feaProblemStruct(&tacsInstance->feaProblem);
@@ -251,6 +263,10 @@ static int destroy_aimStorage(aimStorage *tacsInstance)
     if (status != CAPS_SUCCESS)
       printf("Error: Status %d during destroy_mapAttrToIndexStruct!\n", status);
 
+    // Reference to index map
+    status = destroy_mapAttrToIndexStruct(&tacsInstance->referenceMap);
+    if (status != CAPS_SUCCESS) printf("Error: Status %d during destroy_mapAttrToIndexStruct!\n", status);
+
     // Cleanup meshes
     if (tacsInstance->feaMesh != NULL) {
 
@@ -294,6 +310,7 @@ static int checkAndCreateMesh(void *aimInfo, aimStorage *tacsInstance)
                           &tacsInstance->transferMap,
                           &tacsInstance->connectMap,
                           &tacsInstance->responseMap,
+                          &tacsInstance->referenceMap,
                           &tacsInstance->numMesh,
                           &tacsInstance->feaMesh,
                           &tacsInstance->feaProblem );
@@ -316,7 +333,7 @@ int aimInitialize(int inst, /*@unused@*/ const char *unitSys, void *aimInfo,
     aimStorage *tacsInstance=NULL;
 
 #ifdef DEBUG
-    printf("nastranAIM/aimInitialize   instance = %d!\n", inst);
+    printf("tacsAIM/aimInitialize   instance = %d!\n", inst);
 #endif
 
     /* specify the number of analysis input and out "parameters" */
@@ -325,35 +342,38 @@ int aimInitialize(int inst, /*@unused@*/ const char *unitSys, void *aimInfo,
     if (inst == -1) return CAPS_SUCCESS;
 
     /* specify the field variables this analysis can generate and consume */
-    *nFields = 0;
+    *nFields = 2;
 
     /* specify the name of each field variable */
-//    AIM_ALLOC(strs, *nFields, char *, aimInfo, status);
+    AIM_ALLOC(strs, *nFields, char *, aimInfo, status);
 
 //    strs[0]  = EG_strdup("Displacement");
 //    strs[1]  = EG_strdup("EigenVector");
 //    strs[2]  = EG_strdup("EigenVector_#");
-//    strs[3]  = EG_strdup("Pressure");
-//    for (i = 0; i < *nFields; i++)
-//      if (strs[i] == NULL) { status = EGADS_MALLOC; goto cleanup; }
+    strs[0]  = EG_strdup("Pressure");
+    strs[1]  = EG_strdup("Temperature");
+    for (i = 0; i < *nFields; i++)
+      if (strs[i] == NULL) { status = EGADS_MALLOC; goto cleanup; }
     *fnames  = strs;
 
     /* specify the dimension of each field variable */
-//    AIM_ALLOC(ints, *nFields, int, aimInfo, status);
+    AIM_ALLOC(ints, *nFields, int, aimInfo, status);
 //    ints[0]  = 3;
 //    ints[1]  = 3;
 //    ints[2]  = 3;
-//    ints[3]  = 1;
+    ints[0]  = 1;
+    ints[1]  = 1;
     *franks  = ints;
     ints = NULL;
 
     /* specify if a field is an input field or output field */
-//    AIM_ALLOC(ints, *nFields, int, aimInfo, status);
+    AIM_ALLOC(ints, *nFields, int, aimInfo, status);
 //
 //    ints[0]  = FieldOut;
 //    ints[1]  = FieldOut;
 //    ints[2]  = FieldOut;
-//    ints[3]  = FieldIn;
+    ints[0]  = FieldIn;
+    ints[1]  = FieldIn;
     *fInOut  = ints;
     ints = NULL;
 
@@ -392,7 +412,7 @@ int aimInputs(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo,
     int status = CAPS_SUCCESS;
 
 #ifdef DEBUG
-    printf(" nastranAIM/aimInputs index = %d!\n", index);
+    printf(" tacsAIM/aimInputs index = %d!\n", index);
 #endif
 
     *ainame = NULL;
@@ -402,11 +422,11 @@ int aimInputs(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo,
         *ainame              = EG_strdup("Proj_Name");
         defval->type         = String;
         defval->nullVal      = NotNull;
-        defval->vals.string  = EG_strdup("nastran_CAPS");
+        defval->vals.string  = EG_strdup("tacs_CAPS");
         defval->lfixed       = Change;
 
         /*! \page aimInputsTACS
-         * - <B> Proj_Name = "nastran_CAPS"</B> <br>
+         * - <B> Proj_Name = "tacs_CAPS"</B> <br>
          * This corresponds to the project name used for file naming.
          */
 
@@ -662,15 +682,27 @@ int aimInputs(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo,
          * requires an integer entry the user must input an integer!
          */
 
+    } else if (index == Mesh_Morph) {
+        *ainame              = EG_strdup("Mesh_Morph");
+        defval->type         = Boolean;
+        defval->lfixed       = Fixed;
+        defval->vals.integer = (int) false;
+        defval->dim          = Scalar;
+        defval->nullVal      = NotNull;
+
+        /*! \page aimInputsTACS
+         * - <B> Mesh_Morph = False</B> <br>
+         * Project previous surface mesh onto new geometry.
+         */
+
     } else if (index == Mesh) {
         *ainame             = AIM_NAME(Mesh);
-        defval->type        = Pointer;
+        defval->type        = PointerMesh;
         defval->dim         = Vector;
         defval->lfixed      = Change;
         defval->sfixed      = Change;
         defval->vals.AIMptr = NULL;
         defval->nullVal     = IsNull;
-        AIM_STRDUP(defval->units, "meshStruct", aimInfo, status);
 
         /*! \page aimInputsTACS
          * - <B>Mesh = NULL</B> <br>
@@ -699,17 +731,18 @@ int aimUpdateState(void *instStore, void *aimInfo,
     tacsInstance = (aimStorage *) instStore;
     AIM_NOTNULL(aimInputs, aimInfo, status);
 
+    if (aimInputs[Mesh-1].nullVal == IsNull &&
+        aimInputs[Mesh_Morph-1].vals.integer == (int) false) {
+        AIM_ANALYSISIN_ERROR(aimInfo, Mesh, "'Mesh' input must be linked to an output 'Surface_Mesh'");
+        status = CAPS_BADVALUE;
+        goto cleanup;
+    }
+
     // Get project name
     tacsInstance->projectName = aimInputs[Proj_Name-1].vals.string;
 
     // Analysis type
     analysisType = aimInputs[Analysis_Type-1].vals.string;
-
-    if (aimInputs[Mesh-1].nullVal == IsNull) {
-        AIM_ANALYSISIN_ERROR(aimInfo, Mesh, "'Mesh' input must be linked to an output 'Surface_Mesh'");
-        status = CAPS_BADVALUE;
-        goto cleanup;
-    }
 
     // Get FEA mesh if we don't already have one
     status = checkAndCreateMesh(aimInfo, tacsInstance);
@@ -754,7 +787,8 @@ int aimUpdateState(void *instStore, void *aimInfo,
 
     // Set constraint properties
     if (aimInputs[Constraint-1].nullVal == NotNull) {
-        status = fea_getConstraint(aimInputs[Constraint-1].length,
+        status = fea_getConstraint(aimInfo,
+                                   aimInputs[Constraint-1].length,
                                    aimInputs[Constraint-1].vals.tuple,
                                    &tacsInstance->constraintMap,
                                    &tacsInstance->feaProblem);
@@ -772,7 +806,8 @@ int aimUpdateState(void *instStore, void *aimInfo,
 
     // Set connection properties
     if (aimInputs[Connect-1].nullVal == NotNull) {
-        status = fea_getConnection(aimInputs[Connect-1].length,
+        status = fea_getConnection(aimInfo,
+                                   aimInputs[Connect-1].length,
                                    aimInputs[Connect-1].vals.tuple,
                                    &tacsInstance->connectMap,
                                    &tacsInstance->feaProblem);
@@ -781,7 +816,8 @@ int aimUpdateState(void *instStore, void *aimInfo,
 
     // Set load properties
     if (aimInputs[Load-1].nullVal == NotNull) {
-        status = fea_getLoad(aimInputs[Load-1].length,
+        status = fea_getLoad(aimInfo,
+                             aimInputs[Load-1].length,
                              aimInputs[Load-1].vals.tuple,
                              &tacsInstance->loadMap,
                              &tacsInstance->feaProblem);
@@ -804,7 +840,8 @@ int aimUpdateState(void *instStore, void *aimInfo,
 
     // Set design constraints
     if (aimInputs[Design_Constraint-1].nullVal == NotNull) {
-        status = fea_getDesignConstraint(aimInputs[Design_Constraint-1].length,
+        status = fea_getDesignConstraint(aimInfo,
+                                         aimInputs[Design_Constraint-1].length,
                                          aimInputs[Design_Constraint-1].vals.tuple,
                                          &tacsInstance->feaProblem);
         AIM_STATUS(aimInfo, status);
@@ -836,7 +873,8 @@ int aimUpdateState(void *instStore, void *aimInfo,
 
     // Set design responses
     if (aimInputs[Design_Response-1].nullVal == NotNull) {
-        status = fea_getDesignResponse(aimInputs[Design_Response-1].length,
+        status = fea_getDesignResponse(aimInfo,
+                                       aimInputs[Design_Response-1].length,
                                        aimInputs[Design_Response-1].vals.tuple,
                                        &tacsInstance->responseMap,
                                        &tacsInstance->feaProblem);
@@ -853,13 +891,14 @@ int aimUpdateState(void *instStore, void *aimInfo,
 
     // Set analysis settings
     if (aimInputs[Analysix-1].nullVal == NotNull) {
-        status = fea_getAnalysis(aimInputs[Analysix-1].length,
+        status = fea_getAnalysis(aimInfo,
+                                 aimInputs[Analysix-1].length,
                                  aimInputs[Analysix-1].vals.tuple,
                                  &tacsInstance->feaProblem);
         AIM_STATUS(aimInfo, status); // It ok to not have an analysis tuple
     } else {
         printf("Analysis tuple is NULL\n");
-        status = fea_createDefaultAnalysis(&tacsInstance->feaProblem, analysisType);
+        status = fea_createDefaultAnalysis(aimInfo, &tacsInstance->feaProblem, analysisType);
         AIM_STATUS(aimInfo, status);
     }
 
@@ -913,7 +952,8 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
     //char **aeStatSurf = NULL;
 
     // File format information
-    char *tempString = NULL, *delimiter = NULL;
+    char *delimiter = NULL;
+    char fieldString[16];
 
     // File IO
     char *filename = NULL; // Output file name
@@ -929,6 +969,13 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
 
     tacsInstance = (const aimStorage *) instStore;
     AIM_NOTNULL(aimInputs, aimInfo, status);
+
+    if ( aimInputs[Mesh_Morph-1].vals.integer == (int) true &&
+         aimInputs[Mesh-1].nullVal == NotNull) { // If we are mighty morphing
+        // store the current mesh for future iterations
+        status = aim_storeMeshRef(aimInfo, (aimMeshRef *) aimInputs[Mesh-1].vals.AIMptr, NULL);
+        AIM_STATUS(aimInfo, status);
+    }
 
     // Analysis type
     analysisType = aimInputs[Analysis_Type-1].vals.string;
@@ -947,13 +994,18 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
                                                       &tacsInstance->feaProblem.feaMesh,
                                                       &feaLoad[i]);
                 AIM_STATUS(aimInfo, status);
+            } else if (feaLoad[i].loadType == ThermalExternal) {
+
+                // Transfer external temperature from the AIM discrObj
+                status = fea_transferExternalTemperature(aimInfo,
+                                                         &feaLoad[i]);
+                AIM_STATUS(aimInfo, status);
             }
         }
     }
 
     // Write TACS Mesh
-    filename = EG_alloc(MXCHAR +1);
-    if (filename == NULL) { status = EGADS_MALLOC; goto cleanup; }
+    AIM_ALLOC(filename ,MXCHAR+1, char, aimInfo, status);
 
     strcpy(filename, tacsInstance->projectName);
 
@@ -961,6 +1013,8 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
                                filename,
                                1,
                                &tacsInstance->feaProblem.feaMesh,
+                               tacsInstance->feaProblem.numProperty,
+                               tacsInstance->feaProblem.feaProperty,
                                tacsInstance->feaProblem.feaFileFormat.gridFileType,
                                1.0);
     AIM_STATUS(aimInfo, status);
@@ -976,7 +1030,7 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
     AIM_FREE(filename);
 
     printf("Writing subElement types (if any) - appending mesh file\n");
-    status = nastran_writeSubElementCard(fp,
+    status = nastran_writeSubElementCard(aimInfo, fp,
                                          &tacsInstance->feaProblem.feaMesh,
                                          tacsInstance->feaProblem.numProperty,
                                          tacsInstance->feaProblem.feaProperty,
@@ -1152,7 +1206,7 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
                 } else if(strcmp("ASYMMETRIC",tacsInstance->feaProblem.feaAnalysis->aeroSymmetryXY) == 0) {
                     fprintf(fp,"\tAESYMXY = %s\n","ASYMMETRIC");
                 } else {
-                    printf("\t*** Warning *** aeroSymmetryXY Input %s to nastranAIM not understood!\n",tacsInstance->feaProblem.feaAnalysis->aeroSymmetryXY );
+                    printf("\t*** Warning *** aeroSymmetryXY Input %s to tacsAIM not understood!\n",tacsInstance->feaProblem.feaAnalysis->aeroSymmetryXY );
                 }
             }
 
@@ -1171,7 +1225,7 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
                 } else if(strcmp("ASYMMETRIC",tacsInstance->feaProblem.feaAnalysis->aeroSymmetryXZ) == 0) {
                     fprintf(fp,"\tAESYMXZ = %s\n","ASYMMETRIC");
                 } else {
-                    printf("\t*** Warning *** aeroSymmetryXZ Input %s to nastranAIM not understood!\n",tacsInstance->feaProblem.feaAnalysis->aeroSymmetryXZ );
+                    printf("\t*** Warning *** aeroSymmetryXZ Input %s to tacsAIM not understood!\n",tacsInstance->feaProblem.feaAnalysis->aeroSymmetryXZ );
                 }
 
             }
@@ -1209,7 +1263,7 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
                     fprintf(fp, "\tTemperature = %d\n", feaLoad[k].loadID);
                     numThermalLoad += 1;
                     if (numThermalLoad > 1) {
-                        printf("More than 1 Thermal load found - nastranAIM does NOT currently doesn't support multiple thermal loads in a given case!\n");
+                        printf("More than 1 Thermal load found - tacsAIM does NOT currently doesn't support multiple thermal loads in a given case!\n");
                     }
 
                     continue;
@@ -1329,10 +1383,9 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
 
                 fprintf(fp,"%-8s", "AESTAT");
 
-                tempString = convert_integerToString(numAEStatSurf, 7, 1);
-                AIM_NOTNULL(tempString, aimInfo, status);
-                fprintf(fp, "%s%s", delimiter, tempString);
-                AIM_FREE(tempString);
+                status = convert_integerToString(numAEStatSurf, 7, 1, fieldString);
+                AIM_STATUS(aimInfo, status);
+                fprintf(fp, "%s%s", delimiter, fieldString);
 
                 fprintf(fp, "%s%7s\n", delimiter, tacsInstance->feaProblem.feaAnalysis[i].rigidVariable[j]);
             }
@@ -1379,10 +1432,9 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
 
                 fprintf(fp,"%-8s", "AESTAT");
 
-                tempString = convert_integerToString(numAEStatSurf, 7, 1);
-                AIM_NOTNULL(tempString, aimInfo, status);
-                fprintf(fp, "%s%s", delimiter, tempString);
-                AIM_FREE(tempString);
+                status = convert_integerToString(numAEStatSurf, 7, 1, fieldString);
+                AIM_STATUS(aimInfo, status);
+                fprintf(fp, "%s%s", delimiter, fieldString);
 
                 fprintf(fp, "%s%7s\n", delimiter, tacsInstance->feaProblem.feaAnalysis[i].rigidConstraint[j]);
             }
@@ -1641,7 +1693,10 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
 
         if (i == 0) printf("\tWriting design variable cards\n");
 
-        status = nastran_writeDesignVariableCard(fp,
+        // skip geometry design variables
+        if (aim_getIndex(aimInfo, tacsInstance->feaProblem.feaDesignVariable[i].name , GEOMETRYIN) > 0) continue;
+
+        status = nastran_writeDesignVariableCard(aimInfo, fp,
                                                  &tacsInstance->feaProblem.feaDesignVariable[i],
                                                  &tacsInstance->feaProblem.feaFileFormat);
         AIM_STATUS(aimInfo, status);
@@ -1667,6 +1722,7 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
 
         status = nastran_writeDesignConstraintCard(fp,
                                                    &tacsInstance->feaProblem.feaDesignConstraint[i],
+                                                   &tacsInstance->feaProblem,
                                                    &tacsInstance->feaProblem.feaFileFormat);
         AIM_STATUS(aimInfo, status);
     }
@@ -2061,7 +2117,7 @@ int aimOutputs(/*@unused@*/ void *instStore, /*@unused@*/ void *aimStruc,
      */
 
     #ifdef DEBUG
-        printf(" nastranAIM/aimOutputs index = %d!\n", index);
+        printf(" tacsAIM/aimOutputs index = %d!\n", index);
     #endif
 
     /*<--! \page aimOutputsTACS AIM Outputs-->
@@ -2134,7 +2190,7 @@ int aimCalcOutput(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo, /*@u
                                       strlen(extF06) +1)*sizeof(char));
         if (filename == NULL) return EGADS_MALLOC;
 
-        sprintf(filename, "%s%s", tacsInstance->projectName, extF06);
+        snprintf(filename, "%s%s", tacsInstance->projectName, extF06);
 
         fp = aim_fopen(aimInfo, filename, "r");
 
@@ -2142,7 +2198,7 @@ int aimCalcOutput(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo, /*@u
 
         if (fp == NULL) {
 #ifdef DEBUG
-            printf(" nastranAIM/aimCalcOutput Cannot open Output file!\n");
+            printf(" tacsAIM/aimCalcOutput Cannot open Output file!\n");
 #endif
             return CAPS_IOERR;
         }
@@ -2176,7 +2232,7 @@ int aimCalcOutput(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo, /*@u
                                       strlen(extOP2) +1)*sizeof(char));
         if (filename == NULL) return EGADS_MALLOC;
 
-        sprintf(filename, "%s%s", tacsInstance->projectName, extOP2);
+        snprintf(filename, "%s%s", tacsInstance->projectName, extOP2);
 
        status = nastran_readOP2Objective(filename, &numData, &dataVector);
 
@@ -2232,7 +2288,7 @@ void aimCleanup(void *instStore)
     aimStorage *tacsInstance;
 
 #ifdef DEBUG
-    printf(" nastranAIM/aimCleanup!\n");
+    printf(" tacsAIM/aimCleanup!\n");
 #endif
     tacsInstance = (aimStorage *) instStore;
 
@@ -2240,7 +2296,7 @@ void aimCleanup(void *instStore)
     if (status != CAPS_SUCCESS)
         printf("Error: Status %d during clean up of instance\n", status);
 
-    EG_free(tacsInstance);
+    AIM_FREE(tacsInstance);
 }
 
 
@@ -2253,7 +2309,7 @@ int aimDiscr(char *tname, capsDiscr *discr)
     aimStorage *tacsInstance;
 
 #ifdef DEBUG
-    printf(" nastranAIM/aimDiscr: tname = %s!\n", tname);
+    printf(" tacsAIM/aimDiscr: tname = %s!\n", tname);
 #endif
     if (tname == NULL) return CAPS_NOTFOUND;
 
@@ -2268,10 +2324,8 @@ int aimDiscr(char *tname, capsDiscr *discr)
         goto cleanup;
     }
 
-    // Get mesh
-    tacsInstance->numMesh = valMesh->length;
-    tacsInstance->feaMesh = (meshStruct *)valMesh->vals.AIMptr;
-    AIM_NOTNULL(tacsInstance->feaMesh, discr->aInfo, status);
+    // Get FEA mesh if we don't already have one
+    status = checkAndCreateMesh(discr->aInfo, tacsInstance);
     AIM_STATUS(discr->aInfo, status);
 
     AIM_ALLOC(tess, tacsInstance->numMesh, ego, discr->aInfo, status);
@@ -2283,14 +2337,14 @@ int aimDiscr(char *tname, capsDiscr *discr)
     AIM_STATUS(discr->aInfo, status);
 
 #ifdef DEBUG
-    printf(" nastranAIM/aimDiscr: Instance = %d, Finished!!\n", iIndex);
+    printf(" tacsAIM/aimDiscr: Instance = %d, Finished!!\n", iIndex);
 #endif
 
     status = CAPS_SUCCESS;
 
 cleanup:
     if (status != CAPS_SUCCESS)
-        printf("\tPremature exit: function aimDiscr nastranAIM status = %d",
+        printf("\tPremature exit: function aimDiscr tacsAIM status = %d",
                status);
 
     AIM_FREE(tess);
@@ -2350,11 +2404,12 @@ int aimTransfer(capsDiscr *discr, const char *dataName, int numPoint,
     int globalNodeID;
 
     // Filename stuff
+    size_t stringLength;
     char *filename = NULL;
-    FILE *fp; // File pointer
+    FILE *fp=NULL; // File pointer
 
 #ifdef DEBUG
-    printf(" nastranAIM/aimTransfer name = %s  npts = %d/%d!\n",
+    printf(" tacsAIM/aimTransfer name = %s  npts = %d/%d!\n",
            dataName, numPoint, dataRank);
 #endif
     tacsInstance = (aimStorage *) discr->instStore;
@@ -2370,10 +2425,10 @@ int aimTransfer(capsDiscr *discr, const char *dataName, int numPoint,
         return CAPS_NOTFOUND;
     }
 
-    filename = (char *) EG_alloc((strlen(tacsInstance->projectName) +
-                                  strlen(extF06) + 1)*sizeof(char));
-    if (filename == NULL) return EGADS_MALLOC;
-    sprintf(filename,"%s%s", tacsInstance->projectName, extF06);
+    stringLength = strlen(tacsInstance->projectName) + strlen(extF06) + 1;
+    AIM_ALLOC(filename, stringLength, char, discr->aInfo, status);
+
+    snprintf(filename,stringLength,"%s%s", tacsInstance->projectName, extF06);
 
     // Open file
     fp = aim_fopen(discr->aInfo, filename, "r");
@@ -2549,7 +2604,7 @@ int aimLocateElement(capsDiscr *discr,  double *params, double *param,
                      int *bIndex, int *eIndex, double *bary)
 {
 #ifdef DEBUG
-    printf(" nastranAIM/aimLocateElement !\n");
+    printf(" tacsAIM/aimLocateElement !\n");
 #endif
 
     return aim_locateElement(discr, params, param, bIndex, eIndex, bary);
@@ -2561,7 +2616,7 @@ int aimInterpolation(capsDiscr *discr, const char *name,
                      int rank, double *data, double *result)
 {
 #ifdef DEBUG
-    printf(" nastranAIM/aimInterpolation  %s!\n", name);
+    printf(" tacsAIM/aimInterpolation  %s!\n", name);
 #endif
 
     return aim_interpolation(discr, name, bIndex, eIndex, bary, rank, data,
@@ -2574,7 +2629,7 @@ int aimInterpolateBar(capsDiscr *discr, const char *name,
                       int rank, double *r_bar, double *d_bar)
 {
 #ifdef DEBUG
-    printf(" nastranAIM/aimInterpolateBar  %s!\n", name);
+    printf(" tacsAIM/aimInterpolateBar  %s!\n", name);
 #endif
 
     return aim_interpolateBar(discr, name, bIndex, eIndex, bary, rank, r_bar,
@@ -2586,7 +2641,7 @@ int aimIntegration(capsDiscr *discr, const char *name,int bIndex, int eIndex,
                    int rank, double *data, double *result)
 {
 #ifdef DEBUG
-    printf(" nastranAIM/aimIntegration  %s!\n", name);
+    printf(" tacsAIM/aimIntegration  %s!\n", name);
 #endif
 
     return aim_integration(discr, name, bIndex, eIndex, rank, data, result);
@@ -2597,7 +2652,7 @@ int aimIntegrateBar(capsDiscr *discr, const char *name, int bIndex, int eIndex,
                     int rank, double *r_bar, double *d_bar)
 {
 #ifdef DEBUG
-    printf(" nastranAIM/aimIntegrateBar  %s!\n", name);
+    printf(" tacsAIM/aimIntegrateBar  %s!\n", name);
 #endif
 
     return aim_integrateBar(discr, name, bIndex, eIndex, rank, r_bar, d_bar);

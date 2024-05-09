@@ -1,0 +1,25 @@
+# designW5
+# written by John Dannenhoffer
+
+# cut location and box size
+DESPMTR   xcut   2
+DESPMTR   xsize  4
+DESPMTR   ysize  2
+DESPMTR   zsize  1
+DESPMTR   fact   2
+
+# base box
+BOX       0  0  0  xsize  ysize  zsize
+
+# cutting plane
+BOX       0 -1 -1  0  2  3
+BOX       0  1 -1  0  2  3
+JOIN
+TRANSLATE xcut  0  0
+
+# scribe
+SUBTRACT
+
+SCALE     fact
+
+END

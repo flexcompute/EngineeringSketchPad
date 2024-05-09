@@ -3,12 +3,12 @@
  *
  *             Replacement Solid Boolean Operator Functions
  *
- *      Copyright 2011-2022, Massachusetts Institute of Technology
+ *      Copyright 2011-2024, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
  */
- 
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
@@ -78,6 +78,7 @@
 
   extern int  EG_getBody( const egObject *obj, egObject **body );
   extern int  EG_outLevel( const egObject *object );
+  extern int  EG_fullAttrs( const egObject *obj );
   extern int  EG_setOutLevel( const egObject *object, int level );
   extern int  EG_getGeometry( const egObject *geom, int *oclass, int *mtype,
                               egObject **refGeom, int **ivec, double **rvec );
@@ -116,7 +117,7 @@ EG_splitInit(int num, splitEnts **splits)
 {
   int       i;
   splitEnts *splitVec;
-  
+
   *splits  = NULL;
   splitVec = (splitEnts *) EG_alloc(num*sizeof(splitEnts));
   if (splitVec == NULL) return;
@@ -124,7 +125,7 @@ EG_splitInit(int num, splitEnts **splits)
     splitVec[i].nSplit = 0;
     splitVec[i].ents   = NULL;
   }
-  
+
   *splits = splitVec;
 }
 
@@ -148,7 +149,7 @@ static int
 EG_splitAlloc(int index, splitEnts *splits, int num)
 {
   int i;
-  
+
   if (splits[index].ents != NULL) {
     printf(" EGADS Internal: Data for index %d already exists!\n", index);
     return EGADS_EXISTS;
@@ -157,12 +158,12 @@ EG_splitAlloc(int index, splitEnts *splits, int num)
     printf(" EGADS Internal: numEntities for index %d is %d!\n", index, num);
     return EGADS_RANGERR;
   }
-  
+
   splits[index].ents = (egObject **) EG_alloc(num*sizeof(egObject *));
   if (splits[index].ents == NULL) return EGADS_MALLOC;
   for (i = 0; i < num; i++) splits[index].ents[i] = NULL;
   splits[index].nSplit = num;
-  
+
   return EGADS_SUCCESS;
 }
 
@@ -171,11 +172,11 @@ static void
 EG_fillNodeCnt(int i, int *eface, edgeInfo *fe, int *n, nodeCnt *nodec)
 {
   int j, k, index, last, nnode = 0;
-  
+
   *n    = 0;
   index = eface[i];
   if (index == -1) return;
-  
+
   last = -1;
   while (index != -1) {
     if (fe[index].ni[0].type == FACE) {
@@ -191,7 +192,7 @@ EG_fillNodeCnt(int i, int *eface, edgeInfo *fe, int *n, nodeCnt *nodec)
         nnode++;
       }
     }
-    
+
     if (fe[index].ni[1].type == FACE) {
       for (j = 0; j < nnode; j++)
         if (fe[index].ni[1].node == nodec[j].node) {
@@ -205,11 +206,11 @@ EG_fillNodeCnt(int i, int *eface, edgeInfo *fe, int *n, nodeCnt *nodec)
         nnode++;
       }
     }
-    
+
     last  = index;
     index = fe[index].next;
   }
-  
+
   /* check for lone segment */
   for (j = 0; j < nnode-1; j++) {
     if (nodec[j].cnt != 1) continue;
@@ -220,7 +221,7 @@ EG_fillNodeCnt(int i, int *eface, edgeInfo *fe, int *n, nodeCnt *nodec)
       break;
     }
   }
-  
+
   *n = nnode;
 }
 
@@ -230,10 +231,10 @@ EG_delOpenEdges(int nseg, int nfaces, int *eface, edgeInfo *fe)
 {
   int     i, j, k, n, index, last;
   nodeCnt *nodec;
-  
+
   nodec = (nodeCnt *) EG_alloc(2*nseg*sizeof(nodeCnt));
   if (nodec == NULL) return EGADS_MALLOC;
-  
+
   for (i = 0; i < nfaces; i++) {
     EG_fillNodeCnt(i, eface, fe, &n, nodec);
 /*  if (eface[i] != -1) printf("  Face %d:  n = %d\n", i+1, n);  */
@@ -254,13 +255,13 @@ EG_delOpenEdges(int nseg, int nfaces, int *eface, edgeInfo *fe)
     }
     if (k        ==  0) continue;
     if (eface[i] == -1) continue;
-    
+
     /* again! */
     i--;
   }
 
   EG_free(nodec);
-  
+
   return EGADS_SUCCESS;
 }
 
@@ -269,14 +270,14 @@ static double
 EG_angleEdges(int fsense, double *dir1, double *dir2)
 {
   double angle;
-  
+
   angle  = atan2(-dir1[1], -dir1[0]) - atan2(dir2[1], dir2[0]);
   angle *= fsense;
-  
+
   if  (angle < 0.0) angle += 2.0*PI;
   if ((angle < 0.0) || (angle > 2.0*PI))
     printf(" EGADS Internal: EG_angleEdges = %lf\n", angle);
-  
+
   return angle;
 }
 
@@ -286,7 +287,7 @@ EG_matchEndpts(int nEdges, edgeLoop *el, int n, double *uv, double tol)
 {
   int    i, m;
   double dist;
-  
+
   for (m = i = 0; i < nEdges; i++) {
     if (el[i].connect[0] == -1) {
       dist = sqrt((uv[0]-el[i].uvs[0][0])*(uv[0]-el[i].uvs[0][0]) +
@@ -316,7 +317,7 @@ EG_matchEndpts(int nEdges, edgeLoop *el, int n, double *uv, double tol)
 static void
 EG_adjPeriodic(double *uv, double *uvs, double *srange, int sper)
 {
-  
+
   if ((sper&1) != 0)
     if (fabs(uv[0]-uvs[0]) > 0.5*(srange[1]-srange[0])) {
 #ifdef DEBUG
@@ -350,7 +351,7 @@ static void
 EG_adjustPeriod(double *param, double *range, double *srange, int sper)
 {
   double period;
-  
+
   if ((sper&1) != 0) {
     period = srange[1] - srange[0];
     if ((param[0]+PARAMACC < range[0]) || (param[0]-PARAMACC > range[1]))
@@ -360,7 +361,7 @@ EG_adjustPeriod(double *param, double *range, double *srange, int sper)
         if (param[0]-period+PARAMACC > range[0]) param[0] -= period;
       }
   }
-  
+
   if ((sper&2) != 0) {
     period = srange[3] - srange[2];
     if ((param[1]+PARAMACC < range[2]) || (param[1]-PARAMACC > range[3]))
@@ -370,7 +371,7 @@ EG_adjustPeriod(double *param, double *range, double *srange, int sper)
         if (param[1]-period+PARAMACC > range[2]) param[1] -= period;
       }
   }
-  
+
 }
 
 static int
@@ -385,14 +386,14 @@ EG_traceLoops(egObject *context, const egObject *face, int nEdges,
   egObject *geom, *surf, *ref, *sref, **nodes, **objs, **list;
   edgeLoop *el;
   nodeCnt  *nl;
-  
+
   *nLoops  = 0;
   *loops   = NULL;
   el       = NULL;
   objs     = NULL;
   sens     = NULL;
   outLevel = EG_outLevel(context);
-  
+
   /* look at Face */
   stat = EG_getTopology(face, &surf, &oclass, &fsense, frange, &n, &nodes,
                         &sen);
@@ -440,7 +441,7 @@ EG_traceLoops(egObject *context, const egObject *face, int nEdges,
     printf(" EGADS Error: Cannot get Surf Range = %d (EG_traceLoops)!\n", stat);
     return stat;
   }
-  
+
   /* save away the Edge information for processing */
   el = (edgeLoop *) EG_alloc(nEdges*sizeof(edgeLoop));
   if (el == NULL) return EGADS_MALLOC;
@@ -461,7 +462,7 @@ EG_traceLoops(egObject *context, const egObject *face, int nEdges,
     el[i].pcurve     = NULL;
     if (pcurves != NULL) el[i].pcurve = pcurves[i];
     if (senses[i] == -1) {
-      
+
       el[i].nodes[0] = el[i].nodes[1] = nodes[0];
       if (n == 2) el[i].nodes[0] = nodes[1];
       if (pcurves != NULL) {
@@ -490,7 +491,7 @@ EG_traceLoops(egObject *context, const egObject *face, int nEdges,
       }
       el[i].dir[1][0] = -result[0];
       el[i].dir[1][1] = -result[1];
-      
+
       if (pcurves != NULL) {
         stat = EG_evaluate(pcurves[i], &range[1], result);
         if (stat != EGADS_SUCCESS) {
@@ -517,9 +518,9 @@ EG_traceLoops(egObject *context, const egObject *face, int nEdges,
       }
       el[i].dir[0][0] = -result[0];
       el[i].dir[0][1] = -result[1];
-      
+
     } else {
-      
+
       el[i].nodes[0] = el[i].nodes[1] = nodes[0];
       if (n == 2) el[i].nodes[1] = nodes[1];
       if (pcurves != NULL) {
@@ -548,7 +549,7 @@ EG_traceLoops(egObject *context, const egObject *face, int nEdges,
       }
       el[i].dir[0][0] = result[0];
       el[i].dir[0][1] = result[1];
-      
+
       if (pcurves != NULL) {
         stat = EG_evaluate(pcurves[i], &range[1], result);
         if (stat != EGADS_SUCCESS) {
@@ -577,7 +578,7 @@ EG_traceLoops(egObject *context, const egObject *face, int nEdges,
       el[i].dir[1][1] = result[1];
     }
   }
-  
+
   /* figure out the uv tolerance for the existing Nodes */
   nl = (nodeCnt *) EG_alloc(2*nEdges*sizeof(nodeCnt));
   if (nl == NULL) {
@@ -664,7 +665,7 @@ EG_traceLoops(egObject *context, const egObject *face, int nEdges,
   printf(" adjst tol = %le\n", tol);
 #endif
   EG_free(nl);
-  
+
   tol /= 10.0;
   cnt  = 0;
   do {
@@ -680,7 +681,7 @@ EG_traceLoops(egObject *context, const egObject *face, int nEdges,
     }
     for (i = 0; i < nEdges; i++) el[i].connect[0] = el[i].connect[1] = -1;
     tol *= 10.0;
-    
+
     for (n = i = 0; i < nEdges; i++) {
       if (el[i].connect[0] == -1) {
         el[i].connect[0] = n;
@@ -704,7 +705,7 @@ EG_traceLoops(egObject *context, const egObject *face, int nEdges,
               el[i].connect[1], el[i].uvs[1][0], el[i].uvs[1][1]);
   }
 #endif
-  
+
   objs = (egObject **) EG_alloc(2*nEdges*sizeof(egObject *));
   if (objs == NULL) {
     stat = EGADS_MALLOC;
@@ -715,7 +716,7 @@ EG_traceLoops(egObject *context, const egObject *face, int nEdges,
     stat = EGADS_MALLOC;
     goto bail;
   }
-  
+
   /* connect the Edges to make Loops */
   n = nEdges;
   while (n != 0) {
@@ -785,7 +786,7 @@ EG_traceLoops(egObject *context, const egObject *face, int nEdges,
         n++;
       } while (next != first);
     }
-    
+
     /* make the loop */
     if (*nLoops == 0) {
       list = (egObject **) EG_alloc(sizeof(egObject *));
@@ -796,7 +797,7 @@ EG_traceLoops(egObject *context, const egObject *face, int nEdges,
       stat = EGADS_MALLOC;
       goto bail;
     }
-    
+
 #ifdef DEBUG
     printf(" EG_traceLoops: making %d Loop w/ %d of %d Edges!\n",
            *nLoops+1, n, nEdges);
@@ -823,15 +824,15 @@ EG_traceLoops(egObject *context, const egObject *face, int nEdges,
       stat     = EGADS_TOPOERR;
       goto bail;
     }
-    
+
     *nLoops += 1;
     *loops   = list;
-    
+
     for (n = i = 0; i < nEdges; i++)
       if (el[i].edge != NULL) n++;
   }
   stat = EGADS_SUCCESS;
-  
+
 bail:
   if (stat != EGADS_SUCCESS) {
     list = *loops;
@@ -853,7 +854,7 @@ static void
 EG_insertT(degenEdge *degenCnt, double t)
 {
   int i;
-  
+
   for (i = degenCnt->cnt-1; i > 0; i--) {
     degenCnt->ts[i+1] = degenCnt->ts[i];
     if ((t > degenCnt->ts[i-1]) && (t < degenCnt->ts[i])) {
@@ -873,7 +874,7 @@ nodeDegenerate(int nedges, egObject **edges, const egObject *node)
   int      i, n, status, oclass, mtype, *senses;
   double   data[4];
   egObject *ref, **nodes;
-  
+
   for (i = 0; i < nedges; i++) {
     if (edges[i]->mtype != DEGENERATE) continue;
     status = EG_getTopology(edges[i], &ref, &oclass, &mtype, data, &n,
@@ -884,7 +885,7 @@ nodeDegenerate(int nedges, egObject **edges, const egObject *node)
     }
     if (node == nodes[0]) return edges[i];
   }
-  
+
   return NULL;
 }
 
@@ -893,14 +894,14 @@ static int
 EG_cutDegenerate(int iSeg, edgeInfo *fe, egObject *edge)
 {
   int j;
-  
+
   j = iSeg;
   while (j != -1) {
     if (fe[j].ni[0].degen == edge) return EGADS_SUCCESS;
     if (fe[j].ni[1].degen == edge) return EGADS_SUCCESS;
     j = fe[j].next;
   }
-  
+
   return EGADS_OUTSIDE;
 }
 
@@ -915,7 +916,7 @@ EG_splitFace(egObject *context, int iFace, int iSeg, edgeInfo *fe,
   double    uvbox[4], box[4], obox[4], uvs[6], d[2], trang[2], trange[2];
   egObject  *ref, *surf, *pcurve, *face, **objs, **edges, **pcurves, **loops;
   degenEdge *degenCnt;
-  
+
   stat = EG_getTolerance(fe[iSeg].face, &tol);
   if (stat != EGADS_SUCCESS) return stat;
   stat = EG_getTopology(fe[iSeg].face, &surf, &oclass, &fsense, uvbox, &nLoop,
@@ -933,7 +934,7 @@ EG_splitFace(egObject *context, int iFace, int iSeg, edgeInfo *fe,
              i+1, surf->mtype, fsense, area, box[0], box[1], box[2], box[3]);
   }
 #endif
-  
+
   /* mark the degenerate NODE intersections on Degenerate Edges */
   for (nEdge = i = 0; i < nLoop; i++) {
     stat = EG_getTopology(loops[i], &ref, &oclass, &mtype, uvbox, &n,
@@ -973,7 +974,7 @@ EG_splitFace(egObject *context, int iFace, int iSeg, edgeInfo *fe,
     j = fe[j].next;
   }
   EG_free(edges);
-  
+
   /* collect all of the Edges */
   for (nEdge = nDegen = i = 0; i < nLoop; i++) {
     stat = EG_getTopology(loops[i], &ref, &oclass, &mtype, uvbox, &n,
@@ -1036,7 +1037,7 @@ EG_splitFace(egObject *context, int iFace, int iSeg, edgeInfo *fe,
     if (fe[j].ni[1].degen != NULL) m++;
     j = fe[j].next;
   }
- 
+
 #ifdef DEBUG
   printf(" EG_splitFace: nEdges = %d from Face, %d from Splits, %d from Degen\n",
          nEdge, n, m);
@@ -1062,7 +1063,7 @@ EG_splitFace(egObject *context, int iFace, int iSeg, edgeInfo *fe,
       return EGADS_MALLOC;
     }
   }
-  
+
   /* fill up the list of Edges */
   for (nEdge = i = 0; i < nLoop; i++) {
     stat = EG_getTopology(loops[i], &ref, &oclass, &mtype, uvbox, &n,
@@ -1260,7 +1261,7 @@ EG_splitFace(egObject *context, int iFace, int iSeg, edgeInfo *fe,
       }
       j = fe[j].next;
     }
-    
+
     /* make the new degenerate Edges based on t intervals of original */
     for (k = 0; k < nDegen; k++) {
       if (degenCnt[k].cnt == 2) continue;
@@ -1300,13 +1301,13 @@ EG_splitFace(egObject *context, int iFace, int iSeg, edgeInfo *fe,
     }
   }
   if (degenCnt != NULL) EG_free(degenCnt);
-  
+
   stat = EG_traceLoops(context, fe[iSeg].face, nEdge, edges, senses, pcurves,
                        &nLoop, &loops);
 #ifdef DEBUG
   printf(" EGADS Info: traceLoops = %d, returns %d loops!\n", stat, nLoop);
 #endif
-  
+
   /* need to find inners and make the Faces */
   if (loops != NULL) {
     mark = (int *) EG_alloc(nLoop*sizeof(int));
@@ -1323,7 +1324,7 @@ EG_splitFace(egObject *context, int iFace, int iSeg, edgeInfo *fe,
     }
     for (i = 0; i < nLoop; i++) mark[i] = 0;
     for (nFace = i = 0; i < nLoop; i++) {
-      
+
       /* put the loops on the stack for cleanup later */
       stat = EG_stackPush(stack, loops[i]);
       if (stat != EGADS_SUCCESS) {
@@ -1337,7 +1338,7 @@ EG_splitFace(egObject *context, int iFace, int iSeg, edgeInfo *fe,
         EG_free(edges);
         return stat;
       }
-  
+
       stat = EG_getUVinfo(surf, loops[i], box, &area);
       if (stat != EGADS_SUCCESS) {
         printf(" EGADS Error: Face %d -- EG_getUVinfo from Loop %d = %d!\n",
@@ -1389,7 +1390,7 @@ EG_splitFace(egObject *context, int iFace, int iSeg, edgeInfo *fe,
       EG_free(edges);
       return stat;
     }
-    
+
     /* get the storage for the subFaces */
     stat = EG_splitAlloc(iFace, sFaces, nFace);
     if (stat != EGADS_SUCCESS) {
@@ -1401,7 +1402,7 @@ EG_splitFace(egObject *context, int iFace, int iSeg, edgeInfo *fe,
       EG_free(edges);
       return stat;
     }
-    
+
     /* get the maximum number of Loops */
     for (m = i = 0; i < nFace; i++) {
       for (j = 0; j < nLoop; j++)
@@ -1425,7 +1426,7 @@ EG_splitFace(egObject *context, int iFace, int iSeg, edgeInfo *fe,
       EG_free(edges);
       return EGADS_MALLOC;
     }
-    
+
     for (i = 0; i < nFace; i++) {
       for (j = 0; j < nLoop; j++)
         if (mark[j] == i+1) break;
@@ -1480,7 +1481,7 @@ EG_splitFace(egObject *context, int iFace, int iSeg, edgeInfo *fe,
       EG_attributeDup(fe[iSeg].face, face);
       sFaces[iFace].ents[i] = face;
     }
-    
+
     EG_free(sens);
     EG_free(objs);
     EG_free(mark);
@@ -1499,29 +1500,30 @@ EG_splitBody(const egObject *body, int nseg, const egObject **facEdg,
              egObject **result)
 {
   int       i, j, jj, k, kk, l, m, n, *senses, *sen, *newSen, *eface = NULL;
-  int       oclass, mtype, oc, mt, len, per, outLevel, status = EGADS_SUCCESS;
-  int        nnodes,  nedges,  nfaces,  nshells;
+  int       oclass, mtype, oc, mt, len, per, outLevel, fullAttr, status = EGADS_SUCCESS;
+  int        nnodes,  nedges,  nfaces,  nshells, nloop_edges;
   egObject  **nodes, **edges, **faces, **shells, **newObjs, **newFaces;
   egObject  *context, *ref, *lnodes[2], **children, **dum, **objs, *geom, *obj;
   egObject  *newBody;
-  double    d, t, tol, toln, toler, period, xyz[3], data[4], limits[4], uv[2];
-  double    *ts, trange[2];
-  edgeInfo  *fe;
+  double    d, t, tol, toln, toler, period, xyz[3], data[4], limits[4];
+  double    *ts, trange[2], uv[2];
+  edgeInfo  *fe = NULL;
   objStack  stack;
   splitEnts *sEdges = NULL, *sFaces = NULL;
 #ifdef WRITERESULT
   egObject    *model;
   static char fname[13] = "body_a.egads";
 #endif
-  
+
   *result = NULL;
   if (body->oclass != BODY)     return EGADS_NOTBODY;
   if (body->mtype  == WIREBODY) return EGADS_TOPOERR;
-  
+
   context = EG_context(body);
   if (context == NULL) return EGADS_NOTCNTX;
   outLevel = EG_outLevel(body);
-  
+  fullAttr = EG_fullAttrs(body);
+
 #ifdef WRITERESULT
   printf(" EG_splitBody: nSeg = %d\n", nseg);
   objs = (egObject  **) EG_alloc((nseg+1)*sizeof(egObject  *));
@@ -1548,6 +1550,7 @@ EG_splitBody(const egObject *body, int nseg, const egObject **facEdg,
           return status;
         }
       }
+      senses = NULL;
       status = EG_makeTopology(context, NULL, BODY, WIREBODY, NULL, 1, &obj,
                                senses, &objs[i+1]);
       if (status != EGADS_SUCCESS) {
@@ -1568,13 +1571,37 @@ EG_splitBody(const egObject *body, int nseg, const egObject **facEdg,
   }
 #endif
 
-  nnodes  = nedges = nfaces = nshells = 0;
+#ifdef DEBUG
+  tol = 0.0;
+  EG_tolerance(body, &tol);
+  printf(" inputBody: tol = %le\n", tol);
+#endif
+
+  nnodes  = nedges = nfaces = nshells = nloop_edges = 0;
   nodes   =  edges =  faces =  shells = NULL;
-  fe      = (edgeInfo *) EG_alloc(nseg*sizeof(edgeInfo));
-  if (fe == NULL) return EGADS_MALLOC;
+
+  /* count additional edges added due to FACE/LOOP pairs */
   for (i = 0; i < nseg; i++) {
-    fe[i].face           = (egObject *) facEdg[2*i  ];
-    fe[i].ent            = (egObject *) facEdg[2*i+1];
+    if (facEdg[2*i+1]->oclass == EDGE) continue;
+    status = EG_getTopology(facEdg[2*i+1], &ref, &oclass, &mtype, data, &n,
+                            &children, &senses);
+    if (status != EGADS_SUCCESS) goto cleanup;
+    for (j = 0; j < n; j++) {
+      for (k = j+1; k < n; k++) {
+        /* look for repeated edges in the loop */
+        if (children[j] == children[k]) break;
+      }
+      if (k != n) continue;
+      nloop_edges++;
+    }
+    nloop_edges--; /*The loop is replaced by an edge */
+  }
+
+  fe      = (edgeInfo *) EG_alloc((nseg+nloop_edges)*sizeof(edgeInfo));
+  if (fe == NULL) return EGADS_MALLOC;
+  for (i = 0; i < nseg+nloop_edges; i++) {
+    fe[i].face           = NULL;
+    fe[i].ent            = NULL;
     fe[i].pcurve         = NULL;
     fe[i].next           = -1;
     fe[i].sense          = fe[i].shell          = 1;
@@ -1585,9 +1612,35 @@ EG_splitBody(const egObject *body, int nseg, const egObject **facEdg,
     fe[i].ni[0].param[0] = fe[i].ni[0].param[1] = 0.0;
     fe[i].ni[1]          = fe[i].ni[0];
   }
+
+  /* retrieve FACE/EDGE pairs from possible FACE/LOOP pairs */
+  for (jj = i = 0; i < nseg; i++) {
+    if (facEdg[2*i+1]->oclass == EDGE) {
+      fe[jj].face = (egObject *) facEdg[2*i  ];
+      fe[jj].ent  = (egObject *) facEdg[2*i+1];
+      jj++;
+    } else {
+      status = EG_getTopology(facEdg[2*i+1], &ref, &oclass, &mtype, data, &n,
+                              &children, &senses);
+      if (status != EGADS_SUCCESS) goto cleanup;
+      for (j = 0; j < n; j++) {
+        for (k = j+1; k < n; k++) {
+          /* look for repeated edges in the loop */
+          if (children[j] == children[k]) break;
+        }
+        if (k != n) continue;
+        fe[jj].face = (egObject *) facEdg[2*i];
+        fe[jj].ent  = children[j];
+        jj++;
+      }
+    }
+  }
+
+  nseg += nloop_edges;
+
   status  = EG_stackInit(&stack);
   if (status != EGADS_SUCCESS) goto cleanup;
-  
+
   /* get our PCurves if required */
   for (i = 0; i < nseg; i++) {
     status = EG_getTopology(fe[i].face, &ref, &oclass, &mtype, data, &n,
@@ -1614,19 +1667,27 @@ EG_splitBody(const egObject *body, int nseg, const egObject **facEdg,
   if (status != EGADS_SUCCESS) goto cleanup;
   status = EG_getBodyTopos(body, NULL, SHELL, &nshells, &shells);
   if (status != EGADS_SUCCESS) goto cleanup;
-  
+
   if (nshells > 1) {
     if (outLevel > 1)
       printf(" EGADS Internal: # Shells = %d\n", nshells);
     for (i = 0; i < nseg; i++) {
       status = EG_getBodyTopos(body, fe[i].face, SHELL, &n, &objs);
       if (status != EGADS_SUCCESS) goto cleanup;
-      if ((n != 1) && (outLevel > 1)) printf(" EGADS Internal: Face is in %d Shells!\n", n);
+      if ((n != 1) && (outLevel > 1))
+        printf(" EGADS Internal: Face is in %d Shells!\n", n);
       fe[i].shell = EG_indexBodyTopo(body, objs[0]);
       EG_free(objs);
     }
+#ifdef DEBUG
+    for (j = 0; j < nshells; j++) {
+      tol = 0.0;
+      EG_tolerance(shells[j], &tol);
+      printf(" inputShell %d: tol = %le\n", j, tol);
+    }
+#endif
   }
-  
+
   /* assign the input Edge/Loop endpoints to their respective entities */
 
   for (i = 0; i < nseg; i++) {
@@ -1660,7 +1721,7 @@ EG_splitBody(const egObject *body, int nseg, const egObject **facEdg,
         continue;
       }
     }
-    
+
     status = EG_getTolerance(fe[i].ent, &tol);
     if (status != EGADS_SUCCESS) goto cleanup;
 /*  toler = tol;  */
@@ -1672,7 +1733,7 @@ EG_splitBody(const egObject *body, int nseg, const egObject **facEdg,
       status = EG_getTopology(children[j], &ref, &oc, &mtype, xyz, &m, &dum,
                               &sen);
       if (status != EGADS_SUCCESS) goto cleanup;
-      
+
       /* check to see if we have been here */
       for (k = 0; k < i; k++) {
         status = EG_getTopology(fe[k].ni[0].node, &ref, &oc, &mtype, data, &m,
@@ -1710,7 +1771,7 @@ EG_splitBody(const egObject *body, int nseg, const egObject **facEdg,
           break;
         }
       }
-      
+
       /* compare to nodes in the body */
       for (k = 0; k < nnodes; k++) {
         status = EG_getTopology(nodes[k], &ref, &oc, &mtype, data, &m, &dum,
@@ -1733,7 +1794,7 @@ EG_splitBody(const egObject *body, int nseg, const egObject **facEdg,
         }
       }
       if (fe[i].ni[j].type == NODE) continue;
-      
+
       /* look for splitting an Edge */
       status = EG_getBodyTopos(body, fe[i].face, EDGE, &m,  &dum);
       if (status != EGADS_SUCCESS) goto cleanup;
@@ -1791,7 +1852,7 @@ EG_splitBody(const egObject *body, int nseg, const egObject **facEdg,
       }
       EG_free(dum);
       if (fe[i].ni[j].type == EDGE) continue;
-      
+
       /* must be interior in the Face */
       status = EG_invEvaluate(fe[i].face, xyz, uv, data);
       if (status != EGADS_SUCCESS) goto cleanup;
@@ -1813,9 +1874,9 @@ EG_splitBody(const egObject *body, int nseg, const egObject **facEdg,
     /* copy node for closed entity */
     if (n == 1) fe[i].ni[1] = fe[i].ni[0];
   }
-  
+
   /* check for consistency */
-  
+
   for (i = 0; i < nseg; i++)
     for (j = 0; j < 2; j++) {
       if (fe[i].ni[j].match == 0) continue;
@@ -1873,9 +1934,9 @@ EG_splitBody(const egObject *body, int nseg, const egObject **facEdg,
 #endif
       }
     }
-  
+
   /* get Edges/Loops that cut each Face */
-  
+
   eface = (int *) EG_alloc(nfaces*sizeof(int));
   if (eface == NULL) {
     status = EGADS_MALLOC;
@@ -1901,7 +1962,7 @@ EG_splitBody(const egObject *body, int nseg, const egObject **facEdg,
   /* check internal Edges for hanging segments */
   status = EG_delOpenEdges(nseg, nfaces, eface, fe);
   if (status != EGADS_SUCCESS) goto cleanup;
-  
+
   /* remake all of the input Edges -- so we know they have the correct Nodes! */
   for (i = 0; i < nseg; i++) {
     if (fe[i].shell == 0) continue;
@@ -1927,12 +1988,15 @@ EG_splitBody(const egObject *body, int nseg, const egObject **facEdg,
         if (status != EGADS_SUCCESS) goto cleanup;
         status = EG_stackPush(&stack, obj);
         if (status != EGADS_SUCCESS) goto cleanup;
-        
+        if (fullAttr == 1) EG_attributeDup(children[0], obj);
+
         status = EG_makeTopology(context, ref, oclass, mtype, data, n, &obj,
-                                 senses, &fe[i].ent);
+                                 senses, &obj);
         if (status != EGADS_SUCCESS) goto cleanup;
-        status = EG_stackPush(&stack, fe[i].ent);
+        status = EG_stackPush(&stack, obj);
         if (status != EGADS_SUCCESS) goto cleanup;
+        if (fullAttr == 1) EG_attributeDup(fe[i].ent, obj);
+        fe[i].ent = obj;
       } else {
         objs = (egObject **) EG_alloc(n*sizeof(egObject *));
         if (objs == NULL) {
@@ -1940,7 +2004,7 @@ EG_splitBody(const egObject *body, int nseg, const egObject **facEdg,
           goto cleanup;
         }
         for (j = 1; j < n-1; j++) objs[j] = children[j];
-        
+
         status = EG_getTopology(children[0], &geom, &oc, &mt, limits, &l,
                                 &dum, &sen);
         if (status != EGADS_SUCCESS) {
@@ -1965,7 +2029,8 @@ EG_splitBody(const egObject *body, int nseg, const egObject **facEdg,
           EG_free(objs);
           goto cleanup;
         }
-        
+        if (fullAttr == 1) EG_attributeDup(children[0], objs[0]);
+
         status = EG_getTopology(children[n-1], &geom, &oc, &mt, limits, &l,
                                 &dum, &sen);
         if (status != EGADS_SUCCESS) {
@@ -1990,25 +2055,30 @@ EG_splitBody(const egObject *body, int nseg, const egObject **facEdg,
           EG_free(objs);
           goto cleanup;
         }
-        
+        if (fullAttr == 1) EG_attributeDup(children[n-1], objs[n-1]);
+
         status = EG_makeTopology(context, ref, oclass, mtype, data, n, objs,
-                                 senses, &fe[i].ent);
+                                 senses, &obj);
         EG_free(objs);
         if (status != EGADS_SUCCESS) goto cleanup;
-        status = EG_stackPush(&stack, fe[i].ent);
+        status = EG_stackPush(&stack, obj);
         if (status != EGADS_SUCCESS) goto cleanup;
+        if (fullAttr == 1) EG_attributeDup(fe[i].ent, obj);
+        fe[i].ent = obj;
       }
     } else {
       lnodes[0] = fe[i].ni[0].node;
       lnodes[1] = fe[i].ni[1].node;
       status = EG_makeTopology(context, ref, oclass, mtype, data, n, lnodes,
-                               senses, &fe[i].ent);
+                               senses, &obj);
       if (status != EGADS_SUCCESS) goto cleanup;
-      status = EG_stackPush(&stack, fe[i].ent);
+      status = EG_stackPush(&stack, obj);
       if (status != EGADS_SUCCESS) goto cleanup;
+      if (fullAttr == 1) EG_attributeDup(fe[i].ent, obj);
+      fe[i].ent = obj;
     }
   }
-  
+
   /* make the split edges -- ordered by t! */
   EG_splitInit(nedges, &sEdges);
   if (sEdges == NULL) goto cleanup;
@@ -2076,7 +2146,8 @@ EG_splitBody(const egObject *body, int nseg, const egObject **facEdg,
     lnodes[1] = children[0];
     for (j = 0; j < n; j++) {
 #ifdef DEBUG
-      printf(" Edge %3d: split @ %lf, Node = %lx\n", i+1, ts[j], (long) dum[j]);
+      printf(" Edge %3d: type = %d  split @ %lf, Node = %lx\n",
+             i+1, mtype, ts[j], (long) dum[j]);
 #endif
       limits[0] = limits[1];
       lnodes[0] = lnodes[1];
@@ -2098,6 +2169,7 @@ EG_splitBody(const egObject *body, int nseg, const egObject **facEdg,
         EG_free(dum);
         goto cleanup;
       }
+      if (fullAttr == 1) EG_attributeDup(edges[i], sEdges[i].ents[j]);
     }
     limits[0] = limits[1];
     lnodes[0] = lnodes[1];
@@ -2119,12 +2191,13 @@ EG_splitBody(const egObject *body, int nseg, const egObject **facEdg,
       EG_free(dum);
       goto cleanup;
     }
+    if (fullAttr == 1) EG_attributeDup(edges[i], sEdges[i].ents[n]);
   }
   EG_free(ts);
   EG_free(dum);
-  
+
   /* rebuild the Faces with our split Edges */
-  
+
   newFaces = (egObject **) EG_alloc(nfaces*sizeof(egObject *));
   if (newFaces == NULL) {
     status = EGADS_MALLOC;
@@ -2144,12 +2217,23 @@ EG_splitBody(const egObject *body, int nseg, const egObject **facEdg,
     }
     EG_free(dum);
     if (l == 0) continue;
-    
+
     status = EG_getTopology(faces[i], &geom, &oclass, &mtype, data, &n,
                             &children, &senses);
     if (status != EGADS_SUCCESS) goto cleanup;
 #ifdef DEBUG
-    printf(" Face %d: %d Loop(s) -- number of Edge Splits is %d\n", i+1, n, l);
+    printf(" Face %d: %d Loop(s) -- number of Edge Splits is %d", i+1, n, l);
+    if (nshells > 1) {
+      int ndum;
+      status = EG_getBodyTopos(body, faces[i], SHELL, &ndum, &dum);
+      if (status == EGADS_SUCCESS) {
+        status = EG_indexBodyTopo(body, dum[0]);
+        EG_free(dum);
+        if (status > EGADS_SUCCESS) status--;
+        printf("  (shell %d)", status);
+      }
+    }
+    printf("\n");
 #endif
     dum = (egObject **) EG_alloc(n*sizeof(egObject *));
     if (dum == NULL) {
@@ -2218,7 +2302,13 @@ EG_splitBody(const egObject *body, int nseg, const egObject **facEdg,
       status = EG_makeTopology(context, ref, oc, mt, NULL, len, newObjs, newSen,
                                &dum[j]);
 #ifdef DEBUG
-      printf("       newLoop status = %d for %d Edges\n", status, len);
+      printf("       newLoop status = %d for %d Edges", status, len);
+      if (status == EGADS_SUCCESS) {
+        double tolx = 0.0;
+        EG_tolerance(dum[j], &tolx);
+        printf("  tol = %le", tolx);
+      }
+      printf("\n");
 #endif
       EG_free(newObjs);
       EG_free(newSen);
@@ -2233,12 +2323,20 @@ EG_splitBody(const egObject *body, int nseg, const egObject **facEdg,
         EG_free(newFaces);
         goto cleanup;
       }
+      if (fullAttr == 1) EG_attributeDup(children[j], dum[j]);
     }
     /* make new Faces */
     status = EG_makeTopology(context, geom, oclass, mtype, NULL, n, dum, senses,
                              &obj);
 #ifdef DEBUG
-    printf("       newFace status = %d for %d Loops\n", status, n);
+    printf("       newFace -> surf type = %d  status = %d for %d Loops",
+           geom->mtype, status, n);
+    if (status == EGADS_SUCCESS) {
+      double tolx = 0.0;
+      EG_tolerance(obj, &tolx);
+      printf("  tol = %le", tolx);
+    }
+    printf("\n");
 #endif
     EG_free(dum);
     if (status != EGADS_SUCCESS) {
@@ -2252,12 +2350,14 @@ EG_splitBody(const egObject *body, int nseg, const egObject **facEdg,
       goto cleanup;
     }
     /* patch up the segment info with the new Face */
+/*@-kepttrans@*/
     j = eface[i];
     while (j != -1) {
       fe[j].face = obj;
       j          = fe[j].next;
     }
     newFaces[i]  = obj;
+/*@+kepttrans@*/
   }
 
   /* adjust shells */
@@ -2271,7 +2371,7 @@ EG_splitBody(const egObject *body, int nseg, const egObject **facEdg,
       if (newFaces[i] != NULL) l++;
     }
     if (l == 0) continue;
-    
+
     dum = (egObject **) EG_alloc(m*sizeof(egObject *));
     if (dum == NULL) {
       status = EGADS_MALLOC;
@@ -2287,13 +2387,19 @@ EG_splitBody(const egObject *body, int nseg, const egObject **facEdg,
     status = EG_makeTopology(context, ref, oc, mt, NULL, m, dum, sen,
                              &shells[j]);
     EG_free(dum);
-#ifdef DEBUG
-    printf(" newShell %d: status = %d for %d Faces -- body = %d\n",
-           j, status, m, body->mtype);
-#endif
-    if (status != EGADS_SUCCESS) goto cleanup;
+    if (status != EGADS_SUCCESS) {
+      printf(" EGADS Internal: Shell %d  status = %d for %d Faces -- body = %d",
+             j, status, m, body->mtype);
+      goto cleanup;
+    }
     status = EG_stackPush(&stack, shells[j]);
     if (status != EGADS_SUCCESS) goto cleanup;
+#ifdef DEBUG
+    t = 0.0;
+    EG_tolerance(shells[j], &t);
+    printf(" tmpShell %d: status = %d for %d Faces -- body = %d  tol = %le\n",
+           j, status, m, body->mtype, t);
+#endif
   }
   /* update our face storage */
   for (i = 0; i < nfaces; i++) {
@@ -2302,7 +2408,7 @@ EG_splitBody(const egObject *body, int nseg, const egObject **facEdg,
   EG_free(newFaces);
 
   /* adjust the Loops & split Faces in each Face cut */
-  
+
   EG_splitInit(nfaces, &sFaces);
   if (sFaces == NULL) goto cleanup;
 
@@ -2315,9 +2421,9 @@ EG_splitBody(const egObject *body, int nseg, const egObject **facEdg,
 #endif
     if (status != EGADS_SUCCESS) goto cleanup;
   }
-  
+
   /* make the new body by rebuilding Shells */
-  
+
   newBody = (egObject *) body;
   status  = EG_getTopology(newBody, &geom, &oclass, &mtype, data, &n,
                            &children, &senses);
@@ -2335,10 +2441,16 @@ EG_splitBody(const egObject *body, int nseg, const egObject **facEdg,
       status = EG_makeTopology(context, NULL, BODY, mtype, NULL, 1, faces,
                                senses, &obj);
 #ifdef DEBUG
-      printf(" newBody: status = %d \n", status);
+      printf(" newBody: status = %d", status);
+      if (status == EGADS_SUCCESS) {
+        double tolx = 0.0;
+        EG_tolerance(obj, &tolx);
+        printf("  tol = %le", tolx);
+      }
+      printf("\n");
 #endif
       if (status != EGADS_SUCCESS) goto cleanup;
-      
+
 #ifdef WRITERESULT
       status = EG_copyObject(obj, NULL, &ref);
       if (status == EGADS_SUCCESS) {
@@ -2355,7 +2467,7 @@ EG_splitBody(const egObject *body, int nseg, const egObject **facEdg,
       *result = obj;
       goto cleanup;
     }
-    
+
     nshells = 1;
     shells  = (egObject **) EG_alloc(nshells*sizeof(egObject *));
     if (shells == NULL) {
@@ -2379,9 +2491,9 @@ EG_splitBody(const egObject *body, int nseg, const egObject **facEdg,
     if (n != nshells)
       printf(" EGADS Internal: nShells = %d %d (EG_splitBody)!\n", nshells, n);
   }
-  
+
   /* rebuild shells */
-  
+
   for (j = 0; j < nshells; j++) {
     status = EG_getTopology(children[j], &ref, &oc, &mt, limits, &m, &objs,
                             &sen);
@@ -2393,7 +2505,7 @@ EG_splitBody(const egObject *body, int nseg, const egObject **facEdg,
       if (sFaces[i].nSplit != 0) kk++;
     }
     if (l == 0) continue;
-    
+
     /* new Faces in the Shell */
     l += m - kk;
     dum = (egObject **) EG_alloc(l*sizeof(egObject *));
@@ -2416,23 +2528,35 @@ EG_splitBody(const egObject *body, int nseg, const egObject **facEdg,
                              &shells[j]);
     EG_free(dum);
 #ifdef DEBUG
-    printf(" newShell %d: status = %d for %d->%d Faces -- body = %d\n",
+    printf(" newShell %d: status = %d for %d->%d Faces -- body = %d",
            j, status, m, l, mtype);
+    if (status == EGADS_SUCCESS) {
+      double tolx = 0.0;
+      EG_tolerance(shells[j], &tolx);
+      printf("   tol = %le", tolx);
+    }
+    printf("\n");
 #endif
     if (status != EGADS_SUCCESS) goto cleanup;
     status = EG_stackPush(&stack, shells[j]);
     if (status != EGADS_SUCCESS) goto cleanup;
   }
-  
+
   /* make the body from our new Shells */
 
   status = EG_makeTopology(context, NULL, BODY, mtype, NULL, nshells,
                            shells, senses, &obj);
 #ifdef DEBUG
-  printf(" newBody: status = %d \n", status);
+  printf(" newBody: status = %d", status);
+  if (status == EGADS_SUCCESS) {
+    double tolx = 0.0;
+    EG_tolerance(obj, &tolx);
+    printf("  tol = %le", tolx);
+  }
+  printf("\n");
 #endif
   if (status != EGADS_SUCCESS) goto cleanup;
-  
+
 #ifdef WRITERESULT
   status = EG_copyObject(obj, NULL, &ref);
   if (status == EGADS_SUCCESS) {
@@ -2447,7 +2571,7 @@ EG_splitBody(const egObject *body, int nseg, const egObject **facEdg,
   }
 #endif
   *result = obj;
-  
+
 cleanup:
   EG_splitFree(nedges, &sEdges);
   EG_splitFree(nfaces, &sFaces);
@@ -2465,6 +2589,6 @@ cleanup:
   if (edges  != NULL) EG_free(edges);
   if (nodes  != NULL) EG_free(nodes);
   if (fe     != NULL) EG_free(fe);
-  
+
   return status;
 }

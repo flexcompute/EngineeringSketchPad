@@ -1,0 +1,20 @@
+# popup_udc_1
+# written by John Dannenhoffer
+
+# basic wing
+MARK
+   UDPRIM    naca  series 4412
+   UDPRIM    naca  series 4412
+   SCALE     0.5
+   TRANSLATE 0.5  0.0  2.0
+RULE
+SCALE     2.0
+ROTATEX   90.0  0.0  0.0
+
+# create popup on upper surface
+UDPARG    $$/popupz    xbox    "1.50; 1.00; 1.00; 1.50;"
+UDPARG    $$/popupz    ybox    "-1.0; -1.0; -3.0; -3.0;"
+UDPARG    $$/popupz    height   0.10
+UDPRIM    $$/popupz
+
+END

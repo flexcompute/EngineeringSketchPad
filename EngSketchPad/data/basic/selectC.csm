@@ -1,0 +1,71 @@
+# selectC
+# written by John Dannenhoffer
+
+# basic box
+BOX       -4  0  0  8  6  1
+SELECT    face  @nbody  6
+ATTRIBUTE face  $top
+
+# (movable) stripes
+DIMENSION ystripe  1  4
+DESPMTR   ystripe  "1.5; 2.5; 3.5; 4.5"
+
+PATBEG    istripe  ystripe.size
+   SKBEG     -5  ystripe[istripe]-0.1  -1
+      LINSEG  5  ystripe[istripe]-0.1  -1
+      LINSEG  5  ystripe[istripe]+0.1  -1
+      LINSEG -5  ystripe[istripe]+0.1  -1
+      LINSEG -5  ystripe[istripe]-0.1  -1
+   SKEND      1
+   EXTRUDE    0  0  4
+   SUBTRACT
+PATEND
+STORE     myBox
+
+# cutter shape
+SKBEG      -2.0  2.0  0
+   LINSEG  -1.0  2.0  0
+   LINSEG  -1.0  3.5  0
+   LINSEG   1.0  3.5  0
+   LINSEG   1.0  1.0  0
+   LINSEG   2.0  1.0  0
+   LINSEG   2.0  5.0  0
+   LINSEG   1.0  5.0  0
+   LINSEG   1.0  4.0  0
+   LINSEG  -1.0  4.0  0
+   LINSEG  -1.0  5.0  0
+   LINSEG  -2.0  5.0  0
+   LINSEG  -2.0  2.0  0
+SKEND 1
+STORE     myCutter
+
+# get a shell version of myBox
+RESTORE   myBox
+EXTRACT   0
+
+# make a solid version of myCutter
+RESTORE   myCutter
+TRANSLATE 0  0  1/2
+ELEVATE
+EXTRUDE   0  0  1
+
+# find the Faces associated with myBox that are inside myCutter
+INTERSECT
+SET       myFaces  @nbody
+STORE     .
+
+# get the original box and scribe in the cutter shape
+RESTORE   myBox
+RESTORE   myCutter
+TRANSLATE 0  0  1/2
+EXTRUDE   0  0  1
+SUBTRACT
+
+# now select the Faces in the scribed configuration that match
+#    a face in myFaces
+SELECT   FACE  -1  myFaces
+   ATTRIBUTE _color $magenta
+
+ASSERT   @sellist.size  14
+
+END

@@ -3,7 +3,7 @@
  *
  *             FORTRAN Bindings for Geometrical Functions
  *
- *      Copyright 2011-2022, Massachusetts Institute of Technology
+ *      Copyright 2011-2024, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -42,10 +42,13 @@
                            double tol, egObject **newcrv);
   extern int EG_isoCline(const egObject *surface, int iUV, double value, 
                                egObject **newcrv);
+  extern int EG_isIsoPCurve( const egObject *pcurve,
+                             int *iUV, double *value, int *fwd );
   extern int EG_isSame(const egObject *geom1, const egObject *geom2);
   extern int EG_convertToBSpline(egObject *geom, egObject **bspline); 
-  extern int EG_addKnots(const egObject *object, int nU, /*@null@*/ double *Us,
-                                                 int nV, /*@null@*/ double *Vs,
+  extern int EG_addKnots(const egObject *object,
+                         int minDegU, int nU, /*@null@*/ double *Us,
+                         int minDegV, int nV, /*@null@*/ double *Vs,
                          egObject **result);
   extern int EG_adjustCPs(const egObject *body, const egObject *face,
                           double *CPs, egObject **newBody, egObject **newFace);
@@ -239,6 +242,22 @@ ig_isocline_(INT8 *isurf, int *iUV, double *value, INT8 *igeom)
 
 int
 #ifdef WIN32
+IG_ISISOPCURVE (INT8 *pcurve, int *iUV, double *value, int *fwd)
+#else
+ig_isisopcurve_(INT8 *pcurve, int *iUV, double *value, int *fwd)
+#endif
+{
+  int      stat;
+  egObject *PCurve;
+
+  PCurve = (egObject *) *pcurve;
+  stat   = EG_isIsoPCurve(PCurve, iUV, value, fwd);
+  return stat;
+}
+
+
+int
+#ifdef WIN32
 IG_ISSAME (INT8 *igeom1, INT8 *igeom2)
 #else
 ig_issame_(INT8 *igeom1, INT8 *igeom2)
@@ -272,9 +291,15 @@ ig_converttobspline_(INT8 *iobj, INT8 *igeom)
 
 int
 #ifdef WIN32
-IG_ADDKNOTS (INT8 *iobj, int *nu, double *Us, int *nv, double *Vs, INT8 *igeom)
+IG_ADDKNOTS (INT8 *iobj,
+             int *mindegu, int *nu, double *Us,
+             int *mindegv, int *nv, double *Vs,
+             INT8 *igeom)
 #else
-ig_addknots_(INT8 *iobj, int *nu, double *Us, int *nv, double *Vs, INT8 *igeom)
+ig_addknots_(INT8 *iobj,
+             int *mindegu, int *nu, double *Us,
+             int *mindegv, int *nv, double *Vs,
+             INT8 *igeom)
 #endif
 {
   int      stat;
@@ -282,7 +307,7 @@ ig_addknots_(INT8 *iobj, int *nu, double *Us, int *nv, double *Vs, INT8 *igeom)
   
   *igeom = 0;
   obj    = (egObject *) *iobj;
-  stat   = EG_addKnots(obj, *nu, Us, *nv, Vs, &geom);
+  stat   = EG_addKnots(obj, *mindegu, *nu, Us, *mindegv, *nv, Vs, &geom);
   if (stat == EGADS_SUCCESS) *igeom = (INT8) geom;
   return stat;
 }

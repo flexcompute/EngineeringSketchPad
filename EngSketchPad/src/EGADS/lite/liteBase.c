@@ -3,7 +3,7 @@
  *
  *             Lite Base Object Functions
  *
- *      Copyright 2011-2022, Massachusetts Institute of Technology
+ *      Copyright 2011-2024, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -51,7 +51,7 @@ __PROTO_H_AND_D__ void uvmap_struct_free( void *uvmap );
 
 
 static const char *EGADSprop[2] = {STR(EGADSPROP),
-                  "\nEGADSprop: Copyright 2011-2022 MIT. All Rights Reserved."};
+                  "\nEGADSprop: Copyright 2011-2024 MIT. All Rights Reserved."};
 
 
 #ifndef __CUDA_ARCH__
@@ -736,8 +736,21 @@ EG_deleteObject(egObject *object)
 
 
 __HOST_AND_DEVICE__ int
-EG_getInfo(const egObject *object, int *oclass, int *mtype, egObject **top,
-           egObject **prev, egObject **next)
+EG_getContext(egObject *object, egObject **context)
+{
+  if (object == NULL)               return EGADS_NULLOBJ;
+  if (object->magicnumber != MAGIC) return EGADS_NOTOBJ;
+  if (object->oclass == EMPTY)      return EGADS_EMPTY;
+
+  *context = EG_context(object);
+  return EGADS_SUCCESS;
+}
+
+
+__HOST_AND_DEVICE__ int
+EG_getInfo(const egObject *object, int *oclass, int *mtype,
+           /*@null@*/ egObject **top, /*@null@*/ egObject **prev,
+           /*@null@*/ egObject **next)
 {
   egObject object_, *object_h = &object_;
 
@@ -748,9 +761,9 @@ EG_getInfo(const egObject *object, int *oclass, int *mtype, egObject **top,
 
   *oclass = object_h->oclass;
   *mtype  = object_h->mtype;
-  *top    = object_h->topObj;
-  *prev   = object_h->prev;
-  *next   = object_h->next;
+  if (top  != NULL) *top  = object_h->topObj;
+  if (prev != NULL) *prev = object_h->prev;
+  if (next != NULL) *next = object_h->next;
 
   return EGADS_SUCCESS;
 }
@@ -813,8 +826,13 @@ EG_close(egObject *context)
     attrs = (egAttrs *) obj_h->attrs;
     if (attrs != NULL) {
       egAttrs attrs_, *attrs_h = &attrs_;
-      egAttr  attr_, *attr_h = &attr_;
+      egAttr  attr_,  *attr_h  = &attr_;
       EG_GET_ATTRS(attrs_h, attrs);
+      for (i = 0; i < attrs_h->nseqs; i++) {
+        EG_FREE(attrs_h->seqs[i].root);
+        EG_FREE(attrs_h->seqs[i].attrSeq);
+      }
+      if (attrs_h->seqs != NULL) EG_FREE(attrs_h->seqs);
       for (i = 0; i < attrs_h->nattrs; i++) {
         EG_GET_ATTR(attr_h, &(attrs_h->attrs[i]));
         EG_FREE(attr_.name);

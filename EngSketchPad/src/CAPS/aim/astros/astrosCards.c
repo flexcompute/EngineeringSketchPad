@@ -43,7 +43,8 @@ cleanup:
 /*
  * Write AERO card
  */
-int astrosCard_aero(FILE *fp, const int *acsid, const double *refc, const double *rhoref,
+int astrosCard_aero(FILE *fp, /*@null@*/ const int *acsid,
+                    const double *refc, const double *rhoref,
                     feaFileTypeEnum formatType) {
     
     int status;
@@ -86,8 +87,9 @@ cleanup:
 /*
  * Write AEROS card
  */
-int astrosCard_aeros(FILE *fp, const int *acsid, const int *rcsid, const double *refc,
-                     const double *refb, const double *refs, /*@null@*/ const int *gref,
+int astrosCard_aeros(FILE *fp, /*@null@*/ const int *acsid, /*@null@*/ const int *rcsid,
+                     const double *refc, const double *refb,
+                     const double *refs, /*@null@*/ const int *gref,
                      /*@null@*/ const double *refd, /*@null@*/ const double *refl,
                      feaFileTypeEnum formatType)
 {
@@ -102,8 +104,13 @@ int astrosCard_aeros(FILE *fp, const int *acsid, const int *rcsid, const double 
     if (status != CAPS_SUCCESS) goto cleanup;
 
     // ACSID (Integer > 0)
-    status = card_addInteger(&card, *acsid);
-    if (status != CAPS_SUCCESS) goto cleanup;
+    if (acsid != NULL) {
+        status = card_addInteger(&card, *acsid);
+        if (status != CAPS_SUCCESS) goto cleanup;
+    }
+    else {
+        card_addBlank(&card);
+    }
 
     // RCSID (Integer > 0, or blank)
     if (rcsid != NULL) {
@@ -155,6 +162,56 @@ cleanup:
     card_destroy(&card);
 
     return status;
+}
+
+/*
+ * Write AESURF card
+ */
+int astrosCard_aesurf(FILE *fp, char *label, char *type, int *acid, int *cid,
+                      int* fboxid, int *lboxid, feaFileTypeEnum formatType) {
+    
+    int status;
+
+    cardStruct card;
+
+    if (fp == NULL) return CAPS_IOERR;
+
+    // begin card
+    status = card_initiate(&card, "AESURF", formatType);
+    if (status != CAPS_SUCCESS) goto cleanup;
+
+    // LABEL
+    status = card_addString(&card, label);
+    if (status != CAPS_SUCCESS) goto cleanup;
+
+    // TYPE
+    status = card_addString(&card, type);
+    if (status != CAPS_SUCCESS) goto cleanup;
+
+    // ACID
+    status = card_addInteger(&card, *acid);
+    if (status != CAPS_SUCCESS) goto cleanup;
+
+    // CID
+    status = card_addIntegerOrBlank(&card, cid);
+    if (status != CAPS_SUCCESS) goto cleanup;
+
+    // FBOXID
+    status = card_addInteger(&card, *fboxid);
+    if (status != CAPS_SUCCESS) goto cleanup;
+
+    // LBOXID
+    status = card_addInteger(&card, *lboxid);
+    if (status != CAPS_SUCCESS) goto cleanup;
+
+    // write card to file
+    card_write(&card, fp);
+
+    cleanup:
+
+        card_destroy(&card);
+
+        return status;
 }
 
 /*
@@ -250,6 +307,116 @@ cleanup:
 }
 
 /*
+ * Write CAERO1 card
+ */
+int astrosCard_caero1(FILE *fp, int *eid, /*@null@*/ int *pid, 
+                      /*@null@*/ int *cp, /*@null@*/ int *nspan,
+                      /*@null@*/ int *nchord, /*@null@*/int *lspan,
+                      /*@null@*/ int *lchord, int *igid, double xyz1[3],
+                      double xyz4[3], double *x12, double *x43,
+                      feaFileTypeEnum formatType)
+{
+    int status;
+
+    cardStruct card;
+
+    if (fp == NULL) return CAPS_IOERR;
+
+    // begin card
+    status = card_initiate(&card, "CAERO1", formatType);
+    if (status != CAPS_SUCCESS) goto cleanup;
+
+    // EID
+    status = card_addInteger(&card, *eid);
+    if (status != CAPS_SUCCESS) goto cleanup;
+
+    // PID
+    if (pid != NULL)
+        status = card_addInteger(&card, *pid);
+    else
+        card_addBlank(&card);
+    if (status != CAPS_SUCCESS) goto cleanup;
+
+    // CP
+    if (cp != NULL)
+        status = card_addInteger(&card, *cp);
+    else
+        card_addBlank(&card);
+    if (status != CAPS_SUCCESS) goto cleanup;
+
+    // NSPAN
+    if (nspan != NULL)
+        status = card_addInteger(&card, *nspan);
+    else
+        card_addBlank(&card);
+    if (status != CAPS_SUCCESS) goto cleanup;
+
+    // NCHORD
+    if (nchord != NULL)
+        status = card_addInteger(&card, *nchord);
+    else
+        card_addBlank(&card);
+    if (status != CAPS_SUCCESS) goto cleanup;
+
+    // LSPAN
+    if (lspan != NULL)
+        status = card_addInteger(&card, *lspan);
+    else
+        card_addBlank(&card);
+    if (status != CAPS_SUCCESS) goto cleanup;
+
+    // LCHORD
+    if (lchord != NULL)
+        status = card_addInteger(&card, *lchord);
+    else
+        card_addBlank(&card);
+    if (status != CAPS_SUCCESS) goto cleanup;
+
+    // IGID
+    status = card_addInteger(&card, *igid);
+    if (status != CAPS_SUCCESS) goto cleanup;
+
+    // X1,Y1,Z1
+    status = card_addInteger(&card, xyz1[0]);
+    if (status != CAPS_SUCCESS) goto cleanup;
+    status = card_addInteger(&card, xyz1[1]);
+    if (status != CAPS_SUCCESS) goto cleanup;
+    status = card_addInteger(&card, xyz1[2]);
+    if (status != CAPS_SUCCESS) goto cleanup;
+
+    // X12
+    if (x12 != NULL)
+        status = card_addInteger(&card, *x12);
+    else
+        card_addBlank(&card);
+    if (status != CAPS_SUCCESS) goto cleanup;
+
+    // X4,Y4,Z4
+    status = card_addInteger(&card, xyz4[0]);
+    if (status != CAPS_SUCCESS) goto cleanup;
+    status = card_addInteger(&card, xyz4[1]);
+    if (status != CAPS_SUCCESS) goto cleanup;
+    status = card_addInteger(&card, xyz4[2]);
+    if (status != CAPS_SUCCESS) goto cleanup;
+
+    // X43
+    if (x43 != NULL)
+        status = card_addInteger(&card, *x43);
+    else
+        card_addBlank(&card);
+    if (status != CAPS_SUCCESS) goto cleanup;
+
+    // write card to file
+    card_write(&card, fp);
+
+cleanup:
+
+    card_destroy(&card);
+
+    return status;
+}
+
+/*
  * Write CAERO6 card
  */
 int astrosCard_caero6(FILE *fp, int *acid, char *cmpnt, /*@null@*/ int *cp,
@@ -307,6 +474,99 @@ cleanup:
     card_destroy(&card);
 
     return status;
+}
+
+/*
+ * Write CBAR card
+ */
+int astrosCard_cbar(FILE *fp, int *eid, int *pid, int G[2], double X[3], 
+                    /*@null@*/ int *go, /*@null@*/ double *tmax,
+                    /*@null@*/ int *pa, /*@null@*/ int *pb,
+                    /*@null@*/ double Wa[3], /*@null@*/ double Wb[3],
+                    feaFileTypeEnum formatType) {
+
+    int i, status;
+
+    cardStruct card;
+
+    if (fp == NULL) return CAPS_IOERR;
+
+    // begin card
+    status = card_initiate(&card, "CBAR", formatType);
+    if (status != CAPS_SUCCESS) goto cleanup;
+
+    // EID
+    status = card_addInteger(&card, *eid);
+    if (status != CAPS_SUCCESS) goto cleanup;
+
+    // PID
+    status = card_addIntegerOrBlank(&card, pid);
+    if (status != CAPS_SUCCESS) goto cleanup;
+
+    // GA, GB
+    for (i = 0; i < 2; i++) {
+        status = card_addInteger(&card, G[i]);
+        if (status != CAPS_SUCCESS) goto cleanup;
+    }
+
+    // Xi
+    if (X != NULL) {
+
+        for (i = 0; i < 3; i++) {
+            status = card_addDouble(&card, X[i]);
+            if (status != CAPS_SUCCESS) goto cleanup;
+        }
+    }
+    else {
+
+        status = card_addIntegerOrBlank(&card, go);
+        if (status != CAPS_SUCCESS) goto cleanup;
+
+        card_addBlanks(&card, 2);
+    }
+
+    // TMAX
+    status = card_addDoubleOrBlank(&card, tmax);
+    if (status != CAPS_SUCCESS) goto cleanup;
+
+    // PA, PB
+    status = card_addIntegerOrBlank(&card, pa);
+    if (status != CAPS_SUCCESS) goto cleanup;
+    status = card_addIntegerOrBlank(&card, pb);
+    if (status != CAPS_SUCCESS) goto cleanup;
+
+    // W1A, W2A, W3A
+    if (Wa != NULL) {
+
+        for (i = 0; i < 3; i++) {
+            status = card_addDouble(&card, Wa[i]);
+            if (status != CAPS_SUCCESS) goto cleanup;
+        }
+    }
+    else {
+        card_addBlanks(&card, 3);
+    }
+
+    // W1B, W2B, W3B
+    if (Wb != NULL) {
+
+        for (i = 0; i < 3; i++) {
+            status = card_addDouble(&card, Wb[i]);
+            if (status != CAPS_SUCCESS) goto cleanup;
+        }
+    }
+    else {
+        card_addBlanks(&card, 3);
+    }
+
+    // write card to file
+    card_write(&card, fp);
+
+    cleanup:
+
+        card_destroy(&card);
+
+        return status;
 }
 
 /*
@@ -924,7 +1184,7 @@ int astrosCard_dconflt(FILE *fp, int *sid, char *vtype, double *gfact,
     status = card_addDoubleOrBlank(&card, gfact);
     if (status != CAPS_SUCCESS) goto cleanup;
 
-    for (i = 0; i < numVal; i++) {
+    for (i = 0; i < numVal && i < 2; i++) {
 
         // Vi
         status = card_addDouble(&card, v[i]);
@@ -933,7 +1193,20 @@ int astrosCard_dconflt(FILE *fp, int *sid, char *vtype, double *gfact,
         // GAMi
         status = card_addDouble(&card, gam[i]);
         if (status != CAPS_SUCCESS) goto cleanup;
-    } 
+    }
+
+    card_addBlank(&card);
+
+    for (i = 2; i < numVal; i++) {
+
+        // Vi
+        status = card_addDouble(&card, v[i]);
+        if (status != CAPS_SUCCESS) goto cleanup;
+
+        // GAMi
+        status = card_addDouble(&card, gam[i]);
+        if (status != CAPS_SUCCESS) goto cleanup;
+    }
 
     // write card to file
     card_write(&card, fp);
@@ -1136,7 +1409,7 @@ cleanup:
  * Write DESVARP card
  */
 int astrosCard_desvarp(FILE *fp, int *dvid, int *linkid, double *vmin,
-                       double *vmax, double *vinit, /*@null@*/ int *layrnum,
+                       /*@null@*/ double *vmax, double *vinit, /*@null@*/ int *layrnum,
                        /*@null@*/ int *layrlst, /*@null@*/ char *label,
                        feaFileTypeEnum formatType)
 {
@@ -1358,10 +1631,10 @@ cleanup:
 int astrosCard_flutter(FILE *fp, const int *sid, char *method, int *dens,
                        double *mach, int *vel, /*@null@*/ int *mlist,
                        /*@null@*/ int *klist, /*@null@*/ int *effid,
-                       int *symxz, int *symxy, /*@null@*/ double *eps,
+                       int *symxz, int *symxy, /*@null@*/ const double *eps,
                        /*@null@*/ char *curfit, /*@null@*/ int *nroot,
                        /*@null@*/ char *vtype, /*@null@*/ double *gflut,
-                       /*@null@*/ double *gfilter, feaFileTypeEnum formatType)
+                       /*@null@*/ double *gfilter, const feaFileTypeEnum formatType)
 {
     int status;
 
@@ -1845,6 +2118,76 @@ cleanup:
 }
 
 /*
+ * Write PBAR1 card
+ */
+int astrosCard_pbar1(FILE *fp, int *pid, int *mid, char *shape,
+                     int numD, double *D, double *nsm,
+                     feaFileTypeEnum formatType) {
+    
+    int i, status;
+
+    cardStruct card;
+
+    if (fp == NULL) return CAPS_IOERR;
+
+    // begin card
+    status = card_initiate(&card, "PBAR1", formatType);
+    if (status != CAPS_SUCCESS) goto cleanup;
+
+    // PID
+    status = card_addInteger(&card, *pid);
+    if (status != CAPS_SUCCESS) goto cleanup;
+
+    // MID
+    status = card_addInteger(&card, *mid);
+    if (status != CAPS_SUCCESS) goto cleanup;
+
+    // SHAPE
+    status = card_addString(&card, shape);
+    if (status != CAPS_SUCCESS) goto cleanup;
+
+    // D (first row)
+    for (i = 0; i < 5; i++) {
+
+        if (i < numD) {
+            status = card_addDouble(&card, D[i]);
+            if (status != CAPS_SUCCESS) goto cleanup;
+        }
+        else {
+            card_addBlank(&card);
+        }
+    }
+
+    // NSM
+    status = card_addDoubleOrBlank(&card, nsm);
+    if (status != CAPS_SUCCESS) goto cleanup;
+
+    card_addBlanks(&card, 2);
+
+    // D (second row)
+    for (i = 5; i < 10; i++) {
+
+        if (i < numD) {
+            status = card_addDouble(&card, D[i]);
+            if (status != CAPS_SUCCESS) goto cleanup;
+        }
+        else {
+            card_addBlank(&card);
+        }
+    }
+    
+    // write card to file
+    card_write(&card, fp);
+
+    cleanup:
+
+        card_destroy(&card);
+
+        return status;
+}
+
+
+/*
  * Write PCOMP card
  */
 int astrosCard_pcomp(FILE *fp, int *pid, /*@null@*/ double *z0,
@@ -2229,8 +2572,8 @@ cleanup:
 /*
  * Write PROD card
  */
-int astrosCard_prod(FILE *fp, int *pid, int *mid, double *a, double *j,
-                    double *c, double *nsm, /*@null@*/ double *tmin,
+int astrosCard_prod(FILE *fp, int *pid, int *mid, double *a, /*@null@*/ double *j,
+                    /*@null@*/ double *c, /*@null@*/ double *nsm, /*@null@*/ double *tmin,
                     feaFileTypeEnum formatType)
 {
     int status;

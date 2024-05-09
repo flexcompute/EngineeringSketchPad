@@ -1,0 +1,28 @@
+# offset4
+# written by John Dannenhoffer
+
+DIMENSION class     1  2
+DIMENSION ztail     1  2
+DIMENSION aupper    1  4
+DIMENSION alower    1  4
+
+DESPMTR   class     "0.5;    1.0;   "
+DESPMTR   ztail     "0.002; -.002;"
+DESPMTR   aupper    "0.2139; 0.2884; 0.2354; 0.2870;"
+DESPMTR   alower    "-.1243; -.0203; -.0372; 0.0012;"
+
+DIMENSION dist      1  5
+DESPMTR   dist      "0.001; 0.005; 0.01; 0.05; 0.10"
+
+UDPARG    kulfan    class     class
+UDPARG    kulfan    ztail     ztail
+UDPARG    kulfan    aupper    aupper
+UDPRIM    kulfan    alower    alower
+STORE     base  0  1
+
+PATBEG    idist     dist.size
+   RESTORE   base
+   UDPRIM    offset    dist dist[idist]
+PATEND
+
+END

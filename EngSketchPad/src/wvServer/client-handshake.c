@@ -35,10 +35,10 @@ __libwebsocket_client_connect_2(struct libwebsocket_context *context,
 	 */
 
 	if (context->http_proxy_port) {
-		plen = sprintf(pkt, "CONNECT %s:%u HTTP/1.0\x0d\x0a"
-			"User-agent: libwebsockets\x0d\x0a"
-                       /*Proxy-authorization: basic aGVsbG86d29ybGQ= */
-			"\x0d\x0a", wsi->c_address, wsi->c_port);
+		plen = snprintf(pkt, 512, "CONNECT %s:%u HTTP/1.0\x0d\x0a"
+                                "User-agent: libwebsockets\x0d\x0a"
+                                /*Proxy-authorization: basic aGVsbG86d29ybGQ= */
+                                "\x0d\x0a", wsi->c_address, wsi->c_port);
 
 		/* OK from now on we talk via the proxy */
 

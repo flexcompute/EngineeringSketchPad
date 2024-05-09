@@ -1,0 +1,29 @@
+# blend23v
+# written by John Dannenhoffer
+
+# blend with four C1s
+MARK
+   BOX       -4  -2  -2   0   4   4
+   
+   BOX       -2  -2  -2   0   4   4
+   RESTORE    .
+
+   BOX        0  -1  -1   0   2   2
+   RESTORE    .
+
+   BOX        2  -2  -2   0   4   4
+   RESTORE    .
+
+   BOX        4  -2  -2   0   4   4
+   RESTORE    .
+
+   BOX        6  -3  -3   0   6   6
+BLEND
+
+# refernce xsect
+BOX        0  -1  -1   0   2   2
+
+CATBEG    $wrong_types_on_stack
+CATEND
+
+END

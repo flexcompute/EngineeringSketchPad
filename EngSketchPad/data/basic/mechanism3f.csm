@@ -1,0 +1,64 @@
+# mechanism3f
+# written by John Dannenhoffer
+
+#    G     D
+#     \   / \
+#      \ /   C
+#       F   / \
+#        \ /   \
+#         E     \
+#        /       \
+#       /         B
+#      /
+#     /
+#    A
+
+# Design Parameters
+DESPMTR   dyA +15
+LBOUND    dyA -13
+UBOUND    dyA +17
+
+# bar AEC
+SKBEG      0   0   0
+   LINSEG 29   0   0
+SKEND
+CSYSTEM   A  " 0; 0; 0; 1;0;0; 0;1;0;"
+CSYSTEM   E  "16; 0; 0; 1;0;0; 0;1;0;"
+CSYSTEM   C  "29; 0; 0; 1;0;0; 0;1;0;"
+
+ROTATEZ   +45  0   0
+TRANSLATE 0    dyA 0
+
+# bar DF
+SKBEG      0   6   0
+   LINSEG 13   6   0
+SKEND
+CSYSTEM   F  " 0; 6; 0; 1;0;0; 0;1;0;"
+CSYSTEM   D  "13; 6; 0; 1;0;0; 0;1;0;"
+
+ROTATEZ   +45  0   6
+
+# bar DCB
+SKBEG      0  12   0
+   LINSEG 35  12   0
+SKEND
+CSYSTEM   D  " 0;12; 0; 1;0;0; 0;1;0;"
+CSYSTEM   C  " 3;12; 0; 1;0;0; 0;1;0;"
+CSYSTEM   B  "35;12; 0; 1;0;0; 0;1;0;"
+
+ROTATEZ   -45  0  12
+
+# bar GFE
+SKBEG      0  18   0
+   LINSEG 16  18   0
+SKEND
+CSYSTEM   G  " 0;18; 0; 1;0;0; 0;1;0;"
+CSYSTEM   F  "13;18; 0; 1;0;0; 0;1;0;"
+CSYSTEM   E  "16;18; 0; 1;0;0; 0;1;0;"
+
+ROTATEZ   -45  0  18
+
+# solve the mechanism
+UDPRIM    mechanism   fixed  $G;A
+
+END

@@ -18,6 +18,6 @@ CATBEG     $did_not_create_body
    SET     error 2
 CATEND
 
-ASSERT     error 2
+ASSERT     error 0
 
 END

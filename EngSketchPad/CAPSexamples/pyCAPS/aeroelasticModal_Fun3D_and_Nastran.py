@@ -35,23 +35,23 @@ myProblem = pyCAPS.Problem(problemName=workDir,
 # Load AIMs 
 surfMesh = myProblem.analysis.create(aim = "egadsTessAIM", 
                                      name= "egads",
-                                     capsIntent = "CFD")
+                                     capsIntent = "Aerodynamic")
 
 mesh = myProblem.analysis.create(aim = "tetgenAIM", 
                                  name= "tetgen",
-                                 capsIntent = "CFD")
+                                 capsIntent = "Aerodynamic")
 
 mesh.input["Surface_Mesh"].link(surfMesh.output["Surface_Mesh"])
 
 fluid = myProblem.analysis.create(aim = "fun3dAIM", 
                                   name = "fun3d", 
-                                  capsIntent = "CFD")
+                                  capsIntent = "Aerodynamic")
 
 fluid.input["Mesh"].link(mesh.output["Volume_Mesh"])
 
 structure = myProblem.analysis.create(aim = "mystranAIM", 
                                       name = "mystran", 
-                                      capsIntent = "STRUCTURE",
+                                      capsIntent = "Structure",
                                       autoExec = False)
 
 # Create an array of EigenVector names 
@@ -93,7 +93,6 @@ refVelocity = 100.0 # m/s
 refDensity = 1.2 # kg/m^3
 
 fluid.input.Proj_Name = projectName
-fluid.input.Mesh_ASCII_Flag = False
 fluid.input.Mach = refVelocity/speedofSound
 fluid.input.Equation_Type = "compressible"
 fluid.input.Viscous = "inviscid"
@@ -126,7 +125,7 @@ eigen = { "extractionMethod"     : "MGIV", # "Lanczos",
           "frequencyRange"       : [0.1, 200], 
           "numEstEigenvalue"     : 1,
           "numDesiredEigenvalue" : 5, 
-          "eigenNormaliztion"    : "MASS", 
+          "eigenNormalization"   : "MASS", 
           "lanczosMode"          : 2,  # Default - not necesssary
           "lanczosType"          : "DPB"} # Default - not necesssary
 

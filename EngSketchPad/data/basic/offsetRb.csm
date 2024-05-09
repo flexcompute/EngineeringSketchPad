@@ -1,0 +1,28 @@
+# offsetRb
+# written by John Dannenhoffer
+
+SKBEG     0  0  0
+   LINSEG 1  0  0
+   LINSEG 2  0  0
+   CIRARC 3  1  0  2  2  0
+   LINSEG 1  2  0
+   LINSEG 0  2  0
+   LINSEG 0  0  0
+SKEND
+
+EXTRUDE   0  0  1
+
+SELECT    EDGE
+ATTRIBUTE _color   $magenta
+
+UDPARG    offset    faceList  8
+UDPARG    offset    edgeList  4;7;10;13;16;18
+UDPARG    offset    nodeList  4;6;8;10
+UDPARG    offset    nodeDist  0.05;0.05;0.3;0.3
+UDPRIM    offset    dist      0.2
+
+SELECT    FACE     $__offsetFace__  $*
+ATTRIBUTE _color   $white
+ASSERT    @sellist.size  6
+
+END

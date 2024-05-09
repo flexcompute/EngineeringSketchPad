@@ -1,0 +1,680 @@
+#--------------- General settings -------------------------#
+CFGPMTR  EXPORT                 0       # 1=dump grid/CAD files
+CFGPMTR  VIEW:aeroFidelity      0       # 1=full WBT OML for CFD, 0=linear aero excluding fuselage
+CFGPMTR  VIEW:includeFEA        1       # 1=include aero and structural analyses, 0=only aero
+CFGPMTR  VIEW:Mirror            0       # 0=half-span with symmetry plane, 1=full span
+CFGPMTR  VIEW:LETE_IML          1       # whether to include the IML's LE/TE surfaces
+
+#--------------- Switches: Views --------------------------#
+CFGPMTR COMP:Wing               1
+CFGPMTR COMP:Tail               0
+CFGPMTR COMP:Fuselage           0
+CFGPMTR COMP:wingHub            1
+
+#--------------- Component parameters ---------------------#
+### general wing parameters (uncomment this if COMP:Wing=1... then choose one of the NACA/kulfan airfoil parameterizations below)
+UDPRIM $/CAPS_parameters/wing
+#UDPRIM $/CAPS_parameters/wing_rectangular
+
+### wing sectional shapes, NACA 4-series (make sure wing_uCRM.udc is consistent)
+#UDPRIM $/CAPS_parameters/NACA
+#UDPRIM $/CAPS_parameters/NACA_rectangular
+
+### wing sectional shapes, Kulfan
+#UDPRIM $/CAPS_parameters/kulfan3x3_bluntTE
+#UDPRIM $/CAPS_parameters/kulfan3x3_sharpTE_SET         # all set variables when only optimizing planform (speeds up design velocity calculation for earlier ESP versions)
+#UDPRIM $/CAPS_parameters/kulfan3x3_sharpTE_DESPMTR     # inboard SET, outboard DESPMTR
+UDPRIM $/CAPS_parameters/kulfan3x3_sharpTE_ALL         # inboard/outboard DESPMTR
+#UDPRIM $/CAPS_parameters/kulfan8x8_bluntTE
+#UDPRIM $/CAPS_parameters/kulfan8x8_sharpTE
+#UDPRIM $/CAPS_parameters/kulfan8x8_sharpTE_moreSlices  # 8x8_sharpTE with 10 more span-wise stations added via linear interpolation
+#UDPRIM $/CAPS_parameters/kulfan8x8_sharpTE_5slice      # same, but only 5 outboard slices
+
+### tail
+UDPRIM $/CAPS_parameters/tail
+
+### fuselage
+UDPRIM $/CAPS_parameters/fuselage
+
+### wing IML
+UDPRIM $/CAPS_parameters/IML
+
+#--------------- Intermediate parameters ------------------#
+
+# nose position (nonzero values from UM model)
+CFGPMTR   Fuselage:Xorigin                  2.360000
+CFGPMTR   Fuselage:Zorigin                  5.028702
+
+IFTHEN COMP:Fuselage EQ 0
+    # define default fuselage parameters for wing position
+    CFGPMTR   Fuselage:length               62.73      # [m] length
+    SET   Fuselage:maxWidth                 3.098792   # [m] (maxWidth/maxHeight are actually 1/2 diameters)
+    SET   Fuselage:maxHeight                3.098908
+ENDIF
+
+IFTHEN COMP:Tail EQ 0 # default tail position
+    SET   Tail:c4rootXnorm                  0.880697
+    SET   Tail:c4rootZnorm                  0.446526
+    SET   Tail:c4rootX                      Tail:c4rootXnorm*Fuselage:length+Fuselage:Xorigin
+    SET   Tail:c4rootZ                      Tail:c4rootZnorm*Fuselage:maxHeight+Fuselage:Zorigin
+ENDIF
+
+# resulting wing parameters
+IFTHEN COMP:Wing EQ 1
+
+    # position
+    SET   Wing:fuselageSec:c4rootX          Wing:fuselageSec:c4rootXnorm*Fuselage:length+Fuselage:Xorigin
+    SET   Wing:fuselageSec:c4rootZ          Wing:fuselageSec:c4rootZnorm*Fuselage:maxHeight+Fuselage:Zorigin
+
+    # semispan lengths
+    SET   Wing:fuselageSec:halfSpan         Fuselage:maxWidth*Wing:fuselageSec:halfSpanNorm
+    SET   Wing:inboardSec:halfSpan          0.5*sqrt(planform:aspectRatio*planform:Sref)*planform:yehudiYloc
+    SET   Wing:outboardSec:halfSpan         0.5*sqrt(planform:aspectRatio*planform:Sref)
+
+    # constants for shortening equations
+    SET   C1 tand(planform:inboardBackangle)-tand(planform:LEsweep)
+    SET   C2 (Wing:inboardSec:halfSpan-Wing:fuselageSec:halfSpan)*(Wing:outboardSec:halfSpan-Wing:fuselageSec:halfSpan)
+    SET   C3 1+planform:taperRatio*(1-planform:yehudiYloc)+planform:yehudiYloc
+
+    # fuselage section taper ratio
+    SET   num -(planform:Sref-C1*C2)-Wing:fuselageSec:halfSpan*Wing:fuselageSec:halfSpan*C1
+    SET   denom -Wing:fuselageSec:halfSpan*Wing:fuselageSec:halfSpan*C1+Wing:fuselageSec:halfSpan*Wing:outboardSec:halfSpan*C1*C3-(planform:Sref-C1*C2)
+    SET   Wing:fuselageSec:taper    num/denom
+
+    # root chord length
+    SET   num    planform:Sref-C1*C2
+    SET   denom  Wing:fuselageSec:halfSpan*(1-Wing:fuselageSec:taper)+Wing:outboardSec:halfSpan*Wing:fuselageSec:taper*C3
+    SET   Wing:fuselageSec:Croot    num/denom
+
+    # taper ratios
+    SET   Wing:inboardSec:taper     1+(Wing:inboardSec:halfSpan-Wing:fuselageSec:halfSpan)/(Wing:fuselageSec:taper*Wing:fuselageSec:Croot)*C1
+    SET   Wing:outboardSec:taper    planform:taperRatio/Wing:inboardSec:taper
+
+    # sweep angles
+    SET   Wing:fuselageSec:c4sweep  atand(tand(planform:LEsweep)-Wing:fuselageSec:Croot/(4*Wing:fuselageSec:halfSpan)*(1-Wing:fuselageSec:taper))
+    SET   Wing:inboardSec:c4sweep   atand(tand(planform:LEsweep)-Wing:fuselageSec:Croot*Wing:fuselageSec:taper/(4*(Wing:inboardSec:halfSpan-Wing:fuselageSec:halfSpan))*(1-Wing:inboardSec:taper))
+    SET   Wing:outboardSec:c4sweep  atand(tand(planform:LEsweep)-Wing:fuselageSec:Croot*Wing:fuselageSec:taper*Wing:inboardSec:taper/(4*(Wing:outboardSec:halfSpan-Wing:inboardSec:halfSpan))*(1-Wing:outboardSec:taper))
+
+    # dimensional y-coordinates for airfoil definitions
+    DIMENSION       Wing:fuselageSec:Y      1  Wing:fuselageSec:Nsect
+    DIMENSION       Wing:inboardSec:Y       1  Wing:inboardSec:Nsect
+    DIMENSION       Wing:outboardSec:Y      1  Wing:outboardSec:Nsect
+    PATBEG iSect Wing:fuselageSec:Nsect
+        SET Wing:fuselageSec:Y[iSect] Wing:fuselageSec:Ynorm[iSect]*Wing:fuselageSec:halfSpan
+    PATEND
+    PATBEG iSect Wing:inboardSec:Nsect
+        SET Wing:inboardSec:Y[iSect] Wing:fuselageSec:halfSpan+Wing:inboardSec:Ynorm[iSect]*(Wing:inboardSec:halfSpan-Wing:fuselageSec:halfSpan)
+    PATEND
+    PATBEG iSect Wing:outboardSec:Nsect
+        SET Wing:outboardSec:Y[iSect] Wing:inboardSec:halfSpan+Wing:outboardSec:Ynorm[iSect]*(Wing:outboardSec:halfSpan-Wing:inboardSec:halfSpan)
+    PATEND
+
+    IFTHEN VIEW:aeroFidelity EQ 0
+
+        # determine spanwise stations for wing VLM slices
+        DIMENSION  Wing:fuselageSec:Y_VLM  1  Wing:fuselageSec:VLM_strips+1
+        DIMENSION  Wing:inboardSec:Y_VLM   1  Wing:inboardSec:VLM_strips+1
+        DIMENSION  Wing:outboardSec:Y_VLM  1  Wing:outboardSec:VLM_strips+1
+        PATBEG iSect Wing:fuselageSec:VLM_strips+1
+            SET Wing:fuselageSec:Y_VLM[iSect] Wing:fuselageSec:halfSpan*(iSect-1)/Wing:fuselageSec:VLM_strips
+        PATEND
+        PATBEG iSect Wing:inboardSec:VLM_strips+1
+            SET Wing:inboardSec:Y_VLM[iSect] Wing:fuselageSec:halfSpan+(Wing:inboardSec:halfSpan-Wing:fuselageSec:halfSpan)*(iSect-1)/Wing:inboardSec:VLM_strips
+        PATEND
+        PATBEG iSect Wing:outboardSec:VLM_strips
+            SET Wing:outboardSec:Y_VLM[iSect] Wing:inboardSec:halfSpan+(Wing:outboardSec:halfSpan-Wing:inboardSec:halfSpan)*(iSect-1)/Wing:outboardSec:VLM_strips
+        PATEND
+        SET Wing:outboardSec:Y_VLM[Wing:outboardSec:VLM_strips+1] Wing:outboardSec:halfSpan-0.001
+
+    ENDIF #VIEW:aeroFidelity
+
+    # various geometry output values
+    SET  Wing:fuselageSec:Ctip      Wing:fuselageSec:Croot*Wing:fuselageSec:taper
+    SET  Wing:inboardSec:Croot      Wing:fuselageSec:Ctip
+    SET  Wing:inboardSec:Ctip       Wing:inboardSec:Croot*Wing:inboardSec:taper
+    SET  Wing:outboardSec:Croot     Wing:inboardSec:Ctip
+    SET  Wing:outboardSec:Ctip      Wing:outboardSec:Croot*Wing:outboardSec:taper
+
+    # planform areas
+    SET  Wing:fuselageSec:Splan     (Wing:fuselageSec:Croot*(1+Wing:fuselageSec:taper))*Wing:fuselageSec:halfSpan
+    SET  Wing:inboardSec:Splan      (Wing:inboardSec:Croot*(1+Wing:inboardSec:taper))*(Wing:inboardSec:halfSpan-Wing:fuselageSec:halfSpan)
+    SET  Wing:outboardSec:Splan     (Wing:outboardSec:Croot*(1+Wing:outboardSec:taper))*(Wing:outboardSec:halfSpan-Wing:inboardSec:halfSpan)
+    SET  Wing:Splan                 Wing:fuselageSec:Splan+Wing:inboardSec:Splan+Wing:outboardSec:Splan
+
+    # trapezoidal area
+    SET  slope_outer                (Wing:outboardSec:Croot-Wing:outboardSec:Ctip)/(Wing:outboardSec:halfSpan-Wing:inboardSec:halfSpan)
+    SET  trapBase_outer             Wing:outboardSec:Ctip+slope_outer*Wing:outboardSec:halfSpan # length of the centerline's face if taper was constant from tip to y=0
+    SET  Wing:Strap                 Wing:outboardSec:halfSpan*(Wing:outboardSec:Ctip+trapBase_outer) # trapezoidal area
+
+    # wimpress area (should be =Sref as long as LE/TE sweep of fuselage and inboard sections are the same? which is enforced by curret planform parameterization)
+    SET  slope_inner                (Wing:inboardSec:Croot-Wing:inboardSec:Ctip)/(Wing:inboardSec:halfSpan-Wing:fuselageSec:halfSpan)
+    SET  trapBase_inner             Wing:inboardSec:Ctip+slope_inner*Wing:inboardSec:halfSpan
+    SET  Wing:Swimp                 Wing:inboardSec:halfSpan*(Wing:inboardSec:Ctip+trapBase_inner)+Wing:outboardSec:Splan
+
+    IFTHEN VIEW:includeFEA EQ 1
+        # wingbox area
+        SET  Cwb_centerline         Wing:inboardSec:Croot*(Wing:sparTE_fuseWing-Wing:sparLE_fuseWing)
+        SET  Cwb_fuseWing           Wing:inboardSec:Croot*(Wing:sparTE_fuseWing-Wing:sparLE_fuseWing)
+        SET  Wing:sparLE_yehudi     Wing:sparLE_fuseWing+(Wing:sparLE_tip-Wing:sparLE_fuseWing)*(Wing:inboardSec:halfSpan-Wing:fuselageSec:halfSpan)/(Wing:outboardSec:halfSpan-Wing:fuselageSec:halfSpan)
+        SET  Cwb_yehudi             Wing:outboardSec:Croot*(Wing:sparTE_yehudi-Wing:sparLE_yehudi)
+        SET  Cwb_tip                Wing:outboardSec:Ctip*(Wing:sparTE_tip-Wing:sparLE_tip)
+        SET  Swb_fuselageSec        0.5*(Cwb_centerline+Cwb_fuseWing)*Wing:fuselageSec:halfSpan
+        SET  Swb_inboardSec         0.5*(Cwb_fuseWing+Cwb_yehudi)*(Wing:inboardSec:halfSpan-Wing:fuselageSec:halfSpan)
+        SET  Swb_outboardSec        0.5*(Cwb_yehudi+Cwb_tip)*(Wing:outboardSec:halfSpan-Wing:inboardSec:halfSpan)
+        SET  Wing:Swingbox          Swb_fuselageSec+Swb_inboardSec+Swb_outboardSec
+        OUTPMTR Swingbox
+        SET Swingbox Wing:Swingbox
+    ENDIF
+
+    OUTPMTR Croot
+    OUTPMTR Swimp
+    OUTPMTR Splan
+    OUTPMTR Sexposed
+    OUTPMTR fusetaper
+    OUTPMTR IBtaper
+    OUTPMTR OBtaper
+    OUTPMTR c4rootX_wing
+    OUTPMTR c4rootZ_wing
+    OUTPMTR fuseHalfSpan
+    SET Croot Wing:fuselageSec:Croot
+    SET Swimp Wing:Swimp
+    SET Splan Wing:Splan
+    SET Sexposed Wing:inboardSec:Splan+Wing:outboardSec:Splan
+    SET fusetaper Wing:fuselageSec:taper
+    SET IBtaper Wing:inboardSec:taper
+    SET OBtaper Wing:outboardSec:taper
+    SET c4rootX_wing Wing:fuselageSec:c4rootX
+    SET c4rootZ_wing Wing:fuselageSec:c4rootZ
+    SET fuseHalfSpan Wing:fuselageSec:halfSpan
+
+ENDIF #COMP:Wing
+
+# resulting tail parameters
+IFTHEN COMP:Tail EQ 1
+
+    # position
+    SET   Tail:c4rootX  Tail:c4rootXnorm*Fuselage:length+Fuselage:Xorigin
+    SET   Tail:c4rootZ  Tail:c4rootZnorm*Fuselage:maxHeight+Fuselage:Zorigin
+
+    # dimensional y-coordinates for sectional shape
+    DIMENSION   Tail:Y  1  Tail:Nsect
+    PATBEG iSect Tail:Nsect
+        SET Tail:Y[iSect] Tail:Ynorm[iSect]*Tail:halfSpan
+    PATEND
+
+    IFTHEN VIEW:aeroFidelity EQ 0
+
+        # determine spanwise stations for tail VLM slices
+        DIMENSION  Tail:Y_VLM  1  Tail:VLM_strips+1
+        PATBEG iSect Tail:VLM_strips
+            SET Tail:Y_VLM[iSect] Tail:Y[1]+(Tail:halfSpan-Tail:Y[1])*(iSect-1)/Tail:VLM_strips
+        PATEND
+        SET Tail:Y_VLM[Tail:VLM_strips+1] Tail:halfSpan-0.001
+
+    ENDIF #VIEW:aeroFidelity
+
+ENDIF #COMP:Tail
+OUTPMTR c4rootX_tail
+OUTPMTR c4rootZ_tail
+SET c4rootX_tail Tail:c4rootX
+SET c4rootZ_tail Tail:c4rootZ
+
+# resulting fuselage parameters
+IFTHEN COMP:Fuselage EQ 1
+
+    # parameters used for the wing-fuselage junction (includes upstream and downstream segments and flat piece in the middle)
+    SET     Fuselage:dYwingHub      Fuselage:maxWidth                                                   # [m] half diameter in y direction
+    SET     Fuselage:dZwingHub      Fuselage:maxHeight                                                  # [m] half diameter in z direction
+    SET     Fuselage:ZwingHub       Fuselage:Zorigin+Fuselage:noseCenterZoffset*Fuselage:maxHeight      # [m] center z-coordinate at wing junction (of the cylindrical primitive before adding the hub)
+
+    # compute dimensional values for fuselage
+    DIMENSION  Fuselage:X           1   Fuselage:Nsect
+    DIMENSION  Fuselage:Z           1   Fuselage:Nsect
+    DIMENSION  Fuselage:dY          1   Fuselage:Nsect
+    DIMENSION  Fuselage:dZ          1   Fuselage:Nsect
+    PATBEG iSect Fuselage:Nsect
+        SET Fuselage:X[iSect] Fuselage:Xorigin+Fuselage:Xnorm[iSect]*Fuselage:length
+    PATEND
+    PATBEG iSect Fuselage:Nsect
+        SET Fuselage:Z[iSect] Fuselage:Zorigin+Fuselage:Znorm[iSect]*Fuselage:maxHeight
+    PATEND
+    PATBEG iSect Fuselage:Nsect
+        SET Fuselage:dY[iSect] Fuselage:dYnorm[iSect]*Fuselage:maxWidth
+    PATEND
+    PATBEG iSect Fuselage:Nsect
+        SET Fuselage:dZ[iSect] Fuselage:dZnorm[iSect]*Fuselage:maxHeight
+    PATEND
+
+ENDIF #COMP:Fuselage
+
+IFTHEN VIEW:includeFEA EQ 1
+    OUTPMTR Nskins_wing
+    OUTPMTR Nribs_wing
+    OUTPMTR Nspars_wing
+ENDIF
+
+# reference values
+SET  Cref       11      #Wing:inboardSec:Croot
+SET  Sref       422*0.5     #planform:Sref # full-span planform area
+SET  bref       36      #Wing:outboardSec:halfSpan
+SET  meshLen    Cref    #Wing:inboardSec:Croot
+IFTHEN VIEW:Mirror EQ 1 #AND VIEW:aeroFidelity EQ 1 # TODO: should Cref also be scaled?
+    SET Sref Sref*2.0
+ENDIF
+
+# for making fuselage wing section unswept
+#SET Wing:fuselageSec:Croot      Wing:fuselageSec:taper*Wing:inboardSec:Croot
+#SET Wing:fuselageSec:taper      1.0
+#SET Wing:fuselageSec:c4sweep    0.0
+#SET Wing:fuselageSec:c4rootX Wing:fuselageSec:c4rootX+(Wing:fuselageSec:halfSpan-Wing:fuselageSec:Y[1])*tand(Wing:fuselageSec:c4sweep)
+#SET Wing:fuselageSec:c4rootZ Wing:fuselageSec:c4rootZ+(Wing:fuselageSec:halfSpan-Wing:fuselageSec:Y[1])*tand(Wing:fuselageSec:c4hedral)
+
+#----- Call UDC wing --------------------------------------#
+IFTHEN COMP:Wing EQ 1
+    UDPRIM $/CAPS_components/wing_uCRM
+    OUTPMTR LEyehudi_X
+    OUTPMTR LEyehudi_Z
+    SET LEyehudi_X Wing:outboardSec:c4rootX-0.25*Wing:outboardSec:Croot
+    SET LEyehudi_Z Wing:outboardSec:c4rootZ+0.25*Wing:outboardSec:Croot*sind(Wing:inboardSec:twist[Wing:inboardSec:Nsect])
+ENDIF
+
+#----- Call UDC tail --------------------------------------#
+IFTHEN COMP:Tail EQ 1
+    UDPRIM $/CAPS_components/tail_uCRM
+ENDIF
+
+#----- Call UDC fuselage ----------------------------------#
+IFTHEN COMP:Fuselage EQ 1 AND VIEW:aeroFidelity EQ 1
+    UDPRIM $/CAPS_components/fuselage_uCRM
+
+    # combine components
+    IFTHEN COMP:Wing EQ 1
+        RESTORE wing_OML
+        UNION
+        # mark edges/nodes at wing-fuselage junction
+        udprim editAttr filename <<
+        edge adj2face capsBound=Skin_Fuse
+        set  capsBound=Skin_Fuse
+        node adj2face capsBound=Skin_Fuse
+        set  capsBound=Skin_Fuse
+
+        edge adj2face capsBound=Wing:Skin_Top
+        set  capsBound=Wing:Skin_Top
+        node adj2face capsBound=Wing:Skin_Top
+        set  capsBound=Wing:Skin_Top
+
+        edge adj2face capsBound=Wing:Skin_Bot
+        set  capsBound=Wing:Skin_Bot
+        node adj2face capsBound=Wing:Skin_Bot
+        set  capsBound=Wing:Skin_Bot
+
+        edge adj2face capsBound=Wing_Tip
+        set  capsBound=Wing_Tip
+        node adj2face capsBound=Wing_Tip
+        set  capsBound=Wing_Tip
+>>
+        IFTHEN COMP:Tail EQ 1
+            RESTORE tail
+            UNION
+        ENDIF
+    ELSEIF COMP:Tail EQ 1
+        RESTORE tail
+        UNION
+    ENDIF
+
+    STORE crm
+
+ENDIF
+
+#----- Generate FEA View ----------------------------------#
+IFTHEN VIEW:includeFEA EQ 1
+    UDPRIM $/CAPS_components/IML_uCRM
+ENDIF
+
+#----- LoFi aero panels -----------------------------------#
+IFTHEN VIEW:aeroFidelity EQ 0
+    UDPRIM $/CAPS_components/VLM_uCRM
+ENDIF
+
+# make full span model if needed !!!!!
+IFTHEN VIEW:Mirror EQ 1 AND VIEW:aeroFidelity EQ 1
+    IFTHEN COMP:Fuselage EQ 1
+        RESTORE crm
+        MIRROR 0 1 0 0
+        IFTHEN COMP:Wing EQ 1 # mark y<0 wing faces
+            IFTHEN Wing:sharpTE EQ 1
+                udprim editAttr filename <<
+                face has capsBound=Wing:Skin_Top
+                set capsBound=Wing:Skin_Top_Ylt0
+                edge adj2face capsBound=Wing:Skin_Top_Ylt0
+                set capsBound=Wing:Skin_Top_Ylt0
+                node adj2face capsBound=Wing:Skin_Top_Ylt0
+                set capsBound=Wing:Skin_Top_Ylt0
+
+                face has capsBound=Wing:Skin_Bot
+                set capsBound=Wing:Skin_Bot_Ylt0
+                edge adj2face capsBound=Wing:Skin_Bot_Ylt0
+                set capsBound=Wing:Skin_Bot_Ylt0
+                node adj2face capsBound=Wing:Skin_Bot_Ylt0
+                set capsBound=Wing:Skin_Bot_Ylt0
+
+                face has capsBound=Wing_Tip
+                set capsBound=Wing_Tip_Ylt0
+                edge adj2face capsBound=Wing_Tip_Ylt0
+                set capsBound=Wing_Tip_Ylt0
+                node adj2face capsBound=Wing_Tip_Ylt0
+                set capsBound=Wing_Tip_Ylt0
+>>
+            ELSE
+                udprim editAttr filename <<
+                face has capsBound=Wing:Skin_Top
+                set capsBound=Wing:Skin_Top_Ylt0
+                edge adj2face capsBound=Wing:Skin_Top_Ylt0
+                set capsBound=Wing:Skin_Top_Ylt0
+                node adj2face capsBound=Wing:Skin_Top_Ylt0
+                set capsBound=Wing:Skin_Top_Ylt0
+
+                face has capsBound=Wing:Skin_Bot
+                set capsBound=Wing:Skin_Bot_Ylt0
+                edge adj2face capsBound=Wing:Skin_Bot_Ylt0
+                set capsBound=Wing:Skin_Bot_Ylt0
+                node adj2face capsBound=Wing:Skin_Bot_Ylt0
+                set capsBound=Wing:Skin_Bot_Ylt0
+
+                face has capsBound=Wing_TE
+                set capsBound=Wing_TE_Ylt0
+                edge adj2face capsBound=Wing_TE_Ylt0
+                set capsBound=Wing_TE_Ylt0
+                node adj2face capsBound=Wing_TE_Ylt0
+                set capsBound=Wing_TE_Ylt0
+
+                face has capsBound=Wing_Tip
+                set capsBound=Wing_Tip_Ylt0
+                edge adj2face capsBound=Wing_Tip_Ylt0
+                set capsBound=Wing_Tip_Ylt0
+                node adj2face capsBound=Wing_Tip_Ylt0
+                set capsBound=Wing_Tip_Ylt0
+>>
+            ENDIF
+        ENDIF
+        IFTHEN COMP:Tail EQ 1 # mark y<0 tail faces
+            IFTHEN Tail:sharpTE EQ 1
+                udprim editAttr filename <<
+                face has capsBound=Tail:Skin_Top
+                set capsBound=Tail:Skin_Top_Ylt0
+                edge adj2face capsBound=Tail:Skin_Top_Ylt0
+                set capsBound=Tail:Skin_Top_Ylt0
+                node adj2face capsBound=Tail:Skin_Top_Ylt0
+                set capsBound=Tail:Skin_Top_Ylt0
+
+                face has capsBound=Tail:Skin_Bot
+                set capsBound=Tail:Skin_Bot_Ylt0
+                edge adj2face capsBound=Tail:Skin_Bot_Ylt0
+                set capsBound=Tail:Skin_Bot_Ylt0
+                node adj2face capsBound=Tail:Skin_Bot_Ylt0
+                set capsBound=Tail:Skin_Bot_Ylt0
+
+                face has capsBound=Tail_Tip
+                set capsBound=Tail_Tip_Ylt0
+                edge adj2face capsBound=Tail_Tip_Ylt0
+                set capsBound=Tail_Tip_Ylt0
+                node adj2face capsBound=Tail_Tip_Ylt0
+                set capsBound=Tail_Tip_Ylt0
+>>
+            ELSE
+                udprim editAttr filename <<
+                face has capsBound=Tail:Skin_Top
+                set capsBound=Tail:Skin_Top_Ylt0
+                edge adj2face capsBound=Tail:Skin_Top_Ylt0
+                set capsBound=Tail:Skin_Top_Ylt0
+                node adj2face capsBound=Tail:Skin_Top_Ylt0
+                set capsBound=Tail:Skin_Top_Ylt0
+
+                face has capsBound=Tail:Skin_Bot
+                set capsBound=Tail:Skin_Bot_Ylt0
+                edge adj2face capsBound=Tail:Skin_Bot_Ylt0
+                set capsBound=Tail:Skin_Bot_Ylt0
+                node adj2face capsBound=Tail:Skin_Bot_Ylt0
+                set capsBound=Tail:Skin_Bot_Ylt0
+
+                face has capsBound=Tail_TE
+                set capsBound=Tail_TE_Ylt0
+                edge adj2face capsBound=Tail_TE_Ylt0
+                set capsBound=Tail_TE_Ylt0
+                node adj2face capsBound=Tail_TE_Ylt0
+                set capsBound=Tail_TE_Ylt0
+
+                face has capsBound=Tail_Tip
+                set capsBound=Tail_Tip_Ylt0
+                edge adj2face capsBound=Tail_Tip_Ylt0
+                set capsBound=Tail_Tip_Ylt0
+                node adj2face capsBound=Tail_Tip_Ylt0
+                set capsBound=Tail_Tip_Ylt0
+>>
+            ENDIF
+        ENDIF
+        RESTORE crm
+        UNION
+        STORE crm
+    ELSE
+        IFTHEN COMP:Wing EQ 1
+            RESTORE wing_OML
+            MIRROR 0 1 0 0
+            IFTHEN Wing:sharpTE EQ 1
+                udprim editAttr filename <<
+                face has capsBound=Wing:Skin_Top
+                set capsBound=Wing:Skin_Top_Ylt0
+                edge adj2face capsBound=Wing:Skin_Top_Ylt0
+                set capsBound=Wing:Skin_Top_Ylt0
+                node adj2face capsBound=Wing:Skin_Top_Ylt0
+                set capsBound=Wing:Skin_Top_Ylt0
+
+                face has capsBound=Wing:Skin_Bot
+                set capsBound=Wing:Skin_Bot_Ylt0
+                edge adj2face capsBound=Wing:Skin_Bot_Ylt0
+                set capsBound=Wing:Skin_Bot_Ylt0
+                node adj2face capsBound=Wing:Skin_Bot_Ylt0
+                set capsBound=Wing:Skin_Bot_Ylt0
+
+                face has capsBound=Wing_Tip
+                set capsBound=Wing_Tip_Ylt0
+                edge adj2face capsBound=Wing_Tip_Ylt0
+                set capsBound=Wing_Tip_Ylt0
+                node adj2face capsBound=Wing_Tip_Ylt0
+                set capsBound=Wing_Tip_Ylt0
+>>
+
+            ELSE
+                udprim editAttr filename <<
+                face has capsBound=Wing:Skin_Top
+                set capsBound=Wing:Skin_Top_Ylt0
+                edge adj2face capsBound=Wing:Skin_Top_Ylt0
+                set capsBound=Wing:Skin_Top_Ylt0
+                node adj2face capsBound=Wing:Skin_Top_Ylt0
+                set capsBound=Wing:Skin_Top_Ylt0
+
+                face has capsBound=Wing:Skin_Bot
+                set capsBound=Wing:Skin_Bot_Ylt0
+                edge adj2face capsBound=Wing:Skin_Bot_Ylt0
+                set capsBound=Wing:Skin_Bot_Ylt0
+                node adj2face capsBound=Wing:Skin_Bot_Ylt0
+                set capsBound=Wing:Skin_Bot_Ylt0
+
+                face has capsBound=Wing_TE
+                set capsBound=Wing_TE_Ylt0
+                edge adj2face capsBound=Wing_TE_Ylt0
+                set capsBound=Wing_TE_Ylt0
+                node adj2face capsBound=Wing_TE_Ylt0
+                set capsBound=Wing_TE_Ylt0
+
+                face has capsBound=Wing_Tip
+                set capsBound=Wing_Tip_Ylt0
+                edge adj2face capsBound=Wing_Tip_Ylt0
+                set capsBound=Wing_Tip_Ylt0
+                node adj2face capsBound=Wing_Tip_Ylt0
+                set capsBound=Wing_Tip_Ylt0
+>>
+            ENDIF
+            RESTORE wing_OML
+            UNION
+            STORE wing_OML
+        ENDIF
+
+        IFTHEN COMP:Tail EQ 1
+            RESTORE tail
+            MIRROR 0 1 0 0
+            IFTHEN Tail:sharpTE EQ 1
+                udprim editAttr filename <<
+                face has capsBound=Tail:Skin_Top
+                set capsBound=Tail:Skin_Top_Ylt0
+                edge adj2face capsBound=Tail:Skin_Top_Ylt0
+                set capsBound=Tail:Skin_Top_Ylt0
+                node adj2face capsBound=Tail:Skin_Top_Ylt0
+                set capsBound=Tail:Skin_Top_Ylt0
+
+                face has capsBound=Tail:Skin_Bot
+                set capsBound=Tail:Skin_Bot_Ylt0
+                edge adj2face capsBound=Tail:Skin_Bot_Ylt0
+                set capsBound=Tail:Skin_Bot_Ylt0
+                node adj2face capsBound=Tail:Skin_Bot_Ylt0
+                set capsBound=Tail:Skin_Bot_Ylt0
+
+                face has capsBound=Tail_Tip
+                set capsBound=Tail_Tip_Ylt0
+                edge adj2face capsBound=Tail_Tip_Ylt0
+                set capsBound=Tail_Tip_Ylt0
+                node adj2face capsBound=Tail_Tip_Ylt0
+                set capsBound=Tail_Tip_Ylt0
+>>
+            ELSE
+                udprim editAttr filename <<
+                face has capsBound=Tail:Skin_Top
+                set capsBound=Tail:Skin_Top_Ylt0
+                edge adj2face capsBound=Tail:Skin_Top_Ylt0
+                set capsBound=Tail:Skin_Top_Ylt0
+                node adj2face capsBound=Tail:Skin_Top_Ylt0
+                set capsBound=Tail:Skin_Top_Ylt0
+
+                face has capsBound=Tail:Skin_Bot
+                set capsBound=Tail:Skin_Bot_Ylt0
+                edge adj2face capsBound=Tail:Skin_Bot_Ylt0
+                set capsBound=Tail:Skin_Bot_Ylt0
+                node adj2face capsBound=Tail:Skin_Bot_Ylt0
+                set capsBound=Tail:Skin_Bot_Ylt0
+
+                face has capsBound=Tail_TE
+                set capsBound=Tail_TE_Ylt0
+                edge adj2face capsBound=Tail_TE_Ylt0
+                set capsBound=Tail_TE_Ylt0
+                node adj2face capsBound=Tail_TE_Ylt0
+                set capsBound=Tail_TE_Ylt0
+
+                face has capsBound=Tail_Tip
+                set capsBound=Tail_Tip_Ylt0
+                edge adj2face capsBound=Tail_Tip_Ylt0
+                set capsBound=Tail_Tip_Ylt0
+                node adj2face capsBound=Tail_Tip_Ylt0
+                set capsBound=Tail_Tip_Ylt0
+>>
+            ENDIF
+            RESTORE tail
+            UNION
+            STORE tail
+        ENDIF
+    ENDIF
+ENDIF
+IFTHEN VIEW:includeFEA EQ 1
+    RESTORE wing_IML
+    IFTHEN EXPORT EQ 1
+        DUMP wingbox.STP
+        DUMP wingbox.STL
+        DUMP wingbox.IGS
+        DUMP wingbox.EGADS
+    ENDIF
+ENDIF
+
+#----- Call CFD View --------------------------------------#
+IFTHEN VIEW:aeroFidelity EQ 1
+
+    SET  cfdAIMs $fun3dAIM;su2AIM;egadsTessAIM;aflr4AIM;tetgenAIM;aflr3AIM;fun3dSensAIM
+    IFTHEN VIEW:Mirror EQ 0 # half span
+        BOX -20*bref 0 -20*bref   60*bref 20*bref 40*bref # domain size based on wing span (starts 10 wingspans upstream, ends 20 wingspans downstream)
+          ATTRIBUTE capsGroup           $Farfield
+          ATTRIBUTE capsMesh            $Farfield
+          ATTRIBUTE AFLR4_Cmp_ID        2
+          ATTRIBUTE AFLR_GBC            $FARFIELD_UG3_GBC
+        SELECT face @nbody 3 1
+          ATTRIBUTE capsGroup           $SymmPlane
+          ATTRIBUTE capsMesh            $SymmPlane
+          ATTRIBUTE AFLR_GBC            $BL_INT_UG3_GBC
+          ATTRIBUTE AFLR4_Cmp_ID        3
+
+    ELSE # full span
+        BOX -20*bref -20*bref -20*bref  60*bref 40*bref 40*bref
+          ATTRIBUTE capsGroup           $Farfield
+          ATTRIBUTE capsMesh            $Farfield
+          ATTRIBUTE AFLR4_Cmp_ID        2
+          ATTRIBUTE AFLR_GBC            $FARFIELD_UG3_GBC
+    ENDIF
+
+    IFTHEN COMP:Fuselage EQ 1
+        RESTORE crm
+          ATTRIBUTE _name               $crm
+          ATTRIBUTE .tParams            "6.768; 0.108; 10.000;"
+          ATTRIBUTE AFLR_GBC            $-STD_UG3_GBC
+          ATTRIBUTE AFLR4_Cmp_ID        1
+        SUBTRACT # OML from Farfield
+          ATTRIBUTE _name               $cfd_domain
+          ATTRIBUTE capsIntent          $CFD
+          ATTRIBUTE capsAIM             cfdAIMs
+          ATTRIBUTE capsReferenceArea   Sref
+          ATTRIBUTE capsReferenceSpan   bref
+          ATTRIBUTE capsMeshLength      meshLen
+    ELSE
+        IFTHEN COMP:Wing EQ 1
+            RESTORE wing_OML
+              ATTRIBUTE _name               $wing
+              ATTRIBUTE .tParams            "6.768; 0.108; 10.000;"
+              ATTRIBUTE AFLR_GBC            $-STD_UG3_GBC
+              ATTRIBUTE AFLR4_Cmp_ID        1
+            SUBTRACT # OML from Farfield
+              ATTRIBUTE _name               $cfd_domain
+              ATTRIBUTE capsIntent          $CFD
+              ATTRIBUTE capsAIM             cfdAIMs
+              ATTRIBUTE capsReferenceArea   Sref
+              ATTRIBUTE capsReferenceSpan   bref
+              ATTRIBUTE capsMeshLength      meshLen
+        ENDIF
+        IFTHEN COMP:Tail EQ 1
+            RESTORE tail
+              ATTRIBUTE _name               $tail
+              ATTRIBUTE .tParams            "6.768; 0.108; 10.000;"
+              ATTRIBUTE AFLR_GBC            $-STD_UG3_GBC
+              ATTRIBUTE AFLR4_Cmp_ID        1
+            SUBTRACT # OML from Farfield
+              ATTRIBUTE _name               $cfd_domain
+              ATTRIBUTE capsIntent          $CFD
+              ATTRIBUTE capsAIM             cfdAIMs
+              ATTRIBUTE capsReferenceArea   Sref
+              ATTRIBUTE capsReferenceSpan   bref
+              ATTRIBUTE capsMeshLength      meshLen
+        ENDIF
+    ENDIF
+
+ENDIF #VIEW:aeroFidelity
+
+IFTHEN EXPORT EQ 1
+    DUMP cfd_domain.STP
+    DUMP cfd_domain.STL
+    DUMP cfd_domain.IGS
+    DUMP cfd_domain.EGADS
+ENDIF #EXPORT
+
+# For pyGeo, put body we want on the stack (and get rid of whatever is initially
+# there with "store ." Use wing_OML for rigid and wing_IML for aeroelastic
+# (VIEW:includeFEA must be true) note that VIEW:LETE_IML=1 turns on leading/trailing
+# edge surfaces, so that aero mesh point set can be projected onto those faces
+STORE .
+RESTORE wing_IML
+
+END

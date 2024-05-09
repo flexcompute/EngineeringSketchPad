@@ -15,6 +15,8 @@ mark
       linseg   -1.0      5.0        1.0
       linseg   -1.0      5.0       -1.0
    skend
+# note: LOFT has been deprecated and is included here for backward-compatability testing
+#       new .csm files should use RULE or BLEND instead
 loft 1
 
 end

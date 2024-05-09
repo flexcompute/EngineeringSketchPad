@@ -68,14 +68,19 @@ $(function() {
 <div class="contents">
 <div class="textblock"><p>The following list outlines the Delaundo meshing options along with their default value available through the AIM interface. Please note that not all of Delaundo's inputs are currently exposed.</p>
 <ul>
-<li><b> Proj_Name = delaundoCAPS</b> <br  />
- This corresponds to the output name of the mesh.</li>
+<li><b> Proj_Name = NULL</b> <br  />
+ Output name prefix for meshes to be written in formats specified by Mesh_Format. These meshes are not linked to any analysis, but may be useful exploring meshing parameters.</li>
+</ul>
+<p><ul>
+<li><b> Mesh_Format = NULL</b> <br  />
+ Optional list of string mesh formats to generate meshes not linked to analysis. <br  />
+ Available format names include: "exodus", "fast", "libMeshb", "stl", "bstl", "su2", "tecplot", "ugrid", "vtk", and "bvtk".<br  />
+ where the "b" prefix indicates binary version. </li>
+</ul>
+</p>
+<ul>
 <li><b> Tess_Params = [0.025, 0.001, 15.0]</b> <br  />
  Body tessellation parameters. Tess_Params[0] and Tess_Params[1] get scaled by the bounding box of the body. (From the EGADS manual) A set of 3 parameters that drive the EDGE discretization and the FACE triangulation. The first is the maximum length of an EDGE segment or triangle side (in physical space). A zero is flag that allows for any length. The second is a curvature-based value that looks locally at the deviation between the centroid of the discrete object and the underlying geometry. Any deviation larger than the input value will cause the tessellation to be enhanced in those regions. The third is the maximum interior dihedral angle (in degrees) between triangle facets (or Edge segment tangents for a WIREBODY tessellation), note that a zero ignores this phase</li>
-<li><b> Mesh_Format = NULL</b> <br  />
- Mesh output format. If left NULL, the mesh is not written in the new file format. Available format names include: "AFLR3", "VTK", "TECPLOT", "STL".</li>
-<li><b> Mesh_ASCII_Flag = True</b> <br  />
- Output mesh in ASCII format, otherwise write a binary file if applicable.</li>
 <li><b> Edge_Point_Min = NULL</b> <br  />
  Minimum number of points on an edge including end points to use when creating a surface mesh (min 2).</li>
 <li><b> Edge_Point_Max = NULL</b> <br  />
@@ -111,7 +116,7 @@ $(function() {
 </div><!-- PageDoc -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Sat Jul 2 2022 10:12:20 for Delaundo Analysis Interface Module (AIM) by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1
+Generated on Sat Apr 27 2024 16:51:14 for Delaundo Analysis Interface Module (AIM) by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1
 </small></address>
 </body>
 </html>

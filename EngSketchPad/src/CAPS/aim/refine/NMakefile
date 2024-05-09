@@ -1,0 +1,41 @@
+#
+!IFNDEF ESP_ROOT
+!ERROR ESP_ROOT must be set -- Please fix the environment...
+!ENDIF
+#
+IDIR  = $(ESP_ROOT)\include
+!include $(IDIR)\$(ESP_ARCH).$(MSVC)
+LDIR  = $(ESP_ROOT)\lib
+!IFDEF ESP_BLOC
+ODIR  = $(ESP_BLOC)\obj
+!ELSE
+ODIR  = .
+!ENDIF
+
+
+$(LDIR)\refineAIM.dll:	refineAIM.def $(ODIR)\refineAIM.obj \
+			$(ODIR)\libmeshb7.obj $(LDIR)\utils.lib
+	-del $(LDIR)\refineAIM.dll
+	link /out:$(LDIR)\refineAIM.dll /dll /def:refineAIM.def \
+		$(ODIR)\refineAIM.obj $(ODIR)\libmeshb7.obj \
+		/LIBPATH:$(LDIR) utils.lib \
+		aimUtil.lib ocsm.lib egads.lib udunits2.lib
+	$(MCOMP) /manifest $(LDIR)\refineAIM.dll.manifest \
+		/outputresource:$(LDIR)\refineAIM.dll;2
+
+$(ODIR)\refineAIM.obj:	refineAIM.c $(IDIR)\capsTypes.h \
+			..\utils\meshUtils.h ..\meshWriter\libMeshbWriter\libMeshbWriter.h
+	cl /c $(COPTS) $(DEFINE) /I$(IDIR) /I..\utils /I..\meshWriter\libMeshbWriter refineAIM.c \
+		/Fo$(ODIR)\refineAIM.obj
+
+$(ODIR)\libmeshb7.obj:	..\meshWriter\libMeshbWriter\libMeshb\sources\libmeshb7.c \
+						..\meshWriter\libMeshbWriter\libMeshb\sources\libmeshb7.h
+	cl /c $(COPTS) $(DEFINE) /I$(IDIR) /I..\meshWriter\libMeshbWriter\libMeshb\sources \
+		..\meshWriter\libMeshbWriter\libMeshb\sources\libmeshb7.c \
+		/Fo$(ODIR)\libmeshb7.obj
+
+clean:
+	-del $(ODIR)\refineAIM.obj $(ODIR)\libmeshb7.obj
+
+cleanall:	clean
+	-del $(LDIR)\refineAIM.dll $(LDIR)\refineAIM.lib $(LDIR)\refineAIM.exp

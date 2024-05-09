@@ -7,7 +7,7 @@
  */
 
 /*
- * Copyright (C) 2013/2022  John F. Dannenhoffer, III (Syracuse University)
+ * Copyright (C) 2013/2023  John F. Dannenhoffer, III (Syracuse University)
  *
  * This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
@@ -36,6 +36,10 @@
 #include "common.h"
 #include "Tessellate.h"
 #include "RedBlackTree.h"
+
+#ifdef GRAFIC
+    #include "grafic.h"
+#endif
 
 /* definitions needed to read/write binary stl files */
 #define UINT32 unsigned int
@@ -989,6 +993,205 @@ cutTriangles(tess_T  *tess,             /* (in)  pointer to TESS */
         }
     }
 
+    /* update the cut array (to account for new points) */
+    RALLOC(cut, double, tess->npnt);
+
+    for (ipnt = 0; ipnt < tess->npnt; ipnt++) {
+        cut[ipnt] = data[0] + tess->xyz[3*ipnt  ] * data[1]
+                            + tess->xyz[3*ipnt+1] * data[2]
+                            + tess->xyz[3*ipnt+2] * data[3];
+    }
+
+    /* add links for every Side on the cut line */
+    for (itri = 0; itri < tess->ntri; itri++) {
+        ip0 = tess->trip[3*itri  ];
+        ip1 = tess->trip[3*itri+1];
+        ip2 = tess->trip[3*itri+2];
+
+        if (fabs(cut[ip0]) < EPS06 && fabs(cut[ip1]) < EPS06) {
+            if ((tess->ttyp[itri] & TRI_T2_LINK) == 0) {
+                tess->ttyp[itri] |= TRI_T2_LINK;
+                (tess->nlink)++;
+            }
+        }
+
+        if (fabs(cut[ip1]) < EPS06 && fabs(cut[ip2]) < EPS06) {
+            if ((tess->ttyp[itri] & TRI_T0_LINK) == 0) {
+                tess->ttyp[itri] |= TRI_T0_LINK;
+                (tess->nlink)++;
+            }
+        }
+
+        if (fabs(cut[ip2]) < EPS06 && fabs(cut[ip0]) < EPS06) {
+            if ((tess->ttyp[itri] & TRI_T1_LINK) == 0) {
+                tess->ttyp[itri] |= TRI_T1_LINK;
+                (tess->nlink)++;
+            }
+        }
+    }
+
+    /* plot segments for this cut */
+#ifdef GRAFIC
+    if (0) {
+        int    mpnt=2000, mline=1000, npnt=0, nline=0;
+        int    *ilin=NULL, *isym=NULL, *nper=NULL;
+        int    io_kbd=5, io_scr=6, indgr=1+2+4+16+64;
+        float  *xplot=NULL, *yplot=NULL, *zplot=NULL;
+        double xmin=+HUGEQ, xmax=-HUGEQ, ymin=+HUGEQ, ymax=-HUGEQ, zmin=+HUGEQ, zmax=-HUGEQ;
+        char   pltitl[80];
+
+        MALLOC(ilin, int, mline);
+        MALLOC(isym, int, mline);
+        MALLOC(nper, int, mline);
+
+        MALLOC(xplot, float, mpnt);
+        MALLOC(yplot, float, mpnt);
+        MALLOC(zplot, float, mpnt);
+
+        for (itri = 0; itri < tess->ntri; itri++) {
+            ip0 = tess->trip[3*itri  ];
+            ip1 = tess->trip[3*itri+1];
+            ip2 = tess->trip[3*itri+2];
+
+            if (fabs(cut[ip0]) < EPS06 && fabs(cut[ip1]) < EPS06) {
+                xmin = MIN3(xmin, tess->xyz[3*ip0  ], tess->xyz[3*ip1  ]);
+                xmax = MAX3(xmax, tess->xyz[3*ip0  ], tess->xyz[3*ip1  ]);
+                ymin = MIN3(ymin, tess->xyz[3*ip0+1], tess->xyz[3*ip1+1]);
+                ymax = MAX3(ymax, tess->xyz[3*ip0+1], tess->xyz[3*ip1+1]);
+                zmin = MIN3(zmin, tess->xyz[3*ip0+2], tess->xyz[3*ip1+2]);
+                zmax = MAX3(zmax, tess->xyz[3*ip0+2], tess->xyz[3*ip1+2]);
+
+                if (nline >= mline-1) {
+                    mline += 1000;
+                    RALLOC(ilin, int, mline);
+                    RALLOC(isym, int, mline);
+                    RALLOC(nper, int, mline);
+                }
+                if (npnt >= mpnt-3) {
+                    mpnt += 2000;
+                    RALLOC(xplot, float, mpnt);
+                    RALLOC(yplot, float, mpnt);
+                    RALLOC(zplot, float, mpnt);
+                }
+
+                xplot[npnt] = tess->xyz[3*ip0  ];
+                yplot[npnt] = tess->xyz[3*ip0+1];
+                zplot[npnt] = tess->xyz[3*ip0+2];
+                npnt++;
+
+                xplot[npnt] = tess->xyz[3*ip1  ];
+                yplot[npnt] = tess->xyz[3*ip1+1];
+                zplot[npnt] = tess->xyz[3*ip1+2];
+                npnt++;
+
+                ilin[nline] = GR_SOLID;
+                isym[nline] = 0;
+                nper[nline] = 2;
+                nline++;
+            }
+
+            if (fabs(cut[ip1]) < EPS06 && fabs(cut[ip2]) < EPS06) {
+                xmin = MIN3(xmin, tess->xyz[3*ip0  ], tess->xyz[3*ip1  ]);
+                xmax = MAX3(xmax, tess->xyz[3*ip0  ], tess->xyz[3*ip1  ]);
+                ymin = MIN3(ymin, tess->xyz[3*ip0+1], tess->xyz[3*ip1+1]);
+                ymax = MAX3(ymax, tess->xyz[3*ip0+1], tess->xyz[3*ip1+1]);
+                zmin = MIN3(zmin, tess->xyz[3*ip0+2], tess->xyz[3*ip1+2]);
+                zmax = MAX3(zmax, tess->xyz[3*ip0+2], tess->xyz[3*ip1+2]);
+
+                if (nline >= mline-1) {
+                    mline += 1000;
+                    RALLOC(ilin, int, mline);
+                    RALLOC(isym, int, mline);
+                    RALLOC(nper, int, mline);
+                }
+                if (npnt >= mpnt-3) {
+                    mpnt += 2000;
+                    RALLOC(xplot, float, mpnt);
+                    RALLOC(yplot, float, mpnt);
+                    RALLOC(zplot, float, mpnt);
+                }
+
+                xplot[npnt] = tess->xyz[3*ip1  ];
+                yplot[npnt] = tess->xyz[3*ip1+1];
+                zplot[npnt] = tess->xyz[3*ip1+2];
+                npnt++;
+
+                xplot[npnt] = tess->xyz[3*ip2  ];
+                yplot[npnt] = tess->xyz[3*ip2+1];
+                zplot[npnt] = tess->xyz[3*ip2+2];
+                npnt++;
+
+                ilin[nline] = GR_SOLID;
+                isym[nline] = 0;
+                nper[nline] = 2;
+                nline++;
+            }
+
+            if (fabs(cut[ip2]) < EPS06 && fabs(cut[ip0]) < EPS06) {
+                xmin = MIN3(xmin, tess->xyz[3*ip0  ], tess->xyz[3*ip1  ]);
+                xmax = MAX3(xmax, tess->xyz[3*ip0  ], tess->xyz[3*ip1  ]);
+                ymin = MIN3(ymin, tess->xyz[3*ip0+1], tess->xyz[3*ip1+1]);
+                ymax = MAX3(ymax, tess->xyz[3*ip0+1], tess->xyz[3*ip1+1]);
+                zmin = MIN3(zmin, tess->xyz[3*ip0+2], tess->xyz[3*ip1+2]);
+                zmax = MAX3(zmax, tess->xyz[3*ip0+2], tess->xyz[3*ip1+2]);
+
+                if (nline >= mline-1) {
+                    mline += 1000;
+                    RALLOC(ilin, int, mline);
+                    RALLOC(isym, int, mline);
+                    RALLOC(nper, int, mline);
+                }
+                if (npnt >= mpnt-3) {
+                    mpnt += 2000;
+                    RALLOC(xplot, float, mpnt);
+                    RALLOC(yplot, float, mpnt);
+                    RALLOC(zplot, float, mpnt);
+                }
+
+                xplot[npnt] = tess->xyz[3*ip2  ];
+                yplot[npnt] = tess->xyz[3*ip2+1];
+                zplot[npnt] = tess->xyz[3*ip2+2];
+                npnt++;
+
+                xplot[npnt] = tess->xyz[3*ip0  ];
+                yplot[npnt] = tess->xyz[3*ip0+1];
+                zplot[npnt] = tess->xyz[3*ip0+2];
+                npnt++;
+
+                ilin[nline] = GR_SOLID;
+                isym[nline] = 0;
+                nper[nline] = 2;
+                nline++;
+            }
+        }
+
+        if (xmax-xmin < ymax-ymin && xmax-xmin < zmax-zmin) {
+            snprintf(pltitl, 79, "~y~z~cut at x=%12.6f", (xmin+xmax)/2);
+            grinit_(&io_kbd, &io_scr, "Slugs", strlen("Slugs"));
+            grline_(ilin, isym, &nline, pltitl,
+                    &indgr, yplot, zplot, nper, STRLEN(pltitl));
+        } else if (ymax-ymin < zmax-zmin && ymax-ymin < xmax-xmin) {
+            snprintf(pltitl, 79, "~x~z~cut at y=%12.6f", (ymin+ymax)/2);
+            grinit_(&io_kbd, &io_scr, "Slugs", strlen("Slugs"));
+            grline_(ilin, isym, &nline, pltitl,
+                    &indgr, xplot, zplot, nper, STRLEN(pltitl));
+        } else {
+            snprintf(pltitl, 79, "~x~y~cut at z=%12.6f", (zmin+zmax)/2);
+            grinit_(&io_kbd, &io_scr, "Slugs", strlen("Slugs"));
+            grline_(ilin, isym, &nline, pltitl,
+                    &indgr, xplot, yplot, nper, STRLEN(pltitl));
+        }
+
+        FREE(ilin);
+        FREE(isym);
+        FREE(nper);
+
+        FREE(xplot);
+        FREE(yplot);
+        FREE(zplot);
+    }
+#endif
+
 cleanup:
     FREE(cut);
 
@@ -1103,6 +1306,9 @@ dijkstra(tess_T  *tess,                 /* (in)  pointer to TESS */
     dist[isrc] = 0;
 
     /* make passes through Triangles until no distances are updated */
+    printf("starting dijkstra passes ");
+    fflush(stdout);
+
     for (ipass = 0; ipass < tess->ntri; ipass++) {
         nchange = 0;
 
@@ -1173,7 +1379,13 @@ dijkstra(tess_T  *tess,                 /* (in)  pointer to TESS */
             }
         }
 
+        if (ipass%100 == 0) {
+            printf(".");
+            fflush(stdout);
+        }
+
         if (nchange == 0) {
+            printf(" done\n");
             break;
         }
     }
@@ -2995,7 +3207,7 @@ readStlAscii(tess_T  *tess,             /* (in)  pointer to TESS */
     int    status = 0;                  /* (out) return status */
 
     int    itri, isid, ipnt;
-    LONG   key1, key2, key3;
+    LONG   key1, key2, key3, pnt0[3], pnt1[3], pnt2[3];
     double xin, yin, zin;
     char   string[255];
     rbt_T  *ntree = NULL;
@@ -3061,14 +3273,19 @@ readStlAscii(tess_T  *tess,             /* (in)  pointer to TESS */
            strncmp(string, "   facet", 8) == 0   ) {
         (void) fgets(string, 255, fp);              /* outer */
 
+        /* needed to avoid compiler warning */
+        pnt0[0] = pnt0[1] = pnt0[2] = 0;
+        pnt1[0] = pnt1[1] = pnt1[2] = 0;
+        pnt2[0] = pnt2[1] = pnt2[2] = 0;
+
         /* read each of the Triangle's Points */
         for (isid = 0; isid < 3; isid++) {
             fscanf(fp, "%s %lf %lf %lf", string, &xin, &yin, &zin);
 
             /* see if the point already exists */
-            key1 = (LONG)(xin * 10000000);
-            key2 = (LONG)(yin * 10000000);
-            key3 = (LONG)(zin * 10000000);
+            key1 = (LONG)(xin * 100000000);
+            key2 = (LONG)(yin * 100000000);
+            key3 = (LONG)(zin * 100000000);
             ipnt = rbtSearch(ntree, key1, key2, key3);
 
             /* create a new Point if needed */
@@ -3092,6 +3309,36 @@ readStlAscii(tess_T  *tess,             /* (in)  pointer to TESS */
             } else {
                 tess->trip[3*itri+2] = ipnt;
             }
+
+            /* remember the Point's LONG location (to check for degeneracies below) */
+            if (isid == 0) {
+                pnt0[0] = key1;
+                pnt0[1] = key2;
+                pnt0[2] = key3;
+            } else if (isid == 1) {
+                pnt1[0] = key1;
+                pnt1[1] = key2;
+                pnt1[2] = key3;
+            } else {
+                pnt2[0] = key1;
+                pnt2[1] = key2;
+                pnt2[2] = key3;
+            }
+        }
+
+        /* make sure that the Triangle has no degenerate sides */
+        if        (pnt0[0] == pnt1[0] && pnt0[1] == pnt1[1] && pnt0[2] == pnt1[2]) {
+            printf("\nERROR:: Triangle %d has degenerate side 0-1\n", itri);
+            status = TESS_INTERNAL_ERROR;
+            goto cleanup;
+        } else if (pnt1[0] == pnt2[0] && pnt1[1] == pnt2[1] && pnt1[2] == pnt2[2]) {
+            printf("\nERROR:: Triangle %d has degenerate side 1-2\n", itri);
+            status = TESS_INTERNAL_ERROR;
+            goto cleanup;
+        } else if (pnt2[0] == pnt0[0] && pnt2[1] == pnt0[1] && pnt2[2] == pnt0[2]) {
+            printf("\nERROR:: Triangle %d has degenerate side 2-0\n", itri);
+            status = TESS_INTERNAL_ERROR;
+            goto cleanup;
         }
 
         /* create the Triangle and get ready for next "read" */
@@ -3144,11 +3391,11 @@ readStlBinary(tess_T  *tess,            /* (in)  pointer to TESS */
 {
     int    status = 0;                  /* (out) return status */
 
-    int    isid, ipnt, itri;
+    int    isid, ipnt, itri, ndegen;
     UINT16 nattr;
     UINT32 ntri32;
-    LONG   key1, key2, key3;
-    double xin, yin, zin;
+    LONG   key1, key2, key3, pnt0[3], pnt1[3], pnt2[3];
+    double xin, yin, zin, xyz0[3], xyz1[3], xyz2[3];
     REAL32 normal[3], vertex[3];
     char   header[80];
     rbt_T  *ntree = NULL;
@@ -3195,9 +3442,19 @@ readStlBinary(tess_T  *tess,            /* (in)  pointer to TESS */
     RALLOC(tess->ttyp, int,      tess->mtri);
     RALLOC(tess->bbox, double, 6*tess->mtri);
 
+    ndegen = 0;
+
     /* read the Triangles */
     for (itri = 0; itri < tess->ntri; itri++) {
         (void) fread(normal, sizeof(REAL32), 3, fp);
+
+        /* needed to avoid compiler warning */
+        pnt0[0] = pnt0[1] = pnt0[2] = 0;
+        pnt1[0] = pnt1[1] = pnt1[2] = 0;
+        pnt2[0] = pnt2[1] = pnt2[2] = 0;
+        xyz0[0] = xyz0[1] = xyz0[2] = 0;
+        xyz1[0] = xyz1[1] = xyz1[2] = 0;
+        xyz2[0] = xyz2[1] = xyz2[2] = 0;
 
         for (isid = 0; isid < 3; isid++) {
             (void) fread(vertex, sizeof(REAL32), 3, fp);
@@ -3207,9 +3464,9 @@ readStlBinary(tess_T  *tess,            /* (in)  pointer to TESS */
             zin = vertex[2];
 
             /* see if the point already exists */
-            key1 = (LONG)(xin * 10000000);
-            key2 = (LONG)(yin * 10000000);
-            key3 = (LONG)(zin * 10000000);
+            key1 = (LONG)(xin * 100000000);
+            key2 = (LONG)(yin * 100000000);
+            key3 = (LONG)(zin * 100000000);
             ipnt = rbtSearch(ntree, key1, key2, key3);
 
             /* create a new Point if needed */
@@ -3233,9 +3490,57 @@ readStlBinary(tess_T  *tess,            /* (in)  pointer to TESS */
             } else {
                 tess->trip[3*itri+2] = ipnt;
             }
+
+            /* remember the Point's LONG location (to check for degeneracies below) */
+            if (isid == 0) {
+                pnt0[0] = key1;
+                pnt0[1] = key2;
+                pnt0[2] = key3;
+                xyz0[0] = xin;
+                xyz0[1] = yin;
+                xyz0[2] = zin;
+            } else if (isid == 1) {
+                pnt1[0] = key1;
+                pnt1[1] = key2;
+                pnt1[2] = key3;
+                xyz1[0] = xin;
+                xyz1[1] = yin;
+                xyz1[2] = zin;
+            } else {
+                pnt2[0] = key1;
+                pnt2[1] = key2;
+                pnt2[2] = key3;
+                xyz2[0] = xin;
+                xyz2[1] = yin;
+                xyz2[2] = zin;
+            }
         }
 
         (void) fread(&nattr, sizeof(UINT16), 1, fp);
+
+        /* make sure that the Triangle has no degenerate sides */
+        if        (pnt0[0] == pnt1[0] && pnt0[1] == pnt1[1] && pnt0[2] == pnt1[2]) {
+            printf("\nERROR:: Triangle %d has degenerate side 0-1\n", itri);
+            printf("pnt0=%20.14f %20.14f %20.14f\n", xyz0[0], xyz0[1], xyz0[2]);
+            printf("pnt1=%20.14f %20.14f %20.14f\n", xyz1[0], xyz1[1], xyz1[2]);
+            printf("pnt2=%20.14f %20.14f %20.14f\n", xyz2[0], xyz2[1], xyz2[2]);
+            ndegen++;
+            continue;
+        } else if (pnt1[0] == pnt2[0] && pnt1[1] == pnt2[1] && pnt1[2] == pnt2[2]) {
+            printf("\nERROR:: Triangle %d has degenerate side 1-2\n", itri);
+            printf("pnt0=%20.14f %20.14f %20.14f\n", xyz0[0], xyz0[1], xyz0[2]);
+            printf("pnt1=%20.14f %20.14f %20.14f\n", xyz1[0], xyz1[1], xyz1[2]);
+            printf("pnt2=%20.14f %20.14f %20.14f\n", xyz2[0], xyz2[1], xyz2[2]);
+            ndegen++;
+            continue;
+        } else if (pnt2[0] == pnt0[0] && pnt2[1] == pnt0[1] && pnt2[2] == pnt0[2]) {
+            printf("\nERROR:: Triangle %d has degenerate side 2-0\n", itri);
+            printf("pnt0=%20.14f %20.14f %20.14f\n", xyz0[0], xyz0[1], xyz0[2]);
+            printf("pnt1=%20.14f %20.14f %20.14f\n", xyz1[0], xyz1[1], xyz1[2]);
+            printf("pnt2=%20.14f %20.14f %20.14f\n", xyz2[0], xyz2[1], xyz2[2]);
+            ndegen++;
+            continue;
+        }
 
         /* create the Triangle and get ready for next "read" */
         tess->trit[3*itri  ] = -1;
@@ -3252,6 +3557,12 @@ readStlBinary(tess_T  *tess,            /* (in)  pointer to TESS */
     }
     printf("\n");
     fclose(fp);
+
+    if (ndegen > 0) {
+        printf("there were %d degeneracies\n", ndegen);
+//$$$        status = TESS_INTERNAL_ERROR;
+//$$$        goto cleanup;
+    }
 
     rbtDelete(ntree);
 
@@ -3659,9 +3970,6 @@ scribe(tess_T  *tess,                   /* (in)  pointer to TESS */
             /* if we are at the end of the path, make sure that
                we use target point */
             if (ipath == npath+1) {
-                
-
-
 
             /* otherwise, if sbest is either very small or big,
                just use the closest point in ibest */
@@ -3998,7 +4306,7 @@ cleanup:
  ******************************************************************************
  */
 int
-sortTriangles(tess_T  *tess)            /* (in)  pointer ot TESS */
+sortTriangles(tess_T  *tess)            /* (in)  pointer to TESS */
 {
     int    status = 0;                  /* (out) return status */
 
@@ -4509,6 +4817,49 @@ turn(tess_T  *tess,                     /* (in)  pointer to TESS */
 /*
  ******************************************************************************
  *                                                                            *
+ * transform - transform Points                                               *
+ *                                                                            *
+ ******************************************************************************
+ */
+int
+transform(tess_T  *tess,                /* (in)  pointer ot TESS */
+          double  mat[])                /* (in)  transformation matrix */
+{
+    int    status = 0;                  /* (out) return status */
+
+    int    ipnt;
+    double xold, yold, zold;
+
+//    ROUTINE(transform);
+
+    /* --------------------------------------------------------------- */
+
+    if (tess == NULL) {
+        status = TESS_NOT_A_TESS;
+        goto cleanup;
+    } else if (tess->magic != TESS_MAGIC) {
+        status = TESS_NOT_A_TESS;
+        goto cleanup;
+    }
+
+    for (ipnt = 0; ipnt < tess->npnt; ipnt++) {
+        xold = tess->xyz[3*ipnt  ];
+        yold = tess->xyz[3*ipnt+1];
+        zold = tess->xyz[3*ipnt+2];
+
+        tess->xyz[3*ipnt  ] = xold * mat[ 0] + yold * mat[ 1] + zold * mat[ 2] + mat[ 3];
+        tess->xyz[3*ipnt+1] = xold * mat[ 4] + yold * mat[ 5] + zold * mat[ 6] + mat[ 7];
+        tess->xyz[3*ipnt+2] = xold * mat[ 8] + yold * mat[ 9] + zold * mat[10] + mat[11];
+    }
+
+cleanup:
+    return status;
+}
+
+
+/*
+ ******************************************************************************
+ *                                                                            *
  * UVtoXYZ - evaluate at a given parametric coordinate                        *
  *                                                                            *
  ******************************************************************************
@@ -4758,7 +5109,7 @@ writeStlBinary(tess_T  *tess,           /* (in)  pointer to TESS */
     }
 
     /* create header */
-    sprintf(header, "written by StlEdit, ncolr=%d", tess->ncolr);
+    snprintf(header, 80, "written by StlEdit, ncolr=%d", tess->ncolr);
     (void) fwrite(header, sizeof(char), 80, fp);
 
     /* number of Triangles */

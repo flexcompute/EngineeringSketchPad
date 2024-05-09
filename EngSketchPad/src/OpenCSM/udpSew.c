@@ -10,7 +10,7 @@
  */
 
 /*
- * Copyright (C) 2011/2022  John F. Dannenhoffer, III (Syracuse University)
+ * Copyright (C) 2011/2024  John F. Dannenhoffer, III (Syracuse University)
  *
  * This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
@@ -69,6 +69,8 @@ udpExecute(ego  context,                /* (in)  EGADS context */
     double  data[4];
     ego     emodel1, emodel2, faceList[1000], eref, *eedges, *efaces;
     ego     *ebodys1, *ebodys2, *ebodys3, *ebodys4, *ebodys5;
+    ego     topRef, prev, next;
+    udp_T   *udps = *Udps;
 
     ROUTINE(udpExecute);
 
@@ -299,6 +301,14 @@ udpExecute(ego  context,                /* (in)  EGADS context */
     }
 
     for (iedge = 0; iedge < nedge; iedge++) {
+        status = EG_getInfo(eedges[iedge], &oclass, &mtype, &topRef, &prev, &next);
+        if (status != EGADS_SUCCESS) {
+            printf("EG_getInfo -> status=%d\n", status);
+            continue;
+        }
+
+        if (mtype == DEGENERATE) continue;
+        
         status = EG_getBodyTopos(*ebody, eedges[iedge], FACE, &nface, &efaces);
         if (status == EGADS_SUCCESS) {
             if (nface == 2) {

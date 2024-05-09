@@ -1,0 +1,20 @@
+# hex_udp_2
+# written by John Dannenhoffer
+
+DIMENSION corners 8 3 0
+SET       corners "0.0; 0.0; 0.0; \
+                   1.0; 0.2; 0.0; \
+		   0.0; 1.0; 0.0; \
+		   1.0; 0.8; -.2; \
+		   0.0; 0.2; 1.0; \
+		   1.0; 0.0; 1.0; \
+		   0.0; 0.8; 1.0; \
+		   1.0; 1.0; 0.8"
+
+UDPARG    hex   corners  corners
+UDPARG    hex   uknots   "0.0; 0.5; 1.0;"
+UDPARG    hex   vknots   "0.0; 0.2; 0.4; 0.6; 0.8; 1.0;"
+UDPARG    hex   wknots   "0.0; 0.1; 0.2; 1.0;"
+UDPRIM    hex
+
+END

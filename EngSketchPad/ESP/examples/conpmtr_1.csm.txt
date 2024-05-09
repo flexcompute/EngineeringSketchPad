@@ -1,0 +1,12 @@
+# conpmtr_1
+# written by John Dannenhoffer
+
+# CONPMTRs cannot be changed and sensitivities cannot be computed
+
+CONPMTR   L   4
+CONPMTR   H   3
+CONPMTR   D   2
+
+BOX       0  0  0  L  H  D
+
+END

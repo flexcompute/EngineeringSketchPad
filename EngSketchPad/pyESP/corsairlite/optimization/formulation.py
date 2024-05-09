@@ -1130,6 +1130,8 @@ class Formulation(object):
                     self.solverOptions.scaleVariables = False
                 if not hasattr(self.solverOptions,'relativeTolerance'):
                     self.solverOptions.relativeTolerance = None
+                if not hasattr(self.solverOptions,'debugOutput'):
+                    self.solverOptions.debugOutput = False
             if self.solverOptions.solveType.lower() in ['sp','pccp']:
                 if not hasattr(self.solverOptions,'progressFilename'):
                     cwd = os.getcwd() + os.sep

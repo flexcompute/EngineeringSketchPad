@@ -1131,7 +1131,7 @@ modl3.NewBrch(2, modl3.GetCode("udprim"), "<none>", 0,
 
 print("\ntest 190: calling modl3.NewBrch(message)")
 modl3.NewBrch(3, modl3.GetCode("message"), "<none>", 0,
-              "$area=+@area", "$_", "", "", "", "", "", "", "")
+              "$area=+@area", "$_", "$.", "$a", "", "", "", "", "")
 
 print("\ntest 191: calling modl3.PrintBrchs()")
 modl3.PrintBrchs("")

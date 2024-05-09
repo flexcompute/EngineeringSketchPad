@@ -1,0 +1,58 @@
+# selectE
+# written by John Dannenhoffer
+
+# SolidBody that we are going to compare against
+BOX       -2   0  -2   3   5   3
+SET       testBox @nbody
+
+# WireBody
+BOX       -3   4   0   2   0   0
+BOX       -1   4   0   1   0   0
+JOIN
+BOX        0   4   0   1   0   0
+JOIN
+BOX        1   4   0   2   0   0
+JOIN
+
+SELECT    FACE      -2  testBox
+ASSERT    @sellist.size  0
+CATBEG    $face_not_found
+CATEND
+SELECT    EDGE      -2  testBox
+ASSERT    @sellist.size  2
+SELECT    NODE      -2  testBox
+ASSERT    @sellist.size  3
+
+# SheetBody
+BOX       -3   3  -1   2   0   1
+BOX       -1   3  -1   1   0   1
+JOIN
+BOX        0   3  -1   1   0   1
+JOIN
+BOX        1   3  -1   2   0   1
+JOIN
+
+SELECT    FACE      -2  testBox
+ASSERT    @sellist.size  2
+SELECT    EDGE      -2  testBox
+ASSERT    @sellist.size  7
+SELECT    NODE      -2  testBox
+ASSERT    @sellist.size  6
+
+# SolidBody
+BOX       -3   1  -1   2   1   1
+BOX       -1   1  -1   1   1   1
+JOIN
+BOX        0   1  -1   1   1   1
+JOIN
+BOX        1   1  -1   2   1   1
+JOIN
+
+SELECT    FACE      -2  testBox
+ASSERT    @sellist.size  8
+SELECT    EDGE      -2  testBox
+ASSERT    @sellist.size  20
+SELECT    NODE      -2  testBox
+ASSERT    @sellist.size  12
+
+END

@@ -35,7 +35,7 @@ STORE    body 3
 # matches between Bodys 1 and 2
 RESTORE   body  1
 RESTORE   body  2
-UDPRIM    matchBodys    toler  0.001
+UDPRIM    matchBodys
 ASSERT    @@nnodes      2
 ASSERT    @@nedges      2
 ASSERT    @@nfaces      1
@@ -61,7 +61,7 @@ ASSERT    matches[1]    left2
 # matches between Bodys 2 and 3
 RESTORE   body  2
 RESTORE   body  3
-UDPRIM    matchBodys    toler  0.001
+UDPRIM    matchBodys
 ASSERT    @@nnodes      2
 ASSERT    @@nedges      2
 ASSERT    @@nfaces      1

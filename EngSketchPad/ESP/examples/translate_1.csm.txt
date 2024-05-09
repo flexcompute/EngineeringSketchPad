@@ -1,0 +1,30 @@
+# translate_1
+# written by John Dannenhoffer
+
+# make a colored cylinder
+CYLINDER  0  0  0  2  0  0  1/2
+
+SELECT    FACE   @nbody 1      # left end
+ATTRIBUTE _color $cyan
+
+SELECT    FACE   @nbody 2      # right end
+ATTRIBUTE _color $magenta
+
+SELECT    FACE   @nbody 3      # bottom
+ATTRIBUTE _color $lgreen
+
+SELECT    FACE   @nbody 4      # top
+ATTRIBUTE _color $lblue
+
+STORE     body
+
+# translate (dx=1, dy=-1, dz=0)
+RESTORE   body
+TRANSLATE 1  -1  0
+
+# show outline of original body
+RESTORE   body
+SELECT    FACE
+ATTRIBUTE _trn $on
+
+END

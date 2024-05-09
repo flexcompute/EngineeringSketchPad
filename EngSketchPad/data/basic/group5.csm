@@ -40,7 +40,7 @@ restore   group
 translate dx  dy  dz
 scale     fact
 
-select    body    13
-assert    @igroup 10
+select    body    14
+assert    @igroup 11
 
 end

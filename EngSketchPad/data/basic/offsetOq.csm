@@ -1,0 +1,35 @@
+# offsetOq
+# written by John Dannenhoffer
+
+BOX       0  0 -1  3  3  3
+BOX       0  1 -1  1  1  3
+SUBTRACT
+BOX       3  1 -1  1  1  3
+UNION
+
+BOX       0  0  0  4  3  1
+INTERSECT
+
+SELECT    EDGE   3
+SELECT    ADD    16
+SELECT    ADD    18
+SELECT    ADD    19
+SELECT    ADD    20
+SELECT    ADD    21
+SELECT    ADD    22
+SELECT    ADD    23
+SELECT    ADD    24
+SELECT    ADD    25
+SELECT    ADD    26
+SELECT    ADD    27
+ATTRIBUTE _color $magenta
+
+UDPARG    offset    faceList  1;2;3;4;5;6;7;8;9;10;11;12;13;14
+UDPARG    offset    edgeList  1;5;6;7;8;9;10;11;12;13;14;15
+UDPRIM    offset    dist      0.2
+
+SELECT    FACE      $__offsetFace__ $*
+ATTRIBUTE _color    $white
+ASSERT    @sellist.size  24
+
+END

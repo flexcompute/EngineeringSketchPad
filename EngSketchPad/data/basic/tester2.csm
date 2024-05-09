@@ -1,0 +1,45 @@
+# tester2
+# written by John Dannenhoffer
+
+# note: R[2] and S should return the same sensitivity info,
+#       but R[2] is done analytically
+#       and S    is done by finite differences
+
+DIMENSION R      1  3
+DESPMTR   R      2;1;2
+DESPMTR   S      1
+
+OUTPMTR   xmax
+OUTPMTR   vol
+SET       vol    0
+
+DIMENSION foo    2  3
+
+# first box (at origin)
+UDPRIM    tester2  rad  R[1]
+SET       xmax     @@bbox[2,1]
+SET       vol      vol+@@vol
+SET       foo      @@bbox
+
+# second (adjoined) box
+SET       X        @@bbox[2,1]+R[2]*S
+UDPRIM    tester2  rad R[2]   cg X;0;0   scale S
+SET       xmax     @@bbox[2,1]
+SET       vol      vol+@@vol
+SET       foo      @@bbox
+
+# third (adjoined) box
+SET       X        @@bbox[2,1]+R[3]
+UDPRIM    tester2  rad R[3]   cg X;0;0
+SET       xmax     @@bbox[2,1]
+SET       vol      vol+@@vol
+SET       foo      @@bbox
+
+# check outputs
+ASSERT    vol      8*(R[1]^3+(R[2]*S)^3+R[3]^3)  0.001
+ASSERT    xmax     R[1]+2*R[2]*S+2*R[3]
+
+# d(vol )/d(R1)=96;  d(vol )/d(R2)=24;  d(vol )/d(R3)=96;  d(vol )/dS=24
+# d(xmax)/d(R1)= 1;  d(xmax)/d(R2)= 2;  d(xmax)/d(R3)= 2;  d(xmax)/dS= 2 
+
+END

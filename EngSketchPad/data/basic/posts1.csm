@@ -3,6 +3,8 @@
 
 box       -1        -.5       -1        2         1         2
 
+# note: MACBEG/MACEND/RECALL has been deprecated and is included here for backward-compatability testing
+#       new .csm files should use UDPRIM instead
 macbeg 1
    cylinder   0        0         0         0         1         0         .1
    sphere     0        1         0         .2

@@ -20,9 +20,6 @@ args = parser.parse_args()
 # Working directory
 workDir = os.path.join(str(args.workDir[0]), "AFLR2AnalysisTest")
 
-# Project name
-projectName = "pyCAPS_AFLR2_Test"
-
 # Load CSM file
 geometryScript = os.path.join("..","csmData","cfd2D.csm")
 myProblem = pyCAPS.Problem(problemName=workDir, 
@@ -31,9 +28,6 @@ myProblem = pyCAPS.Problem(problemName=workDir,
 
 # Load aflr2 aim
 myMesh = myProblem.analysis.create(aim = "aflr2AIM")
-
-# Set project name
-myMesh.input.Proj_Name = projectName
 
 # Set AIM verbosity
 myMesh.input.Mesh_Quiet_Flag = True if args.outLevel == 0 else False
@@ -51,8 +45,8 @@ myMesh.input.Mesh_Sizing = {"Airfoil"   : airfoil,
 # Make quad/tri instead of just quads
 myMesh.input.Mesh_Gen_Input_String = "mquad=1 mpp=3"
 
-# Set output grid format since a project name is being supplied - Tecplot  file
-myMesh.input.Mesh_Format = "Tecplot"
+# Optional: Explicitly write mesh files
+myMesh.input.Mesh_Format = ["Tecplot", "ugrid"]
 
 # Run AIM
 myMesh.runAnalysis()

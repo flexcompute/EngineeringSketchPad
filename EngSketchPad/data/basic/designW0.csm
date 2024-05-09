@@ -1,0 +1,21 @@
+# designW0
+# written by JOhn Dannenhoffer
+
+DESPMTR   dx        3
+DESPMTR   dy        2
+DESPMTR   z         0
+
+# SheetBody
+BOX        -1   -1   z   6   8   0
+BOX         5   -1   z   2   8   0
+JOIN
+
+# trimming L-shaped box
+BOX         0   0   -1  2*dx  2*dy  2
+BOX         dx  dy  -1    dx    dx  2
+SUBTRACT
+
+# trim the SheetBody with the L-shaped box
+INTERSECT
+
+END

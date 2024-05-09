@@ -1,0 +1,17 @@
+# gen_rot_udc_1
+# written by John Dannenhoffer
+
+# regular z rotation
+BOX       1 0 0 1 1 1
+ATTRIBUTE _viz  $off
+
+# use gen_rot with vector from (xmin,ymin,zmax) to (xmax,ymax,zmax)
+BOX       1 0 0 1 1 1
+ATTRIBUTE _trn  $on
+
+UDPARG    $$/gen_rot   xbeg 1   xend 2
+UDPARG    $$/gen_rot   ybeg 0   yend 1
+UDPARG    $$/gen_rot   zbeg 1   zend 1
+UDPRIM    $$/gen_rot   rotang +45
+
+END

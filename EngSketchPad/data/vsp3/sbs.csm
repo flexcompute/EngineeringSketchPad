@@ -1,0 +1,6 @@
+# sbs
+# written by John Dannenhoffer
+
+UDPRIM    vsp3   filename $$/sbs.vsp3
+
+END

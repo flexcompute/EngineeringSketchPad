@@ -37,25 +37,25 @@ myProblem = pyCAPS.Problem(problemName=workDir,
                            outLevel=args.outLevel)
 
 # Load AIMs
-surfMesh = myProblem.analysis.create(aim = "egadsTessAIM", 
-                                     name= "egads",
-                                     capsIntent = "CFD")
+surfMesh = myProblem.analysis.create(aim = "aflr4AIM",
+                                     name= "aflr4",
+                                     capsIntent = "Aerodynamic")
 
-mesh = myProblem.analysis.create(aim = "tetgenAIM", 
-                                 name= "tetgen",
-                                 capsIntent = "CFD")
+mesh = myProblem.analysis.create(aim = "aflr3AIM",
+                                 name= "aflr3",
+                                 capsIntent = "Aerodynamic")
 
 mesh.input["Surface_Mesh"].link(surfMesh.output["Surface_Mesh"])
 
 su2 = myProblem.analysis.create(aim = "su2AIM", 
                                 name = "su2", 
-                                capsIntent = "CFD")
+                                capsIntent = "Aerodynamic")
 
 su2.input["Mesh"].link(mesh.output["Volume_Mesh"])
 
 mystran = myProblem.analysis.create(aim = "mystranAIM",
                                     name = "mystran",
-                                    capsIntent = "STRUCTURE",
+                                    capsIntent = "Structure",
                                     autoExec = False)
 
 # Create the data transfer connections
@@ -69,8 +69,8 @@ for boundName in boundNames:
     mystranVset = bound.vertexSet.create(mystran)
 
     # Create displacement data sets
-    su2_Displacement     = su2Vset.dataSet.create("Displacement", pyCAPS.fType.FieldIn)
-    mystran_Displacement = mystranVset.dataSet.create("Displacement", pyCAPS.fType.FieldOut)
+    su2_Displacement     = su2Vset.dataSet.create("Displacement")
+    mystran_Displacement = mystranVset.dataSet.create("Displacement")
 
     # Link the data set
     su2_Displacement.link(mystran_Displacement, "Interpolate")
@@ -78,12 +78,15 @@ for boundName in boundNames:
     # Close the bound as complete (cannot create more vertex or data sets)
     bound.close()
 
-# Set inputs for egads 
-surfMesh.input.Tess_Params = [.3, 0.01, 20.0]
-surfMesh.input.Edge_Point_Max = 6
 
-# Set inputs for tetgen 
-mesh.input.Preserve_Surf_Mesh = True
+# Farfield growth factor
+surfMesh.input.ff_cdfr = 1.4
+
+# Set maximum and minimum edge lengths relative to capsMeshLength
+surfMesh.input.max_scale = 0.75
+surfMesh.input.min_scale = 0.1
+
+# Set inputs for volume mesh
 mesh.input.Mesh_Quiet_Flag = True if args.outLevel == 0 else False
 
 # Set inputs for su2
@@ -96,7 +99,7 @@ su2.input.Mach = refVelocity/speedofSound
 su2.input.Equation_Type = "compressible"
 su2.input.Num_Iter = 3
 su2.input.Output_Format = "Tecplot"
-su2.input.SU2_Version = "Blackbird"
+su2.input.SU2_Version = "Harrier"
 su2.input.Pressure_Scale_Factor = 0.5*refDensity*refVelocity**2
 su2.input.Surface_Monitor = ["Skin"]
 

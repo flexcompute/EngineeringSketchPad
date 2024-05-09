@@ -15,6 +15,9 @@
 #include "cardUtils.h"   // Bring in card utility functions
 #include "astrosUtils.h" // Bring in astros utility header
 #include "astrosCards.h"
+#include "nastranCards.h"
+#include "feaUtils.h"    // Bring in fea utility functions
+
 
 #ifdef WIN32
 #define strcasecmp  stricmp
@@ -442,16 +445,19 @@ int astros_writeLoadCard(FILE *fp, const meshStruct *mesh, const feaLoadStruct *
 int astros_writeAEROSCard(FILE *fp, const feaAeroRefStruct *feaAeroRef,
                           const feaFileFormatStruct *feaFileFormat)
 {
-    const int *rcsid;
+
+    const int *acsid, *rcsid;
 
     if (feaAeroRef == NULL) return CAPS_NULLVALUE;
 
+    acsid = &feaAeroRef->coordSystemID;
     rcsid = &feaAeroRef->rigidMotionCoordSystemID;
-    // if (*rcsid == 0) rcsid = NULL; //TODO: temporarily commenting this out to exactly match previous logic
+    if (*acsid == 0) acsid = NULL;
+    if (*rcsid == 0) rcsid = NULL;
 
-    return astrosCard_aeros(fp, &feaAeroRef->coordSystemID, rcsid,
+    return astrosCard_aeros(fp, acsid, rcsid,
                             &feaAeroRef->refChord, &feaAeroRef->refSpan,
-                            &feaAeroRef->refArea, NULL, NULL, NULL,
+                            &feaAeroRef->refArea, &feaAeroRef->refGridID, NULL, NULL,
                             feaFileFormat->fileType);
 }
 
@@ -459,11 +465,15 @@ int astros_writeAEROSCard(FILE *fp, const feaAeroRefStruct *feaAeroRef,
 int astros_writeAEROCard(FILE *fp, const feaAeroRefStruct *feaAeroRef,
                          const feaFileFormatStruct *feaFileFormat)
 {
+    const int *acsid;
     double defaultRhoRef = 1.0;
 
     if (feaAeroRef == NULL) return CAPS_NULLVALUE;
 
-    return astrosCard_aero(fp, &feaAeroRef->coordSystemID, &feaAeroRef->refChord,
+    acsid = &feaAeroRef->coordSystemID;
+    if (*acsid == 0) acsid = NULL;
+
+    return astrosCard_aero(fp, acsid, &feaAeroRef->refChord,
                             &defaultRhoRef, feaFileFormat->fileType);
 }
 
@@ -601,91 +611,320 @@ cleanup:
     return status;
 }
 
-// Write Astros CAERO6 cards from a feaAeroStruct
-int astros_writeCAeroCard(FILE *fp, feaAeroStruct *feaAero,
-                          const feaFileFormatStruct *feaFileFormat)
+// Get divisions as equal fractions from 0.0 to 1.0
+static inline int _getDivisions(int numDivs, double **divisionsOut)
 {
-    int status; // Function return status
 
-    int i, j; // Indexing
+    int i;
 
-    double xmin, xmax, result[6];
+    double *divisions = NULL;
 
-    int lengthTemp, offSet = 0;
-    double *temp = NULL, pi, x;
-    int chordID, spanID, defaultIGRP = 1;
+    divisions = EG_alloc(numDivs * sizeof(double));
+    if (divisions == NULL) return EGADS_MALLOC;
 
-    if (feaAero == NULL) return CAPS_NULLVALUE;
+    divisions[0] = 0.0;
+    for (i = 1; i < numDivs-1; i++) {
+        divisions[i] = divisions[i-1] + 1. / numDivs;
+    }
+    divisions[numDivs-1] = 1.0;
 
-    //printf("WARNING CAER06 card may not be correct - need to confirm\n");
-    chordID = feaAero->surfaceID + 10*feaAero->surfaceID + 1; // Chord AEFact ID - Coordinate with AEFACT card
-    spanID  = feaAero->surfaceID + 10*feaAero->surfaceID + 2; //  Span AEFact ID - Coordinate with AEFACT card
+    *divisionsOut = divisions;
 
-    status = astrosCard_caero6(fp, &feaAero->surfaceID,
-                               feaAero->vlmSurface.surfaceType, NULL,
-                               &defaultIGRP, &chordID, &spanID,
-                               feaFileFormat->fileType);
-    if (status != CAPS_SUCCESS) goto cleanup;
+    return CAPS_SUCCESS;
+}
 
-    // Write Chord AEFact
-    lengthTemp = feaAero->vlmSurface.Nchord+1; // One more point than boxes for spline
+// Determine index of closest division percent to control surface percent chord
+static inline int _getClosestDivisionIndex(int numDivs, double *divs, double percentChord, int *closestDivIndexOut) {
 
-    temp = (double *) EG_alloc(lengthTemp*sizeof(double));
-    if (temp == NULL) {
-        status = EGADS_MALLOC;
-        goto cleanup;
+    int i, closestDivIndex = 0;
+    double closestDivDist = 1.0, divDist;
+
+    for (i = 0; i < numDivs; i++) {
+        divDist = fabs(percentChord - divs[i]);
+        if (divDist < closestDivDist) {
+            closestDivDist = divDist;
+            closestDivIndex = i;
+        }
+    }
+
+    if ((closestDivIndex == 0) || (closestDivIndex == numDivs-1) || (closestDivDist == 1.0)) {
+        return CAPS_BADVALUE;
+    }
+
+    *closestDivIndexOut = closestDivIndex;
+
+    return CAPS_SUCCESS;
+}
+
+// Get set of box IDs corresponding to control surface
+static int _getControlSurfaceBoxIDs(int boxBeginID, int numChordDivs, /*@unused@*/ double *chordDivs,
+                                    int numSpanDivs, /*@unused@*/ double *spanDivs, int hingelineIndex,
+                                    int isTrailing, int *numBoxIDsOut, int **boxIDsOut) {
+
+    int ichord, ispan, csBoxIndex, boxCount, chordDivIndex;
+
+    int boxID, numBoxIDs, *boxIDs = NULL;
+
+    numBoxIDs = (numChordDivs-1) * (numSpanDivs-1);
+
+    // conservative allocate
+    boxIDs = EG_alloc(numBoxIDs * sizeof(int));
+    if (boxIDs == NULL) return EGADS_MALLOC;
+
+    boxCount = 0;
+    csBoxIndex = 0;
+
+    for (ispan = 0; ispan < numSpanDivs-1; ispan++) {
+
+        for (ichord = 0; ichord < numChordDivs-1; ichord++) {
+
+            boxID = boxBeginID + boxCount++;
+
+            chordDivIndex = ichord + 1;
+
+            if (!isTrailing && chordDivIndex <= hingelineIndex) {
+                boxIDs[csBoxIndex++] = boxID;
+            }
+            else if (isTrailing && chordDivIndex > hingelineIndex) {
+                boxIDs[csBoxIndex++] = boxID;
+            }
+        }
+    }
+
+    numBoxIDs = csBoxIndex;
+
+    *numBoxIDsOut = numBoxIDs;
+    *boxIDsOut = boxIDs;
+
+    return CAPS_SUCCESS;
+}
+
+static int _writeAesurfCard(FILE *fp,
+                            feaAeroStruct *feaAero,
+                            vlmSectionStruct *rootSection,
+                            vlmSectionStruct *tipSection,
+                            int isUnsteadyAero,
+                            const feaFileFormatStruct *feaFileFormat) {
+
+    int i, j, status;
+
+    int controlID, coordSystemID, surfID;
+    int numChordDivs, numSpanDivs, numBoxes;
+    double *chordDivs = NULL, *spanDivs = NULL;
+    int *boxIDs = NULL, firstBoxID, lastBoxID, hingelineDivIndex;
+    double xyzHingeVec[3] = {0.0, 0.0, 0.0};
+    double pointA[3] = {0.0, 0.0, 0.0};
+    double pointB[3] = {0.0, 0.0, 0.0};
+    double pointC[3] = {0.0, 0.0, 0.0};
+
+    vlmControlStruct *controlSurface = NULL, *controlSurface2 = NULL;
+
+    for (i = 0; i < rootSection->numControl; i++) {
+
+        controlSurface = &rootSection->vlmControl[i];
+
+        // find matching control surface info on tip section
+        controlSurface2 = NULL;
+        for (j = 0; j < tipSection->numControl; j++) {
+            if (strcmp(rootSection->vlmControl[i].name, tipSection->vlmControl[j].name) == 0) {
+                controlSurface2 = &tipSection->vlmControl[j];
+                break;
+            }
+        }
+        if (controlSurface2 == NULL) continue;
+
+        // get hingeline vector
+        for (j = 0; j < 3; j++) {
+            xyzHingeVec[j] = controlSurface2->xyzHinge[j] - controlSurface->xyzHinge[j];
+        }
+
+        controlID = feaAero->surfaceID + i;
+
+        // get control surface coordinate system points
+        pointA[0] = controlSurface->xyzHinge[0];
+        pointA[1] = controlSurface->xyzHinge[1];
+        pointA[2] = controlSurface->xyzHinge[2];
+
+        pointB[0] = pointA[0];
+        pointB[1] = pointA[1];
+        pointB[2] = pointA[2] + 1;
+
+        pointC[0] = pointA[0] + 1;
+        pointC[1] = xyzHingeVec[0]/xyzHingeVec[1] * pointC[0];
+        pointC[2] = pointA[2] + 0.5;
+
+        // get chordwise division fractions
+        numChordDivs = feaAero->vlmSurface.Nchord + 1;
+        status = _getDivisions(numChordDivs, &chordDivs);
+        if (status != CAPS_SUCCESS) goto cleanup;
+        if (chordDivs == NULL) { status = CAPS_NULLVALUE; goto cleanup; }
+
+        // get spanwise division fractions
+        numSpanDivs = feaAero->vlmSurface.NspanTotal + 1;
+        status = _getDivisions(numSpanDivs, &spanDivs);
+        if (status != CAPS_SUCCESS) goto cleanup;
+        if (spanDivs == NULL) { status = CAPS_NULLVALUE; goto cleanup; }
+
+        // hingeline is the closest chord div to percent chord
+        status = _getClosestDivisionIndex(
+            numChordDivs, chordDivs, controlSurface->percentChord, &hingelineDivIndex);
+        if (status != CAPS_SUCCESS) goto cleanup;
+
+
+        if (isUnsteadyAero) {
+            surfID = feaAero->surfaceID + 10000;
+        }
+        else {
+            surfID = feaAero->surfaceID;
+        }
+
+        status = _getControlSurfaceBoxIDs(surfID,
+                                            numChordDivs, chordDivs,
+                                            numSpanDivs, spanDivs,
+                                            hingelineDivIndex, controlSurface->leOrTe,
+                                            &numBoxes, &boxIDs);
+        if (status != CAPS_SUCCESS) goto cleanup;
+        if (boxIDs == NULL) { status = CAPS_NULLVALUE; goto cleanup; }
+
+        firstBoxID = boxIDs[0];
+        lastBoxID = boxIDs[numBoxes-1];
+
+        coordSystemID = controlID;
+        status = nastranCard_cord2r(
+            fp,
+            &coordSystemID, // cid
+            NULL, // rid
+            pointA, // a
+            pointB, // b
+            pointC, // c
+            feaFileFormat->fileType
+        );
+        if (status != CAPS_SUCCESS) goto cleanup;
+
+        status = astrosCard_aesurf(
+            fp,
+            controlSurface->name, // label
+            controlSurface->surfaceSymmetry, // type
+            &surfID, // acid
+            &coordSystemID, // cid
+            &firstBoxID, // fboxid
+            &lastBoxID, // lboxid
+            feaFileFormat->fileType
+        );
+        if (status != CAPS_SUCCESS) goto cleanup;
+
+        if (chordDivs != NULL) {
+            EG_free(chordDivs);
+            chordDivs = NULL;
+        }
+        if (spanDivs != NULL) {
+            EG_free(spanDivs);
+            spanDivs = NULL;
+        }
+        if (boxIDs != NULL) {
+            EG_free(boxIDs);
+            boxIDs = NULL;
+        }
+    }
+
+    status = CAPS_SUCCESS;
+
+    cleanup:
+
+        if (chordDivs != NULL) EG_free(chordDivs);
+        if (spanDivs != NULL) EG_free(spanDivs);
+        if (boxIDs != NULL) EG_free(boxIDs);
+
+        return status;
+}
+
+
+static inline double _getSectionChordLength(vlmSectionStruct *section) {
+
+    return sqrt(pow(section->xyzTE[0] - section->xyzLE[0], 2) +
+                pow(section->xyzTE[1] - section->xyzLE[1], 2) +
+                pow(section->xyzTE[2] - section->xyzLE[2], 2));
+}
+
+
+static int _getChordDivisions(feaAeroStruct *feaAero, int *numDivisions, double **chordDivisions) {
+
+    int j; // Indexing
+    double pi, x;
+
+    int length;
+    double * divs = NULL;
+
+    length = feaAero->vlmSurface.Nchord+1; // One more point than boxes for spline
+
+    divs = (double *) EG_alloc(length*sizeof(double));
+    if (divs == NULL) {
+        return EGADS_MALLOC;
     }
 
     pi = 3.0*atan(sqrt(3));
 
     // Set bounds
-    temp[0] = 0.0;
-    temp[lengthTemp-1] = 100.0;
+    divs[0] = 0.0;
+    divs[length-1] = 100.0;
 
-    for (j = 1; j < lengthTemp-1; j++) {
+    for (j = 1; j < length-1; j++) {
 
-        x = j*100.0/(lengthTemp-1);
+        x = j*100.0/(length-1);
 
         // Cosine
         if (fabs(feaAero->vlmSurface.Cspace) == 1.0) {
 
             x = (x - 50.0)/50.0;
 
-            temp[j] = 0.5 * (1.0 +  x + (1.0/pi)*sin(x*pi));
+            divs[j] = 0.5 * (1.0 +  x + (1.0/pi)*sin(x*pi)) * 100.;
 
             // Equal spacing
         } else {
-            temp[j] = (double) 0.0 + x;
+            divs[j] = (double) 0.0 + x;
         }
     }
 
-    fprintf(fp, "$ Chord\n");
-    status = astrosCard_aefact(fp, &chordID, lengthTemp, temp, feaFileFormat->fileType);
-    if (status != CAPS_SUCCESS) goto cleanup;
+    *numDivisions = length;
+    *chordDivisions = divs;
 
-    if (temp != NULL) EG_free(temp);
+    return CAPS_SUCCESS;
+}
 
-    lengthTemp = feaAero->vlmSurface.NspanTotal + 1; //*(feaAero->vlmSurface.numSection-1) + 1;
+static int _getSpanDivisions(feaAeroStruct *feaAero, int *numDivisions, double **spanDivisions) {
 
-    temp = (double *) EG_alloc(lengthTemp*sizeof(double));
-    if (temp == NULL) {
-        status = EGADS_MALLOC;
-        goto cleanup;
+    int i, j; // Indexing
+    double xmin, xmax, result[6];
+    int offSet = 0;
+
+    vlmSectionStruct *rootSection, *tipSection;
+
+    int length;
+    double *divs = NULL;
+
+    length = feaAero->vlmSurface.NspanTotal + 1; //*(feaAero->vlmSurface.numSection-1) + 1;
+
+    divs = (double *) EG_alloc(length*sizeof(double));
+    if (divs == NULL) {
+        return EGADS_MALLOC;
     }
 
     // Write Span AEFact
     for (i = 0; i < feaAero->vlmSurface.numSection-1; i++) {
 
-        result[0] = result[3] = feaAero->vlmSurface.vlmSection[i].xyzLE[0];
-        result[1] = result[4] = feaAero->vlmSurface.vlmSection[i].xyzLE[1];
-        result[2] = result[5] = feaAero->vlmSurface.vlmSection[i].xyzLE[2];
+        rootSection = &feaAero->vlmSurface.vlmSection[i];
+        tipSection  = &feaAero->vlmSurface.vlmSection[i+1];
 
-        if (feaAero->vlmSurface.vlmSection[i+1].xyzLE[0] < result[0]) result[0] = feaAero->vlmSurface.vlmSection[i+1].xyzLE[0];
-        if (feaAero->vlmSurface.vlmSection[i+1].xyzLE[0] > result[3]) result[3] = feaAero->vlmSurface.vlmSection[i+1].xyzLE[0];
-        if (feaAero->vlmSurface.vlmSection[i+1].xyzLE[1] < result[1]) result[1] = feaAero->vlmSurface.vlmSection[i+1].xyzLE[1];
-        if (feaAero->vlmSurface.vlmSection[i+1].xyzLE[1] > result[4]) result[4] = feaAero->vlmSurface.vlmSection[i+1].xyzLE[1];
-        if (feaAero->vlmSurface.vlmSection[i+1].xyzLE[2] < result[2]) result[2] = feaAero->vlmSurface.vlmSection[i+1].xyzLE[2];
-        if (feaAero->vlmSurface.vlmSection[i+1].xyzLE[2] > result[5]) result[5] = feaAero->vlmSurface.vlmSection[i+1].xyzLE[2];
+        result[0] = result[3] = rootSection->xyzLE[0];
+        result[1] = result[4] = rootSection->xyzLE[1];
+        result[2] = result[5] = rootSection->xyzLE[2];
+
+        if (tipSection->xyzLE[0] < result[0]) result[0] = tipSection->xyzLE[0];
+        if (tipSection->xyzLE[0] > result[3]) result[3] = tipSection->xyzLE[0];
+        if (tipSection->xyzLE[1] < result[1]) result[1] = tipSection->xyzLE[1];
+        if (tipSection->xyzLE[1] > result[4]) result[4] = tipSection->xyzLE[1];
+        if (tipSection->xyzLE[2] < result[2]) result[2] = tipSection->xyzLE[2];
+        if (tipSection->xyzLE[2] > result[5]) result[5] = tipSection->xyzLE[2];
 
         xmin = result[3] - result[0];
         if (result[4] - result[1] > xmin) xmin = result[4] - result[1];
@@ -693,24 +932,83 @@ int astros_writeCAeroCard(FILE *fp, feaAeroStruct *feaAero,
 
         if ((result[4]-result[1])/xmin > 1.e-5) { // Y-ordering
 
-            xmin = feaAero->vlmSurface.vlmSection[i].xyzLE[1];
-            xmax = feaAero->vlmSurface.vlmSection[i+1].xyzLE[1];
+            xmin = rootSection->xyzLE[1];
+            xmax = tipSection->xyzLE[1];
 
         } else { // Z-ordering
 
-            xmin = feaAero->vlmSurface.vlmSection[i].xyzLE[2];
-            xmax = feaAero->vlmSurface.vlmSection[i+1].xyzLE[2];
+            xmin = rootSection->xyzLE[2];
+            xmax = tipSection->xyzLE[2];
         }
 
-        for (j = 0; j < feaAero->vlmSurface.vlmSection[i].Nspan+1; j++) { // One more point than boxes for spline
+        for (j = 0; j < rootSection->Nspan+1; j++) { // One more point than boxes for spline
 
-            temp[j +offSet] = xmin + j*(xmax -xmin)/(feaAero->vlmSurface.vlmSection[i].Nspan);
+            divs[j + offSet] = xmin + j*(xmax-xmin)/(rootSection->Nspan);
 
         }
 
         // offset so the first point of the section overwrites the last point of the previous section
-        offSet += feaAero->vlmSurface.vlmSection[i].Nspan;
+        offSet += rootSection->Nspan;
     }
+
+    *numDivisions = length;
+    *spanDivisions = divs;
+
+    return CAPS_SUCCESS;
+}
+
+// Write Astros CAERO6 cards from a feaAeroStruct
+int astros_writeCAeroCard(FILE *fp, feaAeroStruct *feaAero,
+                          const feaFileFormatStruct *feaFileFormat) {
+
+    int status; // Function return status
+
+    int i; // Indexing
+
+    int lengthTemp;
+    double *temp = NULL;
+    int chordID, spanID, defaultIGRP = 1;
+
+    vlmSectionStruct *rootSection, *tipSection;
+
+    if (fp == NULL) return CAPS_IOERR;
+    if (feaAero == NULL) return CAPS_NULLVALUE;
+    if (feaFileFormat == NULL) return CAPS_NULLVALUE;
+
+    //printf("WARNING CAER06 card may not be correct - need to confirm\n");
+    chordID = feaAero->surfaceID + 10*feaAero->surfaceID + 1; // Chord AEFact ID - Coordinate with AEFACT card
+    spanID = feaAero->surfaceID + 10*feaAero->surfaceID + 2; //  Span AEFact ID - Coordinate with AEFACT card
+
+    status = astrosCard_caero6(fp, &feaAero->surfaceID, feaAero->vlmSurface.surfaceType, NULL, &defaultIGRP,
+                                &chordID, &spanID, feaFileFormat->fileType);
+    if (status != CAPS_SUCCESS) goto cleanup;
+
+    // Write Chord AEFact
+    status = _getChordDivisions(feaAero, &lengthTemp, &temp);
+    if (status != CAPS_SUCCESS) goto cleanup;
+    if (temp == NULL) { status = CAPS_NULLVALUE; goto cleanup; }
+
+    fprintf(fp, "$ Chord\n");
+    status = astrosCard_aefact(fp, &chordID, lengthTemp, temp, feaFileFormat->fileType);
+    if (status != CAPS_SUCCESS) goto cleanup;
+
+    if (temp != NULL) EG_free(temp);
+
+    // Write control surface card
+    for (i = 0; i < feaAero->vlmSurface.numSection-1; i++) {
+
+        rootSection = &feaAero->vlmSurface.vlmSection[i];
+        tipSection  = &feaAero->vlmSurface.vlmSection[i+1];
+
+        if (rootSection->numControl > 0) {
+
+            status = _writeAesurfCard(fp, feaAero, rootSection, tipSection, 0, feaFileFormat);
+            if (status != CAPS_SUCCESS) return status;
+        }
+    }
+
+    status = _getSpanDivisions(feaAero, &lengthTemp, &temp);
+    if (status != CAPS_SUCCESS) goto cleanup;
 
     fprintf(fp, "$ Span\n");
     status = astrosCard_aefact(fp, &spanID, lengthTemp, temp, feaFileFormat->fileType);
@@ -720,10 +1018,147 @@ int astros_writeCAeroCard(FILE *fp, feaAeroStruct *feaAero,
 
 cleanup:
 
-    EG_free(temp);
+    if (temp != NULL) EG_free(temp);
 
     return status;
 
+}
+
+// Write CAERO1 cards from a feaAeroStruct
+int astros_writeUnsteadyCAeroCard(FILE *fp, feaAeroStruct *feaAero, const feaFileFormatStruct *feaFileFormat) {
+
+    int status;
+
+    int i, j, sectionIndex; // Indexing
+
+    int chordID, spanID;
+    int *pid, *cp, *nspan, *nchord, *lspan, *lchord, defaultIGroupID = 1;
+    int caeroID;
+
+    double chordLength12, chordLength43;
+    double *xyz1, *xyz4;
+    int lengthTemp;
+    double *temp = NULL;
+
+    vlmSectionStruct *rootSection, *tipSection;
+
+    if (fp == NULL) return CAPS_IOERR;
+    if (feaAero == NULL) return CAPS_NULLVALUE;
+    if (feaFileFormat == NULL) return CAPS_NULLVALUE;
+
+    for (i = 0; i < feaAero->vlmSurface.numSection-1; i++) {
+
+        // If Cspace and/or Sspace is something (to be defined) lets write a AEFact card instead with our own distributions
+        if (feaAero->vlmSurface.Sspace == 0.0) {
+            nspan = &feaAero->vlmSurface.NspanTotal;
+            lspan = NULL;
+        } else {
+
+            spanID = feaAero->surfaceID + 10*feaAero->surfaceID + 4; //  Span AEFact ID - Coordinate with AEFACT card
+            nspan = NULL;
+            lspan = &spanID;
+
+            status = _getSpanDivisions(feaAero, &lengthTemp, &temp);
+            if (status != CAPS_SUCCESS) goto cleanup;
+            if (temp == NULL) { status = CAPS_NULLVALUE; goto cleanup; }
+
+            // normalize divisions
+            for (j = 0; j < lengthTemp; j++) {
+                temp[j] = temp[j] / temp[lengthTemp-1];
+            }
+
+            fprintf(fp, "$ Span\n");
+            status = astrosCard_aefact(fp, lspan, lengthTemp, temp, feaFileFormat->fileType);
+            if (status != CAPS_SUCCESS) goto cleanup;
+
+            AIM_FREE(temp);
+        }
+
+        if (feaAero->vlmSurface.Cspace == 0.0) {
+            nchord = &feaAero->vlmSurface.Nchord;
+            lchord = NULL;
+        } else {
+
+            chordID = feaAero->surfaceID + 10*feaAero->surfaceID + 3; // Chord AEFact ID - Coordinate with AEFACT card
+            nchord = NULL;
+            lchord = &chordID;
+
+            // Write Chord AEFact
+            status = _getChordDivisions(feaAero, &lengthTemp, &temp);
+            if (status != CAPS_SUCCESS) goto cleanup;
+            if (temp == NULL) { status = CAPS_NULLVALUE; goto cleanup; }
+
+            // normalize divisions
+            for (j = 0; j < lengthTemp; j++) {
+                temp[j] = temp[j] / temp[lengthTemp-1];
+            }
+
+            fprintf(fp, "$ Chord\n");
+            status = astrosCard_aefact(fp, lchord, lengthTemp, temp, feaFileFormat->fileType);
+            if (status != CAPS_SUCCESS) goto cleanup;
+
+            AIM_FREE(temp);
+        }
+
+        sectionIndex = feaAero->vlmSurface.vlmSection[i].sectionIndex;
+        rootSection = &feaAero->vlmSurface.vlmSection[sectionIndex];
+        xyz1 = rootSection->xyzLE;
+        chordLength12 = _getSectionChordLength(rootSection);
+
+        sectionIndex = feaAero->vlmSurface.vlmSection[i+1].sectionIndex;
+        tipSection = &feaAero->vlmSurface.vlmSection[sectionIndex];
+        xyz4 = tipSection->xyzLE;
+        chordLength43 = _getSectionChordLength(tipSection);
+
+        caeroID = feaAero->surfaceID + 10000;
+        pid = &caeroID;
+
+        // Write necessary PAER0 card
+        status = nastranCard_paero1(
+            fp,
+            pid, // pid
+            0, NULL, // b
+            feaFileFormat->fileType
+        );
+        if (status != CAPS_SUCCESS) goto cleanup;
+
+        if (feaAero->coordSystemID == 0)
+            cp = NULL;
+        else
+            cp = &feaAero->coordSystemID;
+
+        status = nastranCard_caero1(
+            fp,
+            &caeroID, // eid
+            pid, // pid
+            cp, // cp
+            nspan, // nspan
+            nchord, // nchord
+            lspan, // lspan
+            lchord, // lchord
+            &defaultIGroupID, // igid
+            xyz1, // xyz1
+            xyz4, // xyz4
+            &chordLength12, // x12
+            &chordLength43, // x43
+            feaFileFormat->fileType
+        );
+        if (status != CAPS_SUCCESS) goto cleanup;
+
+        if (rootSection->numControl > 0) {
+
+            status = _writeAesurfCard(fp, feaAero, rootSection, tipSection, 1, feaFileFormat);
+            if (status != CAPS_SUCCESS) goto cleanup;
+        }
+    }
+
+    status = CAPS_SUCCESS;
+
+cleanup:
+
+    if (temp != NULL) EG_free(temp);
+
+    return status;
 }
 
 // Write out all the Airfoil cards for each each of a surface
@@ -755,10 +1190,10 @@ int astros_writeAirfoilCard(FILE *fp,
 }
 
 // Write Astros Spline1 cards from a feaAeroStruct
-int astros_writeAeroSplineCard(FILE *fp, feaAeroStruct *feaAero,
+int astros_writeAeroSplineCard(FILE *fp, feaAeroStruct *feaAero, int isUnsteady,
                                const feaFileFormatStruct *feaFileFormat)
 {
-    int firstBoxID, lastBoxID, numSpanWise;
+    int firstBoxID, lastBoxID, numSpanWise, surfID;
 
     if (fp == NULL) return CAPS_IOERR;
     if (feaAero == NULL) return CAPS_NULLVALUE;
@@ -775,13 +1210,20 @@ int astros_writeAeroSplineCard(FILE *fp, feaAeroStruct *feaAero,
         return CAPS_BADVALUE;
     }
 
-    firstBoxID = feaAero->surfaceID;
+    if (isUnsteady) {
+        surfID = feaAero->surfaceID + 10000;
+    }
+    else {
+        surfID = feaAero->surfaceID;
+    }
+
+    firstBoxID = surfID;
     lastBoxID = firstBoxID + numSpanWise * feaAero->vlmSurface.Nchord - 1;
 
     return astrosCard_spline1(fp,
-                              &feaAero->surfaceID, // eid
+                              &surfID, // eid
                               NULL, // cp = NULL, CAERO card defines spline plane
-                              &feaAero->surfaceID, // macroid
+                              &surfID, // macroid
                               &firstBoxID, // box1
                               &lastBoxID, // box2
                               &feaAero->surfaceID, // setg
@@ -859,11 +1301,14 @@ int astros_writeSupportCard(FILE *fp, feaSupportStruct *feaSupport,
 // Write a Astros Property card from a feaProperty structure w/ design parameters
 int astros_writePropertyCard(FILE *fp, feaPropertyStruct *feaProperty,
                              const feaFileFormatStruct *feaFileFormat,
-                             int numDesignVariable,
-                             feaDesignVariableStruct feaDesignVariable[])
+                             /*@unused@*/ int numDesignVariable,
+                             /*@unused@*/ feaDesignVariableStruct feaDesignVariable[])
 {
     int status;
-    int j, designIndex; // Indexing
+    // int j, designIndex; // Indexing
+
+    // bar
+    int numDimension;
 
     // composite
     char *failureTheory = NULL;
@@ -875,6 +1320,9 @@ int astros_writePropertyCard(FILE *fp, feaPropertyStruct *feaProperty,
     int *materialBendingID, *materialShearID;
     double *bendingInertiaRatio, *shearMembraneRatio, *massPerArea;
 
+    //prod
+    double *jfield = NULL, *c = NULL, *nsm = NULL;
+
     double *designMin = NULL;
 
     int found = (int) false;
@@ -883,23 +1331,25 @@ int astros_writePropertyCard(FILE *fp, feaPropertyStruct *feaProperty,
     if (feaProperty == NULL) return CAPS_NULLVALUE;
     if (feaFileFormat == NULL) return CAPS_NULLVALUE;
 
-    // Check for design minimum
-    designMin = NULL;
-    found = (int) false;
-    for (designIndex = 0; designIndex < numDesignVariable; designIndex++) {
+    /* NOTE: mdlk - the TMIN field is ignored unless rod linked to global design variables
+        by SHAPE entries which we do not currently use, so this is commented out for now */
+    // // Check for design minimum
+    // designMin = NULL;
+    // found = (int) false;
+    // for (designIndex = 0; designIndex < numDesignVariable; designIndex++) {
 
-        for (j = 0; j < feaDesignVariable[designIndex].numPropertyID; j++) {
+    //     for (j = 0; j < feaDesignVariable[designIndex].numPropertyID; j++) {
 
-            if (feaDesignVariable[designIndex].propertySetID[j] ==
-                feaProperty->propertyID) {
-                found = (int) true;
-                designMin = &feaDesignVariable[designIndex].lowerBound;
-                break;
-            }
-        }
+    //         if (feaDesignVariable[designIndex].propertySetID[j] ==
+    //             feaProperty->propertyID) {
+    //             found = (int) true;
+    //             designMin = &feaDesignVariable[designIndex].lowerBound;
+    //             break;
+    //         }
+    //     }
 
-        if (found == (int) true) break;
-    }
+    //     if (found == (int) true) break;
+    // }
 
     if (feaProperty->massPerArea != 0.0) {
         massPerArea = &feaProperty->massPerArea;
@@ -910,6 +1360,25 @@ int astros_writePropertyCard(FILE *fp, feaPropertyStruct *feaProperty,
 
     //          1D Elements        //
 
+    if (feaProperty->torsionalConst > 0.0) {
+        jfield = &feaProperty->torsionalConst;
+    }
+    else {
+        jfield = NULL;
+    }
+    if (feaProperty->torsionalStressReCoeff > 0.0) {
+        c = &feaProperty->torsionalStressReCoeff;
+    }
+    else {
+        c = NULL;
+    }
+    if (feaProperty->massPerLength > 0.0) {
+        nsm = &feaProperty->massPerLength;
+    }
+    else {
+        nsm = NULL;
+    }
+
     // Rod
     if (feaProperty->propertyType ==  Rod) {
 
@@ -917,37 +1386,80 @@ int astros_writePropertyCard(FILE *fp, feaPropertyStruct *feaProperty,
                                  &feaProperty->propertyID, // pid
                                  &feaProperty->materialID, // mid
                                  &feaProperty->crossSecArea, // a
-                                 &feaProperty->torsionalConst, // j
-                                 &feaProperty->torsionalStressReCoeff, // c
-                                 &feaProperty->massPerLength, // nsm
+                                 jfield, // j
+                                 c, // c
+                                 nsm, // nsm
                                  designMin, // tmin
                                  feaFileFormat->fileType);
         if (status != CAPS_SUCCESS) return status;
     }
 
     // Bar
-    if (feaProperty->propertyType ==  Bar) {
+    if (feaProperty->propertyType == Bar) {
 
-        status = astrosCard_pbar(fp,
-                                 &feaProperty->propertyID, // pid
-                                 &feaProperty->materialID, // mid
-                                 &feaProperty->crossSecArea, // a
-                                 &feaProperty->zAxisInertia, // i1
-                                 &feaProperty->yAxisInertia, // i2
-                                 &feaProperty->torsionalConst, // j
-                                 &feaProperty->massPerLength, // nsm
-                                 designMin, // tmin
-                                 NULL, // k1
-                                 NULL, // k2
-                                 NULL, // C
-                                 NULL, // D
-                                 NULL, // E
-                                 NULL, // F
-                                 NULL, // r12
-                                 NULL, // r22
-                                 NULL, // alpha
-                                 feaFileFormat->fileType);
-        if (status != CAPS_SUCCESS) return status;
+        if (feaProperty->crossSecType != NULL) {
+
+            if (strcmp(feaProperty->crossSecType, "ROD") == 0) {
+                numDimension = 1;
+            }
+            else if (strcmp(feaProperty->crossSecType, "TUBE") == 0) {
+                numDimension = 2;
+            }
+            else if (strcmp(feaProperty->crossSecType, "T") == 0) {
+                numDimension = 4;
+            }
+            else if (strcmp(feaProperty->crossSecType, "I") == 0) {
+                numDimension = 5;
+            }
+            else if (strcmp(feaProperty->crossSecType, "BAR") == 0) {
+                numDimension = 2;
+            }
+            else if (strcmp(feaProperty->crossSecType, "GBOX") == 0) {
+                numDimension = 6;
+            }
+            else if (strcmp(feaProperty->crossSecType, "HAT") == 0) {
+                numDimension = 5;
+            }
+            else if (strcmp(feaProperty->crossSecType, "BOX") == 0) {
+                numDimension = 3;
+            }
+            else {
+                PRINT_ERROR("crossSecType = %s not implemented", feaProperty->crossSecType);
+                return CAPS_NOTIMPLEMENT;
+            }
+
+            status = astrosCard_pbar1(
+                fp,
+                &feaProperty->propertyID, // pid
+                &feaProperty->materialID, // mid
+                feaProperty->crossSecType, // shape
+                numDimension, feaProperty->crossSecDimension, // D
+                &feaProperty->massPerLength, // nsm
+                feaFileFormat->fileType
+            );
+            if (status != CAPS_SUCCESS) return status;
+        }  else {
+            status = astrosCard_pbar( fp,
+                                      &feaProperty->propertyID, // pid
+                                      &feaProperty->materialID, // mid
+                                      &feaProperty->crossSecArea, // a
+                                      &feaProperty->zAxisInertia, // i1
+                                      &feaProperty->yAxisInertia, // i2
+                                      &feaProperty->torsionalConst, // j
+                                      &feaProperty->massPerLength, // nsm
+                                      designMin, // tmin
+                                      NULL, // k1
+                                      NULL, // k2
+                                      NULL, // C
+                                      NULL, // D
+                                      NULL, // E
+                                      NULL, // F
+                                      NULL, // r12
+                                      NULL, // r22
+                                      NULL, // alpha
+                                      feaFileFormat->fileType);
+            if (status != CAPS_SUCCESS) return status;
+        }
     }
 
     //          2D Elements        //
@@ -983,17 +1495,17 @@ int astros_writePropertyCard(FILE *fp, feaPropertyStruct *feaProperty,
 
         // Check for design minimum thickness
         found = (int) false;
-        for (designIndex = 0; designIndex < numDesignVariable; designIndex++) {
-            for (j = 0; j < feaDesignVariable[designIndex].numPropertyID; j++) {
+        // for (designIndex = 0; designIndex < numDesignVariable; designIndex++) {
+        //     for (j = 0; j < feaDesignVariable[designIndex].numPropertyID; j++) {
 
-                if (feaDesignVariable[designIndex].propertySetID[j] == feaProperty->propertyID) {
-                    //found = (int) true; eja - let design variable upper/lower bounds handle thisMA
-                    break;
-                }
-            }
+        //         if (feaDesignVariable[designIndex].propertySetID[j] == feaProperty->propertyID) {
+        //             //found = (int) true; eja - let design variable upper/lower bounds handle thisMA
+        //             break;
+        //         }
+        //     }
 
-            if (found == (int) true) break;
-        }
+        //     if (found == (int) true) break;
+        // }
 
         if (feaProperty->materialBendingID != 0) {
 
@@ -1098,6 +1610,28 @@ int astros_writePropertyCard(FILE *fp, feaPropertyStruct *feaProperty,
     return CAPS_SUCCESS;
 }
 
+double _getVectorLength(double v[3]) {
+
+    return sqrt(pow(v[0], 2) + pow(v[1], 2) + pow(v[2], 2));
+}
+
+void _getVectorDiff(double a[3], double b[3], double v[3]) {
+
+    v[0] = b[0] - a[0];
+    v[1] = b[1] - a[1];
+    v[2] = b[2] - a[2];
+}
+
+void _getVectorHat(double v[3], double vHat[3]) {
+
+    double len;
+
+    len = _getVectorLength(v);
+    vHat[0] = v[0] / len;
+    vHat[1] = v[1] / len;
+    vHat[2] = v[2] / len;
+}
+
 // Write ASTROS element cards not supported by astros_writeMesh
 int astros_writeSubElementCard(FILE *fp, const meshStruct *feaMesh, int numProperty,
                                const feaPropertyStruct *feaProperty,
@@ -1106,11 +1640,18 @@ int astros_writeSubElementCard(FILE *fp, const meshStruct *feaMesh, int numPrope
     int status;
     int i, j; // Indexing
     int  fieldWidth;
-    char *tempString = NULL;
+    char tempString[16];
     char *delimiter;
 
     double zoff;
     int *tm;
+
+    int gID;
+    meshNodeStruct *nodeA, *nodeB;
+    double vectorAB[3], vectorABLen;
+    double du[3], dv[3], duHat[3], dvHat[3];
+    double wu, wv, wt[3], wtHat[3];
+    double eps, vectorX[3];
 
     int found;
     feaMeshDataStruct *feaData;
@@ -1166,8 +1707,63 @@ int astros_writeSubElementCard(FILE *fp, const meshStruct *feaMesh, int numPrope
         if (feaMesh->element[i].elementType == Line)  {
 
             if (feaData->elementSubType == BarElement) {
-                printf("Bar elements not supported yet - Sorry !\n");
-                return CAPS_NOTIMPLEMENT;
+                // printf("Bar elements not supported yet - Sorry !\n");
+                // return CAPS_NOTIMPLEMENT;
+
+                gID = feaMesh->element[i].connectivity[0];
+                nodeA = &feaMesh->node[gID];
+
+                gID = feaMesh->element[i].connectivity[1];
+                nodeB = &feaMesh->node[gID];
+
+                _getVectorDiff(nodeA->xyz, nodeB->xyz, vectorAB);
+
+                if (nodeA->geomData == NULL) {
+                    PRINT_ERROR("Developer: geomData for node A with nodeID %d of Bar element %d was not set.", nodeA->nodeID, feaMesh->element[i].elementID);
+                    status = CAPS_BADVALUE;
+                    return status;
+                }
+
+                du[0] = nodeA->geomData->firstDerivative[0];
+                du[1] = nodeA->geomData->firstDerivative[1];
+                du[2] = nodeA->geomData->firstDerivative[2];
+
+                dv[0] = nodeA->geomData->firstDerivative[3];
+                dv[1] = nodeA->geomData->firstDerivative[4];
+                dv[2] = nodeA->geomData->firstDerivative[5];
+
+                _getVectorHat(du, duHat);
+                _getVectorHat(dv, dvHat);
+
+                wu = dot_DoubleVal(vectorAB, duHat);
+                wv = dot_DoubleVal(vectorAB, dvHat);
+
+                // vector orthogonal to AB, tangent to the surface
+                wt[0] = -wv * duHat[0] + wu * dvHat[0];
+                wt[1] = -wv * duHat[1] + wu * dvHat[1];
+                wt[2] = -wv * duHat[2] + wu * dvHat[2];
+
+                _getVectorHat(wt, wtHat);
+
+                eps = 0.01;
+                vectorABLen = _getVectorLength(vectorAB);
+                vectorX[0] = eps * vectorABLen * wtHat[0];
+                vectorX[1] = eps * vectorABLen * wtHat[1];
+                vectorX[2] = eps * vectorABLen * wtHat[2];
+
+                status = astrosCard_cbar(fp,
+                                         &feaMesh->element[i].elementID, // eid
+                                         &feaData->propertyID, // pid
+                                         feaMesh->element[i].connectivity, // Gi
+                                         vectorX, // Xi
+                                         NULL, // go
+                                         NULL, // tmax
+                                         NULL, // pa
+                                         NULL, // pb
+                                         NULL, // Wa
+                                         NULL, // Wb
+                                         feaFileFormat->gridFileType);
+                if (status != CAPS_SUCCESS) return status;
             }
 
             if (feaData->elementSubType == BeamElement) {
@@ -1236,10 +1832,9 @@ int astros_writeSubElementCard(FILE *fp, const meshStruct *feaMesh, int numPrope
                 }
 
                 // ZoffSet
-                tempString = convert_doubleToString( feaProperty[j].membraneThickness*feaProperty[j].zOffsetRel/100.0, fieldWidth, 1);
-                if (tempString == NULL) { status = EGADS_MALLOC; return status; }
+                status = convert_doubleToString( feaProperty[j].membraneThickness*feaProperty[j].zOffsetRel/100.0, fieldWidth, 1, tempString);
+                if (status != CAPS_SUCCESS) return status;
                 fprintf(fp, "%s%s",delimiter, tempString);
-                AIM_FREE(tempString);
 
                 fprintf(fp,"\n");
             }
@@ -1353,11 +1948,10 @@ int astros_writeSubElementCard(FILE *fp, const meshStruct *feaMesh, int numPrope
                 }
 
                 // ZoffSet
-                tempString = convert_doubleToString( feaProperty[j].membraneThickness*feaProperty[j].zOffsetRel/100.0,
-                                                    fieldWidth, 1);
-                if (tempString == NULL) { status = EGADS_MALLOC; return status; }
+                status = convert_doubleToString( feaProperty[j].membraneThickness*feaProperty[j].zOffsetRel/100.0,
+                                                    fieldWidth, 1, tempString);
+                if (status != CAPS_SUCCESS) return status;
                 fprintf(fp, "%s%s",delimiter, tempString);
-                AIM_FREE(tempString);
 
                 fprintf(fp,"\n");
             }
@@ -1450,7 +2044,6 @@ static int _getAstrosTrimParamLabelAndSymmetry(const char *label,
          *symmetryFlag = -1;
     } else {
          *astrosLabel = EG_strdup(label);
-        // printf("\t*** Warning *** rigidConstraint Input %s to astrosAIM not understood!\n", label);
          *symmetryFlag = 1;
          return CAPS_NOTFOUND;
     }
@@ -1463,7 +2056,7 @@ int astros_writeAnalysisCard(FILE *fp, const feaAnalysisStruct *feaAnalysis,
                              const feaFileFormatStruct *feaFileFormat)
 {
     int i; // Indexing
-    double velocity, dv, vmin, vmax, velocityArray[21], *vo;
+    double velocity, *vo;
 
     int symmetryFlag, trimType, symxy, symxz, status, velID, denID;
 
@@ -1480,7 +2073,7 @@ int astros_writeAnalysisCard(FILE *fp, const feaAnalysisStruct *feaAnalysis,
     if (feaAnalysis->analysisType == Modal ||
         feaAnalysis->analysisType == AeroelasticFlutter) {
 
-        if (feaAnalysis->eigenNormaliztion == NULL) {
+        if (feaAnalysis->eigenNormalization == NULL) {
             PRINT_ERROR("Undefined eigen normalization method");
             return CAPS_NULLVALUE;
         }
@@ -1493,9 +2086,9 @@ int astros_writeAnalysisCard(FILE *fp, const feaAnalysisStruct *feaAnalysis,
                                  &feaAnalysis->numEstEigenvalue, // ne
                                  &feaAnalysis->numDesiredEigenvalue, // nd
                                  NULL, // e
-                                 feaAnalysis->eigenNormaliztion, // norm
-                                 &feaAnalysis->gridNormaliztion, // gid
-                                 &feaAnalysis->componentNormaliztion, // dof
+                                 feaAnalysis->eigenNormalization, // norm
+                                 &feaAnalysis->gridNormalization, // gid
+                                 &feaAnalysis->componentNormalization, // dof
                                  feaFileFormat->fileType);
         if (status != CAPS_SUCCESS) return status;
     }
@@ -1615,17 +2208,17 @@ int astros_writeAnalysisCard(FILE *fp, const feaAnalysisStruct *feaAnalysis,
             symxy = 0;
         } else {
             if(strcmp("SYM",feaAnalysis->aeroSymmetryXY) == 0) {
-                symxy = 0;
+                symxy = 1;
             } else if(strcmp("ANTISYM",feaAnalysis->aeroSymmetryXY) == 0) {
                 symxy = -1;
             } else if(strcmp("ASYM",feaAnalysis->aeroSymmetryXY) == 0) {
-                symxy = 1;
-            } else if(strcmp("SYMMETRIC",feaAnalysis->aeroSymmetryXY) == 0) {
                 symxy = 0;
+            } else if(strcmp("SYMMETRIC",feaAnalysis->aeroSymmetryXY) == 0) {
+                symxy = 1;
             } else if(strcmp("ANTISYMMETRIC",feaAnalysis->aeroSymmetryXY) == 0) {
                 symxy = -1;
             } else if(strcmp("ASYMMETRIC",feaAnalysis->aeroSymmetryXY) == 0) {
-                symxy = 1;
+                symxy = 0;
             } else {
                 printf("\t*** Warning *** aeroSymmetryXY Input %s to astrosAIM not understood! Using ASYMMETRIC\n",feaAnalysis->aeroSymmetryXY );
                 symxy = 0;
@@ -1637,17 +2230,17 @@ int astros_writeAnalysisCard(FILE *fp, const feaAnalysisStruct *feaAnalysis,
             symxz = 0;
         } else {
             if(strcmp("SYM",feaAnalysis->aeroSymmetryXZ) == 0) {
-                symxz = 0;
+                symxz = 1;
             } else if(strcmp("ANTISYM",feaAnalysis->aeroSymmetryXZ) == 0) {
                 symxz = -1;
             } else if(strcmp("ASYM",feaAnalysis->aeroSymmetryXZ) == 0) {
-                symxz = 1;
-            } else if(strcmp("SYMMETRIC",feaAnalysis->aeroSymmetryXZ) == 0) {
                 symxz = 0;
+            } else if(strcmp("SYMMETRIC",feaAnalysis->aeroSymmetryXZ) == 0) {
+                symxz = 1;
             } else if(strcmp("ANTISYMMETRIC",feaAnalysis->aeroSymmetryXZ) == 0) {
                 symxz = -1;
             } else if(strcmp("ASYMMETRIC",feaAnalysis->aeroSymmetryXZ) == 0) {
-                symxz = 1;
+                symxz = 0;
             } else {
                 printf("\t*** Warning *** aeroSymmetryXZ Input %s to astrosAIM not understood! Using ASYMMETRIC\n",feaAnalysis->aeroSymmetryXZ );
                 symxz = 0;
@@ -1678,7 +2271,7 @@ int astros_writeAnalysisCard(FILE *fp, const feaAnalysisStruct *feaAnalysis,
         if (status != CAPS_SUCCESS) return status;
 
         fprintf(fp,"%s\n","$---1---|---2---|---3---|---4---|---5---|---6---|---7---|---8---|---9---|---10--|");
-        fprintf(fp,"%s",  "$LUTTER SID     METHOD  DENS    MACH    VEL     MLIST   KLIST   EFFID   CONT\n");
+        fprintf(fp,"%s",  "$FLUTER SID     METHOD  DENS    MACH    VEL     MLIST   KLIST   EFFID   CONT\n");
         fprintf(fp,"%s\n","$CONT   SYMXZ   SYMXY   EPS     CURFIT");
 
         denID = 10 * feaAnalysis->analysisID + 1;
@@ -1695,7 +2288,7 @@ int astros_writeAnalysisCard(FILE *fp, const feaAnalysisStruct *feaAnalysis,
                                     NULL, // effid
                                     &symxz, // symxz
                                     &symxy, // symxy
-                                    NULL, // eps
+                                    &feaAnalysis->flutterConvergenceParam, // eps
                                     NULL, // curfit
                                     NULL, // nroot
                                     NULL, // vtype
@@ -1712,16 +2305,11 @@ int astros_writeAnalysisCard(FILE *fp, const feaAnalysisStruct *feaAnalysis,
         if (status != CAPS_SUCCESS) return status;
 
         // VEL FLFACT
-        velocity = sqrt(2*feaAnalysis->dynamicPressure/feaAnalysis->density);
-        vmin = velocity / 2.0;
-        vmax = 2.0 * velocity;
-        dv = (vmax - vmin) / 20.0;
-
-        for (i = 0; i < 21; i++) {
-            velocityArray[i] = vmin + (double) i * dv;
-        }
-
-        status = astrosCard_flfact(fp, &velID, 21, velocityArray, feaFileFormat->fileType);
+        status = astrosCard_flfact(fp,
+                                   &velID,
+                                   feaAnalysis->numFlutterVel,
+                                   feaAnalysis->flutterVel,
+                                   feaFileFormat->fileType);
         if (status != CAPS_SUCCESS) return status;
 
         fprintf(fp, "$\n");
@@ -1742,40 +2330,61 @@ int astros_writeDesignVariableCard(FILE *fp,
     int len, composite, numPly = 0;
     long intVal = 0;
     int *layers = NULL, *layrlst = NULL;
-    double vmin = 0.0, vmax = 1.0, vinit;
+    double defaultVMin = 0.0, defaultVMax = 1.0;
+    double *vmin = NULL, *vmax = NULL, *vinit = NULL;
 
     int status; // Function return status
 
     char *label = NULL, *propertyType = NULL;
     char *copy;
 
+    feaDesignVariableRelationStruct *designVariableRelation = NULL;
+
     composite = (int) false;
 
-    // if (feaDesignVariable->designVariableType != PropertyDesignVar) {
-    //     PRINT_ERROR("For ASTROS Optimization designVariableType must be a property not a material");
-    //     return CAPS_BADVALUE;
-    // }
+    if (feaDesignVariable->numRelation < 1) {
+        PRINT_ERROR("No design variable relation defined for design variable %s.", feaDesignVariable->name);
+        status = CAPS_BADVALUE;
+        goto cleanup;
+    }
+    // NOTE: mdlk - at the moment, only support 1 design variable relation per design variable
+    if (feaDesignVariable->numRelation > 1) {
+        PRINT_WARNING("Multiple design variable relations found for design variable %s. "
+                      "astrosAIM currently support one design relation per variable - "
+                      "using only first design relation.", feaDesignVariable->name);
+    }
+    designVariableRelation = feaDesignVariable->relationSet[0];
+
+    if (designVariableRelation->componentType != PropertyDesignVar) {
+        PRINT_ERROR("For ASTROS Optimization componentType must be a property not a material");
+        status = CAPS_BADVALUE;
+        goto cleanup;
+    }
 
     if (feaDesignVariable->numDiscreteValue == 0) {
         // DESVARP BID, LINKID, VMIN, VMAX, VINIT, LAYERNUM, LAYRLST, LABEL
 
         if ( feaDesignVariable->initialValue != 0.0) {
-            vmin = feaDesignVariable->lowerBound / feaDesignVariable->initialValue;
-            vmax = feaDesignVariable->upperBound / feaDesignVariable->initialValue;
-            vinit = feaDesignVariable->initialValue / feaDesignVariable->initialValue;
+            vmin = &feaDesignVariable->lowerBound;
+            vmax = &feaDesignVariable->upperBound;
+            vinit = &feaDesignVariable->initialValue;
         } else {
-            vmin = 0.0;
-            vmax = 1.0;
-            vinit = feaDesignVariable->initialValue;
+            vmin = &defaultVMin;
+            vmax = &defaultVMax;
+            vinit = &feaDesignVariable->initialValue;
         }
 
-        if (feaDesignVariable->propertySetType != NULL) {
-            if (feaDesignVariable->propertySetType[0] == Composite) {
+        if (*vmax == 0.0 || *vmax < *vmin) {
+            vmax = NULL;
+        }
+
+        if (designVariableRelation->propertySetType != NULL) {
+            if (designVariableRelation->propertySetType[0] == Composite) {
                 layrlst = &feaDesignVariable->designVariableID;
             }
         }
 
-        printf("*** WARNING *** For ASTROS Optimization design variable linking has not been implemented yet\n");
+        //printf("*** WARNING *** For ASTROS Optimization design variable linking has not been implemented yet\n");
 
         len = strlen(feaDesignVariable->name);
         if (len > 7) {
@@ -1789,7 +2398,7 @@ int astros_writeDesignVariableCard(FILE *fp,
         status = astrosCard_desvarp(fp,
                                     &feaDesignVariable->designVariableID, // dvid
                                     &feaDesignVariable->designVariableID, // linkid
-                                    &vmin, &vmax, &vinit, // vmin, vmax, vinit
+                                    vmin, vmax, vinit, // vmin, vmax, vinit
                                     NULL, // layrnum
                                     layrlst, // layrlst
                                     label, // label
@@ -1802,37 +2411,59 @@ int astros_writeDesignVariableCard(FILE *fp,
         goto cleanup;
     }
 
-    for (i = 0; i < feaDesignVariable->numPropertyID; i++) {
+    for (i = 0; i < designVariableRelation->numPropertyID; i++) {
         // PLIST, LINKID, PTYPE, PID1, ...
         // PTYPE =  PROD, PSHEAR, PCOMP, PCOMP1, PCOMP2, PELAS, PSHELL, PMASS, PTRMEM, PQDMEM1, PBAR
 
-        if (feaDesignVariable->propertySetType == NULL) {
+        if (designVariableRelation->propertySetType == NULL) {
             printf("*** WARNING *** For ASTROS Optimization designVariable name \"%s\", propertySetType not set. PLIST entries not written\n",
                    feaDesignVariable->name);
             continue;
         }
 
+        // // If matching property is PBAR1, special handling #TODO
+        // if (designVariableRelation->propertySetID != NULL) {
+        //     for (iprop = 0; iprop < numProperty; iprop++) {
+
+        //         if (designVariableRelation->propertySetID[i] == feaProperty[iprop].propertyID) {
+        //             if (feaProperty[iprop].crossSecType != NULL) {
+        //                 propertyType = "PBAR1";
+        //             }
+        //             break;
+        //         }
+        //     }
+        // }
+        // else {
+        //     printf("*** WARNING *** For ASTROS Optimization designVariable name \"%s\", propertySetID not set.\n",
+        //         feaDesignVariable->name);
+        // }
+
         // UnknownProperty, Rod, Bar, Shear, Shell, Composite, Solid
-        if (feaDesignVariable->propertySetType[i] == Rod) {
+        if (designVariableRelation->propertySetType[i] == Rod) {
             propertyType = "PROD";
         }
-        else if (feaDesignVariable->propertySetType[i] == Bar) {
-            propertyType = "PBAR";
+        else if (designVariableRelation->propertySetType[i] == Bar) {
+            //propertyType = "PBAR";
+            // TODO: mdlk - we need to implement plistm to support linking the design var to specific local var in PBAR.
+            //       PLIST is enough for other property types because they only have one local variable.
+            PRINT_ERROR("Design variables linked to Bar properties not supported yet.");
+            status = CAPS_BADVALUE;
+            goto cleanup;
         }
-        else if (feaDesignVariable->propertySetType[i] == Shell) {
+        else if (designVariableRelation->propertySetType[i] == Shell) {
             propertyType = "PSHELL";
         }
-        else if (feaDesignVariable->propertySetType[i] == Membrane) {
+        else if (designVariableRelation->propertySetType[i] == Membrane) {
             propertyType = "PQDMEM1";
         }
-        else if (feaDesignVariable->propertySetType[i] == Shear) {
+        else if (designVariableRelation->propertySetType[i] == Shear) {
             propertyType = "PSHEAR";
         }
-        else if (feaDesignVariable->propertySetType[i] == Composite) {
+        else if (designVariableRelation->propertySetType[i] == Composite) {
             propertyType = "PCOMP";
             composite = (int) true;
         }
-        else if (feaDesignVariable->propertySetType[i] == Solid) {
+        else if (designVariableRelation->propertySetType[i] == Solid) {
             PRINT_ERROR("For ASTROS Optimization designVariables can not relate to PSOLID property types");
             status = CAPS_BADVALUE;
             goto cleanup;
@@ -1841,35 +2472,35 @@ int astros_writeDesignVariableCard(FILE *fp,
         status = astrosCard_plist(fp,
                                   &feaDesignVariable->designVariableID,
                                   propertyType,
-                                  1, &feaDesignVariable->propertySetID[i],
+                                  1, &designVariableRelation->propertySetID[i],
                                   feaFileFormat->fileType);
         if (status != CAPS_SUCCESS) goto cleanup;
     }
 
     if (composite == (int) true) {
         // Check the field input
-        if (feaDesignVariable->fieldName == NULL) {
-            PRINT_ERROR("For ASTROS Optimization designVariables must have fieldName defined");
+        if (designVariableRelation->fieldName == NULL) {
+            PRINT_ERROR("For ASTROS Optimization composite designVariables, fieldName must be defined");
             status = CAPS_BADVALUE;
             goto cleanup;
         }
 
         // Check if angle is input (i.e. not lamina thickness)
-        if (strncmp(feaDesignVariable->fieldName, "THETA", 5) == 0) {
-            PRINT_ERROR("For ASTROS Optimization designVariables, fieldName can not be an angle (i.e. THETAi)");
+        if (strncmp(designVariableRelation->fieldName, "THETA", 5) == 0) {
+            PRINT_ERROR("For ASTROS Optimization composite designVariables, fieldName can not be an angle (i.e. THETAi)");
             status = CAPS_BADVALUE;
             goto cleanup;
         }
 
         // Search all properties to determine the number of layers in the composite
         for (i = 0; i < numProperty; i++) {
-            if (feaDesignVariable->propertySetID == NULL) {
-                printf("*** WARNING *** For ASTROS Optimization designVariable name \"%s\", propertySetID not set.\n",
+            if (designVariableRelation->propertySetID == NULL) {
+                printf("*** WARNING *** For ASTROS Optimization composite designVariable name \"%s\", propertySetID not set.\n",
                        feaDesignVariable->name);
                 continue;
             }
 
-            if (feaDesignVariable->propertySetID[0] == feaProperty[i].propertyID) {
+            if (designVariableRelation->propertySetID[0] == feaProperty[i].propertyID) {
                 numPly = feaProperty[i].numPly;
                 if (feaProperty->compositeSymmetricLaminate == (int) true) {
                     numPly = 2 * numPly;
@@ -1878,7 +2509,7 @@ int astros_writeDesignVariableCard(FILE *fp,
             }
         }
 
-        if (strcmp(feaDesignVariable->fieldName,"TALL") == 0) {
+        if (strcmp(designVariableRelation->fieldName,"TALL") == 0) {
 
             layers = (int *) EG_alloc((numPly)*sizeof(int));
             if (layers == NULL) {
@@ -1898,15 +2529,15 @@ int astros_writeDesignVariableCard(FILE *fp,
             if (status != CAPS_SUCCESS) goto cleanup;
         }
 
-        if (strncmp(feaDesignVariable->fieldName, "T", 1) == 0) {
+        if (strncmp(designVariableRelation->fieldName, "T", 1) == 0) {
 
-            if (strncmp(feaDesignVariable->fieldName, "THETA", 5) == 0 ||
-                strncmp(feaDesignVariable->fieldName, "TALL",  4) == 0) {
+            if (strncmp(designVariableRelation->fieldName, "THETA", 5) == 0 ||
+                strncmp(designVariableRelation->fieldName, "TALL",  4) == 0) {
                 // do nothing
             } else {
                 // Input is T1, T2, etc or T11 ... Need to print the integer part
 
-                copy = feaDesignVariable->fieldName;
+                copy = designVariableRelation->fieldName;
 
                 while (*copy) { // While there are more characters to process...
                     if (isdigit(*copy)) { // Upon finding a digit, ...
@@ -1917,7 +2548,7 @@ int astros_writeDesignVariableCard(FILE *fp,
                     }
                 }
 
-                //len = strlen(feaDesignVariable->fieldName);
+                //len = strlen(designVariableRelation->fieldName);
 
                 if (layers != NULL) EG_free(layers);
                 if (feaProperty->compositeSymmetricLaminate == (int) true) {
@@ -1957,56 +2588,26 @@ int astros_writeDesignVariableCard(FILE *fp,
     }
 
     if (feaDesignVariable->numIndependVariable > 0) {
-        printf("*** WARNING *** For ASTROS Optimization designVariable name \"%s\", propertySetID not set.\n",
+        printf("*** WARNING *** For ASTROS Optimization, independent variables not supported (yet?). "
+               "(Design variable: %s)\n",
                feaDesignVariable->name);
+
+        // dlinkID = feaDesignVariable->designVariableID + 10000;
+
+        // status = nastranCard_dlink(
+        //     fp,
+        //     &dlinkID, // id
+        //     &feaDesignVariable->designVariableID, // ddvid
+        //     &feaDesignVariable->variableWeight[0], // c0
+        //     &feaDesignVariable->variableWeight[1], // cmult
+        //     feaDesignVariable->numIndependVariable,
+        //     feaDesignVariable->independVariableID, // idv
+        //     feaDesignVariable->independVariableWeight, // c
+        //     feaFileFormat->fileType
+        // );
+        // if (status != CAPS_SUCCESS) goto cleanup;
+
     }
-
-    /*
-    if (feaDesignVariable->numIndependVariable > 0) {
-        c = 1;
-                // DLINK, ID,  DDVID,  CO,  CMULT,  IDV1,  C1,  IDV2,  C2
-                fprintf(fp,"%-8s", "DLINK");
-
-                tempString = convert_integerToString(feaDesignVariable->designVariableID+10000, fieldWidth, 1);
-                fprintf(fp, "%s%s",delimiter, tempString);
-                EG_free(tempString);
-
-                tempString = convert_integerToString(feaDesignVariable->designVariableID, fieldWidth, 1);
-                fprintf(fp, "%s%s",delimiter, tempString);
-                EG_free(tempString);
-
-                tempString = convert_doubleToString(feaDesignVariable->variableWeight[0], fieldWidth, 1);
-                fprintf(fp, "%s%s",delimiter, tempString);
-                EG_free(tempString);
-
-                tempString = convert_doubleToString(feaDesignVariable->variableWeight[1], fieldWidth, 1);
-                fprintf(fp, "%s%s",delimiter, tempString);
-                EG_free(tempString);
-
-                for (i = 0; i < feaDesignVariable->numIndependVariable; i++) {
-
-                        tempString = convert_integerToString(feaDesignVariable->independVariableID[i], fieldWidth, 1);
-                        fprintf(fp, "%s%s",delimiter, tempString);
-                        EG_free(tempString);
-
-                        tempString = convert_doubleToString(feaDesignVariable->independVariableWeight[i], fieldWidth, 1);
-                        fprintf(fp, "%s%s",delimiter, tempString);
-                        EG_free(tempString);
-
-                        if (i > feaDesignVariable->numIndependVariable-1 && i == c) {
-                                c = c + 4;
-                                if (feaFileFormat->fileType == FreeField) {
-                                        fprintf(fp, ",+C\n+, ");
-                                } else {
-                                        fprintf(fp, "+C%6s\n%8s", "", "");
-                                }
-                        } else if (i == feaDesignVariable->numIndependVariable-1) {
-                                fprintf(fp,"\n");
-                        }
-
-                }
-    }
-     */
 
     status = CAPS_SUCCESS;
 
@@ -2032,124 +2633,136 @@ int astros_writeDesignConstraintCard(FILE *fp, int feaDesignConstraintSetID,
 
     char *copy;
 
-    for (i = 0; i < feaDesignConstraint->numPropertyID; i++) {
+    if (feaDesignConstraint->designConstraintType == PropertyDesignCon) {
+        for (i = 0; i < feaDesignConstraint->numPropertyID; i++) {
 
-        if (feaDesignConstraint->propertySetType[i] == Rod) {
-            // DCONVMP, SID, ST, SC, SS, PTYPE, LAYRNUM, PID1, PID2, CONT
-            // CONT, PID2, PID4, ETC ...
-            /* SID Stress constraint set identification (Integer > 0).
-             * ST Tensile stress limit (Real > 0.0 or blank)
-             * Sc Compressive stress limit (Real, Default = ST)
-             * ss Shear stress limit (Real > 0.0 or blank)
-             * PTYPE Property type (Text)
-             * LAYPNUM The layer number of a composite element (Integer > 0 or blank)
-             * PIDi Property identification numbers (Integer > 0)
-             */
+            if (feaDesignConstraint->propertySetType[i] == Rod) {
+                // DCONVMP, SID, ST, SC, SS, PTYPE, LAYRNUM, PID1, PID2, CONT
+                // CONT, PID2, PID4, ETC ...
+                /* SID Stress constraint set identification (Integer > 0).
+                * ST Tensile stress limit (Real > 0.0 or blank)
+                * Sc Compressive stress limit (Real, Default = ST)
+                * ss Shear stress limit (Real > 0.0 or blank)
+                * PTYPE Property type (Text)
+                * LAYPNUM The layer number of a composite element (Integer > 0 or blank)
+                * PIDi Property identification numbers (Integer > 0)
+                */
 
-            return astrosCard_dconvmp(fp,
-                                      &feaDesignConstraintSetID, // sid
-                                      &feaDesignConstraint->upperBound, // st
-                                      NULL, // sc
-                                      NULL, // ss
-                                      "PROD", // ptype
-                                      NULL, // layrnum
-                                      1,
-                                      &feaDesignConstraint->propertySetID[i], // PIDi (only one right now ?)
-                                      feaFileFormat->fileType);
+                return astrosCard_dconvmp(fp,
+                                          &feaDesignConstraintSetID, // sid
+                                          &feaDesignConstraint->upperBound, // st
+                                          NULL, // sc
+                                          NULL, // ss
+                                          "PROD", // ptype
+                                          NULL, // layrnum
+                                          1,
+                                          &feaDesignConstraint->propertySetID[i], // PIDi (only one right now ?)
+                                          feaFileFormat->fileType);
 
-        } else if (feaDesignConstraint->propertySetType[i] == Bar) {
-            // Nothing set yet
+            } else if (feaDesignConstraint->propertySetType[i] == Bar) {
+                // Nothing set yet
 
-        } else if (feaDesignConstraint->propertySetType[i] == Shell) {
-            // DCONVMP, SID, ST, SC, SS, PTYPE, LAYRNUM, PID1, PID2, CONT
-            // CONT, PID2, PID4, ETC ...
+            } else if (feaDesignConstraint->propertySetType[i] == Shell) {
+                // DCONVMP, SID, ST, SC, SS, PTYPE, LAYRNUM, PID1, PID2, CONT
+                // CONT, PID2, PID4, ETC ...
 
-            shearStress = feaDesignConstraint->upperBound / 2.0;
+                shearStress = feaDesignConstraint->upperBound / 2.0;
 
-            return astrosCard_dconvmp(fp,
-                                      &feaDesignConstraintSetID, // sid
-                                      &feaDesignConstraint->upperBound, // st
-                                      NULL, // sc
-                                      &shearStress, // ss
-                                      "PSHELL", // ptype
-                                      NULL, // layrnum
-                                      1,
-                                      &feaDesignConstraint->propertySetID[i], // PIDi (only one right now ?)
-                                      feaFileFormat->fileType);
+                return astrosCard_dconvmp(fp,
+                                          &feaDesignConstraintSetID, // sid
+                                          &feaDesignConstraint->upperBound, // st
+                                          NULL, // sc
+                                          &shearStress, // ss
+                                          "PSHELL", // ptype
+                                          NULL, // layrnum
+                                          1,
+                                          &feaDesignConstraint->propertySetID[i], // PIDi (only one right now ?)
+                                          feaFileFormat->fileType);
 
-        } else if (feaDesignConstraint->propertySetType[i] == Composite) {
-            /*
-             * DCONTWP SID XT XC YT YC SS F12 PTYPE ICONT
-             * CONT LAYRNUM PIDI ID2 PID3 -etc-
-             * SID Stress constraint set identification (Integer > 0)
-             * XT Tensile stress limit in the longitudinal direction (Real > 0.0)
-             * XC Compressive stress limit in the longitudinal direction (Real, Default = XT)
-             * YT Tensile stress limit in the transverse direction (Real > 0.0)
-             * YC Compressive stress limit in the transverse direction (Real, Default = YT)
-             * ss Shear stress limit for in-plane stress (Real > 0.0)
-             * F12 Tsai-Wu interaction term (Real)
-             * PTYPE Property type (Text)
-             * LAYRNUM The layer number of a composite element (Integer > 0 or blank)
-             * PIDi Property identification numbers (Integer > 0)
-             */
+            } else if (feaDesignConstraint->propertySetType[i] == Composite) {
+                /*
+                 * DCONTWP SID XT XC YT YC SS F12 PTYPE ICONT
+                 * CONT LAYRNUM PIDI ID2 PID3 -etc-
+                 * SID Stress constraint set identification (Integer > 0)
+                 * XT Tensile stress limit in the longitudinal direction (Real > 0.0)
+                 * XC Compressive stress limit in the longitudinal direction (Real, Default = XT)
+                 * YT Tensile stress limit in the transverse direction (Real > 0.0)
+                 * YC Compressive stress limit in the transverse direction (Real, Default = YT)
+                 * ss Shear stress limit for in-plane stress (Real > 0.0)
+                 * F12 Tsai-Wu interaction term (Real)
+                 * PTYPE Property type (Text)
+                 * LAYRNUM The layer number of a composite element (Integer > 0 or blank)
+                 * PIDi Property identification numbers (Integer > 0)
+                 */
 
-            // Property ID for the constraint: feaDesignConstraint->propertySetID[i]
-            // LIST of properties and their materials
-            // numProperty, feaProperty[].propertyID
-            //                          feaProperty[].materialID
-            // LIST of materials
-            // numMaterial, feaMaterial[].materialID
-            //                          feaMaterial[].tensionAllow
-            //                          feaMaterial[].compressAllow
-            //                          feaMaterial[].tensionAllowLateral
-            //                          feaMaterial[].compressAllowLateral
-            //                          feaMaterial[].shearAllow
+                // Property ID for the constraint: feaDesignConstraint->propertySetID[i]
+                // LIST of properties and their materials
+                // numProperty, feaProperty[].propertyID
+                //                          feaProperty[].materialID
+                // LIST of materials
+                // numMaterial, feaMaterial[].materialID
+                //                          feaMaterial[].tensionAllow
+                //                          feaMaterial[].compressAllow
+                //                          feaMaterial[].tensionAllowLateral
+                //                          feaMaterial[].compressAllowLateral
+                //                          feaMaterial[].shearAllow
 
-            for (j = 0; j < numProperty; j++) {
-                if (feaDesignConstraint->propertySetID[i] == feaProperty[j].propertyID) {
-                    iPID = j;
-                    break;
+                for (j = 0; j < numProperty; j++) {
+                    if (feaDesignConstraint->propertySetID[i] == feaProperty[j].propertyID) {
+                        iPID = j;
+                        break;
+                    }
                 }
-            }
-            for (j = 0; j < numMaterial; j++) {
-                if (feaProperty[iPID].materialID == feaMaterial[j].materialID) {
-                    iMID = j;
-                    break;
+                for (j = 0; j < numMaterial; j++) {
+                    if (feaProperty[iPID].materialID == feaMaterial[j].materialID) {
+                        iMID = j;
+                        break;
+                    }
                 }
-            }
 
-            // get layrnum
-            copy = feaDesignConstraint->fieldName;
+                // get layrnum
+                copy = feaDesignConstraint->fieldName;
 
-            if (copy == NULL) {
-                return CAPS_NULLVALUE;
-            }
-
-            while (*copy) { // While there are more characters to process...
-                if (isdigit(*copy)) { // Upon finding a digit, ...
-                    intVal = strtol(copy, &copy, 10); // Read a number, ...
-                    //fprintf(fp,"***** OUTPUT %d\n", (int) intVal); // and print it.
-                } else { // Otherwise, move on to the next character.
-                    copy++;
+                if (copy == NULL) {
+                    return CAPS_NULLVALUE;
                 }
+
+                while (*copy) { // While there are more characters to process...
+                    if (isdigit(*copy)) { // Upon finding a digit, ...
+                        intVal = strtol(copy, &copy, 10); // Read a number, ...
+                        //fprintf(fp,"***** OUTPUT %d\n", (int) intVal); // and print it.
+                    } else { // Otherwise, move on to the next character.
+                        copy++;
+                    }
+                }
+
+                return astrosCard_dcontwp(fp,
+                                          &feaDesignConstraintSetID, // sid
+                                          &feaMaterial[iMID].tensionAllow, // xt
+                                          &feaMaterial[iMID].compressAllow, // xc
+                                          &feaMaterial[iMID].tensionAllowLateral, // yt
+                                          &feaMaterial[iMID].compressAllowLateral, // yc
+                                          &feaMaterial[iMID].shearAllow, // ss
+                                          &defaultF12, // f12
+                                          "PCOMP", // ptype
+                                          (int *) &intVal, // layrnum
+                                          1, &feaDesignConstraint->propertySetID[i], // PIDi (only one right now ?)
+                                          feaFileFormat->fileType);
+
+            } else if (feaDesignConstraint->propertySetType[i] == Solid) {
+                // Nothing set yet
             }
-
-            return astrosCard_dcontwp(fp,
-                                      &feaDesignConstraintSetID, // sid
-                                      &feaMaterial[iMID].tensionAllow, // xt
-                                      &feaMaterial[iMID].compressAllow, // xc
-                                      &feaMaterial[iMID].tensionAllowLateral, // yt
-                                      &feaMaterial[iMID].compressAllowLateral, // yc
-                                      &feaMaterial[iMID].shearAllow, // ss
-                                      &defaultF12, // f12
-                                      "PCOMP", // ptype
-                                      (int *) &intVal, // layrnum
-                                      1, &feaDesignConstraint->propertySetID[i], // PIDi (only one right now ?)
-                                      feaFileFormat->fileType);
-
-        } else if (feaDesignConstraint->propertySetType[i] == Solid) {
-            // Nothing set yet
         }
+    } else if (feaDesignConstraint->designConstraintType == FlutterDesignCon) {
+
+        return astrosCard_dconflt(fp,
+            					  &feaDesignConstraintSetID, // sid
+           						  feaDesignConstraint->velocityType, // vtype
+          						  &feaDesignConstraint->scalingFactor, // gfact
+          						  feaDesignConstraint->numVelocity,
+          						  feaDesignConstraint->velocity, // v
+          						  feaDesignConstraint->damping, // gam
+         					   feaFileFormat->fileType);
     }
 
     return CAPS_SUCCESS;
@@ -2169,6 +2782,7 @@ int astros_readOUTNumEigenValue(FILE *fp, int *numEigenVector)
     int tempInt[2];
 
     while (*numEigenVector == 0) {
+
         // Get line from file
         status = getline(&line, &linecap, fp);
         if ((status < 0) || (line == NULL)) break;
@@ -2526,7 +3140,7 @@ int astros_readOUTDisplacement(FILE *fp, int subcaseId, int *numGridPoint,
 
     int i, j; // Indexing
 
-    size_t linecap = 0;
+    size_t linecap = 0, stringLength;
 
     char *line = NULL; // Temporary line holder
 
@@ -2634,21 +3248,21 @@ int astros_readOUTDisplacement(FILE *fp, int subcaseId, int *numGridPoint,
     }
 
     if (subcaseId > 0) {
-        beginSubcaseLine = (char *) EG_alloc((strlen(outputSubcaseLine)+
-                                              intLength+1)*sizeof(char));
+        stringLength = strlen(outputSubcaseLine)+intLength+1;
+        beginSubcaseLine = (char *) EG_alloc(stringLength*sizeof(char));
         if (beginSubcaseLine == NULL) { status = EGADS_MALLOC; goto cleanup; }
 
-        sprintf(beginSubcaseLine,"%s%d",outputSubcaseLine, subcaseId);
+        snprintf(beginSubcaseLine,stringLength,"%s%d",outputSubcaseLine, subcaseId);
 
         lineFastForward = 4;
 
     } else {
 
         intLength = 0;
-        beginSubcaseLine = (char *) EG_alloc((strlen(displacementLine)+1)*
-                                             sizeof(char));
+        stringLength = strlen(outputSubcaseLine)+intLength+1;
+        beginSubcaseLine = (char *) EG_alloc(stringLength*sizeof(char));
         if (beginSubcaseLine == NULL) { status = EGADS_MALLOC; goto cleanup; }
-        sprintf(beginSubcaseLine,"%s",displacementLine);
+        snprintf(beginSubcaseLine,stringLength,"%s",displacementLine);
 
         lineFastForward = 2;
     }
@@ -3731,15 +4345,16 @@ int astros_writeMesh(void *aimInfo,
                      int asciiFlag, // 0 for binary, anything else for ascii
                      meshStruct *mesh,
                      feaFileTypeEnum gridFileType,
-                     int numDesignVariable,
-                     feaDesignVariableStruct feaDesignVariable[],
+                     /*@unused@*/ int numDesignVariable,
+                     /*@unused@*/ feaDesignVariableStruct feaDesignVariable[],
                      double scaleFactor) // Scale factor for coordinates
 {
     int status; // Function return status
     FILE *fp = NULL;
-    int i, j;
+    int i; //, j;
     int coordID, propertyID;
     double xyz[3];
+    size_t stringLength;
     char *filename = NULL;
     char fileExt[] = ".bdf";
     feaFileTypeEnum formatType;
@@ -3750,8 +4365,8 @@ int astros_writeMesh(void *aimInfo,
     feaMeshDataStruct *feaData;
 
     // Design variables
-    int foundDesignVar, designIndex;
-    double maxDesignVar = 0.0;
+    // int foundDesignVar, designIndex;
+    // double maxDesignVar = 0.0;
 
     if (mesh == NULL) return CAPS_NULLVALUE;
 
@@ -3768,13 +4383,14 @@ int astros_writeMesh(void *aimInfo,
         scaleFactor = 1;
     }
 
-    filename = (char *) EG_alloc((strlen(fname) + 1 + strlen(fileExt)) *sizeof(char));
+    stringLength = strlen(fname) + 1 + strlen(fileExt);
+    filename = (char *) EG_alloc(stringLength *sizeof(char));
     if (filename == NULL) {
         status = EGADS_MALLOC;
         goto cleanup;
     }
 
-    sprintf(filename,"%s%s", fname, fileExt);
+    snprintf(filename,stringLength,"%s%s", fname, fileExt);
 
     fp = aim_fopen(aimInfo, filename, "w");
     if (fp == NULL) {
@@ -3874,33 +4490,35 @@ int astros_writeMesh(void *aimInfo,
             tm = NULL;
         }
 
-        // Check for design minimum area
-        foundDesignVar = (int) false;
-        for (designIndex = 0; designIndex < numDesignVariable; designIndex++) {
-            for (j = 0; j < feaDesignVariable[designIndex].numPropertyID; j++) {
+        /* NOTE: mdlk - the TMAX field is ignored unless elem linked to global design variables
+            by SHAPE entries which we do not currently use, so this is commented out for now */
+        // // Check for design minimum area
+        // foundDesignVar = (int) false;
+        // for (designIndex = 0; designIndex < numDesignVariable; designIndex++) {
+        //     for (j = 0; j < feaDesignVariable[designIndex].numPropertyID; j++) {
 
-                if (feaDesignVariable[designIndex].propertySetID[j] == propertyID) {
-                    foundDesignVar = (int) true;
+        //         if (feaDesignVariable[designIndex].propertySetID[j] == propertyID) {
+        //             foundDesignVar = (int) true;
 
-                    maxDesignVar = feaDesignVariable[designIndex].upperBound;
+        //             maxDesignVar = feaDesignVariable[designIndex].upperBound;
 
-                    // If 0.0 don't do anything
-                    if (maxDesignVar == 0.0) foundDesignVar = (int) false;
+        //             // If 0.0 don't do anything
+        //             if (maxDesignVar == 0.0) foundDesignVar = (int) false;
 
-                    break;
-                }
-            }
+        //             break;
+        //         }
+        //     }
 
-            if (foundDesignVar == (int) true) break;
-        }
+        //     if (foundDesignVar == (int) true) break;
+        // }
 
-        // If found design variable, set tmax = upper bound
-        if (foundDesignVar) {
-            tmax = &maxDesignVar;
-        }
-        else {
-            tmax = NULL;
-        }
+        // // If found design variable, set tmax = upper bound
+        // if (foundDesignVar) {
+        //     tmax = &maxDesignVar;
+        // }
+        // else {
+        //     tmax = NULL;
+        // }
 
         if ( mesh->element[i].elementType == Line) { // Need to add subType for bar and beam .....
 

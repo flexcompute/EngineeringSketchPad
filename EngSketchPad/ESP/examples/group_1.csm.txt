@@ -1,0 +1,34 @@
+# group_1
+# written by John Dannenhoffer
+
+# red box
+BOX       0  0  0  1  1  1
+SELECT    FACE
+ATTRIBUTE _color $red
+
+MARK      # used by GROUP
+
+# green box
+BOX       1  0  0  1  1  1
+SELECT    FACE
+ATTRIBUTE _color $green
+
+# blue box
+BOX       2  0  0  1  1  1
+SELECT    FACE
+ATTRIBUTE _color $blue
+
+# put bodys since mark (green in blue) into a group
+GROUP
+
+# rotate the bodys in the group
+ROTATEX   30  1/2  1/2
+
+# ungroup the boxes
+GROUP -1
+
+# rotate the last body on the stak some more
+ROTATEX   30  1/2  1/2
+
+END
+

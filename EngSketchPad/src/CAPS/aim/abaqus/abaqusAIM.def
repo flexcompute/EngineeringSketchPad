@@ -1,0 +1,18 @@
+LIBRARY abaqusAIM
+EXPORTS
+aimInitialize
+aimInputs
+aimUpdateState
+aimPreAnalysis
+aimPostAnalysis
+aimOutputs
+aimCalcOutput
+aimCalcOutput
+aimFreeDiscrPtr
+aimDiscr
+aimLocateElement
+aimTransfer
+aimInterpolation
+aimInterpolateBar
+aimIntegration
+aimIntegrateBar

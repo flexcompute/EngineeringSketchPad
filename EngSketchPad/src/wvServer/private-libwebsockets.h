@@ -356,12 +356,11 @@ libwebsocket_parse(struct libwebsocket *wsi, unsigned char c);
 
 extern int
 libwebsocket_interpret_incoming_packet(struct libwebsocket *wsi,
-						unsigned char *buf, size_t len);
+                                       unsigned char *buf, size_t len);
 
 extern int
 libwebsocket_read(struct libwebsocket_context *context,
-				struct libwebsocket *wsi,
-					       unsigned char *buf, size_t len);
+                  struct libwebsocket *wsi, unsigned char *buf, size_t len);
 
 extern int
 lws_b64_selftest(void);
@@ -387,7 +386,7 @@ delete_from_fd(struct libwebsocket_context *context, int fd);
 
 extern void
 libwebsocket_set_timeout(struct libwebsocket *wsi,
-					 enum pending_timeout reason, int secs);
+                         enum pending_timeout reason, int secs);
 
 extern int
 lws_issue_raw(struct libwebsocket *wsi, unsigned char *buf, size_t len);
@@ -395,7 +394,7 @@ lws_issue_raw(struct libwebsocket *wsi, unsigned char *buf, size_t len);
 
 extern void
 libwebsocket_service_timeout_check(struct libwebsocket_context *context,
-				    struct libwebsocket *wsi, unsigned int sec);
+                                   struct libwebsocket *wsi, unsigned int sec);
 
 /*@null@*/ extern struct libwebsocket *
 __libwebsocket_client_connect_2(struct libwebsocket_context *context,
@@ -406,11 +405,12 @@ libwebsocket_create_new_server_wsi(struct libwebsocket_context *context);
 
 /*@null@*/ /*@kept@*/ extern char *
 libwebsockets_generate_client_handshake(struct libwebsocket_context *context,
-		struct libwebsocket *wsi, char *pkt);
+		                        struct libwebsocket *wsi, char *pkt, 
+                                        size_t len);
 
 extern int
 lws_handle_POLLOUT_event(struct libwebsocket_context *context,
-			      struct libwebsocket *wsi, struct pollfd *pollfd);
+                         struct libwebsocket *wsi, struct pollfd *pollfd);
 
 extern int
 lws_any_extension_handled(struct libwebsocket_context *context,
@@ -420,18 +420,18 @@ lws_any_extension_handled(struct libwebsocket_context *context,
 
 /*@null@*/ /*@kept@*/ extern void *
 lws_get_extension_user_matching_ext(struct libwebsocket *wsi,
-			  struct libwebsocket_extension *ext);
+                                    struct libwebsocket_extension *ext);
 
 extern int
 lws_client_interpret_server_handshake(struct libwebsocket_context *context,
-		struct libwebsocket *wsi);
+                                      struct libwebsocket *wsi);
 
 extern int
 libwebsocket_rx_sm(struct libwebsocket *wsi, unsigned char c);
 
 extern int
 lws_issue_raw_ext_access(struct libwebsocket *wsi,
-						unsigned char *buf, size_t len);
+                         unsigned char *buf, size_t len);
 
 #ifndef LWS_OPENSSL_SUPPORT
 

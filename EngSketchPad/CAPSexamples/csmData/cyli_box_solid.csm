@@ -1,0 +1,62 @@
+#
+# Construct a solid box with segregated cylindrical regions
+#
+ATTRIBUTE capsAIM $egadsTessAIM;aflr4AIM;aflr3AIM;platoAIM
+ATTRIBUTE capsMeshLength 1
+
+DESPMTR Lx 1
+DESPMTR Ly 1
+DESPMTR Lz 1
+
+DESPMTR r1 0.1
+DESPMTR r2 0.2
+
+# Construct the box
+BOX -Lx/2 -Ly/2 -Lz/2   Lx Ly Lz
+SELECT face
+    ATTRIBUTE capsGroup $box
+    ATTRIBUTE AFLR_GBC $STD_UG3_GBC
+SET boxBody @nbody
+STORE box
+
+# construct cyl1
+CYLINDER 0 -Ly/2*1.1 0  0 Ly/2*1.1 0 r1 # smaller cylinder
+SELECT face
+   ATTRIBUTE capsGroup $cyl1
+   ATTRIBUTE AFLR_GBC $STD_UG3_GBC
+STORE cyl1
+
+# construct cyl2
+CYLINDER 0 -Ly/2*1.1 0  0 Ly/2*1.1 0 r2 # larger cylinder
+SELECT face
+   ATTRIBUTE capsGroup $cyl2
+   ATTRIBUTE AFLR_GBC $STD_UG3_GBC
+STORE cyl2
+
+# cut out cyl2 from the box
+RESTORE box
+RESTORE cyl2
+SUBTRACT
+
+# trim cyl2 to the interior of the box
+RESTORE box 
+RESTORE cyl2
+INTERSECT
+SELECT face boxBody 3 1
+SELECT add  boxBody 4 1
+   ATTRIBUTE capsGroup $box;cyl2
+
+# cut out cyl1 from cyl2
+RESTORE cyl1
+SUBTRACT
+
+# trim cyl1 to the interior of the box
+RESTORE box 
+RESTORE cyl1
+INTERSECT
+SELECT face boxBody 3 1
+SELECT add  boxBody 4 1
+   ATTRIBUTE capsGroup $box;cyl1
+
+END
+

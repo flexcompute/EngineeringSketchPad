@@ -1,0 +1,26 @@
+# subtract_11 (Solid/Solid - multiple subtractions)
+# written by John Dannenhoffer
+
+# generate box and torus SolidBodys
+BOX       0  0  0  6  2  1
+STORE     theBox
+
+TORUS     3  1  1/2  0  0  1  2  1/4
+STORE     theTorus
+
+# show outlines of theBox and theTorus
+RESTORE   theBox
+ATTRIBUTE _name  $theBox
+ATTRIBUTE _viz   $off
+
+RESTORE   theTorus
+ATTRIBUTE _name  $theTorus
+ATTRIBUTE _viz   $off
+
+# perform both SUBTRACTions (SolidBodys)
+RESTORE   theTorus
+RESTORE   theBox
+SUBTRACT  none  -1
+ASSERT    @itype 3
+
+END

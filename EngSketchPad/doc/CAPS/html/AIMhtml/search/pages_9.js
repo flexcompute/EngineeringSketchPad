@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['tetgen_20command_20line_20inputs_256',['TetGen Command Line Inputs',['../../aim/tetgen/tetgenCommandLineInput.html',1,'']]]
+  ['su2_20aim_20example_279',['SU2 AIM Example',['../../aim/su2/su2Example.html',1,'']]]
 ];

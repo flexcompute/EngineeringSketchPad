@@ -55,7 +55,7 @@ main(int argc, char *argv[])
   int          irow, icol, buildTo, builtTo, ibody, nvert, noI;
   int          nbody=0, nface, kb, nb, iglobal, iface, outLevel;
   char         *filename, name[MAX_NAME_LEN], pname[129];
-  double       value, dot, size, lower, upper;
+  double       value, dot, size, lower, upper, step;
   double       global[3], tparam[3], box[6], ***dvar=NULL, *psens=NULL;
   const char   *occ_rev;
   const double *pcsens;
@@ -303,7 +303,6 @@ main(int argc, char *argv[])
   for (ibody = 1; ibody <= MODL->nbody; ibody++) {
     if (MODL->body[ibody].onstack != 1) continue;
     if (MODL->body[ibody].botype  == OCSM_NULL_BODY) continue;
-    kb++;
     body      = MODL->body[ibody].ebody;
     tparam[0] = global[0];
     tparam[1] = global[1];
@@ -311,7 +310,7 @@ main(int argc, char *argv[])
     for (i = 0; i < p_xddm->ntess; i++) {
       if (p_xddm->a_tess[i].p_id == NULL) continue;
       sscanf(p_xddm->a_tess[i].p_id, "%d", &stat);
-      if (stat != kb) continue;
+      if (stat != kb+1) continue;
       for (j = 0; j < p_xddm->a_tess[i].nAttr; j++)
         if (strcmp(p_xddm->a_tess[i].p_attr[j].p_name, "MaxEdge") == 0) {
           sscanf(p_xddm->a_tess[i].p_attr[j].p_value, "%lf", &tparam[0]);
@@ -321,12 +320,12 @@ main(int argc, char *argv[])
           sscanf(p_xddm->a_tess[i].p_attr[j].p_value, "%lf", &tparam[2]);
         } else {
           printf(" Tessellation (ID=%d) Attribute %s not Understood!\n",
-                 kb, p_xddm->a_tess[i].p_attr[j].p_name);
+                 kb+1, p_xddm->a_tess[i].p_attr[j].p_name);
           goto cleanup;
         }
     }
     printf(" Tessellating %d with  MaxEdge = %lf   Sag = %lf   Angle = %lf\n",
-           kb, tparam[0], tparam[1], tparam[2]);
+           kb+1, tparam[0], tparam[1], tparam[2]);
     stat = EG_getBoundingBox(body, box);
     if (stat != EGADS_SUCCESS) {
       printf(" EG_getBoundingBox failed: %d!\n", stat);
@@ -359,6 +358,7 @@ main(int argc, char *argv[])
         for (j = 0; j < 3*nvert; j++) dvar[kb][i][j] = 0.0;
       }
     }
+    kb++;
   }
     
   /* compute the sensitivities */
@@ -375,26 +375,30 @@ main(int argc, char *argv[])
       }
     }
     /* clear all then set */
-    ocsmSetDtime(modl, 0);
+    step = 0.0;
     ocsmSetVelD(modl, 0,     0,    0,    0.0);
     ocsmSetVelD(modl, ipmtr, irow, icol, 1.0);
     if (p_xddm->a_v[i].p_comment != NULL) {
       if (strcmp(p_xddm->a_v[i].p_comment, "FD") == 0) {
-        stat = ocsmSetDtime(MODL, 0.001);
+        step = 0.001;
         printf("\n*** forced finite differencing for %s (%d) ***\n",
                pname, stat);
       }
       if (strcmp(p_xddm->a_v[i].p_comment, "oFD") == 0) {
-        stat = ocsmSetDtime(MODL, 0.001);
+        step = 0.001;
         printf("\n*** forcing OpenCSM finite differencing for %s (%d) ***\n",
                pname, stat);
       }
     }
-    buildTo = 0;
-    nb      = 0;
     outLevel = ocsmSetOutLevel(0);
-    printf(" CAPS Info: Building sensitivity information for: %s[%d,%d]\n", name, irow, icol);
-    stat    = ocsmBuild(modl, buildTo, &builtTo, &nb, NULL);
+    stat = ocsmSetDtime(modl, step);
+    if (step == 0.0) {
+      buildTo = 0;
+      nb      = 0;
+      printf(" CAPS Info: Building sensitivity information for: %s[%d,%d]\n",
+             name, irow, icol);
+      stat    = ocsmBuild(modl, buildTo, &builtTo, &nb, NULL);
+    }
     ocsmSetOutLevel(outLevel);
     if (noI == 0) {
       printf("\n*** compute parameter %d (%s) sensitivity status = %d (%d)***\n",
@@ -408,7 +412,6 @@ main(int argc, char *argv[])
     for (ibody = 1; ibody <= MODL->nbody; ibody++) {
       if (MODL->body[ibody].onstack != 1) continue;
       if (MODL->body[ibody].botype  == OCSM_NULL_BODY) continue;
-      kb++;
       body = MODL->body[ibody].ebody;
 
       stat = EG_getBodyTopos(body, NULL, FACE, &nface, NULL);
@@ -436,6 +439,7 @@ main(int argc, char *argv[])
           dvar[kb][i][3*iglobal-1] = pcsens[3*k-1];
         }
       }
+      kb++;
     }
   }
   printf("\n");

@@ -1,0 +1,10 @@
+# radwaf_udp_1
+# written by John Dannenhoffer
+
+UDPARG    radwaf    ysize     4.0
+UDPARG    radwaf    zsize     3.0
+UDPARG    radwaf    nspoke    9
+UDPARG    radwaf    xframe    "0;2;4;6;10"
+UDPRIM    radwaf
+
+END

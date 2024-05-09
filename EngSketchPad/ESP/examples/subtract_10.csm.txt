@@ -1,0 +1,36 @@
+# subtract_10 (Solid/Solid - multiple subtractions)
+# written by John Dannenhoffer
+
+# generate box and torus SolidBodys
+BOX       0  0  0  6  2  1
+STORE     theBox
+
+TORUS     3  1  1/2  0  0  1  2  1/4
+STORE     theTorus
+
+# show outlines of theBox and theTorus
+RESTORE   theBox
+ATTRIBUTE _name  $theBox
+ATTRIBUTE _viz   $off
+
+RESTORE   theTorus
+ATTRIBUTE _name  $theTorus
+ATTRIBUTE _viz   $off
+
+# perform the first SUBTRACTion (bottom cyan SolidBody)
+RESTORE   theTorus
+RESTORE   theBox
+SUBTRACT  ymin  1
+SELECT    FACE
+ATTRIBUTE _color $cyan
+ASSERT    @itype 3
+
+# perform the second SUBTRACTion (top magenta SolidBody)
+RESTORE   theTorus
+RESTORE   theBox
+SUBTRACT  ymin  2
+SELECT    FACE
+ATTRIBUTE _color $magenta
+ASSERT    @itype 3
+
+END

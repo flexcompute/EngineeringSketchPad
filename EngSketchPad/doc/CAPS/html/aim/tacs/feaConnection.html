@@ -69,7 +69,57 @@ $(function() {
 <div class="textblock"><p>Structure for the connection tuple = ("Connection Name", "Value"). "Connection Name" defines the reference name to the capsConnect being specified and denotes the "source" node for the connection. The "Value" can either be a JSON String dictionary (see Section <a class="el" href="feaConnection.html#jsonStringConnection">JSON String Dictionary</a>) or a single string keyword (see Section <a class="el" href="feaConnection.html#keyStringConnection">Single Value String</a>).</p>
 <h1><a class="anchor" id="jsonStringConnection"></a>
 JSON String Dictionary</h1>
-<p>If "Value" is JSON string dictionary the following keywords ( = default values) may be used:</p>
+<p>If "Value" is JSON string dictionary (e.g. "Value" = {"dofDependent": 1, "propertyType": "RigidBody"}) the following keywords ( = default values) may be used:</p>
+<ul>
+<li>
+<b>connectionType = RigidBody</b>  <br  />
+ Type of connection to apply to a given capsConnect pair defined by "Connection Name" and the "groupName". Options: Mass (scalar), Spring (scalar), Damper (scalar), RigidBody, RigidBodyInterpolate. </li>
+</ul>
+<ul>
+<li>
+<b>dofDependent = 0 </b>  <br  />
+ Component numbers / degrees of freedom of the dependent end of rigid body connections (ex. 123 - translation in all three directions). </li>
+</ul>
+<ul>
+<li>
+<b>componentNumberStart = 0 </b>  <br  />
+ Component numbers / degrees of freedom of the starting point of the connection for mass, spring, and damper elements (scalar) ( 0 &lt;= Integer &lt;= 6). </li>
+</ul>
+<ul>
+<li>
+<b>componentNumberEnd= 0 </b>  <br  />
+ Component numbers / degrees of freedom of the ending point of the connection for mass, spring, damper elements (scalar), and rigid body interpolative connection ( 0 &lt;= Integer &lt;= 6). </li>
+</ul>
+<ul>
+<li>
+<b>stiffnessConst = 0.0 </b>  <br  />
+ Stiffness constant of a spring element (scalar). </li>
+</ul>
+<ul>
+<li>
+<b>dampingConst = 0.0 </b>  <br  />
+ Damping coefficient/constant of a spring or damping element (scalar). </li>
+</ul>
+<ul>
+<li>
+<b>stressCoeff = 0.0 </b>  <br  />
+ Stress coefficient of a spring element (scalar). </li>
+</ul>
+<ul>
+<li>
+<b>mass = 0.0 </b>  <br  />
+ Mass of a mass element (scalar). </li>
+</ul>
+<ul>
+<li>
+<b>weighting = 1 </b>  <br  />
+ Weighting factor for a rigid body interpolative connections. </li>
+</ul>
+<ul>
+<li>
+<b>groupName = "(no default)"</b>  <br  />
+ Single or list of <code>capsConnect</code> names on which to connect the nodes found with the tuple name ("Connection Name") to. (e.g. "Name1" or ["Name1","Name2",...]. </li>
+</ul>
 <h1><a class="anchor" id="keyStringConnection"></a>
 Single Value String</h1>
 <p>If "Value" is a string, the string value may correspond to an entry in a predefined connection lookup table. NOT YET IMPLEMENTED!!!! </p>
@@ -77,7 +127,7 @@ Single Value String</h1>
 </div><!-- PageDoc -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Sat Jul 2 2022 10:13:17 for TACS Analysis Interface Module (AIM) by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1
+Generated on Sat Apr 27 2024 16:51:53 for TACS Analysis Interface Module (AIM) by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1
 </small></address>
 </body>
 </html>

@@ -1,0 +1,4 @@
+LIBRARY tecplotWriter
+EXPORTS
+meshExtension
+meshWrite

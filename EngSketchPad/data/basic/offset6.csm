@@ -1,0 +1,17 @@
+# offset6
+# written by John Dannenhoffer
+
+DESPMTR   radius    1.00
+
+DIMENSION dist      1  10
+DESPMTR   dist      "-.10; -.05; -.01; -.005; -.001; 0.001; 0.005; 0.01; 0.05; 0.10"
+
+UDPRIM    ellipse   rx radius   ry radius   nedge 8
+STORE     base  0  1
+
+PATBEG    idist     dist.size
+   RESTORE   base
+   UDPRIM    offset    dist dist[idist]
+PATEND
+
+END

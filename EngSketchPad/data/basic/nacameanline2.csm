@@ -9,6 +9,8 @@ patbeg icamber 5
     udprim naca Camber camber
     translate 0 0 dz/2
 patend
+# note: LOFT has been deprecated and is included here for backward-compatability testing
+#       new .csm files should use RULE or BLEND instead
 loft 1
 
 end

@@ -1,0 +1,47 @@
+# connect_3
+# written by John Dannenhoffer
+
+# red tube
+SKBEG     0 -1 -1
+   LINSEG 0 -1  1
+   LINSEG 0  1  1
+   LINSEG 0  1 -1
+   LINSEG 0 -1 -1
+SKEND  1
+EXTRUDE   2  0  0
+SELECT    FACE
+ATTRIBUTE _color  $red
+ATTRIBUTE _bcolor $red
+
+# make list of edges to connect
+DIMENSION redEdges  2 1
+SELECT   EDGE   2  0  -1
+SET      redEdges[1]  @sellist[1]
+SELECT   EDGE   2  0  +1
+SET      redEdges[2]  @sellist[1]
+
+# blue tube
+SKBEG     4 -1 -1
+   LINSEG 4 -1  1
+   LINSEG 4  1  1
+   LINSEG 4  1 -1
+   LINSEG 4 -1 -1
+SKEND  1
+EXTRUDE   2  0  0
+SELECT    FACE
+ATTRIBUTE _color  $blue
+ATTRIBUTE _bcolor $blue
+
+# make list of edges to connect
+DIMENSION blueEdges  2 1
+SELECT   EDGE   4  0  -1
+SET      blueEdges[1] @sellist[1]
+SELECT   EDGE   4  0  +1
+SET      blueEdges[2] @sellist[1]
+
+# make the connection
+CONNECT  0  0  redEdges  blueEdges
+
+END
+
+

@@ -5,7 +5,7 @@
  *
  *             General Object Header
  *
- *      Copyright 2014-2022, Massachusetts Institute of Technology
+ *      Copyright 2014-2024, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -33,12 +33,12 @@
 #endif
 
 #define CAPSMAJOR      1
-#define CAPSMINOR     21
-#define CAPSPROP      CAPSprop: Revision 1.21
+#define CAPSMINOR     25
+#define CAPSPROP      CAPSprop: Revision 1.25
 
 #define CAPSMAGIC     1234321
 #define MAXANAL       64
-#define MAXWRITER     16
+#define MAXWRITER     64
 
 
 enum capsoFlag   {oFileName, oMODL, oEGO, oPhaseName, oContinue, oPNewCSM,
@@ -51,10 +51,10 @@ enum capssType   {NONE, STATIC, PARAMETRIC, GEOMETRYIN, GEOMETRYOUT,
 enum capseType   {CONTINUATION=-1, CINFO, CWARN, CERROR, CSTAT};
 enum capsfType   {FieldIn, FieldOut, GeomSens, TessSens, User, BuiltIn};
 enum capsjType   {jInteger, jDouble, jString, jStrings, jTuple, jPointer,
-                  jPtrFree, jObject, jObjs, jErr, jOwn, jOwns, jEgos};
+                  jPtrFree, jObject, jObjs, jErr, jOwn, jOwns, jEgos, jFile};
 enum capsBoolean {False=false, True=true};
-enum capsvType   {Boolean, Integer, Double, String, Tuple, Pointer, DoubleDeriv,
-                  PointerMesh};
+enum capsvType   {Doubles=-2, Integers, Boolean, Integer, Double, String, Tuple,
+                  Pointer, DoubleDeriv, PointerMesh};
 enum capsvDim    {Scalar, Vector, Array2D};
 enum capsFixed   {Change, Fixed};
 enum capsNull    {NotAllowed, NotNull, IsNull, IsPartial};
@@ -66,6 +66,7 @@ enum capsState   {MultipleError=-2, Open, Empty, Single, Multiple};
 #define AIM_UPDATESTATE  1
 #define AIM_PREANALYSIS  2
 #define AIM_POSTANALYSIS 3
+#define AIM_CALCOUTPUT   4
 
 
 /*
@@ -267,7 +268,7 @@ typedef struct {
   char   *name;                 /* the derivative with respect to */
   int    len_wrt;               /* the number of members in the derivative
                                    w.r.t. Value Object */
-  double *deriv;                /* the derivative values 
+  double *deriv;                /* the derivative values
                                    - capsValue.length*len_wrt long */
 } capsDeriv;
 
@@ -299,8 +300,9 @@ typedef struct {
   } vals;
   union {
     int        ilims[2];        /* integer limits */
-    double     dlims[2];        /* double limits */
+    double     dlims[2];        /* double  limits */
   } limits;
+  void         *lims;           /* per element limits [2*length*sizeof()] */
   char         *units;          /* the units for the values */
   char         *meshWriter;     /* the mesh writer (linked AnalysisIn) */
   capsObject   *link;           /* the linked object (or NULL) */
@@ -308,6 +310,7 @@ typedef struct {
   int          *partial;        /* NULL or vector/array element NULL handling */
   int          nderiv;          /* the number of derivatives */
   capsDeriv    *derivs;         /* the derivatives associated with the Value */
+  double       *stepSize;       /* Finite Difference step size - DESPMTR only */
 } capsValue;
 
 
@@ -321,7 +324,7 @@ typedef struct {
   union {
     int        integer;         /* single int */
     double     real;            /* single double */
-    char       *string;         /* a character string */
+    char       *string;         /* a character string/filename */
     char       **strings;       /* a vector of strings */
     capsTuple  *tuple;          /* tuple (no single tuple) */
     void       *pointer;        /* blind pointer */
@@ -425,7 +428,7 @@ typedef struct {
   int  irow;                    /* the row index */
   int  icol;                    /* the column index */
 } capsRegGIN;
-  
+
 
 /*
  * structure to hold the intent phrase
@@ -456,6 +459,7 @@ typedef struct {
                                    0 none, 1 minimal, 2 verbose, 3 debug */
   int        funID;             /* active function index */
   void       *modl;             /* OpenCSM model void pointer or static ego */
+  double     DTime;             /* AIM sensitivity timestep; 0.0 analytic */
   int        iPhrase;           /* the current phrase index (-1 no phrase) */
   int        nPhrase;           /* number of intent phrases */
   capsPhrase *phrases;          /* the intent phrases */
@@ -482,6 +486,8 @@ typedef struct {
   int        nDesPmtr;          /* number of OpenCSM Design Parameters marked */
   int        *desPmtr;          /* the list of OpenCSM Design Parameters */
   CAPSLONG   sNum;              /* sequence number */
+  int        nFiles;            /* number of stored file sNums */
+  CAPSLONG   *files;            /* set of file sNums for written files */
 #ifdef WIN32
   __int64    jpos;              /* journal position for last success */
 #else

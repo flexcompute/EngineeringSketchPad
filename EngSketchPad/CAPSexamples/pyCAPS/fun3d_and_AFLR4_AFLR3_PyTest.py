@@ -32,13 +32,10 @@ myProblem = pyCAPS.Problem(problemName=workDir,
 # Load AFLR4 aim
 aflr4 = myProblem.analysis.create(aim = "aflr4AIM", name = "aflr4")
 
-# Set project name - so a mesh file is generated
-aflr4.input.Proj_Name = "pyCAPS_AFLR4_AFLR3"
-
 # Set AIM verbosity
 aflr4.input.Mesh_Quiet_Flag = True if args.outLevel == 0 else False
 
-# Set output grid format since a project name is being supplied - Tecplot  file
+# Optional: Explicitly write mesh files
 aflr4.input.Mesh_Format = "Tecplot"
 
 # Farfield growth factor
@@ -61,10 +58,7 @@ aflr3.input["Surface_Mesh"].link(aflr4.output["Surface_Mesh"])
 # Set AIM verbosity
 aflr3.input.Mesh_Quiet_Flag = True if args.outLevel == 0 else False
 
-# Set project name - so a mesh file is generated
-aflr3.input.Proj_Name = "pyCAPS_AFLR4_AFLR3_VolMesh"
-
-# Set output grid format since a project name is being supplied - Tecplot tetrahedral file
+# Optional: Explicitly write mesh files
 aflr3.input.Mesh_Format = "Tecplot"
 
 # Fun3D does not support TRANSP_UG3_GBC
@@ -80,9 +74,6 @@ fun3d.input["Mesh"].link(aflr3.output["Volume_Mesh"])
 
 # Set project name
 fun3d.input.Proj_Name = "fun3dAFLRTest"
-
-# Reset the mesh ascii flag to false - This will generate a lb8.ugrid file
-fun3d.input.Mesh_ASCII_Flag = False
 
 # Set AoA number
 fun3d.input.Alpha = 1.0

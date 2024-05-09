@@ -1,9 +1,11 @@
                         ESP: The Engineering Sketch Pad
-                             Rev 1.21 -- July 2022
+                             Rev 1.25 -- June 2024
+
+                          https://acdl.mit.edu/ESP/
 
   ******************************************************************
   * THESE DIRECTIONS ARE ONLY REQUIRED IF YOU WILL BE BUILDING ESP *
-  *    THEY ARE NOT NEEDED IS YOU USE A PRE-BUILT DISTRIBUTION     *
+  *    THEY ARE NOT NEEDED IF YOU USE A PRE-BUILT DISTRIBUTION     *
   ******************************************************************
 
 0. Preamble
@@ -15,43 +17,42 @@
 
     This ESP release no longer works with Python 2.7. The minimum supported
     version is now Python 3.8. Also, we now only support OpenCASCADE at Rev 
-    7.4 or higher. And these must be the versions taken from the ESP website
-    (and not from elsewhere). At this point we recommend 7.6.0.
+    7.6 or higher. And these must be the versions taken from the ESP website
+    (and not from elsewhere). At this point we recommend 7.8.0.
 
     It is advisable to unblock browser tabs on the web browser in use.
 
-    The training material is no longer part of this distribution. The last
-    training was given for Rev 1.19 and can be found at the ESP website at
+    Training material can be found at the ESP website at 
     http://acdl.mit.edu/ESP/Training, which is in 2 parts. The first is on
-    ESP geometry construction and is found in the ESP subdirectory and the
-    second on analysis is found in the CAPS subdirectory. The PDFs and MP4s
-    of the lectures can be found in the (sub)subdirectory "lectures".
-    Do NOT apply the overlays -- they are specifically for ESP 1.19.
+    ESP geometry construction, labeled with ESP, and the second on analysis, 
+    labeled with CAPS. 
 
     Apple notes: 
     (1) You CANNOT download the distributions using a browser. For instructions 
         on how to get ESP see MACdownloads.txt on the web site.
     (2) You must have XQuartz at a minimum release of 2.8.1 for some supplied
         executables to function.
-    (3) Big Sur and Monterey are now fully tested. 
-    (4) Apple M1 computers are natively supported but require Rosetta2 for the 
-        running of some legacy CAPS apps. Rosetta2 can be installed by 
+    (3) Apple arm64 (M#) computers are natively supported but require Rosetta2 
+        for the running of some legacy CAPS apps. Rosetta2 can be installed by 
         executing the following command: "softwareupdate --install-rosetta".
-    (5) M1 builds must be done in a "native" shell. That is, typing "arch"
-        must return "arm64".
-    (6) If Safari blocks a pop-up (for example, the flowchart in ESP),
+    (4) Apple arm64 (M#) builds must be done in a "native" shell. 
+        That is, typing "arch" must return "arm64".
+    (5) If Safari blocks a pop-up (for example, the flowchart in ESP),
         you can press the rectangular button in the Smart Search field
         and allow the file to be seen.
 
+    Windows notes: 
+    (1) You CANNOT download the distributions using a browser. For instructions 
+        on how to get ESP see WINdownloads.txt on the web site.
 
 1. Prerequisites
 
     The most significant prerequisite for this software is OpenCASCADE.
-    This ESP release only supports the prebuilt versions marked 7.4.1 
-    and 7.6.0, which are available at http://acdl.mit.edu/ESP. Please DO 
+    This ESP release only supports the prebuilt versions marked 7.7.0 
+    and 7.8.0, which are available at http://acdl.mit.edu/ESP. Please DO 
     NOT report any problems with any other versions of OpenCASCADE, much 
     effort has been spent in "hardening" the OpenCASCADE code. It is advised 
-    that all ESP users update to 7.4.1/7.6.0 because of better robustness and
+    that all ESP users update to 7.7.0/7.8.0 because of better robustness and
     performance. If you are still on a LINUX box with a version of gcc less 
     than 4.8, you will have to upgrade to a newer OS or version of gcc.
 
@@ -94,12 +95,15 @@
 
 1.2.1 EGADS
 
-    The significant updates made to EGADS from Rev 1.20 are:
+    The significant updates made to EGADS from Rev 1.25 are:
 
-    * Blends with C0s had vanishing derivatives -- this has been fixed
-    * The Tessellator is now more robust against bad PCurves
-    * STEP / IGES import and export now handle units in a consistent manner
-    * The STEP "Name" attribute is now imported and exported with STEP IO 
+    * Blend sections may have .C1side attribute to specify which side to make C1
+    * Improved STEP/IGES read peformace.
+    * Read Name attribute on all entities from STEP/IGES files.
+    * EG_imprintBody accepts FACE/LOOP pairs consistent with documentation
+    * Added EG_mapBody2 for completely general mapping/
+    * Add EG_contextCopy to threading support
+    * General bug fixes
 
 1.2.2 OpenCSM
 
@@ -110,16 +114,14 @@
 
 1.2.3 CAPS
 
-    * The addition of Analysis Dynamic Output Value Objects
-    * A number of examples of using CAPS as a component in OpenMDAO
-    * More complete sensitivity handling
-    * The addition of TACS and MSES AIMs
-    * "Phasing" fully implemented and tested -- the application "phaseUtil"
-      to manage the files in a Phase (see $ESP_ROOT/doc/Concepts.pdf).
-    * Script/App restarting is now functional
-    * The AIM infrastructure has undergone some changes that will require 
-      modification of any existing AIMs (not distributed here). Please refer 
-      to the AIM development guide ($ESP_ROOT/doc/CAPS/AIMdevel.pdf).
+    * Added refine AIM for mesh adaptation
+    * Added abaqus AIM for structural analysis
+    * Improvements to Mesh_Morph capabilities
+    * Fix bug where aflr3 BL_Thickness and BL_Initial_Spacing were not scaled by capsMeshLength
+    * Bug fixes to allow mixed tri/quad data transfer
+    * Fill out all MAT8 entries for structural analysis
+    * Upgrade SU2 AIM for Harrier 8.0.0
+    * Add temperature data transfer to various AIMs
 
 1.2.4 ESP
 
@@ -127,9 +129,10 @@
     * A complete "Integrated Design Environment" now exists in ESP. In the
       help look at Tutorial #6 to get a flavor of what you can now do.
 
-1.2.5 Known issues in v1.21:
+1.2.5 Known issues in v1.25:
 
-    * None
+    * data/fighter4 does not functoin with Intel macOS 13.3 and gerater
+    * AFLR2 does not always generate valid quads
 
 
 2. Building the Software
@@ -150,18 +153,21 @@
     the commands:
 
         % cd $ESP_ROOT/config
-        % ./makeEnv **path_of_OpenCASCADE_directory_containing_inc_and_lib**
+        % ./makeEnv **absolute_path_of_OpenCASCADE_directory_containing_inc_and_lib**
 
     An optional second argument to makeEnv is required if the distribution 
     of OpenCASCADE has multiple architectures. In this case it is the 
     subdirectory name that contains the libraries for the build of interest 
-    (CASARCH). Apple M1 CPUs should indicate "DARWINM1" as the architecture.
+    (CASARCH). Apple arm64 (M1/M2) CPUs should indicate "DARWIN_ARM64" as 
+    the architecture.
 
     This procedure produces 2 files at the top level: ESPenv.sh and
     ESPenv.csh.  These are the environments for both sh (bash/zsh) and csh 
     (tcsh) respectively.  The appropriate file can be "source"d or included 
     in the user's startup scripts. This must be done before either building 
-    and/or running the software. For example, if using the csh or tcsh:
+    and/or running the software. 
+    
+    For example, if using the csh or tcsh:
 
         % cd $ESP_ROOT
         % source ESPenv.csh
@@ -180,14 +186,14 @@
 
     The configuration is built from the path where the OpenCASCADE runtime 
     distribution can be found. MS Visual Studio is required and a command 
-    shell where the 64bit C/C++ compiler should be opened and the following 
-    executed in that window (note that MS VS 2017 and 2019 are fully 
-    supported). The Windows environment is built simply by going to the 
-    config subdirectory and executing the script "winEnv" in a bash shell 
-    (run from the command window):
+    shell where the 64bit C/C++ compiler (use x64, not x86) should be opened 
+    and the following executed in that window (note that MS VS 2017, 2019, 
+    and 2022 are fully supported). The Windows environment is built simply 
+    by going to the config subdirectory and executing the script "winEnv" 
+    in a bash shell (run from the command window):
 
         C:\> cd %ESP_ROOT%\config
-        C:\> bash winEnv D:\OpenCASCADE7.4.1
+        C:\> bash winEnv D:\OpenCASCADE7.8.0
 
     winEnv (like makeEnv) has an optional second argument that is only 
     required if the distribution of OpenCASCADE has multiple architectures. 
@@ -406,9 +412,8 @@
 4.1 The AFLR suite
 
     Building the AFLR AIMs (AFLR2, AFLR3 and AFLR4) requires AFLR_LIB at
-    10.22.22 or higher. Note that built versions of the so/DLLs can be 
-    found in the PreBuilt distributions and should be able to be used with 
-    ESP that you build by placing them in the $ESP_ROOT/lib directory.
+    11.5.9 or higher. Note that built versions of the so/DLLs are now provided
+    with the ESP source. There is no longer need to copy them from the PreBuilt.
 
 4.2 Athena Vortex Lattice
 
@@ -426,7 +431,7 @@
 
 4.4 Cart3D
 
-    The interfaces to Cart3D will only work with V1.5.5 and V1.5.7.
+    The interfaces to Cart3D will only work with V1.5.9.
 
 4.5 Fun3D
 
@@ -458,10 +463,16 @@
 
 4.9 SU2
 
-    Supported versions are: 4.1.1 (Cardinal), 5.0.0 (Raven), 6.2.0 (Falcon) 
-    and 7.3.1 (Blackbird). SU2 version 6.0 will work except for the use of 
+    Supported versions are: 
+        4.1.1 (Cardinal)
+        5.0.0 (Raven)
+        6.2.0 (Falcon)
+        7.5.1 (Blackbird)
+        8.0.0 (Harrier)
+
+    SU2 version 6.0 will work except for the use of 
     displacements in a Fluid/Structure Interaction setting.
-    
+
 4.10 xfoil
 
     The interface to xfoil is designed for V6.99, and the xfoil executable

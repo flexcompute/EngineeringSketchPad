@@ -44,14 +44,14 @@ rule
    
    attribute capsGroup $Skin
    
-   select face @nbody 3 1
+select face @nbody 3 1
    attribute capsBound $Skin_Top
-   select face @nbody 4 1
+select face @nbody 4 1
    attribute capsBound $Skin_Bottom
-   select face @nbody 1 1
+select face @nbody 1 1
    attribute capsBound $Skin_Tip
   
-   select face @nbody 2 1
+select face @nbody 2 1
    attribute capsGroup $Rib_Root
    attribute capsConstraint $Rib_Root
    #set        nedge     @nedge
@@ -116,7 +116,7 @@ store     OML
     rotatex   90   0   0
    
     select body
-   	attribute capsIntent $STRUCTURE #FEA Analysis (2D elements)
+   	attribute capsIntent $Structure #FEA Analysis (2D elements)
    	attribute capsAIM $nastranAIM;astrosAIM;mystranAIM
    	
     udprim editAttr filename <<
@@ -132,6 +132,7 @@ store     OML
     box       -20   -20   -40   40   40   40
     
     attribute capsGroup $Farfield
+    attribute capsMeshLength      croot
     
     # Set Wing tessellation parameters for CFD sims
     set       params[1,1] .5 
@@ -158,5 +159,6 @@ store     OML
     #Rotate the body to put it in the typical aero-coordinate system
     rotatex   90   0   0
     
-    attribute capsIntent $CFD #CFD Analysis
+    attribute capsIntent $Aerodynamic #CFD Analysis
     attribute capsAIM $fun3dAIM;su2AIM;egadsTessAIM;aflr4AIM;tetgenAIM;aflr3AIM #CFD Analysis
+    attribute capsMeshLength      croot

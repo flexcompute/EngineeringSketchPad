@@ -69,7 +69,7 @@ $(function() {
 <div class="textblock"><p>Structure for the analysis tuple = (&lsquo;Analysis Name&rsquo;, &lsquo;Value&rsquo;). 'Analysis Name' defines the reference name for the analysis being specified. The "Value" can either be a JSON String dictionary (see Section <a class="el" href="feaAnalysis.html#jsonStringAnalysis">JSON String Dictionary</a>) or a single string keyword (see Section <a class="el" href="feaAnalysis.html#keyStringAnalysis">Single Value String</a>).</p>
 <h1><a class="anchor" id="jsonStringAnalysis"></a>
 JSON String Dictionary</h1>
-<p>If "Value" is JSON string dictionary (e.g. "Value" = {"numDesiredEigenvalue": 10, "eigenNormaliztion": "MASS", "numEstEigenvalue": 1, "extractionMethod": "GIV", "frequencyRange": [0, 10000]}) the following keywords ( = default values) may be used:</p>
+<p>If "Value" is JSON string dictionary (e.g. "Value" = {"numDesiredEigenvalue": 10, "eigenNormalization": "MASS", "numEstEigenvalue": 1, "extractionMethod": "GIV", "frequencyRange": [0, 10000]}) the following keywords ( = default values) may be used:</p>
 <ul>
 <li>
 <b>analysisType = "Modal"</b>  <br  />
@@ -93,7 +93,12 @@ JSON String Dictionary</h1>
 <ul>
 <li>
 <b>analysisDesignConstraint = "(no default)"</b>  <br  />
- Single or list of "Design Constraint Name"s defined in <a class="el" href="feaDesignConstraint.html">FEA DesignConstraint</a> in which to use for the analysis (e.g. "Name1" or ["Name1","Name2",...]. </li>
+ Single or list of "Design Constraint Name"s defined in <a class="el" href="feaDesignConstraint.html">FEA Design Constraints</a> in which to use for the analysis (e.g. "Name1" or ["Name1","Name2",...]. </li>
+</ul>
+<ul>
+<li>
+<b>analysisCaseMassIncrement = "(no default)"</b>  <br  />
+ Single or list of "Concentrated Mass Property Name"s defined in in which to use for the analysis (e.g. "Name1" or ["Name1","Name2",...]. </li>
 </ul>
 <ul>
 <li>
@@ -117,18 +122,18 @@ JSON String Dictionary</h1>
 </ul>
 <ul>
 <li>
-<b>eigenNormaliztion = "(no default)"</b>  <br  />
+<b>eigenNormalization = "(no default)"</b>  <br  />
  Method of eigenvector renormalization. Options: "POINT", "MAX", "MASS" </li>
 </ul>
 <ul>
 <li>
-<b>gridNormaliztion = 0 </b>  <br  />
- Grid point to be used in normalizing eigenvector to 1.0 when using eigenNormaliztion = "POINT" </li>
+<b>gridNormalization = 0 </b>  <br  />
+ Grid point to be used in normalizing eigenvector to 1.0 when using eigenNormalization = "POINT" </li>
 </ul>
 <ul>
 <li>
-<b>componentNormaliztion = 0</b>  <br  />
- Degree of freedom about "gridNormalization" to be used in normalizing eigenvector to 1.0 when using eigenNormaliztion = "POINT" </li>
+<b>componentNormalization = 0</b>  <br  />
+ Degree of freedom about "gridNormalization" to be used in normalizing eigenvector to 1.0 when using eigenNormalization = "POINT" </li>
 </ul>
 <ul>
 <li>
@@ -197,8 +202,21 @@ JSON String Dictionary</h1>
 </ul>
 <ul>
 <li>
+<p class="startli"><b>flutterVel = [0.1, ..., 20.0]</b>  <br  />
+ Velocities to be used in Flutter Analysis. If no values are provided the following relation is used</p>
+<p class="interli">v = sqrt(2*dynamicPressure/density) dv = (v*2 - v/2) / 20;</p>
+<p class="endli">flutterVel[0] = v/10 flutterVel[i] = v/2 + i*dv; where i = 1....21 flutterVel[22] = v*10; </p>
+</li>
+</ul>
+<ul>
+<li>
+<b>visualFlutter = False </b>  <br  />
+ Turn on flutter visualization f06 output. </li>
+</ul>
+<ul>
+<li>
 <b>analysisResponse = "(no default)"</b>  <br  />
- Single or list of "DesignResponse Name"s defined in <a class="el" href="feaDesignResponse.html">FEA DesignResponse</a> to use for the analysis response spanning sets (e.g. "Name1" or ["Name1","Name2",...]. </li>
+ Single or list of "DesignResponse Name"s defined in <a class="el" href="feaDesignResponse.html">FEA Design Responses</a> to use for the analysis response spanning sets (e.g. "Name1" or ["Name1","Name2",...]. </li>
 </ul>
 <h1><a class="anchor" id="keyStringAnalysis"></a>
 Single Value String</h1>
@@ -207,7 +225,7 @@ Single Value String</h1>
 </div><!-- PageDoc -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Sat Jul 2 2022 10:12:44 for Nastran Analysis Interface Module (AIM) by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1
+Generated on Sat Apr 27 2024 16:51:38 for Nastran Analysis Interface Module (AIM) by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1
 </small></address>
 </body>
 </html>

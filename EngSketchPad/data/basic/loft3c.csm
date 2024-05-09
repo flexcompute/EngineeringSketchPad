@@ -45,6 +45,8 @@ mark
      linseg       0.98396   0.00000   0.65851
      linseg       0.98396   0.00000   0.69167
   skend
+# note: LOFT has been deprecated and is included here for backward-compatability testing
+#       new .csm files should use RULE or BLEND instead
 loft 1
 
 end

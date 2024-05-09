@@ -59,7 +59,7 @@ su2.input["Mesh"].link(myProblem.analysis["aflr2"].output["Area_Mesh"])
 su2.input.Proj_Name = projectName
 
 # Set SU2 Version
-su2.input.SU2_Version = "Blackbird"
+su2.input.SU2_Version = "Harrier"
 
 # Set AoA number
 su2.input.Alpha = 0.0

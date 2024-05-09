@@ -1,0 +1,70 @@
+# pipeNetwork5
+# written by John Dannenhoffer
+
+# pipe1
+SKBEG      0   0   0
+   LINSEG 10   0   0
+SKEND
+SELECT EDGE
+   ATTRIBUTE diamater  0.1000
+   ATTRIBUTE roughness 0.0005
+   ATTRIBUTE _color    $red
+
+# pipe2
+SKBEG     10   0   0
+   LINSEG 10  10   0
+   LINSEG 30  10   0
+SKEND
+SELECT EDGE
+   ATTRIBUTE diameter  0.0500
+   ATTRIBUTE roughness 0.0005
+   ATTRIBUTE extraK    0.7
+   ATTRIBUTE _color    $green
+
+# pipe3
+SKBEG     30   0   0
+   LINSEG 30  10   0
+SKEND
+SELECT EDGE
+   ATTRIBUTE diameter  0.0200
+   ATTRIBUTE roughness 0.0005
+   ATTRIBUTE _color    $blue
+
+# pipe4
+SKBEG     30   0   0
+   LINSEG 50   0   0
+   LINSEG 50   5   0
+   LINSEG 35   5   0
+SKEND
+SELECT EDGE
+   ATTRIBUTE diameter  0.0500
+   ATTRIBUTE roughness 0.0005
+   ATTRIBUTE extraK    1.4
+   ATTRIBUTE _color    $cyan
+
+# pipe5
+SKBEG     30  10   0
+   LINSEG 50  10   0
+   LINSEG 50  20   0
+   LINSEG 30  20   0
+SKEND
+SELECT EDGE
+   ATTRIBUTE diameter  0.0400
+   ATTRIBUTE roughness 0.0005
+   ATTRIBUTE extraK    1.2
+   ATTRIBUTE _color    $magenta
+
+# pipe6
+SKBEG     30   0   0
+   LINSEG 10   0   0
+SKEND
+SELECT EDGE
+   ATTRIBUTE diameter  0.0500
+   ATTRIBUTE roughness 0.0005
+   ATTRIBUTE _color    $yellow
+
+# join into single network
+JOIN  0  1
+
+END
+

@@ -34,6 +34,8 @@ udprim              naca      Series    series
 scale               ctip
 rotatez             -twist    0         0
 translate           xtip      ytip      -sspan
+# note: LOFT has been deprecated and is included here for backward-compatability testing
+#       new .csm files should use RULE or BLEND instead
 loft                0
 
 # spars

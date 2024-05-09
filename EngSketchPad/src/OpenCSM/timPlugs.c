@@ -9,7 +9,7 @@
  */
 
 /*
- * Copyright (C) 2013/2022  John F. Dannenhoffer, III (Syracuse University)
+ * Copyright (C) 2013/2024  John F. Dannenhoffer, III (Syracuse University)
  *
  * This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
@@ -34,9 +34,7 @@
 #include <math.h>
 #include <assert.h>
 
-#include "egads.h"
 #include "OpenCSM.h"
-#include "common.h"
 #include "tim.h"
 #include "wsserver.h"
 
@@ -46,8 +44,8 @@
 
 static int       outLevel   = 1;
 
-static int       plugsPhase1(modl_T *modl, int ibody, int npmtr, int pmtrindx[], int ncloud, double cloud[],                                         double *rmsbest);
-static int       plugsPhase2(modl_T *modl, int ibody, int npmtr, int pmtrindx[], int ncloud, double cloud[], int face[], int *unclass, int *reclass, double *rmsbest);
+static int       plugsPhase1(modl_T *modl, int ibody, int npmtr, int pmtrindx[], int pmtrrow[], int pmtrcol[], int ncloud, double cloud[],                                         double *rmsbest);
+static int       plugsPhase2(modl_T *modl, int ibody, int npmtr, int pmtrindx[], int pmtrrow[], int pmtrcol[], int ncloud, double cloud[], int face[], int *unclass, int *reclass, double *rmsbest);
 static int       matsol(double A[], double b[], int n, double x[]);
 static int       solsvd(double A[], double b[], int mrow, int ncol, double W[], double x[]);
 static int       tridiag(int n, double a[], double b[], double c[], double d[], double x[]);
@@ -64,6 +62,8 @@ typedef struct {
 
     int    npmtr;             /* number of DESPMTRs */
     int    *pmtrindx;         /* array  of DESPMTR indicies */
+    int    *pmtrrow;          /* array  of DESPMTR row numbers */
+    int    *pmtrcol;          /* array  of DESPMTR column numbers */
     double *pmtrorig;         /* array  of DESPMTR initial values */
 } plugs_T;
 
@@ -80,7 +80,7 @@ timLoad(esp_T *ESP,                     /* (in)  pointer to ESP structure */
 {
     int    status=0;                    /* (out) return status */
 
-    int     icloud, jmax, ipmtr;
+    int     icloud, jmax, ipmtr, npmtr, irow, icol, indx;
     char    templine[128];
     FILE    *plot_fp;
 
@@ -97,18 +97,18 @@ timLoad(esp_T *ESP,                     /* (in)  pointer to ESP structure */
         status = EGADS_SEQUERR;
         goto cleanup;
     }
-    
+
     /* create the plugs_T structure */
     if (ESP->nudata >= MAX_TIM_NESTING) {
         printf("ERROR:: cannot nest more than %d TIMs\n", MAX_TIM_NESTING);
         exit(0);
     }
-    
+
     ESP->nudata++;
     MALLOC(ESP->udata[ESP->nudata-1], plugs_T, 1);
 
     strcpy(ESP->timName[ESP->nudata-1], "plugs");
-    
+
     plugs = (plugs_T *) (ESP->udata[ESP->nudata-1]);
 
     /* initialize the structure */
@@ -119,6 +119,8 @@ timLoad(esp_T *ESP,                     /* (in)  pointer to ESP structure */
     plugs->RMS      = 1e+6;
     plugs->npmtr    = 0;
     plugs->pmtrindx = NULL;
+    plugs->pmtrrow  = NULL;
+    plugs->pmtrcol  = NULL;
     plugs->pmtrorig = NULL;
 
     /* make sure that there is a plotfile */
@@ -150,29 +152,39 @@ timLoad(esp_T *ESP,                     /* (in)  pointer to ESP structure */
 
     fclose(plot_fp);
 
-    /* add the cloud points to te display */
+    /* add the cloud points to the display */
     plotPointCloud(ESP);
 
     /* set up the table of DESPMTRs */
-    MALLOC(plugs->pmtrindx, int,    ESP->MODL->npmtr);
-    MALLOC(plugs->pmtrorig, double, ESP->MODL->npmtr);
+    npmtr = 0;
+    for (ipmtr = 1; ipmtr <= ESP->MODL->npmtr; ipmtr++) {
+        if (ESP->MODL->pmtr[ipmtr].type == OCSM_DESPMTR) {
+            npmtr += ESP->MODL->pmtr[ipmtr].nrow * ESP->MODL->pmtr[ipmtr].ncol;
+        }
+    }
+
+    MALLOC(plugs->pmtrindx, int,    npmtr);
+    MALLOC(plugs->pmtrrow,  int,    npmtr);
+    MALLOC(plugs->pmtrcol,  int,    npmtr);
+    MALLOC(plugs->pmtrorig, double, npmtr);
 
     for (ipmtr = 1; ipmtr <= ESP->MODL->npmtr; ipmtr++) {
         if (ESP->MODL->pmtr[ipmtr].type == OCSM_DESPMTR) {
-            if (ESP->MODL->pmtr[ipmtr].nrow != 1 ||
-                ESP->MODL->pmtr[ipmtr].ncol != 1   ) {
-                SPRINT3(0, "ERROR:: DESPMTR %s is (%d*%d) and must be a scalar",
-                        ESP->MODL->pmtr[ipmtr].name, ESP->MODL->pmtr[ipmtr].nrow, ESP->MODL->pmtr[ipmtr].ncol);
-                status = -999;
-                goto cleanup;
+            indx = 0;
+            for (irow = 1; irow <= ESP->MODL->pmtr[ipmtr].nrow; irow++) {
+                for (icol = 1; icol <= ESP->MODL->pmtr[ipmtr].ncol; icol++) {
+                    plugs->pmtrindx[plugs->npmtr] = ipmtr;
+                    plugs->pmtrrow[ plugs->npmtr] = irow;
+                    plugs->pmtrcol[ plugs->npmtr] = icol;
+                    plugs->pmtrorig[plugs->npmtr] = ESP->MODL->pmtr[ipmtr].value[indx++];
+
+                    SPRINT5(1, "initial DESPMTR %3d: %20s[%2d,%2d] = %10.5f",
+                            plugs->npmtr, ESP->MODL->pmtr[plugs->pmtrindx[plugs->npmtr]].name,
+                            plugs->pmtrrow[plugs->npmtr], plugs->pmtrcol[plugs->npmtr], plugs->pmtrorig[plugs->npmtr]);
+
+                    plugs->npmtr++;
+                }
             }
-            plugs->pmtrindx[plugs->npmtr] = ipmtr;
-            plugs->pmtrorig[plugs->npmtr] = ESP->MODL->pmtr[ipmtr].value[0];
-
-            SPRINT3(1, "initial DESPMTR %3d: %20s = %10.5f",
-                    plugs->npmtr, ESP->MODL->pmtr[plugs->pmtrindx[plugs->npmtr]].name, plugs->pmtrorig[plugs->npmtr]);
-
-            plugs->npmtr++;
         }
     }
 
@@ -199,8 +211,10 @@ timMesg(esp_T *ESP,                     /* (in)  pointer to ESP structure */
 {
     int    status = EGADS_SUCCESS;      /* (out) return status */
 
-    int     ibody, unclass, reclass, ipmtr;
+    int     ibody, unclass, reclass, ipmtr, status2;
+    double  value, dot;
     char    response[MAX_EXPR_LEN];
+    FILE    *fp=NULL;
 
     modl_T  *MODL  =             ESP->MODL;
     plugs_T *plugs = (plugs_T *)(ESP->udata[ESP->nudata-1]);
@@ -214,16 +228,20 @@ timMesg(esp_T *ESP,                     /* (in)  pointer to ESP structure */
         ibody = MODL->nbody;
 
         status = plugsPhase1(MODL, ibody,
-                             plugs->npmtr, plugs->pmtrindx,
+                             plugs->npmtr, plugs->pmtrindx, plugs->pmtrrow, plugs->pmtrcol,
                              plugs->ncloud, plugs->cloud,
                              &(plugs->RMS));
 
         SPRINT1(1, "\nAt end of phase1: RMS = %12.4e", plugs->RMS);
         for (ipmtr = 0; ipmtr < plugs->npmtr; ipmtr++) {
-            SPRINT5(1, "%2d %3d %20s %12.6f (%12.6f)", ipmtr, plugs->pmtrindx[ipmtr],
+            status2 = status;
+            status = ocsmGetValu(MODL, plugs->pmtrindx[ipmtr], plugs->pmtrrow[ipmtr], plugs->pmtrcol[ipmtr], &value, &dot);
+            CHECK_STATUS(ocsmGetValu);
+            status = status2;
+
+            SPRINT7(1, "%2d %3d %20s[%2d,%2d] %12.6f (%12.6f)", ipmtr, plugs->pmtrindx[ipmtr],
                     MODL->pmtr[plugs->pmtrindx[ipmtr]].name,
-                    MODL->pmtr[plugs->pmtrindx[ipmtr]].value[0],
-                    plugs->pmtrorig[ipmtr]);
+                    plugs->pmtrrow[ipmtr], plugs->pmtrcol[ipmtr], value, plugs->pmtrorig[ipmtr]);
         }
 
         if (status < EGADS_SUCCESS) {
@@ -239,17 +257,33 @@ timMesg(esp_T *ESP,                     /* (in)  pointer to ESP structure */
         ibody = MODL->nbody;
 
         status = plugsPhase2(MODL, ibody,
-                             plugs->npmtr, plugs->pmtrindx,
+                             plugs->npmtr, plugs->pmtrindx, plugs->pmtrrow, plugs->pmtrcol,
                              plugs->ncloud, plugs->cloud, plugs->face,
                              &unclass, &reclass,
                              &(plugs->RMS));
 
+        fp = fopen("plugs.despmtrs", "w");
+
         SPRINT1(1, "\nAt end of phase2: RMS = %12.4e", plugs->RMS);
         for (ipmtr = 0; ipmtr < plugs->npmtr; ipmtr++) {
-            SPRINT5(1, "%2d %3d %20s %12.6f (%12.6f)", ipmtr, plugs->pmtrindx[ipmtr],
+            status2 = status;
+            status = ocsmGetValu(MODL, plugs->pmtrindx[ipmtr], plugs->pmtrrow[ipmtr], plugs->pmtrcol[ipmtr], &value, &dot);
+            CHECK_STATUS(ocsmGetValu);
+            status = status2;
+
+            SPRINT7(1, "%2d %3d %20s[%2d,%2d] %12.6f (%12.6f)", ipmtr, plugs->pmtrindx[ipmtr],
                     MODL->pmtr[plugs->pmtrindx[ipmtr]].name,
-                    MODL->pmtr[plugs->pmtrindx[ipmtr]].value[0],
-                    plugs->pmtrorig[ipmtr]);
+                    plugs->pmtrrow[ipmtr], plugs->pmtrcol[ipmtr], value, plugs->pmtrorig[ipmtr]);
+
+            if (fp != NULL) {
+                fprintf(fp, "%s[%d,%d]    %20.12e\n",
+                        MODL->pmtr[plugs->pmtrindx[ipmtr]].name,
+                        plugs->pmtrrow[ipmtr], plugs->pmtrcol[ipmtr], value);
+            }
+        }
+
+        if (fp != NULL) {
+            fclose(fp);
         }
 
         if (status < EGADS_SUCCESS) {
@@ -262,12 +296,14 @@ timMesg(esp_T *ESP,                     /* (in)  pointer to ESP structure */
 
     /* "draw|" */
     } else if (strncmp(command, "draw|", 5) == 0) {
-        plotPointCloud(ESP);
+        if (ESP->batch == 0) {
+            plotPointCloud(ESP);
 
-        tim_bcst("plugs", "timMesg|plugs|draw");
+            tim_bcst("plugs", "timMesg|plugs|draw");
+        }
     }
 
-//cleanup:
+cleanup:
     return status;
 }
 
@@ -284,7 +320,7 @@ timSave(esp_T *ESP)                     /* (in)  pointer to ESP structure */
     int    status = EGADS_SUCCESS;      /* (out) return status */
 
     int    i;
-    
+
     plugs_T *plugs;
 
     ROUTINE(timSave(plugs));
@@ -302,7 +338,7 @@ timSave(esp_T *ESP)                     /* (in)  pointer to ESP structure */
     } else {
         plugs = (plugs_T *)(ESP->udata[ESP->nudata-1]);
     }
-    
+
     if (plugs == NULL) {
         goto cleanup;
     }
@@ -314,6 +350,8 @@ timSave(esp_T *ESP)                     /* (in)  pointer to ESP structure */
     FREE(plugs->cloud   );
     FREE(plugs->face    );
     FREE(plugs->pmtrindx);
+    FREE(plugs->pmtrrow );
+    FREE(plugs->pmtrcol );
     FREE(plugs->pmtrorig);
 
     FREE(ESP->udata[ESP->nudata-1]);
@@ -339,7 +377,7 @@ timQuit(esp_T *ESP,                     /* (in)  pointer to ESP structure */
 {
     int    status = EGADS_SUCCESS;      /* (out) return status */
 
-    int     i, ipmtr;
+    int     i, ipmtr, irow, icol;
     plugs_T *plugs;
 
     ROUTINE(timQuit(plugs));
@@ -357,7 +395,7 @@ timQuit(esp_T *ESP,                     /* (in)  pointer to ESP structure */
     } else {
         plugs = (plugs_T *)(ESP->udata[ESP->nudata-1]);
     }
-    
+
     if (plugs == NULL) {
         goto cleanup;
     }
@@ -368,7 +406,13 @@ timQuit(esp_T *ESP,                     /* (in)  pointer to ESP structure */
             if (ESP->MODL                                     != NULL &&
                 ESP->MODL->pmtr                               != NULL &&
                 ESP->MODL->pmtr[plugs->pmtrindx[ipmtr]].value != NULL   ) {
-                ESP->MODL->pmtr[plugs->pmtrindx[ipmtr]].value[0] = plugs->pmtrorig[ipmtr];
+                for (irow = 1; irow <= ESP->MODL->pmtr[plugs->pmtrindx[ipmtr]].nrow; irow++) {
+                    for (icol = 1; icol <= ESP->MODL->pmtr[plugs->pmtrindx[ipmtr]].ncol; icol++) {
+                        status = ocsmSetValuD(ESP->MODL, plugs->pmtrindx[ipmtr],
+                                              plugs->pmtrrow[ipmtr], plugs->pmtrcol[ipmtr], plugs->pmtrorig[ipmtr]);
+                        CHECK_STATUS(ocsmSetValuD);
+                    }
+                }
             }
         }
     }
@@ -377,6 +421,8 @@ timQuit(esp_T *ESP,                     /* (in)  pointer to ESP structure */
     FREE(plugs->cloud   );
     FREE(plugs->face    );
     FREE(plugs->pmtrindx);
+    FREE(plugs->pmtrrow );
+    FREE(plugs->pmtrcol );
     FREE(plugs->pmtrorig);
 
     FREE(ESP->udata[ESP->nudata-1]);
@@ -401,6 +447,8 @@ plugsPhase1(modl_T *MODL,               /* (in)  pointer to MODL */
             int    ibody,               /* (in)  Body index (bias-1) */
             int    npmtr,               /* (in)  number  of DESPMTRs */
             int    pmtrindx[],          /* (in)  indices of DESPMTRs */
+            int    pmtrrow[],           /* (in)  row    numbers of DESPMTRs */
+            int    pmtrcol[],           /* (in)  column numbers of DESPMTRs */
             int    ncloud,              /* (in)  number of points in cloud */
             double cloud[],             /* (in)  array  of points in cloud */
             double *rmsbest)            /* (out) best rms distance to cloud */
@@ -503,7 +551,7 @@ plugsPhase1(modl_T *MODL,               /* (in)  pointer to MODL */
     /* print the initial rms and DESPMTRs */
     SPRINT2x(1, "iter=%3d, rms=%10.3e, DESPMTRs=", -1, rms);
     for (ipmtr = 0; ipmtr < npmtr; ipmtr++) {
-        status = ocsmGetValu(MODL, pmtrindx[ipmtr], 1, 1, &(pmtrbest[ipmtr]), &dot);
+        status = ocsmGetValu(MODL, pmtrindx[ipmtr], pmtrrow[ipmtr], pmtrcol[ipmtr], &(pmtrbest[ipmtr]), &dot);
         CHECK_STATUS(ocsmGetValu);
 
         SPRINT1x(1, " %10.5f", pmtrbest[ipmtr]);
@@ -529,7 +577,7 @@ plugsPhase1(modl_T *MODL,               /* (in)  pointer to MODL */
             status = ocsmSetVelD(MODL, 0,               0, 0, 0.0);
             CHECK_STATUS(ocsmSetVelD);
 
-            status = ocsmSetVelD(MODL, pmtrindx[ipmtr], 1, 1, 1.0);
+            status = ocsmSetVelD(MODL, pmtrindx[ipmtr], pmtrrow[ipmtr], pmtrcol[ipmtr], 1.0);
             CHECK_STATUS(ocsmSetVelD);
 
             nbody = 0;
@@ -542,7 +590,9 @@ plugsPhase1(modl_T *MODL,               /* (in)  pointer to MODL */
                 if (MODL->body[ibody].node[inode].x <= bbox_modl[0]) {
                     bbox_modl[0] = MODL->body[ibody].node[inode].x;
 
+                    oldOutLevel = ocsmSetOutLevel(0);
                     status = ocsmGetVel(MODL, ibody, OCSM_NODE, inode, 1, NULL, vel);
+                    (void) ocsmSetOutLevel(oldOutLevel);
                     CHECK_STATUS(ocsmGetVel);
 
                     ajac[        ipmtr] = vel[0];
@@ -550,7 +600,9 @@ plugsPhase1(modl_T *MODL,               /* (in)  pointer to MODL */
                 if (MODL->body[ibody].node[inode].y <= bbox_modl[1]) {
                     bbox_modl[1] = MODL->body[ibody].node[inode].y;
 
+                    oldOutLevel = ocsmSetOutLevel(0);
                     status = ocsmGetVel(MODL, ibody, OCSM_NODE, inode, 1, NULL, vel);
+                    (void) ocsmSetOutLevel(oldOutLevel);
                     CHECK_STATUS(ocsmGetVel);
 
                     ajac[  npmtr+ipmtr] = vel[1];
@@ -558,7 +610,9 @@ plugsPhase1(modl_T *MODL,               /* (in)  pointer to MODL */
                 if (MODL->body[ibody].node[inode].z <= bbox_modl[2]) {
                     bbox_modl[2] = MODL->body[ibody].node[inode].z;
 
+                    oldOutLevel = ocsmSetOutLevel(0);
                     status = ocsmGetVel(MODL, ibody, OCSM_NODE, inode, 1, NULL, vel);
+                    (void) ocsmSetOutLevel(oldOutLevel);
                     CHECK_STATUS(ocsmGetVel);
 
                     ajac[2*npmtr+ipmtr] = vel[2];
@@ -566,7 +620,9 @@ plugsPhase1(modl_T *MODL,               /* (in)  pointer to MODL */
                 if (MODL->body[ibody].node[inode].x >= bbox_modl[3]) {
                     bbox_modl[3] = MODL->body[ibody].node[inode].x;
 
+                    oldOutLevel = ocsmSetOutLevel(0);
                     status = ocsmGetVel(MODL, ibody, OCSM_NODE, inode, 1, NULL, vel);
+                    (void) ocsmSetOutLevel(oldOutLevel);
                     CHECK_STATUS(ocsmGetVel);
 
                     ajac[3*npmtr+ipmtr] = vel[0];
@@ -574,7 +630,9 @@ plugsPhase1(modl_T *MODL,               /* (in)  pointer to MODL */
                 if (MODL->body[ibody].node[inode].y >= bbox_modl[4]) {
                     bbox_modl[4] = MODL->body[ibody].node[inode].y;
 
+                    oldOutLevel = ocsmSetOutLevel(0);
                     status = ocsmGetVel(MODL, ibody, OCSM_NODE, inode, 1, NULL, vel);
+                    (void) ocsmSetOutLevel(oldOutLevel);
                     CHECK_STATUS(ocsmGetVel);
 
                     ajac[4*npmtr+ipmtr] = vel[1];
@@ -582,7 +640,9 @@ plugsPhase1(modl_T *MODL,               /* (in)  pointer to MODL */
                 if (MODL->body[ibody].node[inode].z >= bbox_modl[5]) {
                     bbox_modl[5] = MODL->body[ibody].node[inode].z;
 
+                    oldOutLevel = ocsmSetOutLevel(0);
                     status = ocsmGetVel(MODL, ibody, OCSM_NODE, inode, 1, NULL, vel);
+                    (void) ocsmSetOutLevel(oldOutLevel);
                     CHECK_STATUS(ocsmGetVel);
 
                     ajac[5*npmtr+ipmtr] = vel[2];
@@ -631,13 +691,13 @@ plugsPhase1(modl_T *MODL,               /* (in)  pointer to MODL */
         for (ipmtr = 0; ipmtr < npmtr; ipmtr++) {
             value = pmtrbest[ipmtr] + delta[ipmtr];
 
-            status = ocsmGetBnds(MODL, pmtrindx[ipmtr], 1, 1, &lbound, &ubound);
+            status = ocsmGetBnds(MODL, pmtrindx[ipmtr], pmtrrow[ipmtr], pmtrcol[ipmtr], &lbound, &ubound);
             CHECK_STATUS(ocsmGetBnds);
 
             if (value < lbound) value = lbound;
             if (value > ubound) value = ubound;
 
-            status = ocsmSetValuD(MODL, pmtrindx[ipmtr], 1, 1, value);
+            status = ocsmSetValuD(MODL, pmtrindx[ipmtr], pmtrrow[ipmtr], pmtrcol[ipmtr], value);
             CHECK_STATUS(ocsmSetValuD);
         }
 
@@ -648,8 +708,9 @@ plugsPhase1(modl_T *MODL,               /* (in)  pointer to MODL */
         (void) ocsmSetOutLevel(oldOutLevel);
         if (status < SUCCESS) {
             for (ipmtr = 0; ipmtr < npmtr; ipmtr++) {
-                SPRINT3(1, "error  DESPMTR %3d: %20s = %10.5f",
-                        ipmtr, MODL->pmtr[pmtrindx[ipmtr]].name, MODL->pmtr[pmtrindx[ipmtr]].value[0]);
+                SPRINT5(1, "error  DESPMTR %3d: %20s[%2d,%2d] = %10.5f",
+                        ipmtr, MODL->pmtr[pmtrindx[ipmtr]].name, pmtrrow[ipmtr], pmtrcol[ipmtr],
+                        MODL->pmtr[pmtrindx[ipmtr]].value[0]);
             }
         }
         CHECK_STATUS(ocsmBuild);
@@ -691,7 +752,7 @@ plugsPhase1(modl_T *MODL,               /* (in)  pointer to MODL */
 
         SPRINT2x(1, "iter=%3d, rms=%10.3e, DESPMTRs=", iter, rms);
         for (ipmtr = 0; ipmtr < npmtr; ipmtr++) {
-            status = ocsmGetValu(MODL, pmtrindx[ipmtr], 1, 1, &value, &dot);
+            status = ocsmGetValu(MODL, pmtrindx[ipmtr], pmtrrow[ipmtr], pmtrcol[ipmtr], &value, &dot);
             CHECK_STATUS(ocsmGetValu);
 
             SPRINT1x(1, " %10.5f", value);
@@ -701,7 +762,7 @@ plugsPhase1(modl_T *MODL,               /* (in)  pointer to MODL */
            (making it more newton-like) */
         if (rms < *rmsbest) {
             for (ipmtr = 0; ipmtr < npmtr; ipmtr++) {
-                status = ocsmGetValu(MODL, pmtrindx[ipmtr], 1, 1, &(pmtrbest[ipmtr]), &dot);
+                status = ocsmGetValu(MODL, pmtrindx[ipmtr], pmtrrow[ipmtr], pmtrcol[ipmtr], &(pmtrbest[ipmtr]), &dot);
                 CHECK_STATUS(ocsmGetPmtr);
             }
             *rmsbest = rms;
@@ -725,7 +786,7 @@ plugsPhase1(modl_T *MODL,               /* (in)  pointer to MODL */
            (making it more steppest-descent-like) */
         } else {
             for (ipmtr = 0; ipmtr < npmtr; ipmtr++) {
-                status = ocsmSetValuD(MODL, pmtrindx[ipmtr], 1, 1, pmtrbest[ipmtr]);
+                status = ocsmSetValuD(MODL, pmtrindx[ipmtr], pmtrrow[ipmtr], pmtrcol[ipmtr], pmtrbest[ipmtr]);
                 CHECK_STATUS(ocsmSetValuD);
             }
             lambda = MIN(1.0e+10, lambda*2);
@@ -763,6 +824,8 @@ plugsPhase2(modl_T *MODL,               /* (in)  pointer to MODL */
             int    ibody,               /* (in)  Body index (bias-1) */
             int    npmtr,               /* (in)  number  of DESPMTRs */
             int    pmtrindx[],          /* (in)  indices of DESPMTRs */
+            int    pmtrrow[],           /* (in)  row    numbers of DESPMTRs */
+            int    pmtrcol[],           /* (in)  column numbers if DESPMTRs */
             int    ncloud,              /* (in)  number of points in cloud */
             double cloud[],             /* (in)  array  of points in cloud */
             int    face[],              /* (in)  array  of associated Faces */
@@ -775,17 +838,18 @@ plugsPhase2(modl_T *MODL,               /* (in)  pointer to MODL */
     int     iface, icloud, ipmtr, jpmtr, npnt, ntri, itri, ip0, ip1, ip2;
     int     nerr, nvar, ivar, count, ireclass, iter, niter=50;
     int     nbody, builtTo, oldOutLevel, periodic, ibest, scaleDiag, naccept, iperturb, limit;
-    int     *prevface=NULL;
-    CINT    *ptype, *pindx, *tris, *tric;
+    int     *prevface=NULL, attrType, attrLen;
+    CINT    *ptype, *pindx, *tris, *tric, *tempIlist;
     double  bbox_cloud[6], dtest, value, dot, lbound, ubound, rms, data[18], rmsperturb, valperturb;
     double  dmax, lambda, uvrange[4], dbest, scaleFact, uv_guess[2], xyz_guess[3];
-    double  atotal, massprops[14];
+    double  atotal, massprops[14], rowsum, rowsummin;
     double  *dist=NULL, *uvface=NULL, *velface=NULL;
     double  *beta=NULL, *delta=NULL, *qerr=NULL, *qerrbest=NULL, *ajac=NULL;
     double  *atri=NULL, *btri=NULL, *ctri=NULL, *dtri=NULL, *xtri=NULL;
-    double  *mat=NULL, *rhs=NULL, *xxx=NULL;
+    double  *mat=NULL, *rhs=NULL, *www=NULL, *xxx=NULL;
     double  *pmtrbest=NULL, *pmtrsave=NULL;
-    CDOUBLE *xyz, *uv;
+    CDOUBLE *xyz, *uv, *tempRlist;
+    CCHAR   *tempClist;
     clock_t old_time, new_time;
 
     ROUTINE(plugsPhase2);
@@ -825,6 +889,7 @@ plugsPhase2(modl_T *MODL,               /* (in)  pointer to MODL */
 
     MALLOC(mat,  double, npmtr*npmtr);
     MALLOC(rhs,  double,       npmtr);
+    MALLOC(www,  double,       npmtr);
     MALLOC(xxx,  double,       npmtr);
 
     MALLOC(pmtrbest, double,  npmtr      );     // best DESPMTRs so far
@@ -832,7 +897,7 @@ plugsPhase2(modl_T *MODL,               /* (in)  pointer to MODL */
 
     /* remember the DESPMTRs at the begiining of this pass */
     for (ipmtr = 0; ipmtr < npmtr; ipmtr++) {
-        status = ocsmGetValu(MODL, pmtrindx[ipmtr], 1, 1, &(pmtrbest[ipmtr]), &dot);
+        status = ocsmGetValu(MODL, pmtrindx[ipmtr], pmtrrow[ipmtr], pmtrcol[ipmtr], &(pmtrbest[ipmtr]), &dot);
         CHECK_STATUS(ocsmGetValuD);
 
         pmtrsave[ipmtr] = pmtrbest[ipmtr];
@@ -881,6 +946,12 @@ plugsPhase2(modl_T *MODL,               /* (in)  pointer to MODL */
     }
 
     for (iface = 1; iface <= MODL->body[ibody].nface; iface++) {
+        status = EG_attributeRet(MODL->body[ibody].face[iface].eface, "_plugsIgnore",
+                                 &attrType, &attrLen, &tempIlist, &tempRlist, &tempClist);
+        if (status == EGADS_SUCCESS) {
+            continue;
+        }
+
         status = EG_getTessFace(MODL->body[ibody].etess, iface,
                                 &npnt, &xyz, &uv, &ptype, &pindx,
                                 &ntri, &tris, &tric);
@@ -921,6 +992,12 @@ plugsPhase2(modl_T *MODL,               /* (in)  pointer to MODL */
     atotal = massprops[1];
 
     for (iface = 1; iface <= MODL->body[ibody].nface; iface++) {
+        status = EG_attributeRet(MODL->body[ibody].face[iface].eface, "_plugsIgnore",
+                                 &attrType, &attrLen, &tempIlist, &tempRlist, &tempClist);
+        if (status == EGADS_SUCCESS) {
+            continue;
+        }
+
         count = 0;
         for (icloud = 0; icloud < ncloud; icloud++) {
             if (face[icloud] == iface) count++;
@@ -972,7 +1049,15 @@ plugsPhase2(modl_T *MODL,               /* (in)  pointer to MODL */
         for (icloud = 0; icloud < ncloud; icloud++) {
             if (face[icloud] == iface) count++;
         }
-        SPRINT2(1, "Face %3d has %5d cloud points", iface, count);
+
+        status = EG_attributeRet(MODL->body[ibody].face[iface].eface, "_plugsIgnore",
+                                 &attrType, &attrLen, &tempIlist, &tempRlist, &tempClist);
+        if (status != EGADS_SUCCESS) {
+            SPRINT2(1, "Face %3d has %5d cloud points", iface, count);
+            status = EGADS_SUCCESS;
+        } else {
+            SPRINT2(1, "Face %3d has %5d cloud points (_plugsIgnore)", iface, count);
+        }
     }
 
     *unclass = 0;
@@ -1029,7 +1114,7 @@ plugsPhase2(modl_T *MODL,               /* (in)  pointer to MODL */
     /* print the rms and DESPMTRs */
     SPRINT2x(1, "\niter=%3d, rms=%10.3e, DESPMTRs=", -1, rms);
     for (ipmtr = 0; ipmtr < npmtr; ipmtr++) {
-        status = ocsmGetValu(MODL, pmtrindx[ipmtr], 1, 1, &(pmtrbest[ipmtr]), &dot);
+        status = ocsmGetValu(MODL, pmtrindx[ipmtr], pmtrrow[ipmtr], pmtrcol[ipmtr], &(pmtrbest[ipmtr]), &dot);
         CHECK_STATUS(ocsmGetValu);
 
         SPRINT1x(1, " %10.5f", pmtrbest[ipmtr]);
@@ -1044,7 +1129,7 @@ plugsPhase2(modl_T *MODL,               /* (in)  pointer to MODL */
 
     /* save initial DESPMTRs as best so far for this pass */
     for (ipmtr = 0; ipmtr < npmtr; ipmtr++) {
-        status = ocsmGetValu(MODL, pmtrindx[ipmtr], 1, 1, &(beta[2*ncloud+ipmtr]), &dot);
+        status = ocsmGetValu(MODL, pmtrindx[ipmtr], pmtrrow[ipmtr], pmtrcol[ipmtr], &(beta[2*ncloud+ipmtr]), &dot);
         CHECK_STATUS(ocsmGetValu);
     }
     *rmsbest = rms;
@@ -1071,7 +1156,7 @@ plugsPhase2(modl_T *MODL,               /* (in)  pointer to MODL */
                 status = ocsmSetVelD(MODL, 0,               0, 0, 0.0);
                 CHECK_STATUS(ocsmSetVelD);
 
-                status = ocsmSetVelD(MODL, pmtrindx[ipmtr], 1, 1, 1.0);
+                status = ocsmSetVelD(MODL, pmtrindx[ipmtr], pmtrrow[ipmtr], pmtrcol[ipmtr], 1.0);
                 CHECK_STATUS(ocsmSetVelD);
 
                 nbody = 0;
@@ -1090,8 +1175,10 @@ plugsPhase2(modl_T *MODL,               /* (in)  pointer to MODL */
                         }
                     }
 
+                    oldOutLevel = ocsmSetOutLevel(0);
                     status = ocsmGetVel(MODL, ibody, OCSM_FACE, iface, count, uvface, velface);
                     CHECK_STATUS(ocsmGetVel);
+                    (void) ocsmSetOutLevel(oldOutLevel);
 
                     count = 0;
                     for (icloud = 0; icloud < ncloud; icloud++) {
@@ -1182,9 +1269,26 @@ plugsPhase2(modl_T *MODL,               /* (in)  pointer to MODL */
         status = tridiag(2*ncloud, atri, btri, ctri, dtri, xtri);
         CHECK_STATUS(tridiag);
 
+        /* find the smallest row-sum in mat */
+        rowsummin = HUGEQ;
+        for (ipmtr = 0; ipmtr < npmtr; ipmtr++) {
+            rowsum = 0;
+            for (jpmtr = 0; jpmtr < npmtr; jpmtr++) {
+                rowsum += fabs(mat[ipmtr*npmtr+jpmtr]);
+            }
+            if (rowsum < rowsummin) rowsummin = rowsum;
+        }
+
         /* solve the full system to update the DESPMTRs */
-        status = matsol(mat, rhs, npmtr, xxx);
-        CHECK_STATUS(matsol);
+        if (rowsummin > EPS06) {
+            status = matsol(mat, rhs, npmtr, xxx);
+            CHECK_STATUS(matsol);
+        } else {
+            SPRINT1(1, "Using solsvd because rowsummin=%10.3e", rowsummin);
+
+            status = solsvd(mat, rhs, npmtr, npmtr, www, xxx);
+            CHECK_STATUS(solvsvd);
+        }
 
         /* assemble the solutions into the delta array */
         for (icloud = 0; icloud < ncloud; icloud++) {
@@ -1220,12 +1324,12 @@ plugsPhase2(modl_T *MODL,               /* (in)  pointer to MODL */
         for (ipmtr = 0; ipmtr < npmtr; ipmtr++) {
             value = pmtrbest[ipmtr] + delta[2*ncloud+ipmtr];
 
-            status = ocsmGetBnds(MODL, pmtrindx[ipmtr], 1, 1, &lbound, &ubound);
+            status = ocsmGetBnds(MODL, pmtrindx[ipmtr], pmtrrow[ipmtr], pmtrcol[ipmtr], &lbound, &ubound);
             CHECK_STATUS(ocsmGetBnds);
 
             if (value < lbound) value = lbound;
             if (value > ubound) value = ubound;
-            status = ocsmSetValuD(MODL, pmtrindx[ipmtr], 1, 1, value);
+            status = ocsmSetValuD(MODL, pmtrindx[ipmtr], pmtrrow[ipmtr], pmtrcol[ipmtr], value);
             CHECK_STATUS(ocsmSetValuD);
         }
 
@@ -1272,7 +1376,7 @@ plugsPhase2(modl_T *MODL,               /* (in)  pointer to MODL */
         /* print the rms and DESPMTRs */
         SPRINT2x(1, "iter=%3d, rms=%10.3e, DESPMTRs=", iter, rms);
         for (ipmtr = 0; ipmtr < npmtr; ipmtr++) {
-            status = ocsmGetValu(MODL, pmtrindx[ipmtr], 1, 1, &value, &dot);
+            status = ocsmGetValu(MODL, pmtrindx[ipmtr], pmtrrow[ipmtr], pmtrcol[ipmtr], &value, &dot);
             CHECK_STATUS(ocsmGetValu);
 
             SPRINT1x(1, " %10.5f", value);
@@ -1282,7 +1386,7 @@ plugsPhase2(modl_T *MODL,               /* (in)  pointer to MODL */
            (making it more newton-like) */
         if (rms < *rmsbest) {
             for (ipmtr = 0; ipmtr < npmtr; ipmtr++) {
-                status = ocsmGetValu(MODL, pmtrindx[ipmtr], 1, 1, &(pmtrbest[ipmtr]), &dot);
+                status = ocsmGetValu(MODL, pmtrindx[ipmtr], pmtrrow[ipmtr], pmtrcol[ipmtr], &(pmtrbest[ipmtr]), &dot);
                 CHECK_STATUS(ocsmGetPmtr);
             }
             *rmsbest  = rms;
@@ -1305,7 +1409,7 @@ plugsPhase2(modl_T *MODL,               /* (in)  pointer to MODL */
                 qerr[3*icloud+2] = qerrbest[3*icloud+2];
             }
             for (ipmtr = 0; ipmtr < npmtr; ipmtr++) {
-                status = ocsmSetValuD(MODL, pmtrindx[ipmtr], 1, 1, pmtrbest[ipmtr]);
+                status = ocsmSetValuD(MODL, pmtrindx[ipmtr], pmtrrow[ipmtr], pmtrcol[ipmtr], pmtrbest[ipmtr]);
                 CHECK_STATUS(ocsmSetValuD);
             }
             scaleDiag  = 1;
@@ -1340,7 +1444,7 @@ plugsPhase2(modl_T *MODL,               /* (in)  pointer to MODL */
     /* if the last build was a rejection, rebuild with the best */
     if (rms >= *rmsbest) {
         for (ipmtr = 0; ipmtr < npmtr; ipmtr++) {
-            status = ocsmSetValuD(MODL, pmtrindx[ipmtr], 1, 1, pmtrbest[ipmtr]);
+            status = ocsmSetValuD(MODL, pmtrindx[ipmtr], pmtrrow[ipmtr], pmtrcol[ipmtr], pmtrbest[ipmtr]);
             CHECK_STATUS(ocsmSetValuD);
         }
 
@@ -1353,8 +1457,9 @@ plugsPhase2(modl_T *MODL,               /* (in)  pointer to MODL */
         (void) ocsmSetOutLevel(oldOutLevel);
         if (status < SUCCESS) {
             for (ipmtr = 0; ipmtr < npmtr; ipmtr++) {
-                SPRINT3(1, "error  DESPMTR %3d: %20s = %10.5f",
-                        ipmtr, MODL->pmtr[pmtrindx[ipmtr]].name, MODL->pmtr[pmtrindx[ipmtr]].value[0]);
+                SPRINT5(1, "error  DESPMTR %3d: %20s[%2d,%2d] = %10.5f",
+                        ipmtr, MODL->pmtr[pmtrindx[ipmtr]].name,
+                        pmtrrow[ipmtr], pmtrcol[ipmtr], MODL->pmtr[pmtrindx[ipmtr]].value[0]);
             }
         }
         CHECK_STATUS(ocsmBuild);
@@ -1399,7 +1504,7 @@ plugsPhase2(modl_T *MODL,               /* (in)  pointer to MODL */
         /* now pertrub each of the DESPMTRs, one at a time, and compute the rms by inverse evaluations */
         for (ipmtr = 0; ipmtr < npmtr; ipmtr++) {
 
-            status = ocsmGetBnds(MODL, pmtrindx[ipmtr], 1, 1, &lbound, &ubound);
+            status = ocsmGetBnds(MODL, pmtrindx[ipmtr], pmtrrow[ipmtr], pmtrcol[ipmtr], &lbound, &ubound);
             CHECK_STATUS(ocsmGetBnds);
 
             /* decrease by 5% */
@@ -1408,7 +1513,7 @@ plugsPhase2(modl_T *MODL,               /* (in)  pointer to MODL */
             } else {
                 value = MIN(pmtrbest[ipmtr]/1.05, ubound);
             }
-            status = ocsmSetValuD(MODL, pmtrindx[ipmtr], 1, 1, value);
+            status = ocsmSetValuD(MODL, pmtrindx[ipmtr], pmtrrow[ipmtr], pmtrcol[ipmtr], value);
             CHECK_STATUS(ocsmSetValuD);
 
             nbody = 0;
@@ -1451,7 +1556,7 @@ plugsPhase2(modl_T *MODL,               /* (in)  pointer to MODL */
             } else {
                 value = MAX(pmtrbest[ipmtr]*1.05, lbound);
             }
-            status = ocsmSetValuD(MODL, pmtrindx[ipmtr], 1, 1, value);
+            status = ocsmSetValuD(MODL, pmtrindx[ipmtr], pmtrrow[ipmtr], pmtrcol[ipmtr], value);
             CHECK_STATUS(ocsmSetValuD);
 
             nbody = 0;
@@ -1489,14 +1594,14 @@ plugsPhase2(modl_T *MODL,               /* (in)  pointer to MODL */
             }
 
             /* set back to nominal value */
-            status = ocsmSetValuD(MODL, pmtrindx[ipmtr], 1, 1, pmtrbest[ipmtr]);
+            status = ocsmSetValuD(MODL, pmtrindx[ipmtr], pmtrrow[ipmtr], pmtrcol[ipmtr], pmtrbest[ipmtr]);
             CHECK_STATUS(ocsmSetValuD);
         }
 
         if (iperturb > 0) {
             pmtrbest[+iperturb] = valperturb;
 
-            status = ocsmSetValuD(MODL, pmtrindx[+iperturb], 1, 1, pmtrbest[+iperturb]);
+            status = ocsmSetValuD(MODL, pmtrindx[+iperturb], pmtrrow[+iperturb], pmtrcol[+iperturb], pmtrbest[+iperturb]);
             CHECK_STATUS(ocsmSetValuD);
 
             SPRINT2(1, "    restarting with ipmtr=%2d perturbed to %12.5f", +iperturb, pmtrbest[+iperturb]);
@@ -1505,7 +1610,7 @@ plugsPhase2(modl_T *MODL,               /* (in)  pointer to MODL */
         } else if (iperturb < 0) {
             pmtrbest[-iperturb] = valperturb;
 
-            status = ocsmSetValuD(MODL, pmtrindx[-iperturb], 1, 1, pmtrbest[-iperturb]);
+            status = ocsmSetValuD(MODL, pmtrindx[-iperturb], pmtrrow[-iperturb], pmtrcol[-iperturb], pmtrbest[-iperturb]);
             CHECK_STATUS(ocsmSetValuD);
 
             SPRINT2(1, "    restarting with ipmtr=%2d perturbed to %12.5f", -iperturb, pmtrbest[-iperturb]);
@@ -1561,6 +1666,7 @@ cleanup:
 
     FREE(mat);
     FREE(rhs);
+    FREE(www);
     FREE(xxx);
 
     FREE(pmtrbest);
@@ -1578,6 +1684,7 @@ cleanup:
  ************************************************************************
  */
 
+//#ifdef UNUSED
 static int
 matsol(double    A[],                   /* (in)  matrix to be solved (stored rowwise) */
                                         /* (out) upper-triangular form of matrix */
@@ -1656,6 +1763,7 @@ matsol(double    A[],                   /* (in)  matrix to be solved (stored row
 cleanup:
     return status;
 }
+//#endif
 
 
 /*

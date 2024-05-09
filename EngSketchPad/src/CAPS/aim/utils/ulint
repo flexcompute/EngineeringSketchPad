@@ -1,0 +1,2 @@
+#
+lint -I../../include -I$ESP_ROOT/include -I$HOME/bin/splint arrayUtils.c attrUtils.c cardUtils.c cfdUtils.c deprecateUtils.c feaUtils.c jsonUtils.c meshUtils.c miscUtils.c nastranCards.c nastranUtils.c tecplotUtils.c vlmUtils.c -uniondef -exportlocal -nullpass -retvalother -evalorder -nullderef -initallelements -bufferoverflowhigh -boolops -dependenttrans -kepttrans -immediatetrans

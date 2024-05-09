@@ -3,7 +3,7 @@
  *
  *             fun3d/aflr4 AIM tester
  *
- *      Copyright 2014-2022, Massachusetts Institute of Technology
+ *      Copyright 2014-2024, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -49,7 +49,7 @@ printErrors(int nErr, capsErrs *errors)
       printf("%s\n", lines[j]);
     }
   }
-  
+
   caps_freeError(errors);
 }
 
@@ -71,11 +71,9 @@ int main(int argc, char *argv[])
 
     // Input values
     capsTuple        *tupleVal = NULL;
-    int               tupleSize = 5;
-    double            doubleVal;
+    int               tupleSize = 4;
+    double            doubleVal, tessParams[3];
     enum capsBoolean  boolVal;
-
-    char *stringVal = NULL;
 
     int state;
     int major, minor, nFields, *ranks, *fInOut, dirty, exec;
@@ -84,8 +82,9 @@ int main(int argc, char *argv[])
     char analysisPath1[PATH_MAX] = "runDirectory1";
     char analysisPath2[PATH_MAX] = "runDirectory2";
     char currentPath[PATH_MAX];
+    const char projectName[] = "AFLR2_Test";
 
-    printf("\n\nAttention: fun3dAFLR2Test is hard coded to look for ../csmData/cfdMultiBody.csm\n");
+    printf("\n\nAttention: fun3dAFLR2Test is hard coded to look for ../csmData/cfd2D.csm\n");
 
     if (argc > 2) {
         printf(" usage: fun3dAFLR2Test outLevel!\n");
@@ -119,8 +118,40 @@ int main(int argc, char *argv[])
     if (nErr != 0) printErrors(nErr, errors);
     if (status != CAPS_SUCCESS) goto cleanup;
 
-    stringVal = EG_strdup("mquad=1 mpp=3");
-    status = caps_setValue(tempObj, String, 1, 1, (void *) stringVal,
+    status = caps_setValue(tempObj, String, 1, 1, (void *) "mquad=1 mpp=3",
+                           NULL, NULL, &nErr, &errors);
+    if (nErr != 0) printErrors(nErr, errors);
+    if (status != CAPS_SUCCESS) goto cleanup;
+
+    status = caps_childByName(meshObj, VALUE, ANALYSISIN, "Tess_Params", &tempObj,
+                              &nErr, &errors);
+    if (nErr != 0) printErrors(nErr, errors);
+    if (status != CAPS_SUCCESS) goto cleanup;
+
+    tessParams[0] = 1.0;
+    tessParams[1] = 0.2;
+    tessParams[2] = 0.15;
+    status = caps_setValue(tempObj, Double, 3, 1, (void **) tessParams,
+                           NULL, NULL, &nErr, &errors);
+    if (nErr != 0) printErrors(nErr, errors);
+    if (status != CAPS_SUCCESS) goto cleanup;
+
+    status = caps_childByName(meshObj, VALUE, ANALYSISIN, "Proj_Name", &tempObj,
+                              &nErr, &errors);
+    if (nErr != 0) printErrors(nErr, errors);
+    if (status != CAPS_SUCCESS) goto cleanup;
+
+    status = caps_setValue(tempObj, String, 1, 1, (void **) projectName,
+                           NULL, NULL, &nErr, &errors);
+    if (nErr != 0) printErrors(nErr, errors);
+    if (status != CAPS_SUCCESS) goto cleanup;
+
+    status = caps_childByName(meshObj, VALUE, ANALYSISIN, "Mesh_Format", &tempObj,
+                              &nErr, &errors);
+    if (nErr != 0) printErrors(nErr, errors);
+    if (status != CAPS_SUCCESS) goto cleanup;
+
+    status = caps_setValue(tempObj, String, 1, 1, (void **) "Tecplot",
                            NULL, NULL, &nErr, &errors);
     if (nErr != 0) printErrors(nErr, errors);
     if (status != CAPS_SUCCESS) goto cleanup;
@@ -152,9 +183,6 @@ int main(int argc, char *argv[])
 
     tupleVal[3].name  = EG_strdup("OutFlow");
     tupleVal[3].value = EG_strdup("{\"bcType\": \"SubsonicOutflow\", \"staticPressure\": 1}");
-
-    tupleVal[4].name  = EG_strdup("2DSlice");
-    tupleVal[4].value = EG_strdup("SymmetryY");
 
     status = caps_setValue(tempObj, Tuple, tupleSize, 1,  (void **) tupleVal,
                            NULL, NULL, &nErr, &errors);
@@ -259,7 +287,6 @@ cleanup:
         }
         EG_free(tupleVal);
     }
-    if (stringVal != NULL) EG_free(stringVal);
 
     i = 0;
     if (status == CAPS_SUCCESS) i = 1;

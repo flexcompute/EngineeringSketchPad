@@ -1,0 +1,29 @@
+# kulfan_udp_1
+# written by John Dannenhoffer
+
+# first airfoil
+UDPARG    kulfan    class     "0.5;    1.0;   "
+UDPARG    kulfan    ztail     "0.0012; -.0012;"
+UDPARG    kulfan    aupper    "0.2139; 0.2884; 0.2354; 0.2870;"
+UDPRIM    kulfan    alower    "-.1243; -.0203; -.0372; 0.0012;"
+
+# second airfoil (thick trailing edge)
+UDPARG    kulfan    class     "0.5;    1.0;   "
+UDPARG    kulfan    ztail     "0.0012; -.0012;"
+UDPARG    kulfan    aupper    "0.2216; 0.2207; 0.3254; 0.1852; 0.3102; 0.2410; 0.2887;"
+UDPRIM    kulfan    alower    "-.1822; -.0783; -.0176; -.0676; -.0048; -.0190; -.0050;"
+
+TRANSLATE 0  1/2  0
+
+# third airfoil (thin trailing edge)
+UDPARG    kulfan    class     "0.5;    1.0;   "
+UDPARG    kulfan    ztail     "0.0000; 0.0000;"
+UDPARG    kulfan    aupper    "0.2216; 0.2207; 0.3254; 0.1852; 0.3102; 0.2410; 0.2887;"
+UDPRIM    kulfan    alower    "-.1822; -.0783; -.0176; -.0676; -.0048; -.0190; -.0050;"
+
+TRANSLATE 0  1  0
+
+END
+
+
+

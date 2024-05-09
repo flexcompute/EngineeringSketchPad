@@ -1,0 +1,56 @@
+# despmtr_1
+# written by John Dannenhoffer
+
+# A is scalar DESPMTR
+DESPMTR   A     1
+
+# B, C, and D are 3x1 vector DESPMTRs
+DIMENSION B     3  1
+DESPMTR   B     1;2;3
+
+DIMENSION C     3  1
+DESPMTR   C      1;2          # 2 is repeated to fill out array
+
+DIMENSION D     3  1
+DESPMTR   D     1;2;3;4       # 4 is lost
+
+# E and F are 3x2 matrix DESPMTRs
+DIMENSION E     3  2
+DIMENSION F     3  2
+DESPMTR   E     "5;6;7;\
+                 5;6;7;"
+DESPMTR   F     "0;0;0;\
+                 1;1;1"
+
+# make points
+POINT     A[1]  0  0
+SELECT    NODE
+ATTRIBUTE _color $red
+
+PATBEG    i  B.size
+   POINT     B[i]  1  0
+   SELECT    NODE
+   ATTRIBUTE _color $green
+PATEND
+
+PATBEG    i  C.nrow
+   POINT     C[i]  2  0
+   SELECT    NODE
+   ATTRIBUTE _color $blue
+PATEND
+
+PATBEG    i  D.size
+   POINT     D[i]  3  0
+   SELECT    NODE
+   ATTRIBUTE _color $cyan
+PATEND
+
+PATBEG    i  E.nrow
+   PATBEG    j  E.ncol
+      POINT  E[i,j]  F[i,j]  0
+      SELECT NODE
+      ATTRIBUTE _color $magenta
+   PATEND
+PATEND
+
+END

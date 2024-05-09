@@ -7,6 +7,9 @@ import shutil
 
 import pyCAPS
 
+from Mesh_Formats import Mesh_Formats
+Mesh_Formats = Mesh_Formats.copy()
+
 class TestEGADS(unittest.TestCase):
 
     @classmethod
@@ -43,12 +46,9 @@ class TestEGADS(unittest.TestCase):
 
         # Set project name so a mesh file is generated
         myAnalysis.input.Proj_Name = "pyCAPS_egadsTess_Test"
-        
+
         # Run silent
         myAnalysis.input.Mesh_Quiet_Flag = True
-
-        # Set output grid format since a project name is being supplied - Tecplot  file
-        myAnalysis.input.Mesh_Format = "Tecplot"
 
         # Set output grid format since a project name is being supplied - Tecplot  file
         myAnalysis.input.Mesh_Length_Factor = -1
@@ -71,16 +71,15 @@ class TestEGADS(unittest.TestCase):
         myAnalysis.input.Mesh_Length_Factor = 1.05
         myAnalysis.input.Tess_Params = [0.1, 0.01, 15.0]
         myAnalysis.input.Mesh_Format = "Tecplot"
-        myAnalysis.input.Mesh_ASCII_Flag = True
         myAnalysis.input.Edge_Point_Min = 2
         myAnalysis.input.Edge_Point_Max = 10
-        
+
         # Modify local mesh sizing parameters
         Mesh_Sizing = {"Farfield": {"tessParams" : [0, 0.2, 30]}}
         myAnalysis.input.Mesh_Sizing = Mesh_Sizing
 
         myAnalysis.input.Mesh_Elements = "Quad"
-        myAnalysis.input.Multiple_Mesh = True
+        myAnalysis.input.Multiple_Mesh = "SingleDomain"
         myAnalysis.input.TFI_Templates = False
 
 #==============================================================================
@@ -115,7 +114,7 @@ class TestEGADS(unittest.TestCase):
         myProblem = pyCAPS.Problem(self.problemName+str(self.iProb), capsFile=file, outLevel=0); self.__class__.iProb += 1
 
         myAnalysis = myProblem.analysis.create(aim = "egadsTessAIM")
-        
+
         # Run silent
         myAnalysis.input.Mesh_Quiet_Flag = True
 
@@ -143,9 +142,11 @@ class TestEGADS(unittest.TestCase):
 
         myAnalysis.input.Mesh_Length_Factor = 1
 
+        myAnalysis.input.Mesh_Format = Mesh_Formats
+
         # Run 1st time
         myAnalysis.runAnalysis()
-        
+
         NumberOfElement_1 = myAnalysis.output.NumberOfElement
 
         myAnalysis.input.Mesh_Length_Factor = 2
@@ -214,7 +215,7 @@ class TestEGADS(unittest.TestCase):
         # Just make sure it runs without errors...
         egadsTess.runAnalysis()
 
-        #egadsTess.view()
+        #egadsTess.geometry.view()
 
 #==============================================================================
     def test_sphere(self):
@@ -230,7 +231,7 @@ class TestEGADS(unittest.TestCase):
         # Just make sure it runs without errors...
         egadsTess.runAnalysis()
 
-        #egadsTess.view()
+        #egadsTess.geometry.view()
 
 #==============================================================================
     def test_boxhole(self):
@@ -246,7 +247,7 @@ class TestEGADS(unittest.TestCase):
         # Just make sure it runs without errors...
         egadsTess.runAnalysis()
 
-        #egadsTess.view()
+        #egadsTess.geometry.view()
 
 #==============================================================================
     def test_bullet(self):
@@ -262,7 +263,7 @@ class TestEGADS(unittest.TestCase):
         # Just make sure it runs without errors...
         egadsTess.runAnalysis()
 
-        #egadsTess.view()
+        #egadsTess.geometry.view()
 
 #==============================================================================
     def test_nodeBody(self):
@@ -278,7 +279,7 @@ class TestEGADS(unittest.TestCase):
         # Just make sure it runs without errors...
         egadsTess.runAnalysis()
 
-        #egadsTess.view()
+        #egadsTess.geometry.view()
 
 #==============================================================================
     def test_all(self):
@@ -286,21 +287,26 @@ class TestEGADS(unittest.TestCase):
         # Load egadsTess aim
         egadsTess = self.myProblem.analysis.create(aim = "egadsTessAIM",
                                                    name = "All",
-                                                   capsIntent = ["box", "cylinder", "cone", "torus", "sphere", "boxhole", "bullet", "nodeBody", "farfield"]) 
+                                                   capsIntent = ["box", "cylinder", "cone", "torus", "sphere", "boxhole", "bullet", "nodeBody", "farfield"])
 
         # Run silent
         egadsTess.input.Mesh_Quiet_Flag = True
 
         # Just make sure it runs without errors...
+        egadsTess.input.Multiple_Mesh = 'SingleDomain'
+        egadsTess.runAnalysis()
+        egadsTess.input.Multiple_Mesh = 'MultiDomain'
+        egadsTess.runAnalysis()
+        egadsTess.input.Multiple_Mesh = 'MultiFile'
         egadsTess.runAnalysis()
 
-        #egadsTess.view()
+        #egadsTess.geometry.view()
 
 #==============================================================================
     def test_phase(self):
 
         file = os.path.join("..","csmData","cornerGeom.csm")
-        
+
         problemName = self.problemName + "_Phase"
         myProblem = pyCAPS.Problem(problemName, phaseName="Phase0", capsFile=file, outLevel=0)
 
@@ -316,7 +322,7 @@ class TestEGADS(unittest.TestCase):
         egadsTess.input.Mesh_Sizing = Mesh_Sizing
 
         egadsTess.input.Mesh_Length_Factor = 1
-        
+
         NumberOfNode_1    = egadsTess.output.NumberOfNode
         NumberOfElement_1 = egadsTess.output.NumberOfElement
 
@@ -326,7 +332,7 @@ class TestEGADS(unittest.TestCase):
         myProblem = pyCAPS.Problem(problemName, phaseName="Phase1", phaseStart="Phase0", outLevel=0)
 
         egadsTess = myProblem.analysis["egadsTess"]
-        
+
         # Check that the same outputs are still available
         self.assertTrue(egadsTess.output.Done)
         self.assertEqual(NumberOfNode_1   , egadsTess.output.NumberOfNode   )
@@ -334,7 +340,7 @@ class TestEGADS(unittest.TestCase):
 
         # Coarsen the mesh
         egadsTess.input.Mesh_Length_Factor = 2
-        
+
         NumberOfNode_2    = egadsTess.output.NumberOfNode
         NumberOfElement_2 = egadsTess.output.NumberOfElement
 
@@ -426,28 +432,28 @@ class TestEGADS(unittest.TestCase):
 
         capsFile = os.path.join("..","csmData","cornerGeom.csm")
         problemName = self.problemName+str(self.iProb)
-        
+
         myProblem = pyCAPS.Problem(problemName, capsFile=capsFile, outLevel=0)
 
         # Run once to get the total line count
         line_total = self.run_journal(myProblem, -1)
-        
+
         myProblem.close()
         shutil.rmtree(problemName)
-        
+
         #print(80*"=")
         #print(80*"=")
         # Create the problem to start journaling
         myProblem = pyCAPS.Problem(problemName, capsFile=capsFile, outLevel=0)
         myProblem.close()
-        
+
         for line_exit in range(line_total):
             #print(80*"=")
             myProblem = pyCAPS.Problem(problemName, phaseName="Scratch", capsFile=capsFile, outLevel=0)
             self.run_journal(myProblem, line_exit)
             myProblem.close()
-            
+
         self.__class__.iProb += 1
-        
+
 if __name__ == '__main__':
     unittest.main()

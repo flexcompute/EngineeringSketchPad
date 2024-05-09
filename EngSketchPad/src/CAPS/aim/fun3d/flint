@@ -1,0 +1,2 @@
+#
+lint -I$ESP_ROOT/include -I../utils -I$HOME/bin/splint -Dstrcasecmp=strcmp fun3dAIM.c fun3dUtils.c -exportlocal -uniondef -nestcomment -bufferoverflowhigh -boolops

@@ -3,7 +3,7 @@
  *
  *             Display the EGADS Geometry using wv (the WebViewer)
  *
- *      Copyright 2011-2022, Massachusetts Institute of Technology
+ *      Copyright 2011-2024, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -13,16 +13,18 @@
 #include <string.h>
 #include <unistd.h>		// usleep
 
+#include "egads.h"
+#include "wsserver.h"
+
 #ifdef WIN32
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
 #endif
 #include <winsock2.h>
+#ifndef snprintf
+#define snprintf _snprintf
 #endif
-
-#include "egads.h"
-#include "wsserver.h"
-
+#endif
 
 #define NCOLOR 256
 //#define CONVERT
@@ -480,7 +482,7 @@ int main(int argc, char *argv[])
           m++;          
         }
 
-      sprintf(gpname, "Body %d Face %d", ibody+1, i+1);
+      snprintf(gpname, 32, "Body %d Face %d", ibody+1, i+1);
       stat = wv_setData(WV_REAL64, len, (void *) xyzs,  WV_VERTICES, &items[0]);
       if (stat < 0) printf(" wv_setData = %d for %s/item 0!\n", i, gpname);
       wv_adjustVerts(&items[0], focus);
@@ -527,7 +529,7 @@ int main(int argc, char *argv[])
         segs[2*j+1] = j + 2;          
       }
 
-      sprintf(gpname, "Body %d Edge %d", ibody+1, i+1);
+      snprintf(gpname, 32, "Body %d Edge %d", ibody+1, i+1);
       stat = wv_setData(WV_REAL64, len, (void *) xyzs, WV_VERTICES, &items[0]);
       if (stat < 0) printf(" wv_setData = %d for %s/item 0!\n", i, gpname);
       wv_adjustVerts(&items[0], focus);

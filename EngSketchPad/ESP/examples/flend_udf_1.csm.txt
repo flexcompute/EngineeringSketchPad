@@ -1,0 +1,23 @@
+# flend_udf_1
+# written by John Dannenhoffer
+
+# left box (without right Face)
+BOX       -2 -1 -1  1  2  2
+SELECT    FACE
+SELECT    SUB  @nbody  2
+EXTRACT   @sellist
+
+# right box (without left Face)
+BOX        1  0 -1  1  1  1
+SELECT    FACE
+SELECT    SUB  @nbody  1
+EXTRACT   @sellist
+
+# make a flend between the exposed Edges
+UDPRIM    flend
+
+# in the following statement, 0 is a wildcard
+SELECT    face @nbody 0
+   ATTRIBUTE _color $cyan
+
+END

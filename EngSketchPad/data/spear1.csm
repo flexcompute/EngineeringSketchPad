@@ -80,6 +80,8 @@ set       Sf        0.3*sind(finAng)
 
 dimension edgeList 2 2 0
 
+# note: MACBEG/MACEND/RECALL has been deprecated and is included here for backward-compatability testing
+#       new .csm files should use UDPRIM instead
 macbeg 2
    skbeg     x8        y8        -finWidth/2
       linseg x9        y9        -finWidth/2

@@ -66,14 +66,14 @@ class TestProblem(unittest.TestCase):
         self.assertIs(fun3dVert  , Upper_Left.vertexSet["fun3d"])
         self.assertIs(nastranVert, Upper_Left.vertexSet["nastran"])
 
-        fun3dVert.dataSet.create("Pressure", pyCAPS.fType.FieldOut)
-        nastranVert.dataSet.create("Pressure", pyCAPS.fType.FieldIn)
+        fun3dVert.dataSet.create("Pressure")
+        nastranVert.dataSet.create("Pressure")
 
-        fun3dVert.dataSet.create("Displacement", pyCAPS.fType.FieldIn)
-        nastranVert.dataSet.create("Displacement", pyCAPS.fType.FieldOut)
+        fun3dVert.dataSet.create("Displacement")
+        nastranVert.dataSet.create("Displacement")
 
-        fun3dVert.dataSet.create("EigenVector_1", pyCAPS.fType.FieldIn)
-        nastranVert.dataSet.create("EigenVector_1", pyCAPS.fType.FieldOut)
+        fun3dVert.dataSet.create("EigenVector_1")
+        nastranVert.dataSet.create("EigenVector_1")
 
         nastranVert.dataSet["Pressure"].link(fun3dVert.dataSet["Pressure"])
         fun3dVert.dataSet["Displacement"].link(nastranVert.dataSet["Displacement"])

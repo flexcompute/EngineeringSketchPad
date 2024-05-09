@@ -46,11 +46,12 @@ myAnalysis = myProblem.analysis.create(aim = "cart3dAIM")
 # -----------------------------------------------------------------
 
 ## [setInputs]
-myAnalysis.input.Mach      = 0.95
+myAnalysis.input.Mach      = 0.5
 myAnalysis.input.alpha     = 2.0
 myAnalysis.input.maxCycles = 10
 myAnalysis.input.nDiv      = 6
 myAnalysis.input.maxR      = 9
+myAnalysis.input.y_is_spanwise = True
 ## [setInputs]
 
 # -----------------------------------------------------------------

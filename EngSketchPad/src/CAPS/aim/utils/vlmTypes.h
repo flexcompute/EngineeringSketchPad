@@ -2,9 +2,10 @@
 
 // Structures for vortex lattice analysis - Written by Dr. Ryan Durscher AFRL/RQVC
 
-#ifndef VLMTYPES_H
-#define VLMTYPES_H
+#ifndef _AIM_UTILS_VLMTYPES_H_
+#define _AIM_UTILS_VLMTYPES_H_
 
+#include <egadsTypes.h>
 
 typedef enum  {vlmGENERIC, vlmPLANEYZ, vlmRADIAL} vlmSystemEnum;
 
@@ -24,6 +25,9 @@ typedef struct {
     int    leOrTe; // Leading = 0 or trailing > 0 edge control surface
 
     int  deflectionDup; // Sign of deflection for duplicated surface
+
+    char *surfaceSymmetry; // Control surface type of symmetry
+
 } vlmControlStruct;
 
 typedef struct {
@@ -63,6 +67,8 @@ typedef struct {
     double Cspace;
     double Sspace;
 
+    double CLaf;
+
     int    Nchord;
     int    NspanTotal;    // Total number of spanwise vortices (elements) on the surface
     int    NspanSection;  // Number of spanwise vortices on each section of the surface
@@ -80,4 +86,4 @@ typedef struct {
 
 } vlmSurfaceStruct;
 
-#endif
+#endif // _AIM_UTILS_VLMTYPES_H_

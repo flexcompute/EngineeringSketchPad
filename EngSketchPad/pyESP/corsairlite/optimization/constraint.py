@@ -427,8 +427,8 @@ class Constraint(object):
 # Evaluates the variable to a quantity by taking in a design point
 # =====================================================================================================================
     def evaluate(self, x_star):
-        newLHS = self.LHS.substitute(substitutions = x_star)
-        newRHS = self.RHS.substitute(substitutions = x_star)
+        newLHS = self.LHS.evaluate(x_star)
+        newRHS = self.RHS.evaluate(x_star)
         if self.operator == '==':
             rv = newLHS == newRHS
         if self.operator == '>=':

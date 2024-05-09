@@ -1,0 +1,19 @@
+# eqn2body_udp_2
+# written by John Dannenhoffer
+
+DESPMTR   rbegx     2.0       # x-radius at beginning
+DESPMTR   rendx     1.0       # x-radius at end
+DESPMTR   rbegy     1.0       # y-radius at beginning
+DESPMTR   rendy     2.0       # y-radius at end
+DESPMTR   height    3.0       # height of frustrum
+CFGPMTR   npnt      33        # number of pionts in each direction
+
+# generate Body
+UDPARG    eqn2body    urange   0;1
+UDPARG    eqn2body    vrange   0;pi(2)
+UDPARG    eqn2body    xeqn     $(rbegx'+(rendx-rbegx')*u')*cos(v')
+UDPARG    eqn2body    yeqn     $(rbegy'+(rendy-rbegy')*u')*sin(v')
+UDPARG    eqn2body    zeqn     $height*u
+UDPRIM    eqn2body    npnt     npnt
+
+END

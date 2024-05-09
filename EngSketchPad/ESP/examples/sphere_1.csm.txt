@@ -1,0 +1,12 @@
+# sphere_1
+# written by John Dannenhoffer
+
+SPHERE    1  1  0  1/2 (SolidBody)
+ASSERT    @itype  3
+
+SELECT    FACE   @nbody 1     # iford=1 in red
+ATTRIBUTE _color $red
+SELECT    FACE   @nbody 2     # iford=2 in green
+ATTRIBUTE _color $green
+
+END

@@ -1,0 +1,187 @@
+#
+INTERFACE . ALL
+
+# Build elliptical portion of the fuselage
+MARK
+
+# for making the nose rounded
+# old approach from 1.17
+#    UDPRIM ellipse ry Fuselage:dY[1]*0.1 rz Fuselage:dZ[1]*0.1
+#    TRANSLATE Fuselage:X[1]-0.000001 0 Fuselage:Z[1]
+# new approach after fixing seg fault (TODO: this really slows down sensitivities)
+#    SKBEG       Fuselage:X[1] 0 Fuselage:Z[1]
+#    SKEND
+    POINT Fuselage:X[1] 0 Fuselage:Z[1]
+
+    PATBEG      isect   Fuselage:Nsect
+        UDPRIM          ellipse ry Fuselage:dY[isect] rz Fuselage:dZ[isect]
+        TRANSLATE       Fuselage:X[isect] 0 Fuselage:Z[isect]
+    PATEND
+
+BLEND
+  ATTRIBUTE capsMesh $Skin_Fuse
+  ATTRIBUTE capsGroup $Skin_Fuse
+
+IFTHEN COMP:wingHub EQ 1
+
+    STORE tube
+
+    # add wing-fuselage hub
+    SET     BUFF            0.1
+    SET     dYcenter        Fuselage:dYwingHub
+    SET     dZcenter        Fuselage:dZwingHub
+    SET     Zcenter         Fuselage:ZwingHub
+
+    # use airfoil section at fuselage-wing junction to shift/scale wing hub
+    IFTHEN COMP:Wing EQ 1
+        SET     Croot           Wing:inboardSec:Croot
+        SET     c4rootX         Wing:inboardSec:c4rootX
+    ELSE
+        SET     Croot           11
+        SET     c4rootX         26.5
+    ENDIF
+
+    MARK # first section
+    
+        # artificially add upstream, scaled down section to avoid exposed edge
+        SET     newX    c4rootX+Croot*Fuselage:wingHub1:XlocNorm[1]
+        SET     newX    newX-Croot*(Fuselage:wingHub1:XlocNorm[2]-Fuselage:wingHub1:XlocNorm[1])
+        SKBEG   newX    -BUFF       Zcenter
+            PATBEG  jsect   Fuselage:wingHub1:NptPerSect
+                SET     newY    0.95*Fuselage:wingHub1:YlocNorm[1,jsect]*dYcenter
+                SET     newZ    0.95*Fuselage:wingHub1:ZlocNorm[1,jsect]*dZcenter+Zcenter
+                SPLINE  newX    newY    newZ
+            PATEND
+            SPLINE  newX    -BUFF       Zcenter
+        SKEND   
+    
+        # for each sectional shape of hub1
+        PATBEG      isect   Fuselage:wingHub1:Nsect
+    
+            # new section's x-coordinate
+            SET     newX    c4rootX+Croot*Fuselage:wingHub1:XlocNorm[isect]
+    
+            # begin the line segment at fuselage center
+            SKBEG   newX    -BUFF       Zcenter
+    
+                # spline through each point
+                PATBEG  jsect   Fuselage:wingHub1:NptPerSect
+                    SET     newY    Fuselage:wingHub1:YlocNorm[isect,jsect]*dYcenter
+                    SET     newZ    Fuselage:wingHub1:ZlocNorm[isect,jsect]*dZcenter+Zcenter
+                    SPLINE  newX    newY    newZ
+                PATEND
+    
+                # line back to fuselage center
+                SPLINE  newX    -BUFF       Zcenter
+    
+            # end the line segment
+            SKEND
+    
+        PATEND
+    
+    # blend the sectional shapes together
+    BLEND
+      ATTRIBUTE capsMesh $Skin_Fuse
+      ATTRIBUTE capsGroup $Skin_Fuse
+    STORE    hub1
+    
+    MARK # middle section... flat surface in center of hub
+    
+        # add final section from hub1
+        SET     newX    c4rootX+Croot*Fuselage:wingHub1:XlocNorm[isect]
+        SKBEG   newX    -BUFF       Zcenter
+            PATBEG  jsect   Fuselage:wingHub1:NptPerSect
+                SET     newY    Fuselage:wingHub1:YlocNorm[isect,jsect]*dYcenter
+                SET     newZ    Fuselage:wingHub1:ZlocNorm[isect,jsect]*dZcenter+Zcenter
+                SPLINE  newX    newY    newZ
+            PATEND
+            SPLINE  newX    -BUFF       Zcenter
+        SKEND
+    
+        # add first section from hub2
+        SET     isect   1
+        SET     newX    c4rootX+Croot*Fuselage:wingHub2:XlocNorm[isect]
+        SKBEG   newX    -BUFF       Zcenter
+            PATBEG  jsect   Fuselage:wingHub2:NptPerSect
+                SET     newY    Fuselage:wingHub2:YlocNorm[isect,jsect]*dYcenter
+                SET     newZ    Fuselage:wingHub2:ZlocNorm[isect,jsect]*dZcenter+Zcenter
+                SPLINE  newX    newY    newZ
+            PATEND
+            SPLINE  newX    -BUFF       Zcenter
+        SKEND
+    
+    # blend the sectional shapes together
+    BLEND
+      ATTRIBUTE capsMesh $Skin_Fuse
+      ATTRIBUTE capsGroup $Skin_Fuse
+    STORE    hub2
+    
+    MARK # third section
+    
+        # for each sectional shape of hub3
+        PATBEG      isect   Fuselage:wingHub2:Nsect
+    
+            # new section's x-coordinate
+            SET     newX    c4rootX+Croot*Fuselage:wingHub2:XlocNorm[isect]
+    
+            # begin the line segment at fuselage center
+            SKBEG   newX    -BUFF       Zcenter
+    
+                # spline through each point
+                PATBEG  jsect   Fuselage:wingHub2:NptPerSect
+                    SET     newY    Fuselage:wingHub2:YlocNorm[isect,jsect]*dYcenter
+                    SET     newZ    Fuselage:wingHub2:ZlocNorm[isect,jsect]*dZcenter+Zcenter
+                    SPLINE  newX    newY    newZ
+                PATEND
+    
+                # return to fuselage center
+                SPLINE  newX    -BUFF       Zcenter
+    
+            # end the line segment
+            SKEND
+    
+        PATEND
+    
+        # artificially add downstream, scaled down section to avoid exposed edge
+        SET     isect   Fuselage:wingHub2:Nsect
+        SET     newX    c4rootX+Croot*Fuselage:wingHub2:XlocNorm[isect]
+        SET     newX    newX+Croot*(Fuselage:wingHub2:XlocNorm[isect]-Fuselage:wingHub2:XlocNorm[isect-1])
+        SKBEG   newX    -BUFF       Zcenter
+            PATBEG  jsect   Fuselage:wingHub2:NptPerSect
+                SET     newY    0.95*Fuselage:wingHub2:YlocNorm[isect,jsect]*dYcenter
+                SET     newZ    0.95*Fuselage:wingHub2:ZlocNorm[isect,jsect]*dZcenter+Zcenter
+                SPLINE  newX    newY    newZ
+            PATEND
+            SPLINE  newX    -BUFF       Zcenter
+        SKEND 
+    
+    BLEND
+      ATTRIBUTE capsMesh $Skin_Fuse
+      ATTRIBUTE capsGroup $Skin_Fuse
+
+    # combine the different sections
+    RESTORE hub2
+    UNION
+    RESTORE hub1
+    UNION
+    RESTORE tube
+    UNION
+
+ENDIF
+
+# cut off sliver containing nose point and tail face
+# TRANSLATE 0 -1.0001*Fuselage:dY[Fuselage:Nsect] 0
+TRANSLATE 0 -1.001*Fuselage:dY[Fuselage:Nsect] 0 # for ESP1.17...
+BOX (Fuselage:Xorigin-0.5*Fuselage:length) 0 (Fuselage:Zorigin-2*Fuselage:maxHeight) (2*Fuselage:length) -(2*Fuselage:maxWidth) (4*Fuselage:maxHeight)
+SUBTRACT
+
+#udprim editAttr filename <<
+#    edge adj2face capsMesh=Skin_Fuse
+#    set  capsMesh=Skin_Fuse
+#    set  capsGroup=Skin_Fuse
+#    node adj2face capsMesh=Skin_Fuse
+#    set  capsMesh=Skin_Fuse
+#    set  capsGroup=Skin_Fuse
+#>>
+
+END

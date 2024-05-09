@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['pycaps_20examples_254',['pyCAPS Examples',['../pyCAPSexamples.html',1,'']]]
+  ['nastran_20aim_20examples_277',['Nastran AIM Examples',['../../aim/nastran/examplesNastran.html',1,'']]]
 ];

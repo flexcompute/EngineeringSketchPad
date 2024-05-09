@@ -33,7 +33,7 @@ JOIN
 RESTORE   sketch 2
 TRANSLATE  5   5   0
 JOIN
-COMBINE
+ELEVATE
 
 # using RULE with triangle Edges cut equally
 MARK

@@ -1,0 +1,2 @@
+#
+lint server.c wv.c fwv.c libwebsockets.c sha-1.c base64-decode.c extension.c extension-deflate-stream.c extension-x-google-mux.c md5.c parsers.c handshake.c client-handshake.c -I../include -I. -I$HOME/bin/splint -DLWS_NO_FORK -DSTANDALONE -boolops -exitarg -fullinitblock -nullpass -mayaliasunique +charint -exportlocal -evalorder -shiftimplementation -bufferoverflowhigh -casebreak -kepttrans -retvalother -uniondef -immediatetrans -observertrans -preproc

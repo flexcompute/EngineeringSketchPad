@@ -1,0 +1,41 @@
+# sew_udp_1
+# written by John Dannenhoffer
+
+# create a box
+BOX       0   0   0   3   2   1
+
+# dump it into .igs and .stp files
+DUMP      sew1.igs
+DUMP      sew1.stp
+
+# read the .stp file and show that it contains 1 SolidBody
+STORE     ...                           # clear the stack
+IMPORT    sew1.stp    -1
+ASSERT    @stack.size  1
+ASSERT    @itype       3
+ASSERT    @nface       6
+
+# reading .stp file with UDPRIM SEW produces exactly the same as above
+STORE     ...                           # clear the stack
+UDPRIM    sew   filename $sew1.stp
+ASSERT    @stack.size  1
+ASSERT    @itype       3
+ASSERT    @nface       6
+
+# read the .igs file and show that it contains 1 SolidBody
+STORE     ...                           # clear the stack
+IMPORT    sew1.igs    -1
+ASSERT    @stack.size  1
+ASSERT    @itype       3
+ASSERT    @nface       6
+
+# reading .igs file with UDPRIM SEW produces exactly the same as above
+STORE     ...                           # clear the stack
+UDPRIM    sew   filename $sew1.igs
+ASSERT    @stack.size  1
+ASSERT    @itype       3
+ASSERT    @nface       6
+
+END
+
+

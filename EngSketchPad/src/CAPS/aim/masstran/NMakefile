@@ -25,8 +25,8 @@ $(LDIR)\masstranAIM.dll:	masstranAIM.def $(ODIR)\masstranAIM.obj $(LDIR)\utils.l
 	$(MCOMP) /manifest $(LDIR)\masstranAIM.dll.manifest \
 		/outputresource:$(LDIR)\masstranAIM.dll;2
 
-$(ODIR)\masstranAIM.obj:	masstranAIM.c $(IDIR)\capsTypes.h ..\utils\meshUtils.h
-	cl /c $(COPTS) $(DEFINE) /I$(IDIR) /I..\utils masstranAIM.c \
+$(ODIR)\masstranAIM.obj:	masstranAIM.cpp $(IDIR)\capsTypes.h ..\utils\meshUtils.h
+	cl /c $(CPPOPT) $(DEFINE) /I$(IDIR) /I..\utils masstranAIM.cpp \
 		/Fo$(ODIR)\masstranAIM.obj
 		
 $(BDIR)\Masstran.exe:	$(ODIR)\Masstran.obj

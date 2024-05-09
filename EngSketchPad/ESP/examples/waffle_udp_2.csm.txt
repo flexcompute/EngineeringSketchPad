@@ -1,0 +1,104 @@
+# waffle_udp_2
+# written by John Dannenhoffer
+
+# Valid statements in file are:
+#    CPOINT                   create a construction point (not in final waffle)
+#    CLINE                    create a construction line (not in final waffle)
+#    POINT                    create a waffle point
+#    LINE                     create one or more waffle segments
+#    SET                      sets a local varaible
+#    PATBEG/PATBREAK/PATEND   execute a pattern (loop)
+#    IFTHEN/ENDIF
+#
+# Variants of CPOINT and POINT:
+#    POINT <pname> AT <xloc> <yloc>
+#          creates point at <xloc,yloc>
+#    POINT <pname> ON <lname> FRAC <fracDist>
+#          creates point on <lname> at given fractional distance
+#    POINT <pname> ON <lname> XLOC <x>
+#          creates point on <lname> at given <x>
+#    POINT <pname> ON <lname> YLOC <y>
+#          creates point on <lname> at given <y>
+#    POINT <pname> ON <lname> PERP <pname2>
+#          creates point on <lname> that is closest to <pname2>
+#    POINT <pname> ON <lname> XSECT <lname2>
+#          creates point at intersection of <lname> and <lname2>
+#    POINT <pname> OFF <lname> <dist> <pname2>
+#          creates point <dist> to the left of <lname> at <pname2>
+#
+# Variants of CLINE and LINE:
+#    LINE . <pname1> <pname2> <attrName1=attrValue1>...
+#         creates unnamed line between <pname1> and <pname2> with given attribute(s) (if any)
+#    LINE <lname> <pname1> <pname2> <attrName1=attrValue1>...
+#         creates line named <lname> between <pname1> and <pname2> with given attribute(s) (if any)
+#
+# Format of SET:
+#    SET     varname  expression
+#
+# Format of PATBEG/PATBREAK/PATEND:
+#    PATBEG   varname  ncopy
+#    PATBREAK expr1 op expr2
+#        where op is LT LE EQ GE GT NE
+#    PATEND
+#
+# Format of IFTHEN/ENDIF:
+#    IFTHEN expr1 op expr2
+#        where op is LT LE EQ GE GT NE
+#    ENDIF
+#
+# note: keywords can be in lowercase or UPPERCASE
+# note coordinates of existing point <pname> are given by x@<pname> and y@<pname>
+# note: variables outside the waffle are avalilable
+
+SET      xA      -2.0
+SET      yA      -4.0
+
+UDPARG    waffle    depth    2.0
+UDPARG    waffle    progress 1          # prints progess in console
+UDPARG    waffle    rebuild  0          # forces waffle to be rebuilt
+UDPRIM    waffle    filename <<
+   POINT  A    AT  xA   yA
+   POINT  B    AT  5.0  4.0
+   POINT  C    AT  3.0 -1.0
+   LINE   AB   A  B          name=lineAB
+
+   POINT  D    ON AB XLOC x@C
+   LINE   .    C  D
+
+   POINT  E    ON AB YLOC y@C
+   LINE   .    C  E
+
+   POINT  F    ON AB FRAC  0.1
+   LINE   CF   C  F
+
+   POINT  G    at  4.0  4.0
+   POINT  H    at  7.0  1.0
+   CLINE  GH   G  H
+
+   POINT  I    ON AB XSECT GH
+   LINE   .    I  C
+
+   POINT  J    ON AB PERP C
+   LINE   .    J  G
+
+   POINT  K    ON GH XLOC 6.0
+   LINE   KB   K  B
+
+   POINT  L    ON GH YLOC 3.0
+   LINE   .    L  B
+
+   POINT  M    AT  0.1 -5.0
+   POINT  N    AT  0.1  5.0
+   CLINE  MN   M  N
+
+   POINT  O    ON MN XSECT AB
+   CPOINT P    ON MN XSECT CF          # does nothing
+
+   PATBEG i    3
+      POINT  Q  ON   KB FRAC (i/3)
+      POINT  R  AT   x@Q+1  y@Q
+      LINE   .  Q  R  name=!$rung_+i
+   PATEND
+>>
+
+END

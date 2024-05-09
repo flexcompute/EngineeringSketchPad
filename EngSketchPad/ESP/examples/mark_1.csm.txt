@@ -1,0 +1,24 @@
+# mark_1
+# written by John Dannenhoffer
+
+# red box
+BOX       0  0  0  1  1  1
+SELECT    FACE
+ATTRIBUTE _color $red
+
+MARK
+
+# green box
+BOX       2  0  0  1  1  1
+SELECT    FACE
+ATTRIBUTE _color $green
+
+# blue box
+BOX       4  0  0  1  1  1
+SELECT    FACE
+ATTRIBUTE _color $blue
+
+# remove boxes since mark
+STORE     ..
+
+END

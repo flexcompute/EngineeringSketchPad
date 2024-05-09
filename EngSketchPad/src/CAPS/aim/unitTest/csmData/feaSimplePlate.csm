@@ -22,5 +22,7 @@ patbeg    i  4
 patend
 
 rotatex angle 0 0
+select face
+   attribute .qParams $off
 
 end

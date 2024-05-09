@@ -1,16 +1,19 @@
 #
-DIRS = $(filter-out NMakefile, $(filter-out Makefile, $(wildcard *)))
+DIRS = $(filter-out NMakefile, $(filter-out Makefile, $(wildcard *Writer)))
 
 .PHONY:		$(DIRS)
 
 default:	$(DIRS)
 
 $(DIRS):
-	make -C $@ $(MAKECMDGOALS)
+	$(MAKE) -C $@ $(MAKECMDGOALS)
 
 lint:		$(DIRS)
 
 clean:		$(DIRS)
 
 cleanall:	$(DIRS)
+
+dox:
+doxclean:
 

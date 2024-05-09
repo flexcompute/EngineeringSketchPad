@@ -105,4 +105,4 @@ if args.noPlotData == False:
         print ("Unable to import matplotlib.pyplot module. Drag polar will not be plotted")
 
 # Check assertation
-assert abs(Cl[0]-0.9867) <= 1E-4 and abs(Cd[0]-0.01259) <= 1E-4
+assert abs(Cl[0]-1.05475230552582) <= 1E-4 and abs(Cd[0]-.0131991208675814) <= 1E-4

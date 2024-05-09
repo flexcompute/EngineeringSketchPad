@@ -1,0 +1,488 @@
+#
+INTERFACE . ALL
+SET  structAIMs $nastranAIM;astrosAIM;mystranAIM;egadsTessAIM;masstranAIM
+#------------------------------------------------------------------------------#
+#
+# inputs:
+#
+#   Wing-fuselage junction:
+#       Wing:inboardSec:c4rootX  :  quarter-chord x-coordinate
+#       Wing:inboardSec:c4rootY  :  quarter-chord y-coordinate
+#       Wing:inboardSec:Croot    :  chord length
+#       Wing:sparLE_fuseWing     :  [fraction of chord] leading edge spar location
+#       Wing:sparTE_fuseWing     :  [fraction of chord] trailing edge spar location
+#
+#   Yehudi:
+#       Wing:inboardSec:c4tipX
+#       Wing:inboardSec:c4tipY
+#       Wing:inboardSec:Ctip
+#       Wing:sparLE_yehudi
+#       Wing:sparTE_yehudi
+#
+#   Wing tip:
+#       Wing:outboardSec:c4tipX
+#       Wing:outboardSec:c4tipY
+#       Wing:outboardSec:Ctip
+#       Wing:sparLE_tip
+#       Wing:sparTE_tip
+#
+#   Number of ribs:
+#       nRibs_fuselage           :  from centerline (y=0) to wing-fuselage junction
+#       nRibs_inoutboard         :  LE-aligned spars from wing-fuselage junction to wing tip
+#
+#   Optional:
+#       Wingbox:ribAngle         :  [deg] angle of inboard/outboard ribs (if set to -999, will automatically make perpendicular to wingbox's LE)
+#
+#--------------------- LE/TE coordinates for wingbox outline ------------------#
+SET BUFF 0.01 # buff factor
+
+# wing-fuselage junction
+SET     fuselageWing:Xle        Wing:inboardSec:c4rootX+Wing:inboardSec:Croot*(Wing:sparLE_fuseWing-0.25)
+SET     fuselageWing:Yle        Wing:inboardSec:c4rootY
+SET     fuselageWing:Xte        Wing:inboardSec:c4rootX+Wing:inboardSec:Croot*(Wing:sparTE_fuseWing-0.25)
+SET     fuselageWing:Yte        Wing:inboardSec:c4rootY
+
+# yehudi location
+SET     yehudi:Xte              Wing:inboardSec:c4tipX+Wing:inboardSec:Ctip*(Wing:sparTE_yehudi-0.25)
+SET     yehudi:Yte              Wing:inboardSec:c4tipY
+
+# wing tip
+SET     tip:Xle                 Wing:outboardSec:c4tipX+Wing:outboardSec:Ctip*(Wing:sparLE_tip-0.25)
+SET     tip:Xte                 Wing:outboardSec:c4tipX+Wing:outboardSec:Ctip*(Wing:sparTE_tip-0.25)
+IFTHEN Wing:roundedTip EQ 0 # when using flat wingtip, BUFF is need to generate the tip rib face? (TODO: hasn't been verified for a while)
+    SET     tip:Yle                 Wing:outboardSec:c4tipY+BUFF
+    SET     tip:Yte                 Wing:outboardSec:c4tipY+BUFF
+ELSE
+    SET     tip:Yle                 Wing:outboardSec:c4tipY
+    SET     tip:Yte                 Wing:outboardSec:c4tipY
+ENDIF
+
+# center line (i.e. y=0)
+SET     centerLine:Xle          fuselageWing:Xle
+SET     centerLine:Yle          0
+SET     centerLine:Xte          fuselageWing:Xte
+SET     centerLine:Yte          0
+
+#-------------------- Number of ribs ------------------------------------------#
+
+SET     nRibs_fuselage          Wing:fuselageSec:nRibs  # fuselage section
+SET     nRibs_inoutboard        Wing:inoutboard:nRibs   # inboard/outboard sections
+
+#------------------------------------------------------------------------------#
+
+# Get the bounding box of the wing
+RESTORE wing_OML
+  SET xmin @xmin-0.1
+  SET xmax @xmax+0.1
+  SET ymin @ymin
+  SET ymax @ymax+0.1
+  SET zmin @zmin-0.1
+  SET zmax @zmax+0.1
+STORE .
+
+# make outline of the IML wingbox
+MARK
+    PATBEG i 2
+        SET     newZ    zmin+(i-1)*(zmax-zmin)
+        SKBEG       centerLine:Xle          centerLine:Yle          newZ
+            LINSEG  fuselageWing:Xle        fuselageWing:Yle        newZ
+            LINSEG  tip:Xle                 tip:Yle                 newZ
+            LINSEG  tip:Xte                 tip:Yte                 newZ
+            LINSEG  yehudi:Xte              yehudi:Yte              newZ
+            LINSEG  fuselageWing:Xte        fuselageWing:Yte        newZ
+            LINSEG  centerLine:Xte          centerLine:Yte          newZ
+            LINSEG  centerLine:Xle          centerLine:Yle          newZ
+        SKEND
+    PATEND
+RULE
+ATTRIBUTE type $Outline
+
+# label new skins describing IML outline
+SELECT FACE #$type $Outline
+DIMENSION savelist @sellist.nrow @sellist.ncol
+SET       savelist @sellist
+PATBEG iFace savelist.size
+    IFTHEN iFace EQ 1 # assumes face 1 is root rib
+        SELECT FACE savelist[iFace]
+        ATTRIBUTE capsConstraint $Wing:Centerline_Rib
+        ATTRIBUTE capsBound $Wing:Centerline_Rib
+        ATTRIBUTE capsGroup $Wing:Centerline_Rib
+        ATTRIBUTE capsConnect $Wing:Centerline_Rib
+        ATTRIBUTE type $Wing:Centerline_Rib
+    ELSEIF iFace EQ 5 # assumes face 5 is tip rib
+        SELECT FACE savelist[iFace]
+        ATTRIBUTE capsConstraint $Wing_Tip
+        ATTRIBUTE capsLoad $Wing_Tip
+        ATTRIBUTE capsBound $Wing_Tip
+        ATTRIBUTE capsGroup $Wing_Tip
+        ATTRIBUTE type $Wing_Tip
+    ELSE
+        SELECT FACE savelist[iFace]
+        ATTRIBUTE capsBound $Spars
+        ATTRIBUTE capsGroup $Spars # for now, group them all together
+        ATTRIBUTE type      $Spars
+    ENDIF
+PATEND
+STORE boundingBox
+
+# make waffling for internal structure
+IFTHEN Wingbox:ribAngle EQ -999
+    SET LEsweep atand((tip:Xle-fuselageWing:Xle)/(tip:Yle-fuselageWing:Yle)) # [deg] angle not given... use mean LE sweep from junction to wing tip
+ELSE
+    SET LEsweep Wingbox:ribAngle # [deg] angle is specified
+ENDIF
+
+# (x,y) at LE of wing-fuselage junction (defined just for brevity)
+SET X0          fuselageWing:Xle
+SET Y0          fuselageWing:Yle
+
+# inboard/outboard spar spacing along leading edge
+SET DX          (tip:Xle-fuselageWing:Xle)/(nRibs_inoutboard+1) # chordwise
+SET DY          (tip:Yle-fuselageWing:Yle)/(nRibs_inoutboard+1) # spanwise
+
+# add outline and spars
+IFTHEN LEsweep GE 1 # swept back 1 or more degree - keep ribs from protruding into fuselage section
+    SET DX2         DX+DY/tand(LEsweep)
+    SET DY2         DX2*tand(LEsweep)
+    UDPRIM waffle depth 40.0*(zmax-zmin) filename <<
+        # outline of the wingbox
+        POINT A     AT      centerLine:Xle          centerLine:Yle
+        POINT B     AT      fuselageWing:Xle        fuselageWing:Yle
+        POINT C     AT      tip:Xle                 tip:Yle
+        POINT D     AT      tip:Xte                 tip:Yte
+        POINT E     AT      yehudi:Xte              yehudi:Yte
+        POINT F     AT      fuselageWing:Xte        fuselageWing:Yte
+        POINT G     AT      centerLine:Xte          centerLine:Yte
+        LINE . A B
+        LINE . B C
+        LINE . C D
+        LINE . D E
+        LINE . E F
+        LINE . F G
+        LINE . G A
+        # insert fuselage section's ribs
+        PATBEG iRib nRibs_fuselage+1
+            POINT I AT xmin-BUFF fuselageWing:Yte*iRib/(nRibs_fuselage+1)
+            POINT J AT xmax+BUFF fuselageWing:Yte*iRib/(nRibs_fuselage+1)
+            LINE . I J
+        PATEND
+        # insert inboard/outboard ribs
+        PATBEG iRib nRibs_inoutboard
+            POINT I AT X0+DX2*iRib  Y0
+            POINT J AT X0           Y0+DX2*iRib*tand(LEsweep)
+            LINE . I J
+        PATEND
+>>
+    ATTRIBUTE capsGroup $Ribs
+    ATTRIBUTE type $Ribs
+    TRANSLATE 0 0 -20.0*(zmax-zmin)
+ELSE # swept forward - extrude ribs from wingbox's LE line by distance of +/- fuselage length
+    UDPRIM waffle depth 40.0*(zmax-zmin) filename <<
+        # outline of the wingbox
+        POINT A     AT      centerLine:Xle          centerLine:Yle
+        POINT B     AT      fuselageWing:Xle        fuselageWing:Yle
+        POINT C     AT      tip:Xle                 tip:Yle
+        POINT D     AT      tip:Xte                 tip:Yte
+        POINT E     AT      yehudi:Xte              yehudi:Yte
+        POINT F     AT      fuselageWing:Xte        fuselageWing:Yte
+        POINT G     AT      centerLine:Xte          centerLine:Yte
+        LINE . A B 
+        LINE . B C 
+        LINE . C D 
+        LINE . D E 
+        LINE . E F 
+        LINE . F G 
+        LINE . G A 
+        # insert fuselage section's ribs
+        PATBEG iRib nRibs_fuselage+1
+            POINT I AT xmin-BUFF fuselageWing:Yte*iRib/(nRibs_fuselage+1)
+            POINT J AT xmax+BUFF fuselageWing:Yte*iRib/(nRibs_fuselage+1)
+            LINE . I J 
+        PATEND
+        # insert inboard/outboard ribs
+        PATBEG iRib nRibs_inoutboard
+            POINT I AT X0+DX*iRib-Fuselage:length*cosd(LEsweep) Y0+DY*iRib+Fuselage:length*sind(LEsweep)
+            POINT J AT X0+DX*iRib+Fuselage:length*cosd(LEsweep) Y0+DY*iRib-Fuselage:length*sind(LEsweep)
+            LINE . I J
+        PATEND
+>>
+    ATTRIBUTE capsGroup $Ribs
+    ATTRIBUTE type $Ribs
+    TRANSLATE 0 0 -20.0*(zmax-zmin)
+ENDIF
+STORE waffle
+
+# get rib/spar/skin shapes by intersecting waffle with solid OML wing
+RESTORE   waffle
+RESTORE   wing_OML
+INTERSECT
+
+# extract/combine faces from the resulting solid body
+RESTORE   wing_OML
+RESTORE   waffle
+SUBTRACT
+EXTRACT   0
+JOIN      # changed by JFD3 from UNION
+
+# intersect resulting faces with solid wingbox shape, effectively removing LE and TE faces
+RESTORE boundingBox
+INTERSECT
+  ATTRIBUTE _name $wing_IML
+  ATTRIBUTE capsDiscipline $Structure
+  ATTRIBUTE capsIntent $Structure
+  ATTRIBUTE capsAIM structAIMs
+STORE wing_IML # TODO: reduce number of STORE/RESTOREs?
+RESTORE wing_IML
+
+# for splining to edge instead of all surface nodes
+UDPRIM editAttr filename <<
+    EDGE adj2face capsBound=Wing:Skin_Top
+    SET capsBound=Wing:Skin_Top_Edge
+>>
+
+# mark rib at wing-fuselage junction (assumes nRibs>=3)
+UDPRIM editAttr filename <<
+    FACE has capsBound=Wing:Skin_Top
+         and adj2face capsBound=Wing:Centerline_Rib
+    SET capsGroup=Wing:Skin_Top_1
+    FACE has capsBound=Wing:Skin_Top
+         and adj2face capsGroup=Wing:Skin_Top_1
+    SET capsGroup=Wing:Skin_Top_2
+>>
+PATBEG iface Wing:fuselageSec:nRibs-1
+    UDPRIM editAttr filename <<
+        FACE has capsBound=Wing:Skin_Top
+             and adj2face capsGroup=!$Wing:Skin_Top_+val2str(iface+1,0)
+             andnot has capsGroup=!$Wing:Skin_Top_+val2str(iface,0)
+        SET capsGroup=!$Wing:Skin_Top_+val2str(iface+2,0)
+>>
+PATEND
+
+# for applying structural constraints/loads
+UDPRIM editAttr filename <<
+    FACE has type=Ribs
+         and adj2face capsGroup=!$Wing:Skin_Top_+val2str(iface+2,0)
+         andnot adj2face capsGroup=!$Wing:Skin_Top_+val2str(iface+1,0)
+    SET capsGroup=Wing:Junction_Rib
+    SET capsBound=Wing:Junction_Rib
+    SET capsConstraint=Wing:Junction_Rib
+    SET type=Wing:Junction_Rib
+
+    EDGE adj2face capsBound=Wing:Centerline_Rib
+    SET  capsBound=Wing:Centerline_Rib
+    SET  capsConstraint=Wing:Centerline_Rib
+    #SET  capsConnect=Wing:Centerline_Rib
+    SET  capsConnectLink=Wing:Root_Point
+    NODE adj2face capsBound=Wing:Centerline_Rib
+    SET  capsBound=Wing:Centerline_Rib
+    SET  capsConstraint=Wing:Centerline_Rib
+
+    EDGE adj2face capsBound=Wing:Junction_Rib
+    SET  capsBound=Wing:Junction_Rib
+    SET  capsConstraint=Wing:Junction_Rib
+    #SET  capsConnect=Wing:Junction_Rib
+    SET  capsConnectLink=Wing:Junction_Point
+    NODE adj2face capsBound=Wing:Junction_Rib
+    SET  capsBound=Wing:Junction_Rib
+    SET  capsConstraint=Wing:Junction_Rib
+
+    EDGE adj2face capsBound=Wing_Tip
+    SET  capsBound=Wing_Tip
+    SET  capsConstraint=Wing_Tip
+    SET  capsLoad=Wing_Tip
+    NODE adj2face capsBound=Wing_Tip
+    SET  capsBound=Wing_Tip
+    SET  capsConstraint=Wing_Tip
+    SET  capsLoad=Wing_Tip
+>>
+
+# generate unique names for skin/rib/spar faces so they can have different PSHELL properties
+SELECT FACE $type $Skins
+DIMENSION savelist @sellist.nrow @sellist.ncol
+SET       savelist @sellist
+SET       Nskins_wing   savelist.size # save number of skin properties for use in pyCAPS
+PATBEG iFace savelist.size
+    SELECT FACE savelist[iFace]
+    ATTRIBUTE capsGroup $Wing_Skin_+val2str(iFace,0)
+PATEND
+
+SELECT FACE $type $Ribs
+DIMENSION savelist @sellist.nrow @sellist.ncol
+SET       savelist @sellist
+SET       Nribs_wing    savelist.size
+PATBEG iFace savelist.size
+    SELECT FACE savelist[iFace]
+    ATTRIBUTE capsGroup $Wing_Rib_+val2str(iFace,0)
+PATEND
+
+SELECT FACE $type $Spars
+DIMENSION savelist @sellist.nrow @sellist.ncol
+SET       savelist @sellist
+SET       Nspars_wing   savelist.size
+PATBEG iFace savelist.size
+    SELECT FACE savelist[iFace]
+    ATTRIBUTE capsGroup $Wing_Spar_+val2str(iFace,0)
+PATEND
+
+STORE wing_IML
+
+IFTHEN VIEW:LETE_IML EQ 1 # add leading and trailing surfaces back in, otherwise mode shapes on CFD grid will be noisy (due to extrapolation?)
+
+    IFTHEN Wing:roundedTip EQ 0 # flat tip
+
+        # trailing edge region (chops the wingbox portion out and throws away the leading edge portion too...)
+        RESTORE wing_OML
+        EXTRACT 0
+        RESTORE boundingBox
+        SUBTRACT
+
+        IFTHEN 1 EQ 1 # !!! include TE carry-through of junction rib (slower, but works better for mode-based analyses?)
+            # inboard/outboard portion
+            MARK
+                PATBEG i 2
+                    SET     newZ    zmin+(i-1)*(zmax-zmin)
+                    SKBEG       xmin -BUFF newZ
+                        LINSEG  xmin fuselageWing:Yle newZ
+                        LINSEG  xmax fuselageWing:Yle newZ
+                        LINSEG  xmax -BUFF newZ
+                        LINSEG  xmin -BUFF newZ
+                    SKEND
+                PATEND
+            RULE
+            SUBTRACT
+            STORE wingTE_inout
+    
+            # fuselage portion with carry-through of junction rib
+            RESTORE wing_OML
+            MARK
+            PATBEG i 2
+                SET     newZ    zmin+(i-1)*(zmax-zmin)
+                SKBEG       xmin fuselageWing:Yle newZ
+                    LINSEG  xmin ymax             newZ
+                    LINSEG  xmax ymax             newZ
+                    LINSEG  xmax fuselageWing:Yle newZ
+                    LINSEG  xmin fuselageWing:Yle newZ
+                SKEND
+            PATEND
+            RULE
+            SUBTRACT
+            EXTRACT 0
+            RESTORE boundingBox
+            SUBTRACT
+            SELECT FACE 3 # TE portion of the junction rib
+              ATTRIBUTE capsGroup $Wing:Junction_Rib
+              ATTRIBUTE capsBound $Wing:Junction_Rib
+              ATTRIBUTE capsConstraint $Wing:Junction_Rib
+              ATTRIBUTE type $Wing:Junction_Rib
+            RESTORE wingTE_inout
+            UNION
+        ENDIF
+
+        RESTORE wing_IML
+        UNION
+        STORE wing_IML
+
+        # leading edge region
+        RESTORE wing_OML
+        MARK
+            PATBEG i 2
+                SET     newZ    zmin+(i-1)*(zmax-zmin)
+                SKBEG       centerLine:Xle          centerLine:Yle          newZ
+                    LINSEG  fuselageWing:Xle        fuselageWing:Yle        newZ
+                    LINSEG  tip:Xle                 tip:Yle                 newZ
+                    LINSEG  xmax                    tip:Yte                 newZ
+                    LINSEG  xmax                    yehudi:Yte              newZ
+                    LINSEG  xmax                    fuselageWing:Yte        newZ
+                    LINSEG  xmax                    centerLine:Yte          newZ
+                    LINSEG  centerLine:Xle          centerLine:Yle          newZ
+                SKEND
+            PATEND
+        BLEND
+        SUBTRACT
+        EXTRACT 0
+        RESTORE boundingBox
+        SUBTRACT
+
+    ELSE # rounded tip (not entirely functional...)
+
+        RESTORE wing_OML
+        RESTORE boundingBox
+        SUBTRACT
+        EXTRACT 0
+        STORE LETE
+    
+        RESTORE wing_OML
+        RESTORE boundingBox 
+        INTERSECT 
+        STORE outline
+    
+        RESTORE LETE
+        RESTORE outline
+        SUBTRACT
+        
+    ENDIF
+
+    # combine with rest of IML
+    RESTORE wing_IML
+    UNION
+      ATTRIBUTE _name $wing_IML
+      ATTRIBUTE capsDiscipline $Structure
+      ATTRIBUTE capsIntent $Structure
+      ATTRIBUTE capsAIM structAIMs
+    STORE wing_IML
+
+ENDIF
+
+IFTHEN VIEW:Mirror EQ 1 # !!! use this to model -y IML (disable for frequency-domain flutter, since the modes are just mirrored across y=0?)
+    RESTORE wing_IML
+    MIRROR 0 1 0 0
+    udprim editAttr filename <<
+    face has capsBound=Wing:Skin_Top
+    set capsBound=Wing:Skin_Top_Ylt0
+    edge adj2face capsBound=Wing:Skin_Top_Ylt0
+    set capsBound=Wing:Skin_Top_Ylt0
+    node adj2face capsBound=Wing:Skin_Top_Ylt0
+    set capsBound=Wing:Skin_Top_Ylt0
+
+    face has capsBound=Wing:Skin_Bot
+    set capsBound=Wing:Skin_Bot_Ylt0
+    edge adj2face capsBound=Wing:Skin_Bot_Ylt0
+    set capsBound=Wing:Skin_Bot_Ylt0
+    node adj2face capsBound=Wing:Skin_Bot_Ylt0
+    set capsBound=Wing:Skin_Bot_Ylt0
+
+    face has capsBound=Wing_Tip
+    set capsBound=Wing_Tip_Ylt0
+    edge adj2face capsBound=Wing_Tip_Ylt0
+    set capsBound=Wing_Tip_Ylt0
+    node adj2face capsBound=Wing_Tip_Ylt0
+    set capsBound=Wing_Tip_Ylt0
+>>
+    RESTORE wing_IML
+    UNION
+      ATTRIBUTE _name $wing_IML
+      ATTRIBUTE capsDiscipline $Structure
+      ATTRIBUTE capsIntent $Structure
+      ATTRIBUTE capsAIM structAIMs
+    STORE wing_IML
+ENDIF
+
+# add support point connected to centerline rib (not currently used)
+RESTORE wing_IML
+POINT  Wing:fuselageSec:c4rootX Wing:fuselageSec:c4rootY Wing:fuselageSec:c4rootZ
+  ATTRIBUTE capsGroup          $Wing:Root_Point
+  ATTRIBUTE capsConstraint     $Wing:Root_Point
+  ATTRIBUTE capsConnect        $Wing:Root_Point
+  ATTRIBUTE capsAIM            structAIMs
+  ATTRIBUTE capsDiscipline     $Structure
+  ATTRIBUTE capsIntent         $Structure
+POINT  Wing:fuselageSec:c4tipX Wing:fuselageSec:c4tipY Wing:fuselageSec:c4tipZ
+  ATTRIBUTE capsGroup          $Wing:Junction_Point
+  ATTRIBUTE capsConstraint     $Wing:Junction_Point
+  ATTRIBUTE capsConnect        $Wing:Junction_Point
+  ATTRIBUTE capsAIM            structAIMs
+  ATTRIBUTE capsDiscipline     $Structure
+  ATTRIBUTE capsIntent         $Structure
+STORE wing_IML
+
+END

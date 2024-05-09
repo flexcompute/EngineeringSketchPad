@@ -1,9 +1,9 @@
 /*
  *      CAPS: Computational Aircraft Prototype Syntheses
  *
- *             Testing AIM 3D Mesh Writer Example Code
+ *             ugrid 3D Mesh Writer Code
  *
- *      Copyright 2014-2022, Massachusetts Institute of Technology
+ *      Copyright 2014-2024, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -40,8 +40,10 @@ int meshWrite(void *aimInfo, aimMesh *mesh)
   if (mesh->meshRef  == NULL) return CAPS_NULLVALUE;
   if (mesh->meshData == NULL) return CAPS_NULLVALUE;
 
-  if (mesh->meshData->dim != 2 && mesh->meshData->dim != 3) {
-    AIM_ERROR(aimInfo, "meshData dim = %d must be 2 or 3!!!", mesh->meshData->dim);
+  meshData = mesh->meshData;
+
+  if (meshData->dim != 2 && meshData->dim != 3) {
+    AIM_ERROR(aimInfo, "meshData dim = %d must be 2 or 3!!!", meshData->dim);
     return CAPS_BADVALUE;
   }
 
@@ -52,8 +54,6 @@ int meshWrite(void *aimInfo, aimMesh *mesh)
     AIM_ERROR(aimInfo, "Cannot open file: %s\n", filename);
     return CAPS_IOERR;
   }
-
-  meshData = mesh->meshData;
 
   for (igroup = 0; igroup < meshData->nElemGroup; igroup++) {
     if (meshData->elemGroups[igroup].order != 1) {
@@ -175,7 +175,7 @@ int meshWrite(void *aimInfo, aimMesh *mesh)
     }
   }
 
-  printf("Finished writing SU2 file\n\n");
+  printf("Finished writing ugrid file\n\n");
 
   status = CAPS_SUCCESS;
 

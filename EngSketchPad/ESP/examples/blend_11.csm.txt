@@ -1,0 +1,72 @@
+# blend_11 (tip treatment)
+# written by John Dannenhoffer
+
+# four wings (SolidBodys with biconvex cross-section)
+MARK
+   UDPRIM    biconvex  thick 0.10
+   RESTORE   .
+   TRANSLATE 0  0  3
+BLEND     0  -1;0.5
+ASSERT    @itype 3
+
+SELECT    FACE   @nbody 1     # iford=1 in red
+ATTRIBUTE _color $red
+SELECT    FACE   @nbody 2     # iford=2 in green
+ATTRIBUTE _color $green
+SELECT    FACE   @nbody 3     # iford=3 in blue
+ATTRIBUTE _color $blue
+SELECT    FACE   @nbody 4     # iford=4 in cyan
+ATTRIBUTE _color $cyan
+
+MARK
+   UDPRIM    biconvex  thick 0.10
+   TRANSLATE 2  0  0
+   RESTORE   .
+   TRANSLATE 0  0  3
+BLEND     0  -1;1.0
+ASSERT    @itype 3
+
+SELECT    FACE   @nbody 1     # iford=1 in red
+ATTRIBUTE _color $red
+SELECT    FACE   @nbody 2     # iford=2 in green
+ATTRIBUTE _color $green
+SELECT    FACE   @nbody 3     # iford=3 in blue
+ATTRIBUTE _color $blue
+SELECT    FACE   @nbody 4     # iford=4 in cyan
+ATTRIBUTE _color $cyan
+
+MARK
+   UDPRIM    biconvex  thick 0.10
+   TRANSLATE 0  2  0
+   RESTORE   .
+   TRANSLATE 0  0  3
+BLEND     0  -1;2.0
+ASSERT    @itype 3
+
+SELECT    FACE   @nbody 1     # iford=1 in red
+ATTRIBUTE _color $red
+SELECT    FACE   @nbody 2     # iford=2 in green
+ATTRIBUTE _color $green
+SELECT    FACE   @nbody 3     # iford=3 in blue
+ATTRIBUTE _color $blue
+SELECT    FACE   @nbody 4     # iford=4 in cyan
+ATTRIBUTE _color $cyan
+
+MARK
+   UDPRIM    biconvex  thick 0.10
+   TRANSLATE 2  2  0
+   RESTORE   .
+   TRANSLATE 0  0  3
+BLEND     0  -1;5.0
+ASSERT    @itype 3
+
+SELECT    FACE   @nbody 1     # iford=1 in red
+ATTRIBUTE _color $red
+SELECT    FACE   @nbody 2     # iford=2 in green
+ATTRIBUTE _color $green
+SELECT    FACE   @nbody 3     # iford=3 in blue
+ATTRIBUTE _color $blue
+SELECT    FACE   @nbody 4     # iford=4 in cyan
+ATTRIBUTE _color $cyan
+
+END

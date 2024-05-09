@@ -1,0 +1,174 @@
+# plateHoles5
+# written by John Dannenhoffer
+# adapted from snap.cell by Ryan Alberdi
+
+# Constant, Design, and Output Parameters:
+# In this order:
+# t
+# h
+# L
+# T
+# H
+# w
+DESPMTR    ligament_thickness  5.0 # lbound  3.0 ubound 10.0 initial  5.0
+DESPMTR    apex_height        24.0 # lbound 10.0 ubound 40.0 initial 24.0
+CONPMTR    span               27.3
+CONPMTR    base_thickness     35.0 
+CONPMTR    pillar_height      54.0  
+CONPMTR    pillar_width       27.3
+
+CONPMTR    num_cells_x        1
+CONPMTR    num_cells_y        1
+
+# Global Attributes:
+OUTPMTR    MeshLength
+SET        MeshLength 0.5*pillar_width
+
+SET        thk 1 # thickness for extruded shapes used in subtract operations
+
+# draw border
+SET cell_width 4.0*pillar_width+2.0*span
+SET total_height num_cells_y*(base_thickness+2.0*pillar_height+apex_height)
+
+box 0   0   0   num_cells_x*cell_width total_height 0
+
+# mark edges
+SELECT    body  1
+SELECT    edge  1
+ATTRIBUTE label $left
+
+SELECT    body  1
+SELECT    edge  2
+ATTRIBUTE label $bottom
+
+SELECT    body  1
+SELECT    edge  3
+ATTRIBUTE label $right
+
+SELECT    body  1
+SELECT    edge  4
+ATTRIBUTE label $top
+
+SET       height_offset 0.0
+PATBEG   i   num_cells_x
+    PATBEG   j   num_cells_y    
+        # compute geometric values
+        SET       ligament_angle atand(apex_height/span)
+        SET       ligament_height ligament_thickness/cosd(ligament_angle)
+
+        SET       adjusted_apex_height apex_height+ligament_height
+        SET       ligament_angle2 atand(adjusted_apex_height/span)
+        SET       ligament_length sqrt(span*span+adjusted_apex_height*adjusted_apex_height)
+       
+        # subtract center void rectangles
+        BOX       0   0   -thk/2   2.0*pillar_width+2.0*span pillar_height-ligament_height thk/2
+        TRANSLATE (i-1)*cell_width+(pillar_width) height_offset+(base_thickness) 0
+        SUBTRACT
+
+        BOX       0   0   -thk/2   2.0*pillar_width pillar_height+apex_height thk/2
+        TRANSLATE (i-1)*cell_width+(pillar_width+span) height_offset+(base_thickness) 0
+        SUBTRACT
+
+        # subtract center void triangles
+        SET       temp_height pillar_height/2
+        BOX       0   0   -thk/2   ligament_length temp_height thk/2
+        ROTATEZ   ligament_angle2
+        SET       move_y base_thickness+pillar_height+apex_height-ligament_length*sind(ligament_angle2)-temp_height*cosd(ligament_angle2)
+        SET       move_x pillar_width+temp_height*sind(ligament_angle2)
+        TRANSLATE (i-1)*cell_width+(move_x) height_offset+(move_y) 0
+        SUBTRACT
+
+        BOX       0   0   -thk/2   ligament_length temp_height thk/2
+        ROTATEZ   -ligament_angle2
+        SET       move_y base_thickness+pillar_height+apex_height-temp_height*cosd(ligament_angle2)
+        SET       move_x 3.0*pillar_width+span-temp_height*sind(ligament_angle2)
+        TRANSLATE (i-1)*cell_width+(move_x) height_offset+(move_y) 0
+        SUBTRACT
+
+        # subtract upper void rectangles
+        BOX       0   0   -thk/2   pillar_width+span pillar_height-ligament_height thk/2
+        TRANSLATE (i-1)*cell_width height_offset+(base_thickness+pillar_height+apex_height+ligament_height) 0
+        SUBTRACT
+
+        BOX       0   0   -thk/2   pillar_width+span pillar_height-ligament_height thk/2
+        TRANSLATE (i-1)*cell_width+(3.0*pillar_width+span) height_offset+(base_thickness+pillar_height+apex_height+ligament_height) 0
+        SUBTRACT
+
+        BOX       0   0   -thk/2   pillar_width apex_height+ligament_height thk/2
+        TRANSLATE (i-1)*cell_width height_offset+(base_thickness+pillar_height) 0
+        SUBTRACT
+
+        BOX       0   0   -thk/2   pillar_width apex_height+ligament_height thk/2
+        TRANSLATE (i-1)*cell_width+(3.0*pillar_width+2*span) height_offset+(base_thickness+pillar_height) 0
+        SUBTRACT
+
+        # subtract upper void triangles
+ 	SET       temp_height pillar_height/2
+        BOX       0   0   -thk/2   ligament_length temp_height thk/2
+        ROTATEZ   ligament_angle2
+        SET       move_y ligament_height+base_thickness+pillar_height+apex_height-ligament_length*sind(ligament_angle2)
+        SET       move_x pillar_width
+        TRANSLATE (i-1)*cell_width+(move_x) height_offset+(move_y) 0
+        SUBTRACT
+
+        BOX       0   0   -thk/2   ligament_length temp_height thk/2
+        ROTATEZ   -ligament_angle2
+        SET       move_y ligament_height+base_thickness+pillar_height+apex_height
+        SET       move_x 3.0*pillar_width+span
+        TRANSLATE (i-1)*cell_width+(move_x) height_offset+(move_y) 0
+        SUBTRACT
+
+        # mark ligament edges
+        SET       xmin pillar_width
+        SET       xmax pillar_width+span
+        SET       ymin base_thickness+pillar_height-ligament_height
+        SET       ymax base_thickness+pillar_height+apex_height+ligament_height
+        SET       zmin -thk/2
+        SET       zmax thk/2
+        SELECT    edge   (i-1)*cell_width+xmin-thk   (i-1)*cell_width+xmax+thk   height_offset+ymin-thk   height_offset+ymax+thk   zmin-thk   zmax+thk
+        ATTRIBUTE capsMesh $ligament
+        
+        SET       xoffset span+2.0*pillar_width
+        SELECT    edge   xoffset+(i-1)*cell_width+xmin-thk   xoffset+(i-1)*cell_width+xmax+thk   height_offset+ymin-thk   height_offset+ymax+thk   zmin-thk   zmax+thk
+        ATTRIBUTE capsMesh $ligament
+       
+        # update height offset
+        SET       cell_height base_thickness+2.0*pillar_height+apex_height
+        SET       height_offset height_offset+cell_height
+    PATEND
+PATEND
+
+# attributions 
+SELECT    body
+SELECT    edge
+ATTRIBUTE capsGroup $remaining_surface_sideset
+
+SELECT    body   
+SELECT    edge       $label $left
+ATTRIBUTE capsGroup  $left_sideset
+
+SELECT    body   
+SELECT    edge       $label $bottom
+ATTRIBUTE capsGroup  $bottom_sideset
+
+SELECT    body   
+SELECT    edge       $label $right
+ATTRIBUTE capsGroup  $right_sideset
+
+SELECT    body   
+SELECT    edge       $label $top
+ATTRIBUTE capsGroup  $top_sideset
+
+SELECT    body   35
+SELECT    edge   4
+ATTRIBUTE capsGroup  $left_roller_sideset
+
+SELECT    body   35
+SELECT    edge   6
+ATTRIBUTE capsGroup  $right_roller_sideset
+
+# make sure all ligament get capsMesh
+SELECT    EDGE   $capsMesh  $ligament
+ASSERT    @sellist.size  4
+
+END

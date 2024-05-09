@@ -1,0 +1,31 @@
+# csystem_1
+# written by John Dannenhoffer
+
+DIMENSION csys7 7 1 0
+SET       csys7 "8; 0;1;0; -1;0;0;"
+
+BOX       0  0  0   1  1  1
+
+# csystem at (1,1,1) with directions <1,0,0> and <0,1,0>
+CSYSTEM   111   "1.0;1.0;1.0; 1;0;0; 0;1;0;"
+
+# csystem at (u=0.2, v=0.2) on Face 1 with second direction <0,1>
+CSYSTEM   face1 "+1; 0.2;0.2;        0;1;"
+
+# csystem at (u=0.2, v=0.2) on Face 2 with second direction <0,1>
+CSYSTEM   face2 "+2; 0.2;0.2;        0;1;"
+
+# csystem at (t=0.2) on Edge 2 with second direction <-1,0,0>
+CSYSTEM   edge2 "-2; 0.2;           -1;0;0"
+
+# csystem at (t=0.2) on Edge 6 with second direction <0,0,1>
+CSYSTEM   edge6 "-6; 0.2;            0;0;1"
+
+# csystem at Node 8 with directions <0,1,0> and <-1,0,0>
+CSYSTEM   node8 csys7
+
+# make box transparent
+SELECT    FACE
+ATTRIBUTE _trn  $on
+
+END

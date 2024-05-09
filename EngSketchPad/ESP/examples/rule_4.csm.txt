@@ -1,0 +1,19 @@
+# rule_4
+# written by John Dannenhoffer
+
+# generate five NodeBodys
+POINT     -4   1   1
+
+POINT     -2   1   1
+
+POINT      0   2   2
+
+POINT      2   1   1
+
+POINT      4   1   1
+
+# perform the RULE (WireBody)
+RULE
+ASSERT    @itype  1
+
+END

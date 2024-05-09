@@ -9,7 +9,7 @@
  */
 
 /*
- * Copyright (C) 2013/2022  John F. Dannenhoffer, III (Syracuse University)
+ * Copyright (C) 2013/2024  John F. Dannenhoffer, III (Syracuse University)
  *
  * This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
@@ -35,16 +35,12 @@
 #include <time.h>
 #include <assert.h>
 
-#include "egads.h"
-
 #define CINT    const int
 #define CDOUBLE const double
 #define CCHAR   const char
 
 #define STRNCPY(A, B, LEN) strncpy(A, B, LEN); A[LEN-1] = '\0';
 
-#include "egads.h"
-#include "common.h"
 #include "OpenCSM.h"
 #include "udp.h"
 
@@ -70,9 +66,6 @@
 /* macros (including those that go along with common.h)                */
 /*                                                                     */
 /***********************************************************************/
-
-                                               /* used by RALLOC macro */
-//static void *realloc_temp=NULL;
 
 #define  RED(COLOR)      (float)(COLOR / 0x10000        ) / (float)(255)
 #define  GREEN(COLOR)    (float)(COLOR / 0x00100 % 0x100) / (float)(255)
@@ -263,7 +256,7 @@ main(int       argc,                    /* (in)  number of arguments */
     SPRINT0(1, "*                    Program sensCSM                     *");
     SPRINT2(1, "*                     version %2d.%02d                      *", imajor, iminor);
     SPRINT0(1, "*                                                        *");
-    SPRINT0(1, "*        written by John Dannenhoffer, 2010/2022         *");
+    SPRINT0(1, "*        written by John Dannenhoffer, 2010/2024         *");
     SPRINT0(1, "*                                                        *");
     SPRINT0(1, "**********************************************************\n");
 
@@ -315,9 +308,13 @@ main(int       argc,                    /* (in)  number of arguments */
         dirname[i-1] = '\0';
     }
 
-    /* remove .csm or .cpc extension */
-    i = strlen(basename);
-    basename[i-4] = '\0';
+    /* remove .csm or .cpc extension (if it exists) */
+    if (strstr(basename, ".csm") != NULL || strstr(basename, ".cpc") != NULL) {
+        i = strlen(basename);
+        basename[i-4] = '\0';
+    }
+
+    SPLINT_CHECK_FOR_NULL(basename);
 
     /* read the .csm file and create the MODL */
     status   = ocsmLoad(filename, &modl);
@@ -645,6 +642,9 @@ checkGeomSens(int    ipmtr,             /* (in)  Parameter index (bias-1) */
             status = EG_getTessFace(MODL->body[ibody].etess, iface,
                                     &npnt_tess, &xyz, &uv, &ptype, &pindx,
                                     &ntri_tess, &tris, &tric);
+            if (status == EGADS_NODATA) {                   /* can happen if .tParams[0]<0 */
+                continue;
+            }
             CHECK_STATUS(EG_getTessFace);
             if (npnt_tess <= 0) {
                 SPRINT3(0, "ERROR:: EG_getTessFace -> status=%d (%s), npnt_tess=%d",
@@ -747,6 +747,9 @@ checkGeomSens(int    ipmtr,             /* (in)  Parameter index (bias-1) */
             status = EG_getTessFace(MODL->body[ibody].etess, iface,
                                     &npnt_tess, &xyz, &uv, &ptype, &pindx,
                                     &ntri_tess, &tris, &tric);
+            if (status == EGADS_NODATA) {                   /* can happen if .tParams[0]<0 */
+                continue;
+            }
             CHECK_STATUS(EG_getTessFace);
 
             MALLOC(face_fdif[iface], double, 3*npnt_tess);
@@ -829,6 +832,10 @@ checkGeomSens(int    ipmtr,             /* (in)  Parameter index (bias-1) */
                 status = EG_getTessFace(MODL->body[ibody].etess, iface,
                                         &npnt_tess, &xyz, &uv, &ptype, &pindx,
                                         &ntri_tess, &tris, &tric);
+                if (status == EGADS_NODATA) {               /* can happen if .tParams[0]<0 */
+                    status = EGADS_SUCCESS;
+                    continue;
+                }
                 CHECK_STATUS(EG_getTessFace);
 
                 for (ipnt = 0; ipnt < npnt_tess; ipnt++) {
@@ -877,9 +884,13 @@ checkGeomSens(int    ipmtr,             /* (in)  Parameter index (bias-1) */
             status = EG_getTessFace(MODL->body[ibody].etess, iface,
                                     &npnt_tess, &xyz, &uv, &ptype, &pindx,
                                     &ntri_tess, &tris, &tric);
+            if (status == EGADS_NODATA) {                   /* can happen if .tParams[0]<0 */
+                status = EGADS_SUCCESS;
+                continue;
+            }
             CHECK_STATUS(EG_getTessFace);
 
-            status = EG_attributeRet(MODL->body[ibody].face[iface].eface, "_sensCheck",
+            status = EG_attributeRet(MODL->body[ibody].face[iface].eface, "__sensCheck__",
                                      &atype, &alen, &tempIlist, &tempRlist, &tempClist);
             if (status == EGADS_SUCCESS && atype == ATTRSTRING && strcmp(tempClist, "skip") == 0) {
                 SPRINT2(0, "Tests suppressed for ibody=%3d, iface=%3d", ibody, iface);
@@ -924,7 +935,7 @@ checkGeomSens(int    ipmtr,             /* (in)  Parameter index (bias-1) */
                                     &npnt_tess, &xyz, &uv);
             CHECK_STATUS(EG_getTessEdge);
 
-            status = EG_attributeRet(MODL->body[ibody].edge[iedge].eedge, "_sensCheck",
+            status = EG_attributeRet(MODL->body[ibody].edge[iedge].eedge, "__sensCheck__",
                                      &atype, &alen, &tempIlist, &tempRlist, &tempClist);
             if (status == EGADS_SUCCESS && atype == ATTRSTRING && strcmp(tempClist, "skip") == 0) {
                 SPRINT2(0, "Tests suppressed for ibody=%3d, iedge=%3d", ibody, iedge);
@@ -964,7 +975,7 @@ checkGeomSens(int    ipmtr,             /* (in)  Parameter index (bias-1) */
         for (inode = 1; inode <= MODL->body[ibody].nnode; inode++) {
             npnt_tess = 1;
 
-            status = EG_attributeRet(MODL->body[ibody].node[inode].enode, "_sensCheck",
+            status = EG_attributeRet(MODL->body[ibody].node[inode].enode, "__sensCheck__",
                                      &atype, &alen, &tempIlist, &tempRlist, &tempClist);
             if (status == EGADS_SUCCESS && atype == ATTRSTRING && strcmp(tempClist, "skip") == 0) {
                 SPRINT2(0, "Tests suppressed for ibody=%3d, inode=%3d", ibody, inode);
@@ -1081,7 +1092,7 @@ checkTessSens(int    ipmtr,             /* (in)  Parameter index (bias-1) */
     double    **face_ptrb=NULL, **edge_ptrb=NULL, **node_ptrb=NULL;
     CDOUBLE   *tempRlist, *xyz, *uv, *t, *dxyz;
     CCHAR     *tempClist;
-    ego       eref, *echilds, eNewBody=NULL;
+    ego       eref, *echilds;
     clock_t   old_time, new_time;
     FILE      *fp_badtri=NULL, *fp_logdist=NULL;
     void      *ptrb;
@@ -1142,6 +1153,7 @@ checkTessSens(int    ipmtr,             /* (in)  Parameter index (bias-1) */
     PTRB = (modl_T *)ptrb;
 
     PTRB->tessAtEnd = 0;
+    PTRB->matchSeq  = MODL;
 
     /* perturb the configuration */
     status = ocsmGetValu(PTRB, ipmtr, irow, icol, &old_value, &old_dot);
@@ -1168,14 +1180,18 @@ checkTessSens(int    ipmtr,             /* (in)  Parameter index (bias-1) */
 
     CHECK_STATUS(ocsmBuild);
 
-    /* initialize the maximum errors */
-    face_errmax = 0;
-    edge_errmax = 0;
-    node_errmax = 0;
+    /* revert the UserPointer to the original MODL */
+    status = EG_setUserPointer(MODL->context, (void*)MODL);
+    CHECK_STATUS(EG_setUserPointer);
 
     /* perform tessellation sensitivity checks for each Body on the stack */
     for (ibody = 1; ibody <= MODL->nbody; ibody++) {
         if (MODL->body[ibody].onstack != 1) continue;
+
+        /* initialize the maximum errors */
+        face_errmax = 0;
+        edge_errmax = 0;
+        node_errmax = 0;
 
         /* make sure perturbed and base models have the same number of Nodes, Edges, and Faces */
         if        (MODL->body[ibody].nface != PTRB->body[ibody].nface) {
@@ -1203,37 +1219,31 @@ checkTessSens(int    ipmtr,             /* (in)  Parameter index (bias-1) */
         CHECK_STATUS(ocsmSetDtime);
 
         /* determine if there is a mapping between the MODL and the PTRB */
+        nMap = NULL;
+        eMap = NULL;
+        fMap = NULL;
+
         if (MODL->body[ibody].nface > 0) {
-            status = EG_mapBody(MODL->body[ibody].ebody, PTRB->body[ibody].ebody, "_faceID", &eNewBody);
-            CHECK_STATUS(EG_mapBody);
+            status = EG_mapBody2(MODL->body[ibody].ebody, "_faceID", "_edgeID", PTRB->body[ibody].ebody);
+            CHECK_STATUS(EG_mapBody2);
 
-            if (eNewBody == NULL) {
+            status = EG_attributeRet(PTRB->body[ibody].ebody, ".nMap",
+                                     &atype, &alen, &nMap, &tempRlist, &tempClist);
+            if (status != EGADS_SUCCESS) {
                 nMap = NULL;
-                eMap = NULL;
-                fMap = NULL;
-            } else {
-                status = EG_attributeRet(eNewBody, ".nMap",
-                                         &atype, &alen, &nMap, &tempRlist, &tempClist);
-                if (status != EGADS_SUCCESS) {
-                    nMap = NULL;
-                }
-
-                status = EG_attributeRet(eNewBody, ".eMap",
-                                         &atype, &alen, &eMap, &tempRlist, &tempClist);
-                if (status != EGADS_SUCCESS) {
-                    eMap = NULL;
-                }
-
-                status = EG_attributeRet(eNewBody, ".fMap",
-                                     &atype, &alen, &fMap, &tempRlist, &tempClist);
-                if (status != EGADS_SUCCESS) {
-                    fMap = NULL;
-                }
             }
-        } else {
-            nMap = NULL;
-            eMap = NULL;
-            fMap = NULL;
+
+            status = EG_attributeRet(PTRB->body[ibody].ebody, ".eMap",
+                                     &atype, &alen, &eMap, &tempRlist, &tempClist);
+            if (status != EGADS_SUCCESS) {
+                eMap = NULL;
+            }
+
+            status = EG_attributeRet(PTRB->body[ibody].ebody, ".fMap",
+                                     &atype, &alen, &fMap, &tempRlist, &tempClist);
+            if (status != EGADS_SUCCESS) {
+                fMap = NULL;
+            }
         }
 
         /* save perturbed points (which are the base plus their sensitivities) for each Face */
@@ -1246,6 +1256,10 @@ checkTessSens(int    ipmtr,             /* (in)  Parameter index (bias-1) */
             status = EG_getTessFace(MODL->body[ibody].etess, iface,
                                     &npnt_tess, &xyz, &uv, &ptype, &pindx,
                                     &ntri_tess, &tris, &tric);
+            if (status == EGADS_NODATA) {                   /* can happen if .tParams[0]<0 */
+                status = EGADS_SUCCESS;
+                continue;
+            }
             CHECK_STATUS(EG_getTessFace);
             if (npnt_tess <= 0) {
                 SPRINT3(0, "ERROR:: EG_getTessFace -> status=%d (%s), npnt_tess=%d",
@@ -1270,7 +1284,7 @@ checkTessSens(int    ipmtr,             /* (in)  Parameter index (bias-1) */
                 }
             }
 
-            status = EG_attributeRet(MODL->body[ibody].face[iface].eface, "_sensCheck",
+            status = EG_attributeRet(MODL->body[ibody].face[iface].eface, "__sensCheck__",
                                      &atype, &alen, &tempIlist, &tempRlist, &tempClist);
             if (status == EGADS_SUCCESS && atype == ATTRSTRING && strcmp(tempClist, "skip") == 0) {
                 SPRINT2(0, "Tests suppressed for ibody=%3d, iface=%3d", ibody, iface);
@@ -1288,7 +1302,7 @@ checkTessSens(int    ipmtr,             /* (in)  Parameter index (bias-1) */
 
         for (iedge = 1; iedge <= MODL->body[ibody].nedge; iedge++) {
             if (MODL->body[ibody].edge[iedge].itype == DEGENERATE) continue;
-            
+
             status = EG_getTessEdge(MODL->body[ibody].etess, iedge,
                                     &npnt_tess, &xyz, &uv);
             CHECK_STATUS(EG_getTessEdge);
@@ -1315,7 +1329,7 @@ checkTessSens(int    ipmtr,             /* (in)  Parameter index (bias-1) */
                 }
             }
 
-            status = EG_attributeRet(MODL->body[ibody].edge[iedge].eedge, "_sensCheck",
+            status = EG_attributeRet(MODL->body[ibody].edge[iedge].eedge, "__sensCheck__",
                                      &atype, &alen, &tempIlist, &tempRlist, &tempClist);
             if (status == EGADS_SUCCESS && atype == ATTRSTRING && strcmp(tempClist, "skip") == 0) {
                 SPRINT2(0, "Tests suppressed for ibody=%3d, iedge=%3d", ibody, iedge);
@@ -1368,6 +1382,10 @@ checkTessSens(int    ipmtr,             /* (in)  Parameter index (bias-1) */
             status = EG_getTessFace(MODL->body[ibody].etess, iface,
                                     &npnt_tess, &xyz, &uv, &ptype, &pindx,
                                     &ntri_tess, &tris, &tric);
+            if (status == EGADS_NODATA) {                   /* can happen if .tParams[0]<0 */
+                status = EGADS_SUCCESS;
+                continue;
+            }
             CHECK_STATUS(EG_getTessFace);
 
             if (npnt_tess <= 0) {
@@ -1384,7 +1402,7 @@ checkTessSens(int    ipmtr,             /* (in)  Parameter index (bias-1) */
                 jface = fMap[iface-1];
             }
 
-            status = EG_attributeRet(MODL->body[ibody].face[iface].eface, "_sensCheck",
+            status = EG_attributeRet(MODL->body[ibody].face[iface].eface, "__sensCheck__",
                                      &atype, &alen, &tempIlist, &tempRlist, &tempClist);
             if (status == EGADS_SUCCESS && atype == ATTRSTRING && strcmp(tempClist, "skip") == 0) {
                 continue;
@@ -1393,6 +1411,10 @@ checkTessSens(int    ipmtr,             /* (in)  Parameter index (bias-1) */
             status = EG_getTessFace(MODL->body[ibody].etess, iface,
                                     &npnt_tess, &xyz, &uv, &ptype, &pindx,
                                     &ntri_tess, &tris, &tric);
+            if (status == EGADS_NODATA) {                   /* can happen if .tParams[0]<0 */
+                status = EGADS_SUCCESS;
+                continue;
+            }
             CHECK_STATUS(EG_getTessFace);
 
             MALLOC(Dist, double, npnt_tess);
@@ -1459,6 +1481,7 @@ checkTessSens(int    ipmtr,             /* (in)  Parameter index (bias-1) */
         /* check how far each perturbed Edge point is from the perturbed configuration */
         nerror = 0;
         for (iedge = 1; iedge <= MODL->body[ibody].nedge; iedge++) {
+            if (MODL->body[ibody].edge[iedge].itype == DEGENERATE) continue;
 
             /* find the equivalent Edge in PTRB */
             if (eMap == NULL) {
@@ -1467,7 +1490,7 @@ checkTessSens(int    ipmtr,             /* (in)  Parameter index (bias-1) */
                 jedge = eMap[iedge-1];
             }
 
-            status = EG_attributeRet(MODL->body[ibody].edge[iedge].eedge, "_sensCheck",
+            status = EG_attributeRet(MODL->body[ibody].edge[iedge].eedge, "__sensCheck__",
                                      &atype, &alen, &tempIlist, &tempRlist, &tempClist);
             if (status == EGADS_SUCCESS && atype == ATTRSTRING && strcmp(tempClist, "skip") == 0) {
                 FREE(edge_ptrb[iedge]);
@@ -1549,11 +1572,6 @@ checkTessSens(int    ipmtr,             /* (in)  Parameter index (bias-1) */
         FREE(face_ptrb);
         FREE(edge_ptrb);
         FREE(node_ptrb);
-
-        if (eNewBody != NULL) {
-            status = EG_deleteObject(eNewBody);
-            CHECK_STATUS(EG_deleteObject);
-        }
     }
 
 cleanup:

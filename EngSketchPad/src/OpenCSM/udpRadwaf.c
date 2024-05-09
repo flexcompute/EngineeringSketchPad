@@ -10,7 +10,7 @@
  */
 
 /*
- * Copyright (C) 2011/2022  John F. Dannenhoffer, III (Syracuse University)
+ * Copyright (C) 2011/2024  John F. Dannenhoffer, III (Syracuse University)
  *
  * This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
@@ -47,8 +47,6 @@ static double argDdefs[NUMUDPARGS] = {0.,       0.,       0.,       -1.,      };
                          udpGet, udpVel, udpClean, udpMesh */
 #include "udpUtilities.c"
 
-#define EPS03  0.001
-
 static int makeNode(ego context, double xyz[], ego *enode);
 static int makeEdge(ego enode1, ego enode2, ego *eedge);
 static int makeFrame(ego context, int iframe, double xframe, double ysize, double zsize,
@@ -76,6 +74,7 @@ udpExecute(ego  context,                /* (in)  EGADS context */
     ego     *enodes0=NULL, *eedges0=NULL, *efaces0=NULL;
     ego     *enodes1=NULL, *eedges1=NULL, *efaces1=NULL;
     ego     edgList[4], *facList=NULL, eloop, eshell;
+    udp_T   *udps = *Udps;
 
     ROUTINE(udpExecute);
 

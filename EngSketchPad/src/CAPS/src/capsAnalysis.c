@@ -3,7 +3,7 @@
  *
  *             Analysis Object Functions
  *
- *      Copyright 2014-2022, Massachusetts Institute of Technology
+ *      Copyright 2014-2024, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -57,18 +57,20 @@ extern int   caps_statFile(const char *path);
 extern int   caps_mkDir(const char *path);
 extern int   caps_rmDir(const char *path);
 extern int   caps_rename(const char *src, const char *dst);
-extern int   caps_rmCLink(const char *path);
+extern int   caps_rmCLink(capsProblem *problem, const char *path);
 extern int   caps_isNameOK(const char *name);
 extern int   caps_dumpAnalysis(capsProblem *problem, capsObject *aobject);
 extern int   caps_writeBound(const capsObject *bobject);
 extern int   caps_writeVertexSet(capsObject *vobject);
 extern int   caps_writeDataSet(capsObject *dobject);
-extern void  caps_jrnlWrite(int funID, capsProblem *problem, capsObject *obj,
-                            int status, int nargs, capsJrnl *args, CAPSLONG sNm0,
-                            CAPSLONG sNum);
+extern int   capsInputSum(int nargs, capsJrnl *args, CAPSLONG *md5);
+extern void  caps_jrnlWrite(int funID, CAPSLONG *md5, capsProblem *problem,
+                            capsObject *obj, int status, int nargs,
+                            capsJrnl *args, CAPSLONG sNm0, CAPSLONG sNum);
 extern int   caps_jrnlEnd(capsProblem *problem);
-extern int   caps_jrnlRead(int funID, capsProblem *problem, capsObject *obj,
-                           int nargs, capsJrnl *args, CAPSLONG *sNum, int *stat);
+extern int   caps_jrnlRead(int funID, CAPSLONG *md5, capsProblem *problem,
+                           capsObject *obj, int nargs, capsJrnl *args,
+                           CAPSLONG *sNum, int *stat);
 
 extern int   caps_dupValues(capsValue *val1, capsValue *val2);
 extern int   caps_transferValueX(capsObject *source, enum capstMethod method,
@@ -192,6 +194,7 @@ caps_getInput(capsObject *pobject, const char *aname, int index, char **ainame,
   defaults->dim             = defaults->pIndex = defaults->index = 0;
   defaults->lfixed          = defaults->sfixed = Fixed;
   defaults->nullVal         = NotAllowed;
+  defaults->lims            = NULL;
   defaults->units           = NULL;
   defaults->meshWriter      = NULL;
   defaults->link            = NULL;
@@ -202,6 +205,7 @@ caps_getInput(capsObject *pobject, const char *aname, int index, char **ainame,
   defaults->partial         = NULL;
   defaults->nderiv          = 0;
   defaults->derivs          = NULL;
+  defaults->stepSize        = NULL;
 
   stat = aim_Inputs(problem->aimFPTR, aname, NULL, NULL, index, ainame,
                     defaults);
@@ -230,6 +234,7 @@ caps_getOutput(capsObject *pobject, const char *aname, int index, char **aoname,
   form->dim             = form->pIndex = form->index = 0;
   form->lfixed          = form->sfixed = Fixed;
   form->nullVal         = NotAllowed;
+  form->lims            = NULL;
   form->units           = NULL;
   form->meshWriter      = NULL;
   form->link            = NULL;
@@ -240,6 +245,7 @@ caps_getOutput(capsObject *pobject, const char *aname, int index, char **aoname,
   form->partial         = NULL;
   form->nderiv          = 0;
   form->derivs          = NULL;
+  form->stepSize        = NULL;
 
   stat = aim_Outputs(problem->aimFPTR, aname, NULL, NULL, index, aoname, form);
   if (stat == CAPS_SUCCESS) form->length = form->ncol*form->nrow;
@@ -254,8 +260,8 @@ caps_AIMbackdoor(capsObject *aobject, const char *JSONin, char **JSONout)
   capsObject   *pobject;
   capsProblem  *problem;
   capsAnalysis *analysis;
-  CAPSLONG     sNum;
-  capsJrnl     args[1];
+  CAPSLONG     sNum, md5[2];
+  capsJrnl     args[2];
 
   *JSONout = NULL;
   if (aobject              == NULL)      return CAPS_NULLOBJ;
@@ -267,10 +273,18 @@ caps_AIMbackdoor(capsObject *aobject, const char *JSONin, char **JSONout)
   if (pobject->blind       == NULL)      return CAPS_NULLBLIND;
   analysis = (capsAnalysis *) aobject->blind;
   problem  = (capsProblem *)  pobject->blind;
-
-  args[0].type   = jString;
+  
+  args[0].type           = jObject;
+  args[0].members.obj    = aobject;
+  args[1].type           = jString;
+  args[1].members.string = (char *) JSONin;
+  stat = capsInputSum(2, args, md5);
+  if (stat != CAPS_SUCCESS) return stat;
+  
+  args[0].type = jString;
   if (problem->dbFlag == 0) {
-    stat           = caps_jrnlRead(CAPS_AIMBACKDOOR, problem, aobject, 1, args, &sNum, &ret);
+    stat       = caps_jrnlRead(CAPS_AIMBACKDOOR, md5, problem, aobject, 1, args,
+                               &sNum, &ret);
     if (stat == CAPS_JOURNALERR) return stat;
     if (stat == CAPS_JOURNAL) {
       *JSONout = EG_strdup(args[0].members.string);
@@ -282,7 +296,8 @@ caps_AIMbackdoor(capsObject *aobject, const char *JSONin, char **JSONout)
                      &analysis->info, JSONin, JSONout);
   if (problem->dbFlag == 1) return ret;
   args[0].members.string = *JSONout;
-  caps_jrnlWrite(CAPS_AIMBACKDOOR, problem, aobject, ret, 1, args,
+  
+  caps_jrnlWrite(CAPS_AIMBACKDOOR, md5, problem, aobject, ret, 1, args,
                  problem->sNum, problem->sNum);
 
   return ret;
@@ -299,9 +314,10 @@ caps_system(capsObject *aobject, /*@null@*/ const char *rpath,
   capsObject   *pobject;
   capsProblem  *problem;
   capsAnalysis *analysis;
-  CAPSLONG     sNum;
-  capsJrnl     args[1];    /* not really used */
+  CAPSLONG     sNum, md5[2];
+  capsJrnl     args[3];
 
+  if (command              == NULL)      return CAPS_NULLOBJ;
   if (aobject              == NULL)      return CAPS_NULLOBJ;
   if (aobject->magicnumber != CAPSMAGIC) return CAPS_BADOBJECT;
   if (aobject->type        != ANALYSIS)  return CAPS_BADTYPE;
@@ -313,9 +329,21 @@ caps_system(capsObject *aobject, /*@null@*/ const char *rpath,
   problem  = (capsProblem *)  pobject->blind;
   if (problem->dbFlag      == 1)         return CAPS_READONLYERR;
 
-  args[0].type = jString;
-  stat         = caps_jrnlRead(CAPS_SYSTEM, problem, aobject, 0, args,
-                               &sNum, &ret);
+  len                      = 2;
+  args[0].type             = jObject;
+  args[0].members.obj      = aobject;
+  args[1].type             = jString;
+  args[1].members.string   = (char *) command;
+  if (rpath != NULL) {
+    args[2].type           = jString;
+    args[2].members.string = (char *) rpath;
+    len++;
+  }
+  stat = capsInputSum(len, args, md5);
+  if (stat != CAPS_SUCCESS) return stat;
+  
+  stat = caps_jrnlRead(CAPS_SYSTEM, md5, problem, aobject, 0, args, &sNum,
+                       &ret);
   if (stat == CAPS_JOURNALERR) return stat;
   if (stat == CAPS_JOURNAL)    return ret;
 
@@ -323,7 +351,7 @@ caps_system(capsObject *aobject, /*@null@*/ const char *rpath,
   args[0].members.string = NULL;
   if (analysis->pre.sNum < aobject->last.sNum) {
     ret = CAPS_CLEAN;
-    caps_jrnlWrite(CAPS_SYSTEM, problem, aobject, ret, 0, args, sNum,
+    caps_jrnlWrite(CAPS_SYSTEM, md5, problem, aobject, ret, 0, args, sNum,
                    problem->sNum);
     return ret;
   }
@@ -366,7 +394,7 @@ caps_system(capsObject *aobject, /*@null@*/ const char *rpath,
     problem->sNum += 1;
   }
   EG_free(fullcommand);
-  caps_jrnlWrite(CAPS_SYSTEM, problem, aobject, ret, 0, args, sNum,
+  caps_jrnlWrite(CAPS_SYSTEM, md5, problem, aobject, ret, 0, args, sNum,
                  problem->sNum);
 
   return ret;
@@ -557,6 +585,7 @@ caps_makeAnalysiX(capsObject *pobject, const char *aname,
       value[i].dim             = value[i].pIndex = value[i].index = 0;
       value[i].lfixed          = value[i].sfixed = Fixed;
       value[i].nullVal         = NotAllowed;
+      value[i].lims            = NULL;
       value[i].units           = NULL;
       value[i].meshWriter      = NULL;
       value[i].link            = NULL;
@@ -567,6 +596,7 @@ caps_makeAnalysiX(capsObject *pobject, const char *aname,
       value[i].partial         = NULL;
       value[i].nderiv          = 0;
       value[i].derivs          = NULL;
+      value[i].stepSize        = NULL;
 
       status = caps_makeObject(&object);
       if (status != CAPS_SUCCESS) {
@@ -630,6 +660,7 @@ caps_makeAnalysiX(capsObject *pobject, const char *aname,
       value[i].dim             = value[i].pIndex = value[i].index = 0;
       value[i].lfixed          = value[i].sfixed = Fixed;
       value[i].nullVal         = NotAllowed;
+      value[i].lims            = NULL;
       value[i].units           = NULL;
       value[i].meshWriter      = NULL;
       value[i].link            = NULL;
@@ -640,6 +671,7 @@ caps_makeAnalysiX(capsObject *pobject, const char *aname,
       value[i].partial         = NULL;
       value[i].nderiv          = 0;
       value[i].derivs          = NULL;
+      value[i].stepSize        = NULL;
 
       status = caps_makeObject(&object);
       if (status != CAPS_SUCCESS) {
@@ -807,10 +839,10 @@ caps_makeAnalysis(capsObject *pobject, const char *aname,
                   /*@null@*/ const char *intents, int *exec,
                   capsObject **aobject, int *nErr, capsErrs **errors)
 {
-  int         stat, ret;
-  CAPSLONG    sNum;
+  int         stat, ret, len;
+  CAPSLONG    sNum, md5[2];
   capsProblem *problem;
-  capsJrnl    args[4];
+  capsJrnl    args[6];
 
   *aobject = NULL;
   *nErr    = 0;
@@ -822,13 +854,38 @@ caps_makeAnalysis(capsObject *pobject, const char *aname,
   if (aname                == NULL)      return CAPS_NULLNAME;
   problem = (capsProblem *) pobject->blind;
   if (problem->dbFlag      == 1)         return CAPS_READONLYERR;
+  
+  len                      = 3;
+  args[0].type             = jObject;
+  args[0].members.obj      = pobject;
+  args[1].type             = jString;
+  args[1].members.string   = (char *) aname;
+  args[2].type             = jInteger;
+  args[2].members.integer  = *exec;
+  if (name != NULL) {
+    args[len].type           = jString;
+    args[len].members.string = (char *) name;
+    len++;
+  }
+  if (unitSys != NULL) {
+    args[len].type           = jString;
+    args[len].members.string = (char *) unitSys;
+    len++;
+  }
+  if (intents != NULL) {
+    args[len].type           = jString;
+    args[len].members.string = (char *) intents;
+    len++;
+  }
+  stat = capsInputSum(len, args, md5);
+  if (stat != CAPS_SUCCESS) return stat;
 
   args[0].type = jObject;
   args[1].type = jInteger;
   args[2].type = jInteger;
   args[3].type = jErr;
-  stat         = caps_jrnlRead(CAPS_MAKEANALYSIS, problem, *aobject, 4, args,
-                               &sNum, &ret);
+  stat         = caps_jrnlRead(CAPS_MAKEANALYSIS, md5, problem, *aobject,
+                               4, args, &sNum, &ret);
   if (stat == CAPS_JOURNALERR) return stat;
   if (stat == CAPS_JOURNAL) {
     *aobject = args[0].members.obj;
@@ -845,7 +902,7 @@ caps_makeAnalysis(capsObject *pobject, const char *aname,
   args[1].members.integer = *exec;
   args[2].members.integer = *nErr;
   args[3].members.errs    = *errors;
-  caps_jrnlWrite(CAPS_MAKEANALYSIS, problem, *aobject, ret, 4, args, sNum,
+  caps_jrnlWrite(CAPS_MAKEANALYSIS, md5, problem, *aobject, ret, 4, args, sNum,
                  problem->sNum);
 
   return ret;
@@ -1016,6 +1073,7 @@ caps_dupAnalysiX(capsObject *from, const char *name, capsObject **aobject)
       value[i].dim             = value[i].pIndex = value[i].index = 0;
       value[i].lfixed          = value[i].sfixed = Fixed;
       value[i].nullVal         = NotAllowed;
+      value[i].lims            = NULL;
       value[i].units           = NULL;
       value[i].meshWriter      = NULL;
       value[i].link            = NULL;
@@ -1026,6 +1084,7 @@ caps_dupAnalysiX(capsObject *from, const char *name, capsObject **aobject)
       value[i].partial         = NULL;
       value[i].nderiv          = 0;
       value[i].derivs          = NULL;
+      value[i].stepSize        = NULL;
 
       status = caps_makeObject(&object);
       if (status != CAPS_SUCCESS) {
@@ -1081,6 +1140,7 @@ caps_dupAnalysiX(capsObject *from, const char *name, capsObject **aobject)
       value[i].dim             = value[i].pIndex = value[i].index = 0;
       value[i].lfixed          = value[i].sfixed = Fixed;
       value[i].nullVal         = NotAllowed;
+      value[i].lims            = NULL;
       value[i].units           = NULL;
       value[i].meshWriter      = NULL;
       value[i].link            = NULL;
@@ -1091,6 +1151,7 @@ caps_dupAnalysiX(capsObject *from, const char *name, capsObject **aobject)
       value[i].partial         = NULL;
       value[i].nderiv          = 0;
       value[i].derivs          = NULL;
+      value[i].stepSize        = NULL;
 
       status = caps_makeObject(&object);
       if (status != CAPS_SUCCESS) {
@@ -1244,10 +1305,10 @@ int
 caps_dupAnalysis(capsObject *from, const char *name, capsObject **aobject)
 {
   int         stat, ret;
-  CAPSLONG    sNum;
+  CAPSLONG    sNum, md5[2];
   capsObject  *pobject;
   capsProblem *problem;
-  capsJrnl    args[1];
+  capsJrnl    args[2];
 
   if (aobject           == NULL)      return CAPS_NULLOBJ;
   *aobject = NULL;
@@ -1261,10 +1322,17 @@ caps_dupAnalysis(capsObject *from, const char *name, capsObject **aobject)
   if (pobject->blind    == NULL)      return CAPS_NULLBLIND;
   problem = (capsProblem *) pobject->blind;
   if (problem->dbFlag      == 1)      return CAPS_READONLYERR;
+  
+  args[0].type           = jObject;
+  args[0].members.obj    = from;
+  args[1].type           = jString;
+  args[1].members.string = (char *) name;
+  stat = capsInputSum(2, args, md5);
+  if (stat != CAPS_SUCCESS) return stat;
 
   args[0].type = jObject;
-  stat         = caps_jrnlRead(CAPS_DUPANALYSIS, problem, *aobject, 1, args,
-                              &sNum, &ret);
+  stat         = caps_jrnlRead(CAPS_DUPANALYSIS, md5, problem, *aobject,
+                               1, args, &sNum, &ret);
   if (stat == CAPS_JOURNALERR) return stat;
   if (stat == CAPS_JOURNAL) {
     *aobject = args[0].members.obj;
@@ -1274,7 +1342,7 @@ caps_dupAnalysis(capsObject *from, const char *name, capsObject **aobject)
   sNum = problem->sNum;
   ret  = caps_dupAnalysiX(from, name, aobject);
   args[0].members.obj = *aobject;
-  caps_jrnlWrite(CAPS_DUPANALYSIS, problem, *aobject, ret, 1, args, sNum,
+  caps_jrnlWrite(CAPS_DUPANALYSIS, md5, problem, *aobject, ret, 1, args, sNum,
                  problem->sNum);
 
   return ret;
@@ -1435,7 +1503,7 @@ caps_analysisInfo(capsObject *aobject, char **apath, char **unitSys, int *major,
                   int **ranks, int **fInOut, int *execute, int *status)
 {
   int          stat, ret;
-  CAPSLONG     sNum;
+  CAPSLONG     sNum, md5[2];
   capsAnalysis *analysis;
   capsObject   *pobject;
   capsProblem  *problem;
@@ -1456,6 +1524,11 @@ caps_analysisInfo(capsObject *aobject, char **apath, char **unitSys, int *major,
   pobject  = (capsObject *)   aobject->parent;
   if (pobject->blind       == NULL)      return CAPS_NULLBLIND;
   problem  = (capsProblem *)  pobject->blind;
+  
+  args[0].type        = jObject;
+  args[0].members.obj = aobject;
+  stat = capsInputSum(1, args, md5);
+  if (stat != CAPS_SUCCESS) return stat;
 
   *apath   = analysis->fullPath;
   *unitSys = analysis->unitSys;
@@ -1471,8 +1544,8 @@ caps_analysisInfo(capsObject *aobject, char **apath, char **unitSys, int *major,
 
   args[0].type = jInteger;
   if (problem->dbFlag == 0) {
-    stat = caps_jrnlRead(CAPS_ANALYSISINFO, problem, aobject, 1, args, &sNum,
-                         &ret);
+    stat = caps_jrnlRead(CAPS_ANALYSISINFO, md5, problem, aobject, 1, args,
+                         &sNum, &ret);
     if (stat == CAPS_JOURNALERR) return stat;
     if (stat == CAPS_JOURNAL) {
       *status = args[0].members.integer;
@@ -1485,7 +1558,7 @@ caps_analysisInfo(capsObject *aobject, char **apath, char **unitSys, int *major,
                            nField, fnames, ranks, fInOut, execute, status);
   if (problem->dbFlag == 1) return ret;
   args[0].members.integer = *status;
-  caps_jrnlWrite(CAPS_ANALYSISINFO, problem, aobject, ret, 1, args, sNum,
+  caps_jrnlWrite(CAPS_ANALYSISINFO, md5, problem, aobject, ret, 1, args, sNum,
                  problem->sNum);
 
   return ret;
@@ -2934,7 +3007,8 @@ caps_paramQuilt(capsBound *bound, int l, char *line)
 #ifdef DEBUG
     printf(" caps_paraQuilt: prm_SmoothUV = %d\n", stat);
 #endif
-    if (stat == CAPS_SUCCESS) {
+    if ((stat == CAPS_SUCCESS) || (stat == PRM_NOTCONVERGED) ||
+        (stat == EGADS_MALLOC)) {
       n    = 3;
       stat = prm_NormalizeUV(0.05, per, npts, uv);
 #ifdef DEBUG
@@ -3303,9 +3377,13 @@ caps_geomOutSensit(capsProblem *problem, int ipmtr, int irow, int icol)
       if (value->derivs       == NULL) continue;
 
       len_wrt = value->derivs[i].len_wrt;
-      if (value->derivs[i].deriv == NULL)
+      if (value->derivs[i].deriv == NULL) {
         value->derivs[i].deriv = (double *) EG_alloc(value->length*len_wrt*
                                                      sizeof(double));
+        if (value->derivs[i].deriv == NULL) continue;
+        for (k = 0; k < value->length*len_wrt; k++)
+          value->derivs[i].deriv[k] = -HUGEQ;
+      }
       if (value->derivs[i].deriv == NULL) continue;
 
       reals = value->vals.reals;
@@ -3373,6 +3451,7 @@ caps_refillBound(capsProblem *problem, capsObject *bobject,
   int           i, j, k, m, n, irow, icol, status, len, outLevel;
   int           buildTo, builtTo, nbody, open;
   char          name[129], error[129], *str, **names, **ntmp;
+  double        step;
   capsValue     *value;
   capsAnalysis  *anal;
   capsObject    *dobject;
@@ -3567,7 +3646,8 @@ caps_refillBound(capsProblem *problem, capsObject *bobject,
           if (str[i] == ',') str[i] = ' ';
         sscanf(&str[open+1], "%d%d\n", &irow, &icol);
       }
-      open = -1;
+      open  = -1;
+      value = NULL;
       for (i = 0; i < problem->nGeomIn; i++)
         if (strcmp(str,problem->geomIn[i]->name) == 0) {
           value = (capsValue *) problem->geomIn[i]->blind;
@@ -3576,26 +3656,37 @@ caps_refillBound(capsProblem *problem, capsObject *bobject,
           break;
         }
       EG_free(str);
-      if (open == -1) continue;
+      if ((open == -1) || (value == NULL)) continue;
+      
+      /* are we using Finite Differences? */
+      step = 0.0;
+      if (value->stepSize != NULL) {
+        i    = (irow-1)*value->ncol + icol-1;
+        step = value->stepSize[i];
+      }
 
       /* clear all then set */
-      status = ocsmSetDtime(problem->modl, 0);
-      if (status != SUCCESS) return status;
       status = ocsmSetVelD(problem->modl, 0,    0,    0,    0.0);
       if (status != SUCCESS) return status;
       status = ocsmSetVelD(problem->modl, open, irow, icol, 1.0);
       if (status != SUCCESS) return status;
-      buildTo = 0;
-      nbody   = 0;
-      outLevel = ocsmSetOutLevel(0);
-      printf(" CAPS Info: Building sensitivity information for: %s[%d,%d]\n",
-             problem->geomIn[i]->name, irow, icol);
-      status  = ocsmBuild(problem->modl, buildTo, &builtTo, &nbody, NULL);
-      ocsmSetOutLevel(outLevel);
-      printf(" CAPS Info: parameter %d %d %d sensitivity status = %d\n",
-             open, irow, icol, status);
-      fflush(stdout);
-      if (status != SUCCESS) continue;
+      status = ocsmSetDtime(problem->modl, step);
+      if (status != SUCCESS) return status;
+      if (problem->outLevel > 0)
+        printf(" CAPS Info: Building sensitivity information for: %s[%d,%d]\n",
+               problem->geomIn[i]->name, irow, icol);
+      if (step == 0.0) {
+        buildTo  = 0;
+        nbody    = 0;
+        outLevel = ocsmSetOutLevel(0);
+        status   = ocsmBuild(problem->modl, buildTo, &builtTo, &nbody, NULL);
+        ocsmSetOutLevel(outLevel);
+        if (status != SUCCESS)
+          printf(" CAPS Info: %s[%d,%d] build sensitivity status = %d\n",
+                 problem->geomIn[i]->name, irow, icol, status);
+        fflush(stdout);
+        if (status != SUCCESS) continue;
+      }
       caps_geomOutSensit(problem, open, irow, icol);
 
       for (j = 0; j < bound->nVertexSet; j++) {
@@ -3610,20 +3701,20 @@ caps_refillBound(capsProblem *problem, capsObject *bobject,
         if (discr->nPoints                   == 0)         continue;
         if (discr->dim                       == 3)         continue;
         for (k = 0; k < vertexset->nDataSets; k++) {
-          if (vertexset->dataSets[k]              == NULL)        continue;
-          if (vertexset->dataSets[k]->magicnumber != CAPSMAGIC)   continue;
-          if (vertexset->dataSets[k]->type        != DATASET)     continue;
-          if (vertexset->dataSets[k]->blind       == NULL)        continue;
+          if (vertexset->dataSets[k]              == NULL)      continue;
+          if (vertexset->dataSets[k]->magicnumber != CAPSMAGIC) continue;
+          if (vertexset->dataSets[k]->type        != DATASET)   continue;
+          if (vertexset->dataSets[k]->blind       == NULL)      continue;
           dobject = vertexset->dataSets[k];
           dataset = (capsDataSet *) dobject->blind;
           if ((dataset->ftype != GeomSens) &&
-              (dataset->ftype != TessSens))                       continue;
+              (dataset->ftype != TessSens))                     continue;
           if (vertexset->dataSets[k]->last.sNum   >=
-              problem->geometry.sNum)                             continue;
-          if (strcmp(names[m],dobject->name)      != 0)           continue;
+              problem->geometry.sNum)                           continue;
+          if (strcmp(names[m],dobject->name)      != 0)         continue;
           dataset->data = (double *)
             EG_alloc(3*discr->nPoints*sizeof(double));
-          if (dataset->data                       == NULL)        continue;
+          if (dataset->data                       == NULL)      continue;
           caps_fillSensit(problem, discr, dataset);
           dataset->npts = discr->nPoints;
           caps_freeOwner(&dobject->last);
@@ -3640,9 +3731,9 @@ caps_refillBound(capsProblem *problem, capsObject *bobject,
         }
 
         MODL = (modl_T *) problem->modl;
-        if (MODL->dtime != 0)
-          printf(" CAPS Info: Sensitivity finite difference used for: %s[%d,%d]\n",
-                 problem->geomIn[i]->name, irow, icol);
+        if (MODL->dtime != 0.0)
+          printf(" CAPS Info: Sensitivity FD step %le used for: %s[%d,%d]\n",
+                 MODL->dtime, problem->geomIn[i]->name, irow, icol);
       }
     }
     EG_free(names);
@@ -3755,7 +3846,7 @@ caps_getBodies(capsObject *aobject, int *nBody, ego **bodies,
                int *nErr, capsErrs **errors)
 {
   int          i, stat, ret, oclass, mtype, *senses;
-  CAPSLONG     sNum;
+  CAPSLONG     sNum, md5[2];
   capsObject   *pobject;
   capsProblem  *problem;
   capsAnalysis *analysis;
@@ -3773,13 +3864,18 @@ caps_getBodies(capsObject *aobject, int *nBody, ego **bodies,
   stat = caps_findProblem(aobject, CAPS_GETBODIES, &pobject);
   if (stat != CAPS_SUCCESS) return stat;
   problem = (capsProblem *) pobject->blind;
+  
+  args[0].type        = jObject;
+  args[0].members.obj = aobject;
+  stat = capsInputSum(1, args, md5);
+  if (stat != CAPS_SUCCESS) return stat;
 
-  args[0].type   = jEgos;
-  args[1].type   = jInteger;
-  args[2].type   = jErr;
+  args[0].type = jEgos;
+  args[1].type = jInteger;
+  args[2].type = jErr;
   if (problem->dbFlag == 0) {
-    stat         = caps_jrnlRead(CAPS_GETBODIES, problem, aobject, 3, args,
-                                 &sNum, &ret);
+    stat       = caps_jrnlRead(CAPS_GETBODIES, md5, problem, aobject, 3, args,
+                               &sNum, &ret);
     if (stat == CAPS_JOURNALERR) return stat;
     if (stat == CAPS_JOURNAL) {
       *nErr   = args[1].members.integer;
@@ -3837,7 +3933,7 @@ caps_getBodies(capsObject *aobject, int *nBody, ego **bodies,
 cleanup:
   args[1].members.integer = *nErr;
   args[2].members.errs    = *errors;
-  caps_jrnlWrite(CAPS_GETBODIES, problem, aobject, stat, 3, args, sNum,
+  caps_jrnlWrite(CAPS_GETBODIES, md5, problem, aobject, stat, 3, args, sNum,
                  problem->sNum);
 
   if (egos != NULL) EG_free(egos);
@@ -3851,7 +3947,7 @@ caps_getTessels(capsObject *aobject, int *nTessel, ego **tessels,
                 int *nErr, capsErrs **errors)
 {
   int          i, j, n, npts, stat, ret, oclass, mtype, *senses;
-  CAPSLONG     sNum;
+  CAPSLONG     sNum, md5[2];
   capsObject   *pobject;
   capsProblem  *problem;
   capsAnalysis *analysis;
@@ -3869,13 +3965,18 @@ caps_getTessels(capsObject *aobject, int *nTessel, ego **tessels,
   stat = caps_findProblem(aobject, CAPS_GETTESSELS, &pobject);
   if (stat != CAPS_SUCCESS) return stat;
   problem = (capsProblem *) pobject->blind;
+  
+  args[0].type        = jObject;
+  args[0].members.obj = aobject;
+  stat = capsInputSum(1, args, md5);
+  if (stat != CAPS_SUCCESS) return stat;
 
-  args[0].type   = jEgos;
-  args[1].type   = jInteger;
-  args[2].type   = jErr;
+  args[0].type = jEgos;
+  args[1].type = jInteger;
+  args[2].type = jErr;
   if (problem->dbFlag == 0) {
-    stat         = caps_jrnlRead(CAPS_GETTESSELS, problem, aobject, 3, args,
-                                 &sNum, &ret);
+    stat       = caps_jrnlRead(CAPS_GETTESSELS, md5, problem, aobject, 3, args,
+                               &sNum, &ret);
     if (stat == CAPS_JOURNALERR) return stat;
     if (stat == CAPS_JOURNAL) {
       *nErr   = args[1].members.integer;
@@ -3972,7 +4073,7 @@ caps_getTessels(capsObject *aobject, int *nTessel, ego **tessels,
 cleanup:
   args[1].members.integer = *nErr;
   args[2].members.errs    = *errors;
-  caps_jrnlWrite(CAPS_GETTESSELS, problem, aobject, stat, 3, args, sNum,
+  caps_jrnlWrite(CAPS_GETTESSELS, md5, problem, aobject, stat, 3, args, sNum,
                  problem->sNum);
 
   if (egos != NULL) EG_free(egos);
@@ -4089,6 +4190,13 @@ caps_preAnalysiX(capsObject *aobject, int *nErr, capsErrs **errors)
     return status;
   }
 
+  /* running preAnalysis means reload is no longer viable */
+  analysis->reload = 0;
+
+  /* remove Clink */
+  stat = caps_rmCLink(problem, analysis->fullPath);
+  if (stat != CAPS_SUCCESS) return stat;
+
   /* update AIM's internal state? */
   status = caps_updateState(aobject, nErr, errors);
   if (status != CAPS_SUCCESS) return status;
@@ -4154,13 +4262,6 @@ caps_preAnalysiX(capsObject *aobject, int *nErr, capsErrs **errors)
   /* geometry, AnalysisIn, and DataSets are all clean */
   if (status == 0) return CAPS_CLEAN;
 
-  /* running preAnalysis means reload is no longer viable */
-  analysis->reload = 0;
-
-  /* remove Clink */
-  stat = caps_rmCLink(analysis->fullPath);
-  if (stat != CAPS_SUCCESS) return stat;
-
   /* do it! */
   analysis->info.funID = AIM_PREANALYSIS;
   stat = aim_PreAnalysis(problem->aimFPTR, analysis->loadName,
@@ -4189,7 +4290,7 @@ static int
 caps_preAnalysiZ(capsObject *aobject, int *nErr, capsErrs **errors)
 {
   int          stat, ret;
-  CAPSLONG     sNum;
+  CAPSLONG     sNum, md5[2];
   capsProblem  *problem;
   capsAnalysis *analysis;
   capsObject   *pobject;
@@ -4214,10 +4315,15 @@ caps_preAnalysiZ(capsObject *aobject, int *nErr, capsErrs **errors)
     problem  = (capsProblem *)  pobject->blind;
     if (analysis->analysisIn[0]->blind == NULL)      return CAPS_NULLVALUE;
   }
+  
+  args[0].type        = jObject;
+  args[0].members.obj = aobject;
+  stat = capsInputSum(1, args, md5);
+  if (stat != CAPS_SUCCESS) return stat;
 
   args[0].type = jInteger;
   args[1].type = jErr;
-  stat         = caps_jrnlRead(CAPS_PREANALYSIS, problem, aobject, 2, args,
+  stat         = caps_jrnlRead(CAPS_PREANALYSIS, md5, problem, aobject, 2, args,
                                &sNum, &ret);
   if (stat == CAPS_JOURNALERR) return stat;
   if (stat == CAPS_JOURNAL) {
@@ -4232,7 +4338,7 @@ caps_preAnalysiZ(capsObject *aobject, int *nErr, capsErrs **errors)
 
   args[0].members.integer = *nErr;
   args[1].members.errs    = *errors;
-  caps_jrnlWrite(CAPS_PREANALYSIS, problem, aobject, ret, 2, args, sNum,
+  caps_jrnlWrite(CAPS_PREANALYSIS, md5, problem, aobject, ret, 2, args, sNum,
                  problem->sNum);
 
   return ret;
@@ -4400,7 +4506,7 @@ static int
 caps_postAnalysiZ(capsObject *aobject, int *nErr, capsErrs **errors)
 {
   int          stat, ret;
-  CAPSLONG     sNum;
+  CAPSLONG     sNum, md5[2];
   capsProblem  *problem;
   capsObject   *pobject;
   capsJrnl     args[2];
@@ -4416,10 +4522,15 @@ caps_postAnalysiZ(capsObject *aobject, int *nErr, capsErrs **errors)
   if (pobject->blind       == NULL)            return CAPS_NULLBLIND;
   problem  = (capsProblem *)  pobject->blind;
 
+  args[0].type         = jObject;
+  args[0].members.obj  = aobject;
+  stat = capsInputSum(1, args, md5);
+  if (stat != CAPS_SUCCESS) return stat;
+  
   args[0].type = jInteger;
   args[1].type = jErr;
-  stat         = caps_jrnlRead(CAPS_POSTANALYSIS, problem, aobject, 2, args,
-                               &sNum, &ret);
+  stat         = caps_jrnlRead(CAPS_POSTANALYSIS, md5, problem, aobject,
+                               2, args, &sNum, &ret);
   if (stat == CAPS_JOURNALERR) return stat;
   if (stat == CAPS_JOURNAL) {
     *nErr    = args[0].members.integer;
@@ -4431,7 +4542,7 @@ caps_postAnalysiZ(capsObject *aobject, int *nErr, capsErrs **errors)
   ret  = caps_postAnalysiX(aobject, nErr, errors);
   args[0].members.integer = *nErr;
   args[1].members.errs    = *errors;
-  caps_jrnlWrite(CAPS_POSTANALYSIS, problem, aobject, ret, 2, args, sNum,
+  caps_jrnlWrite(CAPS_POSTANALYSIS, md5, problem, aobject, ret, 2, args, sNum,
                  problem->sNum);
 
   return ret;
@@ -4527,6 +4638,10 @@ caps_buildBound(capsObject *bobject, int *nErr, capsErrs **errors)
       dirty = 1;
     }
     if (vs->discr == NULL) {
+      dirty = 1;
+      continue;
+    }
+    if (vs->discr->nPoints == 0) {
       dirty = 1;
       continue;
     }
@@ -4762,7 +4877,7 @@ int
 caps_dirtyAnalysis(capsObject *object, int *nAobj, capsObject ***aobjs)
 {
   int         i, ret, stat;
-  CAPSLONG    sNum;
+  CAPSLONG    sNum, md5[2];
   capsProblem *problem;
   capsObject  *pobject, **objs;
   capsJrnl    args[1];
@@ -4777,11 +4892,16 @@ caps_dirtyAnalysis(capsObject *object, int *nAobj, capsObject ***aobjs)
   stat  = caps_findProblem(object, CAPS_DIRTYANALYSIS, &pobject);
   if (stat                 != CAPS_SUCCESS) return stat;
   problem = (capsProblem *) pobject->blind;
+  
+  args[0].type        = jObject;
+  args[0].members.obj = object;
+  stat = capsInputSum(1, args, md5);
+  if (stat != CAPS_SUCCESS) return stat;
 
   args[0].type = jObjs;
   if (problem->dbFlag == 0) {
-    stat       = caps_jrnlRead(CAPS_DIRTYANALYSIS, problem, object, 1, args,
-                               &sNum, &ret);
+    stat       = caps_jrnlRead(CAPS_DIRTYANALYSIS, md5, problem, object,
+                               1, args, &sNum, &ret);
     if (stat == CAPS_JOURNALERR) return stat;
     if (stat == CAPS_JOURNAL) {
       *nAobj = args[0].num;
@@ -4801,7 +4921,7 @@ caps_dirtyAnalysis(capsObject *object, int *nAobj, capsObject ***aobjs)
 
   args[0].num          = *nAobj;
   args[0].members.objs = *aobjs;
-  caps_jrnlWrite(CAPS_DIRTYANALYSIS, problem, object, ret, 1, args, sNum,
+  caps_jrnlWrite(CAPS_DIRTYANALYSIS, md5, problem, object, ret, 1, args, sNum,
                  problem->sNum);
 
   return ret;

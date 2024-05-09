@@ -51,6 +51,10 @@ myProblem.analysis["astros"].input.Quad_Mesh = True
 # Set analysis type
 myProblem.analysis["astros"].input.Analysis_Type = "Aeroelastic"
 
+# Set aero reference parameters
+# "referenceNode" specifies the grid point to use for stability derivative calculations
+myProblem.analysis["astros"].input.Aero_Reference = {"referenceNode": "Rib_Root_Point"}
+
 # Set analysis
 trim1 = { "analysisType" : "AeroelasticStatic",
           "trimSymmetry" : "SYM",
@@ -121,7 +125,14 @@ wing = {"groupName"    : "Wing",
 # the spline for the aerodynamic surface to the structural model
 myProblem.analysis["astros"].input.VLM_Surface = {"Skin_Top": wing}
 
+flapLE = {"surfaceSymmetry": "SYM"}
+
+flapTE = {"surfaceSymmetry": "SYM"}
+
+myProblem.analysis["astros"].input.VLM_Control= {"CntrlLE": flapLE, "CntrlTE": flapTE}
+
 # astros is executed automatically just-in-time
 
-# Run AIM 
+# Run AIM
 myProblem.analysis["astros"].runAnalysis()
+

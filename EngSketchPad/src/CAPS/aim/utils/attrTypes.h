@@ -2,8 +2,8 @@
 
 // Structures for attribute utilities - Written by Dr. Ryan Durscher AFRL/RQVC
 
-#ifndef ATTRTYPES_H
-#define ATTRTYPES_H
+#ifndef _AIM_UTILS_ATTRTYPES_H_
+#define _AIM_UTILS_ATTRTYPES_H_
 
 // UNCOMMENT ONCE PORT IS FINISHED
 // General container for to map attribute names to an assigned index
@@ -17,4 +17,4 @@
 //
 //} mapAttrToIndexStruct;
 
-#endif
+#endif // _AIM_UTILS_ATTRTYPES_H_

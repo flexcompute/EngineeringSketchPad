@@ -1,0 +1,36 @@
+# bspline_udp_2
+# written by John Dannenhoffer
+
+DESPMTR   dy        0.3
+
+# make a NACA wing
+UDPRIM    naca      series 0012
+RESTORE   .
+TRANSLATE 1  0  5
+RULE
+
+# extract the knot vectors and control points
+EVALUATE  FACEUKT   @nbody       1
+DIMENSION faceukt   @edata.size  1
+SET       faceukt   @edata
+
+EVALUATE  FACEVKT   @nbody       1
+DIMENSION facevkt   @edata.size  1
+SET       facevkt   @edata
+
+EVALUATE  FACECP    @nbody       1
+DIMENSION facecp    @edata.size  1
+SET       facecp    @edata
+
+# translate the y control points
+PATBEG    i         facecp.size/3
+   SET    facecp[3*i-1]  facecp[3*i-1]+dy
+PATEND
+
+# create a bspline surface with those knots and control points
+UDPARG    bspline   uknots   faceukt
+UDPARG    bspline   vknots   facevkt
+UDPARG    bspline   cps      facecp
+UDPRIM    bspline
+
+END

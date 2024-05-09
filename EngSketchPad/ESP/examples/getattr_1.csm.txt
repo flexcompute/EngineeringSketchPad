@@ -1,0 +1,38 @@
+# getattr_1
+# written by John Dannenhoffer
+
+# make a box
+BOX       0  0  0  4  3  2
+
+# make all its Faces cyan
+SELECT    FACE
+ATTRIBUTE _color $cyan
+
+# number the Edges edge_1, edge_2, ...
+PATBEG    iedge  12
+   SELECT    EDGE  iedge
+   ATTRIBUTE name  !$edge_+iedge
+PATEND
+
+# get the color of Face 1
+SELECT    FACE  1
+GETATTR   face1color  $_color
+MESSAGE   !$Face1color=+face1color
+
+# get the name of Edge 7
+SELECT    EDGE  7
+GETATTR   edge7name  $name
+MESSAGE   !$Edge7name=+edge7name
+
+# list the attributes on Node 2
+SELECT    NODE  2
+GETATTR   nattr  $_nattr_
+PATBEG    iattr  nattr
+   GETATTR attrName  iattr
+   GETATTR attrValue attrName
+   PATBEG  ivalue  attrValue.size
+      MESSAGE !attrName+$[+ivalue+$]=+attrValue[ivalue] .
+   PATEND
+PATEND
+
+END

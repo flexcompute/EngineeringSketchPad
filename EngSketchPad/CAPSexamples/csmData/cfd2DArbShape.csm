@@ -20,6 +20,7 @@ despmtr   xy[10,:]  "     0.00000;"
 # Global attributes:
 attribute capsIntent $CFD
 attribute capsAIM $fun3dAIM;su2AIM;egadsTessAIM;aflr2AIM #CFD Analysis
+attribute capsMeshLength 1
 
 # Branches:
 

@@ -3,8 +3,8 @@
 // Structures for general meshing - Written by Dr. Ryan Durscher AFRL/RQVC
 
 
-#ifndef MESHTYPES_H
-#define MESHTYPES_H
+#ifndef _AIM_UTILS_MESHTYPES_H_
+#define _AIM_UTILS_MESHTYPES_H_
 
 #include "egads.h"
 #include "miscTypes.h"
@@ -28,6 +28,7 @@ typedef struct {
 
 typedef struct {
     int size;
+    char **names;
     double* x;
     double* y;
     double* z;
@@ -102,9 +103,6 @@ typedef struct {
     int preserveSurfMesh; // 0 = False , anything else True - Use the body tessellation as the surface mesh
 
     int quiet;            // 0 = False , anything else True - No output from mesh generator
-    char *outputFormat;   // Mesh output formats - AFLR3, TECPLOT, VTK, SU2
-    char *outputFileName; // Filename prefix for mesh
-    int outputASCIIFlag;  // 0 = Binary output, anything else for ASCII
 
     bndCondStruct bndConds; // Structure of boundary conditions
     tetgenInputStruct tetgenInput; // Structure of Tetgen specific inputs
@@ -294,6 +292,7 @@ typedef struct {
     int connectLinkIndex;
 
     int responseIndex;
+    int referenceIndex;
 
     meshElementSubTypeEnum elementSubType;
 
@@ -313,4 +312,4 @@ typedef struct {
 
 } origamiMeshDataStruct;
 
-#endif
+#endif // _AIM_UTILS_MESHTYPES_H_

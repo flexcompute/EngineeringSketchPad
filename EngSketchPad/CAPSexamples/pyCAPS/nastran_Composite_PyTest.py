@@ -1,4 +1,6 @@
-# Import pyCAPS module
+from __future__ import print_function
+
+# Import pyCAPS class file
 import pyCAPS
 
 # Import os module
@@ -16,37 +18,38 @@ parser.add_argument('-noAnalysis', action='store_true', default = False, help = 
 parser.add_argument("-outLevel", default = 1, type=int, choices=[0, 1, 2], help="Set output verbosity")
 args = parser.parse_args()
 
-workDir = os.path.join(str(args.workDir[0]), "NastranCompositeTest")
-
-# Load CSM file
+# Initialize capsProblem object
+projectName = "MystranModalWingBEM"
+workDir = os.path.join(str(args.workDir[0]), projectName)
 geometryScript = os.path.join("..","csmData","feaCantileverPlate.csm")
+
 myProblem = pyCAPS.Problem(problemName=workDir,
-                           capsFile=geometryScript,
-                           outLevel=args.outLevel)
+                         capsFile=geometryScript,
+                         outLevel=args.outLevel)
+geometry = myProblem.geometry
 
 # Load nastran aim
-myProblem.analysis.create(aim = "nastranAIM",
-                          name = "nastran")
+myAnalysis = myProblem.analysis.create(aim = "nastranAIM",
+                                       name = "nastran", 
+                                       autoExec = False)
+
+# Initialize capsProblem
 
 # Set project name so a mesh file is generated
 projectName = "pyCAPS_nastran_Test"
-myProblem.analysis["nastran"].input.Proj_Name = projectName
-
-myProblem.analysis["nastran"].input.Edge_Point_Max = 10
-
-myProblem.analysis["nastran"].input.Quad_Mesh = True
-
-myProblem.analysis["nastran"].input.File_Format = "Small"
-
-myProblem.analysis["nastran"].input.Mesh_File_Format = "Large"
+myAnalysis.input.Proj_Name = projectName
+myAnalysis.input.Edge_Point_Max = 10
+myAnalysis.input.Quad_Mesh = True
+myAnalysis.input.File_Format = "Small"
+myAnalysis.input.Mesh_File_Format = "Large"
 
 # Set analysis
 eigen = { "extractionMethod"     : "Lanczos",
           "frequencyRange"       : [0, 10000],
           "numEstEigenvalue"     : 1,
           "numDesiredEigenvalue" : 4,
-          "eigenNormaliztion"    : "MASS"}
-myProblem.analysis["nastran"].input.Analysis = {"EigenAnalysis": eigen}
+          "eigenNormalization"   : "MASS"}
+myAnalysis.input.Analysis = {"EigenAnalysis": eigen}
 
 # Set materials
 unobtainium  = {"youngModulus" : 2.2E6 ,
@@ -57,8 +60,8 @@ madeupium    = {"materialType" : "isotropic",
                 "youngModulus" : 1.2E5 ,
                 "poissonRatio" : .5,
                 "density"      : 7850}
-myProblem.analysis["nastran"].input.Material = {"Unobtainium": unobtainium,
-                                                "Madeupium"  : madeupium}
+myAnalysis.input.Material = {"Unobtainium": unobtainium,
+                       "Madeupium": madeupium}
 
 # Set property
 shell  = {"propertyType"           : "Composite",
@@ -71,23 +74,23 @@ shell  = {"propertyType"           : "Composite",
           "compositeThickness"     : [1.2, 0.5, 2.0],
           "compositeOrientation"   : [30.6, 45, 50.4]}
 
-myProblem.analysis["nastran"].input.Property = {"plate": shell}
+myAnalysis.input.Property = {"plate": shell}
 
 # Set constraints
 constraint = {"groupName" : ["plateEdge"],
               "dofConstraint" : 123456}
 
-myProblem.analysis["nastran"].input.Constraint = {"cantilever": constraint}
+myAnalysis.input.Constraint = {"cantilever": constraint}
 
 
 # Run AIM pre-analysis
-myProblem.analysis["nastran"].preAnalysis()
+myAnalysis.preAnalysis()
 
 ####### Run Nastran####################
 print ("\n\nRunning Nastran......")
 currentDirectory = os.getcwd() # Get our current working directory
 
-os.chdir(myProblem.analysis["nastran"].analysisDir) # Move into test directory
+os.chdir(myAnalysis.analysisDir) # Move into test directory
 
 if (args.noAnalysis == False):
     os.system("nastran old=no notify=no batch=no scr=yes sdirectory=./ " + projectName +  ".dat"); # Run Nastran via system call
@@ -96,4 +99,5 @@ os.chdir(currentDirectory) # Move back to working directory
 print ("Done running Nastran!")
 
 # Run AIM post-analysis
-myProblem.analysis["nastran"].postAnalysis()
+myAnalysis.postAnalysis()
+

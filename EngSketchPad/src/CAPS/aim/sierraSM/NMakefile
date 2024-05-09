@@ -1,0 +1,43 @@
+#
+!IFNDEF ESP_ROOT
+!ERROR ESP_ROOT must be set -- Please fix the environment...
+!ENDIF
+#
+IDIR  = $(ESP_ROOT)\include
+!include $(IDIR)\$(ESP_ARCH).$(MSVC)
+LDIR  = $(ESP_ROOT)\lib
+!IFDEF ESP_BLOC
+ODIR  = $(ESP_BLOC)\obj
+TDIR  = $(ESP_BLOC)\test
+!ELSE
+ODIR  = .
+TDIR  = $(ESP_ROOT)\bin
+!ENDIF
+
+!IFNDEF SEACAS
+default:
+	@echo "Not compiling sierraSMAIM: SEACAS must be set -- Please fix the environment...."
+!ELSE
+default: $(LDIR)\sierraSMAIM.dll
+!ENDIF
+
+OBJS =	$(ODIR)\sierraSMAIM.obj
+
+$(LDIR)\sierraSMAIM.dll:	sierraSMAIM.def $(OBJS) $(LDIR)\utils.lib
+	-del $(LDIR)\sierraSMAIM.dll $(LDIR)\sierraSMAIM.lib $(LDIR)\sierraSMAIM.exp
+	 link /out:$(LDIR)\sierraSMAIM.dll /dll /def:sierraSMAIM.def \
+		$(OBJS) /LIBPATH:$(LDIR) utils.lib aimUtil.lib \
+		ocsm.lib egads.lib udunits2.lib
+	$(MCOMP) /manifest $(LDIR)\sierraSMAIM.dll.manifest \
+		/outputresource:$(LDIR)\sierraSMAIM.dll;2
+
+$(ODIR)\sierraSMAIM.obj:	sierraSMAIM.c sierraUtils.h $(IDIR)\capsTypes.h \
+			..\utils\meshUtils.h
+	cl /c $(COPTS) $(DEFINE) /I$(IDIR) /I..\meshWriter\exodusWriter /I..\utils sierraSMAIM.c \
+		/Fo$(ODIR)\sierraSMAIM.obj
+
+clean:
+	-del $(OBJS)
+
+cleanall:	clean
+	-del $(LDIR)\sierraSMAIM.dll $(LDIR)\sierraSMAIM.lib $(LDIR)\sierraSMAIM.exp

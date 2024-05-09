@@ -14,6 +14,11 @@
 #include <iostream>
 #include <cassert>
 
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#define ESP_M_PI
+#endif
+
 #include "always_inline.h"
 
 //----------------------------------------------------------------------------//
@@ -990,5 +995,10 @@ SurrealD::dump( int indentSize, std::ostream& out ) const
     out << d_[N_-1] << ")" << std::endl;
   }
 }
+
+#ifdef ESP_M_PI
+#undef M_PI
+#undef ESP_M_PI
+#endif
 
 #endif // SURREALD_TRAD_H

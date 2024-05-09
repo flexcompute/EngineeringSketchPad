@@ -5,7 +5,7 @@
  *
  *             AIM Utility Function Prototypes
  *
- *      Copyright 2014-2022, Massachusetts Institute of Technology
+ *      Copyright 2014-2024, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -89,7 +89,7 @@ __ProtoExt__ int
 
 __ProtoExt__ int
   aim_getBodies( void *aimInfo, const char **intent, int *nBody, ego **bodies );
-  
+
 __ProtoExt__ int
   aim_newGeometry( void *aimInfo );
 
@@ -101,7 +101,7 @@ __ProtoExt__ int
 
 __ProtoExt__ int
   aim_getInstance( void *aimInfo );
-  
+
 __ProtoExt__ int
   aim_getUnitSys( void *aimInfo, char **unitSys );
 
@@ -131,9 +131,16 @@ __ProtoExt__ int
                   char **outUnits );
 
 __ProtoExt__ int
+  aim_unitConvertible( void *aimStruc, const char *unit1, const char *unit2 );
+
+__ProtoExt__ int
+  aim_capsLength( void *aimStruc, const char **lengthUnits );
+
+
+__ProtoExt__ int
   aim_getIndex( void *aimInfo, /*@null@*/ const char *name,
                 enum capssType subtype );
-  
+
 __ProtoExt__ int
   aim_getValue( void *aimInfo, int index, enum capssType subtype,
                 capsValue **value );
@@ -141,29 +148,32 @@ __ProtoExt__ int
 __ProtoExt__ int
   aim_initValue( capsValue *value );
 
+__ProtoExt__ int
+  aim_copyValue( capsValue *value, capsValue *copy );
+
 __ProtoExt__ void
   aim_freeValue(capsValue *value);
 
 __ProtoExt__ int
   aim_makeDynamicOutput( void *aimInfo, const char *dynObjName,
                          capsValue *value );
-  
+
 __ProtoExt__ int
   aim_getName( void *aimInfo, int index, enum capssType subtype,
                const char **name );
 
 __ProtoExt__ int
   aim_getGeomInType( void *aimInfo, int index );
-  
+
 __ProtoExt__ int
   aim_newTess( void *aimInfo, ego tess );
-  
+
 __ProtoExt__ int
   aim_getDiscr( void *aimInfo, const char *bname, capsDiscr **discr );
-  
+
 __ProtoExt__ int
   aim_getDiscrState( void *aimInfo, const char *bname );
-  
+
 __ProtoExt__ int
   aim_getDataSet( capsDiscr *discr, const char *dname, enum capsdMethod *method,
                   int *npts, int *rank, double **data, char **units );
@@ -181,17 +191,23 @@ __ProtoExt__ int
 
 __ProtoExt__ void
   aim_freeAttrs( int nValue, char **names, capsValue *values );
-  
+
 __ProtoExt__ int
   aim_setSensitivity( void *aimInfo, const char *GIname, int irow, int icol );
-  
+
 __ProtoExt__ int
-  aim_getSensitivity( void *aimInfo, ego body, int ttype, int index, int *npts,
+  aim_getSensitivity( void *aimInfo, ego tess, int ttype, int index, int *npts,
                       double **dxyz );
 
 __ProtoExt__ int
   aim_tessSensitivity( void *aimInfo, const char *GIname, int irow, int icol,
                        ego tess, int *npts, double **dxyz );
+
+__ProtoExt__ int
+  aim_setStepSize( void *aimInfo, double  step );
+
+__ProtoExt__ int
+  aim_getStepSize( void *aimInfo, double *step );
 
 __ProtoExt__ int
   aim_isNodeBody( ego body, double *xyz );
@@ -331,6 +347,12 @@ __ProtoExt__ void
    goto cleanup; \
  }
 
+#define AIM_NOTFOUND(aimInfo, status, ...) \
+ if (status != CAPS_SUCCESS && status != CAPS_NOTFOUND && status != EGADS_NOTFOUND) { \
+   aim_status(aimInfo, status, __FILE__, __LINE__, __func__, GET_ARG_COUNT(__VA_ARGS__), ##__VA_ARGS__); \
+   goto cleanup; \
+ }
+
 #define AIM_ANALYSISIN_ERROR(aimInfo, index, format, ...) \
  { aim_message(aimInfo, CERROR, index, __FILE__, __LINE__, __func__, format, ##__VA_ARGS__); }
 
@@ -349,6 +371,8 @@ __ProtoExt__ void
 #else
 
 extern void AIM_STATUS(void *aimInfo, int status, ...);
+
+extern void AIM_NOTFOUND(void *aimInfo, int status, ...);
 
 extern void AIM_ANALYSISIN_ERROR(void *aimInfo, int index, const char *format, ...);
 

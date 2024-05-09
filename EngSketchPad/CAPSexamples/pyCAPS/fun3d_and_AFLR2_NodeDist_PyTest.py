@@ -49,8 +49,6 @@ myProblem.analysis["fun3d"].input["Mesh"].link(myProblem.analysis["aflr2"].outpu
 # Set project name
 myProblem.analysis["fun3d"].input.Proj_Name = "pyCAPS_FUN3D_aflr2"
 
-myProblem.analysis["fun3d"].input.Mesh_ASCII_Flag = True
-
 # Set AoA number
 myProblem.analysis["fun3d"].input.Alpha = 0.0
 

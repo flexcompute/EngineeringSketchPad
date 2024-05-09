@@ -20,6 +20,12 @@ clean:
 cleanall:
 #	(cd cCAPS; make -f test.make cleanall)
 
+lint:
+
+dox:
+
+doxclean:
+
 ifdef PYTHONINC
 test: cCAPStest pyCAPStest
 else

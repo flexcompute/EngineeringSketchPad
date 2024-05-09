@@ -3,7 +3,7 @@
  *
  *             Skeleton AIM Example Code
  *
- *      Copyright 2014-2022, Massachusetts Institute of Technology
+ *      Copyright 2014-2024, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -12,7 +12,7 @@
 /*!\mainpage Introduction
  *
  * \section overviewSkeleton Skeleton AIM Overview
- * This is an example skeleton AIM intended to provude examples of best
+ * This is an example skeleton AIM intended to provide examples of best
  * practices when writing an AIM
  */
 

@@ -34,48 +34,48 @@ class Model(object):
 # ---------------------------------------------------------------------------------------------------------------------
 # ---------------------------------------------------------------------------------------------------------------------
     def Gradient_FD(self, x_star, delta_x = 1e-5):
-        if self.data.availableDerivative >= 1:
-            rs = self.BlackBox(*x_star)
-            return rs[1]
-        else:
+        # if self.data.availableDerivative >= 1:
+        #     rs = self.BlackBox(*x_star)
+        #     return rs[1]
+        # else:
             # Finite difference scheme that is the default if no derivative is available
             # Note: this only works with scalar values in x_star
-            inputNames  = [self.inputs[i].name for i in range(0,len(self.inputs))]
-            outputNames = [self.outputs[i].name for i in range(0,len(self.outputs))]
+        inputNames  = [self.inputs[i].name for i in range(0,len(self.inputs))]
+        outputNames = [self.outputs[i].name for i in range(0,len(self.outputs))]
 
-            x_star = self.sanitizeInputs(*x_star)
-            opt_xstar = self.BlackBox(*x_star)
-            if len(self.outputs) == 1:
-                opt_xstar = [opt_xstar]
-            opt_xstar = self.checkOutputs(**dict(zip(outputNames, opt_xstar)))
-            if len(self.outputs) == 1:
-                opt_xstar = [opt_xstar]
+        x_star = self.sanitizeInputs(*x_star)
+        opt_xstar = self.BlackBox(*x_star)
+        if len(self.outputs) == 1:
+            opt_xstar = [opt_xstar]
+        opt_xstar = self.checkOutputs(**dict(zip(outputNames, opt_xstar)))
+        if len(self.outputs) == 1:
+            opt_xstar = [opt_xstar]
 
-            dataDict = dict(zip(inputNames, x_star))
-            dataDict.update(dict(zip(outputNames,opt_xstar)))
-            self.data.addData([dataDict])
+        dataDict = dict(zip(inputNames, x_star))
+        dataDict.update(dict(zip(outputNames,opt_xstar)))
+        # self.data.addData([dataDict])
 
-            derivativeVectors = []
-            for ii in range(0,len(self.outputs)):
-                dVec = []
-                for i in range(0,len(self.inputs)):
-                    x_eval = copy.deepcopy(x_star)
-                    x_eval[i] *= (1+delta_x)
-                    opt_xeval = self.BlackBox(*x_eval)
-                    if len(self.outputs) == 1:
-                        opt_xeval = [opt_xeval]
-                    opt_xeval = self.checkOutputs(**dict(zip(outputNames, opt_xeval)))
-                    if len(self.outputs) == 1:
-                        opt_xeval = [opt_xeval]
-                    dataDict = dict(zip(inputNames, x_eval))
-                    dataDict.update(dict(zip(outputNames,opt_xeval)))
-                    self.data.addData([dataDict])
-                    
-                    d_dx = (opt_xeval[ii] - opt_xstar[ii])/(delta_x * x_star[i])
-                    dVec.append(d_dx)
-                derivativeVectors.append(dVec)
+        derivativeVectors = []
+        for ii in range(0,len(self.outputs)):
+            dVec = []
+            for i in range(0,len(self.inputs)):
+                x_eval = copy.deepcopy(x_star)
+                x_eval[i] *= (1+delta_x)
+                opt_xeval = self.BlackBox(*x_eval)
+                if len(self.outputs) == 1:
+                    opt_xeval = [opt_xeval]
+                opt_xeval = self.checkOutputs(**dict(zip(outputNames, opt_xeval)))
+                if len(self.outputs) == 1:
+                    opt_xeval = [opt_xeval]
+                dataDict = dict(zip(inputNames, x_eval))
+                dataDict.update(dict(zip(outputNames,opt_xeval)))
+                # self.data.addData([dataDict])
+                
+                d_dx = (opt_xeval[ii] - opt_xstar[ii])/(delta_x * x_star[i])
+                dVec.append(d_dx)
+            derivativeVectors.append(dVec)
 
-            return derivativeVectors
+        return derivativeVectors
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -521,10 +521,10 @@ class Model(object):
         return pstr
 # ---------------------------------------------------------------------------------------------------------------------
 # ---------------------------------------------------------------------------------------------------------------------
-    def setupDataContainer(self):
-        self.data.inputs = copy.deepcopy(self.inputs)
-        self.data.outputs = copy.deepcopy(self.outputs)
-        self.data.availableDerivative = self.availableDerivative
+    # def setupDataContainer(self):
+    #     self.data.inputs = copy.deepcopy(self.inputs)
+    #     self.data.outputs = copy.deepcopy(self.outputs)
+    #     self.data.availableDerivative = self.availableDerivative
 
 # import os
 # import copy

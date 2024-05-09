@@ -1,0 +1,19 @@
+# udprim_2.udc
+# written by John Dannenhoffer
+
+# the following line makes this UDC include-type
+INTERFACE . ALL
+
+# this UDC has access to its parent's variables
+ASSERT    A  1
+ASSERT    B  2
+
+# changing them here will change them in its parent
+SET       A  11
+SET       B  22
+
+# new variables can be created here, which will be accessible to  the parent
+SET       C  A+B
+
+# the END statement is not required, but is a best practice
+END

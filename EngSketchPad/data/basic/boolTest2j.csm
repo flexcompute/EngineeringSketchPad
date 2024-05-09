@@ -1,0 +1,19 @@
+# boolTest2j.csm (insupported)
+# written by John Dannenhoffer
+
+BOX       0  0  1  5  3  0
+
+BOX       1  1  1  2  1  0
+EXTRACT   0
+SUBTRACT
+
+BOX       4  1  1  2  1  0
+EXTRACT   0
+SUBTRACT
+
+ASSERT    0  1      # should not happen
+CATBEG    $wrong_types_on_stack
+   MESSAGE acknowledging_wrong_types_on_stack
+CATEND
+
+END

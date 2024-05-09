@@ -18,13 +18,14 @@ SUBTRACT
 PATBEG    icone  azimuth.size
    SET       nold  @nface      # remember number of Faces
    CONE      0  0  0  2  0  0  2*aperture[icone]
+   SET       theCone  @nbody
    ROTATEZ   elevation[icone]  0  0
    ROTATEY   azimuth[icone]    0  0
    EXTRACT   0
    SUBTRACT
 
    # mark the newly scribed Edges
-   SELECT    EDGE  0  0  @nbody-4  0  0
+   SELECT    EDGE  0  0  theCone  0  0
    ATTRIBUTE _color      $red
    ATTRIBUTE __newEdge__ $on
    

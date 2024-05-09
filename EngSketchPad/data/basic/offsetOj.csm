@@ -1,0 +1,25 @@
+# offsetOj
+# written by John Dannenhoffer
+
+BOX       0  0 -1  3  3  3
+BOX       0  1 -1  1  1  3
+SUBTRACT
+BOX       3  1 -1  1  1  3
+UNION
+
+BOX       0  0  0  4  3  1
+INTERSECT
+
+SELECT    EDGE   1
+SELECT    ADD    15
+ATTRIBUTE _color $magenta
+
+UDPARG    offset    faceList  2
+UDPARG    offset    edgeList  1;15
+UDPRIM    offset    dist      0.2
+
+SELECT    FACE      $__offsetFace__ $*
+ATTRIBUTE _color    $white
+ASSERT    @sellist.size  2
+
+END

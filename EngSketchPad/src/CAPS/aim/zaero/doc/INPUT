@@ -1,0 +1,12 @@
+/master/home/haimes/ESPbeta/svn/CAPS/aim/zaero/zaeroAIM.c:936: warning: found \endif without matching start command
+/master/home/haimes/ESPbeta/svn/CAPS/aim/zaero/zaeroAIM.c:1203: warning: found \endif without matching start command
+/master/home/haimes/ESPbeta/svn/CAPS/aim/zaero/zaeroTrim.c:81: warning: found \endif without matching start command
+/master/home/haimes/ESPbeta/svn/CAPS/aim/zaero/zaeroTrim.c:152: warning: found \endif without matching start command
+/master/home/haimes/ESPbeta/svn/CAPS/aim/zaero/zaeroAIM.c:2309: warning: multiple use of page label 'aimInputsZAERO', (other occurrence: /master/home/haimes/ESPbeta/svn/CAPS/aim/zaero/zaeroAIM.c, line: 2259)
+/master/home/haimes/ESPbeta/svn/CAPS/aim/zaero/zaeroAIM.c:771: warning: Found unknown command '\t'
+/master/home/haimes/ESPbeta/svn/CAPS/aim/zaero/zaeroAIM.c:772: warning: Found unknown command '\t'
+/master/home/haimes/ESPbeta/svn/CAPS/aim/zaero/zaeroAIM.c:773: warning: Found unknown command '\t'
+/master/home/haimes/ESPbeta/svn/CAPS/aim/zaero/zaeroAIM.c:774: warning: Found unknown command '\t'
+/master/home/haimes/ESPbeta/svn/CAPS/aim/zaero/zaeroAIM.c:775: warning: Found unknown command '\t'
+/master/home/haimes/ESPbeta/svn/CAPS/aim/zaero/zaeroAIM.c:21: warning: unable to resolve reference to 'aimOutputsZAERO' for \ref command
+/master/home/haimes/ESPbeta/svn/CAPS/aim/zaero/zaeroAIM.c:21: warning: unable to resolve reference to 'aimOutputsZAERO' for \ref command

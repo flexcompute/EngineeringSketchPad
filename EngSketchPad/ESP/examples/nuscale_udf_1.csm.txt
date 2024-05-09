@@ -1,0 +1,37 @@
+# nuscale_udf_1
+# written by John Dannenhoffer
+
+# original shape
+CONE      2  0  0  0  0  0  1/2
+STORE     theCone
+
+# restore the original cone
+RESTORE   theCone
+
+# restore the cone, translate to right and scale by half in x around the nose
+RESTORE   theCone
+TRANSLATE 3  0  0
+
+UDPARG    nuscale   xscale  1/2
+UDPRIM    nuscale   xcent   3
+
+# restore the cone, translate up and scale by half in y around the nose
+RESTORE   theCone
+TRANSLATE 0  2  0
+
+UDPARG    nuscale   yscale  1/2
+UDPRIM    nuscale   ycent   2
+
+# restore the cone, translate up and right and scale by half in x and y around the nose
+RESTORE   theCone
+TRANSLATE 3  2  0
+
+UDPARG    nuscale   xscale  1/2
+UDPARG    nuscale   xcent   3
+UDPARG    nuscale   yscale  1/2
+UDPRIM    nuscale   ycent   2
+
+END
+
+
+

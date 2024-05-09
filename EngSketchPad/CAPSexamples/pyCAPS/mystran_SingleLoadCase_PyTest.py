@@ -78,5 +78,18 @@ myProblem.analysis["mystran"].input.Load = {"appliedPressure": load}
 # Set analysis
 # No analysis case information needs to be set for a single static load case
 
-# Run AIM 
+# Run AIM
 myProblem.analysis["mystran"].runAnalysis()
+
+for T in ("Tmax", "T1max", "T2max", "T3max"):
+    print(T, myProblem.analysis["mystran"].output[T].value)
+
+print(myProblem.analysis["mystran"].dynout.keys())
+StressVonMises = myProblem.analysis["mystran"].dynout.StressVonMises_Grid
+print("StrssVonMises", StressVonMises)
+StrainVonMises = myProblem.analysis["mystran"].dynout.StrainVonMises_Grid
+print("StrainVonMises", StrainVonMises)
+Displacement = myProblem.analysis["mystran"].dynout.Displacement
+print("Displacement",Displacement)
+
+

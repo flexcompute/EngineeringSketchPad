@@ -138,7 +138,8 @@ LINSEG \
 SKEND
 
 # make a SheetBody
-COMBINE
+JOIN   0 1
+ELEVATE
 
 # make the wing
 RESTORE   .

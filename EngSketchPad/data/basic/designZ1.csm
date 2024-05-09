@@ -1,0 +1,39 @@
+# designZ1
+# written by John Dannenhoffer
+
+DESPMTR   xb   0
+DESPMTR   yb   0
+DESPMTR   zb   0
+
+DESPMTR   x0   -1
+DESPMTR   y0   -1/2
+DESPMTR   z0   -1/2
+
+DESPMTR   x1   -1/2
+DESPMTR   y1   0
+DESPMTR   z1   0
+DESPMTR   r1   1/4
+
+DESPMTR   x2   +1/2
+DESPMTR   y2   0
+DESPMTR   z2   0
+DESPMTR   r2   1/4
+
+DESPMTR   unused 0
+
+# base
+BOX       x0  y0  z0  2  1  1
+
+# post 1
+BOX       x1-r1  y1-r1  z1  2*r1  2*r1  1
+UNION
+
+# post 2
+BOX         -r1    -r1  0   2*r1  2*r1  1
+TRANSLATE x2     y2     z2
+UNION
+
+# translate whole configuration
+TRANSLATE xb  yb  zb
+
+END

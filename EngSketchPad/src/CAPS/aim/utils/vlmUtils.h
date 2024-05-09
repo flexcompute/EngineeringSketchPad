@@ -1,5 +1,8 @@
 // This software has been cleared for public release on 05 Nov 2020, case number 88ABW-2020-3462.
 
+#ifndef _AIM_UTILS_VLMUTILS_H_
+#define _AIM_UTILS_VLMUTILS_H_
+
 #include "capsTypes.h" // Bring in CAPS types
 #include "vlmTypes.h"  // Bring in Vortex Lattice Method structures
 #include "miscTypes.h"  // Bring in miscellaneous types
@@ -10,7 +13,8 @@ extern "C" {
 
 // Fill vlmSurface in a vlmSurfaceStruct format with vortex lattice information
 // from an incoming surfaceTuple
-int get_vlmSurface(int numTuple,
+int get_vlmSurface(void *aimInfo,
+                   int numTuple,
                    capsTuple surfaceTuple[],
                    mapAttrToIndexStruct *attrMap,
                    double Cspace,
@@ -134,7 +138,13 @@ int vlm_getSectionCamberLine(void* aimInfo,
                              double **xCoordOut,  // [numPoint] increasing x values
                              double **yCamberOut);// [numPoint] camber line y values
 
+// Get the airfoil thickness over chord (ToC) given a vlmSectionStruct
+int vlm_getSectionToC(void *aimInfo,
+                      vlmSectionStruct *vlmSection,
+                      double *ToC);    // Resulting Thickness over Chord
 
 #ifdef __cplusplus
 }
 #endif
+
+#endif // _AIM_UTILS_VLMUTILS_H_

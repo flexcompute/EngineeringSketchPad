@@ -78,6 +78,8 @@ fillet    filRad
 set       Cf        0.3*cosd(finAng)
 set       Sf        0.3*sind(finAng)
 
+# note: MACBEG/MACEND/RECALL has been deprecated and is included here for backward-compatability testing
+#       new .csm files should use UDPRIM instead
 macbeg 2
    skbeg     x8        y8        -finWidth/2
       linseg x9        y9        -finWidth/2

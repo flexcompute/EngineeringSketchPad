@@ -1,0 +1,67 @@
+# combine.udc
+# written by John Dannenhoffer
+
+# since the COMBINE command has been removed from v1.22 and later,
+# if a user has a COMBINE x command, it will be converted to
+#     UDPRIM $$/combine toler x
+
+# this should be a function-type UDC
+INTERFACE toler in 0
+
+# inform user that COMBINE has been deprecated
+MESSAGE   ==========================================================
+MESSAGE   COMBINE_has_been_deprecated_(use_JOIN_and_ELEVATE_instead')
+MESSAGE   ==========================================================
+
+# if a wrong_types_on_stack signal is active, remember that
+#    fact and then cancel it (so that we can use it below)
+SET     wrong_types 0
+CATBEG $wrong_types_on_stack
+   SET  wrong_types 1
+CATEND
+
+# if a did_not_create_body signal is active, remember that
+#    fact and then cancel it (so that we can use it below)
+SET     did_not_create 0
+CATBEG $did_not_create_body
+   SET  did_not_create 1
+CATEND
+
+# count the number of Bodys back to the Mark
+SET       nbody 0
+PATBEG    istack @stack.size
+   IFTHEN @stack[@stack.size+1-istack] EQ 0
+      PATBREAK 1
+   ENDIF
+   SET nbody nbody+1
+PATEND
+
+# return an error if there are no Bodys
+IFTHEN  nbody LE 0
+   THROW -212
+
+# if there was more than one Body, join them together
+ELSEIF  nbody GT 1
+   JOIN toler 1
+ENDIF
+
+# try to ELEVATE (WireBody to SheetBody or SheetBody to SolidBody)
+ELEVATE
+
+# catch the signal if ELEVATE did not work
+CATBEG $wrong_types_on_stack
+CATEND
+CATBEG $did_not_create_body
+CATEND
+
+# if there was a wrong_types_on_stack signal when we started, restore it now
+IFTHEN    wrong_types EQ 1
+   THROW $wrong_types_on_stack
+ENDIF
+
+# if there was a did_not_create_body signal when we started, restore it now
+IFTHEN    did_not_create EQ 1
+   THROW $did_not_create_body
+ENDIF
+
+END

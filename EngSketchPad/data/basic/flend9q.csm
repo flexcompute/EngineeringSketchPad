@@ -1,0 +1,69 @@
+# flend9q
+# written by John Dannenhoffer
+
+DESPMTR   ang       0
+DESPMTR   dist1     0.1
+DESPMTR   dist2     0.5
+DESPMTR   slope     1.5
+
+# big box (box1)
+BOX       0  0  0  2  2  2
+SELECT    FACE
+   ATTRIBUTE tagComp   $box1
+SELECT    EDGE
+   ATTRIBUTE tagComp   $box1
+
+# little box (box2)
+BOX       1  3/4 3/4 2  1/2 1/2
+ROTATEZ   ang  2  1
+SELECT    FACE
+   ATTRIBUTE tagComp   $box2
+SELECT    EDGE
+   ATTRIBUTE tagComp   $box2
+
+# combine
+UNION
+SELECT    EDGE      $tagComp $*
+SELECT    NOT
+   ATTRIBUTE tagComp   $xsect
+
+# offset on box1
+SELECT    FACE      $tagComp  $box1
+DIMENSION faceList  @sellist.size  1
+SET       faceList  @sellist
+
+SELECT    EDGE      $tagComp  $xsect
+DIMENSION edgeList  @sellist.size  1
+SET       edgeList  @sellist
+
+UDPARG    offset    faceList  faceList
+UDPARG    offset    edgeList  edgeList
+UDPRIM    offset    dist      dist1
+
+# offset on box2
+SELECT    FACE      $tagComp  $box2
+DIMENSION faceList  @sellist.size  1
+SET       faceList  @sellist
+
+SELECT    EDGE      $tagComp  $xsect
+DIMENSION edgeList  @sellist.size  1
+SET       edgeList  @sellist
+
+UDPARG    offset    faceList  faceList
+UDPARG    offset    edgeList  edgeList
+UDPRIM    offset    dist      dist2
+
+# flend
+SELECT    FACE      $__offsetFace__  $*
+   ATTRIBUTE _flend  $remove
+
+UDPARG    flend     slopea    slope
+UDPARG    flend     slopeb    slope
+UDPARG    flend     equis     1
+UDPRIM    flend     method    2
+
+# finer tessellation on flend Faces
+SELECT    FACE      @nbody 0
+ATTRIBUTE .tParams  "0.01; 0.01; 10.0"
+
+END

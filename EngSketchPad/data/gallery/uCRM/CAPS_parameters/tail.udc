@@ -1,0 +1,40 @@
+INTERFACE . ALL
+
+# position, normalized based on fuselage dimensions
+SET        Tail:c4rootXnorm         0.880697
+SET        Tail:c4rootZnorm         0.446526
+
+# other scalars
+SET        Tail:c4hedral            7.569327    # [deg] quarter-chord dihedral angle
+DESPMTR    Tail:globalTwist         0.0         # [deg] global twist angle about root quarter-chord point
+#LBOUND     Tail:globalTwist        -3.0
+#UBOUND     Tail:globalTwist         3.0
+SET        Tail:halfSpan            10.665      # [m] tail semispan from centerline
+SET        Tail:Croot               6.120101    # [m] root chord length
+SET        Tail:taper               0.369161    # [-] taper ratio (in relation to Y(1) and Y(end) below)
+SET        Tail:c4sweep             36.99193    # [deg] quarter chord sweep angle
+
+# miscellaneous
+CFGPMTR    Tail:sharpTE            1   
+CFGPMTR    Tail:roundedTip         1
+
+# arrays for sectional shape
+SET        Tail:Nsect   3
+DIMENSION  Tail:Ynorm   1   Tail:Nsect
+DIMENSION  Tail:twist   1   Tail:Nsect
+DIMENSION  Tail:thick   1   Tail:Nsect
+
+SET        Tail:Ynorm   " 0.079700;  0.750117;  1.000000; "
+DESPMTR    Tail:twist0  -2.018431
+DESPMTR    Tail:twist1  -0.656247
+DESPMTR    Tail:twist2  0.726979
+SET        Tail:thick0  0.099356
+SET        Tail:thick1  0.088963
+SET        Tail:thick2  0.080056
+SET        Tail:twist   "Tail:twist0; Tail:twist1; Tail:twist2"
+SET        Tail:thick   "Tail:thick0; Tail:thick1; Tail:thick2"
+
+# choose how many VLM strips are used for lofi aero
+CFGPMTR    Tail:VLM_strips      1
+
+END

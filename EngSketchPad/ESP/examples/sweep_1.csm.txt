@@ -1,0 +1,31 @@
+# sweep_1
+# written by John Dannenhoffer
+
+# plate to be swept (SheetBody)
+BOX       0 -1 -1 0  2  2
+
+# curve to sweep along (WireBody)
+SKBEG     0  0  0
+   SPLINE 3  0  0
+   SPLINE 6  1  0
+   SPLINE 9  1  0
+SKEND
+
+# sweep (SolidBody)
+SWEEP
+ASSERT    @itype 3
+
+SELECT    FACE   @nbody 1     # iford=1 in red
+ATTRIBUTE _color $red
+SELECT    FACE   @nbody 2     # iford=2 in green
+ATTRIBUTE _color $green
+SELECT    FACE   @nbody 4     # iford=4 in blue
+ATTRIBUTE _color $blue
+SELECT    FACE   @nbody 5     # iford=5 in cyan
+ATTRIBUTE _color $cyan
+SELECT    FACE   @nbody 6     # iford=6 in magenta
+ATTRIBUTE _color $magenta
+SELECT    FACE   @nbody 7     # iford=7 in yellow
+ATTRIBUTE _color $yellow
+
+END

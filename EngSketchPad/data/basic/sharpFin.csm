@@ -30,12 +30,13 @@ MARK
 RULE
 
 # base SheetBody
-MARK
-   RESTORE   lower   0
-   RESTORE   upper   0
-COMBINE
+RESTORE   lower   0
+RESTORE   upper   0
+JOIN
+ELEVATE
 
 # combine all three SheetBodys into a SolidBody
-COMBINE
+JOIN   0 1
+ELEVATE
 
 END

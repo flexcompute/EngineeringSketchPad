@@ -1,0 +1,15 @@
+# chamfer_3
+# written by John Dannenhoffer
+
+BOX       0  0  0  4  3  2
+BOX       1  1  1  2  1  4
+UNION
+
+# make Faces cyan
+SELECT    FACE
+ATTRIBUTE _color $cyan
+
+# chamfer on union Edges
+CHAMFER   0.2
+
+END

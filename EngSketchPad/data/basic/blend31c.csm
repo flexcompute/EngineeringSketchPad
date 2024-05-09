@@ -1,0 +1,27 @@
+# blend31c
+# written by John Dannenhoffer
+
+DIMENSION begList 1 3
+DIMENSION endList 1 3
+
+DESPMTR   rx1       4.0
+DESPMTR   ry1       2.0
+DESPMTR   rx2       2.0
+DESPMTR   ry2       4.0
+DESPMTR   begList   "+5; 0; 0"
+DESPMTR   endList   "-5; 0; 0"
+
+MARK
+   UDPRIM    ellipse   rx rx1  ry ry1
+   ROTATEY   90
+
+   UDPRIM    ellipse   rx rx2  ry ry2
+   ROTATEY   90
+   TRANSLATE 3  0  0
+
+   UDPRIM    ellipse   rx rx1  ry ry1
+   ROTATEY   90
+   TRANSLATE 6  0  0
+BLEND     0  endList
+
+END

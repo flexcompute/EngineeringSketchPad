@@ -119,7 +119,7 @@ int vlm_autoSpaceSpanPanels(void *aimInfo, int NspanTotal, int numSection, vlmSe
     std::vector<double> x(numSeg, 0);
     std::vector<double> dx(numSeg, 0);
 
-    std::vector<double> b(numSeg, 0); // lenght of each span section
+    std::vector<double> b(numSeg, 0); // length of each span section
 
     // go over all but the last section
     for (i = 0; i < numSection-1; i++) {
@@ -167,8 +167,8 @@ int vlm_autoSpaceSpanPanels(void *aimInfo, int NspanTotal, int numSection, vlmSe
         x[i] = b[i]*abs(NspanTotal);
     }
 
-    // Using 5 newton iterations should be plenty without worrying about tolerances... (I hope)
-    for (j = 0; j < 5; j++) {
+    // Using 10 newton iterations should be plenty without worrying about tolerances... (I hope)
+    for (j = 0; j < 10; j++) {
 
         // reset the matrix
         for (i = 0; i < numSeg*numSeg; i++) A[i] = 0;
@@ -180,7 +180,7 @@ int vlm_autoSpaceSpanPanels(void *aimInfo, int NspanTotal, int numSection, vlmSe
         }
         //printf("numSpanX = %f\n", numSpanX);
 
-        // requite spacing on either side of a segment to be identical
+        // require spacing on either side of a segment to be identical
         for (i = 0; i < numSeg; i++) {
             sectionIndex1 = vlmSection[i].sectionIndex;
 

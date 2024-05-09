@@ -1,0 +1,48 @@
+# combine5
+# written by John Dannenhoffer
+
+mark
+   skbeg     -1  -1  -1
+      linseg  1  -1  -1
+      linseg  1   1  -1
+      linseg -1   1  -1
+      linseg -1  -1  -1
+   skend
+
+   skbeg     -1  -1   1
+      linseg  1  -1   1
+      linseg  1   1   1
+      linseg -1   1   1
+      linseg -1  -1   1
+   skend
+
+   skbeg     -1  -1  -1
+      linseg -1  -1   1
+      linseg  1  -1   1
+      linseg  1  -1  -1
+      linseg -1  -1  -1
+   skend
+
+   skbeg     -1   1  -1
+      linseg -1   1   1
+      linseg  1   1   1
+      linseg  1   1  -1
+      linseg -1   1  -1
+   skend
+
+   skbeg     -1  -1  -1
+      linseg -1   1  -1
+      linseg -1   1   1
+      linseg -1  -1   1
+      linseg -1  -1  -1
+   skend
+
+   skbeg      1  -1  -1
+      linseg  1   1  -1
+      linseg  1   1   1
+      linseg  1  -1   1
+      linseg  1  -1  -1
+   skend
+combine
+
+end

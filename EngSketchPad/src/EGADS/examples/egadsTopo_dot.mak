@@ -10,18 +10,23 @@ ODIR  = .
 TDIR  = $(ESP_ROOT)\bin
 !ENDIF
 
-$(TDIR)\egadsTopo_dot.exe:	$(ODIR)\egadsTopo_dot.obj $(LDIR)\egads.lib
-	cl /Fe$(TDIR)\egadsTopo_dot.exe $(ODIR)\egadsTopo_dot.obj $(LIBPTH) egads.lib
+$(TDIR)\egadsTopo_dot.exe:	$(ODIR)\egadsTopo_dot.obj $(ODIR)\egadsTools_dot.obj $(LDIR)\egads.lib
+	cl /Fe$(TDIR)\egadsTopo_dot.exe $(ODIR)\egadsTopo_dot.obj $(ODIR)\egadsTools_dot.obj $(LIBPTH) egads.lib
 	$(MCOMP) /manifest $(TDIR)\egadsTopo_dot.exe.manifest \
 		/outputresource:$(TDIR)\egadsTopo_dot.exe;1
 
-$(ODIR)\egadsTopo_dot.obj:	egadsTopo_dot.c $(IDIR)\egads.h $(IDIR)\egadsTypes.h \
+$(ODIR)\egadsTools_dot.obj:	egadsTools_dot.c $(IDIR)\egads.h $(IDIR)\egadsTypes.h \
+		$(IDIR)\egadsErrors.h
+	cl /c $(COPTS) $(DEFINE) -I$(IDIR) egadsTools_dot.c \
+		/Fo$(ODIR)\egadsTools_dot.obj
+
+$(ODIR)\egadsTopo_dot.obj:	egadsTopo_dot.c $(IDIR)\egads.h $(IDIR)\egads_dot.h $(IDIR)\egadsTypes.h \
 		$(IDIR)\egadsErrors.h
 	cl /c $(COPTS) $(DEFINE) -I$(IDIR) egadsTopo_dot.c \
 		/Fo$(ODIR)\egadsTopo_dot.obj
 
 clean:
-	-del $(ODIR)\egadsTopo_dot.obj
+	-del $(ODIR)\egadsTopo_dot.obj $(ODIR)\egadsTools_dot.obj
 
 cleanall:	clean
 	-del $(TDIR)\egadsTopo_dot.exe $(TDIR)\egadsTopo_dot.exe.manifest

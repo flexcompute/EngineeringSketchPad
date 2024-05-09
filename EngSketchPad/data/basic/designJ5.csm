@@ -53,44 +53,4 @@ EXTRUDE   DX        0         0
 UDPRIM    box       dx DX     dy DY     dz DZ
 TRANSLATE          -DX/2     -DY/2      -DZ/2
 
-SELECT    BODY 3
-SELECT    EDGE 2
-   ATTRIBUTE _sensCheck $skip
-SELECT    NODE 3
-   ATTRIBUTE _sensCheck $skip
-SELECT    NODE 4
-   ATTRIBUTE _sensCheck $skip
-
-SELECT    BODY 6
-SELECT    EDGE 2
-   ATTRIBUTE _sensCheck $skip
-SELECT    NODE 3
-   ATTRIBUTE _sensCheck $skip
-SELECT    NODE 4
-   ATTRIBUTE _sensCheck $skip
-
-SELECT    BODY 9
-SELECT    EDGE 2
-   ATTRIBUTE _sensCheck $skip
-SELECT    NODE 3
-   ATTRIBUTE _sensCheck $skip
-SELECT    NODE 4
-   ATTRIBUTE _sensCheck $skip
-
-SELECT    BODY 12
-SELECT    EDGE 2
-   ATTRIBUTE _sensCheck $skip
-SELECT    NODE 3
-   ATTRIBUTE _sensCheck $skip
-SELECT    NODE 4
-   ATTRIBUTE _sensCheck $skip
-
-SELECT    BODY 15
-SELECT    EDGE 2
-   ATTRIBUTE _sensCheck $skip
-SELECT    NODE 3
-   ATTRIBUTE _sensCheck $skip
-SELECT    NODE 4
-   ATTRIBUTE _sensCheck $skip
-
 END

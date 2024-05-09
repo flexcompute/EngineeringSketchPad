@@ -71,7 +71,7 @@ mystranAIM.input.Proj_Name = projectName
 eigen = { "extractionMethod"     : "Lanczos",
           "frequencyRange"       : [0, 50],
           "numEstEigenvalue"     : 1,
-          "eigenNormaliztion"    : "MASS"}
+          "eigenNormalization"   : "MASS"}
 mystranAIM.input.Analysis = {"EigenAnalysis": eigen}
 
 # Set materials
@@ -108,4 +108,5 @@ natrualFreq = mystranAIM.output.EigenFrequency
 
 for mode, i in enumerate(natrualFreq):
     print ("Natural freq ( Mode", mode, ") = ", i, "(Hz)")
+
 ## [results]

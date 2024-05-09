@@ -3,7 +3,7 @@
  *
  *             Object Output Utility
  *
- *      Copyright 2014-2022, Massachusetts Institute of Technology
+ *      Copyright 2014-2024, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -150,7 +150,7 @@ printValues(capsObj pobject, capsObj object, int indent)
     }
   }
   if (vtype == Tuple) return CAPS_SUCCESS;
-  
+
   printf(" %s", units);
   if (range == 1) {
     ints = (int *) data;
@@ -166,7 +166,7 @@ printValues(capsObj pobject, capsObj object, int indent)
                          &nerr, &errors);
   if (errors != NULL) caps_freeError(errors);
   if (status != CAPS_SUCCESS) return status;
-  
+
   for (i = 0; i < dim; i++) {
     status = caps_getDeriv(object, dotnames[i], &len, &rank, &reals,
                          &nerr, &errors);
@@ -181,7 +181,7 @@ printValues(capsObj pobject, capsObj object, int indent)
     printf("\n");
   }
   EG_free(dotnames);
-  
+
   return CAPS_SUCCESS;
 }
 
@@ -217,11 +217,11 @@ caps_printObjects(capsObj pobject, capsObj object, int indent)
     extern int caps_hierarchy(capsObject *obj, char **full);
     extern int caps_string2obj(capsProblem *problm, /*@null@*/ const char *full,
                                capsObject **object);
-    
+
     char        *full;
     capsProblem *problem;
     capsObject  *pobject, *tmp;
-    
+
     status = caps_findProblem(object, 9999, &pobject);
     if (status != CAPS_SUCCESS) {
       printf(" caps_findProblem = %d\n", status);
@@ -247,7 +247,7 @@ caps_printObjects(capsObj pobject, capsObj object, int indent)
     }
   }
 #endif
-  
+
   stat = caps_info(object, &name, &type, &subtype, &link, &parent, &own);
   if (stat < CAPS_SUCCESS) {
 #if defined(WIN32) && defined(_OCC64)
@@ -291,7 +291,7 @@ caps_printObjects(capsObj pobject, capsObj object, int indent)
 #endif
     }
   }
-  
+
   /* output attributes */
   for (j = 1; j <= nAttr; j++) {
     status = caps_attrByIndex(object, j, &attr);
@@ -303,7 +303,7 @@ caps_printObjects(capsObj pobject, capsObj object, int indent)
     }
     caps_printObjects(pobject, attr, indent+2);
   }
-  
+
   /* output history */
   status = caps_getHistory(object, &nHist, &hist);
   if (status == CAPS_SUCCESS)
@@ -341,7 +341,7 @@ caps_printObjects(capsObj pobject, capsObj object, int indent)
         }
       }
     }
-  
+
   if (type == PROBLEM) {
     status = caps_size(object, BODIES, NONE, &nBody, &nErr, &errors);
     if (errors != NULL) caps_freeError(errors);
@@ -402,7 +402,7 @@ caps_printObjects(capsObj pobject, capsObj object, int indent)
         caps_printObjects(pobject, obj, indent+2);
       }
     }
-  
+
     if (nGeomIn > 0) {
       printf("\n");
       for (i = 0; i < nGeomIn; i++) {
@@ -427,7 +427,7 @@ caps_printObjects(capsObj pobject, capsObj object, int indent)
         caps_printObjects(pobject, obj, indent+2);
       }
     }
-    
+
     if (nAnalysis > 0) {
       printf("\n");
       for (i = 0; i < nAnalysis; i++) {
@@ -440,7 +440,7 @@ caps_printObjects(capsObj pobject, capsObj object, int indent)
         caps_printObjects(pobject, obj, indent+2);
       }
     }
-    
+
     if (nBound > 0) {
       printf("\n");
       for (i = 0; i < nBound; i++) {
@@ -465,7 +465,7 @@ caps_printObjects(capsObj pobject, capsObj object, int indent)
         printf(" CAPS Error: printVal returns %d!\n", status);
       }
     }
-    
+
   } else if (type == ANALYSIS) {
     status = caps_size(object, VALUE, ANALYSISIN, &nAnalIn, &nErr, &errors);
     if (errors != NULL) caps_freeError(errors);
@@ -521,7 +521,7 @@ caps_printObjects(capsObj pobject, capsObj object, int indent)
         caps_printObjects(pobject, obj, indent+2);
       }
     }
-    
+
     if (nAnalOut > 0) {
       printf("\n");
       for (i = 0; i < nAnalOut; i++) {
@@ -537,7 +537,7 @@ caps_printObjects(capsObj pobject, capsObj object, int indent)
           caps_ownerInfo(pobject, own, &phase, &pname, &pID, &userID, &nLines,
                          &lines, datetime, &sn);
         if (sn == 0) continue;
-        
+
         caps_printObjects(pobject, obj, indent+2);
 
         status = caps_info(obj, &oname, &otype, &osubtype, &link, &parent, &own);
@@ -564,7 +564,7 @@ caps_printObjects(capsObj pobject, capsObj object, int indent)
         }
       }
     }
-    
+
     if (nAnalDynO > 0) {
       printf("\n");
       for (i = 0; i < nAnalDynO; i++) {
@@ -577,7 +577,7 @@ caps_printObjects(capsObj pobject, capsObj object, int indent)
         caps_printObjects(pobject, obj, indent+2);
       }
     }
-    
+
   } else if (type == BOUND) {
     status = caps_size(object, VERTEXSET, CONNECTED, &nConnect, &nErr, &errors);
     if (errors != NULL) caps_freeError(errors);
@@ -609,7 +609,7 @@ caps_printObjects(capsObj pobject, capsObj object, int indent)
         caps_printObjects(pobject, obj, indent+2);
       }
     }
-    
+
     if (nUnConnect > 0) {
       printf("\n");
       for (i = 0; i < nUnConnect; i++) {
@@ -622,7 +622,7 @@ caps_printObjects(capsObj pobject, capsObj object, int indent)
         caps_printObjects(pobject, obj, indent+2);
       }
     }
-  
+
   } else if (type == VERTEXSET) {
     status = caps_size(object, DATASET, NONE, &nDataSet, &nErr, &errors);
     if (errors != NULL) caps_freeError(errors);
@@ -633,7 +633,7 @@ caps_printObjects(capsObj pobject, capsObj object, int indent)
     }
     for (i = 0; i < indent; i++) printf(" ");
     printf("   %d DataSets\n", nDataSet);
-    
+
     if (nDataSet > 0) {
       printf("\n");
       for (i = 0; i < nDataSet; i++) {
@@ -646,7 +646,7 @@ caps_printObjects(capsObj pobject, capsObj object, int indent)
         caps_printObjects(pobject, obj, indent+2);
       }
     }
-    
+
   } else if (type == DATASET) {
     status = caps_getData(object, &npts, &rank, &data, &units, &nErr, &errors);
     if (errors != NULL) caps_freeError(errors);
@@ -657,190 +657,225 @@ caps_printObjects(capsObj pobject, capsObj object, int indent)
     }
     for (i = 0; i < indent; i++) printf(" ");
     printf("   %d points, rank=%d, units=%s\n", npts, rank, units);
-    
+
   }
 
 }
 
 
+static int printValueString(char *valueStr, int slen, ValueData *valObj)
+{
+  int i, j;
+  int strIndex = 0;
+  capsTuple *currentTuple;
+
+  if (valObj->vtype == String || valObj->vtype == Pointer ||
+      valObj->vtype == PointerMesh) {
+
+    strIndex += snprintf(valueStr, slen, "\"%s\"", valObj->sValue);
+    //if (valueStr == NULL) slen = strIndex;
+  } else {
+    if (valObj->nrow > 1) {
+      strIndex += snprintf(valueStr ? &valueStr[strIndex] : NULL, slen-strIndex, "[");
+      if (valueStr == NULL) slen = strIndex;
+    }
+    for (i = 0; i < valObj->nrow; i++) {
+      if (i > 0) {
+        strIndex += snprintf(valueStr ? &valueStr[strIndex] : NULL, slen-strIndex, ",\n");
+        if (valueStr == NULL) slen = strIndex;
+      }
+      if (valObj->ncol > 1) {
+        strIndex += snprintf(valueStr ? &valueStr[strIndex] : NULL, slen-strIndex, "[");
+        if (valueStr == NULL) slen = strIndex;
+      }
+      for (j = 0; j < valObj->ncol; j++) {
+        if (j > 0) {
+          strIndex += snprintf(valueStr ? &valueStr[strIndex] : NULL, slen-strIndex, ", ");
+          if (valueStr == NULL) slen = strIndex;
+        }
+        if ((valObj->vtype == Boolean) || (valObj->vtype == Integer)) {
+          strIndex += snprintf(valueStr ? &valueStr[strIndex] : NULL, slen-strIndex, "%d",
+                               valObj->iValue[i * valObj->ncol + j]);
+          if (valueStr == NULL) slen = strIndex;
+        } else if ((valObj->vtype == Double) ||
+                   (valObj->vtype == DoubleDeriv)) {
+          strIndex += snprintf(valueStr ? &valueStr[strIndex] : NULL, slen-strIndex, "%f",
+                               valObj->dValue[i * valObj->ncol + j]);
+          if (valueStr == NULL) slen = strIndex;
+        } else {
+#ifndef __clang_analyzer__
+          currentTuple = &valObj->tValue[i*valObj->ncol+j];
+          if ((currentTuple->value[0] != '{' &&
+              currentTuple->value[0] != '[') &&
+              currentTuple->value[0] != '"') {
+            strIndex += snprintf(valueStr ? &valueStr[strIndex] : NULL, slen-strIndex, "{\"%s\": \"%s\"}",
+                                 currentTuple->name,
+                                 currentTuple->value);
+            if (valueStr == NULL) slen = strIndex;
+          } else {
+            strIndex += snprintf(valueStr ? &valueStr[strIndex] : NULL, slen-strIndex, "{\"%s\": %s}",
+                                 currentTuple->name,
+                                 currentTuple->value);
+            if (valueStr == NULL) slen = strIndex;
+          }
+#endif
+        }
+      }
+      if (valObj->ncol > 1) {
+        strIndex += snprintf(valueStr ? &valueStr[strIndex] : NULL, slen-strIndex, "]");
+        if (valueStr == NULL) slen = strIndex;
+      }
+    }
+    if (valObj->nrow > 1) {
+      strIndex += snprintf(valueStr ? &valueStr[strIndex] : NULL, slen-strIndex, "]");
+      //if (valueStr == NULL) slen = strIndex;
+   }
+  }
+
+  return strIndex;
+}
+
+static int printDerivString(char *derivStr, int slen, ValueData *valObj)
+{
+  int i, j, k;
+  int strIndex = 0;
+
+  strIndex += snprintf(derivStr, slen, " \"deriv\": {");
+  if (derivStr == NULL) slen = strIndex;
+  for (i = 0; i < valObj->ndot; i++) {
+    if (i > 0) {
+      strIndex += snprintf(derivStr ? &derivStr[strIndex] : NULL, slen-strIndex, ",");
+      if (derivStr == NULL) slen = strIndex;
+    }
+    strIndex += snprintf(derivStr ? &derivStr[strIndex] : NULL, slen-strIndex, "\n  \"%s\": ",
+                         valObj->derivNames[i]);
+    if (derivStr == NULL) slen = strIndex;
+    if (valObj->lens[i] > 1) {
+      strIndex += snprintf(derivStr ? &derivStr[strIndex] : NULL, slen-strIndex, "[");
+      if (derivStr == NULL) slen = strIndex;
+    }
+
+    for (j=0; j<valObj->lens[i]; j++) {
+      if (j > 0) {
+        strIndex += snprintf(derivStr ? &derivStr[strIndex] : NULL, slen-strIndex, ",\n");
+        if (derivStr == NULL) slen = strIndex;
+      }
+      if (valObj->len_wrts[i] > 1) {
+        strIndex += snprintf(derivStr ? &derivStr[strIndex] : NULL, slen-strIndex, "[");
+        if (derivStr == NULL) slen = strIndex;
+      }
+      for (k=0; k<valObj->len_wrts[i]; k++) {
+        if (k > 0) {
+          strIndex += snprintf(derivStr ? &derivStr[strIndex] : NULL, slen-strIndex, ", ");
+          if (derivStr == NULL) slen = strIndex;
+        }
+        strIndex += snprintf(derivStr ? &derivStr[strIndex] : NULL, slen-strIndex, "%f",
+                             valObj->derivs[i][j*valObj->lens[i]+k]);
+        if (derivStr == NULL) slen = strIndex;
+      }
+      if (valObj->len_wrts[i] > 1) {
+        strIndex += snprintf(derivStr ? &derivStr[strIndex] : NULL, slen-strIndex, "]");
+        if (derivStr == NULL) slen = strIndex;
+      }
+    }
+    if (valObj->lens[i] > 1) {
+      strIndex += snprintf(derivStr ? &derivStr[strIndex] : NULL, slen-strIndex, "]");
+      if (derivStr == NULL) slen = strIndex;
+    }
+  }
+  strIndex += snprintf(derivStr ? &derivStr[strIndex] : NULL, slen-strIndex, "}");
+  //if (derivStr == NULL) slen = strIndex;
+
+  return strIndex;
+}
+
+
 static /*@null@*/ char *valueString(ValueData *valObj)
 {
-    char *varStr, *valueStr, *derivStr, *tmpStr;
-    int i, j, k, strIndex;
-    capsTuple *currentTuple;
-    
-    varStr = (char *) malloc((70 + strlen(valObj->name))* sizeof(char));
-    if (varStr == NULL) return NULL;
+  char *varStr, *valueStr, *derivStr, *tmpStr;
+  size_t slen;
 
-    sprintf(varStr, "{ \"name\": \"%s\",\n", valObj->name);
-    strcat(varStr, "\t\"value\": ");
-    strIndex = 0;
-    if (!valObj->nulldata) {
-        if (valObj->vtype == String || valObj->vtype == Pointer ||
-            valObj->vtype == PointerMesh) {
-            valueStr = (char *) malloc((4 + strlen(valObj->sValue))*sizeof(char));
-            if (valueStr == NULL) {
-                free(varStr);
-                return NULL;
-            }
-            sprintf(valueStr, "\"%s\"", valObj->sValue);
-            free(valObj->sValue);
-        } else {
-            valueStr = (char *) malloc((10+valObj->nrow*valObj->ncol*10)*
-                                       sizeof(char));
-            if (valueStr == NULL) {
-                free(varStr);
-                return NULL;
-            }
-            if (valObj->nrow > 1) {
-                strIndex += sprintf(&valueStr[strIndex], "[");
-            }
-            for (i = 0; i < valObj->nrow; i++) {
-                if (i > 0) {
-                    strIndex += sprintf(&valueStr[strIndex], ",\n");
-                }
-                if (valObj->ncol > 1) {
-                    strIndex += sprintf(&valueStr[strIndex], "[");
-                }
-                for (j = 0; j < valObj->ncol; j++) {
-                    if (j > 0) {
-                        strIndex += sprintf(&valueStr[strIndex], ", ");
-                    }
-                    if ((valObj->vtype == Boolean) || (valObj->vtype == Integer)) {
-                        strIndex += sprintf(&valueStr[strIndex], "%d",
-                                            valObj->iValue[i * valObj->ncol + j]);
-                    } else if ((valObj->vtype == Double) ||
-                               (valObj->vtype == DoubleDeriv)) {
-                        strIndex += sprintf(&valueStr[strIndex], "%f",
-                                            valObj->dValue[i * valObj->ncol + j]);
-                    } else {
-#ifndef __clang_analyzer__
-                        currentTuple = &valObj->tValue[i*valObj->ncol+j];
-                        /* check if tuple value is string without quotes */
-                        tmpStr = realloc(valueStr, (strlen(currentTuple->name)  +
-                                                    strlen(currentTuple->value) +
-                                                    strIndex+15));
-                        if (tmpStr == NULL) {
-                            free(valueStr);
-                            free(varStr);
-                            return NULL;
-                        }
-                        valueStr = tmpStr;
-                        if ((currentTuple->value[0] != '{' &&
-                            currentTuple->value[0] != '[') &&
-                            currentTuple->value[0] != '"') {
-                            strIndex += sprintf(&valueStr[strIndex], "{\"%s\": \"%s\"}",
-                                                currentTuple->name,
-                                                currentTuple->value);
-                        } else {
-                            strIndex += sprintf(&valueStr[strIndex], "{\"%s\": %s}",
-                                                currentTuple->name,
-                                                currentTuple->value);
-                        }
-#endif
-                    }                    
-                }
-                if (valObj->ncol > 1) {
-                    strIndex += sprintf(&valueStr[strIndex], "]");
-                }
-            }
-            if (valObj->nrow > 1) {
-                sprintf(&valueStr[strIndex], "]");
-            }
+  slen = 70 + strlen(valObj->name);
+  varStr = (char *) malloc(slen* sizeof(char));
+  if (varStr == NULL) return NULL;
 
-            if ((valObj->vtype == Boolean) || (valObj->vtype == Integer)) {
-                 free(valObj->iValue);
-            } else if ((valObj->vtype == Double) || (valObj->vtype == DoubleDeriv)) {
-                free(valObj->dValue);
-            } else {
-                free(valObj->tValue);
-            }      
-        }
+  snprintf(varStr, slen, "{ \"name\": \"%s\",\n", valObj->name);
+  strcat(varStr, "\t\"value\": ");
+  if (!valObj->nulldata) {
 
-        tmpStr = (char *) realloc(varStr,
-                                  (strlen(valueStr)+strlen(varStr)+30)*sizeof(char));
-        if (tmpStr == NULL) {
-            free(valueStr);
-            free(varStr);
-            return NULL;
-        }
-        varStr = tmpStr;
-        strcat(varStr, valueStr);
-        strcat(varStr, ",");
-        free(valueStr);
-    } else {
-        strcat(varStr, "null,\n");
+    // first get the size of the string
+    slen = printValueString(NULL, 0, valObj)+1;
+
+    // allocate the string
+    valueStr = (char *) malloc(slen*sizeof(char));
+    if (valueStr == NULL) {
+      free(varStr);
+      return NULL;
     }
 
-    if ((!valObj->nulldata) && (valObj->vtype == DoubleDeriv)) {
-        derivStr = (char *) malloc(50 * sizeof(char));
-        if (derivStr == NULL) {
-            free(varStr);
-            return NULL;
-        }
-        strIndex = sprintf(derivStr, " \"deriv\": {");
-        for (i = 0; i < valObj->ndot; i++) {
-            tmpStr = realloc(derivStr, 
-                             (valObj->lens[i] * valObj->len_wrts[i] * 30 +
-                              strlen(derivStr)+30)*sizeof(char));
-            if (tmpStr == NULL) {
-                free(derivStr);
-                free(varStr);
-                return NULL;
-            }
-            derivStr = tmpStr;
-            if (i > 0) {
-                strIndex += sprintf(&derivStr[strIndex], ",");
-            }
-            strIndex += sprintf(&derivStr[strIndex], "\n  \"%s\": ",
-                                valObj->derivNames[i]);
-            if (valObj->lens[i] > 1) {
-                strIndex += sprintf(&derivStr[strIndex], "[");
-            }
-            
-            for (j=0; j<valObj->lens[i]; j++) {
-                if (j > 0) {
-                    strIndex += sprintf(&derivStr[strIndex], ",\n");
-                }
-                if (valObj->len_wrts[i] > 1) {
-                    strIndex += sprintf(&derivStr[strIndex], "[");
-                }
-                for (k=0; k<valObj->len_wrts[i]; k++) {
-                    if (k > 0) {
-                        strIndex += sprintf(&derivStr[strIndex], ", ");
-                    }
-                    strIndex += sprintf(&derivStr[strIndex], "%f",
-                                        valObj->derivs[i][j*valObj->lens[i]+k]);
-                }
-                if (valObj->len_wrts[i] > 1) {
-                    strIndex += sprintf(&derivStr[strIndex], "]");
-                }
-            }
-            if (valObj->lens[i] > 1) {
-                strIndex += sprintf(&derivStr[strIndex], "]");
-            }
-        }
-        sprintf(&derivStr[strIndex], "}");
-        tmpStr = (char *) realloc(varStr,
-                                  (strlen(varStr)+strlen(derivStr)+10)*sizeof(char));
-        if (tmpStr == NULL) {
-            free(derivStr);
-            free(varStr);
-            return NULL;
-        }
-        varStr = tmpStr;
-        strcat(varStr, derivStr);
-        free(derivStr);
-        if (valObj->derivNames != NULL) free(valObj->derivNames);
-        if (valObj->derivs     != NULL) free(valObj->derivs);
-        if (valObj->lens       != NULL) free(valObj->lens);
-        if (valObj->len_wrts   != NULL) free(valObj->len_wrts);
+    // fill the string
+    printValueString(valueStr, slen, valObj);
+
+    if (valObj->vtype == String || valObj->vtype == Pointer ||
+        valObj->vtype == PointerMesh) {
+      free(valObj->sValue);
+    } else if ((valObj->vtype == Boolean) || (valObj->vtype == Integer)) {
+      free(valObj->iValue);
+    } else if ((valObj->vtype == Double) || (valObj->vtype == DoubleDeriv)) {
+      free(valObj->dValue);
     } else {
-        strcat(varStr, "  \"deriv\": null");
+      free(valObj->tValue);
     }
 
-    strcat(varStr, "}");
-    return varStr;
+    tmpStr = (char *) realloc(varStr,
+                              (strlen(valueStr)+strlen(varStr)+30)*sizeof(char));
+    if (tmpStr == NULL) {
+      free(valueStr);
+      free(varStr);
+      return NULL;
+    }
+    varStr = tmpStr;
+    strcat(varStr, valueStr);
+    strcat(varStr, ",");
+    free(valueStr);
+  } else {
+    strcat(varStr, "null,\n");
+  }
+
+  if ((!valObj->nulldata) && (valObj->vtype == DoubleDeriv)) {
+
+    // first get the size of the string
+    slen = printDerivString(NULL, 0, valObj)+1;
+
+    derivStr = (char *) malloc(slen * sizeof(char));
+    if (derivStr == NULL) {
+      free(varStr);
+      return NULL;
+    }
+
+    // fill the string
+    printDerivString(derivStr, slen, valObj);
+
+    tmpStr = (char *) realloc(varStr,
+                              (strlen(varStr)+strlen(derivStr)+10)*sizeof(char));
+    if (tmpStr == NULL) {
+      free(derivStr);
+      free(varStr);
+      return NULL;
+    }
+    varStr = tmpStr;
+    strcat(varStr, derivStr);
+    free(derivStr);
+    if (valObj->derivNames != NULL) free(valObj->derivNames);
+    if (valObj->derivs     != NULL) free(valObj->derivs);
+    if (valObj->lens       != NULL) free(valObj->lens);
+    if (valObj->len_wrts   != NULL) free(valObj->len_wrts);
+  } else {
+    strcat(varStr, "  \"deriv\": null");
+  }
+
+  strcat(varStr, "}");
+  return varStr;
 }
 
 
@@ -879,7 +914,7 @@ static int getValueData(capsObj *valueObj, ValueData *valObj)
     valObj->ncol     = ncol;
     valObj->vtype    = vtype;
     valObj->nulldata = (data == NULL);
-    
+
     valLen = nrow * ncol;
     if (data != NULL) {
         if ((vtype == Boolean) || (vtype == Integer)) {
@@ -915,7 +950,7 @@ static int getValueData(capsObj *valueObj, ValueData *valObj)
                     valObj->lens       = (int *) malloc(ndot * sizeof(int));
                     valObj->len_wrts   = (int *) malloc(ndot * sizeof(int));
 
-                    if ((valObj->derivNames == NULL) || (valObj->derivs   == NULL) || 
+                    if ((valObj->derivNames == NULL) || (valObj->derivs   == NULL) ||
                         (valObj->lens       == NULL) || (valObj->len_wrts == NULL)) {
                         if (valObj->derivNames != NULL) free(valObj->derivNames);
                         if (valObj->derivs     != NULL) free(valObj->derivs);
@@ -939,7 +974,7 @@ static int getValueData(capsObj *valueObj, ValueData *valObj)
                         valObj->len_wrts[i]   = len_wrt;
                     }
                 }
-                
+
             }
         } else if (vtype == String) {
             str = (char *) data;
@@ -962,7 +997,7 @@ static int getValueData(capsObj *valueObj, ValueData *valObj)
             valObj->nulldata = true;
         }
     }
-  
+
     return CAPS_SUCCESS;
 }
 
@@ -1033,7 +1068,7 @@ int caps_outputObjects(capsObj problemObj, /*@null@*/ char **stream)
     } else {
         *stream = NULL;
     }
-  
+
     /* make CAPS static */
     status = caps_debug(problemObj);
     if (status < CAPS_SUCCESS) {
@@ -1310,7 +1345,7 @@ int caps_outputObjects(capsObj problemObj, /*@null@*/ char **stream)
                            bName, status, j+1);
                     goto cleanup;
                 }
-                
+
                 status = caps_vertexSetInfo(vertexObj, &nGpts, &nDpts, &bObj,
                                             &aObj);
                 if (status != CAPS_SUCCESS) {
@@ -1374,22 +1409,24 @@ int caps_outputObjects(capsObj problemObj, /*@null@*/ char **stream)
 /*@+kepttrans@*/
                         geomLinksIndex++;
                     }
-                } 
+                }
             }
         }
     }
-    
+
     /* make the stream */
     status   = EGADS_MALLOC;
     jsonText = (char *) EG_alloc(30 * sizeof(char));
     if (jsonText == NULL) goto cleanup;
-    sprintf(jsonText, "dataJSON = {\n\"aims\": [\n");
+    snprintf(jsonText, 30, "dataJSON = {\n\"aims\": [\n");
 
     for (i = 0; i < nAnalysis; i++) {
+        size_t slen;
         char *idStr, *inStr, *outStr, *dynOStr, *aimStr;
         char dirtyStr[20];
 
-        idStr   = (char *) malloc((20 + strlen(aims[i].id)   * sizeof(char)));
+        slen = 20 + strlen(aims[i].id);
+        idStr   = (char *) malloc( slen * sizeof(char));
         inStr   = (char *) malloc( 20 * sizeof(char));
         outStr  = (char *) malloc( 20 * sizeof(char));
         dynOStr = (char *) malloc( 20 * sizeof(char));
@@ -1402,10 +1439,10 @@ int caps_outputObjects(capsObj problemObj, /*@null@*/ char **stream)
             goto cleanup;
         }
 
-        sprintf(idStr,    "\"id\": \"%s\"",  aims[i].id);
-        sprintf(dirtyStr, "\"dirty\": %s",   aims[i].dirty ? "true" : "false");
-        sprintf(inStr,    "\"inVars\" : [");
-        
+        snprintf(idStr   , slen, "\"id\": \"%s\"",  aims[i].id);
+        snprintf(dirtyStr, 20  , "\"dirty\": %s",   aims[i].dirty ? "true" : "false");
+        snprintf(inStr   , 20  , "\"inVars\" : [");
+
         for (j = 0; j < aims[i].inCount; j++) {
             if (j > 0) strcat(inStr, ",\n");
             varStr = valueString(&aims[i].analysisIn[j]);
@@ -1432,7 +1469,7 @@ int caps_outputObjects(capsObj problemObj, /*@null@*/ char **stream)
         }
         strcat(inStr, "]");
 
-        sprintf(outStr, "\"outVars\" : [");
+        snprintf(outStr, 20, "\"outVars\" : [");
         for (j = 0; j < aims[i].outCount; j++) {
             if (j > 0) strcat(outStr, ",\n");
             varStr = valueString(&aims[i].analysisOut[j]);
@@ -1443,7 +1480,7 @@ int caps_outputObjects(capsObj problemObj, /*@null@*/ char **stream)
                 free(dynOStr);
                 goto cleanup;
             }
-            
+
             tmpStr = (char *) realloc(outStr, (strlen(outStr)+strlen(varStr)+10)*
                                       sizeof(char));
             if (tmpStr == NULL) {
@@ -1460,7 +1497,7 @@ int caps_outputObjects(capsObj problemObj, /*@null@*/ char **stream)
         }
         strcat(outStr, "]");
 
-        sprintf(dynOStr, "\"dynOutVars\" : [");
+        snprintf(dynOStr, 20, "\"dynOutVars\" : [");
         for (j = 0; j < aims[i].dynOCount; j++) {
             if (j > 0) strcat(dynOStr, ",\n");
             varStr = valueString(&aims[i].analysisDynO[j]);
@@ -1487,8 +1524,9 @@ int caps_outputObjects(capsObj problemObj, /*@null@*/ char **stream)
         }
         strcat(dynOStr, "]");
 
-        aimStr = (char *) malloc((strlen(idStr) +strlen(dirtyStr)+strlen(inStr) +
-                                  strlen(outStr)+strlen(dynOStr)+20)*sizeof(char));
+        slen = strlen(idStr) +strlen(dirtyStr)+strlen(inStr) +
+               strlen(outStr)+strlen(dynOStr)+20;
+        aimStr = (char *) malloc(slen*sizeof(char));
         if (aimStr == NULL) {
             free(idStr);
             free(inStr);
@@ -1496,9 +1534,9 @@ int caps_outputObjects(capsObj problemObj, /*@null@*/ char **stream)
             free(dynOStr);
             goto cleanup;
         }
-        sprintf(aimStr, "{ %s,\n %s,\n %s,\n %s,\n %s}",
+        snprintf(aimStr, slen, "{ %s,\n %s,\n %s,\n %s,\n %s}",
                 idStr, dirtyStr, inStr, outStr, dynOStr);
-        
+
         tmpStr = (char *) EG_reall(jsonText, (strlen(jsonText)+strlen(aimStr) +
                                               30) * sizeof(char));
         if (tmpStr == NULL) {
@@ -1522,6 +1560,7 @@ int caps_outputObjects(capsObj problemObj, /*@null@*/ char **stream)
 /*@-nullderef@*/
     strcat(jsonText, "],\n \"valLinks\": [\n");
     for (i = 0; i < valLinksIndex; i++) {
+        size_t slen;
         char *sourceStr, *targetStr, *dataStr, *linkStr;
 
         sourceStr = (char *) malloc((strlen(valLinks[i].sourceAim) + 20) *
@@ -1537,20 +1576,21 @@ int caps_outputObjects(capsObj problemObj, /*@null@*/ char **stream)
             if (dataStr   != NULL) free(dataStr);
             goto cleanup;
         }
-        sprintf(sourceStr, "\"source\": \"%s\"", valLinks[i].sourceAim);
-        sprintf(targetStr, "\"target\": \"%s\"", valLinks[i].targetAim);
-        sprintf(dataStr,   "\"data\": [{\"sourceVar\": \"%s\", \"targetVar\": \"%s\"}]",
+        snprintf(sourceStr, strlen(valLinks[i].sourceAim)+20, "\"source\": \"%s\"", valLinks[i].sourceAim);
+        snprintf(targetStr, strlen(valLinks[i].targetAim)+20, "\"target\": \"%s\"", valLinks[i].targetAim);
+        snprintf(dataStr  , strlen(valLinks[i].sourceVar) +
+                            strlen(valLinks[i].targetVar) + 60, "\"data\": [{\"sourceVar\": \"%s\", \"targetVar\": \"%s\"}]",
                 valLinks[i].sourceVar, valLinks[i].targetVar);
 
-        linkStr = (char *) malloc((strlen(sourceStr) + strlen(targetStr) +
-                                   strlen(dataStr) + 20) * sizeof(char));
+        slen = strlen(sourceStr) + strlen(targetStr) + strlen(dataStr) + 20;
+        linkStr = (char *) malloc(slen * sizeof(char));
         if (linkStr == NULL) {
             free(sourceStr);
             free(targetStr);
             free(dataStr);
             goto cleanup;
         }
-        sprintf(linkStr, "{ %s,\n %s,\n %s }", sourceStr, targetStr, dataStr);
+        snprintf(linkStr, slen, "{ %s,\n %s,\n %s }", sourceStr, targetStr, dataStr);
 
         tmpStr = (char *) EG_reall(jsonText, (strlen(jsonText)+strlen(linkStr)+
                                               30) * sizeof(char));
@@ -1572,11 +1612,12 @@ int caps_outputObjects(capsObj problemObj, /*@null@*/ char **stream)
     tmpStr = (char *) EG_reall(jsonText, strlen(jsonText)+30*sizeof(char));
     if (tmpStr == NULL) goto cleanup;
     jsonText = tmpStr;
-    
+
     strcat(jsonText, "],\n \"geomLinks\": [\n");
     for (i = 0; i < geomLinksIndex; i++) {
+        size_t slen;
         char *sourceStr, *targetStr, *dataStr, *linkStr;
-      
+
         sourceStr = (char *) malloc((strlen(geomLinks[i].sourceAim) + 20) *
                                     sizeof(char));
         targetStr = (char *) malloc((strlen(geomLinks[i].targetAim) + 20) *
@@ -1590,21 +1631,22 @@ int caps_outputObjects(capsObj problemObj, /*@null@*/ char **stream)
             if (dataStr   != NULL) free(dataStr);
             goto cleanup;
         }
-        sprintf(sourceStr, "\"source\": \"%s\"", geomLinks[i].sourceAim);
-        sprintf(targetStr, "\"target\": \"%s\"", geomLinks[i].targetAim);
-        sprintf(dataStr,   "\"data\": [{\"bound\": \"%s\", \"sourceVar\": \"%s\", \"targetVar\": \"%s\"}]",
+        snprintf(sourceStr, strlen(geomLinks[i].sourceAim)+20, "\"source\": \"%s\"", geomLinks[i].sourceAim);
+        snprintf(targetStr, strlen(geomLinks[i].targetAim)+20, "\"target\": \"%s\"", geomLinks[i].targetAim);
+        snprintf(dataStr  , strlen(geomLinks[i].sourceVar) +
+                            strlen(geomLinks[i].targetVar) + 80, "\"data\": [{\"bound\": \"%s\", \"sourceVar\": \"%s\", \"targetVar\": \"%s\"}]",
                 geomLinks[i].bound, geomLinks[i].sourceVar, geomLinks[i].targetVar);
-        
-        linkStr = (char *) malloc((strlen(sourceStr) + strlen(targetStr) +
-                                   strlen(dataStr)   + 20) * sizeof(char));
+
+        slen = strlen(sourceStr) + strlen(targetStr) + strlen(dataStr) + 20;
+        linkStr = (char *) malloc(slen * sizeof(char));
         if (linkStr == NULL) {
             free(sourceStr);
             free(targetStr);
             free(dataStr);
             goto cleanup;
         }
-        sprintf(linkStr, "{ %s,\n %s,\n %s }", sourceStr, targetStr, dataStr);
-        
+        snprintf(linkStr, slen, "{ %s,\n %s,\n %s }", sourceStr, targetStr, dataStr);
+
         tmpStr = (char *) EG_reall(jsonText, (strlen(jsonText)+strlen(linkStr)+
                                               30) * sizeof(char));
         if (tmpStr == NULL) {
@@ -1624,7 +1666,7 @@ int caps_outputObjects(capsObj problemObj, /*@null@*/ char **stream)
     }
 /*@+nullderef@*/
     strcat(jsonText, "] \n }");
-    
+
     if (stream == NULL) {
         fptr = fopen(filename, "w");
         if (fptr == NULL) {
@@ -1634,7 +1676,7 @@ int caps_outputObjects(capsObj problemObj, /*@null@*/ char **stream)
         }
         fprintf(fptr, "%s", jsonText);
         fclose(fptr);
-  
+
         // start browser and wait until done
         system(env);
     }
@@ -1642,7 +1684,7 @@ int caps_outputObjects(capsObj problemObj, /*@null@*/ char **stream)
     printf("\n");
 #endif
     status = CAPS_SUCCESS;
-  
+
 cleanup:
     if ((stream != NULL) && (status == CAPS_SUCCESS)) {
         *stream = jsonText;
@@ -1659,7 +1701,7 @@ cleanup:
         }
         free(aims);
     }
-  
+
     if (dbg == 0) {
         /* return of caps_debug(problemObj) should be 0 */
         i = caps_debug(problemObj);

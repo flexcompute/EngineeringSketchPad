@@ -10,11 +10,4 @@ UDPRIM     box   dy DY
 TRANSLATE -DX/2  0  0
 EXTRUDE    DX    0  DZ
 
-SELECT    EDGE 2
-   ATTRIBUTE _sensCheck $skip
-SELECT    NODE 3
-   ATTRIBUTE _sensCheck $skip
-SELECT    NODE 4
-   ATTRIBUTE _sensCheck $skip
-
 END

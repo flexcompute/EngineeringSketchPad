@@ -22,7 +22,7 @@ UDPRIM    nuscale   xscale  0   xcent  @xcg
 TRANSLATE dx  0  0
 
 # convert into a SheetBody
-COMBINE
+ELEVATE
 
 # make a new SheetBody
 RESTORE   edges
@@ -31,6 +31,6 @@ RULE
 # join with original SheetBody and promote to a SolidBody
 RESTORE   body
 JOIN      1e-4
-COMBINE
+ELEVATE
 
 END

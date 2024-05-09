@@ -1,15 +1,16 @@
 /*
  *      CAPS: Computational Aircraft Prototype Syntheses
  *
- *             Testing AIM 3D Mesh Writer Example Code
+ *             SU2 3D Mesh Writer Code
  *
- *      Copyright 2014-2022, Massachusetts Institute of Technology
+ *      Copyright 2014-2024, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
  */
 
 #include <string.h>
+#include <math.h>
 #include "aimUtil.h"
 #include "aimMesh.h"
 
@@ -152,23 +153,23 @@ int meshWrite(void *aimInfo, aimMesh *mesh)
 
     for (i = 0; i < meshData->nVertex; i++) {
       // Constant x?
-      if ((meshData->verts[i][0] - meshData->verts[0][0]) > 1E-7) {
+      if (fabs(meshData->verts[i][0] - meshData->verts[0][0]) > 1E-7) {
         xMeshConstant = (int) false;
       }
 
       // Constant y?
-      if ((meshData->verts[i][1] - meshData->verts[0][1] ) > 1E-7) {
+      if (fabs(meshData->verts[i][1] - meshData->verts[0][1] ) > 1E-7) {
         yMeshConstant = (int) false;
       }
 
       // Constant z?
-      if ((meshData->verts[i][2] - meshData->verts[0][2]) > 1E-7) {
+      if (fabs(meshData->verts[i][2] - meshData->verts[0][2]) > 1E-7) {
         zMeshConstant = (int) false;
       }
     }
 
     if (zMeshConstant == (int) false) {
-      printf("SU2 expects 2D meshes be in the x-y plane... attempting to rotate mesh!\n");
+      printf("SU2 expects 2D meshes in the x-y plane... attempting to rotate mesh!\n");
 
       if (xMeshConstant == (int) true && yMeshConstant == (int) false) {
         printf("Swapping z and x coordinates!\n");

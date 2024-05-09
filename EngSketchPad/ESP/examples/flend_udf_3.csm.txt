@@ -1,0 +1,108 @@
+# flend_udf_3
+# written by John Dannenhoffer
+
+DESPMTR   flendSize  0.10
+
+DIMENSION class     1  2  1
+DIMENSION ztail     1  2  1
+DIMENSION aupper    1  4  1
+DIMENSION alower    1  4  1
+
+DESPMTR   class     "0.5;    1.0;   "
+DESPMTR   ztail     "0.012; -.012;"
+DESPMTR   aupper    "0.2139; 0.2884; 0.2354; 0.2870;"
+DESPMTR   alower    "-.1243; -.0203; -.0372; 0.0012;"
+
+# wing-like body
+MARK
+   UDPARG    kulfan    class     class
+   UDPARG    kulfan    ztail     ztail
+   UDPARG    kulfan    aupper    aupper
+   UDPRIM    kulfan    alower    alower
+   TRANSLATE 0.0  0.1  0.0
+
+   UDPARG    kulfan    class     class
+   UDPARG    kulfan    ztail     ztail
+   UDPARG    kulfan    aupper    aupper
+   UDPRIM    kulfan    alower    alower
+   SCALE     0.80
+   TRANSLATE 0.3  0.1  2.0
+RULE
+STORE     wing
+
+# offset wing-like body
+MARK
+   UDPARG    kulfan    class     class
+   UDPARG    kulfan    ztail     ztail
+   UDPARG    kulfan    aupper    aupper
+   UDPRIM    kulfan    alower    alower
+   UDPRIM    offset    dist      flendSize
+   TRANSLATE 0.0  0.1  0.0
+
+   UDPARG    kulfan    class     class
+   UDPARG    kulfan    ztail     ztail
+   UDPARG    kulfan    aupper    aupper
+   UDPRIM    kulfan    alower    alower
+   UDPRIM    offset    dist      flendSize
+   TRANSLATE 0.3  0.1  2.0
+RULE
+STORE     offset_wing
+
+# fuselage-like body
+CYLINDER     -2.0  0.0  0.0  3.0  0.0  0.0  0.5
+ROTATEX      90    0.0  0.0
+STORE     fuse
+
+# scribe fuselage with slightly-larger wing
+RESTORE   fuse
+RESTORE   offset_wing
+EXTRACT   0
+SUBTRACT
+STORE     newFuse
+
+# scribe wing with slightly-translated fuselage
+RESTORE   wing
+RESTORE   fuse
+TRANSLATE 0  0  flendSize
+EXTRACT   0
+SUBTRACT
+STORE     newWing
+
+# pick series of Facess on wing-like body
+RESTORE   newWing
+SELECT    FACE
+SELECT    SORT   $zmin
+DIMENSION foo    4 1
+SET       foo    @sellist
+SELECT    FACE   foo[1]
+SELECT    ADD    foo[2]
+SELECT    ADD    foo[3]
+SELECT    ADD    foo[4]
+   ATTRIBUTE _flend $remove
+STORE     newWing
+
+# pick series of Faces on fuselage-like body
+RESTORE   newFuse
+SELECT    FACE   26 4 0
+SELECT    SORT   $area
+SELECT    face   @sellist[1]
+   ATTRIBUTE _flend $remove
+STORE     newFuse
+
+# generate the flend
+MARK
+   RESTORE   newWing
+   ROTATEY   90  0  0
+   SELECT    face $_flend $*
+      ATTRIBUTE _color $magenta
+
+   RESTORE   newFuse
+   ROTATEY   90  0  0
+   SELECT    face $_flend $*
+      ATTRIBUTE _color $magenta
+UDPRIM    flend   toler  0.001 plot 1  equis 1
+
+SELECT    face @nbody 0
+   ATTRIBUTE _color $cyan
+
+END

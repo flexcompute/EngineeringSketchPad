@@ -22,7 +22,7 @@ class Testxfoil_NACA(unittest.TestCase):
                                        capsFile = cls.capsFile,
                                        outLevel = 0)
 
-        # Change a design parameter - area in the geometry
+        # Change a design parameter - camber in the geometry
         cls.myProblem.geometry.despmtr.camber = 0.02
 
         # Load xfoil aim
@@ -47,6 +47,69 @@ class Testxfoil_NACA(unittest.TestCase):
         for dir in dirs:
             if os.path.isdir(dir):
                 shutil.rmtree(dir)
+
+
+#==============================================================================
+    def test_normalize(self):
+
+        # Initialize Problem object
+        myProblem = pyCAPS.Problem(problemName = self.problemName + "_normalize",
+                                       capsFile = os.path.join("..","csmData","airfoilSection.csm"),
+                                       outLevel = 0)
+
+        # Change a design parameter - camber, scale and rotate
+        myProblem.geometry.despmtr.camber = 0.02
+        myProblem.geometry.despmtr.chord = 0.09
+        myProblem.geometry.despmtr.alpha = 10.00
+        myProblem.geometry.despmtr.offset = [0.1, 0.2, 0.3]
+
+        # Load xfoil aim
+        xfoil = myProblem.analysis.create(aim = "xfoilAIM")
+
+        # Set Mach number, Reynolds number
+        xfoil.input.Mach = 0.2
+        xfoil.input.Re   = 5.0e5
+        xfoil.input.Viscous_Iteration = 100
+        
+        Alphas =  [0.0, 2.0, 5.0, 7.0, 8.0, 10.0]
+
+        # Compute using non-scaled or rotated
+        self.xfoil.input.Alpha = Alphas
+
+        AlphaTrue = self.xfoil.output.Alpha
+        ClTrue    = self.xfoil.output.CL
+        CdTrue    = self.xfoil.output.CD
+        TranXTrue = self.xfoil.output.Transition_Top
+        
+        self.xfoil.input.Alpha = None
+
+        # Set custom AoA
+        xfoil.input.Alpha = Alphas
+
+        # Retrieve results, the arifoil should be normalized and the same
+        Alpha = xfoil.output.Alpha
+        Cl    = xfoil.output.CL
+        Cd    = xfoil.output.CD
+        TranX = xfoil.output.Transition_Top
+        
+        # Check
+        self.assertEqual(len(AlphaTrue), len(Alpha))
+        for i in range(len(AlphaTrue)):
+            self.assertAlmostEqual(AlphaTrue[i], Alpha[i], 6)
+
+        self.assertEqual(len(ClTrue), len(Cl))
+        for i in range(len(ClTrue)):
+            self.assertAlmostEqual(ClTrue[i], Cl[i], 6)
+
+        self.assertEqual(len(CdTrue), len(Cd))
+        for i in range(len(CdTrue)):
+            self.assertAlmostEqual(CdTrue[i], Cd[i], 6)
+
+        self.assertEqual(len(TranXTrue), len(TranX))
+        for i in range(len(TranXTrue)):
+            self.assertAlmostEqual(TranXTrue[i], TranX[i], 6)
+
+
 
 #==============================================================================
     def test_alpha_custom_increment(self):

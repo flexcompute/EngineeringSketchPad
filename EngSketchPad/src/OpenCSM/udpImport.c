@@ -10,7 +10,7 @@
  */
 
 /*
- * Copyright (C) 2011/2022  John F. Dannenhoffer, III (Syracuse University)
+ * Copyright (C) 2011/2024  John F. Dannenhoffer, III (Syracuse University)
  *
  * This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
@@ -86,6 +86,7 @@ udpExecute(ego  context,                /* (in)  EGADS context */
     CINT     *tempIlist;
     char     *message=NULL;
     ego      geom, *ebodys, *efaces, *eedges, *enodes, topRef, prev, next, myBody;
+    udp_T    *udps = *Udps;
     TIMELONG dt;
 
 #ifdef WIN32
@@ -420,7 +421,7 @@ udpExecute(ego  context,                /* (in)  EGADS context */
     }
 
     /* set the output value(s) */
-    NUMBODIES(0) = nbody;
+    NUMBODIES(numUdp) = nbody;
 
     /* remember this model (body) */
     udps[numUdp].ebody = *ebody;

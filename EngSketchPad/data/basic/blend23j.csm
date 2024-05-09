@@ -1,0 +1,17 @@
+# blend23j
+# written by John Dannenhoffer
+
+# blend with one C1s
+MARK
+   BOX       -2  -2  -2   0   4   4
+
+   BOX        0  -1  -1   0   2   2
+   RESTORE    .
+
+   BOX        2  -2  -2   0   4   4
+BLEND
+
+# refernce xsect
+BOX        0  -1  -1   0   2   2
+
+END

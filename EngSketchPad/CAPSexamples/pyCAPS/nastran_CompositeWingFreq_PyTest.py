@@ -1,5 +1,9 @@
+## [importPrint]
+from __future__ import print_function
+## [importPrint]
+
 ## [import]
-# Import pyCAPS module
+# Import pyCAPS class file
 import pyCAPS
 
 # Import os module
@@ -31,7 +35,8 @@ myProblem = pyCAPS.Problem(problemName=workDir,
 ## [loadAIM]
 # Load nastran aim
 nastranAIM = myProblem.analysis.create(aim = "nastranAIM",
-                                       name = "nastran")
+                                       name = "nastran", 
+                                       autoExec = False)
 ## [loadAIM]
 
 ## [setInputs]
@@ -84,7 +89,7 @@ composite  = {"propertyType"           : "Composite",
               "symmetricLaminate"      : True,
               "compositeFailureTheory" : "STRN" }
 
-#nastranAIM.input.Property = {"wing": aluminum}
+#nastranAIM.input.Property" = {"wing": aluminum}
 nastranAIM.input.Property = {"wing": composite}
 ## [defineProperties]
 
@@ -100,7 +105,7 @@ eigen = { "extractionMethod"     : "MGIV",#"Lanczos",
           "frequencyRange"       : [0, 10000],
           "numEstEigenvalue"     : 1,
           "numDesiredEigenvalue" : 10,
-          "eigenNormaliztion"    : "MASS"}
+          "eigenNormalization"   : "MASS"}
 
 nastranAIM.input.Analysis = {"EigenAnalysis": eigen}
 ## [defineAnalysis]
@@ -119,18 +124,21 @@ os.chdir(myProblem.analysis["nastran"].analysisDir) # Move into test directory
 if (args.noAnalysis == False):
     os.system("nastran old=no notify=no batch=no scr=yes sdirectory=./ " + projectName +  ".dat"); # Run Nastran via system call
 
+    ## [postAnalysis]
+    # Run AIM post-analysis
+    nastranAIM.postAnalysis()
+    ## [postAnalysis]
+
+    # Get Eigen-frequencies
+    print ("\nGetting results for natural frequencies.....")
+    naturalFreq = myProblem.analysis["nastran"].output.EigenFrequency
+
+    mode = 1
+    for i in naturalFreq:
+        print ("Natural freq (Mode {:d}) = ".format(mode) + '{:.5f} '.format(i) + "(Hz)")
+        mode += 1
+
 os.chdir(currentDirectory) # Move back to working directory
 print ("Done running Nastran!")
 ## [run]
 
-## [postAnalysis]
-# Run AIM post-analysis
-nastranAIM.postAnalysis()
-## [postAnalysis]
-
-# Get Eigen-frequencies
-print ("\nGetting results for natural frequencies.....")
-natrualFreq = myProblem.analysis["nastran"].output.EigenFrequency
-
-for mode, i in enumerate(natrualFreq):
-    print ("Natural freq (Mode {:d}) = ".format(mode) + '{:.5f} '.format(i) + "(Hz)")

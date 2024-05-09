@@ -1,0 +1,30 @@
+# offsetC
+# written by John Dannenhoffer
+
+DIMENSION dist      1  10
+DESPMTR   dist      "-.10; -.05; -.01; -.005; -.001; 0.001; 0.005; 0.01; 0.05; 0.10"
+
+SKBEG     0.00  0.01  0
+   LINSEG 0.01  0.00  0
+   LINSEG 1.00  0.00  0
+   LINSEG 1.99  0.00  0
+   LINSEG 2.00  0.01  0
+   LINSEG 2.00  0.99  0
+   LINSEG 1.99  1.00  0
+   LINSEG 1.00  1.00  0
+   LINSEG 0.01  1.00  0
+   LINSEG 0.00  0.99  0
+SKEND     1
+STORE     base  0  1
+
+PATBEG    idist     dist.size
+   RESTORE   base
+   UDPRIM    offset    dist dist[idist]
+
+   CATBEG      $all
+      STORE    .
+      MESSAGE  dist=+val2str(dist[idist],4)+$_could_not_be_generated__(status=+val2str(@signal,0)+$')
+   CATEND
+PATEND
+
+END

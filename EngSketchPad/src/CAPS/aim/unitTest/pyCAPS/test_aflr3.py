@@ -7,6 +7,9 @@ import shutil
 
 import pyCAPS
 
+from Mesh_Formats import Mesh_Formats
+Mesh_Formats = Mesh_Formats.copy()
+
 class TestAFLR3(unittest.TestCase):
 
     @classmethod
@@ -44,14 +47,13 @@ class TestAFLR3(unittest.TestCase):
 
         aflr3.input.Proj_Name = "pyCAPS_AFLR3_Test"
         aflr3.input.Mesh_Quiet_Flag = True
-        aflr3.input.Mesh_Format = "AFLR3"
-        aflr3.input.Mesh_ASCII_Flag = True
+        aflr3.input.Mesh_Format = "tecplot"
         aflr3.input.Mesh_Gen_Input_String = ""
-        aflr3.input.Multiple_Mesh = False
-        
+        aflr3.input.Multiple_Mesh = "SingleDomain"
+
         inviscidBC = {"boundaryLayerThickness" : 0.0, "boundaryLayerSpacing" : 0.0}
         viscousBC  = {"boundaryLayerThickness" : 0.1, "boundaryLayerSpacing" : 0.01}
-    
+
         # Set mesh sizing parmeters
         aflr3.input.Mesh_Sizing = {"Wing1": viscousBC, "Wing2": inviscidBC}
 
@@ -77,7 +79,7 @@ class TestAFLR3(unittest.TestCase):
 
         aflr3.input.Mesh_Quiet_Flag = True
         aflr3.input.Proj_Name = "test"
-        aflr3.input.Mesh_Format = "Tecplot"
+        aflr3.input.Mesh_Format = Mesh_Formats
 
         # Explicitly trigger mesh generation
         aflr3.runAnalysis()
@@ -115,35 +117,37 @@ class TestAFLR3(unittest.TestCase):
         aflr4 = myProblem.analysis.create(aim = "aflr4AIM")
 
         aflr4.input.Mesh_Quiet_Flag = True
-        aflr4.input.Mesh_Length_Factor = 20
+        aflr4.input.Mesh_Length_Factor = 2
+        aflr4.input.min_scale = 0.1
+        aflr4.input.ff_cdfr = 1.1
+        aflr4.input.Mesh_Format = "tecplot"
 
         aflr3 = myProblem.analysis.create(aim = "aflr3AIM",
                                           name = "aflr3")
 
         aflr3.input["Surface_Mesh"].link(aflr4.output["Surface_Mesh"])
 
+        aflr3.input.Mesh_Format = "tecplot"
         aflr3.input.Mesh_Quiet_Flag = True
-        aflr3.input.Proj_Name = "test"
-        aflr3.input.Mesh_Format = "Tecplot"
-    
+
         # # Set mesh sizing parmeters
         aflr3.input.Mesh_Sizing = {"Wake": {"bcType":"TRANSP_UG3_GBC"}}
-        
+
         # Explicitly trigger mesh generation
         aflr3.runAnalysis()
-        
+
         # Set mesh sizing parmeters
         aflr3.input.Mesh_Sizing = {"Wake": {"bcType":"TRANSP_SRC_UG3_GBC"}}
-        
+
         # Explicitly trigger mesh generation
         aflr3.runAnalysis()
-        
+
         # Set mesh sizing parmeters
         aflr3.input.Mesh_Sizing = {"Wake": {"bcType":"TRANSP_INTRNL_UG3_GBC"}}
-        
+
         # Explicitly trigger mesh generation
         aflr3.runAnalysis()
-        
+
 #==============================================================================
     def test_Multiple_Mesh(self):
 
@@ -155,25 +159,29 @@ class TestAFLR3(unittest.TestCase):
         aflr4 = myProblem.analysis.create(aim = "aflr4AIM",
                                           name = "aflr4",
                                           capsIntent = ["box", "cylinder", "cone", "torus", "sphere", "bullet", "boxhole"])
-                
+
         aflr4.input.Mesh_Quiet_Flag = True
 
         # Load aflr3 aim
-        aflr3 = myProblem.analysis.create(aim = "aflr3AIM", 
+        aflr3 = myProblem.analysis.create(aim = "aflr3AIM",
                                           name = "aflr3",
                                           capsIntent = ["box", "cylinder", "cone", "torus", "sphere", "bullet", "boxhole"])
 
         aflr3.input["Surface_Mesh"].link(aflr4.output["Surface_Mesh"])
 
-        # Set project name
-        aflr3.input.Proj_Name = "aflr3Mesh"
+        # Set options
+        aflr3.input.Mesh_Format = "tecplot"
         aflr3.input.Mesh_Quiet_Flag = True
 
-        aflr3.input.Multiple_Mesh = True
+        aflr3.input.Multiple_Mesh = aflr4.input.Multiple_Mesh = "MultiFile"
 
         # Just make sure it runs without errors...
         aflr3.runAnalysis()
 
+        aflr3.input.Multiple_Mesh = aflr4.input.Multiple_Mesh = "MultiDomain"
+
+        # Just make sure it runs without errors...
+        aflr3.runAnalysis()
 
 #==============================================================================
     def test_box(self):
@@ -191,12 +199,13 @@ class TestAFLR3(unittest.TestCase):
         #aflr4.geometry.save("box.egads")
 
         # Load aflr3 aim
-        aflr3 = self.myProblem.analysis.create(aim = "aflr3AIM", 
+        aflr3 = self.myProblem.analysis.create(aim = "aflr3AIM",
                                                capsIntent = ["box", "farfield"])
 
         aflr3.input["Surface_Mesh"].link(aflr4.output["Surface_Mesh"])
 
-        # Set project name
+        # Set options
+        aflr3.input.Mesh_Format = "tecplot"
         aflr3.input.Mesh_Quiet_Flag = True
 
         # Just make sure it runs without errors...
@@ -219,12 +228,13 @@ class TestAFLR3(unittest.TestCase):
         #aflr4.geometry.save("cylinder.egads")
 
         # Load aflr3 aim
-        aflr3 = self.myProblem.analysis.create(aim = "aflr3AIM", 
+        aflr3 = self.myProblem.analysis.create(aim = "aflr3AIM",
                                                capsIntent = ["cylinder", "farfield"])
 
         aflr3.input["Surface_Mesh"].link(aflr4.output["Surface_Mesh"])
 
-        # Set project name
+        # Set options
+        aflr3.input.Mesh_Format = "tecplot"
         aflr3.input.Mesh_Quiet_Flag = True
 
         # Just make sure it runs without errors...
@@ -246,12 +256,13 @@ class TestAFLR3(unittest.TestCase):
         #aflr4.geometry.save("cone.egads")
 
         # Load aflr3 aim
-        aflr3 = self.myProblem.analysis.create(aim = "aflr3AIM", 
+        aflr3 = self.myProblem.analysis.create(aim = "aflr3AIM",
                                                capsIntent = ["cone", "farfield"])
 
         aflr3.input["Surface_Mesh"].link(aflr4.output["Surface_Mesh"])
 
-        # Set project name
+        # Set options
+        aflr3.input.Mesh_Format = "tecplot"
         aflr3.input.Mesh_Quiet_Flag = True
 
         # Just make sure it runs without errors...
@@ -273,12 +284,13 @@ class TestAFLR3(unittest.TestCase):
         #aflr4.geometry.save("torus.egads")
 
         # Load aflr3 aim
-        aflr3 = self.myProblem.analysis.create(aim = "aflr3AIM", 
+        aflr3 = self.myProblem.analysis.create(aim = "aflr3AIM",
                                                capsIntent = ["torus", "farfield"])
 
         aflr3.input["Surface_Mesh"].link(aflr4.output["Surface_Mesh"])
 
-        # Set project name
+        # Set options
+        aflr3.input.Mesh_Format = "tecplot"
         aflr3.input.Mesh_Quiet_Flag = True
 
         # Just make sure it runs without errors...
@@ -300,12 +312,13 @@ class TestAFLR3(unittest.TestCase):
         #aflr4.geometry.save("sphere.egads")
 
         # Load aflr3 aim
-        aflr3 = self.myProblem.analysis.create(aim = "aflr3AIM", 
+        aflr3 = self.myProblem.analysis.create(aim = "aflr3AIM",
                                                capsIntent = ["sphere", "farfield"])
 
         aflr3.input["Surface_Mesh"].link(aflr4.output["Surface_Mesh"])
 
-        # Set project name
+        # Set options
+        aflr3.input.Mesh_Format = "tecplot"
         aflr3.input.Mesh_Quiet_Flag = True
 
         # Just make sure it runs without errors...
@@ -327,12 +340,13 @@ class TestAFLR3(unittest.TestCase):
         #aflr4.geometry.save("boxhole.egads")
 
         # Load aflr3 aim
-        aflr3 = self.myProblem.analysis.create(aim = "aflr3AIM", 
+        aflr3 = self.myProblem.analysis.create(aim = "aflr3AIM",
                                                capsIntent = ["boxhole", "farfield"])
 
         aflr3.input["Surface_Mesh"].link(aflr4.output["Surface_Mesh"])
 
-        # Set project name
+        # Set options
+        aflr3.input.Mesh_Format = "tecplot"
         aflr3.input.Mesh_Quiet_Flag = True
 
         # Just make sure it runs without errors...
@@ -354,12 +368,13 @@ class TestAFLR3(unittest.TestCase):
         #aflr4.geometry.save("bullet.egads")
 
         # Load aflr3 aim
-        aflr3 = self.myProblem.analysis.create(aim = "aflr3AIM", 
+        aflr3 = self.myProblem.analysis.create(aim = "aflr3AIM",
                                                capsIntent = ["bullet", "farfield"])
 
         aflr3.input["Surface_Mesh"].link(aflr4.output["Surface_Mesh"])
 
-        # Set project name
+        # Set options
+        aflr3.input.Mesh_Format = "tecplot"
         aflr3.input.Mesh_Quiet_Flag = True
 
         # Just make sure it runs without errors...
@@ -379,27 +394,239 @@ class TestAFLR3(unittest.TestCase):
         aflr4.input.ff_cdfr   = 1.4
 
         # Load aflr3 aim
-        aflr3 = self.myProblem.analysis.create(aim = "aflr3AIM", 
+        aflr3 = self.myProblem.analysis.create(aim = "aflr3AIM",
                                                capsIntent = ["box", "cylinder", "cone", "torus", "sphere", "farfield", "bullet", "boxhole"])
 
         aflr3.input["Surface_Mesh"].link(aflr4.output["Surface_Mesh"])
 
-        # Set project name
+        # Set options
+        aflr3.input.Mesh_Format = "tecplot"
         aflr3.input.Mesh_Quiet_Flag = True
 
         # Just make sure it runs without errors...
         aflr3.runAnalysis()
 
 #==============================================================================
+    def test_faceMatch(self):
+
+        file = os.path.join("..","csmData","multiRegions.csm")
+
+        problemName = self.problemName + "_faceMatch"
+        myProblem = pyCAPS.Problem(problemName, capsFile=file, outLevel=0)
+
+        #----------------
+        aflr4 = myProblem.analysis.create(aim = "aflr4AIM",
+                                          name = "aflr4_2",
+                                          capsIntent = ["regions2"])
+
+        aflr4.input.Mesh_Quiet_Flag = True
+
+        aflr3 = myProblem.analysis.create(aim = "aflr3AIM",
+                                          name = "aflr3_2",
+                                          capsIntent = ["regions2"])
+
+        aflr3.input.Mesh_Quiet_Flag = True
+        aflr3.input.Mesh_Format = "tecplot"
+        aflr3.input["Surface_Mesh"].link(aflr4.output["Surface_Mesh"])
+
+        # Just make sure it runs without errors...
+        aflr3.input.Multiple_Mesh = aflr4.input.Multiple_Mesh = 'SingleDomain'
+        aflr3.runAnalysis()
+        aflr3.input.Multiple_Mesh = aflr4.input.Multiple_Mesh = 'MultiDomain'
+        aflr3.runAnalysis()
+        aflr3.input.Multiple_Mesh = aflr4.input.Multiple_Mesh = 'MultiFile'
+        aflr3.runAnalysis()
+
+        #----------------
+        aflr4 = myProblem.analysis.create(aim = "aflr4AIM",
+                                          name = "aflr4_3",
+                                          capsIntent = ["regions2", "regions3"])
+        aflr4.input.Mesh_Quiet_Flag = True
+
+        aflr3 = myProblem.analysis.create(aim = "aflr3AIM",
+                                          name = "aflr3_3",
+                                          capsIntent = ["regions2", "regions3"])
+
+        aflr3.input.Mesh_Quiet_Flag = True
+        aflr3.input.Mesh_Format = "tecplot"
+        aflr3.input["Surface_Mesh"].link(aflr4.output["Surface_Mesh"])
+
+        # Just make sure it runs without errors...
+        aflr3.input.Multiple_Mesh = aflr4.input.Multiple_Mesh = 'SingleDomain'
+        aflr3.runAnalysis()
+        aflr3.input.Multiple_Mesh = aflr4.input.Multiple_Mesh = 'MultiDomain'
+        aflr3.runAnalysis()
+        aflr3.input.Multiple_Mesh = aflr4.input.Multiple_Mesh = 'MultiFile'
+        aflr3.runAnalysis()
+
+
+        #----------------
+        aflr4 = myProblem.analysis.create(aim = "aflr4AIM",
+                                          name = "aflr4_4",
+                                          capsIntent = ["regions2", "regions3", "regions4"])
+        aflr4.input.Mesh_Quiet_Flag = True
+
+        aflr3 = myProblem.analysis.create(aim = "aflr3AIM",
+                                          name = "aflr3_4",
+                                          capsIntent = ["regions2", "regions3", "regions4"])
+
+        aflr3.input.Mesh_Quiet_Flag = True
+        aflr3.input.Mesh_Format = "tecplot"
+        aflr3.input["Surface_Mesh"].link(aflr4.output["Surface_Mesh"])
+
+        # Just make sure it runs without errors...
+        aflr3.input.Multiple_Mesh = aflr4.input.Multiple_Mesh = 'SingleDomain'
+        aflr3.runAnalysis()
+        aflr3.input.Multiple_Mesh = aflr4.input.Multiple_Mesh = 'MultiDomain'
+        aflr3.runAnalysis()
+        aflr3.input.Multiple_Mesh = aflr4.input.Multiple_Mesh = 'MultiFile'
+        aflr3.runAnalysis()
+
+
+        #----------------
+        aflr4 = myProblem.analysis.create(aim = "aflr4AIM",
+                                          name = "aflr4_5",
+                                          capsIntent = ["regions2", "regions3", "regions4", "regions5"])
+        aflr4.input.Mesh_Quiet_Flag = True
+
+        aflr3 = myProblem.analysis.create(aim = "aflr3AIM",
+                                          name = "aflr3_5",
+                                          capsIntent = ["regions2", "regions3", "regions4", "regions5"])
+
+        aflr3.input.Mesh_Quiet_Flag = True
+        aflr3.input.Mesh_Format = "tecplot"
+        aflr3.input["Surface_Mesh"].link(aflr4.output["Surface_Mesh"])
+
+        # Just make sure it runs without errors...
+        aflr3.input.Multiple_Mesh = aflr4.input.Multiple_Mesh = 'SingleDomain'
+        aflr3.runAnalysis()
+        aflr3.input.Multiple_Mesh = aflr4.input.Multiple_Mesh = 'MultiDomain'
+        aflr3.runAnalysis()
+        aflr3.input.Multiple_Mesh = aflr4.input.Multiple_Mesh = 'MultiFile'
+        aflr3.runAnalysis()
+
+
+        #----------------
+        aflr4 = myProblem.analysis.create(aim = "aflr4AIM",
+                                          name = "aflr4_6",
+                                          capsIntent = ["regions2", "regions3", "regions4", "regions5", "regions6"])
+        aflr4.input.Mesh_Quiet_Flag = True
+
+        aflr3 = myProblem.analysis.create(aim = "aflr3AIM",
+                                          name = "aflr3_6",
+                                          capsIntent = ["regions2", "regions3", "regions4", "regions5", "regions6"])
+
+        aflr3.input.Mesh_Quiet_Flag = True
+        aflr3.input.Mesh_Format = "tecplot"
+        aflr3.input["Surface_Mesh"].link(aflr4.output["Surface_Mesh"])
+
+        # Just make sure it runs without errors...
+        aflr3.input.Multiple_Mesh = aflr4.input.Multiple_Mesh = 'SingleDomain'
+        aflr3.runAnalysis()
+        aflr3.input.Multiple_Mesh = aflr4.input.Multiple_Mesh = 'MultiDomain'
+        aflr3.runAnalysis()
+        aflr3.input.Multiple_Mesh = aflr4.input.Multiple_Mesh = 'MultiFile'
+        aflr3.runAnalysis()
+
+
+        #----------------
+        aflr4 = myProblem.analysis.create(aim = "aflr4AIM",
+                                          name = "aflr4_7",
+                                          capsIntent = ["regions2", "regions3", "regions4", "regions5", "regions6", "regions7"])
+        aflr4.input.Mesh_Quiet_Flag = True
+
+        aflr3 = myProblem.analysis.create(aim = "aflr3AIM",
+                                          name = "aflr3_7",
+                                          capsIntent = ["regions2", "regions3", "regions4", "regions5", "regions6", "regions7"])
+
+        aflr3.input.Mesh_Quiet_Flag = True
+        aflr3.input.Mesh_Format = "tecplot"
+        aflr3.input["Surface_Mesh"].link(aflr4.output["Surface_Mesh"])
+
+        # Just make sure it runs without errors...
+        aflr3.input.Multiple_Mesh = aflr4.input.Multiple_Mesh = 'SingleDomain'
+        aflr3.runAnalysis()
+        aflr3.input.Multiple_Mesh = aflr4.input.Multiple_Mesh = 'MultiDomain'
+        aflr3.runAnalysis()
+        aflr3.input.Multiple_Mesh = aflr4.input.Multiple_Mesh = 'MultiFile'
+        aflr3.runAnalysis()
+
+
+        #----------------
+        aflr4 = myProblem.analysis.create(aim = "aflr4AIM",
+                                          name = "aflr4_8",
+                                          capsIntent = ["regions2", "regions3", "regions4", "regions5", "regions6", "regions7", "regions8"])
+        aflr4.input.Mesh_Quiet_Flag = True
+
+        aflr3 = myProblem.analysis.create(aim = "aflr3AIM",
+                                          name = "aflr3_8",
+                                          capsIntent = ["regions2", "regions3", "regions4", "regions5", "regions6", "regions7", "regions8"])
+
+        aflr3.input.Mesh_Quiet_Flag = True
+        aflr3.input.Mesh_Format = "tecplot"
+        aflr3.input["Surface_Mesh"].link(aflr4.output["Surface_Mesh"])
+
+        # Just make sure it runs without errors...
+        aflr3.input.Multiple_Mesh = aflr4.input.Multiple_Mesh = 'SingleDomain'
+        aflr3.runAnalysis()
+        aflr3.input.Multiple_Mesh = aflr4.input.Multiple_Mesh = 'MultiDomain'
+        aflr3.runAnalysis()
+        aflr3.input.Multiple_Mesh = aflr4.input.Multiple_Mesh = 'MultiFile'
+        aflr3.runAnalysis()
+
+
+#==============================================================================
+    def test_faceMatch_MultiDomain(self):
+
+        for csm in [
+                    "example1", 
+                    "example2", 
+                    "example3", 
+                    "example4", 
+                   # "example5", 
+                    "example6", 
+                    "example7", 
+                    "example8", 
+                    "example9",
+                    "multi_prim",
+                    "cyl_seam",
+                    ]:
+            file = os.path.join("..","csmData","MultiDomain",csm+".csm")
+
+            print(file)
+            problemName = self.problemName + "_faceMatch_" + csm
+            myProblem = pyCAPS.Problem(problemName, capsFile=file, outLevel=0)
+            
+            aflr4 = myProblem.analysis.create(aim = "aflr4AIM")
+            
+            aflr4.input.Mesh_Quiet_Flag = True
+            aflr4.input.Mesh_Length_Factor = 1
+            aflr4.input.min_scale = 0.05
+
+            aflr3 = myProblem.analysis.create(aim = "aflr3AIM")
+    
+            aflr3.input["Surface_Mesh"].link(aflr4.output["Surface_Mesh"])
+            aflr3.input.Mesh_Quiet_Flag = True
+            aflr3.input.Mesh_Format = "tecplot"
+
+            aflr3.input.Multiple_Mesh = 'SingleDomain'
+            aflr3.runAnalysis()
+            aflr3.input.Multiple_Mesh = 'MultiDomain'
+            aflr3.runAnalysis()
+            aflr3.input.Multiple_Mesh = 'MultiFile'
+            aflr3.runAnalysis()
+
+
+#==============================================================================
     def test_phase(self):
         file = os.path.join("..","csmData","cfdSingleBody.csm")
-        
+
         problemName = self.problemName + "_Phase"
         myProblem = pyCAPS.Problem(problemName, phaseName="Phase0", capsFile=file, outLevel=0)
 
         aflr4 = myProblem.analysis.create(aim = "aflr4AIM",
                                           name = "aflr4")
-        
+
         aflr4.input.Mesh_Quiet_Flag = True
         aflr4.input.Mesh_Length_Factor = 20
 
@@ -409,8 +636,7 @@ class TestAFLR3(unittest.TestCase):
         aflr3.input["Surface_Mesh"].link(aflr4.output["Surface_Mesh"])
 
         aflr3.input.Mesh_Quiet_Flag = True
-        aflr3.input.Proj_Name = "test"
-        aflr3.input.Mesh_Format = "Tecplot"
+        aflr3.input.Mesh_Format = "tecplot"
 
         VolNumberOfNode_1    = aflr3.output.NumberOfNode
         VolNumberOfElement_1 = aflr3.output.NumberOfElement
@@ -459,7 +685,7 @@ class TestAFLR3(unittest.TestCase):
         if line == line_exit: return line
         if line_exit > 0: self.assertTrue(myProblem.journaling())
 
-        # Load egadsAIM
+        # Load aflr4 AIM
         if verbose: print(6*"-", line,"Load aflr4AIM")
         aflr4 = myProblem.analysis.create(aim = "aflr4AIM"); line += 1
         if line == line_exit: return line
@@ -508,7 +734,7 @@ class TestAFLR3(unittest.TestCase):
         VolNumberOfNode_1    = aflr3.output.NumberOfNode; line += 1
         if line == line_exit: return line
         if line_exit > 0: self.assertTrue(myProblem.journaling())
-        
+
         if verbose: print(6*"-", line,"aflr3 VolNumberOfNode_1")
         VolNumberOfElement_1 = aflr3.output.NumberOfElement; line += 1
         if line == line_exit: return line
@@ -525,12 +751,12 @@ class TestAFLR3(unittest.TestCase):
         VolNumberOfNode_2    = aflr3.output.NumberOfNode; line += 1
         if line == line_exit: return line
         if line_exit > 0: self.assertTrue(myProblem.journaling())
-        
+
         if verbose: print(6*"-", line,"aflr3 VolNumberOfElement_2")
         VolNumberOfElement_2 = aflr3.output.NumberOfElement; line += 1
         if line == line_exit: return line
         if line_exit > 0: self.assertTrue(myProblem.journaling())
-        
+
         # Check that the counts have decreased
         self.assertGreater(VolNumberOfNode_1   , VolNumberOfNode_2   )
         self.assertGreater(VolNumberOfElement_1, VolNumberOfElement_2)

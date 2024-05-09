@@ -4,7 +4,7 @@ from corsairlite import units, Q_
 class StandardAtmosphereClass():
     def __init__(self):
         self.SI = np.asarray(
-                    #Alt        Temp        Press       Dens                a       Visc (nu)
+                    #Alt        Temp        Press       Dens                a       Visc (mu)
                 [[  -1000.   ,   294.65  ,   113929  ,   1.347       ,   344.111 ,   1.84E-05    ],
                 [     0.     ,   288.15  ,   101325  ,   1.225       ,   340.294 ,   1.81E-05    ],
                 [   1000.    ,   281.65  ,   89874.6 ,   1.11164     ,   336.434 ,   1.78E-05    ],
@@ -143,22 +143,22 @@ class StandardAtmosphereClass():
         else:
             print("Error: Altitude is out of range")
 
-    def nu(self, alt=0):
+    def mu(self, alt=0):
         alt = alt.to('meter').magnitude
         if alt<self.SI[0].max() and alt>self.SI[0].min():
             idx2 = np.where(alt < self.SI[0])[0][0]
             idx1 = idx2-1
             w1 = (self.SI[0][idx2]-alt)/(self.SI[0][idx2]-self.SI[0][idx1])
             w2 = (alt-self.SI[0][idx1])/(self.SI[0][idx2]-self.SI[0][idx1])
-            return (w1*self.SI[5][idx1]+w2*self.SI[5][idx2])*units.meter**2/units.second
+            return (w1*self.SI[5][idx1]+w2*self.SI[5][idx2])*units.kg/(units.m * units.second)
         else:
             print("Error: Altitude is out of range")
     
-    def mu(self, alt=0):
+    def nu(self, alt=0):
         rho = self.rho(alt)
-        nu  = self.nu(alt)
-        mu  = rho*nu
-        return mu
+        mu  = self.mu(alt)
+        nu  = mu/rho
+        return nu
 
 StandardAtmosphere = StandardAtmosphereClass()
 atm = StandardAtmosphereClass()

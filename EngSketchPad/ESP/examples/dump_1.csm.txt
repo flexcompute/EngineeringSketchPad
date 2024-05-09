@@ -1,0 +1,13 @@
+# dump_1
+# written by John Dannenhoffer
+
+# create a box
+BOX       0  0  0  4  3  2
+
+# create the file dump_1.stp and leave the box on the stack
+DUMP      dump_1.stp
+
+# create the file dump_1.egads with the tessellation and leave the box on the stack
+DUMP      dump_1.egads  0  0  1
+
+END

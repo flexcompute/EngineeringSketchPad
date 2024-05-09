@@ -1,0 +1,27 @@
+# applyTparams_udc_1
+# written by John Dannenhoffer
+
+# plate with default tessellation
+BOX       0  0  0  3  2  0
+SELECT    FACE
+ATTRIBUTE _grd $on
+
+# plate with coarser tessellation
+BOX       4  0  0  3  2  0
+UDPRIM    $$/applyTparams  factor 2.0
+SELECT    FACE
+ATTRIBUTE _grd $on
+
+# plate with finer tessellation
+BOX       0  3  0  3  2  0
+UDPRIM    $$/applyTparams  factor 0.5
+SELECT    FACE
+ATTRIBUTE _grd $on
+
+# plate with much finer tessellation
+BOX       4  3  0  3  2  0
+UDPRIM    $$/applyTparams  factor 0.1
+SELECT    FACE
+ATTRIBUTE _grd $on
+
+END

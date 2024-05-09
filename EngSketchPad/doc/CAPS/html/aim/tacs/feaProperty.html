@@ -69,16 +69,16 @@ $(function() {
 <div class="textblock"><p>Structure for the property tuple = ("Property Name", "Value"). "Property Name" defines the reference <code>capsGroup</code> for the property being specified. The "Value" can either be a JSON String dictionary (see Section <a class="el" href="feaProperty.html#jsonStringProperty">JSON String Dictionary</a>) or a single string keyword (see Section <a class="el" href="feaProperty.html#keyStringProperty">Single Value String</a>).</p>
 <h1><a class="anchor" id="jsonStringProperty"></a>
 JSON String Dictionary</h1>
-<p>If "Value" is JSON string dictionary the following keywords ( = default values) may be used:</p>
+<p>If "Value" is JSON string dictionary (e.g. "Value" = {"shearMembraneRatio": 0.83, "bendingInertiaRatio": 1.0, "membraneThickness": 0.2, "propertyType": "Shell"}) the following keywords ( = default values) may be used:</p>
 <ul>
 <li>
 <b>propertyType = No Default value</b>  <br  />
- Type of property to apply to a give capsGroup <code>Name</code>. Options: ConcentratedMass, Rod, Bar, Shear, Shell, Membrane, Composite, and Solid </li>
+ Type of property to apply to a given capsGroup <code>Name</code>. Options: ConcentratedMass, Rod, Bar, Shear, Shell, Composite, and Solid </li>
 </ul>
 <ul>
 <li>
-<b>material = &lsquo;Material Name&rsquo; (<a class="el" href="feaMaterial.html">FEA Material</a>) </b>  <br  />
- &lsquo;Material Name&rsquo; from <a class="el" href="feaMaterial.html">FEA Material</a> to use for property. If no material is set the first material created will be used </li>
+<b>material = "Material Name" (<a class="el" href="feaMaterial.html">FEA Material</a>) </b>  <br  />
+ "Material Name" from <a class="el" href="feaMaterial.html">FEA Material</a> to use for property. If no material is set the first material created will be used </li>
 </ul>
 <ul>
 <li>
@@ -94,6 +94,11 @@ JSON String Dictionary</h1>
 <li>
 <b>torsionalStressReCoeff = 0.0</b>  <br  />
  Torsional stress recovery coefficient. </li>
+</ul>
+<ul>
+<li>
+<b>massPerLength = 0.0</b>  <br  />
+ Non-structural mass per unit length. </li>
 </ul>
 <ul>
 <li>
@@ -127,6 +132,16 @@ JSON String Dictionary</h1>
 </ul>
 <ul>
 <li>
+<b>crossSecType = NULL</b>  <br  />
+ Cross-section type. Must be one of following character variables: BAR, BOX, BOX1, CHAN, CHAN1, CHAN2, CROSS, H, HAT, HEXA, I, I1, ROD, T, T1, T2, TUBE, or Z. </li>
+</ul>
+<ul>
+<li>
+<b>crossSecDimension = [0,0,0,....]</b>  <br  />
+ Cross-sectional dimensions (length of array is dependent on the "crossSecType"). Max supported length array is 10! </li>
+</ul>
+<ul>
+<li>
 <b>membraneThickness = 0.0</b>  <br  />
  Membrane thickness. </li>
 </ul>
@@ -143,12 +158,24 @@ JSON String Dictionary</h1>
 <ul>
 <li>
 <b>materialBending = "Material Name" (<a class="el" href="feaMaterial.html">FEA Material</a>)</b>  <br  />
- "Material Name" from <a class="el" href="feaMaterial.html">FEA Material</a> to use for property bending. </li>
+ "Material Name" from <a class="el" href="feaMaterial.html">FEA Material</a> to use for property bending. If no material is given and "bendingInertiaRatio" is greater than 0, the material name provided in "material" is used. </li>
 </ul>
 <ul>
 <li>
 <b>materialShear = "Material Name" (<a class="el" href="feaMaterial.html">FEA Material</a>)</b>  <br  />
- "Material Name" from <a class="el" href="feaMaterial.html">FEA Material</a> to use for property shear. </li>
+ "Material Name" from <a class="el" href="feaMaterial.html">FEA Material</a> to use for property shear. If no material is given and "shearMembraneRatio" is greater than 0, the material name provided in "material" is used. </li>
+</ul>
+<ul>
+<li>
+<b>massPerArea = 0.0</b>  <br  />
+ Non-structural mass per unit area. </li>
+</ul>
+<ul>
+<li>
+<p class="startli"><b>zOffsetRel = 0.0</b>  <br  />
+ Relative offset from the surface of grid points to the element reference plane as a percentage of the thickness. zOffSet = thickness*zOffsetRel/100</p>
+<p class="endli"></p>
+</li>
 </ul>
 <ul>
 <li>
@@ -163,12 +190,12 @@ JSON String Dictionary</h1>
 <ul>
 <li>
 <b>symmetricLaminate = False </b>  <br  />
- Symmetric lamination option. True- SYM only half the plies are specified, for odd number plies 1/2 thickness of center ply is specified with the first ply being the bottom ply in the stack, default (False) all plies specified </li>
+ Symmetric lamination option. True- SYM only half the plies are specified, for odd number plies 1/2 thickness of center ply is specified with the first ply being the bottom ply in the stack, default (False) all plies specified. </li>
 </ul>
 <ul>
 <li>
 <b>compositeFailureTheory = "(no default)" </b>  <br  />
- Composite failure theory. </li>
+ Composite failure theory. Options: "HILL", "HOFF", "TSAI", and "STRN" </li>
 </ul>
 <ul>
 <li>
@@ -202,7 +229,7 @@ Single Value String</h1>
 </div><!-- PageDoc -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Sat Jul 2 2022 10:13:17 for TACS Analysis Interface Module (AIM) by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1
+Generated on Sat Apr 27 2024 16:51:53 for TACS Analysis Interface Module (AIM) by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1
 </small></address>
 </body>
 </html>

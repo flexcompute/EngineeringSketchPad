@@ -1,0 +1,107 @@
+INTERFACE . ALL
+#------------------------------------------------------------------------------#
+# 
+# inputs:
+#
+#   Switches (0=false, 1=true):
+#       Tail:roundedTip : rounded wing tip?
+#       Tail:sharpTE    : sharp trailing edge?
+#
+#   Scalar parameters:
+#       Tail:Croot      :  root chord length
+#       Tail:taper      :  taper ratio (with respect to Tail:Y(1) and Tail:Y(end))
+#       Tail:c4rootX    :  quarter-chord x-coordinate at root
+#       Tail:c4rootZ    :  quarter-chord z-coordinate at root
+#       Tail:c4hedral   :  [deg] quarter-chord dihedral angle
+#       Tail:c4sweep    :  [deg] quarter-chord sweep angle
+#       Tail:Nsect      :  length of arrays below
+#
+#   Array-types for NACA airfoil sections:
+#       Tail:Y          :  spanwise y-coordinate
+#       Tail:twist      :  [deg] twist angle
+#       Tail:thick      :  [fraction of chord length] thickness ratio
+#
+#------------------------------------------------------------------------------#
+
+MARK
+
+    PATBEG      isect   Tail:Nsect
+        UDPRIM  naca    thickness       Tail:thick[isect]\
+                        sharpte         Tail:sharpTE
+        ROTATEX         90 0 0
+
+        # determine local chord length
+        SET             spanRatio       (Tail:Y[isect]-Tail:Y[1])/(Tail:Y[Tail:Nsect]-Tail:Y[1])
+        SET             localChord      Tail:Croot*(1-spanRatio*(1-Tail:taper))
+
+        # determine local quarter chord location
+        SET             c4X             (Tail:Y[isect]-Tail:Y[1])*tand(Tail:c4sweep)
+        SET             c4Z             (Tail:Y[isect]-Tail:Y[1])*tand(Tail:c4hedral)
+
+        # scale by local chord length
+        SCALE           localChord
+
+        # rotate about c/4 line based on local twist angle
+        TRANSLATE       -0.25*localChord 0 0
+        ROTATEY         Tail:twist[isect] 0 0
+
+        # translate based on local quarter chord location
+        IFTHEN COMP:Fuselage EQ 0 AND VIEW:aeroFidelity EQ 1 # start at y=0 if no fuselage
+            TRANSLATE       c4X  Tail:Y[isect]-Tail:Y[1] c4Z
+        ELSE
+            TRANSLATE       c4X  Tail:Y[isect]  c4Z
+        ENDIF
+
+    PATEND
+
+BLEND 0 -1;Tail:roundedTip
+  ATTRIBUTE _name         $tail
+  ATTRIBUTE  tagComp      $tail
+  ATTRIBUTE  capsBound    $tail
+
+ATTRIBUTE capsMesh $Skin_Tail
+ATTRIBUTE capsGroup $Skin_Tail
+SELECT FACE 1
+  ATTRIBUTE capsBound $Tail:Skin_Top
+SELECT FACE 2
+  ATTRIBUTE capsBound $Tail:Skin_Bot
+IFTHEN Tail:sharpTE EQ 1
+    SELECT FACE 3
+      ATTRIBUTE capsBound $Tail_Root
+    SELECT FACE 4
+      ATTRIBUTE capsMesh $Tail_Tip
+      ATTRIBUTE capsGroup $Tail_Tip
+      ATTRIBUTE capsBound $Tail_Tip
+ELSE
+    SELECT FACE 3
+      ATTRIBUTE capsMesh $Tail_TE
+      ATTRIBUTE capsGroup $Tail_TE
+      ATTRIBUTE capsBound $Tail_TE
+    SELECT FACE 4
+      ATTRIBUTE capsBound $Tail_Root
+    SELECT FACE 5
+      ATTRIBUTE capsMesh $Tail_Tip
+      ATTRIBUTE capsGroup $Tail_Tip
+      ATTRIBUTE capsBound $Tail_Tip
+ENDIF
+
+#udprim editAttr filename <<
+#    edge adj2face capsBound=Skin_Tail
+#    set capsBound=Skin_Tail
+#    node adj2face capsBound=Skin_Tail
+#    set capsBound=Skin_Tail
+#
+#    edge adj2face capsMesh=Tail_Tip
+#    set  capsMesh=Tail_Tip
+#    set  capsGroup=Tail_Tip
+#    node adj2face capsMesh=Tail_Tip
+#    set  capsMesh=Tail_Tip
+#    set  capsGroup=Tail_Tip
+#>>
+
+ROTATEY   Tail:globalTwist 0 0
+TRANSLATE Tail:c4rootX 0 Tail:c4rootZ
+
+STORE tail
+
+END

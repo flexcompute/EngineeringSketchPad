@@ -1,0 +1,94 @@
+# designZ8
+# written by John Dannenhoffer
+
+DIMENSION xloc      14 1
+DESPMTR   xloc      "1; 2; 3; 4; 5; 6; 7; 8; 9; 10; 11; 12; 13; 14"
+
+# make the shell of the box that should get scribed
+BOX       0 -1 -1  15  2  2
+EXTRACT   0
+
+# scribing plane bigger than box
+BOX       xloc[1] -2 -2   0  4  2
+BOX       xloc[1] -2  0   0  4  2
+JOIN
+SUBTRACT  none  1  0  1
+
+# scribing plane coincident with box
+BOX       xloc[2] -1 -1   0  2  2
+SUBTRACT  none  1  0  1
+
+# scribing can bigger than box
+CYLINDER  xloc[3] -2  0  xloc[3]  2  0  1/4
+EXTRACT   0
+SUBTRACT  none  1  0  1
+
+# scribing sleeve bigger than box
+CYLINDER  xloc[4]  0 -2  xloc[4]  0  2  1/4
+SELECT    FACE  @nbody  3
+SELECT    ADD   @nbody  4
+EXTRACT   @sellist
+SUBTRACT  none  1  0  1
+
+# scribing can coincident with box
+CYLINDER  xloc[5] -1  0  xloc[5]  1  0  1/4
+EXTRACT   0
+SUBTRACT  none  1  0  1
+
+# scribing sleeve coincident with box
+CYLINDER  xloc[6]  0 -1  xloc[6]  0  1  1/4
+SELECT    FACE  @nbody  3
+SELECT    ADD   @nbody  4
+EXTRACT   @sellist
+SUBTRACT  none  1  0  1
+
+# scribing can bigger than box
+CYLINDER  xloc[7] -2 -1  xloc[7]  2 -1  1/4
+EXTRACT   0
+SUBTRACT  none  1  0  1
+
+# scribing sleeve bigger than box
+CYLINDER  xloc[8] -1 -2  xloc[8] -1  2  1/4
+SELECT    FACE  @nbody  3
+SELECT    ADD   @nbody  4
+EXTRACT   @sellist
+SUBTRACT  none  1  0  1
+
+# scribing can coincident with box
+CYLINDER  xloc[9] -1 -1  xloc[9]  1 -1  1/4
+EXTRACT   0
+SUBTRACT  none  1  0  1
+
+# scribing sleeve coincident with box
+CYLINDER  xloc[10] -1 -1 xloc[10] -1  1  1/4
+SELECT    FACE  @nbody  3
+SELECT    ADD   @nbody  4
+EXTRACT   @sellist
+SUBTRACT  none  1  0  1
+
+# scribing can bigger than box
+SET       t  1.1
+CYLINDER  xloc[11] -t -2 xloc[11] -t  2  1/4
+EXTRACT   0
+SUBTRACT  none  1  0  1
+
+# scribing sleeve bigger than box
+CYLINDER  xloc[12] -t -2 xloc[12] -t  2  1/4
+SELECT    FACE  @nbody  3
+SELECT    ADD   @nbody  4
+EXTRACT   @sellist
+SUBTRACT  none  1  0  1
+
+# scribing can coincident with box
+CYLINDER  xloc[13] -1 -t xloc[13]  1 -t  1/4
+EXTRACT   0
+SUBTRACT  none  1  0  1
+
+# scribing sleeve coincident with box
+CYLINDER  xloc[14] -t -1 xloc[14] -t  1  1/4
+SELECT    FACE  @nbody  3
+SELECT    ADD   @nbody  4
+EXTRACT   @sellist
+SUBTRACT  none  1  0  1
+
+END

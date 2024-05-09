@@ -1,0 +1,6 @@
+# DG-1.2_noMan
+# written by John Dannenhoffer
+
+UDPRIM    vsp3   filename $$/DG-1.2_noMan.vsp3
+
+END

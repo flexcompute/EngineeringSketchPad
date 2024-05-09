@@ -10,7 +10,7 @@
  */
 
 /*
- * Copyright (C) 2011/2022  John F. Dannenhoffer, III (Syracuse University)
+ * Copyright (C) 2011/2024  John F. Dannenhoffer, III (Syracuse University)
  *
  * This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
@@ -114,13 +114,14 @@ udpExecute(ego  context,                /* (in)  EGADS context */
 {
     int     status = EGADS_SUCCESS;
 
-    int     npnt, sense[4], sizes[2], periodic, i, add=1;
+    int     npnt, sense[4], sizes[2], periodic, i;
     double  rx_w, rx_e, ry_s, ry_n, n_sw, n_se, n_nw, n_ne, theta;
     double  *pnt_ne=NULL, *pnt_nw=NULL, *pnt_sw=NULL, *pnt_se=NULL, *pnt_save=NULL;
     double  data[18], tdata[2], result[3], range[4], eval[18], norm[3], dx, dy, ds;
     double  dxytol = 1.0e-6;
     char    *message=NULL;
     ego     enodes[5], eedges[4], ecurve[4], eloop, eface, enew;
+    udp_T   *udps = *Udps;
 
     ROUTINE(udpExecute);
 
@@ -246,6 +247,27 @@ udpExecute(ego  context,                /* (in)  EGADS context */
     CHECK_STATUS(cacheUdp);
 
 #ifdef DEBUG
+    printf("udpExecute(context=%llx)\n", (long long)context);
+    printf("rx(     %d) = %f\n", numUdp, RX(     numUdp));
+    printf("rx_w(   %d) = %f\n", numUdp, RX_W(   numUdp));
+    printf("rx_e(   %d) = %f\n", numUdp, RX_E(   numUdp));
+    printf("ry(     %d) = %f\n", numUdp, RY(     numUdp));
+    printf("ry_s(   %d) = %f\n", numUdp, RY_S(   numUdp));
+    printf("ry_n(   %d) = %f\n", numUdp, RY_N(   numUdp));
+    printf("n(      %d) = %f\n", numUdp, N(      numUdp));
+    printf("n_w(    %d) = %f\n", numUdp, N_W(    numUdp));
+    printf("n_e(    %d) = %f\n", numUdp, N_E(    numUdp));
+    printf("n_s(    %d) = %f\n", numUdp, N_S(    numUdp));
+    printf("n_n(    %d) = %f\n", numUdp, N_N(    numUdp));
+    printf("n_sw(   %d) = %f\n", numUdp, N_SW(   numUdp));
+    printf("n_se(   %d) = %f\n", numUdp, N_SE(   numUdp));
+    printf("n_nw(   %d) = %f\n", numUdp, N_NW(   numUdp));
+    printf("n_ne(   %d) = %f\n", numUdp, N_NE(   numUdp));
+    printf("offset( %d) = %f\n", numUdp, OFFSET( numUdp));
+    printf("nquad(  %d) = %d\n", numUdp, NQUAD(  numUdp));
+    printf("numpnts(%d) = %d\n", numUdp, NUMPNTS(numUdp));
+    printf("slpfact(%d) = %f\n", numUdp, SLPFACT(numUdp));
+
     printf("rx_w    = %f\n", rx_w);
     printf("rx_e    = %f\n", rx_e);
     printf("ry_s    = %f\n", ry_s);
@@ -1014,12 +1036,6 @@ udpExecute(ego  context,                /* (in)  EGADS context */
     status = EG_makeFace(eloop, SFORWARD, NULL, &eface);
     CHECK_STATUS(EG_makeFace);
 
-    /* since this will make a PLANE, we need to add an Attribute
-       to tell OpenCSM to scale the UVs when computing sensitivities */
-    status = EG_attributeAdd(eface, "_scaleuv", ATTRINT, 1,
-                             &add, NULL, NULL);
-    CHECK_STATUS(EG_attributeAdd);
-
     /* find the direction of the Face normal */
     status = EG_getRange(eface, range, &periodic);
     CHECK_STATUS(EG_getRange);
@@ -1106,8 +1122,13 @@ udpSensitivity(ego    ebody,            /* (in)  Body pointer */
     /* --------------------------------------------------------------- */
 
 #ifdef DEBUG
-    printf("udpSensitivity(ebody=%llx, npnt=%d, entType=%d, entIndex=%d, uvs=%f %f)\n",
-           (long long)ebody, npnt, entType, entIndex, uvs[0], uvs[1]);
+    if (uvs != NULL) {
+        printf("udpSensitivity(ebody=%llx, npnt=%d, entType=%d, entIndex=%d, uvs=%f %f)\n",
+               (long long)ebody, npnt, entType, entIndex, uvs[0], uvs[1]);
+    } else {
+        printf("udpSensitivity(ebody=%llx, npnt=%d, entType=%d, entIndex=%d, uvs=NULL)\n",
+               (long long)ebody, npnt, entType, entIndex);
+    }
 #endif
 
     /* check that ebody matches one of the ebodys */

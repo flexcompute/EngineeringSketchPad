@@ -1,7 +1,7 @@
 #
 # Construct a box with segrigated regions
 #
-attribute capsAIM $egadsTessAIM;aflr4AIM;tetgenAIM
+attribute capsAIM $egadsTessAIM;aflr4AIM;tetgenAIM;pointwiseAIM
 attribute capsMeshLength 1
 
 # Construct the box
@@ -11,6 +11,7 @@ store box
 # Construct a plane and rotate
 udprim box dx 4 dy 4
 attribute AFLR_GBC $TRANSP_UG3_GBC
+attribute PW:Baffle $Baffle
 rotatex 45 0 0
 store cut
 

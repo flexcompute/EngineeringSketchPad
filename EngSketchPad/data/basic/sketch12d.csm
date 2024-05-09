@@ -1,0 +1,145 @@
+# sketch12d
+# written by John Dannenhoffer
+
+# design parameters
+DESPMTR   P1   5
+DESPMTR   P2   20
+DESPMTR   P3   25
+DESPMTR   P4   1
+DESPMTR   P5   1/2
+DESPMTR   P6   3/4
+DESPMTR   P7   1/2
+
+#     C-----------------------------G
+#     .                              .  .
+#     H-------------------I           .    .
+#                          .           .      .
+#                        M  J     D     F        B
+#                          .           .      .
+#     L-------------------K           .    .
+#     .                              .  .
+#     A-----------------------------E
+#
+#     circle at D (whose radius is  P4) contains E, F, and G
+#     circle at M (whose radius is rad) contains I, J, and K
+#     xD-xJ = radius of circle at D (that is, P4)
+
+# outline AB and CB
+SET       xA   0
+SET       yA   0
+
+SET       xB   xA+P2*cosd(P3)
+SET       yB   yA+P2*sind(P3)
+
+SET       xC   xA
+SET       yC   yA+P1
+
+# find circle, centered at D, with arc GFE  at end
+SET       ang  (P3-atan2d(yB-yC,xB-xC))/2
+SET       len  hypot(yB-(yA+yC)/2,xB-(xA+xC)/2)
+SET       frac P4*(1/sind(ang))/len
+SET       xD   (1-frac)*xB+frac*(xA+xC)/2
+SET       yD   (1-frac)*yB+frac*(yA+yC)/2
+
+SET       frac P4/tand(ang)/P2
+SET       xE   (1-frac)*xB+frac*xA
+SET       yE   (1-frac)*yB+frac*yA
+
+SET       frac P4*(1/sind(ang)-1)/len
+SET       xF   (1-frac)*xB+frac*(xA+xC)/2
+SET       yF   (1-frac)*yB+frac*(yA+yC)/2
+
+SET       frac P4/tand(ang)/hypot(yB-yC,xB-xC)
+SET       xG   (1-frac)*xB+frac*xC
+SET       yG   (1-frac)*yB+frac*yC
+
+# point J is on P4 circle
+SET       xJ   xD-P4
+
+# find edge HI, offset from CB
+SET       d5   P5/cosd(P1)
+SET       xH   xC
+SET       yH   yC-d5
+
+SET       xI   xJ
+SET       yI   yC+(xI-xC)*(yB-yC)/(xB-xC)-d5
+
+# find edge LK, offset from CB
+SET       d6   P6/cos(atan2(yB-yC,xB-xC))
+SET       xK   xJ
+SET       yK   yA+(xK-xA)*(yB-yA)/(xB-xA)+d6
+
+SET       xL   xA
+SET       yL   yA+d6
+
+# find circle IJK at end of slot (tangent to HI, KL, at x=xJ)
+DIMENSION mat  4 4
+DIMENSION rhs  4 1
+
+SET       dxHI       (xI-xH)/hypot(xI-xH,yI-yH)
+SET       dyHI       (yI-yH)/hypot(xI-xH,yI-yH)
+SET       dxLK       (xK-xL)/hypot(xK-xL,yK-yL)
+SET       dyLK       (yK-yL)/hypot(xK-xL,yK-yL)
+
+SET       mat[1,1]   (xI-xH)^2+(yI-yH)^2
+SET       mat[1,2]   0
+SET       mat[1,3]   (xI-xH)*(1+dyHI)-(yI-yH)*dxHI
+SET       mat[1,4]  -(yI-yH)
+
+SET       mat[2,1]   0
+SET       mat[2,2]   (xK-xL)^2+(yK-yL)^2
+SET       mat[2,3]   (xK-xL)*(1-dyLK)+(yK-yL)*dxLK
+SET       mat[2,4]  -(yK-yL)
+
+SET       mat[3,1]   (xI-xK)*(1+dyHI)-(yI-yH)*dxHI
+SET       mat[3,2]   (xK-xL)*(1-dyLK)+(yK-yL)*dxLK
+SET       mat[3,3]   dxHI^2+dyHI^2+dxLK^2+dyLK^2
+SET       mat[3,4]   dxHI-dxLK
+
+SET       mat[4,1]  -(yI-yH)
+SET       mat[4,2]  -(yK-yL)
+SET       mat[4,3]   dxHI-dxLK
+SET       mat[4,4]   2
+
+SET       rhs[1]     (xI-xH)*(xJ-xH)+(yI-yH)*(0-yH)
+SET       rhs[2]     (xK-xL)*(xJ-xL)+(yK-yL)*(0-yL)
+SET       rhs[3]     (xJ-xK)*(1+dyHI)-(0-yH)*dxHI+(xJ-xL)*(1-dyLK)+(0-yL)*dxLK
+SET       rhs[4]    -(0-yH)-(0-yL)
+
+POINT     0 0 0      # throw away, needed my udfLinalg
+UDPRIM    linalg     oper $div   M1 mat   M2 rhs
+SET       s          @@ans[1]
+SET       t          @@ans[2]
+SET       rad        @@ans[3]
+SET       yJ         @@ans[4]
+STORE     .          # remove throw-away point
+
+# adjust I and K to tangent points
+SET       xI         (1-s)*xH+s*xI
+SET       yI         (1-s)*yH+s*yI
+SET       xK         (1-t)*xL+t*xK
+SET       yK         (1-t)*yL+t*yK
+
+# outer boundary
+SKBEG     xA  yA  0
+   LINSEG xE  yE  0
+   CIRARC xF  yF  0   xG  yG  0
+   LINSEG xC  yC  0
+   LINSEG xH  yH  0
+   LINSEG xI  yI  0
+   CIRARC xJ  yJ  0   xK  yK  0
+   LINSEG xL  yL  0
+   LINSEG xA  yA  0
+SKEND 
+
+# inner circle (hole)
+SKBEG     xD-P7  yD  0
+   ARC    xD+P7  yD  0  P7
+   ARC    xD-P7  yD  0  P7
+SKEND
+SUBTRACT
+
+# make an extruded solid
+EXTRUDE   0  0  1
+
+END

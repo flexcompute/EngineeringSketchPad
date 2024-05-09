@@ -20,6 +20,7 @@
                       a[1] = (b[2]*c[0]) - (b[0]*c[2]);\
                       a[2] = (b[0]*c[1]) - (b[1]*c[0])
 #define DOT(a,b)     (a[0]*b[0] + a[1]*b[1] + a[2]*b[2])
+#define MAX(a,b)     ((a) > (b) ? (a) : (b))
 
 
 static int
@@ -142,12 +143,15 @@ tetgen_to_MeshStruct(tetgenio *mesh, meshStruct *genUnstrMesh)
 }
 
 static int
-writeBinaryUgrid(void *aimInfo, const char *fileName, tetgenio *mesh)
+writeBinaryUgrid(void *aimInfo, const char *fileName,
+                 const mapAttrToIndexStruct *groupMap,
+                 const tetgenRegionsStruct *regions, tetgenio *mesh)
 {
   int    status = CAPS_SUCCESS;
-
+  int    i, maxID=0, ID;
   int    nTri, nQuad;
   int    nTet, nPyramid, nPrism, nHex;
+  size_t len;
   char   aimFile[PATH_MAX];
   FILE *fp = NULL;
 
@@ -155,7 +159,7 @@ writeBinaryUgrid(void *aimInfo, const char *fileName, tetgenio *mesh)
 
   fp = fopen(aimFile, "wb");
   if (fp == NULL) {
-    AIM_ERROR(aimInfo, "Cannot open file: tetgen.lb8.ugrid");
+    AIM_ERROR(aimInfo, "Cannot open file: %s", aimFile);
     status = CAPS_IOERR;
     goto cleanup;
   }
@@ -199,6 +203,69 @@ writeBinaryUgrid(void *aimInfo, const char *fileName, tetgenio *mesh)
   status = fwrite(mesh->tetrahedronlist, sizeof(int), 4*nTet, fp);
   if (status != 4*nTet) { status = CAPS_IOERR; AIM_STATUS(aimInfo, status); }
 
+  fclose(fp); fp = NULL;
+
+  snprintf(aimFile, PATH_MAX, "%s.mapbc", fileName);
+  fp = fopen(aimFile, "w");
+  if (fp == NULL) {
+    AIM_ERROR(aimInfo, "Cannot open file: %s", aimFile);
+    status = CAPS_IOERR;
+    goto cleanup;
+  }
+
+  fprintf(fp, "%d\n", groupMap->numAttribute);
+  for (i = 0; i < groupMap->numAttribute; i++) {
+    fprintf(fp, "%d 0 %s\n", groupMap->attributeIndex[i], groupMap->attributeName[i]);
+  }
+
+  fclose(fp); fp = NULL;
+
+  /* write out element groups */
+  if (regions->size > 0) {
+    snprintf(aimFile, PATH_MAX, "%s.mapvol", fileName);
+
+    fp = fopen(aimFile, "wb");
+    if (fp == NULL) {
+      AIM_ERROR(aimInfo, "Cannot open file: %s", aimFile);
+      status = CAPS_IOERR;
+      goto cleanup;
+    }
+
+    /* write the number of groups */
+    status = fwrite(&regions->size, sizeof(int), 1, fp);
+    if (status != 1) { status = CAPS_IOERR; AIM_STATUS(aimInfo, status); }
+
+    for (i = 0; i < regions->size; i++) {
+      maxID = MAX(maxID, regions->attribute[i]);
+    }
+    status = fwrite(&maxID, sizeof(int), 1, fp);
+    if (status != 1) { status = CAPS_IOERR; AIM_STATUS(aimInfo, status); }
+
+    for (i = 0; i < regions->size; i++) {
+      /* write the group IDs */
+      status = fwrite(&regions->attribute[i], sizeof(int), 1, fp);
+      if (status != 1) { status = CAPS_IOERR; AIM_STATUS(aimInfo, status); }
+
+      /* write the group name */
+      len = strlen(regions->names[i])+1;
+      status = fwrite(&len, sizeof(size_t), 1, fp);
+      if (status != 1) { status = CAPS_IOERR; AIM_STATUS(aimInfo, status); }
+
+      status = fwrite(regions->names[i], sizeof(char), len, fp);
+      if (status != (int)len) { status = CAPS_IOERR; AIM_STATUS(aimInfo, status); }
+    }
+
+    status = fwrite(&nTet, sizeof(int), 1, fp);
+    if (status != 1) { status = CAPS_IOERR; AIM_STATUS(aimInfo, status); }
+
+    /* write the tetrahedral attributes */
+    for (i = 0; i < nTet; i++) {
+      ID = (int)mesh->tetrahedronattributelist[i];
+      status = fwrite(&ID, sizeof(int), 1, fp);
+      if (status != 1) { status = CAPS_IOERR; AIM_STATUS(aimInfo, status); }
+    }
+  }
+
   status = CAPS_SUCCESS;
 
 cleanup:
@@ -211,7 +278,9 @@ cleanup:
 extern "C"
 int tetgen_VolumeMesh(void *aimInfo,
                       meshInputStruct meshInput,
+                      const mapAttrToIndexStruct *groupMap,
                       const char *fileName,
+                      const int numSurfMesh,
                       meshStruct *surfaceMesh,
                       meshStruct *volumeMesh)
 {
@@ -236,68 +305,29 @@ int tetgen_VolumeMesh(void *aimInfo,
     char temp[120] = "p"; // Tetrahedralize a piecewise linear complex flag
     char q[80];
     const char* tetgenDebugSurface = "tetgenDebugSurface";
-    char aimFile[PATH_MAX];
+    char aimFile[PATH_MAX], volFile[PATH_MAX];
+    FILE *fp = NULL;
 
+    int i1=1, i2=0;
+    tetgenio tmpMesh[2];
 
-    // TetGen variables
-    tetgenio in, out;
-    tetgenio::facet *f;
-    tetgenio::polygon *p;
+    tetgenRegionsStruct regions;
+    const tetgenHolesStruct* holes = &meshInput.tetgenInput.holes;
 
-    printf("\nGenerating volume mesh using TetGen.....\n");
+    status = initiate_regions(&regions);
+    AIM_STATUS(aimInfo, status);
 
-    // First index - either 0 or 1
-    in.firstnumber = 1;
+    status = copy_regions(aimInfo, &meshInput.tetgenInput.regions, &regions);
+    AIM_STATUS(aimInfo, status);
 
-    // Check inputs
-    if (surfaceMesh->numNode    == 0) return CAPS_BADVALUE;
-    if (surfaceMesh->numElement == 0) return CAPS_BADVALUE;
-
-    // Set the number of surface nodes
-    in.numberofpoints = surfaceMesh->numNode;
-
-    // Create surface point array
-    in.pointlist = new REAL[in.numberofpoints *3];
-
-    // Transfer input coordinates to tetgen array
-    for(i = 0; i < surfaceMesh->numNode; i++) {
-        in.pointlist[3*i  ] = surfaceMesh->node[i].xyz[0];
-        in.pointlist[3*i+1] = surfaceMesh->node[i].xyz[1];
-        in.pointlist[3*i+2] = surfaceMesh->node[i].xyz[2];
+    snprintf(volFile, PATH_MAX, "%s.txt", fileName);
+    fp = fopen(volFile, "w");
+    if (fp == NULL) {
+        AIM_ERROR(aimInfo, "Failed to open '%s'!", volFile);
+        status = CAPS_IOERR;
+        goto cleanup;
     }
 
-    // Set the number of surface tri
-    in.numberoffacets = surfaceMesh->numElement;
-
-    // Create surface tri arrays
-    in.facetlist = new tetgenio::facet[in.numberoffacets];
-
-    // Create surface marker/BC arrays
-    in.facetmarkerlist = new int[in.numberoffacets];
-
-    // Transfer input surfaceMesh->localTriFaceList array to tetgen array
-    for(i = 0; i < surfaceMesh->numElement; i++) {
-        f =&in.facetlist[i];
-        f->numberofpolygons = 1;
-        f->polygonlist = new tetgenio::polygon[f->numberofpolygons];
-        f->numberofholes = 0;
-        f->holelist = NULL;
-        p = &f->polygonlist[0];
-
-        p->numberofvertices = mesh_numMeshElementConnectivity(&surfaceMesh->element[i]);
-        p->vertexlist = new int[p->numberofvertices];
-
-        for (j = 0; j < p->numberofvertices; j++) {
-            p->vertexlist[j] = surfaceMesh->element[i].connectivity[j];
-        }
-    }
-
-    // Transfer input BC array to tetgen array
-    std::set<int> uniqueMarker;
-    for(i = 0; i < surfaceMesh->numElement; i++) {
-        in.facetmarkerlist[i] = surfaceMesh->element[i].markerID;
-        uniqueMarker.insert(in.facetmarkerlist[i]);
-    }
 
     // If no input string is provided create a simple one based on exposed parameters
     if (meshInput.tetgenInput.meshInputString == NULL) {
@@ -311,7 +341,7 @@ int tetgen_VolumeMesh(void *aimInfo,
 
             if (meshInput.tetgenInput.meshQuality_rad_edge >= 0) {
 
-                sprintf(q, "%.3f",meshInput.tetgenInput.meshQuality_rad_edge);
+                snprintf(q, 80, "%.3f",meshInput.tetgenInput.meshQuality_rad_edge);
                 strcat(temp,q);
 
             } else if (meshInput.tetgenInput.meshQuality_rad_edge < 0)  {
@@ -321,7 +351,7 @@ int tetgen_VolumeMesh(void *aimInfo,
 
             if (meshInput.tetgenInput.meshQuality_angle >= 0) {
 
-                sprintf(q, "/%.3f",meshInput.tetgenInput.meshQuality_angle);
+                snprintf(q, 80, "/%.3f",meshInput.tetgenInput.meshQuality_angle);
                 strcat(temp,q);
 
             } else if (meshInput.tetgenInput.meshQuality_angle < 0) {
@@ -335,14 +365,14 @@ int tetgen_VolumeMesh(void *aimInfo,
         if (meshInput.tetgenInput.verbose != 0) strcat(temp, "V"); // Verbose: Detailed information, more terminal output.
 
         if (meshInput.tetgenInput.meshTolerance > 0) {
-            sprintf(q, "T%.2e",meshInput.tetgenInput.meshTolerance);
+            snprintf(q, 80, "T%.2e",meshInput.tetgenInput.meshTolerance);
             strcat(temp,q);
         }
 
-        if (meshInput.tetgenInput.regions.size > 0
-            || meshInput.tetgenInput.holes.size > 0) {
+        //if (meshInput.tetgenInput.regions.size > 0
+        //    || meshInput.tetgenInput.holes.size > 0) {
             strcat(temp, "A");
-        }
+        //}
 
         // Transfer temp character array to input
         inputString = temp;
@@ -357,315 +387,393 @@ int tetgen_VolumeMesh(void *aimInfo,
         }*/
     }
 
+    for (int isurf = 0; isurf < numSurfMesh; isurf++) {
 
-    /*==============================================================*/
+        // swap in the beginning so the final mesh is always in i1
+        std::swap(i1,i2);
 
-    //Create an "empty mesh" where only surface nodes are connected to create the volume
-    //Tet centers of the empty mesh will be used to identify holes
-    //
-    // -p Generate tetrahedra
-    // -Y Preserves the input surface mesh (does not modify it).
-    tetgenio emptymesh;
-    try {
-        tetrahedralize((char*)"pYQ", &in, &emptymesh);
-    } catch (...){
-        aim_file(aimInfo, tetgenDebugSurface, aimFile);
-        mesh_writeTecplot(aimInfo,tetgenDebugSurface, 1, surfaceMesh, 1.0);
-        AIM_ERROR  (aimInfo, "Tetgen failed to generate an empty volume mesh......!!!");
-        AIM_ADDLINE(aimInfo, "  See Tecplot file %s.dat for the surface mesh", aimFile);
-        return CAPS_EXECERR;
-    }
+        // TetGen variables
+        tetgenio in, out;
+        tetgenio::facet *f;
+        tetgenio::polygon *p;
 
-    std::vector<REAL> holepoints;
+        printf("\nGenerating volume mesh using TetGen.....\n");
 
-    // Only solid bodies can have holes
-    for ( std::set<int>::const_iterator marker = uniqueMarker.begin(); marker != uniqueMarker.end(); marker++ )
-    {
-        int globaltri = 0;
-        while ( globaltri < in.numberoffacets && in.facetmarkerlist[globaltri] != *marker ) globaltri++;
-        tetgenio::facet *f = in.facetlist + globaltri;
-        tetgenio::polygon *p = f->polygonlist;
+        // First index - either 0 or 1
+        in.firstnumber = 1;
 
-        // Look for two tets attached to a polygon
-        int tet = 0;
-        int twotets[2][4] = {{-1, -1, -1, -1}, {-1, -1, -1, -1}};
-        for ( int k = 0; k < emptymesh.numberoftetrahedra; k++ )
+        // Check inputs
+        if (surfaceMesh[isurf].numNode    == 0) return CAPS_BADVALUE;
+        if (surfaceMesh[isurf].numElement == 0) return CAPS_BADVALUE;
+
+        // Set the number of surface nodes
+        in.numberofpoints = surfaceMesh[isurf].numNode;
+
+        // Create surface point array
+        in.pointlist = new REAL[in.numberofpoints *3];
+
+        // Transfer input coordinates to tetgen array
+        for(i = 0; i < surfaceMesh[isurf].numNode; i++) {
+            in.pointlist[3*i  ] = surfaceMesh[isurf].node[i].xyz[0];
+            in.pointlist[3*i+1] = surfaceMesh[isurf].node[i].xyz[1];
+            in.pointlist[3*i+2] = surfaceMesh[isurf].node[i].xyz[2];
+        }
+
+        // Set the number of surface tri
+        in.numberoffacets = surfaceMesh[isurf].numElement;
+
+        // Create surface tri arrays
+        in.facetlist = new tetgenio::facet[in.numberoffacets];
+
+        // Create surface marker/BC arrays
+        in.facetmarkerlist = new int[in.numberoffacets];
+
+        std::set<int> uniqueMarker;
+
+        // Transfer input surfaceMesh[isurf].localTriFaceList array to tetgen array
+        for(i = 0; i < surfaceMesh[isurf].numElement; i++) {
+            f = &in.facetlist[i];
+            f->numberofpolygons = 1;
+            f->polygonlist = new tetgenio::polygon[f->numberofpolygons];
+            f->numberofholes = 0;
+            f->holelist = NULL;
+            p = &f->polygonlist[0];
+
+            p->numberofvertices = mesh_numMeshElementConnectivity(&surfaceMesh[isurf].element[i]);
+            p->vertexlist = new int[p->numberofvertices];
+
+            for (j = 0; j < p->numberofvertices; j++) {
+                p->vertexlist[j] = surfaceMesh[isurf].element[i].connectivity[j];
+            }
+
+            // Transfer input BC array to tetgen array
+            in.facetmarkerlist[i] = surfaceMesh[isurf].element[i].markerID;
+            uniqueMarker.insert(in.facetmarkerlist[i]);
+        }
+
+        if (regions.size > 0)
         {
-            bool match[3] = {false, false, false};
-            for (int v0 = 0; v0 < 3; v0++)
+            in.numberofregions = regions.size;
+            in.regionlist = new REAL[5 * regions.size];
+            for (int n = 0; n < regions.size; ++n)
             {
-                for (int n0 = 0; n0 < 4; n0++)
-                {
-                    if ( p->vertexlist[v0] == emptymesh.tetrahedronlist[4*k+n0] )
-                    {
-                        match[v0] = true;
-                        break;
-                    }
-                }
-                //Found a match, save it of. There should be two tets for a face with holes
-                if ( match[0] && match[1] && match[2] )
+                in.regionlist[5 * n + 0] = regions.x[n];
+                in.regionlist[5 * n + 1] = regions.y[n];
+                in.regionlist[5 * n + 2] = regions.z[n];
+                in.regionlist[5 * n + 3] = (REAL) regions.attribute[n];
+                in.regionlist[5 * n + 4] = regions.volume_constraint[n];
+            }
+        }
+
+        /*==============================================================*/
+
+        //Create an "empty mesh" where only surface nodes are connected to create the volume
+        //Tet centers of the empty mesh will be used to identify holes
+        //
+        // -p Generate tetrahedra
+        // -Y Preserves the input surface mesh (does not modify it).
+        tetgenio emptymesh;
+        try {
+            tetrahedralize((char*)"pYQ", &in, &emptymesh);
+        } catch (...){
+            aim_file(aimInfo, tetgenDebugSurface, aimFile);
+            mesh_writeTecplot(aimInfo,tetgenDebugSurface, 1, surfaceMesh, 1.0);
+            AIM_ERROR  (aimInfo, "Tetgen failed to generate an empty volume mesh......!!!");
+            AIM_ADDLINE(aimInfo, "  See Tecplot file %s.dat for the surface mesh", aimFile);
+            return CAPS_EXECERR;
+        }
+
+        std::vector<REAL> holepoints;
+
+        // Only solid bodies can have holes
+        for ( std::set<int>::const_iterator marker = uniqueMarker.begin(); marker != uniqueMarker.end(); marker++ )
+        {
+            int globaltri = 0;
+            while ( globaltri < in.numberoffacets && in.facetmarkerlist[globaltri] != *marker ) globaltri++;
+            tetgenio::facet *f = in.facetlist + globaltri;
+            tetgenio::polygon *p = f->polygonlist;
+
+            // Look for two tets attached to a polygon
+            int tet = 0;
+            int twotets[2][4] = {{-1, -1, -1, -1}, {-1, -1, -1, -1}};
+            for ( int k = 0; k < emptymesh.numberoftetrahedra; k++ )
+            {
+                bool match[3] = {false, false, false};
+                for (int v0 = 0; v0 < 3; v0++)
                 {
                     for (int n0 = 0; n0 < 4; n0++)
-                        twotets[tet][n0] = emptymesh.tetrahedronlist[4*k+n0];
-                    tet++;
+                    {
+                        if ( p->vertexlist[v0] == emptymesh.tetrahedronlist[4*k+n0] )
+                        {
+                            match[v0] = true;
+                            break;
+                        }
+                    }
+                    //Found a match, save it of. There should be two tets for a face with holes
+                    if ( match[0] && match[1] && match[2] )
+                    {
+                        for (int n0 = 0; n0 < 4; n0++)
+                            twotets[tet][n0] = emptymesh.tetrahedronlist[4*k+n0];
+                        tet++;
 
+                    }
                 }
+                if ( tet == 2 )
+                    break;
             }
+
             if ( tet == 2 )
-                break;
-        }
-
-
-        if ( tet == 2 )
-        {
-            //Found two tets, the one with a postive normal vector to the cell center is a hole
-
-            //Compute the center of the polygon on the surface
-            REAL polycenter[3] = {0, 0, 0};
-            REAL polynormal[3] = {0, 0, 0};
-            REAL polyedge0[3] = {0, 0, 0};
-            REAL polyedge1[3] = {0, 0, 0};
-            for (int n = 0; n < 3; n++)
             {
-                for (int v = 0; v < 3; v++)
-                    polycenter[n] += in.pointlist[(p->vertexlist[v]-1)*3 + n];
-                polycenter[n] /= 3;
+                //Found two tets, the one with a postive normal vector to the cell center is a hole
 
-                polyedge0[n] = in.pointlist[(p->vertexlist[1]-1)*3 + n] - in.pointlist[(p->vertexlist[0]-1)*3 + n];
-                polyedge1[n] = in.pointlist[(p->vertexlist[2]-1)*3 + n] - in.pointlist[(p->vertexlist[0]-1)*3 + n];
-            }
-            CROSS(polynormal, polyedge0, polyedge1);
-
-            //Compute the center of the two tetrahedra
-            REAL tetcenters[2][3] = {{0, 0, 0}, {0, 0, 0}};
-            for (tet = 0; tet < 2; tet++)
+                //Compute the center of the polygon on the surface
+                REAL polycenter[3] = {0, 0, 0};
+                REAL polynormal[3] = {0, 0, 0};
+                REAL polyedge0[3] = {0, 0, 0};
+                REAL polyedge1[3] = {0, 0, 0};
                 for (int n = 0; n < 3; n++)
                 {
-                    for (int v = 0; v < 4; v++)
-                        tetcenters[tet][n] += emptymesh.pointlist[(twotets[tet][v]-1)*3+n];
-                    tetcenters[tet][n] /= 4;
+                    for (int v = 0; v < 3; v++)
+                        polycenter[n] += in.pointlist[(p->vertexlist[v]-1)*3 + n];
+                    polycenter[n] /= 3;
+
+                    polyedge0[n] = in.pointlist[(p->vertexlist[1]-1)*3 + n] - in.pointlist[(p->vertexlist[0]-1)*3 + n];
+                    polyedge1[n] = in.pointlist[(p->vertexlist[2]-1)*3 + n] - in.pointlist[(p->vertexlist[0]-1)*3 + n];
                 }
+                CROSS(polynormal, polyedge0, polyedge1);
 
-            REAL diffc[3] = {0, 0, 0};
-            //Compute the dot product between the normal vector and the vector to the tet-center
-            for (tet = 0; tet < 2; tet++)
-            {
-                for (int n = 0; n < 3; n++)
-                    diffc[n] = tetcenters[tet][n] - polycenter[n];
+                //Compute the center of the two tetrahedra
+                REAL tetcenters[2][3] = {{0, 0, 0}, {0, 0, 0}};
+                for (tet = 0; tet < 2; tet++)
+                    for (int n = 0; n < 3; n++)
+                    {
+                        for (int v = 0; v < 4; v++)
+                            tetcenters[tet][n] += emptymesh.pointlist[(twotets[tet][v]-1)*3+n];
+                        tetcenters[tet][n] /= 4;
+                    }
 
-                //Positive dot product means hole
-                if ( DOT(diffc, polynormal) > 0 )
+                REAL diffc[3] = {0, 0, 0};
+                //Compute the dot product between the normal vector and the vector to the tet-center
+                for (tet = 0; tet < 2; tet++)
                 {
                     for (int n = 0; n < 3; n++)
-                        holepoints.push_back(tetcenters[tet][n]);
+                        diffc[n] = tetcenters[tet][n] - polycenter[n];
+
+                    //Positive dot product means hole
+                    if ( DOT(diffc, polynormal) > 0 )
+                    {
+                        for (int n = 0; n < 3; n++)
+                            holepoints.push_back(tetcenters[tet][n]);
+                    }
                 }
             }
         }
-    }
 
-    const tetgenRegionsStruct* regions = &meshInput.tetgenInput.regions;
-    const tetgenHolesStruct* holes = &meshInput.tetgenInput.holes;
+        if (numSurfMesh > 1 && emptymesh.numberoftetrahedra > 1) {
 
-    if (regions->size > 0 || holes->size > 0)
-    {
-      in.numberofregions = regions->size;
-      if (in.regionlist != NULL)
-      {
-        delete [] in.regionlist;
-        in.regionlist = NULL;
-      }
-      if (regions->size > 0)
-      {
-        in.regionlist = new REAL[5 * regions->size];
-        for (int n = 0; n < regions->size; ++n)
-        {
-          in.regionlist[5 * n + 0] = regions->x[n];
-          in.regionlist[5 * n + 1] = regions->y[n];
-          in.regionlist[5 * n + 2] = regions->z[n];
-          in.regionlist[5 * n + 3] = (REAL) regions->attribute[n];
-          in.regionlist[5 * n + 4] = regions->volume_constraint[n];
+            ego body;
+            int state, np;
+
+            int atype, len;
+            const int *ints;
+            const double *reals;
+            const char *str;
+            char tmpName[42];
+
+            status = EG_statusTessBody(surfaceMesh[isurf].egadsTess, &body, &state, &np);
+            AIM_STATUS(aimInfo, status);
+
+            status = EG_attributeRet(body, "_name", &atype, &len, &ints, &reals, &str);
+            if (status != CAPS_SUCCESS) {
+              snprintf(tmpName, 42, "Body %d", isurf+1);
+              str = tmpName;
+            }
+
+            //Compute the center of the one tetrahedra
+            REAL tetcenter[3] = {0, 0, 0};
+            for (int n = 0; n < 3; n++)
+            {
+                for (int v = 0; v < 4; v++)
+                    tetcenter[n] += emptymesh.pointlist[(emptymesh.tetrahedronlist[v]-1)*3+n];
+                tetcenter[n] /= 4;
+            }
+
+            int maxAttr = 0;
+            for (int i = 0; i < regions.size; i++)
+                maxAttr = MAX(regions.attribute[i], maxAttr);
+            maxAttr++;
+
+            AIM_REALL(regions.names, regions.size+1, char*, aimInfo, status);
+            regions.names[regions.size] = NULL;
+            AIM_REALL(regions.x, regions.size+1, REAL, aimInfo, status);
+            AIM_REALL(regions.y, regions.size+1, REAL, aimInfo, status);
+            AIM_REALL(regions.z, regions.size+1, REAL, aimInfo, status);
+            AIM_REALL(regions.attribute, regions.size+1, int, aimInfo, status);
+            AIM_REALL(regions.volume_constraint, regions.size+1, REAL, aimInfo, status);
+
+            AIM_STRDUP(regions.names[regions.size], str, aimInfo, status);
+            regions.x[regions.size] = tetcenter[0];
+            regions.y[regions.size] = tetcenter[1];
+            regions.z[regions.size] = tetcenter[2];
+            regions.attribute[regions.size] = maxAttr;
+            regions.volume_constraint[regions.size] = -1;
+
+            regions.size++;
         }
-      }
 
-      in.numberofholes = holes->size;
-      if (in.holelist != NULL)
-      {
-        delete [] in.holelist;
-        in.holelist = NULL;
-      }
-      if (holes->size > 0)
-      {
-        in.holelist = new REAL[3 * holes->size];
-        for (int n = 0; n < holes->size; ++n)
+        if (regions.size > 0)
         {
-          in.holelist[3 * n + 0] = holes->x[n];
-          in.holelist[3 * n + 1] = holes->y[n];
-          in.holelist[3 * n + 2] = holes->z[n];
+            delete [] in.regionlist;
+            in.numberofregions = regions.size;
+            in.regionlist = new REAL[5 * regions.size];
+            for (int n = 0; n < regions.size; ++n)
+            {
+                in.regionlist[5 * n + 0] = regions.x[n];
+                in.regionlist[5 * n + 1] = regions.y[n];
+                in.regionlist[5 * n + 2] = regions.z[n];
+                in.regionlist[5 * n + 3] = (REAL) regions.attribute[n];
+                in.regionlist[5 * n + 4] = regions.volume_constraint[n];
+            }
         }
-      }
-    }
-    else
-    {
-      if ( holepoints.size() > 0 )
-      {
-          in.numberofholes = holepoints.size()/3;
-          in.holelist = new REAL[holepoints.size()];
-          for ( std::size_t n = 0; n < holepoints.size(); n++ )
-              in.holelist[n] = holepoints[n];
-/*
-          for ( std::size_t n = 0; n < holepoints.size()/3; n++ )
+
+        if (regions.size > 0 || holes->size > 0)
+        {
+          in.numberofholes = holes->size;
+          if (in.holelist != NULL)
           {
-              std::cout << "hole : " << in.holelist[3*n+0] << ", "
-                                     << in.holelist[3*n+1] << ", "
-                                     << in.holelist[3*n+2] << std::endl;
+            delete [] in.holelist;
+            in.holelist = NULL;
           }
-*/
-      }
-    }
+          if (holes->size > 0)
+          {
+            in.holelist = new REAL[3 * holes->size];
+            for (int n = 0; n < holes->size; ++n)
+            {
+              in.holelist[3 * n + 0] = holes->x[n];
+              in.holelist[3 * n + 1] = holes->y[n];
+              in.holelist[3 * n + 2] = holes->z[n];
+            }
+          }
+        }
+        else
+        {
+          if ( holepoints.size() > 0 )
+          {
+              in.numberofholes = holepoints.size()/3;
+              in.holelist = new REAL[holepoints.size()];
+              for ( std::size_t n = 0; n < holepoints.size(); n++ )
+                  in.holelist[n] = holepoints[n];
+          }
+        }
 
-    /*==============================================================*/
+        /*==============================================================*/
 
 
-    printf("\nTetgen input string = %s""\n", inputString);
+        printf("\nTetgen input string = %s""\n", inputString);
 
-    // Create volume mesh
-    try {
-        tetrahedralize(inputString, &in, &out);
-    } catch (...){
-        aim_file(aimInfo, tetgenDebugSurface, aimFile);
-        mesh_writeTecplot(aimInfo,tetgenDebugSurface, 1, surfaceMesh, 1.0);
-        AIM_ERROR  (aimInfo, "Tetgen failed to generate a volume mesh......!!!");
-        AIM_ADDLINE(aimInfo, "  See Tecplot file %s.dat for the surface mesh", aimFile);
-        return CAPS_EXECERR;
-    }
+        // Create volume mesh
+        try {
+            tetrahedralize(inputString, &in, &out);
+        } catch (...){
+            aim_file(aimInfo, tetgenDebugSurface, aimFile);
+            mesh_writeTecplot(aimInfo,tetgenDebugSurface, 1, surfaceMesh, 1.0);
+            AIM_ERROR  (aimInfo, "Tetgen failed to generate a volume mesh......!!!");
+            AIM_ADDLINE(aimInfo, "  See Tecplot file %s.dat for the surface mesh", aimFile);
+            return CAPS_EXECERR;
+        }
 
-    // Save data
-    //in.save_nodes((char *)"TETGEN_Test");
-    //in.save_poly((char *) "TETGEN_Test");
-    //out.save_faces((char *) "TETGEN_Test");
+        // Save data
+        //in.save_nodes((char *)"TETGEN_Test");
+        //in.save_poly((char *) "TETGEN_Test");
+        //out.save_faces((char *) "TETGEN_Test");
 
-    if (out.numberoftetrahedra == 0) {
-        aim_file(aimInfo, tetgenDebugSurface, aimFile);
-        mesh_writeTecplot(aimInfo,tetgenDebugSurface, 1, surfaceMesh, 1.0);
-        AIM_ERROR  (aimInfo, "Tetgen failed to generate a volume mesh......!!!");
-        AIM_ADDLINE(aimInfo, "  See Tecplot file %s.dat for the surface mesh", aimFile);
-        return CAPS_EXECERR;
+        if (out.numberoftetrahedra == 0) {
+            aim_file(aimInfo, tetgenDebugSurface, aimFile);
+            mesh_writeTecplot(aimInfo,tetgenDebugSurface, 1, surfaceMesh, 1.0);
+            AIM_ERROR  (aimInfo, "Tetgen failed to generate a volume mesh......!!!");
+            AIM_ADDLINE(aimInfo, "  See Tecplot file %s.dat for the surface mesh", aimFile);
+            return CAPS_EXECERR;
+        }
+
+        fprintf(fp, "%d\n", out.numberofpoints);
+
+        if (numSurfMesh == 1) {
+            tmpMesh[i1] = out;
+            out.initialize();
+        } else {
+
+            // append points
+            tmpMesh[i1].pointlist = new REAL[(tmpMesh[i2].numberofpoints + out.numberofpoints) * 3];
+
+            for (i = 0; i < tmpMesh[i2].numberofpoints*3; i++)
+              tmpMesh[i1].pointlist[i] = tmpMesh[i2].pointlist[i];
+
+            for (i = 0; i < out.numberofpoints*3; i++)
+              tmpMesh[i1].pointlist[tmpMesh[i2].numberofpoints*3 + i] = out.pointlist[i];
+
+            tmpMesh[i1].numberofpoints = tmpMesh[i2].numberofpoints + out.numberofpoints;
+
+            // append triface
+            tmpMesh[i1].trifacelist = new int[(tmpMesh[i2].numberoftrifaces + out.numberoftrifaces) * 3];
+
+            for (i = 0; i < tmpMesh[i2].numberoftrifaces*3; i++)
+              tmpMesh[i1].trifacelist[i] = tmpMesh[i2].trifacelist[i];
+
+            for (i = 0; i < out.numberoftrifaces*3; i++)
+              tmpMesh[i1].trifacelist[tmpMesh[i2].numberoftrifaces*3 + i] = out.trifacelist[i] + tmpMesh[i2].numberofpoints;
+
+            // append trifacemarker
+            tmpMesh[i1].trifacemarkerlist = new int[tmpMesh[i2].numberoftrifaces + out.numberoftrifaces];
+
+            for (i = 0; i < tmpMesh[i2].numberoftrifaces; i++)
+              tmpMesh[i1].trifacemarkerlist[i] = tmpMesh[i2].trifacemarkerlist[i];
+
+            for (i = 0; i < out.numberoftrifaces; i++)
+              tmpMesh[i1].trifacemarkerlist[tmpMesh[i2].numberoftrifaces + i] = out.trifacemarkerlist[i];
+
+            tmpMesh[i1].numberoftrifaces = tmpMesh[i2].numberoftrifaces + out.numberoftrifaces;
+
+            // append tetrahedronlist
+            tmpMesh[i1].tetrahedronlist = new int[(tmpMesh[i2].numberoftetrahedra + out.numberoftetrahedra)*4];
+
+            for (i = 0; i < tmpMesh[i2].numberoftetrahedra*4; i++)
+              tmpMesh[i1].tetrahedronlist[i] = tmpMesh[i2].tetrahedronlist[i];
+
+            for (i = 0; i < out.numberoftetrahedra*4; i++)
+              tmpMesh[i1].tetrahedronlist[tmpMesh[i2].numberoftetrahedra*4 + i] = out.tetrahedronlist[i] + tmpMesh[i2].numberofpoints;
+
+            // append tetrahedronattributelist
+            if (out.numberoftetrahedronattributes == 1) {
+              tmpMesh[i1].tetrahedronattributelist = new REAL[tmpMesh[i2].numberoftetrahedra + out.numberoftetrahedra];
+
+              for (i = 0; i < tmpMesh[i2].numberoftetrahedra; i++)
+                tmpMesh[i1].tetrahedronattributelist[i] = tmpMesh[i2].tetrahedronattributelist[i];
+
+              for (i = 0; i < out.numberoftetrahedra; i++)
+                tmpMesh[i1].tetrahedronattributelist[tmpMesh[i2].numberoftetrahedra + i] = out.tetrahedronattributelist[i];
+            }
+
+            tmpMesh[i1].numberoftetrahedronattributes = out.numberoftetrahedronattributes;
+
+            tmpMesh[i1].numberoftetrahedra = tmpMesh[i2].numberoftetrahedra + out.numberoftetrahedra;
+
+            tmpMesh[i2].clean_memory();
+            tmpMesh[i2].initialize();
+        }
     }
 
     // Transfer tetgen mesh structure to genUnstrMesh format
-    status = tetgen_to_MeshStruct(&out, volumeMesh);
+    status = tetgen_to_MeshStruct(&tmpMesh[i1], volumeMesh);
     AIM_STATUS(aimInfo, status);
 
-    status = writeBinaryUgrid(aimInfo, fileName, &out);
+    status = writeBinaryUgrid(aimInfo, fileName, groupMap, &regions, &tmpMesh[i1]);
     AIM_STATUS(aimInfo, status);
-
-    // Populate surface mesh
-    /* if (meshInput.preserveSurfMesh == (int) false &&
-        meshInput.tetgenInput.meshInputString == NULL &&
-        meshInput.tetgenInput.ignoreSurfaceExtract == (int) false) {
-
-        printf("Extracting surface mesh from volume\n");
-
-        int nodeCount = 0;
-        int node;
-        bool found = false;
-
-        int *unique_Nodelist;
-
-        unique_Nodelist = new int [3*out.numberoftrifaces]; // At most 3*numTriFaces
-
-        for (i = 0; i < 3*out.numberoftrifaces; i++) {
-
-            node = out.trifacelist[i];
-
-            found = false;
-            for (j = 0; j < nodeCount; j++){
-
-                if (unique_Nodelist[j] == node) {
-                    found = true;
-                    break;
-                }
-            }
-
-            if (found == false) {
-                unique_Nodelist[nodeCount] = node;
-                nodeCount += 1;
-            }
-        }
-
-        // Populate local node list
-        //printf("Num. nodes = %d\n",nodeCount);
-        genUnstrMesh->surfaceMesh.numNodes = nodeCount;
-
-        if (genUnstrMesh->surfaceMesh.nodeLocal2Global != NULL) EG_free(genUnstrMesh->surfaceMesh.nodeLocal2Global);
-
-        genUnstrMesh->surfaceMesh.nodeLocal2Global = (int *) EG_alloc(genUnstrMesh->surfaceMesh.numNodes * sizeof(int));
-        if (genUnstrMesh->surfaceMesh.nodeLocal2Global == NULL) return EGADS_MALLOC;
-
-        if (genUnstrMesh->surfaceMesh.xyz != NULL) EG_free(genUnstrMesh->surfaceMesh.xyz);
-
-        genUnstrMesh->surfaceMesh.xyz  = (double *) EG_alloc(3*genUnstrMesh->surfaceMesh.numNodes *sizeof(double));
-        if (genUnstrMesh->surfaceMesh.xyz == NULL) return EGADS_MALLOC;
-
-        for (i = 0; i < genUnstrMesh->surfaceMesh.numNodes; i++) {
-            genUnstrMesh->surfaceMesh.xyz[3*i + 0] = out.pointlist[(unique_Nodelist[i]-1) + 0]; // -1 -> 1 bias of node numbering
-            genUnstrMesh->surfaceMesh.xyz[3*i + 1] = out.pointlist[(unique_Nodelist[i]-1) + 1];
-            genUnstrMesh->surfaceMesh.xyz[3*i + 2] = out.pointlist[(unique_Nodelist[i]-1) + 2];
-
-            genUnstrMesh->surfaceMesh.nodeLocal2Global[i] = unique_Nodelist[i];
-        }
-
-        // Populate local node connectivity
-        //genUnstrMesh->surfaceMesh.numTriFace = out.numberoftrifaces;
-        if (genUnstrMesh->surfaceMesh.localTriFaceList != NULL) EG_free(genUnstrMesh->surfaceMesh.localTriFaceList);
-
-        genUnstrMesh->surfaceMesh.localTriFaceList = (int *) EG_alloc(3*genUnstrMesh->surfaceMesh.numTriFace * sizeof(int));
-        if (genUnstrMesh->surfaceMesh.localTriFaceList == NULL) return EGADS_MALLOC;
-
-        for (i = 0; i < 3*genUnstrMesh->surfaceMesh.numTriFace; i++) {
-
-            for (j = 0; j < genUnstrMesh->surfaceMesh.numNodes; j++) {
-
-                if (out.trifacelist[i] == genUnstrMesh->surfaceMesh.nodeLocal2Global[j]) {
-                    genUnstrMesh->surfaceMesh.localTriFaceList[i] = j+1; // Indexing starts at 1 -> 1 bias of node numbering
-                    break;
-                }
-            }
-        }
-
-        // Clean up unique node list
-        delete [] unique_Nodelist;
-        unique_Nodelist = NULL;
-
-    } else if (meshInput.preserveSurfMesh == (int) true &&
-               meshInput.tetgenInput.meshInputString == NULL) {
-        printf("Surface mesh as been preserved getting global node connectivity and local-2-global node mapping\n");
-
-        if (genUnstrMesh->surfaceMesh.nodeLocal2Global != NULL) EG_free(genUnstrMesh->surfaceMesh.nodeLocal2Global);
-
-        genUnstrMesh->surfaceMesh.nodeLocal2Global = (int *) EG_alloc(genUnstrMesh->surfaceMesh.numNodes * sizeof(int));
-        if (genUnstrMesh->surfaceMesh.nodeLocal2Global == NULL) return EGADS_MALLOC;
-
-        //Get local to global node numbering
-        for (i = 0; i < genUnstrMesh->surfaceMesh.numNodes; i++) {
-            for(j = 0; j < out.numberofpoints; j++){
-                if ( genUnstrMesh->surfaceMesh.xyz[3*i + 0] == out.pointlist[3*j + 0] &&
-                     genUnstrMesh->surfaceMesh.xyz[3*i + 1] == out.pointlist[3*j + 1] &&
-                     genUnstrMesh->surfaceMesh.xyz[3*i + 2] == out.pointlist[3*j + 2]) {
-                    break;
-                }
-            }
-
-            genUnstrMesh->surfaceMesh.nodeLocal2Global[i] = j+in.firstnumber; // Indexing starts at 1 -> 1 bias of node numbering
-        }
-    }
-     */
-    // Release TetGen memory - get released when function goes out of scope
-    //in.deinitialize();
-    //out.deinitialize();
 
     status = CAPS_SUCCESS;
     printf("Done meshing using TetGen!\n");
 cleanup:
+    if (fp != NULL) fclose(fp);
+    destroy_regions(&regions);
+
     return status;
 }

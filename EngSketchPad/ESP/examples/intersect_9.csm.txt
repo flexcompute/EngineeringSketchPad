@@ -1,0 +1,33 @@
+# intersect_9 (Wire/Wire - does not work)
+# written by John Dannenhoffer
+
+# generate two WireBodys
+BOX       0  1  1/2  3  0  0
+STORE     theWire1
+
+BOX       3/2  -1  1/2  0  4  0
+STORE     theWire2
+
+# show endpoints of theWire1 and theWire2
+POINT     0  1  1/2
+ATTRIBUTE _name  $theWire1[beg]
+POINT     3  1  1/2
+ATTRIBUTE _name  $theWire1[end]
+
+POINT     3/2  -1  1/2
+ATTRIBUTE _name  $theWire2[beg]
+POINT     3/2   3  1/2
+ATTRIBUTE _name  $theWire2[end]
+
+# perform the INTERSECTion (does not work - leaves theWire1 and theWire2 on the stack)
+RESTORE   theWire1
+RESTORE   theWire2
+INTERSECT
+
+CATBEG    $wrong_types_on_stack
+   MESSAGE =========================
+   MESSAGE does_not_work_as_expected
+   MESSAGE =========================
+CATEND
+
+END

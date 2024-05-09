@@ -1,0 +1,79 @@
+# editAttr_udf_2
+# written by John Dannenhoffer
+
+# command blocks take the form:
+#   PATBEG  var   ncopy        (optional)
+#   type    oper  attr1 ...
+#   bool    oper  attr1 ...    (optional)
+#   ...                        (optional)
+#   action        attr1 ...
+#   PATEND                     (only if there is a matching PATBEG)
+#
+# where:
+#   var                  loop variable (cannot be same as one outside)
+#   ncopy                the number of copies of the pattern
+#
+# where type can be:
+#   NODE                 to select Node(s)
+#   EDGE                 to select Edge(s)
+#   FACE                 to select Face(s)
+#
+# where oper can be:
+#   HAS                  matches attr1 and attr2 and ...
+#   ADJ2NODE             adjacent to a  Node that matches attr1 and attr2 and ...
+#   ADJ2EDGE             adjacent to an Edge that matches attr1 and attr2 and ...
+#   ADJ2FACE             adjacent to a  Face that matches attr1 and attr2 and ...
+#
+# where bool can be:
+#   AND                  this condition must also hold
+#   ANDNOT               this condition must not  hold
+#
+# where attr1 is in the form:
+#   attrName=attrValue   matches the name and the value
+#   attributeName=*      * is a wildcard
+#   attributeName=       (only in SET) to delete the attrName
+#
+# where action can be:
+#   SET                  sets attr1 and attr2 and ...
+#   ADD                  adds attra and attr2 and ...
+#
+# #                      introduces a comment
+# END                    the remainder of the file is ignored
+#
+# note: all command can be either UPPERCASE or lowercase, but not MixedCase
+# note: white-space at beginning of a line is ignored
+# note: tokens are delimited with white-spaces
+# note: editAttr has access to variables defined in the .csm script
+
+# make three adjacent boxes
+BOX       0  0  0  0  1  1
+BOX       1  0  0  0  1  1
+BOX       2  0  0  0  1  1
+BOX       3  0  0  0  1  1
+RULE
+
+# label the Faces face_1, face_2, ...
+# note:  !$face_+iface means the expression (attribute value)
+#        is the concatenation of the string "face_" and the value of iface
+PATBEG    iface  @nface
+   SELECT    FACE  @nbody  iface
+   ATTRIBUTE name  !$face_+iface
+PATEND
+
+# select the Body so that the value for @nface will be correct below
+SELECT    BODY
+
+# make the odd-named Faces red
+UDPRIM    editAttr  filename <<
+   PATBEG    jface  @nface/2
+      # the attribute value is the concatenation of the
+      #     string "face_" and the value (2*jface-1)
+      FACE   HAS    name=!$face_+(2*jface-1)
+      SET           _color=red
+   PATEND
+>>
+
+END
+
+
+

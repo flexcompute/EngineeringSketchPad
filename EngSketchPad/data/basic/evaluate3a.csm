@@ -1,0 +1,73 @@
+# evaluate3a
+# written by John Dannenhoffer
+
+BOX       0.0  0.0  0.0  0.0  2.0  1.0
+BOX       1.0  0.0  0.0  0.0  2.0  1.0
+BOX       2.0  0.0  0.0  0.0  2.0  1.0
+BOX       3.0  0.0  0.0  0.0  2.0  1.0
+BLEND
+SET       theBox  @nbody
+
+CYLINDER  1.0  1.0  0.5  4.0  1.0  0.5  0.2
+SET       theCyl  @nbody
+
+UNION
+
+SET       theBody @nbody
+SET       nedge   @nedge
+SET       nface   @nface
+
+# report BSPLINE data (or error) for all Edges
+SET       nBspline  0
+PATBEG    iedge   nedge
+   MESSAGE    Edge_+iedge
+   EVALUATE   EDGEKT  theBody  iedge
+   SET        nknots  @edata.size
+
+   EVALUATE   EDGECP  theBody  iedge
+   SET        ncps    @edata.nrow
+
+   MESSAGE     ____has_+nknots+$_knots+$_and_+ncps+$*3_control_points
+   SELECT     EDGE    iedge
+   ATTRIBUTE  _color  $blue
+
+   SET        nBspline  nBspline+1
+
+   CATBEG     $illegal_value
+      MESSAGE   ____not_a_Bspline
+      SELECT    EDGE    iedge
+      ATTRIBUTE _color  $red
+   CATEND
+PATEND
+
+ASSERT    nBspline  12
+
+# report BSPLINE data (or error) for all Faces
+SET       nBspline  0
+PATBEG    iface   nface
+   MESSAGE    Face_+iface
+   EVALUATE   FACEUKT theBody  iface
+   SET        nuknots @edata.size
+
+   EVALUATE   FACEVKT theBody  iface
+   SET        nvknots @edata.size
+
+   EVALUATE   FACECP  theBody  iface
+   SET        ncps    @edata.nrow
+
+   MESSAGE     ____has_+nuknots+$_Uknots_and_+nvknots+$_Vknots_and_+ncps+$*3_control_points
+   SELECT     FACE    iface
+   ATTRIBUTE  _color  0.8;0.8;1.0
+
+   SET        nBspline  nBspline+1
+
+   CATBEG     $illegal_value
+      MESSAGE   ____not_a_Bspline
+      SELECT    FACE    iface
+      ATTRIBUTE _color  1.0;0.8;0.8
+   CATEND
+PATEND
+
+ASSERT    nBspline  4
+
+END

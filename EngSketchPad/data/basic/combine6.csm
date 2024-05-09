@@ -1,0 +1,11 @@
+# combine6
+# written by John Dannenhoffer
+
+# make planar open WireBodys that will produce a non-manifold WireBody
+BOX       0  0  0  1  0  0
+BOX       0  1  0  1  0  0
+BOX       0  0  0  0  1  0
+
+COMBINE
+
+END

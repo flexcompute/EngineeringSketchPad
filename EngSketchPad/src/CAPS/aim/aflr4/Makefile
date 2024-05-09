@@ -3,14 +3,6 @@ ifndef ESP_ROOT
 $(error ESP_ROOT must be set -- Please fix the environment...)
 endif
 #
-ifndef AFLR
-$(error AFLR must be set -- Please fix the environment...)
-endif
-#
-ifndef AFLR_ARCH
-$(error AFLR_ARCH must be set -- Please fix the environment...)
-endif
-#
 IDIR  = $(ESP_ROOT)/include
 include $(IDIR)/$(ESP_ARCH)
 LDIR  = $(ESP_ROOT)/lib
@@ -20,10 +12,24 @@ else
 ODIR  = .
 endif
 
+ifndef AFLR
+lint default:
+	@echo "Not compiling aflr4AIM: AFLR must be set -- Please fix the environment...."
+else
+ifndef AFLR_ARCH
+lint default:
+	@echo "Not compiling aflr4AIM: AFLR_ARCH must be set -- Please fix the environment...."
+else
+default:	$(LDIR)/aflr4AIM.so
+
+lint: aflrlint
+endif
+endif
+
 AFLR4_LIB  = -laflr4 -laflr2c
-AFLR4_LIB += -lsurf_auto -lsurf_auto_cpp -laflr4 -laflr3
+AFLR4_LIB += -lsurf_auto -lsurf_auto_cpp -laflr3
 AFLR4_LIB += -legen -lrec2 -lrec3 -ldftr3 -ldftr2 -ldgeom -lotb -lqtb
-AFLR4_LIB += -lice2 -lice3 -lug3 -lug2 -lug -lug_mp
+AFLR4_LIB += -lice2 -lice3 -lug3 -lug2 -lug -lug_mp  -lug_gq
 
 ifeq ("$(ESP_ARCH)","LINUX64")
 AFLR4_LIB += -lrt
@@ -78,14 +84,19 @@ egads_eval_uv_bounds.c            \
 egads_eval_xyz_at_u.c             \
 egads_eval_xyz_at_uv.c            \
 egads_face_node_map.c             \
-egads_get_model.c                 \
-egads_set_ext_cad_data.c
+egads_cad_geom_faceMatch.c        \
+egads_data.c                      \
+egads_mzone.c
 
 EGADS_AFLR4_OBJS  = $(addprefix $(ODIR)/,$(EGADS_AFLR4_FILES:.c=.o))
 
 ###############################################################################
 # Used to add debug information to AFLR4
 # Please do not remove this - MCG
+#VPATH      += $(AFLR)/src/aflr2c
+#AFLR2_FILES = $(wildcard $(AFLR)/src/aflr2c/*.c)
+#AFLR2_OBJS  = $(subst $(AFLR)/src/aflr2c,$(ODIR),$(AFLR2_FILES:.c=.o))
+
 #VPATH      += $(AFLR)/src/aflr4
 #AFLR4_FILES = $(wildcard $(AFLR)/src/aflr4/*.c)
 #AFLR4_OBJS  = $(subst $(AFLR)/src/aflr4,$(ODIR),$(AFLR4_FILES:.c=.o))
@@ -93,6 +104,14 @@ EGADS_AFLR4_OBJS  = $(addprefix $(ODIR)/,$(EGADS_AFLR4_FILES:.c=.o))
 #VPATH          += $(AFLR)/src/surf_auto
 #SURF_AUTO_FILES = $(wildcard $(AFLR)/src/surf_auto/*.c)
 #SURF_AUTO_OBJS  = $(subst $(AFLR)/src/surf_auto,$(ODIR),$(SURF_AUTO_FILES:.c=.o))
+
+#VPATH    += $(AFLR)/src/ug
+#UG_FILES = $(wildcard $(AFLR)/src/ug/*.c)
+#UG_OBJS  = $(subst $(AFLR)/src/ug,$(ODIR),$(UG_FILES:.c=.o))
+
+#VPATH    += $(AFLR)/src/ug2
+#UG2_FILES = $(wildcard $(AFLR)/src/ug2/*.c)
+#UG2_OBJS  = $(subst $(AFLR)/src/ug2,$(ODIR),$(UG2_FILES:.c=.o))
 
 #VPATH    += $(AFLR)/src/ug3
 #UG3_FILES = $(wildcard $(AFLR)/src/ug3/*.c)
@@ -106,7 +125,7 @@ EGADS_AFLR4_OBJS  = $(addprefix $(ODIR)/,$(EGADS_AFLR4_FILES:.c=.o))
 #SURF_AUTO_CPP_FILES = $(wildcard $(AFLR)/src/surf_auto_cpp/*.cpp)
 #SURF_AUTO_CPP_OBJS  = $(subst $(AFLR)/src/surf_auto_cpp,$(ODIR),$(SURF_AUTO_CPP_FILES:.cpp=.o))
 
-OBJS=$(EGADS_AFLR4_OBJS) $(AFLR4_OBJS) $(SURF_AUTO_OBJS) $(UG3_OBJS) $(DGEOM_OBJS)
+OBJS=$(EGADS_AFLR4_OBJS) $(AFLR2_OBJS) $(AFLR4_OBJS) $(SURF_AUTO_OBJS) $(UG_OBJS) $(UG2_OBJS) $(UG3_OBJS) $(DGEOM_OBJS)
 #OBJSP=$(SURF_AUTO_CPP_OBJS)
 ###############################################################################
 
@@ -119,12 +138,12 @@ $(LDIR)/aflr4AIM.so:	$(ODIR)/aflr4_version $(ODIR)/aflr4AIM.o $(ODIR)/aflr4_Inte
 		$(AFLR4_LIB) -L$(LDIR) -lutils \
 		-laimUtil -locsm -legads -ludunits2 -ldl $(RPATH) $(CPPSLB) -lm
 
-$(ODIR)/aflr4AIM.o:	$(ODIR)/aflr4_version aflr4AIM.c $(IDIR)/capsTypes.h \
+$(ODIR)/aflr4AIM.o:	$(ODIR)/aflr4_version aflr4AIM.c aflr4_Interface.h $(IDIR)/capsTypes.h \
 			../utils/meshUtils.h
 	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I$(AFLR)/src -I../utils aflr4AIM.c \
 		-o $(ODIR)/aflr4AIM.o
 
-$(ODIR)/aflr4_Interface.o:	$(ODIR)/aflr4_version aflr4_Interface.c ../utils/meshUtils.h
+$(ODIR)/aflr4_Interface.o:	$(ODIR)/aflr4_version aflr4_Interface.c aflr4_Interface.h ../utils/meshUtils.h
 	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I$(AFLR)/src \
 		-I../utils aflr4_Interface.c -o $(ODIR)/aflr4_Interface.o
 
@@ -138,7 +157,7 @@ $(ODIR)/aflr4_version:	aflr4_version.c $(AFLR)/src/aflr4/aflr4_version.h
 
 # Build for each AFLR C source file
 $(ODIR)/%.o: %.c $(EGADS_INC_FILES) | $(ODIR)/aflr4_version
-	$(CC) -c $(COPTS) $(DEFINE) -w -I$(IDIR) -I$(AFLR)/src $< -o $@
+	$(CC) -c $(COPTS) $(DEFINE) -D_ENABLE_EGADS_ -w -I$(IDIR) -I$(AFLR)/src $< -o $@
 
 ifdef OBJSP
 # Build for each AFLR C++ source file
@@ -146,7 +165,7 @@ $(ODIR)/%.o: %.cpp $(ODIR)/aflr4_version
 	$(CXX) -c $(CPPOPT) $(DEFINE) -I$(AFLR)/src $< -o $@
 endif
 
-lint:
+aflrlint:
 	$(LINT) -I../../include -I$(IDIR) $(wildcard *.c) -I../utils -I$(AFLR)/src -exportlocal
 
 clean:

@@ -1,0 +1,43 @@
+# skbeg_2
+# written by John Dannenhoffer
+
+#                  4---3
+#                 /    |
+#      6---------5     |
+#      |               |
+#      1---------------2
+
+SKBEG     0   0   0   1
+
+   # guesses for point locations and "dips"
+   SKVAR     xy   "0.000000; 0.000000; 0.000000;\
+                   2.820000; 0.000000; 0.000000;\
+                   3.090000; 1.315000; 0.000000;\
+                   2.010000; 1.395000; 0.000000;\
+                   1.720000; 0.665000; 0.000000;\
+                   0.000000; 0.945000; 0.000000;"
+
+   # constraints
+   SKCON     X   1   -1  0.0      # x[1] = 0.0
+   SKCON     Y   1   -1  0.0      # y[1] = 0.0
+   SKCON     H   1   2  0         # line from 1 to 2 is horizontal
+   SKCON     V   6   1  0         # line from 6 to 1 is vertical
+   SKCON     P   2   0  0         # lines at 2 are perpendicular
+   SKCON     A   4   0  60        # angle at 4 is 60 deg (inward)
+   SKCON     H   3   4  0         # line from 3 to 4 is horizontal
+   SKCON     H   5   6  0         # line from 5 to 6 is horizontal
+   SKCON     L   1   2  3.0       # length of line from 1 to 2 is 3.0
+   SKCON     L   2   3  2.0       # length of line from 2 to 3 is 2.0
+   SKCON     L   6   1  1.0       # length of line from 6 to 1 is 1.0
+   SKCON     X   5   -1  2.0      # x[5] - 2.0
+
+   # sketch
+   LINSEG    ::x[2]   ::y[2]   0
+   LINSEG    ::x[3]   ::y[3]   0
+   LINSEG    ::x[4]   ::y[4]   0
+   LINSEG    ::x[5]   ::y[5]   0
+   LINSEG    ::x[6]   ::y[6]   0
+   LINSEG    ::x[1]   ::y[1]   0
+SKEND
+
+END

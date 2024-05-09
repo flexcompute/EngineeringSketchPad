@@ -29,6 +29,12 @@ $(ODIR)/frictionAIM.o:	frictionAIM.c $(IDIR)/capsTypes.h
 	$(CC) -c $(COPTS) $(DEFINE) -Wno-format -I$(IDIR) -I../utils frictionAIM.c \
 		-o $(ODIR)/frictionAIM.o
 
+ifeq ($(EFCOMP),gfortran)
+ifeq ($(shell printf 'program main\nend' | $(FCOMP) -o test.out -ffree-form -static-libgfortran -static-libgcc -x f95 - 2>&1 > /dev/null && echo 0 || echo 1 ; rm -f test.out), 0)
+ESPFLIBS+=-static-libgfortran -static-libgcc
+endif
+endif
+
 $(TDIR)/friction:	$(ODIR)/friction.o
 	$(FCOMP) -o $(TDIR)/friction $(ODIR)/friction.o $(ESPFLIBS)
 

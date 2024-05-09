@@ -65,7 +65,7 @@ eigen = { "extractionMethod"     : "MGIV", # "Lanczos",
           "frequencyRange"       : [0.1, 200],
           "numEstEigenvalue"     : 1,
           "numDesiredEigenvalue" : 2,
-          "eigenNormaliztion"    : "MASS",
+          "eigenNormalization"   : "MASS",
 	      "lanczosMode"          : 2,  # Default - not necesssary
           "lanczosType"          : "DPB"} # Default - not necesssary
 

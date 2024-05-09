@@ -1,0 +1,24 @@
+# mechanism2d
+# written by John Dannenhoffer
+
+# bar 2
+SKBEG      3  0  0
+   LINSEG  3  6  0
+SKEND
+CSYSTEM    B  " 3; 0; 0; 1;0;0; 0;1;0"
+CSYSTEM    C  " 3; 6; 0; 1;0;0; 0;1;0"
+ROTATEZ   30  3  0
+
+# bar 1
+SKBEG      0  0  0
+   LINSEG  0  4  0
+SKEND
+CSYSTEM    A  " 0; 0; 0; 1;0;0; 0;1;0"
+CSYSTEM    C  " 0; 4; 0; 1;0;0; 0;1;0"
+ROTATEZ   30  0  0
+
+UDPRIM    mechanism  fixed $A;B
+
+POINT    -1.833   3.555  0.000
+
+END

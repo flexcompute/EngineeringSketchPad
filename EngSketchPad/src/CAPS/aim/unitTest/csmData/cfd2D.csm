@@ -1,29 +1,26 @@
 # Design Parameters:
 despmtr   tunnelHeight 20.00000
 despmtr   tunnelLength 50.00000
-despmtr   extrude3D    1.00000
 cfgpmtr   series       8412
 despmtr   chord        1.00000
+cfgpmtr   plane        1 # 1 x-z, 2 x-y 
 
 # Switch to toggle sharp trailing edge on airfoil
 despmtr sharpTE 1
 
 # Global attributes:
 attribute capsIntent $CFD
-attribute capsAIM $fun3dAIM;su2AIM;egadsTessAIM;aflr2AIM;delaundoAIM #CFD Analysis
+attribute capsAIM $fun3dAIM;su2AIM;egadsTessAIM;aflr2AIM;delaundoAIM;refineAIM #CFD Analysis
 attribute capsMeshLength 1
 
 # Build wind tunnel
-box       -tunnelLength/2   0   -tunnelHeight/2   tunnelLength   extrude3D   tunnelHeight
+box       -tunnelLength/2  -tunnelHeight/2  0      tunnelLength  tunnelHeight  0   
 store     Tunnel 0 0
 
 # Build Airfoil cross section and extrude
 udprim    naca   Series series sharpte sharpTE
 scale     chord
-rotatex   90   0   0 # Put body in x-z plane 
-extrude   0   3*extrude3D   0
-translate 0   -extrude3D   0
-        
+
 store     Airfoil 0 0
 
 
@@ -32,9 +29,6 @@ restore   Tunnel 0
 restore   Airfoil 0
 subtract  none   1   0 
 
-# Get a single plane - face 2/4
-extract  2
-#translate 0 -extrude3D 0 # If face = 4
 
 select face 1
     attribute capsGroup $2DSlice # Face needs to marked with a capsGroup - this may not be necessary in the future
@@ -68,6 +62,10 @@ ifthen sharpTE eq 0
         attribute capsGroup $Airfoil
         attribute capsMesh $Airfoil
 
+endif
+
+ifthen plane EQ 1
+  rotatex   90   0   0 # Put body in x-z plane 
 endif
 
 end

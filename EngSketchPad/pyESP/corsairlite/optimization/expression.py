@@ -602,11 +602,10 @@ class Expression(OptimizationObject):
 # Evaluates the variable to a quantity by taking in a design point
 # =====================================================================================================================
     def evaluate(self, x_star):
-        res = self.substitute(substitutions = x_star)
-        if isinstance(res, Q_):
-            return res
-        else:
-            raise ValueError('Insufficent variables defined in the solution dictionary')
+        res = Q_(0, self.units)
+        for term in self.terms:
+            res += term.evaluate(x_star)
+        return res
 # =====================================================================================================================
 # Evaluates the sensitivity of a constant
 # =====================================================================================================================

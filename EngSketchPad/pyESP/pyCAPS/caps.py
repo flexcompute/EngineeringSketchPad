@@ -3,7 +3,7 @@
 #   pyCAPS --- Python version of CAPS API                                 #
 #                                                                         #
 #                                                                         #
-#      Copyright 2011-2022, Massachusetts Institute of Technology         #
+#      Copyright 2011-2023, Massachusetts Institute of Technology         #
 #      Licensed under The GNU Lesser General Public License, version 2.1  #
 #      See http://www.opensource.org/licenses/lgpl-2.1.php                #
 #                                                                         #
@@ -244,6 +244,7 @@ c_capsValue.__slots__ = [
     'gInType',
     'vals',
     'limits',
+    'lims',
     'units',
     'link',
     'linkMethod',
@@ -265,6 +266,7 @@ c_capsValue._fields_ = [
     ('gInType', c_int),
     ('vals', union_capsValue_vals),
     ('limits', union_capsValue_limits),
+    ('lims', POINTER(None)),
     ('units', c_char_p),
     ('link', POINTER(c_capsObject)),
     ('linkMethod', c_int),
@@ -482,6 +484,15 @@ _caps.caps_getLimits.restype = c_int
 _caps.caps_setLimits.argtypes = [c_capsObj, enum_capsvType, POINTER(None), c_char_p, POINTER(c_int), POINTER(POINTER(c_capsErrs))]
 _caps.caps_setLimits.restype = c_int
 
+_caps.caps_getLimitsSize.argtypes = [c_capsObj, POINTER(enum_capsvType), POINTER(c_int), POINTER(c_int), POINTER(POINTER(None)), POINTER(c_char_p)]
+_caps.caps_getLimitsSize.restype = c_int
+
+_caps.caps_setLimitsSize.argtypes = [c_capsObj, enum_capsvType, c_int, c_int, POINTER(None), c_char_p, POINTER(c_int), POINTER(POINTER(c_capsErrs))]
+_caps.caps_setLimitsSize.restype = c_int
+
+_caps.caps_getValueSize.argtypes = [c_capsObj, POINTER(c_int), POINTER(c_int)]
+_caps.caps_getValueSize.restype = c_int
+
 _caps.caps_getValueProps.argtypes = [c_capsObj, POINTER(c_int), POINTER(c_int), POINTER(enum_capsFixed), POINTER(enum_capsFixed), POINTER(enum_capsNull)]
 _caps.caps_getValueProps.restype = c_int
 
@@ -502,6 +513,12 @@ _caps.caps_hasDeriv.restype = c_int
 
 _caps.caps_getDeriv.argtypes = [c_capsObj, c_char_p, POINTER(c_int), POINTER(c_int), POINTER(POINTER(c_double)), POINTER(c_int), POINTER(POINTER(c_capsErrs))]
 _caps.caps_getDeriv.restype = c_int
+
+_caps.caps_setStepSizeSize.argtypes = [c_capsObj, c_int, c_int, POINTER(c_double)]
+_caps.caps_setStepSizeSize.restype = c_int
+
+_caps.caps_getStepSizeSize.argtypes = [c_capsObj, POINTER(c_int), POINTER(c_int), POINTER(POINTER(c_double))]
+_caps.caps_getStepSizeSize.restype = c_int
 
 # units
 
@@ -568,7 +585,8 @@ del globalDict
 del minErr
 
 # Extract CAPS enums
-class oFlag:   
+__all__.append("oFlag")
+class oFlag:
     oFileName  = 0
     oMODL      = 1
     oEGO       = 2
@@ -624,16 +642,19 @@ class fType:
 
 __all__.append("vType")
 class vType:
-    Boolean   = 0
-    Integer   = 1
-    Double    = 2
-    String    = 3
-    Tuple     = 4
-    Value     = 5
+    Doubles     =-2
+    Integers    =-1
+    Boolean     = 0
+    Integer     = 1
+    Double      = 2
+    String      = 3
+    Tuple       = 4
+    Pointer     = 5
     DoubleDeriv = 6
+    PointerMesh = 7
     # extra value for Python API
-    JsonDict  = 7
-    Null      = 8
+    JsonDict    = 8
+    Null        = 9
 
 __all__.append("vDim")
 class vDim:
@@ -804,7 +825,7 @@ def _raiseStatus(status, msg=None, errors=None):
 # __all__.append("c_to_py")
 # def c_to_py(c_obj):
 #     """
-#     Creates a Python class for an exiting c_ego object.
+#     Creates a Python class for an exiting c_capsObj, c_capsOwn, or c_capsErrs object.
 #     
 #     Parameters
 #     ----------
@@ -1101,8 +1122,9 @@ def open(prName, phName, flag, ptr, outLevel=1):
             msg += ", and ptr={!r}".format(ptr)
         _raiseStatus(stat, msg=msg, errors=capsErrs(nErr, errs))
 
-    # preserve the python SIGINT handler
-    if threading.current_thread() is threading.main_thread():
+    # preserve the python SIGINT handler if possible
+    # original handler may be None if python is embedded with incorrect threading...
+    if threading.current_thread() is threading.main_thread() and original_sigint_handler is not None:
         signal.signal(signal.SIGINT, original_sigint_handler)
 
     return capsObj(problemObj, None, deleteFunction=_close_capsProblem)
@@ -1791,7 +1813,36 @@ class capsObj:
 
 #==============================================================================
     @checkClosed
-    def getInput(self):
+    def getInput(self, aname, ):
+        """
+        Query Analysis -- Does not 'load' or create an object
+        
+        Note: this causes the the DLL/Shared-Object to be loaded (if not already resident)
+
+        Parameters
+        ----------
+        self:
+            a Problem Object
+
+        aname:
+            the Analysis (and AIM plugin) name
+
+        index:
+            the Input index [1-nIn] 
+
+        ainame:
+
+        Returns
+        -------
+        ainame:
+            a pointer to the returned Analysis Input variable name
+            
+        default:
+            a pointer to the filled default value(s) and units
+             
+        execute:
+            execution flag: 0 - no exec, 1 - AIM Execute exists
+        """
         raise CAPSError(msg="Implement")
 
 #==============================================================================
@@ -1942,10 +1993,10 @@ class capsObj:
                     slen += len(chars.value)+1
                     data[i][j] = _decode(chars.value)
 
-        if vtype == vType.Boolean or \
-           vtype == vType.Integer or \
-           vtype == vType.Double  or \
-           vtype == vType.DoubleDeriv:
+        elif vtype == vType.Boolean or \
+             vtype == vType.Integer or \
+             vtype == vType.Double  or \
+             vtype == vType.DoubleDeriv:
             
             if vtype == vType.Double or vtype == vType.DoubleDeriv:
                 pdata = ctypes.cast(pdata, POINTER(c_double))
@@ -1973,6 +2024,11 @@ class capsObj:
                         data[name] = valu
 
             return data
+        elif vtype == vType.Pointer or vtype == vType.PointerMesh:
+            # cannot convert pointers...
+            return None
+        else:
+            raise CAPSError(CAPS_NOTIMPLEMENT, "Unknown value type: {!r}".format(vtype))
 
         if partial:
             data = [[data[i][j] if partial[i*ncol+j] == Null.NotNull else None for j in range(ncol)] for i in range(nrow)]
@@ -2227,7 +2283,7 @@ class capsObj:
 
 #==============================================================================
     @checkClosed
-    def getLimits(self):
+    def getLimitsSize(self):
         """
         Returns the value limits
         
@@ -2239,31 +2295,46 @@ class capsObj:
         units:
             units of the limits or None
         """
-        vtype = c_int()
+        vtype   = c_int()
+        nrow    = c_int()
+        ncol    = c_int()
         plimits = c_void_p()
-        punits = c_char_p()
+        punits  = c_char_p()
 
-        stat = _caps.caps_getLimits(self._obj, ctypes.byref(vtype), ctypes.byref(plimits), ctypes.byref(punits))
+        stat = _caps.caps_getLimitsSize(self._obj, ctypes.byref(vtype), 
+                                        ctypes.byref(nrow), ctypes.byref(ncol), 
+                                        ctypes.byref(plimits), ctypes.byref(punits))
         if stat: _raiseStatus(stat)
         
         if not plimits:
             return None
-        
+
         vtype = vtype.value
+        nrow  = nrow.value
+        ncol  = ncol.value
         units = _decode(punits.value) if punits else None
 
-        if vtype == vType.Integer:
-            limits = list(ctypes.cast(plimits, POINTER(c_int))[0:2])
-        elif vtype == vType.Double:
-            limits = list(ctypes.cast(plimits, POINTER(c_double))[0:2])
+        if abs(vtype) == vType.Integer:
+            plimits = ctypes.cast(plimits, POINTER(c_int))
+        elif abs(vtype) == vType.Double:
+            plimits = ctypes.cast(plimits, POINTER(c_double))
         else:
             raise CAPSError(CAPS_BADVALUE, CAPSError.InternalError+"Unknown vtype: " + str(vtype))
+
+        if ncol == 1 and nrow > 1: ncol = nrow; nrow = 1
+
+        limits = [[[plimits[(i*ncol+j)*2+k] for k in range(2)] for j in range(ncol)] for i in range(nrow)]
+
+        if nrow == 1 and ncol == 1:
+            limits = limits[0][0]
+        elif nrow == 1 or ncol == 1:
+            limits = limits[0]
 
         return _withUnits(limits, units)
 
 #==============================================================================
     @checkClosed
-    def setLimits(self, limits):
+    def setLimitsSize(self, limits):
         """
         Set the value limits
         
@@ -2277,41 +2348,96 @@ class capsObj:
             limits =     limits._value
         else:
             units = None
-        
+
         if limits is None:
             vtype = 0
+            nrow  = 0
+            ncol  = 0
             plimits = None
         else:
             if not (isinstance(limits, list) or \
-                    isinstance(limits, tuple)) or \
-               len(limits) != 2:
-                raise CAPSError(CAPS_BADVALUE, "limits should be 2 element list - [min value, max value]!")
+                    isinstance(limits, tuple) or \
+                    (numpy and isinstance(limits, numpy.ndarray))) or \
+               len(limits) == 0:
+                raise CAPSError(CAPS_BADVALUE, "limits should be 2 element list - [min value, max value], or a list of min/max pairs!")
             
-            for i in limits:
-                if not isinstance(i, (int, float)):
-                    raise CAPSError(CAPS_BADVALUE, "Invalid element type for limits value, only int or float values are valid!")
-
             vtype = self._getType(limits)
-           
+
+            if vtype != vType.Integer and vtype != vType.Double:
+                raise CAPSError(CAPS_BADVALUE, "Invalid element type for limits value, only int or float values are valid!")
+
+            if isinstance(limits[0], list) or \
+               isinstance(limits[0], tuple) or \
+               (numpy and isinstance(limits[0], numpy.ndarray)):
+                if isinstance(limits[0][0], list) or \
+                   isinstance(limits[0][0], tuple) or \
+                   (numpy and isinstance(limits[0][0], numpy.ndarray)):
+                    nrow = len(limits)
+                    ncol = len(limits[0])
+                    for i in range(nrow):
+                        if len(limits[i]) != ncol:
+                            raise CAPSError(CAPS_BADVALUE, "limits should be matrix of 2 element pairs - [[min value, max value],...]!")
+                        for j in range(ncol):
+                            if len(limits[i][j]) != 2:
+                                raise CAPSError(CAPS_BADVALUE, "limits should be list of 2 element pairs - [[min value, max value],...]!")
+                else:
+                    nrow = 1
+                    ncol = len(limits)
+                    for i in range(ncol):
+                        if len(limits[i]) != 2:
+                            raise CAPSError(CAPS_BADVALUE, "limits should be list of 2 element pairs - [[min value, max value],...]!")
+                    limits = [limits]
+            else:
+                nrow = 1
+                ncol = 1
+                limits = [[limits]]
+
             if vtype == vType.Integer:
-                plimits = (c_int*2)()
+                plimits = (c_int*(2*nrow*ncol))()
             elif vtype == vType.Double:
-                plimits = (c_double*2)()
+                plimits = (c_double*(2*nrow*ncol))()
             else:
                 raise CAPSError(CAPS_BADVALUE, CAPSError.InternalError+"Unknown vtype: " + str(vtype))
 
-            plimits[:2] = limits[:]
+            for i in range(nrow):
+                for j in range(ncol):
+                    for k in range(2):
+                        plimits[(i*ncol+j)*2+k] = limits[i][j][k]
+
             plimits = ctypes.cast(plimits, ctypes.c_void_p)
-            
+
         units = units.encode() if isinstance(units, str) else units
         if units is not None and not isinstance(units, bytes):
             raise CAPSError(CAPS_UNITERR, "units must be a string: units = {!r}".format(units))
 
         nErr = c_int()
         errs = POINTER(c_capsErrs)()
-        stat = _caps.caps_setLimits(self._obj, c_int(vtype), plimits, units, 
-                                    ctypes.byref(nErr), ctypes.byref(errs))
+        stat = _caps.caps_setLimitsSize(self._obj, c_int(vtype), 
+                                        c_int(nrow), c_int(ncol), plimits, units, 
+                                        ctypes.byref(nErr), ctypes.byref(errs))
         if stat: _raiseStatus(stat, errors=capsErrs(nErr, errs))
+
+#==============================================================================
+    @checkClosed
+    def getValueSize(self):
+        """
+        Returns the value size
+        
+        Returns
+        -------
+        nrow:
+            number of rows in the value object
+
+        ncol:
+            number of rows in the value object
+        """
+        nrow    = c_int()
+        ncol    = c_int()
+
+        stat = _caps.caps_getValueSize(self._obj, ctypes.byref(nrow), ctypes.byref(ncol))
+        if stat: _raiseStatus(stat)
+        
+        return nrow.size, ncol.size
 
 #==============================================================================
     @checkClosed
@@ -2538,6 +2664,72 @@ class capsObj:
                 deriv[i] = list(pderiv[i*len_wrt:(i+1)*len_wrt])
         
         return deriv
+
+#==============================================================================
+    @checkClosed
+    def setStepSizeSize(self, sizes):
+        """
+        Set and use OpenCSM Finite-Difference Step Size
+        
+        Only for GeometryIn/DESPMTR Value Objects
+        
+        Parameters
+        ----------
+        sizes:
+            the FD step sizes for each Value member (nrow x ncol matrix (e.g. list of lists))
+            a zero indicates use analytic derivatives; can be None -- set all to zero
+        """
+        
+        if sizes is None:
+            nrow  = 0
+            ncol  = 0
+            psizes = None
+        else:
+            vtype, nrow, ncol, psizes, partial = self._convertData(sizes)
+
+            if vtype != vType.Double:
+                raise CAPSError(CAPS_BADVALUE, "sizes must be floats")
+
+        stat = _caps.caps_setStepSizeSize(self._obj, c_int(nrow), c_int(ncol), psizes)
+        if stat: _raiseStatus(stat)
+
+#==============================================================================
+    @checkClosed
+    def getStepSizeSize(self):
+        """
+        Get the OpenCSM Finite-Difference Step Size
+        
+        Only for GeometryIn/DESPMTR Value Objects
+        
+        Returns
+        ----------
+        sizes:
+            the FD step sizes for each Value member (nrow x ncol matrix (e.g. list of lists))
+            a zero indicates use analytic derivatives; can be None -- all are zero
+        """
+
+        nrow   = c_int()
+        ncol   = c_int()
+        psizes = POINTER(c_double)()
+
+        stat = _caps.caps_getStepSizeSize(self._obj, ctypes.byref(nrow), ctypes.byref(ncol), 
+                                          ctypes.byref(psizes))
+        if stat: _raiseStatus(stat)
+
+        nrow = nrow.value
+        ncol = ncol.value
+        
+        if nrow == 0 and ncol == 0:
+            return None
+
+        sizes = [[psizes[i*ncol+j] for j in range(ncol)] for i in range(nrow)]
+
+        if nrow == 1 and ncol == 1:
+            sizes = sizes[0][0]
+        elif nrow == 1 or ncol == 1:
+            sizes = sizes[0]
+            
+        return sizes
 
 #==============================================================================
     @checkClosed
@@ -3170,7 +3362,10 @@ class Unit(object):
             a udunits string representing the units
         """
         if isinstance(units, str):
-            self._units = units
+            if units == 'dimensionless': # pint compatabilty
+                self._units = '1'
+            else:
+                self._units = units
         elif isinstance(units, (int, float)):
             self._units = str(units)
         elif isinstance(units, Unit):
@@ -3548,7 +3743,7 @@ class Quantity(object):
         """
         Returns the Unit in the Quantity
         """
-        return self._unit
+        return self._units
 
 #==============================================================================
     def convert(self, toUnits):
@@ -3571,32 +3766,43 @@ class Quantity(object):
             toUnits = Unit(toUnits)
         
         tounits = toUnits._units.encode()
-
         fromunits = self._units._units.encode()
-        val = c_double()
 
-        if hasattr(self._value, '__len__'):
-            count = len(self._value)
-            fromVal = (c_double*count)()
-            toVal   = (c_double*count)()
+        def _convert(value):
+            if hasattr(value, '__len__'):
+                
+                if hasattr(value[0], '__len__'):
+                    valcopy = copy.copy(value)
+                    for i in range(len(value)):
+                        valcopy[i] = _convert(value[i])
+                    
+                    value = valcopy
+                else:
+                    count = len(value)
+                    fromVal = (c_double*count)()
+                    toVal   = (c_double*count)()
+                    
+                    fromVal[:] = value[:]
+        
+                    stat = _caps.caps_convert(c_int(count), fromunits, fromVal,
+                                                            tounits  , toVal  )
+                    if stat: _raiseStatus(stat, "Cannot convert {!r} to {!r}".format(self, toUnits))
+           
+                    value    = copy.copy(value)
+                    value[:] = toVal[:]
+            else:
+                fromVal = c_double(value)
+                toVal   = c_double()
+    
+                stat = _caps.caps_convert(c_int(1), fromunits, ctypes.byref(fromVal),
+                                                    tounits  , ctypes.byref(toVal)  )
+                if stat: _raiseStatus(stat, "Cannot convert {!r} to {!r}".format(self, toUnits))
+                
+                value = toVal.value
             
-            fromVal[:] = self._value[:]
-
-            stat = _caps.caps_convert(c_int(count), fromunits, fromVal,
-                                                    tounits  , toVal  )
-            if stat: _raiseStatus(stat, "Cannot convert {!r} to {!r}".format(self, toUnits))
+            return value
    
-            value    = copy.copy(self._value)
-            value[:] = toVal[:]
-        else:
-            fromVal = c_double(self._value)
-            toVal   = c_double()
-
-            stat = _caps.caps_convert(c_int(1), fromunits, ctypes.byref(fromVal),
-                                                tounits  , ctypes.byref(toVal)  )
-            if stat: _raiseStatus(stat, "Cannot convert {!r} to {!r}".format(self, toUnits))
-            
-            value = toVal.value
+        value = _convert(self._value)
    
         return Quantity(value, toUnits)
 

@@ -3,7 +3,7 @@
  *
  *             AVL AIM
  *
- *      Copyright 2014-2022, Massachusetts Institute of Technology
+ *      Copyright 2014-2024, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -19,6 +19,9 @@
 #include "vlmUtils.h"
 #include "vlmSpanSpace.h"
 #include "cfdUtils.h"
+#include "feaTypes.h"
+
+//#include "egadsPatch.h" // Used to put AVL mesh on EGADS tessellation
 
 #include "avlmrf/avlmrf.h"
 
@@ -43,11 +46,13 @@ enum aimInputs
   inPitchRate,
   inYawRate,
   inCDp,
+  inCLAF,
   inAVL_Surface,
   inAVL_Control,
   inCL,
   inMoment_Center,
   inMassProp,
+  inMassPropLink,
   inGravity,
   inDensity,
   inVelocity,
@@ -171,8 +176,7 @@ enum aimOutputs
  * appropriate for AVL. This naturally constructs a hierarchical geometric view where a design can progress
  * into higher fidelities and feedback can be achieved where we can go back to this level of description when need be.
  *
- * An outline of the AIM's inputs and outputs are provided in \ref aimInputsAVL and \ref aimOutputsAVL, respectively. An
- * alternative to the AIM's outputs for retrieving sensitivity information is provided in \ref aimBackDoorAVL.
+ * An outline of the AIM's inputs and outputs are provided in \ref aimInputsAVL and \ref aimOutputsAVL, respectively.
  *
  * Details on the use of units are outlined in \ref aimUnitsAVL.
  *
@@ -277,7 +281,7 @@ enum aimOutputs
  * \snippet avl_PyTest.py setInputs
  *
  * Once all the inputs have been set, outputs can be directly requested. The avl
- * analysis will be automatically executed just-in-time (\ref aimExecuteAvl).
+ * analysis will be automatically executed just-in-time (\ref aimExecuteAVL).
  *
  * Any of the AIM's output variables (\ref aimOutputsAVL) are readily available; for example,
  * \snippet avl_PyTest.py output
@@ -551,6 +555,27 @@ destroy_aimStorage(aimStorage *avlInstance, int inUpdate)
 
 /* ********************** AVL AIM Helper Functions ************************** */
 static int
+writeCLAF(void *aimInfo, FILE *fp, vlmSectionStruct *vlmSection, double CLaf)
+{
+    int status; // Function return status
+    double ToC = 0.0;
+
+    status = vlm_getSectionToC(aimInfo,
+                               vlmSection,
+                               &ToC);
+    AIM_STATUS(aimInfo, status);
+
+    fprintf(fp, "CLAF\n");
+    fprintf(fp, "%lf\n", 1.0 + CLaf*ToC);
+
+    status = CAPS_SUCCESS;
+
+cleanup:
+    return status;
+}
+
+
+static int
 writeSection(void *aimInfo, FILE *fp, vlmSectionStruct *vlmSection)
 {
     int status; // Function return status
@@ -644,6 +669,7 @@ writeMassFile(void *aimInfo, capsValue *aimInputs, const cfdUnitsStruct *units,
   const char *errMsg = NULL;
   capsTuple *massProp;
   int massPropLen, inertiaLen;
+  feaMassPropStruct *feaMassProp=NULL;
 
   int i, j; // Indexing
 
@@ -803,6 +829,50 @@ writeMassFile(void *aimInfo, capsValue *aimInputs, const cfdUnitsStruct *units,
                   massProp[i].name);
   }
 
+
+  if (aimInputs[inMassPropLink-1].nullVal == NotNull) {
+    feaMassProp = (feaMassPropStruct *) aimInputs[inMassPropLink-1].vals.AIMptr;
+
+    // Mass
+    mass = feaMassProp->mass;
+
+    if (units->mass != NULL) {
+      status = aim_convert(aimInfo, 1, feaMassProp->massUnit, &mass, Munits, &mass);
+      AIM_STATUS(aimInfo, status);
+    }
+
+    // Center of gravity
+    xyz[0] = feaMassProp->CG[0];
+    xyz[1] = feaMassProp->CG[1];
+    xyz[2] = feaMassProp->CG[2];
+
+    if (units->length != NULL) {
+      status = aim_convert(aimInfo, 3, feaMassProp->lengthUnit, xyz, Lunits, xyz);
+      AIM_STATUS(aimInfo, status);
+    }
+
+    // Inertia order = Ixx, Iyy, Izz, Ixy, Ixz, Iyz
+    inertia[0] = feaMassProp->massInertia[I11];
+    inertia[1] = feaMassProp->massInertia[I22];
+    inertia[2] = feaMassProp->massInertia[I33];
+    inertia[3] = feaMassProp->massInertia[I21];
+    inertia[4] = feaMassProp->massInertia[I31];
+    inertia[5] = feaMassProp->massInertia[I32];
+
+    if (units->length != NULL) {
+      status = aim_convert(aimInfo, 6, feaMassProp->momentOfInertiaUnit, inertia, Iunits, inertia);
+      AIM_STATUS(aimInfo, status);
+    }
+
+    // Normalize away the Lunit, Munit, Tunit values as AVL will multiply everything by those values
+    fprintf(fp, "%lf %lf %lf %lf %lf %lf %lf %lf %lf %lf ! %s\n",
+                mass/Munit,
+                xyz[0]/Lunit, xyz[1]/Lunit, xyz[2]/Lunit,
+                inertia[0]/MLL, inertia[1]/MLL, inertia[2]/MLL, inertia[3]/MLL,
+                inertia[4]/MLL, inertia[5]/MLL,
+                "LinkedMass");
+  }
+
   status = CAPS_SUCCESS;
 
 cleanup:
@@ -907,7 +977,7 @@ getStripForces(void *aimInfo, aimStorage *avlInstance, int *length, capsTuple **
     int status = CAPS_SUCCESS;
     int i, j; //Indexing
 
-    size_t     vallen = 0, alen = 0;
+    size_t     vallen = 0, alen = 0, stringLength;
     char       token[24], *value = NULL;
     capsTuple  *tuples = NULL, *surfaces = NULL;
     int        isurf, numSurfaces = 0;
@@ -940,12 +1010,13 @@ getStripForces(void *aimInfo, aimStorage *avlInstance, int *length, capsTuple **
         // copy the data columns
         for (i = 0; i < AVL_NSTRP_DATA; i++) {
             for (j = 0; j < avlInstance->strp.surf[isurf].nSpan; j++) {
-                sprintf(token, "%16.12e", avlInstance->strp.surf[isurf].data[i].val[j]);
+                snprintf(token, 24, "%16.12e", avlInstance->strp.surf[isurf].data[i].val[j]);
                 vallen = strlen(tuples[i].value);
-                AIM_REALL(tuples[i].value, vallen+strlen(token)+2, char, aimInfo, status);
+                stringLength = vallen+strlen(token)+2;
+                AIM_REALL(tuples[i].value, stringLength, char, aimInfo, status);
 
                 // append the values to the list
-                sprintf(tuples[i].value + vallen,"%s,", token);
+                snprintf(tuples[i].value + vallen,stringLength,"%s,", token);
             }
         }
 
@@ -962,7 +1033,7 @@ getStripForces(void *aimInfo, aimStorage *avlInstance, int *length, capsTuple **
             AIM_REALL(surfaces[isurf].value, vallen+alen, char, aimInfo, status);
 
             value = surfaces[isurf].value + vallen;
-            sprintf(value,"\"%s\":%s,", tuples[i].name, tuples[i].value);
+            snprintf(value,alen,"\"%s\":%s,", tuples[i].name, tuples[i].value);
 
             // release the memory now that it's been consumed
             AIM_FREE(tuples[i].name );
@@ -1147,7 +1218,7 @@ read_StripForces(void *aimInfo, int *length, capsTuple **surfaces_out)
               AIM_REALL(tuples[i].value, vallen+strlen(token)+2, char, aimInfo, status);
 
               // append the values to the list
-              sprintf(tuples[i].value + vallen,"%s,", token);
+              snprintf(tuples[i].value + vallen,vallen+strlen(token)+2,"%s,", token);
               i++;
           }
         }
@@ -1168,7 +1239,7 @@ read_StripForces(void *aimInfo, int *length, capsTuple **surfaces_out)
             AIM_REALL(surfaces[numSurfaces-1].value, vallen+alen, char, aimInfo, status);
 
             value = surfaces[numSurfaces-1].value + vallen;
-            sprintf(value,"\"%s\":%s,", tuples[i].name, tuples[i].value);
+            snprintf(value,alen,"\"%s\":%s,", tuples[i].name, tuples[i].value);
 
             // release the memory now that it's been consumed
             AIM_FREE(tuples[i].name );
@@ -1281,7 +1352,7 @@ get_controlDeriv(void *aimInfo, int controlIndex, int outputIndex, double *data)
         goto cleanup;
     }
 
-    sprintf(key, "%sd%02d =", coeff, controlIndex);
+    snprintf(key, 42, "%sd%02d =", coeff, controlIndex);
 
     status = read_Data(aimInfo, fileToOpen, key, data);
     AIM_STATUS (aimInfo, status);
@@ -1349,7 +1420,7 @@ read_EigenValues(void *aimInfo, int *length, capsTuple **eigen_out)
             for (i = numCase; i < icase; i++)
               eigen[icase-1].name = eigen[icase-1].value = NULL;
 
-            sprintf(caseName,"case %d", icase );
+            snprintf(caseName,30,"case %d", icase );
             AIM_STRDUP(eigen[icase-1].name , caseName, aimInfo, status);
             AIM_STRDUP(eigen[icase-1].value, "["     , aimInfo, status);
             numCase = icase;
@@ -1364,9 +1435,9 @@ read_EigenValues(void *aimInfo, int *length, capsTuple **eigen_out)
 
                 // append the values to the list
                 if (i == 0)
-                    sprintf(eigen[icase-1].value + vallen,"[%s,", token );
+                    snprintf(eigen[icase-1].value + vallen,strlen(token)+3,"[%s,", token );
                 else
-                    sprintf(eigen[icase-1].value + vallen,"%s],", token );
+                    snprintf(eigen[icase-1].value + vallen,strlen(token)+3,"%s],", token );
             }
     }
 
@@ -1419,6 +1490,36 @@ stabilityAngleDerivatives(void *aimInfo, capsValue *val, double da, double db)
 
   val->derivs[i+0].deriv[0] = da;
   val->derivs[i+1].deriv[0] = db;
+  val->nderiv += nderiv;
+
+cleanup:
+  return status;
+}
+
+
+static int
+stabilityRateDerivatives(void *aimInfo, capsValue *val, double dpP, double dqP, double drP)
+{
+  int i, status = CAPS_SUCCESS;
+
+  int nderiv = 3;
+
+  AIM_REALL(val->derivs, val->nderiv+nderiv, capsDeriv, aimInfo, status);
+  for (i = val->nderiv; i < val->nderiv+nderiv; i++) {
+    val->derivs[i].name    = NULL;
+    val->derivs[i].deriv   = NULL;
+    val->derivs[i].len_wrt = 1;
+    AIM_ALLOC(val->derivs[i].deriv, 1, double, aimInfo, status);
+  }
+
+  i = val->nderiv;
+  AIM_STRDUP(val->derivs[i+0].name, "p'" , aimInfo, status);
+  AIM_STRDUP(val->derivs[i+1].name, "q'", aimInfo, status);
+  AIM_STRDUP(val->derivs[i+2].name, "r'"  , aimInfo, status);
+
+  val->derivs[i+0].deriv[0] = dpP;
+  val->derivs[i+1].deriv[0] = dqP;
+  val->derivs[i+2].deriv[0] = drP;
   val->nderiv += nderiv;
 
 cleanup:
@@ -1505,6 +1606,36 @@ bodyRateDerivatives(void *aimInfo, capsValue *val, double dp, double dq, double 
   val->derivs[i+0].deriv[0] = dp;
   val->derivs[i+1].deriv[0] = dq;
   val->derivs[i+2].deriv[0] = dr;
+  val->nderiv += nderiv;
+
+cleanup:
+  return status;
+}
+
+
+static int
+bodyVelocityDerivatives(void *aimInfo, capsValue *val, double u, double v, double w)
+{
+  int i, status = CAPS_SUCCESS;
+
+  int nderiv = 3;
+
+  AIM_REALL(val->derivs, val->nderiv+nderiv, capsDeriv, aimInfo, status);
+  for (i = val->nderiv; i < val->nderiv+nderiv; i++) {
+    val->derivs[i].name    = NULL;
+    val->derivs[i].deriv   = NULL;
+    val->derivs[i].len_wrt = 1;
+    AIM_ALLOC(val->derivs[i].deriv, 1, double, aimInfo, status);
+  }
+
+  i = val->nderiv;
+  AIM_STRDUP(val->derivs[i+0].name, "u", aimInfo, status);
+  AIM_STRDUP(val->derivs[i+1].name, "v", aimInfo, status);
+  AIM_STRDUP(val->derivs[i+2].name, "w", aimInfo, status);
+
+  val->derivs[i+0].deriv[0] = u;
+  val->derivs[i+1].deriv[0] = v;
+  val->derivs[i+2].deriv[0] = w;
   val->nderiv += nderiv;
 
 cleanup:
@@ -1729,6 +1860,7 @@ int aimInputs(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo,
 #endif
 
     avlInstance = (aimStorage *) instStore;
+    if (avlInstance == NULL) AIM_STATUS(aimInfo, CAPS_NULLVALUE);
 
     if (avlInstance != NULL) units = &avlInstance->units;
 
@@ -1819,6 +1951,31 @@ int aimInputs(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo,
          *  A fixed value of profile drag to be added to all simulations.
          */
 
+    } else if (index == inCLAF) {
+        *ainame              = EG_strdup("CLAF");
+        defval->type         = Double;
+        defval->vals.real    = 0.77;
+        defval->nullVal      = IsNull;
+
+        /*! \page aimInputsAVL
+         * - <B> CLAF = NULL (double) </B> <br>
+         * This scales the effective dcl/da of the section airfoil as follows: <br>
+         *  <br>
+         *  dcl/da  =  2 pi ( 1 + CLaf t/c ) <br>
+         * <br>
+         * where t/c is the airfoil's thickness/chord ratio. The intent is to better represent the lift characteristics
+         * of thick airfoils, which typically have greater dcl/da values
+         * than thin airfoils. <br>
+         * <br>
+         * A good 2D potential flow theory estimate for CLaf is 0.77. <br>
+         * In practice, viscous effects will reduce the 0.77 factor to something less.
+         * Wind tunnel airfoil data or viscous airfoil calculations should
+         * be consulted before choosing a suitable CLaf value.<br>
+         * <br>
+         * This option is applied to all surface, and also be
+         * specified for individual surfaces using AVL_Surface \ref vlmSurface.
+         */
+
     } else if (index == inAVL_Surface) {
         *ainame              = EG_strdup("AVL_Surface");
         defval->type         = Tuple;
@@ -1906,6 +2063,18 @@ int aimInputs(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo,
          * (e.g. "Value" = {"mass" : [mass,"kg"], "CG" : [[x,y,z],"m"], "massInertia" : [[Ixx, Iyy, Izz, Ixy, Ixz, Iyz], "kg*m2"]})
          * The components Ixy, Ixz, and Iyz are optional may be omitted.
          * Must be in units of kg, m, and kg*m^2 if unitSystem (see \ref aimUnitsAVL) is not specified and no units should be specified in the JSON dictionary.
+         */
+
+    } else if (index == inMassPropLink) {
+        *ainame              = EG_strdup("MassPropLink");
+        defval->type         = Pointer;
+        defval->nullVal      = IsNull;
+        AIM_STRDUP(defval->units, "feaMassPropStruct", aimInfo, status);
+
+        /*! \page aimInputsAVL
+         * - <B>MassPropLink = NULL</B> <br>
+         * Mass properties linked from structural analysis for eigen value analysis
+         * Must be in units of kg, m, and kg*m^2 if unitSystem (see \ref aimUnitsAVL) is not specified.
          */
 
     } else if (index == inGravity) {
@@ -2043,7 +2212,8 @@ int aimUpdateState(void *instStore, void *aimInfo,
             aim_newAnalysisIn(aimInfo, inAVL_Surface) == CAPS_SUCCESS) {
 
             // Get AVL surface information
-            status = get_vlmSurface(aimInputs[inAVL_Surface-1].length,
+            status = get_vlmSurface(aimInfo,
+                                    aimInputs[inAVL_Surface-1].length,
                                     aimInputs[inAVL_Surface-1].vals.tuple,
                                     &avlInstance->groupMap,
                                     1.0, // default Cspace
@@ -2056,17 +2226,17 @@ int aimUpdateState(void *instStore, void *aimInfo,
                                      avlInstance->numAVLSurface, &avlInstance->avlSurface);
             AIM_STATUS(aimInfo, status);
             AIM_NOTNULL(avlInstance->avlSurface, aimInfo, status);
+        }
 
-            // Loop through surfaces and transfer control surface data to sections
-            for (isurf = 0; isurf < avlInstance->numAVLSurface; isurf++) {
-                /*@-nullpass@*/
-                status = get_ControlSurface(aimInfo,
-                                            avlInstance->numAVLControl,
-                                            avlInstance->avlControl,
-                                            &avlInstance->avlSurface[isurf]);
-                /*@+nullpass@*/
-                AIM_STATUS (aimInfo, status);
-            }
+        // Loop through surfaces and transfer control surface data to sections
+        for (isurf = 0; isurf < avlInstance->numAVLSurface; isurf++) {
+            /*@-nullpass@*/
+            status = get_ControlSurface(aimInfo,
+                                        avlInstance->numAVLControl,
+                                        avlInstance->avlControl,
+                                        &avlInstance->avlSurface[isurf]);
+            /*@+nullpass@*/
+            AIM_STATUS (aimInfo, status);
         }
 
         // Compute auto spacing
@@ -2208,6 +2378,7 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
     int atype, alen;
 
     const aimStorage *avlInstance;
+    double CLaf;
 
     double      Sref, Cref, Bref, Xref, Yref, Zref;
     int         foundSref=(int)false, foundCref=(int)false, foundBref=(int)false, foundXref=(int)false;
@@ -2268,29 +2439,32 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
 
     // look for eigen value analysis
     if ( (aimInputs[inMassProp-1].nullVal == NotNull ||
+          aimInputs[inMassPropLink-1].nullVal == NotNull ||
           aimInputs[inGravity-1].nullVal  == NotNull ||
           aimInputs[inDensity-1].nullVal  == NotNull ||
           aimInputs[inVelocity-1].nullVal == NotNull) ) {
 
         // Get length units
-        status = check_CAPSLength(numBody, bodies, &bodyLunits);
+        status = aim_capsLength(aimInfo, &bodyLunits);
         if (status != CAPS_SUCCESS) {
           AIM_ERROR(aimInfo, "No units assigned *** capsLength is not set in *.csm file!");
           status = CAPS_BADVALUE;
           goto cleanup;
         }
 
-        if ( !((aimInputs[inMassProp-1].nullVal == NotNull) &&
+        if ( !((aimInputs[inMassProp-1].nullVal == NotNull ||
+                aimInputs[inMassProp-1].nullVal == NotNull) &&
                (aimInputs[inGravity-1].nullVal  == NotNull) &&
                (aimInputs[inDensity-1].nullVal  == NotNull) &&
                (aimInputs[inVelocity-1].nullVal == NotNull)) ) {
-            AIM_ERROR(  aimInfo, " All inputs 'MassProp', 'Gravity', 'Density', and 'Velocity'\n");
+            AIM_ERROR(  aimInfo, " Inputs 'MassProp' or 'MassPropLink', 'Gravity', 'Density', and 'Velocity'\n");
             AIM_ADDLINE(aimInfo, " must be set for AVL eigen value analysis.\n");
             AIM_ADDLINE(aimInfo, " Missing values for:\n");
-            if (aimInputs[inMassProp-1].nullVal == IsNull) AIM_ADDLINE(aimInfo, "    MassProp\n");
-            if (aimInputs[inGravity-1].nullVal  == IsNull) AIM_ADDLINE(aimInfo, "    Gravity\n");
-            if (aimInputs[inDensity-1].nullVal  == IsNull) AIM_ADDLINE(aimInfo, "    Density\n");
-            if (aimInputs[inVelocity-1].nullVal == IsNull) AIM_ADDLINE(aimInfo, "    Velocity\n");
+            if (aimInputs[inMassProp-1].nullVal     == IsNull) AIM_ADDLINE(aimInfo, "    MassProp\n");
+            if (aimInputs[inMassPropLink-1].nullVal == IsNull) AIM_ADDLINE(aimInfo, "    MassPropLink\n");
+            if (aimInputs[inGravity-1].nullVal      == IsNull) AIM_ADDLINE(aimInfo, "    Gravity\n");
+            if (aimInputs[inDensity-1].nullVal      == IsNull) AIM_ADDLINE(aimInfo, "    Density\n");
+            if (aimInputs[inVelocity-1].nullVal     == IsNull) AIM_ADDLINE(aimInfo, "    Velocity\n");
             status = CAPS_BADVALUE;
             goto cleanup;
         }
@@ -2324,12 +2498,12 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
 
     if (aimInputs[inAlpha-1].nullVal ==  NotNull) {
         fprintf(fp, "A A ");//Alpha
-        fprintf(fp, "%lf\n", aimInputs[1].vals.real);
+        fprintf(fp, "%lf\n", aimInputs[inAlpha-1].vals.real);
     }
 
     if (aimInputs[inCL-1].nullVal ==  NotNull) {
         fprintf(fp, "A C ");//CL
-        fprintf(fp, "%lf\n", aimInputs[9].vals.real);
+        fprintf(fp, "%lf\n", aimInputs[inCL-1].vals.real);
     }
 
     fprintf(fp, "B B ");//Beta
@@ -2641,6 +2815,15 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
                 // Write section data
                 status = writeSection(aimInfo, fp, &avlInstance->avlSurface[isurf].vlmSection[isection]);
                 AIM_STATUS(aimInfo, status);
+
+                if (aimInputs[inCLAF-1].nullVal == NotNull ||
+                    avlInstance->avlSurface[isurf].CLaf > 0) {
+
+                    CLaf = avlInstance->avlSurface[isurf].CLaf > 0 ? avlInstance->avlSurface[isurf].CLaf : aimInputs[inCLAF-1].vals.real;
+
+                    status = writeCLAF(aimInfo, fp, &avlInstance->avlSurface[isurf].vlmSection[isection], CLaf);
+                    AIM_STATUS(aimInfo, status);
+                }
 
                 // Write control information for each section
                 for (icontrol = 0; icontrol < avlInstance->avlSurface[isurf].vlmSection[isection].numControl; icontrol++) {
@@ -3430,6 +3613,12 @@ int aimCalcOutput(void *instStore, /*@unused@*/ void *aimInfo, int index,
     case CXtot:
         val->vals.real = avlInstance->tot.CXtot;
 
+        status = bodyVelocityDerivatives(aimInfo, val,
+                                         avlInstance->dermatB.CXu,
+                                         avlInstance->dermatB.CXv,
+                                         avlInstance->dermatB.CXw);
+        AIM_STATUS(aimInfo, status);
+
         status = bodyRateDerivatives(aimInfo, val,
                                      avlInstance->dermatB.CXp,
                                      avlInstance->dermatB.CXq,
@@ -3448,6 +3637,12 @@ int aimCalcOutput(void *instStore, /*@unused@*/ void *aimInfo, int index,
                                            avlInstance->dermatS.CYb);
         AIM_STATUS(aimInfo, status);
 
+        status = bodyVelocityDerivatives(aimInfo, val,
+                                         avlInstance->dermatB.CYu,
+                                         avlInstance->dermatB.CYv,
+                                         avlInstance->dermatB.CYw);
+        AIM_STATUS(aimInfo, status);
+
         status = bodyRateDerivatives(aimInfo, val,
                                      avlInstance->dermatB.CYp,
                                      avlInstance->dermatB.CYq,
@@ -3461,6 +3656,12 @@ int aimCalcOutput(void *instStore, /*@unused@*/ void *aimInfo, int index,
     case CZtot:
         val->vals.real = avlInstance->tot.CZtot;
 
+        status = bodyVelocityDerivatives(aimInfo, val,
+                                         avlInstance->dermatB.CZu,
+                                         avlInstance->dermatB.CZv,
+                                         avlInstance->dermatB.CZw);
+        AIM_STATUS(aimInfo, status);
+
         status = bodyRateDerivatives(aimInfo, val,
                                      avlInstance->dermatB.CZp,
                                      avlInstance->dermatB.CZq,
@@ -3473,6 +3674,12 @@ int aimCalcOutput(void *instStore, /*@unused@*/ void *aimInfo, int index,
         break;
     case Cltot:
         val->vals.real = avlInstance->tot.Cltot;
+
+        status = bodyVelocityDerivatives(aimInfo, val,
+                                         avlInstance->dermatB.Clu,
+                                         avlInstance->dermatB.Clv,
+                                         avlInstance->dermatB.Clw);
+        AIM_STATUS(aimInfo, status);
 
         status = bodyRateDerivatives(aimInfo, val,
                                      avlInstance->dermatB.Clp,
@@ -3492,6 +3699,18 @@ int aimCalcOutput(void *instStore, /*@unused@*/ void *aimInfo, int index,
                                            avlInstance->dermatS.Cmb);
         AIM_STATUS(aimInfo, status);
 
+        status = stabilityRateDerivatives(aimInfo, val,
+                                          avlInstance->dermatS.Cmp,
+                                          avlInstance->dermatS.Cmq,
+                                          avlInstance->dermatS.Cmr);
+        AIM_STATUS(aimInfo, status);
+
+        status = bodyVelocityDerivatives(aimInfo, val,
+                                         avlInstance->dermatB.Cmu,
+                                         avlInstance->dermatB.Cmv,
+                                         avlInstance->dermatB.Cmw);
+        AIM_STATUS(aimInfo, status);
+
         status = bodyRateDerivatives(aimInfo, val,
                                      avlInstance->dermatB.Cmp,
                                      avlInstance->dermatB.Cmq,
@@ -3504,6 +3723,12 @@ int aimCalcOutput(void *instStore, /*@unused@*/ void *aimInfo, int index,
         break;
     case Cntot:
         val->vals.real = avlInstance->tot.Cntot;
+
+        status = bodyVelocityDerivatives(aimInfo, val,
+                                         avlInstance->dermatB.Cnu,
+                                         avlInstance->dermatB.Cnv,
+                                         avlInstance->dermatB.Cnw);
+        AIM_STATUS(aimInfo, status);
 
         status = bodyRateDerivatives(aimInfo, val,
                                      avlInstance->dermatB.Cnp,
@@ -3523,6 +3748,12 @@ int aimCalcOutput(void *instStore, /*@unused@*/ void *aimInfo, int index,
                                            avlInstance->dermatS.Clb);
         AIM_STATUS(aimInfo, status);
 
+        status = stabilityRateDerivatives(aimInfo, val,
+                                          avlInstance->dermatS.Clp,
+                                          avlInstance->dermatS.Clq,
+                                          avlInstance->dermatS.Clr);
+        AIM_STATUS(aimInfo, status);
+
         status = stabilityControlDerivatives(aimInfo, ClPtot, avlInstance, val);
         AIM_STATUS(aimInfo, status);
 
@@ -3535,6 +3766,12 @@ int aimCalcOutput(void *instStore, /*@unused@*/ void *aimInfo, int index,
                                            avlInstance->dermatS.Cnb);
         AIM_STATUS(aimInfo, status);
 
+        status = stabilityRateDerivatives(aimInfo, val,
+                                          avlInstance->dermatS.Cnp,
+                                          avlInstance->dermatS.Cnq,
+                                          avlInstance->dermatS.Cnr);
+        AIM_STATUS(aimInfo, status);
+
         status = stabilityControlDerivatives(aimInfo, CnPtot, avlInstance, val);
         AIM_STATUS(aimInfo, status);
 
@@ -3545,6 +3782,12 @@ int aimCalcOutput(void *instStore, /*@unused@*/ void *aimInfo, int index,
         status = stabilityAngleDerivatives(aimInfo, val,
                                            avlInstance->dermatS.CLa,
                                            avlInstance->dermatS.CLb);
+        AIM_STATUS(aimInfo, status);
+
+        status = stabilityRateDerivatives(aimInfo, val,
+                                          avlInstance->dermatS.CLp,
+                                          avlInstance->dermatS.CLq,
+                                          avlInstance->dermatS.CLr);
         AIM_STATUS(aimInfo, status);
 
         status = stabilityControlDerivatives(aimInfo, CLtot, avlInstance, val);
@@ -3905,7 +4148,7 @@ int aimCalcOutput(void *instStore, /*@unused@*/ void *aimInfo, int index,
             if (index == ControlStability) {
 
                 // Stability axis
-                sprintf(jsonOut,"{\"%s\":%16.12e,\"%s\":%16.12e,\"%s\":%16.12e,\"%s\":%16.12e,\"%s\":%16.12e,\"%s\":%16.12e,\"%s\":%16.12e}",
+                snprintf(jsonOut,200,"{\"%s\":%16.12e,\"%s\":%16.12e,\"%s\":%16.12e,\"%s\":%16.12e,\"%s\":%16.12e,\"%s\":%16.12e,\"%s\":%16.12e}",
                         "CLtot" , avlInstance->dermatS.cont[i].CLd,
                         "CYtot" , avlInstance->dermatS.cont[i].CYd,
                         "Cl'tot", avlInstance->dermatS.cont[i].Cld,
@@ -3918,7 +4161,7 @@ int aimCalcOutput(void *instStore, /*@unused@*/ void *aimInfo, int index,
             } else if (index == ControlBody) {
 
                 // Body axis
-                sprintf(jsonOut,"{\"%s\":%16.12e,\"%s\":%16.12e,\"%s\":%16.12e,\"%s\":%16.12e,\"%s\":%16.12e,\"%s\":%16.12e}",
+                snprintf(jsonOut,200,"{\"%s\":%16.12e,\"%s\":%16.12e,\"%s\":%16.12e,\"%s\":%16.12e,\"%s\":%16.12e,\"%s\":%16.12e}",
                         "CXtot", avlInstance->dermatB.cont[i].CXd,
                         "CYtot", avlInstance->dermatB.cont[i].CYd,
                         "CZtot", avlInstance->dermatB.cont[i].CZd,
@@ -3929,7 +4172,7 @@ int aimCalcOutput(void *instStore, /*@unused@*/ void *aimInfo, int index,
 
             } else if (index == HingeMoment) {
 
-                sprintf(jsonOut, "%16.12e", avlInstance->hinge.cont[i].Chinge);
+                snprintf(jsonOut, 200, "%16.12e", avlInstance->hinge.cont[i].Chinge);
 
                 AIM_STRDUP(val->vals.tuple[i].value, jsonOut, aimInfo, status);
 
@@ -4537,7 +4780,7 @@ int aimBackdoor(void *instStore, void *aimInfo, const char *JSONin,
             goto cleanup;
         }
 
-        sprintf(outputJSON, "{\"sensitivity\": %7.6f}", val.vals.real);
+        snprintf(outputJSON,50, "{\"sensitivity\": %7.6f}", val.vals.real);
     }
 
     *JSONout = outputJSON;

@@ -2,8 +2,8 @@
 
 // Structures for miscellaneous utilities - Written by Dr. Ryan Durscher AFRL/RQVC
 
-#ifndef MISCTYPES_H
-#define MISCTYPES_H
+#ifndef _AIM_UTILS_MISCTYPES_H_
+#define _AIM_UTILS_MISCTYPES_H_
 
 // General container for to map attribute names to an assigned index
 typedef struct {
@@ -16,4 +16,4 @@ typedef struct {
 
 } mapAttrToIndexStruct;
 
-#endif
+#endif // _AIM_UTILS_MISCTYPES_H_

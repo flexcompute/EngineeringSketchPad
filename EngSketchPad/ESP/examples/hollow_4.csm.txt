@@ -1,0 +1,21 @@
+# hollow_4
+# written by John Dannenhoffer
+
+# plate (shown transparent)
+BOX       0  0  0  4  3  0
+SELECT    FACE
+ATTRIBUTE _trn $on
+
+# same plate
+BOX       0  0  0  4  3  0
+
+# hollow out xmin and ymin Edges
+DIMENSION myList 2  1
+SELECT    EDGE   0  1  0
+SET       myList[1] @sellist[1]
+SELECT    EDGE   2  0  0
+SET       myList[2] @sellist[1]
+
+HOLLOW    0.1  myList 1
+
+END

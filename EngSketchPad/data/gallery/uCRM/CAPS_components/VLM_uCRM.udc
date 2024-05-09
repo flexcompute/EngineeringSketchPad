@@ -1,0 +1,108 @@
+#
+INTERFACE . ALL
+
+SET vlmAIMs   $avlAIM;astrosAIM;nastranAIM;egadsTessAIM
+
+IFTHEN COMP:Wing EQ 1 # make aero panels for wing
+
+    RESTORE     wing
+    SET         xmin    @xmin-1
+    SET         xmax    @xmax+1
+    SET         ymin    @ymin+0.001
+    SET         ymax    @ymax-0.001
+    SET         zmin    @zmin-1
+    SET         zmax    @zmax+1
+    STORE       .
+
+    MARK
+
+    # fuselage section
+    PATBEG    isect  Wing:fuselageSec:VLM_strips
+        SET       y     Wing:fuselageSec:Y_VLM[isect]
+        BOX       xmin  y  zmin  xmax-xmin  0  zmax-zmin
+        RESTORE   wing
+        INTERSECT
+            ATTRIBUTE capsAIM            vlmAIMs
+            ATTRIBUTE capsReferenceArea  Sref
+            ATTRIBUTE capsReferenceSpan  bref
+            ATTRIBUTE capsReferenceChord Cref
+            ATTRIBUTE capsReferenceX     Cref/4
+            ATTRIBUTE capsGroup          $Wing:VLM
+            ATTRIBUTE capsDiscipline     $Aerodynamic
+        SELECT FACE 1
+            ATTRIBUTE capsGroup          $Wing
+    PATEND
+
+    # inboard section
+    PATBEG    isect  Wing:inboardSec:VLM_strips
+        SET       y     Wing:inboardSec:Y_VLM[isect]
+        BOX       xmin  y  zmin  xmax-xmin  0  zmax-zmin
+        RESTORE   wing
+        INTERSECT
+            ATTRIBUTE capsAIM            vlmAIMs
+            ATTRIBUTE capsReferenceArea  Sref
+            ATTRIBUTE capsReferenceSpan  bref
+            ATTRIBUTE capsReferenceChord Cref
+            ATTRIBUTE capsReferenceX     Cref/4
+            ATTRIBUTE capsGroup          $Wing:VLM
+            ATTRIBUTE capsDiscipline     $Aerodynamic
+        SELECT FACE 1
+            ATTRIBUTE capsGroup          $Wing
+    PATEND
+
+    # outboard section
+    PATBEG    isect  Wing:outboardSec:VLM_strips+1
+        SET       y     Wing:outboardSec:Y_VLM[isect]
+        BOX       xmin  y  zmin  xmax-xmin  0  zmax-zmin
+        RESTORE   wing
+        INTERSECT
+            ATTRIBUTE capsAIM            vlmAIMs
+            ATTRIBUTE capsReferenceArea  Sref
+            ATTRIBUTE capsReferenceSpan  bref
+            ATTRIBUTE capsReferenceChord Cref
+            ATTRIBUTE capsReferenceX     Cref/4
+            ATTRIBUTE capsGroup          $Wing:VLM
+            ATTRIBUTE capsDiscipline     $Aerodynamic
+        SELECT FACE 1
+            ATTRIBUTE capsGroup          $Wing
+    PATEND
+
+    GROUP
+
+ENDIF
+
+IFTHEN COMP:Tail EQ 1 # make aero panels for tail
+
+    RESTORE     tail
+    SET         xmin    @xmin-1
+    SET         xmax    @xmax+1
+    SET         ymin    @ymin+0.001
+    SET         ymax    @ymax-0.001
+    SET         zmin    @zmin-1
+    SET         zmax    @zmax+1
+    STORE       .
+
+    MARK
+
+    PATBEG    isect  Tail:VLM_strips+1
+        SET       y     Tail:Y_VLM[isect]
+        BOX       xmin  y  zmin  xmax-xmin  0  zmax-zmin
+        RESTORE   tail
+        INTERSECT
+            ATTRIBUTE capsAIM            vlmAIMs
+            ATTRIBUTE capsReferenceArea  Sref
+            ATTRIBUTE capsReferenceSpan  bref
+            ATTRIBUTE capsReferenceChord Cref
+            ATTRIBUTE capsReferenceX     Cref/4
+            ATTRIBUTE capsGroup          $Tail:VLM
+            ATTRIBUTE capsDiscipline     $Aerodynamic
+        SELECT FACE 1
+            ATTRIBUTE capsGroup          $Tail
+    PATEND
+
+    GROUP
+
+ENDIF
+
+END
+

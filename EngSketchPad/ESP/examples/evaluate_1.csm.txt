@@ -1,0 +1,102 @@
+# evaluate_1
+# written by John Dannenhoffer
+
+# make a box
+BOX       0  0  0  4  3  2
+
+# make a cylinder
+CYLINDER  0  5  1  4  5  1  1
+SET       theBody  @nbody
+
+# evaluations associated with cylinder Node near (0.1,4.9,2.1)
+SELECT    NODE  0.1  4.9  2.1
+SET       theNode  @sellist[1]
+
+EVALUATE  NODE     theBody  theNode
+ASSERT    @edata[1]  0                  # x
+ASSERT    @edata[2]  5                  # y
+ASSERT    @edata[3]  2                  # z
+
+# evaluates associated with cylinder Edge near (0.1,3.9,0.9)
+SELECT    EDGE  0.1  3.9  0.9
+SET       theEdge  @sellist[1]
+
+EVALUATE  EDGE     theBody  theEdge  $beg
+ASSERT    @edata[1]  0                  # tmin
+ASSERT    @edata[2]  0                  # x(tmin)
+ASSERT    @edata[3]  5                  # y(tmin)
+ASSERT    @edata[4]  2                  # z(tmin)
+
+EVALUATE  EDGE     theBody  theEdge  $end
+ASSERT    @edata[1]  pi(1)              # tmax
+ASSERT    @edata[2]  0                  # x(tmax)
+ASSERT    @edata[3]  5                  # y(tmax)
+ASSERT    @edata[4]  0                  # z(tmax)
+
+EVALUATE  EDGERNG  theBody  theEdge
+ASSERT    @edata[1]  0                  # tmin
+ASSERT    @edata[2]  pi(1)              # tmax
+
+SET       tmid  (@edata[1]+@edata[2])/2
+
+EVALUATE  EDGE     theBody  theEdge  tmid
+ASSERT    @edata[1]  pi(1/2)            # tmid
+ASSERT    @edata[2]  0                  # x(tmid)
+ASSERT    @edata[3]  4                  # y(tmid)
+ASSERT    @edata[4]  1                  # z(tmid)
+ASSERT    @edata[5]  0                  # dx/dt(tmid)
+ASSERT    @edata[6]  0                  # dy/dt(tmid)
+ASSERT    @edata[7]  -1                 # dz/dt(tmid)
+ASSERT    @edata[8]  0                  # dx2/dt2(tmid)
+ASSERT    @edata[9]  1                  # dy2/dt2(tmid)
+ASSERT    @edata[10] 0                  # dz2/dt2(tmid)
+
+EVALUATE  EDGEINV  theBody  theEdge  0.1  3.9  1.0
+ASSERT    @edata[1]  pi(1/2)            # tclose
+ASSERT    @edata[2]  0                  # x(tclose)
+ASSERT    @edata[3]  4                  # y(tclose)
+ASSERT    @edata[4]  1                  # z(tclose)
+
+# evaluates associated with top cylinder Face
+SELECT    FACE     theBody  4
+SET       theFace  @sellist[1]
+
+EVALUATE  FACERNG  theBody  theFace
+ASSERT    @edata[1]  pi(1)              # umin
+ASSERT    @edata[2]  pi(2)              # umax
+ASSERT    @edata[3]  0                  # vmax
+ASSERT    @edata[4]  4                  # vmax
+
+SET       umid  (@edata[1]+@edata[2])/2
+SET       vmid  (@edata[3]+@edata[4])/2
+
+EVALUATE  FACE     theBody  theFace  umid  vmid
+ASSERT    @edata[1]  umid               # umid
+ASSERT    @edata[2]  vmid               # vmid
+ASSERT    @edata[3]  2                  # x(umid,vmid)
+ASSERT    @edata[4]  6                  # y(umid,vmid)
+ASSERT    @edata[5]  1                  # z(umid,vmid)
+ASSERT    @edata[6]  0                  # dx/du(umid,vmid)
+ASSERT    @edata[7]  0                  # dy/du(umid,vmid)
+ASSERT    @edata[8]  1                  # dz/du(umid,vmid)
+ASSERT    @edata[9]  1                  # dx/dv(umid,vmid)
+ASSERT    @edata[10] 0                  # dy/dv(umid,vmid)
+ASSERT    @edata[11] 0                  # dz/dv(umid,vmid)
+ASSERT    @edata[12] 0                  # d2x/du2(umid,vmid)
+ASSERT    @edata[13] -1                 # d2y/du2(umid,vmid)
+ASSERT    @edata[14] 0                  # d2z/du2(umid,vmid)
+ASSERT    @edata[15] 0                  # d2x/dudv(umid,vmid)
+ASSERT    @edata[16] 0                  # d2y/dudv(umid,vmid)
+ASSERT    @edata[17] 0                  # d2z/dudv(umid,vmid)
+ASSERT    @edata[18] 0                  # d2x/dv2(umid,vmid)
+ASSERT    @edata[19] 0                  # d2y/dv2(umid,vmid)
+ASSERT    @edata[20] 0                  # d2z/dv2(umid,vmid)
+
+EVALUATE  FACEINV  theBody  theFace  2.0  5.9  1.0
+ASSERT    @edata[1]  pi(3/2)            # uclose
+ASSERT    @edata[2]  2                  # vclose
+ASSERT    @edata[3]  2                  # x(uclose,vclose)
+ASSERT    @edata[4]  6                  # y(uclose,vclose)
+ASSERT    @edata[5]  1                  # z(uclose,vclose)
+
+END

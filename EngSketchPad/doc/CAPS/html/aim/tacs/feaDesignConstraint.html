@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.9.1"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>TACS Analysis Interface Module (AIM): FEA DesignConstraint</title>
+<title>TACS Analysis Interface Module (AIM): FEA Design Constraints</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -63,18 +63,72 @@ $(function() {
 </div><!-- top -->
 <div class="PageDoc"><div class="header">
   <div class="headertitle">
-<div class="title">FEA DesignConstraint </div>  </div>
+<div class="title">FEA Design Constraints </div>  </div>
 </div><!--header-->
 <div class="contents">
 <div class="textblock"><p>Structure for the design constraint tuple = (&lsquo;DesignConstraint Name&rsquo;, &lsquo;Value&rsquo;). 'DesignConstraint Name' defines the reference name for the design constraint being specified. The "Value" must be a JSON String dictionary (see Section <a class="el" href="feaDesignConstraint.html#jsonStringDesignConstraint">JSON String Dictionary</a>).</p>
 <h1><a class="anchor" id="jsonStringDesignConstraint"></a>
 JSON String Dictionary</h1>
-<p>If "Value" is JSON string dictionary the following keywords ( = default values) may be used:</p>
+<p>If "Value" is JSON string dictionary (eg. "Value" = {"groupName": "plate", "upperBound": 10.0}) the following keywords ( = default values) may be used:</p>
+<ul>
+<li>
+<b>groupName = "(no default)"</b>  <br  />
+ Single or list of <code>capsGroup</code> name(s) to the design variable (e.g. "Name1" or ["Name1","Name2",...].The property (see <a class="el" href="feaProperty.html">FEA Property</a>) also assigned to the same <code>capsGroup</code> will be automatically related to this constraint entry. </li>
+</ul>
+<ul>
+<li>
+<b> constraintType = "Property" </b>  <br  />
+ The type of design constraint. Options: "Property", "Flutter" </li>
+</ul>
+<ul>
+<li>
+<b>lowerBound = 0.0</b>  <br  />
+ Lower bound for the design constraint. </li>
+</ul>
+<ul>
+<li>
+<b>upperBound = 0.0</b>  <br  />
+ Upper bound for the design constraint. </li>
+</ul>
+<ul>
+<li>
+<b>responseType = "(no default)"</b>  <br  />
+ Response type options for DRESP1 Entry (see Nastran manual).<ul>
+<li>Implemented Options<ol type="1">
+<li><code>STRESS</code>, for <code>propertyType = "Rod" or "Shell"</code> (see <a class="el" href="feaProperty.html">FEA Property</a>)</li>
+<li><code>CFAILURE</code>, for <code>propertyType = "Composite"</code> (see <a class="el" href="feaProperty.html">FEA Property</a>) </li>
+</ol>
+</li>
+</ul>
+</li>
+</ul>
+<ul>
+<li>
+<p class="startli"><b>fieldName = "(no default)"</b>  <br  />
+ For constraints, this field is only used currently when applying constraints to composites. This field is used to identify the specific lamina in a stacking sequence that a constraint is being applied too. Note if the user has design variables for both THEATA1 and T1 it is likely that only a single constraint on the first lamina is required. For this reason, the user can simply enter LAMINA1 in addition to the possible entries defined in the <a class="el" href="feaDesignVariable.html">FEA Design Variables</a> section. Additionally, the <code>fieldPosition</code> integer entry below can be used. In this case <code>"LAMINA1" = 1</code>.</p>
+<ul>
+<li>-# <b> Property Types</b> (see <a class="el" href="feaProperty.html">FEA Property</a>)<ul>
+<li><code><b> PCOMP</b> </code> <code>propertyType = "Composite"</code><ul>
+<li>"T1", "THETA1", "T2", "THETA2", ... "Ti", "THETAi"</li>
+<li>"LAMINA1", "LAMINA2", ... "LAMINAi"</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<p class="endli"></p>
+</li>
+</ul>
+<ul>
+<li>
+<b>fieldPosition = 0</b>  <br  />
+ This input is ignored if not defined. The user may use this field instead of the <code>fieldName</code> input defined above to identify a specific lamina in a composite stacking sequence where a constraint is applied. Please read the <code>fieldName</code> information above for more information. </li>
+</ul>
 </div></div><!-- contents -->
 </div><!-- PageDoc -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Sat Jul 2 2022 10:13:17 for TACS Analysis Interface Module (AIM) by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1
+Generated on Sat Apr 27 2024 16:51:53 for TACS Analysis Interface Module (AIM) by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1
 </small></address>
 </body>
 </html>

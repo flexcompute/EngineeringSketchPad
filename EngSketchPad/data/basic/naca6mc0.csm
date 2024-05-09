@@ -1,0 +1,15 @@
+# naca6mc0
+# written by John Dannenhoffer
+
+DESPMTR   CLT  1.2
+DESPMTR   A    0.5
+
+# generate a WireBody from the meanlne
+POINT     0  0  0
+UDPRIM    naca6mc   clt CLT   a A
+
+# generate a SheetBody by adding NACA4 thickness
+UDPRIM    naca      thickness 0.12
+UDPRIM    naca6mc   clt CLT   a A
+
+END

@@ -17,6 +17,7 @@
  *
  * The Pointwise AIM provides the CAPS users with the ability to generate volume meshes mostly suitable for CFD analysis.
  * This includes both inviscid analysis and viscous analysis with boundary layers using the pointwise T-Rex algorithm.
+ * 2D mesh generation is currently not available.
  *
  * An outline of the AIM's inputs, outputs and attributes are provided in \ref aimInputsPointwise and
  * \ref aimOutputsPointwise and \ref attributePointwise, respectively.
@@ -124,7 +125,6 @@ enum aimInputs
 {
   Proj_Name = 1,                 /* index is 1-based */
   Mesh_Format,
-  Mesh_ASCII_Flag,
   Mesh_Sizing,
   Mesh_Length_Factor,
   Connector_Initial_Dim,
@@ -343,7 +343,7 @@ static int initiate_aimStorage(aimStorage *pointwiseInstance)
   if (status != CAPS_SUCCESS) return status;
 
   // Mesh reference passed to solver
-  status = aim_initMeshRef(&pointwiseInstance->meshRef);
+  status = aim_initMeshRef(&pointwiseInstance->meshRef, aimVolumeMesh);
   if (status != CAPS_SUCCESS) return status;
 
   return CAPS_SUCCESS;
@@ -638,7 +638,7 @@ static int getUGRID(FILE *fp, meshStruct *volumeMesh)
       return status;
 }
 
-
+#if 0
 static int
 writeMesh(void *aimInfo, aimStorage *pointwiseInstance,
           int numVolumeMesh, meshStruct *volumeMesh)
@@ -651,12 +651,12 @@ writeMesh(void *aimInfo, aimStorage *pointwiseInstance,
   // analysis input values
   capsValue *ProjName;
   capsValue *MeshFormat;
-  capsValue *MeshASCII_Flag;
 
+  size_t stringLength;
   char *filename = NULL, surfNumber[11];
   const char *outputFileName = NULL;
   const char *outputFormat = NULL;
-  int outputASCIIFlag;  // 0 = Binary output, anything else for ASCII
+  int outputASCIIFlag = (int)true;  // 0 = Binary output, anything else for ASCII
 
   bndCondStruct bndConds; // Structure of boundary conditions
 
@@ -670,10 +670,6 @@ writeMesh(void *aimInfo, aimStorage *pointwiseInstance,
   AIM_STATUS(aimInfo, status);
   if (MeshFormat == NULL) return CAPS_NULLVALUE;
 
-  status = aim_getValue(aimInfo, Mesh_ASCII_Flag, ANALYSISIN, &MeshASCII_Flag);
-  AIM_STATUS(aimInfo, status);
-  if (MeshASCII_Flag == NULL) return CAPS_NULLVALUE;
-
   // Project Name
   if (ProjName->nullVal == IsNull) {
     printf("No project name (\"Proj_Name\") provided - A volume mesh will not be written out\n");
@@ -682,21 +678,17 @@ writeMesh(void *aimInfo, aimStorage *pointwiseInstance,
 
   outputFileName  = ProjName->vals.string;
   outputFormat    = MeshFormat->vals.string;
-  outputASCIIFlag = MeshASCII_Flag->vals.integer;
 
   if (strcasecmp(outputFormat, "SU2") != 0) {
     for (volIndex = 0; volIndex < numVolumeMesh; volIndex++) {
       volumeMesh = &volumeMesh[volIndex];
       for (surfIndex = 0; surfIndex < volumeMesh->numReferenceMesh; surfIndex++) {
-/*@-bufferoverflowhigh@*/
-        sprintf(surfNumber, "%d", surfIndex+1);
-/*@+bufferoverflowhigh@*/
-        filename = (char *) EG_alloc((strlen(outputFileName) +strlen("_Surf_") +
-                                      strlen(surfNumber)+1)*sizeof(char));
-        if (filename == NULL) { status = EGADS_MALLOC; goto cleanup; }
-/*@-bufferoverflowhigh@*/
-        sprintf(filename, "%s_Surf_%s", outputFileName, surfNumber);
-/*@+bufferoverflowhigh@*/
+        snprintf(surfNumber, 11, "%d", surfIndex+1);
+
+        stringLength = strlen(outputFileName) +strlen("_Surf_") + strlen(surfNumber)+1;
+        AIM_ALLOC(filename, stringLength, char, aimInfo, status);
+
+        snprintf(filename, stringLength, "%s_Surf_%s", outputFileName, surfNumber);
 
         if (strcasecmp(outputFormat, "AFLR3") == 0) {
 
@@ -736,7 +728,7 @@ writeMesh(void *aimInfo, aimStorage *pointwiseInstance,
   for (volIndex = 0; volIndex < numVolumeMesh; volIndex++) {
 
 //      if (aimInputs[Multiple_Mesh-1].vals.integer == (int) true) {
-//          sprintf(bodyIndexNumber, "%d", bodyIndex);
+//          snprintf(bodyIndexNumber, 11, "%d", bodyIndex);
 //          filename = (char *) EG_alloc((strlen(outputFileName) + 1 +
 //                                        strlen("_Vol")+strlen(bodyIndexNumber))*sizeof(char));
 //      } else {
@@ -798,6 +790,7 @@ writeMesh(void *aimInfo, aimStorage *pointwiseInstance,
                                      filename,
                                      outputASCIIFlag,
                                      &volumeMesh[volIndex],
+                                     0, NULL,
                                      LargeField,
                                      1.0);
       } else {
@@ -809,16 +802,16 @@ writeMesh(void *aimInfo, aimStorage *pointwiseInstance,
       if (status != CAPS_SUCCESS) goto cleanup;
   }
 
-  cleanup:
-      if (status != CAPS_SUCCESS) printf("Premature exit in writeMesh status = %d\n",
-                                         status);
+cleanup:
+  if (status != CAPS_SUCCESS) printf("Premature exit in writeMesh status = %d\n",
+                                     status);
 
-      destroy_bndCondStruct(&bndConds);
+  destroy_bndCondStruct(&bndConds);
 
-      EG_free(filename);
-      return status;
+  EG_free(filename);
+  return status;
 }
-
+#endif
 
 static int
 writeGlobalGlyph(void *aimInfo, capsValue *aimInputs, double capsMeshLength)
@@ -1038,7 +1031,7 @@ static int set_autoQuiltAttr(ego *body) {
             // If neither face has an attribute
             if (face1Attr == NULL && face2Attr == NULL) {
 
-                sprintf(quiltName, "%s%d", quiltNamePrefix, quiltIndex);
+                snprintf(quiltName, 30, "%s%d", quiltNamePrefix, quiltIndex);
 
                 // Face 1
                 status = EG_attributeAdd(bodyFace[i], pwQuiltAttr, ATTRSTRING,
@@ -1996,29 +1989,21 @@ int aimInputs(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo,
 
         /*! \page aimInputsPointwise
          * - <B> Proj_Name = NULL</B> <br>
-         * This corresponds to the output name of the mesh. If left NULL, the mesh is not written to a file.
+         * Output name prefix for meshes to be written in formats specified by Mesh_Format.
+         * These meshes are not linked to any analysis, but may be useful exploring meshing parameters.
          */
     } else if (index == Mesh_Format) {
         *ainame               = EG_strdup("Mesh_Format");
         defval->type          = String;
-        defval->vals.string   = EG_strdup("VTK"); // TECPLOT, VTK, AFLR3, STL, AF, FAST, NASTRAN
-        defval->lfixed        = Change;
+        defval->vals.string   = NULL;
         defval->nullVal       = IsNull;
+        defval->dim           = Vector;
+        defval->lfixed        = Change;
 
         /*! \page aimInputsPointwise
-         * - <B> Mesh_Format = NULL</B> <br>
-         * Mesh output format. Available format names include: "AFLR3", "VTK", "TECPLOT", "SU2", "Nastran".
-         * This file format is written from CAPS, and is not the CAE solver in Pointwise.
+         * \include{doc} Mesh_Format.dox
          */
-    } else if (index == Mesh_ASCII_Flag) {
-        *ainame               = EG_strdup("Mesh_ASCII_Flag");
-        defval->type          = Boolean;
-        defval->vals.integer  = true;
 
-        /*! \page aimInputsPointwise
-         * - <B> Mesh_ASCII_Flag = True</B> <br>
-         * Output mesh in ASCII format, otherwise write a binary file, if applicable.
-         */
     } else  if (index == Mesh_Sizing) {
         *ainame              = EG_strdup("Mesh_Sizing");
         defval->type         = Tuple;
@@ -2795,12 +2780,7 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
     // Scale the reference length
     capsMeshLength *= aimInputs[Mesh_Length_Factor-1].vals.real;
 
-    bodyCopy = (ego *) EG_alloc(numBody*sizeof(ego));
-    if (bodyCopy == NULL) {
-        status = EGADS_MALLOC;
-        goto cleanup;
-    }
-
+    AIM_ALLOC(bodyCopy, numBody, ego, aimInfo, status);
     for (i = 0; i < numBody; i++) bodyCopy[i] = NULL;
 
     // Get context
@@ -2816,7 +2796,7 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
                            &pointwiseInstance->meshMap,
                            numMeshProp, meshProp, capsMeshLength, &quilting);
 /*@+nullpass@*/
-        if (status != EGADS_SUCCESS) goto cleanup;
+        AIM_STATUS(aimInfo, status);
     }
 
     // Auto quilt faces
@@ -2833,11 +2813,8 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
     // Create a model from the copied bodies
     status = EG_makeTopology(context, NULL, MODEL, 0, NULL, numBody, bodyCopy,
                              NULL, &model);
-    if (status != EGADS_SUCCESS) goto cleanup;
-    if (model == NULL) {
-      status = CAPS_NULLOBJ;
-      goto cleanup;
-    }
+    AIM_STATUS(aimInfo, status);
+    AIM_NOTNULL(model, aimInfo, status);
 
     printf("Writing global Glyph inputs...\n");
     status = writeGlobalGlyph(aimInfo, aimInputs, capsMeshLength);
@@ -2908,7 +2885,7 @@ aimPostAnalysis(void *instStore, void *aimInfo, /*@unused@*/ int restart,
     int        i, j, n, ib, ie, it, in;
     int        ivp, npts, nVolPts, iper, iline = 0, cID = 0, nglobal, iglobal;
     int        oclass, mtype, numBody = 0, *senses = NULL, *ivec = NULL;
-    int        numFaces = 0, iface, ibody, iedge, numNodes = 0, nDegen = 0;
+    int        numFaces = 0, iface, ibody, iedge, numNodes = 0; //, nDegen = 0;
     int        ntri = 0, nquad = 0, elem[4], velem[4], *face_tris, elemIndex;
     int        GMA_MAJOR = 0, GMA_MINOR = 0, numConnector = 0, iCon, numDomain = 0, iDom;
     int        egadsID, edgeID, faceID, bodyID, *bodyIndex=NULL, *faceVertID=NULL;
@@ -2932,6 +2909,7 @@ aimPostAnalysis(void *instStore, void *aimInfo, /*@unused@*/ int restart,
     bodyData   *bodydata = NULL;
     edgeMapData **edgeMap = NULL;
     meshStruct *surfaceMeshes = NULL;
+    aimMesh    mesh;
 //    hashElemTable table;
     FILE       *fp = NULL;
 
@@ -3140,6 +3118,7 @@ aimPostAnalysis(void *instStore, void *aimInfo, /*@unused@*/ int restart,
     }
 
     // Count the number of degenerate edges in all bodies
+#if 0
     nDegen = 0;
     for (ib = 0; ib < numBody; ib++) {
       for ( iedge = 0; iedge < bodydata[ib].nedges; iedge++ ) {
@@ -3149,6 +3128,7 @@ aimPostAnalysis(void *instStore, void *aimInfo, /*@unused@*/ int restart,
         if ( mtype == DEGENERATE ) nDegen++;
       }
     }
+#endif
 
 
     /* open and parse the gma file to count surface/edge tessellations points */
@@ -3519,7 +3499,7 @@ aimPostAnalysis(void *instStore, void *aimInfo, /*@unused@*/ int restart,
     fclose(fp); fp = NULL;
 
     // generate the QuickRefLists now that all surface elements have been added
-    status = mesh_fillQuickRefList(volumeMesh);
+    status = mesh_fillQuickRefList(aimInfo, volumeMesh);
     AIM_STATUS(aimInfo, status);
 
     // construct a map between coincident Solid/Sheet body Edges
@@ -3619,7 +3599,7 @@ aimPostAnalysis(void *instStore, void *aimInfo, /*@unused@*/ int restart,
 
             // get mtype=SFORWARD or mtype=SREVERSE for the face to get topology normal
             status = EG_getInfo(bodydata[ib].faces[iface], &oclass, &mtype, &ref, &prev, &next);
-            if (status != EGADS_SUCCESS) goto cleanup;
+            AIM_STATUS(aimInfo, status);
             faceNormal[0] *= mtype;
             faceNormal[1] *= mtype;
             faceNormal[2] *= mtype;
@@ -3663,7 +3643,7 @@ aimPostAnalysis(void *instStore, void *aimInfo, /*@unused@*/ int restart,
             AIM_STATUS(aimInfo, status);
             AIM_NOTNULL(tris, aimInfo, status);
 
-            AIM_ALLOC(faceVertID, bodydata[ib].tfaces[iface].npts, int, aimInfo, status);
+            AIM_ALLOC(faceVertID, npts, int, aimInfo, status);
 
             for (i = 0; i < ntri; i++) {
               for (j = 0; j < 3; j++) {
@@ -3719,7 +3699,7 @@ aimPostAnalysis(void *instStore, void *aimInfo, /*@unused@*/ int restart,
         tess = NULL;
 /*@+kepttrans@*/
 
-        status = mesh_surfaceMeshEGADSTess(aimInfo, &surfaceMeshes[ib]);
+        status = mesh_surfaceMeshEGADSTess(aimInfo, &surfaceMeshes[ib], (int)false);
         AIM_STATUS(aimInfo, status);
 
         printf("Body = %d\n", ib+1);
@@ -3733,9 +3713,11 @@ aimPostAnalysis(void *instStore, void *aimInfo, /*@unused@*/ int restart,
     }
 
     // write out the mesh if requested
+#if 0
     status = writeMesh(aimInfo, pointwiseInstance,
                        numVolumeMesh, volumeMesh);
     AIM_STATUS(aimInfo, status);
+#endif
 
     // Read in the BND group ID and groupName
     fp = aim_fopen(aimInfo, mapbcfilename, "r");
@@ -3777,6 +3759,28 @@ aimPostAnalysis(void *instStore, void *aimInfo, /*@unused@*/ int restart,
       AIM_STRDUP(pointwiseInstance->meshRef.bnds[i].groupName, aimFile, aimInfo, status);
       pointwiseInstance->meshRef.bnds[i].ID = cID;
     }
+
+    // write out the mesh if requested
+    status = aim_queryMeshes( aimInfo, Mesh_Format, ANALYSISIN, &pointwiseInstance->meshRef );
+    if (status > 0) {
+      mesh.meshData = NULL;
+      /*@-immediatetrans@*/
+      mesh.meshRef = &pointwiseInstance->meshRef;
+      /*@+immediatetrans@*/
+
+      status = aim_readBinaryUgrid(aimInfo, &mesh);
+      AIM_STATUS(aimInfo, status);
+
+      status = aim_writeMeshes(aimInfo, Mesh_Format, ANALYSISIN, &mesh);
+      AIM_STATUS(aimInfo, status);
+
+      status = aim_freeMeshData(mesh.meshData);
+      AIM_STATUS(aimInfo, status);
+      AIM_FREE(mesh.meshData);
+    }
+    else
+      AIM_STATUS(aimInfo, status);
+
 
     status = CAPS_SUCCESS;
 
@@ -3870,7 +3874,7 @@ int aimCalcOutput(void *instStore, /*@unused@*/ void *aimInfo,
 
     if (Volume_Mesh == index) {
 
-        status = aim_queryMeshes( aimInfo, Volume_Mesh, &pointwiseInstance->meshRef );
+        status = aim_queryMeshes( aimInfo, Volume_Mesh, ANALYSISOUT, &pointwiseInstance->meshRef );
         if (status > 0) {
 
 /*@-immediatetrans@*/
@@ -3882,7 +3886,7 @@ int aimCalcOutput(void *instStore, /*@unused@*/ void *aimInfo,
           AIM_STATUS(aimInfo, status);
 
           // Write out the desired mesh
-          status = aim_writeMeshes(aimInfo, Volume_Mesh, &mesh);
+          status = aim_writeMeshes(aimInfo, Volume_Mesh, ANALYSISOUT, &mesh);
           AIM_STATUS(aimInfo, status);
 
           status = aim_freeMeshData(mesh.meshData);

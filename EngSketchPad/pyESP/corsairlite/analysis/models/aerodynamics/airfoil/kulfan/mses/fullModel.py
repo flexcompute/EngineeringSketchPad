@@ -173,7 +173,8 @@ class fullModel(Model):
         kys = [vr.name for vr in self.inputs]
         trimKys = kys[0:len(args)]
         argDict = dict(zip(trimKys, args))
-        iptsDict = argDict | kwargs
+        # iptsDict = argDict | kwargs
+        iptsDict = {**argDict, **kwargs}
         ipts = [iptsDict[nm] for nm in kys]
     
         sips = self.sanitizeInputs(*ipts)

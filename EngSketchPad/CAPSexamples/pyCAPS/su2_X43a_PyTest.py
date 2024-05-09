@@ -38,13 +38,10 @@ myProblem.geometry.despmtr.tailLength = 150
 mySurfMesh = myProblem.analysis.create(aim = "egadsTessAIM",
                                        name = "tess")
 
-# Set project name so a mesh file is generated
-mySurfMesh.input.Proj_Name = "egadsTessMesh"
-
 # Set new EGADS body tessellation parameters
 mySurfMesh.input.Tess_Params = [0.5, 0.1, 20.0]
 
-# Set output grid format since a project name is being supplied - Tecplot file
+# Optional: Explicitly write mesh files
 mySurfMesh.input.Mesh_Format = "Tecplot"
 
 ##########################################
@@ -74,7 +71,7 @@ myAnalysis.input["Mesh"].link(myMesh.output["Volume_Mesh"])
 projectName = "x43a_Test"
 
 # Set SU2 Version
-myAnalysis.input.SU2_Version = "Blackbird"
+myAnalysis.input.SU2_Version = "Harrier"
 
 # Set project name
 myAnalysis.input.Proj_Name = projectName

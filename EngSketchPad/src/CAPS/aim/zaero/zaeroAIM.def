@@ -1,0 +1,10 @@
+LIBRARY zaeroAIM
+EXPORTS
+aimInitialize
+aimInputs
+aimUpdateState
+aimPreAnalysis
+aimPostAnalysis
+aimOutputs
+aimCalcOutput
+aimCleanup

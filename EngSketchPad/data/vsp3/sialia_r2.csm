@@ -1,0 +1,6 @@
+# sialia_r2
+# written by John Dannenhoffer
+
+UDPRIM    vsp3   filename $$/sialia_r2.vsp3
+
+END

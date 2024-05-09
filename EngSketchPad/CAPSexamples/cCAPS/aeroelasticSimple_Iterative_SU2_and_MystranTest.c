@@ -3,7 +3,7 @@
  *
  *             SU2, tetgen, mystran AIM tester
  *
- *      Copyright 2014-2022, Massachusetts Institute of Technology
+ *      Copyright 2014-2024, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -331,25 +331,25 @@ int main(int argc, char *argv[])
 
     // Load the AIMs
     exec   = 0;
-    status = caps_makeAnalysis(problemObj, "egadsTessAIM", NULL, NULL, NULL,
+    status = caps_makeAnalysis(problemObj, "egadsTessAIM", NULL, NULL, "Aerodynamic",
                                &exec, &surfMeshObj, &nErr, &errors);
     if (nErr != 0) printErrors(nErr, errors);
     if (status != CAPS_SUCCESS)  goto cleanup;
 
     exec   = 0;
-    status = caps_makeAnalysis(problemObj, "tetgenAIM", NULL, NULL, NULL,
+    status = caps_makeAnalysis(problemObj, "tetgenAIM", NULL, NULL, "Aerodynamic",
                                &exec, &meshObj, &nErr, &errors);
     if (nErr != 0) printErrors(nErr, errors);
     if (status != CAPS_SUCCESS)  goto cleanup;
 
     exec   = 0;
-    status = caps_makeAnalysis(problemObj, "su2AIM", NULL, NULL, NULL,
+    status = caps_makeAnalysis(problemObj, "su2AIM", NULL, NULL, "Aerodynamic",
                                &exec, &su2Obj, &nErr, &errors);
     if (nErr != 0) printErrors(nErr, errors);
     if (status != CAPS_SUCCESS) goto cleanup;
 
     exec   = 0;
-    status = caps_makeAnalysis(problemObj, "mystranAIM", NULL, NULL, NULL,
+    status = caps_makeAnalysis(problemObj, "mystranAIM", NULL, NULL, "Structure",
                                &exec, &mystranObj, &nErr, &errors);
     if (nErr != 0) printErrors(nErr, errors);
     if (status != CAPS_SUCCESS) goto cleanup;
@@ -458,6 +458,16 @@ int main(int argc, char *argv[])
 
     /* --------------------------------------------------------------- */
 
+    // Surface mesh parameters
+    tessParams[0] = 1.0;
+    tessParams[1] = 0.5;
+    tessParams[2] = 15;
+    status = setValueByName_Double(surfMeshObj, ANALYSISIN, "Tess_Params", 3, 1,
+                                   tessParams);
+    if (status != CAPS_SUCCESS) goto cleanup;
+
+    /* --------------------------------------------------------------- */
+
     // Set parameters for SU2
     status = setValueByName_String(su2Obj, ANALYSISIN, "Proj_Name", 1, 1,
                                    projectName);
@@ -554,9 +564,9 @@ int main(int argc, char *argv[])
                                     &intVal);
     if (status != CAPS_SUCCESS) goto cleanup;
 
-    tessParams[0] = 1.5;
-    tessParams[1] = 0.1;
-    tessParams[2] = 0.15;
+    tessParams[0] = 1.0;
+    tessParams[1] = 0.5;
+    tessParams[2] = 15;
     status = setValueByName_Double(mystranObj, ANALYSISIN, "Tess_Params", 3, 1,
                                    tessParams);
     if (status != CAPS_SUCCESS) goto cleanup;
@@ -610,7 +620,7 @@ int main(int argc, char *argv[])
 #ifdef DEBUG
         /* Dump out vertex sets for debugging */
         for (i = 0; i < 3; i++) {
-            sprintf(filename, "SU2_%d.vs", i);
+            snprintf(filename, 256, "SU2_%d.vs", i);
             status = caps_outputVertexSet( vertexSU2Obj[i], filename );
             if (status != CAPS_SUCCESS) goto cleanup;
         }
@@ -657,7 +667,7 @@ int main(int argc, char *argv[])
 #ifdef DEBUG
         /* Dump out vertex sets for debugging */
         for (i = 0; i < 3; i++) {
-            sprintf(filename, "mystran_%d.vs", i);
+            snprintf(filename, 256, "mystran_%d.vs", i);
             status = caps_outputVertexSet( vertexMystranObj[i], filename );
             if (status != CAPS_SUCCESS) goto cleanup;
         }

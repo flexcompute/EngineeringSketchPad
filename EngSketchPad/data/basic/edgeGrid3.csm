@@ -1,0 +1,20 @@
+# edgeGrid3
+# written by John Dannenhoffer
+
+DESPMTR   DX    1
+DESPMTR   DY    1
+DESPMTR   R     0.10
+
+BOX       0       0      0    DX    DY     0
+
+CYLINDER    DX/4  DY/2  -1    DX/4  DY/2  +1  R
+SUBTRACT
+
+CYLINDER  3*DX/4  DY/2  -1  3*DX/4  DY/2  +1  R
+ROTATEZ   90    3*DX/4  DY/2
+SUBTRACT
+
+SELECT    BODY
+ATTRIBUTE .tParams    "-.05;.05;20"
+
+END

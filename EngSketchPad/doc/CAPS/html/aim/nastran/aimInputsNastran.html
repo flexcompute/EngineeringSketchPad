@@ -95,35 +95,47 @@ $(function() {
 <li><b> Mesh_File_Format = "Small"</b> <br  />
  Formatting type for the mesh file. Options: "Small", "Large", "Free".</li>
 <li><b> Design_Variable = NULL</b> <br  />
- The design variable tuple is used to input design variable information for the model optimization, see <a class="el" href="feaDesignVariable.html">FEA DesignVariable</a> for additional details.</li>
+ The design variable tuple is used to input design variable information for the model optimization, see <a class="el" href="feaDesignVariable.html">FEA Design Variables</a> for additional details.</li>
 <li><b> Design_Variable_Relation = NULL</b> <br  />
  The design variable relation tuple is used to input design variable relation information for the model optimization, see <a class="el" href="feaDesignVariableRelation.html">FEA DesignVariableRelation</a> for additional details.</li>
 <li><b> Design_Constraint = NULL</b> <br  />
- The design constraint tuple is used to input design constraint information for the model optimization, see <a class="el" href="feaDesignConstraint.html">FEA DesignConstraint</a> for additional details.</li>
+ The design constraint tuple is used to input design constraint information for the model optimization, see <a class="el" href="feaDesignConstraint.html">FEA Design Constraints</a> for additional details.</li>
 <li><b> Design_Equation = NULL</b> <br  />
- The design equation tuple used to input information defining equations for use in design sensitivity, see <a class="el" href="feaDesignEquation.html">FEA DesignEquation</a> for additional details.</li>
+ The design equation tuple used to input information defining equations for use in design sensitivity, see <a class="el" href="feaDesignEquation.html">FEA Design Equations</a> for additional details.</li>
 <li><b> Design_Table = NULL</b> <br  />
- The design table tuple used to input table of real constants used in equations, see <a class="el" href="feaDesignTable.html">FEA TableConstant</a> for additional details.</li>
+ The design table tuple used to input table of real constants used in equations, see <a class="el" href="feaDesignTable.html">FEA Table Constants</a> for additional details.</li>
 <li><b> Design_Response = NULL</b> <br  />
- The design response tuple used to input design sensitivity response information, see <a class="el" href="feaDesignResponse.html">FEA DesignResponse</a> for additional details.</li>
+ The design response tuple used to input design sensitivity response information, see <a class="el" href="feaDesignResponse.html">FEA Design Responses</a> for additional details.</li>
 <li><b> Design_Equation_Response = NULL</b> <br  />
- The design equation response tuple used to input design sensitivity equation response information, see <a class="el" href="feaDesignEquationResponse.html">FEA DesignEquationResponse</a> for additional details.</li>
+ The design equation response tuple used to input design sensitivity equation response information, see <a class="el" href="feaDesignEquationResponse.html">FEA Design Equation Responses</a> for additional details.</li>
 <li><b> Design_Opt_Param = NULL</b> <br  />
- The design optimization parameter tuple used to input parameters used in design optimization.</li>
-<li><b> ObjectiveMinMax = "Max"</b> <br  />
+ The design optimization parameter tuple used to input parameters used in design optimization, see <a class="el" href="feaDesignOptParam.html">FEA Design Optimization Parameters</a> for additional details.</li>
+<li><b> Objective_Min_Max = "Max"</b> <br  />
  Maximize or minimize the design objective during an optimization. Option: "Max" or "Min".</li>
-<li><b> ObjectiveResponseType = "Weight"</b> <br  />
+<li><b> Objective_Response_Type = "Weight"</b> <br  />
+ Object response type (see Nastran manual).</li>
+<li><b> Mass_Increment = NULL </b> <br  />
  Object response type (see Nastran manual).</li>
 <li><b>VLM_Surface = NULL </b> <br  />
- Vortex lattice method tuple input. See <a class="el" href="vlmSurface.html">Vortex Lattice Surface</a> for additional details.</li>
+ Vortex lattice method tuple input, see <a class="el" href="vlmSurface.html">Vortex Lattice Surface</a> for additional details.</li>
 <li><b>VLM_Control = NULL </b> <br  />
- Vortex lattice method control surface tuple input. See <a class="el" href="vlmControl.html">Vortex Lattice Control Surface</a> for additional details.</li>
+ Vortex lattice method control surface tuple input, see <a class="el" href="vlmControl.html">Vortex Lattice Control Surface</a> for additional details.</li>
 <li><b> Support = NULL</b> <br  />
  Support tuple used to input support information for the model, see <a class="el" href="feaSupport.html">FEA Support</a> for additional details.</li>
 <li><b> Connect = NULL</b> <br  />
  Connect tuple used to define connection to be made in the, see <a class="el" href="feaConnection.html">FEA Connection</a> for additional details.</li>
 <li><b> Parameter = NULL</b> <br  />
  Parameter tuple used to define PARAM entries. Note, entries are output exactly as inputed, that is, if the PARAM entry requires an integer entry the user must input an integer!</li>
+<li><b> Model_Parameter = NULL</b> <br  />
+ Model_Parameter tuple used to define MDLPRM entries. Note, entries are output exactly as inputed, that is, if the MDLPRM entry requires an integer entry the user must input an integer!</li>
+<li><b> Aero_Reference = NULL</b> <br  />
+ A JSON dictionary used to define aerodynamic reference parameters. see <a class="el" href="feaAeroReference.html">FEA Aerodynamic References</a> for additional details</li>
+<li><b> VLM_Camber_Twist = True</b> <br  />
+ Apply camber &amp; twist to VLM sections. Option: True or False.</li>
+<li><b> Visualize_Flutter = False</b> <br  />
+ Determines if flutter cards are written for visualization. Option: True or False.</li>
+<li><b> Mesh_Morph = False</b> <br  />
+ Project previous surface mesh onto new geometry.</li>
 <li><b>Mesh = NULL</b> <br  />
  A Mesh link. </li>
 </ul>
@@ -131,7 +143,7 @@ $(function() {
 </div><!-- PageDoc -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Sat Jul 2 2022 10:12:44 for Nastran Analysis Interface Module (AIM) by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1
+Generated on Sat Apr 27 2024 16:51:37 for Nastran Analysis Interface Module (AIM) by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1
 </small></address>
 </body>
 </html>

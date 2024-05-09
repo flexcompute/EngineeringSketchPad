@@ -42,25 +42,25 @@ myProblem = pyCAPS.Problem(problemName=workDir,
                            outLevel=args.outLevel)
 
 # Load AIMs
-myProblem.analysis.create(aim = "egadsTessAIM",
-                          name= "egads",
-                          capsIntent = "CFD")
+myProblem.analysis.create(aim = "aflr4AIM",
+                          name= "aflr4",
+                          capsIntent = "Aerodynamic")
 
-myProblem.analysis.create(aim = "tetgenAIM",
-                          name= "tetgen",
-                          capsIntent = "CFD")
+myProblem.analysis.create(aim = "aflr3AIM",
+                          name= "aflr3",
+                          capsIntent = "Aerodynamic")
 
-myProblem.analysis["tetgen"].input["Surface_Mesh"].link(myProblem.analysis["egads"].output["Surface_Mesh"])
+myProblem.analysis["aflr3"].input["Surface_Mesh"].link(myProblem.analysis["aflr4"].output["Surface_Mesh"])
 
 myProblem.analysis.create(aim = "su2AIM",
                           name = "su2",
-                          capsIntent = "CFD")
+                          capsIntent = "Aerodynamic")
 
-myProblem.analysis["su2"].input["Mesh"].link(myProblem.analysis["tetgen"].output["Volume_Mesh"])
+myProblem.analysis["su2"].input["Mesh"].link(myProblem.analysis["aflr3"].output["Volume_Mesh"])
 
 myProblem.analysis.create(aim = "mystranAIM",
                           name = "mystran",
-                          capsIntent = "STRUCTURE",
+                          capsIntent = "Structure",
                           autoExec = True)
 
 # Create the data transfer connections
@@ -74,12 +74,12 @@ for boundName in boundNames:
     mystranVset = bound.vertexSet.create(myProblem.analysis["mystran"])
     
     # Create pressure data sets
-    su2_Pressure     = su2Vset.dataSet.create("Pressure", pyCAPS.fType.FieldOut)
-    mystran_Pressure = mystranVset.dataSet.create("Pressure", pyCAPS.fType.FieldIn)
+    su2_Pressure     = su2Vset.dataSet.create("Pressure")
+    mystran_Pressure = mystranVset.dataSet.create("Pressure")
 
     # Create displacement data sets
-    su2_Displacement     = su2Vset.dataSet.create("Displacement", pyCAPS.fType.FieldIn, init=[0,0,0])
-    mystran_Displacement = mystranVset.dataSet.create("Displacement", pyCAPS.fType.FieldOut)
+    su2_Displacement     = su2Vset.dataSet.create("Displacement", init=[0,0,0])
+    mystran_Displacement = mystranVset.dataSet.create("Displacement")
 
     # Link the data sets
     mystran_Pressure.link(su2_Pressure, "Conserve")
@@ -88,13 +88,14 @@ for boundName in boundNames:
     # Close the bound as complete (cannot create more vertex or data sets)
     bound.close()
 
-# Set inputs for EGADS
-myProblem.analysis["egads"].input.Tess_Params = [.6, 0.05, 20.0]
-myProblem.analysis["egads"].input.Edge_Point_Max = 4
+# Set inputs for aflr4
+myProblem.analysis["aflr4"].input.ff_cdfr = 1.4
+myProblem.analysis["aflr4"].input.max_scale = 0.75
+myProblem.analysis["aflr4"].input.min_scale = 0.1
+myProblem.analysis["aflr4"].input.Mesh_Length_Factor = 2
 
-# Set inputs for tetgen
-myProblem.analysis["tetgen"].input.Preserve_Surf_Mesh = True
-myProblem.analysis["tetgen"].input.Mesh_Quiet_Flag = True if args.outLevel == 0 else False
+# Set inputs for aflr3
+myProblem.analysis["aflr3"].input.Mesh_Quiet_Flag = True if args.outLevel == 0 else False
 
 # Set inputs for su2
 speedofSound = 340.0 # m/s
@@ -102,7 +103,7 @@ refVelocity = 100.0 # m/s
 refDensity = 1.2 # kg/m^3
 
 myProblem.analysis["su2"].input.Proj_Name             = projectName
-myProblem.analysis["su2"].input.SU2_Version           = "Blackbird"
+myProblem.analysis["su2"].input.SU2_Version           = "Harrier"
 myProblem.analysis["su2"].input.Mach                  = refVelocity/speedofSound
 myProblem.analysis["su2"].input.Equation_Type         = "compressible"
 myProblem.analysis["su2"].input.Num_Iter              = 3 # Way too few to converge the solver, but this is an example

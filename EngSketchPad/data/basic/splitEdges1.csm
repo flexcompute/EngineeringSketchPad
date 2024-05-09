@@ -1,0 +1,73 @@
+# splitEdges
+# written by John Dannenhoffer
+
+# inlet
+SKBEG     -1.0  -1.0   0.0
+   ARC    -1.0   1.0   0.0   2.0
+   ARC    -1.0  -1.0   0.0  -0.5
+SKEND
+SELECT EDGE 1
+   ATTRIBUTE splitLocs "0.16; 0.33; 0.5; 0.66; 0.83"
+SELECT EDGE 2
+   ATTRIBUTE splitLocs  0.5
+UDPRIM    $$/splitEdges
+
+# mid 1
+SKBEG     -1.0  -1.0   2.0
+   LINSEG  1.0  -1.0   2.0
+   LINSEG  1.0   1.0   2.0
+   LINSEG -1.0   1.0   2.0
+   LINSEG -1.0  -1.0   2.0
+SKEND
+SELECT EDGE
+   ATTRIBUTE splitLocs "0.50"
+UDPRIM    $$/splitEdges
+
+# mid 2
+UDPRIM    supell   rx 1.0   ry 1.0
+TRANSLATE   0.0   0.0   4.0
+ROTATEZ     -135 0 0
+SELECT EDGE
+   ATTRIBUTE splitLocs "0.50"
+UDPRIM    $$/splitEdges
+
+# mid 3
+SKBEG     -1.0   0.0   6.0
+   LINSEG  1.0  -1.0   6.0
+   LINSEG  1.0   1.0   6.0
+   LINSEG -1.0   0.0   6.0
+SKEND
+SELECT EDGE 1
+   ATTRIBUTE splitLocs "0.05; 0.50"
+SELECT EDGE 2
+   ATTRIBUTE splitLocs "0.50"
+SELECT EDGE 3
+   ATTRIBUTE splitLocs "0.50; 0.95"
+UDPRIM    $$/splitEdges
+REORDER   1
+
+#outlet
+SKBEG     -1.0  -1.0   8.0
+   LINSEG  1.0   0.0   8.0
+   LINSEG -1.0   1.0   8.0
+   LINSEG -1.0  -1.0   8.0
+SKEND
+SELECT EDGE 1
+   ATTRIBUTE splitLocs "0.50; 0.95"
+SELECT EDGE 2
+   ATTRIBUTE splitLocs "0.05; 0.50"
+SELECT EDGE 3
+   ATTRIBUTE splitLocs "0.50"
+UDPRIM    $$/splitEdges
+
+# remember the sections (so that they can be plotted at the end
+GROUP
+STORE     sections 0 1
+
+# create a blended surface
+BLEND
+
+# plot the sections too
+RESTORE   sections
+
+END

@@ -9,6 +9,7 @@ MARK
    PATBEG    ibody  nbody
       IMPORT transport2.stp  ibody
    PATEND
-COMBINE
+JOIN   0 1
+ELEVATE
 
 END

@@ -1,0 +1,39 @@
+# designX4
+# written by John Dannenhoffer
+
+DESPMTR   L         5.0
+DESPMTR   R         1.0
+DESPMTR   xA        1.0
+DESPMTR   yA        2.0
+DESPMTR   xB        4.0
+DESPMTR   yB        0.5
+
+# outer Body (cylinder)
+CYLINDER  0.0   0.0   0.0   L   0.0   0.0   R
+ROTATEX   90
+STORE     outer
+
+# inner Body (waffle)
+UDPARG    waffle    segments  "-1;0;     L+1;0;  \
+                                xA;-yA;  xA;yA;  \
+                                xA;-yA;  xB;yB;  \
+                                xA;+yA;  xB;yB"
+UDPRIM    waffle    depth  2*(R+1)
+TRANSLATE 0.0  0.0 -R-1
+STORE     inner
+
+# trim inner
+RESTORE   inner
+RESTORE   outer
+INTERSECT
+
+# scribe outer
+RESTORE   outer
+RESTORE   inner
+SUBTRACT
+EXTRACT   0
+
+# combine into BEM
+JOIN
+
+END

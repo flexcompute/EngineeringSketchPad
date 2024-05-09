@@ -115,9 +115,6 @@ myProblem.geometry.save("GenericShape", directory = workDir, extension = "egads"
 # Load aflr2 aim
 myMesh = myProblem.analysis.create(aim = "aflr2AIM", name="aflr2")
 
-# Set project name
-myMesh.input.Proj_Name = projectName
-
 myMesh.input.Mesh_Sizing = {"Airfoil"   : {"numEdgePoints" : 400},
                             "TunnelWall": {"numEdgePoints" : 50},
                             "InFlow"    : {"numEdgePoints" : 25},
@@ -127,7 +124,7 @@ myMesh.input.Mesh_Sizing = {"Airfoil"   : {"numEdgePoints" : 400},
 # Make quad/tri instead of just quads
 myMesh.input.Mesh_Gen_Input_String = "mquad=1 mpp=3"
 
-# Set output grid format since a project name is being supplied - Tecplot  file
+# Optional: Explicitly write mesh files
 myMesh.input.Mesh_Format = "Tecplot"
 
 # Set verbosity
@@ -143,7 +140,7 @@ su2 = myProblem.analysis.create(aim = "su2AIM",
 su2.input["Mesh"].link(myProblem.analysis["aflr2"].output["Area_Mesh"])
 
 # Set SU2 Version
-su2.input.SU2_Version = "Blackbird"
+su2.input.SU2_Version = "Harrier"
 
 # Set project name
 su2.input.Proj_Name = projectName

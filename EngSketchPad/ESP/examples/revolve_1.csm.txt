@@ -1,0 +1,43 @@
+# revolve_1
+# written by John Dannenhoffer
+
+# generate U-shaped SheetBody
+SKBEG      0  2  0
+   LINSEG  3  2  0
+   LINSEG  3  4  0
+   LINSEG  2  4  0
+   LINSEG  2  3  0
+   LINSEG  1  3  0
+   LINSEG  1  4  0
+   LINSEG  0  4  0
+   LINSEG  0  2  0
+SKEND
+
+# perform the REVOLVE around negative-x-axis (SolidBody)
+REVOLVE   0  0  0  -1  0  0  180
+ASSERT    @itype  3
+
+SELECT    FACE   @nbody 1     # iford=1 in red
+ATTRIBUTE _color $red
+SELECT    FACE   @nbody 2     # iford=2 in green
+ATTRIBUTE _color $green
+SELECT    FACE   @nbody 3     # iford=3 in blue
+ATTRIBUTE _color $blue
+SELECT    FACE   @nbody 4     # iford=4 in cyan
+ATTRIBUTE _color $cyan
+SELECT    FACE   @nbody 5     # iford=5 in magenta
+ATTRIBUTE _color $magenta
+SELECT    FACE   @nbody 6     # iford=6 in yellow
+ATTRIBUTE _color $yellow
+SELECT    FACE   @nbody 7     # iford=7 in lightred
+ATTRIBUTE _color $lred
+SELECT    FACE   @nbody 8     # iford=8 in lightgreen
+ATTRIBUTE _color $lgreen
+SELECT    FACE   @nbody 9     # iford=9 in lightblue
+ATTRIBUTE _color $lblue
+SELECT    FACE   @nbody 10    # iford=10 in red with grid
+ATTRIBUTE _color $red
+ATTRIBUTE _grd   $on
+
+END
+

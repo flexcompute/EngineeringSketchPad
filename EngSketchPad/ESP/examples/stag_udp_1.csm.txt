@@ -1,0 +1,19 @@
+# stag_udp_1
+# written by John Dannwnhoffer
+
+
+UDPARG    stag      rad1    0.10     # leading edge radius
+UDPARG    stag      beta1   30.0     # leading edge incidence    (deg)
+UDPARG    stag      gama1   10.0     # leading edge wedge angle  (deg)
+UDPARG    stag      rad2    0.05     # trailing edge radius
+UDPARG    stag      beta2  -40.0     # trailing edge incidence   (deg)
+UDPARG    stag      gama2    5.0     # trailing edge wedge angle (deg)
+UDPARG    stag      alfa   -30.0     # overall stagger           (deg)
+UDPARG    stag      xfrnt  0.333     # front control point       (x/c)
+UDPARG    stag      xrear  0.667     # rear  control point       (x/c)
+UDPRIM    stag
+
+SELECT    NODE
+ATTRIBUTE _viz  $on
+
+END

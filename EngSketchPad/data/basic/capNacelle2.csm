@@ -1,0 +1,63 @@
+# capNacelle2 - combined IML and OML
+# written by John Dannenhoffer
+
+# generate combined IML/OML
+SKBEG     3  -1   0
+   LINSEG 0  -1   0
+   LINSEG 0  -5/6 0
+   LINSEG 3  -5/6 0
+SKEND
+
+# half revolution (with type=outer and type=inner)
+REVOLVE   0  0  0  1  0  0  180
+SELECT    FACE  @nbody  3
+ATTRIBUTE type  $outer
+SELECT    FACE  @nbody  5
+ATTRIBUTE type  $inner
+
+# full Body
+RESTORE   .
+MIRROR    0  0  1
+JOIN
+
+# put type=exit attribute on Edges at x-max
+SELECT    EDGE  2.9 3.1 -10 +10 -10 +10
+ATTRIBUTE type  $exit
+
+# change type=exit to type=outer_exit and type=inner_exit
+UDPRIM    editAttr  filename <<
+   EDGE   HAS       type=exit
+   AND    ADJ2FACE  type=outer
+   SET              type=outer_exit
+   
+   EDGE   HAS       type=exit
+   AND    ADJ2FACE  type=inner
+   SET              type=inner_exit
+>>
+STORE     IMLOML
+
+# generate cap on right side
+RESTORE   IMLOML
+SELECT    EDGE  $type  $outer_exit
+EXTRACT   -@sellist
+ELEVATE
+
+RESTORE   IMLOML
+SELECT    EDGE  $type  $inner_exit
+EXTRACT   -@sellist
+ELEVATE
+
+SUBTRACT
+SELECT    FACE
+ATTRIBUTE _color $cyan
+STORE     CAP
+
+# combine into one SolidBody
+RESTORE   CAP
+RESTORE   IMLOML
+JOIN
+ELEVATE
+
+END
+
+

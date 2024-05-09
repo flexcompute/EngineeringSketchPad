@@ -1,0 +1,32 @@
+# union_4 (Sheet/Solid - does not work)
+# written by John Dannenhoffer
+
+# generate box SheetBody and cylinder SOlidBody
+BOX       0  0  0  3  2  1
+EXTRACT   0
+STORE     theBox
+
+CYLINDER  3/2  -1  1/2  3/2  3  1/2  1/4
+STORE     theCylinder
+
+# show outlines of theBox and theCylinder
+RESTORE   theBox
+ATTRIBUTE _name  $theBox
+ATTRIBUTE _viz   $off
+
+RESTORE   theCylinder
+ATTRIBUTE _name  $theCylinder
+ATTRIBUTE _viz   $off
+
+# perform the UNION (does not work - leaves theBox and theCylinder on the stack)
+RESTORE   theBox
+RESTORE   theCylinder
+UNION
+
+CATBEG    $wrong_types_on_stack
+   MESSAGE =========================
+   MESSAGE does_not_work_as_expected
+   MESSAGE =========================
+CATEND
+
+END

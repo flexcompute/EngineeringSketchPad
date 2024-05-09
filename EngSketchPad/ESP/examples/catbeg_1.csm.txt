@@ -1,0 +1,33 @@
+# catbeg_1
+# written by John Dannenhoffer
+
+# generate two disjoint Bodys
+BOX      -1 -1 -1  2  2  2        # BOX centered at origin
+
+SPHERE    4  0  0  1              # SPHERE centered at (4,0,0)
+
+# try to UNION them (which will fail, and raise did_not_create_body signal)
+# note that UNION leaves its input Bodys on the stack if it fails
+UNION
+
+# this statement is not executed since there is a pending signal
+MESSAGE   this_is_not_executed_1
+
+# this catch block is not executed since it does not match the current signal
+CATBEG    $face_not_found
+   MESSAGE   this_is_not_executed_2
+CATEND
+
+# this statement is not executed since there is a pending signal
+MESSAGE   this_is_not_executed_3
+
+# this catch block is executed since it does match the current signal
+# it also cancels the signal
+CATBEG    $did_not_create_body
+   POINT -4  0  0
+CATEND
+
+# since the signal was caught and is no longer active
+MESSAGE   this_is_executed_4
+
+END

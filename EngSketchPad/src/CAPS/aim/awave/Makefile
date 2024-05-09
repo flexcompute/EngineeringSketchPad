@@ -14,12 +14,15 @@ ODIR  = .
 TDIR  = $(ESP_ROOT)/bin
 endif
 
+DEFAULTS = $(LDIR)/awaveAIM.so
+
 ifdef FCOMP
-default:	$(LDIR)/awaveAIM.so $(TDIR)/awave
-else
-default:	$(LDIR)/awaveAIM.so
+ifdef AWAVE
+DEFAULTS += $(TDIR)/awave
+endif
 endif
 
+default:	$(DEFAULTS)
 
 $(LDIR)/awaveAIM.so:	$(ODIR)/awaveAIM.o $(LDIR)/libutils.a $(LDIR)/libaimUtil.a
 	$(CC) $(SOFLGS) -o $(LDIR)/awaveAIM.so $(ODIR)/awaveAIM.o \
@@ -41,9 +44,6 @@ endif
 
 lint:
 	$(LINT) -I../../include -I$(IDIR) -I../utils $(wildcard *.c) -uniondef -exportlocal -nullpass -evalorder
-
-cppcheck:
-	cppcheck -I../../include -I$(ESP_ROOT)/include -I../utils .
 
 clean:
 	-rm -f $(ODIR)/awave.o $(ODIR)/awaveAIM.o

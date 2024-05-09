@@ -10,7 +10,7 @@
  */
 
 /*
- * Copyright (C) 2011/2022  John F. Dannenhoffer, III (Syracuse University)
+ * Copyright (C) 2011/2024  John F. Dannenhoffer, III (Syracuse University)
  *
  * This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
@@ -28,21 +28,23 @@
  *     MA  02110-1301  USA
  */
 
-#define NUMUDPARGS       4
+#define NUMUDPARGS       6
 #define NUMUDPINPUTBODYS 1
 #include "udpUtilities.h"
 
 /* shorthands for accessing argument values and velocities */
 #define XLE(    IUDP)  ((double *) (udps[IUDP].arg[0].val))[0]
 #define THETALE(IUDP)  ((double *) (udps[IUDP].arg[1].val))[0]
-#define XTE(    IUDP)  ((double *) (udps[IUDP].arg[2].val))[0]
-#define THETATE(IUDP)  ((double *) (udps[IUDP].arg[3].val))[0]
+#define POWLE(  IUDP)  ((double *) (udps[IUDP].arg[2].val))[0]
+#define XTE(    IUDP)  ((double *) (udps[IUDP].arg[3].val))[0]
+#define THETATE(IUDP)  ((double *) (udps[IUDP].arg[4].val))[0]
+#define POWTE(  IUDP)  ((double *) (udps[IUDP].arg[5].val))[0]
 
 /* data about possible arguments */
-static char  *argNames[NUMUDPARGS] = {"xle",    "thetale", "xte",    "thetate", };
-static int    argTypes[NUMUDPARGS] = {ATTRREAL, ATTRREAL,  ATTRREAL, ATTRREAL,  };
-static int    argIdefs[NUMUDPARGS] = {0,        0,         0,        0,         };
-static double argDdefs[NUMUDPARGS] = {-100.,    0.,        100.,     0.,        };
+static char  *argNames[NUMUDPARGS] = {"xle",    "thetale", "powle",  "xte",    "thetate", "powte",  };
+static int    argTypes[NUMUDPARGS] = {ATTRREAL, ATTRREAL,  ATTRREAL, ATTRREAL, ATTRREAL,  ATTRREAL, };
+static int    argIdefs[NUMUDPARGS] = {0,        0,         0,        0,        0,         0,        };
+static double argDdefs[NUMUDPARGS] = {-100.,    0.,        1.,       100.,     0.,        1.,      };
 
 /* get utility routines: udpErrorStr, udpInitialize, udpReset, udpSet,
                          udpGet, udpVel, udpClean, udpMesh */
@@ -62,7 +64,6 @@ static double argDdefs[NUMUDPARGS] = {-100.,    0.,        100.,     0.,        
 extern int EG_isPlanar(const ego object);
 
 #define  NCP    11
-#define  EPS06  1.0e-6
 
 
 /*
@@ -83,11 +84,14 @@ udpExecute(ego  emodel,                 /* (in)  Model containing Body */
 
     int     oclass, mtype, mtype2, nchild, *senses, *senses2, *idata=NULL;
     int     ncp, nknot, periodic, i, nnode, nedge, nloop, nface, iedge;
+    double  bbox[6], scale, mat[12];
     double  data[18], trange[4], *tranges=NULL, tt, *rdata=NULL;
-    double  xyz_beg[3], xyz_end[3], frac, xyz_out[3], dx;
+    double  xyz_beg[3], xyz_end[3], frac, xyz_out[3], dyle, dyte;
+    char    *message=NULL;
     ego     context, eref, *ebodys, *echilds, eplane;
-    ego     *enodes, *eedges, *eloops=NULL, *efaces=NULL;
-    ego     *ebsplines=NULL, *newnodes=NULL, *newedges=NULL, eloop, eface;
+    ego     etemp1=NULL, etemp2=NULL, exform=NULL, *enodes, *eedges, *eloops=NULL, *efaces=NULL;
+    ego     *ebsplines=NULL, *newnodes=NULL, *newedges=NULL, eloop, eface, topRef, prev, next;
+    udp_T   *udps = *Udps;
 
 #ifdef GRAFIC
     float   xplot[1000], yplot[1000];
@@ -112,6 +116,9 @@ udpExecute(ego  emodel,                 /* (in)  Model containing Body */
     *nMesh  = 0;
     *string = NULL;
 
+    MALLOC(message, char, 100);
+    message[0] = '\0';
+
 #ifdef DEBUG
     printf("(input) emodel:\n");
     (void) ocsmPrintEgo(emodel);
@@ -128,11 +135,11 @@ udpExecute(ego  emodel,                 /* (in)  Model containing Body */
     CHECK_STATUS(EG_getTopology);
 
     if (oclass != MODEL) {
-        printf(" udpExecute: expecting a Model\n");
+        snprintf(message, 100, "expecting a Model");
         status = EGADS_NOTMODEL;
         goto cleanup;
     } else if (nchild != 1) {
-        printf(" udpExecute: expecting Model to contain one Body (not %d)\n", nchild);
+        snprintf(message, 100, "expecting Model to contain one Body (not %d)", nchild);
         status = EGADS_NOTBODY;
         goto cleanup;
     }
@@ -142,39 +149,59 @@ udpExecute(ego  emodel,                 /* (in)  Model containing Body */
     CHECK_STATUS(EG_getTopology);
 
     if (oclass != BODY || (mtype != FACEBODY && mtype != SHEETBODY)) {
-        printf(" udpExecute: expecting one SheetBody\n");
+        snprintf(message, 100, "expecting one SheetBody");
         status = EGADS_NOTBODY;
         goto cleanup;
     }
 
     /* check arguments */
     if        (udps[0].arg[0].size > 1) {
-        printf(" udpExecute: xle should be a scalar\n");
+        snprintf(message, 100, "xle should be a scalar");
         status  = EGADS_RANGERR;
         goto cleanup;
 
     } else if (udps[0].arg[1].size > 1) {
-        printf(" udpExecute: thetale should be a scalar\n");
+        snprintf(message, 100, "thetale should be a scalar");
         status  = EGADS_RANGERR;
         goto cleanup;
 
     } else if (THETALE(0) < -89 || THETALE(0) > 89) {
-        printf(" udpExecute: thetale = %f should be between -89 and +89\n", THETALE(0));
+        snprintf(message, 100, "thetale = %f should be between -89 and +89", THETALE(0));
         status = EGADS_RANGERR;
         goto cleanup;
 
     } else if (udps[0].arg[2].size > 1) {
-        printf(" udpExecute: xte should be a scalar\n");
-        status  = EGADS_RANGERR;
+        snprintf(message, 100, "powle should be a scalar");
+        status = EGADS_RANGERR;
+        goto cleanup;
+
+    } else if (POWLE(0) <= 0) {
+        snprintf(message, 100, " powle = %f should be positive", POWLE(0));
+        status = EGADS_RANGERR;
         goto cleanup;
 
     } else if (udps[0].arg[3].size > 1) {
-        printf(" udpExecute: thetate should be a scalar\n");
+        snprintf(message, 100, "xte should be a scalar");
+        status  = EGADS_RANGERR;
+        goto cleanup;
+
+    } else if (udps[0].arg[4].size > 1) {
+        snprintf(message, 100, "thetate should be a scalar");
         status  = EGADS_RANGERR;
         goto cleanup;
 
     } else if (THETATE(0) < -89 || THETATE(0) > 89) {
-        printf(" udpExecute: thetate = %f should be between -89 and +89\n", THETATE(0));
+        snprintf(message, 100, "thetate = %f should be between -89 and +89", THETATE(0));
+        status = EGADS_RANGERR;
+        goto cleanup;
+
+    } else if (udps[0].arg[5].size > 1) {
+        snprintf(message, 100, "powte should be a scalar");
+        status = EGADS_RANGERR;
+        goto cleanup;
+
+    } else if (XTE(0) <= XLE(0)) {
+        snprintf(message, 100, "powte = %f should be greater than powle = %f", POWTE(0), POWLE(0));
         status = EGADS_RANGERR;
         goto cleanup;
 
@@ -216,26 +243,59 @@ udpExecute(ego  emodel,                 /* (in)  Model containing Body */
     }
 #endif
 
-    /* get the Loop associated with the input Body */
-    status = EG_getBodyTopos(ebodys[0], NULL, LOOP,
+    /* get the bounding box associated with the input Body */
+    status = EG_getBoundingBox(ebodys[0], bbox);
+    CHECK_STATUS(EG_getBoundingBox);
+
+    /* if it does not have roughly constant z, stop */
+    if (fabs(bbox[5]-bbox[2]) > EPS06) {
+        snprintf(message, 100, "Face does not have constant z");
+        status = EGADS_RANGERR;
+        goto cleanup;
+    }
+
+    /* transform ebodys[0] so that it has unit chord and lleading edge is at x=z=0 */
+    scale = 1.0 / (bbox[3] - bbox[0]);
+
+    mat[ 0] = scale;  mat[ 1] = 0;      mat[ 2] = 0;      mat[ 3] = - bbox[0]            * scale;
+    mat[ 4] = 0;      mat[ 5] = scale;  mat[ 6] = 0;      mat[ 7] = -(bbox[1]+bbox[4])/2 * scale;
+    mat[ 8] = 0;      mat[ 9] = 0;      mat[10] = scale;  mat[11] = - bbox[2]            * scale;
+
+    status = EG_makeTransform(context, mat, &exform);
+    CHECK_STATUS(EG_makeTransform);
+
+    SPLINT_CHECK_FOR_NULL(exform);
+
+    status = EG_copyObject(ebodys[0], exform, &etemp1);
+    CHECK_STATUS(EG_copyObject);
+
+    SPLINT_CHECK_FOR_NULL(etemp1);
+
+    status = EG_deleteObject(exform);
+    CHECK_STATUS(EG_deleteObject);
+
+    exform = NULL;
+
+    /* get the Loop associated with the (modified) input Body */
+    status = EG_getBodyTopos(etemp1, NULL, LOOP,
                              &nloop, &eloops);
     CHECK_STATUS(EG_getBodyTopos);
     if (eloops == NULL) goto cleanup;   // needed for splint
 
     if (nloop != 1) {
-        printf(" udpExecute: Body has %d Loops (expecting only 1)\n", nloop);
+        snprintf(message, 100, "Body has %d Loops (expecting only 1)", nloop);
         status = EGADS_RANGERR;
         goto cleanup;
     }
 
-    /* get the Face associated with the input Body */
-    status = EG_getBodyTopos(ebodys[0], NULL, FACE,
+    /* get the Face associated with the (modified) input Body */
+    status = EG_getBodyTopos(etemp1, NULL, FACE,
                              &nface, &efaces);
     CHECK_STATUS(EG_getBodyTopos);
     if (efaces == NULL) goto cleanup;   // needed for splint
 
     if (nface != 1) {
-        printf(" udpExecute: Body has %d Faces (expecting only 1)\n", nface);
+        snprintf(message, 100, "Body has %d Faces (expecting only 1)", nface);
         status = EGADS_RANGERR;
         goto cleanup;
     }
@@ -244,18 +304,11 @@ udpExecute(ego  emodel,                 /* (in)  Model containing Body */
                             data, &nchild, &echilds, &senses);
     CHECK_STATUS(EG_getTopology);
 
-    status = EG_isPlanar(efaces[0]);
-    if (status == EGADS_OUTSIDE) {
-        printf(" udpExecute: Face is not planar\n");
-    } else {
-        CHECK_STATUS(EG_isPlanar);
-    }
-
     /* copy needs to be made so that emodel can be removed by OpenCSM */
     status = EG_copyObject(eref, NULL, &eplane);
     CHECK_STATUS(EG_copyObject);
 
-    /* get the BSplines associated the Edges in the Loop */
+    /* get the BSplines associated with the Edges in the Loop */
     status = EG_getTopology(eloops[0], &eref, &oclass, &mtype,
                             data, &nedge, &eedges, &senses);
     CHECK_STATUS(EG_getTopology);
@@ -269,6 +322,9 @@ udpExecute(ego  emodel,                 /* (in)  Model containing Body */
         status = EG_getTopology(eedges[iedge], &ebsplines[iedge], &oclass, &mtype,
                                 data, &nnode, &enodes, &senses2);
         CHECK_STATUS(EG_getTopology);
+
+        status = EG_getInfo(ebsplines[iedge], &oclass, &mtype, &topRef, &prev, &next);
+        CHECK_STATUS(EG_getInfo);
 
         tranges[2*iedge  ] = data[0];
         tranges[2*iedge+1] = data[1];
@@ -356,6 +412,19 @@ udpExecute(ego  emodel,                 /* (in)  Model containing Body */
     }
 #endif
 
+    /* compute the modified y at the leading and trailing edge */
+    if (XLE(0) > 0) {
+        dyle = - (XLE(0)-0) * tan(THETALE(0) * PI/180);
+    } else {
+        dyle = 0;
+    }
+
+    if (XTE(0) < 1) {
+        dyte = + (1-XTE(0)) * tan(THETATE(0) * PI/180);
+    } else {
+        dyte = 0;
+    }
+
     /* modify the control points forward of XLE and aft of XTE and
        create  the new Bspline curve */
     for (iedge = 0; iedge < nedge; iedge++) {
@@ -369,14 +438,13 @@ udpExecute(ego  emodel,                 /* (in)  Model containing Body */
         nknot   = idata[3];
 
         for (i = 0; i < ncp; i++) {
-            dx = rdata[nknot+3*i] - XLE(0);
-            if (dx < 0) {
-                rdata[nknot+3*i+1] += dx * tan(THETALE(0) * PI/180);
-            }
+            if        (rdata[nknot+3*i] < XLE(0)) {
+                frac = (XLE(0) - rdata[nknot+3*i]) / (XLE(0) - 0);
+                rdata[nknot+3*i+1] += dyle * pow(frac, POWLE(0));
 
-            dx = rdata[nknot+3*i] - XTE(0);
-            if (dx > 0) {
-                rdata[nknot+3*i+1] += dx * tan(THETATE(0) * PI/180);
+            } else if (rdata[nknot+3*i] > XTE(0)) {
+                frac = (rdata[nknot+3*i] - XTE(0)) / (1 - XTE(0));
+                rdata[nknot+3*i+1] += dyte * pow(frac, POWTE(0));
             }
         }
 
@@ -458,16 +526,36 @@ udpExecute(ego  emodel,                 /* (in)  Model containing Body */
 
     /* make the Body and copy attributes from original Body */
     status = EG_makeTopology(context, NULL, BODY, FACEBODY,
-                             NULL, 1, &eface, NULL, ebody);
+                             NULL, 1, &eface, NULL, &etemp2);
     CHECK_STATUS(EG_makeTopology);
-    if (*ebody == NULL) goto cleanup;   // needed for splint
+    if (etemp2 == NULL) goto cleanup;   // needed for splint
 
 #ifdef DEBUG
     printf("(output) *ebody:\n");
     (void) ocsmPrintEgo(*ebody);
 #endif
 
-    status = EG_attributeDup(ebodys[0], *ebody);
+    /* rescale the Body */
+    mat[ 0] = 1/scale;  mat[ 1] = 0;        mat[ 2] = 0;        mat[ 3] = + bbox[0];
+    mat[ 4] = 0;        mat[ 5] = 1/scale;  mat[ 6] = 0;        mat[ 7] = +(bbox[1]+bbox[4])/2;;
+    mat[ 8] = 0;        mat[ 9] = 0;        mat[10] = 1/scale;  mat[11] = + bbox[2];
+
+    status = EG_makeTransform(context, mat, &exform);
+    CHECK_STATUS(EG_makeTransform);
+
+    SPLINT_CHECK_FOR_NULL(exform);
+
+    status = EG_copyObject(etemp2, exform, ebody);
+    CHECK_STATUS(EG_copyObject);
+
+    SPLINT_CHECK_FOR_NULL(*ebody);
+
+    status = EG_deleteObject(exform);
+    CHECK_STATUS(EG_deleteObject);
+
+    exform = NULL;
+
+    status = EG_attributeDup(etemp1, *ebody);
     CHECK_STATUS(EG_attributeDup);
 
     /* there are no output values to set */
@@ -476,6 +564,10 @@ udpExecute(ego  emodel,                 /* (in)  Model containing Body */
     udps[numUdp].ebody = *ebody;
 
 cleanup:
+    if (etemp1    != NULL) EG_deleteObject(etemp1);
+    if (etemp2    != NULL) EG_deleteObject(etemp2);
+    if (exform    != NULL) EG_deleteObject(exform);
+
     if (eloops    != NULL) EG_free(eloops   );
     if (efaces    != NULL) EG_free(efaces   );
     if (rdata     != NULL) EG_free(rdata    );
@@ -485,8 +577,14 @@ cleanup:
     if (tranges   != NULL) EG_free(tranges  );
     if (ebsplines != NULL) EG_free(ebsplines);
 
-    if (status != EGADS_SUCCESS) {
+    if (strlen(message) > 0) {
+        *string = message;
+        printf("%s\n", message);
+    } else if (status != EGADS_SUCCESS) {
+        FREE(message);
         *string = udpErrorStr(status);
+    } else {
+        FREE(message);
     }
 
     return status;

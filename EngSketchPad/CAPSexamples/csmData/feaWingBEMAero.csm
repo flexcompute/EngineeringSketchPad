@@ -133,18 +133,19 @@ store     OML
 >>
     select body
         attribute capsDiscipline $Structure #FEA Analysis (2D elements)
-        attribute capsAIM        $nastranAIM;astrosAIM;mystranAIM;egadsTessAIM
+        attribute capsAIM        $nastranAIM;astrosAIM;mystranAIM;egadsTessAIM;aflr4AIM
+        attribute capsMeshLength croot
         attribute _name          $FEA
 
 # Point Connecting to Rib_Root to apply boundary conditions too
 point  croot/4 0 0
 attribute capsDiscipline    $Structure
-attribute capsGroup         $Rib_Root
+attribute capsGroup         $Rib_Root_Point
 attribute capsConnect       $Rib_Root
 attribute capsConstraint    $Rib_Root_Point
+attribute capsReference     $Rib_Root_Point
 attribute capsAIM $nastranAIM;astrosAIM;mystranAIM;egadsTessAIM
 attribute _name             $Rib_Root
-
 
 # Aero
    restore RightTip

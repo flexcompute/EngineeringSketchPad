@@ -1,0 +1,26 @@
+# testAdjoint4
+# written by John Dannenhoffer
+
+DIMENSION width     1  49
+DIMENSION height    1  49
+DIMENSION radius    1  47
+
+DESPMTR   width     2.0
+DESPMTR   height    1.0
+DESPMTR   radius    0.1
+
+PATBEG    isect     width.size
+   BOX       -width[isect]/2  -height[isect]/2  0  width[isect]  height[isect]  0  
+   ROTATEY   90
+   ROTATEX   isect*10-5
+   TRANSLATE isect-1   0   0
+PATEND
+BLEND
+
+PATBEG    ipost     radius.size
+   CYLINDER  ipost  -3  0  ipost  +3  0  radius[ipost]
+   ROTATEX   ipost*10
+   UNION
+PATEND
+
+END

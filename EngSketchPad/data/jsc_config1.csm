@@ -25,6 +25,8 @@ set       z2        0.5*zinner+0.5*zouter         z-locn of second support
 set       z3        0.2*zinner+0.8*zouter         z-locn of third  support
 
 # macro for naca0012 airfoil, clipped at about 99.5% chord
+# note: MACBEG/MACEND/RECALL has been deprecated and is included here for backward-compatability testing
+#       new .csm files should use UDPRIM instead
 macbeg 1
    skbeg     0.99459  -0.00077   0
       spline 0.99039  -0.00135   0
@@ -169,6 +171,8 @@ extrude   0         0         zouter-zinner+gap
 subtract
 
 # macro for hinge supports
+# note: MACBEG/MACEND/RECALL has been deprecated and is included here for backward-compatability testing
+#       new .csm files should use UDPRIM instead
 macbeg 2
    skbeg     xpivot-.5 ypivot-r2 -dz/2
       linseg xpivot    ypivot-r2 -dz/2
@@ -228,6 +232,8 @@ union
 
 # macro for store
 
+# note: MACBEG/MACEND/RECALL has been deprecated and is included here for backward-compatability testing
+#       new .csm files should use UDPRIM instead
 macbeg 3
    # body of store
    cone      -.08      0.00      0.00      0.00      0.00      0.00     0.020

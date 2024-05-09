@@ -25,6 +25,8 @@ mark
       cirarc   1.292893 4.292893   5.0      2.0      4.0        5.0
       linseg   4.0      4.0        5.0
    skend
+# note: LOFT has been deprecated and is included here for backward-compatability testing
+#       new .csm files should use RULE or BLEND instead
 loft 0
 
 end

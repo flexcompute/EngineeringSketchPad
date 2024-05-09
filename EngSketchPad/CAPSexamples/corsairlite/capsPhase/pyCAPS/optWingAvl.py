@@ -37,7 +37,7 @@ class AVLModel(Model):
 
         lam = runCases[0]['lam'].to('').magnitude
         AR = runCases[0]['AR'].to('').magnitude
-        print(lam, AR)
+        print("AVL run case - lam, AR:", lam, AR)
         self.problemObj.geometry.despmtr["wing:taper"].value=lam
         self.problemObj.geometry.despmtr["wing:aspect"].value=AR
 
@@ -62,10 +62,10 @@ class AVLModel(Model):
         de_dAR = (e_pos - e_neg) / 0.2
         dydx.append(de_dAR * units.dimensionless)
 
-        print(y, dydx)
+        print("y:", y)
+        print("dydx:", dydx)
         opt = [y, dydx]
 
-        print(opt)
         return opt
 
 myProblem = pyCAPS.Problem("ostrich",
@@ -109,13 +109,13 @@ ARmax    = Constant(name="ARmax",    value=10.0,  units="",       description="M
 E0       = Constant(name="E0",       value=10.0,  units="J",      description="Maximum elastic potential energy in rubber band")
 
 S      = Variable(name="S",     guess=1.0,  units="m^2", description="Wing area")
-AR     = Variable(name="AR",    guess=10.0, units="",    description="Wing aspect ratio")
+AR     = Variable(name="AR",    guess=9.0,  units="",    description="Wing aspect ratio")
 V      = Variable(name="V",     guess=1.0,  units="m/s", description="Airspeed")
 W      = Variable(name="W",     guess=10.0, units="N",   description="Aircraft weight")
 Wwing  = Variable(name="Wwing", guess=0.1,  units="N",   description="Wing weight")
 CL     = Variable(name="CL",    guess=1.0,  units="",    description="Lift Coefficient")
 CD     = Variable(name="CD",    guess=0.1,  units="",    description="Drag Coefficient")
-lam    = Variable(name="lam",   guess=0.4,  units="",    description="Wing taper ratio")
+lam    = Variable(name="lam",   guess=0.3,  units="",    description="Wing taper ratio")
 e      = Variable(name="e",     guess=1.0,  units="",    description="Oswald efficiency factor")
 
 objective = CD / CL
@@ -129,7 +129,7 @@ constraints += [
     Wwing == S * (S / AR)**0.5 * tau * rho_wing * g,
     W     >= Wfixed + nrock * Wrock + Wwing,
     AR    <= ARmax,
-    V     <= (E0 / (0.5 * W/g)) ** 0.5
+    V     <= (E0 / (0.5 * W/g)) ** 0.5,
 ]
 
 avlModel = AVLModel(myProblem)
@@ -137,9 +137,10 @@ constraints += [RuntimeConstraint([e], ['=='], [lam, AR], avlModel)]
 
 formulation = Formulation(objective, constraints)
 formulation.solverOptions.solver = 'cvxopt'
-formulation.solverOptions.relativeTolerance = 1e-4
 formulation.solverOptions.solveType = 'slcp'
 formulation.solverOptions.progressFilename = None
+formulation.solverOptions.stepMagnitudeTolerance=1e-7
+formulation.solverOptions.debugOutput = True
 rs = solve(formulation)
 
 rs_S   = rs.variables['S'].to('m^2').magnitude

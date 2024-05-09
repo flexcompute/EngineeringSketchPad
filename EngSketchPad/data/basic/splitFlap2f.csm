@@ -48,7 +48,7 @@ IFTHEN    thetau  GT  0
       SELECT    EDGE     2  2  7  1  1
       EXTRACT   -@sellist[1]
       JOIN
-   COMBINE
+   ELEVATE
    
    EXTRUDE   0  0  -span
    RESTORE   main
@@ -73,7 +73,7 @@ IFTHEN    thetal  LT  0
       SELECT    EDGE     2  2  10  1  1
       EXTRACT   -@sellist[1]
       JOIN
-   COMBINE
+   ELEVATE
 
    EXTRUDE   0  0  -span
    RESTORE   lower

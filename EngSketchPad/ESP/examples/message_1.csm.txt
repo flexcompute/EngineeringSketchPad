@@ -1,0 +1,20 @@
+# message_1
+# written by John Dannenhoffer
+
+# simple string message to MessageWindow (with space represented by _)
+MESSAGE   this_is_a_text_string
+
+# simple string message to MessageWindow (with space represented by @)
+MESSAGE   this@is@a@text@string  @
+
+# compound string message to MessageWindow
+SET       A  2
+MESSAGE   !$A=+A
+
+# simple string message to new "message.txt" file (with space represented by .)
+MESSAGE   this.is.a.text.string  .  message.txt  n
+
+# simple string message appended to "message.txt" file (with space represented by *)
+MESSAGE   this*is*a*text*string  *  message.txt  a
+
+END

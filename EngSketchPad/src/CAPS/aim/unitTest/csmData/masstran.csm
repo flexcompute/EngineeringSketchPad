@@ -5,17 +5,22 @@ CFGPMTR VIEW:plate 1
 CFGPMTR VIEW:box1 1
 CFGPMTR VIEW:box2 1
 CFGPMTR VIEW:box3 1
+CFGPMTR VIEW:point 1
+
+DESPMTR L 1
+DESPMTR W 1
+DESPMTR H 1
 
 IFTHEN VIEW:plate EQ 1
-    BOX       0.0  0.0  0.0  2.0  3.0  0.0
+    BOX       0.0  0.0  0.0  2.0*L  3.0*W  0.0
     ATTRIBUTE capsGroup $box1
     SELECT body @nbody
-        ATTRIBUTE capsAIM $masstranAIM
+        ATTRIBUTE capsAIM $masstranAIM;egadsTessAIM
         ATTRIBUTE _name   $plate
 ENDIF
 
 IFTHEN VIEW:box1 EQ 1
-    BOX       0.0  0.0  0.0  1.0  1.0  1.0
+    BOX       0.0  0.0  0.0  L  W  H
     ATTRIBUTE capsGroup $box1
     SELECT body @nbody
         ATTRIBUTE capsAIM $masstranAIM
@@ -23,21 +28,25 @@ IFTHEN VIEW:box1 EQ 1
 ENDIF
 
 IFTHEN VIEW:box2 EQ 1
-    BOX       2.0  0.0  0.0  1.0  1.0  1.0
-    ATTRIBUTE capsGroup $box1
+    BOX       2.0  0.0  0.0  L  W  H
     SELECT face 1
-        ATTRIBUTE capsIgnore $true # ignore one face in the mesh
+        ATTRIBUTE capsGroup $box1
+        #ATTRIBUTE capsIgnore $true # ignore one face in the mesh
+    SELECT face 2
+    SELECT add  4
+    SELECT add  5
+        ATTRIBUTE capsGroup $box1
     SELECT face 3
-        ATTRIBUTE .qParams $off
-    SELECT face 6
+    SELECT add  6
+        ATTRIBUTE capsGroup $box1
         ATTRIBUTE .qParams $off
     SELECT body @nbody
-        ATTRIBUTE capsAIM $masstranAIM
+        ATTRIBUTE capsAIM $masstranAIM;egadsTessAIM
         ATTRIBUTE _name   $partQuad
 ENDIF
 
 IFTHEN VIEW:box3 EQ 1
-    BOX       4.0  0.0  0.0  1.0  1.0  1.0
+    BOX       4.0  0.0  0.0  L  W  H
     SELECT face 1
         ATTRIBUTE capsGroup $box1
     SELECT face 2
@@ -51,5 +60,12 @@ IFTHEN VIEW:box3 EQ 1
     SELECT face 6
         ATTRIBUTE capsGroup $box2
     SELECT body @nbody
-        ATTRIBUTE capsAIM  $masstranAIM
+        ATTRIBUTE capsAIM  $masstranAIM;egadsTessAIM
+ENDIF
+
+IFTHEN VIEW:point EQ 1
+    POINT     L  W  H
+    SELECT body @nbody
+        ATTRIBUTE capsGroup $point
+        ATTRIBUTE capsAIM  $masstranAIM;egadsTessAIM
 ENDIF

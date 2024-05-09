@@ -1,0 +1,62 @@
+interface . all
+#udprim $/wing_uCRM_NACA
+#udprim $/wing_uCRM_kulfan3x3_bluntTE
+udprim $/wing_uCRM_kulfan3x3_sharpTE
+#udprim $/wing_uCRM_kulfan8x8_bluntTE
+#udprim $/wing_uCRM_kulfan8x8_sharpTE
+
+STORE wing
+RESTORE wing
+  ATTRIBUTE capsGroup $Skin_Wing
+  ATTRIBUTE capsMesh $Skin_Wing
+  ATTRIBUTE capsBound $Skin_Wing
+SELECT FACE 1
+  ATTRIBUTE capsBound $Wing:Skin_Top
+  ATTRIBUTE type $Skins
+SELECT FACE 2
+  ATTRIBUTE capsBound $Wing:Skin_Bot
+  ATTRIBUTE type $Skins
+IFTHEN Wing:sharpTE EQ 1
+    SELECT FACE 3 #23 # !!! face 3 for blend, 24 for rule in wing_uCRM_kulfan3x3_sharpTE
+      ATTRIBUTE capsConstraint $Wing:Centerline_Rib
+      ATTRIBUTE capsBound $Wing:Centerline_Rib
+      ATTRIBUTE capsGroup $Wing:Centerline_Rib
+      ATTRIBUTE type $Wing:Centerline_Rib
+    SELECT FACE 4 #24 # !!! face 4 for blend, 24 for rule in wing_uCRM_kulfan3x3_sharpTE
+      ATTRIBUTE capsConstraint $Wing_Tip
+      ATTRIBUTE capsBound $Wing_Tip
+      ATTRIBUTE capsMesh $Wing_Tip
+      ATTRIBUTE capsGroup $Wing_Tip # comment this out to combine Skin_Wing and Wing_Tip
+      ATTRIBUTE type $Wing_Tip
+ELSE
+    SELECT FACE 3
+      ATTRIBUTE capsConstraint $Wing_TE
+      ATTRIBUTE capsBound $Wing_TE
+      ATTRIBUTE capsMesh $Wing_TE
+      ATTRIBUTE capsGroup $Wing_TE
+    SELECT FACE 4
+      ATTRIBUTE capsConstraint $Wing:Centerline_Rib
+      ATTRIBUTE capsBound $Wing:Centerline_Rib
+      ATTRIBUTE capsGroup $Wing:Centerline_Rib
+      ATTRIBUTE type $Wing:Centerline_Rib
+    SELECT FACE 5
+      ATTRIBUTE capsConstraint $Wing_Tip
+      ATTRIBUTE capsBound $Wing_Tip
+      ATTRIBUTE capsMesh $Wing_Tip
+      ATTRIBUTE capsGroup $Wing_Tip
+      ATTRIBUTE type $Wing_Tip
+ENDIF
+#udprim editAttr filename <<
+#    edge adj2face capsBound=Wing:Skin_Top
+#    set  capsBound=Wing:Skin_Top
+#    node adj2face capsBound=Wing:Skin_Top
+#    set  capsBound=Wing:Skin_Top
+#
+#    edge adj2face capsBound=Wing:Skin_Bot
+#    set  capsBound=Wing:Skin_Bot
+#    node adj2face capsBound=Wing:Skin_Bot
+#    set  capsBound=Wing:Skin_Bot
+#>>
+STORE wing_OML
+
+end

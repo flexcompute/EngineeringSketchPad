@@ -63,8 +63,6 @@ for a in Alpha:
     # Set project name
     myProblem.analysis[analysisID].input.Proj_Name = analysisID
 
-    myProblem.analysis[analysisID].input.Mesh_ASCII_Flag = False
-
     # Set AoA number
     myProblem.analysis[analysisID].input.Alpha = a
 

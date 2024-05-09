@@ -1,5 +1,6 @@
 from corsairlite import units, Q_, _Unit
-from collections import OrderedDict, Mapping
+from collections import OrderedDict
+from collections.abc import Mapping
 import operator
 # from pandas import DataFrame
 import numpy as np

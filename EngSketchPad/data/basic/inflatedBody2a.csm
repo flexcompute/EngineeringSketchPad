@@ -5,6 +5,7 @@ DESPMTR   Rdish     30.0
 DESPMTR   Rring     1.00
 DESPMTR   Rspoke    0.05
 DESPMTR   dtheta    5.00
+CFGPMTR   Nsect     60
 CFGPMTR   Nring     8
 
 # make the revolved feature and extract a sector
@@ -51,10 +52,10 @@ ROTATEZ   -1.5
 UNION
 
 # extract a wedge of the configuration
-SKBEG      0            0           -20
-   LINSEG 40*cosd(-3)  40*sind(-3)  -20
-   LINSEG 40*cosd(+3)  40*sind(+3)  -20
-   LINSEG  0            0           -20
+SKBEG      0                    0                   -20
+   LINSEG 40*cosd(-180/Nsect)  40*sind(-180/Nsect)  -20
+   LINSEG 40*cosd(+180/Nsect)  40*sind(+180/Nsect)  -20
+   LINSEG  0                    0                   -20
 SKEND
 EXTRUDE   0  0  40
 INTERSECT

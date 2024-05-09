@@ -3,10 +3,6 @@
 !ERROR ESP_ROOT must be set -- Please fix the environment...
 !ENDIF
 #
-!IFNDEF AFLR
-!ERROR AFLR must be set -- Please fix the environment...
-!ENDIF
-#
 IDIR  = $(ESP_ROOT)\include
 !include $(IDIR)\$(ESP_ARCH).$(MSVC)
 LDIR  = $(ESP_ROOT)\lib
@@ -15,12 +11,23 @@ ODIR  = $(ESP_BLOC)\obj
 !ELSE
 ODIR  = .
 !ENDIF
+#
+!IFNDEF AFLR
+default:
+	@echo "Not compiling aflr2AIM: AFLR must be set -- Please fix the environment...."
+!ELSE
+!IFNDEF AFLR_ARCH
+default:
+	@echo "Not compiling aflr2AIM: AFLR_ARCH must be set -- Please fix the environment...."
+!ELSE
+default: $(LDIR)\aflr2AIM.dll
+!ENDIF
+!ENDIF
 
 AFLR2_LIB = AFLR.lib
 
-default: $(ODIR)\aflr2_version.exe $(LDIR)\aflr2AIM.dll
-
-$(LDIR)\aflr2AIM.dll:	aflr2AIM.def $(ODIR)\aflr2AIM.obj $(ODIR)\aflr2_Interface.obj \
+$(LDIR)\aflr2AIM.dll:	$(ODIR)\aflr2_version.exe \
+			aflr2AIM.def $(ODIR)\aflr2AIM.obj $(ODIR)\aflr2_Interface.obj \
 			$(LDIR)\utils.lib
 	-del $(LDIR)\aflr2AIM.dll
 	link /out:$(LDIR)\aflr2AIM.dll /dll /def:aflr2AIM.def \

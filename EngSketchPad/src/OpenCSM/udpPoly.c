@@ -10,7 +10,7 @@
  */
 
 /*
- * Copyright (C) 2019/2022  John F. Dannenhoffer, III (Syracuse University)
+ * Copyright (C) 2019/2024  John F. Dannenhoffer, III (Syracuse University)
  *
  * This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
@@ -31,9 +31,6 @@
 /* define necessary UDP arguments */
 #define MAXUDPINPUTBODYS 0
 #define NUMUDPARGS       1
-
-/* define tolerance for Node comparison */
-#define EPS06  1.0e-6
 
 /* set up the necessary structures (uses NUMUDPARGS) */
 #include "udpUtilities.h"
@@ -95,9 +92,10 @@ udpExecute(ego  context,                /* (in)  EGADS context */
 {
     int status = EGADS_SUCCESS;
 
-    int    i, senses[4], nnode, nedge, nface, oclass, mtype, nchild, *senses2;
-    double nodeval[24], trange[2], data[4];
-    ego    enodes[8], eedges[12], eloop, efaces[6], eshell, emodel, eref, *echilds;
+    int     i, senses[4], nnode, nedge, nface, oclass, mtype, nchild, *senses2;
+    double  nodeval[24], trange[2], data[4];
+    ego     enodes[8], eedges[12], eloop, efaces[6], eshell, emodel, eref, *echilds;
+    udp_T   *udps = *Udps;
 
     ROUTINE(udpExecute);
 

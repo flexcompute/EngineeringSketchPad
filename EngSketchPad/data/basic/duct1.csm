@@ -78,6 +78,9 @@ skend
 #now loft the duct sections together --- two options 0 (no smoothing, piecewise), 1 (smoothing)
 # blend
 # rule
+
+# note: LOFT has been deprecated and is included here for backward-compatability testing
+#       new .csm files should use RULE or BLEND instead
 loft 0
 
 #now output the original shape in egads and step formats

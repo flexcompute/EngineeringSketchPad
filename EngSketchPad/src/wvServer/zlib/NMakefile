@@ -1,6 +1,12 @@
 #
-!include ..\..\EGADS\include\$(ESP_ARCH).$(MSVC)
+!include $(ESP_ROOT)\include\$(ESP_ARCH).$(MSVC)
+SDIR = $(MAKEDIR)
 LDIR = $(ESP_ROOT)\lib
+!IFDEF ESP_BLOC
+ODIR = $(ESP_ROOT)\obj
+!ELSE
+ODIR = .
+!ENDIF
 
 DEFINE = /DNDEBUG /DWIN32 /D_CONSOLE /D_UNICODE /DUNICODE
 
@@ -8,6 +14,16 @@ OBJS =  adler32.obj gzclose.obj gzwrite.obj inftrees.obj compress.obj \
         infback.obj trees.obj crc32.obj	gzlib.obj inffast.obj uncompr.obj \
         deflate.obj gzread.obj inflate.obj zutil.obj
 
+!IFDEF ESP_BLOC
+default:	start $(LDIR)\z.lib end
+!ELSE
+default:	$(LDIR)\z.lib
+!ENDIF
+
+start:
+	cd $(ODIR)
+	xcopy $(SDIR)\*.c           /Q /Y
+	xcopy $(SDIR)\*.h           /Q /Y
 
 $(LDIR)\z.lib:	$(OBJS)
 	-del $(LDIR)\z.lib
@@ -18,8 +34,12 @@ $(OBJS):	crc32.h inffast.h inftrees.h deflate.h inffixed.h trees.h \
 .c.obj:
 	cl /c $(COPTS) $(DEFINE) /I. $<
 
-clean:
-	-del $(OBJS)
+end:
+	-del *.c *.h
+	cd $(SDIR)
 
-cleanall:
-	-del $(OBJS) $(LDIR)\z.lib
+clean:
+	-del $(LDIR)\z.lib
+	cd $(ODIR)
+	-del $(OBJS)
+	cd $(SDIR)

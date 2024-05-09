@@ -2,6 +2,9 @@
 
 // Miscellaneous related utility functions - Written by Dr. Ryan Durscher AFRL/RQVC
 
+#ifndef _AIM_UTILS_MISCUTILS_H_
+#define _AIM_UTILS_MISCUTILS_H_
+
 #include "stdarg.h"
 #include "meshTypes.h"  // Bring in mesh structures
 #include "capsTypes.h"  // Bring in CAPS types
@@ -54,39 +57,39 @@ int search_jsonDictionary(const char *stringToSearch, const char *keyWord,
 int string_toProgArgs(char *meshInputString, int *prog_argc, char ***prog_argv);
 
 // Convert a string to double
-int string_toDouble(const char *string, double *number);
+int string_toDouble(/*@null@*/ const char *string, double *number);
 
 // Convert a string tuple of double with data-units to double in units
-int string_toDoubleUnits(void *aimInfo, const char *string, const char *units, double *number);
+int string_toDoubleUnits(void *aimInfo, /*@null@*/ const char *string, const char *units, double *number);
 
 // Convert a string to double array
-int string_toDoubleArray(char *string, int arraySize, double numberArray[]);
+int string_toDoubleArray(/*@null@*/ char *string, int arraySize, double numberArray[]);
 
 // Convert a string tuple of array double with data-units to array double in units
-int string_toDoubleArrayUnits(void *aimInfo, const char *string,
+int string_toDoubleArrayUnits(void *aimInfo, /*@null@*/const char *string,
                               const char *units, int arraySize, double *numberArray);
 
 // Convert a string to an array of doubles
-int string_toDoubleDynamicArray(char *stringToSearch, int *arraySize,
+int string_toDoubleDynamicArray(/*@null@*/ char *stringToSearch, int *arraySize,
                                 double *numberArray[]);
 
 // Convert a string tuple of array double with data-units to array double in units
-int string_toDoubleDynamicArrayUnits(void *aimInfo, const char *string,
+int string_toDoubleDynamicArrayUnits(void *aimInfo, /*@null@*/ const char *string,
                                      const char *units, int *arraySize, double **numberArray);
 
 // Convert a string to an array of strings
-int string_toStringArray(char *stringToSearch, int arraySize,
+int string_toStringArray(/*@null@*/ char *stringToSearch, int arraySize,
                          char *stringArray[]);
 
 // Convert a string to an array of strings
-int string_toStringDynamicArray(char *stringToSearch, int *arraySize,
+int string_toStringDynamicArray(/*@null@*/ char *stringToSearch, int *arraySize,
                                 char **stringArray[]);
 
 // Convert a string to boolean
-int string_toBoolean(char *string, int *number);
+int string_toBoolean(/*@null@*/ char *string, int *number);
 
 // Convert a string to integer
-int string_toInteger(const char *string, int *number);
+int string_toInteger(/*@null@*/ const char *string, int *number);
 
 // Convert a string to integer array
 int string_toIntegerArray(char *stringToSearch, int arraySize,
@@ -106,6 +109,9 @@ char * string_removeQuotation(/*@null@*/ const char *string);
 // Force a string to upper case
 void string_toUpperCase ( char *sPtr );
 
+// Force a string to lower case
+void string_toLowerCase ( char *sPtr );
+
 // Create formatted string from format string and variadic string args
 // NUmber of variadic args determined by NULL sentinel or number of "%s" specifiers in format string
 // NOTE: Returning char * should be free'd after use
@@ -113,7 +119,7 @@ void string_toUpperCase ( char *sPtr );
 char * string_format(char *format, ...);
 
 // Return whether string `find` is in `array`
-int string_isInArray(char *find, int arraySize, char **array);
+int string_isInArray(const char *find, int arraySize, char *const* array);
 
 // The max x,y,z coordinates where P(3*i + 0) = x_i, P(3*i + 1) = y_i, and P(3*i + 2) = z_i
 void maxCoords(int sizeP, double *P, double *x, double *y, double *z);
@@ -143,14 +149,11 @@ double dot_DoubleVal(double a[], double b[]);
 // Distance between two points sqrt(dot(a-b,a-b))
 double dist_DoubleVal(double a[], double b[]);
 
-// Convert an integer to a string of a given field width and justifacation - Returning char * should be free'd after use
-/*@null@*/
-char * convert_integerToString(int integerVal, int fieldWidth, int leftOrRight);
+// Convert an integer to a string of a given field width and justifacation
+int convert_integerToString(int integerVal, int fieldWidth, int leftOrRight, char *stringVal);
 
 // Convert an double to a string (scientific notation is used depending on the fieldwidth and value) of a given field width
-//      - Returning char * should be free'd after use
-/*@null@*/
-char * convert_doubleToString(double doubleVal, int fieldWidth, int leftOrRight);
+int convert_doubleToString(double doubleVal, int fieldWidth, int leftOrRight, char *stringVal);
 
 // Factorizes in place the square linear system A using simple LU decomposition
 int factorLU(int n, double A[] );
@@ -171,8 +174,8 @@ int initiate_mapAttrToIndexStruct(mapAttrToIndexStruct *attrMap);
 int destroy_mapAttrToIndexStruct(mapAttrToIndexStruct *attrMap);
 
 // Make a copy of attribute map (attrMapIn)
-int copy_mapAttrToIndexStruct(mapAttrToIndexStruct *attrMapIn,
-                              mapAttrToIndexStruct *attrMapOut);
+int copy_mapAttrToIndexStruct(const mapAttrToIndexStruct *attrMapIn,
+                                    mapAttrToIndexStruct *attrMapOut);
 
 // Merge two attribute maps preserving the order (and name) of the first input map.
 int merge_mapAttrToIndexStruct(mapAttrToIndexStruct *attrMap1,
@@ -184,7 +187,7 @@ int get_mapAttrToIndexIndex(const mapAttrToIndexStruct *attrMap, const char *key
                             int *index);
 
 // Search a mapAttrToIndex structure for a given index and return the corresponding keyword
-int get_mapAttrToIndexKeyword(mapAttrToIndexStruct *attrMap, int index,
+int get_mapAttrToIndexKeyword(const mapAttrToIndexStruct *attrMap, int index,
                               const char **keyWord);
 
 // Set the index of a given keyword in a mapAttrToIndex structure
@@ -231,6 +234,9 @@ int retrieve_CAPSConnectLinkAttr(ego geomEntity, const char **string);
 // Retrieve the string following a capsResponse tag
 int retrieve_CAPSResponseAttr(ego geomEntity, const char **string);
 
+// Retrieve the string following a capsReference tag
+int retrieve_CAPSReferenceAttr(ego geomEntity, const char **string);
+
 // Retrieve the value following a capsDiscipline
 int retrieve_CAPSDisciplineAttr(ego geomEntity, const char **string);
 
@@ -273,13 +279,12 @@ int create_CAPSConnectAttrToIndexMap(int numBody, ego bodies[], int attrLevel,
 int create_CAPSResponseAttrToIndexMap(int numBody, ego bodies[], int attrLevel,
                                       mapAttrToIndexStruct *attrMap);
 
+// Create a mapping between unique capsReference attribute names and an index value
+int create_CAPSReferenceAttrToIndexMap(int numBody, ego bodies[], int attrLevel, mapAttrToIndexStruct *attrMap);
+
 // Create a mapping between unique capsMesh attribute names and an index value
 int create_CAPSMeshAttrToIndexMap(int numBody, ego bodies[], int attrLevel,
                                   mapAttrToIndexStruct *attrMap);
-
-// Check capsLength consistency in the bodies and return the value. No check is done to make sure ALL bodies have
-// a capsLength, just that if present it is consistent.
-int check_CAPSLength(int numBody, ego bodies[], const char **lengthString);
 
 // Check capsDiscipline consistency in the bodies and return the value.
 // All bodies must either have or not have a capsDiscipline.
@@ -295,3 +300,5 @@ int copy_intArray(int length, int *in, int *out[]);
 #ifdef __cplusplus
 }
 #endif
+
+#endif // _AIM_UTILS_MISCUTILS_H_

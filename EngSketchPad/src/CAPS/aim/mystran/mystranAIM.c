@@ -91,10 +91,11 @@
 #endif
 
 //#define DEBUG
+//#define WRITE_VONMISES_VTK
 
 enum aimInputs
 {
-  Proj_Name = 1,                 /* index is 1-based */
+  Proj_Name = 1,            /* index is 1-based */
   Tess_Params,
   Edge_Point_Min,
   Edge_Point_Max,
@@ -106,11 +107,23 @@ enum aimInputs
   Analysix,
   Analysis_Type,
   Support,
+  Mesh_Morph,
   Mesh,
   NUMINPUT = Mesh           /* Total number of inputs */
 };
 
-#define NUMOUTPUT  4
+enum aimOutputs
+{
+  EigenValue = 1,           /* index is 1-based */
+  EigenRadian,
+  EigenFrequency,
+  EigenGeneralMass,
+  Tmax,
+  T1max,
+  T2max,
+  T3max,
+  NUMOUTPUT = T3max            /* Total number of outputs */
+};
 
 
 typedef struct {
@@ -138,6 +151,8 @@ typedef struct {
     // Mesh holders
     int numMesh;
     meshStruct *feaMesh;
+
+    double Tmax, T1max, T2max, T3max;
 
 } aimStorage;
 
@@ -176,6 +191,11 @@ static int initiate_aimStorage(aimStorage *mystranInstance)
 
     status = initiate_feaProblemStruct(&mystranInstance->feaProblem);
     if (status != CAPS_SUCCESS) return status;
+
+    mystranInstance->Tmax = 0;
+    mystranInstance->T1max = 0;
+    mystranInstance->T2max = 0;
+    mystranInstance->T3max = 0;
 
     return CAPS_SUCCESS;
 }
@@ -229,6 +249,11 @@ static int destroy_aimStorage(aimStorage *mystranInstance)
     // NULL projetName
     mystranInstance->projectName = NULL;
 
+    mystranInstance->Tmax = 0;
+    mystranInstance->T1max = 0;
+    mystranInstance->T2max = 0;
+    mystranInstance->T3max = 0;
+
     return CAPS_SUCCESS;
 }
 
@@ -264,16 +289,16 @@ static int checkAndCreateMesh(void *aimInfo, aimStorage *mystranInstance)
 
   // retrieve or create the mesh from fea_createMesh
   status = aim_getValue(aimInfo, Tess_Params,    ANALYSISIN, &TessParams);
-  if (status != CAPS_SUCCESS) return status;
+  AIM_STATUS(aimInfo, status);
 
   status = aim_getValue(aimInfo, Edge_Point_Min, ANALYSISIN, &EdgePoint_Min);
-  if (status != CAPS_SUCCESS) return status;
+  AIM_STATUS(aimInfo, status);
 
   status = aim_getValue(aimInfo, Edge_Point_Max, ANALYSISIN, &EdgePoint_Max);
-  if (status != CAPS_SUCCESS) return status;
+  AIM_STATUS(aimInfo, status);
 
   status = aim_getValue(aimInfo, Quad_Mesh,      ANALYSISIN, &QuadMesh);
-  if (status != CAPS_SUCCESS) return status;
+  AIM_STATUS(aimInfo, status);
 
   if (TessParams != NULL) {
       tessParam[0] = TessParams->vals.reals[0];
@@ -304,13 +329,14 @@ static int checkAndCreateMesh(void *aimInfo, aimStorage *mystranInstance)
     return CAPS_BADVALUE;
   }
 
-  if (QuadMesh != NULL) quadMesh = QuadMesh->vals.integer;
+  if (QuadMesh != NULL) quadMesh = 2*QuadMesh->vals.integer;
 
   status = initiate_mapAttrToIndexStruct(&transferMap);
-  if (status != CAPS_SUCCESS) return status;
+  AIM_STATUS(aimInfo, status);
 
   status = initiate_mapAttrToIndexStruct(&connectMap);
-  if (status != CAPS_SUCCESS) return status;
+  AIM_STATUS(aimInfo, status);
+
 /*@-nullpass@*/
   status = fea_createMesh(aimInfo,
                           tessParam,
@@ -322,18 +348,15 @@ static int checkAndCreateMesh(void *aimInfo, aimStorage *mystranInstance)
                           &mystranInstance->loadMap,
                           &transferMap,
                           &connectMap,
-                          NULL,
+                          NULL, NULL,
                           &mystranInstance->numMesh,
                           &mystranInstance->feaMesh,
-                          &mystranInstance->feaProblem);
-/*@+nullpass@*/
-  if (status != CAPS_SUCCESS) return status;
+                          &mystranInstance->feaProblem );
+  AIM_STATUS(aimInfo, status);
 
-  status = destroy_mapAttrToIndexStruct(&transferMap);
-  if (status != CAPS_SUCCESS) return status;
-
-  status = destroy_mapAttrToIndexStruct(&connectMap);
-  if (status != CAPS_SUCCESS) return status;
+cleanup:
+  (void) destroy_mapAttrToIndexStruct(&transferMap);
+  (void) destroy_mapAttrToIndexStruct(&connectMap);
 
   return CAPS_SUCCESS;
 }
@@ -603,15 +626,27 @@ int aimInputs(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo,
          * Support tuple used to input support information for the model, see \ref feaSupport for additional details.
          */
 
+    } else if (index == Mesh_Morph) {
+        *ainame              = EG_strdup("Mesh_Morph");
+        defval->type         = Boolean;
+        defval->lfixed       = Fixed;
+        defval->vals.integer = (int) false;
+        defval->dim          = Scalar;
+        defval->nullVal      = NotNull;
+
+        /*! \page aimInputsMYSTRAN
+         * - <B> Mesh_Morph = False</B> <br>
+         * Project previous surface mesh onto new geometry.
+         */
+
     } else if (index == Mesh) {
         *ainame             = AIM_NAME(Mesh);
-        defval->type        = Pointer;
+        defval->type        = PointerMesh;
         defval->dim         = Vector;
         defval->lfixed      = Change;
-        defval->sfixed      = Change;
+        defval->sfixed      = Fixed;
         defval->vals.AIMptr = NULL;
         defval->nullVal     = IsNull;
-        AIM_STRDUP(defval->units, "meshStruct", aimInfo, status);
 
         /*! \page aimInputsMYSTRAN
          * - <B>Mesh = NULL</B> <br>
@@ -679,7 +714,8 @@ int aimUpdateState(void *instStore, void *aimInfo,
 
     // Set constraint properties
     if (aimInputs[Constraint-1].nullVal == NotNull) {
-        status = fea_getConstraint(aimInputs[Constraint-1].length,
+        status = fea_getConstraint(aimInfo,
+                                   aimInputs[Constraint-1].length,
                                    aimInputs[Constraint-1].vals.tuple,
                                    &mystranInstance->constraintMap,
                                    &mystranInstance->feaProblem);
@@ -697,7 +733,8 @@ int aimUpdateState(void *instStore, void *aimInfo,
 
     // Set load properties
     if (aimInputs[Load-1].nullVal == NotNull) {
-        status = fea_getLoad(aimInputs[Load-1].length,
+        status = fea_getLoad(aimInfo,
+                             aimInputs[Load-1].length,
                              aimInputs[Load-1].vals.tuple,
                              &mystranInstance->loadMap,
                              &mystranInstance->feaProblem);
@@ -706,7 +743,8 @@ int aimUpdateState(void *instStore, void *aimInfo,
 
     // Set analysis settings
     if (aimInputs[Analysix-1].nullVal == NotNull) {
-        status = fea_getAnalysis(aimInputs[Analysix-1].length,
+        status = fea_getAnalysis(aimInfo,
+                                 aimInputs[Analysix-1].length,
                                  aimInputs[Analysix-1].vals.tuple,
                                  &mystranInstance->feaProblem);
         AIM_STATUS(aimInfo, status); // It ok to not have an analysis tuple
@@ -745,6 +783,13 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
     mystranInstance = (const aimStorage *) instStore;
     AIM_NOTNULL(aimInputs, aimInfo, status);
 
+    if ( aimInputs[Mesh_Morph-1].vals.integer == (int) true &&
+         aimInputs[Mesh-1].nullVal == NotNull) { // If we are mighty morphing
+        // store the current mesh for future iterations
+        status = aim_storeMeshRef(aimInfo, (aimMeshRef *) aimInputs[Mesh-1].vals.AIMptr, NULL);
+        AIM_STATUS(aimInfo, status);
+    }
+
     if (mystranInstance->feaProblem.numLoad > 0) {
         AIM_ALLOC(feaLoad, mystranInstance->feaProblem.numLoad, feaLoadStruct, aimInfo, status);
         for (i = 0; i < mystranInstance->feaProblem.numLoad; i++) initiate_feaLoadStruct(&feaLoad[i]);
@@ -768,6 +813,8 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
                                mystranInstance->projectName,
                                1,
                                &mystranInstance->feaProblem.feaMesh,
+                               mystranInstance->feaProblem.numProperty,
+                               mystranInstance->feaProblem.feaProperty,
                                mystranInstance->feaProblem.feaFileFormat.gridFileType,
                                1.0);
     AIM_STATUS(aimInfo, status);
@@ -1053,8 +1100,7 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
         AIM_STATUS(aimInfo, status);
 
         // Free temporary constraint ID list
-        if (tempIntegerArray != NULL) EG_free(tempIntegerArray);
-        tempIntegerArray = NULL;
+        AIM_FREE(tempIntegerArray);
     }
 
     // Loads
@@ -1191,8 +1237,25 @@ int aimPostAnalysis(void *instStore, /*@unused@*/ void *aimInfo,
                     /*@unused@*/ int restart, /*@unused@*/ capsValue *inputs)
 {
   int  status;
+  int i;
+  size_t stringLength;
+  capsValue val, *analysisType;
   char *filename = NULL; // File to open
   char extF06[] = ".F06";
+
+  DOUBLE_19 *dataMatrix = NULL;
+  int numElement = 0;
+  int *elementIDs = NULL;
+  double *elemData = NULL;
+  int *n2a=NULL;
+
+  int numGridPoint;
+  double TT = 0, **dispMatrix = NULL;
+
+#ifdef WRITE_VONMISES_VTK
+  capsValue StrainVonMises, StressVonMises;
+#endif
+
   FILE *fp = NULL; // File pointer
   aimStorage *mystranInstance;
 
@@ -1202,11 +1265,11 @@ int aimPostAnalysis(void *instStore, /*@unused@*/ void *aimInfo,
   mystranInstance = (aimStorage *) instStore;
 
   // check that the mystran *.F06 file was created
-  filename = (char *) EG_alloc((strlen(mystranInstance->projectName) +
-                                strlen(extF06)+1)*sizeof(char));
-  if (filename == NULL) return EGADS_MALLOC;
+  stringLength = strlen(mystranInstance->projectName) + strlen(extF06)+1;
+  AIM_ALLOC(filename, stringLength, char, aimInfo, status);
 
-  sprintf(filename, "%s%s", mystranInstance->projectName, extF06);
+  // Open mystran *.F06 file
+  snprintf(filename, stringLength, "%s%s", mystranInstance->projectName, extF06);
 
   fp = aim_fopen(aimInfo, filename, "r");
   if (fp == NULL) {
@@ -1214,23 +1277,189 @@ int aimPostAnalysis(void *instStore, /*@unused@*/ void *aimInfo,
       status = CAPS_IOERR;
       goto cleanup;
   }
+
+  status = aim_getValue(aimInfo, Analysis_Type, ANALYSISIN, &analysisType);
+  AIM_STATUS(aimInfo, status);
+
+  // Static analysis - only
+  if (strcasecmp(analysisType->vals.string, "Static") == 0) {
+
+    status = aim_initValue(&val);
+    AIM_STATUS(aimInfo, status);
+
+    /* read stress */
+    status = mystran_readF06Stress(aimInfo, fp, 1, &numElement,
+                                  &dataMatrix);
+    AIM_STATUS(aimInfo, status);
+    AIM_NOTNULL(dataMatrix, aimInfo, status);
+
+    AIM_ALLOC(elementIDs, numElement, int, aimInfo, status);
+    AIM_ALLOC(elemData, numElement, double, aimInfo, status);
+
+    for (i = 0; i < numElement; i++) {
+      elementIDs[i] = (int)dataMatrix[i][0];
+      elemData[i] = dataMatrix[i][18];
+    }
+    AIM_FREE(dataMatrix);
+
+    status = mesh_gridAvg(aimInfo, &mystranInstance->feaProblem.feaMesh,
+                          numElement, elementIDs, 1, elemData,
+                          &val.vals.reals);
+    AIM_STATUS(aimInfo, status);
+
+    val.dim  = Vector;
+    val.type = Double;
+    val.nrow = mystranInstance->feaProblem.feaMesh.numNode;
+    val.ncol = 1;
+    val.length = val.nrow*val.ncol;
+
+#ifdef WRITE_VONMISES_VTK
+    StressVonMises = val;
+#endif
+
+    /* create the dynamic output */
+    status = aim_makeDynamicOutput(aimInfo, "StressVonMises_Grid", &val);
+    AIM_STATUS(aimInfo, status);
+
+    /* read strain */
+    status = mystran_readF06Strain(aimInfo, fp, 1, &numElement,
+                                   &dataMatrix);
+    AIM_STATUS(aimInfo, status);
+    AIM_NOTNULL(dataMatrix, aimInfo, status);
+
+    for (i = 0; i < numElement; i++) {
+      elementIDs[i] = (int)dataMatrix[i][0];
+      elemData[i] = dataMatrix[i][18];
+    }
+    AIM_FREE(dataMatrix);
+
+    status = mesh_gridAvg(aimInfo, &mystranInstance->feaProblem.feaMesh,
+                          numElement, elementIDs, 1, elemData,
+                          &val.vals.reals);
+    AIM_STATUS(aimInfo, status);
+
+    val.dim  = Vector;
+    val.type = Double;
+    val.nrow = mystranInstance->feaProblem.feaMesh.numNode;
+    val.ncol = 1;
+    val.length = val.nrow*val.ncol;
+
+#ifdef WRITE_VONMISES_VTK
+    StrainVonMises = val;
+#endif
+
+    /* create the dynamic output */
+    status = aim_makeDynamicOutput(aimInfo, "StrainVonMises_Grid", &val);
+    AIM_STATUS(aimInfo, status);
+
+    rewind(fp);
+    status = mystran_readF06Displacement(fp,
+                                         1,
+                                         &numGridPoint,
+                                         &dispMatrix);
+    AIM_STATUS(aimInfo, status);
+    AIM_NOTNULL(dispMatrix, aimInfo, status);
+
+    if (fp != NULL) fclose(fp);
+    fp = NULL;
+
+    val.dim  = Vector;
+    val.type = Double;
+    val.nrow = numGridPoint;
+    val.ncol = 1;
+    val.length = val.nrow*val.ncol;
+    AIM_ALLOC(val.vals.reals, numGridPoint, double, aimInfo, status);
+
+    status = mesh_nodeID2Array(&mystranInstance->feaProblem.feaMesh, &n2a);
+    AIM_STATUS(aimInfo, status);
+    AIM_NOTNULL(n2a, aimInfo, status);
+
+    mystranInstance->Tmax  = 0;
+    mystranInstance->T1max = 0;
+    mystranInstance->T2max = 0;
+    mystranInstance->T3max = 0;
+
+    // extract maximum displacements
+    for (i = 0; i < numGridPoint; i++) {
+      TT = sqrt(pow(dispMatrix[i][2], 2)
+              + pow(dispMatrix[i][3], 2)
+              + pow(dispMatrix[i][4], 2));
+
+      val.vals.reals[n2a[(int)dispMatrix[i][0]]] = TT;
+
+      if (fabs(dispMatrix[i][2]) > mystranInstance->T1max) mystranInstance->T1max = fabs(dispMatrix[i][2]);
+      if (fabs(dispMatrix[i][3]) > mystranInstance->T2max) mystranInstance->T2max = fabs(dispMatrix[i][3]);
+      if (fabs(dispMatrix[i][4]) > mystranInstance->T3max) mystranInstance->T3max = fabs(dispMatrix[i][4]);
+      if (TT                     > mystranInstance->Tmax ) mystranInstance->Tmax  = TT;
+    }
+
+    /* create the dynamic output */
+    status = aim_makeDynamicOutput(aimInfo, "Displacement", &val);
+    AIM_STATUS(aimInfo, status);
+
+
+#ifdef WRITE_VONMISES_VTK
+    status = mesh_writeVTK(aimInfo, "vonMises",
+                           1,
+                           &mystranInstance->feaProblem.feaMesh,
+                           1.0);
+    AIM_STATUS(aimInfo, status);
+
+    fp = aim_fopen(aimInfo, "vonMises.vtk","a");
+    if (fp == NULL) {
+        AIM_ERROR(aimInfo, "Cannot open Output file: vonMises.vtk!");
+        status = CAPS_IOERR;
+        goto cleanup;
+    }
+
+    fprintf(fp,"POINT_DATA %d\n", StressVonMises.length);
+    fprintf(fp,"SCALARS StressVonMises float 1\n");
+    fprintf(fp,"LOOKUP_TABLE default\n");
+    for (i = 0; i < StressVonMises.length; i++)
+      fprintf(fp,"%le\n", StressVonMises.vals.reals[i]);
+
+    fprintf(fp,"SCALARS StrainVonMises float 1\n");
+    fprintf(fp,"LOOKUP_TABLE default\n");
+    for (i = 0; i < StrainVonMises.length; i++)
+      fprintf(fp,"%le\n", StrainVonMises.vals.reals[i]);
+
+    fprintf(fp,"SCALARS disp float 3\n");
+    fprintf(fp,"LOOKUP_TABLE default\n");
+    for (i = 0; i < numGridPoint; i++)
+      fprintf(fp,"%le %le %le\n", dispMatrix[i][2], dispMatrix[i][3], dispMatrix[i][4]);
+#endif
+  }
+
   status = CAPS_SUCCESS;
 
 cleanup:
-    EG_free(filename); // Free filename allocation
+    AIM_FREE(filename); // Free filename allocation
     if (fp != NULL) fclose(fp);
+
+    if (dispMatrix != NULL) {
+      for (i = 0; i < numGridPoint; i++) {
+        AIM_FREE(dispMatrix[i]);
+      }
+      AIM_FREE(dispMatrix);
+    }
+
+    AIM_FREE(elementIDs);
+    AIM_FREE(dataMatrix);
+    AIM_FREE(elemData);
+    AIM_FREE(n2a);
 
     return status;
 }
 
 
 // Set MYSTRAN output variables
-int aimOutputs(/*@unused@*/ void *instStore, /*@unused@*/ void *aimStruc,
+int aimOutputs(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo,
                int index, char **aoname, capsValue *form)
 {
     /*! \page aimOutputsMYSTRAN AIM Outputs
      * The following list outlines the MYSTRAN outputs available through the AIM interface.
      */
+    int status = CAPS_SUCCESS;
 
 #ifdef DEBUG
     printf(" mystranAIM/aimOutputs index = %d!\n", index);
@@ -1241,38 +1470,62 @@ int aimOutputs(/*@unused@*/ void *instStore, /*@unused@*/ void *aimStruc,
      * - <B>EigenRadian</B> = List of Eigen-Values in terms of radians (\f$ \omega = \sqrt{\lambda}\f$ ) after a modal solve.
      * - <B>EigenFrequency</B> = List of Eigen-Values in terms of frequencies (\f$ f = \frac{\omega}{2\pi}\f$) after a modal solve.
      * - <B>EigenGeneralMass</B> = List of generalized masses for the Eigen-Values.
-     * .
+     * - <B>Tmax</B> = Maximum displacement.
+     * - <B>T1max</B> = Maximum x-coordinate displacement.
+     * - <B>T2max</B> = Maximum y-coordinate displacement.
+     * - <B>T3max</B> = Maximum z-coordinate displacement.
+     * - <B>StressVonMises_Grid</B> = Grid coordinate von Mises stress (dynamic output, only static analysis).
+     * - <B>StrainVonMises_Grid</B> = Grid coordinate von Mises strain (dynamic output, only static analysis).
+     * - <B>Displacement</B> = Grid coordinate displacement (dynamic output, only static analysis).
      */
 
-    if (index == 1) {
+    if (index == EigenValue) {
         *aoname = EG_strdup("EigenValue");
 
-    } else if (index == 2) {
+    } else if (index == EigenRadian) {
         *aoname = EG_strdup("EigenRadian");
 
-    } else if (index == 3) {
+    } else if (index == EigenFrequency) {
         *aoname = EG_strdup("EigenFrequency");
 
-    } else if (index == 4) {
+    } else if (index == EigenGeneralMass) {
         *aoname = EG_strdup("EigenGeneralMass");
+
+    } else if (index == Tmax) {
+        *aoname = EG_strdup("Tmax");
+
+    } else if (index == T1max) {
+        *aoname = EG_strdup("T1max");
+
+    } else if (index == T2max) {
+        *aoname = EG_strdup("T2max");
+
+    } else if (index == T3max) {
+        *aoname = EG_strdup("T3max");
+
+    } else {
+      AIM_ERROR(aimInfo, "Unknown output index %d", index);
+      status = CAPS_NOTIMPLEMENT;
     }
 
-    form->type       = Double;
-    form->units      = NULL;
-    form->lfixed     = Change;
-    form->sfixed     = Change;
-    form->vals.reals = NULL;
-    form->vals.real  = 0;
+    if (index >= EigenValue && index <= EigenGeneralMass) {
+      form->type   = Double;
+      form->dim    = Vector;
+      form->lfixed = Change;
+      form->sfixed = Change;
+    } else if (index >= Tmax && index <= T3max) {
+      form->type   = Double;
+      form->dim    = Scalar;
+      form->nrow   = 1;
+      form->ncol   = 1;
+      form->lfixed = Fixed;
+      form->sfixed = Fixed;
+    } else {
+      AIM_ERROR(aimInfo, "Unknown output index %d", index);
+      status = CAPS_NOTIMPLEMENT;
+    }
 
-    /*else if (index == 3) {
-     *aoname = EG_strdup("EigenVector");
-    	form->type          = Double;
-    	form->units         = NULL;
-    	form->lfixed        = Change;
-    	form->sfixed        = Change;
-    }*/
-
-    return CAPS_SUCCESS;
+    return status;
 }
 
 
@@ -1286,7 +1539,7 @@ int aimCalcOutput(void *instStore, /*@unused@*/ void *aimInfo, int index,
 
     char filename[PATH_MAX]; // File to open
     char extOU1[] = ".OU1";
-    char extF06[] = ".F06";
+    //char extF06[] = ".F06";
     FILE *fp = NULL; // File pointer
     aimStorage *mystranInstance;
 
@@ -1294,7 +1547,7 @@ int aimCalcOutput(void *instStore, /*@unused@*/ void *aimInfo, int index,
 
     mystranInstance = (aimStorage *) instStore;
 
-    if (index == 1 || index == 2 || index == 3) {
+    if (index == EigenValue || index == EigenRadian || index == EigenFrequency) {
         // Open mystran *.OU1 file - OUTPUT4
         snprintf(filename, PATH_MAX, "%s%s", mystranInstance->projectName, extOU1);
 
@@ -1309,14 +1562,14 @@ int aimCalcOutput(void *instStore, /*@unused@*/ void *aimInfo, int index,
 
         status = mystran_readOutput4Data(fp, "EIGEN_VA", val);
         if (status == CAPS_SUCCESS) {
-            if (index == 2) {
+            if (index == EigenRadian) {
                 for (i = 0; i < val->length; i++) {
                     val->vals.reals[i] = sqrt(val->vals.reals[i]);
                 }
                 //val->units = EG_strdup("rads/s");
             }
 
-            if (index == 3) {
+            if (index == EigenFrequency) {
                 for (i = 0; i < val->length; i++) {
                     val->vals.reals[i] = sqrt(val->vals.reals[i])/(2*pi);
                 }
@@ -1324,7 +1577,7 @@ int aimCalcOutput(void *instStore, /*@unused@*/ void *aimInfo, int index,
             }
         }
 
-    } else if (index == 4) {
+    } else if (index == EigenGeneralMass) {
         // Open mystran *.OU1 file - OUTPUT4
         snprintf(filename, PATH_MAX, "%s%s", mystranInstance->projectName, extOU1);
 
@@ -1339,30 +1592,28 @@ int aimCalcOutput(void *instStore, /*@unused@*/ void *aimInfo, int index,
         }
 
         status = mystran_readOutput4Data(fp, "GEN_MASS", val);
+        AIM_STATUS(aimInfo, status);
 
-    } else if (index == 5) {
+    } else if (index >= Tmax && index <= T3max) {
 
-        // Open mystran *.F06 file
-        snprintf(filename, PATH_MAX, "%s%s", mystranInstance->projectName, extF06);
+        val->dim  = Scalar;
+        val->nrow = 1;
+        val->ncol = 1;
+        val->length = val->nrow * val->ncol;
 
-        fp = aim_fopen(aimInfo, filename, "r");
-
-        if (fp == NULL) {
-#ifdef DEBUG
-            printf(" mystranAIM/aimCalcOutput Cannot open Output file!\n");
-#endif
-            AIM_ERROR(aimInfo, "Failed to open %s", filename);
-            return CAPS_IOERR;
+        if        (index == Tmax) {
+          val->vals.real = mystranInstance->Tmax;
+        } else if (index == T1max) {
+          val->vals.real = mystranInstance->T1max;
+        } else if (index == T2max) {
+          val->vals.real = mystranInstance->T2max;
+        } else if (index == T3max) {
+          val->vals.real = mystranInstance->T3max;
         }
-/*
-        double **dataMatrix = NULL;
-        int numEigenVector = 0;
-        int numGridPoint = 0;
-        status = mystran_readF06Eigen(fp, &numEigenVector, &numGridPoint,
-                                      &dataMatrix);
-*/
     }
 
+    status = CAPS_SUCCESS;
+cleanup:
     if (fp != NULL) fclose(fp);
 
     return status;
@@ -1499,6 +1750,7 @@ int aimTransfer(capsDiscr *discr, const char *dataName, int numPoint,
     int globalNodeID;
 
     // Filename stuff
+    size_t stringLength;
     char *filename = NULL;
     FILE *fp; // File pointer
 
@@ -1508,8 +1760,6 @@ int aimTransfer(capsDiscr *discr, const char *dataName, int numPoint,
 #endif
     mystranInstance = (aimStorage *) discr->instStore;
 
-    //capsGroupList = &storage[0]; // List of boundary ID (attrMap) in the transfer
-
     if (strcasecmp(dataName, "Displacement")    != 0 &&
            strncmp(dataName, "EigenVector", 11) != 0) {
 
@@ -1517,11 +1767,10 @@ int aimTransfer(capsDiscr *discr, const char *dataName, int numPoint,
         return CAPS_NOTFOUND;
     }
 
-    filename = (char *) EG_alloc((strlen(mystranInstance->projectName) +
-                                  strlen(extF06) + 1)*sizeof(char));
-    if (filename == NULL) return EGADS_MALLOC;
+    stringLength = strlen(mystranInstance->projectName) + strlen(extF06) + 1;
+    AIM_ALLOC(filename, stringLength, char, discr->aInfo, status);
 
-    sprintf(filename,"%s%s", mystranInstance->projectName, extF06);
+    snprintf(filename,stringLength,"%s%s", mystranInstance->projectName, extF06);
 
     // Open file
     fp = aim_fopen(discr->aInfo, filename, "r");
@@ -1531,8 +1780,7 @@ int aimTransfer(capsDiscr *discr, const char *dataName, int numPoint,
         return CAPS_IOERR;
     }
 
-    if (filename != NULL) EG_free(filename);
-    filename = NULL;
+    AIM_FREE(filename);
 
     if (strcasecmp(dataName, "Displacement") == 0) {
 

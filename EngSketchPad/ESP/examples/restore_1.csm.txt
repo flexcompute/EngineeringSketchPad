@@ -1,0 +1,24 @@
+# restore_1
+# written by John Dannenhoffer
+
+# store in (theBox,0) and remove from stack
+BOX      -4 -1 -1  2  2  2
+STORE     theBox
+
+# store in (rounded,0) and remove from stack
+CYLINDER -1  0  0  1  0  0  1
+STORE     rounded
+
+# store in (rounded,5) and remove from stack
+SPHERE    4  0  0  1
+STORE     rounded 5
+
+# bring back theBox (and color its Faces red)
+RESTORE   theBox
+SELECT    FACE
+ATTRIBUTE _color $red
+
+# bring back the (rounded,*) bodys
+RESTORE   rounded  -1
+
+END

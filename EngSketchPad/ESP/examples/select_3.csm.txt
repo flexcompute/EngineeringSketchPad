@@ -1,0 +1,29 @@
+# select_3
+# written by John Dannenhoffer
+
+# make a box (which automatically selects it)
+BOX       0  0  0  4  3  2
+ASSERT    @nface  6
+
+# make a cylinder (which automatically selects it)
+CYLINDER  0  5  1  4  5  1  1
+ASSERT    @nface  4
+
+# select the box
+SELECT    BODY  1
+ASSERT    @nface  6
+
+# turn the visibility of the Faces off
+SELECT    FACE
+ATTRIBUTE _viz  $off
+
+# select the Node closest to (4,3,2) and turn it on
+SELECT    NODE  4.0 3.0 2.0
+ATTRIBUTE _viz  $on
+
+END
+
+
+
+
+

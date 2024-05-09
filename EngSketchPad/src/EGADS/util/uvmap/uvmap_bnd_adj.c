@@ -7,7 +7,7 @@
  * Copyright 1994-2020, David L. Marcum
  */
 
-void uvmap_bnd_adj (
+INT_ uvmap_bnd_adj (
   INT_ icc,
   INT_ nbedge,
   INT_ nnodei,
@@ -56,6 +56,10 @@ void uvmap_bnd_adj (
   // adjust uv mapping on closed curve icc boundary-edge nodes for orthogonality
 
   ibedge = ibedge0;
+  if (ibedge == 0) {
+    uvmap_error_message ("*** ERROR 3516 : ibedge = 0 in uvmap_bnd_adj ***");
+    return 3516;
+  }
 
   i = 1;
 
@@ -225,5 +229,5 @@ void uvmap_bnd_adj (
     while (i <= nbedge && ibedge != ibedge0);
   }
 
-  return;
+  return 0;
 }

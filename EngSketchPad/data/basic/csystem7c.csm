@@ -1,0 +1,40 @@
+# csystem7c
+# written by John Dannenhoffer
+
+DESPMTR   nnozzle  9
+
+# nozzle
+MARK
+   UDPRIM    supell    rx 0.1   ry 0.1
+   ROTATEY   90
+
+   UDPRIM    supell    rx 0.1   ry 0.1
+   ROTATEY   90
+   TRANSLATE 1.0  0.0  0.0
+
+   UDPRIM    supell    rx 0.2   ry 0.2
+   ROTATEY   90
+   TRANSLATE 1.5  0.0  0.0
+BLEND
+STORE    nozzle
+
+# cylinder (with csystems)
+CYLINDER  0  0  0  10  0  0  1
+PATBEG    inozzle  nnozzle
+   SET       theta    45*(inozzle-1)
+   SELECT    BODY
+   CSYSTEM   !$nozl_+inozzle  "inozzle;0;0; 0;cosd(theta);sind(theta); 0;sind(theta);-cosd(theta)"
+PATEND
+
+# transform the cylinder
+ROTATEZ   45
+TRANSLATE 2  3  0
+
+# union in a nozzle at each csystem
+PATBEG    inozzle  nnozzle
+   RESTORE   nozzle
+   APPLYCSYS !$nozl_+inozzle
+   UNION
+PATEND
+
+END

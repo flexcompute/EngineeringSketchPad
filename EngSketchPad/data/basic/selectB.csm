@@ -1,0 +1,49 @@
+# selectB
+# written by John Dannenhoffer
+
+# first Body
+UDPRIM    supell   rx 2   ry 2
+EXTRUDE   0  0  -1
+SET       ibody1  @nbody
+
+# second Body
+UDPRIM    supell   rx 2   ry 2
+ROTATEZ   90
+EXTRUDE   0  0  +1
+
+dump selectB.egads 0 1
+
+# select Faces in second Body that match those in the first Body
+SELECT    face  -1  ibody1
+   ATTRIBUTE _color $cyan
+ASSERT    @seltype       2
+ASSERT    @sellist.size  1
+
+SELECT    not
+   ATTRIBUTE _color $magenta
+ASSERT    @seltype       2
+ASSERT    @sellist.size  5
+
+# select Edges in second Body that match those in the first Body
+SELECT    edge  -1  ibody1
+   ATTRIBUTE _color $cyan
+ASSERT    @seltype       1
+ASSERT    @sellist.size  4
+
+SELECT    not
+   ATTRIBUTE _color $magenta
+ASSERT    @seltype       1
+ASSERT    @sellist.size  8
+
+# select Nodes in second Body that match those in the first Body
+SELECT    node  -1  ibody1
+   ATTRIBUTE _color $cyan
+ASSERT    @seltype       0
+ASSERT    @sellist.size  4
+
+SELECT    not
+   ATTRIBUTE _color $magenta
+ASSERT   @seltype        0
+ASSERT   @sellist.size   4
+
+END

@@ -1,7 +1,7 @@
 #       Makefile for OpenCSM
 #
 ifndef ESP_ROOT
-$(error ESP_ROOT must be set -- Please fix the environment...)
+   $(error ESP_ROOT must be set -- Please fix the environment...)
 endif
 
 IDIR  = $(ESP_ROOT)/include
@@ -9,9 +9,9 @@ include $(IDIR)/$(ESP_ARCH)
 LDIR  = $(ESP_ROOT)/lib
 BDIR  = $(ESP_ROOT)/bin
 ifdef ESP_BLOC
-ODIR  = $(ESP_BLOC)/obj
+   ODIR  = $(ESP_BLOC)/obj
 else
-ODIR  = .
+   ODIR  = .
 endif
 
 BINLIST =	$(BDIR)/serveCSM \
@@ -21,51 +21,64 @@ LIBLIST =	$(LDIR)/$(OSHLIB) \
 		$(LDIR)/bezier.so \
 		$(LDIR)/biconvex.so \
 		$(LDIR)/box.so \
+		$(LDIR)/bspline.so \
 		$(LDIR)/catmull.so \
 		$(LDIR)/compare.so \
 		$(LDIR)/createBEM.so \
 		$(LDIR)/createPoly.so \
 		$(LDIR)/csm.so \
+		$(LDIR)/deform.so \
 		$(LDIR)/droop.so \
+		$(LDIR)/dumpPmtrs.so \
 		$(LDIR)/editAttr.so \
 		$(LDIR)/ellipse.so \
+		$(LDIR)/eqn2body.so \
 		$(LDIR)/fitcurve.so \
-		$(LDIR)/freeform.so \
 		$(LDIR)/flend.so \
+		$(LDIR)/freeform.so \
 		$(LDIR)/ganged.so \
 		$(LDIR)/guide.so \
-		$(LDIR)/matchBodys.so \
-		$(LDIR)/nacelle.so \
-		$(LDIR)/nuscale.so \
 		$(LDIR)/hex.so \
 		$(LDIR)/import.so \
 		$(LDIR)/kulfan.so \
+		$(LDIR)/linalg.so \
+		$(LDIR)/matchBodys.so \
+		$(LDIR)/mechanism.so \
 		$(LDIR)/naca.so \
+		$(LDIR)/naca6mc.so \
+		$(LDIR)/nacelle.so \
 		$(LDIR)/nurbbody.so \
+		$(LDIR)/nuscale.so \
+		$(LDIR)/offset.so \
 		$(LDIR)/parabaloid.so \
 		$(LDIR)/parsec.so \
 		$(LDIR)/pod.so \
 		$(LDIR)/poly.so \
-		$(LDIR)/prop.so \
 		$(LDIR)/printBbox.so \
 		$(LDIR)/printBrep.so \
 		$(LDIR)/printEgo.so \
-		$(LDIR)/shadow.so \
+		$(LDIR)/prop.so \
 		$(LDIR)/radwaf.so \
 		$(LDIR)/sample.so \
 		$(LDIR)/sew.so \
-		$(LDIR)/stag.so \
+		$(LDIR)/shadow.so \
 		$(LDIR)/slices.so \
+		$(LDIR)/stag.so \
 		$(LDIR)/stiffener.so \
 		$(LDIR)/supell.so \
+		$(LDIR)/tester1.so \
+		$(LDIR)/tester2.so \
+		$(LDIR)/vsp3.so \
 		$(LDIR)/waffle.so \
+		$(LDIR)/warp.so \
 		$(LDIR)/PDT2.so
 LIBFLIST =	$(LDIR)/naca456.so
 TIMLIST  =	$(LDIR)/ereped.so \
 		$(LDIR)/mitten.so \
 		$(LDIR)/plotter.so \
 		$(LDIR)/plugs.so \
-		$(LDIR)/slugs.so
+		$(LDIR)/slugs.so \
+		$(LDIR)/vspSetup.so
 INCLIST =	$(IDIR)/OpenCSM.h \
 		$(IDIR)/common.h \
 		$(IDIR)/udp.h \
@@ -75,17 +88,10 @@ INCLIST =	$(IDIR)/OpenCSM.h \
 		$(IDIR)/udpUtilities.h \
 		$(IDIR)/udpUtilities.c
 
-#Adding the rpath is needed when compiling with Python
-ifdef PYTHONINC
-TIMLIST    += $(LDIR)/pyscript.so
-PYTHONLPATH = $(filter -L%,$(PYTHONLIB))
-PYTHONRPATH = $(PYTHONLPATH:-L%=-Wl,-rpath %)
-endif
-
 ifdef FCOMP
-default:	$(BINLIST) $(LIBLIST) $(LIBFLIST) $(TIMLIST) includes
+   default:	$(BINLIST) $(LIBLIST) $(LIBFLIST) $(TIMLIST) includes
 else
-default:	$(BINLIST) $(LIBLIST)             $(TIMLIST) includes
+   default:	$(BINLIST) $(LIBLIST)             $(TIMLIST) includes
 endif
 
 #
@@ -94,19 +100,19 @@ endif
 $(BDIR)/serveCSM:	$(ODIR)/serveCSM.o $(LDIR)/$(OSHLIB)
 	$(CXX) -o $(BDIR)/serveCSM $(ODIR)/serveCSM.o -L$(LDIR) -locsm -lwsserver -legads -ldl $(RPATH)
 
-$(ODIR)/serveCSM.o:	serveCSM.c OpenCSM.h common.h
+$(ODIR)/serveCSM.o:	serveCSM.c OpenCSM.h udp.h egg.h $(IDIR)/emp.h $(IDIR)/wsserver.h
 	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I. serveCSM.c -o $(ODIR)/serveCSM.o
 
 $(BDIR)/serveESP:	$(ODIR)/serveESP.o $(LDIR)/$(OSHLIB)
 	$(CXX) -o $(BDIR)/serveESP $(ODIR)/serveESP.o -L$(LDIR) -locsm -lwsserver -legads -ldl $(RPATH)
 
-$(ODIR)/serveESP.o:	serveESP.c OpenCSM.h common.h
+$(ODIR)/serveESP.o:	serveESP.c OpenCSM.h $(IDIR)/emp.h udp.h esp.h egg.h tim.h
 	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I. serveESP.c -o $(ODIR)/serveESP.o
 
 $(BDIR)/sensCSM:	$(ODIR)/sensCSM.o $(LDIR)/$(OSHLIB)
 	$(CC) -o $(BDIR)/sensCSM $(ODIR)/sensCSM.o -L$(LDIR) -locsm -legads $(RPATH) -lm
 
-$(ODIR)/sensCSM.o:	sensCSM.c OpenCSM.h common.h
+$(ODIR)/sensCSM.o:	sensCSM.c OpenCSM.h udp.h
 	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I. sensCSM.c -o $(ODIR)/sensCSM.o
 
 #
@@ -115,12 +121,12 @@ $(ODIR)/sensCSM.o:	sensCSM.c OpenCSM.h common.h
 $(LDIR)/libocsm.so:	$(ODIR)/OpenCSM.o $(ODIR)/udp.o $(ODIR)/tim.o
 	touch $(LDIR)/libocsm.so
 	rm $(LDIR)/libocsm.so
-	$(CC) -shared -Wl,-no-undefined -o $(LDIR)/libocsm.so $(ODIR)/OpenCSM.o $(ODIR)/udp.o $(ODIR)/tim.o -L$(LDIR) -legads -lwsserver -ldl -lm
+	$(CC) $(SOFLGS) -o $(LDIR)/libocsm.so $(ODIR)/OpenCSM.o $(ODIR)/udp.o $(ODIR)/tim.o -L$(LDIR) -legads -lwsserver -ldl $(RPATH) -lm
 
 $(LDIR)/libocsm.dylib:	$(ODIR)/OpenCSM.o $(ODIR)/udp.o $(ODIR)/tim.o
 	touch $(LDIR)/libocsm.dylib
 	rm $(LDIR)/libocsm.dylib
-	$(CC) -dynamiclib -o $(LDIR)/libocsm.dylib $(ODIR)/OpenCSM.o $(ODIR)/udp.o $(ODIR)/tim.o -L$(LDIR) -legads -lwsserver -ldl $(RPATH) -undefined error -install_name '@rpath/libocsm.dylib' -compatibility_version $(EGREV) -current_version $(EGREV)
+	$(CC) -dynamiclib -o $(LDIR)/libocsm.dylib $(ODIR)/OpenCSM.o $(ODIR)/udp.o $(ODIR)/tim.o -L$(LDIR) -legads -lwsserver -ldl $(RPATH) -install_name '@rpath/libocsm.dylib' -compatibility_version $(EGREV) -current_version $(EGREV)
 
 # CYGWIN
 $(LDIR)/libocsm.dll:	$(ODIR)/OpenCSM.o $(ODIR)/udp.o $(ODIR)/tim.o
@@ -130,13 +136,13 @@ $(LDIR)/libocsm.dll:	$(ODIR)/OpenCSM.o $(ODIR)/udp.o $(ODIR)/tim.o
 	rm $(LDIR)/libocsm.dll.a
 	$(CC) -shared -o $(LDIR)/libocsm.dll -Wl,--out-implib,$(LDIR)/libocsm.dll.a $(ODIR)/OpenCSM.o $(ODIR)/udp.o $(ODIR)/tim.o -L$(LDIR) -legads -lwsserver -ldl $(CPPSLB)
 
-$(ODIR)/OpenCSM.o:	OpenCSM.c OpenCSM.h common.h
+$(ODIR)/OpenCSM.o:	OpenCSM.c OpenCSM.h udp.h egg.h $(IDIR)/egads_dot.h $(IDIR)/egadsSplineVels.h
 	$(CC) -c $(OCOPT) $(DEFINE) -I$(IDIR) -I. OpenCSM.c -o $(ODIR)/OpenCSM.o
 
-$(ODIR)/udp.o:	udp.c
+$(ODIR)/udp.o:	udp.c $(IDIR)/egads.h
 	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I. udp.c -o $(ODIR)/udp.o
 
-$(ODIR)/tim.o:	tim.c
+$(ODIR)/tim.o:	tim.c OpenCSM.h tim.h $(IDIR)/emp.h $(IDIR)/wsserver.h
 	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I. tim.c -o $(ODIR)/tim.o
 
 #
@@ -150,6 +156,7 @@ $(LDIR)/bezier.so:	$(ODIR)/udpBezier.o $(LDIR)/$(OSHLIB)
 $(ODIR)/udpBezier.o:	udpBezier.c udpUtilities.c udpUtilities.h
 	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I. udpBezier.c -o $(ODIR)/udpBezier.o
 
+
 $(LDIR)/biconvex.so:	$(ODIR)/udpBiconvex.o $(LDIR)/$(OSHLIB)
 	touch $(LDIR)/biconvex.so
 	rm $(LDIR)/biconvex.so
@@ -157,6 +164,7 @@ $(LDIR)/biconvex.so:	$(ODIR)/udpBiconvex.o $(LDIR)/$(OSHLIB)
 
 $(ODIR)/udpBiconvex.o:	udpBiconvex.c udpUtilities.c udpUtilities.h
 	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I. udpBiconvex.c -o $(ODIR)/udpBiconvex.o
+
 
 $(LDIR)/box.so:	$(ODIR)/udpBox.o $(LDIR)/$(OSHLIB)
 	touch $(LDIR)/box.so
@@ -166,6 +174,16 @@ $(LDIR)/box.so:	$(ODIR)/udpBox.o $(LDIR)/$(OSHLIB)
 $(ODIR)/udpBox.o:	udpBox.c udpUtilities.c udpUtilities.h
 	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I. udpBox.c -o $(ODIR)/udpBox.o
 
+
+$(LDIR)/bspline.so:	$(ODIR)/udpBspline.o $(LDIR)/$(OSHLIB)
+	touch $(LDIR)/bspline.so
+	rm $(LDIR)/bspline.so
+	$(CC) $(SOFLGS) -o $(LDIR)/bspline.so $(ODIR)/udpBspline.o -L$(LDIR) -locsm -legads -lm
+
+$(ODIR)/udpBspline.o:	udpBspline.c udpUtilities.c udpUtilities.h
+	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I. udpBspline.c -o $(ODIR)/udpBspline.o
+
+
 $(LDIR)/catmull.so:	$(ODIR)/udfCatmull.o $(LDIR)/$(OSHLIB)
 	touch $(LDIR)/catmull.so
 	rm $(LDIR)/catmull.so
@@ -173,6 +191,7 @@ $(LDIR)/catmull.so:	$(ODIR)/udfCatmull.o $(LDIR)/$(OSHLIB)
 
 $(ODIR)/udfCatmull.o:	udfCatmull.c udpUtilities.c udpUtilities.h
 	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I. udfCatmull.c -o $(ODIR)/udfCatmull.o
+
 
 $(LDIR)/compare.so:	$(ODIR)/udfCompare.o $(LDIR)/$(OSHLIB)
 	touch $(LDIR)/compare.so
@@ -182,6 +201,7 @@ $(LDIR)/compare.so:	$(ODIR)/udfCompare.o $(LDIR)/$(OSHLIB)
 $(ODIR)/udfCompare.o:	udfCompare.c udpUtilities.c udpUtilities.h
 	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I. udfCompare.c -o $(ODIR)/udfCompare.o
 
+
 $(LDIR)/createBEM.so:	$(ODIR)/udfCreateBEM.o $(LDIR)/$(OSHLIB)
 	touch $(LDIR)/createBEM.so
 	rm $(LDIR)/createBEM.so
@@ -189,6 +209,7 @@ $(LDIR)/createBEM.so:	$(ODIR)/udfCreateBEM.o $(LDIR)/$(OSHLIB)
 
 $(ODIR)/udfCreateBEM.o:	udfCreateBEM.c udpUtilities.c udpUtilities.h
 	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I. udfCreateBEM.c -o $(ODIR)/udfCreateBEM.o
+
 
 $(LDIR)/createPoly.so:	$(ODIR)/udfCreatePoly.o $(LDIR)/$(OSHLIB)
 	touch $(LDIR)/createPoly.so
@@ -198,6 +219,7 @@ $(LDIR)/createPoly.so:	$(ODIR)/udfCreatePoly.o $(LDIR)/$(OSHLIB)
 $(ODIR)/udfCreatePoly.o:	udfCreatePoly.c udpUtilities.c udpUtilities.h
 	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I. udfCreatePoly.c -o $(ODIR)/udfCreatePoly.o
 
+
 $(LDIR)/csm.so:	$(ODIR)/udpCsm.o $(LDIR)/$(OSHLIB)
 	touch $(LDIR)/csm.so
 	rm $(LDIR)/csm.so
@@ -206,21 +228,42 @@ $(LDIR)/csm.so:	$(ODIR)/udpCsm.o $(LDIR)/$(OSHLIB)
 $(ODIR)/udpCsm.o:	udpCsm.c udpUtilities.c udpUtilities.h OpenCSM.h
 	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I. udpCsm.c -o $(ODIR)/udpCsm.o
 
+
+$(LDIR)/deform.so:	$(ODIR)/udfDeform.o $(LDIR)/$(OSHLIB)
+	touch $(LDIR)/deform.so
+	rm $(LDIR)/deform.so
+	$(CC) $(SOFLGS) -o $(LDIR)/deform.so $(ODIR)/udfDeform.o -L$(LDIR) -locsm -legads -lm
+
+$(ODIR)/udfDeform.o:	udfDeform.c udpUtilities.c udpUtilities.h OpenCSM.h
+	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I. udfDeform.c -o $(ODIR)/udfDeform.o
+
+
 $(LDIR)/droop.so:	$(ODIR)/udfDroop.o $(LDIR)/$(OSHLIB)
 	touch $(LDIR)/droop.so
 	rm $(LDIR)/droop.so
 	$(CC) $(SOFLGS) -o $(LDIR)/droop.so $(ODIR)/udfDroop.o -L$(LDIR) -locsm -legads -lm
 
-$(ODIR)/udfDroop.o:	udfDroop.c udpUtilities.c udpUtilities.h
+$(ODIR)/udfDroop.o:	udfDroop.c udpUtilities.c udpUtilities.h OpenCSM.h
 	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I. udfDroop.c -o $(ODIR)/udfDroop.o
+
+
+$(LDIR)/dumpPmtrs.so:	$(ODIR)/udfDumpPmtrs.o $(LDIR)/$(OSHLIB)
+	touch $(LDIR)/dumpPmtrs.so
+	rm $(LDIR)/dumpPmtrs.so
+	$(CC) $(SOFLGS) -o $(LDIR)/dumpPmtrs.so $(ODIR)/udfDumpPmtrs.o -L$(LDIR) -locsm -legads -lm
+
+$(ODIR)/udfDumpPmtrs.o:	udfDumpPmtrs.c udpUtilities.c udpUtilities.h
+	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I. udfDumpPmtrs.c -o $(ODIR)/udfDumpPmtrs.o
+
 
 $(LDIR)/editAttr.so:	$(ODIR)/udfEditAttr.o $(LDIR)/$(OSHLIB)
 	touch $(LDIR)/editAttr.so
 	rm $(LDIR)/editAttr.so
 	$(CC) $(SOFLGS) -o $(LDIR)/editAttr.so $(ODIR)/udfEditAttr.o -L$(LDIR) -locsm -legads -lm
 
-$(ODIR)/udfEditAttr.o:	udfEditAttr.c udpUtilities.c udpUtilities.h
+$(ODIR)/udfEditAttr.o:	udfEditAttr.c udpUtilities.c udpUtilities.h OpenCSM.h
 	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I. udfEditAttr.c -o $(ODIR)/udfEditAttr.o
+
 
 $(LDIR)/ellipse.so:	$(ODIR)/udpEllipse.o $(LDIR)/$(OSHLIB)
 	touch $(LDIR)/ellipse.so
@@ -230,6 +273,16 @@ $(LDIR)/ellipse.so:	$(ODIR)/udpEllipse.o $(LDIR)/$(OSHLIB)
 $(ODIR)/udpEllipse.o:	udpEllipse.c udpUtilities.c udpUtilities.h
 	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I. udpEllipse.c -o $(ODIR)/udpEllipse.o
 
+
+$(LDIR)/eqn2body.so:	$(ODIR)/udpEqn2body.o $(LDIR)/$(OSHLIB)
+	touch $(LDIR)/eqn2body.so
+	rm $(LDIR)/eqn2body.so
+	$(CC) $(SOFLGS) -o $(LDIR)/eqn2body.so $(ODIR)/udpEqn2body.o -L$(LDIR) -locsm -legads -lm
+
+$(ODIR)/udpEqn2body.o:	udpEqn2body.c udpUtilities.c udpUtilities.h
+	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I. udpEqn2body.c -o $(ODIR)/udpEqn2body.o
+
+
 $(LDIR)/fitcurve.so:	$(ODIR)/udpFitcurve.o $(LDIR)/$(OSHLIB)
 	touch $(LDIR)/fitcurve.so
 	rm $(LDIR)/fitcurve.so
@@ -237,6 +290,16 @@ $(LDIR)/fitcurve.so:	$(ODIR)/udpFitcurve.o $(LDIR)/$(OSHLIB)
 
 $(ODIR)/udpFitcurve.o:	udpFitcurve.c udpUtilities.c udpUtilities.h
 	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I. udpFitcurve.c -o $(ODIR)/udpFitcurve.o
+
+
+$(LDIR)/flend.so:	$(ODIR)/udfFlend.o $(LDIR)/$(OSHLIB)
+	touch $(LDIR)/flend.so
+	rm $(LDIR)/flend.so
+	$(CC) $(SOFLGS) -o $(LDIR)/flend.so $(ODIR)/udfFlend.o -L$(LDIR) -locsm -legads -lm
+
+$(ODIR)/udfFlend.o:	udfFlend.c udpUtilities.c udpUtilities.h OpenCSM.h
+	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I. udfFlend.c -o $(ODIR)/udfFlend.o
+
 
 $(LDIR)/freeform.so:	$(ODIR)/udpFreeform.o $(LDIR)/$(OSHLIB)
 	touch $(LDIR)/freeform.so
@@ -246,53 +309,24 @@ $(LDIR)/freeform.so:	$(ODIR)/udpFreeform.o $(LDIR)/$(OSHLIB)
 $(ODIR)/udpFreeform.o:	udpFreeform.c udpUtilities.c udpUtilities.h
 	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I. udpFreeform.c -o $(ODIR)/udpFreeform.o
 
-$(LDIR)/flend.so:	$(ODIR)/udfFlend.o $(LDIR)/$(OSHLIB)
-	touch $(LDIR)/flend.so
-	rm $(LDIR)/flend.so
-	$(CC) $(SOFLGS) -o $(LDIR)/flend.so $(ODIR)/udfFlend.o -L$(LDIR) -locsm -legads -lm
-
-$(ODIR)/udfFlend.o:	udfFlend.c udpUtilities.c udpUtilities.h
-	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I. udfFlend.c -o $(ODIR)/udfFlend.o
 
 $(LDIR)/ganged.so:	$(ODIR)/udfGanged.o $(LDIR)/$(OSHLIB)
 	touch $(LDIR)/ganged.so
 	rm $(LDIR)/ganged.so
 	$(CC) $(SOFLGS) -o $(LDIR)/ganged.so $(ODIR)/udfGanged.o -L$(LDIR) -locsm -legads -lm
 
-$(ODIR)/udfGanged.o:	udfGanged.c udpUtilities.c udpUtilities.h
+$(ODIR)/udfGanged.o:	udfGanged.c udpUtilities.c udpUtilities.h OpenCSM.h
 	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I. udfGanged.c -o $(ODIR)/udfGanged.o
+
 
 $(LDIR)/guide.so:	$(ODIR)/udfGuide.o $(LDIR)/$(OSHLIB)
 	touch $(LDIR)/guide.so
 	rm $(LDIR)/guide.so
 	$(CC) $(SOFLGS) -o $(LDIR)/guide.so $(ODIR)/udfGuide.o -L$(LDIR) -locsm -legads -lm
 
-$(ODIR)/udfGuide.o:	udfGuide.c udpUtilities.c udpUtilities.h
+$(ODIR)/udfGuide.o:	udfGuide.c udpUtilities.c udpUtilities.h OpenCSM.h
 	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I. udfGuide.c -o $(ODIR)/udfGuide.o
 
-$(LDIR)/matchBodys.so:	$(ODIR)/udfMatchBodys.o $(LDIR)/$(OSHLIB)
-	touch $(LDIR)/matchBodys.so
-	rm $(LDIR)/matchBodys.so
-	$(CC) $(SOFLGS) -o $(LDIR)/matchBodys.so $(ODIR)/udfMatchBodys.o -L$(LDIR) -locsm -legads -lm
-
-$(ODIR)/udfMatchBodys.o:	udfMatchBodys.c udpUtilities.c udpUtilities.h
-	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I. udfMatchBodys.c -o $(ODIR)/udfMatchBodys.o
-
-$(LDIR)/nacelle.so:	$(ODIR)/udfNacelle.o $(LDIR)/$(OSHLIB)
-	touch $(LDIR)/nacelle.so
-	rm $(LDIR)/nacelle.so
-	$(CC) $(SOFLGS) -o $(LDIR)/nacelle.so $(ODIR)/udfNacelle.o -L$(LDIR) -locsm -legads -lm
-
-$(ODIR)/udfNacelle.o:	udfNacelle.c udpUtilities.c udpUtilities.h
-	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I. udfNacelle.c -o $(ODIR)/udfNacelle.o
-
-$(LDIR)/nuscale.so:	$(ODIR)/udfNuscale.o $(LDIR)/$(OSHLIB)
-	touch $(LDIR)/nuscale.so
-	rm $(LDIR)/nuscale.so
-	$(CC) $(SOFLGS) -o $(LDIR)/nuscale.so $(ODIR)/udfNuscale.o -L$(LDIR) -locsm -legads -lm
-
-$(ODIR)/udfNuscale.o:	udfNuscale.c udpUtilities.c udpUtilities.h
-	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I. udfNuscale.c -o $(ODIR)/udfNuscale.o
 
 $(LDIR)/hex.so:	$(ODIR)/udpHex.o $(LDIR)/$(OSHLIB)
 	touch $(LDIR)/hex.so
@@ -302,6 +336,7 @@ $(LDIR)/hex.so:	$(ODIR)/udpHex.o $(LDIR)/$(OSHLIB)
 $(ODIR)/udpHex.o:	udpHex.c udpUtilities.c udpUtilities.h
 	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I. udpHex.c -o $(ODIR)/udpHex.o
 
+
 $(LDIR)/import.so:	$(ODIR)/udpImport.o $(LDIR)/$(OSHLIB)
 	touch $(LDIR)/import.so
 	rm $(LDIR)/import.so
@@ -309,6 +344,7 @@ $(LDIR)/import.so:	$(ODIR)/udpImport.o $(LDIR)/$(OSHLIB)
 
 $(ODIR)/udpImport.o:	udpImport.c udpUtilities.c udpUtilities.h
 	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I. udpImport.c -o $(ODIR)/udpImport.o
+
 
 $(LDIR)/kulfan.so:	$(ODIR)/udpKulfan.o $(LDIR)/$(OSHLIB)
 	touch $(LDIR)/kulfan.so
@@ -318,6 +354,34 @@ $(LDIR)/kulfan.so:	$(ODIR)/udpKulfan.o $(LDIR)/$(OSHLIB)
 $(ODIR)/udpKulfan.o:	udpKulfan.c udpUtilities.c udpUtilities.h
 	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I. udpKulfan.c -o $(ODIR)/udpKulfan.o
 
+
+$(LDIR)/linalg.so:	$(ODIR)/udfLinalg.o $(LDIR)/$(OSHLIB)
+	touch $(LDIR)/linalg.so
+	rm $(LDIR)/linalg.so
+	$(CC) $(SOFLGS) -o $(LDIR)/linalg.so $(ODIR)/udfLinalg.o -L$(LDIR) -locsm -legads -lm
+
+$(ODIR)/udfLinalg.o:	udfLinalg.c udpUtilities.c udpUtilities.h OpenCSM.h
+	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I. udfLinalg.c -o $(ODIR)/udfLinalg.o
+
+
+$(LDIR)/matchBodys.so:	$(ODIR)/udfMatchBodys.o $(LDIR)/$(OSHLIB)
+	touch $(LDIR)/matchBodys.so
+	rm $(LDIR)/matchBodys.so
+	$(CC) $(SOFLGS) -o $(LDIR)/matchBodys.so $(ODIR)/udfMatchBodys.o -L$(LDIR) -locsm -legads -lm
+
+$(ODIR)/udfMatchBodys.o:	udfMatchBodys.c udpUtilities.c udpUtilities.h OpenCSM.h
+	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I. udfMatchBodys.c -o $(ODIR)/udfMatchBodys.o
+
+
+$(LDIR)/mechanism.so:	$(ODIR)/udfMechanism.o $(LDIR)/$(OSHLIB)
+	touch $(LDIR)/mechanism.so
+	rm $(LDIR)/mechanism.so
+	$(CC) $(SOFLGS) -o $(LDIR)/mechanism.so $(ODIR)/udfMechanism.o -L$(LDIR) -locsm -legads -lm
+
+$(ODIR)/udfMechanism.o:	udfMechanism.c udpUtilities.c udpUtilities.h
+	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I. udfMechanism.c -o $(ODIR)/udfMechanism.o
+
+
 $(LDIR)/naca.so:	$(ODIR)/udpNaca.o $(LDIR)/$(OSHLIB)
 	touch $(LDIR)/naca.so
 	rm $(LDIR)/naca.so
@@ -325,6 +389,7 @@ $(LDIR)/naca.so:	$(ODIR)/udpNaca.o $(LDIR)/$(OSHLIB)
 
 $(ODIR)/udpNaca.o:	udpNaca.c udpUtilities.c udpUtilities.h
 	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I. udpNaca.c -o $(ODIR)/udpNaca.o
+
 
 $(LDIR)/naca456.so:	$(ODIR)/udpNaca456.o $(ODIR)/naca456.o $(LDIR)/$(OSHLIB)
 	touch $(LDIR)/naca456.so
@@ -341,6 +406,25 @@ else
 	$(FCOMP) -c $(FOPTS) naca456.f90 -o $(ODIR)/naca456.o -J $(ODIR)
 endif
 
+
+$(LDIR)/naca6mc.so:	$(ODIR)/udfNaca6mc.o $(LDIR)/$(OSHLIB)
+	touch $(LDIR)/naca6mc.so
+	rm $(LDIR)/naca6mc.so
+	$(CC) $(SOFLGS) -o $(LDIR)/naca6mc.so $(ODIR)/udfNaca6mc.o -L$(LDIR) -locsm -legads -lm
+
+$(ODIR)/udfNaca6mc.o:	udfNaca6mc.c udpUtilities.c udpUtilities.h
+	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I. udfNaca6mc.c -o $(ODIR)/udfNaca6mc.o
+
+
+$(LDIR)/nacelle.so:	$(ODIR)/udfNacelle.o $(LDIR)/$(OSHLIB)
+	touch $(LDIR)/nacelle.so
+	rm $(LDIR)/nacelle.so
+	$(CC) $(SOFLGS) -o $(LDIR)/nacelle.so $(ODIR)/udfNacelle.o -L$(LDIR) -locsm -legads -lm
+
+$(ODIR)/udfNacelle.o:	udfNacelle.c udpUtilities.c udpUtilities.h
+	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I. udfNacelle.c -o $(ODIR)/udfNacelle.o
+
+
 $(LDIR)/nurbbody.so:	$(ODIR)/udpNurbbody.o $(LDIR)/$(OSHLIB)
 	touch $(LDIR)/nurbbody.so
 	rm $(LDIR)/nurbbody.so
@@ -348,6 +432,25 @@ $(LDIR)/nurbbody.so:	$(ODIR)/udpNurbbody.o $(LDIR)/$(OSHLIB)
 
 $(ODIR)/udpNurbbody.o:	udpNurbbody.c udpUtilities.c udpUtilities.h
 	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I. udpNurbbody.c -o $(ODIR)/udpNurbbody.o
+
+
+$(LDIR)/nuscale.so:	$(ODIR)/udfNuscale.o $(LDIR)/$(OSHLIB)
+	touch $(LDIR)/nuscale.so
+	rm $(LDIR)/nuscale.so
+	$(CC) $(SOFLGS) -o $(LDIR)/nuscale.so $(ODIR)/udfNuscale.o -L$(LDIR) -locsm -legads -lm
+
+$(ODIR)/udfNuscale.o:	udfNuscale.c udpUtilities.c udpUtilities.h
+	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I. udfNuscale.c -o $(ODIR)/udfNuscale.o
+
+
+$(LDIR)/offset.so:	$(ODIR)/udfOffset.o $(LDIR)/$(OSHLIB)
+	touch $(LDIR)/offset.so
+	rm $(LDIR)/offset.so
+	$(CC) $(SOFLGS) -o $(LDIR)/offset.so $(ODIR)/udfOffset.o -L$(LDIR) -locsm -legads -lm
+
+$(ODIR)/udfOffset.o:	udfOffset.c udpUtilities.c udpUtilities.h OpenCSM.h
+	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I. udfOffset.c -o $(ODIR)/udfOffset.o
+
 
 $(LDIR)/parabaloid.so:	$(ODIR)/udpParabaloid.o $(LDIR)/$(OSHLIB)
 	touch $(LDIR)/parabaloid.so
@@ -357,13 +460,15 @@ $(LDIR)/parabaloid.so:	$(ODIR)/udpParabaloid.o $(LDIR)/$(OSHLIB)
 $(ODIR)/udpParabaloid.o:	udpParabaloid.c udpUtilities.c udpUtilities.h
 	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I. udpParabaloid.c -o $(ODIR)/udpParabaloid.o
 
+
 $(LDIR)/parsec.so:	$(ODIR)/udpParsec.o $(LDIR)/$(OSHLIB)
 	touch $(LDIR)/parsec.so
 	rm $(LDIR)/parsec.so
 	$(CXX) $(SOFLGS) -o $(LDIR)/parsec.so $(ODIR)/udpParsec.o -L$(LDIR) -locsm -legads -lm
 
-$(ODIR)/udpParsec.o:	udpParsec.cpp udpUtilities.c udpUtilities.h $(IDIR)/Surreal/SurrealS.h $(IDIR)/egads.h $(IDIR)/egads_dot.h
+$(ODIR)/udpParsec.o:	udpParsec.cpp udpUtilities.c udpUtilities.h $(IDIR)/Surreal/SurrealS.h $(IDIR)/egads_dot.h
 	$(CXX) -c $(CPPOPT) $(DEFINE) -I$(IDIR) -I. udpParsec.cpp -o $(ODIR)/udpParsec.o
+
 
 $(LDIR)/pod.so:	$(ODIR)/udpPod.o $(LDIR)/$(OSHLIB)
 	touch $(LDIR)/pod.so
@@ -373,6 +478,7 @@ $(LDIR)/pod.so:	$(ODIR)/udpPod.o $(LDIR)/$(OSHLIB)
 $(ODIR)/udpPod.o:	udpPod.c udpUtilities.c udpUtilities.h
 	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I. udpPod.c -o $(ODIR)/udpPod.o
 
+
 $(LDIR)/poly.so:	$(ODIR)/udpPoly.o $(LDIR)/$(OSHLIB)
 	touch $(LDIR)/poly.so
 	rm $(LDIR)/poly.so
@@ -381,13 +487,6 @@ $(LDIR)/poly.so:	$(ODIR)/udpPoly.o $(LDIR)/$(OSHLIB)
 $(ODIR)/udpPoly.o:	udpPoly.c udpUtilities.c udpUtilities.h
 	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I. udpPoly.c -o $(ODIR)/udpPoly.o
 
-$(LDIR)/prop.so:	$(ODIR)/udpProp.o $(LDIR)/$(OSHLIB)
-	touch $(LDIR)/prop.so
-	rm $(LDIR)/prop.so
-	$(CC) $(SOFLGS) -o $(LDIR)/prop.so $(ODIR)/udpProp.o -L$(LDIR) -locsm -legads -lm
-
-$(ODIR)/udpProp.o:	udpProp.c udpUtilities.c udpUtilities.h
-	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I. udpProp.c -o $(ODIR)/udpProp.o
 
 $(LDIR)/printBbox.so:	$(ODIR)/udfPrintBbox.o $(LDIR)/$(OSHLIB)
 	touch $(LDIR)/printBbox.so
@@ -397,29 +496,33 @@ $(LDIR)/printBbox.so:	$(ODIR)/udfPrintBbox.o $(LDIR)/$(OSHLIB)
 $(ODIR)/udfPrintBbox.o:	udfPrintBbox.c udpUtilities.c udpUtilities.h
 	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I. udfPrintBbox.c -o $(ODIR)/udfPrintBbox.o
 
+
 $(LDIR)/printBrep.so:	$(ODIR)/udfPrintBrep.o $(LDIR)/$(OSHLIB)
 	touch $(LDIR)/printBrep.so
 	rm $(LDIR)/printBrep.so
 	$(CC) $(SOFLGS) -o $(LDIR)/printBrep.so $(ODIR)/udfPrintBrep.o -L$(LDIR) -locsm -legads -lm
 
-$(ODIR)/udfPrintBrep.o:	udfPrintBrep.c udpUtilities.c udpUtilities.h
+$(ODIR)/udfPrintBrep.o:	udfPrintBrep.c udpUtilities.c udpUtilities.h OpenCSM.h
 	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I. udfPrintBrep.c -o $(ODIR)/udfPrintBrep.o
+
 
 $(LDIR)/printEgo.so:	$(ODIR)/udfPrintEgo.o $(LDIR)/$(OSHLIB)
 	touch $(LDIR)/printEgo.so
 	rm $(LDIR)/printEgo.so
 	$(CC) $(SOFLGS) -o $(LDIR)/printEgo.so $(ODIR)/udfPrintEgo.o -L$(LDIR) -locsm -legads -lm
 
-$(ODIR)/udfPrintEgo.o:	udfPrintEgo.c udpUtilities.c udpUtilities.h
+$(ODIR)/udfPrintEgo.o:	udfPrintEgo.c udpUtilities.c udpUtilities.h OpenCSM.h
 	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I. udfPrintEgo.c -o $(ODIR)/udfPrintEgo.o
 
-$(LDIR)/shadow.so:	$(ODIR)/udfShadow.o $(LDIR)/$(OSHLIB)
-	touch $(LDIR)/shadow.so
-	rm $(LDIR)/shadow.so
-	$(CC) $(SOFLGS) -o $(LDIR)/shadow.so $(ODIR)/udfShadow.o -L$(LDIR) -locsm -legads -lm
 
-$(ODIR)/udfShadow.o:	udfShadow.c udpUtilities.c udpUtilities.h
-	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I. udfShadow.c -o $(ODIR)/udfShadow.o
+$(LDIR)/prop.so:	$(ODIR)/udpProp.o $(LDIR)/$(OSHLIB)
+	touch $(LDIR)/prop.so
+	rm $(LDIR)/prop.so
+	$(CC) $(SOFLGS) -o $(LDIR)/prop.so $(ODIR)/udpProp.o -L$(LDIR) -locsm -legads -lm
+
+$(ODIR)/udpProp.o:	udpProp.c udpUtilities.c udpUtilities.h
+	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I. udpProp.c -o $(ODIR)/udpProp.o
+
 
 $(LDIR)/radwaf.so:	$(ODIR)/udpRadwaf.o $(LDIR)/$(OSHLIB)
 	touch $(LDIR)/radwaf.so
@@ -429,6 +532,7 @@ $(LDIR)/radwaf.so:	$(ODIR)/udpRadwaf.o $(LDIR)/$(OSHLIB)
 $(ODIR)/udpRadwaf.o:	udpRadwaf.c udpUtilities.c udpUtilities.h
 	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I. udpRadwaf.c -o $(ODIR)/udpRadwaf.o
 
+
 $(LDIR)/sample.so:	$(ODIR)/udpSample.o $(LDIR)/$(OSHLIB)
 	touch $(LDIR)/sample.so
 	rm $(LDIR)/sample.so
@@ -436,6 +540,7 @@ $(LDIR)/sample.so:	$(ODIR)/udpSample.o $(LDIR)/$(OSHLIB)
 
 $(ODIR)/udpSample.o:	udpSample.c udpUtilities.c udpUtilities.h
 	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I. udpSample.c -o $(ODIR)/udpSample.o
+
 
 $(LDIR)/sew.so:	$(ODIR)/udpSew.o $(LDIR)/$(OSHLIB)
 	touch $(LDIR)/sew.so
@@ -445,6 +550,25 @@ $(LDIR)/sew.so:	$(ODIR)/udpSew.o $(LDIR)/$(OSHLIB)
 $(ODIR)/udpSew.o:	udpSew.c udpUtilities.c udpUtilities.h
 	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I. udpSew.c -o $(ODIR)/udpSew.o
 
+
+$(LDIR)/shadow.so:	$(ODIR)/udfShadow.o $(LDIR)/$(OSHLIB)
+	touch $(LDIR)/shadow.so
+	rm $(LDIR)/shadow.so
+	$(CC) $(SOFLGS) -o $(LDIR)/shadow.so $(ODIR)/udfShadow.o -L$(LDIR) -locsm -legads -lm
+
+$(ODIR)/udfShadow.o:	udfShadow.c udpUtilities.c udpUtilities.h OpenCSM.h
+	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I. udfShadow.c -o $(ODIR)/udfShadow.o
+
+
+$(LDIR)/slices.so:	$(ODIR)/udfSlices.o $(LDIR)/$(OSHLIB)
+	touch $(LDIR)/slices.so
+	rm $(LDIR)/slices.so
+	$(CC) $(SOFLGS) -o $(LDIR)/slices.so $(ODIR)/udfSlices.o -L$(LDIR) -locsm -legads -lm
+
+$(ODIR)/udfSlices.o:	udfSlices.c udpUtilities.c udpUtilities.h OpenCSM.h
+	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I. udfSlices.c -o $(ODIR)/udfSlices.o
+
+
 $(LDIR)/stag.so:	$(ODIR)/udpStag.o $(LDIR)/$(OSHLIB)
 	touch $(LDIR)/stag.so
 	rm $(LDIR)/stag.so
@@ -453,13 +577,6 @@ $(LDIR)/stag.so:	$(ODIR)/udpStag.o $(LDIR)/$(OSHLIB)
 $(ODIR)/udpStag.o:	udpStag.c udpUtilities.c udpUtilities.h
 	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I. udpStag.c -o $(ODIR)/udpStag.o
 
-$(LDIR)/slices.so:	$(ODIR)/udfSlices.o $(LDIR)/$(OSHLIB)
-	touch $(LDIR)/slices.so
-	rm $(LDIR)/slices.so
-	$(CC) $(SOFLGS) -o $(LDIR)/slices.so $(ODIR)/udfSlices.o -L$(LDIR) -locsm -legads -lm
-
-$(ODIR)/udfSlices.o:	udfSlices.c udpUtilities.c udpUtilities.h
-	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I. udfSlices.c -o $(ODIR)/udfSlices.o
 
 $(LDIR)/stiffener.so:	$(ODIR)/udfStiffener.o $(LDIR)/$(OSHLIB)
 	touch $(LDIR)/stiffener.so
@@ -469,6 +586,7 @@ $(LDIR)/stiffener.so:	$(ODIR)/udfStiffener.o $(LDIR)/$(OSHLIB)
 $(ODIR)/udfStiffener.o:	udfStiffener.c udpUtilities.c udpUtilities.h
 	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I. udfStiffener.c -o $(ODIR)/udfStiffener.o
 
+
 $(LDIR)/supell.so:	$(ODIR)/udpSupell.o $(LDIR)/$(OSHLIB)
 	touch $(LDIR)/supell.so
 	rm $(LDIR)/supell.so
@@ -477,13 +595,46 @@ $(LDIR)/supell.so:	$(ODIR)/udpSupell.o $(LDIR)/$(OSHLIB)
 $(ODIR)/udpSupell.o:	udpSupell.c udpUtilities.c udpUtilities.h
 	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I. udpSupell.c -o $(ODIR)/udpSupell.o
 
+
+$(LDIR)/tester1.so:	$(ODIR)/udfTester1.o $(LDIR)/$(OSHLIB)
+	touch $(LDIR)/tester1.so
+	rm $(LDIR)/tester1.so
+	$(CC) $(SOFLGS) -o $(LDIR)/tester1.so $(ODIR)/udfTester1.o -L$(LDIR) -locsm -legads -lm
+
+$(ODIR)/udfTester1.o:	udfTester1.c udpUtilities.c udpUtilities.h OpenCSM.h
+	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I. udfTester1.c -o $(ODIR)/udfTester1.o
+
+$(LDIR)/tester2.so:	$(ODIR)/udpTester2.o $(LDIR)/$(OSHLIB)
+	touch $(LDIR)/tester2.so
+	rm $(LDIR)/tester2.so
+	$(CC) $(SOFLGS) -o $(LDIR)/tester2.so $(ODIR)/udpTester2.o -L$(LDIR) -locsm -legads -lm
+
+$(ODIR)/udpTester2.o:	udpTester2.c udpUtilities.c udpUtilities.h OpenCSM.h
+	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I. udpTester2.c -o $(ODIR)/udpTester2.o
+
+$(LDIR)/vsp3.so:	$(ODIR)/udpVsp3.o $(LDIR)/$(OSHLIB)
+	touch $(LDIR)/vsp3.so
+	rm $(LDIR)/vsp3.so
+	$(CC) $(SOFLGS) -o $(LDIR)/vsp3.so $(ODIR)/udpVsp3.o -L$(LDIR) -locsm -legads -lm
+
+$(ODIR)/udpVsp3.o:	udpVsp3.c udpUtilities.c udpUtilities.h OpenCSM.h
+	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I. udpVsp3.c -o $(ODIR)/udpVsp3.o
+
 $(LDIR)/waffle.so:	$(ODIR)/udpWaffle.o $(LDIR)/$(OSHLIB)
 	touch $(LDIR)/waffle.so
 	rm $(LDIR)/waffle.so
 	$(CC) $(SOFLGS) -o $(LDIR)/waffle.so $(ODIR)/udpWaffle.o -L$(LDIR) -locsm -legads -lm
 
-$(ODIR)/udpWaffle.o:	udpWaffle.c udpUtilities.c udpUtilities.h
+$(ODIR)/udpWaffle.o:	udpWaffle.c udpUtilities.c udpUtilities.h OpenCSM.h
 	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I. udpWaffle.c -o $(ODIR)/udpWaffle.o
+
+$(LDIR)/warp.so:	$(ODIR)/udpWarp.o $(LDIR)/$(OSHLIB)
+	touch $(LDIR)/warp.so
+	rm $(LDIR)/warp.so
+	$(CC) $(SOFLGS) -o $(LDIR)/warp.so $(ODIR)/udpWarp.o -L$(LDIR) -locsm -legads -lm
+
+$(ODIR)/udpWarp.o:	udpWarp.c udpUtilities.c udpUtilities.h OpenCSM.h
+	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I. udpWarp.c -o $(ODIR)/udpWarp.o
 
 #
 #	external grid generators (EGGs)
@@ -493,7 +644,7 @@ $(LDIR)/PDT2.so:	$(ODIR)/eggPDT2.o
 	rm $(LDIR)/PDT2.so
 	$(CC) $(SOFLGS) -o $(LDIR)/PDT2.so $(ODIR)/eggPDT2.o -L$(LDIR) -legads -lm
 
-$(ODIR)/eggPDT2.o:	eggPDT2.c udpUtilities.c udpUtilities.h
+$(ODIR)/eggPDT2.o:	eggPDT2.c egg.h
 	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I. eggPDT2.c -o $(ODIR)/eggPDT2.o
 
 #
@@ -505,48 +656,52 @@ $(LDIR)/ereped.so:	$(ODIR)/timEreped.o $(LDIR)/$(OSHLIB)
 	rm $(LDIR)/ereped.so
 	$(CXX) $(SOFLGS) -o $(LDIR)/ereped.so $(ODIR)/timEreped.o -L$(LDIR) -locsm -lwsserver -legads -ldl -lm
 
-$(ODIR)/timEreped.o:	timEreped.c tim.h
+$(ODIR)/timEreped.o:	timEreped.c OpenCSM.h tim.h
 	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I. timEreped.c -o $(ODIR)/timEreped.o
+
 
 $(LDIR)/mitten.so:	$(ODIR)/timMitten.o $(LDIR)/$(OSHLIB)
 	touch $(LDIR)/mitten.so
 	rm $(LDIR)/mitten.so
 	$(CXX) $(SOFLGS) -o $(LDIR)/mitten.so $(ODIR)/timMitten.o -L$(LDIR) -locsm -lwsserver -legads -ldl $(RPATH)
 
-$(ODIR)/timMitten.o:	timMitten.c tim.h
+$(ODIR)/timMitten.o:	timMitten.c OpenCSM.h tim.h $(IDIR)/wsserver.h
 	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I. timMitten.c -o $(ODIR)/timMitten.o
+
 
 $(LDIR)/plotter.so:	$(ODIR)/timPlotter.o $(LDIR)/$(OSHLIB)
 	touch $(LDIR)/plotter.so
 	rm $(LDIR)/plotter.so
 	$(CXX) $(SOFLGS) -o $(LDIR)/plotter.so $(ODIR)/timPlotter.o -L$(LDIR) -locsm -lwsserver -legads -ldl $(RPATH)
 
-$(ODIR)/timPlotter.o:	timPlotter.c tim.h
+$(ODIR)/timPlotter.o:	timPlotter.c OpenCSM.h tim.h $(IDIR)/wsserver.h
 	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I. timPlotter.c -o $(ODIR)/timPlotter.o
+
 
 $(LDIR)/plugs.so:	$(ODIR)/timPlugs.o $(LDIR)/$(OSHLIB)
 	touch $(LDIR)/plugs.so
 	rm $(LDIR)/plugs.so
 	$(CXX) $(SOFLGS) -o $(LDIR)/plugs.so $(ODIR)/timPlugs.o -L$(LDIR) -locsm -lwsserver -legads -ldl $(RPATH)
 
-$(ODIR)/timPlugs.o:	timPlugs.c tim.h
+$(ODIR)/timPlugs.o:	timPlugs.c OpenCSM.h tim.h $(IDIR)/wsserver.h
 	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I. timPlugs.c -o $(ODIR)/timPlugs.o
 
-$(LDIR)/pyscript.so:	$(ODIR)/timPyscript.o $(LDIR)/$(OSHLIB)
-	touch $(LDIR)/pyscript.so
-	rm $(LDIR)/pyscript.so
-	$(CXX) $(SOFLGS) -o $(LDIR)/pyscript.so $(ODIR)/timPyscript.o $(PYTHONLIB) -L$(LDIR) -locsm -lwsserver -legads -ldl $(RPATH) $(PYTHONRPATH)
-
-$(ODIR)/timPyscript.o:	timPyscript.c tim.h
-	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I. -I$(PYTHONINC) timPyscript.c -o $(ODIR)/timPyscript.o
 
 $(LDIR)/slugs.so:	$(ODIR)/timSlugs.o $(LDIR)/$(OSHLIB)
 	touch $(LDIR)/slugs.so
 	rm $(LDIR)/slugs.so
 	$(CXX) $(SOFLGS) -o $(LDIR)/slugs.so $(ODIR)/timSlugs.o -L$(LDIR) -locsm -lwsserver -legads -ldl -lm
 
-$(ODIR)/timSlugs.o:	timSlugs.c tim.h
+$(ODIR)/timSlugs.o:	timSlugs.c OpenCSM.h tim.h
 	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I. timSlugs.c -o $(ODIR)/timSlugs.o
+
+$(LDIR)/vspSetup.so:	$(ODIR)/timVspSetup.o $(LDIR)/$(OSHLIB)
+	touch $(LDIR)/vspSetup.so
+	rm $(LDIR)/vspSetup.so
+	$(CXX) $(SOFLGS) -o $(LDIR)/vspSetup.so $(ODIR)/timVspSetup.o -L$(LDIR) -locsm -lwsserver -legads -ldl -lm
+
+$(ODIR)/timVspSetup.o:	timVspSetup.c OpenCSM.h tim.h
+	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I. timVspSetup.c -o $(ODIR)/timVspSetup.o
 
 #
 #	include files
@@ -563,10 +718,10 @@ $(IDIR)/common.h:	common.h
 	rm $(IDIR)/common.h
 	cp -p common.h $(IDIR)/common.h
 
-$(IDIR)/udp.h:	udp.h
-	touch $(IDIR)/udp.h
-	rm $(IDIR)/udp.h
-	cp -p udp.h $(IDIR)/udp.h
+$(IDIR)/egg.h:	egg.h
+	touch $(IDIR)/egg.h
+	rm $(IDIR)/egg.h
+	cp -p egg.h $(IDIR)/egg.h
 
 $(IDIR)/esp.h:	esp.h
 	touch $(IDIR)/esp.h
@@ -578,10 +733,10 @@ $(IDIR)/tim.h:	tim.h
 	rm $(IDIR)/tim.h
 	cp -p tim.h $(IDIR)/tim.h
 
-$(IDIR)/egg.h:	egg.h
-	touch $(IDIR)/egg.h
-	rm $(IDIR)/egg.h
-	cp -p egg.h $(IDIR)/egg.h
+$(IDIR)/udp.h:	udp.h
+	touch $(IDIR)/udp.h
+	rm $(IDIR)/udp.h
+	cp -p udp.h $(IDIR)/udp.h
 
 $(IDIR)/udpUtilities.h:	udpUtilities.h
 	touch $(IDIR)/udpUtilities.h
@@ -620,68 +775,8 @@ lint:
 	@echo "Checking box.so..."
 	$(LINT) -I$(IDIR) udpBox.c
 	@echo " "
-	@echo "Checking csm.so..."
-	$(LINT) -I$(IDIR) udpCsm.c OpenCSM.c udp.c   -allocmismatch -duplicatequals -macrovarprefixexclude -exportlocal -mustfreefresh -mayaliasunique -kepttrans -immediatetrans
-	@echo " "
-	@echo "Checking ellipse.so..."
-	$(LINT) -I$(IDIR) udpEllipse.c
-	@echo " "
-	@echo "Checking fitcurve.so..."
-	$(LINT) -I$(IDIR) udpFitcurve.c
-	@echo " "
-	@echo "Checking freeform.so..."
-	$(LINT) -I$(IDIR) udpFreeform.c
-	@echo " "
-	@echo "Checking hex.so..."
-	$(LINT) -I$(IDIR) udpHex.c
-	@echo " "
-	@echo "Checking import.so..."
-	$(LINT) -I$(IDIR) udpImport.c
-	@echo " "
-	@echo "Checking kulfan.so..."
-	$(LINT) -I$(IDIR) udpKulfan.c
-	@echo " "
-	@echo "Checking naca.so..."
-	$(LINT) -I$(IDIR) udpNaca.c                  -macrovarprefixexclude
-	@echo " "
-	@echo "Checking naca456.so..."
-	$(LINT) -I$(IDIR) udpNaca456.c
-	@echo " "
-	@echo "Checking nurbbody.so..."
-	$(LINT) -I$(IDIR) udpNurbbody.c
-	@echo " "
-	@echo "Checking parabaloid.so..."
-	$(LINT) -I$(IDIR) udpParabaloid.c
-	@echo " "
-	@echo "Checking parsec.so..."
-	$(LINT) -I$(IDIR) udpParsec.c
-	@echo " "
-	@echo "Checking pod.so..."
-	$(LINT) -I$(IDIR) udpPod.c
-	@echo " "
-	@echo "Checking poly.so..."
-	$(LINT) -I$(IDIR) udpPoly.c
-	@echo " "
-	@echo "Checking prop.so..."
-	$(LINT) -I$(IDIR) udpProp.c
-	@echo " "
-	@echo "Checking radwaf.so..."
-	$(LINT) -I$(IDIR) udpRadwaf.c
-	@echo " "
-	@echo "Checking sample.so..."
-	$(LINT) -I$(IDIR) udpSample.c
-	@echo " "
-	@echo "Checking sew.so..."
-	$(LINT) -I$(IDIR) udpSew.c
-	@echo " "
-	@echo "Checking stag.so..."
-	$(LINT) -I$(IDIR) udpStag.c
-	@echo " "
-	@echo "Checking supell.so..."
-	$(LINT) -I$(IDIR) udpSupell.c
-	@echo " "
-	@echo "Checking waffle.so..."
-	$(LINT) -I$(IDIR) udpWaffle.c
+	@echo "Checking bspline.so..."
+	$(LINT) -I$(IDIR) udpBspline.c
 	@echo " "
 	@echo "Checking catmull.so..."
 	$(LINT) -I$(IDIR) udfCatmull.c
@@ -695,20 +790,92 @@ lint:
 	@echo "Checking createPoly.so..."
 	$(LINT) -I$(IDIR) udfCreatePoly.c
 	@echo " "
+	@echo "Checking csm.so..."
+	$(LINT) -I$(IDIR) udpCsm.c OpenCSM.c udp.c   -allocmismatch -duplicatequals -macrovarprefixexclude -exportlocal -mustfreefresh -mayaliasunique -kepttrans -immediatetrans
+	@echo " "
+	@echo "Checking deform.so..."
+	$(LINT) -I$(IDIR) udfDeform.c
+	@echo " "
 	@echo "Checking droop.so..."
 	$(LINT) -I$(IDIR) udfDroop.c
+	@echo " "
+	@echo "Checking dumpPmtrs.so..."
+	$(LINT) -I$(IDIR) udfDumpPmtrs.c
 	@echo " "
 	@echo "Checking editAttr.so..."
 	$(LINT) -I$(IDIR) udfEditAttr.c
 	@echo " "
+	@echo "Checking ellipse.so..."
+	$(LINT) -I$(IDIR) udpEllipse.c
+	@echo " "
+	@echo "Checking eqn2body.so..."
+	$(LINT) -I$(IDIR) udpEqn2body.c
+	@echo " "
+	@echo "Checking fitcurve.so..."
+	$(LINT) -I$(IDIR) udpFitcurve.c
+	@echo " "
 	@echo "Checking flend.so..."
 	$(LINT) -I$(IDIR) udfFlend.c
+	@echo " "
+	@echo "Checking freeform.so..."
+	$(LINT) -I$(IDIR) udpFreeform.c
 	@echo " "
 	@echo "Checking ganged.so..."
 	$(LINT) -I$(IDIR) udfGanged.c
 	@echo " "
 	@echo "Checking guide.so..."
 	$(LINT) -I$(IDIR) udfGuide.c
+	@echo " "
+	@echo "Checking hex.so..."
+	$(LINT) -I$(IDIR) udpHex.c
+	@echo " "
+	@echo "Checking import.so..."
+	$(LINT) -I$(IDIR) udpImport.c
+	@echo " "
+	@echo "Checking kulfan.so..."
+	$(LINT) -I$(IDIR) udpKulfan.c
+	@echo " "
+	@echo "Checking linalg.so..."
+	$(LINT) -I$(IDIR) udfLinalg.c
+	@echo " "
+	@echo "Checking matchBodys.so..."
+	$(LINT) -I$(IDIR) udfMatchBodys.c
+	@echo " "
+	@echo "Checking mechanism.so..."
+	$(LINT) -I$(IDIR) udfMechanism.c
+	@echo " "
+	@echo "Checking naca.so..."
+	$(LINT) -I$(IDIR) udpNaca.c                  -macrovarprefixexclude
+	@echo " "
+	@echo "Checking naca456.so..."
+	$(LINT) -I$(IDIR) udpNaca456.c
+	@echo " "
+	@echo "Checking naca6mc.so..."
+	$(LINT) -I$(IDIR) udfNaca6mc.c
+	@echo " "
+	@echo "Checking nacelle.so..."
+	$(LINT) -I$(IDIR) udfNacelle.c
+	@echo " "
+	@echo "Checking nurbbody.so..."
+	$(LINT) -I$(IDIR) udpNurbbody.c
+	@echo " "
+	@echo "Checking nuscale.so..."
+	$(LINT) -I$(IDIR) udfNuscale.c
+	@echo " "
+	@echo "Checking offset.so..."
+	$(LINT) -I$(IDIR) udfOffset.c
+	@echo " "
+	@echo "Checking parabaloid.so..."
+	$(LINT) -I$(IDIR) udpParabaloid.c
+	@echo " "
+	@echo "Checking parsec.so..."
+	$(LINT) -I$(IDIR) udpParsec.c
+	@echo " "
+	@echo "Checking pod.so..."
+	$(LINT) -I$(IDIR) udpPod.c
+	@echo " "
+	@echo "Checking poly.so..."
+	$(LINT) -I$(IDIR) udpPoly.c
 	@echo " "
 	@echo "Checking printBbox.so..."
 	$(LINT) -I$(IDIR) udfPrintBbox.c
@@ -719,14 +886,47 @@ lint:
 	@echo "Checking printEgo.so..."
 	$(LINT) -I$(IDIR) udfPrintEgo.c
 	@echo " "
+	@echo "Checking prop.so..."
+	$(LINT) -I$(IDIR) udpProp.c
+	@echo " "
+	@echo "Checking radwaf.so..."
+	$(LINT) -I$(IDIR) udpRadwaf.c
+	@echo " "
+	@echo "Checking sample.so..."
+	$(LINT) -I$(IDIR) udpSample.c
+	@echo " "
+	@echo "Checking sew.so..."
+	$(LINT) -I$(IDIR) udpSew.c
+	@echo " "
 	@echo "Checking shadow.so..."
 	$(LINT) -I$(IDIR) udfShadow.c
 	@echo " "
 	@echo "Checking slices.so..."
 	$(LINT) -I$(IDIR) udfSlices.c
 	@echo " "
+	@echo "Checking stag.so..."
+	$(LINT) -I$(IDIR) udpStag.c
+	@echo " "
 	@echo "Checking stiffener.so..."
 	$(LINT) -I$(IDIR) udfStiffener.c
+	@echo " "
+	@echo "Checking supell.so..."
+	$(LINT) -I$(IDIR) udpSupell.c
+	@echo " "
+	@echo "Checking tester1.so..."
+	$(LINT) -I$(IDIR) udfTester1.c
+	@echo " "
+	@echo "Checking tester2.so..."
+	$(LINT) -I$(IDIR) udpTester2.c
+	@echo " "
+	@echo "Checking vsp3.so..."
+	$(LINT) -I$(IDIR) udpVsp3.c
+	@echo " "
+	@echo "Checking waffle.so..."
+	$(LINT) -I$(IDIR) udpWaffle.c
+	@echo " "
+	@echo "Checking warp.so..."
+	$(LINT) -I$(IDIR) udpWarp.c
 	@echo " "
 	@echo "Checking PDT2.so..."
 	$(LINT) -I$(IDIR) eggPDT2.c
@@ -746,35 +946,26 @@ lint:
 	@echo "Checking slugs.so..."
 	$(LINT) -I$(IDIR) timSlugs.c
 	@echo " "
-	@echo "Checking matchBodys.so..."
-	$(LINT) -I$(IDIR) udfMatchBodys.c
-	@echo " "
-	@echo "Checking nacelle.so..."
-	$(LINT) -I$(IDIR) udfNacelle.c
-	@echo " "
-	@echo "Checking nuscale.so..."
-	$(LINT) -I$(IDIR) udfNuscale.c
+	@echo "Checking vspSetup.so..."
+	$(LINT) -I$(IDIR) timVspSetup.c
 	@echo " "
 
 clean:
-	(cd $(ODIR); rm -f udpFitcurve.o udpFreeform.o udpWaffle.o udpCsm.o \
-		udpEllipse.o udpNaca.o udpHex.o udpImport.o serveCSM.o serveESP.o \
-		OpenCSM.o udp.o tim.o udpBezier.o udpBox.o udpNurbbody.o udpParabaloid.o udpParsec.o \
+	(cd $(ODIR); rm -f udpFitcurve.o udpFreeform.o udfTester1.o udpTester2.o udpVsp3.o udpWaffle.o udpWarp.o udpCsm.o \
+		udpEllipse.o udpEqn2body.o udpNaca.o udpHex.o udpImport.o serveCSM.o serveESP.o \
+		OpenCSM.o udp.o tim.o udpBezier.o udpBox.o udpBspline.o udpNurbbody.o udpParabaloid.o udpParsec.o \
 		udpSample.o udpSew.o udpRadwaf.o udpNaca456.o naca456.o \
 		udpSupell.o udpStag.o udfSlices.o udfStiffener.o udpKulfan.o udpBiconvex.o \
-		udfCatmull.o udfCompare.o udfCreateBEM.o udfCreatePoly.o udfDroop.o \
+		udfCatmull.o udfCompare.o udfCreateBEM.o udfCreatePoly.o udfDeform.o udfDroop.o udfDumpPmtrs.o \
 		udpPod.o udpPoly.o udpProp.o udfEditAttr.o udfPrintBbox.o udfPrintBrep.o \
 		udfPrintEgo.o udfShadow.o udfFlend.o udfGanged.o udfGuide.o \
-		udfMatchBodys.o udfNacelle.o udfNuscale.o timEreped.o timMitten.o \
-		timPlotter.o timPlugs.o timPyscript.o timSlugs.o eggPDT2.o sensCSM.o )
+		udfLinalg.o udfMatchBodys.o udfMechanism.o udfNacelle.o udfNaca6mc.o udfNuscale.o udfOffset.o timEreped.o timMitten.o \
+		timPlotter.o timPlugs.o timSlugs.o timVspSetup.o eggPDT2.o sensCSM.o )
 
 cleanall:	clean
 	rm -f  $(BINLIST) $(LIBLIST) $(LIBFLIST) $(TIMLIST) $(INCLIST)
 
 static:		$(BDIR)/staticCSM
 
-$(BDIR)/staticCSM:	$(ODIR)/serveCSM.o $(ODIR)/OpenCSM.o $(ODIR)/udp.o \
-			$(LDIR)/libegadstatic.a
-	$(CXX) -o $(BDIR)/staticCSM $(ODIR)/serveCSM.o $(ODIR)/OpenCSM.o \
-		$(ODIR)/udp.o -L$(LDIR) -lwsserver -legadstatic -lpthread -lz \
-		$(LIBPATH) $(LIBS) $(RPATH) -ldl -lm
+$(BDIR)/staticCSM:	$(ODIR)/serveCSM.o $(ODIR)/OpenCSM.o $(ODIR)/udp.o $(LDIR)/libegadstatic.a
+	$(CXX) -o $(BDIR)/staticCSM $(ODIR)/serveCSM.o $(ODIR)/OpenCSM.o $(ODIR)/udp.o -L$(LDIR) -lwsserver -legadstatic -lpthread -lz $(LIBPATH) $(LIBS) $(RPATH) -ldl -lm

@@ -1,0 +1,66 @@
+# select_1
+# written by John Dannenhoffer
+
+# make a box (which automatically selects it)
+BOX       0  0  0  4  3  2
+ASSERT    @nface  6
+
+# make a cylinder (which automatically selects it)
+CYLINDER  0  5  1  4  5  1  1
+ASSERT    @nface  4
+
+# select the box
+SELECT    BODY  1
+ASSERT    @nface  6
+
+# select the last body on the stack (the cylinder)
+SELECT    BODY
+ASSERT    @nface  4
+
+# select the box again
+SELECT    BODY  1
+ASSERT    @nface  6
+
+# select all the Faces and put the _color attribute on them
+SELECT    FACE
+ATTRIBUTE _color $cyan
+ASSERT    @sellist.size   6
+
+# select Faces by face-order and name them
+SELECT    FACE  @ibody  1
+ATTRIBUTE name  $xmin
+SELECT    FACE  @ibody  2
+ATTRIBUTE name  $xmax
+SELECT    FACE  @ibody  3
+ATTRIBUTE name  $ymin
+SELECT    FACE  @ibody  4
+ATTRIBUTE name  $ymax
+SELECT    FACE  @ibody  5
+ATTRIBUTE name  $zmin
+SELECT    FACE  @ibody  6
+ATTRIBUTE name  $zmax
+
+# add an extra attribute to xmin Face
+SELECT    FACE  $name  $xmin
+ATTRIBUTE extra $yes
+
+# select the face in the bounding box
+SELECT    FACE  -.1  0.1  -.1  3.1 -.1  2.1
+ASSERT    @sellist.size  1
+
+# select a face by attribute
+SELECT    FACE  $name  $xmin
+ASSERT    @sellist.size  1
+
+SELECT    FACE  $name  $*max
+ASSERT    @sellist.size  3    # xmax, ymax, and zmax
+
+SELECT    FACE  $name  $*  $extra  $yes
+ASSERT    @sellist.size  1    # has a name and has extra=yes
+
+END
+
+
+
+
+

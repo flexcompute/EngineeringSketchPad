@@ -38,6 +38,9 @@ extern "C" {
 #include "gettimeofday.h"
 
 #define strcasecmp stricmp
+#ifndef snprintf
+#define snprintf   _snprintf
+#endif
 
 typedef int ssize_t;
 

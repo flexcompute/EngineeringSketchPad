@@ -1,0 +1,14 @@
+# waffle_udp_1
+# written by John Dannenhoffer
+
+DIMENSION segs 5 4 1
+SET       segs "0; 2; 5; 2;\
+                5; 2; 5; 5;\
+                1; 1; 6; 6;\
+                2; 1; 4; 5;\
+                0; 5; 4; 5;"
+
+UDPARG    waffle   segments segs
+UDPRIM    waffle   depth    2
+
+END

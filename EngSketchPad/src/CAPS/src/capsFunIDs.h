@@ -5,7 +5,7 @@
  *
  *             Function ID & Journal Header
  *
- *      Copyright 2014-2022, Massachusetts Institute of Technology
+ *      Copyright 2014-2024, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -103,10 +103,13 @@
 #define CAPS_LINKVALUE       90
 #define CAPS_HASDERIV        91
 #define CAPS_GETDERIV        92
+#define CAPS_GETVALUESIZE    93
+#define CAPS_SETSTEPSIZE     94
+#define CAPS_GETSTEPSIZE     95
 
 /* string conversion for the funIDs */
 
-#define CAPS_NFUNID          93
+#define CAPS_NFUNID          96
 
 extern const char* caps_funID[CAPS_NFUNID];
 

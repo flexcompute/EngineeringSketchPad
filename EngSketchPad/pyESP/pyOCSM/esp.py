@@ -6,7 +6,7 @@
 #                                                                 #
 ###################################################################
 
-# Copyright (C) 2022  John F. Dannenhoffer, III (Syracuse University)
+# Copyright (C) 2024  John F. Dannenhoffer, III (Syracuse University)
 #
 # This library is free software; you can redistribute it and/or
 #    modify it under the terms of the GNU Lesser General Public
@@ -62,7 +62,7 @@ def GetCaps(esp):
     GetCaps - get serveESP's active CAPS
 
     inputs:
-        esp         ESP structure        
+        esp         ESP structure
     outputs:
         problem     CAPS problem
     """
@@ -73,7 +73,7 @@ def GetCaps(esp):
     problem = ctypes.c_void_p()
     status  =_esp.timGetCaps(problem, esp)
     _processStatus(status, "GetCaps")
-    
+
     return caps.capsObj(ctypes.cast(problem,caps.c_capsObj), None, deleteFunction=None)
 
 # ======================================================================
@@ -88,17 +88,20 @@ def SetCaps(problem, esp):
     outputs:
         (None}
     """
-    _esp.timSetCaps.argtypes = [ctypes.c_void_p]
+    _esp.timSetCaps.argtypes = [ctypes.c_void_p, ctypes.c_void_p]
     _esp.timSetCaps.restype  =  ctypes.c_int
 
-    status = _esp.timSetCaps(ctypes.cast(problem._obj,caps.c_void_p))
+    status = _esp.timSetCaps(ctypes.cast(problem._obj,caps.c_void_p), esp)
     _processStatus(status, "SetCaps")
 
+    # the following was removed because a pyscript not run in
+    # CAPS mode was not deleting the problem object
+
     # make sure problem is not cleaned up when python exits
-    if problem._finalize:
-        problem._finalize.detach()
-    
-    problem._finalize = None
+    #if problem._finalize:
+    #    problem._finalize.detach()
+    #
+    #problem._finalize = None
 
     return None
 
@@ -109,7 +112,7 @@ def GetModl(esp):
     GetModl - get serveESP's active MODL
 
     inputs:
-        esp         ESP structure        
+        esp         ESP structure
     outputs:
         modl        OpenCSm MODL
     """
@@ -120,7 +123,7 @@ def GetModl(esp):
     modl   = ctypes.c_void_p()
     status =_esp.timGetModl(modl, esp)
     _processStatus(status, "GetModl")
-    
+
     return modl
 
 # ======================================================================
@@ -146,7 +149,7 @@ def SetModl(modl, esp):
     if modl._pyowned:
         if modl._finalize:
             modl._finalize.detach()
-    
+
         modl._pyowned  = False
         modl._finalize = None
 
@@ -195,11 +198,11 @@ def GetEsp(timName):
 
     if (isinstance(timName, str)):
         timName = timName.encode()
-            
+
     ESP = _ocsm.tim_getEsp(timName)
 
     return ESP
-    
+
 # ======================================================================
 
 def TimLoad(timName, esp, data):

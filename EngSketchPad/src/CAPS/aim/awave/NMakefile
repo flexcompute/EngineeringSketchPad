@@ -14,12 +14,15 @@ ODIR = .
 TDIR = $(ESP_ROOT)\bin
 !ENDIF
 
+DEFAULTS = $(LDIR)\awaveAIM.dll
+
 !IFDEF EFCOMP
-default:	$(LDIR)\awaveAIM.dll $(TDIR)\awave.exe
-!ELSE
-default:	$(LDIR)\awaveAIM.dll
+!IFDEF AWAVE
+DEFAULTS = $(DEFAULTS) $(TDIR)\awave.exe
+!ENDIF
 !ENDIF
 
+default:	$(DEFAULTS)
 
 $(LDIR)\awaveAIM.dll:	awaveAIM.def $(ODIR)\awaveAIM.obj
 	-del $(LDIR)\awaveAIM.dll $(LDIR)\awaveAIM.lib $(LDIR)\awaveAIM.exp
