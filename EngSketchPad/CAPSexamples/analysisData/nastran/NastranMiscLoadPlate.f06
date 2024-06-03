@@ -1,0 +1,725 @@
+1
+ 
+ 
+ 
+ 
+                      Warning: This computer program is protected by copyright law and international treaties.       
+                  Unauthorized use, reproduction or distribution of this computer program, or any portion of it, may 
+                                          result in severe civil and criminal penalties.                             
+                         Copyright (C) 2021 MSC Software Corporation and its licensors. All rights reserved.         
+ 
+ 
+                                              * * * * * * * * * * * * * * * * * * * *
+                                              * * * * * * * * * * * * * * * * * * * *
+                                              * *                                 * *
+                                              * *           MSC Software          * *
+                                              * *               CORP              * *
+                                              * *                                 * *
+                                              * *      M S C   N a s t r a n      * *
+                                              * *                                 * *
+                                              * *                                 * *
+                                              * *                                 * *
+                                              * *     Version 2021.3-CL837441     * *
+                                              * *                                 * *
+                                              * *                                 * *
+                                              * *                                 * *
+                                              * *          SEP 15, 2021           * *
+                                              * *                                 * *
+                                              * *       x86-64 Based System       * *
+                                              * *MODEL Intel 2100 MHz (b0146w0030 * *
+                                              * *Linux 3.10.0-1160.114.2.el7.x86_ * *
+                                              * *Compiled for x8664 (SINGLE Mode) * *
+                                              * *                                 * *
+                                              * * * * * * * * * * * * * * * * * * * *
+                                              * * * * * * * * * * * * * * * * * * * *
+1News file - (Aug 24, 2021)
+  
+               Welcome to MSC Nastran 2021.3
+  
+  
+   MSC Nastran brings powerful new features and enhancements for engineering
+   solutions.
+  
+     MSC Nastran 2021.3 Features and Enhancements
+  
+     Dynamics
+      - Dynamic stiffness output for mechanical loading in direct and modal
+        frequency response (SOL 108 and SOL 111), design optimization
+        (SOL 200 analysis) and implicit nonlinear (SOL 400 linear)
+  
+     Results
+      - Relative displacement output for a grid, or set of grids with respect
+        to reference grid for linear statics, dynamics and nonlinear analysis
+  
+     RotorDynamics
+      - Output of rotordynamics rotor kinetic and potential energies to OP2, PCH
+        and H5 formats, via a new ROTSEKE Case Control entry, and which can be
+        sorted either rotor-wise of mode-wise (replaces previous ROTSEKE
+        parameter which is now deprecated)
+      - New capability to define spin speed for individual rotors available in
+        SOL 107, SOL 110, SOL 200 and SOL 400 (ANALYSIS = CEIG) – multiple RGYR
+        entries are allowed for individual rotors
+  
+     Fatigue
+      - Time domain performance improvements
+      - CAEfatigue Process Flow interface to facilitate analysis and results
+        postprocessing execution
+  
+     Nonlinear
+      - Enhanced contact projection algorithm at corners and on warped surfaces
+      - GLUEOUT option to separate normal and tangential glued contact force
+        output
+  
+     High Performance Computing
+      - SOL 400 element-loop (NLEMG) performance improvements
+      - Windows support for MUMPS solver in SOL 101
+      - Improved thread management for DMP/SMP combinations
+      - Support for CUDA 11 functionality (including NVIDIA Ampere GPU
+        architecture)
+  
+  
+  
+     Documentation
+     The complete documentation set is provided in a separate installer and
+     when installed is available at: MSC_DOC_DIR/doc/pdf_nastran directory.
+1    Where MSC_DOC_DIR is the directory where documentation was installed
+     This help set has cross references between documents, links to how-to
+     videos, and example files.
+  
+     Individual MSC Nastran documents are available for download from the
+       Simcompanion Website at:
+       http://simcompanion.mscsoftware.com/
+  
+     These documents were updated for the MSC Nastran 2021.3 Release
+  
+         1.  MSC Nastran 2021.3 Installation and Operations Guide
+         2.  MSC Nastran 2021.3 Quick Reference Guide
+         3.  MSC Nastran 2021.3 Release Guide
+         4.  MSC Nastran 2021.3 Linear Statics Analysis User's Guide
+         5.  MSC Nastran 2021.3 Dynamic Analysis User's Guide
+         6.  MSC Nastran 2021.3 Superelements User's Guide
+         7.  MSC Nastran 2021.3 Rotordynamics User's Guide
+         8.  MSC Nastran 2021.3 Demonstration Problems Manual
+         9.  MSC Nastran 2021.3 Nastran Embedded Fatigue User's Guide
+        10.  MSC Nastran 2021.3 Design Sensitivity and Optimization
+        11.  MSC Nastran 2021.3 Nonlinear User's Guide SOL 400
+        12.  MSC Nastran 2021.3 DMAP Programmer's Guide
+        13.  MSC Nastran 2021.3 High Performance Computing User's Guide
+        14.  MSC Nastran 2021.3 New Verification Manual
+        15.  MSC Nastran 2021.3 DEMATD Guide
+        16.  MSC Nastran 2021.3 Explicit Nonlinear (SOL 700) User's Guide
+  
+   Please refer to  MSC_DOC_DIR/doc/pdf_nastran/nastran_library.pdf
+   for the complete document set:
+  
+  
+     Feature Deprecation List
+     To streamline the MSC Nastran program and simplify ongoing maintenance
+     activiy, some obsolete capabilities have been identified and tagged for
+     removal from a future release of the program in 2021 and 2022.
+     Please review the list of features marked for deprecation below to
+     ensure that there will be no disruption to your use of MSC Nastran.
+     If you see a feature that you currently use and do not wish to lose,
+     contact MSC Technical Support to report it.
+  
+     Features tagged for removal:
+     - SOL 600 nonlinear solution sequence
+     - TAUCS solver
+     - Obsolete DMAP modules
+     - SSSALTERS
+  
+     Refer to the MSC Nastran 2021 Release Guide for more details.
+  
+  
+   Additional information about the release can be found at the MSC Nastran
+1  Product Support page: http://simcompanion.mscsoftware.com
+  
+   The support page provides links to these valuable information:
+      * A searchable Knowledge Base containing examples and answers to thousands
+        of frequently asked questions written by MSC Software subject-matter
+        experts.
+      * Peer-to-peer Discussion Forums enabling you to post questions for your
+        MSC Software products and receive answers from other users worldwide.
+      * A list of known issues with the product and any workarounds.
+      * Instructions on how to contact technical support
+      * A mechanism for sending us product feedback or enhancement requests.
+      * Hardware and software requirements.
+      * Examples and Tutorials
+      * and much more.
+  
+   For information on training, please visit our Training web site
+  
+      http://www.mscsoftware.com/Contents/Services/Training/
+  
+1                                                                               MAY  16, 2024  MSC Nastran  9/15/21   PAGE     1
+                                                                                                                                    
+0        N A S T R A N    F I L E    A N D    S Y S T E M    P A R A M E T E R    E C H O                                           
+0                                                                                                                                   
+                                                                                                                                    
+                                                                                                                                    
+     NASTRAN BUFFSIZE=32769 $(/USR/LOCAL/APPS/MSC/MSC_NASTRAN/2021.3/CONF/NAST20213RC
+     $ $(/USR/LOCAL/APPS/MSC/MSC_NASTRAN/2021.3/CONF/NAST20213RC[6])                 
+     $ $(/USR/LOCAL/APPS/MSC/MSC_NASTRAN/2021.3/CONF/NAST20213RC[14])                
+     $ END $(/USR/LOCAL/APPS/MSC/MSC_NASTRAN/2021.3/CONF/NAST20213RC[16])            
+1                                                                               MAY  16, 2024  MSC Nastran  9/15/21   PAGE     2
+                                                                                                                                    
+0        N A S T R A N    E X E C U T I V E    C O N T R O L    E C H O                                                             
+0                                                                                                                                   
+                                                                                                                                    
+                                                                                                                                    
+     ID CAPS GENERATED PROBLEM FOR NASTRAN                                                   
+     SOL 101                                                                                 
+     CEND                                                                                    
+1                                                                               MAY  16, 2024  MSC Nastran  9/15/21   PAGE     3
+                                                                                                                                    
+0                                                                                                                                   
+0                                        C A S E    C O N T R O L    E C H O                                                        
+                 COMMAND                                                                                                            
+                 COUNT                                                                                                              
+                  1                                                                                              
+                  2      LINE=10000                                                                              
+                  3      DISP (PRINT,PUNCH) = ALL                                                                
+                  4      STRE (PRINT,PUNCH) = ALL                                                                
+                  5      STRA (PRINT,PUNCH) = ALL                                                                
+                  6      SUBCASE 1                                                                               
+                  7          LABEL = DEFAULT                                                                     
+                  8          ANALYSIS = STATICS                                                                  
+                  9          SPC = 2                                                                             
+                 10          TEMPERATURE = 3                                                                     
+                 11          LOAD = 4                                                                            
+                 12          DESSUB = 2                                                                          
+                 13                                                                                              
+                 14      BEGIN BULK                                                                              
+1                                                                               MAY  16, 2024  MSC Nastran  9/15/21   PAGE     4
+                                                                                                                                    
+0                                                                                                                                   
+                                              I N P U T   B U L K   D A T A   E C H O                                               
+                 ENTRY                                                                                                              
+                 COUNT        .   1  ..   2  ..   3  ..   4  ..   5  ..   6  ..   7  ..   8  ..   9  ..  10  .                      
+                              $INCLUDE "./NastranMiscLoadPlate.bdf"
+                              $END OF INCLUDE "./NastranMiscLoadPlate.bdf"
+1                                                                               MAY  16, 2024  MSC Nastran  9/15/21   PAGE     5
+                                                                                                                                    
+0                                                                                                                                   
+                                                  S O R T E D   B U L K   D A T A   E C H O                                         
+                 ENTRY                                                                                                              
+                 COUNT        .   1  ..   2  ..   3  ..   4  ..   5  ..   6  ..   7  ..   8  ..   9  ..  10  .                      
+                    1-        CSHEAR  1       1       1       2       41      24
+                    2-        CSHEAR  2       1       3       29      41      2
+                    3-        CSHEAR  3       1       25      30      41      29
+                    4-        CSHEAR  4       1       23      24      41      30
+                    5-        CSHEAR  5       1       3       4       42      29
+                    6-        CSHEAR  6       1       5       31      42      4
+                    7-        CSHEAR  7       1       26      32      42      31
+                    8-        CSHEAR  8       1       25      29      42      32
+                    9-        CSHEAR  9       1       5       6       43      31
+                   10-        CSHEAR  10      1       7       8       43      6
+                   11-        CSHEAR  11      1       9       33      43      8
+                   12-        CSHEAR  12      1       26      31      43      33
+                   13-        CSHEAR  13      1       23      30      44      22
+                   14-        CSHEAR  14      1       25      34      44      30
+                   15-        CSHEAR  15      1       27      35      44      34
+                   16-        CSHEAR  16      1       21      22      44      35
+                   17-        CSHEAR  17      1       25      32      45      34
+                   18-        CSHEAR  18      1       26      36      45      32
+                   19-        CSHEAR  19      1       28      37      45      36
+                   20-        CSHEAR  20      1       27      34      45      37
+                   21-        CSHEAR  21      1       26      33      46      36
+                   22-        CSHEAR  22      1       9       10      46      33
+                   23-        CSHEAR  23      1       11      38      46      10
+                   24-        CSHEAR  24      1       28      36      46      38
+                   25-        CSHEAR  25      1       21      35      47      20
+                   26-        CSHEAR  26      1       27      39      47      35
+                   27-        CSHEAR  27      1       17      18      47      39
+                   28-        CSHEAR  28      1       19      20      47      18
+                   29-        CSHEAR  29      1       27      37      48      39
+                   30-        CSHEAR  30      1       28      40      48      37
+                   31-        CSHEAR  31      1       15      16      48      40
+                   32-        CSHEAR  32      1       17      39      48      16
+                   33-        CSHEAR  33      1       28      38      49      40
+                   34-        CSHEAR  34      1       11      12      49      38
+                   35-        CSHEAR  35      1       13      14      49      12
+                   36-        CSHEAR  36      1       15      40      49      14
+                   37-        DCONADD 2       1
+                   38-        DESVAR  1       PLTVAR  0.      -10.    10.     .5
+                   39-        GRID    1               0.      0.      0.
+                   40-        GRID    2               0.      .0417   0.
+                   41-        GRID    3               0.      .0833   0.
+                   42-        GRID    4               0.      .125    0.
+                   43-        GRID    5               0.      .16667  0.
+                   44-        GRID    6               0.      .20833  0.
+                   45-        GRID    7               0.      .25     0.
+                   46-        GRID    8               .0833   .25     0.
+                   47-        GRID    9               .16667  .25     0.
+                   48-        GRID    10              .25     .25     0.
+                   49-        GRID    11              .33333  .25     0.
+                   50-        GRID    12              .41667  .25     0.
+                   51-        GRID    13              .5      .25     0.
+                   52-        GRID    14              .5      .20833  0.
+                   53-        GRID    15              .5      .16667  0.
+                   54-        GRID    16              .5      .125    0.
+                   55-        GRID    17              .5      .0833   0.
+                   56-        GRID    18              .5      .0417   0.
+                   57-        GRID    19              .5      0.      0.
+                   58-        GRID    20              .41667  0.      0.
+                   59-        GRID    21              .33333  0.      0.
+                   60-        GRID    22              .25     0.      0.
+                   61-        GRID    23              .16667  0.      0.
+                   62-        GRID    24              .0833   0.      0.
+                   63-        GRID    25              .16667  .0833   0.
+                   64-        GRID    26              .16667  .16667  0.
+                   65-        GRID    27              .33333  .0833   0.
+                   66-        GRID    28              .33333  .16667  0.
+                   67-        GRID    29              .0833   .0833   0.
+                   68-        GRID    30              .16667  .0417   0.
+                   69-        GRID    31              .0833   .16667  0.
+                   70-        GRID    32              .16667  .125    0.
+                   71-        GRID    33              .16667  .20833  0.
+                   72-        GRID    34              .25     .0833   0.
+                   73-        GRID    35              .33333  .0417   0.
+                   74-        GRID    36              .25     .16667  0.
+                   75-        GRID    37              .33333  .125    0.
+                   76-        GRID    38              .33333  .20833  0.
+                   77-        GRID    39              .41667  .0833   0.
+                   78-        GRID    40              .41667  .16667  0.
+                   79-        GRID    41              .0833   .0417   0.
+                   80-        GRID    42              .0833   .125    0.
+                   81-        GRID    43              .0833   .20833  0.
+                   82-        GRID    44              .25     .0417   0.
+                   83-        GRID    45              .25     .125    0.
+                   84-        GRID    46              .25     .20833  0.
+                   85-        GRID    47              .41667  .0417   0.
+                   86-        GRID    48              .41667  .125    0.
+                   87-        GRID    49              .41667  .20833  0.
+                   88-        LOAD    4       1.      1.      1       1.      2
+                   89-        MAT1    1       7.2E+10         .33     2800.                           +
+                   90-        +       0.      0.      0.
+                   91-        MOMENT  1       25      0       1.      0.      1.      0.
+                   92-        MOMENT  1       26      0       1.      0.      1.      0.
+                   93-        MOMENT  1       27      0       1.      0.      1.      0.
+                   94-        MOMENT  1       28      0       1.      0.      1.      0.
+                   95-        MOMENT  1       29      0       1.      0.      1.      0.
+                   96-        MOMENT  1       30      0       1.      0.      1.      0.
+                   97-        MOMENT  1       31      0       1.      0.      1.      0.
+                   98-        MOMENT  1       32      0       1.      0.      1.      0.
+                   99-        MOMENT  1       33      0       1.      0.      1.      0.
+                  100-        MOMENT  1       34      0       1.      0.      1.      0.
+                  101-        MOMENT  1       35      0       1.      0.      1.      0.
+                  102-        MOMENT  1       36      0       1.      0.      1.      0.
+                  103-        MOMENT  1       37      0       1.      0.      1.      0.
+                  104-        MOMENT  1       38      0       1.      0.      1.      0.
+                  105-        MOMENT  1       39      0       1.      0.      1.      0.
+                  106-        MOMENT  1       40      0       1.      0.      1.      0.
+                  107-        MOMENT  1       41      0       1.      0.      1.      0.
+                  108-        MOMENT  1       42      0       1.      0.      1.      0.
+                  109-        MOMENT  1       43      0       1.      0.      1.      0.
+                  110-        MOMENT  1       44      0       1.      0.      1.      0.
+                  111-        MOMENT  1       45      0       1.      0.      1.      0.
+                  112-        MOMENT  1       46      0       1.      0.      1.      0.
+                  113-        MOMENT  1       47      0       1.      0.      1.      0.
+                  114-        MOMENT  1       48      0       1.      0.      1.      0.
+                  115-        MOMENT  1       49      0       1.      0.      1.      0.
+                  116-        PARAM   GRDPNT  0
+                  117-        PARAM   POST    -1
+                  118-        PLOAD2  2       0.      1
+                  119-        PLOAD2  2       0.      2
+                  120-        PLOAD2  2       0.      3
+                  121-        PLOAD2  2       0.      4
+                  122-        PLOAD2  2       0.      5
+                  123-        PLOAD2  2       0.      6
+                  124-        PLOAD2  2       0.      7
+                  125-        PLOAD2  2       0.      8
+                  126-        PLOAD2  2       0.      9
+                  127-        PLOAD2  2       0.      10
+                  128-        PLOAD2  2       0.      11
+                  129-        PLOAD2  2       0.      12
+                  130-        PLOAD2  2       0.      13
+                  131-        PLOAD2  2       0.      14
+                  132-        PLOAD2  2       0.      15
+                  133-        PLOAD2  2       0.      16
+                  134-        PLOAD2  2       0.      17
+                  135-        PLOAD2  2       0.      18
+                  136-        PLOAD2  2       0.      19
+                  137-        PLOAD2  2       0.      20
+                  138-        PLOAD2  2       0.      21
+                  139-        PLOAD2  2       0.      22
+                  140-        PLOAD2  2       0.      23
+                  141-        PLOAD2  2       0.      24
+                  142-        PLOAD2  2       0.      25
+                  143-        PLOAD2  2       0.      26
+                  144-        PLOAD2  2       0.      27
+                  145-        PLOAD2  2       0.      28
+                  146-        PLOAD2  2       0.      29
+                  147-        PLOAD2  2       0.      30
+                  148-        PLOAD2  2       0.      31
+                  149-        PLOAD2  2       0.      32
+                  150-        PLOAD2  2       0.      33
+                  151-        PLOAD2  2       0.      34
+                  152-        PLOAD2  2       0.      35
+                  153-        PLOAD2  2       0.      36
+                  154-        PSHEAR  1       1       .006
+                  155-        SPC1    1       123456  1       2       3       4       5       6       +
+                  156-        +       7       8       9       10      11      12      13      14      +
+                  157-        +       15      16      17      18      19      20      21      22      +
+                  158-        +       23      24
+                  159-        SPCADD  2       1
+                  160-        TEMP    3       25      0.
+                  161-        TEMP    3       26      0.
+                  162-        TEMP    3       27      0.
+                  163-        TEMP    3       28      0.
+                  164-        TEMP    3       29      0.
+                  165-        TEMP    3       30      0.
+                  166-        TEMP    3       31      0.
+                  167-        TEMP    3       32      0.
+                  168-        TEMP    3       33      0.
+                  169-        TEMP    3       34      0.
+                  170-        TEMP    3       35      0.
+                  171-        TEMP    3       36      0.
+                  172-        TEMP    3       37      0.
+                  173-        TEMP    3       38      0.
+                  174-        TEMP    3       39      0.
+                  175-        TEMP    3       40      0.
+                  176-        TEMP    3       41      0.
+                  177-        TEMP    3       42      0.
+                  178-        TEMP    3       43      0.
+                  179-        TEMP    3       44      0.
+                  180-        TEMP    3       45      0.
+                  181-        TEMP    3       46      0.
+                  182-        TEMP    3       47      0.
+                  183-        TEMP    3       48      0.
+                  184-        TEMP    3       49      0.
+                  185-        TEMPD   3       0.
+                              ENDDATA
+                        TOTAL COUNT= 186
+                              INPUT BULK DATA ENTRY COUNT = 191
+1                                                                               MAY  16, 2024  MSC Nastran  9/15/21   PAGE     6
+                                                                                                                                    
+0                                                                                                                                   
+                                        M O D E L   S U M M A R Y          BULK = 0
+                                   ENTRY NAME        NUMBER OF ENTRIES
+                                   ----------        -----------------
+                                       CSHEAR                       36
+                                      DCONADD                        1
+                                       DESVAR                        1
+                                         GRID                       49
+                                         LOAD                        1
+                                         MAT1                        1
+                                       MOMENT                       25
+                                        PARAM                        2
+                                       PLOAD2                       36
+                                       PSHEAR                        1
+                                         SPC1                        1
+                                       SPCADD                        1
+                                         TEMP                       25
+                                        TEMPD                        1
+
+ ^^^     
+ ^^^ >>> IFP OPERATIONS COMPLETE <<< 
+ ^^^     
+ *** USER INFORMATION MESSAGE 4109 (OUTPX2)
+     THE LABEL IS XXXXXXXX FOR FORTRAN UNIT    12
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =          7 WORDS.)
+           (NUMBER OF FORTRAN RECORDS WRITTEN =          8 RECORDS.)
+                (TOTAL DATA WRITTEN FOR LABEL =         17 WORDS.)
+ ^^^     
+ *** USER WARNING MESSAGE 9431 (SUBDMAP PHASE0)
+     The ANALYSIS command is ignored in this Solution Sequence.
+ ^^^     
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK GEOM1X   WRITTEN ON FORTRAN UNIT    12 IN BINARY (LTLEND) FORMAT USING NDDL DESCRIPTION FOR GEOM168, TRL =
+                    101                 0                 0                 8                 0                 0                 0
+     NAME OF DATA BLOCK WRITTEN ON FORTRAN UNIT IS GEOM1   
+        (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =       65538 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =         395 WORDS.)
+           (NUMBER OF FORTRAN RECORDS WRITTEN =          20 RECORDS.)
+           (TOTAL DATA WRITTEN FOR DATA BLOCK =         426 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK GEOM2X   WRITTEN ON FORTRAN UNIT    12 IN BINARY (LTLEND) FORMAT USING NDDL DESCRIPTION FOR GEOM201, TRL =
+                    102                 0                 2                 0                 0                 0                 0
+     NAME OF DATA BLOCK WRITTEN ON FORTRAN UNIT IS GEOM2   
+        (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =       65538 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =         219 WORDS.)
+           (NUMBER OF FORTRAN RECORDS WRITTEN =          20 RECORDS.)
+           (TOTAL DATA WRITTEN FOR DATA BLOCK =         250 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK GEOM3X   WRITTEN ON FORTRAN UNIT    12 IN BINARY (LTLEND) FORMAT USING NDDL DESCRIPTION FOR GEOM301, TRL =
+                    103                 0                 0                 1               136             36864                 0
+     NAME OF DATA BLOCK WRITTEN ON FORTRAN UNIT IS GEOM3   
+        (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =       65538 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =         178 WORDS.)
+           (NUMBER OF FORTRAN RECORDS WRITTEN =          40 RECORDS.)
+           (TOTAL DATA WRITTEN FOR DATA BLOCK =         430 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK GEOM4X   WRITTEN ON FORTRAN UNIT    12 IN BINARY (LTLEND) FORMAT USING NDDL DESCRIPTION FOR GEOM4705, TRL =
+                    104                 0                 0                 0                96                 0                 0
+     NAME OF DATA BLOCK WRITTEN ON FORTRAN UNIT IS GEOM4   
+        (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =       65538 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =          31 WORDS.)
+           (NUMBER OF FORTRAN RECORDS WRITTEN =          25 RECORDS.)
+           (TOTAL DATA WRITTEN FOR DATA BLOCK =          72 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK EPTX     WRITTEN ON FORTRAN UNIT    12 IN BINARY (LTLEND) FORMAT USING NDDL DESCRIPTION FOR EPT01, TRL =
+                    105                64                 0                 0                 0                 0                 0
+     NAME OF DATA BLOCK WRITTEN ON FORTRAN UNIT IS EPT     
+        (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =       65538 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =           9 WORDS.)
+           (NUMBER OF FORTRAN RECORDS WRITTEN =          20 RECORDS.)
+           (TOTAL DATA WRITTEN FOR DATA BLOCK =          40 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK MPTS     WRITTEN ON FORTRAN UNIT    12 IN BINARY (LTLEND) FORMAT USING NDDL DESCRIPTION FOR MPT, TRL =
+                    101             32768                 0                 0                 0                 0                 0
+     NAME OF DATA BLOCK WRITTEN ON FORTRAN UNIT IS MPT     
+        (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =       65538 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =          15 WORDS.)
+           (NUMBER OF FORTRAN RECORDS WRITTEN =          20 RECORDS.)
+           (TOTAL DATA WRITTEN FOR DATA BLOCK =          46 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK CASESO   WRITTEN ON FORTRAN UNIT    12 IN BINARY (LTLEND) FORMAT USING NDDL DESCRIPTION FOR CASECC, TRL =
+                    101                 1                 0              1000                 0                 0                 0
+     NAME OF DATA BLOCK WRITTEN ON FORTRAN UNIT IS CASECC  
+        (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =       65538 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =        1000 WORDS.)
+           (NUMBER OF FORTRAN RECORDS WRITTEN =          15 RECORDS.)
+           (TOTAL DATA WRITTEN FOR DATA BLOCK =        1024 WORDS.)
+1                                                                               MAY  16, 2024  MSC Nastran  9/15/21   PAGE     7
+                                                                                                                                    
+0                                                                                                                                   
+                           O U T P U T   F R O M   G R I D   P O I N T   W E I G H T   G E N E R A T O R
+0                                                     REFERENCE POINT =        0
+                                                                M O
+                      *  2.100000E+00  0.000000E+00  0.000000E+00  0.000000E+00  0.000000E+00 -2.625000E-01 *
+                      *  0.000000E+00  2.100000E+00  0.000000E+00  0.000000E+00  0.000000E+00  5.250000E-01 *
+                      *  0.000000E+00  0.000000E+00  2.100000E+00  2.625000E-01 -5.250000E-01  0.000000E+00 *
+                      *  0.000000E+00  0.000000E+00  2.625000E-01  4.435764E-02 -6.562500E-02  0.000000E+00 *
+                      *  0.000000E+00  0.000000E+00 -5.250000E-01 -6.562500E-02  1.774306E-01  0.000000E+00 *
+                      * -2.625000E-01  5.250000E-01  0.000000E+00  0.000000E+00  0.000000E+00  2.217882E-01 *
+                                                                 S
+                                           *  1.000000E+00  0.000000E+00  0.000000E+00 *
+                                           *  0.000000E+00  1.000000E+00  0.000000E+00 *
+                                           *  0.000000E+00  0.000000E+00  1.000000E+00 *
+                               DIRECTION
+                          MASS AXIS SYSTEM (S)     MASS              X-C.G.        Y-C.G.        Z-C.G.
+                                  X            2.100000E+00      0.000000E+00  1.250000E-01  0.000000E+00
+                                  Y            2.100000E+00      2.500000E-01  0.000000E+00  0.000000E+00
+                                  Z            2.100000E+00      2.500000E-01  1.250000E-01  0.000000E+00
+                                                                I(S)
+                                           *  1.154514E-02  0.000000E+00  0.000000E+00 *
+                                           *  0.000000E+00  4.618056E-02  0.000000E+00 *
+                                           *  0.000000E+00  0.000000E+00  5.772570E-02 *
+                                                                I(Q)
+                                           *  1.154514E-02                             *
+                                           *                4.618056E-02               *
+                                           *                              5.772570E-02 *
+                                                                 Q
+                                           *  1.000000E+00  0.000000E+00  0.000000E+00 *
+                                           *  0.000000E+00  1.000000E+00  0.000000E+00 *
+                                           *  0.000000E+00  0.000000E+00  1.000000E+00 *
+
+1                                                                               MAY  16, 2024  MSC Nastran  9/15/21   PAGE     8
+                                                                                                                                    
+0                                                                                                                                   
+1                                                                               MAY  16, 2024  MSC Nastran  9/15/21   PAGE     9
+                                                                                                                                    
+0                                                                                                                                   
+0 RESULTANTS ABOUT ORIGIN OF SUPERELEMENT BASIC COORDINATE SYSTEM IN SUPERELEMENT BASIC SYSTEM COORDINATES.
+
+0                                                  OLOAD    RESULTANT       
+  SUBCASE/    LOAD
+  DAREA ID    TYPE       T1            T2            T3            R1            R2            R3
+0        1     FX    0.000000E+00     ----          ----          ----       0.000000E+00  0.000000E+00                             
+               FY       ----       0.000000E+00     ----       0.000000E+00     ----       0.000000E+00                             
+               FZ       ----          ----       0.000000E+00  0.000000E+00  0.000000E+00     ----                                  
+               MX       ----          ----          ----       0.000000E+00     ----          ----                                  
+               MY       ----          ----          ----          ----       2.500000E+01     ----                                  
+               MZ       ----          ----          ----          ----          ----       0.000000E+00                             
+             TOTALS  0.000000E+00  0.000000E+00  0.000000E+00  0.000000E+00  2.500000E+01  0.000000E+00
+1                                                                               MAY  16, 2024  MSC Nastran  9/15/21   PAGE    10
+                                                                                                                                    
+0     DEFAULT                                                                                                SUBCASE 1              
+0                                         G R I D   P O I N T   S I N G U L A R I T Y   T A B L E
+0                             POINT    TYPE   FAILED      STIFFNESS       OLD USET           NEW USET
+                               ID            DIRECTION      RATIO     EXCLUSIVE  UNION   EXCLUSIVE  UNION
+                               25        G      3         0.00E+00          B        F         SB       S    *
+                               25        G      4         0.00E+00          B        F         SB       S    *
+                               25        G      5         0.00E+00          B        F         SB       S    *
+                               25        G      6         0.00E+00          B        F         SB       S    *
+                               26        G      3         0.00E+00          B        F         SB       S    *
+                               26        G      4         0.00E+00          B        F         SB       S    *
+                               26        G      5         0.00E+00          B        F         SB       S    *
+                               26        G      6         0.00E+00          B        F         SB       S    *
+                               27        G      3         0.00E+00          B        F         SB       S    *
+                               27        G      4         0.00E+00          B        F         SB       S    *
+                               27        G      5         0.00E+00          B        F         SB       S    *
+                               27        G      6         0.00E+00          B        F         SB       S    *
+                               28        G      3         0.00E+00          B        F         SB       S    *
+                               28        G      4         0.00E+00          B        F         SB       S    *
+                               28        G      5         0.00E+00          B        F         SB       S    *
+                               28        G      6         0.00E+00          B        F         SB       S    *
+                               29        G      3         0.00E+00          B        F         SB       S    *
+                               29        G      4         0.00E+00          B        F         SB       S    *
+                               29        G      5         0.00E+00          B        F         SB       S    *
+                               29        G      6         0.00E+00          B        F         SB       S    *
+                               30        G      3         0.00E+00          B        F         SB       S    *
+                               30        G      4         0.00E+00          B        F         SB       S    *
+                               30        G      5         0.00E+00          B        F         SB       S    *
+                               30        G      6         0.00E+00          B        F         SB       S    *
+                               31        G      3         0.00E+00          B        F         SB       S    *
+                               31        G      4         0.00E+00          B        F         SB       S    *
+                               31        G      5         0.00E+00          B        F         SB       S    *
+                               31        G      6         0.00E+00          B        F         SB       S    *
+                               32        G      3         0.00E+00          B        F         SB       S    *
+                               32        G      4         0.00E+00          B        F         SB       S    *
+                               32        G      5         0.00E+00          B        F         SB       S    *
+                               32        G      6         0.00E+00          B        F         SB       S    *
+                               33        G      3         0.00E+00          B        F         SB       S    *
+                               33        G      4         0.00E+00          B        F         SB       S    *
+                               33        G      5         0.00E+00          B        F         SB       S    *
+                               33        G      6         0.00E+00          B        F         SB       S    *
+                               34        G      3         0.00E+00          B        F         SB       S    *
+                               34        G      4         0.00E+00          B        F         SB       S    *
+                               34        G      5         0.00E+00          B        F         SB       S    *
+                               34        G      6         0.00E+00          B        F         SB       S    *
+                               35        G      3         0.00E+00          B        F         SB       S    *
+                               35        G      4         0.00E+00          B        F         SB       S    *
+                               35        G      5         0.00E+00          B        F         SB       S    *
+                               35        G      6         0.00E+00          B        F         SB       S    *
+                               36        G      3         0.00E+00          B        F         SB       S    *
+                               36        G      4         0.00E+00          B        F         SB       S    *
+                               36        G      5         0.00E+00          B        F         SB       S    *
+                               36        G      6         0.00E+00          B        F         SB       S    *
+                               37        G      3         0.00E+00          B        F         SB       S    *
+                               37        G      4         0.00E+00          B        F         SB       S    *
+                               37        G      5         0.00E+00          B        F         SB       S    *
+                               37        G      6         0.00E+00          B        F         SB       S    *
+                               38        G      3         0.00E+00          B        F         SB       S    *
+                               38        G      4         0.00E+00          B        F         SB       S    *
+                               38        G      5         0.00E+00          B        F         SB       S    *
+                               38        G      6         0.00E+00          B        F         SB       S    *
+                               39        G      3         0.00E+00          B        F         SB       S    *
+                               39        G      4         0.00E+00          B        F         SB       S    *
+                               39        G      5         0.00E+00          B        F         SB       S    *
+                               39        G      6         0.00E+00          B        F         SB       S    *
+                               40        G      3         0.00E+00          B        F         SB       S    *
+                               40        G      4         0.00E+00          B        F         SB       S    *
+                               40        G      5         0.00E+00          B        F         SB       S    *
+                               40        G      6         0.00E+00          B        F         SB       S    *
+                               41        G      3         0.00E+00          B        F         SB       S    *
+                               41        G      4         0.00E+00          B        F         SB       S    *
+                               41        G      5         0.00E+00          B        F         SB       S    *
+                               41        G      6         0.00E+00          B        F         SB       S    *
+                               42        G      3         0.00E+00          B        F         SB       S    *
+                               42        G      4         0.00E+00          B        F         SB       S    *
+                               42        G      5         0.00E+00          B        F         SB       S    *
+                               42        G      6         0.00E+00          B        F         SB       S    *
+                               43        G      3         0.00E+00          B        F         SB       S    *
+                               43        G      4         0.00E+00          B        F         SB       S    *
+                               43        G      5         0.00E+00          B        F         SB       S    *
+                               43        G      6         0.00E+00          B        F         SB       S    *
+                               44        G      3         0.00E+00          B        F         SB       S    *
+                               44        G      4         0.00E+00          B        F         SB       S    *
+                               44        G      5         0.00E+00          B        F         SB       S    *
+                               44        G      6         0.00E+00          B        F         SB       S    *
+                               45        G      3         0.00E+00          B        F         SB       S    *
+                               45        G      4         0.00E+00          B        F         SB       S    *
+                               45        G      5         0.00E+00          B        F         SB       S    *
+                               45        G      6         0.00E+00          B        F         SB       S    *
+                               46        G      3         0.00E+00          B        F         SB       S    *
+                               46        G      4         0.00E+00          B        F         SB       S    *
+                               46        G      5         0.00E+00          B        F         SB       S    *
+                               46        G      6         0.00E+00          B        F         SB       S    *
+                               47        G      3         0.00E+00          B        F         SB       S    *
+                               47        G      4         0.00E+00          B        F         SB       S    *
+                               47        G      5         0.00E+00          B        F         SB       S    *
+                               47        G      6         0.00E+00          B        F         SB       S    *
+                               48        G      3         0.00E+00          B        F         SB       S    *
+                               48        G      4         0.00E+00          B        F         SB       S    *
+                               48        G      5         0.00E+00          B        F         SB       S    *
+                               48        G      6         0.00E+00          B        F         SB       S    *
+                               49        G      3         0.00E+00          B        F         SB       S    *
+                               49        G      4         0.00E+00          B        F         SB       S    *
+                               49        G      5         0.00E+00          B        F         SB       S    *
+                               49        G      6         0.00E+00          B        F         SB       S    *
+1                                                                               MAY  16, 2024  MSC Nastran  9/15/21   PAGE    11
+                                                                                                                                    
+0     DEFAULT                                                                                                SUBCASE 1              
+  
+ *** USER INFORMATION MESSAGE 4158 (DFMSA)
+ ---- STATISTICS FOR SPARSE DECOMPOSITION OF DATA BLOCK KLL      FOLLOW
+        NUMBER OF NEGATIVE TERMS ON FACTOR DIAGONAL =      6
+        MAXIMUM RATIO OF MATRIX DIAGONAL TO FACTOR DIAGONAL =  3.7E+16 AT ROW NUMBER         41
+  
+ *** SYSTEM INFORMATION MESSAGE 4159 (DFMSA)
+     THE DECOMPOSITION OF KLL      YIELDS A MAXIMUM MATRIX-TO-FACTOR-DIAGONAL RATIO OF    3.659187E+16
+ *** USER WARNING MESSAGE 4698 (DCMPD)
+     STATISTICS FOR DECOMPOSITION OF MATRIX KLL.
+     THE FOLLOWING DEGREES OF FREEDOM HAVE FACTOR DIAGONAL RATIOS GREATER THAN
+     1.000000E+07 OR HAVE NEGATIVE TERMS ON THE FACTOR DIAGONAL.
+     USER INFORMATION:
+     THIS MESSAGE MAY BE IGNORED IF NO GRID POINT IDS OR HIGH RATIO MESSAGES APPEAR IN THE TABLE ON THE NEXT PAGE.
+1                                                                               MAY  16, 2024  MSC Nastran  9/15/21   PAGE    12
+                                                                                                                                    
+0     DEFAULT                                                                                                SUBCASE 1              
+0                                                                                                                                   
+         GRID POINT ID       DEGREE OF FREEDOM   MATRIX/FACTOR DIAGONAL RATIO        MATRIX DIAGONAL                                
+                                                                                                                                    
+              26                    T2                   4.76219E+15                   8.11835E+07
+              27                    T2                   1.67605E+15                   8.11689E+07
+              28                    T2                   1.98150E+15                   8.11981E+07
+              29                    T1                  -3.11528E+15                   3.24949E+08
+              29                    T2                   1.99008E+15                   8.11689E+07
+              32                    T2                  -1.55736E+15                   8.12225E+07
+              34                    T2                  -2.36705E+15                   8.11738E+07
+              36                    T1                   1.79637E+15                   3.24812E+08
+              36                    T2                   1.10944E+16                   8.12030E+07
+              37                    T2                   2.42299E+15                   8.12371E+07
+              38                    T2                  -5.44167E+15                   8.11981E+07
+              44                    T1                   2.55959E+15                   3.24929E+08
+              44                    T2                  -3.16338E+16                   8.11738E+07
+              45                    T1                   3.65919E+16                   3.24656E+08
+              45                    T2                  -1.59625E+15                   8.12420E+07
+              46                    T1                   1.88471E+16                   3.24812E+08
+ ^^^     
+ *** USER FATAL MESSAGE 9050 (SUBDMAP SEKRRS)
+     RUN TERMINATED DUE TO EXCESSIVE PIVOT RATIOS IN MATRIX KLL.
+     USER ACTION: CONSTRAIN MECHANISMS WITH SPCI OR SUPORTI ENTRIES OR SPECIFY PARAM,BAILOUT,-1 TO CONTINUE THE RUN WITH MECHANISMS.
+ *** USER INFORMATION MESSAGE 4110 (OUTPX2)
+                                 END-OF-DATA SIMULATION ON FORTRAN UNIT    12
+                                 (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =      1 WORDS.)
+                                       (NUMBER OF FORTRAN RECORDS WRITTEN =      1 RECORDS.)
+                                       (TOTAL DATA WRITTEN FOR EOF MARKER =      1 WORDS.)
+1                                                                               MAY  16, 2024  MSC Nastran  9/15/21   PAGE    13
+                                                                                                                                    
+0     DEFAULT                                                                                                SUBCASE 1              
+ * * * *  D B D I C T   P R I N T  * * * *      SUBDMAP = PRTSUM  ,  DMAP STATEMENT NO.     74
+
+
+
+0                                   * * * *  A N A L Y S I S  S U M M A R Y  T A B L E  * * * *
+0 SEID  PEID PROJ VERS APRCH      SEMG SEMR SEKR SELG SELR MODES DYNRED SOLLIN SOLNL LOOPID DESIGN CYCLE SENSITIVITY
+ -------------------------------------------------------------------------------------------------------------------
+     0     0    1    1 '        '    T    F    T    T    T     F      F      F     F     -1            0           F
+0SEID = SUPERELEMENT ID.
+ PEID = PRIMARY SUPERELEMENT ID OF IMAGE SUPERELEMENT.
+ PROJ = PROJECT ID NUMBER.
+ VERS = VERSION ID.
+ APRCH = BLANK FOR STRUCTURAL ANALYSIS.  HEAT FOR HEAT TRANSFER ANALYSIS.
+ SEMG = STIFFNESS AND MASS MATRIX GENERATION STEP.
+ SEMR = MASS MATRIX REDUCTION STEP (INCLUDES EIGENVALUE SOLUTION FOR MODES).
+ SEKR = STIFFNESS MATRIX REDUCTION STEP.
+ SELG = LOAD MATRIX GENERATION STEP.
+ SELR = LOAD MATRIX REDUCTION STEP. 
+ MODES = T (TRUE) IF NORMAL MODES OR BUCKLING MODES CALCULATED.
+ DYNRED = T (TRUE) MEANS GENERALIZED DYNAMIC AND/OR COMPONENT MODE REDUCTION PERFORMED.
+ SOLLIN = T (TRUE) IF LINEAR SOLUTION EXISTS IN DATABASE.
+ LOOPID = THE LAST LOOPID VALUE USED IN THE NONLINEAR ANALYSIS.  USEFUL FOR RESTARTS.
+ SOLNL = T (TRUE) IF NONLINEAR SOLUTION EXISTS IN DATABASE.
+ DESIGN CYCLE = THE LAST DESIGN CYCLE (ONLY VALID IN OPTIMIZATION).
+ SENSITIVITY = SENSITIVITY MATRIX GENERATION FLAG.
+ 
+ No PARAM values were set in the Control File.
+ 
+1                                        * * * END OF JOB * * *
+ 
+ 
+ No Symbolic Replacement variables or values were specified.
+

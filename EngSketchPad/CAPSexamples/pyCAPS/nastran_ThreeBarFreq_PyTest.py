@@ -4,6 +4,7 @@ import pyCAPS
 
 # Import os module
 import os
+import shutil
 import argparse
 ## [import]
 
@@ -18,31 +19,43 @@ parser.add_argument('-noAnalysis', action='store_true', default = False, help = 
 parser.add_argument("-outLevel", default = 1, type=int, choices=[0, 1, 2], help="Set output verbosity")
 args = parser.parse_args()
 
-workDir = os.path.join(args.workDir[0], "NastranThreeBarFreq")
+# Create project name
+projectName = "NastranThreeBarFreq"
+
+# Working directory
+workDir = os.path.join(str(args.workDir[0]), projectName)
 
 ## [geometry]
 # Load CSM file
 geometryScript = os.path.join("..","csmData","feaThreeBar.csm")
-myProblem = pyCAPS.Problem(problemName=workDir,
-                           capsFile=geometryScript,
-                           outLevel=args.outLevel)
+capsProblem = pyCAPS.Problem(problemName=workDir,
+                             capsFile=geometryScript,
+                             outLevel=args.outLevel)
 ## [geometry]
+
+
+# Load egadsTess aim
+egads = capsProblem.analysis.create(aim = "egadsTessAIM")
+
+# Set meshing parameters
+egads.input.Edge_Point_Max = 2
+egads.input.Edge_Point_Min = 2
+
+egads.input.Tess_Params = [.05,.5,15]
+
 
 ## [loadAIM]
 # Load nastran aim
-nastranAIM = myProblem.analysis.create(aim = "nastranAIM",
-                                       name = "nastran")
+nastran = capsProblem.analysis.create(aim = "nastranAIM",
+                                      name = "nastran")
 ## [loadAIM]
 
 ## [setInputs]
-# Set project name so a mesh file is generated
-projectName = "threebar_nastran_Test"
-nastranAIM.input.Proj_Name = projectName
-nastranAIM.input.File_Format = "Free"
-nastranAIM.input.Mesh_File_Format = "Large"
-nastranAIM.input.Edge_Point_Max = 2
-nastranAIM.input.Edge_Point_Min = 2
-nastranAIM.input.Analysis_Type = "Static"
+nastran.input["Mesh"].link(egads.output["Surface_Mesh"])
+nastran.input.Proj_Name = "threebar_nastran_Test"
+nastran.input.File_Format = "Free"
+nastran.input.Mesh_File_Format = "Large"
+nastran.input.Analysis_Type = "Static"
 ## [setInputs]
 
 ## [defineMaterials]
@@ -51,7 +64,7 @@ madeupium    = {"materialType" : "isotropic",
                 "poissonRatio" : .33,
                 "density"      : 0.1}
 
-nastranAIM.input.Material = {"Madeupium": madeupium}
+nastran.input.Material = {"Madeupium": madeupium}
 ## [defineMaterials]
 
 ## [defineProperties]
@@ -63,16 +76,17 @@ rod2  =   {"propertyType"     : "Rod",
           "material"          : "Madeupium",
           "crossSecArea"      : 2.0}
 
-nastranAIM.input.Property = {"bar1": rod,
-                             "bar2": rod2,
-                             "bar3": rod}
+nastran.input.Property = {"bar1": rod,
+                          "bar2": rod2,
+                          "bar3": rod}
+## [defineProperties]
 
 ## [defineConstraints]
 # Set constraints
 constraint = {"groupName"         : ["boundary"],
               "dofConstraint"     : 123456}
 
-nastranAIM.input.Constraint = {"BoundaryCondition": constraint}
+nastran.input.Constraint = {"BoundaryCondition": constraint}
 ## [defineConstraints]
 
 ## [defineAnalysis]
@@ -82,23 +96,27 @@ eigen = { "extractionMethod"     : "Lanczos",
           "numDesiredEigenvalue" : 10,
           "eigenNormalization"   : "MASS"}
 
-nastranAIM.input.Analysis = {"EigenAnalysis": eigen}
+nastran.input.Analysis = {"EigenAnalysis": eigen}
 ## [defineAnalysis]
 
 # Run AIM pre-analysis
 ## [preAnalysis]
-nastranAIM.preAnalysis()
+nastran.preAnalysis()
 ## [preAnalysis]
 
 ## [run]
 print ("\n\nRunning Nastran......")
-currentDirectory = os.getcwd() # Get our current working directory
-os.chdir(nastranAIM.analysisDir) # Move into test directory
-if (args.noAnalysis == False): os.system("nastran old=no notify=no batch=no scr=yes sdirectory=./ " + projectName +  ".dat"); # Run Nastran via system call
-os.chdir(currentDirectory) # Move back to working directory
+
+if args.noAnalysis == False:
+    nastran.system("nastran old=no notify=no batch=no scr=yes sdirectory=./ " + nastran.input.Proj_Name + ".dat"); # Run Nastran via system call
+else:
+    # Copy old results if no analysis available
+    shutil.copy2(os.path.join("..","analysisData","nastran",projectName+".f06"), 
+                 os.path.join(nastran.analysisDir,nastran.input.Proj_Name+".f06"))
+
 print ("Done running Nastran!")
 ## [run]
 
 ## [postAnalysis]
-nastranAIM.postAnalysis()
+nastran.postAnalysis()
 ## [postAnalysis]

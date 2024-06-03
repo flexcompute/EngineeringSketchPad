@@ -3,6 +3,7 @@ import pyCAPS
 
 # Import os module
 import os
+import shutil
 import argparse
 
 # Setup and read command line options. Please note that this isn't required for pyCAPS
@@ -16,28 +17,39 @@ parser.add_argument('-noAnalysis', action='store_true', default = False, help = 
 parser.add_argument("-outLevel", default = 1, type=int, choices=[0, 1, 2], help="Set output verbosity")
 args = parser.parse_args()
 
-workDir = os.path.join(str(args.workDir[0]), "NastranAeroWingBEM")
+# Create project name
+projectName = "NastranAeroWingBEM"
+
+workDir = os.path.join(str(args.workDir[0]), projectName)
 
 # Load CSM file
 geometryScript = os.path.join("..","csmData","feaWingBEMAero.csm")
-myProblem = pyCAPS.Problem(problemName=workDir,
+capsProblem = pyCAPS.Problem(problemName=workDir,
                            capsFile=geometryScript,
                            outLevel=args.outLevel)
 
+# Load egadsTess aim
+egads = capsProblem.analysis.create(aim = "egadsTessAIM")
+
+# Set meshing parameters
+egads.input.Edge_Point_Max = 5
+egads.input.Edge_Point_Min = 5
+
+# All quads in the grid
+egads.input.Mesh_Elements = "Quad"
+
+egads.input.Tess_Params = [.05,.5,15]
+
 # Load nastran aim
-myProblem.analysis.create(aim = "nastranAIM",
+capsProblem.analysis.create(aim = "nastranAIM",
                           name = "nastran")
 
-# Set project name so a mesh file is generated
-projectName = "nastranAero"
-myProblem.analysis["nastran"].input.Proj_Name = projectName
+capsProblem.analysis["nastran"].input["Mesh"].link(egads.output["Surface_Mesh"])
 
-myProblem.analysis["nastran"].input.Edge_Point_Max = 4
-
-myProblem.analysis["nastran"].input.Quad_Mesh = True
+capsProblem.analysis["nastran"].input.Proj_Name = "nastranAero"
 
 # Set analysis type
-myProblem.analysis["nastran"].input.Analysis_Type = "Aeroelastic"
+capsProblem.analysis["nastran"].input.Analysis_Type = "Aeroelastic"
 
 # Set analysis
 trim1 = { "analysisType" : "AeroelasticStatic",
@@ -53,14 +65,14 @@ trim1 = { "analysisType" : "AeroelasticStatic",
           }
 
 
-myProblem.analysis["nastran"].input.Analysis = {"Trim1": trim1}
+capsProblem.analysis["nastran"].input.Analysis = {"Trim1": trim1}
 
 # Set materials
 unobtainium  = {"youngModulus" : 2.2E6 ,
                 "poissonRatio" : .5,
                 "density"      : 7850}
 
-myProblem.analysis["nastran"].input.Material = {"Unobtainium": unobtainium}
+capsProblem.analysis["nastran"].input.Material = {"Unobtainium": unobtainium}
 
 # Set property
 shell  = {"propertyType"      : "Shell",
@@ -73,7 +85,7 @@ shell2  = {"propertyType"      : "Shell",
           "bendingInertiaRatio" : 1.0, # Default
           "shearMembraneRatio"  : 5.0/6.0} # Default }
 
-myProblem.analysis["nastran"].input.Property = {"Ribs"    : shell,
+capsProblem.analysis["nastran"].input.Property = {"Ribs"    : shell,
                                                 "Spar1"   : shell,
                                                 "Spar2"   : shell,
                                                 "Rib_Root": shell,
@@ -84,20 +96,20 @@ myProblem.analysis["nastran"].input.Property = {"Ribs"    : shell,
 connection = {    "dofDependent" : 123456,
                 "connectionType" : "RigidBody"}
 
-myProblem.analysis["nastran"].input.Connect = {"Rib_Root": connection}
+capsProblem.analysis["nastran"].input.Connect = {"Rib_Root": connection}
 
 
 # Set constraints
 constraint = {"groupName" : ["Rib_Root_Point"],
               "dofConstraint" : 12456}
 
-myProblem.analysis["nastran"].input.Constraint = {"ribConstraint": constraint}
+capsProblem.analysis["nastran"].input.Constraint = {"ribConstraint": constraint}
 
 # Set supports
 support = {"groupName" : ["Rib_Root_Point"],
            "dofSupport": 3}
 
-myProblem.analysis["nastran"].input.Support = {"ribSupport": support}
+capsProblem.analysis["nastran"].input.Support = {"ribSupport": support}
 
 
 # Aero
@@ -107,22 +119,22 @@ wing = {"groupName"         : "Wing",
 
 # Note the surface name corresponds to the capsBound found in the *.csm file. This links
 # the spline for the aerodynamic surface to the structural model
-myProblem.analysis["nastran"].input.VLM_Surface = {"Skin_Top": wing}
+capsProblem.analysis["nastran"].input.VLM_Surface = {"Skin_Top": wing}
 
 # Run AIM pre-analysis
-myProblem.analysis["nastran"].preAnalysis()
+capsProblem.analysis["nastran"].preAnalysis()
 
 ####### Run Nastran####################
 print ("\n\nRunning Nastran......")
-currentDirectory = os.getcwd() # Get our current working directory
 
-os.chdir(myProblem.analysis["nastran"].analysisDir) # Move into test directory
+if args.noAnalysis == False:
+    nastran.system("nastran old=no notify=no batch=no scr=yes sdirectory=./ " + nastran.input.Proj_Name +  ".dat"); # Run Nastran via system call
+else:
+    # Copy old results if no analysis available
+    shutil.copy2(os.path.join("..","analysisData","nastran",projectName+".f06"), 
+                 os.path.join(capsProblem.analysis["nastran"].analysisDir,capsProblem.analysis["nastran"].input.Proj_Name+".f06"))
 
-if (args.noAnalysis == False):
-    os.system("nastran old=no notify=no batch=no scr=yes sdirectory=./ " + projectName +  ".dat"); # Run Nastran via system call
-
-os.chdir(currentDirectory) # Move back to working directory
 print ("Done running Nastran!")
 
 # Run AIM post-analysis
-myProblem.analysis["nastran"].postAnalysis()
+capsProblem.analysis["nastran"].postAnalysis()

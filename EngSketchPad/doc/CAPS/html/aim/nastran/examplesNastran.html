@@ -78,7 +78,7 @@ Three Bar Truss</div></div>
 <ul>
 <li><code>serveESP feaThreeBar.csm</code></li>
 </ul>
-<p>The CSM script generates Bodies which are designed to be used by specific AIMs. The AIMs that the Body is designed for is communicated to the CAPS framework via the “capsAIM” string attribute. This is a semicolon-separated string with the list of AIM names. Thus, the CSM author can give a clear indication to which AIMs should use the Body. In this example, the list contains the structural finite element analysis tools that can analyze the body: </p><div class="fragment"><div class="line">attribute capsAIM $nastranAIM;astrosAIM;mystranAIM</div>
+<p>The CSM script generates Bodies which are designed to be used by specific AIMs. The AIMs that the Body is designed for is communicated to the CAPS framework via the “capsAIM” string attribute. This is a semicolon-separated string with the list of AIM names. Thus, the CSM author can give a clear indication to which AIMs should use the Body. In this example, the list contains the structural finite element analysis tools that can analyze the body: </p><div class="fragment"><div class="line">attribute capsAIM $nastranAIM;astrosAIM;mystranAIM;egadsTessAIM</div>
 </div><!-- fragment --><p> Next we will define the design parameters to define the wing cross section and planform. Notice that the despmtr entries have a dimension input that must be defined for inputs with a length greater than one. </p><div class="fragment"><div class="line">dimension   X   1 4 1</div>
 <div class="line">dimension   Y   1 4 1</div>
 <div class="line">dimension   Z   1 4 1</div>
@@ -113,27 +113,25 @@ Three Bar Truss</div></div>
 <div class="line"> </div>
 <div class="line"><span class="comment"># Import os module</span></div>
 <div class="line"><span class="keyword">import</span> os</div>
+<div class="line"><span class="keyword">import</span> shutil</div>
 <div class="line"><span class="keyword">import</span> argparse</div>
 </div><!-- fragment --><p> Once the modules have been loaded the pyCAPS.Problem needs to be initiated while loading the *.csm file.</p>
 <div class="fragment"></div><!-- fragment --><p> Though not shown in this example the user has access to the X, Y and Z despmtr inputs from this pyCAPS script.</p>
 <p>The Nastran AIM is then loaded with: </p><div class="fragment"><div class="line"><span class="comment"># Load nastran aim</span></div>
-<div class="line">nastranAIM = myProblem.analysis.create(aim = <span class="stringliteral">&quot;nastranAIM&quot;</span>,</div>
-<div class="line">                                       name = <span class="stringliteral">&quot;nastran&quot;</span>,</div>
-<div class="line">                                       autoExec = <span class="keyword">False</span>)</div>
-</div><!-- fragment --><p> After the AIM is loaded some of the inputs to the AIM are defined. A full list of options can be found in the <a class="el" href="aimInputsNastran.html">AIM Inputs</a> section. In this case the <code>Proj_Name</code> is entered. The project name becomes the Nastran input file names. Two are create <code>projectName.bdf</code> and <code>projectName.dat</code>. The <code>*.bdf</code> file contains the grid and connectivity information. The data file contains the case control and other bulk data inputs required by Nastran. The input format is selected as <code>Free</code> and large field format is used when the option is available. This is most likely in the GRID entries only. Additionally the analysis type selected is <code>Static</code>. The maximum and minimum points that can be placed along an edge is set to be two. This ensures that each edge shown in the figure will be represented by a single finite element bar. </p><div class="fragment"><div class="line"><span class="comment"># Set project name so a mesh file is generated</span></div>
-<div class="line">projectName = <span class="stringliteral">&quot;threebar_nastran_Test&quot;</span></div>
-<div class="line">nastranAIM.input.Proj_Name = projectName</div>
-<div class="line">nastranAIM.input.File_Format = <span class="stringliteral">&quot;Free&quot;</span></div>
-<div class="line">nastranAIM.input.Mesh_File_Format = <span class="stringliteral">&quot;Large&quot;</span></div>
-<div class="line">nastranAIM.input.Edge_Point_Max = 2</div>
-<div class="line">nastranAIM.input.Edge_Point_Min = 2</div>
-<div class="line">nastranAIM.input.Analysis_Type = <span class="stringliteral">&quot;Static&quot;</span></div>
+<div class="line">nastran = capsProblem.analysis.create(aim = <span class="stringliteral">&quot;nastranAIM&quot;</span>,</div>
+<div class="line">                                      name = <span class="stringliteral">&quot;nastran&quot;</span>)</div>
+</div><!-- fragment --><p> After the AIM is loaded some of the inputs to the AIM are defined. A full list of options can be found in the <a class="el" href="aimInputsNastran.html">AIM Inputs</a> section. In this case the <code>Proj_Name</code> is entered. The project name becomes the Nastran input file names. Two are create <code>projectName.bdf</code> and <code>projectName.dat</code>. The <code>*.bdf</code> file contains the grid and connectivity information. The data file contains the case control and other bulk data inputs required by Nastran. The input format is selected as <code>Free</code> and large field format is used when the option is available. This is most likely in the GRID entries only. Additionally the analysis type selected is <code>Static</code>. The maximum and minimum points that can be placed along an edge is set to be two. This ensures that each edge shown in the figure will be represented by a single finite element bar. </p><div class="fragment"><div class="line">nastran.input[<span class="stringliteral">&quot;Mesh&quot;</span>].link(egads.output[<span class="stringliteral">&quot;Surface_Mesh&quot;</span>])</div>
+<div class="line"> </div>
+<div class="line">nastran.input.Proj_Name = <span class="stringliteral">&quot;threebar_nastran_Test&quot;</span></div>
+<div class="line">nastran.input.File_Format = <span class="stringliteral">&quot;Free&quot;</span></div>
+<div class="line">nastran.input.Mesh_File_Format = <span class="stringliteral">&quot;Large&quot;</span></div>
+<div class="line">nastran.input.Analysis_Type = <span class="stringliteral">&quot;Static&quot;</span></div>
 </div><!-- fragment --><p> Next the material inputs, property selection, constraints and loads are defined. First materials are defined. </p><div class="fragment"><div class="line">madeupium    = {<span class="stringliteral">&quot;materialType&quot;</span> : <span class="stringliteral">&quot;isotropic&quot;</span>,</div>
 <div class="line">                <span class="stringliteral">&quot;youngModulus&quot;</span> : 1.0E7 ,</div>
 <div class="line">                <span class="stringliteral">&quot;poissonRatio&quot;</span> : .33,</div>
 <div class="line">                <span class="stringliteral">&quot;density&quot;</span>      : 0.1}</div>
 <div class="line"> </div>
-<div class="line">nastranAIM.input.Material = {<span class="stringliteral">&quot;Madeupium&quot;</span>: madeupium}</div>
+<div class="line">nastran.input.Material = {<span class="stringliteral">&quot;Madeupium&quot;</span>: madeupium}</div>
 </div><!-- fragment --><p> Next these materials are used in the property definition. In this case two <code>bar</code> type properties are assigned to the edges. The outer bars have a property with a different area then the center bar. Note the relationship of <code>bar1</code> etc. between this pyCAPS input and the *,csm input previously shown. </p><div class="fragment"><div class="line">rod  =   {<span class="stringliteral">&quot;propertyType&quot;</span>      : <span class="stringliteral">&quot;Rod&quot;</span>,</div>
 <div class="line">          <span class="stringliteral">&quot;material&quot;</span>          : <span class="stringliteral">&quot;Madeupium&quot;</span>,</div>
 <div class="line">          <span class="stringliteral">&quot;crossSecArea&quot;</span>      : 1.0}</div>
@@ -142,43 +140,46 @@ Three Bar Truss</div></div>
 <div class="line">          <span class="stringliteral">&quot;material&quot;</span>          : <span class="stringliteral">&quot;Madeupium&quot;</span>,</div>
 <div class="line">          <span class="stringliteral">&quot;crossSecArea&quot;</span>      : 2.0}</div>
 <div class="line"> </div>
-<div class="line">nastranAIM.input.Property = {<span class="stringliteral">&quot;bar1&quot;</span>: rod,</div>
+<div class="line">nastran.input.Property = {<span class="stringliteral">&quot;bar1&quot;</span>: rod,</div>
 <div class="line">                             <span class="stringliteral">&quot;bar2&quot;</span>: rod2,</div>
 <div class="line">                             <span class="stringliteral">&quot;bar3&quot;</span>: rod}</div>
 </div><!-- fragment --><p> Next the three nodes with <code>capsConstraint</code> boundary are constrained in all six degrees of freedom. </p><div class="fragment"><div class="line">constraint = {<span class="stringliteral">&quot;groupName&quot;</span>         : [<span class="stringliteral">&quot;boundary&quot;</span>],</div>
 <div class="line">              <span class="stringliteral">&quot;dofConstraint&quot;</span>     : 123456}</div>
 <div class="line"> </div>
-<div class="line">nastranAIM.input.Constraint = {<span class="stringliteral">&quot;BoundaryCondition&quot;</span>: constraint}</div>
+<div class="line">nastran.input.Constraint = {<span class="stringliteral">&quot;BoundaryCondition&quot;</span>: constraint}</div>
 </div><!-- fragment --><p> Finally a load is applied the the node with the <code>capsLoad</code> force. </p><div class="fragment"><div class="line">load = {<span class="stringliteral">&quot;groupName&quot;</span>         : <span class="stringliteral">&quot;force&quot;</span>,</div>
 <div class="line">        <span class="stringliteral">&quot;loadType&quot;</span>          : <span class="stringliteral">&quot;GridForce&quot;</span>,</div>
 <div class="line">        <span class="stringliteral">&quot;forceScaleFactor&quot;</span>  : 20000.0,</div>
 <div class="line">        <span class="stringliteral">&quot;directionVector&quot;</span>   : [0.8, -0.6, 0.0]}</div>
 <div class="line"> </div>
-<div class="line">nastranAIM.input.Load = {<span class="stringliteral">&quot;appliedForce&quot;</span>: load }</div>
+<div class="line">nastran.input.Load = {<span class="stringliteral">&quot;appliedForce&quot;</span>: load }</div>
 </div><!-- fragment --><p> Finally an analysis case is defined that connects an analysis type to the load and constraint condition by name. </p><div class="fragment"><div class="line">value = {<span class="stringliteral">&quot;analysisType&quot;</span>         : <span class="stringliteral">&quot;Static&quot;</span>,</div>
 <div class="line">         <span class="stringliteral">&quot;analysisConstraint&quot;</span>   : <span class="stringliteral">&quot;BoundaryCondition&quot;</span>,</div>
 <div class="line">         <span class="stringliteral">&quot;analysisLoad&quot;</span>         : <span class="stringliteral">&quot;appliedForce&quot;</span>}</div>
 <div class="line"> </div>
-<div class="line">myProblem.analysis[<span class="stringliteral">&quot;nastran&quot;</span>].input.Analysis = {<span class="stringliteral">&quot;SingleLoadCase&quot;</span>: value }</div>
-</div><!-- fragment --><p> Once all the inputs have been set, aimPreanalysis needs to be executed. During this operation all the necessary files to run Nastran are generated and placed in the analysis working directory (analysisDir) </p><div class="fragment"><div class="line">nastranAIM.preAnalysis()</div>
+<div class="line">capsProblem.analysis[<span class="stringliteral">&quot;nastran&quot;</span>].input.Analysis = {<span class="stringliteral">&quot;SingleLoadCase&quot;</span>: value }</div>
+</div><!-- fragment --><p> Once all the inputs have been set, aimPreanalysis needs to be executed. During this operation all the necessary files to run Nastran are generated and placed in the analysis working directory (analysisDir) </p><div class="fragment"><div class="line">nastran.preAnalysis()</div>
 </div><!-- fragment --><p> An OS system call is then made from Python to execute Nastran. </p><div class="fragment"><div class="line"><span class="keywordflow">print</span> (<span class="stringliteral">&quot;\n\nRunning Nastran......&quot;</span>)</div>
-<div class="line">currentDirectory = os.getcwd() <span class="comment"># Get our current working directory</span></div>
-<div class="line">os.chdir(nastranAIM.analysisDir) <span class="comment"># Move into test directory</span></div>
-<div class="line"><span class="keywordflow">if</span> (args.noAnalysis == <span class="keyword">False</span>): os.system(<span class="stringliteral">&quot;nastran old=no notify=no batch=no scr=yes sdirectory=./ &quot;</span> + projectName +  <span class="stringliteral">&quot;.dat&quot;</span>); <span class="comment"># Run Nastran via system call</span></div>
-<div class="line">os.chdir(currentDirectory) <span class="comment"># Move back to working directory</span></div>
+<div class="line"> </div>
+<div class="line"><span class="keywordflow">if</span> args.noAnalysis == <span class="keyword">False</span>:</div>
+<div class="line">    nastran.system(<span class="stringliteral">&quot;nastran old=no notify=no batch=no scr=yes sdirectory=./ &quot;</span> + nastran.input.Proj_Name + <span class="stringliteral">&quot;.dat&quot;</span>); <span class="comment"># Run Nastran via system call</span></div>
+<div class="line"><span class="keywordflow">else</span>:</div>
+<div class="line">    <span class="comment"># Copy old results if no analysis available</span></div>
+<div class="line">    shutil.copy2(os.path.join(<span class="stringliteral">&quot;..&quot;</span>,<span class="stringliteral">&quot;analysisData&quot;</span>,<span class="stringliteral">&quot;nastran&quot;</span>,projectName+<span class="stringliteral">&quot;.f06&quot;</span>), </div>
+<div class="line">                 os.path.join(nastran.analysisDir,nastran.input.Proj_Name+<span class="stringliteral">&quot;.f06&quot;</span>))</div>
+<div class="line"> </div>
 <div class="line"><span class="keywordflow">print</span> (<span class="stringliteral">&quot;Done running Nastran!&quot;</span>)</div>
-</div><!-- fragment --><p> A call to aimPostanalysis is then made to check to see if AVL executed successfully and the expected files were generated. </p><div class="fragment"><div class="line">nastranAIM.postAnalysis()</div>
+</div><!-- fragment --><p> A call to aimPostanalysis is then made to check to see if AVL executed successfully and the expected files were generated. </p><div class="fragment"><div class="line">nastran.postAnalysis()</div>
 </div><!-- fragment --><h1><a class="anchor" id="nastranMultipleLoadEx"></a>
 Multiple Load/Boundary Case Example</h1>
 <p>To create multiple load cases with different boundary conditions the pyCAPS input for constraints, and loads changes with respect to the <a class="el" href="examplesNastran.html#nastranSingleLoadEx">Single Load Case Example</a>. In addition an analysis section is added.</p>
-<p>The constraint section may expand to allow multiple boundary conditions. In this way each load case can have a seperate boundary condition. If the input is left identical to the single load case example then the same boundary condition will be applied to each load case. </p><div class="fragment"><div class="line">constraints = {}</div>
-<div class="line"> </div>
+<p>The constraint section may expand to allow multiple boundary conditions. In this way each load case can have a seperate boundary condition. If the input is left identical to the single load case example then the same boundary condition will be applied to each load case. </p><div class="fragment"><div class="line"><span class="comment"># Set constraints</span></div>
 <div class="line">conOne = {<span class="stringliteral">&quot;groupName&quot;</span>         : [<span class="stringliteral">&quot;boundary&quot;</span>],</div>
 <div class="line">          <span class="stringliteral">&quot;dofConstraint&quot;</span>     : 123456}</div>
 <div class="line">conTwo = {<span class="stringliteral">&quot;groupName&quot;</span>         : [<span class="stringliteral">&quot;boundary&quot;</span>],</div>
 <div class="line">          <span class="stringliteral">&quot;dofConstraint&quot;</span>     : 123}</div>
 <div class="line"> </div>
-<div class="line">nastranAIM.input.Constraint = {<span class="stringliteral">&quot;conOne&quot;</span>: conOne, <span class="stringliteral">&quot;conTwo&quot;</span>: conTwo}</div>
+<div class="line">nastran.input.Constraint = {<span class="stringliteral">&quot;conOne&quot;</span>: conOne, <span class="stringliteral">&quot;conTwo&quot;</span>: conTwo}</div>
 </div><!-- fragment --><p> Notice that an empty <code>constraints</code> variable has been defined. Then a <code>tmp</code> tuple is created with the name <code>"conOne"</code> paired with the dictionary <code>constraint</code>. This tuple is appended to the empty <code>constraints</code> variable. The process is repeated for the second boundary condition. Then the AIM input <code>"Constraint"</code> is defined with the information.</p>
 <p>Next the load input is expanded to contain multiple cases. </p><div class="fragment"><div class="line">loadOne = {<span class="stringliteral">&quot;groupName&quot;</span>         : <span class="stringliteral">&quot;force&quot;</span>,</div>
 <div class="line">        <span class="stringliteral">&quot;loadType&quot;</span>          : <span class="stringliteral">&quot;GridForce&quot;</span>,</div>
@@ -190,30 +191,27 @@ Multiple Load/Boundary Case Example</h1>
 <div class="line">        <span class="stringliteral">&quot;forceScaleFactor&quot;</span>  : 20000.0,</div>
 <div class="line">        <span class="stringliteral">&quot;directionVector&quot;</span>   : [-0.8, -0.6, 0.0]}</div>
 <div class="line"> </div>
-<div class="line">nastranAIM.input.Load = {<span class="stringliteral">&quot;loadOne&quot;</span>: loadOne, <span class="stringliteral">&quot;loadTwo&quot;</span>: loadTwo}</div>
+<div class="line">nastran.input.Load = {<span class="stringliteral">&quot;loadOne&quot;</span>: loadOne, <span class="stringliteral">&quot;loadTwo&quot;</span>: loadTwo}</div>
 <div class="line"> </div>
 </div><!-- fragment --><p> The process is identical to the constraint input.</p>
 <p>Finally, analysis cases are defined that connect an analysis type to a load and constraint condition by name. </p><div class="fragment"><div class="line">caseOne = {<span class="stringliteral">&quot;analysisType&quot;</span>         : <span class="stringliteral">&quot;Static&quot;</span>,</div>
-<div class="line">         <span class="stringliteral">&quot;analysisConstraint&quot;</span>     : <span class="stringliteral">&quot;conOne&quot;</span>,</div>
-<div class="line">         <span class="stringliteral">&quot;analysisLoad&quot;</span>         : <span class="stringliteral">&quot;loadOne&quot;</span>}</div>
+<div class="line">           <span class="stringliteral">&quot;analysisConstraint&quot;</span>     : <span class="stringliteral">&quot;conOne&quot;</span>,</div>
+<div class="line">           <span class="stringliteral">&quot;analysisLoad&quot;</span>         : <span class="stringliteral">&quot;loadOne&quot;</span>}</div>
 <div class="line"> </div>
 <div class="line">caseTwo = {<span class="stringliteral">&quot;analysisType&quot;</span>         : <span class="stringliteral">&quot;Static&quot;</span>,</div>
-<div class="line">         <span class="stringliteral">&quot;analysisConstraint&quot;</span>     : <span class="stringliteral">&quot;conTwo&quot;</span>,</div>
-<div class="line">         <span class="stringliteral">&quot;analysisLoad&quot;</span>         : <span class="stringliteral">&quot;loadTwo&quot;</span>}</div>
+<div class="line">           <span class="stringliteral">&quot;analysisConstraint&quot;</span>     : <span class="stringliteral">&quot;conTwo&quot;</span>,</div>
+<div class="line">           <span class="stringliteral">&quot;analysisLoad&quot;</span>         : <span class="stringliteral">&quot;loadTwo&quot;</span>}</div>
 <div class="line"> </div>
-<div class="line">nastranAIM.input.Analysis = {<span class="stringliteral">&quot;caseOne&quot;</span>: caseOne, <span class="stringliteral">&quot;caseTwo&quot;</span>: caseTwo}</div>
+<div class="line">nastran.input.Analysis = {<span class="stringliteral">&quot;caseOne&quot;</span>: caseOne, <span class="stringliteral">&quot;caseTwo&quot;</span>: caseTwo}</div>
 </div><!-- fragment --><p> Notice how the tuple names <code>"conOne"</code>, <code>"loadOne"</code> and <code>"analysisOne"</code> are all tied together. The <code>"analysisOne"</code> string also becomes the case control <code>LABEL</code> for the load case in the Nastran input file.</p>
 <p>To finish the pyCAPS input the process starting with the pre-analysis input is identical to the <a class="el" href="examplesNastran.html#nastranSingleLoadEx">Single Load Case Example</a> input.</p>
 <h1><a class="anchor" id="nastranModalEx"></a>
 Modal Analysis Example Case</h1>
-<p>To create input for a modal analysis a two simple changes are required to the <a class="el" href="examplesNastran.html#nastranSingleLoadEx">Single Load Case Example</a> input. The first change is to the <a class="el" href="aimInputsNastran.html">AIM Inputs</a> <code>Analysis_Type</code>. This input is the last input in the list below. </p><div class="fragment"><div class="line"><span class="comment"># Set project name so a mesh file is generated</span></div>
-<div class="line">projectName = <span class="stringliteral">&quot;threebar_nastran_Test&quot;</span></div>
-<div class="line">nastranAIM.input.Proj_Name = projectName</div>
-<div class="line">nastranAIM.input.File_Format = <span class="stringliteral">&quot;Free&quot;</span></div>
-<div class="line">nastranAIM.input.Mesh_File_Format = <span class="stringliteral">&quot;Large&quot;</span></div>
-<div class="line">nastranAIM.input.Edge_Point_Max = 2</div>
-<div class="line">nastranAIM.input.Edge_Point_Min = 2</div>
-<div class="line">nastranAIM.input.Analysis_Type = <span class="stringliteral">&quot;Static&quot;</span></div>
+<p>To create input for a modal analysis a two simple changes are required to the <a class="el" href="examplesNastran.html#nastranSingleLoadEx">Single Load Case Example</a> input. The first change is to the <a class="el" href="aimInputsNastran.html">AIM Inputs</a> <code>Analysis_Type</code>. This input is the last input in the list below. </p><div class="fragment"><div class="line">nastran.input[<span class="stringliteral">&quot;Mesh&quot;</span>].link(egads.output[<span class="stringliteral">&quot;Surface_Mesh&quot;</span>])</div>
+<div class="line">nastran.input.Proj_Name = <span class="stringliteral">&quot;threebar_nastran_Test&quot;</span></div>
+<div class="line">nastran.input.File_Format = <span class="stringliteral">&quot;Free&quot;</span></div>
+<div class="line">nastran.input.Mesh_File_Format = <span class="stringliteral">&quot;Large&quot;</span></div>
+<div class="line">nastran.input.Analysis_Type = <span class="stringliteral">&quot;Static&quot;</span></div>
 </div><!-- fragment --><p> A description of each of these inputs can be found in <a class="el" href="examplesNastran.html#nastranSingleLoadEx">Single Load Case Example</a>.</p>
 <p>The second change is replacing the load case information with a definition for the <code>Analysis</code> AIM input. </p><div class="fragment"><div class="line">eigen = { <span class="stringliteral">&quot;extractionMethod&quot;</span>     : <span class="stringliteral">&quot;Lanczos&quot;</span>,</div>
 <div class="line">          <span class="stringliteral">&quot;frequencyRange&quot;</span>       : [0, 10000],</div>
@@ -221,25 +219,23 @@ Modal Analysis Example Case</h1>
 <div class="line">          <span class="stringliteral">&quot;numDesiredEigenvalue&quot;</span> : 10,</div>
 <div class="line">          <span class="stringliteral">&quot;eigenNormalization&quot;</span>   : <span class="stringliteral">&quot;MASS&quot;</span>}</div>
 <div class="line"> </div>
-<div class="line">nastranAIM.input.Analysis = {<span class="stringliteral">&quot;EigenAnalysis&quot;</span>: eigen}</div>
+<div class="line">nastran.input.Analysis = {<span class="stringliteral">&quot;EigenAnalysis&quot;</span>: eigen}</div>
 </div><!-- fragment --><p> This information defines the eigenvalue solver method and parameters and assigns it as an analysis case.</p>
 <h1><a class="anchor" id="nastranOptEx"></a>
 Optimization Example Case</h1>
-<p>This section creates a design model out of the single load case example. The first change is an update to the <code>Analysis_Type</code> AIM Input to <code>StaticOpt</code>. </p><div class="fragment"><div class="line"><span class="comment"># Set project name so a mesh file is generated</span></div>
-<div class="line">projectName = <span class="stringliteral">&quot;threebar_nastran_Test&quot;</span></div>
-<div class="line">nastranAIM.input.Proj_Name = projectName</div>
-<div class="line">nastranAIM.input.File_Format = <span class="stringliteral">&quot;Free&quot;</span></div>
-<div class="line">nastranAIM.input.Mesh_File_Format = <span class="stringliteral">&quot;Large&quot;</span></div>
-<div class="line">nastranAIM.input.Edge_Point_Max = 2</div>
-<div class="line">nastranAIM.input.Edge_Point_Min = 2</div>
-<div class="line">nastranAIM.input.Analysis_Type = <span class="stringliteral">&quot;StaticOpt&quot;</span></div>
+<p>This section creates a design model out of the single load case example. The first change is an update to the <code>Analysis_Type</code> AIM Input to <code>StaticOpt</code>. </p><div class="fragment"><div class="line">nastran.input[<span class="stringliteral">&quot;Mesh&quot;</span>].link(egads.output[<span class="stringliteral">&quot;Surface_Mesh&quot;</span>])</div>
+<div class="line"> </div>
+<div class="line">nastran.input.Proj_Name = <span class="stringliteral">&quot;threebar_nastran_Test&quot;</span></div>
+<div class="line">nastran.input.File_Format = <span class="stringliteral">&quot;Free&quot;</span></div>
+<div class="line">nastran.input.Mesh_File_Format = <span class="stringliteral">&quot;Large&quot;</span></div>
+<div class="line">nastran.input.Analysis_Type = <span class="stringliteral">&quot;StaticOpt&quot;</span></div>
 </div><!-- fragment --><p> The next update adds a material allowable to the material input <code>yieldAllow</code>. This is not a requirement for THIS optimization problem, but this input is referenced when design constraints are added later. </p><div class="fragment"><div class="line">madeupium    = {<span class="stringliteral">&quot;materialType&quot;</span> : <span class="stringliteral">&quot;isotropic&quot;</span>,</div>
 <div class="line">                <span class="stringliteral">&quot;youngModulus&quot;</span> : 1.0E7 ,</div>
 <div class="line">                <span class="stringliteral">&quot;poissonRatio&quot;</span> : .33,</div>
 <div class="line">                <span class="stringliteral">&quot;density&quot;</span>      : 0.1,</div>
 <div class="line">                <span class="stringliteral">&quot;yieldAllow&quot;</span>   : 5.6E7}</div>
 <div class="line"> </div>
-<div class="line">nastranAIM.input.Material = {<span class="stringliteral">&quot;Madeupium&quot;</span>: madeupium}</div>
+<div class="line">nastran.input.Material = {<span class="stringliteral">&quot;Madeupium&quot;</span>: madeupium}</div>
 </div><!-- fragment --><p> The first large optimization input is the design variable definition section. For more information, the user is pointed to the <a class="el" href="feaDesignVariable.html">FEA Design Variables</a> section. In this section the area of each rod element in the three bar truss is defined as a separate design variable. Finally each of these variables are used to defined AIM Input <code>Design_Variable</code> </p><div class="fragment"><div class="line">DesVar1    = {<span class="stringliteral">&quot;initialValue&quot;</span> : rod[<span class="stringliteral">&quot;crossSecArea&quot;</span>],</div>
 <div class="line">              <span class="stringliteral">&quot;lowerBound&quot;</span> : rod[<span class="stringliteral">&quot;crossSecArea&quot;</span>]*0.5,</div>
 <div class="line">              <span class="stringliteral">&quot;upperBound&quot;</span> : rod[<span class="stringliteral">&quot;crossSecArea&quot;</span>]*1.5,</div>
@@ -255,9 +251,9 @@ Optimization Example Case</h1>
 <div class="line">              <span class="stringliteral">&quot;upperBound&quot;</span> : rod[<span class="stringliteral">&quot;crossSecArea&quot;</span>]*1.5,</div>
 <div class="line">              <span class="stringliteral">&quot;maxDelta&quot;</span>   : rod[<span class="stringliteral">&quot;crossSecArea&quot;</span>]*0.1}</div>
 <div class="line"> </div>
-<div class="line">myProblem.analysis[<span class="stringliteral">&quot;nastran&quot;</span>].input.Design_Variable = {<span class="stringliteral">&quot;Bar1A&quot;</span>: DesVar1,</div>
-<div class="line">                                                       <span class="stringliteral">&quot;Bar2A&quot;</span>: DesVar2,</div>
-<div class="line">                                                       <span class="stringliteral">&quot;Bar3A&quot;</span>: DesVar3}</div>
+<div class="line">nastran.input.Design_Variable = {<span class="stringliteral">&quot;Bar1A&quot;</span>: DesVar1,</div>
+<div class="line">                                 <span class="stringliteral">&quot;Bar2A&quot;</span>: DesVar2,</div>
+<div class="line">                                 <span class="stringliteral">&quot;Bar3A&quot;</span>: DesVar3}</div>
 </div><!-- fragment --><p> The next unique section is the addition of design constraints. In this problem stress constraints in each rod element are added. </p><div class="fragment"><div class="line">designConstraint1 = {<span class="stringliteral">&quot;groupName&quot;</span> : <span class="stringliteral">&quot;bar1&quot;</span>,</div>
 <div class="line">                    <span class="stringliteral">&quot;responseType&quot;</span> : <span class="stringliteral">&quot;STRESS&quot;</span>,</div>
 <div class="line">                    <span class="stringliteral">&quot;lowerBound&quot;</span> : -madeupium[<span class="stringliteral">&quot;yieldAllow&quot;</span>],</div>
@@ -273,9 +269,9 @@ Optimization Example Case</h1>
 <div class="line">                    <span class="stringliteral">&quot;lowerBound&quot;</span> : -madeupium[<span class="stringliteral">&quot;yieldAllow&quot;</span>],</div>
 <div class="line">                    <span class="stringliteral">&quot;upperBound&quot;</span> :  madeupium[<span class="stringliteral">&quot;yieldAllow&quot;</span>]}</div>
 <div class="line"> </div>
-<div class="line">myProblem.analysis[<span class="stringliteral">&quot;nastran&quot;</span>].input.Design_Constraint = {<span class="stringliteral">&quot;stress1&quot;</span>: designConstraint1,</div>
-<div class="line">                                                         <span class="stringliteral">&quot;stress2&quot;</span>: designConstraint2,</div>
-<div class="line">                                                         <span class="stringliteral">&quot;stress3&quot;</span>: designConstraint3}</div>
+<div class="line">nastran.input.Design_Constraint = {<span class="stringliteral">&quot;stress1&quot;</span>: designConstraint1,</div>
+<div class="line">                                   <span class="stringliteral">&quot;stress2&quot;</span>: designConstraint2,</div>
+<div class="line">                                   <span class="stringliteral">&quot;stress3&quot;</span>: designConstraint3}</div>
 </div><!-- fragment --><p> This completes the unique parts of the design inputs required for a Nastran optimization problem.</p>
 <h1><a class="anchor" id="nastranCompositeEx"></a>
 Composite Wing Example</h1>
@@ -284,7 +280,7 @@ Composite Wing Example</h1>
 <img src="compositeWing.png" alt=""/>
 <div class="caption">
 Composite Wing Example</div></div>
- <p>The CSM script generates Bodies which are designed to be used by specific AIMs. The AIMs that the Body is designed for is communicated to the CAPS framework via the “capsAIM” string attribute. This is a semicolon-separated string with the list of AIM names. Thus, the CSM author can give a clear indication to which AIMs should use the Body. In this example, the list contains the structural finite element analysis tools that can analyze the body: </p><div class="fragment"><div class="line">attribute capsAIM $nastranAIM;astrosAIM;mystranAIM</div>
+ <p>The CSM script generates Bodies which are designed to be used by specific AIMs. The AIMs that the Body is designed for is communicated to the CAPS framework via the “capsAIM” string attribute. This is a semicolon-separated string with the list of AIM names. Thus, the CSM author can give a clear indication to which AIMs should use the Body. In this example, the list contains the structural finite element analysis tools that can analyze the body: </p><div class="fragment"><div class="line">attribute capsAIM $nastranAIM;astrosAIM;mystranAIM;egadsTessAIM</div>
 </div><!-- fragment --><p> The parameter being set in this case is a definition for a coordinate system in Engineering Sketch Pad. The documentation for <code>csystem</code> inputs is as follows. </p><pre class="fragment">CSYSTEM   $csysName csysList
         use:    attach a Csystem to Body on top of stack
         pops:   any
@@ -367,23 +363,22 @@ Composite Wing Example</div></div>
 <div class="line"> </div>
 <div class="line"><span class="comment"># Import os module</span></div>
 <div class="line"><span class="keyword">import</span> os</div>
+<div class="line"><span class="keyword">import</span> shutil</div>
 <div class="line"><span class="keyword">import</span> argparse</div>
 </div><!-- fragment --><p> Once the modules have been loaded the pyCAPS.Problem needs to be initiated with the *.csm file. Though not shown in this example the user has access to the X, Y and Z despmtr inputs from this pyCAPS script. </p><div class="fragment"><div class="line"><span class="comment"># Load CSM file</span></div>
 <div class="line">geometryScript = os.path.join(<span class="stringliteral">&quot;..&quot;</span>,<span class="stringliteral">&quot;csmData&quot;</span>,<span class="stringliteral">&quot;compositeWing.csm&quot;</span>)</div>
-<div class="line">myProblem = pyCAPS.Problem(problemName=workDir,</div>
-<div class="line">                           capsFile=geometryScript,</div>
-<div class="line">                           outLevel=args.outLevel)</div>
+<div class="line">capsProblem = pyCAPS.Problem(problemName=workDir,</div>
+<div class="line">                             capsFile=geometryScript,</div>
+<div class="line">                             outLevel=args.outLevel)</div>
 </div><!-- fragment --><p> The Nastran AIM is then loaded with: </p><div class="fragment"><div class="line"><span class="comment"># Load nastran aim</span></div>
-<div class="line">nastranAIM = myProblem.analysis.create(aim = <span class="stringliteral">&quot;nastranAIM&quot;</span>,</div>
-<div class="line">                                       name = <span class="stringliteral">&quot;nastran&quot;</span>, </div>
-<div class="line">                                       autoExec = <span class="keyword">False</span>)</div>
-</div><!-- fragment --><p> After the AIM is loaded some of the inputs to the AIM are defined. A full list of options can be found in the <a class="el" href="aimInputsNastran.html">AIM Inputs</a> section. In this case the <code>Proj_Name</code> is entered. The project name becomes the Nastran input file names. Two are create <code>projectName.bdf</code> and <code>projectName.dat</code>. The <code>*.bdf</code> file contains the grid and connectivity information. The data file contains the case control and other bulk data inputs required by Nastran. The input format is selected as <code>Small</code> and <code>Large</code> field format is used when the option is available. This is most likely in the GRID entries only. Additionally, the analysis type selected is <code>Static</code>. The maximum points that can be placed along an edge is set to be 40. </p><div class="fragment"><div class="line"><span class="comment"># Set project name so a mesh file is generated</span></div>
-<div class="line">projectName = <span class="stringliteral">&quot;nastran_CompositeWing&quot;</span></div>
-<div class="line">nastranAIM.input.Proj_Name        = projectName</div>
-<div class="line">nastranAIM.input.Edge_Point_Max   = 40</div>
-<div class="line">nastranAIM.input.File_Format      = <span class="stringliteral">&quot;Small&quot;</span></div>
-<div class="line">nastranAIM.input.Mesh_File_Format = <span class="stringliteral">&quot;Large&quot;</span></div>
-<div class="line">nastranAIM.input.Analysis_Type    = <span class="stringliteral">&quot;Modal&quot;</span></div>
+<div class="line">nastran = capsProblem.analysis.create(aim = <span class="stringliteral">&quot;nastranAIM&quot;</span>,</div>
+<div class="line">                                      name = <span class="stringliteral">&quot;nastran&quot;</span>)</div>
+</div><!-- fragment --><p> After the AIM is loaded some of the inputs to the AIM are defined. A full list of options can be found in the <a class="el" href="aimInputsNastran.html">AIM Inputs</a> section. In this case the <code>Proj_Name</code> is entered. The project name becomes the Nastran input file names. Two are create <code>projectName.bdf</code> and <code>projectName.dat</code>. The <code>*.bdf</code> file contains the grid and connectivity information. The data file contains the case control and other bulk data inputs required by Nastran. The input format is selected as <code>Small</code> and <code>Large</code> field format is used when the option is available. This is most likely in the GRID entries only. Additionally, the analysis type selected is <code>Static</code>. The maximum points that can be placed along an edge is set to be 40. </p><div class="fragment"><div class="line">nastran.input[<span class="stringliteral">&quot;Mesh&quot;</span>].link(egads.output[<span class="stringliteral">&quot;Surface_Mesh&quot;</span>])</div>
+<div class="line"> </div>
+<div class="line">nastran.input.Proj_Name        = <span class="stringliteral">&quot;nastran_CompositeWing&quot;</span></div>
+<div class="line">nastran.input.File_Format      = <span class="stringliteral">&quot;Small&quot;</span></div>
+<div class="line">nastran.input.Mesh_File_Format = <span class="stringliteral">&quot;Large&quot;</span></div>
+<div class="line">nastran.input.Analysis_Type    = <span class="stringliteral">&quot;Modal&quot;</span></div>
 </div><!-- fragment --><p> In this example two materials are defined. This demonstrates how simple it is to change materials in a model. Both an aluminum and Graphite_expoxy material are defined in the <code>Material</code> <a class="el" href="aimInputsNastran.html">AIM Inputs</a>. </p><div class="fragment"><div class="line">Aluminum  = {<span class="stringliteral">&quot;youngModulus&quot;</span> : 10.5E6 ,</div>
 <div class="line">             <span class="stringliteral">&quot;poissonRatio&quot;</span> : 0.3,</div>
 <div class="line">             <span class="stringliteral">&quot;density&quot;</span>      : 0.1/386,</div>
@@ -402,7 +397,7 @@ Composite Wing Example</div></div>
 <div class="line">                  <span class="stringliteral">&quot;shearAllow&quot;</span>          : 19.0e-3,</div>
 <div class="line">                  <span class="stringliteral">&quot;allowType&quot;</span>           : 1}</div>
 <div class="line"> </div>
-<div class="line">nastranAIM.input.Material = {<span class="stringliteral">&quot;Aluminum&quot;</span>: Aluminum,</div>
+<div class="line">nastran.input.Material = {<span class="stringliteral">&quot;Aluminum&quot;</span>: Aluminum,</div>
 <div class="line">                             <span class="stringliteral">&quot;Graphite_epoxy&quot;</span>: Graphite_epoxy}</div>
 </div><!-- fragment --><p> Again property information is defined for both an aluminum and composite stack version of the model. However, only the composite entry is defined in the <code>Property</code> <a class="el" href="aimInputsNastran.html">AIM Inputs</a>. <br  />
 </p>
@@ -426,46 +421,33 @@ Composite Wing Example</div></div>
 <div class="line">              <span class="stringliteral">&quot;symmetricLaminate&quot;</span>      : <span class="keyword">True</span>,</div>
 <div class="line">              <span class="stringliteral">&quot;compositeFailureTheory&quot;</span> : <span class="stringliteral">&quot;STRN&quot;</span> }</div>
 <div class="line"> </div>
-<div class="line"><span class="comment">#nastranAIM.input.Property&quot; = {&quot;wing&quot;: aluminum}</span></div>
-<div class="line">nastranAIM.input.Property = {<span class="stringliteral">&quot;wing&quot;</span>: composite}</div>
+<div class="line"><span class="comment">#nastran.input.Property&quot; = {&quot;wing&quot;: aluminum}</span></div>
+<div class="line">nastran.input.Property = {<span class="stringliteral">&quot;wing&quot;</span>: composite}</div>
 </div><!-- fragment --><p> In this example the root edges are constrained in all degrees of freedom. This constraint references the <code>capsConstraint $root</code> input defined in the *.csm file. </p><div class="fragment"><div class="line">constraint = {<span class="stringliteral">&quot;groupName&quot;</span> : <span class="stringliteral">&quot;root&quot;</span>,</div>
 <div class="line">              <span class="stringliteral">&quot;dofConstraint&quot;</span> : 123456}</div>
 <div class="line"> </div>
-<div class="line">nastranAIM.input.Constraint = {<span class="stringliteral">&quot;root&quot;</span>: constraint}</div>
+<div class="line">nastran.input.Constraint = {<span class="stringliteral">&quot;root&quot;</span>: constraint}</div>
 </div><!-- fragment --><p> As previously shown in <a class="el" href="examplesNastran.html#nastranModalEx">Modal Analysis Example Case</a> information to define an eigen value problem is entered and the <code>Analysis</code> AIM Input is defined. </p><div class="fragment"><div class="line">eigen = { <span class="stringliteral">&quot;extractionMethod&quot;</span>     : <span class="stringliteral">&quot;MGIV&quot;</span>,<span class="comment">#&quot;Lanczos&quot;,</span></div>
 <div class="line">          <span class="stringliteral">&quot;frequencyRange&quot;</span>       : [0, 10000],</div>
 <div class="line">          <span class="stringliteral">&quot;numEstEigenvalue&quot;</span>     : 1,</div>
 <div class="line">          <span class="stringliteral">&quot;numDesiredEigenvalue&quot;</span> : 10,</div>
 <div class="line">          <span class="stringliteral">&quot;eigenNormalization&quot;</span>   : <span class="stringliteral">&quot;MASS&quot;</span>}</div>
 <div class="line"> </div>
-<div class="line">nastranAIM.input.Analysis = {<span class="stringliteral">&quot;EigenAnalysis&quot;</span>: eigen}</div>
-</div><!-- fragment --><p> Finally, preAnalysis is executed to generate all the required Nastran inputs. </p><div class="fragment"><div class="line">nastranAIM.preAnalysis()</div>
+<div class="line">nastran.input.Analysis = {<span class="stringliteral">&quot;EigenAnalysis&quot;</span>: eigen}</div>
+</div><!-- fragment --><p> Finally, preAnalysis is executed to generate all the required Nastran inputs. </p><div class="fragment"><div class="line">nastran.preAnalysis()</div>
 </div><!-- fragment --><p> Nastran is executed with a simple system call. </p><div class="fragment"><div class="line"> </div>
 <div class="line"><span class="keywordflow">print</span> (<span class="stringliteral">&quot;\n\nRunning Nastran......&quot;</span> )</div>
-<div class="line">currentDirectory = os.getcwd() <span class="comment"># Get our current working directory</span></div>
 <div class="line"> </div>
-<div class="line">os.chdir(myProblem.analysis[<span class="stringliteral">&quot;nastran&quot;</span>].analysisDir) <span class="comment"># Move into test directory</span></div>
+<div class="line"><span class="keywordflow">if</span> args.noAnalysis == <span class="keyword">False</span>:</div>
+<div class="line">    nastran.system(<span class="stringliteral">&quot;nastran old=no notify=no batch=no scr=yes sdirectory=./ &quot;</span> + nastran.input.Proj_Name +  <span class="stringliteral">&quot;.dat&quot;</span>); <span class="comment"># Run Nastran via system call</span></div>
+<div class="line"><span class="keywordflow">else</span>:</div>
+<div class="line">    <span class="comment"># Copy old results if no analysis available</span></div>
+<div class="line">    shutil.copy2(os.path.join(<span class="stringliteral">&quot;..&quot;</span>,<span class="stringliteral">&quot;analysisData&quot;</span>,<span class="stringliteral">&quot;nastran&quot;</span>,projectName+<span class="stringliteral">&quot;.f06&quot;</span>), </div>
+<div class="line">                 os.path.join(nastran.analysisDir,nastran.input.Proj_Name+<span class="stringliteral">&quot;.f06&quot;</span>))</div>
 <div class="line"> </div>
-<div class="line"><span class="keywordflow">if</span> (args.noAnalysis == <span class="keyword">False</span>):</div>
-<div class="line">    os.system(<span class="stringliteral">&quot;nastran old=no notify=no batch=no scr=yes sdirectory=./ &quot;</span> + projectName +  <span class="stringliteral">&quot;.dat&quot;</span>); <span class="comment"># Run Nastran via system call</span></div>
-<div class="line"> </div>
-<div class="line">    </div>
-<div class="line">    nastranAIM.postAnalysis()</div>
-<div class="line">    </div>
-<div class="line"> </div>
-<div class="line">    <span class="comment"># Get Eigen-frequencies</span></div>
-<div class="line">    <span class="keywordflow">print</span> (<span class="stringliteral">&quot;\nGetting results for natural frequencies.....&quot;</span>)</div>
-<div class="line">    naturalFreq = myProblem.analysis[<span class="stringliteral">&quot;nastran&quot;</span>].output.EigenFrequency</div>
-<div class="line"> </div>
-<div class="line">    mode = 1</div>
-<div class="line">    <span class="keywordflow">for</span> i <span class="keywordflow">in</span> naturalFreq:</div>
-<div class="line">        <span class="keywordflow">print</span> (<span class="stringliteral">&quot;Natural freq (Mode {:d}) = &quot;</span>.format(mode) + <span class="stringliteral">&#39;{:.5f} &#39;</span>.format(i) + <span class="stringliteral">&quot;(Hz)&quot;</span>)</div>
-<div class="line">        mode += 1</div>
-<div class="line"> </div>
-<div class="line">os.chdir(currentDirectory) <span class="comment"># Move back to working directory</span></div>
 <div class="line"><span class="keywordflow">print</span> (<span class="stringliteral">&quot;Done running Nastran!&quot;</span>)</div>
-</div><!-- fragment --><p> A post analysis command is entered allowing the user to access output data, if desired, from the application. </p><div class="fragment"><div class="line">    <span class="comment"># Run AIM post-analysis</span></div>
-<div class="line">    nastranAIM.postAnalysis()</div>
+</div><!-- fragment --><p> A post analysis command is entered allowing the user to access output data, if desired, from the application. </p><div class="fragment"><div class="line"><span class="comment"># Run AIM post-analysis</span></div>
+<div class="line">nastran.postAnalysis()</div>
 </div><!-- fragment --> <h1><a class="anchor" id="nastranCompOptimizationEx"></a>
 Composite Wing Optimization Example</h1>
 <p>This section removes the frequency analysis and adds a pressure load to the previously introduced composite wing example case. Then An optimization problem allowing the thickness of each ply layer to change is performed. </p>
@@ -473,7 +455,7 @@ Composite Wing Optimization Example</h1>
 </div><!-- PageDoc -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Sat Apr 27 2024 16:51:38 for Nastran Analysis Interface Module (AIM) by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1
+Generated on Wed May 22 2024 10:55:21 for Nastran Analysis Interface Module (AIM) by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1
 </small></address>
 </body>
 </html>

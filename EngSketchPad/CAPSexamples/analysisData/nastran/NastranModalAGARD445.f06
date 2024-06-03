@@ -1,0 +1,1115 @@
+1
+ 
+ 
+ 
+ 
+                      Warning: This computer program is protected by copyright law and international treaties.       
+                  Unauthorized use, reproduction or distribution of this computer program, or any portion of it, may 
+                                          result in severe civil and criminal penalties.                             
+                         Copyright (C) 2021 MSC Software Corporation and its licensors. All rights reserved.         
+ 
+ 
+                                              * * * * * * * * * * * * * * * * * * * *
+                                              * * * * * * * * * * * * * * * * * * * *
+                                              * *                                 * *
+                                              * *           MSC Software          * *
+                                              * *               CORP              * *
+                                              * *                                 * *
+                                              * *      M S C   N a s t r a n      * *
+                                              * *                                 * *
+                                              * *                                 * *
+                                              * *                                 * *
+                                              * *     Version 2021.3-CL837441     * *
+                                              * *                                 * *
+                                              * *                                 * *
+                                              * *                                 * *
+                                              * *          SEP 15, 2021           * *
+                                              * *                                 * *
+                                              * *       x86-64 Based System       * *
+                                              * *MODEL Intel 2100 MHz (b0146w0030 * *
+                                              * *Linux 3.10.0-1160.114.2.el7.x86_ * *
+                                              * *Compiled for x8664 (SINGLE Mode) * *
+                                              * *                                 * *
+                                              * * * * * * * * * * * * * * * * * * * *
+                                              * * * * * * * * * * * * * * * * * * * *
+1News file - (Aug 24, 2021)
+  
+               Welcome to MSC Nastran 2021.3
+  
+  
+   MSC Nastran brings powerful new features and enhancements for engineering
+   solutions.
+  
+     MSC Nastran 2021.3 Features and Enhancements
+  
+     Dynamics
+      - Dynamic stiffness output for mechanical loading in direct and modal
+        frequency response (SOL 108 and SOL 111), design optimization
+        (SOL 200 analysis) and implicit nonlinear (SOL 400 linear)
+  
+     Results
+      - Relative displacement output for a grid, or set of grids with respect
+        to reference grid for linear statics, dynamics and nonlinear analysis
+  
+     RotorDynamics
+      - Output of rotordynamics rotor kinetic and potential energies to OP2, PCH
+        and H5 formats, via a new ROTSEKE Case Control entry, and which can be
+        sorted either rotor-wise of mode-wise (replaces previous ROTSEKE
+        parameter which is now deprecated)
+      - New capability to define spin speed for individual rotors available in
+        SOL 107, SOL 110, SOL 200 and SOL 400 (ANALYSIS = CEIG) – multiple RGYR
+        entries are allowed for individual rotors
+  
+     Fatigue
+      - Time domain performance improvements
+      - CAEfatigue Process Flow interface to facilitate analysis and results
+        postprocessing execution
+  
+     Nonlinear
+      - Enhanced contact projection algorithm at corners and on warped surfaces
+      - GLUEOUT option to separate normal and tangential glued contact force
+        output
+  
+     High Performance Computing
+      - SOL 400 element-loop (NLEMG) performance improvements
+      - Windows support for MUMPS solver in SOL 101
+      - Improved thread management for DMP/SMP combinations
+      - Support for CUDA 11 functionality (including NVIDIA Ampere GPU
+        architecture)
+  
+  
+  
+     Documentation
+     The complete documentation set is provided in a separate installer and
+     when installed is available at: MSC_DOC_DIR/doc/pdf_nastran directory.
+1    Where MSC_DOC_DIR is the directory where documentation was installed
+     This help set has cross references between documents, links to how-to
+     videos, and example files.
+  
+     Individual MSC Nastran documents are available for download from the
+       Simcompanion Website at:
+       http://simcompanion.mscsoftware.com/
+  
+     These documents were updated for the MSC Nastran 2021.3 Release
+  
+         1.  MSC Nastran 2021.3 Installation and Operations Guide
+         2.  MSC Nastran 2021.3 Quick Reference Guide
+         3.  MSC Nastran 2021.3 Release Guide
+         4.  MSC Nastran 2021.3 Linear Statics Analysis User's Guide
+         5.  MSC Nastran 2021.3 Dynamic Analysis User's Guide
+         6.  MSC Nastran 2021.3 Superelements User's Guide
+         7.  MSC Nastran 2021.3 Rotordynamics User's Guide
+         8.  MSC Nastran 2021.3 Demonstration Problems Manual
+         9.  MSC Nastran 2021.3 Nastran Embedded Fatigue User's Guide
+        10.  MSC Nastran 2021.3 Design Sensitivity and Optimization
+        11.  MSC Nastran 2021.3 Nonlinear User's Guide SOL 400
+        12.  MSC Nastran 2021.3 DMAP Programmer's Guide
+        13.  MSC Nastran 2021.3 High Performance Computing User's Guide
+        14.  MSC Nastran 2021.3 New Verification Manual
+        15.  MSC Nastran 2021.3 DEMATD Guide
+        16.  MSC Nastran 2021.3 Explicit Nonlinear (SOL 700) User's Guide
+  
+   Please refer to  MSC_DOC_DIR/doc/pdf_nastran/nastran_library.pdf
+   for the complete document set:
+  
+  
+     Feature Deprecation List
+     To streamline the MSC Nastran program and simplify ongoing maintenance
+     activiy, some obsolete capabilities have been identified and tagged for
+     removal from a future release of the program in 2021 and 2022.
+     Please review the list of features marked for deprecation below to
+     ensure that there will be no disruption to your use of MSC Nastran.
+     If you see a feature that you currently use and do not wish to lose,
+     contact MSC Technical Support to report it.
+  
+     Features tagged for removal:
+     - SOL 600 nonlinear solution sequence
+     - TAUCS solver
+     - Obsolete DMAP modules
+     - SSSALTERS
+  
+     Refer to the MSC Nastran 2021 Release Guide for more details.
+  
+  
+   Additional information about the release can be found at the MSC Nastran
+1  Product Support page: http://simcompanion.mscsoftware.com
+  
+   The support page provides links to these valuable information:
+      * A searchable Knowledge Base containing examples and answers to thousands
+        of frequently asked questions written by MSC Software subject-matter
+        experts.
+      * Peer-to-peer Discussion Forums enabling you to post questions for your
+        MSC Software products and receive answers from other users worldwide.
+      * A list of known issues with the product and any workarounds.
+      * Instructions on how to contact technical support
+      * A mechanism for sending us product feedback or enhancement requests.
+      * Hardware and software requirements.
+      * Examples and Tutorials
+      * and much more.
+  
+   For information on training, please visit our Training web site
+  
+      http://www.mscsoftware.com/Contents/Services/Training/
+  
+1                                                                               MAY  15, 2024  MSC Nastran  9/15/21   PAGE     1
+                                                                                                                                    
+0        N A S T R A N    F I L E    A N D    S Y S T E M    P A R A M E T E R    E C H O                                           
+0                                                                                                                                   
+                                                                                                                                    
+                                                                                                                                    
+     NASTRAN BUFFSIZE=32769 $(/USR/LOCAL/APPS/MSC/MSC_NASTRAN/2021.3/CONF/NAST20213RC
+     $ $(/USR/LOCAL/APPS/MSC/MSC_NASTRAN/2021.3/CONF/NAST20213RC[6])                 
+     $ $(/USR/LOCAL/APPS/MSC/MSC_NASTRAN/2021.3/CONF/NAST20213RC[14])                
+     $ END $(/USR/LOCAL/APPS/MSC/MSC_NASTRAN/2021.3/CONF/NAST20213RC[16])            
+1                                                                               MAY  15, 2024  MSC Nastran  9/15/21   PAGE     2
+                                                                                                                                    
+0        N A S T R A N    E X E C U T I V E    C O N T R O L    E C H O                                                             
+0                                                                                                                                   
+                                                                                                                                    
+                                                                                                                                    
+     ID CAPS GENERATED PROBLEM FOR NASTRAN                                                   
+     SOL 103                                                                                 
+     CEND                                                                                    
+1                                                                               MAY  15, 2024  MSC Nastran  9/15/21   PAGE     3
+                                                                                                                                    
+0                                                                                                                                   
+0                                        C A S E    C O N T R O L    E C H O                                                        
+                 COMMAND                                                                                                            
+                 COUNT                                                                                                              
+                  1                                                                                              
+                  2      LINE=10000                                                                              
+                  3      DISP (PRINT,PUNCH) = ALL                                                                
+                  4      STRE (PRINT,PUNCH) = ALL                                                                
+                  5      STRA (PRINT,PUNCH) = ALL                                                                
+                  6      SUBCASE 1                                                                               
+                  7          LABEL = EIGENANALYSIS                                                               
+                  8          ANALYSIS = MODES                                                                    
+                  9          SPC = 2                                                                             
+                 10          METHOD = 1                                                                          
+                 11                                                                                              
+                 12      BEGIN BULK                                                                              
+1                                                                               MAY  15, 2024  MSC Nastran  9/15/21   PAGE     4
+                                                                                                                                    
+0                                                                                                                                   
+                                              I N P U T   B U L K   D A T A   E C H O                                               
+                 ENTRY                                                                                                              
+                 COUNT        .   1  ..   2  ..   3  ..   4  ..   5  ..   6  ..   7  ..   8  ..   9  ..  10  .                      
+                              $INCLUDE "./NastranModalAGARD445.bdf"
+                              $END OF INCLUDE "./NastranModalAGARD445.bdf"
+1                                                                               MAY  15, 2024  MSC Nastran  9/15/21   PAGE     5
+                                                                                                                                    
+0                                                                                                                                   
+                                                  S O R T E D   B U L K   D A T A   E C H O                                         
+                 ENTRY                                                                                                              
+                 COUNT        .   1  ..   2  ..   3  ..   4  ..   5  ..   6  ..   7  ..   8  ..   9  ..  10  .                      
+                    1-        CQUAD4  1       1       1       2       41      24
+                    2-        CQUAD4  2       1       3       29      41      2
+                    3-        CQUAD4  3       1       25      30      41      29
+                    4-        CQUAD4  4       1       23      24      41      30
+                    5-        CQUAD4  5       1       3       4       42      29
+                    6-        CQUAD4  6       1       5       31      42      4
+                    7-        CQUAD4  7       1       26      32      42      31
+                    8-        CQUAD4  8       1       25      29      42      32
+                    9-        CQUAD4  9       1       5       6       43      31
+                   10-        CQUAD4  10      1       7       8       43      6
+                   11-        CQUAD4  11      1       9       33      43      8
+                   12-        CQUAD4  12      1       26      31      43      33
+                   13-        CQUAD4  13      1       23      30      44      22
+                   14-        CQUAD4  14      1       25      34      44      30
+                   15-        CQUAD4  15      1       27      35      44      34
+                   16-        CQUAD4  16      1       21      22      44      35
+                   17-        CQUAD4  17      1       25      32      45      34
+                   18-        CQUAD4  18      1       26      36      45      32
+                   19-        CQUAD4  19      1       28      37      45      36
+                   20-        CQUAD4  20      1       27      34      45      37
+                   21-        CQUAD4  21      1       26      33      46      36
+                   22-        CQUAD4  22      1       9       10      46      33
+                   23-        CQUAD4  23      1       11      38      46      10
+                   24-        CQUAD4  24      1       28      36      46      38
+                   25-        CQUAD4  25      1       21      35      47      20
+                   26-        CQUAD4  26      1       27      39      47      35
+                   27-        CQUAD4  27      1       17      18      47      39
+                   28-        CQUAD4  28      1       19      20      47      18
+                   29-        CQUAD4  29      1       27      37      48      39
+                   30-        CQUAD4  30      1       28      40      48      37
+                   31-        CQUAD4  31      1       15      16      48      40
+                   32-        CQUAD4  32      1       17      39      48      16
+                   33-        CQUAD4  33      1       28      38      49      40
+                   34-        CQUAD4  34      1       11      12      49      38
+                   35-        CQUAD4  35      1       13      14      49      12
+                   36-        CQUAD4  36      1       15      40      49      14
+                   37-        EIGR    1       MGIV    .1      200.            2                       +
+                   38-        +       MASS
+                   39-        GRID    1               0.      0.      0.
+                   40-        GRID    2               3.666   0.      0.
+                   41-        GRID    3               7.332   0.      0.
+                   42-        GRID    4               10.998  0.      0.
+                   43-        GRID    5               14.664  0.      0.
+                   44-        GRID    6               18.33   0.      0.
+                   45-        GRID    7               21.996  0.      0.
+                   46-        GRID    8               24.5967 5.      0.
+                   47-        GRID    9               27.1974 10.     0.
+                   48-        GRID    10              29.7981 15.     0.
+                   49-        GRID    11              32.3988 20.     0.
+                   50-        GRID    12              34.9995 25.     0.
+                   51-        GRID    13              37.6002 30.     0.
+                   52-        GRID    14              35.1807 30.     0.
+                   53-        GRID    15              32.7611 30.     0.
+                   54-        GRID    16              30.3415 30.     0.
+                   55-        GRID    17              27.922  30.     0.
+                   56-        GRID    18              25.5024 30.     0.
+                   57-        GRID    19              23.0829 30.     0.
+                   58-        GRID    20              19.2357 25.     0.
+                   59-        GRID    21              15.3886 20.     0.
+                   60-        GRID    22              11.5414 15.     0.
+                   61-        GRID    23              7.69429 10.     0.
+                   62-        GRID    24              3.84714 5.      0.
+                   63-        GRID    25              14.1953 10.     0.
+                   64-        GRID    26              20.6964 10.     0.
+                   65-        GRID    27              21.0587 20.     0.
+                   66-        GRID    28              26.7287 20.     0.
+                   67-        GRID    29              10.7637 5.      0.
+                   68-        GRID    30              10.9448 10.     0.
+                   69-        GRID    31              17.6802 5.      0.
+                   70-        GRID    32              17.4458 10.     0.
+                   71-        GRID    33              23.9469 10.     0.
+                   72-        GRID    34              17.627  15.     0.
+                   73-        GRID    35              18.2236 20.     0.
+                   74-        GRID    36              23.7126 15.     0.
+                   75-        GRID    37              23.8937 20.     0.
+                   76-        GRID    38              29.5638 20.     0.
+                   77-        GRID    39              24.4903 25.     0.
+                   78-        GRID    40              29.7449 25.     0.
+                   79-        GRID    41              7.3054  5.      0.
+                   80-        GRID    42              14.2219 5.      0.
+                   81-        GRID    43              21.1384 5.      0.
+                   82-        GRID    44              14.5842 15.     0.
+                   83-        GRID    45              20.6698 15.     0.
+                   84-        GRID    46              26.7553 15.     0.
+                   85-        GRID    47              21.863  25.     0.
+                   86-        GRID    48              27.1176 25.     0.
+                   87-        GRID    49              32.3722 25.     0.
+                   88-        MAT8    1       457000. 63600.  .31     63700.  2270.   2270.   3.57E-05+
+                   89-        +       0.      0.      0.                                              +
+                   90-        +       0.
+                   91-        PARAM   GRDPNT  0
+                   92-        PARAM   POST    -1
+                   93-        PSHELL  1       1       .82     1       1.      1       .83333
+                   94-        SPC1    1       123456  2       3       4       5       6
+                   95-        SPCADD  2       1
+                              ENDDATA
+                        TOTAL COUNT= 96
+                              INPUT BULK DATA ENTRY COUNT = 101
+1                                                                               MAY  15, 2024  MSC Nastran  9/15/21   PAGE     6
+                                                                                                                                    
+0                                                                                                                                   
+                                        M O D E L   S U M M A R Y          BULK = 0
+                                   ENTRY NAME        NUMBER OF ENTRIES
+                                   ----------        -----------------
+                                       CQUAD4                       36
+                                         EIGR                        1
+                                         GRID                       49
+                                         MAT8                        1
+                                        PARAM                        2
+                                       PSHELL                        1
+                                         SPC1                        1
+                                       SPCADD                        1
+
+ 
+ ^^^     
+ ^^^ >>> IFP OPERATIONS COMPLETE <<< 
+ ^^^     
+ *** USER INFORMATION MESSAGE 4109 (OUTPX2)
+     THE LABEL IS XXXXXXXX FOR FORTRAN UNIT    12
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =          7 WORDS.)
+           (NUMBER OF FORTRAN RECORDS WRITTEN =          8 RECORDS.)
+                (TOTAL DATA WRITTEN FOR LABEL =         17 WORDS.)
+ ^^^     
+ *** USER WARNING MESSAGE 9431 (SUBDMAP PHASE0)
+     The ANALYSIS command is ignored in this Solution Sequence.
+ ^^^     
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK GEOM1X   WRITTEN ON FORTRAN UNIT    12 IN BINARY (LTLEND) FORMAT USING NDDL DESCRIPTION FOR GEOM168, TRL =
+                    101                 0                 0                 8                 0                 0                 0
+     NAME OF DATA BLOCK WRITTEN ON FORTRAN UNIT IS GEOM1   
+        (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =       65538 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =         395 WORDS.)
+           (NUMBER OF FORTRAN RECORDS WRITTEN =          20 RECORDS.)
+           (TOTAL DATA WRITTEN FOR DATA BLOCK =         426 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK GEOM2X   WRITTEN ON FORTRAN UNIT    12 IN BINARY (LTLEND) FORMAT USING NDDL DESCRIPTION FOR GEOM201, TRL =
+                    102                 0                 0                 0              8192                 0                 0
+     NAME OF DATA BLOCK WRITTEN ON FORTRAN UNIT IS GEOM2   
+        (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =       65538 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =         507 WORDS.)
+           (NUMBER OF FORTRAN RECORDS WRITTEN =          20 RECORDS.)
+           (TOTAL DATA WRITTEN FOR DATA BLOCK =         538 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK GEOM4X   WRITTEN ON FORTRAN UNIT    12 IN BINARY (LTLEND) FORMAT USING NDDL DESCRIPTION FOR GEOM4705, TRL =
+                    104                 0                 0                 0                96                 0                 0
+     NAME OF DATA BLOCK WRITTEN ON FORTRAN UNIT IS GEOM4   
+        (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =       65538 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =          12 WORDS.)
+           (NUMBER OF FORTRAN RECORDS WRITTEN =          25 RECORDS.)
+           (TOTAL DATA WRITTEN FOR DATA BLOCK =          53 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK EPTX     WRITTEN ON FORTRAN UNIT    12 IN BINARY (LTLEND) FORMAT USING NDDL DESCRIPTION FOR EPT01, TRL =
+                    105                 0               512                 0                 0                 0                 0
+     NAME OF DATA BLOCK WRITTEN ON FORTRAN UNIT IS EPT     
+        (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =       65538 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =          14 WORDS.)
+           (NUMBER OF FORTRAN RECORDS WRITTEN =          20 RECORDS.)
+           (TOTAL DATA WRITTEN FOR DATA BLOCK =          45 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK MPTS     WRITTEN ON FORTRAN UNIT    12 IN BINARY (LTLEND) FORMAT USING NDDL DESCRIPTION FOR MPT, TRL =
+                    101                 0               128                 0                 0                 0                 0
+     NAME OF DATA BLOCK WRITTEN ON FORTRAN UNIT IS MPT     
+        (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =       65538 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =          22 WORDS.)
+           (NUMBER OF FORTRAN RECORDS WRITTEN =          20 RECORDS.)
+           (TOTAL DATA WRITTEN FOR DATA BLOCK =          53 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK DYNAMICS WRITTEN ON FORTRAN UNIT    12 IN BINARY (LTLEND) FORMAT USING NDDL DESCRIPTION FOR DYNAMICS, TRL =
+                    103              8192                 0                 0                 0                 0                 0
+     NAME OF DATA BLOCK WRITTEN ON FORTRAN UNIT IS DYNAMICS
+        (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =       65538 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =          21 WORDS.)
+           (NUMBER OF FORTRAN RECORDS WRITTEN =          20 RECORDS.)
+           (TOTAL DATA WRITTEN FOR DATA BLOCK =          52 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK CASESO   WRITTEN ON FORTRAN UNIT    12 IN BINARY (LTLEND) FORMAT USING NDDL DESCRIPTION FOR CASECC, TRL =
+                    101                 1                 0              1000                 0                 0                 0
+     NAME OF DATA BLOCK WRITTEN ON FORTRAN UNIT IS CASECC  
+        (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =       65538 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =        1000 WORDS.)
+           (NUMBER OF FORTRAN RECORDS WRITTEN =          15 RECORDS.)
+           (TOTAL DATA WRITTEN FOR DATA BLOCK =        1024 WORDS.)
+1                                                                               MAY  15, 2024  MSC Nastran  9/15/21   PAGE     7
+                                                                                                                                    
+0                                                                                                                                   
+                           O U T P U T   F R O M   G R I D   P O I N T   W E I G H T   G E N E R A T O R
+0                                                     REFERENCE POINT =        0
+                                                                M O
+                      *  1.603337E-02  0.000000E+00  0.000000E+00  0.000000E+00  0.000000E+00 -2.240808E-01 *
+                      *  0.000000E+00  1.603337E-02  0.000000E+00  0.000000E+00  0.000000E+00  3.208188E-01 *
+                      *  0.000000E+00  0.000000E+00  1.603337E-02  2.240808E-01 -3.208188E-01  0.000000E+00 *
+                      *  0.000000E+00  0.000000E+00  2.240808E-01  4.384223E+00 -5.291319E+00  0.000000E+00 *
+                      *  0.000000E+00  0.000000E+00 -3.208188E-01 -5.291319E+00  7.430286E+00  0.000000E+00 *
+                      * -2.240808E-01  3.208188E-01  0.000000E+00  0.000000E+00  0.000000E+00  1.181451E+01 *
+                                                                 S
+                                           *  1.000000E+00  0.000000E+00  0.000000E+00 *
+                                           *  0.000000E+00  1.000000E+00  0.000000E+00 *
+                                           *  0.000000E+00  0.000000E+00  1.000000E+00 *
+                               DIRECTION
+                          MASS AXIS SYSTEM (S)     MASS              X-C.G.        Y-C.G.        Z-C.G.
+                                  X            1.603337E-02      0.000000E+00  1.397590E+01  0.000000E+00
+                                  Y            1.603337E-02      2.000944E+01  0.000000E+00  0.000000E+00
+                                  Z            1.603337E-02      2.000944E+01  1.397590E+01  0.000000E+00
+                                                                I(S)
+                                           *  1.252493E+00  8.075880E-01  0.000000E+00 *
+                                           *  8.075880E-01  1.010882E+00  0.000000E+00 *
+                                           *  0.000000E+00  0.000000E+00  2.263374E+00 *
+                                                                I(Q)
+                                           *  1.948261E+00                             *
+                                           *                3.151136E-01               *
+                                           *                              2.263374E+00 *
+                                                                 Q
+                                           *  7.576088E-01  6.527089E-01  0.000000E+00 *
+                                           * -6.527089E-01  7.576088E-01  0.000000E+00 *
+                                           *  0.000000E+00  0.000000E+00  1.000000E+00 *
+
+1                                                                               MAY  15, 2024  MSC Nastran  9/15/21   PAGE     8
+                                                                                                                                    
+0                                                                                                                                   
+1                                                                               MAY  15, 2024  MSC Nastran  9/15/21   PAGE     9
+                                                                                                                                    
+0                                                                                                                                   
+0 RESULTANTS ABOUT ORIGIN OF SUPERELEMENT BASIC COORDINATE SYSTEM IN SUPERELEMENT BASIC SYSTEM COORDINATES.
+
+0                                                  OLOAD    RESULTANT       
+  SUBCASE/    LOAD
+  DAREA ID    TYPE       T1            T2            T3            R1            R2            R3
+0        1     FX    0.000000E+00     ----          ----          ----       0.000000E+00  0.000000E+00                             
+               FY       ----       0.000000E+00     ----       0.000000E+00     ----       0.000000E+00                             
+               FZ       ----          ----       0.000000E+00  0.000000E+00  0.000000E+00     ----                                  
+               MX       ----          ----          ----       0.000000E+00     ----          ----                                  
+               MY       ----          ----          ----          ----       0.000000E+00     ----                                  
+               MZ       ----          ----          ----          ----          ----       0.000000E+00                             
+             TOTALS  0.000000E+00  0.000000E+00  0.000000E+00  0.000000E+00  0.000000E+00  0.000000E+00
+1                                                                               MAY  15, 2024  MSC Nastran  9/15/21   PAGE    10
+                                                                                                                                    
+0     EIGENANALYSIS                                                                                          SUBCASE 1              
+0                                                                                                                                   
+                                                                                                                                    
+                                                                                                                                    
+ *** USER INFORMATION MESSAGE 4415 (PRTPRN)
+     THE FOLLOWING A-SET DEGREES OF FREEDOM HAVE EITHER NULL MASSES OR NULL MASSES AND STIFFNESS.
+1                                                                               MAY  15, 2024  MSC Nastran  9/15/21   PAGE    11
+                                                                                                                                    
+0     EIGENANALYSIS                                                                                          SUBCASE 1              
+0                VAXW                                                                                                               
+     POINT           VALUE     POINT           VALUE     POINT           VALUE     POINT           VALUE     POINT           VALUE  
+                                                                                                                                    
+
+ COLUMN           1
+          1 R1  1.00000E+00         1 R2  1.00000E+00         1 R3  1.00000E+00         7 R1  1.00000E+00         7 R2  1.00000E+00
+          7 R3  1.00000E+00         8 R1  1.00000E+00         8 R2  1.00000E+00         8 R3  1.00000E+00         9 R1  1.00000E+00
+          9 R2  1.00000E+00         9 R3  1.00000E+00        10 R1  1.00000E+00        10 R2  1.00000E+00        10 R3  1.00000E+00
+         11 R1  1.00000E+00        11 R2  1.00000E+00        11 R3  1.00000E+00        12 R1  1.00000E+00        12 R2  1.00000E+00
+         12 R3  1.00000E+00        13 R1  1.00000E+00        13 R2  1.00000E+00        13 R3  1.00000E+00        14 R1  1.00000E+00
+         14 R2  1.00000E+00        14 R3  1.00000E+00        15 R1  1.00000E+00        15 R2  1.00000E+00        15 R3  1.00000E+00
+         16 R1  1.00000E+00        16 R2  1.00000E+00        16 R3  1.00000E+00        17 R1  1.00000E+00        17 R2  1.00000E+00
+         17 R3  1.00000E+00        18 R1  1.00000E+00        18 R2  1.00000E+00        18 R3  1.00000E+00        19 R1  1.00000E+00
+         19 R2  1.00000E+00        19 R3  1.00000E+00        20 R1  1.00000E+00        20 R2  1.00000E+00        20 R3  1.00000E+00
+         21 R1  1.00000E+00        21 R2  1.00000E+00        21 R3  1.00000E+00        22 R1  1.00000E+00        22 R2  1.00000E+00
+         22 R3  1.00000E+00        23 R1  1.00000E+00        23 R2  1.00000E+00        23 R3  1.00000E+00        24 R1  1.00000E+00
+         24 R2  1.00000E+00        24 R3  1.00000E+00        25 R1  1.00000E+00        25 R2  1.00000E+00        25 R3  1.00000E+00
+         26 R1  1.00000E+00        26 R2  1.00000E+00        26 R3  1.00000E+00        27 R1  1.00000E+00        27 R2  1.00000E+00
+         27 R3  1.00000E+00        28 R1  1.00000E+00        28 R2  1.00000E+00        28 R3  1.00000E+00        29 R1  1.00000E+00
+         29 R2  1.00000E+00        29 R3  1.00000E+00        30 R1  1.00000E+00        30 R2  1.00000E+00        30 R3  1.00000E+00
+         31 R1  1.00000E+00        31 R2  1.00000E+00        31 R3  1.00000E+00        32 R1  1.00000E+00        32 R2  1.00000E+00
+         32 R3  1.00000E+00        33 R1  1.00000E+00        33 R2  1.00000E+00        33 R3  1.00000E+00        34 R1  1.00000E+00
+         34 R2  1.00000E+00        34 R3  1.00000E+00        35 R1  1.00000E+00        35 R2  1.00000E+00        35 R3  1.00000E+00
+         36 R1  1.00000E+00        36 R2  1.00000E+00        36 R3  1.00000E+00        37 R1  1.00000E+00        37 R2  1.00000E+00
+         37 R3  1.00000E+00        38 R1  1.00000E+00        38 R2  1.00000E+00        38 R3  1.00000E+00        39 R1  1.00000E+00
+         39 R2  1.00000E+00        39 R3  1.00000E+00        40 R1  1.00000E+00        40 R2  1.00000E+00        40 R3  1.00000E+00
+         41 R1  1.00000E+00        41 R2  1.00000E+00        41 R3  1.00000E+00        42 R1  1.00000E+00        42 R2  1.00000E+00
+         42 R3  1.00000E+00        43 R1  1.00000E+00        43 R2  1.00000E+00        43 R3  1.00000E+00        44 R1  1.00000E+00
+         44 R2  1.00000E+00        44 R3  1.00000E+00        45 R1  1.00000E+00        45 R2  1.00000E+00        45 R3  1.00000E+00
+         46 R1  1.00000E+00        46 R2  1.00000E+00        46 R3  1.00000E+00        47 R1  1.00000E+00        47 R2  1.00000E+00
+         47 R3  1.00000E+00        48 R1  1.00000E+00        48 R2  1.00000E+00        48 R3  1.00000E+00        49 R1  1.00000E+00
+         49 R2  1.00000E+00        49 R3  1.00000E+00
+ *** USER INFORMATION MESSAGE 5458 (REIG)
+     MODIFIED GIVENS METHOD IS FORCED BY USER  .
+1                                                                               MAY  15, 2024  MSC Nastran  9/15/21   PAGE    12
+                                                                                                                                    
+0     EIGENANALYSIS                                                                                          SUBCASE 1              
+ 
+                                              R E A L   E I G E N V A L U E S
+   MODE    EXTRACTION      EIGENVALUE            RADIANS             CYCLES            GENERALIZED         GENERALIZED
+    NO.       ORDER                                                                       MASS              STIFFNESS
+        1        89        3.519228E+03        5.932308E+01        9.441561E+00        1.000000E+00        3.519228E+03
+        2        90        5.114297E+04        2.261481E+02        3.599259E+01        1.000000E+00        5.114297E+04
+        3        91        1.010148E+05        3.178282E+02        5.058393E+01        0.0                 0.0
+        4        92        3.449584E+05        5.873316E+02        9.347673E+01        0.0                 0.0
+        5        93        5.931612E+05        7.701696E+02        1.225763E+02        0.0                 0.0
+        6         1        8.068509E+05        8.982488E+02        1.429607E+02        0.0                 0.0
+        7        94        9.339305E+05        9.664008E+02        1.538075E+02        0.0                 0.0
+        8        95        1.597749E+06        1.264021E+03        2.011752E+02        0.0                 0.0
+        9        96        1.637932E+06        1.279817E+03        2.036892E+02        0.0                 0.0
+       10        97        1.885436E+06        1.373112E+03        2.185375E+02        0.0                 0.0
+       11        98        2.359919E+06        1.536203E+03        2.444943E+02        0.0                 0.0
+       12        99        2.825301E+06        1.680863E+03        2.675177E+02        0.0                 0.0
+       13       100        3.146751E+06        1.773909E+03        2.823263E+02        0.0                 0.0
+       14       101        3.194544E+06        1.787329E+03        2.844622E+02        0.0                 0.0
+       15       102        3.839085E+06        1.959358E+03        3.118416E+02        0.0                 0.0
+       16       103        4.269926E+06        2.066380E+03        3.288746E+02        0.0                 0.0
+       17       104        4.421966E+06        2.102847E+03        3.346785E+02        0.0                 0.0
+       18       105        4.733002E+06        2.175546E+03        3.462490E+02        0.0                 0.0
+       19       106        5.180163E+06        2.275997E+03        3.622362E+02        0.0                 0.0
+       20       107        5.366205E+06        2.316507E+03        3.686835E+02        0.0                 0.0
+       21       108        5.633610E+06        2.373523E+03        3.777579E+02        0.0                 0.0
+       22       109        6.112316E+06        2.472310E+03        3.934803E+02        0.0                 0.0
+       23       110        6.412004E+06        2.532193E+03        4.030111E+02        0.0                 0.0
+       24       111        6.831334E+06        2.613682E+03        4.159804E+02        0.0                 0.0
+       25       114        7.321829E+06        2.705888E+03        4.306554E+02        0.0                 0.0
+       26       119        8.218094E+06        2.866722E+03        4.562529E+02        0.0                 0.0
+       27       120        8.379004E+06        2.894651E+03        4.606980E+02        0.0                 0.0
+       28       121        9.024894E+06        3.004146E+03        4.781247E+02        0.0                 0.0
+       29         2        9.884931E+06        3.144031E+03        5.003881E+02        0.0                 0.0
+       30       130        1.028646E+07        3.207251E+03        5.104498E+02        0.0                 0.0
+       31       132        1.044949E+07        3.232568E+03        5.144791E+02        0.0                 0.0
+       32       131        1.066339E+07        3.265485E+03        5.197181E+02        0.0                 0.0
+       33       129        1.114300E+07        3.338113E+03        5.312772E+02        0.0                 0.0
+       34       128        1.210600E+07        3.479368E+03        5.537587E+02        0.0                 0.0
+       35       127        1.267625E+07        3.560372E+03        5.666508E+02        0.0                 0.0
+       36       126        1.380152E+07        3.715039E+03        5.912669E+02        0.0                 0.0
+       37         3        1.477249E+07        3.843500E+03        6.117121E+02        0.0                 0.0
+       38       125        1.479045E+07        3.845835E+03        6.120837E+02        0.0                 0.0
+       39       124        1.538939E+07        3.922931E+03        6.243539E+02        0.0                 0.0
+       40       123        1.670846E+07        4.087598E+03        6.505615E+02        0.0                 0.0
+       41       122        1.772596E+07        4.210221E+03        6.700775E+02        0.0                 0.0
+       42       118        2.052893E+07        4.530886E+03        7.211129E+02        0.0                 0.0
+       43       117        2.118177E+07        4.602366E+03        7.324892E+02        0.0                 0.0
+       44       116        2.228228E+07        4.720411E+03        7.512767E+02        0.0                 0.0
+       45       115        2.619276E+07        5.117886E+03        8.145369E+02        0.0                 0.0
+       46       113        3.084811E+07        5.554107E+03        8.839636E+02        0.0                 0.0
+       47         4        3.576043E+07        5.980002E+03        9.517469E+02        0.0                 0.0
+       48       112        3.759866E+07        6.131774E+03        9.759022E+02        0.0                 0.0
+       49         5        6.579628E+07        8.111491E+03        1.290984E+03        0.0                 0.0
+       50         6        7.259558E+07        8.520304E+03        1.356049E+03        0.0                 0.0
+       51         7        8.953973E+07        9.462544E+03        1.506011E+03        0.0                 0.0
+       52         8        1.035561E+08        1.017625E+04        1.619601E+03        0.0                 0.0
+       53         9        1.050357E+08        1.024869E+04        1.631130E+03        0.0                 0.0
+       54        10        1.202732E+08        1.096692E+04        1.745439E+03        0.0                 0.0
+       55        11        1.431883E+08        1.196613E+04        1.904469E+03        0.0                 0.0
+       56        12        1.596208E+08        1.263411E+04        2.010781E+03        0.0                 0.0
+       57        13        1.629407E+08        1.276482E+04        2.031585E+03        0.0                 0.0
+       58        14        1.755449E+08        1.324934E+04        2.108697E+03        0.0                 0.0
+       59        15        1.938605E+08        1.392338E+04        2.215975E+03        0.0                 0.0
+       60        16        2.100525E+08        1.449319E+04        2.306662E+03        0.0                 0.0
+       61        17        2.125165E+08        1.457795E+04        2.320152E+03        0.0                 0.0
+       62        18        2.256513E+08        1.502170E+04        2.390777E+03        0.0                 0.0
+       63        19        2.456843E+08        1.567432E+04        2.494645E+03        0.0                 0.0
+       64        20        2.588262E+08        1.608807E+04        2.560497E+03        0.0                 0.0
+       65        22        2.637213E+08        1.623950E+04        2.584596E+03        0.0                 0.0
+       66        21        2.642694E+08        1.625636E+04        2.587281E+03        0.0                 0.0
+       67        23        2.792335E+08        1.671028E+04        2.659524E+03        0.0                 0.0
+       68        24        2.958921E+08        1.720151E+04        2.737706E+03        0.0                 0.0
+       69        25        3.071222E+08        1.752490E+04        2.789175E+03        0.0                 0.0
+       70        26        3.186300E+08        1.785021E+04        2.840949E+03        0.0                 0.0
+       71        27        3.293495E+08        1.814799E+04        2.888342E+03        0.0                 0.0
+       72        28        3.476408E+08        1.864513E+04        2.967464E+03        0.0                 0.0
+       73        29        3.676075E+08        1.917309E+04        3.051493E+03        0.0                 0.0
+       74        30        3.825720E+08        1.955945E+04        3.112983E+03        0.0                 0.0
+       75        31        3.892033E+08        1.972824E+04        3.139846E+03        0.0                 0.0
+       76        32        4.164469E+08        2.040703E+04        3.247880E+03        0.0                 0.0
+       77        33        4.308198E+08        2.075620E+04        3.303452E+03        0.0                 0.0
+       78        34        4.416102E+08        2.101452E+04        3.344565E+03        0.0                 0.0
+       79        35        4.743723E+08        2.178009E+04        3.466409E+03        0.0                 0.0
+       80        36        4.806563E+08        2.192387E+04        3.489293E+03        0.0                 0.0
+       81        37        5.011064E+08        2.238541E+04        3.562748E+03        0.0                 0.0
+       82        38        5.264005E+08        2.294342E+04        3.651559E+03        0.0                 0.0
+       83        39        5.442176E+08        2.332847E+04        3.712842E+03        0.0                 0.0
+       84        40        5.585068E+08        2.363275E+04        3.761269E+03        0.0                 0.0
+       85        41        5.719597E+08        2.391568E+04        3.806299E+03        0.0                 0.0
+       86        44        6.013387E+08        2.452221E+04        3.902831E+03        0.0                 0.0
+       87        46        6.193975E+08        2.488770E+04        3.961000E+03        0.0                 0.0
+       88        48        6.406736E+08        2.531153E+04        4.028455E+03        0.0                 0.0
+       89        52        6.668806E+08        2.582403E+04        4.110022E+03        0.0                 0.0
+       90        57        6.934338E+08        2.633313E+04        4.191048E+03        0.0                 0.0
+       91        58        6.972098E+08        2.640473E+04        4.202444E+03        0.0                 0.0
+       92        61        7.297340E+08        2.701359E+04        4.299346E+03        0.0                 0.0
+       93        67        7.561907E+08        2.749892E+04        4.376589E+03        0.0                 0.0
+       94        68        7.733101E+08        2.780845E+04        4.425853E+03        0.0                 0.0
+       95        69        7.999676E+08        2.828370E+04        4.501490E+03        0.0                 0.0
+       96        70        8.061212E+08        2.839227E+04        4.518771E+03        0.0                 0.0
+       97        71        8.304759E+08        2.881798E+04        4.586524E+03        0.0                 0.0
+       98        72        8.431114E+08        2.903638E+04        4.621284E+03        0.0                 0.0
+       99        73        8.641235E+08        2.939598E+04        4.678515E+03        0.0                 0.0
+      100        74        8.845198E+08        2.974088E+04        4.733408E+03        0.0                 0.0
+      101        75        9.053288E+08        3.008868E+04        4.788762E+03        0.0                 0.0
+      102        76        9.158560E+08        3.026311E+04        4.816524E+03        0.0                 0.0
+      103        78        9.643788E+08        3.105445E+04        4.942469E+03        0.0                 0.0
+      104        79        9.859924E+08        3.140052E+04        4.997547E+03        0.0                 0.0
+      105        80        1.005027E+09        3.170216E+04        5.045556E+03        0.0                 0.0
+      106        82        1.035142E+09        3.217362E+04        5.120590E+03        0.0                 0.0
+      107        81        1.049169E+09        3.239089E+04        5.155170E+03        0.0                 0.0
+      108        84        1.119469E+09        3.345847E+04        5.325081E+03        0.0                 0.0
+      109        86        1.183190E+09        3.439753E+04        5.474536E+03        0.0                 0.0
+      110        88        1.199648E+09        3.463593E+04        5.512480E+03        0.0                 0.0
+      111        87        1.205395E+09        3.471880E+04        5.525668E+03        0.0                 0.0
+      112        85        1.227564E+09        3.503661E+04        5.576250E+03        0.0                 0.0
+      113        83        1.258916E+09        3.548120E+04        5.647009E+03        0.0                 0.0
+      114        77        1.347339E+09        3.670612E+04        5.841960E+03        0.0                 0.0
+      115        66        1.467340E+09        3.830588E+04        6.096570E+03        0.0                 0.0
+      116        65        1.511988E+09        3.888429E+04        6.188627E+03        0.0                 0.0
+      117        64        1.581238E+09        3.976479E+04        6.328762E+03        0.0                 0.0
+      118        62        1.631694E+09        4.039424E+04        6.428942E+03        0.0                 0.0
+      119        63        1.652048E+09        4.064539E+04        6.468915E+03        0.0                 0.0
+      120        59        1.911781E+09        4.372392E+04        6.958878E+03        0.0                 0.0
+      121        60        1.962404E+09        4.429903E+04        7.050409E+03        0.0                 0.0
+      122        56        2.155682E+09        4.642933E+04        7.389457E+03        0.0                 0.0
+      123        55        2.199561E+09        4.689948E+04        7.464284E+03        0.0                 0.0
+      124        54        2.256023E+09        4.749762E+04        7.559480E+03        0.0                 0.0
+      125        53        2.575250E+09        5.074692E+04        8.076623E+03        0.0                 0.0
+      126        51        2.749021E+09        5.243111E+04        8.344671E+03        0.0                 0.0
+      127        50        2.977918E+09        5.457031E+04        8.685134E+03        0.0                 0.0
+      128        49        3.264776E+09        5.713822E+04        9.093830E+03        0.0                 0.0
+      129        47        3.452378E+09        5.875694E+04        9.351457E+03        0.0                 0.0
+      130        45        4.046073E+09        6.360875E+04        1.012365E+04        0.0                 0.0
+      131        43        4.629140E+09        6.803778E+04        1.082855E+04        0.0                 0.0
+      132        42        5.380308E+09        7.335058E+04        1.167411E+04        0.0                 0.0
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK OUG1     WRITTEN ON FORTRAN UNIT    12 IN BINARY (LTLEND) FORMAT USING NDDL DESCRIPTION FOR OUG1, TRL =
+                    101                 0               784                 0                 0                 0                 5
+     NAME OF DATA BLOCK WRITTEN ON FORTRAN UNIT IS OUG1    
+        (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =       65538 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =         392 WORDS.)
+           (NUMBER OF FORTRAN RECORDS WRITTEN =          30 RECORDS.)
+           (TOTAL DATA WRITTEN FOR DATA BLOCK =        1117 WORDS.)
+1                                                                               MAY  15, 2024  MSC Nastran  9/15/21   PAGE    13
+                                                                                                                                    
+0     EIGENANALYSIS                                                                                          SUBCASE 1              
+      EIGENVALUE =  3.519228E+03
+          CYCLES =  9.441561E+00         R E A L   E I G E N V E C T O R   N O .          1
+ 
+      POINT ID.   TYPE          T1             T2             T3             R1             R2             R3
+             1      G      0.0            0.0           -3.468172E-02  -4.032377E-02  -5.733448E-03   0.0
+             2      G      0.0            0.0            0.0            0.0            0.0            0.0
+             3      G      0.0            0.0            0.0            0.0            0.0            0.0
+             4      G      0.0            0.0            0.0            0.0            0.0            0.0
+             5      G      0.0            0.0            0.0            0.0            0.0            0.0
+             6      G      0.0            0.0            0.0            0.0            0.0            0.0
+             7      G      0.0            0.0            8.341303E-02   3.525046E-01  -7.441064E-02   0.0
+             8      G      0.0            0.0            1.562558E+00   2.424641E-01  -6.205997E-02   0.0
+             9      G      0.0            0.0            4.081015E+00   5.660768E-01  -1.470423E-01   0.0
+            10      G      0.0            0.0            7.287226E+00   5.288774E-01  -1.786072E-01   0.0
+            11      G      0.0            0.0            1.089593E+01   6.366018E-01  -2.218710E-01   0.0
+            12      G      0.0            0.0            1.465947E+01   6.176254E-01  -2.348477E-01   0.0
+            13      G      0.0            0.0            1.846132E+01   6.387804E-01  -2.434190E-01   0.0
+            14      G      0.0            0.0            1.786821E+01   6.244058E-01  -2.434738E-01   0.0
+            15      G      0.0            0.0            1.727470E+01   6.306666E-01  -2.414791E-01   0.0
+            16      G      0.0            0.0            1.667940E+01   6.263099E-01  -2.408841E-01   0.0
+            17      G      0.0            0.0            1.608123E+01   6.147910E-01  -2.425671E-01   0.0
+            18      G      0.0            0.0            1.548361E+01   6.307819E-01  -2.412153E-01   0.0
+            19      G      0.0            0.0            1.488938E+01   5.899447E-01  -2.494868E-01   0.0
+            20      G      0.0            0.0            1.088403E+01   6.409379E-01  -2.289194E-01   0.0
+            21      G      0.0            0.0            7.120742E+00   4.689224E-01  -2.127040E-01   0.0
+            22      G      0.0            0.0            3.857766E+00   5.223259E-01  -1.716661E-01   0.0
+            23      G      0.0            0.0            1.485855E+00   1.646662E-01  -1.012371E-01   0.0
+            24      G      0.0            0.0            2.536327E-01   1.710876E-01  -6.226712E-02   0.0
+            25      G      0.0            0.0            2.260676E+00   3.395806E-01  -1.188053E-01   0.0
+            26      G      0.0            0.0            3.137744E+00   4.374176E-01  -1.304720E-01   0.0
+            27      G      0.0            0.0            8.369590E+00   5.574111E-01  -2.140746E-01   0.0
+            28      G      0.0            0.0            9.626451E+00   5.979610E-01  -2.155675E-01   0.0
+            29      G      0.0            0.0            5.705913E-01   1.960075E-01  -5.312225E-02   0.0
+            30      G      0.0            0.0            1.866897E+00   3.477424E-01  -1.076994E-01   0.0
+            31      G      0.0            0.0            9.608221E-01   2.616812E-01  -6.398092E-02   0.0
+            32      G      0.0            0.0            2.684496E+00   4.001633E-01  -1.233962E-01   0.0
+            33      G      0.0            0.0            3.605453E+00   4.315592E-01  -1.409474E-01   0.0
+            34      G      0.0            0.0            4.975938E+00   4.959116E-01  -1.758476E-01   0.0
+            35      G      0.0            0.0            7.743320E+00   5.740075E-01  -2.107898E-01   0.0
+            36      G      0.0            0.0            6.124311E+00   5.284106E-01  -1.831268E-01   0.0
+            37      G      0.0            0.0            8.997793E+00   5.837790E-01  -2.139289E-01   0.0
+            38      G      0.0            0.0            1.025780E+01   5.953153E-01  -2.194916E-01   0.0
+            39      G      0.0            0.0            1.214665E+01   6.146670E-01  -2.338703E-01   0.0
+            40      G      0.0            0.0            1.340564E+01   6.183691E-01  -2.357382E-01   0.0
+            41      G      0.0            0.0            4.117019E-01   1.059598E-01  -5.698177E-02   0.0
+            42      G      0.0            0.0            7.371109E-01   2.051087E-01  -5.606753E-02   0.0
+            43      G      0.0            0.0            1.255232E+00   3.617221E-01  -6.606331E-02   0.0
+            44      G      0.0            0.0            4.411917E+00   4.250500E-01  -1.749583E-01   0.0
+            45      G      0.0            0.0            5.546745E+00   5.041025E-01  -1.803886E-01   0.0
+            46      G      0.0            0.0            6.703047E+00   5.763376E-01  -1.793949E-01   0.0
+            47      G      0.0            0.0            1.151573E+01   5.853024E-01  -2.342762E-01   0.0
+            48      G      0.0            0.0            1.277678E+01   6.112020E-01  -2.356031E-01   0.0
+            49      G      0.0            0.0            1.403311E+01   6.334768E-01  -2.342769E-01   0.0
+1                                                                               MAY  15, 2024  MSC Nastran  9/15/21   PAGE    14
+                                                                                                                                    
+0     EIGENANALYSIS                                                                                          SUBCASE 1              
+      EIGENVALUE =  5.114297E+04
+          CYCLES =  3.599259E+01         R E A L   E I G E N V E C T O R   N O .          2
+ 
+      POINT ID.   TYPE          T1             T2             T3             R1             R2             R3
+             1      G      0.0            0.0            7.715615E-02  -4.062202E-01  -4.242472E-02   0.0
+             2      G      0.0            0.0            0.0            0.0            0.0            0.0
+             3      G      0.0            0.0            0.0            0.0            0.0            0.0
+             4      G      0.0            0.0            0.0            0.0            0.0            0.0
+             5      G      0.0            0.0            0.0            0.0            0.0            0.0
+             6      G      0.0            0.0            0.0            0.0            0.0            0.0
+             7      G      0.0            0.0            2.273299E+00   3.986891E-02  -7.671925E-01   0.0
+             8      G      0.0            0.0            5.170214E+00  -4.283188E-02  -7.886859E-01   0.0
+             9      G      0.0            0.0            8.947327E+00  -3.555900E-01  -1.345557E+00   0.0
+            10      G      0.0            0.0            1.225760E+01  -5.369161E-01  -1.799489E+00   0.0
+            11      G      0.0            0.0            1.559444E+01  -8.156356E-01  -2.199339E+00   0.0
+            12      G      0.0            0.0            1.813249E+01  -9.096196E-01  -2.447479E+00   0.0
+            13      G      0.0            0.0            2.021920E+01  -1.016895E+00  -2.547806E+00   0.0
+            14      G      0.0            0.0            1.398553E+01  -9.893673E-01  -2.545945E+00   0.0
+            15      G      0.0            0.0            7.728698E+00  -1.011435E+00  -2.515765E+00   0.0
+            16      G      0.0            0.0            1.481550E+00  -1.116008E+00  -2.513527E+00   0.0
+            17      G      0.0            0.0           -4.729719E+00  -1.126969E+00  -2.430898E+00   0.0
+            18      G      0.0            0.0           -1.077967E+01  -1.205584E+00  -2.424745E+00   0.0
+            19      G      0.0            0.0           -1.665254E+01  -1.303089E+00  -2.378306E+00   0.0
+            20      G      0.0            0.0           -1.895200E+01  -1.173073E+00  -2.197068E+00   0.0
+            21      G      0.0            0.0           -1.838736E+01  -1.539355E+00  -1.679662E+00   0.0
+            22      G      0.0            0.0           -1.492453E+01  -1.363322E+00  -1.149132E+00   0.0
+            23      G      0.0            0.0           -8.734055E+00  -1.134050E+00  -4.966299E-01   0.0
+            24      G      0.0            0.0           -3.090594E+00  -6.878252E-01  -4.786167E-02   0.0
+            25      G      0.0            0.0           -5.607045E+00  -1.036693E+00  -7.637316E-01   0.0
+            26      G      0.0            0.0            4.400655E-01  -5.336131E-01  -1.110973E+00   0.0
+            27      G      0.0            0.0           -8.493527E+00  -1.193732E+00  -1.881803E+00   0.0
+            28      G      0.0            0.0            3.028082E+00  -8.687202E-01  -2.083912E+00   0.0
+            29      G      0.0            0.0           -2.314831E+00  -7.267573E-01  -2.842652E-01   0.0
+            30      G      0.0            0.0           -7.586499E+00  -1.252214E+00  -5.882310E-01   0.0
+            31      G      0.0            0.0           -1.163336E-02  -2.710285E-01  -5.425895E-01   0.0
+            32      G      0.0            0.0           -2.927831E+00  -8.122006E-01  -9.298647E-01   0.0
+            33      G      0.0            0.0            4.406710E+00  -3.215937E-01  -1.251828E+00   0.0
+            34      G      0.0            0.0           -7.903086E+00  -1.221021E+00  -1.360684E+00   0.0
+            35      G      0.0            0.0           -1.369667E+01  -1.374044E+00  -1.768225E+00   0.0
+            36      G      0.0            0.0            1.393826E+00  -7.672106E-01  -1.643174E+00   0.0
+            37      G      0.0            0.0           -2.878333E+00  -1.090228E+00  -1.997998E+00   0.0
+            38      G      0.0            0.0            9.190699E+00  -7.737189E-01  -2.162103E+00   0.0
+            39      G      0.0            0.0           -7.263738E+00  -1.216568E+00  -2.289858E+00   0.0
+            40      G      0.0            0.0            5.223581E+00  -1.014860E+00  -2.399403E+00   0.0
+            41      G      0.0            0.0           -2.899413E+00  -7.714366E-01  -1.954114E-01   0.0
+            42      G      0.0            0.0           -1.402951E+00  -5.334833E-01  -4.190639E-01   0.0
+            43      G      0.0            0.0            2.209082E+00  -8.684641E-02  -7.464785E-01   0.0
+            44      G      0.0            0.0           -1.175464E+01  -1.400988E+00  -1.222689E+00   0.0
+            45      G      0.0            0.0           -3.495523E+00  -9.357483E-01  -1.506526E+00   0.0
+            46      G      0.0            0.0            6.644839E+00  -5.610179E-01  -1.740177E+00   0.0
+            47      G      0.0            0.0           -1.324048E+01  -1.286775E+00  -2.216631E+00   0.0
+            48      G      0.0            0.0           -1.102721E+00  -1.057089E+00  -2.336702E+00   0.0
+            49      G      0.0            0.0            1.164084E+01  -9.227874E-01  -2.428379E+00   0.0
+1                                                                               MAY  15, 2024  MSC Nastran  9/15/21   PAGE    15
+                                                                                                                                    
+0     EIGENANALYSIS                                                                                          SUBCASE 1              
+      EIGENVALUE =  3.519228E+03
+                           S T R A I N S   I N   Q U A D R I L A T E R A L   E L E M E N T S   ( Q U A D 4 )
+  ELEMENT      STRAIN               STRAINS IN ELEMENT COORD SYSTEM             PRINCIPAL  STRAINS (ZERO SHEAR)                 
+    ID.       CURVATURE          NORMAL-X       NORMAL-Y      SHEAR-XY       ANGLE         MAJOR           MINOR        VON MISES
+0       1    0.0               0.0            0.0            0.0              0.0       0.0             0.0            0.0
+            -1.000000E+00      2.990923E-03   2.980607E-02  -2.550616E-02   -68.2166    3.490266E-02   -2.105666E-03   2.400114E-02
+0       2    0.0               0.0            0.0            0.0              0.0       0.0             0.0            0.0
+            -1.000000E+00      2.647041E-02  -5.752944E-03   3.810617E-03     3.3721    2.658268E-02   -5.865210E-03   1.996611E-02
+0       3    0.0               0.0            0.0            0.0              0.0       0.0             0.0            0.0
+            -1.000000E+00     -2.124531E-03   3.310957E-02  -1.105468E-02   -81.2904    3.395632E-02   -2.971282E-03   2.369017E-02
+0       4    0.0               0.0            0.0            0.0              0.0       0.0             0.0            0.0
+            -1.000000E+00      1.923543E-02  -8.686135E-03  -4.726362E-03    -4.8038    1.943402E-02   -8.884734E-03   1.672371E-02
+0       5    0.0               0.0            0.0            0.0              0.0       0.0             0.0            0.0
+            -1.000000E+00      3.050531E-03   3.662425E-02  -2.289293E-02   -72.8555    4.015536E-02   -4.805870E-04   2.693187E-02
+0       6    0.0               0.0            0.0            0.0              0.0       0.0             0.0            0.0
+            -1.000000E+00      4.213738E-02   6.972465E-04   1.740111E-02    11.3890    4.388998E-02   -1.055355E-03   2.961804E-02
+0       7    0.0               0.0            0.0            0.0              0.0       0.0             0.0            0.0
+            -1.000000E+00     -3.059371E-03   3.364565E-02  -3.080586E-03   -87.6013    3.371017E-02   -3.123894E-03   2.358381E-02
+0       8    0.0               0.0            0.0            0.0              0.0       0.0             0.0            0.0
+            -1.000000E+00      3.097499E-02  -2.902023E-03   6.754083E-03     5.6376    3.130836E-02   -3.235384E-03   2.203003E-02
+0       9    0.0               0.0            0.0            0.0              0.0       0.0             0.0            0.0
+            -1.000000E+00     -1.334815E-03   5.578831E-02  -1.900414E-02   -80.7992    5.732745E-02   -2.873953E-03   3.921140E-02
+0      10    0.0               0.0            0.0            0.0              0.0       0.0             0.0            0.0
+            -1.000000E+00      1.866016E-02  -1.318460E-03  -2.608230E-02   -26.2742    2.509820E-02   -7.756504E-03   1.982992E-02
+0      11    0.0               0.0            0.0            0.0              0.0       0.0             0.0            0.0
+            -1.000000E+00     -7.728377E-04   3.919922E-02  -1.259496E-02   -81.2553    4.016789E-02   -1.741513E-03   2.737757E-02
+0      12    0.0               0.0            0.0            0.0              0.0       0.0             0.0            0.0
+            -1.000000E+00      2.393343E-02  -5.681438E-03  -8.191783E-03    -7.7310    2.448947E-02   -6.237481E-03   1.875447E-02
+0      13    0.0               0.0            0.0            0.0              0.0       0.0             0.0            0.0
+            -1.000000E+00     -1.771271E-03   3.661119E-02  -1.492824E-02   -79.3736    3.801162E-02   -3.171700E-03   2.646175E-02
+0      14    0.0               0.0            0.0            0.0              0.0       0.0             0.0            0.0
+            -1.000000E+00      2.185814E-02  -3.633149E-03   9.111249E-04     1.0235    2.186628E-02   -3.641288E-03   1.593061E-02
+0      15    0.0               0.0            0.0            0.0              0.0       0.0             0.0            0.0
+            -1.000000E+00     -2.853433E-03   1.808117E-02  -3.571124E-03   -85.1597    1.823237E-02   -3.004636E-03   1.327033E-02
+0      16    0.0               0.0            0.0            0.0              0.0       0.0             0.0            0.0
+            -1.000000E+00      1.024529E-02  -1.450108E-03   3.269693E-03     7.8097    1.046952E-02   -1.674337E-03   7.599523E-03
+0      17    0.0               0.0            0.0            0.0              0.0       0.0             0.0            0.0
+            -1.000000E+00     -3.620064E-03   2.382474E-02  -1.630294E-03   -88.3002    2.384893E-02   -3.644254E-03   1.724289E-02
+0      18    0.0               0.0            0.0            0.0              0.0       0.0             0.0            0.0
+            -1.000000E+00      1.888315E-02  -3.934700E-03  -3.206694E-03    -3.9998    1.899526E-02   -4.046812E-03   1.420590E-02
+0      19    0.0               0.0            0.0            0.0              0.0       0.0             0.0            0.0
+            -1.000000E+00     -2.311682E-03   1.389281E-02  -2.985885E-04   -89.4722    1.389418E-02   -2.313057E-03   1.012229E-02
+0      20    0.0               0.0            0.0            0.0              0.0       0.0             0.0            0.0
+            -1.000000E+00      1.332687E-02  -2.374663E-03   7.794876E-04     1.4210    1.333653E-02   -2.384332E-03   9.783136E-03
+0      21    0.0               0.0            0.0            0.0              0.0       0.0             0.0            0.0
+            -1.000000E+00     -1.493238E-03   2.224830E-02  -3.591677E-03   -85.6987    2.238338E-02   -1.628309E-03   1.549357E-02
+0      22    0.0               0.0            0.0            0.0              0.0       0.0             0.0            0.0
+            -1.000000E+00      1.006074E-02  -5.942149E-03  -1.284923E-02   -19.3811    1.232081E-02   -8.202225E-03   1.192825E-02
+0      23    0.0               0.0            0.0            0.0              0.0       0.0             0.0            0.0
+            -1.000000E+00     -3.256387E-04   1.383482E-02  -4.313663E-03   -81.5289    1.415605E-02   -6.468666E-04   9.660209E-03
+0      24    0.0               0.0            0.0            0.0              0.0       0.0             0.0            0.0
+            -1.000000E+00      9.267877E-03  -4.869527E-03  -6.485900E-03   -12.3223    9.976274E-03   -5.577924E-03   9.099113E-03
+0      25    0.0               0.0            0.0            0.0              0.0       0.0             0.0            0.0
+            -1.000000E+00     -1.951579E-03   1.413542E-02  -4.249879E-03   -82.6008    1.441137E-02   -2.227529E-03   1.042969E-02
+0      26    0.0               0.0            0.0            0.0              0.0       0.0             0.0            0.0
+            -1.000000E+00      6.753865E-03  -1.024570E-03   9.774758E-04     3.5813    6.784453E-03   -1.055158E-03   4.912606E-03
+0      27    0.0               0.0            0.0            0.0              0.0       0.0             0.0            0.0
+            -1.000000E+00     -9.514706E-04   3.825513E-03  -2.835146E-04   -88.3017    3.829716E-03   -9.556735E-04   2.924228E-03
+0      28    0.0               0.0            0.0            0.0              0.0       0.0             0.0            0.0
+            -1.000000E+00      1.114131E-03  -4.782482E-05   1.909808E-03    29.3415    1.650908E-03   -5.846021E-04   1.338720E-03
+0      29    0.0               0.0            0.0            0.0              0.0       0.0             0.0            0.0
+            -1.000000E+00     -1.898848E-03   7.866712E-03  -1.274559E-04   -89.6261    7.867128E-03   -1.899264E-03   5.979248E-03
+0      30    0.0               0.0            0.0            0.0              0.0       0.0             0.0            0.0
+            -1.000000E+00      5.117905E-03  -2.449004E-03  -3.012878E-03   -10.8554    5.406782E-03   -2.737881E-03   4.785739E-03
+0      31    0.0               0.0            0.0            0.0              0.0       0.0             0.0            0.0
+            -1.000000E+00     -9.574460E-04   2.417822E-03   9.152691E-04    82.4140    2.478769E-03   -1.018394E-03   2.076941E-03
+0      32    0.0               0.0            0.0            0.0              0.0       0.0             0.0            0.0
+            -1.000000E+00      1.628064E-03  -1.157131E-03  -1.169953E-03   -11.3927    1.745939E-03   -1.275005E-03   1.751193E-03
+0      33    0.0               0.0            0.0            0.0              0.0       0.0             0.0            0.0
+            -1.000000E+00     -9.348655E-04   5.913853E-03   3.573962E-04    88.5064    5.918512E-03   -9.395250E-04   4.293255E-03
+0      34    0.0               0.0            0.0            0.0              0.0       0.0             0.0            0.0
+            -1.000000E+00      2.196477E-03  -2.256600E-03  -5.697148E-03   -25.9938    3.585440E-03   -3.645563E-03   4.174869E-03
+0      35    0.0               0.0            0.0            0.0              0.0       0.0             0.0            0.0
+            -1.000000E+00     -2.195394E-04   1.688486E-03   4.700814E-06    89.9294    1.688489E-03   -2.195423E-04   1.205522E-03
+0      36    0.0               0.0            0.0            0.0              0.0       0.0             0.0            0.0
+            -1.000000E+00      7.074613E-04  -1.300153E-03  -2.600255E-03   -26.1644    1.346201E-03   -1.938893E-03   1.906912E-03
+1                                                                               MAY  15, 2024  MSC Nastran  9/15/21   PAGE    16
+                                                                                                                                    
+0     EIGENANALYSIS                                                                                          SUBCASE 1              
+      EIGENVALUE =  5.114297E+04
+                           S T R A I N S   I N   Q U A D R I L A T E R A L   E L E M E N T S   ( Q U A D 4 )
+  ELEMENT      STRAIN               STRAINS IN ELEMENT COORD SYSTEM             PRINCIPAL  STRAINS (ZERO SHEAR)                 
+    ID.       CURVATURE          NORMAL-X       NORMAL-Y      SHEAR-XY       ANGLE         MAJOR           MINOR        VON MISES
+0       1    0.0               0.0            0.0            0.0              0.0       0.0             0.0            0.0
+            -1.000000E+00     -4.402834E-02  -8.042131E-02   1.591554E-01    38.5600    1.940682E-02   -1.438565E-01   1.029846E-01
+0       2    0.0               0.0            0.0            0.0              0.0       0.0             0.0            0.0
+            -1.000000E+00     -1.007659E-01  -4.101614E-02  -1.621434E-01   -55.1144    1.550995E-02   -1.572920E-01   1.103951E-01
+0       3    0.0               0.0            0.0            0.0              0.0       0.0             0.0            0.0
+            -1.000000E+00     -3.360079E-02  -3.349124E-02   1.758422E-01    45.0178    5.437510E-02   -1.214671E-01   1.039566E-01
+0       4    0.0               0.0            0.0            0.0              0.0       0.0             0.0            0.0
+            -1.000000E+00     -3.252021E-02  -2.015718E-03  -1.049768E-01   -53.1015    3.739155E-02   -7.192748E-02   6.415665E-02
+0       5    0.0               0.0            0.0            0.0              0.0       0.0             0.0            0.0
+            -1.000000E+00     -4.481550E-02  -8.034344E-02   1.803052E-01    39.4265    2.930659E-02   -1.544655E-01   1.140084E-01
+0       6    0.0               0.0            0.0            0.0              0.0       0.0             0.0            0.0
+            -1.000000E+00     -3.784656E-02  -4.825412E-02  -1.714883E-01   -43.2635    4.285155E-02   -1.289522E-01   1.032596E-01
+0       7    0.0               0.0            0.0            0.0              0.0       0.0             0.0            0.0
+            -1.000000E+00     -4.204264E-02  -1.700371E-02   2.179560E-01    48.2767    8.017160E-02   -1.392180E-01   1.281847E-01
+0       8    0.0               0.0            0.0            0.0              0.0       0.0             0.0            0.0
+            -1.000000E+00     -1.910993E-02  -3.634379E-02  -1.950751E-01   -42.4757    7.019056E-02   -1.256443E-01   1.145663E-01
+0       9    0.0               0.0            0.0            0.0              0.0       0.0             0.0            0.0
+            -1.000000E+00     -3.172957E-02   9.502958E-03   1.538944E-01    52.4994    6.854787E-02   -9.077449E-02   9.228270E-02
+0      10    0.0               0.0            0.0            0.0              0.0       0.0             0.0            0.0
+            -1.000000E+00      3.025939E-03   8.726168E-02  -1.113142E-01   -63.5581    1.149408E-01   -2.465322E-02   8.603059E-02
+0      11    0.0               0.0            0.0            0.0              0.0       0.0             0.0            0.0
+            -1.000000E+00     -2.298519E-02  -1.231070E-02   1.224596E-01    47.4909    4.381405E-02   -7.910994E-02   7.193880E-02
+0      12    0.0               0.0            0.0            0.0              0.0       0.0             0.0            0.0
+            -1.000000E+00     -1.373888E-02  -1.900613E-02  -1.922760E-01   -44.2154    7.980158E-02   -1.125466E-01   1.115874E-01
+0      13    0.0               0.0            0.0            0.0              0.0       0.0             0.0            0.0
+            -1.000000E+00     -2.222416E-02   2.920047E-02   8.081529E-02    61.2348    5.138285E-02   -4.440653E-02   5.535289E-02
+0      14    0.0               0.0            0.0            0.0              0.0       0.0             0.0            0.0
+            -1.000000E+00      1.557202E-02  -4.350474E-02  -1.884417E-01   -36.2969    8.477616E-02   -1.127089E-01   1.143976E-01
+0      15    0.0               0.0            0.0            0.0              0.0       0.0             0.0            0.0
+            -1.000000E+00     -3.594169E-02   4.082325E-02   1.399376E-01    59.3738    8.224583E-02   -7.736426E-02   9.216530E-02
+0      16    0.0               0.0            0.0            0.0              0.0       0.0             0.0            0.0
+            -1.000000E+00      3.269236E-02  -3.627780E-02  -1.024914E-01   -28.0310    5.997574E-02   -6.356118E-02   7.133408E-02
+0      17    0.0               0.0            0.0            0.0              0.0       0.0             0.0            0.0
+            -1.000000E+00     -4.570906E-02   1.058219E-02   2.054435E-01    52.6614    8.894448E-02   -1.240713E-01   1.235409E-01
+0      18    0.0               0.0            0.0            0.0              0.0       0.0             0.0            0.0
+            -1.000000E+00      2.785413E-03  -3.234421E-02  -1.960470E-01   -39.9205    8.480536E-02   -1.143642E-01   1.154119E-01
+0      19    0.0               0.0            0.0            0.0              0.0       0.0             0.0            0.0
+            -1.000000E+00     -3.664296E-02   7.500562E-03   1.659293E-01    52.4489    7.127922E-02   -1.004216E-01   9.960634E-02
+0      20    0.0               0.0            0.0            0.0              0.0       0.0             0.0            0.0
+            -1.000000E+00      2.248889E-02  -3.464922E-02  -1.611560E-01   -35.2390    7.941254E-02   -9.157287E-02   9.880165E-02
+0      21    0.0               0.0            0.0            0.0              0.0       0.0             0.0            0.0
+            -1.000000E+00     -3.676496E-02  -1.144825E-02   1.901252E-01    48.7924    7.179507E-02   -1.200083E-01   1.118978E-01
+0      22    0.0               0.0            0.0            0.0              0.0       0.0             0.0            0.0
+            -1.000000E+00     -4.026226E-03  -1.288033E-02  -1.026548E-01   -42.5352    4.306469E-02   -5.997124E-02   5.975416E-02
+0      23    0.0               0.0            0.0            0.0              0.0       0.0             0.0            0.0
+            -1.000000E+00     -1.842071E-02  -1.265610E-02   9.481730E-02    46.7396    3.195778E-02   -6.303459E-02   5.581360E-02
+0      24    0.0               0.0            0.0            0.0              0.0       0.0             0.0            0.0
+            -1.000000E+00     -3.502381E-05  -3.142662E-02  -1.474606E-01   -38.9911    5.965166E-02   -9.111330E-02   8.767367E-02
+0      25    0.0               0.0            0.0            0.0              0.0       0.0             0.0            0.0
+            -1.000000E+00     -1.595508E-02   7.403157E-02   2.373694E-02    82.6115    7.557059E-02   -1.749411E-02   5.711197E-02
+0      26    0.0               0.0            0.0            0.0              0.0       0.0             0.0            0.0
+            -1.000000E+00      3.604315E-02  -2.783090E-02  -1.051730E-01   -29.3644    6.563103E-02   -5.741879E-02   7.109556E-02
+0      27    0.0               0.0            0.0            0.0              0.0       0.0             0.0            0.0
+            -1.000000E+00     -1.293475E-02   2.489092E-02   4.228954E-02    65.9054    3.434702E-02   -2.239085E-02   3.299917E-02
+0      28    0.0               0.0            0.0            0.0              0.0       0.0             0.0            0.0
+            -1.000000E+00      1.379156E-02  -3.193300E-03  -2.502357E-02   -27.9166    2.042084E-02   -9.822581E-03   1.781484E-02
+0      29    0.0               0.0            0.0            0.0              0.0       0.0             0.0            0.0
+            -1.000000E+00     -2.743701E-02   2.627274E-02   1.068604E-01    58.3424    5.921727E-02   -6.038154E-02   6.905149E-02
+0      30    0.0               0.0            0.0            0.0              0.0       0.0             0.0            0.0
+            -1.000000E+00      1.177747E-02  -2.599931E-02  -1.124259E-01   -35.7134    5.219058E-02   -6.641242E-02   6.863938E-02
+0      31    0.0               0.0            0.0            0.0              0.0       0.0             0.0            0.0
+            -1.000000E+00     -1.569824E-02   4.864991E-03   5.875507E-02    54.6446    2.570814E-02   -3.654139E-02   3.612074E-02
+0      32    0.0               0.0            0.0            0.0              0.0       0.0             0.0            0.0
+            -1.000000E+00      1.208861E-02  -5.843498E-03  -6.371712E-02   -37.1408    3.621875E-02   -2.997363E-02   3.827284E-02
+0      33    0.0               0.0            0.0            0.0              0.0       0.0             0.0            0.0
+            -1.000000E+00     -2.423316E-02  -5.616494E-03   1.048190E-01    50.0356    3.830489E-02   -6.815454E-02   6.226452E-02
+0      34    0.0               0.0            0.0            0.0              0.0       0.0             0.0            0.0
+            -1.000000E+00     -1.522039E-03  -9.622659E-03  -5.091341E-02   -40.4798    2.020456E-02   -3.134926E-02   2.999554E-02
+0      35    0.0               0.0            0.0            0.0              0.0       0.0             0.0            0.0
+            -1.000000E+00     -5.439656E-03  -6.253413E-03   2.604091E-02    44.1051    7.180274E-03   -1.887334E-02   1.553884E-02
+0      36    0.0               0.0            0.0            0.0              0.0       0.0             0.0            0.0
+            -1.000000E+00      1.878126E-03  -9.645424E-03  -4.874878E-02   -38.3501    2.116249E-02   -2.892979E-02   2.903645E-02
+1                                                                               MAY  15, 2024  MSC Nastran  9/15/21   PAGE    17
+                                                                                                                                    
+0     EIGENANALYSIS                                                                                          SUBCASE 1              
+      EIGENVALUE =  3.519228E+03
+                         S T R E S S E S   I N   Q U A D R I L A T E R A L   E L E M E N T S   ( Q U A D 4 )
+  ELEMENT      FIBER               STRESSES IN ELEMENT COORD SYSTEM             PRINCIPAL STRESSES (ZERO SHEAR)                 
+    ID.       DISTANCE           NORMAL-X       NORMAL-Y      SHEAR-XY       ANGLE         MAJOR           MINOR        VON MISES
+0       1   -4.100000E-01     -4.477287E-01   8.831167E+02  -2.573800E+02   -74.8876    9.526230E+02   -6.995407E+01   9.894564E+02
+             4.100000E-01      4.477287E-01  -8.831167E+02   2.573800E+02    15.1124    6.995407E+01   -9.526230E+02   9.894564E+02
+0       2   -4.100000E-01      4.803776E+03   8.079046E+01  -2.905694E+02    -3.5073    4.821585E+03    6.298108E+01   4.790405E+03
+             4.100000E-01     -4.803776E+03  -8.079046E+01   2.905694E+02    86.4927   -6.298108E+01   -4.821585E+03   4.790405E+03
+0       3   -4.100000E-01      2.695432E+01   1.222409E+03   1.912959E+02    81.1267    1.252274E+03   -2.910644E+00   1.253732E+03
+             4.100000E-01     -2.695432E+01  -1.222409E+03  -1.912959E+02    -8.8733    2.910644E+00   -1.252274E+03   1.253732E+03
+0       4   -4.100000E-01      3.554584E+03  -2.605837E+01  -4.250422E+02    -6.6777    3.604347E+03   -7.582164E+01   3.642850E+03
+             4.100000E-01     -3.554584E+03   2.605837E+01   4.250422E+02    83.3223    7.582164E+01   -3.604347E+03   3.642850E+03
+0       5   -4.100000E-01      2.773298E+02   1.163900E+03  -5.578039E+01   -86.4140    1.167396E+03    2.738341E+02   1.057415E+03
+             4.100000E-01     -2.773298E+02  -1.163900E+03   5.578039E+01     3.5860   -2.738341E+02   -1.167396E+03   1.057415E+03
+0       6   -4.100000E-01      7.575826E+03   3.488690E+02  -1.793995E+02    -1.4211    7.580276E+03    3.444184E+02   7.414070E+03
+             4.100000E-01     -7.575826E+03  -3.488690E+02   1.793995E+02    88.5789   -3.444184E+02   -7.580276E+03   7.414070E+03
+0       7   -4.100000E-01      1.592808E+02   1.264949E+03   3.969959E+02    72.1587    1.392726E+03    3.150399E+01   1.377244E+03
+             4.100000E-01     -1.592808E+02  -1.264949E+03  -3.969959E+02   -17.8413   -3.150399E+01   -1.392726E+03   1.377244E+03
+0       8   -4.100000E-01      5.579383E+03   1.961160E+02  -3.429540E+02    -3.6306    5.601144E+03    1.743552E+02   5.516033E+03
+             4.100000E-01     -5.579383E+03  -1.961160E+02   3.429540E+02    86.3694   -1.743552E+02   -5.601144E+03   5.516033E+03
+0       9   -4.100000E-01      1.400239E+02   1.793083E+03   1.671088E+02    84.2850    1.809807E+03    1.233000E+02   1.751415E+03
+             4.100000E-01     -1.400239E+02  -1.793083E+03  -1.671088E+02    -5.7150   -1.233000E+02   -1.809807E+03   1.751415E+03
+0      10   -4.100000E-01      3.851048E+03   2.459862E+02  -9.834618E+02   -14.3085    4.101883E+03   -4.849609E+00   4.104310E+03
+             4.100000E-01     -3.851048E+03  -2.459862E+02   9.834618E+02    75.6915    4.849609E+00   -4.101883E+03   4.104310E+03
+0      11   -4.100000E-01      1.348323E+02   1.246555E+03   1.272481E+02    83.5530    1.260933E+03    1.204534E+02   1.205230E+03
+             4.100000E-01     -1.348323E+02  -1.246555E+03  -1.272481E+02    -6.4470   -1.204534E+02   -1.260933E+03   1.205230E+03
+0      12   -4.100000E-01      4.514443E+03   1.209832E+02  -6.176899E+02    -7.8526    4.599634E+03    3.579220E+01   4.581843E+03
+             4.100000E-01     -4.514443E+03  -1.209832E+02   6.176899E+02    82.1474   -3.579220E+01   -4.599634E+03   4.581843E+03
+0      13   -4.100000E-01      5.205026E+01   1.407590E+03   1.918970E+02    82.0958    1.434232E+03    2.540800E+01   1.421698E+03
+             4.100000E-01     -5.205026E+01  -1.407590E+03  -1.918970E+02    -7.9042   -2.540800E+01   -1.434232E+03   1.421698E+03
+0      14   -4.100000E-01      4.052002E+03   9.751253E+01  -2.379116E+02    -3.4306    4.066264E+03    8.325063E+01   4.025284E+03
+             4.100000E-01     -4.052002E+03  -9.751253E+01   2.379116E+02    86.5694   -8.325063E+01   -4.066264E+03   4.025284E+03
+0      15   -4.100000E-01     -7.486564E+01   7.181821E+02   1.580081E+02    79.1368    7.485045E+02   -1.051880E+02   8.062613E+02
+             4.100000E-01      7.486564E+01  -7.181821E+02  -1.580081E+02   -10.8632    1.051880E+02   -7.485045E+02   8.062613E+02
+0      16   -4.100000E-01      1.852652E+03   4.364092E+01  -5.091368E+01    -1.6109    1.854083E+03    4.220911E+01   1.833343E+03
+             4.100000E-01     -1.852652E+03  -4.364092E+01   5.091368E+01    88.3891   -4.220911E+01   -1.854083E+03   1.833343E+03
+0      17   -4.100000E-01     -8.125275E+00   9.448813E+02   2.930064E+02    74.2061    1.027760E+03   -9.100389E+01   1.076152E+03
+             4.100000E-01      8.125275E+00  -9.448813E+02  -2.930064E+02   -15.7939    9.100389E+01   -1.027760E+03   1.076152E+03
+0      18   -4.100000E-01      3.544543E+03   7.562625E+01  -3.069070E+02    -5.0172    3.571487E+03    4.868240E+01   3.547396E+03
+             4.100000E-01     -3.544543E+03  -7.562625E+01   3.069070E+02    84.9828   -4.868240E+01   -3.571487E+03   3.547396E+03
+0      19   -4.100000E-01     -2.051690E+01   5.432183E+02   1.766980E+02    73.9585    5.940240E+02   -7.132263E+01   6.327075E+02
+             4.100000E-01      2.051690E+01  -5.432183E+02  -1.766980E+02   -16.0415    7.132263E+01   -5.940240E+02   6.327075E+02
+0      20   -4.100000E-01      2.452801E+03   5.745158E+01  -1.624071E+02    -3.8612    2.463762E+03    4.649037E+01   2.440849E+03
+             4.100000E-01     -2.452801E+03  -5.745158E+01   1.624071E+02    86.1388   -4.649037E+01   -2.463762E+03   2.440849E+03
+0      21   -4.100000E-01      9.825287E+01   7.955179E+02   2.053953E+02    74.7479    8.515233E+02    4.224746E+01   8.312052E+02
+             4.100000E-01     -9.825287E+01  -7.955179E+02  -2.053953E+02   -15.2521   -4.224746E+01   -8.515233E+02   8.312052E+02
+0      22   -4.100000E-01      1.986416E+03  -2.918365E+01  -4.452168E+02   -11.9172    2.080377E+03   -1.231454E+02   2.144603E+03
+             4.100000E-01     -1.986416E+03   2.918365E+01   4.452168E+02    78.0828    1.231454E+02   -2.080377E+03   2.144603E+03
+0      23   -4.100000E-01      5.534975E+01   4.566453E+02   6.117259E+01    81.5224    4.657631E+02    4.623191E+01   4.444542E+02
+             4.100000E-01     -5.534975E+01  -4.566453E+02  -6.117259E+01    -8.4776   -4.623191E+01   -4.657631E+02   4.444542E+02
+0      24   -4.100000E-01      1.777262E+03  -2.014045E+01  -2.918061E+02    -8.9942    1.823449E+03   -6.632796E+01   1.857501E+03
+             4.100000E-01     -1.777262E+03   2.014045E+01   2.918061E+02    81.0058    6.632796E+01   -1.823449E+03   1.857501E+03
+0      25   -4.100000E-01     -5.285524E+01   5.777243E+02   1.017726E+02    81.0552    5.937430E+02   -6.887394E+01   6.310054E+02
+             4.100000E-01      5.285524E+01  -5.777243E+02  -1.017726E+02    -8.9448    6.887394E+01   -5.937430E+02   6.310054E+02
+0      26   -4.100000E-01      1.255234E+03   2.884489E+01  -3.481751E+01    -1.6249    1.256221E+03    2.785721E+01   1.242527E+03
+             4.100000E-01     -1.255234E+03  -2.884489E+01   3.481751E+01    88.3751   -2.785721E+01   -1.256221E+03   1.242527E+03
+0      27   -4.100000E-01     -3.247170E+01   1.626200E+02   4.359199E+01    77.9604    1.719173E+02   -4.176899E+01   1.961658E+02
+             4.100000E-01      3.247170E+01  -1.626200E+02  -4.359199E+01   -12.0396    4.176899E+01   -1.719173E+02   1.961658E+02
+0      28   -4.100000E-01      1.875558E+02   2.871974E+00   3.891765E+01    11.4265    1.954218E+02   -4.993955E+00   1.979660E+02
+             4.100000E-01     -1.875558E+02  -2.871974E+00  -3.891765E+01   -78.5735    4.993955E+00   -1.954218E+02   1.979660E+02
+0      29   -4.100000E-01     -6.564015E+01   3.197653E+02   9.368507E+01    77.0363    3.413316E+02   -8.720649E+01   3.922736E+02
+             4.100000E-01      6.564015E+01  -3.197653E+02  -9.368507E+01   -12.9637    8.720649E+01   -3.413316E+02   3.922736E+02
+0      30   -4.100000E-01      9.717337E+02  -1.366788E+01  -1.215625E+02    -6.9298    9.865085E+02   -2.844272E+01   1.001033E+03
+             4.100000E-01     -9.717337E+02   1.366788E+01   1.215625E+02    83.0702    2.844272E+01   -9.865085E+02   1.001033E+03
+0      31   -4.100000E-01     -3.296562E+01   1.071775E+02   4.998054E+01    72.2503    1.231761E+02   -4.896425E+01   1.536265E+02
+             4.100000E-01      3.296562E+01  -1.071775E+02  -4.998054E+01   -17.7497    4.896425E+01   -1.231761E+02   1.536265E+02
+0      32   -4.100000E-01      3.088985E+02  -1.300461E+01  -4.658949E+01    -8.0719    3.155058E+02   -1.961195E+01   3.257549E+02
+             4.100000E-01     -3.088985E+02   1.300461E+01   4.658949E+01    81.9281    1.961195E+01   -3.155058E+02   3.257549E+02
+0      33   -4.100000E-01      1.165747E+01   2.344360E+02   9.129202E+01    70.3314    2.670668E+02   -2.097341E+01   2.781472E+02
+             4.100000E-01     -1.165747E+01  -2.344360E+02  -9.129202E+01   -19.6686    2.097341E+01   -2.670668E+02   2.781472E+02
+0      34   -4.100000E-01      4.453184E+02  -2.794309E+01  -1.654372E+02   -17.4794    4.974151E+02   -8.003985E+01   5.418867E+02
+             4.100000E-01     -4.453184E+02   2.794309E+01   1.654372E+02    72.5206    8.003985E+01   -4.974151E+02   5.418867E+02
+0      35   -4.100000E-01      3.792844E+00   6.378088E+01   2.242944E+01    71.6055    7.123978E+01   -3.666056E+00   7.314175E+01
+             4.100000E-01     -3.792844E+00  -6.378088E+01  -2.242944E+01   -18.3945    3.666056E+00   -7.123978E+01   7.314175E+01
+0      36   -4.100000E-01      1.513038E+02  -2.061691E+01  -7.404092E+01   -20.3698    1.787949E+02   -4.810804E+01   2.070833E+02
+             4.100000E-01     -1.513038E+02   2.061691E+01   7.404092E+01    69.6302    4.810804E+01   -1.787949E+02   2.070833E+02
+1                                                                               MAY  15, 2024  MSC Nastran  9/15/21   PAGE    18
+                                                                                                                                    
+0     EIGENANALYSIS                                                                                          SUBCASE 1              
+      EIGENVALUE =  5.114297E+04
+                         S T R E S S E S   I N   Q U A D R I L A T E R A L   E L E M E N T S   ( Q U A D 4 )
+  ELEMENT      FIBER               STRESSES IN ELEMENT COORD SYSTEM             PRINCIPAL STRESSES (ZERO SHEAR)                 
+    ID.       DISTANCE           NORMAL-X       NORMAL-Y      SHEAR-XY       ANGLE         MAJOR           MINOR        VON MISES
+0       1   -4.100000E-01     -7.520264E+02  -1.144441E+03   2.964170E+03    43.1065    2.022423E+03   -3.918890E+03   5.231973E+03
+             4.100000E-01      7.520264E+02   1.144441E+03  -2.964170E+03   -46.8935    3.918890E+03   -2.022423E+03   5.231973E+03
+0       2   -4.100000E-01     -1.654637E+04  -1.387619E+03  -2.689930E+03   -80.2301   -9.244418E+02   -1.700954E+04   1.656668E+04
+             4.100000E-01      1.654637E+04   1.387619E+03   2.689930E+03     9.7699    1.700954E+04    9.244418E+02   1.656668E+04
+0       3   -4.100000E-01      2.469685E+03   1.649217E+03   5.207359E+03    42.7478    7.282944E+03   -3.164042E+03   9.278792E+03
+             4.100000E-01     -2.469685E+03  -1.649217E+03  -5.207359E+03   -47.2522    3.164042E+03   -7.282944E+03   9.278792E+03
+0       4   -4.100000E-01     -4.204635E+03   1.335704E+02  -2.351585E+03   -66.3442    1.163680E+03   -5.234744E+03   5.903242E+03
+             4.100000E-01      4.204635E+03  -1.335704E+02   2.351585E+03    23.6558    5.234744E+03   -1.163680E+03   5.903242E+03
+0       5   -4.100000E-01     -4.567706E+02  -7.833070E+02   3.752971E+03    43.7545    3.136482E+03   -4.376559E+03   6.535961E+03
+             4.100000E-01      4.567706E+02   7.833070E+02  -3.752971E+03   -46.2455    4.376559E+03   -3.136482E+03   6.535961E+03
+0       6   -4.100000E-01     -4.837573E+03  -9.509741E+02  -3.924046E+03   -58.1730    1.484602E+03   -7.273149E+03   8.117911E+03
+             4.100000E-01      4.837573E+03   9.509741E+02   3.924046E+03    31.8270    7.273149E+03   -1.484602E+03   8.117911E+03
+0       7   -4.100000E-01      2.789413E+03   2.589473E+03   6.579406E+03    44.5647    9.269608E+03   -3.890722E+03   1.171020E+04
+             4.100000E-01     -2.789413E+03  -2.589473E+03  -6.579406E+03   -45.4353    3.890722E+03   -9.269608E+03   1.171020E+04
+0       8   -4.100000E-01     -4.587661E+02  -2.352198E+02  -4.933276E+03   -45.6490    4.587550E+03   -5.281535E+03   8.553919E+03
+             4.100000E-01      4.587661E+02   2.352198E+02   4.933276E+03    44.3510    5.281535E+03   -4.587550E+03   8.553919E+03
+0       9   -4.100000E-01      1.577700E+03   2.331438E+03   4.717247E+03    47.2839    6.686847E+03   -2.777708E+03   8.426369E+03
+             4.100000E-01     -1.577700E+03  -2.331438E+03  -4.717247E+03   -42.7161    2.777708E+03   -6.686847E+03   8.426369E+03
+0      10   -4.100000E-01      3.028126E+03   2.866658E+03  -3.445465E+03   -44.3288    6.393803E+03   -4.990191E+02   6.657355E+03
+             4.100000E-01     -3.028126E+03  -2.866658E+03   3.445465E+03    45.6712    4.990191E+02   -6.393803E+03   6.657355E+03
+0      11   -4.100000E-01      1.034855E+03   1.055614E+03   3.449143E+03    45.0862    4.494393E+03   -2.403924E+03   6.064866E+03
+             4.100000E-01     -1.034855E+03  -1.055614E+03  -3.449143E+03   -44.9138    2.403924E+03   -4.494393E+03   6.064866E+03
+0      12   -4.100000E-01      6.180243E+02   2.750338E+02  -5.031298E+03   -44.0239    5.480749E+03   -4.587691E+03   8.730951E+03
+             4.100000E-01     -6.180243E+02  -2.750338E+02   5.031298E+03    45.9761    4.587691E+03   -5.480749E+03   8.730951E+03
+0      13   -4.100000E-01      1.591205E+03   2.940611E+03   3.308299E+03    50.7635    5.642306E+03   -1.110490E+03   6.271725E+03
+             4.100000E-01     -1.591205E+03  -2.940611E+03  -3.308299E+03   -39.2365    1.110490E+03   -5.642306E+03   6.271725E+03
+0      14   -4.100000E-01      4.892639E+03  -3.930962E+02  -5.141029E+03   -31.3967    8.030336E+03   -3.530793E+03   1.026188E+04
+             4.100000E-01     -4.892639E+03   3.930962E+02   5.141029E+03    58.6033    3.530793E+03   -8.030336E+03   1.026188E+04
+0      15   -4.100000E-01      2.669220E+03   4.496730E+03   5.479812E+03    49.7335    9.138449E+03   -1.972498E+03   1.026779E+04
+             4.100000E-01     -2.669220E+03  -4.496730E+03  -5.479812E+03   -40.2665    1.972498E+03   -9.138449E+03   1.026779E+04
+0      16   -4.100000E-01      7.222384E+03  -2.837382E+02  -3.120869E+03   -19.8727    8.350439E+03   -1.411793E+03   9.138494E+03
+             4.100000E-01     -7.222384E+03   2.837382E+02   3.120869E+03    70.1273    1.411793E+03   -8.350439E+03   9.138494E+03
+0      17   -4.100000E-01      3.004003E+03   3.883963E+03   6.804401E+03    46.8498    1.026259E+04   -3.374627E+03   1.230209E+04
+             4.100000E-01     -3.004003E+03  -3.883963E+03  -6.804401E+03   -43.1502    3.374627E+03   -1.026259E+04   1.230209E+04
+0      18   -4.100000E-01      2.653216E+03  -1.925459E+02  -5.219220E+03   -37.3752    6.640034E+03   -4.179364E+03   9.450305E+03
+             4.100000E-01     -2.653216E+03   1.925459E+02   5.219220E+03    52.6248    4.179364E+03   -6.640034E+03   9.450305E+03
+0      19   -4.100000E-01      2.235794E+03   2.945343E+03   5.375355E+03    46.8880    7.977619E+03   -2.796482E+03   9.683593E+03
+             4.100000E-01     -2.235794E+03  -2.945343E+03  -5.375355E+03   -43.1120    2.796482E+03   -7.977619E+03   9.683593E+03
+0      20   -4.100000E-01      6.205648E+03  -9.336290E+01  -4.593477E+03   -27.7818    8.625650E+03   -2.513365E+03   1.011920E+04
+             4.100000E-01     -6.205648E+03   9.336290E+01   4.593477E+03    62.2182    2.513365E+03   -8.625650E+03   1.011920E+04
+0      21   -4.100000E-01      2.255390E+03   2.254266E+03   5.694973E+03    44.9972    7.949801E+03   -3.440144E+03   1.011842E+04
+             4.100000E-01     -2.255390E+03  -2.254266E+03  -5.694973E+03   -45.0028    3.440144E+03   -7.949801E+03   1.011842E+04
+0      22   -4.100000E-01      3.352605E+02  -5.766085E+01  -2.674571E+03   -42.8994    2.820576E+03   -2.542977E+03   4.647046E+03
+             4.100000E-01     -3.352605E+02   5.766085E+01   2.674571E+03    47.1006    2.542977E+03   -2.820576E+03   4.647046E+03
+0      23   -4.100000E-01      8.326175E+02   7.767153E+02   2.659757E+03    44.6990    3.464570E+03   -1.855237E+03   4.676831E+03
+             4.100000E-01     -8.326175E+02  -7.767153E+02  -2.659757E+03   -45.3010    1.855237E+03   -3.464570E+03   4.676831E+03
+0      24   -4.100000E-01      1.828022E+03  -2.738523E+02  -3.904656E+03   -37.4679    4.820698E+03   -3.266528E+03   7.046721E+03
+             4.100000E-01     -1.828022E+03   2.738523E+02   3.904656E+03    52.5321    3.266528E+03   -4.820698E+03   7.046721E+03
+0      25   -4.100000E-01      1.127403E+03   4.119430E+03   2.353184E+03    61.2229    5.411880E+03   -1.650470E+02   5.496262E+03
+             4.100000E-01     -1.127403E+03  -4.119430E+03  -2.353184E+03   -28.7771    1.650470E+02   -5.411880E+03   5.496262E+03
+0      26   -4.100000E-01      7.540717E+03  -1.679636E+02  -3.068538E+03   -19.2621    8.613025E+03   -1.240271E+03   9.295427E+03
+             4.100000E-01     -7.540717E+03   1.679636E+02   3.068538E+03    70.7379    1.240271E+03   -8.613025E+03   9.295427E+03
+0      27   -4.100000E-01      9.539504E+02   2.031286E+03   1.946263E+03    52.7352    3.512050E+03   -5.268136E+02   3.802923E+03
+             4.100000E-01     -9.539504E+02  -2.031286E+03  -1.946263E+03   -37.2648    5.268136E+02   -3.512050E+03   3.802923E+03
+0      28   -4.100000E-01      2.843949E+03   1.125480E+02  -8.165700E+02   -15.4379    3.069451E+03   -1.129537E+02   3.127458E+03
+             4.100000E-01     -2.843949E+03  -1.125480E+02   8.165700E+02    74.5621    1.129537E+02   -3.069451E+03   3.127458E+03
+0      29   -4.100000E-01      1.776626E+03   3.062681E+03   3.973053E+03    49.5967    6.444406E+03   -1.605099E+03   7.379067E+03
+             4.100000E-01     -1.776626E+03  -3.062681E+03  -3.973053E+03   -40.4033    1.605099E+03   -6.444406E+03   7.379067E+03
+0      30   -4.100000E-01      3.037589E+03  -3.152804E+02  -3.036460E+03   -30.5484    4.829658E+03   -2.107350E+03   6.159895E+03
+             4.100000E-01     -3.037589E+03   3.152804E+02   3.036460E+03    59.4516    2.107350E+03   -4.829658E+03   6.159895E+03
+0      31   -4.100000E-01      5.722708E+02   1.156172E+03   1.888003E+03    49.3951    2.774664E+03   -1.046221E+03   3.419978E+03
+             4.100000E-01     -5.722708E+02  -1.156172E+03  -1.888003E+03   -40.6049    1.046221E+03   -2.774664E+03   3.419978E+03
+0      32   -4.100000E-01      2.951591E+03   1.486801E+02  -1.833711E+03   -26.3052    3.858073E+03   -7.578017E+02   4.287499E+03
+             4.100000E-01     -2.951591E+03  -1.486801E+02   1.833711E+03    63.6948    7.578017E+02   -3.858073E+03   4.287499E+03
+0      33   -4.100000E-01      8.735530E+02   1.300296E+03   3.068943E+03    46.9886    4.163276E+03   -1.989427E+03   5.438126E+03
+             4.100000E-01     -8.735530E+02  -1.300296E+03  -3.068943E+03   -43.0114    1.989427E+03   -4.163276E+03   5.438126E+03
+0      34   -4.100000E-01      7.973352E+01  -1.504216E+02  -1.316359E+03   -42.5019    1.286035E+03   -1.356724E+03   2.288969E+03
+             4.100000E-01     -7.973352E+01   1.504216E+02   1.316359E+03    47.4981    1.356724E+03   -1.286035E+03   2.288969E+03
+0      35   -4.100000E-01      1.580099E+02   1.161378E+02   6.797541E+02    44.1179    8.171502E+02   -5.430025E+02   1.185876E+03
+             4.100000E-01     -1.580099E+02  -1.161378E+02  -6.797541E+02   -45.8821    5.430025E+02   -8.171502E+02   1.185876E+03
+0      36   -4.100000E-01      8.304679E+02  -9.104009E+01  -1.302388E+03   -35.2587    1.751202E+03   -1.011774E+03   2.421201E+03
+             4.100000E-01     -8.304679E+02   9.104009E+01   1.302388E+03    54.7413    1.011774E+03   -1.751202E+03   2.421201E+03
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK OES1X1   WRITTEN ON FORTRAN UNIT    12 IN BINARY (LTLEND) FORMAT USING NDDL DESCRIPTION FOR OES1X1, TRL =
+                    101                63                 5                15                24                 0                 5
+     NAME OF DATA BLOCK WRITTEN ON FORTRAN UNIT IS OES1X1  
+        (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =       65538 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =         612 WORDS.)
+           (NUMBER OF FORTRAN RECORDS WRITTEN =          30 RECORDS.)
+           (TOTAL DATA WRITTEN FOR DATA BLOCK =        1557 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK OSTR1X   WRITTEN ON FORTRAN UNIT    12 IN BINARY (LTLEND) FORMAT USING NDDL DESCRIPTION FOR OSTR1X, TRL =
+                    101                63                 5                15                24                 0                 5
+     NAME OF DATA BLOCK WRITTEN ON FORTRAN UNIT IS OSTR1X  
+        (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =       65538 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =         612 WORDS.)
+           (NUMBER OF FORTRAN RECORDS WRITTEN =          30 RECORDS.)
+           (TOTAL DATA WRITTEN FOR DATA BLOCK =        1557 WORDS.)
+ *** USER INFORMATION MESSAGE 4110 (OUTPX2)
+                                 END-OF-DATA SIMULATION ON FORTRAN UNIT    12
+                                 (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =      1 WORDS.)
+                                       (NUMBER OF FORTRAN RECORDS WRITTEN =      1 RECORDS.)
+                                       (TOTAL DATA WRITTEN FOR EOF MARKER =      1 WORDS.)
+1                                                                               MAY  15, 2024  MSC Nastran  9/15/21   PAGE    19
+                                                                                                                                    
+0     EIGENANALYSIS                                                                                          SUBCASE 1              
+ * * * *  D B D I C T   P R I N T  * * * *      SUBDMAP = PRTSUM  ,  DMAP STATEMENT NO.     74
+
+
+
+0                                   * * * *  A N A L Y S I S  S U M M A R Y  T A B L E  * * * *
+0 SEID  PEID PROJ VERS APRCH      SEMG SEMR SEKR SELG SELR MODES DYNRED SOLLIN SOLNL LOOPID DESIGN CYCLE SENSITIVITY
+ -------------------------------------------------------------------------------------------------------------------
+     0     0    1    1 '        '    T    T    T    T    T     T      F      T     F     -1            0           F
+0SEID = SUPERELEMENT ID.
+ PEID = PRIMARY SUPERELEMENT ID OF IMAGE SUPERELEMENT.
+ PROJ = PROJECT ID NUMBER.
+ VERS = VERSION ID.
+ APRCH = BLANK FOR STRUCTURAL ANALYSIS.  HEAT FOR HEAT TRANSFER ANALYSIS.
+ SEMG = STIFFNESS AND MASS MATRIX GENERATION STEP.
+ SEMR = MASS MATRIX REDUCTION STEP (INCLUDES EIGENVALUE SOLUTION FOR MODES).
+ SEKR = STIFFNESS MATRIX REDUCTION STEP.
+ SELG = LOAD MATRIX GENERATION STEP.
+ SELR = LOAD MATRIX REDUCTION STEP. 
+ MODES = T (TRUE) IF NORMAL MODES OR BUCKLING MODES CALCULATED.
+ DYNRED = T (TRUE) MEANS GENERALIZED DYNAMIC AND/OR COMPONENT MODE REDUCTION PERFORMED.
+ SOLLIN = T (TRUE) IF LINEAR SOLUTION EXISTS IN DATABASE.
+ LOOPID = THE LAST LOOPID VALUE USED IN THE NONLINEAR ANALYSIS.  USEFUL FOR RESTARTS.
+ SOLNL = T (TRUE) IF NONLINEAR SOLUTION EXISTS IN DATABASE.
+ DESIGN CYCLE = THE LAST DESIGN CYCLE (ONLY VALID IN OPTIMIZATION).
+ SENSITIVITY = SENSITIVITY MATRIX GENERATION FLAG.
+ 
+ No PARAM values were set in the Control File.
+ 
+1                                        * * * END OF JOB * * *
+ 
+ 
+ No Symbolic Replacement variables or values were specified.
+

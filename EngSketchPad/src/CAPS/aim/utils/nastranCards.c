@@ -2908,7 +2908,7 @@ int nastranCard_mkaero1(FILE *fp, int numM, double *m, int numK,
  * Write MOMENT card
  */
 int nastranCard_moment(FILE *fp, const int *sid,
-           /*@unused@*/const int *g,
+                       const int *g,
                        const int *cid, const double *m,
                        const double n[3], feaFileTypeEnum formatType) {
 
@@ -2924,6 +2924,10 @@ int nastranCard_moment(FILE *fp, const int *sid,
 
     // SID
     status = card_addInteger(&card, *sid);
+    if (status != CAPS_SUCCESS) goto cleanup;
+
+    // GID
+    status = card_addInteger(&card, *g);
     if (status != CAPS_SUCCESS) goto cleanup;
 
     // CID

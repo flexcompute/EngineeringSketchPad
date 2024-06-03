@@ -64,6 +64,9 @@ CSMFILES=$(wildcard csmData/*.csm)
 CSMFILES+=$(wildcard csmData/*.udc)
 CSMTEST=$(patsubst csmData/%,$(TDIR)/csmData/%,$(CSMFILES))
 
+ANALYSISFILES=$(wildcard analysisData/nastran/*.*)
+ANALYSISDATA=$(patsubst analysisData/%,$(TDIR)/analysisData/%,$(ANALYSISFILES))
+
 CORSAIRFILES=$(wildcard corsairlite/*.p*)
 CORSAIRFILES+=$(wildcard corsairlite/capsPhase/csm/*.csm)
 CORSAIRFILES+=$(wildcard corsairlite/capsPhase/pyCAPS/*.py)
@@ -74,15 +77,19 @@ CORSAIRTEST=$(patsubst corsairlite/%,$(TDIR)/corsairlite/%,$(CORSAIRFILES))
 REGFILES=$(wildcard regressionTest/*.*)
 REGTEST=$(patsubst regressionTest/%,$(TDIR)/regressionTest/%,$(REGFILES))
 
-copy: $(TDIR)/csmData $(TDIR)/cCAPS $(TDIR)/pyCAPS $(TDIR)/regressionTest $(TDIR)/corsairlite \
-	$(PYTEST) $(CSMTEST) $(CORSAIRTEST) $(REGTEST)
+copy: $(TDIR)/analysisData $(TDIR)/csmData $(TDIR)/cCAPS $(TDIR)/pyCAPS $(TDIR)/regressionTest $(TDIR)/corsairlite \
+	$(PYTEST) $(CSMTEST) $(ANALYSISDATA) $(CORSAIRTEST) $(REGTEST)
 
 $(TDIR):
 	mkdir -p $(TDIR)
 $(TDIR)/cCAPS: | $(TDIR)
 	mkdir -p $(TDIR)/cCAPS
-$(TDIR)/pyCAPS: $(TDIR)
+$(TDIR)/pyCAPS: | $(TDIR)
 	mkdir -p $(TDIR)/pyCAPS
+$(TDIR)/analysisData: | $(TDIR)
+	mkdir -p $(TDIR)/analysisData
+$(TDIR)/analysisData/nastran: | $(TDIR)/analysisData
+	mkdir -p $(TDIR)/analysisData/nastran
 $(TDIR)/csmData: | $(TDIR)
 	mkdir -p $(TDIR)/csmData
 $(TDIR)/corsairlite: | $(TDIR)
@@ -99,6 +106,9 @@ $(TDIR)/regressionTest: | $(TDIR)
 	mkdir -p $(TDIR)/regressionTest
 	
 $(PYTEST): $(TDIR)/pyCAPS/%.py: pyCAPS/%.py | $(TDIR)/pyCAPS
+	cp -p -f $< $@
+
+$(ANALYSISDATA): $(TDIR)/analysisData/%: analysisData/% | $(TDIR)/analysisData $(TDIR)/analysisData/nastran
 	cp -p -f $< $@
 
 $(CSMTEST): $(TDIR)/csmData/%: csmData/% | $(TDIR)/csmData

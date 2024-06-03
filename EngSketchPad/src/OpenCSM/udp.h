@@ -50,7 +50,7 @@
 //      ATTRSTRING   3   // +ATTRSTRING  for string  input
                          // -ATTRSTRING  *** cannot be used ***
 #define ATTRREALSEN  4   // +ATTRREALSEN for double input  (with sensitivities)
-                         // -ATTRREALSEN for double output (has  sensitivities)
+                         // -ATTRREALSEN for ddouble output (has  sensitivities)
 #define ATTRFILE     5   // +ATTRFILE    for input file
                          // -ATTRFILE    *** cannot be used ***
 #define ATTRREBUILD  6   // +ATTRREBUILD to force rebuild

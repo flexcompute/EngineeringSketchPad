@@ -1,0 +1,4 @@
+getFilenames|
+clrVels|geom|
+setVel|wing:dihedral|1|1|1|
+build|0|

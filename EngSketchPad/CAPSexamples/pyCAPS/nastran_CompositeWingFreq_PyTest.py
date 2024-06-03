@@ -1,13 +1,10 @@
-## [importPrint]
-from __future__ import print_function
-## [importPrint]
-
 ## [import]
 # Import pyCAPS class file
 import pyCAPS
 
 # Import os module
 import os
+import shutil
 import argparse
 ## [import]
 
@@ -22,31 +19,48 @@ parser.add_argument('-noAnalysis', action='store_true', default = False, help = 
 parser.add_argument("-outLevel", default = 1, type=int, choices=[0, 1, 2], help="Set output verbosity")
 args = parser.parse_args()
 
-workDir = os.path.join(str(args.workDir[0]), "NastranCompositeWing_Freq")
+# Create project name
+projectName = "NastranCompositeWing_Freq"
+
+# Working directory
+workDir = os.path.join(str(args.workDir[0]), projectName)
 
 ## [geometry]
 # Load CSM file
 geometryScript = os.path.join("..","csmData","compositeWing.csm")
-myProblem = pyCAPS.Problem(problemName=workDir,
-                           capsFile=geometryScript,
-                           outLevel=args.outLevel)
+capsProblem = pyCAPS.Problem(problemName=workDir,
+                             capsFile=geometryScript,
+                             outLevel=args.outLevel)
 ## [geometry]
+
+# Load egadsTess aim
+egads = capsProblem.analysis.create(aim = "egadsTessAIM")
+
+# Set meshing parameters
+egads.input.Edge_Point_Max = 40
+egads.input.Edge_Point_Min = 5
+
+# All quads in the grid
+egads.input.Mesh_Elements = "Quad"
+
+egads.input.Tess_Params = [.05,.5,15]
+
 
 ## [loadAIM]
 # Load nastran aim
-nastranAIM = myProblem.analysis.create(aim = "nastranAIM",
-                                       name = "nastran", 
-                                       autoExec = False)
+nastran = capsProblem.analysis.create(aim = "nastranAIM",
+                                      name = "nastran")
 ## [loadAIM]
 
+
+
 ## [setInputs]
-# Set project name so a mesh file is generated
-projectName = "nastran_CompositeWing"
-nastranAIM.input.Proj_Name        = projectName
-nastranAIM.input.Edge_Point_Max   = 40
-nastranAIM.input.File_Format      = "Small"
-nastranAIM.input.Mesh_File_Format = "Large"
-nastranAIM.input.Analysis_Type    = "Modal"
+nastran.input["Mesh"].link(egads.output["Surface_Mesh"])
+
+nastran.input.Proj_Name        = "nastran_CompositeWing"
+nastran.input.File_Format      = "Small"
+nastran.input.Mesh_File_Format = "Large"
+nastran.input.Analysis_Type    = "Modal"
 ## [setInputs]
 
 ## [defineMaterials]
@@ -68,7 +82,7 @@ Graphite_epoxy = {"materialType"        : "Orthotropic",
                   "shearAllow"          : 19.0e-3,
                   "allowType"           : 1}
 
-nastranAIM.input.Material = {"Aluminum": Aluminum,
+nastran.input.Material = {"Aluminum": Aluminum,
                              "Graphite_epoxy": Graphite_epoxy}
 ## [defineMaterials]
 
@@ -89,15 +103,15 @@ composite  = {"propertyType"           : "Composite",
               "symmetricLaminate"      : True,
               "compositeFailureTheory" : "STRN" }
 
-#nastranAIM.input.Property" = {"wing": aluminum}
-nastranAIM.input.Property = {"wing": composite}
+#nastran.input.Property" = {"wing": aluminum}
+nastran.input.Property = {"wing": composite}
 ## [defineProperties]
 
 ## [defineConstraints]
 constraint = {"groupName" : "root",
               "dofConstraint" : 123456}
 
-nastranAIM.input.Constraint = {"root": constraint}
+nastran.input.Constraint = {"root": constraint}
 ## [defineConstraints]
 
 ## [defineAnalysis]
@@ -107,38 +121,38 @@ eigen = { "extractionMethod"     : "MGIV",#"Lanczos",
           "numDesiredEigenvalue" : 10,
           "eigenNormalization"   : "MASS"}
 
-nastranAIM.input.Analysis = {"EigenAnalysis": eigen}
+nastran.input.Analysis = {"EigenAnalysis": eigen}
 ## [defineAnalysis]
 
 ## [preAnalysis]
-nastranAIM.preAnalysis()
+nastran.preAnalysis()
 ## [preAnalysis]
 
 ## [run]
 ####### Run Nastran####################
 print ("\n\nRunning Nastran......" )
-currentDirectory = os.getcwd() # Get our current working directory
 
-os.chdir(myProblem.analysis["nastran"].analysisDir) # Move into test directory
+if args.noAnalysis == False:
+    nastran.system("nastran old=no notify=no batch=no scr=yes sdirectory=./ " + nastran.input.Proj_Name +  ".dat"); # Run Nastran via system call
+else:
+    # Copy old results if no analysis available
+    shutil.copy2(os.path.join("..","analysisData","nastran",projectName+".f06"), 
+                 os.path.join(nastran.analysisDir,nastran.input.Proj_Name+".f06"))
 
-if (args.noAnalysis == False):
-    os.system("nastran old=no notify=no batch=no scr=yes sdirectory=./ " + projectName +  ".dat"); # Run Nastran via system call
-
-    ## [postAnalysis]
-    # Run AIM post-analysis
-    nastranAIM.postAnalysis()
-    ## [postAnalysis]
-
-    # Get Eigen-frequencies
-    print ("\nGetting results for natural frequencies.....")
-    naturalFreq = myProblem.analysis["nastran"].output.EigenFrequency
-
-    mode = 1
-    for i in naturalFreq:
-        print ("Natural freq (Mode {:d}) = ".format(mode) + '{:.5f} '.format(i) + "(Hz)")
-        mode += 1
-
-os.chdir(currentDirectory) # Move back to working directory
 print ("Done running Nastran!")
 ## [run]
+
+## [postAnalysis]
+# Run AIM post-analysis
+nastran.postAnalysis()
+## [postAnalysis]
+
+# Get Eigen-frequencies
+print ("\nGetting results for natural frequencies.....")
+naturalFreq = capsProblem.analysis["nastran"].output.EigenFrequency
+
+mode = 1
+for i in naturalFreq:
+    print ("Natural freq (Mode {:d}) = ".format(mode) + '{:.5f} '.format(i) + "(Hz)")
+    mode += 1
 

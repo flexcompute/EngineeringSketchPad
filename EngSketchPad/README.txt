@@ -95,14 +95,18 @@
 
 1.2.1 EGADS
 
-    The significant updates made to EGADS from Rev 1.25 are:
+    The significant updates made to EGADS from Rev 1.24 are:
 
-    * Blend sections may have .C1side attribute to specify which side to make C1
-    * Improved STEP/IGES read peformace.
-    * Read Name attribute on all entities from STEP/IGES files.
-    * EG_imprintBody accepts FACE/LOOP pairs consistent with documentation
-    * Added EG_mapBody2 for completely general mapping/
-    * Add EG_contextCopy to threading support
+    * Upgrade to OpenCASCADE 7.8
+    * Add Face Color attribute for STEP/IGES
+    * Improved Name attribute for STEP/IGES
+    * Allow copyObject on PCurve without transformation
+    * Use consistent CURVE/SURFACE approximation algorithms and preserve periodicity in EG_convertToBspline
+    * Add EG_addKnots
+    * Add EG\_isIsoPCurve (only works for OCC 7.6 or above)
+    * Enable FullAttr for EG_imprintBody
+    * EG_matchBodyFaces and EG_matchBodyEdges API change, please see egads.pdf for details
+    * Check that all edges are imprinted by OCC in EG\_imprintBody
     * General bug fixes
 
 1.2.2 OpenCSM
@@ -114,14 +118,20 @@
 
 1.2.3 CAPS
 
-    * Added refine AIM for mesh adaptation
-    * Added abaqus AIM for structural analysis
-    * Improvements to Mesh_Morph capabilities
-    * Fix bug where aflr3 BL_Thickness and BL_Initial_Spacing were not scaled by capsMeshLength
-    * Bug fixes to allow mixed tri/quad data transfer
-    * Fill out all MAT8 entries for structural analysis
-    * Upgrade SU2 AIM for Harrier 8.0.0
-    * Add temperature data transfer to various AIMs
+    * Refactor mesh writing fremwork
+      - Mesh files may be requested with Mesh_Format, and file extensions may have changed
+      - Removed Mesh_ASCII_Flag AIM inputs
+    * Upgrade to AFLR 11.5.14
+    * Updated config file generator for SU2-8.0.1
+    * Add cbaero AIM
+    * Add zaero AIM
+    * Add ability to link mass properties
+    * Add CLAF avl input
+    * Add MassProp outputs for nastran.
+    * OUTPMTR derivatives computed by AIM's are properly cached
+    * Fix Normaliztion misspelling
+    * Updates to refine AIM to support 2D meshes
+    * General bug fixes
 
 1.2.4 ESP
 
@@ -286,8 +296,8 @@
     64bit.
 
     For Example on Windows (after downloading and installing Python on C:):
-      set PYTHONINC=C:\Python38\include
-      set PYTHONLIB=C:\Python38\Libs\python38.lib
+      set PYTHONINC=C:\Python311\include
+      set PYTHONLIB=C:\Python311\Libs\python311.lib
       set PYTHONPATH=%ESP_ROOT%\lib:%ESP_ROOT%\pyESP
 
 2.3.3 The Cart3D Design Framework
@@ -412,7 +422,7 @@
 4.1 The AFLR suite
 
     Building the AFLR AIMs (AFLR2, AFLR3 and AFLR4) requires AFLR_LIB at
-    11.5.9 or higher. Note that built versions of the so/DLLs are now provided
+    11.5.14. Note that built versions of the so/DLLs are now provided
     with the ESP source. There is no longer need to copy them from the PreBuilt.
 
 4.2 Athena Vortex Lattice
@@ -444,15 +454,7 @@
     Mystran bin directory is an empty file and the MYSTRAN_directory 
     environment variable points to the Mystran bin directory.
 
-    Mystran currently only functions on Windows if CAPS is compiled with 
-    MSVC 2017 or higher. This may be addressed in future releases. 
-
-4.7 NASTRAN
-
-    Nastran bdf files are only correct on Windows if CAPS is compiled with 
-    MSVC 2017 or higher. This may be addressed in future releases. 
-
-4.8 Pointwise
+4.7 Pointwise
 
     The CAPS connection to Pointwise is now handled internally but requires,
     at a minimum Pointwise V18.2 R2, but V18.4 or higher is recommended. This 
@@ -461,19 +463,19 @@
     Glyph scripts that should be used with CAPS and the current release of 
     Pointwise.
 
-4.9 SU2
+4.8 SU2
 
     Supported versions are: 
         4.1.1 (Cardinal)
         5.0.0 (Raven)
         6.2.0 (Falcon)
         7.5.1 (Blackbird)
-        8.0.0 (Harrier)
+        8.0.1 (Harrier)
 
     SU2 version 6.0 will work except for the use of 
     displacements in a Fluid/Structure Interaction setting.
 
-4.10 xfoil
+4.9 xfoil
 
     The interface to xfoil is designed for V6.99, and the xfoil executable
     is provided in $ESP_ROOT/bin. Note that multiple 'versions' of xfoil

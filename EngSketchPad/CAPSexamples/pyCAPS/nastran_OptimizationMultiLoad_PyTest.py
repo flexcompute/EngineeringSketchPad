@@ -1,10 +1,9 @@
-from __future__ import print_function
-
-# Import pyCAPS class file
-from pyCAPS import capsProblem
+# Import pyCAPS
+import pyCAPS
 
 # Import os module
 import os
+import shutil
 import argparse
 
 # Setup and read command line options. Please note that this isn't required for pyCAPS
@@ -18,46 +17,41 @@ parser.add_argument('-noAnalysis', action='store_true', default = False, help = 
 parser.add_argument("-outLevel", default = 1, type=int, choices=[0, 1, 2], help="Set output verbosity")
 args = parser.parse_args()
 
-# Initialize capsProblem object
-myProblem = capsProblem()
-
-# Load CSM file
-geometryScript = os.path.join("..","csmData","feaSimplePlate.csm")
-myProblem.loadCAPS(geometryScript, verbosity=args.outLevel)
-
 # Create project name
 projectName = "NastranOptMultiLoadPlate"
 
-# Load Nastran aim
-myMesh = myProblem.loadAIM(aim = "egadsTessAIM",
-                           analysisDir = os.path.join(str(args.workDir[0]), projectName))
+# Working directory
+workDir = os.path.join(str(args.workDir[0]), projectName)
 
-# Set project name so a mesh file is generated
-myMesh.setAnalysisVal("Proj_Name", projectName)
+# Initialize capsProblem object
+geometryScript = os.path.join("..","csmData","feaSimplePlate.csm")
+capsProblem = pyCAPS.Problem(problemName=workDir,
+                             capsFile=geometryScript,
+                             outLevel=args.outLevel)
+
+
+# Load egadsTess aim
+egads = capsProblem.analysis.create(aim = "egadsTessAIM")
 
 # Set meshing parameters
-myMesh.setAnalysisVal("Edge_Point_Max", 5)
-myMesh.setAnalysisVal("Edge_Point_Min", 5)
+egads.input.Edge_Point_Max = 5
+egads.input.Edge_Point_Min = 5
 
-myMesh.setAnalysisVal("Mesh_Elements", "Quad")
+egads.input.Mesh_Elements = "Quad"
 
-myMesh.setAnalysisVal("Tess_Params", [.25,.01,15])
-
-# Generate mesh
-myMesh.preAnalysis()
-myMesh.postAnalysis()
+egads.input.Tess_Params = [.25,.01,15]
 
 # Load Nastran aim
-myAnalysis = myProblem.loadAIM(aim = "nastranAIM",
-                               parents = myMesh.aimName,
-                               analysisDir = os.path.join(str(args.workDir[0]), projectName))
+nastran = capsProblem.analysis.create(aim = "nastranAIM")
 
-myAnalysis.setAnalysisVal("File_Format", "Free")
+nastran.input["Mesh"].link(egads.output["Surface_Mesh"])
 
-myAnalysis.setAnalysisVal("Mesh_File_Format", "Large")
+nastran.input.File_Format = "Free"
+
+nastran.input.Mesh_File_Format = "Large"
 
 # Set analysis type
-myAnalysis.setAnalysisVal("Analysis_Type", "StaticOpt");
+nastran.input.Analysis_Type = "StaticOpt";
 
 # Set materials
 madeupium    = {"materialType" : "isotropic",
@@ -67,7 +61,7 @@ madeupium    = {"materialType" : "isotropic",
                 "yieldAllow" : 1E7}
 
 
-myAnalysis.setAnalysisVal("Material", ("Madeupium", madeupium))
+nastran.input.Material = {"Madeupium": madeupium}
 
 # Set properties
 shell  = {"propertyType" : "Shell",
@@ -76,13 +70,13 @@ shell  = {"propertyType" : "Shell",
           "bendingInertiaRatio" : 1.0, # Default
           "shearMembraneRatio"  : 5.0/6.0} # Default
 
-myAnalysis.setAnalysisVal("Property", ("plate", shell))
+nastran.input.Property = {"plate": shell}
 
 # Set constraints
 constraint = {"groupName" : "plateEdge",
               "dofConstraint" : 123456}
 
-myAnalysis.setAnalysisVal("Constraint", ("edgeConstraint", constraint))
+nastran.input.Constraint = {"edgeConstraint": constraint}
 
 # Create multiple loads
 numLoad = 2
@@ -103,27 +97,33 @@ for i in range(numLoad):
     loads.append( loadElement)
 
 # Set loads
-myAnalysis.setAnalysisVal("Load", loads)
+nastran.input.Load = dict(loads)
 
 # Set design variables and analysis - design variable relation
-materialDV = {"groupName" : "madeupium",
-              "designVariableType" : "Material",
-              "initialValue"  : madeupium["youngModulus"],
+materialDV = {"initialValue"  : madeupium["youngModulus"],
               "discreteValue" : [madeupium["youngModulus"]*.5,
                                  madeupium["youngModulus"]*1.0,
-                                 madeupium["youngModulus"]*1.5],
-              "fieldName" : "E"}
+                                 madeupium["youngModulus"]*1.5]}
+materialDVR = {"componentType": "Material",
+               "componentName": "madeupium",
+               "variableName": "propertyDV",
+               "fieldName" : "E"}
 
-propertyDV = {"groupName" : "plate",
-              "initialValue" : shell["membraneThickness"],
+propertyDV = {"initialValue" : shell["membraneThickness"],
               "lowerBound" : shell["membraneThickness"]*0.5,
               "upperBound" : shell["membraneThickness"]*1.5,
-              "maxDelta"   : shell["membraneThickness"]*0.1,
-              "fieldName" : "T"}
+              "maxDelta"   : shell["membraneThickness"]*0.1}
+propertyDVR = {"componentType": "Property",
+               "componentName": "plate",
+               "variableName": "propertyDV",
+               "fieldName" : "T"}
+
 
 # Set design variable
-myAnalysis.setAnalysisVal("Design_Variable", [("youngModulus", materialDV),
-                                                                 ("membranethickness", propertyDV)])
+nastran.input.Design_Variable = {"materialDV": materialDV,
+                                 "propertyDV": propertyDV}
+nastran.input.Design_Variable_Relation = {"materialDVR": materialDVR,
+                                          "propertyDVR": propertyDVR}
 
 # Set design constraints and responses
 
@@ -139,8 +139,8 @@ designConstraint2 = {"groupName" : "plate",
 
 
 # Set design constraint
-myAnalysis.setAnalysisVal("Design_Constraint",[("stress1", designConstraint1),
-                                                                  ("stress2", designConstraint2)])
+nastran.input.Design_Constraint = {"stress1": designConstraint1,
+                                   "stress2": designConstraint2}
 
 # Create multiple analysis cases
 analysisCases = []
@@ -162,30 +162,27 @@ for i in range(numLoad):
     analysisCases.append(analysisElement)
 
 # Set analysis
-myAnalysis.setAnalysisVal("Analysis", analysisCases)
+nastran.input.Analysis = dict(analysisCases)
 
-myAnalysis.setAnalysisVal("ObjectiveMinMax", "Min")
-myAnalysis.setAnalysisVal("ObjectiveResponseType",  "WEIGHT")
+nastran.input.Objective_Min_Max = "Min"
+nastran.input.Objective_Response_Type =  "WEIGHT"
 
 
 # Run AIM pre-analysis
-myAnalysis.preAnalysis()
+nastran.preAnalysis()
 
 ####### Run Nastran ####################
 print ("\n\nRunning Nastran......")
-currentDirectory = os.getcwd() # Get our current working directory
 
-os.chdir(myAnalysis.analysisDir) # Move into test directory
+if args.noAnalysis == False:
+    nastran.system("nastran old=no notify=no batch=no scr=yes sdirectory=./ " + nastran.input.Proj_Name + ".dat"); # Run Nastran via system call
+else:
+    # Copy old results if no analysis available
+    shutil.copy2(os.path.join("..","analysisData","nastran",projectName+".f06"), 
+                 os.path.join(nastran.analysisDir,nastran.input.Proj_Name+".f06"))
 
-os.system("nastran old=no notify=no batch=no scr=yes sdirectory=./ " + projectName +  ".dat"); # Run Nastran via system call
-#os.system("nastran.sh " + projectName +  ".dat"); # Run Nastran via system call
-
-os.chdir(currentDirectory) # Move back to working directory
 print ("Done running NASTRAN!")
 ######################################
 
 # Run AIM post-analysis
-myAnalysis.postAnalysis()
-
-# Close CAPS
-myProblem.closeCAPS()
+nastran.postAnalysis()

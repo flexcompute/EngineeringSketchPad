@@ -3,6 +3,7 @@ import pyCAPS
 
 # Import os module
 import os
+import shutil
 import argparse
 
 # Setup and read command line options. Please note that this isn't required for pyCAPS
@@ -23,17 +24,17 @@ workDir = os.path.join(str(args.workDir[0]), projectName)
 
 # Load CSM file
 geometryScript = os.path.join("..","csmData","feaAGARD445.csm")
-myProblem = pyCAPS.Problem(problemName=workDir,
+capsProblem = pyCAPS.Problem(problemName=workDir,
                            capsFile=geometryScript,
                            outLevel=args.outLevel)
 
 # Change the sweepAngle and span of the Geometry - Demo purposes
-#myProblem.geometry.despmtr.sweepAngle = 5 # From 45 to 5 degrees
-#myProblem.geometry.despmtr.semiSpan   = 5 # From 2.5 ft to 5 ft
+#capsProblem.geometry.despmtr.sweepAngle = 5 # From 45 to 5 degrees
+#capsProblem.geometry.despmtr.semiSpan   = 5 # From 2.5 ft to 5 ft
 
 # Meshing 
-myMesh = myProblem.analysis.create(aim = "egadsTessAIM", 
-                                   name = "egadsTess" )
+myMesh = capsProblem.analysis.create(aim = "egadsTessAIM", 
+                                     name = "egadsTess" )
  
 # Set meshing parameters
 myMesh.input.Edge_Point_Max = 10
@@ -44,20 +45,20 @@ myMesh.input.Mesh_Elements = "Quad"
 myMesh.input.Tess_Params = [.25,.01,15]
 
 # Load nastran aim
-myAnalysis = myProblem.analysis.create(aim = "nastranAIM",
+nastran = capsProblem.analysis.create(aim = "nastranAIM",
                                        name = "nastran")
 
 # Set mesh
-myAnalysis.input["Mesh"].link(myMesh.output["Surface_Mesh"])
+nastran.input["Mesh"].link(myMesh.output["Surface_Mesh"])
 
 # Set project name so a mesh file is generated
-myAnalysis.input.Proj_Name = projectName
+nastran.input.Proj_Name = projectName
 
 # Set meshing parameters
-myAnalysis.input.File_Format = "Free"
+nastran.input.File_Format = "Free"
 
 # Set analysis type
-myAnalysis.input.Analysis_Type = "Modal"
+nastran.input.Analysis_Type = "Modal"
 
 # Set analysis inputs
 eigen = { "extractionMethod"     : "MGIV", # "Lanczos",
@@ -68,7 +69,7 @@ eigen = { "extractionMethod"     : "MGIV", # "Lanczos",
           "lanczosMode"          : 2,  # Default - not necesssary
           "lanczosType"          : "DPB"} # Default - not necesssary
 
-myAnalysis.input.Analysis = {"EigenAnalysis": eigen}
+nastran.input.Analysis = {"EigenAnalysis": eigen}
 
 # Set materials
 mahogany    = {"materialType"        : "orthotropic",
@@ -80,7 +81,7 @@ mahogany    = {"materialType"        : "orthotropic",
                "shearModulusTrans2Z" : 0.00227E6,
                "density"             : 3.5742E-5}
 
-myAnalysis.input.Material = {"Mahogany": mahogany}
+nastran.input.Material = {"Mahogany": mahogany}
 
 # Set properties
 shell  = {"propertyType" : "Shell",
@@ -89,37 +90,37 @@ shell  = {"propertyType" : "Shell",
           "bendingInertiaRatio" : 1.0, # Default - not necesssary
           "shearMembraneRatio"  : 5.0/6.0} # Default - not necesssary
 
-myAnalysis.input.Property = {"yatesPlate": shell}
+nastran.input.Property = {"yatesPlate": shell}
 
 # Set constraints
 constraint = {"groupName" : "constEdge",
               "dofConstraint" : 123456}
 
-myAnalysis.input.Constraint = {"edgeConstraint": constraint}
+nastran.input.Constraint = {"edgeConstraint": constraint}
 
 # Run AIM pre-analysis
-myAnalysis.preAnalysis()
+nastran.preAnalysis()
 
 ####### Run Nastran ####################
 print ("\n\nRunning Nastran......")
-currentDirectory = os.getcwd() # Get our current working directory
 
-os.chdir(myAnalysis.analysisDir) # Move into test directory
-
-if (args.noAnalysis == False):
+if args.noAnalysis == False:
     os.system("nastran old=no notify=no batch=no scr=yes sdirectory=./ " + projectName +  ".dat"); # Run Nastran via system call
+else:
+    # Copy old results if no analysis available
+    shutil.copy2(os.path.join("..","analysisData","nastran",projectName+".f06"), 
+                 os.path.join(nastran.analysisDir,nastran.input.Proj_Name+".f06"))
 
-os.chdir(currentDirectory) # Move back to working directory
 
 print ("Done running Nastran!")
 ########################################
 
 # Run AIM post-analysis
-myAnalysis.postAnalysis()
+nastran.postAnalysis()
 
 # Get Eigen-frequencies
 print ("\nGetting results natural frequencies.....")
-natrualFreq = myAnalysis.output.EigenFrequency
+natrualFreq = nastran.output.EigenFrequency
 
 for mode, i in enumerate(natrualFreq):
     print ("Natural freq (Mode {:d}) = ".format(mode) + '{:.2f} '.format(i) + "(Hz)")

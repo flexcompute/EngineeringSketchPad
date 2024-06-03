@@ -1,0 +1,898 @@
+1
+ 
+ 
+ 
+ 
+                      Warning: This computer program is protected by copyright law and international treaties.       
+                  Unauthorized use, reproduction or distribution of this computer program, or any portion of it, may 
+                                          result in severe civil and criminal penalties.                             
+                         Copyright (C) 2021 MSC Software Corporation and its licensors. All rights reserved.         
+ 
+ 
+                                              * * * * * * * * * * * * * * * * * * * *
+                                              * * * * * * * * * * * * * * * * * * * *
+                                              * *                                 * *
+                                              * *           MSC Software          * *
+                                              * *               CORP              * *
+                                              * *                                 * *
+                                              * *      M S C   N a s t r a n      * *
+                                              * *                                 * *
+                                              * *                                 * *
+                                              * *                                 * *
+                                              * *     Version 2021.3-CL837441     * *
+                                              * *                                 * *
+                                              * *                                 * *
+                                              * *                                 * *
+                                              * *          SEP 15, 2021           * *
+                                              * *                                 * *
+                                              * *       x86-64 Based System       * *
+                                              * *MODEL Intel 2100 MHz (b0146w0030 * *
+                                              * *Linux 3.10.0-1160.114.2.el7.x86_ * *
+                                              * *Compiled for x8664 (SINGLE Mode) * *
+                                              * *                                 * *
+                                              * * * * * * * * * * * * * * * * * * * *
+                                              * * * * * * * * * * * * * * * * * * * *
+1News file - (Aug 24, 2021)
+  
+               Welcome to MSC Nastran 2021.3
+  
+  
+   MSC Nastran brings powerful new features and enhancements for engineering
+   solutions.
+  
+     MSC Nastran 2021.3 Features and Enhancements
+  
+     Dynamics
+      - Dynamic stiffness output for mechanical loading in direct and modal
+        frequency response (SOL 108 and SOL 111), design optimization
+        (SOL 200 analysis) and implicit nonlinear (SOL 400 linear)
+  
+     Results
+      - Relative displacement output for a grid, or set of grids with respect
+        to reference grid for linear statics, dynamics and nonlinear analysis
+  
+     RotorDynamics
+      - Output of rotordynamics rotor kinetic and potential energies to OP2, PCH
+        and H5 formats, via a new ROTSEKE Case Control entry, and which can be
+        sorted either rotor-wise of mode-wise (replaces previous ROTSEKE
+        parameter which is now deprecated)
+      - New capability to define spin speed for individual rotors available in
+        SOL 107, SOL 110, SOL 200 and SOL 400 (ANALYSIS = CEIG) – multiple RGYR
+        entries are allowed for individual rotors
+  
+     Fatigue
+      - Time domain performance improvements
+      - CAEfatigue Process Flow interface to facilitate analysis and results
+        postprocessing execution
+  
+     Nonlinear
+      - Enhanced contact projection algorithm at corners and on warped surfaces
+      - GLUEOUT option to separate normal and tangential glued contact force
+        output
+  
+     High Performance Computing
+      - SOL 400 element-loop (NLEMG) performance improvements
+      - Windows support for MUMPS solver in SOL 101
+      - Improved thread management for DMP/SMP combinations
+      - Support for CUDA 11 functionality (including NVIDIA Ampere GPU
+        architecture)
+  
+  
+  
+     Documentation
+     The complete documentation set is provided in a separate installer and
+     when installed is available at: MSC_DOC_DIR/doc/pdf_nastran directory.
+1    Where MSC_DOC_DIR is the directory where documentation was installed
+     This help set has cross references between documents, links to how-to
+     videos, and example files.
+  
+     Individual MSC Nastran documents are available for download from the
+       Simcompanion Website at:
+       http://simcompanion.mscsoftware.com/
+  
+     These documents were updated for the MSC Nastran 2021.3 Release
+  
+         1.  MSC Nastran 2021.3 Installation and Operations Guide
+         2.  MSC Nastran 2021.3 Quick Reference Guide
+         3.  MSC Nastran 2021.3 Release Guide
+         4.  MSC Nastran 2021.3 Linear Statics Analysis User's Guide
+         5.  MSC Nastran 2021.3 Dynamic Analysis User's Guide
+         6.  MSC Nastran 2021.3 Superelements User's Guide
+         7.  MSC Nastran 2021.3 Rotordynamics User's Guide
+         8.  MSC Nastran 2021.3 Demonstration Problems Manual
+         9.  MSC Nastran 2021.3 Nastran Embedded Fatigue User's Guide
+        10.  MSC Nastran 2021.3 Design Sensitivity and Optimization
+        11.  MSC Nastran 2021.3 Nonlinear User's Guide SOL 400
+        12.  MSC Nastran 2021.3 DMAP Programmer's Guide
+        13.  MSC Nastran 2021.3 High Performance Computing User's Guide
+        14.  MSC Nastran 2021.3 New Verification Manual
+        15.  MSC Nastran 2021.3 DEMATD Guide
+        16.  MSC Nastran 2021.3 Explicit Nonlinear (SOL 700) User's Guide
+  
+   Please refer to  MSC_DOC_DIR/doc/pdf_nastran/nastran_library.pdf
+   for the complete document set:
+  
+  
+     Feature Deprecation List
+     To streamline the MSC Nastran program and simplify ongoing maintenance
+     activiy, some obsolete capabilities have been identified and tagged for
+     removal from a future release of the program in 2021 and 2022.
+     Please review the list of features marked for deprecation below to
+     ensure that there will be no disruption to your use of MSC Nastran.
+     If you see a feature that you currently use and do not wish to lose,
+     contact MSC Technical Support to report it.
+  
+     Features tagged for removal:
+     - SOL 600 nonlinear solution sequence
+     - TAUCS solver
+     - Obsolete DMAP modules
+     - SSSALTERS
+  
+     Refer to the MSC Nastran 2021 Release Guide for more details.
+  
+  
+   Additional information about the release can be found at the MSC Nastran
+1  Product Support page: http://simcompanion.mscsoftware.com
+  
+   The support page provides links to these valuable information:
+      * A searchable Knowledge Base containing examples and answers to thousands
+        of frequently asked questions written by MSC Software subject-matter
+        experts.
+      * Peer-to-peer Discussion Forums enabling you to post questions for your
+        MSC Software products and receive answers from other users worldwide.
+      * A list of known issues with the product and any workarounds.
+      * Instructions on how to contact technical support
+      * A mechanism for sending us product feedback or enhancement requests.
+      * Hardware and software requirements.
+      * Examples and Tutorials
+      * and much more.
+  
+   For information on training, please visit our Training web site
+  
+      http://www.mscsoftware.com/Contents/Services/Training/
+  
+1                                                                               MAY  15, 2024  MSC Nastran  9/15/21   PAGE     1
+                                                                                                                                    
+0        N A S T R A N    F I L E    A N D    S Y S T E M    P A R A M E T E R    E C H O                                           
+0                                                                                                                                   
+                                                                                                                                    
+                                                                                                                                    
+     NASTRAN BUFFSIZE=32769 $(/USR/LOCAL/APPS/MSC/MSC_NASTRAN/2021.3/CONF/NAST20213RC
+     $ $(/USR/LOCAL/APPS/MSC/MSC_NASTRAN/2021.3/CONF/NAST20213RC[6])                 
+     $ $(/USR/LOCAL/APPS/MSC/MSC_NASTRAN/2021.3/CONF/NAST20213RC[14])                
+     $ END $(/USR/LOCAL/APPS/MSC/MSC_NASTRAN/2021.3/CONF/NAST20213RC[16])            
+1                                                                               MAY  15, 2024  MSC Nastran  9/15/21   PAGE     2
+                                                                                                                                    
+0        N A S T R A N    E X E C U T I V E    C O N T R O L    E C H O                                                             
+0                                                                                                                                   
+                                                                                                                                    
+                                                                                                                                    
+     ID CAPS GENERATED PROBLEM FOR NASTRAN                                                   
+     SOL 145                                                                                 
+     CEND                                                                                    
+1                                                                               MAY  15, 2024  MSC Nastran  9/15/21   PAGE     3
+                                                                                                                                    
+0                                                                                                                                   
+0                                        C A S E    C O N T R O L    E C H O                                                        
+                 COMMAND                                                                                                            
+                 COUNT                                                                                                              
+                  1                                                                                              
+                  2      LINE=10000                                                                              
+                  3      DISP (PRINT,PUNCH) = ALL                                                                
+                  4      STRE (PRINT,PUNCH) = ALL                                                                
+                  5      STRA (PRINT,PUNCH) = ALL                                                                
+                  6      SUBCASE 1                                                                               
+                  7          LABEL = FLUTTER                                                                     
+                  8          ANALYSIS = FLUTTER                                                                  
+                  9          SPC = 2                                                                             
+                 10          METHOD = 1                                                                          
+                 11          FMETHOD = 101                                                                       
+                 12          AESYMXY = ASYMMETRIC                                                                
+                 13          AESYMXZ = ANTISYMMETRIC                                                             
+                 14                                                                                              
+                 15      BEGIN BULK                                                                              
+1                                                                               MAY  15, 2024  MSC Nastran  9/15/21   PAGE     4
+                                                                                                                                    
+0                                                                                                                                   
+                                              I N P U T   B U L K   D A T A   E C H O                                               
+                 ENTRY                                                                                                              
+                 COUNT        .   1  ..   2  ..   3  ..   4  ..   5  ..   6  ..   7  ..   8  ..   9  ..  10  .                      
+                              $INCLUDE "./nastran_flutter_15degree.bdf"
+                              $END OF INCLUDE "./nastran_flutter_15degree.bdf"
+1                                                                               MAY  15, 2024  MSC Nastran  9/15/21   PAGE     5
+                                                                                                                                    
+0                                                                                                                                   
+                                                  S O R T E D   B U L K   D A T A   E C H O                                         
+                 ENTRY                                                                                                              
+                 COUNT        .   1  ..   2  ..   3  ..   4  ..   5  ..   6  ..   7  ..   8  ..   9  ..  10  .                      
+                    1-        AERO    0       1.      2.07055 1.
+                    2-        CAERO1  10000   10000   0       6       4                       1       +
+                    3-        +       0.      0.      0.      2.07055 1.4804455.5250960.      2.07055
+                    4-        CQUAD4  1       1       1       2       19      18
+                    5-        CQUAD4  2       1       2       3       4       19
+                    6-        CQUAD4  3       1       18      19      20      17
+                    7-        CQUAD4  4       1       19      4       5       20
+                    8-        CQUAD4  5       1       17      20      21      16
+                    9-        CQUAD4  6       1       20      5       6       21
+                   10-        CQUAD4  7       1       16      21      22      15
+                   11-        CQUAD4  8       1       21      6       7       22
+                   12-        CQUAD4  9       1       15      22      23      14
+                   13-        CQUAD4  10      1       22      7       8       23
+                   14-        CQUAD4  11      1       14      23      24      13
+                   15-        CQUAD4  12      1       23      8       9       24
+                   16-        CQUAD4  13      1       13      24      11      12
+                   17-        CQUAD4  14      1       24      9       10      11
+                   18-        CQUAD4  15      2       3       25      45      4
+                   19-        CQUAD4  16      2       25      26      46      45
+                   20-        CQUAD4  17      2       26      27      47      46
+                   21-        CQUAD4  18      2       27      28      48      47
+                   22-        CQUAD4  19      2       28      29      49      48
+                   23-        CQUAD4  20      2       29      30      50      49
+                   24-        CQUAD4  21      2       30      31      32      50
+                   25-        CQUAD4  22      2       4       45      51      5
+                   26-        CQUAD4  23      2       45      46      52      51
+                   27-        CQUAD4  24      2       46      47      53      52
+                   28-        CQUAD4  25      2       47      48      54      53
+                   29-        CQUAD4  26      2       48      49      55      54
+                   30-        CQUAD4  27      2       49      50      56      55
+                   31-        CQUAD4  28      2       50      32      33      56
+                   32-        CQUAD4  29      2       5       51      57      6
+                   33-        CQUAD4  30      2       51      52      58      57
+                   34-        CQUAD4  31      2       52      53      59      58
+                   35-        CQUAD4  32      2       53      54      60      59
+                   36-        CQUAD4  33      2       54      55      61      60
+                   37-        CQUAD4  34      2       55      56      62      61
+                   38-        CQUAD4  35      2       56      33      34      62
+                   39-        CQUAD4  36      2       6       57      63      7
+                   40-        CQUAD4  37      2       57      58      64      63
+                   41-        CQUAD4  38      2       58      59      65      64
+                   42-        CQUAD4  39      2       59      60      66      65
+                   43-        CQUAD4  40      2       60      61      67      66
+                   44-        CQUAD4  41      2       61      62      68      67
+                   45-        CQUAD4  42      2       62      34      35      68
+                   46-        CQUAD4  43      2       7       63      69      8
+                   47-        CQUAD4  44      2       63      64      70      69
+                   48-        CQUAD4  45      2       64      65      71      70
+                   49-        CQUAD4  46      2       65      66      72      71
+                   50-        CQUAD4  47      2       66      67      73      72
+                   51-        CQUAD4  48      2       67      68      74      73
+                   52-        CQUAD4  49      2       68      35      36      74
+                   53-        CQUAD4  50      2       8       69      75      9
+                   54-        CQUAD4  51      2       69      70      76      75
+                   55-        CQUAD4  52      2       70      71      77      76
+                   56-        CQUAD4  53      2       71      72      78      77
+                   57-        CQUAD4  54      2       72      73      79      78
+                   58-        CQUAD4  55      2       73      74      80      79
+                   59-        CQUAD4  56      2       74      36      37      80
+                   60-        CQUAD4  57      2       9       75      44      10
+                   61-        CQUAD4  58      2       75      76      43      44
+                   62-        CQUAD4  59      2       76      77      42      43
+                   63-        CQUAD4  60      2       77      78      41      42
+                   64-        CQUAD4  61      2       78      79      40      41
+                   65-        CQUAD4  62      2       79      80      39      40
+                   66-        CQUAD4  63      2       80      37      38      39
+                   67-        CQUAD4  64      1       31      81      91      32
+                   68-        CQUAD4  65      1       81      82      83      91
+                   69-        CQUAD4  66      1       32      91      92      33
+                   70-        CQUAD4  67      1       91      83      84      92
+                   71-        CQUAD4  68      1       33      92      93      34
+                   72-        CQUAD4  69      1       92      84      85      93
+                   73-        CQUAD4  70      1       34      93      94      35
+                   74-        CQUAD4  71      1       93      85      86      94
+                   75-        CQUAD4  72      1       35      94      95      36
+                   76-        CQUAD4  73      1       94      86      87      95
+                   77-        CQUAD4  74      1       36      95      96      37
+                   78-        CQUAD4  75      1       95      87      88      96
+                   79-        CQUAD4  76      1       37      96      90      38
+                   80-        CQUAD4  77      1       96      88      89      90
+                   81-        DMI     W2GJ    0       2       1       0               24      1
+                   82-        DMI     W2GJ    1       1       0.      0.      0.      0.      0.      +
+                   83-        +       0.      0.      0.      0.      0.      0.      0.      0.      +
+                   84-        +       0.      0.      0.      0.      0.      0.      0.      0.      +
+                   85-        +       0.      0.      0.
+                   86-        EIGRL   1       .1      300.    4                               MASS
+                   87-        FLFACT  11      1.0730-7
+                   88-        FLFACT  12      .45
+                   89-        FLFACT  13      595.21472976.0733422.4843868.8954315.3064761.7175208.128+
+                   90-        +       5654.5396100.95 6547.3616993.7727440.1837886.5948333.0058779.416+
+                   91-        +       9225.8279672.23810118.6510565.0611011.4711457.8811904.2959521.47
+                   92-        FLUTTER 101     PK      11      12      13      L       4
+                   93-        GRID    1               0.      0.      0.
+                   94-        GRID    2               .125    0.      0.
+                   95-        GRID    3               .25     0.      0.
+                   96-        GRID    4               .46149  .7893   -1E-16
+                   97-        GRID    5               .67298  1.5786  -1E-16
+                   98-        GRID    6               .88448  2.3679  -1E-16
+                   99-        GRID    7               1.09597 3.1572  -1E-16
+                  100-        GRID    8               1.30746 3.9465  -1E-16
+                  101-        GRID    9               1.51895 4.7358  -1E-16
+                  102-        GRID    10              1.73044 5.5251  0.
+                  103-        GRID    11              1.60544 5.5251  0.
+                  104-        GRID    12              1.48044 5.5251  0.
+                  105-        GRID    13              1.26895 4.7358  0.
+                  106-        GRID    14              1.05746 3.9465  0.
+                  107-        GRID    15              .84597  3.1572  0.
+                  108-        GRID    16              .63448  2.3679  0.
+                  109-        GRID    17              .42298  1.5786  0.
+                  110-        GRID    18              .21149  .7893   0.
+                  111-        GRID    19              .33649  .7893   0.
+                  112-        GRID    20              .54798  1.5786  0.
+                  113-        GRID    21              .75948  2.3679  0.
+                  114-        GRID    22              .97097  3.1572  0.
+                  115-        GRID    23              1.18246 3.9465  0.
+                  116-        GRID    24              1.39395 4.7358  0.
+                  117-        GRID    25              .47436  0.      0.
+                  118-        GRID    26              .69873  0.      0.
+                  119-        GRID    27              .92309  0.      0.
+                  120-        GRID    28              1.14746 0.      0.
+                  121-        GRID    29              1.37182 0.      0.
+                  122-        GRID    30              1.59619 0.      0.
+                  123-        GRID    31              1.82055 0.      0.
+                  124-        GRID    32              2.03204 .7893   -1E-16
+                  125-        GRID    33              2.24353 1.5786  -1E-16
+                  126-        GRID    34              2.45503 2.3679  -1E-16
+                  127-        GRID    35              2.66652 3.1572  -1E-16
+                  128-        GRID    36              2.87801 3.9465  -1E-16
+                  129-        GRID    37              3.0895  4.7358  -1E-16
+                  130-        GRID    38              3.30099 5.5251  0.
+                  131-        GRID    39              3.07663 5.5251  0.
+                  132-        GRID    40              2.85227 5.5251  0.
+                  133-        GRID    41              2.6279  5.5251  0.
+                  134-        GRID    42              2.40354 5.5251  0.
+                  135-        GRID    43              2.17917 5.5251  0.
+                  136-        GRID    44              1.95481 5.5251  0.
+                  137-        GRID    45              .68586  .7893   0.
+                  138-        GRID    46              .91022  .7893   0.
+                  139-        GRID    47              1.13458 .7893   0.
+                  140-        GRID    48              1.35895 .7893   0.
+                  141-        GRID    49              1.58331 .7893   0.
+                  142-        GRID    50              1.80768 .7893   0.
+                  143-        GRID    51              .89735  1.5786  0.
+                  144-        GRID    52              1.12171 1.5786  0.
+                  145-        GRID    53              1.34608 1.5786  0.
+                  146-        GRID    54              1.57044 1.5786  0.
+                  147-        GRID    55              1.79481 1.5786  0.
+                  148-        GRID    56              2.01917 1.5786  0.
+                  149-        GRID    57              1.10884 2.3679  0.
+                  150-        GRID    58              1.3332  2.3679  0.
+                  151-        GRID    59              1.55757 2.3679  0.
+                  152-        GRID    60              1.78193 2.3679  0.
+                  153-        GRID    61              2.0063  2.3679  0.
+                  154-        GRID    62              2.23066 2.3679  0.
+                  155-        GRID    63              1.32033 3.1572  0.
+                  156-        GRID    64              1.5447  3.1572  0.
+                  157-        GRID    65              1.76906 3.1572  0.
+                  158-        GRID    66              1.99343 3.1572  0.
+                  159-        GRID    67              2.21779 3.1572  0.
+                  160-        GRID    68              2.44215 3.1572  0.
+                  161-        GRID    69              1.53182 3.9465  0.
+                  162-        GRID    70              1.75619 3.9465  0.
+                  163-        GRID    71              1.98055 3.9465  0.
+                  164-        GRID    72              2.20492 3.9465  0.
+                  165-        GRID    73              2.42928 3.9465  0.
+                  166-        GRID    74              2.65365 3.9465  0.
+                  167-        GRID    75              1.74332 4.7358  0.
+                  168-        GRID    76              1.96768 4.7358  0.
+                  169-        GRID    77              2.19205 4.7358  0.
+                  170-        GRID    78              2.41641 4.7358  0.
+                  171-        GRID    79              2.64077 4.7358  0.
+                  172-        GRID    80              2.86514 4.7358  0.
+                  173-        GRID    81              1.94555 0.      0.
+                  174-        GRID    82              2.07055 0.      0.
+                  175-        GRID    83              2.28204 .7893   0.
+                  176-        GRID    84              2.49353 1.5786  0.
+                  177-        GRID    85              2.70503 2.3679  0.
+                  178-        GRID    86              2.91652 3.1572  0.
+                  179-        GRID    87              3.12801 3.9465  0.
+                  180-        GRID    88              3.3395  4.7358  0.
+                  181-        GRID    89              3.55099 5.5251  0.
+                  182-        GRID    90              3.42599 5.5251  0.
+                  183-        GRID    91              2.15704 .7893   0.
+                  184-        GRID    92              2.36853 1.5786  0.
+                  185-        GRID    93              2.58003 2.3679  0.
+                  186-        GRID    94              2.79152 3.1572  0.
+                  187-        GRID    95              3.00301 3.9465  0.
+                  188-        GRID    96              3.2145  4.7358  0.
+                  189-        GRID    97              1.03527 0.      0.
+                  190-        MAT1    1       9241800.        .320521 .1                              +
+                  191-        +       0.      0.      0.
+                  192-        MKAERO1 .45                                                             +
+                  193-        +       .001    .1      .12     .14     .16     .2
+                  194-        PAERO1  10000
+                  195-        PARAM*  AUNITS          0.0025901                                       +
+                  196-        *
+                  197-        PARAM   COUPMASS1
+                  198-        PARAM   GRDPNT  0
+                  199-        PARAM   POST    -1
+                  200-        PARAM   VREF    12.0
+                  201-        PARAM*  WTMASS          0.0025901                                       +
+                  202-        *
+                  203-        PSHELL  1       1       .0205   1       1.      1       .833333
+                  204-        PSHELL  2       1       .041    1       1.      1       .833333
+                  205-        RBE2    79      97      123456  3
+                  206-        RBE2    80      97      123456  25
+                  207-        RBE2    81      97      123456  26
+                  208-        RBE2    82      97      123456  27
+                  209-        RBE2    83      97      123456  28
+                  210-        RBE2    84      97      123456  29
+                  211-        RBE2    85      97      123456  30
+                  212-        RBE2    86      97      123456  31
+                  213-        SET1    10000   1       2       3       4       5       6       7       +
+                  214-        +       8       9       10      11      12      13      14      15      +
+                  215-        +       16      17      18      19      20      21      22      23      +
+                  216-        +       24      25      26      27      28      29      30      31      +
+                  217-        +       32      33      34      35      36      37      38      39      +
+                  218-        +       40      41      42      43      44      45      46      47      +
+                  219-        +       48      49      50      51      52      53      54      55      +
+                  220-        +       56      57      58      59      60      61      62      63      +
+                  221-        +       64      65      66      67      68      69      70      71      +
+                  222-        +       72      73      74      75      76      77      78      79      +
+                  223-        +       80      81      82      83      84      85      86      87      +
+                  224-        +       88      89      90      91      92      93      94      95      +
+                  225-        +       96
+                  226-        SPC1    1       123456  97
+                  227-        SPCADD  2       1
+                  228-        SPLINE1 10000   10000   10000   10023   10000
+                              ENDDATA
+                        TOTAL COUNT= 229
+                              INPUT BULK DATA ENTRY COUNT = 234
+1                                                                               MAY  15, 2024  MSC Nastran  9/15/21   PAGE     6
+                                                                                                                                    
+0                                                                                                                                   
+                                        M O D E L   S U M M A R Y          BULK = 0
+                                   ENTRY NAME        NUMBER OF ENTRIES
+                                   ----------        -----------------
+                                         AERO                        1
+                                       CAERO1                        1
+                                       CQUAD4                       77
+                                          DMI                        2
+                                        EIGRL                        1
+                                       FLFACT                        3
+                                      FLUTTER                        1
+                                         GRID                       97
+                                         MAT1                        1
+                                      MKAERO1                        1
+                                       PAERO1                        1
+                                        PARAM                        6
+                                       PSHELL                        2
+                                         RBE2                        8
+                                         SET1                        1
+                                         SPC1                        1
+                                       SPCADD                        1
+                                      SPLINE1                        1
+
+ 
+ ^^^     
+ ^^^ >>> IFP OPERATIONS COMPLETE <<< 
+ ^^^     
+ *** USER INFORMATION MESSAGE 4109 (OUTPX2)
+     THE LABEL IS XXXXXXXX FOR FORTRAN UNIT    12
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =          7 WORDS.)
+           (NUMBER OF FORTRAN RECORDS WRITTEN =          8 RECORDS.)
+                (TOTAL DATA WRITTEN FOR LABEL =         17 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK GEOM1X   WRITTEN ON FORTRAN UNIT    12 IN BINARY (LTLEND) FORMAT USING NDDL DESCRIPTION FOR GEOM168, TRL =
+                    101                 0                 0                 8                 0                 0                 0
+     NAME OF DATA BLOCK WRITTEN ON FORTRAN UNIT IS GEOM1   
+        (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =       65538 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =         779 WORDS.)
+           (NUMBER OF FORTRAN RECORDS WRITTEN =          20 RECORDS.)
+           (TOTAL DATA WRITTEN FOR DATA BLOCK =         810 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK GEOM2X   WRITTEN ON FORTRAN UNIT    12 IN BINARY (LTLEND) FORMAT USING NDDL DESCRIPTION FOR GEOM201, TRL =
+                    102                 0                 0                 0              8192                 0                 0
+     NAME OF DATA BLOCK WRITTEN ON FORTRAN UNIT IS GEOM2   
+        (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =       65538 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =        1081 WORDS.)
+           (NUMBER OF FORTRAN RECORDS WRITTEN =          20 RECORDS.)
+           (TOTAL DATA WRITTEN FOR DATA BLOCK =        1112 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK GEOM4X   WRITTEN ON FORTRAN UNIT    12 IN BINARY (LTLEND) FORMAT USING NDDL DESCRIPTION FOR GEOM4705, TRL =
+                    104                 0                 0                 0                96              2048                 0
+     NAME OF DATA BLOCK WRITTEN ON FORTRAN UNIT IS GEOM4   
+        (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =       65538 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =          43 WORDS.)
+           (NUMBER OF FORTRAN RECORDS WRITTEN =          30 RECORDS.)
+           (TOTAL DATA WRITTEN FOR DATA BLOCK =          96 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK EPTX     WRITTEN ON FORTRAN UNIT    12 IN BINARY (LTLEND) FORMAT USING NDDL DESCRIPTION FOR EPT01, TRL =
+                    105                 0               512                 0                 0                 0                 0
+     NAME OF DATA BLOCK WRITTEN ON FORTRAN UNIT IS EPT     
+        (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =       65538 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =          25 WORDS.)
+           (NUMBER OF FORTRAN RECORDS WRITTEN =          20 RECORDS.)
+           (TOTAL DATA WRITTEN FOR DATA BLOCK =          56 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK MPTS     WRITTEN ON FORTRAN UNIT    12 IN BINARY (LTLEND) FORMAT USING NDDL DESCRIPTION FOR MPT, TRL =
+                    101             32768                 0                 0                 0                 0                 0
+     NAME OF DATA BLOCK WRITTEN ON FORTRAN UNIT IS MPT     
+        (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =       65538 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =          15 WORDS.)
+           (NUMBER OF FORTRAN RECORDS WRITTEN =          20 RECORDS.)
+           (TOTAL DATA WRITTEN FOR DATA BLOCK =          46 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK DYNAMICS WRITTEN ON FORTRAN UNIT    12 IN BINARY (LTLEND) FORMAT USING NDDL DESCRIPTION FOR DYNAMICS, TRL =
+                    103               256                 0                 0                 0                 0                 0
+     NAME OF DATA BLOCK WRITTEN ON FORTRAN UNIT IS DYNAMICS
+        (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =       65538 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =          30 WORDS.)
+           (NUMBER OF FORTRAN RECORDS WRITTEN =          20 RECORDS.)
+           (TOTAL DATA WRITTEN FOR DATA BLOCK =          61 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK EDTS     WRITTEN ON FORTRAN UNIT    12 IN BINARY (LTLEND) FORMAT USING NDDL DESCRIPTION FOR EDT, TRL =
+                    105                 0                 7             42624                 0                 0                 0
+     NAME OF DATA BLOCK WRITTEN ON FORTRAN UNIT IS EDT     
+        (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =       65538 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =         101 WORDS.)
+           (NUMBER OF FORTRAN RECORDS WRITTEN =          55 RECORDS.)
+           (TOTAL DATA WRITTEN FOR DATA BLOCK =         282 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK CASESO   WRITTEN ON FORTRAN UNIT    12 IN BINARY (LTLEND) FORMAT USING NDDL DESCRIPTION FOR CASECC, TRL =
+                    101                 1                 1              1000                 0                 0                 0
+     NAME OF DATA BLOCK WRITTEN ON FORTRAN UNIT IS CASECC  
+        (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =       65538 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =        1000 WORDS.)
+           (NUMBER OF FORTRAN RECORDS WRITTEN =          15 RECORDS.)
+           (TOTAL DATA WRITTEN FOR DATA BLOCK =        1024 WORDS.)
+1                                                                               MAY  15, 2024  MSC Nastran  9/15/21   PAGE     7
+                                                                                                                                    
+0                                                                                                                                   
+                           O U T P U T   F R O M   G R I D   P O I N T   W E I G H T   G E N E R A T O R
+0                                                     REFERENCE POINT =        0
+                                                                M O
+                      *  4.124076E-02  8.093823E-18 -2.046301E-34  4.705740E-34 -5.569976E-19 -1.139296E-01 *
+                      *  8.093823E-18  4.124076E-02  3.519900E-34  5.569976E-19 -6.037589E-35  7.322281E-02 *
+                      * -2.046301E-34  3.519900E-34  4.124076E-02  1.139296E-01 -7.322281E-02 -4.002506E-34 *
+                      *  4.705740E-34  5.569976E-19  1.139296E-01  4.196485E-01 -2.303928E-01  9.889461E-19 *
+                      * -5.569976E-19 -6.037589E-35 -7.322281E-02 -2.303928E-01  1.495743E-01  1.538732E-18 *
+                      * -1.139296E-01  7.322281E-02 -4.002506E-34  9.889461E-19  1.538732E-18  5.692227E-01 *
+                                                                 S
+                                           *  1.000000E+00  0.000000E+00  0.000000E+00 *
+                                           *  0.000000E+00  1.000000E+00  0.000000E+00 *
+                                           *  0.000000E+00  0.000000E+00  1.000000E+00 *
+                               DIRECTION
+                          MASS AXIS SYSTEM (S)     MASS              X-C.G.        Y-C.G.        Z-C.G.
+                                  X            4.124076E-02      1.141041E-32  2.762550E+00 -1.350600E-17
+                                  Y            4.124076E-02      1.775496E+00 -1.463986E-33 -1.350600E-17
+                                  Z            4.124076E-02      1.775496E+00  2.762550E+00 -9.705221E-33
+                                                                I(S)
+                                           *  1.049121E-01  2.811107E-02  1.066758E-24 *
+                                           *  2.811107E-02  1.956742E-02  1.277139E-24 *
+                                           *  1.066758E-24  1.277139E-24  1.244795E-01 *
+                                                                I(Q)
+                                           *  1.133393E-01                             *
+                                           *                1.114024E-02               *
+                                           *                              1.244795E-01 *
+                                                                 Q
+                                           *  9.578839E-01  2.871558E-01  0.000000E+00 *
+                                           * -2.871558E-01  9.578839E-01  0.000000E+00 *
+                                           *  0.000000E+00  0.000000E+00  1.000000E+00 *
+
+1                                                                               MAY  15, 2024  MSC Nastran  9/15/21   PAGE     8
+                                                                                                                                    
+0                                                                                                                                   
+1                                                                               MAY  15, 2024  MSC Nastran  9/15/21   PAGE     9
+                                                                                                                                    
+0                                                                                                                                   
+0 RESULTANTS ABOUT ORIGIN OF SUPERELEMENT BASIC COORDINATE SYSTEM IN SUPERELEMENT BASIC SYSTEM COORDINATES.
+
+0                                                  OLOAD    RESULTANT       
+  SUBCASE/    LOAD
+  DAREA ID    TYPE       T1            T2            T3            R1            R2            R3
+0        1     FX    0.000000E+00     ----          ----          ----       0.000000E+00  0.000000E+00                             
+               FY       ----       0.000000E+00     ----       0.000000E+00     ----       0.000000E+00                             
+               FZ       ----          ----       0.000000E+00  0.000000E+00  0.000000E+00     ----                                  
+               MX       ----          ----          ----       0.000000E+00     ----          ----                                  
+               MY       ----          ----          ----          ----       0.000000E+00     ----                                  
+               MZ       ----          ----          ----          ----          ----       0.000000E+00                             
+             TOTALS  0.000000E+00  0.000000E+00  0.000000E+00  0.000000E+00  0.000000E+00  0.000000E+00
+  
+ *** SYSTEM INFORMATION MESSAGE 4159 (DFMSA)
+     THE DECOMPOSITION OF KLL      YIELDS A MAXIMUM MATRIX-TO-FACTOR-DIAGONAL RATIO OF    1.828828E+03
+ *** USER INFORMATION MESSAGE 5010 (LNCILS)
+     STURM SEQUENCE DATA FOR EIGENVALUE EXTRACTION.
+     TRIAL EIGENVALUE = 3.947842D-01, CYCLES = 1.000000D-01 THE STURM COUNT = 0
+ *** USER INFORMATION MESSAGE 5010 (LNCILS)
+     STURM SEQUENCE DATA FOR EIGENVALUE EXTRACTION.
+     TRIAL EIGENVALUE = 3.553058D+06, CYCLES = 3.000000D+02 THE STURM COUNT = 3
+
+ TABLE OF SHIFTS:  (LNNRIGL)
+ SHIFT #        SHIFT VALUE         FREQUENCY, CYCLES     # EIGENVALUES BELOW    # NEW EIGENVALUES FOUND
+     1.        3.9478418E-01          1.0000000E-01                 0                        0
+     2.        3.5530576E+06          3.0000000E+02                 3                        3
+
+1                                                                               MAY  15, 2024  MSC Nastran  9/15/21   PAGE    10
+                                                                                                                                    
+0     FLUTTER                                                                                                SUBCASE 1              
+0
+
+
+                          E I G E N V A L U E  A N A L Y S I S   S U M M A R Y   (READ MODULE) 
+
+
+
+                                     BLOCK SIZE USED ......................     6
+
+                                     NUMBER OF DECOMPOSITIONS .............     2
+
+                                     NUMBER OF ROOTS FOUND ................     3
+
+                                     NUMBER OF SOLVES REQUIRED ............     4
+
+1                                                                               MAY  15, 2024  MSC Nastran  9/15/21   PAGE    11
+                                                                                                                                    
+0     FLUTTER                                                                                                SUBCASE 1              
+ 
+                                              R E A L   E I G E N V A L U E S
+                                         (BEFORE AUGMENTATION OF RESIDUAL VECTORS)
+   MODE    EXTRACTION      EIGENVALUE            RADIANS             CYCLES            GENERALIZED         GENERALIZED
+    NO.       ORDER                                                                       MASS              STIFFNESS
+        1         1        5.502896E+04        2.345825E+02        3.733497E+01        1.000000E+00        5.502896E+04
+        2         2        1.924851E+06        1.387390E+03        2.208100E+02        1.000000E+00        1.924851E+06
+        3         3        2.488619E+06        1.577536E+03        2.510726E+02        1.000000E+00        2.488619E+06
+ *** USER INFORMATION MESSAGE 5458 (REIG)
+     QL HOUSEHOLDER METHOD IS AUTOMATICALLY SELECTED .
+ *** USER INFORMATION MESSAGE 5458 (REIG)
+     QL HOUSEHOLDER METHOD IS AUTOMATICALLY SELECTED .
+ *** USER INFORMATION MESSAGE 5458 (REIG)
+     QL HOUSEHOLDER METHOD IS AUTOMATICALLY SELECTED .
+1                                                                               MAY  15, 2024  MSC Nastran  9/15/21   PAGE    12
+                                                                                                                                    
+0     FLUTTER                                                                                                SUBCASE 1              
+ 
+                                              R E A L   E I G E N V A L U E S
+                                         (AFTER AUGMENTATION OF RESIDUAL VECTORS)
+   MODE    EXTRACTION      EIGENVALUE            RADIANS             CYCLES            GENERALIZED         GENERALIZED
+    NO.       ORDER                                                                       MASS              STIFFNESS
+        1         1        5.502896E+04        2.345825E+02        3.733497E+01        1.000000E+00        5.502896E+04
+        2         2        1.924851E+06        1.387390E+03        2.208100E+02        1.000000E+00        1.924851E+06
+        3         3        2.488619E+06        1.577536E+03        2.510726E+02        1.000000E+00        2.488619E+06
+        4         4        1.801328E+07        4.244205E+03        6.754862E+02        1.000000E+00        1.801328E+07
+        5         5        2.652538E+07        5.150279E+03        8.196924E+02        1.000000E+00        2.652538E+07
+        6         6        9.170778E+07        9.576418E+03        1.524134E+03        1.000000E+00        9.170778E+07
+        7         7        1.190018E+08        1.090879E+04        1.736188E+03        1.000000E+00        1.190018E+08
+        8         8        2.309077E+09        4.805285E+04        7.647849E+03        1.000000E+00        2.309077E+09
+        9         9        2.819619E+09        5.310009E+04        8.451142E+03        1.000000E+00        2.819619E+09
+
+
+ A ZERO FREQUENCY ROOT HAS EMERGED.  WHEN THE MACH NO., DENSITY AND VELOCITY ARE COMPATIBLE
+ IT MAY BE INTERPRETED TWO WAYS DEPENDING ON THE SIGN OF THE REAL PART:
+   1. (-) A MODE IS CRITICALLY DAMPED, OR,
+   2. (+) THE SYSTEM IS DIVERGING.
+ ONLY THE MOST CRITICAL ( I.E., MOST POSITIVE REAL ROOTS )  ARE PRINTED IN THE FLUTTER SUMMARY.
+ FOR INFORMATIONAL PURPOSES, THE REMAINING REAL ROOTS ARE PRINTED HERE.
+
+      LESS CRITICAL REAL ROOTS FOR LOOP   15      MACH        VELOCITY        DENSITY
+                                              4.50000E-01    8.77942E+03    1.07300E-07
+
+         KFREQ          DAMPING                 COMPLEX EIGENVALUE
+
+        0.0000     -3.0810428E-01       -9.0552116E+02        0.0000000E+00
+
+      LESS CRITICAL REAL ROOTS FOR LOOP   16      MACH        VELOCITY        DENSITY
+                                              4.50000E-01    9.22583E+03    1.07300E-07
+
+         KFREQ          DAMPING                 COMPLEX EIGENVALUE
+
+        0.0000     -3.5224499E-01       -1.0878910E+03        0.0000000E+00
+
+      LESS CRITICAL REAL ROOTS FOR LOOP   17      MACH        VELOCITY        DENSITY
+                                              4.50000E-01    9.67224E+03    1.07300E-07
+
+         KFREQ          DAMPING                 COMPLEX EIGENVALUE
+
+        0.0000     -3.8354183E-01       -1.2418666E+03        0.0000000E+00
+
+      LESS CRITICAL REAL ROOTS FOR LOOP   18      MACH        VELOCITY        DENSITY
+                                              4.50000E-01    1.01186E+04    1.07300E-07
+
+         KFREQ          DAMPING                 COMPLEX EIGENVALUE
+
+        0.0000     -4.0792025E-01       -1.3817615E+03        0.0000000E+00
+
+      LESS CRITICAL REAL ROOTS FOR LOOP   19      MACH        VELOCITY        DENSITY
+                                              4.50000E-01    1.05651E+04    1.07300E-07
+
+         KFREQ          DAMPING                 COMPLEX EIGENVALUE
+
+        0.0000     -4.2773971E-01       -1.5128183E+03        0.0000000E+00
+
+      LESS CRITICAL REAL ROOTS FOR LOOP   20      MACH        VELOCITY        DENSITY
+                                              4.50000E-01    1.10115E+04    1.07300E-07
+
+         KFREQ          DAMPING                 COMPLEX EIGENVALUE
+
+        0.0000     -4.4427493E-01       -1.6376925E+03        0.0000000E+00
+
+      LESS CRITICAL REAL ROOTS FOR LOOP   21      MACH        VELOCITY        DENSITY
+                                              4.50000E-01    1.14579E+04    1.07300E-07
+
+         KFREQ          DAMPING                 COMPLEX EIGENVALUE
+
+        0.0000     -4.5832040E-01       -1.7579588E+03        0.0000000E+00
+        0.0000     -8.0876039E-02       -3.1021256E+02        0.0000000E+00
+
+      LESS CRITICAL REAL ROOTS FOR LOOP   22      MACH        VELOCITY        DENSITY
+                                              4.50000E-01    1.19043E+04    1.07300E-07
+
+         KFREQ          DAMPING                 COMPLEX EIGENVALUE
+
+        0.0000     -4.7041424E-01       -1.8746457E+03        0.0000000E+00
+        0.0000     -7.7147245E-02       -3.0743914E+02        0.0000000E+00
+
+      LESS CRITICAL REAL ROOTS FOR LOOP   23      MACH        VELOCITY        DENSITY
+                                              4.50000E-01    5.95215E+04    1.07300E-07
+
+         KFREQ          DAMPING                 COMPLEX EIGENVALUE
+
+        0.0000     -6.1393648E-01       -1.2232982E+04        0.0000000E+00
+        0.0000     -4.6030235E-01       -9.1717473E+03        0.0000000E+00
+1                                                                               MAY  15, 2024  MSC Nastran  9/15/21   PAGE    13
+                                                                                                                                    
+0     FLUTTER                                                                                                SUBCASE 1              
+0                                                       FLUTTER  SUMMARY
+                         CONFIGURATION = AEROSG2D     XY-SYMMETRY = ASYMMETRIC     XZ-SYMMETRY = ANTISYMMETRIC
+       POINT =    1     MACH NUMBER =  0.4500     DENSITY RATIO =  1.0730E-07     METHOD = PK  
+
+
+       KFREQ            1./KFREQ         VELOCITY            DAMPING         FREQUENCY            COMPLEX   EIGENVALUE
+        0.4079       2.4517334E+00     4.9601225E+01    -3.9604036E-02     3.7321991E+01    -4.6435928E+00     2.3450099E+02
+        0.0901       1.1104499E+01     2.4800608E+02    -2.1652707E-01     4.1201120E+01    -2.8026643E+01     2.5887427E+02
+        0.0813       1.2299226E+01     2.8520700E+02    -2.5493250E-01     4.2778744E+01    -3.4261243E+01     2.6878678E+02
+        0.0753       1.3283252E+01     3.2240792E+02    -2.9681462E-01     4.4776170E+01    -4.1752463E+01     2.8133697E+02
+        0.0713       1.4018361E+01     3.5960883E+02    -3.4388551E-01     4.7323709E+01    -5.1126083E+01     2.9734363E+02
+        0.0692       1.4459723E+01     3.9680975E+02    -3.9934921E-01     5.0625346E+01    -6.3514181E+01     3.1808843E+02
+        0.0687       1.4553366E+01     4.3401067E+02    -4.7023638E-01     5.5015189E+01    -8.1273452E+01     3.4567063E+02
+        0.0702       1.4246995E+01     4.7121158E+02    -5.7606595E-01     6.1015242E+01    -1.1042322E+02     3.8337007E+02
+        0.0730       1.3692757E+01     5.0841250E+02    -7.8656444E-01     6.8496908E+01    -1.6926032E+02     4.3037876E+02
+        0.0706       1.4155922E+01     5.4561342E+02    -1.2176771E+00     7.1103754E+01    -2.7200353E+02     4.4675806E+02
+        0.0613       1.6309979E+01     5.8281433E+02    -1.7959646E+00     6.5920799E+01    -3.7193763E+02     4.1419260E+02
+        0.0493       2.0283028E+01     6.2001525E+02    -2.5829446E+00     5.6391705E+01    -4.5759386E+02     3.5431953E+02
+        0.0349       2.8627852E+01     6.5721617E+02    -4.0130858E+00     4.2351142E+01    -5.3394121E+02     2.6610007E+02
+        0.0126       7.9575361E+01     6.9441708E+02    -1.1947316E+01     1.6098575E+01    -6.0423745E+02     1.0115033E+02
+        0.0000       1.0000000E+25     7.3161800E+02    -1.4870381E-01     0.0000000E+00    -4.3704177E+02     0.0000000E+00
+        0.0000       1.0000000E+25     7.6881892E+02    -1.2415904E-01     0.0000000E+00    -3.8345896E+02     0.0000000E+00
+        0.0000       1.0000000E+25     8.0601983E+02    -1.0935095E-01     0.0000000E+00    -3.5406645E+02     0.0000000E+00
+        0.0000       1.0000000E+25     8.4322083E+02    -9.9054608E-02     0.0000000E+00    -3.3553088E+02     0.0000000E+00
+        0.0000       1.0000000E+25     8.8042167E+02    -9.1413431E-02     0.0000000E+00    -3.2330857E+02     0.0000000E+00
+        0.0000       1.0000000E+25     9.1762250E+02    -8.5524758E-02     0.0000000E+00    -3.1526256E+02     0.0000000E+00
+        0.0000       1.0000000E+25     9.5482333E+02     1.6379186E-01     0.0000000E+00     6.2824902E+02     0.0000000E+00
+        0.0000       1.0000000E+25     9.9202417E+02     1.3984992E-01     0.0000000E+00     5.5731529E+02     0.0000000E+00
+        0.0000       1.0000000E+25     4.9601225E+03     4.0409002E-01     0.0000000E+00     8.0516893E+03     0.0000000E+00
+1                                                                               MAY  15, 2024  MSC Nastran  9/15/21   PAGE    14
+                                                                                                                                    
+0     FLUTTER                                                                                                SUBCASE 1              
+0                                                       FLUTTER  SUMMARY
+                         CONFIGURATION = AEROSG2D     XY-SYMMETRY = ASYMMETRIC     XZ-SYMMETRY = ANTISYMMETRIC
+       POINT =    2     MACH NUMBER =  0.4500     DENSITY RATIO =  1.0730E-07     METHOD = PK  
+
+
+       KFREQ            1./KFREQ         VELOCITY            DAMPING         FREQUENCY            COMPLEX   EIGENVALUE
+        2.4070       4.1545311E-01     4.9601225E+01     1.4711314E-03     2.2025006E+02     1.0179288E+00     1.3838719E+03
+        0.4477       2.2337452E+00     2.4800608E+02    -3.3260870E-02     2.0482093E+02    -2.1402171E+01     1.2869279E+03
+        0.3783       2.6436688E+00     2.8520700E+02    -3.9697613E-02     1.9902095E+02    -2.4820644E+01     1.2504855E+03
+        0.3229       3.0972144E+00     3.2240792E+02    -4.5138924E-02     1.9203486E+02    -2.7232101E+01     1.2065906E+03
+        0.2769       3.6117837E+00     3.5960883E+02    -4.8475047E-02     1.8367678E+02    -2.7971926E+01     1.1540753E+03
+        0.2372       4.2149698E+00     3.9680975E+02    -4.7448372E-02     1.7367349E+02    -2.5888370E+01     1.0912227E+03
+        0.2018       4.9546295E+00     4.3401067E+02    -3.6687335E-02     1.6159759E+02    -1.8625199E+01     1.0153476E+03
+        0.1689       5.9220591E+00     4.7121158E+02    -2.8987344E-04     1.4678743E+02    -1.3367407E-01     9.2229263E+02
+        0.1377       7.2625300E+00     5.0841250E+02     1.1935217E-01     1.2914391E+02     4.8423269E+01     8.1143512E+02
+        0.1143       8.7504973E+00     5.4561342E+02     3.9490709E-01     1.1502651E+02     1.4270617E+02     7.2273290E+02
+        0.0996       1.0039230E+01     5.8281433E+02     6.9586085E-01     1.0709654E+02     2.3412497E+02     6.7290743E+02
+        0.0883       1.1326463E+01     6.2001525E+02     9.8057217E-01     1.0098427E+02     3.1108793E+02     6.3450288E+02
+        0.0785       1.2742286E+01     6.5721617E+02     1.2671821E+00     9.5149506E+01     3.7878734E+02     5.9784198E+02
+        0.0695       1.4381332E+01     6.9441708E+02     1.5742610E+00     8.9077275E+01     4.4054831E+02     5.5968903E+02
+        0.0611       1.6362289E+01     7.3161800E+02     1.9226907E+00     8.2487087E+01     4.9824766E+02     5.1828165E+02
+        0.0530       1.8877818E+01     7.6881892E+02     2.3430054E+00     7.5130785E+01     5.5302033E+02     4.7206064E+02
+        0.0449       2.2295586E+01     8.0601983E+02     2.8904381E+00     6.6691808E+01     6.0560023E+02     4.1903699E+02
+        0.0364       2.7460174E+01     8.4322083E+02     3.6888806E+00     5.6647884E+01     6.5649007E+02     3.5592915E+02
+        0.0270       3.7013015E+01     8.8042167E+02     5.1215771E+00     4.3881545E+01     7.0605006E+02     2.7571588E+02
+        0.0144       6.9334213E+01     9.1762250E+02     9.8373091E+00     2.4415303E+01     7.5455049E+02     1.5340587E+02
+        0.0000       1.0000000E+25     9.5482333E+02     2.5460070E-01     0.0000000E+00     9.7656040E+02     0.0000000E+00
+        0.0000       1.0000000E+25     9.9202417E+02     2.8660596E-01     0.0000000E+00     1.1421521E+03     0.0000000E+00
+        0.0000       1.0000000E+25     4.9601225E+03     4.7954796E-01     0.0000000E+00     9.5552255E+03     0.0000000E+00
+1                                                                               MAY  15, 2024  MSC Nastran  9/15/21   PAGE    15
+                                                                                                                                    
+0     FLUTTER                                                                                                SUBCASE 1              
+0                                                       FLUTTER  SUMMARY
+                         CONFIGURATION = AEROSG2D     XY-SYMMETRY = ASYMMETRIC     XZ-SYMMETRY = ANTISYMMETRIC
+       POINT =    3     MACH NUMBER =  0.4500     DENSITY RATIO =  1.0730E-07     METHOD = PK  
+
+
+       KFREQ            1./KFREQ         VELOCITY            DAMPING         FREQUENCY            COMPLEX   EIGENVALUE
+        2.7418       3.6472034E-01     4.9601225E+01    -6.3940547E-03     2.5088695E+02    -5.0396954E+00     1.5763692E+03
+        0.5466       1.8294129E+00     2.4800608E+02    -3.1444266E-02     2.5008996E+02    -2.4705156E+01     1.5713616E+03
+        0.4753       2.1037367E+00     2.8520700E+02    -3.5049156E-02     2.5010044E+02    -2.7538602E+01     1.5714274E+03
+        0.4207       2.3772104E+00     3.2240792E+02    -3.8447701E-02     2.5019794E+02    -3.0220662E+01     1.5720400E+03
+        0.3774       2.6495131E+00     3.5960883E+02    -4.1712259E-02     2.5038593E+02    -3.2811305E+01     1.5732212E+03
+        0.3424       2.9203515E+00     3.9680975E+02    -4.4901206E-02     2.5066451E+02    -3.5359062E+01     1.5749716E+03
+        0.3135       3.1894597E+00     4.3401067E+02    -4.8058231E-02     2.5103191E+02    -3.7900643E+01     1.5772800E+03
+        0.2893       3.4565454E+00     4.7121158E+02    -5.1214235E-02     2.5148920E+02    -4.0463170E+01     1.5801533E+03
+        0.2687       3.7214584E+00     5.0841250E+02    -5.4391500E-02     2.5202795E+02    -4.3065512E+01     1.5835383E+03
+        0.2510       3.9839496E+00     5.4561342E+02    -5.7605040E-02     2.5264858E+02    -4.5722210E+01     1.5874378E+03
+        0.2356       4.2438148E+00     5.8281433E+02    -6.0865796E-02     2.5334915E+02    -4.8444295E+01     1.5918397E+03
+        0.2222       4.5008605E+00     6.2001525E+02    -6.4182133E-02     2.5412797E+02    -5.1240869E+01     1.5967331E+03
+        0.2103       4.7548983E+00     6.5721617E+02    -6.7561017E-02     2.5498384E+02    -5.4120115E+01     1.6021107E+03
+        0.1998       5.0057432E+00     6.9441708E+02    -7.1008864E-02     2.5591602E+02    -5.7089984E+01     1.6079678E+03
+        0.1904       5.2532216E+00     7.3161800E+02    -7.4532256E-02     2.5692379E+02    -6.0158701E+01     1.6142998E+03
+        0.1819       5.4971961E+00     7.6881892E+02    -7.8138720E-02     2.5800521E+02    -6.3335127E+01     1.6210946E+03
+        0.1743       5.7375365E+00     8.0601983E+02    -8.1836749E-02     2.5915877E+02    -6.6629132E+01     1.6283426E+03
+        0.1674       5.9741079E+00     8.4322083E+02    -8.5636006E-02     2.6038377E+02    -7.0051944E+01     1.6360395E+03
+        0.1611       6.2067664E+00     8.8042167E+02    -8.9547582E-02     2.6168027E+02    -7.3616423E+01     1.6441856E+03
+        0.1554       6.4353598E+00     9.1762250E+02    -9.3584361E-02     2.6304913E+02    -7.7337481E+01     1.6527864E+03
+        0.1502       6.6596996E+00     9.5482333E+02    -9.7761044E-02     2.6449291E+02    -8.1232485E+01     1.6618580E+03
+        0.1454       6.8798940E+00     9.9202417E+02    -1.0209787E-01     2.6600277E+02    -8.5320368E+01     1.6713447E+03
+        0.0478       2.0941567E+01     4.9601225E+03    -1.7035679E-02     4.3694712E+02    -2.3385045E+01     2.7454197E+03
+1                                                                               MAY  15, 2024  MSC Nastran  9/15/21   PAGE    16
+                                                                                                                                    
+0     FLUTTER                                                                                                SUBCASE 1              
+0                                                       FLUTTER  SUMMARY
+                         CONFIGURATION = AEROSG2D     XY-SYMMETRY = ASYMMETRIC     XZ-SYMMETRY = ANTISYMMETRIC
+       POINT =    4     MACH NUMBER =  0.4500     DENSITY RATIO =  1.0730E-07     METHOD = PK  
+
+
+       KFREQ            1./KFREQ         VELOCITY            DAMPING         FREQUENCY            COMPLEX   EIGENVALUE
+        7.3790       1.3551983E-01     4.9601225E+01    -8.7201945E-04     6.7520429E+02    -1.8497423E+00     4.2424337E+03
+        1.4688       6.8085094E-01     2.4800608E+02    -4.4717857E-03     6.7197937E+02    -9.4403219E+00     4.2221709E+03
+        1.2753       7.8414302E-01     2.8520700E+02    -5.1561935E-03     6.7098150E+02    -1.0869001E+01     4.2159011E+03
+        1.1262       8.8791873E-01     3.2240792E+02    -5.8444525E-03     6.6985087E+02    -1.2299058E+01     4.2087972E+03
+        1.0078       9.9225147E-01     3.5960883E+02    -6.5368969E-03     6.6858134E+02    -1.3730165E+01     4.2008205E+03
+        0.9114       1.0972182E+00     3.9680975E+02    -7.2337999E-03     6.6716768E+02    -1.5161821E+01     4.1919381E+03
+        0.8313       1.2029024E+00     4.3401067E+02    -7.9353615E-03     6.6560359E+02    -1.6593280E+01     4.1821107E+03
+        0.7637       1.3093947E+00     4.7121158E+02    -8.6416687E-03     6.6388221E+02    -1.8023475E+01     4.1712950E+03
+        0.7058       1.4167931E+00     5.0841250E+02    -9.3526506E-03     6.6199612E+02    -1.9450915E+01     4.1594443E+03
+        0.6556       1.5252041E+00     5.4561342E+02    -1.0068023E-02     6.5993737E+02    -2.0873574E+01     4.1465088E+03
+        0.6117       1.6347437E+00     5.8281433E+02    -1.0787224E-02     6.5769751E+02    -2.2288754E+01     4.1324353E+03
+        0.5729       1.7455379E+00     6.2001525E+02    -1.1509336E-02     6.5526766E+02    -2.3692935E+01     4.1171681E+03
+        0.5383       1.8577241E+00     6.5721617E+02    -1.2232996E-02     6.5263847E+02    -2.5081609E+01     4.1006485E+03
+        0.5072       1.9714518E+00     6.9441708E+02    -1.2956301E-02     6.4980025E+02    -2.6449092E+01     4.0828154E+03
+        0.4792       2.0868842E+00     7.3161800E+02    -1.3676683E-02     6.4674291E+02    -2.7788323E+01     4.0636056E+03
+        0.4537       2.2041991E+00     7.6881892E+02    -1.4390791E-02     6.4345605E+02    -2.9090651E+01     4.0429536E+03
+        0.4304       2.3235907E+00     8.0601983E+02    -1.5094335E-02     6.3992895E+02    -3.0345592E+01     4.0207922E+03
+        0.4090       2.4452836E+00     8.4322083E+02    -1.5782224E-02     6.3614739E+02    -3.1541028E+01     3.9970320E+03
+        0.3892       2.5694858E+00     8.8042167E+02    -1.6447203E-02     6.3210634E+02    -3.2661196E+01     3.9716413E+03
+        0.3709       2.6964634E+00     9.1762250E+02    -1.7081306E-02     6.2779113E+02    -3.3688846E+01     3.9445280E+03
+        0.3538       2.8264955E+00     9.5482333E+02    -1.7674504E-02     6.2318986E+02    -3.4603298E+01     3.9156174E+03
+        0.3379       2.9598900E+00     9.9202417E+02    -1.8214591E-02     6.1829016E+02    -3.5380310E+01     3.8848316E+03
+        0.0153       6.5388478E+01     4.9601225E+03    -9.2702824E-02     1.3993837E+02    -4.0754884E+01     8.7925873E+02
+ *** USER INFORMATION MESSAGE 4110 (OUTPX2)
+                                 END-OF-DATA SIMULATION ON FORTRAN UNIT    12
+                                 (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =      1 WORDS.)
+                                       (NUMBER OF FORTRAN RECORDS WRITTEN =      1 RECORDS.)
+                                       (TOTAL DATA WRITTEN FOR EOF MARKER =      1 WORDS.)
+1                                                                               MAY  15, 2024  MSC Nastran  9/15/21   PAGE    17
+                                                                                                                                    
+0     FLUTTER                                                                                                SUBCASE 1              
+ * * * *  D B D I C T   P R I N T  * * * *      SUBDMAP = PRTSUM  ,  DMAP STATEMENT NO.     74
+
+
+
+0                                   * * * *  A N A L Y S I S  S U M M A R Y  T A B L E  * * * *
+0 SEID  PEID PROJ VERS APRCH      SEMG SEMR SEKR SELG SELR MODES DYNRED SOLLIN SOLNL LOOPID DESIGN CYCLE SENSITIVITY
+ -------------------------------------------------------------------------------------------------------------------
+     0     0    1    1 '        '    T    T    T    T    T     T      F      T     F     -1            0           F
+0SEID = SUPERELEMENT ID.
+ PEID = PRIMARY SUPERELEMENT ID OF IMAGE SUPERELEMENT.
+ PROJ = PROJECT ID NUMBER.
+ VERS = VERSION ID.
+ APRCH = BLANK FOR STRUCTURAL ANALYSIS.  HEAT FOR HEAT TRANSFER ANALYSIS.
+ SEMG = STIFFNESS AND MASS MATRIX GENERATION STEP.
+ SEMR = MASS MATRIX REDUCTION STEP (INCLUDES EIGENVALUE SOLUTION FOR MODES).
+ SEKR = STIFFNESS MATRIX REDUCTION STEP.
+ SELG = LOAD MATRIX GENERATION STEP.
+ SELR = LOAD MATRIX REDUCTION STEP. 
+ MODES = T (TRUE) IF NORMAL MODES OR BUCKLING MODES CALCULATED.
+ DYNRED = T (TRUE) MEANS GENERALIZED DYNAMIC AND/OR COMPONENT MODE REDUCTION PERFORMED.
+ SOLLIN = T (TRUE) IF LINEAR SOLUTION EXISTS IN DATABASE.
+ LOOPID = THE LAST LOOPID VALUE USED IN THE NONLINEAR ANALYSIS.  USEFUL FOR RESTARTS.
+ SOLNL = T (TRUE) IF NONLINEAR SOLUTION EXISTS IN DATABASE.
+ DESIGN CYCLE = THE LAST DESIGN CYCLE (ONLY VALID IN OPTIMIZATION).
+ SENSITIVITY = SENSITIVITY MATRIX GENERATION FLAG.
+ 
+ No PARAM values were set in the Control File.
+ 
+1                                        * * * END OF JOB * * *
+ 
+ 
+ No Symbolic Replacement variables or values were specified.
+

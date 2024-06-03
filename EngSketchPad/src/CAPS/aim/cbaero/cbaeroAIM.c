@@ -1790,6 +1790,8 @@ int aimCalcOutput(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo, /*@u
   int numCase = 0;
   double *tempVal = NULL;
 
+  int cbVersion = 6;
+
   aimStorage *cbaeroInstance = (aimStorage *)instStore;
 
   #ifdef DEBUG
@@ -1818,6 +1820,16 @@ int aimCalcOutput(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo, /*@u
 
   status = getline(&line, &linecap, fp);
   if (status <= 0) AIM_STATUS(aimInfo, (status = CAPS_IOERR));
+  AIM_NOTNULL(line, aimInfo, status);
+
+  // check if the BLOCK is first, or the header line is first
+  if (strncmp(line, "BLOCK", 5) == 0) {
+    // block is first (CBAero version 5), the next line is the header
+    cbVersion = 5;
+
+    status = getline(&line, &linecap, fp);
+    if (status <= 0) AIM_STATUS(aimInfo, (status = CAPS_IOERR));
+  }
 
   // Parse the header information,
   rest = line;
@@ -1886,11 +1898,15 @@ int aimCalcOutput(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo, /*@u
   valIndex = 0;
   while( valIndex < numDataEntry &&
       strncasecmp(headers[valIndex], valHeader, strlen(valHeader)) != 0 ) valIndex++;
+
   if (valIndex == numDataEntry) {
-      AIM_ERROR(aimInfo, "Could not find '%s' header in %s", valHeader, filename);
-      status = CAPS_NOTFOUND;
-      goto cleanup;
+    //AIM_WARNING(aimInfo, "Could not find '%s' header in %s", valHeader, filename);
+    val->nullVal = IsNull;
+    status = CAPS_SUCCESS;
+    goto cleanup;
   }
+
+  rewind(fp);
 
   // Scan the file for the BLOCK string
   while (getline(&line, &linecap, fp) >= 0) {
@@ -1898,6 +1914,13 @@ int aimCalcOutput(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo, /*@u
     if (line == NULL) continue;
 
     if (strncmp(line, "BLOCK", 5) == 0) {
+
+      if (cbVersion == 5) {
+        // skip the header
+        status = getline(&line, &linecap, fp);
+        if (status <= 0) AIM_STATUS(aimInfo, (status = CAPS_IOERR));
+      }
+
       while (getline(&line, &linecap, fp) >= 0) {
         if (strlen(line) == 1) break;
         numCase += 1;
@@ -1918,11 +1941,17 @@ int aimCalcOutput(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo, /*@u
   rewind(fp);
 
   numCase = 0;
-  // Scan the file for the string
+  // Scan the file for the data
   while (getline(&line, &linecap, fp) >= 0) {
     AIM_NOTNULL(line, aimInfo, status);
 
     if (strncmp(line, "BLOCK", 5) == 0) {
+
+      if (cbVersion == 5) {
+        // skip the header
+        status = getline(&line, &linecap, fp);
+        if (status <= 0) AIM_STATUS(aimInfo, (status = CAPS_IOERR));
+      }
 
       while (getline(&line, &linecap, fp) >= 0) {
 

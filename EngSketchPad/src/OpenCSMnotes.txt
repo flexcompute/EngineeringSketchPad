@@ -10488,20 +10488,59 @@
              the correct number of arguments for a newBrch command
 
  6may24  fix erroneous stanalyzer error
- 
-         refactor convertToBSplines so that tolerance does not have to
-             be loosened for Mac-ARM
 
-         add subsurfaces to udpVsp3
+ 8may24  remove Bombardier_DASH8-Q100 test case since it works
+             differently with OpenVSP-3.38.0 on viggen than other OSs 
 
-         add sensitivities to udpVsp3
+ 8may24  increase number of allowable Bodys as input to udfGanged
+
+ 8may24  if a UDP/UDF has a ATTRRECYCLE, set hasdots to 1 to cause
+             udpSensitivity to be executed
+
+10may25  make ESP-help consistent with OpenCSM.h
+
+13may25  change OPAM1_wing.udc to use relative pathname
+
+14may24  make viewer respect _viz, _trn, _ori, and _grd attributes
+
+17may24  update OPAM1_wing
+
+23may23  fix memory allocation bug in mesgCallbackFromOpenCSM
+
+23may24  update timVspSetup such that it uses a relative name if the
+             vsp3 and udc filenames are in the same directory
+
+23may24  fix a few typos in ESP-help
+
+23may24  fix array bounds error in udfEditAttr
+
+23may24  modify udpVsp3 such that if update udpVsp3
+             verification data
+
+24may24  add sensitivities to udpVsp3; add OPAM1_body and
+             OPAM1_wingbody test cases
+
+28may24  fix typo in timPyscript
+
+29may24  small updates to testing scripts, etc.
+
+29may24  remove watermark from ESP_QuickReference
+
+29may24  fix memory leak in udpVsp3
+
+29may24  fix another array bounds error in udfEditAttr
+
+&&&&&&
 
          add packaging test case
          
-&&&&&&
+         add subsurfaces to udpVsp3
 
          fix bug that can make spurious Nodes during a scribe
              operation
+
+         refactor convertToBSplines so that tolerance does not have to
+             be loosened for Mac-ARM
 
          implement flend2
          * reasonable distribution of spine points

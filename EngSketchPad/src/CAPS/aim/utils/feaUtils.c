@@ -2855,7 +2855,7 @@ int initiate_feaDesignVariableStruct(feaDesignVariableStruct *feaDesignVariable)
     feaDesignVariable->initialValue = 0.0; // Initial value of design variable
     feaDesignVariable->lowerBound = 0.0;   // Lower bounds of variable
     feaDesignVariable->upperBound = 0.0;   // Upper bounds of variable
-    feaDesignVariable->maxDelta= 0.0;     // Move limit for design variable
+    feaDesignVariable->maxDelta = 0.5;     // Change fraction limit for design variable
 
     feaDesignVariable->numDiscreteValue = 0; // Number of discrete values that a design variable can assume
 
@@ -2886,7 +2886,7 @@ int destroy_feaDesignVariableStruct(feaDesignVariableStruct *feaDesignVariable) 
     feaDesignVariable->initialValue = 0.0; // Initial value of design variable
     feaDesignVariable->lowerBound = 0.0;   // Lower bounds of variable
     feaDesignVariable->upperBound = 0.0;   // Upper bounds of variable
-    feaDesignVariable->maxDelta= 0.0;     // Move limit for design variable
+    feaDesignVariable->maxDelta = 0.5;     // Change fraction limit for design variable
 
     feaDesignVariable->numDiscreteValue = 0; // Number of discrete values that a design variable can assume;
     if (feaDesignVariable->discreteValue != NULL) EG_free(feaDesignVariable->discreteValue);
@@ -9604,8 +9604,8 @@ int fea_getDesignVariable(void *aimInfo,
              *
              * \if (NASTRAN || ASTROS)
              * <ul>
-             *  <li> <B>maxDelta = 0.0</B> </li> <br>
-             *  Move limit for the design variable.
+             *  <li> <B>maxDelta = 0.5</B> </li> <br>
+             *  Change fraction limit for the design variable.
              * </ul>
              * \endif
              */
@@ -9615,7 +9615,7 @@ int fea_getDesignVariable(void *aimInfo,
                 &designVariable->maxDelta);
 
             if (status != CAPS_SUCCESS) {
-                designVariable->maxDelta = 0.0;
+                designVariable->maxDelta = 0.5;
             }
 
             /*! \page feaDesignVariable
@@ -11230,7 +11230,7 @@ int fea_getCoordSystem(int numBody,
             // Look at the body level
             status = EG_attributeRet(bodies[body], (*feaCoordSystem)[i].name, &atype, &alen, &ints, &reals, &string);
             if (status != EGADS_SUCCESS &&
-                    status != EGADS_NOTFOUND) goto cleanup;
+                status != EGADS_NOTFOUND) goto cleanup;
 
             if (atype == ATTRCSYS) {
 
