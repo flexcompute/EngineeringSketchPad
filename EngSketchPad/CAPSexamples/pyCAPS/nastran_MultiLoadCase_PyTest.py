@@ -1,10 +1,9 @@
-from __future__ import print_function
-
 # Import pyCAPS class file
 import pyCAPS
 
 # Import os module
 import os
+import shutil
 import argparse
 
 # Setup and read command line options. Please note that this isn't required for pyCAPS
@@ -21,32 +20,38 @@ args = parser.parse_args()
 # Create project name
 projectName = "NastranMultiLoadPlate"
 
+# Working directory
 workDir = os.path.join(str(args.workDir[0]), projectName)
 
 # Initialize CAPS Problem
 geometryScript = os.path.join("..","csmData","feaSimplePlate.csm")
-myProblem = pyCAPS.Problem(problemName=workDir,
-                           capsFile=geometryScript,
-                           outLevel=args.outLevel)
+capsProblem = pyCAPS.Problem(problemName=workDir,
+                             capsFile=geometryScript,
+                             outLevel=args.outLevel)
 
-# Load nastran aim
-nastranAIM = myProblem.analysis.create(aim = "nastranAIM",
-                                       name = "nastran",
-                                       autoExec = False)
-
-# Set project name so a mesh file is generated
-nastranAIM.input.Proj_Name = projectName
+# Load egadsTess aim
+egads = capsProblem.analysis.create(aim = "egadsTessAIM")
 
 # Set meshing parameters
-nastranAIM.input.Edge_Point_Max = 5
-nastranAIM.input.Edge_Point_Min = 5
+egads.input.Edge_Point_Max = 5
+egads.input.Edge_Point_Min = 5
 
-nastranAIM.input.Quad_Mesh = True
+# All quads in the grid
+egads.input.Mesh_Elements = "Quad"
 
-nastranAIM.input.Tess_Params = [.25,.01,15]
+egads.input.Tess_Params = [.25,.01,15]
+
+
+# Load nastran aim
+nastran = capsProblem.analysis.create(aim = "nastranAIM",
+                                      name = "nastran")
+
+nastran.input["Mesh"].link(egads.output["Surface_Mesh"])
+
+nastran.input.Proj_Name = projectName
 
 # Set analysis type
-nastranAIM.input.Analysis_Type = "Static"
+nastran.input.Analysis_Type = "Static"
 
 # Set materials
 madeupium    = {"materialType" : "isotropic",
@@ -54,7 +59,7 @@ madeupium    = {"materialType" : "isotropic",
                 "poissonRatio": 0.33,
                 "density" : 2.8E3}
 
-nastranAIM.input.Material = {"Madeupium": madeupium}
+nastran.input.Material = {"Madeupium": madeupium}
 
 # Set properties
 shell  = {"propertyType" : "Shell",
@@ -63,13 +68,13 @@ shell  = {"propertyType" : "Shell",
           "bendingInertiaRatio" : 1.0, # Default
           "shearMembraneRatio"  : 5.0/6.0} # Default
 
-nastranAIM.input.Property = {"plate": shell}
+nastran.input.Property = {"plate": shell}
 
 # Set constraints
 constraint = {"groupName" : "plateEdge",
               "dofConstraint" : 123456}
 
-nastranAIM.input.Constraint = {"edgeConstraint": constraint}
+nastran.input.Constraint = {"edgeConstraint": constraint}
 
 # Create multiple loads
 numLoad = 5
@@ -90,7 +95,7 @@ for i in range(numLoad):
     loads.append( loadElement)
 
 # Set loads
-nastranAIM.input.Load = dict(loads)
+nastran.input.Load = dict(loads)
 
 # Create multiple analysis cases
 analysisCases = []
@@ -110,24 +115,24 @@ for i in range(numLoad):
     analysisCases.append(analysisElement)
 
 # Set analysis
-nastranAIM.input.Analysis = dict(analysisCases)
+nastran.input.Analysis = dict(analysisCases)
 
 # Run AIM pre-analysis
-myProblem.analysis["nastran"].preAnalysis()
+nastran.preAnalysis()
 
 ####### Run Nastran ####################
 print ("\n\nRunning Nastran......")
-currentDirectory = os.getcwd() # Get our current working directory
-
-os.chdir(myProblem.analysis["nastran"].analysisDir) # Move into test directory
 
 if (args.noAnalysis == False):
-    os.system("nastran old=no notify=no batch=no scr=yes sdirectory=./ " + projectName +  ".dat"); # Run Nastran via system call
+    nastran.system("nastran old=no notify=no batch=no scr=yes sdirectory=./ " + nastran.input.Proj_Name +  ".dat"); # Run Nastran via system call
+else:
+    # Copy old results if no analysis available
+    shutil.copy2(os.path.join("..","analysisData","nastran",projectName+".f06"), 
+                 os.path.join(nastran.analysisDir,nastran.input.Proj_Name+".f06"))
 
-os.chdir(currentDirectory) # Move back to working directory
 print ("Done running Nastran!")
 ######################################
 
 # Run AIM post-analysis
-myProblem.analysis["nastran"].postAnalysis()
+nastran.postAnalysis()
 

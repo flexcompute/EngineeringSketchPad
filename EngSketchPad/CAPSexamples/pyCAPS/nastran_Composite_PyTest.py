@@ -1,10 +1,9 @@
-from __future__ import print_function
-
 # Import pyCAPS class file
 import pyCAPS
 
 # Import os module
 import os
+import shutil
 import argparse
 
 # Setup and read command line options. Please note that this isn't required for pyCAPS
@@ -19,29 +18,36 @@ parser.add_argument("-outLevel", default = 1, type=int, choices=[0, 1, 2], help=
 args = parser.parse_args()
 
 # Initialize capsProblem object
-projectName = "MystranModalWingBEM"
+projectName = "NastranCompositePlate"
 workDir = os.path.join(str(args.workDir[0]), projectName)
 geometryScript = os.path.join("..","csmData","feaCantileverPlate.csm")
 
-myProblem = pyCAPS.Problem(problemName=workDir,
-                         capsFile=geometryScript,
-                         outLevel=args.outLevel)
-geometry = myProblem.geometry
+capsProblem = pyCAPS.Problem(problemName=workDir,
+                           capsFile=geometryScript,
+                           outLevel=args.outLevel)
+geometry = capsProblem.geometry
 
-# Load nastran aim
-myAnalysis = myProblem.analysis.create(aim = "nastranAIM",
-                                       name = "nastran", 
-                                       autoExec = False)
+# Load egadsTess aim
+egads = capsProblem.analysis.create(aim = "egadsTessAIM")
 
-# Initialize capsProblem
+# Set meshing parameters
+egads.input.Edge_Point_Max = 5
+egads.input.Edge_Point_Min = 5
 
-# Set project name so a mesh file is generated
-projectName = "pyCAPS_nastran_Test"
-myAnalysis.input.Proj_Name = projectName
-myAnalysis.input.Edge_Point_Max = 10
-myAnalysis.input.Quad_Mesh = True
-myAnalysis.input.File_Format = "Small"
-myAnalysis.input.Mesh_File_Format = "Large"
+# All quads in the grid
+egads.input.Mesh_Elements = "Quad"
+
+egads.input.Tess_Params = [.05,.5,15]
+
+# Load CSM file
+nastran = capsProblem.analysis.create(aim = "nastranAIM",
+                                      name = "nastran")
+
+nastran.input["Mesh"].link(egads.output["Surface_Mesh"])
+
+nastran.input.Proj_Name = "pyCAPS_nastran_Test"
+nastran.input.File_Format = "Small"
+nastran.input.Mesh_File_Format = "Large"
 
 # Set analysis
 eigen = { "extractionMethod"     : "Lanczos",
@@ -49,7 +55,7 @@ eigen = { "extractionMethod"     : "Lanczos",
           "numEstEigenvalue"     : 1,
           "numDesiredEigenvalue" : 4,
           "eigenNormalization"   : "MASS"}
-myAnalysis.input.Analysis = {"EigenAnalysis": eigen}
+nastran.input.Analysis = {"EigenAnalysis": eigen}
 
 # Set materials
 unobtainium  = {"youngModulus" : 2.2E6 ,
@@ -60,7 +66,7 @@ madeupium    = {"materialType" : "isotropic",
                 "youngModulus" : 1.2E5 ,
                 "poissonRatio" : .5,
                 "density"      : 7850}
-myAnalysis.input.Material = {"Unobtainium": unobtainium,
+nastran.input.Material = {"Unobtainium": unobtainium,
                        "Madeupium": madeupium}
 
 # Set property
@@ -74,30 +80,30 @@ shell  = {"propertyType"           : "Composite",
           "compositeThickness"     : [1.2, 0.5, 2.0],
           "compositeOrientation"   : [30.6, 45, 50.4]}
 
-myAnalysis.input.Property = {"plate": shell}
+nastran.input.Property = {"plate": shell}
 
 # Set constraints
 constraint = {"groupName" : ["plateEdge"],
               "dofConstraint" : 123456}
 
-myAnalysis.input.Constraint = {"cantilever": constraint}
+nastran.input.Constraint = {"cantilever": constraint}
 
 
 # Run AIM pre-analysis
-myAnalysis.preAnalysis()
+nastran.preAnalysis()
 
 ####### Run Nastran####################
 print ("\n\nRunning Nastran......")
-currentDirectory = os.getcwd() # Get our current working directory
 
-os.chdir(myAnalysis.analysisDir) # Move into test directory
+if args.noAnalysis == False:
+    nastran.system("nastran old=no notify=no batch=no scr=yes sdirectory=./ " + nastran.input.Proj_Name +  ".dat"); # Run Nastran via system call
+else:
+    # Copy old results if no analysis available
+    shutil.copy2(os.path.join("..","analysisData","nastran",projectName+".f06"), 
+                 os.path.join(nastran.analysisDir,nastran.input.Proj_Name+".f06"))
 
-if (args.noAnalysis == False):
-    os.system("nastran old=no notify=no batch=no scr=yes sdirectory=./ " + projectName +  ".dat"); # Run Nastran via system call
-
-os.chdir(currentDirectory) # Move back to working directory
 print ("Done running Nastran!")
 
 # Run AIM post-analysis
-myAnalysis.postAnalysis()
+nastran.postAnalysis()
 

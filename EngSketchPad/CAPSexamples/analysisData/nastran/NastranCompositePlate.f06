@@ -1,0 +1,1149 @@
+1
+ 
+ 
+ 
+ 
+                      Warning: This computer program is protected by copyright law and international treaties.       
+                  Unauthorized use, reproduction or distribution of this computer program, or any portion of it, may 
+                                          result in severe civil and criminal penalties.                             
+                         Copyright (C) 2021 MSC Software Corporation and its licensors. All rights reserved.         
+ 
+ 
+                                              * * * * * * * * * * * * * * * * * * * *
+                                              * * * * * * * * * * * * * * * * * * * *
+                                              * *                                 * *
+                                              * *           MSC Software          * *
+                                              * *               CORP              * *
+                                              * *                                 * *
+                                              * *      M S C   N a s t r a n      * *
+                                              * *                                 * *
+                                              * *                                 * *
+                                              * *                                 * *
+                                              * *     Version 2021.3-CL837441     * *
+                                              * *                                 * *
+                                              * *                                 * *
+                                              * *                                 * *
+                                              * *          SEP 15, 2021           * *
+                                              * *                                 * *
+                                              * *       x86-64 Based System       * *
+                                              * *MODEL Intel 2100 MHz (b0146w0030 * *
+                                              * *Linux 3.10.0-1160.114.2.el7.x86_ * *
+                                              * *Compiled for x8664 (SINGLE Mode) * *
+                                              * *                                 * *
+                                              * * * * * * * * * * * * * * * * * * * *
+                                              * * * * * * * * * * * * * * * * * * * *
+1News file - (Aug 24, 2021)
+  
+               Welcome to MSC Nastran 2021.3
+  
+  
+   MSC Nastran brings powerful new features and enhancements for engineering
+   solutions.
+  
+     MSC Nastran 2021.3 Features and Enhancements
+  
+     Dynamics
+      - Dynamic stiffness output for mechanical loading in direct and modal
+        frequency response (SOL 108 and SOL 111), design optimization
+        (SOL 200 analysis) and implicit nonlinear (SOL 400 linear)
+  
+     Results
+      - Relative displacement output for a grid, or set of grids with respect
+        to reference grid for linear statics, dynamics and nonlinear analysis
+  
+     RotorDynamics
+      - Output of rotordynamics rotor kinetic and potential energies to OP2, PCH
+        and H5 formats, via a new ROTSEKE Case Control entry, and which can be
+        sorted either rotor-wise of mode-wise (replaces previous ROTSEKE
+        parameter which is now deprecated)
+      - New capability to define spin speed for individual rotors available in
+        SOL 107, SOL 110, SOL 200 and SOL 400 (ANALYSIS = CEIG) – multiple RGYR
+        entries are allowed for individual rotors
+  
+     Fatigue
+      - Time domain performance improvements
+      - CAEfatigue Process Flow interface to facilitate analysis and results
+        postprocessing execution
+  
+     Nonlinear
+      - Enhanced contact projection algorithm at corners and on warped surfaces
+      - GLUEOUT option to separate normal and tangential glued contact force
+        output
+  
+     High Performance Computing
+      - SOL 400 element-loop (NLEMG) performance improvements
+      - Windows support for MUMPS solver in SOL 101
+      - Improved thread management for DMP/SMP combinations
+      - Support for CUDA 11 functionality (including NVIDIA Ampere GPU
+        architecture)
+  
+  
+  
+     Documentation
+     The complete documentation set is provided in a separate installer and
+     when installed is available at: MSC_DOC_DIR/doc/pdf_nastran directory.
+1    Where MSC_DOC_DIR is the directory where documentation was installed
+     This help set has cross references between documents, links to how-to
+     videos, and example files.
+  
+     Individual MSC Nastran documents are available for download from the
+       Simcompanion Website at:
+       http://simcompanion.mscsoftware.com/
+  
+     These documents were updated for the MSC Nastran 2021.3 Release
+  
+         1.  MSC Nastran 2021.3 Installation and Operations Guide
+         2.  MSC Nastran 2021.3 Quick Reference Guide
+         3.  MSC Nastran 2021.3 Release Guide
+         4.  MSC Nastran 2021.3 Linear Statics Analysis User's Guide
+         5.  MSC Nastran 2021.3 Dynamic Analysis User's Guide
+         6.  MSC Nastran 2021.3 Superelements User's Guide
+         7.  MSC Nastran 2021.3 Rotordynamics User's Guide
+         8.  MSC Nastran 2021.3 Demonstration Problems Manual
+         9.  MSC Nastran 2021.3 Nastran Embedded Fatigue User's Guide
+        10.  MSC Nastran 2021.3 Design Sensitivity and Optimization
+        11.  MSC Nastran 2021.3 Nonlinear User's Guide SOL 400
+        12.  MSC Nastran 2021.3 DMAP Programmer's Guide
+        13.  MSC Nastran 2021.3 High Performance Computing User's Guide
+        14.  MSC Nastran 2021.3 New Verification Manual
+        15.  MSC Nastran 2021.3 DEMATD Guide
+        16.  MSC Nastran 2021.3 Explicit Nonlinear (SOL 700) User's Guide
+  
+   Please refer to  MSC_DOC_DIR/doc/pdf_nastran/nastran_library.pdf
+   for the complete document set:
+  
+  
+     Feature Deprecation List
+     To streamline the MSC Nastran program and simplify ongoing maintenance
+     activiy, some obsolete capabilities have been identified and tagged for
+     removal from a future release of the program in 2021 and 2022.
+     Please review the list of features marked for deprecation below to
+     ensure that there will be no disruption to your use of MSC Nastran.
+     If you see a feature that you currently use and do not wish to lose,
+     contact MSC Technical Support to report it.
+  
+     Features tagged for removal:
+     - SOL 600 nonlinear solution sequence
+     - TAUCS solver
+     - Obsolete DMAP modules
+     - SSSALTERS
+  
+     Refer to the MSC Nastran 2021 Release Guide for more details.
+  
+  
+   Additional information about the release can be found at the MSC Nastran
+1  Product Support page: http://simcompanion.mscsoftware.com
+  
+   The support page provides links to these valuable information:
+      * A searchable Knowledge Base containing examples and answers to thousands
+        of frequently asked questions written by MSC Software subject-matter
+        experts.
+      * Peer-to-peer Discussion Forums enabling you to post questions for your
+        MSC Software products and receive answers from other users worldwide.
+      * A list of known issues with the product and any workarounds.
+      * Instructions on how to contact technical support
+      * A mechanism for sending us product feedback or enhancement requests.
+      * Hardware and software requirements.
+      * Examples and Tutorials
+      * and much more.
+  
+   For information on training, please visit our Training web site
+  
+      http://www.mscsoftware.com/Contents/Services/Training/
+  
+1                                                                               MAY  15, 2024  MSC Nastran  9/15/21   PAGE     1
+                                                                                                                                    
+0        N A S T R A N    F I L E    A N D    S Y S T E M    P A R A M E T E R    E C H O                                           
+0                                                                                                                                   
+                                                                                                                                    
+                                                                                                                                    
+     NASTRAN BUFFSIZE=32769 $(/USR/LOCAL/APPS/MSC/MSC_NASTRAN/2021.3/CONF/NAST20213RC
+     $ $(/USR/LOCAL/APPS/MSC/MSC_NASTRAN/2021.3/CONF/NAST20213RC[6])                 
+     $ $(/USR/LOCAL/APPS/MSC/MSC_NASTRAN/2021.3/CONF/NAST20213RC[14])                
+     $ END $(/USR/LOCAL/APPS/MSC/MSC_NASTRAN/2021.3/CONF/NAST20213RC[16])            
+1                                                                               MAY  15, 2024  MSC Nastran  9/15/21   PAGE     2
+                                                                                                                                    
+0        N A S T R A N    E X E C U T I V E    C O N T R O L    E C H O                                                             
+0                                                                                                                                   
+                                                                                                                                    
+                                                                                                                                    
+     ID CAPS GENERATED PROBLEM FOR NASTRAN                                                   
+     SOL 103                                                                                 
+     CEND                                                                                    
+1                                                                               MAY  15, 2024  MSC Nastran  9/15/21   PAGE     3
+                                                                                                                                    
+0                                                                                                                                   
+0                                        C A S E    C O N T R O L    E C H O                                                        
+                 COMMAND                                                                                                            
+                 COUNT                                                                                                              
+                  1                                                                                              
+                  2      LINE=10000                                                                              
+                  3      DISP (PRINT,PUNCH) = ALL                                                                
+                  4      STRE (PRINT,PUNCH) = ALL                                                                
+                  5      STRA (PRINT,PUNCH) = ALL                                                                
+                  6      SUBCASE 1                                                                               
+                  7          LABEL = EIGENANALYSIS                                                               
+                  8          ANALYSIS = MODES                                                                    
+                  9          SPC = 2                                                                             
+                 10          METHOD = 1                                                                          
+                 11                                                                                              
+                 12      BEGIN BULK                                                                              
+1                                                                               MAY  15, 2024  MSC Nastran  9/15/21   PAGE     4
+                                                                                                                                    
+0                                                                                                                                   
+                                              I N P U T   B U L K   D A T A   E C H O                                               
+                 ENTRY                                                                                                              
+                 COUNT        .   1  ..   2  ..   3  ..   4  ..   5  ..   6  ..   7  ..   8  ..   9  ..  10  .                      
+ *** USER INFORMATION MESSAGE 9991 (SDLWIF)
+     Messages are being generated at include level 0.
+     File: ./pyCAPS_nastran_Test.dat
+ *** USER WARNING MESSAGE 9994 (BULFUN)
+     MAT1 with MID=1 near line 26
+     User information:  Material has unreasonable or inconsistent values of E, G or NU.
+ *** USER WARNING MESSAGE 9994 (BULFUN)
+     MAT1 with MID=2 near line 28
+     User information:  Material has unreasonable or inconsistent values of E, G or NU.
+                              $INCLUDE "./pyCAPS_nastran_Test.bdf"
+                              $END OF INCLUDE "./pyCAPS_nastran_Test.bdf"
+1                                                                               MAY  15, 2024  MSC Nastran  9/15/21   PAGE     5
+                                                                                                                                    
+0                                                                                                                                   
+                                                  S O R T E D   B U L K   D A T A   E C H O                                         
+                 ENTRY                                                                                                              
+                 COUNT        .   1  ..   2  ..   3  ..   4  ..   5  ..   6  ..   7  ..   8  ..   9  ..  10  .                      
+                    1-        CORD2R  1       0       0.      0.      0.      0.      0.      1.      +
+                    2-        +       .707107 .707107 1.
+                    3-        CQUAD4  1       1       1       2       13      12      1
+                    4-        CQUAD4  2       1       2       3       4       13      1
+                    5-        CQUAD4  3       1       12      13      14      11      1
+                    6-        CQUAD4  4       1       13      4       5       14      1
+                    7-        CQUAD4  5       1       11      14      15      10      1
+                    8-        CQUAD4  6       1       14      5       6       15      1
+                    9-        CQUAD4  7       1       10      15      8       9       1
+                   10-        CQUAD4  8       1       15      6       7       8       1
+                   11-        EIGRL   1       0.      10000.  4                               MASS
+                   12-        GRID   *1                               0.              0.              *
+                   13-        *       0.
+                   14-        GRID   *2                               0.              .125            *
+                   15-        *       0.
+                   16-        GRID   *3                               0.              .25             *
+                   17-        *       0.
+                   18-        GRID   *4                               .125            .25             *
+                   19-        *       0.
+                   20-        GRID   *5                               .25             .25             *
+                   21-        *       0.
+                   22-        GRID   *6                               .375            .25             *
+                   23-        *       0.
+                   24-        GRID   *7                               .5              .25             *
+                   25-        *       0.
+                   26-        GRID   *8                               .5              .125            *
+                   27-        *       0.
+                   28-        GRID   *9                               .5              0.              *
+                   29-        *       0.
+                   30-        GRID   *10                              .375            0.              *
+                   31-        *       0.
+                   32-        GRID   *11                              .25             0.              *
+                   33-        *       0.
+                   34-        GRID   *12                              .125            0.              *
+                   35-        *       0.
+                   36-        GRID   *13                              .125            .125            *
+                   37-        *       0.
+                   38-        GRID   *14                              .25             .125            *
+                   39-        *       0.
+                   40-        GRID   *15                              .375            .125            *
+                   41-        *       0.
+                   42-        MAT1    1       120000.         .5      7850.                           +
+                   43-        +       0.      0.      0.
+                   44-        MAT1    2       2200000.        .5      7850.                           +
+                   45-        +       0.      0.      0.
+                   46-        PARAM   GRDPNT  0
+                   47-        PARAM   POST    -1
+                   48-        PCOMP   1                       1000000.STRN                            +
+                   49-        +       2       1.2     30.6    NO      1       .5      45.     NO      +
+                   50-        +       1       2.      50.4    NO
+                   51-        SPC1    1       123456  1       2       3
+                   52-        SPCADD  2       1
+                              ENDDATA
+                        TOTAL COUNT= 53
+                              INPUT BULK DATA ENTRY COUNT = 58
+1                                                                               MAY  15, 2024  MSC Nastran  9/15/21   PAGE     6
+                                                                                                                                    
+0                                                                                                                                   
+                                        M O D E L   S U M M A R Y          BULK = 0
+                                   ENTRY NAME        NUMBER OF ENTRIES
+                                   ----------        -----------------
+                                       CORD2R                        1
+                                       CQUAD4                        8
+                                        EIGRL                        1
+                                         GRID                       15
+                                         MAT1                        2
+                                        PARAM                        2
+                                        PCOMP                        1
+                                         SPC1                        1
+                                       SPCADD                        1
+
+ 
+ ^^^     
+ ^^^ >>> IFP OPERATIONS COMPLETE <<< 
+ ^^^     
+1                                                                               MAY  15, 2024  MSC Nastran  9/15/21   PAGE     7
+                                                                                                                                    
+0                                                                                                                                   
+ *** USER INFORMATION MESSAGE 4379 (IFP6CS)
+     PCOMP BULK DATA ENTRIES HAVE BEEN CONVERTED TO EQUIVALENT PSHELL AND MAT2 ENTRIES.
+     TO VIEW THE PSHELL AND MAT2 ENTRIES, SPECIFY NASTRAN PRTPCOMP OR NASTRAN SYSTEM(361)=1.
+ *** USER INFORMATION MESSAGE 4109 (OUTPX2)
+     THE LABEL IS XXXXXXXX FOR FORTRAN UNIT    12
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =          7 WORDS.)
+           (NUMBER OF FORTRAN RECORDS WRITTEN =          8 RECORDS.)
+                (TOTAL DATA WRITTEN FOR LABEL =         17 WORDS.)
+ ^^^     
+ *** USER WARNING MESSAGE 9431 (SUBDMAP PHASE0)
+     The ANALYSIS command is ignored in this Solution Sequence.
+ ^^^     
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK GEOM1X   WRITTEN ON FORTRAN UNIT    12 IN BINARY (LTLEND) FORMAT USING NDDL DESCRIPTION FOR GEOM168, TRL =
+                    101                 0              2048                 8                 0                 0                 0
+     NAME OF DATA BLOCK WRITTEN ON FORTRAN UNIT IS GEOM1   
+        (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =       65538 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =         123 WORDS.)
+           (NUMBER OF FORTRAN RECORDS WRITTEN =          25 RECORDS.)
+           (TOTAL DATA WRITTEN FOR DATA BLOCK =         174 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK GEOM2X   WRITTEN ON FORTRAN UNIT    12 IN BINARY (LTLEND) FORMAT USING NDDL DESCRIPTION FOR GEOM201, TRL =
+                    102                 0                 0                 0              8192                 0                 0
+     NAME OF DATA BLOCK WRITTEN ON FORTRAN UNIT IS GEOM2   
+        (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =       65538 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =         115 WORDS.)
+           (NUMBER OF FORTRAN RECORDS WRITTEN =          20 RECORDS.)
+           (TOTAL DATA WRITTEN FOR DATA BLOCK =         146 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK GEOM4X   WRITTEN ON FORTRAN UNIT    12 IN BINARY (LTLEND) FORMAT USING NDDL DESCRIPTION FOR GEOM4705, TRL =
+                    104                 0                 0                 0                96                 0                 0
+     NAME OF DATA BLOCK WRITTEN ON FORTRAN UNIT IS GEOM4   
+        (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =       65538 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =          10 WORDS.)
+           (NUMBER OF FORTRAN RECORDS WRITTEN =          25 RECORDS.)
+           (TOTAL DATA WRITTEN FOR DATA BLOCK =          51 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK EPTX     WRITTEN ON FORTRAN UNIT    12 IN BINARY (LTLEND) FORMAT USING NDDL DESCRIPTION FOR EPT01, TRL =
+                    105                 0               544                 0                 0                 0                 0
+     NAME OF DATA BLOCK WRITTEN ON FORTRAN UNIT IS EPT     
+        (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =       65538 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =          23 WORDS.)
+           (NUMBER OF FORTRAN RECORDS WRITTEN =          25 RECORDS.)
+           (TOTAL DATA WRITTEN FOR DATA BLOCK =          72 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK MPTS     WRITTEN ON FORTRAN UNIT    12 IN BINARY (LTLEND) FORMAT USING NDDL DESCRIPTION FOR MPT, TRL =
+                    101             49152                 0                 0                 0                 0                 0
+     NAME OF DATA BLOCK WRITTEN ON FORTRAN UNIT IS MPT     
+        (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =       65538 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =          95 WORDS.)
+           (NUMBER OF FORTRAN RECORDS WRITTEN =          25 RECORDS.)
+           (TOTAL DATA WRITTEN FOR DATA BLOCK =         157 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK DYNAMICS WRITTEN ON FORTRAN UNIT    12 IN BINARY (LTLEND) FORMAT USING NDDL DESCRIPTION FOR DYNAMICS, TRL =
+                    103               256                 0                 0                 0                 0                 0
+     NAME OF DATA BLOCK WRITTEN ON FORTRAN UNIT IS DYNAMICS
+        (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =       65538 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =          30 WORDS.)
+           (NUMBER OF FORTRAN RECORDS WRITTEN =          20 RECORDS.)
+           (TOTAL DATA WRITTEN FOR DATA BLOCK =          61 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK CASESO   WRITTEN ON FORTRAN UNIT    12 IN BINARY (LTLEND) FORMAT USING NDDL DESCRIPTION FOR CASECC, TRL =
+                    101                 1                 0              1000                 0                 0                 0
+     NAME OF DATA BLOCK WRITTEN ON FORTRAN UNIT IS CASECC  
+        (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =       65538 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =        1000 WORDS.)
+           (NUMBER OF FORTRAN RECORDS WRITTEN =          15 RECORDS.)
+           (TOTAL DATA WRITTEN FOR DATA BLOCK =        1024 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK CSTMS    WRITTEN ON FORTRAN UNIT    12 IN BINARY (LTLEND) FORMAT USING NDDL DESCRIPTION FOR CSTM, TRL =
+                    102                15                 1                 1                 2                12                 0
+     NAME OF DATA BLOCK WRITTEN ON FORTRAN UNIT IS CSTM    
+        (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =       65538 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =          12 WORDS.)
+           (NUMBER OF FORTRAN RECORDS WRITTEN =          20 RECORDS.)
+           (TOTAL DATA WRITTEN FOR DATA BLOCK =          44 WORDS.)
+1                                                                               MAY  15, 2024  MSC Nastran  9/15/21   PAGE     8
+                                                                                                                                    
+0                                                                                                                                   
+                           O U T P U T   F R O M   G R I D   P O I N T   W E I G H T   G E N E R A T O R
+0                                                     REFERENCE POINT =        0
+                                                                M O
+                      *  3.630625E+03  0.000000E+00  0.000000E+00  0.000000E+00  0.000000E+00 -4.538281E+02 *
+                      *  0.000000E+00  3.630625E+03  0.000000E+00  0.000000E+00  0.000000E+00  9.076562E+02 *
+                      *  0.000000E+00  0.000000E+00  3.630625E+03  4.538281E+02 -9.076562E+02  0.000000E+00 *
+                      *  0.000000E+00  0.000000E+00  4.538281E+02  8.509277E+01 -1.134570E+02  0.000000E+00 *
+                      *  0.000000E+00  0.000000E+00 -9.076562E+02 -1.134570E+02  3.120068E+02  0.000000E+00 *
+                      * -4.538281E+02  9.076562E+02  0.000000E+00  0.000000E+00  0.000000E+00  3.970996E+02 *
+                                                                 S
+                                           *  1.000000E+00  0.000000E+00  0.000000E+00 *
+                                           *  0.000000E+00  1.000000E+00  0.000000E+00 *
+                                           *  0.000000E+00  0.000000E+00  1.000000E+00 *
+                               DIRECTION
+                          MASS AXIS SYSTEM (S)     MASS              X-C.G.        Y-C.G.        Z-C.G.
+                                  X            3.630625E+03      0.000000E+00  1.250000E-01  0.000000E+00
+                                  Y            3.630625E+03      2.500000E-01  0.000000E+00  0.000000E+00
+                                  Z            3.630625E+03      2.500000E-01  1.250000E-01  0.000000E+00
+                                                                I(S)
+                                           *  2.836426E+01 -1.421085E-14  0.000000E+00 *
+                                           * -1.421085E-14  8.509277E+01  0.000000E+00 *
+                                           *  0.000000E+00  0.000000E+00  1.134570E+02 *
+                                                                I(Q)
+                                           *  2.836426E+01                             *
+                                           *                8.509277E+01               *
+                                           *                              1.134570E+02 *
+                                                                 Q
+                                           *  1.000000E+00  0.000000E+00  0.000000E+00 *
+                                           *  0.000000E+00  1.000000E+00  0.000000E+00 *
+                                           *  0.000000E+00  0.000000E+00  1.000000E+00 *
+
+1                                                                               MAY  15, 2024  MSC Nastran  9/15/21   PAGE     9
+                                                                                                                                    
+0                                                                                                                                   
+1                                                                               MAY  15, 2024  MSC Nastran  9/15/21   PAGE    10
+                                                                                                                                    
+0                                                                                                                                   
+0 RESULTANTS ABOUT ORIGIN OF SUPERELEMENT BASIC COORDINATE SYSTEM IN SUPERELEMENT BASIC SYSTEM COORDINATES.
+
+0                                                  OLOAD    RESULTANT       
+  SUBCASE/    LOAD
+  DAREA ID    TYPE       T1            T2            T3            R1            R2            R3
+0        1     FX    0.000000E+00     ----          ----          ----       0.000000E+00  0.000000E+00                             
+               FY       ----       0.000000E+00     ----       0.000000E+00     ----       0.000000E+00                             
+               FZ       ----          ----       0.000000E+00  0.000000E+00  0.000000E+00     ----                                  
+               MX       ----          ----          ----       0.000000E+00     ----          ----                                  
+               MY       ----          ----          ----          ----       0.000000E+00     ----                                  
+               MZ       ----          ----          ----          ----          ----       0.000000E+00                             
+             TOTALS  0.000000E+00  0.000000E+00  0.000000E+00  0.000000E+00  0.000000E+00  0.000000E+00
+ *** USER INFORMATION MESSAGE 5010 (LNCILS)
+     STURM SEQUENCE DATA FOR EIGENVALUE EXTRACTION.
+     TRIAL EIGENVALUE = -1.161625D+01, CYCLES = 5.424418D-01 THE STURM COUNT = 0
+ *** USER INFORMATION MESSAGE 5010 (LNCILS)
+     STURM SEQUENCE DATA FOR EIGENVALUE EXTRACTION.
+     TRIAL EIGENVALUE = 3.947842D+09, CYCLES = 1.000000D+04 THE STURM COUNT = 36
+ *** USER INFORMATION MESSAGE 5010 (LNCILS)
+     STURM SEQUENCE DATA FOR EIGENVALUE EXTRACTION.
+     TRIAL EIGENVALUE = 1.161625D+01, CYCLES = 5.424418D-01 THE STURM COUNT = 0
+ *** USER INFORMATION MESSAGE 5010 (LNCILS)
+     STURM SEQUENCE DATA FOR EIGENVALUE EXTRACTION.
+     TRIAL EIGENVALUE = 4.868796D+02, CYCLES = 3.511809D+00 THE STURM COUNT = 4
+
+ TABLE OF SHIFTS:  (LNNRIGL)
+ SHIFT #        SHIFT VALUE         FREQUENCY, CYCLES     # EIGENVALUES BELOW    # NEW EIGENVALUES FOUND
+     1.       -1.1616252E+01         -5.4244179E-01                 0                        0
+     2.        3.9478418E+09          1.0000000E+04                36                        0
+     3.        1.1616252E+01          5.4244179E-01                 0                        4
+     4.        4.8687957E+02          3.5118092E+00                 4                        0
+
+1                                                                               MAY  15, 2024  MSC Nastran  9/15/21   PAGE    11
+                                                                                                                                    
+0     EIGENANALYSIS                                                                                          SUBCASE 1              
+0
+
+
+                          E I G E N V A L U E  A N A L Y S I S   S U M M A R Y   (READ MODULE) 
+
+
+
+                                     BLOCK SIZE USED ......................     7
+
+                                     NUMBER OF DECOMPOSITIONS .............     4
+
+                                     NUMBER OF ROOTS FOUND ................     4
+
+                                     NUMBER OF SOLVES REQUIRED ............     6
+
+1                                                                               MAY  15, 2024  MSC Nastran  9/15/21   PAGE    12
+                                                                                                                                    
+0     EIGENANALYSIS                                                                                          SUBCASE 1              
+ 
+                                              R E A L   E I G E N V A L U E S
+   MODE    EXTRACTION      EIGENVALUE            RADIANS             CYCLES            GENERALIZED         GENERALIZED
+    NO.       ORDER                                                                       MASS              STIFFNESS
+        1         1        2.286239E+01        4.781463E+00        7.609935E-01        1.000000E+00        2.286239E+01
+        2         2        8.185308E+01        9.047269E+00        1.439918E+00        1.000000E+00        8.185308E+01
+        3         3        2.818373E+02        1.678801E+01        2.671895E+00        1.000000E+00        2.818373E+02
+        4         4        3.026345E+02        1.739639E+01        2.768722E+00        1.000000E+00        3.026345E+02
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK OUG1     WRITTEN ON FORTRAN UNIT    12 IN BINARY (LTLEND) FORMAT USING NDDL DESCRIPTION FOR OUG1, TRL =
+                    101                 0               480                 0                 0                 0                 5
+     NAME OF DATA BLOCK WRITTEN ON FORTRAN UNIT IS OUG1    
+        (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =       65538 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =         146 WORDS.)
+           (NUMBER OF FORTRAN RECORDS WRITTEN =          50 RECORDS.)
+           (TOTAL DATA WRITTEN FOR DATA BLOCK =        1121 WORDS.)
+1                                                                               MAY  15, 2024  MSC Nastran  9/15/21   PAGE    13
+                                                                                                                                    
+0     EIGENANALYSIS                                                                                          SUBCASE 1              
+      EIGENVALUE =  2.286239E+01
+          CYCLES =  7.609935E-01         R E A L   E I G E N V E C T O R   N O .          1
+ 
+      POINT ID.   TYPE          T1             T2             T3             R1             R2             R3
+             1      G      0.0            0.0            0.0            0.0            0.0            0.0
+             2      G      0.0            0.0            0.0            0.0            0.0            0.0
+             3      G      0.0            0.0            0.0            0.0            0.0            0.0
+             4      G     -4.262064E-03   4.598004E-03   4.898563E-04   3.020827E-03   2.788203E-03   4.012679E-02
+             5      G     -7.259591E-03   1.153927E-02   1.042343E-03   7.567519E-03   4.743485E-03   6.103320E-02
+             6      G     -8.568652E-03   2.059542E-02   1.646991E-03   1.348757E-02   5.594057E-03   7.071146E-02
+             7      G     -8.920326E-03   2.975769E-02   1.718010E-03   1.946895E-02   5.821961E-03   7.233038E-02
+             8      G      1.169167E-17   2.974202E-02   1.523252E-19   1.945900E-02  -2.707686E-18   7.310143E-02
+             9      G      8.920326E-03   2.975769E-02  -1.718010E-03   1.946895E-02  -5.821961E-03   7.233038E-02
+            10      G      8.568652E-03   2.059542E-02  -1.646991E-03   1.348757E-02  -5.594057E-03   7.071146E-02
+            11      G      7.259591E-03   1.153927E-02  -1.042343E-03   7.567519E-03  -4.743485E-03   6.103320E-02
+            12      G      4.262064E-03   4.598004E-03  -4.898563E-04   3.020827E-03  -2.788203E-03   4.012679E-02
+            13      G      5.049276E-18   3.261134E-03  -7.938710E-19   2.146802E-03  -2.696740E-18   3.932842E-02
+            14      G      1.253425E-19   1.114008E-02  -9.190525E-19   7.308211E-03   1.007128E-18   6.329008E-02
+            15      G      8.774358E-18   2.038699E-02  -7.166642E-19   1.335216E-02  -4.372389E-18   7.147849E-02
+1                                                                               MAY  15, 2024  MSC Nastran  9/15/21   PAGE    14
+                                                                                                                                    
+0     EIGENANALYSIS                                                                                          SUBCASE 1              
+      EIGENVALUE =  8.185308E+01
+          CYCLES =  1.439918E+00         R E A L   E I G E N V E C T O R   N O .          2
+ 
+      POINT ID.   TYPE          T1             T2             T3             R1             R2             R3
+             1      G      0.0            0.0            0.0            0.0            0.0            0.0
+             2      G      0.0            0.0            0.0            0.0            0.0            0.0
+             3      G      0.0            0.0            0.0            0.0            0.0            0.0
+             4      G      5.090768E-04  -2.741542E-04   8.901468E-03  -2.382541E-04  -4.468577E-04  -4.052228E-04
+             5      G      8.278593E-04  -1.336430E-04   1.651490E-02  -1.126816E-04  -7.210906E-04   6.894959E-04
+             6      G      1.011396E-03  -4.674594E-05   2.166462E-02  -3.782337E-05  -8.748220E-04   3.860641E-04
+             7      G      1.063410E-03  -6.292681E-06   2.355557E-02  -4.453832E-06  -9.167774E-04   2.452702E-04
+             8      G      1.084274E-03   1.247213E-15   2.355679E-02   8.395364E-16  -9.338777E-04   3.345221E-15
+             9      G      1.063410E-03   6.292681E-06   2.355557E-02   4.453832E-06  -9.167774E-04  -2.452702E-04
+            10      G      1.011396E-03   4.674594E-05   2.166462E-02   3.782337E-05  -8.748220E-04  -3.860641E-04
+            11      G      8.278593E-04   1.336430E-04   1.651490E-02   1.126816E-04  -7.210906E-04  -6.894959E-04
+            12      G      5.090768E-04   2.741542E-04   8.901468E-03   2.382541E-04  -4.468577E-04   4.052228E-04
+            13      G      4.745926E-04   3.413199E-15   8.914298E-03   2.267066E-15  -4.179821E-04   2.404438E-14
+            14      G      8.865291E-04  -7.985806E-16   1.652240E-02  -5.185437E-16  -7.723901E-04  -2.752476E-15
+            15      G      1.044237E-03  -3.194071E-16   2.166745E-02  -1.991520E-16  -9.025327E-04  -8.788113E-15
+1                                                                               MAY  15, 2024  MSC Nastran  9/15/21   PAGE    15
+                                                                                                                                    
+0     EIGENANALYSIS                                                                                          SUBCASE 1              
+      EIGENVALUE =  2.818373E+02
+          CYCLES =  2.671895E+00         R E A L   E I G E N V E C T O R   N O .          3
+ 
+      POINT ID.   TYPE          T1             T2             T3             R1             R2             R3
+             1      G      0.0            0.0            0.0            0.0            0.0            0.0
+             2      G      0.0            0.0            0.0            0.0            0.0            0.0
+             3      G      0.0            0.0            0.0            0.0            0.0            0.0
+             4      G     -1.566514E-03   1.457871E-02   1.131323E-03   9.711213E-03   1.095004E-03   4.214043E-02
+             5      G      7.054332E-03   1.793719E-02   1.294600E-03   1.202865E-02  -4.563991E-03  -4.696232E-02
+             6      G      1.760489E-02   5.206217E-03   4.552151E-04   3.732086E-03  -1.152307E-02  -1.419760E-01
+             7      G      2.209418E-02  -1.784105E-02   4.539376E-04  -1.138379E-02  -1.448755E-02  -1.805658E-01
+             8      G      5.687055E-11  -1.715869E-02  -6.305083E-12  -1.093260E-02  -3.755292E-11  -1.854590E-01
+             9      G     -2.209418E-02  -1.784105E-02  -4.539376E-04  -1.138379E-02   1.448755E-02  -1.805658E-01
+            10      G     -1.760489E-02   5.206217E-03  -4.552151E-04   3.732086E-03   1.152307E-02  -1.419760E-01
+            11      G     -7.054332E-03   1.793719E-02  -1.294600E-03   1.202865E-02   4.563992E-03  -4.696232E-02
+            12      G      1.566514E-03   1.457871E-02  -1.131323E-03   9.711213E-03  -1.095004E-03   4.214043E-02
+            13      G      7.697562E-11   1.502789E-02  -2.253355E-12   9.989691E-03  -5.100716E-11   4.868401E-02
+            14      G      2.658530E-11   2.120898E-02  -1.065648E-11   1.418691E-02  -1.755762E-11  -4.404933E-02
+            15      G     -1.825884E-11   7.111884E-03  -5.237249E-12   4.989615E-03   1.222370E-11  -1.471549E-01
+1                                                                               MAY  15, 2024  MSC Nastran  9/15/21   PAGE    16
+                                                                                                                                    
+0     EIGENANALYSIS                                                                                          SUBCASE 1              
+      EIGENVALUE =  3.026345E+02
+          CYCLES =  2.768722E+00         R E A L   E I G E N V E C T O R   N O .          4
+ 
+      POINT ID.   TYPE          T1             T2             T3             R1             R2             R3
+             1      G      0.0            0.0            0.0            0.0            0.0            0.0
+             2      G      0.0            0.0            0.0            0.0            0.0            0.0
+             3      G      0.0            0.0            0.0            0.0            0.0            0.0
+             4      G     -8.613607E-03   5.261172E-03   2.184884E-03   3.483658E-03   5.699900E-03   1.176759E-02
+             5      G     -1.570040E-02   3.755972E-03   2.408747E-03   2.491104E-03   1.039753E-02  -1.059238E-02
+             6      G     -2.105827E-02   1.880282E-03   7.625854E-04   1.248011E-03   1.395182E-02  -1.043475E-02
+             7      G     -2.308674E-02   4.250861E-04  -1.565888E-03   2.825004E-04   1.529809E-02  -9.117635E-03
+             8      G     -2.391096E-02   7.289617E-11  -1.616208E-03   5.014355E-11   1.584472E-02   1.834490E-10
+             9      G     -2.308674E-02  -4.250858E-04  -1.565888E-03  -2.825001E-04   1.529809E-02   9.117637E-03
+            10      G     -2.105827E-02  -1.880282E-03   7.625854E-04  -1.248011E-03   1.395182E-02   1.043475E-02
+            11      G     -1.570040E-02  -3.755972E-03   2.408747E-03  -2.491105E-03   1.039753E-02   1.059238E-02
+            12      G     -8.613606E-03  -5.261172E-03   2.184884E-03  -3.483658E-03   5.699899E-03  -1.176759E-02
+            13      G     -7.549694E-03   2.040496E-10   1.963867E-03   1.354622E-10   4.994486E-03   1.488294E-09
+            14      G     -1.665805E-02  -4.619441E-11   2.235519E-03  -3.002809E-11   1.103081E-02  -1.494567E-10
+            15      G     -2.200152E-02  -1.986464E-11   6.722035E-04  -1.193235E-11   1.457702E-02  -5.484067E-10
+ *** USER WARNING MESSAGE 2020 (SDRCOMP)
+     ONE OR MORE OF THE ALLOWABLE STRESS CONSTANTS WERE INCORRECT FOR ELEMENT        1 PLY     1
+     User Information:
+     Failure theory calculations were requested, but Sb on the PCOMP entry or Xt, Xc,
+     Yt, Yc, S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 on the MAT8 were less than or equal to zero.
+     See the element/PLY for which PCOMP or MAT8 entry is in error.  The failure index
+     calculations were not made.  Either drop request for Failure theory calculations or be
+     sure that Sb,Xt, Xc, Yt, Yc and S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 are positive.
+ *** USER WARNING MESSAGE 2020 (SDRCOMP)
+     ONE OR MORE OF THE ALLOWABLE STRESS CONSTANTS WERE INCORRECT FOR ELEMENT        2 PLY     1
+     User Information:
+     Failure theory calculations were requested, but Sb on the PCOMP entry or Xt, Xc,
+     Yt, Yc, S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 on the MAT8 were less than or equal to zero.
+     See the element/PLY for which PCOMP or MAT8 entry is in error.  The failure index
+     calculations were not made.  Either drop request for Failure theory calculations or be
+     sure that Sb,Xt, Xc, Yt, Yc and S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 are positive.
+ *** USER WARNING MESSAGE 2020 (SDRCOMP)
+     ONE OR MORE OF THE ALLOWABLE STRESS CONSTANTS WERE INCORRECT FOR ELEMENT        3 PLY     1
+     User Information:
+     Failure theory calculations were requested, but Sb on the PCOMP entry or Xt, Xc,
+     Yt, Yc, S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 on the MAT8 were less than or equal to zero.
+     See the element/PLY for which PCOMP or MAT8 entry is in error.  The failure index
+     calculations were not made.  Either drop request for Failure theory calculations or be
+     sure that Sb,Xt, Xc, Yt, Yc and S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 are positive.
+ *** USER WARNING MESSAGE 2020 (SDRCOMP)
+     ONE OR MORE OF THE ALLOWABLE STRESS CONSTANTS WERE INCORRECT FOR ELEMENT        4 PLY     1
+     User Information:
+     Failure theory calculations were requested, but Sb on the PCOMP entry or Xt, Xc,
+     Yt, Yc, S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 on the MAT8 were less than or equal to zero.
+     See the element/PLY for which PCOMP or MAT8 entry is in error.  The failure index
+     calculations were not made.  Either drop request for Failure theory calculations or be
+     sure that Sb,Xt, Xc, Yt, Yc and S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 are positive.
+ *** USER WARNING MESSAGE 2020 (SDRCOMP)
+     ONE OR MORE OF THE ALLOWABLE STRESS CONSTANTS WERE INCORRECT FOR ELEMENT        5 PLY     1
+     User Information:
+     Failure theory calculations were requested, but Sb on the PCOMP entry or Xt, Xc,
+     Yt, Yc, S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 on the MAT8 were less than or equal to zero.
+     See the element/PLY for which PCOMP or MAT8 entry is in error.  The failure index
+     calculations were not made.  Either drop request for Failure theory calculations or be
+     sure that Sb,Xt, Xc, Yt, Yc and S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 are positive.
+ *** USER WARNING MESSAGE 2020 (SDRCOMP)
+     ONE OR MORE OF THE ALLOWABLE STRESS CONSTANTS WERE INCORRECT FOR ELEMENT        6 PLY     1
+     User Information:
+     Failure theory calculations were requested, but Sb on the PCOMP entry or Xt, Xc,
+     Yt, Yc, S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 on the MAT8 were less than or equal to zero.
+     See the element/PLY for which PCOMP or MAT8 entry is in error.  The failure index
+     calculations were not made.  Either drop request for Failure theory calculations or be
+     sure that Sb,Xt, Xc, Yt, Yc and S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 are positive.
+ *** USER WARNING MESSAGE 2020 (SDRCOMP)
+     ONE OR MORE OF THE ALLOWABLE STRESS CONSTANTS WERE INCORRECT FOR ELEMENT        7 PLY     1
+     User Information:
+     Failure theory calculations were requested, but Sb on the PCOMP entry or Xt, Xc,
+     Yt, Yc, S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 on the MAT8 were less than or equal to zero.
+     See the element/PLY for which PCOMP or MAT8 entry is in error.  The failure index
+     calculations were not made.  Either drop request for Failure theory calculations or be
+     sure that Sb,Xt, Xc, Yt, Yc and S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 are positive.
+ *** USER WARNING MESSAGE 2020 (SDRCOMP)
+     ONE OR MORE OF THE ALLOWABLE STRESS CONSTANTS WERE INCORRECT FOR ELEMENT        8 PLY     1
+     User Information:
+     Failure theory calculations were requested, but Sb on the PCOMP entry or Xt, Xc,
+     Yt, Yc, S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 on the MAT8 were less than or equal to zero.
+     See the element/PLY for which PCOMP or MAT8 entry is in error.  The failure index
+     calculations were not made.  Either drop request for Failure theory calculations or be
+     sure that Sb,Xt, Xc, Yt, Yc and S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 are positive.
+ *** USER WARNING MESSAGE 2020 (SDRCOMP)
+     ONE OR MORE OF THE ALLOWABLE STRESS CONSTANTS WERE INCORRECT FOR ELEMENT        1 PLY     1
+     User Information:
+     Failure theory calculations were requested, but Sb on the PCOMP entry or Xt, Xc,
+     Yt, Yc, S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 on the MAT8 were less than or equal to zero.
+     See the element/PLY for which PCOMP or MAT8 entry is in error.  The failure index
+     calculations were not made.  Either drop request for Failure theory calculations or be
+     sure that Sb,Xt, Xc, Yt, Yc and S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 are positive.
+ *** USER WARNING MESSAGE 2020 (SDRCOMP)
+     ONE OR MORE OF THE ALLOWABLE STRESS CONSTANTS WERE INCORRECT FOR ELEMENT        2 PLY     1
+     User Information:
+     Failure theory calculations were requested, but Sb on the PCOMP entry or Xt, Xc,
+     Yt, Yc, S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 on the MAT8 were less than or equal to zero.
+     See the element/PLY for which PCOMP or MAT8 entry is in error.  The failure index
+     calculations were not made.  Either drop request for Failure theory calculations or be
+     sure that Sb,Xt, Xc, Yt, Yc and S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 are positive.
+ *** USER WARNING MESSAGE 2020 (SDRCOMP)
+     ONE OR MORE OF THE ALLOWABLE STRESS CONSTANTS WERE INCORRECT FOR ELEMENT        3 PLY     1
+     User Information:
+     Failure theory calculations were requested, but Sb on the PCOMP entry or Xt, Xc,
+     Yt, Yc, S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 on the MAT8 were less than or equal to zero.
+     See the element/PLY for which PCOMP or MAT8 entry is in error.  The failure index
+     calculations were not made.  Either drop request for Failure theory calculations or be
+     sure that Sb,Xt, Xc, Yt, Yc and S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 are positive.
+ *** USER WARNING MESSAGE 2020 (SDRCOMP)
+     ONE OR MORE OF THE ALLOWABLE STRESS CONSTANTS WERE INCORRECT FOR ELEMENT        4 PLY     1
+     User Information:
+     Failure theory calculations were requested, but Sb on the PCOMP entry or Xt, Xc,
+     Yt, Yc, S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 on the MAT8 were less than or equal to zero.
+     See the element/PLY for which PCOMP or MAT8 entry is in error.  The failure index
+     calculations were not made.  Either drop request for Failure theory calculations or be
+     sure that Sb,Xt, Xc, Yt, Yc and S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 are positive.
+ *** USER WARNING MESSAGE 2020 (SDRCOMP)
+     ONE OR MORE OF THE ALLOWABLE STRESS CONSTANTS WERE INCORRECT FOR ELEMENT        5 PLY     1
+     User Information:
+     Failure theory calculations were requested, but Sb on the PCOMP entry or Xt, Xc,
+     Yt, Yc, S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 on the MAT8 were less than or equal to zero.
+     See the element/PLY for which PCOMP or MAT8 entry is in error.  The failure index
+     calculations were not made.  Either drop request for Failure theory calculations or be
+     sure that Sb,Xt, Xc, Yt, Yc and S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 are positive.
+ *** USER WARNING MESSAGE 2020 (SDRCOMP)
+     ONE OR MORE OF THE ALLOWABLE STRESS CONSTANTS WERE INCORRECT FOR ELEMENT        6 PLY     1
+     User Information:
+     Failure theory calculations were requested, but Sb on the PCOMP entry or Xt, Xc,
+     Yt, Yc, S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 on the MAT8 were less than or equal to zero.
+     See the element/PLY for which PCOMP or MAT8 entry is in error.  The failure index
+     calculations were not made.  Either drop request for Failure theory calculations or be
+     sure that Sb,Xt, Xc, Yt, Yc and S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 are positive.
+ *** USER WARNING MESSAGE 2020 (SDRCOMP)
+     ONE OR MORE OF THE ALLOWABLE STRESS CONSTANTS WERE INCORRECT FOR ELEMENT        7 PLY     1
+     User Information:
+     Failure theory calculations were requested, but Sb on the PCOMP entry or Xt, Xc,
+     Yt, Yc, S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 on the MAT8 were less than or equal to zero.
+     See the element/PLY for which PCOMP or MAT8 entry is in error.  The failure index
+     calculations were not made.  Either drop request for Failure theory calculations or be
+     sure that Sb,Xt, Xc, Yt, Yc and S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 are positive.
+ *** USER WARNING MESSAGE 2020 (SDRCOMP)
+     ONE OR MORE OF THE ALLOWABLE STRESS CONSTANTS WERE INCORRECT FOR ELEMENT        8 PLY     1
+     User Information:
+     Failure theory calculations were requested, but Sb on the PCOMP entry or Xt, Xc,
+     Yt, Yc, S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 on the MAT8 were less than or equal to zero.
+     See the element/PLY for which PCOMP or MAT8 entry is in error.  The failure index
+     calculations were not made.  Either drop request for Failure theory calculations or be
+     sure that Sb,Xt, Xc, Yt, Yc and S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 are positive.
+ *** USER WARNING MESSAGE 2020 (SDRCOMP)
+     ONE OR MORE OF THE ALLOWABLE STRESS CONSTANTS WERE INCORRECT FOR ELEMENT        1 PLY     1
+     User Information:
+     Failure theory calculations were requested, but Sb on the PCOMP entry or Xt, Xc,
+     Yt, Yc, S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 on the MAT8 were less than or equal to zero.
+     See the element/PLY for which PCOMP or MAT8 entry is in error.  The failure index
+     calculations were not made.  Either drop request for Failure theory calculations or be
+     sure that Sb,Xt, Xc, Yt, Yc and S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 are positive.
+ *** USER WARNING MESSAGE 2020 (SDRCOMP)
+     ONE OR MORE OF THE ALLOWABLE STRESS CONSTANTS WERE INCORRECT FOR ELEMENT        2 PLY     1
+     User Information:
+     Failure theory calculations were requested, but Sb on the PCOMP entry or Xt, Xc,
+     Yt, Yc, S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 on the MAT8 were less than or equal to zero.
+     See the element/PLY for which PCOMP or MAT8 entry is in error.  The failure index
+     calculations were not made.  Either drop request for Failure theory calculations or be
+     sure that Sb,Xt, Xc, Yt, Yc and S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 are positive.
+ *** USER WARNING MESSAGE 2020 (SDRCOMP)
+     ONE OR MORE OF THE ALLOWABLE STRESS CONSTANTS WERE INCORRECT FOR ELEMENT        3 PLY     1
+     User Information:
+     Failure theory calculations were requested, but Sb on the PCOMP entry or Xt, Xc,
+     Yt, Yc, S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 on the MAT8 were less than or equal to zero.
+     See the element/PLY for which PCOMP or MAT8 entry is in error.  The failure index
+     calculations were not made.  Either drop request for Failure theory calculations or be
+     sure that Sb,Xt, Xc, Yt, Yc and S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 are positive.
+ *** USER WARNING MESSAGE 2020 (SDRCOMP)
+     ONE OR MORE OF THE ALLOWABLE STRESS CONSTANTS WERE INCORRECT FOR ELEMENT        4 PLY     1
+     User Information:
+     Failure theory calculations were requested, but Sb on the PCOMP entry or Xt, Xc,
+     Yt, Yc, S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 on the MAT8 were less than or equal to zero.
+     See the element/PLY for which PCOMP or MAT8 entry is in error.  The failure index
+     calculations were not made.  Either drop request for Failure theory calculations or be
+     sure that Sb,Xt, Xc, Yt, Yc and S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 are positive.
+ *** USER WARNING MESSAGE 2020 (SDRCOMP)
+     ONE OR MORE OF THE ALLOWABLE STRESS CONSTANTS WERE INCORRECT FOR ELEMENT        5 PLY     1
+     User Information:
+     Failure theory calculations were requested, but Sb on the PCOMP entry or Xt, Xc,
+     Yt, Yc, S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 on the MAT8 were less than or equal to zero.
+     See the element/PLY for which PCOMP or MAT8 entry is in error.  The failure index
+     calculations were not made.  Either drop request for Failure theory calculations or be
+     sure that Sb,Xt, Xc, Yt, Yc and S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 are positive.
+ *** USER WARNING MESSAGE 2020 (SDRCOMP)
+     ONE OR MORE OF THE ALLOWABLE STRESS CONSTANTS WERE INCORRECT FOR ELEMENT        6 PLY     1
+     User Information:
+     Failure theory calculations were requested, but Sb on the PCOMP entry or Xt, Xc,
+     Yt, Yc, S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 on the MAT8 were less than or equal to zero.
+     See the element/PLY for which PCOMP or MAT8 entry is in error.  The failure index
+     calculations were not made.  Either drop request for Failure theory calculations or be
+     sure that Sb,Xt, Xc, Yt, Yc and S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 are positive.
+ *** USER WARNING MESSAGE 2020 (SDRCOMP)
+     ONE OR MORE OF THE ALLOWABLE STRESS CONSTANTS WERE INCORRECT FOR ELEMENT        7 PLY     1
+     User Information:
+     Failure theory calculations were requested, but Sb on the PCOMP entry or Xt, Xc,
+     Yt, Yc, S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 on the MAT8 were less than or equal to zero.
+     See the element/PLY for which PCOMP or MAT8 entry is in error.  The failure index
+     calculations were not made.  Either drop request for Failure theory calculations or be
+     sure that Sb,Xt, Xc, Yt, Yc and S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 are positive.
+ *** USER WARNING MESSAGE 2020 (SDRCOMP)
+     ONE OR MORE OF THE ALLOWABLE STRESS CONSTANTS WERE INCORRECT FOR ELEMENT        8 PLY     1
+     User Information:
+     Failure theory calculations were requested, but Sb on the PCOMP entry or Xt, Xc,
+     Yt, Yc, S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 on the MAT8 were less than or equal to zero.
+     See the element/PLY for which PCOMP or MAT8 entry is in error.  The failure index
+     calculations were not made.  Either drop request for Failure theory calculations or be
+     sure that Sb,Xt, Xc, Yt, Yc and S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 are positive.
+ *** USER WARNING MESSAGE 2020 (SDRCOMP)
+     ONE OR MORE OF THE ALLOWABLE STRESS CONSTANTS WERE INCORRECT FOR ELEMENT        1 PLY     1
+     User Information:
+     Failure theory calculations were requested, but Sb on the PCOMP entry or Xt, Xc,
+     Yt, Yc, S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 on the MAT8 were less than or equal to zero.
+     See the element/PLY for which PCOMP or MAT8 entry is in error.  The failure index
+     calculations were not made.  Either drop request for Failure theory calculations or be
+     sure that Sb,Xt, Xc, Yt, Yc and S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 are positive.
+ *** USER WARNING MESSAGE 2020 (SDRCOMP)
+     ONE OR MORE OF THE ALLOWABLE STRESS CONSTANTS WERE INCORRECT FOR ELEMENT        2 PLY     1
+     User Information:
+     Failure theory calculations were requested, but Sb on the PCOMP entry or Xt, Xc,
+     Yt, Yc, S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 on the MAT8 were less than or equal to zero.
+     See the element/PLY for which PCOMP or MAT8 entry is in error.  The failure index
+     calculations were not made.  Either drop request for Failure theory calculations or be
+     sure that Sb,Xt, Xc, Yt, Yc and S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 are positive.
+ *** USER WARNING MESSAGE 2020 (SDRCOMP)
+     ONE OR MORE OF THE ALLOWABLE STRESS CONSTANTS WERE INCORRECT FOR ELEMENT        3 PLY     1
+     User Information:
+     Failure theory calculations were requested, but Sb on the PCOMP entry or Xt, Xc,
+     Yt, Yc, S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 on the MAT8 were less than or equal to zero.
+     See the element/PLY for which PCOMP or MAT8 entry is in error.  The failure index
+     calculations were not made.  Either drop request for Failure theory calculations or be
+     sure that Sb,Xt, Xc, Yt, Yc and S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 are positive.
+ *** USER WARNING MESSAGE 2020 (SDRCOMP)
+     ONE OR MORE OF THE ALLOWABLE STRESS CONSTANTS WERE INCORRECT FOR ELEMENT        4 PLY     1
+     User Information:
+     Failure theory calculations were requested, but Sb on the PCOMP entry or Xt, Xc,
+     Yt, Yc, S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 on the MAT8 were less than or equal to zero.
+     See the element/PLY for which PCOMP or MAT8 entry is in error.  The failure index
+     calculations were not made.  Either drop request for Failure theory calculations or be
+     sure that Sb,Xt, Xc, Yt, Yc and S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 are positive.
+ *** USER WARNING MESSAGE 2020 (SDRCOMP)
+     ONE OR MORE OF THE ALLOWABLE STRESS CONSTANTS WERE INCORRECT FOR ELEMENT        5 PLY     1
+     User Information:
+     Failure theory calculations were requested, but Sb on the PCOMP entry or Xt, Xc,
+     Yt, Yc, S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 on the MAT8 were less than or equal to zero.
+     See the element/PLY for which PCOMP or MAT8 entry is in error.  The failure index
+     calculations were not made.  Either drop request for Failure theory calculations or be
+     sure that Sb,Xt, Xc, Yt, Yc and S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 are positive.
+ *** USER WARNING MESSAGE 2020 (SDRCOMP)
+     ONE OR MORE OF THE ALLOWABLE STRESS CONSTANTS WERE INCORRECT FOR ELEMENT        6 PLY     1
+     User Information:
+     Failure theory calculations were requested, but Sb on the PCOMP entry or Xt, Xc,
+     Yt, Yc, S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 on the MAT8 were less than or equal to zero.
+     See the element/PLY for which PCOMP or MAT8 entry is in error.  The failure index
+     calculations were not made.  Either drop request for Failure theory calculations or be
+     sure that Sb,Xt, Xc, Yt, Yc and S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 are positive.
+ *** USER WARNING MESSAGE 2020 (SDRCOMP)
+     ONE OR MORE OF THE ALLOWABLE STRESS CONSTANTS WERE INCORRECT FOR ELEMENT        7 PLY     1
+     User Information:
+     Failure theory calculations were requested, but Sb on the PCOMP entry or Xt, Xc,
+     Yt, Yc, S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 on the MAT8 were less than or equal to zero.
+     See the element/PLY for which PCOMP or MAT8 entry is in error.  The failure index
+     calculations were not made.  Either drop request for Failure theory calculations or be
+     sure that Sb,Xt, Xc, Yt, Yc and S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 are positive.
+ *** USER WARNING MESSAGE 2020 (SDRCOMP)
+     ONE OR MORE OF THE ALLOWABLE STRESS CONSTANTS WERE INCORRECT FOR ELEMENT        8 PLY     1
+     User Information:
+     Failure theory calculations were requested, but Sb on the PCOMP entry or Xt, Xc,
+     Yt, Yc, S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 on the MAT8 were less than or equal to zero.
+     See the element/PLY for which PCOMP or MAT8 entry is in error.  The failure index
+     calculations were not made.  Either drop request for Failure theory calculations or be
+     sure that Sb,Xt, Xc, Yt, Yc and S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 are positive.
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK OES1C    WRITTEN ON FORTRAN UNIT    12 IN BINARY (LTLEND) FORMAT USING NDDL DESCRIPTION FOR OES1C, TRL =
+                    101                 4                 1                 0                 0                 0                 0
+     NAME OF DATA BLOCK WRITTEN ON FORTRAN UNIT IS OES1C   
+        (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =       65538 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =         264 WORDS.)
+           (NUMBER OF FORTRAN RECORDS WRITTEN =          50 RECORDS.)
+           (TOTAL DATA WRITTEN FOR DATA BLOCK =        1697 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK OEFIT    WRITTEN ON FORTRAN UNIT    12 IN BINARY (LTLEND) FORMAT USING NDDL DESCRIPTION FOR OEFIT, TRL =
+                    101                 0                 1                 0                 0                 0                 0
+     NAME OF DATA BLOCK WRITTEN ON FORTRAN UNIT IS OEFIT   
+        (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =       65538 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =           7 WORDS.)
+           (NUMBER OF FORTRAN RECORDS WRITTEN =          10 RECORDS.)
+           (TOTAL DATA WRITTEN FOR DATA BLOCK =          25 WORDS.)
+ *** USER WARNING MESSAGE 2020 (SDRCOMP)
+     ONE OR MORE OF THE ALLOWABLE STRESS CONSTANTS WERE INCORRECT FOR ELEMENT        1 PLY     1
+     User Information:
+     Failure theory calculations were requested, but Sb on the PCOMP entry or Xt, Xc,
+     Yt, Yc, S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 on the MAT8 were less than or equal to zero.
+     See the element/PLY for which PCOMP or MAT8 entry is in error.  The failure index
+     calculations were not made.  Either drop request for Failure theory calculations or be
+     sure that Sb,Xt, Xc, Yt, Yc and S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 are positive.
+ *** USER WARNING MESSAGE 2020 (SDRCOMP)
+     ONE OR MORE OF THE ALLOWABLE STRESS CONSTANTS WERE INCORRECT FOR ELEMENT        2 PLY     1
+     User Information:
+     Failure theory calculations were requested, but Sb on the PCOMP entry or Xt, Xc,
+     Yt, Yc, S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 on the MAT8 were less than or equal to zero.
+     See the element/PLY for which PCOMP or MAT8 entry is in error.  The failure index
+     calculations were not made.  Either drop request for Failure theory calculations or be
+     sure that Sb,Xt, Xc, Yt, Yc and S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 are positive.
+ *** USER WARNING MESSAGE 2020 (SDRCOMP)
+     ONE OR MORE OF THE ALLOWABLE STRESS CONSTANTS WERE INCORRECT FOR ELEMENT        3 PLY     1
+     User Information:
+     Failure theory calculations were requested, but Sb on the PCOMP entry or Xt, Xc,
+     Yt, Yc, S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 on the MAT8 were less than or equal to zero.
+     See the element/PLY for which PCOMP or MAT8 entry is in error.  The failure index
+     calculations were not made.  Either drop request for Failure theory calculations or be
+     sure that Sb,Xt, Xc, Yt, Yc and S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 are positive.
+ *** USER WARNING MESSAGE 2020 (SDRCOMP)
+     ONE OR MORE OF THE ALLOWABLE STRESS CONSTANTS WERE INCORRECT FOR ELEMENT        4 PLY     1
+     User Information:
+     Failure theory calculations were requested, but Sb on the PCOMP entry or Xt, Xc,
+     Yt, Yc, S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 on the MAT8 were less than or equal to zero.
+     See the element/PLY for which PCOMP or MAT8 entry is in error.  The failure index
+     calculations were not made.  Either drop request for Failure theory calculations or be
+     sure that Sb,Xt, Xc, Yt, Yc and S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 are positive.
+ *** USER WARNING MESSAGE 2020 (SDRCOMP)
+     ONE OR MORE OF THE ALLOWABLE STRESS CONSTANTS WERE INCORRECT FOR ELEMENT        5 PLY     1
+     User Information:
+     Failure theory calculations were requested, but Sb on the PCOMP entry or Xt, Xc,
+     Yt, Yc, S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 on the MAT8 were less than or equal to zero.
+     See the element/PLY for which PCOMP or MAT8 entry is in error.  The failure index
+     calculations were not made.  Either drop request for Failure theory calculations or be
+     sure that Sb,Xt, Xc, Yt, Yc and S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 are positive.
+ *** USER WARNING MESSAGE 2020 (SDRCOMP)
+     ONE OR MORE OF THE ALLOWABLE STRESS CONSTANTS WERE INCORRECT FOR ELEMENT        6 PLY     1
+     User Information:
+     Failure theory calculations were requested, but Sb on the PCOMP entry or Xt, Xc,
+     Yt, Yc, S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 on the MAT8 were less than or equal to zero.
+     See the element/PLY for which PCOMP or MAT8 entry is in error.  The failure index
+     calculations were not made.  Either drop request for Failure theory calculations or be
+     sure that Sb,Xt, Xc, Yt, Yc and S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 are positive.
+ *** USER WARNING MESSAGE 2020 (SDRCOMP)
+     ONE OR MORE OF THE ALLOWABLE STRESS CONSTANTS WERE INCORRECT FOR ELEMENT        7 PLY     1
+     User Information:
+     Failure theory calculations were requested, but Sb on the PCOMP entry or Xt, Xc,
+     Yt, Yc, S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 on the MAT8 were less than or equal to zero.
+     See the element/PLY for which PCOMP or MAT8 entry is in error.  The failure index
+     calculations were not made.  Either drop request for Failure theory calculations or be
+     sure that Sb,Xt, Xc, Yt, Yc and S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 are positive.
+ *** USER WARNING MESSAGE 2020 (SDRCOMP)
+     ONE OR MORE OF THE ALLOWABLE STRESS CONSTANTS WERE INCORRECT FOR ELEMENT        8 PLY     1
+     User Information:
+     Failure theory calculations were requested, but Sb on the PCOMP entry or Xt, Xc,
+     Yt, Yc, S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 on the MAT8 were less than or equal to zero.
+     See the element/PLY for which PCOMP or MAT8 entry is in error.  The failure index
+     calculations were not made.  Either drop request for Failure theory calculations or be
+     sure that Sb,Xt, Xc, Yt, Yc and S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 are positive.
+ *** USER WARNING MESSAGE 2020 (SDRCOMP)
+     ONE OR MORE OF THE ALLOWABLE STRESS CONSTANTS WERE INCORRECT FOR ELEMENT        1 PLY     1
+     User Information:
+     Failure theory calculations were requested, but Sb on the PCOMP entry or Xt, Xc,
+     Yt, Yc, S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 on the MAT8 were less than or equal to zero.
+     See the element/PLY for which PCOMP or MAT8 entry is in error.  The failure index
+     calculations were not made.  Either drop request for Failure theory calculations or be
+     sure that Sb,Xt, Xc, Yt, Yc and S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 are positive.
+ *** USER WARNING MESSAGE 2020 (SDRCOMP)
+     ONE OR MORE OF THE ALLOWABLE STRESS CONSTANTS WERE INCORRECT FOR ELEMENT        2 PLY     1
+     User Information:
+     Failure theory calculations were requested, but Sb on the PCOMP entry or Xt, Xc,
+     Yt, Yc, S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 on the MAT8 were less than or equal to zero.
+     See the element/PLY for which PCOMP or MAT8 entry is in error.  The failure index
+     calculations were not made.  Either drop request for Failure theory calculations or be
+     sure that Sb,Xt, Xc, Yt, Yc and S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 are positive.
+ *** USER WARNING MESSAGE 2020 (SDRCOMP)
+     ONE OR MORE OF THE ALLOWABLE STRESS CONSTANTS WERE INCORRECT FOR ELEMENT        3 PLY     1
+     User Information:
+     Failure theory calculations were requested, but Sb on the PCOMP entry or Xt, Xc,
+     Yt, Yc, S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 on the MAT8 were less than or equal to zero.
+     See the element/PLY for which PCOMP or MAT8 entry is in error.  The failure index
+     calculations were not made.  Either drop request for Failure theory calculations or be
+     sure that Sb,Xt, Xc, Yt, Yc and S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 are positive.
+ *** USER WARNING MESSAGE 2020 (SDRCOMP)
+     ONE OR MORE OF THE ALLOWABLE STRESS CONSTANTS WERE INCORRECT FOR ELEMENT        4 PLY     1
+     User Information:
+     Failure theory calculations were requested, but Sb on the PCOMP entry or Xt, Xc,
+     Yt, Yc, S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 on the MAT8 were less than or equal to zero.
+     See the element/PLY for which PCOMP or MAT8 entry is in error.  The failure index
+     calculations were not made.  Either drop request for Failure theory calculations or be
+     sure that Sb,Xt, Xc, Yt, Yc and S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 are positive.
+ *** USER WARNING MESSAGE 2020 (SDRCOMP)
+     ONE OR MORE OF THE ALLOWABLE STRESS CONSTANTS WERE INCORRECT FOR ELEMENT        5 PLY     1
+     User Information:
+     Failure theory calculations were requested, but Sb on the PCOMP entry or Xt, Xc,
+     Yt, Yc, S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 on the MAT8 were less than or equal to zero.
+     See the element/PLY for which PCOMP or MAT8 entry is in error.  The failure index
+     calculations were not made.  Either drop request for Failure theory calculations or be
+     sure that Sb,Xt, Xc, Yt, Yc and S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 are positive.
+ *** USER WARNING MESSAGE 2020 (SDRCOMP)
+     ONE OR MORE OF THE ALLOWABLE STRESS CONSTANTS WERE INCORRECT FOR ELEMENT        6 PLY     1
+     User Information:
+     Failure theory calculations were requested, but Sb on the PCOMP entry or Xt, Xc,
+     Yt, Yc, S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 on the MAT8 were less than or equal to zero.
+     See the element/PLY for which PCOMP or MAT8 entry is in error.  The failure index
+     calculations were not made.  Either drop request for Failure theory calculations or be
+     sure that Sb,Xt, Xc, Yt, Yc and S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 are positive.
+ *** USER WARNING MESSAGE 2020 (SDRCOMP)
+     ONE OR MORE OF THE ALLOWABLE STRESS CONSTANTS WERE INCORRECT FOR ELEMENT        7 PLY     1
+     User Information:
+     Failure theory calculations were requested, but Sb on the PCOMP entry or Xt, Xc,
+     Yt, Yc, S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 on the MAT8 were less than or equal to zero.
+     See the element/PLY for which PCOMP or MAT8 entry is in error.  The failure index
+     calculations were not made.  Either drop request for Failure theory calculations or be
+     sure that Sb,Xt, Xc, Yt, Yc and S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 are positive.
+ *** USER WARNING MESSAGE 2020 (SDRCOMP)
+     ONE OR MORE OF THE ALLOWABLE STRESS CONSTANTS WERE INCORRECT FOR ELEMENT        8 PLY     1
+     User Information:
+     Failure theory calculations were requested, but Sb on the PCOMP entry or Xt, Xc,
+     Yt, Yc, S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 on the MAT8 were less than or equal to zero.
+     See the element/PLY for which PCOMP or MAT8 entry is in error.  The failure index
+     calculations were not made.  Either drop request for Failure theory calculations or be
+     sure that Sb,Xt, Xc, Yt, Yc and S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 are positive.
+ *** USER WARNING MESSAGE 2020 (SDRCOMP)
+     ONE OR MORE OF THE ALLOWABLE STRESS CONSTANTS WERE INCORRECT FOR ELEMENT        1 PLY     1
+     User Information:
+     Failure theory calculations were requested, but Sb on the PCOMP entry or Xt, Xc,
+     Yt, Yc, S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 on the MAT8 were less than or equal to zero.
+     See the element/PLY for which PCOMP or MAT8 entry is in error.  The failure index
+     calculations were not made.  Either drop request for Failure theory calculations or be
+     sure that Sb,Xt, Xc, Yt, Yc and S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 are positive.
+ *** USER WARNING MESSAGE 2020 (SDRCOMP)
+     ONE OR MORE OF THE ALLOWABLE STRESS CONSTANTS WERE INCORRECT FOR ELEMENT        2 PLY     1
+     User Information:
+     Failure theory calculations were requested, but Sb on the PCOMP entry or Xt, Xc,
+     Yt, Yc, S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 on the MAT8 were less than or equal to zero.
+     See the element/PLY for which PCOMP or MAT8 entry is in error.  The failure index
+     calculations were not made.  Either drop request for Failure theory calculations or be
+     sure that Sb,Xt, Xc, Yt, Yc and S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 are positive.
+ *** USER WARNING MESSAGE 2020 (SDRCOMP)
+     ONE OR MORE OF THE ALLOWABLE STRESS CONSTANTS WERE INCORRECT FOR ELEMENT        3 PLY     1
+     User Information:
+     Failure theory calculations were requested, but Sb on the PCOMP entry or Xt, Xc,
+     Yt, Yc, S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 on the MAT8 were less than or equal to zero.
+     See the element/PLY for which PCOMP or MAT8 entry is in error.  The failure index
+     calculations were not made.  Either drop request for Failure theory calculations or be
+     sure that Sb,Xt, Xc, Yt, Yc and S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 are positive.
+ *** USER WARNING MESSAGE 2020 (SDRCOMP)
+     ONE OR MORE OF THE ALLOWABLE STRESS CONSTANTS WERE INCORRECT FOR ELEMENT        4 PLY     1
+     User Information:
+     Failure theory calculations were requested, but Sb on the PCOMP entry or Xt, Xc,
+     Yt, Yc, S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 on the MAT8 were less than or equal to zero.
+     See the element/PLY for which PCOMP or MAT8 entry is in error.  The failure index
+     calculations were not made.  Either drop request for Failure theory calculations or be
+     sure that Sb,Xt, Xc, Yt, Yc and S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 are positive.
+ *** USER WARNING MESSAGE 2020 (SDRCOMP)
+     ONE OR MORE OF THE ALLOWABLE STRESS CONSTANTS WERE INCORRECT FOR ELEMENT        5 PLY     1
+     User Information:
+     Failure theory calculations were requested, but Sb on the PCOMP entry or Xt, Xc,
+     Yt, Yc, S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 on the MAT8 were less than or equal to zero.
+     See the element/PLY for which PCOMP or MAT8 entry is in error.  The failure index
+     calculations were not made.  Either drop request for Failure theory calculations or be
+     sure that Sb,Xt, Xc, Yt, Yc and S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 are positive.
+ *** USER WARNING MESSAGE 2020 (SDRCOMP)
+     ONE OR MORE OF THE ALLOWABLE STRESS CONSTANTS WERE INCORRECT FOR ELEMENT        6 PLY     1
+     User Information:
+     Failure theory calculations were requested, but Sb on the PCOMP entry or Xt, Xc,
+     Yt, Yc, S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 on the MAT8 were less than or equal to zero.
+     See the element/PLY for which PCOMP or MAT8 entry is in error.  The failure index
+     calculations were not made.  Either drop request for Failure theory calculations or be
+     sure that Sb,Xt, Xc, Yt, Yc and S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 are positive.
+ *** USER WARNING MESSAGE 2020 (SDRCOMP)
+     ONE OR MORE OF THE ALLOWABLE STRESS CONSTANTS WERE INCORRECT FOR ELEMENT        7 PLY     1
+     User Information:
+     Failure theory calculations were requested, but Sb on the PCOMP entry or Xt, Xc,
+     Yt, Yc, S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 on the MAT8 were less than or equal to zero.
+     See the element/PLY for which PCOMP or MAT8 entry is in error.  The failure index
+     calculations were not made.  Either drop request for Failure theory calculations or be
+     sure that Sb,Xt, Xc, Yt, Yc and S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 are positive.
+ *** USER WARNING MESSAGE 2020 (SDRCOMP)
+     ONE OR MORE OF THE ALLOWABLE STRESS CONSTANTS WERE INCORRECT FOR ELEMENT        8 PLY     1
+     User Information:
+     Failure theory calculations were requested, but Sb on the PCOMP entry or Xt, Xc,
+     Yt, Yc, S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 on the MAT8 were less than or equal to zero.
+     See the element/PLY for which PCOMP or MAT8 entry is in error.  The failure index
+     calculations were not made.  Either drop request for Failure theory calculations or be
+     sure that Sb,Xt, Xc, Yt, Yc and S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 are positive.
+ *** USER WARNING MESSAGE 2020 (SDRCOMP)
+     ONE OR MORE OF THE ALLOWABLE STRESS CONSTANTS WERE INCORRECT FOR ELEMENT        1 PLY     1
+     User Information:
+     Failure theory calculations were requested, but Sb on the PCOMP entry or Xt, Xc,
+     Yt, Yc, S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 on the MAT8 were less than or equal to zero.
+     See the element/PLY for which PCOMP or MAT8 entry is in error.  The failure index
+     calculations were not made.  Either drop request for Failure theory calculations or be
+     sure that Sb,Xt, Xc, Yt, Yc and S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 are positive.
+ *** USER WARNING MESSAGE 2020 (SDRCOMP)
+     ONE OR MORE OF THE ALLOWABLE STRESS CONSTANTS WERE INCORRECT FOR ELEMENT        2 PLY     1
+     User Information:
+     Failure theory calculations were requested, but Sb on the PCOMP entry or Xt, Xc,
+     Yt, Yc, S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 on the MAT8 were less than or equal to zero.
+     See the element/PLY for which PCOMP or MAT8 entry is in error.  The failure index
+     calculations were not made.  Either drop request for Failure theory calculations or be
+     sure that Sb,Xt, Xc, Yt, Yc and S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 are positive.
+ *** USER WARNING MESSAGE 2020 (SDRCOMP)
+     ONE OR MORE OF THE ALLOWABLE STRESS CONSTANTS WERE INCORRECT FOR ELEMENT        3 PLY     1
+     User Information:
+     Failure theory calculations were requested, but Sb on the PCOMP entry or Xt, Xc,
+     Yt, Yc, S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 on the MAT8 were less than or equal to zero.
+     See the element/PLY for which PCOMP or MAT8 entry is in error.  The failure index
+     calculations were not made.  Either drop request for Failure theory calculations or be
+     sure that Sb,Xt, Xc, Yt, Yc and S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 are positive.
+ *** USER WARNING MESSAGE 2020 (SDRCOMP)
+     ONE OR MORE OF THE ALLOWABLE STRESS CONSTANTS WERE INCORRECT FOR ELEMENT        4 PLY     1
+     User Information:
+     Failure theory calculations were requested, but Sb on the PCOMP entry or Xt, Xc,
+     Yt, Yc, S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 on the MAT8 were less than or equal to zero.
+     See the element/PLY for which PCOMP or MAT8 entry is in error.  The failure index
+     calculations were not made.  Either drop request for Failure theory calculations or be
+     sure that Sb,Xt, Xc, Yt, Yc and S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 are positive.
+ *** USER WARNING MESSAGE 2020 (SDRCOMP)
+     ONE OR MORE OF THE ALLOWABLE STRESS CONSTANTS WERE INCORRECT FOR ELEMENT        5 PLY     1
+     User Information:
+     Failure theory calculations were requested, but Sb on the PCOMP entry or Xt, Xc,
+     Yt, Yc, S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 on the MAT8 were less than or equal to zero.
+     See the element/PLY for which PCOMP or MAT8 entry is in error.  The failure index
+     calculations were not made.  Either drop request for Failure theory calculations or be
+     sure that Sb,Xt, Xc, Yt, Yc and S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 are positive.
+ *** USER WARNING MESSAGE 2020 (SDRCOMP)
+     ONE OR MORE OF THE ALLOWABLE STRESS CONSTANTS WERE INCORRECT FOR ELEMENT        6 PLY     1
+     User Information:
+     Failure theory calculations were requested, but Sb on the PCOMP entry or Xt, Xc,
+     Yt, Yc, S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 on the MAT8 were less than or equal to zero.
+     See the element/PLY for which PCOMP or MAT8 entry is in error.  The failure index
+     calculations were not made.  Either drop request for Failure theory calculations or be
+     sure that Sb,Xt, Xc, Yt, Yc and S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 are positive.
+ *** USER WARNING MESSAGE 2020 (SDRCOMP)
+     ONE OR MORE OF THE ALLOWABLE STRESS CONSTANTS WERE INCORRECT FOR ELEMENT        7 PLY     1
+     User Information:
+     Failure theory calculations were requested, but Sb on the PCOMP entry or Xt, Xc,
+     Yt, Yc, S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 on the MAT8 were less than or equal to zero.
+     See the element/PLY for which PCOMP or MAT8 entry is in error.  The failure index
+     calculations were not made.  Either drop request for Failure theory calculations or be
+     sure that Sb,Xt, Xc, Yt, Yc and S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 are positive.
+ *** USER WARNING MESSAGE 2020 (SDRCOMP)
+     ONE OR MORE OF THE ALLOWABLE STRESS CONSTANTS WERE INCORRECT FOR ELEMENT        8 PLY     1
+     User Information:
+     Failure theory calculations were requested, but Sb on the PCOMP entry or Xt, Xc,
+     Yt, Yc, S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 on the MAT8 were less than or equal to zero.
+     See the element/PLY for which PCOMP or MAT8 entry is in error.  The failure index
+     calculations were not made.  Either drop request for Failure theory calculations or be
+     sure that Sb,Xt, Xc, Yt, Yc and S or HF1-HF6 or HT1-HT12 or HFB1-HFB12 are positive.
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK OSTR1C   WRITTEN ON FORTRAN UNIT    12 IN BINARY (LTLEND) FORMAT USING NDDL DESCRIPTION FOR OES, TRL =
+                    101                63                 5                15                24                 0                 5
+     NAME OF DATA BLOCK WRITTEN ON FORTRAN UNIT IS OSTR1C  
+        (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =       65538 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =         264 WORDS.)
+           (NUMBER OF FORTRAN RECORDS WRITTEN =          50 RECORDS.)
+           (TOTAL DATA WRITTEN FOR DATA BLOCK =        1697 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK OEFITSTN WRITTEN ON FORTRAN UNIT    12 IN BINARY (LTLEND) FORMAT USING NDDL DESCRIPTION FOR OEFIT, TRL =
+                    102                 0                 1                 0                 0                 0                 0
+     NAME OF DATA BLOCK WRITTEN ON FORTRAN UNIT IS OEFITSTN
+        (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =       65538 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =           7 WORDS.)
+           (NUMBER OF FORTRAN RECORDS WRITTEN =          10 RECORDS.)
+           (TOTAL DATA WRITTEN FOR DATA BLOCK =          25 WORDS.)
+ *** USER INFORMATION MESSAGE 4110 (OUTPX2)
+                                 END-OF-DATA SIMULATION ON FORTRAN UNIT    12
+                                 (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =      1 WORDS.)
+                                       (NUMBER OF FORTRAN RECORDS WRITTEN =      1 RECORDS.)
+                                       (TOTAL DATA WRITTEN FOR EOF MARKER =      1 WORDS.)
+1                                                                               MAY  15, 2024  MSC Nastran  9/15/21   PAGE    17
+                                                                                                                                    
+0     EIGENANALYSIS                                                                                          SUBCASE 1              
+ * * * *  D B D I C T   P R I N T  * * * *      SUBDMAP = PRTSUM  ,  DMAP STATEMENT NO.     74
+
+
+
+0                                   * * * *  A N A L Y S I S  S U M M A R Y  T A B L E  * * * *
+0 SEID  PEID PROJ VERS APRCH      SEMG SEMR SEKR SELG SELR MODES DYNRED SOLLIN SOLNL LOOPID DESIGN CYCLE SENSITIVITY
+ -------------------------------------------------------------------------------------------------------------------
+     0     0    1    1 '        '    T    T    T    T    T     T      F      T     F     -1            0           F
+0SEID = SUPERELEMENT ID.
+ PEID = PRIMARY SUPERELEMENT ID OF IMAGE SUPERELEMENT.
+ PROJ = PROJECT ID NUMBER.
+ VERS = VERSION ID.
+ APRCH = BLANK FOR STRUCTURAL ANALYSIS.  HEAT FOR HEAT TRANSFER ANALYSIS.
+ SEMG = STIFFNESS AND MASS MATRIX GENERATION STEP.
+ SEMR = MASS MATRIX REDUCTION STEP (INCLUDES EIGENVALUE SOLUTION FOR MODES).
+ SEKR = STIFFNESS MATRIX REDUCTION STEP.
+ SELG = LOAD MATRIX GENERATION STEP.
+ SELR = LOAD MATRIX REDUCTION STEP. 
+ MODES = T (TRUE) IF NORMAL MODES OR BUCKLING MODES CALCULATED.
+ DYNRED = T (TRUE) MEANS GENERALIZED DYNAMIC AND/OR COMPONENT MODE REDUCTION PERFORMED.
+ SOLLIN = T (TRUE) IF LINEAR SOLUTION EXISTS IN DATABASE.
+ LOOPID = THE LAST LOOPID VALUE USED IN THE NONLINEAR ANALYSIS.  USEFUL FOR RESTARTS.
+ SOLNL = T (TRUE) IF NONLINEAR SOLUTION EXISTS IN DATABASE.
+ DESIGN CYCLE = THE LAST DESIGN CYCLE (ONLY VALID IN OPTIMIZATION).
+ SENSITIVITY = SENSITIVITY MATRIX GENERATION FLAG.
+ 
+ No PARAM values were set in the Control File.
+ 
+1                                        * * * END OF JOB * * *
+ 
+ 
+ No Symbolic Replacement variables or values were specified.
+

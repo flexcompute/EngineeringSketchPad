@@ -63,8 +63,9 @@ timLoad(esp_T *ESP,                     /* (in)  pointer to ESP structure */
 {
     int    status=0;                    /* (out) return status */
 
+    int    i, j, same;
     char   buffer[512], *vsp3_root, command[1024];
-    char   *vsp3name=NULL, *udcname=NULL;
+    char   *vsp3name=NULL, *udcname=NULL, *vspShortName=NULL;
     FILE   *fp_vsp3=NULL, *fp_vspscript=NULL;
 
     ROUTINE(timLoad(vspSetup));
@@ -111,6 +112,52 @@ timLoad(esp_T *ESP,                     /* (in)  pointer to ESP structure */
         fp_vsp3 = NULL;
     }
 
+    /* the vspShortName is either the same as vsp3name or a relative filename */
+    MALLOC(vspShortName, char, STRLEN(vsp3name)+4);
+
+    strcpy(vspShortName, vsp3name);
+
+    /* find the parts of vsp3name and udcname that are common */
+    for (i = 0; i < MIN(STRLEN(vsp3name), STRLEN(udcname)); i++) {
+        if (vsp3name[i] == udcname[i]) continue;
+
+        /* now that the disagree (at character i), make sure that
+           there are no SLASHes in what is left */
+        same = 1;
+
+        for (j = i; j < STRLEN(vsp3name); j++) {
+            if (vsp3name[j] == SLASH) {
+                same = 0;
+                break;
+            }
+        }
+
+        for (j = i; j < STRLEN(udcname); j++) {
+            if (udcname[j] == SLASH) {
+                same = 0;
+                break;
+            }
+        }
+
+        /* decrease i until we get back to a SLASH or get to the beginning */
+        while (i >= 0) {
+            if (vsp3name[i] == SLASH) {
+                i++;
+                break;
+            }
+            i--;
+        }
+
+        /* if same==1, then we can remove the common characters
+           in vspShortName */
+        if (same == 1) {
+            strcpy(vspShortName, "$/");
+            strcat(vspShortName, &vsp3name[i]);
+        }
+
+        break;
+    }
+
     /* write the .vspscript that will create the .udc file */
     fp_vspscript = fopen("TeMpVsP3.vspscript", "w");
     if (fp_vspscript == NULL) {
@@ -122,8 +169,9 @@ timLoad(esp_T *ESP,                     /* (in)  pointer to ESP structure */
 
     fprintf(fp_vspscript, "void main()\n");
     fprintf(fp_vspscript, "{\n");
-    fprintf(fp_vspscript, "    string vspName = \"%s\";\n", vsp3name);
-    fprintf(fp_vspscript, "    string udcName = \"%s\";\n", udcname );
+    fprintf(fp_vspscript, "    string vspName      = \"%s\";\n", vsp3name    );
+    fprintf(fp_vspscript, "    string vspShortName = \"%s\";\n", vspShortName);
+    fprintf(fp_vspscript, "    string udcName      = \"%s\";\n", udcname     );
     fprintf(fp_vspscript, "\n");
     fprintf(fp_vspscript, "    // return if unable to open the .udc file\n");
     fprintf(fp_vspscript, "    file udcFile;\n");
@@ -163,7 +211,7 @@ timLoad(esp_T *ESP,                     /* (in)  pointer to ESP structure */
     fprintf(fp_vspscript, "    }\n");
     fprintf(fp_vspscript, "\n");
     fprintf(fp_vspscript, "    // epilog\n");
-    fprintf(fp_vspscript, "    udcFile.writeString(\"UDPRIM    vsp3    filename $\" + vspName + \"\\n\\n\");\n");
+    fprintf(fp_vspscript, "    udcFile.writeString(\"UDPRIM    vsp3    filename $\" + vspShortName + \"\\n\\n\");\n");
     fprintf(fp_vspscript, "    udcFile.writeString(\"END\\n\");\n");
     fprintf(fp_vspscript, "    \n");
     fprintf(fp_vspscript, "    udcFile.close();\n");
@@ -187,10 +235,11 @@ timLoad(esp_T *ESP,                     /* (in)  pointer to ESP structure */
 
     snprintf(buffer, 511, "timQuit|vspSetup|");
     tim_bcst("vspSetup", buffer);
-    
+
 cleanup:
-    FREE(vsp3name);
-    FREE(udcname );
+    FREE(vsp3name    );
+    FREE(udcname     );
+    FREE(vspShortName);
 
     return status;
 }

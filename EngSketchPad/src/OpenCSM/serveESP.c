@@ -3018,7 +3018,7 @@ buildSceneGraph(esp_T  *ESP)
                     if (vel[3*ipnt  ] != vel[3*ipnt  ] ||
                         vel[3*ipnt+1] != vel[3*ipnt+1] ||
                         vel[3*ipnt+2] != vel[3*ipnt+2]   ) {
-                        SPRINT1(0, "WARNING:: vel[%d] = NaN (being changed to 0)", ipnt);
+                        SPRINT2(0, "WARNING:: vel[%d:%d] = NaN (being changed to 0)", iface, ipnt);
                         velmag = 0;
 
                     /* find signed velocity magnitude */
@@ -3034,14 +3034,20 @@ buildSceneGraph(esp_T  *ESP)
                         normy  = data[5] * data[6] - data[3] * data[8];
                         normz  = data[3] * data[7] - data[4] * data[6];
 
-                        velmag = mtype * ( vel[3*ipnt  ] * normx
-                                          +vel[3*ipnt+1] * normy
-                                          +vel[3*ipnt+2] * normz)
-                               / sqrt(normx * normx + normy * normy + normz * normz);
+                        if (fabs(normx) > EPS06 || fabs(normy) > EPS06 || fabs(normz) > EPS06) {
+                            velmag = mtype * ( vel[3*ipnt  ] * normx
+                                              +vel[3*ipnt+1] * normy
+                                              +vel[3*ipnt+2] * normz)
+                                   / sqrt(normx * normx + normy * normy + normz * normz);
 
-                        if (velmag != velmag) {
-                            SPRINT1(0, "WARNING:: vel[%d] = NaN (being changed to 0)", ipnt);
-                            velmag = 0;
+                            if (velmag != velmag) {
+                                SPRINT2(0, "WARNING:: vel[%d:%d] = NaN (being changed to 0)", iface, ipnt);
+                                velmag = 0;
+                            }
+                        } else {
+                            velmag = sqrt( vel[3*ipnt  ] * vel[3*ipnt  ]
+                                         + vel[3*ipnt+1] * vel[3*ipnt+1]
+                                         + vel[3*ipnt+2] * vel[3*ipnt+2]);
                         }
 
                     /* find unsigned velocity magnitude */
@@ -6045,7 +6051,7 @@ mesgCallbackFromOpenCSM(char mesg[])    /* (in)  message */
     strcat(messages, mesg);
     strcat(messages, "\n");
 
-    messages_len += strlen(mesg);
+    messages_len += strlen(mesg) + 1;
 
 cleanup:
     if (status != SUCCESS) {

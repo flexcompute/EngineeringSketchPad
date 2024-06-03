@@ -57,7 +57,7 @@ static int  findInstance(ego ebody, int numudp, udp_T udps[]);
     CacheUdp        cache arguments of current instance
     findInstance    find UDP instance that matches ebody
     udpCleanupAll   free up UDP/UDF dispatch table
-  macros that can be defined in UDP/UDP for the provate data:
+  macros that can be defined in UDP/UDP for the private data:
     FREEUDPDATA     free private data
     COPYUDPDATA     copy private data
 */
@@ -1175,7 +1175,7 @@ findInstance(ego    ebody,              /* (in)  Body to match */
              int    numudp,             /* (in)  number of instances */
              udp_T  udps[])             /* (in)  array  of instances */
 {
-    int    iudp, judp;
+    int    iudp, judp, status, oclass, mtype;
 
     ROUTINE(finBody);
 
@@ -1187,6 +1187,18 @@ findInstance(ego    ebody,              /* (in)  Body to match */
         if (ebody == udps[judp].ebody) {
             iudp = judp;
             goto cleanup;
+        }
+    }
+
+    /* udps[].ebody will be a MODEL is the UDP/UDF returned more than
+       one Body.  in this case, we should return iudp=1 so that checks
+       in udpSensitivity and udp_postSens do not return an error */
+    if (numudp > 0) {
+        status = EG_getInfo(udps[1].ebody, &oclass, &mtype, NULL, NULL, NULL);
+        if (status < EGADS_SUCCESS) {
+            return status;
+        } else if (oclass == MODEL) {
+            iudp = 1;
         }
     }
 

@@ -236,7 +236,7 @@ typedef struct {
 
 
 
-static int initiate_aimStorage(aimStorage *nastranInstance)
+static int initiate_aimStorage(void *aimInfo, aimStorage *nastranInstance)
 {
 
     int i, status;
@@ -308,11 +308,15 @@ static int initiate_aimStorage(aimStorage *nastranInstance)
     }
 #undef NUMVAR
 
+    nastranInstance->CG.length = 3;
+    AIM_ALLOC(nastranInstance->CG.vals.reals, 3, double, aimInfo, status);
+
     initiate_feaMassPropStruct(&nastranInstance->feaMassProp);
 
     initiate_feaSolFileStruct(&nastranInstance->feaF06File);
 
-    return CAPS_SUCCESS;
+cleanup:
+    return status;
 }
 
 
@@ -1025,7 +1029,8 @@ int aimInitialize(int inst, /*@unused@*/ const char *unitSys, void *aimInfo,
     *instStore = nastranInstance;
 
     // Initialize instance storage
-    (void) initiate_aimStorage(nastranInstance);
+    status = initiate_aimStorage(aimInfo, nastranInstance);
+    AIM_STATUS(aimInfo, status);
 
 cleanup:
     if (status != CAPS_SUCCESS) {
@@ -2628,7 +2633,7 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
                 k = 0;
                 for (j = 0; j < nastranInstance->feaProblem.numLoad; j++) {
                     if (feaLoad[j].loadType == Gravity) continue;
-                    tempIntegerArray[j] = feaLoad[j].loadID;
+                    tempIntegerArray[k] = feaLoad[j].loadID;
                     k += 1;
                 }
 
@@ -3051,6 +3056,7 @@ int aimPostAnalysis(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo,
   }
 
   nastranInstance->mass.vals.real   = mass;
+
   nastranInstance->CG.vals.reals[0] = CG[0];
   nastranInstance->CG.vals.reals[1] = CG[1];
   nastranInstance->CG.vals.reals[1] = CG[1];

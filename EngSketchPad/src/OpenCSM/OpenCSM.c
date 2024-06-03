@@ -7220,7 +7220,7 @@ ocsmCopy(void   *srcModl,               /* (in)  pointer to source MODL */
             NEW_MODL->Udps[iprim][i].arg      = NULL;
             NEW_MODL->Udps[iprim][i].ndotchg  = 0;
             NEW_MODL->Udps[iprim][i].bodyList = NULL;
-            NEW_MODL->Udps[iprim][i].data     = SRC_MODL->Udps[iprim][i].data;
+            NEW_MODL->Udps[iprim][i].data     = NULL;
 
             MALLOC(NEW_MODL->Udps[iprim][i].arg, udparg_T, NEW_MODL->Udps[iprim][i].narg);
             for (iarg = 0; iarg < NEW_MODL->Udps[iprim][i].narg; iarg++) {
@@ -17996,7 +17996,7 @@ ocsmNewBrch(void   *modl,               /* (in)  pointer to MODL */
                       0x004    if arg7 is an implicit string
                       0x002    if arg8 is an implicit string
                       0x0o1    if arg9 is an implicit string */
-    
+
     if        (type == OCSM_APPLYCSYS) {     // $csysName ibody=0
         bclass = OCSM_TRANSFORM;
         narg   = 2;
@@ -34990,7 +34990,7 @@ buildPrimitive(modl_T *modl,            /* (in)  pointer to MODL */
 
     int         oclass, mtype, iford1, iarg, ival, nedge, iedge;
     int         udp_num, *udp_types, *udp_idef, udp_nmesh, *valInt=NULL, *dotInt=NULL;
-    int         ipmtr, jpmtr, ij, sense, numout;
+    int         ipmtr, jpmtr, ij, sense, numout, iudp;
     int         oclass1, nchild, *senses, ifirst, icount, nsave;
     int         nrow, ncol;
     int         *ibodys=NULL;
@@ -36383,6 +36383,19 @@ buildPrimitive(modl_T *modl,            /* (in)  pointer to MODL */
                     ibrch, args[1].str);
 
             hasdots = 0;
+
+            /* if the UDP/UDF has an ATTRRECYCLE argument, we need to
+               set hasdots so that udpSensitivity gets called */
+            status = udp_initialize(args[1].str, MODL, &udp_num, &udp_names, &udp_types, &udp_idef, &udp_ddef);
+            CHECK_STATUS(udp_initialize);
+
+            for (iudp = 0; iudp < udp_num; iudp++) {
+                if (udp_types[iudp] == ATTRRECYCLE) {
+                    hasdots = 1;
+                    break;
+                }
+            }
+
             for (iarg = 3; iarg <= MODL->brch[ibrch].narg; iarg+=2) {
                 if (args[iarg].nval == 0) {
                     SPRINT2x(1, " %s %s",

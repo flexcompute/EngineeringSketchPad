@@ -3,6 +3,7 @@ import pyCAPS
 
 # Import os module
 import os
+import shutil
 import argparse
 
 # Setup and read command line options. Please note that this isn't required for pyCAPS
@@ -16,36 +17,48 @@ parser.add_argument('-noAnalysis', action='store_true', default = False, help = 
 parser.add_argument("-outLevel", default = 1, type=int, choices=[0, 1, 2], help="Set output verbosity")
 args = parser.parse_args()
 
-workDir = os.path.join(str(args.workDir[0]), "NastranTrim15Deg")
+# Create project name
+projectName = "NastranTrim15Deg"
+
+# Working directory
+workDir = os.path.join(str(args.workDir[0]), projectName)
 
 # Load CSM file
 geometryScript = os.path.join("..","csmData","15degreeWing.csm")
-myProblem = pyCAPS.Problem(problemName=workDir,
+capsProblem = pyCAPS.Problem(problemName=workDir,
                            capsFile=geometryScript,
                            outLevel=args.outLevel)
 
-# Load nastran aim
-myAnalysis = myProblem.analysis.create(aim = "nastranAIM",
-                                       name = "nastran")
+# Load egadsTess aim
+egads = capsProblem.analysis.create(aim = "egadsTessAIM")
 
-# Set project name so a mesh file is generated
-projectName = "nastran_trim_15degree"
-myAnalysis.input.Proj_Name = projectName
+# Set meshing parameters
+egads.input.Edge_Point_Max = 8
+egads.input.Edge_Point_Min = 2
 
-myAnalysis.input.Mesh_File_Format = "Free"
-myAnalysis.input.File_Format = "Small"
+# All quads in the grid
+egads.input.Mesh_Elements = "Quad"
 
-myAnalysis.input.Edge_Point_Max = 8
+egads.input.Tess_Params = [.05,.5,15]
 
-myAnalysis.input.Quad_Mesh = True
+# Loadnastran aim
+nastran = capsProblem.analysis.create(aim = "nastranAIM",
+                                      name = "nastran")
+
+nastran.input["Mesh"].link(egads.output["Surface_Mesh"])
+
+nastran.input.Proj_Name = "nastran_trim_15degree"
+
+nastran.input.Mesh_File_Format = "Free"
+nastran.input.File_Format = "Small"
 
 # Set analysis type
-myAnalysis.input.Analysis_Type = "AeroelasticTrim"
+nastran.input.Analysis_Type = "AeroelasticTrim"
 
 # Set PARAM Inputs
-myAnalysis.input.Parameter = {"COUPMASS": "1",
-                              "WTMASS"  : "0.0025901",
-                              "AUNITS"  : "0.0025901"}
+nastran.input.Parameter = {"COUPMASS": "1",
+                           "WTMASS"  : "0.0025901",
+                           "AUNITS"  : "0.0025901"}
 
 # Set analysis
 trim = { "analysisType" : "AeroelasticTrim",
@@ -62,14 +75,14 @@ trim = { "analysisType" : "AeroelasticTrim",
           }
 
 
-myAnalysis.input.Analysis = {"Trim": trim}
+nastran.input.Analysis = {"Trim": trim}
 
 # Set materials
 aluminum  = {   "youngModulus" : 10.3E6 , #psi
                 "shearModulus" : 3.9E6 , # psi
                 "density"      : 0.1} # lb/in^3
 
-myAnalysis.input.Material = {"aluminum": aluminum}
+nastran.input.Material = {"aluminum": aluminum}
 
 # Set property
 shell  = {"propertyType"        : "Shell",
@@ -85,29 +98,29 @@ mass    =   {   "propertyType"  :   "ConcentratedMass",
                 "massInertia"   :   [0.0, 0.0, 1.0E5, 0.0, 0.0, 0.0]}
 
 
-myAnalysis.input.Property = {"Edge": shellEdge,
-                             "Body": shell,
-                             "Root": mass}
+nastran.input.Property = {"Edge": shellEdge,
+                          "Body": shell,
+                          "Root": mass}
 
 
 # Defined Connections
 connection = {    "dofDependent" : 123456,
                 "connectionType" : "RigidBody"}
 
-myAnalysis.input.Connect = {"Root": connection}
+nastran.input.Connect = {"Root": connection}
 
 
 # Set constraints
 constraint = {"groupName" : ["Root_Point"],
               "dofConstraint" : 1246}
 
-myAnalysis.input.Constraint = {"PointConstraint": constraint}
+nastran.input.Constraint = {"PointConstraint": constraint}
 
 # Set supports
 support = {"groupName" : ["Root_Point"],
            "dofSupport": 35}
 
-myAnalysis.input.Support = {"PointSupport": support}
+nastran.input.Support = {"PointSupport": support}
 
 # Force & Gravity Loads
 load = {"groupName" : "Root_Point",
@@ -119,7 +132,7 @@ grav = {"loadType"  : "Gravity",
         "gravityAcceleration" : 386.0,
         "directionVector" : [0.0, 0.0, -1.0]}
 
-myAnalysis.input.Load = {"PointLoad": load, "GravityLoad": grav}
+nastran.input.Load = {"PointLoad": load, "GravityLoad": grav}
 
 
 # Aero
@@ -129,22 +142,22 @@ wing = {"groupName"         : "Wing",
 
 # Note the surface name corresponds to the capsBound found in the *.csm file. This links
 # the spline for the aerodynamic surface to the structural model
-myAnalysis.input.VLM_Surface = {"WingSurface": wing}
+nastran.input.VLM_Surface = {"WingSurface": wing}
 
 # Run AIM pre-analysis
-myAnalysis.preAnalysis()
+nastran.preAnalysis()
 
 ####### Run Nastran####################
 print ("\n\nRunning Nastran......")
-currentDirectory = os.getcwd() # Get our current working directory
 
-os.chdir(myAnalysis.analysisDir) # Move into test directory
+if args.noAnalysis == False:
+   nastran.system("nastran old=no notify=no batch=no scr=yes sdirectory=./ " +nastran.input.Proj_Name + ".dat"); # Run Nastran via system call
+else:
+    # Copy old results if no analysis available
+    shutil.copy2(os.path.join("..","analysisData","nastran",projectName+".f06"), 
+                 os.path.join(nastran.analysisDir,nastran.input.Proj_Name+".f06"))
 
-if (args.noAnalysis == False):
-    os.system("nastran old=no notify=no batch=no scr=yes sdirectory=./ " + projectName +  ".dat"); # Run Nastran via system call
-
-os.chdir(currentDirectory) # Move back to working directory
 print ("Done running Nastran!")
 
 # Run AIM post-analysis
-myAnalysis.postAnalysis()
+nastran.postAnalysis()

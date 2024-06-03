@@ -2298,7 +2298,6 @@ int nastran_writeDesignConstraintCard(FILE *fp,
                     status = convert_integerToString(drespID, 6, 0, tempString);
                     if (status != CAPS_SUCCESS) return status;
                     snprintf(label, 9, "L%s", tempString);
-                    EG_free(tempString);
 
                      if (feaDesignConstraint->fieldPosition == 0) {
                         found = 0;
@@ -3329,15 +3328,15 @@ int nastran_readF06NumEigenValue(FILE *fp, int *numEigenVector) {
                     break;
                 }
 
-                sscanf(line, "%d%d%lf%lf%lf%lf%lf", &tempInt[0],
-                                                    &tempInt[1],
-                                                    &tempDouble[0],
-                                                    &tempDouble[1],
-                                                    &tempDouble[2],
-                                                    &tempDouble[3],
-                                                    &tempDouble[4]);
+                status = sscanf(line, "%d%d%lf%lf%lf%lf%lf", &tempInt[0],
+                                                             &tempInt[1],
+                                                             &tempDouble[0],
+                                                             &tempDouble[1],
+                                                             &tempDouble[2],
+                                                             &tempDouble[3],
+                                                             &tempDouble[4]);
 
-                if (tempDouble[3] < 1E-15 && tempDouble[4] < 1E-15){
+                if (status != 7) {
                     keepCollecting = (int) false;
                     break;
                 }
@@ -3347,7 +3346,7 @@ int nastran_readF06NumEigenValue(FILE *fp, int *numEigenVector) {
         }
     }
 
-    if (line != NULL) EG_free(line);
+    if (line != NULL) free(line);
 
     // Rewind the file
     rewind(fp);
@@ -3520,7 +3519,7 @@ int nastran_readF06EigenValue(FILE *fp, int *numEigenVector, double ***dataMatri
     if (status != CAPS_SUCCESS) return status;
 
     // Allocate dataMatrix array
-    if (*dataMatrix != NULL) EG_free(*dataMatrix);
+    AIM_FREE(*dataMatrix);
 
     *dataMatrix = (double **) EG_alloc(*numEigenVector *sizeof(double *));
     if (*dataMatrix == NULL) return EGADS_MALLOC; // If allocation failed ....
@@ -3532,10 +3531,10 @@ int nastran_readF06EigenValue(FILE *fp, int *numEigenVector, double ***dataMatri
         if ((*dataMatrix)[i] == NULL) { // If allocation failed ....
             for (j = 0; j < i; j++) {
 
-                if ((*dataMatrix)[j] != NULL ) EG_free((*dataMatrix)[j]);
+              AIM_FREE((*dataMatrix)[j]);
             }
 
-            if ((*dataMatrix) != NULL) EG_free((*dataMatrix));
+            AIM_FREE(*dataMatrix);
 
             return EGADS_MALLOC;
         }
@@ -3573,7 +3572,7 @@ int nastran_readF06EigenValue(FILE *fp, int *numEigenVector, double ***dataMatri
         }
     }
 
-    if (line != NULL) EG_free(line);
+    if (line != NULL) free(line);
 
     return CAPS_SUCCESS;
 }

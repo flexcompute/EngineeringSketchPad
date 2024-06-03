@@ -18,8 +18,8 @@
 
   <body>
     <p><h1 align=center>Engineering Sketch Pad (ESP) Version 1.25</h1>
-    <p><h3>Authors: John F. Dannenhoffer, III (jfdannen@syr.edu) and Bob Haimes (haimes@mit.edu)</h3>
-    <p><h3>Date: January 2024.</h3>
+    <p><h3>Authors: John F. Dannenhoffer, III (jfdannen@syr.edu)</h3>
+    <p><h3>Date: June 2024.</h3>
 
     <p><h3 align=center><img src="esp_logo.png" width="400"/></h3>
 
@@ -7111,9 +7111,11 @@ serveESP ../data/legacy/tutorial3 -loadEgads
    { } < > ~  characters used in strings
    + - * / ^  arithmetic operators
    $          as first character, introduces a string that is terminated
-                 by end-of-line or un-escaped plus, comma, or open-bracket
+                 by end-of-line or un-escaped plus, comma, or
+                 close-parenthesis
    @          as first character, introduces @-parameters (see below)
-   '          used to escape comma, plus, or open-bracket within strings
+   '          used to escape comma, plus, or close-parenthesis within
+                 strings
    !          if first character of implicit string, ignore $! and treat
                  as an expression
 
@@ -9233,12 +9235,6 @@ SELECT    $type arg1 ...
                      sets @seltype to 2
                      uses @selbody
                      sets @sellist to iface
-//$$$                  elseif arguments are: "face 0 iford1" or
-//$$$                                        "face ibody1 0"
-//$$$                     sets @seltype to 2
-//$$$                     uses @selbody
-//$$$                     sets @sellist with Faces in @selbody that matches ibody1/iford1
-//$$$                                   (with 0 being treated as a wildcard)
                   elseif arguments are: "face ibody1 iford1 iseq=1"
                      sets @seltype to 2
                      uses @selbody
@@ -9274,15 +9270,6 @@ SELECT    $type arg1 ...
                      sets @seltype to 1
                      uses @selbody
                      sets @sellist to iedge
-//$$$                  elseif arguments are: "edge 0 iford1 ibody2 iford2" or
-//$$$                                        "edge ibody1 0 ibody2 iford2" or
-//$$$                                        "edge ibody1 iford1 0 iford2" or
-//$$$                                        "edge ibody1 iford1 ibody2 0" or
-//$$$                                        "edge ibody1 0 ibody2 0"
-//$$$                     sets @seltype to 1
-//$$$                     uses @selbody
-//$$$                     sets @sellist to Edge in @selbody that adjoins Faces
-//$$$                        ibody1/iford1 and ibody2/iford2 (with 0 being treated as wildcard)
                   elseif arguments are: "edge ibody1 iford1 ibody2 iford2 iseq=1"
                      sets @seltype to 1
                      uses @selbody
@@ -9409,7 +9396,6 @@ SELECT    $type arg1 ...
 
                   Face specifications are stored in _faceID Attribute
                   Edge specifications are stored in _edgeID Attribute
-//                Node specifications are stored in _nodeID Attribute
                   iseq selects from amongst multiple Faces/Edges/Nodes that
                      match the ibody/iford specifications
                   attrNames and attrValues can be wild-carded with $*
@@ -10247,11 +10233,14 @@ UDPRIM box
       <pre>
 UDPRIM bspline
        input arguments (specified as name/value pairs):
-          bitflag
+          bitflag     sum of:
+                        2 if rational
+                        4 if U-periodic
+                        8 if V-periodic (only if vknots are given)
           uknots      vector of knots in U direction
           vknots      vector of knots in V direction
-          cps         vector of contro lpoints
-          weights     vector of weights (if any)
+          cps         vector of control points
+          weights     vector of weights (only if rational)
           udegree     degree in U direction    [default 3]
           vdegree     degree in V direction    [default 3]
        output arguments:
@@ -10721,10 +10710,10 @@ UDPRIM kulfan
       <pre>
 UDPRIM linalg Body1
        input arguments (specified as name/value pairs);
-           oper       $add for @@ans = M1 + M2
-                      $sub for @@ans = M1 + M2
-                      $mult for @@ans = M1 * M2
-                      $div  for M1 * @@and = M2
+           oper       $add   for @@ans = M1 + M2
+                      $sub   for @@ans = M1 - M2
+                      $mult  for @@ans = M1 * M2
+                      $div   for M1 * @@ans = M2
                       $solve for M1 * @@ans = M2
                       $trans for @@ans = (M1)transpose
            M1         input matrix 1
@@ -12090,6 +12079,12 @@ Special User-defined Attributes for Faces:
 
     _gcolor     color of grid of Face in ESP (see _color)
 
+    _viz        if set to $off, then Face is initially not shown
+
+    _grd        if set to $on,  the grid on Face is initially shown
+
+    _trn        if set to $on,  then Face is initially shown transparent
+
     _makeQuads  to make old-style quads for this Face.  This is only
                 available if there is no _makeQuads Attribute on the Body.
                 Also, quads made by this option cannot be DUMPed to a
@@ -12114,15 +12109,15 @@ Attributes assigned to Edges:
           [4]   sequence number
 
           for an Edge supported by more than 2 Faces
-          [0]   _faceID[0] of Face 1  (chosen arbitrarily)
-          [1]   _faceID[1] of Face 1  (chosen arbitrarily)
-          [2]   _faceID[0] of Face 2  (chosen arbitrarily)
-          [3]   _faceID[1] of Face 2  (chosen arbitrarily)
+          [0]   _faceID[0] of Face 1  (Face chosen arbitrarily)
+          [1]   _faceID[1] of Face 1  (Face chosen arbitrarily)
+          [2]   _faceID[0] of Face 2  (Face chosen arbitrarily)
+          [3]   _faceID[1] of Face 2  (Face chosen arbitrarily)
           [4]   sequence number
 
           or if a DEGENERATE Edge
-          [0]   -9
-          [1]   -9
+          [0]   -99999
+          [1]   -99999
           [2]   _faceID[0] of Face 1
           [3]   _faceID[1] of Face 1
           [4]   sequence number
@@ -12142,15 +12137,15 @@ Attributes assigned to Edges:
           [4]   sequence number
 
           or if generated by SUBTRACTing two co-planar SheetBodys
-          [0]   __holeID__[0]    _faceID[0] of interior SheetBody
-          [1]   __holeID__[1]    _faceID[1] of interior SheetBody
+          [0]   0
+          [1]   0
           [2]   _faceID[0]                  of exterior SheetBody
           [3]   _faceID[1]                  of exterior SheetBody
           [4]   sequence number
 
-          or if generated by scribing (SUBTRACing a non-co-planar SheetBody)
-          [0]   __trace__[0]     _faceID[0] of scribing Face
-          [1]   __trace__[1]     _faceID[1] of scribing Face
+          or if generated by scribing (SUBTRACTing a non-co-planar SheetBody)
+          [0]   0
+          [1]   0
           [2]   _faceID[0]                  of scribed  Face
           [3]   _faceID[1]                  of scribed  Face
           [4]   sequence number
@@ -12178,6 +12173,12 @@ Special User-defined Attributes for Edges:
 
     _gcolor     color of grid of Edge in ESP (see _color)
 
+    _viz        if set to $off, then Edge is initially not shown
+
+    _grd        if set to $on,  then grid on Edge is initially shown
+
+    _ori        if set to $on,  then orientation is initially shown for Edge
+
 Attributes assigned to Nodes:
 
     _nodeID     unique integer that is assigned automatically
@@ -12192,6 +12193,8 @@ Special User-defined Attributes for Nodes:
                 either R,G,B in three 0-1 reals
                 or $red, $lred, $green, $lgreen, $blue, $lblue,
                 $yellow, $magenta, $cyan, $white, or $black
+
+    _viz        if set to $on, then Node is initially shown
       </pre>
 
     <p>Back to <a href="#sec0">Table of Contents</a>
@@ -12395,6 +12398,7 @@ OCSM_IMPROPER_NESTING                -206
 OCSM_NESTING_NOT_CLOSED              -207
 OCSM_NOT_MODL_STRUCTURE              -208
 OCSM_PROBLEM_CREATING_PERTURB        -209
+OCSM_EBODY_NOT_FOUND                 -210
 
 OCSM_MISSING_MARK                    -211
 OCSM_INSUFFICIENT_BODYS_ON_STACK     -212
@@ -12437,10 +12441,10 @@ OCSM_ILLEGAL_NARG                    -249
 
 OCSM_NAME_NOT_FOUND                  -251
 OCSM_NAME_NOT_UNIQUE                 -252
-OCSM_PMTR_IS_EXTERNAL                -253
-OCSM_PMTR_IS_INTERNAL                -254
-OCSM_PMTR_IS_OUTPUT                  -255
-OCSM_PMTR_IS_CONSTANT                -256
+OCSM_PMTR_IS_DESPMTR                 -253
+OCSM_PMTR_IS_LOCALVAR                -254
+OCSM_PMTR_IS_OUTPMTR                 -255
+OCSM_PMTR_IS_CONPMTR                 -256
 OCSM_WRONG_PMTR_TYPE                 -257
 OCSM_FUNC_ARG_OUT_OF_BOUNDS          -258
 OCSM_VAL_STACK_UNDERFLOW             -259  /* probably not enough args to func */
@@ -12483,6 +12487,17 @@ OCSM_TOKEN_STACK_UNDERFLOW           -295
 OCSM_TOKEN_STACK_OVERFLOW            -296
 OCSM_UNSUPPORTED                     -298
 OCSM_INTERNAL_ERROR                  -299
+
+/* constants for backward compatability */
+OCSM_EXTERNAL                        OCSM_DESPMTR
+OCSM_CONFIG                          OCSM_CFGPMTR
+OCSM_CONSTANT                        OCSM_CONPMTR
+OCSM_OUTPUT                          OCSM_OUTPMTR
+OCSM_INTERNAL                        OCSM_LOCALVAR
+OCSM_PMTR_IS_EXTERNAL                OCSM_PMTR_IS_DESPMTR
+OCSM_PMTR_IS_CONSTANT                OCSM_PMTR_IS_CONPMTR
+OCSM_PMTR_IS_OUTPUT                  OCSM_PMTR_IS_OUTPMTR
+OCSM_PMTR_IS_INTERNAL                OCSM_PMTR_IS_LOCALVAR
       </pre>
 
     <p><h3 id="sec9.2">9.2: EGADS error codes</h3>
@@ -12534,7 +12549,7 @@ EGADS_READERR                         -32
     <p><h2 id="sec10">10.0: Bugs Reports and Other Feedback</h2>
 
     <p>All reports of possible 'bugs' and any other feedback should be
-       e-mailed to 'jfdannen@syr.edu' or 'haimes@mit.edu'.  If a bug
+       e-mailed to 'jfdannen@syr.edu'.  If a bug
        report, please include the version number you are running
        (listed in the title bar at the top of the program), what you
        were doing at the time of the bug, and what happened that you

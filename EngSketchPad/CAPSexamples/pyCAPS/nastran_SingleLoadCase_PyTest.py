@@ -3,6 +3,7 @@ import pyCAPS
 
 # Import os module
 import os
+import shutil
 import argparse
 
 # Setup and read command line options. Please note that this isn't required for pyCAPS
@@ -24,26 +25,33 @@ workDir = os.path.join(str(args.workDir[0]), projectName)
 
 # Load CSM file
 geometryScript = os.path.join("..","csmData","feaSimplePlate.csm")
-myProblem = pyCAPS.Problem(problemName=workDir,
+capsProblem = pyCAPS.Problem(problemName=workDir,
                            capsFile=geometryScript,
                            outLevel=args.outLevel)
 
-# Load Nastran aim
-myProblem.analysis.create(aim = "nastranAIM",
-                          name = "nastran")
-
-# Set project name so a mesh file is generated
-myProblem.analysis["nastran"].input.Proj_Name = projectName
+# Load egadsTess aim
+egads = capsProblem.analysis.create(aim = "egadsTessAIM")
 
 # Set meshing parameters
-myProblem.analysis["nastran"].input.Edge_Point_Max = 4
+egads.input.Edge_Point_Max = 4
+egads.input.Edge_Point_Min = 4
 
-myProblem.analysis["nastran"].input.Quad_Mesh = True
+# All quads in the grid
+egads.input.Mesh_Elements = "Quad"
 
-myProblem.analysis["nastran"].input.Tess_Params = [.25,.01,15]
+egads.input.Tess_Params = [.25,.01,15]
+
+
+# Load Nastran aim
+capsProblem.analysis.create(aim = "nastranAIM",
+                            name = "nastran")
+
+capsProblem.analysis["nastran"].input["Mesh"].link(egads.output["Surface_Mesh"])
+
+capsProblem.analysis["nastran"].input.Proj_Name = projectName
 
 # Set analysis type
-myProblem.analysis["nastran"].input.Analysis_Type = "Static"
+capsProblem.analysis["nastran"].input.Analysis_Type = "Static"
 
 # Set materials
 madeupium    = {"materialType" : "isotropic",
@@ -51,7 +59,7 @@ madeupium    = {"materialType" : "isotropic",
                 "poissonRatio": 0.33,
                 "density" : 2.8E3}
 
-myProblem.analysis["nastran"].input.Material = {"Madeupium": madeupium}
+capsProblem.analysis["nastran"].input.Material = {"Madeupium": madeupium}
 
 # Set properties
 shell  = {"propertyType" : "Shell",
@@ -60,13 +68,13 @@ shell  = {"propertyType" : "Shell",
           "bendingInertiaRatio" : 1.0, # Default
           "shearMembraneRatio"  : 5.0/6.0} # Default
 
-myProblem.analysis["nastran"].input.Property = {"plate": shell}
+capsProblem.analysis["nastran"].input.Property = {"plate": shell}
 
 # Set constraints
 constraint = {"groupName" : "plateEdge",
               "dofConstraint" : 123456}
 
-myProblem.analysis["nastran"].input.Constraint = {"edgeConstraint": constraint}
+capsProblem.analysis["nastran"].input.Constraint = {"edgeConstraint": constraint}
 
 # Set load
 load = {"groupName" : "plate",
@@ -74,26 +82,26 @@ load = {"groupName" : "plate",
         "pressureForce" : 2.e6}
 
 # Set loads
-myProblem.analysis["nastran"].input.Load = {"appliedPressure": load}
+capsProblem.analysis["nastran"].input.Load = {"appliedPressure": load}
 
 # Set analysis
 # No analysis case information needs to be set for a single static load case
 
 # Run AIM pre-analysis
-myProblem.analysis["nastran"].preAnalysis()
+capsProblem.analysis["nastran"].preAnalysis()
 
 ####### Run Nastran ####################
 print ("\n\nRunning Nastran......")
-currentDirectory = os.getcwd() # Get our current working directory
 
-os.chdir(myProblem.analysis["nastran"].analysisDir) # Move into test directory
+if args.noAnalysis == False:
+    nastran.system("nastran old=no notify=no batch=no scr=yes sdirectory=./ " + capsProblem.analysis["nastran"].input.Proj_Name + ".dat"); # Run Nastran via system call
+else:
+    # Copy old results if no analysis available
+    shutil.copy2(os.path.join("..","analysisData","nastran",projectName+".f06"), 
+                 os.path.join(capsProblem.analysis["nastran"].analysisDir,capsProblem.analysis["nastran"].input.Proj_Name+".f06"))
 
-if (args.noAnalysis == False):
-    os.system("nastran old=no notify=no batch=no scr=yes sdirectory=./ " + projectName +  ".dat"); # Run Nastran via system call
-
-os.chdir(currentDirectory) # Move back to working directory
 print ("Done running Nastran!")
 ######################################
 
 # Run AIM post-analysis
-myProblem.analysis["nastran"].postAnalysis()
+capsProblem.analysis["nastran"].postAnalysis()

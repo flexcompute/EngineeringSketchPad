@@ -2087,10 +2087,10 @@ getBodyTopos(ego    ebody,
 
             /* allocate the returned array (big enough for all Edges,
                which is probably a bit wasteful) */
-            status = EG_getBodyTopos(ebody, NULL, FACE, &nedge, NULL);
+            status = EG_getBodyTopos(ebody, NULL, EDGE, &nedge, NULL);
             CHECK_STATUS(EG_getBodyTopos);
 
-            MALLOC(*elist, ego, nedge);
+            MALLOC(*elist, ego, nedge+1);
 
             /* make a list of all Nodes that are adjacent to Edge */
             status = EG_getBodyTopos(ebody, esrc, NODE, &nnode, &enodes);
@@ -2140,7 +2140,7 @@ getBodyTopos(ego    ebody,
             status = EG_getBodyTopos(ebody, NULL, FACE, &nface, NULL);
             CHECK_STATUS(EG_getBodyTopos);
 
-            MALLOC(*elist, ego, nface);
+            MALLOC(*elist, ego, nface+1);
 
             /* make a list of all Edges that are adjacent to Face */
             status = EG_getBodyTopos(ebody, esrc, EDGE, &nedge, &eedges);

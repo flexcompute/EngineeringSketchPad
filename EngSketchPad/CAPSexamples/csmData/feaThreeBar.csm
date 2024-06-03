@@ -1,7 +1,7 @@
 # Three Bar Truss
 
 ## [capsAIM]
-attribute capsAIM $nastranAIM;astrosAIM;mystranAIM
+attribute capsAIM $nastranAIM;astrosAIM;mystranAIM;egadsTessAIM
 ## [capsAIM]
 
 ## [designParameters]

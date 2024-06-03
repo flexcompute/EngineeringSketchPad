@@ -27,8 +27,8 @@
  *     MA  02110-1301  USA
  */
 
-#define NUMUDPINPUTBODYS -999
-#define NUMUDPARGS          2
+#define NUMUDPINPUTBODYS -99999
+#define NUMUDPARGS            2
 
 /* set up the necessary structures (uses NUMUDPARGS) */
 #include "udpUtilities.h"

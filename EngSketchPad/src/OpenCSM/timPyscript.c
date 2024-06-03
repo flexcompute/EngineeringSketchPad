@@ -173,7 +173,7 @@ timLoad(esp_T *ESP,                     /* (in)  pointer to ESP structure */
 
     snprintf(stdout_name, PATH_MAX+12, "%s%cstdout.txt", cwd, SLASH);
     snprintf(stderr_name, PATH_MAX+12, "%s%cstderr.txt", cwd, SLASH);
-    (void) getcwd(stderr_name, PATH_MAX);
+//$$$    (void) getcwd(stderr_name, PATH_MAX);     // suspiciously looks like a typo
 
     /* remember the filename */
     len = strlen(filename);

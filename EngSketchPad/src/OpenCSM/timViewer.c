@@ -594,7 +594,27 @@ buildSceneGraphMODL(esp_T  *ESP)
 
             /* name and attributes */
             snprintf(gpname, MAX_STRVAL_LEN-1, "%s Face %d", bname, iface);
-            attrs = WV_ON | WV_ORIENTATION;
+            attrs = WV_ORIENTATION;
+
+            status = EG_attributeRet(MODL->body[ibody].face[iface].eface, "_viz",
+                                     &atype, &alen, &tempIlist, &tempRlist, &tempClist);
+            if (status == EGADS_SUCCESS && atype == ATTRSTRING && strcmp(tempClist, "off") == 0) {
+
+            } else {
+                attrs |= WV_ON;
+            }
+
+            status = EG_attributeRet(MODL->body[ibody].face[iface].eface, "_grd",
+                                     &atype, &alen, &tempIlist, &tempRlist, &tempClist);
+            if (status == EGADS_SUCCESS && atype == ATTRSTRING && strcmp(tempClist, "on") == 0) {
+                attrs |= WV_LINES;
+            }
+
+            status = EG_attributeRet(MODL->body[ibody].face[iface].eface, "_trn",
+                                     &atype, &alen, &tempIlist, &tempRlist, &tempClist);
+            if (status == EGADS_SUCCESS && atype == ATTRSTRING && strcmp(tempClist, "on") == 0) {
+                attrs |= WV_TRANSPARENT;
+            }
 
             status = EG_getQuads(etess, iface,
                                  &npnt, &xyz, &uv, &ptype, &pindx, &npatch2);
@@ -957,7 +977,26 @@ buildSceneGraphMODL(esp_T  *ESP)
 
             /* name and attributes */
             snprintf(gpname, MAX_STRVAL_LEN-1, "%s Edge %d", bname, iedge);
-            attrs = WV_ON;
+            status = EG_attributeRet(MODL->body[ibody].edge[iedge].eedge, "_viz",
+                                     &atype, &alen, &tempIlist, &tempRlist, &tempClist);
+            if (status == EGADS_SUCCESS && atype == ATTRSTRING && strcmp(tempClist, "off") == 0) {
+                attrs = 0;
+            } else {
+                attrs = WV_ON;
+            }
+
+            status = EG_attributeRet(MODL->body[ibody].edge[iedge].eedge, "_grd",
+                                     &atype, &alen, &tempIlist, &tempRlist, &tempClist);
+            if (status == EGADS_SUCCESS && atype == ATTRSTRING && strcmp(tempClist, "on") == 0) {
+                attrs |= WV_POINTS;
+            }
+
+            status = EG_attributeRet(MODL->body[ibody].edge[iedge].eedge, "_ori",
+                                     &atype, &alen, &tempIlist, &tempRlist, &tempClist);
+            if (status == EGADS_SUCCESS && atype == ATTRSTRING && strcmp(tempClist, "on") == 0) {
+                attrs |= WV_ORIENTATION;
+            }
+
 
             /* vertices */
             status = wv_setData(WV_REAL64, npnt, (void*)xyz, WV_VERTICES, &(items[nitems]));
@@ -1103,10 +1142,20 @@ buildSceneGraphMODL(esp_T  *ESP)
             snprintf(gpname, MAX_STRVAL_LEN-1, "%s Node %d", bname, inode);
 
             /* default for NodeBodys is to turn the Node on */
+            status = EG_attributeRet(MODL->body[ibody].node[inode].enode, "_viz",
+                                     &atype, &alen, &tempIlist, &tempRlist, &tempClist);
             if (MODL->body[ibody].botype == OCSM_NODE_BODY) {
-                attrs = WV_ON;
+                if (status == EGADS_SUCCESS && atype == ATTRSTRING && strcmp(tempClist, "off") == 0) {
+                    attrs = 0;
+                } else {
+                    attrs = WV_ON;
+                }
             } else {
-                attrs = 0;
+                if (status == EGADS_SUCCESS && atype == ATTRSTRING && strcmp(tempClist, "on") == 0) {
+                    attrs = WV_ON;
+                } else {
+                    attrs = 0;
+                }
             }
 
             SPLINT_CHECK_FOR_NULL(enodes);

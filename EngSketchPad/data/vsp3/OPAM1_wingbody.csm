@@ -1,0 +1,13 @@
+# OPAM1_wingbody (using VSP)
+# writen by John Dannenhoffer
+
+# import the geometries
+UDPRIM $/OPAM1_wing
+
+UDPRIM $/OPAM1_body
+
+# join the wings to the fuselage
+UNION
+UNION
+
+END

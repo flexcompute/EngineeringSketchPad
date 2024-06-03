@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.22 (TeX Live 2022/dev/Debian) (preloaded format=latex 2024.3.15)  27 APR 2024 16:51
+This is pdfTeX, Version 3.141592653-2.6-1.40.22 (TeX Live 2022/dev/Debian) (preloaded format=latex 2024.3.15)  22 MAY 2024 10:55
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -90,6 +90,9 @@ LaTeX Font Info:    External font `cmex10' loaded for size
 (Font)              <7> on input line 12.
 LaTeX Font Info:    External font `cmex10' loaded for size
 (Font)              <5> on input line 12.
+[1
+
+] [2] [3]
 
 ! LaTeX Error: Environment bmatrix undefined.
 
@@ -97,7 +100,7 @@ See the LaTeX manual or LaTeX Companion for explanation.
 Type  H <return>  for immediate help.
  ...                                              
                                                   
-l.12 \[ \vec{I} = \begin{bmatrix}
+l.21 \[ \vec{I} = \begin{bmatrix}
                                   I_{xx} & I_{yy} & I_{zz} & I_{xy} & I_{xz}...
 
 Your command was ignored.
@@ -105,7 +108,7 @@ Type  I <command> <return>  to replace it with another command,
 or  <return>  to continue without it.
 
 ! Misplaced alignment tab character &.
-l.12 \[ \vec{I} = \begin{bmatrix} I_{xx} &
+l.21 \[ \vec{I} = \begin{bmatrix} I_{xx} &
                                            I_{yy} & I_{zz} & I_{xy} & I_{xz}...
 I can't figure out why you would want to use a tab mark
 here. If you just want an ampersand, the remedy is
@@ -115,7 +118,7 @@ you're probably due for more error messages, and you
 might try typing `S' now just to see what is salvageable.
 
 ! Misplaced alignment tab character &.
-l.12 ...vec{I} = \begin{bmatrix} I_{xx} & I_{yy} &
+l.21 ...vec{I} = \begin{bmatrix} I_{xx} & I_{yy} &
                                                    I_{zz} & I_{xy} & I_{xz} ...
 I can't figure out why you would want to use a tab mark
 here. If you just want an ampersand, the remedy is
@@ -125,7 +128,7 @@ you're probably due for more error messages, and you
 might try typing `S' now just to see what is salvageable.
 
 ! Misplaced alignment tab character &.
-l.12 ...\begin{bmatrix} I_{xx} & I_{yy} & I_{zz} &
+l.21 ...\begin{bmatrix} I_{xx} & I_{yy} & I_{zz} &
                                                    I_{xy} & I_{xz} & I_{yz} ...
 I can't figure out why you would want to use a tab mark
 here. If you just want an ampersand, the remedy is
@@ -135,7 +138,7 @@ you're probably due for more error messages, and you
 might try typing `S' now just to see what is salvageable.
 
 ! Misplaced alignment tab character &.
-l.12 ...atrix} I_{xx} & I_{yy} & I_{zz} & I_{xy} &
+l.21 ...atrix} I_{xx} & I_{yy} & I_{zz} & I_{xy} &
                                                    I_{xz} & I_{yz} \end{bmat...
 I can't figure out why you would want to use a tab mark
 here. If you just want an ampersand, the remedy is
@@ -145,7 +148,7 @@ you're probably due for more error messages, and you
 might try typing `S' now just to see what is salvageable.
 
 ! Misplaced alignment tab character &.
-l.12 ...{xx} & I_{yy} & I_{zz} & I_{xy} & I_{xz} &
+l.21 ...{xx} & I_{yy} & I_{zz} & I_{xy} & I_{xz} &
                                                    I_{yz} \end{bmatrix} \]
 I can't figure out why you would want to use a tab mark
 here. If you just want an ampersand, the remedy is
@@ -161,15 +164,13 @@ See the LaTeX manual or LaTeX Companion for explanation.
 Type  H <return>  for immediate help.
  ...                                              
                                                   
-l.12 ...} & I_{xy} & I_{xz} & I_{yz} \end{bmatrix}
+l.21 ...} & I_{xy} & I_{xz} & I_{yz} \end{bmatrix}
                                                    \]
 Your command was ignored.
 Type  I <command> <return>  to replace it with another command,
 or  <return>  to continue without it.
 
-[1
-
-]
+[4]
 
 ! LaTeX Error: Environment bmatrix undefined.
 
@@ -177,7 +178,7 @@ See the LaTeX manual or LaTeX Companion for explanation.
 Type  H <return>  for immediate help.
  ...                                              
                                                   
-l.15 \[ \vec{I}_{lower} = \begin{bmatrix}
+l.24 \[ \vec{I}_{lower} = \begin{bmatrix}
                                           I_{xx} & -I_{xy} & I_{yy} & -I_{xz...
 
 Your command was ignored.
@@ -185,7 +186,7 @@ Type  I <command> <return>  to replace it with another command,
 or  <return>  to continue without it.
 
 ! Misplaced alignment tab character &.
-l.15 \[ \vec{I}_{lower} = \begin{bmatrix} I_{xx} &
+l.24 \[ \vec{I}_{lower} = \begin{bmatrix} I_{xx} &
                                                    -I_{xy} & I_{yy} & -I_{xz...
 I can't figure out why you would want to use a tab mark
 here. If you just want an ampersand, the remedy is
@@ -195,7 +196,7 @@ you're probably due for more error messages, and you
 might try typing `S' now just to see what is salvageable.
 
 ! Misplaced alignment tab character &.
-l.15 ...ower} = \begin{bmatrix} I_{xx} & -I_{xy} &
+l.24 ...ower} = \begin{bmatrix} I_{xx} & -I_{xy} &
                                                    I_{yy} & -I_{xz} & -I_{yz...
 I can't figure out why you would want to use a tab mark
 here. If you just want an ampersand, the remedy is
@@ -205,7 +206,7 @@ you're probably due for more error messages, and you
 might try typing `S' now just to see what is salvageable.
 
 ! Misplaced alignment tab character &.
-l.15 ...begin{bmatrix} I_{xx} & -I_{xy} & I_{yy} &
+l.24 ...begin{bmatrix} I_{xx} & -I_{xy} & I_{yy} &
                                                    -I_{xz} & -I_{yz} & I_{zz...
 I can't figure out why you would want to use a tab mark
 here. If you just want an ampersand, the remedy is
@@ -215,7 +216,7 @@ you're probably due for more error messages, and you
 might try typing `S' now just to see what is salvageable.
 
 ! Misplaced alignment tab character &.
-l.15 ...rix} I_{xx} & -I_{xy} & I_{yy} & -I_{xz} &
+l.24 ...rix} I_{xx} & -I_{xy} & I_{yy} & -I_{xz} &
                                                    -I_{yz} & I_{zz} \end{bma...
 I can't figure out why you would want to use a tab mark
 here. If you just want an ampersand, the remedy is
@@ -225,7 +226,7 @@ you're probably due for more error messages, and you
 might try typing `S' now just to see what is salvageable.
 
 ! Misplaced alignment tab character &.
-l.15 ...} & -I_{xy} & I_{yy} & -I_{xz} & -I_{yz} &
+l.24 ...} & -I_{xy} & I_{yy} & -I_{xz} & -I_{yz} &
                                                    I_{zz} \end{bmatrix}, \]
 I can't figure out why you would want to use a tab mark
 here. If you just want an ampersand, the remedy is
@@ -241,13 +242,13 @@ See the LaTeX manual or LaTeX Companion for explanation.
 Type  H <return>  for immediate help.
  ...                                              
                                                   
-l.15 ...& -I_{xz} & -I_{yz} & I_{zz} \end{bmatrix}
+l.24 ...& -I_{xz} & -I_{yz} & I_{zz} \end{bmatrix}
                                                   , \]
 Your command was ignored.
 Type  I <command> <return>  to replace it with another command,
 or  <return>  to continue without it.
 
-[2]
+[5]
 
 ! LaTeX Error: Environment bmatrix undefined.
 
@@ -255,7 +256,7 @@ See the LaTeX manual or LaTeX Companion for explanation.
 Type  H <return>  for immediate help.
  ...                                              
                                                   
-l.18 \[ \vec{I}_{upper} = \begin{bmatrix}
+l.27 \[ \vec{I}_{upper} = \begin{bmatrix}
                                           I_{xx} & -I_{xy} & -I_{xz} & I_{yy...
 
 Your command was ignored.
@@ -263,7 +264,7 @@ Type  I <command> <return>  to replace it with another command,
 or  <return>  to continue without it.
 
 ! Misplaced alignment tab character &.
-l.18 \[ \vec{I}_{upper} = \begin{bmatrix} I_{xx} &
+l.27 \[ \vec{I}_{upper} = \begin{bmatrix} I_{xx} &
                                                    -I_{xy} & -I_{xz} & I_{yy...
 I can't figure out why you would want to use a tab mark
 here. If you just want an ampersand, the remedy is
@@ -273,7 +274,7 @@ you're probably due for more error messages, and you
 might try typing `S' now just to see what is salvageable.
 
 ! Misplaced alignment tab character &.
-l.18 ...pper} = \begin{bmatrix} I_{xx} & -I_{xy} &
+l.27 ...pper} = \begin{bmatrix} I_{xx} & -I_{xy} &
                                                    -I_{xz} & I_{yy} & -I_{yz...
 I can't figure out why you would want to use a tab mark
 here. If you just want an ampersand, the remedy is
@@ -283,7 +284,7 @@ you're probably due for more error messages, and you
 might try typing `S' now just to see what is salvageable.
 
 ! Misplaced alignment tab character &.
-l.18 ...egin{bmatrix} I_{xx} & -I_{xy} & -I_{xz} &
+l.27 ...egin{bmatrix} I_{xx} & -I_{xy} & -I_{xz} &
                                                    I_{yy} & -I_{yz} & I_{zz}...
 I can't figure out why you would want to use a tab mark
 here. If you just want an ampersand, the remedy is
@@ -293,7 +294,7 @@ you're probably due for more error messages, and you
 might try typing `S' now just to see what is salvageable.
 
 ! Misplaced alignment tab character &.
-l.18 ...rix} I_{xx} & -I_{xy} & -I_{xz} & I_{yy} &
+l.27 ...rix} I_{xx} & -I_{xy} & -I_{xz} & I_{yy} &
                                                    -I_{yz} & I_{zz} \end{bma...
 I can't figure out why you would want to use a tab mark
 here. If you just want an ampersand, the remedy is
@@ -303,7 +304,7 @@ you're probably due for more error messages, and you
 might try typing `S' now just to see what is salvageable.
 
 ! Misplaced alignment tab character &.
-l.18 ...} & -I_{xy} & -I_{xz} & I_{yy} & -I_{yz} &
+l.27 ...} & -I_{xy} & -I_{xz} & I_{yy} & -I_{yz} &
                                                    I_{zz} \end{bmatrix}, \]
 I can't figure out why you would want to use a tab mark
 here. If you just want an ampersand, the remedy is
@@ -319,13 +320,13 @@ See the LaTeX manual or LaTeX Companion for explanation.
 Type  H <return>  for immediate help.
  ...                                              
                                                   
-l.18 ... & I_{yy} & -I_{yz} & I_{zz} \end{bmatrix}
+l.27 ... & I_{yy} & -I_{yz} & I_{zz} \end{bmatrix}
                                                   , \]
 Your command was ignored.
 Type  I <command> <return>  to replace it with another command,
 or  <return>  to continue without it.
 
-[3]
+[6]
 
 ! LaTeX Error: Environment bmatrix undefined.
 
@@ -333,7 +334,7 @@ See the LaTeX manual or LaTeX Companion for explanation.
 Type  H <return>  for immediate help.
  ...                                              
                                                   
-l.21 \[ \bar{\bar{I}} = \begin{bmatrix}
+l.30 \[ \bar{\bar{I}} = \begin{bmatrix}
                                         I_{xx} & -I_{xy} & -I_{xz} \\ -I_{xy...
 
 Your command was ignored.
@@ -341,7 +342,7 @@ Type  I <command> <return>  to replace it with another command,
 or  <return>  to continue without it.
 
 ! Misplaced alignment tab character &.
-l.21 \[ \bar{\bar{I}} = \begin{bmatrix} I_{xx} &
+l.30 \[ \bar{\bar{I}} = \begin{bmatrix} I_{xx} &
                                                  -I_{xy} & -I_{xz} \\ -I_{xy...
 I can't figure out why you would want to use a tab mark
 here. If you just want an ampersand, the remedy is
@@ -351,7 +352,7 @@ you're probably due for more error messages, and you
 might try typing `S' now just to see what is salvageable.
 
 ! Misplaced alignment tab character &.
-l.21 ...r{I}} = \begin{bmatrix} I_{xx} & -I_{xy} &
+l.30 ...r{I}} = \begin{bmatrix} I_{xx} & -I_{xy} &
                                                    -I_{xz} \\ -I_{xy} & I_{y...
 I can't figure out why you would want to use a tab mark
 here. If you just want an ampersand, the remedy is
@@ -361,7 +362,7 @@ you're probably due for more error messages, and you
 might try typing `S' now just to see what is salvageable.
 
 ! Misplaced alignment tab character &.
-l.21 ...x} I_{xx} & -I_{xy} & -I_{xz} \\ -I_{xy} &
+l.30 ...x} I_{xx} & -I_{xy} & -I_{xz} \\ -I_{xy} &
                                                    I_{yy} & -I_{yz} \\ -I_{x...
 I can't figure out why you would want to use a tab mark
 here. If you just want an ampersand, the remedy is
@@ -371,7 +372,7 @@ you're probably due for more error messages, and you
 might try typing `S' now just to see what is salvageable.
 
 ! Misplaced alignment tab character &.
-l.21 ... & -I_{xy} & -I_{xz} \\ -I_{xy} & I_{yy} &
+l.30 ... & -I_{xy} & -I_{xz} \\ -I_{xy} & I_{yy} &
                                                    -I_{yz} \\ -I_{xz} & -I_{...
 I can't figure out why you would want to use a tab mark
 here. If you just want an ampersand, the remedy is
@@ -381,7 +382,7 @@ you're probably due for more error messages, and you
 might try typing `S' now just to see what is salvageable.
 
 ! Misplaced alignment tab character &.
-l.21 ...\\ -I_{xy} & I_{yy} & -I_{yz} \\ -I_{xz} &
+l.30 ...\\ -I_{xy} & I_{yy} & -I_{yz} \\ -I_{xz} &
                                                    -I_{yz} & I_{zz} \end{bma...
 I can't figure out why you would want to use a tab mark
 here. If you just want an ampersand, the remedy is
@@ -391,7 +392,7 @@ you're probably due for more error messages, and you
 might try typing `S' now just to see what is salvageable.
 
 ! Misplaced alignment tab character &.
-l.21 ... & I_{yy} & -I_{yz} \\ -I_{xz} & -I_{yz} &
+l.30 ... & I_{yy} & -I_{yz} \\ -I_{xz} & -I_{yz} &
                                                    I_{zz} \end{bmatrix} \]
 I can't figure out why you would want to use a tab mark
 here. If you just want an ampersand, the remedy is
@@ -407,13 +408,13 @@ See the LaTeX manual or LaTeX Companion for explanation.
 Type  H <return>  for immediate help.
  ...                                              
                                                   
-l.21 ...\ -I_{xz} & -I_{yz} & I_{zz} \end{bmatrix}
+l.30 ...\ -I_{xz} & -I_{yz} & I_{zz} \end{bmatrix}
                                                    \]
 Your command was ignored.
 Type  I <command> <return>  to replace it with another command,
 or  <return>  to continue without it.
 
-[4] (./_formulas.aux) ) 
+[7] (./_formulas.aux) ) 
 Here is how much of TeX's memory you used:
  1008 strings out of 480248
  18093 string characters out of 5896177
@@ -423,4 +424,4 @@ Here is how much of TeX's memory you used:
  14 hyphenation exceptions out of 8191
  70i,5n,76p,228b,100s stack positions out of 5000i,500n,10000p,200000b,80000s
 
-Output written on _formulas.dvi (4 pages, 1324 bytes).
+Output written on _formulas.dvi (7 pages, 1708 bytes).

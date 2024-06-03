@@ -9966,7 +9966,14 @@ EG_getEdgeIDs(egadsBody *pbody, const char *fAttr, edgeID **IDs)
       if (k == edgeIDs[i].nFace) {
         if (edgeIDs[i].fIndices[k] == 0) {
           BProps.LinearProperties(pbody->edges.map(i+1), SProps);
-          CofG = SProps.CentreOfMass();
+          if (BRep_Tool::Degenerated(TopoDS::Edge(pbody->edges.map(i+1)))) {
+            TopTools_IndexedMapOfShape nmap;
+            TopExp::MapShapes(pbody->edges.map(i+1), TopAbs_VERTEX, nmap);
+            const TopoDS_Vertex& V = TopoDS::Vertex(nmap(1));
+            CofG = BRep_Tool::Pnt(V);
+          } else {
+            CofG = SProps.CentreOfMass();
+          }
           edgeIDs[i].seq         = 1;
           edgeIDs[i].fIndices[k] = -i-1;
           edgeIDs[i].CG[0]       = CofG.X();
@@ -9977,7 +9984,14 @@ EG_getEdgeIDs(egadsBody *pbody, const char *fAttr, edgeID **IDs)
                  SProps.Mass());  */
         }
         BProps.LinearProperties(pbody->edges.map(j+1), SProps);
-        CofG = SProps.CentreOfMass();
+        if (BRep_Tool::Degenerated(TopoDS::Edge(pbody->edges.map(j+1)))) {
+          TopTools_IndexedMapOfShape nmap;
+          TopExp::MapShapes(pbody->edges.map(j+1), TopAbs_VERTEX, nmap);
+          const TopoDS_Vertex& V = TopoDS::Vertex(nmap(1));
+          CofG = BRep_Tool::Pnt(V);
+        } else {
+          CofG = SProps.CentreOfMass();
+        }
         edgeIDs[j].seq         = cnt+2;
         edgeIDs[j].fIndices[k] = -i-1;
         edgeIDs[j].CG[0]       = CofG.X();
@@ -10302,6 +10316,7 @@ EG_bodyMapping(const egObject  *sBody, const egObject *dBody, const char *fAttr,
             return EGADS_TOPOERR;
           }
           eMap[i]   = j+1;
+          if (pbods->edges.objs[i]->mtype == DEGENERATE) continue;
           pedge     = (egadsEdge *) pbodd->edges.objs[j]->blind;
           pnode     = (egadsNode *) pedge->nodes[0]->blind;
           vert      = TopoDS::Vertex(pnode->node);

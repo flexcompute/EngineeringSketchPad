@@ -1,5 +1,3 @@
-from __future__ import print_function
-
 # Import pyCAPS class file
 from pyCAPS import capsProblem
 

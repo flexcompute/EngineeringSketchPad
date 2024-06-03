@@ -3,6 +3,7 @@ import pyCAPS
 
 # Import os module
 import os
+import shutil
 import argparse
 
 # Setup and read command line options. Please note that this isn't required for pyCAPS
@@ -16,26 +17,39 @@ parser.add_argument('-noAnalysis', action='store_true', default = False, help = 
 parser.add_argument("-outLevel", default = 1, type=int, choices=[0, 1, 2], help="Set output verbosity")
 args = parser.parse_args()
 
-workDir = os.path.join(str(args.workDir[0]), "NastranCompositeWing")
+# Create project name
+projectName = "NastranCompositeWing_Design"
+
+# Working directory
+workDir = os.path.join(str(args.workDir[0]), projectName)
 
 # Initialize CAPS Problem
 geometryScript = os.path.join("..","csmData","compositeWing.csm")
-myProblem = pyCAPS.Problem(problemName=workDir,
+capsProblem = pyCAPS.Problem(problemName=workDir,
                            capsFile=geometryScript,
                            outLevel=args.outLevel)
 
-# Load nastran aim
-nastranAIM = myProblem.analysis.create(aim = "nastranAIM",
-                                       name = "nastran", 
-                                       autoExec = False)
+# Load egadsTess aim
+egads = capsProblem.analysis.create(aim = "egadsTessAIM")
 
-# Set project name so a mesh file is generated
-projectName = "nastran_Composite_Wing"
-nastranAIM.input.Proj_Name        = projectName
-nastranAIM.input.Edge_Point_Max   = 40
-nastranAIM.input.File_Format      = "Small"
-nastranAIM.input.Mesh_File_Format = "Large"
-nastranAIM.input.Analysis_Type    = "StaticOpt"
+# Set meshing parameters
+egads.input.Edge_Point_Max = 40
+egads.input.Edge_Point_Min = 5
+
+# All quads in the grid
+egads.input.Mesh_Elements = "Quad"
+
+egads.input.Tess_Params = [.05,.5,15]
+
+# Load nastran aim
+nastran = capsProblem.analysis.create(aim = "nastranAIM",
+                                      name = "nastran")
+
+nastran.input["Mesh"].link(egads.output["Surface_Mesh"])
+nastran.input.File_Format      = "Small"
+nastran.input.Mesh_File_Format = "Large"
+
+nastran.input.Analysis_Type    = "StaticOpt"
 
 Aluminum  = {"youngModulus" : 10.5E6 ,
              "poissonRatio" : 0.3,
@@ -55,7 +69,7 @@ Graphite_epoxy = {"materialType"        : "Orthotropic",
                   "shearAllow"          : 19.0e-3,
                   "allowType"           : 1}
 
-nastranAIM.input.Material = {"Aluminum": Aluminum,
+nastran.input.Material = {"Aluminum": Aluminum,
                              "Graphite_epoxy": Graphite_epoxy}
 
 aluminum  = {"propertyType"        : "Shell",
@@ -74,25 +88,25 @@ composite  = {"propertyType"          : "Composite",
               "symmetricLaminate"     : 1,
               "compositeFailureTheory": "STRN" }
 
-#nastranAIM.input.Property = {"wing": aluminum}
-nastranAIM.input.Property = {"wing": composite}
+#nastran.input.Property = {"wing": aluminum}
+nastran.input.Property = {"wing": composite}
 
 constraint = {"groupName" : "root",
               "dofConstraint" : 123456}
 
-nastranAIM.input.Constraint = {"BoundaryCondition": constraint}
+nastran.input.Constraint = {"BoundaryCondition": constraint}
 
 load = {"groupName" : "wing",
         "loadType" : "Pressure",
         "pressureForce" : 1.0}
 
-nastranAIM.input.Load = {"appliedPressure": load}
+nastran.input.Load = {"appliedPressure": load}
 
 value = {"analysisType"         : "Static",
          "analysisConstraint"   : "BoundaryCondition",
          "analysisLoad"         : "appliedPressure"}
 
-nastranAIM.input.Analysis = {"StaticAnalysis": value}
+nastran.input.Analysis = {"StaticAnalysis": value}
 
 designVariables = {}
 designVarRelations = {}
@@ -112,8 +126,8 @@ for i in range(1, numT+1):
              "fieldName": "T{}".format(i)}  # T1, T2, ..., T8
     designVarRelations[dvRelName] = dvRel
               
-myProblem.analysis["nastran"].input.Design_Variable = designVariables
-myProblem.analysis["nastran"].input.Design_Variable_Relation = designVarRelations
+capsProblem.analysis["nastran"].input.Design_Variable = designVariables
+capsProblem.analysis["nastran"].input.Design_Variable_Relation = designVarRelations
 
 designConstraint1 = {"groupName" : "wing",
                     "responseType" : "CFAILURE",
@@ -163,29 +177,29 @@ designConstraint8 = {"groupName" : "wing",
                     "upperBound" :  0.9999,
                     "fieldName" : "LAMINA8"}
 
-myProblem.analysis["nastran"].input.Design_Constraint = {"stress1": designConstraint1,
-                                                         "stress2": designConstraint2,
-                                                         "stress3": designConstraint3,
-                                                         "stress4": designConstraint4,
-                                                         "stress5": designConstraint5,
-                                                         "stress6": designConstraint6,
-                                                         "stress7": designConstraint7,
-                                                         "stress8": designConstraint8}
+capsProblem.analysis["nastran"].input.Design_Constraint = {"stress1": designConstraint1,
+                                                           "stress2": designConstraint2,
+                                                           "stress3": designConstraint3,
+                                                           "stress4": designConstraint4,
+                                                           "stress5": designConstraint5,
+                                                           "stress6": designConstraint6,
+                                                           "stress7": designConstraint7,
+                                                           "stress8": designConstraint8}
 
 # Run AIM pre-analysis
-nastranAIM.preAnalysis()
+nastran.preAnalysis()
 
 ####### Run Nastran####################
 print ("\n\nRunning Nastran......" )
-currentDirectory = os.getcwd() # Get our current working directory
 
-os.chdir(myProblem.analysis["nastran"].analysisDir) # Move into test directory
+if args.noAnalysis == False:
+    nastran.system("nastran old=no notify=no batch=no scr=yes sdirectory=./ " + nastran.input.Proj_Name +  ".dat"); # Run Nastran via system call
+else:
+    # Copy old results if no analysis available
+    shutil.copy2(os.path.join("..","analysisData","nastran",projectName+".f06"), 
+                 os.path.join(nastran.analysisDir,nastran.input.Proj_Name+".f06"))
 
-if (args.noAnalysis == False):
-    os.system("nastran old=no notify=no batch=no scr=yes sdirectory=./ " + projectName +  ".dat"); # Run Nastran via system call
-
-os.chdir(currentDirectory) # Move back to working directory
 print ("Done running Nastran!")
 
 # Run AIM post-analysis
-nastranAIM.postAnalysis()
+nastran.postAnalysis()

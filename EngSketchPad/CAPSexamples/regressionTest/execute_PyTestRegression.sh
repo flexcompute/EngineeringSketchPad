@@ -508,25 +508,29 @@ if [[ "$TYPE" == "STRUCTURE" || "$TYPE" == "ALL" ]]; then
     ###### Nastran ######
     if [[ `command -v nastran` ]]; then
         echo "nastran: `which nastran`"
-        expectPythonSuccess "nastran_Aeroelastic_PyTest.py"
-        expectPythonSuccess "nastran_AGARD445_PyTest.py"
-        expectPythonSuccess "nastran_Composite_PyTest.py"
-        expectPythonSuccess "nastran_CompositeWingDesign_PyTest.py"
-        expectPythonSuccess "nastran_CompositeWingFreq_PyTest.py"
-        expectPythonSuccess "nastran_Flutter_15degree.py"
-        expectPythonSuccess "nastran_MultiLoadCase_PyTest.py"
-        expectPythonSuccess "nastran_OptimizationMultiLoad_PyTest.py"
-        expectPythonSuccess "nastran_PyTest.py"
-        expectPythonSuccess "nastran_SingleLoadCase_PyTest.py"
-        expectPythonSuccess "nastran_ThreeBarDesign_PyTest.py"
-        expectPythonSuccess "nastran_ThreeBarFreq_PyTest.py"
-        expectPythonSuccess "nastran_ThreeBarLinkDesign_PyTest.py"
-        expectPythonSuccess "nastran_ThreeBarMultiLoad_PyTest.py"
-        expectPythonSuccess "nastran_ThreeBar_PyTest.py"
-        expectPythonSuccess "nastran_Trim_15degree.py"
     else
-        notRun="$notRun\nNastran"
+       NASTRAN_NOANALYSIS=-noAnalysis
+       notRun="$notRun\nNastran"
     fi
+    # Nastran has saved output files to allow for -noAnalysis runs
+    expectPythonSuccess "nastran_AGARD445_PyTest.py" $NASTRAN_NOANALYSIS
+    expectPythonSuccess "nastran_Aeroelastic_PyTest.py" $NASTRAN_NOANALYSIS
+    expectPythonSuccess "nastran_CompositeWingDesign_PyTest.py" $NASTRAN_NOANALYSIS
+    expectPythonSuccess "nastran_CompositeWingFreq_PyTest.py" $NASTRAN_NOANALYSIS
+    expectPythonSuccess "nastran_Composite_PyTest.py" $NASTRAN_NOANALYSIS
+    expectPythonSuccess "nastran_Flutter_15degree.py" $NASTRAN_NOANALYSIS
+    expectPythonSuccess "nastran_MultiLoadCase_PyTest.py" $NASTRAN_NOANALYSIS
+    expectPythonSuccess "nastran_OptimizationMultiLoad_PyTest.py" $NASTRAN_NOANALYSIS
+    expectPythonSuccess "nastran_PlateMisc_PyTest.py" $NASTRAN_NOANALYSIS
+    expectPythonSuccess "nastran_PyTest.py" $NASTRAN_NOANALYSIS
+    expectPythonSuccess "nastran_SingleLoadCase_PyTest.py" $NASTRAN_NOANALYSIS
+    expectPythonSuccess "nastran_ThreeBarDesign_PyTest.py" $NASTRAN_NOANALYSIS
+    expectPythonSuccess "nastran_ThreeBarFreq_PyTest.py" $NASTRAN_NOANALYSIS
+    expectPythonSuccess "nastran_ThreeBarLinkDesign_PyTest.py" $NASTRAN_NOANALYSIS
+    expectPythonSuccess "nastran_ThreeBarMultiLoad_PyTest.py" $NASTRAN_NOANALYSIS
+    expectPythonSuccess "nastran_ThreeBar_PyTest.py" $NASTRAN_NOANALYSIS
+    expectPythonSuccess "nastran_Trim_15degree.py" $NASTRAN_NOANALYSIS
+
 
     ###### Mystran ######
     if [[ `command -v mystran.exe` || `command -v mystran` ]]; then
