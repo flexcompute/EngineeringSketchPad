@@ -155,6 +155,8 @@ if [ -z "$CASREV" ]; then
 		incfl=$CASROOT/include/oce/Standard_Version.hxx
 	elif [ -f "$CASROOT/Standard_Version.hxx" ]; then
 		incfl=$CASROOT/Standard_Version.hxx
+	elif [ -f "$CASROOT/include/opencascade/Standard_Version.hxx" ]; then
+		incfl=$CASROOT/include/opencascade/Standard_Version.hxx
 	fi
 	if [ "$incfl" = UNKNOWN ]; then
 		echo "ERROR - Cannot find OpenCASCADE Version include!"
