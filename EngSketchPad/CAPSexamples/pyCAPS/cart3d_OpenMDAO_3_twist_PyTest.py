@@ -42,7 +42,7 @@ class Cart3dAnalysis(om.ExplicitComponent):
         self.options.declare('capsProblem', types=object)
 
     def setup(self):
-    # Assign the actual values to the variables.
+        # Assign the actual values to the variables.
 
         capsProblem = self.options['capsProblem']
         geometry = capsProblem.geometry

@@ -24,7 +24,7 @@ PATEND
 # check that Node now at (2,0,0) does not have the attribute
 SELECT    NODE  2  0  0
 GETATTR   nattr $_nattr_
-ASSERT    nattr 3                       # _nodeID, _nedge, and __trace__
+ASSERT    nattr 4                       # _nodeID, _nedge, __trace__, and _Keep
 PATBEG    iattr nattr
     GETATTR  aname  iattr
 PATEND

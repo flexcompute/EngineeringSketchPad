@@ -57,6 +57,19 @@ cbaero.input.Mach = [2.0, 2.5, 4.0]
 # Set Dynamic pressure 
 cbaero.input.Dynamic_Pressure = 10 * psi
 
+# Set aero surfaces
+cbaero.input.Aero_Surface = {"fuselage_base":"Base",
+                             "horizontalCS" :"Wing",
+                             "verticalCS"   :"Wing",
+                             "inlet"        :"Body",
+                             "hollowInlet"  :"Body"}
+
+# Set materials
+cbaero.input.Material_Group = {"mat1":{"surfaceType":"Fully Catalytic", "emissivity":0.8,"groupName":["fuselage", "fuselage_base"]},
+                               "mat2":{"surfaceType":"RCG"            , "emissivity":0.6,"groupName":["horizontalCS", "verticalCS"]},
+                               "mat3":{"surfaceType":"8"              , "emissivity":0.7,"groupName":"inlet"},
+                               "mat4":{"surfaceType":"Fully Catalytic", "emissivity":0.5,"groupName":"hollowInlet"}}
+
 # Explicitly run analysis (optional)
 cbaero.runAnalysis()
 

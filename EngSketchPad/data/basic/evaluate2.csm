@@ -45,7 +45,7 @@ patbeg iedge @nedge
    set       foo   @edata
 
    evaluate  edgeinv @ibody iedge @edata[2] @edata[3] @edata[4]
-   assert    4       @edata.size
+   assert    5       @edata.size
    set       foo     @edata
 
    assert    @edata[1] tmid
@@ -71,7 +71,7 @@ patbeg iface @nface
    set       foo   @edata
 
    evaluate  faceinv @ibody iface @edata[3] @edata[4] @edata[5]
-   assert    5       @edata.size
+   assert    7       @edata.size
    set       foo     @edata
 
    assert   @edata[1] umid

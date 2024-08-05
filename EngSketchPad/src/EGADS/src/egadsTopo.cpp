@@ -17,6 +17,7 @@
 #include "egadsTypes.h"
 #include "egadsInternals.h"
 #include "egadsClasses.h"
+#include "egadsStack.h"
 
 #if CASVER >= 760
 #include <BRepLib_ValidateEdge.hxx>
@@ -72,12 +73,17 @@ public:
   extern "C" int  EG_getGeometry( const egObject *geom, int *oclass, int *mtype,
                                   egObject **refGeom, /*@null@*/ int **ivec,
                                   /*@null@*/ double **rvec );
+  extern "C" int  EG_getRange( const ego geom, double *range, int *periodic );
   extern "C" int  EG_otherCurve( const egObject *surface, const egObject *curve,
                                  double tol, egObject **newcurve );
   extern "C" int  EG_evaluate( const egObject *geom,
                                /*@null@*/ const double *param, double *result );
   extern "C" int  EG_invEvaluate( const egObject *obj, double *xyz,
                                   double *param, double *results );
+  extern "C" int  EG_convertToBSplineRange( egObject *geom, const double *range,
+                                            egObject **bspline );
+  extern "C" int  EG_mergeBSplineCurves( egObject *curve1, egObject *curve2,
+                                         egObject **bspline);
   extern "C" int  EG_getETopology( const egObject *topo, egObject **geom,
                                    int *oclass, int *type,
                                    /*@null@*/ double *limits, int *nChildren,
@@ -182,6 +188,8 @@ public:
                                      double toler, egObject **result );
   extern "C" int  EG_replaceFaces( const egObject *body,  int nobj,
                                          egObject **objs, egObject **result );
+  extern "C" int  EG_removeNodes( const egObject *body,  int nobj,
+                                        egObject **objs, egObject **result );
   extern "C" int  EG_mapBody( const egObject *sBody, const egObject *dBody,
                               const char *fAttr, egObject **mBody );
   extern "C" int  EG_mapBody2(const egObject *sBody,
@@ -239,6 +247,7 @@ public:
                                       const double *rvec,
                                       const double *rvec_dot );
   extern "C" int  EG_saveModel( const egObject *model, const char *name );
+  extern "C" int  EG_sampleSame( const egObject *obj1, const egObject *obj2 );
 
 
 static void
@@ -1540,6 +1549,9 @@ EG_traverseBody(egObject *context, int i, egObject *bobj, egObject *topObj,
     if (outLevel > 2)
       printf(" Edge %d:  nodes = %d %d  degen = %d (%lf, %lf)\n",
              j+1, n1, n2, degen, t1, t2);
+    if (Edge.Orientation() == TopAbs_INTERNAL)
+      if (outLevel > 0)
+        printf(" EGADS Warning: Edge %d is INTERNAL!\n", j+1);
 
     if (((n1 == 0) || (n2 == 0)) && (degen == 0)) {
       hit++;
@@ -2435,7 +2447,8 @@ EG_makePCurves(TopoDS_Face& face, egObject *surfo, egObject *loopo, int itry = 0
   BRepTools_WireExplorer ExpWE;
   for (i = 0, ExpWE.Init(wire); ExpWE.More(); ExpWE.Next(), i++) {
 
-    if (periodic != NULL && periodic[i] < 0) continue; /* periodic edge only needs to be processed once */
+    /* periodic edge only needs to be processed once */
+    if (periodic != NULL && periodic[i] < 0) continue;
 
     TopoDS_Shape shape  = ExpWE.Current();
     TopoDS_Edge  edge   = TopoDS::Edge(shape);
@@ -2747,10 +2760,12 @@ EG_printClosed2d(const TopoDS_Wire &loop_wire,
 
     Standard_Real Dist = Max(du, dv);
 
-    printf("   End  %3d   %3d %10lf %10lf\n", lastEdgeID , lastSens , aP_last.X(),  aP_last.Y());
-    printf("   Beg  %3d   %3d %10lf %10lf\n", firstEdgeID, firstSens, aP_first.X(), aP_first.Y());
+    printf("   End  %3d   %3d %10lf %10lf\n", lastEdgeID , lastSens ,
+           aP_last.X(),  aP_last.Y());
+    printf("   Beg  %3d   %3d %10lf %10lf\n", firstEdgeID, firstSens,
+           aP_first.X(), aP_first.Y());
     if (Dist >= aTol2d) {
-      printf("   Diff ------>   %10lf %10lf > %lf\n",                   du,           dv, aTol2d);
+      printf("   Diff ------>   %10lf %10lf > %lf\n", du, dv, aTol2d);
     }
     printf("\n");
 
@@ -3262,7 +3277,8 @@ EG_makeTopology(egObject *context, /*@null@*/ egObject *geom,
     }
 
     if (nChildren == 2) {
-      Standard_Real maxtol = MAX(BRep_Tool::Tolerance(V1), BRep_Tool::Tolerance(V1));
+      Standard_Real maxtol = MAX(BRep_Tool::Tolerance(V1),
+                                 BRep_Tool::Tolerance(V2));
       if (pv1.Distance(pv2) < maxtol) {
         if (outLevel > 0) {
           printf(" EGADS Error: TWONODE Edge with Nodes within tolerance");
@@ -7247,10 +7263,18 @@ EG_isEquivalent(const egObject *topo1, const egObject *topo2)
   } else if (topo1->oclass == EDGE) {
 
     if (topo1->mtype != topo2->mtype) return EGADS_OUTSIDE;
-    stat = EG_isSame(topo1, topo2);
-    if (stat != EGADS_SUCCESS) return stat;
+
     egadsEdge *pedge1 = (egadsEdge *) topo1->blind;
     egadsEdge *pedge2 = (egadsEdge *) topo2->blind;
+
+    if (topo1->mtype != DEGENERATE) {
+      /* checking the Nodes and mid-point is sufficient LINE */
+      if ((pedge1->curve->mtype != LINE) ||
+          (pedge2->curve->mtype != LINE)) {
+        stat = EG_isSame(topo1, topo2);
+        if (stat != EGADS_SUCCESS) return stat;
+      }
+    }
     if (topo1->mtype != TWONODE)
       return EG_isSame(pedge1->nodes[0], pedge2->nodes[0]);
 
@@ -7298,7 +7322,16 @@ EG_isEquivalent(const egObject *topo1, const egObject *topo2)
     egadsFace *pface2 = (egadsFace *) topo2->blind;
 
     stat = EG_isSame(topo1, topo2);
-    if (stat != EGADS_SUCCESS) return stat;
+    if (stat != EGADS_SUCCESS) {
+      if ((pface1->surface != NULL) &&
+          (pface2->surface != NULL)) {
+        if ((pface1->surface->mtype == PLANE) &&
+            (pface2->surface->mtype == PLANE)) {
+          stat = EG_sampleSame(pface1->surface, pface2->surface);
+        }
+      }
+      if (stat != EGADS_SUCCESS) return stat;
+    }
     if (pface1->nloops != pface2->nloops) return EGADS_OUTSIDE;
     for (i = 0; i < pface1->nloops; i++) {
       stat = EG_isEquivalent(pface1->loops[i], pface2->loops[i]);
@@ -9868,6 +9901,462 @@ EG_replaceFaces(const egObject *body, int nobj, egObject **objs,
 }
 
 
+int
+EG_removeNodes(const egObject *body, int nobj, egObject **objs,
+                     egObject **result)
+{
+  int          i, j, k, l, m, n, outLevel, stat, fullAttr, nnd[2], aType, aLen;
+  int          oclass, mtype, mtypf, nnode, nloop, nle, nf, len;
+  int          *senses, *sens, *senls;
+  double       tol, dist0, dist1, trange[2], xyz0[9], xyz1[9], xyzn[3], uvbox[4];
+  const int    *ints;
+  const double *reals;
+  const char   *str;
+  egObject     *context, *copy, *node, **nodes, *edges[2], **nd[2], *curves[2];
+  egObject     *bspline, *surf, *nds[2], *newEdge, *dum, **loops, *faces[2];
+  egObject     *pcurve, **list, **le, *loop, **edgs, *flist[4], *newCopy;
+  objStack     stack;
+  
+  *result = NULL;
+  if  (body == NULL)               return EGADS_NULLOBJ;
+  if  (body->magicnumber != MAGIC) return EGADS_NOTOBJ;
+  if  (body->oclass != BODY)       return EGADS_NOTBODY;
+  if  (body->blind == NULL)        return EGADS_NODATA;
+  if ((body->mtype != FACEBODY) && (body->mtype != SHEETBODY) &&
+      (body->mtype != SOLIDBODY))  return EGADS_TOPOERR;
+  if  (nobj < 1)                   return EGADS_EMPTY;
+  if  (objs == NULL)               return EGADS_NULLOBJ;
+  if  (EG_sameThread(body))        return EGADS_CNTXTHRD;
+  outLevel = EG_outLevel(body);
+  context  = EG_context(body);
+  fullAttr = EG_fullAttrs(body);
+  
+  // check the input objects
+  egadsBody *pbody = (egadsBody *) body->blind;
+  for (i = 0; i < nobj; i++) {
+    if (objs[i] == NULL) {
+      if (outLevel > 0)
+        printf(" EGADS Error: NULL Node Object %d (EG_removeNodes)!\n", i+1);
+      return EGADS_NULLOBJ;
+    }
+    if (objs[i]->magicnumber != MAGIC) {
+      if (outLevel > 0)
+        printf(" EGADS Error: Node Object %d is not an EGO (EG_removeNodes)!\n",
+               i+1);
+      return EGADS_NOTOBJ;
+    }
+    if (objs[i]->blind == NULL) {
+      if (outLevel > 0)
+        printf(" EGADS Error: Node Object %d has no data (EG_removeNodes)!\n",
+               i+1);
+      return EGADS_NODATA;
+    }
+    if (objs[i]->oclass != NODE) {
+      if (outLevel > 0)
+        printf(" EGADS Error: Node Object %d is Not a Node (EG_removeNodes)!\n",
+               i+1);
+      return EGADS_NOTTOPO;
+    }
+    egadsNode *pnode = (egadsNode *) objs[i]->blind;
+    if (pbody->nodes.map.FindIndex(pnode->node) == 0) {
+      if (outLevel > 0)
+        printf(" EGADS Error: Node %d is NOT in Body (EG_removeNodes)!\n", i+1);
+      return EGADS_NOTBODY;
+    }
+  }
+  
+  /* attribute our Nodes */
+  for (i = 0; i < nobj; i++) {
+    j = EG_indexBodyTopo(body, objs[i]);
+    stat = EG_attributeAdd(objs[i], ".removeNode", ATTRINT, 1, &j, NULL, NULL);
+    if (stat != EGADS_SUCCESS)
+      if (outLevel > 0)
+        printf(" EGADS Warning: attributeAdd Node %d = %d (EG_removeNodes)!\n",
+               i+1, stat);
+  }
+  
+  /* copy the body */
+  stat = EG_copyObject(body, NULL, &copy);
+  /* fix the original -- remove the attributes */
+  for (i = 0; i < nobj; i++) EG_attributeDel(objs[i], ".removeNode");
+  if (stat != EGADS_SUCCESS) {
+    if (outLevel > 0)
+      printf(" EGADS Error: EG_copyObject = %d (EG_removeNodes)!\n", stat);
+    return stat;
+  }
+  
+  /* for each node -- process the copy */
+  do {
+    stat = EG_getBodyTopos(copy, NULL, NODE, &nnode, &nodes);
+    if (stat != EGADS_SUCCESS) {
+      if (outLevel > 0)
+        printf(" EGADS Error: EG_getBodyTopos = %d (EG_removeNodes)!\n", stat);
+      EG_deleteObject(copy);
+      return stat;
+    }
+    node = NULL;
+    for (i = 0; i < nnode; i++) {
+      stat = EG_attributeRet(nodes[i], ".removeNode", &aType, &aLen, &ints,
+                             &reals, &str);
+      if (stat == EGADS_NOTFOUND) continue;
+      if (stat != EGADS_SUCCESS) {
+        if (outLevel > 0)
+          printf(" EGADS Error: EG_attributeRet = %d (EG_removeNodes)!\n",
+                 stat);
+        EG_free(nodes);
+        EG_deleteObject(copy);
+        return stat;
+      }
+      node = nodes[i];
+      stat = EG_getTolerance(node, &tol);
+      if (stat != EGADS_SUCCESS) {
+        if (outLevel > 0)
+          printf(" EGADS Error: EG_getTolerance = %d (EG_removeNodes)!\n",
+                 stat);
+        EG_free(nodes);
+        EG_deleteObject(copy);
+        return stat;
+      }
+      
+      /* process the node */
+      stat = EG_getBodyTopos(copy, node, EDGE, &n, &list);
+      if (stat != EGADS_SUCCESS) {
+        if (outLevel > 0)
+          printf(" EGADS Error: getBodyTopos Edges = %d (EG_removeNodes)!\n",
+                 stat);
+        EG_free(nodes);
+        EG_deleteObject(copy);
+        return stat;
+      }
+      if (n != 2) {
+        if (outLevel > 0)
+          printf(" EGADS Error: #Edges touching Node %d = %d (EG_removeNodes)!\n",
+                 ints[0], n);
+        EG_free(list);
+        EG_free(nodes);
+        EG_deleteObject(copy);
+        return EGADS_TOPOERR;
+      }
+      edges[0] = list[0];
+      edges[1] = list[1];
+      EG_free(list);
+      if (outLevel > 1) {
+        printf(" Processing Node %d  -- Edges %d %d  tol = %le\n", ints[0],
+               EG_indexBodyTopo(copy, edges[0]),
+               EG_indexBodyTopo(copy, edges[1]), tol);
+      }
+      
+      stat = EG_getBodyTopos(copy, node, FACE, &nf, &list);
+      if (stat != EGADS_SUCCESS) {
+        if (outLevel > 0)
+          printf(" EGADS Error: getBodyTopos Faces = %d (EG_removeNodes)!\n",
+                 stat);
+        EG_free(nodes);
+        EG_deleteObject(copy);
+        return stat;
+      }
+      if (nf > 2) {
+        if (outLevel > 0)
+          printf(" EGADS Error: # Faces touching Node = %d (EG_removeNodes)!\n",
+                 nf);
+        EG_free(list);
+        EG_free(nodes);
+        EG_deleteObject(copy);
+        return EGADS_TOPOERR;
+      }
+      faces[0] = list[0];
+      faces[1] = NULL;
+      if (nf == 2) faces[1] = list[1];
+      EG_free(list);
+      
+      /* deal with temporary objects */
+      stat = EG_stackInit(&stack);
+      if (stat != EGADS_SUCCESS) {
+        if (outLevel > 0)
+          printf(" EGADS Error: EG_stackInit = %d (EG_removeNodes)!\n", stat);
+        EG_free(nodes);
+        EG_deleteObject(copy);
+        return stat;
+      }
+      
+      for (j = 0; j < 2; j++) {
+        stat = EG_getTopology(edges[j], &curves[j], &oclass, &mtype, trange,
+                              &nnd[j], &nd[j], &senses);
+        if ((stat != EGADS_SUCCESS) || (curves[j] == NULL) || (nd[j] == NULL)) {
+          if (outLevel > 0)
+            printf(" EGADS Error: getTopology Edges = %d (EG_removeNodes)!\n",
+                   stat);
+          goto errorout;
+        }
+        if (mtype != TWONODE) {
+          if (outLevel > 0)
+            printf(" EGADS Error: Edge mtype = %d (EG_removeNodes)!\n", mtype);
+          stat = EGADS_TOPOERR;
+          goto errorout;
+        }
+        if (nd[j][0] == node) {
+          nds[j] = nd[j][1];
+        } else {
+          nds[j] = nd[j][0];
+        }
+        if (curves[j]->mtype != BSPLINE) {
+          stat = EG_convertToBSplineRange(curves[j], trange, &dum);
+          if (stat != EGADS_SUCCESS) {
+            if (outLevel > 0)
+              printf(" EGADS Error: convertToBSplineR = %d (EG_removeNodes)!\n",
+                     stat);
+            goto errorout;
+          }
+          curves[j] = dum;
+          stat = EG_stackPush(&stack, dum);
+          if (stat != EGADS_SUCCESS) goto errorout;
+        }
+      }
+      
+      /* make new curve */
+      stat = EG_mergeBSplineCurves(curves[0], curves[1], &bspline);
+      if (stat != EGADS_SUCCESS) {
+        if (outLevel > 0)
+          printf(" EGADS Error: mergeBSplineCurves = %d (EG_removeNodes)!\n",
+                 stat);
+        goto errorout;
+      }
+      stat = EG_stackPush(&stack, bspline);
+      if (stat != EGADS_SUCCESS) goto errorout;
+      
+      /* make new Edge */
+      stat = EG_getRange(bspline, trange, &j);
+      if (stat != EGADS_SUCCESS) {
+        if (outLevel > 0)
+          printf(" EGADS Error: mergeBSplineCurves = %d (EG_removeNodes)!\n",
+                 stat);
+        goto errorout;
+      }
+      stat = EG_evaluate(bspline, &trange[0], xyz0);
+      if (stat != EGADS_SUCCESS) {
+        if (outLevel > 0)
+          printf(" EGADS Error: evaluate start = %d (EG_removeNodes)!\n",
+                 stat);
+        goto errorout;
+      }
+      stat = EG_evaluate(bspline, &trange[1], xyz1);
+      if (stat != EGADS_SUCCESS) {
+        if (outLevel > 0)
+          printf(" EGADS Error: evaluate end = %d (EG_removeNodes)!\n",
+                 stat);
+        goto errorout;
+      }
+      stat = EG_evaluate(nds[0], NULL, xyzn);
+      if (stat != EGADS_SUCCESS) {
+        if (outLevel > 0)
+          printf(" EGADS Error: evaluate 1st Node = %d (EG_removeNodes)!\n",
+                 stat);
+        goto errorout;
+      }
+      dist0 = sqrt((xyzn[0]-xyz0[0])*(xyzn[0]-xyz0[0]) +
+                   (xyzn[1]-xyz0[1])*(xyzn[1]-xyz0[1]) +
+                   (xyzn[2]-xyz0[2])*(xyzn[2]-xyz0[2]));
+      dist1 = sqrt((xyzn[0]-xyz1[0])*(xyzn[0]-xyz1[0]) +
+                   (xyzn[1]-xyz1[1])*(xyzn[1]-xyz1[1]) +
+                   (xyzn[2]-xyz1[2])*(xyzn[2]-xyz1[2]));
+      if (dist0 > dist1) {
+        dum    = nds[0];
+        nds[0] = nds[1];
+        nds[1] = dum;
+      }
+      stat = EG_makeTopology(context, bspline, EDGE, TWONODE, trange, 2, nds,
+                             NULL, &newEdge);
+      if (stat != EGADS_SUCCESS) {
+        if (outLevel > 0)
+          printf(" EGADS Error: makeTopology Edge = %d (EG_removeNodes)!\n",
+                 stat);
+        goto errorout;
+      }
+      if (fullAttr == 1) EG_attributeDup(edges[1], newEdge);
+      EG_attributeDup(edges[0], newEdge);
+      stat = EG_stackPush(&stack, newEdge);
+      if (stat != EGADS_SUCCESS) goto errorout;
+      
+      /* rebuild the topology per Face */
+      for (j = 0; j < nf; j++) {
+        stat = EG_getTopology(faces[j], &surf, &oclass, &mtypf, uvbox,
+                              &nloop, &loops, &senls);
+        if ((stat != EGADS_SUCCESS) || (surf == NULL)) {
+          if (outLevel > 0)
+            printf(" EGADS Error: getTopology Faces = %d (EG_removeNodes)!\n",
+                   stat);
+          goto errorout;
+        }
+        if (surf->mtype != PLANE) {
+          stat = EG_otherCurve(faces[j], bspline, tol, &pcurve);
+          if (stat != EGADS_SUCCESS) {
+            if (outLevel > 0)
+              printf(" EGADS Error: getTopology Faces = %d (EG_removeNodes)!\n",
+                     stat);
+            goto errorout;
+          }
+          stat = EG_stackPush(&stack, pcurve);
+          if (stat != EGADS_SUCCESS) goto errorout;
+        }
+        
+        if (outLevel > 1)
+          printf("   Face %d: nLoops = %d\n", EG_indexBodyTopo(copy, faces[j]),
+                 nloop);
+        list = (egObject **) EG_alloc(nloop*sizeof(egObject *));
+        if (list == NULL) {
+          printf(" EGADS Error: Allocating %d Loops (EG_removeNodes)!\n",
+                 nloop);
+          stat = EGADS_MALLOC;
+          goto errorout;
+        }
+        for (l = 0; l < nloop; l++) {
+          list[l] = loops[l];
+          stat = EG_getTopology(loops[l], &dum, &oclass, &mtype, NULL,
+                                &nle, &le, &senses);
+          if ((stat != EGADS_SUCCESS) || (senses == NULL)) {
+            if (outLevel > 0)
+              printf(" EGADS Error: getTopology Edges = %d (EG_removeNodes)!\n",
+                     stat);
+            EG_free(list);
+            goto errorout;
+          }
+          if (outLevel > 1) {
+            printf("     Loop %2d: %3d", l+1,
+                   senses[0]*EG_indexBodyTopo(copy, le[0]));
+            for (k = 1; k < nle; k++)
+              printf(" %3d", senses[k]*EG_indexBodyTopo(copy, le[k]));
+            printf("\n");
+          }
+          stat = 0;
+          for (k = 0; k < nle; k++)
+            if (le[k] == edges[0]) {
+              stat = k+1;
+              break;
+            }
+          if (stat == 0) continue;
+          if (outLevel > 1) printf("           Edge pos = %d\n", stat);
+          if (nle == 2) {
+            if (stat != EGADS_SUCCESS) {
+              if (outLevel > 0)
+                printf(" EGADS Error: Loop with 2 Edges (EG_removeNodes)!\n");
+              EG_free(list);
+              stat = EGADS_TOPOERR;
+              goto errorout;
+            }
+          }
+          len  = nle-1;
+          sens = (int *) EG_alloc(len*sizeof(int));
+          if (surf->mtype != PLANE) len *=2;
+          edgs = (egObject **) EG_alloc(len*sizeof(egObject *));
+          if ((edgs == NULL) || (sens == NULL)) {
+            if (edgs != NULL) EG_free(edgs);
+            if (sens != NULL) EG_free(sens);
+            EG_free(list);
+            printf(" EGADS Error: Allocating %d Edges (EG_removeNodes)!\n",
+                   nle);
+            stat = EGADS_MALLOC;
+            goto errorout;
+          }
+          for (m = k = 0; k < nle; k++) {
+            if (le[k] == edges[1]) continue;
+            if (le[k] == edges[0]) {
+              edgs[m] = newEdge;
+              if (surf->mtype != PLANE) edgs[m+nle-1] = pcurve;
+            } else {
+              edgs[m] = le[k];
+              if (surf->mtype != PLANE) edgs[m+nle-1] = le[k+nle];
+            }
+            sens[m] = senses[k];
+            m++;
+          }
+          if (surf->mtype != PLANE) {
+            stat = EG_makeTopology(context, surf, LOOP, CLOSED, NULL, m, edgs,
+                                   sens, &loop);
+          } else {
+            stat = EG_makeTopology(context, NULL, LOOP, CLOSED, NULL, m, edgs,
+                                   sens, &loop);
+          }
+          EG_free(edgs);
+          EG_free(sens);
+          if (stat != EGADS_SUCCESS) {
+            if (outLevel > 0)
+              printf(" EGADS Error: makeTopology Loop = %d (EG_removeNodes)!\n",
+                     stat);
+            EG_free(list);
+            goto errorout;
+          }
+          stat = EG_stackPush(&stack, loop);
+          if (stat != EGADS_SUCCESS) goto errorout;
+          EG_attributeDup(loops[l], loop);
+          list[l] = loop;
+        }
+        flist[2*j] = faces[j];
+        stat = EG_makeTopology(context, surf, FACE, mtypf, uvbox, nloop, list,
+                               senls, &flist[2*j+1]);
+        EG_free(list);
+        if (stat != EGADS_SUCCESS) {
+          if (outLevel > 0)
+            printf(" EGADS Error: makeTopology Loop = %d (EG_removeNodes)!\n",
+                   stat);
+          goto errorout;
+        }
+        EG_attributeDup(faces[j], flist[2*j+1]);
+        stat = EG_stackPush(&stack, flist[2*j+1]);
+        if (stat != EGADS_SUCCESS) goto errorout;
+      }
+      if (nf == 1) {
+        stat = EG_makeTopology(context, NULL, BODY, body->mtype, NULL, 1, &flist[1],
+                               NULL, &newCopy);
+        if (stat != EGADS_SUCCESS) {
+          if (outLevel > 0)
+            printf(" EGADS Error: EG_makeTopology = %d (EG_removeNodes)!\n",
+                   stat);
+          goto errorout;
+        }
+      } else {
+        stat = EG_replaceFaces(copy, nf, flist, &newCopy);
+        if (stat != EGADS_SUCCESS) {
+          if (outLevel > 0)
+            printf(" EGADS Error: EG_replaceFaces = %d (EG_removeNodes)!\n",
+                   stat);
+          goto errorout;
+        }
+      }
+      
+      EG_stackPop(&stack, &dum);
+      while (dum != NULL) {
+        stat = EG_deleteObject(dum);
+        if ((stat != EGADS_SUCCESS) && (outLevel > 0))
+          printf(" EGADS Internal: EG_deleteObject = %d (EG_removeNodes)!\n",
+                 stat);
+        EG_stackPop(&stack, &dum);
+      }
+      EG_stackFree(&stack);
+      EG_deleteObject(copy);
+      copy = newCopy;
+      break;
+    }
+    EG_free(nodes);
+  } while(node != NULL);
+  
+  *result = copy;
+  return EGADS_SUCCESS;
+  
+errorout:
+  EG_stackPop(&stack, &dum);
+  while (dum != NULL) {
+    i = EG_deleteObject(dum);
+    if ((i != EGADS_SUCCESS) && (outLevel > 0))
+      printf(" EGADS Internal: EG_deleteObject = %d (EG_removeNodes)!\n", i);
+    EG_stackPop(&stack, &dum);
+  }
+  EG_stackFree(&stack);
+  EG_free(nodes);
+  EG_deleteObject(copy);
+  return stat;
+}
+
+
 static int
 EG_edgeCmp(double *cg0, double *cg1)
 {
@@ -10355,36 +10844,36 @@ EG_bodyMapping(const egObject  *sBody, const egObject *dBody, const char *fAttr,
               EG_free(fMap);
               return EGADS_TOPOERR;
             }
-          }
-          /* reversed? */
-          if ((in0 == jn1) && (in1 == jn0)) {
-            egadsEdge *pedgs = (egadsEdge *) pbods->edges.objs[i]->blind;
-            egadsEdge *pedgd = (egadsEdge *) pbodd->edges.objs[j]->blind;
-            stat = EG_evaluate(pbods->edges.objs[i], &pedgs->trange[0], evals);
-            if (stat == EGADS_SUCCESS) {
-              sum = sqrt(evals[3]*evals[3] + evals[4]*evals[4] +
-                         evals[5]*evals[5]);
-              if (sum != 0.0) {
-                evals[3] /= sum;
-                evals[4] /= sum;
-                evals[5] /= sum;
-              }
-              stat = EG_evaluate(pbodd->edges.objs[j], &pedgd->trange[0], evald);
+            /* reversed? */
+            if ((in0 == jn1) && (in1 == jn0)) {
+              egadsEdge *pedgs = (egadsEdge *) pbods->edges.objs[i]->blind;
+              egadsEdge *pedgd = (egadsEdge *) pbodd->edges.objs[j]->blind;
+              stat = EG_evaluate(pbods->edges.objs[i], &pedgs->trange[0], evals);
               if (stat == EGADS_SUCCESS) {
-                sum = sqrt(evald[3]*evald[3] + evald[4]*evald[4] +
-                           evald[5]*evald[5]);
+                sum = sqrt(evals[3]*evals[3] + evals[4]*evals[4] +
+                           evals[5]*evals[5]);
                 if (sum != 0.0) {
-                  evald[3] /= sum;
-                  evald[4] /= sum;
-                  evald[5] /= sum;
+                  evals[3] /= sum;
+                  evals[4] /= sum;
+                  evals[5] /= sum;
                 }
-                sum = evals[3]*evald[3] + evals[4]*evald[4] + evals[5]*evald[5];
-                if (sum < 0.0) {
-                  printf(" EGADS Info: Reversal -- Edges: src = %d  dst = %d",
-                         i+1, j+1);
-                  printf("  dot = %lf (EG_mapBody)\n", sum);
-                  jn0 = in0;
-                  jn1 = in1;
+                stat = EG_evaluate(pbodd->edges.objs[j], &pedgd->trange[0], evald);
+                if (stat == EGADS_SUCCESS) {
+                  sum = sqrt(evald[3]*evald[3] + evald[4]*evald[4] +
+                             evald[5]*evald[5]);
+                  if (sum != 0.0) {
+                    evald[3] /= sum;
+                    evald[4] /= sum;
+                    evald[5] /= sum;
+                  }
+                  sum = evals[3]*evald[3] + evals[4]*evald[4] + evals[5]*evald[5];
+                  if (sum < 0.0) {
+                    printf(" EGADS Info: Reversal -- Edges: src = %d  dst = %d",
+                           i+1, j+1);
+                    printf("  dot = %lf (EG_mapBody)\n", sum);
+                    jn0 = in0;
+                    jn1 = in1;
+                  }
                 }
               }
             }

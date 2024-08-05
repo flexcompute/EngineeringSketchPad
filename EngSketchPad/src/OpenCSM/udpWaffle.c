@@ -875,6 +875,14 @@ processFile(ego    context,             /* (in)  EGADS context */
             if (fp == NULL) printf("\n");
         }
 
+        /* remove inline comments */
+        for (i = 0; i < strlen(templine); i++) {
+            if (templine[i] == '#') {
+                templine[i] =  '\0';
+                break;
+            }
+        }
+
         /* get and process the first token */
         status = getToken(templine, 0, ' ', 255, token);
         if (status < SUCCESS) {

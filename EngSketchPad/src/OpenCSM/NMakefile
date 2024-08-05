@@ -614,13 +614,13 @@ $(LDIR)\waffle.dll:	$(ODIR)\udpWaffle.obj $(LDIR)\ocsm.dll
 $(ODIR)\udpWaffle.obj:	udpWaffle.c udpUtilities.c udpUtilities.h OpenCSM.h
 	cl /c $(COPTS) $(DEFINE) /I$(IDIR) udpWaffle.c /Fo$(ODIR)\udpWaffle.obj
 
-$(LDIR)\warp.dll:	$(ODIR)\udpWarp.obj $(LDIR)\ocsm.dll
+$(LDIR)\warp.dll:	$(ODIR)\udfWarp.obj $(LDIR)\ocsm.dll
 	-del $(LDIR)\warp.dll $(LDIR)\warp.lib $(LDIR)\warp.exp
-	link /out:$(LDIR)\warp.dll /dll /def:udp.def $(ODIR)\udpWarp.obj $(LDIR)\ocsm.lib $(LDIR)\egads.lib
+	link /out:$(LDIR)\warp.dll /dll /def:udp.def $(ODIR)\udfWarp.obj $(LDIR)\ocsm.lib $(LDIR)\egads.lib
 	$(MCOMP) /manifest $(LDIR)\warp.dll.manifest /outputresource:$(LDIR)\warp.dll;2
 
-$(ODIR)\udpWarp.obj:	udpWarp.c udpUtilities.c udpUtilities.h OpenCSM.h
-	cl /c $(COPTS) $(DEFINE) /I$(IDIR) udpWarp.c /Fo$(ODIR)\udpWarp.obj
+$(ODIR)\udfWarp.obj:	udfWarp.c udpUtilities.c udpUtilities.h OpenCSM.h
+	cl /c $(COPTS) $(DEFINE) /I$(IDIR) udfWarp.c /Fo$(ODIR)\udfWarp.obj
 
 #
 #	external grid generators (EGGs)
@@ -787,7 +787,7 @@ clean:
 	-del $(ODIR)\udpTester2.obj
 	-del $(ODIR)\udpVsp3.obj
 	-del $(ODIR)\udpWaffle.obj
-	-del $(ODIR)\udpWarp.obj
+	-del $(ODIR)\udfWarp.obj
 	-del $(ODIR)\eggPDT2.obj
 	-del $(ODIR)\timEreped.obj
 	-del $(ODIR)\timMitten.obj

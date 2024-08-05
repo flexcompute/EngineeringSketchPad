@@ -1,0 +1,158 @@
+# seqnum2
+# written by John Dannenhoffer
+
+# get new sequence numbering
+ATTRIBUTE _newSeqnum 1
+
+# block 1
+SKBEG     0   0   0
+   LINSEG 10  0   0
+   LINSEG 10  10  0
+   LINSEG 0   10  0
+   LINSEG 0   0   0
+SKEND
+EXTRUDE   0   0   1
+SET       theBody @nbody
+
+UDPRIM    waffle  depth 2   filename <<
+   POINT  A  AT   3  -2
+   POINT  B  AT   3  12
+   LINE   .  A    B
+
+   POINT  A  AT   7  -2
+   POINT  B  AT   7  12
+   LINE   .  A    B
+
+   POINT  A  AT  -2   3
+   POINT  B  AT  12   3
+   LINE   .  A   B
+
+   POINT  A  AT  -2   7
+   POINT  B  AT  12   7
+   LINE   .  A   B
+>>
+TRANSLATE 0  0  -1/2
+SUBTRACT
+
+SELECT    FACE  theBody 2  1
+   ATTRIBUTE _color $red
+SELECT    FACE  theBody 2  2
+   ATTRIBUTE _color $green
+SELECT    FACE  theBody 2  3
+   ATTRIBUTE _color $blue
+SELECT    FACE  theBody 2  4
+   ATTRIBUTE _color $cyan
+SELECT    FACE  theBody 2  5
+   ATTRIBUTE _color $magenta
+SELECT    FACE  theBody 2  6
+   ATTRIBUTE _color $yellow
+SELECT    FACE  theBody 2  7
+   ATTRIBUTE _color $lred
+SELECT    FACE  theBody 2  8
+   ATTRIBUTE _color $lgreen
+SELECT    FACE  theBody 2  9
+   ATTRIBUTE _color $lblue
+
+# block 2
+SKBEG     0   0   0
+   LINSEG 10  0   0
+   LINSEG 11  10  0
+   LINSEG 1   10  0
+   LINSEG 0   0   0
+SKEND
+EXTRUDE   0   0   1
+SET       theBody @nbody
+
+UDPRIM    waffle  depth 2   filename <<
+   POINT  A  AT   3  -2
+   POINT  B  AT   4  12
+   LINE   .  A    B
+
+   POINT  A  AT   7  -2
+   POINT  B  AT   8  12
+   LINE   .  A    B
+
+   POINT  A  AT  -2   3
+   POINT  B  AT  12   3
+   LINE   .  A   B
+
+   POINT  A  AT  -2   7
+   POINT  B  AT  12   7
+   LINE   .  A   B
+>>
+TRANSLATE 0  0  -1/2
+SUBTRACT
+
+SELECT    FACE  theBody 2  1
+   ATTRIBUTE _color $red
+SELECT    FACE  theBody 2  2
+   ATTRIBUTE _color $green
+SELECT    FACE  theBody 2  3
+   ATTRIBUTE _color $blue
+SELECT    FACE  theBody 2  4
+   ATTRIBUTE _color $cyan
+SELECT    FACE  theBody 2  5
+   ATTRIBUTE _color $magenta
+SELECT    FACE  theBody 2  6
+   ATTRIBUTE _color $yellow
+SELECT    FACE  theBody 2  7
+   ATTRIBUTE _color $lred
+SELECT    FACE  theBody 2  8
+   ATTRIBUTE _color $lgreen
+SELECT    FACE  theBody 2  9
+   ATTRIBUTE _color $lblue
+
+TRANSLATE 15  0  0
+
+# block 3
+SKBEG     0   0   0
+   LINSEG 10  0   0
+   LINSEG  9  10  0
+   LINSEG -1  10  0
+   LINSEG 0   0   0
+SKEND
+EXTRUDE   0   0   1
+SET       theBody @nbody
+
+UDPRIM    waffle  depth 2   filename <<
+   POINT  A  AT   3  -2
+   POINT  B  AT   2  12
+   LINE   .  A    B
+
+   POINT  A  AT   7  -2
+   POINT  B  AT   6  12
+   LINE   .  A    B
+
+   POINT  A  AT  -2   3
+   POINT  B  AT  12   3
+   LINE   .  A   B
+
+   POINT  A  AT  -2   7
+   POINT  B  AT  12   7
+   LINE   .  A   B
+>>
+TRANSLATE 0  0  -1/2
+SUBTRACT
+
+SELECT    FACE  theBody 2  1
+   ATTRIBUTE _color $red
+SELECT    FACE  theBody 2  2
+   ATTRIBUTE _color $green
+SELECT    FACE  theBody 2  3
+   ATTRIBUTE _color $blue
+SELECT    FACE  theBody 2  4
+   ATTRIBUTE _color $cyan
+SELECT    FACE  theBody 2  5
+   ATTRIBUTE _color $magenta
+SELECT    FACE  theBody 2  6
+   ATTRIBUTE _color $yellow
+SELECT    FACE  theBody 2  7
+   ATTRIBUTE _color $lred
+SELECT    FACE  theBody 2  8
+   ATTRIBUTE _color $lgreen
+SELECT    FACE  theBody 2  9
+   ATTRIBUTE _color $lblue
+
+TRANSLATE 30  0  0
+
+END

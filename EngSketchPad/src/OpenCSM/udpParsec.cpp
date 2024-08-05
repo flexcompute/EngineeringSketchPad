@@ -34,8 +34,7 @@
 /* set to 1 for arc-lenght knots, -1 for equally spaced knots */
 #define KNOTS -1
 
-/* Surrealized spline fits */
-#include "egadsSplineFit.h"
+/* Surrealized functions */
 #include "egads_dot.h"
 
 extern "C" {
@@ -113,7 +112,7 @@ sensWireBodyMeanline(ego ebody, udp_T *udp, int npts, int *header, SurrealS<1> *
 /* constructs a B-spline of the airfoil (or meanline) */
 template<class T>
 static int
-parsecSplineFit(udp_T *udp, int& npts, T **pts, int* header, T **rdata);
+parsecSplineFit(udp_T  *udp, ego context, int& npts, T **pts, ego *bspline);
 
 /* constructs the points used to for the airfoil (or meanline) B-spline */
 template<class T>
@@ -296,9 +295,10 @@ udpSensitivity(ego    ebody,            /* (in)  Body pointer */
                double vels[])           /* (out) velocities */
 {
     int    status = EGADS_SUCCESS;
-    int    npts, iudp, judp, ipnt, nchild, stride, header[4];
+    int    oclass, mtype;
+    int    npts, iudp, judp, ipnt, nchild, stride, *ivec=NULL;
     double point[18], point_dot[18];
-    ego    eent, *echildren;
+    ego    context, eent, ref, *echildren, ecurve=NULL;
     SurrealS<1> *pts=NULL, *rdata=NULL;
     udp_T   *udp = NULL;
 
@@ -344,23 +344,30 @@ udpSensitivity(ego    ebody,            /* (in)  Body pointer */
     /* build the sensitivity if needed */
     if (udp->ndotchg > 0) {
 
+        status = EG_getContext(ebody, &context);
+        if (status != EGADS_SUCCESS) goto cleanup;
+
         /* get airfoil B-spline with it's sensitivities */
-        status = parsecSplineFit(udp, npts, &pts, header, &rdata);
+        status = parsecSplineFit(udp, context, npts, &pts, &ecurve);
+        if (status != EGADS_SUCCESS) goto cleanup;
+
+        status = EG_getGeometry(ecurve, &oclass, &mtype, &ref, &ivec, &rdata);
         if (status != EGADS_SUCCESS) goto cleanup;
 
         /* if meanline[udp] is zero, then this is a FaceBody (the default) */
         if (MEANLINE(udp) == 0) {
 
-            status = sensFaceBodyAirfoil(ebody, udp, npts, header, pts, rdata);
+            status = sensFaceBodyAirfoil(ebody, udp, npts, ivec, pts, rdata);
             if (status != EGADS_SUCCESS) goto cleanup;
 
         /* otherwise this is a WireBody of the meanline */
         } else {
 
-            status = sensWireBodyMeanline(ebody, udp, npts, header, pts, rdata);
+            status = sensWireBodyMeanline(ebody, udp, npts, ivec, pts, rdata);
             if (status != EGADS_SUCCESS) goto cleanup;
 
         }
+
     }
 
 
@@ -408,7 +415,9 @@ udpSensitivity(ego    ebody,            /* (in)  Body pointer */
 
 cleanup:
     delete [] pts;
-    EG_free( rdata );
+    FREE( ivec );
+    FREE( rdata );
+    EG_deleteObject(ecurve);
 
     return status;
 }
@@ -455,15 +464,15 @@ buildFaceBodyAirfoil(ego  context,      /* (in)  the EGADS context */
     int    i, sense[3], npts, nedge;
     double tle, data[18], tdata[2];
     double *rdata=NULL, *pts=NULL;
-    ego    ecurve, enodes[2], eedges[3], enode1, enode2, enode3, eline, eloop, eplane, eface;
-    int header[4];
+    ego    ref, ecurve, enodes[2], eedges[3], enode1, enode2, enode3, eline, eloop, eplane, eface;
+    int oclass, mtype, *ivec=NULL;
 
-    /* get the B-spline and points used to construct the spline */
-    status = parsecSplineFit(udp, npts, &pts, header, &rdata);
+    /* get the B-spline CURVE and points used to construct the spline */
+    status = parsecSplineFit(udp, context, npts, &pts, &ecurve);
     if (status != EGADS_SUCCESS) goto cleanup;
 
-    /* convert the B-spline to a CURVE */
-    status = EG_makeGeometry(context, CURVE, BSPLINE, NULL, header, rdata, &ecurve);
+    /* get the B-spline data */
+    status = EG_getGeometry(ecurve, &oclass, &mtype, &ref, &ivec, &rdata);
     if (status != EGADS_SUCCESS) goto cleanup;
 
     /* create Node at upper trailing edge (node 1)*/
@@ -585,7 +594,8 @@ buildFaceBodyAirfoil(ego  context,      /* (in)  the EGADS context */
 
 cleanup:
     delete [] pts;
-    EG_free(rdata);
+    FREE(ivec);
+    FREE(rdata);
 
     return status;
 }
@@ -765,22 +775,22 @@ buildWireBodyMeanline(ego context,      /* (in)  the EGADS context */
 
     int    ile, ite, sense[1], npts;
     double data[18], tdata[2], *pts=NULL, *rdata=NULL;
-    ego    ecurve, enodes[2], eedges[1], eloop;
+    ego    ref, ecurve, enodes[2], eedges[1], eloop;
+    int    oclass, mtype, *ivec=NULL;
 
     /* create spline curve from LE to TE */
-    int header[4];
 
     /* get the B-spline and points used to construct the spline */
-    status = parsecSplineFit(udp, npts, &pts, header, &rdata);
+    status = parsecSplineFit(udp, context, npts, &pts, &ecurve);
+    if (status != EGADS_SUCCESS) goto cleanup;
+
+    /* get the B-spline data */
+    status = EG_getGeometry(ecurve, &oclass, &mtype, &ref, &ivec, &rdata);
     if (status != EGADS_SUCCESS) goto cleanup;
 
     /* the leading and trailing edge indexes (must be consistent with parsecPoints) */
     ile = (npts - 1) / 2;
     ite =  npts - 1;
-
-    /* convert the B-spline to a CURVE */
-    status = EG_makeGeometry(context, CURVE, BSPLINE, NULL, header, rdata, &ecurve);
-    if (status != EGADS_SUCCESS) goto cleanup;
 
     /* create Node at leading edge (node 1)*/
     data[0] = pts[3*ile  ];
@@ -821,7 +831,8 @@ buildWireBodyMeanline(ego context,      /* (in)  the EGADS context */
 
 cleanup:
     delete [] pts;
-    EG_free(rdata);
+    FREE(ivec);
+    FREE(rdata);
 
     return status;
 }
@@ -906,15 +917,16 @@ cleanup:
 template<class T>
 static int
 parsecSplineFit(udp_T  *udp,         /* (in)  udp */
+                ego    context,      /* (in)  the context */
                 int&   npts,         /* (out) number of points in the spline fit */
                 T      **pts,        /* (out) points used in the spline fit */
-                int*   header,       /* (out) spline header data */
-                T      **rdata)      /* (out) spline data */
+                ego    *bspline)     /* (out) spline curve */
 {
     int status = EGADS_SUCCESS;      /* (out) return status */
 
-    int     ile, nbspts;
-    double  dxytol=1.0e-6; /* EG_spline1dFit tolerance */
+    int     ile;
+    double  dxytol=1.0e-6; /* Fit tolerance */
+    int     sizes[2] = {0, KNOTS};
 
     /* get airfoil (or meanline) points */
     status = parsecPoints(udp, npts, pts);
@@ -923,12 +935,10 @@ parsecSplineFit(udp_T  *udp,         /* (in)  udp */
     /* if meanline[udp] is zero, then create a FaceBody (the default) */
     if (MEANLINE(udp) == 0) {
 
-        /* compute the spline fit
-         * finite difference must use knots equally spaced (-npts in the argument below) in order for
-         * the leading edge node sensitivity to be correct.
-         * the t-value moves with arc-length based knots which causes problems
-         */
-        status = EG_spline1dFit<T>(0, KNOTS*npts, *pts, NULL, dxytol, header, rdata);
+        sizes[0] = npts;
+
+        /* compute the spline fit */
+        status = EG_approximate(context, 0, dxytol, sizes, *pts, bspline);
         if (status != EGADS_SUCCESS) goto cleanup;
 
     /* otherwise create a WireBody of the meanline */
@@ -937,10 +947,10 @@ parsecSplineFit(udp_T  *udp,         /* (in)  udp */
         /* modify the node count to be consistent with the meanline points */
         ile = (npts - 1) / 2;
 
-        nbspts = ile + 1;
+        sizes[0] = ile + 1;
 
         /* compute the spline fit */
-        status = EG_spline1dFit<T>(0, KNOTS*nbspts, *pts + 3*ile, NULL, dxytol, header, rdata);
+        status = EG_approximate(context, 0, dxytol, sizes, *pts + 3*ile, bspline);
         if (status != EGADS_SUCCESS) goto cleanup;
     }
 

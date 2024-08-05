@@ -443,7 +443,7 @@ int aim_relPath(void *aimStruc, const char *src,
                 /*@null@*/ const char *dst, char *relPath)
 {
   int         i, j, k, len, lsrc, ldst, ndst, status;
-  char        aimDst[PATH_MAX];
+  char        aimDst[PATH_MAX] = {'\0'};
   aimInfo     *aInfo;
   capsProblem *problem;
 

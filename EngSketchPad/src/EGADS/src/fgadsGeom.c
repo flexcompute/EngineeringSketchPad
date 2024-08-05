@@ -50,6 +50,7 @@
                          int minDegU, int nU, /*@null@*/ double *Us,
                          int minDegV, int nV, /*@null@*/ double *Vs,
                          egObject **result);
+  extern int EG_mergeBSplineCurves(egObject *c1, egObject *c2, egObject **bspc);
   extern int EG_adjustCPs(const egObject *body, const egObject *face,
                           double *CPs, egObject **newBody, egObject **newFace);
 
@@ -308,6 +309,25 @@ ig_addknots_(INT8 *iobj,
   *igeom = 0;
   obj    = (egObject *) *iobj;
   stat   = EG_addKnots(obj, *mindegu, *nu, Us, *mindegv, *nv, Vs, &geom);
+  if (stat == EGADS_SUCCESS) *igeom = (INT8) geom;
+  return stat;
+}
+
+
+int
+#ifdef WIN32
+IG_MERGEBSPLINECURVES (INT8 *iobj1, INT8 *iobj2, INT8 *igeom)
+#else
+ig_mergebsplinecurves_(INT8 *iobj1, INT8 *iobj2, INT8 *igeom)
+#endif
+{
+  int      stat;
+  egObject *obj1, *obj2, *geom;
+
+  *igeom = 0;
+  obj1   = (egObject *) *iobj1;
+  obj2   = (egObject *) *iobj2;
+  stat   = EG_mergeBSplineCurves(obj1, obj2, &geom);
   if (stat == EGADS_SUCCESS) *igeom = (INT8) geom;
   return stat;
 }

@@ -405,7 +405,7 @@ udpFree(int   numudp,                   /* (in)  number of instances */
     for (iudp = 0; iudp <= numudp; iudp++) {
 
         /* arguments */
-        for (iarg = 0; iarg < NUMUDPARGS; iarg++) {
+        for (iarg = 0; iarg < udps[iudp].narg; iarg++) {
             if (udps[iudp].arg[iarg].val != NULL) {
                 EG_free(udps[iudp].arg[iarg].val);
             }
@@ -951,7 +951,7 @@ udpClean(int   *NumUdp,                 /* (both)number of instances */
         if (udps[numUdp].ebody == NULL) {
 
             /* arguments */
-            for (iarg = 0; iarg < NUMUDPARGS; iarg++) {
+            for (iarg = 0; iarg < udps[numUdp].narg; iarg++) {
                 if (udps[numUdp].arg[iarg].val != NULL) {
                     EG_free(udps[numUdp].arg[iarg].val);
                 }

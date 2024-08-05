@@ -54,8 +54,14 @@
 
 enum aimOutputs
 {
-  NumberOfElement = 1,         /* index is 1-based */
-  NumberOfNode,
+  NumberOfNode = 1,         /* index is 1-based */
+  NumberOfElement,
+  NumberOfTri,
+  NumberOfQuad,
+  NumberOfTet,
+  NumberOfPyramid,
+  NumberOfPrism,
+  NumberOfHex,
   Volume_Mesh,
   NUMOUT = Volume_Mesh         /* Total number of outputs */
 };
@@ -1396,7 +1402,17 @@ int aimOutputs(/*@unused@*/ void *instStore, /*@unused@*/ void *aimStruc,
     printf(" aflr3AIM/aimOutputs index = %d!\n", index);
 #endif
 
-    if (index == NumberOfElement) {
+    if (index == NumberOfNode) {
+        *aoname = EG_strdup("NumberOfNode");
+        form->type = Integer;
+        form->vals.integer = 0;
+
+        /*! \page aimOutputsAFLR3
+         * - <B> NumberOfNode </B> <br>
+         * Number of vertices in the volume mesh
+         */
+
+    } else if (index == NumberOfElement) {
         *aoname = EG_strdup("NumberOfElement");
         form->type = Integer;
         form->vals.integer = 0;
@@ -1406,14 +1422,64 @@ int aimOutputs(/*@unused@*/ void *instStore, /*@unused@*/ void *aimStruc,
          * Number of elements in the volume mesh
          */
 
-    } else if (index == NumberOfNode) {
-        *aoname = EG_strdup("NumberOfNode");
+    } else if (index == NumberOfTri) {
+        *aoname = EG_strdup("NumberOfTri");
         form->type = Integer;
         form->vals.integer = 0;
 
         /*! \page aimOutputsAFLR3
-         * - <B> NumberOfNode </B> <br>
-         * Number of vertices in the volume mesh
+         * - <B> NumberOfTri </B> <br>
+         * Number of triangle elements in the volume mesh (i.e. on boundaries)
+         */
+
+    } else if (index == NumberOfQuad) {
+        *aoname = EG_strdup("NumberOfQuad");
+        form->type = Integer;
+        form->vals.integer = 0;
+
+        /*! \page aimOutputsAFLR3
+         * - <B> NumberOfQuad </B> <br>
+         * Number of quadrilateral elements in the volume mesh (i.e. on boundaries)
+         */
+
+    } else if (index == NumberOfTet) {
+        *aoname = EG_strdup("NumberOfTet");
+        form->type = Integer;
+        form->vals.integer = 0;
+
+        /*! \page aimOutputsAFLR3
+         * - <B> NumberOfTet </B> <br>
+         * Number of tetrahedral elements in the volume mesh
+         */
+
+    } else if (index == NumberOfPyramid) {
+        *aoname = EG_strdup("NumberOfPyramid");
+        form->type = Integer;
+        form->vals.integer = 0;
+
+        /*! \page aimOutputsAFLR3
+         * - <B> NumberOfPyramid </B> <br>
+         * Number of pyramid elements in the volume mesh
+         */
+
+    } else if (index == NumberOfPrism) {
+        *aoname = EG_strdup("NumberOfPrism");
+        form->type = Integer;
+        form->vals.integer = 0;
+
+        /*! \page aimOutputsAFLR3
+         * - <B> NumberOfPrism </B> <br>
+         * Number of prism elements in the volume mesh
+         */
+
+    } else if (index == NumberOfHex) {
+        *aoname = EG_strdup("NumberOfHex");
+        form->type = Integer;
+        form->vals.integer = 0;
+
+        /*! \page aimOutputsAFLR3
+         * - <B> NumberOfHex </B> <br>
+         * Number of hexahedral elements in the volume mesh
          */
 
     } else if (index == Volume_Mesh) {
@@ -1448,87 +1514,104 @@ cleanup:
 int aimCalcOutput(void *instStore, /*@unused@*/ void *aimInfo,
                   /*@unused@*/ int index, capsValue *val)
 {
-    int        i, status = CAPS_SUCCESS;
-    int        numElement, numNodes;
-    int        nVertex, nTri, nQuad, nTet, nPyramid, nPrism, nHex;
-    aimStorage *aflr3Instance;
-    aimMesh    mesh;
+  int        i, status = CAPS_SUCCESS;
+  int        numElement, numNodes;
+  int        nVertex, nTri, nQuad, nTet, nPyramid, nPrism, nHex;
+  int        nElem[6];
+  aimStorage *aflr3Instance;
+  aimMesh    mesh;
 
 #ifdef DEBUG
-    printf(" aflr3AIM/aimCalcOutput index = %d!\n", index);
+  printf(" aflr3AIM/aimCalcOutput index = %d!\n", index);
 #endif
-    aflr3Instance = (aimStorage *) instStore;
+  aflr3Instance = (aimStorage *) instStore;
 
-    if (NumberOfElement == index) {
 
-        // Count the total number of elements
-        numElement = 0;
-        for (i = 0; i < aflr3Instance->numMeshRef; i++) {
-            status = aim_readBinaryUgridHeader(aimInfo, &aflr3Instance->meshRef[i],
-                                               &nVertex, &nTri, &nQuad,
-                                               &nTet, &nPyramid, &nPrism, &nHex);
-            AIM_STATUS(aimInfo, status);
+  if (index == NumberOfNode) {
 
-            numElement += nTet + nPyramid + nPrism + nHex;
-        }
+    // Count the total number of surface vertices
+    numNodes = 0;
+    for (i = 0; i < aflr3Instance->numMeshRef; i++) {
+      status = aim_readBinaryUgridHeader(aimInfo, &aflr3Instance->meshRef[i],
+                                         &nVertex, &nTri, &nQuad,
+                                         &nTet, &nPyramid, &nPrism, &nHex);
+      AIM_STATUS(aimInfo, status);
 
-        val->vals.integer = numElement;
-
-    } else if (NumberOfNode == index) {
-
-        // Count the total number of surface vertices
-        numNodes = 0;
-        for (i = 0; i < aflr3Instance->numMeshRef; i++) {
-             status = aim_readBinaryUgridHeader(aimInfo, &aflr3Instance->meshRef[i],
-                                                &nVertex, &nTri, &nQuad,
-                                                &nTet, &nPyramid, &nPrism, &nHex);
-             AIM_STATUS(aimInfo, status);
-
-             numNodes += nVertex;
-        }
-
-        val->vals.integer = numNodes;
-
-    } else if (Volume_Mesh == index) {
-
-        for (i = 0; i < aflr3Instance->numMeshRef; i++) {
-            status = aim_queryMeshes( aimInfo, Volume_Mesh, ANALYSISOUT, &aflr3Instance->meshRef[i] );
-            if (status > 0) {
-/*@-immediatetrans@*/
-                mesh.meshData = NULL;
-                mesh.meshRef = &aflr3Instance->meshRef[i];
-/*@+immediatetrans@*/
-
-                status = aim_readBinaryUgrid(aimInfo, &mesh);
-                AIM_STATUS(aimInfo, status);
-
-                status = aim_writeMeshes(aimInfo, Volume_Mesh, ANALYSISOUT, &mesh);
-                AIM_STATUS(aimInfo, status);
-
-                status = aim_freeMeshData(mesh.meshData);
-                AIM_STATUS(aimInfo, status);
-                AIM_FREE(mesh.meshData);
-            }
-            else
-              AIM_STATUS(aimInfo, status);
-        }
-
-/*@-immediatetrans@*/
-        // Return the volume mesh references
-        val->nrow        = aflr3Instance->numMeshRef;
-        val->vals.AIMptr = aflr3Instance->meshRef;
-/*@+immediatetrans@*/
-
-    } else {
-
-        status = CAPS_BADINDEX;
-        AIM_STATUS(aimInfo, status, "Unknown output index %d!", index);
-
+      numNodes += nVertex;
     }
+
+    val->vals.integer = numNodes;
+
+  } else if (index == NumberOfElement) {
+
+    // Count the total number of elements
+    numElement = 0;
+    for (i = 0; i < aflr3Instance->numMeshRef; i++) {
+      status = aim_readBinaryUgridHeader(aimInfo, &aflr3Instance->meshRef[i],
+                                         &nVertex, &nTri, &nQuad,
+                                         &nTet, &nPyramid, &nPrism, &nHex);
+      AIM_STATUS(aimInfo, status);
+
+      numElement += nTet + nPyramid + nPrism + nHex;
+    }
+
+    val->vals.integer = numElement;
+
+  } else if (index >= NumberOfTri && index <= NumberOfHex) {
+
+    // get the individual element counts
+    numElement = 0;
+    for (i = 0; i < aflr3Instance->numMeshRef; i++) {
+      status = aim_readBinaryUgridHeader(aimInfo, &aflr3Instance->meshRef[i],
+                                         &nVertex, &nElem[0], &nElem[1],
+                                         &nElem[2], &nElem[3], &nElem[4], &nElem[5]);
+      AIM_STATUS(aimInfo, status);
+
+      numElement += nElem[index-NumberOfTri];
+    }
+
+    val->vals.integer = numElement;
+
+  } else if (index == Volume_Mesh) {
+
+    for (i = 0; i < aflr3Instance->numMeshRef; i++) {
+      status = aim_queryMeshes( aimInfo, Volume_Mesh, ANALYSISOUT, &aflr3Instance->meshRef[i] );
+      if (status > 0) {
+        /*@-immediatetrans@*/
+        mesh.meshData = NULL;
+        mesh.meshRef = &aflr3Instance->meshRef[i];
+        /*@+immediatetrans@*/
+
+        status = aim_readBinaryUgrid(aimInfo, &mesh);
+        AIM_STATUS(aimInfo, status);
+
+        status = aim_writeMeshes(aimInfo, Volume_Mesh, ANALYSISOUT, &mesh);
+        AIM_STATUS(aimInfo, status);
+
+        status = aim_freeMeshData(mesh.meshData);
+        AIM_STATUS(aimInfo, status);
+        AIM_FREE(mesh.meshData);
+      }
+      else
+        AIM_STATUS(aimInfo, status);
+    }
+
+/*@-immediatetrans@*/
+    // Return the volume mesh references
+    val->nrow        = aflr3Instance->numMeshRef;
+    val->vals.AIMptr = aflr3Instance->meshRef;
+/*@+immediatetrans@*/
+
+  } else {
+
+    status = CAPS_BADINDEX;
+    AIM_STATUS(aimInfo, status, "Unknown output index %d!", index);
+
+  }
 
 cleanup:
 
-    return status;
+  return status;
 }
 
 

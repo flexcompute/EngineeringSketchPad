@@ -1571,6 +1571,8 @@ var wvUpdateUI = function () {
 var wvServerMessage = function (text) {
     // alert("in wvServerMessage(text="+text+")");
 
+    console.trace();
+    console.log("text="+text);
     // remove trailing NULL
     if (text.charCodeAt(text.length-1) == 0) {
         text = text.substring(0, text.length-1);
@@ -1918,7 +1920,7 @@ var wvServerMessage = function (text) {
         // if only one file, inform the user that a rebuild is in process
         if (wv.filenames.split("|").length <= 3 || wv.server == "serveCAPS") {
             var button = document.getElementById("solveButton");
-            button["innerHTML"] = "Re-building...";
+            button["innerHTML"] = "building ...";
             button.style.backgroundColor = "#FFFF3F";       // light yellow
 
             // turn the background of the message window back to original color
@@ -2217,6 +2219,8 @@ var wvServerMessage = function (text) {
 
     // if it starts with "getFilenames|" store the results in wv.filenames
     } else if (text.substring(0,13) == "getFilenames|") {
+        console.trace();
+        console.log("in getFilenames");
         var oldName = "";
         if (wv.filenames.length != 1) {
             var foo = wv.filenames.split("|");
@@ -3062,7 +3066,7 @@ var cmdFileOpen = function () {
     }
 
     var button = document.getElementById("solveButton");
-    button["innerHTML"] = "Re-building...";
+    button["innerHTML"] = "building ...";
     button.style.backgroundColor = "#FFFF3F";       // yellow
 
     // inactivate buttons until build is done
@@ -3309,7 +3313,7 @@ var editorOk = function () {
     // if only one file, inform the user that a rebuild is in process
     } else if (wv.filenames.split("|").length <= 3) {
         var button = document.getElementById("solveButton");
-        button["innerHTML"] = "Re-building...";
+        button["innerHTML"] = "building ...";
         button.style.backgroundColor = "#FFFF3F";           // yellow
 
         // turn the background of the message window back to original color
@@ -4436,7 +4440,7 @@ var compGeomSens = function () {
     }
 
     var button = document.getElementById("solveButton");
-    button["innerHTML"] = "Re-building...";
+    button["innerHTML"] = "building ...";
     button.style.backgroundColor = "#FFFF3F";               // yellow
 
     // inactivate buttons until build is done
@@ -4591,7 +4595,7 @@ var compTessSens = function () {
     }
 
     var button = document.getElementById("solveButton");
-    button["innerHTML"] = "Re-building...";
+    button["innerHTML"] = "building ...";
     button.style.backgroundColor = "#FFFF3F";               // yellow
 
     // inactivate buttons until build is done
@@ -5656,10 +5660,10 @@ var buildTo = function () {
     }
 
     // update the UI
-    postMessage("Re-building only to "+name+"...");
+    postMessage("Building only to "+name+"...");
 
     var button = document.getElementById("solveButton");
-    button["innerHTML"] = "Re-building...";
+    button["innerHTML"] = "building ...";
     button.style.backgroundColor = "#FFFF3F";               // yellow
 
     // inactivate buttons until build is done
@@ -6646,7 +6650,7 @@ main.cmdSolve = function () {
     if (buttext == "Up to date" || buttext == "Fix before re-build") {
         if (confirm("The configuration is up to date.\n" +
                     "Do you want to force a rebuild?") === true) {
-            postMessage("Forced re-building...");
+            postMessage("Forced re-building ...");
 
             // build first so that parameters are updated
             browserToServer("build|-1|");
@@ -6664,7 +6668,7 @@ main.cmdSolve = function () {
                 wv.brchStat = 6000;
             }
 
-            button["innerHTML"] = "Re-building...";
+            button["innerHTML"] = "building ...";
             button.style.backgroundColor = "#FFFF3F";       // yellow
 
             // turn the background of the message window back to original color
@@ -6697,7 +6701,7 @@ main.cmdSolve = function () {
             wv.brchStat = 6000;
         }
 
-        button["innerHTML"] = "Re-building...";
+        button["innerHTML"] = "building ...";
         button.style.backgroundColor = "#FFFF3F";           // yellow
 
         // turn the background of the message window back to original color
@@ -6707,17 +6711,14 @@ main.cmdSolve = function () {
         // inactivate buttons until build is done
         changeMode(-1);
 
-    } else if (buttext == "Re-building...") {
-        if (confirm("A rebuild is in progress.\n" +
+    } else if (buttext.substring(0,9) == "building ") {
+        if (confirm("A rebuild is in progress or has gotten stuck.\n" +
                    "Do you really want to reset the ESP interface?") === true) {
             postMessage("WARNING:: User requested that ESP interface be reset...");
 
             activateBuildButton();
             changeMode(0);
         }
-
-    } else if (buttext == "Fix before re-build") {
-        alert("Edit/add/delete a Branch to fix before re-building");
 
     } else {
         alert("Unexpected button text:\""+buttext+"\"");
@@ -9448,6 +9449,13 @@ var rebuildTreeWindow = function (x) {
     // convert the abstract Tree Nodes into an HTML table
     myTree.build();
 
+    // initially the Viz of Nodes is off (but not in stepThru mode)
+    var thisNode = document.getElementById("node"+knode+"col3");
+    if (thisNode !== null) {
+        thisNode.className = "fakelinkoff";
+        thisNode.title     = "Toggle Vizibility on";
+    }
+
     wv.buildTree = 0;
 };
 
@@ -9619,8 +9627,8 @@ var setupEditBrchForm = function () {
         argList  = ["$pmtrName", "nrow", "ncol"];
         defValue = ["",          "",     ""    ];
     } else if (type == "dump") {
-        argList  = ["$filename", "remove", "tomark", "withTess", "grpName"];
-        defValue = ["",          "0",      "0",      "0",        "."      ];
+        argList  = ["$filename", "remove", "tomark", "withTess", "grpName", "putColors"];
+        defValue = ["",          "0",      "0",      "0",        ".",       "0"        ];
     } else if (type == "elevate") {
         argList  = ["toler"];
         defValue = ["0"    ];
@@ -9662,8 +9670,8 @@ var setupEditBrchForm = function () {
         argList  = ["val1", "$op1", "val2", "$op2", "val3", "$op3", "val4"];
         defValue = ["",     "",     "",     "and",  "0",    "eq",   "0"   ];
     } else if (type == "import") {
-        argList  = ["$filename", "bodynumber"];
-        defValue = ["",          "1"         ];
+        argList  = ["$filename", "bodynumber", "getcolors"];
+        defValue = ["",          "1",          "0"        ];
         suppress = 1;
 //  } else if (type == "interface") {
     } else if (type == "intersect") {
@@ -10776,7 +10784,7 @@ var cmdEditHint = function () {
     } else if (curLine.match(/^\s*dimension/i) !== null) {
         hintText =        "hint:: DIMENSION $pmtrName nrow ncol despmtr=0";
     } else if (curLine.match(/^\s*dump/i) !== null) {
-        hintText =        "hint:: DUMP      $filename remove=0 toMark=0 withTess=0 $grpName=.";
+        hintText =        "hint:: DUMP      $filename remove=0 toMark=0 withTess=0 $grpName=. putColors=0";
     } else if (curLine.match(/^\s*elevate/i) !== null) {
         hintText =        "hint:: ELEVATE toler=0";
     } else if (curLine.match(/^\s*elseif/i) !== null) {
@@ -10804,7 +10812,7 @@ var cmdEditHint = function () {
     } else if (curLine.match(/^\s*ifthen/i) !== null) {
         hintText =        "hint:: IFTHEN    val1 $op1 val2 $op2=and val3=0 $op3=eq val4=0";
     } else if (curLine.match(/^\s*import/i) !== null) {
-        hintText =        "hint:: IMPORT    $filename bodynumber=1";
+        hintText =        "hint:: IMPORT    $filename bodynumber=1 getcolors=0";
     } else if (curLine.match(/^\s*interface/i) !== null) {
         hintText =        "hint:: INTERFACE $argName $argType default";
     } else if (curLine.match(/^\s*intersect/i) !== null) {

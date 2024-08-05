@@ -1,0 +1,81 @@
+# joinSheets7
+# written by John Dannenhoffer
+
+# left SheetBody
+SKBEG      0  0  0
+   LINSEG  0  1  0
+       ATTRIBUTE name $middle
+   LINSEG -1  1  0
+       ATTRIBUTE name $ltop
+       ATTRIBUTE side $top
+   LINSEG -1  0  0
+       ATTRIBUTE name $lleft
+       ATTRIBUTE side $left
+   LINSEG  0  0  0
+       ATTRIBUTE name $lbot
+       ATTRIBUTE side $bot
+SKEND
+SELECT    FACE
+    ATTRIBUTE name $left
+
+# rite SheetBody
+SKBEG      0  0  0
+   LINSEG  0  1  0
+       ATTRIBUTE name $middle
+   LINSEG  1  1  0
+       ATTRIBUTE name $rtop
+       ATTRIBUTE side $top
+   LINSEG  1  0  0
+       ATTRIBUTE name $rrite
+       ATTRIBUTE side $rite
+   LINSEG  0  0  0
+       ATTRIBUTE name $rbot
+       ATTRIBUTE side $bot
+SKEND
+SELECT    FACE
+    ATTRIBUTE name $rite
+
+# make a JOINed SheetBody
+JOIN
+
+# verify that name and side attributes were transferred
+SELECT    EDGE   $name  $middle
+ASSERT    @sellist.size 1
+
+SELECT    EDGE   $name  $lbot
+ASSERT    @sellist.size 1
+
+SELECT    EDGE   $name  $lleft
+ASSERT    @sellist.size 1
+
+SELECT    EDGE   $name  $ltop
+ASSERT    @sellist.size 1
+
+SELECT    EDGE   $name  $rtop
+ASSERT    @sellist.size 1
+
+SELECT    EDGE   $name  $rrite
+ASSERT    @sellist.size 1
+
+SELECT    EDGE   $name  $rbot
+ASSERT    @sellist.size 1
+
+SELECT    EDGE   $side  $left
+ASSERT    @sellist.size 1
+
+SELECT    EDGE   $side  $rite
+ASSERT    @sellist.size 1
+
+SELECT    EDGE   $side  $top
+ASSERT    @sellist.size 2
+
+SELECT    EDGE   $side  $bot
+ASSERT    @sellist.size 2
+
+SELECT    FACE   $name  $left
+ASSERT    @sellist.size 1
+
+SELECT    FACE   $name  $rite
+ASSERT    @sellist.size 1
+
+END

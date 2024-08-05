@@ -1,0 +1,49 @@
+# evaluateBbox
+# written by John Dannenhoffer
+
+CYLINDER -3  0  0  5  0  0  2
+ROTATEZ  30
+ROTATEY  10
+
+SET      myNbody  @nbody
+
+# Edges
+SELECT   BODY   myNbody
+SELECT   EDGE
+SELECT   SORT   $zmin
+SELECT   SORT   $ymin
+SELECT   SORT   $xmin
+
+DIMENSION myList @sellist.nrow @sellist.ncol
+SET       myList @sellist
+
+PATBEG    ilist  myList.size
+   EVALUATE edgebbox myNbody myList[ilist]
+
+   BOX      @edata[1]            @edata[2]            @edata[3] \
+            @edata[4]-@edata[1]  @edata[5]-@edata[2]  @edata[6]-@edata[3]
+      ATTRIBUTE _color $cyan
+PATEND
+
+# Faces
+SELECT   BODY   myNbody
+SELECT   FACE
+SELECT   SORT   $zmin
+SELECT   SORT   $ymin
+SELECT   SORT   $xmin
+
+DIMENSION myList @sellist.nrow @sellist.ncol
+SET       myList @sellist
+
+PATBEG    ilist  myList.size
+   EVALUATE facebbox myNbody myList[ilist]
+
+   BOX      @edata[1]            @edata[2]            @edata[3] \
+            @edata[4]-@edata[1]  @edata[5]-@edata[2]  @edata[6]-@edata[3]
+      ATTRIBUTE _color $magenta
+PATEND
+
+END
+
+
+

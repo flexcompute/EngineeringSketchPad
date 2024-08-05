@@ -28,19 +28,20 @@
  *     MA  02110-1301  USA
  */
 
-#define NUMUDPARGS 3
+#define NUMUDPARGS 4
 #include "udpUtilities.h"
 
 /* shorthands for accessing argument values and velocities */
 #define FILENAME(  IUDP)  ((char   *) (udps[IUDP].arg[0].val))
 #define BODYNUMBER(IUDP)  ((int    *) (udps[IUDP].arg[1].val))[0]
-#define NUMBODIES( IUDP)  ((int    *) (udps[IUDP].arg[2].val))[0]
+#define GETCOLORS( IUDP)  ((int    *) (udps[IUDP].arg[2].val))[0]
+#define NUMBODIES( IUDP)  ((int    *) (udps[IUDP].arg[3].val))[0]
 
 /* data about possible arguments */
-static char  *argNames[NUMUDPARGS] = {"filename",  "bodynumber", "numbodies", };
-static int    argTypes[NUMUDPARGS] = {ATTRSTRING,  ATTRINT,      -ATTRINT,    };
-static int    argIdefs[NUMUDPARGS] = {0,           1,            0,           };
-static double argDdefs[NUMUDPARGS] = {0.,          0.,           0.,          };
+static char  *argNames[NUMUDPARGS] = {"filename",  "bodynumber", "getcolors", "numbodies", };
+static int    argTypes[NUMUDPARGS] = {ATTRSTRING,  ATTRINT,      ATTRINT,     -ATTRINT,    };
+static int    argIdefs[NUMUDPARGS] = {0,           1,            0,           0,           };
+static double argDdefs[NUMUDPARGS] = {0.,          0.,           0.,          0.,          };
 
 /* declarations needed to get a file's timestamp */
 #include <time.h>
@@ -84,7 +85,9 @@ udpExecute(ego  context,                /* (in)  EGADS context */
     int      oclass, mtype, mtype2, *senses, tessState, npts;
     int      nbody, ibody, jbody, nface, iface, nedge, iedge, nnode, inode, attrtype, attrlen, nremove;
     CINT     *tempIlist;
+    CDOUBLE  *tempRlist;
     char     *message=NULL;
+    CCHAR    *tempClist;
     ego      geom, *ebodys, *efaces, *eedges, *enodes, topRef, prev, next, myBody;
     udp_T    *udps = *Udps;
     TIMELONG dt;
@@ -103,6 +106,7 @@ udpExecute(ego  context,                /* (in)  EGADS context */
     printf("udpExecute(context=%llx)\n", (long long)context);
     printf("filename(0)   = %s\n", FILENAME(  0));
     printf("bodynumber(0) = %d\n", BODYNUMBER(0));
+    printf("getcolors(0)  = %d\n", GETCOLORS( 0));
 #endif
 
     /* default return values */
@@ -134,6 +138,7 @@ udpExecute(ego  context,                /* (in)  EGADS context */
 #ifdef DEBUG
     printf("filename(  %d) = %s\n", numUdp, FILENAME(  numUdp));
     printf("bodynumber(%d) = %d\n", numUdp, BODYNUMBER(numUdp));
+    printf("getcolors( %d) = %d\n", numUdp, GETCOLORS( numUdp));
 #endif
 
 
@@ -340,6 +345,23 @@ udpExecute(ego  context,                /* (in)  EGADS context */
                         status = EG_attributeDel(efaces[iface], "__trace__");
                         CHECK_STATUS(EG_attributeDel);
                     }
+
+                    if (GETCOLORS(numUdp) == 1) {
+                        status = EG_attributeRet(efaces[iface], "Color",
+                                                 &attrtype, &attrlen, &tempIlist, &tempRlist, &tempClist);
+                        if (status == EGADS_SUCCESS) {
+                            status = EG_attributeAdd(efaces[iface], "_color",
+                                                     attrtype, attrlen, tempIlist, tempRlist, tempClist);
+                            CHECK_STATUS(EG_attributeAdd);
+
+                            status = EG_attributeDel(efaces[iface], "Color");
+                            CHECK_STATUS(EG_attributeDel);
+
+#ifdef DEBUG
+                            printf(" udpExecute: transferring _color attribute to Face %d\n", iface+1);
+#endif
+                        }
+                    }
                 }
 
                 EG_free(efaces);
@@ -368,6 +390,23 @@ udpExecute(ego  context,                /* (in)  EGADS context */
 #endif
                         status = EG_attributeDel(eedges[iedge], "__trace__");
                         CHECK_STATUS(EG_attributeDel);
+                    }
+
+                    if (GETCOLORS(numUdp) == 1) {
+                        status = EG_attributeRet(eedges[iedge], "Color",
+                                                 &attrtype, &attrlen, &tempIlist, &tempRlist, &tempClist);
+                        if (status == EGADS_SUCCESS) {
+                            status = EG_attributeAdd(eedges[iedge], "_color",
+                                                     attrtype, attrlen, tempIlist, tempRlist, tempClist);
+                            CHECK_STATUS(EG_attributeAdd);
+
+                            status = EG_attributeDel(eedges[iedge], "Color");
+                            CHECK_STATUS(EG_attributeDel);
+
+#ifdef DEBUG
+                            printf(" udpExecute: transferring _color attribute to Edge %d\n", iedge+1);
+#endif
+                        }
                     }
                 }
 

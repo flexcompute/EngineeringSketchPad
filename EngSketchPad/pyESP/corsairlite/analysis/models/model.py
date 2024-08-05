@@ -9,16 +9,16 @@ class Model(object):
 # ---------------------------------------------------------------------------------------------------------------------
 # ---------------------------------------------------------------------------------------------------------------------
     def __init__(self):
-        
+
         # List of the inputs and outputs
         self.inputs = TypeCheckedList(Variable, [])
         self.outputs = TypeCheckedList(Variable, [])
-        
+
         # # Store all the calls to the black box in case you need them, stores as an AnalysisData object,
         # # but must be included in the manual writing of the self.BlackBox function
         # # Disabled in corsairlite to remove the pandas dependency
         # self.data = AnalysisData()
-        
+
         # A simple description of the model
         self.description = None
 
@@ -70,7 +70,7 @@ class Model(object):
                 dataDict = dict(zip(inputNames, x_eval))
                 dataDict.update(dict(zip(outputNames,opt_xeval)))
                 # self.data.addData([dataDict])
-                
+
                 d_dx = (opt_xeval[ii] - opt_xstar[ii])/(delta_x * x_star[i])
                 dVec.append(d_dx)
             derivativeVectors.append(dVec)
@@ -103,7 +103,7 @@ class Model(object):
                     return [dict(zip(inputNames,[rs]))], -self.availableDerivative-1, {} # one input being passed in
                 except:
                     pass #otherwise, proceed
-        
+
             if isinstance(inputData, (list,tuple)):
                 dataRuns = []
                 for idc in inputData:
@@ -124,7 +124,7 @@ class Model(object):
                             raise ValueError('Entry in input data list has improper length')
                     else:
                         raise ValueError("Invalid data type in the input list.  Note that BlackBox([x1,x2,y]) must be passed in as BlackBox([[x1,x2,y]]) or "+
-                                                "BlackBox(*[x1,x2,y]) or BlackBox({'x1':x1,'x2':x2,'y':y}) or simply BlackBox(x1, x2, y) to avoid processing singularities.  "+ 
+                                                "BlackBox(*[x1,x2,y]) or BlackBox({'x1':x1,'x2':x2,'y':y}) or simply BlackBox(x1, x2, y) to avoid processing singularities.  "+
                                                 "Best practice is BlackBox({'x1':x1,'x2':x2,'y':y})")
                 return dataRuns, self.availableDerivative, {}
 
@@ -171,7 +171,7 @@ class Model(object):
                 else:
                     if len(args) != 0:
                         availableKeywords = inputNames[-len(args):]
-                    else: 
+                    else:
                         availableKeywords = inputNames
 
                     valList = args + [None]*(len(inputNames)-len(args))
@@ -233,7 +233,7 @@ class Model(object):
             nameCheck = self.inputs[i].name
             unts = self.inputs[i].units
             size = self.inputs[i].size
-            
+
             if name != nameCheck:
                 raise RuntimeError('Something went wrong and values are not consistent.  Check your defined inputs.')
 
@@ -303,7 +303,7 @@ class Model(object):
             nameCheck = self.outputs[i].name
             unts = self.outputs[i].units
             size = self.outputs[i].size
-            
+
             if name != nameCheck:
                 raise RuntimeError('Something went wrong and values are not consistent.  Check your defined inputs.')
 
@@ -355,7 +355,7 @@ class Model(object):
         pstr += '=================\n'
         descr_str = self.description.__repr__()
         pstr += descr_str[1:-1] + '\n\n'
-        
+
         longestName = 0
         longestUnits = 0
         longestSize = 0
@@ -369,8 +369,8 @@ class Model(object):
                 unts = ipt.units._repr_html_()
                 unts = unts.replace('<sup>','^')
                 unts = unts.replace('</sup>','')
-                unts = unts.replace('\[', '[')
-                unts = unts.replace('\]', ']')
+                unts = unts.replace('\\[', '[')
+                unts = unts.replace('\\]', ']')
             unl = len(unts)
             if unl > longestUnits:
                 longestUnits = unl
@@ -411,8 +411,8 @@ class Model(object):
                 unts = ipt.units._repr_html_()
                 unts = unts.replace('<sup>','^')
                 unts = unts.replace('</sup>','')
-                unts = unts.replace('\[', '[')
-                unts = unts.replace('\]', ']')
+                unts = unts.replace('\\[', '[')
+                unts = unts.replace('\\]', ']')
             pstr += unts.ljust(unitspace)
             if ipt.size is None:
                 lnstr = 'None'
@@ -422,7 +422,7 @@ class Model(object):
             pstr += ipt.description
             pstr += '\n'
         pstr += '\n'
-        
+
         longestName = 0
         longestUnits = 0
         longestSize = 0
@@ -436,8 +436,8 @@ class Model(object):
                 unts = opt.units._repr_html_()
                 unts = unts.replace('<sup>','^')
                 unts = unts.replace('</sup>','')
-                unts = unts.replace('\[', '[')
-                unts = unts.replace('\]', ']')
+                unts = unts.replace('\\[', '[')
+                unts = unts.replace('\\]', ']')
             unl = len(unts)
             if unl > longestUnits:
                 longestUnits = unl
@@ -478,8 +478,8 @@ class Model(object):
                 unts = opt.units._repr_html_()
                 unts = unts.replace('<sup>','^')
                 unts = unts.replace('</sup>','')
-                unts = unts.replace('\[', '[')
-                unts = unts.replace('\]', ']')
+                unts = unts.replace('\\[', '[')
+                unts = unts.replace('\\]', ']')
             pstr += unts.ljust(unitspace)
             if opt.size is None:
                 lnstr = 'None'
@@ -489,12 +489,12 @@ class Model(object):
             pstr += opt.description
             pstr += '\n'
         pstr += '\n'
-        
+
         return pstr
 
 # ---------------------------------------------------------------------------------------------------------------------
 # ---------------------------------------------------------------------------------------------------------------------
-    
+
     @property
     def summary(self):
         return self.getSummary()
@@ -532,28 +532,28 @@ class Model(object):
 # from corsairlite import units
 # from corsairlite.core.dataTypes.variable import Variable
 # from corsairlite.analysis.models.model import Model
-    
+
 # class SignomialTest(Model):
 #     def __init__(self):
 #         # Set up all the attributes by calling Model.__init__
 #         super(SignomialTest, self).__init__()
-        
+
 #         #Setup Inputs
 #         self.inputs.append(Variable('x', None, units.dimensionless,  'Independent Variable'))
-        
+
 #         #Setup Outputs
 #         self.outputs.append(Variable('y', None, units.dimensionless,  'Dependent Variable'))
 
 #         #Set the data storage inputs and outputs
 #         self.data.inputs = copy.deepcopy(self.inputs)
 #         self.data.outputs = copy.deepcopy(self.outputs)
-    
+
 #         #Simple model description
 #         self.description = 'This model evaluates the function: max([-6*x-6, x**4-3*x**2])'
-        
+
 #         self.availableDerivative = 1
 #         self.data.availableDerivative = self.availableDerivative
-    
+
 #     #standard function call is y(, dydx, ...) = self.BlackBox({'x1':x1, 'x2':x2})
 #     def BlackBox(*args, **kwargs):
 #         args = list(args)       # convert tuple to list
@@ -563,7 +563,7 @@ class Model(object):
 #         x = [ runCases[i]['x'] for i in range(0,len(runCases)) ]
 #         x = np.array([ self.sanitizeInputs(xval).to('').magnitude for xval in x ])
 #         y = np.maximum(-6*x-6, x**4-3*x**2)
-        
+
 #         dydx = 4*x**3 - 6*x
 #         ddy_ddx = 12*x**2 - 6
 #         gradientSwitch = -6*x-6 > x**4-3*x**2
@@ -582,21 +582,21 @@ class Model(object):
 # #         for i in range(0,len(runCases)):
 # #             addDataMatrix.append({'x': x[i], 'y': y[i], '__D1':[[dydx[i]]]})
 # #         self.data.addData(addDataMatrix)
-        
+
 # #         addDataMatrix = []
 # #         for i in range(0,len(runCases)):
 # #             addDataMatrix.append([ x[i],  y[i],[[dydx[i]]]])
 # #         self.data.addData(addDataMatrix)
-    
+
 #         y = [ self.checkOutputs(yval) for yval in y ]
 #         dydx = [dydx[i] * units.dimensionless for i in range(0,len(dydx))]
-        
+
 #         # etc...
 #         # Mode -1: y with no case wrapper, single point run
 #         # Mode 0: y only
 #         # Mode 1: y dydx
 #         # etc...
-        
+
 #         if returnMode < 0:
 #             returnMode = -1*(returnMode + 1)
 #             if returnMode == 0:

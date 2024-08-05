@@ -111,6 +111,9 @@ int  EG_copyGeometry_dot( const egObject *obj,
                           ego copy );
 int  EG_evaluate( const egObject *geom, /*@null@*/ const SurrealS<1> *param,
                   SurrealS<1> *result );
+int  EG_approximate( ego context, int maxdeg, double tol,
+                     const int *sizes, const SurrealS<1> *xyzs,
+                     ego *bspline );
 int  EG_approximate_dot( ego bspline, int maxdeg, double tol,
                          const int *sizes,
                          const SurrealS<1> *data );

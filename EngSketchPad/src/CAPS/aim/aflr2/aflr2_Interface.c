@@ -32,6 +32,14 @@ char xplt_Case_Name[1024];
                           a[2] = ((b)[0]*(c)[1]) - ((b)[1]*(c)[0])
 
 
+#ifndef S_SPLINT_S
+#define AFLR_STATUS(aimInfo, statys, ...) \
+if (status != 0) { status = CAPS_EXECERR; AIM_STATUS(aimInfo, status, ##__VA_ARGS__); }
+#else
+extern void AFLR_STATUS(void *aimInfo, int status, ...);
+#endif
+
+
 static INT_
 egads_eval_bedge(void *aimInfo, ego body, ego face, ego tess,
                  const mapAttrToIndexStruct *groupMap, const mapAttrToIndexStruct *meshMap,
@@ -377,7 +385,7 @@ int aflr2_Surface_Mesh(void *aimInfo,
     ug_set_prog_param_function2 (ice2_initialize_param);
 
     status = ug_add_new_arg (&prog_argv, (char*)"allocate_and_initialize_argv");
-    AIM_STATUS(aimInfo, status);
+    AFLR_STATUS(aimInfo, status);
 
     // Parse input string
     if (meshInput->aflr4Input.meshInputString != NULL) {
@@ -407,7 +415,7 @@ int aflr2_Surface_Mesh(void *aimInfo,
     // set the last argument to 1 to print what arguments have been set
 /*@-nullpass*/
     status = ug_check_prog_param (prog_argv, prog_argc, Message_Flag);
-    AIM_STATUS(aimInfo, status); // Add error code
+    AFLR_STATUS(aimInfo, status); // Add error code
 
 
     // Negating the first parameter triggers EGADS to only put vertexes on edges
@@ -486,7 +494,7 @@ int aflr2_Surface_Mesh(void *aimInfo,
       status = egads_eval_bedge (aimInfo, bodyIn, bodyFaces[iface], tess, groupMap, meshMap,
                                  &Number_of_Bnd_Edges, &Bnd_Edge_Connectivity,
                                  &Bnd_Edge_ID_Flag, &Bnd_Edge_Mesh_ID_Flag, &Coordinates);
-      AIM_STATUS(aimInfo, status);
+      AFLR_STATUS(aimInfo, status);
 
       Number_of_Nodes = Number_of_Bnd_Edges;
 
@@ -611,7 +619,7 @@ int aflr2_Surface_Mesh(void *aimInfo,
                                      &Source_Spacing,
                                      &Source_Metric,
                                      &Source_Coordinates);
-      AIM_STATUS(aimInfo, status); // Add error code
+      AFLR_STATUS(aimInfo, status); // Add error code
       /*@+nullpass*/
       AIM_NOTNULL(Coordinates          , aimInfo, status);
       AIM_NOTNULL(Tria_Connectivity    , aimInfo, status);
@@ -645,7 +653,7 @@ int aflr2_Surface_Mesh(void *aimInfo,
 
       // get the xyz coordinates on the boundary loops
       status = egads_xyz_bedge(aimInfo, bodyIn, bodyFaces[iface], tess, ix, iy, face_xyz, Coordinates);
-      AIM_STATUS(aimInfo, status);
+      AFLR_STATUS(aimInfo, status);
 
       // Initiate triangle elements
       for (i = 0; i < Number_of_Trias; i++) {
@@ -664,7 +672,7 @@ int aflr2_Surface_Mesh(void *aimInfo,
         face_tris[3*Number_of_Trias + 6*i+4] = Quad_Connectivity[i+1][2];
         face_tris[3*Number_of_Trias + 6*i+5] = Quad_Connectivity[i+1][3];
       }
-      
+
 
       status = EG_setTessFace(tess, iface+1,
                               Number_of_Nodes,
@@ -677,7 +685,7 @@ int aflr2_Surface_Mesh(void *aimInfo,
       AIM_FREE(face_xyz);
       AIM_FREE(face_uv);
       AIM_FREE(face_tris);
-      
+
       Number_of_Bnd_Edges = Number_of_Nodes = 0;
       Number_of_Quads = Number_of_Trias = 0;
       Number_of_BG_Bnd_Edges = 0;
@@ -742,7 +750,7 @@ int aflr2_Surface_Mesh(void *aimInfo,
                                       Coordinates,
                                       Initial_Normal_Spacing,
                                       BL_Thickness);
-    AIM_STATUS(aimInfo, status);
+    AFLR_STATUS(aimInfo, status);
 /*@+nullpass*/
 #endif
 

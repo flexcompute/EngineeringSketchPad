@@ -1950,11 +1950,7 @@ int populate_regions(void *aimInfo,
     {
       // no point
     }
-    if (val != NULL)
-    {
-      EG_free(val);
-      val = NULL;
-    }
+    AIM_FREE(val);
 
     // Store the region attribute.
     status = search_jsonDictionary(dict, "id", &val);
@@ -1966,11 +1962,7 @@ int populate_regions(void *aimInfo,
     {
       regions->attribute[n] = 0;
     }
-    if (val != NULL)
-    {
-      EG_free(val);
-      val = NULL;
-    }
+    AIM_FREE(val);
 
     // Store the region cell volume constraint.
     status = search_jsonDictionary(dict, "volumeConstraint", &val);
@@ -1982,12 +1974,46 @@ int populate_regions(void *aimInfo,
     {
       regions->volume_constraint[n] = -1.0;
     }
-    if (val != NULL)
-    {
-      EG_free(val);
-      val = NULL;
-    }
+
+    AIM_FREE(val);
   }
+
+  status = CAPS_SUCCESS;
+
+cleanup:
+  AIM_FREE(val);
+
+  return status;
+}
+
+int add_regions(void *aimInfo,
+                const char *name,
+                double x, double y, double z,
+                double attribute,
+                double volume_constraint,
+                tetgenRegionsStruct* regions)
+{
+  int status;
+
+  // Resize the regions data structure arrays.
+  AIM_REALL(regions->names, regions->size+1, char*, aimInfo, status);
+  regions->names[regions->size] = NULL;
+  AIM_REALL(regions->x, regions->size+1, double, aimInfo, status);
+  AIM_REALL(regions->y, regions->size+1, double, aimInfo, status);
+  AIM_REALL(regions->z, regions->size+1, double, aimInfo, status);
+  AIM_REALL(regions->attribute, regions->size+1, int, aimInfo, status);
+  AIM_REALL(regions->volume_constraint, regions->size+1, double, aimInfo, status);
+
+  AIM_STRDUP(regions->names[regions->size], name, aimInfo, status);
+  regions->x[regions->size] = x;
+  regions->y[regions->size] = y;
+  regions->z[regions->size] = z;
+  regions->attribute[regions->size] = attribute;
+  regions->volume_constraint[regions->size] = volume_constraint;
+
+  regions->size++;
+
+  status = CAPS_SUCCESS;
 
 cleanup:
   return status;
@@ -9470,13 +9496,14 @@ mesh_surfaceMeshData(void *aimInfo, const mapAttrToIndexStruct *groupMap, aimMes
   typedef int INT_2[2];
 
   int i, j, ivert, igroup, nPoint, maxID = 0;
-  int nFace, iface;
+  int nEdge, iedge, edgeID;
+  int nFace, iface, faceID;
   int ptype, pindex, plen, tlen;
   int nglobal, state, elem[4];
-  int faceID, nElems;
+  int nElems;
   int atype, alen, stride;
   INT_2 *elemGroup = NULL;
-  const double *points, *uv, *reals;
+  const double *points, *uv, *reals, *t;
   const int *ptypes, *pindexs, *tris, *tric, *tessFaceQuadMap=NULL;
   const char *string = NULL;
   const char *groupName = NULL;
@@ -9484,7 +9511,7 @@ mesh_surfaceMeshData(void *aimInfo, const mapAttrToIndexStruct *groupMap, aimMes
   enum aimMeshElem elementTopo;
   aimMeshData *meshData = NULL;
   aimMeshRef *meshRef = NULL;
-  ego body, *faces=NULL;
+  ego body, *edges=NULL, *faces=NULL;
 
   if (mesh           == NULL) return CAPS_NULLOBJ;
   if (mesh->meshRef  == NULL) return CAPS_NULLOBJ;
@@ -9527,28 +9554,50 @@ mesh_surfaceMeshData(void *aimInfo, const mapAttrToIndexStruct *groupMap, aimMes
     }
   }
 
-#if 0
-  // Get line elements on each edge
+  for (i = 0; i < groupMap->numAttribute; i++)
+    maxID = MAX(maxID, groupMap->attributeIndex[i]);
+
+  AIM_ALLOC(elemGroup, maxID, INT_2, aimInfo, status);
+  for (i = 0; i < maxID; i++) elemGroup[i][0] = elemGroup[i][1] = -1;
+
+  // Get line elements on each edge with a capsGroup
   nPoint = 2;
   elementTopo = aimLine;
-  ivert = edgeOffset = 0;
+  ivert = 0;
   for (i = 0; i < meshRef->nmap; i++) {
     status = EG_statusTessBody(meshRef->maps[i].tess, &body, &state, &nglobal);
     AIM_STATUS(aimInfo, status);
 
-    status = EG_getBodyTopos(body, NULL, EDGE, &nEdge, NULL);
+    status = EG_getBodyTopos(body, NULL, EDGE, &nEdge, &edges);
     AIM_STATUS(aimInfo, status);
 
     for (iedge = 0; iedge < nEdge; iedge++) {
-      status = EG_getTessEdge(meshRef->maps[i].tess, iedge + 1, &plen, &points, &t);
-      if (status == EGADS_DEGEN) continue;
-      AIM_STATUS(aimInfo, status);
 
-      status = aim_addMeshElemGroup(aimInfo, NULL, iedge+edgeOffset+1, elementTopo, 1, nPoint, meshData);
+      if (edges[iedge]->mtype == DEGENERATE) continue;
+
+      // Look for ID for attribute mapper based on capsGroup
+      status = retrieve_CAPSGroupAttr(edges[iedge], &groupName);
+      if (status != CAPS_SUCCESS) continue;
+
+      /*@-nullpass@*/
+      status = get_mapAttrToIndexIndex(groupMap, groupName, &edgeID);
+      AIM_STATUS(aimInfo, status, "Unable to retrieve index from capsGroup: %s", groupName);
+      /*@+nullpass@*/
+
+      igroup = elemGroup[edgeID-1][0];
+      if (igroup < 0) {
+        status = aim_addMeshElemGroup(aimInfo, groupName, edgeID, elementTopo, 1, nPoint, meshData);
+        AIM_STATUS(aimInfo, status);
+
+        igroup = elemGroup[edgeID-1][0] = meshData->nElemGroup-1;
+      }
+
+      status = EG_getTessEdge(meshRef->maps[i].tess, iedge + 1, &plen, &points, &t);
       AIM_STATUS(aimInfo, status);
 
       /* add the element to the group */
-      status = aim_addMeshElem(aimInfo, plen-1, &meshData->elemGroups[iedge+edgeOffset]);
+      nElems = meshData->elemGroups[igroup].nElems;
+      status = aim_addMeshElem(aimInfo, plen-1, &meshData->elemGroups[igroup]);
       AIM_STATUS(aimInfo, status);
 
       for (j = 0; j < plen-1; j++) {
@@ -9560,23 +9609,16 @@ mesh_surfaceMeshData(void *aimInfo, const mapAttrToIndexStruct *groupMap, aimMes
         if (status == EGADS_DEGEN) continue;
         AIM_STATUS(aimInfo, status);
 
-        meshData->elemGroups[iedge+edgeOffset].elements[nPoint*j + 0] = elem[0] + ivert;
-        meshData->elemGroups[iedge+edgeOffset].elements[nPoint*j + 1] = elem[1] + ivert;
+        meshData->elemGroups[igroup].elements[nPoint*(nElems + j) + 0] = elem[0] + ivert;
+        meshData->elemGroups[igroup].elements[nPoint*(nElems + j) + 1] = elem[1] + ivert;
       }
     }
+    AIM_FREE(edges);
 
-    edgeOffset += nEdge;
     ivert += nglobal;
   }
-#endif
 
   // Get elements on each face
-
-  for (i = 0; i < groupMap->numAttribute; i++)
-    maxID = MAX(maxID, groupMap->attributeIndex[i]);
-
-  AIM_ALLOC(elemGroup, maxID, INT_2, aimInfo, status);
-  for (i = 0; i < maxID; i++) elemGroup[i][0] = elemGroup[i][1] = -1;
 
   ivert = 0;
   for (i = 0; i < meshRef->nmap; i++) {
@@ -9644,7 +9686,6 @@ mesh_surfaceMeshData(void *aimInfo, const mapAttrToIndexStruct *groupMap, aimMes
           status = EG_localToGlobal(meshRef->maps[i].tess, iface + 1, tris[stride + 2], &elem[2]);
           AIM_STATUS(aimInfo, status);
 
-
           meshData->elemGroups[igroup].elements[nPoint*(nElems + j) + 0] = elem[0] + ivert;
           meshData->elemGroups[igroup].elements[nPoint*(nElems + j) + 1] = elem[1] + ivert;
           meshData->elemGroups[igroup].elements[nPoint*(nElems + j) + 2] = elem[2] + ivert;
@@ -9678,13 +9719,12 @@ mesh_surfaceMeshData(void *aimInfo, const mapAttrToIndexStruct *groupMap, aimMes
           status = EG_localToGlobal(meshRef->maps[i].tess, iface + 1, tris[stride + 5], &elem[3]);
           AIM_STATUS(aimInfo, status);
 
-
           meshData->elemGroups[igroup].elements[nPoint*(nElems + j) + 0] = elem[0] + ivert;
           meshData->elemGroups[igroup].elements[nPoint*(nElems + j) + 1] = elem[1] + ivert;
           meshData->elemGroups[igroup].elements[nPoint*(nElems + j) + 2] = elem[2] + ivert;
           meshData->elemGroups[igroup].elements[nPoint*(nElems + j) + 3] = elem[3] + ivert;
         }
-     }
+      }
     }
 
     AIM_FREE(faces);
@@ -9698,6 +9738,7 @@ mesh_surfaceMeshData(void *aimInfo, const mapAttrToIndexStruct *groupMap, aimMes
 
 cleanup:
   AIM_FREE(elemGroup);
+  AIM_FREE(edges);
   AIM_FREE(faces);
 
   return status;

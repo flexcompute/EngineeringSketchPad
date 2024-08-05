@@ -287,13 +287,11 @@ static int surfaceMeshWrite(void *aimInfo, aimMesh *mesh)
             status = EG_getBodyTopos(ebody, eedges[iedge-1], FACE, &ntemp, &etemps);
             AIM_STATUS(aimInfo, status, "EG_getBodyTopos");
 
-            if (ntemp > 0) {
+            if (ntemp == 2) {
                 status = edgeLeft[iedge] = EG_indexBodyTopo(ebody, etemps[0]);
                 if (status > CAPS_SUCCESS) status = CAPS_SUCCESS;
                 AIM_STATUS(aimInfo, status, "EG_indexBodyTopo");
-            }
 
-            if (ntemp > 1) {
                 status = edgeRite[iedge] = EG_indexBodyTopo(ebody, etemps[1]);
                 if (status > CAPS_SUCCESS) status = CAPS_SUCCESS;
                 AIM_STATUS(aimInfo, status, "EG_indexBodyTopo");
@@ -341,6 +339,9 @@ static int surfaceMeshWrite(void *aimInfo, aimMesh *mesh)
                 /* find neighbor it0 */
                 if (tric[3*itri  ] > 0) {
                     it0 = tric[3*itri  ] + faceOffset[iface];
+                } else if (tric[3*itri  ] < 0 && edgeLeft[-tric[3*itri  ]] == 0 &&
+                                                 edgeRite[-tric[3*itri  ]] == 0   ) {
+                    it0 = 0;            // non-manifold
                 } else {
                     it0 = -1;
 
@@ -357,6 +358,10 @@ static int surfaceMeshWrite(void *aimInfo, aimMesh *mesh)
                         jface = edgeLeft[iedge];
                     } else {
                         printf("WE SHOULD NOT GET HERE %d: iface=%d, itri=%d, iedge=%d\n", __LINE__, iface, itri, iedge);
+                        printf("edgeLeft=%d, edgeRite=%d\n", edgeLeft[iedge], edgeRite[iedge]);
+                        printf("tris=%d %d %d, tric=%d %d %d\n",
+                               tris[3*itri  ], tris[3*itri  ], tris[3*itri  ],
+                               tric[3*itri  ], tric[3*itri  ], tric[3*itri  ]);
                         exit(0);
                     }
 
@@ -393,6 +398,9 @@ static int surfaceMeshWrite(void *aimInfo, aimMesh *mesh)
                 /* find neighbor it1 */
                 if (tric[3*itri+1] > 0) {
                     it1 = tric[3*itri+1] + faceOffset[iface];
+                } else if (tric[3*itri+1] < 0 && edgeLeft[-tric[3*itri+1]] == 0 &&
+                                                 edgeRite[-tric[3*itri+1]] == 0   ) {
+                    it1 = 0;            // non-manifold
                 } else {
                     it1 = -1;
 
@@ -409,6 +417,10 @@ static int surfaceMeshWrite(void *aimInfo, aimMesh *mesh)
                         jface = edgeLeft[iedge];
                     } else {
                         printf("WE SHOULD NOT GET HERE %d: iface=%d, itri=%d, iedge=%d\n", __LINE__, iface, itri, iedge);
+                        printf("edgeLeft=%d, edgeRite=%d\n", edgeLeft[iedge], edgeRite[iedge]);
+                        printf("tris=%d %d %d, tric=%d %d %d\n",
+                               tris[3*itri+1], tris[3*itri+1], tris[3*itri+1],
+                               tric[3*itri+1], tric[3*itri+1], tric[3*itri+1]);
                         exit(0);
                     }
 
@@ -445,6 +457,9 @@ static int surfaceMeshWrite(void *aimInfo, aimMesh *mesh)
                 /* find neighbor it2 */
                 if (tric[3*itri+2] > 0) {
                     it2 = tric[3*itri+2] + faceOffset[iface];
+                } else if (tric[3*itri+2] < 0 && edgeLeft[-tric[3*itri+2]] == 0 &&
+                                                 edgeRite[-tric[3*itri+2]] == 0   ) {
+                    it2 = 0;            // non-manifold
                 } else {
                     it2 = -1;
 
@@ -461,6 +476,10 @@ static int surfaceMeshWrite(void *aimInfo, aimMesh *mesh)
                         jface = edgeLeft[iedge];
                     } else {
                         printf("WE SHOULD NOT GET HERE %d: iface=%d, itri=%d, iedge=%d\n", __LINE__, iface, itri, iedge);
+                        printf("edgeLeft=%d, edgeRite=%d\n", edgeLeft[iedge], edgeRite[iedge]);
+                        printf("tris=%d %d %d, tric=%d %d %d\n",
+                               tris[3*itri+2], tris[3*itri+2], tris[3*itri+2],
+                               tric[3*itri+2], tric[3*itri+2], tric[3*itri+2]);
                         exit(0);
                     }
 

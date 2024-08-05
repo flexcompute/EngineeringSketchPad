@@ -72,7 +72,6 @@
   extern int  EG_setTessFace( egObject *tess, int fIndex, int len,
                               const double *xyz, const double *uv, int ntri,
                               const int *tris );
-  extern int  EG_sampleSame( const egObject *obj1, const egObject *obj2 );
 
 
 
@@ -2104,9 +2103,6 @@ EG_isSame(const egObject *obj1, const egObject *obj2)
         stat++;
         break;
       }
-    if ((mtype1 == PLANE) && (stat != 0)) {
-      stat = EG_sampleSame(geom1, geom2);
-    }
   } else {
     scale = 0.0;
     for (i = nk; i < nc; i++) {

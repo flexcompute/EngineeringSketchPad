@@ -29,8 +29,8 @@ patbeg iface @nface
 patend
 
 udprim editAttr filename <<
-   face has      name=face_15_4
-   set  target=1
+   face has      name=face_15_4  # comment
+   set  target=1                 # comment
 
    face has      name=face_*_1
    set  target=1

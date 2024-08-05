@@ -342,13 +342,13 @@ __ProtoExt__ void
 #endif
 
 #define AIM_STATUS(aimInfo, status, ...) \
- if (status != CAPS_SUCCESS) { \
+ if (status < CAPS_SUCCESS) { \
    aim_status(aimInfo, status, __FILE__, __LINE__, __func__, GET_ARG_COUNT(__VA_ARGS__), ##__VA_ARGS__); \
    goto cleanup; \
  }
 
 #define AIM_NOTFOUND(aimInfo, status, ...) \
- if (status != CAPS_SUCCESS && status != CAPS_NOTFOUND && status != EGADS_NOTFOUND) { \
+ if (status < CAPS_SUCCESS && status != CAPS_NOTFOUND && status != EGADS_NOTFOUND) { \
    aim_status(aimInfo, status, __FILE__, __LINE__, __func__, GET_ARG_COUNT(__VA_ARGS__), ##__VA_ARGS__); \
    goto cleanup; \
  }

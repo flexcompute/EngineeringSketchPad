@@ -78,6 +78,7 @@ EG_convertToBSpline
 EG_convertToBSplineRange
 EG_flattenBSpline
 EG_addKnots
+EG_mergeBSplineCurves
 EG_adjustCPs
 EG_tolerance
 EG_getTolerance
@@ -117,6 +118,7 @@ EG_isPlanar
 EG_sewFaces
 EG_makeNmWireBody
 EG_replaceFaces
+EG_removeNodes
 EG_mapBody
 EG_mapBody2
 EG_matchBodyEdges

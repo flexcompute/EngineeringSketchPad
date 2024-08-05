@@ -1321,7 +1321,8 @@ cleanup:
 
 // Find the EGO object pertaining the to trailing edge
 static
-int vlm_findTrailingEdge(int numNode, ego *nodes,
+int vlm_findTrailingEdge(void *aimInfo,
+                         int numNode, ego *nodes,
                          int numEdge, ego *edges,
             /*@unused@*/ int nodeIndexLE,
                          double *secnorm,
@@ -1347,7 +1348,7 @@ int vlm_findTrailingEdge(int numNode, ego *nodes,
     nodeIndexTE = 0;
     for (i = 0; i < numNode; i++) {
         status = EG_evaluate(nodes[i], NULL, xyz);
-        if (status != EGADS_SUCCESS) goto cleanup;
+        AIM_STATUS(aimInfo, status);
 
         if (nodeIndexTE == 0) {
             nodeIndexTE = i+1;
@@ -1369,7 +1370,7 @@ int vlm_findTrailingEdge(int numNode, ego *nodes,
     for (i = 0; i < numEdge; i++) {
 
         status = EG_getTopology(edges[i], &ref, &oclass, &mtype, trange, &numChildren, &children, &sens);
-        if (status != EGADS_SUCCESS) goto cleanup;
+        AIM_STATUS(aimInfo, status);
         if (mtype == DEGENERATE) continue;
 
         if (status != EGADS_SUCCESS) {
@@ -1389,7 +1390,7 @@ int vlm_findTrailingEdge(int numNode, ego *nodes,
         // evaluate at the edge mid point
         t = 0.5*(trange[0]+trange[1]);
         status = EG_evaluate(edges[i], &t, result);
-        if (status != EGADS_SUCCESS) goto cleanup;
+        AIM_STATUS(aimInfo, status);
 
         // get the tangent vector
         vec1[0] = result[3+0];
@@ -1404,7 +1405,7 @@ int vlm_findTrailingEdge(int numNode, ego *nodes,
         // get the tangent vector at t0
         t = trange[0];
         status = EG_evaluate(edges[i], &t, result);
-        if (status != EGADS_SUCCESS) goto cleanup;
+        AIM_STATUS(aimInfo, status);
 
         vec1[0] = result[3+0];
         vec1[1] = result[3+1];
@@ -1419,7 +1420,7 @@ int vlm_findTrailingEdge(int numNode, ego *nodes,
         // get the tangent vector at t1
         t = trange[1];
         status = EG_evaluate(edges[i], &t, result);
-        if (status != EGADS_SUCCESS) goto cleanup;
+        AIM_STATUS(aimInfo, status);
 
         vec2[0] = result[3+0];
         vec2[1] = result[3+1];
@@ -1454,18 +1455,18 @@ int vlm_findTrailingEdge(int numNode, ego *nodes,
 
         // Get the class and coordinates
         status = EG_getTopology(*teObj, &ref, teClass, &mtype, xyzTE, &numChildren, &children, &sens);
-        if (status != EGADS_SUCCESS) goto cleanup;
+        AIM_STATUS(aimInfo, status);
 
     } else {
 
         // Get the class and t-range for mid point evaluation
         status = EG_getTopology(*teObj, &ref, teClass, &mtype, trange, &numChildren, &children, &sens);
-        if (status != EGADS_SUCCESS) goto cleanup;
+        AIM_STATUS(aimInfo, status);
 
         t = 0.5*(trange[0]+trange[1]);
 
         status = EG_evaluate(*teObj, &t, result);
-        if (status != EGADS_SUCCESS) goto cleanup;
+        AIM_STATUS(aimInfo, status);
 
         xyzTE[0] = result[0];
         xyzTE[1] = result[1];
@@ -1573,7 +1574,7 @@ int vlm_secNormal(void *aimInfo, ego body,
 
             t = (trange[0] + trange[1])/2.;
             status = EG_evaluate(edges[j], &t, nodesXYZ[1]);
-            if (status != EGADS_SUCCESS) goto cleanup;
+            AIM_STATUS(aimInfo, status);
 
             dX2[0] = nodesXYZ[1][0] - nodesXYZ[0][0];
             dX2[1] = nodesXYZ[1][1] - nodesXYZ[0][1];
@@ -1641,7 +1642,7 @@ int finalize_vlmSectionStruct(void *aimInfo, vlmSectionStruct *vlmSection)
     numEdgeMinusDegenrate = 0;
     for (i = 0; i < numEdge; i++) {
         status = EG_getInfo(edges[i], &oclass, &mtype, &ref, &prev, &next);
-        if (status != EGADS_SUCCESS) goto cleanup;
+        AIM_STATUS(aimInfo, status);
         if (mtype == DEGENERATE) continue;
         numEdgeMinusDegenrate += 1;
     }
@@ -1665,7 +1666,8 @@ int finalize_vlmSectionStruct(void *aimInfo, vlmSectionStruct *vlmSection)
     AIM_STATUS(aimInfo, status);
 
     // Find the trailing edge Object (Node or EDGE)
-    status = vlm_findTrailingEdge(numNode, nodes,
+    status = vlm_findTrailingEdge(aimInfo,
+                                  numNode, nodes,
                                   numEdge, edges,
                                   vlmSection->nodeIndexLE,
                                   vlmSection->normal,
@@ -1796,7 +1798,7 @@ int vlm_getSectionRadial(void *aimInfo, ego body, ego *copy)
     ego *nodes = NULL;
 
     int nodeIndexLE;
-    double xyzLE[3], radLE[3], norm;
+    double xyzLE[3] = {0,0,0}, radLE[3], norm;
 
     double secnorm[3] = {0,0,0};
 
@@ -3077,7 +3079,7 @@ int vlm_getSectionCoord(void *aimInfo,
 
     // Loop through edges based on order
     for (i = 0; i < numEdge; i++) {
-        //printf("Edge order %d\n", edgeOrder[i]);
+        //printf("Edge order %d\n", edgeLoopOrder[i]);
 
         edgeIndex = edgeLoopOrder[i] - 1; // -1 indexing
 

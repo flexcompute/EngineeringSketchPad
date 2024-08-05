@@ -39,6 +39,7 @@ import itertools
 import locale
 import os
 import re
+import sys
 from collections import ChainMap, defaultdict
 from contextlib import closing, contextmanager
 from decimal import Decimal
@@ -47,6 +48,10 @@ from io import StringIO
 from tokenize import NAME, NUMBER
 
 import pkg_resources
+#if sys.version_info >= (3, 9):
+#    import importlib.resources as importlib_resources
+#else:
+#    import importlib_resources
 
 from . import registry_helpers, systems
 from .compat import babel_parse, tokenizer
@@ -518,6 +523,9 @@ class BaseRegistry(metaclass=RegistryMeta):
                 if is_resource:
                     with closing(pkg_resources.resource_stream(__name__, file)) as fp:
                         rbytes = fp.read()
+                    #ref = importlib_resources.files(__name__).joinpath(file)
+                    #with closing(ref.open('rb')) as fp:
+                    #    rbytes = fp.read()
                     return self.load_definitions(
                         StringIO(rbytes.decode("utf-8")), is_resource
                     )

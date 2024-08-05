@@ -2799,7 +2799,7 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
         if (j >= nGeomIn) continue;
 
         if(aim_getGeomInType(aimInfo, j+1) != 0) {
-            printf("Error: Geometric sensitivity not available for CFGPMTR = %s\n", geomInName);
+            AIM_ERROR(aimInfo, "Error: Geometric sensitivity not available for CFGPMTR = %s", geomInName);
             status = CAPS_NOSENSITVTY;
             goto cleanup;
         }

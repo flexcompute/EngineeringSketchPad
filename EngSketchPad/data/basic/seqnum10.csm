@@ -1,0 +1,104 @@
+# seqnum10
+# written by John Dannenhoffer
+
+# get new sequence numbering
+ATTRIBUTE _newSeqnum 1
+
+# block 1
+BOX       0  0  0  10  10  1
+SET       theBody @nbody
+
+BOX       7  7 -1   5   5  3
+SUBTRACT
+
+BOX       1  1  1/2  8  8   1
+
+CYLINDER  5  3  0  5  3  2  1
+ROTATEZ  90  5  3
+SUBTRACT
+
+CYLINDER  5  7  0  5  7  2  1
+SUBTRACT
+
+SUBTRACT
+
+SELECT    FACE  theBody 6  1
+   ATTRIBUTE _color $red
+SELECT    FACE  theBody 6  2
+   ATTRIBUTE _color $green
+SELECT    FACE  theBody 6  3
+   ATTRIBUTE _color $blue
+   
+SELECT    FACE  theBody 6  0
+SELECT    NOT
+   ATTRIBUTE _viz  $off
+SELECT    EDGE
+   ATTRIBUTE _viz  $off
+
+# block 2
+BOX       0  0  0  10  10  1
+SET       theBody @nbody
+
+BOX       7  7 -1   5   5  3
+SUBTRACT
+
+BOX       1  1  1/2  8  8   1
+
+CYLINDER  4.9  3  0  4.9  3  2  1
+ROTATEZ  90  4.9  3
+SUBTRACT
+
+CYLINDER  5.1  7  0  5.1  7  2  1
+SUBTRACT
+
+SUBTRACT
+
+SELECT    FACE  theBody 6  1
+   ATTRIBUTE _color $red
+SELECT    FACE  theBody 6  2
+   ATTRIBUTE _color $green
+SELECT    FACE  theBody 6  3
+   ATTRIBUTE _color $blue
+   
+SELECT    FACE  theBody 6  0
+SELECT    NOT
+   ATTRIBUTE _viz  $off
+SELECT    EDGE
+   ATTRIBUTE _viz  $off
+
+TRANSLATE 15  0  0
+
+# block 3
+BOX       0  0  0  10  10  1
+SET       theBody @nbody
+
+BOX       7  7 -1   5   5  3
+SUBTRACT
+
+BOX       1  1  1/2  8  8   1
+
+CYLINDER  5.1  3  0  5.1  3  2  1
+ROTATEZ  90  5.1  3
+SUBTRACT
+
+CYLINDER  4.9  7  0  4.9  7  2  1
+SUBTRACT
+
+SUBTRACT
+
+SELECT    FACE  theBody 6  1
+   ATTRIBUTE _color $red
+SELECT    FACE  theBody 6  2
+   ATTRIBUTE _color $green
+SELECT    FACE  theBody 6  3
+   ATTRIBUTE _color $blue
+   
+SELECT    FACE  theBody 6  0
+SELECT    NOT
+   ATTRIBUTE _viz  $off
+SELECT    EDGE
+   ATTRIBUTE _viz  $off
+
+TRANSLATE 30  0  0
+
+END

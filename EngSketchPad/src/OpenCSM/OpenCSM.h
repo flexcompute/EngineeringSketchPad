@@ -31,7 +31,7 @@
 #define _OPENCSM_H_
 
 #define OCSM_MAJOR_VERSION  1
-#define OCSM_MINOR_VERSION 25
+#define OCSM_MINOR_VERSION 26
 
 #define MAX_NAME_LEN       64           /* maximum chars in name */
 #define MAX_EXPR_LEN      512           /* maximum chars in expression */
@@ -445,6 +445,7 @@ CATBEG    sigCode
                      $illegal_csystem
                      $illegal_pmtr_index
                      $illegal_pmtr_name
+                     $illegal_func_name
                      $illegal_value
                      $insufficient_bodys_on_stack
                      $name_not_found
@@ -705,7 +706,7 @@ DIMENSION $pmtrName nrow ncol
                   old values are not overwritten
                   cannot be followed by ATTRIBUTE or CSYSTEM
 
-DUMP      $filename remove=0 toMark=0 withTess=0 $grpName=.
+DUMP      $filename remove=0 toMark=0 withTess=0 $grpName=. putColors=0
           use:    write a file that contains the Body
           pops:   Body1 (if remove=1)
           pushes: -
@@ -719,6 +720,7 @@ DUMP      $filename remove=0 toMark=0 withTess=0 $grpName=.
                      are combined into a single model
                   if toMark=1, the remove flag is ignored
                   if withTess!=0, add tessellations to .egads file
+                  if putColors==1, write _colors as Colors in STP/IGS file
                   for .ugrid files, toMark must be 0
                   valid filetypes are:
                      .brep   .BREP   --> OpenCASCADE output
@@ -842,6 +844,13 @@ EVALUATE  $type arg1 ...
                         x,      y,      z,
                         dxdt,   dydt,   dzdt,
                         d2xdt2, d2ydt2, d2zdt2
+                  elseif arguments are" "edgebbox ibody iedge"
+                     ibody is Body number (1:nbody)
+                     iedge is Edge number (1:nedge)
+                     returns bounding box
+                     return in @edata:
+                        xmin, ymin, zmin,
+                        xmax, ymax, zmax
                   elseif arguments are: "edgerng ibody iedge"
                      ibody is Body number (1:nbody)
                      iedge is Edge number (1:nedge)
@@ -853,7 +862,8 @@ EVALUATE  $type arg1 ...
                      inverse evaluate Edge at given (x,y,z)
                      return in @edata:
                         t,
-                        xclose,  yclose,  zclose
+                        xclose,  yclose,  zclose,
+                        tbar
                   elseif arguments are: "edgekt ibody iedge"
                      ibody is Body number (1:nbody)
                      iedge is Edge number (1:nedge)
@@ -864,6 +874,11 @@ EVALUATE  $type arg1 ...
                      iedge is Edge number (1:nedge)
                      return in @edata:
                         xcp1 ycp1 zcp1 xcp2 ycp2 ...
+                  elseif arguments are: "edgetess ibody iedge"
+                     ibody is Body number (1:nbody)
+                     iedge is Edge number (1:nedge)
+                     return in @edata:
+                        npnt
                   elseif arguments are: "face ibody iface u v"
                      ibody is Body number (1:nbody)
                      iface is Face number (1:nface)
@@ -877,6 +892,13 @@ EVALUATE  $type arg1 ...
                         d2xdudv, d2ydudv, d2zdudv,
                         d2xdv2,  d2ydv2,  d2zdv2,
                         normx,   normy,   normz
+                  elseif arguments are: "facebbox ibody iface"
+                     ibody is Body number (1:nbody)
+                     iface is Face number (1:nface)
+                     returns bounding box
+                     return in @edata:
+                        xmin, ymin, zmin,
+                        xmax, ymax, zmax
                   elseif arguments are: "facerng ibody iface"
                      ibody is Body number (1:nbody)
                      iface is Face number (1:nface)
@@ -888,7 +910,8 @@ EVALUATE  $type arg1 ...
                      inverse evaluate Face at given (x,y,z)
                      return in @edata:
                         u,       v,
-                        xclose,  yclose,  zclose
+                        xclose,  yclose,  zclose,
+                        ubar,    vbar
                   elseif arguments are: "faceukt ibody iface"
                      ibody is Body number (1:nbody)
                      iface is Face number (1:nface)
@@ -904,6 +927,25 @@ EVALUATE  $type arg1 ...
                      iface is Face number (1:nface)
                      return in @edata:
                         xcp1, ycp1, zcp1, xcp2, ycp2, ...
+                  elseif arguments are: "facetess ibody iface"
+                     ibody is Body number (1:nbody)
+                     iface is Face number (1:nface)
+                     return in @edata:
+                        npnt, ntri
+                  elseif arguments are: "dist +ibody1 +ibody2"
+                     ibody1 and ibody2 are Body numbers (1:nbody)
+                     returns minimum dist between neighboring Bodys
+                     return in @edata:
+                        dist (between),
+                        iface1, u1, v1, x1, y1, z1,
+                        iface2, u2, v2, x2, y2, z2
+                  elseif arguments are: "dist -ibody1 +ibody2"
+                     ibody1 and ibody2 are Body numbers (1:nbody)
+                     returns separation between ibody2 and enclosing ibody1
+                     return in @edata:
+                        dist (inside),
+                        iface1, u1, v1, x1, y1, z1,
+                        iface2, u2, v2, x2, y2, z2
                   cannot be followed by ATTRIBUTE or CSYSTEM
                   causes finite difference sensitivities
                   signals that may be thrown/caught:
@@ -999,11 +1041,10 @@ GETATTR   $pmtrName attrID global=0
           use:    store an Attribute value(s) in a LOCALVAR
           pops:   -
           pushes: -
-          Notes:  pmtrName must be in form 'name', without subscripts
+          notes:  pmtrName must not contain subscripts
                   pmtrName must not start with '@'
                   pmtrName must not refer to an DESPMTR/CONPMTR Parameter
                   pmtrName will be marked as LOCALVAR (or OUTPMTR)
-                  pmtrName is used directly (without evaluation)
                   the type of pmtrName is changed to match the result
                   if global==0, then
                      applies to Attributes on the selected Body
@@ -1106,7 +1147,7 @@ IFTHEN    val1 $op1 val2 $op2=and val3=0 $op3=eq val4=0
                      to next (matching) ELSEIF, ELSE, or ENDIF are skipped
                   cannot be followed by ATTRIBUTE or CSYSTEM
 
-IMPORT    $filename bodynumber=1
+IMPORT    $filename bodynumber=1 getcolors=0
           use:    import from filename
           pops:   -
           pushes: Body
@@ -1115,6 +1156,7 @@ IMPORT    $filename bodynumber=1
                   filename is used directly (without evaluation)
                   if filename starts with '$$/', use path relative to .csm file
                   if bodynumber=-1, then all Bodys are returned in one Group
+                  if getcolors==1, read Colors in STP/IGS files as _color
                   sets up @-parameters
                   the Faces all receive the Branch's Attributes
                   face-order is based upon order in file
@@ -1374,9 +1416,10 @@ PATBEG    $pmtrName ncopy
           pushes: -
           notes:  Solver may not be open
                   Block contains all Branches up to matching PATEND
+                  pmtrName must not be an array name or contain subscripts
                   pmtrName must not start with '@'
+                  pmtrName must not refer to an DESPMTR/CONPMTR Parameter
                   pmtrName takes values from 1 to ncopy (see below)
-                  pmtrName is used directly (without evaluation)
                   cannot be followed by ATTRIBUTE or CSYSTEM
 
 PATBREAK  expr
@@ -1631,8 +1674,10 @@ SELECT    $type arg1 ...
                      uses @selbody
                      if xmin=xmax and ymin=ymax and zmin=zmax
                         sets @sellist to Face whose center is closest to xmin,ymin,zmin
+                     elseif *max>=*min
+                        sets @sellist to Faces whose bboxs are completely in or on given * range
                      else
-                        sets @sellist to Faces whose bboxs are completely in given range
+                        sets @sellist to Faces whose bboxs are partially in or on given * range
                   elseif arguments are: "face -1 ibody1"
                      sets @seltype to 2
                      uses @selbody
@@ -1684,8 +1729,10 @@ SELECT    $type arg1 ...
                      uses @selbody
                      if xmin=xmax and ymin=ymax and zmin=zmax
                         sets @sellist to Edge whose center is closest to xmin,ymin,zmin
+                     elseif *max>=*min
+                        sets @sellist to Edges whose bboxs are completely in or on given * range
                      else
-                        sets @sellist to Edges whose bboxs are completely in given range
+                        sets @sellist to Edges whose bboxs are partially in or on given * range
                   elseif arguments are: "edge attrName1    attrValue1
                                               attrName2=$* attrValue2=$*
                                               attrName3=$* attrValue3=$*"
@@ -1814,7 +1861,6 @@ SET       $pmtrName exprs
                   pmtrName must not start with '@'
                   pmtrName must not refer to an DESPMTR/CONPMTR Parameter
                   pmtrName will be marked as LOCALVAR (or OUTPMTR)
-                  pmtrName is used directly (without evaluation)
                   irow and icol cannot contain a comma or open bracket
                   if exprs has multiple values (separated by ;), then
                      any subscripts in pmtrName are ignored
@@ -2032,7 +2078,7 @@ STORE     $name index=0 keep=0
                      $insufficient_bodys_on_stack
 
 SUBTRACT  $order=none index=1 maxtol=0 scribeAll=0
-          use:    perform Boolean subtraction (Body2 - Body1)
+          use:    perform Boolean subtraction (Body1 - Body2)
           pops:   Body1 Body2
           pushes: Body
           notes:  Sketch may not be open
@@ -2233,6 +2279,9 @@ UDPRIM    $primtype $argName1 argValue1 $argName2 argValue2 ...
                   if primtype starts with $$/
                      then a .udc file in $ESP_ROOT/udc will be used
                      *  $$/name -> path($root)/udc/name.udc
+                  if primtype starts with $$$/
+                     then a .udc file in $ESP_UDC_PATH will be used
+                     *  $$$/path/name -> $ESP_UDC_PATH/path/name.udc
                   primtype  is used directly (without evaluation)
                   path may be omitted
                   arguments are specified in name/value pairs and are
@@ -2361,13 +2410,13 @@ Strings:
        less-than                  <
        greater-than               >
        equal                      =
+       tilde                      ~
     the following characters are not allowed in strings
        apostrophe                 '  (except to escape ', '+ or ') )
        quotation                  "
        hashtag                    #
        backslash                  \
        vertical bar               |
-       tilde                      ~
        ampersand                  &
        exclamation                !
 */
@@ -2706,6 +2755,16 @@ Special User-defined Attributes for Bodys:
     _name       string used in ESP interface for a Body
 
     _stlColor   color to use for all Faces in an .stl file
+
+    ColorFace   default color assigned to front of Faces
+                either R,G,B in three 0-1 reals
+                or $red, $lred, $green, $lgreen, $blue, $lblue,
+                $yellow, $magenta, $cyan, $white, or $black
+
+    ColorEdge   default color assigned to Edges
+                either R,G,B in three 0-1 reals
+                or $red, $lred, $green, $lgreen, $blue, $lblue,
+                $yellow, $magenta, $cyan, $white, or $black
 
 Attributes assigned to Faces:
 

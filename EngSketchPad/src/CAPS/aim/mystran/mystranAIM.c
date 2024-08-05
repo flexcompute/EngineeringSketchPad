@@ -699,7 +699,7 @@ int aimUpdateState(void *instStore, void *aimInfo,
                                  &mystranInstance->feaProblem.numMaterial,
                                  &mystranInstance->feaProblem.feaMaterial);
         AIM_STATUS(aimInfo, status);
-    } else printf("\nLoad tuple is NULL - No materials set\n");
+    } else printf("\nMaterial tuple is NULL - No materials set\n");
 
     // Set property properties
     if (aimInputs[Property-1].nullVal == NotNull) {

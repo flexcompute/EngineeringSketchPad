@@ -1004,57 +1004,63 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
         }
     }
 
-    // Write TACS Mesh
-    AIM_ALLOC(filename ,MXCHAR+1, char, aimInfo, status);
+    if (aim_newGeometry(aimInfo) == CAPS_SUCCESS ||
+        aim_newAnalysisIn(aimInfo, Proj_Name  ) == CAPS_SUCCESS ||
+        aim_newAnalysisIn(aimInfo, Property   ) == CAPS_SUCCESS ||
+        aim_newAnalysisIn(aimInfo, Connect    ) == CAPS_SUCCESS ||
+        aim_newAnalysisIn(aimInfo, File_Format) == CAPS_SUCCESS) {
 
-    strcpy(filename, tacsInstance->projectName);
+      // Write TACS Mesh
+      AIM_ALLOC(filename, strlen(tacsInstance->projectName)+5, char, aimInfo, status);
 
-    status = mesh_writeNASTRAN(aimInfo,
-                               filename,
-                               1,
-                               &tacsInstance->feaProblem.feaMesh,
-                               tacsInstance->feaProblem.numProperty,
-                               tacsInstance->feaProblem.feaProperty,
-                               tacsInstance->feaProblem.feaFileFormat.gridFileType,
-                               1.0);
-    AIM_STATUS(aimInfo, status);
+      strcpy(filename, tacsInstance->projectName);
 
-    // Write TACS subElement types not supported by mesh_writeNASTRAN
-    strcat(filename, ".bdf");
-    fp = aim_fopen(aimInfo, filename, "a");
-    if (fp == NULL) {
+      status = mesh_writeNASTRAN(aimInfo,
+                                 filename,
+                                 1,
+                                 &tacsInstance->feaProblem.feaMesh,
+                                 tacsInstance->feaProblem.numProperty,
+                                 tacsInstance->feaProblem.feaProperty,
+                                 tacsInstance->feaProblem.feaFileFormat.gridFileType,
+                                 1.0);
+      AIM_STATUS(aimInfo, status);
+
+      // Write TACS subElement types not supported by mesh_writeNASTRAN
+      strcat(filename, ".bdf");
+      fp = aim_fopen(aimInfo, filename, "a");
+      if (fp == NULL) {
         AIM_ERROR(aimInfo, "Unable to open file: %s", filename);
         status = CAPS_IOERR;
         goto cleanup;
+      }
+      AIM_FREE(filename);
+
+      printf("Writing subElement types (if any) - appending mesh file\n");
+      status = nastran_writeSubElementCard(aimInfo, fp,
+                                           &tacsInstance->feaProblem.feaMesh,
+                                           tacsInstance->feaProblem.numProperty,
+                                           tacsInstance->feaProblem.feaProperty,
+                                           &tacsInstance->feaProblem.feaFileFormat);
+      AIM_STATUS(aimInfo, status);
+
+      // Connections
+      for (i = 0; i < tacsInstance->feaProblem.numConnect; i++) {
+
+          if (i == 0) {
+              printf("Writing connection cards - appending mesh file\n");
+          }
+
+          status = nastran_writeConnectionCard(fp,
+                                               &tacsInstance->feaProblem.feaConnect[i],
+                                               &tacsInstance->feaProblem.feaFileFormat);
+          AIM_STATUS(aimInfo, status);
+      }
+      if (fp != NULL) fclose(fp);
+      fp = NULL;
     }
-    AIM_FREE(filename);
-
-    printf("Writing subElement types (if any) - appending mesh file\n");
-    status = nastran_writeSubElementCard(aimInfo, fp,
-                                         &tacsInstance->feaProblem.feaMesh,
-                                         tacsInstance->feaProblem.numProperty,
-                                         tacsInstance->feaProblem.feaProperty,
-                                         &tacsInstance->feaProblem.feaFileFormat);
-    AIM_STATUS(aimInfo, status);
-
-    // Connections
-    for (i = 0; i < tacsInstance->feaProblem.numConnect; i++) {
-
-        if (i == 0) {
-            printf("Writing connection cards - appending mesh file\n");
-        }
-
-        status = nastran_writeConnectionCard(fp,
-                                             &tacsInstance->feaProblem.feaConnect[i],
-                                             &tacsInstance->feaProblem.feaFileFormat);
-        AIM_STATUS(aimInfo, status);
-    }
-    if (fp != NULL) fclose(fp);
-    fp = NULL;
 
     // Write nastran input file
-    filename = EG_alloc(MXCHAR +1);
-    if (filename == NULL) { status = EGADS_MALLOC; goto cleanup; }
+    AIM_ALLOC(filename, strlen(tacsInstance->projectName)+5, char, aimInfo, status);
     strcpy(filename, tacsInstance->projectName);
     strcat(filename, ".dat");
 

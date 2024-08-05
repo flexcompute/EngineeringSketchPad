@@ -76,6 +76,14 @@ int populate_regions(void *aimInfo,
                      int length,
                      const capsTuple* tuples);
 
+// Adds one region to regions
+int add_regions(void *aimInfo,
+                const char *name,
+                double x, double y, double z,
+                double attribute,
+                double volume_constraint,
+                tetgenRegionsStruct* regions);
+
 // Initialize a tetgenRegionsStruct regions data structure
 int initiate_regions(tetgenRegionsStruct* regions);
 

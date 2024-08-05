@@ -146,6 +146,8 @@ __ProtoExt__ int  EG_isoCline( const ego surface, int UV, double val,
                                ego *newcurve );
 __ProtoExt__ int  EG_isIsoPCurve( const egObject *pcurve,
                                   int *iUV, double *value, int *fwd );
+__ProtoExt__ int  EG_mergeBSplineCurves( const ego bcurv1, const ego bcurv2,
+                                         ego *bspline );
 __ProtoExt__ int  EG_convertToBSpline( ego geom, ego *bspline );
 __ProtoExt__ int  EG_convertToBSplineRange( ego geom, const double *range,
                                             ego *bspline );
@@ -202,6 +204,8 @@ __ProtoExt__ int  EG_makeNmWireBody( int nobj, const ego *objs, double toler,
                                      ego *result );
 __ProtoExt__ int  EG_replaceFaces( const ego body, int nobj, ego *objs,
                                    ego *result );
+__ProtoExt__ int  EG_removeNodes( const ego body, int nobj, ego *objs,
+                                  ego *result );
 __ProtoExt__ int  EG_mapBody( const ego sBody,   const ego dBody,
                               const char *fAttr, ego *mapBody );
 __ProtoExt__ int  EG_mapBody2(const egObject *sBody,

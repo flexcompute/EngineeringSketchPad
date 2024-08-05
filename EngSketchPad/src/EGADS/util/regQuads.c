@@ -3422,6 +3422,7 @@ EG_swapCollapse(meshMap *qm, quadGroup qg, int forcing, int *activity)
           }
       } else return EGADS_SUCCESS;
   } else return EGADS_SUCCESS;
+  if (i3 == -1) return EGADS_INDEXERR; /* TODO: Something smarter when i3 == -1 ?!?! */
   vOpp3 = (i3 + 3)%6;
   q5    = 0; if (vOpp3 > 3) q5 = 1;
   qC    = qg.q[(q5 + 1)%2];

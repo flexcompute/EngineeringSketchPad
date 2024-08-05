@@ -108,12 +108,12 @@ SELECT    edge  $name    $left
 ASSERT    @sellist.size  1
 
 SELECT    edge  $name    $hole_punch_1
-ASSERT    @sellist.size  3
+ASSERT    @sellist.size  2
 
 SELECT    edge  $name    $hole_punch_2
-ASSERT    @sellist.size  3
+ASSERT    @sellist.size  2
 
 SELECT    edge  $name    $hole_punch_3
-ASSERT    @sellist.size  3
+ASSERT    @sellist.size  2
 
 END

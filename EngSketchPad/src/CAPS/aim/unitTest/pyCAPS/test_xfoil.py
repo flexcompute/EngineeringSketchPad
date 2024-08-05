@@ -18,15 +18,15 @@ class Testxfoil_NACA(unittest.TestCase):
         cls.cleanUp()
 
         # Initialize Problem object
-        cls.myProblem = pyCAPS.Problem(problemName = cls.problemName,
-                                       capsFile = cls.capsFile,
-                                       outLevel = 0)
+        cls.capsProblem = pyCAPS.Problem(problemName = cls.problemName,
+                                         capsFile = cls.capsFile,
+                                         outLevel = 0)
 
         # Change a design parameter - camber in the geometry
-        cls.myProblem.geometry.despmtr.camber = 0.02
+        cls.capsProblem.geometry.despmtr.camber = 0.02
 
         # Load xfoil aim
-        cls.xfoil = cls.myProblem.analysis.create(aim = "xfoilAIM")
+        cls.xfoil = cls.capsProblem.analysis.create(aim = "xfoilAIM")
 
         # Set Mach number, Reynolds number
         cls.xfoil.input.Mach = 0.2
@@ -36,7 +36,7 @@ class Testxfoil_NACA(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         del cls.xfoil
-        del cls.myProblem
+        del cls.capsProblem
         cls.cleanUp()
 
     @classmethod
@@ -53,24 +53,24 @@ class Testxfoil_NACA(unittest.TestCase):
     def test_normalize(self):
 
         # Initialize Problem object
-        myProblem = pyCAPS.Problem(problemName = self.problemName + "_normalize",
-                                       capsFile = os.path.join("..","csmData","airfoilSection.csm"),
-                                       outLevel = 0)
+        capsProblem = pyCAPS.Problem(problemName = self.problemName + "_normalize",
+                                     capsFile = os.path.join("..","csmData","airfoilSection.csm"),
+                                     outLevel = 0)
 
         # Change a design parameter - camber, scale and rotate
-        myProblem.geometry.despmtr.camber = 0.02
-        myProblem.geometry.despmtr.chord = 0.09
-        myProblem.geometry.despmtr.alpha = 10.00
-        myProblem.geometry.despmtr.offset = [0.1, 0.2, 0.3]
+        capsProblem.geometry.despmtr.camber = 0.02
+        capsProblem.geometry.despmtr.chord = 0.09
+        capsProblem.geometry.despmtr.alpha = 10.00
+        capsProblem.geometry.despmtr.offset = [0.1, 0.2, 0.3]
 
         # Load xfoil aim
-        xfoil = myProblem.analysis.create(aim = "xfoilAIM")
+        xfoil = capsProblem.analysis.create(aim = "xfoilAIM")
 
         # Set Mach number, Reynolds number
         xfoil.input.Mach = 0.2
         xfoil.input.Re   = 5.0e5
         xfoil.input.Viscous_Iteration = 100
-        
+
         Alphas =  [0.0, 2.0, 5.0, 7.0, 8.0, 10.0]
 
         # Compute using non-scaled or rotated
@@ -80,7 +80,7 @@ class Testxfoil_NACA(unittest.TestCase):
         ClTrue    = self.xfoil.output.CL
         CdTrue    = self.xfoil.output.CD
         TranXTrue = self.xfoil.output.Transition_Top
-        
+
         self.xfoil.input.Alpha = None
 
         # Set custom AoA
@@ -91,7 +91,7 @@ class Testxfoil_NACA(unittest.TestCase):
         Cl    = xfoil.output.CL
         Cd    = xfoil.output.CD
         TranX = xfoil.output.Transition_Top
-        
+
         # Check
         self.assertEqual(len(AlphaTrue), len(Alpha))
         for i in range(len(AlphaTrue)):
@@ -109,7 +109,45 @@ class Testxfoil_NACA(unittest.TestCase):
         for i in range(len(TranXTrue)):
             self.assertAlmostEqual(TranXTrue[i], TranX[i], 6)
 
+#==============================================================================
+    def off_test_findTE(self):
 
+        # Initialize Problem object
+        capsProblem = pyCAPS.Problem(problemName = self.problemName + "_camber",
+                                     capsFile = os.path.join("..","csmData","airfoilSection.csm"),
+                                     outLevel = 0)
+
+        # Check finding the TE with a very large camber
+        capsProblem.geometry.despmtr.camber = 1.1
+        capsProblem.geometry.cfgpmtr.sharpTE = 0
+
+        # Load xfoil aim
+        xfoil = capsProblem.analysis.create(aim = "xfoilAIM")
+
+        # Set Mach number
+        xfoil.input.Mach = 0.2
+
+        Alphas =  [0.0, 2.0, 5.0, 7.0, 8.0, 10.0]
+
+        # Set custom AoA
+        xfoil.input.Alpha = Alphas
+
+        # Retrieve results
+        Cl    = xfoil.output.CL
+        Cd    = xfoil.output.CD
+        print()
+        print("Cl", Cl)
+        print("Cd", Cd)
+        print()
+
+        # Check
+        self.assertEqual(len(ClTrue), len(Cl))
+        for i in range(len(ClTrue)):
+            self.assertAlmostEqual(ClTrue[i], Cl[i], 6)
+
+        self.assertEqual(len(CdTrue), len(Cd))
+        for i in range(len(CdTrue)):
+            self.assertAlmostEqual(CdTrue[i], Cd[i], 6)
 
 #==============================================================================
     def test_alpha_custom_increment(self):
@@ -200,7 +238,7 @@ class Testxfoil_NACA(unittest.TestCase):
         ClTrue    =  0.1
         CdTrue    =  0.00697
         TranXTrue =  0.8059
-        
+
         # Set custom Cl
         self.xfoil.input.CL = 0.1
 
@@ -324,10 +362,10 @@ class Testxfoil_NACA(unittest.TestCase):
 
         # Initialize Problem object
         problemName = self.problemName + "_Phase"
-        myProblem = pyCAPS.Problem(problemName, phaseName="Phase0", capsFile=self.capsFile, outLevel=0)
+        capsProblem = pyCAPS.Problem(problemName, phaseName="Phase0", capsFile=self.capsFile, outLevel=0)
 
         # Load xfoil aim
-        xfoil = myProblem.analysis.create(aim = "xfoilAIM", name = "xfoil")
+        xfoil = capsProblem.analysis.create(aim = "xfoilAIM", name = "xfoil")
 
         # Set new Mach/Alt parameters
         xfoil.input.Mach  = 0.5
@@ -337,12 +375,12 @@ class Testxfoil_NACA(unittest.TestCase):
         CL = xfoil.output.CL
         CD = xfoil.output.CD
 
-        myProblem.closePhase()
+        capsProblem.closePhase()
 
         # Initialize Problem from the last phase and make a new phase
-        myProblem = pyCAPS.Problem(problemName, phaseName="Phase1", phaseStart="Phase0", outLevel=0)
+        capsProblem = pyCAPS.Problem(problemName, phaseName="Phase1", phaseStart="Phase0", outLevel=0)
 
-        xfoil = myProblem.analysis["xfoil"]
+        xfoil = capsProblem.analysis["xfoil"]
 
         # Retrieve results
         self.assertEqual(CL, xfoil.output.CL)
@@ -362,12 +400,12 @@ class Testxfoil_Kulfan(unittest.TestCase):
         cls.cleanUp()
 
         # Load CSM file
-        cls.myProblem = pyCAPS.Problem(problemName = cls.problemName,
-                                       capsFile = os.path.join("..","csmData","kulfanSection.csm"),
-                                       outLevel = 0)
+        cls.capsProblem = pyCAPS.Problem(problemName = cls.problemName,
+                                         capsFile = os.path.join("..","csmData","kulfanSection.csm"),
+                                         outLevel = 0)
 
         # Load xfoil aim
-        cls.xfoil = cls.myProblem.analysis.create(aim = "xfoilAIM")
+        cls.xfoil = cls.capsProblem.analysis.create(aim = "xfoilAIM")
 
         # Set Mach number, Reynolds number
         cls.xfoil.input.Mach = 0.5
@@ -377,7 +415,7 @@ class Testxfoil_Kulfan(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         del cls.xfoil
-        del cls.myProblem
+        del cls.capsProblem
         cls.cleanUp()
 
     @classmethod
@@ -459,6 +497,111 @@ class Testxfoil_Kulfan(unittest.TestCase):
 
         # Unset custom Cl
         self.xfoil.input.CL = None
+
+
+class Testxfoil_Parsec(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        # Create working directory variable
+        cls.problemName = "workDir_xfoilParsecTest"
+
+        cls.cleanUp()
+
+        # Load CSM file
+        cls.capsProblem = pyCAPS.Problem(problemName = cls.problemName,
+                                         capsFile = os.path.join("..","csmData","parsecSection.csm"),
+                                         outLevel = 0)
+
+        # Load xfoil aim
+        cls.xfoil = cls.capsProblem.analysis.create(aim = "xfoilAIM")
+
+        # Set Mach number, Reynolds number
+        cls.xfoil.input.Mach = 0.5
+        cls.xfoil.input.Re   = 1.0e6
+        cls.xfoil.input.Viscous_Iteration = 100
+
+    @classmethod
+    def tearDownClass(cls):
+        del cls.xfoil
+        del cls.capsProblem
+        cls.cleanUp()
+
+    @classmethod
+    def cleanUp(cls):
+
+        # Remove analysis directories
+        dirs = glob.glob( cls.problemName + '*')
+        for dir in dirs:
+            if os.path.isdir(dir):
+                shutil.rmtree(dir)
+
+#==============================================================================
+    def test_alpha_custom_increment(self):
+
+        AlphaTrue =  [0.0, 1.0, 1.75, 2.5, 3.0, 4.0]
+        ClTrue    =  [0.0, 0.116551006161837, 0.202697964696352, 0.287150860648956, 0.343494900507778, 0.472305881135068]
+        CdTrue    =  [0.00620798257714116, 0.00631820696421362, 0.00654607156464654, 0.00693180688295738, 0.00727050781339858, 0.00829599074999285]
+        TranXTrue =  [0.593028893427919, 0.496005232275858, 0.412049671019148, 0.320575792075857, 0.261365920500577, 0.160530241137239]
+
+        # Set custom AoA
+        self.xfoil.input.Alpha = AlphaTrue
+        self.xfoil.input.CL = None
+
+        # Retrieve results
+        Alpha = self.xfoil.output.Alpha
+        Cl    = self.xfoil.output.CL
+        Cd    = self.xfoil.output.CD
+        TranX = self.xfoil.output.Transition_Top
+        # print()
+        # print("AlphaTrue = ", Alpha)
+        # print("ClTrue    = ", Cl)
+        # print("CdTrue    = ", Cd)
+        # print("TranXTrue = ", TranX)
+
+        self.assertEqual(len(AlphaTrue), len(Alpha))
+        for i in range(len(AlphaTrue)):
+            self.assertAlmostEqual(AlphaTrue[i], Alpha[i], 3)
+
+        self.assertEqual(len(ClTrue), len(Cl))
+        for i in range(len(ClTrue)):
+            self.assertAlmostEqual(ClTrue[i], Cl[i], 3)
+
+        self.assertEqual(len(CdTrue), len(Cd))
+        for i in range(len(CdTrue)):
+            self.assertAlmostEqual(CdTrue[i], Cd[i], 3)
+
+        self.assertEqual(len(TranXTrue), len(TranX))
+        for i in range(len(TranXTrue)):
+            self.assertAlmostEqual(TranXTrue[i], TranX[i], 3)
+
+#==============================================================================
+    def test_Cl(self):
+
+        AlphaTrue =  0.85640
+        ClTrue    =  0.1
+        CdTrue    =  0.0062884
+        TranXTrue =  0.510978571240592
+
+        # Set custom Cl
+        self.xfoil.input.CL = 0.1
+        self.xfoil.input.Alpha = None
+
+        # Retrieve results
+        Alpha = self.xfoil.output.Alpha
+        Cl    = self.xfoil.output.CL
+        Cd    = self.xfoil.output.CD
+        TranX = self.xfoil.output.Transition_Top
+        # print()
+        # print("AlphaTrue = ", Alpha)
+        # print("ClTrue    = ", Cl)
+        # print("CdTrue    = ", Cd)
+        # print("TranXTrue = ", TranX)
+
+        self.assertAlmostEqual(AlphaTrue, Alpha, 3)
+        self.assertAlmostEqual(ClTrue, Cl, 3)
+        self.assertAlmostEqual(CdTrue, Cd, 3)
+        self.assertAlmostEqual(TranXTrue, TranX, 3)
 
 if __name__ == '__main__':
     unittest.main()

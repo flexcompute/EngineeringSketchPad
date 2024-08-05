@@ -46,8 +46,8 @@ typedef int    (*wrDLLFunc) (void);
 typedef double aimMeshCoords[3];
 typedef int    aimMeshIndices[2];
 
-enum aimMeshElem {aimUnknownElem, aimLine, aimTri, aimQuad, aimTet, aimPyramid,
-                  aimPrism, aimHex};
+enum aimMeshElem {aimUnknownElem, aimLine, aimTri, aimQuad,
+                  aimTet, aimPyramid, aimPrism, aimHex};
 
 typedef struct {
   char             *groupName;  /* name of group or NULL */

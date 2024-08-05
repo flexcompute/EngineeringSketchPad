@@ -102,6 +102,8 @@ $(function() {
  Default low speed method integer tag. Range [-1.0, 1.0]</li>
 <li><b> Aero_Surface = NULL</b> <br  />
  Defines the type of aero. surface by associating a "capsGroups" attribute name with a particular panel method - ("capsGroup Name", "Value"), where "Value" can either be "Body", "Base", "Wing", "Inlet", "Cowl", or "Nozzle". If a capsGroup panel method is not defined it will be assumed to be a "Body".</li>
+<li><b> Material_Group = NULL</b> <br  />
+ Defines the type of aero. surface by associating a "capsGroups" attributes with a particular material group - ("Material Name", "Value"), where "Value" must be a JSON String dictionary, see <a class="el" href="cbaeroMaterialGroup.html">CBAero Material Group</a> for additional details.</li>
 <li><b> NumParallelCase = 1</b> <br  />
  Set CBAero -mp to define number of Mach, dynamic pressure, and angle of attack cases to solve simultaneously.<br  />
  May be used in conjunction with NumThreadPerCase.</li>

@@ -33,8 +33,8 @@
 #endif
 
 #define CAPSMAJOR      1
-#define CAPSMINOR     25
-#define CAPSPROP      CAPSprop: Revision 1.25
+#define CAPSMINOR     26
+#define CAPSPROP      CAPSprop: Revision 1.26
 
 #define CAPSMAGIC     1234321
 #define MAXANAL       64

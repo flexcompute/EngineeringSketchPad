@@ -107,6 +107,9 @@
   extern "C" int  EG_getGeometry( const egObject *geom, int *oclass, int *type,
                                   egObject **rGeom, /*@null@*/ int **ivec,
                                   /*@null@*/ double **rvec );
+  DllExport  int  EG_getGeometry( const egObject *geom, int *oclass, int *type,
+                                  egObject **rGeom, /*@null@*/ int **ivec,
+                                  /*@null@*/ SurrealS<1> **rvec );
   extern "C" int  EG_setGeometry_dot( egObject *geom, int oclass, int mtype,
                                       /*@null@*/ const int *ivec,
                                       const double *rvec,
@@ -163,6 +166,9 @@
   extern "C" int  EG_approximate( egObject *context, int maxdeg, double tol,
                                   const int *sizes, const double *xyzs,
                                   egObject **bspline );
+  DllExport  int  EG_approximate( egObject *context, int maxdeg, double tol,
+                                  const int *sizes, const SurrealS<1> *xyzs,
+                                  egObject **bspline );
   extern "C" int  EG_approximate_dot( egObject *bspline, int maxdeg, double tol,
                                       const int *sizes,
                                       const double *data, const double *data_dot );
@@ -175,6 +181,8 @@
   extern "C" int  EG_convertToBSplineRange( egObject *geom, const double *range,
                                             egObject **bspline );
   extern "C" int  EG_convertToBSpline( egObject *geom, egObject **bspline );
+  extern "C" int  EG_mergeBSplineCurves( egObject *crv1, egObject *crv2,
+                                         egObject **bsp );
   extern "C" int  EG_flattenBSpline( egObject *geom, egObject **bspline );
   extern "C" int  EG_addKnots( const egObject *object,
                                int minDegU, int nU, /*@null@*/ double *Us,
@@ -1393,7 +1401,7 @@ EG_getGeometry(const egObject     *geom, int *oclass, int *type,
 
 
 // Surreal version of getGeometry
-int
+DllExport int
 EG_getGeometry(const ego geom, int *oclass, int *mtype, ego *refGeom,
                int **ivec, SurrealS<1> **rvec)
 {
@@ -7427,6 +7435,7 @@ EG_approximate(egObject *context, int maxdeg, double tol, const int *sizes,
   int      i, j, outLevel, stat, fixed, imax, len = 0;
   egObject *obj, *ref;
 
+  if (bspline == NULL)               return EGADS_NULLOBJ;
   *bspline = NULL;
   if (context == NULL)               return EGADS_NULLOBJ;
   if (context->magicnumber != MAGIC) return EGADS_NOTOBJ;
@@ -7595,6 +7604,113 @@ EG_approximate(egObject *context, int maxdeg, double tol, const int *sizes,
 
   *bspline = obj;
   return EGADS_SUCCESS;
+}
+
+
+DllExport int
+EG_approximate(egObject *context, int maxdeg, double tol, const int *sizes,
+               const SurrealS<1> *data, egObject **bspline)
+{
+  int         outLevel, stat, imax, fixed, header[7];
+  SurrealS<1> *rdata=NULL;
+
+  if (bspline == NULL)               return EGADS_NULLOBJ;
+  *bspline = NULL;
+  if (context == NULL)               return EGADS_NULLOBJ;
+  if (context->magicnumber != MAGIC) return EGADS_NOTOBJ;
+  if (context->oclass != CONTXT)     return EGADS_NOTCNTX;
+  if (EG_sameThread(context))        return EGADS_CNTXTHRD;
+  outLevel = EG_outLevel(context);
+  fixed    = EG_fixedKnots(context);
+
+  if ((maxdeg < -3) || (maxdeg > 8)) {
+    if (outLevel > 0)
+      printf(" EGADS Warning: maxDeg = %d (EG_approximate)!\n", maxdeg);
+    return EGADS_RANGERR;
+  }
+
+  if (sizes[1] == -1) {
+    if (maxdeg < -1) {
+      if (outLevel > 0)
+        printf(" EGADS Warning: maxDeg curve = %d (EG_approximate)!\n", maxdeg);
+      return EGADS_RANGERR;
+    }
+    if ((maxdeg < 3) && (sizes[0] > 2)) {
+
+      stat = EG_spline1dFit< SurrealS<1> >(maxdeg, -sizes[0], data,
+                                           NULL, tol, header,
+                                           &rdata);
+      if (stat != EGADS_SUCCESS) goto cleanup;
+
+      stat = EG_makeGeometry(context, CURVE, BSPLINE, NULL, header, rdata, bspline);
+      if (stat != EGADS_SUCCESS) goto cleanup;
+
+      goto cleanup;
+    }
+  }
+
+  if (sizes[1] == 0) {
+    if (maxdeg < -1) {
+      if (outLevel > 0)
+        printf(" EGADS Warning: maxDeg curve = %d (EG_approximate)!\n", maxdeg);
+      return EGADS_RANGERR;
+    }
+    if ((maxdeg < 3) && (sizes[0] > 2)) {
+
+      imax = sizes[0];
+      if (fixed != 0) imax = -imax;
+      stat = EG_spline1dFit< SurrealS<1> >(maxdeg, imax, data,
+                                           NULL, tol, header,
+                                           &rdata);
+      if (stat != EGADS_SUCCESS) goto cleanup;
+
+      stat = EG_makeGeometry(context, CURVE, BSPLINE, NULL, header, rdata, bspline);
+      if (stat != EGADS_SUCCESS) goto cleanup;
+
+    } else {
+      if (outLevel > 0)
+        printf(" EGADS Error: maxDeg = %d > 3 does not have sensitivities (EG_approximate)!\n",
+               maxdeg);
+      stat = EGADS_RANGERR;
+      goto cleanup;
+    }
+
+  } else if ((sizes[0] <= 2) || (sizes[1] < 1)) {
+
+    if (outLevel > 0)
+      printf(" EGADS Error: Sizes = %d %d (EG_approximate)!\n",
+             sizes[0], sizes[1]);
+    stat = EGADS_RANGERR;
+    goto cleanup;
+
+  } else {
+
+    if (maxdeg < 3) {
+      stat = EG_spline2dAppr< SurrealS<1> >(maxdeg, sizes[0], sizes[1], data,
+                                            NULL, NULL, NULL, NULL, NULL,
+                                            NULL, NULL, NULL, NULL,
+                                            tol, header, &rdata);
+      if (stat != EGADS_SUCCESS) goto cleanup;
+
+      stat = EG_makeGeometry(context, CURVE, BSPLINE, NULL, header, rdata, bspline);
+      if (stat != EGADS_SUCCESS) goto cleanup;
+
+    } else {
+      if (outLevel > 0)
+        printf(" EGADS Error: maxDeg = %d > 3 does not have sensitivities (EG_approximate)!\n",
+               maxdeg);
+      stat = EGADS_RANGERR;
+      goto cleanup;
+    }
+
+  }
+
+  stat = EGADS_SUCCESS;
+
+cleanup:
+  EG_free(rdata);
+
+  return stat;
 }
 
 
@@ -9418,6 +9534,281 @@ EG_addKnots(const egObject *object,
 
 
 int
+EG_mergeBSplineCurves(egObject *curve1, egObject *curve2, egObject **bspline)
+{
+  int      i, j, k, outLevel, status, oclass, mtype, len, header[4];
+  int      *ivec, *ivec1 = NULL, *ivec2 = NULL;
+  double   dbb, dbe, deb, dee, dist, mag, alen1, alen2;
+  double   *rvec, *rvec1 = NULL, *rvec2 = NULL;
+  egObject *context, *geom, *ref;
+  
+  *bspline = NULL;
+  if (curve1 == NULL)                return EGADS_NULLOBJ;
+  if (curve1->magicnumber != MAGIC)  return EGADS_NOTOBJ;
+  if (curve1->oclass != CURVE)       return EGADS_NOTGEOM;
+  if (curve1->mtype != BSPLINE)      return EGADS_GEOMERR;
+  if (curve1->blind == NULL)         return EGADS_NODATA;
+  if (EG_sameThread(curve1))         return EGADS_CNTXTHRD;
+  if (curve2 == NULL)                return EGADS_NULLOBJ;
+  if (curve2->magicnumber != MAGIC)  return EGADS_NOTOBJ;
+  if (curve2->oclass != CURVE)       return EGADS_NOTGEOM;
+  if (curve2->mtype != BSPLINE)      return EGADS_GEOMERR;
+  if (curve2->blind == NULL)         return EGADS_NODATA;
+  if (EG_sameThread(curve2))         return EGADS_CNTXTHRD;
+  outLevel = EG_outLevel(curve1);
+  context  = EG_context(curve1);
+  if (context != EG_context(curve2)) return EGADS_MIXCNTX;
+  
+  status = EG_getGeometry(curve1, &oclass, &mtype, &geom, &ivec1, &rvec1);
+  if (status != EGADS_SUCCESS) {
+    if (outLevel > 0)
+      printf(" Error: EG_getGeometry Curve 1 = %d (EG_mergeBSplineCurves)!\n",
+             status);
+    return status;
+  }
+  status = EG_getGeometry(curve2, &oclass, &mtype, &geom, &ivec2, &rvec2);
+  if (status != EGADS_SUCCESS) {
+    if (outLevel > 0)
+      printf(" Error: EG_getGeometry Curve 2 = %d (EG_mergeBSplineCurves)!\n",
+             status);
+    goto cleanup;
+  }
+  if (((ivec1[0]&4) != 0) || ((ivec2[0]&4) != 0)) {
+    if (outLevel > 0)
+      printf(" Error: Periodic Curve(s) (EG_mergeBSplineCurves)!\n");
+    status = EGADS_GEOMERR;
+    goto cleanup;
+  }
+  
+  /* make sure we match degrees */
+  if (ivec1[1] != ivec2[1]) {
+    if (ivec1[1] < ivec2[1]) {
+      status = EG_addKnots(curve1, ivec2[1], 0, NULL, 0, 0, NULL, &geom);
+      if (status != EGADS_SUCCESS) {
+        if (outLevel > 0)
+          printf(" Error: EG_addKnots Curve 1 = %d (EG_mergeBSplineCurves)!\n",
+                 status);
+        goto cleanup;
+      }
+      status = EG_getGeometry(geom, &oclass, &mtype, &ref, &ivec, &rvec);
+      if (status != EGADS_SUCCESS) {
+        if (outLevel > 0)
+          printf(" Error: EG_getGeometry Add 1 = %d (EG_mergeBSplineCurves)!\n",
+                 status);
+        goto cleanup;
+      }
+      EG_free(ivec1);
+      EG_free(rvec1);
+      ivec1 = ivec;
+      rvec1 = rvec;
+    } else {
+      status = EG_addKnots(curve2, ivec1[1], 0, NULL, 0, 0, NULL, &geom);
+      if (status != EGADS_SUCCESS) {
+        if (outLevel > 0)
+          printf(" Error: EG_addKnots Curve 2 = %d (EG_mergeBSplineCurves)!\n",
+                 status);
+        goto cleanup;
+      }
+      status = EG_getGeometry(geom, &oclass, &mtype, &ref, &ivec, &rvec);
+      if (status != EGADS_SUCCESS) {
+        if (outLevel > 0)
+          printf(" Error: EG_getGeometry Add 2 = %d (EG_mergeBSplineCurves)!\n",
+                 status);
+        goto cleanup;
+      }
+      EG_free(ivec2);
+      EG_free(rvec2);
+      ivec2 = ivec;
+      rvec2 = rvec;
+    }
+    EG_deleteObject(geom);
+  }
+  
+  header[0] = 0;
+  header[1] = ivec1[1];
+  header[3] = ivec1[3]  + ivec2[3] - ivec1[1] - 2;
+  header[2] = header[3] - ivec1[1] - 1;
+  
+  /* are we NURBS (rational)? */
+  if (((ivec1[0]&2) != 0) || ((ivec2[0]&2) != 0)) {
+    header[0] = 2;
+    if ((ivec1[0]&2) == 0) {
+      len  = ivec1[3] + 4*ivec1[2];
+      rvec = (double *) EG_reall(rvec1, len*sizeof(double));
+      if (rvec == NULL) {
+        status = EGADS_MALLOC;
+        goto cleanup;
+      }
+      for (i = ivec1[3]+3*ivec1[2]; i < len; i++) rvec[i] = 1.0;
+      rvec1 = rvec;
+    }
+    if ((ivec2[0]&2) == 0) {
+      len  = ivec2[3] + 4*ivec2[2];
+      rvec = (double *) EG_reall(rvec2, len*sizeof(double));
+      if (rvec == NULL) {
+        status = EGADS_MALLOC;
+        goto cleanup;
+      }
+      for (i = ivec2[3]+3*ivec2[2]; i < len; i++) rvec[i] = 1.0;
+      rvec2 = rvec;
+    }
+  }
+  
+  /* make sure both knot sequences are [0,arclen] */
+  status = EG_arcLenX(curve1, rvec1[0], rvec1[ivec1[3]-1], &alen1);
+  if (status != EGADS_SUCCESS) {
+    if (outLevel > 0)
+      printf(" Error: EG_arcLength Curve1 = %d (EG_mergeBSplineCurves)!\n",
+             status);
+    goto cleanup;
+  }
+  status = EG_arcLenX(curve2, rvec2[0], rvec2[ivec2[3]-1], &alen2);
+  if (status != EGADS_SUCCESS) {
+    if (outLevel > 0)
+      printf(" Error: EG_arcLength Curve2 = %d (EG_mergeBSplineCurves)!\n",
+             status);
+    goto cleanup;
+  }
+  mag  = rvec1[ivec1[3]-1] - rvec1[0];
+  dist = rvec1[0];
+  for (i = 0; i < ivec1[3]; i++) rvec1[i] = alen1*(rvec1[i] - dist)/mag;
+  mag  = rvec2[ivec2[3]-1] - rvec2[0];
+  dist = rvec2[0];
+  for (i = 0; i < ivec2[3]; i++) rvec2[i] = alen2*(rvec2[i] - dist)/mag;
+  
+  /* get the connection and set the sense */
+  i   = ivec1[3];
+  j   = ivec2[3];
+  dbb = sqrt((rvec1[i  ]-rvec2[j  ])*(rvec1[i  ]-rvec2[j  ]) +
+             (rvec1[i+1]-rvec2[j+1])*(rvec1[i+1]-rvec2[j+1]) +
+             (rvec1[i+2]-rvec2[j+2])*(rvec1[i+2]-rvec2[j+2]));
+  j   = ivec2[3]+3*(ivec2[2]-1);
+  dbe = sqrt((rvec1[i  ]-rvec2[j  ])*(rvec1[i  ]-rvec2[j  ]) +
+             (rvec1[i+1]-rvec2[j+1])*(rvec1[i+1]-rvec2[j+1]) +
+             (rvec1[i+2]-rvec2[j+2])*(rvec1[i+2]-rvec2[j+2]));
+  i   = ivec1[3]+3*(ivec1[2]-1);
+  dee = sqrt((rvec1[i  ]-rvec2[j  ])*(rvec1[i  ]-rvec2[j  ]) +
+             (rvec1[i+1]-rvec2[j+1])*(rvec1[i+1]-rvec2[j+1]) +
+             (rvec1[i+2]-rvec2[j+2])*(rvec1[i+2]-rvec2[j+2]));
+  j   = ivec2[3];
+  deb = sqrt((rvec1[i  ]-rvec2[j  ])*(rvec1[i  ]-rvec2[j  ]) +
+             (rvec1[i+1]-rvec2[j+1])*(rvec1[i+1]-rvec2[j+1]) +
+             (rvec1[i+2]-rvec2[j+2])*(rvec1[i+2]-rvec2[j+2]));
+  dist = dbb;
+  if (dbe < dist) dist = dbe;
+  if (dee < dist) dist = dee;
+  if (deb < dist) dist = deb;
+  if (outLevel > 1) {
+    if (dbb == dist) printf(" Connection: begin-begin\n");
+    if (dbe == dist) printf(" Connection: begin-end\n");
+    if (deb == dist) printf(" Connection: end-begin\n");
+    if (dee == dist) printf(" Connection: end-end\n");
+  }
+  /* second is connected at the end -- flip */
+  if ((dist == dbb) || (dist == dee)) {
+    if (outLevel > 1) printf(" Reverse Second!\n");
+    for (i = 0; i < ivec2[3]/2; i++) {
+      j        = ivec2[3] - i - 1;
+      mag      = alen2 - rvec2[j];
+      rvec2[j] = alen2 - rvec2[i];
+      rvec2[i] = mag;
+    }
+    if ((ivec2[3]%2) != 0) rvec2[ivec2[3]/2] = alen2 - rvec2[ivec2[3]/2];
+    for (i = 0; i < ivec2[2]/2; i++) {
+      j = ivec2[3] + 3*i;
+      k = ivec2[3] + 3*(ivec2[2] - i - 1);
+      mag        = rvec2[j  ];
+      rvec2[j  ] = rvec2[k  ];
+      rvec2[k  ] = mag;
+      mag        = rvec2[j+1];
+      rvec2[j+1] = rvec2[k+1];
+      rvec2[k+1] = mag;
+      mag        = rvec2[j+2];
+      rvec2[j+2] = rvec2[k+2];
+      rvec2[k+2] = mag;
+    }
+    if (header[0] != 0)
+      for (i = 0; i < ivec2[2]/2; i++) {
+        j = ivec2[3] + 3*ivec2[2] + i;
+        k = ivec2[3] + 3*ivec2[2] + ivec2[2] - i - 1;
+        mag      = rvec2[j];
+        rvec2[j] = rvec2[k];
+        rvec2[k] = mag;
+      }
+  }
+  /* first is connected at the beginning -- swap */
+  if ((dist == dbb) || (dist == dbe)) {
+    if (outLevel > 1) printf(" Swap First & Second!\n");
+    rvec  = rvec1;
+    rvec1 = rvec2;
+    rvec2 = rvec;
+    ivec  = ivec1;
+    ivec1 = ivec2;
+    ivec2 = ivec;
+  }
+  
+  if (outLevel > 1)
+    for (i = 0; i < ivec1[3]; i++) printf(" %3d: %lf\n", i, rvec1[i]);
+  if (outLevel > 1)
+    for (i = 0; i < ivec2[3]; i++) printf(" %3d: %lf\n", i, rvec2[i]);
+  if (outLevel > 1) printf("\n");
+  
+  /* put it all together */
+  len  = header[3] + 3*header[2];
+  if (header[0] != 0) len += header[2];
+  rvec = (double *) EG_alloc(len*sizeof(double));
+  if (rvec == NULL) {
+    status = EGADS_MALLOC;
+    goto cleanup;
+  }
+  /* knot vector */
+  for (i = 0; i < ivec1[3]-ivec1[1]-1; i++) rvec[i] = rvec1[i];
+  k = ivec1[3]-1;
+  for (j = 1; j < ivec2[3]; j++, i++) rvec[i] = rvec2[j] + rvec1[k];
+  if (outLevel > 1)
+    for (i = 0; i < header[3]; i++) printf(" %3d: %lf\n", i, rvec[i]);
+  /* control points */
+  for (j = 0; j < ivec1[2]; j++, i+=3) {
+    rvec[i  ] = rvec1[ivec1[3] + 3*j  ];
+    rvec[i+1] = rvec1[ivec1[3] + 3*j+1];
+    rvec[i+2] = rvec1[ivec1[3] + 3*j+2];
+    if (outLevel > 1)
+      printf("  %3d: %lf %lf %lf\n", j, rvec[i  ], rvec[i+1], rvec[i+2]);
+  }
+  k = ivec1[2];
+  for (j = 1; j < ivec2[2]; j++, i+=3, k++) {
+    rvec[i  ] = rvec2[ivec2[3] + 3*j  ];
+    rvec[i+1] = rvec2[ivec2[3] + 3*j+1];
+    rvec[i+2] = rvec2[ivec2[3] + 3*j+2];
+    if (outLevel > 1)
+      printf("  %3d: %lf %lf %lf\n", k, rvec[i  ], rvec[i+1], rvec[i+2]);
+  }
+  /* weights */
+  if (header[0] != 0) {
+    k = ivec1[3] + 3*ivec1[2];
+    for (j = 0; j < ivec1[2]; j++, i++) rvec[i] = rvec1[j+k];
+    k = ivec2[3] + 3*ivec2[2];
+    for (j = 1; j < ivec2[2]; j++, i++) rvec[i] = rvec2[j+k];
+  }
+
+  status = EG_makeGeometry(context, CURVE, BSPLINE, NULL, header, rvec,
+                           bspline);
+  EG_free(rvec);
+  if (status != EGADS_SUCCESS)
+    if (outLevel > 0)
+      printf(" Error: EG_makeGeometry = %d (EG_mergeBSplineCurves)!\n", status);
+  
+cleanup:
+  EG_free(ivec2);
+  EG_free(rvec2);
+  EG_free(ivec1);
+  EG_free(rvec1);
+  
+  return status;
+}
+
+
+int
 EG_mapSequen(egObject *src, egObject *dst, egObject **result)
 {
   int      i, j, outLevel, stat;
@@ -9875,7 +10266,8 @@ EG_sampleSame(const egObject *geom1, const egObject *geom2)
   int    i, stat;
   double uv[2], result[18], xyz[3], dist;
 
-  if (geom1->mtype == PLANE) {
+  if ((geom1->oclass == SURFACE) && (geom1->mtype == PLANE) &&
+      (geom2->oclass == SURFACE) && (geom2->mtype == PLANE)) {
     double uvs[4][2] = {{-1.0, -1.0}, {-1.0, 1.0}, {1.0, -1.0}, {1.0, 1.0}};
 
     for (i = 0; i < 4; i++) {

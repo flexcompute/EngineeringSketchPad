@@ -1,0 +1,95 @@
+# color4a
+# written by John Dannenhoffer
+
+# make box and color its Faces
+BOX       0  0  0  4  3  2
+
+SELECT    FACE  @nbody 1
+SELECT    ADD   @nbody 2
+   ATTRIBUTE    _color  $red
+
+SELECT    FACE  @nbody 3
+SELECT    ADD   @nbody 4
+   ATTRIBUTE    _color  $green
+
+SELECT    FACE  @nbody 5
+SELECT    ADD   @nbody 6
+   ATTRIBUTE    _color  $blue
+
+SELECT    EDGE  @nbody 1  @nbody  3
+SELECT    ADD   @nbody 1  @nbody  4
+SELECT    ADD   @nbody 1  @nbody  5
+SELECT    ADD   @nbody 1  @nbody  6
+   ATTRIBUTE    _color  $cyan
+
+SELECT    EDGE  @nbody 2  @nbody  3
+SELECT    ADD   @nbody 2  @nbody  4
+SELECT    ADD   @nbody 2  @nbody  5
+SELECT    ADD   @nbody 2  @nbody  6
+   ATTRIBUTE    _color  $magenta
+
+SELECT    EDGE  @nbody 3  @nbody  5
+SELECT    ADD   @nbody 3  @nbody  6
+SELECT    ADD   @nbody 4  @nbody  5
+SELECT    ADD   @nbody 4  @nbody  6
+   ATTRIBUTE    _color  $yellow
+end
+# dump .stp and .igs files with Color attributes
+DUMP      color4.stp  0  0  0  .  1
+DUMP      color4.igs  1  0  0  .  1
+
+# verify that the stack is empty
+ASSERT    @stack[1]  -1
+
+# import the .igs file with Color attributes
+IMPORT    color4.igs  1  1
+
+# verify that we have the correct _color
+SELECT    FACE    $_color  $red
+ASSERT    @sellist.size    2
+
+SELECT    FACE    $_color  $green
+ASSERT    @sellist.size    2
+
+SELECT    FACE    $_color  $blue
+ASSERT    @sellist.size    2
+
+# colors not exported to .igs file
+#SELECT    EDGE    $_color  $cyan
+#ASSERT    @sellist.size    4
+
+#SELECT    EDGE    $_color  $magenta
+#ASSERT    @sellist.size    4
+
+#SELECT    EDGE    $_color  $yellow
+#ASSERT    @sellist.size    4
+
+STORE     .
+
+# import the .stp file with Color attributes
+IMPORT    color4.stp  1  1
+
+# verify that we have the correct _color
+SELECT    FACE    $_color  $red
+ASSERT    @sellist.size    2
+
+SELECT    FACE    $_color  $green
+ASSERT    @sellist.size    2
+
+SELECT    FACE    $_color  $blue
+ASSERT    @sellist.size    2
+
+SELECT    EDGE    $_color  $cyan
+ASSERT    @sellist.size    4
+
+SELECT    EDGE    $_color  $magenta
+ASSERT    @sellist.size    4
+
+SELECT    EDGE    $_color  $yellow
+ASSERT    @sellist.size    4
+
+END
+
+
+
+

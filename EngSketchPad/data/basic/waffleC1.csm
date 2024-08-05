@@ -2,7 +2,7 @@
 # written by John Dannenhoffer
 
 UDPRIM    waffle  filename <<
-   SET  A  1
+   SET  A  1                             # comment
    SET  B  2
    SET  C  3
    SET  D  4
@@ -16,11 +16,11 @@ UDPRIM    waffle  filename <<
    SET  L  12
    SET  M  13
    SET  N  14
-   PATBEG  j  20
+   PATBEG  j  20                         # comment
       POINT  A  AT j  4
       POINT  B  AT j  5
       PATBREAK  j GT 5
-      LINE   .  A  B  myName=!$sheet_+j
+      LINE   .  A  B  myName=!$sheet_+j  # comment
       SET    n  15
    PATEND
 

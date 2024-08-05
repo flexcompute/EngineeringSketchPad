@@ -2163,6 +2163,10 @@ class Analysis(object):
     def analysisDir(self):
         return self._analysisDir
 
+    @analysisDir.setter
+    def analysisDir(self, value):
+        raise AttributeError("Cannot modify attribute: analysisDir")
+
     ## Property returns the name of the CAPS Analysis Object
     @property
     def name(self):

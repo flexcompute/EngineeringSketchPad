@@ -265,7 +265,7 @@ int fea_createMesh(void *aimInfo,
 
         numFEAMesh = feaProblem->meshRefIn->nmap;
 
-        // See if a FEA mesh is available from parent
+        // See if a FEA mesh is available from link
         if (feaProblem->meshRefIn->type == aimAreaMesh ||
             feaProblem->meshRefIn->type == aimSurfaceMesh) {
 
@@ -414,7 +414,7 @@ int fea_createMesh(void *aimInfo,
             }
 
             AIM_ERROR(aimInfo, "Volume meshes not yet supported for structural analysis");
-            status = CAPS_BADVALUE;
+            status = CAPS_NOTIMPLEMENT;
             goto cleanup;
 
 #if 0
@@ -677,6 +677,7 @@ cleanup:
     return status;
 }
 
+#if 0
 // Convert an EGADS body to a boundary element model, modified by Ryan Durscher (AFRL)
 // from code originally written by John Dannenhoffer @ Syracuse University, patterned after code
 // written by Bob Haimes  @ MIT
@@ -1471,6 +1472,7 @@ cleanup:
 
     return status;
 }
+#endif
 
 // Set the fea analysis meta data in a mesh
 int fea_setAnalysisData( void *aimInfo,                       // (in)  AIM structure
@@ -7698,8 +7700,8 @@ int fea_getLoad(void *aimInfo,
                 status = get_mapAttrToIndexIndex(attrMap, (const char *) groupName[groupIndex], &attrIndex);
 
                 if (status == CAPS_NOTFOUND) {
-                    printf("\tName %s not found in attribute map of capsLoads!!!!\n", groupName[groupIndex]);
-                    continue;
+                    AIM_ERROR(aimInfo, "Name '%s' not found in attribute map of capsLoads!!!!", groupName[groupIndex]);
+                    goto cleanup;
 
                 } else if (status != CAPS_SUCCESS) {
 
@@ -12102,6 +12104,7 @@ int fea_getAeroReference(void *aimInfo,
 
     char *refNodeName = NULL;
     char *keyValue = NULL, *keyWord = NULL;
+    char *tempString = NULL;
 
     int numNodes;
     meshNodeStruct **nodes = NULL;
@@ -12126,27 +12129,26 @@ int fea_getAeroReference(void *aimInfo,
          * \endif
          */
         keyWord = "referenceNode";
-        status = search_jsonDictionary(aeroRefTuple[i].value, keyWord, &refNodeName);
-        if (status == CAPS_SUCCESS) {
-            AIM_NOTNULL(refNodeName, aimInfo, status);
+        if (strcmp(aeroRefTuple[i].name, keyWord) == 0) {
 
-            // find node with capsReference == refNodeName
-            status = get_mapAttrToIndexIndex(attrMap, refNodeName, &attrIndex);
-            if (status != CAPS_SUCCESS) {
-                PRINT_ERROR("capsGroup name %s not found in attribute to index map", refNodeName);
-                goto cleanup;
-            }
+          tempString = string_removeQuotation(aeroRefTuple[i].value);
+          AIM_NOTNULL(tempString, aimInfo, status);
 
-            status = mesh_findNodes(&feaProblem->feaMesh, _matchReferenceNode, &attrIndex, &numNodes, &nodes);
-            if (status == CAPS_NOTFOUND) {
-                PRINT_ERROR("No node found with capsReference name %s", refNodeName);
-            }
-            if (status != CAPS_SUCCESS) {
-                goto cleanup;
-            }
+          // find node with capsReference == refNodeName
+          status = get_mapAttrToIndexIndex(attrMap, tempString, &attrIndex);
+          if (status != CAPS_SUCCESS) {
+            AIM_ERROR(aimInfo, "capsGroup name '%s' not found in attribute to index map", tempString);
+            goto cleanup;
+          }
 
-            // set refGridID to the nodeID
-            feaProblem->feaAeroRef.refGridID = nodes[0]->nodeID;
+          status = mesh_findNodes(&feaProblem->feaMesh, _matchReferenceNode, &attrIndex, &numNodes, &nodes);
+          if (status == CAPS_NOTFOUND) {
+            AIM_ERROR(aimInfo, "No node found with capsReference name %s", tempString);
+            goto cleanup;
+          }
+
+          // set refGridID to the nodeID
+          feaProblem->feaAeroRef.refGridID = nodes[0]->nodeID;
         }
 
         /*! \page feaAeroReference
@@ -12161,11 +12163,8 @@ int fea_getAeroReference(void *aimInfo,
         keyWord = "referenceVelocity";
         if (strcmp(aeroRefTuple[i].name, keyWord) == 0) {
             status = string_toDouble(aeroRefTuple[i].value, &feaProblem->feaAeroRef.refVelocity);
-            if (keyValue != NULL) {
-                EG_free(keyValue);
-                keyValue = NULL;
-            }
-            if (status != CAPS_SUCCESS) return status;
+            AIM_FREE(keyValue);
+            AIM_STATUS(aimInfo, status);
         }
 
         /*! \page feaAeroReference
@@ -12180,22 +12179,21 @@ int fea_getAeroReference(void *aimInfo,
         keyWord = "referenceDensity";
         if (strcmp(aeroRefTuple[i].name, keyWord) == 0) {
             status = string_toDouble(aeroRefTuple[i].value, &feaProblem->feaAeroRef.refDensity);
-            if (keyValue != NULL) {
-                EG_free(keyValue);
-                keyValue = NULL;
-            }
-            if (status != CAPS_SUCCESS) return status;
+            AIM_FREE(keyValue);
+            AIM_STATUS(aimInfo, status);
         }
     }
 
     status = CAPS_SUCCESS;
 
-    cleanup:
+cleanup:
 
-        AIM_FREE(refNodeName);
-        AIM_FREE(nodes);
+    AIM_FREE(refNodeName);
+    AIM_FREE(nodes);
+    AIM_FREE(keyValue);
+    AIM_FREE(tempString);
 
-        return status;
+    return status;
 }
 
 // Find feaPropertyStructs with given names in feaProblem

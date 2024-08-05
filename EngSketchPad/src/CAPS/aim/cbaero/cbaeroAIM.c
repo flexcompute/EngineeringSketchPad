@@ -58,6 +58,7 @@
 
 #include "meshUtils.h"
 #include "miscUtils.h"
+#include "jsonUtils.h"
 
 #include "fastWriter.h"
 
@@ -93,6 +94,7 @@ enum aimInputs
   inDefault_Low_Speed_Method,
   inLeading_Edge_Suction,
   inAero_Surface,
+  inMaterial_Group,
   inNumParallelCase,
   inNumThreadPerCase,
   inMesh_Morph,
@@ -517,7 +519,8 @@ cleanup:
   return status;
 }
 
-static int cbaero_appendSetupControl(FILE *fp, /*@unused@*/ aimMeshRef *meshRef, /*@unused@*/ const mapAttrToIndexStruct *groupMap){//, int numTuple, capsTuple controlTuple[]) {
+static int cbaero_appendSetupControl(FILE *fp, /*@unused@*/ aimMeshRef *meshRef, /*@unused@*/ const mapAttrToIndexStruct *groupMap)
+{//, int numTuple, capsTuple controlTuple[]) {
 
   int status;
 
@@ -530,12 +533,11 @@ static int cbaero_appendSetupControl(FILE *fp, /*@unused@*/ aimMeshRef *meshRef,
   return status;
 }
 
-
 static int cbaero_appendSetupAero(void *aimInfo, FILE *fp, aimMeshRef *meshRef,
                                   const mapAttrToIndexStruct *groupMap,
                                   int numTuple, capsTuple *panelTuple,
-                                  char *bodyMethod, char *wingMethod) {
-
+                                  char *bodyMethod, char *wingMethod)
+{
   int status; // Status return
 
   int i, j; // Indexing
@@ -606,11 +608,15 @@ static int cbaero_appendSetupAero(void *aimInfo, FILE *fp, aimMeshRef *meshRef,
         goto cleanup;
       }
 
-      index = CAPSMAGIC;
+      index = -1;
       for (j = 0; j < numTuple; j++) {
         status = get_mapAttrToIndexIndex(groupMap, panelTuple[j].name, &index);
         if (status != CAPS_SUCCESS) {
-          AIM_ERROR(aimInfo, "Attribute name '%s' not found in capsGroup map!\n", panelTuple[j].name);
+          AIM_ERROR(aimInfo, "Aero_Surface name '%s' not found in capsGroup map!", panelTuple[j].name);
+          AIM_ADDLINE(aimInfo, "Available capsGroup attributes:");
+          for (j = 0; j < groupMap->numAttribute; j++) {
+            AIM_ADDLINE(aimInfo, "\t%s", groupMap->attributeName[j]);
+          }
           goto cleanup;
         }
         if (groupIndex == index) {
@@ -619,9 +625,9 @@ static int cbaero_appendSetupAero(void *aimInfo, FILE *fp, aimMeshRef *meshRef,
         }
       }
 
-      if      (index == CAPSMAGIC)                   value = cbaero_selectHighSpeed(aimInfo, bodyMethod); // Default to Body
+      if  (tupleValue == NULL)
+        value = cbaero_selectHighSpeed(aimInfo, bodyMethod); // Default to Body
       else {
-        AIM_NOTNULL(tupleValue, aimInfo, status);
         if (strcasecmp(tupleValue, "Body")  == 0) value = cbaero_selectHighSpeed(aimInfo, bodyMethod);
         else if (strcasecmp(tupleValue, "Base")  == 0) {
           for (itri = 0; itri < tlen; itri++) {
@@ -635,7 +641,7 @@ static int cbaero_appendSetupAero(void *aimInfo, FILE *fp, aimMeshRef *meshRef,
         else if (strcasecmp(tupleValue, "Cowl")  == 0) value = cbaero_selectHighSpeed(aimInfo, bodyMethod);
         else if (strcasecmp(tupleValue, "Nozzle")== 0) value = cbaero_selectHighSpeed(aimInfo, bodyMethod);
         else {
-          AIM_ERROR(aimInfo, "Invalid aero. type, '%s', options: Body, Base, Wing, Inlet, Cowl, Nozzle!", panelTuple[j].value);
+          AIM_ERROR(aimInfo, "Invalid Aero_Surface '%s' value '%s'. Options: Body, Base, Wing, Inlet, Cowl, Nozzle!", panelTuple[j].name, panelTuple[j].value);
           status = CAPS_NOTFOUND;
           goto cleanup;
         }
@@ -660,12 +666,16 @@ static int cbaero_appendSetupAero(void *aimInfo, FILE *fp, aimMeshRef *meshRef,
   fprintf(fp,"%d\n", groupMap->numAttribute); // Number of groups
   for (i = 0; i < groupMap->numAttribute; i++) {
 
-    index = CAPSMAGIC;
+    index = -1;
     for (j = 0; j < numTuple; j++) {
 
       status = get_mapAttrToIndexIndex(groupMap, panelTuple[j].name, &index);
       if (status != CAPS_SUCCESS) {
         AIM_ERROR(aimInfo, "Attribute name '%s' not found in capsGroup map!\n", panelTuple[j].name);
+        AIM_ADDLINE(aimInfo, "Available capsGroup attributes:");
+        for (j = 0; j < groupMap->numAttribute; j++) {
+          AIM_ADDLINE(aimInfo, "\t%s", groupMap->attributeName[j]);
+        }
         goto cleanup;
       }
       if (groupMap->attributeIndex[i] == index) {
@@ -674,7 +684,7 @@ static int cbaero_appendSetupAero(void *aimInfo, FILE *fp, aimMeshRef *meshRef,
       }
     }
 
-    if  (index == CAPSMAGIC)                           {
+    if  (tupleValue == NULL)  {
       value2 = Body;
       value = cbaero_selectHighSpeed(aimInfo, bodyMethod); // Default to Body
     } else {
@@ -698,7 +708,7 @@ static int cbaero_appendSetupAero(void *aimInfo, FILE *fp, aimMeshRef *meshRef,
         value2 = Nozzle;
         value = cbaero_selectHighSpeed(aimInfo, bodyMethod);
       } else {
-        AIM_ERROR(aimInfo, "Invalid aero. type, '%s', options: Body, Base, Wing, Inlet, Cowl, Nozzle!\n", panelTuple[j].value);
+        AIM_ERROR(aimInfo, "Invalid Aero_Surface '%s' value '%s'. Options: Body, Base, Wing, Inlet, Cowl, Nozzle!", panelTuple[j].name, panelTuple[j].value);
         status = CAPS_NOTFOUND;
         goto cleanup;
       }
@@ -758,6 +768,355 @@ cleanup:
   AIM_FREE(efaces);
   AIM_FREE(baseTri);
   AIM_FREE(tupleValue);
+  return status;
+}
+
+static int cbaero_optimization(void *aimInfo, FILE *fp, aimMeshRef *meshRef)
+{
+  int status; // Status return
+
+  int i; // Indexing
+
+  int state, nglobal, nTri = 0;
+  ego body;
+
+  int itri;
+  int iface, nFace;
+
+  int plen, tlen;
+  const double *points, *uv;
+  const int *ptypes, *pindexs, *tris, *tric;
+
+  for (i = 0; i < meshRef->nmap; i++) {
+    status = EG_statusTessBody(meshRef->maps[i].tess, &body, &state, &nglobal);
+    AIM_STATUS(aimInfo, status);
+
+    status = EG_getBodyTopos(body, NULL, FACE, &nFace, NULL);
+    AIM_STATUS(aimInfo, status);
+
+    for (iface = 0; iface < nFace; iface++) {
+      status = EG_getTessFace(meshRef->maps[i].tess, iface + 1, &plen, &points, &uv, &ptypes, &pindexs,
+                              &tlen, &tris, &tric);
+      AIM_STATUS(aimInfo, status);
+
+      nTri += tlen;
+    }
+  }
+
+  fprintf(fp,"Optimization Data:\n");
+  for (itri = 0; itri < nTri; itri++) {
+    fprintf(fp,"0\n");
+  }
+
+  fprintf(fp,"250\n");
+  fprintf(fp,"1.000000\n");
+  for (i = 0; i < 58; i++) {
+    fprintf(fp,"0\n");
+  }
+
+  status = CAPS_SUCCESS;
+
+cleanup:
+  return status;
+}
+
+static int cbaero_material(void *aimInfo, FILE *fp, aimMeshRef *meshRef,
+                           const mapAttrToIndexStruct *groupMap,
+                           int numTuple, capsTuple *materialTuple)
+{
+  int status; // Status return
+
+  int i, j, k; // Indexing
+
+  char *materialName=NULL;
+  int surfaceType;
+  double emissivity;
+
+  int state, nglobal;
+  ego body;
+
+  int itri;
+  int iface, nFace;
+  ego *efaces=NULL;
+
+  int plen, tlen, groupIndex, index;
+  const double *points, *uv;
+  const int *ptypes, *pindexs, *tris, *tric;
+  const char *groupName;
+
+  char *keyValue = NULL;
+  int *numGroupName=NULL;
+  char ***groupNames=NULL;
+
+  const char *materials[17] =
+  {"Non Catalytic",
+   "Fully Catalytic",
+   "RCG",
+   "TUFI",
+   "ORCC Coated ACC",
+   "PCC Coated NEXTEL 440",
+   "RLV Design Goal",
+   "SIRCA",
+   "TABI",
+   "Grey C-9 Coated NEXTEL 440",
+   "SiC – SiC",
+   "C-CAT",
+   "LVP Coated ACC",
+   "SiC Coated Carbon – Russian",
+   "INCONEL 617 PreOxidized",
+   "Mars Fully Catalytic, No O2 Recombination",
+   "Venus Fully Catalytic, No CO Oxidation"
+  };
+
+
+  if (numTuple == 0) {
+    // Default material if non specified
+    fprintf(fp,"Material Group Data:\n");
+    fprintf(fp,"1\n");
+    fprintf(fp,"0 1 1.0\n");
+    for (i = 0; i < meshRef->nmap; i++) {
+      status = EG_statusTessBody(meshRef->maps[i].tess, &body, &state, &nglobal);
+      AIM_STATUS(aimInfo, status);
+
+      status = EG_getBodyTopos(body, NULL, FACE, &nFace,  NULL);
+      AIM_STATUS(aimInfo, status);
+
+      for (iface = 0; iface < nFace; iface++) {
+        status = EG_getTessFace(meshRef->maps[i].tess, iface + 1, &plen, &points, &uv, &ptypes, &pindexs,
+                                &tlen, &tris, &tric);
+        AIM_STATUS(aimInfo, status);
+
+        for (itri = 0; itri < tlen; itri++)
+          fprintf(fp, "1\n");
+      }
+    }
+    status = CAPS_SUCCESS;
+    goto cleanup;
+  }
+
+  AIM_ALLOC(numGroupName, numTuple, int, aimInfo, status);
+  for (i = 0; i < numTuple; i++) numGroupName[i] = 0;
+  AIM_ALLOC(groupNames, numTuple, char**, aimInfo, status);
+  for (i = 0; i < numTuple; i++) groupNames[i] = NULL;
+
+  /*!\page cbaeroMaterialGroup CBAero Material Group
+   * Structure for the Material_Group tuple  = ("Material Name", "Value").
+   * The "Value" must be a JSON String dictionary.
+   *
+   * If no Material_Group is specified, a default material of "Non Catalytic" with emissity of "1.0" is applied to all capsGroups.
+   *
+   * \section jsonMaterialGroup Material Group JSON String Dictionary
+   *
+   * For the JSON string "Value" dictionary
+   *  (e.g. "Value" = {"surfaceType": 1, "emissivity": 0.8})
+   *  the following keywords ( = default values) may be used:
+   */
+
+  fprintf(fp,"Material Group Data:\n");
+  fprintf(fp,"%d\n", numTuple);
+
+  for (i = 0; i < numTuple; i++) {
+
+    /*!\page cbaeroMaterialGroup
+     * <ul>
+     * <li> <B>surfaceType</B> </li> <br>
+     *    The surface type must be a string integer, e.g. "0" or "10, <br>
+     *    or a case insensitive partial match to one of:
+     * - "Non Catalytic" <br>
+     * - "Fully Catalytic" <br>
+     * - "RCG" <br>
+     * - "TUFI" <br>
+     * - "ORCC Coated ACC" <br>
+     * - "PCC Coated NEXTEL 440" <br>
+     * - "RLV Design Goal" <br>
+     * - "SIRCA" <br>
+     * - "TABI" <br>
+     * - "Grey C-9 Coated NEXTEL 440" <br>
+     * - "SiC – SiC" <br>
+     * - "C-CAT" <br>
+     * - "LVP Coated ACC" <br>
+     * - "SiC Coated Carbon – Russian" <br>
+     * - "INCONEL 617 PreOxidized" <br>
+     * - "Mars Fully Catalytic, No O2 Recombination" <br>
+     * - "Venus Fully Catalytic, No CO Oxidation" <br>
+     * </ul>
+     */
+
+    status = json_getString(materialTuple[i].value, "surfaceType", &materialName);
+    if (status != CAPS_SUCCESS) {
+      AIM_ERROR(aimInfo, "missing required entry \"surfaceType\" in 'Material_Group' input");
+      status = CAPS_BADVALUE;
+      goto cleanup;
+    }
+    AIM_NOTNULL(materialName, aimInfo, status);
+
+    surfaceType = -1;
+    for (j = 0; j < sizeof(materials)/sizeof(char*); j++) {
+      if (strcasecmp(materialName, materials[j]) == 0) {
+        surfaceType = j;
+        break;
+      }
+    }
+    if (surfaceType == -1) {
+      if(strspn(materialName, "0123456789") == strlen(materialName))
+        surfaceType = atoi(materialTuple[i].name);
+    }
+    if (surfaceType == -1) {
+      AIM_ERROR(aimInfo, "Material_Group '%s' surfaceType '%s' not found!", materialTuple[i].name, materialName);
+      AIM_ADDLINE(aimInfo, "Available material names:");
+      for (j = 0; j < sizeof(materials)/sizeof(char*); j++) {
+        AIM_ADDLINE(aimInfo, "\t%s", materials[j]);
+      }
+      status = CAPS_NOTFOUND;
+      goto cleanup;
+    }
+    AIM_FREE(materialName);
+
+
+    /*!\page cbaeroMaterialGroup
+     * <ul>
+     * <li> <B>emissivity</B> </li> <br>
+     *    Emissivity of the material [0 - 1]
+     * </ul>
+     */
+    status = json_getDouble(materialTuple[i].value, "emissivity", &emissivity);
+    if (status != CAPS_SUCCESS) {
+      AIM_ERROR(aimInfo, "missing required entry \"emissivity\" in 'Material_Group' input");
+      status = CAPS_BADVALUE;
+      goto cleanup;
+    }
+
+    /*! \page cbaeroMaterialGroup
+     *
+     * <ul>
+     *  <li> <B>groupName = "(no default)"</B> </li> <br>
+     *  Single or list of <c>capsGroup</c> names on which to apply the material
+     *  (e.g. "Name1" or ["Name1","Name2",...]).
+     * </ul>
+     */
+    status = search_jsonDictionary( materialTuple[i].value, "groupName", &keyValue);
+    if (status == CAPS_SUCCESS) {
+      status = string_toStringDynamicArray(keyValue, &numGroupName[i], &groupNames[i]);
+      AIM_FREE(keyValue);
+      AIM_STATUS(aimInfo, status);
+    } else {
+      AIM_ERROR(aimInfo, "missing required entry \"groupName\" in 'Material_Group' input");
+      status = CAPS_BADVALUE;
+      goto cleanup;
+    }
+
+    fprintf(fp,"%d 1 %.8f\n", surfaceType, emissivity);
+  }
+
+  for (i = 0; i < meshRef->nmap; i++) {
+    status = EG_statusTessBody(meshRef->maps[i].tess, &body, &state, &nglobal);
+    AIM_STATUS(aimInfo, status);
+
+    status = EG_getBodyTopos(body, NULL, FACE, &nFace, &efaces);
+    AIM_STATUS(aimInfo, status);
+    AIM_NOTNULL(efaces, aimInfo, status);
+
+    for (iface = 0; iface < nFace; iface++) {
+      status = EG_getTessFace(meshRef->maps[i].tess, iface + 1, &plen, &points, &uv, &ptypes, &pindexs,
+                              &tlen, &tris, &tric);
+      AIM_STATUS(aimInfo, status);
+
+      status = retrieve_CAPSGroupAttr(efaces[iface], &groupName);
+      AIM_STATUS (aimInfo, status );
+      AIM_NOTNULL(groupName, aimInfo, status);
+      status = get_mapAttrToIndexIndex(groupMap, groupName, &groupIndex);
+      if (status != CAPS_SUCCESS) {
+        AIM_ERROR(aimInfo, "No capsGroup \"%s\" not found in attribute map", groupName);
+        goto cleanup;
+      }
+
+      index = -1;
+      for (j = 0; j < numTuple; j++) {
+        for (k = 0; k < numGroupName[j]; k++) {
+          get_mapAttrToIndexIndex(groupMap, groupNames[j][k], &index);
+          if (groupIndex == index) {
+            for (itri = 0; itri < tlen; itri++) {
+              fprintf(fp,"%d\n", j+1);
+            }
+            break;
+          }
+        }
+        if (groupIndex == index) break;
+      }
+
+      if (j == numTuple) {
+        AIM_ERROR(aimInfo, "capsGroup '%s' not found in Material_Group groupName!", groupName);
+        AIM_ADDLINE(aimInfo, "Available Material_Group groupName:");
+        for (j = 0; j < numTuple; j++) {
+          for (k = 0; k < numGroupName[j]; k++) {
+            AIM_ADDLINE(aimInfo, "\t%s",  groupNames[j][k]);
+          }
+        }
+        status = CAPS_NOTFOUND;
+        goto cleanup;
+      }
+
+    }
+    AIM_FREE(efaces);
+
+  }
+
+  status = CAPS_SUCCESS;
+
+cleanup:
+  AIM_FREE(materialName);
+  AIM_FREE(efaces);
+  if (groupNames != NULL)
+    for (i = 0; i < numTuple; i++)
+      AIM_FREE(groupNames[i]);
+
+  AIM_FREE(numGroupName);
+  AIM_FREE(groupNames);
+
+  return status;
+}
+
+static int cbaero_structure(void *aimInfo, FILE *fp, aimMeshRef *meshRef)
+{
+  int status; // Status return
+
+  int i; // Indexing
+
+  int state, nglobal, nTri = 0;
+  ego body;
+
+  int itri;
+  int iface, nFace;
+
+  int plen, tlen;
+  const double *points, *uv;
+  const int *ptypes, *pindexs, *tris, *tric;
+
+  for (i = 0; i < meshRef->nmap; i++) {
+    status = EG_statusTessBody(meshRef->maps[i].tess, &body, &state, &nglobal);
+    AIM_STATUS(aimInfo, status);
+
+    status = EG_getBodyTopos(body, NULL, FACE, &nFace, NULL);
+    AIM_STATUS(aimInfo, status);
+
+    for (iface = 0; iface < nFace; iface++) {
+      status = EG_getTessFace(meshRef->maps[i].tess, iface + 1, &plen, &points, &uv, &ptypes, &pindexs,
+                              &tlen, &tris, &tric);
+      AIM_STATUS(aimInfo, status);
+
+      nTri += tlen;
+    }
+  }
+
+  fprintf(fp,"Structure Zones Data (v.10):\n");
+  fprintf(fp,"0\n");
+  for (itri = 0; itri < nTri; itri++) {
+    fprintf(fp,"0\n");
+  }
+
+  status = CAPS_SUCCESS;
+
+cleanup:
   return status;
 }
 
@@ -868,13 +1227,36 @@ static int cbaero_writeSetup(void *aimInfo, const aimStorage *cbaeroInstance, ca
 
   fprintf(fp,"Trajectory Constraint Triangles:\n");
   fprintf(fp,"0\n");
-  /*fprintf(fp,"Optimization Data:\n");
-  for (i = 0; i < cbaeroInstance->surfaceMesh->numElement; i++) {
 
-    if (cbaeroInstance->surfaceMesh->element[i].elementType != Triangle) continue;
-    fprintf(fp,"0\n");
-  }
-   */
+  status = cbaero_optimization(aimInfo, fp, meshRef);
+  AIM_STATUS(aimInfo, status);
+
+  fprintf(fp,"Wake Carry Thrus:\n");
+  fprintf(fp,"0\n");
+  fprintf(fp,"Wake Nodes:\n");
+  fprintf(fp,"0\n");
+  fprintf(fp,"Wake Tris:\n");
+  fprintf(fp,"0\n");
+
+  status = cbaero_material(aimInfo, fp, meshRef,
+                           groupMap,
+                           aimInputs[inMaterial_Group-1].length,
+                           aimInputs[inMaterial_Group-1].vals.tuple);
+  AIM_STATUS(aimInfo, status);
+
+  status = cbaero_structure(aimInfo, fp, meshRef);
+  AIM_STATUS(aimInfo, status);
+
+  fprintf(fp,"0\n"); // not sure what these are for...
+  fprintf(fp,"0\n"); // not sure what these are for...
+  fprintf(fp,"Not_Specified\n"); // not sure what these are for...
+  fprintf(fp,"0\n"); // not sure what these are for...
+  fprintf(fp,"0\n"); // not sure what these are for...
+  fprintf(fp,"0.0\n"); // not sure what these are for...
+
+  fprintf(fp,"Propulsion Data\n"); // colon missing on purpose (why cbaero?)
+  fprintf(fp,"0\n");
+
   status = CAPS_SUCCESS;
 
 cleanup:
@@ -1190,6 +1572,20 @@ int aimInputs(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo,
      * to be a "Body".
      *
      */
+
+  } else if (index == inMaterial_Group) {
+    *ainame              = EG_strdup("Material_Group");
+    defval->type         = Tuple;
+    defval->nullVal      = IsNull;
+    defval->dim          = Vector;
+    defval->lfixed       = Change;
+    defval->vals.tuple   = NULL;
+
+    /*! \page aimInputsCBAERO
+     * - <B> Material_Group = NULL</B> <br>
+     * Defines the type of aero. surface by associating a "capsGroups" attributes with a particular material group - ("Material Name", "Value"),
+     * where "Value" must be a JSON String dictionary, see \ref cbaeroMaterialGroup for additional details.
+    */
 
   } else if (index == inNumParallelCase) {
     *ainame              = EG_strdup("NumParallelCase");

@@ -28,7 +28,7 @@ int fea_createMesh(void *aimInfo,
                    int *numMesh,                        // (out) total number of FEA mesh structures
                    meshStruct **feaMesh,                // (out) FEA mesh structure
                    feaProblemStruct *feaProblem );      // (out) FEA problem structure
-
+#if 0
 // Convert an EGADS body to a boundary element model, modified by Ryan Durscher (AFRL)
 // from code written by John Dannenhoffer @ Syracuse University, patterned after code
 // written by Bob Haimes  @ MIT
@@ -47,7 +47,7 @@ int fea_bodyToBEM(void *aimInfo,                       // (in)  AIM structure
                   mapAttrToIndexStruct *responseMap,   // (in)  map from CAPSResponse names to indexes
                   mapAttrToIndexStruct *referenceMap,  // (in)  map from CAPSReference names to indexes
                   meshStruct *feaMesh);                // (out) FEA mesh structure
-
+#endif
 // Set the fea analysis meta data in a mesh
 int fea_setAnalysisData( void *aimInfo,                       // (in)  AIM structure
                          mapAttrToIndexStruct *attrMap,       // (in)  map from CAPSGroup names to indexes

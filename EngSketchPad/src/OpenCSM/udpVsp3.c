@@ -83,6 +83,7 @@ static char message[1024];
 
 static int runVsp3(modl_T *MODL, char filename[], ego  *emodel, int *NumUdp, udp_T *udps);
 static int processStepFile(ego context, char filename[], ego *ebody);
+static int mapEdgesAndNodes(ego ebodyA, ego ebodyB, int eMap[], int nMap[]);
 
 typedef struct {
     int     ipmtr;            /* Parameter index (1:npmtr) or -1 for end */
@@ -357,15 +358,16 @@ udpSensitivity(ego    ebody,            /* (in)  Body pointer */
     privdata_T *privdata0=NULL, *privdata1=NULL;
 
     int     ptype, nrow, irow, ncol, icol, builtTo, nbody;
-    int     ibody, jbody, iprim, i, periodic, attrType, attrLen;
+    int     ibody, jbody, ibody_save, iprim, i, j, periodic, attrType, attrLen;
     int     oclass, oclass0, oclass1, mtype, mtype0, mtype1, nchild, nchild0, nchild1, nbody0, nbody1;
-    int     nnode0, nnode1, inode, jnode, knode;
-    int     nedge0, nedge1, iedge, jedge, kedge;
-    int     nface0, nface1, iface, jface, kface;
+    int     nnode0, nnode1, inode, jnode;
+    int     nedge0, nedge1, iedge, jedge;
+    int     nface0, nface1, iface, jface;
     int     ichild, *senses, ntemp, iknot, icp;
     int     *header0, *header1;
+    int     *eeMap=NULL, *nnMap=NULL;
     double  value, dot, data[18], uvs_dot[2], data_dot[18], *rdata0=NULL, *rdata1=NULL, *rdata_dot=NULL;
-    double  trange[2], trange_dot[2];
+    double  swap, trange[2], trange_dot[2];
     double  dtime = 0.00001;
     char    pname[MAX_NAME_LEN];
     CCHAR   *filename0, *filename1;
@@ -416,6 +418,8 @@ udpSensitivity(ego    ebody,            /* (in)  Body pointer */
         status = OCSM_INTERNAL_ERROR;
         goto cleanup;
     }
+
+    ibody_save = ibody;
 
     /* if we already have _dots, we can skip directly to evaluation */
     status = EG_hasGeometry_dot(ebody);
@@ -562,13 +566,29 @@ udpSensitivity(ego    ebody,            /* (in)  Body pointer */
     for (ichild = 0; ichild < nbody0; ichild++) {
         ibody = privdata0->ifirst + ichild;
 
-        /* ... Nodes first */
+        /* find the mapping between the base and perturbed MODELS */
+//$$$        status = EG_mapBody(ebodys0[ichild], ebodys1[ichild], "_vspFace", &mapped);
+//$$$        CHECK_STATUS(EG_mapBody);
+
+        status = EG_getBodyTopos(ebodys0[ichild], NULL, EDGE, &nedge0, &eedges0);
+        CHECK_STATUS(EG_getBodyTopos);
+
+        status = EG_getBodyTopos(ebodys1[ichild], NULL, EDGE, &nedge1, &eedges1);
+        CHECK_STATUS(EG_getBodyTopos);
+
         status = EG_getBodyTopos(ebodys0[ichild], NULL, NODE, &nnode0, &enodes0);
         CHECK_STATUS(EG_getBodyTopos);
 
         status = EG_getBodyTopos(ebodys1[ichild], NULL, NODE, &nnode1, &enodes1);
         CHECK_STATUS(EG_getBodyTopos);
 
+        MALLOC(eeMap, int, nedge0+1);
+        MALLOC(nnMap, int, nnode0+1);
+
+        status = mapEdgesAndNodes(ebodys0[ichild], ebodys1[ichild], eeMap, nnMap);
+        CHECK_STATUS(mapEdgesAndNodes);
+
+        /* ... Nodes first */
         if (nnode0 != nnode1) {
             printf("ichild=%d, nnode0=%d, nnode1=%d\n",
                    ichild, nnode0, nnode1);
@@ -576,25 +596,18 @@ udpSensitivity(ego    ebody,            /* (in)  Body pointer */
             goto cleanup;
         }
 
-        for (inode = 0; inode < nnode0; inode++) {
-            jnode = 0;
-            for (knode = 1; knode <= MODL->body[ibody].nnode; knode++) {
-                status = EG_isEquivalent(enodes0[inode], MODL->body[ibody].node[knode].enode);
-                if (status == EGADS_SUCCESS) {
-                    jnode = knode;
-                    break;
-                }
-            }
+        for (inode = 1; inode <= nnode0; inode++) {
+            jnode = nnMap[inode];
 
             MALLOC(rdata0,    double, 3);
             MALLOC(rdata1,    double, 3);
             MALLOC(rdata_dot, double, 3);
 
-            status = EG_getTopology(enodes0[inode], &eref, &oclass, &mtype,
+            status = EG_getTopology(enodes0[inode-1], &eref, &oclass, &mtype,
                                     rdata0, &nchild, &echilds, &senses);
             CHECK_STATUS(EG_getTopology);
 
-            status = EG_getTopology(enodes1[inode], &eref, &oclass, &mtype,
+            status = EG_getTopology(enodes1[jnode-1], &eref, &oclass, &mtype,
                                     rdata1, &nchild, &echilds, &senses);
             CHECK_STATUS(EG_getTopology);
 
@@ -602,7 +615,7 @@ udpSensitivity(ego    ebody,            /* (in)  Body pointer */
                 rdata_dot[i] = (rdata1[i] - rdata0[i]) / dtime;
             }
 
-            status = EG_setGeometry_dot(MODL->body[ibody].node[jnode].enode, NODE, 0, NULL,
+            status = EG_setGeometry_dot(MODL->body[ibody].node[inode].enode, NODE, 0, NULL,
                                         rdata0, rdata_dot);
             CHECK_STATUS(EG_setGeometry_dot);
 
@@ -615,12 +628,6 @@ udpSensitivity(ego    ebody,            /* (in)  Body pointer */
         EG_free(enodes1);
 
         /* ... Edges second */
-        status = EG_getBodyTopos(ebodys0[ichild], NULL, EDGE, &nedge0, &eedges0);
-        CHECK_STATUS(EG_getBodyTopos);
-
-        status = EG_getBodyTopos(ebodys1[ichild], NULL, EDGE, &nedge1, &eedges1);
-        CHECK_STATUS(EG_getBodyTopos);
-
         if (nedge0 != nedge1) {
             printf("ichild=%d, nedge0=%d, nedge1=%d\n",
                    ichild, nedge0, nedge1);
@@ -628,46 +635,32 @@ udpSensitivity(ego    ebody,            /* (in)  Body pointer */
             goto cleanup;
         }
 
-        /* ...... trange (even for degenerate Edges) */
-        for (jedge = 1; jedge <= MODL->body[ibody].nedge; jedge++) {
-            status = EG_getRange(MODL->body[ibody].edge[jedge].eedge, trange, &periodic);
+        for (iedge = 1; iedge <= nedge0; iedge++) {
+            jedge = abs(eeMap[iedge]);
+
+            status = EG_getRange(MODL->body[ibody].edge[iedge].eedge, trange, &periodic);
             CHECK_STATUS(EG_getRange);
 
             trange_dot[0] = 0;
             trange_dot[1] = 0;
 
-            status = EG_setRange_dot(MODL->body[ibody].edge[jedge].eedge, EDGE, trange, trange_dot);
+            status = EG_setRange_dot(MODL->body[ibody].edge[iedge].eedge, EDGE, trange, trange_dot);
             CHECK_STATUS(EG_setRange_dot);
-        }
 
-        /* ...... curves associated with Edges */
-        for (iedge = 0; iedge < nedge0; iedge++) {
-            jedge = 0;
-            for (kedge = 1; kedge <= MODL->body[ibody].nedge; kedge++) {
-                status = EG_isEquivalent(eedges0[iedge], MODL->body[ibody].edge[kedge].eedge);
-                if (status == EGADS_SUCCESS) {
-                    jedge = kedge;
-                    break;
-                }
+            status = EG_getTopology(eedges0[iedge-1], &ecurve0, &oclass, &mtype,
+                                    data, &nchild0, &echilds0, &senses);
+            CHECK_STATUS(EG_getTopology);
+
+            if (mtype == DEGENERATE) {
+                continue;
             }
-
-            status = EG_getTopology(eedges0[iedge], &ecurve0, &oclass, &mtype,
-                                    data, &ntemp, &etemps, &senses);
-            CHECK_STATUS(EG_getTopology);
-
-            if (mtype == DEGENERATE) continue;
-
-            status = EG_getTopology(eedges1[iedge], &ecurve1, &oclass, &mtype,
-                                    data, &ntemp, &etemps, &senses);
-            CHECK_STATUS(EG_getTopology);
-
-            if (mtype == DEGENERATE) continue;
-
-            header0 = NULL;
-            header1 = NULL;
 
             status = EG_getGeometry(ecurve0, &oclass0, &mtype0, &eref, &header0, &rdata0);
             CHECK_STATUS(EG_getGeometry);
+
+            status = EG_getTopology(eedges1[jedge-1], &ecurve1, &oclass, &mtype,
+                                    data, &nchild1, &echilds1, &senses);
+            CHECK_STATUS(EG_getTopology);
 
             status = EG_getGeometry(ecurve1, &oclass1, &mtype1, &eref, &header1, &rdata1);
             CHECK_STATUS(EG_getGeometry);
@@ -698,6 +691,30 @@ udpSensitivity(ego    ebody,            /* (in)  Body pointer */
                 }
             }
 
+            /* reverse the control points in rdata1 if the Edges go in
+               opposite directions */
+            if (eeMap[iedge] < 0) {
+                printf("edge %d appears to be reversed\n", iedge);
+
+                j = header1[2] - 1;
+                for (i = 0; i < header1[2]/2; i++) {
+
+                    swap                     = rdata1[header1[3]+3*i  ];
+                    rdata1[header1[3]+3*i  ] = rdata1[header1[3]+3*j  ];
+                    rdata1[header1[3]+3*j  ] = swap;
+
+                    swap                     = rdata1[header1[3]+3*i+1];
+                    rdata1[header1[3]+3*i+1] = rdata1[header1[3]+3*j+1];
+                    rdata1[header1[3]+3*j+1] = swap;
+
+                    swap                     = rdata1[header1[3]+3*i+2];
+                    rdata1[header1[3]+3*i+2] = rdata1[header1[3]+3*j+2];
+                    rdata1[header1[3]+3*j+2] = swap;
+
+                    j--;
+                }
+            }
+
             /* store the _dots on the curve */
             MALLOC(rdata_dot, double, header0[3]+3*header0[2]);
 
@@ -715,7 +732,7 @@ udpSensitivity(ego    ebody,            /* (in)  Body pointer */
                 rdata_dot[icp] = (rdata1[icp] - rdata0[icp]) / dtime;
             }
 
-            status = EG_getTopology(MODL->body[ibody].edge[jedge].eedge, &ecurve, &oclass, &mtype,
+            status = EG_getTopology(MODL->body[ibody].edge[iedge].eedge, &ecurve, &oclass, &mtype,
                                     data, &ntemp, &etemps, &senses);
             CHECK_STATUS(EG_getTopology);
 
@@ -747,21 +764,14 @@ udpSensitivity(ego    ebody,            /* (in)  Body pointer */
             goto cleanup;
         }
 
-        for (iface = 0; iface < nface0; iface++) {
-            jface = 0;
-            for (kface = 1; kface <= MODL->body[ibody].nface; kface++) {
-                status = EG_isEquivalent(efaces0[iface], MODL->body[ibody].face[kface].eface);
-                if (status == EGADS_SUCCESS) {
-                    jface = kface;
-                    break;
-                }
-            }
+        for (iface = 1; iface <= nface0; iface++) {
+            jface = iface;
 
-            status = EG_getTopology(efaces0[iface], &esurf0, &oclass, &mtype,
+            status = EG_getTopology(efaces0[iface-1], &esurf0, &oclass, &mtype,
                                     data, &nchild0, &echilds0, &senses);
             CHECK_STATUS(EG_getTopology);
 
-            status = EG_getTopology(efaces1[iface], &esurf1, &oclass, &mtype,
+            status = EG_getTopology(efaces1[jface-1], &esurf1, &oclass, &mtype,
                                     data, &nchild1, &echilds1, &senses);
             CHECK_STATUS(EG_getTopology);
 
@@ -844,6 +854,9 @@ udpSensitivity(ego    ebody,            /* (in)  Body pointer */
         /* verify that the Body has dots */
         status = EG_hasGeometry_dot(MODL->body[ibody].ebody);
         CHECK_STATUS(EG_hasGeometry_dot);
+
+        FREE(eeMap);
+        FREE(nnMap);
     }
 
      /* remove the perturbed Body */
@@ -859,6 +872,8 @@ udpSensitivity(ego    ebody,            /* (in)  Body pointer */
     CHECK_STATUS(EG_hasGeometry_dot);
 
 evaluate:
+    ibody = ibody_save;
+
     /* evaluate the velocities from the _dots stored in MODL */
     if (entType == OCSM_NODE) {
         inode = entIndex;
@@ -1193,7 +1208,16 @@ processStepFile(ego    context,         /* (in)  EGADS context */
                                          NULL, NULL, bodyName);
                 CHECK_STATUS(EG_attributeAdd);
 
-                status = EG_attributeAdd(newBodys[nbody-1], "_vspBody", ATTRINT, 1, &nbody, NULL, NULL);
+                status = EG_attributeAdd(newBodys[nbody-1], "_vspBody", ATTRINT, 1,
+                                         &nbody, NULL, NULL);
+                CHECK_STATUS(EG_attributeAdd);
+
+                status = EG_attributeAdd(newBodys[nbody-1], "_vspID", ATTRSTRING,
+                                         strlen(oldGeomID), NULL, NULL, oldGeomID);
+                CHECK_STATUS(EG_attributeAdd);
+
+                status = EG_attributeAdd(newBodys[nbody-1], "_vspSurf", ATTRSTRING,
+                                         strlen(oldSurfNum), NULL, NULL, oldSurfNum);
                 CHECK_STATUS(EG_attributeAdd);
 
                 printf("   Made Body %3d (%s) with %d Faces\n", nbody-1, bodyName, nface);
@@ -1315,7 +1339,7 @@ processStepFile(ego    context,         /* (in)  EGADS context */
 #undef XCP
 #undef YCP
 #undef ZCP
-        
+
         status = EG_makeGeometry(context, oclass, mtype, NULL, header, rdata, &esurf);
         CHECK_STATUS(EG_makeGeometry);
 
@@ -1403,6 +1427,276 @@ processStepFile(ego    context,         /* (in)  EGADS context */
 cleanup:
     FREE(efaces  );
     FREE(newBodys);
+
+    return status;
+}
+
+
+/*
+ ************************************************************************
+ *                                                                      *
+ *   mapEdgesAndNodes - find mapping for Edges and Nodes between Bodys  *
+ *                                                                      *
+ ************************************************************************
+ */
+
+static int
+mapEdgesAndNodes(ego    ebodyA,         /* (in)  first  Body */
+                 ego    ebodyB,         /* (in)  second Body */
+                 int    eMap[],         /* (out) index (bias-1) in ebodyB for each
+                                                 Edge in ebodyA (nedgeA+1 long) */
+                 int    nMap[])         /* (out) index (bias-1) in ebodyB for each
+                                                 Node in ebodyA (nnodeA+1 long) */
+{
+    int     status = EGADS_SUCCESS;
+
+    int     nfaceA, nfaceB,        iface, jface;
+    int     nedgeA, nedgeB, nedge, iedge, jedge;
+    int     nnodeA, nnodeB, nnode, inode, jnode;
+    int     nloop, iloop;
+    int     oclass, mtype1, mtype2, *senses, *senses1, *senses2;
+    int     *ibegA=NULL, *ibegB=NULL, *iendA=NULL, *iendB=NULL;
+    int     *ileftA=NULL, *ileftB=NULL, *iriteA=NULL, *iriteB=NULL;
+    double  dataA[18], dataB[18], dtest, dbest;
+    ego     *efacesA=NULL, *efacesB=NULL;
+    ego     *eedgesA=NULL, *eedgesB=NULL, *eedges;
+    ego     *enodesA=NULL, *enodesB=NULL, *enodes;
+    ego     eref, *eloops;
+
+    ROUTINE(mapEdgesAndNodes);
+
+    /* --------------------------------------------------------------- */
+
+    /* get the Faces, Edges, and Nodes associated with both Bodys */
+    status = EG_getBodyTopos(ebodyA, NULL, FACE, &nfaceA, &efacesA);
+    CHECK_STATUS(EG_getBodyTopos);
+
+    status = EG_getBodyTopos(ebodyA, NULL, EDGE, &nedgeA, &eedgesA);
+    CHECK_STATUS(EG_getBodyTopos);
+
+    status = EG_getBodyTopos(ebodyA, NULL, NODE, &nnodeA, &enodesA);
+    CHECK_STATUS(EG_getBodyTopos);
+
+    status = EG_getBodyTopos(ebodyB, NULL, FACE, &nfaceB, &efacesB);
+    CHECK_STATUS(EG_getBodyTopos);
+
+    status = EG_getBodyTopos(ebodyB, NULL, EDGE, &nedgeB, &eedgesB);
+    CHECK_STATUS(EG_getBodyTopos);
+
+    status = EG_getBodyTopos(ebodyB, NULL, NODE, &nnodeB, &enodesB);
+    CHECK_STATUS(EG_getBodyTopos);
+
+    /* make sure Bodys have same number of Faces, Edges, and Nodes */
+    if (nfaceA != nfaceB) {
+        printf("nfaceA=%d differs from nfaceB=%d\n", nfaceA, nfaceB);
+        status = OCSM_ILLEGAL_VALUE;
+        goto cleanup;
+    } else if (nedgeA != nedgeB) {
+        printf("nedgeA=%d differs from nedgeB=%d\n", nedgeA, nedgeB);
+        status = OCSM_ILLEGAL_VALUE;
+        goto cleanup;
+    } else if (nnodeA != nnodeB) {
+        printf("nnodeA=%d differs from nnodeB=%d\n", nnodeA, nnodeB);
+        status = OCSM_ILLEGAL_VALUE;
+        goto cleanup;
+    }
+
+    SPLINT_CHECK_FOR_NULL(efacesA);
+    SPLINT_CHECK_FOR_NULL(eedgesA);
+    SPLINT_CHECK_FOR_NULL(enodesA);
+    SPLINT_CHECK_FOR_NULL(efacesB);
+    SPLINT_CHECK_FOR_NULL(eedgesB);
+    SPLINT_CHECK_FOR_NULL(enodesB);
+
+    /* initialize the outputs */
+    for (iedge = 0; iedge <= nedgeA; iedge++) {
+        eMap[iedge] = 0;
+    }
+    for (inode = 0; inode <= nnodeA; inode++) {
+        nMap[inode] = 0;
+    }
+
+    /* get arrays associated with the Edges */
+    MALLOC(ibegA,  int, nedgeA+1);
+    MALLOC(ibegB,  int, nedgeA+1);
+    MALLOC(iendA,  int, nedgeA+1);
+    MALLOC(iendB,  int, nedgeA+1);
+    MALLOC(ileftA, int, nedgeA+1);
+    MALLOC(ileftB, int, nedgeA+1);
+    MALLOC(iriteA, int, nedgeA+1);
+    MALLOC(iriteB, int, nedgeA+1);
+
+    for (iedge = 0; iedge <= nedgeA; iedge++) {
+        ibegA[ iedge] = 0;
+        ibegB[ iedge] = 0;
+        iendA[ iedge] = 0;
+        iendB[ iedge] = 0;
+        ileftA[iedge] = 0;
+        ileftB[iedge] = 0;
+        iriteA[iedge] = 0;
+        iriteB[iedge] = 0;
+    }
+
+    /* find left and rite Faces for each Edge in ebodyA */
+    for (iface = 1; iface <= nfaceA; iface++) {
+        jface = status = EG_indexBodyTopo(ebodyA, efacesA[iface-1]);
+        CHECK_STATUS(EG_indexBodyTopo);
+
+        status = EG_getTopology(efacesA[iface-1], &eref, &oclass, &mtype1,
+                                dataA, &nloop, &eloops, &senses1);
+        CHECK_STATUS(EG_getTopology);
+
+        for (iloop = 0; iloop < nloop; iloop++) {
+            status = EG_getTopology(eloops[iloop], &eref, &oclass, &mtype2,
+                                    dataA, &nedge, &eedges, &senses2);
+            CHECK_STATUS(EG_getTopology);
+
+            for (iedge = 0; iedge < nedge; iedge++) {
+                jedge = status = EG_indexBodyTopo(ebodyA, eedges[iedge]);
+                CHECK_STATUS(EG_indexBodyTopo);
+
+                if (mtype1*senses1[iloop]*senses2[iedge] > 0) {
+                    iriteA[jedge] = jface;
+                } else {
+                    ileftA[jedge] = jface;
+                }
+            }
+        }
+    }
+
+    /* find beg and end Nodes for each Edges in ebodyA */
+    for (iedge = 1; iedge <= nedgeA; iedge++) {
+        status = EG_getTopology(eedgesA[iedge-1], &eref, &oclass, &mtype1,
+                                dataA, &nnode, &enodes, &senses);
+        CHECK_STATUS(EG_getTopology);
+
+        ibegA[iedge] = status = EG_indexBodyTopo(ebodyA, enodes[0]);
+        CHECK_STATUS(EG_indexBodyTopo);
+
+        iendA[iedge] = status = EG_indexBodyTopo(ebodyA, enodes[1]);
+        CHECK_STATUS(EG_indexBodyTopo);
+    }
+
+#ifdef DEBUG
+    for (iedge = 1; iedge <= nedgeA; iedge++) {
+        printf("iedge=%3d, ibegA=%3d, iendA=%3d, ileftA=%3d, iriteA=%3d\n",
+               iedge, ibegA[iedge], iendA[iedge], ileftA[iedge], iriteA[iedge]);
+    }
+#endif
+
+    /* find left and rite Faces for each Edge in ebodyB */
+    for (iface = 1; iface <= nfaceB; iface++) {
+        jface = status = EG_indexBodyTopo(ebodyB, efacesB[iface-1]);
+        CHECK_STATUS(EG_indexBodyTopo);
+
+        status = EG_getTopology(efacesB[iface-1], &eref, &oclass, &mtype1,
+                                dataB, &nloop, &eloops, &senses1);
+        CHECK_STATUS(EG_getTopology);
+
+        for (iloop = 0; iloop < nloop; iloop++) {
+            status = EG_getTopology(eloops[iloop], &eref, &oclass, &mtype2,
+                                    dataB, &nedge, &eedges, &senses2);
+            CHECK_STATUS(EG_getTopology);
+
+            for (iedge = 0; iedge < nedge; iedge++) {
+                jedge = status = EG_indexBodyTopo(ebodyB, eedges[iedge]);
+                CHECK_STATUS(EG_indexBodyTopo);
+
+                if (mtype1*senses1[iloop]*senses2[iedge] > 0) {
+                    iriteB[jedge] = jface;
+                } else {
+                    ileftB[jedge] = jface;
+                }
+            }
+        }
+    }
+
+    /* find beg and end Nodes for each Edges in ebodyB */
+    for (iedge = 1; iedge <= nedgeB; iedge++) {
+        status = EG_getTopology(eedgesB[iedge-1], &eref, &oclass, &mtype1,
+                                dataB, &nnode, &enodes, &senses);
+        CHECK_STATUS(EG_getTopology);
+
+        ibegB[iedge] = status = EG_indexBodyTopo(ebodyB, enodes[0]);
+        CHECK_STATUS(EG_indexBodyTopo);
+
+        iendB[iedge] = status = EG_indexBodyTopo(ebodyB, enodes[1]);
+        CHECK_STATUS(EG_indexBodyTopo);
+    }
+
+#ifdef DEBUG
+    for (iedge = 1; iedge <= nedgeB; iedge++) {
+        printf("iedge=%3d, ibegB=%3d, iendB=%3d, ileftB=%3d, iriteB=%3d\n",
+               iedge, ibegB[iedge], iendB[iedge], ileftB[iedge], iriteB[iedge]);
+    }
+#endif
+
+    /* map the Nodes based uponclosest distance */
+    for (inode = 1; inode <= nnodeA; inode++) {
+        status = EG_evaluate(enodesA[inode-1], 0, dataA);
+        CHECK_STATUS(EG_evaluate);
+
+        dbest = 0;
+        for (jnode = 1; jnode <= nnodeB; jnode++) {
+            status = EG_evaluate(enodesB[jnode-1], 0, dataB);
+            CHECK_STATUS(EG_evaluate);
+
+            dtest = (dataA[0] - dataB[0]) * (dataA[0] - dataB[0])
+                  + (dataA[1] - dataB[1]) * (dataA[1] - dataB[1])
+                  + (dataA[2] - dataB[2]) * (dataA[2] - dataB[2]);
+
+            if (jnode == 1 || dtest < dbest) {
+                nMap[inode] = jnode;
+                dbest       = dtest;
+            }
+        }
+#ifdef DEBUG
+        printf("nMap[%3d]=%5d\n", inode, nMap[inode]);
+#endif
+    }
+
+    /* for each non-degenerate Edge in ebodyA, find the Edge in ebodyB that
+       has the same two Faces */
+    for (iedge = 1; iedge <= nedgeA; iedge++) {
+        if (ibegA[iedge] == iendA[iedge]) continue;
+
+        for (jedge = 1; jedge <= nedgeB; jedge++) {
+            if        (ibegA[ iedge] == nMap[ibegB[ jedge]] &&
+                       iendA[ iedge] == nMap[iendB[ jedge]] &&
+                       ileftA[iedge] ==      ileftB[jedge]  &&
+                       iriteA[iedge] ==      iriteB[jedge]    ) {
+                eMap[iedge] = +jedge;
+            } else if (ibegA[ iedge] == nMap[iendB[ jedge]] &&
+                       iendA[ iedge] == nMap[ibegB[ jedge]] &&
+                       ileftA[iedge] ==      iriteB[jedge]  &&
+                       iriteA[iedge] ==      ileftB[jedge]    ) {
+                eMap[iedge] = -jedge;
+            }
+        }
+    }
+
+#ifdef DEBUG
+    for (iedge = 0; iedge <= nedgeA; iedge++) {
+        printf("eMap[%3d]=%5d\n", iedge, eMap[iedge]);
+    }
+#endif
+
+cleanup:
+    FREE(ibegA );
+    FREE(ibegB );
+    FREE(iendA );
+    FREE(iendB );
+    FREE(ileftA);
+    FREE(ileftB);
+    FREE(iriteA);
+    FREE(iriteB);
+
+    if (efacesA != NULL) EG_free(efacesA);
+    if (eedgesA != NULL) EG_free(eedgesA);
+    if (enodesA != NULL) EG_free(enodesA);
+    if (efacesB != NULL) EG_free(efacesB);
+    if (eedgesB != NULL) EG_free(eedgesB);
+    if (enodesB != NULL) EG_free(enodesB);
 
     return status;
 }

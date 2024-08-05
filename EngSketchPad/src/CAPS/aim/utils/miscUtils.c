@@ -1603,7 +1603,7 @@ int convert_doubleToString(double doubleVal, int fieldWidth, int leftOrRight, ch
     //  leftofRight - Left justified = 0, Right justified = anything else
 
     // Ouput:
-    //  stringVal - Returned integer in string format. Returned as a char * (freeable)
+    //  stringVal - Returned double in string format (length fieldWidth+1).
 
     int i; // Index
 

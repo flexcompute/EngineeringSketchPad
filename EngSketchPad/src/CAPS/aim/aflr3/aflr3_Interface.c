@@ -64,6 +64,12 @@
 
 #include "aflr3_Interface.h"
 
+#ifndef S_SPLINT_S
+#define AFLR_STATUS(aimInfo, statys, ...) \
+if (status != 0) { status = CAPS_EXECERR; AIM_STATUS(aimInfo, status, ##__VA_ARGS__); }
+#else
+extern void AFLR_STATUS(void *aimInfo, int status, ...);
+#endif
 
 int aflr3_to_MeshStruct( const AFLR_Grid *grid,
                          meshStruct *genUnstrMesh)
@@ -417,29 +423,29 @@ int append_AFLR_Grid(void *aimInfo,
       return CAPS_NOTIMPLEMENT;
   }
 
-  grid->Edge_ID_Flag            = (INT_1D *) ug_realloc (&ierr, grid->Edge_ID_Flag           , (Number_of_Surf_Edges +1) * sizeof (INT_1D));  AIM_STATUS(aimInfo, ierr);
-  grid->Surf_Grid_BC_Flag       = (INT_1D *) ug_realloc (&ierr, grid->Surf_Grid_BC_Flag      , (Number_of_Surf       +1) * sizeof (INT_1D));  AIM_STATUS(aimInfo, ierr);
-  grid->Surf_ID_Flag            = (INT_1D *) ug_realloc (&ierr, grid->Surf_ID_Flag           , (Number_of_Surf       +1) * sizeof (INT_1D));  AIM_STATUS(aimInfo, ierr);
-  grid->Surf_Reconnection_Flag  = (INT_1D *) ug_realloc (&ierr, grid->Surf_Reconnection_Flag , (Number_of_Surf       +1) * sizeof (INT_1D));  AIM_STATUS(aimInfo, ierr);
-  grid->Surf_Edge_Connectivity  = (INT_2D *) ug_realloc (&ierr, grid->Surf_Edge_Connectivity , (Number_of_Surf_Edges +1) * sizeof (INT_2D));  AIM_STATUS(aimInfo, ierr);
-  grid->Surf_Tria_Connectivity  = (INT_3D *) ug_realloc (&ierr, grid->Surf_Tria_Connectivity , (Number_of_Surf_Trias +1) * sizeof (INT_3D));  AIM_STATUS(aimInfo, ierr);
-  grid->Surf_Quad_Connectivity  = (INT_4D *) ug_realloc (&ierr, grid->Surf_Quad_Connectivity , (Number_of_Surf_Quads +1) * sizeof (INT_4D));  AIM_STATUS(aimInfo, ierr);
+  grid->Edge_ID_Flag            = (INT_1D *) ug_realloc (&ierr, grid->Edge_ID_Flag           , (Number_of_Surf_Edges +1) * sizeof (INT_1D));  AFLR_STATUS(aimInfo, ierr);
+  grid->Surf_Grid_BC_Flag       = (INT_1D *) ug_realloc (&ierr, grid->Surf_Grid_BC_Flag      , (Number_of_Surf       +1) * sizeof (INT_1D));  AFLR_STATUS(aimInfo, ierr);
+  grid->Surf_ID_Flag            = (INT_1D *) ug_realloc (&ierr, grid->Surf_ID_Flag           , (Number_of_Surf       +1) * sizeof (INT_1D));  AFLR_STATUS(aimInfo, ierr);
+  grid->Surf_Reconnection_Flag  = (INT_1D *) ug_realloc (&ierr, grid->Surf_Reconnection_Flag , (Number_of_Surf       +1) * sizeof (INT_1D));  AFLR_STATUS(aimInfo, ierr);
+  grid->Surf_Edge_Connectivity  = (INT_2D *) ug_realloc (&ierr, grid->Surf_Edge_Connectivity , (Number_of_Surf_Edges +1) * sizeof (INT_2D));  AFLR_STATUS(aimInfo, ierr);
+  grid->Surf_Tria_Connectivity  = (INT_3D *) ug_realloc (&ierr, grid->Surf_Tria_Connectivity , (Number_of_Surf_Trias +1) * sizeof (INT_3D));  AFLR_STATUS(aimInfo, ierr);
+  grid->Surf_Quad_Connectivity  = (INT_4D *) ug_realloc (&ierr, grid->Surf_Quad_Connectivity , (Number_of_Surf_Quads +1) * sizeof (INT_4D));  AFLR_STATUS(aimInfo, ierr);
 
   if (grid->Vol_ID_Flag != NULL) {
-    grid->Vol_ID_Flag           = (INT_1D *) ug_realloc (&ierr, grid->Vol_ID_Flag            , (Number_of_Vol        +1) * sizeof (INT_1D));  AIM_STATUS(aimInfo, ierr);
+    grid->Vol_ID_Flag           = (INT_1D *) ug_realloc (&ierr, grid->Vol_ID_Flag            , (Number_of_Vol        +1) * sizeof (INT_1D));  AFLR_STATUS(aimInfo, ierr);
   }
-  grid->Vol_Tet_Connectivity    = (INT_4D *) ug_realloc (&ierr, grid->Vol_Tet_Connectivity   , (Number_of_Vol_Tets   +1) * sizeof (INT_4D));  AIM_STATUS(aimInfo, ierr);
-  grid->Vol_Pent_5_Connectivity = (INT_5D *) ug_realloc (&ierr, grid->Vol_Pent_5_Connectivity, (Number_of_Vol_Pents_5+1) * sizeof (INT_5D));  AIM_STATUS(aimInfo, ierr);
-  grid->Vol_Pent_6_Connectivity = (INT_6D *) ug_realloc (&ierr, grid->Vol_Pent_6_Connectivity, (Number_of_Vol_Pents_6+1) * sizeof (INT_6D));  AIM_STATUS(aimInfo, ierr);
-  grid->Vol_Hex_Connectivity    = (INT_8D *) ug_realloc (&ierr, grid->Vol_Hex_Connectivity   , (Number_of_Vol_Hexs   +1) * sizeof (INT_8D));  AIM_STATUS(aimInfo, ierr);
+  grid->Vol_Tet_Connectivity    = (INT_4D *) ug_realloc (&ierr, grid->Vol_Tet_Connectivity   , (Number_of_Vol_Tets   +1) * sizeof (INT_4D));  AFLR_STATUS(aimInfo, ierr);
+  grid->Vol_Pent_5_Connectivity = (INT_5D *) ug_realloc (&ierr, grid->Vol_Pent_5_Connectivity, (Number_of_Vol_Pents_5+1) * sizeof (INT_5D));  AFLR_STATUS(aimInfo, ierr);
+  grid->Vol_Pent_6_Connectivity = (INT_6D *) ug_realloc (&ierr, grid->Vol_Pent_6_Connectivity, (Number_of_Vol_Pents_6+1) * sizeof (INT_6D));  AFLR_STATUS(aimInfo, ierr);
+  grid->Vol_Hex_Connectivity    = (INT_8D *) ug_realloc (&ierr, grid->Vol_Hex_Connectivity   , (Number_of_Vol_Hexs   +1) * sizeof (INT_8D));  AFLR_STATUS(aimInfo, ierr);
 
-  grid->Coordinates       = (DOUBLE_3D *) ug_realloc (&ierr, grid->Coordinates      , (Number_of_Nodes+1) * sizeof (DOUBLE_3D));  AIM_STATUS(aimInfo, ierr);
+  grid->Coordinates       = (DOUBLE_3D *) ug_realloc (&ierr, grid->Coordinates      , (Number_of_Nodes+1) * sizeof (DOUBLE_3D));  AFLR_STATUS(aimInfo, ierr);
 
   if (grid->BL_Normal_Spacing != NULL) {
-      grid->BL_Normal_Spacing = (DOUBLE_1D *) ug_realloc (&ierr, grid->BL_Normal_Spacing, (Number_of_Nodes+1) * sizeof (DOUBLE_1D));  AIM_STATUS(aimInfo, ierr);
+      grid->BL_Normal_Spacing = (DOUBLE_1D *) ug_realloc (&ierr, grid->BL_Normal_Spacing, (Number_of_Nodes+1) * sizeof (DOUBLE_1D));  AFLR_STATUS(aimInfo, ierr);
   }
   if (grid->BL_Thickness != NULL) {
-      grid->BL_Thickness      = (DOUBLE_1D *) ug_realloc (&ierr, grid->BL_Thickness     , (Number_of_Nodes+1) * sizeof (DOUBLE_1D));  AIM_STATUS(aimInfo, ierr);
+      grid->BL_Thickness      = (DOUBLE_1D *) ug_realloc (&ierr, grid->BL_Thickness     , (Number_of_Nodes+1) * sizeof (DOUBLE_1D));  AFLR_STATUS(aimInfo, ierr);
   }
 
   ig = grid->Number_of_Nodes;
@@ -598,7 +604,7 @@ int append_AFLR_Grid(void *aimInfo,
                            &grid->Coordinates,
                            &grid->BL_Normal_Spacing,
                            &grid->BL_Thickness);
-  AIM_STATUS(aimInfo, status);
+  AFLR_STATUS(aimInfo, status);
 
   status = merge_mapAttrToIndexStruct(&domain->groupMap, &grid->groupMap, &grid->groupMap);
   AIM_STATUS(aimInfo, status);
@@ -646,7 +652,7 @@ int write_AFLR_Grid(void *aimInfo,
                                    grid->Coordinates,
                                    grid->BL_Normal_Spacing,
                                    grid->BL_Thickness);
-    AIM_STATUS(aimInfo, status);
+    AFLR_STATUS(aimInfo, status);
 
     snprintf(aimFile, PATH_MAX, "%s.mapbc", fileName);
     fp = fopen(aimFile, "w");
@@ -849,37 +855,37 @@ int aflr3_Volume_Mesh (void *aimInfo,
 
 
     status = ug_add_new_arg (&aflr3_argv, (char*)"allocate_and_initialize_argv");
-    AIM_STATUS(aimInfo, status);
+    AFLR_STATUS(aimInfo, status);
 
     // Set other command options
     if (createBL == (int) true) {
         status = ug_add_flag_arg ((char*)"mbl=1", &aflr3_argc, &aflr3_argv);
-        AIM_STATUS(aimInfo, status);
+        AFLR_STATUS(aimInfo, status);
 
         if (aimInputs[BL_Max_Layers-1].nullVal == NotNull) {
           nbl = aimInputs[BL_Max_Layers-1].vals.integer;
-          status = ug_add_flag_arg ("nbl", &aflr3_argc, &aflr3_argv); AIM_STATUS(aimInfo, status);
-          status = ug_add_int_arg (  nbl , &aflr3_argc, &aflr3_argv); AIM_STATUS(aimInfo, status);
+          status = ug_add_flag_arg ("nbl", &aflr3_argc, &aflr3_argv); AFLR_STATUS(aimInfo, status);
+          status = ug_add_int_arg (  nbl , &aflr3_argc, &aflr3_argv); AFLR_STATUS(aimInfo, status);
         }
 
         if (aimInputs[BL_Max_Layer_Diff-1].nullVal == NotNull) {
           nbldiff = aimInputs[BL_Max_Layer_Diff-1].vals.integer;
-          status = ug_add_flag_arg ("nbldiff", &aflr3_argc, &aflr3_argv); AIM_STATUS(aimInfo, status);
-          status = ug_add_int_arg (  nbldiff , &aflr3_argc, &aflr3_argv); AIM_STATUS(aimInfo, status);
+          status = ug_add_flag_arg ("nbldiff", &aflr3_argc, &aflr3_argv); AFLR_STATUS(aimInfo, status);
+          status = ug_add_int_arg (  nbldiff , &aflr3_argc, &aflr3_argv); AFLR_STATUS(aimInfo, status);
         }
 
-        status = ug_add_flag_arg ((char*)"mblelc=1", &aflr3_argc, &aflr3_argv);
-        AIM_STATUS(aimInfo, status);
+        status = ug_add_flag_arg ((char*)"mblelc=2", &aflr3_argc, &aflr3_argv);
+        AFLR_STATUS(aimInfo, status);
 
     } else {
         status = ug_add_flag_arg ((char*)"mbl=0", &aflr3_argc, &aflr3_argv);
-        AIM_STATUS(aimInfo, status);
+        AFLR_STATUS(aimInfo, status);
     }
 
     status = ug_add_flag_arg ((char*)"mrecm=3" , &aflr3_argc, &aflr3_argv);
-    AIM_STATUS(aimInfo, status);
+    AFLR_STATUS(aimInfo, status);
     status = ug_add_flag_arg ((char*)"mrecqm=3", &aflr3_argc, &aflr3_argv);
-    AIM_STATUS(aimInfo, status);
+    AFLR_STATUS(aimInfo, status);
 
     // Parse input string
     if (meshInput.aflr3Input.meshInputString != NULL) {
@@ -999,7 +1005,12 @@ int aflr3_Volume_Mesh (void *aimInfo,
         AIM_REALL(faceGroupIndex, numModelFace+numFace, int, aimInfo, status);
         for (i = 0; i < numFace; i++) {
           status = retrieve_CAPSGroupAttr(faces[i], &groupName);
-          AIM_STATUS(aimInfo, status);
+          if (status == EGADS_NOTFOUND) {
+            AIM_ERROR(aimInfo, "No capsGroup found on Face %d of body %d", i+1,bodyIndex+1);
+            print_AllAttr(aimInfo, faces[i]);
+            goto cleanup;
+          } else
+            AIM_STATUS(aimInfo, status);
 
           status = get_mapAttrToIndexIndex(groupMap, groupName, &faceGroupIndex[numModelFace+i]);
           AIM_STATUS(aimInfo, status);
@@ -1119,12 +1130,12 @@ int aflr3_Volume_Mesh (void *aimInfo,
 
     if (createBL == (int)true) {
 
-      status = ug_add_flag_arg ("BC_IDs", &aflr3_argc, &aflr3_argv);                             AIM_STATUS(aimInfo, status);
-      status = ug_add_int_vector_arg (numModelFace, bc_ids_vector, &aflr3_argc, &aflr3_argv);    AIM_STATUS(aimInfo, status);
-      status = ug_add_flag_arg ("BL_DS", &aflr3_argc, &aflr3_argv);                              AIM_STATUS(aimInfo, status);
-      status = ug_add_double_vector_arg (numModelFace, bl_ds_vector, &aflr3_argc, &aflr3_argv);  AIM_STATUS(aimInfo, status);
-      status = ug_add_flag_arg ("BL_DEL", &aflr3_argc, &aflr3_argv);                             AIM_STATUS(aimInfo, status);
-      status = ug_add_double_vector_arg (numModelFace, bl_del_vector, &aflr3_argc, &aflr3_argv); AIM_STATUS(aimInfo, status);
+      status = ug_add_flag_arg ("BC_IDs", &aflr3_argc, &aflr3_argv);                             AFLR_STATUS(aimInfo, status);
+      status = ug_add_int_vector_arg (numModelFace, bc_ids_vector, &aflr3_argc, &aflr3_argv);    AFLR_STATUS(aimInfo, status);
+      status = ug_add_flag_arg ("BL_DS", &aflr3_argc, &aflr3_argv);                              AFLR_STATUS(aimInfo, status);
+      status = ug_add_double_vector_arg (numModelFace, bl_ds_vector, &aflr3_argc, &aflr3_argv);  AFLR_STATUS(aimInfo, status);
+      status = ug_add_flag_arg ("BL_DEL", &aflr3_argc, &aflr3_argv);                             AFLR_STATUS(aimInfo, status);
+      status = ug_add_double_vector_arg (numModelFace, bl_del_vector, &aflr3_argc, &aflr3_argv); AFLR_STATUS(aimInfo, status);
 
     }
 
@@ -1139,10 +1150,10 @@ int aflr3_Volume_Mesh (void *aimInfo,
 
     // Set write mesh flag - do not write out the mesh internally
     status = ug_add_flag_arg ((char *) "mpfrmt=0", &aflr3_argc, &aflr3_argv);
-    AIM_STATUS(aimInfo, status);
+    AFLR_STATUS(aimInfo, status);
 
-    status = ug_add_flag_arg ((char *) "mmsg", &aflr3_argc, &aflr3_argv); AIM_STATUS(aimInfo, status);
-    status = ug_add_int_arg(Message_Flag, &aflr3_argc, &aflr3_argv);      AIM_STATUS(aimInfo, status);
+    status = ug_add_flag_arg ((char *) "mmsg", &aflr3_argc, &aflr3_argv); AFLR_STATUS(aimInfo, status);
+    status = ug_add_int_arg(Message_Flag, &aflr3_argc, &aflr3_argv);      AFLR_STATUS(aimInfo, status);
 
     // note that if mpfrmt is not set to 0 and BL mesh generation is on then only
     // the surface mesh is returned
@@ -1150,12 +1161,12 @@ int aflr3_Volume_Mesh (void *aimInfo,
     // check that all the inputs
 
     status = ug_check_prog_param(aflr3_argv, aflr3_argc, Message_Flag);
-    AIM_STATUS(aimInfo, status);
+    AFLR_STATUS(aimInfo, status);
 
     // set CAD geometry data structure
 
     status = aflr43_tess_to_dgeom (Message_Flag, model);
-    AIM_STATUS(aimInfo, status);
+    AFLR_STATUS(aimInfo, status);
 
 #if DUMP_DEBUG
     remove("aflr3t_in_debug.egads");
@@ -1210,7 +1221,7 @@ int aflr3_Volume_Mesh (void *aimInfo,
                                 &quadCon,
                                 &uv,
                                 &xyz);
-        AIM_STATUS(aimInfo, status);
+        AFLR_STATUS(aimInfo, status);
 
         fprintf(fp, "ZONE T=\"def %d\" N=%d, E=%d, F=FEPOINT, ET=Quadrilateral, DT=(DOUBLE DOUBLE DOUBLE DOUBLE DOUBLE)\n",
                 surf+1, numNodes, numTriFace+numQuadFace);
@@ -1247,7 +1258,7 @@ int aflr3_Volume_Mesh (void *aimInfo,
     //................................................  GET LIST OF GRID BCs AND IDs
 
     status = aflr43_bc_list (&bc_mod, &nlist, &bclist, &idlist);
-    AIM_STATUS(aimInfo, status);
+    AFLR_STATUS(aimInfo, status);
 
     do {
 
@@ -1266,7 +1277,7 @@ int aflr3_Volume_Mesh (void *aimInfo,
                                     &grid->Surf_Tria_Connectivity,
                                     &grid->Surf_Quad_Connectivity,
                                     &grid->Coordinates);
-      AIM_STATUS(aimInfo, status);
+      AFLR_STATUS(aimInfo, status);
 
       //..................................... MODIFY SURFACE MESH TRANSPARENT GRID BCs
 
@@ -1371,6 +1382,7 @@ int aflr3_Volume_Mesh (void *aimInfo,
   /*@-dependenttrans@*/
           fclose(fp); fp = NULL;
   /*@+dependenttrans@*/
+          status = CAPS_EXECERR;
           AIM_ERROR(aimInfo, "AFLR3 Grid generation error. The input surfaces mesh has been written to: %s", aimFile);
           goto cleanup;
       }
@@ -1433,7 +1445,7 @@ int aflr3_Volume_Mesh (void *aimInfo,
                                  &grid_c.Coordinates,
                                  &grid_c.BL_Normal_Spacing,
                                  &grid_c.BL_Thickness);
-        AIM_STATUS(aimInfo, status);
+        AFLR_STATUS(aimInfo, status);
       }
 
       //======================================================= END OF LOOP OVER ZONES
@@ -1455,7 +1467,7 @@ int aflr3_Volume_Mesh (void *aimInfo,
                          grid->Surf_Tria_Connectivity,
                          grid->Surf_Quad_Connectivity,
                          grid->Coordinates);
-    AIM_STATUS(aimInfo, status);
+    AFLR_STATUS(aimInfo, status);
 
     //....................................... RESET VOLUME MESH TRANSPARENT GRID BCs
 
@@ -1494,11 +1506,11 @@ int aflr3_Volume_Mesh (void *aimInfo,
                                             grid->BL_Normal_Spacing,
                                             grid->BL_Thickness,
                                             grid->Coordinates);
-      AIM_STATUS(aimInfo, status);
+      AFLR_STATUS(aimInfo, status);
     }
 
     status = egads_face_node_map_check (Message_Flag, grid->Coordinates);
-    AIM_STATUS(aimInfo, status);
+    AFLR_STATUS(aimInfo, status);
 
     ext_cad_data = dgeom_get_ext_cad_data ();
     ptr = (egads_struct *) ext_cad_data;

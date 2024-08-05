@@ -1017,9 +1017,7 @@ somewhere:
 
     /* build the Bodys from the MODL */
     if (pendingError == 0) {
-        old_time = clock();
         status = buildBodys(ESP, 0, &builtTo, &buildStatus, &nwarn);
-        new_time = clock();
 
         if (status != SUCCESS || buildStatus != SUCCESS || builtTo < 0) {
             successBuild = -1;
@@ -1075,16 +1073,6 @@ somewhere:
             } else if (buildStatus != SUCCESS) {
                 goto cleanup;
 
-            }
-        }
-
-        if (reportTime == 1) {
-            FILE *fp_time;
-
-            fp_time = fopen("timingReport.txt", "a");
-            if (fp_time != NULL) {
-                fprintf(fp_time, "%10.3f %s\n", (double)(new_time-old_time) / (double)(CLOCKS_PER_SEC), casename);
-                fclose(fp_time);
             }
         }
 
@@ -1502,6 +1490,16 @@ somewhere:
 
     SPRINT1(1, "    Total CPU time = %.3f sec",
             (double)(new_totaltime - old_totaltime) / (double)(CLOCKS_PER_SEC));
+
+    if (reportTime == 1) {
+        FILE *fp_time;
+
+        fp_time = fopen("timingReport.txt", "a");
+        if (fp_time != NULL) {
+            fprintf(fp_time, "%12.3f %s\n", (double)(new_totaltime-old_totaltime) / (double)(CLOCKS_PER_SEC), casename);
+            fclose(fp_time);
+        }
+    }
 
     if (strlen(vrfyname) > 0) {
         vrfy_fp = fopen(vrfyname, "r");
@@ -3079,6 +3077,8 @@ buildSceneGraph(esp_T  *ESP)
 
                 if (tessel == 0) {
                     FREE(vel);
+                } else {
+                    vel = NULL;
                 }
 
             /* smooth colors (normalized U) */
@@ -3442,6 +3442,8 @@ buildSceneGraph(esp_T  *ESP)
 
                 FREE(tuft);
 
+                vel = NULL;
+                
                 if (status != SUCCESS) {
                     SPRINT3(0, "ERROR:: wv_setData(%d,%d) -> status=%d", ibody, iface, status);
                 }
@@ -3804,6 +3806,8 @@ buildSceneGraph(esp_T  *ESP)
                     if (igprim < 0) {
                         SPRINT2(0, "ERROR:: wv_addGPrim(%s) -> igprim=%d", gpname, igprim);
                     }
+
+                    vel = NULL;
                 }
             }
 
@@ -3965,6 +3969,8 @@ buildSceneGraph(esp_T  *ESP)
 
                 FREE(tuft);
 
+                vel = NULL;
+                
                 if (status != SUCCESS) {
                     SPRINT3(0, "ERROR:: wv_setData(%d,%d) -> status=%d", ibody, iedge, status);
                 }
@@ -6078,10 +6084,12 @@ processBrowserToServer(esp_T   *ESP,
     int       ipmtr, jpmtr, nrow, ncol, irow, icol, index, iattr, actv, itemp, linenum;
     int       itoken1, itoken2, itoken3, ibody, onstack, direction=1, nwarn, dim1, dim2;
     int       nclient;
-    CINT      *tempIlist;
+    int       iface, iedge, inode, npnt, ipnt, ntri;
+    CINT      *tempIlist, *ptype, *pindx, *tris, *tric;
     double    scale, value, dot;
     double    toler, value1, dot1, value2, dot2;
-    CDOUBLE   *tempRlist;
+    double    *vel=NULL, data[18], normx, normy, normz, velmag;
+    CDOUBLE   *tempRlist, *xyz, *uv;
     char      *pEnd, bname[MAX_NAME_LEN+1], *bodyinfo=NULL, *tempEnv, *answer;
     char      str1[MAX_STRVAL_LEN], str2[MAX_STRVAL_LEN];
     CCHAR     *tempClist;
@@ -6106,6 +6114,8 @@ processBrowserToServer(esp_T   *ESP,
     ROUTINE(processBrowserToServer);
 
     /* --------------------------------------------------------------- */
+
+    printf("processBrowserToServer(text=%s)\n", text);
 
     MALLOC(name,     char, MAX_EXPR_LEN);
     MALLOC(type,     char, MAX_EXPR_LEN);
@@ -7741,6 +7751,130 @@ processBrowserToServer(esp_T   *ESP,
 
         /* disable -loadEgads */
         loadEgads = 0;
+
+        /* report the minimum and maximum sensitivities */
+        if (MODL->numdots > 0) {
+            sensLo = +HUGEQ;
+            sensHi = -HUGEQ;
+
+            for (ibody = 1; ibody <= MODL->nbody; ibody++) {
+                if (MODL->body[ibody].onstack != 1) continue;
+
+                for (iface = 1; iface <= MODL->body[ibody].nface; iface++) {
+                    status = EG_getTessFace(MODL->body[ibody].etess, iface,
+                                            &npnt, &xyz, &uv, &ptype, &pindx,
+                                            &ntri, &tris, &tric);
+                    CHECK_STATUS(EG_getTessFace);
+
+                    if (tessel == 0) {
+                        MALLOC(vel, double, 3*npnt);
+
+                        status = ocsmGetVel(MODL, ibody, OCSM_FACE, iface, npnt, NULL, vel);
+                        CHECK_STATUS(ocsmGetVel);
+                    } else {
+                        status = ocsmGetTessVel(MODL, ibody, OCSM_FACE, iface, (const double**)(&vel));
+                        CHECK_STATUS(ocsmGetTessVel);
+                    }
+
+                    SPLINT_CHECK_FOR_NULL(vel);
+
+                    for (ipnt = 0; ipnt < npnt; ipnt++) {
+                        if (tessel == 0) {
+                            status = EG_evaluate(MODL->body[ibody].face[iface].eface, &(uv[2*ipnt]), data);
+                            CHECK_STATUS(EG_evaluate);
+
+                            normx  = data[4] * data[8] - data[5] * data[7];
+                            normy  = data[5] * data[6] - data[3] * data[8];
+                            normz  = data[3] * data[7] - data[4] * data[6];
+
+                            if (fabs(normx) > EPS06 || fabs(normy) > EPS06 || fabs(normz) > EPS06) {
+                                velmag = ( vel[3*ipnt  ] * normx
+                                          +vel[3*ipnt+1] * normy
+                                          +vel[3*ipnt+2] * normz)
+                                       / sqrt(normx * normx + normy * normy + normz * normz);
+
+                                if (velmag != velmag) {
+                                    velmag = 0;
+                                }
+                            } else {
+                                velmag = sqrt( vel[3*ipnt  ] * vel[3*ipnt  ]
+                                             + vel[3*ipnt+1] * vel[3*ipnt+1]
+                                             + vel[3*ipnt+2] * vel[3*ipnt+2]);
+                            }
+                        } else {
+                            velmag = sqrt( vel[3*ipnt  ] * vel[3*ipnt  ]
+                                         + vel[3*ipnt+1] * vel[3*ipnt+1]
+                                         + vel[3*ipnt+2] * vel[3*ipnt+2]);
+                        }
+
+                        if (velmag < sensLo) sensLo = velmag;
+                        if (velmag > sensHi) sensHi = velmag;
+                    }
+                    if (tessel == 0) {
+                        FREE(vel);
+                    }
+                }
+
+                if (allVels == 0) continue;
+
+                for (iedge = 1; iedge <= MODL->body[ibody].nedge; iedge++) {
+                    if (MODL->body[ibody].edge[iedge].itype == DEGENERATE) continue;
+
+                    status = EG_getTessEdge(MODL->body[ibody].etess, iedge,
+                                            &npnt, &xyz, &uv);
+                    CHECK_STATUS(EG_getTessEdge);
+
+                    if (tessel == 0) {
+                        MALLOC(vel, double, 3*npnt);
+
+                        status = ocsmGetVel(MODL, ibody, OCSM_EDGE, iedge, npnt, NULL, vel);
+                        CHECK_STATUS(ocsmGetVel);
+                    } else {
+                        status = ocsmGetTessVel(MODL, ibody, OCSM_EDGE, iedge, (const double**)(&vel));
+                        CHECK_STATUS(ocsmGetTessVel);
+                    }
+
+                    SPLINT_CHECK_FOR_NULL(vel);
+
+                    for (ipnt = 0; ipnt < npnt; ipnt++) {
+                        velmag = sqrt( vel[3*ipnt  ] * vel[3*ipnt  ]
+                                     + vel[3*ipnt+1] * vel[3*ipnt+1]
+                                     + vel[3*ipnt+2] * vel[3*ipnt+2]);
+
+                        if (velmag < sensLo) sensLo = velmag;
+                        if (velmag > sensHi) sensHi = velmag;
+                    }
+                    if (tessel == 0) {
+                        FREE(vel);
+                    }
+                }
+
+                for (inode = 1; inode <= MODL->body[ibody].nnode; inode++) {
+                    if (tessel == 0) {
+                        MALLOC(vel, double, 3);
+
+                        status = ocsmGetVel(MODL, ibody, OCSM_NODE, inode, 1, NULL, vel);
+                        CHECK_STATUS(ocsmGetVel);
+                    } else {
+                        status = ocsmGetTessVel(MODL, ibody, OCSM_NODE, inode, (const double**)(&vel));
+                        CHECK_STATUS(ocsmGetTessVel);
+                    }
+
+                    SPLINT_CHECK_FOR_NULL(vel);
+
+                    velmag = sqrt(vel[0] * vel[0] + vel[1] * vel[1] + vel[2] * vel[2]);
+
+                    if (velmag < sensLo) sensLo = velmag;
+                    if (velmag > sensHi) sensHi = velmag;
+
+                    if (tessel == 0) {
+                        FREE(vel);
+                    }
+                }
+            }
+
+            printf("Sensitivities are in the range %12.6f to %12.6f\n", sensLo, sensHi);
+        }
 
         response_len = STRLEN(response);
 

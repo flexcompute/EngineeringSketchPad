@@ -27,6 +27,8 @@
 #include <IGESSelect_WorkLibrary.hxx>
 #include <IGESCAFControl.hxx>
 #include <IGESSolid_Face.hxx>
+#include <IGESSolid_EdgeList.hxx>
+#include <IGESGeom_CompositeCurve.hxx>
 #include <TransferBRep_ShapeMapper.hxx>
 #ifdef STEPASSATTRS
 #include <StepBasic_Product.hxx>
@@ -89,6 +91,8 @@
 #include <Transfer_TransientProcess.hxx>
 #include <Transfer_ResultFromTransient.hxx>
 #include <TransferBRep.hxx>
+#include <TransferBRep_ShapeBinder.hxx>
+#include <TransferBRep_ShapeListBinder.hxx>
 #include <MoniTool_Macros.hxx>
 #include <MoniTool_DataMapOfShapeTransient.hxx>
 #include <APIHeaderSection_MakeHeader.hxx>
@@ -193,7 +197,9 @@ TopoDS_Shape
 egadsShapeData::Update(const TopoDS_Shape& oldShape, const TopoDS_Shape& newShape)
 {
   Standard_Integer i;
-  if (labels.Extent() == 0 && colors.Extent() == 0) return newShape;
+  if (labels.Extent() == 0 &&
+      colors.Extent() == 0 &&
+      bodycolors.Extent() == 0) return newShape;
 
   i = labels.FindIndex(oldShape);
   if (i > 0)
@@ -202,6 +208,10 @@ egadsShapeData::Update(const TopoDS_Shape& oldShape, const TopoDS_Shape& newShap
   i = colors.FindIndex(oldShape);
   if (i > 0)
     colors.Add(newShape, colors(i));
+
+  i = bodycolors.FindIndex(oldShape);
+  if (i > 0)
+    bodycolors.Add(newShape, bodycolors(i));
 
   TopTools_IndexedMapOfShape oldMap;
   TopExp::MapShapes(oldShape, oldMap);
@@ -220,6 +230,9 @@ egadsShapeData::Update(const TopoDS_Shape& oldShape, const TopoDS_Shape& newShap
     i = colors.FindIndex(shape);
     if (i > 0)
       colors.Add(newMap(j), colors(i));
+    i = bodycolors.FindIndex(shape);
+    if (i > 0)
+      bodycolors.Add(newMap(j), bodycolors(i));
   }
 
   return newShape;
@@ -232,7 +245,9 @@ egadsShapeData::Update(const TopoDS_Shape& oldShape, BRepBuilderAPI_ModifyShape&
   TopoDS_Shape newShape = xForm.ModifiedShape(oldShape);
 
   Standard_Integer i;
-  if (labels.Extent() == 0 && colors.Extent() == 0) return newShape;
+  if (labels.Extent() == 0 &&
+      colors.Extent() == 0 &&
+      bodycolors.Extent() == 0) return newShape;
 
   i = labels.FindIndex(oldShape);
   if (i > 0)
@@ -241,6 +256,10 @@ egadsShapeData::Update(const TopoDS_Shape& oldShape, BRepBuilderAPI_ModifyShape&
   i = colors.FindIndex(oldShape);
   if (i > 0)
     colors.Add(newShape, colors(i));
+
+  i = bodycolors.FindIndex(oldShape);
+  if (i > 0)
+    bodycolors.Add(newShape, bodycolors(i));
 
   TopTools_IndexedMapOfShape oldMap;
   TopExp::MapShapes(oldShape, oldMap);
@@ -271,6 +290,16 @@ egadsShapeData::Update(const TopoDS_Shape& oldShape, BRepBuilderAPI_ModifyShape&
         colors.Add(it.Value(), color);
       }
     }
+
+    i = bodycolors.FindIndex(shape);
+    if (i > 0) {
+      const BodyColor& bodycolor = bodycolors(i);
+
+      TopTools_ListIteratorOfListOfShape it(mods);
+      for (; it.More(); it.Next()) {
+        bodycolors.Add(it.Value(), bodycolor);
+      }
+    }
   }
 
   return newShape;
@@ -290,7 +319,9 @@ TopoDS_Shape
 egadsShapeData::Update(const TopoDS_Shape& oldShape, const TopoDS_Shape& newShape, const Handle(BRepTools_History)& history)
 {
   Standard_Integer i;
-  if (labels.Extent() == 0 && colors.Extent() == 0) return newShape;
+  if (labels.Extent() == 0 && 
+      colors.Extent() == 0 &&
+      bodycolors.Extent() == 0) return newShape;
 
   i = labels.FindIndex(oldShape);
   if (i > 0)
@@ -300,6 +331,9 @@ egadsShapeData::Update(const TopoDS_Shape& oldShape, const TopoDS_Shape& newShap
   if (i > 0)
     colors.Add(newShape, colors(i));
 
+  i = bodycolors.FindIndex(oldShape);
+  if (i > 0)
+    bodycolors.Add(newShape, bodycolors(i));
 
   TopTools_IndexedMapOfShape oldMap;
   TopExp::MapShapes(oldShape, oldMap);
@@ -330,6 +364,16 @@ egadsShapeData::Update(const TopoDS_Shape& oldShape, const TopoDS_Shape& newShap
           colors.Add(it.Value(), color);
         }
       }
+
+      i = bodycolors.FindIndex(shape);
+      if (i > 0) {
+        const BodyColor& bodycolor = bodycolors(i);
+
+        TopTools_ListIteratorOfListOfShape it(mods);
+        for (; it.More(); it.Next()) {
+          bodycolors.Add(it.Value(), bodycolor);
+        }
+      }
     }
 
     const TopTools_ListOfShape& gens = history->Generated(shape);
@@ -354,10 +398,73 @@ egadsShapeData::Update(const TopoDS_Shape& oldShape, const TopoDS_Shape& newShap
           colors.Add(it.Value(), color);
         }
       }
+
+      i = bodycolors.FindIndex(shape);
+      if (i > 0) {
+        const BodyColor& bodycolor = bodycolors(i);
+
+        TopTools_ListIteratorOfListOfShape it(gens);
+        for (; it.More(); it.Next()) {
+          bodycolors.Add(it.Value(), bodycolor);
+        }
+      }
     }
   }
 
   return newShape;
+}
+
+
+void
+egadsShapeData::AddShapeName(egadsMap& shapes)
+{
+  int index;
+  for (int i = 1; i <= shapes.map.Extent(); i++) {
+    const TopoDS_Shape& shape = shapes.map.FindKey(i);
+    
+    index = labels.FindIndex(shape);
+    if (index > 0) {
+      const char *name = labels(index).shapeName;
+      
+      EG_attributeAdd(shapes.objs[i-1], "Name", ATTRSTRING, 1, NULL, NULL, name);
+    }
+  }
+}
+
+
+void
+egadsShapeData::AddShapeColor(egadsMap& shapes)
+{
+  int index;
+  for (int i = 1; i <= shapes.map.Extent(); i++) {
+    const TopoDS_Shape& shape = shapes.map.FindKey(i);
+
+    index = colors.FindIndex(shape);
+    if (index > 0) {
+      const Quantity_Color& color = colors(index);
+
+      const double rgb[3] = {color.Red(), color.Green(), color.Blue()};
+
+      const char* name = NULL;
+      if (rgb[0] == 1   && rgb[1] == 0   && rgb[2] == 0  ) name = "red";
+      else if (rgb[0] == 0   && rgb[1] == 1   && rgb[2] == 0  ) name = "green";
+      else if (rgb[0] == 0   && rgb[1] == 0   && rgb[2] == 1  ) name = "blue";
+      else if (rgb[0] == 1   && rgb[1] == 1   && rgb[2] == 0  ) name = "yellow";
+      else if (rgb[0] == 1   && rgb[1] == 0   && rgb[2] == 1  ) name = "magenta";
+      else if (rgb[0] == 0   && rgb[1] == 1   && rgb[2] == 1  ) name = "cyan";
+      else if (rgb[0] == 1   && rgb[1] == 1   && rgb[2] == 1  ) name = "white";
+      else if (rgb[0] == 0   && rgb[1] == 0   && rgb[2] == 0  ) name = "black";
+      else if (rgb[0] == 1   && rgb[1] == 0.5 && rgb[2] == 0.5) name = "lred";
+      else if (rgb[0] == 0.5 && rgb[1] == 1   && rgb[2] == 0.5) name = "lgreen";
+      else if (rgb[0] == 0.5 && rgb[1] == 0.5 && rgb[2] == 1  ) name = "lblue";
+
+      if (name != NULL) {
+        EG_attributeAdd(shapes.objs[i-1],  "Color", ATTRSTRING, 1, NULL, NULL, name);
+      } else {
+        EG_attributeAdd(shapes.objs[i-1],  "Color", ATTRREAL  , 3, NULL, rgb , NULL);
+      }
+    }
+  }
 }
 
 
@@ -1066,11 +1173,97 @@ EG_readTess(FILE *fp, egObject *body, egObject **tess)
 }
 
 
+struct MatchShape
+{
+  typedef NCollection_IndexedDataMap<Handle(Geom_Curve)   , TopoDS_Shape> GeomCurve_IndexedDataMap;
+  typedef NCollection_IndexedDataMap<Handle(Geom_Surface) , TopoDS_Shape> GeomSurface_IndexedDataMap;
+  typedef NCollection_IndexedDataMap<Handle(TopoDS_TShape), TopoDS_Shape> TShape_IndexedDataMap;
+
+  MatchShape(const TopoDS_Shape& aShape)
+  {
+    TopExp::MapShapes(aShape, shapes);
+
+    for (int i = 1; i <= shapes.Extent(); i++) {
+      const TopoDS_Shape& shape = shapes(i);
+      tshapes.Add(shape.TShape(), shape);
+      if (shape.ShapeType() == TopAbs_EDGE) {
+        TopLoc_Location    loc;
+        Standard_Real      first, last;
+        Handle(Geom_Curve) Crv = BRep_Tool::Curve(TopoDS::Edge(shape), loc, first, last);
+        if (!Crv.IsNull())
+          curves.Add(Crv, shape);
+      } else if (shape.ShapeType() == TopAbs_FACE) {
+        Handle(Geom_Surface) Srf = BRep_Tool::Surface(TopoDS::Face(shape));
+        if (!Srf.IsNull())
+          surfaces.Add(Srf, shape);
+      }
+    }
+  }
+
+  void Find(TopoDS_Shape& S) const
+  {
+    if (shapes.Contains(S)) return;
+
+    Standard_Boolean found = false;
+    if (S.ShapeType() == TopAbs_EDGE) {
+
+      // Find Edge by matching underlying curve
+      TopoDS_Edge edge = TopoDS::Edge (S);
+
+      TopLoc_Location    loc;
+      Standard_Real      first, last;
+      Handle(Geom_Curve) Crv = BRep_Tool::Curve(edge, loc, first, last);
+      if (!Crv.IsNull()) {
+        found = curves.FindFromKey(Crv, S);
+      }
+
+    } else if (S.ShapeType() == TopAbs_WIRE) {
+
+      // Find Edge by matching underlying curve (yes it's in a wire...)
+      TopTools_IndexedMapOfShape edges;
+      TopExp::MapShapes(S, TopAbs_EDGE, edges);
+
+      if (edges.Extent() == 1) {
+        TopoDS_Edge edge = TopoDS::Edge (edges(1));
+
+        TopLoc_Location    loc;
+        Standard_Real      first, last;
+        Handle(Geom_Curve) Crv = BRep_Tool::Curve(edge, loc, first, last);
+        if (!Crv.IsNull()) {
+          found = curves.FindFromKey(Crv, S);
+        }
+      }
+
+    } else if (S.ShapeType() == TopAbs_FACE) {
+
+      // Find Face by matching underlying surface
+      Handle(Geom_Surface) Srf = BRep_Tool::Surface(TopoDS::Face(S));
+
+      if (!Srf.IsNull()) {
+        found = surfaces.FindFromKey(Srf, S);
+      }
+    }
+
+    // find the IsPartner shape if necessary
+    if (!found) {
+      tshapes.FindFromKey(S.TShape(), S);
+    }
+  }
+
+protected:
+
+  TopTools_IndexedMapOfShape shapes;
+  TShape_IndexedDataMap tshapes;
+  GeomCurve_IndexedDataMap curves;
+  GeomSurface_IndexedDataMap surfaces;
+};
+
+
 // Taken from
 // XSControl_TransferReader::EntityFromShapeResult
 // XSControl_TransferReader::EntitiesFromShapeList
 static void
-EG_lablesFromTransferReader
+EG_labelsFromTransferReader
        (const TopoDS_Shape& aShape,
         const Handle(XSControl_TransferReader)& TR,
         egadsShapeData& labels)
@@ -1078,65 +1271,111 @@ EG_lablesFromTransferReader
   const Handle(Transfer_TransientProcess)& TP = TR->TransientProcess();
   const Handle(Interface_InterfaceModel)& Model = TR->Model();
 
-  TopTools_IndexedMapOfShape shapes;
-  TopExp::MapShapes(aShape, shapes);
+  MatchShape match(aShape);
 
   Standard_Integer i, j, nb;
-
-  Handle(Standard_Type) tSVPLA = STANDARD_TYPE(StepVisual_PresentationLayerAssignment);
 
   XSControl_Utils xu;
   if (!TP.IsNull()) {
     nb = TP->NbMapped();
-    for (j = 1; j <= nb; j ++) {
+    for (j = 1; j <= nb; j++) {
       Handle(Standard_Transient) ent = TP->Mapped(j);
-      TopoDS_Shape sh = TransferBRep::ShapeResult (TP,ent);
-      if (sh.IsNull()) continue;
 
-      // find the IsSame or IsPartner shape if necessary
-      if (!shapes.Contains(sh)) {
-        for (i = 1; i <= shapes.Extent(); i++) {
-          TopoDS_Shape shape = shapes(i);
-          if (sh.IsSame(shape) || sh.IsPartner(shape)) {
-            sh = shape;
-            break;
-          }
-        }
-      }
-
-      const char *name = NULL;
+      Handle(TCollection_HAsciiString) name;
 
       // First try STEP file
-      Handle(StepRepr_RepresentationItem) aReprItem;
-      aReprItem = Handle(StepRepr_RepresentationItem)::DownCast(ent);
+      const Handle(StepRepr_RepresentationItem) aReprItem =
+            Handle(StepRepr_RepresentationItem)::DownCast(ent);
       if (!aReprItem.IsNull()) {
-        name = aReprItem->Name()->ToCString();
-        if (name == NULL || strlen(name) == 0) {
+        name = aReprItem->Name();
+        if (name.IsNull() || name->IsEmpty()) {
           // Check underlying geometry
           Handle(StepShape_VertexPoint) vertPoint = Handle(StepShape_VertexPoint)::DownCast(aReprItem);
           if (!vertPoint.IsNull())
-            name = vertPoint->VertexGeometry()->Name()->ToCString();
+            name = vertPoint->VertexGeometry()->Name();
           else {
             Handle(StepShape_EdgeCurve) edgeCurve = Handle(StepShape_EdgeCurve)::DownCast(aReprItem);
             if (!edgeCurve.IsNull())
-              name = edgeCurve->EdgeGeometry()->Name()->ToCString();
+              name = edgeCurve->EdgeGeometry()->Name();
             else {
               Handle(StepShape_FaceSurface) faceSurf = Handle(StepShape_FaceSurface)::DownCast(aReprItem);
               if (!faceSurf.IsNull())
-                name = faceSurf->FaceGeometry()->Name()->ToCString();
+                name = faceSurf->FaceGeometry()->Name();
             }
           }
         }
       } else {
         // Try IGES file
+
+#if CASVER < 770
+        // check each curve for an IGESSolid_EdgeList
+        const Handle(IGESSolid_EdgeList)& edgeList =
+              Handle(IGESSolid_EdgeList)::DownCast(ent);
+        if (!edgeList.IsNull()) {
+          const Handle(TransferBRep_ShapeListBinder)& binder =
+                Handle(TransferBRep_ShapeListBinder)::DownCast(TP->Find(ent));
+          if (binder.IsNull()) continue;
+          if (binder->NbShapes() != edgeList->NbEdges()) continue;
+
+          for (Standard_Integer iedge = 1; iedge <= edgeList->NbEdges(); iedge++) {
+            Handle(IGESData_IGESEntity) Curve = edgeList->Curve(iedge);
+
+            name.Nullify();
+            if (!Curve.IsNull() && Curve->HasName()) name = Curve->NameValue();
+            if (name.IsNull() || name->IsEmpty()) continue;
+
+            TopoDS_Shape sh = binder->Edge(iedge);
+            if (sh.IsNull()) continue;
+            match.Find(sh);
+            labels.Add(sh, name->ToCString());
+          }
+          name.Nullify();
+        }
+        
+        // check each curve for an IGESGeom_CompositeCurve
+        const Handle(IGESGeom_CompositeCurve)& compCurve =
+              Handle(IGESGeom_CompositeCurve)::DownCast(ent);
+        if (!compCurve.IsNull()) {
+          const Handle(TransferBRep_ShapeBinder)& binder =
+                Handle(TransferBRep_ShapeBinder)::DownCast(TP->Find(ent));
+          if (binder.IsNull()) continue;
+
+          TopoDS_Shape wire = binder->Result();
+          if (wire.IsNull()) continue;
+          match.Find(wire);
+
+          TopExp_Explorer Exp;
+          Exp.Init(wire, TopAbs_EDGE);
+
+          for (Standard_Integer iedge = 1;
+              iedge <= compCurve->NbCurves(); iedge++, Exp.Next()) {
+            Handle(IGESData_IGESEntity) Curve = compCurve->Curve(iedge);
+
+            name.Nullify();
+            if (!Curve.IsNull() && Curve->HasName()) name = Curve->NameValue();
+            if (name.IsNull() || name->IsEmpty()) continue;
+
+            TopoDS_Shape sh = Exp.Current();
+            match.Find(sh);
+            labels.Add(sh, name->ToCString());
+          }
+          name.Nullify();
+        }
+#endif
+
         const Handle(IGESData_IGESEntity)& shapeEntity =
               Handle(IGESData_IGESEntity)::DownCast(ent);
         if (!shapeEntity.IsNull() && shapeEntity->HasName())
-          name = shapeEntity->NameValue()->ToCString();
+          name = shapeEntity->NameValue();
       }
-      if (name == NULL)       continue;
-      if (strlen(name) == 0)  continue;
-      labels.Add(sh, name);
+      if (name.IsNull() || name->IsEmpty()) continue;
+
+      TopoDS_Shape sh = TransferBRep::ShapeResult (TP,ent);
+      if (sh.IsNull()) continue;
+
+      match.Find(sh);
+
+      labels.Add(sh, name->ToCString());
       /* printf(" Name found: %s\n",
               TopAbs::ShapeTypeToString(sh.ShapeType()), name ); */
     }
@@ -1154,44 +1393,104 @@ EG_lablesFromTransferReader
     for (ir = 1; ir <= nr; ir ++) {
       DeclareAndCast(Transfer_ResultFromTransient,rft,list->Value(ir));
       if (rft.IsNull()) continue;
-      TopoDS_Shape sh = xu.BinderShape (rft->Binder());
-      if (sh.IsNull()) continue;
       Handle(Standard_Transient) ent = rft->Start();
       if (ent.IsNull()) continue;
 
-      const char *name = NULL;
+      Handle(TCollection_HAsciiString) name;
 
       // First try STEP file
       Handle(StepRepr_RepresentationItem) aReprItem;
       aReprItem = Handle(StepRepr_RepresentationItem)::DownCast(ent);
       if (!aReprItem.IsNull()) {
-        name = aReprItem->Name()->ToCString();
-        if (name == NULL || strlen(name) == 0) {
+        name = aReprItem->Name();
+        if (name.IsNull() || name->IsEmpty()) {
           // Check underlying geometry
           Handle(StepShape_VertexPoint) vertPoint = Handle(StepShape_VertexPoint)::DownCast(aReprItem);
           if (!vertPoint.IsNull())
-            name = vertPoint->VertexGeometry()->Name()->ToCString();
+            name = vertPoint->VertexGeometry()->Name();
           else {
             Handle(StepShape_EdgeCurve) edgeCurve = Handle(StepShape_EdgeCurve)::DownCast(aReprItem);
             if (!edgeCurve.IsNull())
-              name = edgeCurve->EdgeGeometry()->Name()->ToCString();
+              name = edgeCurve->EdgeGeometry()->Name();
             else {
               Handle(StepShape_FaceSurface) faceSurf = Handle(StepShape_FaceSurface)::DownCast(aReprItem);
               if (!faceSurf.IsNull())
-                name = faceSurf->FaceGeometry()->Name()->ToCString();
+                name = faceSurf->FaceGeometry()->Name();
             }
           }
         }
       } else {
         // Try IGES file
+
+#if CASVER < 770
+        // check each curve for an IGESSolid_EdgeList
+        const Handle(IGESSolid_EdgeList)& edgeList =
+              Handle(IGESSolid_EdgeList)::DownCast(ent);
+        if (!edgeList.IsNull()) {
+          const Handle(TransferBRep_ShapeListBinder)& binder =
+                Handle(TransferBRep_ShapeListBinder)::DownCast(TP->Find(ent));
+          if (binder.IsNull()) continue;
+          if (binder->NbShapes() != edgeList->NbEdges()) continue;
+
+          for (Standard_Integer iedge = 1; iedge <= edgeList->NbEdges(); iedge++) {
+            Handle(IGESData_IGESEntity) Curve = edgeList->Curve(iedge);
+
+            name.Nullify();
+            if (!Curve.IsNull() && Curve->HasName()) name = Curve->NameValue();
+            if (name.IsNull() || name->IsEmpty()) continue;
+
+            TopoDS_Shape sh = binder->Edge(iedge);
+            if (sh.IsNull()) continue;
+            match.Find(sh);
+            labels.Add(sh, name->ToCString());
+          }
+          name.Nullify();
+        }
+
+        // check each curve for an IGESGeom_CompositeCurve
+        const Handle(IGESGeom_CompositeCurve)& compCurve =
+              Handle(IGESGeom_CompositeCurve)::DownCast(ent);
+        if (!compCurve.IsNull()) {
+          const Handle(TransferBRep_ShapeBinder)& binder =
+                Handle(TransferBRep_ShapeBinder)::DownCast(TP->Find(ent));
+          if (binder.IsNull()) continue;
+
+          TopoDS_Shape wire = binder->Result();
+          if (wire.IsNull()) continue;
+          match.Find(wire);
+
+          TopExp_Explorer Exp;
+          Exp.Init(wire, TopAbs_EDGE);
+
+          for (Standard_Integer iedge = 1;
+              iedge <= compCurve->NbCurves(); iedge++, Exp.Next()) {
+            Handle(IGESData_IGESEntity) Curve = compCurve->Curve(iedge);
+
+            name.Nullify();
+            if (!Curve.IsNull() && Curve->HasName()) name = Curve->NameValue();
+            if (name.IsNull() || name->IsEmpty()) continue;
+
+            TopoDS_Shape sh = Exp.Current();
+            match.Find(sh);
+            labels.Add(sh, name->ToCString());
+          }
+          name.Nullify();
+        }
+#endif
+
         const Handle(IGESData_IGESEntity)& shapeEntity =
               Handle(IGESData_IGESEntity)::DownCast(ent);
         if (!shapeEntity.IsNull() && shapeEntity->HasName())
-          name = shapeEntity->NameValue()->ToCString();
+          name = shapeEntity->NameValue();
       }
-      if (name == NULL)       continue;
-      if (strlen(name) == 0)  continue;
-      labels.Add(sh, name);
+      if (name.IsNull() || name->IsEmpty()) continue;
+
+      TopoDS_Shape sh = xu.BinderShape (rft->Binder());
+      if (sh.IsNull()) continue;
+      
+      match.Find(sh);
+
+      labels.Add(sh, name->ToCString());
       /* printf(" Name found: %s\n",
               TopAbs::ShapeTypeToString(sh.ShapeType()), name ); */
     }
@@ -1312,7 +1611,8 @@ EG_setAssemblyComponentStyle(const Handle(Transfer_TransientProcess) &theTP,
 
 // Based on STEPCAFControl_Reader SetStyle
 static void
-EG_setStyle(const Handle(XSControl_WorkSession) &theWS,
+EG_setStyle(const MatchShape& match,
+            const Handle(XSControl_WorkSession) &theWS,
             const STEPConstruct_Styles& theStyles,
             const Handle(StepVisual_StyledItem)& theStyle,
             egadsShapeData& shapeData)
@@ -1358,26 +1658,54 @@ EG_setStyle(const Handle(XSControl_WorkSession) &theWS,
     }
     if (aShape.IsNull()) continue;
 
-    if (!aSurfCol.IsNull()) {
-      Quantity_Color aSCol;
-      EG_DecodeColor(aSurfCol, aSCol);
-      if (aShape.ShapeType() == TopAbs_FACE) {
-#if CASVER >= 760
-        shapeData.Add(aShape, aSCol);
-#else
-        shapeData.Add(aShape, aSCol);
-#endif
+    match.Find(aShape);
+
+    Quantity_Color aCCol;
+    if (!aCurveCol.IsNull()) {
+      EG_DecodeColor(aCurveCol, aCCol);
+
+      if (aShape.ShapeType() == TopAbs_EDGE) {
+
+        shapeData.Add(aShape, aCCol);
+
+      } else if (aShape.ShapeType() == TopAbs_FACE) {
+        // Apply Face Curve colors to Edges
+        TopExp_Explorer Exp;
+        for (Exp.Init(aShape, TopAbs_EDGE);
+             Exp.More(); Exp.Next()) {
+
+          TopoDS_Shape sh = Exp.Current();
+          match.Find(sh);
+
+          shapeData.Add(sh, aCCol);
+        }
       }
     }
+
+    Quantity_Color aSCol;
+    if (!aSurfCol.IsNull()) {
+      EG_DecodeColor(aSurfCol, aSCol);
+    }
+
+    if (!aSurfCol.IsNull() && aShape.ShapeType() == TopAbs_FACE) {
+      shapeData.Add(aShape, aSCol);
+    }
+
+    if ((!aCurveCol.IsNull() || !aSurfCol.IsNull()) &&
+        (aShape.ShapeType() == TopAbs_SHELL ||
+         aShape.ShapeType() == TopAbs_SOLID ||
+         aShape.ShapeType() == TopAbs_COMPOUND)) { // WIRE bodies come in as COMPOUND
+
+      Quantity_Color  *CCol = NULL, *SCol = NULL;
+      if (!aCurveCol.IsNull()) CCol = new Quantity_Color(aCCol);
+      if (!aSurfCol.IsNull() ) SCol = new Quantity_Color(aSCol);
+
+      shapeData.Add(aShape, CCol, SCol);
+    }
+
+//    Quantity_Color aBCol;
 //    if (!aBoundCol.IsNull())
 //      theStyles.DecodeColor(aBoundCol, aBCol);
-//    if (!aCurveCol.IsNull()) {
-//      Quantity_Color aCCol;
-//      theStyles.DecodeColor(aCurveCol, aCCol);
-//      if (aShape.ShapeType() == TopAbs_EDGE) {
-//        shapeData.Add(aShape, aCCol);
-//      }
-//    }
 //    if (!aRenderCol.IsNull())
 //      theStyles.DecodeColor(aRenderCol, aRCol);
   }
@@ -1415,12 +1743,15 @@ EG_stepIsOverriden(const Interface_Graph& theGraph,
 
 // Based on STEPCAFControl_Reader::ReadColors
 static void
-EG_stepColors(const Handle(XSControl_WorkSession)& WS,
+EG_stepColors(const TopoDS_Shape& aShape,
+              const Handle(XSControl_WorkSession)& WS,
               egadsShapeData& shapeData)
 {
 
   STEPConstruct_Styles Styles(WS);
   if (!Styles.LoadStyles()) return;
+
+  MatchShape match(aShape);
 
   const Interface_Graph& aGraph = Styles.Graph ();
 
@@ -1438,7 +1769,7 @@ EG_stepColors(const Handle(XSControl_WorkSession)& WS,
     // check that style is overridden by other root style
     if (!EG_stepIsOverriden (aGraph, Style, anIsRootStyle))
     {
-      EG_setStyle (WS, Styles, Style, shapeData);
+      EG_setStyle (match, WS, Styles, Style, shapeData);
     }
   }
 #endif
@@ -1452,7 +1783,7 @@ EG_stepColors(const Handle(XSControl_WorkSession)& WS,
     // check that style is overridden
     if (!EG_stepIsOverriden (aGraph, Style, anIsRootStyle))
     {
-      EG_setStyle (WS, Styles, Style, shapeData);
+      EG_setStyle (match, WS, Styles, Style, shapeData);
     }
   }
 
@@ -1508,11 +1839,64 @@ EG_igesCheckColorRange (Standard_Real& theCol)
   if ( theCol > 100. ) theCol = 100.;
 }
 
-// Based on IGESCAFControl_Reader::Transfer
+
+// EG_igesEntityColor and EG_igesColors are
+// based on IGESCAFControl_Reader::Transfer
 static void
-EG_igesColors(const Handle(XSControl_WorkSession)& WS,
+EG_igesEntityColor(const Handle(IGESData_IGESEntity)& ent,
+                   const MatchShape& match,
+                   const Handle(Transfer_TransientProcess) &TP,
+                   TopoDS_Shape S,
+                   egadsShapeData& shapeData)
+{
+  Standard_Boolean IsColor = Standard_False;
+  Quantity_Color col;
+  // read colors
+  if(ent->DefColor() == IGESData_DefValue ||
+     ent->DefColor() == IGESData_DefReference) {
+    // color is assigned
+    // decode color and set to document
+    IsColor = Standard_True;
+    if ( ent->DefColor() == IGESData_DefValue ) {
+      col = EG_igesDecodeColor ( ent->RankColor() );
+    }
+    else {
+      Handle(IGESGraph_Color) color = Handle(IGESGraph_Color)::DownCast ( ent->Color() );
+      if ( color.IsNull() ) {
+        IsColor = Standard_False;
+      }
+      else {
+        Standard_Real r, g, b;
+        color->RGBIntensity ( r, g, b );
+        EG_igesCheckColorRange ( r );
+        EG_igesCheckColorRange ( g );
+        EG_igesCheckColorRange ( b );
+        col.SetValues ( 0.01*r, 0.01*g, 0.01*b, Quantity_TOC_RGB );
+      }
+    }
+  }
+  if (!IsColor) return;
+
+  // Find the shape
+  if (S.IsNull()) {
+    Handle(Transfer_Binder) binder = TP->Find ( ent );
+    if ( binder.IsNull() ) return;
+    S = TransferBRep::ShapeResult (binder);
+    if ( S.IsNull() ) return;
+  }
+
+  match.Find(S);
+
+  shapeData.Add(S, col);
+}
+
+
+static void
+EG_igesColors(const TopoDS_Shape& aShape,
+              const Handle(XSControl_WorkSession)& WS,
               egadsShapeData& shapeData)
 {
+  MatchShape match(aShape);
 
   Handle(IGESData_IGESModel) aModel = Handle(IGESData_IGESModel)::DownCast(WS->Model());
   const Handle(XSControl_TransferReader) &TR = WS->TransferReader();
@@ -1522,40 +1906,54 @@ EG_igesColors(const Handle(XSControl_WorkSession)& WS,
   for(Standard_Integer i = 1; i <= nb; i++) {
     Handle(IGESData_IGESEntity) ent = Handle(IGESData_IGESEntity)::DownCast (aModel->Value(i) );
     if ( ent.IsNull() ) continue;
-    Handle(Transfer_Binder) binder = TP->Find ( ent );
-    if ( binder.IsNull() ) continue;
-    TopoDS_Shape S = TransferBRep::ShapeResult (binder);
-    if ( S.IsNull() ) continue;
 
-    Standard_Boolean IsColor = Standard_False;
-    Quantity_Color col;
-    // read colors
-    if(ent->DefColor() == IGESData_DefValue ||
-       ent->DefColor() == IGESData_DefReference) {
-      // color is assigned
-      // decode color and set to document
-      IsColor = Standard_True;
-      if ( ent->DefColor() == IGESData_DefValue ) {
-        col = EG_igesDecodeColor ( ent->RankColor() );
+    TopoDS_Shape S;
+    EG_igesEntityColor(ent, match, TP, S, shapeData);
+
+    // check each curve for an IGESSolid_EdgeList
+    const Handle(IGESSolid_EdgeList)& edgeList =
+          Handle(IGESSolid_EdgeList)::DownCast(ent);
+    if (!edgeList.IsNull()) {
+      const Handle(TransferBRep_ShapeListBinder)& binder =
+            Handle(TransferBRep_ShapeListBinder)::DownCast(TP->Find(ent));
+      if (binder.IsNull()) continue;
+      if (binder->NbShapes() != edgeList->NbEdges()) continue;
+
+      for (Standard_Integer iedge = 1; iedge <= edgeList->NbEdges(); iedge++) {
+        Handle(IGESData_IGESEntity) Curve = edgeList->Curve(iedge);
+
+        S = binder->Edge(iedge);
+        if (S.IsNull()) continue;
+
+        EG_igesEntityColor(Curve, match, TP, S, shapeData);
       }
-      else {
-        Handle(IGESGraph_Color) color = Handle(IGESGraph_Color)::DownCast ( ent->Color() );
-        if ( color.IsNull() ) {
-          IsColor = Standard_False;
-        }
-        else {
-          Standard_Real r, g, b;
-          color->RGBIntensity ( r, g, b );
-          EG_igesCheckColorRange ( r );
-          EG_igesCheckColorRange ( g );
-          EG_igesCheckColorRange ( b );
-          col.SetValues ( 0.01*r, 0.01*g, 0.01*b, Quantity_TOC_RGB );
-        }
-      }
+      continue;
     }
-    if (!IsColor) continue;
 
-    shapeData.Add(S, col);
+    // check each curve for an IGESGeom_CompositeCurve
+    const Handle(IGESGeom_CompositeCurve)& compCurve =
+          Handle(IGESGeom_CompositeCurve)::DownCast(ent);
+    if (!compCurve.IsNull()) {
+      const Handle(TransferBRep_ShapeBinder)& binder =
+            Handle(TransferBRep_ShapeBinder)::DownCast(TP->Find(ent));
+      if (binder.IsNull()) continue;
+
+      TopoDS_Shape wire = binder->Result();
+      if (wire.IsNull()) continue;
+      match.Find(wire);
+
+      TopExp_Explorer Exp;
+      Exp.Init(wire, TopAbs_EDGE);
+
+      for (Standard_Integer iedge = 1;
+          iedge <= compCurve->NbCurves(); iedge++, Exp.Next()) {
+        Handle(IGESData_IGESEntity) Curve = compCurve->Curve(iedge);
+
+        S = Exp.Current();
+        EG_igesEntityColor(Curve, match, TP, S, shapeData);
+      }
+      continue;
+    }
   }
 }
 
@@ -1710,10 +2108,10 @@ EG_loadModel(egObject *context, int bflg, const char *name, egObject **model)
 #endif
 
     // Get all the labels from the STEP file
-    EG_lablesFromTransferReader(aReader.OneShape(), TR, shapeData);
+    EG_labelsFromTransferReader(aReader.OneShape(), TR, shapeData);
 
     // Get colors from step file
-    EG_stepColors(workSession, shapeData);
+    EG_stepColors(aReader.OneShape(), workSession, shapeData);
 
     TopoDS_Compound compound;
     BRep_Builder    builder3D;
@@ -1811,8 +2209,15 @@ EG_loadModel(egObject *context, int bflg, const char *name, egObject **model)
              Exp.More(); Exp.Next()) {
           MW.Add( TopoDS::Edge(Exp.Current()));
         }
-        if (MW.IsDone())
-          builder3D.Add(compound, MW.Wire());
+        if (MW.IsDone()) {
+          TopoDS_Shape Wire = shapeData.Update(aShape, MW.Wire());
+          TopExp_Explorer WExp(Wire, TopAbs_EDGE);
+          for (Exp.Init(aShape, TopAbs_EDGE,  TopAbs_WIRE);
+               Exp.More() && WExp.More(); Exp.Next(), WExp.Next()) {
+            shapeData.Update(Exp.Current(), WExp.Current());
+          }
+          builder3D.Add(compound, Wire);
+        }
         for (Exp.Init(aShape, TopAbs_WIRE,  TopAbs_FACE);
              Exp.More(); Exp.Next()) builder3D.Add(compound, Exp.Current());
         for (Exp.Init(aShape, TopAbs_FACE,  TopAbs_SHELL);
@@ -1896,10 +2301,10 @@ EG_loadModel(egObject *context, int bflg, const char *name, egObject **model)
           workSession->TransferReader();
 
     // Get all the labels from the IGES file
-    EG_lablesFromTransferReader(iReader.OneShape(), transferReader, shapeData);
+    EG_labelsFromTransferReader(iReader.OneShape(), transferReader, shapeData);
 
     // Get all the colors from the IGES file
-    EG_igesColors(workSession, shapeData);
+    EG_igesColors(iReader.OneShape(), workSession, shapeData);
 
     TopoDS_Compound compound;
     BRep_Builder    builder3D;
@@ -2377,46 +2782,43 @@ EG_loadModel(egObject *context, int bflg, const char *name, egObject **model)
 
   /* possibly assign attributes from IGES/STEP read */
   if (shapeData.LabelExtent() > 0) {
-    for (i = 1; i <= shapeData.LabelExtent(); i++) {
-      const char *value = shapeData.label(i).shapeName;
-      if (value == NULL) continue;
-      TopoDS_Shape aShape = shapeData.LabelFindKey(i);
-      /* printf(" Shape %2d: %s\n", i, value); */
-      for (int ibody = 0; ibody < mshape->nbody; ibody++) {
-        egObject  *pobj   = mshape->bodies[ibody];
-        egadsBody *pbody  = (egadsBody *) pobj->blind;
-        if (pbody->shape == aShape)
-          EG_attributeAdd(pobj, "Name", ATTRSTRING, 1, NULL, NULL, value);
-        j = pbody->nodes.map.FindIndex(aShape);
-        if (j != 0) EG_attributeAdd(pbody->nodes.objs[j-1],  "Name", ATTRSTRING,
-                                    1, NULL, NULL, value);
-        j = pbody->edges.map.FindIndex(aShape);
-        if (j != 0) EG_attributeAdd(pbody->edges.objs[j-1],  "Name", ATTRSTRING,
-                                    1, NULL, NULL, value);
-        j = pbody->loops.map.FindIndex(aShape);
-        if (j != 0) EG_attributeAdd(pbody->loops.objs[j-1],  "Name", ATTRSTRING,
-                                    1, NULL, NULL, value);
-        j = pbody->faces.map.FindIndex(aShape);
-        if (j != 0) EG_attributeAdd(pbody->faces.objs[j-1],  "Name", ATTRSTRING,
-                                    1, NULL, NULL, value);
-        j = pbody->shells.map.FindIndex(aShape);
-        if (j != 0) EG_attributeAdd(pbody->shells.objs[j-1], "Name", ATTRSTRING,
-                                    1, NULL, NULL, value);
+    for (int ibody = 0; ibody < mshape->nbody; ibody++) {
+      egObject  *pobj   = mshape->bodies[ibody];
+      egadsBody *pbody  = (egadsBody *) pobj->blind;
+      i = shapeData.LabelFindIndex(pbody->shape);
+      if (i > 0) {
+        const char *value = shapeData.label(i).shapeName;
+        EG_attributeAdd(pobj, "Name", ATTRSTRING, 1, NULL, NULL, value);
       }
+      shapeData.AddShapeName(pbody->nodes);
+      shapeData.AddShapeName(pbody->edges);
+      shapeData.AddShapeName(pbody->loops);
+      shapeData.AddShapeName(pbody->faces);
+      shapeData.AddShapeName(pbody->shells);
     }
   }
-  if (shapeData.ColorExtent() > 0) {
-    for (i = 1; i <= shapeData.ColorExtent(); i++) {
-      const Quantity_Color& color = shapeData.color(i);
-      TopoDS_Shape aShape = shapeData.ColorFindKey(i);
-      /* printf(" Shape %2d: %s\n", i, value); */
-      for (int ibody = 0; ibody < mshape->nbody; ibody++) {
-        egObject  *pobj   = mshape->bodies[ibody];
-        egadsBody *pbody  = (egadsBody *) pobj->blind;
-        const double rgb[3] = {color.Red(), color.Green(), color.Blue()};
+  if (shapeData.BodyColorExtent() > 0) {
+    TopTools_IndexedMapOfShape bodyMap;
+    for (int ibody = 0; ibody < mshape->nbody; ibody++) {
+      egObject  *pobj   = mshape->bodies[ibody];
+      egadsBody *pbody  = (egadsBody *) pobj->blind;
+      bodyMap.Add(pbody->shape);
+    }
+
+    for (i = 1; i <= shapeData.BodyColorExtent(); i++) {
+      const Quantity_Color* coloredge = shapeData.EdgeColor(i);
+      const Quantity_Color* colorface = shapeData.FaceColor(i);
+      const TopoDS_Shape& aShape = shapeData.BodyColorFindKey(i);
+
+      ibody = bodyMap.FindIndex(aShape);
+      if (ibody == 0) continue;
+      egObject *pobj = mshape->bodies[ibody-1];
+
+      if (coloredge != NULL) {
+        const double rgb[3] = {coloredge->Red(), coloredge->Green(), coloredge->Blue()};
 
         const char* name = NULL;
-             if (rgb[0] == 1   && rgb[1] == 0   && rgb[2] == 0  ) name = "red";
+        if (rgb[0] == 1   && rgb[1] == 0   && rgb[2] == 0  ) name = "red";
         else if (rgb[0] == 0   && rgb[1] == 1   && rgb[2] == 0  ) name = "green";
         else if (rgb[0] == 0   && rgb[1] == 0   && rgb[2] == 1  ) name = "blue";
         else if (rgb[0] == 1   && rgb[1] == 1   && rgb[2] == 0  ) name = "yellow";
@@ -2429,43 +2831,45 @@ EG_loadModel(egObject *context, int bflg, const char *name, egObject **model)
         else if (rgb[0] == 0.5 && rgb[1] == 0.5 && rgb[2] == 1  ) name = "lblue";
 
         if (name != NULL) {
-          if (pbody->shape == aShape)
-            EG_attributeAdd(pobj, "Color", ATTRSTRING, 1, NULL, NULL, name);
-          j = pbody->nodes.map.FindIndex(aShape);
-          if (j != 0) EG_attributeAdd(pbody->nodes.objs[j-1],  "Color", ATTRSTRING,
-                                      1, NULL, NULL, name);
-          j = pbody->edges.map.FindIndex(aShape);
-          if (j != 0) EG_attributeAdd(pbody->edges.objs[j-1],  "Color", ATTRSTRING,
-                                      1, NULL, NULL, name);
-          j = pbody->loops.map.FindIndex(aShape);
-          if (j != 0) EG_attributeAdd(pbody->loops.objs[j-1],  "Color", ATTRSTRING,
-                                      1, NULL, NULL, name);
-          j = pbody->faces.map.FindIndex(aShape);
-          if (j != 0) EG_attributeAdd(pbody->faces.objs[j-1],  "Color", ATTRSTRING,
-                                      1, NULL, NULL, name);
-          j = pbody->shells.map.FindIndex(aShape);
-          if (j != 0) EG_attributeAdd(pbody->shells.objs[j-1], "Color", ATTRSTRING,
-                                      1, NULL, NULL, name);
+          EG_attributeAdd(pobj, "ColorEdge", ATTRSTRING, 1, NULL, NULL, name);
         } else {
-          if (pbody->shape == aShape)
-            EG_attributeAdd(pobj, "Color", ATTRREAL, 3, NULL, rgb, NULL);
-          j = pbody->nodes.map.FindIndex(aShape);
-          if (j != 0) EG_attributeAdd(pbody->nodes.objs[j-1],  "Color", ATTRREAL,
-                                      3, NULL, rgb, NULL);
-          j = pbody->edges.map.FindIndex(aShape);
-          if (j != 0) EG_attributeAdd(pbody->edges.objs[j-1],  "Color", ATTRREAL,
-                                      3, NULL, rgb, NULL);
-          j = pbody->loops.map.FindIndex(aShape);
-          if (j != 0) EG_attributeAdd(pbody->loops.objs[j-1],  "Color", ATTRREAL,
-                                      3, NULL, rgb, NULL);
-          j = pbody->faces.map.FindIndex(aShape);
-          if (j != 0) EG_attributeAdd(pbody->faces.objs[j-1],  "Color", ATTRREAL,
-                                      3, NULL, rgb, NULL);
-          j = pbody->shells.map.FindIndex(aShape);
-          if (j != 0) EG_attributeAdd(pbody->shells.objs[j-1], "Color", ATTRREAL,
-                                      3, NULL, rgb, NULL);
+          EG_attributeAdd(pobj, "ColorEdge", ATTRREAL, 3, NULL, rgb, NULL);
         }
       }
+      if (colorface != NULL) {
+        const double rgb[3] = {colorface->Red(), colorface->Green(), colorface->Blue()};
+
+        const char* name = NULL;
+        if (rgb[0] == 1   && rgb[1] == 0   && rgb[2] == 0  ) name = "red";
+        else if (rgb[0] == 0   && rgb[1] == 1   && rgb[2] == 0  ) name = "green";
+        else if (rgb[0] == 0   && rgb[1] == 0   && rgb[2] == 1  ) name = "blue";
+        else if (rgb[0] == 1   && rgb[1] == 1   && rgb[2] == 0  ) name = "yellow";
+        else if (rgb[0] == 1   && rgb[1] == 0   && rgb[2] == 1  ) name = "magenta";
+        else if (rgb[0] == 0   && rgb[1] == 1   && rgb[2] == 1  ) name = "cyan";
+        else if (rgb[0] == 1   && rgb[1] == 1   && rgb[2] == 1  ) name = "white";
+        else if (rgb[0] == 0   && rgb[1] == 0   && rgb[2] == 0  ) name = "black";
+        else if (rgb[0] == 1   && rgb[1] == 0.5 && rgb[2] == 0.5) name = "lred";
+        else if (rgb[0] == 0.5 && rgb[1] == 1   && rgb[2] == 0.5) name = "lgreen";
+        else if (rgb[0] == 0.5 && rgb[1] == 0.5 && rgb[2] == 1  ) name = "lblue";
+
+        if (name != NULL) {
+          EG_attributeAdd(pobj, "ColorFace", ATTRSTRING, 1, NULL, NULL, name);
+        } else {
+          EG_attributeAdd(pobj, "ColorFace", ATTRREAL, 3, NULL, rgb, NULL);
+        }
+      }
+    }
+  }
+  if (shapeData.ColorExtent() > 0) {
+    for (int ibody = 0; ibody < mshape->nbody; ibody++) {
+      egObject  *pobj   = mshape->bodies[ibody];
+      egadsBody *pbody  = (egadsBody *) pobj->blind;
+
+      shapeData.AddShapeColor(pbody->nodes);
+      shapeData.AddShapeColor(pbody->edges);
+      shapeData.AddShapeColor(pbody->loops);
+      shapeData.AddShapeColor(pbody->faces);
+      shapeData.AddShapeColor(pbody->shells);
     }
   }
 
@@ -2795,7 +3199,7 @@ EG_writeTess(const egObject *tess, FILE *fp)
     fprintf(fp, " %d\n", len);
     if (len == 0) continue;
     for (j = 0; j < len; j++)
-      fprintf(fp, "%19.12le %19.12le %19.12le %19.12le\n", pxyz[3*j],
+      fprintf(fp, "%20.16le %20.16le %20.16le %20.16le\n", pxyz[3*j],
               pxyz[3*j+1], pxyz[3*j+2], pt[j]);
   }
 
@@ -2807,7 +3211,7 @@ EG_writeTess(const egObject *tess, FILE *fp)
     fprintf(fp, " %d %d\n", len, ntri);
     if ((len == 0) || (ntri == 0)) continue;
     for (j = 0; j < len; j++)
-      fprintf(fp, "%19.12le %19.12le %19.12le %19.12le %19.12le %d %d\n",
+      fprintf(fp, "%20.16le %20.16le %20.16le %20.16le %20.16le %d %d\n",
               pxyz[3*j], pxyz[3*j+1], pxyz[3*j+2], puv[2*j], puv[2*j+1],
               ptype[j], pindex[j]);
     for (j = 0; j < ntri; j++)
@@ -2939,8 +3343,8 @@ EG_stepSetColors(const Quantity_Color* aSurfCol,
                  const Quantity_Color* aCurveCol,
                  const Handle(XSControl_WorkSession)& theWS,
                  MoniTool_DataMapOfShapeTransient& theMapCompMDGPR,
-                 TopoDS_Shape aTopSh,
-                 TopoDS_Shape aShape)
+                 const TopoDS_Shape& aTopSh,
+                 const TopoDS_Shape& aShape)
 {
 
   STEPConstruct_Styles Styles(theWS);
@@ -3006,6 +3410,8 @@ EG_stepSetColors(const Quantity_Color* aSurfCol,
     aMDGPR = Handle(StepVisual_MechanicalDesignGeometricPresentationRepresentation)::DownCast(theMapCompMDGPR.Find(aTopSh));
   }
 
+  if (aMDGPR.IsNull()) return;
+
   Handle(StepRepr_HArray1OfRepresentationItem) anOldItems = aMDGPR->Items();
   Standard_Integer oldLengthlen = 0;
   if (!anOldItems.IsNull())
@@ -3029,6 +3435,61 @@ EG_stepSetColors(const Quantity_Color* aSurfCol,
 }
 
 
+static bool
+EG_quantityColor(const int aType,
+                 const int aLen,
+                 const char *str,
+                 const double *reals,
+                 Quantity_Color& aCol)
+{
+  bool found = false;
+  if ((aType == ATTRREAL && aLen == 3)) {
+    aCol = Quantity_Color(reals[0], reals[1], reals[2], Quantity_TOC_RGB);
+    found = true;
+  } else if (aType == ATTRSTRING) {
+    if        (strcasecmp(str, "red"    ) == 0) { aCol = Quantity_Color(Quantity_NOC_RED1    ); found = true;
+    } else if (strcasecmp(str, "green"  ) == 0) { aCol = Quantity_Color(Quantity_NOC_GREEN1  ); found = true;
+    } else if (strcasecmp(str, "blue"   ) == 0) { aCol = Quantity_Color(Quantity_NOC_BLUE1   ); found = true;
+    } else if (strcasecmp(str, "yellow" ) == 0) { aCol = Quantity_Color(Quantity_NOC_YELLOW1 ); found = true;
+    } else if (strcasecmp(str, "magenta") == 0) { aCol = Quantity_Color(Quantity_NOC_MAGENTA1); found = true;
+    } else if (strcasecmp(str, "cyan"   ) == 0) { aCol = Quantity_Color(Quantity_NOC_CYAN1   ); found = true;
+    } else if (strcasecmp(str, "white"  ) == 0) { aCol = Quantity_Color(Quantity_NOC_WHITE   ); found = true;
+    } else if (strcasecmp(str, "black"  ) == 0) { aCol = Quantity_Color(Quantity_NOC_BLACK   ); found = true;
+    } else if (strcasecmp(str, "lred"   ) == 0) { aCol = Quantity_Color(1.0, 0.5, 0.5, Quantity_TOC_RGB); found = true;
+    } else if (strcasecmp(str, "lgreen" ) == 0) { aCol = Quantity_Color(0.5, 1.0, 0.5, Quantity_TOC_RGB); found = true;
+    } else if (strcasecmp(str, "lblue"  ) == 0) { aCol = Quantity_Color(0.5, 0.5, 1.0, Quantity_TOC_RGB); found = true;
+    }
+  }
+
+  return found;
+}
+
+static Handle(IGESGraph_Color)
+EG_igesGraphColor(const Quantity_Color& color)
+{
+  Handle(IGESGraph_Color) colorEntity = new IGESGraph_Color;
+
+  const double rgb[3] = {color.Red(), color.Green(), color.Blue()};
+
+         if (rgb[0] == 1   && rgb[1] == 0   && rgb[2] == 0  ) { colorEntity->Init(100,   0,   0, new TCollection_HAsciiString("red"    ));
+  } else if (rgb[0] == 0   && rgb[1] == 1   && rgb[2] == 0  ) { colorEntity->Init(  0, 100,   0, new TCollection_HAsciiString("green"  ));
+  } else if (rgb[0] == 0   && rgb[1] == 0   && rgb[2] == 1  ) { colorEntity->Init(  0,   0, 100, new TCollection_HAsciiString("blue"   ));
+  } else if (rgb[0] == 1   && rgb[1] == 1   && rgb[2] == 0  ) { colorEntity->Init(100, 100,   0, new TCollection_HAsciiString("yellow" ));
+  } else if (rgb[0] == 1   && rgb[1] == 0   && rgb[2] == 1  ) { colorEntity->Init(100,   0, 100, new TCollection_HAsciiString("magenta"));
+  } else if (rgb[0] == 0   && rgb[1] == 1   && rgb[2] == 1  ) { colorEntity->Init(  0, 100, 100, new TCollection_HAsciiString("cyan"   ));
+  } else if (rgb[0] == 1   && rgb[1] == 1   && rgb[2] == 1  ) { colorEntity->Init(100, 100, 100, new TCollection_HAsciiString("white"  ));
+  } else if (rgb[0] == 0   && rgb[1] == 0   && rgb[2] == 0  ) { colorEntity->Init(  0,   0,   0, new TCollection_HAsciiString("black"  ));
+  } else if (rgb[0] == 1   && rgb[1] == 0.5 && rgb[2] == 0.5) { colorEntity->Init(100,  50,  50, new TCollection_HAsciiString("lred"   ));
+  } else if (rgb[0] == 0.5 && rgb[1] == 1   && rgb[2] == 0.5) { colorEntity->Init( 50, 100,  50, new TCollection_HAsciiString("lgreen" ));
+  } else if (rgb[0] == 0.5 && rgb[1] == 0.5 && rgb[2] == 1  ) { colorEntity->Init( 50,  50, 100, new TCollection_HAsciiString("lblue"  ));
+  } else {
+    colorEntity->Init(100*rgb[0], 100*rgb[1], 100*rgb[2], NULL);
+  }
+
+  return colorEntity;
+}
+
+
 static void
 EG_setSTEPprops(const Handle(XSControl_WorkSession) &WS, int nbody,
                 const egObject **bodies, Handle(Transfer_FinderProcess) FP)
@@ -3040,10 +3501,10 @@ EG_setSTEPprops(const Handle(XSControl_WorkSession) &WS, int nbody,
   Handle(StepRepr_RepresentationItem) r;
   MoniTool_DataMapOfShapeTransient theMapCompMDGPR;
   STEPConstruct_Styles Styles(WS);
+  const Handle(Interface_InterfaceModel) &aModel = WS->Model();
 
 #ifdef WRITECSYS
   // Get working data & place to store Body CSYSs
-  const Handle(Interface_InterfaceModel) &aModel = WS->Model();
   Handle(StepRepr_HArray1OfRepresentationItem) reprItems =
     new StepRepr_HArray1OfRepresentationItem;
 #endif
@@ -3056,15 +3517,70 @@ EG_setSTEPprops(const Handle(XSControl_WorkSession) &WS, int nbody,
     nface  = pbody->faces.map.Extent();
     nshell = pbody->shells.map.Extent();
 
+    r = STEPConstruct::FindEntity(FP, pbody->shape);
+    if (bodies[j]->mtype == WIREBODY) {
+      Handle(StepShape_GeometricCurveSet) curveSet = Handle(StepShape_GeometricCurveSet)::DownCast(r);
+      if (!curveSet.IsNull()) {
+        for (i = 0; i < curveSet->NbElements(); i++) {
+          egObject  *aobj  = pbody->edges.objs[i];
+          if (aobj  == NULL) continue;
+          egadsEdge *pedge = (egadsEdge *) aobj->blind;
+          if (pedge == NULL) continue;
+          stat = EG_attributeRet(aobj, "Name", &aType, &aLen, &ints, &reals, &str);
+          if (stat == EGADS_SUCCESS && aType == ATTRSTRING) {
+            StepShape_GeometricSetSelect curveSelect = curveSet->ElementsValue(i+1);
+            Handle(StepGeom_Curve) curve = curveSelect.Curve();
+            if (curve.IsNull()) continue;
+            Handle(TCollection_HAsciiString) id = new TCollection_HAsciiString(str);
+            curve->SetName(id);
+
+            // If it's a trimmed curve, set name on basis curve as well
+            Handle(StepGeom_TrimmedCurve) trimcurve = Handle(StepGeom_TrimmedCurve)::DownCast(curve);
+            if (!trimcurve.IsNull()) {
+              Handle(StepGeom_Curve) basiscurve = trimcurve->BasisCurve();
+              if (!basiscurve.IsNull()) {
+                basiscurve->SetName(id);
+              }
+            }
+          }
+
+#ifdef STEP_WIRE_BODY_EDGE_COLORS_DOES_NOT_WORK
+          stat = EG_attributeRet(aobj, "Color", &aType, &aLen, &ints, &reals, &str);
+          if (stat == EGADS_SUCCESS) {
+            Quantity_Color aCurvCol;
+            if (EG_quantityColor(aType, aLen, str, reals, aCurvCol))
+              EG_stepSetColors(NULL, &aCurvCol,
+                               WS, theMapCompMDGPR,
+                               pbody->shape, r);
+          }
+#endif
+        }
+      }
+    }
+
     stat   = EG_attributeRet(bodies[j], "Name", &aType, &aLen, &ints, &reals,
                              &str);
     if (stat == EGADS_SUCCESS && aType == ATTRSTRING) {
-      r = STEPConstruct::FindEntity(FP, pbody->shape);
       if (!r.IsNull()) {
         Handle(TCollection_HAsciiString) id = new TCollection_HAsciiString(str);
         r->SetName(id);
       }
     }
+
+    bool ColorEdge = false, ColorFace = false;
+    Quantity_Color aCurvCol, aSurfCol;
+    stat = EG_attributeRet(bodies[j], "ColorEdge", &aType, &aLen, &ints, &reals, &str);
+    if (stat == EGADS_SUCCESS) {
+      ColorEdge = EG_quantityColor(aType, aLen, str, reals, aCurvCol);
+    }
+    stat = EG_attributeRet(bodies[j], "ColorFace", &aType, &aLen, &ints, &reals, &str);
+    if (stat == EGADS_SUCCESS) {
+      ColorFace = EG_quantityColor(aType, aLen, str, reals, aSurfCol);
+    }
+    if (ColorEdge || ColorFace)
+      EG_stepSetColors(ColorFace ? &aSurfCol : NULL, ColorEdge ? &aCurvCol : NULL,
+                       WS, theMapCompMDGPR,
+                       pbody->shape, pbody->shape);
 
 #ifdef WRITECSYS
     // find unattached Body CSYSs
@@ -3136,27 +3652,9 @@ EG_setSTEPprops(const Handle(XSControl_WorkSession) &WS, int nbody,
       }
 
       stat = EG_attributeRet(aobj, "Color", &aType, &aLen, &ints, &reals, &str);
-      if (stat == EGADS_SUCCESS && ((aType == ATTRREAL && aLen == 3) || (aType == ATTRSTRING))) {
-        bool found = false;
+      if (stat == EGADS_SUCCESS) {
         Quantity_Color aSurfCol;
-        if (aType == ATTRREAL) {
-          aSurfCol = Quantity_Color(reals[0], reals[1], reals[2], Quantity_TOC_RGB);
-          found = true;
-        } else {
-          if        (strcasecmp(str, "red"    ) == 0) { aSurfCol = Quantity_Color(Quantity_NOC_RED1    ); found = true;
-          } else if (strcasecmp(str, "green"  ) == 0) { aSurfCol = Quantity_Color(Quantity_NOC_GREEN1  ); found = true;
-          } else if (strcasecmp(str, "blue"   ) == 0) { aSurfCol = Quantity_Color(Quantity_NOC_BLUE1   ); found = true;
-          } else if (strcasecmp(str, "yellow" ) == 0) { aSurfCol = Quantity_Color(Quantity_NOC_YELLOW1 ); found = true;
-          } else if (strcasecmp(str, "magenta") == 0) { aSurfCol = Quantity_Color(Quantity_NOC_MAGENTA1); found = true;
-          } else if (strcasecmp(str, "cyan"   ) == 0) { aSurfCol = Quantity_Color(Quantity_NOC_CYAN1   ); found = true;
-          } else if (strcasecmp(str, "white"  ) == 0) { aSurfCol = Quantity_Color(Quantity_NOC_WHITE   ); found = true;
-          } else if (strcasecmp(str, "black"  ) == 0) { aSurfCol = Quantity_Color(Quantity_NOC_BLACK   ); found = true;
-          } else if (strcasecmp(str, "lred"   ) == 0) { aSurfCol = Quantity_Color(1.0, 0.5, 0.5, Quantity_TOC_RGB); found = true;
-          } else if (strcasecmp(str, "lgreen" ) == 0) { aSurfCol = Quantity_Color(0.5, 1.0, 0.5, Quantity_TOC_RGB); found = true;
-          } else if (strcasecmp(str, "lblue"  ) == 0) { aSurfCol = Quantity_Color(0.5, 0.5, 1.0, Quantity_TOC_RGB); found = true;
-          }
-        }
-        if (found)
+        if (EG_quantityColor(aType, aLen, str, reals, aSurfCol))
           EG_stepSetColors(&aSurfCol, NULL,
                            WS, theMapCompMDGPR,
                            pbody->shape, pface->face);
@@ -3244,28 +3742,10 @@ EG_setSTEPprops(const Handle(XSControl_WorkSession) &WS, int nbody,
       }
 
       stat = EG_attributeRet(aobj, "Color", &aType, &aLen, &ints, &reals, &str);
-      if (stat == EGADS_SUCCESS && ((aType == ATTRREAL && aLen == 3) || (aType == ATTRSTRING))) {
-        bool found = false;
-        Quantity_Color aCurvCol;
-        if (aType == ATTRREAL) {
-          aCurvCol = Quantity_Color(reals[0], reals[1], reals[2], Quantity_TOC_RGB);
-          found = true;
-        } else {
-          if        (strcasecmp(str, "red"    ) == 0) { aCurvCol = Quantity_Color(Quantity_NOC_RED1    ); found = true;
-          } else if (strcasecmp(str, "green"  ) == 0) { aCurvCol = Quantity_Color(Quantity_NOC_GREEN1  ); found = true;
-          } else if (strcasecmp(str, "blue"   ) == 0) { aCurvCol = Quantity_Color(Quantity_NOC_BLUE1   ); found = true;
-          } else if (strcasecmp(str, "yellow" ) == 0) { aCurvCol = Quantity_Color(Quantity_NOC_YELLOW1 ); found = true;
-          } else if (strcasecmp(str, "magenta") == 0) { aCurvCol = Quantity_Color(Quantity_NOC_MAGENTA1); found = true;
-          } else if (strcasecmp(str, "cyan"   ) == 0) { aCurvCol = Quantity_Color(Quantity_NOC_CYAN1   ); found = true;
-          } else if (strcasecmp(str, "white"  ) == 0) { aCurvCol = Quantity_Color(Quantity_NOC_WHITE   ); found = true;
-          } else if (strcasecmp(str, "black"  ) == 0) { aCurvCol = Quantity_Color(Quantity_NOC_BLACK   ); found = true;
-          } else if (strcasecmp(str, "lred"   ) == 0) { aCurvCol = Quantity_Color(1.0, 0.5, 0.5, Quantity_TOC_RGB); found = true;
-          } else if (strcasecmp(str, "lgreen" ) == 0) { aCurvCol = Quantity_Color(0.5, 1.0, 0.5, Quantity_TOC_RGB); found = true;
-          } else if (strcasecmp(str, "lblue"  ) == 0) { aCurvCol = Quantity_Color(0.5, 0.5, 1.0, Quantity_TOC_RGB); found = true;
-          }
-        }
-        if (found)
-          EG_stepSetColors(NULL, &aCurvCol,
+      if (stat == EGADS_SUCCESS) {
+        Quantity_Color aCurveCol;
+        if (EG_quantityColor(aType, aLen, str, reals, aCurveCol))
+          EG_stepSetColors(NULL, &aCurveCol,
                            WS, theMapCompMDGPR,
                            pbody->shape, pedge->edge);
       }
@@ -3307,8 +3787,6 @@ EG_setSTEPprops(const Handle(XSControl_WorkSession) &WS, int nbody,
   }
 #endif
 
-  const Handle(Interface_InterfaceModel) &aModel = WS->Model();
-
   // register all MDGPRs in model
   for (MoniTool_DataMapIteratorOfDataMapOfShapeTransient anItr(theMapCompMDGPR);
        anItr.More(); anItr.Next())
@@ -3319,15 +3797,13 @@ EG_setSTEPprops(const Handle(XSControl_WorkSession) &WS, int nbody,
 
 
 static void
-EG_setIGESprop(int nbody, const egObject **bodies,
-               IGESControl_Writer &iWrite)
+EG_getShapeData(int nbody, const egObject **bodies,
+                egadsShapeData &shapeData)
 {
   int          i, j, stat, aType, aLen, nshell, nface, nloop, nedge, nnode;
   const int    *ints;
   const double *reals;
   const char   *str;
-  Handle(IGESData_IGESEntity) ent;
-  const Handle(Transfer_FinderProcess) &FP = iWrite.TransferProcess();
 
   for (j = 0; j < nbody; j++) {
     egadsBody *pbody = (egadsBody *) bodies[j]->blind;
@@ -3339,18 +3815,22 @@ EG_setIGESprop(int nbody, const egObject **bodies,
 
     stat   = EG_attributeRet(bodies[j], "Name", &aType, &aLen, &ints, &reals, &str);
     if (stat == EGADS_SUCCESS && aType == ATTRSTRING) {
-      Handle(TransferBRep_ShapeMapper) mapper = TransferBRep::ShapeMapper(FP, pbody->shape);
-      if (FP->FindTypedTransient (mapper, STANDARD_TYPE(IGESData_IGESEntity), ent)) {
-        // Set short name (max 8 chars)
-        // r->SetLabel(new TCollection_HAsciiString("SHRTNAME"));
+      shapeData.Add(pbody->shape, str);
+    }
 
-        //Add long name
-        Handle(IGESBasic_Name) nameEntity = new IGESBasic_Name();
-        nameEntity->Init(1, new TCollection_HAsciiString(str));
-        ent->AddProperty(nameEntity);
-        iWrite.Model()->AddEntity(nameEntity);
+#ifdef IGES_DOES_NOT_SUPPORT_BODY_COLORS
+    if (bodies[j]->mtype == WIREBODY) {
+      stat = EG_attributeRet(bodies[j], "ColorEdge", &aType, &aLen, &ints, &reals, &str);
+    } else {
+      stat = EG_attributeRet(bodies[j], "ColorFace", &aType, &aLen, &ints, &reals, &str);
+    }
+    if (stat == EGADS_SUCCESS) {
+      Quantity_Color aCol;
+      if (EG_quantityColor(aType, aLen, str, reals, aCol)) {
+        shapeData.Add(pbody->shape, aCol);
       }
     }
+#endif
 
     for (i = 0; i < nshell; i++) {
       egObject   *aobj   = pbody->shells.objs[i];
@@ -3360,18 +3840,7 @@ EG_setIGESprop(int nbody, const egObject **bodies,
       stat = EG_attributeRet(aobj, "Name", &aType, &aLen, &ints, &reals, &str);
       if (stat  != EGADS_SUCCESS) continue;
       if (aType != ATTRSTRING)    continue;
-
-      Handle(TransferBRep_ShapeMapper) mapper = TransferBRep::ShapeMapper(FP, pshell->shell);
-      if (FP->FindTypedTransient (mapper, STANDARD_TYPE(IGESData_IGESEntity), ent)) {
-        // Set short name (max 8 chars)
-        // r->SetLabel(new TCollection_HAsciiString("SHRTNAME"));
-
-        //Add long name
-        Handle(IGESBasic_Name) nameEntity = new IGESBasic_Name();
-        nameEntity->Init(1, new TCollection_HAsciiString(str));
-        ent->AddProperty(nameEntity);
-        iWrite.Model()->AddEntity(nameEntity);
-      }
+      shapeData.Add(pshell->shell, str);
     }
 
     for (i = 0; i < nface; i++) {
@@ -3381,58 +3850,14 @@ EG_setIGESprop(int nbody, const egObject **bodies,
       if (pface == NULL) continue;
       stat = EG_attributeRet(aobj, "Name", &aType, &aLen, &ints, &reals, &str);
       if (stat == EGADS_SUCCESS && aType == ATTRSTRING) {
-        Handle(TransferBRep_ShapeMapper) mapper = TransferBRep::ShapeMapper(FP, pface->face);
-        if (FP->FindTypedTransient (mapper, STANDARD_TYPE(IGESData_IGESEntity), ent)) {
-          // Set short name (max 8 chars)
-          // r->SetLabel(new TCollection_HAsciiString("SHRTNAME"));
-
-          //Add long name
-          Handle(IGESBasic_Name) nameEntity = new IGESBasic_Name();
-          nameEntity->Init(1, new TCollection_HAsciiString(str));
-          ent->AddProperty(nameEntity);
-          iWrite.Model()->AddEntity(nameEntity);
-        }
+        shapeData.Add(pface->face, str);
       }
 
       stat = EG_attributeRet(aobj, "Color", &aType, &aLen, &ints, &reals, &str);
-      if (stat == EGADS_SUCCESS && ((aType == ATTRREAL && aLen == 3) || (aType == ATTRSTRING))) {
-        Handle(TransferBRep_ShapeMapper) mapper = TransferBRep::ShapeMapper(FP, pface->face);
-        if (FP->FindTypedTransient (mapper, STANDARD_TYPE(IGESData_IGESEntity), ent)) {
-
-          Quantity_Color aSurfCol;
-          Handle(IGESGraph_Color) colorEntity = new IGESGraph_Color();
-          if (aType == ATTRREAL) {
-            colorEntity->Init(100*reals[0], 100*reals[1], 100*reals[2], NULL);
-            aSurfCol = Quantity_Color(reals[0], reals[1], reals[2], Quantity_TOC_RGB);
-          } else {
-            if        (strcasecmp(str, "red"    ) == 0) { colorEntity->Init(100,   0,   0, NULL); aSurfCol = Quantity_Color(Quantity_NOC_RED1    );
-            } else if (strcasecmp(str, "green"  ) == 0) { colorEntity->Init(  0, 100,   0, NULL); aSurfCol = Quantity_Color(Quantity_NOC_GREEN1  );
-            } else if (strcasecmp(str, "blue"   ) == 0) { colorEntity->Init(  0,   0, 100, NULL); aSurfCol = Quantity_Color(Quantity_NOC_BLUE1   );
-            } else if (strcasecmp(str, "yellow" ) == 0) { colorEntity->Init(100, 100,   0, NULL); aSurfCol = Quantity_Color(Quantity_NOC_YELLOW1 );
-            } else if (strcasecmp(str, "magenta") == 0) { colorEntity->Init(100,   0, 100, NULL); aSurfCol = Quantity_Color(Quantity_NOC_MAGENTA1);
-            } else if (strcasecmp(str, "cyan"   ) == 0) { colorEntity->Init(  0, 100, 100, NULL); aSurfCol = Quantity_Color(Quantity_NOC_CYAN1   );
-            } else if (strcasecmp(str, "white"  ) == 0) { colorEntity->Init(100, 100, 100, NULL); aSurfCol = Quantity_Color(Quantity_NOC_WHITE   );
-            } else if (strcasecmp(str, "black"  ) == 0) { colorEntity->Init(  0,   0,   0, NULL); aSurfCol = Quantity_Color(Quantity_NOC_BLACK   );
-            } else if (strcasecmp(str, "lred"   ) == 0) { colorEntity->Init(100,  50,  50, NULL); aSurfCol = Quantity_Color(1.0, 0.5, 0.5, Quantity_TOC_RGB);
-            } else if (strcasecmp(str, "lgreen" ) == 0) { colorEntity->Init( 50, 100,  50, NULL); aSurfCol = Quantity_Color(0.5, 1.0, 0.5, Quantity_TOC_RGB);
-            } else if (strcasecmp(str, "lblue"  ) == 0) { colorEntity->Init( 50,  50, 100, NULL); aSurfCol = Quantity_Color(0.5, 0.5, 1.0, Quantity_TOC_RGB);
-            } else colorEntity.Nullify();
-          }
-
-          //Add color
-          if (!colorEntity.IsNull()) {
-            Standard_Integer rank = EG_igesEncodeColor ( aSurfCol );
-
-            ent->InitColor ( colorEntity, rank );
-            Handle(IGESSolid_Face) ent_f = Handle(IGESSolid_Face)::DownCast(ent);
-            if (!ent_f.IsNull())
-            {
-              if (!ent_f->Surface().IsNull()) {
-                ent_f->Surface()->InitColor ( colorEntity, rank );
-                iWrite.Model()->AddWithRefs(colorEntity, IGESSelect_WorkLibrary::DefineProtocol());
-              }
-            }
-          }
+      if (stat == EGADS_SUCCESS) {
+        Quantity_Color aSurfCol;
+        if (EG_quantityColor(aType, aLen, str, reals, aSurfCol) ) {
+          shapeData.Add(pface->face, aSurfCol);
         }
       }
     }
@@ -3445,17 +3870,7 @@ EG_setIGESprop(int nbody, const egObject **bodies,
       stat = EG_attributeRet(aobj, "Name", &aType, &aLen, &ints, &reals, &str);
       if (stat  != EGADS_SUCCESS) continue;
       if (aType != ATTRSTRING)    continue;
-      Handle(TransferBRep_ShapeMapper) mapper = TransferBRep::ShapeMapper(FP, ploop->loop);
-      if (FP->FindTypedTransient (mapper, STANDARD_TYPE(IGESData_IGESEntity), ent)) {
-        // Set short name (max 8 chars)
-        // r->SetLabel(new TCollection_HAsciiString("SHRTNAME"));
-
-        //Add long name
-        Handle(IGESBasic_Name) nameEntity = new IGESBasic_Name();
-        nameEntity->Init(1, new TCollection_HAsciiString(str));
-        ent->AddProperty(nameEntity);
-        iWrite.Model()->AddEntity(nameEntity);
-      }
+      shapeData.Add(ploop->loop, str);
     }
 
     for (i = 0; i < nedge; i++) {
@@ -3463,18 +3878,17 @@ EG_setIGESprop(int nbody, const egObject **bodies,
       if (aobj  == NULL) continue;
       egadsEdge *pedge = (egadsEdge *) aobj->blind;
       if (pedge == NULL) continue;
+
       stat = EG_attributeRet(aobj, "Name", &aType, &aLen, &ints, &reals, &str);
       if (stat == EGADS_SUCCESS && aType == ATTRSTRING) {
-        Handle(TransferBRep_ShapeMapper) mapper = TransferBRep::ShapeMapper(FP, pedge->edge);
-        if (FP->FindTypedTransient (mapper, STANDARD_TYPE(IGESData_IGESEntity), ent)) {
-          // Set short name (max 8 chars)
-          // r->SetLabel(new TCollection_HAsciiString("SHRTNAME"));
+        shapeData.Add(pedge->edge, str);
+      }
 
-          //Add long name
-          Handle(IGESBasic_Name) nameEntity = new IGESBasic_Name();
-          nameEntity->Init(1, new TCollection_HAsciiString(str));
-          ent->AddProperty(nameEntity);
-          iWrite.Model()->AddEntity(nameEntity);
+      stat = EG_attributeRet(aobj, "Color", &aType, &aLen, &ints, &reals, &str);
+      if (stat == EGADS_SUCCESS) {
+        Quantity_Color aCurvCol;
+        if (EG_quantityColor(aType, aLen, str, reals, aCurvCol) ) {
+          shapeData.Add(pedge->edge, aCurvCol);
         }
       }
     }
@@ -3487,16 +3901,82 @@ EG_setIGESprop(int nbody, const egObject **bodies,
       stat = EG_attributeRet(aobj, "Name", &aType, &aLen, &ints, &reals, &str);
       if (stat  != EGADS_SUCCESS) continue;
       if (aType != ATTRSTRING)    continue;
-      Handle(TransferBRep_ShapeMapper) mapper = TransferBRep::ShapeMapper(FP, pnode->node);
+      shapeData.Add(pnode->node, str);
+    }
+  }
+}
+
+
+static void
+EG_setIGESprop(const egadsShapeData &shapeData,
+               IGESControl_Writer &iWrite)
+{
+  int i;
+  Handle(IGESData_IGESEntity) ent;
+  const Handle(Transfer_FinderProcess) &FP = iWrite.TransferProcess();
+
+#if CASVER >= 780
+  NCollection_DataMap<Quantity_Color,Handle(IGESGraph_Color)> colors;
+#endif
+  NCollection_DataMap<TCollection_AsciiString,Handle(IGESBasic_Name)> names;
+
+  if (shapeData.LabelExtent() > 0) {
+    for (i = 1; i <= shapeData.LabelExtent(); i++) {
+      const char *str = shapeData.label(i).shapeName;
+      if (str == NULL) continue;
+      TopoDS_Shape aShape = shapeData.LabelFindKey(i);
+
+      Handle(TransferBRep_ShapeMapper) mapper = TransferBRep::ShapeMapper(FP, aShape);
       if (FP->FindTypedTransient (mapper, STANDARD_TYPE(IGESData_IGESEntity), ent)) {
         // Set short name (max 8 chars)
         // r->SetLabel(new TCollection_HAsciiString("SHRTNAME"));
 
         //Add long name
-        Handle(IGESBasic_Name) nameEntity = new IGESBasic_Name();
-        nameEntity->Init(1, new TCollection_HAsciiString(str));
+        Handle(IGESBasic_Name) nameEntity;
+        if (names.IsBound(str)) {
+          nameEntity = names.Find(str);
+        } else {
+          nameEntity = new IGESBasic_Name();
+          nameEntity->Init(1, new TCollection_HAsciiString(str));
+          names.Bind(str, nameEntity);
+          iWrite.Model()->AddEntity(nameEntity);
+        }
         ent->AddProperty(nameEntity);
-        iWrite.Model()->AddEntity(nameEntity);
+      }
+    }
+  }
+
+  if (shapeData.ColorExtent() > 0) {
+    for (i = 1; i <= shapeData.ColorExtent(); i++) {
+      const Quantity_Color& color = shapeData.color(i);
+      TopoDS_Shape aShape = shapeData.ColorFindKey(i);
+
+      Handle(TransferBRep_ShapeMapper) mapper = TransferBRep::ShapeMapper(FP, aShape);
+      Handle(TransferBRep_ShapeMapper) aNoLocMapper = TransferBRep::ShapeMapper(FP, aShape.Located(TopLoc_Location()));
+      if (FP->FindTypedTransient(mapper, STANDARD_TYPE(IGESData_IGESEntity), ent) ||
+          FP->FindTypedTransient(aNoLocMapper, STANDARD_TYPE(IGESData_IGESEntity), ent)) {
+
+        Handle(IGESGraph_Color) colorEntity;
+#if CASVER >= 780
+        if (colors.IsBound(color)) {
+          colorEntity = colors.Find(color);
+        } else {
+          colorEntity =  EG_igesGraphColor(color);
+          colors.Bind(color, colorEntity);
+          iWrite.Model()->AddWithRefs(colorEntity, IGESSelect_WorkLibrary::DefineProtocol());
+        }
+#else
+        colorEntity =  EG_igesGraphColor(color);
+        iWrite.Model()->AddWithRefs(colorEntity, IGESSelect_WorkLibrary::DefineProtocol());
+#endif
+
+        Standard_Integer rank = EG_igesEncodeColor ( color );
+
+        ent->InitColor ( colorEntity, rank );
+        Handle(IGESSolid_Face) ent_f = Handle(IGESSolid_Face)::DownCast(ent);
+        if (!ent_f.IsNull())
+          if (!ent_f->Surface().IsNull())
+            ent_f->Surface()->InitColor ( colorEntity, rank );
       }
     }
   }
@@ -3646,6 +4126,9 @@ EG_saveModel(const egObject *model, const char *name)
 
     /* IGES files */
 
+    egadsShapeData shapeData;
+    EG_getShapeData(nbody, objs, shapeData);
+
     EG_getBodyUnits(mdl, nbody, objs, &units);
     if (units == NULL) {
       wunits = "MM";
@@ -3661,7 +4144,7 @@ EG_saveModel(const egObject *model, const char *name)
         if (!xForm.IsDone()) {
           printf(" EGADS Warning: Can't scale Object (EG_saveModel)!\n");
         } else {
-          wshape = xForm.ModifiedShape(wshape);
+          wshape = shapeData.Update(wshape, xForm);
         }
       }
     }
@@ -3681,7 +4164,7 @@ EG_saveModel(const egObject *model, const char *name)
            Exp.More(); Exp.Next()) iWrite.AddShape(Exp.Current());
 
       // transfer Name/Color attributes to IGES
-      EG_setIGESprop(nbody, objs, iWrite);
+      EG_setIGESprop(shapeData, iWrite);
 
       iWrite.ComputeModel();
       if (!iWrite.Write(name)) {

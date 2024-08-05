@@ -1090,7 +1090,7 @@ aimOutputs(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo,
 {
   int status = CAPS_SUCCESS;
 #ifdef DEBUG
-  printf(" skeletonAIM/aimOutputs instance = %d  index  = %d!\n",
+  printf(" refineAIM/aimOutputs instance = %d  index  = %d!\n",
          aim_getInstance(aimInfo), index);
 #endif
 

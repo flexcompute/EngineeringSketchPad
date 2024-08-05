@@ -715,6 +715,31 @@ isSame(object1::Ego, object2::Ego) = return EGADS_SUCCESS == ccall((:EG_isSame, 
 
 
 """
+Concatenates 2 BSpline curves to make another
+
+Parameters
+----------
+curve1:
+    the first input BSpline CURVE Object
+
+curve2:
+    the second input BSpline CURVE Object
+
+Returns
+-------
+bspline: the returned BSpline CURVE Object
+
+Note: The starting and ending control points are matched and used to mate the curves. The direction of the result
+      is fixed by self. The t range is the sum of the 2 input CURVE ranges.
+"""
+function mergeBSplineCurves(curve1::Ego, curve2::Ego)
+    ptr = Ref{ego}()
+    raiseStatus(ccall((:EG_mergeBSplineCurves, C_egadslib), Cint, (ego, ego, Ptr{ego}), curve1._ego, curve2._ego, ptr))
+    return Ego(ptr[] ; ctxt =  curve1.ctxt, delObj = true)
+end
+
+
+"""
 Computes and returns the BSpline representation of the geometric object
 
 Parameters
@@ -1195,12 +1220,43 @@ function replaceFaces(body::Ego, objects)
         pfaces[i] = emptyVar(obj_flat[i]) ? C_NULL : obj_flat[i]._ego
     end
     res    = Ref{ego}()
-    info   = getInfo(body)
     raiseStatus(ccall((:EG_replaceFaces, C_egadslib), Cint, (ego, Cint, Ptr{ego}, Ptr{ego}),
-                       body._ego ,nfaces, pfaces,res))
+                       body._ego, nfaces, pfaces, res))
     return Ego(res[] ; ctxt =  body.ctxt, delObj = true)
 end
 
+"""
+Creates a new Body (with the same type as input) from a Body Object and a list of Nodes to remove. 
+The Nodes must only touch 2 Edges and these Edges must bound the same 2 Faces (a SHEETBODY or
+FACEBODY can bound one Face when on Edges without 2 Face neighbors). If the Edge Curves are not
+BSplines they are converted and concatenated into a single BSpline Curve and the 2 Edges are replaced
+by one. Note: you cannot remove a Node that will result in a closed Edge.
+
+Parameters
+----------
+body:
+    the Body Object to adjust (either a FACEBODY, SHEETBODY or a SOLIDBODY)
+
+nodes:
+    list of NODE Objects to remove
+
+Returns
+-------
+the resultant Body Object, either a FACEBODY, SHEETBODY or a SOLIDBODY
+depending on the type of self
+"""
+function removeNodes(body::Ego, nodes)
+
+    nnodes = Cint(length(nodes))
+    pnodes = Array{ego}(undef, nnodes)
+    for i = 1:nnodes
+        pnodes[i] = nodes[i]._ego
+    end
+    res    = Ref{ego}()
+    raiseStatus(ccall((:EG_removeNodes, C_egadslib), Cint, (ego, Cint, Ptr{ego}, Ptr{ego}),
+                       body._ego, nnodes, pnodes, res))
+    return Ego(res[] ; ctxt =  body.ctxt, delObj = true)
+end
 
 """
 Examines the EDGEs in one BODY against all of the EDGEs in another.

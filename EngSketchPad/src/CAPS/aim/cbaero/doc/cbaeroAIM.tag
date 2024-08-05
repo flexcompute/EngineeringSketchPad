@@ -6,6 +6,12 @@
     <filename>attributeCBAERO.html</filename>
   </compound>
   <compound kind="page">
+    <name>cbaeroMaterialGroup</name>
+    <title>CBAero Material Group</title>
+    <filename>cbaeroMaterialGroup.html</filename>
+    <docanchor file="cbaeroMaterialGroup.html" title="Material Group JSON String Dictionary">jsonMaterialGroup</docanchor>
+  </compound>
+  <compound kind="page">
     <name>geomRepIntentCBAERO</name>
     <title>Geometry Representation</title>
     <filename>geomRepIntentCBAERO.html</filename>

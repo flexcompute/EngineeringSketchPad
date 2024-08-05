@@ -344,7 +344,7 @@ class EGADSError(Exception):
 # =============================================================================
 
 def _raiseStatus(stat):
-    if stat == EGADS_SUCCESS: return
+    if stat >= EGADS_SUCCESS: return
     errmsg = 'EGADS error code: %s'%(_egads_error_codes[stat])
     raise EGADSError(errmsg, stat)
 
@@ -2183,6 +2183,32 @@ class ego:
         return True if stat == 0 else False, iso.value, value.value, fwd.value
 
 #=============================================================================-
+    def mergeBSplineCurves(self, bspline):
+        """
+        Concatenates  2 BSpline curves to make another
+
+        Parameters
+        ----------
+        self:
+            the first BSpline Curve Object
+
+        bspline:
+            the second BSpline Curve Object
+
+        Returns
+        -------
+            The merged BSpline Curve Object
+ 
+        Note: The starting and ending control points are matched and used to mate the curves. The direction of the result
+              is fixed by self. The t range is the sum of the 2 input CURVE ranges.
+        """
+        merged   = c_ego()
+        stat = _egads.EG_mergeBSplineCurves(self._obj, bspline._obj, ctypes.byref(merged))
+        if stat < 0: _raiseStatus(stat)
+
+        return ego(merged, self.context, deleteObject=True)
+
+#=============================================================================-
     def convertToBSpline(self):
         """
         Computes and returns the BSpline representation of the geometric object
@@ -2743,6 +2769,39 @@ class ego:
 
          body = c_ego()
          stat = _egads.EG_replaceFaces(self._obj, c_int(nfaces), pfaces, ctypes.byref(body))
+         if stat: _raiseStatus(stat)
+
+         return ego(body, self.context, deleteObject=True)
+
+#=============================================================================-
+    def removeNodes(self, nodes):
+         """
+         Creates a new Body (with the same type as input) from a Body Object and a list of Nodes to remove. 
+         The Nodes must only touch 2 Edges and these Edges must bound the same 2 Faces (a SHEETBODY or
+         FACEBODY can bound one Face when on Edges without 2 Face neighbors). If the Edge Curves are not
+         BSplines they are converted and concatenated into a single BSpline Curve and the 2 Edges are replaced
+         by one. Note: you cannot remove a Node that will result in a closed Edge.
+
+         Parameters
+         ----------
+         self:
+             the Body Object to adjust (either a FACEBODY, SHEETBODY or a SOLIDBODY)
+
+         nodes:
+             list of NODE Objects to remove
+
+         Returns
+         -------
+         the resultant Body Object, either a FACEBODY, SHEETBODY or a SOLIDBODY
+         depending on the type of self
+         """
+         nnodes = len(nodes)
+         pnodes = (c_ego *(nnodes))()
+         for i in range(nnodes):
+             pnodes[i] = nodes[i]._obj
+
+         body = c_ego()
+         stat = _egads.EG_removeNodes(self._obj, c_int(nnodes), pnodes, ctypes.byref(body))
          if stat: _raiseStatus(stat)
 
          return ego(body, self.context, deleteObject=True)

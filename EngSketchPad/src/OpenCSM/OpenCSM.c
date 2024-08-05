@@ -42,13 +42,15 @@
 #define MORPH_GRID          1           /* =0 use EG_mapTessBody, =1 use EGG_morph if possible */
 
 #define ANALYTIC_SKETCH     1           /* =1 to get sketch sensitivities analytically */
+#define REMOVE_SPURIOUS     0           /* =1 to remove spurious Nodes */
 
 #define PRINT_SKETCH_TABLE  0           /* =1 to print sketch table when SKEND is executed */
+#define PRINT_PARAMETERS    0           /* =1 to print Parameters at the beginning of each Branch */
 #define PRINT_BODYS         0           /* =1 to print Bodys for each statement */
 #define PRINT_ATTRIBUTES    0           /* =1 to print Attributes for Nodes, Edges, and Faces */
 #define PRINT_LAST_EGO      0           /* =1 to print Body nbody, =2 to print Body nbody with attributes */
 #define PRINT_PROGRESS      0           /* =1 to print progress at end of each Branch */
-#define PRINT_GEOMSENS      0           /* =1 to print velocities foreach Node,Edge,Face, =2 to show how (use outLevel-2) */
+#define PRINT_GEOMSENS      0           /* =1 to print velocities foreach Node,Edge,Face, =2 to show how (use outLevel=2) */
 #define PRINT_TESSSENS      0           /* =1 to print at each stage of tessellation sensitivity generation */
 #define PRINT_BODY_INFO     0           /* =1 to print Body info for all Bodys on stack */
 #define PRINT_MAPPING_INFO  0           /* =1 to print mapping differences during finite difference tess. sens. */
@@ -313,7 +315,7 @@ static int compressFilename(char filename[]);
 static void computeAdjoint(void *empStruct);
 static int computeMassProps(modl_T *modl);
 static int computeMassPropsDot(modl_T *modl);
-       int convertToBSplines(ego inbody, double mat[], int mincp, ego *ebody);
+       int convertToBSplines(ego inbody, double mat[], int mincp, int mindeg, ego *ebody);
 static int copyEdgeAttributes(modl_T *modl, int ibody, int nxsect, ego xsects[]);
 static int copyUserEdgeAttributes(ego src, ego tgt);
 static int createPerturbation(modl_T *modl);
@@ -339,6 +341,7 @@ static int joinWireBodys(modl_T *modl, int ibodyl, int ibodyr, double toler, ego
 static int makeClone(empA_T *empAdjoint, modl_T *srcModl, modl_T *tgtModl);
 static int makeEdge(modl_T *modl, ego ebeg, ego eend, ego *eedge);
 static int makeFace(modl_T *modl, ego eedges[], int fillstyle, int dirn, double toler, ego *eface);
+static int markNodesAsKeep(modl_T *modl, ego ebody, int inodyl, int ibodyr, char label[]);
 static int matches(char pattern[], const char string[]);
 static int matchEdges(modl_T *modl, int ibody, int iedge, int jbody, int jedge, double toler);
 static int matchEdges2(modl_T *modl, ego eedge, int jbody, int jedge, double toler);
@@ -349,6 +352,7 @@ static int matchValue(varg_T arg, int itype, int nlist, CINT *tempIlist, CDOUBLE
 static int matsol(double A[], double b[], int n, double x[]);
 static int mvcInterp(int nloop, CINT nper[], CDOUBLE uvframe[], CDOUBLE uv[], double weights[]);
 static int newBody(modl_T *modl, int ibrch, int brtype, int ileft, int irite, /*@null@*/varg_T args[], int hasdots, int botype, int *ibody);
+static int newSeqnum(modl_T *modl, int ibody);
 static int parseName(modl_T *modl, char string[], char pname[], int *ipmtr, int *irow, int *icol);
 static int printAttrs(ego ebody);
 static int printBodyInfo(body_T *body);
@@ -2201,7 +2205,7 @@ ocsmLoad(char   filename[],             /* (in)  file to be read (with .csm) */
                 }
             }
 
-        /* input is: "dump $filename remove=0 toMark=0 withTess=0 $grpName=." */
+        /* input is: "dump $filename remove=0 toMark=0 withTess=0 $grpName=. putColors=0" */
         } else if (strcmp(command, "dump") == 0 ||
                    strcmp(command, "DUMP") == 0   ) {
             if (nskpt > 0) {
@@ -2217,8 +2221,8 @@ ocsmLoad(char   filename[],             /* (in)  file to be read (with .csm) */
             /* extract arguments */
             strcpy(str1, "$");
             strcpy(str5, "$");
-            narg = sscanf(nextline, "%*s %2046s %2047s %2047s %2047s %2046s\n",
-                          &(str1[1]), str2, str3, str4, &(str5[1]));
+            narg = sscanf(nextline, "%*s %2046s %2047s %2047s %2047s %2046s %2047s\n",
+                          &(str1[1]), str2, str3, str4, &(str5[1]), str6);
             if (narg < 1) {
                 status = signalError2(MODL, OCSM_NOT_ENOUGH_ARGS, filename, linenum,
                                       "DUMP requires at least 1 argument");
@@ -2236,6 +2240,9 @@ ocsmLoad(char   filename[],             /* (in)  file to be read (with .csm) */
             if (narg < 5) {
                 STRNCPY(str5, "$.", MAX_EXPR_LEN);
             }
+            if (narg < 6) {
+                STRNCPY(str6, "0", MAX_EXPR_LEN);
+            }
 
             /* convert filename if it starts with "$/" to relative pathname */
             if (strncmp(str1, "$$/", 3) == 0) {
@@ -2252,7 +2259,7 @@ ocsmLoad(char   filename[],             /* (in)  file to be read (with .csm) */
 
             /* create the new Branch */
             status = ocsmNewBrch(MODL, MODL->ibrch, OCSM_DUMP, filename, linenum,
-                                 str1, str2, str3, str4, str5, NULL, NULL, NULL, NULL);
+                                 str1, str2, str3, str4, str5, str6, NULL, NULL, NULL);
             CHECK_STATUS2(ocsmNewBrch);
 
         /* input is: "else" */
@@ -2460,7 +2467,7 @@ ocsmLoad(char   filename[],             /* (in)  file to be read (with .csm) */
                        strcmp(str1, "$NODE") == 0   ) {
                 if (narg != 3) {
                     status = signalError2(MODL, OCSM_NOT_ENOUGH_ARGS, filename, linenum,
-                                          "EVALUATE NODE requires 3 arguments");
+                                          "EVALUATE NODE requires ibody inode");
                     goto cleanup;
                 }
 
@@ -2469,7 +2476,16 @@ ocsmLoad(char   filename[],             /* (in)  file to be read (with .csm) */
                        strcmp(str1, "$EDGE") == 0   ) {
                 if (narg != 4) {
                     status = signalError2(MODL, OCSM_NOT_ENOUGH_ARGS, filename, linenum,
-                                          "EVALUATE EDGE requires 4 arguments");
+                                          "EVALUATE EDGE requires ibody iedge t");
+                    goto cleanup;
+                }
+
+            /* $edgebbox ibody iedge */
+            } else if (strcmp(str1, "$edgebbox") == 0 ||
+                       strcmp(str1, "$EDGEBBOX") == 0   ) {
+                if (narg != 3) {
+                    status = signalError2(MODL, OCSM_NOT_ENOUGH_ARGS, filename, linenum,
+                                          "EVALUATE EDGEBBOX requires ibody iedge");
                     goto cleanup;
                 }
 
@@ -2478,7 +2494,7 @@ ocsmLoad(char   filename[],             /* (in)  file to be read (with .csm) */
                        strcmp(str1, "$EDGERNG") == 0   ) {
                 if (narg != 3) {
                     status = signalError2(MODL, OCSM_NOT_ENOUGH_ARGS, filename, linenum,
-                                          "EVALUATE EDGERNG requires 3 arguments");
+                                          "EVALUATE EDGERNG requires ibody iedge");
                     goto cleanup;
                 }
 
@@ -2487,7 +2503,7 @@ ocsmLoad(char   filename[],             /* (in)  file to be read (with .csm) */
                        strcmp(str1, "$EDGEINV") == 0   ) {
                 if (narg != 6) {
                     status = signalError2(MODL, OCSM_NOT_ENOUGH_ARGS, filename, linenum,
-                                          "EVALUATE EDGEINV requires 6 arguments");
+                                          "EVALUATE EDGEINV requires ibody iedge x y z");
                     goto cleanup;
                 }
 
@@ -2496,7 +2512,7 @@ ocsmLoad(char   filename[],             /* (in)  file to be read (with .csm) */
                        strcmp(str1, "$EDGEKT") == 0   ) {
                 if (narg != 3) {
                     status = signalError2(MODL, OCSM_NOT_ENOUGH_ARGS, filename, linenum,
-                                          "EVALUATE EDGEKT requires 2 arguments");
+                                          "EVALUATE EDGEKT requires ibody iedge");
                     goto cleanup;
                 }
 
@@ -2505,7 +2521,16 @@ ocsmLoad(char   filename[],             /* (in)  file to be read (with .csm) */
                        strcmp(str1, "$EDGECP") == 0   ) {
                 if (narg != 3) {
                     status = signalError2(MODL, OCSM_NOT_ENOUGH_ARGS, filename, linenum,
-                                          "EVALUATE EDGECP requires 3 arguments");
+                                          "EVALUATE EDGECP requires ibody iedge");
+                    goto cleanup;
+                }
+
+            /* $edgetess ibody iedge */
+            } else if (strcmp(str1, "$edgetess") == 0 ||
+                       strcmp(str1, "$EDGETESS") == 0   ) {
+                if (narg != 3) {
+                    status = signalError2(MODL, OCSM_NOT_ENOUGH_ARGS, filename, linenum,
+                                          "EVALUATE EDGETESS requires ibody iedge");
                     goto cleanup;
                 }
 
@@ -2514,7 +2539,16 @@ ocsmLoad(char   filename[],             /* (in)  file to be read (with .csm) */
                        strcmp(str1, "$FACE") == 0   ) {
                 if (narg != 5) {
                     status = signalError2(MODL, OCSM_NOT_ENOUGH_ARGS, filename, linenum,
-                                          "EVALUATE FACE requires 5 arguments");
+                                          "EVALUATE FACE requires ibody iface u v");
+                    goto cleanup;
+                }
+
+            /* $facebbox ibody iface */
+            } else if (strcmp(str1, "$facebbox") == 0 ||
+                       strcmp(str1, "$FACEBBOX") == 0   ) {
+                if (narg != 3) {
+                    status = signalError2(MODL, OCSM_NOT_ENOUGH_ARGS, filename, linenum,
+                                          "EVALUATE FACEBBOX requires ibody iface");
                     goto cleanup;
                 }
 
@@ -2523,7 +2557,7 @@ ocsmLoad(char   filename[],             /* (in)  file to be read (with .csm) */
                        strcmp(str1, "$FACERNG") == 0   ) {
                 if (narg != 3) {
                     status = signalError2(MODL, OCSM_NOT_ENOUGH_ARGS, filename, linenum,
-                                          "EVALUATE FACERNG requires 3 arguments");
+                                          "EVALUATE FACERNG requires ibody iface");
                     goto cleanup;
                 }
 
@@ -2532,7 +2566,7 @@ ocsmLoad(char   filename[],             /* (in)  file to be read (with .csm) */
                        strcmp(str1, "$FACEINV") == 0   ) {
                 if (narg != 6) {
                     status = signalError2(MODL, OCSM_NOT_ENOUGH_ARGS, filename, linenum,
-                                          "EVALUATE FACEINV requires 6 arguments");
+                                          "EVALUATE FACEINV requires ibody iface x y z");
                     goto cleanup;
                 }
 
@@ -2541,7 +2575,7 @@ ocsmLoad(char   filename[],             /* (in)  file to be read (with .csm) */
                        strcmp(str1, "$FACEUKT") == 0   ) {
                 if (narg != 3) {
                     status = signalError2(MODL, OCSM_NOT_ENOUGH_ARGS, filename, linenum,
-                                          "EVALUATE FACEUKT requires 3 arguments");
+                                          "EVALUATE FACEUKT requires ibody iface");
                     goto cleanup;
                 }
 
@@ -2550,7 +2584,7 @@ ocsmLoad(char   filename[],             /* (in)  file to be read (with .csm) */
                        strcmp(str1, "$FACEVKT") == 0   ) {
                 if (narg != 3) {
                     status = signalError2(MODL, OCSM_NOT_ENOUGH_ARGS, filename, linenum,
-                                          "EVALUATE FACEVKT requires 3 arguments");
+                                          "EVALUATE FACEVKT requires ibody iface");
                     goto cleanup;
                 }
 
@@ -2559,13 +2593,31 @@ ocsmLoad(char   filename[],             /* (in)  file to be read (with .csm) */
                        strcmp(str1, "$FACECP") == 0   ) {
                 if (narg != 3) {
                     status = signalError2(MODL, OCSM_NOT_ENOUGH_ARGS, filename, linenum,
-                                          "EVALUATE FACECP requires 3 arguments");
+                                          "EVALUATE FACECP requires ibody iface");
+                    goto cleanup;
+                }
+
+            /* $facetess ibody iface */
+            } else if (strcmp(str1, "$facetess") == 0 ||
+                       strcmp(str1, "$FACETESS") == 0   ) {
+                if (narg != 3) {
+                    status = signalError2(MODL, OCSM_NOT_ENOUGH_ARGS, filename, linenum,
+                                          "EVALUATE FACETESS requires ibody iface");
+                    goto cleanup;
+                }
+
+            /* $dist ibody1 ibody2 */
+            } else if (strcmp(str1, "$dist") == 0 ||
+                       strcmp(str1, "$DIST") == 0   ) {
+                if (narg != 3) {
+                    status = signalError2(MODL, OCSM_NOT_ENOUGH_ARGS, filename, linenum,
+                                          "EVALUATE DIST requires ibody1 ibody2");
                     goto cleanup;
                 }
 
             } else {
                 status = signalError2(MODL, OCSM_ILLEGAL_STATEMENT, filename, linenum,
-                                      "type must be NODE, EDGE, EDGERNG, EDGEINV, EDGEKT, EDGECP, FACE, FACERNG, FACEINV, FACEUKT, FACEVKT, or FACECP");
+                                      "type must be NODE, EDGE, EDGEBBOX, EDGERNG, EDGEINV, EDGEKT, EDGECP, EDGETESS, FACE, FACEBBOX, FACERNG, FACEINV, FACEUKT, FACEVKT, FACECP, FACETESS, or DIST");
                 goto cleanup;
             }
 
@@ -2810,7 +2862,7 @@ ocsmLoad(char   filename[],             /* (in)  file to be read (with .csm) */
                                  str1, str2, str3, str4, str5, str6, str7, NULL, NULL);
             CHECK_STATUS2(ocsmNewBrch);
 
-        /* input is: "import $filename bodynumber=1" */
+        /* input is: "import $filename bodynumber=1 getcolors=0" */
         } else if (strcmp(command, "import") == 0 ||
                    strcmp(command, "IMPORT") == 0   ) {
             if (nskpt > 0) {
@@ -2825,14 +2877,18 @@ ocsmLoad(char   filename[],             /* (in)  file to be read (with .csm) */
 
             /* extract argument */
             strcpy(str1, "$");
-            narg = sscanf(nextline, "%*s %2046s %2047s\n",
-                          &(str1[1]), str2);
-            if        (narg == 1) {
-                STRNCPY(str2, "1", MAX_EXPR_LEN);
-            } else if (narg != 2) {
+            narg = sscanf(nextline, "%*s %2046s %2047s %2047s\n",
+                          &(str1[1]), str2, str3);
+            if (narg < 1) {
                 status = signalError2(MODL, OCSM_NOT_ENOUGH_ARGS, filename, linenum,
                                       "IMPORT requires at least 1 argument");
                 goto cleanup;
+            }
+            if (narg < 2) {
+                STRNCPY(str2, "1", MAX_EXPR_LEN);
+            }
+            if (narg < 3) {
+                STRNCPY(str3, "0", MAX_EXPR_LEN);
             }
 
             /* convert filename if it starts with "$/" or "$$/" to relative pathname */
@@ -2860,7 +2916,7 @@ ocsmLoad(char   filename[],             /* (in)  file to be read (with .csm) */
 
             /* create the new Branch */
             status = ocsmNewBrch(MODL, MODL->ibrch, OCSM_IMPORT, filename, linenum,
-                                 str1, str2, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
+                                 str1, str2, str3, NULL, NULL, NULL, NULL, NULL, NULL);
             CHECK_STATUS2(ocsmNewBrch);
 
         /* input is: "interface $argName $argType default=0" */
@@ -2899,7 +2955,7 @@ ocsmLoad(char   filename[],             /* (in)  file to be read (with .csm) */
             /* if an include-type UDC, reduce the scope back (note: it was
                increased by the UDPRIM statement) */
             if ((strcmp(str2, "$all") == 0) || (strcmp(str2, "$ALL") == 0)) {
-                    MODL->scope[MODL->level] = MODL->scope[MODL->level-1];
+                MODL->scope[MODL->level] = MODL->scope[MODL->level-1];
             }
 
             /* create the new Branch */
@@ -5894,6 +5950,11 @@ ocsmAdjustUDCs(void   *modl)            /* (in)  pointer to MODL */
             } else if (strncmp(MODL->brch[ibrch].arg1, "$$$/", 4) == 0) {
                 STRNCPY(buf, MODL->brch[ibrch].arg1, MAX_LINE_LEN);
                 snprintf(MODL->brch[ibrch].arg1, MAX_LINE_LEN, "$$/%s", &(buf[4]));
+
+            /* original .udc in ESP_UDC_PATH directory */
+            } else if (strncmp(MODL->brch[ibrch].arg1, "$$$$/", 5) == 0) {
+                STRNCPY(buf, MODL->brch[ibrch].arg1, MAX_LINE_LEN);
+                snprintf(MODL->brch[ibrch].arg1, MAX_LINE_LEN, "$$$/%s", &(buf[5]));
             }
         }
     }
@@ -6482,12 +6543,13 @@ ocsmSave(void   *modl,                  /* (in)  pointer to MODL */
                         MODL->brch[ibrch].arg3);
             }
         } else if (MODL->brch[ibrch].type == OCSM_DUMP) {
-            fprintf(csm_file, "DUMP      %s   %s   %s   %s   %s\n",
+            fprintf(csm_file, "DUMP      %s   %s   %s   %s   %s   %s\n",
                   &(MODL->brch[ibrch].arg1[1]),
                     MODL->brch[ibrch].arg2,
                     MODL->brch[ibrch].arg3,
                     MODL->brch[ibrch].arg4,
-                  &(MODL->brch[ibrch].arg5[1]));
+                  &(MODL->brch[ibrch].arg5[1]),
+                    MODL->brch[ibrch].arg6);
         } else if (MODL->brch[ibrch].type == OCSM_ELSE) {
             fprintf(csm_file, "ELSE\n");
         } else if (MODL->brch[ibrch].type == OCSM_ELSEIF) {
@@ -6517,6 +6579,12 @@ ocsmSave(void   *modl,                  /* (in)  pointer to MODL */
                         MODL->brch[ibrch].arg2,
                         MODL->brch[ibrch].arg3,
                         MODL->brch[ibrch].arg4);
+            } else if (strcmp(MODL->brch[ibrch].arg1, "$edgebbox") == 0 ||
+                       strcmp(MODL->brch[ibrch].arg1, "$EDGEBBOX") == 0   ) {
+                fprintf(csm_file, "EVALUATE  %s   %s   %s\n",
+                      &(MODL->brch[ibrch].arg1[1]),
+                        MODL->brch[ibrch].arg2,
+                        MODL->brch[ibrch].arg3);
             } else if (strcmp(MODL->brch[ibrch].arg1, "$edgerng") == 0 ||
                        strcmp(MODL->brch[ibrch].arg1, "$EDGERNG") == 0   ) {
                 fprintf(csm_file, "EVALUATE  %s   %s   %s\n",
@@ -6544,6 +6612,12 @@ ocsmSave(void   *modl,                  /* (in)  pointer to MODL */
                       &(MODL->brch[ibrch].arg1[1]),
                         MODL->brch[ibrch].arg2,
                         MODL->brch[ibrch].arg3);
+            } else if (strcmp(MODL->brch[ibrch].arg1, "$edgetess") == 0 ||
+                       strcmp(MODL->brch[ibrch].arg1, "$EDGETESS") == 0   ) {
+                fprintf(csm_file, "EVALUATE  %s   %s   %s\n",
+                      &(MODL->brch[ibrch].arg1[1]),
+                        MODL->brch[ibrch].arg2,
+                        MODL->brch[ibrch].arg3);
             } else if (strcmp(MODL->brch[ibrch].arg1, "$face") == 0 ||
                        strcmp(MODL->brch[ibrch].arg1, "$FACE") == 0   ) {
                 fprintf(csm_file, "EVALUATE  %s   %s   %s   %s   %s\n",
@@ -6552,6 +6626,12 @@ ocsmSave(void   *modl,                  /* (in)  pointer to MODL */
                         MODL->brch[ibrch].arg3,
                         MODL->brch[ibrch].arg4,
                         MODL->brch[ibrch].arg5);
+            } else if (strcmp(MODL->brch[ibrch].arg1, "$facebbox") == 0 ||
+                       strcmp(MODL->brch[ibrch].arg1, "$FACEBBOX") == 0   ) {
+                fprintf(csm_file, "EVALUATE  %s   %s   %s\n",
+                      &(MODL->brch[ibrch].arg1[1]),
+                        MODL->brch[ibrch].arg2,
+                        MODL->brch[ibrch].arg3);
             } else if (strcmp(MODL->brch[ibrch].arg1, "$facerng") == 0 ||
                        strcmp(MODL->brch[ibrch].arg1, "$FACERNG") == 0   ) {
                 fprintf(csm_file, "EVALUATE  %s   %s   %s\n",
@@ -6581,6 +6661,18 @@ ocsmSave(void   *modl,                  /* (in)  pointer to MODL */
                         MODL->brch[ibrch].arg3);
             } else if (strcmp(MODL->brch[ibrch].arg1, "$facecp") == 0 ||
                        strcmp(MODL->brch[ibrch].arg1, "$FACECP") == 0   ) {
+                fprintf(csm_file, "EVALUATE  %s   %s   %s\n",
+                      &(MODL->brch[ibrch].arg1[1]),
+                        MODL->brch[ibrch].arg2,
+                        MODL->brch[ibrch].arg3);
+            } else if (strcmp(MODL->brch[ibrch].arg1, "$facetess") == 0 ||
+                       strcmp(MODL->brch[ibrch].arg1, "$FACETESS") == 0   ) {
+                fprintf(csm_file, "EVALUATE  %s   %s   %s\n",
+                      &(MODL->brch[ibrch].arg1[1]),
+                        MODL->brch[ibrch].arg2,
+                        MODL->brch[ibrch].arg3);
+            } else if (strcmp(MODL->brch[ibrch].arg1, "$dist") == 0 ||
+                       strcmp(MODL->brch[ibrch].arg1, "$DIST") == 0   ) {
                 fprintf(csm_file, "EVALUATE  %s   %s   %s\n",
                       &(MODL->brch[ibrch].arg1[1]),
                         MODL->brch[ibrch].arg2,
@@ -6622,9 +6714,10 @@ ocsmSave(void   *modl,                  /* (in)  pointer to MODL */
                   &(MODL->brch[ibrch].arg6[1]),
                     MODL->brch[ibrch].arg7);
         } else if (MODL->brch[ibrch].type == OCSM_IMPORT) {
-            fprintf(csm_file, "IMPORT    %s   %s\n",
+            fprintf(csm_file, "IMPORT    %s   %s   %s\n",
                   &(MODL->brch[ibrch].arg1[1]),
-                    MODL->brch[ibrch].arg2);
+                    MODL->brch[ibrch].arg2,
+                    MODL->brch[ibrch].arg3);
         } else if (MODL->brch[ibrch].type == OCSM_INTERFACE) {
             fprintf(csm_file, "INTERFACE %s   %s   %s\n",
                   &(MODL->brch[ibrch].arg1[1]),
@@ -6950,9 +7043,10 @@ ocsmSave(void   *modl,                  /* (in)  pointer to MODL */
 
             /* skip Branches within this enclosed .udc (if not writing .cpc file) */
             if (filetype != 1 && MODL->brch[ibrch].type == OCSM_UDPRIM) {
-                if (strncmp(MODL->brch[ibrch].arg1, "$/",   2) == 0 ||
-                    strncmp(MODL->brch[ibrch].arg1, "$$/",  3) == 0 ||
-                    strncmp(MODL->brch[ibrch].arg1, "$$$/", 4) == 0   ) {
+                if (strncmp(MODL->brch[ibrch].arg1, "$/",    2) == 0 ||
+                    strncmp(MODL->brch[ibrch].arg1, "$$/",   3) == 0 ||
+                    strncmp(MODL->brch[ibrch].arg1, "$$$/",  4) == 0 ||
+                    strncmp(MODL->brch[ibrch].arg1, "$$$$/", 5) == 0   ) {
                     jbrch = ibrch;
                     while (MODL->brch[ibrch].type   != OCSM_END                ||
                            MODL->brch[ibrch].indent != MODL->brch[jbrch].indent  ) {
@@ -8046,16 +8140,16 @@ ocsmCheck(void   *modl)                 /* (in)  pointer to MODL */
                    MODL->brch[ibrch].type == OCSM_SOLBEG     ) {
             indent++;
         } else if (MODL->brch[ibrch].type    == OCSM_UDPRIM &&
-                   MODL->brch[ibrch].arg1[1] == '/'           ) {
+                   strncmp(MODL->brch[ibrch].arg1, "$/", 2) == 0) {
             indent++;
         } else if (MODL->brch[ibrch].type    == OCSM_UDPRIM &&
-                   MODL->brch[ibrch].arg1[1] == '$'         &&
-                   MODL->brch[ibrch].arg1[2] == '/'           ) {
+                   strncmp(MODL->brch[ibrch].arg1, "$$/", 3) == 0) {
             indent++;
         } else if (MODL->brch[ibrch].type    == OCSM_UDPRIM &&
-                   MODL->brch[ibrch].arg1[1] == '$'         &&
-                   MODL->brch[ibrch].arg1[2] == '$'         &&
-                   MODL->brch[ibrch].arg1[3] == '/'           ) {
+                   strncmp(MODL->brch[ibrch].arg1, "$$$/", 4) == 0) {
+            indent++;
+        } else if (MODL->brch[ibrch].type    == OCSM_UDPRIM &&
+                   strncmp(MODL->brch[ibrch].arg1, "$$$$/", 5) == 0) {
             indent++;
         }
     }
@@ -8242,13 +8336,15 @@ ocsmBuild(void   *modl,                 /* (in)  pointer to MODL */
     ego        *eobjs;
 
     int        status2, ibrch, jbrch, type, ibrchl, i, j, iface, iedge, iloop, inode, nbodyMax;
-    int        nshell, nbodys, nfaces, nloops, nedges, nnodes;
+    int        nshell, nbodys, nfaces, nloops, nedges, nnodes, ibody1, ibody2;
     int        iattr, ipmtr, jpmtr, istor, jstor, kstor, icount, nmacro, jstack, verify, icatch;
     int        ibody, jbody, jface, jedge, jnode, ibodyl, irow, nrow, icol, ncol, indx, itype, nlist, ilist, jlist;
     int        *iblist=NULL, nblist, iseq, ileft, irite, attrType, attrLen, nefaces;
     int        tempSize, *tempList=NULL, inlist;
+
     varg_T     args[10];
     double     dihedral, toler, value, dot, *values=NULL, *dots=NULL;
+    double     dist, pnt1[3], pnt2[3], data1[18], data2[18];
     char       pname[MAX_EXPR_LEN], pmtrName[MAX_EXPR_LEN], thisArg[MAX_LINE_LEN], str[MAX_STRVAL_LEN], temp[MAX_STRVAL_LEN];
     ego        *eshells, *ebodys, *efaces, *eloops, *eedges, *enodes, etemp2;
 
@@ -8703,6 +8799,30 @@ ocsmBuild(void   *modl,                 /* (in)  pointer to MODL */
 
         MODL->ibrch = ibrch;
 
+        /* print all Pmtrs */
+        if (PRINT_PARAMETERS == 1) {
+            SPRINT2(1, "MODL->brch[%3d].type=%s", ibrch, ocsmGetText(MODL->brch[ibrch].type));
+            SPRINT0(1, "    name                 type       scope nrow ncol");
+            for (ipmtr = 1; ipmtr <= MODL->npmtr; ipmtr++) {
+                SPRINT2x(1, "%3d %-20s ", ipmtr,
+                         MODL->pmtr[ipmtr].name);
+                SPRINT2x(1, "%-10s %5d ",
+                         ocsmGetText(MODL->pmtr[ipmtr].type),
+                         MODL->pmtr[ipmtr].scope);
+                SPRINT2x(1, "%4d %4d",
+                         MODL->pmtr[ipmtr].nrow,
+                         MODL->pmtr[ipmtr].ncol);
+                if (MODL->pmtr[ipmtr].nrow == 0) {
+                    SPRINT1(1, " %s", MODL->pmtr[ipmtr].str);
+                } else {
+                    for (i = 0; i < MODL->pmtr[ipmtr].nrow*MODL->pmtr[ipmtr].ncol; i++) {
+                        SPRINT1x(1, " %12.6f", MODL->pmtr[ipmtr].value[i]);
+                    }
+                    SPRINT0(1, " ");
+                }
+            }
+        }
+
         /* exit if we exceeded buildTo */
         if (ibrch > buildTo) {
             break;
@@ -8883,7 +9003,11 @@ ocsmBuild(void   *modl,                 /* (in)  pointer to MODL */
             if (iarg == 8) strcpy(thisArg, MODL->brch[ibrch].arg8);
             if (iarg == 9) strcpy(thisArg, MODL->brch[ibrch].arg9);
 
-            if        (iarg == 1 && type == OCSM_SET) {      // allows comma in a[1,2]
+            if        (iarg == 1 && type == OCSM_SET) {      // allows implicit string
+                STRNCPY(str, &(thisArg[1]), MAX_STRVAL_LEN);
+            } else if (iarg == 1 && type == OCSM_PATBEG) {   // allows implicit string
+                STRNCPY(str, &(thisArg[1]), MAX_STRVAL_LEN);
+            } else if (iarg == 1 && type == OCSM_GETATTR) {  // allows implicit string
                 STRNCPY(str, &(thisArg[1]), MAX_STRVAL_LEN);
             } else if (iarg == 4 && type == OCSM_SKCON) {    // delays parse of constraint
                 STRNCPY(str, &(thisArg[1]), MAX_STRVAL_LEN);
@@ -8902,8 +9026,68 @@ ocsmBuild(void   *modl,                 /* (in)  pointer to MODL */
                 if (status < SUCCESS) {
                     SPRINT4(0, "ERROR:: problem evaluating argument %d (%s) for Branch %d (%s)",
                            iarg, thisArg, ibrch, ocsmGetText(MODL->brch[ibrch].type));
+
                     FREE(values);
                     FREE(dots  );
+
+                    /* if there was an evaluation error during the start (or middle)
+                       of a block of statements, jump to after the block */
+                    if        (MODL->brch[ibrch].type == OCSM_PATBEG) {
+                        icount = 1;
+                        for (jbrch = ibrch+1; jbrch <= MODL->nbrch; jbrch++) {
+                            if (MODL->brch[jbrch].type == OCSM_PATBEG) icount++;
+                            if (MODL->brch[jbrch].type == OCSM_PATEND) icount--;
+
+                            if (icount == 0) {
+                                ibrch = jbrch;
+                                break;
+                            }
+                        }
+                    } else if (MODL->brch[ibrch].type == OCSM_PATBREAK) {
+                        npatn--;
+
+                        icount = 1;
+                        for (jbrch = ibrch+1; jbrch <= MODL->nbrch; jbrch++) {
+                            if (MODL->brch[jbrch].type == OCSM_PATBEG) icount++;
+                            if (MODL->brch[jbrch].type == OCSM_PATEND) icount--;
+
+                            if (icount == 0) {
+                                ibrch = jbrch;
+                                break;
+                            }
+                        }
+                    } else if (MODL->brch[ibrch].type == OCSM_IFTHEN) {
+                        icount = 1;
+                        for (jbrch = ibrch+1; jbrch <= MODL->nbrch; jbrch++) {
+                            if (MODL->brch[jbrch].type == OCSM_IFTHEN) icount++;
+                            if (MODL->brch[jbrch].type == OCSM_ENDIF ) icount--;
+
+                            if (icount == 0) {
+                                ibrch = jbrch;
+                                break;
+                            }
+                        }
+                    } else if (MODL->brch[ibrch].type == OCSM_ELSEIF) {
+                        npatn--;
+
+                        icount = 1;
+                        for (jbrch = ibrch+1; jbrch <= MODL->nbrch; jbrch++) {
+                            if (MODL->brch[jbrch].type == OCSM_IFTHEN) icount++;
+                            if (MODL->brch[jbrch].type == OCSM_ENDIF ) icount--;
+
+                            if (icount == 0) {
+                                ibrch = jbrch;
+                                break;
+                            }
+                        }
+                    } else if (MODL->brch[ibrch].type == OCSM_SKBEG) {
+                        for (jbrch = ibrch+1; jbrch <= MODL->nbrch; jbrch++) {
+                            if (MODL->brch[jbrch].type == OCSM_SKEND) {
+                                ibrch = jbrch;
+                                break;
+                            }
+                        }
+                    }
                     goto next_branch;
                 }
             }
@@ -8994,7 +9178,7 @@ ocsmBuild(void   *modl,                 /* (in)  pointer to MODL */
 
         /* if there is a BcstCallback defined, broadcast message now */
         if (MODL->bcstCB != NULL) {
-            snprintf(temp, MAX_STRVAL_LEN, "updateSolveBtn|1|Building %s (%d/%d)|",
+            snprintf(temp, MAX_STRVAL_LEN, "updateSolveBtn|1|building %s (%d/%d)|",
                      ocsmGetText(MODL->brch[ibrch].type), ibrch, MODL->nbrch);
             MODL->bcstCB(temp);
         }
@@ -9089,7 +9273,13 @@ ocsmBuild(void   *modl,                 /* (in)  pointer to MODL */
             /* if it does not exist, create it now */
             if (jpmtr == 0) {
                 status = ocsmNewPmtr(MODL, pmtrName, OCSM_LOCALVAR, 1, 1);
+                if (status == OCSM_ILLEGAL_PMTR_NAME) {
+                    status = signalError(MODL, OCSM_ILLEGAL_PMTR_NAME,
+                                         "\"%s\" is an illegal Parameter name", pmtrName);
+                    goto cleanup;    // cannot be caught
+                }
                 CHECK_STATUS(ocsmNewPmtr);
+
                 jpmtr = MODL->npmtr;
 
             /* make sure that Parameter is INTERNAL or OUTPMTR */
@@ -9304,8 +9494,8 @@ ocsmBuild(void   *modl,                 /* (in)  pointer to MODL */
             }
 
             /* "evaluate $node ibody inode" */
-            if (strcmp(args[1].str, "node") == 0 ||
-                strcmp(args[1].str, "NODE") == 0   ) {
+            if        (strcmp(args[1].str, "node") == 0 ||
+                       strcmp(args[1].str, "NODE") == 0   ) {
                 SPRINT4(1, "    executing [%4d] evaluate:       %s  %11.5f  %11.5f",
                         ibrch, args[1].str, args[2].val[0],
                                             args[3].val[0]);
@@ -9406,6 +9596,50 @@ ocsmBuild(void   *modl,                 /* (in)  pointer to MODL */
                 MODL->pmtr[jpmtr].dot[   8] = 0;
                 MODL->pmtr[jpmtr].dot[   9] = 0;
 
+            /* "evaluate $edgebbox ibody iedge" */
+            } else if (strcmp(args[1].str, "edgebbox") == 0 ||
+                       strcmp(args[1].str, "EDGEBBOX") == 0   ) {
+                SPRINT4(1, "    executing [%4d] evaluate:       %s  %11.5f  %11.5f",
+                        ibrch, args[1].str, args[2].val[0],
+                                            args[3].val[0]);
+
+                ibody = NINT(args[2].val[0]);
+                iedge = NINT(args[3].val[0]);
+
+                if (ibody < 1 || ibody > MODL->nbody) {
+                    status = signalError(MODL, OCSM_BODY_NOT_FOUND,
+                                         "EVALUATE specified nonexistant Body");
+                    goto next_branch;
+                } else if (iedge < 1 || iedge > MODL->body[ibody].nedge) {
+                    status = signalError(MODL, OCSM_EDGE_NOT_FOUND,
+                                         "EVALUATE specified nonexistant Edge");
+                    goto next_branch;
+                }
+
+                status = EG_getBoundingBox(MODL->body[ibody].edge[iedge].eedge, bbox);
+                CHECK_STATUS(EG_getBoundingBox);
+
+                /* resize and store data */
+                MODL->pmtr[jpmtr].nrow = 1;
+                MODL->pmtr[jpmtr].ncol = 6;
+
+                RALLOC(MODL->pmtr[jpmtr].value, double, MODL->pmtr[jpmtr].nrow*MODL->pmtr[jpmtr].ncol);
+                RALLOC(MODL->pmtr[jpmtr].dot,   double, MODL->pmtr[jpmtr].nrow*MODL->pmtr[jpmtr].ncol);
+
+                MODL->pmtr[jpmtr].value[ 0] = bbox[0];
+                MODL->pmtr[jpmtr].value[ 1] = bbox[1];
+                MODL->pmtr[jpmtr].value[ 2] = bbox[2];
+                MODL->pmtr[jpmtr].value[ 3] = bbox[3];
+                MODL->pmtr[jpmtr].value[ 4] = bbox[4];
+                MODL->pmtr[jpmtr].value[ 5] = bbox[5];
+
+                MODL->pmtr[jpmtr].dot[   0] = 0;
+                MODL->pmtr[jpmtr].dot[   1] = 0;
+                MODL->pmtr[jpmtr].dot[   2] = 0;
+                MODL->pmtr[jpmtr].dot[   3] = 0;
+                MODL->pmtr[jpmtr].dot[   4] = 0;
+                MODL->pmtr[jpmtr].dot[   5] = 0;
+
             /* "evaluate $edgerng ibody iedge" */
             } else if (strcmp(args[1].str, "edgerng") == 0 ||
                        strcmp(args[1].str, "EDGERNG") == 0   ) {
@@ -9472,9 +9706,12 @@ ocsmBuild(void   *modl,                 /* (in)  pointer to MODL */
                 status = EG_invEvaluate(MODL->body[ibody].edge[iedge].eedge, xyz_, uv_, data);
                 CHECK_STATUS(EG_invEvaluate);
 
+                status = EG_getRange(MODL->body[ibody].edge[iedge].eedge, uvrange, &periodic);
+                CHECK_STATUS(EG_getRange);
+
                 /* resize and store data */
                 MODL->pmtr[jpmtr].nrow = 1;
-                MODL->pmtr[jpmtr].ncol = 4;
+                MODL->pmtr[jpmtr].ncol = 5;
 
                 RALLOC(MODL->pmtr[jpmtr].value, double, MODL->pmtr[jpmtr].nrow*MODL->pmtr[jpmtr].ncol);
                 RALLOC(MODL->pmtr[jpmtr].dot,   double, MODL->pmtr[jpmtr].nrow*MODL->pmtr[jpmtr].ncol);
@@ -9483,11 +9720,13 @@ ocsmBuild(void   *modl,                 /* (in)  pointer to MODL */
                 MODL->pmtr[jpmtr].value[ 1] = data[0];
                 MODL->pmtr[jpmtr].value[ 2] = data[1];
                 MODL->pmtr[jpmtr].value[ 3] = data[2];
+                MODL->pmtr[jpmtr].value[ 4] = (uv_[0] - uvrange[0]) / (uvrange[1] - uvrange[0]);
 
                 MODL->pmtr[jpmtr].dot[   0] = 0;
                 MODL->pmtr[jpmtr].dot[   1] = 0;
                 MODL->pmtr[jpmtr].dot[   2] = 0;
                 MODL->pmtr[jpmtr].dot[   3] = 0;
+                MODL->pmtr[jpmtr].dot[   4] = 0;
 
             /* "evaluate $edgekt ibody iedge" */
             } else if (strcmp(args[1].str, "edgekt") == 0 ||
@@ -9599,6 +9838,46 @@ ocsmBuild(void   *modl,                 /* (in)  pointer to MODL */
                 if (header != NULL) EG_free(header);
                 if (rdata  != NULL) EG_free(rdata );
 
+            /* "evaluate $edgetess ibody iedge" */
+            } else if (strcmp(args[1].str, "edgetess") == 0 ||
+                       strcmp(args[1].str, "EDGETESS") == 0   ) {
+                CDOUBLE *t;
+
+                SPRINT4(1, "    executing [%4d] evaluate:       %s  %11.5f  %11.5f",
+                        ibrch, args[1].str, args[2].val[0],
+                                            args[3].val[0]);
+
+                ibody = NINT(args[2].val[0]);
+                iedge = NINT(args[3].val[0]);
+
+                if (ibody < 1 || ibody > MODL->nbody) {
+                    status = signalError(MODL, OCSM_BODY_NOT_FOUND,
+                                         "EVALUATE specified nonexistant Body");
+                    goto next_branch;
+                } else if (iedge < 1 || iedge > MODL->body[ibody].nedge) {
+                    status = signalError(MODL, OCSM_EDGE_NOT_FOUND,
+                                         "EVALUATE specified nonexistant Edge");
+                    goto next_branch;
+                }
+
+                /* make sure we have a tessellation */
+                status = ocsmTessellate(MODL, ibody);
+                CHECK_STATUS(ocsmTessellate);
+
+                status = EG_getTessEdge(MODL->body[ibody].etess, iedge,
+                                        &npnt, &xyz, &t);
+                CHECK_STATUS(EG_getTessEdge);
+
+                /* resize and store data */
+                MODL->pmtr[jpmtr].nrow = 1;
+                MODL->pmtr[jpmtr].ncol = 1;
+
+                RALLOC(MODL->pmtr[jpmtr].value, double, MODL->pmtr[jpmtr].nrow*MODL->pmtr[jpmtr].ncol);
+                RALLOC(MODL->pmtr[jpmtr].dot,   double, MODL->pmtr[jpmtr].nrow*MODL->pmtr[jpmtr].ncol);
+
+                MODL->pmtr[jpmtr].value[0] = npnt;
+                MODL->pmtr[jpmtr].dot[  0] = 0;
+
             /* "evaluate $face ibody iface u v" */
             } else if (strcmp(args[1].str, "face") == 0 ||
                        strcmp(args[1].str, "FACE") == 0   ) {
@@ -9702,6 +9981,50 @@ ocsmBuild(void   *modl,                 /* (in)  pointer to MODL */
                 MODL->pmtr[jpmtr].dot[  21] = 0;
                 MODL->pmtr[jpmtr].dot[  22] = 0;
 
+            /* "evaluate $facebbox ibody iface" */
+            } else if (strcmp(args[1].str, "facebbox") == 0 ||
+                       strcmp(args[1].str, "FACEBBOX") == 0   ) {
+                SPRINT4(1, "    executing [%4d] evaluate:       %s  %11.5f  %11.5f",
+                        ibrch, args[1].str, args[2].val[0],
+                                            args[3].val[0]);
+
+                ibody = NINT(args[2].val[0]);
+                iface = NINT(args[3].val[0]);
+
+                if (ibody < 1 || ibody > MODL->nbody) {
+                    status = signalError(MODL, OCSM_BODY_NOT_FOUND,
+                                         "EVALUATE specified nonexistant Body");
+                    goto next_branch;
+                } else if (iface < 1 || iface > MODL->body[ibody].nface) {
+                    status = signalError(MODL, OCSM_FACE_NOT_FOUND,
+                                         "EVALUATE specified nonexistant Face");
+                    goto next_branch;
+                }
+
+                status = EG_getBoundingBox(MODL->body[ibody].face[iface].eface, bbox);
+                CHECK_STATUS(EG_getBoundingBox);
+
+                /* resize and store data */
+                MODL->pmtr[jpmtr].nrow = 1;
+                MODL->pmtr[jpmtr].ncol = 6;
+
+                RALLOC(MODL->pmtr[jpmtr].value, double, MODL->pmtr[jpmtr].nrow*MODL->pmtr[jpmtr].ncol);
+                RALLOC(MODL->pmtr[jpmtr].dot,   double, MODL->pmtr[jpmtr].nrow*MODL->pmtr[jpmtr].ncol);
+
+                MODL->pmtr[jpmtr].value[ 0] = bbox[0];
+                MODL->pmtr[jpmtr].value[ 1] = bbox[1];
+                MODL->pmtr[jpmtr].value[ 2] = bbox[2];
+                MODL->pmtr[jpmtr].value[ 3] = bbox[3];
+                MODL->pmtr[jpmtr].value[ 4] = bbox[4];
+                MODL->pmtr[jpmtr].value[ 5] = bbox[5];
+
+                MODL->pmtr[jpmtr].dot[   0] = 0;
+                MODL->pmtr[jpmtr].dot[   1] = 0;
+                MODL->pmtr[jpmtr].dot[   2] = 0;
+                MODL->pmtr[jpmtr].dot[   3] = 0;
+                MODL->pmtr[jpmtr].dot[   4] = 0;
+                MODL->pmtr[jpmtr].dot[   5] = 0;
+
             /* "evaluate $facerng ibody iface" */
             } else if (strcmp(args[1].str, "facerng") == 0 ||
                        strcmp(args[1].str, "FACERNG") == 0   ) {
@@ -9772,9 +10095,12 @@ ocsmBuild(void   *modl,                 /* (in)  pointer to MODL */
                 status = EG_invEvaluate(MODL->body[ibody].face[iface].eface, xyz_, uv_, data);
                 CHECK_STATUS(EG_invEvaluate);
 
+                status = EG_getRange(MODL->body[ibody].face[iface].eface, uvrange, &periodic);
+                CHECK_STATUS(EG_getRange);
+
                 /* resize and store data */
                 MODL->pmtr[jpmtr].nrow = 1;
-                MODL->pmtr[jpmtr].ncol = 5;
+                MODL->pmtr[jpmtr].ncol = 7;
 
                 RALLOC(MODL->pmtr[jpmtr].value, double, MODL->pmtr[jpmtr].nrow*MODL->pmtr[jpmtr].ncol);
                 RALLOC(MODL->pmtr[jpmtr].dot,   double, MODL->pmtr[jpmtr].nrow*MODL->pmtr[jpmtr].ncol);
@@ -9784,12 +10110,16 @@ ocsmBuild(void   *modl,                 /* (in)  pointer to MODL */
                 MODL->pmtr[jpmtr].value[ 2] = data[0];
                 MODL->pmtr[jpmtr].value[ 3] = data[1];
                 MODL->pmtr[jpmtr].value[ 4] = data[2];
+                MODL->pmtr[jpmtr].value[ 5] = (uv_[0] - uvrange[0]) / (uvrange[1] - uvrange[0]);
+                MODL->pmtr[jpmtr].value[ 6] = (uv_[1] - uvrange[2]) / (uvrange[3] - uvrange[2]);
 
                 MODL->pmtr[jpmtr].dot[   0] = 0;
                 MODL->pmtr[jpmtr].dot[   1] = 0;
                 MODL->pmtr[jpmtr].dot[   2] = 0;
                 MODL->pmtr[jpmtr].dot[   3] = 0;
                 MODL->pmtr[jpmtr].dot[   4] = 0;
+                MODL->pmtr[jpmtr].dot[   5] = 0;
+                MODL->pmtr[jpmtr].dot[   6] = 0;
 
             /* "evaluate $faceukt ibody iface" */
             } else if (strcmp(args[1].str, "faceukt") == 0 ||
@@ -9955,6 +10285,133 @@ ocsmBuild(void   *modl,                 /* (in)  pointer to MODL */
 
                 if (header != NULL) EG_free(header);
                 if (rdata  != NULL) EG_free(rdata );
+
+            /* "evaluate $facetess ibody iface" */
+            } else if (strcmp(args[1].str, "facetess") == 0 ||
+                       strcmp(args[1].str, "FACETESS") == 0   ) {
+
+                SPRINT4(1, "    executing [%4d] evaluate:       %s  %11.5f  %11.5f",
+                        ibrch, args[1].str, args[2].val[0],
+                                            args[3].val[0]);
+
+                ibody = NINT(args[2].val[0]);
+                iface = NINT(args[3].val[0]);
+
+                if (ibody < 1 || ibody > MODL->nbody) {
+                    status = signalError(MODL, OCSM_BODY_NOT_FOUND,
+                                         "EVALUATE specified nonexistant Body");
+                    goto next_branch;
+                } else if (iface < 1 || iface > MODL->body[ibody].nface) {
+                    status = signalError(MODL, OCSM_FACE_NOT_FOUND,
+                                         "EVALUATE specified nonexistant Face");
+                    goto next_branch;
+                }
+
+                /* make sure we have a tessellation */
+                status = ocsmTessellate(MODL, ibody);
+                CHECK_STATUS(ocsmTessellate);
+
+                status = EG_getTessFace(MODL->body[ibody].etess, iface,
+                                        &npnt, &xyz, &uv, &ptype, &pindx,
+                                        &ntri, &tris, &tric);
+                CHECK_STATUS(EG_getTessFace);
+
+                /* resize and store data */
+                MODL->pmtr[jpmtr].nrow = 1;
+                MODL->pmtr[jpmtr].ncol = 2;
+
+                RALLOC(MODL->pmtr[jpmtr].value, double, MODL->pmtr[jpmtr].nrow*MODL->pmtr[jpmtr].ncol);
+                RALLOC(MODL->pmtr[jpmtr].dot,   double, MODL->pmtr[jpmtr].nrow*MODL->pmtr[jpmtr].ncol);
+
+                MODL->pmtr[jpmtr].value[0] = npnt;
+                MODL->pmtr[jpmtr].value[1] = ntri;
+
+                MODL->pmtr[jpmtr].dot[  0] = 0;
+                MODL->pmtr[jpmtr].dot[  1] = 0;
+
+            /* "evaluate $dist ibody1 ibody2" */
+            } else if (strcmp(args[1].str, "dist") == 0 ||
+                       strcmp(args[1].str, "DIST") == 0   ) {
+
+                SPRINT4(1, "    executing [%4d] evaluate:       %s  %11.5f  %11.5f",
+                        ibrch, args[1].str, args[2].val[0],
+                                            args[3].val[0]);
+
+                ibody1 = NINT(args[2].val[0]);
+                ibody2 = NINT(args[3].val[0]);
+
+                if (abs(ibody1) < 1 || abs(ibody1) > MODL->nbody) {
+                    status = signalError(MODL, OCSM_BODY_NOT_FOUND,
+                                         "EVALUATE specified nonexistant Body1");
+                    goto next_branch;
+                } else if (ibody2 < 1 || ibody2 > MODL->nbody) {
+                    status = signalError(MODL, OCSM_BODY_NOT_FOUND,
+                                         "EVALUATE specified nonexistant Body2");
+                    goto next_branch;
+                }
+
+                /* get the clearance */
+                status = ocsmClearance(MODL, ibody1, ibody2, &dist, pnt1, pnt2);
+                CHECK_STATUS(ocsmClearance);
+
+                if (abs(NINT(pnt1[0])) > 0) {
+                    status = EG_evaluate(MODL->body[abs(ibody1)].face[NINT(pnt1[0])].eface, &(pnt1[1]), data1);
+                    CHECK_STATUS(EG_evaluate);
+                } else{
+                    status = EG_getBoundingBox(MODL->body[abs(ibody1)].ebody, data1);
+                    CHECK_STATUS(EG_getBoundingBox);
+
+                    data1[0] = (data1[0] + data1[3]) / 2;
+                    data1[1] = (data1[1] + data1[4]) / 2;
+                    data1[2] = (data1[2] + data1[5]) / 2;
+                }
+
+                if (NINT(pnt2[0]) > 0) {
+                    status = EG_evaluate(MODL->body[    ibody2 ].face[NINT(pnt2[0])].eface, &(pnt2[1]), data2);
+                    CHECK_STATUS(EG_evaluate);
+                } else {
+                    status = EG_getBoundingBox(MODL->body[ibody2].ebody, data2);
+                    CHECK_STATUS(EG_getBoundingBox);
+
+                    data2[0] = (data2[0] + data2[3]) / 2;
+                    data2[1] = (data2[1] + data2[4]) / 2;
+                    data2[2] = (data2[2] + data2[5]) / 2;
+                }
+
+                /* resize and store data */
+                MODL->pmtr[jpmtr].nrow =  1;
+                MODL->pmtr[jpmtr].ncol = 13;
+
+                RALLOC(MODL->pmtr[jpmtr].value, double, MODL->pmtr[jpmtr].nrow*MODL->pmtr[jpmtr].ncol);
+                RALLOC(MODL->pmtr[jpmtr].dot,   double, MODL->pmtr[jpmtr].nrow*MODL->pmtr[jpmtr].ncol);
+
+                MODL->pmtr[jpmtr].value[ 0] = dist;
+                MODL->pmtr[jpmtr].value[ 1] = NINT(pnt1[0]);
+                MODL->pmtr[jpmtr].value[ 2] = pnt1[1];
+                MODL->pmtr[jpmtr].value[ 3] = pnt1[2];
+                MODL->pmtr[jpmtr].value[ 4] = data1[0];
+                MODL->pmtr[jpmtr].value[ 5] = data1[1];
+                MODL->pmtr[jpmtr].value[ 6] = data1[2];
+                MODL->pmtr[jpmtr].value[ 7] = NINT(pnt2[0]);
+                MODL->pmtr[jpmtr].value[ 8] = pnt2[1];
+                MODL->pmtr[jpmtr].value[ 9] = pnt2[2];
+                MODL->pmtr[jpmtr].value[10] = data2[0];
+                MODL->pmtr[jpmtr].value[11] = data2[1];
+                MODL->pmtr[jpmtr].value[12] = data2[2];
+
+                MODL->pmtr[jpmtr].dot[   0] = 0;
+                MODL->pmtr[jpmtr].dot[   1] = 0;
+                MODL->pmtr[jpmtr].dot[   2] = 0;
+                MODL->pmtr[jpmtr].dot[   3] = 0;
+                MODL->pmtr[jpmtr].dot[   4] = 0;
+                MODL->pmtr[jpmtr].dot[   5] = 0;
+                MODL->pmtr[jpmtr].dot[   6] = 0;
+                MODL->pmtr[jpmtr].dot[   7] = 0;
+                MODL->pmtr[jpmtr].dot[   8] = 0;
+                MODL->pmtr[jpmtr].dot[   9] = 0;
+                MODL->pmtr[jpmtr].dot[  10] = 0;
+                MODL->pmtr[jpmtr].dot[  11] = 0;
+                MODL->pmtr[jpmtr].dot[  12] = 0;
             }
 
         /* execute: "getattr $pmtrName attrID global=0" */
@@ -9962,31 +10419,63 @@ ocsmBuild(void   *modl,                 /* (in)  pointer to MODL */
             SPRINT4(1, "    executing [%4d] getattr:        %s  %s  %s",
                     ibrch, args[1].str, MODL->brch[ibrch].arg2, MODL->brch[ibrch].arg3);
 
-            /* make sure that there are no subscripts in pmtrName */
-            if (strstr(args[1].str, "[") != NULL) {
-                status = signalError(MODL, OCSM_ILLEGAL_PMTR_NAME,
-                                     "pmtrName cannot contain [");
-                goto next_branch;
+            /* if $pmtrName is an implicit string, evaluate it */
+            if (args[1].str[0] != '!') {
+                STRNCPY(pname, args[1].str, MAX_EXPR_LEN);
+            } else {
+                status = str2val(args[1].str, MODL, &value, &dot, pname);
+                if (MODL->sigCode != SUCCESS) goto next_branch;
+                CHECK_STATUS(str2val);
             }
 
-            /* find pmtrName in list of Parameters */
-            jpmtr = -1;
-            for (ipmtr = 1; ipmtr <= MODL->npmtr; ipmtr++) {
-                if (strcmp(MODL->pmtr[ipmtr].name, args[1].str) == 0          &&
-                           MODL->pmtr[ipmtr].scope == MODL->scope[MODL->level]  ) {
-                    jpmtr = ipmtr;
+            SPLINT_CHECK_FOR_NULL(pname);
 
-                    /* if the Parameter is CONPMTR, DESPMTR, or CFGPMTR we have a problem */
-                    if        (MODL->pmtr[jpmtr].type == OCSM_DESPMTR ||
-                               MODL->pmtr[jpmtr].type == OCSM_CFGPMTR   ) {
-                        status = OCSM_PMTR_IS_DESPMTR;
-                        CATCH_STATUS(getattr);
-                    } else if (MODL->pmtr[jpmtr].type == OCSM_CONPMTR) {
-                        status = OCSM_PMTR_IS_CONPMTR;
-                        CATCH_STATUS(getattr);
-                    }
+            if (strlen(pname) == 0) {
+                status = signalError(MODL, OCSM_ILLEGAL_PMTR_NAME,
+                                     "\"%s\" does not evalaute to a string", args[1].str);
+                goto cleanup;      // cannot be caught
+            } else if (strstr(pname, "[") != NULL) {
+                status = signalError(MODL, OCSM_ILLEGAL_PMTR_NAME,
+                                     "$pmtrName cannot contain a subscript");
+                goto cleanup;      // cannot be caught
+            } else if (pname[0] == '@') {
+                status = signalError(MODL, OCSM_ILLEGAL_PMTR_NAME,
+                                     "$pmtrName cannot start with @-sign");
+                goto cleanup;      // cannot be caught
+            }
 
-                    break;
+            /* check to see if pname already exists */
+            status = ocsmFindPmtr(MODL, pname, 0, 0, 0, &jpmtr);
+            CHECK_STATUS(ocsmFindPmtr);
+
+            /* if it already exists, make sure it is a local variable or outpmtr */
+            if (jpmtr > 0) {
+                if (MODL->pmtr[jpmtr].type == OCSM_DESPMTR) {
+                    status = signalError(MODL, OCSM_PMTR_IS_DESPMTR,
+                                         "\"%s\" cannot be SET because it is a DESPMTR", pname);
+                    goto cleanup;        // cannot be caught
+                } else if (MODL->pmtr[jpmtr].type == OCSM_CFGPMTR) {
+                    status = signalError(MODL, OCSM_PMTR_IS_DESPMTR,
+                                         "\"%s\" cannot be SET because it is a CFGPMTR", pname);
+                    goto cleanup;        // cannot be caught
+                } else if (MODL->pmtr[jpmtr].type == OCSM_CONPMTR) {
+                    status = signalError(MODL, OCSM_PMTR_IS_CONPMTR,
+                                         "\"%s\" cannot be SET because it is a CONPMTR", pname);
+                    goto cleanup;        // cannot be caught
+                }
+
+                /* if an unknown type, make a local variable */
+                if (MODL->pmtr[jpmtr].type == OCSM_UNKNOWN) {
+                    MODL->pmtr[jpmtr].type =  OCSM_LOCALVAR;
+                }
+
+            /* if it does not exist, make it now */
+            } else {
+                status = ocsmFindPmtr(MODL, pname, OCSM_LOCALVAR, 1, 1, &jpmtr);
+                if (status != SUCCESS) {
+                    status = signalError(MODL, OCSM_ILLEGAL_PMTR_NAME,
+                                         "\"%s\" is not a legal Parameter name", pname);
+                    goto cleanup;        // cannot be caught;
                 }
             }
 
@@ -10029,15 +10518,9 @@ ocsmBuild(void   *modl,                 /* (in)  pointer to MODL */
                     goto next_branch;
                 }
 
-                /* if pmtrName does not exist, make it now */
-                if (jpmtr < 0) {
-                    status = ocsmNewPmtr(MODL, args[1].str, OCSM_LOCALVAR, 0, 0);
-                    CATCH_STATUS(ocsmNewPmtr);
-                    jpmtr = MODL->npmtr;
-
-                /* otherwise if it has rows and columns, convert to string */
-                } else if (MODL->pmtr[jpmtr].nrow > 0 ||
-                           MODL->pmtr[jpmtr].ncol > 0   ) {
+                /* if jpmtr has rows and columns, convert to string */
+                if (MODL->pmtr[jpmtr].nrow > 0 ||
+                    MODL->pmtr[jpmtr].ncol > 0   ) {
                     FREE(MODL->pmtr[jpmtr].value);
                     FREE(MODL->pmtr[jpmtr].dot  );
                     FREE(MODL->pmtr[jpmtr].lbnd );
@@ -10061,20 +10544,14 @@ ocsmBuild(void   *modl,                 /* (in)  pointer to MODL */
                 }
 
                 SPRINT2(1, "                          %s = $%s",
-                        args[1].str, MODL->pmtr[jpmtr].str);
+                        pname, MODL->pmtr[jpmtr].str);
 
             /* if attrID is $_nattr_, return the number of Attributes */
             } else if (strcmp(str, "_nattr_") == 0) {
 
-                /* if pmtrName does not exist, make it now */
-                if (jpmtr < 0) {
-                    status = ocsmNewPmtr(MODL, args[1].str, OCSM_LOCALVAR, 1, 1);
-                    CATCH_STATUS(ocsmNewPmtr);
-                    jpmtr = MODL->npmtr;
-
-                /* otherwise if it is a string, convert to a number */
-                } else if (MODL->pmtr[jpmtr].nrow == 0 &&
-                           MODL->pmtr[jpmtr].ncol == 0   ) {
+                /* if jpmtr is a string, convert to a number */
+                if (MODL->pmtr[jpmtr].nrow == 0 &&
+                    MODL->pmtr[jpmtr].ncol == 0   ) {
                     FREE(MODL->pmtr[jpmtr].str);
 
                     MALLOC(MODL->pmtr[jpmtr].value, double, 1);
@@ -10096,7 +10573,7 @@ ocsmBuild(void   *modl,                 /* (in)  pointer to MODL */
                 CATCH_STATUS(ocsmSetValuD);
 
                 SPRINT2(1, "                          %s = %11.5f",
-                        args[1].str, (double)nattr);
+                        pname, (double)nattr);
 
             /* otherwise, look up the value of the given Attribute */
             } else {
@@ -10145,19 +10622,8 @@ ocsmBuild(void   *modl,                 /* (in)  pointer to MODL */
                     goto next_branch;
                 }
 
-                /* if pmtrName does not exist, create it now */
-                if (jpmtr < 0) {
-                    if (itype == ATTRINT || itype == ATTRREAL || itype == ATTRCSYS) {
-                        status = ocsmNewPmtr(MODL, args[1].str, OCSM_LOCALVAR, 1, nlist);
-                        CATCH_STATUS(ocsmNewPmtr);
-                    } else {
-                        status = ocsmNewPmtr(MODL, args[1].str, OCSM_LOCALVAR, 0, 0);
-                        CATCH_STATUS(ocsmNewPmtr);
-                    }
-                    jpmtr = MODL->npmtr;
-
-                /* otherwise adjust type/size */
-                } else if (itype == ATTRINT || itype == ATTRREAL || itype == ATTRCSYS) {
+                /* adjust type/size of jpmtr */
+                if (itype == ATTRINT || itype == ATTRREAL || itype == ATTRCSYS) {
                     FREE(MODL->pmtr[jpmtr].value);
                     FREE(MODL->pmtr[jpmtr].dot  );
                     FREE(MODL->pmtr[jpmtr].lbnd );
@@ -10200,7 +10666,7 @@ ocsmBuild(void   *modl,                 /* (in)  pointer to MODL */
                         CATCH_STATUS(ocsmSetValuD);
 
                         SPRINT3(1, "                          %s[1,%2d] = %11.5f",
-                                args[1].str, ilist+1, (double)tempIlist[ilist]);
+                                pname, ilist+1, (double)tempIlist[ilist]);
                     }
                 } else if (itype == ATTRREAL || itype == ATTRCSYS) {
                     SPLINT_CHECK_FOR_NULL(tempRlist);
@@ -10209,7 +10675,7 @@ ocsmBuild(void   *modl,                 /* (in)  pointer to MODL */
                         CATCH_STATUS(ocsmSetValuD);
 
                         SPRINT3(1, "                          %s[1,%2d] = %11.5f",
-                                args[1].str, ilist+1, tempRlist[ilist]);
+                                pname, ilist+1, tempRlist[ilist]);
                     }
                 } else {
                     SPLINT_CHECK_FOR_NULL(tempClist);
@@ -10217,7 +10683,7 @@ ocsmBuild(void   *modl,                 /* (in)  pointer to MODL */
                     STRNCPY(MODL->pmtr[jpmtr].str, tempClist, MAX_STRVAL_LEN);
 
                     SPRINT2(1, "                          %s = $%s",
-                            args[1].str, tempClist);
+                            pname, tempClist);
 
                 }
             }
@@ -10247,7 +10713,8 @@ ocsmBuild(void   *modl,                 /* (in)  pointer to MODL */
                     /* set hasdots to 2 if any arguments changed (so that we know to
                        rebuild the UDPRIM) */
                     ibody = MODL->nbody + 1;
-                    if (ibody <= MODL->recycle) {
+                    if ((ibody <  MODL->recycle)                                           ||
+                        (ibody == MODL->recycle && MODL->body[ibody].brtype != OCSM_UDPARG)  ) {
                         if (MODL->body[ibody].arg[iarg].nval == args[iarg].nval) {
                             for (ival = 0; ival < args[iarg].nval; ival++) {
                                 if (MODL->body[ibody].arg[iarg].val[ival] != args[iarg].val[ival]) {
@@ -10660,17 +11127,63 @@ ocsmBuild(void   *modl,                 /* (in)  pointer to MODL */
                     MODL->seltype = 2;
                     MODL->selsize = 0;
 
-                    if (args[2].val[0] != args[3].val[0] ||
-                        args[4].val[0] != args[5].val[0] ||
-                        args[6].val[0] != args[7].val[0]   ) {
+                    if (args[2].val[0] == args[3].val[0] &&
+                        args[4].val[0] == args[5].val[0] &&
+                        args[6].val[0] == args[7].val[0]   ) {
 
+                        MODL->sellist[0] = -1;
+                        MODL->selsize    = 1;
+
+                        FREE(  MODL->sellist);
+                        MALLOC(MODL->sellist, int, MAX(MODL->selsize, 1));
+
+                        dbest = HUGEQ;
                         for (iface = 1; iface <= MODL->body[MODL->selbody].nface; iface++) {
                             status = EG_getBoundingBox(MODL->body[MODL->selbody].face[iface].eface, bbox);
                             CATCH_STATUS(EG_getBoundingBox);
 
-                            if (bbox[0] >= args[2].val[0] && bbox[3] <= args[3].val[0] &&
-                                bbox[1] >= args[4].val[0] && bbox[4] <= args[5].val[0] &&
-                                bbox[2] >= args[6].val[0] && bbox[5] <= args[7].val[0]   ) {
+                            dtest = (2 * args[2].val[0] - bbox[0] - bbox[3]) * (2 * args[2].val[0] - bbox[0] - bbox[3])
+                                  + (2 * args[4].val[0] - bbox[1] - bbox[4]) * (2 * args[4].val[0] - bbox[1] - bbox[4])
+                                  + (2 * args[6].val[0] - bbox[2] - bbox[5]) * (2 * args[6].val[0] - bbox[2] - bbox[5]);
+                            if (dtest < dbest) {
+                                dbest            = dtest;
+                                MODL->sellist[0] = iface;
+                            }
+                        }
+                    } else {
+                        for (iface = 1; iface <= MODL->body[MODL->selbody].nface; iface++) {
+                            status = EG_getBoundingBox(MODL->body[MODL->selbody].face[iface].eface, bbox);
+                            CATCH_STATUS(EG_getBoundingBox);
+
+                            icount = 0;
+                            if (args[3].val[0] >= args[2].val[0]) {
+                                if (bbox[0] >= args[2].val[0]-EPS12 && bbox[3] <= args[3].val[0]+EPS12) {
+                                    icount++;
+                                }
+                            } else {
+                                if (bbox[0] <= args[2].val[0]+EPS12 && bbox[3] >= args[3].val[0]-EPS12) {
+                                    icount++;
+                                }
+                            }
+                            if (args[5].val[0] >= args[4].val[0]) {
+                                if (bbox[1] >= args[4].val[0]-EPS12 && bbox[4] <= args[5].val[0]+EPS12) {
+                                    icount++;
+                                }
+                            } else {
+                                if (bbox[1] <= args[4].val[0]+EPS12 && bbox[4] >= args[5].val[0]-EPS12) {
+                                    icount++;
+                                }
+                            }
+                            if (args[7].val[0] >= args[6].val[0]) {
+                                if (bbox[2] >= args[6].val[0]-EPS12 && bbox[5] <= args[7].val[0]+EPS12) {
+                                    icount++;
+                                }
+                            } else {
+                                if (bbox[2] <= args[6].val[0]+EPS12 && bbox[5] >= args[7].val[0]-EPS12) {
+                                    icount++;
+                                }
+                            }
+                            if (icount == 3) {
                                 MODL->selsize++;
                             }
                         }
@@ -10690,33 +11203,38 @@ ocsmBuild(void   *modl,                 /* (in)  pointer to MODL */
                                 status = EG_getBoundingBox(MODL->body[MODL->selbody].face[iface].eface, bbox);
                                 CATCH_STATUS(EG_getBoundingBox);
 
-                                if (bbox[0] >= args[2].val[0] && bbox[3] <= args[3].val[0] &&
-                                    bbox[1] >= args[4].val[0] && bbox[4] <= args[5].val[0] &&
-                                    bbox[2] >= args[6].val[0] && bbox[5] <= args[7].val[0]   ) {
+                                icount = 0;
+                                if (args[3].val[0] >= args[2].val[0]) {
+                                    if (bbox[0] >= args[2].val[0]-EPS12 && bbox[3] <= args[3].val[0]+EPS12) {
+                                        icount++;
+                                    }
+                                } else {
+                                    if (bbox[0] <= args[2].val[0]+EPS12 && bbox[3] >= args[3].val[0]-EPS12) {
+                                        icount++;
+                                    }
+                                }
+                                if (args[5].val[0] >= args[4].val[0]) {
+                                    if (bbox[1] >= args[4].val[0]-EPS12 && bbox[4] <= args[5].val[0]+EPS12) {
+                                        icount++;
+                                    }
+                                } else {
+                                    if (bbox[1] <= args[4].val[0]+EPS12 && bbox[4] >= args[5].val[0]-EPS12) {
+                                        icount++;
+                                    }
+                                }
+                                if (args[7].val[0] >= args[6].val[0]) {
+                                    if (bbox[2] >= args[6].val[0]-EPS12 && bbox[5] <= args[7].val[0]+EPS12) {
+                                        icount++;
+                                    }
+                                } else {
+                                    if (bbox[2] <= args[6].val[0]+EPS12 && bbox[5] >= args[7].val[0]-EPS12) {
+                                        icount++;
+                                    }
+                                }
+                                if (icount == 3) {
                                     MODL->sellist[MODL->selsize] = iface;
                                     MODL->selsize++;
                                 }
-                            }
-                        }
-
-                    } else {
-                        MODL->sellist[0] = -1;
-                        MODL->selsize    = 1;
-
-                        FREE(  MODL->sellist);
-                        MALLOC(MODL->sellist, int, MAX(MODL->selsize, 1));
-
-                        dbest = HUGEQ;
-                        for (iface = 1; iface <= MODL->body[MODL->selbody].nface; iface++) {
-                            status = EG_getBoundingBox(MODL->body[MODL->selbody].face[iface].eface, bbox);
-                            CATCH_STATUS(EG_getBoundingBox);
-
-                            dtest = (2 * args[2].val[0] - bbox[0] - bbox[3]) * (2 * args[2].val[0] - bbox[0] - bbox[3])
-                                  + (2 * args[4].val[0] - bbox[1] - bbox[4]) * (2 * args[4].val[0] - bbox[1] - bbox[4])
-                                  + (2 * args[6].val[0] - bbox[2] - bbox[5]) * (2 * args[6].val[0] - bbox[2] - bbox[5]);
-                            if (dtest < dbest) {
-                                dbest            = dtest;
-                                MODL->sellist[0] = iface;
                             }
                         }
                     }
@@ -11067,19 +11585,66 @@ ocsmBuild(void   *modl,                 /* (in)  pointer to MODL */
                     MODL->seltype = 1;
                     MODL->selsize = 0;
 
-                    if (args[2].val[0] != args[3].val[0] ||
-                        args[4].val[0] != args[5].val[0] ||
-                        args[6].val[0] != args[7].val[0]   ) {
+                    if (args[2].val[0] == args[3].val[0] &&
+                        args[4].val[0] == args[5].val[0] &&
+                        args[6].val[0] == args[7].val[0]   ) {
 
+                        MODL->sellist[0] = -1;
+                        MODL->selsize    = 1;
+
+                        FREE(  MODL->sellist);
+                        MALLOC(MODL->sellist, int, MAX(MODL->selsize, 1));
+
+                        dbest = HUGEQ;
+                        for (iedge = 1; iedge <= MODL->body[MODL->selbody].nedge; iedge++) {
+                            status = EG_getBoundingBox(MODL->body[MODL->selbody].edge[iedge].eedge, bbox);
+                            CATCH_STATUS(EG_getBoundingBox);
+
+                            dtest = (2 * args[2].val[0] - bbox[0] - bbox[3]) * (2 * args[2].val[0] - bbox[0] - bbox[3])
+                                  + (2 * args[4].val[0] - bbox[1] - bbox[4]) * (2 * args[4].val[0] - bbox[1] - bbox[4])
+                                  + (2 * args[6].val[0] - bbox[2] - bbox[5]) * (2 * args[6].val[0] - bbox[2] - bbox[5]);
+                            if (dtest < dbest) {
+                                dbest            = dtest;
+                                MODL->sellist[0] = iedge;
+                            }
+                        }
+
+                    } else {
                         for (iedge = 1; iedge <= MODL->body[MODL->selbody].nedge; iedge++) {
                             if (MODL->body[MODL->selbody].edge[iedge].itype == DEGENERATE) continue;
 
                             status = EG_getBoundingBox(MODL->body[MODL->selbody].edge[iedge].eedge, bbox);
                             CATCH_STATUS(EG_getBoundingBox);
 
-                            if (bbox[0] >= args[2].val[0] && bbox[3] <= args[3].val[0] &&
-                                bbox[1] >= args[4].val[0] && bbox[4] <= args[5].val[0] &&
-                                bbox[2] >= args[6].val[0] && bbox[5] <= args[7].val[0]   ) {
+                            icount = 0;
+                            if (args[3].val[0] >= args[2].val[0]) {
+                                if (bbox[0] >= args[2].val[0]-EPS12 && bbox[3] <= args[3].val[0]+EPS12) {
+                                    icount++;
+                                }
+                            } else {
+                                if (bbox[0] <= args[2].val[0]+EPS12 && bbox[3] >= args[3].val[0]-EPS12) {
+                                    icount++;
+                                }
+                            }
+                            if (args[5].val[0] >= args[4].val[0]) {
+                                if (bbox[1] >= args[4].val[0]-EPS12 && bbox[4] <= args[5].val[0]+EPS12) {
+                                    icount++;
+                                }
+                            } else {
+                                if (bbox[1] <= args[4].val[0]+EPS12 && bbox[4] >= args[5].val[0]-EPS12) {
+                                    icount++;
+                                }
+                            }
+                            if (args[7].val[0] >= args[6].val[0]) {
+                                if (bbox[2] >= args[6].val[0]-EPS12 && bbox[5] <= args[7].val[0]+EPS12) {
+                                    icount++;
+                                }
+                            } else {
+                                if (bbox[2] <= args[6].val[0]+EPS12 && bbox[5] >= args[7].val[0]-EPS12) {
+                                    icount++;
+                                }
+                            }
+                            if (icount == 3) {
                                 MODL->selsize++;
                             }
                         }
@@ -11101,36 +11666,41 @@ ocsmBuild(void   *modl,                 /* (in)  pointer to MODL */
                                 status = EG_getBoundingBox(MODL->body[MODL->selbody].edge[iedge].eedge, bbox);
                                 CATCH_STATUS(EG_getBoundingBox);
 
-                                if (bbox[0] >= args[2].val[0] && bbox[3] <= args[3].val[0] &&
-                                    bbox[1] >= args[4].val[0] && bbox[4] <= args[5].val[0] &&
-                                    bbox[2] >= args[6].val[0] && bbox[5] <= args[7].val[0]   ) {
+                                icount = 0;
+                                if (args[3].val[0] >= args[2].val[0]) {
+                                    if (bbox[0] >= args[2].val[0]-EPS12 && bbox[3] <= args[3].val[0]+EPS12) {
+                                        icount++;
+                                    }
+                                } else {
+                                    if (bbox[0] <= args[2].val[0]+EPS12 && bbox[3] >= args[3].val[0]-EPS12) {
+                                        icount++;
+                                    }
+                                }
+                                if (args[5].val[0] >= args[4].val[0]) {
+                                    if (bbox[1] >= args[4].val[0]-EPS12 && bbox[4] <= args[5].val[0]+EPS12) {
+                                        icount++;
+                                    }
+                                } else {
+                                    if (bbox[1] <= args[4].val[0]+EPS12 && bbox[4] >= args[5].val[0]-EPS12) {
+                                        icount++;
+                                    }
+                                }
+                                if (args[7].val[0] >= args[6].val[0]) {
+                                    if (bbox[2] >= args[6].val[0]-EPS12 && bbox[5] <= args[7].val[0]+EPS12) {
+                                        icount++;
+                                    }
+                                } else {
+                                    if (bbox[2] <= args[6].val[0]+EPS12 && bbox[5] >= args[7].val[0]-EPS12) {
+                                        icount++;
+                                    }
+                                }
+                                if (icount == 3) {
                                     MODL->sellist[MODL->selsize] = iedge;
                                     MODL->selsize++;
                                 }
                             }
                         }
-                    } else {
-                        MODL->sellist[0] = -1;
-                        MODL->selsize    = 1;
-
-                        FREE(  MODL->sellist);
-                        MALLOC(MODL->sellist, int, MAX(MODL->selsize, 1));
-
-                        dbest = HUGEQ;
-                        for (iedge = 1; iedge <= MODL->body[MODL->selbody].nedge; iedge++) {
-                            status = EG_getBoundingBox(MODL->body[MODL->selbody].edge[iedge].eedge, bbox);
-                            CATCH_STATUS(EG_getBoundingBox);
-
-                            dtest = (2 * args[2].val[0] - bbox[0] - bbox[3]) * (2 * args[2].val[0] - bbox[0] - bbox[3])
-                                  + (2 * args[4].val[0] - bbox[1] - bbox[4]) * (2 * args[4].val[0] - bbox[1] - bbox[4])
-                                  + (2 * args[6].val[0] - bbox[2] - bbox[5]) * (2 * args[6].val[0] - bbox[2] - bbox[5]);
-                            if (dtest < dbest) {
-                                dbest            = dtest;
-                                MODL->sellist[0] = iedge;
-                            }
-                        }
                     }
-
 
                 /* "edge attrName1 attrValue1 attrName2=$* attrValue2=$* attrName3=$* attrValue3=$*" */
                 } else if (MODL->brch[ibrch].narg == 7 && args[2].nval == 0 &&
@@ -13102,13 +13672,78 @@ ocsmBuild(void   *modl,                 /* (in)  pointer to MODL */
             SPRINT3(1, "    executing [%4d] patbeg:         %s  %11.5f",
                     ibrch, args[1].str, args[2].val[0]);
 
+            /* if $pmtrName is an implicit string, evaluate it */
+            if (args[1].str[0] != '!') {
+                STRNCPY(pname, args[1].str, MAX_EXPR_LEN);
+            } else {
+                status = str2val(args[1].str, MODL, &value, &dot, pname);
+                if (MODL->sigCode != SUCCESS) goto next_branch;
+                CHECK_STATUS(str2val);
+            }
+
+            SPLINT_CHECK_FOR_NULL(pname);
+
+            if (strlen(pname) == 0) {
+                status = signalError(MODL, OCSM_ILLEGAL_PMTR_NAME,
+                                     "\"%s\" does not evalaute to a string", args[1].str);
+                goto cleanup;      // cannot be caught
+            } else if (strstr(pname, "[") != NULL) {
+                status = signalError(MODL, OCSM_ILLEGAL_PMTR_NAME,
+                                     "$pmtrName cannot contain a subscript");
+                goto cleanup;      // cannot be caught
+            } else if (pname[0] == '@') {
+                status = signalError(MODL, OCSM_ILLEGAL_PMTR_NAME,
+                                     "$pmtrName cannot start with @-sign");
+                goto cleanup;      // cannot be caught
+            }
+
+            /* check to see if pname already exists */
+            status = ocsmFindPmtr(MODL, pname, 0, 0, 0, &jpmtr);
+            CHECK_STATUS(ocsmFindPmtr);
+
+            /* if it already exists, make sure it is a scalar local variable or outpmtr */
+            if (jpmtr > 0) {
+                if (MODL->pmtr[jpmtr].type == OCSM_DESPMTR) {
+                    status = signalError(MODL, OCSM_PMTR_IS_DESPMTR,
+                                         "\"%s\" cannot be SET because it is a DESPMTR", pname);
+                    goto cleanup;        // cannot be caught
+                } else if (MODL->pmtr[jpmtr].type == OCSM_CFGPMTR) {
+                    status = signalError(MODL, OCSM_PMTR_IS_DESPMTR,
+                                         "\"%s\" cannot be SET because it is a CFGPMTR", pname);
+                    goto cleanup;        // cannot be caught
+                } else if (MODL->pmtr[jpmtr].type == OCSM_CONPMTR) {
+                    status = signalError(MODL, OCSM_PMTR_IS_CONPMTR,
+                                         "\"%s\" cannot be SET because it is a CONPMTR", pname);
+                    goto cleanup;        // cannot be caught
+                } else if (MODL->pmtr[jpmtr].nrow > 1 || MODL->pmtr[jpmtr].ncol > 1) {
+                    status = signalError(MODL, OCSM_ILLEGAL_PMTR_NAME,
+                                         "$pmtrName cannot be the name of an array");
+                    goto cleanup;        // cannot be caught
+                }
+
+                /* if an unknown type, make a local variable */
+                if (MODL->pmtr[jpmtr].type == OCSM_UNKNOWN) {
+                    MODL->pmtr[jpmtr].type =  OCSM_LOCALVAR;
+                }
+
+            /* if it does not exist, make it now */
+            } else {
+                status = ocsmFindPmtr(MODL, pname, OCSM_LOCALVAR, 1, 1, &jpmtr);
+                if (status != SUCCESS) {
+                    status = signalError(MODL, OCSM_ILLEGAL_PMTR_NAME,
+                                         "\"%s\" is not a legal Parameter name", pname);
+                    goto cleanup;        // cannot be caught;
+                }
+            }
+
+            /* initialize info about the pattern */
             if (npatn < MAX_NESTING) {
                 patn[npatn].itype = OCSM_PATBEG;
                 patn[npatn].ibeg  = ibrch;
                 patn[npatn].iend  = -1;
                 patn[npatn].ncopy = NINT(args[2].val[0]);
                 patn[npatn].icopy =  1;
-                patn[npatn].ipmtr = -1;
+                patn[npatn].ipmtr = jpmtr;
             } else {
                 status = signalError(MODL, OCSM_NESTED_TOO_DEEPLY,
                                      "npatn=%d >0 MAX_NESTING=%d", npatn, MAX_NESTING);
@@ -13130,11 +13765,6 @@ ocsmBuild(void   *modl,                 /* (in)  pointer to MODL */
                     }
                 }
             }
-
-            /* find the pmtrName */
-            status = ocsmFindPmtr(MODL, args[1].str, OCSM_LOCALVAR, 1, 1,
-                                  &(patn[npatn].ipmtr));
-            CATCH_STATUS(ocsmFindPmtr);
 
             /* if no copies are required, jump to Branch after patend */
             if (patn[npatn].ncopy < 1) {
@@ -13655,6 +14285,8 @@ ocsmBuild(void   *modl,                 /* (in)  pointer to MODL */
                 icatch = OCSM_ILLEGAL_PMTR_INDEX;
             } else if (strcmp(MODL->brch[ibrch].arg1, "$illegal_pmtr_name"          ) == 0) {
                 icatch = OCSM_ILLEGAL_PMTR_NAME;
+            } else if (strcmp(MODL->brch[ibrch].arg1, "$illegal_func_name"          ) == 0) {
+                icatch = OCSM_ILLEGAL_FUNC_NAME;
             } else if (strcmp(MODL->brch[ibrch].arg1, "$illegal_value"              ) == 0) {
                 icatch = OCSM_ILLEGAL_VALUE;
             } else if (strcmp(MODL->brch[ibrch].arg1, "$insufficient_bodys_on_stack") == 0) {
@@ -13846,10 +14478,10 @@ ocsmBuild(void   *modl,                 /* (in)  pointer to MODL */
                 }
             }
 
-        /* execute: "dump $filename remove=0 toMark=0 withTess=0 $grpName=." */
+        /* execute: "dump $filename remove=0 toMark=0 withTess=0 $grpName=. putColors=0" */
         } else if (type == OCSM_DUMP) {
-            SPRINT6(1, "    executing [%4d] dump:       %s  %11.5f  %11.5f  %11.5f  %s",
-                    ibrch, args[1].str, args[2].val[0], args[3].val[0], args[4].val[0], args[5].str);
+            SPRINT7(1, "    executing [%4d] dump:       %s  %11.5f  %11.5f  %11.5f  %s  %11.5f",
+                    ibrch, args[1].str, args[2].val[0], args[3].val[0], args[4].val[0], args[5].str, args[6].val[0]);
 
             /* make sure that there is a Body on the stack */
             if (nstack < 1) {
@@ -14095,7 +14727,49 @@ ocsmBuild(void   *modl,                 /* (in)  pointer to MODL */
                     nego1++;
                     nego2++;
 
-                    if (NINT(args[4].val[0]) != 0 && (strcmp(extension, ".egads") == 0 || strcmp(extension, ".EGADS") == 0)) {
+                    if ((NINT(args[6].val[0]) == 1                                            ) &&
+                        (strcmp(extension, ".stp" ) == 0 || strcmp(extension, ".STP" ) == 0 ||
+                         strcmp(extension, ".step") == 0 || strcmp(extension, ".STEP") == 0 ||
+                         strcmp(extension, ".igs" ) == 0 || strcmp(extension, ".IGS" ) == 0 ||
+                         strcmp(extension, ".iges") == 0 || strcmp(extension, ".IGES") == 0   )   ) {
+
+                        status = EG_getBodyTopos(etemp[nego1-1], NULL, FACE, &nfaces, &efaces);
+                        CHECK_STATUS(EG_getBodyTopos);
+
+                        for (iface = 0; iface < nfaces; iface++) {
+                            status = EG_attributeRet(efaces[iface], "_color",
+                                                     &attrType, &attrLen, &tempIlist, &tempRlist, &tempClist);
+                            if (status == EGADS_SUCCESS) {
+                                status = EG_attributeAdd(efaces[iface], "Color",
+                                                         attrType, attrLen, tempIlist, tempRlist, tempClist);
+                                CHECK_STATUS(EG_attributeAdd);
+
+                                SPRINT1(2, "        transferring color for iface=%d", iface+1);
+                            }
+                        }
+
+                        EG_free(efaces);    efaces = NULL;
+
+                        status = EG_getBodyTopos(etemp[nego1-1], NULL, EDGE, &nedges, &eedges);
+                        CHECK_STATUS(EG_getBodyTopos);
+
+                        for (iedge = 0; iedge < nedges; iedge++) {
+                            status = EG_attributeRet(eedges[iedge], "_color",
+                                                     &attrType, &attrLen, &tempIlist, &tempRlist, &tempClist);
+                            if (status == EGADS_SUCCESS) {
+                                status = EG_attributeAdd(eedges[iedge], "Color",
+                                                         attrType, attrLen, tempIlist, tempRlist, tempClist);
+                                CHECK_STATUS(EG_attributeAdd);
+
+                                SPRINT1(2, "        transferring color for iedge=%d", iedge+1);
+                            }
+                        }
+
+                        EG_free(eedges);    eedges = NULL;
+                    }
+
+                    if ((NINT(args[4].val[0]) != 0                                           ) &&
+                        (strcmp(extension, ".egads") == 0 || strcmp(extension, ".EGADS") == 0)   ) {
                         if (MODL->body[stack[nstack-1]].etess == NULL) {
                             status = ocsmTessellate(MODL, stack[nstack-1]);
                             CATCH_STATUS(ocsmTessellate);
@@ -14126,6 +14800,47 @@ ocsmBuild(void   *modl,                 /* (in)  pointer to MODL */
                             CATCH_STATUS(EG_copyObject);
                             nego1++;
                             nego2++;
+
+                            if ((NINT(args[6].val[0]) == 1                                            ) &&
+                                (strcmp(extension, ".stp" ) == 0 || strcmp(extension, ".STP" ) == 0 ||
+                                 strcmp(extension, ".step") == 0 || strcmp(extension, ".STEP") == 0 ||
+                                 strcmp(extension, ".igs" ) == 0 || strcmp(extension, ".IGS" ) == 0 ||
+                                 strcmp(extension, ".iges") == 0 || strcmp(extension, ".IGES") == 0   )   ) {
+
+                                status = EG_getBodyTopos(etemp[nego1-1], NULL, FACE, &nfaces, &efaces);
+                                CHECK_STATUS(EG_getBodyTopos);
+
+                                for (iface = 0; iface < nfaces; iface++) {
+                                    status = EG_attributeRet(efaces[iface], "_color",
+                                                             &attrType, &attrLen, &tempIlist, &tempRlist, &tempClist);
+                                    if (status == EGADS_SUCCESS) {
+                                        status = EG_attributeAdd(efaces[iface], "Color",
+                                                                 attrType, attrLen, tempIlist, tempRlist, tempClist);
+                                        CHECK_STATUS(EG_attributeAdd);
+
+                                        SPRINT1(2, "        transferring color for iface=%d", iface+1);
+                                    }
+                                }
+
+                                EG_free(efaces);    efaces = NULL;
+
+                                status = EG_getBodyTopos(etemp[nego1-1], NULL, EDGE, &nedges, &eedges);
+                                CHECK_STATUS(EG_getBodyTopos);
+
+                                for (iedge = 0; iedge < nedges; iedge++) {
+                                    status = EG_attributeRet(eedges[iedge], "_color",
+                                                             &attrType, &attrLen, &tempIlist, &tempRlist, &tempClist);
+                                    if (status == EGADS_SUCCESS) {
+                                        status = EG_attributeAdd(eedges[iedge], "Color",
+                                                                 attrType, attrLen, tempIlist, tempRlist, tempClist);
+                                        CHECK_STATUS(EG_attributeAdd);
+
+                                        SPRINT1(2, "        transferring color for iedge=%d", iedge+1);
+                                    }
+                                }
+
+                                EG_free(eedges);    eedges = NULL;
+                            }
 
                             SPRINT1(1, "                          Body   %4d dumped", stack[jstack]);
                         }
@@ -14497,8 +15212,8 @@ ocsmBuild(void   *modl,                 /* (in)  pointer to MODL */
 
             /* "$clearance ibody1 ibody2" */
             } else if (strcmp(MODL->brch[ibrch].arg1, "$clearance") == 0) {
-                int    ibody1, ibody2, sense;
-                double dist, pnt1[3], pnt2[3], data1[18], data2[18], trange[2];
+                int    sense;
+                double trange[2];
                 ego    enodes2[2], ecurve, eloop;
 
                 ibody1 = NINT(args[2].val[0]);
@@ -15161,6 +15876,9 @@ finalize:
                                                  &tempIlist, &tempRlist, &tempClist);
                         CHECK_STATUS(EG_attributeRet);
 
+                        SPRINT4(1, "--> Tessellating EBody %6d     (%12.5e %12.5e %7.3f)",
+                                ibody, tempRlist[0], tempRlist[1], tempRlist[2]);
+
                         status = EG_makeTessBody(MODL->body[ibody].eebody, (double*)tempRlist, &(MODL->body[ibody].eetess));
                         CHECK_STATUS(EG_makeTessBody);
 
@@ -15492,7 +16210,7 @@ finalize:
 
     /* compute distance between Face evaluations and tessellation points at boundaries of Faces */
     if (0) {
-        double xyz_out[18], dist, tol=1e-2;
+        double xyz_out[18], tol=1e-2;
 
         SPRINT0(0, "Checking distances at boundaries of Faces");
 
@@ -17097,6 +17815,9 @@ ocsmClearance(void   *modl,             /* (in)  pointer to MODL */
                 params[1] = TESS_PARAM_1 * size / 3;
                 params[2] = TESS_PARAM_2;
 
+                SPRINT4(1, "--> Tessellating Body %6d     (%12.5e %12.5e %7.3f)",
+                        ibody, params[0], params[1], params[2]);
+
                 status = EG_makeTessBody(ebodys[ibody], params, &etess);
                 CHECK_STATUS(EG_makeTessBody);
 
@@ -17396,6 +18117,9 @@ ocsmClearance(void   *modl,             /* (in)  pointer to MODL */
                 params[0] = TESS_PARAM_0 * size / 3;
                 params[1] = TESS_PARAM_1 * size / 3;
                 params[2] = TESS_PARAM_2;
+
+                SPRINT4(1, "--> Tessellating Body %6d     (%12.5e %12.5e %7.3f)",
+                        ibody, params[0], params[1], params[2]);
 
                 status = EG_makeTessBody(ebodys[ibody], params, &etess);
                 CHECK_STATUS(EG_makeTessBody);
@@ -18059,7 +18783,7 @@ ocsmNewBrch(void   *modl,               /* (in)  pointer to MODL */
         impstr = 0x100;
     } else if (type == OCSM_DUMP) {          // $filename remove=0 toMark=0 withTess=0 $grpName
         bclass = OCSM_UTILITY;
-        narg   = 5;
+        narg   = 6;
         impstr = 0x110;
     } else if (type == OCSM_ELSE) {
         bclass = OCSM_UTILITY;
@@ -18081,29 +18805,39 @@ ocsmNewBrch(void   *modl,               /* (in)  pointer to MODL */
         bclass = OCSM_UTILITY;
         narg   = 0;
         if        (arg1 == NULL) {
-        } else if (strcmp(arg1, "$node"   ) == 0 || strcmp(arg1, "$NODE"   ) == 0) {
+        } else if (strcmp(arg1, "$node"    ) == 0 || strcmp(arg1, "$NODE"    ) == 0) {
             narg = 3;
-        } else if (strcmp(arg1, "$edge"   ) == 0 || strcmp(arg1, "$EDGE"   ) == 0) {
+        } else if (strcmp(arg1, "$edge"    ) == 0 || strcmp(arg1, "$EDGE"    ) == 0) {
             narg = 4;
-        } else if (strcmp(arg1, "$edgerng") == 0 || strcmp(arg1, "$EDGERNG") == 0) {
+        } else if (strcmp(arg1, "$edgebbox") == 0 || strcmp(arg1, "$EDGEBBOX") == 0) {
             narg = 3;
-        } else if (strcmp(arg1, "$edgeinv") == 0 || strcmp(arg1, "$EDGEINV") == 0) {
+        } else if (strcmp(arg1, "$edgerng" ) == 0 || strcmp(arg1, "$EDGERNG" ) == 0) {
+            narg = 3;
+        } else if (strcmp(arg1, "$edgeinv" ) == 0 || strcmp(arg1, "$EDGEINV" ) == 0) {
             narg = 6;
-        } else if (strcmp(arg1, "$edgekt" ) == 0 || strcmp(arg1, "$EDGEKT" ) == 0) {
+        } else if (strcmp(arg1, "$edgekt"  ) == 0 || strcmp(arg1, "$EDGEKT"  ) == 0) {
             narg = 3;
-        } else if (strcmp(arg1, "$edgecp" ) == 0 || strcmp(arg1, "$EDGECP" ) == 0) {
+        } else if (strcmp(arg1, "$edgecp"  ) == 0 || strcmp(arg1, "$EDGECP"  ) == 0) {
             narg = 3;
-        } else if (strcmp(arg1, "$face"   ) == 0 || strcmp(arg1, "$FACE"   ) == 0) {
+        } else if (strcmp(arg1, "$edgetess") == 0 || strcmp(arg1, "$EDGETESS") == 0) {
+            narg = 3;
+        } else if (strcmp(arg1, "$face"    ) == 0 || strcmp(arg1, "$FACE"    ) == 0) {
             narg = 5;
-        } else if (strcmp(arg1, "$facerng") == 0 || strcmp(arg1, "$FACERNG") == 0) {
+        } else if (strcmp(arg1, "$facebbox") == 0 || strcmp(arg1, "$FACEBBOX") == 0) {
             narg = 3;
-        } else if (strcmp(arg1, "$faceinv") == 0 || strcmp(arg1, "$FACEINV") == 0) {
+        } else if (strcmp(arg1, "$facerng" ) == 0 || strcmp(arg1, "$FACERNG" ) == 0) {
+            narg = 3;
+        } else if (strcmp(arg1, "$faceinv" ) == 0 || strcmp(arg1, "$FACEINV" ) == 0) {
             narg = 6;
-        } else if (strcmp(arg1, "$faceukt") == 0 || strcmp(arg1, "$FACEUKT") == 0) {
+        } else if (strcmp(arg1, "$faceukt" ) == 0 || strcmp(arg1, "$FACEUKT" ) == 0) {
             narg = 3;
-        } else if (strcmp(arg1, "$facevkt") == 0 || strcmp(arg1, "$FACEVKT") == 0) {
+        } else if (strcmp(arg1, "$facevkt" ) == 0 || strcmp(arg1, "$FACEVKT" ) == 0) {
             narg = 3;
-        } else if (strcmp(arg1, "$facecp" ) == 0 || strcmp(arg1, "$FACECP" ) == 0) {
+        } else if (strcmp(arg1, "$facecp"  ) == 0 || strcmp(arg1, "$FACECP"  ) == 0) {
+            narg = 3;
+        } else if (strcmp(arg1, "$facetess") == 0 || strcmp(arg1, "$FACETESS") == 0) {
+            narg = 3;
+        } else if (strcmp(arg1, "$dist"    ) == 0 || strcmp(arg1, "$DIST"    ) == 0) {
             narg = 3;
         } else {
             narg = 1;
@@ -18139,7 +18873,7 @@ ocsmNewBrch(void   *modl,               /* (in)  pointer to MODL */
         impstr = 0x0aa;
     } else if (type == OCSM_IMPORT) {        // $filename bodynumber=1
         bclass = OCSM_PRIMITIVE;
-        narg   = 2;
+        narg   = 3;
         impstr = 0x100;
     } else if (type == OCSM_INTERFACE) {     // $argName $argType default=0
         bclass = OCSM_UTILITY;
@@ -18670,10 +19404,11 @@ ocsmNewBrch(void   *modl,               /* (in)  pointer to MODL */
         /* do not divert since .cpc file contains all Branches */
     } else if (MODL->brch[ibrch].arg1 == NULL) {
         /* nothing.  needed to avoid clang warning */
-    } else if (type == OCSM_UDPRIM                                 &&
-               (strncmp(MODL->brch[ibrch].arg1, "$/",   2) == 0 ||
-                strncmp(MODL->brch[ibrch].arg1, "$$/",  3) == 0 ||
-                strncmp(MODL->brch[ibrch].arg1, "$$$/", 4) == 0   )  ) {
+    } else if (type == OCSM_UDPRIM                                  &&
+               (strncmp(MODL->brch[ibrch].arg1, "$/",    2) == 0 ||
+                strncmp(MODL->brch[ibrch].arg1, "$$/",   3) == 0 ||
+                strncmp(MODL->brch[ibrch].arg1, "$$$/",  4) == 0 ||
+                strncmp(MODL->brch[ibrch].arg1, "$$$$/", 5) == 0   )  ) {
 
         if (MODL->level < 10) {
             (MODL->level)++;
@@ -18718,15 +19453,30 @@ ocsmNewBrch(void   *modl,               /* (in)  pointer to MODL */
                 snprintf(udcfilename, MAX_EXPR_LEN, "%s%s.udc", pathname, &(MODL->brch[ibrch].arg1[3]));
 
             /* if primtype starts with "$$/", look in ESP_ROOT directory */
-            } else {
+            } else if (strncmp(MODL->brch[ibrch].arg1, "$$$/", 4) == 0) {
                 esp_root = getenv("ESP_ROOT");
                 if (esp_root != NULL) {
                     snprintf(udcfilename, MAX_EXPR_LEN, "%s%cudc%c%s.udc", esp_root, SLASH, SLASH, &(MODL->brch[ibrch].arg1[4]));
                 } else {
                     status = signalError2(MODL, OCSM_FILE_NOT_FOUND, filename, linenum,
-                                          "esp_root is not set");
+                                          "ESP_ROOT is not set");
                     goto cleanup;
                 }
+
+            /* if primtype starts with "$$$/", look in ESP_UDC_PATH directory */
+            } else if (strncmp(MODL->brch[ibrch].arg1, "$$$$/", 5) == 0) {
+                esp_root = getenv("ESP_UDC_PATH");
+                if (esp_root != NULL) {
+                    snprintf(udcfilename, MAX_EXPR_LEN, "%s%c%s.udc", esp_root, SLASH, &(MODL->brch[ibrch].arg1[5]));
+                } else {
+                    status = signalError2(MODL, OCSM_FILE_NOT_FOUND, filename, linenum,
+                                          "ESP_UDC_PATH is not set");
+                    goto cleanup;
+                }
+            } else {
+                status =signalError2(MODL, OCSM_FILE_NOT_FOUND, filename, linenum,
+                                     "\"%s\" is not in the correct form", &(MODL->brch[ibrch].arg1[1]));
+                goto cleanup;
             }
 
             /* make sure we have the correct type of slashes */
@@ -21278,6 +22028,9 @@ ocsmMakeEBody(void   *modl,             /* (in)  pointer to MODL */
         params[1] = TESS_PARAM_1 * size;
         params[2] = TESS_PARAM_2;
 
+        SPRINT4(1, "--> Tessellating EBody %6d     (%12.5e %12.5e %7.3f)",
+                ibody, params[0], params[1], params[2]);
+
         status = EG_makeTessBody(newEBody, params, &(MODL->body[ibody].eetess));
         CHECK_STATUS(EG_makeTessBody);
 
@@ -21678,8 +22431,8 @@ ocsmFindPmtr(void   *modl,              /* (in)  pointer to MODL */
     /* if type is zero, just look for the name */
     if (type == 0) {
         for (jpmtr = 1; jpmtr <= MODL->npmtr; jpmtr++) {
-            if (strcmp(MODL->pmtr[jpmtr].name, name) == 0 &&
-                MODL->pmtr[jpmtr].scope == 0                ) {
+            if (strcmp(MODL->pmtr[jpmtr].name, name) == 0          &&
+                MODL->pmtr[jpmtr].scope == MODL->scope[MODL->level]  ) {
                 *ipmtr = jpmtr;
                 break;
             }
@@ -30744,6 +31497,10 @@ buildBoolJoin(modl_T *modl,             /* (in)  pointer to MODL */
                     status = setupAtPmtrs(MODL, 0);
                     CHECK_STATUS(setupAtPmtrs);
 
+                    /* add _Keep attribute to all Nodes that are shared by both ibodyl and ibodyr */
+                    status = markNodesAsKeep(MODL, MODL->body[ibody].ebody, ibodyl, ibodyr, "join");
+                    CHECK_STATUS(markNodesAsKeep);
+
                     status = finishBody(MODL, ibody);
                     if (MODL->sigCode != SUCCESS) goto cleanup;
                     CHECK_STATUS(finishBody);
@@ -30879,6 +31636,14 @@ buildBoolJoin(modl_T *modl,             /* (in)  pointer to MODL */
     /* update @-parameters (JOIN) and finish Body */
     status = setupAtPmtrs(MODL, 0);
     CHECK_STATUS(setupAtPmtrs);
+
+    status = EG_attributeAdd(ebody, "__keepEdgeAttr__", ATTRSTRING,
+                             strlen("yes"), NULL, NULL, "yes");
+    CHECK_STATUS(EG_attributeAdd);
+
+    /* add _Keep attribute to all Nodes that are shared by both ibodyl and ibodyr */
+    status = markNodesAsKeep(MODL, MODL->body[ibody].ebody, ibodyl, ibodyr, "join");
+    CHECK_STATUS(markNodesAsKeep);
 
     status = finishBody(MODL, ibody);
     if (MODL->sigCode != SUCCESS) goto cleanup;
@@ -31146,8 +31911,14 @@ buildBoolSubtr(modl_T *modl,            /* (in)  pointer to MODL */
         status = EG_copyObject(ebodys[0], NULL, &ebody);
         CHECK_STATUS(EG_copyObject);
 
+        SPLINT_CHECK_FOR_NULL(ebody);
+
         status = EG_deleteObject(emodel);
         CHECK_STATUS(EG_deleteObject);
+
+        /* add a _Keep attribute on the new Node */
+        status = markNodesAsKeep(MODL, ebody, ibodyr, 0, "subtract");
+        CHECK_STATUS(markNodesAsKeep);
 
         /* we have succeeded, so remove the inputs from the stack */
         (*nstack) -= nremove;
@@ -31777,9 +32548,13 @@ buildBoolSubtr(modl_T *modl,            /* (in)  pointer to MODL */
         status = setupAtPmtrs(MODL, 0);
         CHECK_STATUS(setupAtPmtrs);
 
-        status = finishBody(MODL, ibody);
-        if (MODL->sigCode != SUCCESS) goto cleanup;
-        CHECK_STATUS(finishBody);
+        /* add a _Keep attribute to all Nodes in ebody that were not in ibodyl  */
+        status = markNodesAsKeep(MODL, ebody, ibodyl, 0, "subtract");
+        CHECK_STATUS(markNodesAsKeep);
+
+//$$$        status = finishBody(MODL, ibody);
+//$$$        if (MODL->sigCode != SUCCESS) goto cleanup;
+//$$$        CHECK_STATUS(finishBody);
 
         /* get ready to push the Body onto the stack */
         (*nstack) -= nremove;
@@ -32362,6 +33137,10 @@ buildBoolUnion(modl_T *modl,            /* (in)  pointer to MODL */
             status = setupAtPmtrs(MODL, 0);
             CHECK_STATUS(setupAtPmtrs);
 
+            /* add _Keep attribute to all Nodes that are shared by both ibodyl and ibodyr */
+            status = markNodesAsKeep(MODL, MODL->body[ibody].ebody, ibodyl, ibodyr, "union");
+            CHECK_STATUS(markNodesAsKeep);
+
             status = finishBody(MODL, ibody);
             if (MODL->sigCode != SUCCESS) goto cleanup;
             CHECK_STATUS(finishBody);
@@ -32388,6 +33167,10 @@ buildBoolUnion(modl_T *modl,            /* (in)  pointer to MODL */
             /* update @-parameters (UNION) and finish Body */
             status = setupAtPmtrs(MODL, 0);
             CHECK_STATUS(setupAtPmtrs);
+
+            /* add _Keep attribute to all Nodes that are shared by both ibodyl and ibodyr */
+            status = markNodesAsKeep(MODL, MODL->body[ibody].ebody, ibodyl, ibodyr, "union");
+            CHECK_STATUS(markNodesAsKeep);
 
             status = finishBody(MODL, ibody);
             if (MODL->sigCode != SUCCESS) goto cleanup;
@@ -32503,6 +33286,10 @@ buildBoolUnion(modl_T *modl,            /* (in)  pointer to MODL */
                     status = setupAtPmtrs(MODL, 0);
                     CHECK_STATUS(setupAtPmtrs);
 
+                    /* add _Keep attribute to all Nodes that are shared by both ibodyl and ibodyr */
+                    status = markNodesAsKeep(MODL, MODL->body[ibody].ebody, ibodyl, ibodyr, "union");
+                    CHECK_STATUS(markNodesAsKeep);
+
                     status = finishBody(MODL, ibody);
                     CHECK_STATUS(finishBody);
 
@@ -32597,9 +33384,9 @@ buildGrown(modl_T *modl,                /* (in)  pointer to MODL */
     int        oclass, mtype, *senses, *senses2=NULL, iford1, nedges, nfaces, nchild, oneFace, nnode;
     int        j, begPmtr, endPmtr, mode, nsew, *pinfo=NULL, periodic, copyAttr;
     CINT       *tempIlist;
-    double     data[9], trange[2], Rbeg[8], Rend[8], matrix[12];
+    double     data[18], trange[2], Rbeg[8], Rend[8], matrix[12];
     double     dx, dy, dz, cosx, sinx, cosy, siny, cosz, sinz;
-    double     *prv, bbox[6], vals[7];
+    double     *prv, bbox[6], vals[7], t, d2;
     double     toler, dirn[3], alen, bbox0[6], bbox1[6], *vmin=NULL, uvlimits[4];
     CDOUBLE    *tempRlist;
     CCHAR      *tempClist, *tempClist2;
@@ -32890,8 +33677,10 @@ buildGrown(modl_T *modl,                /* (in)  pointer to MODL */
         SPRINT8(1, "    executing [%4d] revolve:    %11.5f  %11.5f  %11.5f  %11.5f  %11.5f  %11.5f  %11.5f",
                 ibrch, args[1].val[0], args[2].val[0], args[3].val[0], args[4].val[0],
                        args[5].val[0], args[6].val[0], args[7].val[0]);
-        if (args[1].dot[0] != 0 || args[2].dot[0] != 0 || args[3].dot[0] != 0 || args[4].dot[0] != 0 ||
-            args[5].dot[0] != 0 || args[6].dot[0] != 0 || args[7].dot[0] != 0                   ) {
+        if (args[1].dot[0] != 0 || args[2].dot[0] != 0 ||
+            args[3].dot[0] != 0 || args[4].dot[0] != 0 ||
+            args[5].dot[0] != 0 || args[6].dot[0] != 0 ||
+            args[7].dot[0] != 0                          ) {
             hasdots = 1;
 
             SPRINT7(1, "                                 %11.5f  %11.5f  %11.5f  %11.5f  %11.5f  %11.5f  %11.5f",
@@ -32905,10 +33694,17 @@ buildGrown(modl_T *modl,                /* (in)  pointer to MODL */
             SPRINT0(1, "INFO:: analytic sensitivities unavailable because of REVOLVE");
         }
 
+        vals[0] = args[1].val[0];
+        vals[1] = args[2].val[0];
+        vals[2] = args[3].val[0];
+        vals[3] = args[4].val[0];
+        vals[4] = args[5].val[0];
+        vals[5] = args[6].val[0];
+
         /* check to be sure that the axis is not zero */
-        if (fabs(args[4].val[0]) < EPS06 &&
-            fabs(args[5].val[0]) < EPS06 &&
-            fabs(args[6].val[0]) < EPS06   ) {
+        if (fabs(vals[3]) < EPS06 &&
+            fabs(vals[4]) < EPS06 &&
+            fabs(vals[5]) < EPS06   ) {
             status = signalError(MODL, OCSM_ILLEGAL_VALUE,
                                  "axis length must be non-zero");
             goto cleanup;
@@ -33019,48 +33815,48 @@ buildGrown(modl_T *modl,                /* (in)  pointer to MODL */
                 status = EG_getBoundingBox(ebodyl, bbox);
                 CHECK_STATUS(EG_getBoundingBox);
 
-                if        (args[2].val[0]-bbox[1] <= +EPS06 && args[5].val[0] <= 0) {
-                } else if (args[2].val[0]-bbox[4] >= -EPS06 && args[5].val[0] >= 0) {
-                } else if (args[3].val[0]-bbox[2] <= +EPS06 && args[6].val[0] <= 0) {
-                } else if (args[3].val[0]-bbox[5] >= -EPS06 && args[6].val[0] >= 0) {
+                if        (vals[1]-bbox[1] <= +EPS06 && vals[4] <= 0) {
+                } else if (vals[1]-bbox[4] >= -EPS06 && vals[4] >= 0) {
+                } else if (vals[2]-bbox[2] <= +EPS06 && vals[5] <= 0) {
+                } else if (vals[2]-bbox[5] >= -EPS06 && vals[5] >= 0) {
                 } else {
                     SPRINT0(1, "WARNING:: axis may intersect Face and result may be invalid");
-                    SPRINT2(1, "          bbox: ymin=%12.5f   ymax=%12.5f", bbox[1],        bbox[4]       );
-                    SPRINT2(1, "          bbox: zmin=%12.5f   zmax=%12.5f", bbox[2],        bbox[5]       );
-                    SPRINT2(1, "          base: ybeg=%12.5f   zbeg=%12.5f", args[2].val[0], args[3].val[0]);
-                    SPRINT2(1, "          dirn: dy  =%12.5f   dz  =%12.5f", args[5].val[0], args[6].val[0]);
+                    SPRINT2(1, "          bbox: ymin=%12.5f   ymax=%12.5f", bbox[1], bbox[4]);
+                    SPRINT2(1, "          bbox: zmin=%12.5f   zmax=%12.5f", bbox[2], bbox[5]);
+                    SPRINT2(1, "          base: ybeg=%12.5f   zbeg=%12.5f", vals[1], vals[2]);
+                    SPRINT2(1, "          dirn: dy  =%12.5f   dz  =%12.5f", vals[4], vals[5]);
                     (MODL->nwarn)++;
                 }
             } else if (fabs(prv[4]) < EPS06 && fabs(prv[7]) < EPS06) {
                 status = EG_getBoundingBox(ebodyl, bbox);
                 CHECK_STATUS(EG_getBoundingBox);
 
-                if        (args[3].val[0]-bbox[2] <= +EPS06 && args[6].val[0] <= 0) {
-                } else if (args[3].val[0]-bbox[5] >= -EPS06 && args[6].val[0] >= 0) {
-                } else if (args[1].val[0]-bbox[0] <= +EPS06 && args[4].val[0] <= 0) {
-                } else if (args[1].val[0]-bbox[3] >= -EPS06 && args[4].val[0] >= 0) {
+                if        (vals[2]-bbox[2] <= +EPS06 && vals[5] <= 0) {
+                } else if (vals[2]-bbox[5] >= -EPS06 && vals[5] >= 0) {
+                } else if (vals[0]-bbox[0] <= +EPS06 && vals[3] <= 0) {
+                } else if (vals[0]-bbox[3] >= -EPS06 && vals[3] >= 0) {
                 } else {
                     SPRINT0(1, "WARNING:: axis may intersect Face and result may be invalid");
-                    SPRINT2(1, "          bbox: zmin=%12.5f   zmax=%12.5f", bbox[2],        bbox[5]       );
-                    SPRINT2(1, "          bbox: xmin=%12.5f   xmax=%12.5f", bbox[0],        bbox[3]       );
-                    SPRINT2(1, "          base: zbeg=%12.5f   ybeg=%12.5f", args[3].val[0], args[1].val[0]);
-                    SPRINT2(1, "          dirn: dz  =%12.5f   dy  =%12.5f", args[6].val[0], args[4].val[0]);
+                    SPRINT2(1, "          bbox: zmin=%12.5f   zmax=%12.5f", bbox[2], bbox[5]);
+                    SPRINT2(1, "          bbox: xmin=%12.5f   xmax=%12.5f", bbox[0], bbox[3]);
+                    SPRINT2(1, "          base: zbeg=%12.5f   ybeg=%12.5f", vals[2], vals[0]);
+                    SPRINT2(1, "          dirn: dz  =%12.5f   dy  =%12.5f", vals[5], vals[3]);
                     (MODL->nwarn)++;
                 }
             } else if (fabs(prv[5]) < EPS06 && fabs(prv[8]) < EPS06) {
                 status = EG_getBoundingBox(ebodyl, bbox);
                 CHECK_STATUS(EG_getBoundingBox);
 
-                if        (args[1].val[0]-bbox[0] <= +EPS06 && args[4].val[0] <= 0) {
-                } else if (args[1].val[0]-bbox[3] >= -EPS06 && args[4].val[0] >= 0) {
-                } else if (args[2].val[0]-bbox[1] <= +EPS06 && args[5].val[0] <= 0) {
-                } else if (args[2].val[0]-bbox[4] >= -EPS06 && args[5].val[0] >= 0) {
+                if        (vals[0]-bbox[0] <= +EPS06 && vals[3] <= 0) {
+                } else if (vals[0]-bbox[3] >= -EPS06 && vals[3] >= 0) {
+                } else if (vals[1]-bbox[1] <= +EPS06 && vals[4] <= 0) {
+                } else if (vals[1]-bbox[4] >= -EPS06 && vals[4] >= 0) {
                 } else {
                     SPRINT0(1, "WARNING:: axis may intersect Face and result may be invalid");
-                    SPRINT2(1, "          bbox: xmin=%12.5f   xmax=%12.5f", bbox[0],        bbox[3]       );
-                    SPRINT2(1, "          bbox: ymin=%12.5f   ymax=%12.5f", bbox[1],        bbox[4]       );
-                    SPRINT2(1, "          base: xbeg=%12.5f   ybeg=%12.5f", args[1].val[0], args[2].val[0]);
-                    SPRINT2(1, "          dirn: dx  =%12.5f   dy  =%12.5f", args[4].val[0], args[5].val[0]);
+                    SPRINT2(1, "          bbox: xmin=%12.5f   xmax=%12.5f", bbox[0], bbox[3]);
+                    SPRINT2(1, "          bbox: ymin=%12.5f   ymax=%12.5f", bbox[1], bbox[4]);
+                    SPRINT2(1, "          base: xbeg=%12.5f   ybeg=%12.5f", vals[0], vals[1]);
+                    SPRINT2(1, "          dirn: dx  =%12.5f   dy  =%12.5f", vals[3], vals[4]);
                     (MODL->nwarn)++;
                 }
             } else {
@@ -33071,37 +33867,26 @@ buildGrown(modl_T *modl,                /* (in)  pointer to MODL */
                 (MODL->nwarn)++;
             }
 
+            /* positive REVOLVE angle */
             if (args[7].val[0] > 0) {
                 if (outLevel >= 3) {
                     SPRINT0(3, "before EG_rotate: ebodyl");
                     ocsmPrintEgo(ebodyl);
                 }
 
-                vals[0] = args[1].val[0];
-                vals[1] = args[2].val[0];
-                vals[2] = args[3].val[0];
-                vals[3] = args[4].val[0];
-                vals[4] = args[5].val[0];
-                vals[5] = args[6].val[0];
-
                 status = EG_rotate(ebodyl, args[7].val[0], vals, &ebody);
                 CHECK_STATUS(EG_rotate);
 
                 /* remove Attributes from Faces that start with period and underscore */
                 status = removeFaceAttributes(ebody);
-                CHECK_STATUS(removeFaceAttributes)
+                CHECK_STATUS(removeFaceAttributes);
+
+            /* negative REVOLVE angle requires EG_rotate and then a reflection */
             } else {
                 if (outLevel >= 3) {
                     SPRINT0(3, "before EG_rotate: ebodyl");
                     ocsmPrintEgo(ebodyl);
                 }
-
-                vals[0] = args[1].val[0];
-                vals[1] = args[2].val[0];
-                vals[2] = args[3].val[0];
-                vals[3] = args[4].val[0];
-                vals[4] = args[5].val[0];
-                vals[5] = args[6].val[0];
 
                 status = EG_rotate(ebodyl, fabs(args[7].val[0]), vals, &etemp);
                 CHECK_STATUS(EG_rotate);
@@ -33110,36 +33895,36 @@ buildGrown(modl_T *modl,                /* (in)  pointer to MODL */
                 status = removeFaceAttributes(etemp);
                 CHECK_STATUS(removeFaceAttributes)
 
-                if        (fabs(args[5].val[0]) < EPS06 && fabs(args[6].val[0]) < EPS06) {
+                if        (fabs(vals[4]) < EPS06 && fabs(vals[5]) < EPS06) {
                     cosx = cos(args[7].val[0] * PIo180);
                     sinx = sin(args[7].val[0] * PIo180);
-                    dy   =     args[2].val[0];
-                    dz   =     args[3].val[0];
+                    dy   =     vals[1];
+                    dz   =     vals[2];
 
                     matrix[ 0] = 1; matrix[ 1] = 0;    matrix[ 2] = 0;    matrix[ 3] = 0;
                     matrix[ 4] = 0; matrix[ 5] = cosx; matrix[ 6] =-sinx; matrix[ 7] = dy - dy * cosx + dz * sinx;
                     matrix[ 8] = 0; matrix[ 9] = sinx; matrix[10] = cosx; matrix[11] = dz - dy * sinx - dz * cosx;
-                } else if (fabs(args[4].val[0]) < EPS06 && fabs(args[6].val[0]) < EPS06) {
+                } else if (fabs(vals[3]) < EPS06 && fabs(vals[5]) < EPS06) {
                     cosy = cos(args[7].val[0] * PIo180);
                     siny = sin(args[7].val[0] * PIo180);
-                    dz   =     args[3].val[0];
-                    dx   =     args[1].val[0];
+                    dz   =     vals[2];
+                    dx   =     vals[0];
 
                     matrix[ 0] = cosy; matrix[ 1] = 0; matrix[ 2] = siny; matrix[ 3] = dx - dz * siny - dx * cosy;
                     matrix[ 4] = 0;    matrix[ 5] = 1; matrix[ 6] = 0;    matrix[ 7] = 0;
                     matrix[ 8] =-siny; matrix[ 9] = 0; matrix[10] = cosy; matrix[11] = dz - dz * cosy + dx * siny;
-                } else if (fabs(args[4].val[0]) < EPS06 && fabs(args[5].val[0]) < EPS06) {
+                } else if (fabs(vals[3]) < EPS06 && fabs(vals[4]) < EPS06) {
                     cosz = cos(args[7].val[0] * PIo180);
                     sinz = sin(args[7].val[0] * PIo180);
-                    dx   =     args[1].val[0];
-                    dy   =     args[2].val[0];
+                    dx   =     vals[0];
+                    dy   =     vals[1];
 
                     matrix[ 0] = cosz; matrix[ 1] =-sinz; matrix[ 2] = 0; matrix[ 3] = dx - dx * cosz + dy * sinz;
                     matrix[ 4] = sinz; matrix[ 5] = cosz; matrix[ 6] = 0; matrix[ 7] = dy - dx * sinz - dy * cosz;
                     matrix[ 8] = 0;    matrix[ 9] = 0;    matrix[10] = 1; matrix[11] = 0;
                 } else {
                     status = signalError(MODL, OCSM_ILLEGAL_VALUE,
-                                         "not aligned with axis (%f, %f, %f)", args[4].val[0], args[5].val[0], args[6].val[0]);
+                                         "not aligned with axis (%f, %f, %f)", vals[3], vals[4], vals[5]);
                     goto cleanup;
                 }
 
@@ -33148,6 +33933,9 @@ buildGrown(modl_T *modl,                /* (in)  pointer to MODL */
 
                 status = EG_copyObject(etemp, exform, &ebody);
                 CHECK_STATUS(EG_copyObject);
+
+                status = EG_deleteObject(etemp);
+                CHECK_STATUS(EG_deleteObject);
 
                 status = EG_deleteObject(exform);
                 CHECK_STATUS(EG_deleteObject);
@@ -33173,13 +33961,6 @@ buildGrown(modl_T *modl,                /* (in)  pointer to MODL */
                 ocsmPrintEgo(ebodyl);
             }
 
-            vals[0] = args[1].val[0];
-            vals[1] = args[2].val[0];
-            vals[2] = args[3].val[0];
-            vals[3] = args[4].val[0];
-            vals[4] = args[5].val[0];
-            vals[5] = args[6].val[0];
-
             status = EG_rotate(ebodyl, args[7].val[0], vals, &ebody);
             CHECK_STATUS(EG_rotate);
 
@@ -33196,7 +33977,7 @@ buildGrown(modl_T *modl,                /* (in)  pointer to MODL */
         }
 
         /* transfer the Attributes from Xsect Edges to corresponding
-           Edges in the EXTRUDEion */
+           Edges in the REVOLVEion */
         status = EG_getBodyTopos(ebody, NULL, EDGE, &nedge, &eedges);
         CHECK_STATUS(EG_getBodyTopos);
 
@@ -33262,6 +34043,32 @@ buildGrown(modl_T *modl,                /* (in)  pointer to MODL */
             status = setFaceAttribute(MODL, ibody, nedges+2, 0, 2, npatn, patn);
             CHECK_STATUS(setFaceAttribute);
         }
+
+        /* add _Keep attribute to all Nodes that are on the axis of revolution */
+        status = EG_getBodyTopos(ebody, NULL, NODE, &nnode, &enodes);
+        CHECK_STATUS(EG_getBodyTopos);
+
+        for (inode = 1; inode <= nnode; inode++) {
+            status = EG_evaluate(enodes[inode-1], 0, data);
+            CHECK_STATUS(EG_evaluate);
+
+            t = (vals[3] * (data[0] - vals[0]) + vals[4] * (data[1] - vals[1]) + vals[5] * (data[2] - vals[2]))
+              / (vals[3] *  vals[3]            + vals[4] *  vals[4]            + vals[5] *  vals[5]           );
+
+            d2 = (vals[0] + t * vals[3] - data[0]) * (vals[0] + t * vals[3] - data[0])
+               + (vals[1] + t * vals[4] - data[1]) * (vals[1] + t * vals[4] - data[1])
+               + (vals[2] + t * vals[5] - data[2]) * (vals[2] + t * vals[5] - data[2]);
+
+            if (d2 < EPS12) {
+                status = EG_attributeAdd(enodes[inode-1], "_Keep",
+                                         ATTRSTRING, 0, NULL, NULL, "revolve");
+                CHECK_STATUS(EG_attributeAdd);
+
+                SPRINT1(2, "    -> marking Node %5d as _Keep=revolve", inode);
+            }
+        }
+
+        EG_free(enodes);    enodes = NULL;
 
         /* finish the Body (REVOLVE) */
         status = finishBody(MODL, ibody);
@@ -33448,6 +34255,18 @@ buildGrown(modl_T *modl,                /* (in)  pointer to MODL */
             /* update @-parameters (RULE) */
             status = setupAtPmtrs(MODL, 0);
             CHECK_STATUS(setupAtPmtrs);
+
+            /* if either beg or end is a NodeBody, put a _Keep attribute
+               on that Node */
+            if (itypebeg == OCSM_NODE_BODY) {
+                status = markNodesAsKeep(MODL, ebody, isketch[0], 0, "rule");
+                CHECK_STATUS(markNodesAsKeep);
+            }
+
+            if (itypeend == OCSM_NODE_BODY) {
+                status = markNodesAsKeep(MODL, ebody, isketch[nsketch-1], 0, "rule");
+                CHECK_STATUS(markNodesAsKeep);
+            }
 
             /* finish the Body (RULE) */
             status = finishBody(MODL, ibody);
@@ -33668,6 +34487,18 @@ buildGrown(modl_T *modl,                /* (in)  pointer to MODL */
         if (MODL->body[isketch[nsketch-1]].botype == OCSM_SHEET_BODY) {
             status = setFaceAttribute(MODL, ibody, nface+1, 0, 2, npatn, patn);
             CHECK_STATUS(setFaceAttribute);
+        }
+
+        /* if either beg or end is a NodeBody, put a _Keep attribute
+           on that Node */
+        if (itypebeg == OCSM_NODE_BODY) {
+            status = markNodesAsKeep(MODL, ebody, isketch[0], 0, "rule");
+            CHECK_STATUS(markNodesAsKeep);
+        }
+
+        if (itypeend == OCSM_NODE_BODY) {
+            status = markNodesAsKeep(MODL, ebody, isketch[nsketch-1], 0, "rule");
+            CHECK_STATUS(markNodesAsKeep);
         }
 
         /* finish the Body (RULE) */
@@ -34060,9 +34891,15 @@ buildGrown(modl_T *modl,                /* (in)  pointer to MODL */
                 nsketch++;
             } else {
                 status = signalError(MODL, OCSM_WRONG_TYPES_ON_STACK,
-                                     "Body %d is neither NODE, WireBody, nor SheetBody", ibodyl);
+                                     "Body %d is neither NodeBody, WireBody, nor SheetBody", ibodyl);
                 goto cleanup;
             }
+        }
+
+        if (nsketch < 2) {
+            status = signalError(MODL, OCSM_WRONG_TYPES_ON_STACK,
+                                 "There must be at least 2 Bodys on the stack (found %d)", nsketch);
+            goto cleanup;
         }
 
         /* special case for BLEND of all NodeBodys */
@@ -34118,6 +34955,18 @@ buildGrown(modl_T *modl,                /* (in)  pointer to MODL */
             /* update @-parameters (BLEND) */
             status = setupAtPmtrs(MODL, 0);
             CHECK_STATUS(setupAtPmtrs);
+
+            /* if either beg or end is a NodeBody, put a _Keep attribute
+               on that Node */
+            if (itypebeg == OCSM_NODE_BODY) {
+                status = markNodesAsKeep(MODL, ebody, isketch[0], 0, "blend");
+                CHECK_STATUS(markNodesAsKeep);
+            }
+
+            if (itypeend == OCSM_NODE_BODY) {
+                status = markNodesAsKeep(MODL, ebody, isketch[nsketch-1], 0, "blend");
+                CHECK_STATUS(markNodesAsKeep);
+            }
 
             /* finish the Body (BLEND) */
             status = finishBody(MODL, ibody);
@@ -34652,6 +35501,18 @@ buildGrown(modl_T *modl,                /* (in)  pointer to MODL */
         }
 
         EG_free(efaces);
+
+        /* if either beg or end is a NodeBody, put a _Keep attribute
+           on that Node */
+        if (itypebeg == OCSM_NODE_BODY) {
+            status = markNodesAsKeep(MODL, ebody, isketch[0], 0, "blend");
+            CHECK_STATUS(markNodesAsKeep);
+        }
+
+        if (itypeend == OCSM_NODE_BODY) {
+            status = markNodesAsKeep(MODL, ebody, isketch[nsketch-1], 0, "blend");
+            CHECK_STATUS(markNodesAsKeep);
+        }
 
         /* finish the Body (BLEND) */
         status = finishBody(MODL, ibody);
@@ -36115,10 +36976,10 @@ buildPrimitive(modl_T *modl,            /* (in)  pointer to MODL */
         SPRINT5(1, "                          Body   %4d created  (toler=%11.4e, nnode=%4d, nedge=%4d, nface=%4d)",
                 ibody, toler, MODL->body[ibody].nnode, MODL->body[ibody].nedge, MODL->body[ibody].nface);
 
-    /* execute: "import $filename bodynumber=1" */
+    /* execute: "import $filename bodynumber=1 getcolors=0" */
     } else if (type == OCSM_IMPORT) {
-        SPRINT3(1, "    executing [%4d] import:     %s  %11.5f",
-                ibrch, args[1].str, args[2].val[0]);
+        SPRINT4(1, "    executing [%4d] import:     %s  %11.5f  %11.5f",
+                ibrch, args[1].str, args[2].val[0], args[3].val[0]);
 
         /* require finite differences */
         if (MODL->needFDs == 0) {
@@ -36159,6 +37020,10 @@ buildPrimitive(modl_T *modl,            /* (in)  pointer to MODL */
 
         /* set the Body number (in the import) */
         status = udp_setArgument(primtype, MODL, "bodynumber", &(args[2].val[0]), 1, 1, NULL);
+        CHECK_STATUS(udp_setArgument);
+
+        /* set the getcolors */
+        status = udp_setArgument(primtype, MODL, "getcolors", &(args[3].val[0]), 1, 1, NULL);
         CHECK_STATUS(udp_setArgument);
 
         /* execute udpImport, for which emodel is a BODY, if there are no tessellations in the file and
@@ -36292,7 +37157,7 @@ buildPrimitive(modl_T *modl,            /* (in)  pointer to MODL */
             status = setupAtPmtrs(MODL, 0);
             CHECK_STATUS(setupAtPmtrs);
 
-            /* mark the new Faces with the current Branch */
+            /* mark the new Faces with the current Branch (and convert Color to _color) */
             status = EG_getBodyTopos(ebody, NULL, FACE, &nface, &efaces);
             CHECK_STATUS(EG_getBodyTopos);
 
@@ -36315,6 +37180,19 @@ buildPrimitive(modl_T *modl,            /* (in)  pointer to MODL */
 
                         status = setFaceAttribute(MODL, ibody, iface, 0, iface, npatn, patn);
                         CHECK_STATUS(setFaceAttribute);
+
+                        if (NINT(args[3].val[0]) == 1) {
+                            status = EG_attributeRet(efaces[iface-1], "Color",
+                                                     &attrType, &attrLen, &tempIlist, &tempRlist, &tempClist);
+                            if (status == EGADS_SUCCESS) {
+                                status = EG_attributeAdd(efaces[iface-1], "_color",
+                                                         attrType, attrLen, tempIlist, tempRlist, tempClist);
+                                CHECK_STATUS(EG_attributeAdd);
+
+                                status = EG_attributeDel(efaces[iface-1], "Color");
+                                CHECK_STATUS(EG_attributeDel);
+                            }
+                        }
                     }
                 } else {
                     status = EG_getBodyTopos(ebody, NULL, EDGE, &nedge, &eedges);
@@ -36334,7 +37212,7 @@ buildPrimitive(modl_T *modl,            /* (in)  pointer to MODL */
                             (void) EG_setOutLevel(MODL->context, outLevel);
                             if (status != EGADS_NOTFOUND) {
                                 CHECK_STATUS(EG_attributeDel);
-                        }
+                            }
                         }
 
                         EG_free(eedges);
@@ -36342,6 +37220,29 @@ buildPrimitive(modl_T *modl,            /* (in)  pointer to MODL */
                 }
 
                 EG_free(efaces);
+            }
+
+            /* convert Color to _color on the new Edges */
+            if (NINT(args[3].val[0]) == 1) {
+                status = EG_getBodyTopos(ebody, NULL, EDGE, &nedge, &eedges);
+                CHECK_STATUS(EG_getBodyTopos);
+
+                if (eedges != NULL) {
+                    for (iedge = 1; iedge <= nedge; iedge++) {
+                        status = EG_attributeRet(eedges[iedge-1], "Color",
+                                                 &attrType, &attrLen, &tempIlist, &tempRlist, &tempClist);
+                        if (status == EGADS_SUCCESS) {
+                            status = EG_attributeAdd(eedges[iedge-1], "_color",
+                                                     attrType, attrLen, tempIlist, tempRlist, tempClist);
+                            CHECK_STATUS(EG_attributeAdd);
+
+                            status = EG_attributeDel(eedges[iedge-1], "Color");
+                            CHECK_STATUS(EG_attributeDel);
+                        }
+                    }
+
+                    EG_free(eedges);
+                }
             }
 
             /* finish the Body (IMPORT) */
@@ -37150,9 +38051,10 @@ buildPrimitive(modl_T *modl,            /* (in)  pointer to MODL */
             }
 
         /* if primtype begins with /  $/ or $$/, then we have user-defined code */
-        } else if (strncmp(args[1].str, "/",   1) == 0 ||
-                   strncmp(args[1].str, "$/",  2) == 0 ||
-                   strncmp(args[1].str, "$$/", 3) == 0   ) {
+        } else if (strncmp(args[1].str, "/",    1) == 0 ||
+                   strncmp(args[1].str, "$/",   2) == 0 ||
+                   strncmp(args[1].str, "$$/",  3) == 0 ||
+                   strncmp(args[1].str, "$$$/", 4) == 0   ) {
             SPRINT2x(1, "    executing [%4d] udprim:     %s",
                     ibrch, args[1].str);
 
@@ -41491,6 +42393,44 @@ colorizeEdge(modl_T   *MODL,            /* (in)  pointer to MODL */
 
     /* --------------------------------------------------------------- */
 
+    /* default color if Body has ColorEdge attribute */
+    status = EG_attributeRet(MODL->body[ibody].ebody, "ColorEdge",
+                             &attrType, &attrLen,
+                             &tempIlist, &tempRlist, &tempClist);
+    if (status == SUCCESS) {
+        if (attrType == ATTRREAL && attrLen == 3) {
+            ired   = MIN(MAX(0, (int)(255*tempRlist[0])),255);
+            igreen = MIN(MAX(0, (int)(255*tempRlist[1])),255);
+            iblue  = MIN(MAX(0, (int)(255*tempRlist[2])),255);
+
+            MODL->body[ibody].edge[iedge].gratt.color = 65536 * ired + 256 * igreen + iblue;
+        } else if (attrType == ATTRSTRING) {
+            if        (strcmp(tempClist, "red"    ) == 0 || strcmp(tempClist, "RED"    ) == 0) {
+                MODL->body[ibody].edge[iedge].gratt.color = 0x00ff0000;
+            } else if (strcmp(tempClist, "lred"   ) == 0 || strcmp(tempClist, "LRED"   ) == 0) {
+                MODL->body[ibody].edge[iedge].gratt.color = 0x00ff7f7f;
+            } else if (strcmp(tempClist, "green"  ) == 0 || strcmp(tempClist, "GREEN"  ) == 0) {
+                MODL->body[ibody].edge[iedge].gratt.color = 0x0000ff00;
+            } else if (strcmp(tempClist, "lgreen" ) == 0 || strcmp(tempClist, "LGREEN" ) == 0) {
+                MODL->body[ibody].edge[iedge].gratt.color = 0x007fff7f;
+            } else if (strcmp(tempClist, "blue"   ) == 0 || strcmp(tempClist, "BLUE"   ) == 0) {
+                MODL->body[ibody].edge[iedge].gratt.color = 0x000000ff;
+            } else if (strcmp(tempClist, "lblue"  ) == 0 || strcmp(tempClist, "LBLUE"  ) == 0) {
+                MODL->body[ibody].edge[iedge].gratt.color = 0x007f7fff;
+            } else if (strcmp(tempClist, "yellow" ) == 0 || strcmp(tempClist, "YELLOW" ) == 0) {
+                MODL->body[ibody].edge[iedge].gratt.color = 0x00ffff00;
+            } else if (strcmp(tempClist, "magenta") == 0 || strcmp(tempClist, "MAGENTA") == 0) {
+                MODL->body[ibody].edge[iedge].gratt.color = 0x00ff00ff;
+            } else if (strcmp(tempClist, "cyan"   ) == 0 || strcmp(tempClist, "CYAN"   ) == 0) {
+                MODL->body[ibody].edge[iedge].gratt.color = 0x0000ffff;
+            } else if (strcmp(tempClist, "white"  ) == 0 || strcmp(tempClist, "WHITE"  ) == 0) {
+                MODL->body[ibody].edge[iedge].gratt.color = 0x00ffffff;
+            } else if (strcmp(tempClist, "black"  ) == 0 || strcmp(tempClist, "BLACK"  ) == 0) {
+                MODL->body[ibody].edge[iedge].gratt.color = 0x00000000;
+            }
+        }
+    }
+
     /* use color Attribute if it exists */
     status = EG_attributeRet(MODL->body[ibody].edge[iedge].eedge, "_color",
                              &attrType, &attrLen,
@@ -41597,6 +42537,44 @@ colorizeFace(modl_T   *MODL,            /* (in)  pointer to MODL */
     ROUTINE(colorizeFace);
 
     /* --------------------------------------------------------------- */
+
+    /* default color if Body has ColorFace attribute */
+    status = EG_attributeRet(MODL->body[ibody].ebody, "ColorFace",
+                             &attrType, &attrLen,
+                             &tempIlist, &tempRlist, &tempClist);
+    if (status == SUCCESS) {
+        if (attrType == ATTRREAL && attrLen == 3) {
+            ired   = MIN(MAX(0, (int)(255*tempRlist[0])),255);
+            igreen = MIN(MAX(0, (int)(255*tempRlist[1])),255);
+            iblue  = MIN(MAX(0, (int)(255*tempRlist[2])),255);
+
+            MODL->body[ibody].face[iface].gratt.color = 65536 * ired + 256 * igreen + iblue;
+        } else if (attrType == ATTRSTRING) {
+            if        (strcmp(tempClist, "red"    ) == 0 || strcmp(tempClist, "RED"    ) == 0) {
+                MODL->body[ibody].face[iface].gratt.color = 0x00ff0000;
+            } else if (strcmp(tempClist, "lred"   ) == 0 || strcmp(tempClist, "LRED"   ) == 0) {
+                MODL->body[ibody].face[iface].gratt.color = 0x00ff7f7f;
+            } else if (strcmp(tempClist, "green"  ) == 0 || strcmp(tempClist, "GREEN"  ) == 0) {
+                MODL->body[ibody].face[iface].gratt.color = 0x0000ff00;
+            } else if (strcmp(tempClist, "lgreen" ) == 0 || strcmp(tempClist, "LGREEN" ) == 0) {
+                MODL->body[ibody].face[iface].gratt.color = 0x007fff7f;
+            } else if (strcmp(tempClist, "blue"   ) == 0 || strcmp(tempClist, "BLUE"   ) == 0) {
+                MODL->body[ibody].face[iface].gratt.color = 0x000000ff;
+            } else if (strcmp(tempClist, "lblue"  ) == 0 || strcmp(tempClist, "LBLUE"  ) == 0) {
+                MODL->body[ibody].face[iface].gratt.color = 0x007f7fff;
+            } else if (strcmp(tempClist, "yellow" ) == 0 || strcmp(tempClist, "YELLOW" ) == 0) {
+                MODL->body[ibody].face[iface].gratt.color = 0x00ffff00;
+            } else if (strcmp(tempClist, "magenta") == 0 || strcmp(tempClist, "MAGENTA") == 0) {
+                MODL->body[ibody].face[iface].gratt.color = 0x00ff00ff;
+            } else if (strcmp(tempClist, "cyan"   ) == 0 || strcmp(tempClist, "CYAN"   ) == 0) {
+                MODL->body[ibody].face[iface].gratt.color = 0x0000ffff;
+            } else if (strcmp(tempClist, "white"  ) == 0 || strcmp(tempClist, "WHITE"  ) == 0) {
+                MODL->body[ibody].face[iface].gratt.color = 0x00ffffff;
+            } else if (strcmp(tempClist, "black"  ) == 0 || strcmp(tempClist, "BLACK"  ) == 0) {
+                MODL->body[ibody].face[iface].gratt.color = 0x00000000;
+            }
+        }
+    }
 
     /* use color Attribute if it exists */
     status = EG_attributeRet(MODL->body[ibody].face[iface].eface, "_color",
@@ -41861,6 +42839,14 @@ compressFilename(char  filename[])      /* (in)  filename */
 
                     /* remove characters jch to ich+2 from the filename */
                     for (kch = ich+3; kch <= STRLEN(filename); kch++) {
+                        filename[jch] = filename[kch];
+                        jch++;
+                    }
+                    break;
+                } else if (jch == 0) {
+
+                    /* remove characters jch to ich+3 from the filename */
+                    for (kch = ich+4; kch <= STRLEN(filename); kch++) {
                         filename[jch] = filename[kch];
                         jch++;
                     }
@@ -43478,26 +44464,27 @@ int
 convertToBSplines(ego    inbody,        /* (in)  input Body */
                   double mat[],         /* (in)  transformation matrix */
                   int    mincp,         /* (in)  minimum control points (in each direction) */
+                  int    mindeg,        /* (in)  minimum degree *in each direction) */
                   ego    *ebody)        /* (out) pointer to output Body */
 {
     int     status = EGADS_SUCCESS;
 
     int     oclass, mtype, ichild, nchild, *senses;
-    int     inode, nnode, iedge, nedge, iface, nface, iloop, nloop, ishell, nshell, *ivals, i, j, k, sense;
+    int     inode, nnode, iedge, nedge, iface, nface, iloop, nloop, ishell, nshell, *ivals, i, sense;
     int     oclass1, mtype1, nchild1, *senses1, jedge, periodic, mtype2;
-    int     bitflag, udeg, nucp, nuknot, vdeg, nvcp, nvknot, nweight, ntotal, mtotal;
+    int     udeg, nucp, nuknot, vdeg, nvcp, nvknot, nint, nadd, iadd, nnewUknots, nnewVknots;
     int     oclass3, mtype3, *idata3=NULL, oclass4, mtype4, *idata4=NULL;
-    int     *ivals2=NULL;
     double  xyz[18], xyz2[18], *rvals, trange[2], data[18], ubeg, vbeg, uend, vend;
     double  *rdata3=NULL, *rdata4=NULL, period, umin, umax, vmin, vmax;
-    double  uv[18], range[4], tt[2], swap;
-    double  alfa, *rvals2=NULL, *uknots, *vknots, *cps, *wghts;
-    ego     context, eref, *echilds, *enodes_orig=NULL, *eedges_orig=NULL, *efaces_orig=NULL, *eloops_orig=NULL, *eshells_orig=NULL;
-    ego     *enodes=NULL, *ecurves=NULL, *eedges=NULL, *esurfaces=NULL, *efaces=NULL, *eshells=NULL;
-    ego     *eloops2=NULL, *eloops=NULL, *efoo=NULL;
-    ego     ecurve, esurface, etemp[2];
-    ego     *echilds1;
-    void    *realloc_temp=NULL;              /* used by RALLOC macro */
+    double  uv[18], range[4], tt[2], swap, frac;
+    double  *newUknots=NULL, *newVknots=NULL;
+    ego     context, eref, *echilds, *echilds1;
+    ego     *enodes=NULL, *enodes_orig=NULL;
+    ego     *eedges=NULL, *eedges_orig=NULL, *ecurves=NULL, ecurve, enewcurve;
+    ego     *efaces=NULL, *efaces_orig=NULL, *esurfaces=NULL, esurface, enewsurface;
+    ego     *eloops=NULL, *eloops_orig=NULL, *eloops2=NULL;
+    ego     *eshells=NULL, *eshells_orig=NULL;
+    ego     *efoo=NULL, etemp[2];
 
     ROUTINE(convertToBSplines);
 
@@ -43614,134 +44601,58 @@ convertToBSplines(ego    inbody,        /* (in)  input Body */
         status = EG_getGeometry(ecurve, &oclass, &mtype, &eref, &ivals, &rvals);
         CHECK_STATUS(EG_getGeometry);
 
-        bitflag = ivals[0];
         udeg    = ivals[1];
         nucp    = ivals[2];
         nuknot  = ivals[3];
-        if ((bitflag & 2) != 0) {
-            nweight = nucp;
-        } else {
-            nweight = 0;
-        }
 
-        ntotal = nuknot + 3 * nucp + nweight;
+        /* add knots so that we have at least the required minimum number of control points */
+        nnewUknots = 0;
+        if (nucp < mincp) {
+            nint = nuknot - 2 * udeg - 1;
+            nadd = (mincp - nucp - MAX(mindeg-udeg,0)) / nint;
+            if ((mincp-nucp-MAX(mindeg-udeg,0))%nint > 0) nadd++;
 
-        /* make a working copy of the Bspline data */
-        mtotal = ntotal + 100;
+            MALLOC(newUknots, double, nint*nadd);
+            for (i = 1; i < nuknot; i++) {
+                if (rvals[i] <= rvals[i-1]) continue;
 
-        MALLOC(ivals2, int,         4);
-        MALLOC(rvals2, double, mtotal);
-
-        uknots = rvals2;
-        cps    = uknots + nuknot;
-        wghts  = cps    + 3 * nucp;
-
-        for (j = 0; j < ntotal; j++) {
-            rvals2[j] = rvals[j];
-        }
-
-        if (nweight > 0) {
-            for (j = 0; j < nucp; j++) {
-                cps[3*j  ] *= wghts[j];
-                cps[3*j+1] *= wghts[j];
-                cps[3*j+2] *= wghts[j];
-            }
-        }
-
-        /* keep refining the Bspline until we have at least the required
-           minimum number of control points */
-        while (nucp < mincp) {
-            SPRINT2(2, "adding uknots because nucp=%d and mincp=%d", nucp, mincp);
-
-            /* add a new knot at the center of all knot intervals */
-            for (i = nuknot-2; i > 0; i--) {
-                if (uknots[i+1] <= uknots[i]) continue;
-
-                /* make room for new knot, control point, and weight */
-                if (ntotal+5 >= mtotal) {
-                    mtotal += 100;
-                    RALLOC(rvals2, double, mtotal);
-
-                    uknots = rvals2;
-                    cps    = uknots + nuknot;
-                    wghts  = cps    + 3 * nucp;
-                }
-
-                /* add new knot */
-                for (j = ntotal-1; j > i; j--) {
-                    rvals2[j+1] = rvals2[j];
-                }
-                ntotal++;
-                cps   ++;
-                wghts ++;
-
-                uknots[i+1] = (uknots[i] + uknots[i+2]) / 2;
-                nuknot++;
-
-                /* add new control points */
-                for (j = ntotal-1; j > nuknot+3*i-1; j--) {
-                    rvals2[j+3] = rvals2[j];
-                }
-                ntotal += 3;
-                wghts  += 3;
-
-                for (j = i; j > i-udeg; j--) {
-                    alfa = (uknots[i+1] - uknots[j]) / (uknots[j+udeg+1] - uknots[j]);
-                    cps[3*j  ] = (1 - alfa) * cps[3*(j-1)  ] + alfa * cps[3*j  ];
-                    cps[3*j+1] = (1 - alfa) * cps[3*(j-1)+1] + alfa * cps[3*j+1];
-                    cps[3*j+2] = (1 - alfa) * cps[3*(j-1)+2] + alfa * cps[3*j+2];
-                }
-                nucp++;
-
-                /* add new weight */
-                if (nweight > 0) {
-                    for (j = ntotal-1; j > nuknot+3*nucp+i-1; j--) {
-                        rvals2[j+1] = rvals2[j];
-                    }
-                    ntotal++;
-
-                    for (j = i; j > i-udeg; j--) {
-                        alfa = (uknots[i+1] - uknots[j]) / (uknots[j+udeg+1] - uknots[j]);
-                        wghts[j] = (1 - alfa) * wghts[j-1] + alfa * wghts[j];
-                    }
-                    nweight++;
+                for (iadd = 0; iadd < nadd; iadd++) {
+                    frac = (double)(iadd+1) / (double)(nadd+1);
+                    newUknots[nnewUknots++] = (1-frac) * rvals[i-1] + frac * rvals[i];
                 }
             }
         }
 
-        ivals2[0] = bitflag;
-        ivals2[1] = udeg;
-        ivals2[2] = nucp;
-        ivals2[3] = nuknot;
+        EG_free(ivals);
+        EG_free(rvals);
+
+        status = EG_addKnots(ecurve, mindeg, nnewUknots, newUknots,
+                                     0,      0,          NULL,     &enewcurve);
+        CHECK_STATUS(EG_addKnots);
+
+        FREE(newUknots);
 
         /* transform the control point locations */
-        for (i = ivals2[3]; i < ivals2[3]+3*ivals2[2]; i+=3) {
-            xyz2[0] = rvals2[i  ];
-            xyz2[1] = rvals2[i+1];
-            xyz2[2] = rvals2[i+2];
+        status = EG_getGeometry(enewcurve, &oclass, &mtype, &eref, &ivals, &rvals);
+        CHECK_STATUS(EG_getGeometry);
 
-            rvals2[i  ] = mat[ 0] * xyz2[0] + mat[ 1] * xyz2[1] + mat[ 2] * xyz2[2] + mat[ 3];
-            rvals2[i+1] = mat[ 4] * xyz2[0] + mat[ 5] * xyz2[1] + mat[ 6] * xyz2[2] + mat[ 7];
-            rvals2[i+2] = mat[ 8] * xyz2[0] + mat[ 9] * xyz2[1] + mat[10] * xyz2[2] + mat[11];
+        for (i = ivals[3]; i < ivals[3]+3*ivals[2]; i+=3) {
+            xyz2[0] = rvals[i  ];
+            xyz2[1] = rvals[i+1];
+            xyz2[2] = rvals[i+2];
+
+            rvals[i  ] = mat[ 0] * xyz2[0] + mat[ 1] * xyz2[1] + mat[ 2] * xyz2[2] + mat[ 3];
+            rvals[i+1] = mat[ 4] * xyz2[0] + mat[ 5] * xyz2[1] + mat[ 6] * xyz2[2] + mat[ 7];
+            rvals[i+2] = mat[ 8] * xyz2[0] + mat[ 9] * xyz2[1] + mat[10] * xyz2[2] + mat[11];
         }
 
-        if (nweight > 0) {
-            for (j = 0; j < nucp; j++) {
-                cps[3*j  ] /= wghts[j];
-                cps[3*j+1] /= wghts[j];
-                cps[3*j+2] /= wghts[j];
-            }
-        }
-
-        status = EG_makeGeometry(context, CURVE, BSPLINE, NULL, ivals2, rvals2, &ecurves[iedge]);
+        status = EG_makeGeometry(context, CURVE, BSPLINE, NULL, ivals, rvals, &ecurves[iedge]);
         CHECK_STATUS(EG_makeGeometry);
 
         EG_free(ivals);
         EG_free(rvals);
 
-        FREE(ivals2);
-        FREE(rvals2);
-
+        /* make the Edge */
         status = EG_getTopology(eedges_orig[iedge], &eref, &oclass, &mtype,
                                 xyz, &nchild, &echilds, &senses);
         CHECK_STATUS(EG_getTopology);
@@ -43831,216 +44742,77 @@ convertToBSplines(ego    inbody,        /* (in)  input Body */
         status = EG_getGeometry(esurface, &oclass, &mtype, &eref, &ivals, &rvals);
         CHECK_STATUS(EG_getGeometry);
 
-        bitflag = ivals[0];
         udeg    = ivals[1];
         nucp    = ivals[2];
         nuknot  = ivals[3];
         vdeg    = ivals[4];
         nvcp    = ivals[5];
         nvknot  = ivals[6];
-        if ((bitflag & 2) != 0) {
-            nweight = nucp * nvcp;
-        } else {
-            nweight = 0;
-        }
 
-        ntotal = nuknot + nvknot + 3 * nucp * nvcp + nweight;
+        /* add knots so that we have at least the required minimum number of control points */
+        nnewUknots = 0;
+        if (nucp < mincp) {
+            nint = nuknot - 2 * udeg - 1;
+            nadd = (mincp - nucp - MAX(mindeg-udeg,0)) / nint;
+            if ((mincp-nucp-MAX(mindeg-udeg,0))%nint > 0) nadd++;
 
-        /* make a working copy of the Bspline data */
-        mtotal = ntotal + 100;
+            MALLOC(newUknots, double, nint*nadd);
+            for (i = 1; i < nuknot; i++) {
+                if (rvals[i] <= rvals[i-1]) continue;
 
-        MALLOC(ivals2, int,         7);
-        MALLOC(rvals2, double, mtotal);
-
-        uknots = rvals2;
-        vknots = uknots + nuknot;
-        cps    = vknots + nvknot;
-        wghts  = cps    + 3 * nucp * nvcp;
-
-        for (j = 0; j < ntotal; j++) {
-            rvals2[j] = rvals[j];
-        }
-
-        if (nweight > 0) {
-            for (k = 0; k < nvcp; k++) {
-                for (j = 0; j < nucp; j++) {
-                    cps[3*(j+k*nucp)  ] *= wghts[j+k*nucp];
-                    cps[3*(j+k*nucp)+1] *= wghts[j+k*nucp];
-                    cps[3*(j+k*nucp)+2] *= wghts[j+k*nucp];
+                for (iadd = 0; iadd < nadd; iadd++) {
+                    frac = (double)(iadd+1) / (double)(nadd+1);
+                    newUknots[nnewUknots++] = (1-frac) * rvals[i-1] + frac * rvals[i];
                 }
             }
         }
 
-        /* keep refining the Bspline until we have at least the required
-           minimum number of control points in the u (j) direction */
-        while (nucp < mincp) {
-            SPRINT2(2, "adding uknots because nucp=%d and mincp=%d", nucp, mincp);
+        nnewVknots = 0;
+        if (nvcp < mincp) {
+            nint = nvknot - 2 * vdeg - 1;
+            nadd = (mincp - nvcp - MAX(mindeg-vdeg,0)) / nint;
+            if ((mincp-nvcp-MAX(mindeg-vdeg,0))%nint > 0) nadd++;
 
-            /* add a new knot at the center of all knot intervals */
-            for (i = nuknot-2; i > 0; i--) {
-                if (uknots[i+1] <= uknots[i]) continue;
+            MALLOC(newVknots, double, nint*nadd);
+            for (i = nuknot+1; i < nuknot+nvknot; i++) {
+                if (rvals[i] <= rvals[i-1]) continue;
 
-                /* make room for new knot, control points, and weights */
-                if (ntotal+4*nvcp+1 >= mtotal) {
-                    mtotal += 4 * nvcp + 100;
-                    RALLOC(rvals2, double, mtotal);
-
-                    uknots = rvals2;
-                    vknots = uknots + nuknot;
-                    cps    = vknots + nvknot;
-                    wghts  = cps    + 3 * nucp * nvcp;
-                }
-
-                /* add new knot */
-                for (j = ntotal-1; j > i; j--) {
-                    rvals2[j+1] = rvals2[j];
-                }
-                ntotal++;
-                vknots++;
-                cps   ++;
-                wghts ++;
-
-                uknots[i+1] = (uknots[i] + uknots[i+2]) / 2;
-                nuknot++;
-
-                /* add new control points */
-                for (k = nvcp-1; k >= 0; k--) {
-                    for (j = ntotal-1; j > nuknot+nvknot+3*(i+k*nucp)-1; j--) {
-                        rvals2[j+3] = rvals2[j];
-                    }
-                    ntotal += 3;
-                    wghts  += 3;
-
-                    for (j = i; j > i-udeg; j--) {
-                        alfa = (uknots[i+1] - uknots[j]) / (uknots[j+udeg+1] - uknots[j]);
-                        cps[3*(j+k*nucp)  ] = (1 - alfa) * cps[3*((j-1)+k*nucp)  ] + alfa * cps[3*(j+k*nucp)  ];
-                        cps[3*(j+k*nucp)+1] = (1 - alfa) * cps[3*((j-1)+k*nucp)+1] + alfa * cps[3*(j+k*nucp)+1];
-                        cps[3*(j+k*nucp)+2] = (1 - alfa) * cps[3*((j-1)+k*nucp)+2] + alfa * cps[3*(j+k*nucp)+2];
-                    }
-                }
-                nucp++;
-
-                /* add new weights */
-                if (nweight > 0) {
-                    for (k = nvcp-1; k >= 0; k--) {
-                        for (j = ntotal-1; j > nuknot+nvknot+3*nucp*nvcp+(i+k*(nucp-1))-1; j--) {
-                            rvals2[j+1] = rvals2[j];
-                        }
-                        ntotal++;
-
-                        for (j = i; j > i-udeg; j--) {
-                            alfa = (uknots[i+1] - uknots[j]) / (uknots[j+udeg+1] - uknots[j]);
-                            wghts[j+k*(nucp-1)] = (1 - alfa) * wghts[j+k*(nucp-1)-1] + alfa * wghts[j+k*(nucp-1)];
-                        }
-                    }
-                    nweight += nvcp;
+                for (iadd = 0; iadd < nadd; iadd++) {
+                    frac = (double)(iadd+1) / (double)(nadd+1);
+                    newVknots[nnewVknots++] = (1-frac) * rvals[i-1] + frac * rvals[i];
                 }
             }
         }
-
-        /* keep refining the Bspline until we have at least the required
-           minimum number of control points in the v (k) direction */
-        while (nvcp < mincp) {
-            SPRINT2(2, "adding vknots because nucp=%d and mincp=%d", nvcp, mincp);
-
-            /* add a new knot at the center of all knot intervals */
-            for (i = nvknot-2; i > 0; i--) {
-                if (vknots[i+1] <= vknots[i]) continue;
-
-                /* make room for new knot, control points, and weights */
-                if (ntotal+4*nucp+1 >= mtotal) {
-                    mtotal += 4 * nucp + 100;
-                    RALLOC(rvals2, double, mtotal);
-
-                    uknots = rvals2;
-                    vknots = uknots + nuknot;
-                    cps    = vknots + nvknot;
-                    wghts  = cps    + 3 * nucp * nvcp;
-                }
-
-                /* add new knot */
-                for (j = ntotal-1; j > nuknot+i; j--) {
-                    rvals2[j+1] = rvals2[j];
-                }
-                ntotal++;
-                cps   ++;
-                wghts ++;
-
-                vknots[i+1] = (vknots[i] + vknots[i+2]) / 2;
-                nvknot++;
-
-                /* add new control points */
-                for (j = ntotal-1; j > nuknot+nvknot+3*i*nucp-1; j--) {
-                    rvals2[j+3*nucp] = rvals2[j];
-                }
-                ntotal += 3 * nucp;
-                wghts  += 3 * nucp;
-
-                for (j = nucp-1; j >= 0; j--) {
-                    for (k = i; k > i-vdeg; k--) {
-                        alfa = (vknots[i+1] - vknots[k]) / (vknots[k+vdeg+1] - vknots[k]);
-                        cps[3*(j+k*nucp)  ] = (1 - alfa) * cps[3*(j+(k-1)*nucp)  ] + alfa * cps[3*(j+k*nucp)  ];
-                        cps[3*(j+k*nucp)+1] = (1 - alfa) * cps[3*(j+(k-1)*nucp)+1] + alfa * cps[3*(j+k*nucp)+1];
-                        cps[3*(j+k*nucp)+2] = (1 - alfa) * cps[3*(j+(k-1)*nucp)+2] + alfa * cps[3*(j+k*nucp)+2];
-                    }
-                }
-                nvcp++;
-
-                /* add new weights */
-                if (nweight > 0) {
-                    for (j = ntotal-1; j > nuknot+nvknot+3*nucp*nvcp+i*nucp-1; j--) {
-                        rvals2[j+nucp] = rvals2[j];
-                    }
-                    ntotal += nucp;
-
-                    for (j = nucp-1; j >= 0; j--) {
-                        for (k = i; k > i-vdeg; k--) {
-                            alfa = (vknots[i+1] - vknots[k]) / (vknots[k+vdeg+1] - vknots[k]);
-                            wghts[j+k*nucp] = (1 - alfa) * wghts[j+(k-1)*nucp] + alfa * wghts[j+k*nucp];
-                        }
-                    }
-                    nweight += nucp;
-                }
-            }
-        }
-
-        ivals2[0] = bitflag;
-        ivals2[1] = udeg;
-        ivals2[2] = nucp;
-        ivals2[3] = nuknot;
-        ivals2[4] = vdeg;
-        ivals2[5] = nvcp;
-        ivals2[6] = nvknot;
-
-        if (nweight > 0) {
-            for (k = 0; k < nvcp; k++) {
-                for (j = 0; j < nucp; j++) {
-                    cps[3*(j+k*nucp)  ] /= wghts[j+k*nucp];
-                    cps[3*(j+k*nucp)+1] /= wghts[j+k*nucp];
-                    cps[3*(j+k*nucp)+2] /= wghts[j+k*nucp];
-                }
-            }
-        }
-
-        /* transform the control point locations */
-        for (i = ivals2[3]+ivals2[6]; i < ivals2[3]+ivals2[6]+3*ivals2[2]*ivals2[5]; i+=3) {
-            xyz2[0] = rvals2[i  ];
-            xyz2[1] = rvals2[i+1];
-            xyz2[2] = rvals2[i+2];
-
-            rvals2[i  ] = mat[ 0] * xyz2[0] + mat[ 1] * xyz2[1] + mat[ 2] * xyz2[2] + mat[ 3];
-            rvals2[i+1] = mat[ 4] * xyz2[0] + mat[ 5] * xyz2[1] + mat[ 6] * xyz2[2] + mat[ 7];
-            rvals2[i+2] = mat[ 8] * xyz2[0] + mat[ 9] * xyz2[1] + mat[10] * xyz2[2] + mat[11];
-        }
-
-        status = EG_makeGeometry(context, SURFACE, BSPLINE, NULL, ivals2, rvals2, &esurfaces[iface]);
-        CHECK_STATUS(EG_makeGeometry);
 
         EG_free(ivals);
         EG_free(rvals);
 
-        FREE(ivals2);
-        FREE(rvals2);
+        status = EG_addKnots(esurface, mindeg, nnewUknots, newUknots,
+                                       mindeg, nnewVknots, newVknots, &enewsurface);
+        CHECK_STATUS(EG_addKnots);
+
+        FREE(newUknots);
+        FREE(newVknots);
+
+        /* transform the control point locations */
+        status = EG_getGeometry(enewsurface, &oclass, &mtype, &eref, &ivals, &rvals);
+        CHECK_STATUS(EG_getGeometry);
+
+        for (i = ivals[3]+ivals[6]; i < ivals[3]+ivals[6]+3*ivals[2]*ivals[5]; i+=3) {
+            xyz2[0] = rvals[i  ];
+            xyz2[1] = rvals[i+1];
+            xyz2[2] = rvals[i+2];
+
+            rvals[i  ] = mat[ 0] * xyz2[0] + mat[ 1] * xyz2[1] + mat[ 2] * xyz2[2] + mat[ 3];
+            rvals[i+1] = mat[ 4] * xyz2[0] + mat[ 5] * xyz2[1] + mat[ 6] * xyz2[2] + mat[ 7];
+            rvals[i+2] = mat[ 8] * xyz2[0] + mat[ 9] * xyz2[1] + mat[10] * xyz2[2] + mat[11];
+        }
+
+        status = EG_makeGeometry(context, SURFACE, BSPLINE, NULL, ivals, rvals, &esurfaces[iface]);
+        CHECK_STATUS(EG_makeGeometry);
+
+        EG_free(ivals);
+        EG_free(rvals);
 
         /* process the Loops */
         MALLOC(eloops, ego, nloop);
@@ -44579,9 +45351,6 @@ cleanup:
     if (idata4 != NULL) EG_free(idata4);
     if (rdata4 != NULL) EG_free(rdata4);
 
-    FREE(ivals2);
-    FREE(rvals2);
-
     FREE(enodes   );
     FREE(ecurves  );
     FREE(eedges   );
@@ -44590,6 +45359,9 @@ cleanup:
     FREE(eshells  );
     FREE(eloops   );
     FREE(efoo     );
+
+    FREE(newUknots);
+    FREE(newVknots);
 
     return status;
 }
@@ -44850,7 +45622,7 @@ createPerturbation(modl_T *MODL)        /* (in)  pointer to base MODL */
                     status  = SUCCESS;
                     newBody = NULL;
 
-                /* do actual check for SolidBodys */
+                /* do actual check for SolidBodys or SheetBodys */
                 } else {
                     newBody = NULL;
                     status = EG_mapBody(MODL->body[ibody].ebody, PTRB->body[ibody].ebody,
@@ -49275,6 +50047,7 @@ finishBody(modl_T *modl,                /* (in)  pointer to MODL */
     int       iattr, nattr, iattrib[7], jattrib[7], iswap, nswap, nlast, attrType, attrLen, i, icount;
     int       noTopoChange, keepEdgeAttr,*newIlist=NULL, *needSeq=NULL, myFaceID[2], myEdgeID[4], jbest;
     int       oclass1, mtype1, oclass2, mtype2, nhist, *hist=NULL, status0, status1;
+    int       nspurious, newNodes, newEdges, newFaces;
     CINT      *tempIlist, *tempIlist2;
     double    data[18], trange[4], trange2[4];
     double    xparent, yparent, zparent, xold, yold, zold, dx, dy, dz;
@@ -49291,6 +50064,8 @@ finishBody(modl_T *modl,                /* (in)  pointer to MODL */
     double    *area=NULL, *xcg=NULL, *ycg=NULL, *zcg=NULL;
     ego       ebody, *enodes, eedge, *eedges, eface, *efaces, *echildren;
     ego       eref, *echilds, *eloops, ecurve1, ecurve2, etemp1, etemp2;
+    ego       *espurious=NULL, newBody;
+
 #if PRINT_PROGRESS
     time_t    cpu_beg, cpu_end;
 #endif
@@ -49743,8 +50518,32 @@ finishBody(modl_T *modl,                /* (in)  pointer to MODL */
 
     /* check for spurious Nodes, which are Nodes that support two manifold
        Edges whose tangents are approximtely parallel at the Node */
+    nspurious = 0;
+    MALLOC(espurious, ego, body->nnode);
+
     for (inode = 1; inode <= body->nnode; inode++) {
         if (body->node[inode].nedge == 2) {
+
+            /* this Node cannot be spurious if it has a .Keep attribute */
+            status = EG_attributeRet(body->node[inode].enode, ".Keep",
+                                     &attrType, &attrLen, &tempIlist, &tempRlist, &tempClist);
+            if (status == EGADS_SUCCESS) {
+                continue;
+            } else if (status == EGADS_NOTFOUND) {
+                status = EGADS_SUCCESS;
+            }
+            CHECK_STATUS(EG_attributeRet);
+
+            /* this Node cannot be spurious if it has a _Keep attribute */
+            status = EG_attributeRet(body->node[inode].enode, "_Keep",
+                                     &attrType, &attrLen, &tempIlist, &tempRlist, &tempClist);
+            if (status == EGADS_SUCCESS) {
+                continue;
+            } else if (status == EGADS_NOTFOUND) {
+                status = EGADS_SUCCESS;
+            }
+            CHECK_STATUS(EG_attributeRet);
+
             status = EG_getBodyTopos(ebody, body->node[inode].enode, EDGE,
                                      &ntemp, &eedges);
             CHECK_STATUS(EG_getBodyTopos);
@@ -49832,9 +50631,11 @@ finishBody(modl_T *modl,                /* (in)  pointer to MODL */
                         CHECK_STATUS(EG_getInfo);
 
                         SPRINT5(1, "WARNING:: Node %4d (Edges %4d (%d) and %4d (%d)) appears to be spurious", inode,
-                                EG_indexBodyTopo(ebody,eedges[0]), mtype1,
-                                EG_indexBodyTopo(ebody,eedges[1]), mtype2);
+                                EG_indexBodyTopo(ebody, eedges[0]), mtype1,
+                                EG_indexBodyTopo(ebody, eedges[1]), mtype2);
                         (MODL->nwarn)++;
+
+                        espurious[nspurious++] = body->node[inode].enode;
                     }
                 }
 
@@ -49842,6 +50643,43 @@ finishBody(modl_T *modl,                /* (in)  pointer to MODL */
             }
         }
     }
+
+    if (nspurious > 0 && REMOVE_SPURIOUS == 1) {
+        SPRINT4(1, "before removing %3d spurious Nodes: nnode=%5d, nedge=%5d, nface=%5d",
+               nspurious, body->nnode, body->nedge, body->nface);
+        status = EG_removeNodes(MODL->body[ibody].ebody, nspurious, espurious, &newBody);
+        CHECK_STATUS(EG_removeNodes);
+
+        status = EG_getBodyTopos(newBody, NULL, NODE, &newNodes, NULL);
+        CHECK_STATUS(EG_getBodyTopos);
+
+        EG_getBodyTopos(newBody, NULL, EDGE, &newEdges, NULL);
+        CHECK_STATUS(EG_getBodyTopos);
+
+        EG_getBodyTopos(newBody, NULL, FACE, &newFaces, NULL);
+        CHECK_STATUS(EG_getBodyTopos);
+        SPRINT4(1, "after  removing %3d spurious Nodes: nnode=%5d, nedge=%5d, nface=%5d",
+               nspurious, newNodes, newEdges, newFaces);
+
+        if (newNodes < body->nnode ||
+            newEdges < body->nedge ||
+            newFaces < body->nface   ) {
+
+            /* replace the current Body with the new ebody */
+            status = EG_deleteObject(MODL->body[ibody].ebody);
+            CHECK_STATUS(EG_deleteObject);
+
+            MODL->body[ibody].ebody = newBody;
+
+            /* recursively call this routine */
+            status = finishBody(MODL, ibody);
+            CHECK_STATUS(finishBody);
+
+            goto cleanup;
+        }
+    }
+
+    FREE(espurious);
 
     PPRINT0(done checking for spurious Nodes);
 
@@ -51408,9 +52246,21 @@ finishBody(modl_T *modl,                /* (in)  pointer to MODL */
             if (MODL->brch[ibrch].type == OCSM_UDPRIM) continue;
             if (MODL->brch[ibrch].type == OCSM_IMPORT) continue;
 
-            /* start by removing any old attributes */
-            status = EG_attributeDel(body->node[inode].enode, NULL);
-            CHECK_STATUS(EG_attributeDel);
+            /* start by removing any old attributes (except possibly .Keep or _Keep) */
+            status = EG_attributeNum(body->node[inode].enode, &nattr);
+            CHECK_STATUS(EG_attributeNum);
+
+            for (iattr = nattr; iattr > 0; iattr--) {
+                status = EG_attributeGet(body->node[inode].enode, iattr, &attrName,
+                                         &attrType, &attrLen, &tempIlist, &tempRlist, &tempClist);
+                CHECK_STATUS(EG_attributeGet);
+
+                if (strcmp(attrName, ".Keep") != 0 &&
+                    strcmp(attrName, "_Keep") != 0   ) {
+                    status = EG_attributeDel(body->node[inode].enode, attrName);
+                    CHECK_STATUS(EG_attributeDel);
+                }
+            }
 
             /* find transformation in left parent */
             ileft = body->ileft;
@@ -51891,6 +52741,11 @@ finalize:
         CHECK_STATUS(addTraceToFace);
     }
 
+    /* possibly modify the _edgeID and _faceID sequence numbers
+       (if the Body has a _newSeqnum attribute) */
+    status = newSeqnum(MODL, ibody);
+    CHECK_STATUS(newSeqnum);
+
     /* color Edges as:
        non-manifold (brown)  if .nface <  2
        non-manifold (orange) if .nface >  2
@@ -52036,6 +52891,7 @@ cleanup:
     FREE(xcg );
     FREE(area);
     FREE(needSeq);
+    FREE(espurious);
 
     if (MODL != NULL) {
         if (MODL->body != NULL) {
@@ -53962,7 +54818,7 @@ joinSheetBodys(modl_T *modl,            /* (in)  pointer to MODL */
 
     modl_T    *MODL = (modl_T*)modl;
 
-    int       nmatch, *matches=NULL, nfacel, nfacer, i, j, k;
+    int       nmatch, *matches=NULL, nfacel, nfacer, i, j, k, done;
     int       oclass, mtype, nchild, *senses;
     double    data[18];
     ego       ebodyl, ebodyr, *efacelist=NULL, eref, emodel, *ebodys, *echilds;
@@ -53972,7 +54828,7 @@ joinSheetBodys(modl_T *modl,            /* (in)  pointer to MODL */
     int       oclassf, mtypef, oclassl, mtypel, *sensesr, *sensesl;
     int       oclasss, mtypes, *nodbod=NULL;
     int       ibeg, iend, iloop, nedglup, iedglup, nskip, skipthis;
-    double    toll, tolr, datal[4], datar[4];
+    double    toll, tolr, tolScale, datal[4], datar[4];
     double    bboxl[6], bboxr[6], dataf[4];
     ego       *enodesl=NULL, *eedgesl=NULL, *efacesl=NULL;
     ego       *enodesr=NULL, *eedgesr=NULL, *efacesr=NULL, *eloopsr;
@@ -53996,7 +54852,8 @@ joinSheetBodys(modl_T *modl,            /* (in)  pointer to MODL */
 
     /* make sure that there is at least one pair of matching Edges */
     if (itype == 1) {
-        status = EG_matchBodyEdges(ebodyl, ebodyr, 10, &nmatch, &matches);
+        tolScale = 10;        /* arbitrary --- we need to go back to fix this */
+        status = EG_matchBodyEdges(ebodyl, ebodyr, tolScale, &nmatch, &matches);
 
         if (outLevel > 1 && nmatch >= 1) {
             SPLINT_CHECK_FOR_NULL(matches);
@@ -54030,7 +54887,8 @@ joinSheetBodys(modl_T *modl,            /* (in)  pointer to MODL */
     if (tolr > toler) toler = tolr;
 
     /* determine the pairs of matched Faces */
-    status = EG_matchBodyFaces(ebodyl, ebodyr, 0, &nmatch, &matches);
+    tolScale = 0;          /* arbitrary --- we need to go back to fix this */
+    status = EG_matchBodyFaces(ebodyl, ebodyr, tolScale, &nmatch, &matches);
     CHECK_STATUS(EG_matchBodyFaces);
 
     if (outLevel > 1) {
@@ -54206,11 +55064,11 @@ joinSheetBodys(modl_T *modl,            /* (in)  pointer to MODL */
                 CHECK_STATUS(EG_deleteObject);
 
                 if (outLevel > 1 && *ebody != NULL) {
-                    SPRINT0(2, "in joinSheetBodys: ebody");
+                    SPRINT0(2, "in joinSheetBodys: ebody is SheetBody");
                     ocsmPrintEgo(*ebody);
                 }
 
-                goto cleanup;
+                goto applyAttributes;
             } else if (itype == 2 && oclass == BODY && mtype == SOLIDBODY) {
                 status = EG_copyObject(ebodys[0], NULL, ebody);
                 CHECK_STATUS(EG_copyObject);
@@ -54219,11 +55077,11 @@ joinSheetBodys(modl_T *modl,            /* (in)  pointer to MODL */
                 CHECK_STATUS(EG_deleteObject);
 
                 if (outLevel > 1 && *ebody != NULL) {
-                    SPRINT0(2, "in joinSheetBodys: ebody");
+                    SPRINT0(2, "in joinSheetBodys: ebody is SolidBody");
                     ocsmPrintEgo(*ebody);
                 }
 
-                goto cleanup;
+                goto applyAttributes;
             }
         }
 
@@ -54463,6 +55321,61 @@ joinSheetBodys(modl_T *modl,            /* (in)  pointer to MODL */
         SPRINT0(2, "in joinSheetBodys: ebody");
         ocsmPrintEgo(*ebody);
     }
+
+applyAttributes:
+
+    /* loop through all Edges in ebody and copy user-parameters
+       from matching Edge in ebodyl or ebodyr */
+    if (eedges != NULL) {
+        EG_free(eedges);
+    }
+
+    SPLINT_CHECK_FOR_NULL(*ebody);
+
+    status = EG_getBodyTopos(*ebody, NULL, EDGE, &nedge, &eedges);
+    CHECK_STATUS(EG_getBodyTopos);
+
+    for (iedge = 0; iedge < nedge; iedge++) {
+
+        /* try to match withibodyl */
+        done = 0;
+        for (jedge = 1; jedge <= MODL->body[ibodyl].nedge; jedge++) {
+            status = matchEdges2(MODL, eedges[iedge], ibodyl, jedge, 0);
+            if (status == 1) {
+                status = copyUserEdgeAttributes(MODL->body[ibodyl].edge[jedge].eedge, eedges[iedge]);
+                CHECK_STATUS(copyUserEdgeAttributes);
+
+                done = 1;
+                break;
+            }
+        }
+
+        if (done == 1) continue;
+
+        /* try to match to ibodyr */
+        for (jedge = 1; jedge <= MODL->body[ibodyr].nedge; jedge++) {
+            status = matchEdges2(MODL, eedges[iedge], ibodyr, jedge, 0);
+            if (status == 1) {
+                status = copyUserEdgeAttributes(MODL->body[ibodyr].edge[jedge].eedge, eedges[iedge]);
+                CHECK_STATUS(copyUserEdgeAttributes);
+
+                done = 1;
+                break;
+            }
+        }
+
+        if (done == 1) continue;
+
+        /* no match found */
+        SPRINT1(0, "WARNING:: could not find mapping for iedge=%d", iedge+1);
+        (MODL->nwarn)++;
+    }
+
+    EG_free(eedges);     eedges = NULL;
+
+    status = EG_attributeAdd(*ebody, "__keepEdgeAttr__", ATTRSTRING,
+                             strlen("yes"), NULL, NULL, "yes");
+    CHECK_STATUS(EG_attributeAdd);
 
 cleanup:
     if (matches != NULL) {
@@ -55177,6 +56090,124 @@ makeFace(modl_T *modl,                  /* (in)  pointer to MODL */
     CHECK_STATUS(EG_makeTopology);
 
 cleanup:
+    return status;
+}
+
+
+/*
+ ************************************************************************
+ *                                                                      *
+ *   markNodesAsKeep - mark some new Nodes as _Keep                     *
+ *                                                                      *
+ ************************************************************************
+ */
+
+static int
+markNodesAsKeep(modl_T *modl,           /* (in)  pointer to MODL */
+                ego    ebody,           /* (in)  Body with Nodes to be marked */
+                int    ibodyl,          /* (in)  left parent Body */
+                int    ibodyr,          /* (in)  rite parent Body (or 0) */
+                char   label[])         /* (in)  attribute value */
+{
+    int       status = SUCCESS;         /* (out) return status */
+
+    modl_T    *MODL = (modl_T*)modl;
+
+    int       nnode, inode, jnode, knode, done;
+    double    data[18];
+    ego       *enodes=NULL;
+
+    ROUTINE(markNodesAsKeep);
+
+    /* --------------------------------------------------------------- */
+
+    status = EG_getBodyTopos(ebody, NULL, NODE, &nnode, &enodes);
+    CHECK_STATUS(EG_getBodyTopos);
+
+    SPLINT_CHECK_FOR_NULL(enodes);
+
+    /* ibodyl is a NodeBody, so mark Nodes that is coincident with ibodyl */
+    if (MODL->body[ibodyl].botype == OCSM_NODE_BODY) {
+        for (inode = 0; inode < nnode; inode++) {
+            status = EG_evaluate(enodes[inode], 0, data);
+            CHECK_STATUS(EG_evaluate);
+
+            if (fabs(data[0]-MODL->body[ibodyl].node[1].x) < EPS06 &&
+                fabs(data[1]-MODL->body[ibodyl].node[1].y) < EPS06 &&
+                fabs(data[2]-MODL->body[ibodyl].node[1].z) < EPS06   ) {
+
+                status = EG_attributeAdd(enodes[inode], "_Keep",
+                                         ATTRSTRING, 0, NULL, NULL, label);
+                CHECK_STATUS(EG_attributeAdd);
+
+                SPRINT2(2, "    -> marking Node %5d as _Keep=%s", inode+1, label);
+                break;
+            }
+        }
+
+    /* ibodyr is 0, so mark Nodes that are not in ibodyl */
+    } else if (ibodyr == 0) {
+        for (inode = 0; inode < nnode; inode++) {
+            status = EG_evaluate(enodes[inode], 0, data);
+            CHECK_STATUS(EG_evaluate);
+
+            done = 0;
+            for (jnode = 1; jnode <= MODL->body[ibodyl].nnode; jnode++) {
+                if (fabs(data[0]-MODL->body[ibodyl].node[jnode].x) < EPS06 &&
+                    fabs(data[1]-MODL->body[ibodyl].node[jnode].y) < EPS06 &&
+                    fabs(data[2]-MODL->body[ibodyl].node[jnode].z) < EPS06   ) {
+                    done = 1;
+                    break;
+                }
+            }
+
+            if (done == 0) {
+                status = EG_attributeAdd(enodes[inode], "_Keep",
+                                         ATTRSTRING, 0, NULL, NULL, label);
+                CHECK_STATUS(EG_attributeAdd);
+
+                SPRINT2(2, "    -> marking Node %5d as _Keep=%s", inode+1, label);
+            }
+        }
+
+    /* ibodyl and ibodyr are distinct Bodys, so mark Nodes that are in
+       ebody, ibodyl, and ibodyr  */
+    } else {
+
+        for (inode = 0; inode < nnode; inode++) {
+            status = EG_evaluate(enodes[inode], 0, data);
+            CHECK_STATUS(EG_evaluate);
+
+            done = 0;
+            for (jnode = 1; jnode <= MODL->body[ibodyl].nnode; jnode++) {
+                if (fabs(data[0]-MODL->body[ibodyl].node[jnode].x) < EPS06 &&
+                    fabs(data[1]-MODL->body[ibodyl].node[jnode].y) < EPS06 &&
+                    fabs(data[2]-MODL->body[ibodyl].node[jnode].z) < EPS06   ) {
+
+                    for (knode = 1; knode <= MODL->body[ibodyr].nnode; knode++) {
+                        if (fabs(data[0]-MODL->body[ibodyr].node[knode].x) < EPS06 &&
+                            fabs(data[1]-MODL->body[ibodyr].node[knode].y) < EPS06 &&
+                            fabs(data[2]-MODL->body[ibodyr].node[knode].z) < EPS06   ) {
+
+                            status = EG_attributeAdd(enodes[inode], "_Keep",
+                                                     ATTRSTRING, 0, NULL, NULL, label);
+                            CHECK_STATUS(EG_attributeAdd);
+
+                            SPRINT2(2, "    -> marking Node %5d as _Keep=%s", inode+1, label);
+
+                            done = 1;
+                            break;
+                        }
+                    }
+                }
+                if (done == 1) break;
+            }
+        }
+    }
+
+cleanup:
+    if (enodes != NULL) EG_free(enodes);
+
     return status;
 }
 
@@ -56470,6 +57501,317 @@ newBody(modl_T *modl,                   /* (in)  pointer to MODL */
     MODL->hasMPs = 0;
 
 cleanup:
+    return status;
+}
+
+
+/*
+ ************************************************************************
+ *                                                                      *
+ *   newSequm - apply new sequence number to Edges and Faces            *
+ *                                                                      *
+ ************************************************************************
+ */
+
+static int
+newSeqnum(modl_T *modl,                 /* (in)  pointer to MODL */
+          int    ibody)                 /* (in)  Body index (1:nbody) */
+{
+    int       status = SUCCESS;         /* (out) return status */
+
+    modl_T    *MODL = (modl_T*)modl;
+
+    int       nedge, iedge, jedge, nface, iface, jface, attrType, attrLen, periodic;
+    int       oclass, mtype, nchild, ichild, *senses;
+    int       nlist, ilist, jlist, *list=NULL, *tra0=NULL, *tra1=NULL, iswap, i, ibest;
+    int       iedgeid, jedgeid, **edgeid=NULL;
+    int       tempI[5];
+    CINT      *tempIlist, *tempIlist2;
+    double    trange[2], data[18], *tmin=NULL, *tmax=NULL;
+    CDOUBLE   *tempRlist;
+    CCHAR     *tempClist;
+    ego       ebody, ecurve, *echilds;
+
+    ROUTINE(newSeqnum);
+
+    /* --------------------------------------------------------------- */
+
+    ebody = MODL->body[ibody].ebody;
+    nedge = MODL->body[ibody].nedge;
+    nface = MODL->body[ibody].nface;
+
+    /* if the Body does not have a _newSeqnum attribute, return now */
+    status = EG_attributeRet(ebody, "_newSeqnum",
+                             &attrType, &attrLen, &tempIlist, &tempRlist, &tempClist);
+    if (status == EGADS_NOTFOUND) {
+        status = EGADS_SUCCESS;
+        goto cleanup;
+    }
+    CHECK_STATUS(EG_attributeRet);
+
+    /* find each group of Edges that share an _edgeID */
+    MALLOC(list, int,    nedge+1);
+    MALLOC(tra0, int,    nedge+1);
+    MALLOC(tra1, int,    nedge+1);
+    MALLOC(tmin, double, nedge+1);
+    MALLOC(tmax, double, nedge+1);
+
+    for (iedge = 1; iedge <= nedge; iedge++) {
+        if (MODL->body[ibody].edge[iedge].itype == DEGENERATE) continue;
+
+        status = EG_attributeRet(MODL->body[ibody].edge[iedge].eedge, "_edgeID",
+                                 &attrType, &attrLen, &tempIlist, &tempRlist, &tempClist);
+        CHECK_STATUS(EG_attributeRet);
+
+        /* an entry with seqnum==2 indicates we have found a group of Edges
+           with the same first 4 entries in the _edgeID */
+        if (tempIlist[4] == 2) {
+            nlist = 0;
+            list[nlist++] = iedge;
+
+            /* make a list of all matching Edges */
+            for (jedge = 1; jedge <= nedge; jedge++) {
+                if (jedge == iedge) continue;
+                if (MODL->body[ibody].edge[jedge].itype == DEGENERATE) continue;
+
+                status = EG_getTopology(MODL->body[ibody].edge[jedge].eedge, &ecurve, &oclass, &mtype,
+                                        data, &nchild, &echilds, &senses);
+                CHECK_STATUS(EG_getTopology);
+
+                status = EG_getInfo(ecurve, &oclass, &mtype, NULL, NULL, NULL);
+                CHECK_STATUS(EG_getInfo);
+
+                status = EG_attributeRet(MODL->body[ibody].edge[jedge].eedge, "_edgeID",
+                                         &attrType, &attrLen, &tempIlist2, &tempRlist, &tempClist);
+                CHECK_STATUS(EG_attributeRet);
+
+                if (tempIlist[0] == tempIlist2[0] &&
+                    tempIlist[1] == tempIlist2[1] &&
+                    tempIlist[2] == tempIlist2[2] &&
+                    tempIlist[3] == tempIlist2[3]   ) {
+                    list[nlist++] = jedge;
+                }
+            }
+
+            /* put the rest of the Edge properties in the list */
+            for (ilist = 0; ilist < nlist; ilist++) {
+                jedge = list[ilist];
+
+                status = EG_attributeRet(MODL->body[ibody].edge[jedge].eedge, "__trace__",
+                                         &attrType, &attrLen, &tempIlist2, &tempRlist, &tempClist);
+                CHECK_STATUS(EG_attributeRet);
+
+                tra0[ilist] = tempIlist2[0];
+                tra1[ilist] = tempIlist2[1];
+
+                status = EG_getRange(MODL->body[ibody].edge[jedge].eedge, trange, &periodic);
+                CHECK_STATUS(EG_getRange);
+
+                tmin[ilist] = trange[0];
+                tmax[ilist] = trange[1];
+            }
+
+            /* apply sequence numbers by using the smallest in the group
+               (and setting list[] = -1 to say that it has been used) */
+            tempI[0] = tempIlist[0];
+            tempI[1] = tempIlist[1];
+            tempI[2] = tempIlist[2];
+            tempI[3] = tempIlist[3];
+
+            for (ilist = 0; ilist < nlist; ilist++) {
+                ibest = -1;
+
+                for (jlist = 0; jlist < nlist; jlist++) {
+                    if (list[jlist] < 0) continue;
+
+                    if (ibest == -1) {
+                        ibest = jlist;
+
+                    } else {
+                        iswap = 0;
+                        if (iswap == 0 && tra0[jlist] < tra0[ilist]) iswap = +1;
+                        if (iswap == 0 && tra0[jlist] > tra0[ilist]) iswap = -1;
+                        if (iswap == 0 && tra1[jlist] < tra1[ilist]) iswap = +1;
+                        if (iswap == 0 && tra1[jlist] > tra1[ilist]) iswap = -1;
+                        if (iswap == 0 && tmin[jlist] < tmin[ilist]) iswap = +1;
+                        if (iswap == 0 && tmin[jlist] > tmin[ilist]) iswap = -1;
+
+                        if (iswap > 0) {
+                            ibest = jlist;
+                        }
+                    }
+                }
+
+                tempI[4]= ilist + 1;
+
+                status = EG_attributeAdd(MODL->body[ibody].edge[list[ibest]].eedge, "_edgeID",
+                                         ATTRINT, 5, tempI, NULL, NULL);
+                CHECK_STATUS(EG_attributeAdd);
+
+                list[ibest] = -1;
+            }
+        }
+    }
+
+    FREE(list);
+    FREE(tra0);
+    FREE(tra1);
+    FREE(tmin);
+    FREE(tmax);
+
+    /* find each group of Faces that share a _faceID */
+    MALLOC(list,   int,  nface+1);
+    MALLOC(edgeid, int*, nface+1);
+
+    for (iface = 0; iface <= nface; iface++) {
+        edgeid[iface] = NULL;
+    }
+
+    for (iface = 1; iface <= nface; iface++) {
+        status = EG_attributeRet(MODL->body[ibody].face[iface].eface, "_faceID",
+                                 &attrType, &attrLen, &tempIlist, &tempRlist, &tempClist);
+        CHECK_STATUS(EG_attributeRet);
+
+        /* an entry with seqnum==2 indicates we have found a group of Faces
+           with the same first 2 entries in the _faceID */
+        if (tempIlist[2] == 2) {
+            nlist = 0;
+            list[nlist++] = iface;
+
+            /* make a list of all matching Faces */
+            for (jface = 1; jface <= nface; jface++) {
+                if (jface == iface) continue;
+
+                status = EG_getTopology(MODL->body[ibody].face[jface].eface, &ecurve, &oclass, &mtype,
+                                        data, &nchild, &echilds, &senses);
+                CHECK_STATUS(EG_getTopology);
+
+                status = EG_getInfo(ecurve, &oclass, &mtype, NULL, NULL, NULL);
+                CHECK_STATUS(EG_getInfo);
+
+                status = EG_attributeRet(MODL->body[ibody].face[jface].eface, "_faceID",
+                                         &attrType, &attrLen, &tempIlist2, &tempRlist, &tempClist);
+                CHECK_STATUS(EG_attributeRet);
+
+                if (tempIlist[0] == tempIlist2[0] &&
+                    tempIlist[1] == tempIlist2[1]   ) {
+                    list[nlist++] = jface;
+                }
+            }
+
+            /* put the _edgeID of the surrounding Edges into edgeid */
+            for (ilist = 0; ilist < nlist; ilist++) {
+                jface = list[ilist];
+
+                status = EG_getBodyTopos(ebody, MODL->body[ibody].face[jface].eface,
+                                         EDGE, &nchild, &echilds);
+                CHECK_STATUS(EG_getBodyTopos);
+
+                SPLINT_CHECK_FOR_NULL(echilds);
+
+                MALLOC(edgeid[ilist], int, 5*nchild+1);
+
+                edgeid[ilist][5*nchild] = 999999;
+
+                for (ichild = 0; ichild < nchild; ichild++) {
+                    status = EG_attributeRet(echilds[ichild], "_edgeID",
+                                             &attrType, &attrLen, &tempIlist2, &tempRlist, &tempClist);
+                    CHECK_STATUS(EG_attributeRet);
+
+                    for (i = 0; i < 5; i++) {
+                        edgeid[ilist][5*ichild+i] = tempIlist2[i];
+                    }
+                }
+
+                EG_free(echilds);
+            }
+
+            /* sort the entries in edgeid[ilist] for this Face */
+            for (ilist = 0; ilist < nlist; ilist++) {
+                for (iedgeid = 0; iedgeid < nedge; iedgeid++) {
+                    if (edgeid[ilist][5*iedgeid] == 999999) break;
+
+                    for (jedgeid = iedgeid; jedgeid < nedge; jedgeid++) {
+                        if (edgeid[ilist][5*jedgeid] == 999999) break;
+
+                        iswap = 0;
+                        for (i = 0; i < 5; i++) {
+                            if (iswap == 0) {
+                                if (edgeid[ilist][5*jedgeid+i] < edgeid[ilist][5*iedgeid+i]) iswap = +1;
+                                if (edgeid[ilist][5*jedgeid+i] > edgeid[ilist][5*iedgeid+i]) iswap = -1;
+                            }
+                        }
+
+                        if (iswap > 0) {
+                            for (i = 0; i < 5; i++) {
+                                iswap                      = edgeid[ilist][5*iedgeid+i];
+                                edgeid[ilist][5*iedgeid+i] = edgeid[ilist][5*jedgeid+i];
+                                edgeid[ilist][5*jedgeid+i] = iswap;
+                            }
+                        }
+                    }
+                }
+            }
+
+            /* apply sequence numbers by using the smallest in the group
+               (and setting list[] = -1 to say that it has been used) */
+            tempI[0] = tempIlist[0];
+            tempI[1] = tempIlist[1];
+
+            for (ilist = 0; ilist < nlist; ilist++) {
+                ibest = -1;
+
+                for (jlist = 0; jlist < nlist; jlist++) {
+                    if (list[jlist] < 0) continue;
+
+                    if (ibest == -1) {
+                        ibest = jlist;
+
+                    } else {
+                        iswap = 0;
+                        for (i = 0; i < 5*nedge; i++) {
+                            if (edgeid[ibest][i] == 999999) break;
+                            if (edgeid[jlist][i] == 999999) break;
+
+                            if (iswap == 0) {
+                                if (edgeid[jlist][i] < edgeid[ibest][i]) iswap = +1;
+                                if (edgeid[jlist][i] > edgeid[ibest][i]) iswap = -1;
+                            }
+                        }
+
+                        if (iswap > 0) {
+                            ibest = jlist;
+                        }
+                    }
+                }
+
+                tempI[2] = ilist + 1;
+
+                status = EG_attributeAdd(MODL->body[ibody].face[list[ibest]].eface, "_faceID",
+                                         ATTRINT, 3, tempI, NULL, NULL);
+                CHECK_STATUS(EG_attributeAdd);
+
+                list[ibest] = -1;
+            }
+
+            /* free up memory */
+            for (ilist = 0; ilist < nlist; ilist++) {
+                FREE(edgeid[ilist]);
+            }
+        }
+    }
+
+    FREE(list  );
+    FREE(edgeid);
+
+cleanup:
+    FREE(list);
+    FREE(tra0);
+    FREE(tra1);
+    FREE(tmin);
+    FREE(tmax);
+    FREE(edgeid);
+
     return status;
 }
 
@@ -59904,13 +61246,17 @@ setupAtPmtrs(modl_T *modl,              /* (in)  pointer to MODL */
     if (havesel == -1) {
         /* handled below */
     } else if (MODL->selbody > 0) {
-        if (MODL->body[MODL->selbody].botype == OCSM_NULL_BODY ||
-            MODL->body[MODL->selbody].botype == OCSM_SKETCH      ) {
+        if        (MODL->body[MODL->selbody].botype == OCSM_SKETCH) {
+            goto cleanup;
+        } else if (MODL->body[MODL->selbody].botype == OCSM_NULL_BODY &&
+                   MODL->body[MODL->selbody].brtype != OCSM_UDPARG      ) {
             goto cleanup;
         }
     } else {
-        if (MODL->body[MODL->nbody].botype == OCSM_NULL_BODY ||
-            MODL->body[MODL->nbody].botype == OCSM_SKETCH      ) {
+        if        (MODL->body[MODL->nbody].botype == OCSM_SKETCH) {
+            goto cleanup;
+        } else if (MODL->body[MODL->nbody].botype == OCSM_NULL_BODY &&
+                   MODL->body[MODL->nbody].brtype != OCSM_UDPARG      ) {
             goto cleanup;
         }
     }
@@ -63441,7 +64787,7 @@ str2rpn(char      str[],                /* (in)  string containing expression */
                 strcmp(token[i].text, "ifmatch" ) == 0 ||
                 strcmp(token[i].text, "ifnan"   ) == 0   ) {
             } else {
-                SPRINT1(1, "Illegel function name: %s", token[i].text);
+                SPRINT1(1, "Illegal function name: %s", token[i].text);
                 status = OCSM_ILLEGAL_FUNC_NAME;
                 goto cleanup;
             }
@@ -65609,6 +66955,10 @@ velocityOfEdge(modl_T *MODL,            /* (in)  pointer to MODL */
                 sumrite = fabs(dxyzrite0 - dxyzleft[0])
                         + fabs(dxyzrite1 - dxyzleft[1])
                         + fabs(dxyzrite2 - dxyzleft[2]);
+
+                if (sumrite < EPS12) {
+                    sumrite = EPS12;
+                }
             } else {
                 dxyzrite0 = 0;
                 dxyzrite1 = 0;
@@ -65643,6 +66993,10 @@ velocityOfEdge(modl_T *MODL,            /* (in)  pointer to MODL */
                 sumleft = fabs(dxyzleft0 - dxyzrite[0])
                         + fabs(dxyzleft1 - dxyzrite[1])
                         + fabs(dxyzleft2 - dxyzrite[2]);
+
+                if (sumleft < EPS12) {
+                    sumleft = EPS12;
+                }
             } else {
                 dxyzleft0 = 0;
                 dxyzleft1 = 0;
@@ -68586,6 +69940,8 @@ writeVtkFile(modl_T *MODL,              /* (in)  pointer to MODL */
         for (itri = 0; itri < ntri; itri++) {
             if (tric[3*itri  ] > 0) {
                 it0 = tric[3*itri  ] + faceOffset[iface];
+            } else if (tric[3*itri  ] < 0 && MODL->body[ibody].edge[-tric[3*itri  ]].nface != 2) {
+                it0 = 0;                // non-manifold
             } else {
                 it0 = -1;
 
@@ -68633,6 +69989,8 @@ writeVtkFile(modl_T *MODL,              /* (in)  pointer to MODL */
 
             if (tric[3*itri+1] > 0) {
                 it1 = tric[3*itri+1] + faceOffset[iface];
+            } else if (tric[3*itri+1] < 0 && MODL->body[ibody].edge[-tric[3*itri+1]].nface != 2) {
+                it1 = 0;                // non-manifold
             } else {
                 it1 = -1;
 
@@ -68680,6 +70038,8 @@ writeVtkFile(modl_T *MODL,              /* (in)  pointer to MODL */
 
             if (tric[3*itri+2] > 0) {
                 it2 = tric[3*itri+2] + faceOffset[iface];
+            } else if (tric[3*itri+2] < 0 && MODL->body[ibody].edge[-tric[3*itri+2]].nface != 2) {
+                it2 = 0;                // non-manifold
             } else {
                 it2 = -1;
 

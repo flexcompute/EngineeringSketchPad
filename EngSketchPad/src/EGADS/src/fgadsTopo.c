@@ -67,6 +67,8 @@
                          int flag, egObject **result);
   extern int EG_replaceFaces(const egObject *body,  int nobj,
                              const egObject **objs, egObject **result);
+  extern int EG_removeNodes(const egObject *body,  int nobj,
+                            const egObject **objs, egObject **result);
   extern int EG_matchBodyEdges(const egObject *bod1, const egObject *bod2,
                                double tolScale, int *nmatch, int **match);
   extern int EG_matchBodyFaces(const egObject *bod1, const egObject *bod2,
@@ -612,6 +614,31 @@ ig_replacefaces_(INT8 *ibody, int *nobj, INT8 *obj, INT8 *result)
   for (i = 0; i < *nobj*2; i++)
     objs[i] = (egObject *) obj[i];
   stat = EG_replaceFaces(body, *nobj, objs, &object);
+  if (objs != NULL) EG_free((void *) objs);
+  if (stat == EGADS_SUCCESS) *result = (INT8) object;
+  return stat;
+}
+
+
+int
+#ifdef WIN32
+IG_REMOVENODES (INT8 *ibody, int *nobj, INT8 *obj, INT8 *result)
+#else
+ig_removenodes_(INT8 *ibody, int *nobj, INT8 *obj, INT8 *result)
+#endif
+{
+  int            i, stat;
+  egObject       *object, *body;
+  const egObject **objs = NULL;
+
+  *result = 0;
+  body    = (egObject *) *ibody;
+  if (*nobj <= 1) return EGADS_RANGERR;
+  objs = (const egObject **) EG_alloc(*nobj*sizeof(egObject *));
+  if (objs == NULL) return EGADS_MALLOC;
+  for (i = 0; i < *nobj; i++)
+    objs[i] = (egObject *) obj[i];
+  stat = EG_removeNodes(body, *nobj, objs, &object);
   if (objs != NULL) EG_free((void *) objs);
   if (stat == EGADS_SUCCESS) *result = (INT8) object;
   return stat;

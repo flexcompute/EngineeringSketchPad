@@ -1869,6 +1869,103 @@ class TestEGADS(unittest.TestCase):
         self.assertEqual(4, len(faces))
 
 #==============================================================================
+    def test_removeNodes(self):
+
+        # construction data
+        x0 = [0,0,0]
+        x1 = [1,0,0]
+        x2 = [1,1,0]
+        x3 = [0,1,0]
+        x4 = [0,0.5,0] # redundant node to be removed
+
+        # make Nodes
+        nodes = [None]*5
+        nodes[0] = self.context.makeTopology(egads.NODE, reals=x0)
+        nodes[1] = self.context.makeTopology(egads.NODE, reals=x1)
+        nodes[2] = self.context.makeTopology(egads.NODE, reals=x2)
+        nodes[3] = self.context.makeTopology(egads.NODE, reals=x3)
+        nodes[4] = self.context.makeTopology(egads.NODE, reals=x4)
+
+        # make lines and edges
+        lines = [None]*4
+        edges = [None]*5
+        tdata = [0, 1]
+
+        # Line data (point and direction)
+        rdata = [None]*6
+        rdata[0] = x0[0]
+        rdata[1] = x0[1]
+        rdata[2] = x0[2]
+        rdata[3] = x1[0] - x0[0]
+        rdata[4] = x1[1] - x0[1]
+        rdata[5] = x1[2] - x0[2]
+
+        lines[0] = self.context.makeGeometry(egads.CURVE, egads.LINE, rdata)
+        edges[0] = self.context.makeTopology(egads.EDGE, egads.TWONODE, geom=lines[0], children=nodes[0:2], reals=tdata)
+
+        rdata[0] = x1[0]
+        rdata[1] = x1[1]
+        rdata[2] = x1[2]
+        rdata[3] = x2[0] - x1[0]
+        rdata[4] = x2[1] - x1[1]
+        rdata[5] = x2[2] - x1[2]
+
+        lines[1] = self.context.makeGeometry(egads.CURVE, egads.LINE, rdata)
+        edges[1] = self.context.makeTopology(egads.EDGE, egads.TWONODE, geom=lines[1], children=nodes[1:3], reals=tdata)
+
+        rdata[0] = x2[0]
+        rdata[1] = x2[1]
+        rdata[2] = x2[2]
+        rdata[3] = x3[0] - x2[0]
+        rdata[4] = x3[1] - x2[1]
+        rdata[5] = x3[2] - x2[2]
+
+        lines[2] = self.context.makeGeometry(egads.CURVE, egads.LINE, rdata)
+        edges[2] = self.context.makeTopology(egads.EDGE, egads.TWONODE, geom=lines[2], children=nodes[2:4], reals=tdata)
+
+        rdata[0] = x3[0]
+        rdata[1] = x3[1]
+        rdata[2] = x3[2]
+        rdata[3] = x0[0] - x3[0]
+        rdata[4] = x0[1] - x3[1]
+        rdata[5] = x0[2] - x3[2]
+
+        lines[3] = self.context.makeGeometry(egads.CURVE, egads.LINE, rdata)
+
+        edges[3] = self.context.makeTopology(egads.EDGE, egads.TWONODE, geom=lines[3], children=[nodes[3], nodes[4]], reals=[0.0,0.5])
+        edges[4] = self.context.makeTopology(egads.EDGE, egads.TWONODE, geom=lines[3], children=[nodes[4], nodes[0]], reals=[0.5,1.0])
+
+        # make the loop
+        sens = [egads.SFORWARD]*5
+        loop = self.context.makeTopology(egads.LOOP, egads.CLOSED, children=edges, senses=sens)
+
+        # create Plane
+        rdata = [None]*9
+        rdata[0] = 0 # center
+        rdata[1] = 0
+        rdata[2] = 0
+        rdata[3] = 1 # x-axis
+        rdata[4] = 0
+        rdata[5] = 0
+        rdata[6] = 0 # y-axis
+        rdata[7] = 1
+        rdata[8] = 0
+
+        plane = self.context.makeGeometry(egads.SURFACE, egads.PLANE, rdata)
+        face = self.context.makeTopology(egads.FACE, egads.SFORWARD, geom=plane, children=[loop])
+
+        body = self.context.makeTopology(egads.BODY, egads.FACEBODY, children=[face])
+        
+        nodes = body.getBodyTopos(egads.NODE)
+
+        newbody = body.removeNodes([nodes[4]])
+        
+        newnodes = newbody.getBodyTopos(egads.NODE)
+        newedges = newbody.getBodyTopos(egads.EDGE)
+        self.assertEqual(4, len(newnodes))
+        self.assertEqual(4, len(newedges))
+
+#==============================================================================
     def test_tessBody(self):
 
         box0 = self.context.makeSolidBody(egads.BOX, [0,0,0, 1,1,1])
@@ -2200,6 +2297,27 @@ class TestEGADS(unittest.TestCase):
         self.assertEqual(iUV, egads.VISO)
         self.assertAlmostEqual(value, (uvrange[2]+uvrange[3])/2, delta = 1e-6)
         self.assertEqual(fwd, egads.SFORWARD)
+
+
+#==============================================================================
+    def test_mergeBSplineCurves(self):
+
+        pts = [(0.0, 0.0, 0.0),
+               (1.0, 0.0, 0.0)]
+
+        bspline0 = self.context.approximate([len(pts), 0], pts)
+
+        pts = [(1.0, 0.0, 0.0),
+               (2.0, 0.0, 0.0)]
+
+        bspline1 = self.context.approximate([len(pts), 0], pts)
+ 
+        bspline3 = bspline0.mergeBSplineCurves(bspline1)
+
+        oclass, mtype, reals, ints, geom = bspline3.getGeometry()
+
+        self.assertEqual(oclass, egads.CURVE)
+        self.assertEqual(mtype, egads.BSPLINE)
 
 #==============================================================================
     def test_convertToBSpline(self):

@@ -136,8 +136,8 @@ udpExecute(ego  context,                /* (in)  EGADS context */
         status  = EGADS_RANGERR;
         goto cleanup;
 
-    } else if (SERIES(0) <= 0) {
-        snprintf(message, 100, "series = %d <= 0", SERIES(0));
+    } else if (SERIES(0) < 0) {
+        snprintf(message, 100, "series = %d < 0", SERIES(0));
         status  =  EGADS_RANGERR;
         goto cleanup;
 

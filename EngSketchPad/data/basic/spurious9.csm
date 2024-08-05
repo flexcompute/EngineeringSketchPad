@@ -1,0 +1,34 @@
+# spurious9
+# written by John Dannenhoffer
+
+SKBEG     0  0  0
+   LINSEG 1  0  0
+   LINSEG 2  0  0
+   LINSEG 2  1  0
+   LINSEG 2  2  0
+   LINSEG 1  2  0
+   LINSEG 0  2  0
+   LINSEG 0  1  0
+   LINSEG 0  0  0
+SKEND
+
+SKBEG     2  0  0
+   LINSEG 3  0  0
+   LINSEG 4  0  0
+   LINSEG 4  1  0
+   LINSEG 4  2  0
+   LINSEG 3  2  0
+   LINSEG 2  2  0
+   LINSEG 2  1  0
+   LINSEG 2  0  0
+SKEND
+
+JOIN
+
+# make sure that the correct number of Nodes have the .Keep attribute
+SELECT    NODE   $_Keep  $*
+ASSERT    @sellist.size  3
+
+END
+
+

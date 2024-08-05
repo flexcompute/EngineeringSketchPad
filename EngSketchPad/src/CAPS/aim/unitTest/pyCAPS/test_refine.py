@@ -1,4 +1,3 @@
-from __future__ import print_function
 import unittest
 
 import os
@@ -177,7 +176,7 @@ class TestREFINE(unittest.TestCase):
         aflr4.input.ff_cdfr   = 1.4
         aflr4.input.curv_factor = 2.0
         aflr4.input.erw_all = 0.0
-        aflr4.input.mer_all = 0
+        aflr4.input.mer_all = False
 
         aflr4.input.Mesh_Length_Factor = 4
 

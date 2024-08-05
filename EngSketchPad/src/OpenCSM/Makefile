@@ -628,13 +628,13 @@ $(LDIR)/waffle.so:	$(ODIR)/udpWaffle.o $(LDIR)/$(OSHLIB)
 $(ODIR)/udpWaffle.o:	udpWaffle.c udpUtilities.c udpUtilities.h OpenCSM.h
 	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I. udpWaffle.c -o $(ODIR)/udpWaffle.o
 
-$(LDIR)/warp.so:	$(ODIR)/udpWarp.o $(LDIR)/$(OSHLIB)
+$(LDIR)/warp.so:	$(ODIR)/udfWarp.o $(LDIR)/$(OSHLIB)
 	touch $(LDIR)/warp.so
 	rm $(LDIR)/warp.so
-	$(CC) $(SOFLGS) -o $(LDIR)/warp.so $(ODIR)/udpWarp.o -L$(LDIR) -locsm -legads -lm
+	$(CC) $(SOFLGS) -o $(LDIR)/warp.so $(ODIR)/udfWarp.o -L$(LDIR) -locsm -legads -lm
 
-$(ODIR)/udpWarp.o:	udpWarp.c udpUtilities.c udpUtilities.h OpenCSM.h
-	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I. udpWarp.c -o $(ODIR)/udpWarp.o
+$(ODIR)/udfWarp.o:	udfWarp.c udpUtilities.c udpUtilities.h OpenCSM.h
+	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I. udfWarp.c -o $(ODIR)/udfWarp.o
 
 #
 #	external grid generators (EGGs)
@@ -926,7 +926,7 @@ lint:
 	$(LINT) -I$(IDIR) udpWaffle.c
 	@echo " "
 	@echo "Checking warp.so..."
-	$(LINT) -I$(IDIR) udpWarp.c
+	$(LINT) -I$(IDIR) udfWarp.c
 	@echo " "
 	@echo "Checking PDT2.so..."
 	$(LINT) -I$(IDIR) eggPDT2.c
@@ -951,7 +951,7 @@ lint:
 	@echo " "
 
 clean:
-	(cd $(ODIR); rm -f udpFitcurve.o udpFreeform.o udfTester1.o udpTester2.o udpVsp3.o udpWaffle.o udpWarp.o udpCsm.o \
+	(cd $(ODIR); rm -f udpFitcurve.o udpFreeform.o udfTester1.o udpTester2.o udpVsp3.o udpWaffle.o udfWarp.o udpCsm.o \
 		udpEllipse.o udpEqn2body.o udpNaca.o udpHex.o udpImport.o serveCSM.o serveESP.o \
 		OpenCSM.o udp.o tim.o udpBezier.o udpBox.o udpBspline.o udpNurbbody.o udpParabaloid.o udpParsec.o \
 		udpSample.o udpSew.o udpRadwaf.o udpNaca456.o naca456.o \

@@ -1,0 +1,46 @@
+# patbeg1
+# written by John Dannenhoffer
+
+DIMENSION b  2  2
+DESPMTR   c  2
+SET       d  $a
+
+BOX       0  0  0  1  1  1
+
+# works
+PATBEG    a  5
+PATEND
+
+# works
+PATBEG    !$a  5
+PATEND
+
+# works
+PATBEG    !d  5
+PATEND
+
+# fails (must not start with at-sign)
+#--- PATBEG    @e  5
+#--- PATEND
+
+# fails (not a legal parameter name)
+#--- PATBEG    a+1  5
+#--- PATEND
+
+# fails (not a legal parameter name)
+#--- PATBEG    2  5
+#--- PATEND
+
+# fails (cannot be the name of an array)
+#--- PATBEG    b  5
+#--- PATEND
+
+# fails (cannot contain a subscript)
+#--- PATBEG    b[1,2]  5
+#--- PATEND
+
+# fails (DESPMTR)
+#--- PATBEG    c  5
+#--- PATEND
+
+END

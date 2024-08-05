@@ -1,0 +1,15 @@
+# udprim6
+# written by John Dannenhoffer
+
+# simpleBox.udc in ESP_UDC_PATH directory
+UDPARG    $$$/simpleBox   dx 4   dy 3   dz 2
+UDPRIM    $$$/simpleBox
+
+SELECT    FACE
+   ATTRIBUTE _grd $on
+
+ASSERT    @@vol  24
+
+END
+
+

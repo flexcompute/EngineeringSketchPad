@@ -17,9 +17,9 @@
   </head>
 
   <body>
-    <p><h1 align=center>Engineering Sketch Pad (ESP) Version 1.25</h1>
+    <p><h1 align=center>Engineering Sketch Pad (ESP) Version 1.26</h1>
     <p><h3>Authors: John F. Dannenhoffer, III (jfdannen@syr.edu)</h3>
-    <p><h3>Date: June 2024.</h3>
+    <p><h3>Date: July 2024.</h3>
 
     <p><h3 align=center><img src="esp_logo.png" width="400"/></h3>
 
@@ -7759,6 +7759,7 @@ CATBEG    sigCode
                      $illegal_csystem
                      $illegal_pmtr_index
                      $illegal_pmtr_name
+                     $illegal_func_name
                      $illegal_value
                      $insufficient_bodys_on_stack
                      $name_not_found
@@ -8091,7 +8092,7 @@ DIMENSION $pmtrName nrow ncol
       <p><h3 id="dump">dump</h3>
         <!-- extract from OpenCSM.h -->
         <pre>
-DUMP      $filename remove=0 toMark=0 withTess=0 $grpName=.
+DUMP      $filename remove=0 toMark=0 withTess=0 $grpName=. putColors=0
           use:    write a file that contains the Body
           pops:   Body1 (if remove=1)
           pushes: -
@@ -8105,6 +8106,7 @@ DUMP      $filename remove=0 toMark=0 withTess=0 $grpName=.
                      are combined into a single model
                   if toMark=1, the remove flag is ignored
                   if withTess!=0, add tessellations to .egads file
+                  if putColors==1, write _colors as Colors in STP/IGS file
                   for .ugrid files, toMark must be 0
                   valid filetypes are:
                      .brep   .BREP   --> OpenCASCADE output
@@ -8259,6 +8261,13 @@ EVALUATE  $type arg1 ...
                         x,      y,      z,
                         dxdt,   dydt,   dzdt,
                         d2xdt2, d2ydt2, d2zdt2
+                  elseif arguments are" "edgebbox ibody iedge"
+                     ibody is Body number (1:nbody)
+                     iedge is Edge number (1:nedge)
+                     returns bounding box
+                     return in @edata:
+                        xmin, ymin, zmin,
+                        xmax, ymax, zmax
                   elseif arguments are: "edgerng ibody iedge"
                      ibody is Body number (1:nbody)
                      iedge is Edge number (1:nedge)
@@ -8270,7 +8279,8 @@ EVALUATE  $type arg1 ...
                      inverse evaluate Edge at given (x,y,z)
                      return in @edata:
                         t,
-                        xclose,  yclose,  zclose
+                        xclose,  yclose,  zclose,
+                        tbar
                   elseif arguments are: "edgekt ibody iedge"
                      ibody is Body number (1:nbody)
                      iedge is Edge number (1:nedge)
@@ -8281,6 +8291,11 @@ EVALUATE  $type arg1 ...
                      iedge is Edge number (1:nedge)
                      return in @edata:
                         xcp1 ycp1 zcp1 xcp2 ycp2 ...
+                  elseif arguments are: "edgetess ibody iedge"
+                     ibody is Body number (1:nbody)
+                     iedge is Edge number (1:nedge)
+                     return in @edata:
+                        npnt
                   elseif arguments are: "face ibody iface u v"
                      ibody is Body number (1:nbody)
                      iface is Face number (1:nface)
@@ -8294,6 +8309,13 @@ EVALUATE  $type arg1 ...
                         d2xdudv, d2ydudv, d2zdudv,
                         d2xdv2,  d2ydv2,  d2zdv2,
                         normx,   normy,   normz
+                  elseif arguments are: "facebbox ibody iface"
+                     ibody is Body number (1:nbody)
+                     iface is Face number (1:nface)
+                     returns bounding box
+                     return in @edata:
+                        xmin, ymin, zmin,
+                        xmax, ymax, zmax
                   elseif arguments are: "facerng ibody iface"
                      ibody is Body number (1:nbody)
                      iface is Face number (1:nface)
@@ -8305,7 +8327,8 @@ EVALUATE  $type arg1 ...
                      inverse evaluate Face at given (x,y,z)
                      return in @edata:
                         u,       v,
-                        xclose,  yclose,  zclose
+                        xclose,  yclose,  zclose,
+                        ubar,    vbar
                   elseif arguments are: "faceukt ibody iface"
                      ibody is Body number (1:nbody)
                      iface is Face number (1:nface)
@@ -8321,6 +8344,25 @@ EVALUATE  $type arg1 ...
                      iface is Face number (1:nface)
                      return in @edata:
                         xcp1, ycp1, zcp1, xcp2, ycp2, ...
+                  elseif arguments are: "facetess ibody iface"
+                     ibody is Body number (1:nbody)
+                     iface is Face number (1:nface)
+                     return in @edata:
+                        npnt, ntri
+                  elseif arguments are: "dist +ibody1 +ibody2"
+                     ibody1 and ibody2 are Body numbers (1:nbody)
+                     returns minimum dist between neighboring Bodys
+                     return in @edata:
+                        dist (between),
+                        iface1, u1, v1, x1, y1, z1,
+                        iface2, u2, v2, x2, y2, z2
+                  elseif arguments are: "dist -ibody1 +ibody2"
+                     ibody1 and ibody2 are Body numbers (1:nbody)
+                     returns separation between ibody2 and enclosing ibody1
+                     return in @edata:
+                        dist (inside),
+                        iface1, u1, v1, x1, y1, z1,
+                        iface2, u2, v2, x2, y2, z2
                   cannot be followed by ATTRIBUTE or CSYSTEM
                   causes finite difference sensitivities
                   signals that may be thrown/caught:
@@ -8441,11 +8483,10 @@ GETATTR   $pmtrName attrID global=0
           use:    store an Attribute value(s) in a LOCALVAR
           pops:   -
           pushes: -
-          Notes:  pmtrName must be in form 'name', without subscripts
+          notes:  pmtrName must not contain subscripts
                   pmtrName must not start with '@'
                   pmtrName must not refer to an DESPMTR/CONPMTR Parameter
                   pmtrName will be marked as LOCALVAR (or OUTPMTR)
-                  pmtrName is used directly (without evaluation)
                   the type of pmtrName is changed to match the result
                   if global==0, then
                      applies to Attributes on the selected Body
@@ -8571,7 +8612,7 @@ IFTHEN    val1 $op1 val2 $op2=and val3=0 $op3=eq val4=0
       <p><h3 id="import">import</h3>
         <!-- extract from OpenCSM.h -->
         <pre>
-IMPORT    $filename bodynumber=1
+IMPORT    $filename bodynumber=1 getcolors=0
           use:    import from filename
           pops:   -
           pushes: Body
@@ -8580,6 +8621,7 @@ IMPORT    $filename bodynumber=1
                   filename is used directly (without evaluation)
                   if filename starts with '$$/', use path relative to .csm file
                   if bodynumber=-1, then all Bodys are returned in one Group
+                  if getcolors==1, read Colors in STP/IGS files as _color
                   sets up @-parameters
                   the Faces all receive the Branch's Attributes
                   face-order is based upon order in file
@@ -8917,9 +8959,10 @@ PATBEG    $pmtrName ncopy
           pushes: -
           notes:  Solver may not be open
                   Block contains all Branches up to matching PATEND
+                  pmtrName must not be an array name or contain subscripts
                   pmtrName must not start with '@'
+                  pmtrName must not refer to an DESPMTR/CONPMTR Parameter
                   pmtrName takes values from 1 to ncopy (see below)
-                  pmtrName is used directly (without evaluation)
                   cannot be followed by ATTRIBUTE or CSYSTEM
         </pre>
       <p>
@@ -9246,8 +9289,10 @@ SELECT    $type arg1 ...
                      uses @selbody
                      if xmin=xmax and ymin=ymax and zmin=zmax
                         sets @sellist to Face whose center is closest to xmin,ymin,zmin
+                     elseif *max>=*min
+                        sets @sellist to Faces whose bboxs are completely in or on given * range
                      else
-                        sets @sellist to Faces whose bboxs are completely in given range
+                        sets @sellist to Faces whose bboxs are partially in or on given * range
                   elseif arguments are: "face -1 ibody1"
                      sets @seltype to 2
                      uses @selbody
@@ -9290,8 +9335,10 @@ SELECT    $type arg1 ...
                      uses @selbody
                      if xmin=xmax and ymin=ymax and zmin=zmax
                         sets @sellist to Edge whose center is closest to xmin,ymin,zmin
+                     elseif *max>=*min
+                        sets @sellist to Edges whose bboxs are completely in or on given * range
                      else
-                        sets @sellist to Edges whose bboxs are completely in given range
+                        sets @sellist to Edges whose bboxs are partially in or on given * range
                   elseif arguments are: "edge attrName1    attrValue1
                                               attrName2=$* attrValue2=$*
                                               attrName3=$* attrValue3=$*"
@@ -9396,6 +9443,7 @@ SELECT    $type arg1 ...
 
                   Face specifications are stored in _faceID Attribute
                   Edge specifications are stored in _edgeID Attribute
+//                Node specifications are stored in _nodeID Attribute
                   iseq selects from amongst multiple Faces/Edges/Nodes that
                      match the ibody/iford specifications
                   attrNames and attrValues can be wild-carded with $*
@@ -9427,7 +9475,6 @@ SET       $pmtrName exprs
                   pmtrName must not start with '@'
                   pmtrName must not refer to an DESPMTR/CONPMTR Parameter
                   pmtrName will be marked as LOCALVAR (or OUTPMTR)
-                  pmtrName is used directly (without evaluation)
                   irow and icol cannot contain a comma or open bracket
                   if exprs has multiple values (separated by ;), then
                      any subscripts in pmtrName are ignored
@@ -9714,7 +9761,7 @@ STORE     $name index=0 keep=0
         <!-- extract from OpenCSM.h -->
         <pre>
 SUBTRACT  $order=none index=1 maxtol=0 scribeAll=0
-          use:    perform Boolean subtraction (Body2 - Body1)
+          use:    perform Boolean subtraction (Body1 - Body2)
           pops:   Body1 Body2
           pushes: Body
           notes:  Sketch may not be open
@@ -10125,7 +10172,7 @@ UNION     toMark=0 trimList=0 maxtol=0
         <tr><td><a href="#tblade_udp">tblade</a></td></tr>
         <tr><td><a href="#waffle_udp">waffle</a></td></tr>
         <tr><td><a href="#vsp3_udp">vsp3</a></td></tr>
-        <tr><td><a href="#warp_udp">warp</a></td></tr>
+        <tr><td><a href="#warp_udf">warp</a></td></tr>
       </table>
 
       <p><h3 id="bezier_udp">bezier (udp)</h3>
@@ -10680,6 +10727,8 @@ UDPRIM import
            filename   name of file1 (prepended with '$' or '$$/')
            bodynumber number of body within filename (bias-1)   [default 1]
                   if bodynumber=-1, then all Bodys are returned in one Group
+           getcolors  if getcolors=1, get Colors from STP/IGS   [default 0]
+                  as _color attribute
        output arguments:
            numbodies  number of bodys in file
        usage:
@@ -10767,7 +10816,7 @@ UDPRIM naca
            sharpte    =1 to change thickness for sharp TE [default 0  ]
        output arguments:
        usage:
-           if (camber == 0 && maxloc == 0.4 && thickness <= 0)
+           if (camber == 0 && maxloc == 0.4 && thickness == 0)
                extract camber, maxloc, and thickness from series
            endif
            if (thickness==0)
@@ -10866,7 +10915,7 @@ UDPRIM nacelle Body
            length     length of nacells
            deltah     difference in height between front
                           and aft super-ellipses       [default 0]
-           rankang    front rake angle (deg)           [default 0]
+           rakeang    front rake angle (deg)           [default 0]
        output arguments:
        usage:
            the inlet Body is automatically scaled 0<=x<=1
@@ -10897,6 +10946,7 @@ UDPRIM nuscale Body
            ycent      center of scaling in Y-direction  [default 0]
            zcent      center of scaling in Z-direction  [default 0]
            mincp      minimum control points            [default 1]
+           mindeg     minimum degree                    [default 1]
            showsize   =1 to show size of all BSPLINEs   [default 0]
        output arguments:
        usage:
@@ -11377,23 +11427,26 @@ UDPRIM vsp3
        </pre>
       <p>
         <a href="examples/vsp3_udp_1.html"> <img src="examples/vsp3_udp_1.png" width="200px"></a>
-      <p><h3 id="warp_udp">warp (udp)</h3>
+      <p><h3 id="warp_udf">warp (udf)</h3>
       <pre>
 UDPRIM warp
        input arguments (specified as name/value pairs):
-           egadsfile  name oof EGADS file
+           egadsfile  name of EGADS file
            iface      Face index             [default 0]
            dist       array of nrom distances[default 0]
+           dirn       direction of change    [default "n"]
            toler      sewing tolerance       [default 0]
        output arguments:
        usage:
+           if egadsfile is not specified, Body is used from stack
            warp one Face of a Body via control point movement
            dist must have (nucp-2)*(nvcp-2) entries
                where nucp and nvcp are the number of control points
            dist is specified only for interior control points
+           dirn is one of "N" (for normal), "X", "Y", or "Z"
        </pre>
       <p>
-        <a href="examples/warp_udp_1.html"> <img src="examples/warp_udp_1.png" width="200px"></a>
+        <a href="examples/warp_udf_1.html"> <img src="examples/warp_udf_1.png" width="200px"></a>
 
     <p><h3 id="sec5.6">5.6: User-Defined Components shipped with OpenCSM</h3>
 
@@ -11683,13 +11736,13 @@ Strings:
        less-than                  <
        greater-than               >
        equal                      =
+       tilde                      ~
     the following characters are not allowed in strings
        apostrophe                 '  (except to escape ', '+ or ') )
        quotation                  "
        hashtag                    #
        backslash                  \
        vertical bar               |
-       tilde                      ~
        ampersand                  &
        exclamation                !
       </pre>
@@ -12016,6 +12069,16 @@ Special User-defined Attributes for Bodys:
     _name       string used in ESP interface for a Body
 
     _stlColor   color to use for all Faces in an .stl file
+
+    ColorFace   default color assigned to front of Faces
+                either R,G,B in three 0-1 reals
+                or $red, $lred, $green, $lgreen, $blue, $lblue,
+                $yellow, $magenta, $cyan, $white, or $black
+
+    ColorEdge   default color assigned to Edges
+                either R,G,B in three 0-1 reals
+                or $red, $lred, $green, $lgreen, $blue, $lblue,
+                $yellow, $magenta, $cyan, $white, or $black
 
 Attributes assigned to Faces:
 

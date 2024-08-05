@@ -1,0 +1,67 @@
+# spurious1
+# written by John Dannenhoffer
+# original idea from David Chandler
+
+MARK
+   UDPARG    supell    rx  2.0  ry_s  1.0  ry_n  2.0
+   UDPRIM    supell
+   ROTATEZ   30
+
+   UDPARG    supell    rx  1.5  ry  0.02
+   UDPRIM    supell    n 20
+   ROTATEZ   2
+   TRANSLATE 1 0 10
+BLEND
+STORE     body1
+
+SKBEG     0   0   0   1
+   SKVAR     xy   "0.000000; 0.000000; 0.020096;\
+                  -0.500000;-0.288675; 0.000000;\
+                  -0.425000;-0.568579; 0.111177;\
+                   0.575000;-0.568579; 0.000000;\
+                   0.650000;-0.288675; 0.111177;\
+                   0.150000; 0.000000; 0.000000;"
+   SKCON     X   1   -1  0
+   SKCON     Y   1   -1  0
+   SKCON     H   3   4  0
+   SKCON     T   1   -1  0
+   SKCON     T   6   -1  0
+   SKCON     T   2   -1  0
+   SKCON     T   3   -1  0
+   SKCON     T   4   -1  0
+   SKCON     T   5   -1  0
+   SKCON     R   6   1  0.125
+   SKCON     R   2   3  0.125
+   SKCON     R   4   5  0.125
+   SKCON     I   1   2  -150
+   SKCON     I   5   6  150
+   SKCON     L   3   4  1
+   LINSEG    ::x[2]   ::y[2]   0
+   ARC       ::x[3]   ::y[3]   0   ::d[3]   xy
+   LINSEG    ::x[4]   ::y[4]   0
+   ARC       ::x[5]   ::y[5]   0   ::d[5]   xy
+   LINSEG    ::x[6]   ::y[6]   0
+   ARC       ::x[1]   ::y[1]   0   ::d[1]   xy
+SKEND     0
+TRANSLATE -@xcg -@ycg 0
+ROTATEX   90
+ROTATEY   90
+TRANSLATE 0  2  7.5
+EXTRUDE   0  -4  0
+STORE     body2
+
+RESTORE   body1
+RESTORE   body2
+SUBTRACT
+
+RESTORE   body1
+RESTORE   body2
+INTERSECT
+
+JOIN
+
+# make sure that the correct number of Nodes have the .Keep attribute
+SELECT    NODE   $_Keep  $*
+ASSERT    @sellist.size  12
+
+END

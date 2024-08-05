@@ -1333,7 +1333,7 @@ EG_flipTopology(const egObject *topo, egObject **copy)
 
 
 static void
-EG_edgeBBox(TopoDS_Edge edge, double *ebx)
+EG_edgeBBox(TopoDS_Edge& edge, double *ebx)
 {
   TopoDS_Vertex V1, V2;
   Standard_Real t1, t2, t;
@@ -1412,6 +1412,7 @@ EG_matchBodyEdges(const egObject *body1, const egObject *body2, double tolScale,
     TopoDS_Shape shape1 = pbod1->edges.map(i+1);
     TopoDS_Edge  edge1  = TopoDS::Edge(shape1);
     if (BRep_Tool::Degenerated(edge1)) continue;
+    if (edge1.Orientation() == TopAbs_INTERNAL) continue;
     BProps.LinearProperties(edge1, SProps1);
     EG_edgeBBox(edge1, ebx1);
     TopExp::MapShapes(shape1, TopAbs_VERTEX, nmap1);
@@ -1426,6 +1427,7 @@ EG_matchBodyEdges(const egObject *body1, const egObject *body2, double tolScale,
       TopoDS_Shape shape2 = pbod2->edges.map(j+1);
       TopoDS_Edge  edge2  = TopoDS::Edge(shape2);
       if (BRep_Tool::Degenerated(edge2)) continue;
+      if (edge2.Orientation() == TopAbs_INTERNAL) continue;
 
       /* nodes */
       TopExp::MapShapes(shape2, TopAbs_VERTEX, nmap2);

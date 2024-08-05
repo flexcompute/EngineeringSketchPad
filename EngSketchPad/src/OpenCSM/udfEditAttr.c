@@ -852,6 +852,14 @@ processFile(ego    context,             /* (in)  EGADS context */
             istream++;
         }
 
+        /* remove inline comments */
+        for (i = 0; i < strlen(templine); i++) {
+            if (templine[i] == '#') {
+                templine[i] =  '\0';
+                break;
+            }
+        }
+
         if (VERBOSE(0) > 0) {
             if        (istype == OCSM_FACE) {
                 printf("       current Faces selected:");

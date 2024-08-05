@@ -1,0 +1,37 @@
+# evalError2c
+# written by John Dannenhoffer
+
+SET       b  -9
+
+IFTHEN    0 EQ 0
+   PATBEG    a  sqrt(b)
+      BOX       0  0  0   1  1  1
+      ASSERT    0  1
+   PATEND
+
+   ASSERT    0  2
+   CATBEG    $func_arg_out_of_bounds
+   CATEND
+
+   PATBEG    a  5
+      BOX      0  0  0   1  1  1
+      ASSERT   0  0
+   PATBREAK  sqrt(b)
+      BOX      0  0  0   1  1  1
+      ASSERT   0  3
+   PATEND
+
+   ASSERT    0  4
+   CATBEG    $func_arg_out_of_bounds
+   CATEND
+
+   BOX       0  0  0   1  1  1
+ENDIF
+
+# make sure there is not an active signal
+ASSERT    @signal  0
+
+END
+
+    
+   

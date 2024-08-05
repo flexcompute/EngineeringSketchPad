@@ -10378,7 +10378,7 @@
 14feb24  fix bug that did not compute mass-properties-dots if a group
              of Nodes, Edges, or Faces were selected (independent of
              the Body type)
-         
+
 15feb24  fix bug in udfNuscale that occurs for periodic Faces; add
              nuscale5-8 test cases
 
@@ -10490,7 +10490,7 @@
  6may24  fix erroneous stanalyzer error
 
  8may24  remove Bombardier_DASH8-Q100 test case since it works
-             differently with OpenVSP-3.38.0 on viggen than other OSs 
+             differently with OpenVSP-3.38.0 on viggen than other OSs
 
  8may24  increase number of allowable Bodys as input to udfGanged
 
@@ -10530,17 +10530,230 @@
 
 29may24  fix another array bounds error in udfEditAttr
 
+*******  v1.25 release
+
+ 2jun24  uprev to v1.26 (ESP.html, ESP-localhost.html, ESP-help.html,
+             OpenCSM.h, ocsm.rc, ESP_QuickReference.tex)
+
+ 2jun24  fix infinite loop bug in compressFilename
+
+ 3jun24  fix typos in ESP-help
+
+ 3jun24  allow straight camber line to be generated in udpNaca (if
+             thickness=0, camber=0, and series=0); modify nacas3 test
+             case
+
+ 3jun24  add missing semi-colon in
+             training/data/session03/fuselage.csm
+
+ 5jun24  update ReleaseNotes.txt
+
+ 7jun24  add importColor test case
+
+10jun24  fix bug associated with writing VTK files for non-manifold
+             Bodys; add fourSheets test case
+
+11jun24  allow illegal_func_name error be caught in CATBEG
+
+11jun24  error during the evaluation of an argument in IFTHEN and
+             ELSEIF should jump after ENDIF; add evalError1* test
+             cases
+
+11jun24  error during the evaluation of an argument in PATBEG and
+             PATBREAK should jump after PATEND; add evalError2* test
+             cases
+
+11jun24  error during the evaluation of an argument in SKBEG should
+             jump after SKEND; add evalError3* test cases
+
+11jun24  fix bug that did not update the at-parameters if a UDPARG was
+             present
+
+12jun24  fix bug when recycling and last recycled Branch is a UDPARG
+
+12jun24  fix bug that did not transfer user-attributes from SheetBody
+             on top of stack to result of a JOIN operation; add
+             joinSheets7 test case
+
+12jun24  add _vspID and _vspSurf attributes to Bodys in udpVsp3
+
+13jun24  improve error detection for $pmtrName in SET; add set2 test
+             case
+
+13jun24  add EVALUATE EDGETESS and EVALUATE FACETESS to return the
+             number of points and triangles in the tessellation of an
+             Edge or Face; add tessSize test case
+
+13jun24  pressing Building button allows the user to reset the
+             interface
+
+14jun24  improve error detection for $pmtrName in PATBEG; add patbeg1
+             test case
+
+14jun24  improve error detection for $pmtrName in GETATTR; add
+             getattr3 test case
+
+15jun25  fix malloc error while cleaning up UDP storage at end of
+             serveESP
+
+17jun24  allow inline comments in udfEditAttr and udpWaffle; modify
+             editAttrFile and waffleC1 test cases
+
+17jun24  if UDPRIM statment contains primtype=$$$/name, the .udc is
+             found in the ESP_UDC_PATH directory; add udprim6 test
+             case
+
+17jun24  convert udpWarp to udfWarp so that it takes a Body from the
+             Stack if egadsfile is not specified;  add warp2* and warp3
+             test cases
+
+17jun24  modify udfWarp to allow motion in normal-, X-, or Y-, or
+             Z-direction; add warp1* test cases
+
+18jun24  change signature of unpublished convertToBSplines routine
+
+18jun24  add mindeg argument to udfNuscale so that B-spline order can
+             be increased
+
+18jun24  modify udfWarp so that it can be applied to a SheetBody; add
+             warp4* and warp5* test cases
+
+18jun24  add seqnum* test cases
+
+20jun24  if Body has _newSeqnum attribute, use a new sequence numbering
+             scheme for _edgeID and _faceID that is not based upon cg
+             positions or areas
+
+27jun24  do not mark a Node as potentially spurious if it has a _Keep
+             attribute
+
+29jun24  mark Nodes on axis of revolution of a REVOLVE command with a
+             _Keep attribute
+
+30jun24  mark Nodes in JOIN or UNION that are in common with both
+              parents with a _Keep attribute
+
+30jun24  mark new Nodes due to a scribe (via SUBTRACT a NodeBody or
+             SheetBody) with a _Keep attribute
+
+30jun24  mark Nodes at beginning and end of RULE and BLEND with a
+             _Keep attribute
+
+30jun24  add REMOVE_SPURIOUS compile-time option to remove spurious
+             Nodes; add spurious* test cases
+
+ 3jul24  fix bug that made sensitivities of scribes susceptable to
+             roundoff errors
+ 
+ 3jul24  fix documentation associated with SUBTRACT command
+
+ 4jul24  fix bug in ocsmFindPmtr that did not consider the scope when
+             looking for existing names
+
+ 5jul24  add putcolors=0 option to DUMP so that _color attributes are
+             written into STP/IGS file (as Color); add color4*
+             test cases
+
+ 5jul24  add getcolors=0 option to IMPORT so that Color attributes
+             in STP/IGS files are converted to _color
+
+ 5jul24  add getcolors=0 option to udpImport so that Color attributes
+             in STP/IGS files are converted to _color
+             
+ 5jul24  update ESP to acknowledge that Nodes are not initially
+             visible
+
+ 8jul24  add hollowTube test case
+
+ 8jul24  add udcPrefix test case
+
+ 9jul24  have DUMP putcolors=1 apply to Edges when writing STP/IGS file;
+             have IMPORT getcolors=1 apply to Edges when reading STP/IGS
+             file
+
+16jul24  update importColors.csm
+
+16jul24  fix sensitivities in udpVsp3 to account for cases where Edges
+             and Node numbering changes between the base and perturbed
+             Bodys
+
+16jul24  report sensitivity range in serveESP console
+
+16jul24  commit udprim6 test case
+
+17jul24  fix seg fault that happened when a BLEND has fewer than 2
+             xsects
+
+19jul24  add ubar and vbar as returns from EVALUATE FACEINV and
+             tbar as return from EVALUATE EDGEINV; add evaluateInv
+             test case
+
+19jul24  add EVALUATE EDGEBBOX and EVALAUTE FACEBBOX to return
+             bounding box info; add evaluateBbox test case
+
+19jul24  add EVALUATE DIST to return the clearances between two Bodys;
+             add evaluateDist* test cases
+
+20jul24  allow SELECT to return EDGES or FACES that touch a bounding
+             box; add selectBbox* test cases
+
+22jul24  fix memory leak in udpVsp3
+
+22jul24  add waffleRebuild test case
+
+22jul24  upgrade to OCC 7.8.1; modify importColor test case
+
+24jul24  add OCC 7.8.1 verification data
+
+25jul24  allow default Face and Edges colors to be set via ColorFace
+             and ColorEdge attributes; add importColor2 test case
+
+25jul24  documentation updates
+
+25jul24  update udpParsec.cpp because of changes in EGADS
+
 &&&&&&
 
+         debug GHV openEnd=0
+
+         add AutoFit option in ESP
+             
+         return only selected Bodys in udpVsp3
+
+         add abilitity to stop during a long build
+
+         add sash in ESP to resize windows
+
+         add a shortcut for "Press To Re-build"
+
+         debug REMOVE_SPURIOUS Nodes
+
+         jump to arbitrary step in StepThru mode
+
+         stop recycling when the ATTRIBUTEs on a Branch differ
+
+         allow recycling to continue when a signal is caught; add
+             recycleSignal test case
+
+         add -view viewfile command line option to serveESP
+
+         be able to show contours of the X-, Y-, or Z-component of
+             sensitivities
+
+         respect edgeList in udfOffset for WireBodys and SheetBodys
+
+         allow Branches in a UDC to be editted in the ESP interface
+             (so that one can suppress or buildto)
+
+         UNION cannot be suppressed in ESP GUI
+
+         write demo program runPlugs(csmName, cloudName, numPhase1,
+             numPhase2, despmtrsName)
+
          add packaging test case
-         
+
          add subsurfaces to udpVsp3
 
-         fix bug that can make spurious Nodes during a scribe
-             operation
-
-         refactor convertToBSplines so that tolerance does not have to
-             be loosened for Mac-ARM
 
          implement flend2
          * reasonable distribution of spine points

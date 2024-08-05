@@ -1,0 +1,45 @@
+# warp3
+# written by John Dannenhoffer
+
+CFGPMTR   numcp     5
+
+DIMENSION dist2     numcp-2  numcp-2
+SET       dist2     "0.25; 0.50; 0.25;\
+                     0.50; 1.00; 0.50;\
+                     0.25; 0.50; 0.25"
+
+DIMENSION dist4     numcp-2  numcp-2
+SET       dist4     "0.25; 0.50; 0.25;\
+                     0.50; 0.50; 0.50;\
+                     0.25; 0.50; 0.25"
+
+DIMENSION dist6     numcp-2  numcp-2
+SET       dist6     "0.25; 0.50; 0.25;\
+                     0.50; 0.25; 0.50;\
+                     0.25; 0.50; 0.25"
+
+# basic configuration
+BOX      0  0  0  4  3  2
+
+# convert to Bsplines
+UDPRIM    nuscale   mincp numcp
+
+# warp Face 2
+UDPARG    warp      iface      2
+UDPARG    warp      toler      1e-5
+UDPARG    warp      dirn       $X
+UDPRIM    warp      dist       dist2
+
+# warp Face 4
+UDPARG    warp      iface      4
+UDPARG    warp      toler      1e-5
+UDPARG    warp      dirn       $Y
+UDPRIM    warp      dist       dist4
+
+# warp Face 6
+UDPARG    warp      iface      6
+UDPARG    warp      toler      1e-5
+UDPARG    warp      dirn       $Z
+UDPRIM    warp      dist       dist6
+
+END

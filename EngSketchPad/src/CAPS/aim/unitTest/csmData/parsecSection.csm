@@ -1,0 +1,20 @@
+# CAPS xFoil input file --- parsecSection.csm
+
+# Define the AIM to be used
+attribute capsAIM $xfoilAIM;tsfoilAIM;msesAIM
+
+# Create Airfoil using parsec UDP
+DESPMTR   le_radius             0.01550
+DESPMTR   x_upperMaxY           0.29663
+DESPMTR   y_upperMaxY           0.06002
+DESPMTR   curvature_upperMaxY  -0.45150
+DESPMTR   teAngle_upperSurface -8.00000
+DESPMTR   x_lowerMinY           0.29663
+DESPMTR   y_lowerMinY          -0.06002
+DESPMTR   curvature_lowerMinY   0.45150
+DESPMTR   teAngle_lowerSurface  8.00000
+
+UDPARG    parsec   Param   le_radius;x_upperMaxY;y_upperMaxY;curvature_upperMaxY;teAngle_upperSurface;x_lowerMinY;y_lowerMinY;curvature_lowerMinY;teAngle_lowerSurface
+UDPRIM    parsec
+
+END

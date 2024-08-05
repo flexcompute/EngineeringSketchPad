@@ -14,13 +14,14 @@ despmtr   chord     1.00      #chord length
 despmtr   alpha     0.00      #geometric angle of attack
 dimension offset    3 1
 despmtr   offset    0.00      #geometric offset
+cfgpmtr   sharpTE   1
 
 # -----------------------------------------------------------------
 # 1. Create Airfoil using the User Defined Primitive (UDP) naca
 #  > The inputs used for this example to the UDP are Thickness and Camber
 #  > Cross sections are in the X-Y plane and are rotated to the X-Z plane
 # -----------------------------------------------------------------
-udprim    naca      Thickness thick     Camber    camber sharpte 1
+udprim    naca      Thickness thick     Camber    camber sharpte sharpTE
 scale chord
 rotatez alpha
 translate offset[1] offset[2] offset[3]

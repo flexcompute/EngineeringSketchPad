@@ -1,5 +1,5 @@
                         ESP: The Engineering Sketch Pad
-                             Rev 1.25 -- June 2024
+                             Rev 1.26 -- August 2024
 
                           https://acdl.mit.edu/ESP/
 
@@ -18,7 +18,7 @@
     This ESP release no longer works with Python 2.7. The minimum supported
     version is now Python 3.8. Also, we now only support OpenCASCADE at Rev 
     7.6 or higher. And these must be the versions taken from the ESP website
-    (and not from elsewhere). At this point we recommend 7.8.0.
+    (and not from elsewhere). At this point we recommend 7.8.1.
 
     It is advisable to unblock browser tabs on the web browser in use.
 
@@ -29,7 +29,7 @@
 
     Apple notes: 
     (1) You CANNOT download the distributions using a browser. For instructions 
-        on how to get ESP see MACdownloads.txt on the web site.
+        on how to get ESP see DownloadsMAC.txt on the web site.
     (2) You must have XQuartz at a minimum release of 2.8.1 for some supplied
         executables to function.
     (3) Apple arm64 (M#) computers are natively supported but require Rosetta2 
@@ -43,16 +43,16 @@
 
     Windows notes: 
     (1) You CANNOT download the distributions using a browser. For instructions 
-        on how to get ESP see WINdownloads.txt on the web site.
+        on how to get ESP see DownloadsWIN.txt on the web site.
 
 1. Prerequisites
 
     The most significant prerequisite for this software is OpenCASCADE.
     This ESP release only supports the prebuilt versions marked 7.7.0 
-    and 7.8.0, which are available at http://acdl.mit.edu/ESP. Please DO 
+    and 7.8.1, which are available at http://acdl.mit.edu/ESP. Please DO 
     NOT report any problems with any other versions of OpenCASCADE, much 
     effort has been spent in "hardening" the OpenCASCADE code. It is advised 
-    that all ESP users update to 7.7.0/7.8.0 because of better robustness and
+    that all ESP users update to 7.7.0/7.8.1 because of better robustness and
     performance. If you are still on a LINUX box with a version of gcc less 
     than 4.8, you will have to upgrade to a newer OS or version of gcc.
 
@@ -95,18 +95,13 @@
 
 1.2.1 EGADS
 
-    The significant updates made to EGADS from Rev 1.24 are:
+    The significant updates made to EGADS from Rev 1.25 are:
 
-    * Upgrade to OpenCASCADE 7.8
-    * Add Face Color attribute for STEP/IGES
-    * Improved Name attribute for STEP/IGES
-    * Allow copyObject on PCurve without transformation
-    * Use consistent CURVE/SURFACE approximation algorithms and preserve periodicity in EG_convertToBspline
-    * Add EG_addKnots
-    * Add EG\_isIsoPCurve (only works for OCC 7.6 or above)
-    * Enable FullAttr for EG_imprintBody
-    * EG_matchBodyFaces and EG_matchBodyEdges API change, please see egads.pdf for details
-    * Check that all edges are imprinted by OCC in EG\_imprintBody
+    * Significant performance improvements reading STEP/IGES files
+    * Improved handling of Name/Color attrobites for STEP/IGES import/export
+    * Fix Edge Name/Color export for IGES files (requires OCC 7.8.1)
+    * Add the functions EG_mergeBSplineCurves and EG_removeNodes to the EGADS API
+    * Fixes for EG_isSame and EG_isEquivalent which resulted in incorrect EGADSlite geometry
     * General bug fixes
 
 1.2.2 OpenCSM
@@ -118,19 +113,9 @@
 
 1.2.3 CAPS
 
-    * Refactor mesh writing fremwork
-      - Mesh files may be requested with Mesh_Format, and file extensions may have changed
-      - Removed Mesh_ASCII_Flag AIM inputs
-    * Upgrade to AFLR 11.5.14
-    * Updated config file generator for SU2-8.0.1
-    * Add cbaero AIM
-    * Add zaero AIM
-    * Add ability to link mass properties
-    * Add CLAF avl input
-    * Add MassProp outputs for nastran.
-    * OUTPMTR derivatives computed by AIM's are properly cached
-    * Fix Normaliztion misspelling
-    * Updates to refine AIM to support 2D meshes
+    * Upgrade to AFLR 11.5.15 -- This resolves a regression in ESP 1.25 (AFLR 11.5.14)
+    * Fix vtk file writer for non-manifold geometry
+    * Added material information and input file fiex for CBAero
     * General bug fixes
 
 1.2.4 ESP
@@ -139,7 +124,7 @@
     * A complete "Integrated Design Environment" now exists in ESP. In the
       help look at Tutorial #6 to get a flavor of what you can now do.
 
-1.2.5 Known issues in v1.25:
+1.2.5 Known issues in v1.26:
 
     * data/fighter4 does not functoin with Intel macOS 13.3 and gerater
     * AFLR2 does not always generate valid quads
@@ -203,7 +188,7 @@
     in a bash shell (run from the command window):
 
         C:\> cd %ESP_ROOT%\config
-        C:\> bash winEnv D:\OpenCASCADE7.8.0
+        C:\> bash winEnv D:\OpenCASCADE7.8.1
 
     winEnv (like makeEnv) has an optional second argument that is only 
     required if the distribution of OpenCASCADE has multiple architectures. 

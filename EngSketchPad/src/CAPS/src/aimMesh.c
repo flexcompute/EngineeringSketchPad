@@ -1019,7 +1019,7 @@ aim_readBinaryUgrid(void *aimStruc, aimMesh *mesh)
   int    nTet, nPyramid, nPrism, nHex;
   int    i, j, elementIndex, nPoint, nElems, ID, igroup;
   int    line[2];
-  int    nRegion = 0, nVolName=0, nBCName=0, volID=1;
+  int    maxVolID = 0, nVolName=0, nBCName=0, volID=1;
   int    nMapGroupID = 0, *mapGroupID = NULL;
   enum aimMeshElem elementTopo;
   char filename[PATH_MAX], groupName[PATH_MAX];
@@ -1129,15 +1129,15 @@ aim_readBinaryUgrid(void *aimStruc, aimMesh *mesh)
   // File for volume IDs
   fpMV = fopen(filename, "rb");
   if (fpMV != NULL) {
-    status = fread(&nRegion, sizeof(int), 1, fpMV);
-    if (status != 1) { status = CAPS_IOERR; AIM_STATUS(aimStruc, status); }
-
-    /* read the maximum ID value */
     status = fread(&nVolName, sizeof(int), 1, fpMV);
     if (status != 1) { status = CAPS_IOERR; AIM_STATUS(aimStruc, status); }
 
-    if (nRegion+nVolName == 0) {
-      AIM_ERROR(aimStruc, "Invalid mapvol file with zero nRegion and nVolName!");
+    /* read the maximum ID value */
+    status = fread(&maxVolID, sizeof(int), 1, fpMV);
+    if (status != 1) { status = CAPS_IOERR; AIM_STATUS(aimStruc, status); }
+
+    if (nVolName == 0) {
+      AIM_ERROR(aimStruc, "Invalid mapvol file with zero nVolName!");
       status = CAPS_IOERR;
       goto cleanup;
     }
@@ -1145,7 +1145,7 @@ aim_readBinaryUgrid(void *aimStruc, aimMesh *mesh)
     AIM_ALLOC(volName, nVolName, NameID, aimStruc, status);
     for (i = 0; i < nVolName; i++) { volName[i].name = NULL; volName[i].ID = 0; }
 
-    for (i = 0; i < nRegion; i++) {
+    for (i = 0; i < nVolName; i++) {
       status = fread(&volName[i].ID, sizeof(int), 1, fpMV);
       if (status != 1) { status = CAPS_IOERR; AIM_STATUS(aimStruc, status); }
       volID = MAX(volID, volName[i].ID+1);
@@ -1718,7 +1718,8 @@ int aim_morphMeshUpdate(void *aimInfo,  aimMeshRef *meshRef, int numBody, ego *b
         else
           status = EG_mapBody2(body, "_faceID", "_edgeID", bodies[i]); // "_*ID" - same as in OpenCSM
         if (status != EGADS_SUCCESS) {
-            AIM_ERROR(aimInfo, "New and old body %d (of %d) do not appear to be topologically equivalent!", i+1, meshRef->nmap);
+            AIM_ERROR(aimInfo, "New and old body %d (of %d) do not appear to be topologically equivalent!\n"
+                               "Try using global 'ATTRIBUTE _newSeqnum 1' if topology matches.", i+1, meshRef->nmap);
             goto cleanup;
         }
     }

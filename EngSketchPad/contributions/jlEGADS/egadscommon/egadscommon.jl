@@ -928,7 +928,7 @@ function getTopology(topo::Ego)
     child  = Ref{Ptr{ego}}()
 
     raiseStatus(ccall((:EG_getTopology, C_egadslib), Cint, (ego, Ptr{ego},
-                 Ptr{Cint}, Ptr{Cint}, Ptr{Cdouble}, Ptr{Cint},Ptr{Ptr{ego}}, Ptr{Ptr{Cint}}),
+                 Ptr{Cint}, Ptr{Cint}, Ptr{Cdouble}, Ptr{Cint}, Ptr{Ptr{ego}}, Ptr{Ptr{Cint}}),
                  topo._ego, geom, oclass, mtype,lims, nChild, child, sen))
 
     nC = (oclass[] == LOOP  && geom[] != C_NULL) ? nChild[] * 2 :

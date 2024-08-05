@@ -15,8 +15,8 @@
 
 
 #define EGADSMAJOR     1
-#define EGADSMINOR    25
-#define EGADSPROP     EGADSprop: Revision 1.25
+#define EGADSMINOR    26
+#define EGADSPROP     EGADSprop: Revision 1.26
 
 #define MAGIC      98789
 #define MTESSPARAM     2

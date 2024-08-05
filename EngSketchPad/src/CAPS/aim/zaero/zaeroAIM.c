@@ -933,7 +933,7 @@ _getUAICModuleConfigs(void *aimInfo,
      *
      * For the JSON string "Value" dictionary
      *  (e.g. "Value" = {"machNumber": 0.5, "method": 120000.0, "poissonRatio": 0.5, "materialType": "isotropic"})
-     * \endif
+     *
      *  the following keywords ( = default values) may be used:
      *
      * <ul>

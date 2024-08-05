@@ -91,7 +91,7 @@ static int getNodesetTopos(void *aimInfo,
     while((token = strtok_r(rest, ";", &rest))) {
 
       std::string key(token);
-      
+
       if (topos[itopo]->oclass == FACE) {
         /* get the Face indexing and store it away */
         status = EG_getTessFace(map->tess, itopo+1, &plen, &points, &uv, &ptype, &pindex,
@@ -562,7 +562,7 @@ int meshWrite(void *aimInfo, aimMesh *mesh)
     snprintf(side_set_names[bnd], MAX_STR_LENGTH, "%s", sideset->first.c_str());
     bnd++;
   }
-  
+
   for (std::size_t imap = 0; imap < sidesetBounds.size(); imap++) {
     for (sideset_iterator sideset = sidesetBounds[imap].begin(); sideset != sidesetBounds[imap].end(); ++sideset) {
       AIM_ALLOC(side_set_names[bnd], MAX_STR_LENGTH+1, char, aimInfo, status);
@@ -772,7 +772,7 @@ int meshWrite(void *aimInfo, aimMesh *mesh)
     /* write the side set elem and side lists */
     status = ex_put_set(exoid, EX_SIDE_SET, ID, elem_list.data(), side_list.data());
     AIM_STATUS(aimInfo, status);
-    
+
     ID++;
   }
 
