@@ -9,7 +9,7 @@
  */
 
 /*
- * Copyright (C) 2013/2024  John F. Dannenhoffer, III (Syracuse University)
+ * Copyright (C) 2013/2025  John F. Dannenhoffer, III (Syracuse University)
  *
  * This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
@@ -584,6 +584,7 @@ plugsPhase1(modl_T *MODL,               /* (in)  pointer to MODL */
             oldOutLevel = ocsmSetOutLevel(0);
             status = ocsmBuild(MODL, 0, &builtTo, &nbody, NULL);
             (void) ocsmSetOutLevel(oldOutLevel);
+            if (status == OCSM_ASSERT_FAILED) status = EGADS_SUCCESS;
             CHECK_STATUS(ocsmBuild);
 
             for (inode = 1; inode <= MODL->body[ibody].nnode; inode++) {
@@ -706,6 +707,7 @@ plugsPhase1(modl_T *MODL,               /* (in)  pointer to MODL */
         oldOutLevel = ocsmSetOutLevel(0);
         status = ocsmBuild(MODL, 0, &builtTo, &nbody, NULL);
         (void) ocsmSetOutLevel(oldOutLevel);
+        if (status == OCSM_ASSERT_FAILED) status = EGADS_SUCCESS;
         if (status < SUCCESS) {
             for (ipmtr = 0; ipmtr < npmtr; ipmtr++) {
                 SPRINT5(1, "error  DESPMTR %3d: %20s[%2d,%2d] = %10.5f",
@@ -925,6 +927,7 @@ plugsPhase2(modl_T *MODL,               /* (in)  pointer to MODL */
     oldOutLevel = ocsmSetOutLevel(0);
     status = ocsmBuild(MODL, 0, &builtTo, &nbody, NULL);
     (void) ocsmSetOutLevel(oldOutLevel);
+    if (status == OCSM_ASSERT_FAILED) status = EGADS_SUCCESS;
     CHECK_STATUS(ocsmBuild);
 
     /* remember Face associations from last time */
@@ -1163,6 +1166,7 @@ plugsPhase2(modl_T *MODL,               /* (in)  pointer to MODL */
                 oldOutLevel = ocsmSetOutLevel(0);
                 status = ocsmBuild(MODL, 0, &builtTo, &nbody, NULL);
                 (void) ocsmSetOutLevel(oldOutLevel);
+                if (status == OCSM_ASSERT_FAILED) status = EGADS_SUCCESS;
                 CHECK_STATUS(ocsmBuild);
 
                 for (iface = 1; iface <= MODL->body[ibody].nface; iface++) {
@@ -1177,8 +1181,8 @@ plugsPhase2(modl_T *MODL,               /* (in)  pointer to MODL */
 
                     oldOutLevel = ocsmSetOutLevel(0);
                     status = ocsmGetVel(MODL, ibody, OCSM_FACE, iface, count, uvface, velface);
-                    CHECK_STATUS(ocsmGetVel);
                     (void) ocsmSetOutLevel(oldOutLevel);
+                    CHECK_STATUS(ocsmGetVel);
 
                     count = 0;
                     for (icloud = 0; icloud < ncloud; icloud++) {
@@ -1338,6 +1342,7 @@ plugsPhase2(modl_T *MODL,               /* (in)  pointer to MODL */
         oldOutLevel = ocsmSetOutLevel(0);
         status = ocsmBuild(MODL, 0, &builtTo, &nbody, NULL);
         (void) ocsmSetOutLevel(oldOutLevel);
+        if (status == OCSM_ASSERT_FAILED) status = EGADS_SUCCESS;
 
         /* compute the errors and the rms */
         if (status != SUCCESS) {
@@ -1455,6 +1460,7 @@ plugsPhase2(modl_T *MODL,               /* (in)  pointer to MODL */
         oldOutLevel = ocsmSetOutLevel(0);
         status = ocsmBuild(MODL, 0, &builtTo, &nbody, NULL);
         (void) ocsmSetOutLevel(oldOutLevel);
+        if (status == OCSM_ASSERT_FAILED) status = EGADS_SUCCESS;
         if (status < SUCCESS) {
             for (ipmtr = 0; ipmtr < npmtr; ipmtr++) {
                 SPRINT5(1, "error  DESPMTR %3d: %20s[%2d,%2d] = %10.5f",
@@ -1473,8 +1479,9 @@ plugsPhase2(modl_T *MODL,               /* (in)  pointer to MODL */
         nbody = 0;
         oldOutLevel = ocsmSetOutLevel(0);
         status = ocsmBuild(MODL, 0, &builtTo, &nbody, NULL);
-        CHECK_STATUS(ocsmBuild);
         (void) ocsmSetOutLevel(oldOutLevel);
+        if (status == OCSM_ASSERT_FAILED) status = EGADS_SUCCESS;
+        CHECK_STATUS(ocsmBuild);
 
         rms      = 0;
         *unclass = 0;
@@ -1519,8 +1526,9 @@ plugsPhase2(modl_T *MODL,               /* (in)  pointer to MODL */
             nbody = 0;
             oldOutLevel = ocsmSetOutLevel(0);
             status = ocsmBuild(MODL, 0, &builtTo, &nbody, NULL);
-            CHECK_STATUS(ocsmBuild);
             (void) ocsmSetOutLevel(oldOutLevel);
+            if (status == OCSM_ASSERT_FAILED) status = EGADS_SUCCESS;
+            CHECK_STATUS(ocsmBuild);
 
             rms      = 0;
             *unclass = 0;
@@ -1562,8 +1570,9 @@ plugsPhase2(modl_T *MODL,               /* (in)  pointer to MODL */
             nbody = 0;
             oldOutLevel = ocsmSetOutLevel(0);
             status = ocsmBuild(MODL, 0, &builtTo, &nbody, NULL);
-            CHECK_STATUS(ocsmBuild);
             (void) ocsmSetOutLevel(oldOutLevel);
+            if (status == OCSM_ASSERT_FAILED) status = EGADS_SUCCESS;
+            CHECK_STATUS(ocsmBuild);
 
             rms      = 0;
             *unclass = 0;
@@ -1605,6 +1614,7 @@ plugsPhase2(modl_T *MODL,               /* (in)  pointer to MODL */
             CHECK_STATUS(ocsmSetValuD);
 
             SPRINT2(1, "    restarting with ipmtr=%2d perturbed to %12.5f", +iperturb, pmtrbest[+iperturb]);
+            face[1] = 0;      // unclassify so that we run at least one more optimization
             status = 4;
             goto cleanup;
         } else if (iperturb < 0) {
@@ -1614,6 +1624,7 @@ plugsPhase2(modl_T *MODL,               /* (in)  pointer to MODL */
             CHECK_STATUS(ocsmSetValuD);
 
             SPRINT2(1, "    restarting with ipmtr=%2d perturbed to %12.5f", -iperturb, pmtrbest[-iperturb]);
+            face[1] = 0;      // unclassify so that we run at least one more optimization
             status = 4;
             goto cleanup;
         } else {

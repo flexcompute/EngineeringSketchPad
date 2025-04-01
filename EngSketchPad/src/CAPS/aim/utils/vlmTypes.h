@@ -7,7 +7,8 @@
 
 #include <egadsTypes.h>
 
-typedef enum  {vlmGENERIC, vlmPLANEYZ, vlmRADIAL} vlmSystemEnum;
+typedef enum {vlmGENERIC, vlmPLANEYZ, vlmRADIAL} vlmSystemEnum;
+typedef enum {vlmSecAirfoil, vlmSecLine, vlmSecNode, vlmSecUnknown} vlmSectionEnum;
 
 typedef struct {
 
@@ -34,6 +35,7 @@ typedef struct {
     char *name; // Section Name
 
     ego ebody;       // Body of the section (might be flipped relative to original)
+    vlmSectionEnum type;
 
     int sectionIndex; // Section index - 0 bias
 

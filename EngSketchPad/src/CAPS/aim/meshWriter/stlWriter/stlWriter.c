@@ -3,7 +3,7 @@
  *
  *             STL 3D Surface Mesh Writer Code
  *
- *      Copyright 2014-2024, Massachusetts Institute of Technology
+ *      Copyright 2014-2025, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -121,7 +121,7 @@ int meshWrite(void *aimInfo, aimMesh *mesh)
         triNormal(p1, p2, p3, norm);
 
         fprintf(fp," facet normal %.18e %.18e %.18e\n",norm[0],norm[1],norm[2]);
-        fprintf(fp,"  touter loop\n");
+        fprintf(fp,"  outer loop\n");
 
         fprintf(fp,"   vertex %.18e %.18e %.18e\n",p1[0],p1[1],p1[2]);
         fprintf(fp,"   vertex %.18e %.18e %.18e\n",p2[0],p2[1],p2[2]);
@@ -152,7 +152,7 @@ int meshWrite(void *aimInfo, aimMesh *mesh)
           triNormal(p1, p2, p3, norm);
 
           fprintf(fp," facet normal %.18e %.18e %.18e\n",norm[0],norm[1],norm[2]);
-          fprintf(fp,"  touter loop\n");
+          fprintf(fp,"  outer loop\n");
 
           fprintf(fp,"   vertex %.18e %.18e %.18e\n",p1[0],p1[1],p1[2]);
           fprintf(fp,"   vertex %.18e %.18e %.18e\n",p2[0],p2[1],p2[2]);

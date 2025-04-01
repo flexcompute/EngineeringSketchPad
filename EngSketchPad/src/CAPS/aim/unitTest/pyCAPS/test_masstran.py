@@ -1,6 +1,4 @@
 # Import other need modules
-from __future__ import print_function
-
 import unittest
 
 import os

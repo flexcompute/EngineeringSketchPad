@@ -10,7 +10,7 @@
  */
 
 /*
- * Copyright (C) 2011/2024  John F. Dannenhoffer, III (Syracuse University)
+ * Copyright (C) 2011/2025  John F. Dannenhoffer, III (Syracuse University)
  *
  * This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
@@ -404,7 +404,7 @@ editAttrs(ego    ebody,                 /* (in)  EGADS Body */
                     }
                 }
             } else {
-                snprintf(message, 100, "outype=%c is not valid for intype=D", outtype);
+                snprintf(message, 100, "outtype=%c is not valid for intype=D", outtype);
                 status = OCSM_UDP_ERROR1;
                 goto cleanup;
             }
@@ -850,6 +850,14 @@ processFile(ego    context,             /* (in)  EGADS context */
             templine[endline[istream-1]-begline[istream-1]] = '\0';
 
             istream++;
+        }
+
+        /* remove inline comments */
+        for (i = 0; i < strlen(templine); i++) {
+            if (templine[i] == '#') {
+                templine[i] =  '\0';
+                break;
+            }
         }
 
         if (VERBOSE(0) > 0) {
@@ -1430,10 +1438,15 @@ processFile(ego    context,             /* (in)  EGADS context */
                         if (status != EGADS_SUCCESS) {
                             elist[ilist] = elist[nlist-1];
                             nlist--;
-                        } else if (atype != ATTRREAL) {
-                            elist[ilist] = elist[nlist-1];
-                            nlist--;
-                        } else {
+                        } else if (atype == ATTRINT) {
+                            for (i = 0; i < alen; i++) {
+                                if (fabs(value-tempIlist[i]) > EPS06) {
+                                    elist[ilist] = elist[nlist-1];
+                                    nlist--;
+                                    break;
+                                }
+                            }
+                        } else if (atype == ATTRREAL) {
                             for (i = 0; i < alen; i++) {
                                 if (fabs(value-tempRlist[i]) > EPS06) {
                                     elist[ilist] = elist[nlist-1];
@@ -1441,6 +1454,9 @@ processFile(ego    context,             /* (in)  EGADS context */
                                     break;
                                 }
                             }
+                        } else {
+                            elist[ilist] = elist[nlist-1];
+                            nlist--;
                         }
                     }
                 }

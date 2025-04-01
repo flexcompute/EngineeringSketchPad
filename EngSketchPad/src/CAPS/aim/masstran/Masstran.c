@@ -10,7 +10,7 @@
  */
 
 /*
- * Copyright (C) 2012/2022  John F. Dannenhoffer, III (Syracuse University)
+ * Copyright (C) 2011/2025  John F. Dannenhoffer, III (Syracuse University)
  *
  * This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
@@ -70,7 +70,7 @@ MAT1    MID     E       G       NU      RHO     A       TREF    GE
 */
 
 typedef struct {
-    int    cp;        /* coordinate ID (bias-1) */ 
+    int    cp;        /* coordinate ID (bias-1) */
     double x1;        /* location of point in cp */
     double x2;
     double x3;
@@ -94,7 +94,7 @@ typedef struct {
 
 typedef struct {
     int    mid;       /* material ID (bias-1) */
- 
+
    double T;         /* thickness */
 } prop_T;
 
@@ -161,7 +161,7 @@ void nextCard(FILE *fp, char name[], double fields[])
 
         /* pull out the fields */
         for (ifield = 2; ifield < 11; ifield++) {
-        
+
             jchar = 0;
             while (ichar < strlen(card)) {
                 if (card[ichar] != ',') {
@@ -329,7 +329,7 @@ int main(int argc, char *argv[])
     double Cx, Cy, Cz, CGx, CGy, CGz;
     double xelem[4], yelem[4], zelem[4], myArea, thick, density;
     double xcent, ycent, zcent;
-    
+
     FILE *fp;
 
     int igid, ngid=0;
@@ -390,7 +390,7 @@ int main(int argc, char *argv[])
         } else {
             printf("SKIPPING \"%s\"\n", name);
         }
-    }    
+    }
 
     printf("\nProblem size:\n");
     printf("     ngid=%5d\n", ngid);
@@ -499,7 +499,7 @@ int main(int argc, char *argv[])
             if        (igid < 0 || igid > ngid) {
                 printf("illegal elem[ieid=%d].g1=%d\n", ieid, igid);
                 status = EXIT_FAILURE;
-            } else if (grid[igid].cp < 0) {                
+            } else if (grid[igid].cp < 0) {
                 printf("illegal elem[ieid=%d].g1=%d\n", ieid, igid);
                 status = EXIT_FAILURE;
             }
@@ -508,7 +508,7 @@ int main(int argc, char *argv[])
             if        (igid < 0 || igid > ngid) {
                 printf("illegal elem[ieid=%d].g2=%d\n", ieid, igid);
                 status = EXIT_FAILURE;
-            } else if (grid[igid].cp < 0) {                
+            } else if (grid[igid].cp < 0) {
                 printf("illegal elem[ieid=%d].g2=%d\n", ieid, igid);
                 status = EXIT_FAILURE;
             }
@@ -517,7 +517,7 @@ int main(int argc, char *argv[])
             if        (igid < 0 || igid > ngid) {
                 printf("illegal elem[ieid=%d].g3=%d\n", ieid, igid);
                 status = EXIT_FAILURE;
-            } else if (grid[igid].cp < 0) {                
+            } else if (grid[igid].cp < 0) {
                 printf("illegal elem[ieid=%d].g3=%d\n", ieid, igid);
                 status = EXIT_FAILURE;
             }
@@ -546,7 +546,7 @@ int main(int argc, char *argv[])
             if        (igid < 0 || igid > ngid) {
                 printf("illegal elem[ieid=%d].g1=%d\n", ieid, igid);
                 status = EXIT_FAILURE;
-            } else if (grid[igid].cp < 0) {                
+            } else if (grid[igid].cp < 0) {
                 printf("illegal elem[ieid=%d].g1=%d\n", ieid, igid);
                 status = EXIT_FAILURE;
             }
@@ -555,7 +555,7 @@ int main(int argc, char *argv[])
             if        (igid < 0 || igid > ngid) {
                 printf("illegal elem[ieid=%d].g2=%d\n", ieid, igid);
                 status = EXIT_FAILURE;
-            } else if (grid[igid].cp < 0) {                
+            } else if (grid[igid].cp < 0) {
                 printf("illegal elem[ieid=%d].g2=%d\n", ieid, igid);
                 status = EXIT_FAILURE;
             }
@@ -564,7 +564,7 @@ int main(int argc, char *argv[])
             if        (igid < 0 || igid > ngid) {
                 printf("illegal elem[ieid=%d].g3=%d\n", ieid, igid);
                 status = EXIT_FAILURE;
-            } else if (grid[igid].cp < 0) {                
+            } else if (grid[igid].cp < 0) {
                 printf("illegal elem[ieid=%d].g3=%d\n", ieid, igid);
                 status = EXIT_FAILURE;
             }
@@ -573,7 +573,7 @@ int main(int argc, char *argv[])
             if        (igid < 0 || igid > ngid) {
                 printf("illegal elem[ieid=%d].g4=%d\n", ieid, igid);
                 status = EXIT_FAILURE;
-            } else if (grid[igid].cp < 0) {                
+            } else if (grid[igid].cp < 0) {
                 printf("illegal elem[ieid=%d].g4=%d\n", ieid, igid);
                 status = EXIT_FAILURE;
             }
@@ -598,7 +598,7 @@ int main(int argc, char *argv[])
             xcent  = (xelem[0] + xelem[1] + xelem[2]) / 3;
             ycent  = (yelem[0] + yelem[1] + yelem[2]) / 3;
             zcent  = (zelem[0] + zelem[1] + zelem[2]) / 3;
-            
+
             myArea = get_areaTri(xelem, yelem, zelem);
 
             thick   = 1;
@@ -616,7 +616,7 @@ int main(int argc, char *argv[])
             cxmom  += xcent * myArea;
             cymom  += ycent * myArea;
             czmom  += zcent * myArea;
-            
+
             cgxmom += xcent * myArea * density * thick;
             cgymom += ycent * myArea * density * thick;
             cgzmom += zcent * myArea * density * thick;
@@ -644,7 +644,7 @@ int main(int argc, char *argv[])
             xcent  = (xelem[0] + xelem[1] + xelem[2] + xelem[3]) / 4;
             ycent  = (yelem[0] + yelem[1] + yelem[2] + yelem[3]) / 4;
             zcent  = (zelem[0] + zelem[1] + zelem[2] + zelem[3]) / 4;
-            
+
             myArea = get_areaQuad(xelem, yelem, zelem);
 
             thick   = 1;
@@ -662,7 +662,7 @@ int main(int argc, char *argv[])
             cxmom  += xcent * myArea;
             cymom  += ycent * myArea;
             czmom  += zcent * myArea;
-            
+
             cgxmom += xcent * myArea * density * thick;
             cgymom += ycent * myArea * density * thick;
             cgzmom += zcent * myArea * density * thick;

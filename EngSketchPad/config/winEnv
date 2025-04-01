@@ -72,15 +72,24 @@ if [ "$CARCH" = UNKNOWN ]; then
 fi
 
 #
-# do we have ifort?
+# do we have ifort or ifx?
 #
 if [ -n "$EFCOMP" ]; then
-	if [ "$EFCOMP" != ifort ]; then
-		echo "WARNING - ignoring EFCOMP (set to '$EFCOMP') not set to 'ifort'!"
+	if [ "$EFCOMP" != ifort ] && [ "$EFCOMP" != ifx ]; then
+		echo "WARNING - ignoring EFCOMP (set to '$EFCOMP') not set to 'ifort' or 'ifx'!"
 		EFCOMP=UNKNOWN
 	fi
 else
 	EFCOMP=UNKNOWN
+fi
+
+if [ "$EFCOMP" = UNKNOWN ]; then
+	type ifx >& tmp
+	read word0 word1 word2 word3 < tmp
+	rm tmp
+	if [ "$word2" != not ]; then
+		EFCOMP=ifx
+	fi
 fi
 
 if [ "$EFCOMP" = UNKNOWN ]; then
@@ -115,6 +124,7 @@ case "$CCREV" in
 19.1*)  MSVC=2017 ;;
 19.2*)  MSVC=2019 ;;
 19.3*)  MSVC=2022 ;;
+19.4*)  MSVC=2022 ;;
 esac
 if [ "$MSVC" = UNKNOWN ]; then
 	echo "ERROR - Cannot Determine MS VC Revision $CCREV!"

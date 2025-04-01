@@ -409,7 +409,7 @@ cleanup:
   return status;
 }
 
-static int _combineVLM(char *type, int numfeaAero, feaAeroStruct feaAero[],
+static int _combineVLM(void *aimInfo, char *type, int numfeaAero, feaAeroStruct feaAero[],
                        int combineID, feaAeroStruct *combine) // Combine should already be initiated
 {
 
@@ -571,7 +571,7 @@ static int _combineVLM(char *type, int numfeaAero, feaAeroStruct feaAero[],
     }
 
     // Order cross sections for the surface - just in case
-    status = vlm_orderSections(combine->vlmSurface.numSection, combine->vlmSurface.vlmSection);
+    status = vlm_orderSections(aimInfo, combine->vlmSurface.numSection, combine->vlmSurface.vlmSection);
     if (status != CAPS_SUCCESS) goto cleanup;
 
     status = CAPS_SUCCESS;
@@ -681,6 +681,7 @@ static int createVLMMesh(void *instStore, void *aimInfo, capsValue *aimInputs)
         status = get_vlmControl(aimInfo,
                                 aimInputs[VLM_Control -1].length,
                                 aimInputs[VLM_Control -1].vals.tuple,
+                                astrosInstance->units.length == NULL ? NULL : "degree",
                                 &numVLMControl,
                                 &vlmControl);
 
@@ -757,9 +758,9 @@ static int createVLMMesh(void *instStore, void *aimInfo, capsValue *aimInputs)
             // Get surface Name - copy from original surface
             AIM_STRDUP(astrosInstance->feaProblem.feaAero[surfaceIndex].name, vlmSurface[i].name, aimInfo, status);
 
-            // Get surface ID - Multiple by 1000 !!
+            // Get surface ID - Multiple by ASTROS_SURFID !!
             astrosInstance->feaProblem.feaAero[surfaceIndex].surfaceID =
-                                        1000*astrosInstance->feaProblem.numAero;
+                                        ASTROS_SURFID*astrosInstance->feaProblem.numAero;
 
             // ADD something for coordinate systems
 
@@ -1105,7 +1106,7 @@ static int createVLMMesh(void *instStore, void *aimInfo, capsValue *aimInputs)
 
             switch (type) {
                 case 0:
-                    status = _combineVLM("Wing",
+                    status = _combineVLM(aimInfo, "Wing",
                                          astrosInstance->feaProblem.numAero,
                                          astrosInstance->feaProblem.feaAero,
                                          1000*(feaAeroTempCombineCount+1),
@@ -1113,7 +1114,7 @@ static int createVLMMesh(void *instStore, void *aimInfo, capsValue *aimInputs)
                     if (status != CAPS_SUCCESS) goto cleanup;
                     break;
                 case 1:
-                    status = _combineVLM("Canard",
+                    status = _combineVLM(aimInfo, "Canard",
                                          astrosInstance->feaProblem.numAero,
                                          astrosInstance->feaProblem.feaAero,
                                          1000*(feaAeroTempCombineCount+1),
@@ -1122,7 +1123,7 @@ static int createVLMMesh(void *instStore, void *aimInfo, capsValue *aimInputs)
                     break;
 
                 case 2:
-                    status = _combineVLM("Fin",
+                    status = _combineVLM(aimInfo, "Fin",
                                          astrosInstance->feaProblem.numAero,
                                          astrosInstance->feaProblem.feaAero,
                                          1000*(feaAeroTempCombineCount+1),
@@ -1975,6 +1976,7 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
                 // Transfer external pressures from the AIM discrObj
                 status = fea_transferExternalPressure(aimInfo,
                                                       &astrosInstance->feaProblem.feaMesh,
+                                                      &astrosInstance->units,
                                                       &feaLoad[i]);
                 AIM_STATUS(aimInfo, status);
             } else if (feaLoad[i].loadType == ThermalExternal) {
@@ -2799,7 +2801,7 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
         if (j >= nGeomIn) continue;
 
         if(aim_getGeomInType(aimInfo, j+1) != 0) {
-            printf("Error: Geometric sensitivity not available for CFGPMTR = %s\n", geomInName);
+            AIM_ERROR(aimInfo, "Error: Geometric sensitivity not available for CFGPMTR = %s", geomInName);
             status = CAPS_NOSENSITVTY;
             goto cleanup;
         }

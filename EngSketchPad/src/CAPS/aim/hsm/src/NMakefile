@@ -29,7 +29,7 @@ start:
 	xcopy $(SDIR)\*.inc         /Q /Y
 
 $(TDIR)\hsmrun.exe:	$(LDIR)\hsm.lib hsmrun.f
-	ifort /Ox /threads /real-size:64 /I. hsmrun.f $(LDIR)\hsm.lib \
+	$(FCOMP) /Ox /threads /real-size:64 /I. hsmrun.f $(LDIR)\hsm.lib \
 		$(FLIBS) /Fe$(TDIR)\hsmrun.exe /link /NODEFAULTLIB:MSVCRT
 	
 $(LDIR)\hsm.lib:	$(FOBJS)
@@ -38,7 +38,7 @@ $(LDIR)\hsm.lib:	$(FOBJS)
 
 $(FOBJS):	gaussb.inc gaussq.inc gausst.inc index.inc
 .f.obj:
-	ifort /c $(FOPTS) /real-size:64 /I. $<
+	$(FCOMP) /c $(FOPTS) /real-size:64 /I. $<
 
 end:
 	-del *.f *.inc

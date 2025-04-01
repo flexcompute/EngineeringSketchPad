@@ -11,7 +11,9 @@ DESPMTR   zsize     "2;  1;  1.2;1;  2;"
 DESPMTR   thick     0.1
 CFGPMTR   nframe    5
 
-# fuselage sken
+SET       toler     1e-4
+
+# fuselage skin
 MARK
    PATBEG    i 5
       BOX    xloc[i]  -ysize[i]/2  -zsize[i]/2  0  ysize[i]  zsize[i]
@@ -86,9 +88,9 @@ MARK
 RULE  1
 
 RESTORE   longeron  1
-JOIN
+JOIN      toler
 RESTORE   longeron  2
-JOIN
+JOIN      toler
 STORE     fuselage
 
 # first zmin cross-piece
@@ -103,9 +105,9 @@ MARK
 RULE  1
 
 RESTORE   fuselage
-JOIN
+JOIN      toler
 RESTORE   longeron  3
-JOIN
+JOIN      toler
 STORE     fuselage
 
 # first zmax cross-piece
@@ -120,9 +122,9 @@ MARK
 RULE  1
 
 RESTORE   fuselage
-JOIN
+JOIN      toler
 RESTORE   longeron  4
-JOIN
+JOIN      toler
 STORE     fuselage
 
 # first ymax cross-piece
@@ -137,7 +139,7 @@ MARK
 RULE  1
 
 RESTORE   fuselage
-JOIN
+JOIN      toler
 STORE     fuselage
 
 # subsequent cross-pieces
@@ -155,7 +157,7 @@ PATBEG    jframe  nframe-1
    RULE  1
 
    RESTORE   fuselage
-   JOIN
+   JOIN      toler
    STORE     fuselage
 
    # zmin
@@ -170,7 +172,7 @@ PATBEG    jframe  nframe-1
    RULE  1
 
    RESTORE   fuselage
-   JOIN
+   JOIN      toler
    STORE     fuselage
 
    # zmax
@@ -185,7 +187,7 @@ PATBEG    jframe  nframe-1
    RULE  1
 
    RESTORE   fuselage
-   JOIN
+   JOIN      toler
    STORE     fuselage
 
    # ymax
@@ -200,7 +202,7 @@ PATBEG    jframe  nframe-1
    RULE  1
 
    RESTORE   fuselage
-   JOIN
+   JOIN      toler
    STORE     fuselage
 PATEND
 

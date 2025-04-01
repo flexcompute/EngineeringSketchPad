@@ -27,7 +27,7 @@ LIBS    += -pthread -lm
 WARNINGS = -Wall -Wno-dangling-else -Wno-parentheses -Wno-unused-result -Wno-format-truncation
 DEFINE   = -DREVISION=$(CASREV)
 CXX      = g++ -g $(ESPFLAGS)
-CPPOPT   = -O -fPIC -DOCC_CONVERT_SIGNALS -D_GNU_SOURCE=1 -DNDEBUG -DNo_Exception -D_OCC64 $(WARNINGS) $(CPDS)
+CPPOPT   = -O -fPIC -D_GNU_SOURCE=1 -DNDEBUG -D_OCC64 $(WARNINGS) $(CPDS)
 CC       = gcc -g $(ESPFLAGS)
 COPTS    = -O -fno-unit-at-a-time -fPIC $(WARNINGS)
 OCOPT    = -O -fno-unit-at-a-time -fPIC $(WARNINGS)
@@ -35,8 +35,8 @@ ifeq ($(EFCOMP),gfortran)
 FCOMP    = gfortran -g $(ESPFFLAGS)
 FOPTS    = -O -fPIC -frecursive -fcray-pointer
 endif
-ifeq ($(EFCOMP),ifort)
-FCOMP    = ifort -g -traceback
+ifneq (,$(filter $(EFCOMP),ifort ifx))
+FCOMP    = $(EFCOMP) -g -traceback
 FOPTS    = -O -fPIC -recursive
 endif
 LOPTS  = rs

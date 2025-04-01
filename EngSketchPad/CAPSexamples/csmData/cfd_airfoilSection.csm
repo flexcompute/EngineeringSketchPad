@@ -62,3 +62,81 @@ select body
   attribute capsReferenceSpan  span
   attribute capsReferenceChord croot
   attribute capsReferenceX     croot/4
+  
+# Define boxes for additional refinement
+box -ctip/2 -8*thick semispan-ctip/2  3*ctip 16*thick ctip
+select body
+  attribute cart3d_BBox 10
+
+ifthen aerosystem eq 1
+    rotatex   90        0        0
+endif
+
+box -ctip/4 -2*thick semispan-ctip/6  2*ctip 4*thick ctip/2
+select body
+  attribute cart3d_BBox 11
+
+ifthen aerosystem eq 1
+    rotatex   90        0        0
+endif
+
+# Create two point sensor
+point ctip*0.5 0 semispan+2*thick
+select body
+   attribute cart3d_Sensor $point1
+
+ifthen aerosystem eq 1
+    rotatex   90        0        0
+endif
+
+point ctip*1.5 0 semispan+2*thick
+select body
+   attribute cart3d_Sensor $point2
+
+ifthen aerosystem eq 1
+    rotatex   90        0        0
+endif
+
+# Create two line sensors
+skbeg croot*1.2 0 0
+   linseg ctip*1.2 0 semispan+2*thick
+skend
+select body
+   attribute cart3d_Sensor $line1
+
+ifthen aerosystem eq 1
+    rotatex   90        0        0
+endif
+
+skbeg 0 0 semispan+2*thick
+   linseg ctip*1.2 0 semispan+2*thick
+skend
+select body
+   attribute cart3d_Sensor $line2
+
+ifthen aerosystem eq 1
+    rotatex   90        0        0
+endif
+
+# Create two euivalent area line sensors
+skbeg croot*1.2 thick/2 0
+   linseg ctip*1.2 thick/2 semispan+2*thick
+skend
+select body
+   attribute cart3d_Sensor $eqline1
+   attribute cart3d_EqArea 0.1
+
+ifthen aerosystem eq 1
+    rotatex   90        0        0
+endif
+
+skbeg 0 thick/2 semispan+2*thick
+   linseg ctip*1.2 thick/2 semispan+2*thick
+skend
+select body
+   attribute cart3d_Sensor $eqline2
+   attribute cart3d_EqArea 0.05
+
+ifthen aerosystem eq 1
+    rotatex   90        0        0
+endif

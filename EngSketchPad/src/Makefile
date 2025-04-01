@@ -17,12 +17,14 @@ all:
 	(cd CAPS/src; make)
 	(cd ../CAPSexamples; make)
 	(cd CAPS/aim; make)
+	(cd CAPS/udp; make)
 	(cd OpenCSM; make -f serveESP.make)
 	@echo " "
 	@echo " *** Build Completed! ***"
 
 clean:
 	(cd OpenCSM; make -f serveESP.make clean)
+	(cd CAPS/udp; make clean)
 	(cd CAPS/aim; make clean)
 	(cd ../CAPSexamples; make clean)
 	(cd CAPS/src; make clean)
@@ -38,6 +40,7 @@ clean:
 
 cleanall:
 	(cd OpenCSM; make -f serveESP.make cleanall)
+	(cd CAPS/udp; make cleanall)
 	(cd CAPS/aim; make cleanall)
 	(cd ../CAPSexamples; make cleanall)
 	(cd CAPS/src; make cleanall)

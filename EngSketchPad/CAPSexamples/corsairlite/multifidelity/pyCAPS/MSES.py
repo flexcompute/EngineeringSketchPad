@@ -226,12 +226,12 @@ for vname in myProblem.parameter.keys():
     newX0[vname] = vl
 
 # Set initial guesses for new variables
-newX0['Alpha_p20_MSES_0'] = 22 * units.deg
-newX0['Alpha_p20_MSES_1'] = 22 * units.deg
-newX0['Alpha_p20_MSES_2'] = 19 * units.deg
-newX0['C_L_MSES_0'] = 0.5 * units.dimensionless
-newX0['C_L_MSES_1'] = 0.5 * units.dimensionless
-newX0['C_L_MSES_2'] = 0.2 * units.dimensionless
+newX0['Alpha_p20_MSES_0'] = 22.8 * units.deg
+newX0['Alpha_p20_MSES_1'] = 22.7 * units.deg
+newX0['Alpha_p20_MSES_2'] = 18.8 * units.deg
+newX0['C_L_MSES_0'] = 0.533 * units.dimensionless
+newX0['C_L_MSES_1'] = 0.532 * units.dimensionless
+newX0['C_L_MSES_2'] = 0.118 * units.dimensionless
 
 formulation.solverOptions.x0 = newX0
 formulation.solverOptions.solver = 'cvxopt'

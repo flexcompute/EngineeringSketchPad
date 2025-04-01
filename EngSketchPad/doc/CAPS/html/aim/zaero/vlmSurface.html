@@ -89,17 +89,20 @@ JSON String Dictionary</h1>
 <ul>
 <li>
 <b>numSpanTotal = 0</b>  <br  />
- Total number of spanwise horseshoe vortices placed on the surface. The vorticies are 'evenly' distributed across sections to minimize jumps in spacings. numpSpanPerSection must be zero if this is set. </li>
+ Total number of spanwise horseshoe vortices placed on the surface. The vorticies are 'evenly' distributed across sections to minimize jumps in spacings. numpSpanPerSection must be zero if this is set.<br  />
+ Note: The local spanwise count may be overridden using the <em>vlmNumSpan</em> BODY attribute on a section. </li>
 </ul>
 <ul>
 <li>
 <b>numSpanPerSection = 0</b>  <br  />
- The number of spanwise horseshoe vortices placed on each section the surface. The total number of spanwise vorticies are (numSection-1)*numSpanPerSection. The vorticies are 'evenly' distributed across sections to minimize jumps in spacings. numSpanTotal must be zero if this is set. </li>
+ The number of spanwise horseshoe vortices placed on each section the surface. The total number of spanwise vorticies are (numSection-1)*numSpanPerSection. The vorticies are 'evenly' distributed across sections to minimize jumps in spacings. numSpanTotal must be zero if this is set.<br  />
+ Note: The local spanwise count may be overridden using the <em>vlmNumSpan</em> BODY attribute on a section. </li>
 </ul>
 <ul>
 <li>
 <b>spaceSpan = 0.0</b>  <br  />
- The spanwise vortex spacing parameter. </li>
+ The spanwise vortex spacing parameter.<br  />
+ The local spacing may be overridden using the vlmSspace BODY attribute on a section. </li>
 </ul>
 <h1><a class="anchor" id="keyStringVLMSurface"></a>
 Single Value String</h1>

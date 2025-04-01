@@ -1,6 +1,6 @@
 #MAC OS 11.3 & up -- arm64 chip (clang):
 #
-EGREV   = 1.0.25
+EGREV   = 1.0.27
 
 LIBPATH = -L$(CASROOT)/$(CASARCH)/lib -L$(ESP_ROOT)/lib
 ifeq ($(CASREV),7.3)
@@ -29,7 +29,7 @@ endif
 
 DEFINE = -DREVISION=$(CASREV)
 CXX    = clang++ -g -target arm64-apple-darwin $(ESPFLAGS)
-CPPOPT = -O -fPIC -DOCC_CONVERT_SIGNALS -DNDEBUG -DNo_Exception -D_OCC64 -Wall -Wno-write-strings -Wno-dangling-else -Wno-unused-result $(CPDS) -ffp-model=strict
+CPPOPT = -O -fPIC -DNDEBUG -D_OCC64 -Wall -Wno-write-strings -Wno-dangling-else -Wno-unused-result $(CPDS) -ffp-model=strict
 CC     = clang -g -target arm64-apple-darwin $(ESPFLAGS)
 COPTS  = -O -Wall -Wno-dangling-else -Wno-unused-result
 OCOPT  = -O -Wall -Wno-dangling-else -Wno-unused-result
@@ -39,8 +39,8 @@ FOPTS     = -O -frecursive -fcray-pointer
 FSOFLG    = -bundle
 ESPFLIBS += -static-libgfortran -static-libgcc -Wl,-w
 endif
-ifeq ($(EFCOMP),ifort)
-FCOMP  = ifort -g -traceback
+ifneq (,$(filter $(EFCOMP),ifort ifx))
+FCOMP  = $(EFCOMP) -g -traceback
 FOPTS  = -O -recursive
 FSOFLG = -nofor-main -Wl,-bundle
 endif

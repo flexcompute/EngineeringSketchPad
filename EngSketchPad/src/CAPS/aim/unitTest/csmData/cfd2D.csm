@@ -10,7 +10,7 @@ despmtr sharpTE 1
 
 # Global attributes:
 attribute capsIntent $CFD
-attribute capsAIM $fun3dAIM;su2AIM;egadsTessAIM;aflr2AIM;delaundoAIM;refineAIM #CFD Analysis
+attribute capsAIM $fun3dAIM;su2AIM;egadsTessAIM;aflr2AIM;delaundoAIM;refineAIM;metrisAIM #CFD Analysis
 attribute capsMeshLength 1
 
 # Build wind tunnel

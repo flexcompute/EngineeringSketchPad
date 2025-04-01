@@ -81,7 +81,7 @@ patend
 patbeg iface  6
     select face iface
         getattr nattr $_nattr_
-        assert  nattr 7
+        assert  nattr 8
 
         patbeg iattr nattr
             getattr attrName  iattr
@@ -127,7 +127,7 @@ patend
 patbeg iface  4
     select face iface
         getattr nattr $_nattr_
-        assert  nattr 7
+        assert  nattr 8
 
         patbeg iattr nattr
             getattr attrName  iattr

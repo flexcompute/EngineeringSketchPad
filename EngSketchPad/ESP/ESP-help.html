@@ -17,9 +17,9 @@
   </head>
 
   <body>
-    <p><h1 align=center>Engineering Sketch Pad (ESP) Version 1.25</h1>
+    <p><h1 align=center>Engineering Sketch Pad (ESP) Version 1.27</h1>
     <p><h3>Authors: John F. Dannenhoffer, III (jfdannen@syr.edu)</h3>
-    <p><h3>Date: June 2024.</h3>
+    <p><h3>Date: March 2025.</h3>
 
     <p><h3 align=center><img src="esp_logo.png" width="400"/></h3>
 
@@ -47,10 +47,11 @@
     <p>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#sec5.6">5.6 User-defined Components shipped with OpenCSM</a>
     <p>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#sec5.7">5.7 Number rules</a>
     <p>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#sec5.8">5.8 String rules</a>
-    <p>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#sec5.9">5.9 Parameter rules</a>
-    <p>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#sec5.10">5.10 Expression rules</a>
-    <p>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#sec5.11">5.11 Attribute rules</a>
-    <p>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#sec5.12">5.12 Format of the plotfile</a>
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#sec5.9">5.9 Filename rules</a>
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#sec5.10">5.10 Parameter rules</a>
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#sec5.11">5.11 Expression rules</a>
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#sec5.12">5.12 Attribute rules</a>
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#sec5.13">5.13 Format of the plotfile</a>
     <p><a href="#sec6">6.0 Example <code>.csm</code> file</a>
     <p><a href="#sec7">7.0 Frequently Asked Questions</a>
     <p><a href="#sec8">8.0 Release notes</a>
@@ -904,7 +905,7 @@
               the volume of the Body just built.  To see all the
               AtParameters, press the <b>+</b> to the left of
               "@-parameters" for a full list; the meanings of these
-              are described in the <a href="#sec5.9">Parameter
+              are described in the <a href="#sec5.10">Parameter
               rules</a> section in the latter
               part of the help file.</li>
         </ul>
@@ -1367,7 +1368,7 @@
        the length, height, and depth away from the origin.
 
     <p>In <code>ESP</code>, expressions follow the same syntax as most
-       modern computer languages. See <a href="#sec5.10">Expression
+       modern computer languages. See <a href="#sec5.11">Expression
        rules</a> for complete details.
 
     <p>Line 12:
@@ -1814,7 +1815,7 @@
        well as any Faces created when the <code>CYLIDER</code> was
        being created.  Hence all the Faces will be marked as being
        part of the "disk" (via the "myPart" Attribute) and will be
-       colored "red".  See the section on <a href="#sec5.11">Attribute
+       colored "red".  See the section on <a href="#sec5.12">Attribute
        rules</a> below for details about special Attributes, such as
        "_color".
 
@@ -1944,7 +1945,7 @@
             second argument would just be <code>hole:diam_circ/2*cosd(theta)</code>);
             and</li>
         <li><code>ESP</code> has many built-in function (described in the
-            <a href="#sec5.10">Expression rules</a> part of this
+            <a href="#sec5.11">Expression rules</a> part of this
             document).  In particular, <code>cosd()</code> takes the
             cosine of its argument in degrees.</li>
       </ul>
@@ -3494,7 +3495,7 @@
 
         # union this with the disc into a complete skeleton
         RESTORE   disc
-        JOIN      1e-2
+        JOIN      3e-2
         STORE     SheetModel
       </pre>
       It begins by <code>EXTRACT</code>ing the Faces from the
@@ -3527,7 +3528,7 @@
     <p>In lines 274 to 276:
       <pre>
         RESTORE   disc
-        JOIN      1e-2
+        JOIN      3e-2
         STORE     SheetModel
       </pre>
        the "disc" that was <code>STORE</code>d above
@@ -6861,6 +6862,8 @@ serveESP ../data/legacy/tutorial3 -loadEgads
                                 -plotCP
                                 -plugs npass
                                 -port X
+                                -printAttrs
+                                -printPmtrs
                                 -printStack
                                 -ptrb ptrbname
                                 -skipBuild
@@ -6948,7 +6951,7 @@ serveESP ../data/legacy/tutorial3 -loadEgads
     <p>The <code>-plot</code> option provides a <code>plotfile</code>
        file that contains X,Y,Z triplets of points to be plotted in
        ESP with the label <code>plotdata</code>.
-       See <a href="#sec5.12">Section 5.12</a> for details.
+       See <a href="#sec5.13">Section 5.13</a> for details.
 
     <p>The <code>-plotBDF</code> option plots the GRIDs, CRODs, and
        CQUAD4s in the associated <code>.bdf</code> file (which can be
@@ -6968,6 +6971,13 @@ serveESP ../data/legacy/tutorial3 -loadEgads
        which port to connect.  If a port other than the default is
        used, be certain to use that same port number
        in <code>ESP</code>'s initial prompt.
+
+    <p>The <code>-printAttrs</code> option tells <code>OpenCSM</code>
+        to print out the attributes of the Body on the top of the
+        stack after every command is executed.
+
+    <p>The <code>-printPmtrs</code> option tells <code>OpenCSM</code>
+        to print out the parameter after every command is executed.
 
     <p>The <code>-printStack</code> option tells <code>OpenCSM</code>
         to print out the contents of the stack after every command is
@@ -7056,7 +7066,7 @@ serveESP ../data/legacy/tutorial3 -loadEgads
 
     <p>Parameters are evaluated in the order that they appear in the
        file, using MATLAB-like syntax (see
-       <a href="#sec5.10">'Expression rules'</a> below).
+       <a href="#sec5.11">'Expression rules'</a> below).
 
     <p>During the build process, <code>OpenCSM</code> maintains a LIFO
        'Stack' that can contain Bodies and Sketches.
@@ -7300,7 +7310,7 @@ serveESP ../data/legacy/tutorial3 -loadEgads
         </tr>
         <tr><td></td>
           <td><a href="#reorder">reorder</a></td>
-          <td>ishift iflip=0</td>
+          <td>ishift iflip=0 reverse=0</td>
         </tr>
         <tr>
           <td><b>Sketch</b></td>
@@ -7398,11 +7408,11 @@ serveESP ../data/legacy/tutorial3 -loadEgads
         </tr>
         <tr><td></td>
           <td><a href="#ifthen">ifthen</a></td>
-          <td>val1 $op1 val2 $op2=and val3=0 $op3=eq val4=0</td>
+          <td>val1 $op1=ne val2=0 $op2=and val3=0 $op3=eq val4=0</td>
         </tr>
         <tr><td></td>
           <td><a href="#elseif">elseif</a></td>
-          <td>val1 $op1 val2 $op2=and val3=0 $op3=eq val4=0</td>
+          <td>val1 $op1=ne val2=0 $op2=and val3=0 $op3=eq val4=0</td>
         </tr>
         <tr><td></td>
           <td><a href="#else">else</a></td>
@@ -7713,6 +7723,8 @@ BLEND     begList=0 endList=0 reorder=0 oneFace=0 periodic=0 copyAttr=0
         <a href="examples/blend_9.html"> <img src="examples/blend_9.png" width="200px"></a>
         <a href="examples/blend_10.html"> <img src="examples/blend_10.png" width="200px"></a>
         <a href="examples/blend_11.html"> <img src="examples/blend_11.png" width="200px"></a>
+        <a href="examples/blend_12.html"> <img src="examples/blend_12.png" width="200px"></a>
+        <a href="examples/blend_13.html"> <img src="examples/blend_13.png" width="200px"></a>
       <p><h3 id="box">box</h3>
         <!-- extract from OpenCSM.h -->
         <pre>
@@ -7759,6 +7771,7 @@ CATBEG    sigCode
                      $illegal_csystem
                      $illegal_pmtr_index
                      $illegal_pmtr_name
+                     $illegal_func_name
                      $illegal_value
                      $insufficient_bodys_on_stack
                      $name_not_found
@@ -8091,7 +8104,7 @@ DIMENSION $pmtrName nrow ncol
       <p><h3 id="dump">dump</h3>
         <!-- extract from OpenCSM.h -->
         <pre>
-DUMP      $filename remove=0 toMark=0 withTess=0 $grpName=.
+DUMP      $filename remove=0 toMark=0 withTess=0 $grpName=. putColors=0
           use:    write a file that contains the Body
           pops:   Body1 (if remove=1)
           pushes: -
@@ -8105,6 +8118,7 @@ DUMP      $filename remove=0 toMark=0 withTess=0 $grpName=.
                      are combined into a single model
                   if toMark=1, the remove flag is ignored
                   if withTess!=0, add tessellations to .egads file
+                  if putColors==1, write _colors as Colors in STP/IGS file
                   for .ugrid files, toMark must be 0
                   valid filetypes are:
                      .brep   .BREP   --> OpenCASCADE output
@@ -8175,7 +8189,7 @@ ELSE
       <p><h3 id="elseif">elseif</h3>
         <!-- extract from OpenCSM.h -->
         <pre>
-ELSEIF    val1 $op1 val2 $op2=and val3=0 $op3=eq val4=0
+ELSEIF    val1 $op1=ne val2=0 $op2=and val3=0 $op3=eq val4=0
           use:    execute or skip a sequence of Branches
           pops:   -
           pushes: -
@@ -8259,6 +8273,13 @@ EVALUATE  $type arg1 ...
                         x,      y,      z,
                         dxdt,   dydt,   dzdt,
                         d2xdt2, d2ydt2, d2zdt2
+                  elseif arguments are" "edgebbox ibody iedge"
+                     ibody is Body number (1:nbody)
+                     iedge is Edge number (1:nedge)
+                     returns bounding box
+                     return in @edata:
+                        xmin, ymin, zmin,
+                        xmax, ymax, zmax
                   elseif arguments are: "edgerng ibody iedge"
                      ibody is Body number (1:nbody)
                      iedge is Edge number (1:nedge)
@@ -8270,7 +8291,8 @@ EVALUATE  $type arg1 ...
                      inverse evaluate Edge at given (x,y,z)
                      return in @edata:
                         t,
-                        xclose,  yclose,  zclose
+                        xclose,  yclose,  zclose,
+                        tbar
                   elseif arguments are: "edgekt ibody iedge"
                      ibody is Body number (1:nbody)
                      iedge is Edge number (1:nedge)
@@ -8281,6 +8303,11 @@ EVALUATE  $type arg1 ...
                      iedge is Edge number (1:nedge)
                      return in @edata:
                         xcp1 ycp1 zcp1 xcp2 ycp2 ...
+                  elseif arguments are: "edgetess ibody iedge"
+                     ibody is Body number (1:nbody)
+                     iedge is Edge number (1:nedge)
+                     return in @edata:
+                        npnt
                   elseif arguments are: "face ibody iface u v"
                      ibody is Body number (1:nbody)
                      iface is Face number (1:nface)
@@ -8294,6 +8321,13 @@ EVALUATE  $type arg1 ...
                         d2xdudv, d2ydudv, d2zdudv,
                         d2xdv2,  d2ydv2,  d2zdv2,
                         normx,   normy,   normz
+                  elseif arguments are: "facebbox ibody iface"
+                     ibody is Body number (1:nbody)
+                     iface is Face number (1:nface)
+                     returns bounding box
+                     return in @edata:
+                        xmin, ymin, zmin,
+                        xmax, ymax, zmax
                   elseif arguments are: "facerng ibody iface"
                      ibody is Body number (1:nbody)
                      iface is Face number (1:nface)
@@ -8305,7 +8339,8 @@ EVALUATE  $type arg1 ...
                      inverse evaluate Face at given (x,y,z)
                      return in @edata:
                         u,       v,
-                        xclose,  yclose,  zclose
+                        xclose,  yclose,  zclose,
+                        ubar,    vbar
                   elseif arguments are: "faceukt ibody iface"
                      ibody is Body number (1:nbody)
                      iface is Face number (1:nface)
@@ -8321,6 +8356,40 @@ EVALUATE  $type arg1 ...
                      iface is Face number (1:nface)
                      return in @edata:
                         xcp1, ycp1, zcp1, xcp2, ycp2, ...
+                  elseif arguments are: "facetess ibody iface"
+                     ibody is Body number (1:nbody)
+                     iface is Face number (1:nface)
+                     return in @edata:
+                        npnt, ntri
+                  elseif arguments are: "dist +ibody1 +ibody2"
+                     ibody1 and ibody2 are Body numbers (1:nbody)
+                     if ibody1 is a SolidBody
+                        dist>0 is minimum distance between neighboring Bodys
+                        dist<0 is maximum intrusion of ibody2 into ibody1
+                               (and is computed approximately)
+                     else
+                        dist>0 is minimum distance between neighboring Bodys
+                     return in @edata:
+                        dist (between),
+                        A1, B1, C1, x1, y1, z1,
+                        A2, B2, C2, x2, y2, z2
+                        (where A,B,C can be: +iface, u, v
+                                         or: -iedge, t, 0
+                                         or: 0, +inode, 0)
+                  elseif arguments are: "dist -ibody1 +ibody2"
+                     ibody1 and ibody2 are Body numbers (1:nbody)
+                     ibody1 must be SolidBody
+                     ibody2 can be NodeBody, WireBody, SheetBody, or SolidBody
+                     dist>0 is minimum distance of ibody2 to enclosing ibody1
+                     dist<0 is maximum protrusion of ibody2 out of ibody1
+                            (and is computed approximately)
+                     return in @edata:
+                        dist (inside),
+                        A1, B1, C1, x1, y1, z1,
+                        A2, B2, C2, x2, y2, z2
+                        (where A,B,C can be: +iface, u, v
+                                         or: -iedge, t, 0
+                                         or: 0, +inode, 0)
                   cannot be followed by ATTRIBUTE or CSYSTEM
                   causes finite difference sensitivities
                   signals that may be thrown/caught:
@@ -8441,11 +8510,10 @@ GETATTR   $pmtrName attrID global=0
           use:    store an Attribute value(s) in a LOCALVAR
           pops:   -
           pushes: -
-          Notes:  pmtrName must be in form 'name', without subscripts
+          notes:  pmtrName must not contain subscripts
                   pmtrName must not start with '@'
                   pmtrName must not refer to an DESPMTR/CONPMTR Parameter
                   pmtrName will be marked as LOCALVAR (or OUTPMTR)
-                  pmtrName is used directly (without evaluation)
                   the type of pmtrName is changed to match the result
                   if global==0, then
                      applies to Attributes on the selected Body
@@ -8554,7 +8622,7 @@ HOLLOW    thick=0 entList=0 listStyle=0
       <p><h3 id="ifthen">ifthen</h3>
         <!-- extract from OpenCSM.h -->
         <pre>
-IFTHEN    val1 $op1 val2 $op2=and val3=0 $op3=eq val4=0
+IFTHEN    val1 $op1=ne val2=0 $op2=and val3=0 $op3=eq val4=0
           use:    execute or skip a Block of Branches
           pops:   -
           pushes: -
@@ -8571,7 +8639,7 @@ IFTHEN    val1 $op1 val2 $op2=and val3=0 $op3=eq val4=0
       <p><h3 id="import">import</h3>
         <!-- extract from OpenCSM.h -->
         <pre>
-IMPORT    $filename bodynumber=1
+IMPORT    $filename bodynumber=1 getcolors=0
           use:    import from filename
           pops:   -
           pushes: Body
@@ -8580,6 +8648,7 @@ IMPORT    $filename bodynumber=1
                   filename is used directly (without evaluation)
                   if filename starts with '$$/', use path relative to .csm file
                   if bodynumber=-1, then all Bodys are returned in one Group
+                  if getcolors==1, read Colors in STP/IGS files as _color
                   sets up @-parameters
                   the Faces all receive the Branch's Attributes
                   face-order is based upon order in file
@@ -8716,6 +8785,8 @@ JOIN      toler=0 toMark=0
                      create (possibly non-manifold) WireBody by joining
                         Body1 and Body2 at common Nodes
                   endif
+                  if toler<0, skip bounding box check for Faces when
+                              JOINing SolidBodys (and use abs(toler))
                   change in v1.19: if common Edges are not found, return
                                    $edge_not_found
                   sets up @-parameters
@@ -8917,9 +8988,10 @@ PATBEG    $pmtrName ncopy
           pushes: -
           notes:  Solver may not be open
                   Block contains all Branches up to matching PATEND
+                  pmtrName must not be an array name or contain subscripts
                   pmtrName must not start with '@'
+                  pmtrName must not refer to an DESPMTR/CONPMTR Parameter
                   pmtrName takes values from 1 to ncopy (see below)
-                  pmtrName is used directly (without evaluation)
                   cannot be followed by ATTRIBUTE or CSYSTEM
         </pre>
       <p>
@@ -9006,7 +9078,7 @@ RECALL    imacro
       <p><h3 id="reorder">reorder</h3>
         <!-- extract from OpenCSM.h -->
         <pre>
-REORDER   ishift iflip=0
+REORDER   ishift iflip=0 reverse=0
           use:    change the order of Edges in a Body
           pops:   Body1
           pushes: Body
@@ -9017,6 +9089,8 @@ REORDER   ishift iflip=0
                   Body1 must be either WireBody or SheetBody Body
                   Body1 must contain 1 Loop
                   if the Loop is open, ishift must be 0
+                  if iflip=1 the Face normal direction is flipped
+                  if reverse=1 the sense of the Edges are flipped
                   signals that may be thrown/caught:
                      $insufficient_bodys_on_stack
                      $wrong_types_on_stack
@@ -9037,7 +9111,7 @@ RESTORE   $name index=0
                   if $name is .. then duplicate Bodys to Mark (incl Mark)
                   if $name is ... then duplicate whole stack
                   if index<0, get all Bodys that match $name
-                  sets up @-parameters
+                  sets up @-paorameters
                   error results if nothing has been stored in name
                   the Faces all receive the Branch's Attributes
                   signals that may be thrown/caught:
@@ -9246,8 +9320,10 @@ SELECT    $type arg1 ...
                      uses @selbody
                      if xmin=xmax and ymin=ymax and zmin=zmax
                         sets @sellist to Face whose center is closest to xmin,ymin,zmin
+                     elseif *max>=*min
+                        sets @sellist to Faces whose bboxs are completely in or on given * range
                      else
-                        sets @sellist to Faces whose bboxs are completely in given range
+                        sets @sellist to Faces whose bboxs are partially in or on given * range
                   elseif arguments are: "face -1 ibody1"
                      sets @seltype to 2
                      uses @selbody
@@ -9290,8 +9366,10 @@ SELECT    $type arg1 ...
                      uses @selbody
                      if xmin=xmax and ymin=ymax and zmin=zmax
                         sets @sellist to Edge whose center is closest to xmin,ymin,zmin
+                     elseif *max>=*min
+                        sets @sellist to Edges whose bboxs are completely in or on given * range
                      else
-                        sets @sellist to Edges whose bboxs are completely in given range
+                        sets @sellist to Edges whose bboxs are partially in or on given * range
                   elseif arguments are: "edge attrName1    attrValue1
                                               attrName2=$* attrValue2=$*
                                               attrName3=$* attrValue3=$*"
@@ -9396,6 +9474,7 @@ SELECT    $type arg1 ...
 
                   Face specifications are stored in _faceID Attribute
                   Edge specifications are stored in _edgeID Attribute
+//                Node specifications are stored in _nodeID Attribute
                   iseq selects from amongst multiple Faces/Edges/Nodes that
                      match the ibody/iford specifications
                   attrNames and attrValues can be wild-carded with $*
@@ -9427,7 +9506,6 @@ SET       $pmtrName exprs
                   pmtrName must not start with '@'
                   pmtrName must not refer to an DESPMTR/CONPMTR Parameter
                   pmtrName will be marked as LOCALVAR (or OUTPMTR)
-                  pmtrName is used directly (without evaluation)
                   irow and icol cannot contain a comma or open bracket
                   if exprs has multiple values (separated by ;), then
                      any subscripts in pmtrName are ignored
@@ -9714,7 +9792,7 @@ STORE     $name index=0 keep=0
         <!-- extract from OpenCSM.h -->
         <pre>
 SUBTRACT  $order=none index=1 maxtol=0 scribeAll=0
-          use:    perform Boolean subtraction (Body2 - Body1)
+          use:    perform Boolean subtraction (Body1 - Body2)
           pops:   Body1 Body2
           pushes: Body
           notes:  Sketch may not be open
@@ -10115,17 +10193,19 @@ UNION     toMark=0 trimList=0 maxtol=0
         <tr><td><a href="#printEgo_udf">printEgo</a></td></tr>
         <tr><td><a href="#prop_udp">prop</a></td></tr>
         <tr><td><a href="#radwaf_udp">radwaf</a></td></tr>
+        <tr><td><a href="#runCAD_udp">runCAD</a></td></tr>
         <tr><td><a href="#sample_udp">sample</a></td></tr>
         <tr><td><a href="#sew_udp">sew</a></td></tr>
         <tr><td><a href="#shadow_udf">shadow</a></td></tr>
         <tr><td><a href="#slices_udf">slices</a></td></tr>
         <tr><td><a href="#stag_udp">stag</a></td></tr>
+        <tr><td><a href="#splitFace_udf">splitFace</a></td></tr>
         <tr><td><a href="#stiffener_udf">stiffener</a></td></tr>
         <tr><td><a href="#supell_udp">supell</a></td></tr>
         <tr><td><a href="#tblade_udp">tblade</a></td></tr>
         <tr><td><a href="#waffle_udp">waffle</a></td></tr>
         <tr><td><a href="#vsp3_udp">vsp3</a></td></tr>
-        <tr><td><a href="#warp_udp">warp</a></td></tr>
+        <tr><td><a href="#warp_udf">warp</a></td></tr>
       </table>
 
       <p><h3 id="bezier_udp">bezier (udp)</h3>
@@ -10243,6 +10323,7 @@ UDPRIM bspline
           weights     vector of weights (only if rational)
           udegree     degree in U direction    [default 3]
           vdegree     degree in V direction    [default 3]
+          filename    alternative inputs via file (see EGADS for format)
        output arguments:
        usage:
           if vknots is given
@@ -10253,6 +10334,8 @@ UDPRIM bspline
       <p>
         <a href="examples/bspline_udp_1.html"> <img src="examples/bspline_udp_1.png" width="200px"></a>
         <a href="examples/bspline_udp_2.html"> <img src="examples/bspline_udp_2.png" width="200px"></a>
+        <a href="examples/bspline_udp_3.html"> <img src="examples/bspline_udp_3.png" width="200px"></a>
+        <a href="examples/bspline_udp_4.html"> <img src="examples/bspline_udp_4.png" width="200px"></a>
       <p><h3 id="catmull_udf">catmull (udf)</h3>
       <pre>
 UDPRIM catmull Body
@@ -10472,7 +10555,7 @@ UDPRIM eqn2body
            urange[2]  range of u
            vrange[2]  range of v (or blank to create WireBody)
            toler      fitting tolerance       [default 1e-5]
-           npnt       number of points infit  [default 101]
+           npnt       number of points in fit [default 101]
        output arguments:
        usage:
            if vrange is specified
@@ -10680,6 +10763,8 @@ UDPRIM import
            filename   name of file1 (prepended with '$' or '$$/')
            bodynumber number of body within filename (bias-1)   [default 1]
                   if bodynumber=-1, then all Bodys are returned in one Group
+           getcolors  if getcolors=1, get Colors from STP/IGS   [default 0]
+                  as _color attribute
        output arguments:
            numbodies  number of bodys in file
        usage:
@@ -10767,7 +10852,7 @@ UDPRIM naca
            sharpte    =1 to change thickness for sharp TE [default 0  ]
        output arguments:
        usage:
-           if (camber == 0 && maxloc == 0.4 && thickness <= 0)
+           if (camber == 0 && maxloc == 0.4 && thickness == 0)
                extract camber, maxloc, and thickness from series
            endif
            if (thickness==0)
@@ -10866,7 +10951,7 @@ UDPRIM nacelle Body
            length     length of nacells
            deltah     difference in height between front
                           and aft super-ellipses       [default 0]
-           rankang    front rake angle (deg)           [default 0]
+           rakeang    front rake angle (deg)           [default 0]
        output arguments:
        usage:
            the inlet Body is automatically scaled 0<=x<=1
@@ -10897,6 +10982,7 @@ UDPRIM nuscale Body
            ycent      center of scaling in Y-direction  [default 0]
            zcent      center of scaling in Z-direction  [default 0]
            mincp      minimum control points            [default 1]
+           mindeg     minimum degree                    [default 1]
            showsize   =1 to show size of all BSPLINEs   [default 0]
        output arguments:
        usage:
@@ -11095,6 +11181,20 @@ UDPRIM radwaf
       </pre>
       <p>
         <a href="examples/radwaf_udp_1.html"> <img src="examples/radwaf_udp_1.png" width="200px"></a>
+      <p><h3 id="runCAD_udp">runCAD (udp)</h3>
+      <pre>
+UDPRIM runCAD
+       input arguments (specified as name/value pairs):
+           toolname   name of executable
+           casename   name of embedded .csm file
+           pmtrs      list of parameters that cause no recycling
+           outLevel   output level
+       output arguments:
+       usage:
+           call an external CAD program to generate .stp and .dots files
+      </pre>
+      <p>
+        <a href="examples/runCAD_udp_1.html"> <img src="examples/runCAD_udp_1.png" width="200px"></a>
       <p><h3 id="sample_udp">sample (udp)</h3>
       <pre>
 UDPRIM sample
@@ -11186,6 +11286,23 @@ UDPRIM stag
       </pre>
       <p>
         <a href="examples/stag_udp_1.html"> <img src="examples/stag_udp_1.png" width="200px"></a>
+      <p><h3 id="splitFace_udf">splitFace (udf)</h3>
+      <pre>
+UDPRIM splitFace Body
+       input arguments (specified as name/value pairs):
+           iface       Face index (bias-1)
+           beg         either 1 value:  Node index (bias 1) at beg
+                              2 values: (u;v) in Face iface at beg
+                              3 values: (x;y;z) at beg
+           end         either 1 value:  Node index (bias 1) at end
+                              2 values: (u;v) in Face iface at end
+                              3 values: (x;y;z) at end
+       output arguments:
+       usage:
+           splits a Face on a straight (u,v) line between beg and end
+      </pre>
+      <p>
+        <a href="examples/splitFace_udf_1.html"> <img src="examples/splitFace_udf_1.png" width="200px"></a>
       <p><h3 id="stiffener_udf">stiffener (udf)</h3>
       <pre>
 UDPRIM stiffener Body
@@ -11204,25 +11321,34 @@ UDPRIM stiffener Body
       <pre>
 UDPRIM supell
        input arguments (specified as name/value pairs):
-           rx        width  in X-direction                     [default 0]
-           rx_w      width  on left   (west)  side             [default 0]
-           rx_e      width  on right  (east)  side             [default 0]
-           ry        height in Y-direction                     [default 0]
-           ry_s      height on bottom (south) side             [default 0]
-           ry_n      height on top    (north) side             [default 0]
-           n         superellipse power                        [default 2]
-           n_w       superellipse power on left   (west ) side [default 2]
-           n_e       superellipse power on right  (east ) side [default 2]
-           n_s       superellipse power on bottom (south) side [default 2]
-           n_n       superellipse power on top    (north) side [default 2]
-           n_sw      superellipse power in southwest quadrant  [default 2]
-           n_se      superellipse power in southeast quadrant  [default 2]
-           n_nw      superellipse power in northwest quadrant  [default 2]
-           n_ne      superellipse power in northeast quadrant  [default 2]
-           offset    create offset (>0 for larger)             [default 0]
-           nquad     =1 ne wire, =2 ne/nw wire, =4 sheet       [default 4]
-           numpnts   number of points in each quadrant         [default 11]
-           slpfact   distance at ends to specify slope         [default 0]
+           rx        width  in X-direction                       [default 0]
+           rx_w      width  on left   (west)  side               [default 0]
+           rx_e      width  on right  (east)  side               [default 0]
+           ry        height in Y-direction                       [default 0]
+           ry_s      height on bottom (south) side               [default 0]
+           ry_n      height on top    (north) side               [default 0]
+           m         superellipse x power                        [default 0]
+           m_w       superellipse x power on left   (west ) side [default 0]
+           m_e       superellipse x power on right  (east ) side [default 0]
+           m_s       superellipse x power on bottom (south) side [default 0]
+           m_n       superellipse x power on top    (north) side [default 0]
+           m_sw      superellipse x power in southwest quadrant  [default 0]
+           m_se      superellipse x power in southeast quadrant  [default 0]
+           m_nw      superellipse x power in northwest quadrant  [default 0]
+           m_ne      superellipse x power in northeast quadrant  [default 0]
+           n         superellipse y power                        [default 2]
+           n_w       superellipse y power on left   (west ) side [default 2]
+           n_e       superellipse y power on right  (east ) side [default 2]
+           n_s       superellipse y power on bottom (south) side [default 2]
+           n_n       superellipse y power on top    (north) side [default 2]
+           n_sw      superellipse y power in southwest quadrant  [default 2]
+           n_se      superellipse y power in southeast quadrant  [default 2]
+           n_nw      superellipse y power in northwest quadrant  [default 2]
+           n_ne      superellipse y power in northeast quadrant  [default 2]
+           offset    create offset (>0 for larger)               [default 0]
+           nquad     =1 ne wire, =2 ne/nw wire, =4 sheet         [default 4]
+           numpnts   number of points in each quadrant           [default 11]
+           slpfact   distance at ends to specify slope           [default 0]
        output arguments:
        usage:
            superellipse is generated separately in each quadrant, using:
@@ -11230,21 +11356,27 @@ UDPRIM supell
                    rx_e  is latest rx or rx_e
                    ry_n  is latest ry or ry_n
                    n_ne  is latest n, n_n, n_e, or n_ne
+                   m_ne  is latest m, m_n, m_e, or m_ne
                edge 2:
                    rx_w  is latest rx or rx_w
                    ry_n  is latest ry or ry_n
                    n_nw  is latest n, n_n, n_w, or n_nw
+                   m_nw  is latest m, m_n, m_w, or m_nw
                edge 3:
                    rx_w  is latest rx or rx_w
                    ry_s  is latest ry or ry_s
                    n_sw  is latest n, n_s, n_w, or n_sw
+                   m_sw  is latest m, m_s, m_w, or m_sw
                edge 4:
                    rx_e  is latest rx or rx_e
                    ry_s  is latest ry or ry_s
                    n_se  is latest n, n_s, n_e, or n_se
+                   m_se  is latest m, m_s, m_e, or m_se
            to get a simple ellipse, only need to specify rx and ry
            nquad=1 and nquad=2 create WireBodys, nquad=4 creates SheetBody
        notes:
+           if any m==0, then m is set to corresponding n
+           offset is not available if any m!=n
            negative slpfac prescribes correct slopes at junctions
            super-ellipse centered at (0,0,0)
            super-ellipse generated in x-y plane
@@ -11374,26 +11506,32 @@ UDPRIM vsp3
        output arguments:
        usage:
            builds the openVsp models as a series of Bodys flying in formation
+           if vspscript is not in your PATH, you must set the
+               VSP3_ROOT environment variable to point to directory
+               that contains vspscript
        </pre>
       <p>
         <a href="examples/vsp3_udp_1.html"> <img src="examples/vsp3_udp_1.png" width="200px"></a>
-      <p><h3 id="warp_udp">warp (udp)</h3>
+      <p><h3 id="warp_udf">warp (udf)</h3>
       <pre>
 UDPRIM warp
        input arguments (specified as name/value pairs):
-           egadsfile  name oof EGADS file
+           egadsfile  name of EGADS file
            iface      Face index             [default 0]
            dist       array of nrom distances[default 0]
+           dirn       direction of change    [default "n"]
            toler      sewing tolerance       [default 0]
        output arguments:
        usage:
+           if egadsfile is not specified, Body is used from stack
            warp one Face of a Body via control point movement
            dist must have (nucp-2)*(nvcp-2) entries
                where nucp and nvcp are the number of control points
            dist is specified only for interior control points
+           dirn is one of "N" (for normal), "X", "Y", or "Z"
        </pre>
       <p>
-        <a href="examples/warp_udp_1.html"> <img src="examples/warp_udp_1.png" width="200px"></a>
+        <a href="examples/warp_udf_1.html"> <img src="examples/warp_udf_1.png" width="200px"></a>
 
     <p><h3 id="sec5.6">5.6: User-Defined Components shipped with OpenCSM</h3>
 
@@ -11683,19 +11821,45 @@ Strings:
        less-than                  <
        greater-than               >
        equal                      =
+       tilde                      ~
     the following characters are not allowed in strings
        apostrophe                 '  (except to escape ', '+ or ') )
        quotation                  "
        hashtag                    #
        backslash                  \
        vertical bar               |
-       tilde                      ~
        ampersand                  &
        exclamation                !
       </pre>
       <!-- " -->
 
-    <p><h3 id="sec5.9">5.9: Parameter rules</h3>
+    <p><h3 id="sec5.9">5.9: Filename rules</h3>
+
+    <p>The following is taken from the <code>OpenCSM.h</code> file:
+      <!-- extract from OpenCSM.h -->
+      <pre>
+Filenames:
+    as $filename in built-in commands (DUMP, IMPORT, or MESSAGE):
+       path/name.ext     -> path($pwd)/path/name.ext
+       $/path/name.ext   -> path($csm)/path/name.ext
+    as $primtype in UDPARG or UDPRIM:
+       /path/name        -> path($pwd)/path/name.udc
+       //path/name       -> /path/name.udc
+       /~/path/name      -> $HOME/path/name.udc
+       $/path/name       -> path($csm)/path/name.udc
+       $$/path/name      -> $ESP_ROOT/udc/path/name.udc
+       $$$/path/name     -> $ESP_UDC_PATH/path/name.udc
+    as (filename) argValue* in UDPARG or UDPRIM:
+       $path/name.ext    -> path($pwd)/path/name.ext
+       $$/path/name.ext  -> path($csm)/path/name.ext
+
+    where path($pwd) refers to the present working directory
+    and   path($csm) refers to the directory of the current
+                     .csm, .cpc. or .udc file
+    and   $ESP_ROOT and $ESP_UDC_PATH are environment variables
+      </pre>
+
+    <p><h3 id="sec5.10">5.10: Parameter rules</h3>
 
     <p>The following is taken from the <code>OpenCSM.h</code> file:
       <!-- extract from OpenCSM.h -->
@@ -11868,7 +12032,7 @@ Types:
           -1 -> value is set to -1
       </pre>
 
-    <p><h3 id="sec5.10">5.10: Expression rules</h3>
+    <p><h3 id="sec5.11">5.11: Expression rules</h3>
 
     <p>The following is taken from the <code>OpenCSM.h</code> file:
       <!-- extract from OpenCSM.h -->
@@ -11965,7 +12129,7 @@ Valid function calls:
                                      else ifFalse
       </pre>
 
-    <p><h3 id="sec5.11">5.11: Attribute rules</h3>
+    <p><h3 id="sec5.12">5.12: Attribute rules</h3>
 
     <p>The following is taken from the <code>OpenCSM.h</code> file:
       <!-- extract from OpenCSM.h -->
@@ -12013,9 +12177,26 @@ Special User-defined Attributes for Bodys:
     _makeQuads  to make new-style quads on all Faces in Body
                 (.tessType is set to "Quad" and .mixed is created)
 
+    _tessFactor if real > 0.01, it multiplies the lengths specified
+                for the default tessellation
+
     _name       string used in ESP interface for a Body
 
     _stlColor   color to use for all Faces in an .stl file
+
+    _newSeqnum  if it exists, sequence numbering (in _faceID and
+                _edgeID) is done using a scheme that is less
+                susceptible to geometry changes
+
+    ColorFace   default color assigned to front of Faces
+                either R,G,B in three 0-1 reals
+                or $red, $lred, $green, $lgreen, $blue, $lblue,
+                $yellow, $magenta, $cyan, $white, or $black
+
+    ColorEdge   default color assigned to Edges
+                either R,G,B in three 0-1 reals
+                or $red, $lred, $green, $lgreen, $blue, $lblue,
+                $yellow, $magenta, $cyan, $white, or $black
 
 Attributes assigned to Faces:
 
@@ -12053,6 +12234,8 @@ Attributes assigned to Faces:
                    * Face with smaller ycg  has lower sequence number
                    * Face with smaller zcg  has lower sequence number
                    * Face with smaller area has lower sequence number
+
+    _nedge      number of incident Edges
 
     _hist       list of Bodys that contained this Face (oldest to newest)
 
@@ -12199,7 +12382,7 @@ Special User-defined Attributes for Nodes:
 
     <p>Back to <a href="#sec0">Table of Contents</a>
 
-    <p><h3 id="sec5.12">5.12: Format of plotfile</h3>
+    <p><h3 id="sec5.13">5.13: Format of plotfile</h3>
 
     <p>A plotfile is a file that is specified via the
       <code>-plot</code> command line option
@@ -12563,7 +12746,7 @@ EGADS_READERR                         -32
 
     <p><h2 id="sec11">11.0: Copyright</h2>
 
-    <p>Copyright (C) 2010/2024 John F. Dannenhoffer, III (Syracuse
+    <p>Copyright (C) 2010/2025 John F. Dannenhoffer, III (Syracuse
        University)
 
     <p>This library is free software; you can redistribute it and/or

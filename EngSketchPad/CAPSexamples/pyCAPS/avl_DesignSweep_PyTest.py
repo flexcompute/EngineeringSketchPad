@@ -32,6 +32,25 @@ sweepDesPmtr = [5, 10, 20] # Geometry design paramters
 
 Cd = list() # Create a blank list
 Cl = list()
+Cm = list()
+Xcg = list()
+
+analysisID = "avlSweep"
+
+myProblem.analysis.create(aim="avlAIM", name=analysisID)
+
+# Set Surface information
+wing = {"groupName"    : "Wing",
+        "numChord"     : 8,
+        "spaceChord"   : 1.0,
+        "numSpanTotal" : 24}
+
+tail = {"numChord"     : 8,
+        "spaceChord"   : 1.0,
+        "numSpanTotal" : 12}
+
+myProblem.analysis[analysisID].input.AVL_Surface = {"Wing": wing,
+                                                    "Vertical_Tail": tail}
 
 # Loop through sweep design parametrs
 for ii in range(len(sweepDesPmtr)):
@@ -40,37 +59,27 @@ for ii in range(len(sweepDesPmtr)):
     myProblem.geometry.despmtr.sweep = sweepDesPmtr[ii]
 
     for i in range(len(machNumber)):
-        analysisID = "avlSweep_" +str(sweepDesPmtr[ii]) + "_Ma_"+ str(machNumber[i])
-
-        myProblem.analysis.create(aim = "avlAIM", name = analysisID)
 
         # Set Mach number
         myProblem.analysis[analysisID].input.Mach = machNumber[i]
-
-        # Set Surface information
-        wing = {"groupName"    : "Wing",
-                "numChord"     : 8,
-                "spaceChord"   : 1.0,
-                "numSpanTotal" : 24,
-                "spaceSpan"    : 1.0}
-
-        tail = {"numChord"     : 8,
-                "spaceChord"   : 1.0,
-                "numSpanTotal" : 12,
-                "spaceSpan"    : 1.0}
-
-        myProblem.analysis[analysisID].input.AVL_Surface = {"Wing": wing,
-                                                            "Vertical_Tail": tail}
 
         # Get Drag coefficient
         Cd.append(myProblem.analysis[analysisID].output.CDtot)
 
         # Get Lift coefficient
         Cl.append(myProblem.analysis[analysisID].output.CLtot)
+        
+        # Get Moment coefficient
+        Cm.append(myProblem.analysis[analysisID].output.Cmtot)
 
         # Print results
-        print ("Cd = " + str(Cd[i]))
-        print ("Cl = " + str(Cl[i]))
+        # print ("Cd = " + str(Cd[i]))
+        # print ("Cl = " + str(Cl[i]))
+        # print ("Cm = " + str(Cm[i]))
+
+print("Cd = ", Cd)
+print("Cl = ", Cl)
+print("Cm = ", Cm)
 
 if (args.noPlotData == False):
     # Import pyplot module

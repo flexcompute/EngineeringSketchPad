@@ -1,4 +1,3 @@
-from __future__ import print_function
 import unittest
 
 import os
@@ -7,8 +6,9 @@ import shutil
 
 import pyCAPS
 
-from Mesh_Formats import Mesh_Formats
+from Mesh_Formats import Mesh_Formats, Mesh_Formats_Quad
 Mesh_Formats = Mesh_Formats.copy()
+Mesh_Formats_Quad = Mesh_Formats_Quad.copy()
 
 class TestAFLR3(unittest.TestCase):
 
@@ -57,6 +57,7 @@ class TestAFLR3(unittest.TestCase):
         # Set mesh sizing parmeters
         aflr3.input.Mesh_Sizing = {"Wing1": viscousBC, "Wing2": inviscidBC}
 
+        aflr3.input.BL_Initial_Spacing = 0.05
         aflr3.input.BL_Thickness = 0.1
         aflr3.input.BL_Max_Layers = 10
         aflr3.input.BL_Max_Layer_Diff = 5
@@ -70,7 +71,8 @@ class TestAFLR3(unittest.TestCase):
         aflr4 = myProblem.analysis.create(aim = "aflr4AIM")
 
         aflr4.input.Mesh_Quiet_Flag = True
-        aflr4.input.Mesh_Length_Factor = 20
+        aflr4.input.Mesh_Length_Factor = 2
+        aflr4.input.min_scale = 0.1
 
         aflr3 = myProblem.analysis.create(aim = "aflr3AIM",
                                           name = "aflr3")
@@ -90,7 +92,7 @@ class TestAFLR3(unittest.TestCase):
         SurfNumberOfNode_1    = aflr4.output.NumberOfNode
         SurfNumberOfElement_1 = aflr4.output.NumberOfElement
 
-        aflr4.input.Mesh_Length_Factor = 40
+        aflr4.input.Mesh_Length_Factor = 4
 
         # Explicitly trigger mesh generation again
         aflr3.runAnalysis()
@@ -107,6 +109,45 @@ class TestAFLR3(unittest.TestCase):
 
         self.assertGreater(SurfNumberOfNode_1   , SurfNumberOfNode_2   )
         self.assertGreater(SurfNumberOfElement_1, SurfNumberOfElement_2)
+
+#==============================================================================
+    def test_quad(self):
+
+        file = os.path.join("..","csmData","cfdSingleBody.csm")
+        myProblem = pyCAPS.Problem(self.problemName+str(self.iProb), capsFile=file, outLevel=0); self.__class__.iProb += 1
+
+        aflr4 = myProblem.analysis.create(aim = "aflr4AIM")
+
+        aflr4.input.Mesh_Quiet_Flag = True
+        aflr4.input.AFLR4_Quad = True
+        aflr4.input.ff_cdfr = 1.6
+        aflr4.input.Mesh_Length_Factor = 6
+
+        aflr3 = myProblem.analysis.create(aim = "aflr3AIM",
+                                          name = "aflr3")
+
+        aflr3.input["Surface_Mesh"].link(aflr4.output["Surface_Mesh"])
+
+        aflr3.input.Mesh_Quiet_Flag = True
+
+        aflr3.input.Mesh_Format = Mesh_Formats_Quad
+
+        aflr3.input.BL_Initial_Spacing = 0.05
+        aflr3.input.BL_Thickness = 0.1
+        aflr3.input.BL_Max_Layers = 2
+        aflr3.input.BL_Max_Layer_Diff = 5
+
+        # Explicitly trigger mesh generation
+        aflr3.runAnalysis()
+
+        self.assertGreater(aflr3.output.NumberOfNode, 0)
+        self.assertGreater(aflr3.output.NumberOfElement, 0)
+        self.assertGreater(aflr3.output.NumberOfTri, 0)
+        self.assertGreater(aflr3.output.NumberOfQuad, 0)
+        self.assertGreater(aflr3.output.NumberOfTet, 0)
+        #self.assertGreater(aflr3.output.NumberOfPyramid, 0)
+        self.assertGreater(aflr3.output.NumberOfPrism, 0)
+        self.assertGreater(aflr3.output.NumberOfHex, 0)
 
 #==============================================================================
     def test_transp(self):
@@ -579,14 +620,14 @@ class TestAFLR3(unittest.TestCase):
     def test_faceMatch_MultiDomain(self):
 
         for csm in [
-                    "example1", 
-                    "example2", 
-                    "example3", 
-                    "example4", 
-                   # "example5", 
-                    "example6", 
-                    "example7", 
-                    "example8", 
+                    "example1",
+                    "example2",
+                    "example3",
+                    "example4",
+                   # "example5",
+                    "example6",
+                    "example7",
+                    "example8",
                     "example9",
                     "multi_prim",
                     "cyl_seam",
@@ -596,15 +637,15 @@ class TestAFLR3(unittest.TestCase):
             print(file)
             problemName = self.problemName + "_faceMatch_" + csm
             myProblem = pyCAPS.Problem(problemName, capsFile=file, outLevel=0)
-            
+
             aflr4 = myProblem.analysis.create(aim = "aflr4AIM")
-            
+
             aflr4.input.Mesh_Quiet_Flag = True
             aflr4.input.Mesh_Length_Factor = 1
             aflr4.input.min_scale = 0.05
 
             aflr3 = myProblem.analysis.create(aim = "aflr3AIM")
-    
+
             aflr3.input["Surface_Mesh"].link(aflr4.output["Surface_Mesh"])
             aflr3.input.Mesh_Quiet_Flag = True
             aflr3.input.Mesh_Format = "tecplot"

@@ -1,9 +1,9 @@
-@__DIR__###########################################################################
+###########################################################################
 #                                                                         #
 #                         unit testing for jlEGADS                        #
 #                                                                         #
 #                                                                         #
-#      Copyright 2011-2024, Massachusetts Institute of Technology         #
+#      Copyright 2011-2025, Massachusetts Institute of Technology         #
 #      Licensed under The GNU Lesser General Public License, version 2.1  #
 #      See http://www.opensource.org/licenses/lgpl-2.1.php                #
 #                                                                         #
@@ -11,10 +11,7 @@
 ###########################################################################
 
 using Test
-
-push!(LOAD_PATH, ".")
 using egads
-
 
 #------------------------------------------------------------------------------
 function make_wire(context, xyz, class = egads.LOOP)
@@ -310,7 +307,7 @@ function test_makeBezier(context)
 end
 
 #------------------------------------------------------------------------------
-function test_approximate(context)
+function test_convertToBSpline(context)
 
   dataE = [1.0,0.0,0.0,1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 4.0, 0.5]
   geoE  = egads.makeGeometry(context, egads.CURVE, egads.ELLIPSE, dataE)
@@ -342,6 +339,28 @@ function test_approximate(context)
   dupSpline = egads.convertToBSpline(bspline)
   stat      = egads.isSame(bspline, dupSpline)
   return true
+end
+
+#------------------------------------------------------------------------------
+function test_mergeBSplineCurves(context)
+
+  pts = zeros(3,2)
+  pts[:,1] = [0.0, 0.0, 0.0]
+  pts[:,2] = [1.0, 0.0, 0.0]
+
+  bspline0 = egads.approximate(context, [2, 0], pts)
+
+  pts[:,1] = [1.0, 0.0, 0.0]
+  pts[:,2] = [2.0, 0.0, 0.0]
+
+  bspline1 = egads.approximate(context, [2, 0], pts)
+
+  bspline3 = egads.mergeBSplineCurves(bspline0, bspline1)
+
+  data = egads.getGeometry(bspline3)
+
+  @test data.oclass == egads.CURVE
+  @test data.mtype == egads.BSPLINE
 end
 
 #------------------------------------------------------------------------------
@@ -388,7 +407,7 @@ function test_attribution(context)
 
   egads.attributeAdd!(faces1[2], "faceMap", 2)
   egads.attributeAdd!(faces2[1], "faceMap", 1)
- 
+
   attrVal = egads.attributeRet(faces1[2], "faceMap")
   nAttr   = egads.attributeNum(faces1[2])
 
@@ -449,7 +468,7 @@ function test_attribution(context)
   return true
 end
 
-
+#------------------------------------------------------------------------------
 function test_attribution_for_lite(context)
 
   egads.setFullAttrs!(context, 1)
@@ -696,6 +715,105 @@ function test_getEdgeUV(context)
 end
 
 #------------------------------------------------------------------------------
+function test_removeNodes(context)
+
+  # construction data
+  x0 = [0.0,0.0,0.0]
+  x1 = [1.0,0.0,0.0]
+  x2 = [1.0,1.0,0.0]
+  x3 = [0.0,1.0,0.0]
+  x4 = [0.0,0.5,0.0] # redundant node to be removed
+
+  # make Nodes
+  nodes = Array{egads.Ego}(undef, 5)
+
+  nodes[1] = egads.makeTopology!(context, egads.NODE; reals=x0)
+  nodes[2] = egads.makeTopology!(context, egads.NODE; reals=x1)
+  nodes[3] = egads.makeTopology!(context, egads.NODE; reals=x2)
+  nodes[4] = egads.makeTopology!(context, egads.NODE; reals=x3)
+  nodes[5] = egads.makeTopology!(context, egads.NODE; reals=x4)
+
+  # make lines and edges
+  lines = Array{egads.Ego}(undef, 4)
+  edges = Array{egads.Ego}(undef, 5)
+  tdata = [0.0, 1.0]
+
+  # Line data (point and direction)
+  rdata = fill(0.0, 6)
+  rdata[1] = x0[1]
+  rdata[2] = x0[2]
+  rdata[3] = x0[3]
+  rdata[4] = x1[1] - x0[1]
+  rdata[5] = x1[2] - x0[2]
+  rdata[6] = x1[3] - x0[3]
+
+  lines[1] = egads.makeGeometry(context, egads.CURVE, egads.LINE, rdata)
+  edges[1] = egads.makeTopology!(context, egads.EDGE; mtype=egads.TWONODE, geom=lines[1], children=nodes[1:2], reals=tdata)
+
+  rdata[1] = x1[1]
+  rdata[2] = x1[2]
+  rdata[3] = x1[3]
+  rdata[4] = x2[1] - x1[1]
+  rdata[5] = x2[2] - x1[2]
+  rdata[6] = x2[3] - x1[3]
+
+  lines[2] = egads.makeGeometry(context, egads.CURVE, egads.LINE, rdata)
+  edges[2] = egads.makeTopology!(context, egads.EDGE; mtype=egads.TWONODE, geom=lines[2], children=nodes[2:3], reals=tdata)
+
+  rdata[1] = x2[1]
+  rdata[2] = x2[2]
+  rdata[3] = x2[3]
+  rdata[4] = x3[1] - x2[1]
+  rdata[5] = x3[2] - x2[2]
+  rdata[6] = x3[3] - x2[3]
+
+  lines[3] = egads.makeGeometry(context, egads.CURVE, egads.LINE, rdata)
+  edges[3] = egads.makeTopology!(context, egads.EDGE; mtype=egads.TWONODE, geom=lines[3], children=nodes[3:4], reals=tdata)
+
+  rdata[1] = x3[1]
+  rdata[2] = x3[2]
+  rdata[3] = x3[3]
+  rdata[4] = x0[1] - x3[1]
+  rdata[5] = x0[2] - x3[2]
+  rdata[6] = x0[3] - x3[3]
+
+  lines[4] = egads.makeGeometry(context, egads.CURVE, egads.LINE, rdata)
+
+  edges[4] = egads.makeTopology!(context, egads.EDGE; mtype=egads.TWONODE, geom=lines[4], children=[nodes[4], nodes[5]], reals=[0.0,0.5])
+  edges[5] = egads.makeTopology!(context, egads.EDGE; mtype=egads.TWONODE, geom=lines[4], children=[nodes[5], nodes[1]], reals=[0.5,1.0])
+
+  # make the loop
+  sens = fill(egads.SFORWARD, 5)
+  loop = egads.makeTopology!(context, egads.LOOP; mtype=egads.CLOSED, children=edges, senses=sens)
+
+  # create Plane
+  rdata = fill(0.0, 9)
+  rdata[1] = 0 # center
+  rdata[2] = 0
+  rdata[3] = 0
+  rdata[4] = 1 # x-axis
+  rdata[5] = 0
+  rdata[6] = 0
+  rdata[7] = 0 # y-axis
+  rdata[8] = 1
+  rdata[9] = 0
+
+  plane = egads.makeGeometry(context, egads.SURFACE, egads.PLANE, rdata)
+  face = egads.makeTopology!(context, egads.FACE; mtype=egads.SFORWARD, geom=plane, children=[loop])
+
+  body = egads.makeTopology!(context, egads.BODY; mtype=egads.FACEBODY, children=[face])
+
+  nodes = egads.getBodyTopos(body, egads.NODE)
+
+  newbody = egads.removeNodes(body, [nodes[5]])
+
+  newnodes = egads.getBodyTopos(newbody, egads.NODE)
+  newedges = egads.getBodyTopos(newbody, egads.EDGE)
+  @test length(newnodes) == 4
+  @test length(newedges) == 4
+end
+
+#------------------------------------------------------------------------------
 function test_match_sew_replace_topology(context)
 
   box1 = egads.makeSolidBody(context,egads.BOX, [0.0,0.0,0.0,1.0,1.0,1.0])
@@ -783,15 +901,16 @@ function test_booleanOperations(context)
   boolbox = [egads.generalBoolean(box1, box2, oper) for oper in bt]
   return true
 end
+
 #------------------------------------------------------------------------------
 function test_intersection(context)
 
-  wBody  = make_wire(context, [[0,0,0] [1,0,0] [1,1,0] [0,1,0]], egads.BODY)
-  box    = egads.makeSolidBody(context,egads.BOX, [0.25,0.25,-0.25, 0.5,0.5,0.5])
-  inter  = egads.intersection(box, wBody)
+  box    = egads.makeSolidBody(context,egads.BOX, [0.,0.,0., 1.,1.,1.])
+  boxS   = egads.makeSolidBody(context,egads.BOX, [0.25,-0.25,-0.25, 0.5,0.5,0.5])
+  inter  = egads.intersection(box, boxS)
   box2   = egads.imprintBody(box, inter.pairs)
   faces1 = egads.getBodyTopos(box2, egads.FACE)
-  @test length(faces1) == 10
+  @test length(faces1) == 8
   return true
 end
 
@@ -1076,7 +1195,7 @@ function test_addKnots(context)
   # Only add knots
   minDegU = degU
   newCurve = egads.addKnots(bspline, minDegU, Us, 0, nothing)
-  
+
   new_oclass, new_mtype, geom, new_ints, new_reals = egads.getGeometry(newCurve)
 
   @test oclass == new_oclass
@@ -1087,7 +1206,7 @@ function test_addKnots(context)
   # Increase degree
   minDegU = degU+1
   newCurve = egads.addKnots(bspline, minDegU, nothing, 0, nothing)
-  
+
   new_oclass, new_mtype, geom, new_ints, new_reals = egads.getGeometry(newCurve)
 
   @test oclass == new_oclass
@@ -1099,24 +1218,24 @@ function test_addKnots(context)
   #---------------
   nCPu = 4;
   nCPv = 4;
-  pts = [[0.00  0.00  0.00] 
-         [1.00  0.00  0.10] 
-         [1.50  1.00  0.70] 
+  pts = [[0.00  0.00  0.00]
+         [1.00  0.00  0.10]
+         [1.50  1.00  0.70]
          [0.25  0.75  0.60]
 
-         [0.00  0.00  1.00] 
-         [1.00  0.00  1.10] 
-         [1.50  1.00  1.70] 
-         [0.25  0.75  1.60] 
+         [0.00  0.00  1.00]
+         [1.00  0.00  1.10]
+         [1.50  1.00  1.70]
+         [0.25  0.75  1.60]
 
-         [0.00  0.00  2.00] 
-         [1.00  0.00  2.10] 
-         [1.50  1.00  2.70] 
-         [0.25  0.75  2.60] 
+         [0.00  0.00  2.00]
+         [1.00  0.00  2.10]
+         [1.50  1.00  2.70]
+         [0.25  0.75  2.60]
 
-         [0.00  0.00  3.00] 
-         [1.00  0.00  3.10] 
-         [1.50  1.00  3.70] 
+         [0.00  0.00  3.00]
+         [1.00  0.00  3.10]
+         [1.50  1.00  3.70]
          [0.25  0.75  3.60]]
 
   bspline = egads.approximate(context, [nCPu, nCPv], pts)
@@ -1140,7 +1259,7 @@ function test_addKnots(context)
   minDegU = degU
   minDegV = degV
   newSurface = egads.addKnots(bspline, minDegU, Us, minDegV, Vs)
-  
+
   new_oclass, new_mtype, geom, new_ints, new_reals = egads.getGeometry(newSurface)
 
   @test oclass == new_oclass
@@ -1154,7 +1273,7 @@ function test_addKnots(context)
   minDegU = degU+1
   minDegV = degV+2
   newSurface = egads.addKnots(bspline, minDegU, nothing, minDegV, nothing)
-  
+
   new_oclass, new_mtype, geom, new_ints, new_reals = egads.getGeometry(newSurface)
 
   @test oclass == new_oclass
@@ -1269,7 +1388,7 @@ function test_memo(context)
   face = nothing
   GC.gc()
   info = egads.getInfo(ctxt)
-  @test info.next == nothing
+  @test info.next === nothing
   return true
 end
 
@@ -1300,7 +1419,7 @@ function test_NMwireBody(context)
 	return true
 end
 
-
+#------------------------------------------------------------------------------
 @time @testset " Julia egads API " begin
   # RUN ALL FUNCTION TESTS
   for name in names(@__MODULE__; all = true)

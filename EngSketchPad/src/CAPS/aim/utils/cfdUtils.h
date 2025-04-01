@@ -101,7 +101,7 @@ int initiate_cfdUnitsStruct(cfdUnitsStruct *unit);
 // Destroy (0 out all values and NULL all pointers) of objective in the cfdUnitsStruct structure format
 int destroy_cfdUnitsStruct(cfdUnitsStruct *unit);
 
-// Compute derived units from bas units
+// Compute derived units from base units
 int cfd_cfdDerivedUnits(void *aimInfo, cfdUnitsStruct *units);
 
 // Compute coefficient units from reference quantities

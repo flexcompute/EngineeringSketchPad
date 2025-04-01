@@ -5,7 +5,7 @@
  *
  *     Written by Dr. Marshall Galbraith MIT
  *
- *      Copyright 2014-2024, Massachusetts Institute of Technology
+ *      Copyright 2014-2025, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  */
@@ -43,6 +43,8 @@
 #include "aimUtil.h"
 #include "aimMesh.h"
 
+#include "cfdUtils.h"
+
 #include "exodusWriter.h"
 
 #include <exodusII.h>
@@ -61,18 +63,22 @@
 
 //#define DEBUG
 
-
 enum aimInputs
 {
-  Proj_Name = 1,        /* index is 1-based */
-  Mesh_Morph,
-  Mesh,
-  NUMINPUT = Mesh       /* Total number of inputs */
+  inProj_Name = 1,        /* index is 1-based */
+  inDesign_Variable,
+  inDesign_SensFile,
+  inMesh_Morph,
+  inMesh,
+  NUMINPUT = inMesh       /* Total number of inputs */
 };
 
 #define NUMOUTPUT  0
 
 typedef struct {
+
+  // Design information
+  cfdDesignStruct design;
 
   // Mesh reference obtained from meshing AIM
   aimMeshRef *meshRef, meshRefObj;
@@ -149,6 +155,10 @@ int aimInitialize(int inst, /*@null@*/ /*@unused@*/ const char *unitSys, /*@unus
 
     // Set initial values for platoInstance
 
+    // Design information
+    status = initiate_cfdDesignStruct(&platoInstance->design);
+    AIM_STATUS(aimInfo, status);
+
     platoInstance->meshRef = NULL;
     aim_initMeshRef(&platoInstance->meshRefObj, aimUnknownMeshType);
 
@@ -168,6 +178,7 @@ cleanup:
 }
 
 
+// ********************** AIM Function Break *****************************
 int aimInputs(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo, int index,
               char **ainame, capsValue *defval)
 {
@@ -185,7 +196,7 @@ int aimInputs(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo, int inde
      */
 
     //platoInstance = (aimStorage *) instStore;
-    if (index == Proj_Name) {
+    if (index == inProj_Name) {
         *ainame              = EG_strdup("Proj_Name");
         defval->type         = String;
         defval->nullVal      = NotNull;
@@ -196,7 +207,33 @@ int aimInputs(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo, int inde
          * This corresponds to the project name used for file naming.
          */
 
-    } else if (index == Mesh_Morph) {
+    } else if (index == inDesign_Variable) {
+        *ainame              = EG_strdup("Design_Variable");
+        defval->type         = Tuple;
+        defval->nullVal      = IsNull;
+        defval->lfixed       = Change;
+        defval->vals.tuple   = NULL;
+        defval->dim          = Vector;
+
+        /*! \page aimInputsPLATO
+         * - <B> Design_Variable = NULL</B> <br>
+         * List of AnalysisIn and/or GeometryIn variable names used to compute sensitivities of Design_Functional for optimization, see \ref cfdDesignVariable for additional details.
+         */
+
+    } else if (index == inDesign_SensFile) {
+        *ainame              = EG_strdup("Design_SensFile");
+        defval->type         = Boolean;
+        defval->lfixed       = Fixed;
+        defval->vals.integer = (int)false;
+        defval->dim          = Scalar;
+        defval->nullVal      = NotNull;
+
+        /*! \page aimInputsPLATO
+         * - <B> Design_SensFile = False</B> <br>
+         * Read <Proj_Name>.sens file to compute functional sensitivities w.r.t Design_Variable.
+         */
+
+    } else if (index == inMesh_Morph) {
         *ainame              = EG_strdup("Mesh_Morph");
         defval->type         = Boolean;
         defval->lfixed       = Fixed;
@@ -209,7 +246,7 @@ int aimInputs(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo, int inde
          * Project previous surface mesh onto new geometry and write out a 'Proj_Name'_body#.dat file.
          */
 
-    } else if (index == Mesh) {
+    } else if (index == inMesh) {
         *ainame             = AIM_NAME(Mesh);
         defval->type        = PointerMesh;
         defval->nrow        = 1;
@@ -256,9 +293,9 @@ int aimUpdateState(/*@unused@*/ void *instStore, void *aimInfo,
     // Free our meshRef
     (void) aim_freeMeshRef(&platoInstance->meshRefObj);
 
-    if (aimInputs[Mesh-1].nullVal == IsNull &&
-        aimInputs[Mesh_Morph-1].vals.integer == (int) false) {
-        AIM_ANALYSISIN_ERROR(aimInfo, Mesh, "'Mesh' input must be linked to a 'Volume_Mesh'");
+    if (aimInputs[inMesh-1].nullVal == IsNull &&
+        aimInputs[inMesh_Morph-1].vals.integer == (int) false) {
+        AIM_ANALYSISIN_ERROR(aimInfo, inMesh, "'Mesh' input must be linked to a 'Volume_Mesh'");
         status = CAPS_BADVALUE;
         goto cleanup;
     }
@@ -268,10 +305,26 @@ int aimUpdateState(/*@unused@*/ void *instStore, void *aimInfo,
     AIM_STATUS(aimInfo, status);
     AIM_NOTNULL(bodies, aimInfo, status);
 
-    // Get mesh
-    platoInstance->meshRef = (aimMeshRef *)aimInputs[Mesh-1].vals.AIMptr;
+    // Get design variables
+    if (aimInputs[inDesign_Variable-1].nullVal == NotNull &&
+        (platoInstance->design.numDesignVariable == 0 ||
+         aim_newAnalysisIn(aimInfo, inDesign_Variable) == CAPS_SUCCESS)) {
 
-    if ( aimInputs[Mesh_Morph-1].vals.integer == (int) true &&
+/*@-nullpass@*/
+        status = cfd_getDesignVariable(aimInfo,
+                                       aimInputs[inDesign_Variable-1].length,
+                                       aimInputs[inDesign_Variable-1].vals.tuple,
+                                       &platoInstance->design.numDesignVariable,
+                                       &platoInstance->design.designVariable);
+/*@+nullpass@*/
+        AIM_STATUS(aimInfo, status);
+    }
+
+
+    // Get mesh
+    platoInstance->meshRef = (aimMeshRef *)aimInputs[inMesh-1].vals.AIMptr;
+
+    if ( aimInputs[inMesh_Morph-1].vals.integer == (int) true &&
         platoInstance->meshRef == NULL) { // If we are mighty morphing
 
         // Lets "load" the meshRef now since it's not linked
@@ -350,10 +403,10 @@ int aimPreAnalysis(/*@unused@*/ const void *instStore, void *aimInfo, capsValue 
   meshRef = platoInstance->meshRef;
   AIM_NOTNULL(meshRef, aimInfo, status);
 
-  if ( aimInputs[Mesh_Morph-1].vals.integer == (int) true) { // If we are mighty morphing
-    if (aimInputs[Mesh-1].nullVal == NotNull) {
+  if ( aimInputs[inMesh_Morph-1].vals.integer == (int) true) { // If we are mighty morphing
+    if (aimInputs[inMesh-1].nullVal == NotNull) {
       // store the current mesh for future iterations
-      status = aim_storeMeshRef(aimInfo, (aimMeshRef *) aimInputs[Mesh-1].vals.AIMptr, MESHEXTENSION);
+      status = aim_storeMeshRef(aimInfo, (aimMeshRef *) aimInputs[inMesh-1].vals.AIMptr, MESHEXTENSION);
       AIM_STATUS(aimInfo, status);
 
     } else {
@@ -430,7 +483,7 @@ int aimPreAnalysis(/*@unused@*/ const void *instStore, void *aimInfo, capsValue 
 
   /* create a symbolic link to the file name*/
   snprintf(meshfilename, PATH_MAX, "%s%s", meshRef->fileName, MESHEXTENSION);
-  snprintf(filepath, PATH_MAX, "%s%s", aimInputs[Proj_Name-1].vals.string, MESHEXTENSION);
+  snprintf(filepath, PATH_MAX, "%s%s", aimInputs[inProj_Name-1].vals.string, MESHEXTENSION);
   status = aim_symLink(aimInfo, meshfilename, filepath);
   AIM_STATUS(aimInfo, status);
 
@@ -456,7 +509,7 @@ int aimPreAnalysis(/*@unused@*/ const void *instStore, void *aimInfo, capsValue 
       fprintf(fp, "%d\n", meshRef->maps[imap].map[i]);
 
 
-    snprintf(meshfilename, PATH_MAX, "%s_%d.eto", aimInputs[Proj_Name-1].vals.string, imap+1);
+    snprintf(meshfilename, PATH_MAX, "%s_%d.eto", aimInputs[inProj_Name-1].vals.string, imap+1);
     status = aim_file(aimInfo, meshfilename, filepath);
     AIM_STATUS(aimInfo, status);
 
@@ -479,30 +532,366 @@ cleanup:
 }
 
 
-/* no longer optional and needed for restart */
-int aimPostAnalysis(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo,
-                    /*@unused@*/ int restart, /*@unused@*/ capsValue *aimInputs)
+// ********************** AIM Function Break *****************************
+int aimPostAnalysis(void *instStore, void *aimInfo,
+                    /*@unused@*/ int restart, capsValue *aimInputs)
 {
-  int status = CAPS_SUCCESS;
+    int status = CAPS_SUCCESS;
 
-  // Mesh reference obtained from meshing AIM
-  //aimMeshRef *meshRef = NULL;
+    int i, j, k, idv, irow, icol, ibody; // Indexing
+    int index, offset, state;
 
-  //aimStorage *platoInstance;
+    char tmp[128], filename[PATH_MAX], aimFile[PATH_MAX];
+    int numFunctional=0, nGeomIn = 0, numDesignVariable = 0;
+    int found;
+    int **functional_map=NULL, *vol2tess=NULL;
+    double **functional_xyz=NULL;
+    double functional_dvar;
 
-  //platoInstance = (aimStorage*)instStore;
+    // exodus file I/O
+    int CPU_word_size = sizeof(double);
+    int IO_word_size = sizeof(double);
+    float version;
+    int exoid = 0;
+    ex_init_params par;
 
-//  AIM_NOTNULL(aimInputs, aimInfo, status);
+    ego body;
 
-  // Get mesh
-//  meshRef = (aimMeshRef *)aimInputs[Mesh-1].vals.AIMptr;
-//  AIM_NOTNULL(meshRef, aimInfo, status);
+    int numNode = 0, *numPoint=NULL, numVolNode;
 
-//cleanup:
-  return status;
+    const char *name;
+    char **names=NULL;
+    double **dxyz = NULL;
+
+    const char *projectName =NULL;
+
+    FILE *fp=NULL;
+    capsValue *values=NULL, *geomInVal;
+
+    // Mesh reference obtained from meshing AIM
+    aimMeshRef *meshRef = NULL;
+
+    aimStorage *platoInstance;
+
+    platoInstance = (aimStorage*)instStore;
+
+    AIM_NOTNULL(aimInputs, aimInfo, status);
+
+    // Get mesh
+    meshRef = platoInstance->meshRef;
+    AIM_NOTNULL(meshRef, aimInfo, status);
+
+    if (aimInputs[inDesign_SensFile-1].vals.integer == (int)true) {
+
+      /* check for GeometryIn variables*/
+      nGeomIn = 0;
+      for (i = 0; i < platoInstance->design.numDesignVariable; i++) {
+
+        name = platoInstance->design.designVariable[i].name;
+
+        // Loop over the geometry in values and compute sensitivities for all bodies
+        index = aim_getIndex(aimInfo, name, GEOMETRYIN);
+        if (index == CAPS_NOTFOUND) continue;
+        if (index < CAPS_SUCCESS ) {
+          status = index;
+          AIM_STATUS(aimInfo, status);
+        }
+
+        if(aim_getGeomInType(aimInfo, index) != 0) {
+            AIM_ERROR(aimInfo, "GeometryIn value %s is not a design parameter (DESPMTR) - can't get sensitivity\n",
+                      name);
+            status = CAPS_BADVALUE;
+            goto cleanup;
+        }
+
+        nGeomIn++;
+      }
+
+      projectName = aimInputs[inProj_Name-1].vals.string;
+
+      // Read the number of volume nodes from the mesh
+      snprintf(filename, PATH_MAX, "%s%s", projectName, MESHEXTENSION);
+      status = aim_file(aimInfo, filename, aimFile);
+      AIM_STATUS(aimInfo, status);
+
+      exoid = ex_open(aimFile, EX_READ | EX_NETCDF4 | EX_NOCLASSIC,
+                      &CPU_word_size, &IO_word_size, &version);
+      if (exoid <= 0) {
+        AIM_ERROR(aimInfo, "Cannot open file: %s\n", filename);
+        status = CAPS_IOERR;
+        goto cleanup;
+      }
+
+      status = ex_get_init_ext(exoid, &par);
+      AIM_STATUS(aimInfo, status);
+
+      numVolNode = par.num_nodes;
+
+      ex_close(exoid);
+      exoid = 0;
+
+
+      // initialize the map from volume to tessellation
+      AIM_ALLOC(vol2tess, 2*numVolNode, int, aimInfo, status);
+      for (i = 0; i < 2*numVolNode; i++) vol2tess[i] = 0;
+
+      numNode = 0;
+      for (ibody = 0; ibody < meshRef->nmap; ibody++) {
+
+        status = EG_statusTessBody(meshRef->maps[ibody].tess, &body, &state, &offset);
+        AIM_STATUS(aimInfo, status);
+        numNode += offset;
+
+        for (i = 0; i < offset; i++) {
+          j = meshRef->maps[ibody].map[i];
+          vol2tess[2*(j-1)+0] = ibody;
+          vol2tess[2*(j-1)+1] = i;
+        }
+      }
+
+      // Read <Proj_Name>.sens
+      snprintf(filename, PATH_MAX, "%s%s", projectName, ".sens");
+      fp = aim_fopen(aimInfo, filename, "r");
+      if (fp == NULL) {
+        AIM_ERROR(aimInfo, "Unable to open: %s", filename);
+        status = CAPS_IOERR;
+        goto cleanup;
+      }
+
+      // Number of nodes and functionals and AnalysIn design variables in the file
+      status = fscanf(fp, "%d %d", &numFunctional, &numDesignVariable);
+      if (status == EOF || status != 2) {
+        AIM_ERROR(aimInfo, "Failed to read sens file number of functionals and analysis design variables");
+        status = CAPS_IOERR; goto cleanup;
+      }
+      if (platoInstance->design.numDesignVariable != numDesignVariable+nGeomIn) {
+        AIM_ERROR(aimInfo, "Incorrect number of AnalysisIn derivatives in sens file. Expected %d and found %d",
+                  platoInstance->design.numDesignVariable-nGeomIn, numDesignVariable);
+        status = CAPS_IOERR; goto cleanup;
+      }
+
+      AIM_ALLOC(numPoint, numFunctional, int, aimInfo, status);
+      for (i = 0; i < numFunctional; i++) numPoint[i] = 0;
+
+      AIM_ALLOC(functional_map, numFunctional, int*, aimInfo, status);
+      for (i = 0; i < numFunctional; i++) functional_map[i] = NULL;
+
+      AIM_ALLOC(functional_xyz, numFunctional, double*, aimInfo, status);
+      for (i = 0; i < numFunctional; i++) functional_xyz[i] = NULL;
+
+      AIM_ALLOC(names, numFunctional, char*, aimInfo, status);
+      for (i = 0; i < numFunctional; i++) names[i] = NULL;
+
+      AIM_ALLOC(values, numFunctional, capsValue, aimInfo, status);
+      for (i = 0; i < numFunctional; i++) aim_initValue(&values[i]);
+
+      for (i = 0; i < numFunctional; i++) {
+        values[i].type = DoubleDeriv;
+
+        /* allocate derivatives */
+        AIM_ALLOC(values[i].derivs, platoInstance->design.numDesignVariable, capsDeriv, aimInfo, status);
+        for (idv = 0; idv < platoInstance->design.numDesignVariable; idv++) {
+          values[i].derivs[idv].name  = NULL;
+          values[i].derivs[idv].deriv = NULL;
+          values[i].derivs[idv].len_wrt = 0;
+        }
+        values[i].nderiv = platoInstance->design.numDesignVariable;
+      }
+
+      // Read in Functional name, value and dFunctinoal/dxyz
+      for (i = 0; i < numFunctional; i++) {
+
+        status = fscanf(fp, "%s", tmp);
+        if (status == EOF) {
+          AIM_ERROR(aimInfo, "Failed to read sens file functional name");
+          status = CAPS_IOERR; goto cleanup;
+        }
+
+        AIM_STRDUP(names[i], tmp, aimInfo, status);
+
+        status = fscanf(fp, "%lf", &values[i].vals.real);
+        if (status == EOF || status != 1) {
+          AIM_ERROR(aimInfo, "Failed to read sens file functional value");
+          status = CAPS_IOERR; goto cleanup;
+        }
+
+        status = fscanf(fp, "%d", &numPoint[i]);
+        if (status == EOF || status != 1) {
+          AIM_ERROR(aimInfo, "Failed to read sens file number of points");
+          status = CAPS_IOERR; goto cleanup;
+        }
+
+        AIM_ALLOC(functional_map[i],   numPoint[i], int   , aimInfo, status);
+        AIM_ALLOC(functional_xyz[i], 3*numPoint[i], double, aimInfo, status);
+
+        for (j = 0; j < numPoint[i]; j++) {
+          status = fscanf(fp, "%d %lf %lf %lf", &functional_map[i][j],
+                                                &functional_xyz[i][3*j+0],
+                                                &functional_xyz[i][3*j+1],
+                                                &functional_xyz[i][3*j+2]);
+          if (status == EOF || status != 4) {
+            AIM_ERROR(aimInfo, "Failed to read sens file data");
+            status = CAPS_IOERR; goto cleanup;
+          }
+
+          if (functional_map[i][j] < 1 || functional_map[i][j] > numVolNode) {
+            AIM_ERROR(aimInfo, "sens file volume mesh vertex index: %d out-of-range [1-%d]", functional_map[i][j], numVolNode);
+            status = CAPS_IOERR; goto cleanup;
+          }
+        }
+
+
+        /* read additional derivatives from .sens file */
+        for (k = nGeomIn; k < platoInstance->design.numDesignVariable; k++) {
+
+          /* get derivative name */
+          status = fscanf(fp, "%s", tmp);
+          if (status == EOF) {
+            AIM_ERROR(aimInfo, "Failed to read sens file design variable name");
+            status = CAPS_IOERR; goto cleanup;
+          }
+
+          found = (int)false;
+          for (idv = 0; idv < platoInstance->design.numDesignVariable; idv++)
+            if ( strcasecmp(platoInstance->design.designVariable[idv].name, tmp) == 0) {
+              found = (int)true;
+              break;
+            }
+          if (found == (int)false) {
+            AIM_ERROR(aimInfo, "Design variable '%s' in sens file not in Design_Varible input", tmp);
+            status = CAPS_IOERR; goto cleanup;
+          }
+
+          AIM_STRDUP(values[i].derivs[idv].name, tmp, aimInfo, status);
+
+          status = fscanf(fp, "%d", &values[i].derivs[idv].len_wrt);
+          if (status == EOF || status != 1) {
+            AIM_ERROR(aimInfo, "Failed to read sens file number of design variable derivatives");
+            status = CAPS_IOERR; goto cleanup;
+          }
+
+          AIM_ALLOC(values[i].derivs[idv].deriv, values[i].derivs[idv].len_wrt, double, aimInfo, status);
+          for (j = 0; j < values[i].derivs[idv].len_wrt; j++) {
+
+            status = fscanf(fp, "%lf", &values[i].derivs[idv].deriv[j]);
+            if (status == EOF || status != 1) {
+              AIM_ERROR(aimInfo, "Failed to read sens file design variable derivative");
+              status = CAPS_IOERR; goto cleanup;
+            }
+          }
+        }
+      }
+
+      AIM_ALLOC(dxyz, meshRef->nmap, double*, aimInfo, status);
+      for (ibody = 0; ibody < meshRef->nmap; ibody++) dxyz[ibody] = NULL;
+
+      /* set derivatives */
+      for (idv = 0; idv < platoInstance->design.numDesignVariable; idv++) {
+
+        name = platoInstance->design.designVariable[idv].name;
+
+        // Loop over the geometry in values and compute sensitivities for all bodies
+        index = aim_getIndex(aimInfo, name, GEOMETRYIN);
+        status = aim_getValue(aimInfo, index, GEOMETRYIN, &geomInVal);
+        if (status == CAPS_BADINDEX) continue;
+        AIM_STATUS(aimInfo, status);
+
+        for (i = 0; i < numFunctional; i++) {
+          AIM_STRDUP(values[i].derivs[idv].name, name, aimInfo, status);
+
+          AIM_ALLOC(values[i].derivs[idv].deriv, geomInVal->length, double, aimInfo, status);
+          values[i].derivs[idv].len_wrt  = geomInVal->length;
+          for (j = 0; j < geomInVal->length; j++)
+            values[i].derivs[idv].deriv[j] = 0;
+        }
+
+        for (irow = 0; irow < geomInVal->nrow; irow++) {
+          for (icol = 0; icol < geomInVal->ncol; icol++) {
+
+            // get the sensitvity for each body
+            for (ibody = 0; ibody < meshRef->nmap; ibody++) {
+              if (meshRef->maps[ibody].tess == NULL) continue;
+              status = aim_tessSensitivity(aimInfo,
+                                           name,
+                                           irow+1, icol+1, // row, col
+                                           meshRef->maps[ibody].tess,
+                                           &numNode, &dxyz[ibody]);
+              AIM_STATUS(aimInfo, status, "Sensitivity for: %s\n", name);
+              AIM_NOTNULL(dxyz[ibody], aimInfo, status);
+            }
+
+            for (i = 0; i < numFunctional; i++) {
+              functional_dvar = values[i].derivs[idv].deriv[geomInVal->ncol*irow + icol];
+
+              for (j = 0; j < numPoint[i]; j++) {
+                k = functional_map[i][j]-1; // 1-based indexing into volume
+
+                ibody = vol2tess[2*k];   // body index
+                k     = vol2tess[2*k+1]; // 0-based surface index
+                if (k == -1) {
+                  AIM_ERROR(aimInfo, "Volume mesh vertex %d is not on a surface!", functional_map[i][j]);
+                  status = CAPS_IOERR;
+                  goto cleanup;
+                }
+                if ( ibody < 0 || ibody >= meshRef->nmap ) {
+                  AIM_ERROR(aimInfo, "Inconsistent surface node body index: %d should be in [0-%d]", vol2tess[2*k], meshRef->nmap-1);
+                  status = CAPS_IOERR;
+                  goto cleanup;
+                }
+
+                functional_dvar += functional_xyz[i][3*j+0]*dxyz[ibody][3*k + 0]  // dx/dGeomIn
+                                 + functional_xyz[i][3*j+1]*dxyz[ibody][3*k + 1]  // dy/dGeomIn
+                                 + functional_xyz[i][3*j+2]*dxyz[ibody][3*k + 2]; // dz/dGeomIn
+              }
+              values[i].derivs[idv].deriv[geomInVal->ncol*irow + icol] = functional_dvar;
+            }
+
+            for (ibody = 0; ibody < meshRef->nmap; ibody++)
+              AIM_FREE(dxyz[ibody]);
+          }
+        }
+      }
+
+      /* create the dynamic output */
+      for (i = 0; i < numFunctional; i++) {
+        status = aim_makeDynamicOutput(aimInfo, names[i], &values[i]);
+        AIM_STATUS(aimInfo, status);
+      }
+    }
+
+cleanup:
+    if (fp != NULL) fclose(fp);
+    if (exoid > 0) ex_close(exoid);
+
+    if (functional_xyz != NULL)
+      for (i = 0; i < numFunctional; i++)
+        AIM_FREE(functional_xyz[i]);
+
+    if (functional_map != NULL)
+      for (i = 0; i < numFunctional; i++)
+        AIM_FREE(functional_map[i]);
+
+    if (names != NULL)
+      for (i = 0; i < numFunctional; i++)
+        AIM_FREE(names[i]);
+
+    if (dxyz != NULL && meshRef != NULL)
+      for (ibody = 0; ibody < meshRef->nmap; ibody++)
+        AIM_FREE(dxyz[ibody]);
+
+    AIM_FREE(functional_xyz);
+    AIM_FREE(functional_map);
+    AIM_FREE(vol2tess);
+    AIM_FREE(names);
+    AIM_FREE(values);
+    AIM_FREE(dxyz);
+    AIM_FREE(numPoint);
+
+    return status;
 }
 
 
+// ********************** AIM Function Break *****************************
 int aimOutputs(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo,
     /*@unused@*/ int index, /*@unused@*/ char **aoname, /*@unused@*/ capsValue *form)
 {
@@ -519,7 +908,7 @@ int aimOutputs(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo,
 }
 
 
-// Calculate Plato output
+// ********************** AIM Function Break *****************************
 int aimCalcOutput(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo,
     /*@unused@*/ int index, capsValue *val)
 {
@@ -541,6 +930,7 @@ int aimCalcOutput(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo,
 }
 
 
+// ********************** AIM Function Break *****************************
 void aimCleanup(void *instStore)
 {
     aimStorage *platoInstance;
@@ -549,6 +939,9 @@ void aimCleanup(void *instStore)
     printf(" platoAIM/aimCleanup!\n");
 #endif
     platoInstance = (aimStorage *) instStore;
+
+    // Design information
+    (void) destroy_cfdDesignStruct(&platoInstance->design);
 
     aim_freeMeshRef(&platoInstance->meshRefObj);
     platoInstance->meshRef = NULL;
@@ -601,11 +994,11 @@ int aimDiscr(char *tname, capsDiscr *discr)
     }
 
     // Get the mesh input Value
-    status = aim_getValue(discr->aInfo, Mesh, ANALYSISIN, &meshVal);
+    status = aim_getValue(discr->aInfo, inMesh, ANALYSISIN, &meshVal);
     AIM_STATUS(discr->aInfo, status);
 
     if (meshVal->nullVal == IsNull) {
-        AIM_ANALYSISIN_ERROR(discr->aInfo, Mesh, "'Mesh' input must be linked to an output 'Area_Mesh' or 'Volume_Mesh'");
+        AIM_ANALYSISIN_ERROR(discr->aInfo, inMesh, "'Mesh' input must be linked to an output 'Area_Mesh' or 'Volume_Mesh'");
         status = CAPS_BADVALUE;
         goto cleanup;
     }

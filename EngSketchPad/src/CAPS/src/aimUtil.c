@@ -3,7 +3,7 @@
  *
  *             AIM Utility Functions
  *
- *      Copyright 2014-2024, Massachusetts Institute of Technology
+ *      Copyright 2014-2025, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -443,7 +443,7 @@ int aim_relPath(void *aimStruc, const char *src,
                 /*@null@*/ const char *dst, char *relPath)
 {
   int         i, j, k, len, lsrc, ldst, ndst, status;
-  char        aimDst[PATH_MAX];
+  char        aimDst[PATH_MAX] = {'\0'};
   aimInfo     *aInfo;
   capsProblem *problem;
 
@@ -758,6 +758,9 @@ aim_newGeometry(void *aimStruc)
   problem  = aInfo->problem;
   analysis = (capsAnalysis *) aInfo->analysis;
 
+  /* indicate new geometry when reloading */
+  if (analysis->reload != 0) return CAPS_SUCCESS;
+
   if (problem->geometry.sNum < analysis->pre.sNum) return CAPS_CLEAN;
   return CAPS_SUCCESS;
 }
@@ -774,6 +777,9 @@ aim_newAnalysisIn(void *aimStruc, int index)
   if (aInfo->magicnumber != CAPSMAGIC)             return CAPS_BADOBJECT;
   analysis = (capsAnalysis *) aInfo->analysis;
   if (index <= 0 || index > analysis->nAnalysisIn) return CAPS_RANGEERR;
+
+  /* indicate new analysis input when reloading */
+  if (analysis->reload != 0) return CAPS_SUCCESS;
 
   if (analysis->analysisIn[index-1]->last.sNum < analysis->pre.sNum)
     return CAPS_CLEAN;
@@ -1026,6 +1032,48 @@ aim_unitRaise(void *aimStruc, const char *inUnit, const int power,
 
   utunit1 = ut_parse((ut_system *) problem->utsystem, inUnit, UT_ASCII);
   utunit  = ut_raise(utunit1, power);
+  if (ut_get_status() != UT_SUCCESS) {
+    ut_free(utunit1);
+    ut_free(utunit);
+    return CAPS_UNITERR;
+  }
+
+  status = ut_format(utunit, buffer, UNIT_BUFFER_MAX, UT_ASCII);
+
+  ut_free(utunit1);
+  ut_free(utunit);
+
+  if (ut_get_status() != UT_SUCCESS || status >= UNIT_BUFFER_MAX) {
+    return CAPS_UNITERR;
+  } else {
+    *outUnits = EG_strdup(buffer);
+    if (*outUnits == NULL) return EGADS_MALLOC;
+    return CAPS_SUCCESS;
+  }
+}
+
+
+int
+aim_unitRoot(void *aimStruc, const char *inUnit, const int root,
+              char **outUnits)
+{
+  int         status;
+  aimInfo     *aInfo;
+  capsProblem *problem;
+  ut_unit     *utunit1, *utunit;
+  char        buffer[UNIT_BUFFER_MAX];
+
+  if ((inUnit == NULL) || (outUnits == NULL)) return CAPS_NULLNAME;
+  aInfo = (aimInfo *) aimStruc;
+  if (aInfo == NULL)                          return CAPS_NULLOBJ;
+  if (aInfo->magicnumber != CAPSMAGIC)        return CAPS_BADOBJECT;
+  problem = aInfo->problem;
+  if (problem->utsystem == NULL)              return CAPS_NULLOBJ;
+
+  *outUnits = NULL;
+
+  utunit1 = ut_parse((ut_system *) problem->utsystem, inUnit, UT_ASCII);
+  utunit  = ut_root(utunit1, root);
   if (ut_get_status() != UT_SUCCESS) {
     ut_free(utunit1);
     ut_free(utunit);
@@ -1731,7 +1779,7 @@ aim_newTess(void *aimStruc, ego tess)
 
   for (i = 0; i < analysis->nBody; i++) {
     if (body != analysis->bodies[i]) continue;
-    if (analysis->tess[i] != NULL) {
+    if (analysis->tess[i] != NULL && analysis->tess[i] != tess) {
       stat = aim_deleteTess(aimStruc, analysis->tess[i]);
       if (stat != EGADS_SUCCESS) return stat;
     }
@@ -1745,7 +1793,7 @@ aim_newTess(void *aimStruc, ego tess)
     if (stat <  EGADS_SUCCESS) return stat;
     if (stat == EGADS_OUTSIDE) return CAPS_SOURCEERR;
     if (tbody != body) continue;
-    if (analysis->tess[i] != NULL) {
+    if (analysis->tess[i] != NULL && analysis->tess[i] != tess) {
       stat = aim_deleteTess(aimStruc, analysis->tess[i]);
       if (stat != EGADS_SUCCESS) return stat;
     }

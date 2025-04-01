@@ -419,11 +419,11 @@ ASSERT    error     0
 ASSERT    mat1.sum  33
 
 SET       mat2[2,2] 0
-ASSERT    mat2[1,1] -99999999
+ASSERT    mat2[1,1] -9.9999999e+30
 ASSERT    mat2[2,2] 0
 
 SET       mat3[2,2] 0
-ASSERT    mat3[1,1] -99999999
+ASSERT    mat3[1,1] -9.9999999e+30
 ASSERT    mat3[2,2] 0
 
 # check ability to change types

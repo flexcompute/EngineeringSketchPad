@@ -9,7 +9,7 @@
  */
 
 /*
- * Copyright (C) 2012/2024  John F. Dannenhoffer, III (Syracuse University)
+ * Copyright (C) 2012/2025  John F. Dannenhoffer, III (Syracuse University)
  *
  * This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
@@ -235,7 +235,11 @@ static int        loadEgads  = 0;      /* =1 to read Bodys instead of creating *
 static int        onormal    = 0;      /* =1 to use orthonormal (not perspective) */
 static int        outLevel   = 1;      /* default output level */
 static int        plotCP     = 0;      /* =1 to plot Bspline control polygons */
+static int        printBmtrx = 0;      /* =1 to print Bmtrx at the end of a build */
 static int        printStack = 0;      /* =1 to print stack after every command */
+static int        printAttrs = 0;      /* =1 to print attributes after every command */
+static int        printPmtrs = 0;      /* =1 to print parameters after every command */
+static int        printStors = 0;      /* =1 to print stores at end of ocsmBuild */
 static int        skipBuild  = 0;      /* =1 to skip initial build */
 static int        skipTess   = 0;      /* -1 to skip tessellation at end of build */
 static int        tessel     = 0;      /* =1 for tessellation sensitivities */
@@ -342,6 +346,7 @@ static int        getToken(char text[], int nskip, char sep, char token[]);
 static int        maxDistance(modl_T *MODL1, modl_T *MODL2, int ibody, double *dist);
        void       mesgCallbackFromOpenCSM(char mesg[]);
 static int        processBrowserToServer(esp_T *ESP, char text[]);
+static char*      sigdig6(double number);
        void       sizeCallbackFromOpenCSM(void *modl, int ipmtr, int nrow, int ncel);
 static void       spec_col(float scalar, float out[]);
 static int        storeUndo(modl_T *MODL, char cmd[], char arg[]);
@@ -353,7 +358,7 @@ static int        printHistogram(int nhist, double dhist[], int hist[]);
 
 static int        writeSensFile(modl_T *MODL, int ibody, char filename[]);
 
-static int        testOcsmAdjoint(modl_T *MODL);
+static int        testDerivatives(modl_T *MODL);
 
 
 
@@ -559,6 +564,14 @@ main(int       argc,                    /* (in)  number of arguments */
                 showUsage = 1;
                 break;
             }
+        } else if (strcmp(argv[i], "-printBmtrx") == 0) {
+            printBmtrx = 1;
+        } else if (strcmp(argv[i], "-printAttrs") == 0) {
+            printAttrs = 1;
+        } else if (strcmp(argv[i], "-printPmtrs") == 0) {
+            printPmtrs = 1;
+        } else if (strcmp(argv[i], "-printStors") == 0) {
+            printStors = 1;
         } else if (strcmp(argv[i], "-printStack") == 0) {
             printStack = 1;
         } else if (strcmp(argv[i], "-ptrb") == 0) {
@@ -615,8 +628,8 @@ main(int       argc,                    /* (in)  number of arguments */
         SPRINT0(0, "                        -dumpEgads");
         SPRINT0(0, "                        -dxdd despmtr");
         SPRINT0(0, "                        -egg eggname");
-        SPRINT0(0, "                        -help  -or-  -h");
         SPRINT0(0, "                        -forceFDs step");
+        SPRINT0(0, "                        -help  -or-  -h");
         SPRINT0(0, "                        -histDist dist");
         SPRINT0(0, "                        -jrnl jrnlname");
         SPRINT0(0, "                        -loadEgads");
@@ -626,7 +639,11 @@ main(int       argc,                    /* (in)  number of arguments */
         SPRINT0(0, "                        -plotBDF BDFname");
         SPRINT0(0, "                        -plotCP");
         SPRINT0(0, "                        -port X");
+        SPRINT0(0, "                        -printBmtrx");
+        SPRINT0(0, "                        -printAttrs");
+        SPRINT0(0, "                        -printPmtrs");
         SPRINT0(0, "                        -printStack");
+        SPRINT0(0, "                        -printStors");
         SPRINT0(0, "                        -ptrb ptrbname");
         SPRINT0(0, "                        -skipBuild");
         SPRINT0(0, "                        -skipTess");
@@ -649,7 +666,7 @@ main(int       argc,                    /* (in)  number of arguments */
     SPRINT0(1, "*                    Program serveESP                    *");
     SPRINT2(1, "*                     version %2d.%02d                      *", imajor, iminor);
     SPRINT0(1, "*                                                        *");
-    SPRINT0(1, "*        written by John Dannenhoffer, 2010/2024         *");
+    SPRINT0(1, "*        written by John Dannenhoffer, 2010/2025         *");
     SPRINT0(1, "*                                                        *");
     SPRINT0(1, "**********************************************************\n");
 
@@ -670,7 +687,11 @@ main(int       argc,                    /* (in)  number of arguments */
     SPRINT1(1, "    plotfile    = %s", plotfile   );
     SPRINT1(1, "    plotBDF     = %s", BDFname    );
     SPRINT1(1, "    port        = %d", port       );
+    SPRINT1(1, "    printBmtrx  = %d", printBmtrx );
+    SPRINT1(1, "    printAttrs  = %d", printAttrs );
+    SPRINT1(1, "    printPmtrs  = %d", printPmtrs );
     SPRINT1(1, "    printStack  = %d", printStack );
+    SPRINT1(1, "    printStors  = %d", printStors );
     SPRINT1(1, "    ptrbname    = %s", ptrbname   );
     SPRINT1(1, "    skipBuild   = %d", skipBuild  );
     SPRINT1(1, "    skipTess    = %d", skipTess   );
@@ -1017,9 +1038,7 @@ somewhere:
 
     /* build the Bodys from the MODL */
     if (pendingError == 0) {
-        old_time = clock();
         status = buildBodys(ESP, 0, &builtTo, &buildStatus, &nwarn);
-        new_time = clock();
 
         if (status != SUCCESS || buildStatus != SUCCESS || builtTo < 0) {
             successBuild = -1;
@@ -1037,8 +1056,13 @@ somewhere:
                 pendingError = -builtTo;
 
             } else if (builtTo < 0) {
-                SPRINT2(0, "build() detected \"%s\" at %s",
-                        ocsmGetText(buildStatus), MODL->brch[1-builtTo].name);
+                if ((1-builtTo) >= 1 && (1-builtTo) <= MODL->nbrch) {
+                    SPRINT2(0, "build() detected \"%s\" at %s",
+                            ocsmGetText(buildStatus), MODL->brch[1-builtTo].name);
+                } else {
+                    SPRINT1(0, "build() detected \"%s\"",
+                            ocsmGetText(buildStatus));
+                }
                 SPRINT0(0, "Configuration only built up to detected error\a");
                 pendingError = -builtTo;
 
@@ -1075,16 +1099,6 @@ somewhere:
             } else if (buildStatus != SUCCESS) {
                 goto cleanup;
 
-            }
-        }
-
-        if (reportTime == 1) {
-            FILE *fp_time;
-
-            fp_time = fopen("timingReport.txt", "a");
-            if (fp_time != NULL) {
-                fprintf(fp_time, "%10.3f %s\n", (double)(new_time-old_time) / (double)(CLOCKS_PER_SEC), casename);
-                fclose(fp_time);
             }
         }
 
@@ -1465,10 +1479,10 @@ somewhere:
     /* special test of ocsmAdjoint */
     if (strstr(casename, "testAdjoint") != NULL) {
         if (oldLoadEgads == 0) {
-            status = testOcsmAdjoint(MODL);
-            CHECK_STATUS(testOcsmAdjoint);
+            status = testDerivatives(MODL);
+            CHECK_STATUS(testDerivatives);
         } else {
-            SPRINT0(0, "WARNING:: ocsmAdjoint not tested because -loadEgads was enabled");
+            SPRINT0(0, "WARNING:: ocsmJacobian and ocsmAdjoint not tested because -loadEgads was enabled");
         }
     }
 
@@ -1502,6 +1516,16 @@ somewhere:
 
     SPRINT1(1, "    Total CPU time = %.3f sec",
             (double)(new_totaltime - old_totaltime) / (double)(CLOCKS_PER_SEC));
+
+    if (reportTime == 1) {
+        FILE *fp_time;
+
+        fp_time = fopen("timingReport.txt", "a");
+        if (fp_time != NULL) {
+            fprintf(fp_time, "%12.3f %s\n", (double)(new_totaltime-old_totaltime) / (double)(CLOCKS_PER_SEC), casename);
+            fclose(fp_time);
+        }
+    }
 
     if (strlen(vrfyname) > 0) {
         vrfy_fp = fopen(vrfyname, "r");
@@ -2205,8 +2229,17 @@ buildBodys(esp_T   *ESP,
         MODL->dumpEgads = dumpEgads;
         MODL->loadEgads = loadEgads;
 
+        /* set the printAttrs flag */
+        MODL->printAttrs = printAttrs;
+
+        /* set the printAttrs flag */
+        MODL->printPmtrs = printPmtrs;
+
         /* set the printStack flag */
         MODL->printStack = printStack;
+
+        /* set the printStors flag */
+        MODL->printStors = printStors;
 
         /* set the skip tessellation flag */
         MODL->tessAtEnd = 1 - skipTess;
@@ -2275,6 +2308,13 @@ buildBodys(esp_T   *ESP,
                 status2 = ocsmPrintBodys(MODL, "");
                 if (status2 != SUCCESS) {
                     SPRINT1(0, "ERROR:: ocsmPrintBodys -> status=%d", status2);
+                }
+
+                if (printBmtrx != 0 && MODL->nbody > 0) {
+                    status2 = ocsmPrintBmtrx(MODL, "");
+                    if (status2 != SUCCESS) {
+                        SPRINT1(0, "ERROR:: ocsmPrintBmtrx -> status=%d", status2);
+                    }
                 }
             }
 
@@ -3079,6 +3119,8 @@ buildSceneGraph(esp_T  *ESP)
 
                 if (tessel == 0) {
                     FREE(vel);
+                } else {
+                    vel = NULL;
                 }
 
             /* smooth colors (normalized U) */
@@ -3442,6 +3484,8 @@ buildSceneGraph(esp_T  *ESP)
 
                 FREE(tuft);
 
+                vel = NULL;
+
                 if (status != SUCCESS) {
                     SPRINT3(0, "ERROR:: wv_setData(%d,%d) -> status=%d", ibody, iface, status);
                 }
@@ -3804,6 +3848,8 @@ buildSceneGraph(esp_T  *ESP)
                     if (igprim < 0) {
                         SPRINT2(0, "ERROR:: wv_addGPrim(%s) -> igprim=%d", gpname, igprim);
                     }
+
+                    vel = NULL;
                 }
             }
 
@@ -3964,6 +4010,8 @@ buildSceneGraph(esp_T  *ESP)
                 status = wv_setData(WV_REAL32, 2, (void*)tuft, WV_VERTICES, &(items[nitems]));
 
                 FREE(tuft);
+
+                vel = NULL;
 
                 if (status != SUCCESS) {
                     SPRINT3(0, "ERROR:: wv_setData(%d,%d) -> status=%d", ibody, iedge, status);
@@ -6078,10 +6126,12 @@ processBrowserToServer(esp_T   *ESP,
     int       ipmtr, jpmtr, nrow, ncol, irow, icol, index, iattr, actv, itemp, linenum;
     int       itoken1, itoken2, itoken3, ibody, onstack, direction=1, nwarn, dim1, dim2;
     int       nclient;
-    CINT      *tempIlist;
+    int       iface, iedge, inode, npnt, ipnt, ntri;
+    CINT      *tempIlist, *ptype, *pindx, *tris, *tric;
     double    scale, value, dot;
     double    toler, value1, dot1, value2, dot2;
-    CDOUBLE   *tempRlist;
+    double    *vel=NULL, data[18], normx, normy, normz, velmag;
+    CDOUBLE   *tempRlist, *xyz, *uv;
     char      *pEnd, bname[MAX_NAME_LEN+1], *bodyinfo=NULL, *tempEnv, *answer;
     char      str1[MAX_STRVAL_LEN], str2[MAX_STRVAL_LEN];
     CCHAR     *tempClist;
@@ -6106,6 +6156,8 @@ processBrowserToServer(esp_T   *ESP,
     ROUTINE(processBrowserToServer);
 
     /* --------------------------------------------------------------- */
+
+//$$$    printf("processBrowserToServer(text=%s)\n", text);
 
     MALLOC(name,     char, MAX_EXPR_LEN);
     MALLOC(type,     char, MAX_EXPR_LEN);
@@ -6369,9 +6421,9 @@ processBrowserToServer(esp_T   *ESP,
                 for (irow = 1; irow <= MODL->pmtr[ipmtr].nrow; irow++) {
                     for (icol = 1; icol <= MODL->pmtr[ipmtr].ncol; icol++) {
                         if (irow < MODL->pmtr[ipmtr].nrow || icol < MODL->pmtr[ipmtr].ncol) {
-                            snprintf(entry, MAX_STR_LEN, "%lg,", MODL->pmtr[ipmtr].value[index++]);
+                            snprintf(entry, MAX_STR_LEN, "%s,",           sigdig6(MODL->pmtr[ipmtr].value[index++]));
                         } else {
-                            snprintf(entry, MAX_STR_LEN, "%lg],\"dot\":[", MODL->pmtr[ipmtr].value[index++]);
+                            snprintf(entry, MAX_STR_LEN, "%s],\"dot\":[", sigdig6(MODL->pmtr[ipmtr].value[index++]));
                         }
                         addToResponse(entry);
                     }
@@ -6381,9 +6433,9 @@ processBrowserToServer(esp_T   *ESP,
                 for (irow = 1; irow <= MODL->pmtr[ipmtr].nrow; irow++) {
                     for (icol = 1; icol <= MODL->pmtr[ipmtr].ncol; icol++) {
                         if (irow < MODL->pmtr[ipmtr].nrow || icol < MODL->pmtr[ipmtr].ncol) {
-                            snprintf(entry, MAX_STR_LEN, "%lg,", MODL->pmtr[ipmtr].dot[index++]);
+                            snprintf(entry, MAX_STR_LEN, "%s,", sigdig6(MODL->pmtr[ipmtr].dot[index++]));
                         } else {
-                            snprintf(entry, MAX_STR_LEN, "%lg]", MODL->pmtr[ipmtr].dot[index++]);
+                            snprintf(entry, MAX_STR_LEN, "%s]", sigdig6(MODL->pmtr[ipmtr].dot[index++]));
                         }
                         addToResponse(entry);
                     }
@@ -6412,9 +6464,9 @@ processBrowserToServer(esp_T   *ESP,
                 for (irow = 1; irow <= MODL->pmtr[ipmtr].nrow; irow++) {
                     for (icol = 1; icol <= MODL->pmtr[ipmtr].ncol; icol++) {
                         if (irow < MODL->pmtr[ipmtr].nrow || icol < MODL->pmtr[ipmtr].ncol) {
-                            snprintf(entry, MAX_STR_LEN, "%lg,", MODL->pmtr[ipmtr].value[index++]);
+                            snprintf(entry, MAX_STR_LEN, "%s,",           sigdig6(MODL->pmtr[ipmtr].value[index++]));
                         } else {
-                            snprintf(entry, MAX_STR_LEN, "%lg],\"dot\":[", MODL->pmtr[ipmtr].value[index++]);
+                            snprintf(entry, MAX_STR_LEN, "%s],\"dot\":[", sigdig6(MODL->pmtr[ipmtr].value[index++]));
                         }
                         addToResponse(entry);
                     }
@@ -6424,9 +6476,9 @@ processBrowserToServer(esp_T   *ESP,
                 for (irow = 1; irow <= MODL->pmtr[ipmtr].nrow; irow++) {
                     for (icol = 1; icol <= MODL->pmtr[ipmtr].ncol; icol++) {
                         if (irow < MODL->pmtr[ipmtr].nrow || icol < MODL->pmtr[ipmtr].ncol) {
-                            snprintf(entry, MAX_STR_LEN, "%lg,", MODL->pmtr[ipmtr].dot[index++]);
+                            snprintf(entry, MAX_STR_LEN, "%s,", sigdig6(MODL->pmtr[ipmtr].dot[index++]));
                         } else {
-                            snprintf(entry, MAX_STR_LEN, "%lg]", MODL->pmtr[ipmtr].dot[index++]);
+                            snprintf(entry, MAX_STR_LEN, "%s]", sigdig6(MODL->pmtr[ipmtr].dot[index++]));
                         }
                         addToResponse(entry);
                     }
@@ -6468,9 +6520,9 @@ processBrowserToServer(esp_T   *ESP,
                 for (irow = 1; irow <= MODL->pmtr[ipmtr].nrow; irow++) {
                     for (icol = 1; icol <= MODL->pmtr[ipmtr].ncol; icol++) {
                         if (irow < MODL->pmtr[ipmtr].nrow || icol < MODL->pmtr[ipmtr].ncol) {
-                            snprintf(entry, MAX_STR_LEN, "%lg,", MODL->pmtr[ipmtr].value[index++]);
+                            snprintf(entry, MAX_STR_LEN, "%s,",           sigdig6(MODL->pmtr[ipmtr].value[index++]));
                         } else {
-                            snprintf(entry, MAX_STR_LEN, "%lg],\"dot\":[", MODL->pmtr[ipmtr].value[index++]);
+                            snprintf(entry, MAX_STR_LEN, "%s],\"dot\":[", sigdig6(MODL->pmtr[ipmtr].value[index++]));
                         }
                         addToResponse(entry);
                     }
@@ -6480,9 +6532,9 @@ processBrowserToServer(esp_T   *ESP,
                 for (irow = 1; irow <= MODL->pmtr[ipmtr].nrow; irow++) {
                     for (icol = 1; icol <= MODL->pmtr[ipmtr].ncol; icol++) {
                         if (irow < MODL->pmtr[ipmtr].nrow || icol < MODL->pmtr[ipmtr].ncol) {
-                            snprintf(entry, MAX_STR_LEN, "%lg,", MODL->pmtr[ipmtr].dot[index++]);
+                            snprintf(entry, MAX_STR_LEN, "%s,", sigdig6(MODL->pmtr[ipmtr].dot[index++]));
                         } else {
-                            snprintf(entry, MAX_STR_LEN, "%lg]", MODL->pmtr[ipmtr].dot[index++]);
+                            snprintf(entry, MAX_STR_LEN, "%s]", sigdig6(MODL->pmtr[ipmtr].dot[index++]));
                         }
                         addToResponse(entry);
                     }
@@ -7646,16 +7698,23 @@ processBrowserToServer(esp_T   *ESP,
 
         /* load the new MODL */
         status = ocsmLoad(filename, (void **)&(MODL));
-        ESP->MODL     = MODL;
-        ESP->MODLorig = MODL;
+//$$$        ESP->MODL     = MODL;
+//$$$        ESP->MODLorig = MODL;
 
         if (status != SUCCESS) {
             snprintf(response, max_resp_len, "%s||",
                      MODL->sigMesg);
 
+            /* remove the newly made (bad) MODL */
+            status = ocsmFree(MODL);
+            CHECK_STATUS(ocsmFree);
+
             /* clear any previous builds from the scene graph */
             buildSceneGraph(ESP);
         } else {
+            ESP->MODL     = MODL;
+            ESP->MODLorig = MODL;
+            
             status = ocsmLoadDict(MODL, dictname);
             if (status != SUCCESS) {
                 SPRINT1(0, "ERROR:: ocsmLoadDict -> status=%d", status);
@@ -7679,19 +7738,19 @@ processBrowserToServer(esp_T   *ESP,
             CHECK_STATUS(updateModl);
 
             snprintf(response, max_resp_len, "load|");
-        }
 
-        if (filelist != NULL) EG_free(filelist);
-        status = ocsmGetFilelist(MODL, &filelist);
-        if (status != SUCCESS) {
-            SPRINT1(0, "ERROR:: ocsmGetFilelist -> status=%d", status);
-        }
-        updatedFilelist = 1;
+            if (filelist != NULL) EG_free(filelist);
+            status = ocsmGetFilelist(MODL, &filelist);
+            if (status != SUCCESS) {
+                SPRINT1(0, "ERROR:: ocsmGetFilelist -> status=%d", status);
+            }
+            updatedFilelist = 1;
 
-        /* free up the saved MODL */
-        status = ocsmFree(saved_MODL);
-        if (status != SUCCESS) {
-            SPRINT1(0, "ERROR:: ocsmFree -> status=%d", status);
+            /* free up the saved MODL */
+            status = ocsmFree(saved_MODL);
+            if (status != SUCCESS) {
+                SPRINT1(0, "ERROR:: ocsmFree -> status=%d", status);
+            }
         }
 
         /* disable -loadEgads */
@@ -7741,6 +7800,130 @@ processBrowserToServer(esp_T   *ESP,
 
         /* disable -loadEgads */
         loadEgads = 0;
+
+        /* report the minimum and maximum sensitivities */
+        if (MODL->numdots > 0) {
+            sensLo = +HUGEQ;
+            sensHi = -HUGEQ;
+
+            for (ibody = 1; ibody <= MODL->nbody; ibody++) {
+                if (MODL->body[ibody].onstack != 1) continue;
+
+                for (iface = 1; iface <= MODL->body[ibody].nface; iface++) {
+                    status = EG_getTessFace(MODL->body[ibody].etess, iface,
+                                            &npnt, &xyz, &uv, &ptype, &pindx,
+                                            &ntri, &tris, &tric);
+                    CHECK_STATUS(EG_getTessFace);
+
+                    if (tessel == 0) {
+                        MALLOC(vel, double, 3*npnt);
+
+                        status = ocsmGetVel(MODL, ibody, OCSM_FACE, iface, npnt, NULL, vel);
+                        CHECK_STATUS(ocsmGetVel);
+                    } else {
+                        status = ocsmGetTessVel(MODL, ibody, OCSM_FACE, iface, (const double**)(&vel));
+                        CHECK_STATUS(ocsmGetTessVel);
+                    }
+
+                    SPLINT_CHECK_FOR_NULL(vel);
+
+                    for (ipnt = 0; ipnt < npnt; ipnt++) {
+                        if (tessel == 0) {
+                            status = EG_evaluate(MODL->body[ibody].face[iface].eface, &(uv[2*ipnt]), data);
+                            CHECK_STATUS(EG_evaluate);
+
+                            normx  = data[4] * data[8] - data[5] * data[7];
+                            normy  = data[5] * data[6] - data[3] * data[8];
+                            normz  = data[3] * data[7] - data[4] * data[6];
+
+                            if (fabs(normx) > EPS06 || fabs(normy) > EPS06 || fabs(normz) > EPS06) {
+                                velmag = ( vel[3*ipnt  ] * normx
+                                          +vel[3*ipnt+1] * normy
+                                          +vel[3*ipnt+2] * normz)
+                                       / sqrt(normx * normx + normy * normy + normz * normz);
+
+                                if (velmag != velmag) {
+                                    velmag = 0;
+                                }
+                            } else {
+                                velmag = sqrt( vel[3*ipnt  ] * vel[3*ipnt  ]
+                                             + vel[3*ipnt+1] * vel[3*ipnt+1]
+                                             + vel[3*ipnt+2] * vel[3*ipnt+2]);
+                            }
+                        } else {
+                            velmag = sqrt( vel[3*ipnt  ] * vel[3*ipnt  ]
+                                         + vel[3*ipnt+1] * vel[3*ipnt+1]
+                                         + vel[3*ipnt+2] * vel[3*ipnt+2]);
+                        }
+
+                        if (velmag < sensLo) sensLo = velmag;
+                        if (velmag > sensHi) sensHi = velmag;
+                    }
+                    if (tessel == 0) {
+                        FREE(vel);
+                    }
+                }
+
+                if (allVels == 0) continue;
+
+                for (iedge = 1; iedge <= MODL->body[ibody].nedge; iedge++) {
+                    if (MODL->body[ibody].edge[iedge].itype == DEGENERATE) continue;
+
+                    status = EG_getTessEdge(MODL->body[ibody].etess, iedge,
+                                            &npnt, &xyz, &uv);
+                    CHECK_STATUS(EG_getTessEdge);
+
+                    if (tessel == 0) {
+                        MALLOC(vel, double, 3*npnt);
+
+                        status = ocsmGetVel(MODL, ibody, OCSM_EDGE, iedge, npnt, NULL, vel);
+                        CHECK_STATUS(ocsmGetVel);
+                    } else {
+                        status = ocsmGetTessVel(MODL, ibody, OCSM_EDGE, iedge, (const double**)(&vel));
+                        CHECK_STATUS(ocsmGetTessVel);
+                    }
+
+                    SPLINT_CHECK_FOR_NULL(vel);
+
+                    for (ipnt = 0; ipnt < npnt; ipnt++) {
+                        velmag = sqrt( vel[3*ipnt  ] * vel[3*ipnt  ]
+                                     + vel[3*ipnt+1] * vel[3*ipnt+1]
+                                     + vel[3*ipnt+2] * vel[3*ipnt+2]);
+
+                        if (velmag < sensLo) sensLo = velmag;
+                        if (velmag > sensHi) sensHi = velmag;
+                    }
+                    if (tessel == 0) {
+                        FREE(vel);
+                    }
+                }
+
+                for (inode = 1; inode <= MODL->body[ibody].nnode; inode++) {
+                    if (tessel == 0) {
+                        MALLOC(vel, double, 3);
+
+                        status = ocsmGetVel(MODL, ibody, OCSM_NODE, inode, 1, NULL, vel);
+                        CHECK_STATUS(ocsmGetVel);
+                    } else {
+                        status = ocsmGetTessVel(MODL, ibody, OCSM_NODE, inode, (const double**)(&vel));
+                        CHECK_STATUS(ocsmGetTessVel);
+                    }
+
+                    SPLINT_CHECK_FOR_NULL(vel);
+
+                    velmag = sqrt(vel[0] * vel[0] + vel[1] * vel[1] + vel[2] * vel[2]);
+
+                    if (velmag < sensLo) sensLo = velmag;
+                    if (velmag > sensHi) sensHi = velmag;
+
+                    if (tessel == 0) {
+                        FREE(vel);
+                    }
+                }
+            }
+
+            printf("Sensitivities are in the range %12.6f to %12.6f\n", sensLo, sensHi);
+        }
 
         response_len = STRLEN(response);
 
@@ -8363,6 +8546,8 @@ processBrowserToServer(esp_T   *ESP,
         }
     }
 
+//$$$    printf("response=%s\n", response);
+
     status = SUCCESS;
 
 cleanup:
@@ -8391,6 +8576,28 @@ cleanup:
     FREE(name);
 
     return status;
+}
+
+
+/***********************************************************************/
+/*                                                                     */
+/*   sigdig6 - convert number to 6-sig fig character string            */
+/*                                                                     */
+/***********************************************************************/
+
+static char*
+sigdig6(double number)                  /* (in)  number to convert */
+{
+    static char answer[20];             /* (out) character string */
+
+    if (fabs(number) >= 1e+8 ||
+        fabs(number) <  1e-3   ) {
+        snprintf(answer, 19, "%13.6e", number);
+    } else {
+        snprintf(answer, 19, "%.6f",   number);
+    }
+
+    return answer;
 }
 
 
@@ -8453,9 +8660,9 @@ sizeCallbackFromOpenCSM(void   *modl,   /* (in)  pointer to MODL */
             for (irow = 1; irow <= MODL->pmtr[ipmtr].nrow; irow++) {
                 for (icol = 1; icol <= MODL->pmtr[ipmtr].ncol; icol++) {
                     if (irow < MODL->pmtr[ipmtr].nrow || icol < MODL->pmtr[ipmtr].ncol) {
-                        snprintf(entry, MAX_STR_LEN, "%lg,", MODL->pmtr[ipmtr].value[index++]);
+                        snprintf(entry, MAX_STR_LEN, "%s,",           sigdig6(MODL->pmtr[ipmtr].value[index++]));
                     } else {
-                        snprintf(entry, MAX_STR_LEN, "%lg],\"dot\":[", MODL->pmtr[ipmtr].value[index++]);
+                        snprintf(entry, MAX_STR_LEN, "%s],\"dot\":[", sigdig6(MODL->pmtr[ipmtr].value[index++]));
                     }
                     addToResponse(entry);
                 }
@@ -8465,9 +8672,9 @@ sizeCallbackFromOpenCSM(void   *modl,   /* (in)  pointer to MODL */
             for (irow = 1; irow <= MODL->pmtr[ipmtr].nrow; irow++) {
                 for (icol = 1; icol <= MODL->pmtr[ipmtr].ncol; icol++) {
                     if (irow < MODL->pmtr[ipmtr].nrow || icol < MODL->pmtr[ipmtr].ncol) {
-                        snprintf(entry, MAX_STR_LEN, "%lg,", MODL->pmtr[ipmtr].dot[index++]);
+                        snprintf(entry, MAX_STR_LEN, "%s,", sigdig6(MODL->pmtr[ipmtr].dot[index++]));
                     } else {
-                        snprintf(entry, MAX_STR_LEN, "%lg]", MODL->pmtr[ipmtr].dot[index++]);
+                        snprintf(entry, MAX_STR_LEN, "%s]", sigdig6(MODL->pmtr[ipmtr].dot[index++]));
                     }
                     addToResponse(entry);
                 }
@@ -8496,9 +8703,9 @@ sizeCallbackFromOpenCSM(void   *modl,   /* (in)  pointer to MODL */
             for (irow = 1; irow <= MODL->pmtr[ipmtr].nrow; irow++) {
                 for (icol = 1; icol <= MODL->pmtr[ipmtr].ncol; icol++) {
                     if (irow < MODL->pmtr[ipmtr].nrow || icol < MODL->pmtr[ipmtr].ncol) {
-                        snprintf(entry, MAX_STR_LEN, "%lg,", MODL->pmtr[ipmtr].value[index++]);
+                        snprintf(entry, MAX_STR_LEN, "%s,",           sigdig6(MODL->pmtr[ipmtr].value[index++]));
                     } else {
-                        snprintf(entry, MAX_STR_LEN, "%lg],\"dot\":[", MODL->pmtr[ipmtr].value[index++]);
+                        snprintf(entry, MAX_STR_LEN, "%s],\"dot\":[", sigdig6(MODL->pmtr[ipmtr].value[index++]));
                     }
                     addToResponse(entry);
                 }
@@ -8508,9 +8715,9 @@ sizeCallbackFromOpenCSM(void   *modl,   /* (in)  pointer to MODL */
             for (irow = 1; irow <= MODL->pmtr[ipmtr].nrow; irow++) {
                 for (icol = 1; icol <= MODL->pmtr[ipmtr].ncol; icol++) {
                     if (irow < MODL->pmtr[ipmtr].nrow || icol < MODL->pmtr[ipmtr].ncol) {
-                        snprintf(entry, MAX_STR_LEN, "%lg,", MODL->pmtr[ipmtr].dot[index++]);
+                        snprintf(entry, MAX_STR_LEN, "%s,", sigdig6(MODL->pmtr[ipmtr].dot[index++]));
                     } else {
-                        snprintf(entry, MAX_STR_LEN, "%lg]", MODL->pmtr[ipmtr].dot[index++]);
+                        snprintf(entry, MAX_STR_LEN, "%s]", sigdig6(MODL->pmtr[ipmtr].dot[index++]));
                     }
                     addToResponse(entry);
                 }
@@ -8552,9 +8759,9 @@ sizeCallbackFromOpenCSM(void   *modl,   /* (in)  pointer to MODL */
             for (irow = 1; irow <= MODL->pmtr[ipmtr].nrow; irow++) {
                 for (icol = 1; icol <= MODL->pmtr[ipmtr].ncol; icol++) {
                     if (irow < MODL->pmtr[ipmtr].nrow || icol < MODL->pmtr[ipmtr].ncol) {
-                        snprintf(entry, MAX_STR_LEN, "%lg,", MODL->pmtr[ipmtr].value[index++]);
+                        snprintf(entry, MAX_STR_LEN, "%s,",           sigdig6(MODL->pmtr[ipmtr].value[index++]));
                     } else {
-                        snprintf(entry, MAX_STR_LEN, "%lg],\"dot\":[", MODL->pmtr[ipmtr].value[index++]);
+                        snprintf(entry, MAX_STR_LEN, "%s],\"dot\":[", sigdig6(MODL->pmtr[ipmtr].value[index++]));
                     }
                     addToResponse(entry);
                 }
@@ -9298,13 +9505,14 @@ cleanup:
 /*
  ************************************************************************
  *                                                                      *
- *   testOcsmAdjoint - test ocsmAdjoint (volume, area, xcg, ycg, zcg)   *
+ *   testDerivatives - test ocsmAdjoint (volume, area, xcg, ycg, zcg)   *
+ *                     and  ocsmJacobian                                *
  *                                                                      *
  ************************************************************************
  */
 
 static int
-testOcsmAdjoint(modl_T *MODL)           /* (in)  pointer to MODL */
+testDerivatives(modl_T *MODL)           /* (in)  pointer to MODL */
 {
     int    status = SUCCESS;            /* (out) return status */
 
@@ -9319,18 +9527,23 @@ testOcsmAdjoint(modl_T *MODL)           /* (in)  pointer to MODL */
     double  areax_bar, areay_bar, areaz_bar, xcen_bar, ycen_bar, zcen_bar;
     double  xa,     ya,     za,     xb,     yb,     zb;
     double  xa_bar, ya_bar, za_bar, xb_bar, yb_bar, zb_bar;
+    double  errmax, error;
     CDOUBLE *xyz, *uv;
     void    *realloc_temp = NULL;            /* used by RALLOC macro */
     clock_t old_time, new_time;
 
-    double  *dOdX=NULL, *dOdD=NULL, *xyz_bar=NULL;
+    double  *dOdX=NULL, *dOdD=NULL, *dXdD=NULL, *xyz_bar=NULL;
     ego     ebody;
 
+#define  DODD(iobj,idp)   dOdD[(iobj)*ndp+(idp)]
 #define  DODX(iobj,ix)    dOdX[(iobj)*3*nglob+3*(ix-1)  ]
 #define  DODY(iobj,iy)    dOdX[(iobj)*3*nglob+3*(iy-1)+1]
 #define  DODZ(iobj,iz)    dOdX[(iobj)*3*nglob+3*(iz-1)+2]
+#define  DXDD(ix,idp)     dXdD[(idp)+(3*((ix)-1)  )*ndp]
+#define  DYDD(iy,idp)     dXdD[(idp)+(3*((iy)-1)+1)*ndp]
+#define  DZDD(iz,idp)     dXdD[(idp)+(3*((iz)-1)+2)*ndp]
 
-    ROUTINE(testOcsmAdjoint);
+    ROUTINE(testDerivatives);
 
     /* --------------------------------------------------------------- */
 
@@ -9375,6 +9588,7 @@ testOcsmAdjoint(modl_T *MODL)           /* (in)  pointer to MODL */
 
     MALLOC(dOdX, double, nobj*3*nglob);
     MALLOC(dOdD, double, nobj*ndp);
+    MALLOC(dXdD, double, ndp*3*nglob);
 
     /* get the sensitivity of the objectives with respect to the surface point locations */
 
@@ -9668,11 +9882,35 @@ testOcsmAdjoint(modl_T *MODL)           /* (in)  pointer to MODL */
         for (iobj = 0; iobj < nobj; iobj++) {
             SPRINT1x(1, "iobj=%2d:", iobj);
             for (idp = jdp; idp < MIN(jdp+12,ndp); idp++) {
-                SPRINT1x(1, " %12.6f", dOdD[iobj*ndp+idp]);
+                SPRINT1x(1, " %12.6f", DODD(iobj,idp));
             }
             SPRINT0(1, " ");
         }
     }
+
+    /* find the maximum error in dO/dX * dX/dD - dO/dD */
+    old_time = clock();
+    status = ocsmJacobian(MODL, MODL->nbody, ndp, ipmtr, irow, icol, dXdD);
+    CHECK_STATUS(ocsmJacobian);
+    new_time = clock();
+    SPRINT1(1, "computed dXdD (CPU=%.3f)", (double)(new_time-old_time)/(double)(CLOCKS_PER_SEC));
+
+    /* compute the maximum error */
+    SPRINT0(1, "Computing error in dO/dD - dO/dX * dX/dD");
+    errmax = 0;
+    for (iobj = 0; iobj < nobj; iobj++) {
+        for (idp = 0; idp < ndp; idp++) {
+            error = DODD(iobj,idp);
+            for (iglob = 1; iglob <= nglob; iglob++) {
+                error -= DODX(iobj,iglob) * DXDD(iglob,idp);
+                error -= DODY(iobj,iglob) * DYDD(iglob,idp);
+                error -= DODZ(iobj,iglob) * DZDD(iglob,idp);
+            }
+            SPRINT3(1, "iobj=%5d, idp=%5d, error=%12.5e", iobj, idp, error);
+            if (fabs(error) > errmax) errmax = fabs(error);
+        }
+    }
+    SPRINT1(1, "               maximum error=%12.5e", errmax);
 
 cleanup:
     FREE(ipmtr);
@@ -9680,10 +9918,15 @@ cleanup:
     FREE(icol );
     FREE(dOdX );
     FREE(dOdD );
+    FREE(dXdD );
 
+#undef DODD
 #undef DODX
 #undef DODY
 #undef DODZ
+#undef DXDD
+#undef DYDD
+#undef DZDD
 
     return status;
 }

@@ -1,5 +1,4 @@
 # Import other need modules
-from __future__ import print_function
 
 import unittest
 import os
@@ -8,6 +7,7 @@ import shutil
 
 # Import pyCAPS class file
 import pyCAPS
+from operator import __truediv__
 
 
 # Geometry is verified with avl by plotting the camber using the commands:
@@ -59,8 +59,7 @@ class TestAVL(unittest.TestCase):
                 "numChord"          : 8,
                 "spaceChord"        : 1.0,
                 "numSpanTotal"      : 24, # Can specify both Total and PerSection
-                "numSpanPerSection" : 12,
-                "spaceSpan"         : 1.0}
+                "numSpanPerSection" : 12}
 
         avl.input.AVL_Surface = {"Wing": wing}
 
@@ -71,8 +70,7 @@ class TestAVL(unittest.TestCase):
         wing = {"groupName"  : "Wing",
                 "numChord"   : 8,
                 "spaceChord" : 1.0,
-                "numSpan"    : 24, # numSpan is depricated
-                "spaceSpan"  : 1.0}
+                "numSpan"    : 24} # numSpan is depricated
 
         avl.input.AVL_Surface = {"Wing": wing}
 
@@ -94,8 +92,7 @@ class TestAVL(unittest.TestCase):
         wing = {"groupName"         : "Wing",
                 "numChord"          : 8,
                 "spaceChord"        : 1.0,
-                "numSpanPerSection" : 12,
-                "spaceSpan"         : 1.0}
+                "numSpanPerSection" : 12}
 
         avl.input.AVL_Surface = {"Wing": wing}
 
@@ -254,8 +251,7 @@ class TestAVL(unittest.TestCase):
         wing = {"groupName"         : "Wing",
                 "numChord"          : 8,
                 "spaceChord"        : 1.0,
-                "numSpanPerSection" : 12,
-                "spaceSpan"         : 1.0}
+                "numSpanPerSection" : 12}
 
         htail = {"groupName"         : "hTail",
                  "numChord"          : 8,
@@ -264,8 +260,7 @@ class TestAVL(unittest.TestCase):
 
         vtail = {"numChord"          : 8,
                  "spaceChord"        : 1.0,
-                 "numSpanTotal"      : 8,
-                 "spaceSpan"         : 0.5}
+                 "numSpanTotal"      : 8}
 
         avl.input.AVL_Surface = {"Wing" : wing,
                                  "hTail": htail,
@@ -697,13 +692,11 @@ class TestAVL(unittest.TestCase):
         wing = {"groupName"         : "Wing",
                 "numChord"          : 8,
                 "spaceChord"        : 1.0,
-                "numSpanPerSection" : 12,
-                "spaceSpan"         : 1.0}
+                "numSpanPerSection" : 12}
 
         vtail = {"numChord"          : 8,
                  "spaceChord"        : 1.0,
-                 "numSpanTotal"      : 8,
-                 "spaceSpan"         : 1.0}
+                 "numSpanTotal"      : 8}
 
         avl.input.AVL_Surface = {"Wing"  : wing,
                                  "VTail1": vtail,
@@ -741,22 +734,25 @@ class TestAVL(unittest.TestCase):
         avl.input.YawRate   = 0.3
 
         avl.input.CDp = 0.001
+        
+        # Write separate airfoils to separate files
+        avl.input.AirfoilFiles = True
 
         wing = {"groupName"         : "Wing",
                 "numChord"          : 8,
                 "spaceChord"        : 1.0,
-                "numSpanPerSection" : 12,
-                "spaceSpan"         : 1.0}
+                "numSpanPerSection" : 12}
 
         htail = {"groupName"         : "hTail",
                  "numChord"          : 8,
                  "spaceChord"        : 0.7,
-                 "numSpanTotal"      : 10}
+                 "numSpanTotal"      : 10,
+                 "component"         : 1}
 
         vtail = {"numChord"          : 8,
                  "spaceChord"        : 1.0,
                  "numSpanTotal"      : 8,
-                 "spaceSpan"         : 0.5}
+                 "component"         : 1}
 
         avl.input.AVL_Surface = {"Wing" : wing,
                                  "hTail": htail,
@@ -808,22 +804,22 @@ class TestAVL(unittest.TestCase):
         rb_2VTrue  = 0.3016995491906457
         pPb_2VTrue = 0.1
         rPb_2VTrue = 0.3
-        CXtotTrue  = 0.2434511334638081
-        CYtotTrue  = 0.3534396878923751
-        CZtotTrue  = -1.74137092030149
-        CltotTrue  = -0.03771690397564934
-        CmtotTrue  = -2.069696065509661
-        CntotTrue  = -0.1986037048209423
-        ClPtotTrue = -0.04117727208497329
-        CnPtotTrue = -0.1979152057770004
-        CLtotTrue  = 1.745354509204636
-        CDtotTrue  = -0.2130229416178314
+        CXtotTrue  = 0.2455317719747786
+        CYtotTrue  = 0.4122436710062359
+        CZtotTrue  = -1.717847703653682
+        CltotTrue  = -0.04501025955993116
+        CmtotTrue  = -2.026497697283769
+        CntotTrue  = -0.2349880702665927
+        ClPtotTrue = -0.04910451158959361
+        CnPtotTrue = -0.2341667431016133
+        CLtotTrue  = 1.721871187405603
+        CDtotTrue  = -0.2155137999751288
         CDvisTrue  = 0.001
-        CLffTrue   = 1.797634510552186
-        CYffTrue   = 0.2766279456798953
-        CDffTrue   = 0.705579146387139
-        CDindTrue  = -0.2140229416178314
-        eTrue      = 0.4974510184993075
+        CLffTrue   = 1.780478629339852
+        CYffTrue   = 0.2984624915324745
+        CDffTrue   = 0.6869906175771378
+        CDindTrue  = -0.2165137999751288
+        eTrue      = 0.5033695580980427
 
         self.assertAlmostEqual(AlphaTrue , avl.output["Alpha" ].value, 4)
         self.assertAlmostEqual(BetaTrue  , avl.output["Beta"  ].value, 4)
@@ -850,6 +846,272 @@ class TestAVL(unittest.TestCase):
         self.assertAlmostEqual(CDindTrue , avl.output["CDind" ].value, 4)
         self.assertAlmostEqual(eTrue     , avl.output["e"     ].value, 4)
 
+
+#==============================================================================
+    def test_wing_tail_Operation(self):
+
+        m    = pyCAPS.Unit("meter")
+        kg   = pyCAPS.Unit("kg")
+        s    = pyCAPS.Unit("s")
+        K    = pyCAPS.Unit("Kelvin")
+        deg  = pyCAPS.Unit("degree")
+        ft   = pyCAPS.Unit("ft")
+        slug = pyCAPS.Unit("slug")
+
+
+        # Load avl aim
+        avl = self.myProblem.analysis.create(aim = "avlAIM",
+                                             unitSystem={"mass":kg, "length":m, "time":s, "temperature":K})
+
+        # Set new Mach/Alt parameters
+        avl.input.Mach  = 0.5
+        avl.input.Alpha = 1.0 * deg
+        avl.input.Beta  = 2.0 * deg
+
+        avl.input.RollRate  = 0.1
+        avl.input.PitchRate = 0.2
+        avl.input.YawRate   = 0.3
+
+        avl.input.CDp = 0.001
+
+        wing = {"groupName"         : "Wing",
+                "numChord"          : 8,
+                "spaceChord"        : 1.0,
+                "numSpanPerSection" : 12}
+
+        htail = {"groupName"         : "hTail",
+                 "numChord"          : 8,
+                 "spaceChord"        : 0.7,
+                 "numSpanTotal"      : 10}
+
+        vtail = {"numChord"          : 8,
+                 "spaceChord"        : 1.0,
+                 "numSpanTotal"      : 8}
+
+        avl.input.AVL_Surface = {"Wing" : wing,
+                                 "hTail": htail,
+                                 "vTail": vtail}
+
+        # Set control surface parameters
+        aileronLeft  = {"deflectionAngle" : -5.0*deg}
+        aileronRight = {"deflectionAngle" :  5.0*deg}
+        elevator     = {"deflectionAngle" :  5.0*deg}
+        rudder       = {"deflectionAngle" : -2.0*deg}
+
+        avl.input.AVL_Control = {"LeftAileron" : aileronLeft ,
+                                 "RightAileron": aileronRight,
+                                 "Elevator"    : elevator    ,
+                                 "Rudder"      : rudder      }
+
+        Operation = {"Alpha":{"CL":1.6},
+                     "Beta":{"CY":0.1},
+                     "LeftAileron":{"LeftAileron":-3.0*deg},
+                     "RightAileron":{"Cl":0.0},
+                     "Elevator":{"Cm":0.0},
+                     "Rudder":{"Cn":0.0}
+                     }
+
+        avl.input.AVL_Operation = Operation
+
+
+        # print()
+        # print("AlphaTrue  =", avl.output["Alpha" ].value)
+        # print("BetaTrue   =", avl.output["Beta"  ].value)
+        # print("MachTrue   =", avl.output["Mach"  ].value)
+        # print("pb_2VTrue  =", avl.output["pb/2V" ].value)
+        # print("qc_2VTrue  =", avl.output["qc/2V" ].value)
+        # print("rb_2VTrue  =", avl.output["rb/2V" ].value)
+        # print("pPb_2VTrue =", avl.output["p'b/2V"].value)
+        # print("rPb_2VTrue =", avl.output["r'b/2V"].value)
+        # print("CXtotTrue  =", avl.output["CXtot" ].value)
+        # print("CYtotTrue  =", avl.output["CYtot" ].value)
+        # print("CZtotTrue  =", avl.output["CZtot" ].value)
+        # print("CltotTrue  =", avl.output["Cltot" ].value)
+        # print("CmtotTrue  =", avl.output["Cmtot" ].value)
+        # print("CntotTrue  =", avl.output["Cntot" ].value)
+        # print("ClPtotTrue =", avl.output["Cl'tot"].value)
+        # print("CnPtotTrue =", avl.output["Cn'tot"].value)
+        # print("CLtotTrue  =", avl.output["CLtot" ].value)
+        # print("CDtotTrue  =", avl.output["CDtot" ].value)
+        # print("CDvisTrue  =", avl.output["CDvis" ].value)
+        # print("CLffTrue   =", avl.output["CLff"  ].value)
+        # print("CYffTrue   =", avl.output["CYff"  ].value)
+        # print("CDffTrue   =", avl.output["CDff"  ].value)
+        # print("CDindTrue  =", avl.output["CDind" ].value)
+        # print("eTrue      =", avl.output["e"     ].value)
+
+
+        AlphaTrue  = 11.35974503772382
+        BetaTrue   = 7.888252642168466
+        MachTrue   = 0.5
+        pb_2VTrue  = 0.03895040896951905
+        qc_2VTrue  = 0.2
+        rb_2VTrue  = 0.3138197980387904
+        pPb_2VTrue = 0.1
+        rPb_2VTrue = 0.3
+        CXtotTrue  = -0.122611311900413
+        CYtotTrue  = 0.1000000007764814
+        CZtotTrue  = -1.656603770141259
+        CltotTrue  = 2.015057669335629e-10
+        CmtotTrue  = -1.410142809812887e-09
+        CntotTrue  = -2.256611541942913e-09
+        ClPtotTrue = -2.469233217324823e-10
+        CnPtotTrue = -2.252094380465004e-09
+        CLtotTrue  = 1.600000001166108
+        CDtotTrue  = 0.4465082096900678
+        CDvisTrue  = 0.0009999999999999998
+        CLffTrue   = 1.618302115465727
+        CYffTrue   = 0.0562391535289818
+        CDffTrue   = 0.3182557046447392
+        CDindTrue  = 0.4455082096900678
+        eTrue      = 0.8741703244969328
+
+
+        self.assertAlmostEqual(AlphaTrue , avl.output["Alpha" ].value, 4)
+        self.assertAlmostEqual(BetaTrue  , avl.output["Beta"  ].value, 4)
+        self.assertAlmostEqual(MachTrue  , avl.output["Mach"  ].value, 4)
+        self.assertAlmostEqual(pb_2VTrue , avl.output["pb/2V" ].value, 4)
+        self.assertAlmostEqual(qc_2VTrue , avl.output["qc/2V" ].value, 4)
+        self.assertAlmostEqual(rb_2VTrue , avl.output["rb/2V" ].value, 4)
+        self.assertAlmostEqual(pPb_2VTrue, avl.output["p'b/2V"].value, 4)
+        self.assertAlmostEqual(rPb_2VTrue, avl.output["r'b/2V"].value, 4)
+        self.assertAlmostEqual(CXtotTrue , avl.output["CXtot" ].value, 4)
+        self.assertAlmostEqual(CYtotTrue , avl.output["CYtot" ].value, 4)
+        self.assertAlmostEqual(CZtotTrue , avl.output["CZtot" ].value, 4)
+        self.assertAlmostEqual(CltotTrue , avl.output["Cltot" ].value, 4)
+        self.assertAlmostEqual(CmtotTrue , avl.output["Cmtot" ].value, 4)
+        self.assertAlmostEqual(CntotTrue , avl.output["Cntot" ].value, 4)
+        self.assertAlmostEqual(ClPtotTrue, avl.output["Cl'tot"].value, 4)
+        self.assertAlmostEqual(CnPtotTrue, avl.output["Cn'tot"].value, 4)
+        self.assertAlmostEqual(CLtotTrue , avl.output["CLtot" ].value, 4)
+        self.assertAlmostEqual(CDtotTrue , avl.output["CDtot" ].value, 4)
+        self.assertAlmostEqual(CDvisTrue , avl.output["CDvis" ].value, 4)
+        self.assertAlmostEqual(CLffTrue  , avl.output["CLff"  ].value, 4)
+        self.assertAlmostEqual(CYffTrue  , avl.output["CYff"  ].value, 4)
+        self.assertAlmostEqual(CDffTrue  , avl.output["CDff"  ].value, 4)
+        self.assertAlmostEqual(CDindTrue , avl.output["CDind" ].value, 4)
+        self.assertAlmostEqual(eTrue     , avl.output["e"     ].value, 4)
+
+
+#==============================================================================
+    def test_body_wing_tail(self):
+
+        # Load avl aim
+        avl = self.myProblem.analysis.create(aim = "avlAIM")
+
+        # Set new Mach/Alt parameters
+        avl.input.Mach  = 0.5
+        avl.input.Alpha = 1.0
+        avl.input.Beta  = 2.0
+
+        avl.input.RollRate  = 0.1
+        avl.input.PitchRate = 0.2
+        avl.input.YawRate   = 0.3
+
+        avl.input.CDp = 0.001
+
+        # Write separate airfoils to separate files
+        avl.input.AirfoilFiles = True
+
+        fuse = {"groupName"         : "Fuselage",
+                "numChord"          : 36}
+
+        wing = {"groupName"         : "Wing",
+                "numChord"          : 8,
+                "spaceChord"        : 1.0,
+                "numSpanPerSection" : 12}
+
+        htail = {"groupName"         : "hTail",
+                 "numChord"          : 8,
+                 "spaceChord"        : 0.7,
+                 "numSpanTotal"      : 10}
+
+        vtail = {"numChord"          : 8,
+                 "spaceChord"        : 1.0,
+                 "numSpanTotal"      : 8}
+
+        avl.input.AVL_Surface = {"Fuselage":fuse,
+                                 "Wing" : wing,
+                                 "hTail": htail,
+                                 "vTail": vtail}
+
+        # print()
+        # print("AlphaTrue  =", avl.output["Alpha" ].value)
+        # print("BetaTrue   =", avl.output["Beta"  ].value)
+        # print("MachTrue   =", avl.output["Mach"  ].value)
+        # print("pb_2VTrue  =", avl.output["pb/2V" ].value)
+        # print("qc_2VTrue  =", avl.output["qc/2V" ].value)
+        # print("rb_2VTrue  =", avl.output["rb/2V" ].value)
+        # print("pPb_2VTrue =", avl.output["p'b/2V"].value)
+        # print("rPb_2VTrue =", avl.output["r'b/2V"].value)
+        # print("CXtotTrue  =", avl.output["CXtot" ].value)
+        # print("CYtotTrue  =", avl.output["CYtot" ].value)
+        # print("CZtotTrue  =", avl.output["CZtot" ].value)
+        # print("CltotTrue  =", avl.output["Cltot" ].value)
+        # print("CmtotTrue  =", avl.output["Cmtot" ].value)
+        # print("CntotTrue  =", avl.output["Cntot" ].value)
+        # print("ClPtotTrue =", avl.output["Cl'tot"].value)
+        # print("CnPtotTrue =", avl.output["Cn'tot"].value)
+        # print("CLtotTrue  =", avl.output["CLtot" ].value)
+        # print("CDtotTrue  =", avl.output["CDtot" ].value)
+        # print("CDvisTrue  =", avl.output["CDvis" ].value)
+        # print("CLffTrue   =", avl.output["CLff"  ].value)
+        # print("CYffTrue   =", avl.output["CYff"  ].value)
+        # print("CDffTrue   =", avl.output["CDff"  ].value)
+        # print("CDindTrue  =", avl.output["CDind" ].value)
+        # print("eTrue      =", avl.output["e"     ].value)
+
+        AlphaTrue  = 1.0
+        BetaTrue   = 2.0
+        MachTrue   = 0.5
+        pb_2VTrue  = 0.09474904758445407
+        qc_2VTrue  = 0.2
+        rb_2VTrue  = 0.3016995491906457
+        pPb_2VTrue = 0.1
+        rPb_2VTrue = 0.3
+        CXtotTrue  = 0.3719922024780791
+        CYtotTrue  = 0.3191528994443489
+        CZtotTrue  = -2.01116225600716
+        CltotTrue  = 0.08338746040222339
+        CmtotTrue  = -2.248545458432418
+        CntotTrue  = -0.2025624856962194
+        ClPtotTrue = 0.07983955725879105
+        CnPtotTrue = -0.203986946299227
+        CLtotTrue  = 2.017348105363435
+        CDtotTrue  = -0.336835925160696
+        CDvisTrue  = 0.001
+        CLffTrue   = 2.030914877759279
+        CYffTrue   = 0.2658464220009752
+        CDffTrue   = 0.748457710717743
+        CDindTrue  = -0.337835925160696
+        eTrue      = 0.5947350680748582
+
+        self.assertAlmostEqual(AlphaTrue , avl.output["Alpha" ].value, 4)
+        self.assertAlmostEqual(BetaTrue  , avl.output["Beta"  ].value, 4)
+        self.assertAlmostEqual(MachTrue  , avl.output["Mach"  ].value, 4)
+        self.assertAlmostEqual(pb_2VTrue , avl.output["pb/2V" ].value, 4)
+        self.assertAlmostEqual(qc_2VTrue , avl.output["qc/2V" ].value, 4)
+        self.assertAlmostEqual(rb_2VTrue , avl.output["rb/2V" ].value, 4)
+        self.assertAlmostEqual(pPb_2VTrue, avl.output["p'b/2V"].value, 4)
+        self.assertAlmostEqual(rPb_2VTrue, avl.output["r'b/2V"].value, 4)
+        self.assertAlmostEqual(CXtotTrue , avl.output["CXtot" ].value, 4)
+        self.assertAlmostEqual(CYtotTrue , avl.output["CYtot" ].value, 4)
+        self.assertAlmostEqual(CZtotTrue , avl.output["CZtot" ].value, 4)
+        self.assertAlmostEqual(CltotTrue , avl.output["Cltot" ].value, 4)
+        self.assertAlmostEqual(CmtotTrue , avl.output["Cmtot" ].value, 4)
+        self.assertAlmostEqual(CntotTrue , avl.output["Cntot" ].value, 4)
+        self.assertAlmostEqual(ClPtotTrue, avl.output["Cl'tot"].value, 4)
+        self.assertAlmostEqual(CnPtotTrue, avl.output["Cn'tot"].value, 4)
+        self.assertAlmostEqual(CLtotTrue , avl.output["CLtot" ].value, 4)
+        self.assertAlmostEqual(CDtotTrue , avl.output["CDtot" ].value, 4)
+        self.assertAlmostEqual(CDvisTrue , avl.output["CDvis" ].value, 4)
+        self.assertAlmostEqual(CLffTrue  , avl.output["CLff"  ].value, 4)
+        self.assertAlmostEqual(CYffTrue  , avl.output["CYff"  ].value, 4)
+        self.assertAlmostEqual(CDffTrue  , avl.output["CDff"  ].value, 4)
+        self.assertAlmostEqual(CDindTrue , avl.output["CDind" ].value, 4)
+        self.assertAlmostEqual(eTrue     , avl.output["e"     ].value, 4)
+
+
 #==============================================================================
     def test_geom_change(self):
 
@@ -864,8 +1126,7 @@ class TestAVL(unittest.TestCase):
         wing = {"groupName"         : "Wing",
                 "numChord"          : 8,
                 "spaceChord"        : 1.0,
-                "numSpanPerSection" : 12,
-                "spaceSpan"         : 1.0}
+                "numSpanPerSection" : 12}
 
         avl.input.AVL_Surface = {"Wing": wing}
 
@@ -912,8 +1173,7 @@ class TestAVL(unittest.TestCase):
         wing = {"groupName"         : "Wing", # Notice Wing is the value for the capsGroup attribute
                 "numChord"          : 8,
                 "spaceChord"        : 1.0,
-                "numSpanPerSection" : 12,
-                "spaceSpan"         : 1.0}
+                "numSpanPerSection" : 12}
 
         avl.input.AVL_Surface = {"Wing": wing}
 
@@ -992,8 +1252,7 @@ class TestAVL(unittest.TestCase):
         wing = {"groupName"         : "Wing", # Notice Wing is the value for the capsGroup attribute
                 "numChord"          : 8,
                 "spaceChord"        : 1.0,
-                "numSpanPerSection" : 12,
-                "spaceSpan"         : 1.0}
+                "numSpanPerSection" : 12}
 
         avl.input.AVL_Surface = {"Wing": wing}
 
@@ -1021,6 +1280,12 @@ class TestAVL(unittest.TestCase):
 
         avl.input.MassProp = {"Aircraft":{"mass":mass * kg, "CG":[x,y,z] * m, "massInertia":[Ixx, Iyy, Izz, 1.0, 2.0, 3.0] * kg*m**2},
                               "Engine"  :{"mass":mass * kg, "CG":[x,y,z] * m, "massInertia":[Ixx, Iyy, Izz] * kg*m**2}}
+
+        # again should not cause errors
+        avl.runAnalysis()
+
+        avl.input.MassProp = {"Aircraft":{"mass":mass * kg, "CG":[x * m,y * m,z * m], "massInertia":[Ixx * kg*m**2, Iyy * kg*m**2, Izz * kg*m**2, 1.0 * kg*m**2, 2.0 * kg*m**2, 3.0 * kg*m**2]},
+                              "Engine"  :{"mass":mass * kg, "CG":[x * m,y * m,z * m], "massInertia":[Ixx * kg*m**2, Iyy * kg*m**2, Izz * kg*m**2]}}
 
         # again should not cause errors
         avl.runAnalysis()
@@ -1062,6 +1327,12 @@ class TestAVL(unittest.TestCase):
             avl.runAnalysis()
         self.assertEqual(e.exception.errorName, "CAPS_BADVALUE")
 
+        avl.input.MassProp = {"Aircraft":{"mass":mass * kg, "CG":[x * m,y * m,z] * m, "massInertia":[Ixx * kg*m**2, Iyy * kg*m**2, Izz, 1.0 * kg*m**2, 2.0 * kg*m**2, 3.0 * kg*m**2] * kg*m**2},
+                              "Engine"  :{"mass":mass * kg, "CG":[x * m,y * m,z * m], "massInertia":[Ixx * kg*m**2, Iyy * kg*m**2, Izz] * kg*m**2}}
+        with self.assertRaises(pyCAPS.CAPSError) as e:
+            avl.runAnalysis()
+        self.assertEqual(e.exception.errorName, "CAPS_BADVALUE")
+
 #==============================================================================
     def test_phase(self):
 
@@ -1080,8 +1351,7 @@ class TestAVL(unittest.TestCase):
         wing = {"groupName"         : "Wing", # Notice Wing is the value for the capsGroup attribute
                 "numChord"          : 8,
                 "spaceChord"        : 1.0,
-                "numSpanPerSection" : 12,
-                "spaceSpan"         : 1.0}
+                "numSpanPerSection" : 12}
 
         avl.input.AVL_Surface = {"Wing": wing}
 

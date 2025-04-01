@@ -47,7 +47,7 @@ class TestMSES_Kulfan(unittest.TestCase):
 #==============================================================================
     def test_allInputs(self):
         mses = self.myProblem.analysis.create(aim = "msesAIM")
-        
+
         mses.input.Mach = 0.5
         mses.input.Re = 1e6
         mses.input.Alpha = None
@@ -84,8 +84,9 @@ class TestMSES_Kulfan(unittest.TestCase):
         CdvTrue   =  0.006555029283599085
         CdwTrue   =  0.0
         CmTrue    =  -0.10463276571925233
+        McritTrue =  0.6281087595405522
 
-        # Set custom AoA and Re 
+        # Set custom AoA and Re
         self.mses.input.Alpha = AlphaTrue
         self.mses.input.CL    = None
         self.mses.input.Re    = 1e6
@@ -101,6 +102,7 @@ class TestMSES_Kulfan(unittest.TestCase):
         Cdv   = self.mses.output.CD_v
         Cdw   = self.mses.output.CD_w
         Cm    = self.mses.output.CM
+        Mcrit = self.mses.output.Mcrit
         # print("AlphaTrue = ", Alpha)
         # print("ClTrue    = ", Cl)
         # print("CdTrue    = ", Cd)
@@ -108,6 +110,7 @@ class TestMSES_Kulfan(unittest.TestCase):
         # print("CdvTrue   = ", Cdv)
         # print("CdwTrue   = ", Cdw)
         # print("CmTrue    = ", Cm)
+        # print("McritTrue = ", Mcrit)
 
         self.assertAlmostEqual(AlphaTrue, Alpha, 3)
         self.assertAlmostEqual(ClTrue   , Cl   , 3)
@@ -116,6 +119,7 @@ class TestMSES_Kulfan(unittest.TestCase):
         self.assertAlmostEqual(CdvTrue  , Cdv  , 3)
         self.assertAlmostEqual(CdwTrue  , Cdw  , 3)
         self.assertAlmostEqual(CmTrue   , Cm   , 3)
+        self.assertAlmostEqual(McritTrue, Mcrit, 2)
 
 
         AlphaTrue =  3.601263317256423
@@ -125,6 +129,7 @@ class TestMSES_Kulfan(unittest.TestCase):
         CdvTrue   =  0.007219418142688761
         CdwTrue   =  0.0
         CmTrue    =  -0.10344222164778835
+        McritTrue =  0.6133316825117032
 
         # Set custom Cl
         self.mses.input.GridAlpha = 3.0
@@ -142,6 +147,7 @@ class TestMSES_Kulfan(unittest.TestCase):
         Cdv   = self.mses.output.CD_v
         Cdw   = self.mses.output.CD_w
         Cm    = self.mses.output.CM
+        Mcrit = self.mses.output.Mcrit
         # print("AlphaTrue = ", Alpha)
         # print("ClTrue    = ", Cl)
         # print("CdTrue    = ", Cd)
@@ -149,6 +155,7 @@ class TestMSES_Kulfan(unittest.TestCase):
         # print("CdvTrue   = ", Cdv)
         # print("CdwTrue   = ", Cdw)
         # print("CmTrue    = ", Cm)
+        # print("McritTrue = ", Mcrit)
 
         self.assertAlmostEqual(AlphaTrue, Alpha, 3)
         self.assertAlmostEqual(ClTrue   , Cl   , 3)
@@ -157,6 +164,7 @@ class TestMSES_Kulfan(unittest.TestCase):
         self.assertAlmostEqual(CdvTrue  , Cdv  , 3)
         self.assertAlmostEqual(CdwTrue  , Cdw  , 3)
         self.assertAlmostEqual(CmTrue   , Cm   , 3)
+        self.assertAlmostEqual(McritTrue, Mcrit, 3)
 
 #==============================================================================
     def test_Cheby_Modes(self):
@@ -215,10 +223,10 @@ class TestMSES_Kulfan(unittest.TestCase):
 
         mses.input.Cheby_Modes = [0]*40
         mses.input.Design_Variable = None
-        
+
         Cheby_Modes = mses.output.Cheby_Modes
         CD_Cheby_Modes = mses.output["CD"].deriv("Cheby_Modes")
-        
+
         nCheby = int(len(CD_Cheby_Modes)/2)
         for i in range(nCheby):
             self.assertAlmostEqual(CD_Cheby_Modes[i], CD_Cheby_Modes[i+nCheby], 2)
@@ -251,41 +259,60 @@ class TestMSES_Kulfan(unittest.TestCase):
         self.mses.input.Re    = ReTrue
         self.mses.input.Mach  = MachTrue
 
-        Cl = self.mses.output.CL
         Cl_Alpha  = self.mses.output["CL"].deriv("Alpha")
+        Cd_Alpha  = self.mses.output["CD"].deriv("Alpha")
+        Mc_Alpha  = self.mses.output["Mcrit"].deriv("Alpha")
 
         AlphaTrue += eps
         self.mses.input.Alpha = AlphaTrue
         Clp = self.mses.output.CL
+        Cdp = self.mses.output.CD
+        Mcp = self.mses.output.Mcrit
 
         AlphaTrue -= 2*eps
         self.mses.input.Alpha = AlphaTrue
         Clm = self.mses.output.CL
+        Cdm = self.mses.output.CD
+        Mcm = self.mses.output.Mcrit
 
         # remove the step change
         AlphaTrue += eps
         self.mses.input.Alpha = AlphaTrue
 
-        #print("******", (Clp - Clm)/(2*eps), Cl_Alpha)
+        # print("******", (Clp - Clm)/(2*eps), Cl_Alpha)
+        # print("******", (Cdp - Cdm)/(2*eps), Cd_Alpha)
+        # print("******", (Mcp - Mcm)/(2*eps), Mc_Alpha)
         self.assertAlmostEqual((Clp - Clm)/(2*eps), Cl_Alpha, 2)
+        self.assertAlmostEqual((Cdp - Cdm)/(2*eps), Cd_Alpha, 2)
+        self.assertAlmostEqual((Mcp - Mcm)/(2*eps), Mc_Alpha, 2)
 
 
         Cl_Mach  = self.mses.output["CL"].deriv("Mach")
+        Cd_Mach  = self.mses.output["CD"].deriv("Mach")
+        Mc_Mach  = self.mses.output["Mcrit"].deriv("Mach")
 
         MachTrue += eps
         self.mses.input.Mach = MachTrue
         Clp = self.mses.output.CL
+        Cdp = self.mses.output.CD
+        Mcp = self.mses.output.Mcrit
 
         MachTrue -= 2*eps
         self.mses.input.Mach = MachTrue
         Clm = self.mses.output.CL
+        Cdm = self.mses.output.CD
+        Mcm = self.mses.output.Mcrit
 
         # remove the step change
         MachTrue += eps
         self.mses.input.Mach = MachTrue
 
-        #print("******", (Clp - Clm)/(2*eps), Cl_Mach)
+        # print("******", (Clp - Clm)/(2*eps), Cl_Mach)
+        # print("******", (Cdp - Cdm)/(2*eps), Cd_Mach)
+        # print("******", (Mcp - Mcm)/(2*eps), Mc_Mach)
         self.assertAlmostEqual((Clp - Clm)/(2*eps), Cl_Mach, 2)
+        self.assertAlmostEqual((Cdp - Cdm)/(2*eps), Cd_Mach, 2)
+        self.assertAlmostEqual((Mcp - Mcm)/(2*eps), Mc_Mach, 2)
 
         Cl_Re = self.mses.output["CL"].deriv("Re")
 
@@ -580,7 +607,7 @@ class TestMSES_NACA(unittest.TestCase):
 
 
 #==============================================================================
-    def test_geom_sensitivity_CL(self):
+    def test_geom_sensitivity(self):
 
         eps = 1e-4
         AlphaTrue = 3.0
@@ -594,9 +621,10 @@ class TestMSES_NACA(unittest.TestCase):
                                            "camber": {}}
 
 
-        Cl = self.mses.output.CL
-        Cl_thick = self.mses.output["CL"].deriv("thick")
+        Cl_thick  = self.mses.output["CL"].deriv("thick")
         Cl_camber = self.mses.output["CL"].deriv("camber")
+        Mc_thick  = self.mses.output["Mcrit"].deriv("thick")
+        Mc_camber = self.mses.output["Mcrit"].deriv("camber")
 
         self.mses.input.Design_Variable = None
         thick = self.myProblem.geometry.despmtr.thick
@@ -606,36 +634,44 @@ class TestMSES_NACA(unittest.TestCase):
         thick += eps
         self.myProblem.geometry.despmtr.thick = thick
         Clp = self.mses.output.CL
+        Mcp = self.mses.output.Mcrit
 
         thick -= 2*eps
         self.myProblem.geometry.despmtr.thick = thick
         Clm = self.mses.output.CL
+        Mcm = self.mses.output.Mcrit
 
         # remove the step change
         thick += eps
         self.myProblem.geometry.despmtr.thick = thick
 
-        #print("thick")
-        #print("******", (Clp - Clm)/(2*eps), Cl_thick)
+        # print("thick")
+        # print("******", (Clp - Clm)/(2*eps), Cl_thick)
+        # print("******", (Mcp - Mcm)/(2*eps), Mc_thick)
         self.assertAlmostEqual((Clp - Clm)/(2*eps), Cl_thick, 2)
+        self.assertAlmostEqual((Mcp - Mcm)/(2*eps), Mc_thick, 1)
         #-------------------------------------------
 
         #-------------------------------------------
         camber += eps
         self.myProblem.geometry.despmtr.camber = camber
         Clp = self.mses.output.CL
+        Mcp = self.mses.output.Mcrit
 
         camber -= 2*eps
         self.myProblem.geometry.despmtr.camber = camber
         Clm = self.mses.output.CL
+        Mcm = self.mses.output.Mcrit
 
         # remove the step change
         camber += eps
         self.myProblem.geometry.despmtr.camber = camber
 
-        #print("camber")
-        #print("******", (Clp - Clm)/(2*eps), Cl_camber)
-        self.assertAlmostEqual((Clp - Clm)/(2*eps), Cl_camber, 1)
+        # print("camber")
+        # print("******", (Clp - Clm)/(2*eps), Cl_camber)
+        # print("******", (Mcp - Mcm)/(2*eps), Mc_camber)
+        self.assertAlmostEqual((Clp - Clm)/(2*eps), Cl_camber, 2)
+        self.assertAlmostEqual((Mcp - Mcm)/(2*eps), Mc_camber, 1)
         #-------------------------------------------
 
 #==============================================================================
@@ -698,9 +734,9 @@ class TestMSES_NACA(unittest.TestCase):
         CL2 = mses.output.CL; line += 1
         if line == line_exit: return line
         if line_exit > 0: self.assertTrue(myProblem.journaling())
-        
+
         self.assertGreater(CL2, CL1, 3)
-        
+
         if verbose: print(6*"-","Get Cheby_Modes_thick", line)
         Cheby_Modes_thick = mses.output["Cheby_Modes"].deriv("thick"); line += 1
         if line == line_exit: return line
@@ -718,27 +754,27 @@ class TestMSES_NACA(unittest.TestCase):
 
         capsFile = os.path.join("..","csmData","airfoilSection.csm")
         problemName = self.problemName+str(self.iProb)
-        
+
         myProblem = pyCAPS.Problem(problemName, capsFile=capsFile, outLevel=0)
 
         # Run once to get the total line count
         line_total = self.run_journal(myProblem, -1)
-        
+
         myProblem.close()
         shutil.rmtree(problemName)
-        
+
         #print(80*"=")
         #print(80*"=")
         # Create the problem to start journaling
         myProblem = pyCAPS.Problem(problemName, capsFile=capsFile, outLevel=0)
         myProblem.close()
-        
+
         for line_exit in range(line_total):
             #print(80*"=")
             myProblem = pyCAPS.Problem(problemName, phaseName="Scratch", capsFile=capsFile, outLevel=0)
             self.run_journal(myProblem, line_exit)
             myProblem.close()
-            
+
         self.__class__.iProb += 1
 
 if __name__ == '__main__':

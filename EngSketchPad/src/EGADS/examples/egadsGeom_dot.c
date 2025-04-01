@@ -586,13 +586,20 @@ pingLine(ego context, objStack *stack)
   }
 
   /* zero out sensitivities */
-  status = setLineBody_dot(p1, p1_dot, p2, p2_dot, ebody1);
+  status = EG_zeroGeometry_dot(ebody1);
   if (status != EGADS_SUCCESS) goto cleanup;
 
   /* check transformations */
   status = pingTransform(ebody1, params, "Line", 1e-7, 5e-7, 5e-7);
   if (status != EGADS_SUCCESS) goto cleanup;
 
+  /* remove sensitivities */
+  status = EG_setGeometry_dot(ebody1, BODY, 0, NULL, NULL, NULL);
+  if (status != EGADS_SUCCESS) goto cleanup;
+
+  /* zero out sensitivities stating from nothing */
+  status = EG_zeroGeometry_dot(ebody1);
+  if (status != EGADS_SUCCESS) goto cleanup;
 
   EG_deleteObject(tess1);
 
@@ -868,14 +875,19 @@ pingCircle(ego context, objStack *stack)
   }
 
   /* zero out sensitivities */
-  status = setCircleBody_dot(xcent, xcent_dot,
-                             xax, xax_dot,
-                             yax, yax_dot,
-                             x[9], x_dot[9], ebody1);
+  status = EG_zeroGeometry_dot(ebody1);
   if (status != EGADS_SUCCESS) goto cleanup;
 
   /* check transformations */
   status = pingTransform(ebody1, params, "Circle", 1e-7, 5e-7, 1e-7);
+  if (status != EGADS_SUCCESS) goto cleanup;
+
+  /* remove sensitivities */
+  status = EG_setGeometry_dot(ebody1, BODY, 0, NULL, NULL, NULL);
+  if (status != EGADS_SUCCESS) goto cleanup;
+
+  /* zero out sensitivities stating from nothing */
+  status = EG_zeroGeometry_dot(ebody1);
   if (status != EGADS_SUCCESS) goto cleanup;
 
   EG_deleteObject(tess1);
@@ -1134,15 +1146,19 @@ pingEllipse(ego context, objStack *stack)
   }
 
   /* zero out sensitivities */
-  status = setEllipseBody_dot(xcent, xcent_dot,
-                              xax, xax_dot,
-                              yax, yax_dot,
-                              x[ 9], x_dot[ 9],
-                              x[10], x_dot[10], ebody1);
+  status = EG_zeroGeometry_dot(ebody1);
   if (status != EGADS_SUCCESS) goto cleanup;
 
   /* check transformations */
   status = pingTransform(ebody1, params, "Ellipse", 1e-7, 5e-7, 5e-7);
+  if (status != EGADS_SUCCESS) goto cleanup;
+
+  /* remove sensitivities */
+  status = EG_setGeometry_dot(ebody1, BODY, 0, NULL, NULL, NULL);
+  if (status != EGADS_SUCCESS) goto cleanup;
+
+  /* zero out sensitivities stating from nothing */
+  status = EG_zeroGeometry_dot(ebody1);
   if (status != EGADS_SUCCESS) goto cleanup;
 
   EG_deleteObject(tess1);
@@ -1410,14 +1426,19 @@ pingParabola(ego context, objStack *stack)
   }
 
   /* zero out sensitivities */
-  status = setParabolaBody_dot(xcent, xcent_dot,
-                               xax, xax_dot,
-                               yax, yax_dot,
-                               x[9], x_dot[9], ebody1);
+  status = EG_zeroGeometry_dot(ebody1);
   if (status != EGADS_SUCCESS) goto cleanup;
 
   /* check transformations */
   status = pingTransform(ebody1, params, "Parabola", 1e-7, 5e-7, 5e-7);
+  if (status != EGADS_SUCCESS) goto cleanup;
+
+  /* remove sensitivities */
+  status = EG_setGeometry_dot(ebody1, BODY, 0, NULL, NULL, NULL);
+  if (status != EGADS_SUCCESS) goto cleanup;
+
+  /* zero out sensitivities stating from nothing */
+  status = EG_zeroGeometry_dot(ebody1);
   if (status != EGADS_SUCCESS) goto cleanup;
 
   EG_deleteObject(tess1);
@@ -1694,15 +1715,19 @@ pingHyperbola(ego context, objStack *stack)
   }
 
   /* zero out sensitivities */
-  status = setHyperbolaBody_dot(xcent, xcent_dot,
-                                xax, xax_dot,
-                                yax, yax_dot,
-                                x[ 9], x_dot[ 9],
-                                x[10], x_dot[10], ebody1);
+  status = EG_zeroGeometry_dot(ebody1);
   if (status != EGADS_SUCCESS) goto cleanup;
 
   /* check transformations */
   status = pingTransform(ebody1, params, "Hyperbola", 1e-7, 5e-7, 5e-7);
+  if (status != EGADS_SUCCESS) goto cleanup;
+
+  /* remove sensitivities */
+  status = EG_setGeometry_dot(ebody1, BODY, 0, NULL, NULL, NULL);
+  if (status != EGADS_SUCCESS) goto cleanup;
+
+  /* zero out sensitivities stating from nothing */
+  status = EG_zeroGeometry_dot(ebody1);
   if (status != EGADS_SUCCESS) goto cleanup;
 
   EG_deleteObject(tess1);
@@ -1981,14 +2006,19 @@ pingOffsetCurve(ego context, objStack *stack)
   }
 
   /* zero out sensitivities */
-  status = setOffsetCurveBody_dot(p1, p1_dot,
-                                  p2, p2_dot,
-                                  vec, vec_dot,
-                                  x[9], x_dot[9], ebody1);
+  status = EG_zeroGeometry_dot(ebody1);
   if (status != EGADS_SUCCESS) goto cleanup;
 
   /* check transformations */
   status = pingTransform(ebody1, params, "Offset Curve", 1e-7, 5e-7, 5e-7);
+  if (status != EGADS_SUCCESS) goto cleanup;
+
+  /* remove sensitivities */
+  status = EG_setGeometry_dot(ebody1, BODY, 0, NULL, NULL, NULL);
+  if (status != EGADS_SUCCESS) goto cleanup;
+
+  /* zero out sensitivities stating from nothing */
+  status = EG_zeroGeometry_dot(ebody1);
   if (status != EGADS_SUCCESS) goto cleanup;
 
   EG_deleteObject(tess1);
@@ -2219,11 +2249,19 @@ pingBezierCurve(ego context, objStack *stack)
   }
 
   /* zero out sensitivities */
-  status = setBezierCurveBody_dot(npts, pts, pts_dot, ebody1);
+  status = EG_zeroGeometry_dot(ebody1);
   if (status != EGADS_SUCCESS) goto cleanup;
 
   /* check transformations */
   status = pingTransform(ebody1, params, "Bezier", 1e-7, 5e-7, 5e-7);
+  if (status != EGADS_SUCCESS) goto cleanup;
+
+  /* remove sensitivities */
+  status = EG_setGeometry_dot(ebody1, BODY, 0, NULL, NULL, NULL);
+  if (status != EGADS_SUCCESS) goto cleanup;
+
+  /* zero out sensitivities stating from nothing */
+  status = EG_zeroGeometry_dot(ebody1);
   if (status != EGADS_SUCCESS) goto cleanup;
 
   EG_deleteObject(tess1);
@@ -2461,11 +2499,19 @@ pingBsplineCurve(ego context, objStack *stack)
   }
 
   /* zero out sensitivities */
-  status = setBsplineCurveBody_dot(npts, pts, pts_dot, ebody1);
+  status = EG_zeroGeometry_dot(ebody1);
   if (status != EGADS_SUCCESS) goto cleanup;
 
   /* check transformations */
   status = pingTransform(ebody1, params, "B-spline Curve", 1e-7, 5e-7, 5e-7);
+  if (status != EGADS_SUCCESS) goto cleanup;
+
+  /* remove sensitivities */
+  status = EG_setGeometry_dot(ebody1, BODY, 0, NULL, NULL, NULL);
+  if (status != EGADS_SUCCESS) goto cleanup;
+
+  /* zero out sensitivities stating from nothing */
+  status = EG_zeroGeometry_dot(ebody1);
   if (status != EGADS_SUCCESS) goto cleanup;
 
   EG_deleteObject(tess1);
@@ -2963,13 +3009,19 @@ pingPlane(ego context, objStack *stack)
   }
 
   /* zero out sensitivities */
-  status = setPlaneBody_dot(xcent, xcent_dot,
-                            xax, xax_dot,
-                            yax, yax_dot, ebody1);
+  status = EG_zeroGeometry_dot(ebody1);
   if (status != EGADS_SUCCESS) goto cleanup;
 
   /* check transformations */
   status = pingTransform(ebody1, params, "Plane", 5e-7, 5e-7, 5e-7);
+  if (status != EGADS_SUCCESS) goto cleanup;
+
+  /* remove sensitivities */
+  status = EG_setGeometry_dot(ebody1, BODY, 0, NULL, NULL, NULL);
+  if (status != EGADS_SUCCESS) goto cleanup;
+
+  /* zero out sensitivities stating from nothing */
+  status = EG_zeroGeometry_dot(ebody1);
   if (status != EGADS_SUCCESS) goto cleanup;
 
   EG_deleteObject(tess1);
@@ -3445,14 +3497,19 @@ pingSpherical(ego context, objStack *stack)
     }
 
     /* zero out sensitivities */
-    status = setSphericalBody_dot(xcent, xcent_dot,
-                                  xax, xax_dot,
-                                  yax, yax_dot,
-                                  x[9], x_dot[9], ebody1);
+    status = EG_zeroGeometry_dot(ebody1);
     if (status != EGADS_SUCCESS) goto cleanup;
 
     /* check transformations */
     status = pingTransform(ebody1, params, "Spherical", 5e-7, 5e-7, 5e-7);
+    if (status != EGADS_SUCCESS) goto cleanup;
+
+    /* remove sensitivities */
+    status = EG_setGeometry_dot(ebody1, BODY, 0, NULL, NULL, NULL);
+    if (status != EGADS_SUCCESS) goto cleanup;
+
+    /* zero out sensitivities stating from nothing */
+    status = EG_zeroGeometry_dot(ebody1);
     if (status != EGADS_SUCCESS) goto cleanup;
 
     EG_deleteObject(tess1);
@@ -4008,16 +4065,19 @@ pingConical(ego context, objStack *stack)
   }
 
   /* zero out sensitivities */
-  status = setConicalBody_dot(xcent, xcent_dot,
-                              xax, xax_dot,
-                              yax, yax_dot,
-                              zax, zax_dot,
-                              x[12], x_dot[12],
-                              x[13], x_dot[13], ebody1);
+  status = EG_zeroGeometry_dot(ebody1);
   if (status != EGADS_SUCCESS) goto cleanup;
 
   /* check transformations */
   status = pingTransform(ebody1, params, "Conical", 5e-7, 5e-7, 5e-7);
+  if (status != EGADS_SUCCESS) goto cleanup;
+
+  /* remove sensitivities */
+  status = EG_setGeometry_dot(ebody1, BODY, 0, NULL, NULL, NULL);
+  if (status != EGADS_SUCCESS) goto cleanup;
+
+  /* zero out sensitivities stating from nothing */
+  status = EG_zeroGeometry_dot(ebody1);
   if (status != EGADS_SUCCESS) goto cleanup;
 
   EG_deleteObject(tess1);
@@ -4532,15 +4592,19 @@ pingCylindrical(ego context, objStack *stack)
   }
 
   /* zero out sensitivities */
-  status = setCylindricalBody_dot(xcent, xcent_dot,
-                                  xax, xax_dot,
-                                  yax, yax_dot,
-                                  zax, zax_dot,
-                                  x[12], x_dot[12], ebody1);
+  status = EG_zeroGeometry_dot(ebody1);
   if (status != EGADS_SUCCESS) goto cleanup;
 
   /* check transformations */
   status = pingTransform(ebody1, params, "Cylindrical", 5e-7, 5e-7, 5e-7);
+  if (status != EGADS_SUCCESS) goto cleanup;
+
+  /* remove sensitivities */
+  status = EG_setGeometry_dot(ebody1, BODY, 0, NULL, NULL, NULL);
+  if (status != EGADS_SUCCESS) goto cleanup;
+
+  /* zero out sensitivities stating from nothing */
+  status = EG_zeroGeometry_dot(ebody1);
   if (status != EGADS_SUCCESS) goto cleanup;
 
   EG_deleteObject(tess1);
@@ -5120,16 +5184,19 @@ pingToroidal(ego context, objStack *stack)
   }
 
   /* zero out sensitivities */
-  status = setToroidalBody_dot(xcent, xcent_dot,
-                               xax, xax_dot,
-                               yax, yax_dot,
-                               zax, zax_dot,
-                               x[12], x_dot[12],
-                               x[13], x_dot[13], ebody1);
+  status = EG_zeroGeometry_dot(ebody1);
   if (status != EGADS_SUCCESS) goto cleanup;
 
   /* check transformations */
   status = pingTransform(ebody1, params, "Toroidal", 5e-7, 5e-7, 5e-7);
+  if (status != EGADS_SUCCESS) goto cleanup;
+
+  /* remove sensitivities */
+  status = EG_setGeometry_dot(ebody1, BODY, 0, NULL, NULL, NULL);
+  if (status != EGADS_SUCCESS) goto cleanup;
+
+  /* zero out sensitivities stating from nothing */
+  status = EG_zeroGeometry_dot(ebody1);
   if (status != EGADS_SUCCESS) goto cleanup;
 
   EG_deleteObject(tess1);
@@ -5628,14 +5695,19 @@ pingRevolution(ego context, objStack *stack)
   }
 
   /* zero out sensitivities */
-  status = setRevolutionBody_dot(xcent, xcent_dot,
-                                 xax, xax_dot,
-                                 yax, yax_dot,
-                                 x[9], x_dot[9], ebody1);
+  status = EG_zeroGeometry_dot(ebody1);
   if (status != EGADS_SUCCESS) goto cleanup;
 
   /* check transformations */
   status = pingTransform(ebody1, params, "Revolution", 5e-7, 5e-7, 5e-7);
+  if (status != EGADS_SUCCESS) goto cleanup;
+
+  /* remove sensitivities */
+  status = EG_setGeometry_dot(ebody1, BODY, 0, NULL, NULL, NULL);
+  if (status != EGADS_SUCCESS) goto cleanup;
+
+  /* zero out sensitivities stating from nothing */
+  status = EG_zeroGeometry_dot(ebody1);
   if (status != EGADS_SUCCESS) goto cleanup;
 
   EG_deleteObject(tess1);
@@ -6116,15 +6188,19 @@ pingExtrusion(ego context, objStack *stack)
   }
 
   /* zero out sensitivities */
-  status = setExtrusionBody_dot(xcent, xcent_dot,
-                                xax, xax_dot,
-                                yax, yax_dot,
-                                x[9], x_dot[9],
-                                vec, vec_dot, ebody1);
+  status = EG_zeroGeometry_dot(ebody1);
   if (status != EGADS_SUCCESS) goto cleanup;
 
   /* check transformations */
   status = pingTransform(ebody1, params, "Extrusion", 5e-7, 5e-7, 5e-7);
+  if (status != EGADS_SUCCESS) goto cleanup;
+
+  /* remove sensitivities */
+  status = EG_setGeometry_dot(ebody1, BODY, 0, NULL, NULL, NULL);
+  if (status != EGADS_SUCCESS) goto cleanup;
+
+  /* zero out sensitivities stating from nothing */
+  status = EG_zeroGeometry_dot(ebody1);
   if (status != EGADS_SUCCESS) goto cleanup;
 
   EG_deleteObject(tess1);
@@ -6686,11 +6762,19 @@ pingBezierSurface(ego context, objStack *stack)
   }
 
   /* zero out sensitivities */
-  status = setBezierSurfaceBody_dot(nCPu, nCPv, pts, pts_dot, ebody1);
+  status = EG_zeroGeometry_dot(ebody1);
   if (status != EGADS_SUCCESS) goto cleanup;
 
   /* check transformations */
   status = pingTransform(ebody1, params, "Bezier Surface", 5e-7, 5e-7, 5e-7);
+  if (status != EGADS_SUCCESS) goto cleanup;
+
+  /* remove sensitivities */
+  status = EG_setGeometry_dot(ebody1, BODY, 0, NULL, NULL, NULL);
+  if (status != EGADS_SUCCESS) goto cleanup;
+
+  /* zero out sensitivities stating from nothing */
+  status = EG_zeroGeometry_dot(ebody1);
   if (status != EGADS_SUCCESS) goto cleanup;
 
   EG_deleteObject(tess1);
@@ -7149,14 +7233,19 @@ pingOffsetSurface(ego context, objStack *stack)
   }
 
   /* zero out sensitivities */
-  status = setOffsetSurfaceBody_dot(xcent, xcent_dot,
-                                    xax, xax_dot,
-                                    yax, yax_dot,
-                                    x[9], x_dot[9], ebody1);
+  status = EG_zeroGeometry_dot(ebody1);
   if (status != EGADS_SUCCESS) goto cleanup;
 
   /* check transformations */
   status = pingTransform(ebody1, params, "Offset Surface", 5e-7, 5e-7, 5e-7);
+  if (status != EGADS_SUCCESS) goto cleanup;
+
+  /* remove sensitivities */
+  status = EG_setGeometry_dot(ebody1, BODY, 0, NULL, NULL, NULL);
+  if (status != EGADS_SUCCESS) goto cleanup;
+
+  /* zero out sensitivities stating from nothing */
+  status = EG_zeroGeometry_dot(ebody1);
   if (status != EGADS_SUCCESS) goto cleanup;
 
   EG_deleteObject(tess1);
@@ -7673,11 +7762,19 @@ pingBsplineSurface(ego context, objStack *stack)
   }
 
   /* zero out sensitivities */
-  status = setBsplineSurfaceBody_dot(nCPu, nCPv, pts, pts_dot, ebody1);
+  status = EG_zeroGeometry_dot(ebody1);
   if (status != EGADS_SUCCESS) goto cleanup;
 
   /* check transformations */
   status = pingTransform(ebody1, params, "B-spline Surface", 5e-7, 5e-7, 5e-7);
+  if (status != EGADS_SUCCESS) goto cleanup;
+
+  /* remove sensitivities */
+  status = EG_setGeometry_dot(ebody1, BODY, 0, NULL, NULL, NULL);
+  if (status != EGADS_SUCCESS) goto cleanup;
+
+  /* zero out sensitivities stating from nothing */
+  status = EG_zeroGeometry_dot(ebody1);
   if (status != EGADS_SUCCESS) goto cleanup;
 
   EG_deleteObject(tess1);

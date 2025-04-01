@@ -17,6 +17,7 @@
  * general purpose, linear finite element analysis computer program written by Dr. Bill Case. Available at,
  * http://www.mystran.com/, MYSTRAN currently supports Linux and Windows operating systems.
  *
+ * Details on the use of units are outlined in \ref aimUnitsMystran.
  *
  * An outline of the AIM's inputs, outputs and attributes are provided in \ref aimInputsMYSTRAN and
  * \ref aimOutputsMYSTRAN and \ref attributeMYSTRAN, respectively.
@@ -35,6 +36,9 @@
 
 /*! \page attributeMYSTRAN MYSTRAN AIM attributes
  * The following list of attributes are required for the MYSTRAN AIM inside the geometry input.
+ *
+ * - <b> capsLength</b> [optional] This attribute defines the length units that the *.csm file is generated in.
+ * A scaling factor is only applied if a unit system is specified when creating a mystrain AIM instance.
  *
  * - <b> capsAIM</b> This attribute is a CAPS requirement to indicate the analysis the geometry
  * representation supports.
@@ -371,6 +375,10 @@ int aimInitialize(int inst, /*@unused@*/ const char *unitSys, void *aimInfo,
 {
     int  status = CAPS_SUCCESS, *ints=NULL, i;
     char **strs=NULL;
+    const char *keyWord;
+    char *keyValue = NULL;
+    double real = 1.0;
+    feaUnitsStruct *units=NULL;
 
     aimStorage *mystranInstance=NULL;
 
@@ -424,6 +432,112 @@ int aimInitialize(int inst, /*@unused@*/ const char *unitSys, void *aimInfo,
     status = initiate_aimStorage(mystranInstance);
     AIM_STATUS(aimInfo, status);
 
+    /*! \page aimUnitsMystran AIM Units
+     *  A unit system may be optionally specified during AIM instance initiation. If
+     *  a unit system is provided, all AIM  input values which have associated units must be specified as well.
+     *  If no unit system is used, AIM inputs, which otherwise would require units, will be assumed
+     *  unit consistent. A unit system may be specified via a JSON string dictionary for example (using pyCAPS):
+     *  \code{.py}
+     *  mystran = capsProblem.analysis.create(aim="mystranAIM", unitSys = {"mass": "kg", "length": "inch", "time": "hour", "temperature" : "Kelvin"})
+     *  \endcode
+     */
+    if (unitSys != NULL) {
+      units = &mystranInstance->units;
+
+      // Do we have a json string?
+      if (strncmp( unitSys, "{", 1) != 0) {
+        AIM_ERROR(aimInfo, "unitSys ('%s') is expected to be a JSON string dictionary", unitSys);
+        return CAPS_BADVALUE;
+      }
+
+      /*! \page aimUnitsMystran
+       *  \section jsonStringMystran JSON String Dictionary
+       *  The key arguments of the dictionary are described in the following:
+       *
+       *  <ul>
+       *  <li> <B>mass = "None"</B> </li> <br>
+       *  Mass units - e.g. "kilogram", "k", "slug", ...
+       *  </ul>
+       */
+      keyWord = "mass";
+      status  = search_jsonDictionary(unitSys, keyWord, &keyValue);
+      if (status == CAPS_SUCCESS) {
+        units->mass = string_removeQuotation(keyValue);
+        AIM_FREE(keyValue);
+        real = 1;
+        status = aim_convert(aimInfo, 1, units->mass, &real, "kg", &real);
+        AIM_STATUS(aimInfo, status, "unitSys ('%s'): %s is not a %s unit", unitSys, units->mass, keyWord);
+      } else {
+        AIM_ERROR(aimInfo, "unitSys ('%s') does not contain '%s'", unitSys, keyWord);
+        status = CAPS_BADVALUE;
+        goto cleanup;
+      }
+
+      /*! \page aimUnitsMystran
+       *  <ul>
+       *  <li> <B>length = "None"</B> </li> <br>
+       *  Length units - e.g. "meter", "m", "inch", "in", "mile", ...
+       *  </ul>
+       */
+      keyWord = "length";
+      status  = search_jsonDictionary(unitSys, keyWord, &keyValue);
+      if (status == CAPS_SUCCESS) {
+        units->length = string_removeQuotation(keyValue);
+        AIM_FREE(keyValue);
+        real = 1;
+        status = aim_convert(aimInfo, 1, units->length, &real, "m", &real);
+        AIM_STATUS(aimInfo, status, "unitSys ('%s'): %s is not a %s unit", unitSys, units->length, keyWord);
+      } else {
+        AIM_ERROR(aimInfo, "unitSys ('%s') does not contain '%s'", unitSys, keyWord);
+        status = CAPS_BADVALUE;
+        goto cleanup;
+      }
+
+      /*! \page aimUnitsMystran
+       *  <ul>
+       *  <li> <B>time = "None"</B> </li> <br>
+       *  Time units - e.g. "s", "second", "hour", "day", "year", ...
+       *  </ul>
+       */
+      keyWord = "time";
+      status  = search_jsonDictionary(unitSys, keyWord, &keyValue);
+      if (status == CAPS_SUCCESS) {
+        units->time = string_removeQuotation(keyValue);
+        AIM_FREE(keyValue);
+        real = 1;
+        status = aim_convert(aimInfo, 1, units->time, &real, "s", &real);
+        AIM_STATUS(aimInfo, status, "unitSys ('%s'): %s is not a %s unit", unitSys, units->time, keyWord);
+      } else {
+        AIM_ERROR(aimInfo, "unitSys ('%s') does not contain '%s'", unitSys, keyWord);
+        status = CAPS_BADVALUE;
+        goto cleanup;
+      }
+
+      /*! \page aimUnitsMystran
+       *  <ul>
+       *  <li> <B>temperature = "None"</B> </li> <br>
+       *  Temperature units - e.g. "C", "F", "K", "R", ...
+       *  </ul>
+       */
+      keyWord = "temperature";
+      status  = search_jsonDictionary(unitSys, keyWord, &keyValue);
+      if (status == CAPS_SUCCESS) {
+        units->temperature = string_removeQuotation(keyValue);
+        AIM_FREE(keyValue);
+        real = 1;
+        status = aim_convert(aimInfo, 1, units->temperature, &real, "K", &real);
+        AIM_STATUS(aimInfo, status, "unitSys ('%s'): %s is not a %s unit", unitSys, units->temperature, keyWord);
+      } else {
+        AIM_ERROR(aimInfo, "unitSys ('%s') does not contain '%s'", unitSys, keyWord);
+        status = CAPS_BADVALUE;
+        goto cleanup;
+      }
+
+      // create derived units from the base units
+      status = fea_feaDerivedUnits(aimInfo, units);
+      AIM_STATUS(aimInfo, status);
+    }
+
 cleanup:
     if (status != CAPS_SUCCESS) {
       /* release all possibly allocated memory on error */
@@ -435,6 +549,8 @@ cleanup:
       AIM_FREE(*instStore);
       *nFields = 0;
     }
+
+    AIM_FREE(keyValue);
 
     return status;
 }
@@ -699,7 +815,7 @@ int aimUpdateState(void *instStore, void *aimInfo,
                                  &mystranInstance->feaProblem.numMaterial,
                                  &mystranInstance->feaProblem.feaMaterial);
         AIM_STATUS(aimInfo, status);
-    } else printf("\nLoad tuple is NULL - No materials set\n");
+    } else printf("\nMaterial tuple is NULL - No materials set\n");
 
     // Set property properties
     if (aimInputs[Property-1].nullVal == NotNull) {
@@ -771,6 +887,10 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
     // Analyis information
     char *analysisType = NULL;
 
+    // Mesh length scaling
+    const char *lengthUnits=NULL;
+    double scaleFactor=1;
+
     // File IO
     char filename[PATH_MAX]; // Output file name
     FILE *fp = NULL; // Output file pointer
@@ -802,10 +922,24 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
                 // Transfer external pressures from the AIM discrObj
                 status = fea_transferExternalPressure(aimInfo,
                                                       &mystranInstance->feaProblem.feaMesh,
+                                                      &mystranInstance->units,
                                                       &feaLoad[i]);
                 AIM_STATUS(aimInfo, status);
             }
         }
+    }
+
+    if (mystranInstance->units.length != NULL) {
+      status = aim_capsLength(aimInfo, &lengthUnits);
+      AIM_NOTFOUND(aimInfo, status);
+      if (status == CAPS_NOTFOUND) {
+        AIM_ERROR(aimInfo, "capsLength attribute must be specified!");
+        goto cleanup;
+      }
+      AIM_NOTNULL(lengthUnits, aimInfo, status);
+
+      status = aim_convert(aimInfo, 1, lengthUnits, &scaleFactor, mystranInstance->units.length, &scaleFactor);
+      AIM_STATUS(aimInfo, status);
     }
 
     // Write Nastran Mesh
@@ -816,7 +950,7 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
                                mystranInstance->feaProblem.numProperty,
                                mystranInstance->feaProblem.feaProperty,
                                mystranInstance->feaProblem.feaFileFormat.gridFileType,
-                               1.0);
+                               scaleFactor);
     AIM_STATUS(aimInfo, status);
 
     // Write mystran input file
@@ -1610,6 +1744,10 @@ int aimCalcOutput(void *instStore, /*@unused@*/ void *aimInfo, int index,
         } else if (index == T3max) {
           val->vals.real = mystranInstance->T3max;
         }
+
+        if (mystranInstance->units.length != NULL) {
+          AIM_STRDUP(val->units, mystranInstance->units.length, aimInfo, status);
+        }
     }
 
     status = CAPS_SUCCESS;
@@ -1701,7 +1839,7 @@ cleanup:
 
 
 int aimTransfer(capsDiscr *discr, const char *dataName, int numPoint,
-                int dataRank, double *dataVal, /*@unused@*/ char **units)
+                int dataRank, double *dataVal, char **units)
 {
 
     /*! \page dataTransferMYSTRAN MYSTRAN Data Transfer
@@ -1797,6 +1935,10 @@ int aimTransfer(capsDiscr *discr, const char *dataName, int numPoint,
                                                  &numGridPoint,
                                                  &dataMatrix);
             fclose(fp);
+        }
+
+        if (mystranInstance->units.length != NULL) {
+          AIM_STRDUP(*units, mystranInstance->units.length, discr->aInfo, status);
         }
 
     } else if (strncmp(dataName, "EigenVector", 11) == 0) {

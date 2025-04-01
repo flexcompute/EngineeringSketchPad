@@ -88,4 +88,5 @@ int aflr3_Volume_Mesh (void *aimInfo,
                        meshSizingStruct *meshProp,
                        int numSurfaceMesh,
                        ego *surfaceMesh,
+                       int *skipVolume,
                        AFLR_Grid *grid);

@@ -14,7 +14,7 @@
  */
 
 /*
- * Copyright (C) 2011/2024  John F. Dannenhoffer, III (Syracuse University)
+ * Copyright (C) 2011/2025  John F. Dannenhoffer, III (Syracuse University)
  *
  * This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
@@ -52,7 +52,6 @@ static double argDdefs[NUMUDPARGS] = {0.,       0.,       0.,       0.,       0.
  udpGet, udpVel, udpClean, udpMesh */
 #include "udpUtilities.c"
 
-#define           HUGEQ           99999999.0
 #define           PIo2            1.5707963267948965579989817
 #define           EPS06           1.0e-06
 #define           EPS12           1.0e-12

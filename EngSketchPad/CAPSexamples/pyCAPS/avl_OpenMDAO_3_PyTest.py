@@ -104,8 +104,7 @@ avl = capsProblem.analysis.create(aim = "avlAIM", name="avl")
 wing = {"groupName"         : "Wing", # Notice Wing is the value for the capsGroup attribute
         "numChord"          : 11,
         "spaceChord"        : 1.0,
-        "numSpanPerSection" : 12,
-        "spaceSpan"         : 1.0}
+        "numSpanPerSection" : 12}
 
 avl.input.AVL_Surface = {"Wing": wing}
 

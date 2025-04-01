@@ -480,7 +480,7 @@ classifyClouds(Cloud     *source,          /* (in)  Source Cloud */
   EG_setOutLevel(context, outLevel);
   EG_deleteObject(sbody);
   EG_deleteObject(tbody);
-  if ((stat != EGADS_SUCCESS) && (stat != EGADS_ATTRERR)) {
+  if ((stat != EGADS_SUCCESS) && (stat != EGADS_ATTRERR) && (k == SUBTRACTION)) {
     printf(" classifyClouds: EG_generalBoolean = %d!\n", stat);
     freeCloudPair(pair);
     return stat;

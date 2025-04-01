@@ -93,7 +93,9 @@ $(function() {
  Symmetry on z-min boundary</li>
 <li><b> halfBody = bool</b>. &lt;Default false&gt; <br  />
  Input geometry is a half-body</li>
-<li><b> Mach = NULL</b>. &lt;Default 0.76&gt; <br  />
+<li><b>Boundary_Condition = NULL </b> <br  />
+ See <a class="el" href="cart3dBoundaryConditions.html">CFD Boundary Conditions</a> for additional details.</li>
+<li><b> Mach = NULL</b>. &lt;Default none&gt; <br  />
 </li>
 <li><b> alpha = double</b>. &lt;Default 0.0&gt; <br  />
  Angle of Attach in Degrees</li>
@@ -124,6 +126,8 @@ $(function() {
  number of pre-smoothing passes in multigrid</li>
 <li><b> MultiGridPostSmoothing = int</b>. &lt;Default 1&gt; <br  />
  number of post-smoothing passes in multigrid</li>
+<li><b> RK = double matrix, </b>. &lt;Default [[0.0695, 1],[0.1602,0], [0.2898,0], [0.5060,0], [1.0,0]&gt; <br  />
+ Runge-Kutta Stage Coefficients. May be any number of rows, must be 2 columns with the 2nd column indicating if gradients are evaluated (0 = no new evaluation at this stage, 1 = Yes, re-evaluate at this stage)</li>
 <li><b> CFL = double</b>. &lt;Default 1.2&gt; <br  />
  CFL number typically between 0.9 and 1.4</li>
 <li><b> Limiter = int</b>. &lt;Default 2&gt; <br  />
@@ -178,13 +182,15 @@ $(function() {
 <li><b> Restart = False </b> <br  />
  Use the "restart" option for aero.csh or not</li>
 <li><b> aerocsh = NULL</b> <br  />
- List of strings that can be used to override defaults in the Cart3D aero.csh script. Please refer to the Cart3D documentation for all available aero.csh inputs. </li>
+ List of strings that can be used to override defaults in the Cart3D aero.csh script. Please refer to the Cart3D documentation for all available aero.csh inputs.</li>
+<li><b> aerocsh_arg = NULL</b> <br  />
+ String of arguments used when executing aero.csh </li>
 </ul>
 </div></div><!-- contents -->
 </div><!-- PageDoc -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Wed May 22 2024 10:54:52 for CART3D Analysis Interface Module (AIM) by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1
+Generated on Fri Feb 28 2025 09:05:56 for CART3D Analysis Interface Module (AIM) by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1
 </small></address>
 </body>
 </html>

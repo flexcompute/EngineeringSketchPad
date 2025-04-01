@@ -5,7 +5,7 @@
  *
  *     Written by Dr. Marshall C. Galbraith MIT, and Dr. Ryan Durscher and Dr. Ed Alyanak
  *
- *      Copyright 2014-2024, Massachusetts Institute of Technology
+ *      Copyright 2014-2025, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -16,6 +16,8 @@
  * \section overviewTACS TACS AIM Overview
  * A module in the Computational Aircraft Prototype Syntheses (CAPS) has been developed to interact (primarily
  * through input files) with the finite element structural solver <a href="https://github.com/smdogroup/tacs">TACS</a>.
+ *
+ * Details on the use of units are outlined in \ref aimUnitsTACS.
  *
  * An outline of the AIM's inputs, outputs and attributes are provided in \ref aimInputsTACS and
  * \ref aimOutputsTACS and \ref attributeTACS, respectively.
@@ -329,6 +331,10 @@ int aimInitialize(int inst, /*@unused@*/ const char *unitSys, void *aimInfo,
 {
     int  *ints=NULL, i, status = CAPS_SUCCESS;
     char **strs=NULL;
+    const char *keyWord;
+    char *keyValue = NULL;
+    double real = 1.0;
+    feaUnitsStruct *units=NULL;
 
     aimStorage *tacsInstance=NULL;
 
@@ -383,6 +389,112 @@ int aimInitialize(int inst, /*@unused@*/ const char *unitSys, void *aimInfo,
 
     // Initialize instance storage
     (void) initiate_aimStorage(tacsInstance);
+
+    /*! \page aimUnitsTACS AIM Units
+     *  A unit system may be optionally specified during AIM instance initiation. If
+     *  a unit system is provided, all AIM  input values which have associated units must be specified as well.
+     *  If no unit system is used, AIM inputs, which otherwise would require units, will be assumed
+     *  unit consistent. A unit system may be specified via a JSON string dictionary for example (using pyCAPS):
+     *  \code{.py}
+     *  tacs = capsProblem.analysis.create(aim="tacsAIM", unitSys = {"mass": "kg", "length": "inch", "time": "hour", "temperature" : "Kelvin"})
+     *  \endcode
+     */
+    if (unitSys != NULL) {
+      units = &tacsInstance->units;
+
+      // Do we have a json string?
+      if (strncmp( unitSys, "{", 1) != 0) {
+        AIM_ERROR(aimInfo, "unitSys ('%s') is expected to be a JSON string dictionary", unitSys);
+        return CAPS_BADVALUE;
+      }
+
+      /*! \page aimUnitsTACS
+       *  \section jsonStringTACS JSON String Dictionary
+       *  The key arguments of the dictionary are described in the following:
+       *
+       *  <ul>
+       *  <li> <B>mass = "None"</B> </li> <br>
+       *  Mass units - e.g. "kilogram", "k", "slug", ...
+       *  </ul>
+       */
+      keyWord = "mass";
+      status  = search_jsonDictionary(unitSys, keyWord, &keyValue);
+      if (status == CAPS_SUCCESS) {
+        units->mass = string_removeQuotation(keyValue);
+        AIM_FREE(keyValue);
+        real = 1;
+        status = aim_convert(aimInfo, 1, units->mass, &real, "kg", &real);
+        AIM_STATUS(aimInfo, status, "unitSys ('%s'): %s is not a %s unit", unitSys, units->mass, keyWord);
+      } else {
+        AIM_ERROR(aimInfo, "unitSys ('%s') does not contain '%s'", unitSys, keyWord);
+        status = CAPS_BADVALUE;
+        goto cleanup;
+      }
+
+      /*! \page aimUnitsTACS
+       *  <ul>
+       *  <li> <B>length = "None"</B> </li> <br>
+       *  Length units - e.g. "meter", "m", "inch", "in", "mile", ...
+       *  </ul>
+       */
+      keyWord = "length";
+      status  = search_jsonDictionary(unitSys, keyWord, &keyValue);
+      if (status == CAPS_SUCCESS) {
+        units->length = string_removeQuotation(keyValue);
+        AIM_FREE(keyValue);
+        real = 1;
+        status = aim_convert(aimInfo, 1, units->length, &real, "m", &real);
+        AIM_STATUS(aimInfo, status, "unitSys ('%s'): %s is not a %s unit", unitSys, units->length, keyWord);
+      } else {
+        AIM_ERROR(aimInfo, "unitSys ('%s') does not contain '%s'", unitSys, keyWord);
+        status = CAPS_BADVALUE;
+        goto cleanup;
+      }
+
+      /*! \page aimUnitsTACS
+       *  <ul>
+       *  <li> <B>time = "None"</B> </li> <br>
+       *  Time units - e.g. "s", "second", "hour", "day", "year", ...
+       *  </ul>
+       */
+      keyWord = "time";
+      status  = search_jsonDictionary(unitSys, keyWord, &keyValue);
+      if (status == CAPS_SUCCESS) {
+        units->time = string_removeQuotation(keyValue);
+        AIM_FREE(keyValue);
+        real = 1;
+        status = aim_convert(aimInfo, 1, units->time, &real, "s", &real);
+        AIM_STATUS(aimInfo, status, "unitSys ('%s'): %s is not a %s unit", unitSys, units->time, keyWord);
+      } else {
+        AIM_ERROR(aimInfo, "unitSys ('%s') does not contain '%s'", unitSys, keyWord);
+        status = CAPS_BADVALUE;
+        goto cleanup;
+      }
+
+      /*! \page aimUnitsTACS
+       *  <ul>
+       *  <li> <B>temperature = "None"</B> </li> <br>
+       *  Temperature units - e.g. "C", "F", "K", "R", ...
+       *  </ul>
+       */
+      keyWord = "temperature";
+      status  = search_jsonDictionary(unitSys, keyWord, &keyValue);
+      if (status == CAPS_SUCCESS) {
+        units->temperature = string_removeQuotation(keyValue);
+        AIM_FREE(keyValue);
+        real = 1;
+        status = aim_convert(aimInfo, 1, units->temperature, &real, "K", &real);
+        AIM_STATUS(aimInfo, status, "unitSys ('%s'): %s is not a %s unit", unitSys, units->temperature, keyWord);
+      } else {
+        AIM_ERROR(aimInfo, "unitSys ('%s') does not contain '%s'", unitSys, keyWord);
+        status = CAPS_BADVALUE;
+        goto cleanup;
+      }
+
+      // create derived units from the base units
+      status = fea_feaDerivedUnits(aimInfo, units);
+      AIM_STATUS(aimInfo, status);
+    }
 
 cleanup:
     if (status != CAPS_SUCCESS) {
@@ -947,6 +1059,10 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
     int haveSubAeroelasticTrim = (int) false;
     int haveSubAeroelasticFlutter = (int) false;
 
+    // Mesh length scaling
+    const char *lengthUnits=NULL;
+    double scaleFactor=1;
+
     // Aeroelastic Information
     int numAEStatSurf = 0;
     //char **aeStatSurf = NULL;
@@ -992,6 +1108,7 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
                 // Transfer external pressures from the AIM discrObj
                 status = fea_transferExternalPressure(aimInfo,
                                                       &tacsInstance->feaProblem.feaMesh,
+                                                      &tacsInstance->units,
                                                       &feaLoad[i]);
                 AIM_STATUS(aimInfo, status);
             } else if (feaLoad[i].loadType == ThermalExternal) {
@@ -1004,57 +1121,77 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
         }
     }
 
-    // Write TACS Mesh
-    AIM_ALLOC(filename ,MXCHAR+1, char, aimInfo, status);
+    if (aim_newGeometry(aimInfo) == CAPS_SUCCESS ||
+        aim_newAnalysisIn(aimInfo, Proj_Name  ) == CAPS_SUCCESS ||
+        aim_newAnalysisIn(aimInfo, Property   ) == CAPS_SUCCESS ||
+        aim_newAnalysisIn(aimInfo, Connect    ) == CAPS_SUCCESS ||
+        aim_newAnalysisIn(aimInfo, File_Format) == CAPS_SUCCESS) {
 
-    strcpy(filename, tacsInstance->projectName);
 
-    status = mesh_writeNASTRAN(aimInfo,
-                               filename,
-                               1,
-                               &tacsInstance->feaProblem.feaMesh,
-                               tacsInstance->feaProblem.numProperty,
-                               tacsInstance->feaProblem.feaProperty,
-                               tacsInstance->feaProblem.feaFileFormat.gridFileType,
-                               1.0);
-    AIM_STATUS(aimInfo, status);
+      if (tacsInstance->units.length != NULL) {
+        status = aim_capsLength(aimInfo, &lengthUnits);
+        AIM_NOTFOUND(aimInfo, status);
+        if (status == CAPS_NOTFOUND) {
+          AIM_ERROR(aimInfo, "capsLength attribute must be specified!");
+          goto cleanup;
+        }
+        AIM_NOTNULL(lengthUnits, aimInfo, status);
 
-    // Write TACS subElement types not supported by mesh_writeNASTRAN
-    strcat(filename, ".bdf");
-    fp = aim_fopen(aimInfo, filename, "a");
-    if (fp == NULL) {
+        status = aim_convert(aimInfo, 1, lengthUnits, &scaleFactor, tacsInstance->units.length, &scaleFactor);
+        AIM_STATUS(aimInfo, status);
+      }
+
+      // Write TACS Mesh
+      AIM_ALLOC(filename, strlen(tacsInstance->projectName)+5, char, aimInfo, status);
+
+      strcpy(filename, tacsInstance->projectName);
+
+      status = mesh_writeNASTRAN(aimInfo,
+                                 filename,
+                                 1,
+                                 &tacsInstance->feaProblem.feaMesh,
+                                 tacsInstance->feaProblem.numProperty,
+                                 tacsInstance->feaProblem.feaProperty,
+                                 tacsInstance->feaProblem.feaFileFormat.gridFileType,
+                                 1.0);
+      AIM_STATUS(aimInfo, status);
+
+      // Write TACS subElement types not supported by mesh_writeNASTRAN
+      strcat(filename, ".bdf");
+      fp = aim_fopen(aimInfo, filename, "a");
+      if (fp == NULL) {
         AIM_ERROR(aimInfo, "Unable to open file: %s", filename);
         status = CAPS_IOERR;
         goto cleanup;
+      }
+      AIM_FREE(filename);
+
+      printf("Writing subElement types (if any) - appending mesh file\n");
+      status = nastran_writeSubElementCard(aimInfo, fp,
+                                           &tacsInstance->feaProblem.feaMesh,
+                                           tacsInstance->feaProblem.numProperty,
+                                           tacsInstance->feaProblem.feaProperty,
+                                           &tacsInstance->feaProblem.feaFileFormat);
+      AIM_STATUS(aimInfo, status);
+
+      // Connections
+      for (i = 0; i < tacsInstance->feaProblem.numConnect; i++) {
+
+          if (i == 0) {
+              printf("Writing connection cards - appending mesh file\n");
+          }
+
+          status = nastran_writeConnectionCard(fp,
+                                               &tacsInstance->feaProblem.feaConnect[i],
+                                               &tacsInstance->feaProblem.feaFileFormat);
+          AIM_STATUS(aimInfo, status);
+      }
+      if (fp != NULL) fclose(fp);
+      fp = NULL;
     }
-    AIM_FREE(filename);
-
-    printf("Writing subElement types (if any) - appending mesh file\n");
-    status = nastran_writeSubElementCard(aimInfo, fp,
-                                         &tacsInstance->feaProblem.feaMesh,
-                                         tacsInstance->feaProblem.numProperty,
-                                         tacsInstance->feaProblem.feaProperty,
-                                         &tacsInstance->feaProblem.feaFileFormat);
-    AIM_STATUS(aimInfo, status);
-
-    // Connections
-    for (i = 0; i < tacsInstance->feaProblem.numConnect; i++) {
-
-        if (i == 0) {
-            printf("Writing connection cards - appending mesh file\n");
-        }
-
-        status = nastran_writeConnectionCard(fp,
-                                             &tacsInstance->feaProblem.feaConnect[i],
-                                             &tacsInstance->feaProblem.feaFileFormat);
-        AIM_STATUS(aimInfo, status);
-    }
-    if (fp != NULL) fclose(fp);
-    fp = NULL;
 
     // Write nastran input file
-    filename = EG_alloc(MXCHAR +1);
-    if (filename == NULL) { status = EGADS_MALLOC; goto cleanup; }
+    AIM_ALLOC(filename, strlen(tacsInstance->projectName)+5, char, aimInfo, status);
     strcpy(filename, tacsInstance->projectName);
     strcat(filename, ".dat");
 
@@ -1896,7 +2033,7 @@ int aimPostAnalysis(void *instStore, void *aimInfo,
       status = CAPS_IOERR; goto cleanup;
     }
     if (tacsInstance->feaProblem.numDesignVariable != numDesignVariable+nGeomIn) {
-      AIM_ERROR(aimInfo, "Incorrect number of design variables in sens file. Expected %d and found %d",
+      AIM_ERROR(aimInfo, "Incorrect number of AnalysisIn derivatives in sens file. Expected %d and found %d",
                 tacsInstance->feaProblem.numDesignVariable-nGeomIn, numDesignVariable);
       status = CAPS_IOERR; goto cleanup;
     }

@@ -10,7 +10,7 @@
  */
 
 /*
- * Copyright (C) 2013/2024  John F. Dannenhoffer, III (Syracuse University)
+ * Copyright (C) 2013/2025  John F. Dannenhoffer, III (Syracuse University)
  *
  * This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
@@ -59,7 +59,7 @@ static double argDdefs[NUMUDPARGS] = {0.,        0.,        0.,       };
 #include "udpUtilities.c"
 
 /* unpublished routine in OpenCSM.c */
-extern int convertToBSplines(ego inbody, double mat[], int mincp, ego *ebody);
+extern int convertToBSplines(ego inbody, double mat[], int mincp, int mindeg, ego *ebody);
 
 
 /*
@@ -388,7 +388,7 @@ udpExecute(ego  context,                /* (in)  EGADS context */
         mat[ 4] = 0;           mat[ 5] = YRADIUS(0);   mat[ 6] = 0;            mat[ 7] = 0;
         mat[ 8] = 0;           mat[ 9] = 0;            mat[10] = ZRADIUS(0);   mat[11] = 0;
 
-        status = convertToBSplines(ebodys[0], mat, 1, ebody);
+        status = convertToBSplines(ebodys[0], mat, 1, 1, ebody);
         CHECK_STATUS(convertToBSplines);
 
      /*

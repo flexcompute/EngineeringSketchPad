@@ -25,7 +25,7 @@ workDir = os.path.join(str(args.workDir[0]), "PointwiseAnalysisTest")
 # Load CSM file
 geometryScript = os.path.join("..","csmData","cfdMultiBody.csm")
 myProblem = pyCAPS.Problem(problemName=workDir,
-                           capsFile=geometryScript, 
+                           capsFile=geometryScript,
                            outLevel=args.outLevel)
 
 # Load pointwise aim
@@ -57,7 +57,7 @@ for i in range(30):
     try:
         if platform.system() == "Windows":
             PW_HOME = os.environ["PW_HOME"]
-            pointwise.system(PW_HOME + "\win64\bin\tclsh.exe " + CAPS_GLYPH + "\\GeomToMesh.glf caps.egads capsUserDefaults.glf")
+            pointwise.system(PW_HOME + "\\win64\\bin\\tclsh.exe " + CAPS_GLYPH + "\\GeomToMesh.glf caps.egads capsUserDefaults.glf")
         elif "CYGWIN" in platform.system():
             PW_HOME = os.environ["PW_HOME"]
             pointwise.system(PW_HOME + "/win64/bin/tclsh.exe " + CAPS_GLYPH + "/GeomToMesh.glf caps.egads capsUserDefaults.glf")

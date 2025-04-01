@@ -109,6 +109,9 @@ class TestAnalysis(unittest.TestCase):
 
         self.assertTrue(os.path.isdir(self.myAnalysis.analysisDir))
 
+        with self.assertRaises(AttributeError) as e:
+            self.myAnalysis.analysisDir = "foo"
+
 #==============================================================================
     # Same name
     def test_sameName(self):

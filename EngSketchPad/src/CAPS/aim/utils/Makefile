@@ -1,8 +1,10 @@
 #
+ifndef ESP_ROOT
+$(error ESP_ROOT must be set -- Please fix the environment...)
+endif
 ifndef ESP_ARCH
 $(error ESP_ARCH must be set -- Please fix the environment...)
 endif
-#
 #
 IDIR  = $(ESP_ROOT)/include
 include $(IDIR)/$(ESP_ARCH)
@@ -20,7 +22,19 @@ UTILDIR=$(IDIR)/aim/utils
 VPATH = $(ODIR):cython
 
 #OBJS  =	attrUtils.o meshUtils.o cfdUtils.o miscUtils.o feaUtils.o vlmUtils.o nastranUtils.o tecplotUtils.o arrayUtils.o deprecateUtils.o cardUtils.o nastranCards.o tempUtils.o jsonUtils.o pyscriptUtils.o
-OBJS  =	attrUtils.o meshUtils.o cfdUtils.o miscUtils.o feaUtils.o vlmUtils.o nastranUtils.o tecplotUtils.o arrayUtils.o deprecateUtils.o cardUtils.o nastranCards.o jsonUtils.o
+OBJS = attrUtils.o \
+       meshUtils.o \
+       cfdUtils.o \
+       miscUtils.o \
+       feaUtils.o \
+       vlmUtils.o \
+       nastranCards.o \
+       nastranUtils.o \
+       tecplotUtils.o \
+       arrayUtils.o \
+       deprecateUtils.o \
+       cardUtils.o \
+       jsonUtils.o
 
 OBJSP =	vlmSpanSpace.o
 

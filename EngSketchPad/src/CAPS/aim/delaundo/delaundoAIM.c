@@ -780,8 +780,7 @@ int aimUpdateState(void *instStore, void *aimInfo,
     AIM_STRDUP(delaundoInstance->meshRef.fileName, aimFile, aimInfo, status);
 
 
-    if (delaundoInstance->groupMap.numAttribute == 0 ||
-        aim_newGeometry(aimInfo) == CAPS_SUCCESS ) {
+    if (aim_newGeometry(aimInfo) == CAPS_SUCCESS ) {
         // Get capsGroup name and index mapping to make sure all faces have a capsGroup value
         status = create_CAPSGroupAttrToIndexMap(numBody,
                                                 bodies,
@@ -790,8 +789,7 @@ int aimUpdateState(void *instStore, void *aimInfo,
         AIM_STATUS(aimInfo, status);
     }
 
-    if (delaundoInstance->meshMap.numAttribute == 0 ||
-        aim_newGeometry(aimInfo) == CAPS_SUCCESS ) {
+    if (aim_newGeometry(aimInfo) == CAPS_SUCCESS ) {
         status = create_CAPSMeshAttrToIndexMap(numBody,
                                                 bodies,
                                                 3,
@@ -855,7 +853,8 @@ int aimUpdateState(void *instStore, void *aimInfo,
 
     // Modify the EGADS body tessellation based on given inputs
 /*@-nullpass@*/
-    status =  mesh_modifyBodyTess(numMeshProp,
+    status =  mesh_modifyBodyTess(aimInfo,
+                                  numMeshProp,
                                   meshProp,
                                   minEdgePoint,
                                   maxEdgePoint,

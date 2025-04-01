@@ -11,6 +11,7 @@
 
 #define PI        3.1415926535897931159979635
 #define NINT(A)         (((A) < 0)   ? (int)(A-0.5) : (int)(A+0.5))
+#define MAX(A,B)        (((A) < (B)) ? (B) : (A))
 
 template<class T>
 void spacer( const T& N, const double pspace, T x[]) {
@@ -162,6 +163,16 @@ int vlm_autoSpaceSpanPanels(void *aimInfo, int NspanTotal, int numSection, vlmSe
         }
     }
 
+    // Get the total specified count and adjust the total if necessary
+    numSpanX = 0;
+    for (i = 0; i < numSeg; i++) {
+      if (vlmSection[i].Nspan >= 2) {
+        A[numSeg*i + i] = 1;
+        numSpanX += vlmSection[i].Nspan;
+      }
+    }
+    NspanTotal = MAX(numSpanX,NspanTotal);
+
     for (i = 0; i < numSeg; i++) {
         b[i] /= distLETotal;
         x[i] = b[i]*abs(NspanTotal);
@@ -254,12 +265,11 @@ int vlm_autoSpaceSpanPanels(void *aimInfo, int NspanTotal, int numSection, vlmSe
         }
 
         if (Nspan > NspanTotal) {
-            vlmSection[imax].Nspan--;
-
             if (vlmSection[imax].Nspan == 1) {
                 AIM_ERROR(aimInfo, "Insufficient spanwise sections! Increase numSpanTotal or numSpanPerSection!\n");
                 return CAPS_BADVALUE;
             }
+            vlmSection[imax].Nspan--;
         }
         if (Nspan < NspanTotal) {
             vlmSection[imin].Nspan++;

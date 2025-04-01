@@ -2,6 +2,9 @@
 ifndef ESP_ROOT
 $(error ESP_ROOT must be set -- Please fix the environment...)
 endif
+ifndef ESP_ARCH
+$(error ESP_ARCH must be set -- Please fix the environment...)
+endif
 #
 IDIR  = $(ESP_ROOT)/include
 include $(IDIR)/$(ESP_ARCH)
@@ -36,7 +39,7 @@ $(TDIR)/awave:	$(ODIR)/awave.o
 	$(FCOMP) -o $(TDIR)/awave $(ODIR)/awave.o $(ESPFLIBS)
 
 $(ODIR)/awave.o:	$(AWAVE)
-ifeq ($(EFCOMP),ifort)
+ifneq (,$(filter $(EFCOMP),ifort ifx))
 	$(FCOMP) -c $(FOPTS) $(AWAVE) -o $(ODIR)/awave.o
 else
 	$(FCOMP) -c $(FOPTS) -std=legacy $(AWAVE) -o $(ODIR)/awave.o

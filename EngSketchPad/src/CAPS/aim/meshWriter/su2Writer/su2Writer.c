@@ -3,7 +3,7 @@
  *
  *             SU2 3D Mesh Writer Code
  *
- *      Copyright 2014-2024, Massachusetts Institute of Technology
+ *      Copyright 2014-2025, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -193,7 +193,7 @@ int meshWrite(void *aimInfo, aimMesh *mesh)
       }
 
     } else { // zMeshConstant == true
-      // Write nodal coordinates as is
+      // Write vertex coordinates as is
       for (i = 0; i < meshData->nVertex; i++)
         fprintf(fp,"%.18e %.18e %d\n", meshData->verts[i][0],
                                        meshData->verts[i][1],
@@ -202,7 +202,7 @@ int meshWrite(void *aimInfo, aimMesh *mesh)
 
   } else {
 
-    // Write nodal coordinates
+    // Write vertex coordinates
     for (i = 0; i < meshData->nVertex; i++)
       fprintf(fp,"%.18e %.18e %.18e %d\n", meshData->verts[i][0],
                                            meshData->verts[i][1],

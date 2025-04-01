@@ -35,10 +35,10 @@ $(ODIR)\frictionAIM.obj:	frictionAIM.c $(IDIR)\capsTypes.h
 		/Fo$(ODIR)\frictionAIM.obj
 
 $(TDIR)\friction.exe:	$(ODIR)\friction.obj
-	ifort /Fe$(TDIR)\friction.exe $(ODIR)\friction.obj $(FLIBS)
+	$(FCOMP) /Fe$(TDIR)\friction.exe $(ODIR)\friction.obj $(FLIBS)
 
 $(ODIR)\friction.obj:	friction_eja_mod.f
-	ifort /c $(FOPTS) friction_eja_mod.f /Fo$(ODIR)\friction.obj
+	$(FCOMP) /c $(FOPTS) friction_eja_mod.f /Fo$(ODIR)\friction.obj
 
 clean:
 	-del $(ODIR)\frictionAIM.obj

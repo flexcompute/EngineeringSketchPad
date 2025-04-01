@@ -46,6 +46,8 @@ mark
 rule      0
 select edge 7 4 7 5 1
   attribute capsMesh $trailingEdge
+select face
+  attribute capsMesh $riteWing
 ## [createWing]
 
 ## [mirror]
@@ -58,6 +60,8 @@ restore   HalfWing 0
 # Restore and mirror the half wing
 restore   HalfWing 0
     mirror    0   0   1   0
+select face
+  attribute capsMesh $leftWing
 ## [mirror]
 
 ## [join]
@@ -72,8 +76,7 @@ rotatex 90 0 0
 
 # Wing 1 - Attributes
 select face
-attribute capsGroup $Wing1
-attribute capsMesh $Wing1
+   attribute capsGroup $Wing1
 ## [attribute]
 
 
@@ -107,7 +110,7 @@ select body
     attribute capsReferenceX        cmean*0.25
     attribute capsReferenceY        0
     attribute capsReferenceZ        0
-    attribute capsMeshLength        cmean
+    attribute capsMeshLength        2*cmean #Larger scale for carser meshes
 
 ## [closeCSM]
 end

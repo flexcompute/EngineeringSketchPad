@@ -15,9 +15,7 @@ BOX        1   4   0   2   0   0
 JOIN
 
 SELECT    FACE      -2  testBox
-ASSERT    @sellist.size  0
-CATBEG    $face_not_found
-CATEND
+ASSERT    @sellist[1]   -1          # nothing found
 SELECT    EDGE      -2  testBox
 ASSERT    @sellist.size  2
 SELECT    NODE      -2  testBox

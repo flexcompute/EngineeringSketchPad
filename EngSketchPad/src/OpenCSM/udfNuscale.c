@@ -10,7 +10,7 @@
  */
 
 /*
- * Copyright (C) 2011/2024  John F. Dannenhoffer, III (Syracuse University)
+ * Copyright (C) 2011/2025  John F. Dannenhoffer, III (Syracuse University)
  *
  * This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
@@ -28,7 +28,7 @@
  *     MA  02110-1301  USA
  */
 
-#define NUMUDPARGS       8
+#define NUMUDPARGS       9
 #define NUMUDPINPUTBODYS 1
 #include "udpUtilities.h"
 
@@ -40,20 +40,21 @@
 #define YCENT(   IUDP)  ((double *) (udps[IUDP].arg[4].val))[0]
 #define ZCENT(   IUDP)  ((double *) (udps[IUDP].arg[5].val))[0]
 #define MINCP(   IUDP)  ((int    *) (udps[IUDP].arg[6].val))[0]
-#define SHOWSIZE(IUDP)  ((int    *) (udps[IUDP].arg[7].val))[0]
+#define MINDEG(  IUDP)  ((int    *) (udps[IUDP].arg[7].val))[0]
+#define SHOWSIZE(IUDP)  ((int    *) (udps[IUDP].arg[8].val))[0]
 
 /* data about possible arguments */
-static char  *argNames[NUMUDPARGS] = {"xscale", "yscale", "zscale", "xcent",  "ycent",  "zcent",  "mincp", "showsize", };
-static int    argTypes[NUMUDPARGS] = {ATTRREAL, ATTRREAL, ATTRREAL, ATTRREAL, ATTRREAL, ATTRREAL, ATTRINT, ATTRINT,    };
-static int    argIdefs[NUMUDPARGS] = {1,        1,        1,        0,        0,        0,        0.,      0.,         };
-static double argDdefs[NUMUDPARGS] = {1.,       1.,       1.,       0.,       0.,       0.,       1,       0,          };
+static char  *argNames[NUMUDPARGS] = {"xscale", "yscale", "zscale", "xcent",  "ycent",  "zcent",  "mincp", "mindeg", "showsize", };
+static int    argTypes[NUMUDPARGS] = {ATTRREAL, ATTRREAL, ATTRREAL, ATTRREAL, ATTRREAL, ATTRREAL, ATTRINT, ATTRINT,  ATTRINT,    };
+static int    argIdefs[NUMUDPARGS] = {1,        1,        1,        0,        0,        0,        0.,      1.,       0.,         };
+static double argDdefs[NUMUDPARGS] = {1.,       1.,       1.,       0.,       0.,       0.,       1,       1,        0,          };
 
 /* get utility routines: udpErrorStr, udpInitialize, udpReset, udpSet,
                          udpGet, udpVel, udpClean, udpMesh */
 #include "udpUtilities.c"
 
 /* unpublished routine in OpenCSM.c */
-extern int convertToBSplines(ego inbody, double mat[], int mincp, ego *ebody);
+extern int convertToBSplines(ego inbody, double mat[], int mincp, int mindeg, ego *ebody);
 
 
 /*
@@ -92,7 +93,8 @@ udpExecute(ego  emodel,                 /* (in)  Model containing Body */
     printf("xcent(   0) = %f\n", XCENT(   0));
     printf("ycent(   0) = %f\n", YCENT(   0));
     printf("zcent(   0) = %f\n", ZCENT(   0));
-    printf("mincp  ( 0) = %d\n", MINCP(   0));
+    printf("mincp(   0) = %d\n", MINCP(   0));
+    printf("mindeg(  0) = %d\n", MINDEG(  0));
     printf("showsize(0) = %d\n", SHOWSIZE(0));
 #endif
 
@@ -160,6 +162,16 @@ udpExecute(ego  emodel,                 /* (in)  Model containing Body */
         goto cleanup;
 
     } else if (udps[0].arg[7].size > 1) {
+        snprintf(message, 100, "mindeg should be a scalar");
+        status = EGADS_RANGERR;
+        goto cleanup;
+
+    } else if (MINDEG(0) < 1) {
+        snprintf(message, 100, "mindeg must be positive");
+        status = EGADS_RANGERR;
+        goto cleanup;
+
+    } else if (udps[0].arg[8].size > 1) {
         snprintf(message, 100, "showsize should be a scalar");
         status = EGADS_RANGERR;
         goto cleanup;
@@ -208,6 +220,7 @@ udpExecute(ego  emodel,                 /* (in)  Model containing Body */
     printf("ycent(   %d) = %f\n", numUdp, YCENT(   numUdp));
     printf("zcent(   %d) = %f\n", numUdp, ZCENT(   numUdp));
     printf("mincp(   %d) = %d\n", numUdp, MINCP(   numUdp));
+    printf("mindeg(  %d) = %d\n", numUdp, MINDEG(  numUdp));
     printf("showsize(%d) = %d\n", numUdp, SHOWSIZE(numUdp));
 #endif
 
@@ -284,7 +297,7 @@ udpExecute(ego  emodel,                 /* (in)  Model containing Body */
         mat[ 4] = 0;           mat[ 5] = YSCALE(0);   mat[ 6] = 0;           mat[ 7] = YCENT(0) * (1-YSCALE(0));
         mat[ 8] = 0;           mat[ 9] = 0;           mat[10] = ZSCALE(0);   mat[11] = ZCENT(0) * (1-ZSCALE(0));
 
-        status = convertToBSplines(ebodys[0], mat, MINCP(0), ebody);
+        status = convertToBSplines(ebodys[0], mat, MINCP(0), MINDEG(0), ebody);
         CHECK_STATUS(convertToBSplines);
     }
 

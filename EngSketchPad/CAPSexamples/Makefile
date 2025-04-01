@@ -62,6 +62,7 @@ PYTEST=$(patsubst pyCAPS/%.py,$(TDIR)/pyCAPS/%.py,$(PYFILES))
 
 CSMFILES=$(wildcard csmData/*.csm)
 CSMFILES+=$(wildcard csmData/*.udc)
+CSMFILES+=$(wildcard csmData/x15)
 CSMTEST=$(patsubst csmData/%,$(TDIR)/csmData/%,$(CSMFILES))
 
 ANALYSISFILES=$(wildcard analysisData/nastran/*.*)
@@ -112,7 +113,7 @@ $(ANALYSISDATA): $(TDIR)/analysisData/%: analysisData/% | $(TDIR)/analysisData $
 	cp -p -f $< $@
 
 $(CSMTEST): $(TDIR)/csmData/%: csmData/% | $(TDIR)/csmData
-	cp -p -f $< $@
+	cp -r -p -f $< $@
 
 $(CORSAIRTEST): $(TDIR)/corsairlite/%: corsairlite/% | $(TDIR)/corsairlite \
 	$(TDIR)/corsairlite/capsPhase/csm \

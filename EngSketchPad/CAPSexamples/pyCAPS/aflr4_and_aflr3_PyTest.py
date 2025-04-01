@@ -23,7 +23,7 @@ workDir = os.path.join(str(args.workDir[0]), "AFLRAnalysisTest")
 # Load CSM file
 geometryScript = os.path.join("..","csmData","cfdMultiBody.csm")
 myProblem = pyCAPS.Problem(problemName=workDir,
-                           capsFile=geometryScript, 
+                           capsFile=geometryScript,
                            outLevel=args.outLevel)
 
 # Load AFLR4 aim
@@ -62,6 +62,9 @@ myVolMesh.input.Mesh_Quiet_Flag = True if args.outLevel == 0 else False
 
 # Optional: Explicitly write mesh files
 myVolMesh.input.Mesh_Format = ["Tecplot", "ugrid"]
+
+# Print out mesh quality information and dump a OpenFOAM file
+myVolMesh.input.Mesh_Gen_Input_String = "-qall -o .foam"
 
 # Set either global or local boundary layer thickness spacings
 # These are coarse numbers just as an example, not a recommenation for good CFD solutions

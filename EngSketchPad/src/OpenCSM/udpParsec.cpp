@@ -11,7 +11,7 @@
  */
 
 /*
- * Copyright (C) 2011/2024
+ * Copyright (C) 2011/2025
  *
  * This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
@@ -34,8 +34,7 @@
 /* set to 1 for arc-lenght knots, -1 for equally spaced knots */
 #define KNOTS -1
 
-/* Surrealized spline fits */
-#include "egadsSplineFit.h"
+/* Surrealized functions */
 #include "egads_dot.h"
 
 extern "C" {
@@ -113,7 +112,7 @@ sensWireBodyMeanline(ego ebody, udp_T *udp, int npts, int *header, SurrealS<1> *
 /* constructs a B-spline of the airfoil (or meanline) */
 template<class T>
 static int
-parsecSplineFit(udp_T *udp, int& npts, T **pts, int* header, T **rdata);
+parsecSplineFit(udp_T  *udp, ego context, int& npts, T **pts, ego *bspline);
 
 /* constructs the points used to for the airfoil (or meanline) B-spline */
 template<class T>
@@ -255,14 +254,19 @@ udpExecute(ego  context,                /* (in)  EGADS context */
     if (MEANLINE(udp) == 0) {
 
         status = buildFaceBodyAirfoil(context, udp, ebody);
-        if (status != EGADS_SUCCESS) goto cleanup;
+        if (status != EGADS_SUCCESS) {
+            printf("status=%d on line %d\n", status, __LINE__);
+            goto cleanup;
+        }
 
     /* otherwise create a WireBody of the meanline */
     } else {
 
         status = buildWireBodyMeanline(context, udp, ebody);
-        if (status != EGADS_SUCCESS) goto cleanup;
-
+        if (status != EGADS_SUCCESS) {
+            printf("status=%d on line %d\n", status, __LINE__);
+            goto cleanup;
+        }
     }
 
     /* set the output value(s) */
@@ -296,9 +300,10 @@ udpSensitivity(ego    ebody,            /* (in)  Body pointer */
                double vels[])           /* (out) velocities */
 {
     int    status = EGADS_SUCCESS;
-    int    npts, iudp, judp, ipnt, nchild, stride, header[4];
+    int    oclass, mtype;
+    int    npts, iudp, judp, ipnt, nchild, stride, *ivec=NULL;
     double point[18], point_dot[18];
-    ego    eent, *echildren;
+    ego    context, eent, ref, *echildren, ecurve=NULL;
     SurrealS<1> *pts=NULL, *rdata=NULL;
     udp_T   *udp = NULL;
 
@@ -322,7 +327,7 @@ udpSensitivity(ego    ebody,            /* (in)  Body pointer */
     npoly  = udp->arg[1].size;
     nparam = udp->arg[2].size;
 
-    printf("udpParsec.udpSensitivity\n");
+    printf("udpParsec.udpSensitivity(npnt=%d, entType=%d, entIndex=%d)\n", npnt, entType, entIndex);
     printf("ndotchg    = %d\n", udp->ndotchg);
     printf("YTE_VAL(%d) = %f\n", iudp, YTE_VAL(udp) );
     printf("YTE_DOT(%d) = %f\n", iudp, YTE_DOT(udp) );
@@ -342,32 +347,56 @@ udpSensitivity(ego    ebody,            /* (in)  Body pointer */
 #endif
 
     /* build the sensitivity if needed */
-    if (udp->ndotchg > 0) {
+    if (udp->ndotchg > 0 || EG_hasGeometry_dot(ebody) != EGADS_SUCCESS) {
+
+        status = EG_getContext(ebody, &context);
+        if (status != EGADS_SUCCESS) {
+            printf("status=%d on line %d\n", status, __LINE__);
+            goto cleanup;
+        }
 
         /* get airfoil B-spline with it's sensitivities */
-        status = parsecSplineFit(udp, npts, &pts, header, &rdata);
-        if (status != EGADS_SUCCESS) goto cleanup;
+        status = parsecSplineFit(udp, context, npts, &pts, &ecurve);
+        if (status != EGADS_SUCCESS) {
+            printf("status=%d on line %d\n", status, __LINE__);
+            goto cleanup;
+        }
+
+        status = EG_getGeometry(ecurve, &oclass, &mtype, &ref, &ivec, &rdata);
+        if (status != EGADS_SUCCESS) {
+            printf("status=%d on line %d\n", status, __LINE__);
+            goto cleanup;
+        }
 
         /* if meanline[udp] is zero, then this is a FaceBody (the default) */
         if (MEANLINE(udp) == 0) {
 
-            status = sensFaceBodyAirfoil(ebody, udp, npts, header, pts, rdata);
-            if (status != EGADS_SUCCESS) goto cleanup;
+            status = sensFaceBodyAirfoil(ebody, udp, npts, ivec, pts, rdata);
+            if (status != EGADS_SUCCESS) {
+                printf("status=%d on line %d\n", status, __LINE__);
+                goto cleanup;
+            }
 
         /* otherwise this is a WireBody of the meanline */
         } else {
 
-            status = sensWireBodyMeanline(ebody, udp, npts, header, pts, rdata);
-            if (status != EGADS_SUCCESS) goto cleanup;
-
+            status = sensWireBodyMeanline(ebody, udp, npts, ivec, pts, rdata);
+            if (status != EGADS_SUCCESS) {
+                printf("status=%d on line %d\n", status, __LINE__);
+                goto cleanup;
+            }
         }
+
     }
 
 
     /* find the ego entity */
     if (entType == OCSM_NODE) {
         status = EG_getBodyTopos(ebody, NULL, NODE, &nchild, &echildren);
-        if (status != EGADS_SUCCESS) goto cleanup;
+        if (status != EGADS_SUCCESS) {
+            printf("status=%d on line %d\n", status, __LINE__);
+            goto cleanup;
+        }
 
         stride = 0;
         eent = echildren[entIndex-1];
@@ -375,7 +404,10 @@ udpSensitivity(ego    ebody,            /* (in)  Body pointer */
         EG_free(echildren); echildren = NULL;
     } else if (entType == OCSM_EDGE) {
         status = EG_getBodyTopos(ebody, NULL, EDGE, &nchild, &echildren);
-        if (status != EGADS_SUCCESS) goto cleanup;
+        if (status != EGADS_SUCCESS) {
+            printf("status=%d on line %d\n", status, __LINE__);
+            goto cleanup;
+        }
 
         stride = 1;
         eent = echildren[entIndex-1];
@@ -383,7 +415,10 @@ udpSensitivity(ego    ebody,            /* (in)  Body pointer */
         EG_free(echildren); echildren = NULL;
     } else if (entType == OCSM_FACE) {
         status = EG_getBodyTopos(ebody, NULL, FACE, &nchild, &echildren);
-        if (status != EGADS_SUCCESS) goto cleanup;
+        if (status != EGADS_SUCCESS) {
+            printf("status=%d on line %d\n", status, __LINE__);
+            goto cleanup;
+        }
 
         stride = 2;
         eent = echildren[entIndex-1];
@@ -398,7 +433,10 @@ udpSensitivity(ego    ebody,            /* (in)  Body pointer */
     /* get the velocities from the entity */
     for (ipnt = 0; ipnt < npnt; ipnt++) {
         status = EG_evaluate_dot(eent, &(uvs[stride*ipnt]), NULL, point, point_dot);
-        if (status != EGADS_SUCCESS) goto cleanup;
+        if (status != EGADS_SUCCESS) {
+            printf("status=%d on line %d\n", status, __LINE__);
+            goto cleanup;
+        }
 
         /* return the point velocity */
         vels[3*ipnt  ] = point_dot[0];
@@ -408,7 +446,9 @@ udpSensitivity(ego    ebody,            /* (in)  Body pointer */
 
 cleanup:
     delete [] pts;
-    EG_free( rdata );
+    FREE( ivec );
+    FREE( rdata );
+    EG_deleteObject(ecurve);
 
     return status;
 }
@@ -455,16 +495,22 @@ buildFaceBodyAirfoil(ego  context,      /* (in)  the EGADS context */
     int    i, sense[3], npts, nedge;
     double tle, data[18], tdata[2];
     double *rdata=NULL, *pts=NULL;
-    ego    ecurve, enodes[2], eedges[3], enode1, enode2, enode3, eline, eloop, eplane, eface;
-    int header[4];
+    ego    ref, ecurve, enodes[2], eedges[3], enode1, enode2, enode3, eline, eloop, eplane, eface;
+    int oclass, mtype, *ivec=NULL;
 
-    /* get the B-spline and points used to construct the spline */
-    status = parsecSplineFit(udp, npts, &pts, header, &rdata);
-    if (status != EGADS_SUCCESS) goto cleanup;
+    /* get the B-spline CURVE and points used to construct the spline */
+    status = parsecSplineFit(udp, context, npts, &pts, &ecurve);
+    if (status != EGADS_SUCCESS) {
+        printf("status=%d on line %d\n", status, __LINE__);
+        goto cleanup;
+    }
 
-    /* convert the B-spline to a CURVE */
-    status = EG_makeGeometry(context, CURVE, BSPLINE, NULL, header, rdata, &ecurve);
-    if (status != EGADS_SUCCESS) goto cleanup;
+    /* get the B-spline data */
+    status = EG_getGeometry(ecurve, &oclass, &mtype, &ref, &ivec, &rdata);
+    if (status != EGADS_SUCCESS) {
+        printf("status=%d on line %d\n", status, __LINE__);
+        goto cleanup;
+    }
 
     /* create Node at upper trailing edge (node 1)*/
     i = 0;
@@ -473,19 +519,28 @@ buildFaceBodyAirfoil(ego  context,      /* (in)  the EGADS context */
     data[2] = pts[3*i+2];
     status = EG_makeTopology(context, NULL, NODE, 0,
                              data, 0, NULL, NULL, &(enode1));
-    if (status != EGADS_SUCCESS) goto cleanup;
+    if (status != EGADS_SUCCESS) {
+        printf("status=%d on line %d\n", status, __LINE__);
+        goto cleanup;
+    }
 
     /* node at leading edge as a function of the spline */
     i = (npts - 1) / 2 + 3; /* leading edge index, with knot offset of 3 (cubic)*/
     tle = rdata[i];         /* leading edge t-value (should be very close to (0,0,0) */
 
     status = EG_evaluate(ecurve, &tle, data);
-    if (status != EGADS_SUCCESS) goto cleanup;
+    if (status != EGADS_SUCCESS) {
+        printf("status=%d on line %d\n", status, __LINE__);
+        goto cleanup;
+    }
 
     /* create node at leading edge (node 2)*/
     status = EG_makeTopology(context, NULL, NODE, 0,
                              data, 0, NULL, NULL, &(enode2));
-    if (status != EGADS_SUCCESS) goto cleanup;
+    if (status != EGADS_SUCCESS) {
+        printf("status=%d on line %d\n", status, __LINE__);
+        goto cleanup;
+    }
 
     /* make Edge for upper surface (edge 1)*/
     tdata[0] = 0;
@@ -496,7 +551,10 @@ buildFaceBodyAirfoil(ego  context,      /* (in)  the EGADS context */
 
     status = EG_makeTopology(context, ecurve, EDGE, TWONODE,
                              tdata, 2, enodes, NULL, &(eedges[0]));
-    if (status != EGADS_SUCCESS) goto cleanup;
+    if (status != EGADS_SUCCESS) {
+        printf("status=%d on line %d\n", status, __LINE__);
+        goto cleanup;
+    }
 
     /* create line segment at trailing edge */
     i = npts-1;
@@ -513,7 +571,10 @@ buildFaceBodyAirfoil(ego  context,      /* (in)  the EGADS context */
         /* make the 3rd node on lower trailing edge */
         status = EG_makeTopology(context, NULL, NODE, 0,
                                  data, 0, NULL, NULL, &(enode3));
-        if (status != EGADS_SUCCESS) goto cleanup;
+        if (status != EGADS_SUCCESS) {
+            printf("status=%d on line %d\n", status, __LINE__);
+            goto cleanup;
+        }
 
         /* make Edge for lower surface (edge 2)*/
         tdata[0] = tle;
@@ -524,11 +585,17 @@ buildFaceBodyAirfoil(ego  context,      /* (in)  the EGADS context */
 
         status = EG_makeTopology(context, ecurve, EDGE, TWONODE,
                                  tdata, 2, enodes, NULL, &(eedges[1]));
-        if (status != EGADS_SUCCESS) goto cleanup;
+        if (status != EGADS_SUCCESS) {
+            printf("status=%d on line %d\n", status, __LINE__);
+            goto cleanup;
+        }
 
         /* make the trailing edge Line */
         status = EG_makeGeometry(context, CURVE, LINE, NULL, NULL, data, &eline);
-        if (status != EGADS_SUCCESS) goto cleanup;
+        if (status != EGADS_SUCCESS) {
+            printf("status=%d on line %d\n", status, __LINE__);
+            goto cleanup;
+        }
 
         /* make Edge for the line */
         tdata[0] = 0;
@@ -539,7 +606,10 @@ buildFaceBodyAirfoil(ego  context,      /* (in)  the EGADS context */
 
         status = EG_makeTopology(context, eline, EDGE, TWONODE,
                                  tdata, 2, enodes, NULL, &(eedges[2]));
-        if (status != EGADS_SUCCESS) goto cleanup;
+        if (status != EGADS_SUCCESS) {
+            printf("status=%d on line %d\n", status, __LINE__);
+            goto cleanup;
+        }
     } else {
         nedge = 2;
 
@@ -552,7 +622,10 @@ buildFaceBodyAirfoil(ego  context,      /* (in)  the EGADS context */
 
         status = EG_makeTopology(context, ecurve, EDGE, TWONODE,
                                  tdata, 2, enodes, NULL, &(eedges[1]));
-        if (status != EGADS_SUCCESS) goto cleanup;
+        if (status != EGADS_SUCCESS) {
+            printf("status=%d on line %d\n", status, __LINE__);
+            goto cleanup;
+        }
     }
 
     /* create loop of the two Edges */
@@ -562,7 +635,10 @@ buildFaceBodyAirfoil(ego  context,      /* (in)  the EGADS context */
 
     status = EG_makeTopology(context, NULL, LOOP, CLOSED,
                              NULL, nedge, eedges, sense, &eloop);
-    if (status != EGADS_SUCCESS) goto cleanup;
+    if (status != EGADS_SUCCESS) {
+        printf("status=%d on line %d\n", status, __LINE__);
+        goto cleanup;
+    }
 
     /* create a plane for the loop */
     data[0] = 0.;
@@ -572,20 +648,30 @@ buildFaceBodyAirfoil(ego  context,      /* (in)  the EGADS context */
     data[6] = 0.; data[7] = 1.; data[8] = 0.;
 
     status = EG_makeGeometry(context, SURFACE, PLANE, NULL, NULL, data, &eplane);
-    if (status != EGADS_SUCCESS) goto cleanup;
+    if (status != EGADS_SUCCESS) {
+        printf("status=%d on line %d\n", status, __LINE__);
+        goto cleanup;
+    }
 
     /* create the face from the plane and the loop */
     status = EG_makeTopology(context, eplane, FACE, SFORWARD,
                              NULL, 1, &eloop, sense, &eface);
-    if (status != EGADS_SUCCESS) goto cleanup;
+    if (status != EGADS_SUCCESS) {
+        printf("status=%d on line %d\n", status, __LINE__);
+        goto cleanup;
+    }
 
     /* create the face body */
     status = EG_makeTopology(context, NULL, BODY, FACEBODY, NULL, 1, &eface, NULL, ebody);
-    if (status != EGADS_SUCCESS) goto cleanup;
+    if (status != EGADS_SUCCESS) {
+        printf("status=%d on line %d\n", status, __LINE__);
+        goto cleanup;
+    }
 
 cleanup:
     delete [] pts;
-    EG_free(rdata);
+    FREE(ivec);
+    FREE(rdata);
 
     return status;
 }
@@ -617,19 +703,28 @@ sensFaceBodyAirfoil(ego ebody,          /* (in)  Body pointer */
     /* get the face from the FACEBODY */
     status = EG_getTopology(ebody, &eref, &oclass, &mtype, data, &nchild, &echildren,
                             &senses);
-    if (status != EGADS_SUCCESS) goto cleanup;
+    if (status != EGADS_SUCCESS) {
+        printf("status=%d on line %d\n", status, __LINE__);
+        goto cleanup;
+    }
     eface = echildren[0];
 
     /* get the plane and the loop */
     status = EG_getTopology(eface, &eplane, &oclass, &mtype, data, &nchild, &echildren,
                             &senses);
-    if (status != EGADS_SUCCESS) goto cleanup;
+    if (status != EGADS_SUCCESS) {
+        printf("status=%d on line %d\n", status, __LINE__);
+        goto cleanup;
+    }
     eloop = echildren[0];
 
     /* get the edges from the loop */
     status = EG_getTopology(eloop, &eref, &oclass, &mtype, data, &nedge, &eedges,
                             &senses);
-    if (status != EGADS_SUCCESS) goto cleanup;
+    if (status != EGADS_SUCCESS) {
+        printf("status=%d on line %d\n", status, __LINE__);
+        goto cleanup;
+    }
 
     /* ocsmAdjoint makes a copy of the body,
      * which duplicates the curve for each edge.
@@ -639,64 +734,96 @@ sensFaceBodyAirfoil(ego ebody,          /* (in)  Body pointer */
     /* get the curve from second edges */
     status = EG_getTopology(eedges[1], &ecurve[1], &oclass, &mtype, data, &nnode, &enodes,
                             &senses);
-    if (status != EGADS_SUCCESS) goto cleanup;
+    if (status != EGADS_SUCCESS) {
+        printf("status=%d on line %d\n", status, __LINE__);
+        goto cleanup;
+    }
 
     /* set the sensitivity of the Curve */
     status = EG_setGeometry_dot(ecurve[1], CURVE, BSPLINE, header, rdata);
-    if (status != EGADS_SUCCESS) goto cleanup;
+    if (status != EGADS_SUCCESS) {
+        printf("status=%d on line %d\n", status, __LINE__);
+        goto cleanup;
+    }
 
     /* get the nodes and the curve from edges first */
     status = EG_getTopology(eedges[0], &ecurve[0], &oclass, &mtype, data, &nnode, &enodes,
                             &senses);
-    if (status != EGADS_SUCCESS) goto cleanup;
+    if (status != EGADS_SUCCESS) {
+        printf("status=%d on line %d\n", status, __LINE__);
+        goto cleanup;
+    }
 
     /* set the sensitivity of the Curve */
     if (ecurve[0] != ecurve[1]) {
         status = EG_setGeometry_dot(ecurve[0], CURVE, BSPLINE, header, rdata);
-        if (status != EGADS_SUCCESS) goto cleanup;
+        if (status != EGADS_SUCCESS) {
+            printf("status=%d on line %d\n", status, __LINE__);
+            goto cleanup;
+        }
     }
 
     /* set the sensitivity of the Node at upper trailing edge */
     ipnt = 0;
     status = EG_setGeometry_dot(enodes[0], NODE, 0, NULL, &(pts[3*ipnt]));
-    if (status != EGADS_SUCCESS) goto cleanup;
+    if (status != EGADS_SUCCESS) {
+        printf("status=%d on line %d\n", status, __LINE__);
+        goto cleanup;
+    }
 
     /* node at leading edge as a function of the spline */
     i = (npts - 1) / 2 + 3; /* leading edge index, with knot offset of 3 (cubic)*/
     tle = rdata[i];         /* leading edge t-value (should be very close to (0,0,0) */
 
     status = EG_evaluate(ecurve[0], &tle, sdata);
-    if (status != EGADS_SUCCESS) goto cleanup;
+    if (status != EGADS_SUCCESS) {
+        printf("status=%d on line %d\n", status, __LINE__);
+        goto cleanup;
+    }
 
     /* set the sensitivity of the Node at leading edge */
     status = EG_setGeometry_dot(enodes[1], NODE, 0, NULL, sdata);
-    if (status != EGADS_SUCCESS) goto cleanup;
+    if (status != EGADS_SUCCESS) {
+        printf("status=%d on line %d\n", status, __LINE__);
+        goto cleanup;
+    }
 
     /* set Edge t-range sensitivity for upper surface */
     sdata[0] = 0;
     sdata[1] = tle;
 
     status = EG_setRange_dot(eedges[0], EDGE, sdata);
-    if (status != EGADS_SUCCESS) goto cleanup;
+    if (status != EGADS_SUCCESS) {
+        printf("status=%d on line %d\n", status, __LINE__);
+        goto cleanup;
+    }
 
     /* set Edge t-range sensitivity for lower surface */
     sdata[0] = sdata[1];
     sdata[1] = 1;
 
     status = EG_setRange_dot(eedges[1], EDGE, sdata);
-    if (status != EGADS_SUCCESS) goto cleanup;
-
+    if (status != EGADS_SUCCESS) {
+        printf("status=%d on line %d\n", status, __LINE__);
+        goto cleanup;
+    }
 
     if (nedge == 3) {
         /* get trailing edge line and the lower trailing edge node from the 3rd edge */
         status = EG_getTopology(eedges[2], &eline, &oclass, &mtype, data, &nchild, &enodes,
                                 &senses);
-        if (status != EGADS_SUCCESS) goto cleanup;
+        if (status != EGADS_SUCCESS) {
+            printf("status=%d on line %d\n", status, __LINE__);
+            goto cleanup;
+        }
 
         /* set the sensitivity of the Node at lower trailing edge */
         ipnt = npts - 1;
         status = EG_setGeometry_dot(enodes[0], NODE, 0, NULL, &(pts[3*ipnt]));
-        if (status != EGADS_SUCCESS) goto cleanup;
+        if (status != EGADS_SUCCESS) {
+            printf("status=%d on line %d\n", status, __LINE__);
+            goto cleanup;
+        }
 
         /* set the sensitivity of the line segment at trailing edge */
         sdata[0] = pts[3*ipnt  ];
@@ -707,14 +834,20 @@ sensFaceBodyAirfoil(ego ebody,          /* (in)  Body pointer */
         sdata[5] = pts[2] - sdata[2];
 
         status = EG_setGeometry_dot(eline, CURVE, LINE, NULL, sdata);
-        if (status != EGADS_SUCCESS) goto cleanup;
+        if (status != EGADS_SUCCESS) {
+            printf("status=%d on line %d\n", status, __LINE__);
+            goto cleanup;
+        }
 
         /* set Edge t-range sensitivity */
         sdata[0] = 0;
         sdata[1] = sqrt(sdata[3]*sdata[3] + sdata[4]*sdata[4] + sdata[5]*sdata[5]);
 
         status = EG_setRange_dot(eedges[2], EDGE, sdata);
-        if (status != EGADS_SUCCESS) goto cleanup;
+        if (status != EGADS_SUCCESS) {
+            printf("status=%d on line %d\n", status, __LINE__);
+            goto cleanup;
+        }
     }
 
 
@@ -727,7 +860,13 @@ sensFaceBodyAirfoil(ego ebody,          /* (in)  Body pointer */
 
     /* set the sensitivity of the plane */
     status = EG_setGeometry_dot(eplane, SURFACE, PLANE, NULL, sdata);
-    if (status != EGADS_SUCCESS) goto cleanup;
+    if (status != EGADS_SUCCESS) {
+        printf("status=%d on line %d\n", status, __LINE__);
+        goto cleanup;
+    }
+
+    /* verify that ebody now has dots */
+    status = EG_hasGeometry_dot(ebody);
 
 cleanup:
 
@@ -765,22 +904,28 @@ buildWireBodyMeanline(ego context,      /* (in)  the EGADS context */
 
     int    ile, ite, sense[1], npts;
     double data[18], tdata[2], *pts=NULL, *rdata=NULL;
-    ego    ecurve, enodes[2], eedges[1], eloop;
+    ego    ref, ecurve, enodes[2], eedges[1], eloop;
+    int    oclass, mtype, *ivec=NULL;
 
     /* create spline curve from LE to TE */
-    int header[4];
 
     /* get the B-spline and points used to construct the spline */
-    status = parsecSplineFit(udp, npts, &pts, header, &rdata);
-    if (status != EGADS_SUCCESS) goto cleanup;
+    status = parsecSplineFit(udp, context, npts, &pts, &ecurve);
+    if (status != EGADS_SUCCESS) {
+        printf("status=%d on line %d\n", status, __LINE__);
+        goto cleanup;
+    }
+
+    /* get the B-spline data */
+    status = EG_getGeometry(ecurve, &oclass, &mtype, &ref, &ivec, &rdata);
+    if (status != EGADS_SUCCESS) {
+        printf("status=%d on line %d\n", status, __LINE__);
+        goto cleanup;
+    }
 
     /* the leading and trailing edge indexes (must be consistent with parsecPoints) */
     ile = (npts - 1) / 2;
     ite =  npts - 1;
-
-    /* convert the B-spline to a CURVE */
-    status = EG_makeGeometry(context, CURVE, BSPLINE, NULL, header, rdata, &ecurve);
-    if (status != EGADS_SUCCESS) goto cleanup;
 
     /* create Node at leading edge (node 1)*/
     data[0] = pts[3*ile  ];
@@ -788,7 +933,10 @@ buildWireBodyMeanline(ego context,      /* (in)  the EGADS context */
     data[2] = pts[3*ile+2];
     status = EG_makeTopology(context, NULL, NODE, 0,
                              data, 0, NULL, NULL, &(enodes[0]));
-    if (status != EGADS_SUCCESS) goto cleanup;
+    if (status != EGADS_SUCCESS) {
+        printf("status=%d on line %d\n", status, __LINE__);
+        goto cleanup;
+    }
 
     /* create Node at trailing edge (node 2)*/
     data[0] = pts[3*ite  ];
@@ -796,7 +944,10 @@ buildWireBodyMeanline(ego context,      /* (in)  the EGADS context */
     data[2] = pts[3*ite+2];
     status = EG_makeTopology(context, NULL, NODE, 0,
                              data, 0, NULL, NULL, &(enodes[1]));
-    if (status != EGADS_SUCCESS) goto cleanup;
+    if (status != EGADS_SUCCESS) {
+        printf("status=%d on line %d\n", status, __LINE__);
+        goto cleanup;
+    }
 
     /* t-values at the leading and trailing edge nodes */
     tdata[0] = 0;
@@ -805,23 +956,33 @@ buildWireBodyMeanline(ego context,      /* (in)  the EGADS context */
     /* make Edge for camberline (edge 1)*/
     status = EG_makeTopology(context, ecurve, EDGE, TWONODE,
                              tdata, 2, &(enodes[0]), NULL, &(eedges[0]));
-    if (status != EGADS_SUCCESS) goto cleanup;
+    if (status != EGADS_SUCCESS) {
+        printf("status=%d on line %d\n", status, __LINE__);
+        goto cleanup;
+    }
 
     /* create loop of the Edges */
     sense[0] = SFORWARD;
 
     status = EG_makeTopology(context, NULL, LOOP, OPEN,
                              NULL, 1, eedges, sense, &eloop);
-    if (status != EGADS_SUCCESS) goto cleanup;
+    if (status != EGADS_SUCCESS) {
+        printf("status=%d on line %d\n", status, __LINE__);
+        goto cleanup;
+    }
 
     /* create the WireBody (which will be returned) */
     status = EG_makeTopology(context, NULL, BODY, WIREBODY,
                              NULL, 1, &eloop, NULL, ebody);
-    if (status != EGADS_SUCCESS) goto cleanup;
+    if (status != EGADS_SUCCESS) {
+        printf("status=%d on line %d\n", status, __LINE__);
+        goto cleanup;
+    }
 
 cleanup:
     delete [] pts;
-    EG_free(rdata);
+    FREE(ivec);
+    FREE(rdata);
 
     return status;
 }
@@ -853,22 +1014,34 @@ sensWireBodyMeanline(ego ebody,          /* (in)  Body pointer */
     /* get the loop from the body */
     status = EG_getTopology(ebody, &eref, &oclass, &mtype, data, &nchild, &echildren,
                             &senses);
-    if (status != EGADS_SUCCESS) goto cleanup;
+    if (status != EGADS_SUCCESS) {
+        printf("status=%d on line %d\n", status, __LINE__);
+        goto cleanup;
+    }
     eloop = echildren[0];
 
     /* get the edges from the loop */
     status = EG_getTopology(eloop, &eref, &oclass, &mtype, data, &nedge, &eedges,
                             &senses);
-    if (status != EGADS_SUCCESS) goto cleanup;
+    if (status != EGADS_SUCCESS) {
+        printf("status=%d on line %d\n", status, __LINE__);
+        goto cleanup;
+    }
 
     /* get the nodes and the curve from the first edge */
     status = EG_getTopology(eedges[0], &ecurve, &oclass, &mtype, data, &nnode, &enodes,
                             &senses);
-    if (status != EGADS_SUCCESS) goto cleanup;
+    if (status != EGADS_SUCCESS) {
+        printf("status=%d on line %d\n", status, __LINE__);
+        goto cleanup;
+    }
 
     /* set the sensitivity of the Curve */
     status = EG_setGeometry_dot(ecurve, CURVE, BSPLINE, header, rdata);
-    if (status != EGADS_SUCCESS) goto cleanup;
+    if (status != EGADS_SUCCESS) {
+        printf("status=%d on line %d\n", status, __LINE__);
+        goto cleanup;
+    }
 
     /* the leading and trailing edge indexes (must be consistent with parsecPoints) */
     ile = (npts - 1) / 2;
@@ -876,18 +1049,27 @@ sensWireBodyMeanline(ego ebody,          /* (in)  Body pointer */
 
     /* set the sensitivity of the Node at trailing edge */
     status = EG_setGeometry_dot(enodes[0], NODE, 0, NULL, &(pts[3*ile]));
-    if (status != EGADS_SUCCESS) goto cleanup;
+    if (status != EGADS_SUCCESS) {
+        printf("status=%d on line %d\n", status, __LINE__);
+        goto cleanup;
+    }
 
     /* set the sensitivity of the Node at leading edge */
     status = EG_setGeometry_dot(enodes[1], NODE, 0, NULL, &(pts[3*ite]));
-    if (status != EGADS_SUCCESS) goto cleanup;
+    if (status != EGADS_SUCCESS) {
+        printf("status=%d on line %d\n", status, __LINE__);
+        goto cleanup;
+    }
 
     /* set Edge t-range sensitivity */
     sdata[0] = 0;
     sdata[1] = 1;
 
     status = EG_setRange_dot(eedges[0], EDGE, sdata);
-    if (status != EGADS_SUCCESS) goto cleanup;
+    if (status != EGADS_SUCCESS) {
+        printf("status=%d on line %d\n", status, __LINE__);
+        goto cleanup;
+    }
 
 cleanup:
 
@@ -906,30 +1088,35 @@ cleanup:
 template<class T>
 static int
 parsecSplineFit(udp_T  *udp,         /* (in)  udp */
+                ego    context,      /* (in)  the context */
                 int&   npts,         /* (out) number of points in the spline fit */
                 T      **pts,        /* (out) points used in the spline fit */
-                int*   header,       /* (out) spline header data */
-                T      **rdata)      /* (out) spline data */
+                ego    *bspline)     /* (out) spline curve */
 {
     int status = EGADS_SUCCESS;      /* (out) return status */
 
-    int     ile, nbspts;
-    double  dxytol=1.0e-6; /* EG_spline1dFit tolerance */
+    int     ile;
+    double  dxytol=1.0e-6; /* Fit tolerance */
+    int     sizes[2] = {0, KNOTS};
 
     /* get airfoil (or meanline) points */
     status = parsecPoints(udp, npts, pts);
-    if (status != EGADS_SUCCESS) goto cleanup;
+    if (status != EGADS_SUCCESS) {
+        printf("status=%d on line %d\n", status, __LINE__);
+        goto cleanup;
+    }
 
     /* if meanline[udp] is zero, then create a FaceBody (the default) */
     if (MEANLINE(udp) == 0) {
 
-        /* compute the spline fit
-         * finite difference must use knots equally spaced (-npts in the argument below) in order for
-         * the leading edge node sensitivity to be correct.
-         * the t-value moves with arc-length based knots which causes problems
-         */
-        status = EG_spline1dFit<T>(0, KNOTS*npts, *pts, NULL, dxytol, header, rdata);
-        if (status != EGADS_SUCCESS) goto cleanup;
+        sizes[0] = npts;
+
+        /* compute the spline fit */
+        status = EG_approximate(context, 0, dxytol, sizes, *pts, bspline);
+        if (status != EGADS_SUCCESS) {
+            printf("status=%d on line %d\n", status, __LINE__);
+            goto cleanup;
+        }
 
     /* otherwise create a WireBody of the meanline */
     } else {
@@ -937,11 +1124,14 @@ parsecSplineFit(udp_T  *udp,         /* (in)  udp */
         /* modify the node count to be consistent with the meanline points */
         ile = (npts - 1) / 2;
 
-        nbspts = ile + 1;
+        sizes[0] = ile + 1;
 
         /* compute the spline fit */
-        status = EG_spline1dFit<T>(0, KNOTS*nbspts, *pts + 3*ile, NULL, dxytol, header, rdata);
-        if (status != EGADS_SUCCESS) goto cleanup;
+        status = EG_approximate(context, 0, dxytol, sizes, *pts + 3*ile, bspline);
+        if (status != EGADS_SUCCESS) {
+            printf("status=%d on line %d\n", status, __LINE__);
+            goto cleanup;
+        }
     }
 
 cleanup:
@@ -972,7 +1162,10 @@ parsecPoints(udp_T  *udp,         /* (in)  udp */
 
     /* construct the parsec polynomial coefficients */
     status = parsecPolyCoeff(udp, npoly, &polyTop, &polyBot);
-    if (status != EGADS_SUCCESS) goto cleanup;
+    if (status != EGADS_SUCCESS) {
+        printf("status=%d on line %d\n", status, __LINE__);
+        goto cleanup;
+    }
 
     /* allocation required by Windows compiler */
     npts = 101;

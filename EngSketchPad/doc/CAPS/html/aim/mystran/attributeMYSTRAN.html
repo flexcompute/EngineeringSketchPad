@@ -68,6 +68,7 @@ $(function() {
 <div class="contents">
 <div class="textblock"><p>The following list of attributes are required for the MYSTRAN AIM inside the geometry input.</p>
 <ul>
+<li><b> capsLength</b> [optional] This attribute defines the length units that the *.csm file is generated in. A scaling factor is only applied if a unit system is specified when creating a mystrain AIM instance.</li>
 <li><b> capsAIM</b> This attribute is a CAPS requirement to indicate the analysis the geometry representation supports.</li>
 <li><b> capsGroup</b> This is a name assigned to any geometric body. This body could be a solid, surface, face, wire, edge or node. Recall that a string in ESP starts with a $. For example, attribute <code>capsGroup $Wing</code>.</li>
 <li><b> capsLoad</b> This is a name assigned to any geometric body where a load is applied. This attribute was separated from the <code>capsGroup</code> attribute to allow the user to define a local area to apply a load on without adding multiple <code>capsGroup</code> attributes. Recall that a string in ESP starts with a $. For example, attribute <code>capsLoad $force</code>.</li>
@@ -79,7 +80,7 @@ $(function() {
 </div><!-- PageDoc -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Wed May 22 2024 10:55:17 for Mystran Analysis Interface Module (AIM) by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1
+Generated on Fri Feb 28 2025 09:06:38 for Mystran Analysis Interface Module (AIM) by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1
 </small></address>
 </body>
 </html>

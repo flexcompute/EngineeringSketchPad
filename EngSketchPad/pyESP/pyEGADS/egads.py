@@ -3,7 +3,7 @@
 # pyEGADS --- Python version of EGADS API                                 #
 #                                                                         #
 #                                                                         #
-#      Copyright 2011-2024, Massachusetts Institute of Technology         #
+#      Copyright 2011-2025, Massachusetts Institute of Technology         #
 #      Licensed under The GNU Lesser General Public License, version 2.1  #
 #      See http://www.opensource.org/licenses/lgpl-2.1.php                #
 #                                                                         #
@@ -182,6 +182,9 @@ _egads.EG_isoCline.restype = c_int
 _egads.EG_isIsoPCurve.argtypes = [c_ego, POINTER(c_int), POINTER(c_double), POINTER(c_int)]
 _egads.EG_isIsoPCurve.restype = c_int
 
+_egads.EG_mergeBSplineCurves.argtypes = [c_ego, c_ego, POINTER(c_ego)]
+_egads.EG_mergeBSplineCurves.restype = c_int
+
 _egads.EG_convertToBSpline.argtypes = [c_ego, POINTER(c_ego)]
 _egads.EG_convertToBSpline.restype = c_int
 
@@ -266,8 +269,14 @@ _egads.EG_makeNmWireBody.restype = c_int
 _egads.EG_replaceFaces.argtypes = [c_ego, c_int, POINTER(c_ego), POINTER(c_ego)]
 _egads.EG_replaceFaces.restype = c_int
 
+_egads.EG_removeNodes.argtypes = [c_ego, c_int, POINTER(c_ego), POINTER(c_ego)]
+_egads.EG_removeNodes.restype = c_int
+
 _egads.EG_mapBody.argtypes = [c_ego, c_ego, c_char_p, POINTER(c_ego)]
 _egads.EG_mapBody.restype = c_int
+
+_egads.EG_mapBody2.argtypes = [c_ego, c_char_p, c_char_p, POINTER(c_ego)]
+_egads.EG_mapBody2.restype = c_int
 
 _egads.EG_matchBodyEdges.argtypes = [c_ego, c_ego, c_double, POINTER(c_int), POINTER(POINTER(c_int))]
 _egads.EG_matchBodyEdges.restype = c_int
@@ -439,6 +448,9 @@ _egads.EG_hasGeometry_dot.restype = c_int
 
 _egads.EG_copyGeometry_dot.argtypes = [c_ego, POINTER(c_double), POINTER(c_double), c_ego]
 _egads.EG_copyGeometry_dot.restype = c_int
+
+_egads.EG_zeroGeometry_dot.argtypes = [c_ego]
+_egads.EG_zeroGeometry_dot.restype = c_int
 
 _egads.EG_evaluate_dot.argtypes = [c_ego, POINTER(c_double), POINTER(c_double), POINTER(c_double), POINTER(c_double)]
 _egads.EG_evaluate_dot.restype = c_int

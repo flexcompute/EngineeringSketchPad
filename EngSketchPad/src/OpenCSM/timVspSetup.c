@@ -9,7 +9,7 @@
  */
 
 /*
- * Copyright (C) 2013/2024  John F. Dannenhoffer, III (Syracuse University)
+ * Copyright (C) 2013/2025  John F. Dannenhoffer, III (Syracuse University)
  *
  * This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
@@ -121,7 +121,7 @@ timLoad(esp_T *ESP,                     /* (in)  pointer to ESP structure */
     for (i = 0; i < MIN(STRLEN(vsp3name), STRLEN(udcname)); i++) {
         if (vsp3name[i] == udcname[i]) continue;
 
-        /* now that the disagree (at character i), make sure that
+        /* now that they disagree (at character i), make sure that
            there are no SLASHes in what is left */
         same = 1;
 
@@ -147,6 +147,7 @@ timLoad(esp_T *ESP,                     /* (in)  pointer to ESP structure */
             }
             i--;
         }
+        if (i < 0) i = 0;
 
         /* if same==1, then we can remove the common characters
            in vspShortName */

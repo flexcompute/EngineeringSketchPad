@@ -2,7 +2,7 @@ SU2 AIM based on FUN3D AIM
 Please report bugs, concerns, feature requests to NBhagat1@UDayton.Edu
 
 Current Status:
- - SU2 Configuration file is compatible with latest version (Current: 8.0.1)
+ - SU2 Configuration file is compatible with latest version (Current: 8.1.0)
  - Following parameters are automatically augmented from geometry and problem definition 
     - mesh file name to configuration file
     - Boundary flags, from problem definition

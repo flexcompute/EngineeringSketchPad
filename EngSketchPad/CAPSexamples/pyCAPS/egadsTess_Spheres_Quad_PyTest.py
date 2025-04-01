@@ -9,7 +9,7 @@ import os
 import argparse
 
 # Setup and read command line options. Please note that this isn't required for pyCAPS
-parser = argparse.ArgumentParser(description = 'EGADS Tess Shheres Quad PyTest Example',
+parser = argparse.ArgumentParser(description = 'EGADS Tess Spheres Quad PyTest Example',
                                  prog = 'egadsTess_Spheres_Quad_PyTest',
                                  formatter_class = argparse.ArgumentDefaultsHelpFormatter)
 
@@ -19,7 +19,7 @@ parser.add_argument("-outLevel", default = 1, type=int, choices=[0, 1, 2], help=
 args = parser.parse_args()
 
 # Working directory
-workDir = os.path.join(str(args.workDir[0]), "egadsTessSpheresAnalysisTest")
+workDir = os.path.join(str(args.workDir[0]), "EgadsTessSpheresTest")
 
 # Load CSM file and build the geometry explicitly
 geometryScript = os.path.join("..","csmData","spheres.csm")
@@ -27,7 +27,7 @@ capsProblem = pyCAPS.Problem(problemName=workDir,
                              capsFile=geometryScript,
                              outLevel=args.outLevel)
 
-# Load AFLR4 aim
+# Load egadsTess aim
 egadsTess = capsProblem.analysis.create(aim = "egadsTessAIM")
 
 # Set new EGADS body tessellation parameters

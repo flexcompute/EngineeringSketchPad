@@ -863,6 +863,18 @@ Standard_Boolean BRepLib_FuseEdges::SameSupport(const TopoDS_Edge& E1,
       if(aPf1.Distance(aPf2) <= tollin && aDf1.IsParallel(aDf2, tolang)) return Standard_True;
       if(aPl1.Distance(aPl2) <= tollin && aDl1.IsParallel(aDl2, tolang)) return Standard_True;
 
+      Handle(Geom_BSplineCurve) c1 = Handle(Geom_BSplineCurve)::DownCast (C1);
+      Handle(Geom_BSplineCurve) c2 = Handle(Geom_BSplineCurve)::DownCast (C2);
+
+      // Check for linear Bspline adjacent to higher-degree
+      // This often happens with SBO operations
+      if ((c1->Degree() == 1 || c2->Degree() == 1) &&
+          (c1->Degree() != c2->Degree())) {
+        if(aPl1.Distance(aPf2) <= tollin) return Standard_True;
+        if(aPl2.Distance(aPf1) <= tollin) return Standard_True;
+        if(aPf1.Distance(aPf2) <= tollin) return Standard_True;
+        if(aPl1.Distance(aPl2) <= tollin) return Standard_True;
+      }
     }
     // we must ensure that before fuse two bsplines, the end of one curve does not
     // corresponds to the beginning of the second.

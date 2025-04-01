@@ -69,6 +69,10 @@ $(function() {
 <div class="textblock"><p>If auto execution is enabled when creating an CBAero AIM, the AIM will execute refine just-in-time with the command line:</p>
 <div class="fragment"><div class="line">cbaero $(cat cbaeroInput.txt) &gt; cbaeroOutput.txt</div>
 </div><!-- fragment --><p>where preAnalysis generated the file "cbaeroInput.txt" which contains commandline arguments for cbaero.</p>
+<p>If the TPS input is specified, then TPSSizer is also executed with</p>
+<div class="fragment"><div class="line">cbtps $(cat cbtpsInput.txt) &gt; cbtpsOutput.txt</div>
+<div class="line">&lt;TPSSizer&gt; $(cat tpssizerInput.txt) &gt; tpssizerOutput.txt</div>
+</div><!-- fragment --><p>Note that TPSSizer is only executed if a TPSSizer executable is specified in the inputs (see <a class="el" href="aimInputsCBAERO.html">AIM Inputs</a>).</p>
 <p>The analysis can be also be explicitly executed with caps_execute in the C-API or via Analysis.runAnalysis in the pyCAPS API.</p>
 <p>Calling preAnalysis and postAnalysis is NOT allowed when auto execution is enabled.</p>
 <p>Auto execution can also be disabled when creating an refine AIM object. In this mode, caps_execute and Analysis.runAnalysis can be used to run the analysis, or refine can be executed by calling preAnalysis, system call, and posAnalysis as demonstrated below with a pyCAPS example:</p>
@@ -77,6 +81,10 @@ $(function() {
 <div class="line"> </div>
 <div class="line"><span class="keywordflow">print</span> (<span class="stringliteral">&quot;\n\nRunning......&quot;</span>)</div>
 <div class="line">cbaero.system(<span class="stringliteral">&quot;cbaero $(cat cbaeroInput.txt) &gt; cbaeroOutput.txt&quot;</span>); <span class="comment"># Run via system call</span></div>
+<div class="line"> </div>
+<div class="line"><span class="keywordflow">if</span> TPS:</div>
+<div class="line">  cbaero.system(<span class="stringliteral">&quot;cbtps $(cat cbtpsInput.txt) &gt; cbtpsOutput.txt&quot;</span>) <span class="comment"># Run via system call</span></div>
+<div class="line">  cbaero.system(<span class="stringliteral">&quot;&lt;TPSSizer&gt; $(cat tpssizerInput.txt) &gt; tpssizerOutput.txt&quot;</span>); <span class="comment"># Run via system call</span></div>
 <div class="line"> </div>
 <div class="line"><span class="keywordflow">print</span> (<span class="stringliteral">&quot;\n\postAnalysis......&quot;</span>)</div>
 <div class="line">cbaero.postAnalysis()</div>

@@ -12,7 +12,7 @@ endif
 
 VPATH = $(ODIR)
 
-ifeq ($(EFCOMP),ifort)
+ifneq (,$(filter $(EFCOMP),ifort ifx))
 FFLAG = -real-size 64 -check bounds 
 NORECURS = -norecursive
 else

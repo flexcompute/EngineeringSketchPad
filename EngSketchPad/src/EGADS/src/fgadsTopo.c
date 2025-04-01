@@ -3,7 +3,7 @@
  *
  *             FORTRAN Bindings for Topological Functions
  *
- *      Copyright 2011-2024, Massachusetts Institute of Technology
+ *      Copyright 2011-2025, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -29,6 +29,11 @@
                              egObject ***children, int **senses);
   extern int EG_delSmallEdges(const egObject *body, double tol,
                               egObject **newBody);
+  extern int EG_delTolerEdges(const egObject *body, double maxTol,
+                              egObject **newBody);
+  extern int EG_delTolerFaces(const egObject *body, double tol,
+                              egObject **newBody);
+  extern int EG_fixBody(const egObject *body, int bitflag, egObject **newObj);
   extern int EG_makeTopology(egObject *context, /*@null@*/ egObject *geom,
                              int oclass, int mtype, /*@null@*/ double *limits,
                              int nChildren, /*@null@*/ egObject **children,
@@ -67,6 +72,8 @@
                          int flag, egObject **result);
   extern int EG_replaceFaces(const egObject *body,  int nobj,
                              const egObject **objs, egObject **result);
+  extern int EG_removeNodes(const egObject *body,  int nobj,
+                            const egObject **objs, egObject **result);
   extern int EG_matchBodyEdges(const egObject *bod1, const egObject *bod2,
                                double tolScale, int *nmatch, int **match);
   extern int EG_matchBodyFaces(const egObject *bod1, const egObject *bod2,
@@ -133,6 +140,60 @@ ig_delsmalledges_(INT8 *iobj, double *tol, INT8 *inew)
   object = (egObject *) *iobj;
   stat   = EG_delSmallEdges(object, *tol, &newObj);
   if (stat == EGADS_SUCCESS) *inew = (INT8) newObj;
+  return stat;
+}
+
+
+int
+#ifdef WIN32
+IG_DELTOLEREDGES (INT8 *iobj, double *maxTol, INT8 *inew)
+#else
+ig_deltoleredges_(INT8 *iobj, double *maxTol, INT8 *inew)
+#endif
+{
+  int      stat;
+  egObject *object, *newObj;
+
+  *inew  = 0;
+  object = (egObject *) *iobj;
+  stat   = EG_delTolerEdges(object, *maxTol, &newObj);
+  if (stat == EGADS_SUCCESS) *inew = (INT8) newObj;
+  return stat;
+}
+
+
+int
+#ifdef WIN32
+IG_DELTOLERFACES (INT8 *iobj, double *tol, INT8 *inew)
+#else
+ig_deltolerfaces_(INT8 *iobj, double *tol, INT8 *inew)
+#endif
+{
+  int      stat;
+  egObject *object, *newObj;
+
+  *inew  = 0;
+  object = (egObject *) *iobj;
+  stat   = EG_delTolerFaces(object, *tol, &newObj);
+  if (stat == EGADS_SUCCESS) *inew = (INT8) newObj;
+  return stat;
+}
+
+
+int
+#ifdef WIN32
+IG_FIXBODY (INT8 *iobj, int *bitflag, INT8 *inew)
+#else
+ig_fixbody_(INT8 *iobj, int *bitflag, INT8 *inew)
+#endif
+{
+  int      stat;
+  egObject *object, *newObj;
+
+  *inew  = 0;
+  object = (egObject *) *iobj;
+  stat   = EG_fixBody(object, *bitflag, &newObj);
+  if (newObj != NULL) *inew = (INT8) newObj;
   return stat;
 }
 
@@ -612,6 +673,31 @@ ig_replacefaces_(INT8 *ibody, int *nobj, INT8 *obj, INT8 *result)
   for (i = 0; i < *nobj*2; i++)
     objs[i] = (egObject *) obj[i];
   stat = EG_replaceFaces(body, *nobj, objs, &object);
+  if (objs != NULL) EG_free((void *) objs);
+  if (stat == EGADS_SUCCESS) *result = (INT8) object;
+  return stat;
+}
+
+
+int
+#ifdef WIN32
+IG_REMOVENODES (INT8 *ibody, int *nobj, INT8 *obj, INT8 *result)
+#else
+ig_removenodes_(INT8 *ibody, int *nobj, INT8 *obj, INT8 *result)
+#endif
+{
+  int            i, stat;
+  egObject       *object, *body;
+  const egObject **objs = NULL;
+
+  *result = 0;
+  body    = (egObject *) *ibody;
+  if (*nobj <= 1) return EGADS_RANGERR;
+  objs = (const egObject **) EG_alloc(*nobj*sizeof(egObject *));
+  if (objs == NULL) return EGADS_MALLOC;
+  for (i = 0; i < *nobj; i++)
+    objs[i] = (egObject *) obj[i];
+  stat = EG_removeNodes(body, *nobj, objs, &object);
   if (objs != NULL) EG_free((void *) objs);
   if (stat == EGADS_SUCCESS) *result = (INT8) object;
   return stat;

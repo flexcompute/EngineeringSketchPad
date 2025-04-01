@@ -299,6 +299,7 @@ int tetgen_VolumeMesh(void *aimInfo,
     // Initialize variables
     int status = 0; //Function status return
     int i, j; // Indexing
+    int ID;
     char *inputString = NULL; // Input string to tetgen
 
     // Create Tetgen input string
@@ -760,6 +761,33 @@ int tetgen_VolumeMesh(void *aimInfo,
             tmpMesh[i2].clean_memory();
             tmpMesh[i2].initialize();
         }
+    }
+
+    /* check if tetgen made new regions */
+    ID = -1;
+    if (tmpMesh[i1].numberoftetrahedra > 0) {
+      ID = tmpMesh[i1].tetrahedronattributelist[0];
+      for (j = 0; j < regions.size; j++) {
+        if (ID == regions.attribute[j]) break;
+      }
+      if (j == regions.size) {
+        snprintf(temp, 120, "region_%d",ID);
+        status = add_regions(aimInfo, temp, 0,0,0, ID, 0, &regions);
+        AIM_STATUS(aimInfo, status);
+      }
+    }
+    for (i = 0; i < tmpMesh[i1].numberoftetrahedra; i++) {
+      if (ID == (int)tmpMesh[i1].tetrahedronattributelist[i]) continue;
+
+      for (j = 0; j < regions.size; j++) {
+        if (ID == regions.attribute[j]) break;
+      }
+      if (j == regions.size) {
+        snprintf(temp, 120, "region_%d",ID);
+        status = add_regions(aimInfo, temp, 0,0,0, ID, 0, &regions);
+        AIM_STATUS(aimInfo, status);
+      }
+      ID = (int)tmpMesh[i1].tetrahedronattributelist[i];
     }
 
     // Transfer tetgen mesh structure to genUnstrMesh format

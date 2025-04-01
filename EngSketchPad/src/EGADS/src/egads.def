@@ -54,6 +54,7 @@ EG_setGeometry_dot
 EG_getGeometry_dot
 EG_copyGeometry_dot
 EG_hasGeometry_dot
+EG_zeroGeometry_dot
 EG_makeGeometry
 EG_makeGeometry_dot
 EG_getRange
@@ -78,11 +79,15 @@ EG_convertToBSpline
 EG_convertToBSplineRange
 EG_flattenBSpline
 EG_addKnots
+EG_mergeBSplineCurves
 EG_adjustCPs
 EG_tolerance
 EG_getTolerance
 EG_setTolerance
 EG_delSmallEdges
+EG_delTolerEdges
+EG_delTolerFaces
+EG_fixBody
 EG_getTopology
 EG_makeTopology
 EG_makeTopology_dot
@@ -112,11 +117,13 @@ EG_getBoundingBox
 EG_getMassProperties
 EG_tessMassProps
 EG_tessMassProps_dot
+EG_tessHOverts
 EG_isEquivalent
 EG_isPlanar
 EG_sewFaces
 EG_makeNmWireBody
 EG_replaceFaces
+EG_removeNodes
 EG_mapBody
 EG_mapBody2
 EG_matchBodyEdges
@@ -156,6 +163,7 @@ EG_setTessEdge
 EG_setTessFace
 EG_localToGlobal
 EG_getGlobal
+EG_relPosTs
 EG_fuseSheets
 EG_generalBoolean
 EG_solidBoolean
@@ -185,6 +193,8 @@ EG_spline1dDeriv
 EG_spline1dDeriv_dot
 EG_spline1dFit
 EG_spline1dFit_dot
+EG_spline1dFit2c
+EG_spline1dFit2c_dot
 EG_spline1dTan
 EG_spline1dTan_dot
 EG_spline2dEval

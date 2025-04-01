@@ -182,11 +182,13 @@ $(function() {
 <li><b>Xnp</b> = Neutral Point</li>
 <li><b>Xcg</b> = x CG location</li>
 <li><b>Ycg</b> = y CG location</li>
-<li><b>Zcg</b> = z CG location</li>
+<li><b>Zcg</b> = z CG location <br  />
+ Note: CG location calculation requires mass properties</li>
 </ul>
 <p>Controls:</p><ul>
 <li><b>ControlStability</b> = a (or an array of) tuple(s) with a structure of ("Control Surface Name", "JSON Dictionary") for all control surfaces in the stability axis frame. The JSON dictionary has the form = {"CLtot":value,"CYtot":value,"Cl'tot":value,"Cmtot":value,"Cn'tot":value}</li>
 <li><b>ControlBody</b> = a (or an array of) tuple(s) with a structure of ("Control Surface Name", "JSON Dictionary") for all control surfaces in the body axis frame. The JSON dictionary has the form = {"CXtot":value,"CYtot":value,"CZtot":value,"Cltot":value,"Cmtot":value,"Cntot":value}</li>
+<li><b>ControlDeflection</b> = a (or an array of) tuple(s) with a structure of ("Control Surface Name", "Deflection")</li>
 <li><b>HingeMoment</b> = a (or an array of) tuple(s) with a structure of ("Control Surface Name", "HingeMoment")</li>
 <li><b>StripForces</b> = a (or an array of) tuple(s) with a structure of ("Surface Name", "JSON Dictionary") for all surfaces. The JSON dictionary has the form = {"cl":[value0,value1,value2],"cd":[value0,value1,value2]...}</li>
 <li><b>EigenValues</b> = a (or an array of) tuple(s) with a structure of ("case #", "Array of eigen values"). The array of eigen values is of the form = [[real0,imaginary0],[real0,imaginary0],...] </li>

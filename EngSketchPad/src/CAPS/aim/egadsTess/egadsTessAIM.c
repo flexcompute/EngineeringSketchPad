@@ -3,7 +3,7 @@
  *
  *             EGADS Tessellation AIM
  *
- *      Copyright 2014-2024, Massachusetts Institute of Technology
+ *      Copyright 2014-2025, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -68,7 +68,6 @@ enum aimOutputs
 
 #define MXCHAR  255
 #define EGADSTESSFILE "egadsTess_%d.eto"
-#define EGADSFILE "egadsTess_%d"
 
 //#define DEBUG
 
@@ -554,7 +553,8 @@ int aimUpdateState(void *instStore, void *aimInfo,
 
     // Modify the EGADS body tessellation based on given inputs
 /*@-nullpass@*/
-    status =  mesh_modifyBodyTess(numMeshProp,
+    status =  mesh_modifyBodyTess(aimInfo,
+                                  numMeshProp,
                                   meshProp,
                                   minEdgePoint,
                                   maxEdgePoint,
@@ -598,12 +598,7 @@ int aimUpdateState(void *instStore, void *aimInfo,
        }
 
        // set the filename without extensions where the grid is written for solvers
-       bodyIndex = 0;
-       if (aimInputs[Proj_Name-1].nullVal != IsNull)
-         snprintf(bodyNumberFile, 128, "%s_%d", aimInputs[Proj_Name-1].vals.string, bodyIndex);
-       else
-         snprintf(bodyNumberFile, 128, EGADSFILE, bodyIndex);
-       status = aim_file(aimInfo, bodyNumberFile, aimFile);
+       status = aim_file(aimInfo, aimInputs[Proj_Name-1].vals.string, aimFile);
        AIM_STATUS(aimInfo, status);
        AIM_STRDUP(egadsInstance->meshRef[0].fileName, aimFile, aimInfo, status);
 
@@ -623,10 +618,7 @@ int aimUpdateState(void *instStore, void *aimInfo,
         egadsInstance->meshRef[bodyIndex].maps[0].map = NULL;
 
         // set the filename without extensions where the grid is written for solvers
-        if (aimInputs[Proj_Name-1].nullVal != IsNull)
-          snprintf(bodyNumberFile, 128, "%s_%d", aimInputs[Proj_Name-1].vals.string, bodyIndex);
-        else
-          snprintf(bodyNumberFile, 128, EGADSFILE, bodyIndex);
+        snprintf(bodyNumberFile, 128, "%s_%d", aimInputs[Proj_Name-1].vals.string, bodyIndex);
         status = aim_file(aimInfo, bodyNumberFile, aimFile);
         AIM_STATUS(aimInfo, status);
         AIM_STRDUP(egadsInstance->meshRef[bodyIndex].fileName, aimFile, aimInfo, status);
@@ -732,6 +724,23 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
 
         EG_deleteObject(etess);
     }
+
+#ifdef DEBUG
+    {
+      ego *bodyCopy=NULL;
+      AIM_ALLOC(bodyCopy, numBody, ego, aimInfo, status);
+      for (bodyIndex = 0 ; bodyIndex < numBody; bodyIndex++) {
+        EG_copyObject(bodies[bodyIndex], NULL, &bodyCopy[bodyIndex]);
+      }
+      ego context, model;
+      EG_getContext(bodyCopy[0], &context);
+      EG_makeTopology(context, NULL, MODEL, 0, NULL, numBody, bodyCopy, NULL, &model);
+      remove("egadsTess_debug.egads");
+      EG_saveModel(model, "egadsTess_debug.egads");
+      EG_deleteObject(model);
+      AIM_FREE(bodyCopy);
+    }
+#endif
 
     status = CAPS_SUCCESS;
 

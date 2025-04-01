@@ -4,86 +4,53 @@
 !ENDIF
 
 all:
-	cd EGADS\src
-	nmake -f NMakefile
-	cd ..\lite
-	nmake -f NMakefile
-	cd ..\..\wvServer
-	nmake -f NMakefile
-	cd ..\EGADS\examples
-	nmake -f egads2cart.mak
-	nmake -f vCurvature.mak
-	nmake -f vGeom.mak
-	nmake -f vTess.mak
-	cd ..\..
-	cd OpenCSM
-	nmake -f NMakefile
-	cd ..
-	cd Slugs
-	nmake -f NMakefile
-	cd ..
-	cd CAPS
-	nmake -f NMakefile
-	cd src
-	nmake -f NMakefile
-	cd ..\..\..\CAPSexamples
-	nmake -f NMakefile
-	cd ..\src\CAPS\aim
-	nmake -f NMakefile
-	cd ..\..
-	cd OpenCSM
-	nmake -f serveESP.mak
-	cd ..
+	pushd EGADS\src       & $(MAKE) -nologo -f NMakefile      & popd
+	pushd EGADS\lite      & $(MAKE) -nologo -f NMakefile      & popd
+	pushd wvServer        & $(MAKE) -nologo -f NMakefile      & popd
+	pushd EGADS\examples  & $(MAKE) -nologo -f egads2cart.mak & popd
+	pushd EGADS\examples  & $(MAKE) -nologo -f vCurvature.mak & popd
+	pushd EGADS\examples  & $(MAKE) -nologo -f vGeom.mak      & popd
+	pushd EGADS\examples  & $(MAKE) -nologo -f vTess.mak      & popd
+	pushd OpenCSM         & $(MAKE) -nologo -f NMakefile      & popd
+	pushd Slugs           & $(MAKE) -nologo -f NMakefile      & popd
+	pushd CAPS            & $(MAKE) -nologo -f NMakefile      & popd
+	pushd CAPS\src        & $(MAKE) -nologo -f NMakefile      & popd
+	pushd ..\CAPSexamples & $(MAKE) -nologo -f NMakefile      & popd
+	pushd CAPS\aim        & $(MAKE) -nologo -f NMakefile      & popd
+	pushd CAPS\udp        & $(MAKE) -nologo -f NMakefile      & popd
+	pushd OpenCSM         & $(MAKE) -nologo -f serveESP.mak   & popd
 	@echo  *** Build Completed! ***
 
 clean:
-	cd OpenCSM
-	nmake -f serveESP.mak clean
-	cd ..\CAPS\aim
-	nmake -f NMakefile clean
-	cd ..\..\..\CAPSexamples
-	nmake -f NMakefile clean
-	cd ..\src\CAPS\src
-	nmake -f NMakefile clean
-	cd ..\..\wvServer
-	nmake -f NMakefile clean
-	cd ..\OpenCSM
-	nmake -f NMakefile clean
-	cd ..\Slugs
-	nmake -f NMakefile clean
-	cd ..\EGADS\examples
-	nmake -f egads2cart.mak clean
-	nmake -f vGeom.mak clean
-	nmake -f vTess.mak clean
-	nmake -f vCurvature.mak clean
-	cd ..\lite
-	nmake -f NMakefile clean
-	cd ..\src
-	nmake -f NMakefile clean
-	cd ..\..
+	pushd OpenCSM         & $(MAKE) -nologo -f serveESP.mak   clean & popd
+	pushd CAPS\udp        & $(MAKE) -nologo -f NMakefile      clean & popd
+	pushd CAPS\aim        & $(MAKE) -nologo -f NMakefile      clean & popd
+	pushd ..\CAPSexamples & $(MAKE) -nologo -f NMakefile      clean & popd
+	pushd CAPS\src        & $(MAKE) -nologo -f NMakefile      clean & popd
+	pushd CAPS            & $(MAKE) -nologo -f NMakefile      clean & popd
+	pushd Slugs           & $(MAKE) -nologo -f NMakefile      clean & popd
+	pushd OpenCSM         & $(MAKE) -nologo -f NMakefile      clean & popd
+	pushd EGADS\examples  & $(MAKE) -nologo -f egads2cart.mak clean & popd
+	pushd EGADS\examples  & $(MAKE) -nologo -f vCurvature.mak clean & popd
+	pushd EGADS\examples  & $(MAKE) -nologo -f vGeom.mak      clean & popd
+	pushd EGADS\examples  & $(MAKE) -nologo -f vTess.mak      clean & popd
+	pushd wvServer        & $(MAKE) -nologo -f NMakefile      clean & popd
+	pushd EGADS\lite      & $(MAKE) -nologo -f NMakefile      clean & popd
+	pushd EGADS\src       & $(MAKE) -nologo -f NMakefile      clean & popd
 
 cleanall:
-	cd OpenCSM
-	nmake -f serveESP.mak cleanall
-	cd ..\CAPS\aim
-	nmake -f NMakefile cleanall
-	cd ..\..\..\CAPSexamples
-	nmake -f NMakefile cleanall
-	cd ..\src\CAPS\src
-	nmake -f NMakefile cleanall
-	cd ..\..\wvServer
-	nmake -f NMakefile cleanall
-	cd ..\OpenCSM
-	nmake -f NMakefile cleanall
-	cd ..\Slugs
-	nmake -f NMakefile cleanall
-	cd ..\EGADS\examples
-	nmake -f egads2cart.mak cleanall
-	nmake -f vGeom.mak cleanall
-	nmake -f vTess.mak cleanall
-	nmake -f vCurvature.mak cleanall
-	cd ..\lite
-	nmake -f NMakefile cleanall
-	cd ..\src
-	nmake -f NMakefile cleanall
-	cd ..\..
+	pushd OpenCSM         & $(MAKE) -nologo -f serveESP.mak   cleanall & popd
+	pushd CAPS\udp        & $(MAKE) -nologo -f NMakefile      cleanall & popd
+	pushd CAPS\aim        & $(MAKE) -nologo -f NMakefile      cleanall & popd
+	pushd ..\CAPSexamples & $(MAKE) -nologo -f NMakefile      cleanall & popd
+	pushd CAPS\src        & $(MAKE) -nologo -f NMakefile      cleanall & popd
+	pushd CAPS            & $(MAKE) -nologo -f NMakefile      cleanall & popd
+	pushd Slugs           & $(MAKE) -nologo -f NMakefile      cleanall & popd
+	pushd OpenCSM         & $(MAKE) -nologo -f NMakefile      cleanall & popd
+	pushd EGADS\examples  & $(MAKE) -nologo -f egads2cart.mak cleanall & popd
+	pushd EGADS\examples  & $(MAKE) -nologo -f vCurvature.mak cleanall & popd
+	pushd EGADS\examples  & $(MAKE) -nologo -f vGeom.mak      cleanall & popd
+	pushd EGADS\examples  & $(MAKE) -nologo -f vTess.mak      cleanall & popd
+	pushd wvServer        & $(MAKE) -nologo -f NMakefile      cleanall & popd
+	pushd EGADS\lite      & $(MAKE) -nologo -f NMakefile      cleanall & popd
+	pushd EGADS\src       & $(MAKE) -nologo -f NMakefile      cleanall & popd

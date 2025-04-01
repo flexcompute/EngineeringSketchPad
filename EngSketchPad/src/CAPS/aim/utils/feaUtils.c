@@ -265,7 +265,7 @@ int fea_createMesh(void *aimInfo,
 
         numFEAMesh = feaProblem->meshRefIn->nmap;
 
-        // See if a FEA mesh is available from parent
+        // See if a FEA mesh is available from link
         if (feaProblem->meshRefIn->type == aimAreaMesh ||
             feaProblem->meshRefIn->type == aimSurfaceMesh) {
 
@@ -414,7 +414,7 @@ int fea_createMesh(void *aimInfo,
             }
 
             AIM_ERROR(aimInfo, "Volume meshes not yet supported for structural analysis");
-            status = CAPS_BADVALUE;
+            status = CAPS_NOTIMPLEMENT;
             goto cleanup;
 
 #if 0
@@ -529,7 +529,8 @@ int fea_createMesh(void *aimInfo,
 
         // Modify the EGADS body tessellation based on given inputs
     /*@-nullpass@*/
-        status =  mesh_modifyBodyTess(0,
+        status =  mesh_modifyBodyTess(aimInfo,
+                                      0,
                                       NULL,
                                       edgePointMin,
                                       edgePointMax,
@@ -677,6 +678,7 @@ cleanup:
     return status;
 }
 
+#if 0
 // Convert an EGADS body to a boundary element model, modified by Ryan Durscher (AFRL)
 // from code originally written by John Dannenhoffer @ Syracuse University, patterned after code
 // written by Bob Haimes  @ MIT
@@ -1471,6 +1473,7 @@ cleanup:
 
     return status;
 }
+#endif
 
 // Set the fea analysis meta data in a mesh
 int fea_setAnalysisData( void *aimInfo,                       // (in)  AIM structure
@@ -2360,29 +2363,67 @@ int destroy_feaMaterialStruct(feaMaterialStruct *feaMaterial) {
 // Initiate (0 out all values and NULL all pointers) of feaUnits in the feaUnitsStruct structure format
 int initiate_feaUnitsStruct(feaUnitsStruct *feaUnits) {
 
-    feaUnits->densityVol = NULL;
-    feaUnits->densityArea = NULL;
-    feaUnits->mass = NULL;
-    feaUnits->length = NULL;
-    feaUnits->pressure = NULL;
-    feaUnits->temperature = NULL;
-    feaUnits->momentOfInertia = NULL;
+  feaUnits->length = NULL;
+  feaUnits->mass = NULL;
+  feaUnits->temperature = NULL;
+  feaUnits->time = NULL;
 
-    return CAPS_SUCCESS;
+  feaUnits->area = NULL;
+  feaUnits->volume = NULL;
+  feaUnits->length4 = NULL;
+
+  feaUnits->densityLength = NULL;
+  feaUnits->densityArea = NULL;
+  feaUnits->densityVol = NULL;
+
+  feaUnits->speed = NULL;
+  feaUnits->acceleration = NULL;
+  feaUnits->force = NULL;
+
+  feaUnits->tension = NULL;
+  feaUnits->pressure = NULL;
+
+  feaUnits->energy = NULL;
+  feaUnits->power = NULL;
+  feaUnits->thermalconductivity = NULL;
+  feaUnits->specificheat = NULL;
+
+  feaUnits->momentOfInertia = NULL;
+
+  return CAPS_SUCCESS;
 }
 
 // Destroy (0 out all values and NULL all pointers) of feaUnits in the feaUnitsStruct structure format
 int destroy_feaUnitsStruct(feaUnitsStruct *feaUnits) {
 
-    AIM_FREE(feaUnits->densityVol);
-    AIM_FREE(feaUnits->densityArea);
-    AIM_FREE(feaUnits->mass);
-    AIM_FREE(feaUnits->length);
-    AIM_FREE(feaUnits->pressure);
-    AIM_FREE(feaUnits->temperature);
-    AIM_FREE(feaUnits->momentOfInertia);
+  AIM_FREE(feaUnits->length);
+  AIM_FREE(feaUnits->mass);
+  AIM_FREE(feaUnits->temperature);
+  AIM_FREE(feaUnits->time);
 
-    return CAPS_SUCCESS;
+  AIM_FREE(feaUnits->area);
+  AIM_FREE(feaUnits->volume);
+  AIM_FREE(feaUnits->length4);
+
+  AIM_FREE(feaUnits->densityLength);
+  AIM_FREE(feaUnits->densityArea);
+  AIM_FREE(feaUnits->densityVol);
+
+  AIM_FREE(feaUnits->speed);
+  AIM_FREE(feaUnits->acceleration);
+  AIM_FREE(feaUnits->force);
+
+  AIM_FREE(feaUnits->tension);
+  AIM_FREE(feaUnits->pressure);
+
+  AIM_FREE(feaUnits->energy);
+  AIM_FREE(feaUnits->power);
+  AIM_FREE(feaUnits->thermalconductivity);
+  AIM_FREE(feaUnits->specificheat);
+
+  AIM_FREE(feaUnits->momentOfInertia);
+
+  return CAPS_SUCCESS;
 }
 
 // Initiate (0 out all values and NULL all pointers) of feaConstraint in the feaConstraintStruct structure format
@@ -3579,6 +3620,124 @@ int destroy_feaDesignVariableRelationStruct(feaDesignVariableRelationStruct *rel
     return initiate_feaDesignVariableRelationStruct(relation);
 }
 
+
+// Compute derived units from base units
+int fea_feaDerivedUnits(void *aimInfo, feaUnitsStruct *units)
+{
+/*@-nullpass@*/
+    int status = CAPS_SUCCESS;
+    char *tmpUnit=NULL;
+
+    if (units == NULL) return CAPS_NULLVALUE;
+    if (units->length      == NULL ) return CAPS_NULLVALUE;
+    if (units->mass        == NULL ) return CAPS_NULLVALUE;
+    if (units->temperature == NULL ) return CAPS_NULLVALUE;
+    if (units->time        == NULL ) return CAPS_NULLVALUE;
+
+    AIM_FREE(units->area           );
+    AIM_FREE(units->volume         );
+    AIM_FREE(units->length4        );
+
+    AIM_FREE(units->densityLength  );
+    AIM_FREE(units->densityArea    );
+    AIM_FREE(units->densityVol     );
+
+    AIM_FREE(units->speed          );
+    AIM_FREE(units->acceleration   );
+    AIM_FREE(units->force          );
+
+    AIM_FREE(units->tension        );
+    AIM_FREE(units->pressure       );
+
+    AIM_FREE(units->energy         );
+    AIM_FREE(units->power          );
+    AIM_FREE(units->thermalconductivity);
+    AIM_FREE(units->specificheat   );
+
+    AIM_FREE(units->momentOfInertia);
+
+    // construct area unit
+    status = aim_unitRaise(aimInfo, units->length, 2, &units->area); // length^2
+    AIM_STATUS(aimInfo, status);
+
+    // construct volume unit
+    status = aim_unitRaise(aimInfo, units->length, 3, &units->volume); // length^3
+    AIM_STATUS(aimInfo, status);
+
+    // construct length4 unit
+    status = aim_unitRaise(aimInfo, units->length, 4, &units->length4); // length^4
+    AIM_STATUS(aimInfo, status);
+
+
+    // construct density unit
+    status = aim_unitDivide(aimInfo, units->mass, units->length, &units->densityLength); // mass/length
+    AIM_STATUS(aimInfo, status);
+
+    // construct density unit
+    status = aim_unitDivide(aimInfo, units->mass, units->area, &units->densityArea); // mass/area
+    AIM_STATUS(aimInfo, status);
+
+    // construct density unit
+    status = aim_unitDivide(aimInfo, units->mass, units->volume, &units->densityVol); // mass/length^3
+    AIM_STATUS(aimInfo, status);
+
+
+    // construct speed unit
+    status = aim_unitDivide(aimInfo, units->length, units->time, &units->speed); // length/time
+    AIM_STATUS(aimInfo, status);
+
+    // construct acceleration unit
+    status = aim_unitDivide(aimInfo, units->speed, units->time, &units->acceleration); // length/time^2
+    AIM_STATUS(aimInfo, status);
+
+    // construct force unit
+    status = aim_unitMultiply(aimInfo, units->mass, units->acceleration, &units->force); // mass * length / time^2 (force)
+    AIM_STATUS(aimInfo, status);
+
+
+    // construct tension unit
+    status = aim_unitDivide(aimInfo, units->force, units->length, &units->tension); // force/length
+    AIM_STATUS(aimInfo, status);
+
+    // construct pressure unit
+    status = aim_unitDivide(aimInfo, units->force, units->area, &units->pressure); // force/length^2
+    AIM_STATUS(aimInfo, status);
+
+
+    // construct energy unit
+    status = aim_unitMultiply(aimInfo, units->force, units->length, &units->energy); // force*length
+    AIM_STATUS(aimInfo, status);
+
+    // construct power unit
+    status = aim_unitMultiply(aimInfo, units->force, units->speed, &units->power); // force*speed
+    AIM_STATUS(aimInfo, status);
+
+    // construct thermal conductivity unit
+    status = aim_unitDivide(aimInfo, units->power, units->length, &tmpUnit);
+    AIM_STATUS(aimInfo, status);
+    status = aim_unitDivide(aimInfo, tmpUnit, units->temperature, &units->thermalconductivity); // power/(length*temperature)
+    AIM_STATUS(aimInfo, status);
+    AIM_FREE(tmpUnit);
+
+    // construct specific heat unit
+    status = aim_unitDivide(aimInfo, units->energy, units->mass, &tmpUnit);
+    AIM_STATUS(aimInfo, status);
+    status = aim_unitDivide(aimInfo, tmpUnit, units->temperature, &units->specificheat); // energy/(mass*temperature)
+    AIM_STATUS(aimInfo, status);
+    AIM_FREE(tmpUnit);
+
+
+    // construct moment of inertia
+    status = aim_unitMultiply(aimInfo, units->mass, units->area, &units->momentOfInertia ); // mass*length^2, e.g moment of inertia
+    AIM_STATUS(aimInfo, status);
+
+cleanup:
+    AIM_FREE(tmpUnit);
+
+    return status;
+/*@+nullpass@*/
+}
+
 // Get the material properties from a capsTuple
 int fea_getMaterial(void *aimInfo,
                     int numMaterialTuple,
@@ -3618,11 +3777,9 @@ int fea_getMaterial(void *aimInfo,
     printf("\tNumber of materials - %d\n", *numMaterial);
 
     if (*numMaterial > 0) {
-        *feaMaterial = (feaMaterialStruct *) EG_alloc(*numMaterial * sizeof(feaMaterialStruct));
-        if (*feaMaterial == NULL) return EGADS_MALLOC;
-
+        AIM_ALLOC(*feaMaterial, *numMaterial, feaMaterialStruct, aimInfo, status);
     } else {
-        printf("\tNumber of material values in input tuple is 0\n");
+        AIM_ERROR(aimInfo, "Number of material values in input tuple is 0\n");
         return CAPS_NOTFOUND;
     }
 
@@ -3846,7 +4003,11 @@ int fea_getMaterial(void *aimInfo,
             status = search_jsonDictionary( materialTuple[i].value, keyWord, &keyValue);
             if (status == CAPS_SUCCESS) {
                 AIM_NOTNULL(keyValue, aimInfo, status);
-                status = string_toDouble(keyValue, &(*feaMaterial)[i].temperatureRef);
+                if ( feaUnits->temperature != NULL ) {
+                    status = string_toDoubleUnits(aimInfo, keyValue, feaUnits->temperature, &(*feaMaterial)[i].temperatureRef);
+                } else {
+                    status = string_toDouble(keyValue, &(*feaMaterial)[i].temperatureRef);
+                }
                 AIM_STATUS(aimInfo, status, "While parsing \"%s\":\"%s\"", keyWord, keyValue);
                 AIM_FREE(keyValue);
             }
@@ -3883,7 +4044,11 @@ int fea_getMaterial(void *aimInfo,
             status = search_jsonDictionary( materialTuple[i].value, keyWord, &keyValue);
             if (status == CAPS_SUCCESS) {
                 AIM_NOTNULL(keyValue, aimInfo, status);
-                status = string_toDouble(keyValue, &(*feaMaterial)[i].yieldAllow);
+                if ( feaUnits->pressure != NULL ) {
+                    status = string_toDoubleUnits(aimInfo, keyValue, feaUnits->pressure, &(*feaMaterial)[i].yieldAllow);
+                } else {
+                    status = string_toDouble(keyValue, &(*feaMaterial)[i].yieldAllow);
+                }
                 AIM_STATUS(aimInfo, status, "While parsing \"%s\":\"%s\"", keyWord, keyValue);
                 AIM_FREE(keyValue);
             }
@@ -3901,8 +4066,11 @@ int fea_getMaterial(void *aimInfo,
             keyWord = "tensionAllow";
             status = search_jsonDictionary( materialTuple[i].value, keyWord, &keyValue);
             if (status == CAPS_SUCCESS) {
-
-                status = string_toDouble(keyValue, &(*feaMaterial)[i].tensionAllow);
+                if ( feaUnits->pressure != NULL ) {
+                    status = string_toDoubleUnits(aimInfo, keyValue, feaUnits->pressure, &(*feaMaterial)[i].tensionAllow);
+                } else {
+                    status = string_toDouble(keyValue, &(*feaMaterial)[i].tensionAllow);
+                }
                 AIM_STATUS(aimInfo, status, "While parsing \"%s\":\"%s\"", keyWord, keyValue);
                 AIM_FREE(keyValue);
             }
@@ -3920,8 +4088,11 @@ int fea_getMaterial(void *aimInfo,
             keyWord = "tensionAllowLateral";
             status = search_jsonDictionary( materialTuple[i].value, keyWord, &keyValue);
             if (status == CAPS_SUCCESS) {
-
-                status = string_toDouble(keyValue, &(*feaMaterial)[i].tensionAllowLateral);
+                if ( feaUnits->pressure != NULL ) {
+                    status = string_toDoubleUnits(aimInfo, keyValue, feaUnits->pressure, &(*feaMaterial)[i].tensionAllowLateral);
+                } else {
+                    status = string_toDouble(keyValue, &(*feaMaterial)[i].tensionAllowLateral);
+                }
                 AIM_STATUS(aimInfo, status, "While parsing \"%s\":\"%s\"", keyWord, keyValue);
                 AIM_FREE(keyValue);
             }
@@ -3938,8 +4109,11 @@ int fea_getMaterial(void *aimInfo,
             keyWord = "compressAllow";
             status = search_jsonDictionary( materialTuple[i].value, keyWord, &keyValue);
             if (status == CAPS_SUCCESS) {
-
-                status = string_toDouble(keyValue, &(*feaMaterial)[i].compressAllow);
+                if ( feaUnits->pressure != NULL ) {
+                    status = string_toDoubleUnits(aimInfo, keyValue, feaUnits->pressure, &(*feaMaterial)[i].compressAllow);
+                } else {
+                    status = string_toDouble(keyValue, &(*feaMaterial)[i].compressAllow);
+                }
                 AIM_STATUS(aimInfo, status, "While parsing \"%s\":\"%s\"", keyWord, keyValue);
                 AIM_FREE(keyValue);
             }
@@ -3956,8 +4130,11 @@ int fea_getMaterial(void *aimInfo,
             keyWord = "compressAllowLateral";
             status = search_jsonDictionary( materialTuple[i].value, keyWord, &keyValue);
             if (status == CAPS_SUCCESS) {
-
-                status = string_toDouble(keyValue, &(*feaMaterial)[i].compressAllowLateral);
+                if ( feaUnits->pressure != NULL ) {
+                    status = string_toDoubleUnits(aimInfo, keyValue, feaUnits->pressure, &(*feaMaterial)[i].compressAllowLateral);
+                } else {
+                    status = string_toDouble(keyValue, &(*feaMaterial)[i].compressAllowLateral);
+                }
                 AIM_STATUS(aimInfo, status, "While parsing \"%s\":\"%s\"", keyWord, keyValue);
                 AIM_FREE(keyValue);
             }
@@ -3974,8 +4151,11 @@ int fea_getMaterial(void *aimInfo,
             keyWord = "shearAllow";
             status = search_jsonDictionary( materialTuple[i].value, keyWord, &keyValue);
             if (status == CAPS_SUCCESS) {
-
-                status = string_toDouble(keyValue, &(*feaMaterial)[i].shearAllow);
+                if ( feaUnits->pressure != NULL ) {
+                    status = string_toDoubleUnits(aimInfo, keyValue, feaUnits->pressure, &(*feaMaterial)[i].shearAllow);
+                } else {
+                    status = string_toDouble(keyValue, &(*feaMaterial)[i].shearAllow);
+                }
                 AIM_STATUS(aimInfo, status, "While parsing \"%s\":\"%s\"", keyWord, keyValue);
                 AIM_FREE(keyValue);
             }
@@ -4009,8 +4189,11 @@ int fea_getMaterial(void *aimInfo,
             keyWord = "youngModulusLateral";
             status = search_jsonDictionary( materialTuple[i].value, keyWord, &keyValue);
             if (status == CAPS_SUCCESS) {
-
-                status = string_toDouble(keyValue, &(*feaMaterial)[i].youngModulusLateral);
+                if ( feaUnits->pressure != NULL ) {
+                    status = string_toDoubleUnits(aimInfo, keyValue, feaUnits->pressure, &(*feaMaterial)[i].youngModulusLateral);
+                } else {
+                    status = string_toDouble(keyValue, &(*feaMaterial)[i].youngModulusLateral);
+                }
                 AIM_STATUS(aimInfo, status, "While parsing \"%s\":\"%s\"", keyWord, keyValue);
                 AIM_FREE(keyValue);
             }
@@ -4027,8 +4210,11 @@ int fea_getMaterial(void *aimInfo,
             keyWord = "shearModulusTrans1Z";
             status = search_jsonDictionary( materialTuple[i].value, keyWord, &keyValue);
             if (status == CAPS_SUCCESS) {
-
-                status = string_toDouble(keyValue, &(*feaMaterial)[i].shearModulusTrans1Z);
+                if ( feaUnits->pressure != NULL ) {
+                    status = string_toDoubleUnits(aimInfo, keyValue, feaUnits->pressure, &(*feaMaterial)[i].shearModulusTrans1Z);
+                } else {
+                    status = string_toDouble(keyValue, &(*feaMaterial)[i].shearModulusTrans1Z);
+                }
                 AIM_STATUS(aimInfo, status, "While parsing \"%s\":\"%s\"", keyWord, keyValue);
                 AIM_FREE(keyValue);
             }
@@ -4045,8 +4231,11 @@ int fea_getMaterial(void *aimInfo,
             keyWord = "shearModulusTrans2Z";
             status = search_jsonDictionary( materialTuple[i].value, keyWord, &keyValue);
             if (status == CAPS_SUCCESS) {
-
-                status = string_toDouble(keyValue, &(*feaMaterial)[i].shearModulusTrans2Z);
+                if ( feaUnits->pressure != NULL ) {
+                    status = string_toDoubleUnits(aimInfo, keyValue, feaUnits->pressure, &(*feaMaterial)[i].shearModulusTrans2Z);
+                } else {
+                    status = string_toDouble(keyValue, &(*feaMaterial)[i].shearModulusTrans2Z);
+                }
                 AIM_STATUS(aimInfo, status, "While parsing \"%s\":\"%s\"", keyWord, keyValue);
                 AIM_FREE(keyValue);
             }
@@ -4063,8 +4252,11 @@ int fea_getMaterial(void *aimInfo,
             keyWord = "kappa";
             status = search_jsonDictionary( materialTuple[i].value, keyWord, &keyValue);
             if (status == CAPS_SUCCESS) {
-
-                status = string_toDouble(keyValue, &(*feaMaterial)[i].kappa);
+                if ( feaUnits->thermalconductivity != NULL ) {
+                    status = string_toDoubleUnits(aimInfo, keyValue, feaUnits->thermalconductivity, &(*feaMaterial)[i].kappa);
+                } else {
+                    status = string_toDouble(keyValue, &(*feaMaterial)[i].kappa);
+                }
                 AIM_STATUS(aimInfo, status, "While parsing \"%s\":\"%s\"", keyWord, keyValue);
                 AIM_FREE(keyValue);
             }
@@ -4081,8 +4273,11 @@ int fea_getMaterial(void *aimInfo,
             keyWord = "K";
             status = search_jsonDictionary( materialTuple[i].value, keyWord, &keyValue);
             if (status == CAPS_SUCCESS) {
-
-                status = string_toDoubleArray(keyValue, 6, (*feaMaterial)[i].K);
+                if ( feaUnits->thermalconductivity != NULL ) {
+                    status = string_toDoubleArrayUnits(aimInfo, keyValue, feaUnits->thermalconductivity, 6, (*feaMaterial)[i].K);
+                } else {
+                    status = string_toDoubleArray(keyValue, 6, (*feaMaterial)[i].K);
+                }
                 AIM_STATUS(aimInfo, status, "While parsing \"%s\":\"%s\"", keyWord, keyValue);
                 AIM_FREE(keyValue);
             }
@@ -4099,8 +4294,11 @@ int fea_getMaterial(void *aimInfo,
             keyWord = "specificHeat";
             status = search_jsonDictionary( materialTuple[i].value, keyWord, &keyValue);
             if (status == CAPS_SUCCESS) {
-
-                status = string_toDouble(keyValue, &(*feaMaterial)[i].specificHeat);
+                if ( feaUnits->specificheat != NULL ) {
+                    status = string_toDoubleUnits(aimInfo, keyValue, feaUnits->specificheat, &(*feaMaterial)[i].specificHeat);
+                } else {
+                    status = string_toDouble(keyValue, &(*feaMaterial)[i].specificHeat);
+                }
                 AIM_STATUS(aimInfo, status, "While parsing \"%s\":\"%s\"", keyWord, keyValue);
                 AIM_FREE(keyValue);
             }
@@ -4126,9 +4324,11 @@ int fea_getMaterial(void *aimInfo,
             keyWord = "gmat";
             status = search_jsonDictionary( materialTuple[i].value, keyWord, &keyValue);
             if (status == CAPS_SUCCESS) {
-                status = string_toDoubleArray(keyValue,
-                                              6,
-                                              (*feaMaterial)[i].gmat);
+                if ( feaUnits->pressure != NULL ) {
+                    status = string_toDoubleArrayUnits(aimInfo, keyValue, feaUnits->pressure, 6, (*feaMaterial)[i].gmat);
+                } else {
+                    status = string_toDoubleArray(keyValue, 6, (*feaMaterial)[i].gmat);
+                }
                 AIM_STATUS(aimInfo, status, "While parsing \"%s\":\"%s\"", keyWord, keyValue);
                 AIM_FREE(keyValue);
             }
@@ -4145,8 +4345,11 @@ int fea_getMaterial(void *aimInfo,
             keyWord = "honeycombCellSize";
             status = search_jsonDictionary( materialTuple[i].value, keyWord, &keyValue);
             if (status == CAPS_SUCCESS) {
-
-                status = string_toDouble(keyValue, &(*feaMaterial)[i].honeycombCellSize);
+                if ( feaUnits->length != NULL ) {
+                    status = string_toDoubleUnits(aimInfo, keyValue, feaUnits->length, &(*feaMaterial)[i].honeycombCellSize);
+                } else {
+                    status = string_toDouble(keyValue, &(*feaMaterial)[i].honeycombCellSize);
+                }
                 AIM_STATUS(aimInfo, status, "While parsing \"%s\":\"%s\"", keyWord, keyValue);
                 AIM_FREE(keyValue);
             }
@@ -4163,8 +4366,11 @@ int fea_getMaterial(void *aimInfo,
             keyWord = "honeycombYoungModulus";
             status = search_jsonDictionary( materialTuple[i].value, keyWord, &keyValue);
             if (status == CAPS_SUCCESS) {
-
-                status = string_toDouble(keyValue, &(*feaMaterial)[i].honeycombYoungModulus);
+                if ( feaUnits->pressure != NULL ) {
+                    status = string_toDoubleUnits(aimInfo, keyValue, feaUnits->pressure, &(*feaMaterial)[i].honeycombYoungModulus);
+                } else {
+                    status = string_toDouble(keyValue, &(*feaMaterial)[i].honeycombYoungModulus);
+                }
                 AIM_STATUS(aimInfo, status, "While parsing \"%s\":\"%s\"", keyWord, keyValue);
                 AIM_FREE(keyValue);
             }
@@ -4181,8 +4387,11 @@ int fea_getMaterial(void *aimInfo,
             keyWord = "honeycombShearModulus";
             status = search_jsonDictionary( materialTuple[i].value, keyWord, &keyValue);
             if (status == CAPS_SUCCESS) {
-
-                status = string_toDouble(keyValue, &(*feaMaterial)[i].honeycombShearModulus);
+                if ( feaUnits->pressure != NULL ) {
+                    status = string_toDoubleUnits(aimInfo, keyValue, feaUnits->pressure, &(*feaMaterial)[i].honeycombShearModulus);
+                } else {
+                    status = string_toDouble(keyValue, &(*feaMaterial)[i].honeycombShearModulus);
+                }
                 AIM_STATUS(aimInfo, status, "While parsing \"%s\":\"%s\"", keyWord, keyValue);
                 AIM_FREE(keyValue);
             }
@@ -4199,8 +4408,11 @@ int fea_getMaterial(void *aimInfo,
             keyWord = "fractureAngle";
             status = search_jsonDictionary( materialTuple[i].value, keyWord, &keyValue);
             if (status == CAPS_SUCCESS) {
-
-                status = string_toDouble(keyValue, &(*feaMaterial)[i].fractureAngle);
+                if ( feaUnits->length != NULL ) {
+                    status = string_toDoubleUnits(aimInfo, keyValue, "degree", &(*feaMaterial)[i].fractureAngle);
+                } else {
+                    status = string_toDouble(keyValue, &(*feaMaterial)[i].fractureAngle);
+                }
                 AIM_STATUS(aimInfo, status, "While parsing \"%s\":\"%s\"", keyWord, keyValue);
                 AIM_FREE(keyValue);
             }
@@ -4217,8 +4429,11 @@ int fea_getMaterial(void *aimInfo,
             keyWord = "interlaminarShearAllow";
             status = search_jsonDictionary( materialTuple[i].value, keyWord, &keyValue);
             if (status == CAPS_SUCCESS) {
-
-                status = string_toDouble(keyValue, &(*feaMaterial)[i].interlaminarShearAllow);
+                if ( feaUnits->pressure != NULL ) {
+                    status = string_toDoubleUnits(aimInfo, keyValue, feaUnits->pressure, &(*feaMaterial)[i].interlaminarShearAllow);
+                } else {
+                    status = string_toDouble(keyValue, &(*feaMaterial)[i].interlaminarShearAllow);
+                }
                 AIM_STATUS(aimInfo, status, "While parsing \"%s\":\"%s\"", keyWord, keyValue);
                 AIM_FREE(keyValue);
             }
@@ -4235,8 +4450,11 @@ int fea_getMaterial(void *aimInfo,
             keyWord = "fiberYoungModulus";
             status = search_jsonDictionary( materialTuple[i].value, keyWord, &keyValue);
             if (status == CAPS_SUCCESS) {
-
-                status = string_toDouble(keyValue, &(*feaMaterial)[i].fiberYoungModulus);
+                if ( feaUnits->pressure != NULL ) {
+                    status = string_toDoubleUnits(aimInfo, keyValue, feaUnits->pressure, &(*feaMaterial)[i].fiberYoungModulus);
+                } else {
+                    status = string_toDouble(keyValue, &(*feaMaterial)[i].fiberYoungModulus);
+                }
                 AIM_STATUS(aimInfo, status, "While parsing \"%s\":\"%s\"", keyWord, keyValue);
                 AIM_FREE(keyValue);
             }
@@ -4342,8 +4560,11 @@ int fea_getMaterial(void *aimInfo,
             keyWord = "interlaminarNormalStressAllow";
             status = search_jsonDictionary( materialTuple[i].value, keyWord, &keyValue);
             if (status == CAPS_SUCCESS) {
-
-                status = string_toDouble(keyValue, &(*feaMaterial)[i].interlaminarNormalStressAllow);
+                if ( feaUnits->pressure != NULL ) {
+                    status = string_toDoubleUnits(aimInfo, keyValue, feaUnits->pressure, &(*feaMaterial)[i].interlaminarNormalStressAllow);
+                } else {
+                    status = string_toDouble(keyValue, &(*feaMaterial)[i].interlaminarNormalStressAllow);
+                }
                 AIM_STATUS(aimInfo, status, "While parsing \"%s\":\"%s\"", keyWord, keyValue);
                 AIM_FREE(keyValue);
             }
@@ -4360,8 +4581,11 @@ int fea_getMaterial(void *aimInfo,
             keyWord = "youngModulusThick";
             status = search_jsonDictionary( materialTuple[i].value, keyWord, &keyValue);
             if (status == CAPS_SUCCESS) {
-
-                status = string_toDouble(keyValue, &(*feaMaterial)[i].youngModulusThick);
+                if ( feaUnits->pressure != NULL ) {
+                    status = string_toDoubleUnits(aimInfo, keyValue, feaUnits->pressure, &(*feaMaterial)[i].youngModulusThick);
+                } else {
+                    status = string_toDouble(keyValue, &(*feaMaterial)[i].youngModulusThick);
+                }
                 AIM_STATUS(aimInfo, status, "While parsing \"%s\":\"%s\"", keyWord, keyValue);
                 AIM_FREE(keyValue);
             }
@@ -4712,18 +4936,17 @@ int fea_getProperty(void *aimInfo,
             status = search_jsonDictionary( propertyTuple[i].value, keyWord, &keyValue);
             if (status == CAPS_SUCCESS) {
 
+                AIM_FREE(tempString);
+                tempString = string_removeQuotation(keyValue);
+                AIM_NOTNULL(tempString, aimInfo, status);
+
                 found = (int) false;
                 for (matIndex = 0; matIndex < feaProblem->numMaterial; matIndex++ ) {
-
-                    AIM_FREE(tempString);
-                    tempString = string_removeQuotation(keyValue);
-                    AIM_NOTNULL(tempString, aimInfo, status);
 
                     if (strcasecmp(feaProblem->feaMaterial[matIndex].name, tempString) == 0) {
                         feaProblem->feaProperty[i].materialID = feaProblem->feaMaterial[matIndex].materialID;
 
                         AIM_STRDUP(feaProblem->feaProperty[i].materialName, feaProblem->feaMaterial[matIndex].name, aimInfo, status);
-                        feaProblem->feaProperty[i].materialName[strlen(feaProblem->feaMaterial[matIndex].name)] = '\0';
 
                         found = (int) true;
                         break;
@@ -4781,8 +5004,11 @@ int fea_getProperty(void *aimInfo,
             keyWord = "crossSecArea";
             status = search_jsonDictionary( propertyTuple[i].value, keyWord, &keyValue);
             if (status == CAPS_SUCCESS) {
-
-                status = string_toDouble(keyValue, &feaProblem->feaProperty[i].crossSecArea);
+                if ( feaUnits->area != NULL ) {
+                    status = string_toDoubleUnits(aimInfo, keyValue, feaUnits->area, &feaProblem->feaProperty[i].crossSecArea);
+                } else {
+                    status = string_toDouble(keyValue, &feaProblem->feaProperty[i].crossSecArea);
+                }
                 AIM_STATUS(aimInfo, status, "While parsing \"%s\":\"%s\"", keyWord, keyValue);
                 AIM_FREE(keyValue);
             }
@@ -4808,8 +5034,11 @@ int fea_getProperty(void *aimInfo,
             keyWord = "torsionalConst";
             status = search_jsonDictionary( propertyTuple[i].value, keyWord, &keyValue);
             if (status == CAPS_SUCCESS) {
-
-                status = string_toDouble(keyValue, &feaProblem->feaProperty[i].torsionalConst);
+                if ( feaUnits->length4 != NULL ) {
+                    status = string_toDoubleUnits(aimInfo, keyValue, feaUnits->length4, &feaProblem->feaProperty[i].torsionalConst);
+                } else {
+                    status = string_toDouble(keyValue, &feaProblem->feaProperty[i].torsionalConst);
+                }
                 AIM_STATUS(aimInfo, status, "While parsing \"%s\":\"%s\"", keyWord, keyValue);
                 AIM_FREE(keyValue);
             }
@@ -4860,8 +5089,11 @@ int fea_getProperty(void *aimInfo,
             keyWord = "massPerLength";
             status = search_jsonDictionary( propertyTuple[i].value, keyWord, &keyValue);
             if (status == CAPS_SUCCESS) {
-
-                status = string_toDouble(keyValue, &feaProblem->feaProperty[i].massPerLength);
+                if ( feaUnits->densityLength != NULL ) {
+                    status = string_toDoubleUnits(aimInfo, keyValue, feaUnits->densityLength, &feaProblem->feaProperty[i].massPerLength);
+                } else {
+                    status = string_toDouble(keyValue, &feaProblem->feaProperty[i].massPerLength);
+                }
                 AIM_STATUS(aimInfo, status, "While parsing \"%s\":\"%s\"", keyWord, keyValue);
                 AIM_FREE(keyValue);
             }
@@ -4889,8 +5121,11 @@ int fea_getProperty(void *aimInfo,
             keyWord = "zAxisInertia";
             status = search_jsonDictionary( propertyTuple[i].value, keyWord, &keyValue);
             if (status == CAPS_SUCCESS) {
-
-                status = string_toDouble(keyValue, &feaProblem->feaProperty[i].zAxisInertia);
+                if ( feaUnits->momentOfInertia != NULL ) {
+                    status = string_toDoubleUnits(aimInfo, keyValue, feaUnits->momentOfInertia, &feaProblem->feaProperty[i].zAxisInertia);
+                } else {
+                    status = string_toDouble(keyValue, &feaProblem->feaProperty[i].zAxisInertia);
+                }
                 AIM_STATUS(aimInfo, status, "While parsing \"%s\":\"%s\"", keyWord, keyValue);
                 AIM_FREE(keyValue);
             }
@@ -4916,8 +5151,11 @@ int fea_getProperty(void *aimInfo,
             keyWord = "yAxisInertia";
             status = search_jsonDictionary( propertyTuple[i].value, keyWord, &keyValue);
             if (status == CAPS_SUCCESS) {
-
-                status = string_toDouble(keyValue, &feaProblem->feaProperty[i].yAxisInertia);
+                if ( feaUnits->momentOfInertia != NULL ) {
+                    status = string_toDoubleUnits(aimInfo, keyValue, feaUnits->momentOfInertia, &feaProblem->feaProperty[i].yAxisInertia);
+                } else {
+                    status = string_toDouble(keyValue, &feaProblem->feaProperty[i].yAxisInertia);
+                }
                 AIM_STATUS(aimInfo, status, "While parsing \"%s\":\"%s\"", keyWord, keyValue);
                 AIM_FREE(keyValue);
             }
@@ -5027,7 +5265,11 @@ int fea_getProperty(void *aimInfo,
             keyWord = "crossProductInertia";
             status = search_jsonDictionary( propertyTuple[i].value, keyWord, &keyValue);
             if (status == CAPS_SUCCESS) {
-                status = string_toDouble(keyValue, &feaProblem->feaProperty[i].crossProductInertia);
+                if ( feaUnits->momentOfInertia != NULL ) {
+                    status = string_toDoubleUnits(aimInfo, keyValue, feaUnits->momentOfInertia, &feaProblem->feaProperty[i].crossProductInertia);
+                } else {
+                    status = string_toDouble(keyValue, &feaProblem->feaProperty[i].crossProductInertia);
+                }
                 AIM_STATUS(aimInfo, status, "While parsing \"%s\":\"%s\"", keyWord, keyValue);
                 AIM_FREE(keyValue);
             }
@@ -5068,9 +5310,15 @@ int fea_getProperty(void *aimInfo,
              keyWord = "crossSecDimension";
              status = search_jsonDictionary( propertyTuple[i].value, keyWord, &keyValue);
              if (status == CAPS_SUCCESS) {
-                 status = string_toDoubleArray(keyValue,
-                                               (int) sizeof(feaProblem->feaProperty[i].crossSecDimension)/sizeof(double),
-                                               feaProblem->feaProperty[i].crossSecDimension);
+                 if ( feaUnits->length != NULL ) {
+                     status = string_toDoubleArrayUnits(aimInfo, keyValue, feaUnits->length,
+                                                        (int) sizeof(feaProblem->feaProperty[i].crossSecDimension)/sizeof(double),
+                                                        feaProblem->feaProperty[i].crossSecDimension);
+                 } else {
+                     status = string_toDoubleArray(keyValue,
+                                                   (int) sizeof(feaProblem->feaProperty[i].crossSecDimension)/sizeof(double),
+                                                   feaProblem->feaProperty[i].crossSecDimension);
+                 }
                  AIM_STATUS(aimInfo, status, "While parsing \"%s\":\"%s\"", keyWord, keyValue);
                  AIM_FREE(keyValue);
              }
@@ -5444,7 +5692,11 @@ int fea_getProperty(void *aimInfo,
             keyWord = "shearBondAllowable";
             status = search_jsonDictionary( propertyTuple[i].value, keyWord, &keyValue);
             if (status == CAPS_SUCCESS) {
-                status = string_toDouble(keyValue, &feaProblem->feaProperty[i].compositeShearBondAllowable);
+                if ( feaUnits->pressure != NULL ) {
+                    status = string_toDoubleUnits(aimInfo, keyValue, feaUnits->pressure, &feaProblem->feaProperty[i].compositeShearBondAllowable);
+                } else {
+                    status = string_toDouble(keyValue, &feaProblem->feaProperty[i].compositeShearBondAllowable);
+                }
                 AIM_STATUS(aimInfo, status, "While parsing \"%s\":\"%s\"", keyWord, keyValue);
                 AIM_FREE(keyValue);
             }
@@ -5525,8 +5777,13 @@ int fea_getProperty(void *aimInfo,
             keyWord = "compositeThickness";
             status = search_jsonDictionary( propertyTuple[i].value, keyWord, &keyValue);
             if (status == CAPS_SUCCESS) {
-                status = string_toDoubleDynamicArray(keyValue, &tempInteger,
-                                                     &feaProblem->feaProperty[i].compositeThickness);
+                if ( feaUnits->length != NULL ) {
+                    status = string_toDoubleDynamicArrayUnits(aimInfo, keyValue, feaUnits->length, &tempInteger,
+                                                              &feaProblem->feaProperty[i].compositeThickness);
+                } else {
+                    status = string_toDoubleDynamicArray(keyValue, &tempInteger,
+                                                         &feaProblem->feaProperty[i].compositeThickness);
+                }
                 AIM_STATUS(aimInfo, status, "While parsing \"%s\":\"%s\"", keyWord, keyValue);
                 AIM_FREE(keyValue);
 
@@ -5682,9 +5939,15 @@ int fea_getProperty(void *aimInfo,
             keyWord = "massOffset";
             status = search_jsonDictionary( propertyTuple[i].value, keyWord, &keyValue);
             if (status == CAPS_SUCCESS) {
-                status = string_toDoubleArray(keyValue,
-                                              (int) sizeof(feaProblem->feaProperty[i].massOffset)/sizeof(double),
-                                              feaProblem->feaProperty[i].massOffset);
+                if ( feaUnits->length != NULL ) {
+                    status = string_toDoubleArrayUnits(aimInfo, keyValue, feaUnits->length,
+                                                       (int) sizeof(feaProblem->feaProperty[i].massOffset)/sizeof(double),
+                                                       feaProblem->feaProperty[i].massOffset);
+                } else {
+                    status = string_toDoubleArray(keyValue,
+                                                  (int) sizeof(feaProblem->feaProperty[i].massOffset)/sizeof(double),
+                                                  feaProblem->feaProperty[i].massOffset);
+                }
                 AIM_STATUS(aimInfo, status, "While parsing \"%s\":\"%s\"", keyWord, keyValue);
                 AIM_FREE(keyValue);
             }
@@ -5812,11 +6075,7 @@ int fea_getConstraint(void *aimInfo,
         printf("\tConstraint name - %s\n", constraintTuple[i].name );
 
         // Set constraint name to tuple attribute name
-        feaProblem->feaConstraint[i].name = (char *) EG_alloc((strlen(constraintTuple[i].name) + 1)*sizeof(char));
-        if (feaProblem->feaConstraint[i].name == NULL) return EGADS_MALLOC;
-
-        memcpy(feaProblem->feaConstraint[i].name, constraintTuple[i].name, strlen(constraintTuple[i].name)*sizeof(char));
-        feaProblem->feaConstraint[i].name[strlen(constraintTuple[i].name)] = '\0';
+        AIM_STRDUP(feaProblem->feaConstraint[i].name, constraintTuple[i].name, aimInfo, status);
 
         // Set constraint id -> 1 bias
         feaProblem->feaConstraint[i].constraintID = i+1;
@@ -6010,7 +6269,7 @@ int fea_getConstraint(void *aimInfo,
              */
 
             // Call some look up table maybe?
-            printf("\tError: Constraint tuple value is expected to be a JSON string\n");
+            AIM_ERROR(aimInfo, "Constraint tuple value is expected to be a JSON string\n");
             return CAPS_BADVALUE;
         }
     }
@@ -6364,6 +6623,8 @@ static int fea_setConnection(char *connectionName,
         if (status != CAPS_SUCCESS) printf("\tPremature exit in fea_setConnection, status = %d\n", status);
         return status;
 }
+
+
 // Get the Connections properties from a capsTuple and create connections based on the mesh
 int fea_getConnection(void *aimInfo,
                       int numConnectionTuple,
@@ -7600,7 +7861,7 @@ int fea_getLoad(void *aimInfo,
              * <ul>
              *  <li> <B>loadType = "(no default)"</B> </li> <br>
              *  Type of load. Options: "GridForce", "GridMoment", "Rotational", "Thermal",
-             *  "Pressure", "PressureDistribute", "PressureExternal", "TermalExternal", "Gravity".
+             *  "Pressure", "PressureDistribute", "PressureExternal", "ThermalExternal", "Gravity".
              * </ul>
              * \elseif ABAQUS
               * <ul>
@@ -7698,8 +7959,8 @@ int fea_getLoad(void *aimInfo,
                 status = get_mapAttrToIndexIndex(attrMap, (const char *) groupName[groupIndex], &attrIndex);
 
                 if (status == CAPS_NOTFOUND) {
-                    printf("\tName %s not found in attribute map of capsLoads!!!!\n", groupName[groupIndex]);
-                    continue;
+                    AIM_ERROR(aimInfo, "Name '%s' not found in attribute map of capsLoads!!!!", groupName[groupIndex]);
+                    goto cleanup;
 
                 } else if (status != CAPS_SUCCESS) {
 
@@ -12102,6 +12363,7 @@ int fea_getAeroReference(void *aimInfo,
 
     char *refNodeName = NULL;
     char *keyValue = NULL, *keyWord = NULL;
+    char *tempString = NULL;
 
     int numNodes;
     meshNodeStruct **nodes = NULL;
@@ -12126,27 +12388,26 @@ int fea_getAeroReference(void *aimInfo,
          * \endif
          */
         keyWord = "referenceNode";
-        status = search_jsonDictionary(aeroRefTuple[i].value, keyWord, &refNodeName);
-        if (status == CAPS_SUCCESS) {
-            AIM_NOTNULL(refNodeName, aimInfo, status);
+        if (strcmp(aeroRefTuple[i].name, keyWord) == 0) {
 
-            // find node with capsReference == refNodeName
-            status = get_mapAttrToIndexIndex(attrMap, refNodeName, &attrIndex);
-            if (status != CAPS_SUCCESS) {
-                PRINT_ERROR("capsGroup name %s not found in attribute to index map", refNodeName);
-                goto cleanup;
-            }
+          tempString = string_removeQuotation(aeroRefTuple[i].value);
+          AIM_NOTNULL(tempString, aimInfo, status);
 
-            status = mesh_findNodes(&feaProblem->feaMesh, _matchReferenceNode, &attrIndex, &numNodes, &nodes);
-            if (status == CAPS_NOTFOUND) {
-                PRINT_ERROR("No node found with capsReference name %s", refNodeName);
-            }
-            if (status != CAPS_SUCCESS) {
-                goto cleanup;
-            }
+          // find node with capsReference == refNodeName
+          status = get_mapAttrToIndexIndex(attrMap, tempString, &attrIndex);
+          if (status != CAPS_SUCCESS) {
+            AIM_ERROR(aimInfo, "capsGroup name '%s' not found in attribute to index map", tempString);
+            goto cleanup;
+          }
 
-            // set refGridID to the nodeID
-            feaProblem->feaAeroRef.refGridID = nodes[0]->nodeID;
+          status = mesh_findNodes(&feaProblem->feaMesh, _matchReferenceNode, &attrIndex, &numNodes, &nodes);
+          if (status == CAPS_NOTFOUND) {
+            AIM_ERROR(aimInfo, "No node found with capsReference name %s", tempString);
+            goto cleanup;
+          }
+
+          // set refGridID to the nodeID
+          feaProblem->feaAeroRef.refGridID = nodes[0]->nodeID;
         }
 
         /*! \page feaAeroReference
@@ -12161,11 +12422,8 @@ int fea_getAeroReference(void *aimInfo,
         keyWord = "referenceVelocity";
         if (strcmp(aeroRefTuple[i].name, keyWord) == 0) {
             status = string_toDouble(aeroRefTuple[i].value, &feaProblem->feaAeroRef.refVelocity);
-            if (keyValue != NULL) {
-                EG_free(keyValue);
-                keyValue = NULL;
-            }
-            if (status != CAPS_SUCCESS) return status;
+            AIM_FREE(keyValue);
+            AIM_STATUS(aimInfo, status);
         }
 
         /*! \page feaAeroReference
@@ -12180,22 +12438,21 @@ int fea_getAeroReference(void *aimInfo,
         keyWord = "referenceDensity";
         if (strcmp(aeroRefTuple[i].name, keyWord) == 0) {
             status = string_toDouble(aeroRefTuple[i].value, &feaProblem->feaAeroRef.refDensity);
-            if (keyValue != NULL) {
-                EG_free(keyValue);
-                keyValue = NULL;
-            }
-            if (status != CAPS_SUCCESS) return status;
+            AIM_FREE(keyValue);
+            AIM_STATUS(aimInfo, status);
         }
     }
 
     status = CAPS_SUCCESS;
 
-    cleanup:
+cleanup:
 
-        AIM_FREE(refNodeName);
-        AIM_FREE(nodes);
+    AIM_FREE(refNodeName);
+    AIM_FREE(nodes);
+    AIM_FREE(keyValue);
+    AIM_FREE(tempString);
 
-        return status;
+    return status;
 }
 
 // Find feaPropertyStructs with given names in feaProblem
@@ -12886,7 +13143,9 @@ int destroy_feaSolFileStruct(feaSolFileStruct *feaSolFile) {
 }
 
 // Transfer external pressure from the discrObj into the feaLoad structure
-int fea_transferExternalPressure(void *aimInfo, const meshStruct *feaMesh, feaLoadStruct *feaLoad) {
+int fea_transferExternalPressure(void *aimInfo, const meshStruct *feaMesh,
+                                 const feaUnitsStruct* feaunits,
+                                 feaLoadStruct *feaLoad) {
 
     // [in/out] feaLoad
     // [in] feaMesh
@@ -12894,7 +13153,7 @@ int fea_transferExternalPressure(void *aimInfo, const meshStruct *feaMesh, feaLo
 
     int status; // Function status return
 
-    int i, j, bIndex; // Indexing
+    int i, j, k, bIndex; // Indexing
 
     // Variables used in global node mapping
     int globalNodeID;
@@ -12908,7 +13167,7 @@ int fea_transferExternalPressure(void *aimInfo, const meshStruct *feaMesh, feaLo
     int numDataTransferPoint;
     int numDataTransferElement = 0, discElements;
     int dataTransferRank;
-    double *dataTransferData;
+    double *dataTransferData, elemTransfer[4];
     char   *units;
 
     feaLoad->numElementID = 0;
@@ -13010,9 +13269,11 @@ int fea_transferExternalPressure(void *aimInfo, const meshStruct *feaMesh, feaLo
 
                 feaLoad->elementIDSet[elementIndex] = elementID;
 
-                feaLoad->pressureMultiDistributeForce[4*elementIndex+0] = dataTransferData[transferIndex[0]];
-                feaLoad->pressureMultiDistributeForce[4*elementIndex+1] = dataTransferData[transferIndex[1]];
-                feaLoad->pressureMultiDistributeForce[4*elementIndex+2] = dataTransferData[transferIndex[2]];
+                for (k = 0; k < 3; k++) {
+                  elemTransfer[k] = dataTransferData[transferIndex[k]];
+                }
+                status = aim_convert(aimInfo, 3, units, elemTransfer, feaunits->pressure, &feaLoad->pressureMultiDistributeForce[4*elementIndex+0]);
+                AIM_STATUS(aimInfo, status);
                 feaLoad->pressureMultiDistributeForce[4*elementIndex+3] = 0.0;
 
                 elementIndex += 1;
@@ -13067,10 +13328,11 @@ int fea_transferExternalPressure(void *aimInfo, const meshStruct *feaMesh, feaLo
 
                 feaLoad->elementIDSet[elementIndex] = elementID;
 
-                feaLoad->pressureMultiDistributeForce[4*elementIndex+0] = dataTransferData[transferIndex[0]];
-                feaLoad->pressureMultiDistributeForce[4*elementIndex+1] = dataTransferData[transferIndex[1]];
-                feaLoad->pressureMultiDistributeForce[4*elementIndex+2] = dataTransferData[transferIndex[2]];
-                feaLoad->pressureMultiDistributeForce[4*elementIndex+3] = dataTransferData[transferIndex[3]];
+                for (k = 0; k < 4; k++) {
+                  elemTransfer[k] = dataTransferData[transferIndex[k]];
+                }
+                status = aim_convert(aimInfo, 4, units, elemTransfer, feaunits->pressure, &feaLoad->pressureMultiDistributeForce[4*elementIndex+0]);
+                AIM_STATUS(aimInfo, status);
 
                 elementIndex += 1;
                 elementCount += 1;

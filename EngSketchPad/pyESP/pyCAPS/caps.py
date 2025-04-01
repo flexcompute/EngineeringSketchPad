@@ -3,7 +3,7 @@
 #   pyCAPS --- Python version of CAPS API                                 #
 #                                                                         #
 #                                                                         #
-#      Copyright 2011-2023, Massachusetts Institute of Technology         #
+#      Copyright 2011-2025, Massachusetts Institute of Technology         #
 #      Licensed under The GNU Lesser General Public License, version 2.1  #
 #      See http://www.opensource.org/licenses/lgpl-2.1.php                #
 #                                                                         #
@@ -14,7 +14,6 @@ from ctypes import POINTER, c_short, c_int, c_ulong, c_ulonglong, c_double, c_vo
 import os
 import sys
 import json
-import copy
 import functools
 import signal
 import threading
@@ -542,6 +541,9 @@ _caps.caps_unitDivide.restype = c_int
 
 _caps.caps_unitRaise.argtypes = [c_char_p, c_int, POINTER(c_char_p)]
 _caps.caps_unitRaise.restype = c_int
+
+_caps.caps_unitRoot.argtypes = [c_char_p, c_int, POINTER(c_char_p)]
+_caps.caps_unitRoot.restype = c_int
 
 _caps.caps_unitOffset.argtypes = [c_char_p, c_double, POINTER(c_char_p)]
 _caps.caps_unitOffset.restype = c_int
@@ -1993,8 +1995,7 @@ class capsObj:
                     slen += len(chars.value)+1
                     data[i][j] = _decode(chars.value)
 
-        elif vtype == vType.Boolean or \
-             vtype == vType.Integer or \
+        elif vtype == vType.Integer or \
              vtype == vType.Double  or \
              vtype == vType.DoubleDeriv:
             
@@ -2004,6 +2005,12 @@ class capsObj:
                 pdata = ctypes.cast(pdata, POINTER(c_int))
                 
             data = [[pdata[i*ncol+j] for j in range(ncol)] for i in range(nrow)]
+
+        elif vtype == vType.Boolean:
+            
+            pdata = ctypes.cast(pdata, POINTER(c_int))
+            
+            data = [[(False if pdata[i*ncol+j] == 0 else True) for j in range(ncol)] for i in range(nrow)]
 
         elif vtype == vType.Tuple:
             pdata = ctypes.cast(pdata, POINTER(c_capsTuple))
@@ -3393,7 +3400,7 @@ class Unit(object):
 
 #==============================================================================
     def __copy__(self):
-        return self.__class__(self._unit)
+        return self.__class__(self._units)
 
     def __deepcopy__(self, memo):
         '''Used if copy.deepcopy is called on the variable.
@@ -3545,12 +3552,20 @@ class Unit(object):
         if modulo is not None:
             raise CAPSError(CAPS_UNITERR, "3-argument power not supported")
 
-        if not isinstance(other, int):
-            raise CAPSError(CAPS_UNITERR, "Unit can only be raised by integer powers! Power = {!r}".format(other))
-
         newUnits = c_char_p()
-        stat = _caps.caps_unitRaise(self._units.encode(), c_int(other), 
-                                     ctypes.byref(newUnits))
+        if other >= 1 or other <= -1:
+            if not isinstance(other, int):
+                raise CAPSError(CAPS_UNITERR, "Unit can only be raised by integer Power! Power = {!r}".format(other))
+
+            stat = _caps.caps_unitRaise(self._units.encode(), c_int(int(other)), 
+                                         ctypes.byref(newUnits))
+        else:
+            root = 1/other
+            if not root.is_integer():
+                raise CAPSError(CAPS_UNITERR, "Unit can only be raised by integer root! Root = 1/{!r}".format(root))
+
+            stat = _caps.caps_unitRoot(self._units.encode(), c_int(int(root)), 
+                                       ctypes.byref(newUnits))
         if stat: _raiseStatus(stat, "Cannot {!r} ** {!r}".format(self, other))
         units = _decode(newUnits.value)
         egads.free(newUnits)
@@ -3772,11 +3787,7 @@ class Quantity(object):
             if hasattr(value, '__len__'):
                 
                 if hasattr(value[0], '__len__'):
-                    valcopy = copy.copy(value)
-                    for i in range(len(value)):
-                        valcopy[i] = _convert(value[i])
-                    
-                    value = valcopy
+                    value = value.__class__(_convert(v) for v in value)
                 else:
                     count = len(value)
                     fromVal = (c_double*count)()
@@ -3788,8 +3799,7 @@ class Quantity(object):
                                                             tounits  , toVal  )
                     if stat: _raiseStatus(stat, "Cannot convert {!r} to {!r}".format(self, toUnits))
            
-                    value    = copy.copy(value)
-                    value[:] = toVal[:]
+                    value = value.__class__(toVal[i] for i in range(count))
             else:
                 fromVal = c_double(value)
                 toVal   = c_double()
@@ -3824,7 +3834,7 @@ class Quantity(object):
 
 #==============================================================================
     def __copy__(self):
-        return self.__class__(self._value, self._unit)
+        return self.__class__(self._value, self._units)
 
     def __deepcopy__(self, memo):
         '''Used if copy.deepcopy is called on the variable.
@@ -3974,13 +3984,9 @@ class Quantity(object):
             units = self._units * other._units
         
             if hasattr(self._value, '__len__'):
-                value = copy.copy(self._value)
-                for i in range(len(self._value)):
-                    value[i] = self._value[i] * other._value
+                value = self._value.__class__(v * other._value for v in self._value)
             elif hasattr(other._value, '__len__'):
-                value = copy.copy(other._value)
-                for i in range(len(other._value)):
-                    value[i] = self._value * other._value[i]
+                value = other._value.__class__(self._value *  v for v in other._value)
             else:
                 value = self._value*other._value
 
@@ -4005,9 +4011,7 @@ class Quantity(object):
 
         elif hasattr(other, '__len__'):
             
-            value = copy.copy(other)
-            for i in range(len(other)):
-                value[i] = self._value * other[i]
+            value = other.__class__(self._value * v for v in other)
 
             return self.__class__(value, self._units)
 
@@ -4022,25 +4026,31 @@ class Quantity(object):
 
         if isinstance(other, self.__class__):
 
+            def _div(numer, denom):
+                if numpy and isinstance(numer, numpy.ndarray):
+                    return value/denom
+                elif hasattr(numer, '__len__'):
+                    return numer.__class__(_div(n, denom) for n in numer)
+                else:
+                    return numer/denom
+        
+            def _scale(value, scale):
+                if numpy and isinstance(value, numpy.ndarray):
+                    return value*scale
+                elif hasattr(value, '__len__'):
+                    return value.__class__(_scale(v, scale) for v in value)
+                else:
+                    return value * scale
+
             units = self._units / other._units
 
-            if hasattr(self._value, '__len__'):
-                value = copy.copy(self._value)
-                for i in range(len(self._value)):
-                    value[i] = self._value[i] / other._value
-            else:
-                value = self._value/other._value
-                
+            value = _div(self._value, other._value)
+
             if " " in units._units:
                 split = units._units.split(" ")
                 if split[1] == "1":
                     scale = float(split[0])
-                    if hasattr(value, '__len__'):
-                        for i in range(len(value)):
-                            value[i] *= scale
-                    else:
-                        value *= scale
-                    return value
+                    return _scale(value, scale)
             elif units._units == "1":
                 return value
 
@@ -4058,9 +4068,6 @@ class Quantity(object):
         '''
         if modulo is not None:
             raise CAPSError(CAPS_UNITERR, "3-argument power not supported")
-
-        if not isinstance(other, int):
-            raise CAPSError(CAPS_UNITERR, "Unit can only be raised by integer powers! Power = {!r}".format(other))
 
         return self.__class__(self._value**other, self._units**other)
 

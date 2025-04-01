@@ -3,7 +3,7 @@
  *
  *             FRICTION AIM
  *
- *      Copyright 2014-2024, Massachusetts Institute of Technology
+ *      Copyright 2014-2025, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -559,16 +559,21 @@ int aimPreAnalysis(/*@unused@*/ const void *instStore, void *aimInfo,
 
     // Get length units
     status = aim_capsLength(aimInfo, &lengthUnitsIn);
-    if (status == CAPS_NOTFOUND) {
-        printf(" *** WARNING: frictionAIM: No units assigned *** capsLength is not set in *.csm file!\n");
-        lengthUnitsIn = "ft";
-    } else if (status != CAPS_SUCCESS) {
+    if (status != CAPS_SUCCESS) {
+        AIM_ERROR(aimInfo, "No units assigned *** capsLength is not set in *.csm file!");
         goto cleanup;
     }
 
+    nsec      = 0;
+    nsecrev   = 0;
+    nsecrevfound = 1;
+
+    AIM_ALLOC(nsecrevid, numBody, int, aimInfo, status);
+    for (i = 0; i < numBody; i++) nsecrevid[i] = 0;
+
     // Populate the surfaces structure with real information - accumulate the Surface data
     // Determine number of friction sections
-    nsec = 0;
+    // The counter nsecrev follows the revolution sections put together
     for (i = 0; i < numBody; i++) {
 
         // search for the "capsReferenceArea" attribute
@@ -581,15 +586,15 @@ int aimPreAnalysis(/*@unused@*/ const void *instStore, void *aimInfo,
                 Sref = (double) reals[0];
 
                 status = aim_convert(aimInfo, 1, lengthUnitsIn, &Sref, "ft", &Sref); // Convert twice for area
-                if (status != CAPS_SUCCESS) goto cleanup;
+                AIM_STATUS(aimInfo, status);
 
                 status = aim_convert(aimInfo, 1, lengthUnitsIn, &Sref, "ft", &Sref);
-                if (status != CAPS_SUCCESS) goto cleanup;
+                AIM_STATUS(aimInfo, status);
 
 
             } else {
 
-                printf("capsReferenceArea should be followed by a single real value!\n");
+                AIM_ERROR(aimInfo, "capsReferenceArea should be followed by a single real value!");
                 status = EGADS_ATTRERR;
                 goto cleanup;
             }
@@ -605,12 +610,11 @@ int aimPreAnalysis(/*@unused@*/ const void *instStore, void *aimInfo,
 /*@-observertrans@*/
             surfaces[i].attribute = "Wing";
 /*@+observertrans@*/
-          
+
         } else {
 
             if (atype != ATTRSTRING) {
-
-                printf("capsType should be a single string!\n");
+                AIM_ERROR(aimInfo, "capsType should be a single string!");
                 status = EGADS_ATTRERR;
                 goto cleanup;
             }
@@ -630,17 +634,12 @@ int aimPreAnalysis(/*@unused@*/ const void *instStore, void *aimInfo,
             surfaces[i].type = 0;
 
             status = findSectionData(bodies[i],
-                    &nle, surfaces[i].xyzLE,
-                    &nte, surfaces[i].xyzTE,
-                    &surfaces[i].chordLength,
-                    &surfaces[i].arcLength,
-                    &surfaces[i].thickOverChord);
-            if (status != CAPS_SUCCESS) {
-                printf(" *** WARNING: frictionAIM: findSectionData = %d for body %d!\n",
-                       status, i+1);
-                goto cleanup;
-
-            }
+                                     &nle, surfaces[i].xyzLE,
+                                     &nte, surfaces[i].xyzTE,
+                                     &surfaces[i].chordLength,
+                                     &surfaces[i].arcLength,
+                                     &surfaces[i].thickOverChord);
+            AIM_STATUS(aimInfo, status, "findSectionData for body %d!", i+1);
 
             printf("Lifting Surface: Body = %d, units %s\n", i+1, lengthUnitsIn);
             printf("\tXLE:   %8.6f %8.6f %8.6f\n",
@@ -695,104 +694,65 @@ int aimPreAnalysis(/*@unused@*/ const void *instStore, void *aimInfo,
         }
 
         if ((i > 0) && (surfaces[i].type == 0)) {
-            if (!strcmp(surfaces[i].attribute,surfaces[i-1].attribute)) nsec++;
+            if (!strcmp(surfaces[i].attribute, surfaces[i-1].attribute)) nsec++;
+        } else if (surfaces[i].type == 1) {
+          // BODY OF REVOLUTION
+            // count the number of surfaces and note their location
+            nsecrev++;
+            nsecrevfound = 0;
+            nsecrevid[i] = 1;
         }
     }
 
-    if (nsec == 0) {
-        printf(" *** WARNING: frictionAIM: numSection= 0!\n");
-        status = EGADS_NOTFOUND;
-        goto cleanup;
-    }
+    if (nsec > 0) {
 
-    // alocate memory to surfaces structure
-    secLift = (frictionSec *) EG_alloc(nsec*sizeof(frictionSec));
-    if (secLift == NULL) {
-#ifdef DEBUG
-        printf(" frictionAIM/aimPreAnalysis Cannot allocate %d sections!\n",
-               nsec);
-#endif
-        status = EGADS_MALLOC;
-        goto cleanup;
-    }
+      // alocate memory to surfaces structure
+      AIM_ALLOC(secLift, nsec, frictionSec, aimInfo, status);
 
-    /// Initiate sections
-    for (i = 0; i < nsec; i++) {
-        (void) initiate_frictionSection(&secLift[i]);
+      /// Initiate sections
+      for (i = 0; i < nsec; i++) {
+          (void) initiate_frictionSection(&secLift[i]);
 
-        // Set turbulent transition based on input value
-        secLift[i].turbTrans = inputs[inBL_Transition-1].vals.real;
-    }
+          // Set turbulent transition based on input value
+          secLift[i].turbTrans = inputs[inBL_Transition-1].vals.real;
+      }
 
-    nsec      = 0;
-    nsecrev   = 0;
-    nsecrevfound = 1;
+      // Bodies of revolution may have multiple bodies in a single section.  This method only puts two bodies together into a section
+      nsec = 0;
+      for (i = 1; i < numBody; i++) {
 
-    nsecrevid = (int *) EG_alloc(numBody*sizeof(int));
-    if (nsecrevid == NULL) {
-#ifdef DEBUG
-        printf(" frictionAIM/aimPreAnalysis Cannot allocate %d secrev!\n", numBody);
-#endif
-        status = EGADS_MALLOC;
-        goto cleanup;
-    }
+        if (!strcmp(surfaces[i].attribute,surfaces[i-1].attribute)) {
 
-    // Bodies of revolution may have multiple bodies in a single section.  This method only puts two bodies together into a section
-    // The counter nsecrev follows the revolution sections put together
-    for (i = 0; i < numBody; i++) {
+          // LIFTING SURFACES
+          if (surfaces[i].type == 0) {
 
-        nsecrevid[i] = 0;
+            secLift[nsec].name = surfaces[i].attribute;
+            secLift[nsec].thickOverChord = (surfaces[i].thickOverChord + surfaces[i-1].thickOverChord) / 2.0;
 
-        if (i > 0) {
+            calculate_distance(surfaces[i-1].xyzLE, surfaces[i-1].xyzTE, surfaces[i].xyzLE, &dist);
 
-            if (!strcmp(surfaces[i].attribute,surfaces[i-1].attribute)) {
+            status = aim_convert(aimInfo, 1, lengthUnitsIn, &dist, "ft", &dist);
+            AIM_STATUS(aimInfo, status);
 
-                // LIFTING SURFACES
-                if (surfaces[i].type == 0) {
+            refLength = (surfaces[i].chordLength + surfaces[i-1].chordLength) / 2.0;
+            refArea   = (dist * (surfaces[i].arcLength + surfaces[i-1].arcLength)) / 2.0;
 
-                    secLift[nsec].name = surfaces[i].attribute;
-                    secLift[nsec].thickOverChord = (surfaces[i].thickOverChord +
-                                                    surfaces[i-1].thickOverChord) / 2.0;
+            status = aim_convert(aimInfo, 1, lengthUnitsIn, &refLength, "ft", &secLift[nsec].refLength);
+            AIM_STATUS(aimInfo, status);
 
-                    calculate_distance(surfaces[i-1].xyzLE, surfaces[i-1].xyzTE,
-                                       surfaces[i].xyzLE, &dist);
+            status = aim_convert(aimInfo, 1, lengthUnitsIn, &refArea, "ft", &secLift[nsec].swet);
+            AIM_STATUS(aimInfo, status);
 
-                    status = aim_convert(aimInfo, 1, lengthUnitsIn, &dist, "ft", &dist);
-                    if (status != CAPS_SUCCESS) goto cleanup;
-
-                    refLength = (surfaces[i].chordLength + surfaces[i-1].chordLength) / 2.0;
-                    refArea   = (dist * (surfaces[i].arcLength + surfaces[i-1].arcLength)) / 2.0;
-
-                    status = aim_convert(aimInfo, 1, lengthUnitsIn, &refLength, "ft",
-                                         &secLift[nsec].refLength);
-                    if (status != CAPS_SUCCESS) goto cleanup;
-
-                    status = aim_convert(aimInfo, 1, lengthUnitsIn, &refArea, "ft",
-                                         &secLift[nsec].swet);
-                    if (status != CAPS_SUCCESS) goto cleanup;
-
-                    nsec++;
-
-                    // BODY OF REVOLUTION
-                } else if (surfaces[i].type == 1) {
-                    // count the number of surfaces and note their location
-                    nsecrev++;
-                    nsecrevfound = 0;
-                    nsecrevid[i] = 1;
-                }
-            }
+            nsec++;
+          }
         }
+      }
     }
 
     // determine location of body of revolution sections in the body list
     if (nsecrev > 0) {
-        nsecrevidreal = (int *) EG_alloc(nsecrev*sizeof(int));
-        nsecrevNewSec = (int *) EG_alloc(nsecrev*sizeof(int));
-
-        if ((nsecrevidreal == NULL) || (nsecrevNewSec == NULL)) {
-            status =  EGADS_MALLOC;
-            goto cleanup;
-        }
+        AIM_ALLOC(nsecrevidreal, nsecrev, int, aimInfo, status);
+        AIM_ALLOC(nsecrevNewSec, nsecrev, int, aimInfo, status);
 
         nsecrev = 1;
         tmp = 0;
@@ -816,12 +776,7 @@ int aimPreAnalysis(/*@unused@*/ const void *instStore, void *aimInfo,
         nsecrevNewSec[0] = 1;
 
         // allocate memory for revolution bodies
-        secBody = (frictionSec *) EG_alloc(nsecrev*sizeof(frictionSec));
-        if (secBody == NULL) {
-
-            status = EGADS_MALLOC;
-            goto cleanup;
-        }
+        AIM_ALLOC(secBody, nsecrev, frictionSec, aimInfo, status);
 
         for (i = 0; i < nsecrev; i++) {
             (void) initiate_frictionSection(&secBody[i]);
@@ -841,7 +796,7 @@ int aimPreAnalysis(/*@unused@*/ const void *instStore, void *aimInfo,
                 if (i > 0) { // last body section is finished, onto the next one
 
                     status = aim_convert(aimInfo, 1, lengthUnitsIn, &SREF, "ft", &SREF);
-                    if (status != CAPS_SUCCESS) goto cleanup;
+                    AIM_STATUS(aimInfo, status);
 
                     secBody[nsecrev].thickOverChord = secBody[nsecrev].refLength / SREF;
                 }
@@ -860,22 +815,19 @@ int aimPreAnalysis(/*@unused@*/ const void *instStore, void *aimInfo,
                             surfaces[nsecrevidreal[i-1]].xyzLE[0]); // aligned with flow direction X - global axis
 
                 status = aim_convert(aimInfo, 1, lengthUnitsIn, &dist, "ft", &dist);
-                if (status != CAPS_SUCCESS) goto cleanup;
+                AIM_STATUS(aimInfo, status);
 
                 secBody[nsecrev].refLength = secBody[nsecrev].refLength + dist; // keep adding on each length component to the body ref
-                refArea   = (surfaces[nsecrevidreal[i]].arcLength +
-                             surfaces[nsecrevidreal[i-1]].arcLength);
+                refArea   = (surfaces[nsecrevidreal[i]].arcLength + surfaces[nsecrevidreal[i-1]].arcLength);
 
                 status = aim_convert(aimInfo, 1, lengthUnitsIn, &refArea, "ft", &refArea);
-                if (status != CAPS_SUCCESS) goto cleanup;
+                AIM_STATUS(aimInfo, status);
 
-                secBody[nsecrev].swet = secBody[nsecrev].swet +
-                                        (dist * refArea) / 2.0;
-                refLength = (surfaces[nsecrevidreal[i]].chordLength +
-                             surfaces[nsecrevidreal[i-1]].chordLength) / 2.0; // ref diameter
+                secBody[nsecrev].swet = secBody[nsecrev].swet + (dist * refArea) / 2.0;
+                refLength = (surfaces[nsecrevidreal[i]].chordLength + surfaces[nsecrevidreal[i-1]].chordLength) / 2.0; // ref diameter
 
                 status = aim_convert(aimInfo, 1, lengthUnitsIn, &refLength, "ft", &refLength);
-                if (status != CAPS_SUCCESS) goto cleanup;
+                AIM_STATUS(aimInfo, status);
 
                 if (surfaces[nsecrevidreal[i]].chordLength > SREF) {
                     SREF = surfaces[nsecrevidreal[i]].chordLength;
@@ -885,7 +837,7 @@ int aimPreAnalysis(/*@unused@*/ const void *instStore, void *aimInfo,
             if (i==tmp-1) {
 
                 status = aim_convert(aimInfo, 1, lengthUnitsIn, &SREF, "ft", &SREF);
-                if (status != CAPS_SUCCESS) goto cleanup;
+                AIM_STATUS(aimInfo, status);
 
                 secBody[nsecrev].thickOverChord = SREF / secBody[nsecrev].refLength;
             }
@@ -918,13 +870,14 @@ int aimPreAnalysis(/*@unused@*/ const void *instStore, void *aimInfo,
     //fprintf(fp,"1234567890123456789012345678901234567890123456789012345678901234567890\n");
 
     // LIFTING SURFACES
-    for (i = 0; i < nsec; i++) {
+    if (secLift != NULL) {
+      for (i = 0; i < nsec; i++) {
 
         // Component Name columns 1-16 w/ 4 spaces to 20
         fprintf(fp,"%s",secLift[i].name);
 
         for (j = 0; j < 20-strlen(secLift[i].name); j++) {
-            fprintf(fp," ");
+          fprintf(fp," ");
         }
 
         // SWET spaces 21-30
@@ -954,75 +907,76 @@ int aimPreAnalysis(/*@unused@*/ const void *instStore, void *aimInfo,
 
         //
         fprintf(fp,"\n");
+      }
     }
 
     // BODIES OF REVOLUTION
-    if (secBody != NULL)
-        for (i = 0; i <= nsecrev; i++) {
-            // Component Name columns 1-16 w/ 4 spaces to 20
-            fprintf(fp,"%s",secBody[i].name);
+    if (secBody != NULL) {
+      for (i = 0; i <= nsecrev; i++) {
+        // Component Name columns 1-16 w/ 4 spaces to 20
+        fprintf(fp,"%s",secBody[i].name);
 
-            for (j = 0; j < 20-strlen(secBody[i].name); j++) {
-                fprintf(fp," ");
-            }
-
-            // SWET spaces 21-30
-            status = convert_doubleToString(secBody[i].swet,8,0,tempString);
-            AIM_STATUS(aimInfo, status);
-            fprintf(fp,"%s  ",tempString);
-
-            // RefL spaces 31-40
-            status = convert_doubleToString(secBody[i].refLength,8,0,tempString);
-            AIM_STATUS(aimInfo, status);
-            fprintf(fp,"%s  ",tempString);
-
-            // ToC spaces 41-50
-            status = convert_doubleToString(secBody[i].thickOverChord,8,0,tempString);
-            AIM_STATUS(aimInfo, status);
-            fprintf(fp,"%s  ",tempString);
-
-            // Component type 51-60
-            status = convert_doubleToString(secBody[i].type,8,0,tempString);
-            AIM_STATUS(aimInfo, status);
-            fprintf(fp,"%s  ",tempString);
-
-            // FTrans 61-70
-            status = convert_doubleToString(secBody[i].turbTrans,8,0,tempString);
-            AIM_STATUS(aimInfo, status);
-            fprintf(fp,"%s  ",tempString);
-
-            //
-            fprintf(fp,"\n");
+        for (j = 0; j < 20-strlen(secBody[i].name); j++) {
+          fprintf(fp," ");
         }
 
+        // SWET spaces 21-30
+        status = convert_doubleToString(secBody[i].swet,8,0,tempString);
+        AIM_STATUS(aimInfo, status);
+        fprintf(fp,"%s  ",tempString);
+
+        // RefL spaces 31-40
+        status = convert_doubleToString(secBody[i].refLength,8,0,tempString);
+        AIM_STATUS(aimInfo, status);
+        fprintf(fp,"%s  ",tempString);
+
+        // ToC spaces 41-50
+        status = convert_doubleToString(secBody[i].thickOverChord,8,0,tempString);
+        AIM_STATUS(aimInfo, status);
+        fprintf(fp,"%s  ",tempString);
+
+        // Component type 51-60
+        status = convert_doubleToString(secBody[i].type,8,0,tempString);
+        AIM_STATUS(aimInfo, status);
+        fprintf(fp,"%s  ",tempString);
+
+        // FTrans 61-70
+        status = convert_doubleToString(secBody[i].turbTrans,8,0,tempString);
+        AIM_STATUS(aimInfo, status);
+        fprintf(fp,"%s  ",tempString);
+
+        //
+        fprintf(fp,"\n");
+      }
+    }
 
     printf("Number of Mach-Altitude cases = %d\n", inputs[inMach-1].length);
 
     if (inputs[0].length == 1) {
+      // MACH
+      status = convert_doubleToString(inputs[inMach-1].vals.real, 8, 0, tempString);
+      AIM_STATUS(aimInfo, status);
+      fprintf(fp,"%s  ",tempString);
+
+      // ALTITUDE
+      status = convert_doubleToString(inputs[inAltitude-1].vals.real, 8, 0, tempString);
+      AIM_STATUS(aimInfo, status);
+      fprintf(fp,"%s\n",tempString);
+
+    } else {
+
+      for (i = 0; i < inputs[inMach-1].length; i++) { // Multiple Mach, Altitude pairs
+
         // MACH
-        status = convert_doubleToString(inputs[inMach-1].vals.real, 8, 0, tempString);
+        status = convert_doubleToString(inputs[inMach-1].vals.reals[i], 8, 0, tempString);
         AIM_STATUS(aimInfo, status);
         fprintf(fp,"%s  ",tempString);
 
         // ALTITUDE
-        status = convert_doubleToString(inputs[inAltitude-1].vals.real, 8, 0, tempString);
+        status = convert_doubleToString(inputs[inAltitude-1].vals.reals[i], 8, 0, tempString);
         AIM_STATUS(aimInfo, status);
         fprintf(fp,"%s\n",tempString);
-
-    } else {
-
-        for (i = 0; i < inputs[inMach-1].length; i++) { // Multiple Mach, Altitude pairs
-
-            // MACH
-            status = convert_doubleToString(inputs[inMach-1].vals.reals[i], 8, 0, tempString);
-            AIM_STATUS(aimInfo, status);
-            fprintf(fp,"%s  ",tempString);
-
-            // ALTITUDE
-            status = convert_doubleToString(inputs[inAltitude-1].vals.reals[i], 8, 0, tempString);
-            AIM_STATUS(aimInfo, status);
-            fprintf(fp,"%s\n",tempString);
-        }
+      }
     }
 
     fprintf(fp,"0.00      0.00\n");
@@ -1031,19 +985,16 @@ int aimPreAnalysis(/*@unused@*/ const void *instStore, void *aimInfo,
 
 cleanup:
 
-    if (status != CAPS_SUCCESS)
-      printf("Premature exit in frictionAIM preAnalysis status = %d\n", status);
-
     if (fp != NULL) fclose(fp);
 
-    EG_free(nsecrevidreal);
-    EG_free(nsecrevNewSec);
-    EG_free(nsecrevid);
+    AIM_FREE(nsecrevidreal);
+    AIM_FREE(nsecrevNewSec);
+    AIM_FREE(nsecrevid);
 
-    EG_free(secLift);
-    EG_free(secBody);
+    AIM_FREE(secLift);
+    AIM_FREE(secBody);
 
-    EG_free(surfaces);
+    AIM_FREE(surfaces);
 
     return status;
 }

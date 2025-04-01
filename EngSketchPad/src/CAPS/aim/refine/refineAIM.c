@@ -3,10 +3,11 @@
  *
  *             refine AIM
  *
- *      Copyright 2014-2024, Massachusetts Institute of Technology
+ *      Copyright 2014-2025, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
+ *     Written by Marshall Galbraith (MIT)
  */
 
 /*!\mainpage Introduction
@@ -66,6 +67,7 @@ enum aimInputs
 {
   inref = 1,                    /* index is 1-based */
   inComplexity,
+  inGradation,
   inPasses,
   inFun3D,
   inMesh_Format,
@@ -81,11 +83,13 @@ enum aimOutputs
 {
   outMesh = 1,                    /* index is 1-based */
   outInterpolateFile,
+  outMetricFieldFile,
   outxyz,
   NUMOUT = outxyz                 /* Total number of outputs */
 };
 
 static char egadsFileName[] = "refine_in.egads";
+static char refine_in_pre[] = "refine_in";
 static char refine_out_pre[] = "refine_out";
 static char refInput[] = "refInput.txt";
 static char metricFileName[] = "metric.solb";
@@ -261,6 +265,136 @@ static int destroy_aimStorage(aimStorage *refineInstance)
 }
 
 
+static int
+refine_genMultiScale(void *aimInfo)
+{
+  int status = CAPS_SUCCESS;
+
+  char refine_in[PATH_MAX];
+  char refine_out[PATH_MAX];
+  char aimFile[PATH_MAX];
+  char relPath[PATH_MAX];
+  char command[PATH_MAX];
+  capsValue *Complexity, *Gradation, *Fun3D, *ref;
+  capsValue *ScalarFieldFile, *HessianFieldFile, *MetricFieldFile;
+
+
+  status = aim_getValue(aimInfo, inref, ANALYSISIN, &ref);
+  AIM_STATUS(aimInfo, status);
+
+  status = aim_getValue(aimInfo, inFun3D, ANALYSISIN, &Fun3D);
+  AIM_STATUS(aimInfo, status);
+
+  status = aim_getValue(aimInfo, inComplexity, ANALYSISIN, &Complexity);
+  AIM_STATUS(aimInfo, status);
+
+  status = aim_getValue(aimInfo, inGradation, ANALYSISIN, &Gradation);
+  AIM_STATUS(aimInfo, status);
+
+  status = aim_getValue(aimInfo, inScalarFieldFile, ANALYSISIN, &ScalarFieldFile);
+  AIM_STATUS(aimInfo, status);
+
+  status = aim_getValue(aimInfo, inHessianFieldFile, ANALYSISIN, &HessianFieldFile);
+  AIM_STATUS(aimInfo, status);
+
+  status = aim_getValue(aimInfo, inMetricFieldFile, ANALYSISIN, &MetricFieldFile);
+  AIM_STATUS(aimInfo, status);
+
+  snprintf(refine_in, PATH_MAX, "%s%s", refine_in_pre, MESHEXTENSION);
+  snprintf(refine_out, PATH_MAX, "%s%s", refine_out_pre, MESHEXTENSION);
+
+  if (aim_isFile(aimInfo, refine_out) != CAPS_SUCCESS) {
+    AIM_ERROR(aimInfo, "'%s' does not exist!", refine_out);
+    status = CAPS_IOERR;
+    goto cleanup;
+  }
+
+  // copy over refine_out to refine_in
+  status = aim_file(aimInfo, refine_out, aimFile);
+  AIM_STATUS(aimInfo, status);
+  status = aim_cpFile(aimInfo, aimFile, refine_in);
+  AIM_STATUS(aimInfo, status);
+
+  // remove refine_out
+  status = aim_rmFile(aimInfo, refine_out);
+  AIM_STATUS(aimInfo, status);
+
+  if (ScalarFieldFile->nullVal == NotNull) {
+
+    if (access(ScalarFieldFile->vals.string, F_OK) != 0) {
+      AIM_ERROR(aimInfo, "'%s' does not exist!", ScalarFieldFile->vals.string);
+      status = CAPS_IOERR;
+      goto cleanup;
+    }
+
+    // only compute multi-scale if not using the ref "loop" interface
+    if (Fun3D->vals.integer == (int) false) {
+
+      // compute multiscale metric field
+      snprintf(command, PATH_MAX,
+               "%s multiscale %s %s %le %s --gradation %le > multiscaleOut.txt",
+               ref->vals.string,
+               refine_in,
+               ScalarFieldFile->vals.string,
+               Complexity->vals.real,
+               metricFileName,
+               Gradation->vals.real);
+
+      status = aim_system(aimInfo, NULL, command);
+      AIM_STATUS(aimInfo, status, "Failed to execute: %s", command);
+    }
+
+  } else if (HessianFieldFile->nullVal == NotNull) {
+
+    if (access(HessianFieldFile->vals.string, F_OK) != 0) {
+      AIM_ERROR(aimInfo, "'%s' does not exist!", HessianFieldFile->vals.string);
+      status = CAPS_IOERR;
+      goto cleanup;
+    }
+
+    // compute multiscale metric field
+    snprintf(command, PATH_MAX,
+             "%s multiscale %s %s %le %s --gradation %le --hessian > multiscaleOut.txt",
+             ref->vals.string,
+             refine_in,
+             HessianFieldFile->vals.string,
+             Complexity->vals.real,
+             metricFileName,
+             Gradation->vals.real);
+
+    status = aim_system(aimInfo, NULL, command);
+    AIM_STATUS(aimInfo, status, "Failed to execute: %s", command);
+
+  } else if (MetricFieldFile->nullVal == NotNull) {
+
+    if (access(MetricFieldFile->vals.string, F_OK) != 0) {
+      AIM_ERROR(aimInfo, "'%s' does not exist!", MetricFieldFile->vals.string);
+      status = CAPS_IOERR;
+      goto cleanup;
+    }
+
+    // get the relative path
+    status = aim_relPath(aimInfo, MetricFieldFile->vals.string, metricFileName, relPath);
+    AIM_STATUS(aimInfo, status);
+
+    if (strncmp(relPath, metricFileName, PATH_MAX) != 0) {
+      // Simply create a link to the file
+      status = aim_symLink(aimInfo, MetricFieldFile->vals.string, metricFileName);
+      AIM_STATUS(aimInfo, status);
+    }
+
+  } else {
+    AIM_ERROR(aimInfo, "Developer error!");
+    status = CAPS_NOTIMPLEMENT;
+    goto cleanup;
+  }
+
+  status = CAPS_SUCCESS;
+cleanup:
+  return status;
+}
+
+
 /****************** exposed AIM entry points -- Analysis **********************/
 
 /* aimInitialize: Initialization Information for the AIM */
@@ -402,6 +536,20 @@ aimInputs(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo, int index,
      * Must be specified in combination with a ScalarFieldFile or HessianFieldFile. <br>
      * Cannot be specified in combination with MetricFieldFile. <br>
      * Complexity is approximately half the target number of vertices.
+     */
+
+  } else if (index == inGradation) {
+    *ainame           = AIM_NAME(Gradation);
+    defval->type      = Double;
+    defval->dim       = Scalar;
+    defval->vals.real = -1.0;
+
+    /*! \page aimInputsRefine
+     * - <B> Gradation = -1.0 (double)</B> <br>
+     * May be specified in combination with a ScalarFieldFile or HessianFieldFile. <br>
+     * Cannot be specified in combination with MetricFieldFile. <br>
+     *   Positive numbers: metric-space gradation stretching ratio.
+     *   Negative numbers: switch for mixed-space gradation (value ignored).
      */
 
   } else if (index == inScalarFieldFile) {
@@ -697,9 +845,6 @@ aimPreAnalysis(/*@unused@*/ const void *instStore, void *aimInfo,
   char refine_in[PATH_MAX];
   char refine_out[PATH_MAX];
   char aimEgadsFile[PATH_MAX];
-  char aimFile[PATH_MAX];
-  char relPath[PATH_MAX];
-  char command[PATH_MAX];
   FILE *fp = NULL;
 
   const aimStorage *refineInstance;
@@ -709,109 +854,21 @@ aimPreAnalysis(/*@unused@*/ const void *instStore, void *aimInfo,
 
   snprintf(refine_out, PATH_MAX, "%s%s", refine_out_pre, MESHEXTENSION);
 
+  status = aim_rmFile(aimInfo, metricFileName);
+  AIM_STATUS(aimInfo, status);
+  
   if (refineInstance->meshRefIn != NULL) {
+
     /* create a symbolic link to the file name*/
     snprintf(refine_in, PATH_MAX, "%s%s", refineInstance->meshRefIn->fileName, MESHEXTENSION);
     status = aim_symLink(aimInfo, refine_in, refine_out);
     AIM_STATUS(aimInfo, status);
+
   } else {
 
-    if (aim_isFile(aimInfo, refine_out) != CAPS_SUCCESS) {
-      AIM_ERROR(aimInfo, "'%s' does not exist!", refine_out);
-      status = CAPS_IOERR;
-      goto cleanup;
-    }
-
-    if (inputs[inScalarFieldFile-1].nullVal == NotNull) {
-
-      if (access(inputs[inScalarFieldFile-1].vals.string, F_OK) != 0) {
-        AIM_ERROR(aimInfo, "'%s' does not exist!", inputs[inScalarFieldFile-1].vals.string);
-        status = CAPS_IOERR;
-        goto cleanup;
-      }
-
-      snprintf(refine_in, PATH_MAX, "refine_in%s", MESHEXTENSION);
-
-      // copy over refine_out to refine_in
-      status = aim_file(aimInfo, refine_out, aimFile);
-      AIM_STATUS(aimInfo, status);
-      status = aim_cpFile(aimInfo, aimFile, refine_in);
-      AIM_STATUS(aimInfo, status);
-
-      // remove refine_out
-      status = aim_rmFile(aimInfo, refine_out);
-      AIM_STATUS(aimInfo, status);
-
-      // only compute multi-scale if not using the ref "loop" interface
-      if (inputs[inFun3D-1].vals.integer == (int) false) {
-
-        // compute multiscale metric field
-        snprintf(command, PATH_MAX,
-                 "%s multiscale %s %s %le %s > multiscaleOut.txt",
-                 inputs[inref-1].vals.string,
-                 refine_in,
-                 inputs[inScalarFieldFile-1].vals.string,
-                 inputs[inComplexity-1].vals.real,
-                 metricFileName );
-
-        status = aim_system(aimInfo, NULL, command);
-        AIM_STATUS(aimInfo, status, "Failed to execute: %s", command);
-      }
-
-    } else if (inputs[inHessianFieldFile-1].nullVal == NotNull) {
-
-      if (access(inputs[inHessianFieldFile-1].vals.string, F_OK) != 0) {
-        AIM_ERROR(aimInfo, "'%s' does not exist!", inputs[inHessianFieldFile-1].vals.string);
-        status = CAPS_IOERR;
-        goto cleanup;
-      }
-
-      snprintf(refine_in, PATH_MAX, "refine_in%s", MESHEXTENSION);
-
-      // copy over refine_out to refine_in
-      status = aim_file(aimInfo, refine_out, aimFile);
-      AIM_STATUS(aimInfo, status);
-      status = aim_cpFile(aimInfo, aimFile, refine_in);
-      AIM_STATUS(aimInfo, status);
-
-      // remove refine_out
-      status = aim_rmFile(aimInfo, refine_out);
-      AIM_STATUS(aimInfo, status);
-
-      // compute multiscale metric field
-      snprintf(command, PATH_MAX,
-               "%s multiscale %s %s %le %s --hessian > multiscaleOut.txt",
-               inputs[inref-1].vals.string,
-               refine_in,
-               inputs[inHessianFieldFile-1].vals.string,
-               inputs[inComplexity-1].vals.real,
-               metricFileName );
-
-      status = aim_system(aimInfo, NULL, command);
-      AIM_STATUS(aimInfo, status, "Failed to execute: %s", command);
-
-    } else if (inputs[inMetricFieldFile-1].nullVal == NotNull) {
-
-      if (access(inputs[inMetricFieldFile-1].vals.string, F_OK) != 0) {
-        AIM_ERROR(aimInfo, "'%s' does not exist!", inputs[inMetricFieldFile-1].vals.string);
-        status = CAPS_IOERR;
-        goto cleanup;
-      }
-
-      // get the relative path
-      aim_relPath(aimInfo, inputs[inMetricFieldFile-1].vals.string, metricFileName, relPath);
-
-      if (strncmp(relPath, metricFileName, PATH_MAX) != 0) {
-        // Simply create a link to the file
-        status = aim_symLink(aimInfo, relPath, metricFileName);
-        AIM_STATUS(aimInfo, status);
-      }
-
-    } else {
-      AIM_ERROR(aimInfo, "Developer error!");
-      status = CAPS_NOTIMPLEMENT;
-      goto cleanup;
-    }
+    // Compute the multiscale metric
+    status = refine_genMultiScale(aimInfo);
+    AIM_STATUS(aimInfo, status);
 
     // remove previous meshes after renaming refine_out to refine_in
     status = aim_deleteMeshes(aimInfo, &refineInstance->meshRefOut);
@@ -832,7 +889,7 @@ aimPreAnalysis(/*@unused@*/ const void *instStore, void *aimInfo,
     // Make a copy of the bodies
     for (i = 0; i < nBody; i++) {
       status = EG_copyObject(bodies[i], NULL, &bodyCopy[i]);
-      if (status != EGADS_SUCCESS) goto cleanup;
+      AIM_STATUS(aimInfo, status);
     }
 
     // Create a model from the copied bodies
@@ -1090,7 +1147,7 @@ aimOutputs(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo,
 {
   int status = CAPS_SUCCESS;
 #ifdef DEBUG
-  printf(" skeletonAIM/aimOutputs instance = %d  index  = %d!\n",
+  printf(" refineAIM/aimOutputs instance = %d  index  = %d!\n",
          aim_getInstance(aimInfo), index);
 #endif
 
@@ -1126,6 +1183,20 @@ aimOutputs(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo,
        * Interpolated solb file if input InterpolateFile is set. NULL otherwise.
        */
 
+  } else if (index == outMetricFieldFile) {
+
+      *aoname           = AIM_NAME(MetricFieldFile);
+      form->type        = String;
+      form->dim         = Scalar;
+      form->lfixed      = Fixed;
+      form->sfixed      = Fixed;
+      form->nullVal     = IsNull;
+
+      /*! \page aimOutputsRefine
+       * - <B> MetricFieldFile </B> <br>
+       * MultiScale metric solb file generated from ScalarFieldFile or HessianFieldFile, or the specified input MetricFieldFile.
+       */
+
   } else if (index == outxyz) {
 
       *aoname           = AIM_NAME(xyz);
@@ -1156,13 +1227,14 @@ aimCalcOutput(void *instStore, void *aimInfo,
               int index, capsValue *val)
 {
   int        i, j, status = CAPS_SUCCESS;
+  char refine_in[PATH_MAX];
+  char refine_out[PATH_MAX];
   char filename[PATH_MAX], aimFile[PATH_MAX];
   aimStorage *refineInstance;
   aimMesh    mesh;
   capsValue *interp;
 
   refineInstance = (aimStorage *) instStore;
-
 
    if (outMesh == index) {
 
@@ -1211,6 +1283,30 @@ aimCalcOutput(void *instStore, void *aimInfo,
        AIM_FREE(val->vals.string);
        val->nullVal = IsNull;
      }
+
+   } else if (index == outMetricFieldFile) {
+
+     if (aim_isFile(aimInfo, metricFileName) != CAPS_SUCCESS) {
+
+       // Compute the multiscale metric
+       status = refine_genMultiScale(aimInfo);
+       AIM_STATUS(aimInfo, status);
+
+       snprintf(refine_in , PATH_MAX, "%s%s", refine_in_pre , MESHEXTENSION);
+       snprintf(refine_out, PATH_MAX, "%s%s", refine_out_pre, MESHEXTENSION);
+
+       /* create a symbolic link to since refine is not executed */
+       status = aim_file(aimInfo, refine_in, aimFile);
+       AIM_STATUS(aimInfo, status);
+       status = aim_symLink(aimInfo, aimFile, refine_out);
+       AIM_STATUS(aimInfo, status);
+     }
+
+     // set the metric filename
+     status = aim_file(aimInfo, metricFileName, aimFile);
+     AIM_STATUS(aimInfo, status);
+
+     AIM_STRDUP(val->vals.string, aimFile, aimInfo, status)
 
    } else if (index == outxyz) {
 
@@ -1479,8 +1575,8 @@ readlibMeshb(void *aimInfo, aimStorage *refineInstance, aimMesh *mesh)
                                            &elem[1], &igroup);
       if (status <= 0) { status = CAPS_IOERR; AIM_STATUS(aimInfo, status); }
 
-      if (igroup <= 0) {
-        AIM_ERROR(aimInfo, "Group must be a positive number: %d!", igroup);
+      if (igroup <= 0 || igroup > bodydata.nedges) {
+        AIM_ERROR(aimInfo, "Edge ID %d is out of range [1, %d]!=", igroup, bodydata.nedges);
         status = CAPS_IOERR;
         goto cleanup;
       }
@@ -1530,9 +1626,6 @@ readlibMeshb(void *aimInfo, aimStorage *refineInstance, aimMesh *mesh)
 
   nPoint = 3;
   elementTopo = aimTri;
-
-
-
   for (i = 0; i < nTri; i++) {
 
     /* read the element and group */
@@ -1548,14 +1641,16 @@ readlibMeshb(void *aimInfo, aimStorage *refineInstance, aimMesh *mesh)
     }
     igroup -= 1; // make zero based
 
-    ntri = bodydata.tfaces[igroup].ntri;
-    AIM_REALL(bodydata.tfaces[igroup].tris, 3*(ntri+1), int, aimInfo, status);
-    bodydata.tfaces[igroup].tris[3*ntri+0] = elem[0];
-    bodydata.tfaces[igroup].tris[3*ntri+1] = elem[1];
-    bodydata.tfaces[igroup].tris[3*ntri+2] = elem[2];
-    bodydata.tfaces[igroup].ntri++;
+    if (mesh->meshRef->type != aimAreaMesh) {
+      ntri = bodydata.tfaces[igroup].ntri;
+      AIM_REALL(bodydata.tfaces[igroup].tris, 3*(ntri+1), int, aimInfo, status);
+      bodydata.tfaces[igroup].tris[3*ntri+0] = elem[0];
+      bodydata.tfaces[igroup].tris[3*ntri+1] = elem[1];
+      bodydata.tfaces[igroup].tris[3*ntri+2] = elem[2];
+      bodydata.tfaces[igroup].ntri++;
 
-    igroup = refineInstance->faceID[igroup]-1;
+      igroup = refineInstance->faceID[igroup]-1;
+    }
 
     /* add the group if necessary */
     if (faceGroups[igroup] == -1) {
@@ -1692,18 +1787,19 @@ readlibMeshb(void *aimInfo, aimStorage *refineInstance, aimMesh *mesh)
                          &t,
                          &double_gref);  // refine abuse of dist
       if (status <= 0) { status = CAPS_IOERR; AIM_STATUS(aimInfo, status); }
+      id = id-1;
 
-      npts = bodydata.tedges[id-1].npts;
+      npts = bodydata.tedges[id].npts;
 
-      bodydata.tedges[id-1].t[npts] = t;
+      bodydata.tedges[id].t[npts] = t;
 
-      bodydata.tedges[id-1].xyz[3*npts+0] = meshData->verts[ivp-1][0];
-      bodydata.tedges[id-1].xyz[3*npts+1] = meshData->verts[ivp-1][1];
-      bodydata.tedges[id-1].xyz[3*npts+2] = meshData->verts[ivp-1][2];
+      bodydata.tedges[id].xyz[3*npts+0] = meshData->verts[ivp-1][0];
+      bodydata.tedges[id].xyz[3*npts+1] = meshData->verts[ivp-1][1];
+      bodydata.tedges[id].xyz[3*npts+2] = meshData->verts[ivp-1][2];
 
-      bodydata.tedges[id-1].ivp[npts] = ivp;
+      bodydata.tedges[id].ivp[npts] = ivp;
 
-      bodydata.tedges[id-1].npts++;
+      bodydata.tedges[id].npts++;
     }
 
     for (j = 0; j < bodydata.nedges; j++) {
@@ -1730,7 +1826,8 @@ readlibMeshb(void *aimInfo, aimStorage *refineInstance, aimMesh *mesh)
           status = CAPS_IOERR;
           goto cleanup;
         }
-        bodydata.tfaces[id-1].npts++;
+        id = id-1;
+        bodydata.tfaces[id].npts++;
       }
 
       for (j = 0; j < bodydata.nfaces; j++) {
@@ -1752,19 +1849,20 @@ readlibMeshb(void *aimInfo, aimStorage *refineInstance, aimMesh *mesh)
                            &uv[0], &uv[1],
                            &double_gref); // refine abuse of dist
         if (status <= 0) { status = CAPS_IOERR; AIM_STATUS(aimInfo, status); }
+        id = id-1;
 
-        npts = bodydata.tfaces[id-1].npts;
+        npts = bodydata.tfaces[id].npts;
 
-        bodydata.tfaces[id-1].uv[2*npts+0] = uv[0];
-        bodydata.tfaces[id-1].uv[2*npts+1] = uv[1];
+        bodydata.tfaces[id].uv[2*npts+0] = uv[0];
+        bodydata.tfaces[id].uv[2*npts+1] = uv[1];
 
-        bodydata.tfaces[id-1].xyz[3*npts+0] = meshData->verts[ivp-1][0];
-        bodydata.tfaces[id-1].xyz[3*npts+1] = meshData->verts[ivp-1][1];
-        bodydata.tfaces[id-1].xyz[3*npts+2] = meshData->verts[ivp-1][2];
+        bodydata.tfaces[id].xyz[3*npts+0] = meshData->verts[ivp-1][0];
+        bodydata.tfaces[id].xyz[3*npts+1] = meshData->verts[ivp-1][1];
+        bodydata.tfaces[id].xyz[3*npts+2] = meshData->verts[ivp-1][2];
 
-        bodydata.tfaces[id-1].ivp[npts] = ivp;
+        bodydata.tfaces[id].ivp[npts] = ivp;
 
-        bodydata.tfaces[id-1].npts++;
+        bodydata.tfaces[id].npts++;
       }
 
       for (j = 0; j < bodydata.nfaces; j++) {

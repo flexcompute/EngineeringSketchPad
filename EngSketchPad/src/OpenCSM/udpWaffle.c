@@ -10,7 +10,7 @@
  */
 
 /*
- * Copyright (C) 2011/2024  John F. Dannenhoffer, III (Syracuse University)
+ * Copyright (C) 2011/2025  John F. Dannenhoffer, III (Syracuse University)
  *
  * This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
@@ -82,7 +82,7 @@ typedef struct {
 /* prototype for function defined below */
 static int processSegments(int iudp,                int *npnt, pnt_T *pnt_p[], int *nseg, seg_T *seg_p[], int *NumUdp, udp_T *udps);
 static int processFile(ego context, char message[], int *npnt, pnt_T *pnt_p[], int *nseg, seg_T *seg_p[], int *NumUdp, udp_T *udps);
-static int modifySegments(                          int *npnt, pnt_T *pnt_p[], int *nseg, seg_T *seg_p[], char message[]);
+static int modifySegments(                          int *npnt, pnt_T *pnt_p[], int *nseg, seg_T *seg_p[], int *NumUdp, udp_T *udps, char message[]);
 static int getToken(char *text, int nskip, char sep, int maxtok, char *token);
 
 #ifdef GRAFIC
@@ -269,11 +269,11 @@ udpExecute(ego  context,                /* (in)  EGADS context */
     }
 
     /* modify Segments so that they are connected end to end */
-    status = modifySegments(&npnt, &pnt, &nseg, &seg, message);
+    status = modifySegments(&npnt, &pnt, &nseg, &seg, NumUdp, udps, message);
     CHECK_STATUS(modifySegments);
 
     /* show Points and Segments after intersections */
-    if (PROGRESS(numUdp) != 0) {
+    if (PROGRESS(numUdp) == 1) {
         printf("after intersections\n");
         for (ipnt = 0; ipnt < npnt; ipnt++) {
             printf("        Pnt %3d: %-20s %1d %10.5f %10.5f\n", ipnt,
@@ -566,6 +566,7 @@ processSegments(int    iudp,            /* (in)  udp index */
     int     status = EGADS_SUCCESS;
 
     int     mpnt, jpnt, mseg, iseg;
+    double  xmin, xmax, ymin, ymax, toler;
     pnt_T   *pnt=NULL;
     seg_T   *seg=NULL;
 
@@ -576,6 +577,21 @@ processSegments(int    iudp,            /* (in)  udp index */
     /* get number of Segments from size of SEGMENTS() */
     *npnt = 0;
     *nseg = udps[iudp].arg[1].size / 4;
+
+    /* set up tolerance based upon size of physical domain */
+    xmin = SEGMENTS(iudp,0);
+    xmax = SEGMENTS(iudp,0);
+    ymin = SEGMENTS(iudp,1);
+    ymax = SEGMENTS(iudp,1);
+
+    for (jpnt = 1; jpnt < udps[iudp].arg[1].size/2; jpnt+=2) {
+        if (SEGMENTS(iudp,2*jpnt  ) < xmin) xmin = SEGMENTS(iudp,2*jpnt  );
+        if (SEGMENTS(iudp,2*jpnt  ) > xmax) xmax = SEGMENTS(iudp,2*jpnt  );
+        if (SEGMENTS(iudp,2*jpnt+1) < ymin) ymin = SEGMENTS(iudp,2*jpnt+1);
+        if (SEGMENTS(iudp,2*jpnt+1) > ymax) ymax = SEGMENTS(iudp,2*jpnt+1);
+    }
+
+    toler = EPS06 * MAX(xmax-xmin, ymax-ymin);
 
     /* default (empty) Point and Segment tables */
     mpnt = *nseg * 2;   /* perhaps too big */
@@ -590,8 +606,8 @@ processSegments(int    iudp,            /* (in)  udp index */
         /* check if beginning of Segment matches any Points so far */
         seg[iseg].ibeg = -1;
         for (jpnt = 0; jpnt < *npnt; jpnt++) {
-            if (fabs(SEGMENTS(iudp,4*iseg  )-pnt[jpnt].x) < EPS06 &&
-                fabs(SEGMENTS(iudp,4*iseg+1)-pnt[jpnt].y) < EPS06   ) {
+            if (fabs(SEGMENTS(iudp,4*iseg  )-pnt[jpnt].x) < toler &&
+                fabs(SEGMENTS(iudp,4*iseg+1)-pnt[jpnt].y) < toler   ) {
                 seg[iseg].ibeg = jpnt;
                 break;
             }
@@ -612,8 +628,8 @@ processSegments(int    iudp,            /* (in)  udp index */
         /* check if end of Segment matches any Points so far */
         seg[iseg].iend = -1;
         for (jpnt = 0; jpnt < *npnt; jpnt++) {
-            if (fabs(SEGMENTS(iudp,4*iseg+2)-pnt[jpnt].x) < EPS06 &&
-                fabs(SEGMENTS(iudp,4*iseg+3)-pnt[jpnt].y) < EPS06   ) {
+            if (fabs(SEGMENTS(iudp,4*iseg+2)-pnt[jpnt].x) < toler &&
+                fabs(SEGMENTS(iudp,4*iseg+3)-pnt[jpnt].y) < toler   ) {
                 seg[iseg].iend = jpnt;
                 break;
             }
@@ -710,6 +726,7 @@ processFile(ego    context,             /* (in)  EGADS context */
     double xloc_dot, yloc_dot, xvalue_dot, yvalue_dot, value_dot, val1_dot, val2_dot;
     double frac,     N,     D,     s,     dist,     dx,     dy,     alen;
     double frac_dot, N_dot, D_dot, s_dot, dist_dot, dx_dot, dy_dot, alen_dot;
+    double toler;
     pnt_T  *pnt=NULL;
     seg_T  *seg=NULL;
     char   templine[256], token[256], pname1[256], pname2[256], lname1[256], lname2[256];
@@ -755,6 +772,8 @@ processFile(ego    context,             /* (in)  EGADS context */
             goto cleanup;
         }
     }
+
+    toler = EPS06;
 
     /* determine if filename actually contains the name of a file
        or a copy of a virtual file */
@@ -873,6 +892,14 @@ processFile(ego    context,             /* (in)  EGADS context */
         if (outLevel >= 1) {
             printf("    processing: %s", templine);
             if (fp == NULL) printf("\n");
+        }
+
+        /* remove inline comments */
+        for (i = 0; i < strlen(templine); i++) {
+            if (templine[i] == '#') {
+                templine[i] =  '\0';
+                break;
+            }
         }
 
         /* get and process the first token */
@@ -1042,7 +1069,7 @@ processFile(ego    context,             /* (in)  EGADS context */
                 } else if (strcmp(token, "xloc") == 0 ||
                            strcmp(token, "XLOC") == 0   ) {
 
-                    if(fabs(pnt[ibeg].x-pnt[iend].x) < EPS06) {
+                    if(fabs(pnt[ibeg].x-pnt[iend].x) < toler) {
                         snprintf(message, 1024, "cannot specify XLOC on a constant X line\nwhile processing: %s", templine);
                         status = EGADS_RANGERR;
                         goto cleanup;
@@ -1077,7 +1104,7 @@ processFile(ego    context,             /* (in)  EGADS context */
                 } else if (strcmp(token, "yloc") == 0 ||
                            strcmp(token, "YLOC") == 0   ) {
 
-                    if(fabs(pnt[ibeg].y-pnt[iend].y) < EPS06) {
+                    if(fabs(pnt[ibeg].y-pnt[iend].y) < toler) {
                         snprintf(message, 1024, "cannot specify YLOC on a constant Y line\nwhile processing: %s", templine);
                         status = EGADS_RANGERR;
                         goto cleanup;
@@ -1309,8 +1336,8 @@ processFile(ego    context,             /* (in)  EGADS context */
             /* see if Point already exists at these coordintes  */
             ipnt = -1;
             for (jpnt = 0; jpnt < *npnt; jpnt++) {
-                if (fabs(xvalue-pnt[jpnt].x) < EPS06 &&
-                    fabs(yvalue-pnt[jpnt].y) < EPS06   ) {
+                if (fabs(xvalue-pnt[jpnt].x) < toler &&
+                    fabs(yvalue-pnt[jpnt].y) < toler   ) {
                     ipnt = jpnt;
                     break;
                 }
@@ -1797,7 +1824,7 @@ processFile(ego    context,             /* (in)  EGADS context */
         }
 
         /* show Points and Segments after processing this statement */
-        if (PROGRESS(numUdp) != 0) {
+        if (PROGRESS(numUdp) > 0) {
             for (ipnt = 0; ipnt < *npnt; ipnt++) {
                 printf("        Pnt %3d: %-20s %1d %10.5f %10.5f\n", ipnt,
                        pnt[ipnt].name, pnt[ipnt].type, pnt[ipnt].x, pnt[ipnt].y);
@@ -1857,12 +1884,15 @@ modifySegments(int     *npnt,           /* (both) number of points */
                pnt_T   *pnt[],          /* (both) array  of points */
                int     *nseg,           /* (both) number of segments */
                seg_T   *seg[],          /* (both) array  of segments */
+               int     *NumUdp,
+               udp_T   *udps,
                char    message[])       /* (out)  error message */
 {
     int     status = EGADS_SUCCESS;     /* (out)  return status */
 
     int     ipnt, iseg, jseg;
-    int     ibeg, iend, jbeg, jend, jpnt, mpnt, mseg, iter, nchange, iattr;
+    int     ibeg, iend, jbeg, jend, jpnt, mpnt, mseg, nmax, iter, nchange, iattr;
+    double  xmin, xmax, ymin,ymax, toler;
     double  N,     D,     s,     t,     xx,     yy,     frac, dist;
     double  N_dot, D_dot, s_dot,        xx_dot, yy_dot;
     void    *realloc_temp = NULL;            /* used by RALLOC macro */
@@ -1871,31 +1901,51 @@ modifySegments(int     *npnt,           /* (both) number of points */
 
     /* --------------------------------------------------------------- */
 
-#ifdef DEBUG
-    printf("entering modifySegments\n");
-    for (ipnt = 0; ipnt < *npnt; ipnt++) {
-        printf("Pnt %3d: type=%d, x=%10.5f,%10.5f, y=%10.5f,%10.5f, name=%s\n", ipnt,
-               (*pnt)[ipnt].type,
-               (*pnt)[ipnt].x,
-               (*pnt)[ipnt].x_dot,
-               (*pnt)[ipnt].y,
-               (*pnt)[ipnt].y_dot,
-               (*pnt)[ipnt].name);
+    if (PROGRESS(numUdp) > 1) {
+        printf("entering modifySegments\n");
+        printf(" ipnt  type     x            xdot         y            ydot     name\n");
+        for (ipnt = 0; ipnt < *npnt; ipnt++) {
+            printf("%5d %5d %12.6f %12.6f %12.6f %12.6f %s\n", ipnt,
+                   (*pnt)[ipnt].type,
+                   (*pnt)[ipnt].x,
+                   (*pnt)[ipnt].x_dot,
+                   (*pnt)[ipnt].y,
+                   (*pnt)[ipnt].y_dot,
+                   (*pnt)[ipnt].name);
+        }
+        printf(" iseg  type  ibeg  iend   num   idx name\n");
+        for (iseg = 0; iseg < *nseg; iseg++) {
+            printf("%5d %5d %5d %5d %5d %5d %s\n", iseg,
+                   (*seg)[iseg].type,
+                   (*seg)[iseg].ibeg,
+                   (*seg)[iseg].iend,
+                   (*seg)[iseg].num,
+                   (*seg)[iseg].idx,
+                   (*seg)[iseg].name);
+        }
+        printf("\n");
     }
-    for (iseg = 0; iseg < *nseg; iseg++) {
-        printf("Seg %3d: type=%d, ibeg=%3d, iend=%3d, num=%3d, idx=%3d, name=%s\n", iseg,
-               (*seg)[iseg].type,
-               (*seg)[iseg].ibeg,
-               (*seg)[iseg].iend,
-               (*seg)[iseg].num,
-               (*seg)[iseg].idx,
-               (*seg)[iseg].name);
-    }
-#endif
 
     /* current size of arrays */
     mpnt = *npnt;
     mseg = *nseg;
+
+    nmax = mseg * mseg;
+
+    /* find tolerance based upon size of physical domain */
+    xmin = (*pnt)[0].x;
+    xmax = (*pnt)[0].x;
+    ymin = (*pnt)[0].y;
+    ymax = (*pnt)[0].y;
+
+    for (ipnt = 1; ipnt < *npnt; ipnt++) {
+        if ((*pnt)[ipnt].x < xmin) xmin = (*pnt)[ipnt].x;
+        if ((*pnt)[ipnt].x > xmax) xmax = (*pnt)[ipnt].x;
+        if ((*pnt)[ipnt].y < ymin) ymin = (*pnt)[ipnt].y;
+        if ((*pnt)[ipnt].y > ymax) ymax = (*pnt)[ipnt].y;
+    }
+
+    toler = EPS06 * MAX(xmax-xmin, ymax-ymin);
 
     /* check for intersections of Lines only */
     for (jseg = 0; jseg < *nseg; jseg++) {
@@ -1940,11 +1990,15 @@ modifySegments(int     *npnt,           /* (both) number of points */
 
                     ipnt = -1;
                     for (jpnt = 0; jpnt < *npnt; jpnt++) {
-                        if (fabs(xx-(*pnt)[jpnt].x) < EPS06 &&
-                            fabs(yy-(*pnt)[jpnt].y) < EPS06   ) {
+                        if (fabs(xx-(*pnt)[jpnt].x) < toler &&
+                            fabs(yy-(*pnt)[jpnt].y) < toler   ) {
                             ipnt = jpnt;
                             break;
                         }
+                    }
+
+                    if (PROGRESS(numUdp) > 1) {
+                        printf("intersecting iseg=%3d and jseg=%3d\n", iseg, jseg);
                     }
 
                     if (ipnt < 0) {
@@ -1962,6 +2016,11 @@ modifySegments(int     *npnt,           /* (both) number of points */
                         (*pnt)[*npnt].y     = yy;
                         (*pnt)[*npnt].y_dot = yy_dot;
                         (*pnt)[*npnt].name[0] = '\0';
+
+                        if (PROGRESS(numUdp) > 1) {
+                            printf("    create pnt %3d: x=%12.6f, y=%12.6f\n", *npnt, xx, yy);
+                        }
+
                         (*npnt)++;
                     }
 
@@ -2002,9 +2061,17 @@ modifySegments(int     *npnt,           /* (both) number of points */
                             strncpy((*seg)[*nseg].avalu[iattr], (*seg)[iseg].avalu[iattr], 80);
                         }
 
+                        if (PROGRESS(numUdp) > 1) {
+                            printf("    create seg %3d: ibeg=%3d, iend=%3d\n", *nseg, ipnt, iend);
+                        }
+
                         (*nseg)++;
 
                         (*seg)[iseg].iend = ipnt;
+
+                        if (PROGRESS(numUdp) > 1) {
+                            printf("    modify seg %3d: ibeg=%3d, iend=%3d\n", iseg, ibeg, ipnt);
+                        }
                     }
 
                     if (jbeg != ipnt && jend != ipnt) {
@@ -2035,9 +2102,24 @@ modifySegments(int     *npnt,           /* (both) number of points */
                             strncpy((*seg)[*nseg].avalu[iattr], (*seg)[jseg].avalu[iattr], 80);
                         }
 
+                        if (PROGRESS(numUdp) > 1) {
+                            printf("    create seg %3d: ibeg=%3d, iend=%3d\n", *nseg, ipnt, jend);
+                        }
+
                         (*nseg)++;
 
                         (*seg)[jseg].iend = ipnt;
+
+                        if (PROGRESS(numUdp) > 1) {
+                            printf("    modify seg %3d: ibeg=%3d, iend=%3d\n", jseg, jbeg, ipnt);
+                        }
+                    }
+
+                    /* check for infinite loop */
+                    if (*nseg >nmax) {
+                        snprintf(message, 1024, "possible infinite loop, *nseg=%d", *nseg);
+                        status = EGADS_DEGEN;
+                        goto cleanup;
                     }
                 }
             }
@@ -2069,7 +2151,7 @@ modifySegments(int     *npnt,           /* (both) number of points */
                        + (yy - (*pnt)[ipnt].y) * (yy - (*pnt)[ipnt].y));
 
 
-            if (dist < EPS06) {
+            if (dist < toler) {
 
                 /* make room for new Segment */
                 if (*nseg+1 >= mseg) {
@@ -2109,6 +2191,11 @@ modifySegments(int     *npnt,           /* (both) number of points */
                 /* revise first half */
                 (*seg)[iseg].iend = ipnt;
 
+                if (PROGRESS(numUdp) > 1) {
+                    printf("breaking *nseg=%3d and ipnt=%3d\n", *nseg, ipnt);
+                    printf("    modify seg %3d: ibeg=%3d, iend=%3d\n", *nseg, ipnt, (*seg)[iseg].iend);
+                }
+
                 (*nseg)++;
 
                 /* start again at this Segment */
@@ -2136,6 +2223,10 @@ modifySegments(int     *npnt,           /* (both) number of points */
                 (*seg)[jseg].avalu = (*seg)[jseg+1].avalu;
 
                 strcpy((*seg)[jseg].name, (*seg)[jseg+1].name);
+            }
+
+            if (PROGRESS(numUdp) > 1) {
+                printf("copying *nseg=%3d over jseg=%3d\n", *nseg, jseg);
             }
 
             iseg--;
@@ -2174,27 +2265,29 @@ modifySegments(int     *npnt,           /* (both) number of points */
         if (nchange == 0) break;
     }
 
-#ifdef DEBUG
-    printf("exiting modifySegments\n");
-    for (ipnt = 0; ipnt < *npnt; ipnt++) {
-        printf("Pnt %3d: type=%d, x=%10.5f,%10.5f, y=%10.5f,%10.5f, name=%s\n", ipnt,
-               (*pnt)[ipnt].type,
-               (*pnt)[ipnt].x,
-               (*pnt)[ipnt].x_dot,
-               (*pnt)[ipnt].y,
-               (*pnt)[ipnt].y_dot,
-               (*pnt)[ipnt].name);
+    if (PROGRESS(numUdp) > 1) {
+        printf("\nexiting modifySegments\n");
+        printf(" ipnt  type     x            xdot         y            ydot     name\n");
+        for (ipnt = 0; ipnt < *npnt; ipnt++) {
+            printf("%5d %5d %12.6f %12.6f %12.6f %12.6f %s\n", ipnt,
+                   (*pnt)[ipnt].type,
+                   (*pnt)[ipnt].x,
+                   (*pnt)[ipnt].x_dot,
+                   (*pnt)[ipnt].y,
+                   (*pnt)[ipnt].y_dot,
+                   (*pnt)[ipnt].name);
+        }
+        printf(" iseg  type  ibeg  iend   num   idx name\n");
+        for (iseg = 0; iseg < *nseg; iseg++) {
+            printf("%5d %5d %5d %5d %5d %5d %s\n", iseg,
+                   (*seg)[iseg].type,
+                   (*seg)[iseg].ibeg,
+                   (*seg)[iseg].iend,
+                   (*seg)[iseg].num,
+                   (*seg)[iseg].idx,
+                   (*seg)[iseg].name);
+        }
     }
-    for (iseg = 0; iseg < *nseg; iseg++) {
-        printf("Seg %3d: type=%d, ibeg=%3d, iend=%3d, num=%3d, idx=%3d, name=%s\n", iseg,
-               (*seg)[iseg].type,
-               (*seg)[iseg].ibeg,
-               (*seg)[iseg].iend,
-               (*seg)[iseg].num,
-               (*seg)[iseg].idx,
-               (*seg)[iseg].name);
-    }
-#endif
 
 cleanup:
 return status;
@@ -2342,13 +2435,13 @@ udpSensitivity(ego    ebody,            /* (in)  Body pointer */
         CHECK_STATUS(processFile);
         (void) ocsmSetOutLevel(outLevel_save);
 
-        status = modifySegments(&npnt, &pnt, &nseg, &seg, message);
+        status = modifySegments(&npnt, &pnt, &nseg, &seg, NumUdp, udps, message);
         CHECK_STATUS(modifySegments);
     } else {
         status = processSegments(iudp, &npnt, &pnt, &nseg, &seg, NumUdp, udps);
         CHECK_STATUS(processSegments);
 
-        status = modifySegments(&npnt, &pnt, &nseg, &seg, message);
+        status = modifySegments(&npnt, &pnt, &nseg, &seg, NumUdp, udps, message);
         CHECK_STATUS(modifySegments);
     }
 

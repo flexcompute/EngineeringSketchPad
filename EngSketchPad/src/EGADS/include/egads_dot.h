@@ -5,7 +5,7 @@
  *
  *             Function Prototypes for Sensitivities
  *
- *      Copyright 2011-2024, Massachusetts Institute of Technology
+ *      Copyright 2011-2025, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -29,7 +29,7 @@ extern "C" {
 
 __ProtoExt__ int  EG_makeGeometry_dot(ego context, int oclass, int mtype,
                                       /*@null@*/ ego refGeom, /*@null@*/ const int *ints,
-                                      const double *data, const double *data_dot, egObject **geom);
+                                      const double *data, const double *data_dot, ego *geom);
 __ProtoExt__ int  EG_setGeometry_dot( ego geom, int oclass, int mtype,
                                       /*@null@*/ const int *ints,
                                       /*@null@*/ const double *reals,
@@ -41,6 +41,7 @@ __ProtoExt__ int  EG_copyGeometry_dot( const ego obj,
                                        /*@null@*/ const double *mat,
                                        /*@null@*/ const double *mat_dot,
                                        ego copy );
+__ProtoExt__ int  EG_zeroGeometry_dot(ego obj);
 __ProtoExt__ int  EG_evaluate_dot( const ego geom,
                                    /*@null@*/ const double *params,
                                    /*@null@*/ const double *params_dot,
@@ -52,11 +53,11 @@ __ProtoExt__ int EG_skinning_dot(ego surface, int nCurves, ego *curves);
 
 /* topology functions */
 
-__ProtoExt__ int  EG_makeTopology_dot(egObject *context, /*@null@*/ egObject *geom,
+__ProtoExt__ int  EG_makeTopology_dot(ego context, /*@null@*/ ego geom,
                                       int oclass, int mtype,
                                       /*@null@*/ double *limits, /*@null@*/ double *limits_dot,
-                                      int nChildren, /*@null@*/ egObject **children,
-                                      /*@null@*/ int *senses, egObject **topo);
+                                      int nChildren, /*@null@*/ ego *children,
+                                      /*@null@*/ int *senses, ego *topo);
 
 __ProtoExt__ int  EG_makeSolidBody_dot( ego body, int stype, const double *data,
                                         const double *data_dot );
@@ -85,10 +86,10 @@ __ProtoExt__ int  EG_rotate_dot( ego body, const ego src,
                                  const double *axis, const double *axis_dot);
 __ProtoExt__ int  EG_ruled_dot( ego body, int nSection, const ego *sections );
 __ProtoExt__ int  EG_blend_dot( ego body, int nSection, const ego *sections,
-                                /*@null@*/ double *rc1,
-                                /*@null@*/ double *rc1_dot,
-                                /*@null@*/ double *rcN,
-                                /*@null@*/ double *rcN_dot );
+                                /*@null@*/ const double *rc1,
+                                /*@null@*/ const double *rc1_dot,
+                                /*@null@*/ const double *rcN,
+                                /*@null@*/ const double *rcN_dot );
 
 #ifdef __cplusplus
 }
@@ -111,6 +112,9 @@ int  EG_copyGeometry_dot( const egObject *obj,
                           ego copy );
 int  EG_evaluate( const egObject *geom, /*@null@*/ const SurrealS<1> *param,
                   SurrealS<1> *result );
+int  EG_approximate( ego context, int maxdeg, double tol,
+                     const int *sizes, const SurrealS<1> *xyzs,
+                     ego *bspline );
 int  EG_approximate_dot( ego bspline, int maxdeg, double tol,
                          const int *sizes,
                          const SurrealS<1> *data );

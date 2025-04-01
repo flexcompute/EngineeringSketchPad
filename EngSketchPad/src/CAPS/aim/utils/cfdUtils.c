@@ -257,8 +257,7 @@ int cfd_getBoundaryCondition(void *aimInfo,
             status = search_jsonDictionary( bcTuple[i].value, keyWord, &keyValue);
             if (status == CAPS_SUCCESS) {
 
-                bcProps->surfaceProp[i].wallTemperatureFlag = (int) true;
-                bcProps->surfaceProp[i].wallTemperature = -10;
+                bcProps->surfaceProp[i].wallTemperatureFlag = (int) false;
 
                 status = string_toDouble(keyValue, &bcProps->surfaceProp[i].wallHeatFlux);
                 AIM_STATUS(aimInfo, status);
@@ -872,7 +871,7 @@ int cfd_getModalAeroelastic(int numTuple,
 
     }
 
-    printf("Done getting CFD boundary conditions\n");
+    printf("Done getting CFD modal aeroelastic conditions\n");
 
     return CAPS_SUCCESS;
 }
@@ -2041,7 +2040,7 @@ int destroy_cfdUnitsStruct(cfdUnitsStruct *units)
     return CAPS_SUCCESS;
 }
 
-// Compute derived units from bas units
+// Compute derived units from base units
 int cfd_cfdDerivedUnits(void *aimInfo, cfdUnitsStruct *units)
 {
 

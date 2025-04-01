@@ -2,6 +2,9 @@
 ifndef ESP_ROOT
 $(error ESP_ROOT must be set -- Please fix the environment...)
 endif
+ifndef ESP_ARCH
+$(error ESP_ARCH must be set -- Please fix the environment...)
+endif
 #
 IDIR  = $(ESP_ROOT)/include
 include $(IDIR)/$(ESP_ARCH)
@@ -14,10 +17,11 @@ ODIR  = .
 TDIR  = $(ESP_ROOT)/bin
 endif
 
+include $(ESP_ROOT)/include/ESPPYTHON.make
 
 $(LDIR)/tacsAIM.so:	$(ODIR)/tacsAIM.o $(LDIR)/libutils.a $(LDIR)/libaimUtil.a
 	$(CC) $(SOFLGS) -o $(LDIR)/tacsAIM.so $(ODIR)/tacsAIM.o \
-		-L$(LDIR) -lutils -laimUtil -locsm -legads -ludunits2 -ldl -lm $(PYTHONLIB)
+		-L$(LDIR) -lutils -laimUtil -locsm -legads -ludunits2 $(PYTHONLIBFLAGS) -ldl -lm
 
 $(ODIR)/tacsAIM.o:	tacsAIM.c $(IDIR)/capsTypes.h
 	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I../utils tacsAIM.c \

@@ -8,10 +8,8 @@
  ************************************************************************
  */
 
-#define UDP    1
-
 /*
- * Copyright (C) 2013/2024  John F. Dannenhoffer, III (Syracuse University)
+ * Copyright (C) 2013/2025  John F. Dannenhoffer, III (Syracuse University)
  *
  * This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
@@ -33,79 +31,22 @@
 #include "udpUtilities.h"
 
 /* shorthands for accessing argument values and velocities */
-#ifdef UDP
-    #define THICK(     IUDP)  ((double *) (udps[IUDP].arg[0].val))[0]
-    #define THICK_DOT( IUDP)  ((double *) (udps[IUDP].arg[0].dot))[0]
-    #define CAMBER(    IUDP)  ((double *) (udps[IUDP].arg[1].val))[0]
-    #define CAMBER_DOT(IUDP)  ((double *) (udps[IUDP].arg[1].dot))[0]
+#define THICK(     IUDP)  ((double *) (udps[IUDP].arg[0].val))[0]
+#define THICK_DOT( IUDP)  ((double *) (udps[IUDP].arg[0].dot))[0]
+#define CAMBER(    IUDP)  ((double *) (udps[IUDP].arg[1].val))[0]
+#define CAMBER_DOT(IUDP)  ((double *) (udps[IUDP].arg[1].dot))[0]
 
-    /* data about possible arguments */
-    static char  *argNames[NUMUDPARGS] = {"thick",     "camber",    };
-    static int    argTypes[NUMUDPARGS] = {ATTRREALSEN, ATTRREALSEN, };
-    static int    argIdefs[NUMUDPARGS] = {0,           0,           };
-    static double argDdefs[NUMUDPARGS] = {0.,          0.,          };
+/* data about possible arguments */
+static char  *argNames[NUMUDPARGS] = {"thick",     "camber",    };
+static int    argTypes[NUMUDPARGS] = {ATTRREALSEN, ATTRREALSEN, };
+static int    argIdefs[NUMUDPARGS] = {0,           0,           };
+static double argDdefs[NUMUDPARGS] = {0.,          0.,          };
 
-    /* get utility routines: udpErrorStr, udpInitialize, udpReset, udpSet,
-                             udpGet, udpVel, udpClean, udpMesh */
-    #include "udpUtilities.c"
-#else
-    #define THICK(     IUDP)  0.12
-    #define THICK_DOT( IUDP)  0.00
-    #define CAMBER(    IUDP)  0.04
-    #define CAMBER_DOT(IUDP)  0.00
+/* get utility routines: udpErrorStr, udpInitialize, udpReset, udpSet,
+   udpGet, udpVel, udpClean, udpMesh */
+#include "udpUtilities.c"
 
-/*@null@*/ char *
-udpErrorStr(int stat)                   /* (in)  status number */
-{
-    char *string;                       /* (out) error message */
-
-    MALLOC(string, char, 25);
-    snprintf(string, 25, "EGADS status = %d", stat);
-
-    return string;
-}
-
-int
-main(int       argc,                    /* (in)  number of arguments */
-     char      *argv[])                 /* (in)  array of arguments */
-{
-    int  status, nMesh;
-    char *string;
-    ego  context, ebody, emodel;
-
-    /* dummy call to prevent compiler warnings */
-    ocsmPrintEgo(NULL);
-
-    /* define a context */
-    status = EG_open(&context);
-    printf("EG_open -> status=%d\n", status);
-    if (status < 0) exit(1);
-
-    /* call the execute routine */
-    status = udpExecute(context, &ebody, &nMesh, &string);
-    printf("udpExecute -> status=%d\n", status);
-    if (status < 0) exit(1);
-
-    EG_free(string);
-
-    /* make and dump the model */
-    status = EG_makeTopology(context, NULL, MODEL, 0, NULL,
-                             1, &ebody, NULL, &emodel);
-    printf("EG_makeTopology -> status=%d\n", status);
-    if (status < 0) exit(1);
-
-    status = EG_saveModel(emodel, "biconvex.egads");
-    printf("EG_saveModel -> status=%d\n", status);
-    if (status < 0) exit(1);
-
-    /* cleanup */
-    status = EG_deleteObject(emodel);
-    printf("EG_close -> status=%d\n", status);
-
-    status = EG_close(context);
-    printf("EG_close -> status=%d\n", status);
-}
-#endif
+#include "egads_dot.h"
 
 
 /*
@@ -131,7 +72,7 @@ udpExecute(ego  context,                /* (in)  EGADS context */
     ROUTINE(udpExecute);
 
     /* --------------------------------------------------------------- */
-    
+
 #ifdef DEBUG
     printf("udpExecute(context=%llx)\n", (long long)context);
     printf("thick(0)       = %f\n", THICK(     0));
@@ -145,7 +86,6 @@ udpExecute(ego  context,                /* (in)  EGADS context */
     *nMesh  = 0;
     *string = NULL;
 
-#ifdef UDP
     /* check arguments */
     if (udps[0].arg[0].size > 1) {
         printf(" udpExecute: thick should be a scalar\n");
@@ -167,7 +107,6 @@ udpExecute(ego  context,                /* (in)  EGADS context */
     /* cache copy of arguments for future use */
     status = cacheUdp(NULL);
     CHECK_STATUS(cacheUdp);
-#endif
 
 #ifdef DEBUG
     printf("thick[%d]      = %f\n", numUdp, THICK(     numUdp));
@@ -335,9 +274,7 @@ udpExecute(ego  context,                /* (in)  EGADS context */
     /* no output value(s) */
 
     /* remember this model (Body) */
-#ifdef UDP
     udps[numUdp].ebody = *ebody;
-#endif
 
 #ifdef DEBUG
     printf("udpExecute -> *ebody=%llx\n", (long long)(*ebody));
@@ -362,21 +299,24 @@ cleanup:
 
 int
 udpSensitivity(ego    ebody,            /* (in)  Body pointer */
-   /*@unused@*/int    npnt,             /* (in)  number of points */
-   /*@unused@*/int    entType,          /* (in)  OCSM entity type */
-   /*@unused@*/int    entIndex,         /* (in)  OCSM entity index (bias-1) */
-   /*@unused@*/double uvs[],            /* (in)  parametric coordinates for evaluation */
-   /*@unused@*/double vels[])           /* (out) velocities */
+               int    npnt,             /* (in)  number of points */
+               int    entType,          /* (in)  OCSM entity type */
+               int    entIndex,         /* (in)  OCSM entity index (bias-1) */
+               double uvs[],            /* (in)  parametric coordinates for evaluation */
+               double vels[])           /* (out) velocities */
 {
     int    status = EGADS_SUCCESS;
 
-    int    iudp, judp, ipnt;
+    int    iudp, judp, ipnt, nnode, inode, nedge, iedge, nface, iface;
+    int    oclass, mtype, *idata=NULL, *senses, nchild, i;
     double H, H_dot, L, R, R_dot;
-    double thbeg, thbeg_dot, thend, thend_dot, s, th, th_dot;
+    double data[18], data_dot[18], trange[4], trange_dot[4], *rdata=NULL, uv_dot[2];
+    ego    *enodes=NULL, *eedges=NULL, *efaces=NULL, *echilds, eref, ecurve, esurface;
 
     ROUTINE(udpSensitivity);
 
     /* --------------------------------------------------------------- */
+
 #ifdef DEBUG
     printf("udpSensitivity(ebody=%llx, npnt=%d, entType=%d, entIndex=%d, uvs=%f %f)\n",
            (long long)ebody, npnt, entType, entIndex, uvs[0], uvs[1]);
@@ -392,6 +332,141 @@ udpSensitivity(ego    ebody,            /* (in)  Body pointer */
     }
     if (iudp <= 0) {
         return EGADS_NOTMODEL;
+    }
+
+    /* if there are no dots on the Body, create them now */
+    if (EG_hasGeometry_dot(ebody) != EGADS_SUCCESS) {
+
+        /* Node velocities are zero */
+        status = EG_getBodyTopos(ebody, NULL, NODE, &nnode, &enodes);
+        CHECK_STATUS(EG_getBodyTopos);
+
+        for (i = 0; i < 3; i++) {
+            data_dot[i] = 0;
+        }
+
+        for (inode = 0; inode < nnode; inode++) {
+            SPLINT_CHECK_FOR_NULL(enodes);
+
+            status = EG_getTopology(enodes[inode], &eref, &oclass, &mtype,
+                                    data, &nchild, &echilds, &senses);
+            CHECK_STATUS(EG_getTopology);
+
+            status = EG_setGeometry_dot(enodes[inode], oclass, mtype,
+                                        NULL, data, data_dot);
+            CHECK_STATUS(EG_setGeometry_dot);
+        }
+
+        EG_free(enodes);   enodes = NULL;
+
+        /* Edge velocities are generally not zero */
+        status = EG_getBodyTopos(ebody, NULL, EDGE, &nedge, &eedges);
+        CHECK_STATUS(EG_getBodyTopos);
+
+        for (iedge = 0; iedge < nedge; iedge++) {
+            SPLINT_CHECK_FOR_NULL(eedges);
+
+            status = EG_getTopology(eedges[iedge], &ecurve, &oclass, &mtype,
+                                    trange, &nchild, &echilds, &senses);
+            CHECK_STATUS(EG_getTopology);
+
+            status = EG_getGeometry(ecurve, &oclass, &mtype, &eref, &idata, &rdata);
+            CHECK_STATUS(EG_getGeometry);
+
+            for (i = 0; i < 10; i++) {
+                data_dot[i] = 0;
+            }
+
+            if (iedge == 0) {
+                H     = CAMBER(    iudp) + THICK(    iudp) / 2;
+                H_dot = CAMBER_DOT(iudp) + THICK_DOT(iudp) / 2;
+            } else {
+                H     = CAMBER(    iudp) - THICK(    iudp) / 2;
+                H_dot = CAMBER_DOT(iudp) - THICK_DOT(iudp) / 2;
+            }
+
+            if (H > EPS06) {
+                L = 0.5;
+
+                R     = (H*H + L*L) / (2*H);
+                R_dot = H_dot * (1 - (L*L) / (H*H)) / 2;
+
+                data_dot[1] = H_dot - R_dot;
+                data_dot[9] =         R_dot;
+
+                trange_dot[0] = (+R_dot - H_dot) * L / ((R-H)*(R-H) + L*L);
+                trange_dot[1] = -trange_dot[0];
+            } else if (H < -EPS06) {
+                L = 0.5;
+
+                R     = (H*H + L*L) / (2*H);
+                R_dot = H_dot * (1 - (L*L) / (H*H)) / 2;
+
+                data_dot[1] = H_dot - R_dot;
+                data_dot[9] =       - R_dot;
+
+                trange_dot[0] = (-R_dot + H_dot) * L / ((R-H)*(R-H) + L*L);
+                trange_dot[1] = -trange_dot[0];
+            } else if (fabs(CAMBER_DOT(iudp)) < EPS06 && fabs(THICK_DOT(iudp)) < EPS06) {
+                trange_dot[0] = 0;
+                trange_dot[1] = 0;
+
+            /* a linear Edge will change to a curved Edge, which will give a topoloical change */
+            } else {
+                printf("sensitivity of linear Edge in udpBiconvex is not allowed\n");
+                status = EGADS_TOPOERR;
+                goto cleanup;
+            }
+
+            status = EG_setGeometry_dot(ecurve, oclass, mtype, idata, rdata, data_dot);
+            CHECK_STATUS(EG_setGeometry_dot);
+
+            status = EG_setRange_dot(eedges[iedge], EDGE, trange, trange_dot);
+            CHECK_STATUS(EG_setRange_dot);
+
+            if (idata != NULL) {
+                EG_free(idata);   idata = NULL;
+            }
+            if (rdata != NULL) {
+                EG_free(rdata);   rdata = NULL;
+            }
+        }
+
+        EG_free(eedges);   eedges = NULL;
+
+        /* Face has no velocities */
+        status = EG_getBodyTopos(ebody, NULL, FACE, &nface, &efaces);
+        CHECK_STATUS(EG_getBodyTopos);
+
+        for (iface = 0; iface < nface; iface++) {
+            SPLINT_CHECK_FOR_NULL(efaces);
+
+            status = EG_getTopology(efaces[iface], &esurface, &oclass, &mtype,
+                                    data, &nchild, &echilds, &senses);
+            CHECK_STATUS(EG_getTopology);
+
+            status = EG_getGeometry(esurface, &oclass, &mtype, &eref, &idata, &rdata);
+            CHECK_STATUS(EG_getGeometry);
+
+            for (i = 0; i < 9; i++) {
+                data_dot[i] = 0;
+            }
+
+            status = EG_setGeometry_dot(esurface, oclass, mtype, NULL, rdata, data_dot);
+            CHECK_STATUS(EG_setGeometry_dot);
+
+            if (idata != NULL) {
+                EG_free(idata);   idata = NULL;
+            }
+            if (rdata != NULL) {
+                EG_free(rdata);   rdata  = NULL;
+            }
+            EG_free(efaces);   efaces = NULL;
+
+            /* verify that the Body now has dots */
+            status = EG_hasGeometry_dot(ebody);
+            CHECK_STATUS(EG_hasGeometry_dot);
+        }
     }
 
     /* velocity of a Node is zero */
@@ -410,74 +485,32 @@ udpSensitivity(ego    ebody,            /* (in)  Body pointer */
             vels[3*ipnt+2] = 0;
         }
 
-        /* velocity of the Edges */
+    /* velocity of the Edges */
     } else {
-        if (entIndex == 1) {
-            H     = CAMBER(    iudp) + THICK(    iudp) / 2;
-            H_dot = CAMBER_DOT(iudp) + THICK_DOT(iudp) / 2;
-        } else {
-            H     = CAMBER(    iudp) - THICK(    iudp) / 2;
-            H_dot = CAMBER_DOT(iudp) - THICK_DOT(iudp) / 2;
+        status = EG_getBodyTopos(ebody, NULL, EDGE, &nedge, &eedges);
+        CHECK_STATUS(EG_getBodyTopos);
+
+        SPLINT_CHECK_FOR_NULL(eedges);
+
+        uv_dot[0] = 0;
+        uv_dot[1] = 0;
+
+        for (ipnt = 0; ipnt < npnt; ipnt++) {
+            status = EG_evaluate_dot(eedges[entIndex-1], &uvs[ipnt], uv_dot, data, data_dot);
+            CHECK_STATUS(EG_evaluate_dot);
+
+            vels[3*ipnt  ] = data_dot[0];
+            vels[3*ipnt+1] = data_dot[1];
+            vels[3*ipnt+2] = data_dot[2];
         }
 
-        /* circle which is convex up */
-        if (H > EPS06) {
-            L = 0.5;
-
-            R     = (H*H + L*L) / (2*H);
-            R_dot = H_dot * (1 - (H*H + L*L) / (2 * H*H));
-
-            thbeg     = atan2(R-H, L);
-            thbeg_dot = (R_dot - H_dot) * L / ((R-H) * (R-H) + L*L);
-
-            thend     = PI - thbeg;
-            thend_dot =    - thbeg_dot;
-
-            for (ipnt = 0; ipnt < npnt; ipnt++) {
-                s = (uvs[ipnt] - thbeg) / (thend - thbeg);
-
-                th     = thbeg     * (1-s) + thend     * s;
-                th_dot = thbeg_dot * (1-s) + thend_dot * s;
-
-                vels[3*ipnt  ] = R_dot * cos(th) - th_dot * R * sin(th);
-                vels[3*ipnt+1] = R_dot * sin(th) + th_dot * R * cos(th) - R_dot + H_dot;
-                vels[3*ipnt+2] = 0;
-            }
-
-        /* circle which is convex down */
-        } else if (H < -EPS06) {
-            L = 0.5;
-
-            R     = -(H*H + L*L) / (2*H);
-            R_dot = -H_dot * (1 - (H*H + L*L) / (2 * H*H));
-
-            thbeg     = PI + atan2(R+H, L);
-            thbeg_dot = (R_dot + H_dot) * L / ((R+H) * (R+H) + L*L);
-
-            thend     = 3*PI - thbeg;
-            thend_dot =      - thbeg_dot;
-
-            for (ipnt = 0; ipnt < npnt; ipnt++) {
-                s = (uvs[ipnt] - thbeg) / (thend - thbeg);
-
-                th     = thbeg     * (1-s) + thend     * s;
-                th_dot = thbeg_dot * (1-s) + thend_dot * s;
-
-                vels[3*ipnt  ] = R_dot * cos(th) - th_dot * R * sin(th);
-                vels[3*ipnt+1] = R_dot * sin(th) + th_dot * R * cos(th) + R_dot + H_dot;
-                vels[3*ipnt+2] = 0;
-            }
-
-        /* straight line */
-        } else {
-            for (ipnt = 0; ipnt < npnt; ipnt++) {
-                vels[3*ipnt  ] = 0;
-                vels[3*ipnt+1] = 0;
-                vels[3*ipnt+2] = 0;
-            }
-        }
+        EG_free(eedges);   eedges = NULL;
     }
 
-//cleanup:
+cleanup:
+    if (enodes != NULL) EG_free(enodes);
+    if (eedges != NULL) EG_free(eedges);
+    if (efaces != NULL) EG_free(efaces);
+
     return status;
 }

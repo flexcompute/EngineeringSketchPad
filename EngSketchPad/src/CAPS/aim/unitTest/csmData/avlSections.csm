@@ -21,14 +21,35 @@ despmtr   camber    0.04      #frac of loacl chord
 # create airfoil a veriety of airfoil sections to test the writeSection logic
 # -----------------------------------------------------------------
 
-# blunt trailing edge
-udprim    naca      Thickness thick     Camber    camber
-attribute capsGroup    $Wing
-attribute _name        $secw1
+# fuselage slender body
+despmtr  fuse:length 4
+dimension class     1  2  1
+dimension ztail     1  2  1
+dimension aupper    1  4  1
+dimension alower    1  4  1
+
+despmtr   class     "0.5;    1.0;   "
+despmtr   ztail     "0.06; .02;"
+despmtr   aupper    "0.21; 0.15; 0.11; 0.08;"
+despmtr   alower    "-.1; -.11;  .025;  0.05;"
+
+udprim    kulfan  class class aupper aupper  alower alower ztail ztail
+rotatex   90        0         0
+scale fuse:length
+translate 3-fuse:length 0 -0.2
+attribute capsGroup    $Fuselage
+attribute _name        $fuse
 attribute capsReferenceArea  3
 attribute capsReferenceSpan  3
 attribute capsReferenceChord 1
 attribute capsReferenceX     1/4
+attribute vlmControl_RightAileron 0.8
+
+
+# blunt trailing edge
+udprim    naca      Thickness thick     Camber    camber
+attribute capsGroup    $Wing
+attribute _name        $secw1
 attribute vlmControl_RightAileron 0.8
 rotatex   90        0         0
 rotatey   10        0         0

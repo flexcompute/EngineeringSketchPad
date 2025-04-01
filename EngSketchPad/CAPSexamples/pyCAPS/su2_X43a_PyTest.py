@@ -93,11 +93,21 @@ myProblem.analysis["su2"].input.Overwrite_CFG = True
 
 # Set boundary conditions
 inviscidBC = {"bcType" : "Inviscid"}
-myProblem.analysis["su2"].input.Boundary_Condition = {"x43A": inviscidBC,
+myProblem.analysis["su2"].input.Boundary_Condition = {"fuselage": inviscidBC,
+                                                      "fuselage_base": inviscidBC,
+                                                      "horizontalCS": inviscidBC,
+                                                      "verticalCS": inviscidBC,
+                                                      "inlet": inviscidBC,
+                                                      "hollowInlet": inviscidBC,
                                                       "Farfield":"farfield"}
 
 # Specifcy the boundares used to compute forces
-myProblem.analysis["su2"].input.Surface_Monitor = ["x43A"]
+myProblem.analysis["su2"].input.Surface_Monitor = ["fuselage",
+                                                   "fuselage_base",
+                                                   "horizontalCS",
+                                                   "verticalCS",
+                                                   "inlet",
+                                                   "hollowInlet"]
 
 # Run AIM pre-analysis
 myAnalysis.preAnalysis()

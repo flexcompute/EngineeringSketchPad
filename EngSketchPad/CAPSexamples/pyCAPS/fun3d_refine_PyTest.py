@@ -83,7 +83,7 @@ refine.input["Mesh"].link(aflr3.output["Volume_Mesh"]);
 fun3d = capsProblem.analysis.create(aim  = "fun3dAIM",
                                     name = "fun3d")
 
-# Link the aflr3 Volume_Mesh as input to fun3d
+# Link the refine Mesh as input to fun3d
 fun3d.input["Mesh"].link(refine.output["Mesh"])
 
 # Set project name. Files written to fun3d.analysisDir will have this name
@@ -144,7 +144,7 @@ fun3dnml['global']['volume_animation_freq'] = -1
 
 fun3dnml.write(os.path.join(fun3d.analysisDir,"fun3d.nml"), force=True)
 
-# Sepcify the file name for the primitive variable field use to compute multiscale metric
+# Specify the file name for the primitive variable field use to compute multiscale metric
 refine.input.ScalarFieldFile = os.path.join(fun3d.analysisDir, fun3d.input.Proj_Name + "_volume.solb");
 
 # Indicate that solb file contains Fun3D primitive variables
@@ -153,7 +153,7 @@ refine.input.Fun3D = True
 
 #------------------------------------------------------------------------------#
 
-# Specficy number of adaptation iterations for each target complexity
+# Specify number of adaptation iterations for each target complexity
 nAdapt     = [   2,     2]
 tar_Complex= [8000, 16000]
 for ii,iComplex in enumerate(tar_Complex):
@@ -166,7 +166,7 @@ for ii,iComplex in enumerate(tar_Complex):
             fun3dnml["flow_initialization"]['import_from'] = os.path.join(refine.analysisDir, 'refine_out-restart.solb')
             fun3dnml.write(os.path.join(fun3d.analysisDir,"fun3d.nml"), force=True)
 
-        ####### Run abaqus ####################
+        ####### Run fun3d ####################
         fun3d.preAnalysis()
         print("\n==> Running FUN3D, complexity = %6d, iadapt = %2d......" % (iComplex,iadapt))
         fun3d.system("mpiexec -np 4 nodet_mpi --write_aero_loads_to_file > Info.txt")

@@ -5,7 +5,7 @@
  *
  *             Function Prototypes
  *
- *      Copyright 2014-2024, Massachusetts Institute of Technology
+ *      Copyright 2014-2025, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -363,6 +363,10 @@ __ProtoExt__ int
 
 __ProtoExt__ int
   caps_unitRaise( const char *inUnit, const int power,
+                  char **outUnits );
+
+__ProtoExt__ int
+  caps_unitRoot( const char *inUnit, const int root,
                   char **outUnits );
 
 __ProtoExt__ int

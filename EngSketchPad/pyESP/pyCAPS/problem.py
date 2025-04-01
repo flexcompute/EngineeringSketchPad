@@ -2163,6 +2163,10 @@ class Analysis(object):
     def analysisDir(self):
         return self._analysisDir
 
+    @analysisDir.setter
+    def analysisDir(self, value):
+        raise AttributeError("Cannot modify attribute: analysisDir")
+
     ## Property returns the name of the CAPS Analysis Object
     @property
     def name(self):
@@ -4116,7 +4120,7 @@ class DataSet(object):
                                                              + "\nNo file name or open file object provided" )
 
             if "." not in filename:
-                filename += ".dat"
+                filename += ".tec"
 
             try:
                 fp = open(filename, "w")
@@ -4132,6 +4136,7 @@ class DataSet(object):
             raise caps.CAPSError(caps.CAPS_BADVALUE, msg = "the data set is empty for - "
                                                          + str(self.name))
         else:
+            if isinstance(data,caps.Quantity): data = data/data.unit()
             if not isinstance(data[0], tuple): # Only returns a list if rank 1
                 temp = []
                 for d in data:
@@ -4139,6 +4144,7 @@ class DataSet(object):
                 data = temp
 
         xyz = self.xyz()
+        if isinstance(xyz,caps.Quantity): xyz = xyz/xyz.unit()
 
         connectivity, Gsegs, dconnectivity, Dsegs = self.connectivity()
 
@@ -4235,6 +4241,7 @@ class DataSet(object):
             raise caps.CAPSError(caps.CAPS_BADVALUE, msg = "the data set is empty for - "
                                                          + str(self.name))
         else:
+            if isinstance(data,caps.Quantity): data = data/data.unit()
             if not isinstance(data[0], tuple): # Only returns a list if rank 1
                 temp = []
                 for d in data:
@@ -4242,6 +4249,7 @@ class DataSet(object):
                 data = temp
 
         xyz = self.xyz()
+        if isinstance(xyz,caps.Quantity): xyz = xyz/xyz.unit()
 
         connectivity, Gsegs, dconnectivity, Dsegs = self.connectivity()
 

@@ -2,10 +2,14 @@
 ifndef ESP_ROOT
 $(error ESP_ROOT must be set -- Please fix the environment...)
 endif
+ifndef ESP_ARCH
+$(error ESP_ARCH must be set -- Please fix the environment...)
+endif
 #
 IDIR  = $(ESP_ROOT)/include
 include $(IDIR)/$(ESP_ARCH)
 LDIR  = $(ESP_ROOT)/lib
+BDIR  = $(ESP_ROOT)/bin
 ifdef ESP_BLOC
 ODIR  = $(ESP_BLOC)/obj
 TDIR  = $(ESP_BLOC)/test
@@ -14,10 +18,13 @@ ODIR  = .
 TDIR  = $(ESP_ROOT)/bin
 endif
 
+include $(ESP_ROOT)/include/ESPPYTHON.make
+
+default: $(LDIR)/mystranAIM.so
 
 $(LDIR)/mystranAIM.so:	$(ODIR)/mystranAIM.o $(ODIR)/mystranUtils.o $(LDIR)/libutils.a $(LDIR)/libaimUtil.a
 	$(CC) $(SOFLGS) -o $(LDIR)/mystranAIM.so $(ODIR)/mystranAIM.o $(ODIR)/mystranUtils.o \
-		-L$(LDIR) -lutils -laimUtil -locsm -legads -ludunits2 -ldl -lm $(PYTHONLIB)
+		-L$(LDIR) -lutils -laimUtil -locsm -legads -ludunits2  $(PYTHONLIBFLAGS) -ldl -lm
 
 $(ODIR)/mystranAIM.o:	mystranAIM.c mystranUtils.h $(IDIR)/capsTypes.h \
 					../utils/meshUtils.h ../utils/miscUtils.h ../utils/feaUtils.h ../utils/nastranUtils.h

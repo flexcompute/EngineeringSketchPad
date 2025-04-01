@@ -9,7 +9,7 @@
  */
 
 /*
- * Copyright (C) 2013/2024  John F. Dannenhoffer, III (Syracuse University)
+ * Copyright (C) 2013/2025  John F. Dannenhoffer, III (Syracuse University)
  *
  * This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
@@ -270,7 +270,7 @@ main(int       argc,                    /* (in)  number of arguments */
     SPRINT0(1, "*                    Program buildCSM                    *");
     SPRINT2(1, "*                     version %2d.%02d                      *", imajor, iminor);
     SPRINT0(1, "*                                                        *");
-    SPRINT0(1, "*        written by John Dannenhoffer, 2010/2024         *");
+    SPRINT0(1, "*        written by John Dannenhoffer, 2010/2025         *");
     SPRINT0(1, "*                                                        *");
     SPRINT0(1, "**********************************************************");
 

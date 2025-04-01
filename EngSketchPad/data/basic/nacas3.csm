@@ -1,11 +1,11 @@
 # nacas3
 # written by John Dannenhoffer
 
-patbeg ithick 10
-    set thick ithick/50
-    set dz    ithick
+patbeg ithick 11
+    set thick (ithick-1)/50
+    set dz    (ithick-1)
 
-    udprim naca Camber 0 Thickness thick
+    udprim naca Camber 0 Thickness thick Series 0
     translate 0 0 5-dz/2
 patend
 

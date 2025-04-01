@@ -57,8 +57,7 @@ myAnalysis.input.Beta  = 0.0
 wing = {"groupName"    : "Wing", # Notice Wing is the value for the capsGroup attribute
         "numChord"     : 8,
         "spaceChord"   : 1.0,
-        "numSpanTotal" : 24,
-        "spaceSpan"    : 1.0}
+        "numSpanTotal" : 24}
 
 myAnalysis.input.AVL_Surface = {"Wing": wing}
 ## [setInputs]

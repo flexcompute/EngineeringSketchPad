@@ -454,7 +454,7 @@ int msesSensxRead(void *aimInfo, const char *filename, msesSensx **sensx)
   for (i = 0; i < 2*sStruct->nbl; i++) sStruct->hk_reyn[i] = NULL;
   
   for (i = 0; i < sStruct->nbl; i++) {
-    j = sStruct->iend[i] - sStruct->ileb[i] + 1;
+    j = sStruct->iend[i] - sStruct->ileb[i];
     AIM_ALLOC(sStruct->xbi[2*i  ], j, double, aimInfo, status);
     AIM_ALLOC(sStruct->xbi[2*i+1], j, double, aimInfo, status);
 

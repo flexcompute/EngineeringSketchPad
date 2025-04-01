@@ -10,7 +10,7 @@
  */
 
 /*
- * Copyright (C) 2011/2024  John F. Dannenhoffer, III (Syracuse University)
+ * Copyright (C) 2011/2025  John F. Dannenhoffer, III (Syracuse University)
  *
  * This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
@@ -28,7 +28,7 @@
  *     MA  02110-1301  USA
  */
 
-#define NUMUDPARGS 7
+#define NUMUDPARGS 8
 #include "udpUtilities.h"
 
 /* shorthands for accessing argument values and velocities */
@@ -41,10 +41,10 @@
 #define NPNT(  IUDP)    ((int    *) (udps[IUDP].arg[6].val))[0]
 
 /* data about possible arguments */
-static char  *argNames[NUMUDPARGS] = {"xeqn",     "yeqn",     "zeqn",     "urange",  "vrange",  "toler",  "npnt",  };
-static int    argTypes[NUMUDPARGS] = {ATTRSTRING, ATTRSTRING, ATTRSTRING, ATTRREAL,  ATTRREAL,  ATTRREAL, ATTRINT, };
-static int    argIdefs[NUMUDPARGS] = {0,          0,          0,          0,         0,         0,        101,     };
-static double argDdefs[NUMUDPARGS] = {1.,         0.,         0.,         0.,        0.,        1.e-5,    0.,      };
+static char  *argNames[NUMUDPARGS] = {"xeqn",     "yeqn",     "zeqn",     "urange",  "vrange",  "toler",  "npnt",  "rebuild",   };
+static int    argTypes[NUMUDPARGS] = {ATTRSTRING, ATTRSTRING, ATTRSTRING, ATTRREAL,  ATTRREAL,  ATTRREAL, ATTRINT, ATTRREBUILD, };
+static int    argIdefs[NUMUDPARGS] = {0,          0,          0,          0,         0,         0,        101,     0,           };
+static double argDdefs[NUMUDPARGS] = {1.,         0.,         0.,         0.,        0.,        1.e-5,    0.,      0.,          };
 
 
 /* get utility routines: udpErrorStr, udpInitialize, udpReset, udpSet,

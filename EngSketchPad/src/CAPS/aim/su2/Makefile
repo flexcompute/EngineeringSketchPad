@@ -2,6 +2,9 @@
 ifndef ESP_ROOT
 $(error ESP_ROOT must be set -- Please fix the environment...)
 endif
+ifndef ESP_ARCH
+$(error ESP_ARCH must be set -- Please fix the environment...)
+endif
 #
 IDIR  = $(ESP_ROOT)/include
 include $(IDIR)/$(ESP_ARCH)
@@ -15,7 +18,7 @@ TDIR  = $(ESP_ROOT)/bin
 endif
 
 OBJS =	$(ODIR)/su2AIM.o $(ODIR)/su2Utils.o $(ODIR)/su2_4_Cardinal.o \
-	$(ODIR)/su2_5_Raven.o $(ODIR)/su2_6_Falcon.o $(ODIR)/su2_7_Blackbird.o $(ODIR)/su2_801_Harrier.o
+	$(ODIR)/su2_5_Raven.o $(ODIR)/su2_6_Falcon.o $(ODIR)/su2_7_Blackbird.o $(ODIR)/su2_8_Harrier.o
 
 
 $(LDIR)/su2AIM.so:	$(OBJS) $(LDIR)/libutils.a $(LDIR)/libaimUtil.a
@@ -52,10 +55,10 @@ $(ODIR)/su2_7_Blackbird.o:	su2_7_Blackbird.c su2Utils.h \
 	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I../utils su2_7_Blackbird.c \
 		-o $(ODIR)/su2_7_Blackbird.o
 
-$(ODIR)/su2_801_Harrier.o:	su2_801_Harrier.c su2Utils.h \
+$(ODIR)/su2_8_Harrier.o:	su2_8_Harrier.c su2Utils.h \
 			$(IDIR)/aimUtil.h  $(IDIR)/aimMesh.h
-	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I../utils su2_801_Harrier.c \
-		-o $(ODIR)/su2_801_Harrier.o
+	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I../utils su2_8_Harrier.c \
+		-o $(ODIR)/su2_8_Harrier.o
 
 lint:
 	$(LINT) -I../../include -I$(IDIR) -I../utils -I../meshWriter/su2Writer $(wildcard *.c) -exportlocal -uniondef -nestcomment -boolops

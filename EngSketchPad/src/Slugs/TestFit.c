@@ -9,7 +9,7 @@
 */
 
 /*
- * Copyright (C) 2013/2023  John F. Dannenhoffer, III (Syracuse University)
+ * Copyright (C) 2013/2025  John F. Dannenhoffer, III (Syracuse University)
  *
  * This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
@@ -229,7 +229,7 @@ main(int       argc,                /* (in)  number of arguments */
     printf("*                                                        *\n");
     printf("*                   Program TestFit                      *\n");
     printf("*                                                        *\n");
-    printf("*           written by John Dannenhoffer, 2013/2023      *\n");
+    printf("*           written by John Dannenhoffer, 2013/2025      *\n");
     printf("*                                                        *\n");
     printf("**********************************************************\n");
 

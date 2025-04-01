@@ -3,7 +3,7 @@
  *
  *             avl AIM tester
  *
- *      Copyright 2014-2024, Massachusetts Institute of Technology
+ *      Copyright 2014-2025, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -133,10 +133,10 @@ int main(int argc, char *argv[])
 
     surfaceTuple = (capsTuple *) EG_alloc(surfaceSize*sizeof(capsTuple));
     surfaceTuple[0].name = EG_strdup("Wing");
-    surfaceTuple[0].value = EG_strdup("{\"numChord\": 8, \"spaceChord\": 1, \"numSpanPerSection\": 12, \"spaceSpan\": 1}");
+    surfaceTuple[0].value = EG_strdup("{\"numChord\": 8, \"spaceChord\": 1, \"numSpanPerSection\": 12}");
 
     surfaceTuple[1].name = EG_strdup("Vertical_Tail");
-    surfaceTuple[1].value = EG_strdup("{\"numChord\": 5, \"spaceChord\": 1, \"numSpanTotal\": 10, \"spaceSpan\": 1}");
+    surfaceTuple[1].value = EG_strdup("{\"numChord\": 5, \"spaceChord\": 1, \"numSpanTotal\": 10}");
 
     status = caps_setValue(tempObj, Tuple, surfaceSize, 1,
                            (void **) surfaceTuple, NULL, NULL, &nErr, &errors);

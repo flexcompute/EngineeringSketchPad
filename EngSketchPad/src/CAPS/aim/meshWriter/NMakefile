@@ -1,10 +1,10 @@
 #
 
 all:
-	forfiles /m *Writer /c "cmd /c if @isdir==TRUE echo Build @file & cd @file & nmake -f NMakefile"
+	forfiles /m *Writer /c "cmd /c if @isdir==TRUE echo Build @file & pushd @file & nmake -nologo -f NMakefile & popd"
 
 clean:
-	forfiles /m *Writer /c "cmd /c if @isdir==TRUE echo Clean @file & cd @file & nmake -f NMakefile clean"
+	forfiles /m *Writer /c "cmd /c if @isdir==TRUE echo Clean @file & pushd @file & nmake -nologo -f NMakefile clean & popd"
 
 cleanall:
-	forfiles /m *Writer /c "cmd /c if @isdir==TRUE echo Cleanall @file & cd @file & nmake -f NMakefile cleanall"
+	forfiles /m *Writer /c "cmd /c if @isdir==TRUE echo Cleanall @file & pushd @file & nmake -nologo -f NMakefile cleanall & popd"

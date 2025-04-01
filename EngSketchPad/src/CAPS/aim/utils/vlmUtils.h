@@ -26,6 +26,7 @@ int get_vlmSurface(void *aimInfo,
 int get_vlmControl(void *aimInfo,
                    int numTuple,
                    capsTuple controlTuple[],
+                   /*@null@*/ const char *angleUnit,
                    int *numVLMControl,
                    vlmControlStruct *vlmControl[]);
 
@@ -67,7 +68,7 @@ int copy_vlmSectionStruct(vlmSectionStruct *sectionIn, vlmSectionStruct *section
 
 // Make a copy of vlmSurfaceStruct (it is assumed surfaceOut has already been initialized)
 // Also the section in vlmSurface are reordered based on a vlm_orderSections() function call
-int copy_vlmSurfaceStruct(vlmSurfaceStruct *surfaceIn, vlmSurfaceStruct *surfaceOut);
+int copy_vlmSurfaceStruct(void *aimInfo, vlmSurfaceStruct *surfaceIn, vlmSurfaceStruct *surfaceOut);
 
 // Finalizes populating vlmSectionStruct member data after the ebody is set
 int finalize_vlmSectionStruct(void *aimInfo, vlmSectionStruct *vlmSection);
@@ -85,7 +86,17 @@ int vlm_getSections(void *aimInfo,
                     vlmSurfaceStruct *vlmSurface[]);
 
 // Order VLM sections increasing order
-int vlm_orderSections(int numSection, vlmSectionStruct section[]);
+int vlm_orderSections(void *aimInfo, int numSection, vlmSectionStruct section[]);
+
+// Retrieve edge ordering such that the loop starts at the trailing edge NODE
+// with the teObj last if it is an EDGE
+int vlm_secOrderEdges(
+         /*@unused@*/ int numNode, ego *nodes,
+                      int numEdge, ego *edges,
+                      ego body, ego teObj,
+                      int **edgeLoopOrderOut,
+                      int **edgeLoopSenseOut,
+                      ego *nodeTEOut);
 
 // Compute spanwise panel spacing with close to equal spacing on each pane
 int vlm_equalSpaceSpanPanels(void *aimInfo, int NspanTotal, int numSection, vlmSectionStruct vlmSection[]);

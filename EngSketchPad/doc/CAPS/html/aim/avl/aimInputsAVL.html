@@ -97,8 +97,12 @@ $(function() {
  See <a class="el" href="vlmSurface.html">Vortex Lattice Surface</a> for additional details.</li>
 <li><b>AVL_Control = NULL </b> <br  />
  See <a class="el" href="vlmControl.html">Vortex Lattice Control Surface</a> for additional details.</li>
+<li><b>AVL_Operation = NULL </b> <br  />
+ See <a class="el" href="aimInputsAVLOper.html">AVL Operation Constraints</a> for additional details.</li>
 <li><b> CL = NULL </b> <br  />
  Coefficient of Lift. AVL will solve for Angle of Attack. Either CL or Alpha must be defined but not both.</li>
+<li><b> AirfoilFiles = False </b> <br  />
+ If true, write airfoils to separate files. Otherwise airfoils are included in the .avl geometry file.</li>
 <li><b>Moment_Center = NULL, [0.0, 0.0, 0.0]</b> <br  />
  Array values correspond to the Xref, Yref, and Zref variables. Alternatively, the geometry (body) attributes "capsReferenceX", "capsReferenceY", and "capsReferenceZ" may be used to specify the X-, Y-, and Z- reference centers, respectively (note: values set through the AIM input will supersede the attribution values).</li>
 <li><b>MassProp = NULL</b> <br  />
@@ -110,7 +114,9 @@ $(function() {
 <li><b> Density = NULL </b> <br  />
  Air density used for Eigen value analysis. Must be in units of kg/m^3 if unitSystem (see <a class="el" href="aimUnitsAVL.html">AIM Units</a>) is not specified.</li>
 <li><b> Velocity = NULL </b> <br  />
- Velocity used for Eigen value analysis. Must be in units of m/s if unitSystem (see <a class="el" href="aimUnitsAVL.html">AIM Units</a>) is not specified. </li>
+ Velocity used for Eigen value analysis. Must be in units of m/s if unitSystem (see <a class="el" href="aimUnitsAVL.html">AIM Units</a>) is not specified.</li>
+<li><b> EigenValues = true </b> <br  />
+ If true, compute EigenValues when Gravity, Density, Velocity, and Mass properties are specified. </li>
 </ul>
 </div></div><!-- contents -->
 </div><!-- PageDoc -->

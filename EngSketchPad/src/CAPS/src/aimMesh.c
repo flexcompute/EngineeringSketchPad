@@ -3,7 +3,7 @@
  *
  *             AIM Volume Mesh Functions
  *
- *      Copyright 2014-2024, Massachusetts Institute of Technology
+ *      Copyright 2014-2025, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -256,7 +256,7 @@ aim_writerExtension(void *aimStruc, const char *writerName)
 
 
 static int
-aim_writeMesh(void *aimStruc, const char *writerName, aimMesh *mesh)
+aim_writeMeshDYN(void *aimStruc, const char *writerName, aimMesh *mesh)
 {
   int     i;
   aimInfo *aInfo;
@@ -273,6 +273,7 @@ aim_writeMesh(void *aimStruc, const char *writerName, aimMesh *mesh)
 
 
 /* ************************* Exposed Functions **************************** */
+
 
 int
 aim_deleteMeshes(void *aimStruc, const aimMeshRef *meshRef)
@@ -445,11 +446,68 @@ aim_queryMeshes(void *aimStruc, int index, enum capssType subtype, aimMeshRef *m
 
 
 int
+aim_writeMesh(void *aimStruc, const char *writerName, const char *units, aimMesh *mesh)
+{
+  int          stat = CAPS_SUCCESS;
+  int          i, d;
+  double       scaleFactor = 1.0;
+  const char   *ext, *lengthUnits=NULL;
+
+  if (writerName == NULL) return CAPS_NULLVALUE;
+  if (mesh       == NULL) return CAPS_NULLVALUE;
+
+  ext = aim_writerExtension(aimStruc, writerName);
+  if (ext == NULL) {
+    AIM_ERROR(aimStruc, "Unknown mesh writer: %s", writerName);
+    return CAPS_BADTYPE;
+  }
+
+  if (units != NULL && mesh->meshData != NULL) {
+    // Check consistency on body length and get length unit
+    stat = aim_capsLength(aimStruc, &lengthUnits);
+    if (stat == EGADS_NOTFOUND) {
+      AIM_ERROR(aimStruc, "'capsLength' attribute not found on any body!");
+      goto cleanup;
+    }
+    AIM_STATUS(aimStruc, stat);
+
+    /* scale the mesh if change of units */
+    stat = aim_convert(aimStruc, 1, lengthUnits, &scaleFactor, units, &scaleFactor);
+    AIM_STATUS(aimStruc, stat);
+
+    if (scaleFactor != 1.0)
+      for (i = 0; i < mesh->meshData->nVertex; i++)
+        for (d = 0; d < mesh->meshData->dim; d++)
+          mesh->meshData->verts[i][d] *= scaleFactor;
+  }
+
+  /* write it */
+  stat = aim_writeMeshDYN(aimStruc, writerName, mesh);
+  if (stat != CAPS_SUCCESS) {
+    AIM_ERROR(aimStruc, "aim_writeMeshDYN = %d for Writer = %s!\n",
+           stat, writerName);
+    return stat;
+  }
+
+  /* revert scaling of the mesh */
+  if (scaleFactor != 1.0 && mesh->meshData != NULL) {
+    for (i = 0; i < mesh->meshData->nVertex; i++)
+      for (d = 0; d < mesh->meshData->dim; d++)
+        mesh->meshData->verts[i][d] /= scaleFactor;
+  }
+
+  stat = CAPS_SUCCESS;
+
+cleanup:
+  return stat;
+}
+
+
+int
 aim_writeMeshes(void *aimStruc, int index, enum capssType subtype, aimMesh *mesh)
 {
-  int          i, j, k, d, stat, nWrite = 0;
+  int          i, j, k, stat, nWrite = 0;
   int          igroup, nPoint, found = (int) false;
-  double       scaleFactor = 1;
   char         *writerName[MAXWRITER], buffer[MAXWRITER][64];
   char         *units[MAXWRITER];
 #ifdef WIN32
@@ -457,7 +515,7 @@ aim_writeMeshes(void *aimStruc, int index, enum capssType subtype, aimMesh *mesh
 #else
   char         file[PATH_MAX];
 #endif
-  const char   *ext, *lengthUnits=NULL;
+  const char   *ext;
   aimInfo      *aInfo;
   capsObject   *vobject, *source, *last;
   capsProblem  *problem;
@@ -593,19 +651,6 @@ aim_writeMeshes(void *aimStruc, int index, enum capssType subtype, aimMesh *mesh
         }
       }
     }
-
-    for (i = 0; i < nWrite; i++) {
-      if (units[i] != NULL) {
-        // Check consistency on body length and get length unit
-        stat = aim_capsLength(aimStruc, &lengthUnits);
-        if (stat == EGADS_NOTFOUND) {
-          AIM_ERROR(aimStruc, "'capsLength' attribute not found on any body!");
-          goto cleanup;
-        }
-        AIM_STATUS(aimStruc, stat);
-        break;
-      }
-    }
   }
 
   /* write the files */
@@ -621,30 +666,9 @@ aim_writeMeshes(void *aimStruc, int index, enum capssType subtype, aimMesh *mesh
     if (access(file,  F_OK) == 0) continue;
 #endif
 
-    /* scale the mesh if change of units */
-    scaleFactor = 1.0;
-    if (lengthUnits != NULL) {
-      stat = aim_convert(aimStruc, 1, lengthUnits, &scaleFactor, units[i], &scaleFactor);
-      AIM_STATUS(aimStruc, stat);
-
-      if (scaleFactor != 1.0)
-        for (j = 0; j < mesh->meshData->nVertex; j++)
-          for (d = 0; d < mesh->meshData->dim; d++)
-            mesh->meshData->verts[j][d] *= scaleFactor;
-    }
-
     /* file does not exist -- write it */
-    stat = aim_writeMesh(aimStruc, writerName[i], mesh);
-    if (stat != CAPS_SUCCESS) {
-      AIM_ERROR(aimStruc, " CAPS Error: aim_writeMesh = %d for Writer = %s!\n",
-             stat, writerName[i]);
-      return stat;
-    }
-
-    if (scaleFactor != 1.0)
-      for (j = 0; j < mesh->meshData->nVertex; j++)
-        for (d = 0; d < mesh->meshData->dim; d++)
-          mesh->meshData->verts[j][d] /= scaleFactor;
+    stat = aim_writeMesh(aimStruc, writerName[i], units[i], mesh);
+    AIM_STATUS(aimStruc, stat);
   }
 
   stat = CAPS_SUCCESS;
@@ -1019,7 +1043,7 @@ aim_readBinaryUgrid(void *aimStruc, aimMesh *mesh)
   int    nTet, nPyramid, nPrism, nHex;
   int    i, j, elementIndex, nPoint, nElems, ID, igroup;
   int    line[2];
-  int    nRegion = 0, nVolName=0, nBCName=0, volID=1;
+  int    maxVolID = 0, nVolName=0, nBCName=0, volID=1;
   int    nMapGroupID = 0, *mapGroupID = NULL;
   enum aimMeshElem elementTopo;
   char filename[PATH_MAX], groupName[PATH_MAX];
@@ -1129,15 +1153,15 @@ aim_readBinaryUgrid(void *aimStruc, aimMesh *mesh)
   // File for volume IDs
   fpMV = fopen(filename, "rb");
   if (fpMV != NULL) {
-    status = fread(&nRegion, sizeof(int), 1, fpMV);
-    if (status != 1) { status = CAPS_IOERR; AIM_STATUS(aimStruc, status); }
-
-    /* read the maximum ID value */
     status = fread(&nVolName, sizeof(int), 1, fpMV);
     if (status != 1) { status = CAPS_IOERR; AIM_STATUS(aimStruc, status); }
 
-    if (nRegion+nVolName == 0) {
-      AIM_ERROR(aimStruc, "Invalid mapvol file with zero nRegion and nVolName!");
+    /* read the maximum ID value */
+    status = fread(&maxVolID, sizeof(int), 1, fpMV);
+    if (status != 1) { status = CAPS_IOERR; AIM_STATUS(aimStruc, status); }
+
+    if (nVolName == 0) {
+      AIM_ERROR(aimStruc, "Invalid mapvol file with zero nVolName!");
       status = CAPS_IOERR;
       goto cleanup;
     }
@@ -1145,7 +1169,7 @@ aim_readBinaryUgrid(void *aimStruc, aimMesh *mesh)
     AIM_ALLOC(volName, nVolName, NameID, aimStruc, status);
     for (i = 0; i < nVolName; i++) { volName[i].name = NULL; volName[i].ID = 0; }
 
-    for (i = 0; i < nRegion; i++) {
+    for (i = 0; i < nVolName; i++) {
       status = fread(&volName[i].ID, sizeof(int), 1, fpMV);
       if (status != 1) { status = CAPS_IOERR; AIM_STATUS(aimStruc, status); }
       volID = MAX(volID, volName[i].ID+1);
@@ -1384,6 +1408,82 @@ cleanup:
   if (fpMV != NULL) fclose(fpMV);
 /*@+dependenttrans@*/
 
+  return status;
+}
+
+
+int
+aim_localMeshRef(void *aimStruc, const aimMeshRef *meshRefIn,
+                 aimMeshRef *meshRefLocal)
+{
+  int    status = CAPS_SUCCESS;
+
+  int         i, j, state, nglobal;
+  ego         body;
+  char        filename_dst[PATH_MAX], aimFile[PATH_MAX];
+  aimInfo     *aInfo;
+
+  aInfo = (aimInfo *) aimStruc;
+  if (aInfo == NULL)                    return CAPS_NULLOBJ;
+  if (aInfo->magicnumber != CAPSMAGIC)  return CAPS_BADOBJECT;
+
+  if (meshRefIn == NULL)           return CAPS_NULLOBJ;
+  if (meshRefIn->fileName == NULL) return CAPS_NULLOBJ;
+
+  // get the mesh filename without the directory
+  i = strlen(meshRefIn->fileName);
+  while(i > 0 && meshRefIn->fileName[i] != SLASH) { i--; }
+  if (i < 0) { status = CAPS_IOERR; goto cleanup; }
+  strcpy(filename_dst, meshRefIn->fileName+i+1);
+
+  // get the analysis directory file
+  status = aim_file(aimStruc, filename_dst, aimFile);
+  AIM_STATUS(aimStruc, status);
+
+  // set the new file name
+  AIM_STRDUP(meshRefLocal->fileName, aimFile, aimStruc, status);
+  AIM_STATUS(aimStruc, status);
+
+  // copy everything else
+  meshRefLocal->type = meshRefIn->type;
+
+  AIM_ALLOC(meshRefLocal->maps, meshRefIn->nmap, aimMeshTessMap, aimStruc, status);
+  meshRefLocal->nmap = meshRefIn->nmap;
+  for (i = 0; i < meshRefLocal->nmap; i++) {
+    meshRefLocal->maps[i].map = NULL;
+    meshRefLocal->maps[i].tess = NULL;
+  }
+
+  for (i = 0; i < meshRefLocal->nmap; i++) {
+    meshRefLocal->maps[i].tess = meshRefIn->maps[i].tess;
+
+    status = EG_statusTessBody(meshRefLocal->maps[i].tess, &body, &state, &nglobal);
+    AIM_STATUS(aimStruc, status);
+
+    AIM_ALLOC(meshRefLocal->maps[i].map, nglobal, int, aimStruc, status);
+    for (j = 0; j < nglobal; j++) {
+      meshRefLocal->maps[i].map[j] = meshRefIn->maps[i].map[j];
+    }
+  }
+
+  // copy ID/groupName information
+  AIM_ALLOC(meshRefLocal->bnds, meshRefIn->nbnd, aimMeshBnd, aimStruc, status);
+  meshRefLocal->nbnd = meshRefIn->nbnd;
+  for (i = 0; i < meshRefLocal->nbnd; i++) {
+    meshRefLocal->bnds[i].groupName = NULL;
+    meshRefLocal->bnds[i].ID = 0;
+  }
+
+  for (i = 0; i < meshRefLocal->nbnd; i++) {
+    AIM_STRDUP(meshRefLocal->bnds[i].groupName, meshRefIn->bnds[i].groupName, aimStruc, status);
+    meshRefLocal->bnds[i].ID = meshRefIn->bnds[i].ID;
+  }
+
+  // shallow copy, don't delete bodies and or tessellations
+  meshRefLocal->_delTess = (int)false;
+
+  status = CAPS_SUCCESS;
+cleanup:
   return status;
 }
 
@@ -1718,7 +1818,8 @@ int aim_morphMeshUpdate(void *aimInfo,  aimMeshRef *meshRef, int numBody, ego *b
         else
           status = EG_mapBody2(body, "_faceID", "_edgeID", bodies[i]); // "_*ID" - same as in OpenCSM
         if (status != EGADS_SUCCESS) {
-            AIM_ERROR(aimInfo, "New and old body %d (of %d) do not appear to be topologically equivalent!", i+1, meshRef->nmap);
+            AIM_ERROR(aimInfo, "New and old body %d (of %d) do not appear to be topologically equivalent!\n"
+                               "Try using global 'ATTRIBUTE _newSeqnum 1' if topology matches.", i+1, meshRef->nmap);
             goto cleanup;
         }
     }

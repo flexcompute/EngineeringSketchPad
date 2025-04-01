@@ -63,13 +63,22 @@ su2.input["Mesh"].link(myProblem.analysis["delaundo"].output["Area_Mesh"])
 su2.input.SU2_Version = "Harrier"
 
 # Set Physical problem
-su2.input.Physical_Problem = "Euler"
+su2.input.Physical_Problem = "RANS"
+
+# Set turbulence model
+su2.input.Turbulence_Model = "SA"
+
+# Set turbulence model options
+su2.input.Turbulence_Model_Option = ["NEGATIVE", "WITHFT2"]
 
 # Set AoA number
 su2.input.Alpha = 0.0
 
 # Set equation type
 su2.input.Equation_Type = "Compressible"
+
+# Set the Reynolds number
+su2.input.Re = 10
 
 # Set number of iterations
 su2.input.Num_Iter = 10
@@ -78,7 +87,7 @@ su2.input.Num_Iter = 10
 su2.input.Two_Dimensional = True
 
 # Set output file format
-su2.input.Output_Format = "Tecplot"
+su2.input.Output_Format = ["Tecplot", "Paraview"]
 
 # Set overwrite cfg file
 su2.input.Overwrite_CFG = True
@@ -92,7 +101,7 @@ T = 288.15
 su2.input.Mach = Mach
 
 # Set boundary conditions
-aifoilBC = {"bcType" : "InViscid"}
+aifoilBC = {"bcType" : "Viscous"}
 wallBC = {"bcType" : "InViscid"}
 
 backPressureBC = {"bcType" : "SubsonicOutflow",

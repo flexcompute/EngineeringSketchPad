@@ -1,4 +1,3 @@
-from __future__ import print_function
 import unittest
 
 import os
@@ -70,6 +69,7 @@ class TestREFINE(unittest.TestCase):
         refine.input.ref = "mpiexec -n 4 refmpi"
         refine.input.Passes = 1
         refine.input.Complexity = 50
+        refine.input.Gradation = 2
         refine.input.ScalarFieldFile = os.path.join(refine.analysisDir, "scalar.sol")
         refine.input.HessianFieldFile = os.path.join(refine.analysisDir, "hessian.sol")
         refine.input.MetricFieldFile = os.path.join(refine.analysisDir, "metric.sol")
@@ -177,7 +177,7 @@ class TestREFINE(unittest.TestCase):
         aflr4.input.ff_cdfr   = 1.4
         aflr4.input.curv_factor = 2.0
         aflr4.input.erw_all = 0.0
-        aflr4.input.mer_all = 0
+        aflr4.input.mer_all = False
 
         aflr4.input.Mesh_Length_Factor = 4
 

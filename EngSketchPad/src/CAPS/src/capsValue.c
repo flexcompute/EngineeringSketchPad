@@ -3,7 +3,7 @@
  *
  *             Value Object Functions
  *
- *      Copyright 2014-2024, Massachusetts Institute of Technology
+ *      Copyright 2014-2025, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -2464,7 +2464,7 @@ caps_linkValue(/*@null@*/ capsObject *link, enum capstMethod method,
   const double *reals;
   const char   *units;
   capsValue    *value, *sval;
-  capsObject   *source, *pobject;
+  capsObject   *source, *pobject, *pobj_lnk;
   capsProblem  *problem;
 
   if (nErr                == NULL)         return CAPS_NULLVALUE;
@@ -2478,10 +2478,18 @@ caps_linkValue(/*@null@*/ capsObject *link, enum capstMethod method,
   if (target->subtype     == ANALYSISOUT)  return CAPS_BADTYPE;
   if (target->blind       == NULL)         return CAPS_NULLBLIND;
   value  = (capsValue *)   target->blind;
+
   status = caps_findProblem(target, CAPS_LINKVALUE, &pobject);
   if (status              != CAPS_SUCCESS) return status;
   problem = (capsProblem *) pobject->blind;
   if (problem->dbFlag     == 1)            return CAPS_READONLYERR;
+
+  /* check both values objects have the same problem object */
+  if (link != NULL) {
+    status = caps_findProblem(link, CAPS_LINKVALUE, &pobj_lnk);
+    if (status              != CAPS_SUCCESS) return status;
+    if (pobject != pobj_lnk)                 return CAPS_NOTPROBLEM;
+  }
 
   if (target->type == VALUE) {
     if (target->subtype == GEOMETRYIN) {

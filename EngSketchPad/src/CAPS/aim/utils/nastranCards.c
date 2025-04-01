@@ -2013,7 +2013,7 @@ int nastranCard_eigr(FILE *fp, const int *sid, const char *method, const double 
     status = card_addString(&card, norm);
     if (status != CAPS_SUCCESS) goto cleanup;
 
-    if (strcmp(norm,"POINT") == 0) {
+    if (norm != NULL && strcmp(norm,"POINT") == 0) {
         // G
         status = card_addIntegerOrBlank(&card, g);
         if (status != CAPS_SUCCESS) goto cleanup;

@@ -1,4 +1,3 @@
-from __future__ import print_function
 import unittest
 
 import os
@@ -7,8 +6,10 @@ import shutil
 
 import pyCAPS
 
-from Mesh_Formats import Mesh_Formats
+from Mesh_Formats import Mesh_Formats, Mesh_Formats_Quad
 Mesh_Formats = Mesh_Formats.copy()
+Mesh_Formats_Quad = Mesh_Formats_Quad.copy()
+
 
 class TestAFLR2(unittest.TestCase):
 
@@ -87,9 +88,8 @@ class TestAFLR2(unittest.TestCase):
         myAnalysis.input.Mesh_Gen_Input_String = "mquad=1 mpp=3"
         myAnalysis.input.Proj_Name = "pyCAPS_aflr2_Quad"
 
-        # 'fast' file format does not support quad
-        Mesh_Formats.remove("fast")
-        myAnalysis.input.Mesh_Format = Mesh_Formats
+        # only qaud supporting formats
+        myAnalysis.input.Mesh_Format = Mesh_Formats_Quad
 
         # Run 2nd time to make quad mesh
         myAnalysis.runAnalysis()

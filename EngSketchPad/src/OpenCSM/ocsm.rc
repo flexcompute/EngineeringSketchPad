@@ -1,6 +1,6 @@
 1 VERSIONINFO
-FILEVERSION 0,1,00,25
-PRODUCTVERSION 0,1,00,25
+FILEVERSION 0,1,00,27
+PRODUCTVERSION 0,1,00,27
 FILEOS 0x4
 FILETYPE 0x2
 {
@@ -9,13 +9,13 @@ BLOCK "StringFileInfo"
 	BLOCK "040904E4"
 	{
 		VALUE "FileDescription", "OpenCSM Dynamic Library"
-		VALUE "FileVersion", "1.25"
+		VALUE "FileVersion", "1.27"
 		VALUE "InternalName", "OCSM"
 		VALUE "OriginalFilename", "ocsm.DLL"
 		VALUE "ProductName", "OCSM"
-		VALUE "ProductVersion", "1.25"
+		VALUE "ProductVersion", "1.27"
 		VALUE "LegalCopyright", "Copyright © 2011-2024 MIT. All Rights Reserved."
-		VALUE "Comment", "Copyright 2011-2024 MIT. All rights reserved."
+		VALUE "Comment", "Copyright 2011-2025 MIT. All rights reserved."
 	}
 }
 

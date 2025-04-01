@@ -348,7 +348,7 @@ int aimInputs(void *instStore, /*@unused@*/ void *aimInfo, int index,
      * Note: The configuration file is dependent on the version of SU2 used.
      * This configuration file that will be auto generated is compatible with
      * SU2 4.1.1. (Cardinal), 5.0.0 (Raven), 6.2.0 (Falcon), 7.5.1 (Blackbird)
-     * or 8.0.1 (Harrier - Default)
+     * or 8.1.0 (Harrier - Default)
      */
 
     su2Instance = (aimStorage *) instStore;
@@ -453,7 +453,24 @@ int aimInputs(void *instStore, /*@unused@*/ void *aimInfo, int index,
         /*! \page aimInputsSU2
          * - <B> Turbulence_Model = "SA_NEG"</B> <br>
          * RANS turbulence model; this corresponds to the KIND_TURB_MODEL keyword in the configuration file.
-         * Options: NONE, SA, SA_NEG, SST, SA_E, SA_COMP, SA_E_COMP, SST_SUST
+         * Options: NONE, SA, SST
+         */
+
+    } else if (index == Turbulence_Model_Option) {
+        *ainame              = EG_strdup("Turbulence_Model_Option");
+        defval->type         = String;
+        defval->vals.string  = NULL;
+        defval->nullVal      = NotNull;
+        defval->units        = NULL;
+        defval->lfixed       = Change;
+        defval->dim          = Vector;
+        defval->vals.string  = EG_strdup("NONE");
+
+        /*! \page aimInputsSU2
+         * - <B> Turbulence_Model_Option = "NONE"</B> <br>
+         * RANS turbulence model; this corresponds to the SA_OPTIONS or SST_OPTIONS keyword in the configuration file.
+         * SA  Options: NONE, NEGATIVE, EDWARDS, WITHFT2, QCR2000, COMPRESSIBILITY, ROTATION, BCM, EXPERIMENTAL
+         * SST Options: V2003m, V1994m, VORTICITY, KATO_LAUNDER, UQ, SUSTAINING
          */
 
     } else if (index == Alpha) {
@@ -796,10 +813,11 @@ int aimInputs(void *instStore, /*@unused@*/ void *aimInfo, int index,
         defval->nullVal      = NotNull;
         defval->vals.string  = EG_strdup("Paraview");
         defval->lfixed       = Change;
+        defval->dim          = Vector;
 
         /*! \page aimInputsSU2
          * - <B> Output_Format = "Paraview"</B> <br>
-         * Output file format; this corresponds to the OUTPUT_FORMAT keyword in the configuration file. See SU2
+         * List of string output file formats; this corresponds to the OUTPUT_FORMAT or OUTPUT_FILES keyword in the configuration file. See SU2
          * template for additional details.
          */
 
@@ -835,7 +853,7 @@ int aimInputs(void *instStore, /*@unused@*/ void *aimInfo, int index,
 
         /*! \page aimInputsSU2
          * - <B>SU2_Version = "Harrier"</B> <br>
-         * SU2 version to generate specific configuration file. Options: "Cardinal(4.0)", "Raven(5.0)", "Falcon(6.2)", "Blackbird(7.5.1)" or "Harrier(8.0.1)".
+         * SU2 version to generate specific configuration file. Options: "Cardinal(4.0)", "Raven(5.0)", "Falcon(6.2)", "Blackbird(7.5.1)" or "Harrier(8.1.0)".
          */
 
         if (su2Instance != NULL) su2Instance->su2Version = defval;
@@ -1299,6 +1317,12 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
     status = aim_relPath(aimInfo, meshRef->fileName, ".", filepath);
     AIM_STATUS(aimInfo, status);
     snprintf(meshfilename, PATH_MAX, "%s%s", filepath, MESHEXTENSION);
+
+#ifdef WIN32
+    // SU2 expects file names to always have forward slashes, even on WIN32
+    for (i = 0; i < (int)strlen(meshfilename); i++)
+      if (meshfilename[i] == '\\') meshfilename[i] = '/';
+#endif
 
     if (usePython == (int) true && pythonLinked == (int) true) {
         ///////////////////////////////////////////////////////////////////////////////////

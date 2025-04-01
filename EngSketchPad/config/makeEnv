@@ -50,8 +50,8 @@ fi
 ARCH=UNKNOWN
 
 if [ -n "$EFCOMP" ]; then
-	if [ "$EFCOMP" != ifort ] && [ "$EFCOMP" != gfortran ]; then
-		echo "WARNING - ignoring EFCOMP (set to '$EFCOMP') not set to 'ifort' or 'gfortran'!"
+	if [ "$EFCOMP" != ifort ] && [ "$EFCOMP" != ifx ] && [ "$EFCOMP" != gfortran ]; then
+		echo "WARNING - ignoring EFCOMP (set to '$EFCOMP') not set to 'ifort', 'ifx', or 'gfortran'!"
 		EFCOMP=UNKNOWN
 	fi
 else
@@ -216,8 +216,11 @@ fi
 #
 if [ "$EFCOMP" == UNKNOWN ]; then
 	ift="`which ifort`"
+	ifx="`which ifx`"
 	gft="`which gfortran`"
-	if [ -n "$ift" ]; then
+	if [ -n "$ifx" ]; then
+		EFCOMP=ifx
+	elif [ -n "$ift" ]; then
 		EFCOMP=ifort
 	elif [ -n "$gft" ]; then
 		EFCOMP=gfortran
@@ -294,24 +297,26 @@ if [ "$PYTH" == UNKNOWN ]; then
 fi
 
 if [ "$PYTH" != UNKNOWN ]; then
-	if [ "$PYTHONINC" == UNKNOWN ]; then
-		pscr="\"from __future__ import print_function; import distutils.sysconfig as sysconfig; print(sysconfig.get_config_var('INCLUDEPY'))\""
-		pcmd="$PYTH -c $pscr"
-		eval PYTHINC=\`$pcmd\`
-
-		if [ -f "$PYTHINC/Python.h" ]; then
-			PYTHONINC=$PYTHINC
-			echo "Info: Python header $PYTHONINC/Python.h found!"
+	if ( $PYTH -c 'import sysconfig' >& /dev/null ); then
+		if [ "$PYTHONINC" == UNKNOWN ]; then
+			pscr="\"from __future__ import print_function; import sysconfig; print(sysconfig.get_path('platinclude'))\""
+			pcmd="$PYTH -c $pscr"
+			eval PYTHINC=\`$pcmd\`
+	
+			if [ -f "$PYTHINC/Python.h" ]; then
+				PYTHONINC=$PYTHINC
+				echo "Info: Python header $PYTHONINC/Python.h found!"
+			fi
 		fi
-	fi
-
-	if [ "$PYTHONINC" == UNKNOWN ]; then
-		pscr="\"from __future__ import print_function; import sysconfig; print(sysconfig.get_path('platinclude'))\""
-		pcmd="$PYTH -c $pscr"
-		eval PYTHONINC=\`$pcmd\`
-		if [ -f "$PYTHONINC/Python.h" ]; then
-			PYTHONINC=$PYTHINC
-			echo "Info: Python header $PYTHONINC/Python.h found!"
+	else
+		if [ "$PYTHONINC" == UNKNOWN ]; then
+			pscr="\"from __future__ import print_function; import distutils.sysconfig as sysconfig; print(sysconfig.get_config_var('INCLUDEPY'))\""
+			pcmd="$PYTH -c $pscr"
+			eval PYTHINC=\`$pcmd\`
+			if [ -f "$PYTHINC/Python.h" ]; then
+				PYTHONINC=$PYTHINC
+				echo "Info: Python header $PYTHONINC/Python.h found!"
+			fi
 		fi
 	fi
 
@@ -321,7 +326,11 @@ if [ "$PYTH" != UNKNOWN ]; then
 		PYTH=ERROR
 	fi
 
-	pscr="\"from __future__ import print_function; import distutils.sysconfig as sysconfig; print(sysconfig.get_config_var('LIBRARY'))\""
+	if ( $PYTH -c 'import sysconfig' >& /dev/null ); then
+		pscr="\"from __future__ import print_function; import sysconfig as sysconfig; print(sysconfig.get_config_var('LIBRARY'))\""
+	else
+		pscr="\"from __future__ import print_function; import distutils.sysconfig as sysconfig; print(sysconfig.get_config_var('LIBRARY'))\""
+	fi
 	pcmd="$PYTH -c $pscr"
 	eval plb=\`$pcmd\`
 	pso=`echo $plb|sed -e 'sx.axx'`.so
@@ -340,53 +349,72 @@ if [ "$PYTH" != UNKNOWN ]; then
 		fi
 	fi
 
-	if [ "$PYTHONLIB" == UNKNOWN ]; then
-		pscr="\"from __future__ import print_function; import distutils.sysconfig as sysconfig; print(sysconfig.get_config_var('LIBPL'))\""
-		pcmd="$PYTH -c $pscr"
-		eval plp=\`$pcmd\`
-
-		if [ -f "$plp/$pso" ]; then
-			PYTHONLIB="-L$plp -l$pllb"
-			echo "Info: Python library $plp/$pso found!"
-		elif [ -f "$plp/$pdy" ]; then
-			PYTHONLIB="-L$plp -l$pllb"
-			echo "Info: Python library $plp/$pdy found!"
-		#elif [ -f "$plp/$plb" ]; then
-		#	PYTHONLIB="-L$plp -l$pllb"
-		#	echo "Info: Python library $plb found!"
+	if [ "$PYTHONLIB" == UNKNOWN ] && ( $PYTH -c 'import sysconfig' >& /dev/null ); then
+		if [ "$PYTHONLIB" == UNKNOWN ]; then
+			pscr="\"from __future__ import print_function; import sysconfig; print(sysconfig.get_path('platstdlib'))\""
+			pcmd="$PYTH -c $pscr"
+			eval plp=\`$pcmd\`
+			if [ -f "$plp/$pso" ]; then
+				PYTHONLIB="-L$plp -l$pllb"
+				echo "Info: Python library $plp/$pso found!"
+			elif [ -f "$plp/$pdy" ]; then
+				PYTHONLIB="-L$plp -l$pllb"
+				echo "Info: Python library $plp/$pdy found!"
+			#elif [ -f "$plp/$plb" ]; then
+			#	PYTHONLIB="-L$plp -l$pllb"
+			#	echo "Info: Python library $plb found!"
+			fi
+		fi
+		if [ "$PYTHONLIB" == UNKNOWN ]; then
+			pscr="\"from __future__ import print_function; import sysconfig; print(sysconfig.get_config_var('PYTHONFRAMEWORKPREFIX'))\""
+			pcmd="$PYTH -c $pscr"
+			eval plp=\`$pcmd\`
+			if [ -f "$plp/$pso" ]; then
+				PYTHONLIB="-L$plp -l$pllb"
+				echo "Info: Python library $plp/$pso found!"
+			elif [ -f "$plp/$pdy" ]; then
+				PYTHONLIB="-L$plp -l$pllb"
+				echo "Info: Python library $plp/$pdy found!"
+			#elif [ -f "$plp/$plb" ]; then
+			#	PYTHONLIB="-L$plp -l$pllb"
+			#	echo "Info: Python library $plb found!"
+			fi
 		fi
 	fi
 
-	if [ "$PYTHONLIB" == UNKNOWN ]; then
-		pscr="\"from __future__ import print_function; import distutils.sysconfig as sysconfig; print(sysconfig.get_config_var('LIBDIR'))\""
-		pcmd="$PYTH -c $pscr"
-		eval plp=\`$pcmd\`
-
-		if [ -f "$plp/$pso" ]; then
-			PYTHONLIB="-L$plp -l$pllb"
-			echo "Info: Python library $plp/$pso found!"
-		elif [ -f "$plp/$pdy" ]; then
-			PYTHONLIB="-L$plp -l$pllb"
-			echo "Info: Python library $plp/$pdy found!"
-		#elif [ -f "$plp/$plb" ]; then
-		#	PYTHONLIB="-L$plp -l$pllb"
-		#	echo "Info: Python library $plb found!"
+	if [ "$PYTHONLIB" == UNKNOWN ] && ( $PYTH -c 'import distutils.sysconfig' >& /dev/null ); then
+		if [ "$PYTHONLIB" == UNKNOWN ]; then
+			pscr="\"from __future__ import print_function; import distutils.sysconfig as sysconfig; print(sysconfig.get_config_var('LIBPL'))\""
+			pcmd="$PYTH -c $pscr"
+			eval plp=\`$pcmd\`
+	
+			if [ -f "$plp/$pso" ]; then
+				PYTHONLIB="-L$plp -l$pllb"
+				echo "Info: Python library $plp/$pso found!"
+			elif [ -f "$plp/$pdy" ]; then
+				PYTHONLIB="-L$plp -l$pllb"
+				echo "Info: Python library $plp/$pdy found!"
+			#elif [ -f "$plp/$plb" ]; then
+			#	PYTHONLIB="-L$plp -l$pllb"
+			#	echo "Info: Python library $plb found!"
+			fi
 		fi
-	fi
-
-	if [ "$PYTHONLIB" == UNKNOWN ]; then
-		pscr="\"from __future__ import print_function; import sysconfig; print(sysconfig.get_path('platstdlib'))\""
-		pcmd="$PYTH -c $pscr"
-		eval plp=\`$pcmd\`
-		if [ -f "$plp/$pso" ]; then
-			PYTHONLIB="-L$plp -l$pllb"
-			echo "Info: Python library $plp/$pso found!"
-		elif [ -f "$plp/$pdy" ]; then
-			PYTHONLIB="-L$plp -l$pllb"
-			echo "Info: Python library $plp/$pdy found!"
-		#elif [ -f "$plp/$plb" ]; then
-		#	PYTHONLIB="-L$plp -l$pllb"
-		#	echo "Info: Python library $plb found!"
+	
+		if [ "$PYTHONLIB" == UNKNOWN ]; then
+			pscr="\"from __future__ import print_function; import distutils.sysconfig as sysconfig; print(sysconfig.get_config_var('LIBDIR'))\""
+			pcmd="$PYTH -c $pscr"
+			eval plp=\`$pcmd\`
+	
+			if [ -f "$plp/$pso" ]; then
+				PYTHONLIB="-L$plp -l$pllb"
+				echo "Info: Python library $plp/$pso found!"
+			elif [ -f "$plp/$pdy" ]; then
+				PYTHONLIB="-L$plp -l$pllb"
+				echo "Info: Python library $plp/$pdy found!"
+			#elif [ -f "$plp/$plb" ]; then
+			#	PYTHONLIB="-L$plp -l$pllb"
+			#	echo "Info: Python library $plb found!"
+			fi
 		fi
 	fi
 
@@ -422,21 +450,6 @@ if [ "$PYTH" != UNKNOWN ]; then
 		fi
 	fi
 
-	if [ "$PYTHONLIB" == UNKNOWN ]; then
-		pscr="\"from __future__ import print_function; import sysconfig; print(sysconfig.get_config_var('PYTHONFRAMEWORKPREFIX'))\""
-		pcmd="$PYTH -c $pscr"
-		eval plp=\`$pcmd\`
-		if [ -f "$plp/$pso" ]; then
-			PYTHONLIB="-L$plp -l$pllb"
-			echo "Info: Python library $plp/$pso found!"
-		elif [ -f "$plp/$pdy" ]; then
-			PYTHONLIB="-L$plp -l$pllb"
-			echo "Info: Python library $plp/$pdy found!"
-		#elif [ -f "$plp/$plb" ]; then
-		#	PYTHONLIB="-L$plp -l$pllb"
-		#	echo "Info: Python library $plb found!"
-		fi
-	fi
 
 	# Alternatively we could have just this one check that should work on all platforms
 	# https://github.com/JuliaPy/PyCall.jl/blob/master/deps/find_libpython.py

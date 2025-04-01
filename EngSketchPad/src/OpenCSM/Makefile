@@ -16,7 +16,8 @@ endif
 
 BINLIST =	$(BDIR)/serveCSM \
 		$(BDIR)/serveESP \
-		$(BDIR)/sensCSM
+		$(BDIR)/sensCSM \
+		$(BDIR)/miniESP
 LIBLIST =	$(LDIR)/$(OSHLIB) \
 		$(LDIR)/bezier.so \
 		$(LDIR)/biconvex.so \
@@ -59,11 +60,13 @@ LIBLIST =	$(LDIR)/$(OSHLIB) \
 		$(LDIR)/printEgo.so \
 		$(LDIR)/prop.so \
 		$(LDIR)/radwaf.so \
+		$(LDIR)/runCAD.so \
 		$(LDIR)/sample.so \
 		$(LDIR)/sew.so \
 		$(LDIR)/shadow.so \
 		$(LDIR)/slices.so \
 		$(LDIR)/stag.so \
+		$(LDIR)/splitFace.so \
 		$(LDIR)/stiffener.so \
 		$(LDIR)/supell.so \
 		$(LDIR)/tester1.so \
@@ -114,6 +117,12 @@ $(BDIR)/sensCSM:	$(ODIR)/sensCSM.o $(LDIR)/$(OSHLIB)
 
 $(ODIR)/sensCSM.o:	sensCSM.c OpenCSM.h udp.h
 	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I. sensCSM.c -o $(ODIR)/sensCSM.o
+
+$(BDIR)/miniESP:	$(ODIR)/miniESP.o $(LDIR)/$(OSHLIB)
+	$(CC) -o $(BDIR)/miniESP $(ODIR)/miniESP.o -L$(LDIR) -locsm -legads $(RPATH) -lm
+
+$(ODIR)/miniESP.o:	miniESP.c OpenCSM.h udp.h
+	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I. miniESP.c -o $(ODIR)/miniESP.o
 
 #
 #	library
@@ -400,7 +409,7 @@ $(ODIR)/udpNaca456.o:	udpNaca456.c udpUtilities.c udpUtilities.h
 	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I. udpNaca456.c -o $(ODIR)/udpNaca456.o
 
 $(ODIR)/naca456.o:	naca456.f90
-ifeq ($(EFCOMP),ifort)
+ifneq (,$(filter $(EFCOMP),ifort ifx))
 	$(FCOMP) -c $(FOPTS) naca456.f90 -o $(ODIR)/naca456.o -module $(ODIR)
 else
 	$(FCOMP) -c $(FOPTS) naca456.f90 -o $(ODIR)/naca456.o -J $(ODIR)
@@ -533,6 +542,15 @@ $(ODIR)/udpRadwaf.o:	udpRadwaf.c udpUtilities.c udpUtilities.h
 	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I. udpRadwaf.c -o $(ODIR)/udpRadwaf.o
 
 
+$(LDIR)/runCAD.so:	$(ODIR)/udpRunCAD.o $(LDIR)/$(OSHLIB)
+	touch $(LDIR)/runCAD.so
+	rm $(LDIR)/runCAD.so
+	$(CC) $(SOFLGS) -o $(LDIR)/runCAD.so $(ODIR)/udpRunCAD.o -L$(LDIR) -locsm -legads -lm
+
+$(ODIR)/udpRunCAD.o:	udpRunCAD.c udpUtilities.c udpUtilities.h
+	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I. udpRunCAD.c -o $(ODIR)/udpRunCAD.o
+
+
 $(LDIR)/sample.so:	$(ODIR)/udpSample.o $(LDIR)/$(OSHLIB)
 	touch $(LDIR)/sample.so
 	rm $(LDIR)/sample.so
@@ -576,6 +594,15 @@ $(LDIR)/stag.so:	$(ODIR)/udpStag.o $(LDIR)/$(OSHLIB)
 
 $(ODIR)/udpStag.o:	udpStag.c udpUtilities.c udpUtilities.h
 	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I. udpStag.c -o $(ODIR)/udpStag.o
+
+
+$(LDIR)/splitFace.so:	$(ODIR)/udfSplitFace.o $(LDIR)/$(OSHLIB)
+	touch $(LDIR)/splitFace.so
+	rm $(LDIR)/splitFace.so
+	$(CC) $(SOFLGS) -o $(LDIR)/splitFace.so $(ODIR)/udfSplitFace.o -L$(LDIR) -locsm -legads -lm
+
+$(ODIR)/udfSplitFace.o:	udfSplitFace.c udpUtilities.c udpUtilities.h
+	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I. udfSplitFace.c -o $(ODIR)/udfSplitFace.o
 
 
 $(LDIR)/stiffener.so:	$(ODIR)/udfStiffener.o $(LDIR)/$(OSHLIB)
@@ -628,13 +655,13 @@ $(LDIR)/waffle.so:	$(ODIR)/udpWaffle.o $(LDIR)/$(OSHLIB)
 $(ODIR)/udpWaffle.o:	udpWaffle.c udpUtilities.c udpUtilities.h OpenCSM.h
 	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I. udpWaffle.c -o $(ODIR)/udpWaffle.o
 
-$(LDIR)/warp.so:	$(ODIR)/udpWarp.o $(LDIR)/$(OSHLIB)
+$(LDIR)/warp.so:	$(ODIR)/udfWarp.o $(LDIR)/$(OSHLIB)
 	touch $(LDIR)/warp.so
 	rm $(LDIR)/warp.so
-	$(CC) $(SOFLGS) -o $(LDIR)/warp.so $(ODIR)/udpWarp.o -L$(LDIR) -locsm -legads -lm
+	$(CC) $(SOFLGS) -o $(LDIR)/warp.so $(ODIR)/udfWarp.o -L$(LDIR) -locsm -legads -lm
 
-$(ODIR)/udpWarp.o:	udpWarp.c udpUtilities.c udpUtilities.h OpenCSM.h
-	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I. udpWarp.c -o $(ODIR)/udpWarp.o
+$(ODIR)/udfWarp.o:	udfWarp.c udpUtilities.c udpUtilities.h OpenCSM.h
+	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I. udfWarp.c -o $(ODIR)/udfWarp.o
 
 #
 #	external grid generators (EGGs)
@@ -766,6 +793,9 @@ lint:
 	@echo "Checking sensCSM..."
 	$(LINT) -I$(IDIR) sensCSM.c OpenCSM.c udp.c  -allocmismatch -duplicatequals -macrovarprefixexclude -exportlocal -mustfreefresh -mayaliasunique -kepttrans -immediatetrans
 	@echo " "
+	@echo "Checking miniESP..."
+	$(LINT) -I$(IDIR) miniESP.c OpenCSM.c udp.c  -allocmismatch -duplicatequals -macrovarprefixexclude -exportlocal -mustfreefresh -mayaliasunique -kepttrans -immediatetrans
+	@echo " "
 	@echo "Checking bezier.so..."
 	$(LINT) -I$(IDIR) udpBezier.c
 	@echo " "
@@ -776,7 +806,7 @@ lint:
 	$(LINT) -I$(IDIR) udpBox.c
 	@echo " "
 	@echo "Checking bspline.so..."
-	$(LINT) -I$(IDIR) udpBspline.c
+	$(LINT) -I$(IDIR) udpBspline.c               -macrovarprefixexclude
 	@echo " "
 	@echo "Checking catmull.so..."
 	$(LINT) -I$(IDIR) udfCatmull.c
@@ -892,6 +922,9 @@ lint:
 	@echo "Checking radwaf.so..."
 	$(LINT) -I$(IDIR) udpRadwaf.c
 	@echo " "
+	@echo "Checking runCAD.so..."
+	$(LINT) -I$(IDIR) udpRunCAD.c
+	@echo " "
 	@echo "Checking sample.so..."
 	$(LINT) -I$(IDIR) udpSample.c
 	@echo " "
@@ -907,11 +940,14 @@ lint:
 	@echo "Checking stag.so..."
 	$(LINT) -I$(IDIR) udpStag.c
 	@echo " "
+	@echo "Checking splitFace.so..."
+	$(LINT) -I$(IDIR) udfSplitFace.c
+	@echo " "
 	@echo "Checking stiffener.so..."
 	$(LINT) -I$(IDIR) udfStiffener.c
 	@echo " "
 	@echo "Checking supell.so..."
-	$(LINT) -I$(IDIR) udpSupell.c
+	$(LINT) -I$(IDIR) udpSupell.c                -macrovarprefixexclude
 	@echo " "
 	@echo "Checking tester1.so..."
 	$(LINT) -I$(IDIR) udfTester1.c
@@ -926,7 +962,7 @@ lint:
 	$(LINT) -I$(IDIR) udpWaffle.c
 	@echo " "
 	@echo "Checking warp.so..."
-	$(LINT) -I$(IDIR) udpWarp.c
+	$(LINT) -I$(IDIR) udfWarp.c
 	@echo " "
 	@echo "Checking PDT2.so..."
 	$(LINT) -I$(IDIR) eggPDT2.c
@@ -951,16 +987,16 @@ lint:
 	@echo " "
 
 clean:
-	(cd $(ODIR); rm -f udpFitcurve.o udpFreeform.o udfTester1.o udpTester2.o udpVsp3.o udpWaffle.o udpWarp.o udpCsm.o \
+	(cd $(ODIR); rm -f udpFitcurve.o udpFreeform.o udfTester1.o udpTester2.o udpVsp3.o udpWaffle.o udfWarp.o udpCsm.o \
 		udpEllipse.o udpEqn2body.o udpNaca.o udpHex.o udpImport.o serveCSM.o serveESP.o \
 		OpenCSM.o udp.o tim.o udpBezier.o udpBox.o udpBspline.o udpNurbbody.o udpParabaloid.o udpParsec.o \
-		udpSample.o udpSew.o udpRadwaf.o udpNaca456.o naca456.o \
-		udpSupell.o udpStag.o udfSlices.o udfStiffener.o udpKulfan.o udpBiconvex.o \
+		udpSample.o udpSew.o udpRadwaf.o udpRunCAD.o udpNaca456.o naca456.o \
+		udpSupell.o udpStag.o udfSlices.o udfSplitFace.o udfStiffener.o udpKulfan.o udpBiconvex.o \
 		udfCatmull.o udfCompare.o udfCreateBEM.o udfCreatePoly.o udfDeform.o udfDroop.o udfDumpPmtrs.o \
 		udpPod.o udpPoly.o udpProp.o udfEditAttr.o udfPrintBbox.o udfPrintBrep.o \
 		udfPrintEgo.o udfShadow.o udfFlend.o udfGanged.o udfGuide.o \
 		udfLinalg.o udfMatchBodys.o udfMechanism.o udfNacelle.o udfNaca6mc.o udfNuscale.o udfOffset.o timEreped.o timMitten.o \
-		timPlotter.o timPlugs.o timSlugs.o timVspSetup.o eggPDT2.o sensCSM.o )
+		timPlotter.o timPlugs.o timSlugs.o timVspSetup.o eggPDT2.o sensCSM.o miniESP.o)
 
 cleanall:	clean
 	rm -f  $(BINLIST) $(LIBLIST) $(LIBFLIST) $(TIMLIST) $(INCLIST)

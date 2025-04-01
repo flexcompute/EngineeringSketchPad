@@ -7,7 +7,7 @@
  *
  *     This software has been cleared for public release on 05 Nov 2020, case number 88ABW-2020-3462.
  *
- *      Copyright 2014-2024, Massachusetts Institute of Technology
+ *      Copyright 2014-2025, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -19,8 +19,7 @@
  * A module in the Computational Aircraft Prototype Syntheses (CAPS) has been developed to interact (primarily
  * through input files) with the finite element structural solver Nastran \cite Nastran.
  *
- * Current issues include:
- *  - A thorough bug testing needs to be undertaken.
+ * Details on the use of units are outlined in \ref aimUnitsNastran.
  *
  * An outline of the AIM's inputs, outputs and attributes are provided in \ref aimInputsNastran and
  * \ref aimOutputsNastran and \ref attributeNastran, respectively.
@@ -128,6 +127,7 @@ enum aimInputs
   Edge_Point_Min,
   Edge_Point_Max,
   Quad_Mesh,
+  Nastran,
   Property,
   Material,
   Constraint,
@@ -582,6 +582,7 @@ static int createVLMMesh(void *aimInfo, aimStorage *nastranInstance,
         status = get_vlmControl(aimInfo,
                                 aimInputs[VLM_Control-1].length,
                                 aimInputs[VLM_Control-1].vals.tuple,
+                                nastranInstance->units.length == NULL ? NULL : "degree",
                                 &numVLMControl,
                                 &vlmControl);
 
@@ -976,6 +977,10 @@ int aimInitialize(int inst, /*@unused@*/ const char *unitSys, void *aimInfo,
 {
     int  *ints=NULL, i, status = CAPS_SUCCESS;
     char **strs=NULL;
+    const char *keyWord;
+    char *keyValue = NULL;
+    double real = 1.0;
+    feaUnitsStruct *units=NULL;
 
     aimStorage *nastranInstance=NULL;
 
@@ -1031,6 +1036,113 @@ int aimInitialize(int inst, /*@unused@*/ const char *unitSys, void *aimInfo,
     // Initialize instance storage
     status = initiate_aimStorage(aimInfo, nastranInstance);
     AIM_STATUS(aimInfo, status);
+
+
+    /*! \page aimUnitsNastran AIM Units
+     *  A unit system may be optionally specified during AIM instance initiation. If
+     *  a unit system is provided, all AIM  input values which have associated units must be specified as well.
+     *  If no unit system is used, AIM inputs, which otherwise would require units, will be assumed
+     *  unit consistent. A unit system may be specified via a JSON string dictionary for example (using pyCAPS):
+     *  \code{.py}
+     *  nastran = capsProblem.analysis.create(aim="nastranAIM", unitSys = {"mass": "kg", "length": "inch", "time": "hour", "temperature" : "Kelvin"})
+     *  \endcode
+     */
+    if (unitSys != NULL) {
+      units = &nastranInstance->units;
+
+      // Do we have a json string?
+      if (strncmp( unitSys, "{", 1) != 0) {
+        AIM_ERROR(aimInfo, "unitSys ('%s') is expected to be a JSON string dictionary", unitSys);
+        return CAPS_BADVALUE;
+      }
+
+      /*! \page aimUnitsNastran
+       *  \section jsonStringNastran JSON String Dictionary
+       *  The key arguments of the dictionary are described in the following:
+       *
+       *  <ul>
+       *  <li> <B>mass = "None"</B> </li> <br>
+       *  Mass units - e.g. "kilogram", "k", "slug", ...
+       *  </ul>
+       */
+      keyWord = "mass";
+      status  = search_jsonDictionary(unitSys, keyWord, &keyValue);
+      if (status == CAPS_SUCCESS) {
+        units->mass = string_removeQuotation(keyValue);
+        AIM_FREE(keyValue);
+        real = 1;
+        status = aim_convert(aimInfo, 1, units->mass, &real, "kg", &real);
+        AIM_STATUS(aimInfo, status, "unitSys ('%s'): %s is not a %s unit", unitSys, units->mass, keyWord);
+      } else {
+        AIM_ERROR(aimInfo, "unitSys ('%s') does not contain '%s'", unitSys, keyWord);
+        status = CAPS_BADVALUE;
+        goto cleanup;
+      }
+
+      /*! \page aimUnitsNastran
+       *  <ul>
+       *  <li> <B>length = "None"</B> </li> <br>
+       *  Length units - e.g. "meter", "m", "inch", "in", "mile", ...
+       *  </ul>
+       */
+      keyWord = "length";
+      status  = search_jsonDictionary(unitSys, keyWord, &keyValue);
+      if (status == CAPS_SUCCESS) {
+        units->length = string_removeQuotation(keyValue);
+        AIM_FREE(keyValue);
+        real = 1;
+        status = aim_convert(aimInfo, 1, units->length, &real, "m", &real);
+        AIM_STATUS(aimInfo, status, "unitSys ('%s'): %s is not a %s unit", unitSys, units->length, keyWord);
+      } else {
+        AIM_ERROR(aimInfo, "unitSys ('%s') does not contain '%s'", unitSys, keyWord);
+        status = CAPS_BADVALUE;
+        goto cleanup;
+      }
+
+      /*! \page aimUnitsNastran
+       *  <ul>
+       *  <li> <B>time = "None"</B> </li> <br>
+       *  Time units - e.g. "s", "second", "hour", "day", "year", ...
+       *  </ul>
+       */
+      keyWord = "time";
+      status  = search_jsonDictionary(unitSys, keyWord, &keyValue);
+      if (status == CAPS_SUCCESS) {
+        units->time = string_removeQuotation(keyValue);
+        AIM_FREE(keyValue);
+        real = 1;
+        status = aim_convert(aimInfo, 1, units->time, &real, "s", &real);
+        AIM_STATUS(aimInfo, status, "unitSys ('%s'): %s is not a %s unit", unitSys, units->time, keyWord);
+      } else {
+        AIM_ERROR(aimInfo, "unitSys ('%s') does not contain '%s'", unitSys, keyWord);
+        status = CAPS_BADVALUE;
+        goto cleanup;
+      }
+
+      /*! \page aimUnitsNastran
+       *  <ul>
+       *  <li> <B>temperature = "None"</B> </li> <br>
+       *  Temperature units - e.g. "C", "F", "K", "R", ...
+       *  </ul>
+       */
+      keyWord = "temperature";
+      status  = search_jsonDictionary(unitSys, keyWord, &keyValue);
+      if (status == CAPS_SUCCESS) {
+        units->temperature = string_removeQuotation(keyValue);
+        AIM_FREE(keyValue);
+        real = 1;
+        status = aim_convert(aimInfo, 1, units->temperature, &real, "K", &real);
+        AIM_STATUS(aimInfo, status, "unitSys ('%s'): %s is not a %s unit", unitSys, units->temperature, keyWord);
+      } else {
+        AIM_ERROR(aimInfo, "unitSys ('%s') does not contain '%s'", unitSys, keyWord);
+        status = CAPS_BADVALUE;
+        goto cleanup;
+      }
+
+      // create derived units from the base units
+      status = fea_feaDerivedUnits(aimInfo, units);
+      AIM_STATUS(aimInfo, status);
+    }
 
 cleanup:
     if (status != CAPS_SUCCESS) {
@@ -1141,6 +1253,23 @@ int aimInputs(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo,
         /*! \page aimInputsNastran
          * - <B> Quad_Mesh = False</B> <br>
          * Create a quadratic mesh on four edge faces when creating the boundary element model.
+         */
+
+    } else if (index == Nastran) {
+        *ainame               = EG_strdup("Nastran");
+        defval->type          = String;
+        defval->dim           = Vector;
+        defval->lfixed        = Change;
+        defval->nullVal       = IsNull;
+        defval->vals.string   = NULL;
+
+        /*! \page aimInputsNastran
+         * - <B> Nastran = NULL</B> <br>
+         * List of strings to specify NASTRAN statements <br>
+         *   The NASTRAN statement is used to specify values for certain Executive System operational parameters. <br>
+         *   These parameters are also called system cells. The NASTRAN statement is used for exceptional circumstances <br>
+         *   and is therefore not needed in most runs. The NASTRAN statement may also be specified in the <br>
+         *   runtime configuration (RC) files at the system, user, and job level as described in the .
          */
 
     } else if (index == Property) {
@@ -1389,7 +1518,7 @@ int aimInputs(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo,
 
         /*! \page aimInputsNastran
          * - <B> Mass_Increment = NULL </B> <br>
-         * Object response type (see Nastran manual).
+         * FEA Mass Increments (see Nastran manual).
          */
 
     } else if (index == VLM_Surface) {
@@ -1830,6 +1959,10 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
     int haveSubAeroelasticTrim = (int) false;
     int haveSubAeroelasticFlutter = (int) false;
 
+    // Mesh length scaling
+    const char *lengthUnits=NULL;
+    double scaleFactor=1;
+
     // Optimization Information
     char *objectiveMinMax = NULL, *objectiveResp = NULL;
 
@@ -1840,6 +1973,7 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
     // File format information
     char *tempString = NULL, *delimiter = NULL;
     char fieldString[16];
+    char *NASTRAN=NULL;
 
     // File IO
     char *filename = NULL; // Output file name
@@ -1887,6 +2021,7 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
                 // Transfer external pressures from the AIM discrObj
                 status = fea_transferExternalPressure(aimInfo,
                                                       &nastranInstance->feaProblem.feaMesh,
+                                                      &nastranInstance->units,
                                                       &feaLoad[i]);
                 AIM_STATUS(aimInfo, status);
             } else if (feaLoad[i].loadType == ThermalExternal) {
@@ -1899,6 +2034,19 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
         }
     }
 
+    if (nastranInstance->units.length != NULL) {
+      status = aim_capsLength(aimInfo, &lengthUnits);
+      AIM_NOTFOUND(aimInfo, status);
+      if (status == CAPS_NOTFOUND) {
+        AIM_ERROR(aimInfo, "capsLength attribute must be specified!");
+        goto cleanup;
+      }
+      AIM_NOTNULL(lengthUnits, aimInfo, status);
+
+      status = aim_convert(aimInfo, 1, lengthUnits, &scaleFactor, nastranInstance->units.length, &scaleFactor);
+      AIM_STATUS(aimInfo, status);
+    }
+
     status = mesh_writeNASTRAN(aimInfo,
                                filename,
                                1,
@@ -1906,7 +2054,7 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
                                nastranInstance->feaProblem.numProperty,
                                nastranInstance->feaProblem.feaProperty,
                                nastranInstance->feaProblem.feaFileFormat.gridFileType,
-                               1.0);
+                               scaleFactor);
     AIM_STATUS(aimInfo, status);
 
     // Write Nastran subElement types not supported by mesh_writeNASTRAN
@@ -1983,6 +2131,14 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
     }
 
     //////////////// Executive control ////////////////
+    if (aimInputs[Nastran-1].nullVal == NotNull) {
+      NASTRAN = aimInputs[Nastran-1].vals.string;
+      for (i = 0; i < aimInputs[Nastran-1].length; i++) {
+        fprintf(fp, "NASTRAN %s\n", NASTRAN);
+        NASTRAN += strlen(NASTRAN)+1;
+      }
+    }
+
     fprintf(fp, "ID CAPS generated Problem FOR Nastran\n");
 
     // Analysis type

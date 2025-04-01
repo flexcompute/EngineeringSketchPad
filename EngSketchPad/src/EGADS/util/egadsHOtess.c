@@ -3,7 +3,7 @@
  *
  *             Functions to enhance tessellations for High-Order
  *
- *      Copyright 2011-2024, Massachusetts Institute of Technology
+ *      Copyright 2011-2025, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -270,8 +270,10 @@ EG_evalEdgeSeg(const ego body, const ego face, const ego *edges,
     t0 = tessel->tess1d[ie].t[pt0-1];
     t1 = tessel->tess1d[ie].t[pt1-1];
   } else  {
-     printf(" EGADS Info:  Iedge = %d   %d/%d   %d/%d (EG_evalEdgeSeg)!\n",
-            ie+1, pt0, pi0, pt1, pi1);
+    uv[0] = uvx[0];
+    uv[1] = uvx[1];
+    printf(" EGADS Info:  Iedge = %d   %d/%d   %d/%d (EG_evalEdgeSeg)!\n",
+           ie+1, pt0, pi0, pt1, pi1);
     return;
   }
 
@@ -329,7 +331,7 @@ EG_interiorTri(const ego body, const ego face, const ego *edges,
                double *w, double *uv0, double *uv1, double *uv2)
 {
   int    ie;
-  double dist, theta, suv[6];
+  double dist, theta, suv[6]={0,0,0,0,0,0};
 #ifdef REPOSITION
   double uvm[2], uvp[2];
 #endif
@@ -580,24 +582,26 @@ EG_fillEdgeSeg(const ego face, const ego *edges, const egTessel *tessel,
  * where: tess    - the source tessellation object
  *        nst     - number of positions required for each HO triangle (contains 
  *                  linear corners (- is quads from a quad tessellation)
+ *        st      - the weights that define the positions within the triangles
+ *                  2*nst in length
  *        nItri   - number of internal triangles created per source tri
  *                  (- for quads indicates the new tessellation is triangular)
  *        iTris   - the internal triangle indices (1-bias)
  *                  3*nItri in length
- *        st      - the weights that define the positions within the triangles 
- *                  2*nst in length
  *        newTess - the resultant tessellation object where every triangle is
  *                  replaced with nItri triangles (and in order)
  *
  */
 
 int
-EG_tessHOverts(const ego tess, int nstx, int nItrix, const int *iTris,
-               const double *st, ego *nTess)
+EG_tessHOverts(const ego tess,
+               int nstx, const double *st,
+               int nItrix, const int *iTris,
+               ego *nTess)
 {
   int          i, j, k, n, stat, outLevel, nst, nItri, atype, alen, corner[4];
   int          i0, i1, i2, i3, nIns, nedges, nfaces, sum[2], degens[2], iuv[2];
-  int          np, nt, npts, ntris, nside, nei, oclass, mtype, *senses, *type;
+  int          np, nt, npts, ntris, nside, nei, oclass, mtype, *senses, *type, *HOelemTri=NULL;
   int          nmid = 0, quad = 0, qout = 0, *elems = NULL, *tris = NULL;
   double       area, d, *parms, sinsert[MXSIDE], result[18], trange[2], uv[2];
   double       w[3], u0[2], u1[2], u2[2], u3[2], *frac = NULL, *coords = NULL;
@@ -648,7 +652,7 @@ EG_tessHOverts(const ego tess, int nstx, int nItrix, const int *iTris,
       printf(" EGADS Error: Source Not Body (EG_tessHOverts)!\n");
     return EGADS_NOTBODY;
   }
-  if (btess->tess2d == NULL) {
+  if (btess->tess2d == NULL && btess->nFace > 0) {
     if (outLevel > 0)
       printf(" EGADS Error: No Face Tessellations (EG_tessHOverts)!\n");
     return EGADS_NODATA;
@@ -847,7 +851,6 @@ EG_tessHOverts(const ego tess, int nstx, int nItrix, const int *iTris,
     for (i = 0; i < nst; i++) {
       if ((corner[0] == i) || (corner[1] == i) || (corner[2] == i) ||
           (corner[3] == i)) continue;
-      d = 0.0;
       if (fabs(st[2*i  ]    ) < FUZZ) {
         d       = 1.0-st[2*i+1];
         type[i] = -3;
@@ -1008,7 +1011,7 @@ EG_tessHOverts(const ego tess, int nstx, int nItrix, const int *iTris,
   
   tessel = (egTessel *) newTess->blind;
   stat   = EG_getBodyTopos(body, NULL, FACE, &nfaces, &faces);
-  if ((stat != EGADS_SUCCESS) || (faces == NULL)) {
+  if (stat != EGADS_SUCCESS) {
     if (outLevel > 0)
       printf(" EGADS Error: EG_getBodyTopos F = %d (EG_tessHOverts)!\n", stat);
     if (stat == EGADS_SUCCESS) stat = EGADS_TOPOERR;
@@ -1553,6 +1556,34 @@ EG_tessHOverts(const ego tess, int nstx, int nItrix, const int *iTris,
                stat);
   }
   
+  // Store high-order information
+  stat = EG_attributeAdd(newTess, ".HOst", ATTRREAL, nst,
+                         NULL, st, NULL);
+  if (stat != EGADS_SUCCESS) goto cleanup;
+  stat = EG_attributeAdd(newTess, ".HOtris", ATTRINT, nItri,
+                         iTris, NULL, NULL);
+  if (stat != EGADS_SUCCESS) goto cleanup;
+
+  // Create a mapping from the divided triangles back to the HO element
+  // Stride 2: triangle and vertex pairs
+  i1 = 1;
+  HOelemTri = (int *) EG_alloc(2*nst*sizeof(int));
+  for (k = 0; k < nItri; k++) {
+    for (j = 0; j < 3; j++) {
+      if (iTris[3*k+j] == i1) {
+        HOelemTri[2*(i1-1)+0] = k+1;
+        HOelemTri[2*(i1-1)+1] = j+1;
+        i1++;
+        k = -1;
+        break;
+      }
+    }
+  }
+  stat = EG_attributeAdd(newTess, ".HOelemTri", ATTRINT, 2*nst,
+                         HOelemTri, NULL, NULL);
+  if (stat != EGADS_SUCCESS) goto cleanup;
+
+
   *nTess  = newTess;
   newTess = NULL;
   stat    = EGADS_SUCCESS;
@@ -1565,6 +1596,7 @@ cleanup:
   if (faces   != NULL) EG_free(faces);
   if (coords  != NULL) EG_free(coords);
   if (edges   != NULL) EG_free(edges);
+  if (HOelemTri   != NULL) EG_free(HOelemTri);
   if (newTess != NULL) EG_deleteObject(newTess);
   return stat;
 }

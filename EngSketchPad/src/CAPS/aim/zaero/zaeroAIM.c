@@ -3,7 +3,7 @@
  *
  *             ZAERO AIM
  *
- *      Copyright 2014-2024, Massachusetts Institute of Technology
+ *      Copyright 2014-2025, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -406,7 +406,6 @@ _createVLM(void *aimInfo,
 
 
   if (aim_newGeometry(aimInfo) == CAPS_SUCCESS ||
-      zaeroInstance->zaeroProblem.numAero == 0 ||
       aim_newAnalysisIn(aimInfo, inVLM_Surface) == CAPS_SUCCESS ||
       aim_newAnalysisIn(aimInfo, inVLM_Control) == CAPS_SUCCESS) {
 
@@ -453,6 +452,7 @@ _createVLM(void *aimInfo,
       status = get_vlmControl(aimInfo,
                               aimInputs[inVLM_Control-1].length,
                               aimInputs[inVLM_Control-1].vals.tuple,
+                              zaeroInstance->units.length == NULL ? NULL : "degree",
                               &numVLMControl,
                               &vlmControl);
 
@@ -933,7 +933,7 @@ _getUAICModuleConfigs(void *aimInfo,
      *
      * For the JSON string "Value" dictionary
      *  (e.g. "Value" = {"machNumber": 0.5, "method": 120000.0, "poissonRatio": 0.5, "materialType": "isotropic"})
-     * \endif
+     *
      *  the following keywords ( = default values) may be used:
      *
      * <ul>
@@ -2638,7 +2638,7 @@ int aimUpdateState(void *instStore, void *aimInfo,
    *  - the BODY7
    */
   if (zaeroInstance->smartRestart == (int)false ||
-      aim_newAnalysisIn(aimInfo, inUAIC) == CAPS_SUCCESS ||
+      aim_newAnalysisIn(aimInfo, inUAIC       ) == CAPS_SUCCESS ||
       aim_newAnalysisIn(aimInfo, inVLM_Surface) == CAPS_SUCCESS ||
       aim_newAnalysisIn(aimInfo, inVLM_Control) == CAPS_SUCCESS ||
       aim_newGeometry(aimInfo) == CAPS_SUCCESS) {

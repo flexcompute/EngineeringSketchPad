@@ -226,8 +226,8 @@ for vname in myProblem.parameter.keys():
     newX0[vname] = vl
 
 # Set initial guesses for new variables
-newX0['maxCamber']      = 0.03 * units.dimensionless
-newX0['camberLocation'] = 0.6  * units.dimensionless
+newX0['maxCamber']      = 0.042 * units.dimensionless
+newX0['camberLocation'] = 0.72  * units.dimensionless
 
 formulation.solverOptions.x0 = newX0
 formulation.solverOptions.tau = 0.3

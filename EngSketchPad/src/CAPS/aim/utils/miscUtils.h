@@ -49,6 +49,9 @@ extern void PRINT_WARNING(const char *fmt, ...);
 int json_parseTuple(/*@null@*/ const char *stringToParse, int *arraySize,
                     char **stringArray[]);
 
+// Search for a Key-Value pair in stringToSearch
+int json_keyValue(const char *stringToSearch, char **keyWord, char **keyValue);
+
 // Simple json dictionary parser - currently doesn't support nested arrays for keyValue
 int search_jsonDictionary(const char *stringToSearch, const char *keyWord,
                           char **keyValue);
@@ -248,7 +251,7 @@ int retrieve_CAPSMeshAttr(ego geomEntity, const char **string);
 int retrieve_CoordSystemAttr(ego geomEntity, const char **string);
 */
 
-int create_MeshRefToIndexMap(void *aimInfo, aimMeshRef *meshRef, mapAttrToIndexStruct *attrMap);
+int create_MeshRefToIndexMap(void *aimInfo, const aimMeshRef *meshRef, mapAttrToIndexStruct *attrMap);
 
 // Create a mapping between unique capsGroup attribute names and an index value
 int create_CAPSGroupAttrToIndexMap(int numBody, ego bodies[], int attrLevel,
