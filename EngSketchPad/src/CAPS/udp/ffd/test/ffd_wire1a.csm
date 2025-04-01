@@ -1,0 +1,17 @@
+# ffd_wire1a
+# written by Marshall Galbraith
+# based on code written by John Dannenhoffer
+
+# original configuration
+SKBEG       0.0   0.0  0.0
+   LINSEG   1.0   0.0  0.0
+   LINSEG   2.0   2.0  1.0
+   CIRARC   2.0   3.0  2.0  2.0  4.0  1.0
+SKEND
+
+STORE   original
+
+# Deform original
+UDPRIM $/ffda
+
+END

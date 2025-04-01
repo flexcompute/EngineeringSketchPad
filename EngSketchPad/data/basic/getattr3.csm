@@ -1,0 +1,40 @@
+# gatattr3
+# written by John Dannenhoffer
+
+DIMENSION b  2  2
+DESPMTR   c  2
+SET       d  $a
+
+BOX       0  0  0  1  1  1
+SELECT    FACE  3
+
+# works
+GETATTR   a  $_nattr_
+GETATTR   a  2
+GETATTR   a  $_faceID
+
+# works
+GETATTR   !$a  $_faceID
+
+# works
+GETATTR   !d  $_faceID
+
+# fails (attr not found)
+#--- GETATTR   a  $foo
+
+# fails (not a legal parameter name)
+#--- GETATTR   a+1  $_faceID
+
+# fails (not a legal parameter name)
+#--- GETATTR   2  $_faceID
+
+# fails (must not start with at-sign)
+#--- GETATTR   @e  $_faceID
+
+# fails (cannot contain a subscript)
+#--- GETATTR   b[1,2]  $_faceID
+
+# fails (DESPMTR)
+#--- GETATTR   c  $_faceID
+
+END

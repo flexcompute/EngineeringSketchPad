@@ -1,0 +1,236 @@
+# avlGlider
+# inspired by gliderMultiModel.csm
+# written by John Dannenhoffer
+
+# Attributes applied to all BODYs
+attribute capsAIM    $avlAIM
+ATTRIBUTE capsLength $ft
+
+# Design Parameters for fuselage
+despmtr                   fuse:numXsect 6
+dimension fuse:xloc       fuse:numXsect 1 1
+dimension fuse:zloc       fuse:numXsect 1 1
+dimension fuse:width      fuse:numXsect 1 1
+dimension fuse:height     fuse:numXsect 1 1
+dimension fuse:noselist   2             4 1
+dimension fuse:taillist   2             4 1
+
+despmtr   fuse:xloc       "0;  1.0;  4.0;  8.0;  12.0;  16.0"
+despmtr   fuse:zloc       "0;  0.1;  0.4;  0.4;   0.3;   0.2"
+despmtr   fuse:width      "0;  1.0;  1.6;  1.6;   1.0;   0.8"
+despmtr   fuse:height     "0;  1.0;  2.0;  2.0;   1.2;   0.4"
+despmtr   fuse:noselist   "0.1; 0; 1; 0;\
+                           0.1; 0; 0; 1;"
+despmtr   fuse:taillist   "0.0; 0; 1; 0;\
+                           0.0; 0; 0; 1"
+
+# Design Parameters for wing 
+despmtr   wing:xloc      4.00
+despmtr   wing:zloc      0.20
+
+despmtr   wing:thick     0.12      frac of local chord
+despmtr   wing:camber    0.04      frac of loacl chord
+
+despmtr   wing:area      100.
+despmtr   wing:aspect    10.00
+despmtr   wing:taper     0.60
+despmtr   wing:sweep     10.0      deg (of c/4)
+
+despmtr   wing:washout   5.00      deg (down at tip)
+despmtr   wing:dihedral  4.00      deg
+
+despmtr   wing:wakeLen   10.0      length of wake
+despmtr   wing:wakeAng   -5.0      deg
+
+# Design Parameters for horizontal tail 
+despmtr   htail:xloc      14.0
+despmtr   htail:zloc      0.2
+
+despmtr   htail:thickness 0.10
+despmtr   htail:camber    0.02
+
+despmtr   htail:area      10
+despmtr   htail:aspect    4
+despmtr   htail:taper     0.8
+despmtr   htail:twist     0.0
+despmtr   htail:sweep     10.0
+despmtr   htail:dihedral  0.0
+
+# Design Parameters for vertical tail 
+despmtr   vtail:xloc      13.5
+
+despmtr   vtail:thickness 0.10
+
+despmtr   vtail:area      10
+despmtr   vtail:aspect    3
+despmtr   vtail:taper     0.5
+despmtr   vtail:twist     0.0
+despmtr   vtail:sweep     30.0
+
+
+########################################################################
+
+######### Fuselage ########################
+
+# fuselage OML
+mark
+
+   # sharp or rounded nose
+   set isect 1
+   ifthen abs(fuse:width[isect]) EQ 0 AND abs(fuse:height[isect]) EQ 0
+      point  fuse:xloc[isect] 0 fuse:zloc[isect]
+
+   # blunt nose
+   else
+      udprim ellipse ry fuse:width[isect]/2 rz fuse:height[isect]/2
+      translate fuse:xloc[isect] 0 fuse:zloc[isect]
+   endif
+
+   # intermediate sections
+   patbeg jsect fuse:numXsect-2
+      set isect jsect+1
+
+      udprim ellipse ry fuse:width[isect]/2 rz fuse:height[isect]/2
+      translate fuse:xloc[isect] 0 fuse:zloc[isect]
+   patend
+
+   # sharp or rounded tail
+   set isect fuse:numXsect
+   ifthen abs(fuse:width[isect]) EQ 0 AND abs(fuse:height[isect]) EQ 0
+      point  fuse:xloc[isect] 0 fuse:zloc[isect]
+
+   # blunt tail
+   else
+      udprim ellipse ry fuse:width[isect]/2 rz fuse:height[isect]/2
+      translate fuse:xloc[isect] 0 fuse:zloc[isect]
+   endif
+
+# blend the sections into the Body for the fuselage
+blend fuse:noselist fuse:taillist
+   attribute name $fuseOML
+
+set fuse:xloc_max @xmax
+set fuse:ySOB     0.95*@ymax
+set fuse:height_max @zmax-@zmin
+
+store     fuseOML 0 1
+
+box  fuse:xloc[1]-1  -2*fuse:ySOB fuse:zloc[fuse:zloc.nrow] fuse:xloc_max+2 4*fuse:ySOB 0
+intersect
+store fuseW
+
+set nfuseW 10
+patbeg i nfuseW
+  set s (i-1)/(nfuseW-1)
+  restore fuseW
+  box  fuse:xloc[1]-1  -fuse:ySOB*(1-s)+s*fuse:ySOB -fuse:zloc[fuse:zloc.nrow] fuse:xloc_max+2 0 3*fuse:zloc[fuse:zloc.nrow]
+  subtract
+  select edge $__scribeID__ $*
+  extract -@sellist
+  select body
+    attribute capsGroup               $FuseW
+patend
+
+
+restore fuseOML 
+box  fuse:xloc[1]-1  0 -fuse:height_max fuse:xloc_max+2 0 2*fuse:height_max
+intersect
+store fuseH
+
+set nfuseH 8
+patbeg i nfuseH
+  set s (i-1)/(nfuseH-1)
+  restore fuseH
+  box  fuse:xloc[1]-1 -1 0.95*@zmin*(1-s)+s*0.95*@zmax fuse:xloc_max+2 2 0
+  subtract
+  select edge $__scribeID__ $*
+  extract -@sellist
+  select body
+    attribute capsGroup               $FuseH
+patend
+
+######### Wing ########################
+
+# wing OML
+set       span      sqrt(wing:aspect*wing:area)
+set       croot     2*wing:area/span/(1+wing:taper)
+set       ctip      croot*wing:taper
+set       dxtip     (croot-ctip)/4+(span/2-fuse:ySOB)*tand(wing:sweep)
+set       dztip     span/2*tand(wing:dihedral)
+
+# root SOB
+udprim    naca      Thickness wing:thick     Camber    wing:camber
+rotatex  90  0  0
+scale     croot
+select body
+    attribute capsGroup               $Wing
+    attribute capsReferenceArea       wing:area
+    attribute capsReferenceSpan       span
+    attribute capsReferenceChord      croot
+    attribute capsReferenceX          wing:xloc+croot/4
+    attribute vlmControl_Aileron      0.8  #Hinge line 80% chord
+translate wing:xloc  fuse:ySOB  wing:zloc
+
+# left tip
+udprim    naca      Thickness wing:thick     Camber    wing:camber
+rotatex  90  0  0
+scale     ctip
+rotatez   wing:washout   ctip/4    0
+translate dxtip     +span/2   dztip
+translate wing:xloc 0         wing:zloc
+select body
+    attribute capsGroup               $Wing
+    attribute vlmControl_Aileron      0.8  #Hinge line 80% chord
+
+######### Htail ########################
+
+# horizontal tail OML
+set       span      sqrt(htail:area*htail:aspect)
+set       cbar      htail:area/span
+set       croot     2*cbar/(1+htail:taper)
+set       ctip      htail:taper*croot
+
+udprim   naca  thickness htail:thickness camber htail:camber
+rotatex  90  0  0
+scale    croot
+translate htail:xloc fuse:width[fuse:width.nrow]/2  htail:zloc
+select body
+    attribute capsGroup               $Htail
+    attribute vlmControl_Stabilizer   0. 
+
+udprim   naca  thickness htail:thickness camber htail:camber
+rotatex  90  0  0
+scale    ctip
+rotatey  -htail:twist 0 0
+translate span/2*tand(htail:sweep) span/2 span/2*tand(htail:dihedral)
+translate htail:xloc 0     htail:zloc
+select body
+    attribute capsGroup               $Htail
+    attribute vlmControl_Stabilizer   0. 
+
+######### Vtail ########################
+
+# vertical tail OML
+set       span      sqrt(vtail:area*vtail:aspect)
+set       cbar      vtail:area/span
+set       croot     2*cbar/(1+vtail:taper)
+set       ctip      vtail:taper*croot
+
+
+udprim   naca  thickness vtail:thickness camber 0
+scale    croot
+translate vtail:xloc 0 fuse:height[fuse:height.nrow]/2+fuse:zloc[fuse:height.nrow]
+select body
+    attribute capsGroup               $Vtail
+    attribute vlmControl_Rudder       0.75 
+
+udprim   naca  thickness vtail:thickness camber 0
+scale    ctip
+translate span/2*tand(vtail:sweep) 0 span/2
+translate vtail:xloc 0 fuse:height[fuse:height.nrow]/2+fuse:zloc[fuse:height.nrow]
+select body
+    attribute capsGroup               $Vtail
+    attribute vlmControl_Rudder       0.75 
+
+
+end

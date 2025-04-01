@@ -1,0 +1,61 @@
+# dumpByNameWing
+# written by Marshall Galbraith
+
+# Create the Airfoil to extrude
+UDPARG  naca  thickness  0.12
+UDPARG  naca  camber  0.0
+UDPRIM   naca
+
+EXTRUDE 0 0 1
+
+ATTRIBUTE _name $profileBody
+ATTRIBUTE Name $profileBody
+
+# Name edges and faces
+SELECT FACE 1
+ATTRIBUTE Name $UpperSurface
+SELECT FACE 2
+ATTRIBUTE Name $LowerSurface
+SELECT FACE 3
+ATTRIBUTE Name $TESurface
+SELECT FACE 4
+ATTRIBUTE Name $RootSurface
+SELECT FACE 5
+ATTRIBUTE Name $TipSurface
+
+SELECT EDGE 1
+ATTRIBUTE Name $TEUpper
+SELECT EDGE 2
+ATTRIBUTE Name $LE
+SELECT EDGE 3
+ATTRIBUTE Name $Root
+SELECT EDGE 4
+ATTRIBUTE Name $Tip
+SELECT EDGE 5
+ATTRIBUTE Name $TELower
+SELECT EDGE 6
+ATTRIBUTE Name $Root
+SELECT EDGE 7
+ATTRIBUTE Name $Tip
+# Root blunt TE
+SELECT EDGE 8
+ATTRIBUTE Name $Root
+# Tip Blunt TE
+SELECT EDGE 9
+ATTRIBUTE Name $Tip
+
+STORE mainBody
+
+RESTORE mainBody
+UDPRIM dumpbyname filename $wing.stp
+TRANSLATE 0 3 0
+IMPORT wing.stp -1
+TRANSLATE 0 2 0
+
+MARK
+RESTORE mainBody
+UDPRIM dumpbyname filename $wing.igs
+TRANSLATE 0 1 0
+IMPORT wing.igs -1
+
+END

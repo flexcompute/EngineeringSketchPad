@@ -1,0 +1,68 @@
+
+INTERFACE . ALL
+
+IFTHEN ifnan(offset,1,0) EQ 1
+  SET offset 0.5
+ENDIF
+
+# Create the ffd box
+CFGPMTR cpu     4
+CFGPMTR cpv     2
+CFGPMTR cpw     3
+SET u_degree    3
+SET v_degree    1
+SET w_degree    2
+
+SET dx @xmax-@xmin
+SET dy @ymax-@ymin
+SET dz @zmax-@zmin
+SET ds 0.1
+
+BOX @xmin-ds @ymin-ds @zmin-ds  dx+2*ds dy+2*ds dz+2*ds
+SET       theBox  @ibody
+
+SELECT    FACE  theBox 1
+   ATTRIBUTE  ffd_uMin    "u_degree;cpu"
+   ATTRIBUTE  _color $cyan
+SELECT    FACE  theBox 3
+   ATTRIBUTE  ffd_vMin    "v_degree;cpv"
+   ATTRIBUTE  _color $magenta
+SELECT    FACE  theBox 5
+   ATTRIBUTE  ffd_wMin    "w_degree;cpw"
+   ATTRIBUTE  _color $green
+
+STORE ffdBox
+
+# Create DESPMTR for sensitvitiy tests
+DIMENSION d_params cpu*cpv*cpw 3
+DESPMTR d_params 0
+
+# Displacements to translate and stretch
+DIMENSION disp cpu*cpv*cpw 3
+PATBEG i disp.nrow
+  PATBEG j disp.ncol
+    SET disp[i,j] offset*j*(i-1)/(disp.nrow-1)+d_params[i,j]
+  PATEND
+PATEND
+
+# converted to BSplines
+RESTORE ffdBox
+RESTORE original
+UDPRIM  FFDsplines   mincp 21
+
+# perfor deformation
+UDPRIM FFDdeform design_params disp
+IFTHEN @nface GT 0
+SELECT FACE
+  ATTRIBUTE _color $lblue
+ELSE
+SELECT EDGE
+  ATTRIBUTE _color $lblue
+ENDIF
+
+OUTPMTR penalty
+SET penalty @@penalty
+
+RESTORE original
+
+END

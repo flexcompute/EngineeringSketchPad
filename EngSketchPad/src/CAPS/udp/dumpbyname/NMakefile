@@ -1,0 +1,44 @@
+#	NMakefile for udfDumpByName
+#
+!IFNDEF ESP_ROOT
+!ERROR ESP_ROOT must be set -- Please fix the environment...
+!ENDIF
+#
+!IFNDEF ESP_ARCH
+!ERROR ESP_ARCH must be set -- Please fix the environment...
+!ENDIF
+#
+IDIR  = $(ESP_ROOT)\include
+!include $(IDIR)\$(ESP_ARCH).$(MSVC)
+LDIR  = $(ESP_ROOT)\lib
+BDIR  = $(ESP_ROOT)\bin
+!ifdef ESP_BLOC
+ODIR  = $(ESP_BLOC)\obj
+!else
+ODIR  = .
+!endif
+
+default:	$(LDIR)\dumpbyname.dll
+
+$(LDIR)\dumpbyname.dll:	$(ODIR)\udfDumpByName.obj
+	-del $(LDIR)\dumpbyname.dll
+	link /out:$(LDIR)\dumpbyname.dll /dll /def:udp.def \
+		$(ODIR)\udfDumpByName.obj \
+		$(LDIR)\ocsm.lib $(LDIR)\egads.lib
+	$(MCOMP) /manifest $(LDIR)\dumpbyname.dll.manifest \
+		/outputresource:$(LDIR)\dumpbyname.dll;2
+
+$(ODIR)\udfDumpByName.obj:	udfDumpByName.cpp \
+		$(IDIR)\udpUtilities.c $(IDIR)\udpUtilities.h
+	cl /c $(CPPOPT) $(DEFINE) /I$(IDIR) \
+		udfDumpByName.cpp /Fo$(ODIR)\udfDumpByName.obj
+
+.phony:
+test: .phony
+	pushd test & $(MAKE) -f NMakefile & popd
+
+clean:
+	-del $(ODIR)\udfDumpByName.obj
+
+cleanall:	clean
+	-del $(LDIR)\dumpbyname.dll

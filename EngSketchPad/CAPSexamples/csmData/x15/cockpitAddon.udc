@@ -1,0 +1,50 @@
+#------------------------------------------------------------------------------#
+# Script Name   : cockpitAddon.udc
+# Purpose       : Shape Recipe for Cockpit
+# Description   : This script is developed to demonstrate UDCs using ESP. 
+# Scripted by   : Nitin Bhagat
+# Dependencies  : ESP 1.27 and above
+#               : himoco.csm: Driver script
+# Limitations   : 
+#               :
+# Contact       : [nbhagat1@udayton.edu] for scripting bugs/suggestions.
+#------------------------------------------------------------------------------#
+
+INTERFACE . ALL
+
+mark
+POINT  1.2 0 0
+udparg    supell    rx  0.25  ry_s  0.15  ry_n  0.27
+udprim    supell    n_n   1.0
+rotatex 90 0 0
+rotatez -90 0 0
+translate  1.8 0 0
+store temp 0 1
+restore temp
+
+udparg    supell    rx  0.31  ry_s  0.155 ry_n  0.35
+udprim    supell    n_n 1.3
+rotatex 90 0 0
+rotatez -90 0 0
+translate  2.2 0 0
+store temp 0 1
+restore temp
+
+udparg    supell    rx  0.30  ry_s  0.15  ry_n  0.288
+udprim    supell
+rotatex 90 0 0
+rotatez -90 0 0
+translate  3.7 0 0
+store temp
+restore temp
+   attribute .C1side $rev
+blend
+    translate 0 0 0.23
+
+ATTRIBUTE _name $cockpit
+
+SELECT FACE 
+    ATTRIBUTE tagType $cockpit
+    ATTRIBUTE _color Cockpit:color
+
+store cockpitOml

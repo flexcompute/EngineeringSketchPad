@@ -1,0 +1,41 @@
+ATTRIBUTE capsAIM $cart3dAIM
+ATTRIBUTE capsReferenceArea  1.0
+ATTRIBUTE capsReferenceChord 1.0
+ATTRIBUTE capsReferenceX 0.0
+ATTRIBUTE capsReferenceY 0.0
+ATTRIBUTE capsReferenceZ 0.0
+
+# profile to be used
+UDPARG naca    thickness 0.04
+UDPRIM naca    camber    0.02
+
+# make the nacelle
+UDPARG nacelle f_rad    1;1;1;1           # front superellipse radii (e,n,w,e)
+UDPARG nacelle f_pow    2;2;2;2           # front superellipse power (ne,nw,sw,se)
+UDPARG nacelle a_rad    0.8;0.8;0.8;0.8   # aft   superellipse radii (e,n,w,e)
+UDPARG nacelle a_pow    2;2;2;2           # aft   superellipse power (ne,nw,sw,se)
+UDPARG nacelle length   3.0               # overall length
+UDPARG nacelle deltah   0.0               # difference in height between front and aft
+UDPRIM nacelle rakeang  0.0               # front rake angle (deg)
+
+SELECT FACE
+ATTRIBUTE capsGroup $nacelle
+
+STORE nacelle
+
+# create fan faces and set CAPS groups
+CYLINDER  1   0   0   2   0   0   2.0
+
+SELECT FACE 10 1
+ATTRIBUTE capsGroup $inlet
+ 
+SELECT FACE 10 2
+ATTRIBUTE capsGroup $exhaust
+
+# remove excess cylinder
+RESTORE nacelle
+SUBTRACT 0 2
+RESTORE nacelle
+UNION
+
+END

@@ -1,0 +1,25 @@
+# vtail_wedge.csm written by ocsmSave (v1.27)
+
+# Constant, Design, and Output Parameters:
+
+# Global Attributes:
+
+# Branches:
+SKBEG     0   0   0   1
+   SKVAR     xy   0.000000;0.000000;0.000000;0.009128;-0.009962;0.002627;1.000000;-0.096652;0.000000;1.000000;0.000000;0.000000;
+   SKCON     X   1   -1  0
+   SKCON     Y   1   -1  0
+   SKCON     V   3   4  0
+   SKCON     H   4   1  0
+   SKCON     L   4   1  1
+   SKCON     R   1   2  0.01
+   SKCON     T   2   -1  0
+   SKCON     P   1   -1  0
+   SKCON     A   3   -1  95
+   ARC       ::x[2]   ::y[2]   0   ::d[2]   xy
+   LINSEG    ::x[3]   ::y[3]   0
+   LINSEG    ::x[4]   ::y[4]   0
+   LINSEG    ::x[1]   ::y[1]   0
+SKEND     0
+
+END

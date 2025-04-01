@@ -1,0 +1,78 @@
+#------------------------------------------------------------------------------#
+# Script Name   : htail.udc
+# Purpose       : Shape Recipe for Horizontal tail
+# Description   : This script is developed to demonstrate UDCs using ESP. 
+# Scripted by   : Nitin Bhagat
+# Dependencies  : ESP 1.27 and above
+#               : himoco.csm: Driver script
+# Limitations   : 
+#               :
+# Contact       : [nbhagat1@udayton.edu] for scripting bugs/suggestions.
+#------------------------------------------------------------------------------#
+
+INTERFACE . ALL
+
+#---------- Dependent Variables -------------
+# Airfoil
+UDPARG    naca456   thkcode $66
+UDPARG    naca456   toc     0.05
+UDPARG    naca456   camcode $6
+UDPARG    naca456   cl      0.00
+UDPARG    naca456   a       0.80
+UDPRIM    naca456
+  ROTATEX 90
+
+STORE htailFoil
+
+
+MARK
+    restore htailFoil
+    scale  2.45
+    translate  Wing:tipLocX+Wing:tipChord 0 0
+
+    restore htailFoil
+    scale  1.64
+    translate  9.578 0.88 0
+    store mid 0 1
+    restore mid
+    restore mid
+
+    restore htailFoil
+    scale Htail:tipChord
+    translate  Htail:tipLocX 1.8 1.8*tand(Htail:hedral)
+BLEND 0 0 0 1
+    attribute _name   Htail:name
+    attribute _color  Htail:color
+    attribute _bcolor Htail:color
+
+    ATTRIBUTE tagComp Htail:name+$:right
+
+#--- Attributes ---   Htail
+SET ruledBody @nbody
+
+SELECT    FACE ruledBody  1
+   ATTRIBUTE tagType  $root
+SELECT    FACE ruledBody  2
+   ATTRIBUTE tagType  $tip
+SELECT    FACE ruledBody  3
+   ATTRIBUTE tagType  $upper
+SELECT    FACE ruledBody  4
+   ATTRIBUTE tagType  $lower
+SELECT    EDGE ruledBody 3 ruledBody 4 1
+   ATTRIBUTE tagType  $leadingEdge
+SELECT    EDGE  ruledBody 3 ruledBody 4 2
+   ATTRIBUTE tagType  $trailingEdge
+
+
+store htailRight 0 1
+restore htailRight
+    ATTRIBUTE tagComp Htail:name+$:left
+
+MIRROR 0 1 0 0
+JOIN
+    attribute _name Htail:name
+    ATTRIBUTE tag Htail:name
+
+store htailOml
+
+END

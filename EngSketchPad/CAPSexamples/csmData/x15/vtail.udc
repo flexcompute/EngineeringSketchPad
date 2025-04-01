@@ -1,0 +1,63 @@
+
+#------------------------------------------------------------------------------#
+# Script Name   : vtail.udc
+# Purpose       : Shape Recipe for Vertical Tail
+# Description   : This script is developed to demonstrate UDCs using ESP. 
+# Scripted by   : Nitin Bhagat
+# Dependencies  : ESP 1.27 and above
+#               : himoco.csm: Driver script
+# Limitations   : 
+#               :
+# Contact       : [nbhagat1@udayton.edu] for scripting bugs/suggestions.
+#------------------------------------------------------------------------------#
+
+INTERFACE . ALL
+
+#---- Top Vtail ----
+MARK 
+    UDPRIM $/wedge_foil chord Vtail:rootChord
+    TRANSLATE Vtail:rootLocX 0 0
+
+    UDPRIM $/wedge_foil chord Vtail:tipChord
+    TRANSLATE Vtail:tipLocX 0 Vtail:tipLocZ
+RULE
+
+STORE vtailLeft 0 1
+RESTORE vtailLeft 
+MIRROR 0 1 0 0
+JOIN
+
+SELECT FACE 
+    ATTRIBUTE _name Vtail:name+$:top
+    ATTRIBUTE _color Vtail:color
+    ATTRIBUTE tagComp Vtail:name
+    ATTRIBUTE tagType $top
+
+
+#---- Bottom Vtail ----
+MARK 
+    UDPRIM $/wedge_foil chord Vtail:rootChord
+    TRANSLATE Vtail:rootLocX 0 0
+
+    UDPRIM $/wedge_foil chord Vtail:tipChord
+    ROTATEY -1.19 0 0
+    TRANSLATE Vtail:tipLocX 0 Vtail:tipLocZb
+RULE
+
+STORE vtailbLeft 0 1
+RESTORE vtailbLeft 
+MIRROR 0 1 0 0
+JOIN
+
+SELECT FACE 
+    ATTRIBUTE _name Vtail:name+$:bot
+    ATTRIBUTE _color Vtail:color
+    ATTRIBUTE tagComp Vtail:name
+    ATTRIBUTE tagType $bottom
+
+JOIN #Top and Bottom Vtail
+    ATTRIBUTE _name Vtail:name
+
+store vtailOml
+
+END

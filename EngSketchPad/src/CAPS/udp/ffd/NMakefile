@@ -1,0 +1,64 @@
+#	NMakefile for FFD
+#
+IDIR  = $(ESP_ROOT)\include
+!include $(IDIR)\$(ESP_ARCH).$(MSVC)
+LDIR  = $(ESP_ROOT)\lib
+BDIR  = $(ESP_ROOT)\bin
+!ifdef ESP_BLOC
+ODIR  = $(ESP_BLOC)\obj
+!else
+ODIR  = .
+!endif
+
+default:	$(LDIR)\FFDsplines.dll $(LDIR)\FFDdeform.dll
+
+$(LDIR)\FFDsplines.dll:	$(ODIR)\udpFFDsplines.obj $(ODIR)\ffdUtil.obj
+	-del $(LDIR)\FFDsplines.dll
+	link /out:$(LDIR)\FFDsplines.dll /dll /def:udp.def \
+		$(ODIR)\udpFFDsplines.obj $(ODIR)\ffdUtil.obj \
+		$(LDIR)\ocsm.lib $(LDIR)\egads.lib
+	$(MCOMP) /manifest $(LDIR)\FFDsplines.dll.manifest \
+		/outputresource:$(LDIR)\FFDsplines.dll;2
+
+$(LDIR)\FFDdeform.dll:	$(ODIR)\udpFFDdeform.obj $(ODIR)\spline3d_eval.obj $(ODIR)\ffdUtil.obj
+	-del $(LDIR)\FFDdeform.dll
+	link /out:$(LDIR)\FFDdeform.dll /dll /def:udp.def \
+		$(ODIR)\udpFFDdeform.obj $(ODIR)\spline3d_eval.obj $(ODIR)\ffdUtil.obj \
+		$(LDIR)\ocsm.lib $(LDIR)\egads.lib
+	$(MCOMP) /manifest $(LDIR)\FFDdeform.dll.manifest \
+		/outputresource:$(LDIR)\FFDdeform.dll;2
+
+$(ODIR)\udpFFDsplines.obj:	udpFFDsplines.cpp spline3d_eval.hpp \
+		$(IDIR)\udpUtilities.c $(IDIR)\udpUtilities.h
+	cl /c $(CPPOPT) $(DEFINE) /I$(IDIR) \
+		udpFFDsplines.cpp /Fo$(ODIR)\udpFFDsplines.obj
+
+$(ODIR)\udpFFDdeform.obj:	udpFFDdeform.cpp spline3d_eval.hpp \
+		$(IDIR)\udpUtilities.c $(IDIR)\udpUtilities.h
+	cl /c $(CPPOPT) $(DEFINE) /I$(IDIR) \
+		udpFFDdeform.cpp /Fo$(ODIR)\udpFFDdeform.obj
+
+$(ODIR)\ffdUtil.obj:	ffdUtil.c \
+		$(IDIR)\udpUtilities.c $(IDIR)\udpUtilities.h
+	cl /c $(COPTS) $(DEFINE) /I$(IDIR) \
+		ffdUtil.c /Fo$(ODIR)\ffdUtil.obj
+
+$(ODIR)\spline3d_eval.obj:	spline3d_eval.cpp spline3d_eval.hpp \
+		$(IDIR)\udpUtilities.c $(IDIR)\udpUtilities.h
+	cl /c $(CPPOPT) $(DEFINE) /I$(IDIR) \
+		spline3d_eval.cpp /Fo$(ODIR)\spline3d_eval.obj
+
+.phony:
+test: .phony
+	pushd test & $(MAKE) -f NMakefile & popd
+
+clean:
+	-del $(ODIR)\udpFFDsplines.obj
+	-del $(ODIR)\udpFFDdeform.obj
+	-del $(ODIR)\spline3d_eval.obj
+	-del $(ODIR)\ffdUtil.obj
+
+cleanall:	clean
+	-del $(LDIR)\FFDsplines.dll
+	-del $(LDIR)\FFDdeform.dll
+	

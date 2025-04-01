@@ -1,0 +1,118 @@
+# seqnum4
+# written by John Dannenhoffer
+
+# get new sequence numbering
+ATTRIBUTE _newSeqnum 1
+
+# block1
+BOX       0  0  0  10  10   1
+SET       theBody @nbody
+
+UDPRIM    waffle   depth 2   filename <<
+   POINT  A  AT  0  -2
+   POINT  B  AT  5  12
+   LINE   .  A   B
+
+   POINT  A  AT 10  -2
+   POINT  B  AT  5  12
+   LINE   .  A   B
+
+   POINT  A  AT -2   5
+   POINT  B  AT  4   5
+   LINE   .  A   B
+
+   POINT  A  AT  6   5
+   POINT  B  AT 12   5
+   LINE   .  A   B
+>>
+TRANSLATE 0  0  -1/2
+SUBTRACT
+
+SELECT    FACE  theBody 6  1
+   ATTRIBUTE _color $red
+SELECT    FACE  theBody 6  2
+   ATTRIBUTE _color $green
+SELECT    FACE  theBody 6  3
+   ATTRIBUTE _color $blue
+SELECT    FACE  theBody 6  4
+   ATTRIBUTE _color $cyan
+SELECT    FACE  theBody 6  5
+   ATTRIBUTE _color $magenta
+
+# block2
+BOX       0  0  0  10  10   1
+SET       theBody @nbody
+
+UDPRIM    waffle   depth 2   filename <<
+   POINT  A  AT  5  -2
+   POINT  B  AT  0  12
+   LINE   .  A   B
+
+   POINT  A  AT  5  -2
+   POINT  B  AT 10  12
+   LINE   .  A   B
+
+   POINT  A  AT -2   5
+   POINT  B  AT  4   5
+   LINE   .  A   B
+
+   POINT  A  AT  6   5
+   POINT  B  AT 12   5
+   LINE   .  A   B
+>>
+TRANSLATE 0  0  -1/2
+SUBTRACT
+
+SELECT    FACE  theBody 6  1
+   ATTRIBUTE _color $red
+SELECT    FACE  theBody 6  2
+   ATTRIBUTE _color $green
+SELECT    FACE  theBody 6  3
+   ATTRIBUTE _color $blue
+SELECT    FACE  theBody 6  4
+   ATTRIBUTE _color $cyan
+SELECT    FACE  theBody 6  5
+   ATTRIBUTE _color $magenta
+
+TRANSLATE 15  0  0
+
+# block3 (expected to be different)
+BOX       0  0  0  10  10   1
+SET       theBody @nbody
+ROTATEZ -90  5  5
+
+UDPRIM    waffle   depth 2   filename <<
+   POINT  A  AT  0  -2
+   POINT  B  AT  5  12
+   LINE   .  A   B
+
+   POINT  A  AT 10  -2
+   POINT  B  AT  5  12
+   LINE   .  A   B
+
+   POINT  A  AT -2   5
+   POINT  B  AT  4   5
+   LINE   .  A   B
+
+   POINT  A  AT  6   5
+   POINT  B  AT 12   5
+   LINE   .  A   B
+>>
+TRANSLATE 0  0  -1/2
+SUBTRACT
+
+MESSAGE   block3_should_be_different
+
+SELECT    FACE  theBody 6  1
+   ATTRIBUTE _color $red
+SELECT    FACE  theBody 6  2
+   ATTRIBUTE _color $green
+SELECT    FACE  theBody 6  3
+   ATTRIBUTE _color $blue
+SELECT    FACE  theBody 6  4
+   ATTRIBUTE _color $cyan
+SELECT    FACE  theBody 6  5
+   ATTRIBUTE _color $magenta
+
+TRANSLATE 30  0  0
+END

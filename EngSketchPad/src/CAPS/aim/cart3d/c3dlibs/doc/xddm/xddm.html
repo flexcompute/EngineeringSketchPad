@@ -1,0 +1,1565 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html>
+<!-- $Id: xddm.html,v 1.32 2022/11/08 18:17:36 mnemec Exp $ -->
+
+<head>
+  <meta name="generator" content=
+  "HTML Tidy for Mac OS X (vers 31 October 2006 - Apple Inc. build 15.18.1), see www.w3.org">
+
+  <title>XDDM</title>
+  <style type="text/css">
+  h2 {font-family:Helvetica,sans-serif; line-height:1; font-weight:normal}
+    h3, h4 {font-family:Helvetica,sans-serif; line-height:1.5}
+    p, ul, ol {font-family:Helvetica,sans-serif; font-size:large; font-weight:lighter;
+    line-height:1.5}
+    h3 {color:blue}
+    dd, dl, dt {font-family:Helvetica,sans-serif; line-height:1.5;
+    font-size:medium}
+    strong { font-weight:normal }
+    A:visited { font-weight : normal; text-decoration : none;
+    background-color : transparent;
+    margin : 0px 0px 0px 0px; padding : 0px 0px 0px 0px; display: inline; }
+          A:link    { font-weight : normal; text-decoration : none;
+    margin : 0px 0px 0px 0px; padding : 0px 0px 0px 0px; display: inline; }
+          A:hover   { color : #000000; font-weight : normal; text-decoration : underline;
+    background-color : yellow; margin : 0px 0px 0px 0px; padding : 0px 0px 0px 0px; display: inline; }
+          A:active  { color : #000000; font-weight: normal; background-color :
+    transparent;
+    margin : 0px 0px 0px 0px; padding : 0px 0px 0px 0px; display: inline; }
+          .VERSION { font-size: small; font-family : arial, sans-serif; }
+          .NORM { color: black; background-color: transparent;}
+          .FIFO { color: purple; background-color: transparent;}
+          .CHAR { color: yellow; background-color: transparent;}
+          .DIR  { color: blue; background-color: transparent;}
+          .BLOCK { color: yellow; background-color: transparent;}
+          .LINK { color: green; background-color: transparent;}
+          .SOCK { color: fuchsia; background-color: transparent;}
+          .EXEC { color: green; background-color: transparent;}
+          .PRIV { color: gray; background-color: transparent;}
+          .ATTN { color: red; background-color: transparent;}
+    pre {padding:10px}
+  table {
+    border: 2px solid black;
+    border-collapse: collapse;
+    font-size:large;
+    background-color: #f1f1c1;
+  }
+  th, td {
+    border: 1px solid black;
+    border-collapse: collapse;
+    padding: 5px;
+    text-align: center;
+  }
+  /* horizontal line styles from css-tricks.com */
+  /* Gradient color1 - color2 - color1 */
+  hr.style-one {
+  border: 0;
+  height: 1px;
+  background: #333;
+  background-image: linear-gradient(to right, #ccc, #333, #ccc);
+  }
+  /* Gradient transparent - color - transparent */
+  hr.style-two {
+  border: 0;
+  height: 1px;
+  background-image: linear-gradient(to right, rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.75), rgba(0, 0, 0, 0));
+  }
+  /* Single-direction drop shadow */
+  hr.style-four {
+  height: 12px;
+  border: 0;
+  box-shadow: inset 0 12px 12px -12px rgba(0, 0, 0, 0.5);
+  }
+  i.normal { font-weight: normal }
+  </style>
+  <meta name="author" content="M. Nemec">
+</head>
+
+<body>
+  <a name="top" id="top"></a>
+  <hr class="style-two" width="70%">
+  <div align="center">
+    <h2>XML Specification for Aerodynamic Shape Optimization</h2>
+  </div>
+
+  <div align="center">
+    <h2>Extensible-Design-Description-Markup (XDDM)</h2>
+  </div>
+
+  <div align="center">
+    <h2>Version 1.1</h2>
+  </div>
+  <hr class="style-two" width="70%">
+
+  <p>This specification defines an <a href=
+  "http://www.w3.org/XML">XML</a> markup vocabulary for describing
+  aerodynamic shape optimization problems. The specification
+  evolved from our experience with gradient and gradient-free
+  optimization methods in computational aerodynamics, including
+  loosely-coupled multidisciplinary optimization and
+  variable-fidelity approaches. The goal is a simple and terse
+  vocabulary to define design variables, objective functions and
+  constraints, as well as a flexible interface to exchange data
+  between different software modules of optimization
+  frameworks.</p>
+
+  <p>The specification is divided into two sections. The <a href=
+  "#t_basic">first section</a> presents the basic markup
+  <em>elements</em> that specify optimization problems. These
+  include the design variables, e.g. shape of the geometry or
+  freestream conditions, and the objective and contraints, which
+  can be specified as symbolic expressions. The <a href=
+  "#t_framework">second section</a> presents the framework markup.
+  These are elements that are specific to various software modules
+  of optimization frameworks, such as geometry generation and flow
+  solution. Taken together, the basic and module-specific elements
+  provide a design database at each iteration of the
+  optimization.</p>
+
+  <p>The style of XDDM is similar to the <a href=
+  "http://www.w3.org/Graphics/SVG">SVG</a> specification, e.g. our
+  preference is to use <em>attributes</em> when specifying atomic
+  <strong>Name</strong>="<em>Value</em>" pairs. The basic style of
+  all elements and attributes is to start each tag with a capital
+  letter followed by lower case and if the tag consists of multiple
+  words we capitalize the starting letter of each word. The syntax
+  is compatible with most XML parsers. We prefer <a href=
+  "http://www.w3.org/TR/xpath20">XPath</a> and use implementations
+  in <a href="http://www.xmlsoft.org">libxml2</a>, Perl (<a href=
+  "https://metacpan.org/release/XML-LibXML">XML::LibXML</a>),
+  <a href=
+  "http://java.sun.com/javase/6/docs/technotes/guides/xml/jaxp/index.html">
+  Java</a> and <a href=
+  "https://docs.python.org/2/library/xml.etree.elementtree.html">Python</a>.</p>
+
+  <div>
+    <h3>What's new in version 1.1?</h3>
+  </div>
+
+  <ul style="background-color: #F7F2E0">
+    <li><a href="#t_pressbc"><em>InletPressRatioBC</em></a> and
+    <a href="#t_velbc"><em>InletVelocityBC</em></a> elements handle
+    design variables associated with the flow-solver's outflow
+    boundary conditions, such as those in engine simulations.</li>
+  </ul>
+
+  <div>
+    <h3>What was new in version 1.0?</h3>
+  </div>
+
+  <ul style="background-color: #F7F2E0">
+    <li><a href="#t_Intersect"><em>Intersect</em></a> element
+    handles geometry sub-assemblies, cutouts and overlaps. The
+    <strong>Geometry</strong> attribute of the <a href=
+    "#t_optimize"><em>Optimize</em></a> element is deprecated and
+    is replaced with the <strong>Geometry</strong> attribute in the
+    <a href="#t_dpoint"><em>DesignPoint</em></a> element.</li>
+
+    <li>Improvements to <strong>Expr</strong> syntax and export and
+    import of <a href="#t_fun"><em>Function</em></a> elements.
+    Click <a href="xddm_symbolic_expr.pdf">here</a> for
+    details.</li>
+
+    <li>Explicit <strong>Min</strong> and <strong>Max</strong>
+    attributes in <a href="#t_constraint"><em>Constraint</em></a>
+    elements.</li>
+
+    <li><a href="#t_aero_fun"><em>AeroFun</em></a> elements are
+    used to import aerodynamic <a href=
+    "https://www.nas.nasa.gov/publications/software/docs/cart3d/pages/adjoint/doc_adj_functionals.html">
+    functionals</a> as <a href="#t_analysis"><em>Analysis</em></a>
+    parameters. This allows explicit treatment (as opposed to
+    penalty formulation) of aerodynamic constraints.</li>
+
+    <li><strong>FDstep</strong> attribute of <a href=
+    "#t_variable"><em>Variable</em></a> elements sets a
+    user-specified finite-difference step-size.</li>
+  </ul>
+  <hr class="style-two" width="60%">
+
+  <div>
+    <h3 style="font-size:x-large; text-align: center"><a name="t_basic" id="t_basic"
+    style="text-decoration: none">Basic Elements</a></h3>
+  </div>
+
+  <ul>
+    <li><a href="#t_variable">Variable</a></li>
+
+    <li><a href="#t_constant">Constant</a></li>
+
+    <li><a href="#t_analysis">Analysis</a></li>
+
+    <li><a href="#t_fun">Function</a></li>
+
+    <li><a href="#t_sum">Sum</a></li>
+
+    <li><a href="#t_objective">Objective</a> and <a href=
+    "#t_constraint">Constraint</a></li>
+
+    <li><a href="#t_config">Configure</a></li>
+  </ul>
+
+  <p>Tips are displayed if you "mouse-over" <strong style=
+  "color:#666666">gray keywords</strong>. Examples using XDDM are
+  provided in <tt>$CART3D/cases/samples_design</tt>.</p>
+
+  <!-- ................ Variable ................ -->
+
+  <h3 style="text-align: center"><a name="t_variable" id="t_variable" style=
+  "text-decoration: none">Variable</a></h3>
+
+  <p>The element <em style="color:blue">Variable</em> denotes a
+  parameter that is a design variable. This can be any driving
+  parameter used in the optimization, e.g. a shape control
+  parameter or angle of attack.</p>
+
+  <dl>
+    <dt><em>Synopsis</em></dt>
+
+    <dd>&lt;Variable ID="%s" Value="%g" [Min="%g"] [Max="%g"]
+    [TypicalSize="%g"] [FDstep="%g"] [Comment="%s"]/&gt;</dd>
+  </dl>
+
+  <dl>
+    <dt><em>Attribute Definitions</em></dt>
+
+    <dd>
+      <dl>
+        <dt><tt title=
+        "Avoid '# ! . \ / %' as first character, and no whitespace">
+        <strong style="color:#666666;font-size:x-large"><a name=
+        "t_var_id" id="t_var_id">ID</a>=</strong></tt> "%s"</dt>
+
+        <dd>Design variable name; <em>required</em></dd>
+
+        <dt><strong>Value=</strong>"%g"</dt>
+
+        <dd>Design variable value (double); <em>required</em></dd>
+
+        <dt><strong>Min=</strong>"%g"</dt>
+
+        <dd>Minimum allowable value (double);
+        <em>optional</em></dd>
+
+        <dt><strong>Max=</strong>"%g"</dt>
+
+        <dd>Maximum allowable value (double);
+        <em>optional</em></dd>
+
+        <dt><strong>TypicalSize=</strong>"%g"</dt>
+
+        <dd>Order-of-magnitude size, primarily used for scaling
+        (double); <em>optional</em>, default=1</dd>
+
+        <dt><strong>FDstep=</strong>"%g"</dt>
+
+        <dd>Finite-difference stepsize used to compute derivatives
+        with respect to this variable. The default is to omit this
+        attribute, the stepsize is computed automatically (double);
+        <em>optional</em></dd>
+
+        <dt><strong>Comment=</strong>"%s"</dt>
+
+        <dd>Brief description of parameter; <em>optional</em></dd>
+      </dl>
+    </dd>
+  </dl>
+
+  <p>Typical usage involves the user specifying this element at the
+  start of the optimization. Thereafter, the <strong>Value</strong>
+  attribute is modified by the optimizer.</p>
+
+  <h4 style="font-size:large">Example</h4>
+
+  <blockquote>
+    <pre style=
+    "color:#0000ff;background-color:#cccccc;font-size:large;width:830px">
+&lt;Variable ID="twist" Value="1." Min="-5" Max="5" TypicalSize="1" Comment="tip twist"/&gt;
+</pre>
+  </blockquote>
+
+  <!-- ................ Constant ................ -->
+  <h3 style="text-align: center"><a name="t_constant" id="t_constant" style=
+  "text-decoration: none">Constant</a></h3>
+
+  <p>The element <em style="color:blue">Constant</em> denotes a
+  parameter that is fixed, i.e. constant throughout the
+  optimization process.</p>
+
+  <dl>
+    <dt><em>Synopsis</em></dt>
+
+    <dd>&lt;Constant ID="%s" Value="%g" [Min="%g"] [Max="%g"]
+    [TypicalSize="%g"] [Comment="%s"]/&gt;</dd>
+  </dl>
+
+  <p>This element has the same attributes as the <em><a href=
+  "#t_variable">Variable</a></em> element, but
+  <strong>Min</strong>, <strong>Max</strong> and
+  <strong>TypicalSize</strong> are ignored. This element is
+  provided for convenience so that users can easily add or freeze
+  design variables without manipulating multiple files.</p>
+
+  <h4 style="font-size:large">Example</h4>
+
+  <blockquote>
+    <pre style=
+    "color:#0000ff;background-color:#cccccc;font-size:large;width:570px">
+&lt;Constant ID="alpha" Value="2" Comment="angle of attack"/&gt;
+</pre>
+  </blockquote>
+
+  <!-- ................ Analysis ................ -->
+  <h3 style="text-align: center"><a name="t_analysis" id="t_analysis" style=
+  "text-decoration: none">Analysis</a></h3>
+
+  <p>The element <em style="color:blue">Analysis</em> denotes a driven
+  parameter evaluated by an application within the optimization framework,
+  e.g. airfoil thickness output by a geometry modeler or aerodynamic
+  coefficients output by a CFD solver. This element usually depends on the
+  values of the design variables, as well as other
+  parameters. Its <strong>Value</strong> attribute is filled-in
+  whenever the application executes and is usually used downstream to
+  formulate derived quantities, e.g. objectives and constraints.</p>
+
+  <dl>
+    <dt><em>Synopsis</em></dt>
+
+    <dd>&lt;Analysis ID="%s" Value="%g" [DiscretizationError="%g"]
+    [Sensitivity="None | Required"] [Comment="%s"]&gt;<br>
+    &nbsp;&nbsp;[&lt;AeroFun&gt; ...  &lt;/AeroFun&gt;]<br>
+    &nbsp;&nbsp;[&lt;SensitivityArray&gt; ...
+    &lt;/SensitivityArray&gt;]<br> &lt;/Analysis&gt;</dd>
+  </dl>
+
+  <dl>
+    <dt><em>Attribute Definitions</em></dt>
+
+    <dd>
+      <dl>
+        <dt><strong>ID=</strong>"%s"</dt>
+
+        <dd>Unique ID, parameter name; <em>required</em></dd>
+
+        <dt><strong>Sensitivity=</strong>"None | Required"</dt>
+
+        <dd>Request linearization of this element with respect to
+        all <a href="#t_variable">design variables</a>. If omitted
+        then "None" is assumed; <em>optional</em></dd>
+
+        <dt><strong>Comment=</strong>"%s"</dt>
+
+        <dd>Brief description of parameter; <em>optional</em></dd>
+
+        <dt><strong>Value=</strong>"%g"</dt>
+
+        <dd>Analysis parameter value (double);
+          <em>required</em></dd>
+
+        <dt><strong>DiscretizationError=</strong>"%g"</dt>
+
+        <dd>Discretization error value (double);
+        <em>optional</em></dd>
+ 
+      </dl>
+    </dd>
+  </dl>
+
+  <dl>
+    <dt><em>Child Nodes</em></dt>
+
+    <dd>
+      <dl>
+        <dt><a name="t_sensit_array" id=
+        "t_sensit_array"><strong style=
+        "color:#228B22">SensitivityArray</strong></a></dt>
+
+        <dd>
+          <p>This element holds the derivative values of the
+          analysis parameter with respect to <a href=
+          "#t_variable">design variables</a> (array of doubles). If
+          sensitivities are not requested, then this element is
+          omitted. Each entry has the following syntax:</p>
+
+          <dl>
+            <dt><strong style=
+            "color:#228B22">Sensitivity</strong></dt>
+
+            <dd>
+              <dl>
+                <dt><strong>P=</strong>"%s"</dt>
+
+                <dd>Parameter ID with respect to which the
+                derivative is taken, e.g. design variable <a href=
+                "#t_var_id">ID</a> or its signature;
+                <em>required</em></dd>
+
+                <dt><strong>Value=</strong>"%g"</dt>
+
+                <dd>Derivative value (double);
+                <em>required</em></dd>
+              </dl>
+            </dd>
+          </dl>
+        </dd>
+      </dl>
+
+      <dl>
+        <dt><a name="t_aero_fun" id="t_aero_fun"><strong style=
+        "color:#228B22">AeroFun</strong></a></dt>
+
+        <dd>
+          <p>This tag marks the analysis element as an aerodynamic
+          output of <a href=
+          "https://www.nas.nasa.gov/publications/software/docs/cart3d/pages/index.html">
+          <em>Cart3D</em></a>. It is a text node. Its content is
+          the same output functional <a href=
+          "https://www.nas.nasa.gov/publications/software/docs/cart3d/pages/adjoint/doc_adj_functionals.html">
+          <em>syntax</em></a> as is used in <em>Cart3D</em>'s
+          <a href=
+          "https://www.nas.nasa.gov/publications/software/docs/cart3d/pages/input_cntl.html#design">
+          <em style="color:#228B22">$__Design_Info</em></a>
+          input.</p>
+        </dd>
+
+        <dd>
+          <dl>
+            <dt><em>Attribute Definitions</em></dt>
+
+            <dd>
+              <dl>
+                <dt><strong>Options=</strong>"%s,%s,..."</dt>
+
+                <dd>
+                  Keywords are: GradientAll, GradientBM1, Adapt,
+                  Error, ErrorAll; <em>optional</em>. The keywords
+                  Adapt, Error and ErrorAll are imported from
+                  output functional specification in
+                  <em>$CART3D/doc/adjoint/doc_adj_functionals.html</em>.
+                  They are repeated here for completeness.<br>
+                  <br>
+
+                  <table style="width:80%">
+                    <tr>
+                      <th>Keyword</th>
+
+                      <th>Meaning</th>
+                    </tr>
+
+                    <tr>
+                      <td>GradientAll</td>
+
+                      <td style="text-align:left">When used with
+                      adaptive mesh refinement, the gradient is
+                      computed on all meshes of the adaptation run.
+                      This generates <em>grad_con_ID.dat</em> files
+                      that contain mesh convergence history of the
+                      gradient.</td>
+                    </tr>
+
+                    <tr>
+                      <td>GradientBM1</td>
+
+                      <td style="text-align:left">When used with
+                      adaptive mesh refinement, the gradient is
+                      computed only on the penultimate mesh. While
+                      not as accurate as a gradient on the finest
+                      mesh, it avoids an adjoint solution on the
+                      finest mesh, thereby shortening design-cycle
+                      time. This usually works well in early design
+                      cycles.</td>
+                    </tr>
+
+                    <tr>
+                      <td>Adapt</td>
+
+                      <td style="text-align:left">Functional that
+                      drives the adaptation. Implies error
+                      computation up to and including the
+                      penultimate mesh. Only one AeroFun element
+                      can be marked with Adapt.</td>
+                    </tr>
+
+                    <tr>
+                      <td>Error</td>
+
+                      <td style="text-align:left">Error computation
+                      up to and including the penultimate mesh. No
+                      influence on mesh adaptation, but important
+                      for assessing if the mesh is good enough for
+                      the functional. Generates both
+                      <em>fun_con.dat</em> and <em>results.dat</em>
+                      files.</td>
+                    </tr>
+
+                    <tr>
+                      <td>ErrorAll</td>
+
+                      <td style="text-align:left">Similar to Error,
+                      but error computation is done on all meshes,
+                      including the finest mesh. Generates both
+                      <em>fun_con.dat</em> and <em>results.dat</em>
+                      files.</td>
+                    </tr>
+                  </table>
+                </dd>
+              </dl>
+            </dd>
+          </dl>
+        </dd>
+      </dl>
+    </dd>
+  </dl>
+
+  <h4 style="font-size:large">Examples</h4>
+
+  <p>Analysis request, i.e., on input:</p>
+
+  <blockquote>
+    <pre style=
+    "color:#0000ff;background-color:#cccccc;font-size:large;width:570px">
+&lt;Analysis ID="7" Sensitivity="Required" Comment="volume"/&gt;
+</pre>
+  </blockquote>
+
+  <p>On output, the <strong>Value</strong> attribute and, if
+  required, the <strong style=
+  "color:#228B22">SensitivityArray</strong> element, are
+  filled-in:</p>
+
+  <blockquote>
+    <pre style=
+    "color:#0000ff;background-color:#cccccc;font-size:large;width:670px">
+&lt;Analysis ID="7" Sensitivity="Required" Value="6.0" Comment="volume"&gt;
+    &lt;SensitivityArray&gt;
+        &lt;Sensitivity P="span" Value="3."/&gt;
+    &lt;/SensitivityArray&gt;
+&lt;/Analysis&gt;
+</pre>
+  </blockquote>
+
+  <p>Analysis parameter for drag coefficient:</p>
+
+  <blockquote>
+    <pre style=
+    "color:#0000ff;background-color:#cccccc;font-size:large;width:790px">
+&lt;Analysis ID="drag" Sensitivity="Required"&gt;
+    &lt;AeroFun&gt;
+      # Force Codes: CD=0 Cy=1 CL=2 in Aerodynamic Frame
+      #         Name    Force   Frame   J     N   Target  Weight  Bound  GMP Comp
+      #        (String) (0,1,2) (0,1) (0,1) (int) (dble)  (dble) (-1,0,1)
+      optForce   CD        0      0     0     1     0.     1.0       0    entire
+    &lt;/AeroFun&gt;
+&lt;/Analysis&gt;
+</pre>
+  </blockquote>
+
+  <!-- ................ Function ................ -->
+  <h3 style="text-align: center"><a name="t_fun" id="t_fun" style=
+  "text-decoration: none">Function</a></h3>
+
+  <p>The element <em style="color:blue">Function</em> allows users
+  to define expressions with any of <a href=
+  "#t_constant"><em>Constant</em></a> , <a href=
+  "#t_variable"><em>Variable</em></a> and <a href=
+  "#t_analysis"><em>Analysis</em></a> elements as arguments. The
+  function is specified as a symbolic expression. If sensitivities
+  are required then the expression is symbolically
+  differentiated.</p>
+
+  <dl>
+    <dt><em>Synopsis</em></dt>
+
+    <dd>&lt;Function ID="%s" Expr="%s" Value="%g" [Bound="Lower |
+    Upper"] [Sensitivity="None | Required"] [Comment="%s"]&gt;<br>
+    &nbsp;&nbsp;[&lt;SensitivityArray&gt; ...
+    &lt;SensitivityArray/&gt;]<br>
+    &lt;/Function&gt;</dd>
+  </dl>
+
+  <dl>
+    <dt><em>Attribute Definitions</em></dt>
+
+    <dd>
+      <dl>
+        <dt><strong><a name="t_fun_id" id=
+        "t_fun_id">ID</a>=</strong>"%s"</dt>
+
+        <dd>Unique ID; <em>required</em></dd>
+
+        <dt><strong>Expr=</strong>"%s"</dt>
+
+        <dd>Function expression. Expression may contain the
+        following operators and constants: <em>+, -, *, /, ^, sqrt,
+        log(base, function), exp(base, exponent), sin, cos, tan,
+        arcsin, arccos, PI and EULER</em>. The function arguments
+        may involve <a href="#t_constant">Constant</a>, <a href=
+        "#t_variable">Variable</a> and <a href=
+        "#t_analysis">Analysis</a> parameters, as well as numbers;
+        <em>required</em>. Click <a href=
+        "xddm_symbolic_expr.pdf">here</a> for more examples.</dd>
+
+        <dt><strong>Bound=</strong>"Upper | Lower"</dt>
+
+        <dd>Upper or lower bound relative to zero. For example, to
+        specify a bound of <em>x &lt; 5</em>, set
+        <em>Expr="x-5"</em> and <em>Bound="Upper"</em>. The value
+        of the expression is zero if <em>x &lt; 5</em> , otherwise
+        the value becomes <em>x - 5</em>. Similarly, to specify a
+        bound of <em>5 &lt; x</em>, set <em>Expr="x-5"</em> and
+        <em>Bound="Lower"</em>. The value of the expression is zero
+        if <em>5 &lt; x</em>, otherwise the value becomes <em>5 -
+        x</em>. If omitted then equality is assumed. This attribute
+        is useful for formulating constraints as penalties. To
+        handle explicit constraints, see the <strong>Min</strong>
+        and <strong>Max</strong> attributes of the <a href=
+        "#t_constraint"><em>Constraint</em></a> element;
+        <em>optional</em></dd>
+
+        <dt><strong>Value=</strong>"%g"</dt>
+
+        <dd>Function value (double); <em>required</em></dd>
+
+        <dt><strong>Sensitivity=</strong>"None | Required"</dt>
+
+        <dd>Request linearization of this element with respect to
+        all <a href="#t_variable">design variables</a>. If omitted
+        then "None" is assumed; <em>optional</em></dd>
+
+        <dt><strong>Comment=</strong>"%s"</dt>
+
+        <dd>Brief description; <em>optional</em></dd>
+      </dl>
+    </dd>
+  </dl>
+
+  <dl>
+    <dt><em>Sub-element Definitions</em></dt>
+
+    <dd>
+      <dl>
+        <dt><strong>SensitivityArray</strong></dt>
+
+        <dd>If the <em style="color:blue">Function</em> depends on
+        design variables or <em style="color:blue">Analysis</em>
+        parameters with sensitivities then this child element holds
+        the derivative values of the function with respect to all
+        <a href="#t_variable">design variables</a>. If
+        sensitivities are not requested, then this element is
+        omitted. The syntax of this element is defined <a href=
+        "#t_sensit_array">above</a>.</dd>
+      </dl>
+    </dd>
+  </dl>
+
+  <h4 style="font-size:large">Examples</h4>
+
+  <p>Here is an example involving various functions:</p>
+
+  <blockquote>
+    <pre style=
+    "color:#0000ff;background-color:#cccccc;font-size:large;width:440px">
+ &lt;Configure Sensitivity="Required"/&gt;
+
+ &lt;Variable ID="x" Value="1."/&gt;
+ &lt;Variable ID="y" Value="2."/&gt;
+ &lt;Constant ID="z" Value="3."/&gt;
+
+ &lt;Analysis ID="t" Value="4."&gt;
+  &lt;SensitivityArray&gt;
+   &lt;Sensitivity P="x" Value="1."/&gt;
+   &lt;Sensitivity P="y" Value="2."/&gt;
+  &lt;/SensitivityArray&gt;
+ &lt;/Analysis&gt;
+
+ &lt;Analysis ID="u" Value="-1."&gt;
+  &lt;SensitivityArray&gt;
+   &lt;Sensitivity P="x" Value="3."/&gt;
+   &lt;Sensitivity P="y" Value="4."/&gt;
+  &lt;/SensitivityArray&gt;
+ &lt;/Analysis&gt;
+
+ &lt;Function ID="F1"  Expr="0"/&gt;
+ &lt;Function ID="F2"  Expr="x+1"/&gt;
+ &lt;Function ID="F3"  Expr="u"/&gt;
+ &lt;Function ID="F4"  Expr="t*y"/&gt;
+ &lt;Function ID="F5"  Expr="t*u/x + y"/&gt;
+ &lt;Function ID="F6"  Expr="z"/&gt;
+ &lt;Function ID="F7"  Expr="x*y*z+10."/&gt;
+ &lt;Function ID="F8"  Expr="u^-2"/&gt;
+ &lt;Function ID="F9"  Expr="t^2/u^2"/&gt;
+ &lt;Function ID="F10" Expr="sin(PI*x)"/&gt;
+</pre>
+  </blockquote>
+
+  <p>The example also shows a <em style="color:blue">Configure</em>
+  element that requests sensitivity analysis for all functions
+  (saves you having to type this for every function). Click
+  <a href="xddm_symbolic_expr.pdf">here</a> for more examples of
+  functions and details about the scope of <em style=
+  "color:blue">Variables</em>, <em style=
+  "color:blue">Constants</em> and <em style=
+  "color:blue">Analysis</em> elements.</p>
+
+  <!-- ................ Sum ................ -->
+  <h3 style="text-align: center"><a name="t_sum" id="t_sum" style=
+  "text-decoration: none">Sum</a></h3>
+
+  <p>The element <em style="color:blue">Sum</em> is a short-hand
+  for a frequently used <em style="color:blue">Function</em>
+  element. It defines a composite scalar function, where an
+  algebraic expression is applied over a set of <a href=
+  "#t_constant">Constant</a>, <a href="#t_variable">Variable</a> or
+  <a href="#t_analysis">Analysis</a> parameters. Put another way,
+  this element is a <em>foreach</em> loop over selected parameters.
+  We find that in many instances we need to apply the same
+  algebraic expression to many <a href="#t_analysis">Analysis</a>
+  parameters, e.g. when assembling penalty terms.</p>
+
+  <dl>
+    <dt><em>Synopsis</em></dt>
+
+    <dd>&lt;Sum ID="%s" Expr="%s" P="%s,%s,..." [T="%g,%g,..."]
+    [W="%g,%g,..."] Value="%g" [Sensitivity="None | Required"]
+    [Comment="%s"] [Min="%g,%g,..."] [Max="%g,%g,..."]&gt;<br>
+    &nbsp;&nbsp;[&lt;SensitivityArray&gt; ...
+    &lt;SensitivityArray/&gt;]<br>
+    &lt;/Sum&gt;</dd>
+  </dl>
+
+  <dl>
+    <dt><em>Attribute Definitions</em></dt>
+
+    <dd>
+      <dl>
+        <dt><strong><a name="t_sum_id" id=
+        "t_sum_id">ID</a>=</strong>"%s"</dt>
+
+        <dd>Unique ID; <em>required</em></dd>
+
+        <dt><strong>P=</strong>"%s,%s,..."</dt>
+
+        <dd>Comma delimited list of IDs corresponding to <a href=
+        "#t_constant">Constant</a>, <a href=
+        "#t_variable">Variable</a> or <a href=
+        "#t_analysis">Analysis</a> parameters;
+        <em>optional</em></dd>
+
+        <dt><strong>T=</strong>"%g,%g,..."</dt>
+
+        <dd>Comma delimited list of "targets" (user specified
+        constants, doubles); <em>optional</em></dd>
+
+        <dt><strong>W=</strong>"%g,%g,..."</dt>
+
+        <dd>Comma delimited list of "weights" (user specified
+        constants, doubles); <em>optional</em></dd>
+
+        <dt><strong>Min=</strong>"%g,%g,..."</dt>
+
+        <dd>Comma delimited list of minimum allowable values for
+        each parameter in <strong>P</strong> list, see below for
+        details (doubles); <em>optional</em></dd>
+
+        <dt><strong>Max=</strong>"%g,%g,..."</dt>
+
+        <dd>Comma delimited list of maximum allowable values for
+        each parameter in <strong>P</strong> list, see below for
+        details (doubles); <em>optional</em></dd>
+
+        <dt><strong>Expr=</strong>"%s"</dt>
+
+        <dd>Symbolic function expression. May contain standard math
+        functions, e.g. log, exp, trig, ^ (power), and be any
+        combination of <strong>P</strong>, <strong>T</strong>,
+        <strong>W</strong> and numbers. The expression does not
+        have to contain all three (<strong>P</strong>,
+        <strong>T</strong> and <strong>W</strong>) parameters, but
+        if any are used then the number of elements in
+        <strong>P</strong>, <strong>T</strong>, <strong>W</strong>,
+        <strong>Min</strong> and <strong>Max</strong> vectors must
+        match; <em>required</em></dd>
+
+        <dt><strong>Sensitivity=</strong>"None | Required"</dt>
+
+        <dd>Request linearization of this element with respect to
+        all <a href="#t_variable">design variables</a>. If omitted
+        then "None" is assumed; <em>optional</em></dd>
+
+        <dt><strong>Comment=</strong>"%s"</dt>
+
+        <dd>Brief description; <em>optional</em></dd>
+
+        <dt><strong>Value=</strong>"%g"</dt>
+
+        <dd>Function value (double) is the sum of
+        <strong>Expr</strong> over each set of <strong>P</strong>,
+        <strong>T</strong> and <strong>W</strong> attributes;
+        <em>required</em></dd>
+      </dl>
+    </dd>
+  </dl>
+
+  <dl>
+    <dt><em>Sub-element Definitions</em></dt>
+
+    <dd>
+      <dl>
+        <dt><strong>SensitivityArray</strong></dt>
+
+        <dd>If the <em style="color:blue">Sum</em> depends on
+        design variables or <em style="color:blue">Analysis</em>
+        parameters with sensitivities then this child element holds
+        the derivative values of the function with respect to all
+        <a href="#t_variable">design variables</a>. If
+        sensitivities are not requested, then this element is
+        omitted. The syntax of this element is defined <a href=
+        "#t_sensit_array">above</a>.</dd>
+      </dl>
+    </dd>
+  </dl>
+
+  <h4 style="font-size:large">Examples</h4>
+
+  <p>As a first example, consider the following function:</p>
+
+  <p><img src="fun1.png" alt="ap cycles" width="230"></p>
+
+  <p>where <em>TA</em> and <em>TB</em> are <em style=
+  "color:blue">Analysis</em> parameters. This function is an
+  example of a quadratic penalty constraint that we use to enforce
+  airfoil thicknesses. The parameters <em>TA</em> and <em>TB</em>
+  are the airfoil thicknesses (at two chord locations) with target
+  values of <em>12%</em> and <em>8%</em>, respectively. We wish to
+  emphasize the <em>TB</em> term; we therefore double the weight of
+  the second term. The syntax for this sum is given by:</p>
+
+  <blockquote>
+    <pre style=
+    "color:#0000ff;background-color:#cccccc;font-size:large;width:660px">
+&lt;Sum ID="S1" P="TA,TB" T="0.12,0.08" W="1.,2." Expr="W*(1-P/T)^2"/&gt;
+</pre>
+  </blockquote>
+
+  <p>As a second example, we demonstrate the use of the
+  <strong>Min</strong> attribute. Consider the following function
+  specification:</p>
+
+  <blockquote>
+    <pre style=
+    "color:#0000ff;background-color:#cccccc;font-size:large;width:660px">
+&lt;Sum ID="S2" P="volume" T="5." Min="5." Expr="(P-T)^2"
+ Sensitivity="Required"/&gt;
+</pre>
+  </blockquote>
+
+  <p>We use the <strong>Min</strong> and <strong>Max</strong>
+  attributes to specify one-sided constraints. For example, an
+  optimization goal may be to minimize drag of a body subject to a
+  minimum volume requirement. Hence, any volume greater than or
+  equal to the minimum volume is satisfactory. We create the
+  desired function by the use of the <strong>Min</strong> attribute
+  as shown above. If the <strong>Value</strong> of the volume
+  parameter is greater than <strong>Min</strong> then the
+  <strong>Min</strong> value is used in the expression, i.e. P :=
+  min(P, <em>5</em>). Therefore, <strong>Expr</strong> would
+  evaluate to zero for volumes greater than <em>5</em>. Similarly,
+  the user would use <strong>Max</strong> for one-sided constraints
+  from below. In this case, if the <strong>Value</strong> of the
+  parameter is less than <strong>Max</strong> then the
+  <strong>Max</strong> value is used in the expression, i.e. P :=
+  max(P, <em>Max</em>). The purpose of these <strong>Min</strong>
+  and <strong>Max</strong> attributes is similar to the ones
+  defined for <a href="#t_variable">design variables</a>, except
+  that in the design variable context they define the feasible
+  design region ("must-not-exceed-value"). After processing, a
+  typical filled-in element is shown below:</p>
+
+  <blockquote>
+    <pre style=
+    "color:#0000ff;background-color:#cccccc;font-size:large;width:670px">
+&lt;Sum ID="S2" P="volume" T="5." Min="5." Expr="(P-T)^2" Value="0"
+ Sensitivity="Required"&gt;
+    &lt;SensitivityArray&gt;
+        &lt;Sensitivity P="30" Value="0"/&gt;
+        &lt;Sensitivity P="span" Value="0"/&gt;
+    &lt;/SensitivityArray&gt;
+&lt;/Sum&gt;
+</pre>
+  </blockquote>
+
+  <!-- ................ Objectives ................ -->
+  <!-- ................ Constraints ................ -->
+
+  <h3 style="text-align: center"><a name="t_objective" id="t_objective" style=
+  "text-decoration: none">Objective</a> and <a name="t_constraint"
+  id="t_constraint" style=
+  "text-decoration: none">Constraint</a></h3>
+
+  <p>The elements <em style="color:blue">Objective</em> and
+  <em style="color:blue">Constraint</em> are similar to a <a href=
+  "#t_fun"><em>Function</em></a> element. They define the objective
+  function and constraints for the optimization problem. Their
+  arguments may include <a href="#t_constant">Constant</a>,
+  <a href="#t_variable">Variable</a>, <a href=
+  "#t_analysis">Analysis</a>, <a href="#t_fun">Function</a> and
+  <a href="#t_sum">Sum</a> parameters.</p>
+
+  <dl>
+    <dt><em>Synopsis</em></dt>
+
+    <dd>&lt;Objective &nbsp;ID="%s" Expr="%s" Value="%g"
+    [Sensitivity="None | Required"] [Comment="%s"]/&gt;</dd>
+
+    <dd>&lt;Constraint ID="%s" Expr="%s" Value="%g" [Min="%g"]
+    [Max="%g"] [Sensitivity="None | Required"]
+    [Comment="%s"]/&gt;</dd>
+  </dl>
+
+  <dl>
+    <dt><em>Attribute Definitions</em></dt>
+
+    <dd>
+      <dl>
+        <dt><strong>ID=</strong>"%s"</dt>
+
+        <dd>Unique ID; <em>required</em></dd>
+
+        <dt><strong>Expr=</strong>"%s"</dt>
+
+        <dd>Expression containing <a href=
+        "#t_constant">Constant</a>, <a href=
+        "#t_variable">Variable</a>, <a href=
+        "#t_analysis">Analysis</a>, <a href="#t_fun">Function</a>
+        and <a href="#t_sum">Sum</a> IDs, as well as numbers;
+        <em>required</em></dd>
+
+        <dt><strong>Min=</strong>"%g"</dt>
+
+        <dd>Minimum bound, <strong>Min</strong> &le; <em>C</em>.
+        Use when formulating explicit constraints for optimizers
+        such as SNOPT; <em>optional</em></dd>
+
+        <dt><strong>Max=</strong>"%g"</dt>
+
+        <dd>Maximum bound, <em>C</em> &le; <strong>Max</strong>.
+        Use when formulating explicit constraints for optimizers
+        such as SNOPT; <em>optional</em></dd>
+
+        <dt><strong>Sensitivity=</strong>"None | Required"</dt>
+
+        <dd>Request linearization of this element with respect to
+        all <a href="#t_variable">design variables</a>. If omitted
+        then "None" is assumed; <em>optional</em></dd>
+
+        <dt><strong>Comment=</strong>"%s"</dt>
+
+        <dd>Brief description; <em>optional</em></dd>
+
+        <dt><strong>Value=</strong>"%g"</dt>
+
+        <dd>Objective value (double); <em>required</em></dd>
+      </dl>
+
+      <p>The classic constrained optimization problem has a single
+      (scalar) objective function and one or more constraints. By
+      using different <strong>ID</strong>s, the user can specify
+      multiple objective problems. A sum is implied for <em style=
+      "color:blue">Objective</em> elements with the same
+      <strong>ID</strong>. This is useful when a single objective
+      function is made up of different penalty terms that are
+      incrementally defined in the various software modules being
+      used in the optimization.</p>
+    </dd>
+  </dl>
+
+  <h4 style="font-size:large">Examples</h4>
+
+  <p>Here is a user-specified objective consisting of two
+  functions:</p>
+
+  <blockquote>
+    <pre style=
+    "color:#0000ff;background-color:#cccccc;font-size:large;width:680px">
+&lt;Objective ID="J" Expr="F1/F2+5" Sensitivity="Required"/&gt;
+</pre>
+  </blockquote>
+
+  <p>and here is an example the same element after
+  processing:</p>
+
+  <blockquote>
+    <pre style=
+    "color:#0000ff;background-color:#cccccc;font-size:large;width:680px">
+&lt;Objective ID="J" Expr="F1/F2+5" Value="0" Sensitivity="Required"&gt;
+    &lt;SensitivityArray&gt;
+        &lt;Sensitivity P="30" Value="0"/&gt;
+        &lt;Sensitivity P="span" Value="0"/&gt;
+    &lt;/SensitivityArray&gt;
+&lt;/Objective&gt;
+</pre>
+  </blockquote>
+
+  <p>Here is an equality constraint for lift,
+  <em>C<sub>L</sub></em> = 0.5:</p>
+
+  <blockquote>
+    <pre style=
+    "color:#0000ff;background-color:#cccccc;font-size:large;width:680px">
+&lt;Constraint ID="hold_lift" Expr="CL" Min="0.5" Max="0.5"/&gt;
+</pre>
+  </blockquote>
+
+  <p>The <strong>Min</strong> and <strong>Max</strong> attributes
+  let you define upper and lower bounds when formulating explicit
+  constraints for optimizers such as SNOPT.</p>
+
+  <!-- ................ Configure ................ -->
+  <h3 style="text-align: center"><a name="t_config" id="t_config">Configure</a></h3>
+
+  <p>The element <em style="color:blue">Configure</em> sets global
+  XDDM settings. If you get tired of typing the
+  <strong>Sensitivity</strong> attribute in each element, you can
+  specify it as a global setting:</p>
+
+  <dl>
+    <dt><em>Synopsis</em></dt>
+
+    <dd>&lt;Configure Sensitivity="None | Required"/&gt;</dd>
+  </dl>
+
+  <p>An example is given in the <a href="#t_fun">Function</a>
+  section.</p>
+  <hr class="style-two" width="50%">
+
+  <a href="#top">(top)</a>
+
+  <!-- ................ Framework Elements ................ -->
+  <div>
+    <h3 style="font-size:x-large;text-align: center"><a name="t_framework" id=
+    "t_framework" style="text-decoration: none">Framework
+    Elements</a></h3>
+  </div>
+
+  <p>The solution of an aerodynamic shape optimization problem
+  involves the coupling of potentially many software modules. The
+  <a href="#t_basic">Basic Elements</a> defined above are used to
+  control the data flow among the modules. The primary modules are
+  a geometry modeler and a flow analysis package. The following
+  sections present a markup for container <em>elements</em>
+  associated with the following modules:</p>
+
+  <ul>
+    <li><a href="#t_modeler">Geometry Modeling</a></li>
+
+    <li><a href="#t_flow">Flow Analysis</a></li>
+
+    <li><a href="#t_opt">Module Synthesis</a></li>
+  </ul>
+
+  <!-- ................ Geometry Modeling ................ -->
+  <div>
+    <h3 style="font-size:x-large;text-align: center"><a name="t_modeler" id=
+    "t_modeler" style="text-decoration: none">Geometry
+    Modeling</a></h3>
+  </div>
+
+  <h3><a name="t_model" id="t_model" style=
+  "text-decoration: none">Model</a></h3>
+
+  <p>The container-element <em style="color:blue">Model</em> is
+  used to encapsulate the geometry specification for the shape to
+  be optimized. There may be only one <em style=
+  "color:blue">Model</em> element per file, i.e. <em style=
+  "color:blue">Model</em> is a document-root element.</p>
+
+  <dl>
+    <dt><em>Synopsis</em></dt>
+
+    <dd>&lt;Model ID="%s" Path="%s" Modeler="%s" Wrapper="%s"
+    [Version="%s"] [Comment="%s"]&gt;<br>
+    &nbsp;&nbsp;[&lt;Configure ... /&gt;]<br>
+    &nbsp;&nbsp;[&lt;Constant ... /&gt;]<br>
+    &nbsp;&nbsp;[&lt;Variable ... /&gt;]<br>
+    &nbsp;&nbsp;[&lt;Analysis ... /&gt;]<br>
+    &nbsp;&nbsp;[&lt;Function ... /&gt;]<br>
+    &nbsp;&nbsp;[&lt;Sum ... /&gt;]<br>
+    &nbsp;&nbsp;[&lt;Objective ... /&gt;]<br>
+    &nbsp;&nbsp;[&lt;Constraint ... /&gt;]<br>
+    &nbsp;&nbsp;&lt;Tessellate [ID="%s"] [Sensitivity="None |
+    Required"] [Comment="%s"]/&gt;<br>
+    &lt;/Model&gt;</dd>
+  </dl>
+
+  <dl>
+    <dt><em>Attribute Definitions</em></dt>
+
+    <dd>
+      <dl>
+        <dt><strong><a name="t_geom_name" id=
+        "t_geom_name">ID</a>=</strong>"%s"</dt>
+
+        <dd>Model name; <em>required</em></dd>
+
+        <dt><strong><a name="t_path_name" id=
+        "t_path_name">Path</a>=</strong>"%s"</dt>
+
+        <dd>Directory path to model. If omitted ./ is assumed;
+        <em>optional</em></dd>
+
+        <dt><strong>Modeler=</strong>"%s"</dt>
+
+        <dd>Name of modeler; <em>optional</em></dd>
+
+        <dt><strong>Wrapper=</strong>"%s"</dt>
+
+        <dd>User-provided script (or executable) to invoke modeler;
+        <em>required</em></dd>
+
+        <dt><strong>Version=</strong>"%f"</dt>
+
+        <dd>Version number of <em style="color:blue">Model</em>
+        element; <em>optional</em></dd>
+
+        <dt><strong>Comment=</strong>"%s"</dt>
+
+        <dd>Brief description; <em>optional</em></dd>
+      </dl>
+    </dd>
+  </dl>
+
+  <dl>
+    <dt><em>Sub-element Definitions</em></dt>
+
+    <dd>
+      <dl>
+        <dt><a name="t_tessel" id="t_tessel"><strong style=
+        "color:#228B22">Tessellate</strong></a></dt>
+
+        <dd>
+          Request model tessellation with or without sensitivities
+          and optionally tessellation fidelity; <em>required</em>
+
+          <dl>
+            <dt><em>Attribute Definitions</em></dt>
+
+            <dd>
+              <dl>
+                <dt><strong>ID=</strong>"%s"</dt>
+
+                <dd>Unique ID of component, e.g. volume index. This
+                is useful when <strong>Model</strong> contains
+                several parts (components); <em>optional</em></dd>
+
+                <dt><strong><a name="t_geom_sensit" id=
+                "t_geom_sensit">Sensitivity</a>=</strong>"None |
+                Required"</dt>
+
+                <dd>Compute linearization of tessellation with
+                respect to design variables; <em>optional</em>,
+                default "None"</dd>
+              </dl>
+            </dd>
+          </dl>
+        </dd>
+      </dl>
+    </dd>
+  </dl>
+
+  <h4 style="font-size:large">Examples</h4>
+
+  <p>The first example shows a simple geometry control file:</p>
+
+  <blockquote>
+    <pre style=
+    "color:#0000ff;background-color:#cccccc;font-size:large;width:680px">
+&lt;?xml version="1.0" encoding="ISO-8859-1"?&gt;
+&lt;Model ID="wing" Modeler="Pro/ENGINEER" Wrapper="parapri_wrap.csh -v"&gt;
+  &lt;Variable ID="30" Value="1.2" Min="-5" Max="5" TypicalSize="1"/&gt;
+  &lt;Variable ID="41" Value="8.5" Min="1." Max="20." TypicalSize="1"/&gt;
+  &lt;Tessellate ID="4" MaxEdge="0.01" Angle="8."/&gt;
+&lt;/Model&gt;
+</pre>
+  </blockquote>
+
+  <p>Note that we have added custom attributes
+  <strong>MaxEdge</strong> and <strong>Angle</strong> to the
+  <em style="color:blue">Tessellate</em> element. These attributes
+  are specific to this particular modeler; they control the
+  refinement of the triangulation. This level of customization is
+  easy to implement in this specification - we expect different
+  modelers (and software modules) to require different
+  attributes.</p>
+
+  <p>The second example shows a control file for an in-house
+  geometry modeler called <em>makeWing</em> that builds simple
+  wings:</p>
+
+  <blockquote>
+    <pre style=
+    "color:#0000ff;background-color:#cccccc;font-size:large;width:680px">
+&lt;?xml version="1.0" encoding="ISO-8859-1"?&gt;
+&lt;Model ID="wing" Modeler="makeWing" Wrapper="wing_wrap.csh"&gt;
+  &lt;Constant ID="Taper" Value="1.0"/&gt;
+  &lt;Variable ID="Twist" Value="0.0" TypicalSize="1" Min="-5" Max="5"/&gt;
+  &lt;Bspline ID="Root" File="n0012.bsp"&gt;
+    &lt;Variable ID="17" Value="0.1E-01" TypicalSize="0.01"/&gt;
+  &lt;/Bspline&gt;
+  &lt;Tessellate ID="1" Sensitivity="Required" TipPanels="17"/&gt;
+  &lt;Sum ID="cutoff" P="Twist" Max="4" Expr="(P-4.0)^2"/&gt;
+  &lt;Objective ID="twist_penalty" Expr="0.1*cutoff"/&gt;
+&lt;/Model&gt;
+</pre>
+  </blockquote>
+
+  <p>The control file identifies two design variables; the twist of
+  the tip section and a B-spline control point that controls the
+  shape of the root section. The values have been filled-in either
+  by the user (for the initial design) or the optimizer. Note that
+  there are several elements and attributes that are specific to
+  <em>makeWing</em>, such as <em style="color:blue">Bspline</em>
+  and <strong>TipPanels</strong>. The user is requesting a
+  tessellation of the wing with sensitivities, where the
+  sensitivities are with respect to the two design variables. In
+  addition, the user has defined a penalty function based on the
+  twist design variable to activate if its value exceeds four.
+  After processing, the <em style="color:blue">Function</em> and
+  <em style="color:blue">Objective</em> elements are filled-in as
+  follows:</p>
+
+  <blockquote>
+    <pre style=
+    "color:#0000ff;background-color:#cccccc;font-size:large;width:680px">
+&lt;?xml version="1.0" encoding="ISO-8859-1"?&gt;
+&lt;Model ID="wing" Modeler="makeWing" Wrapper="wing_wrap.csh"&gt;
+  &lt;Constant ID="Taper" Value="1.0"/&gt;
+  &lt;Variable ID="Twist" Value="0.0" TypicalSize="1" Min="-5" Max="5"/&gt;
+  &lt;Bspline ID="Root" File="n0012.bsp"&gt;
+    &lt;Variable ID="17" Value="0.1E-01" TypicalSize="0.01"/&gt;
+  &lt;/Bspline&gt;
+  &lt;Tessellate ID="1" Sensitivity="Required" TipPanels="17"/&gt;
+  &lt;Sum ID="cutoff" P="Twist" Max="4" Expr="(P-4.0)^2" Value="0.0"&gt;
+    &lt;SensitivityArray&gt;
+      &lt;Sensitivity P="Twist" Value="0.0"/&gt;
+      &lt;Sensitivity P="17" Value="0.0"/&gt;
+    &lt;/SensitivityArray&gt;
+  &lt;/Sum&gt;
+  &lt;Objective ID="twist_penalty" Expr="0.1*cutoff" Value="0.0"&gt;
+    &lt;SensitivityArray&gt;
+      &lt;Sensitivity P="Twist" Value="0.0"/&gt;
+      &lt;Sensitivity P="17" Value="0.0"/&gt;
+    &lt;/SensitivityArray&gt;
+  &lt;/Objective&gt;
+&lt;/Model&gt;
+</pre>
+  </blockquote><br>
+
+  <h3><a name="t_intersect" id="t_intersect" style=
+  "text-decoration: none">Intersect</a></h3>
+
+  <p>The element <em style="color:blue">Intersect</em> specifies
+  the geometry to be optimized. It defines the input components
+  (parametric and static parts) that are assembled into a
+  watertight configuration by <em>Cart3D's</em> <a href=
+  "https://www.nas.nasa.gov/publications/software/docs/cart3d/pages/surfaceModeling.html#AuxProgs">
+  <em>intersect</em></a> code.</p>
+
+  <dl>
+    <dt><em>Synopsis</em></dt>
+
+    <dd>&lt;Intersect ID="%s" Parts="%s,%s,..." [Comp2tri="%s"]
+    [Cutout="%s"] [Overlap="%s"] [PS="%s"]/&gt;</dd>
+  </dl>
+
+  <dl>
+    <dt><em>Attribute Definitions</em></dt>
+
+    <dd>
+      <dl>
+        <dt><strong><a name="t_config_name" id=
+        "t_config_name">ID</a>=</strong>"%s"</dt>
+
+        <dd>Configuration name; <em>required</em></dd>
+
+        <dt><strong><a name="t_parts" id=
+        "t_parts">Parts</a>=</strong>"%s,%s,..."</dt>
+
+        <dd>Comma separated list of <a href="#t_model">models</a>,
+        static triangulations and sub-assemblies (ID's of other
+        Intersect elements) that make up the configuration. Order
+        is important because that is the input list passed to
+        <a href=
+        "https://www.nas.nasa.gov/publications/software/docs/cart3d/pages/surfaceModeling.html#AuxProgs">
+        <em>comp2tri</em></a>; <em>required</em></dd>
+
+        <dt><strong>Comp2tri=</strong>"%s"</dt>
+
+        <dd>Command line arguments passed to <a href=
+        "https://www.nas.nasa.gov/publications/software/docs/cart3d/pages/surfaceModeling.html#AuxProgs">
+        <em>comp2tri</em></a>; <em>optional</em></dd>
+
+        <dt><strong>Cutout=</strong>"%s"</dt>
+
+        <dd>Part name or a static triangulation or a sub-assembly
+        to be cutout (Boolean subtraction) from the configuration.
+        Invokes the <em>-cutout</em> option of <a href=
+        "https://www.nas.nasa.gov/publications/software/docs/cart3d/pages/surfaceModeling.html#AuxProgs">
+        <em>intersect</em></a>; <em>optional</em></dd>
+
+        <dt><strong>Overlap=</strong>"%s"</dt>
+
+        <dd>Part name or a static triangulation or a sub-assembly
+        to be overlapped (Boolean intersection) with the
+        configuration. Invokes the <em>-overlap</em> option of
+        <a href=
+        "https://www.nas.nasa.gov/publications/software/docs/cart3d/pages/surfaceModeling.html#AuxProgs">
+        <em>intersect</em></a>; <em>optional</em></dd>
+
+        <dt><strong>PS=</strong>"%s"</dt>
+
+        <dd>Post <a href=
+        "https://www.nas.nasa.gov/publications/software/docs/cart3d/pages/surfaceModeling.html#AuxProgs">
+        <em>intersect</em></a> script. Name of script to execute
+        after <a href=
+        "https://www.nas.nasa.gov/publications/software/docs/cart3d/pages/surfaceModeling.html#AuxProgs">
+        <em>intersect</em></a> completes, for example to reposition
+        the configuration or adjust GMP tags;
+        <em>optional</em></dd>
+      </dl>
+    </dd>
+  </dl>
+
+  <h4 style="font-size:large">Examples</h4>
+
+  <p>The first example shows the most basic <em style=
+  "color:blue">Intersect</em> element:</p>
+
+  <blockquote>
+    <pre style=
+    "color:#0000ff;background-color:#cccccc;font-size:large;width:600">
+&lt;Intersect ID="airfoil" Parts="builder.xml"/&gt;
+</pre>
+  </blockquote>
+
+  <p>where the configuration <em>airfoil</em> is built from a
+  single model <em>builder.xml</em>. The second example shows a
+  more complicated assembly:</p>
+
+  <blockquote>
+    <pre style=
+    "color:#0000ff;background-color:#cccccc;font-size:large;width:800">
+&lt;Intersect ID="stamp"  Parts="d.xml" Cutout="cutter" Comp2tri="-gmpTagOffset 6"/&gt;
+&lt;Intersect ID="cutter" Parts="$HOME/a.tri,b.xml,c.xml" PS="mv_tags.csh"/&gt;
+</pre>
+  </blockquote>
+
+  <p>where a sub-assembly of three components is cutout from a
+  parametric model <em>d.xml</em>. The sequence of <em style=
+  "color:blue">Intersect</em> elements is order independent.</p>
+
+  <hr class="style-two" width="50%">
+  <a href="#top">(top)</a>
+  <div>
+    <h3 style="font-size:x-large;text-align: center"><a name="t_flow" id="t_flow">Flow
+    Analysis</a></h3>
+  </div>
+
+  <h3><a name="t_dpoint" id="t_dpoint" style=
+  "text-decoration: none">DesignPoint</a></h3>
+
+  <p>The container-element <em style="color:blue">DesignPoint</em>
+  is used to specify design variables associated with freestream
+  flow conditions, e.g. angle of attack in fixed lift problems. In
+  addition, there are several attributes associated with this
+  element that are used to pass flow solver and mesh generation
+  inputs to the flow analysis package, e.g. <em>Cart3D</em>.</p>
+
+  <dl>
+    <dt><em>Synopsis</em></dt>
+
+    <dd>&lt;DesignPoint ID="%s" Geometry="%s" [FlowCart="%s"]
+    [Cubes="%s"] [Aero="%s"] [PreSpec="%s"]&gt;<br>
+    &nbsp;&nbsp;[&lt;Constant ... /&gt;]<br>
+    &nbsp;&nbsp;[&lt;Variable ... /&gt;]<br>
+    &nbsp;&nbsp;[&lt;Analysis ... /&gt;]<br>
+    &nbsp;&nbsp;[&lt;Function ... /&gt;]<br>
+    &nbsp;&nbsp;[&lt;Sum ... /&gt;]<br>
+    &nbsp;&nbsp;[&lt;Objective ... /&gt;]<br>
+    &nbsp;&nbsp;[&lt;Constraint ... /&gt;]<br>
+    &nbsp;&nbsp;[&lt;InletPressRatioBC ... /&gt;]<br>
+    &nbsp;&nbsp;[&lt;InletVelocityBC ... /&gt;]<br>
+    &lt;/DesignPoint&gt;</dd>
+  </dl>
+
+  <dl>
+    <dt><em>Attribute Definitions</em></dt>
+
+    <dd>
+      <dl>
+        <dt><strong>Geometry=</strong>"%s"</dt>
+
+        <dd>Specifies the geometry to be used in the design point.
+        It is the <strong>ID</strong> of an <a href=
+        "#t_intersect"><em>Intersect</em></a> element; <em>required
+        (unless the Geometry attribute of Optimize element is
+        specified)</em></dd>
+
+        <dt><strong>FlowCart=</strong>"%s"</dt>
+
+        <dd><em>flowCart</em> input file. If omitted, 'input.cntl'
+        is assumed; <em>optional</em></dd>
+
+        <dt><strong>Cubes=</strong>"%s"</dt>
+
+        <dd><em>cubes</em> input file. If omitted, 'input.c3d' is
+        assumed; <em>optional</em></dd>
+
+        <dt><strong>Aero=</strong>"%s"</dt>
+
+        <dd><em>aero.csh</em> script. If omitted, 'aero.csh' is
+        assumed; <em>optional</em></dd>
+
+        <dt><strong>PreSpec=</strong>"%s"</dt>
+
+        <dd><em>PreSpec</em> input file. If omitted,
+        'preSpec.c3d.cntl' is assumed; <em>optional</em></dd>
+      </dl>
+    </dd>
+  </dl>
+
+  <p>While any parameter may be specified as a <em style=
+  "color:blue">Constant</em> or <em style=
+  "color:blue">Variable</em> sub-element, there are three special
+  keywords: <strong>Mach</strong>, <strong>alpha</strong> and
+  <strong>beta</strong>. These are associated with flow freestream
+  conditions and are passed to the flow solver. See example in next
+  section.</p>
+
+  <h3><a name="t_pressbc" id="t_pressbc" style=
+  "text-decoration: none">InletPressRatioBC</a> and <a name=
+  "t_velbc" id="t_velbc" style=
+  "text-decoration: none">InletVelocityBC</a></h3>
+
+  <p>These are sub-elements of a <a href="#t_dpoint"><em style=
+  "color:blue">DesignPoint</em></a>. They encapsulate <em style=
+  "color:blue">Constant</em>, <em style="color:blue">Variable</em>
+  and <em style="color:blue">Function</em> elements associated with
+  boundary conditions, which are passed to the flow solver.</p>
+
+  <dl>
+    <dt><em>Synopsis</em></dt>
+
+    <dd>&lt;InletPressRatioBC&gt;<br>
+    &nbsp;&nbsp;[&lt;Constant ... /&gt;]<br>
+    &nbsp;&nbsp;[&lt;Variable ... /&gt;]<br>
+    &nbsp;&nbsp;[&lt;Function ... /&gt;]<br>
+    &lt;/InletPressRatioBC&gt;</dd>
+  </dl>
+
+  <hr class="style-two" width="50%">
+  <a href="#top">(top)</a>
+
+  <div>
+    <h3 style="font-size:x-large;text-align: center"><a name="t_opt" id="t_opt" style=
+    "text-decoration: none">Module Synthesis</a></h3>
+  </div>
+
+  <h3><a name="t_optimize" id="t_optimize" style=
+  "text-decoration: none">Optimize</a></h3>
+
+  <p>The container-element <em style="color:blue">Optimize</em> is
+  a top-level (document-root) element used to specify optimization
+  problems.</p>
+
+  <dl>
+    <dt><em>Synopsis</em></dt>
+
+    <dd>&lt;Optimize Geometry="%s,%s,..." [Version="%s"]
+    [Comment="%s"]&gt;<br>
+    &nbsp;&nbsp;[&lt;Configure ... /&gt;]<br>
+    &nbsp;&nbsp;[&lt;Constant ... /&gt;]<br>
+    &nbsp;&nbsp;[&lt;Variable ... /&gt;]<br>
+    &nbsp;&nbsp;[&lt;Analysis ... /&gt;]<br>
+    &nbsp;&nbsp;[&lt;Function ... /&gt;]<br>
+    &nbsp;&nbsp;[&lt;Sum ... /&gt;]<br>
+    &nbsp;&nbsp;[&lt;Objective ... /&gt;]<br>
+    &nbsp;&nbsp;[&lt;Constraint ... /&gt;]<br>
+    &nbsp;&nbsp;[&lt;Intersect ... /&gt;]<br>
+    &nbsp;&nbsp;[&lt;DesignPoint ... /&gt;]<br>
+    &lt;/Optimize&gt;</dd>
+  </dl>
+
+  <dl>
+    <dt><em>Attribute Definitions</em></dt>
+
+    <dd>
+      <dl>
+        <dt><strong>Geometry=</strong>"%s,%s, ..."</dt>
+
+        <dd>Comma separated list of geometry components (models and
+        static triangulations) used in the optimization, keyword
+        'NONE' is also allowed. <em>As of XDDM 1.0, this attribute
+        is deprecated, use <a href=
+        "#t_intersect"><em>Intersect</em></a> elements
+        instead</em></dd>
+
+        <dt><strong>Version=</strong>"%f"</dt>
+
+        <dd>Version number of <em style="color:blue">Optimize</em>
+        element; <em>optional</em></dd>
+
+        <dt><strong>Comment=</strong>"%s"</dt>
+
+        <dd>Brief description; <em>optional</em></dd>
+      </dl>
+    </dd>
+  </dl>
+
+  <h4  style="font-size:large">Examples</h4>
+
+  <p>The first example shows specification of the Rosenbrock
+  function:</p>
+
+  <blockquote>
+    <pre style=
+    "color:#0000ff;background-color:#cccccc;font-size:large;width:580px">
+&lt;Optimize&gt;
+  &lt;Configure Sensitivity="Required"/&gt;
+  &lt;Variable  ID="x" Value="-1.2"/&gt;
+  &lt;Variable  ID="y" Value="1."/&gt;
+  &lt;Objective ID="J" Expr="100*(y-x^2)^2 + (1-x)^2"/&gt;
+&lt;/Optimize&gt;
+</pre>
+  </blockquote><a name="example_geom" id="example_geom"></a>
+
+  <p>The second example shows the setup for an aerodynamic shape
+  optimization problem:</p>
+
+  <blockquote>
+    <pre style=
+    "color:#0000ff;background-color:#cccccc;font-size:large;width:750px">
+&lt;?xml version="1.0" encoding="ISO-8859-1"?&gt;
+&lt;Optimize&gt;
+  &lt;Intersect ID="airplane" Parts="wing.xml,nacelle.xml,~/fuse.tri"/&gt;
+  &lt;DesignPoint ID="Transonic" Geometry="airplane" FlowCart="input.CL05.cntl"&gt;
+    &lt;Constant ID="Mach"  Value="0.8"/&gt;
+    &lt;Variable ID="Alpha" Value="1.0"  TypicalSize="1." Min="-5" Max="5"/&gt;
+  &lt;/DesignPoint&gt;
+&lt;/Optimize&gt;
+</pre>
+  </blockquote>
+
+  <p>The <a href="#t_intersect"><em>Intersect</em></a> element
+  identifies the three components that make up this configuration.
+  The wing and nacelle components are specified via XDDM <em style=
+  "color:blue">Model</em> files (these parts are active during the
+  optimization), while the fuselage is a static part.</p>
+
+  <a href="#top">(top)</a><br>
+  <hr class="style-two" width="50%">
+
+  <p align="center" style="font-size:small">M. Nemec, last update Nov
+  2022</p>
+</body>
+</html>

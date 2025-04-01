@@ -1,0 +1,52 @@
+# splitFace2
+# written by John Dannenhoffer
+
+SET       nerror  0
+
+# basic config
+MARK
+   UDPRIM    ellipse   rx 1.0   rz 4.0
+
+   UDPRIM    ellipse   rx 1.0   rz 4.0
+   TRANSLATE 0.5  2.0  0.0
+
+   UDPRIM    ellipse   rx 1.0   rz 2.0
+   TRANSLATE 0.0  4.0  0.0
+BLEND
+
+CYLINDER  0.50 2.00 -10.  0.50 2.00 +10.  0.25
+SUBTRACT
+
+# split leading edge (using u,v)
+UDPARG    splitFace iface  1
+UDPARG    splitFace beg    0.5;0.0
+UDPARG    splitFace end    0.5;1.0
+UDPRIM    splitFace
+
+# split leading edge (using u,v) --- beg out of bounds
+UDPARG    splitFace iface  1
+UDPARG    splitFace beg    0.5;-.1
+UDPARG    splitFace end    0.5;1.0
+UDPRIM    splitFace
+
+CATBEG    -16   # EGADS_RANGERR
+   SET    nerror  nerror+1
+CATEND
+
+# split leading edge (using u,v) --- end out of bounds
+UDPARG    splitFace iface  1
+UDPARG    splitFace beg    0.5;0.0
+UDPARG    splitFace end    0.5;1.1
+UDPRIM    splitFace
+
+CATBEG    -16   # EGADS_RANGERR
+   SET    nerror  nerror+1
+CATEND
+
+# color the new Edges red
+SELECT    EDGE  $__splitFace__  $*
+   ATTRIBUTE _color $red
+
+ASSERT    nerror 2
+
+END

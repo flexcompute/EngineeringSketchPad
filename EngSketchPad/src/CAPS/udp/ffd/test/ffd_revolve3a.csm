@@ -1,0 +1,20 @@
+# ffd_revolve3a
+# written by Marshall Galbraith
+# based on code written by John Dannenhoffer
+
+# create rectangle SheetBody
+SKBEG      0   0   0
+   LINSEG  0.8 0   0 
+   LINSEG  1   1   0
+   LINSEG  0   1   0
+   LINSEG  0   0   0   
+SKEND
+
+# revolve to create cylinder
+REVOLVE    0   0   0   0   1   0   360
+
+STORE   original
+
+UDPRIM $/ffda
+
+END

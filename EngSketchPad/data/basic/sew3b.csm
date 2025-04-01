@@ -1,0 +1,11 @@
+# sew3b
+# written by John Dannenhoffer
+
+# import the Bodys sewn as much as possible
+UDPARG    sew       filename    $$/sew3.stp
+UDPARG    sew       toler       1e-5
+UDPARG    sew       bodynum     -1
+UDPARG    sew       removedups  1
+UDPRIM    sew
+
+END

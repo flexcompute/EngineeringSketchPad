@@ -1,0 +1,18 @@
+# designAC3c
+# written by John Dannenhoffer
+
+DIMENSION poly      2 5 1
+DESPMTR   poly      "0.5;  -.2;  0.2;  -.2;  -.2;\
+                     -.2;  0.2;  0.3;  -.1;  0.1;"
+DESPMTR   span      3.00
+DESPMTR   sweep     30.0
+
+SET       dx        span*sind(sweep)
+SET       dz        span*cosd(sweep)
+
+UDPRIM    parsec    Yte -0.03   Poly poly
+RESTORE   .
+TRANSLATE dx   0.0   dz
+RULE
+
+END

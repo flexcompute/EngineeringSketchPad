@@ -1,0 +1,18 @@
+# designAD5.udc
+# written by John Dannenhoffer
+
+INTERFACE . ALL
+
+POINT     0   0  0
+
+UDPRIM    ellipse   ry h1   rz w1
+TRANSLATE x1  0  0
+
+UDPRIM    ellipse   ry h2   rz w2
+TRANSLATE x2  0  0
+
+#POINT     x3  0  0
+
+BLEND
+
+END

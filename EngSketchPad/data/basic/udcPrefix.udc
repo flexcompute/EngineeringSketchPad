@@ -1,0 +1,53 @@
+# udcPrefix.udc
+# written by John Dannenhoffer
+
+INTERFACE . ALL
+
+# make local variables
+SET       myArea     !str2val(prefix+$area)
+SET       myAspect   !str2val(prefix+$aspect)
+SET       myTaper    !str2val(prefix+$taper)
+SET       mySweep    !str2val(prefix+$sweep)
+SET       myDihedral !str2val(prefix+$dihedral)
+SET       myThickr   !str2val(prefix+$thickr)
+SET       myCamberr  !str2val(prefix+$camberr)
+SET       myThickt   !str2val(prefix+$thickt)
+SET       myCambert  !str2val(prefix+$cambert)
+SET       myXroot    !str2val(prefix+$xroot)
+SET       myYroot    0
+SET       myZroot    !str2val(prefix+$zroot)
+
+# engineering calculations
+SET       mySpan      sqrt(myAspect*myArea)
+SET       myYtip      mySpan/2
+SET       myXtip      myXroot+myYtip*tand(mySweep)
+SET       myZtip      myZroot+myYtip*tand(myDihedral)
+SET       myChordr    2*myArea/mySpan/(1+myTaper)
+SET       myChordt    myChordr*myTaper
+
+# build configuration
+MARK
+   # rite tip
+   UDPRIM    naca       thickness myThickt    camber myCambert
+   ROTATEX   90
+   SCALE     myChordt
+   TRANSLATE myXtip     myYtip     myZtip
+
+   # root
+   UDPRIM    naca       thickness myThickr    camber myCamberr
+   ROTATEX   90
+   SCALE     myChordr
+   TRANSLATE myXroot    myYroot    myZroot
+
+   # left tip
+   UDPRIM    naca       thickness myThickt    camber myCambert
+   ROTATEX   90
+   SCALE     myChordt
+   TRANSLATE myXtip    -myYtip     myZtip
+RULE
+   ATTRIBUTE _name prefix
+
+END
+
+
+

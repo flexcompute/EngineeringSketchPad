@@ -1,0 +1,18 @@
+# ffd_sheet2a
+# written by Marshall Galbraith
+# based on code written by John Dannenhoffer
+
+# original configuration
+SKBEG       0.0   0.0  0.0
+   LINSEG   2.0   0.0  0.0
+   CIRARC   1.0   1.0  0.0  0.0  0.0  0.0
+SKEND
+BOX         0.0  -1.0  0.0  2.0  1.0  0.0
+JOIN
+
+STORE   original
+
+# Deform original
+UDPRIM $/ffd2d
+
+END

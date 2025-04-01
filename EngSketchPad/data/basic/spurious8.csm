@@ -1,0 +1,25 @@
+# spurious8
+# written by John Dannenhoffer
+
+MARK
+    POINT     0  0  0
+
+    UDPRIM    biconvex   thick  0.20
+    TRANSLATE 0.5  0.0  0.0
+    ROTATEY   90   0.0  1.0
+
+    UDPRIM    biconvex   thick  0.20
+    TRANSLATE 1.5  0.0  0.0
+    ROTATEY   90   0.0  2.0
+
+    POINT     3  0  0
+BLEND
+
+BOX       1.5  -.2   0.3  0.0  0.4  0.4
+SUBTRACT
+
+# make sure that the correct number of Nodes have the .Keep attribute
+SELECT    NODE   $_Keep  $*
+ASSERT    @sellist.size  3
+
+END

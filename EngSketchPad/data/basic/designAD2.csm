@@ -1,0 +1,12 @@
+# designAD2.csm
+# written by John Dannenhoffer
+
+DESPMTR   length    4.0
+DESPMTR   radius    1.0
+
+# we cannot recycle if any pmtrs change
+UDPARG    runCAD    pmtrs     length;radius
+UDPARG    runCAD    toolname  $miniESP
+UDPRIM    runCAD    casename  $$/designAD2
+
+END

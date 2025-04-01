@@ -1,0 +1,16 @@
+#
+!IFNDEF ESP_ROOT
+!ERROR ESP_ROOT must be set -- Please fix the environment...
+!ENDIF
+#
+
+!IFNDEF OUTLEVEL
+OUTLEVEL=0
+!ENDIF
+
+test:
+	@FORFILES /m *.csm /c "cmd /c \
+	  echo "===================================" & \
+	  echo "@file" & \
+	  serveESP @file -batch -verify -outLevel $(OUTLEVEL) $(DUMPEGADS) \
+	  && echo \"@file passed (as expected)\" || echo \"@file failed (as NOT expected)\"" 

@@ -1,0 +1,17 @@
+# ffd_torus2a
+# written by Marshall Galbraith
+
+# original configuration
+SKBEG 7 0 0
+   LINSEG 7.25 0 0
+SKEND
+REVOLVE 7 0 0 0 1 0 360
+REVOLVE 6.5 0 0 0 0 1 360
+
+STORE   original
+
+# Deform original
+UDPRIM $/ffda
+
+END
+

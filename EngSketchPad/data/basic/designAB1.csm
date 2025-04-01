@@ -1,0 +1,31 @@
+# designAB1
+# written by John Dannenhoffer
+
+CFGPMTR   tessFac   1
+
+# DESPMTRs
+DIMENSION beg  3  1
+DESPMTR   beg  0
+DESPMTR   dx   4
+DESPMTR   dy   3
+DESPMTR   dz   2
+
+# generate BOX
+BOX       beg[1] beg[2] beg[3] dx dy dz
+
+UDPRIM    $$/applyTparams   factor tessFac
+SELECT    BODY
+
+# OUTPMTRs
+DIMENSION myCG  3  1
+OUTPMTR   myArea
+OUTPMTR   myVolume
+OUTPMTR   myCG
+
+SET       myArea   @area
+SET       myVolume @volume
+SET       myCG[1]  @xcg
+SET       myCG[2]  @ycg
+SET       myCG[3]  @zcg
+
+END

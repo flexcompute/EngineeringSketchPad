@@ -1,0 +1,45 @@
+# blend_13 (C1side)
+# written by John Dannenhoffer
+
+# make the Xsects into a group
+MARK
+   BOX       0   -1   -1    0    2    2
+
+   BOX       1   -1   -1    0    2    2
+   RESTORE   .
+      ATTRIBUTE .C1side $rev
+
+   BOX       2   -2   -2    0    4    4
+   RESTORE   .
+      ATTRIBUTE .C1side $fwd
+
+   BOX       3   -1   -1    0    2    2
+   RESTORE   .
+      ATTRIBUTE .C1side $rev
+
+   BOX       4   -1   -1    0    2    2
+   RESTORE   .
+      ATTRIBUTE .C1side $fwd
+
+   BOX       5   -2   -2    0    4    4
+   RESTORE   .
+      ATTRIBUTE .C1side $rev
+
+   BOX       6   -1   -1    0    2    2
+   RESTORE   .
+      ATTRIBUTE .C1side $fwd
+
+   BOX       7   -1   -1    0    2    2
+GROUP
+STORE    Xsects
+
+# restore the Xsects and perform the BLEND
+MARK
+   RESTORE   Xsects
+BLEND
+
+# restore the Xsects (for visualization)
+RESTORE   Xsects
+TRANSLATE 0  0  0.01
+
+END

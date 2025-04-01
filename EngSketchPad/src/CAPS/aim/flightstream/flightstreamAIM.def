@@ -1,0 +1,19 @@
+LIBRARY flightstreamAIM
+EXPORTS
+aimInitialize
+aimInputs
+aimOutputs
+aimUpdateState
+aimPreAnalysis
+aimExecute
+aimPostAnalysis
+aimCalcOutput
+aimCleanup
+aimDiscr
+aimFreeDiscrPtr
+aimLocateElement
+aimTransfer
+aimInterpolation
+aimInterpolateBar
+aimIntegration
+aimIntegrateBar

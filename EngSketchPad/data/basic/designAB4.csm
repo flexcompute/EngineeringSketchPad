@@ -1,0 +1,31 @@
+# designAB4
+# written by John Dannenhoffer
+
+CFGPMTR   tessFac   1
+
+# DESPMTRs
+DESPMTR   thick   0.02
+
+# generate biconvex airfoil
+SKBEG     0.0  0.0       0.0
+   CIRARC 0.5  -thick/2  0.0  1.0  0.0  0.0
+   CIRARC 0.5  +thick/2  0.0  0.0  0.0  0.0
+SKEND
+EXTRUDE   0  0  1
+
+UDPRIM    $$/applyTparams   factor tessFac
+SELECT    BODY
+
+# OUTPMTRs
+DIMENSION myCG  3  1
+OUTPMTR   myArea
+OUTPMTR   myVolume
+OUTPMTR   myCG
+
+SET       myArea   @area
+SET       myVolume @volume
+SET       myCG[1]  @xcg
+SET       myCG[2]  @ycg
+SET       myCG[3]  @zcg
+
+END

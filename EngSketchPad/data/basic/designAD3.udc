@@ -1,0 +1,19 @@
+# designAD3.udc
+# written by John Dannenhoffer
+
+INTERFACE . ALL
+
+SKBEG     0.0        0.0        -depth/2
+   LINSEG length     0.0        -depth/2
+   LINSEG length     height-cut -depth/2
+   LINSEG length-cut height-cut -depth/2
+   LINSEG length-cut height     -depth/2
+   LINSEG        cut height     -depth/2
+   LINSEG        cut height-cut -depth/2
+   LINSEG 0.0        height-cut -depth/2
+   LINSEG 0.0        0.0        -depth/2
+SKEND
+
+EXTRUDE   0.0        0.0         depth
+
+END

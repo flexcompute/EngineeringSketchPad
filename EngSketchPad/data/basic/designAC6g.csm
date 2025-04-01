@@ -1,0 +1,24 @@
+# designAC6g
+# written by John Dannenhoffer
+
+DESPMTR   top       0.50
+DESPMTR   bottom    0.10
+DESPMTR   left      0.50
+DESPMTR   right     1.00
+DESPMTR   span      3.00
+DESPMTR   sweep     30.0
+
+SET       dx        span*sind(sweep)
+SET       dz        span*cosd(sweep)
+
+UDPARG    supell    rx_w left     rx_e right
+UDPARG    supell    ry_s bottom   ry_n top
+UDPARG    supell    n_ne 5        n_nw 2
+UDPRIM    supell    n_s  3        slpfact 0.01
+STORE     airfoil
+RESTORE   airfoil
+RESTORE   airfoil
+TRANSLATE dx  0.0  dz
+BLEND
+
+END

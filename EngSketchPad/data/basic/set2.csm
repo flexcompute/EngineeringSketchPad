@@ -1,0 +1,41 @@
+# set2
+# written by John Dannenhoffer
+
+DIMENSION b  2  2
+DESPMTR   c  2
+SET       d  $a
+
+BOX       0  0  0  1  1  1
+SELECT    FACE  3
+
+# works
+SET       a  5
+
+# works
+SET       !$a  5
+
+# works (fills whole array)
+SET       b  5
+
+# works (set one variable)
+SET       b[1,2]  55
+
+# works
+SET       !d  5
+
+# fails (not a legal parameter name)
+#--- SET       a+1  $_faceID
+
+# fails (not a legal parameter name)
+#--- SET       2  $_faceID
+
+# fails (must not start with at-sign)
+#--- SET       @e  $_faceID
+
+# fails (DESPMTR)
+#--- SET       c  $_faceID
+
+# fails (subscript out of range)
+#--- SET       b[3,2]  5
+
+END

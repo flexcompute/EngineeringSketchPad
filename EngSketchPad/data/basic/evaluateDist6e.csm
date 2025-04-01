@@ -1,0 +1,29 @@
+# evaluateDist6e (body1 and body2* are neighbors)
+# written by John Dannenhoffer
+
+BOX       0.0  0.0  0.0  6.0  6.0  6.0
+UDPRIM    $$/applyTparams   factor 0.5
+SET       body1     @nbody
+
+SKBEG     5.0  2.5  2.9
+   LINSEG 7.0  2.5  2.9
+   LINSEG 7.0  3.5  2.9
+   LINSEG 5.5  3.5  2.9
+   LINSEG 5.5  3.3  2.9
+   LINSEG 6.8  3.3  2.9
+   LINSEG 6.8  2.7  2.9
+   LINSEG 5.0  2.7  2.9
+   LINSEG 5.0  2.5  2.9
+SKEND
+EXTRUDE   0.0  0.0  0.2
+UDPRIM    $$/applyTparams   factor 0.5
+SET       body2a    @nbody
+
+EVALUATE  dist      +body1  +body2a
+ASSERT    @edata[1] -1.0  0.005
+
+SKBEG     @edata[5]  @edata[6]  @edata[7]
+   LINSEG @edata[11] @edata[12] @edata[13]
+SKEND
+
+END

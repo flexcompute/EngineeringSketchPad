@@ -1,0 +1,33 @@
+#------------------------------------------------------------------------------#
+# Script Name   : wedge.udc
+# Purpose       : Shape Recipe for wedge-style airfoil
+# Description   : This script is developed to demonstrate UDCs using ESP. 
+# Scripted by   : Nitin Bhagat
+# Dependencies  : ESP 1.27 and above
+#               : himoco.csm: Driver script
+# Limitations   : 
+#               :
+# Contact       : [nbhagat1@udayton.edu] for scripting bugs/suggestions.
+#------------------------------------------------------------------------------#
+
+INTERFACE chord in 1
+
+
+# Sketch the wedge
+SKBEG     0   0   0   1
+   SKVAR     xy   0.000000;0.000000;0.000000;0.009128;-0.009962;0.002627;1.000000;-0.096652;0.000000;1.000000;0.000000;0.000000;
+   SKCON     X   1   -1  0
+   SKCON     Y   1   -1  0
+   SKCON     V   3   4  0
+   SKCON     H   4   1  0
+   SKCON     L   4   1  chord
+   SKCON     R   1   2  0.01
+   SKCON     T   2   -1  0
+   SKCON     P   1   -1  0
+   SKCON     A   3   -1  95
+   ARC       ::x[2]   ::y[2]   0   ::d[2]   xy
+   LINSEG    ::x[3]   ::y[3]   0
+   LINSEG    ::x[4]   ::y[4]   0
+   LINSEG    ::x[1]   ::y[1]   0
+SKEND     0
+

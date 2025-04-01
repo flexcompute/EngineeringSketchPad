@@ -1,0 +1,40 @@
+# evaluateDist6d (body1 and body2* are neighbors)
+# written by John Dannenhoffer
+
+BOX       0.0  0.0  0.0  6.0  6.0  6.0
+UDPRIM    $$/applyTparams   factor 0.5
+SET       body1     @nbody
+
+POINT     4.5  3.0  3.0
+SET       body2a    @nbody
+
+EVALUATE  dist      +body1  +body2a
+ASSERT    @edata[1] -1.5
+
+SKBEG     @edata[5]  @edata[6]  @edata[7]
+   LINSEG @edata[11] @edata[12] @edata[13]
+SKEND
+
+POINT     6.5  3.0  3.0
+SET       body2b    @nbody
+
+EVALUATE  dist      +body1  +body2b
+ASSERT    @edata[1] +0.5
+
+SKBEG     @edata[5]  @edata[6]  @edata[7]
+   LINSEG @edata[11] @edata[12] @edata[13]
+SKEND
+
+POINT     8.0  3.0  3.0
+SET       body2c    @nbody
+
+EVALUATE  dist      +body1  +body2c
+ASSERT    @edata[1] +2.0
+
+SKBEG     @edata[5]  @edata[6]  @edata[7]
+   LINSEG @edata[11] @edata[12] @edata[13]
+SKEND
+
+END
+
+

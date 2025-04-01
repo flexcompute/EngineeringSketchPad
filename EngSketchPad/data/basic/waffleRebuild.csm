@@ -1,0 +1,32 @@
+# waffleRebuild
+# written by John Dannenhoffer
+
+DIMENSION X  1  4
+DIMENSION Y  1  4
+
+DESPMTR   X  0;1;2;3
+DESPMTR   Y  0;1;2;3
+DESPMTR   Z  0
+
+UDPARG    waffle    rebuild   X[2];X[3];Y[2];Y[3]
+UDPRIM    waffle    depth 1   filename <<
+   POINT  A  AT  X[1]  Y[2]
+   POINT  B  AT  X[4]  Y[2]
+   LINE   .  A   B
+
+   POINT  A  AT  X[1]  Y[3]
+   POINT  B  AT  X[4]  Y[3]
+   LINE   .  A   B
+
+   POINT  A  AT  X[2]  Y[1]
+   POINT  B  AT  X[2]  Y[4]
+   LINE   .  A   B
+
+   POINT  A  AT  X[3]  Y[1]
+   POINT  B  AT  X[3]  Y[4]
+   LINE   .  A   B
+>>
+
+BOX       X[2]  Y[2]  0  X[3]-X[2]  Y[3]-Y[2]  1
+
+END

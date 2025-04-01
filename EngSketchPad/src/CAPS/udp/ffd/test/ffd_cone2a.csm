@@ -1,0 +1,36 @@
+# ffd_cone2a
+# written by Marshall Galbraith
+
+# original configuration
+SET fs:radius                0.5
+SET fs:nose:radius           0.25
+SET fs:nose:ogive_radius     10.0
+SKBEG    12   0   0   1
+    SKVAR     xy " 0.00; 0.00;0.00;\
+                   0.07;-0.12;0.02;\
+                   1.00;-0.50;0.09;\
+                   1.00; 0.00;0.00;"
+    SKCON     X   1 
+    SKCON     Y   1
+    SKCON     P   1
+    SKCON     R   1   2  fs:nose:radius
+    SKCON     T   2
+    SKCON     R   2   3  fs:nose:ogive_radius
+    SKCON     V   3   4
+    SKCON     P   4
+    SKCON     L   3   4  fs:radius
+    SKCON     H   4   1
+    ARC       ::x[2]   ::y[2]   0   ::d[2]   xy
+    ARC       ::x[3]   ::y[3]   0   ::d[3]   xy
+    LINSEG    ::x[4]   ::y[4]   0
+    LINSEG    ::x[1]   ::y[1]   0
+SKEND 0
+REVOLVE   0   0   0   1   0   0   360
+
+STORE   original
+
+# Deform original
+UDPRIM $/ffda
+
+END
+

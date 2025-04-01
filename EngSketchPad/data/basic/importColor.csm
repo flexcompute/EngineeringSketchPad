@@ -1,0 +1,809 @@
+# importColor
+# written by Marshall Galbraith
+# modeified by John Dannenhoffer
+
+# expectations:    STP            IGS
+#
+# Body
+#   Name            Y              Y
+#   ColorFace       Y              N
+#   ColorEdge       Y              N
+# Face
+#   Name            Y              Y
+#   _color          Y              Y
+# Edge
+#   Name            Y              not if nface>=2
+#   _color          not WireBody   not if nface>=2
+# Node
+#   Name            Y              N
+
+# Create 1st SolidBody box and color all Faces and Edges
+BOX 0 0 0 1 1 1
+
+SELECT body
+  ATTRIBUTE .lengthUnit $inch
+  ATTRIBUTE Name        $Box1
+  ATTRIBUTE ColorFace   $red
+  ATTRIBUTE ColorEdge   $blue
+
+SELECT face 1
+  ATTRIBUTE _color $red
+SELECT face 2
+  ATTRIBUTE _color $lred
+SELECT face 3
+  ATTRIBUTE _color $green
+SELECT face 4
+  ATTRIBUTE _color $lgreen
+SELECT face 5
+  ATTRIBUTE _color $blue
+SELECT face 6
+  ATTRIBUTE _color $lblue
+
+SELECT edge 1
+  ATTRIBUTE _color $red
+SELECT edge 2
+  ATTRIBUTE _color $lred
+SELECT edge 3
+  ATTRIBUTE _color $green
+SELECT edge 4
+  ATTRIBUTE _color $lgreen
+SELECT edge 5
+  ATTRIBUTE _color $blue
+SELECT edge 6
+  ATTRIBUTE _color $lblue
+SELECT edge 6
+  ATTRIBUTE _color $yellow
+SELECT edge 7
+  ATTRIBUTE _color $magenta
+SELECT edge 8
+  ATTRIBUTE _color $cyan
+SELECT edge 9
+  ATTRIBUTE _color $white
+SELECT edge 10
+  ATTRIBUTE _color $black
+SELECT edge 11
+  ATTRIBUTE _color "0.8;0.5;0.2"
+SELECT edge 12
+  ATTRIBUTE _color "0.7;0.6;0.3"
+
+# Add Name attribute for all Faces, Edges, and Nodes
+PATBEG i @nface
+   SELECT face i
+     ATTRIBUTE Name $Face+i
+PATEND
+PATBEG i @nedge
+   SELECT edge i
+     ATTRIBUTE Name $Edge+i
+PATEND
+PATBEG i @nnode
+   SELECT node i
+     ATTRIBUTE Name $Node+i
+PATEND
+STORE box 1 1
+
+# Create 2nd SolidBody box and color all Faces
+BOX 2 0 0 1 1 1
+
+SELECT face 1
+  ATTRIBUTE _color $yellow
+SELECT face 2
+  ATTRIBUTE _color $magenta
+SELECT face 3
+  ATTRIBUTE _color $cyan
+SELECT face 4
+  ATTRIBUTE _color $white
+SELECT face 5
+  ATTRIBUTE _color $black
+SELECT face 6
+  ATTRIBUTE _color "0.9;0.6;0.1"
+
+STORE box 2 1
+
+# Create 3rd SheetBody box and color Face and Edges
+BOX 4 0 0 1 1 0
+
+SELECT body
+  ATTRIBUTE .lengthUnit $meter
+  ATTRIBUTE Name        $Box3
+  ATTRIBUTE ColorFace   $lred
+  ATTRIBUTE ColorEdge   $lblue
+
+SELECT face 1
+  ATTRIBUTE _color $red
+SELECT edge 1
+  ATTRIBUTE _color $red
+SELECT edge 2
+  ATTRIBUTE _color $lred
+SELECT edge 3
+  ATTRIBUTE _color $green
+SELECT edge 4
+  ATTRIBUTE _color $lgreen
+
+# Add Name to Face, Edges, and Nodes
+SELECT face 1
+  ATTRIBUTE Name $Face1
+PATBEG i @nedge
+   SELECT edge i
+     ATTRIBUTE Name $Edge+i
+PATEND
+PATBEG i @nnode
+   SELECT node i
+     ATTRIBUTE Name $Node+i
+PATEND
+STORE box 3 1
+
+
+# Create 4th WireBody and color edges
+SKBEG 6 0 0
+   LINSEG 7 0 0
+   LINSEG 7 1 0
+   LINSEG 6 1 0
+SKEND
+
+SELECT body
+  ATTRIBUTE .lengthUnit $meter
+  ATTRIBUTE Name        $Box4
+  ATTRIBUTE ColorFace   $lred
+  ATTRIBUTE ColorEdge   $lblue
+
+SELECT edge 1
+  ATTRIBUTE _color $red
+SELECT edge 2
+  ATTRIBUTE _color $green
+SELECT edge 3
+  ATTRIBUTE _color $blue
+
+# Add Name to Edges and Nodes
+PATBEG i @nedge
+   SELECT edge i
+     ATTRIBUTE Name $Edge+i
+PATEND
+PATBEG i @nnode
+   SELECT node i
+     ATTRIBUTE Name $Node+i
+PATEND
+
+STORE box 4 1
+
+# Write multi-body stp and igs files
+DUMP importColor.stp 0 1 0 . 1
+DUMP importColor.igs 0 1 0 . 1
+
+#---------------------------------------------
+# Check reading the step file Names and colors
+#---------------------------------------------
+
+MESSAGE Checking_stp1...
+SET ibox 1
+
+IMPORT importColor.stp 4 1
+TRANSLATE 0 2 0
+STORE stp ibox 1
+
+# Assert Name, ColorFace, and ColorEdge attributes on the Body are the same
+RESTORE box ibox
+SELECT body
+  GETATTR trueName $Name
+  GETATTR trueColorFace $ColorFace
+  GETATTR trueColorEdge $ColorEdge
+STORE .
+
+RESTORE stp ibox
+SELECT body
+  GETATTR Name $Name
+  GETATTR ColorFace $ColorFace
+  GETATTR ColorEdge $ColorEdge
+STORE .
+
+ASSERT ifmatch(trueName,Name,1,0) 1
+
+IFTHEN ColorFace.nrow EQ 0
+  ASSERT ifmatch(trueColorFace,ColorFace,1,0) 1
+ELSE
+  ASSERT trueColorFace[1] ColorFace[1]
+  ASSERT trueColorFace[2] ColorFace[2]
+  ASSERT trueColorFace[3] ColorFace[3]
+ENDIF
+
+IFTHEN ColorEdge.nrow EQ 0
+  ASSERT ifmatch(trueColorEdge,ColorEdge,1,0) 1
+ELSE
+  ASSERT trueColorEdge[1] ColorEdge[1]
+  ASSERT trueColorEdge[2] ColorEdge[2]
+  ASSERT trueColorEdge[3] ColorEdge[3]
+ENDIF
+
+# Assert Name and _color attributes on the Faces are the same
+PATBEG i @nface
+  RESTORE box ibox
+  SELECT face i
+    GETATTR trueName  $Name
+    GETATTR trueColor $_color
+  STORE .
+
+  RESTORE stp ibox
+  SELECT face i
+    GETATTR faceName  $Name
+    GETATTR faceColor $_color
+  STORE .
+
+  ASSERT ifmatch(trueName,faceName,1,0) 1
+  
+  IFTHEN faceColor.nrow EQ 0
+    ASSERT ifmatch(trueColor,faceColor,1,0) 1
+  ELSE
+    ASSERT trueColor[1] faceColor[1]
+    ASSERT trueColor[2] faceColor[2]
+    ASSERT trueColor[3] faceColor[3]
+  ENDIF
+PATEND
+
+# Assert Name and _color attributes on the Edges are the same
+PATBEG i @nedge
+  RESTORE box ibox
+  SELECT edge i
+    GETATTR trueName  $Name
+    GETATTR trueColor $_color
+  STORE .
+
+  RESTORE stp ibox
+  SELECT edge $Name trueName
+    GETATTR edgeColor $_color
+  STORE .
+
+  IFTHEN edgeColor.nrow EQ 0
+    ASSERT ifmatch(trueColor,edgeColor,1,0) 1
+  ELSE
+    ASSERT trueColor[1] edgeColor[1]
+    ASSERT trueColor[2] edgeColor[2]
+    ASSERT trueColor[3] edgeColor[3]
+  ENDIF
+PATEND
+
+# Assert Name attributes on the Nodes
+RESTORE stp ibox
+PATBEG i @nnode
+  SELECT node $Name $Node+i
+PATEND
+STORE .
+
+#-----------------------------------
+
+MESSAGE Checking_stp2...
+SET ibox 2
+
+IMPORT importColor.stp 3 1
+TRANSLATE 0 2 0
+STORE stp ibox 1
+   
+# Assert _color attributes on the Faces are the same
+PATBEG i @nface
+  RESTORE box ibox
+  SELECT face i
+    GETATTR trueColor $_color
+  STORE .
+
+  RESTORE stp ibox
+  SELECT face i
+    GETATTR faceColor $_color
+  STORE .
+
+  IFTHEN faceColor.nrow EQ 0
+    ASSERT ifmatch(trueColor,faceColor,1,0) 1
+  ELSE
+    ASSERT trueColor[1] faceColor[1]
+    ASSERT trueColor[2] faceColor[2]
+    ASSERT trueColor[3] faceColor[3]
+  ENDIF
+PATEND
+   
+#-----------------------------------
+
+MESSAGE Checking_stp3...
+SET ibox 3
+
+IMPORT importColor.stp 2 1
+TRANSLATE 0 2 0
+STORE stp ibox 1
+   
+# Assert Name, ColorFace, and ColorName attributes on the Body are the same
+RESTORE box ibox
+SELECT body
+  GETATTR trueName $Name
+  GETATTR trueColorFace $ColorFace
+  GETATTR trueColorEdge $ColorEdge
+STORE .
+
+RESTORE stp ibox
+SELECT body
+  GETATTR Name $Name
+  GETATTR ColorFace $ColorFace
+  GETATTR ColorEdge $ColorEdge
+STORE .
+
+ASSERT ifmatch(trueName,Name,1,0) 1
+
+IFTHEN ColorFace.nrow EQ 0
+  ASSERT ifmatch(trueColorFace,ColorFace,1,0) 1
+ELSE
+  ASSERT trueColorFace[1] ColorFace[1]
+  ASSERT trueColorFace[2] ColorFace[2]
+  ASSERT trueColorFace[3] ColorFace[3]
+ENDIF
+
+IFTHEN ColorEdge.nrow EQ 0
+  ASSERT ifmatch(trueColorEdge,ColorEdge,1,0) 1
+ELSE
+  ASSERT trueColorEdge[1] ColorEdge[1]
+  ASSERT trueColorEdge[2] ColorEdge[2]
+  ASSERT trueColorEdge[3] ColorEdge[3]
+ENDIF
+
+# Assert _color attributes on the Faces are the same
+PATBEG i @nface
+  RESTORE box ibox
+  SELECT face i
+    GETATTR trueColor $_color
+  STORE .
+
+  RESTORE stp ibox
+  SELECT face i
+    GETATTR faceColor $_color
+  STORE .
+
+  IFTHEN faceColor.nrow EQ 0
+    ASSERT ifmatch(trueColor,faceColor,1,0) 1
+  ELSE
+    ASSERT trueColor[1] faceColor[1]
+    ASSERT trueColor[2] faceColor[2]
+    ASSERT trueColor[3] faceColor[3]
+  ENDIF
+PATEND
+
+# Assert _color attributes on the Edges are the same
+PATBEG i @nedge
+  RESTORE box ibox
+  SELECT edge i
+    GETATTR trueColor $_color
+  STORE .
+
+  RESTORE stp ibox
+  SELECT edge i
+    GETATTR edgeColor $_color
+  STORE .
+
+  IFTHEN edgeColor.nrow EQ 0
+    ASSERT ifmatch(trueColor,edgeColor,1,0) 1
+  ELSE
+    ASSERT trueColor[1] edgeColor[1]
+    ASSERT trueColor[2] edgeColor[2]
+    ASSERT trueColor[3] edgeColor[3]
+  ENDIF
+PATEND
+
+# Assert Name attributes on the Nodes
+RESTORE stp ibox
+PATBEG i @nnode
+  SELECT node $Name $Node+i
+PATEND
+STORE .
+
+#-----------------------------------
+
+MESSAGE Checking_stp4...
+SET ibox 4
+
+IMPORT importColor.stp 1 1
+TRANSLATE 0 2 0
+STORE stp ibox 1
+   
+# Assert Name, ColorFace, and ColorEdge attributes on the Body are the same
+RESTORE box ibox
+SELECT body
+  GETATTR trueName $Name
+  GETATTR trueColorFace $ColorFace
+  GETATTR trueColorEdge $ColorEdge
+STORE .
+
+RESTORE stp ibox
+SELECT body
+  GETATTR Name $Name
+  GETATTR ColorFace $ColorFace
+  GETATTR ColorEdge $ColorEdge
+STORE .
+
+ASSERT ifmatch(trueName,Name,1,0) 1
+
+IFTHEN ColorFace.nrow EQ 0
+  ASSERT ifmatch(trueColorFace,ColorFace,1,0) 1
+ELSE
+  ASSERT trueColorFace[1] ColorFace[1]
+  ASSERT trueColorFace[2] ColorFace[2]
+  ASSERT trueColorFace[3] ColorFace[3]
+ENDIF
+
+IFTHEN ColorEdge.nrow EQ 0
+  ASSERT ifmatch(trueColorEdge,ColorEdge,1,0) 1
+ELSE
+  ASSERT trueColorEdge[1] ColorEdge[1]
+  ASSERT trueColorEdge[2] ColorEdge[2]
+  ASSERT trueColorEdge[3] ColorEdge[3]
+ENDIF
+
+# Assert Name attributes on the Faces are the same
+PATBEG i @nedge
+  RESTORE box ibox
+  SELECT edge i
+    GETATTR trueName $Name
+  STORE .
+
+  RESTORE stp ibox
+  SELECT edge i
+    GETATTR edgeName $Name
+  STORE .
+   
+  ASSERT ifmatch(trueName,edgeName,1,0) 1
+PATEND
+
+# Assert _color attributes are missing from the Edges
+# this is an apparent limitation in STP file reader in OpenCASCADE
+SET missing 0
+
+PATBEG i @nedge
+  RESTORE stp ibox
+  SELECT edge i
+    GETATTR edgeColor $_color
+  CATBEG $illegal_attribute
+    SET missing missing+1
+  CATEND
+  STORE .
+PATEND
+
+ASSERT missing @nedge
+
+# Assert Name attributes on the Nodes
+# this is an apparent limitation in STP file writer in OpenCASCADE
+SET missing 0
+
+RESTORE stp ibox
+PATBEG i @nnode
+  SELECT node $Name $Node+i
+  CATBEG $node_not_found
+    SET missing missing+1
+  CATEND
+PATEND
+STORE .
+
+ASSERT missing @nnode
+
+#---------------------------------------------
+# Check reading the iges file Names and colors
+#---------------------------------------------
+
+MESSAGE Checking_igs1...
+SET ibox 1
+
+IMPORT importColor.igs 4 1
+TRANSLATE 0 4 0
+STORE igs ibox 1
+
+# Assert Name attributes on the Body are the same
+RESTORE box ibox
+SELECT body
+  GETATTR trueName $Name
+STORE .
+
+RESTORE igs ibox
+SELECT body
+  GETATTR Name $Name
+STORE .
+
+ASSERT ifmatch(trueName,Name,1,0) 1
+
+# Assert ColorFace and ColorEdge attributes on the Body are not present
+# The IGS file format does not support these
+SET missing 0
+
+GETATTR ColorFace $ColorFace
+CATBEG $illegal_attribute
+   SET missing missing+1
+CATEND
+
+GETATTR ColorEdge $ColorEdge
+CATBEG $illegal_attribute
+   SET missing missing+1
+CATEND
+
+ASSERT missing 2
+
+# Assert Name and _color attributes on the Faces are the same
+PATBEG i @nface
+  RESTORE box ibox
+  SELECT face i
+    GETATTR trueName  $Name
+    GETATTR trueColor $_color
+  STORE .
+
+  RESTORE igs ibox
+  SELECT face i
+    GETATTR faceName  $Name
+    GETATTR faceColor $_color
+  STORE .
+
+  ASSERT ifmatch(trueName,faceName,1,0) 1
+  
+  IFTHEN faceColor.nrow EQ 0
+    ASSERT ifmatch(trueColor,faceColor,1,0) 1
+  ELSE
+    ASSERT trueColor[1] faceColor[1]
+    ASSERT trueColor[2] faceColor[2]
+    ASSERT trueColor[3] faceColor[3]
+  ENDIF
+PATEND
+
+# Assert _color attributes on the Edges are the same
+PATBEG i @nedge
+  RESTORE box ibox
+  SELECT edge i
+    GETATTR trueName  $Name
+    GETATTR trueColor $_color
+  STORE .
+
+  RESTORE igs ibox
+  SELECT edge $Name trueName
+    GETATTR edgeColor $_color
+  STORE .
+
+  IFTHEN edgeColor.nrow EQ 0
+    ASSERT ifmatch(trueColor,edgeColor,1,0) 1
+  ELSE
+    ASSERT trueColor[1] edgeColor[1]
+    ASSERT trueColor[2] edgeColor[2]
+    ASSERT trueColor[3] edgeColor[3]
+  ENDIF
+PATEND
+
+# Assert Name attributes on the Nodes
+# The iges file format does not support Name attribute on Nodes
+SET missing 0
+
+RESTORE igs ibox
+PATBEG i @nnode
+  SELECT node $Name $Node+i
+  CATBEG $node_not_found
+    SET missing missing+1
+  CATEND
+PATEND
+STORE .
+
+ASSERT missing @nnode
+
+#-----------------------------------
+
+MESSAGE Checking_igs2...
+SET ibox 2
+
+IMPORT importColor.igs 3 1
+TRANSLATE 0 4 0
+STORE igs ibox 1
+   
+# Assert _color attributes on the Faces are the same
+PATBEG i @nface
+  RESTORE box ibox
+  SELECT face i
+    GETATTR trueColor $_color
+  STORE .
+
+  RESTORE igs ibox
+  SELECT face i
+    GETATTR faceColor $_color
+  STORE .
+
+  IFTHEN faceColor.nrow EQ 0
+    ASSERT ifmatch(trueColor,faceColor,1,0) 1
+  ELSE
+    ASSERT trueColor[1] faceColor[1]
+    ASSERT trueColor[2] faceColor[2]
+    ASSERT trueColor[3] faceColor[3]
+  ENDIF
+PATEND
+   
+#-----------------------------------
+
+MESSAGE Checking_igs3...
+SET ibox 3
+
+IMPORT importColor.igs 2 1
+TRANSLATE 0 4 0
+STORE igs ibox 1
+   
+# Assert Name attributes on the Body are the same
+RESTORE box ibox
+SELECT body
+  GETATTR trueName $Name
+STORE .
+
+RESTORE igs ibox
+SELECT body
+  GETATTR Name $Name
+STORE .
+
+ASSERT ifmatch(trueName,Name,1,0) 1
+
+# Assert ColorFace and ColorEdge attributes on the Body are not present
+# The IGS file format does not support these
+SET missing 0
+
+GETATTR ColorFace $ColorFace
+CATBEG $illegal_attribute
+  SET missing missing+1
+CATEND
+
+GETATTR ColorFace $ColorEdge
+CATBEG $illegal_attribute
+  SET missing missing+1
+CATEND
+
+ASSERT missing 2
+
+# Assert _color attributes on the Faces are the same
+PATBEG i @nface
+  RESTORE box ibox
+  SELECT face i
+    GETATTR trueColor $_color
+  STORE .
+
+  RESTORE igs ibox
+  SELECT face i
+    GETATTR faceColor $_color
+  STORE .
+
+  IFTHEN faceColor.nrow EQ 0
+    ASSERT ifmatch(trueColor,faceColor,1,0) 1
+  ELSE
+    ASSERT trueColor[1] faceColor[1]
+    ASSERT trueColor[2] faceColor[2]
+    ASSERT trueColor[3] faceColor[3]
+  ENDIF
+PATEND
+
+# Assert _color attributes on the Edges are the same
+PATBEG i @nedge
+  RESTORE box ibox
+  SELECT edge i
+    GETATTR trueColor $_color
+  STORE .
+
+  RESTORE igs ibox
+  SELECT edge i
+    GETATTR edgeColor $_color
+  STORE .
+
+  IFTHEN edgeColor.nrow EQ 0
+    ASSERT ifmatch(trueColor,edgeColor,1,0) 1
+  ELSE
+    ASSERT trueColor[1] edgeColor[1]
+    ASSERT trueColor[2] edgeColor[2]
+    ASSERT trueColor[3] edgeColor[3]
+  ENDIF
+PATEND
+
+# Assert Name attributes on the Nodes
+# The iges file format does not support Name attribute on Nodes
+SET missing 0
+
+RESTORE igs ibox
+PATBEG i @nnode
+  SELECT node $Name $Node+i
+  CATBEG $node_not_found
+    SET missing missing+1
+  CATEND
+PATEND
+STORE .
+
+ASSERT missing @nnode
+
+#-----------------------------------
+
+MESSAGE Checking_igs4...
+SET ibox 4
+
+IMPORT importColor.igs 1 1
+TRANSLATE 0 4 0
+STORE igs ibox 1
+   
+# Assert Name attributes on the Body are the same
+RESTORE box ibox
+SELECT body
+  GETATTR trueName $Name
+STORE .
+
+RESTORE igs ibox
+SELECT body
+  GETATTR Name $Name
+STORE .
+
+ASSERT ifmatch(trueName,Name,1,0) 1
+
+# Assert ColorFace and ColorEdge attributes on the Body are not present
+# The IGS file format does not support these
+SET missing 0
+
+RESTORE igs ibox
+SELECT body
+   GETATTR ColorFace $ColorFace
+   CATBEG $illegal_attribute
+      SET missing missing+1
+   CATEND
+
+   GETATTR ColorEdge $ColorEdge
+   CATBEG $illegal_attribute
+      SET missing missing+1
+   CATEND
+STORE .
+
+ASSERT missing 2
+
+# Assert Name and _color attributes on the Faces are the same
+PATBEG i @nface
+  RESTORE box ibox
+  SELECT face i
+    GETATTR trueName  $Name
+    GETATTR trueColor $_color
+  STORE .
+
+  RESTORE igs ibox
+  SELECT face i
+    GETATTR faceName  $Name
+    GETATTR faceColor $_color
+  STORE .
+
+  ASSERT ifmatch(trueName,faceName,1,0) 1
+  
+  IFTHEN faceColor.nrow EQ 0
+    ASSERT ifmatch(trueColor,faceColor,1,0) 1
+  ELSE
+    ASSERT trueColor[1] faceColor[1]
+    ASSERT trueColor[2] faceColor[2]
+    ASSERT trueColor[3] faceColor[3]
+  ENDIF
+PATEND
+
+# Assert Name and _color attributes on the Edges are the same
+PATBEG i @nedge
+  RESTORE box ibox
+  SELECT edge i
+    GETATTR trueName  $Name
+    GETATTR trueColor $_color
+  STORE .
+
+  RESTORE igs ibox
+  SELECT edge $Name trueName
+    GETATTR edgeColor $_color
+  STORE .
+
+  IFTHEN edgeColor.nrow EQ 0
+    ASSERT ifmatch(trueColor,edgeColor,1,0) 1
+  ELSE
+    ASSERT trueColor[1] edgeColor[1]
+    ASSERT trueColor[2] edgeColor[2]
+    ASSERT trueColor[3] edgeColor[3]
+  ENDIF
+PATEND
+
+# Assert Name attributes on the Nodes
+# The iges file format does not support Name attribute on Nodes
+SET missing 0
+
+RESTORE igs ibox
+PATBEG i @nnode
+  SELECT node $Name $Node+i
+  CATBEG $node_not_found
+    SET missing missing+1
+  CATEND
+PATEND
+STORE .
+
+ASSERT missing @nnode
+
+END

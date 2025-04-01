@@ -1,0 +1,23 @@
+# ffd_wire1c
+# written by Marshall Galbraith
+# based on code written by John Dannenhoffer
+
+# original configuration
+SKBEG       0.0   0.0  0.0
+   LINSEG   1.0   0.0  0.0
+   LINSEG   2.0   2.0  1.0
+   CIRARC   2.0   3.0  2.0  2.0  4.0  1.0
+SKEND
+
+SELECT edge 1
+  ATTRIBUTE ffdFixed $G0
+
+SELECT node 2
+  ATTRIBUTE ffdFixed $G1
+
+STORE   original
+
+# Deform original
+UDPRIM $/ffda
+
+END

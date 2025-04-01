@@ -1,0 +1,67 @@
+# evaluateDist3a (enclosure)
+# written by John Dannenhoffer
+
+POINT     0.0  0.0  0.0
+
+SPHERE    0.0  0.0  0.0   4.0
+SET       outer  @nbody
+
+PATBEG    ibody   10
+   IFTHEN    ibody EQ 1
+      SET    xc  0.0
+      SET    yc  0.0
+      SET    zc  0.0
+   ELSEIF    ibody LE 4
+      SET    xc  (ibody-1)*2.0
+      SET    yc  0.0
+      SET    zc  0.0
+   ELSEIF    ibody LE 7
+      SET    xc  0.0
+      SET    yc  (ibody-4)*2.0
+      SET    zc  0.0
+   ELSE
+      SET    xc  0.0
+      SET    yc  0.0
+      SET    zc  (ibody-7)*2.0
+   ENDIF
+   
+   SPHERE    xc  yc  zc   1.0
+   SET       inner  @nbody
+
+   EVALUATE  dist   -outer  inner
+   DIMENSION myData @edata.nrow @edata.ncol
+   SET       myData @edata
+
+   # report distance and determine if clearance line goes through origin
+   IFTHEN myData[1] GE 0
+      SET x1  myData[5]
+      SET y1  myData[6]
+      SET z1  myData[7]
+      SET x2  myData[11]
+      SET y2  myData[12]
+      SET z2  myData[13]
+      SET den (x2-x1)^2+(y2-y1)^2+(z2-z1)^2
+      IFTHEN abs(den) GT 1e-12
+         SET  t   (x1*(x1-x2)+y1*(y1-y2)+z1*(z1-z2))/den
+         SET  x0  (1-t)*x1+t*x2
+         SET  y0  (1-t)*y1+t*y2
+         SET  z0  (1-t)*z1+t*z2
+         SET  d   sqrt(x0^2+y0^2+z0^2)
+      ELSE
+         SET  d   0
+      ENDIF
+   
+      MESSAGE  !$dist(+outer+$:+inner+$')=+myData[1]+$_______+d+$_from_origin
+
+      ASSERT    d 0 0.0001
+
+      # draw clearance line
+      SKBEG     myData[5]  myData[6]  myData[7]
+        LINSEG myData[11] myData[12] myData[13]
+      SKEND
+   ELSE
+      MESSAGE  !$dist(+outer+$:+inner+$')=+myData[1]
+   ENDIF
+PATEND
+
+END

@@ -1,0 +1,65 @@
+# designAA2
+# written by John Dannenhoffer
+
+DIMENSION xloc   5  1
+DIMENSION width  5  1
+DIMENSION height 5  1
+
+DESPMTR   xloc   "0.0; 1.0; 2.0; 3.0; 4.0"
+DESPMTR   width  "1.0; 1.5; 2.0; 2.0; 1.5"
+DESPMTR   height "3.0; 2.5; 3.0; 2.5; 3.0"
+
+# make xsects
+SKBEG     xloc[1]  -height[1]/2  -width[1]/2
+   LINSEG xloc[1]  +height[1]/2  -width[1]/2
+   LINSEG xloc[1]  +height[1]/2  +width[1]/2
+   LINSEG xloc[1]  -height[1]/2  +width[1]/2
+   LINSEG xloc[1]  -height[1]/2  -width[1]/2
+SKEND
+STORE     xsect 1
+
+SKBEG     xloc[2]  +height[2]/2  -width[2]/2
+   LINSEG xloc[2]  +height[2]/2  +width[2]/2
+   LINSEG xloc[2]  -height[2]/2  +width[2]/2
+   LINSEG xloc[2]  -height[2]/2  -width[2]/2
+   LINSEG xloc[2]  +height[2]/2  -width[2]/2
+SKEND 1
+REORDER   -1
+STORE     xsect 2
+
+SKBEG     xloc[3]  +height[3]/2  +width[3]/2
+   LINSEG xloc[3]  -height[3]/2  +width[3]/2
+   LINSEG xloc[3]  -height[3]/2  -width[3]/2
+   LINSEG xloc[3]  +height[3]/2  -width[3]/2
+   LINSEG xloc[3]  +height[3]/2  +width[3]/2
+SKEND
+REORDER   -2
+STORE     xsect 3
+
+SKBEG     xloc[4]  -height[4]/2  +width[4]/2
+   LINSEG xloc[4]  -height[4]/2  -width[4]/2
+   LINSEG xloc[4]  +height[4]/2  -width[4]/2
+   LINSEG xloc[4]  +height[4]/2  +width[4]/2
+   LINSEG xloc[4]  -height[4]/2  +width[4]/2
+SKEND
+REORDER   +1
+STORE     xsect 4
+
+SKBEG     xloc[5]  -height[5]/2  -width[5]/2
+   LINSEG xloc[5]  -height[5]/2  +width[5]/2
+   LINSEG xloc[5]  +height[5]/2  +width[5]/2
+   LINSEG xloc[5]  +height[5]/2  -width[5]/2
+   LINSEG xloc[5]  -height[5]/2  -width[5]/2
+SKEND
+STORE     xsect 5
+
+# build RULEd Body
+MARK
+   RESTORE   xsect 1
+   RESTORE   xsect 2
+   RESTORE   xsect 3
+   RESTORE   xsect 4
+   RESTORE   xsect 5
+RULE
+
+END

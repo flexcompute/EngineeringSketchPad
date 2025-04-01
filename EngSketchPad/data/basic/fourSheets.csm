@@ -1,0 +1,21 @@
+# fourSheets
+# written by John Danenhoffer
+
+BOX      -1  0  0  1  1  0
+    ATTRIBUTE myGroup  $A
+BOX       0  0  0  1  1  0
+    ATTRIBUTE myGroup  $B
+JOIN
+BOX       1  0  0  1  1  0
+    ATTRIBUTE myGroup  $B
+JOIN
+
+BOX       0  0  0  0  1  1
+JOIN
+
+SELECT    BODY
+   ATTRIBUTE .tParams   0.5;0.5;20
+   
+DUMP      fourSheets.vtk 0 0 0 myGroup
+
+END

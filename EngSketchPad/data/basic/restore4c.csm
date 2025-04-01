@@ -1,0 +1,35 @@
+# restore4c
+# written by John Dannenhoffer
+
+# finding the
+DESPMTR   size  1
+
+# make three Bodys
+BOX       -3  0  0  size  0     0
+    ATTRIBUTE boxNum 1
+
+BOX       -1  0  0  size  size  0
+    ATTRIBUTE boxNum 2
+
+BOX       +1  0  0  size  size  size
+    ATTRIBUTE boxNum 3
+
+# duplicate the entire Stack
+RESTORE   ...
+
+# verify that the Stack has 6 Bodys
+ASSERT    @stack.size  6
+
+# verify that the Bodys were put onto the Stack in the same order
+DIMENSION myStack @stack.size 1
+SET       myStack @stack
+
+PATBEG    ibox    3
+   SELECT    BODY    myStack[ibox+3]
+   GETATTR   boxNum  $boxNum
+   ASSERT    boxNum  ibox
+PATEND
+
+END
+
+

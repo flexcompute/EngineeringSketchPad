@@ -1,0 +1,49 @@
+#
+!IFNDEF ESP_ROOT
+!ERROR ESP_ROOT must be set -- Please fix the environment...
+!ENDIF
+#
+IDIR  = $(ESP_ROOT)\include
+!include $(IDIR)\$(ESP_ARCH).$(MSVC)
+LDIR  = $(ESP_ROOT)\lib
+!IFDEF ESP_BLOC
+ODIR  = $(ESP_BLOC)\obj
+TDIR  = $(ESP_BLOC)\test
+!ELSE
+ODIR  = .
+TDIR  = $(ESP_ROOT)\bin
+!ENDIF
+
+!IFNDEF SEACAS
+default:
+	@echo "Not compiling exodusAIM: SEACAS must be set -- Please fix the environment...."
+!ELSE
+default: $(LDIR)\exodusAIM.dll
+!ENDIF
+
+OBJS =	$(ODIR)\exodusAIM.obj $(ODIR)\libmeshb7.obj
+
+$(LDIR)\exodusAIM.dll:	exodusAIM.def $(OBJS) $(LDIR)\utils.lib
+	-del $(LDIR)\exodusAIM.dll $(LDIR)\exodusAIM.lib $(LDIR)\exodusAIM.exp
+	 link /out:$(LDIR)\exodusAIM.dll /dll /def:exodusAIM.def \
+		$(OBJS) /LIBPATH:$(LDIR) utils.lib aimUtil.lib \
+		ocsm.lib egads.lib udunits2.lib
+	$(MCOMP) /manifest $(LDIR)\exodusAIM.dll.manifest \
+		/outputresource:$(LDIR)\exodusAIM.dll;2
+
+$(ODIR)\exodusAIM.obj:	exodusAIM.c exodusUtils.h $(IDIR)\capsTypes.h \
+			..\utils\meshUtils.h
+	cl /c $(COPTS) $(DEFINE) /I$(IDIR) /I..\meshWriter\exodusWriter /I..\utils exodusAIM.c \
+		/Fo$(ODIR)\exodusAIM.obj
+
+$(ODIR)\libmeshb7.obj:	..\meshWriter\libMeshbWriter\libMeshb\sources\libmeshb7.c \
+						..\meshWriter\libMeshbWriter\libMeshb\sources\libmeshb7.h
+	cl /c $(COPTS) $(DEFINE) /I$(IDIR) /I..\meshWriter\libMeshbWriter\libMeshb\sources \
+		..\meshWriter\libMeshbWriter\libMeshb\sources\libmeshb7.c \
+		/Fo$(ODIR)\libmeshb7.obj
+
+clean:
+	-del $(OBJS)
+
+cleanall:	clean
+	-del $(LDIR)\exodusAIM.dll $(LDIR)\exodusAIM.lib $(LDIR)\exodusAIM.exp

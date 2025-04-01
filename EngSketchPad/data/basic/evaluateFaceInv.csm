@@ -1,0 +1,56 @@
+# evaluateFaceInv
+# written by John Dannenhoffer
+
+BOX       -3  -2  -1  8  5  2
+SELECT    FACE  @nbody  6
+
+# zmax Face
+EVALUATE  faceinv @nbody @iface @xmin @ymin @zmax
+DIMENSION foo @edata.nrow @edata.ncol
+SET       foo @edata
+ASSERT    @edata[6]  0
+ASSERT    @edata[7]  0
+
+EVALUATE  FACEINV @nbody @iface @xmax @ymax @zmax
+SET       foo @edata
+ASSERT    @edata[6]  1
+ASSERT    @edata[7]  1
+
+EVALUATE  FACEINV @nbody @iface 0     0     @zmax
+SET       foo @edata
+ASSERT    @edata[6]  3/8
+ASSERT    @edata[7]  2/5
+
+# xmin,zmax Edge
+SELECT    EDGE  @nbody  1  @nbody  6
+
+EVALUATE  edgeinv @nbody @iedge @xmin @ymin @zmax
+DIMENSION foo @edata.nrow @edata.ncol
+SET       foo @edata
+ASSERT    @edata[5]  0
+
+EVALUATE  EDGEINV @nbody @iedge @xmin @ymax @zmax
+SET       foo @edata
+ASSERT    @edata[5]  1
+
+EVALUATE  EDGEINV @nbody @iedge @xmin 0     @zmax
+SET       foo @edata
+ASSERT    @edata[5]  2/5
+
+# ymax,zmax Edge
+SELECT    EDGE  @nbody  4  @nbody  6
+
+EVALUATE  edgeinv @nbody @iedge @xmin @ymax @zmax
+DIMENSION foo @edata.nrow @edata.ncol
+SET       foo @edata
+ASSERT    @edata[5]  0
+
+EVALUATE  EDGEINV @nbody @iedge @xmax @ymax @zmax
+SET       foo @edata
+ASSERT    @edata[5]  1
+
+EVALUATE  EDGEINV @nbody @iedge 0     @ymax @zmax
+SET       foo @edata
+ASSERT    @edata[5]  3/8
+
+END

@@ -1,0 +1,84 @@
+# seqnum3
+# written by John Dannenhoffer
+
+# get new sequence numbering
+ATTRIBUTE _newSeqnum 1
+
+# block 1
+CYLINDER  5  5  0  5  5  1  5
+SET       theBody @nbody
+ROTATEZ -45  5  5
+
+CYLINDER  5  5 -1  5  5  2  3
+ROTATEZ  45  5  5
+EXTRACT   0
+SUBTRACT
+
+CYLINDER  5  5 -1  5  5  2  1
+EXTRACT   0
+SUBTRACT
+
+SELECT    FACE  theBody 2  1
+   ATTRIBUTE _color $red
+
+SELECT    FACE  theBody 2  2
+   ATTRIBUTE _color $green
+
+SELECT    FACE  theBody 2  3
+   ATTRIBUTE _color $blue
+
+# block 2
+CYLINDER  5  5  0  5  5  1  5
+SET       theBody @nbody
+ROTATEZ -45  5  5
+
+CYLINDER  4  5 -1  4  5  2  3
+ROTATEZ  45  4  5
+EXTRACT   0
+SUBTRACT
+
+CYLINDER  5  5 -1  5  5  2  1
+EXTRACT   0
+SUBTRACT
+
+SELECT    FACE  theBody 2  1
+   ATTRIBUTE _color $red
+
+SELECT    FACE  theBody 2  2
+   ATTRIBUTE _color $green
+
+SELECT    FACE  theBody 2  3
+   ATTRIBUTE _color $blue
+
+TRANSLATE 15  0  0
+
+# block 3
+CYLINDER  5  5  0  5  5  1  5
+SET       theBody @nbody
+ROTATEZ -45  5  5
+
+CYLINDER  5  5 -1  5  5  2  3
+ROTATEZ  45  5  5
+EXTRACT   0
+SUBTRACT
+
+CYLINDER  4  5 -1  4  5  2  1
+EXTRACT   0
+SUBTRACT
+
+SELECT    FACE  theBody 2  1
+   ATTRIBUTE _color $red
+
+SELECT    FACE  theBody 2  2
+   ATTRIBUTE _color $green
+
+SELECT    FACE  theBody 2  3
+   ATTRIBUTE _color $blue
+
+TRANSLATE 30  0  0
+
+END
+
+
+
+

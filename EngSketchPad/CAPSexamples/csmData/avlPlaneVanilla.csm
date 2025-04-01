@@ -1,0 +1,173 @@
+# AVL Plane Vanilla
+
+# Wing lenght units in ft
+ATTRIBUTE capsLength $ft
+
+DESPMTR   fuse:length    9.0
+
+# Wing design parameters
+DESPMTR   wing:thick     0.12     # frac of local chord
+DESPMTR   wing:camber    0.04     # frac of loacl chord
+
+DESPMTR   wing:area      12.0
+DESPMTR   wing:span      15.0
+DESPMTR   wing:sweep      0.0     # deg (of c/4)
+DESPMTR   wing:dihedral   4.0     # deg
+DESPMTR   wing:taper     0.70
+DESPMTR   wing:croot      1.0
+DESPMTR   wing:xroot    -0.25     # xloc at root LE
+DESPMTR   wing:zroot     0.00     # zloc at root LE
+
+# Horizontal design parameters
+DESPMTR   htail:thick     0.11     # frac of local chord
+DESPMTR   htail:camber    0.01     # frac of loacl chord
+
+DESPMTR   htail:area       1.4
+DESPMTR   htail:span       4.0
+DESPMTR   htail:sweep      0.0     # deg (of c/4)
+DESPMTR   htail:dihedral   0.0     # deg
+DESPMTR   htail:taper     0.75
+DESPMTR   htail:croot      0.4
+DESPMTR   htail:xroot      5.9     # xloc at root LE
+DESPMTR   htail:zroot      0.5     # zloc at root LE
+
+# Vertical design parameters
+DESPMTR   vtail:thick     0.11     # frac of local chord
+
+DESPMTR   vtail:area     0.525
+DESPMTR   vtail:span       1.5
+DESPMTR   vtail:sweep      0.0     # deg (of c/4)
+DESPMTR   vtail:taper     0.75
+DESPMTR   vtail:croot      0.4
+DESPMTR   vtail:xroot      5.9     # xloc at root LE
+DESPMTR   vtail:zroot      0.5     # zloc at root LE
+
+
+# Internal parameters
+SET       wing:ctip      wing:croot*wing:taper
+SET       wing:xtip      wing:xroot+(wing:croot-wing:ctip)/4+wing:span/2*tand(wing:sweep)
+SET       wing:ztip      wing:zroot+wing:span/2*tand(wing:dihedral)
+
+SET       htail:ctip     htail:croot*htail:taper
+SET       htail:xtip     htail:xroot+(htail:croot-htail:ctip)/4+htail:span/2*tand(htail:sweep)
+SET       htail:ztip     htail:zroot+htail:span/2*tand(htail:dihedral)
+
+SET       vtail:ctip     vtail:croot*vtail:taper
+SET       vtail:xtip     vtail:xroot+(vtail:croot-vtail:ctip)/4+vtail:span/2*tand(vtail:sweep)
+
+######### Slender Body Fuselage ########################
+DIMENSION class     1  2  1
+DIMENSION ztail     1  2  1
+DIMENSION aupper    1  4  1
+DIMENSION alower    1  4  1
+
+DESPMTR   class     "0.5;    1.0;   "
+DESPMTR   ztail     "0.06; .02;"
+DESPMTR   aupper    "0.21; 0.15; 0.11; 0.08;"
+DESPMTR   alower    "-.1; -.11;  .025;  0.05;"
+
+UDPRIM    kulfan  class class aupper aupper  alower alower ztail ztail
+SCALE fuse:length
+TRANSLATE (vtail:xroot+vtail:croot)-fuse:length 0 0
+ROTATEX   90        0         0
+SELECT body
+    ATTRIBUTE capsGroup               $Fuselage
+    ATTRIBUTE capsAIM                 $avlAIM
+    ATTRIBUTE capsReferenceArea       wing:area
+    ATTRIBUTE capsReferenceSpan       wing:span
+    ATTRIBUTE capsReferenceChord      wing:croot
+    ATTRIBUTE capsReferenceX          wing:xroot+wing:croot/4
+
+######### Wing ########################
+
+# Root
+UDPRIM    naca  Thickness wing:thick  Camber wing:camber
+SCALE     wing:croot
+ROTATEX   90        0         0
+TRANSLATE wing:xroot    0    wing:zroot
+SELECT body
+    ATTRIBUTE vlmControl_Aileron      0.8  #Hinge line 80% chord
+    ATTRIBUTE capsGroup               $Wing
+    ATTRIBUTE capsAIM                 $avlAIM
+    ATTRIBUTE _name                   $wing:root
+
+# Right tip
+UDPRIM    naca  Thickness wing:thick  Camber wing:camber
+SCALE     wing:ctip
+ROTATEX   90        0         0
+TRANSLATE wing:xtip    -wing:span/2    wing:ztip
+SELECT body
+    ATTRIBUTE vlmControl_Aileron      0.8  #Hinge line 80% chord
+    ATTRIBUTE capsGroup               $Wing
+    ATTRIBUTE capsAIM                 $avlAIM
+    ATTRIBUTE _name                   $wing:right
+
+# Left tip
+UDPRIM    naca  Thickness wing:thick  Camber wing:camber
+SCALE     wing:ctip
+ROTATEX   90        0         0
+TRANSLATE wing:xtip     wing:span/2    wing:ztip
+SELECT body
+    ATTRIBUTE vlmControl_Aileron     0.8  #Hinge line 80% chord
+    ATTRIBUTE capsGroup              $Wing
+    ATTRIBUTE capsAIM                $avlAIM
+    ATTRIBUTE _name                  $wing:left
+
+######### Horizontal Tail #############
+
+# Root
+UDPRIM    naca  Thickness wing:thick  Camber wing:camber
+SCALE     htail:croot
+ROTATEX   90        0         0
+TRANSLATE htail:xroot    0    htail:zroot
+SELECT body
+    ATTRIBUTE capsGroup             $Htail
+    ATTRIBUTE vlmControl_Stabilizer 0. 
+    ATTRIBUTE capsAIM               $avlAIM
+    ATTRIBUTE _name                 $htail:root
+
+# Right tip
+UDPRIM    naca  Thickness wing:thick  Camber wing:camber
+SCALE     htail:ctip
+ROTATEX   90        0         0
+TRANSLATE htail:xtip    -htail:span/2    htail:ztip
+SELECT body
+    ATTRIBUTE capsGroup             $Htail
+    ATTRIBUTE vlmControl_Stabilizer 0. 
+    ATTRIBUTE capsAIM               $avlAIM
+    ATTRIBUTE _name                 $htail:right
+
+# Left tip
+UDPRIM    naca  Thickness wing:thick  Camber wing:camber
+SCALE     htail:ctip
+ROTATEX   90        0         0
+TRANSLATE htail:xtip     htail:span/2    htail:ztip
+SELECT body
+    ATTRIBUTE capsGroup $Htail
+    ATTRIBUTE vlmControl_Stabilizer 0. 
+    ATTRIBUTE capsAIM   $avlAIM
+    ATTRIBUTE _name     $htail:left
+
+######### Vertical Tail ###############
+
+# Base
+UDPRIM    naca  Thickness vtail:thick
+SCALE     vtail:croot
+TRANSLATE vtail:xroot    0    vtail:zroot
+SELECT body
+    ATTRIBUTE capsGroup         $Vtail
+    ATTRIBUTE vlmControl_Rudder 0.75 
+    ATTRIBUTE capsAIM           $avlAIM
+    ATTRIBUTE _name             $vtail:base
+
+# Tip
+UDPRIM    naca  Thickness vtail:thick
+SCALE     vtail:ctip
+TRANSLATE vtail:xtip    0    vtail:span
+SELECT body
+    ATTRIBUTE capsGroup         $Vtail
+    ATTRIBUTE vlmControl_Rudder 0.75 
+    ATTRIBUTE capsAIM           $avlAIM
+    ATTRIBUTE _name             $vtail:tip
+
+END

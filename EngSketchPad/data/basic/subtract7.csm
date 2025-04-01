@@ -1,0 +1,13 @@
+# subtract7
+# written by John Dannenhoffer
+
+SKBEG 0 0 0
+   LINSEG 1 0 0
+SKEND
+
+SELECT    EDGE
+   ATTRIBUTE    splitLocs    "0.5"
+   
+UDPRIM    $$/splitEdges
+
+END

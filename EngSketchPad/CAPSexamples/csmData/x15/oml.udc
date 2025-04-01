@@ -1,0 +1,87 @@
+#------------------------------------------------------------------------------#
+# Script Name   : oml.udc
+# Purpose       : Shape Recipe for Horizontal tail
+# Description   : This script is developed to demonstrate UDCs using ESP. 
+# Scripted by   : Nitin Bhagat
+# Dependencies  : ESP 1.27 and above
+#               : exfico.csm: Driver script
+# Limitations   : 
+#               :
+# Contact       : [nbhagat1@udayton.edu] for scripting bugs/suggestions.
+#------------------------------------------------------------------------------#
+
+INTERFACE . ALL
+
+
+IFTHEN COMP:Wing EQ 1
+    RESTORE wingOml
+    SELECT face
+       ATTRIBUTE capsGroup $wing
+ENDIF
+ 
+IFTHEN COMP:Fuselage EQ 1
+    RESTORE fuseOml
+    SELECT face
+       ATTRIBUTE capsGroup $fuselage
+    RESTORE fuseFerringOml
+    SELECT face
+       ATTRIBUTE capsGroup $ferring
+    UNION 
+
+    IFTHEN COMP:Cockpit EQ 1
+        RESTORE cockpitOml
+        SELECT face
+          ATTRIBUTE capsGroup $cockpit
+        UNION # With Fuselage
+    ENDIF
+
+    IFTHEN COMP:Wing EQ 1
+        UNION # Fuselage with Wing
+    ENDIF
+
+    IFTHEN COMP:Vtail EQ 1
+        RESTORE vtailOml
+        SELECT face
+          ATTRIBUTE capsGroup $vtail
+        UNION 
+    ENDIF
+    
+    IFTHEN COMP:Htail EQ 1
+        RESTORE htailOml
+        SELECT face
+          ATTRIBUTE capsGroup $htail
+        UNION 
+    ENDIF
+
+ENDIF #COMP:Fuselage
+
+
+UDPRIM editAttr filename <<
+FACE HAS tagComp=wing:right
+AND  HAS tagType=upper
+SET      capsBound=upperRight
+
+FACE HAS tagComp=wing:left
+AND  HAS tagType=upper
+SET      capsBound=upperLeft
+
+FACE HAS tagComp=wing:right
+AND  HAS tagType=lower
+SET      capsBound=lowerRight
+
+FACE HAS tagComp=wing:left
+AND  HAS tagType=lower
+SET      capsBound=lowerLeft
+>>
+
+SELECT body 
+  ATTRIBUTE _name $oml
+  ATTRIBUTE capsAIM $flightstreamAIM;cbaeroAIM;aflr4AIM
+  ATTRIBUTE capsIntent $AerodynamicOML
+  ATTRIBUTE capsMeshLength Wing:rootChord
+  ATTRIBUTE capsReferenceArea Wing:area
+  ATTRIBUTE capsReferenceChord Wing:rootChord
+  ATTRIBUTE capsReferenceSpan Wing:span
+  ATTRIBUTE capsReferenceX Wing:rootLocX+Wing:rootChord/4
+  ATTRIBUTE capsReferenceY 0
+  ATTRIBUTE capsReferenceZ 0

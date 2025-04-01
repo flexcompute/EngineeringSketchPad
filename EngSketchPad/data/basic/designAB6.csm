@@ -1,0 +1,64 @@
+# designAB6
+# written by John Dannenhoffer
+
+CFGPMTR   tessFac   1.0
+
+# design parameters for OML
+DESPMTR   t_tip     0.09      # tip  thickness
+DESPMTR   t_root    0.12      # root thickness
+DESPMTR   m_tip     0.04      # tip  camber
+DESPMTR   m_root    0.04      # root camber
+
+DESPMTR   area      10.0
+DESPMTR   aspect    6.00
+DESPMTR   taper     0.60
+DESPMTR   sweep     20.0      deg (of c/4)
+
+DESPMTR   washout   5.00      deg (down at tip)
+DESPMTR   dihedral  4.00      deg
+
+# local variables
+SET       span      sqrt(aspect*area)
+SET       croot     2*area/span/(1+taper)
+SET       ctip      croot*taper
+SET       dxtip     (croot-ctip)/4+span/2*tand(sweep)
+SET       dytip     span/2*tand(dihedral)
+
+# define output parameters
+OUTPMTR   myVolume
+OUTPMTR   myArea
+OUTPMTR   myXcg
+OUTPMTR   myYcg
+OUTPMTR   myZcg
+
+# make wing
+MARK
+   # rite tip
+   UDPRIM    naca      Thickness t_tip    Camber m_tip    sharpte 1
+   SCALE     ctip
+   ROTATEZ   washout   ctip/4    0
+   TRANSLATE dxtip     dytip     -span/2
+
+   # root
+   UDPRIM    naca      Thickness t_root   Camber m_root   sharpte 1
+   SCALE     croot
+
+   # left tip
+   UDPRIM    naca      Thickness t_tip    Camber m_tip    sharpte 1
+   SCALE     ctip
+   ROTATEZ   washout   ctip/4    0
+   TRANSLATE dxtip     dytip     +span/2
+RULE
+   ATTRIBUTE OML 1
+
+UDPRIM    $$/applyTparams   factor tessFac
+SELECT    BODY
+
+# set OUTPMTRs for the mass properties
+SET       myVolume  @volume
+SET       myArea    @area
+SET       myXcg     @xcg
+SET       myYcg     @ycg
+SET       myZcg     @zcg
+
+END

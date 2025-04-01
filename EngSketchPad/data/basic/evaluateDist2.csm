@@ -1,0 +1,62 @@
+# evaluateDist2
+# written by John Dannenhoffer
+
+DESPMTR   x2        1.7
+DESPMTR   y3        2.2
+DESPMTR   rad       3.0
+DESPMTR   x4       -2.1
+
+SPHERE    0      0      0   rad
+ROTATEZ  20
+SET       sphere1  @nbody
+SELECT    FACE
+   ATTRIBUTE _trn  $on
+
+SPHERE    x2   0    0   1
+ROTATEZ -20    x2   0
+SET       sphere2  @nbody
+SELECT    FACE
+   ATTRIBUTE _trn  $on
+
+SPHERE    0      y3   0   1
+ROTATEZ  40      0    y3
+SET       sphere3  @nbody
+SELECT    FACE
+   ATTRIBUTE _trn  $on
+
+BOX       x4-1  -1  -1  2  2  2
+ROTATEZ  45   x4  0
+SET       box4  @nbody
+SELECT    FACE
+   ATTRIBUTE _trn  $on
+
+# enclosing sphere
+EVALUATE dist  -sphere1  sphere2
+DIMENSION myData @edata.nrow @edata.ncol
+SET       myData @edata
+MESSAGE  !$dist(1:2')=+myData[1]
+SKBEG     myData[5]  myData[6]  myData[7]
+   LINSEG myData[11] myData[12] myData[13]
+SKEND
+
+EVALUATE DIST  -sphere1  sphere3
+DIMENSION myData @edata.nrow @edata.ncol
+SET       myData @edata
+MESSAGE  !$dist(1:3')=+myData[1]
+SKBEG     myData[5]  myData[6]  myData[7]
+   LINSEG myData[11] myData[12] myData[13]
+SKEND
+
+EVALUATE DIST  -sphere1  box4
+DIMENSION myData @edata.nrow @edata.ncol
+SET       myData @edata
+MESSAGE  !$dist(1:3')=+myData[1]
+SKBEG     myData[5]  myData[6]  myData[7]
+   LINSEG myData[11] myData[12] myData[13]
+SKEND
+
+END
+
+
+
+

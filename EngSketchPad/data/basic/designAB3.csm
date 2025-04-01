@@ -1,0 +1,31 @@
+# designAB3
+# written by John Dannenhoffer
+
+CFGPMTR   tessFac   1
+
+# DESPMTRs
+DIMENSION cent 3  1
+DESPMTR   cent 0
+DESPMTR   rad  2
+DESPMTR   len  3
+
+# generate CYLINDER
+CYLINDER  cent[1]     cent[2] cent[3] \
+          cent[1]+len cent[2] cent[3] rad
+
+UDPRIM    $$/applyTparams   factor tessFac
+SELECT    BODY
+
+# OUTPMTRs
+DIMENSION myCG  3  1
+OUTPMTR   myArea
+OUTPMTR   myVolume
+OUTPMTR   myCG
+
+SET       myArea   @area
+SET       myVolume @volume
+SET       myCG[1]  @xcg
+SET       myCG[2]  @ycg
+SET       myCG[3]  @zcg
+
+END

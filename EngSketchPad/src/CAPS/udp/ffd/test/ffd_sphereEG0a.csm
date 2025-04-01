@@ -1,0 +1,23 @@
+# ffd_sphereEG0a
+# written by Marshall Galbraith
+
+# original configuration
+SPHERE 8.5 0 0  0.5
+
+SELECT EDGE 2
+#SELECT ADD  4
+   ATTRIBUTE ffdFixed $G0
+
+# Make sure bounds are on whole body
+SELECT    BODY
+
+STORE   original
+
+SET offset 0.01
+
+# Deform original
+UDPRIM $/ffda
+
+END
+
+

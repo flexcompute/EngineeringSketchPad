@@ -1,0 +1,154 @@
+#------------------------------------------------------------------------------#
+# Script Name   : iml.udc
+# Purpose       : Shape Recipe for structural layout
+# Description   : This script is developed to demonstrate UDCs using ESP. 
+# Scripted by   : Nitin Bhagat
+# Dependencies  : ESP 1.27 and above
+#               : exfico.csm: Driver script
+# Limitations   : 
+#               :
+# Contact       : [nbhagat1@udayton.edu] for scripting bugs/suggestions.
+#------------------------------------------------------------------------------#
+
+INTERFACE . ALL
+
+
+RESTORE wingRight
+SET        zmin          @zmin-0.1
+SET        zmax          @zmax+0.1
+STORE      .
+
+SET BUFFER 0.001
+
+SET root_xle  Wing:rootLocX-BUFFER
+SET root_yle  0.0
+
+SET root_xte  Wing:rootLocX+Wing:rootChord+BUFFER
+SET root_yte  0.0
+
+SET tip_xle   Wing:tipLocX-BUFFER
+SET tip_yle   Wing:tipLocY+BUFFER
+
+SET tip_xte   Wing:tipLocX+Wing:tipChord+BUFFER
+SET tip_yte   Wing:tipLocY+BUFFER
+
+UDPARG     waffle        depth    zmax-zmin                                                   
+UDPRIM     waffle        filename <<                   
+
+    # Wing Box
+    CPOINT A AT root_xle root_yle
+    CPOINT B AT tip_xle  tip_yle
+    CPOINT C AT root_xte root_yte
+    CPOINT D AT tip_xte  tip_yte 
+
+    CLINE AB A B
+    CLINE CD C D
+    CLINE AC A C
+    CLINE BD B D
+
+    # Wing-Fuselage junction
+    CPOINT E ON AB YLOC Fuse:ferringMaxWidth 
+    CPOINT F ON CD YLOC Fuse:ferringMaxWidth 
+    CLINE  EF E F
+
+    # Spars
+    POINT G ON AC FRAC Wing:sparLE
+    POINT H ON BD FRAC Wing:sparLE
+    POINT I ON AC FRAC Wing:sparTE
+    POINT J ON BD FRAC Wing:sparTE
+
+    LINE GH G H tagType=spar tagIndex=1
+    LINE IJ I J tagType=spar tagIndex=2
+
+    # Ribs
+    PATBEG iRib Wing:nRibs
+        POINT X ON AB YLOC 0.5*Wing:span*iRib/(Wing:nRibs+1)
+        POINT Y ON CD YLOC 0.5*Wing:span*iRib/(Wing:nRibs+1)
+
+        LINE . X Y tagType=rib tagIndex=!val2str(iRib,0) 
+    PATEND
+>>
+TRANSLATE  0  0  zmin
+
+SELECT FACE 
+    ATTRIBUTE tagComp Wing:name+$:right
+
+
+# Copy and Mirror for full span wing
+STORE waffleRight 0 1
+MIRROR 0 1 0 0
+
+SELECT FACE 
+    ATTRIBUTE tagComp Wing:name+$:left
+
+RESTORE waffleRight
+JOIN
+    ATTRIBUTE _name $waffle
+
+STORE waffle
+
+
+RESTORE wingRight
+RESTORE wingLeft
+JOIN 
+    ATTRIBUTE _name Wing:name
+STORE wingOml 0 1
+
+BOX Wing:rootLocX-0.1*Wing:rootChord -0.52*Fuse:ferringMaxWidth -0.5*Fuse:maxDiameter 1.2*Wing:rootChord 1.04*Fuse:ferringMaxWidth Fuse:maxDiameter
+SET selbox @nbody
+STORE .
+
+# Skin
+RESTORE waffle
+SUBTRACT
+EXTRACT 0
+    ATTRIBUTE _name $skin
+
+SELECT face -2 selbox
+  ATTRIBUTE tagType $inner
+
+# Structural layout
+RESTORE wingOml
+RESTORE waffle
+INTERSECT
+JOIN
+
+SELECT face
+   ATTRIBUTE capsGroup $Skin
+SELECT face $tagType $rib
+   ATTRIBUTE capsGroup $Rib
+SELECT face $tagType $spar
+   ATTRIBUTE capsGroup $Spar
+
+UDPRIM editAttr filename <<
+EDGE ADJ2FACE tagComp=wing:right
+AND  ADJ2FACE tagComp=wing:left
+SET  capsConstraint=root
+
+EDGE ADJ2FACE tagType=inner
+AND  ADJ2FACE tagType=upper
+SET  capsConstraint=SOB
+>>
+
+UDPRIM editAttr filename <<
+FACE HAS tagComp=wing:right
+AND  HAS tagType=upper
+SET      capsBound=upperRight
+
+FACE HAS tagComp=wing:left
+AND  HAS tagType=upper
+SET      capsBound=upperLeft
+
+FACE HAS tagComp=wing:right
+AND  HAS tagType=lower
+SET      capsBound=lowerRight
+
+FACE HAS tagComp=wing:left
+AND  HAS tagType=lower
+SET      capsBound=lowerLeft
+>>
+
+SELECT body
+  ATTRIBUTE _name $iml
+  ATTRIBUTE capsAIM $mystranAIM;egadsTessAIM
+  ATTRIBUTE capsIntent $Structure

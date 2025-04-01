@@ -1,0 +1,7 @@
+# sew3a
+# written by John Dannenhoffer
+
+# import all Faces flying in formation
+IMPORT    $/sew3.stp  -1
+
+END

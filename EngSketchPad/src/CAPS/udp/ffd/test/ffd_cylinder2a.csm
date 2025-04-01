@@ -1,0 +1,15 @@
+# ffd_cylinder2a
+# written by Marshall Galbraith
+
+# original configuration
+SKBEG 0.0 0.0 0.0
+   CIRARC 1.0 0.0  1.0  2.0 0.0 0.0
+   CIRARC 1.0 0.0 -1.0  0.0 0.0 0.0
+SKEND
+EXTRUDE 0 1 0.1
+
+STORE   original
+
+UDPRIM $/ffda
+
+END
