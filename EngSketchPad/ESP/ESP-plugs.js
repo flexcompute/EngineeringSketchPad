@@ -1,7 +1,7 @@
 // ESP-plugs.js implements plugs functions for the Engineering Sketch Pad (ESP)
 // written by John Dannenhoffer
 
-// Copyright (C) 2010/2024  John F. Dannenhoffer, III (Syracuse University)
+// Copyright (C) 2010/2025  John F. Dannenhoffer, III (Syracuse University)
 //
 // This library is free software; you can redistribute it and/or
 //    modify it under the terms of the GNU Lesser General Public

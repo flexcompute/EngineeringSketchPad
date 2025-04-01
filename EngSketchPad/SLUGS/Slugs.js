@@ -1,7 +1,7 @@
 o// Slugs.js implements functions for the Static Legacy Unstructured Geometry System
 // written by John Dannenhoffer and Bob Haimes
 
-// Copyright (C) 2010/2023  John F. Dannenhoffer, III (Syracuse University)
+// Copyright (C) 2010/2025  John F. Dannenhoffer, III (Syracuse University)
 //
 // This library is free software; you can redistribute it and/or
 //    modify it under the terms of the GNU Lesser General Public

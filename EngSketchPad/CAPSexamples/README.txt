@@ -1,5 +1,5 @@
                  CAPS: Computational Aircraft Prototype Syntheses
-                           Rev 1.25 -- June 2024
+                           Rev 1.27 -- January 2025
                                    Examples
                                 
 

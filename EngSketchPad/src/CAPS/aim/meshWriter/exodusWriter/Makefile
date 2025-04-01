@@ -1,8 +1,10 @@
 #
+ifndef ESP_ROOT
+$(error ESP_ROOT must be set -- Please fix the environment...)
+endif
 ifndef ESP_ARCH
 $(error ESP_ARCH must be set -- Please fix the environment...)
 endif
-#
 #
 IDIR  = $(ESP_ROOT)/include
 include $(IDIR)/$(ESP_ARCH)
@@ -30,6 +32,16 @@ ifneq ($(shell unset LD_PRELOAD && printf '\043include <netcdf.h>' | $(CXX) -I$(
 $(error fatal error: 'netcdf.h' file not found. Please set NETCDFINC.)
 endif
 
+ifneq ($(wildcard $(SEACAS)/lib/libexodus.*),)
+SEACASLIB=$(SEACAS)/lib
+endif
+ifneq ($(wildcard $(SEACAS)/lib64/libexodus.*),)
+SEACASLIB=$(SEACAS)/lib64
+endif
+ifeq ($(SEACASLIB),)
+$(error fatal error: could not find libexodus)
+endif
+
 ifdef EXODUS_SIDE_BLOCKS
 EXODEF=-DEXODUS_SIDE_BLOCKS
 endif
@@ -42,7 +54,8 @@ OBJS = exodusWriter.o
 
 $(LDIR)/exodusWriter.so:	$(ODIR)/exodusWriter.o $(LDIR)/libaimUtil.a
 	$(CXX) $(SOFLGS) $(CPDS) -o $(LDIR)/exodusWriter.so $(ODIR)/exodusWriter.o \
-		-L$(SEACAS)/lib -lexodus -Wl,-rpath $(SEACAS)/lib $(NETCDFLIB) -L$(LDIR) -laimUtil -legads -locsm -ludunits2 -ldl $(RPATH) -lm
+		-L$(SEACASLIB) -lexodus -Wl,-rpath $(SEACASLIB) $(NETCDFLIB) \
+		-L$(LDIR) -laimUtil -legads -locsm -ludunits2 -ldl $(RPATH) -lm
 
 $(ODIR)/exodusWriter.o:	exodusWriter.cpp $(IDIR)/aimUtil.h $(IDIR)/aimMesh.h
 	$(CXX) -c $(COPTS) $(CPDS) $(DEFINE) $(EXODEF) -I../include -I$(IDIR) -I$(SEACAS)/include -I$(NETCDFINC) exodusWriter.cpp \

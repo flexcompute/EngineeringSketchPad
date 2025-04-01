@@ -1,0 +1,32 @@
+#
+IDIR  = $(ESP_ROOT)\include
+!include $(IDIR)\$(ESP_ARCH).$(MSVC)
+LDIR  = $(ESP_ROOT)\lib
+!IFDEF ESP_BLOC
+ODIR  = $(ESP_BLOC)\obj
+TDIR  = $(ESP_BLOC)\test
+!ELSE
+ODIR  = .
+TDIR  = $(ESP_ROOT)\bin
+!ENDIF
+
+
+$(LDIR)\flightstreamAIM.dll:	$(ODIR)\flightstreamAIM.obj $(LDIR)\aimUtil.lib \
+			$(LDIR)\utils.lib
+	-del $(LDIR)\flightstreamAIM.dll $(LDIR)\flightstreamAIM.lib $(LDIR)\flightstreamAIM.exp
+	 link /out:$(LDIR)\flightstreamAIM.dll /dll /def:flightstreamAIM.def \
+		$(ODIR)\flightstreamAIM.obj /LIBPATH:$(LDIR) utils.lib aimUtil.lib \
+		ocsm.lib egads.lib udunits2.lib
+	$(MCOMP) /manifest $(LDIR)\flightstreamAIM.dll.manifest \
+		/outputresource:$(LDIR)\flightstreamAIM.dll;2
+
+$(ODIR)\flightstreamAIM.obj:	flightstreamAIM.c $(IDIR)\capsTypes.h ..\utils\meshUtils.h
+	cl /c $(COPTS) $(DEFINE) /I$(IDIR) /I..\utils /I..\meshWriter\wavefrontWriter \
+		flightstreamAIM.c /Fo$(ODIR)\flightstreamAIM.obj
+
+
+clean:
+	-del $(ODIR)\flightstreamAIM.obj
+
+cleanall:	clean
+	-del $(LDIR)\flightstreamAIM.dll $(LDIR)\flightstreamAIM.lib $(LDIR)\flightstreamAIM.exp

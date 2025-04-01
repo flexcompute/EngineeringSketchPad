@@ -17,39 +17,39 @@ COPY  =
 
 all: $(ODIR) $(COPY)
 	cd $(SDIR)\cCAPS
-	nmake -f avlTest.mak
-	nmake -f awaveTest.mak
-	nmake -f frictionTest.mak
-	nmake -f fun3d.mak
-	nmake -f hsm.mak
-	nmake -f interferenceTest.mak
-	nmake -f msesTest.mak
-	nmake -f mystran.mak
-	nmake -f pointwiseTest.mak
+	nmake -nologo -f avlTest.mak
+	nmake -nologo -f awaveTest.mak
+	nmake -nologo -f frictionTest.mak
+	nmake -nologo -f fun3d.mak
+	nmake -nologo -f hsm.mak
+	nmake -nologo -f interferenceTest.mak
+	nmake -nologo -f msesTest.mak
+	nmake -nologo -f mystran.mak
+	nmake -nologo -f pointwiseTest.mak
 
 clean:
 	cd $(SDIR)\cCAPS
-	nmake -f avlTest.mak clean
-	nmake -f awaveTest.mak clean
-	nmake -f frictionTest.mak clean
-	nmake -f fun3d.mak clean
-	nmake -f hsm.mak clean
-	nmake -f interferenceTest.mak clean
-	nmake -f msesTest.mak clean
-	nmake -f mystran.mak clean
-	nmake -f pointwiseTest.mak clean
+	nmake -nologo -f avlTest.mak clean
+	nmake -nologo -f awaveTest.mak clean
+	nmake -nologo -f frictionTest.mak clean
+	nmake -nologo -f fun3d.mak clean
+	nmake -nologo -f hsm.mak clean
+	nmake -nologo -f interferenceTest.mak clean
+	nmake -nologo -f msesTest.mak clean
+	nmake -nologo -f mystran.mak clean
+	nmake -nologo -f pointwiseTest.mak clean
 
 cleanall:
 	cd $(SDIR)\cCAPS
-	nmake -f avlTest.mak cleanall
-	nmake -f awaveTest.mak cleanall
-	nmake -f frictionTest.mak cleanall
-	nmake -f fun3d.mak cleanall
-	nmake -f hsm.mak cleanall
-	nmake -f interferenceTest.mak cleanall
-	nmake -f msesTest.mak cleanall
-	nmake -f mystran.mak cleanall
-	nmake -f pointwiseTest.mak cleanall
+	nmake -nologo -f avlTest.mak cleanall
+	nmake -nologo -f awaveTest.mak cleanall
+	nmake -nologo -f frictionTest.mak cleanall
+	nmake -nologo -f fun3d.mak cleanall
+	nmake -nologo -f hsm.mak cleanall
+	nmake -nologo -f interferenceTest.mak cleanall
+	nmake -nologo -f msesTest.mak cleanall
+	nmake -nologo -f mystran.mak cleanall
+	nmake -nologo -f pointwiseTest.mak cleanall
 
 !IFDEF ESP_BLOC
 $(ODIR):
@@ -68,11 +68,13 @@ pyCAPStest: all $(COPY)
 
 !IFDEF ESP_BLOC
 
-copy: $(TDIR) $(TDIR)\csmData $(TDIR)\analysisData $(TDIR)\cCAPS $(TDIR)\pyCAPS $(TDIR)\corsairlite $(TDIR)\regressionTest
+copy: $(TDIR) $(TDIR)\csmData $(TDIR)\csmData\x15 $(TDIR)\analysisData $(TDIR)\cCAPS $(TDIR)\pyCAPS $(TDIR)\corsairlite $(TDIR)\regressionTest
 	cd $(TDIR)\csmData
 	xcopy $(SDIR)\csmData\*.*                    /Q /Y
+	cd $(TDIR)\csmData\x15
+	xcopy $(SDIR)\csmData\x15\*.*                /Q /Y
 	cd $(TDIR)\analysisData
-	xcopy $(SDIR)\analysisData\*                  /Q /Y /E /S
+	xcopy $(SDIR)\analysisData\*                 /Q /Y /E /S
 	cd $(TDIR)\pyCAPS
 	xcopy $(SDIR)\pyCAPS\*.*                     /Q /Y
 	cd $(TDIR)\corsairlite
@@ -87,6 +89,8 @@ $(TDIR)\cCAPS: $(TDIR)
 $(TDIR)\pyCAPS: $(TDIR)
 	if not exist $@ mkdir $@
 $(TDIR)\csmData: $(TDIR)
+	if not exist $@ mkdir $@
+$(TDIR)\csmData\x15: $(TDIR)\csmData
 	if not exist $@ mkdir $@
 $(TDIR)\analysisData: $(TDIR)
 	if not exist $@ mkdir $@

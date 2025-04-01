@@ -1,0 +1,35 @@
+# evalError2a
+# written by John Dannenhoffer
+
+IFTHEN    0 EQ 0
+   PATBEG    a  b
+      BOX       0  0  0   1  1  1
+      ASSERT    0  1
+   PATEND
+
+   ASSERT    0  2
+   CATBEG    $illegal_pmtr_name
+   CATEND
+
+   PATBEG    a  5
+      BOX      0  0  0   1  1  1
+      ASSERT   0  0
+   PATBREAK  b
+      BOX      0  0  0   1  1  1
+      ASSERT   0  3
+   PATEND
+
+   ASSERT    0  4
+   CATBEG    $illegal_pmtr_name
+   CATEND
+
+   BOX       0  0  0   1  1  1
+ENDIF
+
+# make sure there is not an active signal
+ASSERT    @signal  0
+
+END
+
+    
+   

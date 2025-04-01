@@ -41,6 +41,7 @@ int su2_writeCongfig_Falcon(void *aimInfo, capsValue *aimInputs,
     char *filename = NULL;
     FILE *fp = NULL;
     char fileExt[] = ".cfg";
+    char *str = NULL;
 
     printf("Write SU2 configuration file for version \"Falcon\"\n");
     stringLength = 1
@@ -590,8 +591,7 @@ int su2_writeCongfig_Falcon(void *aimInfo, capsValue *aimInputs,
     counter = 0; // Viscous boundary w/ heat flux
     for (i = 0; i < bcProps.numSurfaceProp; i++) {
         if (bcProps.surfaceProp[i].surfaceType == Viscous &&
-            bcProps.surfaceProp[i].wallTemperatureFlag == (int) true &&
-            bcProps.surfaceProp[i].wallTemperature < 0) {
+            bcProps.surfaceProp[i].wallTemperatureFlag == (int) false) {
 
             if (counter > 0) fprintf(fp, ",");
             fprintf(fp," BC_%d, %f", bcProps.surfaceProp[i].bcID, bcProps.surfaceProp[i].wallHeatFlux);
@@ -610,8 +610,7 @@ int su2_writeCongfig_Falcon(void *aimInfo, capsValue *aimInputs,
     counter = 0; // Viscous boundary w/ isothermal wall
     for (i = 0; i < bcProps.numSurfaceProp; i++) {
         if (bcProps.surfaceProp[i].surfaceType == Viscous &&
-            bcProps.surfaceProp[i].wallTemperatureFlag == (int) true &&
-            bcProps.surfaceProp[i].wallTemperature >= 0) {
+            bcProps.surfaceProp[i].wallTemperatureFlag == (int) true) {
 
             if (counter > 0) fprintf(fp, ",");
             fprintf(fp," BC_%d, %f", bcProps.surfaceProp[i].bcID, bcProps.surfaceProp[i].wallTemperature);
@@ -1394,9 +1393,13 @@ int su2_writeCongfig_Falcon(void *aimInfo, capsValue *aimInputs,
     fprintf(fp,"%%\n");
     fprintf(fp,"%% Output file format (TECPLOT, TECPLOT_BINARY, PARAVIEW,\n");
     fprintf(fp,"%%                     FIELDVIEW, FIELDVIEW_BINARY)\n");
-    string_toUpperCase(aimInputs[Output_Format-1].vals.string);
-    fprintf(fp,"OUTPUT_FORMAT= %s\n", aimInputs[Output_Format-1].vals.string);
-
+    str = aimInputs[Output_Format-1].vals.string;
+    fprintf(fp,"OUTPUT_FORMAT=");
+    for (i = 0; i < aimInputs[Output_Format-1].length; i++, str += strlen(str)+1) {
+      if (i > 0) fprintf(fp,", ");
+      string_toUpperCase(str);
+      fprintf(fp,"%s", str);
+    }
     fprintf(fp,"%%\n");
     fprintf(fp,"%% Output file convergence history (w/o extension)\n");
     fprintf(fp,"CONV_FILENAME= history_%s\n", aimInputs[Proj_Name-1].vals.string);

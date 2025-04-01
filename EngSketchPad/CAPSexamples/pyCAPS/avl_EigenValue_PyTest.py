@@ -29,43 +29,76 @@ slug = pyCAPS.Unit("slug")
 # Initialize Problem object
 # -----------------------------------------------------------------
 problemName = str(args.workDir[0]) + "AVLEigenTest"
-geometryScript = os.path.join("..","csmData","avlWing.csm")
-myProblem = pyCAPS.Problem(problemName, capsFile=geometryScript, outLevel=args.outLevel)
-
-# -----------------------------------------------------------------
-# Change a design parameter - area in the geometry
-# Any despmtr from the avlWing.csm file are available inside the pyCAPS script
-# They are: thick, camber, area, aspect, taper, sweep, washout, dihedral
-# -----------------------------------------------------------------
-
-myProblem.geometry.despmtr.area = 10.0
+geometryScript = os.path.join("..","csmData","avlPlaneVanilla.csm")
+capsProblem = pyCAPS.Problem(problemName, capsFile=geometryScript, outLevel=args.outLevel)
 
 # -----------------------------------------------------------------
 # Load desired aim
 # -----------------------------------------------------------------
 print ("Loading AIM")
 ## [loadAIM]
-myAnalysis = myProblem.analysis.create(aim = "avlAIM",
-                                       name = "avl",
-                                       unitSystem={"mass":kg, "length":m, "time":s, "temperature":K})
+avl = capsProblem.analysis.create(aim = "avlAIM",
+                                  name = "avl",
+                                  unitSystem={"mass":kg, "length":m, "time":s, "temperature":K})
 
 # -----------------------------------------------------------------
 # Also available are all aimInput values
 # Set new Mach/Alt parameters
 # -----------------------------------------------------------------
 
-myAnalysis.input.Mach  = 0.5
-myAnalysis.input.Alpha = 1.0*deg
-myAnalysis.input.Beta  = 0.0*deg
+avl.input.Mach  = 0.5
+avl.input.Alpha = 1.0*deg
+avl.input.Beta  = 0.0*deg
 
-wing = {"groupName"    : "Wing", # Notice Wing is the value for the capsGroup attribute
+# -----------------------------------------------------------------
+# Set lifitng surface/slender body discretizations
+# -----------------------------------------------------------------
+fuse = {"groupName"    : "Fuselage",
+        "numChord"     : 36}
+
+wing = {"groupName"    : "Wing",
         "numChord"     : 8,
         "spaceChord"   : 1.0,
-        "numSpanTotal" : 24,
-        "spaceSpan"    : 1.0}
+        "numSpanTotal" : 24}
 
-myAnalysis.input.AVL_Surface = {"Wing": wing}
+htail = {"numChord"     : 8,
+         "spaceChord"   : 1.0,
+         "numSpanTotal" : 16}
 
+vtail = {"numChord"     : 8,
+         "spaceChord"   : 1.0,
+         "numSpanTotal" : 12}
+
+avl.input.AVL_Surface = {"Fuse":fuse, "Wing": wing, "Htail": htail, "Vtail": vtail}
+
+
+# -----------------------------------------------------------------
+# Set control surface parameters
+# -----------------------------------------------------------------
+Aileron = {"deflectionAngle" : 0*deg,
+           "leOrTe" : 1,
+           "controlGain" : -1.0,
+           "hingeLine" : [0, 0, 0],
+           "deflectionDup"  : -1.0}
+
+Rudder = {"deflectionAngle" : 0*deg,
+           "leOrTe" : 1,
+           "controlGain" : 1.0,
+           "hingeLine" : [0, 0, 0],
+           "deflectionDup"  : 1.0}
+
+Stabilizer = {"deflectionAngle" : 0*deg,
+              "leOrTe" : 0,
+              "controlGain" : 1.0,
+              "hingeLine" : [0, 1, 0],
+              "deflectionDup"  : 1.0}
+
+avl.input.AVL_Control = {"Aileron": Aileron, "Stabilizer":Stabilizer, "Rudder":Rudder}
+
+
+# -----------------------------------------------------------------
+# Set mass properties
+# -----------------------------------------------------------------
 mass = 0.1773
 x    =  0.02463
 y    = 0.
@@ -74,15 +107,29 @@ Ixx  = 1.350
 Iyy  = 0.7509
 Izz  = 2.095
 
-myAnalysis.input.MassProp = {"Aircraft":{"mass":mass * kg, "CG":[x,y,z] * m, "massInertia":[Ixx, Iyy, Izz] * kg*m**2}}
-myAnalysis.input.Gravity  = 32.18 * ft/s**2
-myAnalysis.input.Density  = 0.002378 * slug/ft**3
-myAnalysis.input.Velocity = 64.5396 * ft/s
+avl.input.MassProp = {"Aircraft":{"mass":mass * kg, "CG":[x,y,z] * m, "massInertia":[Ixx, Iyy, Izz] * kg*m**2}}
+avl.input.Gravity  = 32.18 * ft/s**2
+avl.input.Density  = 0.002378 * slug/ft**3
+avl.input.Velocity = 64.5396 * ft/s
+
+
+# -----------------------------------------------------------------
+# Set trim conditions (Eigen analysis should be done at a trimmed state)
+# -----------------------------------------------------------------
+Operation = {"Alpha":{"CL":0.2},
+             "Stabilizer":{"Cm":0.0}
+             }
+avl.input.AVL_Operation = Operation
 
 # -----------------------------------------------------------------
 # Get Output Data from AVL
 # These calls automatically run avl and access aimOutput data
 # -----------------------------------------------------------------
 
-EigenValues = myAnalysis.output.EigenValues
+EigenValues = avl.output.EigenValues
 print ("EigenValues ", EigenValues)
+
+# Print the CG location based on mass properties
+print("Xcg", avl.output.Xcg)
+print("Ycg", avl.output.Ycg)
+print("Zcg", avl.output.Zcg)

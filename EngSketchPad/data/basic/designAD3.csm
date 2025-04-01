@@ -1,0 +1,14 @@
+# designAD3.csm
+# written by John Dannenhoffer
+
+DESPMTR   length    4.0
+DESPMTR   height    3.0
+DESPMTR   depth     2.0
+DESPMTR   cut       1.5
+
+# we cannot recycle if any pmtrs change
+UDPARG    runCAD    pmtrs     length;height;depth;cut
+UDPARG    runCAD    toolname  $miniESP
+UDPRIM    runCAD    casename  $$/designAD3
+
+END

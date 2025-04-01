@@ -58,6 +58,7 @@
 
 #include "meshUtils.h"
 #include "miscUtils.h"
+#include "jsonUtils.h"
 
 #include "fastWriter.h"
 
@@ -69,9 +70,11 @@
 #define strcasecmp  stricmp
 #define strncasecmp _strnicmp
 #define strtok_r    strtok_s
+#define SLASH '\\'
 #else
 #include <unistd.h>
 #include <limits.h>
+#define SLASH '/'
 #endif
 
 enum aimInputs
@@ -93,8 +96,15 @@ enum aimInputs
   inDefault_Low_Speed_Method,
   inLeading_Edge_Suction,
   inAero_Surface,
+  inMaterial_Group,
+  inTrajectory,
+  inTPSin,
+  inTPS_Group,
+  inTPSSizer,
+  inFIAT,
   inNumParallelCase,
   inNumThreadPerCase,
+  inMangler_Setting,
   inMesh_Morph,
   inSurface_Mesh,
   NUMINPUT = inSurface_Mesh       /* Total number of inputs */
@@ -127,8 +137,72 @@ enum aimOutputs
 #define MXCHAR  255
 
 static char cbaeroInput[] = "cbaeroInput.txt";
+static char tpssizerInput[] = "tpssizerInput.txt";
+static char cbtpsInput[] = "cbtpsInput.txt";
 
 //#define DEBUG
+
+
+typedef struct {
+
+  char *StackUpListFileName;
+  char *StructuresStackUpListFileName;
+  char *SplitLineMarginsFileName;
+  char *EnvironmentMarginsFileName;
+  char *BumpFactorFileName;
+
+  int numTPSTagListFileName;
+  char **TPSTagListFileNames;
+
+  int UseOnlyOneMaterial;
+  int UseHeatLoadSubZones;
+  int NumberOfHeatLoadSubZones;
+
+} cbaeroTPS;
+
+
+static int initialize_TPS(cbaeroTPS *cbaeroInstance) {
+
+  // Set initial values
+  cbaeroInstance->StackUpListFileName = NULL;
+  cbaeroInstance->StructuresStackUpListFileName = NULL;
+  cbaeroInstance->SplitLineMarginsFileName = NULL;
+  cbaeroInstance->EnvironmentMarginsFileName = NULL;
+  cbaeroInstance->BumpFactorFileName = NULL;
+  cbaeroInstance->numTPSTagListFileName = 0;
+  cbaeroInstance->TPSTagListFileNames = NULL;
+  cbaeroInstance->UseOnlyOneMaterial = 0;
+  cbaeroInstance->UseHeatLoadSubZones = 0;
+  cbaeroInstance->NumberOfHeatLoadSubZones = 0;
+
+  return CAPS_SUCCESS;
+}
+
+
+static int destroy_TPS(cbaeroTPS *cbaeroInstance) {
+
+  int i;
+
+  // projectName is just a reference
+  AIM_FREE(cbaeroInstance->StackUpListFileName);
+  AIM_FREE(cbaeroInstance->StructuresStackUpListFileName);
+  AIM_FREE(cbaeroInstance->SplitLineMarginsFileName);
+  AIM_FREE(cbaeroInstance->EnvironmentMarginsFileName);
+  AIM_FREE(cbaeroInstance->BumpFactorFileName);
+
+  for (i = 0; i < cbaeroInstance->numTPSTagListFileName; i++) {
+    AIM_FREE(cbaeroInstance->TPSTagListFileNames[i]);
+  }
+  AIM_FREE(cbaeroInstance->TPSTagListFileNames);
+  cbaeroInstance->numTPSTagListFileName = 0;
+
+  cbaeroInstance->UseOnlyOneMaterial = 0;
+  cbaeroInstance->UseHeatLoadSubZones = 0;
+  cbaeroInstance->NumberOfHeatLoadSubZones = 0;
+
+  return CAPS_SUCCESS;
+}
+
 
 typedef struct {
 
@@ -137,6 +211,9 @@ typedef struct {
 
     // Project name
     char *projectName;
+
+    int numTPS;
+    cbaeroTPS *TPS;
 
     double Sref, Cref, Bref, Xref, Yref, Zref;
 
@@ -157,6 +234,9 @@ static int initialize_aimStorage(aimStorage *cbaeroInstance) {
   status = initiate_mapAttrToIndexStruct(&cbaeroInstance->groupMap);
   if (status != CAPS_SUCCESS) return status;
 
+  cbaeroInstance->numTPS = 0;
+  cbaeroInstance->TPS = NULL;
+
   cbaeroInstance->meshRefIn = NULL;
   aim_initMeshRef(&cbaeroInstance->meshRefObj, aimUnknownMeshType);
 
@@ -173,13 +253,19 @@ static int initialize_aimStorage(aimStorage *cbaeroInstance) {
 
 static int destroy_aimStorage(aimStorage *cbaeroInstance) {
 
-  int status;
+  int status, i;
 
   // projectName is just a reference
   cbaeroInstance->projectName = NULL;
 
   // Attribute to index map
   status = destroy_mapAttrToIndexStruct(&cbaeroInstance->groupMap);
+
+  for (i = 0; i < cbaeroInstance->numTPS; i++) {
+    (void) destroy_TPS(&cbaeroInstance->TPS[i]);
+  }
+  cbaeroInstance->numTPS = 0;
+  AIM_FREE(cbaeroInstance->TPS);
 
   // Surface Mesh
   aim_freeMeshRef(&cbaeroInstance->meshRefObj);
@@ -196,9 +282,18 @@ static int destroy_aimStorage(aimStorage *cbaeroInstance) {
 }
 
 
+static const char* file_only(const char* path)
+{
+  size_t i = strlen(path);
+  while (i > 0 && path[i] != SLASH) i--;
+  if (path[i] == SLASH) i++;
+  return path + i;
+}
+
+
 static int cbaero_selectFlow(void *aimInfo, char * string) {
   int value;
-  enum cbearoFlowTypeEnum {cbFreeTransition=0, cbLaminar=1, cbTurbulent=2, cbInviscid=3};
+  enum cbaeroFlowTypeEnum {cbFreeTransition=0, cbLaminar=1, cbTurbulent=2, cbInviscid=3};
 
   if      (strcasecmp(string, "FreeTransition") == 0 || strcasecmp(string, "0") == 0) value = cbFreeTransition;
   else if (strcasecmp(string, "Laminar")        == 0 || strcasecmp(string, "1") == 0) value = cbLaminar;
@@ -211,9 +306,10 @@ static int cbaero_selectFlow(void *aimInfo, char * string) {
   return value;
 }
 
+
 static int cbaero_selectHighSpeed(void *aimInfo, char * string) {
   int value;
-  enum cbearoAeroHighMethodEnum {Base=0, ModifiedNewtonian=3, TangentCone=21, TangentConeNormalShock=22, TangentWedge=31, TangentWedgeNormalShock=32, FreeMolecular=99};
+  enum cbaeroAeroHighMethodEnum {Base=0, ModifiedNewtonian=3, TangentCone=21, TangentConeNormalShock=22, TangentWedge=31, TangentWedgeNormalShock=32, FreeMolecular=99};
 
   if      (strcasecmp(string, "ModifiedNewtonian")      == 0) value = ModifiedNewtonian;
   else if (strcasecmp(string, "TangentCone")            == 0) value = TangentCone;
@@ -229,9 +325,10 @@ static int cbaero_selectHighSpeed(void *aimInfo, char * string) {
   return value;
 }
 
+
 static int cbaero_selectLowSpeed(void *aimInfo, char * string) {
   int value;
-  enum cbearoAeroLowMethodEnum {FastPanel=1, LowAR=2};
+  enum cbaeroAeroLowMethodEnum {FastPanel=1, LowAR=2};
 
   if      (strcasecmp(string, "FastPanel") == 0) value = FastPanel;
   else if (strcasecmp(string, "LowAR")     == 0) value = LowAR;
@@ -242,8 +339,578 @@ static int cbaero_selectLowSpeed(void *aimInfo, char * string) {
   return value;
 }
 
-static int cbearo_writeTag(void *aimInfo, const char *projectName,
-                           const mapAttrToIndexStruct *groupMap, aimMeshRef *meshRef) {
+
+static int cbaero_selectManglerSetting(void *aimInfo, char * string) {
+  int value;
+  enum cbaeroManglerSettingEnum {TwoD=1, Axi=2, Auto=3};
+
+  if      (strcasecmp(string, "2D")           == 0) value = TwoD;
+  else if (strcasecmp(string, "Axisymmetric") == 0) value = Axi;
+  else if (strcasecmp(string, "Auto")         == 0) value = Auto;
+  else  {
+    AIM_ERROR(aimInfo, "Invalid Mangler Setting, %s, options: 2D, Axisymmetric, Auto!", string);
+    value = CAPS_NOTFOUND;
+  }
+  return value;
+}
+
+
+static int cbaero_writeTPSin(void *aimInfo,
+                             const char *projectName,
+                             int numTuple, capsTuple *tpsinTuple)
+{
+  int status; // Status return
+
+  int i; // Indexing
+
+  int SoakOutTime = 0;
+  int MarginOnHeatLoads_Multiplier = 0;
+  int MarginOnRecession = 0;
+  int InitialTemperature = 0;
+  int MarginOnInsulation = 0;
+  int BlowingFactor = 0;
+  int RunWhichRSSedEnvCase0123 = 0;
+  int EnthalpyTableFileName = 0;
+  int TimeToOption3 = 0;
+
+  double dSoakOutTime = 0;
+  double dMarginOnHeatLoads_Multiplier = 0;
+  double dMarginOnRecession = 0;
+  double dInitialTemperature = 0;
+  double dMarginOnInsulation = 0;
+  double dBlowingFactor = 0;
+  int    iRunWhichRSSedEnvCase0123 = 0;
+  char  *sEnthalpyTableFileName = NULL;
+  double dTimeToOption3 = 0;
+
+  char filename[PATH_MAX];
+
+  FILE *fp = NULL;
+
+  const char tpsExt[] = ".tpsin";
+
+  if (numTuple == 0) return CAPS_SUCCESS;
+
+  snprintf(filename, PATH_MAX, "%s%s", projectName, tpsExt);
+
+  printf("Writing CBAero tpsin file - %s\n", filename);
+
+  fp = aim_fopen(aimInfo, filename, "w");
+  if (fp == NULL) {
+    AIM_ERROR(aimInfo, "Unable to open file: %s", filename);
+    status = CAPS_IOERR;
+    goto cleanup;
+  }
+
+  /*!\page cbaeroTPS CBAero TPS
+   * Structure for the TPSin tuple  = (Input, Value).
+   *
+   * \section jsonTPin TPS input Dictionary
+   *
+   * For the TPSin dictionary
+   *  the following keywords ( = default values) may be used:
+   */
+
+  for (i = 0; i < numTuple; i++) {
+
+    /*!\page cbaeroTPS
+     * <ul>
+     * <li> <B>SoakOutTime</B> </li> <br>
+     *    Soak out time
+     * </ul>
+     */
+
+    if (strcasecmp(tpsinTuple[i].name, "SoakOutTime") == 0) {
+      status = string_toDoubleUnits(aimInfo, tpsinTuple[i].value, "second", &dSoakOutTime);
+      if (status != CAPS_SUCCESS) {
+        AIM_ERROR(aimInfo, "\"SoakOutTime\" in TPSin input must be a real in units of time");
+        goto cleanup;
+      }
+      SoakOutTime = 1;
+    }
+
+    /*!\page cbaeroTPS
+     * <ul>
+     * <li> <B>MarginOnHeatLoads_Multiplier</B> </li> <br>
+     *    Margins on heat load multiplier
+     * </ul>
+     */
+
+    if (strcasecmp(tpsinTuple[i].name, "MarginOnHeatLoads_Multiplier") == 0) {
+      status = string_toDouble(tpsinTuple[i].value, &dMarginOnHeatLoads_Multiplier);
+      if (status != CAPS_SUCCESS) {
+        AIM_ERROR(aimInfo, "\"MarginOnHeatLoads_Multiplier\" in TPSin input must be a real");
+        goto cleanup;
+      }
+      MarginOnHeatLoads_Multiplier = 1;
+    }
+
+    /*!\page cbaeroTPS
+     * <ul>
+     * <li> <B>MarginOnRecession</B> </li> <br>
+     *    Margins on heat load multiplier
+     * </ul>
+     */
+
+    if (strcasecmp(tpsinTuple[i].name, "MarginOnRecession") == 0) {
+      status = string_toDouble(tpsinTuple[i].value, &dMarginOnRecession);
+      if (status != CAPS_SUCCESS) {
+        AIM_ERROR(aimInfo, "\"MarginOnRecession\" in TPSin input must be a real");
+        goto cleanup;
+      }
+      MarginOnRecession = 1;
+    }
+
+    /*!\page cbaeroTPS
+     * <ul>
+     * <li> <B>InitialTemperature</B> </li> <br>
+     *    Initial temperature
+     * </ul>
+     */
+
+    if (strcasecmp(tpsinTuple[i].name, "InitialTemperature") == 0) {
+      status = string_toDoubleUnits(aimInfo, tpsinTuple[i].value, "kelvin", &dInitialTemperature);
+      if (status != CAPS_SUCCESS) {
+        AIM_ERROR(aimInfo, "\"InitialTemperature\" in TPSin input must be a real in units of temperature");
+        goto cleanup;
+      }
+      InitialTemperature = 1;
+    }
+
+    /*!\page cbaeroTPS
+     * <ul>
+     * <li> <B>MarginOnInsulation</B> </li> <br>
+     *    Margin on the insulation
+     * </ul>
+     */
+
+    if (strcasecmp(tpsinTuple[i].name, "MarginOnInsulation") == 0) {
+      status = string_toDouble(tpsinTuple[i].value, &dMarginOnInsulation);
+      if (status != CAPS_SUCCESS) {
+        AIM_ERROR(aimInfo, "\"MarginOnInsulation\" in TPSin input must be a real");
+        goto cleanup;
+      }
+      MarginOnInsulation = 1;
+    }
+
+    /*!\page cbaeroTPS
+     * <ul>
+     * <li> <B>BlowingFactor</B> </li> <br>
+     *    Blowing factor
+     * </ul>
+     */
+
+    if (strcasecmp(tpsinTuple[i].name, "BlowingFactor") == 0) {
+      status = string_toDouble(tpsinTuple[i].value, &dBlowingFactor);
+      if (status != CAPS_SUCCESS) {
+        AIM_ERROR(aimInfo, "\"BlowingFactor\" in TPSin input must be a real");
+        goto cleanup;
+      }
+      BlowingFactor = 1;
+    }
+
+    /*!\page cbaeroTPS
+     * <ul>
+     * <li> <B>RunWhichRSSedEnvCase0123</B> </li> <br>
+     *    Blowing factor
+     * </ul>
+     */
+
+    if (strcasecmp(tpsinTuple[i].name, "RunWhichRSSedEnvCase0123") == 0) {
+      status = string_toInteger(tpsinTuple[i].value, &iRunWhichRSSedEnvCase0123);
+      if (status != CAPS_SUCCESS) {
+        AIM_ERROR(aimInfo, "\"RunWhichRSSedEnvCase0123\" in TPSin input must be an integer");
+        goto cleanup;
+      }
+      RunWhichRSSedEnvCase0123 = 1;
+    }
+
+    /*!\page cbaeroTPS
+     * <ul>
+     * <li> <B>EnthalpyTableFileName</B> </li> <br>
+     *    Enthalpy table file name
+     * </ul>
+     */
+
+    if (strcasecmp(tpsinTuple[i].name, "EnthalpyTableFileName") == 0) {
+      sEnthalpyTableFileName = string_removeQuotation(tpsinTuple[i].value);
+      EnthalpyTableFileName = 1;
+    }
+
+    /*!\page cbaeroTPS
+     * <ul>
+     * <li> <B>TimeToOption3</B> </li> <br>
+     *    Time to option 3 in seconds
+     * </ul>
+     */
+
+    if (strcasecmp(tpsinTuple[i].name, "TimeToOption3") == 0) {
+      status = string_toDoubleUnits(aimInfo, tpsinTuple[i].value, "second", &dTimeToOption3);
+      if (status != CAPS_SUCCESS) {
+        AIM_ERROR(aimInfo, "\"TimeToOption3\" in TPSin input must be a real in units of time");
+        goto cleanup;
+      }
+      TimeToOption3 = 1;
+    }
+  }
+
+  if (SoakOutTime == 0) {
+    AIM_ERROR(aimInfo, "missing required entry \"SoakOutTime\" in TPSin input");
+    status = CAPS_BADVALUE;
+    goto cleanup;
+  }
+
+  if (MarginOnHeatLoads_Multiplier == 0) {
+    AIM_ERROR(aimInfo, "missing required entry \"MarginOnHeatLoads_Multiplier\" in TPSin input");
+    status = CAPS_BADVALUE;
+    goto cleanup;
+  }
+
+  if (MarginOnRecession == 0) {
+    AIM_ERROR(aimInfo, "missing required entry \"MarginOnRecession\" in TPSin input");
+    status = CAPS_BADVALUE;
+    goto cleanup;
+  }
+
+  if (InitialTemperature == 0) {
+    AIM_ERROR(aimInfo, "missing required entry \"InitialTemperature\" in TPSin input");
+    status = CAPS_BADVALUE;
+    goto cleanup;
+  }
+
+  if (MarginOnInsulation == 0) {
+    AIM_ERROR(aimInfo, "missing required entry \"MarginOnInsulation\" in TPSin input");
+    status = CAPS_BADVALUE;
+    goto cleanup;
+  }
+
+  if (BlowingFactor == 0) {
+    AIM_ERROR(aimInfo, "missing required entry \"BlowingFactor\" in TPSin input");
+    status = CAPS_BADVALUE;
+    goto cleanup;
+  }
+
+  if (RunWhichRSSedEnvCase0123 == 0) {
+    AIM_ERROR(aimInfo, "missing required entry \"RunWhichRSSedEnvCase0123\" in TPSin input");
+    status = CAPS_BADVALUE;
+    goto cleanup;
+  }
+
+  if (EnthalpyTableFileName == 0) {
+    AIM_ERROR(aimInfo, "missing required entry \"EnthalpyTableFileName\" in TPSin input");
+    status = CAPS_BADVALUE;
+    goto cleanup;
+  }
+
+  if (TimeToOption3 == 0) {
+    AIM_ERROR(aimInfo, "missing required entry \"TimeToOption3\" in TPSin input");
+    status = CAPS_BADVALUE;
+    goto cleanup;
+  }
+
+  AIM_NOTNULL(sEnthalpyTableFileName,aimInfo, status);
+
+  fprintf(fp, "SoakOutTimeSeconds %le\n", dSoakOutTime);
+  fprintf(fp, "MarginOnHeatLoads_Multiplier %le\n", dMarginOnHeatLoads_Multiplier);
+  fprintf(fp, "MarginOnRecession %le\n", dMarginOnRecession);
+  fprintf(fp, "InitialTemperatureKelvin %le\n", dInitialTemperature);
+  fprintf(fp, "MarginOnInsulation %le\n", dMarginOnInsulation);
+  fprintf(fp, "BlowingFactor %le\n", dBlowingFactor);
+  fprintf(fp, "RunWhichRSSedEnvCase0123 %d\n", iRunWhichRSSedEnvCase0123);
+  fprintf(fp, "EnthalpyTableFileName %s\n", sEnthalpyTableFileName);
+  fprintf(fp, "TimeToOption3 %le\n", dTimeToOption3);
+
+  status = CAPS_SUCCESS;
+
+cleanup:
+
+  AIM_FREE(sEnthalpyTableFileName);
+  if (fp != NULL) fclose(fp);
+
+  return status;
+}
+
+
+static int cbaero_TPS_Group(void *aimInfo, aimStorage *cbaeroInstance,
+                            int numTuple, capsTuple *tpsTuple)
+{
+  int status; // Status return
+
+  int i, j; // Indexing
+
+  char *keyValue = NULL;
+  int groupIndex;
+
+  for (i = 0; i < cbaeroInstance->numTPS; i++) {
+    destroy_TPS(&cbaeroInstance->TPS[i]);
+  }
+  AIM_FREE(cbaeroInstance->TPS);
+  cbaeroInstance->numTPS = 0;
+
+  AIM_ALLOC(cbaeroInstance->TPS, numTuple+1, cbaeroTPS, aimInfo, status);
+  for (i = 0; i < numTuple+1; i++) {
+    initialize_TPS(&cbaeroInstance->TPS[i]);
+  }
+  cbaeroInstance->numTPS = numTuple+1;
+
+  // Default TPS if non specified
+  cbaeroInstance->TPS[0].numTPSTagListFileName = 1;
+  AIM_ALLOC(cbaeroInstance->TPS[0].TPSTagListFileNames, 1, char*, aimInfo, status);
+  cbaeroInstance->TPS[0].TPSTagListFileNames[0] = NULL;
+  AIM_STRDUP(cbaeroInstance->TPS[0].TPSTagListFileNames[0], "DefaultZone", aimInfo, status);
+
+  AIM_STRDUP(cbaeroInstance->TPS[0].StackUpListFileName, "StackUpFile", aimInfo, status);
+  AIM_STRDUP(cbaeroInstance->TPS[0].StructuresStackUpListFileName, "StructuresStackUpFile", aimInfo, status);
+  AIM_STRDUP(cbaeroInstance->TPS[0].SplitLineMarginsFileName, "MarginsFile", aimInfo, status);
+  AIM_STRDUP(cbaeroInstance->TPS[0].EnvironmentMarginsFileName, "MarginsFile", aimInfo, status);
+  AIM_STRDUP(cbaeroInstance->TPS[0].BumpFactorFileName, "None", aimInfo, status);
+  cbaeroInstance->TPS[0].UseOnlyOneMaterial = 0;
+  cbaeroInstance->TPS[0].UseHeatLoadSubZones = 0;
+  cbaeroInstance->TPS[0].NumberOfHeatLoadSubZones = 0;
+
+
+  /*!\page cbaeroTPS CBAero TPS
+   * Structure for the TPS_Group tuple  = ("TPS Name", "Value").
+   * The "Value" must be a JSON String dictionary. If "TPS Name" is a capsGroup, then groupName should not be specified.
+   *
+   * \section jsonTPSGroup TPS Group JSON String Dictionary
+   *
+   * For the JSON string "Value" dictionary
+   *  (e.g. "Value" = {"surfaceType": 1, "emissivity": 0.8})
+   *  the following keywords ( = default values) may be used:
+   */
+
+  for (i = 0; i < numTuple; i++) {
+
+    status = get_mapAttrToIndexIndex(&cbaeroInstance->groupMap, tpsTuple[i].name, &groupIndex);
+    if (status == CAPS_SUCCESS) {
+      cbaeroInstance->TPS[i+1].numTPSTagListFileName = 1;
+      AIM_ALLOC(cbaeroInstance->TPS[i+1].TPSTagListFileNames, 1, char*, aimInfo, status);
+      cbaeroInstance->TPS[i+1].TPSTagListFileNames[0] = NULL;
+      AIM_STRDUP(cbaeroInstance->TPS[i+1].TPSTagListFileNames[0], tpsTuple[i].name, aimInfo, status);
+    }
+
+    /*!\page cbaeroTPS
+     * <ul>
+     * <li> <B>StackUpListFileName</B> </li> <br>
+     *    Full path to stack up list file name
+     * </ul>
+     */
+
+    status = json_getString(tpsTuple[i].value, "StackUpListFileName", &cbaeroInstance->TPS[i+1].StackUpListFileName);
+    if (status != CAPS_SUCCESS) {
+      AIM_ERROR(aimInfo, "missing required entry \"StackUpListFileName\" in TPS_Group '%s' input", tpsTuple[i].name);
+      status = CAPS_BADVALUE;
+      goto cleanup;
+    }
+
+    /*!\page cbaeroTPS
+     * <ul>
+     * <li> <B>StructuresStackUpListFileName</B> </li> <br>
+     *    Full path to structure stack up list file name
+     * </ul>
+     */
+
+    status = json_getString(tpsTuple[i].value, "StructuresStackUpListFileName", &cbaeroInstance->TPS[i+1].StructuresStackUpListFileName);
+    if (status != CAPS_SUCCESS) {
+      AIM_ERROR(aimInfo, "missing required entry \"StructuresStackUpListFileName\" in TPS_Group '%s' input", tpsTuple[i].name);
+      status = CAPS_BADVALUE;
+      goto cleanup;
+    }
+
+    /*!\page cbaeroTPS
+     * <ul>
+     * <li> <B>SplitLineMarginsFileName</B> </li> <br>
+     *    Full path to split line margins file name
+     * </ul>
+     */
+
+    status = json_getString(tpsTuple[i].value, "SplitLineMarginsFileName", &cbaeroInstance->TPS[i+1].SplitLineMarginsFileName);
+    if (status != CAPS_SUCCESS) {
+      AIM_ERROR(aimInfo, "missing required entry \"SplitLineMarginsFileName\" in TPS_Group '%s' input", tpsTuple[i].name);
+      status = CAPS_BADVALUE;
+      goto cleanup;
+    }
+
+    /*!\page cbaeroTPS
+     * <ul>
+     * <li> <B>EnvironmentMarginsFileName</B> </li> <br>
+     *    Full path to environment margins file name
+     * </ul>
+     */
+
+    status = json_getString(tpsTuple[i].value, "EnvironmentMarginsFileName", &cbaeroInstance->TPS[i+1].EnvironmentMarginsFileName);
+    if (status != CAPS_SUCCESS) {
+      AIM_ERROR(aimInfo, "missing required entry \"EnvironmentMarginsFileName\" in TPS_Group '%s' input", tpsTuple[i].name);
+      status = CAPS_BADVALUE;
+      goto cleanup;
+    }
+
+    /*!\page cbaeroTPS
+     * <ul>
+     * <li> <B>BumpFactorFileName</B> </li> <br>
+     *    Full path to environment margins file name
+     * </ul>
+     */
+
+    status = json_getString(tpsTuple[i].value, "BumpFactorFileName", &cbaeroInstance->TPS[i+1].BumpFactorFileName);
+    if (status != CAPS_SUCCESS) {
+      AIM_ERROR(aimInfo, "missing required entry \"BumpFactorFileName\" in TPS_Group '%s' input", tpsTuple[i].name);
+      status = CAPS_BADVALUE;
+      goto cleanup;
+    }
+
+    /*!\page cbaeroTPS
+     * <ul>
+     * <li> <B>UseOnlyOneMaterial</B> </li> <br>
+     *    Integer flag for material usage
+     * </ul>
+     */
+
+    status = json_getInteger(tpsTuple[i].value, "UseOnlyOneMaterial", &cbaeroInstance->TPS[i+1].UseOnlyOneMaterial);
+    if (status != CAPS_SUCCESS) {
+      AIM_ERROR(aimInfo, "missing required entry \"UseOnlyOneMaterial\" in TPS_Group '%s' input", tpsTuple[i].name);
+      status = CAPS_BADVALUE;
+      goto cleanup;
+    }
+
+    /*!\page cbaeroTPS
+     * <ul>
+     * <li> <B>UseHeatLoadSubZones</B> </li> <br>
+     *    Integer flag subzone heat load
+     * </ul>
+     */
+
+    status = json_getInteger(tpsTuple[i].value, "UseHeatLoadSubZones", &cbaeroInstance->TPS[i+1].UseHeatLoadSubZones);
+    if (status != CAPS_SUCCESS) {
+      AIM_ERROR(aimInfo, "missing required entry \"UseHeatLoadSubZones\" in TPS_Group '%s' input", tpsTuple[i].name);
+      status = CAPS_BADVALUE;
+      goto cleanup;
+    }
+
+    /*!\page cbaeroTPS
+     * <ul>
+     * <li> <B>NumberOfHeatLoadSubZones</B> </li> <br>
+     *    Integer number of heat load subzones
+     * </ul>
+     */
+
+    status = json_getInteger(tpsTuple[i].value, "NumberOfHeatLoadSubZones", &cbaeroInstance->TPS[i+1].NumberOfHeatLoadSubZones);
+    if (status != CAPS_SUCCESS) {
+      AIM_ERROR(aimInfo, "missing required entry \"NumberOfHeatLoadSubZones\" in TPS_Group '%s' input", tpsTuple[i].name);
+      status = CAPS_BADVALUE;
+      goto cleanup;
+    }
+
+    /*! \page cbaeroTPS
+     *
+     * <ul>
+     *  <li> <B>groupName = "(no default)"</B> </li> <br>
+     *  Single or list of <c>capsGroup</c> names on which to apply the material
+     *  (e.g. "Name1" or ["Name1","Name2",...]).
+     * </ul>
+     */
+    status = search_jsonDictionary( tpsTuple[i].value, "groupName", &keyValue);
+    if (status == CAPS_SUCCESS) {
+      if (cbaeroInstance->TPS[i+1].numTPSTagListFileName) {
+        AIM_ERROR(aimInfo, "TPS name '%s' is a capsGroup and groupName is specified!", tpsTuple[i].name);
+        status = CAPS_BADVALUE;
+        goto cleanup;
+      }
+      status = string_toStringDynamicArray(keyValue, &cbaeroInstance->TPS[i+1].numTPSTagListFileName, &cbaeroInstance->TPS[i+1].TPSTagListFileNames);
+      AIM_FREE(keyValue);
+      AIM_STATUS(aimInfo, status);
+    } else {
+      if (cbaeroInstance->TPS[i+1].numTPSTagListFileName == 0) {
+        AIM_ERROR(aimInfo, "missing required entry \"groupName\" in TPS_Group '%s' input", tpsTuple[i].name);
+        status = CAPS_BADVALUE;
+        goto cleanup;
+      }
+    }
+
+    for (j = 0; j < cbaeroInstance->TPS[i+1].numTPSTagListFileName; j++) {
+      status = get_mapAttrToIndexIndex(&cbaeroInstance->groupMap, cbaeroInstance->TPS[i+1].TPSTagListFileNames[j], &groupIndex);
+      if (status != CAPS_SUCCESS) {
+        AIM_ERROR(aimInfo, "TPS '%s' groupName \"%s\" not found in capsGroup attributes", tpsTuple[i].name, cbaeroInstance->TPS[i+1].TPSTagListFileNames[j]);
+        AIM_ADDLINE(aimInfo, "Available capsGroup attributes:");
+        for (j = 0; j < cbaeroInstance->groupMap.numAttribute; j++) {
+          AIM_ADDLINE(aimInfo, "\t%s", cbaeroInstance->groupMap.attributeName[j]);
+        }
+        goto cleanup;
+      }
+    }
+  }
+
+  status = CAPS_SUCCESS;
+
+cleanup:
+  return status;
+}
+
+
+static int cbaero_writeCBTPS(void *aimInfo,
+                             const char *projectName,
+                             int numTrajectory, const char *trajectory,
+                             int numTPS, const cbaeroTPS *TPS)
+{
+  int status = CAPS_SUCCESS; // Function status return
+  int i, itps, izone;
+
+  char filename[PATH_MAX];
+
+  FILE *fp = NULL;
+
+  const char tpsExt[] = ".cbtps";
+
+  if (numTrajectory == 0 && numTPS == 0) return CAPS_SUCCESS;
+
+  snprintf(filename, PATH_MAX, "%s%s", projectName, tpsExt);
+
+  fp = aim_fopen(aimInfo, filename, "w");
+  if (fp == NULL) {
+    AIM_ERROR(aimInfo, "Unable to open file: %s", filename);
+    status = CAPS_IOERR;
+    goto cleanup;
+  }
+
+  fprintf(fp, "#\n");
+  fprintf(fp, "#Trajectory List\n");
+  fprintf(fp, "#\n");
+  for (i = 0; i < numTrajectory; i++) {
+    fprintf(fp, "Trajectory: %s\n", trajectory);
+    trajectory += strlen(trajectory)+1;
+  }
+
+  for (itps = 1; itps < numTPS; itps++) {
+    for (izone = 0; izone < TPS[itps].numTPSTagListFileName; izone++) {
+      fprintf(fp, "#\n");
+      fprintf(fp, "#%s\n", TPS[itps].TPSTagListFileNames[izone]);
+      fprintf(fp, "#\n");
+      fprintf(fp,"StackUpListFileName:           %s\n", TPS[itps].StackUpListFileName);
+      fprintf(fp,"StructuresStackUpListFileName: %s\n", TPS[itps].StructuresStackUpListFileName);
+      fprintf(fp,"SplitLineMarginsFileName:      %s\n", TPS[itps].SplitLineMarginsFileName);
+      fprintf(fp,"EnvironmentMarginsFileName:    %s\n", TPS[itps].EnvironmentMarginsFileName);
+      fprintf(fp,"BumpFactorFileName:            %s\n", TPS[itps].BumpFactorFileName);
+      fprintf(fp,"TPSTagListFileName:            %s\n", TPS[itps].TPSTagListFileNames[izone]);
+      fprintf(fp,"UseOnlyOneMaterial:            %d\n", TPS[itps].UseOnlyOneMaterial);
+      fprintf(fp,"UseHeatLoadSubZones:           %d\n", TPS[itps].UseHeatLoadSubZones);
+      fprintf(fp,"NumberOfHeatLoadSubZones:      %d\n", TPS[itps].NumberOfHeatLoadSubZones);
+    }
+  }
+  fprintf(fp, "#\n");
+  fprintf(fp, "END\n");
+
+cleanup:
+
+  if (fp != NULL) fclose(fp);
+
+  return status;
+}
+
+
+static int cbaero_writeTag(void *aimInfo, const char *projectName,
+                           const mapAttrToIndexStruct *groupMap, const aimMeshRef *meshRef)
+{
   int status; // Function status return
 
   int i, j; // Indexing
@@ -263,9 +930,10 @@ static int cbearo_writeTag(void *aimInfo, const char *projectName,
   const char *groupName = NULL;
   int groupIndex, elementID = 1;
 
-  char tagFolder[] = "TaggedRegions";
-  char tagExt[] = ".tag";
-  char tagAll[] = ".ALL.taglist";
+  const char tagFolder[] = "TaggedRegions";
+  const char tagExt[] = ".tag";
+  const char tagAll[] = ".ALL.taglist";
+  const char tagList[] = ".taglist";
 
   FILE *fp = NULL;
 
@@ -327,12 +995,25 @@ static int cbearo_writeTag(void *aimInfo, const char *projectName,
   status = aim_mkDir(aimInfo, tagFolder);
   AIM_STATUS(aimInfo, status);
 
+  //  capsGroup.taglist
+  for (i = 0; i < groupMap->numAttribute; i++) {
+
+    snprintf(filename, PATH_MAX, "%s%c%s.%s%s", tagFolder, SLASH, projectName, groupMap->attributeName[i], tagList);
+
+    fp = aim_fopen(aimInfo, filename, "w");
+    if (fp == NULL) {
+      AIM_ERROR(aimInfo, "Unable to open file: %s", filename);
+      status = CAPS_IOERR;
+      goto cleanup;
+    }
+
+    fprintf(fp, "%d %s.%s\n", tagElement[i], projectName, groupMap->attributeName[i]);
+    fclose(fp); fp = NULL;
+  }
+
+
   // ALL.taglist
-#ifdef WIN32
-  snprintf(filename, PATH_MAX, "%s\\%s%s", tagFolder, projectName, tagAll);
-#else
-  snprintf(filename, PATH_MAX, "%s/%s%s", tagFolder, projectName, tagAll);
-#endif
+  snprintf(filename, PATH_MAX, "%s%c%s%s", tagFolder, SLASH, projectName, tagAll);
 
   fp = aim_fopen(aimInfo, filename, "w");
   if (fp == NULL) {
@@ -357,11 +1038,7 @@ static int cbearo_writeTag(void *aimInfo, const char *projectName,
 
   for (i = 0; i < numTagElement; i++ ) {
 
-#ifdef WIN32
-    snprintf(filename, PATH_MAX, "%s\\%s.%s%s", tagFolder, projectName, groupMap->attributeName[i], tagExt);
-#else
-    snprintf(filename, PATH_MAX, "%s/%s.%s%s", tagFolder, projectName, groupMap->attributeName[i], tagExt);
-#endif
+    snprintf(filename, PATH_MAX, "%s%c%s.%s%s", tagFolder, SLASH, projectName, groupMap->attributeName[i], tagExt);
 
     tagFiles[i] = aim_fopen(aimInfo, filename, "w");
     if (tagFiles[i] == NULL) {
@@ -409,6 +1086,8 @@ static int cbearo_writeTag(void *aimInfo, const char *projectName,
 
 cleanup:
 
+  if (fp != NULL) fclose(fp);
+
   AIM_FREE(tagElement);
   AIM_FREE(efaces);
 
@@ -419,6 +1098,7 @@ cleanup:
 
   return status;
 }
+
 
 static void write_InputArray(enum aimInputs varName, FILE *fp, capsValue *aimInputs) {
 
@@ -448,6 +1128,7 @@ static void write_InputArray(enum aimInputs varName, FILE *fp, capsValue *aimInp
 
   fprintf(fp, "\n");
 }
+
 
 static int cbaero_writeInput(void *aimInfo, const aimStorage *cbaeroInstance, capsValue *aimInputs)
 {
@@ -517,7 +1198,8 @@ cleanup:
   return status;
 }
 
-static int cbaero_appendSetupControl(FILE *fp, /*@unused@*/ aimMeshRef *meshRef, /*@unused@*/ const mapAttrToIndexStruct *groupMap){//, int numTuple, capsTuple controlTuple[]) {
+static int cbaero_appendSetupControl(FILE *fp, /*@unused@*/ const aimMeshRef *meshRef, /*@unused@*/ const mapAttrToIndexStruct *groupMap)
+{//, int numTuple, capsTuple controlTuple[]) {
 
   int status;
 
@@ -530,12 +1212,11 @@ static int cbaero_appendSetupControl(FILE *fp, /*@unused@*/ aimMeshRef *meshRef,
   return status;
 }
 
-
-static int cbaero_appendSetupAero(void *aimInfo, FILE *fp, aimMeshRef *meshRef,
+static int cbaero_appendSetupAero(void *aimInfo, FILE *fp, const aimMeshRef *meshRef,
                                   const mapAttrToIndexStruct *groupMap,
                                   int numTuple, capsTuple *panelTuple,
-                                  char *bodyMethod, char *wingMethod) {
-
+                                  char *bodyMethod, char *wingMethod)
+{
   int status; // Status return
 
   int i, j; // Indexing
@@ -557,7 +1238,7 @@ static int cbaero_appendSetupAero(void *aimInfo, FILE *fp, aimMeshRef *meshRef,
   char *tupleValue = NULL;
   int groupIndex, elementID = 1;
 
-  enum cbearoAeroSurfaceIndexEnum {Body=1010, Base=1030, Wing=1020, Inlet=9000, Cowl=11000, Nozzle=10000};
+  enum cbaeroAeroSurfaceIndexEnum {Body=1010, Base=1030, Wing=1020, Inlet=9000, Cowl=11000, Nozzle=10000};
 
   int numBaseTri = 0;
   int *baseTri = NULL;
@@ -606,11 +1287,15 @@ static int cbaero_appendSetupAero(void *aimInfo, FILE *fp, aimMeshRef *meshRef,
         goto cleanup;
       }
 
-      index = CAPSMAGIC;
+      index = -1;
       for (j = 0; j < numTuple; j++) {
         status = get_mapAttrToIndexIndex(groupMap, panelTuple[j].name, &index);
         if (status != CAPS_SUCCESS) {
-          AIM_ERROR(aimInfo, "Attribute name '%s' not found in capsGroup map!\n", panelTuple[j].name);
+          AIM_ERROR(aimInfo, "Aero_Surface name '%s' not found in capsGroup map!", panelTuple[j].name);
+          AIM_ADDLINE(aimInfo, "Available capsGroup attributes:");
+          for (j = 0; j < groupMap->numAttribute; j++) {
+            AIM_ADDLINE(aimInfo, "\t%s", groupMap->attributeName[j]);
+          }
           goto cleanup;
         }
         if (groupIndex == index) {
@@ -619,9 +1304,9 @@ static int cbaero_appendSetupAero(void *aimInfo, FILE *fp, aimMeshRef *meshRef,
         }
       }
 
-      if      (index == CAPSMAGIC)                   value = cbaero_selectHighSpeed(aimInfo, bodyMethod); // Default to Body
+      if  (tupleValue == NULL)
+        value = cbaero_selectHighSpeed(aimInfo, bodyMethod); // Default to Body
       else {
-        AIM_NOTNULL(tupleValue, aimInfo, status);
         if (strcasecmp(tupleValue, "Body")  == 0) value = cbaero_selectHighSpeed(aimInfo, bodyMethod);
         else if (strcasecmp(tupleValue, "Base")  == 0) {
           for (itri = 0; itri < tlen; itri++) {
@@ -635,7 +1320,7 @@ static int cbaero_appendSetupAero(void *aimInfo, FILE *fp, aimMeshRef *meshRef,
         else if (strcasecmp(tupleValue, "Cowl")  == 0) value = cbaero_selectHighSpeed(aimInfo, bodyMethod);
         else if (strcasecmp(tupleValue, "Nozzle")== 0) value = cbaero_selectHighSpeed(aimInfo, bodyMethod);
         else {
-          AIM_ERROR(aimInfo, "Invalid aero. type, '%s', options: Body, Base, Wing, Inlet, Cowl, Nozzle!", panelTuple[j].value);
+          AIM_ERROR(aimInfo, "Invalid Aero_Surface '%s' value '%s'. Options: Body, Base, Wing, Inlet, Cowl, Nozzle!", panelTuple[j].name, panelTuple[j].value);
           status = CAPS_NOTFOUND;
           goto cleanup;
         }
@@ -660,12 +1345,16 @@ static int cbaero_appendSetupAero(void *aimInfo, FILE *fp, aimMeshRef *meshRef,
   fprintf(fp,"%d\n", groupMap->numAttribute); // Number of groups
   for (i = 0; i < groupMap->numAttribute; i++) {
 
-    index = CAPSMAGIC;
+    index = -1;
     for (j = 0; j < numTuple; j++) {
 
       status = get_mapAttrToIndexIndex(groupMap, panelTuple[j].name, &index);
       if (status != CAPS_SUCCESS) {
         AIM_ERROR(aimInfo, "Attribute name '%s' not found in capsGroup map!\n", panelTuple[j].name);
+        AIM_ADDLINE(aimInfo, "Available capsGroup attributes:");
+        for (j = 0; j < groupMap->numAttribute; j++) {
+          AIM_ADDLINE(aimInfo, "\t%s", groupMap->attributeName[j]);
+        }
         goto cleanup;
       }
       if (groupMap->attributeIndex[i] == index) {
@@ -674,7 +1363,7 @@ static int cbaero_appendSetupAero(void *aimInfo, FILE *fp, aimMeshRef *meshRef,
       }
     }
 
-    if  (index == CAPSMAGIC)                           {
+    if  (tupleValue == NULL)  {
       value2 = Body;
       value = cbaero_selectHighSpeed(aimInfo, bodyMethod); // Default to Body
     } else {
@@ -698,7 +1387,7 @@ static int cbaero_appendSetupAero(void *aimInfo, FILE *fp, aimMeshRef *meshRef,
         value2 = Nozzle;
         value = cbaero_selectHighSpeed(aimInfo, bodyMethod);
       } else {
-        AIM_ERROR(aimInfo, "Invalid aero. type, '%s', options: Body, Base, Wing, Inlet, Cowl, Nozzle!\n", panelTuple[j].value);
+        AIM_ERROR(aimInfo, "Invalid Aero_Surface '%s' value '%s'. Options: Body, Base, Wing, Inlet, Cowl, Nozzle!", panelTuple[j].name, panelTuple[j].value);
         status = CAPS_NOTFOUND;
         goto cleanup;
       }
@@ -710,7 +1399,7 @@ static int cbaero_appendSetupAero(void *aimInfo, FILE *fp, aimMeshRef *meshRef,
       AIM_STATUS(aimInfo, status);
     }
 
-    fprintf(fp, "%d\n", value2); // cbearoAeroSurfaceIndexEnum
+    fprintf(fp, "%d\n", value2); // cbaeroAeroSurfaceIndexEnum
     fprintf(fp, "%s\n", groupMap->attributeName[i]);
     fprintf(fp, "%d\n", value);
   }
@@ -761,15 +1450,120 @@ cleanup:
   return status;
 }
 
-static int cbaero_writeSetup(void *aimInfo, const aimStorage *cbaeroInstance, capsValue *aimInputs)
+
+static int cbaero_TPSZones(void *aimInfo, FILE *fp,
+                           const aimStorage *cbaeroInstance,
+                           const aimMeshRef *meshRef)
 {
-  int status; // Function return status
+  int status = CAPS_SUCCESS; // Function status return
+
+  int i, itps, izone;
+  int found;
+
+  int state, nglobal;
+  ego body;
+
+  int itri;
+  int iface, nFace;
+  ego *efaces=NULL;
+
+  int plen, tlen;
+  const double *points, *uv;
+  const int *ptypes, *pindexs, *tris, *tric;
+  const char *groupName = NULL;
+
+  int numTPS = 0;
+
+  for (itps = 0; itps < cbaeroInstance->numTPS; itps++)
+    numTPS += cbaeroInstance->TPS[itps].numTPSTagListFileName;
+
+  // TPS
+  fprintf(fp,"TPS Zones.v.3.4:\n");
+  fprintf(fp,"%d\n", numTPS);
+  for (itps = 0; itps < cbaeroInstance->numTPS; itps++) {
+    for (izone = 0; izone < cbaeroInstance->TPS[itps].numTPSTagListFileName; izone++) {
+      fprintf(fp,"%d\n", cbaeroInstance->TPS[itps].UseOnlyOneMaterial);
+      fprintf(fp,"%d\n", cbaeroInstance->TPS[itps].UseHeatLoadSubZones);
+      fprintf(fp,"%d\n", cbaeroInstance->TPS[itps].NumberOfHeatLoadSubZones);
+      fprintf(fp,"%s\n", cbaeroInstance->TPS[itps].TPSTagListFileNames[izone]);
+      /*@-mustfreefresh@*/
+      fprintf(fp,"%s\n", file_only(cbaeroInstance->TPS[itps].StackUpListFileName));
+      fprintf(fp,"%s\n", file_only(cbaeroInstance->TPS[itps].StructuresStackUpListFileName));
+      fprintf(fp,"%s\n", file_only(cbaeroInstance->TPS[itps].SplitLineMarginsFileName));
+      fprintf(fp,"%s\n", file_only(cbaeroInstance->TPS[itps].EnvironmentMarginsFileName));
+      fprintf(fp,"%s\n", file_only(cbaeroInstance->TPS[itps].BumpFactorFileName));
+      /*@+mustfreefresh@*/
+    }
+  }
+
+  // Write element TPS tag to files
+  for (i = 0; i < meshRef->nmap; i++) {
+    status = EG_statusTessBody(meshRef->maps[i].tess, &body, &state, &nglobal);
+    AIM_STATUS(aimInfo, status);
+
+    status = EG_getBodyTopos(body, NULL, FACE, &nFace, &efaces);
+    AIM_STATUS(aimInfo, status);
+    AIM_NOTNULL(efaces, aimInfo, status);
+
+    for (iface = 0; iface < nFace; iface++) {
+      status = EG_getTessFace(meshRef->maps[i].tess, iface + 1, &plen, &points, &uv, &ptypes, &pindexs,
+                              &tlen, &tris, &tric);
+      AIM_STATUS(aimInfo, status);
+
+      status = retrieve_CAPSGroupAttr(efaces[iface], &groupName);
+      AIM_STATUS (aimInfo, status );
+      AIM_NOTNULL(groupName, aimInfo, status);
+
+      numTPS = 1;
+      if (cbaeroInstance->numTPS > 1) {
+        found = (int)false;
+        for (itps = 0; itps < cbaeroInstance->numTPS && found == (int)false; itps++) {
+          for (izone = 0; izone < cbaeroInstance->TPS[itps].numTPSTagListFileName && found == (int)false; izone++) {
+            if (strcmp(cbaeroInstance->TPS[itps].TPSTagListFileNames[izone], groupName ) == 0) {
+              found = (int)true;
+              break;
+            }
+            numTPS++;
+          }
+        }
+
+        if (found == (int)false) {
+          numTPS = 1;
+#if 0
+          AIM_ERROR(aimInfo, "No capsGroup \"%s\" not found in TPS zones", groupName);
+          AIM_ADDLINE(aimInfo, "Available TPS zones:");
+          for (itps = 0; itps < cbaeroInstance->numTPS; itps++) {
+            for (izone = 0; izone < cbaeroInstance->TPS[itps].numTPSTagListFileName; izone++) {
+              AIM_ADDLINE(aimInfo, "\t%s", cbaeroInstance->TPS[itps].TPSTagListFileNames[izone]);
+            }
+          }
+          status = CAPS_NOTFOUND;
+          goto cleanup;
+#endif
+        }
+      }
+
+      for (itri = 0; itri < tlen; itri++)
+        fprintf(fp,"%d\n", numTPS);
+
+    }
+    AIM_FREE(efaces);
+  }
+
+
+cleanup:
+  AIM_FREE(efaces);
+  return status;
+}
+
+
+static int cbaero_optimization(void *aimInfo, FILE *fp, const aimMeshRef *meshRef)
+{
+  int status; // Status return
 
   int i; // Indexing
 
-  char filename[PATH_MAX];
-
-  int state, nglobal;
+  int state, nglobal, nTri = 0;
   ego body;
 
   int itri;
@@ -779,10 +1573,359 @@ static int cbaero_writeSetup(void *aimInfo, const aimStorage *cbaeroInstance, ca
   const double *points, *uv;
   const int *ptypes, *pindexs, *tris, *tric;
 
+  for (i = 0; i < meshRef->nmap; i++) {
+    status = EG_statusTessBody(meshRef->maps[i].tess, &body, &state, &nglobal);
+    AIM_STATUS(aimInfo, status);
+
+    status = EG_getBodyTopos(body, NULL, FACE, &nFace, NULL);
+    AIM_STATUS(aimInfo, status);
+
+    for (iface = 0; iface < nFace; iface++) {
+      status = EG_getTessFace(meshRef->maps[i].tess, iface + 1, &plen, &points, &uv, &ptypes, &pindexs,
+                              &tlen, &tris, &tric);
+      AIM_STATUS(aimInfo, status);
+
+      nTri += tlen;
+    }
+  }
+
+  fprintf(fp,"Optimization Data:\n");
+  for (itri = 0; itri < nTri; itri++) {
+    fprintf(fp,"0\n");
+  }
+
+  fprintf(fp,"250\n");
+  fprintf(fp,"1.000000\n");
+  for (i = 0; i < 58; i++) {
+    fprintf(fp,"0\n");
+  }
+
+  status = CAPS_SUCCESS;
+
+cleanup:
+  return status;
+}
+
+
+static int cbaero_material(void *aimInfo, FILE *fp, const aimMeshRef *meshRef,
+                           const mapAttrToIndexStruct *groupMap,
+                           int numTuple, capsTuple *materialTuple)
+{
+  int status; // Status return
+
+  int i, j, k; // Indexing
+
+  char *materialName=NULL;
+  int surfaceType;
+  double emissivity;
+
+  int state, nglobal;
+  ego body;
+
+  int itri;
+  int iface, nFace;
+  ego *efaces=NULL;
+
+  int plen, tlen, groupIndex, index;
+  const double *points, *uv;
+  const int *ptypes, *pindexs, *tris, *tric;
+  const char *groupName;
+
+  char *keyValue = NULL;
+  int *numGroupName=NULL;
+  char ***groupNames=NULL;
+
+  const char *materials[17] =
+  {"Non Catalytic",
+   "Fully Catalytic",
+   "RCG",
+   "TUFI",
+   "ORCC Coated ACC",
+   "PCC Coated NEXTEL 440",
+   "RLV Design Goal",
+   "SIRCA",
+   "TABI",
+   "Grey C-9 Coated NEXTEL 440",
+   "SiC – SiC",
+   "C-CAT",
+   "LVP Coated ACC",
+   "SiC Coated Carbon – Russian",
+   "INCONEL 617 PreOxidized",
+   "Mars Fully Catalytic, No O2 Recombination",
+   "Venus Fully Catalytic, No CO Oxidation"
+  };
+
+
+  if (numTuple == 0) {
+    // Default material if non specified
+    fprintf(fp,"Material Group Data:\n");
+    fprintf(fp,"1\n");
+    fprintf(fp,"1 1 0.8\n");
+    for (i = 0; i < meshRef->nmap; i++) {
+      status = EG_statusTessBody(meshRef->maps[i].tess, &body, &state, &nglobal);
+      AIM_STATUS(aimInfo, status);
+
+      status = EG_getBodyTopos(body, NULL, FACE, &nFace,  NULL);
+      AIM_STATUS(aimInfo, status);
+
+      for (iface = 0; iface < nFace; iface++) {
+        status = EG_getTessFace(meshRef->maps[i].tess, iface + 1, &plen, &points, &uv, &ptypes, &pindexs,
+                                &tlen, &tris, &tric);
+        AIM_STATUS(aimInfo, status);
+
+        for (itri = 0; itri < tlen; itri++)
+          fprintf(fp, "1\n");
+      }
+    }
+    status = CAPS_SUCCESS;
+    goto cleanup;
+  }
+
+  AIM_ALLOC(numGroupName, numTuple, int, aimInfo, status);
+  for (i = 0; i < numTuple; i++) numGroupName[i] = 0;
+  AIM_ALLOC(groupNames, numTuple, char**, aimInfo, status);
+  for (i = 0; i < numTuple; i++) groupNames[i] = NULL;
+
+  /*!\page cbaeroMaterialGroup CBAero Material Group
+   * Structure for the Material_Group tuple  = ("Material Name", "Value").
+   * The "Value" must be a JSON String dictionary.
+   *
+   * If no Material_Group is specified, a default material of "Catalytic" with emissity of "0.8" is applied to all capsGroups.
+   *
+   * \section jsonMaterialGroup Material Group JSON String Dictionary
+   *
+   * For the JSON string "Value" dictionary
+   *  (e.g. "Value" = {"surfaceType": 1, "emissivity": 0.8})
+   *  the following keywords ( = default values) may be used:
+   */
+
+  fprintf(fp,"Material Group Data:\n");
+  fprintf(fp,"%d\n", numTuple);
+
+  for (i = 0; i < numTuple; i++) {
+
+    /*!\page cbaeroMaterialGroup
+     * <ul>
+     * <li> <B>surfaceType</B> </li> <br>
+     *    The surface type must be a string integer, e.g. "0" or "10, <br>
+     *    or a case insensitive partial match to one of:
+     * - "Non Catalytic" <br>
+     * - "Fully Catalytic" <br>
+     * - "RCG" <br>
+     * - "TUFI" <br>
+     * - "ORCC Coated ACC" <br>
+     * - "PCC Coated NEXTEL 440" <br>
+     * - "RLV Design Goal" <br>
+     * - "SIRCA" <br>
+     * - "TABI" <br>
+     * - "Grey C-9 Coated NEXTEL 440" <br>
+     * - "SiC – SiC" <br>
+     * - "C-CAT" <br>
+     * - "LVP Coated ACC" <br>
+     * - "SiC Coated Carbon – Russian" <br>
+     * - "INCONEL 617 PreOxidized" <br>
+     * - "Mars Fully Catalytic, No O2 Recombination" <br>
+     * - "Venus Fully Catalytic, No CO Oxidation" <br>
+     * </ul>
+     */
+
+    status = json_getString(materialTuple[i].value, "surfaceType", &materialName);
+    if (status != CAPS_SUCCESS) {
+      AIM_ERROR(aimInfo, "missing required entry \"surfaceType\" in 'Material_Group' input");
+      status = CAPS_BADVALUE;
+      goto cleanup;
+    }
+    AIM_NOTNULL(materialName, aimInfo, status);
+
+    surfaceType = -1;
+    for (j = 0; j < sizeof(materials)/sizeof(char*); j++) {
+      if (strcasecmp(materialName, materials[j]) == 0) {
+        surfaceType = j;
+        break;
+      }
+    }
+    if (surfaceType == -1) {
+      if(strspn(materialName, "0123456789") == strlen(materialName))
+        surfaceType = atoi(materialTuple[i].name);
+    }
+    if (surfaceType == -1) {
+      AIM_ERROR(aimInfo, "Material_Group '%s' surfaceType '%s' not found!", materialTuple[i].name, materialName);
+      AIM_ADDLINE(aimInfo, "Available material names:");
+      for (j = 0; j < sizeof(materials)/sizeof(char*); j++) {
+        AIM_ADDLINE(aimInfo, "\t%s", materials[j]);
+      }
+      status = CAPS_NOTFOUND;
+      goto cleanup;
+    }
+    AIM_FREE(materialName);
+
+
+    /*!\page cbaeroMaterialGroup
+     * <ul>
+     * <li> <B>emissivity</B> </li> <br>
+     *    Emissivity of the material [0 - 1]
+     * </ul>
+     */
+    status = json_getDouble(materialTuple[i].value, "emissivity", &emissivity);
+    if (status != CAPS_SUCCESS) {
+      AIM_ERROR(aimInfo, "missing required entry \"emissivity\" in 'Material_Group' input");
+      status = CAPS_BADVALUE;
+      goto cleanup;
+    }
+
+    /*! \page cbaeroMaterialGroup
+     *
+     * <ul>
+     *  <li> <B>groupName = "(no default)"</B> </li> <br>
+     *  Single or list of <c>capsGroup</c> names on which to apply the material
+     *  (e.g. "Name1" or ["Name1","Name2",...]).
+     * </ul>
+     */
+    status = search_jsonDictionary( materialTuple[i].value, "groupName", &keyValue);
+    if (status == CAPS_SUCCESS) {
+      status = string_toStringDynamicArray(keyValue, &numGroupName[i], &groupNames[i]);
+      AIM_FREE(keyValue);
+      AIM_STATUS(aimInfo, status);
+    } else {
+      AIM_ERROR(aimInfo, "missing required entry \"groupName\" in 'Material_Group' input");
+      status = CAPS_BADVALUE;
+      goto cleanup;
+    }
+
+    fprintf(fp,"%d 1 %.8f\n", surfaceType, emissivity);
+  }
+
+  for (i = 0; i < meshRef->nmap; i++) {
+    status = EG_statusTessBody(meshRef->maps[i].tess, &body, &state, &nglobal);
+    AIM_STATUS(aimInfo, status);
+
+    status = EG_getBodyTopos(body, NULL, FACE, &nFace, &efaces);
+    AIM_STATUS(aimInfo, status);
+    AIM_NOTNULL(efaces, aimInfo, status);
+
+    for (iface = 0; iface < nFace; iface++) {
+      status = EG_getTessFace(meshRef->maps[i].tess, iface + 1, &plen, &points, &uv, &ptypes, &pindexs,
+                              &tlen, &tris, &tric);
+      AIM_STATUS(aimInfo, status);
+
+      status = retrieve_CAPSGroupAttr(efaces[iface], &groupName);
+      AIM_STATUS (aimInfo, status );
+      AIM_NOTNULL(groupName, aimInfo, status);
+      status = get_mapAttrToIndexIndex(groupMap, groupName, &groupIndex);
+      if (status != CAPS_SUCCESS) {
+        AIM_ERROR(aimInfo, "No capsGroup \"%s\" not found in attribute map", groupName);
+        goto cleanup;
+      }
+
+      index = -1;
+      for (j = 0; j < numTuple; j++) {
+        for (k = 0; k < numGroupName[j]; k++) {
+          get_mapAttrToIndexIndex(groupMap, groupNames[j][k], &index);
+          if (groupIndex == index) {
+            for (itri = 0; itri < tlen; itri++) {
+              fprintf(fp,"%d\n", j+1);
+            }
+            break;
+          }
+        }
+        if (groupIndex == index) break;
+      }
+
+      if (j == numTuple) {
+        AIM_ERROR(aimInfo, "capsGroup '%s' not found in Material_Group groupName!", groupName);
+        AIM_ADDLINE(aimInfo, "Available Material_Group groupName:");
+        for (j = 0; j < numTuple; j++) {
+          for (k = 0; k < numGroupName[j]; k++) {
+            AIM_ADDLINE(aimInfo, "\t%s",  groupNames[j][k]);
+          }
+        }
+        status = CAPS_NOTFOUND;
+        goto cleanup;
+      }
+
+    }
+    AIM_FREE(efaces);
+
+  }
+
+  status = CAPS_SUCCESS;
+
+cleanup:
+  AIM_FREE(materialName);
+  AIM_FREE(efaces);
+  if (groupNames != NULL)
+    for (i = 0; i < numTuple; i++) {
+      for (j = 0; j < numGroupName[i]; j++)
+        AIM_FREE(groupNames[i][j]);
+      AIM_FREE(groupNames[i]);
+    }
+
+  AIM_FREE(numGroupName);
+  AIM_FREE(groupNames);
+
+  return status;
+}
+
+
+static int cbaero_structure(void *aimInfo, FILE *fp, const aimMeshRef *meshRef)
+{
+  int status = CAPS_SUCCESS; // Status return
+
+  int i; // Indexing
+
+  int state, nglobal, nTri = 0;
+  ego body;
+
+  int itri;
+  int iface, nFace;
+
+  int plen, tlen;
+  const double *points, *uv;
+  const int *ptypes, *pindexs, *tris, *tric;
+
+  for (i = 0; i < meshRef->nmap; i++) {
+    status = EG_statusTessBody(meshRef->maps[i].tess, &body, &state, &nglobal);
+    AIM_STATUS(aimInfo, status);
+
+    status = EG_getBodyTopos(body, NULL, FACE, &nFace, NULL);
+    AIM_STATUS(aimInfo, status);
+
+    for (iface = 0; iface < nFace; iface++) {
+      status = EG_getTessFace(meshRef->maps[i].tess, iface + 1, &plen, &points, &uv, &ptypes, &pindexs,
+                              &tlen, &tris, &tric);
+      AIM_STATUS(aimInfo, status);
+
+      nTri += tlen;
+    }
+  }
+
+  fprintf(fp,"Structure Zones Data (v.10):\n");
+  fprintf(fp,"0\n");
+  for (itri = 0; itri < nTri; itri++) {
+    fprintf(fp,"0\n");
+  }
+
+  status = CAPS_SUCCESS;
+
+cleanup:
+  return status;
+}
+
+
+static int cbaero_writeSetup(void *aimInfo, const aimStorage *cbaeroInstance, capsValue *aimInputs)
+{
+  int status; // Function return status
+
+  int i; // Indexing
+
+  char filename[PATH_MAX];
+
   FILE *fp = NULL;
   char fileExt[] = ".stp";
 
-  aimMeshRef *meshRef;
+  const char *trajectories;
+
+  const aimMeshRef *meshRef;
   const mapAttrToIndexStruct *groupMap;
 
   printf("Writing CBAero setup file - %s%s\n", cbaeroInstance->projectName, fileExt);
@@ -812,7 +1955,10 @@ static int cbaero_writeSetup(void *aimInfo, const aimStorage *cbaeroInstance, ca
   fprintf(fp, "LowSpeedMethod: %d\n", status);
 
   fprintf(fp, "Leading Edge Suction:  %.6f\n", aimInputs[inLeading_Edge_Suction-1].vals.real);
-  fprintf(fp, "Mangler Setting: 2\n");
+
+  status = cbaero_selectManglerSetting(aimInfo, aimInputs[inMangler_Setting-1].vals.string);
+  if (status < CAPS_SUCCESS) AIM_STATUS(aimInfo, status);
+  fprintf(fp, "Mangler Setting: %d\n", status);
 
   status = cbaero_appendSetupAero(aimInfo, fp, meshRef,
                                   groupMap,
@@ -822,39 +1968,18 @@ static int cbaero_writeSetup(void *aimInfo, const aimStorage *cbaeroInstance, ca
                                   aimInputs[inDefault_Wing_Method-1].vals.string);
   AIM_STATUS(aimInfo, status);
 
-  // TPS - Needs to be enhanced
-  fprintf(fp,"TPS Zones.v.3.4:\n");
-  fprintf(fp,"1\n");
-  fprintf(fp,"0\n");
-  fprintf(fp,"0\n");
-  fprintf(fp,"5\n");
-  fprintf(fp,"DefaultZone\n");
-  fprintf(fp,"StackUpFile\n");
-  fprintf(fp,"StructuresStackUpFile\n");
-  fprintf(fp,"MarginsFile\n");
-  fprintf(fp,"MarginsFile\n");
-  fprintf(fp,"None\n");
-
-  // Write element indexes to tag files
-  for (i = 0; i < meshRef->nmap; i++) {
-    status = EG_statusTessBody(meshRef->maps[i].tess, &body, &state, &nglobal);
-    AIM_STATUS(aimInfo, status);
-
-    status = EG_getBodyTopos(body, NULL, FACE, &nFace, NULL);
-    AIM_STATUS(aimInfo, status);
-
-    for (iface = 0; iface < nFace; iface++) {
-      status = EG_getTessFace(meshRef->maps[i].tess, iface + 1, &plen, &points, &uv, &ptypes, &pindexs,
-                              &tlen, &tris, &tric);
-      AIM_STATUS(aimInfo, status);
-
-      for (itri = 0; itri < tlen; itri++)
-        fprintf(fp,"1\n");
-    }
-  }
+  // TPS
+  status = cbaero_TPSZones(aimInfo, fp, cbaeroInstance, meshRef);
+  AIM_STATUS(aimInfo, status);
 
   fprintf(fp,"Trajectories:\n");
-  fprintf(fp,"0\n");
+  trajectories = aimInputs[inTrajectory-1].vals.string;
+  fprintf(fp,"%d\n", aimInputs[inTrajectory-1].length);
+  for (i = 0; i < aimInputs[inTrajectory-1].length; i++) {
+    fprintf(fp,"%s\n", trajectories);
+    trajectories += strlen(trajectories) + 1;
+  }
+
   fprintf(fp,"Wake Edges:\n");
   fprintf(fp,"0\n");
   fprintf(fp,"0\n");
@@ -868,13 +1993,36 @@ static int cbaero_writeSetup(void *aimInfo, const aimStorage *cbaeroInstance, ca
 
   fprintf(fp,"Trajectory Constraint Triangles:\n");
   fprintf(fp,"0\n");
-  /*fprintf(fp,"Optimization Data:\n");
-  for (i = 0; i < cbaeroInstance->surfaceMesh->numElement; i++) {
 
-    if (cbaeroInstance->surfaceMesh->element[i].elementType != Triangle) continue;
-    fprintf(fp,"0\n");
-  }
-   */
+  status = cbaero_optimization(aimInfo, fp, meshRef);
+  AIM_STATUS(aimInfo, status);
+
+  fprintf(fp,"Wake Carry Thrus:\n");
+  fprintf(fp,"0\n");
+  fprintf(fp,"Wake Nodes:\n");
+  fprintf(fp,"0\n");
+  fprintf(fp,"Wake Tris:\n");
+  fprintf(fp,"0\n");
+
+  status = cbaero_material(aimInfo, fp, meshRef,
+                           groupMap,
+                           aimInputs[inMaterial_Group-1].length,
+                           aimInputs[inMaterial_Group-1].vals.tuple);
+  AIM_STATUS(aimInfo, status);
+
+  status = cbaero_structure(aimInfo, fp, meshRef);
+  AIM_STATUS(aimInfo, status);
+
+  fprintf(fp,"0\n"); // not sure what these are for...
+  fprintf(fp,"0\n"); // not sure what these are for...
+  fprintf(fp,"Not_Specified\n"); // not sure what these are for...
+  fprintf(fp,"0\n"); // not sure what these are for...
+  fprintf(fp,"0\n"); // not sure what these are for...
+  fprintf(fp,"0.0\n"); // not sure what these are for...
+
+  fprintf(fp,"Propulsion Data\n"); // colon missing on purpose (why cbaero?)
+  fprintf(fp,"0\n");
+
   status = CAPS_SUCCESS;
 
 cleanup:
@@ -1175,6 +2323,18 @@ int aimInputs(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo,
      * Default low speed method integer tag. Range [-1.0, 1.0]
      */
 
+  } else if (index == inMangler_Setting) {
+    *ainame              = EG_strdup("Mangler_Setting");
+    defval->type         = String;
+    defval->nullVal      = NotNull;
+    defval->vals.string  = EG_strdup("2D");
+
+    /*! \page aimInputsCBAERO
+     * - <B> Mangler_Setting = "2D"</B> <br>
+     * Default low speed method. Options (=corresponding integer code): "2D"(=1), "Axisymmetric"(=2), "Auto"(=3).
+     *
+     */
+
   } else if (index == inAero_Surface) {
     *ainame              = EG_strdup("Aero_Surface");
     defval->type         = Tuple;
@@ -1182,6 +2342,7 @@ int aimInputs(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo,
     defval->dim          = Vector;
     defval->lfixed       = Change;
     defval->vals.tuple   = NULL;
+    defval->nrow         = 0;
 
     /*! \page aimInputsCBAERO
      * - <B> Aero_Surface = NULL</B> <br>
@@ -1189,6 +2350,87 @@ int aimInputs(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo,
      * where "Value" can either be "Body", "Base", "Wing", "Inlet", "Cowl", or "Nozzle". If a capsGroup panel method is not defined it will be assumed
      * to be a "Body".
      *
+     */
+
+  } else if (index == inMaterial_Group) {
+    *ainame              = EG_strdup("Material_Group");
+    defval->type         = Tuple;
+    defval->nullVal      = IsNull;
+    defval->dim          = Vector;
+    defval->lfixed       = Change;
+    defval->vals.tuple   = NULL;
+    defval->nrow         = 0;
+
+    /*! \page aimInputsCBAERO
+     * - <B> Material_Group = NULL</B> <br>
+     * Defines the type of aero. surface by associating a "capsGroups" attributes with a particular material group - ("Material Name", "Value"),
+     * where "Value" must be a JSON String dictionary, see \ref cbaeroMaterialGroup for additional details.
+    */
+
+  } else if (index == inTrajectory) {
+    *ainame              = EG_strdup("Trajectory");
+    defval->type         = String;
+    defval->nullVal      = IsNull;
+    defval->dim          = Vector;
+    defval->lfixed       = Change;
+    defval->vals.string  = NULL;
+    defval->nrow         = 0;
+
+    /*! \page aimInputsCBAERO
+     * - <B> Trajectory = NULL</B> <br>
+     * List of trajectory file names
+     */
+
+  } else if (index == inTPSin) {
+    *ainame              = EG_strdup("TPSin");
+    defval->type         = Tuple;
+    defval->nullVal      = IsNull;
+    defval->dim          = Vector;
+    defval->lfixed       = Change;
+    defval->vals.tuple   = NULL;
+    defval->nrow         = 0;
+
+    /*! \page aimInputsCBAERO
+     * - <B> TPSin = NULL</B> <br>
+     * Defines the .tpsin input file for TPSSizer, see \ref cbaeroTPS for additional details.
+    */
+
+  } else if (index == inTPS_Group) {
+    *ainame              = EG_strdup("TPS_Group");
+    defval->type         = Tuple;
+    defval->nullVal      = IsNull;
+    defval->dim          = Vector;
+    defval->lfixed       = Change;
+    defval->vals.tuple   = NULL;
+    defval->nrow         = 0;
+
+    /*! \page aimInputsCBAERO
+     * - <B> TPS_Group = NULL</B> <br>
+     * Defines the type of aero. surface by associating a "capsGroups" attributes with a particular TPS zone - ("TPS Name", "Value"),
+     * where "Value" must be a JSON String dictionary, see \ref cbaeroTPS for additional details.
+    */
+
+  } else if (index == inTPSSizer) {
+    *ainame              = EG_strdup("TPSSizer");
+    defval->type         = String;
+    defval->nullVal      = IsNull;
+    defval->vals.string  = NULL;
+
+    /*! \page aimInputsCBAERO
+     * - <B> TPSSizer = NULL</B> <br>
+     * Path to TPSSizer executable, e.g. "tpssizerv36_linux".
+     * If not specified only CBTPS will be executed when TPS information is provided.
+     */
+
+  } else if (index == inFIAT) {
+    *ainame              = EG_strdup("FIAT");
+    defval->type         = String;
+    defval->nullVal      = IsNull;
+    defval->vals.string  = NULL;
+
+    /*! \page aimInputsCBAERO
+     * - <B> FIAT = NULL</B> <br>
+     * Name of FIAT excutable argument used with TPSSizer
      */
 
   } else if (index == inNumParallelCase) {
@@ -1304,11 +2546,6 @@ int aimUpdateState(void *instStore, void *aimInfo,
 
   if ((numBody <= 0) || (bodies == NULL)) {
     AIM_ERROR(aimInfo, "No body!\n");
-    return CAPS_SOURCEERR;
-  }
-
-  if (numBody > 1) {
-    AIM_ERROR(aimInfo, "CBAero can only accept a single body! numBody = %d\n", numBody);
     return CAPS_SOURCEERR;
   }
 
@@ -1466,6 +2703,30 @@ int aimUpdateState(void *instStore, void *aimInfo,
   // Get mesh
   cbaeroInstance->meshRefIn = (aimMeshRef *) aimInputs[inSurface_Mesh-1].vals.AIMptr;
 
+  // check that TPSin and TPS_Group are consistent
+  if (aimInputs[inTPSin-1].nullVal != aimInputs[inTPS_Group-1].nullVal) {
+    AIM_ERROR(aimInfo, "Both TPSin and TPS_Group must be set (or not)!");
+    status = CAPS_BADVALUE;
+    goto cleanup;
+  }
+
+  // check that Trajectory is also set when TPS_Group is set
+  if (aimInputs[inTPS_Group-1].nullVal == NotNull &&
+      aimInputs[inTrajectory-1].nullVal == IsNull) {
+    AIM_ERROR(aimInfo, "Setting TPS_Group also requires setting Trajectory!");
+    status = CAPS_BADVALUE;
+    goto cleanup;
+  }
+
+  if (aimInputs[inTPS_Group-1].nullVal == NotNull) {
+    string = aimInputs[inFlow_Type-1].vals.string;
+    if (strcasecmp(string, "Inviscid") == 0 || strcasecmp(string, "3") == 0) {
+      AIM_ERROR(aimInfo, "Flow_Type must be 'Laminar', 'Turbulent', or 'FreeTransition' when using TPS!");
+      status = CAPS_BADVALUE;
+      goto cleanup;
+    }
+  }
+
   if ( aimInputs[inMesh_Morph-1].vals.integer == (int) true &&
       cbaeroInstance->meshRefIn == NULL) { // If we are mighty morphing
 
@@ -1484,6 +2745,11 @@ int aimUpdateState(void *instStore, void *aimInfo,
 
   // Get attribute to index mapping
   status = create_MeshRefToIndexMap(aimInfo, cbaeroInstance->meshRefIn, &cbaeroInstance->groupMap);
+  AIM_STATUS(aimInfo, status);
+
+  // Get TPS_Group inputs
+  status = cbaero_TPS_Group(aimInfo, cbaeroInstance,
+                            aimInputs[inTPS_Group-1].length, aimInputs[inTPS_Group-1].vals.tuple);
   AIM_STATUS(aimInfo, status);
 
   status = CAPS_SUCCESS;
@@ -1525,17 +2791,31 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
   }
 
   // Write Tag files
-  status = cbearo_writeTag(aimInfo,
+  status = cbaero_writeTag(aimInfo,
                            cbaeroInstance->projectName,
                            &cbaeroInstance->groupMap,
                            cbaeroInstance->meshRefIn);
   AIM_STATUS(aimInfo, status);
 
+  // Write cbtps file
+  status = cbaero_writeCBTPS(aimInfo,
+                             cbaeroInstance->projectName,
+                             aimInputs[inTrajectory-1].length, aimInputs[inTrajectory-1].vals.string,
+                             cbaeroInstance->numTPS, cbaeroInstance->TPS);
+  AIM_STATUS(aimInfo, status);
+
+  // Write tpsin file
+  status = cbaero_writeTPSin(aimInfo,
+                             cbaeroInstance->projectName,
+                             aimInputs[inTPSin-1].length, aimInputs[inTPSin-1].vals.tuple);
+  AIM_STATUS(aimInfo, status);
+
+  // Write setup file
   status = cbaero_writeSetup(aimInfo, cbaeroInstance, aimInputs);
   AIM_STATUS(aimInfo, status);
 
 
-  // write input file
+  // write cbaero input file
   fp = aim_fopen(aimInfo, cbaeroInput, "w");
   if (fp == NULL) {
     AIM_ERROR(aimInfo, "Cannot open %s", cbaeroInput);
@@ -1551,6 +2831,49 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
            aimInputs[inProj_Name-1].vals.string);
 
   fclose(fp); fp = NULL;
+
+
+  if (aimInputs[inTPS_Group-1].nullVal == NotNull) {
+
+    // remove directory created by cbtps
+    if (aim_isDir(aimInfo, "ExternalEnvironments") == CAPS_SUCCESS) {
+      status = aim_rmDir(aimInfo, "ExternalEnvironments");
+      AIM_STATUS(aimInfo, status);
+    }
+
+    // write cbtps input file
+    fp = aim_fopen(aimInfo, cbtpsInput, "w");
+    if (fp == NULL) {
+      AIM_ERROR(aimInfo, "Cannot open %s", cbtpsInput);
+      status = CAPS_IOERR;
+      goto cleanup;
+    }
+    fprintf(fp, " -all %s ", aimInputs[inProj_Name-1].vals.string);
+    fclose(fp); fp = NULL;
+
+    // write tpssizer input file
+    fp = aim_fopen(aimInfo, tpssizerInput, "w");
+    if (fp == NULL) {
+      AIM_ERROR(aimInfo, "Cannot open %s", tpssizerInput);
+      status = CAPS_IOERR;
+      goto cleanup;
+    }
+
+    if (aimInputs[inFIAT-1].nullVal == NotNull) {
+      fprintf(fp,
+               " %s -%s",
+               aimInputs[inProj_Name-1].vals.string,
+               aimInputs[inFIAT-1].vals.string);
+    } else {
+      fprintf(fp,
+               " %s ",
+               aimInputs[inProj_Name-1].vals.string);
+    }
+
+    fclose(fp); fp = NULL;
+
+  }
+
 
   status = CAPS_SUCCESS;
 
@@ -1574,6 +2897,15 @@ int aimExecute(/*@unused@*/ const void *instStore, /*@unused@*/ void *aimInfo,
    *
    * where preAnalysis generated the file "cbaeroInput.txt" which contains commandline arguments for cbaero.
    *
+   * If the TPS input is specified, then TPSSizer is also executed with
+   *
+   * \code{.sh}
+   * cbtps $(cat cbtpsInput.txt) > cbtpsOutput.txt
+   * <TPSSizer> $(cat tpssizerInput.txt) > tpssizerOutput.txt
+   * \endcode
+   *
+   * Note that TPSSizer is only executed if a TPSSizer executable is specified in the inputs (see \ref aimInputsCBAERO).
+   *
    * The analysis can be also be explicitly executed with caps_execute in the C-API
    * or via Analysis.runAnalysis in the pyCAPS API.
    *
@@ -1591,6 +2923,10 @@ int aimExecute(/*@unused@*/ const void *instStore, /*@unused@*/ void *aimInfo,
    * print ("\n\nRunning......")
    * cbaero.system("cbaero $(cat cbaeroInput.txt) > cbaeroOutput.txt"); # Run via system call
    *
+   * if TPS:
+   *   cbaero.system("cbtps $(cat cbtpsInput.txt) > cbtpsOutput.txt") # Run via system call
+   *   cbaero.system("<TPSSizer> $(cat tpssizerInput.txt) > tpssizerOutput.txt"); # Run via system call
+   *
    * print ("\n\postAnalysis......")
    * cbaero.postAnalysis()
    * \endcode
@@ -1599,6 +2935,10 @@ int aimExecute(/*@unused@*/ const void *instStore, /*@unused@*/ void *aimInfo,
 
   int status = CAPS_SUCCESS;
   char command[PATH_MAX];
+
+  const aimStorage *cbaeroInstance = (const aimStorage *)instStore;
+
+  capsValue *tpssizer = NULL;
 
   *state = 0;
 
@@ -1609,6 +2949,32 @@ int aimExecute(/*@unused@*/ const void *instStore, /*@unused@*/ void *aimInfo,
 
   status = aim_system(aimInfo, NULL, command);
   AIM_STATUS(aimInfo, status, "Failed to execute: %s", command);
+
+  if (cbaeroInstance->numTPS > 1) {
+
+    // execute cbtps command
+    snprintf(command, PATH_MAX,
+             "cbtps $(cat %s) > cbtpsOutput.txt",
+             cbtpsInput);
+
+    status = aim_system(aimInfo, NULL, command);
+    AIM_STATUS(aimInfo, status, "Failed to execute: %s", command);
+
+    status = aim_getValue(aimInfo, inTPSSizer, ANALYSISIN, &tpssizer);
+    AIM_STATUS(aimInfo, status);
+    AIM_NOTNULL(tpssizer, aimInfo, status);
+
+    if (tpssizer->nullVal == NotNull) {
+      // execute tpssizer command
+      snprintf(command, PATH_MAX,
+               "%s $(cat %s) > tpssizerOutput.txt",
+               tpssizer->vals.string,
+               tpssizerInput);
+
+      status = aim_system(aimInfo, NULL, command);
+      AIM_STATUS(aimInfo, status, "Failed to execute: %s", command);
+    }
+  }
 
   status = CAPS_SUCCESS;
 cleanup:

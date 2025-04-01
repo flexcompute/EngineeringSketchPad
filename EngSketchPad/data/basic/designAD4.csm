@@ -1,0 +1,20 @@
+# designAD4.csm
+# written by John Dannenhoffer
+
+DESPMTR   leg1      6.0
+DESPMTR   leg2      8.0
+DESPMTR   theta     55.0
+DESPMTR   thick     1.0
+DESPMTR   width     6.0
+DESPMTR   slot      3.0
+DESPMTR   diam      2.0
+DESPMTR   rmin      3.0
+DESPMTR   Bx        0.0
+DESPMTR   By        0.0
+
+# we cannot recycle if any pmtrs change
+UDPARG    runCAD    pmtrs     leg1;leg2;theta;thick;width;slot;diam;rmin;Bx;By
+UDPARG    runCAD    toolname  $miniESP
+UDPRIM    runCAD    casename  $$/designAD4
+
+END

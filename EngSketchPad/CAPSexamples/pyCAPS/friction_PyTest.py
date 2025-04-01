@@ -67,3 +67,16 @@ CdFric  = myAnalysis.output.CDfric
 print("Total drag =", Cdtotal )
 print("Form drag =", CdForm)
 print("Friction drag =", CdFric)
+
+assert(len(Cdtotal) == 2)
+assert(len(CdForm) == 2)
+assert(len(CdFric) == 2)
+
+assert(abs(Cdtotal[0] - 0.01377) < 1e-4)
+assert(abs(Cdtotal[1] - 0.01277) < 1e-4)
+
+assert(abs(CdForm[0] - 0.00322) < 1e-4)
+assert(abs(CdForm[1] - 0.00300) < 1e-4)
+
+assert(abs(CdFric[0] - 0.01055) < 1e-4)
+assert(abs(CdFric[1] - 0.00978) < 1e-4)

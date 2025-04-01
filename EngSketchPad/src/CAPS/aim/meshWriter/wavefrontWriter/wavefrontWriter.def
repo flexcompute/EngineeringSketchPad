@@ -1,0 +1,4 @@
+LIBRARY wavefrontWriter
+EXPORTS
+meshExtension
+meshWrite

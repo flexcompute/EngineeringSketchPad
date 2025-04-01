@@ -1,0 +1,67 @@
+# importColor2
+# written by John Dannenhoffer
+
+# first box by name
+BOX       0  0  0  1  1  1
+   ATTRIBUTE ColorFace $cyan
+   ATTRIBUTE ColorEdge $black
+
+SELECT    FACE  @nbody 1
+   ATTRIBUTE _color    $red
+SELECT    FACE  @nbody 3
+   ATTRIBUTE _color    $green
+SELECT    FACE  @nbody 5
+   ATTRIBUTE _color    $blue
+SELECT    EDGE  @nbody 2  @nbody 4
+   ATTRIBUTE _color    $red
+SELECT    EDGE  @nbody 4  @nbody 6
+   ATTRIBUTE _color    $green
+SELECT    EDGE  @nbody 2  @nbody 6
+   ATTRIBUTE _color    $blue
+
+# second box by RGB triplet
+BOX       2  0  0  1  1  1
+   ATTRIBUTE ColorFace 0.5;1.0;1.0
+   ATTRIBUTE ColorEdge 0.1;0.1;0.1
+
+SELECT    FACE  @nbody 1
+   ATTRIBUTE _color    1.0;0.5;0.5
+SELECT    FACE  @nbody 3
+   ATTRIBUTE _color    0.5;1.0;0.5
+SELECT    FACE  @nbody 5
+   ATTRIBUTE _color    0.5;0.5;1.0
+SELECT    EDGE  @nbody 2  @nbody 4
+   ATTRIBUTE _color    1.0;0.5;0.5
+SELECT    EDGE  @nbody 4  @nbody 6
+   ATTRIBUTE _color    0.5;1.0;0.5
+SELECT    EDGE  @nbody 2  @nbody 6
+   ATTRIBUTE _color    0.5;0.5;1.0
+
+# dump all Bodys
+DUMP      importColor.igs  0  1  0  .  1
+DUMP      importColor.stp  0  1  0  .  1
+
+# import first Body from stp
+IMPORT    importColor.stp  1  1
+TRANSLATE 0  2  0
+
+# import second Body from stp
+IMPORT    importColor.stp  2  1
+TRANSLATE 0  2  0
+
+# import first Body from igs
+# note: ColorFace and COlorEdge are not available in .igs
+IMPORT    importColor.igs  1  1
+TRANSLATE 0  4  0
+
+# import second Body from igs
+# note: ColorFace and COlorEdge are not available in .igs
+IMPORT    importColor.igs  2  1
+TRANSLATE 0  4  0
+
+END
+
+
+
+
+

@@ -3,7 +3,7 @@
  *
  *             AIM Dynamic Subsystem
  *
- *      Copyright 2014-2024, Massachusetts Institute of Technology
+ *      Copyright 2014-2025, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -51,13 +51,13 @@ static /*@null@*/ DLL aimDLopen(const char *name)
   struct dirent   *de;
   DIR             *dr;
 #endif
-  
+
   env = getenv("ESP_ROOT");
   if (env == NULL) {
     printf(" Information: Could not find $ESP_ROOT\n");
     return NULL;
   }
-  
+
   if (name == NULL) {
     printf(" Information: Dynamic Loader invoked with NULL name!\n");
     return NULL;
@@ -92,7 +92,7 @@ static /*@null@*/ DLL aimDLopen(const char *name)
     free(full);
     return NULL;
   }
-  
+
   if (i == 1) {
     hFind = FindFirstFile(dir, &ffd);
     do {
@@ -103,7 +103,7 @@ static /*@null@*/ DLL aimDLopen(const char *name)
   } else {
     dll = LoadLibrary(full);
   }
-  
+
 #else
 
   full[len+1] = 's';
@@ -127,7 +127,7 @@ static /*@null@*/ DLL aimDLopen(const char *name)
     free(full);
     return NULL;
   }
-  
+
   if (i == 1) {
     dr = opendir(dir);
     while ((de = readdir(dr)) != NULL)
@@ -140,7 +140,7 @@ static /*@null@*/ DLL aimDLopen(const char *name)
     dll = dlopen(full, RTLD_NOW | RTLD_NODELETE);
   }
 #endif
-  
+
   if (!dll) {
     printf(" Information: Dynamic Loader Error for %s\n", full);
 #ifndef WIN32
@@ -152,7 +152,7 @@ static /*@null@*/ DLL aimDLopen(const char *name)
     return NULL;
   }
   free(full);
-  
+
   return dll;
 }
 
@@ -170,7 +170,7 @@ static void aimDLclose(/*@only@*/ DLL dll)
 static DLLFunc aimDLget(DLL dll, const char *symname)
 {
   DLLFunc data;
-  
+
 #ifdef WIN32
   data = (DLLFunc) GetProcAddress(dll, symname);
 #else
@@ -178,7 +178,7 @@ static DLLFunc aimDLget(DLL dll, const char *symname)
   data = (DLLFunc) dlsym(dll, symname);
 /*@+castfcnptr@*/
 #endif
-  
+
   return data;
 }
 
@@ -186,10 +186,10 @@ static DLLFunc aimDLget(DLL dll, const char *symname)
 static int aimDLoaded(aimContext cntxt, const char *name)
 {
   int i;
-  
+
   for (i = 0; i < cntxt.aim_nAnal; i++)
     if (strcasecmp(name, cntxt.aimName[i]) == 0) return i;
-  
+
   return -1;
 }
 
@@ -198,14 +198,14 @@ static int aimDYNload(aimContext *cntxt, const char *name)
 {
   int i, len, ret;
   DLL dll;
-  
+
   if (cntxt->aim_nAnal >= MAXANAL) {
     printf(" Information: Number of AIMs > %d!\n", MAXANAL);
     return EGADS_INDEXERR;
   }
   dll = aimDLopen(name);
   if (dll == NULL) return EGADS_NULLOBJ;
-  
+
   ret                     = cntxt->aim_nAnal;
   cntxt->aimInit[ret]     = (aimI)  aimDLget(dll, "aimInitialize"    );
   cntxt->aimDiscr[ret]    = (aimD)  aimDLget(dll, "aimDiscr"         );
@@ -259,7 +259,7 @@ static int aimDYNload(aimContext *cntxt, const char *name)
              name);
     return EGADS_EMPTY;
   }
-  
+
   len  = strlen(name) + 1;
   cntxt->aimName[ret] = (char *) malloc(len*sizeof(char));
   if (cntxt->aimName[ret] == NULL) {
@@ -270,7 +270,7 @@ static int aimDYNload(aimContext *cntxt, const char *name)
   cntxt->aimDLL[ret]    = dll;
   cntxt->aim_nInst[ret] = 0;
   cntxt->aim_nAnal++;
-  
+
   return ret;
 }
 
@@ -294,9 +294,9 @@ aim_Initialize(aimContext *cntxt,
                void       **instStore)  /* returned instance storage */
 {
   int i, ninst, stat, qFlag;
-  
+
   i = aimDLoaded(*cntxt, analysisName);
-  
+
   if (i == -1) {
     i = aimDYNload(cntxt, analysisName);
     if (i < 0) return i;
@@ -310,7 +310,7 @@ aim_Initialize(aimContext *cntxt,
   } else {
     ninst = cntxt->aim_nInst[i];
   }
-  
+
   stat = cntxt->aimInit[i](ninst, unitSys, aimStruc, instStore,
                            major, minor, nIn, nOut,
                            nField, fnames, franks, fInOut);
@@ -335,14 +335,14 @@ aim_Discr(aimContext cntxt,
           capsDiscr  *discr)            /* the structure to fill */
 {
   int i;
-  
+
   i = aimDLoaded(cntxt, analysisName);
   if (i                 == -1)   return CAPS_NOTFOUND;
   if (cntxt.aimDiscr[i] == NULL) {
     printf("aimDiscr not implemented in AIM %s\n", analysisName);
     return CAPS_NOTIMPLEMENT;
   }
-  
+
   return cntxt.aimDiscr[i](bname, discr);
 }
 
@@ -353,17 +353,22 @@ aim_FreeDiscr(aimContext cntxt,
               capsDiscr  *discr)        /* the structure to free up */
 {
   int i;
-  
+
   i = aimDLoaded(cntxt, analysisName);
   if (i == -1) return CAPS_NOTFOUND;
-  
+
   if (cntxt.aimDiscr[i] != NULL)
     if (discr->ptrm != NULL) {
+      if (cntxt.aimFreeD[i] == NULL) {
+        printf(" Error: Missing symbol 'aimFreeDiscrPtr' in %s\n",
+               analysisName);
+        return CAPS_NOTIMPLEMENT;
+      }
       cntxt.aimFreeD[i](discr->ptrm);
       discr->ptrm = NULL;
     }
   caps_freeDiscr(discr);
-  
+
   return CAPS_SUCCESS;
 }
 
@@ -379,14 +384,14 @@ aim_LocateElement(aimContext cntxt,
                   double     *bary)     /* the barycentric coordinates */
 {
   int i;
-  
+
   i = aimDLoaded(cntxt, analysisName);
   if (i               == -1)   return CAPS_NOTFOUND;
   if (cntxt.aimLoc[i] == NULL) {
     printf("aimLocateElement not implemented in AIM %s\n", analysisName);
     return CAPS_NOTIMPLEMENT;
   }
-  
+
   return cntxt.aimLoc[i](discr, params, param, bIndex, eIndex, bary);
 }
 
@@ -406,7 +411,7 @@ aim_LocateElIndex(aimContext cntxt,
     printf("aimLocateElement not implemented in AIM %s\n", cntxt.aimName[i]);
     return CAPS_NOTIMPLEMENT;
   }
-  
+
   return cntxt.aimLoc[i](discr, params, param, bIndex, eIndex, bary);
 }
 
@@ -421,10 +426,10 @@ aim_Inputs(aimContext cntxt,
            capsValue  *defaultVal)      /* pointer to default value (filled) */
 {
   int i;
-  
+
   i = aimDLoaded(cntxt, analysisName);
   if (i == -1) return CAPS_NOTFOUND;
-  
+
   return cntxt.aimInput[i](instStore, aimStruc, index, ainame, defaultVal);
 }
 
@@ -437,12 +442,12 @@ aim_UpdateState(aimContext cntxt,
      /*@null@*/ capsValue  *inputs)     /* complete suite of analysis inputs */
 {
   int i;
-  
+
   i = aimDLoaded(cntxt, analysisName);
   if (i == -1) return CAPS_NOTFOUND;
-  
+
   if (cntxt.aimUState[i] == NULL) return CAPS_SUCCESS;
-  
+
   return cntxt.aimUState[i](instStore, aimStruc, inputs);
 }
 
@@ -455,10 +460,10 @@ aim_PreAnalysis(aimContext cntxt,
      /*@null@*/ capsValue  *inputs)     /* complete suite of analysis inputs */
 {
   int i;
-  
+
   i = aimDLoaded(cntxt, analysisName);
   if (i == -1) return CAPS_NOTFOUND;
-  
+
   return cntxt.aimPAnal[i](instStore, aimStruc, inputs);
 }
 
@@ -471,14 +476,14 @@ aim_Execute(aimContext cntxt,
             int        *state)      /* the returned state of the execution */
 {
   int i;
-  
+
   i = aimDLoaded(cntxt, analysisName);
   if (i == -1) return CAPS_NOTFOUND;
   if (cntxt.aimExec[i] == NULL) {
     printf("aimExecute not implemented in AIM %s\n", analysisName);
     return CAPS_NOTIMPLEMENT;
   }
-  
+
   return cntxt.aimExec[i](instStore, aimStruc, state);
 }
 
@@ -492,14 +497,14 @@ aim_Check(aimContext cntxt,
           int        *state)        /* the returned state of the execution */
 {
   int i;
-  
+
   i = aimDLoaded(cntxt, analysisName);
   if (i == -1) return CAPS_NOTFOUND;
   if (cntxt.aimCheck[i] == NULL) {
     printf("aimCheck not implemented in AIM %s\n", analysisName);
     return CAPS_NOTIMPLEMENT;
   }
-  
+
   return cntxt.aimCheck[i](instStore, aimStruc, state);
 }
 #endif
@@ -515,10 +520,10 @@ aim_Outputs(aimContext cntxt,
             capsValue  *formVal)        /* pointer to form/units (filled) */
 {
   int i;
-  
+
   i = aimDLoaded(cntxt, analysisName);
   if (i == -1) return CAPS_NOTFOUND;
-  
+
   return cntxt.aimOutput[i](instStore, aimStruc, index, aoname, formVal);
 }
 
@@ -532,10 +537,10 @@ aim_PostAnalysis(aimContext cntxt,
       /*@null@*/ capsValue  *inputs)     /* complete suite of analysis inputs */
 {
   int i;
-  
+
   i = aimDLoaded(cntxt, analysisName);
   if (i == -1) return CAPS_NOTFOUND;
-  
+
   return cntxt.aimPost[i](instStore, aimStruc, restart, inputs);
 }
 
@@ -549,10 +554,10 @@ aim_CalcOutput(aimContext cntxt,
                capsValue  *value)       /* pointer to value struct to fill */
 {
   int i;
-  
+
   i = aimDLoaded(cntxt, analysisName);
   if (i == -1) return CAPS_NOTFOUND;
-  
+
   return cntxt.aimCalc[i](instStore, aimStruc, index, value);
 }
 
@@ -568,14 +573,14 @@ aim_Transfer(aimContext cntxt,
              char       **units)        /* the units string returned */
 {
   int i;
-  
+
   i = aimDLoaded(cntxt, analysisName);
   if (i                == -1)   return CAPS_NOTFOUND;
   if (cntxt.aimXfer[i] == NULL) {
     printf("aimTransfer not implemented in AIM %s\n", analysisName);
     return CAPS_NOTIMPLEMENT;
   }
-  
+
   return cntxt.aimXfer[i](discr, name, npts, rank, data, units);
 }
 
@@ -593,14 +598,14 @@ aim_Interpolation(aimContext cntxt,
                   double     *result)   /* the result (rank in length) */
 {
   int i;
-  
+
   i = aimDLoaded(cntxt, analysisName);
   if (i                 == -1)   return CAPS_NOTFOUND;
   if (cntxt.aimIntrp[i] == NULL) {
     printf("aimInterpolation not implemented in AIM %s\n", analysisName);
     return CAPS_NOTIMPLEMENT;
   }
-  
+
   return cntxt.aimIntrp[i](discr, name, bIndex, eIndex, bary, rank, data,
                            result);
 }
@@ -623,7 +628,7 @@ aim_InterpolIndex(aimContext cntxt,
     printf("aimInterpolation not implemented in AIM %s\n", cntxt.aimName[i]);
     return CAPS_NOTIMPLEMENT;
   }
-  
+
   return cntxt.aimIntrp[i](discr, name, bIndex, eIndex, bary, rank, data,
                            result);
 }
@@ -642,14 +647,14 @@ aim_InterpolateBar(aimContext cntxt,
                    double     *d_bar)   /* returned d(objective)/d(data) */
 {
   int i;
-  
+
   i = aimDLoaded(cntxt, analysisName);
   if (i                    == -1)   return CAPS_NOTFOUND;
   if (cntxt.aimIntrpBar[i] == NULL) {
     printf("aimInterpolateBar not implemented in AIM %s\n", analysisName);
     return CAPS_NOTIMPLEMENT;
   }
-  
+
   return cntxt.aimIntrpBar[i](discr, name, bIndex, eIndex, bary, rank, r_bar,
                               d_bar);
 }
@@ -672,7 +677,7 @@ aim_InterpolIndBar(aimContext cntxt,
     printf("aimInterpolateBar not implemented in AIM %s\n", cntxt.aimName[i]);
     return CAPS_NOTIMPLEMENT;
   }
-  
+
   return cntxt.aimIntrpBar[i](discr, name, bIndex, eIndex, bary, rank, r_bar,
                               d_bar);
 }
@@ -690,14 +695,14 @@ aim_Integration(aimContext cntxt,
                 double     *result)     /* the result (rank in length) */
 {
   int i;
-  
+
   i = aimDLoaded(cntxt, analysisName);
   if (i                 == -1)   return CAPS_NOTFOUND;
   if (cntxt.aimIntgr[i] == NULL) {
     printf("aimIntegration not implemented in AIM %s\n", analysisName);
     return CAPS_NOTIMPLEMENT;
   }
-  
+
   return cntxt.aimIntgr[i](discr, name, bIndex, eIndex, rank, data, result);
 }
 
@@ -718,7 +723,7 @@ aim_IntegrIndex(aimContext cntxt,
     printf("aimIntegration not implemented in AIM %s\n", cntxt.aimName[i]);
     return CAPS_NOTIMPLEMENT;
   }
-  
+
   return cntxt.aimIntgr[i](discr, name, bIndex, eIndex, rank, data, result);
 }
 
@@ -735,14 +740,14 @@ aim_IntegrateBar(aimContext cntxt,
                  double     *d_bar)     /* returned d(objective)/d(data) */
 {
   int i;
-  
+
   i = aimDLoaded(cntxt, analysisName);
   if (i                    == -1)   return CAPS_NOTFOUND;
   if (cntxt.aimIntgrBar[i] == NULL) {
     printf("aimIntegrateBar not implemented in AIM %s\n", analysisName);
     return CAPS_NOTIMPLEMENT;
   }
-  
+
   return cntxt.aimIntgrBar[i](discr, name, bIndex, eIndex, rank, r_bar, d_bar);
 }
 
@@ -763,7 +768,7 @@ aim_IntegrIndBar(aimContext cntxt,
     printf("aimIntegrateBar not implemented in AIM %s\n", cntxt.aimName[i]);
     return CAPS_NOTIMPLEMENT;
   }
-  
+
   return cntxt.aimIntgrBar[i](discr, name, bIndex, eIndex, rank, r_bar, d_bar);
 }
 
@@ -777,14 +782,14 @@ aim_Backdoor(aimContext cntxt,
              char       **JSONout)      /* the output(s) */
 {
   int i;
-  
+
   i = aimDLoaded(cntxt, analysisName);
   if (i                 == -1)   return CAPS_NOTFOUND;
   if (cntxt.aimBdoor[i] == NULL) {
     printf("aimBackdoor not implemented in AIM %s\n", analysisName);
     return CAPS_NOTIMPLEMENT;
   }
-  
+
   return cntxt.aimBdoor[i](instStore, aimStruc, JSONin, JSONout);
 }
 
@@ -795,7 +800,7 @@ aim_cleanup(aimContext cntxt,
             void       *instStore)      /* instance data */
 {
   int i;
-  
+
   i = aimDLoaded(cntxt, analysisName);
   if (i == -1) return;
   cntxt.aimClean[i](instStore);
@@ -805,13 +810,13 @@ aim_cleanup(aimContext cntxt,
 void aim_cleanupAll(aimContext *cntxt)
 {
   int i;
-  
+
   if (cntxt->aim_nAnal == 0) return;
 
   for (i = 0; i < cntxt->aim_nAnal; i++) {
     free(cntxt->aimName[i]);
     aimDLclose(cntxt->aimDLL[i]);
   }
-  
+
   cntxt->aim_nAnal = 0;
 }

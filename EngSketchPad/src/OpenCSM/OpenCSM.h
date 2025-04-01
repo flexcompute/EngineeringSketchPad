@@ -9,7 +9,7 @@
  */
 
 /*
- * Copyright (C) 2010/2024  John F. Dannenhoffer, III (Syracuse University)
+ * Copyright (C) 2010/2025  John F. Dannenhoffer, III (Syracuse University)
  *
  * This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
@@ -31,7 +31,7 @@
 #define _OPENCSM_H_
 
 #define OCSM_MAJOR_VERSION  1
-#define OCSM_MINOR_VERSION 25
+#define OCSM_MINOR_VERSION 27
 
 #define MAX_NAME_LEN       64           /* maximum chars in name */
 #define MAX_EXPR_LEN      512           /* maximum chars in expression */
@@ -445,6 +445,7 @@ CATBEG    sigCode
                      $illegal_csystem
                      $illegal_pmtr_index
                      $illegal_pmtr_name
+                     $illegal_func_name
                      $illegal_value
                      $insufficient_bodys_on_stack
                      $name_not_found
@@ -705,7 +706,7 @@ DIMENSION $pmtrName nrow ncol
                   old values are not overwritten
                   cannot be followed by ATTRIBUTE or CSYSTEM
 
-DUMP      $filename remove=0 toMark=0 withTess=0 $grpName=.
+DUMP      $filename remove=0 toMark=0 withTess=0 $grpName=. putColors=0
           use:    write a file that contains the Body
           pops:   Body1 (if remove=1)
           pushes: -
@@ -719,6 +720,7 @@ DUMP      $filename remove=0 toMark=0 withTess=0 $grpName=.
                      are combined into a single model
                   if toMark=1, the remove flag is ignored
                   if withTess!=0, add tessellations to .egads file
+                  if putColors==1, write _colors as Colors in STP/IGS file
                   for .ugrid files, toMark must be 0
                   valid filetypes are:
                      .brep   .BREP   --> OpenCASCADE output
@@ -773,7 +775,7 @@ ELSE
                      then skip Branches up to the matching ENDIF
                   cannot be followed by ATTRIBUTE or CSYSTEM
 
-ELSEIF    val1 $op1 val2 $op2=and val3=0 $op3=eq val4=0
+ELSEIF    val1 $op1=ne val2=0 $op2=and val3=0 $op3=eq val4=0
           use:    execute or skip a sequence of Branches
           pops:   -
           pushes: -
@@ -842,6 +844,13 @@ EVALUATE  $type arg1 ...
                         x,      y,      z,
                         dxdt,   dydt,   dzdt,
                         d2xdt2, d2ydt2, d2zdt2
+                  elseif arguments are" "edgebbox ibody iedge"
+                     ibody is Body number (1:nbody)
+                     iedge is Edge number (1:nedge)
+                     returns bounding box
+                     return in @edata:
+                        xmin, ymin, zmin,
+                        xmax, ymax, zmax
                   elseif arguments are: "edgerng ibody iedge"
                      ibody is Body number (1:nbody)
                      iedge is Edge number (1:nedge)
@@ -853,7 +862,8 @@ EVALUATE  $type arg1 ...
                      inverse evaluate Edge at given (x,y,z)
                      return in @edata:
                         t,
-                        xclose,  yclose,  zclose
+                        xclose,  yclose,  zclose,
+                        tbar
                   elseif arguments are: "edgekt ibody iedge"
                      ibody is Body number (1:nbody)
                      iedge is Edge number (1:nedge)
@@ -864,6 +874,11 @@ EVALUATE  $type arg1 ...
                      iedge is Edge number (1:nedge)
                      return in @edata:
                         xcp1 ycp1 zcp1 xcp2 ycp2 ...
+                  elseif arguments are: "edgetess ibody iedge"
+                     ibody is Body number (1:nbody)
+                     iedge is Edge number (1:nedge)
+                     return in @edata:
+                        npnt
                   elseif arguments are: "face ibody iface u v"
                      ibody is Body number (1:nbody)
                      iface is Face number (1:nface)
@@ -877,6 +892,13 @@ EVALUATE  $type arg1 ...
                         d2xdudv, d2ydudv, d2zdudv,
                         d2xdv2,  d2ydv2,  d2zdv2,
                         normx,   normy,   normz
+                  elseif arguments are: "facebbox ibody iface"
+                     ibody is Body number (1:nbody)
+                     iface is Face number (1:nface)
+                     returns bounding box
+                     return in @edata:
+                        xmin, ymin, zmin,
+                        xmax, ymax, zmax
                   elseif arguments are: "facerng ibody iface"
                      ibody is Body number (1:nbody)
                      iface is Face number (1:nface)
@@ -888,7 +910,8 @@ EVALUATE  $type arg1 ...
                      inverse evaluate Face at given (x,y,z)
                      return in @edata:
                         u,       v,
-                        xclose,  yclose,  zclose
+                        xclose,  yclose,  zclose,
+                        ubar,    vbar
                   elseif arguments are: "faceukt ibody iface"
                      ibody is Body number (1:nbody)
                      iface is Face number (1:nface)
@@ -904,6 +927,40 @@ EVALUATE  $type arg1 ...
                      iface is Face number (1:nface)
                      return in @edata:
                         xcp1, ycp1, zcp1, xcp2, ycp2, ...
+                  elseif arguments are: "facetess ibody iface"
+                     ibody is Body number (1:nbody)
+                     iface is Face number (1:nface)
+                     return in @edata:
+                        npnt, ntri
+                  elseif arguments are: "dist +ibody1 +ibody2"
+                     ibody1 and ibody2 are Body numbers (1:nbody)
+                     if ibody1 is a SolidBody
+                        dist>0 is minimum distance between neighboring Bodys
+                        dist<0 is maximum intrusion of ibody2 into ibody1
+                               (and is computed approximately)
+                     else
+                        dist>0 is minimum distance between neighboring Bodys
+                     return in @edata:
+                        dist (between),
+                        A1, B1, C1, x1, y1, z1,
+                        A2, B2, C2, x2, y2, z2
+                        (where A,B,C can be: +iface, u, v
+                                         or: -iedge, t, 0
+                                         or: 0, +inode, 0)
+                  elseif arguments are: "dist -ibody1 +ibody2"
+                     ibody1 and ibody2 are Body numbers (1:nbody)
+                     ibody1 must be SolidBody
+                     ibody2 can be NodeBody, WireBody, SheetBody, or SolidBody
+                     dist>0 is minimum distance of ibody2 to enclosing ibody1
+                     dist<0 is maximum protrusion of ibody2 out of ibody1
+                            (and is computed approximately)
+                     return in @edata:
+                        dist (inside),
+                        A1, B1, C1, x1, y1, z1,
+                        A2, B2, C2, x2, y2, z2
+                        (where A,B,C can be: +iface, u, v
+                                         or: -iedge, t, 0
+                                         or: 0, +inode, 0)
                   cannot be followed by ATTRIBUTE or CSYSTEM
                   causes finite difference sensitivities
                   signals that may be thrown/caught:
@@ -999,11 +1056,10 @@ GETATTR   $pmtrName attrID global=0
           use:    store an Attribute value(s) in a LOCALVAR
           pops:   -
           pushes: -
-          Notes:  pmtrName must be in form 'name', without subscripts
+          notes:  pmtrName must not contain subscripts
                   pmtrName must not start with '@'
                   pmtrName must not refer to an DESPMTR/CONPMTR Parameter
                   pmtrName will be marked as LOCALVAR (or OUTPMTR)
-                  pmtrName is used directly (without evaluation)
                   the type of pmtrName is changed to match the result
                   if global==0, then
                      applies to Attributes on the selected Body
@@ -1094,7 +1150,7 @@ HOLLOW    thick=0 entList=0 listStyle=0
                      $did_not_create_body
                      $insufficient_bodys_on_stack
 
-IFTHEN    val1 $op1 val2 $op2=and val3=0 $op3=eq val4=0
+IFTHEN    val1 $op1=ne val2=0 $op2=and val3=0 $op3=eq val4=0
           use:    execute or skip a Block of Branches
           pops:   -
           pushes: -
@@ -1106,7 +1162,7 @@ IFTHEN    val1 $op1 val2 $op2=and val3=0 $op3=eq val4=0
                      to next (matching) ELSEIF, ELSE, or ENDIF are skipped
                   cannot be followed by ATTRIBUTE or CSYSTEM
 
-IMPORT    $filename bodynumber=1
+IMPORT    $filename bodynumber=1 getcolors=0
           use:    import from filename
           pops:   -
           pushes: Body
@@ -1115,6 +1171,7 @@ IMPORT    $filename bodynumber=1
                   filename is used directly (without evaluation)
                   if filename starts with '$$/', use path relative to .csm file
                   if bodynumber=-1, then all Bodys are returned in one Group
+                  if getcolors==1, read Colors in STP/IGS files as _color
                   sets up @-parameters
                   the Faces all receive the Branch's Attributes
                   face-order is based upon order in file
@@ -1223,6 +1280,8 @@ JOIN      toler=0 toMark=0
                      create (possibly non-manifold) WireBody by joining
                         Body1 and Body2 at common Nodes
                   endif
+                  if toler<0, skip bounding box check for Faces when
+                              JOINing SolidBodys (and use abs(toler))
                   change in v1.19: if common Edges are not found, return
                                    $edge_not_found
                   sets up @-parameters
@@ -1374,9 +1433,10 @@ PATBEG    $pmtrName ncopy
           pushes: -
           notes:  Solver may not be open
                   Block contains all Branches up to matching PATEND
+                  pmtrName must not be an array name or contain subscripts
                   pmtrName must not start with '@'
+                  pmtrName must not refer to an DESPMTR/CONPMTR Parameter
                   pmtrName takes values from 1 to ncopy (see below)
-                  pmtrName is used directly (without evaluation)
                   cannot be followed by ATTRIBUTE or CSYSTEM
 
 PATBREAK  expr
@@ -1435,7 +1495,7 @@ RECALL    imacro
                      a MACBEG statement
                   MAY BE DEPRECATED (use UDPRIM)
 
-REORDER   ishift iflip=0
+REORDER   ishift iflip=0 reverse=0
           use:    change the order of Edges in a Body
           pops:   Body1
           pushes: Body
@@ -1446,6 +1506,8 @@ REORDER   ishift iflip=0
                   Body1 must be either WireBody or SheetBody Body
                   Body1 must contain 1 Loop
                   if the Loop is open, ishift must be 0
+                  if iflip=1 the Face normal direction is flipped
+                  if reverse=1 the sense of the Edges are flipped
                   signals that may be thrown/caught:
                      $insufficient_bodys_on_stack
                      $wrong_types_on_stack
@@ -1631,8 +1693,10 @@ SELECT    $type arg1 ...
                      uses @selbody
                      if xmin=xmax and ymin=ymax and zmin=zmax
                         sets @sellist to Face whose center is closest to xmin,ymin,zmin
+                     elseif *max>=*min
+                        sets @sellist to Faces whose bboxs are completely in or on given * range
                      else
-                        sets @sellist to Faces whose bboxs are completely in given range
+                        sets @sellist to Faces whose bboxs are partially in or on given * range
                   elseif arguments are: "face -1 ibody1"
                      sets @seltype to 2
                      uses @selbody
@@ -1684,8 +1748,10 @@ SELECT    $type arg1 ...
                      uses @selbody
                      if xmin=xmax and ymin=ymax and zmin=zmax
                         sets @sellist to Edge whose center is closest to xmin,ymin,zmin
+                     elseif *max>=*min
+                        sets @sellist to Edges whose bboxs are completely in or on given * range
                      else
-                        sets @sellist to Edges whose bboxs are completely in given range
+                        sets @sellist to Edges whose bboxs are partially in or on given * range
                   elseif arguments are: "edge attrName1    attrValue1
                                               attrName2=$* attrValue2=$*
                                               attrName3=$* attrValue3=$*"
@@ -1814,7 +1880,6 @@ SET       $pmtrName exprs
                   pmtrName must not start with '@'
                   pmtrName must not refer to an DESPMTR/CONPMTR Parameter
                   pmtrName will be marked as LOCALVAR (or OUTPMTR)
-                  pmtrName is used directly (without evaluation)
                   irow and icol cannot contain a comma or open bracket
                   if exprs has multiple values (separated by ;), then
                      any subscripts in pmtrName are ignored
@@ -2032,7 +2097,7 @@ STORE     $name index=0 keep=0
                      $insufficient_bodys_on_stack
 
 SUBTRACT  $order=none index=1 maxtol=0 scribeAll=0
-          use:    perform Boolean subtraction (Body2 - Body1)
+          use:    perform Boolean subtraction (Body1 - Body2)
           pops:   Body1 Body2
           pushes: Body
           notes:  Sketch may not be open
@@ -2233,6 +2298,9 @@ UDPRIM    $primtype $argName1 argValue1 $argName2 argValue2 ...
                   if primtype starts with $$/
                      then a .udc file in $ESP_ROOT/udc will be used
                      *  $$/name -> path($root)/udc/name.udc
+                  if primtype starts with $$$/
+                     then a .udc file in $ESP_UDC_PATH will be used
+                     *  $$$/path/name -> $ESP_UDC_PATH/path/name.udc
                   primtype  is used directly (without evaluation)
                   path may be omitted
                   arguments are specified in name/value pairs and are
@@ -2321,7 +2389,7 @@ UNION     toMark=0 trimList=0 maxtol=0
 /*
  ************************************************************************
  *                                                                      *
- * Number and string rules                                              *
+ * Number, string, and filename rules                                   *
  *                                                                      *
  ************************************************************************
  */
@@ -2361,15 +2429,34 @@ Strings:
        less-than                  <
        greater-than               >
        equal                      =
+       tilde                      ~
     the following characters are not allowed in strings
        apostrophe                 '  (except to escape ', '+ or ') )
        quotation                  "
        hashtag                    #
        backslash                  \
        vertical bar               |
-       tilde                      ~
        ampersand                  &
        exclamation                !
+Filenames:
+    as $filename in built-in commands (DUMP, IMPORT, or MESSAGE):
+       path/name.ext     -> path($pwd)/path/name.ext
+       $/path/name.ext   -> path($csm)/path/name.ext
+    as $primtype in UDPARG or UDPRIM:
+       /path/name        -> path($pwd)/path/name.udc
+       //path/name       -> /path/name.udc
+       /~/path/name      -> $HOME/path/name.udc
+       $/path/name       -> path($csm)/path/name.udc
+       $$/path/name      -> $ESP_ROOT/udc/path/name.udc
+       $$$/path/name     -> $ESP_UDC_PATH/path/name.udc
+    as (filename) argValue* in UDPARG or UDPRIM:
+       $path/name.ext    -> path($pwd)/path/name.ext
+       $$/path/name.ext  -> path($csm)/path/name.ext
+
+    where path($pwd) refers to the present working directory
+    and   path($csm) refers to the directory of the current
+                     .csm, .cpc. or .udc file
+    and   $ESP_ROOT and $ESP_UDC_PATH are environment variables
 */
 
 /*
@@ -2703,9 +2790,22 @@ Special User-defined Attributes for Bodys:
     _makeQuads  to make new-style quads on all Faces in Body
                 (.tessType is set to "Quad" and .mixed is created)
 
+    _tessFactor if real > 0.01, it multiplies the lengths specified
+                for the default tessellation
+
     _name       string used in ESP interface for a Body
 
     _stlColor   color to use for all Faces in an .stl file
+
+    ColorFace   default color assigned to front of Faces
+                either R,G,B in three 0-1 reals
+                or $red, $lred, $green, $lgreen, $blue, $lblue,
+                $yellow, $magenta, $cyan, $white, or $black
+
+    ColorEdge   default color assigned to Edges
+                either R,G,B in three 0-1 reals
+                or $red, $lred, $green, $lgreen, $blue, $lblue,
+                $yellow, $magenta, $cyan, $white, or $black
 
 Attributes assigned to Faces:
 
@@ -2743,6 +2843,8 @@ Attributes assigned to Faces:
                    * Face with smaller ycg  has lower sequence number
                    * Face with smaller zcg  has lower sequence number
                    * Face with smaller area has lower sequence number
+
+    _nedge      number of incident Edges
 
     _hist       list of Bodys that contained this Face (oldest to newest)
 
@@ -3001,7 +3103,7 @@ typedef struct {
 
     int           onstack;              /* =1 if on stack (and returned); =0 otherwise */
     int           hasdots;              /* =1 if an argument has a dot; =2 if UDPARG is changed; =0 otherwise */
-    int           hasdxyz;              /* =1 if Body has associated velocities */
+    ego           hasdxyz;              /* value of etess when tessellation velocities were cached */
     int           botype;               /* Body type (see below) */
     int           nonmani;              /* =1 if a non-manifold WireBody */
     double        CPU;                  /* CPU time (sec) */
@@ -3122,8 +3224,12 @@ typedef struct modl_T {
     int           cleanup;              /* number of Branches before context is cleaned up */
     int           dumpEgads;            /* =1 if Bodys are dumped during build */
     int           loadEgads;            /* =1 if Bodys are loaded during build, =-1 if error encountered */
-    int           hasMPs;               /* =1 if mass properties have been calculated */
+    int           hasMPs;               /* =1 if mass properties    have been calculated */
+                                        /* =2 if mass property dots have been calculted */
     int           printStack;           /* =1 to print stack after every command */
+    int           printAttrs;           /* =1 to print attributes after every command */
+    int           printPmtrs;           /* =1 to print parameters after every command */
+    int           printStors;           /* =1 to print Stores at end of ocsmBuild */
     int           tessAtEnd;            /* =1 to tessellate Bodys on stack at end of ocsmBuild */
     int           erepAtEnd;            /* =1 to generate Erep based upon _erepAttr and _erepAngle */
     int           bodyLoaded;           /* Body index of last Body loaded */
@@ -3308,16 +3414,25 @@ int ocsmCheck(void   *modl);            /* (in)  pointer to MODL */
 __ProtoExt__
 int ocsmRegMesgCB(void    *modl,        /* (in)  pointer to MODL */
                   void    (*callback)(char[]));   /* (in)  handle of callback function */
+/* the callback function has the signature: */
+/* void callback(char     mesg[])          (in)  message from OpenCSM */
 
 /* register a callback function for broadcasting messages */
 __ProtoExt__
 int ocsmRegBcstCB(void    *modl,        /* (in)  pointer to MODL */
                   void    (*callback)(char[]));   /* (in)  handle of callback function */
+/* the callback function has the signature: */
+/* void callback(char     mesg[])          (in)  message from OpenCSM */
 
 /* register a callback function for DESPMTR size changes */
 __ProtoExt__
 int ocsmRegSizeCB(void    *modl,        /* (in)  pointer to MODL */
                   void    (*callback)(void*, int, int, int));   /* (in)  handle of callback function */
+/* the callback function has the signature: */
+/* void callback(void     *modl,           (in)  pointer to MODL */
+/*               int      ipmtr,           (in)  Parameter index (bias-1) */
+/*               int      nrow,            (in)  number of rows */
+/*               int      ncol)            (in)  number of columns */
 
 /* build Bodys by executing the MODL up to a given Branch */
 __ProtoExt__
@@ -3364,13 +3479,19 @@ int ocsmUpdateTess(void   *modl,        /* (in)  pointer to MODL */
 /* compute clearance between Bodys */
 __ProtoExt__
 int ocsmClearance(void   *modl,         /* (in)  pointer to MODL */
-                  int    ibody1,        /* (in)  >0  Body index of enclosing Body */
-                                        /*       <0  Body index of neighboring Body */
+                  int    ibody1,        /* (in)  <0  Body index of enclosing Body */
+                                        /*       >0  Body index of neighboring Body */
                   int    ibody2,        /* (in)  Body index of second Body */
                   double *dist,         /* (out) >0 distance between Bodys */
                                         /*       <0 penetration distance */
-                  double pnt1[],        /* (out) closest point on ibody1 (iface, u, v) */
-                  double pnt2[]);       /* (out) closest point on ibody2 (iface, u, v) */
+                  double pnt1[],        /* (out) closest point on ibody1 */
+                                        /*       +iface, u,     v */
+                                        /*       -iedge, t,     0 */
+                                        /*       0,      inode, 0 */
+                  double pnt2[]);       /* (out) closest point on ibody2 */
+                                        /*       +iface, u,     v */
+                                        /*       -iedge, t,     0 */
+                                        /*       0,      inode, 0 */
 
 /* show matrix of "SPECIAL provide" statements */
 __ProtoExt__
@@ -3753,10 +3874,20 @@ int ocsmGetTessVel(void   *modl,        /* (in)  pointer to MODL */
                    int    iselect,      /* (in)  Node, Edge, or Face index (1:nent) */
              const double *dxyz[]);     /* (out) pointer to storage containing velocities */
 
+/* get the jacobian for selected DESPMTRs */
+__ProtoExt__
+int ocsmJacobian(void   *modl,          /* (in)  pointer to MODL */
+                 int    ibody,          /* (in)  Body index (1:nbody) */
+                 int    ndp,            /* (in)  number of selected DESPMTRs */
+                 int    ipmtr[],        /* (in)  array  of selected DESPMTR indices (1:npmtr) */
+                 int    irow[],         /* (in)  array  of selected DESPMTR row    numbers */
+                 int    icol[],         /* (in)  array  of selected DESPMTR column numbers */
+                 double dXdD[]);        /* (out) array of d(xyz)/d(DESPMTR)    3*ndp*nglob */
+
 /* get the adjoint multiplication for selected DESPMTRs */
 __ProtoExt__
 int ocsmAdjoint(void   *modl,           /* (in)  pointer to MODL */
-                int    ibody,           /* (in)  BBody index (1:nbody) */
+                int    ibody,           /* (in)  Body index (1:nbody) */
                 int    ndp,             /* (in)  number of selected DESPMTRs */
                 int    ipmtr[],         /* (in)  array  of selected DESPMTR indices (1:npmtr) */
                 int    irow[],          /* (in)  array  of selected DESPMTR row    numbers */
@@ -3787,6 +3918,11 @@ int ocsmGetBody(void   *modl,           /* (in)  pointer to MODL */
 /* print all Bodys to file */
 __ProtoExt__
 int ocsmPrintBodys(void   *modl,        /* (in)  pointer to MODL */
+                   char   filename[]);  /* (in)  file to which output is appended (or "" for stdout) */
+
+/* print Body matrix to file */
+__ProtoExt__
+int ocsmPrintBmtrx(void   *modl,        /* (in)  pointer to MODL */
                    char   filename[]);  /* (in)  file to which output is appended (or "" for stdout) */
 
 /* print the BRep associated with a specific Body */

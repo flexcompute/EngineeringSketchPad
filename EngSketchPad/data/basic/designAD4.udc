@@ -1,0 +1,49 @@
+# designAD4.udc
+# written by John Dannenhoffer
+
+INTERFACE . ALL
+
+SET       Ax        Bx-leg1
+SET       Ay        By+0.0
+SET       Cx        Bx+leg2*cosd(theta)
+SET       Cy        By+leg2*sind(theta)
+SET       Dx        Cx+thick*cosd(theta+90)
+SET       Dy        Cy+thick*sind(theta+90)
+SET       Ex        Bx+thick/cosd(theta/2)*cosd(theta/2+90)
+SET       Ey        By+thick/cosd(theta/2)*sind(theta/2+90)
+SET       Fx        Bx-leg1
+SET       Fy        By+thick
+
+SKBEG     Ax  Ay  0.0   
+   LINSEG Bx  By  0.0
+   LINSEG Cx  Cy  0.0
+   LINSEG Dx  Dy  0.0
+   LINSEG Ex  Ey  0.0
+   LINSEG Fx  Fy  0.0
+   LINSEG Ax  Ay  0.0
+SKEND
+
+EXTRUDE   0.0  0.0  width
+
+SELECT    EDGE        Ex  Ey  width/2
+FILLET    rmin        @sellist  1
+
+SELECT    EDGE        Bx  By  width/2
+FILLET    rmin+thick  @sellist  1
+
+SELECT    EDGE        (Cx+Dx)/2  (Cy+Dy)/2  0
+FILLET    width/3     @sellist  1
+
+SELECT    EDGE        (Cx+Dx)/2  (Cy+Dy)/2  width
+FILLET    width/3     @sellist  1
+
+BOX       Ax    Ay-1     width/3 \
+          slot  thick+1  width/3
+SUBTRACT
+
+CYLINDER  Bx+leg2-3/2*diam  By-1        width/2 \
+          Bx+leg2-3/2*diam  By+thick+1  width/2  diam/2
+ROTATEZ   theta
+SUBTRACT
+
+END

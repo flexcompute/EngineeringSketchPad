@@ -981,6 +981,7 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
                 // Transfer external pressures from the AIM discrObj
                 status = fea_transferExternalPressure(aimInfo,
                                                       &hsmInstance->feaProblem.feaMesh,
+                                                      &hsmInstance->units,
                                                       &feaLoad[i]);
                 AIM_STATUS(aimInfo, status);
             } else if (feaLoad[i].loadType == ThermalExternal) {

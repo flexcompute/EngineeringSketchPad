@@ -1,0 +1,49 @@
+# udcPrefix
+# written by John Dannenhoffer
+
+DESPMTR   wing:area        4240    # area
+DESPMTR   wing:aspect      9.00    # aspect ratio
+DESPMTR   wing:taper       0.48    # taper ratio
+DESPMTR   wing:sweep       35.0    # leading edge sweep
+DESPMTR   wing:dihedral     7.0    # dihedral
+DESPMTR   wing:thickr      0.10    # thickness ratio at root
+DESPMTR   wing:camberr     0.08    # camber    ratio at root
+DESPMTR   wing:thickt      0.08    # thickness ratio at tip
+DESPMTR   wing:cambert     0.01    # camber    ratio at tip
+DESPMTR   wing:xroot       50.0    # xloc at root LE
+DESPMTR   wing:zroot       -8.0    # zloc at root LE
+
+DESPMTR   htail:area       100     # area
+DESPMTR   htail:aspect     2.15    # aspect ratio
+DESPMTR   htail:taper      0.33    # taper ratio
+DESPMTR   htail:sweep        40    # leading edge sweep
+DESPMTR   htail:dihedral     12    # dihedral
+DESPMTR   htail:thickr     0.08    # thickness ratio at root
+DESPMTR   htail:camberr    0.00    # camber    ratio at root
+DESPMTR   htail:thickt     0.08    # thickness ratio at tip
+DESPMTR   htail:cambert    0.00    # camber    ratio at tip
+DESPMTR   htail:xroot     140.0    # xloc of root LE
+DESPMTR   htail:zroot       6.0    # zloc of root LE
+
+DESPMTR   canard:area      300     # area
+DESPMTR   canard:aspect    5.00    # aspect ratio
+DESPMTR   canard:taper     0.33    # taper ratio
+DESPMTR   canard:sweep       40    # leading edge sweep
+DESPMTR   canard:dihedral    12    # dihedral
+DESPMTR   canard:thickr    0.08    # thickness ratio at root
+DESPMTR   canard:camberr   0.00    # camber    ratio at root
+DESPMTR   canard:thickt    0.08    # thickness ratio at tip
+DESPMTR   canard:cambert   0.00    # camber    ratio at tip
+DESPMTR   canard:xroot      0.0    # xloc of root LE
+DESPMTR   canard:zroot     -3.0    # zloc of root LE
+
+SET       prefix       $wing:
+UDPRIM    $/udcPrefix
+
+SET       prefix       $htail:
+UDPRIM    $/udcPrefix
+
+SET       prefix       $canard:
+UDPRIM    $/udcPrefix
+
+END

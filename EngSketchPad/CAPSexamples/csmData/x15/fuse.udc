@@ -1,0 +1,74 @@
+#------------------------------------------------------------------------------#
+# Script Name   : fuse.udc
+# Purpose       : Shape Recipe for Fuselage
+# Description   : This script is developed to demonstrate UDCs using ESP. 
+# Scripted by   : Nitin Bhagat
+# Dependencies  : ESP 1.27 and above
+#               : himoco.csm: Driver script
+# Limitations   : 
+#               :
+# Contact       : [nbhagat1@udayton.edu] for scripting bugs/suggestions.
+#------------------------------------------------------------------------------#
+
+INTERFACE . ALL
+
+MARK
+    POINT 0 0 0
+
+    UDPRIM supell rx 0.21*Fuse:maxDiameter ry 0.21*Fuse:maxDiameter
+    ROTATEY 90 0 0
+    TRANSLATE 0.5*Fuse:cockpitBeg  0 0
+
+    UDPRIM supell rx 0.5*Fuse:maxDiameter ry 0.5*Fuse:maxDiameter
+    ROTATEY 90 0 0
+    TRANSLATE Fuse:maxDiameterX 0 0
+    RESTORE .
+    #RESTORE .
+
+    UDPRIM supell rx 0.5*Fuse:maxDiameter ry 0.5*Fuse:maxDiameter
+    ROTATEY 90 0 0
+    TRANSLATE Wing:rootLocX+Wing:rootChord 0 0
+    RESTORE .
+
+    UDPRIM supell rx 0.5*Fuse:baseDiameter ry 0.5*Fuse:baseDiameter
+    ROTATEY 90 0 0
+    TRANSLATE Fuse:length 0 0
+BLEND Fuse:noselist 0 0 0
+    ATTRIBUTE _name Fuse:name
+    ATTRIBUTE _color Fuse:color
+    # attribute _trn   $on
+    ATTRIBUTE tagType Fuse:name
+
+STORE fuseOml
+
+MARK
+    UDPRIM supell rx 0.10*Fuse:ferringMaxHeight ry 0.10*Fuse:ferringMaxWidth 
+    ROTATEY 90 0 0
+    TRANSLATE 1.3*Fuse:cockpitBeg  0 0
+
+    UDPRIM supell rx 0.182*Fuse:ferringMaxHeight ry 0.162*Fuse:ferringMaxWidth 
+    ROTATEY 90 0 0
+    TRANSLATE 1.5*Fuse:cockpitBeg  0 0
+    # RESTORE .
+
+    UDPRIM supell rx 0.5*Fuse:ferringMaxHeight ry 0.5*Fuse:ferringMaxWidth 
+    # ATTRIBUTE .C1side $rev
+    ROTATEY 90 0 0
+    TRANSLATE Fuse:ferringMaxWidthLocX 0 0
+    RESTORE .
+
+    UDPRIM supell rx 0.5*Fuse:ferringMaxHeight ry 0.5*Fuse:ferringMaxWidth 
+    # ATTRIBUTE .C1side $rev
+    ROTATEY 90 0 0
+    TRANSLATE Fuse:ferringLocX+Fuse:ferringLength 0 0
+
+BLEND Fuse:noselist 0 0 0
+    ATTRIBUTE _name Fuse:name+$:ferring
+    ATTRIBUTE _color "0.33137; 0.49216; 0.59412"
+    ATTRIBUTE tagType Fuse:name+$:ferring
+
+STORE fuseFerringOml
+    
+IFTHEN COMP:Cockpit EQ 1
+    UDPRIM $/cockpitAddon
+ENDIF

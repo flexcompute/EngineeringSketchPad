@@ -188,15 +188,15 @@ typedef int         pid_t;
 
 #include "aflr4_Interface.h" // Bring in AFLR4 'interface' functions
 
-#define AFLR4FILE "aflr4_%d"
-
 //#define DEBUG
 
 enum aimOutputs
 {
   Done = 1,                    /* index is 1-based */
-  NumberOfElement,
   NumberOfNode,
+  NumberOfElement,
+  NumberOfTri,
+  NumberOfQuad,
   Surface_Mesh,
   NUMOUT = Surface_Mesh        /* Total number of outputs */
 };
@@ -216,8 +216,10 @@ typedef struct {
 
     mapAttrToIndexStruct meshMap;
 
-    int numElemTotal;
     int numNodeTotal;
+    int numElemTotal;
+    int numElemTri;
+    int numElemQuad;
 
 } aimStorage;
 
@@ -240,8 +242,10 @@ static int destroy_aimStorage(aimStorage *aflr4Instance, int inUpdate)
     AIM_FREE(aflr4Instance->meshRef);
     aflr4Instance->numMeshRef = 0;
 
-    aflr4Instance->numElemTotal = 0;
     aflr4Instance->numNodeTotal = 0;
+    aflr4Instance->numElemTotal = 0;
+    aflr4Instance->numElemTri   = 0;
+    aflr4Instance->numElemQuad  = 0;
 
     if (inUpdate == (int)true) return status;
 
@@ -444,8 +448,10 @@ int aimInitialize(int inst, /*@unused@*/ const char *unitSys, void *aimInfo,
     status = initiate_meshInputStruct(&aflr4Instance->meshInput);
     AIM_STATUS(aimInfo, status);
 
-    aflr4Instance->numElemTotal = 0;
     aflr4Instance->numNodeTotal = 0;
+    aflr4Instance->numElemTotal = 0;
+    aflr4Instance->numElemTri   = 0;
+    aflr4Instance->numElemQuad  = 0;
 
 cleanup:
     if (status != CAPS_SUCCESS) AIM_FREE(*instStore);
@@ -586,7 +592,7 @@ int aimInputs(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo,
         *ainame              = EG_strdup("min_ncell");
         defval->type         = Integer;
         defval->dim          = Scalar;
-        defval->vals.integer  = min_ncell;
+        defval->vals.integer = min_ncell;
 
         /*! \page aimInputsAFLR4
          * - <B>min_ncell</B> <br>
@@ -615,12 +621,12 @@ int aimInputs(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo,
         }
 
         *ainame              = EG_strdup("mer_all");
-        defval->type         = Integer;
+        defval->type         = Boolean;
         defval->dim          = Scalar;
         defval->vals.integer = mer_all;
 
         /*! \page aimInputsAFLR4
-         * - <B>mer_all</B> <br>
+         * - <B>mer_all <Boolean></B> <br>
          * Global edge mesh spacing scale factor flag.<br>
          * Edge mesh spacing can be scaled on all surfaces based on discontinuity level<br>
          * between adjacent surfaces on both sides of the edge. For each surface the level<br>
@@ -990,7 +996,7 @@ int aimUpdateState(void *instStore, void *aimInfo,
     AIM_STATUS(aimInfo, status);
 
 #ifdef DEBUG
-    printf(" aflr4AIM/aimPreAnalysis numBody = %d!\n", numBody);
+    printf(" aflr4AIM/aimUpdateState numBody = %d!\n", numBody);
 #endif
 
     if (numBody <= 0 || bodies == NULL) {
@@ -1017,8 +1023,7 @@ int aimUpdateState(void *instStore, void *aimInfo,
       goto cleanup;
     }
 
-    if (aflr4Instance->groupMap.numAttribute == 0 ||
-        aim_newGeometry(aimInfo) == CAPS_SUCCESS ) {
+    if (aim_newGeometry(aimInfo) == CAPS_SUCCESS ) {
         // Get capsGroup name and index mapping to make sure all faces have a capsGroup value
         status = create_CAPSGroupAttrToIndexMap(numBody,
                                                 bodies,
@@ -1027,8 +1032,7 @@ int aimUpdateState(void *instStore, void *aimInfo,
         AIM_STATUS(aimInfo, status);
     }
 
-    if (aflr4Instance->meshMap.numAttribute == 0 ||
-        aim_newGeometry(aimInfo) == CAPS_SUCCESS ) {
+    if (aim_newGeometry(aimInfo) == CAPS_SUCCESS ) {
         status = create_CAPSMeshAttrToIndexMap(numBody,
                                                bodies,
                                                2, // Body, Face, and Edge
@@ -1099,12 +1103,7 @@ int aimUpdateState(void *instStore, void *aimInfo,
       }
 
       // set the filename without extensions where the grid is written for solvers
-      bodyIndex = 0;
-      if (aimInputs[Proj_Name-1].nullVal != IsNull)
-        snprintf(bodyNumberFile, 128, "%s_%d", aimInputs[Proj_Name-1].vals.string, bodyIndex);
-      else
-        snprintf(bodyNumberFile, 128, AFLR4FILE, bodyIndex);
-      status = aim_file(aimInfo, bodyNumberFile, aimFile);
+      status = aim_file(aimInfo, aimInputs[Proj_Name-1].vals.string, aimFile);
       AIM_STATUS(aimInfo, status);
       AIM_STRDUP(aflr4Instance->meshRef[0].fileName, aimFile, aimInfo, status);
 
@@ -1124,10 +1123,7 @@ int aimUpdateState(void *instStore, void *aimInfo,
         aflr4Instance->meshRef[bodyIndex].maps[0].map = NULL;
 
         // set the filename without extensions where the grid is written for solvers
-        if (aimInputs[Proj_Name-1].nullVal != IsNull)
-          snprintf(bodyNumberFile, 128, "%s_%d", aimInputs[Proj_Name-1].vals.string, bodyIndex);
-        else
-          snprintf(bodyNumberFile, 128, AFLR4FILE, bodyIndex);
+        snprintf(bodyNumberFile, 128, "%s_%d", aimInputs[Proj_Name-1].vals.string, bodyIndex);
         status = aim_file(aimInfo, bodyNumberFile, aimFile);
         AIM_STATUS(aimInfo, status);
         AIM_STRDUP(aflr4Instance->meshRef[bodyIndex].fileName, aimFile, aimInfo, status);
@@ -1354,6 +1350,8 @@ int aimPostAnalysis( void *aimStore, void *aimInfo,
 
       aflr4Instance->numNodeTotal += nglobal;
       aflr4Instance->numElemTotal += numTri+numQuad;
+      aflr4Instance->numElemTri   += numTri;
+      aflr4Instance->numElemQuad  += numQuad;
     }
 
     if (restart == 0 &&
@@ -1361,6 +1359,8 @@ int aimPostAnalysis( void *aimStore, void *aimInfo,
         printf("----------------------------\n");
         printf("Total number of nodes    = %d\n", aflr4Instance->numNodeTotal);
         printf("Total number of elements = %d\n", aflr4Instance->numElemTotal);
+        printf("Total number of triangle elements      = %d\n", aflr4Instance->numElemTri);
+        printf("Total number of quadrilateral elements = %d\n", aflr4Instance->numElemQuad);
     }
 
     /* Explicitly write out any requested meshes */
@@ -1408,7 +1408,7 @@ int aimOutputs(/*@unused@*/ void *instStore, /*@unused@*/ void *aimStruc,
     printf(" aflr4AIM/aimOutputs index = %d!\n", index);
 #endif
 
-    if (index == Node) {
+    if (index == Done) {
         *aoname = AIM_NAME(Done);
         form->type = Boolean;
         form->vals.integer = (int) false;
@@ -1416,6 +1416,16 @@ int aimOutputs(/*@unused@*/ void *instStore, /*@unused@*/ void *aimStruc,
         /*! \page aimOutputsAFLR4
          * - <B> Done </B> <br>
          * True if a surface mesh was created on all surfaces, False if not.
+         */
+
+    } else if (index == NumberOfNode) {
+        *aoname = AIM_NAME(NumberOfNode);
+        form->type = Integer;
+        form->vals.integer = 0;
+
+        /*! \page aimOutputsAFLR4
+         * - <B> NumberOfNode </B> <br>
+         * Number of vertices in the surface mesh
          */
 
     } else if (index == NumberOfElement) {
@@ -1428,14 +1438,24 @@ int aimOutputs(/*@unused@*/ void *instStore, /*@unused@*/ void *aimStruc,
          * Number of elements in the surface mesh
          */
 
-    } else if (index == NumberOfNode) {
-        *aoname = AIM_NAME(NumberOfNode);
+    } else if (index == NumberOfTri) {
+        *aoname = EG_strdup("NumberOfTri");
         form->type = Integer;
         form->vals.integer = 0;
 
         /*! \page aimOutputsAFLR4
-         * - <B> NumberOfNode </B> <br>
-         * Number of vertices in the surface mesh
+         * - <B> NumberOfTri </B> <br>
+         * Number of triangle elements in the surface mesh
+         */
+
+    } else if (index == NumberOfQuad) {
+        *aoname = EG_strdup("NumberOfQuad");
+        form->type = Integer;
+        form->vals.integer = 0;
+
+        /*! \page aimOutputsAFLR4
+         * - <B> NumberOfQuad </B> <br>
+         * Number of quadrilateral elements in the surface mesh
          */
 
     } else if (index == Surface_Mesh) {
@@ -1478,22 +1498,30 @@ int aimCalcOutput(void *instStore, /*@unused@*/ void *aimInfo, int index,
 #endif
     aflr4Instance = (aimStorage *) instStore;
 
-    if (Done == index) {
+    if (index == Done) {
 
       if (aflr4Instance->numNodeTotal > 0 && aflr4Instance->numElemTotal > 0)
         val->vals.integer = (int) true;
       else
         val->vals.integer = (int) false;
 
-    } else if (NumberOfElement == index) {
-
-      val->vals.integer = aflr4Instance->numElemTotal;
-
-    } else if (NumberOfNode == index) {
+    } else if (index == NumberOfNode) {
 
       val->vals.integer = aflr4Instance->numNodeTotal;
 
-    } else if (Surface_Mesh == index) {
+    } else if (index == NumberOfElement) {
+
+      val->vals.integer = aflr4Instance->numElemTotal;
+
+    } else if (index == NumberOfTri) {
+
+      val->vals.integer = aflr4Instance->numElemTri;
+
+    } else if (index == NumberOfQuad) {
+
+      val->vals.integer = aflr4Instance->numElemQuad;
+
+    } else if (index == Surface_Mesh) {
 
       for (i = 0; i < aflr4Instance->numMeshRef; i++) {
         status = aim_queryMeshes( aimInfo, Surface_Mesh, ANALYSISOUT, &aflr4Instance->meshRef[i] );

@@ -78,6 +78,12 @@ $(function() {
  Maximum number of points on an edge including end points to use when creating a surface mesh (min 2).</li>
 <li><b> Quad_Mesh = False</b> <br  />
  Create a quadratic mesh on four edge faces when creating the boundary element model.</li>
+<li><b> Nastran = NULL</b> <br  />
+ List of strings to specify NASTRAN statements <br  />
+ The NASTRAN statement is used to specify values for certain Executive System operational parameters. <br  />
+ These parameters are also called system cells. The NASTRAN statement is used for exceptional circumstances <br  />
+ and is therefore not needed in most runs. The NASTRAN statement may also be specified in the <br  />
+ runtime configuration (RC) files at the system, user, and job level as described in the .</li>
 <li><b> Property = NULL</b> <br  />
  Property tuple used to input property information for the model, see <a class="el" href="feaProperty.html">FEA Property</a> for additional details.</li>
 <li><b> Material = NULL</b> <br  />
@@ -115,7 +121,7 @@ $(function() {
 <li><b> Objective_Response_Type = "Weight"</b> <br  />
  Object response type (see Nastran manual).</li>
 <li><b> Mass_Increment = NULL </b> <br  />
- Object response type (see Nastran manual).</li>
+ FEA Mass Increments (see Nastran manual).</li>
 <li><b>VLM_Surface = NULL </b> <br  />
  Vortex lattice method tuple input, see <a class="el" href="vlmSurface.html">Vortex Lattice Surface</a> for additional details.</li>
 <li><b>VLM_Control = NULL </b> <br  />
@@ -143,7 +149,7 @@ $(function() {
 </div><!-- PageDoc -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Wed May 22 2024 10:55:21 for Nastran Analysis Interface Module (AIM) by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1
+Generated on Fri Feb 28 2025 09:06:42 for Nastran Analysis Interface Module (AIM) by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1
 </small></address>
 </body>
 </html>

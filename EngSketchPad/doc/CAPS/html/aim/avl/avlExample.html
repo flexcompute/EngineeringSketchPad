@@ -127,8 +127,7 @@ $(function() {
 <div class="line">wing = {<span class="stringliteral">&quot;groupName&quot;</span>    : <span class="stringliteral">&quot;Wing&quot;</span>, <span class="comment"># Notice Wing is the value for the capsGroup attribute</span></div>
 <div class="line">        <span class="stringliteral">&quot;numChord&quot;</span>     : 8,</div>
 <div class="line">        <span class="stringliteral">&quot;spaceChord&quot;</span>   : 1.0,</div>
-<div class="line">        <span class="stringliteral">&quot;numSpanTotal&quot;</span> : 24,</div>
-<div class="line">        <span class="stringliteral">&quot;spaceSpan&quot;</span>    : 1.0}</div>
+<div class="line">        <span class="stringliteral">&quot;numSpanTotal&quot;</span> : 24}</div>
 <div class="line"> </div>
 <div class="line">myAnalysis.input.AVL_Surface = {<span class="stringliteral">&quot;Wing&quot;</span>: wing}</div>
 </div><!-- fragment --><p> Once all the inputs have been set, outputs can be directly requested. The avl analysis will be automatically executed just-in-time (<a class="el" href="aimExecuteAVL.html">AIM Execution</a>).</p>
@@ -168,18 +167,18 @@ $(function() {
 </div><!-- fragment --><p> The avlAIM supports the control surface modeling functionality inside AVL. Trailing edge control surfaces can be added to the above example by making use of the vlmControlName attribute (see <a class="el" href="attributeAVL.html">AIM Attributes</a> regarding the attribution specifics). To add a <b>RightFlap</b> and <b>LeftFlap</b> to the previous example *.csm file the naca UDP entries are augmented with the following attributes.</p>
 <div class="fragment"><div class="line"><span class="comment"># left tip</span></div>
 <div class="line">udprim    naca      Thickness thick     Camber    camber</div>
-<div class="line">attribute vlmControl_LeftFlap 80 <span class="comment"># Hinge line is at 80% of the chord</span></div>
+<div class="line">attribute vlmControl_LeftFlap 80 <span class="comment"># Hinge line is at 80% of the chord (control surface between hinge and trailing edge)</span></div>
 <div class="line">...</div>
 <div class="line"> </div>
 <div class="line"><span class="comment"># root</span></div>
 <div class="line">udprim    naca      Thickness thick     Camber    camber</div>
-<div class="line">attribute vlmControl_LeftFlap 80 <span class="comment"># Hinge line is at 80% of the chord</span></div>
-<div class="line">attribute vlmControl_RightFlap 80 <span class="comment"># Hinge line is at 80% of the chord</span></div>
+<div class="line">attribute vlmControl_LeftFlap 80 <span class="comment"># Hinge line is at 80% of the chord (control surface between hinge and trailing edge)</span></div>
+<div class="line">attribute vlmControl_RightFlap 80 <span class="comment"># Hinge line is at 80% of the chord (control surface between hinge and trailing edge)</span></div>
 <div class="line">...</div>
 <div class="line"> </div>
 <div class="line"><span class="comment"># right tip</span></div>
 <div class="line">udprim    naca      Thickness thick     Camber    camber</div>
-<div class="line">attribute vlmControl_RightFlap 80 <span class="comment"># Hinge line is at 80% of the chord</span></div>
+<div class="line">attribute vlmControl_RightFlap 80 <span class="comment"># Hinge line is at 80% of the chord (control surface between hinge and trailing edge)</span></div>
 <div class="line">...</div>
 </div><!-- fragment --><p>Note how the root airfoil contains two attributes for both the left and right flaps.</p>
 <p>In the pyCAPS script the <a class="el" href="aimInputsAVL.html">AIM Inputs</a>, <b>AVL_Control</b>, must be defined. </p><div class="fragment"><div class="line">flap = {<span class="stringliteral">&quot;controlGain&quot;</span>     : 0.5,</div>

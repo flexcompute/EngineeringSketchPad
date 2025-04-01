@@ -1,0 +1,34 @@
+#
+!IFNDEF ESP_ROOT
+!ERROR ESP_ROOT must be set -- Please fix the environment...
+!ENDIF
+#
+IDIR  = $(ESP_ROOT)\include
+!include $(IDIR)\$(ESP_ARCH).$(MSVC)
+LDIR  = $(ESP_ROOT)\lib
+!IFDEF ESP_BLOC
+ODIR  = $(ESP_BLOC)\obj
+TDIR  = $(ESP_BLOC)\test
+!ELSE
+ODIR  = .
+TDIR  = $(ESP_ROOT)\bin
+!ENDIF
+
+
+$(LDIR)\curveTessAIM.dll:	curveTessAIM.def $(ODIR)\curveTessAIM.obj $(LDIR)\utils.lib
+	-del $(LDIR)\curveTessAIM.dll $(LDIR)\curveTessAIM.lib $(LDIR)\curveTessAIM.exp
+	 link /out:$(LDIR)\curveTessAIM.dll /dll /def:curveTessAIM.def \
+		$(ODIR)\curveTessAIM.obj /LIBPATH:$(LDIR) utils.lib aimUtil.lib \
+		ocsm.lib egads.lib udunits2.lib $(PYTHONLIB)
+	$(MCOMP) /manifest $(LDIR)\curveTessAIM.dll.manifest \
+		/outputresource:$(LDIR)\curveTessAIM.dll;2
+
+$(ODIR)\curveTessAIM.obj:	curveTessAIM.c $(IDIR)\capsTypes.h ..\utils\meshUtils.h
+	cl /c $(COPTS) $(DEFINE) /I$(IDIR) /I..\utils curveTessAIM.c \
+		/Fo$(ODIR)\curveTessAIM.obj
+
+clean:
+	-del $(ODIR)\curveTessAIM.obj
+
+cleanall:	clean
+	-del $(LDIR)\curveTessAIM.dll $(LDIR)\curveTessAIM.lib $(LDIR)\curveTessAIM.exp

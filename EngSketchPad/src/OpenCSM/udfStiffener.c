@@ -10,7 +10,7 @@
  */
 
 /*
- * Copyright (C) 2011/2024  John F. Dannenhoffer, III (Syracuse University)
+ * Copyright (C) 2011/2025  John F. Dannenhoffer, III (Syracuse University)
  *
  * This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
@@ -175,7 +175,7 @@ udpExecute(ego  emodel,                 /* (in)  Model containing Body */
         printf(" udpExecute: \"angle\" should be a scalar\n");
         status = EGADS_RANGERR;
         goto cleanup;
-    } else if (fabs(DEPTH(0)) > 89) {
+    } else if (fabs(ANGLE(0)) > 89) {
         printf(" udpExecute: \"angle\" should be less than 89\n");
         status = EGADS_RANGERR;
         goto cleanup;

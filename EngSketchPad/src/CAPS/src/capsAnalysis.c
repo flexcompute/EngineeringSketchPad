@@ -3,7 +3,7 @@
  *
  *             Analysis Object Functions
  *
- *      Copyright 2014-2024, Massachusetts Institute of Technology
+ *      Copyright 2014-2025, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -4190,9 +4190,6 @@ caps_preAnalysiX(capsObject *aobject, int *nErr, capsErrs **errors)
     return status;
   }
 
-  /* running preAnalysis means reload is no longer viable */
-  analysis->reload = 0;
-
   /* remove Clink */
   stat = caps_rmCLink(problem, analysis->fullPath);
   if (stat != CAPS_SUCCESS) return stat;
@@ -4200,6 +4197,9 @@ caps_preAnalysiX(capsObject *aobject, int *nErr, capsErrs **errors)
   /* update AIM's internal state? */
   status = caps_updateState(aobject, nErr, errors);
   if (status != CAPS_SUCCESS) return status;
+
+  /* running preAnalysis means reload is no longer viable */
+  analysis->reload = 0;
 
   /* are we "geometry" clean? */
   status = 0;

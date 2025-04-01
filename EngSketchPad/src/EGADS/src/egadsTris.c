@@ -3,7 +3,7 @@
  *
  *             Manipulate the Tessellation of a Face
  *
- *      Copyright 2011-2024, Massachusetts Institute of Technology
+ *      Copyright 2011-2025, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -1196,7 +1196,7 @@ EG_swapTris(int (*test)(int, int, int, triStruct *), /*@unused@*/ char *string,
       t2 = ts->tris[t1].neighbors[side]-1;
 /*@-noeffect@*/
       if (t2 > t1) test(t1, side, t2, ts);
-/*@=noeffect@*/
+/*@+noeffect@*/
     }
   }
 #ifdef DEBUG
@@ -1748,6 +1748,123 @@ EG_splitSide(int t1, int side, int t2, int sideMid, triStruct *ts)
 }
 
 
+__HOST_AND_DEVICE__ static int
+EG_splitSideUV(int t1, int side, double *uv, double *point, triStruct *ts)
+{
+  int    i, j, n, node, t[4], t2, i0, i1, i2, i3, n11, n12, n21, n22, os;
+  triTri *tmp;
+
+  if (ts->ntris+1 >= ts->mtris) {
+    n   = ts->mtris + CHUNK;
+    tmp = (triTri *) EG_reall(ts->tris, n*sizeof(triTri));
+    if (tmp == NULL) return EGADS_MALLOC;
+    ts->tris  = tmp;
+    ts->mtris = n;
+#ifdef DEBUG
+    printf(" Realloc Tris: now %d (%d)\n", n, ts->ntris);
+#endif
+  }
+  t2 = ts->tris[t1].neighbors[side] - 1;
+  if (t2 < 0) return EGADS_TOPOCNT;
+
+                                         os = 0;
+  if (ts->tris[t2].neighbors[1] == t1+1) os = 1;
+  if (ts->tris[t2].neighbors[2] == t1+1) os = 2;
+
+  i0 = ts->tris[t1].indices[side];
+  i1 = ts->tris[t1].indices[sides[side][0]];
+  i2 = ts->tris[t1].indices[sides[side][1]];
+  i3 = ts->tris[t2].indices[os];
+
+  node = EG_addVert(FACE, 0, 0, point, uv, ts);
+  if (node < EGADS_SUCCESS) return node;
+
+  n11 = ts->tris[t1].neighbors[sides[side][0]];
+  n12 = ts->tris[t1].neighbors[sides[side][1]];
+  if (ts->tris[t2].indices[sides[os][0]] == i1) {
+    n21 = ts->tris[t2].neighbors[sides[os][0]];
+    n22 = ts->tris[t2].neighbors[sides[os][1]];
+  } else {
+    n22 = ts->tris[t2].neighbors[sides[os][0]];
+    n21 = ts->tris[t2].neighbors[sides[os][1]];
+  }
+
+  /* fill in the tri structures */
+  
+  t[0] = t1; t[1] = t2; t[2] = ts->ntris; t[3] = t[2] + 1;
+  ts->ntris += 2;
+
+  ts->tris[t[0]].mark         = 0;
+  ts->tris[t[0]].indices[0]   = i0;
+  ts->tris[t[0]].indices[1]   = i1;
+  ts->tris[t[0]].indices[2]   = node;
+  ts->tris[t[0]].neighbors[0] = t[1]+1;
+  ts->tris[t[0]].neighbors[1] = t[2]+1;
+  ts->tris[t[0]].neighbors[2] = n12;
+
+  ts->tris[t[1]].mark         = 0;
+  ts->tris[t[1]].indices[0]   = i1;
+  ts->tris[t[1]].indices[1]   = i3;
+  ts->tris[t[1]].indices[2]   = node;
+  ts->tris[t[1]].neighbors[0] = t[3]+1;
+  ts->tris[t[1]].neighbors[1] = t[0]+1;
+  ts->tris[t[1]].neighbors[2] = n22;
+
+  ts->tris[t[2]].mark         = 0;
+  ts->tris[t[2]].indices[0]   = i2;
+  ts->tris[t[2]].indices[1]   = i0;
+  ts->tris[t[2]].indices[2]   = node;
+  ts->tris[t[2]].neighbors[0] = t[0]+1;
+  ts->tris[t[2]].neighbors[1] = t[3]+1;
+  ts->tris[t[2]].neighbors[2] = n11;
+  if (n11 > 0) {
+    j = 0;
+    if (ts->tris[n11-1].neighbors[1] == t[0]+1) j = 1;
+    if (ts->tris[n11-1].neighbors[2] == t[0]+1) j = 2;
+    ts->tris[n11-1].neighbors[j] = t[2]+1;
+  }
+
+  ts->tris[t[3]].mark         = 0;
+  ts->tris[t[3]].indices[0]   = i3;
+  ts->tris[t[3]].indices[1]   = i2;
+  ts->tris[t[3]].indices[2]   = node;
+  ts->tris[t[3]].neighbors[0] = t[2]+1;
+  ts->tris[t[3]].neighbors[1] = t[1]+1;
+  ts->tris[t[3]].neighbors[2] = n21;
+  if (n21 > 0) {
+    j = 0;
+    if (ts->tris[n21-1].neighbors[1] == t[1]+1) j = 1;
+    if (ts->tris[n21-1].neighbors[2] == t[1]+1) j = 2;
+    ts->tris[n21-1].neighbors[j] = t[3]+1;
+  }
+  i = NOTFILLED;
+  if ((ts->tris[t1].close == 0) && (ts->tris[t2].close == 0)) i = 0;
+  EG_fillMid(t[0], i, ts);
+  EG_fillMid(t[1], i, ts);
+  EG_fillMid(t[2], i, ts);
+  EG_fillMid(t[3], i, ts);
+
+  for (i = 0; i < 4; i++) {
+    for (j = 0; j < 3; j++) {
+      n = ts->tris[t[i]].neighbors[j];
+      if (n <= 0) continue;
+      if (EG_checkOr(t[i], j, n-1, ts) != 0) {
+        ts->tris[t[i]].mark |= 1 << j;
+        if (ts->tris[n-1].neighbors[0]-1 == t[i]) ts->tris[n-1].mark |= 1;
+        if (ts->tris[n-1].neighbors[1]-1 == t[i]) ts->tris[n-1].mark |= 2;
+        if (ts->tris[n-1].neighbors[2]-1 == t[i]) ts->tris[n-1].mark |= 4;
+      } else {
+        if (ts->tris[n-1].neighbors[0]-1 == t[i]) ts->tris[n-1].mark &= 6;
+        if (ts->tris[n-1].neighbors[1]-1 == t[i]) ts->tris[n-1].mark &= 5;
+        if (ts->tris[n-1].neighbors[2]-1 == t[i]) ts->tris[n-1].mark &= 3;
+      }
+    }
+  }
+  
+  return EGADS_SUCCESS;
+}
+
+
 __HOST_AND_DEVICE__ static double
 EG_dotNorm(double *p0, double *p1, double *p2, double *p3)
 {
@@ -2137,7 +2254,7 @@ EG_splitInter(int sideMid, /*@null@*/ double *aux, int cnt, triStruct *ts)
     if (ts->tris[t1].hit != 0) continue;
 
     side = -1;
-    dist = 0.0;
+    dist = 1.e-8;                             /* something > 0.0 */
     for (j = 0; j < 3; j++) {
       t2 = ts->tris[t1].neighbors[j]-1;
       if (t2 < 0) continue;
@@ -2386,17 +2503,133 @@ EG_addSideDist(int iter, double maxlen2, int sideMid, triStruct *ts)
 }
 
 
+__HOST_AND_DEVICE__ static int
+EG_sign(double s)
+{
+  if (s > 0.0) return  1;
+  if (s < 0.0) return -1;
+  return  0;
+}
+
+
+__HOST_AND_DEVICE__ int
+EG_inTriExact(double *t1, double *t2, double *t3, double *p, double *w)
+{
+  int    d1, d2, d3;
+  double sum;
+  
+  w[0] = EG_orienTri(t2, t3, p);
+  w[1] = EG_orienTri(t1, p,  t3);
+  w[2] = EG_orienTri(t1, t2, p);
+  d1   = EG_sign(w[0]);
+  d2   = EG_sign(w[1]);
+  d3   = EG_sign(w[2]);
+  sum  = w[0] + w[1] + w[2];
+  if (sum != 0.0) {
+    w[0] /= sum;
+    w[1] /= sum;
+    w[2] /= sum;
+  }
+  
+  if (d1*d2*d3 == 0)
+    if (d1 == 0) {
+      if ((d2 == 0) && (d3 == 0)) return EGADS_DEGEN;
+      if (d2 == d3) return EGADS_SUCCESS;
+      if (d2 ==  0) return EGADS_SUCCESS;
+      if (d3 ==  0) return EGADS_SUCCESS;
+    } else if (d2 == 0) {
+      if (d1 == d3) return EGADS_SUCCESS;
+      if (d3 ==  0) return EGADS_SUCCESS;
+    } else {
+      if (d1 == d2) return EGADS_SUCCESS;
+    }
+  
+  /* all resultant tris have the same sign -> intersection */
+  if ((d1 == d2) && (d2 == d3)) return EGADS_SUCCESS;
+  
+  /* otherwise then no intersection */
+  return EGADS_OUTSIDE;
+}
+
+
+/* insert specified vertices */
+__HOST_AND_DEVICE__ int
+EG_insertUVs(triStruct *ts, long tID, int nuv, const double *uvs)
+{
+  int    i, i0, i1, i2, tri, status;
+  double result[18], w[3], uv[2];
+  
+  for (i = 0; i < nuv; i++) {
+    uv[0] = uvs[2*i  ];
+    uv[1] = uvs[2*i+1];
+    status = EG_evaluate(ts->face, uv, result);
+    if (status != EGADS_SUCCESS) {
+      printf("%lX Face %d: EG_evaluate %lf %lf = %d (EG_insertUVs)\n",
+             tID, ts->fIndex, uv[0], uv[1], status);
+      continue;
+    }
+    /* find our triangle */
+    w[0] = w[1] = w[2] = 0.0;
+    for (tri = 0; tri < ts->ntris; tri++) {
+      i0     = ts->tris[tri].indices[0]-1;
+      i1     = ts->tris[tri].indices[1]-1;
+      i2     = ts->tris[tri].indices[2]-1;
+      status = EG_inTriExact(ts->verts[i0].uv, ts->verts[i1].uv,
+                             ts->verts[i2].uv, uv, w);
+      if (status == EGADS_SUCCESS) break;
+    }
+    if (tri == ts->ntris) {
+      printf("%lX Face %d: %lf %lf not in any triangles (EG_insertUVs)!\n",
+             tID, ts->fIndex, uv[0], uv[1]);
+      continue;
+    }
+    if ((w[0] == 1.0) || (w[1] == 1.0) || (w[2] == 1.0)) {
+      printf("%lX Face %d: %lf %lf already in mesh %.3lf %.3lf %.3lf (EG_insertUVs)!\n",
+             tID, ts->fIndex, uv[0], uv[1], w[0], w[1], w[2]);
+      continue;
+    }
+
+    status = EGADS_TOPOERR;
+    if (w[0] == 0.0) {
+      if (ts->tris[tri].neighbors[0] > 0)
+        status = EG_splitSideUV(tri, 0, uv, result, ts);
+    } else if (w[1] == 0.0) {
+      if (ts->tris[tri].neighbors[1] > 0)
+        status = EG_splitSideUV(tri, 1, uv, result, ts);
+    } else if (w[2] == 0.0) {
+      if (ts->tris[tri].neighbors[2] > 0)
+        status = EG_splitSideUV(tri, 2, uv, result, ts);
+    } else {
+      status = EG_splitTri(tri, uv, result, ts);
+    }
+    if (status != EGADS_SUCCESS) {
+      printf("%lX Face %d: %lf %lf insert = %d (EG_insertUVs)!\n",
+             tID, ts->fIndex, uv[0], uv[1], status);
+    } else {
+      EG_swapTris(EG_angUVTest, "angleUV",  0.0, ts);
+      if (ts->planar == 0) EG_swapTris(EG_diagTest, "diagonals", 1.0, ts);
+    }
+  }
+  if (ts->planar == 0) EG_swapTris(EG_angUVTest, "angleUV",  0.0, ts);
+  
+  return EGADS_SUCCESS;
+}
+
+
 /* fills the tessellate structure for the Face */
 
 __HOST_AND_DEVICE__ int
 EG_tessellate(int outLevel, triStruct *ts, long tID)
 {
-  int    n0, n1, n2, n3, flag, stat[3], status, *tmp;
-  int    i, j, k, l, stri, i0, i1, last, split, count, lsplit, qi1, qi3;
-  int    eg_split, sideMid, badStart = 0;
-  double result[18], trange[2], laccum, dist, lang, maxlen2, dot, xvec[3];
-  double norm[3], nrm[3], x1[3], x2[3], *deru, *derv, *aux;
-  triTri *tt;
+  int          n0, n1, n2, n3, flag, stat[3], status, insert, atype, alen, *tmp;
+  int          i, j, k, l, stri, i0, i1, last, split, count, lsplit, qi1, qi3;
+  int          eg_split, sideMid, badStart = 0;
+  double       result[18], trange[2], laccum, dist, lang, maxlen2, dot, xvec[3];
+  double       norm[3], nrm[3], x1[3], x2[3], *deru, *derv, *aux;
+  const int    *ints;
+  const double *reals;
+  const char   *str;
+  triTri       *tt;
 
   ts->edist2 = 0.0;             /* average edge segment length */
   ts->eps2   = DBL_MAX;         /* smallest edge segment */
@@ -2485,8 +2718,20 @@ EG_tessellate(int outLevel, triStruct *ts, long tID)
   }
   ts->nfrvrts = ts->nverts;
   
+  insert = 0;
+  atype  = ATTRSTRING;
+  status = EG_attributeRet(ts->face, ".insert!", &atype, &alen,
+                           &ints, &reals, &str);
+  if ((status == EGADS_SUCCESS) && (atype == ATTRREAL)) {
+    insert = 1;
+  } else {
+    status = EG_attributeRet(ts->face, ".inserts", &atype, &alen,
+                             &ints, &reals, &str);
+    if ((status == EGADS_SUCCESS) && (atype == ATTRREAL)) insert = 2;
+  }
+
   /* quads? */
-  if (ts->uvs != NULL) {
+  if ((ts->uvs != NULL) && (insert == 0)) {
     int    nvrt, ntrs, *trs;
     double *quv = NULL;
 
@@ -2627,6 +2872,18 @@ EG_tessellate(int outLevel, triStruct *ts, long tID)
     if (ts->ntris  < 16) return EGADS_SUCCESS;
     if (ts->planar == 1) return EGADS_SUCCESS;
     badStart = 1;
+  }
+  
+  /* inserts specified */
+  if (insert != 0) {
+    if (ts->uvs != NULL) EG_free(ts->uvs);
+    status = EG_insertUVs(ts, tID, alen/2, reals);
+    if (status == EGADS_SUCCESS) {
+      if (insert == 1) return EGADS_SUCCESS;
+    } else {
+      printf(" EGADS Internal: Face %d EG_insertUVs = %d\n",
+             ts->fIndex, status);
+    }
   }
 
   /* perform curvature based enhancements for general surfaces */
@@ -3139,55 +3396,6 @@ EG_tessellate(int outLevel, triStruct *ts, long tID)
     EG_swapTris(EG_angXYZTest, "angleXYZ", 0.0, ts);
 
   return EGADS_SUCCESS;
-}
-
-
-__HOST_AND_DEVICE__ static int
-EG_sign(double s)
-{
-  if (s > 0.0) return  1;
-  if (s < 0.0) return -1;
-  return  0;
-}
-
-
-__HOST_AND_DEVICE__ int
-EG_inTriExact(double *t1, double *t2, double *t3, double *p, double *w)
-{
-  int    d1, d2, d3;
-  double sum;
-  
-  w[0] = EG_orienTri(t2, t3, p);
-  w[1] = EG_orienTri(t1, p,  t3);
-  w[2] = EG_orienTri(t1, t2, p);
-  d1   = EG_sign(w[0]);
-  d2   = EG_sign(w[1]);
-  d3   = EG_sign(w[2]);
-  sum  = w[0] + w[1] + w[2];
-  if (sum != 0.0) {
-    w[0] /= sum;
-    w[1] /= sum;
-    w[2] /= sum;
-  }
-  
-  if (d1*d2*d3 == 0)
-    if (d1 == 0) {
-      if ((d2 == 0) && (d3 == 0)) return EGADS_DEGEN;
-      if (d2 == d3) return EGADS_SUCCESS;
-      if (d2 ==  0) return EGADS_SUCCESS;
-      if (d3 ==  0) return EGADS_SUCCESS;
-    } else if (d2 == 0) {
-      if (d1 == d3) return EGADS_SUCCESS;
-      if (d3 ==  0) return EGADS_SUCCESS;
-    } else {
-      if (d1 == d2) return EGADS_SUCCESS;
-    }
-  
-  /* all resultant tris have the same sign -> intersection */
-  if ((d1 == d2) && (d2 == d3)) return EGADS_SUCCESS;
-  
-  /* otherwise then no intersection */
-  return EGADS_OUTSIDE;
 }
 
 

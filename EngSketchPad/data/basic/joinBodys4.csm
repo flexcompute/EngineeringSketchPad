@@ -1,0 +1,30 @@
+# joinSolids4
+# written by John Dannenhoffer
+
+# left cylinder with hollowed rite-side Face
+CYLINDER  -2  0  0  0  0  0  3
+SELECT    EDGE  @nbody 2  @nbody 3
+SELECT    ADD   @nbody 2  @nbody 4
+ATTRIBUTE splitLocs "1/2"
+UDPRIM    $$/splitEdges
+
+SPHERE    4  0  0  5
+ROTATEZ   90 4  0
+SUBTRACT
+
+EXTRACT   0
+
+# rite pseudo-cylinder
+MARK
+   UDPRIM    supell  rx 3  ry 3
+   ROTATEY   90
+
+   RESTORE   .
+   TRANSLATE 2  0  0
+BLEND
+
+EXTRACT   0
+
+JOIN    1e-2
+
+END

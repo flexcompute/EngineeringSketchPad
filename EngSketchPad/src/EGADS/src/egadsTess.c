@@ -3,7 +3,7 @@
  *
  *             Tessellation Functions
  *
- *      Copyright 2011-2024, Massachusetts Institute of Technology
+ *      Copyright 2011-2025, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -1690,7 +1690,7 @@ EG_fillTris(egObject *body, int iFace, egObject *face, egObject *tess,
     stat = EG_getTopology(loops[i], &geom, &oclass, &mtype, NULL, &nedge,
                           &edges, &senses);
     if (stat != EGADS_SUCCESS) return stat;
-    for (j = 0; j < nedge; j++) {
+    for (l = j = 0; j < nedge; j++) {
       k = EG_indexBodyTopo(body, edges[j]);
       if (k <= EGADS_SUCCESS) {
         printf("%lX EGADS Error: Face %d -> Can not find Edge = %d!\n",
@@ -1705,12 +1705,17 @@ EG_fillTris(egObject *body, int iFace, egObject *face, egObject *tess,
 #endif
       stat = EG_getTessEdge(tess, k, &npts, &xyzs, &tps);
       if (stat != EGADS_SUCCESS) return stat;
+      l    += npts-1;
       ntot += npts-1;
     }
-    if (nedge != 0) m++;
+    if (l != 0) m++;
   }
 
   ntri = ntot-2 + 2*(m-1);
+  if (ntri <= 0) {
+    printf("%lX EGADS Warning: Face %d -> No area to fill!\n", tID, iFace);
+    return EGADS_SUCCESS;
+  }
 #ifdef DEBUG
   printf("%lX:       total points = %d,  total tris = %d\n", tID, ntot, ntri);
 #endif
@@ -1819,6 +1824,7 @@ EG_fillTris(egObject *body, int iFace, egObject *face, egObject *tess,
         EG_free(uvs);
         return stat;
       }
+      if (npts <= 1) continue;
       sen = senses[n]*ori*lor;
 
       /* internal Edge? */
@@ -7945,9 +7951,10 @@ EG_mapTessBody(egObject *tess, egObject *body, egObject **mapTess)
     }
     if (nMap != NULL) {
       i0 = mtess->tess1d[k].nodes[0];
-      if (i0 != 0) mtess->tess1d[k].nodes[0] = nMap[i0-1];
+      if (i0 != 0) mtess->tess1d[k].nodes[0] =  nMap[ i0-1];
       i0 = mtess->tess1d[k].nodes[1];
-      if (i0 != 0) mtess->tess1d[k].nodes[1] = nMap[i0-1];
+      if (i0 >  0) mtess->tess1d[k].nodes[1] =  nMap[ i0-1];
+      if (i0 <  0) mtess->tess1d[k].nodes[1] = -nMap[-i0-1];
     }
   }
   EG_free(edges); edges = NULL;

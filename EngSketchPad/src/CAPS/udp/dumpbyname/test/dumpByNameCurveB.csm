@@ -1,0 +1,55 @@
+# dumpByNameCurvB
+# written by Marshall Galbraith
+
+# Make some lines/curves, name, and export as step
+
+#LINE
+SKBEG 0 0 0
+   LINSEG 1 0 0
+SKEND
+
+SELECT body @nbody
+ATTRIBUTE _name $LineBody
+SELECT edge 1
+ATTRIBUTE Name $LineEdge
+STORE LinSeg
+
+# Spline
+SKBEG 1 0 0
+   SPLINE 2 0 0
+   SPLINE 2 1 0
+   SPLINE 3 1 0
+SKEND
+
+SELECT body @nbody
+ATTRIBUTE _name $SplineBody
+SELECT edge 1
+ATTRIBUTE Name $SplineEdge
+STORE Spline
+
+
+# Bezier
+SKBEG 3 1 0
+   BEZIER 4 1 0
+   BEZIER 4 2 0
+   BEZIER 5 2 0
+SKEND
+
+SELECT body @nbody
+ATTRIBUTE _name $BezierBody
+SELECT edge 1
+ATTRIBUTE Name $BezierEdge
+STORE Bezier
+
+MARK 
+
+RESTORE LinSeg
+RESTORE Spline
+RESTORE Bezier
+
+JOIN 1E-3 1
+
+UDPRIM dumpbyname filename $curveB.stp
+
+IMPORT curveB.stp -1
+TRANSLATE 0 1.5 0

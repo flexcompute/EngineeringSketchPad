@@ -9,7 +9,7 @@
  */
 
 /*
- * Copyright (C) 2012/2024  John F. Dannenhoffer, III (Syracuse University)
+ * Copyright (C) 2012/2025  John F. Dannenhoffer, III (Syracuse University)
  *
  * This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
@@ -553,13 +553,10 @@ main(int       argc,                    /* (in)  number of arguments */
         } else if (strcmp(argv[i], "-plotCP") == 0) {
             plotCP = 1;
         } else if (strcmp(argv[i], "-plugs") == 0) {
-            if (i < argc-1) {
-                plugsOn = 1;
-                sscanf(argv[++i], "%d", &plugs);
-            } else {
-                showUsage = 1;
-                break;
-            }
+            SPRINT0(0, "ERROR:: plugs no longer available in serveCSM");
+            SPRINT0(0, "        use serveESP with Tool->Plugs instead");
+            status = EXIT_FAILURE;
+            goto cleanup;
         } else if (strcmp(argv[i], "-port") == 0) {
             if (i < argc-1) {
                 sscanf(argv[++i], "%d", &port);
@@ -657,7 +654,7 @@ main(int       argc,                    /* (in)  number of arguments */
     SPRINT0(1, "*                    Program serveCSM                    *");
     SPRINT2(1, "*                     version %2d.%02d                      *", imajor, iminor);
     SPRINT0(1, "*                                                        *");
-    SPRINT0(1, "*        written by John Dannenhoffer, 2010/2024         *");
+    SPRINT0(1, "*        written by John Dannenhoffer, 2010/2025         *");
     SPRINT0(1, "*                                                        *");
     SPRINT0(1, "**********************************************************\n");
 

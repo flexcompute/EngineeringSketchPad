@@ -5,7 +5,7 @@
  *
  *             AIM Utility Function Prototypes
  *
- *      Copyright 2014-2024, Massachusetts Institute of Technology
+ *      Copyright 2014-2025, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -279,7 +279,7 @@ __ProtoExt__ void
 #define __func__  __FUNCTION__
 #endif
 
-#  define GET_ARG_COUNT(...) INTERNAL_EXPAND_ARGS_PRIVATE(INTERNAL_ARGS_AUGMENTER(__VA_ARGS__))
+#  define GET_ARG_COUNT(_0, ...) INTERNAL_EXPAND_ARGS_PRIVATE(INTERNAL_ARGS_AUGMENTER(__VA_ARGS__))
 
 #  define INTERNAL_ARGS_AUGMENTER(...) unused, __VA_ARGS__
 #  define INTERNAL_EXPAND(x) x
@@ -318,8 +318,8 @@ __ProtoExt__ void
 #  endif
 #endif
 
-#  define GET_ARG_COUNT(...) \
-    INTERNAL_GET_ARG_COUNT_PRIVATE(0, ## __VA_ARGS__, 70, 69, 68, 67, 66, 65, 64, \
+#  define GET_ARG_COUNT(_0, ...) \
+    INTERNAL_GET_ARG_COUNT_PRIVATE(_0, ##__VA_ARGS__, 70, 69, 68, 67, 66, 65, 64, \
                                   63, 62, 61, 60, 59, 58, 57, 56, 55, 54, 53, 52, \
                                   51, 50, 49, 48, 47, 46, 45, 44, 43, 42, 41, 40, \
                                   39, 38, 37, 36, 35, 34, 33, 32, 31, 30, 29, 28, \
@@ -338,18 +338,17 @@ __ProtoExt__ void
                                          _54, _55, _56, _57, _58, _59, \
                                          _60, _61, _62, _63, _64, _65, \
                                          _66, _67, _68, _69, _70, count, ...) count
-
 #endif
 
 #define AIM_STATUS(aimInfo, status, ...) \
- if (status != CAPS_SUCCESS) { \
-   aim_status(aimInfo, status, __FILE__, __LINE__, __func__, GET_ARG_COUNT(__VA_ARGS__), ##__VA_ARGS__); \
+ if (status < CAPS_SUCCESS) { \
+   aim_status(aimInfo, status, __FILE__, __LINE__, __func__, GET_ARG_COUNT(0, ##__VA_ARGS__), ##__VA_ARGS__); \
    goto cleanup; \
  }
 
 #define AIM_NOTFOUND(aimInfo, status, ...) \
- if (status != CAPS_SUCCESS && status != CAPS_NOTFOUND && status != EGADS_NOTFOUND) { \
-   aim_status(aimInfo, status, __FILE__, __LINE__, __func__, GET_ARG_COUNT(__VA_ARGS__), ##__VA_ARGS__); \
+ if (status < CAPS_SUCCESS && status != CAPS_NOTFOUND && status != EGADS_NOTFOUND) { \
+   aim_status(aimInfo, status, __FILE__, __LINE__, __func__, GET_ARG_COUNT(0, ##__VA_ARGS__), ##__VA_ARGS__); \
    goto cleanup; \
  }
 

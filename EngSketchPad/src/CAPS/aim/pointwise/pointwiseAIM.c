@@ -2896,7 +2896,7 @@ aimPostAnalysis(void *instStore, void *aimInfo, /*@unused@*/ int restart,
     const char *intents = NULL, *groupName = NULL;
     char       aimFile[PATH_MAX];
     char       *line = NULL, aimEgadsFile[PATH_MAX];
-    double     limits[4], trange[4], result[18], uv[2], offuv[2], t, ptol;
+    double     limits[4], trange[4], result[18], uv[2], offuv[2]={0,0}, t, ptol;
     double     *face_uv = NULL, *face_xyz = NULL;
 #ifdef CHECKGRID
     double     d;

@@ -29,16 +29,26 @@ int writeTrix(const char *fname, int nbody, ego *tess,
               /*@null@*/ p_tsXddm p_xddm, int nv, /*@null@*/ double ***dvar)
 {
   int               status = EGADS_SUCCESS;
-  int               i, j, k, rc, nvert=0, state, ibody, opts = 0;
+  int               i, j, k, t, rc, nvert=0, state, ibody, opts = 0;
   int               nedge, ntri, plen, iov, iot;
   double            *xyzs=NULL;
   const int         *trix, *tric, *ptype, *pindex;
   const double      *points, *uv;
   ego               ref;
   p_tsTriangulation p_surf=NULL;
-  p_tsXmParent      p_p;
+  p_tsXddmElem      p_p;
   int               nface, *tris=NULL;
   verTags           *vtags=NULL;
+  int               *compID=NULL;
+
+  ego *faces;
+  int          atype, alen, nattr;
+  const char   *string, *aname;
+  const int    *ints;
+  const double *reals;
+
+  int maxID = UNSET, myID;
+  int iTri = 0;
 
   rc = c3d_newTriangulation(&p_surf, 0, 1);
   if (rc != 0) {
@@ -48,8 +58,8 @@ int writeTrix(const char *fname, int nbody, ego *tess,
   }
 
   if (p_xddm != NULL)
-    for (i = 0; i < p_xddm->p_parent->nAttr; i++) {
-      p_p = p_xddm->p_parent;
+    for (i = 0; i < p_xddm->p_e->nAttr; i++) {
+      p_p = p_xddm->p_e;
       if (strcmp(p_p->p_attr[i].p_name, "ID") == 0) {
         strcpy(p_surf->geomName, p_p->p_attr[i].p_value);
         break;
@@ -110,6 +120,53 @@ int writeTrix(const char *fname, int nbody, ego *tess,
     }
   }
 
+  /* extract components IDs from CartBC attribute */
+  compID = (int *) EG_alloc(p_surf->nTris*sizeof(int));
+  if (compID == NULL) {
+    printf(" Error: Can not allocate components (writeTrix)!\n");
+    return EGADS_MALLOC;
+  }
+  for (i = 0; i < p_surf->nTris; i++) compID[i] = 1;
+
+  for (ibody = 0; ibody < nbody; ibody++) {
+    status  = EG_statusTessBody(tess[ibody], &ref, &state, &nvert);
+    if (status != EGADS_SUCCESS) goto cleanup;
+
+    status = EG_getBodyTopos(ref, NULL, FACE, &nface, &faces);
+    if (status != EGADS_SUCCESS) goto cleanup;
+    for (i = 1; i <= nface; i++) {
+      status = EG_getTessFace(tess[ibody], i, &plen, &points, &uv, &ptype, &pindex,
+                              &ntri, &trix, &tric);
+      if (status != EGADS_SUCCESS) goto cleanup;
+
+      /* look for component ID */
+      int cID   = UNSET;
+      status = EG_attributeNum(faces[i-1], &nattr);
+      if (status == EGADS_SUCCESS) {
+        for (k = 0; k < nattr; k++) {
+          status = EG_attributeGet(faces[i-1], k+1, &aname, &atype, &alen, &ints,
+                                  &reals, &string);
+          if (status != EGADS_SUCCESS) continue;
+          if (atype == ATTRINT) {
+            if (strncmp(aname,"CartBC",6) == 0) {
+              cID = ints[0];
+              printf(" Face %d: Component ID = %d\n", i, cID);
+            }
+          } else if (atype == ATTRREAL) {
+            if (strncmp(aname,"CartBC",6) == 0) {
+              cID = reals[0] + 0.00001;
+              printf(" Face %d: Component ID = %d\n", i, cID);
+            }
+          }
+        }
+      }
+      for (t=0; t<ntri; t++) compID[iTri++] = cID;
+      maxID = cID > maxID ? cID : maxID;
+
+    } // end face loop
+  } // end body loop
+  if (UNSET != maxID) maxID++;
+
   rc = c3d_allocTriangulation(&p_surf);
   if (rc != 0) {
     printf(" c3d_allocTriangulation failed\n");
@@ -139,13 +196,20 @@ int writeTrix(const char *fname, int nbody, ego *tess,
       p_surf->a_Tris[iot+i].vtx[2]    = iov + tris[4*i+2] - 1;
 
       /* -- component numbers -- */
-      p_surf->a_scalar0_t[iot+i]      = ibody;
-      p_surf->a_scalar0_t[iot+ntri+i] = tris[4*i+3];
+      p_surf->a_scalar0_t[iot+i] = ibody+1;
+      if (UNSET == maxID) {
+        p_surf->a_scalar0_t[iot+ntri+i] = tris[4*i+3];
+      }
+      else {
+        myID = compID[i];
+        if (UNSET == myID) myID = maxID;
+        p_surf->a_scalar0_t[iot+ntri+i] = myID;
+      }
     }
 
     if ((dvar != NULL) && (p_xddm != NULL))
       for (i = 0; i < nv; i++) { /* actual sensitivities */
-        strcpy(p_surf->p_vertData[i].name, p_xddm->a_v[i].p_id);
+        strcpy(p_surf->p_vertData[i].name, p_xddm->a_v[i].p_e->p_id);
         for (j = k = 0; k < nvert; k++) {
           p_surf->a_scalar0[3*iov + j  + i*nvert*3] = dvar[ibody][i][3*k  ];
           p_surf->a_scalar0[3*iov + j+1+ i*nvert*3] = dvar[ibody][i][3*k+1];
@@ -180,6 +244,8 @@ cleanup:
   EG_free(xyzs); xyzs = NULL;
   EG_free(tris); tris = NULL;
   EG_free(vtags); vtags = NULL;
+
+  EG_free(compID);
 
   return status;
 }

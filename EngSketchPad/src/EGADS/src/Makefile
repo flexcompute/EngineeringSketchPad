@@ -53,19 +53,19 @@ default:	includes $(LDIR)/$(SHLIB) \
 	@echo " *** EGADS Build Complete! ***"
 
 $(LDIR)/libegads.so:	$(OBJSP) $(OBJSOCC) $(OBJS) emp.o evaluate.o rational.o \
-			regQuads.o $(LDIR)/libuvmap.a
+			regQuads.o egadsHOtess.o $(LDIR)/libuvmap.a
 	touch $(LDIR)/libegads.so
 	rm $(LDIR)/libegads.so
 	(cd $(ODIR); $(CC) $(SOFLGS) -o $(LDIR)/libegads.so \
-		$(OBJSP) $(OBJSOCC) $(OBJS) emp.o evaluate.o rational.o regQuads.o \
+		$(OBJSP) $(OBJSOCC) $(OBJS) emp.o evaluate.o rational.o regQuads.o egadsHOtess.o \
 		$(LIBPATH) -luvmap $(LIBS) $(CPPSLB) $(RPATH) )
 
 $(LDIR)/libegads.dylib:	$(OBJSP) $(OBJSOCC) $(OBJS) emp.o evaluate.o rational.o \
-			regQuads.o $(LDIR)/libuvmap.a
+			regQuads.o egadsHOtess.o $(LDIR)/libuvmap.a
 	touch $(LDIR)/libegads.dylib
 	rm $(LDIR)/libegads.dylib
 	(cd $(ODIR); $(CC) -dynamiclib -o $(LDIR)/libegads.dylib $(OBJSP) $(OBJSOCC) \
-		$(OBJS) emp.o evaluate.o rational.o regQuads.o \
+		$(OBJS) emp.o evaluate.o rational.o regQuads.o egadsHOtess.o \
 		$(RPATH) $(LIBPATH) -luvmap $(LIBS) $(CPPSLB) \
 		-install_name '@rpath/libegads.dylib' \
 		-compatibility_version $(CASREV) \
@@ -73,24 +73,24 @@ $(LDIR)/libegads.dylib:	$(OBJSP) $(OBJSOCC) $(OBJS) emp.o evaluate.o rational.o 
 
 # CYGWIN
 $(LDIR)/libegads.dll:	$(OBJSP) $(OBJSOCC) $(OBJS) emp.o evaluate.o rational.o \
-			regQuads.o $(LDIR)/libuvmap.a
+			regQuads.o egadsHOtess.o $(LDIR)/libuvmap.a
 	touch $(LDIR)/libegads.dll
 	touch $(LDIR)/libegads.dll.a
 	rm $(LDIR)/libegads.dll
 	rm $(LDIR)/libegads.dll.a
 	(cd $(ODIR); $(CC) -shared -o $(LDIR)/libegads.dll \
 		-Wl,--out-implib,$(LDIR)/libegads.dll.a \
-		$(OBJSP) $(OBJSOCC) $(OBJS) emp.o evaluate.o rational.o regQuads.o \
+		$(OBJSP) $(OBJSOCC) $(OBJS) emp.o evaluate.o rational.o regQuads.o egadsHOtess.o \
 		$(LIBPATH) -luvmap $(LIBS) $(CPPSLB) )
 
 $(LDIR)/libegadstatic.a:	$(OBJSP) $(OBJSOCC) $(OBJS) emp.o evaluate.o rational.o \
-				regQuads.o $(LDIR)/libuvmap.a
+				regQuads.o egadsHOtess.o $(LDIR)/libuvmap.a
 	touch $(LDIR)/libegadstatic.a
 	rm $(LDIR)/libegadstatic.a
 	cp $(LDIR)/libuvmap.a $(LDIR)/libegadstatic.a
 	(cd $(ODIR); \
 		ar $(LOPTS) $(LDIR)/libegadstatic.a $(OBJS) $(OBJSP) $(OBJSOCC) emp.o \
-		evaluate.o rational.o regQuads.o; $(RANLB) )
+		evaluate.o rational.o regQuads.o egadsHOtess.o; $(RANLB) )
 
 $(LDIR)/libfgads.a:		$(FOBJS)
 	touch $(LDIR)/libfgads.a
@@ -155,7 +155,11 @@ regQuads.o:	../util/regQuads.c ../util/regQuads.h
 	$(CC) -c $(COPTS) $(DEFINE) $(INCS) -I../include -I../util \
 		../util/regQuads.c -o $(ODIR)/regQuads.o
 
-includes: 	$(IDIR)/$(ESP_ARCH) $(IDIR)/STANALYZER.make \
+egadsHOtess.o:	../util/egadsHOtess.c
+	$(CC) -c $(COPTS) $(DEFINE) $(INCS) -I../include -I../util \
+		../util/egadsHOtess.c -o $(ODIR)/egadsHOtess.o
+
+includes: 	$(IDIR)/$(ESP_ARCH) $(IDIR)/ESPPYTHON.make $(IDIR)/STANALYZER.make \
 		$(IDIR)/egads.h $(IDIR)/egads_dot.h $(IDIR)/egads.inc \
 		$(IDIR)/egadsErrors.h $(IDIR)/egadsTypes.h $(IDIR)/emp.h \
 		$(IDIR)/prm.h $(IDIR)/wsserver.h $(IDIR)/wsserver.inc \
@@ -166,6 +170,11 @@ $(IDIR)/$(ESP_ARCH):	../include/$(ESP_ARCH)
 	touch $(IDIR)/$(ESP_ARCH)
 	rm $(IDIR)/$(ESP_ARCH)
 	cp -p ../include/$(ESP_ARCH) $(IDIR)/$(ESP_ARCH)
+
+$(IDIR)/ESPPYTHON.make:	../include/ESPPYTHON.make
+	touch $(IDIR)/ESPPYTHON.make
+	rm $(IDIR)/ESPPYTHON.make
+	cp -p ../include/ESPPYTHON.make $(IDIR)/ESPPYTHON.make
 
 $(IDIR)/STANALYZER.make:	../include/STANALYZER.make
 	touch $(IDIR)/STANALYZER.make
@@ -263,7 +272,7 @@ lint:
 clean:
 	-(cd ../util; make clean)
 	-(cd $(ODIR); rm $(FOBJS) $(OBJSP) $(OBJSOCC) $(OBJS) emp.o evaluate.o rational.o \
-		regQuads.o SurrealD1 SurrealD4 SurrealS1 SurrealS4)
+		regQuads.o egadsHOtess.o SurrealD1 SurrealD4 SurrealS1 SurrealS4)
 
 cleanall:	clean
 	-(cd ../util; make cleanall)

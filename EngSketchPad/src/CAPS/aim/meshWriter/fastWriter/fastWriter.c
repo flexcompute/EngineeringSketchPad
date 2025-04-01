@@ -3,7 +3,7 @@
  *
  *             FAST 2D/3D Mesh Writer Code
  *
- *      Copyright 2014-2024, Massachusetts Institute of Technology
+ *      Copyright 2014-2025, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -88,47 +88,108 @@ int meshWrite(void *aimInfo, aimMesh *mesh)
   }
 
   // Write connectivity for Triangles
-  for (igroup = 0; igroup < meshData->nElemGroup; igroup++) {
+  if (meshData->elemMap != NULL) {
 
-    if (meshData->elemGroups[igroup].elementTopo != aimTri) continue;
+    // Write in order from the mesh generator
+    for (i = 0; i < meshData->nTotalElems; i++) {
 
-    for (ielem = 0; ielem < meshData->elemGroups[igroup].nElems; ielem++) {
+      igroup = meshData->elemMap[i][0];
+      ielem  = meshData->elemMap[i][1];
 
-      // element connectivity 1-based
+      if (meshData->elemGroups[igroup].elementTopo != aimTri) continue;
+
       nPoint = meshData->elemGroups[igroup].nPoint;
       for (j = 0; j < nPoint; j++ ) {
         fprintf(fp, "%d ", meshData->elemGroups[igroup].elements[nPoint*ielem+j]);
       }
       fprintf(fp, "\n");
     }
+
+  } else {
+
+    // Write by group
+    for (igroup = 0; igroup < meshData->nElemGroup; igroup++) {
+
+      if (meshData->elemGroups[igroup].elementTopo != aimTri) continue;
+
+      for (ielem = 0; ielem < meshData->elemGroups[igroup].nElems; ielem++) {
+
+        // element connectivity 1-based
+        nPoint = meshData->elemGroups[igroup].nPoint;
+        for (j = 0; j < nPoint; j++ ) {
+          fprintf(fp, "%d ", meshData->elemGroups[igroup].elements[nPoint*ielem+j]);
+        }
+        fprintf(fp, "\n");
+      }
+    }
+
   }
 
   // Write out triangle group IDs
-  for (igroup = 0; igroup < meshData->nElemGroup; igroup++) {
+  if (meshData->elemMap != NULL) {
 
-    if (meshData->elemGroups[igroup].elementTopo != aimTri) continue;
+    // Write in order from the mesh generator
+    for (i = 0; i < meshData->nTotalElems; i++) {
+      igroup = meshData->elemMap[i][0];
 
-    for (ielem = 0; ielem < meshData->elemGroups[igroup].nElems; ielem++) {
+      if (meshData->elemGroups[igroup].elementTopo != aimTri) continue;
+
       // element group ID
       fprintf(fp, "%d\n", meshData->elemGroups[igroup].ID);
     }
+
+  } else {
+
+    // Write by group
+    for (igroup = 0; igroup < meshData->nElemGroup; igroup++) {
+
+      if (meshData->elemGroups[igroup].elementTopo != aimTri) continue;
+
+      for (ielem = 0; ielem < meshData->elemGroups[igroup].nElems; ielem++) {
+        // element group ID
+        fprintf(fp, "%d\n", meshData->elemGroups[igroup].ID);
+      }
+    }
+
   }
 
   // Write connectivity for Tetrahedron
-  for (igroup = 0; igroup < meshData->nElemGroup; igroup++) {
+  if (meshData->elemMap != NULL) {
 
-    if (meshData->elemGroups[igroup].elementTopo != aimTet) continue;
+    // Write in order from the mesh generator
+    for (i = 0; i < meshData->nTotalElems; i++) {
 
-    for (ielem = 0; ielem < meshData->elemGroups[igroup].nElems; ielem++) {
+      igroup = meshData->elemMap[i][0];
+      ielem  = meshData->elemMap[i][1];
 
-      // element connectivity 1-based
+      if (meshData->elemGroups[igroup].elementTopo != aimTet) continue;
+
       nPoint = meshData->elemGroups[igroup].nPoint;
       for (j = 0; j < nPoint; j++ ) {
         fprintf(fp, "%d ", meshData->elemGroups[igroup].elements[nPoint*ielem+j]);
       }
+      fprintf(fp, "\n");
     }
-    fprintf(fp, "\n");
+  } else {
+
+    // Write by group
+    for (igroup = 0; igroup < meshData->nElemGroup; igroup++) {
+
+      if (meshData->elemGroups[igroup].elementTopo != aimTet) continue;
+
+      for (ielem = 0; ielem < meshData->elemGroups[igroup].nElems; ielem++) {
+
+        // element connectivity 1-based
+        nPoint = meshData->elemGroups[igroup].nPoint;
+        for (j = 0; j < nPoint; j++ ) {
+          fprintf(fp, "%d ", meshData->elemGroups[igroup].elements[nPoint*ielem+j]);
+        }
+      }
+      fprintf(fp, "\n");
+    }
+
   }
+
 
   printf("Finished writing FAST file\n\n");
 

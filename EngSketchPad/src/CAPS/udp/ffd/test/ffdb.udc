@@ -1,0 +1,92 @@
+
+INTERFACE . ALL
+
+IFTHEN ifnan(offset,1,0) EQ 1
+  SET offset 0.75
+ENDIF
+
+# Create the ffd box
+CFGPMTR cpu     3
+CFGPMTR cpv     4
+CFGPMTR cpw     5
+SET u_degree    1
+SET v_degree    2
+SET w_degree    3
+
+SET dx @xmax-@xmin
+SET dy @ymax-@ymin
+SET dz @zmax-@zmin
+SET ds 0.1
+
+# Box partially covering the geometry
+BOX @xmin+dx*.25-ds @ymin+dy*0.25-ds @zmin+dz*0.25-ds  dx*0.75+2*ds dy*0.75+2*ds dz*0.75+2*ds
+SET       theBox  @ibody
+
+SELECT    FACE  theBox 1
+   ATTRIBUTE  ffd_uMin    "u_degree;0;0.1;1.0"
+   ATTRIBUTE  _color $cyan
+SELECT    FACE  theBox 3
+   ATTRIBUTE  ffd_vMin    "v_degree;0;0.2;0.6;1.0"
+   ATTRIBUTE  _color $magenta
+SELECT    FACE  theBox 5
+   ATTRIBUTE  ffd_wMin    "w_degree;0;0.2;0.4;0.6;1.0"
+   ATTRIBUTE  _color $green
+
+STORE ffdBox
+
+# Create DESPMTR for sensitvitiy tests
+DIMENSION d_params cpu*cpv*cpw 3
+DESPMTR d_params 0
+
+# All but uvw Min Parameters
+DIMENSION int_params (cpu-1)*(cpv-1)*(cpw-1) 3
+PATBEG i int_params.nrow
+  PATBEG j int_params.ncol
+    SET int_params[i,j] offset*j*(i-1)/(int_params.nrow-1)
+  PATEND
+PATEND
+
+# Set 3D parameters based on the 2D parameters
+DIMENSION disp cpu*cpv*cpw 3
+SET disp 0
+PATBEG k cpw-1
+  PATBEG j cpv-1
+    PATBEG i cpu-1
+      SET ii           (j)*cpu+i+1
+      SET jj ((k)*cpv+(j))*cpu+i+1
+      PATBEG n int_params.ncol
+        SET disp[jj,n] int_params[ii,n]+d_params[jj,n]
+      PATEND
+    PATEND
+  PATEND
+PATEND
+
+# Parameters to translate and stretch
+#--- DIMENSION d_params cpu*cpv*cpw 3
+#--- PATBEG i d_params.nrow
+#---   PATBEG j d_params.ncol
+#---     SET d_params[i,j] 0.5*j*(i-1)/(d_params.nrow-1)
+#---   PATEND
+#--- PATEND
+
+# converted to BSplines
+RESTORE ffdBox
+RESTORE original
+UDPRIM  FFDsplines   minCP 21 minDeg 4
+
+# translate
+UDPRIM FFDdeform design_params disp writexyz 1
+IFTHEN @nface GT 0
+SELECT FACE
+  ATTRIBUTE _color $lblue
+ELSE
+SELECT EDGE
+  ATTRIBUTE _color $lblue
+ENDIF
+
+OUTPMTR penalty
+SET penalty @@penalty
+
+RESTORE original
+
+END

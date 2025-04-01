@@ -3,6 +3,9 @@
 ifndef ESP_ROOT
 $(error ESP_ROOT must be set -- Please fix the environment...)
 endif
+ifndef ESP_ARCH
+$(error ESP_ARCH must be set -- Please fix the environment...)
+endif
 #
 IDIR  = $(ESP_ROOT)/include
 include $(IDIR)/$(ESP_ARCH)
@@ -15,16 +18,8 @@ else
 ODIR  = .
 TDIR  = $(ESP_ROOT)/bin
 endif
-#ifndef CART3DLIB
-#XDDM = $(CART3DLIB)
-#endif
-ifneq ($(wildcard xddm*),)
-XDDM = .
-else
-XDDM = $(CART3DLIB)
-endif
 ifndef CART3DLIB
-CART3DLIB = $(IDIR)
+CART3DLIB = c3dlibs
 endif
 XMLIB0 = $(shell xml2-config --libs)
 XMLIB1 = $(subst -lm,,$(XMLIB0))
@@ -55,45 +50,57 @@ default:
 	@echo "XML developer libarary missing. Not compiling cart3dAIM."
 else
 default:	$(LDIR)/cart3dAIM.so $(TDIR)/cart3dTest $(BDIR)/ESPxddm
+
+XMLINC = $(shell xml2-config --cflags)
 endif
 
+VPATH   += $(CART3DLIB)/c3dio
+C3DIOSRC = c3dio_lib.c \
+           c3d_vtk_trix.c \
+           geomStructures.c \
+           memory_util.c
+C3DIOOBJ = $(addprefix $(ODIR)/,$(C3DIOSRC:.c=.o))
+
+VPATH  += $(CART3DLIB)/xddm
+XDDMSRC = xddm.c \
+          xddm_read.c \
+          xddm_write.c
+XDDMOBJ = $(addprefix $(ODIR)/,$(XDDMSRC:.c=.o))
 
 $(BDIR)/ESPxddm:	$(ODIR)/ESPxddm.o $(ODIR)/writeTrix.o $(ODIR)/surfTrix.o $(ODIR)/xddm.o \
-			$(ODIR)/bodyTess.o
+			$(ODIR)/bodyTess.o $(C3DIOOBJ) $(XDDMOBJ)
 	$(CC) -o $(BDIR)/ESPxddm $(ODIR)/ESPxddm.o $(ODIR)/writeTrix.o \
-		$(ODIR)/surfTrix.o $(ODIR)/xddm.o $(ODIR)/bodyTess.o -L$(LDIR) -locsm -legads \
-		-L$(CART3DLIB)/$(CART_ARCH) -lc3dio -lCart3D \
+		$(ODIR)/surfTrix.o $(ODIR)/bodyTess.o $(XDDMOBJ) $(C3DIOOBJ) \
+		 -L$(LDIR) -locsm -legads \
 		-lpthread -ldl $(FRPATH) $(XMLIB) -lm
 
-$(LDIR)/cart3dAIM.so:	$(ODIR)/cart3dAIM.o $(ODIR)/writeTrix.o $(ODIR)/surfTrix.o $(ODIR)/xddm.o \
-			$(ODIR)/bodyTess.o $(LDIR)/libaimUtil.a $(LDIR)/libutils.a
+$(LDIR)/cart3dAIM.so:	$(ODIR)/cart3dAIM.o $(ODIR)/writeTrix.o $(ODIR)/surfTrix.o $(ODIR)/xddmUtils.o \
+			$(ODIR)/bodyTess.o $(C3DIOOBJ) $(XDDMOBJ) $(LDIR)/libaimUtil.a $(LDIR)/libutils.a
 	$(CC) $(SOFLGS) -o $(LDIR)/cart3dAIM.so $(ODIR)/cart3dAIM.o \
-		$(ODIR)/writeTrix.o $(ODIR)/surfTrix.o $(ODIR)/xddm.o $(ODIR)/bodyTess.o -L$(LDIR) -lutils \
-		-laimUtil -locsm -legads -ludunits2 -L$(CART3DLIB)/$(CART_ARCH) \
-		-lc3dio -lCart3D -ldl $(XMLIB) -lm
+		$(ODIR)/writeTrix.o $(ODIR)/surfTrix.o $(ODIR)/xddmUtils.o $(ODIR)/bodyTess.o \
+		$(C3DIOOBJ) $(XDDMOBJ) -L$(LDIR) -lutils -laimUtil \
+		-locsm -legads -ludunits2 -ldl $(XMLIB) -lm
 
 $(ODIR)/cart3dAIM.o:	cart3dAIM.c $(IDIR)/capsTypes.h
-	$(CC) -c $(COPTS) $(DEFINE) -DCAPS_MESHUTILS -I$(IDIR) -I../utils -I$(CART3DLIB)/libCart3D -I$(XDDM)/xddm \
+	$(CC) -c $(COPTS) $(DEFINE) -DCAPS_MESHUTILS -I$(IDIR) -I../utils -I$(CART3DLIB)/c3dio \
+		-I$(CART3DLIB)/xddm \
 		cart3dAIM.c -o $(ODIR)/cart3dAIM.o
 
 $(ODIR)/ESPxddm.o:	ESPxddm.c
-	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I$(XDDM)/xddm \
-		-I. `xml2-config --cflags` ESPxddm.c -o $(ODIR)/ESPxddm.o
+	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I$(CART3DLIB)/xddm $(XMLINC) \
+		ESPxddm.c -o $(ODIR)/ESPxddm.o
+
+$(ODIR)/xddmUtils.o:	xddmUtils.c 
+	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I$(CART3DLIB)/xddm \
+		xddmUtils.c -o $(ODIR)/xddmUtils.o
 
 $(ODIR)/writeTrix.o:	writeTrix.c 
-	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I$(CART3DLIB)/c3dio \
-		-I$(CART3DLIB)/libCart3D -I$(XDDM)/xddm \
+	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I$(CART3DLIB)/c3dio -I$(CART3DLIB)/xddm \
 		writeTrix.c -o $(ODIR)/writeTrix.o
 
 $(ODIR)/surfTrix.o:	surfTrix.c 
 	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I$(CART3DLIB)/c3dio \
-		-I$(CART3DLIB)/libCart3D \
 		surfTrix.c -o $(ODIR)/surfTrix.o
-
-$(ODIR)/xddm.o:	$(XDDM)/xddm/xddm.c $(XDDM)/xddm/xddm.h
-	$(CC) -c $(COPTS) $(DEFINE) -pedantic -I$(XDDM)/xddm -I. \
-		`xml2-config --cflags` $(XDDM)/xddm/xddm.c \
-		 -o $(ODIR)/xddm.o
 
 $(ODIR)/bodyTess.o:	bodyTess.c 
 	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) bodyTess.c -o $(ODIR)/bodyTess.o
@@ -106,16 +113,20 @@ $(ODIR)/cart3dTest.o:	cart3dTest.c $(IDIR)/caps.h
 	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) cart3dTest.c \
 		-o $(ODIR)/cart3dTest.o
 
+$(ODIR)/%.o: %.c
+	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I$(CART3DLIB)/c3dio -I$(CART3DLIB)/xddm $(XMLINC) -w $< -o $@
+
+
 lint:
 	@echo "Cart3D AIM:"
-	$(LINT) -I../../include -I$(IDIR) -I../utils -I$(XDDM)/xddm -I$(CART3DLIB)/libCart3D -I$(CART3DLIB)/c3dio cart3dTest.c cart3dAIM.c -incondefs -exportlocal -nestcomment -uniondef -redef
+	$(LINT) -I../../include -I$(IDIR) -I../utils -I$(CART3DLIB)/xddm -I$(CART3DLIB)/c3dio $(XMLINC) cart3dTest.c cart3dAIM.c -incondefs -exportlocal -nestcomment -uniondef -redef
 	@echo " "
 	@echo "ESPxddm:"
-	$(LINT) -I../../include -I$(IDIR) -I../utils -I$(XDDM)/xddm -I$(CART3DLIB)/libCart3D -I$(CART3DLIB)/c3dio -Dxddm_free=free ESPxddm.c bodyTess.c -incondefs -exportlocal -nestcomment -uniondef
+	$(LINT) -I../../include -I$(IDIR) -I../utils -I$(CART3DLIB)/xddm -I$(CART3DLIB)/c3dio $(XMLINC) -Dxddm_free=free ESPxddm.c bodyTess.c -incondefs -exportlocal -nestcomment -uniondef
 
 clean:
-	-rm -f $(ODIR)/writeTrix.o $(ODIR)/surfTrix.o $(ODIR)/xddm.o $(ODIR)/bodyTess.o \
-		$(ODIR)/ESPxddm.o $(ODIR)/cart3dAIM.o $(ODIR)/cart3dTest.o
+	-rm -f $(ODIR)/writeTrix.o $(ODIR)/surfTrix.o $(ODIR)/xddmUtils.o $(ODIR)/bodyTess.o \
+		$(ODIR)/ESPxddm.o $(ODIR)/cart3dAIM.o $(ODIR)/cart3dTest.o $(C3DIOOBJ) $(XDDMOBJ)
 
 cleanall:	clean
 	-rm -f $(BDIR)/ESPxddm $(LDIR)/cart3dAIM.so $(TDIR)/cart3dTest

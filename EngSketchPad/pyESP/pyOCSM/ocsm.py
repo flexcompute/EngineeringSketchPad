@@ -6,7 +6,7 @@
 #                                                                 #
 ###################################################################
 
-# Copyright (C) 2024  John F. Dannenhoffer, III (Syracuse University)
+# Copyright (C) 2025  John F. Dannenhoffer, III (Syracuse University)
 #
 # This library is free software; you can redistribute it and/or
 #    modify it under the terms of the GNU Lesser General Public
@@ -2014,6 +2014,29 @@ class Ocsm(object):
 
         status = _ocsm.ocsmPrintBodys(self._modl, filename)
         _processStatus(status, "PrintBodys")
+
+        return
+
+# ======================================================================
+
+    def PrintBmtrx(self, filename):
+        """
+        ocsm.PrintBmtrx - print Body matrix to file
+
+        inputs:
+            filename    file to which output is appended (or "" for stdout)
+        outputs:
+            (None)
+        """
+        _ocsm.ocsmPrintBodys.argtypes = [ctypes.c_void_p,
+                                         ctypes.c_char_p]
+        _ocsm.ocsmPrintBodys.restype  =  ctypes.c_int
+
+        if (isinstance(filename, str)):
+            filename = filename.encode()
+
+        status = _ocsm.ocsmPrintBmtrx(self._modl, filename)
+        _processStatus(status, "PrintBmtrx")
 
         return
 

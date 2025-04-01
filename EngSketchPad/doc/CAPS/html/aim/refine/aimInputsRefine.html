@@ -80,7 +80,7 @@ $(function() {
 <p><ul>
 <li><b> Mesh_Format = NULL</b> <br  />
  Optional list of string mesh formats to generate meshes not linked to analysis. <br  />
- Available format names include: "exodus", "fast", "libMeshb", "stl", "bstl", "su2", "tecplot", "ugrid", "vtk", and "bvtk".<br  />
+ Available format names include: "exodus", "fast", "wavefront", "libMeshb", "stl", "bstl", "su2", "tecplot", "ugrid", "vtk", and "bvtk".<br  />
  where the "b" prefix indicates binary version. </li>
 </ul>
 </p>
@@ -89,6 +89,10 @@ $(function() {
  Must be specified in combination with a ScalarFieldFile or HessianFieldFile. <br  />
  Cannot be specified in combination with MetricFieldFile. <br  />
  Complexity is approximately half the target number of vertices.</li>
+<li><b> Gradation = -1.0 (double)</b> <br  />
+ May be specified in combination with a ScalarFieldFile or HessianFieldFile. <br  />
+ Cannot be specified in combination with MetricFieldFile. <br  />
+ Positive numbers: metric-space gradation stretching ratio. Negative numbers: switch for mixed-space gradation (value ignored).</li>
 <li><b> ScalarFieldFile = NULL</b> <br  />
  Scalar field file for constructing the multi-scale metric. <br  />
  Only one of ScalarFieldFile, HessianFieldFile, or MetricFieldFile may be specified</li>

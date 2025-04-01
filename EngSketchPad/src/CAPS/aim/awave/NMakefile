@@ -37,10 +37,10 @@ $(ODIR)\awaveAIM.obj:	awaveAIM.c $(IDIR)\capsTypes.h
 		/Fo$(ODIR)\awaveAIM.obj
 
 $(TDIR)\awave.exe:	$(ODIR)\awave.obj
-	ifort /Fe$(TDIR)\awave.exe $(ODIR)\awave.obj $(FLIBS)
+	$(FCOMP) /Fe$(TDIR)\awave.exe $(ODIR)\awave.obj $(FLIBS)
 
 $(ODIR)\awave.obj:	$(AWAVE)
-	ifort /c $(FOPTS) $(AWAVE) /Fo$(ODIR)\awave.obj
+	$(FCOMP) /c $(FOPTS) $(AWAVE) /Fo$(ODIR)\awave.obj
 
 clean:
 	-del $(ODIR)\awave.obj $(ODIR)\awaveAIM.obj

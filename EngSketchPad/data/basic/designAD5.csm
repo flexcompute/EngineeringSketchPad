@@ -1,0 +1,19 @@
+# designAD5.csm
+# written by John Dannenhoffer
+
+DESPMTR   x1        1.0
+DESPMTR   h1        1.0
+DESPMTR   w1        2.0
+
+DESPMTR   x2        4.0
+DESPMTR   h2        1.5
+DESPMTR   w2        2.0
+
+DESPMTR   x3        7.0
+
+# we cannot recycle if any pmtrs change
+UDPARG    runCAD    pmtrs     x1;h1;w1;x2;h2;w2;x3
+UDPARG    runCAD    toolname  $miniESP
+UDPRIM    runCAD    casename  $$/designAD5
+
+END

@@ -3,7 +3,7 @@
 *              jlEGADS --- Julia version of EGADS API
 *
 *
-*      Copyright 2011-2024, Massachusetts Institute of Technology
+*      Copyright 2011-2025, Massachusetts Institute of Technology
 *      Licensed under The GNU Lesser General Public License, version 2.1
 *      See http://www.opensource.org/licenses/lgpl-2.1.php
 *      Written by: Julia Docampo Sanchez
@@ -928,7 +928,7 @@ function getTopology(topo::Ego)
     child  = Ref{Ptr{ego}}()
 
     raiseStatus(ccall((:EG_getTopology, C_egadslib), Cint, (ego, Ptr{ego},
-                 Ptr{Cint}, Ptr{Cint}, Ptr{Cdouble}, Ptr{Cint},Ptr{Ptr{ego}}, Ptr{Ptr{Cint}}),
+                 Ptr{Cint}, Ptr{Cint}, Ptr{Cdouble}, Ptr{Cint}, Ptr{Ptr{ego}}, Ptr{Ptr{Cint}}),
                  topo._ego, geom, oclass, mtype,lims, nChild, child, sen))
 
     nC = (oclass[] == LOOP  && geom[] != C_NULL) ? nChild[] * 2 :

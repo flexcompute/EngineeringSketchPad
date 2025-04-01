@@ -9,7 +9,7 @@
  */
 
 /*
- * Copyright (C) 2011/2024  John F. Dannenhoffer, III (Syracuse University)
+ * Copyright (C) 2011/2025  John F. Dannenhoffer, III (Syracuse University)
  *
  * This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
@@ -31,11 +31,21 @@
 #define _COMMON_H_
 
 /* macros for error checking */
+#ifndef SEGFAULT_ON_SIGNAL
 #define CHECK_STATUS(X)                                                 \
     if (status < SUCCESS) {                                             \
         printf( "ERROR:: BAD STATUS = %d from %s (called from %s:%d)\n", status, #X, routine, __LINE__); \
         goto cleanup;                                                   \
     }
+#else
+#define CHECK_STATUS(X)                                                 \
+    if (status < SUCCESS) {                                             \
+        printf( "ERROR:: BAD STATUS = %d from %s (called from %s:%d)\n", status, #X, routine, __LINE__); \
+        double *SEGFAULT=NULL;\
+        printf("%f\n", SEGFAULT[1]); \
+        goto cleanup;                                                   \
+    }
+#endif
 #define SET_STATUS(STAT,X)                                              \
     status = STAT;                                                      \
     printf( "ERROR:: BAD STATUS = %d from %s (called from %s:%d)\n", status, #X, routine, __LINE__); \
@@ -178,7 +188,7 @@
 #define           PIo4            0.7853981633974482789994909
 #define           PIo180          0.0174532925199432954743717
 
-#define           HUGEQ           99999999.0
+#define           HUGEQ           9.9999999e+30
 #define           HUGEI           9999999
 #define           EPS03           1.0e-03
 #define           EPS06           1.0e-06

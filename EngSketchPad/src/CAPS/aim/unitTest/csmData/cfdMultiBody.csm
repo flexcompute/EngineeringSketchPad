@@ -12,6 +12,7 @@ dimension twist 2 1
 despmtr   twist        15.00000
 despmtr   lesweep      30.00000
 despmtr   dihedral     1.00000
+despmtr   winggap     10.00000
 
 LBOUND    area      10.00
 UBOUND    area    1000.00
@@ -90,7 +91,7 @@ restore   Wing 0
     attribute capsReferenceChord    cmean
     attribute capsReferenceSpan     span
     attribute capsReferenceX        0.0
-    attribute capsMeshLength        cmean
+    attribute capsMeshLength        2*cmean #Larger scale for carser meshes
 
 # Wing 2 -  Restore and scale, translate
 restore   Wing 0
@@ -102,11 +103,11 @@ restore   Wing 0
     attribute AFLR4_Cmp_ID 2
 
     scale     0.4
-    translate 10   0   0
+    translate croot+winggap   0   0
 
 IFTHEN wake EQ 1
    # Create a wake sheet for mesh clustering
-   BOX 13   -sspan   0    5  2*sspan  0
+   BOX 1.5*croot   -sspan   0    5  2*sspan  0
        ATTRIBUTE capsGroup   $Wake
        ATTRIBUTE capsMesh    $Wake
        attribute capsAIM     capsAIM

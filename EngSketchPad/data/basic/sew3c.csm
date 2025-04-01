@@ -1,0 +1,53 @@
+# sew3c
+# written by John Dannenhoffer
+
+# read sewed Bodys from file
+PATBEG    ibody   99999
+   UDPRIM sew     filename $$/sew3.stp   bodynum ibody
+
+   # the file was made bt OpenVSP, which will generate a
+   #     SheetBody for components with symmetry since the
+   #     root airfoil is duplicated.   so if this is a
+   #     SheetBody ...
+   IFTHEN    @itype EQ 2
+
+      # store this Body since we will need it again
+      STORE     mySheetBody
+
+      # make a SheetBody out of the Faces associated with
+      #    the left wing or htail
+      RESTORE   mySheetBody
+      SELECT    FACE   @xmin-1  @xmax+1  @ymin-1  +0.01  @zmin-1  @zmax+1
+      EXTRACT   @sellist
+
+      SELECT    FACE   @xmin-1  @xmax+1  -0.01    +0.01  @zmin-1  @zmax+1
+      SELECT    NOT
+      EXTRACT   @sellist
+
+      # make a SheetBody out of the Faces associated with
+      #    the left wing of htail
+      RESTORE   mySheetBody
+      SELECT    FACE   @xmin-1  @xmax+1  -0.01  @ymax+1  @zmin-1  @zmax+1
+      EXTRACT   @sellist
+
+      SELECT    FACE   @xmin-1  @xmax+1  -0.01  +0.01    @zmin-1  @zmax+1
+      SELECT    NOT
+      EXTRACT   @sellist
+
+      # join the SheetBodys and promote to a SolidBody
+      JOIN
+      ELEVATE
+
+   ENDIF
+PATEND
+
+# the above loop woll throw an error when you have asked for
+#     a Body beyond the number in the file, so cancel that
+#     signal now
+CATBEG    -7
+CATEND
+
+# now UNION all the Bodys together into a single Body
+UNION     1
+
+END

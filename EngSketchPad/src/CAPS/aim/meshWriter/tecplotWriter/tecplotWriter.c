@@ -3,7 +3,7 @@
  *
  *             Tecplot Mesh Writer Code
  *
- *      Copyright 2014-2024, Massachusetts Institute of Technology
+ *      Copyright 2014-2025, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -49,10 +49,11 @@ static void writeZone(FILE *fp, int dim, int nnode, int nElems, const aimMeshEle
 
   fprintf( fp, "ZONE T=\"%s\", DATAPACKING=BLOCK, NODES=%d, ELEMENTS=%d, ZONETYPE=%s", title, nnode, nElems, elemType );
 
+  // ID is cell centered data coordinates
   fprintf( fp, ", VARLOCATION=([");
   for (d = 0; d < dim-1; d++)
     fprintf( fp, "%d,", d+1);
-  fprintf( fp, "%d]=NODAL)", dim);
+  fprintf( fp, "%d]=NODAL,[%d]=CELLCENTERED)", dim, dim+1);
 
   fprintf( fp, ", DT=(");
   for (d = 0; d < dim; d++)
@@ -139,9 +140,9 @@ int meshWrite(void *aimInfo, aimMesh *mesh)
 
   fprintf(fp,"VARIABLES = \"X\", \"Y\"");
   if (meshData->dim == 2)
-    fprintf(fp,"\n");
+    fprintf(fp,", \"ID\"\n");
   else
-    fprintf(fp,", \"Z\"\n");
+    fprintf(fp,", \"Z\", \"ID\"\n");
 
 
   for (jgroup = 0; jgroup < meshData->nElemGroup; jgroup++) {
@@ -226,10 +227,14 @@ int meshWrite(void *aimInfo, aimMesh *mesh)
       fprintf( fp, "%d]=1)\n", meshData->dim);
     }
 
+
     for (kgroup = 0; kgroup < nGrouping[jgroup]; kgroup++) {
       igroup = grouping[jgroup][kgroup];
 
       nPoint = meshData->elemGroups[igroup].nPoint;
+
+      for (ielem = 0; ielem < meshData->elemGroups[igroup].nElems; ielem++)
+        fprintf( fp, "%d\n", meshData->elemGroups[igroup].ID);
 
       // element connectivity 1-based
       if (meshData->elemGroups[igroup].elementTopo == aimTri) {

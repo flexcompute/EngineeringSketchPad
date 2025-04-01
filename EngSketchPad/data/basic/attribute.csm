@@ -1,4 +1,4 @@
-a# attribute
+# attribute
 # written by John Dannenhoffer
 
 # global attributes
@@ -72,8 +72,10 @@ union
    name       UnionOfTheThree
    attribute  status    $done
 getattr    nattr   $_nattr_
-# nattr depends on whether or not we've already tessellated
-assert     ifzero(nattr-8,1,0)+ifzero(nattr-9,1,0)  1
+# when recycling, _tParams is added, so expect either 14 or 15
+ifthen     nattr ne 14   and   nattr ne 15
+   assert     nattr   0
+endif
 
 # get the number of global Attributes
 getattr    nattr   $_nattr_  1

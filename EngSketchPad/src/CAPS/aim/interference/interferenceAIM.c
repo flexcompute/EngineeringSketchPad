@@ -688,8 +688,8 @@ int aimCalcOutput(/*@unused@*/ void *instStore, void *aimInfo, int index,
         if (k != 0) goto cleanup;
       }
       val->length      = n;
-      val->nrow        = 1;
-      val->ncol        = n;
+      val->nrow        = n;
+      val->ncol        = 1;
       val->vals.string = (char *) EG_alloc(m*sizeof(char));
       if (val->vals.string == NULL) {
         AIM_ERROR(aimInfo, " Malloc Error Names (%d)!\n", m);
@@ -732,8 +732,8 @@ int aimCalcOutput(/*@unused@*/ void *instStore, void *aimInfo, int index,
       
   case Volumes:
       val->length  = n;
-      val->nrow    = 1;
-      val->ncol    = n;
+      val->nrow    = n;
+      val->ncol    = 1;
       AIM_ALLOC(val->vals.reals, val->length, double, aimInfo, status);
       val->nullVal = NotNull;
       status       = CAPS_IOERR;
@@ -750,8 +750,8 @@ int aimCalcOutput(/*@unused@*/ void *instStore, void *aimInfo, int index,
       
   case Areas:
       val->length  = n;
-      val->nrow    = 1;
-      val->ncol    = n;
+      val->nrow    = n;
+      val->ncol    = 1;
       AIM_ALLOC(val->vals.reals, val->length, double, aimInfo, status);
       val->nullVal = NotNull;
       status       = CAPS_IOERR;
@@ -768,8 +768,8 @@ int aimCalcOutput(/*@unused@*/ void *instStore, void *aimInfo, int index,
       
   case CGs:
       val->length  = 3*n;
-      val->nrow    = 3;
-      val->ncol    = n;
+      val->nrow    = n;
+      val->ncol    = 3;
       AIM_ALLOC(val->vals.reals, val->length, double, aimInfo, status);
       val->nullVal = NotNull;
       status       = CAPS_IOERR;
@@ -788,8 +788,8 @@ int aimCalcOutput(/*@unused@*/ void *instStore, void *aimInfo, int index,
       
   case Inertias:
       val->length  = 9*n;
-      val->nrow    = 9;
-      val->ncol    = n;
+      val->nrow    = n;
+      val->ncol    = 9;
       AIM_ALLOC(val->vals.reals, val->length, double, aimInfo, status);
       val->nullVal = NotNull;
       status       = CAPS_IOERR;

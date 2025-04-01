@@ -1,0 +1,80 @@
+#------------------------------------------------------------------------------#
+# Script Name   : wing.udc
+# Purpose       : Shape Recipe for Wing
+# Description   : This script is developed to demonstrate UDCs using ESP. 
+# Scripted by   : Nitin Bhagat
+# Dependencies  : ESP 1.27 and above
+#               : himoco.csm: Driver script
+# Limitations   : 
+#               :
+# Contact       : [nbhagat1@udayton.edu] for scripting bugs/suggestions.
+#------------------------------------------------------------------------------#
+
+INTERFACE . ALL
+
+#---------- Dependent Variables -------------
+SET Wing:rootChord (2.0*Wing:area)/Wing:span-Wing:tipChord
+
+
+SET Wing:tipLocY 0.5*Wing:span
+SET Wing:tipLocX Wing:rootLocX+(Wing:tipLocY)/tand(90-Wing:sweep)
+
+
+# Airfoil
+UDPARG    naca456   thkcode $66
+UDPARG    naca456   toc     0.05
+UDPARG    naca456   camcode $6
+UDPARG    naca456   cl      0.00
+UDPARG    naca456   a       0.80
+UDPRIM    naca456
+  ROTATEX 90
+
+STORE airfoil
+
+
+MARK
+    restore airfoil
+    scale Wing:rootChord
+    translate  Wing:rootLocX 0 0
+
+    restore airfoil
+    scale Wing:tipChord
+    translate  Wing:tipLocX Wing:tipLocY 0
+RULE
+    attribute _name Wing:name
+    attribute _color  Wing:color
+    attribute _bcolor Wing:color
+
+    ATTRIBUTE tagComp Wing:name+$:right
+
+#--- Attributes ---     
+SET ruledBody @nbody
+
+SELECT    FACE ruledBody  1
+   ATTRIBUTE tagType  $root
+SELECT    FACE ruledBody  2
+   ATTRIBUTE tagType  $tip
+SELECT    FACE ruledBody  3
+   ATTRIBUTE tagType  $upper
+SELECT    FACE ruledBody  4
+   ATTRIBUTE tagType  $lower
+SELECT    EDGE ruledBody 3 ruledBody 4 1
+   ATTRIBUTE tagType  $leadingEdge
+SELECT    EDGE  ruledBody 3 ruledBody 4 2
+   ATTRIBUTE tagType  $trailingEdge
+
+
+store wingRight 0 1
+restore wingRight
+    ATTRIBUTE tagComp Wing:name+$:left
+
+MIRROR 0 1 0 0
+
+store wingLeft 0 1
+JOIN #Left and Right Wing
+    attribute _name Wing:name
+    ATTRIBUTE tag Wing:name
+
+
+STORE wingOml
+END

@@ -3,7 +3,7 @@
  *
  *             Base Object Functions
  *
- *      Copyright 2011-2024, Massachusetts Institute of Technology
+ *      Copyright 2011-2025, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -34,7 +34,7 @@
 
 
   static char *EGADSprop[2] = {STR(EGADSPROP),
-                               "\nEGADSprop: Copyright 2011-2024 MIT. All Rights Reserved."};
+                               "\nEGADSprop: Copyright 2011-2025 MIT. All Rights Reserved."};
 
 
   extern void EG_initOCC( );
@@ -72,7 +72,6 @@
   extern int  EG_setTessFace( egObject *tess, int fIndex, int len,
                               const double *xyz, const double *uv, int ntri,
                               const int *tris );
-  extern int  EG_sampleSame( const egObject *obj1, const egObject *obj2 );
 
 
 
@@ -2104,9 +2103,6 @@ EG_isSame(const egObject *obj1, const egObject *obj2)
         stat++;
         break;
       }
-    if ((mtype1 == PLANE) && (stat != 0)) {
-      stat = EG_sampleSame(geom1, geom2);
-    }
   } else {
     scale = 0.0;
     for (i = nk; i < nc; i++) {

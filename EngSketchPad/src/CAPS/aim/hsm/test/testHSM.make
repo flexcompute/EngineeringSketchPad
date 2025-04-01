@@ -28,7 +28,7 @@ $(TDIR)/testHSM:	$(ODIR)/testHSM.o $(ODIR)/valence.o \
 #	$(CXX) -o $(TDIR)/testHSM $(ODIR)/testHSM.o \
 #       $(ODIR)/valence.o -L$(LDIR) -lrcm -lhsm -legads \
 #       -lgfortran $(RPATH) -Wl,-no_compact_unwind
-ifeq ($(EFCOMP),ifort)
+ifneq (,$(filter $(EFCOMP),ifort ifx))
 	$(FCOMP) -o $(TDIR)/testHSM $(ODIR)/testHSM.o \
 		$(ODIR)/valence.o -L$(LDIR) \
 		-lrcm -lhsm -legads $(FRPATH) $(CPPSLB) $(ESPFLIBS) -nofor-main

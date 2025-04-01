@@ -1,0 +1,28 @@
+# splinedespmtr1
+# written by Marshall Galbraith
+
+DIMENSION param 2 1
+DESPMTR param "0.0;1.0"
+DIMENSION value 2 1
+DESPMTR value "1.0;1.0"
+DIMENSION ts 1 1
+CFGPMTR ts 0.4
+
+UDPRIM splinedespmtr param param value value ts ts
+
+DIMENSION interp @@interp.nrow @@interp.ncol
+OUTPMTR interp
+SET interp @@interp
+
+PATBEG i param.nrow
+   POINT param[i] value[i] 0
+PATEND
+
+PATBEG i interp.nrow
+   MESSAGE !val2str(interp[i],12)
+   POINT ts[i] interp[i] 0
+   SELECT node
+      ATTRIBUTE _color $red
+   BOX ts[i]-0.05 0 0 .1 interp[i] .1
+PATEND
+

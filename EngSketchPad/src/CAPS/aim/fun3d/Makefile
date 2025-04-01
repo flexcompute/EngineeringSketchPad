@@ -2,6 +2,9 @@
 ifndef ESP_ROOT
 $(error ESP_ROOT must be set -- Please fix the environment...)
 endif
+ifndef ESP_ARCH
+$(error ESP_ARCH must be set -- Please fix the environment...)
+endif
 #
 IDIR  = $(ESP_ROOT)/include
 include $(IDIR)/$(ESP_ARCH)
@@ -14,36 +17,16 @@ ODIR  = .
 TDIR  = $(ESP_ROOT)/bin
 endif
 
-
 ifdef PYTHONINC
-
-#Adding the rpath is needed when compiling with ESP_Python
-PYTHONLPATH=$(filter -L%,$(PYTHONLIB))
-PYTHONRPATH=$(PYTHONLPATH:-L%=-Wl,-rpath %)
-
-#Extract the python include directory
-PYTHONIPATH0=$(word 1,$(filter -I%,$(PYTHONINC)))
-ifeq ("$(PYTHONIPATH0)","")
-PYTHONIPATH=$(PYTHONINC)
-else
-PYTHONIPATH=$(PYTHONIPATH0:-I%=%)
-endif
+include $(ESP_ROOT)/include/ESPPYTHON.make
 
 $(LDIR)/fun3dAIM.so:	$(ODIR)/fun3dAIM.o $(ODIR)/fun3dUtils.o $(ODIR)/fun3dNamelist.o \
 			$(LDIR)/libaimUtil.a $(LDIR)/libutils.a
 	@echo "Building FUN3D with Python"
 	$(CC) $(SOFLGS) -o $(LDIR)/fun3dAIM.so $(ODIR)/fun3dAIM.o $(ODIR)/fun3dUtils.o \
 		$(ODIR)/fun3dNamelist.o -L$(LDIR) -lutils -laimUtil -locsm \
-		-legads -ludunits2 -ldl $(PYTHONLIB) -lm $(PYTHONRPATH)
-else 
-$(LDIR)/fun3dAIM.so:	$(ODIR)/fun3dAIM.o $(ODIR)/fun3dUtils.o $(LDIR)/libaimUtil.a \
-			$(LDIR)/libutils.a
-	@echo "Building FUN3D without Python"
-	$(CC) $(SOFLGS) -o $(LDIR)/fun3dAIM.so $(ODIR)/fun3dAIM.o $(ODIR)/fun3dUtils.o \
-		-L$(LDIR) -lutils -laimUtil -locsm -legads -ludunits2 -ldl -lm
-endif 
-
-ifdef PYTHONINC
+		-legads -ludunits2 $(PYTHONLIBFLAGS) -ldl -lm
+		
 
 $(ODIR)/fun3dAIM.o: fun3dAIM.c fun3dUtils.h cython/fun3dNamelist.h $(IDIR)/capsTypes.h $(PYTHONIPATH)/Python.h
 	$(CC) -c $(COPTS) $(DEFINE) -DHAVE_PYTHON -DCYTHON_PEP489_MULTI_PHASE_INIT=0 \
@@ -54,7 +37,15 @@ $(ODIR)/fun3dNamelist.o: cython/fun3dNamelist.c cython/fun3dNamelist.h $(PYTHONI
 	$(CC) -c $(COPTS) $(DEFINE) -DCYTHON_PEP489_MULTI_PHASE_INIT=0 \
 		-I$(IDIR) -I../utils \
 		-I$(PYTHONINC) cython/fun3dNamelist.c -o $(ODIR)/fun3dNamelist.o
-else
+
+else 
+
+$(LDIR)/fun3dAIM.so:	$(ODIR)/fun3dAIM.o $(ODIR)/fun3dUtils.o $(LDIR)/libaimUtil.a \
+			$(LDIR)/libutils.a
+	@echo "Building FUN3D without Python"
+	$(CC) $(SOFLGS) -o $(LDIR)/fun3dAIM.so $(ODIR)/fun3dAIM.o $(ODIR)/fun3dUtils.o \
+		-L$(LDIR) -lutils -laimUtil -locsm -legads -ludunits2 -ldl -lm
+
 $(ODIR)/fun3dAIM.o: fun3dAIM.c fun3dUtils.h $(IDIR)/capsTypes.h
 	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I../utils -I../meshWriter/ugridWriter \
 		fun3dAIM.c -o $(ODIR)/fun3dAIM.o
@@ -63,6 +54,7 @@ endif
 $(ODIR)/fun3dUtils.o: fun3dUtils.c fun3dUtils.h $(IDIR)/capsTypes.h
 	$(CC) -c $(COPTS) $(DEFINE) -I$(IDIR) -I../utils -I../meshWriter/ugridWriter \
 		fun3dUtils.c -o $(ODIR)/fun3dUtils.o
+
 
 lint:
 	$(LINT) -I../../include -I$(IDIR) -I../utils -I../meshWriter/ugridWriter fun3dAIM.c fun3dUtils.c -exportlocal -uniondef -nestcomment -bufferoverflowhigh -boolops

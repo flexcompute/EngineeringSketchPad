@@ -65,23 +65,24 @@ start:
 	xcopy $(SDIR)\..\util\emp.c                /Q /Y
 	copy  $(SDIR)\..\util\evaluate.c evaluate.cpp /Y
 	copy  $(SDIR)\..\util\rational.c rational.cpp /Y
+	xcopy $(SDIR)\..\util\egadsHOtess.c        /Q /Y
 	xcopy $(SDIR)\..\util\regQuads.c           /Q /Y
 	xcopy $(SDIR)\..\util\regQuads.h           /Q /Y
 	xcopy $(SDIR)\..\util\Surreal*_btest.cpp   /Q /Y
 	xcopy $(SDIR)\..\util\uvmap\uvmap_struct.h /Q /Y
 
 $(LDIR)\egadstatic.lib:	$(OBJSP) $(OBJS) $(OBJSOCC) emp.obj evaluate.obj \
-			rational.obj regQuads.obj $(LDIR)\uvmap.lib
+			rational.obj regQuads.obj egadsHOtess.obj $(LDIR)\uvmap.lib
 	-del $(LDIR)\egadstatic.lib
 	lib /out:$(LDIR)\egadstatic.lib $(OBJS) $(OBJSP) $(OBJSOCC) emp.obj \
-		evaluate.obj rational.obj regQuads.obj $(LDIR)\uvmap.lib
+		evaluate.obj rational.obj regQuads.obj egadsHOtess.obj $(LDIR)\uvmap.lib
 
 $(LDIR)\egads.dll:	$(OBJSP) $(OBJS) $(OBJSOCC) emp.obj evaluate.obj \
-			rational.obj regQuads.obj $(LDIR)\uvmap.lib egads.res 
+			rational.obj regQuads.obj egadsHOtess.obj $(LDIR)\uvmap.lib egads.res 
 	-del $(LDIR)\egads.dll $(LDIR)\egads.lib $(LDIR)\egads.exp
 	link /out:$(LDIR)\egads.dll /dll /def:egads.def $(OBJSP) $(OBJS) \
 		$(OBJSOCC) emp.obj evaluate.obj rational.obj regQuads.obj \
-		egads.res $(LDIR)\uvmap.lib $(LNKPTH) $(LIBS)
+		egadsHOtess.obj egads.res $(LDIR)\uvmap.lib $(LNKPTH) $(LIBS)
 	$(MCOMP) /manifest $(LDIR)\egads.dll.manifest \
 		/outputresource:$(LDIR)\egads.dll;2
 
@@ -135,6 +136,9 @@ rational.obj:	rational.cpp
 regQuads.obj:	regQuads.c regQuads.h
 	cl /c $(COPTS) $(DEFINE) /I$(INCD) /I. regQuads.c
 
+egadsHOtess.obj:	egadsHOtess.c
+	cl /c $(COPTS) $(DEFINE) /I$(INCD) /I. egadsHOtess.c
+
 $(ODIR)\SurrealD1.exe:	SurrealD1_btest.cpp
         cl $(CPPOPT) SurrealD1_btest.cpp /Fe$(ODIR)\SurrealD1.exe
         $(ODIR)\SurrealD1
@@ -167,6 +171,9 @@ rational.obj:	..\util\rational.c
 
 regQuads.obj:	..\util\regQuads.c ..\util\regQuads.h
 	cl /c $(COPTS) $(DEFINE) /I$(INCD) /I..\util ..\util\regQuads.c
+
+egadsHOtess.obj:	..\util\egadsHOtess.c
+	cl /c $(COPTS) $(DEFINE) /I$(INCD) /I. ..\util\egadsHOtess.c
 
 $(ODIR)\SurrealD1.exe:	..\util\SurrealD1_btest.cpp
         cl $(CPPOPT) ..\util\SurrealD1_btest.cpp /I. /Fe$(ODIR)\SurrealD1.exe

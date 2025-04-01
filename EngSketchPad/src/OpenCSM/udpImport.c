@@ -10,7 +10,7 @@
  */
 
 /*
- * Copyright (C) 2011/2024  John F. Dannenhoffer, III (Syracuse University)
+ * Copyright (C) 2011/2025  John F. Dannenhoffer, III (Syracuse University)
  *
  * This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
@@ -28,28 +28,32 @@
  *     MA  02110-1301  USA
  */
 
-#define NUMUDPARGS 3
+#define NUMUDPARGS 4
 #include "udpUtilities.h"
 
 /* shorthands for accessing argument values and velocities */
 #define FILENAME(  IUDP)  ((char   *) (udps[IUDP].arg[0].val))
 #define BODYNUMBER(IUDP)  ((int    *) (udps[IUDP].arg[1].val))[0]
-#define NUMBODIES( IUDP)  ((int    *) (udps[IUDP].arg[2].val))[0]
+#define GETCOLORS( IUDP)  ((int    *) (udps[IUDP].arg[2].val))[0]
+#define NUMBODIES( IUDP)  ((int    *) (udps[IUDP].arg[3].val))[0]
 
 /* data about possible arguments */
-static char  *argNames[NUMUDPARGS] = {"filename",  "bodynumber", "numbodies", };
-static int    argTypes[NUMUDPARGS] = {ATTRSTRING,  ATTRINT,      -ATTRINT,    };
-static int    argIdefs[NUMUDPARGS] = {0,           1,            0,           };
-static double argDdefs[NUMUDPARGS] = {0.,          0.,           0.,          };
+static char  *argNames[NUMUDPARGS] = {"filename",  "bodynumber", "getcolors", "numbodies", };
+static int    argTypes[NUMUDPARGS] = {ATTRSTRING,  ATTRINT,      ATTRINT,     -ATTRINT,    };
+static int    argIdefs[NUMUDPARGS] = {0,           1,            0,           0,           };
+static double argDdefs[NUMUDPARGS] = {0.,          0.,           0.,          0.,          };
 
 /* declarations needed to get a file's timestamp */
 #include <time.h>
 #include <sys/stat.h>
 
 #ifdef WIN32
-    #define TIMELONG unsigned long long
+    #define TIMELONG    unsigned long long
+    #define SLEEP(msec) Sleep(msec)
 #else
-    #define TIMELONG unsigned long
+    #include <unistd.h>
+    #define TIMELONG     unsigned long
+    #define SLEEP(msec)  usleep(1000*msec)
 #endif
 
 /* routine to remove private data */
@@ -84,7 +88,9 @@ udpExecute(ego  context,                /* (in)  EGADS context */
     int      oclass, mtype, mtype2, *senses, tessState, npts;
     int      nbody, ibody, jbody, nface, iface, nedge, iedge, nnode, inode, attrtype, attrlen, nremove;
     CINT     *tempIlist;
+    CDOUBLE  *tempRlist;
     char     *message=NULL;
+    CCHAR    *tempClist;
     ego      geom, *ebodys, *efaces, *eedges, *enodes, topRef, prev, next, myBody;
     udp_T    *udps = *Udps;
     TIMELONG dt;
@@ -103,6 +109,7 @@ udpExecute(ego  context,                /* (in)  EGADS context */
     printf("udpExecute(context=%llx)\n", (long long)context);
     printf("filename(0)   = %s\n", FILENAME(  0));
     printf("bodynumber(0) = %d\n", BODYNUMBER(0));
+    printf("getcolors(0)  = %d\n", GETCOLORS( 0));
 #endif
 
     /* default return values */
@@ -134,6 +141,7 @@ udpExecute(ego  context,                /* (in)  EGADS context */
 #ifdef DEBUG
     printf("filename(  %d) = %s\n", numUdp, FILENAME(  numUdp));
     printf("bodynumber(%d) = %d\n", numUdp, BODYNUMBER(numUdp));
+    printf("getcolors( %d) = %d\n", numUdp, GETCOLORS( numUdp));
 #endif
 
 
@@ -147,6 +155,10 @@ udpExecute(ego  context,                /* (in)  EGADS context */
         goto cleanup;
     }
     dt = buf.st_mtime;
+
+    /* sleep for a little more than a second to make sure modification
+       time can change when file is written and immediately read */
+    SLEEP(1100);
 
     /* if emodel already exists, but the old FILENAME and/or datetime does not
        agree with previous call, delete the old emodel and load it again (below) */
@@ -190,7 +202,7 @@ udpExecute(ego  context,                /* (in)  EGADS context */
     /* we are asking for entire Model */
     if (BODYNUMBER(0) == -1) {
         for (ibody = 0; ibody < nbody; ibody++) {
-            /* remove the _hist and __trace__ attributes (if they exist) */
+            /* remove the _hist __trace__ and __scribeID__ attributes (if they exist) */
             status = EG_getBodyTopos(ebodys[ibody], NULL, FACE, &nface, &efaces);
             if (status == EGADS_SUCCESS) {
                 for (iface = 0; iface < nface; iface++) {
@@ -213,6 +225,17 @@ udpExecute(ego  context,                /* (in)  EGADS context */
                         printf(" udpExecute: removing __trace__ attribute from Face %d\n", iface+1);
 #endif
                         status = EG_attributeDel(efaces[iface], "__trace__");
+                        CHECK_STATUS(EG_attributeDel);
+                    }
+
+                    status = EG_attributeRet(efaces[iface], "__scribeID__",
+                                             &attrtype, &attrlen, &tempIlist, NULL, NULL);
+                    if (status == EGADS_SUCCESS) {
+                        nremove++;
+#ifdef DEBUG
+                        printf(" udpExecute: removing __scribeID__ attribute from Face %d\n", iface+1);
+#endif
+                        status = EG_attributeDel(efaces[iface], "__scribeID__");
                         CHECK_STATUS(EG_attributeDel);
                     }
                 }
@@ -244,6 +267,17 @@ udpExecute(ego  context,                /* (in)  EGADS context */
                         status = EG_attributeDel(eedges[iedge], "__trace__");
                         CHECK_STATUS(EG_attributeDel);
                     }
+
+                    status = EG_attributeRet(eedges[iedge], "__scribeID__",
+                                             &attrtype, &attrlen, &tempIlist, NULL, NULL);
+                    if (status == EGADS_SUCCESS) {
+                        nremove++;
+#ifdef DEBUG
+                        printf(" udpExecute: removing __scribeID__ attribute from Edge %d\n", iedge+1);
+#endif
+                        status = EG_attributeDel(eedges[iedge], "__scribeID__");
+                        CHECK_STATUS(EG_attributeDel);
+                    }
                 }
 
                 EG_free(eedges);
@@ -271,6 +305,17 @@ udpExecute(ego  context,                /* (in)  EGADS context */
                         printf(" udpExecute: removing __trace__ attribute from Node %d\n", inode+1);
 #endif
                         status = EG_attributeDel(enodes[inode], "__trace__");
+                        CHECK_STATUS(EG_attributeDel);
+                    }
+
+                    status = EG_attributeRet(enodes[inode], "__scribeID__",
+                                             &attrtype, &attrlen, &tempIlist, NULL, NULL);
+                    if (status == EGADS_SUCCESS) {
+                        nremove++;
+#ifdef DEBUG
+                        printf(" udpExecute: removing __scribeID__ attribute from Node %d\n", inode+1);
+#endif
+                        status = EG_attributeDel(enodes[inode], "__scribeID__");
                         CHECK_STATUS(EG_attributeDel);
                     }
                 }
@@ -315,7 +360,7 @@ udpExecute(ego  context,                /* (in)  EGADS context */
             CHECK_STATUS(EG_copyObject);
             if (*ebody == NULL) goto cleanup;     // needed for splint
 
-            /* remove the _hist and __trace__ attributes (if they exist) */
+            /* remove the _hist __trace__ and __scribeID__ attributes (if they exist) */
             status = EG_getBodyTopos(*ebody, NULL, FACE, &nface, &efaces);
             if (status == EGADS_SUCCESS) {
                 for (iface = 0; iface < nface; iface++) {
@@ -339,6 +384,34 @@ udpExecute(ego  context,                /* (in)  EGADS context */
 #endif
                         status = EG_attributeDel(efaces[iface], "__trace__");
                         CHECK_STATUS(EG_attributeDel);
+                    }
+
+                    status = EG_attributeRet(efaces[iface], "__scribeID__",
+                                             &attrtype, &attrlen, &tempIlist, NULL, NULL);
+                    if (status == EGADS_SUCCESS) {
+                        nremove++;
+#ifdef DEBUG
+                        printf(" udpExecute: removing __scribeID__ attribute from Face %d\n", iface+1);
+#endif
+                        status = EG_attributeDel(efaces[iface], "__scribeID__");
+                        CHECK_STATUS(EG_attributeDel);
+                    }
+
+                    if (GETCOLORS(numUdp) == 1) {
+                        status = EG_attributeRet(efaces[iface], "Color",
+                                                 &attrtype, &attrlen, &tempIlist, &tempRlist, &tempClist);
+                        if (status == EGADS_SUCCESS) {
+                            status = EG_attributeAdd(efaces[iface], "_color",
+                                                     attrtype, attrlen, tempIlist, tempRlist, tempClist);
+                            CHECK_STATUS(EG_attributeAdd);
+
+                            status = EG_attributeDel(efaces[iface], "Color");
+                            CHECK_STATUS(EG_attributeDel);
+
+#ifdef DEBUG
+                            printf(" udpExecute: transferring _color attribute to Face %d\n", iface+1);
+#endif
+                        }
                     }
                 }
 
@@ -369,6 +442,34 @@ udpExecute(ego  context,                /* (in)  EGADS context */
                         status = EG_attributeDel(eedges[iedge], "__trace__");
                         CHECK_STATUS(EG_attributeDel);
                     }
+
+                    status = EG_attributeRet(eedges[iedge], "__scribeID__",
+                                             &attrtype, &attrlen, &tempIlist, NULL, NULL);
+                    if (status == EGADS_SUCCESS) {
+                        nremove++;
+#ifdef DEBUG
+                        printf(" udpExecute: removing __scribeID__ attribute from Edge %d\n", iedge+1);
+#endif
+                        status = EG_attributeDel(eedges[iedge], "__scribeID__");
+                        CHECK_STATUS(EG_attributeDel);
+                    }
+
+                    if (GETCOLORS(numUdp) == 1) {
+                        status = EG_attributeRet(eedges[iedge], "Color",
+                                                 &attrtype, &attrlen, &tempIlist, &tempRlist, &tempClist);
+                        if (status == EGADS_SUCCESS) {
+                            status = EG_attributeAdd(eedges[iedge], "_color",
+                                                     attrtype, attrlen, tempIlist, tempRlist, tempClist);
+                            CHECK_STATUS(EG_attributeAdd);
+
+                            status = EG_attributeDel(eedges[iedge], "Color");
+                            CHECK_STATUS(EG_attributeDel);
+
+#ifdef DEBUG
+                            printf(" udpExecute: transferring _color attribute to Edge %d\n", iedge+1);
+#endif
+                        }
+                    }
                 }
 
                 EG_free(eedges);
@@ -398,6 +499,17 @@ udpExecute(ego  context,                /* (in)  EGADS context */
                         status = EG_attributeDel(enodes[inode], "__trace__");
                         CHECK_STATUS(EG_attributeDel);
                     }
+
+                    status = EG_attributeRet(enodes[inode], "__scribeID__",
+                                             &attrtype, &attrlen, &tempIlist, NULL, NULL);
+                    if (status == EGADS_SUCCESS) {
+                        nremove++;
+#ifdef DEBUG
+                        printf(" udpExecute: removing __scribeID__ attribute from Node %d\n", inode+1);
+#endif
+                        status = EG_attributeDel(enodes[inode], "__scribeID__");
+                        CHECK_STATUS(EG_attributeDel);
+                    }
                 }
 
                 EG_free(enodes);
@@ -417,7 +529,7 @@ udpExecute(ego  context,                /* (in)  EGADS context */
 //$$$    emodel = NULL;
 
     if (nremove > 0) {
-        printf("WARNING:: %d _hist and/or __trace__ attributes removed\n", nremove);
+        printf("WARNING:: %d _hist __trace__ and/or __scribeID__ attributes removed\n", nremove);
     }
 
     /* set the output value(s) */

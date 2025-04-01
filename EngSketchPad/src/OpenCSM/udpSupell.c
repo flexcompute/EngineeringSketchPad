@@ -10,7 +10,7 @@
  */
 
 /*
- * Copyright (C) 2011/2024  John F. Dannenhoffer, III (Syracuse University)
+ * Copyright (C) 2011/2025  John F. Dannenhoffer, III (Syracuse University)
  *
  * This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
@@ -28,10 +28,12 @@
  *     MA  02110-1301  USA
  */
 
-#define NUMUDPARGS 19
+#define NUMUDPARGS 28
 #include "udpUtilities.h"
 
 #undef  OFFSET        /* needed to remove duplicate macro definitions */
+
+#undef  M_E           /* 2.7182... in math.h */
 
 /* shorthands for accessing argument values and velocities */
 #define RX(      IUDP)  ((double *) (udps[IUDP].arg[ 0].val))[0]
@@ -46,23 +48,52 @@
 #define RY_S_DOT(IUDP)  ((double *) (udps[IUDP].arg[ 4].dot))[0]
 #define RY_N(    IUDP)  ((double *) (udps[IUDP].arg[ 5].val))[0]
 #define RY_N_DOT(IUDP)  ((double *) (udps[IUDP].arg[ 5].dot))[0]
-#define N(       IUDP)  ((double *) (udps[IUDP].arg[ 6].val))[0]
-#define N_W(     IUDP)  ((double *) (udps[IUDP].arg[ 7].val))[0]
-#define N_E(     IUDP)  ((double *) (udps[IUDP].arg[ 8].val))[0]
-#define N_S(     IUDP)  ((double *) (udps[IUDP].arg[ 9].val))[0]
-#define N_N(     IUDP)  ((double *) (udps[IUDP].arg[10].val))[0]
-#define N_SW(    IUDP)  ((double *) (udps[IUDP].arg[11].val))[0]
-#define N_SE(    IUDP)  ((double *) (udps[IUDP].arg[12].val))[0]
-#define N_NW(    IUDP)  ((double *) (udps[IUDP].arg[13].val))[0]
-#define N_NE(    IUDP)  ((double *) (udps[IUDP].arg[14].val))[0]
-#define OFFSET(  IUDP)  ((double *) (udps[IUDP].arg[15].val))[0]
-#define NQUAD(   IUDP)  ((int    *) (udps[IUDP].arg[16].val))[0]
-#define NUMPNTS( IUDP)  ((int    *) (udps[IUDP].arg[17].val))[0]
-#define SLPFACT( IUDP)  ((double *) (udps[IUDP].arg[18].val))[0]
+#define M(       IUDP)  ((double *) (udps[IUDP].arg[ 6].val))[0]
+#define M_DOT(   IUDP)  ((double *) (udps[IUDP].arg[ 6].dot))[0]
+#define M_W(     IUDP)  ((double *) (udps[IUDP].arg[ 7].val))[0]
+#define M_W_DOT( IUDP)  ((double *) (udps[IUDP].arg[ 7].dot))[0]
+#define M_E(     IUDP)  ((double *) (udps[IUDP].arg[ 8].val))[0]
+#define M_E_DOT( IUDP)  ((double *) (udps[IUDP].arg[ 8].dot))[0]
+#define M_S(     IUDP)  ((double *) (udps[IUDP].arg[ 9].val))[0]
+#define M_S_DOT( IUDP)  ((double *) (udps[IUDP].arg[ 9].dot))[0]
+#define M_N(     IUDP)  ((double *) (udps[IUDP].arg[10].val))[0]
+#define M_N_DOT( IUDP)  ((double *) (udps[IUDP].arg[10].dot))[0]
+#define M_SW(    IUDP)  ((double *) (udps[IUDP].arg[11].val))[0]
+#define M_SW_DOT(IUDP)  ((double *) (udps[IUDP].arg[11].dot))[0]
+#define M_SE(    IUDP)  ((double *) (udps[IUDP].arg[12].val))[0]
+#define M_SE_DOT(IUDP)  ((double *) (udps[IUDP].arg[12].dot))[0]
+#define M_NW(    IUDP)  ((double *) (udps[IUDP].arg[13].val))[0]
+#define M_NW_DOT(IUDP)  ((double *) (udps[IUDP].arg[13].dot))[0]
+#define M_NE(    IUDP)  ((double *) (udps[IUDP].arg[14].val))[0]
+#define M_NE_DOT(IUDP)  ((double *) (udps[IUDP].arg[14].dot))[0]
+#define N(       IUDP)  ((double *) (udps[IUDP].arg[15].val))[0]
+#define N_DOT(   IUDP)  ((double *) (udps[IUDP].arg[15].dot))[0]
+#define N_W(     IUDP)  ((double *) (udps[IUDP].arg[16].val))[0]
+#define N_W_DOT( IUDP)  ((double *) (udps[IUDP].arg[16].dot))[0]
+#define N_E(     IUDP)  ((double *) (udps[IUDP].arg[17].val))[0]
+#define N_E_DOT( IUDP)  ((double *) (udps[IUDP].arg[17].dot))[0]
+#define N_S(     IUDP)  ((double *) (udps[IUDP].arg[18].val))[0]
+#define N_S_DOT( IUDP)  ((double *) (udps[IUDP].arg[18].dot))[0]
+#define N_N(     IUDP)  ((double *) (udps[IUDP].arg[19].val))[0]
+#define N_N_DOT( IUDP)  ((double *) (udps[IUDP].arg[19].dot))[0]
+#define N_SW(    IUDP)  ((double *) (udps[IUDP].arg[20].val))[0]
+#define N_SW_DOT(IUDP)  ((double *) (udps[IUDP].arg[20].dot))[0]
+#define N_SE(    IUDP)  ((double *) (udps[IUDP].arg[21].val))[0]
+#define N_SE_DOT(IUDP)  ((double *) (udps[IUDP].arg[21].dot))[0]
+#define N_NW(    IUDP)  ((double *) (udps[IUDP].arg[22].val))[0]
+#define N_NW_DOT(IUDP)  ((double *) (udps[IUDP].arg[22].dot))[0]
+#define N_NE(    IUDP)  ((double *) (udps[IUDP].arg[23].val))[0]
+#define N_NE_DOT(IUDP)  ((double *) (udps[IUDP].arg[23].dot))[0]
+#define OFFSET(  IUDP)  ((double *) (udps[IUDP].arg[24].val))[0]
+#define NQUAD(   IUDP)  ((int    *) (udps[IUDP].arg[25].val))[0]
+#define NUMPNTS( IUDP)  ((int    *) (udps[IUDP].arg[26].val))[0]
+#define SLPFACT( IUDP)  ((double *) (udps[IUDP].arg[27].val))[0]
 
 /* data about possible arguments */
 static char*  argNames[NUMUDPARGS] = {"rx",        "rx_w",      "rx_e",
                                       "ry",        "ry_s",      "ry_n",
+                                      "m",         "m_w",       "m_e",       "m_s",    "m_n",
+                                      "m_sw",      "m_se",      "m_nw",      "m_ne",
                                       "n",         "n_w",       "n_e",       "n_s",    "n_n",
                                       "n_sw",      "n_se",      "n_nw",      "n_ne",
                                       "offset",    "nquad",     "numpnts",   "slpfact",     };
@@ -70,14 +101,20 @@ static int    argTypes[NUMUDPARGS] = {ATTRREALSEN, ATTRREALSEN, ATTRREALSEN,
                                       ATTRREALSEN, ATTRREALSEN, ATTRREALSEN,
                                       ATTRREAL,    ATTRREAL,    ATTRREAL,    ATTRREAL, ATTRREAL,
                                       ATTRREAL,    ATTRREAL,    ATTRREAL,    ATTRREAL,
+                                      ATTRREAL,    ATTRREAL,    ATTRREAL,    ATTRREAL, ATTRREAL,
+                                      ATTRREAL,    ATTRREAL,    ATTRREAL,    ATTRREAL,
                                       ATTRREAL,    ATTRINT,     ATTRINT,     ATTRREAL,         };
 static int    argIdefs[NUMUDPARGS] = {0,           0,           0,
                                       0,           0,           0,
                                       0,           0,           0,           0,        0,
                                       0,           0,           0,           0,
+                                      0,           0,           0,           0,        0,
+                                      0,           0,           0,           0,
                                       0,           4,           11,          0,                };
 static double argDdefs[NUMUDPARGS] = {0.,          0.,          0.,
                                       0.,          0.,          0.,
+                                      0.,          0.,          0.,          0.,       0.,
+                                      0.,          0.,          0.,          0.,
                                       2.,          0.,          0.,          0.,       0.,
                                       0.,          0.,          0.,          0.,
                                       0.,          0.,          0.,          0.,               };
@@ -86,7 +123,8 @@ static double argDdefs[NUMUDPARGS] = {0.,          0.,          0.,
                          udpGet, udpVel, udpClean, udpMesh */
 #include "udpUtilities.c"
 
-#define           HUGEQ           99999999.0
+#include "egads_dot.h"
+
 #define           PIo2            1.5707963267948965579989817
 #define           EPS06           1.0e-06
 #define           EPS12           1.0e-12
@@ -96,6 +134,8 @@ static double argDdefs[NUMUDPARGS] = {0.,          0.,          0.,
 #ifdef GRAFIC
    #include "grafic.h"
 #endif
+
+static int setupQuad_dot(int iquad, double slpfact, double rx, double rx_dot, double ry, double ry_dot, double m, double n, int numpnts, double pnt[], double pnt_dot[]);
 
 
 /*
@@ -115,7 +155,7 @@ udpExecute(ego  context,                /* (in)  EGADS context */
     int     status = EGADS_SUCCESS;
 
     int     npnt, sense[4], sizes[2], periodic, i;
-    double  rx_w, rx_e, ry_s, ry_n, n_sw, n_se, n_nw, n_ne, theta;
+    double  rx_w, rx_e, ry_s, ry_n, n_sw, n_se, n_nw, n_ne, m_sw, m_se, m_nw, m_ne, theta;
     double  *pnt_ne=NULL, *pnt_nw=NULL, *pnt_sw=NULL, *pnt_se=NULL, *pnt_save=NULL;
     double  data[18], tdata[2], result[3], range[4], eval[18], norm[3], dx, dy, ds;
     double  dxytol = 1.0e-6;
@@ -135,6 +175,15 @@ udpExecute(ego  context,                /* (in)  EGADS context */
     printf("ry(     0) = %f\n", RY(     0));
     printf("ry_s(   0) = %f\n", RY_S(   0));
     printf("ry_n(   0) = %f\n", RY_N(   0));
+    printf("m(      0) = %f\n", M(      0));
+    printf("m_w(    0) = %f\n", M_W(    0));
+    printf("m_e(    0) = %f\n", M_E(    0));
+    printf("m_s(    0) = %f\n", M_S(    0));
+    printf("m_n(    0) = %f\n", M_N(    0));
+    printf("m_sw(   0) = %f\n", M_SW(   0));
+    printf("m_se(   0) = %f\n", M_SE(   0));
+    printf("m_nw(   0) = %f\n", M_NW(   0));
+    printf("m_ne(   0) = %f\n", M_NE(   0));
     printf("n(      0) = %f\n", N(      0));
     printf("n_w(    0) = %f\n", N_W(    0));
     printf("n_e(    0) = %f\n", N_E(    0));
@@ -176,6 +225,7 @@ udpExecute(ego  context,                /* (in)  EGADS context */
     /* set up the parameters in each of the quadrants */
     rx_w = rx_e = 0;
     ry_s = ry_n = 0;
+    m_sw = m_se = m_nw = m_ne = 0;
     n_sw = n_se = n_nw = n_ne = 2;
 
     if (RX(  0) > 0)  rx_w = rx_e = RX(  0);
@@ -186,6 +236,16 @@ udpExecute(ego  context,                /* (in)  EGADS context */
     if (RY_S(0) > 0)  ry_s        = RY_S(0);
     if (RY_N(0) > 0)         ry_n = RY_N(0);
 
+    if (M(   0) > 0)  m_sw = m_se = m_nw = m_ne = M(   0);
+    if (M_W( 0) > 0)  m_sw         = m_nw       = M_W( 0);
+    if (M_E( 0) > 0)         m_se        = m_ne = M_E( 0);
+    if (M_S( 0) > 0)  m_sw = m_se               = M_S( 0);
+    if (M_N( 0) > 0)                m_nw = m_ne = M_N( 0);
+    if (M_SW(0) > 0)  m_sw                      = M_SW(0);
+    if (M_SE(0) > 0)         m_se               = M_SE(0);
+    if (M_NW(0) > 0)                m_nw        = M_NW(0);
+    if (M_NE(0) > 0)                       m_ne = M_NE(0);
+
     if (N(   0) > 0)  n_sw = n_se = n_nw = n_ne = N(   0);
     if (N_W( 0) > 0)  n_sw         = n_nw       = N_W( 0);
     if (N_E( 0) > 0)         n_se        = n_ne = N_E( 0);
@@ -195,6 +255,11 @@ udpExecute(ego  context,                /* (in)  EGADS context */
     if (N_SE(0) > 0)         n_se               = N_SE(0);
     if (N_NW(0) > 0)                n_nw        = N_NW(0);
     if (N_NE(0) > 0)                       n_ne = N_NE(0);
+
+    if (m_sw <= 0) m_sw = n_sw;
+    if (m_se <= 0) m_se = n_se;
+    if (m_nw <= 0) m_nw = n_nw;
+    if (m_ne <= 0) m_ne = n_ne;
 
     if        (rx_w <= 0) {
         snprintf(message, 100, "SUPELL: rx_w should be positive");
@@ -240,6 +305,14 @@ udpExecute(ego  context,                /* (in)  EGADS context */
         snprintf(message, 100, "SUPELL: slpfact cannot be set if n < 2");
         status  = EGADS_RANGERR;
         goto cleanup;
+    } else if (OFFSET(0) !=  0 && (m_sw != n_sw || m_se != n_se || m_nw != n_nw || m_ne != n_ne)) {
+        snprintf(message, 100, "SUPELL: offset cannot be set if m != n");
+        status  = EGADS_RANGERR;
+        goto cleanup;
+    } else if (SLPFACT(0) > 0 && (m_sw != n_sw || m_se != n_se || m_nw != n_nw || m_ne != n_ne)) {
+        snprintf(message, 100, "SUPELL: slpfact cannot be set if m != n");
+        status  = EGADS_RANGERR;
+        goto cleanup;
     }
 
     /* cache copy of arguments for future use */
@@ -254,6 +327,15 @@ udpExecute(ego  context,                /* (in)  EGADS context */
     printf("ry(     %d) = %f\n", numUdp, RY(     numUdp));
     printf("ry_s(   %d) = %f\n", numUdp, RY_S(   numUdp));
     printf("ry_n(   %d) = %f\n", numUdp, RY_N(   numUdp));
+    printf("m(      %d) = %f\n", numUdp, M(      numUdp));
+    printf("m_w(    %d) = %f\n", numUdp, M_W(    numUdp));
+    printf("m_e(    %d) = %f\n", numUdp, M_E(    numUdp));
+    printf("m_s(    %d) = %f\n", numUdp, M_S(    numUdp));
+    printf("m_n(    %d) = %f\n", numUdp, M_N(    numUdp));
+    printf("m_sw(   %d) = %f\n", numUdp, M_SW(   numUdp));
+    printf("m_se(   %d) = %f\n", numUdp, M_SE(   numUdp));
+    printf("m_nw(   %d) = %f\n", numUdp, M_NW(   numUdp));
+    printf("m_ne(   %d) = %f\n", numUdp, M_NE(   numUdp));
     printf("n(      %d) = %f\n", numUdp, N(      numUdp));
     printf("n_w(    %d) = %f\n", numUdp, N_W(    numUdp));
     printf("n_e(    %d) = %f\n", numUdp, N_E(    numUdp));
@@ -272,6 +354,10 @@ udpExecute(ego  context,                /* (in)  EGADS context */
     printf("rx_e    = %f\n", rx_e);
     printf("ry_s    = %f\n", ry_s);
     printf("ry_n    = %f\n", ry_n);
+    printf("m_sw    = %f\n", m_sw);
+    printf("m_se    = %f\n", m_se);
+    printf("m_nw    = %f\n", m_nw);
+    printf("m_ne    = %f\n", m_ne);
     printf("n_sw    = %f\n", n_sw);
     printf("n_se    = %f\n", n_se);
     printf("n_nw    = %f\n", n_nw);
@@ -329,17 +415,17 @@ udpExecute(ego  context,                /* (in)  EGADS context */
     /* ne quadrant -- generate coordinates */
     npnt = 0;
 
-    if (SLPFACT(0) < 0 && n_ne >= 2) {
+    if (SLPFACT(0) < 0 && m_ne >= 2 && n_ne >= 2) {
         for (i = 0; i < NUMPNTS(0); i++) {
             theta = (double)(NUMPNTS(0)-i) / (double)(NUMPNTS(0)) * PI/2;
 
-            pnt_ne[3*npnt  ] = +rx_e * pow(cos(theta), 2.0/n_ne);
+            pnt_ne[3*npnt  ] = +rx_e * pow(cos(theta), 2.0/m_ne);
             pnt_ne[3*npnt+1] = -ry_n * pow(sin(theta), 2.0/n_ne);
             pnt_ne[3*npnt+2] = 0;
             npnt++;
         }
     }
-    
+
     pnt_ne[3*npnt  ] = +rx_e;
     pnt_ne[3*npnt+1] =  0;
     pnt_ne[3*npnt+2] =  0;
@@ -355,7 +441,7 @@ udpExecute(ego  context,                /* (in)  EGADS context */
     for (i = 1; i < NUMPNTS(0)-1; i++) {
         theta = (double)(i) / (double)(NUMPNTS(0)-1) * PI/2;
 
-        pnt_ne[3*npnt  ] = +rx_e * pow(cos(theta), 2.0/n_ne);
+        pnt_ne[3*npnt  ] = +rx_e * pow(cos(theta), 2.0/m_ne);
         pnt_ne[3*npnt+1] = +ry_n * pow(sin(theta), 2.0/n_ne);
         pnt_ne[3*npnt+2] =  0;
         npnt++;
@@ -373,11 +459,11 @@ udpExecute(ego  context,                /* (in)  EGADS context */
     pnt_ne[3*npnt+2] =  0;
     npnt++;
 
-    if (SLPFACT(0) < 0 && n_ne >= 2) {
+    if (SLPFACT(0) < 0 && m_ne >= 2 && n_ne >= 2) {
         for (i = 0; i < NUMPNTS(0); i++) {
             theta = (double)(NUMPNTS(0)-1-i) / (double)(NUMPNTS(0)) * PI/2;
 
-            pnt_ne[3*npnt  ] = -rx_e * pow(cos(theta), 2.0/n_ne);
+            pnt_ne[3*npnt  ] = -rx_e * pow(cos(theta), 2.0/m_ne);
             pnt_ne[3*npnt+1] = +ry_n * pow(sin(theta), 2.0/n_ne);
             pnt_ne[3*npnt+2] = 0;
             npnt++;
@@ -413,6 +499,13 @@ udpExecute(ego  context,                /* (in)  EGADS context */
 
     /* create spline curve and Edge (use OpenCASCADE's approximate so
        that subsequent HOLLOWs work) */
+#ifdef DEBUG
+    for (i = 0; i < npnt; i++) {
+        printf("%3d, pnt=%10.5f %10.5f %10.5f\n", i,
+               pnt_ne[3*i], pnt_ne[3*i+1], pnt_ne[3*i+2]);
+    }
+#endif
+
     sizes[0] = npnt;
     sizes[1] = 0;
     status = EG_approximate(context, 1, dxytol, sizes, pnt_ne, &(ecurve[0]));
@@ -512,17 +605,17 @@ udpExecute(ego  context,                /* (in)  EGADS context */
     /* nw quadrant -- generate coordinates */
     npnt = 0;
 
-    if (SLPFACT(0) < 0 && n_nw >= 2) {
+    if (SLPFACT(0) < 0 && m_nw >= 2 && n_nw >= 2) {
         for (i = 0; i < NUMPNTS(0); i++) {
             theta = (double)(i) / (double)(NUMPNTS(0)) * PI/2;
 
-            pnt_nw[3*npnt  ] = +rx_w * pow(cos(theta), 2.0/n_nw);
+            pnt_nw[3*npnt  ] = +rx_w * pow(cos(theta), 2.0/m_nw);
             pnt_nw[3*npnt+1] = +ry_n * pow(sin(theta), 2.0/n_nw);
             pnt_nw[3*npnt+2] = 0;
             npnt++;
         }
     }
-    
+
     pnt_nw[3*npnt  ] =  0;
     pnt_nw[3*npnt+1] = +ry_n;
     pnt_nw[3*npnt+2] =  0;
@@ -538,7 +631,7 @@ udpExecute(ego  context,                /* (in)  EGADS context */
     for (i = 1; i < NUMPNTS(0)-1; i++) {
         theta = (double)(i) / (double)(NUMPNTS(0)-1) * PI/2;
 
-        pnt_nw[3*npnt  ] = -rx_w * pow(sin(theta), 2.0/n_nw);
+        pnt_nw[3*npnt  ] = -rx_w * pow(sin(theta), 2.0/m_nw);
         pnt_nw[3*npnt+1] = +ry_n * pow(cos(theta), 2.0/n_nw);
         pnt_nw[3*npnt+2] =  0;
         npnt++;
@@ -556,11 +649,11 @@ udpExecute(ego  context,                /* (in)  EGADS context */
     pnt_nw[3*npnt+2] =  0;
     npnt++;
 
-    if (SLPFACT(0) < 0 && n_nw >= 2) {
+    if (SLPFACT(0) < 0 && m_nw >= 2 && n_nw >= 2) {
         for (i = 1; i < NUMPNTS(0); i++) {
             theta = (double)(i) / (double)(NUMPNTS(0)-1) * PI/2;
 
-            pnt_nw[3*npnt  ] = -rx_w * pow(cos(theta), 2.0/n_nw);
+            pnt_nw[3*npnt  ] = -rx_w * pow(cos(theta), 2.0/m_nw);
             pnt_nw[3*npnt+1] = -ry_n * pow(sin(theta), 2.0/n_nw);
             pnt_nw[3*npnt+2] = 0;
             npnt++;
@@ -595,6 +688,13 @@ udpExecute(ego  context,                /* (in)  EGADS context */
     }
 
     /* create spline curve and Edge */
+#ifdef DEBUG
+    for (i = 0; i < npnt; i++) {
+        printf("%3d, pnt=%10.5f %10.5f %10.5f\n", i,
+               pnt_nw[3*i], pnt_nw[3*i+1], pnt_nw[3*i+2]);
+    }
+#endif
+
     sizes[0] = npnt;
     sizes[1] = 0;
     status = EG_approximate(context, 1, dxytol, sizes, pnt_nw, &(ecurve[1]));
@@ -695,17 +795,17 @@ udpExecute(ego  context,                /* (in)  EGADS context */
     /* sw quadrant -- generate coordinates */
     npnt = 0;
 
-    if (SLPFACT(0) < 0 && n_sw >= 2) {
+    if (SLPFACT(0) < 0 && m_sw >= 2 && n_sw >= 2) {
         for (i = 0; i < NUMPNTS(0); i++) {
             theta = (double)(NUMPNTS(0)-i) / (double)(NUMPNTS(0)) * PI/2;
 
-            pnt_sw[3*npnt  ] = -rx_w * pow(cos(theta), 2.0/n_sw);
+            pnt_sw[3*npnt  ] = -rx_w * pow(cos(theta), 2.0/m_sw);
             pnt_sw[3*npnt+1] = +ry_s * pow(sin(theta), 2.0/n_sw);
             pnt_sw[3*npnt+2] = 0;
             npnt++;
         }
     }
-    
+
     pnt_sw[3*npnt  ] = -rx_w;
     pnt_sw[3*npnt+1] =  0;
     pnt_sw[3*npnt+2] =  0;
@@ -721,7 +821,7 @@ udpExecute(ego  context,                /* (in)  EGADS context */
     for (i = 1; i < NUMPNTS(0)-1; i++) {
         theta = (double)(i) / (double)(NUMPNTS(0)-1) * PI/2;
 
-        pnt_sw[3*npnt  ] = -rx_w * pow(cos(theta), 2.0/n_sw);
+        pnt_sw[3*npnt  ] = -rx_w * pow(cos(theta), 2.0/m_sw);
         pnt_sw[3*npnt+1] = -ry_s * pow(sin(theta), 2.0/n_sw);
         pnt_sw[3*npnt+2] =  0;
         npnt++;
@@ -739,11 +839,11 @@ udpExecute(ego  context,                /* (in)  EGADS context */
     pnt_sw[3*npnt+2] =  0;
     npnt++;
 
-    if (SLPFACT(0) < 0 && n_sw >= 2) {
+    if (SLPFACT(0) < 0 && m_sw >= 2 && n_sw >= 2) {
         for (i = 0; i < NUMPNTS(0); i++) {
             theta = (double)(NUMPNTS(0)-1-i) / (double)(NUMPNTS(0)) * PI/2;
 
-            pnt_sw[3*npnt  ] = +rx_w * pow(cos(theta), 2.0/n_sw);
+            pnt_sw[3*npnt  ] = +rx_w * pow(cos(theta), 2.0/m_sw);
             pnt_sw[3*npnt+1] = -ry_s * pow(sin(theta), 2.0/n_sw);
             pnt_sw[3*npnt+2] = 0;
             npnt++;
@@ -778,6 +878,13 @@ udpExecute(ego  context,                /* (in)  EGADS context */
     }
 
     /* create spline curve and Edge */
+#ifdef DEBUG
+    for (i = 0; i < npnt; i++) {
+        printf("%3d, pnt=%10.5f %10.5f %10.5f\n", i,
+               pnt_sw[3*i], pnt_sw[3*i+1], pnt_sw[3*i+2]);
+    }
+#endif
+
     sizes[0] = npnt;
     sizes[1] = 0;
     status = EG_approximate(context, 1, dxytol, sizes, pnt_sw, &(ecurve[2]));
@@ -860,17 +967,17 @@ udpExecute(ego  context,                /* (in)  EGADS context */
     /* se quadrant -- generate coordinates */
     npnt = 0;
 
-    if (SLPFACT(0) < 0 && n_se >= 2) {
+    if (SLPFACT(0) < 0 && m_se >= 2 && n_se >= 2) {
         for (i = 0; i < NUMPNTS(0)-1; i++) {
             theta = (double)(i) / (double)(NUMPNTS(0)-1) * PI/2;
 
-            pnt_se[3*npnt  ] = -rx_e * pow(cos(theta), 2.0/n_se);
+            pnt_se[3*npnt  ] = -rx_e * pow(cos(theta), 2.0/m_se);
             pnt_se[3*npnt+1] = -ry_s * pow(sin(theta), 2.0/n_se);
             pnt_se[3*npnt+2] = 0;
             npnt++;
         }
     }
-    
+
     pnt_se[3*npnt  ] =  0;
     pnt_se[3*npnt+1] = -ry_s;
     pnt_se[3*npnt+2] =  0;
@@ -886,7 +993,7 @@ udpExecute(ego  context,                /* (in)  EGADS context */
     for (i = 1; i < NUMPNTS(0)-1; i++) {
         theta = (double)(i) / (double)(NUMPNTS(0)-1) * PI/2;
 
-        pnt_se[3*npnt  ] = +rx_e * pow(sin(theta), 2.0/n_se);
+        pnt_se[3*npnt  ] = +rx_e * pow(sin(theta), 2.0/m_se);
         pnt_se[3*npnt+1] = -ry_s * pow(cos(theta), 2.0/n_se);
         pnt_se[3*npnt+2] =  0;
         npnt++;
@@ -904,11 +1011,11 @@ udpExecute(ego  context,                /* (in)  EGADS context */
     pnt_se[3*npnt+2] =  0;
     npnt++;
 
-    if (SLPFACT(0) < 0 && n_se >= 2) {
+    if (SLPFACT(0) < 0 && m_se >= 2 && n_se >= 2) {
         for (i = 0; i < NUMPNTS(0); i++) {
             theta = (double)(i+1) / (double)(NUMPNTS(0)) * PI/2;
 
-            pnt_se[3*npnt  ] = +rx_e * pow(cos(theta), 2.0/n_se);
+            pnt_se[3*npnt  ] = +rx_e * pow(cos(theta), 2.0/m_se);
             pnt_se[3*npnt+1] = +ry_s * pow(sin(theta), 2.0/n_se);
             pnt_se[3*npnt+2] = 0;
             npnt++;
@@ -943,6 +1050,13 @@ udpExecute(ego  context,                /* (in)  EGADS context */
     }
 
     /* create spline curve and Edge */
+#ifdef DEBUG
+    for (i = 0; i < npnt; i++) {
+        printf("%3d, pnt=%10.5f %10.5f %10.5f\n", i,
+               pnt_se[3*i], pnt_se[3*i+1], pnt_se[3*i+2]);
+    }
+#endif
+
     sizes[0] = npnt;
     sizes[1] = 0;
     status = EG_approximate(context, 1, dxytol, sizes, pnt_se, &(ecurve[3]));
@@ -1103,7 +1217,7 @@ cleanup:
 
 int
 udpSensitivity(ego    ebody,            /* (in)  Body pointer */
-               int    npnt,             /* (in)  number of points */
+               int    npnts,            /* (in)  number of points */
                int    entType,          /* (in)  OCSM entity type */
                int    entIndex,         /* (in)  OCSM entity index (bias-1) */
                double uvs[],            /* (in)  parametric coordinates for evaluation */
@@ -1111,11 +1225,16 @@ udpSensitivity(ego    ebody,            /* (in)  Body pointer */
 {
     int    status = EGADS_SUCCESS;
 
-    int    iudp, judp, ipnt, nnode, nedge, nface, nchild, oclass, mtype, *senses;
-    double data[18];
-    double rx_w,     rx_e,     ry_s,     ry_n;
-    double rx_w_dot, rx_e_dot, ry_s_dot, ry_n_dot;
-    ego    eref, *echilds, *enodes, *eedges, *efaces, eent;
+    int     iudp, judp, ipnt, nnode, inode, nedge, iedge, nface, iface;
+    int     nchild, oclass, mtype, *senses, sizes[2], nextra;
+    double  data[18], data_dot[18];
+    double  rx_w,     rx_e,     ry_s,     ry_n;
+    double  rx_w_dot, rx_e_dot, ry_s_dot, ry_n_dot;
+    double  m_ne, m_nw, m_sw, m_se, n_ne, n_nw, n_sw, n_se;
+    double  trange[2], trange_dot[2];
+    double  dxytol = 1.0e-6;
+    double  *pnt=NULL, *pnt_dot=NULL;
+    ego     ecurve, esurface, *echilds, *enodes=NULL, *eedges=NULL, *efaces=NULL;
 
     ROUTINE(udpSensitivity);
 
@@ -1123,11 +1242,11 @@ udpSensitivity(ego    ebody,            /* (in)  Body pointer */
 
 #ifdef DEBUG
     if (uvs != NULL) {
-        printf("udpSensitivity(ebody=%llx, npnt=%d, entType=%d, entIndex=%d, uvs=%f %f)\n",
-               (long long)ebody, npnt, entType, entIndex, uvs[0], uvs[1]);
+        printf("udpSensitivity(ebody=%llx, npnts=%d, entType=%d, entIndex=%d, uvs=%f %f)\n",
+               (long long)ebody, npnts, entType, entIndex, uvs[0], uvs[1]);
     } else {
-        printf("udpSensitivity(ebody=%llx, npnt=%d, entType=%d, entIndex=%d, uvs=NULL)\n",
-               (long long)ebody, npnt, entType, entIndex);
+        printf("udpSensitivity(ebody=%llx, npnts=%d, entType=%d, entIndex=%d, uvs=NULL)\n",
+               (long long)ebody, npnts, entType, entIndex);
     }
 #endif
 
@@ -1144,11 +1263,58 @@ udpSensitivity(ego    ebody,            /* (in)  Body pointer */
         goto cleanup;
     }
 
+    if (OFFSET(iudp) != 0) {
+        status = OCSM_UDP_ERROR9;
+        goto cleanup;
+    } else if (SLPFACT(iudp) < 0) {
+        status = OCSM_UDP_ERROR9;
+        goto cleanup;
+//$$$    } else if (M_DOT(   iudp) != 0 || N_DOT(   iudp) != 0 ||
+//$$$               M_W_DOT( iudp) != 0 || N_W_DOT( iudp) != 0 ||
+//$$$               M_E_DOT( iudp) != 0 || N_E_DOT( iudp) != 0 ||
+//$$$               M_S_DOT( iudp) != 0 || N_S_DOT( iudp) != 0 ||
+//$$$               M_N_DOT( iudp) != 0 || N_N_DOT( iudp) != 0 ||
+//$$$               M_SW_DOT(iudp) != 0 || N_SW_DOT(iudp) != 0 ||
+//$$$               M_SE_DOT(iudp) != 0 || N_SE_DOT(iudp) != 0 ||
+//$$$               M_NW_DOT(iudp) != 0 || N_NW_DOT(iudp) != 0 ||
+//$$$               M_NE_DOT(iudp) != 0 || N_NE_DOT(iudp) != 0   ) {
+//$$$        status = OCSM_UDP_ERROR9;
+//$$$        goto cleanup;
+    }
+
     /* set up the parameters in each of the quadrants */
     rx_w     = rx_e     = 0;
     rx_w_dot = rx_e_dot = 0;
     ry_s     = ry_n     = 0;
     ry_s_dot = ry_n_dot = 0;
+
+    m_sw = m_se = m_nw = m_ne = 0;
+    n_sw = n_se = n_nw = n_ne = 2;
+
+    if (M(   iudp) > 0)  m_sw = m_se = m_nw = m_ne = M(   iudp);
+    if (M_W( iudp) > 0)  m_sw         = m_nw       = M_W( iudp);
+    if (M_E( iudp) > 0)         m_se        = m_ne = M_E( iudp);
+    if (M_S( iudp) > 0)  m_sw = m_se               = M_S( iudp);
+    if (M_N( iudp) > 0)                m_nw = m_ne = M_N( iudp);
+    if (M_SW(iudp) > 0)  m_sw                      = M_SW(iudp);
+    if (M_SE(iudp) > 0)         m_se               = M_SE(iudp);
+    if (M_NW(iudp) > 0)                m_nw        = M_NW(iudp);
+    if (M_NE(iudp) > 0)                       m_ne = M_NE(iudp);
+
+    if (N(   iudp) > 0)  n_sw = n_se = n_nw = n_ne = N(   iudp);
+    if (N_W( iudp) > 0)  n_sw         = n_nw       = N_W( iudp);
+    if (N_E( iudp) > 0)         n_se        = n_ne = N_E( iudp);
+    if (N_S( iudp) > 0)  n_sw = n_se               = N_S( iudp);
+    if (N_N( iudp) > 0)                n_nw = n_ne = N_N( iudp);
+    if (N_SW(iudp) > 0)  n_sw                      = N_SW(iudp);
+    if (N_SE(iudp) > 0)         n_se               = N_SE(iudp);
+    if (N_NW(iudp) > 0)                n_nw        = N_NW(iudp);
+    if (N_NE(iudp) > 0)                       n_ne = N_NE(iudp);
+
+    if (m_sw <= 0) m_sw = n_sw;
+    if (m_se <= 0) m_se = n_se;
+    if (m_nw <= 0) m_nw = n_nw;
+    if (m_ne <= 0) m_ne = n_ne;
 
     if (RX(  iudp) > 0)  {
         rx_w     = rx_e     = RX(      iudp);
@@ -1176,204 +1342,387 @@ udpSensitivity(ego    ebody,            /* (in)  Body pointer */
         ry_n_dot            = RY_N_DOT(iudp);
     }
 
-    /* find the ego entity */
+    /* get the Nodes, Edges, and Face associated with this Body */
+    status = EG_getBodyTopos(ebody, NULL, NODE, &nnode, &enodes);
+    CHECK_STATUS(EG_getBodyTopos);
+
+    SPLINT_CHECK_FOR_NULL(enodes);
+
+    status = EG_getBodyTopos(ebody, NULL, EDGE, &nedge, &eedges);
+    CHECK_STATUS(EG_getBodyTopos);
+
+    SPLINT_CHECK_FOR_NULL(eedges);
+
+    status = EG_getBodyTopos(ebody, NULL, FACE, &nface, &efaces);
+    CHECK_STATUS(EG_getBodyTopos);
+
+    /* set up the dots for a FaceBody if they do not already exist */
+    if (EG_hasGeometry_dot(ebody) != EGADS_SUCCESS) {
+
+        /* mallocs required by Windows compiler */
+        MALLOC(pnt,     double, 9*NUMPNTS(iudp)+6);
+        MALLOC(pnt_dot, double, 9*NUMPNTS(iudp)+6);
+
+        /* (up to) four Nodes */
+        data[    0] = +rx_e;
+        data[    1] = 0;
+        data[    2] = 0;
+
+        data_dot[0] = +rx_e_dot;
+        data_dot[1] = 0;
+        data_dot[2] = 0;
+
+        status = EG_setGeometry_dot(enodes[0], NODE, 0, NULL, data, data_dot);
+        CHECK_STATUS(EG_setGeometry_dot);
+
+        if (nnode > 0) {
+            data[    0] = 0;
+            data[    1] = +ry_n;
+            data[    2] = 0;
+
+            data_dot[0] = 0;
+            data_dot[1] = +ry_n_dot;
+            data_dot[2] = 0;
+
+            status = EG_setGeometry_dot(enodes[1], NODE, 0, NULL, data, data_dot);
+            CHECK_STATUS(EG_setGeometry_dot);
+        }
+
+        if (nnode > 1) {
+            data[    0] = -rx_w;
+            data[    1] = 0;
+            data[    2] = 0;
+
+            data_dot[0] = -rx_w_dot;
+            data_dot[1] = 0;
+            data_dot[2] = 0;
+
+            status = EG_setGeometry_dot(enodes[2], NODE, 0, NULL, data, data_dot);
+            CHECK_STATUS(EG_setGeometry_dot);
+        }
+
+        if (nnode > 2) {
+            data[    0] = 0;
+            data[    1] = -ry_s;
+            data[    2] = 0;
+
+            data_dot[0] = 0;
+            data_dot[1] = -ry_s_dot;
+            data_dot[2] = 0;
+
+            status = EG_setGeometry_dot(enodes[3], NODE, 0, NULL, data, data_dot);
+            CHECK_STATUS(EG_setGeometry_dot);
+        }
+
+        /* (up to) four Edges */
+        if (SLPFACT(iudp) > 0) {
+            nextra = 2;
+        } else {
+            nextra = 0;
+        }
+
+        status = EG_getTopology(eedges[0], &ecurve, &oclass, &mtype,
+                                data, &nchild, &echilds, &senses);
+        CHECK_STATUS(EG_getTopology);
+
+        status = setupQuad_dot(0, SLPFACT(iudp),
+                               rx_e, rx_e_dot, ry_n, ry_n_dot, m_ne, n_ne,
+                               NUMPNTS(iudp), pnt, pnt_dot);
+        CHECK_STATUS(setupQuad_dot);
+
+        sizes[0] = NUMPNTS(iudp) + nextra;
+        sizes[1] = 0;
+        status = EG_approximate_dot(ecurve, 1, dxytol, sizes, pnt, pnt_dot);
+        CHECK_STATUS(EG_approximate_dot);
+
+        trange[    0] = data[0];
+        trange[    1] = data[1];
+
+        trange_dot[0] = 0;
+        trange_dot[1] = 0;
+
+        status = EG_setRange_dot(eedges[0], EDGE, trange, trange_dot);
+        CHECK_STATUS(EG_setRange_dot);
+
+        if (nedge > 0) {
+            status = EG_getTopology(eedges[1], &ecurve, &oclass, &mtype,
+                                    data, &nchild, &echilds, &senses);
+            CHECK_STATUS(EG_getTopology);
+
+            status = setupQuad_dot(1, SLPFACT(iudp),
+                                   rx_w, rx_w_dot, ry_n, ry_n_dot, m_nw, n_nw,
+                                   NUMPNTS(iudp), pnt, pnt_dot);
+            CHECK_STATUS(setupQuad_dot);
+
+            sizes[0] = NUMPNTS(iudp) + nextra;
+            sizes[1] = 0;
+            status = EG_approximate_dot(ecurve, 1, dxytol, sizes, pnt, pnt_dot);
+            CHECK_STATUS(EG_approximate_dot);
+
+            trange[    0] = data[0];
+            trange[    1] = data[1];
+
+            trange_dot[0] = 0;
+            trange_dot[1] = 0;
+
+            status = EG_setRange_dot(eedges[1], EDGE, trange, trange_dot);
+            CHECK_STATUS(EG_setRange_dot);
+        }
+
+        if (nedge > 1) {
+            status = EG_getTopology(eedges[2], &ecurve, &oclass, &mtype,
+                                    data, &nchild, &echilds, &senses);
+            CHECK_STATUS(EG_getTopology);
+
+            status = setupQuad_dot(2, SLPFACT(iudp),
+                                   rx_w, rx_w_dot, ry_s, ry_s_dot, m_sw, n_sw,
+                                   NUMPNTS(iudp), pnt, pnt_dot);
+            CHECK_STATUS(setupQuad_dot);
+
+            sizes[0] = NUMPNTS(iudp) + nextra;
+            sizes[1] = 0;
+            status = EG_approximate_dot(ecurve, 1, dxytol, sizes, pnt, pnt_dot);
+            CHECK_STATUS(EG_approximate_dot);
+
+            trange[    0] = data[0];
+            trange[    1] = data[1];
+
+            trange_dot[0] = 0;
+            trange_dot[1] = 0;
+
+            status = EG_setRange_dot(eedges[2], EDGE, trange, trange_dot);
+            CHECK_STATUS(EG_setRange_dot);
+        }
+
+        if (nedge > 2) {
+            status = EG_getTopology(eedges[3], &ecurve, &oclass, &mtype,
+                                    data, &nchild, &echilds, &senses);
+            CHECK_STATUS(EG_getTopology);
+
+            status = setupQuad_dot(3, SLPFACT(iudp),
+                                   rx_e, rx_e_dot, ry_s, ry_s_dot, m_se, n_se,
+                                   NUMPNTS(iudp), pnt, pnt_dot);
+            CHECK_STATUS(setupQuad_dot);
+
+            sizes[0] = NUMPNTS(iudp) + nextra;
+            sizes[1] = 0;
+            status = EG_approximate_dot(ecurve, 1, dxytol, sizes, pnt, pnt_dot);
+            CHECK_STATUS(EG_approximate_dot);
+
+            trange[    0] = data[0];
+            trange[    1] = data[1];
+
+            trange_dot[0] = 0;
+            trange_dot[1] = 0;
+
+            status = EG_setRange_dot(eedges[3], EDGE, trange, trange_dot);
+            CHECK_STATUS(EG_setRange_dot);
+        }
+
+        /* set a zero velocity on the surface */
+        if (NQUAD(iudp) == 4) {
+            SPLINT_CHECK_FOR_NULL(efaces);
+
+            status = EG_getTopology(efaces[0], &esurface, &oclass, &mtype,
+                                    data, &nchild, &echilds, &senses);
+            CHECK_STATUS(EG_getTopology);
+
+            status = EG_zeroGeometry_dot(esurface);
+            CHECK_STATUS(EG_zeroGeometry_dot);
+        }
+
+        /* verify that dots have been set up */
+        status = EG_hasGeometry_dot(ebody);
+        CHECK_STATUS(EG_hasGeometry_dot);
+
+    }
+
+    /* evaluate the velocities */
     if (entType == OCSM_NODE) {
-        status = EG_getBodyTopos(ebody, NULL, NODE, &nnode, &enodes);
-        CHECK_STATUS(EG_getBodyTopos);
+        inode = entIndex - 1;
+        for (ipnt = 0; ipnt < npnts; ipnt++) {
+            status = EG_evaluate_dot(enodes[inode], 0, NULL, data, data_dot);
+            CHECK_STATUS(EG_evaluate_dot);
 
-        eent = enodes[entIndex-1];
-
-        EG_free(enodes);
+            vels[3*ipnt  ] = data_dot[0];
+            vels[3*ipnt+1] = data_dot[1];
+            vels[3*ipnt+2] = data_dot[2];
+        }
     } else if (entType == OCSM_EDGE) {
-        status = EG_getBodyTopos(ebody, NULL, EDGE, &nedge, &eedges);
-        CHECK_STATUS(EG_getBodyTopos);
+        iedge = entIndex - 1;
+        for (ipnt = 0; ipnt < npnts; ipnt++) {
+            status = EG_evaluate_dot(eedges[iedge], &(uvs[ipnt]), NULL, data, data_dot);
+            CHECK_STATUS(EG_evaluate_dot);
 
-        eent = eedges[entIndex-1];
-
-        EG_free(eedges);
+            vels[3*ipnt  ] = data_dot[0];
+            vels[3*ipnt+1] = data_dot[1];
+            vels[3*ipnt+2] = data_dot[2];
+        }
     } else if (entType == OCSM_FACE) {
-        status = EG_getBodyTopos(ebody, NULL, FACE, &nface, &efaces);
-        CHECK_STATUS(EG_getBodyTopos);
+        SPLINT_CHECK_FOR_NULL(efaces);
 
-        eent = efaces[entIndex-1];
+        iface = entIndex - 1;
+        for (ipnt = 0; ipnt < npnts; ipnt++) {
+            status = EG_evaluate_dot(efaces[iface], &(uvs[2*ipnt]), NULL, data, data_dot);
+            CHECK_STATUS(EG_evaluate_dot);
 
-        EG_free(efaces);
+            vels[3*ipnt  ] = data_dot[0];
+            vels[3*ipnt+1] = data_dot[1];
+            vels[3*ipnt+2] = data_dot[2];
+        }
     } else {
         printf("udpSensitivity: bad entType=%d\n", entType);
         status = EGADS_ATTRERR;
         goto cleanup;
     }
 
-    /* loop through the points */
-    for (ipnt = 0; ipnt < npnt; ipnt++) {
+cleanup:
+    FREE(pnt    );
+    FREE(pnt_dot);
 
-        /* find the physical coordinates */
-        if        (entType == OCSM_NODE) {
-            status = EG_getTopology(eent, &eref, &oclass, &mtype,
-                                    data, &nchild, &echilds, &senses);
-            CHECK_STATUS(EG_getTopology);
-        } else if (entType == OCSM_EDGE) {
-            status = EG_evaluate(eent, &(uvs[ipnt]), data);
-            CHECK_STATUS(EG_evaluate);
-        } else if (entType == OCSM_FACE) {
-            status = EG_evaluate(eent, &(uvs[2*ipnt]), data);
-            CHECK_STATUS(EG_evaluate);
-        }
+    if (enodes != NULL) EG_free(enodes);
+    if (eedges != NULL) EG_free(eedges);
+    if (efaces != NULL) EG_free(efaces);
 
-        /* compute the sensitivity */
-        if (data[0] >= 0 && data[1] >= 0) {
-            vels[3*ipnt  ] = data[0] / rx_e * rx_e_dot;
-            vels[3*ipnt+1] = data[1] / ry_n * ry_n_dot;
-            vels[3*ipnt+2] = 0;
-        } else if (data[1] >= 0) {
-            vels[3*ipnt  ] = data[0] / rx_w * rx_w_dot;
-            vels[3*ipnt+1] = data[1] / ry_n * ry_n_dot;
-            vels[3*ipnt+2] = 0;
-        } else if (data[0] <= 0) {
-            vels[3*ipnt  ] = data[0] / rx_w * rx_w_dot;
-            vels[3*ipnt+1] = data[1] / ry_s * ry_s_dot;
-            vels[3*ipnt+2] = 0;
+    return status;
+}
+
+
+/*
+ ************************************************************************
+ *                                                                      *
+ *   setupQuad_dot - set up data and data_dot for a quadrant            *
+ *                                                                      *
+ ************************************************************************
+ */
+
+static int
+setupQuad_dot(int    iquad,             /* (in)  quadrant */
+              double slpfact,           /* (in)  slope factor */
+              double rx,                /* (in)  width */
+              double rx_dot,            /* (in)  width_dot */
+              double ry,                /* (in)  height */
+              double ry_dot,            /* (in)  height_dot */
+              double m,                 /* (in)  exponent on x */
+              double n,                 /* (in)  exponent on y */
+              int    numpnts,           /* (in)  number of spline points */
+              double pnt[],             /* (out)        spline points */
+              double pnt_dot[])         /* (out) dot of spline points */
+{
+    int status = EGADS_SUCCESS;
+
+    int    ipnt, i;
+    double theta, sinang, cosang;
+    double xbeg, xbeg_dot, ybeg, ybeg_dot, xend, xend_dot, yend, yend_dot;
+
+    ROUTINE(setupQuad_dot);
+
+    /* --------------------------------------------------------------- */
+
+    /* beginning and end points */
+    sinang = sin(iquad * PIo2);
+    cosang = cos(iquad * PIo2);
+
+    xbeg     = rx     * cosang;
+    ybeg     = ry     * sinang;
+    xbeg_dot = rx_dot * cosang;
+    ybeg_dot = ry_dot * sinang;
+
+    sinang = sin((iquad+1) * PIo2);
+    cosang = cos((iquad+1) * PIo2);
+
+    xend     = rx     * cosang;
+    yend     = ry     * sinang;
+    xend_dot = rx_dot * cosang;
+    yend_dot = ry_dot * sinang;
+
+    /* first point (and possible slpfact point) */
+    ipnt = 0;
+
+    pnt[    3*ipnt  ] = xbeg;
+    pnt[    3*ipnt+1] = ybeg;
+    pnt[    3*ipnt+2] = 0;
+
+    pnt_dot[3*ipnt  ] = xbeg_dot;
+    pnt_dot[3*ipnt+1] = ybeg_dot;
+    pnt_dot[3*ipnt+2] = 0;
+    ipnt++;
+
+    if (slpfact > 0) {
+        if (iquad%2 == 0) {
+            pnt[    3*ipnt  ] = xbeg;
+            pnt[    3*ipnt+1] = ybeg     + (yend     - ybeg    ) * slpfact;
+            pnt[    3*ipnt+2] = 0;
+
+            pnt_dot[3*ipnt  ] = xbeg_dot;
+            pnt_dot[3*ipnt+1] = ybeg_dot + (yend_dot - ybeg_dot) * slpfact;
+            pnt_dot[3*ipnt+2] = 0;
         } else {
-            vels[3*ipnt  ] = data[0] / rx_e * rx_e_dot;
-            vels[3*ipnt+1] = data[1] / ry_s * ry_s_dot;
-            vels[3*ipnt+2] = 0;
+            pnt[    3*ipnt  ] = xbeg     + (xend     - xbeg    ) * slpfact;
+            pnt[    3*ipnt+1] = ybeg;
+            pnt[    3*ipnt+2] = 0;
+
+            pnt_dot[3*ipnt  ] = xbeg_dot + (xend_dot - xbeg_dot) * slpfact;
+            pnt_dot[3*ipnt+1] = ybeg_dot;
+            pnt_dot[3*ipnt+2] = 0;
         }
+        ipnt++;
     }
 
-    status = EGADS_SUCCESS;
+    /* intermediate points */
+    for (i = 1; i < numpnts-1; i++) {
+        theta  = iquad * PIo2 + (double)(i) / (double)(numpnts-1) * PI/2;
+        sinang = sin(theta);
+        cosang = cos(theta);
 
-    /* velocities for Nodes */
-//$$$    if (entType == OCSM_NODE) {
-//$$$        if        (entIndex == 1) {
-//$$$            vels[0] = +rx_e_dot;
-//$$$            vels[1] =  0;
-//$$$            vels[2] =  0;
-//$$$        } else if (entIndex == 2) {
-//$$$            vels[0] =  0;
-//$$$            vels[1] = +ry_n_dot;
-//$$$            vels[2] =  0;
-//$$$        } else if (entIndex == 3) {
-//$$$            vels[0] = -rx_w_dot;
-//$$$            vels[1] =  0;
-//$$$            vels[2] =  0;
-//$$$        } else if (entIndex == 4) {
-//$$$            vels[0] =  0;
-//$$$            vels[1] = -ry_s_dot;
-//$$$            vels[2] =  0;
-//$$$        } else {
-//$$$            printf(" udpSensitivity: bad node index\n");
-//$$$            return EGADS_INDEXERR;
-//$$$        }
-//$$$
-    /* velocities for Edges */
-//$$$    } else if (entType == OCSM_EDGE) {
-//$$$        status = EG_getBodyTopos(ebody, NULL, EDGE, &nedge, &eedges);
-//$$$        if (status != EGADS_SUCCESS) goto cleanup;
-//$$$
-//$$$        if (entIndex >=1 && entIndex <= 4) {
-//$$$            eedge = eedges[entIndex-1];
-//$$$        } else {
-//$$$            EG_free(eedges);
-//$$$            printf(" udpSensitivity: bad edge index\n");
-//$$$            return EGADS_INDEXERR;
-//$$$        }
-//$$$
-//$$$        EG_free(eedges);
-//$$$        eedges = NULL;
-//$$$
-//$$$        if        (entIndex == 1) {
-//$$$            for (ipnt = 0; ipnt < npnt; ipnt++) {
-//$$$                status = EG_evaluate(eedge, &(uvs[ipnt]), xyz);
-//$$$                if (status != EGADS_SUCCESS) goto cleanup;
-//$$$
-//$$$                vels[3*ipnt  ] = rx_e_dot * xyz[0] / rx_e;
-//$$$                vels[3*ipnt+1] = ry_n_dot * xyz[1] / ry_n;
-//$$$                vels[3*ipnt+2] = 0;
-//$$$
-//$$$                if (fabs(n_ne_dot) > EPS06) {
-//$$$                    theta = atan(pow((+rx_e*xyz[1])/(+ry_n*xyz[0]), n_ne/2));
-//$$$                    if (theta > EPS06 && theta < PIo2-EPS06) {
-//$$$                        vels[3*ipnt  ] -= n_ne_dot * 2 * xyz[0] * log(cos(theta)) / (n_ne*n_ne);
-//$$$                        vels[3*ipnt+1] -= n_ne_dot * 2 * xyz[1] * log(sin(theta)) / (n_ne*n_ne);
-//$$$                    }
-//$$$                }
-//$$$            }
-//$$$        } else if (entIndex == 2) {
-//$$$            for (ipnt = 0; ipnt < npnt; ipnt++) {
-//$$$                status = EG_evaluate(eedge, &(uvs[ipnt]), xyz);
-//$$$                if (status != EGADS_SUCCESS) goto cleanup;
-//$$$
-//$$$                vels[3*ipnt  ] = rx_w_dot * xyz[0] / rx_w;
-//$$$                vels[3*ipnt+1] = ry_n_dot * xyz[1] / ry_n;
-//$$$                vels[3*ipnt+2] = 0;
-//$$$
-//$$$                if (fabs(n_nw_dot) >EPS06) {
-//$$$                    theta = atan(pow((-rx_w*xyz[1])/(+ry_n*xyz[0]), n_nw/2));
-//$$$                    if (theta > EPS06 && theta < PIo2-EPS06) {
-//$$$                        vels[3*ipnt  ] -= n_nw_dot * 2 * xyz[0] * log(cos(theta)) / (n_nw*n_nw);
-//$$$                        vels[3*ipnt+1] -= n_nw_dot * 2 * xyz[1] * log(sin(theta)) / (n_nw*n_nw);
-//$$$                    }
-//$$$                }
-//$$$            }
-//$$$        } else if (entIndex == 3) {
-//$$$            for (ipnt = 0; ipnt < npnt; ipnt++) {
-//$$$                status = EG_evaluate(eedge, &(uvs[ipnt]), xyz);
-//$$$                if (status != EGADS_SUCCESS) goto cleanup;
-//$$$
-//$$$                vels[3*ipnt  ] = rx_w_dot * xyz[0] / rx_w;
-//$$$                vels[3*ipnt+1] = ry_s_dot * xyz[1] / ry_s;
-//$$$                vels[3*ipnt+2] = 0;
-//$$$
-//$$$                if (fabs(n_sw_dot) > EPS06) {
-//$$$                    theta = atan(pow((-rx_w*xyz[1])/(-ry_s*xyz[0]), n_sw/2));
-//$$$                    if (theta > EPS06 && theta < PIo2-EPS06) {
-//$$$                        vels[3*ipnt  ] -= n_sw_dot * 2 * xyz[0] * log(cos(theta)) / (n_sw*n_sw);
-//$$$                        vels[3*ipnt+1] -= n_sw_dot * 2 * xyz[1] * log(sin(theta)) / (n_sw*n_sw);
-//$$$                    }
-//$$$                }
-//$$$            }
-//$$$        } else if (entIndex == 4) {
-//$$$            for (ipnt = 0; ipnt < npnt; ipnt++) {
-//$$$                status = EG_evaluate(eedge, &(uvs[ipnt]), xyz);
-//$$$                if (status != EGADS_SUCCESS) goto cleanup;
-//$$$
-//$$$                vels[3*ipnt  ] = rx_e_dot * xyz[0] / rx_e;
-//$$$                vels[3*ipnt+1] = ry_s_dot * xyz[1] / ry_s;
-//$$$                vels[3*ipnt+2] = 0;
-//$$$
-//$$$                if (fabs(n_se_dot) > EPS06) {
-//$$$                    theta = atan(pow((+rx_e*xyz[1])/(-ry_s*xyz[0]), n_se/2));
-//$$$                    if (theta > EPS06 && theta < PIo2-EPS06) {
-//$$$                        vels[3*ipnt  ] -= n_se_dot * 2 * xyz[0] * log(cos(theta)) / (n_se*n_se);
-//$$$                        vels[3*ipnt+1] -= n_se_dot * 2 * xyz[1] * log(sin(theta)) / (n_se*n_se);
-//$$$                    }
-//$$$                }
-//$$$            }
-//$$$        } else {
-//$$$            printf(" udpSensitivity: bad index\n");
-//$$$            return EGADS_INDEXERR;
-//$$$        }
-//$$$
-    /* velocities for Face */
-//$$$    } else if (entType == OCSM_FACE) {
-//$$$        if (entIndex == 1) {
-//$$$            for (ipnt = 0; ipnt < npnt; ipnt++) {
-//$$$                vels[3*ipnt  ] = 0;
-//$$$                vels[3*ipnt+1] = 0;
-//$$$                vels[3*ipnt+2] = 0;
-//$$$            }
-//$$$        } else {
-//$$$            printf(" udpSensitivity: bad Face index\n");
-//$$$            return EGADS_INDEXERR;
-//$$$        }
-//$$$
-//$$$    } else {
-//$$$        printf(" udpSensitivity: bad entity type\n");
-//$$$        return EGADS_GEOMERR;
-//$$$    }
-//$$$
-//$$$    status = EGADS_SUCCESS;
+        pnt[    3*ipnt  ] = rx     * FSIGN(pow(fabs(cosang), 2.0/m), cosang);
+        pnt[    3*ipnt+1] = ry     * FSIGN(pow(fabs(sinang), 2.0/n), sinang);
+        pnt[    3*ipnt+2] = 0;
 
-cleanup:
+        pnt_dot[3*ipnt  ] = rx_dot * FSIGN(pow(fabs(cosang), 2.0/m), cosang);
+        pnt_dot[3*ipnt+1] = ry_dot * FSIGN(pow(fabs(sinang), 2.0/n), sinang);
+        pnt_dot[3*ipnt+2] = 0;
+        ipnt++;
+    }
+
+    /* last point (and possible slpfact point) */
+    if (slpfact > 0) {
+        if (iquad%2 == 0) {
+            pnt[    3*ipnt  ] = xend     + (xbeg     - xend    ) * slpfact;
+            pnt[    3*ipnt+1] = yend;
+            pnt[    3*ipnt+2] = 0;
+
+            pnt_dot[3*ipnt  ] = xend_dot + (xbeg_dot - xend_dot) * slpfact;
+            pnt_dot[3*ipnt+1] = yend_dot;
+            pnt_dot[3*ipnt+2] = 0;
+        } else {
+            pnt[    3*ipnt  ] = xend;
+            pnt[    3*ipnt+1] = yend     + (ybeg     - yend    ) * slpfact;
+            pnt[    3*ipnt+2] = 0;
+
+            pnt_dot[3*ipnt  ] = xend_dot;
+            pnt_dot[3*ipnt+1] = yend_dot + (ybeg_dot - yend_dot) * slpfact;
+            pnt_dot[3*ipnt+2] = 0;
+        }
+        ipnt++;
+    }
+
+    pnt[    3*ipnt  ] = xend;
+    pnt[    3*ipnt+1] = yend;
+    pnt[    3*ipnt+2] = 0;
+
+    pnt_dot[3*ipnt  ] = xend_dot;
+    pnt_dot[3*ipnt+1] = yend_dot;
+    pnt_dot[3*ipnt+2] = 0;
+    ipnt++;
+
+#ifdef DEBUG
+    for (i = 0; i < ipnt; i++) {
+        printf("%3d, pnt=%10.5f %10.5f %10.5f, pnt_dot=%10.5f %10.5f %10.5f\n", i,
+               pnt[3*i], pnt[3*i+1], pnt[3*i+2], pnt_dot[3*i], pnt_dot[3*i+1], pnt_dot[3*i+2]);
+    }
+#endif
+
+//cleanup:
     return status;
 }

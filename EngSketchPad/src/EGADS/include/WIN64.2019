@@ -6,6 +6,9 @@ COPTS  = /Ox /MD /D_CRT_SECURE_NO_DEPRECATE
 CPPOPT = /Ob2 /Oi /Ot /Oy /MD /EHsc /GR /D_CRT_SECURE_NO_DEPRECATE
 FOPTS  = /Ox /threads /recursive /libs:dll
 FLIBS  = 
+!IFDEF EFCOMP
+FCOMP  = $(EFCOMP)
+!ENDIF
 OCOPT  = /Ox /MD /D_CRT_SECURE_NO_DEPRECATE
 LIBPTH = /link /LIBPATH:$(ESP_ROOT)\lib /LIBPATH:$(CASROOT)\$(CASARCH)\lib
 LNKPTH = /LIBPATH:$(CASROOT)\$(CASARCH)\lib
@@ -24,6 +27,9 @@ LIBS   = TKBool.lib TKernel.lib TKFeat.lib TKBO.lib TKGeomAlgo.lib TKMath.lib TK
 !endif
 !if "$(CASREV)" == "7.8"
 LIBS   = TKBool.lib TKernel.lib TKFeat.lib TKBO.lib TKGeomAlgo.lib TKMath.lib TKOffset.lib TKPrim.lib TKTopAlgo.lib TKBRep.lib TKG2d.lib TKG3d.lib TKGeomBase.lib TKShHealing.lib TKDESTEP.lib TKDEIGES.lib TKXSBase.lib TKFillet.lib
+!endif
+!if "$(LIBS)" == ""
+!ERROR Unsupported CASREV=$(CASREV) -- Must be one of: 7.3 7.4 7.6 7.7 7.8
 !endif
 GLIBS  = gv.lib glu32.lib opengl32.lib user32.lib gdi32.lib
 MCOMP  = echo

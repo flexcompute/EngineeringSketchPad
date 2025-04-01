@@ -41,6 +41,7 @@ int su2_writeCongfig_Blackbird(void *aimInfo, capsValue *aimInputs,
     char *filename = NULL;
     FILE *fp = NULL;
     char fileExt[] = ".cfg";
+    char *str = NULL;
 
     printf("Write SU2 configuration file for version \"BlackBird (7.5.1) \"\n");
     stringLength = 1
@@ -95,10 +96,32 @@ int su2_writeCongfig_Blackbird(void *aimInfo, capsValue *aimInputs,
     fprintf(fp,"KIND_TURB_MODEL = %s\n", aimInputs[Turbulence_Model-1].vals.string);
     fprintf(fp,"%% \n");
     fprintf(fp, "%% Specify versions/corrections of the SST model (V2003m, V1994m, VORTICITY, KATO_LAUNDER, UQ, SUSTAINING) \n");
-    fprintf(fp, "%% SST_OPTIONS= NONE \n");
+    if (strcmp(aimInputs[Turbulence_Model-1].vals.string, "SST") == 0) {
+      fprintf(fp, "SST_OPTIONS= ");
+      str = aimInputs[Turbulence_Model_Option-1].vals.string;
+      for (i = 0; i < aimInputs[Turbulence_Model_Option-1].length; i++, str += strlen(str)+1) {
+        string_toUpperCase(str);
+        fprintf(fp,"%s", str);
+        if (i < aimInputs[Turbulence_Model_Option-1].length-1) fprintf(fp,", ");
+      }
+      fprintf(fp, "\n");
+    } else {
+      fprintf(fp, "%% SST_OPTIONS= NONE \n");
+    }
     fprintf(fp, "%% \n");
     fprintf(fp, "%% Specify versions/corrections of the SA model (NEGATIVE, EDWARDS, WITHFT2, QCR2000, COMPRESSIBILITY, ROTATION, BCM, EXPERIMENTAL) \n");
-    fprintf(fp, "%% SA_OPTIONS= NONE \n");
+    if (strcmp(aimInputs[Turbulence_Model-1].vals.string, "SA") == 0) {
+      fprintf(fp, "SA_OPTIONS= ");
+      str = aimInputs[Turbulence_Model_Option-1].vals.string;
+      for (i = 0; i < aimInputs[Turbulence_Model_Option-1].length; i++, str += strlen(str)+1) {
+        string_toUpperCase(str);
+        fprintf(fp,"%s", str);
+        if (i < aimInputs[Turbulence_Model_Option-1].length-1) fprintf(fp,", ");
+      }
+      fprintf(fp, "\n");
+    } else {
+      fprintf(fp, "%% SA_OPTIONS= NONE \n");
+    }
     fprintf(fp, "%% \n");
     fprintf(fp,"%% Transition model (NONE, LM) \n");
     fprintf(fp,"%% KIND_TRANS_MODEL= NONE \n");
@@ -997,8 +1020,7 @@ int su2_writeCongfig_Blackbird(void *aimInfo, capsValue *aimInputs,
     counter = 0; // Viscous boundary w/ heat flux
     for (i = 0; i < bcProps.numSurfaceProp; i++) {
         if (bcProps.surfaceProp[i].surfaceType == Viscous &&
-            bcProps.surfaceProp[i].wallTemperatureFlag == (int) true &&
-            bcProps.surfaceProp[i].wallTemperature < 0) {
+            bcProps.surfaceProp[i].wallTemperatureFlag == (int) false) {
 
             if (counter > 0) fprintf(fp, ",");
             fprintf(fp," BC_%d, %f", bcProps.surfaceProp[i].bcID, bcProps.surfaceProp[i].wallHeatFlux);
@@ -1020,8 +1042,7 @@ int su2_writeCongfig_Blackbird(void *aimInfo, capsValue *aimInputs,
     counter = 0; // Viscous boundary w/ isothermal wall
     for (i = 0; i < bcProps.numSurfaceProp; i++) {
         if (bcProps.surfaceProp[i].surfaceType == Viscous &&
-            bcProps.surfaceProp[i].wallTemperatureFlag == (int) true &&
-            bcProps.surfaceProp[i].wallTemperature >= 0) {
+            bcProps.surfaceProp[i].wallTemperatureFlag == (int) true) {
 
             if (counter > 0) fprintf(fp, ",");
             fprintf(fp," BC_%d, %f", bcProps.surfaceProp[i].bcID, bcProps.surfaceProp[i].wallTemperature);
@@ -2056,10 +2077,13 @@ int su2_writeCongfig_Blackbird(void *aimInfo, capsValue *aimInputs,
     fprintf(fp,"%%  SURFACE_TECPLOT, CSV, SURFACE_CSV, PARAVIEW_ASCII, PARAVIEW_LEGACY, SURFACE_PARAVIEW_ASCII, \n");
     fprintf(fp,"%%  SURFACE_PARAVIEW_LEGACY, PARAVIEW, SURFACE_PARAVIEW, RESTART_ASCII, RESTART, CGNS, SURFACE_CGNS, STL_ASCII, STL_BINARY) \n");
     fprintf(fp,"%% default : (RESTART, PARAVIEW, SURFACE_PARAVIEW) \n");
-    string_toUpperCase(aimInputs[Output_Format-1].vals.string);
-    fprintf(fp,"OUTPUT_FILES= RESTART, SURFACE_CSV, %s, SURFACE_%s\n",
-            aimInputs[Output_Format-1].vals.string,
-            aimInputs[Output_Format-1].vals.string);
+    str = aimInputs[Output_Format-1].vals.string;
+    fprintf(fp,"OUTPUT_FILES= RESTART, SURFACE_CSV");
+    for (i = 0; i < aimInputs[Output_Format-1].length; i++, str += strlen(str)+1) {
+      string_toUpperCase(str);
+      fprintf(fp,", %s, SURFACE_%s", str, str);
+    }
+    fprintf(fp,"\n");
     fprintf(fp,"%% \n");
     fprintf(fp,"%% Output file convergence history (w/o extension) \n");
     fprintf(fp,"%% CONV_FILENAME= history \n");

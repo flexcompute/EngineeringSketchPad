@@ -1,0 +1,25 @@
+# evalError3d
+# written by John Dannenhoffer
+
+SET       a   9
+
+PATBEG    aa  2
+   SKBEG     0  0  sqrtt(a)
+      LINSEG 1  0  0
+      ASSERT 0  1
+   SKEND
+
+   ASSERT    0  2
+   CATBEG    $illegal_func_name
+   CATEND
+
+   BOX       0  0  0   aa aa aa
+PATEND
+
+# make sure there is not an active signal
+ASSERT    @signal  0
+
+END
+
+    
+   

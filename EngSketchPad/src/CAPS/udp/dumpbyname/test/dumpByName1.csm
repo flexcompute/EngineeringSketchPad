@@ -1,0 +1,58 @@
+# dumpByName1
+# written by Marshall Galbraith
+
+MARK
+BOX 0 0 0  1 1 1
+
+PATBEG i 6
+  SELECT face i
+    ATTRIBUTE Name $Face #+i
+PATEND
+
+PATBEG i 2
+  SELECT edge i
+    ATTRIBUTE Name $Box_Edge+i
+PATEND
+
+BOX 2 0 0  1 1 1
+
+PATBEG i 2
+  SELECT face i
+    ATTRIBUTE Name $FaceA
+PATEND
+SELECT face 3
+  ATTRIBUTE Name $FaceB
+PATBEG i 3
+  SELECT face i+3
+    ATTRIBUTE Name $FaceC
+PATEND
+
+SKBEG 0 0 0
+  LINSEG 1 0 0
+  LINSEG 0 1 0
+  LINSEG 0 0 1
+  LINSEG 1 0 1
+SKEND
+
+PATBEG i 2
+  SELECT edge i
+    ATTRIBUTE Name $Edge+i
+PATEND
+GROUP
+STORE named
+
+MARK
+  RESTORE named
+UDPRIM dumpbyname filename $named.stp
+TRANSLATE 0 6 0
+
+IMPORT named.stp -1
+TRANSLATE 0 4 0
+
+MARK
+  RESTORE named
+UDPRIM dumpbyname filename $named.igs
+TRANSLATE 0 2 0
+
+IMPORT named.igs -1
+

@@ -1,0 +1,19 @@
+# evaluateDist7f (body1 and body2* are neighbors)
+# written by John Dannenhoffer
+
+POINT     6.5  3.0  3.0
+SET       body1     @nbody
+
+POINT     8.0  3.0  3.0
+SET       body2     @nbody
+
+EVALUATE  dist      +body1  +body2
+ASSERT    @edata[1] +1.5
+
+SKBEG     @edata[5]  @edata[6]  @edata[7]
+   LINSEG @edata[11] @edata[12] @edata[13]
+SKEND
+
+END
+
+

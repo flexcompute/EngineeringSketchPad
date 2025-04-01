@@ -1,0 +1,8 @@
+# designAD1.udc
+# written by John Dannenhoffer
+
+INTERFACE . ALL
+
+BOX       0.0  0.0  0.0  length height depth
+
+END

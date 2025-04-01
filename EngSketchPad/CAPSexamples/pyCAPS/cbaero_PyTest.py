@@ -19,7 +19,7 @@ args = parser.parse_args()
 projectName = "CBAeroAnalysisTest"
 workDir = os.path.join(str(args.workDir[0]), projectName)
 
-# Load CSM file 
+# Load CSM file
 geometryScript = os.path.join("..","csmData","cfdX43a.csm")
 myProblem = pyCAPS.Problem(problemName=workDir,
                            capsFile=geometryScript,
@@ -28,12 +28,15 @@ myProblem = pyCAPS.Problem(problemName=workDir,
 # Turn of the farfield domain
 myProblem.geometry.cfgpmtr.makeBoundBox = 0
 
-# Load egadsTess aim to create surface mesh  
+# Load egadsTess aim to create surface mesh
 meshAIM = myProblem.analysis.create(aim = "egadsTessAIM",
                                     name = "egadsTess" )
 
-# Load CBAero aim 
-cbaero = myProblem.analysis.create(aim = "cbaeroAIM", 
+# Set meshing parameters
+meshAIM.input.Tess_Params = [0.025, 0.01, 10.0]
+
+# Load CBAero aim
+cbaero = myProblem.analysis.create(aim = "cbaeroAIM",
                                    name = "cbaero")
 
 deg = pyCAPS.Unit("degree")
@@ -48,14 +51,30 @@ cbaero.input.NumParallelCase = 3;
 # Set number of threads to use to solve each case
 cbaero.input.NumThreadPerCase = 2;
 
-# Set AoA number 
+# Set AoA number
 cbaero.input.Alpha = [1.0, 3.0, 5.0] * deg
 
-# Set Mach number 
+# Set Mach number
 cbaero.input.Mach = [2.0, 2.5, 4.0]
 
-# Set Dynamic pressure 
+# Set Dynamic pressure
 cbaero.input.Dynamic_Pressure = 10 * psi
+
+# Set Mangler setting
+cbaero.input.Mangler_Setting = "2D"
+
+# Set aero surfaces
+cbaero.input.Aero_Surface = {"fuselage_base":"Base",
+                             "horizontalCS" :"Wing",
+                             "verticalCS"   :"Wing",
+                             "inlet"        :"Body",
+                             "hollowInlet"  :"Body"}
+
+# Set materials
+cbaero.input.Material_Group = {"mat1":{"surfaceType":"Fully Catalytic", "emissivity":0.8,"groupName":["fuselage", "fuselage_base"]},
+                               "mat2":{"surfaceType":"RCG"            , "emissivity":0.6,"groupName":["horizontalCS", "verticalCS"]},
+                               "mat3":{"surfaceType":"8"              , "emissivity":0.7,"groupName":"inlet"},
+                               "mat4":{"surfaceType":"Fully Catalytic", "emissivity":0.5,"groupName":"hollowInlet"}}
 
 # Explicitly run analysis (optional)
 cbaero.runAnalysis()
@@ -63,4 +82,3 @@ cbaero.runAnalysis()
 # Get all ouputs
 for i in cbaero.output.keys():
     print(str(i) + " = " + str(cbaero.output[i].value))
-    

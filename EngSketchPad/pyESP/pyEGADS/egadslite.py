@@ -3,7 +3,7 @@
 # pyEGADS --- Python version of EGADS API                                 #
 #                                                                         #
 #                                                                         #
-#      Copyright 2011-2024, Massachusetts Institute of Technology         #
+#      Copyright 2011-2025, Massachusetts Institute of Technology         #
 #      Licensed under The GNU Lesser General Public License, version 2.1  #
 #      See http://www.opensource.org/licenses/lgpl-2.1.php                #
 #                                                                         #
@@ -195,6 +195,10 @@ delattr(ego, "isoCline")
 #_egadslite.EG_isIsoPCurve.restype = c_int
 delattr(ego, "isIsoPCurve")
 
+#_egads.EG_mergeBSplineCurves.argtypes = [c_ego, c_ego, POINTER(c_ego)]
+#_egads.EG_mergeBSplineCurves.restype = c_int
+delattr(ego, "mergeBSplineCurves")
+
 #_egadslite.EG_convertToBSpline.argtypes = [c_ego, POINTER(c_ego)]
 #_egadslite.EG_convertToBSpline.restype = c_int
 delattr(ego, "convertToBSpline")
@@ -293,9 +297,17 @@ del globals()["makeNmWireBody"]
 #_egadslite.EG_replaceFaces.restype = c_int
 delattr(ego, "replaceFaces")
 
+#_egads.EG_removeNodes.argtypes = [c_ego, c_int, POINTER(c_ego), POINTER(c_ego)]
+#_egads.EG_removeNodes.restype = c_int
+delattr(ego, "removeNodes")
+
 #_egadslite.EG_mapBody.argtypes = [c_ego, c_ego, c_char_p, POINTER(c_ego)]
 #_egadslite.EG_mapBody.restype = c_int
 delattr(ego, "mapBody")
+
+#_egadslite.EG_mapBody2.argtypes = [c_ego, c_char_p, c_char_p, POINTER(c_ego)]
+#_egadslite.EG_mapBody2.restype = c_int
+delattr(ego, "mapBody2")
 
 #_egadslite.EG_matchBodyEdges.argtypes = [c_ego, c_ego, c_double, POINTER(c_int), POINTER(POINTER(c_int))]
 #_egadslite.EG_matchBodyEdges.restype = c_int

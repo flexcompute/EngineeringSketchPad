@@ -164,6 +164,9 @@ if [ "$TYPE" == "MINIMAL" ]; then
 
     ###### EGADS Tess ######
     expectPythonSuccess "egadsTess_PyTest.py"
+
+    ###### curveTess ######
+    expectPythonSuccess "curveTess_Spheres_PyTest.py"
     
     ###### AFLR ######
     if [[ -f $ESP_ROOT/lib/aflr2AIM.$EXT && \
@@ -210,6 +213,9 @@ if [ "$TYPE" == "MINIMAL" ]; then
         notRun="$notRun\nAstros"
     fi
 
+    ######  Interference ###### 
+    expectPythonSuccess "interference_PyTest.py"
+
     ######  MASSTRAN ###### 
     expectPythonSuccess "masstran_PyTest.py"
 
@@ -245,7 +251,9 @@ if [[ "$TYPE" == "LINEARAERO" || "$TYPE" == "ALL" ]]; then
         expectPythonSuccess "avl_AutoSpan_PyTest.py"
         expectPythonSuccess "avl_DesignSweep_PyTest.py" -noPlotData
         expectPythonSuccess "avl_ControlSurf_PyTest.py"
+        expectPythonSuccess "avl_Trim_PyTest.py" -noPlotData
         expectPythonSuccess "avl_EigenValue_PyTest.py"
+        expectPythonSuccess "avl_CruciformFuselage_PyTest.py"
         if ( python -c 'import openmdao' ); then
             expectPythonSuccess "avl_OpenMDAO_3_PyTest.py"
         else
@@ -322,6 +330,9 @@ if [[ "$TYPE" == "MESH" || "$TYPE" == "ALL" ]]; then
     expectPythonSuccess "egadsTess_Spheres_Quad_PyTest.py"
     expectPythonSuccess "egadsTess_Nose_Quad_PyTest.py"
 
+    # curveTess
+    expectPythonSuccess "curveTess_Spheres_PyTest.py"
+
     # AFLR
     if [[ -f $ESP_ROOT/lib/aflr2AIM.$EXT && \
           -f $ESP_ROOT/lib/aflr3AIM.$EXT && \
@@ -333,6 +344,7 @@ if [[ "$TYPE" == "MESH" || "$TYPE" == "ALL" ]]; then
         expectPythonSuccess "aflr4_TipTreat_PyTest.py" -noPlotData
         expectPythonSuccess "aflr4_and_aflr3_PyTest.py"
         expectPythonSuccess "aflr4_and_aflr3_Symmetry_PyTest.py"
+        expectPythonSuccess "aflr4_and_aflr3_SkipVolume.py"
         expectPythonSuccess "aflr4_QuadMesh_PyTest.py"
 
         if [[ -f $ESP_ROOT/lib/tetgenAIM.$EXT ]]; then
@@ -381,6 +393,14 @@ if [[ "$TYPE" == "CFD" || "$TYPE" == "ALL" ]]; then
     echo "Running.... CFD PyTests"
     echo ""
     
+    ###### FlightStream ######
+    if [[ `command -v FlightStream` ]]; then
+        echo "FlightStream: `which FlightStream`"
+        expectPythonSuccess "flightstream_X43_PyTest.py"
+    else
+        notRun="$notRun\nFlightStream"
+    fi
+    
     # SU2
     if [ "$SU2_RUN" != "" ] && [ "$OS" != "Windows_NT" ]; then
         if [[ -f $ESP_ROOT/lib/aflr2AIM.$EXT ]]; then
@@ -413,6 +433,10 @@ if [[ "$TYPE" == "CFD" || "$TYPE" == "ALL" ]]; then
         ulimit -s unlimited || true # Cart3D requires unlimited stack size
         echo "flowCart: `which flowCart`"
         expectPythonSuccess "cart3d_PyTest.py"
+        expectPythonSuccess "cart3d_Nacelle_PyTest.py"
+        if [[ `uname -m` == x86_64 ]]; then
+            expectPythonSuccess "cart3d_Adapt_PyTest.py"
+        fi
         if ( python -c 'import openmdao' ); then
             expectPythonSuccess "cart3d_OpenMDAO_3_alpha_PyTest.py"
             expectPythonSuccess "cart3d_OpenMDAO_3_twist_PyTest.py"
@@ -467,6 +491,9 @@ if [[ "$TYPE" == "STRUCTURE" || "$TYPE" == "ALL" ]]; then
     else
         notRun="$notRun\nabaqus"
     fi
+
+    ######  Interference ###### 
+    expectPythonSuccess "interference_PyTest.py"
 
     ###### masstran ######
     expectPythonSuccess "masstran_PyTest.py"
@@ -617,6 +644,15 @@ if [[ "$TYPE" == "AEROELASTIC" || "$TYPE" == "ALL" ]]; then
         expectPythonSuccess "aeroelasticSimple_Iterative_Cart3D_and_Mystran.py"
     else
         notRun="$notRun\nMystran and Cart3D"
+    fi
+
+    ###### FlightStream and Mystran ######
+    if [[ (`command -v mystran.exe` || `command -v mystran`) && `command -v FlightStream` ]]; then
+        echo "mystran: `which mystran`"
+        echo "FlightStream: `which FlightStream`"
+        expectPythonSuccess "aeroelasticX15_Iterative_FlightStream_and_Mystran.py"
+    else
+        notRun="$notRun\nMystran and FlightStream"
     fi
 
     testsRan=1

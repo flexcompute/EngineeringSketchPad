@@ -1,0 +1,11 @@
+# ffd_box1a
+# written by Marshall Galbraith
+
+BOX 0 0 0   1 1 1 
+
+STORE   original
+
+# Deform original
+UDPRIM $/ffda
+
+END

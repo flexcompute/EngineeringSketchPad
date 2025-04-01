@@ -1,0 +1,72 @@
+
+INTERFACE . ALL
+
+
+# Create the ffd box
+CFGPMTR cpu         4
+CFGPMTR cpv         4
+CFGPMTR cpw         2
+CFGPMTR u_degree    3
+CFGPMTR v_degree    3
+CFGPMTR w_degree    1
+
+SET dx @xmax-@xmin
+SET dy @ymax-@ymin
+SET dz @zmax-@zmin
+SET ds 0.1
+
+BOX @xmin-ds @ymin-ds @zmin-ds  dx+2*ds dy+2*ds dz+2*ds
+SET       theBox  @ibody
+
+SELECT    FACE  theBox 1
+   ATTRIBUTE  ffd_uMin    "u_degree;cpu"
+   ATTRIBUTE  _color $cyan
+SELECT    FACE  theBox 3
+   ATTRIBUTE  ffd_vMin    "v_degree;cpv"
+   ATTRIBUTE  _color $magenta
+SELECT    FACE  theBox 5
+   ATTRIBUTE  ffd_wMin    "w_degree;cpw"
+   ATTRIBUTE  _color $green
+
+STORE ffdBox
+
+# 2D Parameters
+DIMENSION d2_params cpu*cpv 2
+#DESPMTR d2_params 0
+PATBEG i d2_params.nrow
+  PATBEG j d2_params.ncol
+    SET d2_params[i,j] 0.5*j*(i-1)/(d2_params.nrow-1)
+  PATEND
+PATEND
+
+# Set 3D parameters based on the 2D parameters
+DIMENSION d3_params cpu*cpv*cpw 3
+SET d3_params 0
+PATBEG k cpw
+  PATBEG j cpv
+    PATBEG i cpu
+      SET d2            (j-1)*cpu+i
+      SET d3 ((k-1)*cpv+(j-1))*cpu+i
+      PATBEG n d2_params.ncol
+        SET d3_params[d3,n] d2_params[d2,n]
+      PATEND
+    PATEND
+  PATEND
+PATEND
+
+# converted to BSplines
+RESTORE ffdBox
+RESTORE original
+UDPRIM  FFDsplines   mincp 11
+
+# translate
+UDPRIM FFDdeform design_params d3_params
+IFTHEN @nface GT 0
+SELECT FACE
+  ATTRIBUTE _color $lblue
+ELSE
+SELECT EDGE
+  ATTRIBUTE _color $lblue
+ENDIF
+
+RESTORE original

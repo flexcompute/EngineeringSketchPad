@@ -3,7 +3,7 @@
  *
  *             Units Utility Functions
  *
- *      Copyright 2014-2024, Massachusetts Institute of Technology
+ *      Copyright 2014-2025, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -368,6 +368,45 @@ caps_unitRaise(const char  *inUnit, const int power, char **outUnits)
 
   utunit1 = ut_parse(utsystem, inUnit, UT_ASCII);
   utunit  = ut_raise(utunit1, power);
+  if (ut_get_status() != UT_SUCCESS) {
+    ut_free(utunit1);
+    ut_free(utunit);
+    return CAPS_UNITERR;
+  }
+
+  status = ut_format(utunit, buffer, UNIT_BUFFER_MAX, UT_ASCII);
+
+  ut_free(utunit1);
+  ut_free(utunit);
+
+  if (ut_get_status() != UT_SUCCESS || status >= UNIT_BUFFER_MAX) {
+    return CAPS_UNITERR;
+  } else {
+    *outUnits = EG_strdup(buffer);
+    if (*outUnits == NULL) return EGADS_MALLOC;
+    return CAPS_SUCCESS;
+  }
+}
+
+
+int
+caps_unitRoot(const char  *inUnit, const int root, char **outUnits)
+{
+  int         status;
+  ut_unit     *utunit1, *utunit;
+  char        buffer[UNIT_BUFFER_MAX];
+
+  if ((inUnit == NULL) || (outUnits == NULL)) return CAPS_NULLVALUE;
+
+  *outUnits = NULL;
+
+  if (utsystem == NULL) {
+    (void) caps_initUnits();
+    if (utsystem == NULL) return CAPS_UNITERR;
+  }
+
+  utunit1 = ut_parse(utsystem, inUnit, UT_ASCII);
+  utunit  = ut_root(utunit1, root);
   if (ut_get_status() != UT_SUCCESS) {
     ut_free(utunit1);
     ut_free(utunit);

@@ -3,7 +3,8 @@
  *
  *             FUN3D AIM
  *
- *     Written by Dr. Ryan Durscher AFRL/RQVC
+ *     Written by Dr. Ryan Durscher AFRL/RQVC and
+ *                Marshall Galbraith (MIT)
  *
  *     This software has been cleared for public release on 05 Nov 2020, case number 88ABW-2020-3462.
  */
@@ -1959,7 +1960,7 @@ int aimPostAnalysis(void *instStore, void *aimInfo,
         status = CAPS_IOERR; goto cleanup;
       }
       if (fun3dInstance->design.numDesignVariable != numDesignVariable+nGeomIn) {
-        AIM_ERROR(aimInfo, "Incorrect number of design variables in sens file. Expected %d and found %d",
+        AIM_ERROR(aimInfo, "Incorrect number of AnalysisIn derivatives in sens file. Expected %d and found %d",
                   fun3dInstance->design.numDesignVariable-nGeomIn, numDesignVariable);
         status = CAPS_IOERR; goto cleanup;
       }
@@ -2102,7 +2103,7 @@ int aimPostAnalysis(void *instStore, void *aimInfo,
         for (irow = 0; irow < geomInVal->nrow; irow++) {
           for (icol = 0; icol < geomInVal->ncol; icol++) {
 
-            // get the sensitvity for each body
+            // get the sensitivity for each body
             for (ibody = 0; ibody < meshRef->nmap; ibody++) {
               if (meshRef->maps[ibody].tess == NULL) continue;
               status = aim_tessSensitivity(aimInfo,
@@ -2799,8 +2800,7 @@ int aimDiscr(char *tname, capsDiscr *discr)
         goto cleanup;
     }
 
-    if (aim_newGeometry(discr->aInfo) == CAPS_SUCCESS &&
-        fun3dInstance->groupMap.numAttribute == 0) {
+    if (aim_newGeometry(discr->aInfo) == CAPS_SUCCESS) {
         // Get capsGroup name and index mapping to make sure all faces have a capsGroup value
         status = create_CAPSGroupAttrToIndexMap(numBody,
                                                 bodies,

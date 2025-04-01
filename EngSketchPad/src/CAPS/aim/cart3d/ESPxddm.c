@@ -21,6 +21,8 @@
 #include "common.h"
 #include "OpenCSM.h"
 
+#include "xddmInternals.h"
+
 
 static int
 parsePmtr(char *name, char *pname, int *irow, int *icol)
@@ -51,23 +53,24 @@ int
 main(int argc, char *argv[])
 {
   int          stat = EGADS_SUCCESS;
-  int          i, j, k, ipmtr, major, minor, type, nrow, ncol, opts;
-  int          irow, icol, buildTo, builtTo, ibody, nvert, noI;
+  int          i, j, k, ipmtr, major, minor, type, nrow, ncol;
+  unsigned     opts;
+  int          irow, icol, buildTo, builtTo, ibody, nvert, noI, ntri;
   int          nbody=0, nface, kb, nb, iglobal, iface, outLevel;
   char         *filename, name[MAX_NAME_LEN], pname[129];
   double       value, dot, size, lower, upper, step;
   double       global[3], tparam[3], box[6], ***dvar=NULL, *psens=NULL;
   const char   *occ_rev;
-  const double *pcsens;
+  const double *pcsens, *xyz, *uv;
+  const int    *ptype, *pindx, *tris, *tric;
   ego          context=NULL, body, *tess=NULL;
   void         *modl = NULL;
   modl_T       *MODL = NULL;
   verTags      *vtags = NULL;
   p_tsXddm     p_xddm = NULL;
-  p_tsXmParent p_p;
   
   if (argc != 3) {
-    printf("Uasge: ESPxddm <xddm_filename> <xpath_expression>\n\n");
+    printf("Usage: ESPxddm <xddm_filename> <xpath_expression>\n\n");
     return 1;
   }
   
@@ -78,24 +81,15 @@ main(int argc, char *argv[])
   
   opts = 1;  /* be verbose */
   
-  p_xddm = xddm_readFile(argv[1], argv[2], opts);
+  p_xddm = xddm_readFile(argv[1], argv[2], &opts);
   if (NULL == p_xddm) {
     printf("xddm_readFile failed to parse\n");
     goto cleanup;
   }
-  xddm_echo(p_xddm);
+  xddm_echo(p_xddm, 2); // 2 is indent
   
   /* get filename -- attached to ID */
-  filename = NULL;
-  if (p_xddm->p_parent) {
-    for (i = 0; i < p_xddm->p_parent->nAttr; i++) {
-      p_p = p_xddm->p_parent;
-      if (strcmp(p_p->p_attr[i].p_name, "ID") == 0) {
-        filename = p_p->p_attr[i].p_value;
-        break;
-      }
-    }
-  }
+  filename = p_xddm->p_e->p_id;
   if (filename == NULL) {
     printf("ID not found!\n");
     stat = 1;
@@ -127,9 +121,9 @@ main(int argc, char *argv[])
 
   printf("\n");
   for (i = 0; i < p_xddm->nv; i++) {
-    if (p_xddm->a_v[i].p_id == NULL)  continue;
+    if (p_xddm->a_v[i].p_e->p_id == NULL)  continue;
     if (p_xddm->a_v[i].val  == UNSET) continue;
-    noI = parsePmtr(p_xddm->a_v[i].p_id, pname, &irow, &icol);
+    noI = parsePmtr(p_xddm->a_v[i].p_e->p_id, pname, &irow, &icol);
     for (ipmtr = j = 0; j < MODL->npmtr; j++) {
       stat = ocsmGetPmtr(modl, j+1, &type, &nrow, &ncol, name);
       if (stat != SUCCESS) {
@@ -149,13 +143,13 @@ main(int argc, char *argv[])
       }
       if ((irow < 1) || (irow > nrow) || (icol < 1) || (icol > ncol)) {
         printf(" Variable %s not in range [%d,%d]!\n",
-               p_xddm->a_v[i].p_id, nrow, ncol);
+               p_xddm->a_v[i].p_e->p_id, nrow, ncol);
         goto cleanup;
       }
       stat = ocsmGetValu( modl, ipmtr, irow, icol, &value, &dot);
       stat = ocsmSetValuD(modl, ipmtr, irow, icol, p_xddm->a_v[i].val);
       printf(" Setting Variable %s from %lf to %lf  stat = %d\n",
-             p_xddm->a_v[i].p_id, value, p_xddm->a_v[i].val, stat);
+             p_xddm->a_v[i].p_e->p_id, value, p_xddm->a_v[i].val, stat);
       stat = ocsmGetBnds(modl, ipmtr, irow, icol, &lower, &upper);
       if (stat == SUCCESS) {
         if (lower != -HUGEQ) p_xddm->a_v[i].minVal = lower;
@@ -163,15 +157,16 @@ main(int argc, char *argv[])
       }
     } else {
       printf(" Variable %s not found!\n", pname);
+      stat = EGADS_NOTFOUND;
       goto cleanup;
     }
   }
   
   printf("\n");
   for (i = 0; i < p_xddm->nc; i++) {
-    if (p_xddm->a_c[i].p_id == NULL)  continue;
+    if (p_xddm->a_c[i].p_e->p_id == NULL)  continue;
     if (p_xddm->a_c[i].val  == UNSET) continue;
-    noI = parsePmtr(p_xddm->a_c[i].p_id, pname, &irow, &icol);
+    noI = parsePmtr(p_xddm->a_c[i].p_e->p_id, pname, &irow, &icol);
     for (ipmtr = j = 0; j < MODL->npmtr; j++) {
       stat = ocsmGetPmtr(modl, j+1, &type, &nrow, &ncol, name);
       if (stat != SUCCESS) {
@@ -191,15 +186,54 @@ main(int argc, char *argv[])
       }
       if ((irow < 1) || (irow > nrow) || (icol < 1) || (icol > ncol)) {
         printf(" Constant %s not in range [%d,%d]!\n",
-               p_xddm->a_c[i].p_id, nrow, ncol);
+               p_xddm->a_c[i].p_e->p_id, nrow, ncol);
         goto cleanup;
       }
       stat = ocsmGetValu( modl, ipmtr, irow, icol, &value, &dot);
       stat = ocsmSetValuD(modl, ipmtr, irow, icol, p_xddm->a_c[i].val);
       printf(" Setting Constant %s from %lf to %lf  stat = %d\n",
-             p_xddm->a_c[i].p_id, value, p_xddm->a_c[i].val, stat);
+             p_xddm->a_c[i].p_e->p_id, value, p_xddm->a_c[i].val, stat);
     } else {
       printf(" Constant %s not found!\n", pname);
+      stat = EGADS_NOTFOUND;
+      goto cleanup;
+    }
+  }
+  
+  printf("\n");
+  for (i = 0; i < p_xddm->nf; i++) {
+    if (p_xddm->a_f[i].p_e->p_id == NULL)  continue;
+    if (p_xddm->a_f[i].val  == UNSET) continue;
+    noI = parsePmtr(p_xddm->a_f[i].p_e->p_id, pname, &irow, &icol);
+    for (ipmtr = j = 0; j < MODL->npmtr; j++) {
+      stat = ocsmGetPmtr(modl, j+1, &type, &nrow, &ncol, name);
+      if (stat != SUCCESS) {
+        printf(" ocsmGetPmtr %d failed: %d\n", ipmtr, stat);
+        goto cleanup;
+      }
+      if (type != OCSM_DESPMTR) continue;
+      if (strcmp(pname, name) == 0) {
+        ipmtr = j+1;
+        break;
+      }
+    }
+    if (ipmtr != 0) {
+      if ((noI == 0) && ((ncol > 1) || (nrow > 1))) {
+        printf(" Function %s not indexed!\n", pname);
+        goto cleanup;
+      }
+      if ((irow < 1) || (irow > nrow) || (icol < 1) || (icol > ncol)) {
+        printf(" Function %s not in range [%d,%d]!\n",
+               p_xddm->a_f[i].p_e->p_id, nrow, ncol);
+        goto cleanup;
+      }
+      stat = ocsmGetValu( modl, ipmtr, irow, icol, &value, &dot);
+      stat = ocsmSetValuD(modl, ipmtr, irow, icol, p_xddm->a_f[i].val);
+      printf(" Setting Function %s from %lf to %lf  stat = %d\n",
+             p_xddm->a_f[i].p_e->p_id, value, p_xddm->a_f[i].val, stat);
+    } else {
+      printf(" Function %s not found!\n", pname);
+      stat = EGADS_NOTFOUND;
       goto cleanup;
     }
   }
@@ -232,24 +266,82 @@ main(int argc, char *argv[])
   /* set analysis values */
   
   for (i = 0; i < p_xddm->na; i++) {
-    if (p_xddm->a_ap[i].p_id == NULL)  continue;
+    if (p_xddm->a_ap[i].p_e->p_id == NULL)  continue;
+    noI = parsePmtr(p_xddm->a_ap[i].p_e->p_id, pname, &irow, &icol);
     for (ipmtr = j = 0; j < MODL->npmtr; j++) {
       stat = ocsmGetPmtr(modl, j+1, &type, &nrow, &ncol, name);
-      if (stat != SUCCESS) goto cleanup;
-
-      if (name[0] != '@') continue;
-      if (strcmp(p_xddm->a_ap[i].p_id, &name[1]) == 0) {
+      if (stat != SUCCESS) {
+        printf(" ocsmGetPmtr %d failed: %d\n", ipmtr, stat);
+        goto cleanup;
+      }
+      if (type != OCSM_OUTPMTR) continue;
+//      if (name[0] != '@') continue;
+//      if (strcmp(p_xddm->a_ap[i].p_e->p_id, &name[1]) == 0) {
+      if (name[0] == '@') {
+        char* substr = name + 1;
+        memmove(name, substr, strlen(substr) + 1);
+      }
+      if (strcmp(pname, name) == 0) {
         ipmtr = j+1;
         break;
       }
     }
     if (ipmtr != 0) {
-      stat = ocsmGetValu(modl, ipmtr, 1, 1, &value, &dot);
+      if ((noI == 0) && ((ncol > 1) || (nrow > 1))) {
+        printf(" Analysis Parameter %s not indexed!\n", pname);
+        goto cleanup;
+      }
+      if ((irow < 1) || (irow > nrow) || (icol < 1) || (icol > ncol)) {
+        printf(" Analysis Parameter %s not in range [%d,%d]!\n",
+               p_xddm->a_v[i].p_e->p_id, nrow, ncol);
+        goto cleanup;
+      }
+      stat = ocsmGetValu(modl, ipmtr, irow, icol, &value, &dot);
       p_xddm->a_ap[i].val = value;
-      printf(" Setting Analysis Parameter %s to %lf\n", p_xddm->a_ap[i].p_id,
+      printf(" Setting Analysis Parameter %s to %lf\n", p_xddm->a_ap[i].p_e->p_id,
              value);
+
+      // allocate analysis parameter arrays for variables and sensitivities
+      p_xddm->a_ap[i].ndvs = p_xddm->nv;
+      p_xddm->a_ap[i].pa_dvs = malloc( p_xddm->nv * sizeof(*(p_xddm->a_ap[i].pa_dvs)) );
+      p_xddm->a_ap[i].a_lin = malloc( p_xddm->nv * sizeof(*p_xddm->a_ap[i].a_lin) );
+      for (j = 0; j < p_xddm->nv; j++) {
+        if (p_xddm->a_v[j].p_e->p_id == NULL)  continue;
+        if (p_xddm->a_v[j].val  == UNSET) continue;
+        p_xddm->a_ap[i].pa_dvs[j] = fillXmlString( (xmlChar *) p_xddm->a_v[j].p_e->p_id);
+        noI = parsePmtr(p_xddm->a_v[j].p_e->p_id, pname, &irow, &icol);
+        int kpmtr = 0;
+        for (k = 0; k < MODL->npmtr; k++) {
+          stat = ocsmGetPmtr(modl, k+1, &type, &nrow, &ncol, name);
+          if (strcmp(pname, name) == 0) {
+            kpmtr = k+1;
+            break;
+          }
+        }
+        if (kpmtr != 0) {
+          /* clear all then set */
+          ocsmSetVelD(modl, 0, 0, 0, 0.0);
+          ocsmSetVelD(modl, kpmtr, irow, icol, 1.0);
+          buildTo = 0;
+          nb      = 0;
+          printf(" CAPS Info: Building sensitivity information for: %s[%d,%d]\n",
+                name, irow, icol);
+          stat = ocsmBuild(modl, buildTo, &builtTo, &nb, NULL);
+          stat = ocsmGetValu(modl, ipmtr, 1, 1, &value, &dot);
+          p_xddm->a_ap[i].a_lin[j] = dot;
+          if (noI == 0) {
+            printf("\n*** compute parameter %d (%s) sensitivity status = %d (%d)***\n",
+                  ipmtr, p_xddm->a_v[j].p_e->p_id, stat, nb);
+          } else {
+            printf("\n*** compute parameter %d [%d,%d] (%s) sensitivity = %d (%d)***\n",
+                  ipmtr, irow, icol, p_xddm->a_v[j].p_e->p_id, stat, nb);
+          }
+        }
+      }
+
     } else {
-      printf(" Analysis Parameter %s not found!\n", p_xddm->a_ap[i].p_id);
+      printf(" Analysis Parameter %s not found!\n", p_xddm->a_ap[i].p_e->p_id);
+      stat = EGADS_NOTFOUND;
       goto cleanup;
     }
   }
@@ -257,18 +349,18 @@ main(int argc, char *argv[])
   
   /* get global tesselate parameters */
   global[0] = global[1] = global[2] = 0.0;
-  for (i = 0; i < p_xddm->ntess; i++) {
-    if (p_xddm->a_tess[i].p_id != NULL) continue;
-    for (j = 0; j < p_xddm->a_tess[i].nAttr; j++)
-      if (strcmp(p_xddm->a_tess[i].p_attr[j].p_name, "MaxEdge") == 0) {
-        sscanf(p_xddm->a_tess[i].p_attr[j].p_value, "%lf", &global[0]);
-      } else if (strcmp(p_xddm->a_tess[i].p_attr[j].p_name, "Sag") == 0) {
-        sscanf(p_xddm->a_tess[i].p_attr[j].p_value, "%lf", &global[1]);
-      } else if (strcmp(p_xddm->a_tess[i].p_attr[j].p_name, "Angle") == 0) {
-        sscanf(p_xddm->a_tess[i].p_attr[j].p_value, "%lf", &global[2]);
+  for (i = 0; i < p_xddm->nt; i++) {
+    if (p_xddm->a_t[i].p_id != NULL) continue;
+    for (j = 0; j < p_xddm->a_t[i].nAttr; j++)
+      if (strcmp(p_xddm->a_t[i].p_attr[j].p_name, "MaxEdge") == 0) {
+        sscanf(p_xddm->a_t[i].p_attr[j].p_value, "%lf", &global[0]);
+      } else if (strcmp(p_xddm->a_t[i].p_attr[j].p_name, "Sag") == 0) {
+        sscanf(p_xddm->a_t[i].p_attr[j].p_value, "%lf", &global[1]);
+      } else if (strcmp(p_xddm->a_t[i].p_attr[j].p_name, "Angle") == 0) {
+        sscanf(p_xddm->a_t[i].p_attr[j].p_value, "%lf", &global[2]);
       } else {
         printf(" Tessellation (global) Attribute %s not Understood!\n",
-               p_xddm->a_tess[i].p_attr[j].p_name);
+               p_xddm->a_t[i].p_attr[j].p_name);
         goto cleanup;
       }
   }
@@ -307,20 +399,20 @@ main(int argc, char *argv[])
     tparam[0] = global[0];
     tparam[1] = global[1];
     tparam[2] = global[2];
-    for (i = 0; i < p_xddm->ntess; i++) {
-      if (p_xddm->a_tess[i].p_id == NULL) continue;
-      sscanf(p_xddm->a_tess[i].p_id, "%d", &stat);
+    for (i = 0; i < p_xddm->nt; i++) {
+      if (p_xddm->a_t[i].p_id == NULL) continue;
+      sscanf(p_xddm->a_t[i].p_id, "%d", &stat);
       if (stat != kb+1) continue;
-      for (j = 0; j < p_xddm->a_tess[i].nAttr; j++)
-        if (strcmp(p_xddm->a_tess[i].p_attr[j].p_name, "MaxEdge") == 0) {
-          sscanf(p_xddm->a_tess[i].p_attr[j].p_value, "%lf", &tparam[0]);
-        } else if (strcmp(p_xddm->a_tess[i].p_attr[j].p_name, "Sag") == 0) {
-          sscanf(p_xddm->a_tess[i].p_attr[j].p_value, "%lf", &tparam[1]);
-        } else if (strcmp(p_xddm->a_tess[i].p_attr[j].p_name, "Angle") == 0) {
-          sscanf(p_xddm->a_tess[i].p_attr[j].p_value, "%lf", &tparam[2]);
+      for (j = 0; j < p_xddm->a_t[i].nAttr; j++)
+        if (strcmp(p_xddm->a_t[i].p_attr[j].p_name, "MaxEdge") == 0) {
+          sscanf(p_xddm->a_t[i].p_attr[j].p_value, "%lf", &tparam[0]);
+        } else if (strcmp(p_xddm->a_t[i].p_attr[j].p_name, "Sag") == 0) {
+          sscanf(p_xddm->a_t[i].p_attr[j].p_value, "%lf", &tparam[1]);
+        } else if (strcmp(p_xddm->a_t[i].p_attr[j].p_name, "Angle") == 0) {
+          sscanf(p_xddm->a_t[i].p_attr[j].p_value, "%lf", &tparam[2]);
         } else {
           printf(" Tessellation (ID=%d) Attribute %s not Understood!\n",
-                 kb+1, p_xddm->a_tess[i].p_attr[j].p_name);
+                 kb+1, p_xddm->a_t[i].p_attr[j].p_name);
           goto cleanup;
         }
     }
@@ -350,8 +442,8 @@ main(int argc, char *argv[])
       if (dvar     == NULL) { stat = EGADS_MALLOC; goto cleanup; }
       if (dvar[kb] == NULL) { stat = EGADS_MALLOC; goto cleanup; }
       for (i = 0; i < p_xddm->nv; i++) {
-        dvar[kb][i] = EG_alloc(3*nvert*sizeof(double));
-        if (dvar[i] == NULL) {
+        dvar[kb][i] = (double*) EG_alloc(3*nvert*sizeof(double));
+        if (dvar[kb][i] == NULL) {
           printf(" sensitivity %d allocation failed!\n", i+1);
           goto cleanup;
         }
@@ -364,9 +456,9 @@ main(int argc, char *argv[])
   /* compute the sensitivities */
   printf("\n");
   for (i = 0; i < p_xddm->nv; i++) {
-    if (p_xddm->a_v[i].p_id == NULL)  continue;
+    if (p_xddm->a_v[i].p_e->p_id == NULL)  continue;
     if (p_xddm->a_v[i].val  == UNSET) continue;
-    noI = parsePmtr(p_xddm->a_v[i].p_id, pname, &irow, &icol);
+    noI = parsePmtr(p_xddm->a_v[i].p_e->p_id, pname, &irow, &icol);
     for (ipmtr = j = 0; j < MODL->npmtr; j++) {
       stat = ocsmGetPmtr(modl, j+1, &type, &nrow, &ncol, name);
       if (strcmp(pname, name) == 0) {
@@ -378,13 +470,13 @@ main(int argc, char *argv[])
     step = 0.0;
     ocsmSetVelD(modl, 0,     0,    0,    0.0);
     ocsmSetVelD(modl, ipmtr, irow, icol, 1.0);
-    if (p_xddm->a_v[i].p_comment != NULL) {
-      if (strcmp(p_xddm->a_v[i].p_comment, "FD") == 0) {
+    if (p_xddm->a_v[i].p_e->p_comment != NULL) {
+      if (strcmp(p_xddm->a_v[i].p_e->p_comment, "FD") == 0) {
         step = 0.001;
         printf("\n*** forced finite differencing for %s (%d) ***\n",
                pname, stat);
       }
-      if (strcmp(p_xddm->a_v[i].p_comment, "oFD") == 0) {
+      if (strcmp(p_xddm->a_v[i].p_e->p_comment, "oFD") == 0) {
         step = 0.001;
         printf("\n*** forcing OpenCSM finite differencing for %s (%d) ***\n",
                pname, stat);
@@ -402,10 +494,10 @@ main(int argc, char *argv[])
     ocsmSetOutLevel(outLevel);
     if (noI == 0) {
       printf("\n*** compute parameter %d (%s) sensitivity status = %d (%d)***\n",
-             ipmtr, p_xddm->a_v[i].p_id, stat, nb);
+             ipmtr, p_xddm->a_v[i].p_e->p_id, stat, nb);
     } else {
       printf("\n*** compute parameter %d [%d,%d] (%s) sensitivity = %d (%d)***\n",
-             ipmtr, irow, icol, p_xddm->a_v[i].p_id, stat, nb);
+             ipmtr, irow, icol, p_xddm->a_v[i].p_e->p_id, stat, nb);
     }
 
     kb = 0;
@@ -420,10 +512,17 @@ main(int argc, char *argv[])
       /* do all of the faces */
       for (iface = 1; iface <= nface; iface++) {
         outLevel = ocsmSetOutLevel(0);
-        stat = ocsmGetTessVel(modl, ibody, OCSM_FACE, iface, &pcsens);
+        stat = ocsmGetTessVel(MODL, ibody, OCSM_FACE, iface, &pcsens);
         ocsmSetOutLevel(outLevel);
         if (stat != EGADS_SUCCESS) {
           printf(" ocsmGetTessVel Parameter %d Face %d failed: %d!\n",
+                 i+1, j, stat);
+          goto cleanup;
+        }
+        stat = EG_getTessFace(tess[kb], iface, &nvert, &xyz, &uv,
+                              &ptype, &pindx, &ntri, &tris, &tric);
+        if (stat != EGADS_SUCCESS) {
+          printf(" EG_getTessFace Parameter %d Face %d failed: %d!\n",
                  i+1, j, stat);
           goto cleanup;
         }
@@ -469,7 +568,7 @@ cleanup:
   ocsmFree(modl);
   ocsmFree(NULL);
   if (context != NULL) EG_close(context);
-  xddm_free(p_xddm);
+  xddm_free(p_xddm, opts);
 
   if (stat == EGADS_SUCCESS)
     return EXIT_SUCCESS;

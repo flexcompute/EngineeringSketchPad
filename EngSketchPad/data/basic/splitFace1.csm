@@ -1,0 +1,37 @@
+# splitFace1
+# written by John Dannenhoffer
+
+# basic config
+MARK
+   UDPRIM    ellipse   rx 1.0   rz 4.0
+
+   UDPRIM    ellipse   rx 1.0   rz 4.0
+   TRANSLATE 0.5  2.0  0.0
+
+   UDPRIM    ellipse   rx 1.0   rz 2.0
+   TRANSLATE 0.0  4.0  0.0
+BLEND
+
+# split leading edge (using u,v)
+UDPARG    splitFace iface  1
+UDPARG    splitFace beg    0.5;0.0
+UDPARG    splitFace end    0.5;1.0
+UDPRIM    splitFace
+
+# split top (using x,y,z)
+UDPARG    splitFace iface  5
+UDPARG    splitFace beg    -1.0;4.0;0.0
+UDPARG    splitFace end    +1.0;4.0;0.0
+UDPRIM    splitFace
+
+# split diagonally (using inode)
+UDPARG    splitFace iface  1
+UDPARG    splitFace beg    2
+UDPARG    splitFace end    4
+UDPRIM    splitFace
+
+# color the new Edges red
+SELECT    EDGE  $__splitFace__  $*
+   ATTRIBUTE _color $red
+
+END

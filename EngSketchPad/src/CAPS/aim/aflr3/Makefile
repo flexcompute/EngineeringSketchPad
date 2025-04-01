@@ -2,6 +2,9 @@
 ifndef ESP_ROOT
 $(error ESP_ROOT must be set -- Please fix the environment...)
 endif
+ifndef ESP_ARCH
+$(error ESP_ARCH must be set -- Please fix the environment...)
+endif
 #
 IDIR  = $(ESP_ROOT)/include
 include $(IDIR)/$(ESP_ARCH)
@@ -98,6 +101,7 @@ OBJS=$(EGADS_AFLR4_OBJS)
 #AFLR3_FILES=$(wildcard $(AFLR)/src/aflr3/*.c)
 #AFLR3_OBJS=$(patsubst %.c,%.o,$(AFLR3_FILES))
 
+#VPATH      += $(AFLR)/src/ug
 #UG_FILES=$(wildcard $(AFLR)/src/ug/*.c)
 #UG_OBJS=$(patsubst %.c,%.o,$(UG_FILES))
 
@@ -108,6 +112,10 @@ OBJS=$(EGADS_AFLR4_OBJS)
 #VPATH      += $(AFLR)/src/ug_io
 #UG_IO_FILES = $(wildcard $(AFLR)/src/ug_io/*.c)
 #UG_IO_OBJS  = $(subst $(AFLR)/src/ug_io,$(ODIR),$(UG_IO_FILES:.c=.o))
+
+#VPATH      += $(AFLR)/src/ug_cpp
+#UG_CPP_FILES = $(wildcard $(AFLR)/src/ug_cpp/*.cpp)
+#UG_CPP_OBJS  = $(subst $(AFLR)/src/ug_cpp,$(ODIR),$(UG_CPP_FILES:.cpp=.o))
 
 #VPATH    += $(AFLR)/src/otb
 #OTB_FILES = $(wildcard $(AFLR)/src/otb/*.c)
@@ -130,14 +138,15 @@ OBJS=$(EGADS_AFLR4_OBJS)
 #ANBL3_OBJS  = $(subst $(AFLR)/src/anbl3,$(ODIR),$(ANBL3_FILES:.c=.o))
 
 OBJS+=$(AFLR3_OBJS) $(UG_OBJS) $(UG3_OBJS) $(UG_IO_OBJS) $(AFLR4_OBJS) $(AFLR43_OBJS) $(DGEOM_OBJS) $(OTB_OBJS) $(ANBL3_OBJS)
+#OBJSP=$(UG_CPP_OBJS)
 ###############################################################################
 
 $(LDIR)/aflr3AIM.so:	$(ODIR)/aflr3AIM.o $(ODIR)/aflr3_Interface.o \
-			$(LDIR)/libutils.a  $(LDIR)/libaimUtil.a $(OBJS)
+			$(LDIR)/libutils.a  $(LDIR)/libaimUtil.a $(OBJS) $(OBJSP)
 	touch $(LDIR)/aflr3AIM.so
 	rm $(LDIR)/aflr3AIM.so
 	$(CC) $(SOFLGS) -o $(LDIR)/aflr3AIM.so $(ODIR)/aflr3AIM.o \
-		$(ODIR)/aflr3_Interface.o $(OBJS) -L$(AFLR)/$(AFLR_ARCH)/lib \
+		$(ODIR)/aflr3_Interface.o $(OBJS) $(OBJSP) -L$(AFLR)/$(AFLR_ARCH)/lib \
 		$(AFLR3_LIB) -L$(LDIR) -lutils \
 		-laimUtil -locsm -legads -ludunits2 -ldl $(RPATH) $(CPPSLB) -lm
 
@@ -162,6 +171,12 @@ $(ODIR)/aflr3_version:	aflr3_version.c $(AFLR)/src/aflr3/aflr3_version.h
 # Build for each AFLR C source file
 $(ODIR)/%.o: %.c $(EGADS_INC_FILES) | $(ODIR)/aflr3_version
 	$(CC) -c $(COPTS) $(DEFINE) -D_ENABLE_EGADS_ -w -I$(IDIR) -I$(AFLR)/src $< -o $@
+
+ifdef OBJSP
+# Build for each AFLR C++ source file
+$(ODIR)/%.o: %.cpp $(ODIR)/aflr3_version
+	$(CXX) -c $(CPPOPT) $(DEFINE) -I$(AFLR)/src $< -o $@
+endif
 
 aflrlint:
 	$(LINT) -I../../include -I$(IDIR) -I../utils -I$(AFLR)/src -I$(AFLR)/src/aflr3 $(wildcard *.c) -nullpass -exportlocal -bufferoverflowhigh

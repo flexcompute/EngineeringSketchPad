@@ -12,7 +12,8 @@ ODIR  = .
 
 BINLIST = 	$(BDIR)\serveCSM.exe \
 		$(BDIR)\serveESP.exe \
-		$(BDIR)\sensCSM.exe
+		$(BDIR)\sensCSM.exe \
+		$(BDIR)\miniESP.exe
 LIBLIST =	$(LDIR)\ocsm.dll \
 		$(LDIR)\bezier.dll \
 		$(LDIR)\biconvex.dll \
@@ -55,11 +56,13 @@ LIBLIST =	$(LDIR)\ocsm.dll \
 		$(LDIR)\printEgo.dll \
 		$(LDIR)\prop.dll \
 		$(LDIR)\radwaf.dll \
+		$(LDIR)\runCAD.dll \
 		$(LDIR)\sample.dll \
 		$(LDIR)\sew.dll \
 		$(LDIR)\shadow.dll \
 		$(LDIR)\slices.dll \
 		$(LDIR)\stag.dll \
+		$(LDIR)\splitFace.dll \
 		$(LDIR)\stiffener.dll \
 		$(LDIR)\supell.dll \
 		$(LDIR)\tester1.dll \
@@ -113,6 +116,13 @@ $(BDIR)\sensCSM.exe:	$(ODIR)\sensCSM.obj $(LDIR)\ocsm.dll
 
 $(ODIR)\sensCSM.obj:	sensCSM.c OpenCSM.h udp.h
 	cl /c $(COPTS) $(DEFINE) /I$(IDIR) sensCSM.c /Fo$(ODIR)\sensCSM.obj
+
+$(BDIR)\miniESP.exe:	$(ODIR)\miniESP.obj $(LDIR)\ocsm.dll
+	cl /Fe$(BDIR)\miniESP.exe $(ODIR)\miniESP.obj /link /LIBPATH:$(LDIR) ocsm.lib egads.lib
+        $(MCOMP) /manifest $(BDIR)\miniESP.exe.manifest               /outputresource:$(BDIR)\miniESP.exe;1
+
+$(ODIR)\miniESP.obj:	miniESP.c OpenCSM.h udp.h
+	cl /c $(COPTS) $(DEFINE) /I$(IDIR) miniESP.c /Fo$(ODIR)\miniESP.obj
 
 #
 #	library
@@ -393,7 +403,7 @@ $(ODIR)\udpNaca456.obj:	udpNaca456.c udpUtilities.c udpUtilities.h
 	cl /c $(COPTS) $(DEFINE) /I$(IDIR) udpNaca456.c /Fo$(ODIR)\udpNaca456.obj
 
 $(ODIR)\naca456.obj:	naca456.f90
-	ifort /c $(FOPTS) naca456.f90 /Fo$(ODIR)\naca456.obj
+	$(FCOMP) /c $(FOPTS) naca456.f90 /Fo$(ODIR)\naca456.obj
 
 
 $(LDIR)\naca6mc.dll:	$(ODIR)\udfNaca6mc.obj $(LDIR)\ocsm.dll
@@ -521,6 +531,14 @@ $(LDIR)\radwaf.dll:	$(ODIR)\udpRadwaf.obj $(LDIR)\ocsm.dll
 $(ODIR)\udpRadwaf.obj:	udpRadwaf.c udpUtilities.c udpUtilities.h
 	cl /c $(COPTS) $(DEFINE) /I$(IDIR) udpRadwaf.c /Fo$(ODIR)\udpRadwaf.obj
 
+$(LDIR)\runCAD.dll:	$(ODIR)\udpRunCAD.obj $(LDIR)\ocsm.dll
+	-del $(LDIR)\runCAD.dll $(LDIR)\runCAD.lib $(LDIR)\runCAD.exp
+	link /out:$(LDIR)\runCAD.dll /dll /def:udp.def $(ODIR)\udpRunCAD.obj $(LDIR)\ocsm.lib $(LDIR)\egads.lib
+	$(MCOMP) /manifest $(LDIR)\runCAD.dll.manifest /outputresource:$(LDIR)\runCAD.dll;2
+
+$(ODIR)\udpRunCAD.obj:	udpRunCAD.c udpUtilities.c udpUtilities.h
+	cl /c $(COPTS) $(DEFINE) /I$(IDIR) udpRunCAD.c /Fo$(ODIR)\udpRunCAD.obj
+
 $(LDIR)\sample.dll:	$(ODIR)\udpSample.obj $(LDIR)\ocsm.dll
 	-del $(LDIR)\sample.dll $(LDIR)\sample.lib $(LDIR)\sample.exp
 	link /out:$(LDIR)\sample.dll /dll /def:udp.def $(ODIR)\udpSample.obj $(LDIR)\ocsm.lib $(LDIR)\egads.lib
@@ -562,6 +580,15 @@ $(LDIR)\stag.dll:	$(ODIR)\udpStag.obj $(LDIR)\ocsm.dll
 
 $(ODIR)\udpStag.obj:	udpStag.c udpUtilities.c udpUtilities.h
 	cl /c $(COPTS) $(DEFINE) /I$(IDIR) udpStag.c /Fo$(ODIR)\udpStag.obj
+
+
+$(LDIR)\splitFace.dll:	$(ODIR)\udfSplitFace.obj $(LDIR)\ocsm.dll
+	-del $(LDIR)\splitFace.dll $(LDIR)\splitFace.lib $(LDIR)\splitFace.exp
+	link /out:$(LDIR)\splitFace.dll /dll /def:udp.def $(ODIR)\udfSplitFace.obj $(LDIR)\ocsm.lib $(LDIR)\egads.lib
+	$(MCOMP) /manifest $(LDIR)\splitFace.dll.manifest /outputresource:$(LDIR)\splitFace.dll;2
+
+$(ODIR)\udfSplitFace.obj:	udfSplitFace.c udpUtilities.c udpUtilities.h
+	cl /c $(COPTS) $(DEFINE) /I$(IDIR) udfSplitFace.c /Fo$(ODIR)\udfSplitFace.obj
 
 
 $(LDIR)\stiffener.dll:	$(ODIR)\udfStiffener.obj $(LDIR)\ocsm.dll
@@ -614,13 +641,13 @@ $(LDIR)\waffle.dll:	$(ODIR)\udpWaffle.obj $(LDIR)\ocsm.dll
 $(ODIR)\udpWaffle.obj:	udpWaffle.c udpUtilities.c udpUtilities.h OpenCSM.h
 	cl /c $(COPTS) $(DEFINE) /I$(IDIR) udpWaffle.c /Fo$(ODIR)\udpWaffle.obj
 
-$(LDIR)\warp.dll:	$(ODIR)\udpWarp.obj $(LDIR)\ocsm.dll
+$(LDIR)\warp.dll:	$(ODIR)\udfWarp.obj $(LDIR)\ocsm.dll
 	-del $(LDIR)\warp.dll $(LDIR)\warp.lib $(LDIR)\warp.exp
-	link /out:$(LDIR)\warp.dll /dll /def:udp.def $(ODIR)\udpWarp.obj $(LDIR)\ocsm.lib $(LDIR)\egads.lib
+	link /out:$(LDIR)\warp.dll /dll /def:udp.def $(ODIR)\udfWarp.obj $(LDIR)\ocsm.lib $(LDIR)\egads.lib
 	$(MCOMP) /manifest $(LDIR)\warp.dll.manifest /outputresource:$(LDIR)\warp.dll;2
 
-$(ODIR)\udpWarp.obj:	udpWarp.c udpUtilities.c udpUtilities.h OpenCSM.h
-	cl /c $(COPTS) $(DEFINE) /I$(IDIR) udpWarp.c /Fo$(ODIR)\udpWarp.obj
+$(ODIR)\udfWarp.obj:	udfWarp.c udpUtilities.c udpUtilities.h OpenCSM.h
+	cl /c $(COPTS) $(DEFINE) /I$(IDIR) udfWarp.c /Fo$(ODIR)\udfWarp.obj
 
 #
 #	external grid generators (EGGs)
@@ -731,6 +758,7 @@ clean:
 	-del $(ODIR)\serveCSM.obj
 	-del $(ODIR)\serveESP.obj
 	-del $(ODIR)\sensCSM.obj
+	-del $(ODIR)\miniESP.obj
 	-del $(ODIR)\OpenCSM.obj
 	-del $(ODIR)\udp.obj
 	-del $(ODIR)\udpBezier.obj
@@ -776,18 +804,20 @@ clean:
 	-del $(ODIR)\udfPrintEgo.obj
 	-del $(ODIR)\udpProp.obj
 	-del $(ODIR)\udpRadwaf.obj
+	-del $(ODIR)\udpRunCAD.obj
 	-del $(ODIR)\udpSample.obj
 	-del $(ODIR)\udpSew.obj
 	-del $(ODIR)\udfShadow.obj
 	-del $(ODIR)\udfSlices.obj
 	-del $(ODIR)\udpStag.obj
+	-del $(ODIR)\udfSplitFace.obj
 	-del $(ODIR)\udfStiffener.obj
 	-del $(ODIR)\udpSupell.obj
 	-del $(ODIR)\udfTester1.obj
 	-del $(ODIR)\udpTester2.obj
 	-del $(ODIR)\udpVsp3.obj
 	-del $(ODIR)\udpWaffle.obj
-	-del $(ODIR)\udpWarp.obj
+	-del $(ODIR)\udfWarp.obj
 	-del $(ODIR)\eggPDT2.obj
 	-del $(ODIR)\timEreped.obj
 	-del $(ODIR)\timMitten.obj
@@ -799,7 +829,8 @@ clean:
 cleanall:	clean
 	-del $(BDIR)\serveCSM.exe
 	-del $(BDIR)\serveESP.exe
-	-del $(BDIR)\sensCSM.exe    $(BDIR)\*.manifest
+	-del $(BDIR)\sensCSM.exe
+	-del $(BDIR)\miniESP.exe    $(BDIR)\*.manifest
 	-del $(LDIR)\ocsm.dll       $(LDIR)\ocsm.lib       $(LDIR)\ocsm.exp
 	-del $(LDIR)\bezier.dll     $(LDIR)\bezier.lib     $(LDIR)\bezier.exp
 	-del $(LDIR)\biconvex.dll   $(LDIR)\biconvex.lib   $(LDIR)\biconvex.exp
@@ -843,11 +874,13 @@ cleanall:	clean
 	-del $(LDIR)\printEgo.dll   $(LDIR)\printEgo.lib   $(LDIR)\printEgo.exp
 	-del $(LDIR)\prop.dll       $(LDIR)\prop.lib       $(LDIR)\prop.exp
 	-del $(LDIR)\radwaf.dll     $(LDIR)\radwaf.lib     $(LDIR)\radwaf.exp
+	-del $(LDIR)\runCAD.dll     $(LDIR)\runCAD.lib     $(LDIR)\runCAD.exp
 	-del $(LDIR)\sample.dll     $(LDIR)\sample.lib     $(LDIR)\sample.exp
 	-del $(LDIR)\sew.dll        $(LDIR)\sew.lib        $(LDIR)\sew.exp
 	-del $(LDIR)\shadow.dll     $(LDIR)\shadow.lib     $(LDIR)\shadow.exp
 	-del $(LDIR)\slices.dll     $(LDIR)\slices.lib     $(LDIR)\slices.exp
 	-del $(LDIR)\stag.dll       $(LDIR)\stag.lib       $(LDIR)\stag.exp
+	-del $(LDIR)\splitFace.dll  $(LDIR)\splitFace.lib  $(LDIR)\splitFace.exp
 	-del $(LDIR)\stiffener.dll  $(LDIR)\stiffener.lib  $(LDIR)\stiffener.exp
 	-del $(LDIR)\supell.dll     $(LDIR)\supell.lib     $(LDIR)\supell.exp
 	-del $(LDIR)\tester1.dll    $(LDIR)\tester1.lib    $(LDIR)\tester1.exp

@@ -100,8 +100,22 @@ $(function() {
  Default low speed method. Options (=corresponding integer code): FastPanel(=1), LowAR(=2).</li>
 <li><b> Leading_Edge_Suction = 1.00</b> <br  />
  Default low speed method integer tag. Range [-1.0, 1.0]</li>
+<li><b> Mangler_Setting = "2D"</b> <br  />
+ Default low speed method. Options (=corresponding integer code): "2D"(=1), "Axisymmetric"(=2), "Auto"(=3).</li>
 <li><b> Aero_Surface = NULL</b> <br  />
  Defines the type of aero. surface by associating a "capsGroups" attribute name with a particular panel method - ("capsGroup Name", "Value"), where "Value" can either be "Body", "Base", "Wing", "Inlet", "Cowl", or "Nozzle". If a capsGroup panel method is not defined it will be assumed to be a "Body".</li>
+<li><b> Material_Group = NULL</b> <br  />
+ Defines the type of aero. surface by associating a "capsGroups" attributes with a particular material group - ("Material Name", "Value"), where "Value" must be a JSON String dictionary, see <a class="el" href="cbaeroMaterialGroup.html">CBAero Material Group</a> for additional details.</li>
+<li><b> Trajectory = NULL</b> <br  />
+ List of trajectory file names</li>
+<li><b> TPSin = NULL</b> <br  />
+ Defines the .tpsin input file for TPSSizer, see <a class="el" href="cbaeroTPS.html">CBAero TPS</a> for additional details.</li>
+<li><b> TPS_Group = NULL</b> <br  />
+ Defines the type of aero. surface by associating a "capsGroups" attributes with a particular TPS zone - ("TPS Name", "Value"), where "Value" must be a JSON String dictionary, see <a class="el" href="cbaeroTPS.html">CBAero TPS</a> for additional details.</li>
+<li><b> TPSSizer = NULL</b> <br  />
+ Path to TPSSizer executable, e.g. "tpssizerv36_linux". If not specified only CBTPS will be executed when TPS information is provided.</li>
+<li><b> FIAT = NULL</b> <br  />
+ Name of FIAT excutable argument used with TPSSizer</li>
 <li><b> NumParallelCase = 1</b> <br  />
  Set CBAero -mp to define number of Mach, dynamic pressure, and angle of attack cases to solve simultaneously.<br  />
  May be used in conjunction with NumThreadPerCase.</li>

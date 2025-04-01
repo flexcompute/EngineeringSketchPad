@@ -2,6 +2,7 @@ import unittest
 
 import os
 import math
+import copy
 
 from pyCAPS import caps
 
@@ -147,6 +148,65 @@ class TestUnit(unittest.TestCase):
         self.assertAlmostEqual(math.sin(5*deg), math.sin(5*deg/rad), 5)
 
 #=============================================================================-
+    def test_power(self):
+        m4  = caps.Unit("m^4")
+        m3  = caps.Unit("m^3")
+        m2  = caps.Unit("m^2")
+        m   = caps.Unit("m")
+        m2m = caps.Unit("m^-2")
+        m3m = caps.Unit("m^-3")
+        m4m = caps.Unit("m^-4")
+
+        self.assertEqual(  m*m*m*m, m4)
+        self.assertEqual(  m*m*m  , m3)
+        self.assertEqual(  m*m    , m2)
+        self.assertEqual(1/m/m    , 1*m2m)
+        self.assertEqual(1/m/m/m  , 1*m3m)
+        self.assertEqual(1/m/m/m/m, 1*m4m)
+
+        self.assertEqual(m**-4, m4m)
+        self.assertEqual(m**-3, m3m)
+        self.assertEqual(m**-2, m2m)
+        self.assertEqual(m**2 , m2)
+        self.assertEqual(m**3 , m3)
+        self.assertEqual(m**4 , m4)
+
+        self.assertEqual(m *m, m2)
+        self.assertEqual(m2*m, m3)
+        self.assertEqual(m3*m, m4)
+
+#=============================================================================-
+    def test_root(self):
+        m4  = caps.Unit("m^4")
+        m3  = caps.Unit("m^3")
+        m2  = caps.Unit("m^2")
+        m   = caps.Unit("m")
+        m1m = caps.Unit("m^-1")
+        m2m = caps.Unit("m^-2")
+        m3m = caps.Unit("m^-3")
+        m4m = caps.Unit("m^-4")
+
+        #self.assertEqual(m4**(-1/4), m1m)
+        #self.assertEqual(m3**(-1/3), m1m)
+        #self.assertEqual(m2**(-1/2), m1m)
+        self.assertEqual( m2**(1/2) , m)
+        self.assertEqual( m3**(1/3) , m)
+        self.assertEqual( m4**(1/4) , m)
+
+        with self.assertRaises(caps.CAPSError) as e:
+            m4**(1/5)
+        self.assertEqual(e.exception.errorName, "CAPS_UNITERR")
+
+        with self.assertRaises(caps.CAPSError) as e:
+            m4**(0.6)
+        self.assertEqual(e.exception.errorName, "CAPS_UNITERR")
+
+        with self.assertRaises(caps.CAPSError) as e:
+            m4**(-0.6)
+        self.assertEqual(e.exception.errorName, "CAPS_UNITERR")
+
+
+#=============================================================================-
     def test_value(self):
         m  = caps.Unit("m")
         ft  = caps.Unit("ft")
@@ -156,7 +216,7 @@ class TestUnit(unittest.TestCase):
         self.assertEqual(10, q/m)
         self.assertEqual(10, q.value())
         self.assertAlmostEqual(q.convert(ft).value(), q/ft, 5)
- 
+
 #=============================================================================-
     def test_list(self):
         m  = caps.Unit("m")
@@ -180,17 +240,116 @@ class TestUnit(unittest.TestCase):
         self.assertEqual(accels[0], 1.5*m/s**2)
         self.assertEqual(accels[1], 2.0*m/s**2)
 
-        lengths = [[3, 4]]*2*m
+        lengths = [[3, 4], [5, 6]]*m
 
         self.assertEqual(len(lengths), 2)
         self.assertEqual(len(lengths[0]), 2)
         self.assertEqual(len(lengths[1]), 2)
 
-        self.assertEqual(lengths, [[3, 4]]*2*m)
+        self.assertEqual(lengths, [[3, 4], [5, 6]]*m)
         self.assertEqual(lengths[0][0], 3*m)
         self.assertEqual(lengths[0][1], 4*m)
-        self.assertEqual(lengths[1][0], 3*m)
-        self.assertEqual(lengths[1][1], 4*m)
+        self.assertEqual(lengths[1][0], 5*m)
+        self.assertEqual(lengths[1][1], 6*m)
+        
+        speeds = lengths/(2.*s)
+        
+        self.assertEqual(speeds, [[1.5, 2.0], [2.5, 3.0]]*m/s)
+        self.assertEqual(speeds[0][0], 1.5*m/s)
+        self.assertEqual(speeds[0][1], 2.0*m/s)
+        self.assertEqual(speeds[1][0], 2.5*m/s)
+        self.assertEqual(speeds[1][1], 3.0*m/s)
+        
+        accels = lengths/(2.*s**2)
+        
+        self.assertEqual(accels, [[1.5, 2.0], [2.5, 3.0]]*m/s**2)
+        self.assertEqual(accels[0][0], 1.5*m/s**2)
+        self.assertEqual(accels[0][1], 2.0*m/s**2)
+        self.assertEqual(accels[1][0], 2.5*m/s**2)
+        self.assertEqual(accels[1][1], 3.0*m/s**2)
+
+        lengthm = lengths/(2.*m)
+        
+        self.assertEqual(lengthm, [[1.5, 2], [2.5, 3]])
+        self.assertEqual(lengthm[0][0], 1.5)
+        self.assertEqual(lengthm[0][1], 2.0)
+        self.assertEqual(lengthm[1][0], 2.5)
+        self.assertEqual(lengthm[1][1], 3.0)
+
+
+#=============================================================================-
+    def test_tuple(self):
+        m  = caps.Unit("m")
+        s  = caps.Unit("s")
+
+        lengths = (3, 4)*m
+
+        self.assertEqual(len(lengths), 2)
+        
+        self.assertEqual(lengths, (3, 4)*m)
+        self.assertEqual(lengths[0], 3*m)
+        self.assertEqual(lengths[1], 4*m)
+
+        speeds = lengths/(2.*s)
+
+        self.assertEqual(speeds[0], 1.5*m/s)
+        self.assertEqual(speeds[1], 2.0*m/s)
+
+        accels = lengths/(2.*s**2)
+
+        self.assertEqual(accels[0], 1.5*m/s**2)
+        self.assertEqual(accels[1], 2.0*m/s**2)
+
+        lengths = ((3, 4), (5, 6))*m
+
+        self.assertEqual(len(lengths), 2)
+        self.assertEqual(len(lengths[0]), 2)
+        self.assertEqual(len(lengths[1]), 2)
+
+        self.assertEqual(lengths, ((3, 4), (5, 6))*m)
+        self.assertEqual(lengths[0][0], 3*m)
+        self.assertEqual(lengths[0][1], 4*m)
+        self.assertEqual(lengths[1][0], 5*m)
+        self.assertEqual(lengths[1][1], 6*m)
+        
+        speeds = lengths/(2.*s)
+        
+        self.assertEqual(speeds, ((1.5, 2.0), (2.5, 3.0))*m/s)
+        self.assertEqual(speeds[0][0], 1.5*m/s)
+        self.assertEqual(speeds[0][1], 2.0*m/s)
+        self.assertEqual(speeds[1][0], 2.5*m/s)
+        self.assertEqual(speeds[1][1], 3.0*m/s)
+        
+        accels = lengths/(2.*s**2)
+        
+        self.assertEqual(accels, ((1.5, 2.0), (2.5, 3.0))*m/s**2)
+        self.assertEqual(accels[0][0], 1.5*m/s**2)
+        self.assertEqual(accels[0][1], 2.0*m/s**2)
+        self.assertEqual(accels[1][0], 2.5*m/s**2)
+        self.assertEqual(accels[1][1], 3.0*m/s**2)
+
+        lengthm = lengths/(2.*m)
+        
+        self.assertEqual(lengthm, ((1.5, 2.0), (2.5, 3.0)))
+        self.assertEqual(lengthm[0][0], 1.5)
+        self.assertEqual(lengthm[0][1], 2.0)
+        self.assertEqual(lengthm[1][0], 2.5)
+        self.assertEqual(lengthm[1][1], 3.0)
+
+        
+#=============================================================================-
+    def test_copy(self):
+        m  = caps.Unit("m")
+        ft  = caps.Unit("ft")
+        
+        span = 2*m
+        
+        ft2 = copy.deepcopy(ft)
+        span2 = copy.deepcopy(span)
+        
+        self.assertEqual(ft2, ft)
+        self.assertEqual(span2, span)
+
 
 if __name__ == '__main__':
     unittest.main() 

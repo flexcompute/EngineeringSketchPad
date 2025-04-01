@@ -1050,7 +1050,7 @@ int astros_writeUnsteadyCAeroCard(FILE *fp, feaAeroStruct *feaAero, const feaFil
 
         // If Cspace and/or Sspace is something (to be defined) lets write a AEFact card instead with our own distributions
         if (feaAero->vlmSurface.Sspace == 0.0) {
-            nspan = &feaAero->vlmSurface.NspanTotal;
+            nspan = &feaAero->vlmSurface.vlmSection[i].Nspan;
             lspan = NULL;
         } else {
 
@@ -1110,7 +1110,7 @@ int astros_writeUnsteadyCAeroCard(FILE *fp, feaAeroStruct *feaAero, const feaFil
         xyz4 = tipSection->xyzLE;
         chordLength43 = _getSectionChordLength(tipSection);
 
-        caeroID = feaAero->surfaceID + 10000;
+        caeroID = feaAero->surfaceID + i*ASTROS_SECTID;
         pid = &caeroID;
 
         // Write necessary PAER0 card
@@ -1193,42 +1193,68 @@ int astros_writeAirfoilCard(FILE *fp,
 int astros_writeAeroSplineCard(FILE *fp, feaAeroStruct *feaAero, int isUnsteady,
                                const feaFileFormatStruct *feaFileFormat)
 {
+    int status = CAPS_SUCCESS;
+    int i;
     int firstBoxID, lastBoxID, numSpanWise, surfID;
 
     if (fp == NULL) return CAPS_IOERR;
     if (feaAero == NULL) return CAPS_NULLVALUE;
     if (feaFileFormat == NULL) return CAPS_NULLVALUE;
 
-    if (feaAero->vlmSurface.NspanTotal > 0)
-        numSpanWise = feaAero->vlmSurface.NspanTotal;
-    else if (feaAero->vlmSurface.NspanSection > 0)
-        numSpanWise = (feaAero->vlmSurface.numSection-1)*feaAero->vlmSurface.NspanSection;
-    else {
-        printf("Error: Only one of numSpanTotal and numSpanPerSection can be non-zero!\n");
-        printf("       numSpanTotal      = %d\n", feaAero->vlmSurface.NspanTotal);
-        printf("       numSpanPerSection = %d\n", feaAero->vlmSurface.NspanSection);
-        return CAPS_BADVALUE;
-    }
-
     if (isUnsteady) {
-        surfID = feaAero->surfaceID + 10000;
-    }
-    else {
+
+        for (i = 0; i < feaAero->vlmSurface.numSection-1; i++) {
+
+            surfID = feaAero->surfaceID + i*ASTROS_SECTID;
+
+            numSpanWise = feaAero->vlmSurface.vlmSection[i].Nspan;
+
+            firstBoxID = surfID;
+            lastBoxID = firstBoxID + numSpanWise * feaAero->vlmSurface.Nchord - 1;
+
+            status = astrosCard_spline1(fp,
+                                        &surfID, // eid
+                                        NULL, // cp = NULL, CAERO card defines spline plane
+                                        &surfID, // macroid
+                                        &firstBoxID, // box1
+                                        &lastBoxID, // box2
+                                        &feaAero->surfaceID, // setg
+                                        NULL, // dz
+                                        feaFileFormat->fileType);
+            if (status != CAPS_SUCCESS) return status;
+        }
+
+    } else {
+
+            if (feaAero->vlmSurface.NspanTotal > 0)
+            numSpanWise = feaAero->vlmSurface.NspanTotal;
+        else if (feaAero->vlmSurface.NspanSection > 0)
+            numSpanWise = (feaAero->vlmSurface.numSection-1)*feaAero->vlmSurface.NspanSection;
+        else {
+            printf("Error: Only one of numSpanTotal and numSpanPerSection can be non-zero!\n");
+            printf("       numSpanTotal      = %d\n", feaAero->vlmSurface.NspanTotal);
+            printf("       numSpanPerSection = %d\n", feaAero->vlmSurface.NspanSection);
+            return CAPS_BADVALUE;
+        }
+
         surfID = feaAero->surfaceID;
+
+        firstBoxID = surfID;
+        lastBoxID = firstBoxID + numSpanWise * feaAero->vlmSurface.Nchord - 1;
+
+        status = astrosCard_spline1(fp,
+                                    &surfID, // eid
+                                    NULL, // cp = NULL, CAERO card defines spline plane
+                                    &surfID, // macroid
+                                    &firstBoxID, // box1
+                                    &lastBoxID, // box2
+                                    &feaAero->surfaceID, // setg
+                                    NULL, // dz
+                                    feaFileFormat->fileType);
+        if (status != CAPS_SUCCESS) return status;
     }
 
-    firstBoxID = surfID;
-    lastBoxID = firstBoxID + numSpanWise * feaAero->vlmSurface.Nchord - 1;
-
-    return astrosCard_spline1(fp,
-                              &surfID, // eid
-                              NULL, // cp = NULL, CAERO card defines spline plane
-                              &surfID, // macroid
-                              &firstBoxID, // box1
-                              &lastBoxID, // box2
-                              &feaAero->surfaceID, // setg
-                              NULL, // dz
-                              feaFileFormat->fileType);
+    return status;
 }
 
 // Write Astros constraint card from a feaConstraint structure

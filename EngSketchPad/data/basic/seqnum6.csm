@@ -1,0 +1,77 @@
+# seqnum5
+# written by John Dannenhoffer
+
+# get new sequence numbering
+ATTRIBUTE _newSeqnum 1
+
+# block 1
+BOX       0.0  0.0  0.0  10.  10.  1.0
+SET       theBody @nbody
+
+BOX      -2.0  3.0  0.7  14.  4.0  1.0
+SUBTRACT
+
+BOX       3.0  5.0  0.4  4.0  7.0  1.0
+SUBTRACT
+
+SELECT    FACE  theBody 6  1
+   ATTRIBUTE _color $red
+SELECT    FACE  theBody 6  2
+   ATTRIBUTE _color $green
+SELECT    FACE  theBody 6  3
+   ATTRIBUTE _color $blue
+
+SELECT    FACE  theBody 6  0
+SELECT    NOT
+   ATTRIBUTE _viz  $off
+# block 2
+BOX       0.0  0.0  0.0  10.  10.  1.0
+SET       theBody @nbody
+
+BOX      -2.0  3.0  0.7  14.  4.0  1.0
+ROTATEZ -25  5  5
+SUBTRACT
+
+BOX       3.0  5.0  0.4  4.0  7.0  1.0
+ROTATEZ -25  5  5
+SUBTRACT
+
+SELECT    FACE  theBody 6  1
+   ATTRIBUTE _color $red
+SELECT    FACE  theBody 6  2
+   ATTRIBUTE _color $green
+SELECT    FACE  theBody 6  3
+   ATTRIBUTE _color $blue
+
+SELECT    FACE  theBody 6  0
+SELECT    NOT
+   ATTRIBUTE _viz  $off
+
+TRANSLATE 15  0  0
+
+# block 3
+BOX       0.0  0.0  0.0  10.  10.  1.0
+SET       theBody @nbody
+
+BOX      -2.0  3.0  0.7  14.  4.0  1.0
+ROTATEZ  25  5  5
+SUBTRACT
+
+BOX       3.0  5.0  0.4  4.0  7.0  1.0
+ROTATEZ  25  5  5
+SUBTRACT
+
+SELECT    FACE  theBody 6  1
+   ATTRIBUTE _color $red
+SELECT    FACE  theBody 6  2
+   ATTRIBUTE _color $green
+SELECT    FACE  theBody 6  3
+   ATTRIBUTE _color $blue
+
+SELECT    FACE  theBody 6  0
+SELECT    NOT
+   ATTRIBUTE _viz  $off
+
+TRANSLATE 30  0  0
+
+END

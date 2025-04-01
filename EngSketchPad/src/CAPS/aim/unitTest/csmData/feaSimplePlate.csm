@@ -4,7 +4,7 @@ despmtr   plateLength       0.50
 despmtr   plateWidth        0.25
 despmtr   angle             0.00
 
-attribute capsAIM $nastranAIM;astrosAIM;mystranAIM;hsmAIM;tacsAIM;egadsTessAIM
+attribute capsAIM $nastranAIM;astrosAIM;mystranAIM;hsmAIM;tacsAIM;egadsTessAIM;platoAIM
 
 # Branches:
 skbeg     0   0   0

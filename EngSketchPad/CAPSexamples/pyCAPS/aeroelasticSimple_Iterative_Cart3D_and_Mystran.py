@@ -40,7 +40,7 @@ myProblem = pyCAPS.Problem(problemName=workDir,
 # Load AIMs
 myProblem.analysis.create(aim = "cart3dAIM",
                           name = "cart3d",
-                          capsIntent = "Aerodynamic",
+                          capsIntent = "AerodynamicOML",
                           autoExec = False)
 
 myProblem.analysis.create(aim = "mystranAIM",

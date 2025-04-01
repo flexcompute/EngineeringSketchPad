@@ -8,6 +8,7 @@ enum aimInputs
   Physical_Problem,
   Equation_Type,
   Turbulence_Model,
+  Turbulence_Model_Option,
   Alpha,
   Beta,
   Init_Option,
@@ -95,7 +96,7 @@ int su2_writeCongfig_Blackbird(void *aimInfo, capsValue *aimInputs,
                                const char *meshfilename,
                                cfdBoundaryConditionStruct bcProps, int withMotion);
 
-// Write SU2 configuration file for version Harrier (8.0.0)
+// Write SU2 configuration file for version Harrier (8.1.0)
 int su2_writeCongfig_Harrier(void *aimInfo, capsValue *aimInputs,
                                const char *meshfilename,
                                cfdBoundaryConditionStruct bcProps, int withMotion);

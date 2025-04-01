@@ -27,6 +27,9 @@ problem = pyCAPS.Problem(problemName=workDir,
 # Use egads for surface tessellation
 surface = problem.analysis.create(aim='egadsTessAIM', name='S')
 
+# Optional: Explicitly write mesh files
+surface.input.Mesh_Format = ['Tecplot', 'vtk']
+
 # Set new EGADS body tessellation parameters
 surface.input.Tess_Params = [.1, 0.001, 20.0]
 
@@ -38,7 +41,7 @@ volume = problem.analysis.create(aim='tetgenAIM', name='V')
 volume.input["Surface_Mesh"].link(surface.output["Surface_Mesh"])
 
 # Optional: Explicitly write mesh files
-volume.input.Mesh_Format = 'Tecplot'
+volume.input.Mesh_Format = ['Tecplot', 'vtk']
 
 # Sepecify a point in each region with the different ID's
 regions = {'a': { 'id' : 10, 'seed' : [0.0, 0.0, -1.0] },

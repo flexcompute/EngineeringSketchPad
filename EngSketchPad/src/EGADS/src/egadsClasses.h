@@ -5,7 +5,7 @@
  *
  *             C++/OpenCASCADE Object Header
  *
- *      Copyright 2011-2024, Massachusetts Institute of Technology
+ *      Copyright 2011-2025, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -177,14 +177,35 @@ class egadsShapeData
 
     char  *shapeName;
   };
-  typedef NCollection_IndexedDataMap<TopoDS_Shape, Label> Label_IndexedDataMap;
-  typedef NCollection_IndexedDataMap<TopoDS_Shape, Quantity_Color> Color_IndexedDataMap;
+  class BodyColor
+  {
+  public:
+    BodyColor(const Quantity_Color* Edge,
+              const Quantity_Color* Face) : Edge(Edge), Face(Face) {}
+    BodyColor(const BodyColor& bodycolor) :
+      Edge( bodycolor.Edge != NULL ? new Quantity_Color(*bodycolor.Edge) : NULL ),
+      Face( bodycolor.Face != NULL ? new Quantity_Color(*bodycolor.Face) : NULL ) {}
+    BodyColor& operator=(const BodyColor& bodycolor) {
+      Edge = bodycolor.Edge != NULL ? new Quantity_Color(*bodycolor.Edge) : NULL;
+      Face = bodycolor.Face != NULL ? new Quantity_Color(*bodycolor.Face) : NULL;
+      return *this;
+    }
+    ~BodyColor() { delete Edge; delete Face; }
+
+    const Quantity_Color *Edge;
+    const Quantity_Color *Face;
+  };
+  typedef NCollection_IndexedDataMap<TopoDS_Shape, Label, TopTools_ShapeMapHasher> Label_IndexedDataMap;
+  typedef NCollection_IndexedDataMap<TopoDS_Shape, Quantity_Color, TopTools_ShapeMapHasher> Color_IndexedDataMap;
+  typedef NCollection_IndexedDataMap<TopoDS_Shape, BodyColor, TopTools_ShapeMapHasher> BodyColor_IndexedDataMap;
 public:
 
   egadsShapeData() {}
 
   void Add(const TopoDS_Shape& shape, const char* shapeName) { labels.Add(shape, Label(shapeName)); }
   void Add(const TopoDS_Shape& shape, const Quantity_Color& color) { colors.Add(shape, color); }
+  void Add(const TopoDS_Shape& shape, const Quantity_Color* Edge,
+                                      const Quantity_Color* Face) { bodycolors.Add(shape, BodyColor(Edge,Face)); }
 
   Standard_Integer LabelExtent() const { return labels.Extent(); }
   Standard_Integer LabelFindIndex(const TopoDS_Shape& shape) const { return labels.FindIndex(shape); }
@@ -196,14 +217,23 @@ public:
   const TopoDS_Shape& ColorFindKey(Standard_Integer i) const { return colors.FindKey(i); }
   const Quantity_Color& color(Standard_Integer i) const { return colors(i); }
 
+  Standard_Integer BodyColorExtent() const { return bodycolors.Extent(); }
+  Standard_Integer BodyColorFindIndex(const TopoDS_Shape& shape) const { return bodycolors.FindIndex(shape); }
+  const TopoDS_Shape& BodyColorFindKey(Standard_Integer i) const { return bodycolors.FindKey(i); }
+  const Quantity_Color* EdgeColor(Standard_Integer i) const { return bodycolors(i).Edge; }
+  const Quantity_Color* FaceColor(Standard_Integer i) const { return bodycolors(i).Face; }
+
   TopoDS_Shape Update(const TopoDS_Shape& oldShape, const TopoDS_Shape& newShape);
   TopoDS_Shape Update(const TopoDS_Shape& oldShape, BRepBuilderAPI_ModifyShape& xForm);
   TopoDS_Shape Update(const TopoDS_Shape& oldShape, const Handle(BRepTools_ReShape)& reShape);
   TopoDS_Shape Update(const TopoDS_Shape& oldShape, const TopoDS_Shape& newShape, const Handle(BRepTools_History)& history);
 
+  void AddShapeName(egadsMap& shapes);
+  void AddShapeColor(egadsMap& shapes);
 protected:
   Label_IndexedDataMap labels;
   Color_IndexedDataMap colors;
+  BodyColor_IndexedDataMap bodycolors;
 };
 
 

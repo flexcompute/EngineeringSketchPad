@@ -10,7 +10,7 @@
  */
 
 /*
- * Copyright (C) 2011/2024  John F. Dannenhoffer, III (Syracuse University)
+ * Copyright (C) 2011/2025  John F. Dannenhoffer, III (Syracuse University)
  *
  * This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
@@ -28,19 +28,20 @@
  *     MA  02110-1301  USA
  */
 
-#define NUMUDPARGS 3
+#define NUMUDPARGS 4
 #include "udpUtilities.h"
 
 /* shorthands for accessing argument values and velocities */
-#define FILENAME(IUDP)  ((char   *) (udps[IUDP].arg[0].val))
-#define TOLER(   IUDP)  ((double *) (udps[IUDP].arg[1].val))[0]
-#define BODYNUM( IUDP)  ((int    *) (udps[IUDP].arg[2].val))[0]
+#define FILENAME(  IUDP)  ((char   *) (udps[IUDP].arg[0].val))
+#define TOLER(     IUDP)  ((double *) (udps[IUDP].arg[1].val))[0]
+#define BODYNUM(   IUDP)  ((int    *) (udps[IUDP].arg[2].val))[0]
+#define REMOVEDUPS(IUDP)  ((int    *) (udps[IUDP].arg[3].val))[0]
 
 /* data about possible arguments */
-static char  *argNames[NUMUDPARGS] = {"filename",  "toler",  "bodynum", };
-static int    argTypes[NUMUDPARGS] = {ATTRSTRING,  ATTRREAL, ATTRINT,   };
-static int    argIdefs[NUMUDPARGS] = {0,           0,        0,         };
-static double argDdefs[NUMUDPARGS] = {0.,          0.,       0.,        };
+static char  *argNames[NUMUDPARGS] = {"filename",  "toler",  "bodynum", "removedups", };
+static int    argTypes[NUMUDPARGS] = {ATTRSTRING,  ATTRREAL, ATTRINT,   ATTRINT,      };
+static int    argIdefs[NUMUDPARGS] = {0,           0,        0,         0,            };
+static double argDdefs[NUMUDPARGS] = {0.,          0.,       0.,        0.,           };
 
 /* get utility routines: udpErrorStr, udpInitialize, udpReset, udpSet,
                          udpGet, udpVel, udpClean, udpMesh */
@@ -63,24 +64,28 @@ udpExecute(ego  context,                /* (in)  EGADS context */
 {
     int     status = EGADS_SUCCESS;
 
-    int     oclass, mtype, nchild1, ichild1, *senses, nface;
+    int     oclass, mtype, nchild1, ichild1, *senses, nface, mface;
     int     nchild2, ichild2, nchild3, ichild3, nchild4, ichild4, nchild5;
-    int     nman, nnon, iedge, nedge, ibody;
-    double  data[4];
-    ego     emodel1, emodel2, faceList[1000], eref, *eedges, *efaces;
+    int     nman, nnon, iedge, nedge, ibody, iface, jface;
+    int     *dupface=NULL;
+    double  data[4], bboxi[6], bboxj[6], massi[14], massj[14];
+    ego     emodel1, emodel2, eref, *eedges;
     ego     *ebodys1, *ebodys2, *ebodys3, *ebodys4, *ebodys5;
+    ego     *faceList=NULL;
     ego     topRef, prev, next;
     udp_T   *udps = *Udps;
+    void    *realloc_temp=NULL;              /* used by RALLOC macro */
 
     ROUTINE(udpExecute);
 
     /* --------------------------------------------------------------- */
-    
+
 #ifdef DEBUG
     printf("udpExecute(context=%llx)\n", (long long)context);
-    printf("filename   = %s\n", FILENAME(0));
-    printf("toler(0)   = %f\n", TOLER(   0));
-    printf("bodynum(0) = %d\n", BODYNUM( 0));
+    printf("filename      = %s\n", FILENAME(  0));
+    printf("toler(0)      = %f\n", TOLER(     0));
+    printf("bodynum(0)    = %d\n", BODYNUM(   0));
+    printf("removedups(0) = %d\n", REMOVEDUPS(0));
 #endif
 
     /* default return values */
@@ -99,8 +104,8 @@ udpExecute(ego  context,                /* (in)  EGADS context */
         status  = EGADS_RANGERR;
         goto cleanup;
 
-    } else if (BODYNUM(0) < 0) {
-        printf(" udpExecute: bodynum = %d < 0\n", BODYNUM(0));
+    } else if (BODYNUM(0) < -1) {
+        printf(" udpExecute: bodynum = %d < -1\n", BODYNUM(0));
         status  = EGADS_RANGERR;
         goto cleanup;
     }
@@ -110,9 +115,10 @@ udpExecute(ego  context,                /* (in)  EGADS context */
     CHECK_STATUS(cacheUdp);
 
 #ifdef DEBUG
-    printf("filename(%d) = %s\n", numUdp, FILENAME(numUdp));
-    printf("toler(%d)    = %f\n", numUdp, TOLER(   numUdp));
-    printf("bodynum(%d)  = %d\n", numUdp, BODYNUM( numUdp));
+    printf("filename(%d)    = %s\n", numUdp, FILENAME(  numUdp));
+    printf("toler(%d)       = %f\n", numUdp, TOLER(     numUdp));
+    printf("bodynum(%d)     = %d\n", numUdp, BODYNUM(   numUdp));
+    printf("removedups(%d)  = %d\n", numUdp, REMOVEDUPS(numUdp));
 #endif
 
     /* load the model */
@@ -122,7 +128,12 @@ udpExecute(ego  context,                /* (in)  EGADS context */
     }
 
     /* make a list of the Faces in emodel1 */
+    mface = 50;
     nface = 0;
+
+    MALLOC(faceList, ego, mface);
+    MALLOC(dupface,  int, mface);
+
     status = EG_getTopology(emodel1, &eref, &oclass, &mtype,
                             data, &nchild1, &ebodys1, &senses);
     if (status != EGADS_SUCCESS) printf("EG_getTopology -> status=%d\n", status);
@@ -133,6 +144,11 @@ udpExecute(ego  context,                /* (in)  EGADS context */
         if (status != EGADS_SUCCESS) printf("EG_getTopology -> status=%d\n", status);
 
         if (oclass == FACE) {
+            if (nface >= mface) {
+                mface += 50;
+                RALLOC(faceList, ego, mface);
+                RALLOC(dupface,  int, mface);
+            }
             faceList[nface++] = ebodys1[ichild1];
             continue;
         }
@@ -143,6 +159,11 @@ udpExecute(ego  context,                /* (in)  EGADS context */
             if (status != EGADS_SUCCESS) printf("EG_getTopology -> status=%d\n", status);
 
             if (oclass == FACE) {
+                if (nface >= mface) {
+                    mface += 50;
+                    RALLOC(faceList, ego, mface);
+                    RALLOC(dupface,  int, mface);
+                }
                 faceList[nface++] = ebodys2[ichild2];
                 continue;
             }
@@ -153,6 +174,11 @@ udpExecute(ego  context,                /* (in)  EGADS context */
                 if (status != EGADS_SUCCESS) printf("EG_getTopology -> status=%d\n", status);
 
                 if (oclass == FACE) {
+                    if (nface >= mface) {
+                        mface += 50;
+                        RALLOC(faceList, ego, mface);
+                        RALLOC(dupface,  int, mface);
+                    }
                     faceList[nface++] = ebodys3[ichild3];
                     continue;
                 }
@@ -163,6 +189,11 @@ udpExecute(ego  context,                /* (in)  EGADS context */
                     if (status != EGADS_SUCCESS) printf("EG_getTopology -> status=%d\n", status);
 
                     if (oclass == FACE) {
+                        if (nface >= mface) {
+                            mface += 50;
+                            RALLOC(faceList, ego, mface);
+                            RALLOC(dupface,  int, mface);
+                        }
                         faceList[nface++] = ebodys4[ichild4];
                         continue;
                     }
@@ -171,6 +202,59 @@ udpExecute(ego  context,                /* (in)  EGADS context */
         }
     }
     printf(" udpExecute: there are %4d Faces to sew with toler=%f\n", nface, TOLER(0));
+
+    /* check if any Faces are duplicated */
+    if (REMOVEDUPS(0) > 0) {
+
+        /* initialize the list of duplicate Faces */
+        for (iface = 0; iface < nface; iface++) {
+            dupface[iface] = 0;
+        }
+
+        /* duplicate Face have same bounding box and area */
+        for (iface = 0; iface < nface; iface++) {
+            status = EG_getBoundingBox(faceList[iface], bboxi);
+            CHECK_STATUS(EG_getBoundingBox);
+
+            for (jface = iface+1; jface < nface; jface++) {
+                if (dupface[iface] > 0) continue;
+
+                status = EG_getBoundingBox(faceList[jface], bboxj);
+                CHECK_STATUS(EG_getBoundingBox);
+
+                if (fabs(bboxi[0]-bboxj[0]) < EPS12 &&
+                    fabs(bboxi[1]-bboxj[1]) < EPS12 &&
+                    fabs(bboxi[2]-bboxj[2]) < EPS12 &&
+                    fabs(bboxi[3]-bboxj[3]) < EPS12 &&
+                    fabs(bboxi[4]-bboxj[4]) < EPS12 &&
+                    fabs(bboxi[5]-bboxj[5]) < EPS12   ) {
+
+                    status = EG_getMassProperties(faceList[iface], massi);
+                    CHECK_STATUS(EG_getMassProperties);
+
+                    status = EG_getMassProperties(faceList[jface], massj);
+                    CHECK_STATUS(EG_getMassProperties);
+
+                    if (fabs(massi[1]-massj[1]) < EPS09) {
+                        printf("   Faces %3d and %3d are equivalent and will be removed\n", iface, jface);
+
+                        dupface[iface] = 1;
+                        dupface[jface] = 1;
+
+                        break;
+                    }
+                }
+            }
+        }
+
+        /* remove the duplicates from the list */
+        for (iface = nface-1; iface >= 0; iface--) {
+            if (dupface[iface] > 0) {
+                faceList[iface] = faceList[nface-1];
+                nface--;
+            }
+        }
+    }
 
     /* sew the Faces into a new Model */
     status = EG_sewFaces(nface, faceList, TOLER(0), 1, &emodel2);
@@ -204,20 +288,29 @@ udpExecute(ego  context,                /* (in)  EGADS context */
 
     } else {
         for (ibody = 0; ibody < nchild1; ibody++) {
-            status = EG_getBodyTopos(ebodys1[ibody], NULL, FACE, &nchild2, &efaces);
+            status = EG_getBodyTopos(ebodys1[ibody], NULL, FACE, &nchild2, NULL);
             if (status != EGADS_SUCCESS) {
                 status = EGADS_NODATA;
-                if (efaces != NULL) EG_free(efaces);
                 goto cleanup;
             }
 
             printf("             body %3d contains %5d Faces\n", ibody+1, nchild2);
-
-            if (efaces != NULL) EG_free(efaces);
         }
     }
 
-    if (BODYNUM(0) == 0 && nchild1 > 1) {
+    if (BODYNUM(0) == -1) {
+        *ebody = emodel2;
+
+        if (emodel1 != NULL) {
+            EG_deleteObject(emodel1);
+            emodel1 = NULL;
+        }
+
+        udps[numUdp].ebody = *ebody;
+
+        goto cleanup;
+
+    } else if (BODYNUM(0) == 0 && nchild1 > 1) {
         printf(" udpExecute: expecting emodel2 to have one child  (nchild1=%d)\n", nchild1);
         printf("             try re-running with increased toler\n");
         status = EGADS_NODATA;
@@ -308,8 +401,8 @@ udpExecute(ego  context,                /* (in)  EGADS context */
         }
 
         if (mtype == DEGENERATE) continue;
-        
-        status = EG_getBodyTopos(*ebody, eedges[iedge], FACE, &nface, &efaces);
+
+        status = EG_getBodyTopos(*ebody, eedges[iedge], FACE, &nface, NULL);
         if (status == EGADS_SUCCESS) {
             if (nface == 2) {
                 nman++;
@@ -319,8 +412,6 @@ udpExecute(ego  context,                /* (in)  EGADS context */
         } else {
             nnon++;      // problem Edges are counted as non-manifold
         }
-
-        if (efaces != NULL) EG_free(efaces);
     }
 
     if (eedges != NULL) EG_free(eedges);
@@ -344,6 +435,9 @@ udpExecute(ego  context,                /* (in)  EGADS context */
     udps[numUdp].ebody = *ebody;
 
 cleanup:
+    FREE(faceList);
+    FREE(dupface );
+
     if (status != EGADS_SUCCESS) {
         *string = udpErrorStr(status);
     }

@@ -1,0 +1,20 @@
+# ffd_sphereFG0b
+# written by Marshall Galbraith
+
+# original configuration
+SPHERE 8.5 0 0  0.5
+
+SELECT FACE 1
+   ATTRIBUTE ffdFixed $G0
+
+# Make sure bounds are on whole body
+SELECT    BODY
+
+STORE   original
+
+# Deform original
+UDPRIM $/ffdb
+
+END
+
+

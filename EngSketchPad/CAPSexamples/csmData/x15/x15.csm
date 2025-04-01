@@ -1,0 +1,131 @@
+#------------------------------------------------------------------------------#
+# Script Name   : himoco.csm
+# Purpose       : Baseline geometry inspired from X-15[236] model
+# Description   : This script is developed to demonstrate UDCs using ESP. 
+# Scripted by   : Nitin Bhagat
+# Dependencies  : ESP 1.27 and above
+# Limitations   : 
+#               :
+# Contact       : [nbhagat1@udayton.edu] for scripting bugs/suggestions.
+#------------------------------------------------------------------------------#
+
+ATTRIBUTE capsLength $m
+
+#---- Component Switchess -----
+CFGPMTR   COMP:Wing       1
+CFGPMTR   COMP:Fuselage   1
+CFGPMTR   COMP:Vtail      1
+CFGPMTR   COMP:Htail      1
+CFGPMTR   COMP:Cockpit    1
+
+CFGPMTR   VIEW:Concept  0
+CFGPMTR   VIEW:Oml      1
+CFGPMTR   VIEW:Iml      1
+
+#---- Wing Parameters -----
+SET Wing:name $wing # Used for _name attribute
+
+DIMENSION Wing:color 1 3
+SET       Wing:color "0.63137; 0.59216; 0.49412"
+
+DESPMTR   Wing:rootLocX   5.512     # Leading edge X-location
+DESPMTR   Wing:tipChord   0.716
+DESPMTR   Wing:sweep      36.75     # leading edge Sweep
+DESPMTR   Wing:area       11.52
+DESPMTR   Wing:span       5.366
+
+#---- Wing:IML Parameters -----
+DESPMTR Wing:sparLE     0.10  #Fraction of chord for LE spar
+DESPMTR Wing:sparTE     0.85  #Fraction of chord for TE spar
+DESPMTR Wing:nRibs      5
+
+
+#---- Fuselage Parameters -----
+SET Fuse:name $fuselage # Used for _name attribute
+
+DIMENSION Fuse:color 1 3
+SET       Fuse:color "0.43922; 0.48235; 0.56078"
+
+DESPMTR   Fuse:length        11.76
+DESPMTR   Fuse:cockpitBeg    1.577
+DESPMTR   Fuse:baseDiameter  0.96
+DESPMTR   Fuse:maxDiameter   1.12
+SET       Fuse:maxDiameterX  Wing:rootLocX
+
+DIMENSION Fuse:noselist  2 4
+DESPMTR   Fuse:noselist  ".03; 0; 1; 0;\  # spanwise nose radius
+                          .03; 0; 0; 1"   # vertical nose radius
+
+
+DESPMTR  Fuse:ferringLocX           3.0
+DESPMTR  Fuse:ferringLength         8.236
+DESPMTR  Fuse:ferringMaxHeight      0.8
+DESPMTR  Fuse:ferringMaxWidth       1.76
+SET      Fuse:ferringMaxWidthLocX   Wing:rootLocX
+
+DIMENSION Cockpit:color 1 3
+SET       Cockpit:color "0.20137; 0.36216; 0.15412"
+
+#---- Vertical Tail Parameters -----
+SET Vtail:name $vtail # Used for _name attribute
+
+DIMENSION Vtail:color 1 3
+SET       Vtail:color "0.43137; 0.29216; 0.49412"
+
+DESPMTR   Vtail:rootChord  2.625
+DESPMTR   Vtail:rootLocX   9.0          # Leading edge X-location
+
+DESPMTR   Vtail:tipChord   1.875
+DESPMTR   Vtail:tipLocX    9.75
+DESPMTR   Vtail:tipLocZ    1.245
+DESPMTR   Vtail:tipLocZb   -1.11
+
+
+#---- Horizontal Tail Parameters -----
+SET Htail:name $htail # Used for _name attribute
+
+DIMENSION Htail:color 1 3
+SET       Htail:color "0.53137; 0.39216; 0.39412"
+
+DESPMTR   Htail:tipLocX    11.263     # Leading edge X-location
+DESPMTR   Htail:tipChord   0.506
+# DESPTMR   Htail:span       4.492
+# DESPMTR   Htail:sweep      50.58     # leading edge Sweep
+DESPMTR   Htail:hedral    -15.0
+
+
+#--------- Build the Wing --------------
+IFTHEN COMP:Wing EQ 1
+    UDPRIM $/wing
+ENDIF
+
+#--------- Build the Fuselage --------------
+IFTHEN COMP:Fuselage EQ 1
+    UDPRIM $/fuse
+ENDIF
+
+#--------- Build the Vertical Tail --------------
+IFTHEN COMP:Vtail EQ 1
+    UDPRIM $/vtail
+ENDIF
+
+#--------- Build the Horizontal Tail --------------
+IFTHEN COMP:Htail EQ 1
+    UDPRIM $/htail
+ENDIF
+
+
+#--------- Build the VIEWs --------------
+IFTHEN VIEW:Concept EQ 1
+    UDPRIM $/concept
+ENDIF
+
+IFTHEN VIEW:Oml EQ 1
+    UDPRIM $/oml
+ENDIF
+
+IFTHEN VIEW:Iml EQ 1
+    UDPRIM $/iml
+ENDIF
+
+END

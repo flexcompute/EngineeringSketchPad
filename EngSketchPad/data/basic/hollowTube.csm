@@ -1,0 +1,88 @@
+# hollowTube
+# written by John Dannenhoffer
+
+DESPMTR    thick  0.10
+
+# section 1
+BOX        0.0  -.5  -.5  0.0  1.0  1.0
+ROTATEZ    30.
+
+SELECT    EDGE
+   ATTRIBUTE  splitLocs  0.50
+UDPRIM    $$/splitEdges   name $splitLocs
+STORE     outer  1
+
+# section 2
+UDPRIM    SUPELL    rx 0.5   ry 0.5   n 5
+ROTATEY   90
+TRANSLATE 1.0  0.0  0.0
+
+SELECT    EDGE
+   ATTRIBUTE  splitLocs  0.50
+UDPRIM    $$/splitEdges   name $splitLocs
+STORE     outer  2
+
+# section 3
+UDPRIM    SUPELL    rx 0.5   ry 0.5   n 3
+ROTATEY   90
+TRANSLATE 4.0  0.0  -1.0
+
+SELECT    EDGE
+   ATTRIBUTE  splitLocs  0.50
+UDPRIM    $$/splitEdges   name $splitLocs
+STORE     outer  3
+
+# section 4
+UDPRIM    SUPELL    rx 0.5   ry 0.5   n 2
+ROTATEY   90
+TRANSLATE 5.0  0.0  -1.0
+
+SELECT    EDGE
+   ATTRIBUTE  splitLocs  0.50
+UDPRIM    $$/splitEdges   name $splitLocs
+STORE     outer  4
+
+# section 5
+UDPRIM    SUPELL    rx 0.4   ry 0.4   n 2
+ROTATEY   90
+TRANSLATE 7.0  0.0  -1.0
+
+SELECT    EDGE
+   ATTRIBUTE  splitLocs  0.50
+UDPRIM    $$/splitEdges   name $splitLocs
+STORE     outer  5
+
+# generate inner sections
+PATBEG    isect 5
+   RESTORE   outer isect
+
+   IFTHEN    isect EQ 1
+      ROTATEZ   -30
+   ENDIF
+
+   UDPRIM    offset    dist -thick
+
+   IFTHEN    isect EQ 1
+      ROTATEZ   +30
+   ENDIF
+
+   STORE     inner isect
+PATEND
+
+# generate the outer walls
+MARK
+    RESTORE   outer  -1
+BLEND     0  0  1
+
+# generate the inner walls
+MARK
+    RESTORE   inner  -1
+BLEND     0  0  1
+
+# subtract the inner from the outer
+SUBTRACT
+
+END
+
+
+

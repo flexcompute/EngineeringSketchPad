@@ -78,9 +78,10 @@ store     OML
     #Rotate the body to put it in the typical aero-coordinate system
     rotatex   90   0   0
     select body   
-   	attribute capsIntent $Structure #FEA Analysis (2D elements) 
-   	attribute capsAIM $nastranAIM;astrosAIM;mystranAIM;hsmAIM;egadsTessAIM;aflr4AIM;tacsAIM
-        attribute capsMeshLength croot
+       attribute capsIntent     $Structure #FEA Analysis (2D elements) 
+       attribute capsAIM        $nastranAIM;astrosAIM;mystranAIM;hsmAIM;egadsTessAIM;aflr4AIM;tacsAIM
+       attribute capsMeshLength croot
+       attribute _name          $FEA
 
 
 # CFD
@@ -115,20 +116,25 @@ store     OML
     #Rotate the body to put it in the typical aero-coordinate system
     rotatex   90   0   0
     
-    attribute capsIntent $Aerodynamic #CFD Analysis
-    attribute capsAIM $fun3dAIM;su2AIM;egadsTessAIM;aflr4AIM;tetgenAIM;aflr3AIM #CFD Analysis
-    attribute capsMeshLength      croot
+    select body
+       attribute capsIntent      $Aerodynamic #CFD Analysis
+       attribute capsAIM         $fun3dAIM;su2AIM;egadsTessAIM;aflr4AIM;tetgenAIM;aflr3AIM #CFD Analysis
+       attribute capsMeshLength  croot
+       attribute _name           $CFD
 
-    # Restore outer mold line of wing for Cart3D
+    # Restore outer mold line of wing for Cart3D/FlightStream
     restore OML
     rotatex   90   0   0
     select body
+       attribute _name               $OML
        attribute .tParams            params
-       attribute capsIntent          $Aerodynamic #CFD Analysis
-       attribute capsAIM             $cart3dAIM 
+       attribute capsIntent          $AerodynamicOML #CFD Analysis
+       attribute capsAIM             $cart3dAIM;flightstreamAIM;aflr4AIM
        attribute capsReferenceArea   area
        attribute capsReferenceChord  sqrt(area/aspect)
        attribute capsReferenceSpan   sqrt(area/aspect)*aspect
        attribute capsReferenceX      croot/4
+       attribute capsReferenceY      0
+       attribute capsReferenceZ      0
        attribute capsMeshLength      croot
-    
+       attribute capsLength          $meter

@@ -1,6 +1,6 @@
 #MAC OS X 10.5 & up -- 64 bit (clang):
 #
-EGREV   = 1.0.25
+EGREV   = 1.0.27
 
 LIBPATH = -L$(CASROOT)/$(CASARCH)/lib -L$(ESP_ROOT)/lib
 ifeq ($(CASREV),7.3)
@@ -29,7 +29,7 @@ endif
 
 DEFINE = -DREVISION=$(CASREV)
 CXX    = clang++ -g $(ESPFLAGS)
-CPPOPT = -O -fPIC -DOCC_CONVERT_SIGNALS -DNDEBUG -DNo_Exception -D_OCC64 -Wall -Wno-write-strings -Wno-dangling-else -Wno-unused-result $(CPDS)
+CPPOPT = -O -fPIC -DNDEBUG -D_OCC64 -Wall -Wno-write-strings -Wno-dangling-else -Wno-unused-result $(CPDS)
 CC     = clang -g $(ESPFLAGS)
 COPTS  = -O -Wall -Wno-dangling-else -Wno-unused-result
 OCOPT  = -O -Wall -Wno-dangling-else -Wno-unused-result
@@ -39,8 +39,8 @@ FOPTS  = -O -frecursive -fcray-pointer
 FSOFLG = -bundle
 ESPFLIBS += -Wl,-w
 endif
-ifeq ($(EFCOMP),ifort)
-FCOMP  = ifort -g -traceback -L$(shell xcrun --show-sdk-path)/usr/lib
+ifneq (,$(filter $(EFCOMP),ifort ifx))
+FCOMP  = $(EFCOMP) -g -traceback -L$(shell xcrun --show-sdk-path)/usr/lib
 FOPTS  = -O -recursive
 FSOFLG = -nofor-main -Wl,-bundle
 endif

@@ -828,8 +828,7 @@ static int su2_writeConfig_Deform(void *aimInfo, capsValue *aimInputs,
     counter = 0; // Viscous boundary w/ heat flux
     for (i = 0; i < bcProps.numSurfaceProp; i++) {
         if (bcProps.surfaceProp[i].surfaceType == Viscous &&
-            bcProps.surfaceProp[i].wallTemperatureFlag == (int) true &&
-            bcProps.surfaceProp[i].wallTemperature < 0) {
+            bcProps.surfaceProp[i].wallTemperatureFlag == (int) false) {
 
             if (counter > 0) fprintf(fp, ",");
             fprintf(fp," BC_%d, %f", bcProps.surfaceProp[i].bcID, bcProps.surfaceProp[i].wallHeatFlux);
@@ -849,8 +848,7 @@ static int su2_writeConfig_Deform(void *aimInfo, capsValue *aimInputs,
     counter = 0; // Viscous boundary w/ isothermal wall
     for (i = 0; i < bcProps.numSurfaceProp; i++) {
         if (bcProps.surfaceProp[i].surfaceType == Viscous &&
-            bcProps.surfaceProp[i].wallTemperatureFlag == (int) true &&
-            bcProps.surfaceProp[i].wallTemperature >= 0) {
+            bcProps.surfaceProp[i].wallTemperatureFlag == (int) true) {
 
             if (counter > 0) fprintf(fp, ",");
             fprintf(fp," BC_%d, %f", bcProps.surfaceProp[i].bcID, bcProps.surfaceProp[i].wallTemperature);

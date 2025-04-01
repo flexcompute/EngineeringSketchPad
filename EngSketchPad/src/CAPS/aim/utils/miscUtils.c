@@ -36,6 +36,7 @@ int json_parseTuple(/*@null@*/ const char *stringToParse, int *arraySize,
                     char **stringArray[])
 {
     int i, j;         // Array indexing
+    size_t stringToParseLen;
 
     int matchLength;  // String length of matching pattern
     int startIndex; // Keep track of where we are in the string array
@@ -45,13 +46,14 @@ int json_parseTuple(/*@null@*/ const char *stringToParse, int *arraySize,
     char *quoteString = NULL; // Temporary string to hold the found string
     char *noQuoteString = NULL;  // Temporary string to hold the found string with quotation marks removed
 
-    int foundInternalTuple = (int) false;
-    int foundInternalArray = (int) false;
+    int foundInternal = (int) false;
 
     // Debug function
     //printf("Search string - %s length %d\n", stringToParse, strlen(stringToParse));
 
     if (stringToParse == NULL) return CAPS_BADVALUE;
+
+    stringToParseLen = strlen(stringToParse);
 
     // Check to make sure first and last of the incoming string denote an array
     if (stringToParse[0] == '[' ) {
@@ -59,24 +61,27 @@ int json_parseTuple(/*@null@*/ const char *stringToParse, int *arraySize,
         // Debug function
         //printf("[ found\n");
 
-        if(stringToParse[strlen(stringToParse)-1] == ']') { // Lets count how many commas we have
+        if(stringToParse[stringToParseLen-1] == ']') { // Lets count how many commas we have
 
             // Debug function
             //printf("] found\n");
 
             haveArray = (int) true;
             *arraySize = 1;
-            for (i = 1; i < strlen(stringToParse)-1; i++) {
+            for (i = 1; i < stringToParseLen-1; i++) {
 
-                if (stringToParse[i] == '(') foundInternalTuple = (int) true;
-                if (stringToParse[i] == ')' ) foundInternalTuple = (int) false;
+                if (stringToParse[i] == '{') foundInternal = (int) true;
+                if (stringToParse[i] == '}' ) foundInternal = (int) false;
 
-                if (stringToParse[i] == '[') foundInternalArray = (int) true;
-                if (stringToParse[i] == ']') foundInternalArray = (int) false;
+                if (stringToParse[i] == '(') foundInternal = (int) true;
+                if (stringToParse[i] == ')' ) foundInternal = (int) false;
 
-                if (foundInternalTuple == (int) true || foundInternalArray == (int) true ) continue;
+                if (stringToParse[i] == '[') foundInternal = (int) true;
+                if (stringToParse[i] == ']') foundInternal = (int) false;
 
-                if (stringToParse[i] == ',') *arraySize = *arraySize + 1;
+                if (foundInternal == (int) true) continue;
+
+                if (stringToParse[i] == ',') *arraySize += 1;
             }
 
         } else {
@@ -112,13 +117,12 @@ int json_parseTuple(/*@null@*/ const char *stringToParse, int *arraySize,
         if ((*stringArray)[0] == NULL) {
 
             // Free string array
-            if (*stringArray != NULL) EG_free(*stringArray);
-            *stringArray = NULL;
+            AIM_FREE(*stringArray);
 
             *arraySize = 0;
 
             // Free no quote array
-            if (noQuoteString != NULL) EG_free(noQuoteString);
+            AIM_FREE(noQuoteString);
 
             return EGADS_MALLOC;
         }
@@ -126,31 +130,30 @@ int json_parseTuple(/*@null@*/ const char *stringToParse, int *arraySize,
         strncpy((*stringArray)[0], noQuoteString, strlen(noQuoteString));
         (*stringArray)[0][strlen(noQuoteString)] = '\0';
 
-        if (noQuoteString != NULL) {
-            EG_free(noQuoteString);
-            noQuoteString = NULL;
-        }
+        AIM_FREE (noQuoteString);
 
     } else {
 
-        foundInternalTuple = (int) false;
-        foundInternalArray = (int) false;
+        foundInternal = (int) false;
 
         startIndex = 1;
         arrayIndex = 0;
         // Parse string based on defined pattern
-        for (i = 1; i < strlen(stringToParse); i++) {
+        for (i = 1; i < stringToParseLen; i++) {
+        
+            if (stringToParse[i] == '{') foundInternal = (int) true;
+            if (stringToParse[i] == '}') foundInternal = (int) false;
 
-            if (stringToParse[i] == '(') foundInternalTuple = (int) true;
-            if (stringToParse[i] == ')') foundInternalTuple = (int) false;
+            if (stringToParse[i] == '(') foundInternal = (int) true;
+            if (stringToParse[i] == ')') foundInternal = (int) false;
 
-            if (stringToParse[i] == '[') foundInternalArray = (int) true;
-            if (stringToParse[i] == ']') foundInternalArray = (int) false;
+            if (stringToParse[i] == '[') foundInternal = (int) true;
+            if (stringToParse[i] == ']') foundInternal = (int) false;
 
-            if (foundInternalTuple == (int) true || foundInternalArray == (int) true ) continue;
+            if (foundInternal == (int) true) continue;
 
-            if(stringToParse[i] == ',' ||
-               i == strlen(stringToParse)-1) {//stringToParse[i] == ')' ) {
+            if (stringToParse[i] == ',' ||
+                i == stringToParseLen-1) {
 
                 matchLength = i-startIndex;
 
@@ -176,10 +179,7 @@ int json_parseTuple(/*@null@*/ const char *stringToParse, int *arraySize,
                     noQuoteString = string_removeQuotation(quoteString);
 
                     // Free quote string array
-                    if (quoteString != NULL) {
-                        EG_free(quoteString);
-                        quoteString = NULL;
-                    }
+                    AIM_FREE(quoteString);
 
                     // Allocate string array element based on no quote string
                     (*stringArray)[arrayIndex] = (char *) EG_alloc( (strlen(noQuoteString)+1) * sizeof(char));
@@ -188,14 +188,14 @@ int json_parseTuple(/*@null@*/ const char *stringToParse, int *arraySize,
                     if ((*stringArray)[arrayIndex] == NULL) {
 
                         // Free string array
-                        EG_free(quoteString);
-                        for (j = 0; j <  arrayIndex; j++) EG_free((*stringArray)[j]);
-                        EG_free(*stringArray);
+                        AIM_FREE(quoteString);
+                        for (j = 0; j <  arrayIndex; j++) AIM_FREE((*stringArray)[j]);
+                        AIM_FREE(*stringArray);
 
                         *arraySize = 0;
 
                         // Free no quote string
-                        if (noQuoteString != NULL) EG_free(noQuoteString);
+                        AIM_FREE(noQuoteString);
 
                         return EGADS_MALLOC;
                     }
@@ -205,14 +205,13 @@ int json_parseTuple(/*@null@*/ const char *stringToParse, int *arraySize,
                     (*stringArray)[arrayIndex][strlen(noQuoteString)] = '\0';
 
                     // Free no quote array
-                    if (noQuoteString != NULL) {
-                        EG_free(noQuoteString);
-                        noQuoteString = NULL;
-                    }
+                    AIM_FREE(noQuoteString);
 
                     // Increment start indexes
                     arrayIndex += 1;
                     startIndex = i+1; // +1 to skip the commas
+                    while (startIndex < stringToParseLen &&
+                           stringToParse[startIndex] == ' ') startIndex++;
                 }
             }
         }
@@ -230,6 +229,96 @@ int json_parseTuple(/*@null@*/ const char *stringToParse, int *arraySize,
 
     return CAPS_SUCCESS;
 }
+
+
+// Search for a json entry in stringToSearch
+int json_entry(const char *stringToSearch, char **value) {
+
+    int  i; // Indexing for loop
+
+    int  keyIndexStart; // Starting index of keyValue
+
+    int  keyLength = 0; // Length of keyValue
+    int  nesting = 0;
+
+    // Get the starting index of the keyValue (using pointer arithmetic)
+    keyIndexStart = 0;
+
+    while (stringToSearch[keyIndexStart] == ' ') keyIndexStart += 1; // Skip whitespace after :, some JSON writers have spaces others don't
+    while (stringToSearch[keyIndexStart] == '{') keyIndexStart += 1;
+
+    // See how long our keyValue is - at most length of incoming string
+    for (i = 0; i < (int) strlen(stringToSearch); i++) {
+
+        if (stringToSearch[keyIndexStart+keyLength] == '[' ||
+            stringToSearch[keyIndexStart+keyLength] == '{') nesting++;
+
+        // Array possibly nested
+        if (stringToSearch[keyIndexStart] == '[' ||
+            stringToSearch[keyIndexStart] == '{') {
+
+            if (stringToSearch[keyIndexStart+keyLength] == ']' ||
+                stringToSearch[keyIndexStart+keyLength] == '}') {
+                nesting--;
+              if (nesting == 0) {
+                  keyLength += 1; // include closing bracket
+                  break;
+              }
+            }
+
+            keyLength += 1;
+
+        } else {
+
+            keyLength += 1;
+            if (stringToSearch[keyIndexStart+keyLength] == ':' ||
+                stringToSearch[keyIndexStart+keyLength] == ',' ||
+                stringToSearch[keyIndexStart+keyLength] == '}') break;
+        }
+    }
+
+    // Free keyValue (if not already null) and allocate
+    AIM_FREE(*value);
+
+    if (keyLength > 0) {
+        *value = (char *) EG_alloc((keyLength+1) * sizeof(char));
+        if (*value == NULL) return EGADS_MALLOC;
+
+    } else {
+        //printf("No match found for %s\n",keyWord);
+        *value = NULL; //"\0";
+        return CAPS_NOTFOUND;
+    }
+
+    // Copy matched expression to keyValue
+    strncpy((*value), stringToSearch + keyIndexStart, keyLength);
+    (*value)[keyLength] = '\0';
+
+    return CAPS_SUCCESS;
+}
+
+
+// Search for a Key-Value pair in stringToSearch
+int json_keyValue(const char *stringToSearch, char **keyWord, char **keyValue) {
+
+  int status = CAPS_SUCCESS;
+  size_t len, i=0;
+
+  status = json_entry(stringToSearch, keyWord);
+  if (status != CAPS_SUCCESS) return status;
+
+  stringToSearch += strlen(*keyWord);
+  len = strlen(stringToSearch);
+
+  while (stringToSearch[i] != ':' && i < len) i++;
+  i++;
+  if (i >= len) {
+    return CAPS_NOTFOUND;
+  }
+
+  return json_entry(stringToSearch + i, keyValue);
+}
+
 
 // Simple json dictionary parser - currently doesn't support nested arrays for keyValue
 int search_jsonDictionary(const char *stringToSearch, const char *keyWord, char **keyValue) {
@@ -266,17 +355,23 @@ int search_jsonDictionary(const char *stringToSearch, const char *keyWord, char 
         // See how long our keyValue is - at most length of incoming string
         for (i = 0; i < (int) strlen(stringToSearch); i++) {
 
-            if (stringToSearch[keyIndexStart+keyLength] == '[') nesting++;
+            if (stringToSearch[keyIndexStart+keyLength] == '[' ||
+                stringToSearch[keyIndexStart+keyLength] == '{') nesting++;
 
             // Array possibly nested
-            if (stringToSearch[keyIndexStart] == '[') {
-                keyLength += 1;
+            if (stringToSearch[keyIndexStart] == '[' ||
+                stringToSearch[keyIndexStart] == '{') {
 
-                if (stringToSearch[keyIndexStart+keyLength] == ']') {
-                    keyLength += 1;
+                if (stringToSearch[keyIndexStart+keyLength] == ']' ||
+                    stringToSearch[keyIndexStart+keyLength] == '}') {
                     nesting--;
-                    if (nesting == 0) break;
+                  if (nesting == 0) {
+                      keyLength += 1; // include closing bracket
+                      break;
+                  }
                 }
+
+                keyLength += 1;
 
             } else {
 
@@ -546,26 +641,39 @@ int string_toDoubleArrayUnits(void *aimInfo, const char *string,
                               const char *units, int arraySize, double *numberArray) {
 
     int status = CAPS_SUCCESS;
+    int i;
 
     int numString = 0;
     char **stringArray = NULL; // Freeable
-    char *dataunits=NULL;
 
     status = json_parseTuple(string, &numString, &stringArray);
     AIM_STATUS(aimInfo, status);
 
-    if (numString != 2 || stringArray == NULL) {
-        AIM_ERROR(aimInfo, "Expected tuple with number and units: %s", string);
+    // Check if [#,#,#] * units
+    if (numString == 2 &&
+        aim_unitConvertible(aimInfo, stringArray[1], units) == CAPS_SUCCESS) {
+
+      status = string_toDoubleArray(stringArray[0], arraySize, numberArray);
+      AIM_STATUS(aimInfo, status);
+
+      status = aim_convert(aimInfo, arraySize, stringArray[1], numberArray, units, numberArray);
+      AIM_STATUS(aimInfo, status);
+
+    } else {
+
+      // Assume [# * units, # * units, # * units]
+      if (numString != arraySize) {
+        AIM_ERROR(aimInfo, "Expected '%s' to be array of length %d", string, arraySize);
         status = CAPS_BADVALUE;
         goto cleanup;
+      }
+
+      for (i = 0; i < numString; i++) {
+        status = string_toDoubleUnits(aimInfo, stringArray[i], units, &numberArray[i]);
+        AIM_STATUS(aimInfo, status);
+      }
+
     }
-
-    dataunits = stringArray[1];
-    status = string_toDoubleArray(stringArray[0], arraySize, numberArray);
-    AIM_STATUS(aimInfo, status);
-
-    status = aim_convert(aimInfo, arraySize, dataunits, numberArray, units, numberArray);
-    AIM_STATUS(aimInfo, status);
 
 cleanup:
     (void) string_freeArray(numString, &stringArray);
@@ -700,26 +808,37 @@ int string_toDoubleDynamicArrayUnits(void *aimInfo, const char *string,
                                      const char *units, int *arraySize, double **numberArray) {
 
     int status = CAPS_SUCCESS;
+    int i;
 
     int numString = 0;
     char **stringArray = NULL; // Freeable
-    char *dataunits=NULL;
 
     status = json_parseTuple(string, &numString, &stringArray);
     AIM_STATUS(aimInfo, status);
 
-    if (numString != 2 || stringArray == NULL) {
-        AIM_ERROR(aimInfo, "Expected tuple with number and units: %s", string);
-        status = CAPS_BADVALUE;
-        goto cleanup;
+    // Check if [#,#,#] * units
+    if (numString == 2 &&
+        aim_unitConvertible(aimInfo, stringArray[1], units) == CAPS_SUCCESS) {
+
+      status = string_toDoubleDynamicArray(stringArray[0], arraySize, numberArray);
+      AIM_STATUS(aimInfo, status);
+
+      status = aim_convert(aimInfo, *arraySize, stringArray[1], *numberArray, units, *numberArray);
+      AIM_STATUS(aimInfo, status);
+
+    } else {
+
+      // Assume [# * units, # * units, # * units]
+
+      AIM_ALLOC(*numberArray, numString, double, aimInfo, status);
+      *arraySize = numString;
+
+      for (i = 0; i < numString; i++) {
+        status = string_toDoubleUnits(aimInfo, stringArray[i], units, &(*numberArray)[i]);
+        AIM_STATUS(aimInfo, status);
+      }
+
     }
-
-    dataunits = stringArray[1];
-    status = string_toDoubleDynamicArray(stringArray[0], arraySize, numberArray);
-    AIM_STATUS(aimInfo, status);
-
-    status = aim_convert(aimInfo, *arraySize, dataunits, *numberArray, units, *numberArray);
-    AIM_STATUS(aimInfo, status);
 
 cleanup:
     (void) string_freeArray(numString, &stringArray);
@@ -1603,7 +1722,7 @@ int convert_doubleToString(double doubleVal, int fieldWidth, int leftOrRight, ch
     //  leftofRight - Left justified = 0, Right justified = anything else
 
     // Ouput:
-    //  stringVal - Returned integer in string format. Returned as a char * (freeable)
+    //  stringVal - Returned double in string format (length fieldWidth+1).
 
     int i; // Index
 
@@ -2323,7 +2442,7 @@ int retrieve_CoordSystemAttr(ego geomEntity, const char **name) {
 
 
 // Create a mapping between unique, generic (specified via mapName) attribute names and an index value
-int create_MeshRefToIndexMap(void *aimInfo, aimMeshRef *meshRef, mapAttrToIndexStruct *attrMap) {
+int create_MeshRefToIndexMap(void *aimInfo, const aimMeshRef *meshRef, mapAttrToIndexStruct *attrMap) {
 
     // In:
     //    meshRef   = mesh reference with BND information

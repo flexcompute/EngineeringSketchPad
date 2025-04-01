@@ -1,0 +1,53 @@
+# evaluateDist7b (body1 and body2* are neighbors)
+# written by John Dannenhoffer
+
+BOX       0.0  0.0  0.0  6.0  6.0  6.0
+EXTRACT   0
+UDPRIM    $$/applyTparams   factor 0.5
+SET       body1     @nbody
+
+SKBEG     4.5  2.0  3.0
+   CIRARC 5.5  3.0  3.0  4.5  4.0  3.0
+   CIRARC 3.5  3.0  3.0  4.5  2.0  3.0
+SKEND     1
+UDPRIM    $$/applyTparams   factor 0.5
+SET       body2a    @nbody
+
+EVALUATE  dist      +body1  +body2a
+ASSERT    @edata[1] +0.5
+
+SKBEG     @edata[5]  @edata[6]  @edata[7]
+   LINSEG @edata[11] @edata[12] @edata[13]
+SKEND
+
+SKBEG     6.5  2.0  3.0
+   CIRARC 7.5  3.0  3.0  6.5  4.0  3.0
+   CIRARC 5.5  3.0  3.0  6.5  2.0  3.0
+SKEND     1
+UDPRIM    $$/applyTparams   factor 0.5
+SET       body2b    @nbody
+
+EVALUATE  dist      +body1  +body2b
+ASSERT    @edata[1]  0.0
+
+SKBEG     @edata[5]  @edata[6]  @edata[7]
+   LINSEG @edata[11] @edata[12] @edata[13]
+SKEND
+
+SKBEG     8.0  2.0  3.0
+   CIRARC 9.0  3.0  3.0  8.0  4.0  3.0
+   CIRARC 7.0  3.0  3.0  8.0  2.0  3.0
+SKEND     1
+UDPRIM    $$/applyTparams   factor 0.5
+SET       body2c    @nbody
+
+EVALUATE  dist      +body1  +body2c
+ASSERT    @edata[1] +1.0
+
+SKBEG     @edata[5]  @edata[6]  @edata[7]
+   LINSEG @edata[11] @edata[12] @edata[13]
+SKEND
+
+END
+
+

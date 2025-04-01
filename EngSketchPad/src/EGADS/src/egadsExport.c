@@ -3,7 +3,7 @@
  *
  *             Export a Model (via a string) for use in egadsLite
  *
- *      Copyright 2011-2024, Massachusetts Institute of Technology
+ *      Copyright 2011-2025, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -807,7 +807,8 @@ EG_exportBody(egObject *bobject, stream_T *fp)
 /*@-nullderef@*/
     obj = maps.pcurves.objs[i];
 /*@+nullderef@*/
-    n = Fwrite(&obj->mtype, sizeof(int), 1, fp);
+    m = obj->mtype;
+    n = Fwrite(&m, sizeof(int), 1, fp);
     if (n != 1) {
       EG_free(maps.pcurves.objs);
       EG_free(maps.curves.objs);
@@ -837,7 +838,8 @@ EG_exportBody(egObject *bobject, stream_T *fp)
 /*@-nullderef@*/
     obj = maps.curves.objs[i];
 /*@+nullderef@*/
-    n = Fwrite(&obj->mtype, sizeof(int), 1, fp);
+    m = obj->mtype;
+    n = Fwrite(&m, sizeof(int), 1, fp);
     if (n != 1) {
       EG_free(maps.pcurves.objs);
       EG_free(maps.curves.objs);
@@ -867,7 +869,8 @@ EG_exportBody(egObject *bobject, stream_T *fp)
 /*@-nullderef@*/
     obj = maps.surfaces.objs[i];
 /*@+nullderef@*/
-    n = Fwrite(&obj->mtype, sizeof(int), 1, fp);
+    m = obj->mtype;
+    n = Fwrite(&m, sizeof(int), 1, fp);
     if (n != 1) {
       EG_free(maps.pcurves.objs);
       EG_free(maps.curves.objs);
@@ -1581,7 +1584,8 @@ EG_exportEBody(egObject *EBody, stream_T *fp)
     return EGADS_EFFCTOBJ;
   }
   body = ebody->ref;
-  if (Fwrite(&EBody->mtype,         sizeof(int),    1, fp) != 1)
+  i    = EBody->mtype;
+  if (Fwrite(&i,                    sizeof(int),    1, fp) != 1)
     return EGADS_WRITERR;
   stat = EG_writeAttrs(fp, (egAttrs *) EBody->attrs);
   if (stat != EGADS_SUCCESS) return stat;

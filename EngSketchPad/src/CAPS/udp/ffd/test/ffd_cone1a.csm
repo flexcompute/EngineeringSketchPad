@@ -1,0 +1,13 @@
+# ffd_cone1a
+# written by Marshall Galbraith
+
+# original configuration
+CONE 0 0 0  1 0 0  0.5
+
+STORE   original
+
+# Deform original
+UDPRIM $/ffda
+
+END
+

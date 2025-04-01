@@ -16,12 +16,17 @@
           var theCode    = document.getElementById("code");
           theCode.height = thePicture.scrollHeight + 'px';
       }
+      function resizeIframe2() {
+          var thePicture = document.getElementById("picture");
+          var theCode    = document.getElementById("code2");
+          theCode.height = thePicture.scrollHeight + 'px';
+      }
     </script>
   </head>
 
   <body>
     <img id="picture" src="Template.png" width="32%"/>
-    <iframe id="code" src="Template.csm.txt" width="32%" onload="resizeIframe(this)"/>
-    <iframe id="code" src="Template.udc.txt" width="32%" onload="resizeIframe(this)"/>
+    <iframe id="code" src="Template.csm.txt" width="32%" onload="resizeIframe(this)"></iframe>
+    <iframe id="code2" src="Template.udc.txt" width="32%" onload="resizeIframe2(this)"></iframe>
   </body>
 </html>

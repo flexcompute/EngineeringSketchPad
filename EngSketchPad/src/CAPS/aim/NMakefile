@@ -9,19 +9,19 @@ LDIR  = $(ESP_ROOT)\lib
 all: $(LDIR)\utils.lib
 	@for /D %%D in ("*") do ( \
 	  @if /I not "%%D"=="utils" ( \
-	   pushd %%D & $(MAKE) -f NMakefile & popd \
+	   pushd %%D & $(MAKE) -nologo -f NMakefile & popd \
 	 ) \
 	)
 
 $(LDIR)\utils.lib:
-	pushd utils & $(MAKE) -f NMakefile & popd
+	pushd utils & $(MAKE) -nologo -f NMakefile & popd
 
 clean:
 	@for /D %%D in ("*") do ( \
-	 pushd %%D & $(MAKE) -f NMakefile clean & popd \
+	 pushd %%D & $(MAKE) -nologo -f NMakefile clean & popd \
 	)
 
 cleanall:
 	@for /D %%D in ("*") do ( \
-	 pushd %%D & $(MAKE) -f NMakefile cleanall & popd \
+	 pushd %%D & $(MAKE) -nologo -f NMakefile cleanall & popd \
 	)

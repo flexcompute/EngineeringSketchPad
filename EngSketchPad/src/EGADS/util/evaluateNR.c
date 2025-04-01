@@ -3,7 +3,7 @@
  *
  *             EGADSlite Geometry Evaluation (non-recursive) Functions
  *
- *      Copyright 2011-2024, Massachusetts Institute of Technology
+ *      Copyright 2011-2025, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -319,11 +319,12 @@ EG_splinePCDeriv(int *ivec, double *data, double t, double *deriv)
 
 
 __HOST_AND_DEVICE__ static int
-EG_spline1dDeriv(int *ivec, double *data, double t, double *deriv)
+EG_spline1dDeriv(int *ivec, double *data, double tx, double *deriv)
 {
   int    der = 2;
-  int    i, j, k, degree, nKnots, span, dt;
-  double x, y, z, wsum, v[12];  /* note: v is sized for der <= 2! */
+  int    i, j, k, degree, nKnots, span, dt, flat, rat;
+  double x, y, z, wsum, range[2], v[12];  /* note: v is sized for der <= 2! */
+  double t, per;
 #ifndef __CUDA_ARCH__
   double Nders[MAXDEG+1][MAXDEG+1], *Nder[MAXDEG+1], *CP, *w;
 #else
@@ -350,25 +351,48 @@ EG_spline1dDeriv(int *ivec, double *data, double t, double *deriv)
   
   for (k = 0; k <= der; k++) deriv[3*k  ] = deriv[3*k+1] = deriv[3*k+2] = 0.0;
   
+  flat   = ivec[0]&1;
+  rat    = ivec[0]&2;
   degree = ivec[1];
   nKnots = ivec[3];
   CP     = data + ivec[3];
   w      = CP + 3*ivec[2];
   dt     = MIN(der, degree);
-  if ((ivec[0] != 0) && (ivec[0] != 2)) {
-    printf(" EG_spline1dDeriv: flag = %d!\n", ivec[0]);
-    return EGADS_GEOMERR;
-  }
+  if (flat == 0)
+    if ((ivec[0]&4) != 0) {
+      printf(" EG_spline1dDeriv: bit-flag = %d!\n", ivec[0]);
+      return EGADS_GEOMERR;
+    }
   if (degree >= MAXDEG) {
     printf(" EG_spline1dDeriv: degree %d >= %d!\n", degree, MAXDEG);
     return EGADS_CONSTERR;
   }
   for (i = 0; i <= degree; i++) Nder[i] = &Nders[i][0];
+  t = tx;
   
+  /* put periodic parameter in range */
+  if ((ivec[0]&4) != 0) {
+    range[0] = data[degree];
+    range[1] = data[ivec[3] - degree - 1];
+    per = range[1] - range[0];
+    i   = 0;
+    while (t < range[0]) {
+      t += per;
+      i++;
+      if (i > 10) return EGADS_RANGERR;
+    }
+    i = 0;
+    while (t > range[1]) {
+      t -= per;
+      i++;
+      if (i > 10) return EGADS_RANGERR;
+    }
+  }
+
   span = FindSpan(nKnots, degree, t, data);
   DersBasisFuns(span,     degree, t, data, dt, Nder);
   
-  if (ivec[0] == 0) {
+  if (rat == 0) {
     
     for (k = 0; k <= dt; k++)
       for (j = 0; j <= degree; j++) {
@@ -413,11 +437,11 @@ EG_spline1dDeriv(int *ivec, double *data, double t, double *deriv)
 
  
 __HOST_AND_DEVICE__ static int
-EG_spline2dDeriv(int *ivec, double *data, const double *uv, double *deriv)
+EG_spline2dDeriv(int *ivec, double *data, const double *uvx, double *deriv)
 {
-  int    der = 2;
+  int    flat, rat, der = 2;
   int    i, j, k, l, m, s, degu, degv, nKu, nKv, nCPu, spanu, spanv, du, dv;
-  double v[24];  /* note: v is sized for der <= 2! */
+  double per, uv[2], range[2], v[24];  /* note: v is sized for der <= 2! */
 #ifndef __CUDA_ARCH__
   double *Kv, *CP, *w, *NderU[MAXDEG+1], *NderV[MAXDEG+1];
   double Nu[MAXDEG+1][MAXDEG+1], Nv[MAXDEG+1][MAXDEG+1], temp[4*MAXDEG];
@@ -465,7 +489,9 @@ EG_spline2dDeriv(int *ivec, double *data, const double *uv, double *deriv)
     return EGADS_MALLOC;
   }
 #endif
-  
+
+  flat = ivec[0]&1;
+  rat  = ivec[0]&2;
   degu = ivec[1];
   nCPu = ivec[2];
   nKu  = ivec[3];
@@ -481,10 +507,11 @@ EG_spline2dDeriv(int *ivec, double *data, const double *uv, double *deriv)
       deriv[3*m  ] = deriv[3*m+1] = deriv[3*m+2] = 0.0;
           v[4*m  ] =     v[4*m+1] =     v[4*m+2] = v[4*m+3] = 0.0;
     }
-  if ((ivec[0] != 0) && (ivec[0] != 2)) {
-    printf(" EG_spline2dDeriv: flag = %d!\n", ivec[0]);
-    return EGADS_GEOMERR;
-  }
+  if (flat == 0)
+    if ((ivec[0]&12) != 0) {
+      printf(" EG_spline2dDeriv: flag = %d!\n", ivec[0]);
+      return EGADS_GEOMERR;
+    }
   if (degu >= MAXDEG) {
     printf(" EG_spline2dDeriv: degreeU %d >= %d!\n", degu, MAXDEG);
     return EGADS_CONSTERR;
@@ -495,13 +522,51 @@ EG_spline2dDeriv(int *ivec, double *data, const double *uv, double *deriv)
   }
   for (i = 0; i <= degu; i++) NderU[i] = &Nu[i][0];
   for (i = 0; i <= degv; i++) NderV[i] = &Nv[i][0];
+  uv[0] = uvx[0];
+  uv[1] = uvx[1];
+  
+  /* put periodic parameters in range */
+  if ((ivec[0] & 4) != 0) {
+    range[0] = data[degu];
+    range[1] = data[ivec[3] - degu - 1];
+    per = range[1] - range[0];
+    i   = 0;
+    while (uv[0] < range[0]) {
+      uv[0] += per;
+      i++;
+      if (i > 10) return EGADS_RANGERR;
+    }
+    i   = 0;
+    while (uv[0] > range[1]) {
+      uv[0] -= per;
+      i++;
+      if (i > 10) return EGADS_RANGERR;
+    }
+  }
+  if ((ivec[0] & 8) != 0) {
+    range[0] = data[ivec[3] + degv];
+    range[1] = data[ivec[3] + ivec[6] - degv - 1];
+    per = range[1] - range[0];
+    i   = 0;
+    while (uv[1] < range[0]) {
+      uv[1] += per;
+      i++;
+      if (i > 10) return EGADS_RANGERR;
+    }
+    i   = 0;
+    while (uv[1] > range[1]) {
+      uv[1] -= per;
+      i++;
+      if (i > 10) return EGADS_RANGERR;
+    }
+  }
   
   spanu = FindSpan(nKu, degu, uv[0], data);
   DersBasisFuns(spanu,  degu, uv[0], data, du, NderU);
   spanv = FindSpan(nKv, degv, uv[1], Kv);
   DersBasisFuns(spanv,  degv, uv[1], Kv, dv, NderV);
 
-  if (ivec[0] == 0) {
+  if (rat == 0) {
     
     for (m = l = 0; l <= dv; l++)
       for (k = 0; k <= der-l; k++, m++) {
@@ -3851,6 +3916,31 @@ EG_inFace3D(const egObject *face, const double *uv, /*@null@*/ double *p,
 }
 
 
+__HOST_AND_DEVICE__ static int
+EG_internalEdge(const egObject *face, const egObject *edge, double t,
+                double *uv)
+{
+  int    stat;
+  double uvm[2], uvp[2];
+
+  stat = EG_getEdgeUV(face, edge, 0, t, uvm);
+  if (stat != EGADS_TOPOERR) return stat;
+  
+  stat = EG_getEdgeUV(face, edge, -1, t, uvm);
+  if (stat != EGADS_SUCCESS) return stat;
+  stat = EG_getEdgeUV(face, edge, +1, t, uvp);
+  if (stat != EGADS_SUCCESS) return stat;
+  
+  if ((fabs(uvm[0]-uvp[0]) < PARAMACC) && (fabs(uvm[1]-uvp[1]) < PARAMACC)) {
+    uv[0] = uvp[0];
+    uv[1] = uvp[1];
+    return EGADS_OUTSIDE;
+  }
+  
+  return EGADS_SUCCESS;
+}
+
+
 __HOST_AND_DEVICE__ int
 EG_inFaceX(const egObject *face, const double *uva, /*@null@*/ double *pt,
            /*@null@*/ double *uvx)
@@ -3858,7 +3948,7 @@ EG_inFaceX(const egObject *face, const double *uva, /*@null@*/ double *pt,
   int      i, j, stat, sense, sper;
   double   dist, d, dd, t, ts, utol, vtol, ttol, etol, period;
   double   uv[2], srange[4], uvs[2], xyz[3], data[18], eval[9];
-  egObject *loop, *edge, *surface, *pcurve, *pcurv, *node;
+  egObject *loop, *edge, *xedge, *surface, *pcurve, *pcurv, *node;
   liteNode *pnode;
   liteEdge *pedge;
   liteLoop *ploop;
@@ -3919,7 +4009,7 @@ EG_inFaceX(const egObject *face, const double *uva, /*@null@*/ double *pt,
   
   /* get closest edge point to our UV and store away the pcurve/t */
   dist  = 1.e300;
-  pcurv = node = NULL;
+  pcurv = node = xedge = NULL;
   ts    = 0.0;
   sense = 1;
   for (i = 0; i < pface->nloops; i++) {
@@ -3985,6 +4075,7 @@ EG_inFaceX(const egObject *face, const double *uva, /*@null@*/ double *pt,
       if (d < dist) {
         dist  = d;
         pcurv = pcurve;
+        xedge = ploop->edges[j];
         t     = ts;
         sense = ploop->senses[j];
         node  = NULL;
@@ -4050,6 +4141,7 @@ EG_inFaceX(const egObject *face, const double *uva, /*@null@*/ double *pt,
             if (fabs(d) < dist) {
               dist  = fabs(d);
               pcurv = pcurve;
+              xedge = ploop->edges[j];
               t     = ts;
               sense = ploop->senses[j];
             }
@@ -4082,6 +4174,7 @@ EG_inFaceX(const egObject *face, const double *uva, /*@null@*/ double *pt,
             if (fabs(d) < dist) {
               dist  = fabs(d);
               pcurv = pcurve;
+              xedge = ploop->edges[j];
               t     = ts;
               sense = ploop->senses[j];
             }
@@ -4089,6 +4182,33 @@ EG_inFaceX(const egObject *face, const double *uva, /*@null@*/ double *pt,
         }
       }
     }
+  }
+  
+  /* if the Edge is internal we are good! */
+  stat = EG_internalEdge(face, xedge, t, uvs);
+  if (stat == EGADS_OUTSIDE) {
+    if (uvx != NULL) {
+      uvx[0] = uvs[0];
+      uvx[1] = uvs[1];
+    }
+    if (pt != NULL) {
+      if (node != NULL) {
+        pnode = (liteNode *) node->blind;
+        if (pnode != NULL) {
+          pt[0] = pnode->xyz[0];
+          pt[1] = pnode->xyz[1];
+          pt[2] = pnode->xyz[2];
+          return EGADS_OUTSIDE;
+        }
+      }
+      stat   = EG_evaluate(surface, uvs, data);
+      if (stat != EGADS_SUCCESS)
+        printf(" EGADS Internal: internal eval = %d!\n", stat);
+      pt[0]  = data[0];
+      pt[1]  = data[1];
+      pt[2]  = data[2];
+    }
+    return EGADS_SUCCESS;
   }
   
   /* what side of the Edge are we on? */

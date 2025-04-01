@@ -5,7 +5,7 @@
  *
  *     Written by Dr. Ryan Durscher AFRL/RQVC
  *
- *      Copyright 2014-2024, Massachusetts Institute of Technology
+ *      Copyright 2014-2025, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -117,18 +117,18 @@ enum aimInputs
   NUMINPUT = Mesh              /* Total number of inputs */
 };
 
- enum aimOutputs
- {
+enum aimOutputs
+{
 //   EigenValue = 1,           /* index is 1-based */
 //   EigenRadian,
 //   EigenFrequency,
 //   EigenGeneralMass,
-   Tmax = 1,
-   T1max,
-   T2max,
-   T3max,
-   NUMOUTPUT = T3max            /* Total number of outputs */
- };
+  Tmax = 1,
+  T1max,
+  T2max,
+  T3max,
+  NUMOUTPUT = T3max            /* Total number of outputs */
+};
 
 typedef struct {
 
@@ -731,6 +731,7 @@ int aimPreAnalysis(const void *instStore, void *aimInfo, capsValue *aimInputs)
           // Transfer external pressures from the AIM discrObj
           status = fea_transferExternalPressure(aimInfo,
                                                 &abaqusInstance->feaProblem.feaMesh,
+                                                &abaqusInstance->units,
                                                 &feaLoad[i]);
           AIM_STATUS(aimInfo, status);
         }
@@ -868,7 +869,6 @@ cleanup:
 
 
 // ********************** AIM Function Break *****************************
-/* no longer optional and needed for restart */
 int aimPostAnalysis(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo,
                     /*@unused@*/ int restart, /*@unused@*/ capsValue *inputs)
 {

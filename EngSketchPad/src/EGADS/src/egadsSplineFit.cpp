@@ -3,7 +3,7 @@
  *
  *             Spline Fitting Functions w/ Derivatives
  *
- *      Copyright 2011-2024, Massachusetts Institute of Technology
+ *      Copyright 2011-2025, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -16,7 +16,6 @@
 #include "egads.h"
 #include "egads_dot.h"
 #include "Surreal/SurrealS.h"
-#include "Surreal/SurrealD.h"
 
 #ifdef WIN32
 #define DllExport   __declspec( dllexport )
@@ -207,9 +206,23 @@ EG_spline1dEval_impl(int *ivec, T *data, T2& t, T *point)
 }
 
 
+// Create explicit instantiations of the function
 extern "C"
 int
 EG_spline1dEval(int *ivec, double *data, double t, double *point)
+{
+  return EG_spline1dEval_impl(ivec, data, t, point);
+}
+
+DllExport int
+EG_spline1dEval(int *ivec, SurrealS<1> *data, double& t, SurrealS<1> *point)
+{
+  return EG_spline1dEval_impl(ivec, data, t, point);
+}
+
+
+DllExport int
+EG_spline1dEval(int *ivec, SurrealS<1> *data, SurrealS<1>& t, SurrealS<1> *point)
 {
   return EG_spline1dEval_impl(ivec, data, t, point);
 }
@@ -250,22 +263,6 @@ EG_spline1dEval_dot(int *ivec,
 }
 
 
-template<int N, class T>
-int
-EG_spline1dEval(int *ivec, SurrealS<N> *data, T& t, SurrealS<N> *point)
-{
-  return EG_spline1dEval_impl(ivec, data, t, point);
-}
-
-// Create explicit instantiations of the function
-template DllExport int
-EG_spline1dEval<1, double>(int *, SurrealS<1> *, double&, SurrealS<1> *);
-
-template DllExport int
-EG_spline1dEval<1, SurrealS<1> >(int *, SurrealS<1> *, SurrealS<1>&,
-                                 SurrealS<1> *);
-
-
 template<class T, class T2>
 static int
 EG_spline1dDeriv_impl(int *ivec, T *data, int der, T2 t, T *deriv)
@@ -303,6 +300,7 @@ EG_spline1dDeriv_impl(int *ivec, T *data, int der, T2 t, T *deriv)
 }
 
 
+// Create explicit instantiations of the function
 extern "C"
 int
 EG_spline1dDeriv(int *ivec, double *rdata, int der, double t, double *deriv)
@@ -310,21 +308,20 @@ EG_spline1dDeriv(int *ivec, double *rdata, int der, double t, double *deriv)
   return EG_spline1dDeriv_impl(ivec, rdata, der, t, deriv);
 }
 
-template<int N, class T>
-int
-EG_spline1dDeriv(int *ivec, SurrealS<N> *rdata, int der, T& t, SurrealS<N> *deriv)
+
+DllExport int
+EG_spline1dDeriv(int *ivec, SurrealS<1> *rdata, int der, double& t, SurrealS<1> *deriv)
 {
   return EG_spline1dDeriv_impl(ivec, rdata, der, t, deriv);
 }
 
-// Create explicit instantiations of the function
-template DllExport int
-EG_spline1dDeriv<1, double>(int *, SurrealS<1> *, int der, double&,
-                            SurrealS<1> *);
 
-template DllExport int
-EG_spline1dDeriv<1, SurrealS<1> >(int *, SurrealS<1> *, int der, SurrealS<1>&,
-                                  SurrealS<1> *);
+DllExport int
+EG_spline1dDeriv(int *ivec, SurrealS<1> *rdata, int der, SurrealS<1>& t, SurrealS<1> *deriv)
+{
+  return EG_spline1dDeriv_impl(ivec, rdata, der, t, deriv);
+}
+
 
 extern "C"
 int
@@ -384,24 +381,29 @@ EG_spline1dDeriv_dot(int *ivec, double *rdata, double *rdata_dot,
 
 template<class T>
 static int
-EG_spline1dFit_impl(int endx, int imaxx, const T *t1, const T *xyz, const T *tn,
+EG_spline1dFit_impl(int end1x, int endnx, int imaxx, const T *t1, const T *xyz, const T *tn,
                     const T *kn, double tol, int *header, T *rdata)
 {
-    int i, kk, iknot, icp, iter, endc, imax, *mdata, periodic = 0;
+    int i, kk, iknot, icp, iter, end1c, endnc, imax, *mdata, periodic = 0;
     T   du, dx, dy, dz, dxyzmax, del0, del1, del2, rj[3], u21, u20, data[9];
     T   d2xdt2L, d2ydt2L, d2zdt2L, d2sdt2L, d2xdt2R, d2ydt2R, d2zdt2R, d2sdt2R;
     T   *cp, *knots, *cps;
 
-    endc = endx;
+    end1c = end1x;
+    endnc = endnx;
     imax = imaxx;
-    if (imax < 0)                   imax = -imax;
-    if (imax < 2)                   return EGADS_DEGEN;
-    if ((endx < -1) || (endx >  2)) return EGADS_RANGERR;
-    if ((imax == 2) && (endc == 2)) endc = 1;
-    if (endx == -1) {
+    if (imax < 0)                     imax = -imax;
+    if (imax < 2)                     return EGADS_DEGEN;
+    if ((end1x < -1) || (end1x >  2)) return EGADS_RANGERR;
+    if ((endnx < -1) || (endnx >  2)) return EGADS_RANGERR;
+    if ((imax == 2) && (end1c == 2)) end1c = 1;
+    if ((imax == 2) && (endnc == 2)) endnc = 1;
+    if ((end1x == -1) || (endnx == -1)) {
         periodic = 1;
-        endc     = 0;
-        if ((xyz[0] != xyz[3*(imax-1)  ]) || (xyz[1] != xyz[3*(imax-1)+1]) ||
+        end1c    = 0;
+        endnc    = 0;
+        if ((xyz[0] != xyz[3*(imax-1)  ]) ||
+            (xyz[1] != xyz[3*(imax-1)+1]) ||
             (xyz[2] != xyz[3*(imax-1)+2])) return EGADS_SEQUERR;
     }
 
@@ -456,7 +458,7 @@ EG_spline1dFit_impl(int endx, int imaxx, const T *t1, const T *xyz, const T *tn,
                            (xyz[3*i+1]-xyz[3*i-2])*(xyz[3*i+1]-xyz[3*i-2]) +
                            (xyz[3*i+2]-xyz[3*i-1])*(xyz[3*i+2]-xyz[3*i-1]));
           if (knots[kk] == knots[kk-1]) {
-            printf("EG_spline1dFit: Repeated point %d in Spline Data!\n", kk);
+            printf("EG_spline1dFit: Repeated knot %d in Spline Data!\n", kk);
             EG_free(mdata);
             return EGADS_DEGEN;
           }
@@ -633,12 +635,12 @@ EG_spline1dFit_impl(int endx, int imaxx, const T *t1, const T *xyz, const T *tn,
             dx = t1[0] - du * data[3];
             dy = t1[1] - du * data[4];
             dz = t1[2] - du * data[5];
-        } else if (endc == 0) {
+        } else if (end1c == 0) {
             /* natural end */
             dx = du * du * data[6];
             dy = du * du * data[7];
             dz = du * du * data[8];
-        } else if (endc == 1) {
+        } else if (end1c == 1) {
             /* FD slope */
             dx = xyz[3] - xyz[0] - du * data[3];
             dy = xyz[4] - xyz[1] - du * data[4];
@@ -725,12 +727,12 @@ EG_spline1dFit_impl(int endx, int imaxx, const T *t1, const T *xyz, const T *tn,
             dx = du * data[3] - tn[0];
             dy = du * data[4] - tn[1];
             dz = du * data[5] - tn[2];
-        } else if (endc == 0) {
+        } else if (endnc == 0) {
             /* natural end */
             dx = du * du * data[6];
             dy = du * du * data[7];
             dz = du * du * data[8];
-        } else if (endc == 1) {
+        } else if (endnc == 1) {
             /* FD slope */
             dx = xyz[3*(imax-2)  ] - xyz[3*(imax-1)  ] + du * data[3];
             dy = xyz[3*(imax-2)+1] - xyz[3*(imax-1)+1] + du * data[4];
@@ -796,21 +798,22 @@ EG_spline1dFit_impl(int endx, int imaxx, const T *t1, const T *xyz, const T *tn,
 
 template<class T>
 int
-EG_spline1dFit(int endx, int imaxx, const T *xyz, const T *kn,
-               double tol, int *ivec, T **rdata)
+EG_spline1dFit2c_impl(int end1x, int endnx, int imaxx, const T *xyz, const T *kn,
+                      double tol, int *ivec, T **rdata)
 {
   *rdata   = NULL;
   int imax = imaxx;
-  if (imax < 0)                  imax = -imax;
-  if (imax < 2)                  return EGADS_DEGEN;
-  if ((endx < -1) || (endx > 2)) return EGADS_RANGERR;
+  if (imax < 0)                    imax = -imax;
+  if (imax < 2)                    return EGADS_DEGEN;
+  if ((end1x < -1) || (end1x > 2)) return EGADS_RANGERR;
+  if ((endnx < -1) || (endnx > 2)) return EGADS_RANGERR;
 
   int icp   = imax + 2;
   int iknot = imax + 6;
   T *rvec   = new T[iknot+6*icp];
   if (rvec == NULL) return EGADS_MALLOC;
 
-  int stat = EG_spline1dFit_impl< T >(endx, imaxx, NULL, xyz, NULL,
+  int stat = EG_spline1dFit_impl< T >(end1x, endnx, imaxx, NULL, xyz, NULL,
                                       kn, tol, ivec, rvec);
   if (stat == EGADS_SUCCESS) {
     *rdata = (T*)EG_alloc( (iknot+3*icp)*sizeof(T) );
@@ -826,37 +829,38 @@ EG_spline1dFit(int endx, int imaxx, const T *xyz, const T *kn,
 }
 
 // Create explicit instantiations of the function
-template DllExport int
-EG_spline1dFit(int, int, const double *, const double *, double, int *,
-               double **);
-
-template DllExport int
-EG_spline1dFit(int, int, const SurrealS<1> *, const SurrealS<1> *, double,
-               int *, SurrealS<1> **);
-
 extern "C"
 int
-EG_spline1dFit(int endx, int imaxx, const double *xyz, const double *kn,
-               double tol, int *ivec, double **rdata)
+EG_spline1dFit2c(int end1x, int endnx, int imaxx, const double *xyz, const double *kn,
+                 double tol, int *ivec, double **rdata)
 {
-  return EG_spline1dFit<double>(endx, imaxx, xyz, kn, tol, ivec, rdata);
+  return EG_spline1dFit2c_impl(end1x, endnx, imaxx, xyz, kn, tol, ivec, rdata);
+}
+
+
+DllExport int
+EG_spline1dFit2c(int end1x, int endnx, int imaxx, const SurrealS<1> *xyz, const SurrealS<1> *kn,
+                 double tol, int *ivec, SurrealS<1> **rdata)
+{
+  return EG_spline1dFit2c_impl(end1x, endnx, imaxx, xyz, kn, tol, ivec, rdata);
 }
 
 
 extern "C"
 int
-EG_spline1dFit_dot(int endx, int imaxx, const double *xyz, const double *xyz_dot,
-                   const double *kn, const double *kn_dot,
-                   double tol, int *ivec,
-                   double **rdata, double **rdata_dot)
+EG_spline1dFit2c_dot(int end1x, int endnx, int imaxx, const double *xyz, const double *xyz_dot,
+                     const double *kn, const double *kn_dot,
+                     double tol, int *ivec,
+                     double **rdata, double **rdata_dot)
 {
   SurrealS<1> *xyzS = NULL, *knS = NULL, *rdataS = NULL;
 
   int imax = imaxx;
-  if (imax == 0)                 return EGADS_DEGEN;
-  if (imax < 0)                  imax = -imax;
-  if (imax < 2)                  return EGADS_DEGEN;
-  if ((endx < -1) || (endx > 2)) return EGADS_RANGERR;
+  if (imax == 0)                   return EGADS_DEGEN;
+  if (imax < 0)                    imax = -imax;
+  if (imax < 2)                    return EGADS_DEGEN;
+  if ((end1x < -1) || (end1x > 2)) return EGADS_RANGERR;
+  if ((endnx < -1) || (endnx > 2)) return EGADS_RANGERR;
 
   int icp   = imax + 2;
   int iknot = imax + 6;
@@ -893,7 +897,7 @@ EG_spline1dFit_dot(int endx, int imaxx, const double *xyz, const double *xyz_dot
     }
   }
 
-  int stat = EG_spline1dFit_impl< SurrealS<1> >(endx, imaxx, NULL, xyzS, NULL,
+  int stat = EG_spline1dFit_impl< SurrealS<1> >(end1x, endnx, imaxx, NULL, xyzS, NULL,
                                                 knS, tol, ivec, rdataS);
   delete [] xyzS;
   delete [] knS;
@@ -922,10 +926,42 @@ EG_spline1dFit_dot(int endx, int imaxx, const double *xyz, const double *xyz_dot
 }
 
 
+// Single end condition version
+extern "C"
+int
+EG_spline1dFit(int endx, int imaxx, const double *xyz, const double *kn,
+               double tol, int *ivec, double **rdata)
+{
+  return EG_spline1dFit2c(endx, endx, imaxx, xyz, kn, tol, ivec, rdata);
+}
+
+
+DllExport int
+EG_spline1dFit(int endx, int imaxx, const SurrealS<1> *xyz, const SurrealS<1> *kn,
+               double tol, int *ivec, SurrealS<1> **rdata)
+{
+  return EG_spline1dFit2c(endx, endx, imaxx, xyz, kn, tol, ivec, rdata);
+}
+
+
+extern "C"
+int
+EG_spline1dFit_dot(int endx, int imaxx, const double *xyz, const double *xyz_dot,
+                   const double *kn, const double *kn_dot,
+                   double tol, int *ivec,
+                   double **rdata, double **rdata_dot)
+{
+  return EG_spline1dFit2c_dot(endx, endx, imaxx, xyz, xyz_dot,
+                              kn, kn_dot,
+                              tol, ivec,
+                              rdata, rdata_dot);
+}
+
+
 template<class T>
 int
-EG_spline1dTan(int imaxx, const T *t1, const T *xyz, const T *tn,
-               const T *kn, double tol, int *ivec, T **rdata)
+EG_spline1dTan_impl(int imaxx, const T *t1, const T *xyz, const T *tn,
+                    const T *kn, double tol, int *ivec, T **rdata)
 {
   *rdata   = NULL;
   int imax = imaxx;
@@ -937,7 +973,7 @@ EG_spline1dTan(int imaxx, const T *t1, const T *xyz, const T *tn,
   T *rvec = (T *) EG_alloc((iknot+6*icp)*sizeof(T));
   if (rvec == NULL) return EGADS_MALLOC;
 
-  int stat = EG_spline1dFit_impl<T>(0, imaxx, t1, xyz, tn, kn, tol,
+  int stat = EG_spline1dFit_impl<T>(0, 0, imaxx, t1, xyz, tn, kn, tol,
                                     ivec, rvec);
   if (stat == EGADS_SUCCESS) {
     *rdata = (T *) EG_alloc((iknot+3*icp)*sizeof(T));
@@ -952,20 +988,21 @@ EG_spline1dTan(int imaxx, const T *t1, const T *xyz, const T *tn,
   return stat;
 }
 
-template int
-EG_spline1dTan(int imaxx, const double *t1, const double *xyz, const double *tn,
-               const double *kn, double tol, int *ivec, double **rdata);
-
-template DllExport int
-EG_spline1dTan(int imaxx, const SurrealS<1> *t1, const SurrealS<1> *xyz,
-               const SurrealS<1> *tn, const SurrealS<1> *kn, double tol,
-               int *ivec, SurrealS<1> **rdata);
-
+// Create explicit instantiations of the function
 extern "C" int
 EG_spline1dTan(int imaxx, const double *t1, const double *xyz, const double *tn,
                const double *kn, double tol, int *ivec, double **rdata)
 {
-  return EG_spline1dTan<double>(imaxx, t1, xyz, tn, kn, tol, ivec, rdata);
+  return EG_spline1dTan_impl<double>(imaxx, t1, xyz, tn, kn, tol, ivec, rdata);
+}
+
+
+DllExport int
+EG_spline1dTan(int imaxx, const SurrealS<1> *t1, const SurrealS<1> *xyz,
+               const SurrealS<1> *tn, const SurrealS<1> *kn, double tol,
+               int *ivec, SurrealS<1> **rdata)
+{
+  return EG_spline1dTan_impl<SurrealS<1>>(imaxx, t1, xyz, tn, kn, tol, ivec, rdata);
 }
 
 
@@ -1041,7 +1078,7 @@ EG_spline1dTan_dot(int imaxx,
     }
   }
 
-  int stat = EG_spline1dFit_impl< SurrealS<1> >(0, imaxx, t1sp, xyzS, tnsp,
+  int stat = EG_spline1dFit_impl< SurrealS<1> >(0, 0, imaxx, t1sp, xyzS, tnsp,
                                                 knS, tol, ivec, rdataS);
   delete [] xyzS;
   if (kn != NULL) delete [] knS;
@@ -1094,7 +1131,7 @@ EG_spline1d(egObject *context, int endx, int imaxx, const double *xyz,
   if (rvec == NULL) return EGADS_MALLOC;
 
   if ((fixed != 0) && (imaxx > 0)) imaxx = -imaxx;
-  stat = EG_spline1dFit_impl<double>(endx, imaxx, NULL, xyz, NULL, NULL, tol,
+  stat = EG_spline1dFit_impl<double>(endx, endx, imaxx, NULL, xyz, NULL, NULL, tol,
                                      ivec, rvec);
   if (stat == EGADS_SUCCESS)
     stat = EG_makeGeometry(context, CURVE, BSPLINE, NULL, ivec, rvec, ecurv);
@@ -1138,7 +1175,7 @@ EG_spline1dPCrv(egObject *context, int endx, int imax, const double *xy,
   }
 
   if (fixed != 0) imaxx = -imaxx;
-  stat = EG_spline1dFit_impl<double>(endx, imaxx, NULL, xyz, NULL, knots, tol,
+  stat = EG_spline1dFit_impl<double>(endx, endx, imaxx, NULL, xyz, NULL, knots, tol,
                                      ivec, rvec);
   if (stat == EGADS_SUCCESS) {
     cp = &rvec[iknot];
@@ -1209,6 +1246,7 @@ EG_spline2dEval_impl(int *ivec, T *data, T2 *uv, T *point)
 }
 
 
+// Create explicit instantiations of the function
 extern "C"
 int
 EG_spline2dEval(int *ivec, double *data, const double *uv, double *point)
@@ -1216,23 +1254,19 @@ EG_spline2dEval(int *ivec, double *data, const double *uv, double *point)
   return EG_spline2dEval_impl(ivec, data, uv, point);
 }
 
-
-template<int N, class T>
-int
-EG_spline2dEval(int *ivec, SurrealS<N> *data, const T *uv,
-                SurrealS<N> *point)
+DllExport int
+EG_spline2dEval(int *ivec, SurrealS<1> *data, const double *uv,
+                SurrealS<1> *point)
 {
   return EG_spline2dEval_impl(ivec, data, uv, point);
 }
 
-
-// Create explicit instantiations of the function
-template DllExport int
-EG_spline2dEval<1, double>(int *, SurrealS<1> *, const double *, SurrealS<1> *);
-
-template DllExport int
-EG_spline2dEval<1, SurrealS<1> >(int *, SurrealS<1> *, const SurrealS<1> *,
-                                 SurrealS<1> *);
+DllExport int
+EG_spline2dEval(int *ivec, SurrealS<1> *data, const SurrealS<1> *uv,
+                SurrealS<1> *point)
+{
+  return EG_spline2dEval_impl(ivec, data, uv, point);
+}
 
 
 template<class T, class T2>
@@ -1297,7 +1331,7 @@ EG_spline2dDeriv_impl(int *ivec, T *data, int der, const T2 *uv, T *deriv)
   return EGADS_SUCCESS;
 }
 
-
+// Create explicit instantiations of the function
 extern "C"
 int
 EG_spline2dDeriv(int *ivec, double *data, int der, const double *uv,
@@ -1307,22 +1341,20 @@ EG_spline2dDeriv(int *ivec, double *data, int der, const double *uv,
 }
 
 
-template<int N, class T>
-int
-EG_spline2dDeriv(int *ivec, SurrealS<N> *data, int der,
-                 const T *uv, SurrealS<N> *deriv)
+DllExport int
+EG_spline2dDeriv(int *ivec, SurrealS<1> *data, int der,
+                 const double *uv, SurrealS<1> *deriv)
 {
   return EG_spline2dDeriv_impl(ivec, data, der, uv, deriv);
 }
 
-// Create explicit instantiations of the function
-template DllExport int
-EG_spline2dDeriv<1, double>(int *, SurrealS<1> *, int, const double *,
-                            SurrealS<1> *);
+DllExport int
+EG_spline2dDeriv(int *ivec, SurrealS<1> *data, int der,
+                 const SurrealS<1> *uv, SurrealS<1> *deriv)
+{
+  return EG_spline2dDeriv_impl(ivec, data, der, uv, deriv);
+}
 
-template DllExport int
-EG_spline2dDeriv<1, SurrealS<1> >(int *, SurrealS<1> *, int, const SurrealS<1> *,
-                                  SurrealS<1> *);
 
 
 template<class T, class T2>
@@ -3879,29 +3911,33 @@ EG_spline2dAppr(int endcx, int imaxx, int jmaxx, const T *xyz,
 }
 
 
-template<int N>
-int
-EG_spline2dAprx(int endc, int imax, int jmax, const SurrealS<N> *xyz,
-                const SurrealS<N> *uknot,     const SurrealS<N> *vknot,
+// Create explicit instantiations of the function
+extern "C" int
+EG_spline2dAprx(int endc, int imax, int jmax, const double *xyz,
+                const double *uknot,     const double *vknot,
                 const int *vdata,
-                const SurrealS<N> *wesT,      const SurrealS<N> *easT,
-                const SurrealS<N> *south,           SurrealS<N> *snor,
-                const SurrealS<N> *north,           SurrealS<N> *nnor,
-                double tol, int *header,            SurrealS<N> **rdata)
+                const double *wesT,      const double *easT,
+                const double *south,           double *snor,
+                const double *north,           double *nnor,
+                double tol, int *header,       double **rdata)
 {
   return EG_spline2dAppr(endc, imax, jmax, xyz, uknot, vknot, vdata, wesT, easT,
                          south, snor, north, nnor, tol, header, rdata);
 }
 
-// Create explicit instantiations of the function
-template DllExport int
-EG_spline2dAprx<1>(int endc, int imax, int jmax,
-                   const SurrealS<1> *, const SurrealS<1> *,
-                   const SurrealS<1> *, const int *,
-                   const SurrealS<1> *, const SurrealS<1> *,
-                   const SurrealS<1> *,       SurrealS<1> *,
-                   const SurrealS<1> *,       SurrealS<1> *,
-                   double tol, int *header,   SurrealS<1> **);
+
+DllExport int
+EG_spline2dAprx(int endc, int imax, int jmax, const SurrealS<1> *xyz,
+                const SurrealS<1> *uknot,     const SurrealS<1> *vknot,
+                const int *vdata,
+                const SurrealS<1> *wesT,      const SurrealS<1> *easT,
+                const SurrealS<1> *south,           SurrealS<1> *snor,
+                const SurrealS<1> *north,           SurrealS<1> *nnor,
+                double tol, int *header,            SurrealS<1> **rdata)
+{
+  return EG_spline2dAppr(endc, imax, jmax, xyz, uknot, vknot, vdata, wesT, easT,
+                         south, snor, north, nnor, tol, header, rdata);
+}
 
 
 extern "C"

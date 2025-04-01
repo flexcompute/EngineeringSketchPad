@@ -531,13 +531,32 @@ typedef struct {
 // Structure to hold FEA unit system
 typedef struct {
 
+    // base units
     char *length;      // Length unit
     char *mass;        // Mass unit
-
-    char *pressure;    // Pressure unit
-    char *densityVol;  // Density unit (mass/volume)
-    char *densityArea; // Density unit (mass/area)
     char *temperature; // Temperature unit
+    char *time;        // Time unit
+
+    // derived uints
+    char *area;        // Area unit (length^2)
+    char *volume;      // Volume unit  (length^3)
+    char *length4;     // Length^4 unit  (length^4)
+
+    char *densityLength; // Density unit (mass/length)
+    char *densityArea;   // Density unit (mass/area)
+    char *densityVol;    // Density unit (mass/volume)
+
+    char *speed;        // Speed unit (length/time)
+    char *acceleration; // Acceleration unit (length/time^2)
+    char *force;        // Force unit (mass * length / time^2)
+
+    char *tension;      // Tension unit (force/length)
+    char *pressure;     // Pressure unit (force/length^2)
+
+    char *energy;       // Energy unit (force*length)
+    char *power;        // Power unit (force*speed)
+    char *thermalconductivity; // Thermal conductivity unit (power/(length*temperature))
+    char *specificheat; // Specific heat unit (energy/(mass*temperature))
 
     char *momentOfInertia; // moment of inertia (mass*length^2)
 
@@ -629,7 +648,7 @@ typedef struct {
     double temperatureDefault; // Default temperature of grid point explicitly not used
 
     double *temperatureMultiDistribute; // Unique temperature load at a specified grid location for
-                                        // each grid point in gridIDSet size = [numGridID] - used in type TermalExternal
+                                        // each grid point in gridIDSet size = [numGridID] - used in type ThermalExternal
                                         // where the temperature load is being provided by an external source (i.e. data transfer)
 
 } feaLoadStruct;

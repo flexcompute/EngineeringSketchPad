@@ -27,16 +27,21 @@
  * xFoil inherently assumes the airfoil cross-section is in the x-y plane, if it isn't an attempt is made
  * to automatically rotate the provided body.
  *
- * Within <b> OpenCSM</b>, there are a number of airfoil generation UDPs (User Defined Primitives). These include NACA 4
+ * \subsection airfoilXFOIL Airfoils in ESP
+ * Within <b> OpenCSM</b> there are a number of airfoil generation UDPs (User Defined Primitives). These include NACA 4
  * series, a more general NACA 4/5/6 series generator, Sobieczky's PARSEC parameterization and Kulfan's CST
  * parameterization. All of these UDPs generate <b> EGADS</b> <em> FaceBodies</em> where the <em>Face</em>'s underlying
  * <em>Surface</em>  is planar and the bounds of the <em>Face</em> is a closed set of <em>Edges</em> whose
- * underlying <em>Curves</em> contain the airfoil shape. In all cases there is a <em>Node</em> that represents
- * the <em>Leading Edge</em> point and one or two <em>Nodes</em> at the <em>Trailing Edge</em> -- one if the
- * representation is for a sharp TE and the other if the definition is open or blunt. If there are 2 <em>Nodes</em>
- * at the back, then there are 3 <em>Edges</em> all together and closed, even though the airfoil definition
- * was left open at the TE. All of this information will be used to automatically fill in the xFoil geometry
- * description.
+ * underlying <em>Curves</em> contain the airfoil shape.
+ *
+ * <b>Important Airfoil Geometry Assumptions</b>
+ * - There must be a <em>Node</em> that represents the <em>Leading Edge</em> point
+ * - For a sharp trailing edge, there must be a <em>Nodes</em> at the <em>Trailing Edge</em>
+ * - For a blunt trailing edge, the airfoil curve may be open, or closed by a single <em>Edge</em> connecting the upper/lower <em>Nodes</em>
+ * - For a <em>FaceBody</em>, the airfoil coordinates traverse counter-clockwise around the <em>Face</em> normal. The <b>OpenCSM</b> <em>REORDER</em> operation may be used to flip the <em>Face</em> normal.
+ * - For a <em>WireBody</em>, the airfoil coordinates traverse in the order of the loop
+ *
+ * <b>Note:</b> Additional spurious <em>Nodes</em> on the upper and lower <em>Edges</em> of the airfoil are acceptable.
  *
  * It should be noted that general construction in either <b> OpenCSM</b> or even <b> EGADS</b> will be supported
  * as long as the topology described above is used. But care should be taken when constructing the airfoil shape
@@ -64,7 +69,7 @@
 #define strtok_r   strtok_s
 #endif
 
-#define NUMPOINT  200
+#define NUMPOINT  201
 
 #define MXCHAR  255
 

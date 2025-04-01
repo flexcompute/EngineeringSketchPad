@@ -56,6 +56,9 @@ for i in range(1,4):
 
 myAnalysis.input.AVL_Surface = AVL_Surface
 
+# Write airfoils to separate files
+myAnalysis.input.AirfoilFiles = True
+
 # -----------------------------------------------------------------
 # Get Output Data from AVL
 # These calls access aimOutput data

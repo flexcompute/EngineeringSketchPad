@@ -3,7 +3,7 @@
 # Unit meshing reference length
 ATTRIBUTE capsMeshLength   1.0
 
-SET meshingAIMs $pointwiseAIM;aflr4AIM;aflr3AIM;egadsTessAIM;tetgenAIM;refineAIM
+SET meshingAIMs $pointwiseAIM;aflr4AIM;aflr3AIM;egadsTessAIM;tetgenAIM;refineAIM;curveTessAIM
 
 CFGPMTR single   0
 CFGPMTR box      1
@@ -138,7 +138,7 @@ ENDIF
 IFTHEN nodebody EQ 1
     IFTHEN single EQ 0
         POINT 14.5 0 0  0.5
-            ATTRIBUTE capsAIM $egadsTessAIM
+            ATTRIBUTE capsAIM $egadsTessAIM;curveTessAIM
             ATTRIBUTE capsIntent $nodeBody
             ATTRIBUTE capsGroup $nodeBody
             ATTRIBUTE _name $nodeBody

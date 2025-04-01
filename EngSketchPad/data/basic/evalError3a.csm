@@ -1,0 +1,23 @@
+# evalError3a
+# written by John Dannenhoffer
+
+PATBEG    aa  2
+   SKBEG     0  0  a
+      LINSEG 1  0  0
+      ASSERT 0  1
+   SKEND
+
+   ASSERT    0  2
+   CATBEG    $illegal_pmtr_name
+   CATEND
+
+   BOX       0  0  0   aa aa aa
+PATEND
+
+# make sure there is not an active signal
+ASSERT    @signal  0
+
+END
+
+    
+   

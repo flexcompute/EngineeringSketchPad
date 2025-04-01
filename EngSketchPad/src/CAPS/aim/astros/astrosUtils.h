@@ -7,6 +7,9 @@
 extern "C" {
 #endif
 
+#define ASTROS_SURFID 100000
+#define ASTROS_SECTID 1000
+
 // Write a Astros connections card from a feaConnection structure
 int astros_writeConnectionCard(FILE *fp, const feaConnectionStruct *feaConnect,
                                const feaFileFormatStruct *feaFileFormat);

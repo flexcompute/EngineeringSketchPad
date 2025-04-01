@@ -1,0 +1,32 @@
+# warp2c
+# written by John Dannenhoffer
+
+CFGPMTR   numcp     5
+
+DIMENSION dist      numcp-2  numcp-2
+SET       dist      "0.25; 0.50; 0.25;\
+                     0.50; 1.00; 0.50;\
+                     0.25; 0.50; 0.25"
+
+# basic configuration
+BOX      0  0  0  4  3  2
+
+# convert to Bsplines
+UDPRIM    nuscale   mincp numcp
+
+# write the egads file
+DUMP      warp2.egads
+
+STORE     ...
+ASSERT    @stack[1]  -1
+
+# warp Face 6
+UDPARG    warp     egadsfile  $warp2.egads
+UDPARG    warp     iface      6
+UDPARG    warp     toler      1e-5
+UDPARG    warp     dirn       $N
+UDPRIM    warp     dist       dist
+
+ASSERT    @stack.size  1
+
+END

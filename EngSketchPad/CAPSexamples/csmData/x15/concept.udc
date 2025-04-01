@@ -1,0 +1,38 @@
+#------------------------------------------------------------------------------#
+# Script Name   : concept.udc
+# Purpose       : Shape Recipe for Horizontal tail
+# Description   : This script is developed to demonstrate UDCs using ESP. 
+# Scripted by   : Nitin Bhagat
+# Dependencies  : ESP 1.27 and above
+#               : himoco.csm: Driver script
+# Limitations   : 
+#               :
+# Contact       : [nbhagat1@udayton.edu] for scripting bugs/suggestions.
+#------------------------------------------------------------------------------#
+
+INTERFACE . ALL
+
+
+IFTHEN COMP:Wing EQ 1
+    RESTORE wingOml
+ENDIF
+ 
+IFTHEN COMP:Fuselage EQ 1
+    RESTORE fuseOml
+    RESTORE fuseFerringOml
+
+    IFTHEN COMP:Cockpit EQ 1
+        RESTORE cockpitOml
+    ENDIF
+
+    IFTHEN COMP:Vtail EQ 1
+        RESTORE vtailOml
+    ENDIF
+    
+    IFTHEN COMP:Htail EQ 1
+        RESTORE htailOml
+    ENDIF
+
+ENDIF #COMP:Fuselage
+
+END

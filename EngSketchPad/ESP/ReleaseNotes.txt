@@ -1,6 +1,6 @@
-                    =============================
-                    ESP and OpenCSM Release Notes
-                    =============================
+                        =====================
+                        ESP and OpenCSM To Do
+                        =====================
 
 17aug12  change @ to !
 
@@ -10308,3 +10308,758 @@
  1jan23  add ReleaseNotes.txt
 
 *******  v1.24 release
+
+11jan24  uprev to v1.25 (ESP.html, ESP-localhost.html, ESP-help.html,
+             OpenCSM.h, ocsm.rc, ESP_QuickReference.tex)
+
+11jan24  fix memory leak in RULE and BLEND when reorder=1 or -1 for
+             open xsects; add rule30* and blend30* test cases
+
+13jan24  fix bug that did not reorder xsects in RULE and BLEND when
+             xsect contains only one Edge
+
+14jan24  allow DisplayFilter to select everything that does not match
+             a pattern; update ESP-help near end of tutorial 1; add
+             displayFilter2 test case
+
+16jan24  add metaMaterial test case
+
+17jan24  allow tilde (~) in strings
+
+17jan24  in BLEND, allow 3 consecutive C1 xsects if .C1side is
+             specified on the middle one(s); add more blend23* test
+             cases
+
+18jan24  update udfDroop so that cross-section does not have to be in
+             unit-chord standard position
+
+18jan24  update udfDroop so that it works with a blunt trailing edge;
+             add droop9* test cases
+
+21jan24  allow arbitrary paths for UDCs; add udprim4 and udprim5 test
+             cases (udprim1 to udprim3 have jfdannen absolute
+             addresses and are not tested by Jenkins)
+
+25jan24  increase number of iterations to match point count on
+             opposite Edges in a Face in udfCreateBEM
+
+28jan24  improve accuracy and robustness in ocsmClearance; modify
+             clearance* test cases to make Bodys transparent
+
+28jan24  add ocsm.Clearance() to pyOCSM
+
+29jan24  update WAFFLE documentation in ESP-help
+
+29jan24  add SPLITTER option to udfGanged to scribe a common Body
+
+30jan24  remove velocity cache at beginning of build to avoid possible
+             memory leaks
+
+ 6feb24  fix propagation of Edge attributes for Edges that are LINEs;
+             add persist3* test cases
+
+ 7feb24  improve ocsmClearance
+
+12feb24  improve formatting in ocsmPrinEgo when printing BEZIERs or
+             BSPLINEs
+
+13feb24  fix memory leak in ocsmClearance
+
+13feb24  fix sensitivity bug in BLEND when tangency is specified; add
+             blend31* test cases
+
+13feb24  add winglet* test cases
+
+14feb24  include notations in ESP-help for the commands that cause
+             finite difference sensitivities (CHAMFER, CONNECT,
+             EVALUATE, FILLET, HOLLOW, IMPORT, LOFT, REVOLVE, SSLOPE,
+             SWEEP, TORUS)
+
+14feb24  fix bug that did not compute mass-properties-dots if a group
+             of Nodes, Edges, or Faces were selected (independent of
+             the Body type)
+
+15feb24  fix bug in udfNuscale that occurs for periodic Faces; add
+             nuscale5-8 test cases
+
+15feb24  fix stanalizer error in ocsmPrintEgo
+
+15feb24  modify fatal error messages in include line number
+
+16feb24  add ability to DUMP .vtk ASCII files
+
+16feb24  fix memory leak in nuscale8* test cases
+
+17feb24  loosen tolerance in convertToBSplines to overcome sloppy
+             Pcurves on DARWIN_ARM64
+
+18feb24  improve efficiency of .vtk ASCII file writer
+
+21feb24  add checkVtk.c
+
+21feb24  remove blank lines in .vtk writer
+
+21feb24  add vtk2stl.c
+
+22feb24  add blend32* test cases
+
+22feb24  add more OPAM1* test cases
+
+23feb24  add _vspID attribute to Faces in udpVsp3
+
+26feb24  update nuscale* verification data
+
+ 3mar24  add OCC 7.8.0 verification data
+
+ 6mar24  pass flags from parent MODL into MODL created by udpCsm
+
+11mar24  fix bug when selecting with xmin=xmax, ymin=ymax, and
+             zmin=zmax; update bentWaffle test case
+
+22mar24  fix bug that causes output from pyscript to be lost if the
+             pyscript uses os.chdir
+
+25mar24  fix bug that can lose attributes when SUBTRACTing two
+             co-planar SheetBodys; add plateHoles* test cases
+
+28mar24  update _edgeID documentation in OpenCSM.h and ESP-help
+
+ 2apr24  change SUBTRACTion of two co-planar SheetBodys so that the
+             tool always pokes a hole in the source (instead of
+             scribing the source as was previously done if the source
+             and tool intersect); update scribe11* and subtract7* test
+             cases
+
+ 2apr24  if any boolean fails, leave the stack unchanged
+
+ 4apr24  add scribeAll argument to SUBTRACT to scribe Edges even when
+             they are coincident with a Face; add scribe12* test cases
+
+15apr24  add lred, lgreen, and lblue to ESP-help
+
+15apr24  adjust for new EG_matchBody* definitions; add joinSphereBox
+             test case
+
+15apr24  fix recently-added bug associated with scribing SolidBodys
+
+18apr24  add verification testing for ESP/examples; add testExamples
+             target to Makefile.DARWIN64
+
+18apr24  in udpSew, do not report degenerate Edges as non-manifold
+
+18apr24  keep user attributes on Edges of xsect after EXTRUDE and
+             REVOLVE operations
+
+18apr24  keep user attributes on Edges after EXTRACT operation
+
+18apr24  update _edgeID for non-manifold Edges created by making a
+             hole; update edgeIDtest* test cases
+
+20apr24  take advantage of new EG_getInfo signature
+
+24apr24  turn off debugging flag for tessellation sensitivities
+
+29apr24  allow filename completion (via *) whenever ESP asks for the
+             name of a file to read
+
+29apr24  if outLevel=0, do not print info about signals that are
+             caught
+
+29apr24  do not report a Node as spurious if its Edges have different
+             __scribeID_s; add scribe13* test cases
+
+30apr24  change OpenCSM to account for change to
+             EG_generalBoolean(SPLITTER) associated with internal
+             failures
+
+30apr24  upgrade to OpenVSP-3.38.0
+
+ 2may24  fix windoze bug in completeFilename
+
+ 3may24  fix sensitivity bug associated with scribes
+
+ 3may24  simplify plateHoles5 to make plateHoles6
+
+ 5may24  remove empty line printout if no active signals
+
+ 6may24  fix memory leaks
+
+ 6may24  fix bug that caused an error if a journal file did not have
+             the correct number of arguments for a newBrch command
+
+ 6may24  fix erroneous stanalyzer error
+
+ 8may24  remove Bombardier_DASH8-Q100 test case since it works
+             differently with OpenVSP-3.38.0 on viggen than other OSs
+
+ 8may24  increase number of allowable Bodys as input to udfGanged
+
+ 8may24  if a UDP/UDF has a ATTRRECYCLE, set hasdots to 1 to cause
+             udpSensitivity to be executed
+
+10may25  make ESP-help consistent with OpenCSM.h
+
+13may25  change OPAM1_wing.udc to use relative pathname
+
+14may24  make viewer respect _viz, _trn, _ori, and _grd attributes
+
+17may24  update OPAM1_wing
+
+23may23  fix memory allocation bug in mesgCallbackFromOpenCSM
+
+23may24  update timVspSetup such that it uses a relative name if the
+             vsp3 and udc filenames are in the same directory
+
+23may24  fix a few typos in ESP-help
+
+23may24  fix array bounds error in udfEditAttr
+
+23may24  modify udpVsp3 such that if update udpVsp3
+             verification data
+
+24may24  add sensitivities to udpVsp3; add OPAM1_body and
+             OPAM1_wingbody test cases
+
+28may24  fix typo in timPyscript
+
+29may24  small updates to testing scripts, etc.
+
+29may24  remove watermark from ESP_QuickReference
+
+29may24  fix memory leak in udpVsp3
+
+29may24  fix another array bounds error in udfEditAttr
+
+*******  v1.25 release
+
+ 2jun24  uprev to v1.26 (ESP.html, ESP-localhost.html, ESP-help.html,
+             OpenCSM.h, ocsm.rc, ESP_QuickReference.tex)
+
+ 2jun24  fix infinite loop bug in compressFilename
+
+ 3jun24  fix typos in ESP-help
+
+ 3jun24  allow straight camber line to be generated in udpNaca (if
+             thickness=0, camber=0, and series=0); modify nacas3 test
+             case
+
+ 3jun24  add missing semi-colon in
+             training/data/session03/fuselage.csm
+
+ 5jun24  update ReleaseNotes.txt
+
+ 7jun24  add importColor test case
+
+10jun24  fix bug associated with writing VTK files for non-manifold
+             Bodys; add fourSheets test case
+
+11jun24  allow illegal_func_name error be caught in CATBEG
+
+11jun24  error during the evaluation of an argument in IFTHEN and
+             ELSEIF should jump after ENDIF; add evalError1* test
+             cases
+
+11jun24  error during the evaluation of an argument in PATBEG and
+             PATBREAK should jump after PATEND; add evalError2* test
+             cases
+
+11jun24  error during the evaluation of an argument in SKBEG should
+             jump after SKEND; add evalError3* test cases
+
+11jun24  fix bug that did not update the at-parameters if a UDPARG was
+             present
+
+12jun24  fix bug when recycling and last recycled Branch is a UDPARG
+
+12jun24  fix bug that did not transfer user-attributes from SheetBody
+             on top of stack to result of a JOIN operation; add
+             joinSheets7 test case
+
+12jun24  add _vspID and _vspSurf attributes to Bodys in udpVsp3
+
+13jun24  improve error detection for $pmtrName in SET; add set2 test
+             case
+
+13jun24  add EVALUATE EDGETESS and EVALUATE FACETESS to return the
+             number of points and triangles in the tessellation of an
+             Edge or Face; add tessSize test case
+
+13jun24  pressing Building button allows the user to reset the
+             interface
+
+14jun24  improve error detection for $pmtrName in PATBEG; add patbeg1
+             test case
+
+14jun24  improve error detection for $pmtrName in GETATTR; add
+             getattr3 test case
+
+15jun25  fix malloc error while cleaning up UDP storage at end of
+             serveESP
+
+17jun24  allow inline comments in udfEditAttr and udpWaffle; modify
+             editAttrFile and waffleC1 test cases
+
+17jun24  if UDPRIM statment contains primtype=$$$/name, the .udc is
+             found in the ESP_UDC_PATH directory; add udprim6 test
+             case
+
+17jun24  convert udpWarp to udfWarp so that it takes a Body from the
+             Stack if egadsfile is not specified;  add warp2* and warp3
+             test cases
+
+17jun24  modify udfWarp to allow motion in normal-, X-, or Y-, or
+             Z-direction; add warp1* test cases
+
+18jun24  change signature of unpublished convertToBSplines routine
+
+18jun24  add mindeg argument to udfNuscale so that B-spline order can
+             be increased
+
+18jun24  modify udfWarp so that it can be applied to a SheetBody; add
+             warp4* and warp5* test cases
+
+18jun24  add seqnum* test cases
+
+20jun24  if Body has _newSeqnum attribute, use a new sequence numbering
+             scheme for _edgeID and _faceID that is not based upon cg
+             positions or areas
+
+27jun24  do not mark a Node as potentially spurious if it has a _Keep
+             attribute
+
+29jun24  mark Nodes on axis of revolution of a REVOLVE command with a
+             _Keep attribute
+
+30jun24  mark Nodes in JOIN or UNION that are in common with both
+              parents with a _Keep attribute
+
+30jun24  mark new Nodes due to a scribe (via SUBTRACT a NodeBody or
+             SheetBody) with a _Keep attribute
+
+30jun24  mark Nodes at beginning and end of RULE and BLEND with a
+             _Keep attribute
+
+30jun24  add REMOVE_SPURIOUS compile-time option to remove spurious
+             Nodes; add spurious* test cases
+
+ 3jul24  fix bug that made sensitivities of scribes susceptable to
+             roundoff errors
+
+ 3jul24  fix documentation associated with SUBTRACT command
+
+ 4jul24  fix bug in ocsmFindPmtr that did not consider the scope when
+             looking for existing names
+
+ 5jul24  add putcolors=0 option to DUMP so that _color attributes are
+             written into STP/IGS file (as Color); add color4*
+             test cases
+
+ 5jul24  add getcolors=0 option to IMPORT so that Color attributes
+             in STP/IGS files are converted to _color
+
+ 5jul24  add getcolors=0 option to udpImport so that Color attributes
+             in STP/IGS files are converted to _color
+
+ 5jul24  update ESP to acknowledge that Nodes are not initially
+             visible
+
+ 8jul24  add hollowTube test case
+
+ 8jul24  add udcPrefix test case
+
+ 9jul24  have DUMP putcolors=1 apply to Edges when writing STP/IGS file;
+             have IMPORT getcolors=1 apply to Edges when reading STP/IGS
+             file
+
+16jul24  update importColors.csm
+
+16jul24  fix sensitivities in udpVsp3 to account for cases where Edges
+             and Node numbering changes between the base and perturbed
+             Bodys
+
+16jul24  report sensitivity range in serveESP console
+
+16jul24  commit udprim6 test case
+
+17jul24  fix seg fault that happened when a BLEND has fewer than 2
+             xsects
+
+19jul24  add ubar and vbar as returns from EVALUATE FACEINV and
+             tbar as return from EVALUATE EDGEINV; add evaluateInv
+             test case
+
+19jul24  add EVALUATE EDGEBBOX and EVALAUTE FACEBBOX to return
+             bounding box info; add evaluateBbox test case
+
+19jul24  add EVALUATE DIST to return the clearances between two Bodys;
+             add evaluateDist* test cases
+
+20jul24  allow SELECT to return EDGES or FACES that touch a bounding
+             box; add selectBbox* test cases
+
+22jul24  fix memory leak in udpVsp3
+
+22jul24  add waffleRebuild test case
+
+22jul24  upgrade to OCC 7.8.1; modify importColor test case
+
+24jul24  add OCC 7.8.1 verification data
+
+25jul24  allow default Face and Edges colors to be set via ColorFace
+             and ColorEdge attributes; add importColor2 test case
+
+25jul24  documentation updates
+
+25jul24  update udpParsec.cpp because of changes in EGADS
+
+*******  v1.26 release
+
+ 3aug24  uprev to v1.27 (ESP.html, ESP-localhost.html, ESP-help.html,
+             OpenCSM.h, ocsm.rc, ESP_QuickReference.tex)
+
+31jul24  modify GHV_flaps for openEnd=0
+
+ 4aug24  fix bug that did not set body.ichld for RULE, BLEND, and LOFT
+             with -loadEgads
+
+ 4aug24  add ocsmPrintBmtrx to print N2-like matrix for the Bodys
+
+ 4aug24  add ocsmJacobian
+
+ 5aug24  add example BLEND test cases to demonstrate .C1side
+             attribute
+
+ 5aug24  use bounding boxes to improve speed of UNION toMark=1
+
+ 6aug24  fix bug in udpBspline when udegree is not 3; add bspline3
+             test case
+
+ 6aug24  modify udpSew to return all Bodys if bodynum=-1
+
+ 6aug24  add removedups argument to udpSew to remove duplicate Faces
+             before sewing; add sew3* test cases
+
+ 7aug24  improve formatting of OUTPMTRs reported in ESP
+
+ 9aug24  add ability of adjusting tessellation on a Body through the
+             _tessFactor Body attribute
+
+12aug24  improve accuracy of sensitivity of mass properties
+
+13aug24  fix bug in timVspSetup that added an extra character in the
+             .udc file if the user prescribed .vsp3 and .udc filenames
+             that did not contain a slash
+
+15aug24  add sew3c test case that will work with previous versions of
+             udpSew
+
+20aug24  add section 5.9 (filename rules) to OpenCSM.h and ESP-help
+
+20aug24  fix bug that did not recognize first argument to SPECIAL
+             command as an implicit string during ExportFeatureTree
+             operation
+
+20aug24  fix bug in udpBspline that did not correctly create a ONENODE
+             Edge if the first and last control points were the same;
+             add bspline4 test case
+
+20aug24  add M (exponent of y-equation) in udpSupell. add udpSupell8 test
+             case
+
+22aug24  add rebuild argument to udpEqn2body
+
+24aug24  fix undefined variable in udpSupell
+
+24au24   remove verification data for OCC 7.8.0
+
+25aug24  add -macrovarprefixexclude option when splinting udpBspline.c
+
+25aug24  add -macrovarprefixexclude option when splinting udpSupell.c
+
+28aug24  add _nedge attribute to Faces
+
+28aug24  allow editAttr to match attributes with integer values
+
+30aug24  fix bug that did not close a sketch properly if only a
+             zero-length segment existed
+
+31aug24  improve accuracy of EVALUATE DIST; add more evaluateDist*
+             test cases
+
+ 4sep24  document callback function signatures in OpenCSM.h
+
+ 4sep24  move temporary routines for creating Quad meshes out of
+             OpenCSM and into an uncommitted udfCreateQuads.c
+
+ 5sep24  remove ocsmGenerateQuads from ocsm.def
+
+ 6sep24  use relative instead of absolute tolerance to determine when
+             Edge attributes should be transferred
+
+ 7sep24  modify copyEdgeAttributes to use matchEdge()
+
+ 7sep24  use new sampling method in BLEND for high multiplicity knots;
+             add blend33 test case
+
+ 7sep24  modify JOIN to use new Edge matching method; loosen JOIN
+             tolerance in tutorial1 and tutorial5 (and ESP-help)
+
+ 9sep24  modify JOIN applied to SolidBodys to classify two Faces as
+             the same based only on their Edges (not the shape of the
+             Face); add joinBodys* test cases
+
+ 9sep24  modify stickFuselage test case to include tolerance on JOIN
+             commands
+
+10sep24  allow negative tolerance in JOIN to skip boundingbox check
+             for Faces when JOINing SolidBodys
+
+11sep24  remove joinSphereBox test case since its result is ambiguous
+
+12sep24  add info in output to make it easier to follow entry into and
+             exit from UDCs
+
+20sep24  add diagnostic information when JOIN fails
+
+21sep24  significant speed-up in persisting _edgeID for cases with many
+             Edges
+
+23sep24  add .osen files to sensCSM to check sensitivity of OUTPMTRs;
+             add designAB test case
+
+ 1oct24  fix bug in sensitivities in RULE and BLEND with reorder=1;
+             add designAA* test cases
+
+ 2oct24  fix bug that did not keep Face attributes on the end Face
+             when RULE or BLEND was called with reorder=1
+
+ 4oct24  improve tracing of attributes via PRINT_ATTRIBUTES flag in
+             OpenCSM.c
+
+15oct24  add -printAttrs command line option in serveESP
+
+26oct24  fix flaps on GHV_flaps
+
+27oct24  add reverse option to REORDER to allow a user to reverse the
+             sense of Edges in a Loop;  add reorder5* test cases
+
+29oct24  update sensitivity test cases associated with REORDER command
+
+29oct24  for now, force finite differences for a REORDER command that
+             has reverse=1; add designAA9 and designAA10 test cases
+
+30oct24  add -printPmtrs command line option to serveESP to print all
+             Parameters at the end of each command
+
+31oct24  fix bug that could cause a seg fault if SELECT FACE is chosen
+             on a Body with no Faces
+
+31oct24  fix bug that incorrectly set ibody/iford for a WireBody that
+             results from a SUBTRACT command; add subtract7 test case
+
+ 2nov24  fix bugs in evaluateDist* and selectE test cases
+
+ 4nov24  update verification data for blend10n test case to be
+             consistent with latest egadsTopo update
+
+ 5nov24  fix bug that did not set correct sellist size when SELECT was
+             executed on a Body without Faces or Edges
+
+ 5nov24  make HUGEQ much larger; adjust a few associated test cases
+
+ 6nov24  fix memory leak assiciated with REORDER command
+
+ 6nov24  add verification data for designAA* and designAB test cases
+
+ 9nov24  modify attribute test case because EGADS now automatically
+            copies Body attributes
+
+10nov24  reorganize designAB* test cases
+
+11nov24  fix bug in analytic sensitivities when last segment in a
+             closed sketch is a CIRARC (designAB4)
+
+13nov24  fix bug in sensitivities in udpBiconvex
+
+13nov24  add designAB5 test case
+
+15nov24  add debugging info in udpWaffle
+
+15nov24  modify tolerances in udpWaffle
+
+16nov24  output message that value is undefined when it is HUGEQ
+
+20nov24  change Makefile for deprecated ifort
+
+22nov24  fix bug in udpParsec sensitivity when dots do not already
+             exist; add designR2f test case
+
+29nov24  fix bug that reversed the order of Bodys on the Stack when a
+             Group was RESTOREd; add restore4* test cases
+
+30nov24  use analytic sensitivities in udpBiconvex; modify associated
+             verification data
+
+30nov24  add designAC* test cases
+
+ 6dec24  use analytic sensitivities in udpNaca; modify associated
+             verification data
+
+ 6dec24  use analytic sensitivities in udpSupell; modify associated
+             verification data
+
+ 6dec24  modify sensCSM to issue INFO if significant decrease in
+             sensitivity errors
+
+10dec24  clean up udp storage when recycling fails
+
+11dec24  make sure that Plugs runs at least one optimization iteration
+             after the design parameters are perturbed
+
+11dec24  disable -plugs option in serveCSM
+
+13dec24  remove assertion testing during Plugs
+
+15dec25  temporarily change test_pyOCSM to pass Jenkins
+
+15dec24  fix finite difference sensitivty calculations for mass
+             properties
+
+15dec24  update NMakefile for ifort
+
+15dec24  return test_pyOCSM to original version
+
+16dec24  fix memory leaks in udpBiconvex and udpNaca
+
+24dec24  create miniCSM.c to read .csm and .pmtr files and write
+             annotated .stp and .dots files (as a surrogate for Creo)
+
+25dec24  create udpRunCAD.c to get sensitivities from an external CAD
+             system (via a .dots file)
+
+26dec24  use _dots if they exist on a Face
+
+26dec24  debug tess sensitivities whan a Body has __fromCAD__
+
+28dec24  update udpRunCAD and miniESP
+
+29dec24  add 1 second delay in udpImport to make sure that a DUMP
+             has chance to close file before the IMPORT is executed
+
+30dec24  fix valgrind error
+
+31dec24  add designAD* test cases
+
+31dec24  add miniESP.c and modify Makefile
+
+31dec24  fix SLEEP macro in udpImport
+
+31dec24  change getline to fgets in udpRunCAD
+
+31dec24  fix splint warnigns in miniESP
+
+31dec24  fix stanaliyzer error in miniESP
+
+ 1jan25  change copyright dates from 2024 to 2025
+
+ 2jan25  fix to Makefile.LINUX64
+
+ 2jan25  add help/example for runCAD
+
+ 2jan25  update Template2 in ESP/examples
+
+ 5jan25  fix filename parsing in miniESP
+
+ 5jan25  fix valgrind error in ocsmSetVelD
+
+ 6jan25  fix slashes for casename in udpRunCAD
+
+11jan25  add debugging info for udpRunESP on windoze
+
+11jan25  fix backslashes in udpRunESP for windoze
+
+12jan25  cleanup from debugging output from udpRunCAD and miniESP
+
+12jan25  pass outLevel from OpenCSM into miniESP
+
+12jan25  automatically remove tessellation velocity cache if the
+             tessellation is changed (outside OpenCSM)
+
+16jan25  fix bug that accidentally cleared _dots that were put on a
+             Body by a UDPRIM
+
+17jan25  fix stanalizer bug in udpRunCAD
+
+18jan24  fix bug that caused only partial regeneration when generating
+             a perturbation in ocsmAdjoint
+
+18jan25  fix issue in sensitivities in udpNaca that was caused by
+             Edges that were originally generated from the same Curve
+             to somehow now point to two identical, but distinct,
+             Curves
+
+19jan25  modify last commit to use EG_copyGeometry_dot instead of
+             calling EG_approximate_dot twice in udpNaca
+
+20jan25  add -printStors command-line argument to serveESP
+
+20jan25  compute sensitivities for maxloc analytically in udpNaca
+
+21jan25  for IFTHEN and ELSEIF statements, make default op1=ne and
+             val2=0
+
+21jan25  from ocsmBuild, return in builtTo either the last successful
+             Branch executed or the negative of the Branch that threw
+             an uncaught error
+
+21jan25  add filename option to udpBspline
+
+22jan25  fix compiler warning for ibrchSave
+
+31jan25  document _newSeqnum user-defined Body attribute
+
+31jan25  eliminate dxyz mismatch warnings
+
+ 4feb25  fix bug that reset at-parameters when recycling sketch
+             branches other than SKEND
+
+ 4feb25  fix typo in udfStiffner
+
+ 5feb25  remove __scribeID__ attribute in udpImport
+ 
+ 5feb25  allow EVALUATE DIST to work with NodeBody, WireBody,
+             SheetBody and/or SolidBody; add evaluateDist5*,
+             evaluateDist6*, and evaluateDist7* test cases; adjust
+             verification data on other evaluateDist* test cases;
+             remove clearance test cases (redundant)
+
+ 6feb25  add udfSplitFace and splitFace* test cases
+
+ 7feb25  update release date in ESP-help
+
+10feb25  update evaluateDist1 and evaluateDist2 verification data
+
+12feb25  add note about setting VSP3_ROOT in ESP-help.html
+
+13feb25  update data/vsp3/* verification data to account for Body
+            renumbering for propellers in OpenVSP
+
+13feb25  fix valgrind error in udfSplitFace
+
+14feb25  remove debugging printf in udfSplitFace
+
+23feb25  improve error reporting in ocsmLoad and ocsmCheck
+
+25feb25  fix memory leak that left tessellation objects laying around
+             after ocsmBuild was called multiple times
+
+26feb25  update release date in ESP-help
+
+28feb25  update ESP/ReleaseNotes.txt
+
+ 3mar25  remove extra printf in udpParsec.cpp
+
+ 3mar25  fix threading problem in ocsmAdjoint
+
+ 4mar25  fix bug in RESTORE name -1 when recycling and Bodys have
+             _dots

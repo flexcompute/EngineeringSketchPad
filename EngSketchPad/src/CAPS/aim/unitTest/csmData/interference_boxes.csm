@@ -1,0 +1,39 @@
+BOX       0.0  0.0  0.0  2.0 2.0 2.0
+ATTRIBUTE capsAIM $interferenceAIM
+ATTRIBUTE _name   $Box1
+#ATTRIBUTE Inner   $Box
+
+BOX       0.0  6.0  0.0  2.0 2.0 2.0
+ATTRIBUTE capsAIM $interferenceAIM
+ATTRIBUTE _name   $Box2
+#ATTRIBUTE Inner   $Box
+
+BOX       3.0  0.0  0.0  2.0 2.0 2.0
+ATTRIBUTE capsAIM $interferenceAIM
+ATTRIBUTE _name   $Box3
+#ATTRIBUTE Inner   $Box
+
+BOX       3.0  6.0  0.0  2.0 2.0 2.0
+ATTRIBUTE capsAIM $interferenceAIM
+ATTRIBUTE _name   $Box4
+#ATTRIBUTE Inner   $Box
+
+BOX       6.0  0.0  0.0  2.0 2.0 2.0
+ATTRIBUTE capsAIM $interferenceAIM
+ATTRIBUTE _name   $Box5
+#ATTRIBUTE Inner   $Box
+
+BOX       6.0  6.0  0.0  2.0 2.0 2.0
+ATTRIBUTE capsAIM $interferenceAIM
+ATTRIBUTE _name   $Box6
+#ATTRIBUTE Inner   $Box
+
+BOX       9.0  0.0  0.0  2.0 2.0 2.0
+ATTRIBUTE capsAIM $interferenceAIM
+ATTRIBUTE _name   $Box7
+#ATTRIBUTE Inner   $Box
+
+BOX       9.0  6.0  0.0  2.0 2.0 2.0
+ATTRIBUTE capsAIM $interferenceAIM
+ATTRIBUTE _name   $Box8
+#ATTRIBUTE Inner   $Box

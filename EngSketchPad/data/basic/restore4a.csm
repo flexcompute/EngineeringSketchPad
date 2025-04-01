@@ -1,0 +1,42 @@
+# restore4a
+# written by John Dannenhoffer
+
+# finding the
+DESPMTR   size  1
+
+# make three Bodys
+BOX       -3  0  0  size  0     0
+    ATTRIBUTE boxNum 1
+
+BOX       -1  0  0  size  size  0
+    ATTRIBUTE boxNum 2
+
+BOX       +1  0  0  size  size  size
+    ATTRIBUTE boxNum 3
+
+# put the Bodys into a Group and store
+GROUP
+STORE     myGroup
+
+# verify that the Stack is empty
+ASSERT    @stack[1]  -1
+
+# bring the Group back
+RESTORE   myGroup
+
+# verify that the Stack now has 3 Bodys
+ASSERT    @stack.size  3
+
+# verify that the Bodys were put onto  the Stack in the same order
+DIMENSION myStack @stack.size 1
+SET       myStack @stack
+
+PATBEG    ibox    3
+   SELECT    BODY    myStack[ibox]
+   GETATTR   boxNum  $boxNum
+   ASSERT    boxNum  ibox
+PATEND
+
+END
+
+

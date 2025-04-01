@@ -559,6 +559,9 @@ ocsm.SetOutLevel(1)
 
 print("\ntest 088: calling modl2.SetDtime(0.)")
 modl2.SetDtime(0.)
+ocsm.SetOutLevel(0)
+modl2.Build(0, 0)
+ocsm.SetOutLevel(1)
 
 print("\ntest 089: calling modl2.FindPmtr(myBbox, 0, 0, 0)")
 iMyBbox = modl2.FindPmtr("myBbox", 0, 0, 0)

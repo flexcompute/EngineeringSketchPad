@@ -1,4 +1,4 @@
-# inflatedBody2a (brute-force unions --- only 1 few UNIONS to limit execution time)
+# inflatedBody2a (brute-force unions --- only 5 UNIONS to limit execution time)
 # written by John Dannenhoffer
 
 DESPMTR   Rdish     30.0

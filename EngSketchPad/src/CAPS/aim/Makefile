@@ -1,6 +1,6 @@
 #
-ifndef ESP_ARCH
-$(error ESP_ARCH must be set -- Please fix the environment...)
+ifndef ESP_ROOT
+$(error ESP_ROOT must be set -- Please fix the environment...)
 endif
 #
 #
@@ -8,7 +8,8 @@ LDIR  = $(ESP_ROOT)/lib
 
 export AIM_UTILSDIR = $(realpath ./utils)
 
-DIRS = $(filter-out utils, $(filter-out NMakefile, $(filter-out Makefile, $(wildcard *))))
+# Some versions of make leave the '/' others remove it...
+DIRS = $(filter-out utils/, $(filter-out utils, $(sort $(dir $(wildcard */Makefile)))))
 
 .PHONY:		utils $(DIRS)
 

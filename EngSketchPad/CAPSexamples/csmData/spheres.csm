@@ -6,7 +6,7 @@ union
 sphere          0.00     -0.80      0.75      0.50
 subtract
 select body
-    attribute capsAIM $egadsTessAIM
+    attribute capsAIM $egadsTessAIM;curveTessAIM
     attribute capsMeshLength 1.0
 select face
     attribute capsGroup $Spheres

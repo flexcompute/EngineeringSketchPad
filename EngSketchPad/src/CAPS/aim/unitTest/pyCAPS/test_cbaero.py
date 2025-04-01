@@ -72,6 +72,7 @@ class TestCBAERO(unittest.TestCase):
         cbaero.input.Leading_Edge_Suction = 0.8
         cbaero.input.Aero_Surface = {"Wing1":"Wing"}
         cbaero.input.Mesh_Morph = False
+        cbaero.input.Mangler_Setting = "2D"
         cbaero.input["Surface_Mesh"].link(self.aflr4.output["Surface_Mesh"])
 
         # Write input files

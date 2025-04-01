@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<Model ID="airplane">
+ <Variable ID="semispan" Comment="semispan of main wing" Value="4.00000000000000000e+00" Min="1" Max="10" TypicalSize="1"/>
+ <Variable ID="taper" Value="5.00000000000000000e-01"/>
+ <Variable ID="1" Value="0.00000000000000000e+00" Min="-5" Max="12" TypicalSize="0.1" FDstep="0.01"/>
+ <Constant ID="2" Comment="This is a constant" Value="1.00000000000000000e+00"/>
+ <Tessellate ID="1" Comment="Wing"/>
+ <Tessellate ID="3" Sensitivity="Required" Comment="Fuse" Edge="aaa" Stuff="Stuff1"/>
+</Model>

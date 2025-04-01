@@ -3,8 +3,7 @@ IDIR = $(ESP_ROOT)/include
 LDIR = $(ESP_ROOT)/lib
 BDIR = $(ESP_ROOT)/bin
 
-DEFAULTS = $(LDIR)/libc3dio.a $(LDIR)/libCart3D.a \
-	   $(BDIR)/avl $(BDIR)/pplot $(BDIR)/pxplot $(BDIR)/xfoil \
+DEFAULTS = $(BDIR)/avl $(BDIR)/pplot $(BDIR)/pxplot $(BDIR)/xfoil \
 	   $(BDIR)/mastros.exe $(BDIR)/ASTRO.D01 $(BDIR)/ASTRO.IDX \
 	   $(BDIR)/mses $(BDIR)/mset
 
@@ -32,30 +31,6 @@ DEFAULTS +=  $(LDIR)/aflr2AIM.so $(LDIR)/aflr3AIM.so $(LDIR)/aflr4AIM.so
 endif
 
 default:	$(DEFAULTS)
-
-ifeq ($(ESP_ARCH),DARWIN64)
-$(LDIR)/libc3dio.a:		Cart3D/OSX64_CLANG/libc3dio.a
-	/bin/cp Cart3D/OSX64_CLANG/libc3dio.a $(LDIR)/libc3dio.a
-
-$(LDIR)/libCart3D.a:		Cart3D/OSX64_CLANG/libCart3D.a
-	/bin/cp Cart3D/OSX64_CLANG/libCart3D.a $(LDIR)/libCart3D.a
-endif
-
-ifeq ($(ESP_ARCH),DARWIN_ARM64)
-$(LDIR)/libc3dio.a:		Cart3D/M1_CLANG/libc3dio.a
-	/bin/cp Cart3D/M1_CLANG/libc3dio.a $(LDIR)/libc3dio.a
-
-$(LDIR)/libCart3D.a:		Cart3D/M1_CLANG/libCart3D.a
-	/bin/cp Cart3D/M1_CLANG/libCart3D.a $(LDIR)/libCart3D.a
-endif
-
-ifeq ($(ESP_ARCH),LINUX64)
-$(LDIR)/libc3dio.a:	Cart3D/X86_64_GCC/libc3dio.a
-	/bin/cp Cart3D/X86_64_GCC/libc3dio.a $(LDIR)/libc3dio.a
-
-$(LDIR)/libCart3D.a:	Cart3D/X86_64_GCC/libCart3D.a
-	/bin/cp Cart3D/X86_64_GCC/libCart3D.a $(LDIR)/libCart3D.a
-endif
 
 ifeq ($(ESP_ARCH),LINUX_AARCH64)
 $(LDIR)/libc3dio.a:

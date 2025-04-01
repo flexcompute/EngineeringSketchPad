@@ -1,0 +1,17 @@
+# tessSize
+# written by John Dannenhoffer
+
+BOX       0  0  0  6  4  2
+
+PATBEG    iedge  @nedge
+   EVALUATE  edgetess  @nbody  iedge
+   MESSAGE   !$Edge_+iedge+$_has_+@edata[1]+$_points
+PATEND
+
+PATBEG    iface  @nface
+   EVALUATE  facetess  @nbody  iface
+   MESSAGE   !$Face_+iface+$_has_+@edata[1]+$_points_and_+@edata[2]+$_triangles
+PATEND
+
+END
+

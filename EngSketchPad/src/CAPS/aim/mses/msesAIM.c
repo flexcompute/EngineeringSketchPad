@@ -25,16 +25,21 @@
  * MSES inherently assumes the airfoil cross-section is in the x-y plane, if it isn't an attempt is made
  * to automatically rotate the provided body.
  *
- * Within <b> OpenCSM</b>, there are a number of airfoil generation UDPs (User Defined Primitives). These include NACA 4
+ * \subsection airfoilMSES Airfoils in ESP
+ * Within <b> OpenCSM</b> there are a number of airfoil generation UDPs (User Defined Primitives). These include NACA 4
  * series, a more general NACA 4/5/6 series generator, Sobieczky's PARSEC parameterization and Kulfan's CST
  * parameterization. All of these UDPs generate <b> EGADS</b> <em> FaceBodies</em> where the <em>Face</em>'s underlying
  * <em>Surface</em>  is planar and the bounds of the <em>Face</em> is a closed set of <em>Edges</em> whose
- * underlying <em>Curves</em> contain the airfoil shape. In all cases there is a <em>Node</em> that represents
- * the <em>Leading Edge</em> point and one or two <em>Nodes</em> at the <em>Trailing Edge</em> -- one if the
- * representation is for a sharp TE and the other if the definition is open or blunt. If there are 2 <em>Nodes</em>
- * at the back, then there are 3 <em>Edges</em> all together and closed, even though the airfoil definition
- * was left open at the TE. All of this information will be used to automatically fill in the MSES geometry
- * description.
+ * underlying <em>Curves</em> contain the airfoil shape.
+ *
+ * <b>Important Airfoil Geometry Assumptions</b>
+ * - There must be a <em>Node</em> that represents the <em>Leading Edge</em> point
+ * - For a sharp trailing edge, there must be a <em>Nodes</em> at the <em>Trailing Edge</em>
+ * - For a blunt trailing edge, the airfoil curve may be open, or closed by a single <em>Edge</em> connecting the upper/lower <em>Nodes</em>
+ * - For a <em>FaceBody</em>, the airfoil coordinates traverse counter-clockwise around the <em>Face</em> normal. The <b>OpenCSM</b> <em>REORDER</em> operation may be used to flip the <em>Face</em> normal.
+ * - For a <em>WireBody</em>, the airfoil coordinates traverse in the order of the loop
+ *
+ * <b>Note:</b> Additional spurious <em>Nodes</em> on the upper and lower <em>Edges</em> of the airfoil are acceptable.
  *
  * It should be noted that general construction in either <b> OpenCSM</b> or even <b> EGADS</b> will be supported
  * as long as the topology described above is used. But care should be taken when constructing the airfoil shape
@@ -110,6 +115,7 @@ enum aimOutputs
   outCD_v,
   outCD_w,
   outCM,
+  outMcrit,
   outCheby_Modes,
   NUMOUTPUT = outCheby_Modes        /* Total number of outputs */
 };
@@ -140,6 +146,7 @@ typedef struct {
   capsValue CDv;
   capsValue CDw;
   capsValue CM;
+  capsValue Mcrit;
   capsValue Cheby_Modes;
 
   // Design information
@@ -166,6 +173,7 @@ static int destroy_aimStorage(aimStorage *msesInstance, int inUpdate)
   aim_freeValue(&msesInstance->CDv);
   aim_freeValue(&msesInstance->CDw);
   aim_freeValue(&msesInstance->CM);
+  aim_freeValue(&msesInstance->Mcrit);
   aim_freeValue(&msesInstance->Cheby_Modes);
 
   if (inUpdate == (int)true) return CAPS_SUCCESS;
@@ -200,6 +208,65 @@ static int destroy_aimStorage(aimStorage *msesInstance, int inUpdate)
   AIM_FREE(msesInstance->vlmSections);
 
   return CAPS_SUCCESS;
+}
+
+
+static void resMcrit(double minCp, double gamma, double Mcr, double *res, double *res_Mcr)
+{
+  double Mcr2 = Mcr*Mcr;
+  double gm1 = gamma-1;
+
+  *res     = minCp * gamma*Mcr2/2 -                           ( pow((1 + (gm1/2)*Mcr2)/(1 + gm1/2), gamma/gm1    ) - 1 );
+  *res_Mcr = minCp * gamma*Mcr    - gamma/(1 + gm1/2) * Mcr * ( pow((1 + (gm1/2)*Mcr2)/(1 + gm1/2), gamma/gm1 - 1)     );
+}
+
+
+static void solveMcrit(double gamma, double Mach, double minCp, double *result)
+{
+  int i = 0, j = 0;
+  double res, res_Mcr, nres;
+  double Mcr = Mach, nMcr;
+  double dMcr, s;
+
+  resMcrit(minCp, gamma, Mcr, &res, &res_Mcr);
+
+  for (i = 0; i < 40; i++) {
+    // Check for convergence
+    if (fabs(res) < 1e-6) break;
+
+    // Newton update
+    dMcr = -res/res_Mcr;
+
+    // line search to reduce residual
+    s = 1;
+    for (j = 0; j < 20; j++) {
+      nMcr = Mcr + s*dMcr;
+      if (nMcr < 0.001) nMcr = 0.001;
+
+      resMcrit(minCp, gamma, nMcr, &nres, &res_Mcr);
+
+      if (fabs(nres) < fabs(res)) break;
+      s /= 2.0;
+    }
+
+    Mcr = nMcr;
+    res = nres;
+  }
+
+  *result = Mcr;
+}
+
+
+static void sensMcrit(double gamma, double Mcr, double minCp, double minCp_a, double *Mcr_a)
+{
+  double Mcr2 = Mcr*Mcr;
+  double res, res_Mcr, res_a;
+
+  resMcrit(minCp, gamma, Mcr, &res, &res_Mcr);
+
+  res_a = minCp_a * gamma*Mcr2/2;
+
+  *Mcr_a = -res_a/res_Mcr;
 }
 
 
@@ -239,6 +306,7 @@ int aimInitialize(int inst, /*@unused@*/ const char *unitSys, /*@unused@*/ void 
   aim_initValue(&msesInstance->CDv);
   aim_initValue(&msesInstance->CDw);
   aim_initValue(&msesInstance->CM);
+  aim_initValue(&msesInstance->Mcrit);
   aim_initValue(&msesInstance->Cheby_Modes);
 /*@+uniondef@*/
 
@@ -709,8 +777,7 @@ int aimUpdateState(void *instStore, void *aimInfo,
   }
 
   // Get geometric coordinates if needed
-  if (msesInstance->numBody == 0 ||
-      aim_newGeometry(aimInfo) == CAPS_SUCCESS ) {
+  if (aim_newGeometry(aimInfo) == CAPS_SUCCESS ) {
 
     // Remove any previous geometric coordinates
     for (i = 0; i < msesInstance->numBody; i++) {
@@ -1359,6 +1426,9 @@ int aimPostAnalysis(void *instStore, void *aimInfo,
   int numFunctional, irow, icol;
   aimStorage *msesInstance=NULL;
 
+  double minCp, minCp_dvar, Mcrit_dvar, Mcrit_mod;
+  int mi=-1, mj=-1;
+
   size_t linecap=0;
   char *line=NULL;
   FILE *fp=NULL;
@@ -1386,6 +1456,8 @@ int aimPostAnalysis(void *instStore, void *aimInfo,
 
   AIM_NOTNULL(instStore, aimInfo, status);
   AIM_NOTNULL(aimInputs, aimInfo, status);
+
+  double gamma = 1.4;
 
   msesInstance = (aimStorage*)instStore;
 
@@ -1446,7 +1518,7 @@ int aimPostAnalysis(void *instStore, void *aimInfo,
   }
   AIM_NOTNULL(sensx, aimInfo, status);
 
-  numFunctional = 7;
+  numFunctional = 8;
   AIM_ALLOC(values, numFunctional, capsValue*, aimInfo, status);
   values[0] = &msesInstance->Alpha;
   values[1] = &msesInstance->CL;
@@ -1455,6 +1527,7 @@ int aimPostAnalysis(void *instStore, void *aimInfo,
   values[4] = &msesInstance->CDv;
   values[5] = &msesInstance->CDw;
   values[6] = &msesInstance->CM;
+  values[7] = &msesInstance->Mcrit;
 
   nderiv = 3;
 
@@ -1531,6 +1604,29 @@ int aimPostAnalysis(void *instStore, void *aimInfo,
   msesInstance->CM.derivs[0].deriv[0] = sensx->cm_alfa / 180. * PI;
   msesInstance->CM.derivs[1].deriv[0] = sensx->cm_mach;
   msesInstance->CM.derivs[2].deriv[0] = sensx->cm_reyn;
+  // --------------------------------------
+
+  // Mcrit -----------------------------------
+  minCp = 1.e10;
+  for (i = 0; i < sensx->nbl; i++) {
+    for (j = 0; j < sensx->iend[i] - sensx->ileb[i]; j++) {
+      if (sensx->cp[2*i][j] < minCp) {
+        mi = 2*i;
+        mj = j;
+        minCp = sensx->cp[mi][mj];
+      }
+      if (sensx->cp[2*i+1][j] < minCp) {
+        mi = 2*i+1;
+        mj = j;
+        minCp = sensx->cp[mi][mj];
+      }
+    }
+  }
+  solveMcrit(gamma, sensx->mach, minCp, &msesInstance->Mcrit.vals.real);
+
+  sensMcrit(gamma, msesInstance->Mcrit.vals.real, minCp, sensx->cp_alfa[mi][mj] / 180. * PI, &msesInstance->Mcrit.derivs[0].deriv[0]);
+  sensMcrit(gamma, msesInstance->Mcrit.vals.real, minCp, sensx->cp_mach[mi][mj]            , &msesInstance->Mcrit.derivs[1].deriv[0]);
+  sensMcrit(gamma, msesInstance->Mcrit.vals.real, minCp, sensx->cp_reyn[mi][mj]            , &msesInstance->Mcrit.derivs[2].deriv[0]);
   // --------------------------------------
 
   // Cheby_Modes --------------------------------------
@@ -1818,6 +1914,13 @@ int aimPostAnalysis(void *instStore, void *aimInfo,
                 functional_dvar += sensx->cm_mod[j]*dmod_dvar[j];
               }
               break;
+            case outMcrit:
+              for (j = 0; j < sensx->nmod; j++) {
+                minCp_dvar = sensx->cp_mod[j][mi][mj]*dmod_dvar[j];
+                sensMcrit(gamma, msesInstance->Mcrit.vals.real, minCp, minCp_dvar, &Mcrit_dvar);
+                functional_dvar += Mcrit_dvar;
+              }
+              break;
             default:
               AIM_ERROR(aimInfo, "Unknown functional %d", i+1);
               status = CAPS_NOTIMPLEMENT;
@@ -1873,6 +1976,12 @@ int aimPostAnalysis(void *instStore, void *aimInfo,
       case outCM:
         for (j = 0; j < sensx->nmod; j++) {
           values[i]->derivs[3].deriv[j] = sensx->cm_mod[j];
+        }
+        break;
+      case outMcrit:
+        for (j = 0; j < sensx->nmod; j++) {
+          sensMcrit(gamma, msesInstance->Mcrit.vals.real, minCp, sensx->cp_mod[j][mi][mj], &Mcrit_mod);
+          values[i]->derivs[3].deriv[j] = Mcrit_mod;
         }
         break;
       default:
@@ -1966,6 +2075,16 @@ int aimOutputs(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo,
          * - <B> CM = </B> Moment coefficient value(s).
          */
 
+    }  else if (index == outMcrit) {
+        *aoname = EG_strdup("Mcrit");
+
+        /*! \page aimOutputsMSES
+         * - <B> Mcrit = </B> Critical Mach number by solving:
+         * \f[
+         *  C_{p,min} = \frac{2}{\gamma M_{crit}^2}\left[\left( \frac{1 + [(\gamma-1)/2]M_{crit}^2}{1 + (\gamma-1)/2}\right)^{\gamma/(\gamma-1)} - 1 \right]
+         * \f]
+         */
+
     } else if (index == outCheby_Modes) {
         *aoname              = EG_strdup("Cheby_Modes");
         form->type           = Double;
@@ -1984,7 +2103,6 @@ int aimOutputs(/*@unused@*/ void *instStore, /*@unused@*/ void *aimInfo,
 
     return status;
 }
-
 
 // ********************** AIM Function Break *****************************
 int aimCalcOutput(/*@unused@*/ void *instStore, /*@unused@*/void *aimInfo,
@@ -2017,6 +2135,9 @@ int aimCalcOutput(/*@unused@*/ void *instStore, /*@unused@*/void *aimInfo,
     } else if (index == outCM) {
       *val = msesInstance->CM;
       aim_initValue(&msesInstance->CM);
+    } else if (index == outMcrit) {
+      *val = msesInstance->Mcrit;
+      aim_initValue(&msesInstance->Mcrit);
     } else if (index == outCheby_Modes) {
       *val = msesInstance->Cheby_Modes;
       aim_initValue(&msesInstance->Cheby_Modes);

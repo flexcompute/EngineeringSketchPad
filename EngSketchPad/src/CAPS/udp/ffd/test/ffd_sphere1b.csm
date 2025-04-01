@@ -1,0 +1,14 @@
+# ffd_sphere1b
+# written by Marshall Galbraith
+
+# original configuration
+SPHERE 8.5 0 0  0.5
+
+STORE   original
+
+# Deform original
+UDPRIM $/ffdb
+
+END
+
+

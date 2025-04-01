@@ -1,0 +1,12 @@
+# ffd_cylinder1a
+# written by Marshall Galbraith
+
+# original configuration
+CYLINDER    0.0  0.0  0.0  0.0  1.0  0.0  1.0
+
+STORE   original
+
+# Deform original
+UDPRIM $/ffda
+
+END

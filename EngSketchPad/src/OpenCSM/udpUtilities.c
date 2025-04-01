@@ -10,7 +10,7 @@
  */
 
 /*
- * Copyright (C) 2011/2024  John F. Dannenhoffer, III (Syracuse University)
+ * Copyright (C) 2011/2025  John F. Dannenhoffer, III (Syracuse University)
  *
  * This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
@@ -405,7 +405,7 @@ udpFree(int   numudp,                   /* (in)  number of instances */
     for (iudp = 0; iudp <= numudp; iudp++) {
 
         /* arguments */
-        for (iarg = 0; iarg < NUMUDPARGS; iarg++) {
+        for (iarg = 0; iarg < udps[iudp].narg; iarg++) {
             if (udps[iudp].arg[iarg].val != NULL) {
                 EG_free(udps[iudp].arg[iarg].val);
             }
@@ -951,7 +951,7 @@ udpClean(int   *NumUdp,                 /* (both)number of instances */
         if (udps[numUdp].ebody == NULL) {
 
             /* arguments */
-            for (iarg = 0; iarg < NUMUDPARGS; iarg++) {
+            for (iarg = 0; iarg < udps[numUdp].narg; iarg++) {
                 if (udps[numUdp].arg[iarg].val != NULL) {
                     EG_free(udps[numUdp].arg[iarg].val);
                 }
@@ -1062,7 +1062,7 @@ CacheUdp(/*@null@*/ego emodel,          /* (in)  Model with __bodyList__ */
     /* --------------------------------------------------------------- */
 
 #ifdef DEBUG
-    printf("enter cacheUdp(emodel=%lx)\n", (long)emodel);
+    printf("enter cacheUdp(emodel=%llx)\n", (long long)emodel);
 #endif
 
     udps = *Udps;

@@ -3,7 +3,7 @@
  *
  *             Exodus 3D Mesh Writer Code
  *
- * *      Copyright 2014-2023, Massachusetts Institute of Technology
+ *      Copyright 2014-2025, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -91,7 +91,7 @@ static int getNodesetTopos(void *aimInfo,
     while((token = strtok_r(rest, ";", &rest))) {
 
       std::string key(token);
-      
+
       if (topos[itopo]->oclass == FACE) {
         /* get the Face indexing and store it away */
         status = EG_getTessFace(map->tess, itopo+1, &plen, &points, &uv, &ptype, &pindex,
@@ -236,7 +236,7 @@ int meshWrite(void *aimInfo, aimMesh *mesh)
 
   std::array<int,2> tExodusTriFaceMap[3] = {{0,1},{1,2},{2,0}};
   std::array<int,2> tExodusQuadFaceMap[4] = {{0,1},{1,2},{2,3},{3,0}};
-  std::array<int,3> tExodusTetFaceMap[4] = {{0,1,3},{1,2,3},{2,0,3},{0,2,1}};
+  std::array<int,3> tExodusTetFaceMap[4] = {{0,1,3},{1,2,3},{0,3,2},{0,2,1}};
 
   std::map<std::array<int,2>, std::pair<int,const int*> > mLineToTriMap;
   std::map<std::array<int,2>, std::pair<int,const int*> > mLineToQuadMap;
@@ -249,6 +249,7 @@ int meshWrite(void *aimInfo, aimMesh *mesh)
   typedef std::map<std::array<int,2>, std::pair<int,const int*> >::const_iterator sidesetLine_iterator;
   typedef std::map<std::string, std::vector<int>>::const_iterator sideset_iterator;
   typedef std::map<std::string, std::set<int> >::const_iterator nodeset_iterator;
+  typedef std::map<std::array<int,3>, std::pair<int,const int*> >::const_iterator FaceToTet_iterator;
 
   printf("\nWriting exodus file ....\n");
 
@@ -277,12 +278,6 @@ int meshWrite(void *aimInfo, aimMesh *mesh)
   meshData = mesh->meshData;
 
   for (igroup = 0; igroup < meshData->nElemGroup; igroup++) {
-    if (meshData->elemGroups[igroup].order != 1) {
-      AIM_ERROR(aimInfo, "CAPS Exodus writer only supports linear mesh elements at the moment! group %d order = %d",
-                igroup, meshData->elemGroups[igroup].order);
-      status = CAPS_IOERR;
-      goto cleanup;
-    }
 
     // count the number of trace element groups
     if (meshData->dim == 2 || meshRef->type == aimSurfaceMesh) {
@@ -290,8 +285,7 @@ int meshWrite(void *aimInfo, aimMesh *mesh)
       if (meshData->elemGroups[igroup].elementTopo != aimLine &&
           meshData->elemGroups[igroup].elementTopo != aimTri &&
           meshData->elemGroups[igroup].elementTopo != aimQuad) {
-        AIM_ERROR(aimInfo, "CAPS 2D/Surface Exodus writer only supports triangle/quad meshes at the moment",
-                  igroup, meshData->elemGroups[igroup].order);
+        AIM_ERROR(aimInfo, "CAPS 2D/Surface Exodus writer only supports triangle/quad meshes at the moment");
         status = CAPS_IOERR;
         goto cleanup;
       }
@@ -306,8 +300,7 @@ int meshWrite(void *aimInfo, aimMesh *mesh)
 
       if (meshData->elemGroups[igroup].elementTopo != aimTri &&
           meshData->elemGroups[igroup].elementTopo != aimTet) {
-        AIM_ERROR(aimInfo, "CAPS 3D Exodus writer only supports tetrahedral meshes at the moment",
-                  igroup, meshData->elemGroups[igroup].order);
+        AIM_ERROR(aimInfo, "CAPS 3D Exodus writer only supports tetrahedral meshes at the moment");
         status = CAPS_IOERR;
         goto cleanup;
       }
@@ -525,7 +518,8 @@ int meshWrite(void *aimInfo, aimMesh *mesh)
 #endif
     }
 
-         if (meshData->elemGroups[igroup].elementTopo == aimTri    ) name = "tri";
+         if (meshData->elemGroups[igroup].elementTopo == aimLine   ) name = "bar";
+    else if (meshData->elemGroups[igroup].elementTopo == aimTri    ) name = "tri";
     else if (meshData->elemGroups[igroup].elementTopo == aimQuad   )
       if (meshData->dim == 2) name = "quad";
       else                    name = "shell";
@@ -562,7 +556,7 @@ int meshWrite(void *aimInfo, aimMesh *mesh)
     snprintf(side_set_names[bnd], MAX_STR_LENGTH, "%s", sideset->first.c_str());
     bnd++;
   }
-  
+
   for (std::size_t imap = 0; imap < sidesetBounds.size(); imap++) {
     for (sideset_iterator sideset = sidesetBounds[imap].begin(); sideset != sidesetBounds[imap].end(); ++sideset) {
       AIM_ALLOC(side_set_names[bnd], MAX_STR_LENGTH+1, char, aimInfo, status);
@@ -594,7 +588,7 @@ int meshWrite(void *aimInfo, aimMesh *mesh)
   }
 
 
-  /* write volume elements blocks */
+  /* write elements blocks */
   cellID = 1;
   blk = 0;
   for (igroup = 0; igroup < meshData->nElemGroup; igroup++) {
@@ -613,7 +607,8 @@ int meshWrite(void *aimInfo, aimMesh *mesh)
     nPoint = meshData->elemGroups[igroup].nPoint;
     nElems = meshData->elemGroups[igroup].nElems;
 
-         if (meshData->elemGroups[igroup].elementTopo == aimTri    ) name = "tri";
+         if (meshData->elemGroups[igroup].elementTopo == aimLine   ) name = "bar";
+    else if (meshData->elemGroups[igroup].elementTopo == aimTri    ) name = "tri";
     else if (meshData->elemGroups[igroup].elementTopo == aimQuad   )
       if (meshData->dim == 2) name = "quad";
       else                    name = "shell";
@@ -696,12 +691,7 @@ int meshWrite(void *aimInfo, aimMesh *mesh)
     std::vector<int> elem_list(nElems,-1);
     std::vector<int> side_list(nElems,-1);
 
-    printf("\tSideset: '%s', set_id %d, num_entries %d\n", side_set_names[bnd++], ID, nElems);
-
-    /* write the side set info */
-    status = ex_put_set_param(exoid, EX_SIDE_SET, ID, nElems, 0);
-    AIM_STATUS(aimInfo, status);
-
+    int nfound = 0;
     int ielem = 0;
     for (i = 0; i < (int)sideset->second.size(); i++) {
       igroup = sideset->second[i];
@@ -755,24 +745,36 @@ int meshWrite(void *aimInfo, aimMesh *mesh)
 
           elem_list[ielem] = tAttachedElem.first;
           side_list[ielem] = 1;
+          nfound++;
         } else {
           tTriNodes[0] = tElemConn[0];
           tTriNodes[1] = tElemConn[1];
           tTriNodes[2] = tElemConn[2];
 
           std::sort(tTriNodes.begin(), tTriNodes.end());
-          tAttachedElem = mFaceToTetMap.at(tTriNodes);
+
+          FaceToTet_iterator it = mFaceToTetMap.find(tTriNodes);
+          if (it == mFaceToTetMap.end()) continue;
+
+          tAttachedElem = it->second;
 
           elem_list[ielem] = tAttachedElem.first;
           side_list[ielem] = getFaceIndex<3>(tAttachedElem.second, 4, tExodusTetFaceMap, tTriNodes);
+          nfound++;
         }
       }
     }
 
+    printf("\tSideset: '%s', set_id %d, num_entries %d\n", side_set_names[bnd++], ID, nfound);
+
+    /* write the side set info */
+    status = ex_put_set_param(exoid, EX_SIDE_SET, ID, nfound, 0);
+    AIM_STATUS(aimInfo, status);
+
     /* write the side set elem and side lists */
     status = ex_put_set(exoid, EX_SIDE_SET, ID, elem_list.data(), side_list.data());
     AIM_STATUS(aimInfo, status);
-    
+
     ID++;
   }
 

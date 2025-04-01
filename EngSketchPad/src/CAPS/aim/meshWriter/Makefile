@@ -1,5 +1,5 @@
 #
-DIRS = $(filter-out NMakefile, $(filter-out Makefile, $(wildcard *Writer)))
+DIRS = $(sort $(dir $(wildcard *Writer/Makefile)))
 
 .PHONY:		$(DIRS)
 

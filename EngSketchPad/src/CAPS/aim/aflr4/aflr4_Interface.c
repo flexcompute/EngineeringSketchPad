@@ -19,6 +19,13 @@ typedef int         pid_t;
 
 #include "aflr4_Interface.h" // Bring in AFLR4 'interface' functions
 
+#ifndef S_SPLINT_S
+#define AFLR_STATUS(aimInfo, statys, ...) \
+if (status != 0) { status = CAPS_EXECERR; AIM_STATUS(aimInfo, status, ##__VA_ARGS__); }
+#else
+extern void AFLR_STATUS(void *aimInfo, int status, ...);
+#endif
+
 
 int aflr4_Surface_Mesh(void *aimInfo,
                        int quiet,
@@ -71,11 +78,8 @@ int aflr4_Surface_Mesh(void *aimInfo,
 
         status = EG_getBodyTopos (bodies[bodyIndex], NULL, FACE, &numFace,
                                   &faces);
-        if (status != EGADS_SUCCESS) goto cleanup;
-        if (faces == NULL) {
-          status = CAPS_NULLOBJ;
-          goto cleanup;
-        }
+        AIM_STATUS(aimInfo, status);
+        AIM_NOTNULL(faces, aimInfo, status);
 
         for (faceIndex = 0; faceIndex < numFace ; faceIndex++) {
 
@@ -298,7 +302,7 @@ int aflr4_Surface_Mesh(void *aimInfo,
     sf_global = meshLenFac;
 
     /*
-    printf("ff_cdfr               = %d\n", ff_cdfr       );
+    printf("ff_cdfr               = %f\n", ff_cdfr       );
     printf("min_ncell             = %d\n", min_ncell     );
     printf("mer_all               = %d\n", mer_all       );
     printf("no_prox               = %d\n", no_prox       );
@@ -316,46 +320,46 @@ int aflr4_Surface_Mesh(void *aimInfo,
     // Allocate argument vector.
 
     status = ug_add_new_arg (&prog_argv, "allocate_and_initialize_argv");
-    if (status != CAPS_SUCCESS) goto cleanup;
+    AFLR_STATUS(aimInfo, status);
 
     // set AFLR4 input parameters
 
-    status = ug_add_flag_arg (  "min_ncell", &prog_argc, &prog_argv); if (status != CAPS_SUCCESS) goto cleanup;
-    status = ug_add_int_arg  (   min_ncell , &prog_argc, &prog_argv); if (status != CAPS_SUCCESS) goto cleanup;
-    status = ug_add_flag_arg (  "mer_all"  , &prog_argc, &prog_argv); if (status != CAPS_SUCCESS) goto cleanup;
-    status = ug_add_int_arg  (   mer_all   , &prog_argc, &prog_argv); if (status != CAPS_SUCCESS) goto cleanup;
+    status = ug_add_flag_arg (  "min_ncell", &prog_argc, &prog_argv); AFLR_STATUS(aimInfo, status);
+    status = ug_add_int_arg  (   min_ncell , &prog_argc, &prog_argv); AFLR_STATUS(aimInfo, status);
+    status = ug_add_flag_arg (  "mer_all"  , &prog_argc, &prog_argv); AFLR_STATUS(aimInfo, status);
+    status = ug_add_int_arg  (   mer_all   , &prog_argc, &prog_argv); AFLR_STATUS(aimInfo, status);
     if (no_prox == True) {
-      status = ug_add_flag_arg ("-no_prox"    , &prog_argc, &prog_argv); if (status != CAPS_SUCCESS) goto cleanup;
+      status = ug_add_flag_arg ("-no_prox"    , &prog_argc, &prog_argv); AFLR_STATUS(aimInfo, status);
     }
     if (quad == True) {
-      status = ug_add_flag_arg ("-quad"       , &prog_argc, &prog_argv); if (status != CAPS_SUCCESS) goto cleanup;
+      status = ug_add_flag_arg ("-quad"       , &prog_argc, &prog_argv); AFLR_STATUS(aimInfo, status);
 
       // proximity currently does not work with -quad. Dave says it's a long story
-      status = ug_add_flag_arg ("-no_prox"    , &prog_argc, &prog_argv); if (status != CAPS_SUCCESS) goto cleanup;
+      status = ug_add_flag_arg ("-no_prox"    , &prog_argc, &prog_argv); AFLR_STATUS(aimInfo, status);
     }
     if (skin == True) {
-      status = ug_add_flag_arg ("-skin"       , &prog_argc, &prog_argv); if (status != CAPS_SUCCESS) goto cleanup;
+      status = ug_add_flag_arg ("-skin"       , &prog_argc, &prog_argv); AFLR_STATUS(aimInfo, status);
     }
-    status = ug_add_flag_arg ( "ff_cdfr"      , &prog_argc, &prog_argv); if (status != CAPS_SUCCESS) goto cleanup;
-    status = ug_add_double_arg (ff_cdfr       , &prog_argc, &prog_argv); if (status != CAPS_SUCCESS) goto cleanup;
-    status = ug_add_flag_arg ( "BL_thickness" , &prog_argc, &prog_argv); if (status != CAPS_SUCCESS) goto cleanup;
-    status = ug_add_double_arg (BL_thickness  , &prog_argc, &prog_argv); if (status != CAPS_SUCCESS) goto cleanup;
-    status = ug_add_flag_arg ( "Re_l"         , &prog_argc, &prog_argv); if (status != CAPS_SUCCESS) goto cleanup;
-    status = ug_add_double_arg (Re_l          , &prog_argc, &prog_argv); if (status != CAPS_SUCCESS) goto cleanup;
-    status = ug_add_flag_arg ( "curv_factor"  , &prog_argc, &prog_argv); if (status != CAPS_SUCCESS) goto cleanup;
-    status = ug_add_double_arg (curv_factor   , &prog_argc, &prog_argv); if (status != CAPS_SUCCESS) goto cleanup;
-    status = ug_add_flag_arg ( "abs_min_scale", &prog_argc, &prog_argv); if (status != CAPS_SUCCESS) goto cleanup;
-    status = ug_add_double_arg (abs_min_scale , &prog_argc, &prog_argv); if (status != CAPS_SUCCESS) goto cleanup;
-    status = ug_add_flag_arg ( "max_scale"    , &prog_argc, &prog_argv); if (status != CAPS_SUCCESS) goto cleanup;
-    status = ug_add_double_arg (max_scale     , &prog_argc, &prog_argv); if (status != CAPS_SUCCESS) goto cleanup;
-    status = ug_add_flag_arg ( "min_scale"    , &prog_argc, &prog_argv); if (status != CAPS_SUCCESS) goto cleanup;
-    status = ug_add_double_arg (min_scale     , &prog_argc, &prog_argv); if (status != CAPS_SUCCESS) goto cleanup;
-    status = ug_add_flag_arg ( "ref_len"      , &prog_argc, &prog_argv); if (status != CAPS_SUCCESS) goto cleanup;
-    status = ug_add_double_arg (ref_len       , &prog_argc, &prog_argv); if (status != CAPS_SUCCESS) goto cleanup;
-    status = ug_add_flag_arg ( "erw_all"      , &prog_argc, &prog_argv); if (status != CAPS_SUCCESS) goto cleanup;
-    status = ug_add_double_arg (erw_all       , &prog_argc, &prog_argv); if (status != CAPS_SUCCESS) goto cleanup;
-    status = ug_add_flag_arg ( "sf_global"    , &prog_argc, &prog_argv); if (status != CAPS_SUCCESS) goto cleanup;
-    status = ug_add_double_arg (sf_global     , &prog_argc, &prog_argv); if (status != CAPS_SUCCESS) goto cleanup;
+    status = ug_add_flag_arg ( "ff_cdfr"      , &prog_argc, &prog_argv); AFLR_STATUS(aimInfo, status);
+    status = ug_add_double_arg (ff_cdfr       , &prog_argc, &prog_argv); AFLR_STATUS(aimInfo, status);
+    status = ug_add_flag_arg ( "BL_thickness" , &prog_argc, &prog_argv); AFLR_STATUS(aimInfo, status);
+    status = ug_add_double_arg (BL_thickness  , &prog_argc, &prog_argv); AFLR_STATUS(aimInfo, status);
+    status = ug_add_flag_arg ( "Re_l"         , &prog_argc, &prog_argv); AFLR_STATUS(aimInfo, status);
+    status = ug_add_double_arg (Re_l          , &prog_argc, &prog_argv); AFLR_STATUS(aimInfo, status);
+    status = ug_add_flag_arg ( "curv_factor"  , &prog_argc, &prog_argv); AFLR_STATUS(aimInfo, status);
+    status = ug_add_double_arg (curv_factor   , &prog_argc, &prog_argv); AFLR_STATUS(aimInfo, status);
+    status = ug_add_flag_arg ( "abs_min_scale", &prog_argc, &prog_argv); AFLR_STATUS(aimInfo, status);
+    status = ug_add_double_arg (abs_min_scale , &prog_argc, &prog_argv); AFLR_STATUS(aimInfo, status);
+    status = ug_add_flag_arg ( "max_scale"    , &prog_argc, &prog_argv); AFLR_STATUS(aimInfo, status);
+    status = ug_add_double_arg (max_scale     , &prog_argc, &prog_argv); AFLR_STATUS(aimInfo, status);
+    status = ug_add_flag_arg ( "min_scale"    , &prog_argc, &prog_argv); AFLR_STATUS(aimInfo, status);
+    status = ug_add_double_arg (min_scale     , &prog_argc, &prog_argv); AFLR_STATUS(aimInfo, status);
+    status = ug_add_flag_arg ( "ref_len"      , &prog_argc, &prog_argv); AFLR_STATUS(aimInfo, status);
+    status = ug_add_double_arg (ref_len       , &prog_argc, &prog_argv); AFLR_STATUS(aimInfo, status);
+    status = ug_add_flag_arg ( "erw_all"      , &prog_argc, &prog_argv); AFLR_STATUS(aimInfo, status);
+    status = ug_add_double_arg (erw_all       , &prog_argc, &prog_argv); AFLR_STATUS(aimInfo, status);
+    status = ug_add_flag_arg ( "sf_global"    , &prog_argc, &prog_argv); AFLR_STATUS(aimInfo, status);
+    status = ug_add_double_arg (sf_global     , &prog_argc, &prog_argv); AFLR_STATUS(aimInfo, status);
 
     // Add meshInputString arguments (if any) to argument vector.
     // Note that since this comes after setting aimInputs the
@@ -368,7 +372,7 @@ int aflr4_Surface_Mesh(void *aimInfo,
         AIM_NOTNULL(meshInputString, aimInfo, status);
 
         status = ug_add_list_arg (meshInputString, &prog_argc, &prog_argv);
-        if (status != CAPS_SUCCESS) goto cleanup;
+        AFLR_STATUS(aimInfo, status);
     }
 
     // Set AFLR4 case name.
@@ -382,8 +386,8 @@ int aflr4_Surface_Mesh(void *aimInfo,
     // Set quiet message flag.
 
     if (quiet == (int)true ) {
-        status = ug_add_flag_arg ("mmsg", &prog_argc, &prog_argv); if (status != CAPS_SUCCESS) goto cleanup;
-        status = ug_add_int_arg (0, &prog_argc, &prog_argv);       if (status != CAPS_SUCCESS) goto cleanup;
+        status = ug_add_flag_arg ("mmsg", &prog_argc, &prog_argv); AFLR_STATUS(aimInfo, status);
+        status = ug_add_int_arg (0, &prog_argc, &prog_argv);       AFLR_STATUS(aimInfo, status);
     }
 
     // Register AFLR4-EGADS routines for CAD related setup & cleanup,
@@ -431,7 +435,7 @@ int aflr4_Surface_Mesh(void *aimInfo,
     status = aflr4_setup_param (mmsg, 0, prog_argc, prog_argv,
                                 &AFLR4_Param_Struct_Ptr);
 /*@+nullpass@*/
-    AIM_STATUS(aimInfo, status, "aflr4_setup_param failed!");
+    AFLR_STATUS(aimInfo, status, "aflr4_setup_param failed!");
 
     // Allocate AFLR4-EGADS data structure, initialize, and link body data.
 
@@ -456,14 +460,14 @@ int aflr4_Surface_Mesh(void *aimInfo,
 /*@+nullpass@*/
 
     status = aflr4_set_ext_cad_data (&model);
-    AIM_STATUS(aimInfo, status);
+    AFLR_STATUS(aimInfo, status);
 
     // Complete all tasks required for AFLR4 surface grid generation.
 
 /*@-nullpass@*/
     status = aflr4_setup_and_grid_gen (1, AFLR4_Param_Struct_Ptr);
     /*@+nullpass@*/
-    AIM_STATUS(aimInfo, status);
+    AFLR_STATUS(aimInfo, status);
 
 //#define DUMP_TECPLOT_DEBUG_FILE
 #ifdef DUMP_TECPLOT_DEBUG_FILE
@@ -512,7 +516,7 @@ int aflr4_Surface_Mesh(void *aimInfo,
                                 &quadCon,
                                 &uv,
                                 &xyz);
-        AIM_STATUS(aimInfo, status);
+        AFLR_STATUS(aimInfo, status);
 
         fprintf(fp, "ZONE T=\"def %d\" N=%d, E=%d, F=FEPOINT, ET=Quadrilateral, DT=(DOUBLE DOUBLE DOUBLE DOUBLE DOUBLE)\n",
                 surf+1, numNodes, numTriFace+numQuadFace);

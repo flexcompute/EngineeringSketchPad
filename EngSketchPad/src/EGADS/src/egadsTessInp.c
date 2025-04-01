@@ -3,7 +3,7 @@
  *
  *             Tessellation Input Functions
  *
- *      Copyright 2011-2024, Massachusetts Institute of Technology
+ *      Copyright 2011-2025, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -52,6 +52,8 @@
 #define FACE_NORMAL_FOLD_CHECK
 #define REGULAR
 #define NOTFILLED       -1
+#define EPS6            1.e-6
+#define EPS7            1.e-7
 #define EPS10           1.e-10
 
 #ifdef DEBUG
@@ -549,8 +551,9 @@ EG_computeTessMap(egTessel *btess, int outLevel)
     }
     for (j = 0; j < k; j++) btess->tess1d[i].global[j] = 0;
   }
-
-  if (btess->nFace == 0) {
+  
+  for (k = i = 0; i < btess->nFace; i++) k += btess->tess2d[i].npts;
+  if ((btess->nFace == 0) || (k == 0)) {
 
     /* deal with wirebodies */
 
@@ -1899,13 +1902,13 @@ EG_setTessFacX(const egObject *tess, int index, int len, const double *xyz,
   if (fast.segs  != NULL) EG_free(fast.segs);
   if (fast.pts   != NULL) EG_free(fast.pts);
   if (fast.front != NULL) EG_free(fast.front);
-  EG_free(uvs);
   if (n != ntrix) {
     printf(" EGADS Error: Face %d - Can't Triangulate Frame (EG_setTessFace)!\n",
            index);
-    EG_free(map);
     EG_free(frame);
+    EG_free(map);
     EG_free(frlps);
+    EG_free(uvs);
     EG_free(segs);
     return EGADS_DEGEN;
   }
@@ -1922,6 +1925,7 @@ EG_setTessFacX(const egObject *tess, int index, int len, const double *xyz,
     EG_free(frame);
     EG_free(map);
     EG_free(frlps);
+    EG_free(uvs);
     EG_free(segs);
     return EGADS_MALLOC;
   }
@@ -1948,6 +1952,9 @@ EG_setTessFacX(const egObject *tess, int index, int len, const double *xyz,
       if (trix[3*j+2] == fig8[3*i+2]+1) trix[3*j+2] = fig8[3*i+1]+1;
     }
   }
+  EG_free(uvs);
+  uvs = NULL;
+  fig8 = NULL;
   stat = makeNeighbors(index, nlen, ntri, trix, tric, nseg, segs);
   EG_free(segs);
   if (stat != EGADS_SUCCESS) {
@@ -1994,6 +2001,7 @@ EG_setTessFacX(const egObject *tess, int index, int len, const double *xyz,
     xyzs[3*j+2] = xyz[3*i+2];
   }
   EG_free(map);
+  map = NULL;
 
   /* are we OK with the Frame? */
   for (i = 0; i < ntri; i++)
@@ -3555,7 +3563,7 @@ EG_getEdgepoint(const ego edge, double w, double tm, double tp, double *tOUT)
       P
     / | \
    /  |  \
-  L   x   R
+  L - x - R
    \  |  /
     \ | /
       M
@@ -3571,7 +3579,7 @@ EG_getSidepoint(const ego facex, double fact, const double *uvmx,
   int     stat, i, it, nT = 50, nS = 20, fold = 0, foldL, foldR;
   int     index, singleFace, tbeg, tend;
   double  b, s, dlu0 = 0.0, dlu1 = 0.0, dlv0 = 0.0, dlv1 = 0.0, ddl0, ddl1;
-  double  detJ, rsdnrm = 1.0, x3 = 0.0, delnrm = 1.0, ctt;
+  double  detJ, rsdnrm = 1.0, rsdtol=1.0, deltol=1.0, x3 = 0.0, delnrm = 1.0, ctt;
   double  pM[18], pP[18], pL[18], pR[18], pIT[18], J[3][3], ATJ[3][3];
   double  range[4], r0[3] = {0.,0.,0.}, r1[3] = {0.,0.,0.}, l[2] = {0.,0.};
   double  delta[3] = {0.,0.,0.}, L[3] = {0.,0.,0.}, uv[3], uvIT[3], xyz[3];
@@ -3614,6 +3622,14 @@ EG_getSidepoint(const ego facex, double fact, const double *uvmx,
     printf(" EG_getSidepoint: EG_evaluate = %d!\n ", stat);
     return;
   }
+
+  /* set a residual and delta tolerance based on the length of the segment in Cartesian and parameter spaces */
+  pIT[0] = pP[0] - pM[0]; pIT[1] = pP[1] - pM[1]; pIT[2] = pP[2] - pM[2];
+  rsdtol = MAX(EPS6 * sqrt(DOT(pIT,pIT)), EPS7);
+
+  pIT[0] = uvp[0] - uvm[0]; pIT[1] = uvp[1] - uvm[1]; pIT[2] = 0;
+  deltol = MAX(EPS6 * sqrt(DOT(pIT,pIT)), EPS7);
+
 #ifdef DEBUG
   EG_evaluate(face, uvIT, pIT);
   r0[0] = pIT[0] - pM[0];
@@ -3799,8 +3815,10 @@ EG_getSidepoint(const ego facex, double fact, const double *uvmx,
       }
     }
     if (i == nS) {
-      printf(" EG_getSidepoint: LineSearch Failed (%lf %lf)!\n",
-             uvIT[0], uvIT[1]);
+      /*
+      if ( uvmx != NULL && uvpx != NULL)
+        printf(" EG_getSidepoint: LineSearch Failed (%lf %lf) (%lf %lf) (%lf %lf)!\n",
+               uvm[0], uvm[1], uvIT[0], uvIT[1], uvp[0], uvp[1]);
       pIT[0] = fact*pP[0] + (1.0-fact)*pM[0];
       pIT[1] = fact*pP[1] + (1.0-fact)*pM[1];
       pIT[2] = fact*pP[2] + (1.0-fact)*pM[2];
@@ -3810,7 +3828,10 @@ EG_getSidepoint(const ego facex, double fact, const double *uvmx,
           uvOUT[1] < range[2] || uvOUT[1] > range[3]) {
         printf(" EG_getSidepoint: EG_invEvaluate %d out-of-range!\n", stat);
       }
-      return;
+       */
+      uvOUT[0] = uvIT[0];
+      uvOUT[1] = uvIT[1];
+      break;
     }
 
 #ifdef DEBUG
@@ -3829,8 +3850,8 @@ EG_getSidepoint(const ego facex, double fact, const double *uvmx,
     uvIT[1] = uv[1];
     uvIT[2] = uv[2];
 
-    if (i      ==   nS) break;  /* line search failed */
-    if (rsdnrm < EPS10) break;  /* converged! */
+    if (i      ==    nS) break;  /* line search failed */
+    if (rsdnrm < rsdtol) break;  /* converged! */
 
     /* duu */
     ddl0    = 2.0 * (pIT[9 ] * r0[0] + pIT[3] * pIT[3] +
@@ -3893,15 +3914,31 @@ EG_getSidepoint(const ego facex, double fact, const double *uvmx,
     delta[1]  = -detJ * (ATJ[1][0] * L[0] + ATJ[1][1] * L[1] + ATJ[1][2] * L[2]);
     delta[2]  = -detJ * (ATJ[2][0] * L[0] + ATJ[2][1] * L[1] + ATJ[2][2] * L[2]);
 
+    uv[0] = uvIT[0] + delta[0];
+    uv[1] = uvIT[1] + delta[1];
+ 
+    if (uv[0] < range[0]) { uv[0] = range[0];
+      if (delta[0] < 0) delta[0] = (uv[0]-uvIT[0]); 
+    }
+    if (uv[0] > range[1]) { uv[0] = range[1];
+      if (delta[0] > 0) delta[0] = (uv[0]-uvIT[0]); 
+    }
+    if (uv[1] < range[2]) { uv[1] = range[2];
+      if (delta[1] < 0) delta[1] = (uv[1]-uvIT[1]); 
+    }
+    if (uv[1] > range[3]) { uv[1] = range[3];
+      if (delta[1] > 0) delta[1] = (uv[1]-uvIT[1]); 
+    }
+
     /* check for convergence on the parameter update */
     delnrm    = sqrt(DOT(delta, delta));
-    if (delnrm < EPS10) break;  /* converged! */
+    if (delnrm < deltol) break;  /* converged! */
   }
 
 #ifdef DEBUG
   if (i != EGADS_SUCCESS) printf("EG_evaluate %d !!\n", i);
   printf("IT %d DELTA SIZE %1.2e < %1.2e L [%lf  %lf  %lf]\n",
-         it, rsdnrm, EPS10, L[0], L[1], L[2]);
+         it, rsdnrm, rsdtol, L[0], L[1], L[2]);
   if (e1 > EPS10 && e2 > EPS10) printf("CONVERGENCE RATE %lf \n", log(e2)/log(e1));
   b    = sqrt(l[0]) + sqrt(l[1]);
   printf(" --------------------------------------------------- \n");
@@ -3917,9 +3954,11 @@ EG_getSidepoint(const ego facex, double fact, const double *uvmx,
   printf(" --------------------------------------------------- \n");
 #endif
 
-  if (rsdnrm >= EPS10 && delnrm >= EPS10)
-    printf(" EG_getSidepoint: not converged -- residual %1.2le delta %1.2le (%1.2le)!\n",
-           rsdnrm, delnrm, EPS10);
+  /*
+  if (rsdnrm >= rsdtol && delnrm >= deltol)
+    printf(" EG_getSidepoint: not converged -- delta %1.2le (%1.2le) residual %1.2le (%1.2le)!\n",
+           delnrm, deltol, rsdnrm, rsdtol);
+   */
 
   /* found a solution out of range -- report it (for now) */
   if (uvIT[0] < range[0] || uvIT[0] > range[1] ||

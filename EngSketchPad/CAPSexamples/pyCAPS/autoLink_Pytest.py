@@ -96,13 +96,11 @@ for i in avl.geometry.attrList("capsGroup"):
      if "tail" in i.lower():
          surf = {"numChord"     : 8,
                  "spaceChord"   : 1.0,
-                 "numSpanTotal" : 6,
-                 "spaceSpan"    : 1.0}
+                 "numSpanTotal" : 6}
      elif "wing" in i.lower():
          surf = {"numChord"     : 10,
                  "spaceChord"   : 0.5,
-                 "numSpanTotal" : 40,
-                 "spaceSpan"    : 1.0}
+                 "numSpanTotal" : 40}
      else:
          continue # Not interested in other capsGroups
 

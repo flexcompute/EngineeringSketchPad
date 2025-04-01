@@ -1,0 +1,20 @@
+
+all:
+	@for /D %%D in ("*") do ( \
+	  pushd %%D & $(MAKE) -nologo -f NMakefile & popd \
+	)
+
+test:
+	@for /D %%D in ("*") do ( \
+	 pushd %%D & $(MAKE) -nologo -f NMakefile test & popd \
+	)
+
+clean:
+	@for /D %%D in ("*") do ( \
+	 pushd %%D & $(MAKE) -nologo -f NMakefile clean & popd \
+	)
+
+cleanall:
+	@for /D %%D in ("*") do ( \
+	 pushd %%D & $(MAKE) -nologo -f NMakefile cleanall & popd \
+	)

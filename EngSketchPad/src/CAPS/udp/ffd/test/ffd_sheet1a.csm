@@ -1,0 +1,12 @@
+# ffd_sheet1a
+# written by Marshall Galbraith
+# based on code written by John Dannenhoffer
+
+UDPRIM    NACA   series 4410   sharpte 1
+
+STORE   original
+
+# Deform original
+UDPRIM $/ffd2d
+
+END

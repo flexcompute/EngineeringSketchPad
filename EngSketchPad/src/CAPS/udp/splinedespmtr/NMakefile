@@ -1,0 +1,45 @@
+#	NMakefile for SplineDesPmtr
+#
+!IFNDEF ESP_ROOT
+!ERROR ESP_ROOT must be set -- Please fix the environment...
+!ENDIF
+#
+!IFNDEF ESP_ARCH
+!ERROR ESP_ARCH must be set -- Please fix the environment...
+!ENDIF
+#
+IDIR  = $(ESP_ROOT)\include
+!include $(IDIR)\$(ESP_ARCH).$(MSVC)
+LDIR  = $(ESP_ROOT)\lib
+BDIR  = $(ESP_ROOT)\bin
+!ifdef ESP_BLOC
+ODIR  = $(ESP_BLOC)\obj
+!else
+ODIR  = .
+!endif
+
+default:	$(LDIR)\splinedespmtr.dll
+
+$(LDIR)\splinedespmtr.dll:	$(ODIR)\udpSplineDesPmtr.obj
+	-del $(LDIR)\splinedespmtr.dll
+	link /out:$(LDIR)\splinedespmtr.dll /dll /def:udp.def \
+		$(ODIR)\udpSplineDesPmtr.obj \
+		$(LDIR)\ocsm.lib $(LDIR)\egads.lib
+	$(MCOMP) /manifest $(LDIR)\splinedespmtr.dll.manifest \
+		/outputresource:$(LDIR)\splinedespmtr.dll;2
+
+$(ODIR)\udpSplineDesPmtr.obj:	udpSplineDesPmtr.cpp \
+		$(IDIR)\udpUtilities.c $(IDIR)\udpUtilities.h
+	cl /c $(CPPOPT) $(DEFINE) /I$(IDIR) \
+		udpSplineDesPmtr.cpp /Fo$(ODIR)\udpSplineDesPmtr.obj
+
+.phony:
+test: .phony
+	pushd test & $(MAKE) -f NMakefile & popd
+
+clean:
+	-del $(ODIR)\udpSplineDesPmtr.obj
+
+cleanall:	clean
+	-del $(LDIR)\splinedespmtr.dll
+	

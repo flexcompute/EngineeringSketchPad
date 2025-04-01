@@ -1,0 +1,52 @@
+# supell8
+# written by John Dannenhoffer
+
+UDPRIM    supell    rx 2   ry 2   m 0.5   n 0.5
+TRANSLATE   0   0  0
+
+UDPRIM    supell    rx 2   ry 2   m 1.0   n 0.5
+TRANSLATE   5   0  0
+
+UDPRIM    supell    rx 2   ry 2   m 2.0   n 0.5
+TRANSLATE  10   0  0
+
+UDPRIM    supell    rx 2   ry 2   m 4.0   n 0.5
+TRANSLATE  15   0  0
+
+UDPRIM    supell    rx 2   ry 2   m 0.5   n 1.0
+TRANSLATE   0   5  0
+
+UDPRIM    supell    rx 2   ry 2   m 1.0   n 1.0
+TRANSLATE   5   5  0
+
+UDPRIM    supell    rx 2   ry 2   m 2.0   n 1.0
+TRANSLATE  10   5  0
+
+UDPRIM    supell    rx 2   ry 2   m 4.0   n 1.0
+TRANSLATE  15   5  0
+
+UDPRIM    supell    rx 2   ry 2   m 0.5   n 2.0
+TRANSLATE   0  10  0
+
+UDPRIM    supell    rx 2   ry 2   m 1.0   n 2.0
+TRANSLATE   5  10  0
+
+UDPRIM    supell    rx 2   ry 2   m 2.0   n 2.0
+TRANSLATE  10  10  0
+
+UDPRIM    supell    rx 2   ry 2   m 4.0   n 2.0
+TRANSLATE  15  10  0
+
+UDPRIM    supell    rx 2   ry 2   m 0.5   n 4.0
+TRANSLATE   0  15  0
+
+UDPRIM    supell    rx 2   ry 2   m 1.0   n 4.0
+TRANSLATE   5  15  0
+
+UDPRIM    supell    rx 2   ry 2   m 2.0   n 4.0
+TRANSLATE  10  15  0
+
+UDPRIM    supell    rx 2   ry 2   m 4.0   n 4.0
+TRANSLATE  15  15  0
+
+END

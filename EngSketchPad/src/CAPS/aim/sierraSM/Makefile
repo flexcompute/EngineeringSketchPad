@@ -2,6 +2,9 @@
 ifndef ESP_ROOT
 $(error ESP_ROOT must be set -- Please fix the environment...)
 endif
+ifndef ESP_ARCH
+$(error ESP_ARCH must be set -- Please fix the environment...)
+endif
 #
 IDIR  = $(ESP_ROOT)/include
 include $(IDIR)/$(ESP_ARCH)
@@ -31,11 +34,21 @@ ifneq ($(shell unset LD_PRELOAD && printf '\043include <netcdf.h>' | $(CXX) -I$(
 $(error fatal error: 'netcdf.h' file not found. Please set NETCDFINC.)
 endif
 
+ifneq ($(wildcard $(SEACAS)/lib/libexodus.*),)
+SEACASLIB=$(SEACAS)/lib
+endif
+ifneq ($(wildcard $(SEACAS)/lib64/libexodus.*),)
+SEACASLIB=$(SEACAS)/lib64
+endif
+ifeq ($(SEACASLIB),)
+$(error fatal error: could not find libexodus)
+endif
+
 OBJS =	$(ODIR)/sierraSMAIM.o
 
 $(LDIR)/sierraSMAIM.so:	$(OBJS) $(LDIR)/libutils.a $(LDIR)/libaimUtil.a
 	$(CC) $(SOFLGS) -o $(LDIR)/sierraSMAIM.so $(OBJS) -L$(LDIR) \
-		-L$(SEACAS)/lib -lexodus -Wl,-rpath $(SEACAS)/lib $(NETCDFLIB) \
+		-L$(SEACASLIB) -lexodus -Wl,-rpath $(SEACASLIB) $(NETCDFLIB) \
 		-lutils -laimUtil -locsm -legads -ludunits2 -ldl -lm
 
 $(ODIR)/sierraSMAIM.o:	sierraSMAIM.c $(IDIR)/capsTypes.h \

@@ -3,7 +3,7 @@
  *
  *             libMeshb Mesh Writer Code
  *
- *      Copyright 2014-2024, Massachusetts Institute of Technology
+ *      Copyright 2014-2025, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -320,6 +320,62 @@ int meshWrite(void *aimInfo, aimMesh *mesh)
                                                   0); // to be consistent with refine
         if (status <= 0) { status = CAPS_IOERR; AIM_STATUS(aimInfo, status); }
       }
+    }
+
+    else if (meshData->elemGroups[igroup].elementTopo == aimPyramid) {
+        status = GmfSetKwd(fileID, GmfPyramids, meshData->elemGroups[igroup].nElems);
+        if (status <= 0) { status = CAPS_IOERR; AIM_STATUS(aimInfo, status); }
+
+        // element connectivity 1-based
+        nPoint = meshData->elemGroups[igroup].nPoint;
+        for (ielem = 0; ielem < meshData->elemGroups[igroup].nElems; ielem++) {
+          status = GmfSetLin(fileID, GmfPyramids, meshData->elemGroups[igroup].elements[nPoint*ielem+0],
+                                                  meshData->elemGroups[igroup].elements[nPoint*ielem+1],
+                                                  meshData->elemGroups[igroup].elements[nPoint*ielem+2],
+                                                  meshData->elemGroups[igroup].elements[nPoint*ielem+3],
+                                                  meshData->elemGroups[igroup].elements[nPoint*ielem+4],
+                                                    0); // to be consistent with refine
+          if (status <= 0) { status = CAPS_IOERR; AIM_STATUS(aimInfo, status); }
+        }
+    }
+
+    else if (meshData->elemGroups[igroup].elementTopo == aimPrism) {
+        status = GmfSetKwd(fileID, GmfPrisms, meshData->elemGroups[igroup].nElems);
+        if (status <= 0) { status = CAPS_IOERR; AIM_STATUS(aimInfo, status); }
+
+        // element connectivity 1-based
+        nPoint = meshData->elemGroups[igroup].nPoint;
+        for (ielem = 0; ielem < meshData->elemGroups[igroup].nElems; ielem++) {
+          status = GmfSetLin(fileID, GmfPrisms, meshData->elemGroups[igroup].elements[nPoint*ielem+0],
+                                                meshData->elemGroups[igroup].elements[nPoint*ielem+1],
+                                                meshData->elemGroups[igroup].elements[nPoint*ielem+2],
+                                                meshData->elemGroups[igroup].elements[nPoint*ielem+3],
+                                                meshData->elemGroups[igroup].elements[nPoint*ielem+4],
+                                                meshData->elemGroups[igroup].elements[nPoint*ielem+5],
+                                                0); // to be consistent with refine
+          if (status <= 0) { status = CAPS_IOERR; AIM_STATUS(aimInfo, status); }
+        }
+    }
+
+    else if (meshData->elemGroups[igroup].elementTopo == aimHex) {
+        status = GmfSetKwd(fileID, GmfHexahedra, meshData->elemGroups[igroup].nElems);
+        if (status <= 0) { status = CAPS_IOERR; AIM_STATUS(aimInfo, status); }
+
+        // element connectivity 1-based
+        nPoint = meshData->elemGroups[igroup].nPoint;
+        for (ielem = 0; ielem < meshData->elemGroups[igroup].nElems; ielem++) {
+          status = GmfSetLin(fileID, GmfHexahedra, meshData->elemGroups[igroup].elements[nPoint*ielem+0],
+                                                   meshData->elemGroups[igroup].elements[nPoint*ielem+1],
+                                                   meshData->elemGroups[igroup].elements[nPoint*ielem+2],
+                                                   meshData->elemGroups[igroup].elements[nPoint*ielem+3],
+                                                   meshData->elemGroups[igroup].elements[nPoint*ielem+4],
+                                                   meshData->elemGroups[igroup].elements[nPoint*ielem+5],
+                                                   meshData->elemGroups[igroup].elements[nPoint*ielem+6],
+                                                   meshData->elemGroups[igroup].elements[nPoint*ielem+7],
+                                                   0); // to be consistent with refine
+          if (status <= 0) { status = CAPS_IOERR; AIM_STATUS(aimInfo, status); }
+        }
+
     } else {
       AIM_ERROR(aimInfo, "libMeshb writer element type currently not implemented! group %d type = %d",
                 igroup, meshData->elemGroups[igroup].elementTopo);

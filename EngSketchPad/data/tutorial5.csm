@@ -272,7 +272,7 @@ SUBTRACT
 
 # union this with the disc into a complete skeleton
 RESTORE   disc
-JOIN      1e-2
+JOIN      3e-2
 STORE     SheetModel
 
 # show the appropriate view

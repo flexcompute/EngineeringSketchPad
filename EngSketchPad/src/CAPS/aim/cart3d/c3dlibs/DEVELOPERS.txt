@@ -1,0 +1,8 @@
+The initial C3DIO functions were developed by Michael Aftosmis and
+Marsha Berger in 1998. The library is being maintained and improved by
+Cart3D developers at NASA Ames, including Michael Aftosmis, Marsha
+Berger, Marian Nemec, Dave Rodriguez, Jon Chiew and Wade Spurlock, and
+includes contributions from Scott Murman, Shishir Pandya, George
+Anderson and Alex Kleb.  The VTK format extension and XDDM library
+were developed by Marian Nemec starting in 2009 and are being
+maintained by the Cart3D developers.

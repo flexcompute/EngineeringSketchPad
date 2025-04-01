@@ -1,0 +1,321 @@
+# reorder5a
+# written by Joun Dannenhoffer
+
+# original sketch
+SKBEG     0  0  0
+   LINSEG 1  0  0
+   LINSEG 1  1  0
+   LINSEG 0  1  0
+   LINSEG 0  0  0
+SKEND     1
+SELECT    EDGE
+   ATTRIBUTE _ori $on
+STORE     sketch
+
+# bottom row: REORDER n 0
+
+RESTORE   sketch
+SELECT    EDGE  1
+   ATTRIBUTE _color $red
+SELECT    EDGE  2
+   ATTRIBUTE _color $green
+SELECT    EDGE  3
+   ATTRIBUTE _color $blue
+
+SELECT    EDGE $_color $red
+EVALUATE  edge @ibody @iedge $beg
+#ASSERT    @edata[2]   0
+#ASSERT    @edata[3]   0
+EVALUATE  edge @ibody @iedge $end
+#ASSERT    @edata[2]   1
+#ASSERT    @edata[3]   0
+
+
+RESTORE   sketch
+TRANSLATE 2  0  0
+REORDER   1
+SELECT    EDGE  1
+   ATTRIBUTE _color $red
+SELECT    EDGE  2
+   ATTRIBUTE _color $green
+SELECT    EDGE  3
+   ATTRIBUTE _color $blue
+
+SELECT    EDGE $_color $red
+EVALUATE  edge @ibody @iedge $beg
+#ASSERT    @edata[2]   3
+#ASSERT    @edata[3]   0
+EVALUATE  edge @ibody @iedge $end
+#ASSERT    @edata[2]   3
+#ASSERT    @edata[3]   1
+
+
+RESTORE   sketch
+TRANSLATE 4  0  0
+REORDER   2
+SELECT    EDGE  1
+   ATTRIBUTE _color $red
+SELECT    EDGE  2
+   ATTRIBUTE _color $green
+SELECT    EDGE  3
+   ATTRIBUTE _color $blue
+
+SELECT    EDGE $_color $red
+EVALUATE  edge @ibody @iedge $beg
+#ASSERT    @edata[2]   5
+#ASSERT    @edata[3]   1
+EVALUATE  edge @ibody @iedge $end
+#ASSERT    @edata[2]   4
+#ASSERT    @edata[3]   1
+
+
+RESTORE   sketch
+TRANSLATE 6  0  0
+REORDER   3
+SELECT    EDGE  1
+   ATTRIBUTE _color $red
+SELECT    EDGE  2
+   ATTRIBUTE _color $green
+SELECT    EDGE  3
+   ATTRIBUTE _color $blue
+
+SELECT    EDGE $_color $red
+EVALUATE  edge @ibody @iedge $beg
+#ASSERT    @edata[2]   6
+#ASSERT    @edata[3]   1
+EVALUATE  edge @ibody @iedge $end
+#ASSERT    @edata[2]   6
+#ASSERT    @edata[3]   0
+
+# second row: REORDER n 1
+
+RESTORE   sketch
+TRANSLATE 0  2  0
+REORDER   0  1
+SELECT    EDGE  1
+   ATTRIBUTE _color $red
+SELECT    EDGE  2
+   ATTRIBUTE _color $green
+SELECT    EDGE  3
+   ATTRIBUTE _color $blue
+
+SELECT    EDGE $_color $red
+EVALUATE  edge @ibody @iedge $beg
+#ASSERT    @edata[2]   0
+#ASSERT    @edata[3]   3
+EVALUATE  edge @ibody @iedge $end
+#ASSERT    @edata[2]   0
+#ASSERT    @edata[3]   2
+
+
+RESTORE   sketch
+TRANSLATE 2  2  0
+REORDER   1  1
+SELECT    EDGE  1
+   ATTRIBUTE _color $red
+SELECT    EDGE  2
+   ATTRIBUTE _color $green
+SELECT    EDGE  3
+   ATTRIBUTE _color $blue
+
+SELECT    EDGE $_color $red
+EVALUATE  edge @ibody @iedge $beg
+#ASSERT    @edata[2]   2
+#ASSERT    @edata[3]   2
+EVALUATE  edge @ibody @iedge $end
+#ASSERT    @edata[2]   3
+#ASSERT    @edata[3]   2
+
+
+RESTORE   sketch
+TRANSLATE 4  2  0
+REORDER   2  1
+SELECT    EDGE  1
+   ATTRIBUTE _color $red
+SELECT    EDGE  2
+   ATTRIBUTE _color $green
+SELECT    EDGE  3
+   ATTRIBUTE _color $blue
+
+SELECT    EDGE $_color $red
+EVALUATE  edge @ibody @iedge $beg
+#ASSERT    @edata[2]   5
+#ASSERT    @edata[3]   2
+EVALUATE  edge @ibody @iedge $end
+#ASSERT    @edata[2]   5
+#ASSERT    @edata[3]   3
+
+
+RESTORE   sketch
+TRANSLATE 6  2  0
+REORDER   3  1
+SELECT    EDGE  1
+   ATTRIBUTE _color $red
+SELECT    EDGE  2
+   ATTRIBUTE _color $green
+SELECT    EDGE  3
+   ATTRIBUTE _color $blue
+
+SELECT    EDGE $_color $red
+EVALUATE  edge @ibody @iedge $beg
+#ASSERT    @edata[2]   7
+#ASSERT    @edata[3]   3
+EVALUATE  edge @ibody @iedge $end
+#ASSERT    @edata[2]   6
+#ASSERT    @edata[3]   3
+
+# third row: REORDER n 0 1
+
+RESTORE   sketch
+TRANSLATE 0  4  0
+REORDER   0  0  1
+SELECT    EDGE  1
+   ATTRIBUTE _color $red
+SELECT    EDGE  2
+   ATTRIBUTE _color $green
+SELECT    EDGE  3
+   ATTRIBUTE _color $blue
+
+SELECT    EDGE $_color $red
+EVALUATE  edge @ibody @iedge $beg
+#ASSERT    @edata[2]   1
+#ASSERT    @edata[3]   4
+EVALUATE  edge @ibody @iedge $end
+#ASSERT    @edata[2]   0
+#ASSERT    @edata[3]   4
+
+
+RESTORE   sketch
+TRANSLATE 2  4  0
+REORDER   1  0  1
+SELECT    EDGE  1
+   ATTRIBUTE _color $red
+SELECT    EDGE  2
+   ATTRIBUTE _color $green
+SELECT    EDGE  3
+   ATTRIBUTE _color $blue
+
+SELECT    EDGE $_color $red
+EVALUATE  edge @ibody @iedge $beg
+#ASSERT    @edata[2]   3
+#ASSERT    @edata[3]   5
+EVALUATE  edge @ibody @iedge $end
+#ASSERT    @edata[2]   3
+#ASSERT    @edata[3]   4
+
+
+RESTORE   sketch
+TRANSLATE 4  4  0
+REORDER   2  0  1
+SELECT    EDGE  1
+   ATTRIBUTE _color $red
+SELECT    EDGE  2
+   ATTRIBUTE _color $green
+SELECT    EDGE  3
+   ATTRIBUTE _color $blue
+
+SELECT    EDGE $_color $red
+EVALUATE  edge @ibody @iedge $beg
+#ASSERT    @edata[2]   4
+#ASSERT    @edata[3]   5
+EVALUATE  edge @ibody @iedge $end
+#ASSERT    @edata[2]   5
+#ASSERT    @edata[3]   5
+
+
+RESTORE   sketch
+TRANSLATE 6  4  0
+REORDER   3  0  1
+SELECT    EDGE  1
+   ATTRIBUTE _color $red
+SELECT    EDGE  2
+   ATTRIBUTE _color $green
+SELECT    EDGE  3
+   ATTRIBUTE _color $blue
+
+SELECT    EDGE $_color $red
+EVALUATE  edge @ibody @iedge $beg
+#ASSERT    @edata[2]   6
+#ASSERT    @edata[3]   4
+EVALUATE  edge @ibody @iedge $end
+#ASSERT    @edata[2]   6
+#ASSERT    @edata[3]   5
+
+# fourth row: REORDER n 1 1
+
+RESTORE   sketch
+TRANSLATE 0  6  0
+REORDER   0  1  1
+SELECT    EDGE  1
+   ATTRIBUTE _color $red
+SELECT    EDGE  2
+   ATTRIBUTE _color $green
+SELECT    EDGE  3
+   ATTRIBUTE _color $blue
+
+SELECT    EDGE $_color $red
+EVALUATE  edge @ibody @iedge $beg
+#ASSERT    @edata[2]   0
+#ASSERT    @edata[3]   6
+EVALUATE  edge @ibody @iedge $end
+#ASSERT    @edata[2]   0
+#ASSERT    @edata[3]   7
+
+
+RESTORE   sketch
+TRANSLATE 2  6  0
+REORDER   1  1  1
+SELECT    EDGE  1
+   ATTRIBUTE _color $red
+SELECT    EDGE  2
+   ATTRIBUTE _color $green
+SELECT    EDGE  3
+   ATTRIBUTE _color $blue
+
+SELECT    EDGE $_color $red
+EVALUATE  edge @ibody @iedge $beg
+#ASSERT    @edata[2]   3
+#ASSERT    @edata[3]   6
+EVALUATE  edge @ibody @iedge $end
+#ASSERT    @edata[2]   2
+#ASSERT    @edata[3]   6
+
+
+RESTORE   sketch
+TRANSLATE 4  6  0
+REORDER   2  1  1
+SELECT    EDGE  1
+   ATTRIBUTE _color $red
+SELECT    EDGE  2
+   ATTRIBUTE _color $green
+SELECT    EDGE  3
+   ATTRIBUTE _color $blue
+
+SELECT    EDGE $_color $red
+EVALUATE  edge @ibody @iedge $beg
+#ASSERT    @edata[2]   5
+#ASSERT    @edata[3]   7
+EVALUATE  edge @ibody @iedge $end
+#ASSERT    @edata[2]   5
+#ASSERT    @edata[3]   6
+
+
+RESTORE   sketch
+TRANSLATE 6  6  0
+REORDER   3  1  1
+SELECT    EDGE  1
+   ATTRIBUTE _color $red
+SELECT    EDGE  2
+   ATTRIBUTE _color $green
+SELECT    EDGE  3
+   ATTRIBUTE _color $blue
+
+SELECT    EDGE $_color $red
+EVALUATE  edge @ibody @iedge $beg
+#ASSERT    @edata[2]   6
+#ASSERT    @edata[3]   7
+EVALUATE  edge @ibody @iedge $end
+#ASSERT    @edata[2]   7
+#ASSERT    @edata[3]   7
+
+END

@@ -34,7 +34,8 @@ int mesh_surfaceMeshEGADSBody(void *aimInfo, ego body, double refLen, const doub
 int mesh_surfaceMeshEGADSTess(void *aimInfo, meshStruct *surfMesh, int twoDMesh);
 
 // Modify the EGADS body tessellation based on given inputs
-int mesh_modifyBodyTess(int numMeshProp,
+int mesh_modifyBodyTess(void *aimInfo,
+                        int numMeshProp,
              /*@null@*/ meshSizingStruct meshProp[],
                         int minEdgePointGlobal,
                         int maxEdgePointGlobal,
@@ -75,6 +76,14 @@ int populate_regions(void *aimInfo,
                      tetgenRegionsStruct* regions,
                      int length,
                      const capsTuple* tuples);
+
+// Adds one region to regions
+int add_regions(void *aimInfo,
+                const char *name,
+                double x, double y, double z,
+                double attribute,
+                double volume_constraint,
+                tetgenRegionsStruct* regions);
 
 // Initialize a tetgenRegionsStruct regions data structure
 int initiate_regions(tetgenRegionsStruct* regions);

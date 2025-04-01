@@ -9,7 +9,7 @@
  */
 
 /*
- * Copyright (C) 2013/2024  John F. Dannenhoffer, III (Syracuse University)
+ * Copyright (C) 2013/2025  John F. Dannenhoffer, III (Syracuse University)
  *
  * This library is free software; you can redistribute it and/or
  *    modify it under the terms of the GNU Lesser General Public
@@ -116,15 +116,16 @@ main(int       argc,                    /* (in)  number of arguments */
 
     int       status, fileStatus, status2, i, nbody;
     int       imajor, iminor, builtTo, showUsage=0;
-    int       ipmtr, irow, icol, iirow, iicol, ntotal, nsuppress=0, nerror=0;
+    int       nout, ipmtr, jpmtr, irow, jrow, icol, jcol, ij;
+    int       iirow, iicol, ntotal, nsuppress=0, nerror=0;
     int       onlyrow=-1, onlycol=-1;
-    double    errmax, error, errmaxGeom=0, errmaxTess=0, dtime_in=0;
+    double    errmax, error, dot, dotval, errmaxGeom=0, errmaxTess=0, dtime_in=0;
     char      basename[MAX_FILENAME_LEN], dirname[MAX_FILENAME_LEN];
     char      filename[MAX_FILENAME_LEN], pname[  MAX_FILENAME_LEN];
     char      *beg, *mid, *end;
     CCHAR     *OCC_ver;
     ego       context;
-    FILE      *fp_data=NULL;
+    FILE      *fp_data=NULL, *fp_odata=NULL;
 
     modl_T    *MODL;
 
@@ -256,7 +257,7 @@ main(int       argc,                    /* (in)  number of arguments */
     SPRINT0(1, "*                    Program sensCSM                     *");
     SPRINT2(1, "*                     version %2d.%02d                      *", imajor, iminor);
     SPRINT0(1, "*                                                        *");
-    SPRINT0(1, "*        written by John Dannenhoffer, 2010/2024         *");
+    SPRINT0(1, "*        written by John Dannenhoffer, 2010/2025         *");
     SPRINT0(1, "*                                                        *");
     SPRINT0(1, "**********************************************************\n");
 
@@ -376,6 +377,24 @@ main(int       argc,                    /* (in)  number of arguments */
             SPRINT0(0, "ERROR:: geom error with .gsen file");
             fileStatus = EXIT_FAILURE;
         }
+
+        nout = 0;
+        for (ipmtr = 1; ipmtr <= MODL->npmtr; ipmtr++) {
+            if (MODL->pmtr[ipmtr].type == OCSM_OUTPMTR) nout++;
+        }
+        if (nout > 0) {
+            snprintf(filename, MAX_FILENAME_LEN-1, "%s%cverify_%s%c%s.osen", dirname, SLASH, &(OCC_ver[strlen(OCC_ver)-5]), SLASH, basename);
+            if (addVerify) {
+                fp_odata = fopen(filename, "w");
+            } else {
+                fp_odata = fopen(filename, "r");
+            }
+
+            if (fp_odata == NULL) {
+                SPRINT0(0, "ERROR:: geom error with .osen file");
+                fileStatus = EXIT_FAILURE;
+            }
+        }
     } else {
         snprintf(filename, MAX_FILENAME_LEN-1, "%s%cverify_%s%c%s.tsen", dirname, SLASH, &(OCC_ver[strlen(OCC_ver)-5]), SLASH, basename);
         if (addVerify) {
@@ -427,13 +446,30 @@ main(int       argc,                    /* (in)  number of arguments */
 
                         SPRINT4(1, "INFO:: geom error for %32s[%d,%d] is%12.5e being written to file",
                                 MODL->pmtr[ipmtr].name, irow, icol, errmax);
+
+                        if (fp_odata != NULL) {
+                            fprintf(fp_odata, "%-32s %5d %5d\n", MODL->pmtr[ipmtr].name, irow, icol);
+
+                            for (jpmtr = 1; jpmtr <= MODL->npmtr; jpmtr++) {
+                                if (MODL->pmtr[jpmtr].type != OCSM_OUTPMTR) continue;
+
+                                ij = 0;
+                                for (jrow = 1; jrow <= MODL->pmtr[jpmtr].nrow; jrow++) {
+                                    for (jcol = 1; jcol <= MODL->pmtr[jpmtr].ncol; jcol++) {
+                                        fprintf(fp_odata, "%-32s %5d %5d %12.5e\n", MODL->pmtr[jpmtr].name, jrow, jcol, MODL->pmtr[jpmtr].dot[ij]);
+                                        ij++;
+                                    }
+                                }
+                            }
+                            fprintf(fp_odata, "\n");
+                        }
                     } else if (fp_data != NULL) {
                         fscanf(fp_data, "%s %d %d %lf", pname, &iirow, &iicol, &error);
 
                         if (strcmp(MODL->pmtr[ipmtr].name, pname) != 0 || irow != iirow || icol != iicol) {
                             SPRINT0(0, "ERROR:: .gsen file does not match case");
                             fileStatus = EXIT_FAILURE;
-                        } else if (errmax < ACCEPTABLE_ERROR) {
+                        } else if (errmax < ACCEPTABLE_ERROR && error < ACCEPTABLE_ERROR) {
                         } else if (errmax > error*ERROR_RATIO) {
                             SPRINT5(0, "ERROR:: geom error for %32s[%d,%d] increased from %12.5e to %12.5e",
                                     MODL->pmtr[ipmtr].name, irow, icol, error, errmax);
@@ -441,6 +477,38 @@ main(int       argc,                    /* (in)  number of arguments */
                         } else if (errmax < error/ERROR_RATIO) {
                             SPRINT5(1, "INFO:: geom error for %32s[%d,%d] decreased from %12.5e to %12.5e",
                             MODL->pmtr[ipmtr].name, irow, icol, error, errmax);
+                        }
+
+                        if (fp_odata != NULL) {
+                            fscanf(fp_odata, "%s %d %d", pname, &iirow, &iicol);
+                            
+                            if (strcmp(MODL->pmtr[ipmtr].name, pname) != 0 || irow != iirow || icol != iicol) {
+                                SPRINT0(0, "ERROR:: .osen file does not match");
+                                fileStatus = EXIT_FAILURE;
+                            }
+
+                            for (jpmtr = 1; jpmtr <= MODL->npmtr; jpmtr++) {
+                                if (MODL->pmtr[jpmtr].type != OCSM_OUTPMTR) continue;
+
+                                ij = 0;
+                                for (jrow = 1; jrow <= MODL->pmtr[jpmtr].nrow; jrow++) {
+                                    for (jcol = 1; jcol <= MODL->pmtr[jpmtr].ncol; jcol++) {
+                                        dotval = MODL->pmtr[jpmtr].dot[ij];
+                                        fscanf(fp_odata, "%s %5d %5d %lf", pname, &iirow, &iicol, &dot);
+                                        
+                                        if (strcmp(pname, MODL->pmtr[jpmtr].name) != 0 ||
+                                            iirow != jrow || iicol != jcol              ) {
+                                            SPRINT0(0, "ERROR:: .osen file does not match");
+                                            fileStatus = EXIT_FAILURE;
+                                        } else if (fabs(dot-dotval)/MAX(fabs(dot),EPS06) > EPS03) {
+                                            SPRINT5(0, "ERROR:: outpmtr error for %32s[%d,%d] does not agree with .osen value (%12.6e vs %12.6e)", MODL->pmtr[ipmtr].name, irow, icol, dot, dotval);
+                                            errmaxGeom = MAX(errmaxGeom, fabs(dot-dotval));
+                                            ntotal++;
+                                        }
+                                        ij++;
+                                    }
+                                }
+                            }
                         }
                     }
 
@@ -469,7 +537,7 @@ main(int       argc,                    /* (in)  number of arguments */
                         if (strcmp(MODL->pmtr[ipmtr].name, pname) != 0 || irow != iirow || icol != iicol) {
                             SPRINT0(0, "ERROR:: .tsen file does not match case");
                             fileStatus = EXIT_FAILURE;
-                        } else if (errmax < ACCEPTABLE_ERROR) {
+                        } else if (errmax < ACCEPTABLE_ERROR && error < ACCEPTABLE_ERROR) {
                         } else if (errmax > error*ERROR_RATIO) {
                             SPRINT5(0, "ERROR:: tess error for %32s[%d,%d] increased from %12.5e to %12.5e",
                                     MODL->pmtr[ipmtr].name, irow, icol, error, errmax);
@@ -491,7 +559,8 @@ main(int       argc,                    /* (in)  number of arguments */
         SPRINT0(0, " ");
     }
 
-    if (fp_data != NULL) fclose(fp_data);
+    if (fp_data  != NULL) fclose(fp_data );
+    if (fp_odata != NULL) fclose(fp_odata);
 
     SPRINT0(0, "==> sensCSM completed successfully");
     status = EXIT_SUCCESS;
@@ -1434,7 +1503,7 @@ checkTessSens(int    ipmtr,             /* (in)  Parameter index (bias-1) */
                                 + (face_ptrb[iface][3*ipnt+1] - xyz_clos[1]) * (face_ptrb[iface][3*ipnt+1] - xyz_clos[1])
                                 + (face_ptrb[iface][3*ipnt+2] - xyz_clos[2]) * (face_ptrb[iface][3*ipnt+2] - xyz_clos[2]));
                 if (Dist[ipnt] != Dist[ipnt]) {
-                    printf("Dist[%d] = nan\n", ipnt);
+                    SPRINT1(0, "Dist[%d] = nan", ipnt);
                     Dist[ipnt] = 1e+99;
                 }
 
@@ -1517,6 +1586,7 @@ checkTessSens(int    ipmtr,             /* (in)  Parameter index (bias-1) */
                 dist = sqrt((edge_ptrb[iedge][3*ipnt  ] - xyz_clos[0]) * (edge_ptrb[iedge][3*ipnt  ] - xyz_clos[0])
                           + (edge_ptrb[iedge][3*ipnt+1] - xyz_clos[1]) * (edge_ptrb[iedge][3*ipnt+1] - xyz_clos[1])
                           + (edge_ptrb[iedge][3*ipnt+2] - xyz_clos[2]) * (edge_ptrb[iedge][3*ipnt+2] - xyz_clos[2]));
+//$$$                printf("iedge=%3d, ipnt=%3d, dist=%12.5e\n", iedge, ipnt, dist);
                 errrms += dist * dist;
                 nrms++;
             }

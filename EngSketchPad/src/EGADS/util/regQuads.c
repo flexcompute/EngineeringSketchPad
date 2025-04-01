@@ -441,16 +441,17 @@ __HOST_AND_DEVICE__ static int EG_regBoundQuad(meshMap *qm, int qID)
   int iA, iB, iC, iD, vA, vB, vC, vD;
 
   if (qm->regBd == 0) return -1;
+  if (qm->qIdx[4 * (qID -1)] == -2) return -1;
   iA = qm->qIdx [4 * (qID -1)   ] -1;
   iB = qm->qIdx [4 * (qID -1) +1] -1;
   iC = qm->qIdx [4 * (qID -1) +2] -1;
   iD = qm->qIdx [4 * (qID -1) +3] -1;
   if ((qm->vType[iA] == -1 && qm->vType[iB] == -1 &&
-      qm->vType[iC] == -1 && qm->vType[iD] == -1) ||
-      qm->vType[iA] * qm->valence[iA][2]   == -2 ||
-      qm->vType[iB] * qm->valence[iB][2]   == -2 ||
-      qm->vType[iC] * qm->valence[iC][2]   == -2 ||
-      qm->vType[iD] * qm->valence[iD][2]   == -2)
+       qm->vType[iC] == -1 && qm->vType[iD] == -1) ||
+       qm->vType[iA] * qm->valence[iA][2]   == -2 ||
+       qm->vType[iB] * qm->valence[iB][2]   == -2 ||
+       qm->vType[iC] * qm->valence[iC][2]   == -2 ||
+       qm->vType[iD] * qm->valence[iD][2]   == -2)
     return -1;
   vA = vB = vC = vD = 4;
   if (qm->vType[iA] > 0) vA = qm->valence[iA][1];
@@ -1899,7 +1900,7 @@ __HOST_AND_DEVICE__ int EG_createMeshMap(bodyQuad *bodydata)
       bodydata->qm[f]->range[2] -= 1.e-4;
       bodydata->qm[f]->range[3] += 1.e-4;
       for (k = j = 0; j < len; j++) {
-          bodydata->qm[f]->vType  [j]         = ptype[j];
+          bodydata->qm[f]->vType[j] = ptype[j];
           if (ptype[j] >= 0 ) k++;
           bodydata->qm[f]->uvs    [2 * j    ] = uvs[2 * j    ];
           bodydata->qm[f]->uvs    [2 * j + 1] = uvs[2 * j + 1];
@@ -1912,8 +1913,9 @@ __HOST_AND_DEVICE__ int EG_createMeshMap(bodyQuad *bodydata)
               printf(" Range FACE %d --- > %f  %f  %f  %f\n ", bodydata->qm[f]->fID,
                      bodydata->qm[f]->range[0],bodydata->qm[f]->range[1],
                      bodydata->qm[f]->range[2],bodydata->qm[f]->range[3]);
-              bodydata->qm[f]->fID = 0;
-              break;
+// MCG - well let's try anyways...
+//              bodydata->qm[f]->fID = 0;
+//              break;
           }
           bodydata->qm[f]->xyzs[3 * j    ] = xyzs[3 * j    ];
           bodydata->qm[f]->xyzs[3 * j + 1] = xyzs[3 * j + 1];
@@ -2002,6 +2004,7 @@ __HOST_AND_DEVICE__ int EG_createMeshMap(bodyQuad *bodydata)
               printf("In EG_createMeshMap :: set valence at %d is %d!!\n ",
                      j + 1, stat);
               bodydata->qm[f]->fID = 0;
+              if (stat == EGADS_MALLOC) return stat;
               break;
           }
       }
@@ -2019,9 +2022,9 @@ __HOST_AND_DEVICE__ int EG_createMeshMap(bodyQuad *bodydata)
           else if (angle < 1.25 * PI) bodydata->qm[f]->vType[j] = 3;
           else if (angle < 1.75 * PI) bodydata->qm[f]->vType[j] = 4;
           else                        bodydata->qm[f]->vType[j] = 5;
-		  if (bodydata->qm[f]->valence[j][2] < bodydata->qm[f]->vType[j])
+          if (bodydata->qm[f]->valence[j][2] < bodydata->qm[f]->vType[j])
               bodydata->qm[f]->vType[j] = bodydata->qm[f]->valence[j][2];
-		  if (bodydata->qm[f]->vType[j] == 2)
+          if (bodydata->qm[f]->vType[j] == 2)
                    bodydata->qm[f]->valence[j][1] = bodydata->qm[f]->valence[j][2] + 2;
           else if (bodydata->qm[f]->vType[j] == 3)
                    bodydata->qm[f]->valence[j][1] = bodydata->qm[f]->valence[j][2] + 1;
@@ -3422,6 +3425,7 @@ EG_swapCollapse(meshMap *qm, quadGroup qg, int forcing, int *activity)
           }
       } else return EGADS_SUCCESS;
   } else return EGADS_SUCCESS;
+  if (i3 == -1) return EGADS_INDEXERR; /* TODO: Something smarter when i3 == -1 ?!?! */
   vOpp3 = (i3 + 3)%6;
   q5    = 0; if (vOpp3 > 3) q5 = 1;
   qC    = qg.q[(q5 + 1)%2];

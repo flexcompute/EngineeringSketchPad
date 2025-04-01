@@ -73,8 +73,8 @@ su2.input.Num_Iter = 10
 # Set the aim to 2D mode
 su2.input.Two_Dimensional = True
 
-# Set output file format
-su2.input.Output_Format = "Tecplot"
+# Set output file formats
+su2.input.Output_Format = ["Tecplot", "Paraview"]
 
 # Set boundary conditions
 inviscidBC = {"bcType" : "Inviscid"}

@@ -9,7 +9,7 @@
 
 # Global Attributes
 attribute capsIntent $CFD #CFD Analysis
-attribute capsAIM $fun3dAIM;su2AIM;cbaeroAIM;egadsTessAIM;aflr4AIM;tetgenAIM;aflr3AIM #CFD Analysis
+attribute capsAIM $fun3dAIM;su2AIM;cbaeroAIM;flightstreamAIM;egadsTessAIM;aflr4AIM;tetgenAIM;aflr3AIM #CFD Analysis
 
 attribute capsLength $inch
 
@@ -22,12 +22,12 @@ attribute capsReferenceY 0
 attribute capsReferenceZ 0
 
 # Component Switches
-despmtr makeFuselage        1
-despmtr blendFuselage       1
-despmtr makeControlSurfaces 1
-despmtr makeInlet           1
-despmtr hollowInlet         1
-despmtr sec_4               0
+cfgpmtr makeFuselage        1
+cfgpmtr blendFuselage       1
+cfgpmtr makeControlSurfaces 1
+cfgpmtr makeInlet           1
+cfgpmtr hollowInlet         1
+cfgpmtr sec_4               0
 cfgpmtr unionAll            1
 cfgpmtr makeBoundBox        1 
 
@@ -303,14 +303,23 @@ ifthen makeFuselage eq 1
                  linseg  tailLength  17.4  6.8
             linseg  tailLength fuseSecMid[10,2] fuseSecMid[10,3]    
         skend
+        select face
+          attribute tag $base
+
     ifthen blendFuselage eq 1
         blend
         name blendfuselage
         attribute _color $green
+        attribute capsGroup $fuselage
+        select face $tag $base
+          attribute capsGroup $fuselage_base
     else
         rule
         name ruledfuselage
         attribute _color $green
+        attribute capsGroup $fuselage
+        select face $tag $base
+          attribute capsGroup $fuselage_base
     endif
 endif #makeFuselage
 
@@ -344,6 +353,7 @@ ifthen makeControlSurfaces eq 1
     rule
     name horizontalCS
     attribute _color $magenta
+    attribute capsGroup $horizontalCS
     ifthen makeFuselage eq 1 and unionAll eq 1
         union
     endif
@@ -370,6 +380,7 @@ ifthen makeControlSurfaces eq 1
     rule
     name verticalPort
     attribute _color $blue
+    attribute capsGroup $verticalCS
     ifthen makeFuselage eq 1 and unionAll eq 1
         union
     endif
@@ -396,6 +407,7 @@ ifthen makeControlSurfaces eq 1
     rule
     name verticalStarboard
     attribute _color $blue
+    attribute capsGroup $verticalCS
 
     ifthen makeFuselage eq 1 and unionAll eq 1
         union
@@ -428,6 +440,7 @@ ifthen makeInlet eq 1
     rule
     name inlet
     attribute _color $red
+    attribute capsGroup $inlet
 
     ifthen makeFuselage eq 1 and unionAll eq 1
         union
@@ -458,21 +471,18 @@ ifthen hollowInlet eq 1
             linseg  65.3     7.5   -7.5 
         skend
     rule
+    attribute _color $red
+    attribute capsGroup $hollowInlet
     subtract
     name hollowInlet
-    attribute _color $red
 endif #hollowInlet
-dimension tparams  1 3 0                                                     
+dimension tparams  1 3 0
 set       tparams  "4.0;1.0;10;"
 select body
    attribute .tParams tparams
 
-# Store the vehicle 
-store  x43A 0 0
-
-# x43A - Restore
-restore   x43A 0
-attribute capsGroup $x43A
+# Store the x43A vehicle 
+store  x43A 0 1
  
 #dump x43-a.egads
 

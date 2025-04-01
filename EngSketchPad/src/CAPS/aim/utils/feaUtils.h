@@ -28,7 +28,7 @@ int fea_createMesh(void *aimInfo,
                    int *numMesh,                        // (out) total number of FEA mesh structures
                    meshStruct **feaMesh,                // (out) FEA mesh structure
                    feaProblemStruct *feaProblem );      // (out) FEA problem structure
-
+#if 0
 // Convert an EGADS body to a boundary element model, modified by Ryan Durscher (AFRL)
 // from code written by John Dannenhoffer @ Syracuse University, patterned after code
 // written by Bob Haimes  @ MIT
@@ -47,7 +47,7 @@ int fea_bodyToBEM(void *aimInfo,                       // (in)  AIM structure
                   mapAttrToIndexStruct *responseMap,   // (in)  map from CAPSResponse names to indexes
                   mapAttrToIndexStruct *referenceMap,  // (in)  map from CAPSReference names to indexes
                   meshStruct *feaMesh);                // (out) FEA mesh structure
-
+#endif
 // Set the fea analysis meta data in a mesh
 int fea_setAnalysisData( void *aimInfo,                       // (in)  AIM structure
                          mapAttrToIndexStruct *attrMap,       // (in)  map from CAPSGroup names to indexes
@@ -72,6 +72,9 @@ int fea_setFEADataPoint(/*@null@*/ ego *faces, /*@null@*/ ego *edges, ego *nodes
              /*@null@*/ mapAttrToIndexStruct *referenceMap,
                         int pointType, int pointTopoIndex,
                         feaMeshDataStruct *feaData);// Set the feaData structure
+
+// Compute derived units from base units
+int fea_feaDerivedUnits(void *aimInfo, feaUnitsStruct *units);
 
 // Get the material properties from a capsTuple
 int fea_getMaterial(void *aimInfo,
@@ -413,7 +416,7 @@ int initiate_feaDesignVariableRelationStruct(feaDesignVariableRelationStruct *re
 int destroy_feaDesignVariableRelationStruct(feaDesignVariableRelationStruct *relation);
 
 // Transfer external pressure from the discrObj into the feaLoad structure
-int fea_transferExternalPressure(void *aimInfo, const meshStruct *feaMesh, feaLoadStruct *feaLoad);
+int fea_transferExternalPressure(void *aimInfo, const meshStruct *feaMesh, const feaUnitsStruct* units, feaLoadStruct *feaLoad);
 
 // Transfer external nodal pressure from the discrObj into the feaLoad structure
 int fea_transferExternalPressureNode(void *aimInfo, feaLoadStruct *feaLoad);

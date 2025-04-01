@@ -3,7 +3,7 @@
  *
  *             masstran AIM
  *
- * *      Copyright 2014-2023, Massachusetts Institute of Technology
+ *      Copyright 2014-2025, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -479,7 +479,7 @@ aimInitialize(int inst, const char *unitSys, void *aimInfo,
   int status = CAPS_SUCCESS;
   aimStorage *masstranInstance=NULL;
   const char *keyWord;
-  char *keyValue = NULL, *tmpUnits = NULL;
+  char *keyValue = NULL;
   double real = 1.0;
   feaUnitsStruct *units=NULL;
 
@@ -566,26 +566,12 @@ aimInitialize(int inst, const char *unitSys, void *aimInfo,
       goto cleanup;
     }
 
-    // construct density volume unit
-    status = aim_unitRaise(aimInfo, units->length, -3, &tmpUnits); // 1/length^3
-    AIM_STATUS(aimInfo, status);
-    status = aim_unitMultiply(aimInfo, units->mass, tmpUnits, &units->densityVol); // mass/length^3, e.g volume density
-    AIM_STATUS(aimInfo, status);
-    AIM_FREE(tmpUnits);
+    // Base units not used by this AIM
+    AIM_STRDUP(units->time, "s", aimInfo, status);
+    AIM_STRDUP(units->temperature, "Kelvin", aimInfo, status);
 
-    // construct density area unit
-    status = aim_unitRaise(aimInfo, units->length, -2, &tmpUnits); // 1/length^2
+    status = fea_feaDerivedUnits(aimInfo, units);
     AIM_STATUS(aimInfo, status);
-    status = aim_unitMultiply(aimInfo, units->mass, tmpUnits, &units->densityArea); // mass/length^2, e.g area density
-    AIM_STATUS(aimInfo, status);
-    AIM_FREE(tmpUnits);
-
-    status = aim_unitRaise(aimInfo, units->length, 2, &tmpUnits ); // length^2
-    AIM_STATUS(aimInfo, status);
-    status = aim_unitMultiply(aimInfo, units->mass, tmpUnits, &units->momentOfInertia ); // mass*length^2, e.g moment of inertia
-    AIM_STATUS(aimInfo, status);
-    AIM_FREE(tmpUnits);
-
 
     // set units
     status = aim_unitRaise(aimInfo, units->length, 2, &masstranInstance->area.units); // length^2
@@ -603,7 +589,6 @@ aimInitialize(int inst, const char *unitSys, void *aimInfo,
 
 cleanup:
   AIM_FREE(keyValue);
-  AIM_FREE(tmpUnits);
 
   return status;
 }
@@ -913,7 +898,7 @@ aimUpdateState(void *instStore, void *aimInfo,
     for (idv = 0; idv < masstranInstance->feaProblem.numDesignVariable; idv++) {
 
       name = masstranInstance->feaProblem.feaDesignVariable[idv].name;
-      
+
       // Loop over the geometry in values and compute sensitivities for all bodies
       index = aim_getIndex(aimInfo, name, GEOMETRYIN);
       status = aim_getValue(aimInfo, index, GEOMETRYIN, &geomInVal);
@@ -922,7 +907,7 @@ aimUpdateState(void *instStore, void *aimInfo,
       } else {
         len_wrt = geomInVal->length;
       }
-      
+
       // setup derivative memory
       for (i = 0; i < NUMVAR; i++) {
         AIM_FREE(values[i]->derivs[idv].name);

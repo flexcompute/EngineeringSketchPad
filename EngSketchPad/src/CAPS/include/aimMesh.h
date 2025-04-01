@@ -5,7 +5,7 @@
  *
  *             AIM Mesh Function Prototypes
  *
- *      Copyright 2014-2024, Massachusetts Institute of Technology
+ *      Copyright 2014-2025, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -46,8 +46,8 @@ typedef int    (*wrDLLFunc) (void);
 typedef double aimMeshCoords[3];
 typedef int    aimMeshIndices[2];
 
-enum aimMeshElem {aimUnknownElem, aimLine, aimTri, aimQuad, aimTet, aimPyramid,
-                  aimPrism, aimHex};
+enum aimMeshElem {aimUnknownElem, aimLine, aimTri, aimQuad,
+                  aimTet, aimPyramid, aimPrism, aimHex};
 
 typedef struct {
   char             *groupName;  /* name of group or NULL */
@@ -100,6 +100,9 @@ __ProtoExt__ int
   aim_writeMeshes( void *aimInfo, int index, enum capssType subtype, aimMesh *mesh );
 
 __ProtoExt__ int
+  aim_writeMesh(void *aimStruc, const char *writerName, /*@null@*/ const char *units, aimMesh *mesh);
+
+__ProtoExt__ int
   aim_initMeshBnd( aimMeshBnd *meshBnd );
 
 __ProtoExt__ int
@@ -132,6 +135,10 @@ __ProtoExt__ int
 
 __ProtoExt__ int
   aim_readBinaryUgrid( void *aimStruc, aimMesh *mesh );
+
+__ProtoExt__ int
+  aim_localMeshRef(void *aimStruc, const aimMeshRef *meshRefIn,
+                   aimMeshRef *meshRefLocal);
 
 __ProtoExt__ int
   aim_storeMeshRef( void *aimStruc, const aimMeshRef *meshRef,

@@ -1316,6 +1316,10 @@ int mesh_surfaceMeshEGADSBody(void *aimInfo,
 
     //printf("params[0] = %lf; params[1] = %lf; params[2] = %lf;\n", params[0], params[1], params[2]);
 
+    // Save the .tParams (mostly for debugging purposes)
+    status = EG_attributeAdd(body, ".tParams", ATTRREAL, 3, NULL, params, NULL);
+    AIM_STATUS(aimInfo, status);
+
     status = EG_makeTessBody(body, params, tess);
     AIM_STATUS(aimInfo, status);
 
@@ -1386,7 +1390,8 @@ cleanup:
 
 }
 
-int mesh_modifyBodyTess(int numMeshProp,
+int mesh_modifyBodyTess(void *aimInfo,
+                        int numMeshProp,
              /*@null@*/ meshSizingStruct meshProp[],
                         int minEdgePointGlobal,
                         int maxEdgePointGlobal,
@@ -1429,10 +1434,8 @@ int mesh_modifyBodyTess(int numMeshProp,
     const char *groupName = NULL;
 
     if (maxEdgePointGlobal >= 2 && minEdgePointGlobal >= 2 && minEdgePointGlobal > maxEdgePointGlobal) {
-      printf("**********************************************************\n");
-      printf("Edge_Point_Max must be greater or equal Edge_Point_Min\n");
-      printf("Edge_Point_Max = %d, Edge_Point_Min = %d\n",maxEdgePointGlobal,minEdgePointGlobal);
-      printf("**********************************************************\n");
+      AIM_ERROR(aimInfo, "Edge_Point_Max must be greater or equal Edge_Point_Min");
+      AIM_ADDLINE(aimInfo, "Edge_Point_Max = %d, Edge_Point_Min = %d",maxEdgePointGlobal,minEdgePointGlobal);
       status = CAPS_BADVALUE;
       goto cleanup;
     }
@@ -1447,7 +1450,7 @@ int mesh_modifyBodyTess(int numMeshProp,
     }
 
     if (numBody == 0) {
-        printf("Error: numBody == 0 in mesh_modifyBodyTess\n");
+        AIM_ERROR(aimInfo, "numBody == 0 in mesh_modifyBodyTess");
         return CAPS_SOURCEERR;
     }
 
@@ -1495,14 +1498,13 @@ int mesh_modifyBodyTess(int numMeshProp,
     for (bodyIndex = 0; bodyIndex < numBody; bodyIndex++) {
 
         status = EG_getBodyTopos(bodies[bodyIndex], NULL, EDGE, &numEdge, &edges);
-        if (status !=  EGADS_SUCCESS) goto cleanup;
+        AIM_STATUS(aimInfo, status);
 
         status = EG_getBodyTopos(bodies[bodyIndex], NULL, FACE, &numFace, &faces);
-        if (status !=  EGADS_SUCCESS) goto cleanup;
+        AIM_STATUS(aimInfo, status);
 
         // Flag array to track which edges have user specified spacings
-        userSet = (int*) EG_alloc((numEdge+1)*sizeof(int));
-        if (userSet == NULL) { status = EGADS_MALLOC; goto cleanup; }
+        AIM_ALLOC(userSet, numEdge+1, int, aimInfo, status);
 
         // Loop over edges for each body and set .tParam
         for (edgeIndex = 0; edgeIndex < numEdge; edgeIndex++) {
@@ -1581,11 +1583,10 @@ int mesh_modifyBodyTess(int numMeshProp,
 
         // Generate pure edge tessellation
         status = EG_makeTessBody(bodies[bodyIndex], params, &tess);
-        if (status != EGADS_SUCCESS) goto cleanup;
+        AIM_STATUS(aimInfo, status);
 
         // Determine the nominal number of points along each Edge
-        points = (int*) EG_alloc((numEdge+1)*sizeof(int));
-        if (points == NULL) { status = EGADS_MALLOC; goto cleanup; }
+        AIM_ALLOC(points, numEdge+1, int, aimInfo, status);
 
         // Loop over edges for each body and get the point counts
         for (edgeIndex = 0; edgeIndex < numEdge; edgeIndex++) {
@@ -1711,7 +1712,7 @@ int mesh_modifyBodyTess(int numMeshProp,
 
                     inputVars[0] = B;
 
-                    stretchingFactor = root_BisectionMethod( &eqn_stretchingFactorDoubleSided, 0, 1000, inputVars);
+                    stretchingFactor = root_BisectionMethod( &eqn_stretchingFactorDoubleSided, 0, 100, inputVars);
                     //printf("StretchingFactor = %f\n", stretchingFactor);
 
                     for (i = 0; i < numEdgePoint; i++) {
@@ -1950,11 +1951,7 @@ int populate_regions(void *aimInfo,
     {
       // no point
     }
-    if (val != NULL)
-    {
-      EG_free(val);
-      val = NULL;
-    }
+    AIM_FREE(val);
 
     // Store the region attribute.
     status = search_jsonDictionary(dict, "id", &val);
@@ -1966,11 +1963,7 @@ int populate_regions(void *aimInfo,
     {
       regions->attribute[n] = 0;
     }
-    if (val != NULL)
-    {
-      EG_free(val);
-      val = NULL;
-    }
+    AIM_FREE(val);
 
     // Store the region cell volume constraint.
     status = search_jsonDictionary(dict, "volumeConstraint", &val);
@@ -1982,12 +1975,46 @@ int populate_regions(void *aimInfo,
     {
       regions->volume_constraint[n] = -1.0;
     }
-    if (val != NULL)
-    {
-      EG_free(val);
-      val = NULL;
-    }
+
+    AIM_FREE(val);
   }
+
+  status = CAPS_SUCCESS;
+
+cleanup:
+  AIM_FREE(val);
+
+  return status;
+}
+
+int add_regions(void *aimInfo,
+                const char *name,
+                double x, double y, double z,
+                double attribute,
+                double volume_constraint,
+                tetgenRegionsStruct* regions)
+{
+  int status;
+
+  // Resize the regions data structure arrays.
+  AIM_REALL(regions->names, regions->size+1, char*, aimInfo, status);
+  regions->names[regions->size] = NULL;
+  AIM_REALL(regions->x, regions->size+1, double, aimInfo, status);
+  AIM_REALL(regions->y, regions->size+1, double, aimInfo, status);
+  AIM_REALL(regions->z, regions->size+1, double, aimInfo, status);
+  AIM_REALL(regions->attribute, regions->size+1, int, aimInfo, status);
+  AIM_REALL(regions->volume_constraint, regions->size+1, double, aimInfo, status);
+
+  AIM_STRDUP(regions->names[regions->size], name, aimInfo, status);
+  regions->x[regions->size] = x;
+  regions->y[regions->size] = y;
+  regions->z[regions->size] = z;
+  regions->attribute[regions->size] = attribute;
+  regions->volume_constraint[regions->size] = volume_constraint;
+
+  regions->size++;
+
+  status = CAPS_SUCCESS;
 
 cleanup:
   return status;
@@ -9469,22 +9496,28 @@ mesh_surfaceMeshData(void *aimInfo, const mapAttrToIndexStruct *groupMap, aimMes
 
   typedef int INT_2[2];
 
-  int i, j, ivert, igroup, nPoint, maxID = 0;
-  int nFace, iface;
+  int i, j, k, ivert, igroup, nPoint, nOrder, maxID = 0;
+  int nEdge, iedge, edgeID;
+  int nFace, iface, faceID;
   int ptype, pindex, plen, tlen;
   int nglobal, state, elem[4];
-  int faceID, nElems;
+  int nElems, nTotalElem=0;
   int atype, alen, stride;
-  INT_2 *elemGroup = NULL;
-  const double *points, *uv, *reals;
-  const int *ptypes, *pindexs, *tris, *tric, *tessFaceQuadMap=NULL;
+  int *elemEdgeGroup = NULL;
+  INT_2 *elemFaceGroup = NULL;
+  const double *points, *uv, *reals, *t;
+  const int *ints, *ptypes, *pindexs, *tris, *tric, *tessFaceQuadMap=NULL;
   const char *string = NULL;
   const char *groupName = NULL;
+  int nHOst, nHOtris=1, nHOmap;
+  const double *HOst=NULL;
+  const int *HOtris=NULL;
+  const int *HOelemTri=NULL;
   double xyz[3];
   enum aimMeshElem elementTopo;
   aimMeshData *meshData = NULL;
   aimMeshRef *meshRef = NULL;
-  ego body, *faces=NULL;
+  ego body, *edges=NULL, *faces=NULL;
 
   if (mesh           == NULL) return CAPS_NULLOBJ;
   if (mesh->meshRef  == NULL) return CAPS_NULLOBJ;
@@ -9506,9 +9539,71 @@ mesh_surfaceMeshData(void *aimInfo, const mapAttrToIndexStruct *groupMap, aimMes
     status = EG_statusTessBody(meshRef->maps[i].tess, &body, &state, &nglobal);
     AIM_STATUS(aimInfo, status);
     meshData->nVertex += nglobal;
+
+    status = EG_getBodyTopos(body, NULL, EDGE, &nEdge, &edges);
+    AIM_STATUS(aimInfo, status);
+
+    // Add line elements to total count
+    for (iedge = 0; iedge < nEdge; iedge++) {
+      if (edges[iedge]->mtype == DEGENERATE) continue;
+      status = retrieve_CAPSGroupAttr(edges[iedge], &groupName);
+      if (status != CAPS_SUCCESS) continue;
+      /*@-nullpass@*/
+      status = get_mapAttrToIndexIndex(groupMap, groupName, &faceID);
+      AIM_STATUS(aimInfo, status, "Unable to retrieve index from capsGroup: %s", groupName);
+      /*@+nullpass@*/
+      status = EG_getTessEdge(meshRef->maps[i].tess, iedge + 1, &plen, &points, &t);
+      AIM_STATUS(aimInfo, status);
+      meshData->nTotalElems += plen-1;
+    }
+
+    // check if the tessellation has a mixture of quad and tri
+    status = EG_attributeRet(meshRef->maps[i].tess, ".mixed",
+                             &atype, &alen, &tessFaceQuadMap, &reals, &string);
+    AIM_NOTFOUND(aimInfo, status);
+
+    status = EG_attributeRet(meshRef->maps[i].tess, ".HOtris",
+                             &atype, &nHOtris, &HOtris, &reals, &string);
+    AIM_NOTFOUND(aimInfo, status);
+    if (HOtris == NULL) nHOtris = 1;
+
+    status = EG_getBodyTopos(body, NULL, FACE, &nFace, &faces);
+    AIM_STATUS(aimInfo, status);
+
+    // Add tri/quad elements to total count
+
+    for (iface = 0; iface < nFace; iface++) {
+
+      // Look for component/boundary ID for attribute mapper based on capsGroup
+      status = retrieve_CAPSGroupAttr(faces[iface], &groupName);
+      if (status != CAPS_SUCCESS) {
+        AIM_ERROR(aimInfo, "No capsGroup attribute found on Face %d, unable to assign a index value",
+                  iface+1);
+        print_AllAttr( aimInfo, faces[iface] );
+        goto cleanup;
+      }
+
+      /*@-nullpass@*/
+      status = get_mapAttrToIndexIndex(groupMap, groupName, &faceID);
+      AIM_STATUS(aimInfo, status, "Unable to retrieve index from capsGroup: %s", groupName);
+      /*@+nullpass@*/
+
+      status = EG_getTessFace(meshRef->maps[i].tess, iface + 1, &plen, &points, &uv, &ptypes, &pindexs,
+                              &tlen, &tris, &tric);
+      AIM_STATUS(aimInfo, status);
+
+      meshData->nTotalElems += tlen/nHOtris;
+      if (tessFaceQuadMap != NULL) {
+        meshData->nTotalElems -= tessFaceQuadMap[iface];
+      }
+    }
+
+    AIM_FREE(edges);
+    AIM_FREE(faces);
   }
 
   AIM_ALLOC(meshData->verts, meshData->nVertex, aimMeshCoords, aimInfo, status);
+  AIM_ALLOC(meshData->elemMap, meshData->nTotalElems, aimMeshIndices, aimInfo, status);
 
   // Get vertex values
   ivert = 0;
@@ -9527,28 +9622,53 @@ mesh_surfaceMeshData(void *aimInfo, const mapAttrToIndexStruct *groupMap, aimMes
     }
   }
 
-#if 0
-  // Get line elements on each edge
+  for (i = 0; i < groupMap->numAttribute; i++)
+    maxID = MAX(maxID, groupMap->attributeIndex[i]);
+
+  AIM_ALLOC(elemEdgeGroup, maxID, int, aimInfo, status);
+  for (i = 0; i < maxID; i++) elemEdgeGroup[i] = -1;
+
+  AIM_ALLOC(elemFaceGroup, maxID, INT_2, aimInfo, status);
+  for (i = 0; i < maxID; i++) elemFaceGroup[i][0] = elemFaceGroup[i][1] = -1;
+
+  // Get line elements on each edge with a capsGroup
   nPoint = 2;
   elementTopo = aimLine;
-  ivert = edgeOffset = 0;
+  ivert = 0;
   for (i = 0; i < meshRef->nmap; i++) {
     status = EG_statusTessBody(meshRef->maps[i].tess, &body, &state, &nglobal);
     AIM_STATUS(aimInfo, status);
 
-    status = EG_getBodyTopos(body, NULL, EDGE, &nEdge, NULL);
+    status = EG_getBodyTopos(body, NULL, EDGE, &nEdge, &edges);
     AIM_STATUS(aimInfo, status);
 
     for (iedge = 0; iedge < nEdge; iedge++) {
-      status = EG_getTessEdge(meshRef->maps[i].tess, iedge + 1, &plen, &points, &t);
-      if (status == EGADS_DEGEN) continue;
-      AIM_STATUS(aimInfo, status);
 
-      status = aim_addMeshElemGroup(aimInfo, NULL, iedge+edgeOffset+1, elementTopo, 1, nPoint, meshData);
+      if (edges[iedge]->mtype == DEGENERATE) continue;
+
+      // Look for ID for attribute mapper based on capsGroup
+      status = retrieve_CAPSGroupAttr(edges[iedge], &groupName);
+      if (status != CAPS_SUCCESS) continue;
+
+      /*@-nullpass@*/
+      status = get_mapAttrToIndexIndex(groupMap, groupName, &edgeID);
+      AIM_STATUS(aimInfo, status, "Unable to retrieve index from capsGroup: %s", groupName);
+      /*@+nullpass@*/
+
+      igroup = elemEdgeGroup[edgeID-1];
+      if (igroup < 0) {
+        status = aim_addMeshElemGroup(aimInfo, groupName, edgeID, elementTopo, 1, nPoint, meshData);
+        AIM_STATUS(aimInfo, status);
+
+        igroup = elemEdgeGroup[edgeID-1] = meshData->nElemGroup-1;
+      }
+
+      status = EG_getTessEdge(meshRef->maps[i].tess, iedge + 1, &plen, &points, &t);
       AIM_STATUS(aimInfo, status);
 
       /* add the element to the group */
-      status = aim_addMeshElem(aimInfo, plen-1, &meshData->elemGroups[iedge+edgeOffset]);
+      nElems = meshData->elemGroups[igroup].nElems;
+      status = aim_addMeshElem(aimInfo, plen-1, &meshData->elemGroups[igroup]);
       AIM_STATUS(aimInfo, status);
 
       for (j = 0; j < plen-1; j++) {
@@ -9560,23 +9680,20 @@ mesh_surfaceMeshData(void *aimInfo, const mapAttrToIndexStruct *groupMap, aimMes
         if (status == EGADS_DEGEN) continue;
         AIM_STATUS(aimInfo, status);
 
-        meshData->elemGroups[iedge+edgeOffset].elements[nPoint*j + 0] = elem[0] + ivert;
-        meshData->elemGroups[iedge+edgeOffset].elements[nPoint*j + 1] = elem[1] + ivert;
+        meshData->elemGroups[igroup].elements[nPoint*(nElems + j) + 0] = elem[0] + ivert;
+        meshData->elemGroups[igroup].elements[nPoint*(nElems + j) + 1] = elem[1] + ivert;
+
+        meshData->elemMap[nTotalElem][0] = igroup;
+        meshData->elemMap[nTotalElem][1] = nElems + j;
+        nTotalElem++;
       }
     }
+    AIM_FREE(edges);
 
-    edgeOffset += nEdge;
     ivert += nglobal;
   }
-#endif
 
   // Get elements on each face
-
-  for (i = 0; i < groupMap->numAttribute; i++)
-    maxID = MAX(maxID, groupMap->attributeIndex[i]);
-
-  AIM_ALLOC(elemGroup, maxID, INT_2, aimInfo, status);
-  for (i = 0; i < maxID; i++) elemGroup[i][0] = elemGroup[i][1] = -1;
 
   ivert = 0;
   for (i = 0; i < meshRef->nmap; i++) {
@@ -9585,6 +9702,21 @@ mesh_surfaceMeshData(void *aimInfo, const mapAttrToIndexStruct *groupMap, aimMes
     status = EG_attributeRet(meshRef->maps[i].tess, ".mixed",
                              &atype, &alen, &tessFaceQuadMap, &reals, &string);
     AIM_NOTFOUND(aimInfo, status);
+
+    status = EG_attributeRet(meshRef->maps[i].tess, ".HOst",
+                             &atype, &nHOst, &ints, &HOst, &string);
+    AIM_NOTFOUND(aimInfo, status);
+    if (HOst == NULL) nHOst = 3;
+
+    status = EG_attributeRet(meshRef->maps[i].tess, ".HOtris",
+                             &atype, &nHOtris, &HOtris, &reals, &string);
+    AIM_NOTFOUND(aimInfo, status);
+    if (HOtris == NULL) nHOtris = 1;
+
+    status = EG_attributeRet(meshRef->maps[i].tess, ".HOelemTri",
+                             &atype, &nHOmap, &HOelemTri, &reals, &string);
+    AIM_NOTFOUND(aimInfo, status);
+    if (HOelemTri == NULL) nHOmap = 0;
 
     status = EG_statusTessBody(meshRef->maps[i].tess, &body, &state, &nglobal);
     AIM_STATUS(aimInfo, status);
@@ -9615,20 +9747,22 @@ mesh_surfaceMeshData(void *aimInfo, const mapAttrToIndexStruct *groupMap, aimMes
       if (tessFaceQuadMap != NULL) {
         tlen -= 2*tessFaceQuadMap[iface];
       }
+      tlen /= nHOtris;
 
       stride = 0;
 
       if (tlen > 0) {
 
-        nPoint = 3;
+        nPoint = nHOst;
+        nOrder = nHOst == 3 ? 1 : nHOst <= 7 ? 2 : 3;
         elementTopo = aimTri;
-        igroup = elemGroup[faceID-1][0];
+        igroup = elemFaceGroup[faceID-1][0];
 
         if (igroup < 0) {
-          status = aim_addMeshElemGroup(aimInfo, groupName, faceID, elementTopo, 1, nPoint, meshData);
+          status = aim_addMeshElemGroup(aimInfo, groupName, faceID, elementTopo, nOrder, nPoint, meshData);
           AIM_STATUS(aimInfo, status);
 
-          igroup = elemGroup[faceID-1][0] = meshData->nElemGroup-1;
+          igroup = elemFaceGroup[faceID-1][0] = meshData->nElemGroup-1;
         }
 
         /* add the element to the group */
@@ -9636,18 +9770,27 @@ mesh_surfaceMeshData(void *aimInfo, const mapAttrToIndexStruct *groupMap, aimMes
         status = aim_addMeshElem(aimInfo, tlen, &meshData->elemGroups[igroup]);
         AIM_STATUS(aimInfo, status);
 
-        for (j = 0; j < tlen; j++, stride += 3) {
-          status = EG_localToGlobal(meshRef->maps[i].tess, iface + 1, tris[stride + 0], &elem[0]);
-          AIM_STATUS(aimInfo, status);
-          status = EG_localToGlobal(meshRef->maps[i].tess, iface + 1, tris[stride + 1], &elem[1]);
-          AIM_STATUS(aimInfo, status);
-          status = EG_localToGlobal(meshRef->maps[i].tess, iface + 1, tris[stride + 2], &elem[2]);
-          AIM_STATUS(aimInfo, status);
+        for (j = 0; j < tlen; j++, stride += 3*nHOtris) {
 
+          if (HOelemTri != NULL) {
+            for (k = 0; k < nHOst; k++) {
+              status = EG_localToGlobal(meshRef->maps[i].tess, iface + 1, tris[stride + 3*(HOelemTri[2*k+0]-1) + HOelemTri[2*k+1]-1], &elem[0]);
+              AIM_STATUS(aimInfo, status);
 
-          meshData->elemGroups[igroup].elements[nPoint*(nElems + j) + 0] = elem[0] + ivert;
-          meshData->elemGroups[igroup].elements[nPoint*(nElems + j) + 1] = elem[1] + ivert;
-          meshData->elemGroups[igroup].elements[nPoint*(nElems + j) + 2] = elem[2] + ivert;
+              meshData->elemGroups[igroup].elements[nPoint*(nElems + j) + k] = elem[0] + ivert;
+            }
+          } else {
+            for (k = 0; k < 3; k++) {
+              status = EG_localToGlobal(meshRef->maps[i].tess, iface + 1, tris[stride + k], &elem[0]);
+              AIM_STATUS(aimInfo, status);
+
+              meshData->elemGroups[igroup].elements[nPoint*(nElems + j) + k] = elem[0] + ivert;
+            }
+          }
+
+          meshData->elemMap[nTotalElem][0] = igroup;
+          meshData->elemMap[nTotalElem][1] = nElems + j;
+          nTotalElem++;
         }
       }
 
@@ -9655,12 +9798,12 @@ mesh_surfaceMeshData(void *aimInfo, const mapAttrToIndexStruct *groupMap, aimMes
 
         nPoint = 4;
         elementTopo = aimQuad;
-        igroup = elemGroup[faceID-1][1];
+        igroup = elemFaceGroup[faceID-1][1];
 
         if (igroup < 0) {
           status = aim_addMeshElemGroup(aimInfo, groupName, faceID, elementTopo, 1, nPoint, meshData);
           AIM_STATUS(aimInfo, status);
-          igroup = elemGroup[faceID-1][1] = meshData->nElemGroup-1;
+          igroup = elemFaceGroup[faceID-1][1] = meshData->nElemGroup-1;
         }
 
         /* add the element to the group */
@@ -9678,13 +9821,16 @@ mesh_surfaceMeshData(void *aimInfo, const mapAttrToIndexStruct *groupMap, aimMes
           status = EG_localToGlobal(meshRef->maps[i].tess, iface + 1, tris[stride + 5], &elem[3]);
           AIM_STATUS(aimInfo, status);
 
-
           meshData->elemGroups[igroup].elements[nPoint*(nElems + j) + 0] = elem[0] + ivert;
           meshData->elemGroups[igroup].elements[nPoint*(nElems + j) + 1] = elem[1] + ivert;
           meshData->elemGroups[igroup].elements[nPoint*(nElems + j) + 2] = elem[2] + ivert;
           meshData->elemGroups[igroup].elements[nPoint*(nElems + j) + 3] = elem[3] + ivert;
+
+          meshData->elemMap[nTotalElem][0] = igroup;
+          meshData->elemMap[nTotalElem][1] = nElems + j;
+          nTotalElem++;
         }
-     }
+      }
     }
 
     AIM_FREE(faces);
@@ -9697,7 +9843,9 @@ mesh_surfaceMeshData(void *aimInfo, const mapAttrToIndexStruct *groupMap, aimMes
   status = CAPS_SUCCESS;
 
 cleanup:
-  AIM_FREE(elemGroup);
+  AIM_FREE(elemEdgeGroup);
+  AIM_FREE(elemFaceGroup);
+  AIM_FREE(edges);
   AIM_FREE(faces);
 
   return status;

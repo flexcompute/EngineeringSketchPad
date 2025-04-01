@@ -87,6 +87,7 @@ caps_unitInvert
 caps_unitOffset
 caps_unitParse
 caps_unitRaise
+caps_unitRoot
 caps_printObjects
 caps_outputObjects
 caps_statFile

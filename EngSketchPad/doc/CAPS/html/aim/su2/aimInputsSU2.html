@@ -66,7 +66,7 @@ $(function() {
 <div class="title">AIM Inputs </div>  </div>
 </div><!--header-->
 <div class="contents">
-<div class="textblock"><p>For the description of the configuration variables, associated values, and available options refer to the template configuration file that is distributed with SU2. Note: The configuration file is dependent on the version of SU2 used. This configuration file that will be auto generated is compatible with SU2 4.1.1. (Cardinal), 5.0.0 (Raven), 6.2.0 (Falcon), 7.5.1 (Blackbird) or 8.0.1 (Harrier - Default)</p>
+<div class="textblock"><p>For the description of the configuration variables, associated values, and available options refer to the template configuration file that is distributed with SU2. Note: The configuration file is dependent on the version of SU2 used. This configuration file that will be auto generated is compatible with SU2 4.1.1. (Cardinal), 5.0.0 (Raven), 6.2.0 (Falcon), 7.5.1 (Blackbird) or 8.1.0 (Harrier - Default)</p>
 <ul>
 <li><b> Proj_Name = "su2_CAPS"</b> <br  />
  This corresponds to the project "root" name.</li>
@@ -81,7 +81,9 @@ $(function() {
 <li><b> Equation_Type = "Compressible"</b> <br  />
  Equation regime type; this corresponds to the REGIME_TYPE keyword in the configuration file. Options: Compressible or Incompressible.</li>
 <li><b> Turbulence_Model = "SA_NEG"</b> <br  />
- RANS turbulence model; this corresponds to the KIND_TURB_MODEL keyword in the configuration file. Options: NONE, SA, SA_NEG, SST, SA_E, SA_COMP, SA_E_COMP, SST_SUST</li>
+ RANS turbulence model; this corresponds to the KIND_TURB_MODEL keyword in the configuration file. Options: NONE, SA, SST</li>
+<li><b> Turbulence_Model_Option = "NONE"</b> <br  />
+ RANS turbulence model; this corresponds to the SA_OPTIONS or SST_OPTIONS keyword in the configuration file. SA Options: NONE, NEGATIVE, EDWARDS, WITHFT2, QCR2000, COMPRESSIBILITY, ROTATION, BCM, EXPERIMENTAL SST Options: V2003m, V1994m, VORTICITY, KATO_LAUNDER, UQ, SUSTAINING</li>
 <li><b> Alpha = 0.0</b> <br  />
  Angle of attack [degree]; this corresponds to the AoA keyword in the configuration file.</li>
 <li><b> Beta = 0.0</b> <br  />
@@ -127,13 +129,13 @@ $(function() {
 <li><b>Temperature_Scale_Factor = 1.0</b> <br  />
  Value to scale Temperature data when transferring data.</li>
 <li><b> Output_Format = "Paraview"</b> <br  />
- Output file format; this corresponds to the OUTPUT_FORMAT keyword in the configuration file. See SU2 template for additional details.</li>
+ List of string output file formats; this corresponds to the OUTPUT_FORMAT or OUTPUT_FILES keyword in the configuration file. See SU2 template for additional details.</li>
 <li><b>Two_Dimensional = False</b> <br  />
  Run SU2 in 2D mode.</li>
 <li><b> Convective_Flux = "Roe"</b> <br  />
  Numerical method for convective (inviscid) flux construction; this corresponds to the CONV_NUM_METHOD_FLOW keyword in the configuration file. See SU2 template for additional details.</li>
 <li><b>SU2_Version = "Harrier"</b> <br  />
- SU2 version to generate specific configuration file. Options: "Cardinal(4.0)", "Raven(5.0)", "Falcon(6.2)", "Blackbird(7.5.1)" or "Harrier(8.0.1)".</li>
+ SU2 version to generate specific configuration file. Options: "Cardinal(4.0)", "Raven(5.0)", "Falcon(6.2)", "Blackbird(7.5.1)" or "Harrier(8.1.0)".</li>
 <li><b>Surface_Monitor = NULL</b> <br  />
  Array of surface names where the non-dimensional coefficients are evaluated</li>
 <li><b>Surface_Deform = NULL</b> <br  />
@@ -149,7 +151,7 @@ $(function() {
 </div><!-- PageDoc -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Wed May 22 2024 10:55:34 for SU2 Analysis Interface Module (AIM) by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1
+Generated on Fri Feb 28 2025 09:06:54 for SU2 Analysis Interface Module (AIM) by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1
 </small></address>
 </body>
 </html>

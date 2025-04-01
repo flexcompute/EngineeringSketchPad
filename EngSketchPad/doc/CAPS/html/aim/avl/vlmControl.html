@@ -78,8 +78,13 @@ JSON String Dictionary</h1>
 </ul>
 <ul>
 <li>
-<b>leOrTe = (no default) </b>  <br  />
- Is the control surface a leading ( = 0) or trailing (&gt; 0) edge effector? Overrides the assumed default value set by the geometry: If the percentage along the airfoil chord is &lt; 50% a leading edge flap is assumed, while &gt;= 50% indicates a trailing edge flap. </li>
+<p class="startli"><b>leOrTe = (no default) </b>  <br  />
+ Is the control surface at the leading or trailing edge?</p><ul>
+<li>For leOrTe = 0, the control surface is always between the leading edge and the hinge line.</li>
+<li>For leOrTe = 1, the control surface is always between the trailing edge and the hinge line.</li>
+</ul>
+<p class="endli">The default behavior when leOrTe is not specified: If the hinge location percentage along the airfoil chord is &lt; 50% a leading edge slat is assumed, while &gt;= 50% indicates a trailing edge flap. </p>
+</li>
 </ul>
 <ul>
 <li>

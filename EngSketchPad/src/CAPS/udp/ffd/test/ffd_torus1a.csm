@@ -1,0 +1,13 @@
+# ffd_torus1a
+# written by Marshall Galbraith
+
+# original configuration
+TORUS     0  0  0  0  0  1  2  1
+
+STORE   original
+
+# Deform original
+UDPRIM $/ffda
+
+END
+

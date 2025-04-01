@@ -375,8 +375,7 @@ int aimUpdateState(void *instStore, void *aimInfo,
     status = destroy_aimStorage(aflr2Instance, (int)true);
     AIM_STATUS(aimInfo, status);
 
-    if (aflr2Instance->meshMap.numAttribute == 0 ||
-        aim_newGeometry(aimInfo) == CAPS_SUCCESS ) {
+    if (aim_newGeometry(aimInfo) == CAPS_SUCCESS ) {
       // Get capsMesh name and index mapping
       status = create_CAPSMeshAttrToIndexMap(numBody,
                                              bodies,
@@ -385,8 +384,7 @@ int aimUpdateState(void *instStore, void *aimInfo,
       AIM_STATUS(aimInfo, status);
     }
 
-    if (aflr2Instance->groupMap.numAttribute == 0 ||
-        aim_newGeometry(aimInfo) == CAPS_SUCCESS ) {
+    if (aim_newGeometry(aimInfo) == CAPS_SUCCESS ) {
       // Get capsGroup name and index mapping to make sure all edges have a capsGroup value
       status = create_CAPSGroupAttrToIndexMap(numBody,
                                               bodies,
@@ -459,7 +457,8 @@ int aimUpdateState(void *instStore, void *aimInfo,
     }
 
     // Get mesh sizing parameters
-    if (aimInputs[Mesh_Sizing-1].nullVal != IsNull) {
+    if (aimInputs[Mesh_Sizing-1].nullVal != IsNull &&
+        aim_newAnalysisIn(aimInfo, Mesh_Sizing) == CAPS_SUCCESS) {
 
         status = deprecate_SizingAttr(aimInfo,
                                       aimInputs[Mesh_Sizing-1].length,
@@ -478,7 +477,8 @@ int aimUpdateState(void *instStore, void *aimInfo,
     }
 
     // Modify the EGADS body tessellation based on given inputs
-    status =  mesh_modifyBodyTess(numMeshProp,
+    status =  mesh_modifyBodyTess(aimInfo,
+                                  numMeshProp,
                                   meshProp,
                                   minEdgePoint,
                                   maxEdgePoint,

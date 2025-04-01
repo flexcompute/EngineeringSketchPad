@@ -89,27 +89,34 @@ JSON String Dictionary</h1>
 <ul>
 <li>
 <b>spaceChord = 1.0</b>  <br  />
- The chordwise vortex spacing parameter. </li>
+ The chordwise vortex spacing parameter.<br  />
+ Note: The local spanwise spacing may be overridden using the <em>vlmSspace</em> BODY attribute on a section. </li>
 </ul>
 <ul>
 <li>
 <b>numSpanTotal = 0</b>  <br  />
- Total number of spanwise horseshoe vortices placed on the surface. The vorticies are 'evenly' distributed across sections to minimize jumps in spacings. numpSpanPerSection must be zero if this is set. </li>
+ Total number of spanwise horseshoe vortices placed on the surface. The vorticies are 'evenly' distributed across sections to minimize jumps in spacings. numpSpanPerSection must be zero if this is set.<br  />
+ Note: The local spanwise count may be overridden using the <em>vlmNumSpan</em> BODY attribute on a section. </li>
 </ul>
 <ul>
 <li>
 <b>numSpanPerSection = 0</b>  <br  />
- The number of spanwise horseshoe vortices placed on each section the surface. The total number of spanwise vorticies are (numSection-1)*numSpanPerSection. The vorticies are 'evenly' distributed across sections to minimize jumps in spacings. numSpanTotal must be zero if this is set. </li>
-</ul>
-<ul>
-<li>
-<b>spaceSpan = 0.0</b>  <br  />
- The spanwise vortex spacing parameter. </li>
+ The number of spanwise horseshoe vortices placed on each section the surface. The total number of spanwise vorticies are (numSection-1)*numSpanPerSection. The vorticies are 'evenly' distributed across sections to minimize jumps in spacings. numSpanTotal must be zero if this is set.<br  />
+ Note: The local spanwise count may be overridden using the <em>vlmNumSpan</em> BODY attribute on a section. </li>
 </ul>
 <ul>
 <li>
 <b>yMirror = False</b>  <br  />
  Mirror surface about the y-direction. </li>
+</ul>
+<ul>
+<li>
+<b>component = 0</b>  <br  />
+ A positive number allows multiple input SURFACEs to be grouped together into a composite virtual surface. Application examples are:<ul>
+<li>A wing component made up of a wing SURFACE and a winglet SURFACE</li>
+<li>A T-tail component made up of horizontal and vertical tail SURFACEs. </li>
+</ul>
+</li>
 </ul>
 <ul>
 <li>
