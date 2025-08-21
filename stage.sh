@@ -6,7 +6,12 @@ set -x # echo commands
 
 esp=ESP
 
-rm -rf include lib
+rm -rf include lib pyESP
+
+mkdir -p pyESP
+cp -r ${esp}/EngSketchPad/pyESP/pyCAPS pyESP
+cp -r ${esp}/EngSketchPad/pyESP/pyEGADS pyESP
+cp -r ${esp}/EngSketchPad/pyESP/pyOCSM pyESP
 
 mkdir -p lib
 cp ${esp}/OpenCASCADE-*/lib/lib* lib
