@@ -8,9 +8,4 @@ setup(
     author='Mike Park',
     author_email='mike@flexcompte.com',
     packages=find_packages(),  # Automatically finds 'pyEGADS' and 'pyCAPS'
-    install_requires=[
-            'ctypes',
-            'weakref',
-            'atexit',
-        ],
 )
