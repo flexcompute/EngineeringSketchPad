@@ -5,7 +5,7 @@ setup(
     name='pyESP',
     version='1.28.0',
     description='Engineering Sketch Pad',
-    author='Mike Park',
-    author_email='mike@flexcompte.com',
+    author='Flexcompute Inc.',
+    author_email='mike@flexcompute.com',
     packages=find_packages(),  # Automatically finds 'pyEGADS' and 'pyCAPS'
 )
