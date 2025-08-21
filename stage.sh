@@ -6,9 +6,8 @@ set -x # echo commands
 
 esp=ESP
 
-rm -rf include lib pyESP
+rm -rf include lib pyESP/py*
 
-mkdir -p pyESP
 cp -r ${esp}/EngSketchPad/pyESP/pyCAPS pyESP
 cp -r ${esp}/EngSketchPad/pyESP/pyEGADS pyESP
 cp -r ${esp}/EngSketchPad/pyESP/pyOCSM pyESP
