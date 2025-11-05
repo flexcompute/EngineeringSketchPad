@@ -12,6 +12,7 @@ cp -r ${esp}/EngSketchPad/pyESP/pyCAPS pyESP
 cp ${esp}/EngSketchPad/src/CAPS/udunits/*.xml pyESP/pyCAPS
 patch -p1 < pycaps.patch
 cp -r ${esp}/EngSketchPad/pyESP/pyEGADS pyESP
+patch -p1 < pyEGADS.patch
 cp -r ${esp}/EngSketchPad/pyESP/pyOCSM pyESP
 
 mkdir -p lib
@@ -26,13 +27,13 @@ export RPATH=-Wl,-rpath='$$ORIGIN:$$ORIGIN/../lib',--disable-new-dtags
 
 ( cd ${esp}/EngSketchPad/src/EGADS/src && \
   make clean && \
-  make ${ESP_ROOT}/lib/libegads.so RPATH=\'${RPATH}\' )
+  make -j ${ESP_ROOT}/lib/libegads.so RPATH=\'${RPATH}\' )
 ( cd ${esp}/EngSketchPad/src/CAPS/src && \
   make clean && \
-  make ${ESP_ROOT}/lib/libcaps.so RPATH=\'${RPATH}\' )
+  make -j ${ESP_ROOT}/lib/libcaps.so RPATH=\'${RPATH}\' )
 ( cd ${esp}/EngSketchPad/src/OpenCSM && \
   make clean && \
-  make ${ESP_ROOT}/lib/libocsm.so RPATH=\'${RPATH}\' )
+  make -j ${ESP_ROOT}/lib/libocsm.so RPATH=\'${RPATH}\' )
 
 cp ${esp}/EngSketchPad/lib/* lib
 cp -r ${esp}/EngSketchPad/include include
