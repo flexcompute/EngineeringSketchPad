@@ -1,0 +1,40 @@
+name: Create Release
+
+on:
+  push:
+    tags:
+      - '**'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing tag name to create release for'
+        required: true
+        type: string
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+          lfs: true  # This fetches LFS files automatically
+
+      # Optional: explicitly pull LFS files
+      - name: Pull LFS files
+        run: git lfs pull
+
+      - name: Set release tag
+        id: tag
+        run: echo "name=${{ inputs.tag || github.ref_name }}" >> $GITHUB_OUTPUT
+
+      - name: Create archive with real binaries
+        run: |
+          git archive --format=tar.gz -o ${{ github.event.repository.name }}-${{ steps.tag.outputs.name }}.tar.gz HEAD
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.tag.outputs.name }}
+          name: ${{ steps.tag.outputs.name }}
+          files: ${{ github.event.repository.name }}-${{ steps.tag.outputs.name }}.tar.gz
