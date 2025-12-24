@@ -30,7 +30,7 @@ jobs:
 
       - name: Create archive with real binaries
         run: |
-          git archive --format=tar.gz -o ${{ github.event.repository.name }}-${{ steps.tag.outputs.name }}.tar.gz HEAD
+          git archive --format=tar.gz -o ${{ github.event.repository.name }}-${{ steps.tag.outputs.name }}.tar.gz HEAD CMakeLists.txt README.md include lib pyESP test udc
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
