@@ -11,4 +11,11 @@ curl -O https://acdl.mit.edu/ESP/PreBuilts/${tar} -o ${tar}
 
 rm -rf ESP ESP${version}
 tar xzf ${tar}
+
+# Replace evaluate.c with a custom version for ESP128 to fix
+# add periodic parameter support to EG_splinePCDeriv
+if [ "$version" = "128" ]; then
+  cp replace128evaluate.c ESP${version}/EngSketchPad/src/EGADS/util/evaluate.c
+fi
+
 mv ESP${version} ESP
