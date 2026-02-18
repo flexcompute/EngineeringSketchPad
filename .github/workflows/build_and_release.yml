@@ -7,11 +7,6 @@ on:
         description: 'Tag name to create (e.g. 1.28.5)'
         required: true
         type: string
-      tag_message:
-        description: 'Tag annotation message'
-        required: false
-        default: 'ESP release'
-        type: string
 
 jobs:
   build-and-release:
@@ -63,13 +58,8 @@ jobs:
             git commit -m "Build artifacts for ${{ inputs.tag }}"
           fi
 
-      - name: Create annotated tag
-        run: git tag -a "${{ inputs.tag }}" -m "${{ inputs.tag_message }}"
-
-      - name: Push commit and tag
-        run: |
-          git push origin HEAD:${{ github.ref_name }}
-          git push origin "${{ inputs.tag }}"
+      - name: Push commit
+        run: git push origin HEAD:${{ github.ref_name }}
 
       - name: Create release archive
         run: |
