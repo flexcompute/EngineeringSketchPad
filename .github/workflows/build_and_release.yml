@@ -1,0 +1,82 @@
+name: Build and Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag name to create (e.g. 1.28.5)'
+        required: true
+        type: string
+      tag_message:
+        description: 'Tag annotation message'
+        required: false
+        default: 'ESP release'
+        type: string
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    container:
+      image: nvidia/cuda:12.4.1-devel-rockylinux8
+    permissions:
+      contents: write
+    steps:
+      - name: Install system dependencies
+        run: |
+          yum install -y git curl make gcc gcc-c++ patch
+          curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.rpm.sh | bash
+          yum install -y git-lfs
+          git lfs install
+
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+          fetch-depth: 0
+
+      - name: Pull LFS files
+        run: git lfs pull
+
+      - name: Run download.sh
+        run: bash download.sh
+
+      - name: Run stage.sh
+        run: bash stage.sh
+
+      - name: Clean up build intermediates
+        run: rm -rf ESP ESP*.tgz
+
+      - name: Configure git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Commit build artifacts
+        run: |
+          git add lib/ include/ udc/ pyESP/
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Build artifacts for ${{ inputs.tag }}"
+          fi
+
+      - name: Create annotated tag
+        run: git tag -a "${{ inputs.tag }}" -m "${{ inputs.tag_message }}"
+
+      - name: Push commit and tag
+        run: |
+          git push origin HEAD:${{ github.ref_name }}
+          git push origin "${{ inputs.tag }}"
+
+      - name: Create release archive
+        run: |
+          git archive --format=tar.gz \
+            -o ${{ github.event.repository.name }}-${{ inputs.tag }}.tar.gz \
+            HEAD CMakeLists.txt README.md include lib pyESP test udc
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ inputs.tag }}
+          name: ${{ inputs.tag }}
+          files: ${{ github.event.repository.name }}-${{ inputs.tag }}.tar.gz
