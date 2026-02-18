@@ -27,7 +27,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           lfs: true
-          fetch-depth: 0
 
       - name: Mark workspace as safe for git
         run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
@@ -44,28 +43,10 @@ jobs:
       - name: Clean up build intermediates
         run: rm -rf ESP ESP*.tgz
 
-      - name: Configure git identity
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-
-      - name: Commit build artifacts
-        run: |
-          git add lib/ include/ udc/ pyESP/
-          if git diff --cached --quiet; then
-            echo "No changes to commit"
-          else
-            git commit -m "Build artifacts for ${{ inputs.tag }}"
-          fi
-
-      - name: Push commit
-        run: git push origin HEAD:${{ github.ref_name }}
-
       - name: Create release archive
         run: |
-          git archive --format=tar.gz \
-            -o ${{ github.event.repository.name }}-${{ inputs.tag }}.tar.gz \
-            HEAD CMakeLists.txt README.md include lib pyESP test udc
+          tar czf ${{ github.event.repository.name }}-${{ inputs.tag }}.tar.gz \
+            CMakeLists.txt README.md include lib pyESP test udc
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
