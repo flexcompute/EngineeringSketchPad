@@ -40,6 +40,15 @@ jobs:
       - name: Run stage.sh
         run: bash stage.sh
 
+      - name: Generate source checksums
+        run: |
+          { echo "filepath,md5"
+            find ESP/EngSketchPad -type f \( -name '*.c' -o -name '*.h' -o -name '*.cpp' -o -name '*.f' -o -name '*.py' -o -name '*.make' -o -name '[Mm]akefile' \) -exec md5sum {} + \
+              | sed 's|ESP/EngSketchPad/||' \
+              | sort -k2 \
+              | awk '{print $2","$1}'
+          } > source_checksums_with_patches.csv
+
       - name: Clean up build intermediates
         run: rm -rf ESP ESP*.tgz
 
@@ -54,4 +63,6 @@ jobs:
           tag_name: ${{ inputs.tag }}
           name: ${{ inputs.tag }}
           target_commitish: ${{ github.sha }}
-          files: ${{ github.event.repository.name }}-${{ inputs.tag }}.tar.gz
+          files: |
+            ${{ github.event.repository.name }}-${{ inputs.tag }}.tar.gz
+            source_checksums_with_patches.csv
