@@ -1,0 +1,108 @@
+--- ESP/EngSketchPad/src/EGADS/src/egadsIO.cpp	2026-03-06 20:22:39.000000000 +0000
++++ ESP/EngSketchPad/src/EGADS/src/egadsIO.cpp	2026-04-15 13:40:55.990286766 +0000
+@@ -105,7 +105,7 @@
+ #endif
+ 
+ 
+-//#define INTERIM
++#define INTERIM
+ 
+ #define UVTOL    1.e-4
+ 
+@@ -2665,6 +2665,20 @@
+     egadsBody *pbody = (egadsBody *) obj->blind;
+     pbody->shape     = Exp.Current();
+     if (egads == 0) {
++      TopTools_IndexedMapOfShape FaceMap;
++      TopExp::MapShapes(pbody->shape, TopAbs_FACE, FaceMap);
++      int nNullSurf = 0;
++      for (int iFace = 1; iFace <= FaceMap.Extent(); iFace++) {
++        TopoDS_Face Face = TopoDS::Face(FaceMap(iFace));
++        Handle(Geom_Surface) hSurface = BRep_Tool::Surface(Face);
++        if (hSurface.IsNull()) nNullSurf++;
++      }
++      if (nNullSurf != 0) {
++/*      printf(" EGADS Warning: Body %d has %d NULL Surfaces of %d Faces\n",
++               i, nNullSurf, FaceMap.Extent());  */
++        if (invalid != NULL) invalid[i-1] = 2;
++        continue;
++      }
+       BRepCheck_Analyzer fCheck(pbody->shape);
+       if (!fCheck.IsValid()) {
+         try {
+@@ -2701,6 +2715,20 @@
+     egadsBody *pbody = (egadsBody *) obj->blind;
+     pbody->shape     = Exp.Current();
+     if (egads == 0) {
++      TopTools_IndexedMapOfShape FaceMap;
++      TopExp::MapShapes(pbody->shape, TopAbs_FACE, FaceMap);
++      int nNullSurf = 0;
++      for (int iFace = 1; iFace <= FaceMap.Extent(); iFace++) {
++        TopoDS_Face Face = TopoDS::Face(FaceMap(iFace));
++        Handle(Geom_Surface) hSurface = BRep_Tool::Surface(Face);
++        if (hSurface.IsNull()) nNullSurf++;
++      }
++      if (nNullSurf != 0) {
++/*      printf(" EGADS Warning: Body %d has %d NULL Surfaces of %d Faces\n",
++               i, nNullSurf, FaceMap.Extent());  */
++        if (invalid != NULL) invalid[i-1] = 2;
++        continue;
++      }
+       BRepCheck_Analyzer sCheck(pbody->shape);
+       if (!sCheck.IsValid()) {
+         try {
+@@ -2743,6 +2771,20 @@
+     egadsBody *pbody = (egadsBody *) obj->blind;
+     pbody->shape     = Exp.Current();
+     if (egads == 0) {
++      TopTools_IndexedMapOfShape FaceMap;
++      TopExp::MapShapes(pbody->shape, TopAbs_FACE, FaceMap);
++      int nNullSurf = 0;
++      for (int iFace = 1; iFace <= FaceMap.Extent(); iFace++) {
++        TopoDS_Face Face = TopoDS::Face(FaceMap(iFace));
++        Handle(Geom_Surface) hSurface = BRep_Tool::Surface(Face);
++        if (hSurface.IsNull()) nNullSurf++;
++      }
++      if (nNullSurf != 0) {
++/*      printf(" EGADS Warning: Body %d has %d NULL Surfaces of %d Faces\n",
++               i, nNullSurf, FaceMap.Extent());  */
++        if (invalid != NULL) invalid[i-1] = 2;
++        continue;
++      }
+       BRepCheck_Analyzer sCheck(pbody->shape);
+       if (!sCheck.IsValid()) {
+         try {
+@@ -2780,6 +2822,24 @@
+       }
+     }
+   }
++  if (invalid != NULL) {
++    int nInvalid = 0;
++    for (j = 0; j < i; j++) if (invalid[j] == 2) nInvalid++;
++    if (nInvalid == i) {
++      printf(" EGADS Error: No Valid Bodies!\n");
++      source.Nullify();
++      for (i = 0; i < nBody; i++) {
++        egObject  *obj   = mshape->bodies[i];
++        egadsBody *pbody = (egadsBody *) obj->blind;
++        delete pbody;
++        EG_deleteObject(mshape->bodies[i]);
++      }
++      delete [] mshape->bodies;
++      delete mshape;
++      EG_free(invalid);
++      return EGADS_NODATA;
++    }
++  }
+ 
+   stat = EG_makeObject(context, &omodel);
+   if (stat != EGADS_SUCCESS) {
+@@ -2823,7 +2883,7 @@
+       continue;
+     }
+     if (invalid != NULL)
+-      if (invalid[i] == 1)
++      if (invalid[i] != 0)
+         EG_attributeAdd(pobj, ".invalid", ATTRSTRING, 1, NULL, NULL, name);
+     mshape->bodies[j] = mshape->bodies[i];
+     j++;
