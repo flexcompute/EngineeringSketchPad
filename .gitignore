@@ -1,0 +1,8 @@
+# Build artifacts (built by stage.sh from source)
+lib/*.so
+lib/*.so.*
+lib/*.a
+
+# Downloaded ESP source
+ESP/
+ESP*.tgz
