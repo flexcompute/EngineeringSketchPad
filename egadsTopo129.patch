@@ -1,0 +1,509 @@
+--- ESP/EngSketchPad/src/EGADS/src/egadsTopo.cpp	2026-01-15 12:44:47.000000000 +0000
++++ ESP/EngSketchPad/src/EGADS/src/egadsTopo.cpp	2026-04-15 13:40:56.514280719 +0000
+@@ -8823,10 +8823,21 @@
+       return EGADS_NOTFOUND;
+     }
+ 
+-    BRepAdaptor_Curve2d Curve2d(edge, pface->face);
+-    Curve2d.D0(tt, P2d);
+-    uv[0] = P2d.X();
+-    uv[1] = P2d.Y();
++    try {
++      BRepAdaptor_Curve2d Curve2d(edge, pface->face);
++      Curve2d.D0(tt, P2d);
++      uv[0] = P2d.X();
++      uv[1] = P2d.Y();
++    }
++    catch (const Standard_Failure& e) {
++      printf(" EGADS Error: Cannot evaluate PCurve (EG_getEdgeUV)!\n");
++      printf("              %s\n", e.GetMessageString());
++      return EGADS_GEOMERR;
++    }
++    catch (...) {
++      printf(" EGADS Error: Cannot evaluate PCurve (EG_getEdgeUV)!\n");
++      return EGADS_GEOMERR;
++    }
+ 
+     return EGADS_SUCCESS;
+   }
+@@ -8874,10 +8885,21 @@
+       }
+       return stat;
+     } else {
+-      BRepAdaptor_Curve2d Curve2d(edge, pface->face);
+-      Curve2d.D0(t, P2d);
+-      uv[0] = P2d.X();
+-      uv[1] = P2d.Y();
++      try {
++        BRepAdaptor_Curve2d Curve2d(edge, pface->face);
++        Curve2d.D0(t, P2d);
++        uv[0] = P2d.X();
++        uv[1] = P2d.Y();
++      }
++      catch (const Standard_Failure& e) {
++        printf(" EGADS Error: Cannot evaluate PCurve (EG_getEdgeUV)!\n");
++        printf("              %s\n", e.GetMessageString());
++        return EGADS_GEOMERR;
++      }
++      catch (...) {
++        printf(" EGADS Error: Cannot evaluate PCurve (EG_getEdgeUV)!\n");
++        return EGADS_GEOMERR;
++      }
+       return EGADS_SUCCESS;
+     }
+ 
+@@ -8910,10 +8932,21 @@
+   }
+ 
+   // get and evaluate the pcurve
+-  BRepAdaptor_Curve2d Curve2d(edge, pface->face);
+-  Curve2d.D0(t, P2d);
+-  uv[0] = P2d.X();
+-  uv[1] = P2d.Y();
++  try {
++    BRepAdaptor_Curve2d Curve2d(edge, pface->face);
++    Curve2d.D0(t, P2d);
++    uv[0] = P2d.X();
++    uv[1] = P2d.Y();
++  }
++  catch (const Standard_Failure& e) {
++    printf(" EGADS Error: Cannot evaluate PCurve (EG_getEdgeUV)!\n");
++    printf("              %s\n", e.GetMessageString());
++    return EGADS_GEOMERR;
++  }
++  catch (...) {
++    printf(" EGADS Error: Cannot evaluate PCurve (EG_getEdgeUV)!\n");
++    return EGADS_GEOMERR;
++  }
+ 
+   return EGADS_SUCCESS;
+ }
+@@ -9036,11 +9069,22 @@
+         uv[2*i+1] = result[1];
+       }
+     } else {
+-      BRepAdaptor_Curve2d Curve2d(edgo, pface->face);
+-      for (i = 0; i < nts; i++) {
+-        Curve2d.D0(t[i], P2d);
+-        uv[2*i  ] = P2d.X();
+-        uv[2*i+1] = P2d.Y();
++      try {
++        BRepAdaptor_Curve2d Curve2d(edgo, pface->face);
++        for (i = 0; i < nts; i++) {
++          Curve2d.D0(t[i], P2d);
++          uv[2*i  ] = P2d.X();
++          uv[2*i+1] = P2d.Y();
++        }
++      }
++      catch (const Standard_Failure& e) {
++        printf(" EGADS Error: Cannot evaluate PCurve (EG_getEdgeUVs)!\n");
++        printf("              %s\n", e.GetMessageString());
++        return EGADS_GEOMERR;
++      }
++      catch (...) {
++        printf(" EGADS Error: Cannot evaluate PCurve (EG_getEdgeUVs)!\n");
++        return EGADS_GEOMERR;
+       }
+     }
+     return EGADS_SUCCESS;
+@@ -9075,11 +9119,22 @@
+   }
+ 
+   // get and evaluate the pcurve
+-  BRepAdaptor_Curve2d Curve2d(edgo, pface->face);
+-  for (i = 0; i < nts; i++) {
+-    Curve2d.D0(t[i], P2d);
+-    uv[2*i  ] = P2d.X();
+-    uv[2*i+1] = P2d.Y();
++  try {
++    BRepAdaptor_Curve2d Curve2d(edgo, pface->face);
++    for (i = 0; i < nts; i++) {
++      Curve2d.D0(t[i], P2d);
++      uv[2*i  ] = P2d.X();
++      uv[2*i+1] = P2d.Y();
++    }
++  }
++  catch (const Standard_Failure& e) {
++    printf(" EGADS Error: Cannot evaluate PCurve (EG_getEdgeUVs)!\n");
++    printf("              %s\n", e.GetMessageString());
++    return EGADS_GEOMERR;
++  }
++  catch (...) {
++    printf(" EGADS Error: Cannot evaluate PCurve (EG_getEdgeUVs)!\n");
++    return EGADS_GEOMERR;
+   }
+ 
+   return EGADS_SUCCESS;
+@@ -9179,14 +9234,25 @@
+       return EGADS_NOTFOUND;
+     }
+ 
+-    BRepAdaptor_Curve2d Curve2d(edge, pface->face);
+-    Curve2d.D2(tt, P2d, V12d, V22d);
+-    result[0] = P2d.X();
+-    result[1] = P2d.Y();
+-    result[2] = V12d.X();
+-    result[3] = V12d.Y();
+-    result[4] = V22d.X();
+-    result[5] = V22d.Y();
++    try {
++      BRepAdaptor_Curve2d Curve2d(edge, pface->face);
++      Curve2d.D2(tt, P2d, V12d, V22d);
++      result[0] = P2d.X();
++      result[1] = P2d.Y();
++      result[2] = V12d.X();
++      result[3] = V12d.Y();
++      result[4] = V22d.X();
++      result[5] = V22d.Y();
++    }
++    catch (const Standard_Failure& e) {
++      printf(" EGADS Error: Cannot evaluate PCurve (EG_getEdgeUVeval)!\n");
++      printf("              %s\n", e.GetMessageString());
++      return EGADS_GEOMERR;
++    }
++    catch (...) {
++      printf(" EGADS Error: Cannot evaluate PCurve (EG_getEdgeUVeval)!\n");
++      return EGADS_GEOMERR;
++    }
+ 
+     return EGADS_SUCCESS;
+   }
+@@ -9221,14 +9287,25 @@
+     if (pcurv != NULL) {
+       return  EG_evaluate(pcurv, &t, result);
+     } else {
+-      BRepAdaptor_Curve2d Curve2d(edge, pface->face);
+-      Curve2d.D2(t, P2d, V12d, V22d);
+-      result[0] = P2d.X();
+-      result[1] = P2d.Y();
+-      result[2] = V12d.X();
+-      result[3] = V12d.Y();
+-      result[4] = V22d.X();
+-      result[5] = V22d.Y();
++      try {
++        BRepAdaptor_Curve2d Curve2d(edge, pface->face);
++        Curve2d.D2(t, P2d, V12d, V22d);
++        result[0] = P2d.X();
++        result[1] = P2d.Y();
++        result[2] = V12d.X();
++        result[3] = V12d.Y();
++        result[4] = V22d.X();
++        result[5] = V22d.Y();
++      }
++      catch (const Standard_Failure& e) {
++        printf(" EGADS Error: Cannot evaluate PCurve (EG_getEdgeUVeval)!\n");
++        printf("              %s\n", e.GetMessageString());
++        return EGADS_GEOMERR;
++      }
++      catch (...) {
++        printf(" EGADS Error: Cannot evaluate PCurve (EG_getEdgeUVeval)!\n");
++        return EGADS_GEOMERR;
++      }
+       return EGADS_SUCCESS;
+     }
+ 
+@@ -9261,14 +9338,25 @@
+   }
+ 
+   // get and evaluate the pcurve
+-  BRepAdaptor_Curve2d Curve2d(edge, pface->face);
+-  Curve2d.D2(t, P2d, V12d, V22d);
+-  result[0] = P2d.X();
+-  result[1] = P2d.Y();
+-  result[2] = V12d.X();
+-  result[3] = V12d.Y();
+-  result[4] = V22d.X();
+-  result[5] = V22d.Y();
++  try {
++    BRepAdaptor_Curve2d Curve2d(edge, pface->face);
++    Curve2d.D2(t, P2d, V12d, V22d);
++    result[0] = P2d.X();
++    result[1] = P2d.Y();
++    result[2] = V12d.X();
++    result[3] = V12d.Y();
++    result[4] = V22d.X();
++    result[5] = V22d.Y();
++  }
++  catch (const Standard_Failure& e) {
++    printf(" EGADS Error: Cannot evaluate PCurve (EG_getEdgeUVeval)!\n");
++    printf("              %s\n", e.GetMessageString());
++    return EGADS_GEOMERR;
++  }
++  catch (...) {
++    printf(" EGADS Error: Cannot evaluate PCurve (EG_getEdgeUVeval)!\n");
++    return EGADS_GEOMERR;
++  }
+ 
+   return EGADS_SUCCESS;
+ }
+@@ -9370,43 +9458,54 @@
+   }
+ 
+   BRep_Tool::Range(edge, tmin, tmax);
+-  BRepAdaptor_Curve2d Curve2d(edge, pface->face);
+-  b = 0.0;
+-  for (i = 0; i < 5; i++) {
+-    tx = (1.0-ratios[i])*tmin + ratios[i]*tmax;
+-    Curve2d.D0(tx, pnt);
+-    a = (pnt.X()-uv[0])*(pnt.X()-uv[0]) +
+-        (pnt.Y()-uv[1])*(pnt.Y()-uv[1]);
+-    if (i == 0) {
+-      *t = tx;
+-      b  = a;
+-    } else {
+-      if (a < b) {
++  try {
++    BRepAdaptor_Curve2d Curve2d(edge, pface->face);
++    b = 0.0;
++    for (i = 0; i < 5; i++) {
++      tx = (1.0-ratios[i])*tmin + ratios[i]*tmax;
++      Curve2d.D0(tx, pnt);
++      a = (pnt.X()-uv[0])*(pnt.X()-uv[0]) +
++      (pnt.Y()-uv[1])*(pnt.Y()-uv[1]);
++      if (i == 0) {
+         *t = tx;
+         b  = a;
++      } else {
++        if (a < b) {
++          *t = tx;
++          b  = a;
++        }
+       }
+     }
+-  }
+ 
+-  for (i = 0; i < 20; i++) {
+-    if ((*t < tmin) || (*t > tmax)) break;
+-    Curve2d.D2(*t, pnt, t1, t2);
+-    pw[0] = pnt.X() - uv[0];
+-    pw[1] = pnt.Y() - uv[1];
+-    b     = -( pw[0]*t1.X() +  pw[1]*t1.Y());
+-    a     =  (t1.X()*t1.X() + t1.Y()*t1.Y()) +
+-             ( pw[0]*t2.X() +  pw[1]*t2.Y());
+-    if (a == 0.0) break;
+-    b  /= a;
+-//  if (fabs(b) < 1.e-10*(tmax-tmin)) break;
+-    *t += b;
+-  }
+-  if (*t < tmin) *t = tmin;
+-  if (*t > tmax) *t = tmax;
+-
+-  Curve2d.D0(*t, pnt);
+-  uvs[0] = pnt.X();
+-  uvs[1] = pnt.Y();
++    for (i = 0; i < 20; i++) {
++      if ((*t < tmin) || (*t > tmax)) break;
++      Curve2d.D2(*t, pnt, t1, t2);
++      pw[0] = pnt.X() - uv[0];
++      pw[1] = pnt.Y() - uv[1];
++      b     = -( pw[0]*t1.X() +  pw[1]*t1.Y());
++      a     =  (t1.X()*t1.X() + t1.Y()*t1.Y()) +
++               ( pw[0]*t2.X() +  pw[1]*t2.Y());
++      if (a == 0.0) break;
++      b  /= a;
++//    if (fabs(b) < 1.e-10*(tmax-tmin)) break;
++      *t += b;
++    }
++    if (*t < tmin) *t = tmin;
++    if (*t > tmax) *t = tmax;
++
++    Curve2d.D0(*t, pnt);
++    uvs[0] = pnt.X();
++    uvs[1] = pnt.Y();
++  }
++  catch (const Standard_Failure& e) {
++    printf(" EGADS Error: Cannot evaluate PCurve (EG_invEdgeUV)!\n");
++    printf("              %s\n", e.GetMessageString());
++    return EGADS_GEOMERR;
++  }
++  catch (...) {
++    printf(" EGADS Error: Cannot evaluate PCurve (EG_invEdgeUV)!\n");
++    return EGADS_GEOMERR;
++  }
+ 
+   return EGADS_SUCCESS;
+ }
+@@ -10125,56 +10224,57 @@
+       sen = SFORWARD;
+       if (shape.Orientation() == TopAbs_REVERSED) sen = SREVERSE;
+       BRep_Tool::Range(wedge, tmin, tmax);
+-      BRepAdaptor_Curve2d Curve2d(wedge, pface->face);
+-      b = 0.0;
+-      t = tmin;
+-      for (i = 0; i < 5; i++) {
+-        tx = (1.0-ratios[i])*tmin + ratios[i]*tmax;
+-        Curve2d.D0(tx, pnt);
+-        a = (pnt.X()-uv[0])*(pnt.X()-uv[0]) +
+-            (pnt.Y()-uv[1])*(pnt.Y()-uv[1]);
+-        if (i == 0) {
+-          t = tx;
+-          b = a;
+-        } else {
+-          if (a < b) {
++      try {
++        BRepAdaptor_Curve2d Curve2d(wedge, pface->face);
++        b = 0.0;
++        t = tmin;
++        for (i = 0; i < 5; i++) {
++          tx = (1.0-ratios[i])*tmin + ratios[i]*tmax;
++          Curve2d.D0(tx, pnt);
++          a = (pnt.X()-uv[0])*(pnt.X()-uv[0]) +
++          (pnt.Y()-uv[1])*(pnt.Y()-uv[1]);
++          if (i == 0) {
+             t = tx;
+             b = a;
++          } else {
++            if (a < b) {
++              t = tx;
++              b = a;
++            }
+           }
+         }
+-      }
+-
+-      for (i = 0; i < 20; i++) {
+-        if ((t < tmin) || (t > tmax)) break;
+-        Curve2d.D2(t, pnt, t1, t2);
+-        pw[0] = pnt.X() - uv[0];
+-        pw[1] = pnt.Y() - uv[1];
+-        b     = -( pw[0]*t1.X() +  pw[1]*t1.Y());
+-        a     =  (t1.X()*t1.X() + t1.Y()*t1.Y()) +
+-                 ( pw[0]*t2.X() +  pw[1]*t2.Y());
+-        if (a == 0.0) break;
+-        b /= a;
+-        if (fabs(b) < 1.e-10*(tmax-tmin)) break;
+-        t += b;
+-      }
+-      if (t < tmin) t = tmin;
+-      if (t > tmax) t = tmax;
+-
+-      Curve2d.D1(t, pnt, t1);
+-      d = (pnt.X()-uv[0])*(pnt.X()-uv[0]) + (pnt.Y()-uv[1])*(pnt.Y()-uv[1]);
+-      if (d < uvtol*uvtol) return EGADS_SUCCESS;
+-      if (d >= dist) continue;
+-      if (!BRep_Tool::Degenerated(wedge)) {
+-        tol = BRep_Tool::Tolerance(wedge);
+-        Handle(Geom_Curve) hCurve = BRep_Tool::Curve(wedge, tmin, tmax);
+-        hCurve->D0(t, E0);
+-        dist = sqrt((P0.X()-E0.X())*(P0.X()-E0.X()) +
+-                    (P0.Y()-E0.Y())*(P0.Y()-E0.Y()) +
+-                    (P0.Z()-E0.Z())*(P0.Z()-E0.Z()));
+-        if (dist <= tol) return EGADS_SUCCESS;
+-      }
+-
+-//    if ((t == tmin) || (t == tmax)) {
++        
++        for (i = 0; i < 20; i++) {
++          if ((t < tmin) || (t > tmax)) break;
++          Curve2d.D2(t, pnt, t1, t2);
++          pw[0] = pnt.X() - uv[0];
++          pw[1] = pnt.Y() - uv[1];
++          b     = -( pw[0]*t1.X() +  pw[1]*t1.Y());
++          a     =  (t1.X()*t1.X() + t1.Y()*t1.Y()) +
++          ( pw[0]*t2.X() +  pw[1]*t2.Y());
++          if (a == 0.0) break;
++          b /= a;
++          if (fabs(b) < 1.e-10*(tmax-tmin)) break;
++          t += b;
++        }
++        if (t < tmin) t = tmin;
++        if (t > tmax) t = tmax;
++        
++        Curve2d.D1(t, pnt, t1);
++        d = (pnt.X()-uv[0])*(pnt.X()-uv[0]) + (pnt.Y()-uv[1])*(pnt.Y()-uv[1]);
++        if (d < uvtol*uvtol) return EGADS_SUCCESS;
++        if (d >= dist) continue;
++        if (!BRep_Tool::Degenerated(wedge)) {
++          tol = BRep_Tool::Tolerance(wedge);
++          Handle(Geom_Curve) hCurve = BRep_Tool::Curve(wedge, tmin, tmax);
++          hCurve->D0(t, E0);
++          dist = sqrt((P0.X()-E0.X())*(P0.X()-E0.X()) +
++                      (P0.Y()-E0.Y())*(P0.Y()-E0.Y()) +
++                      (P0.Z()-E0.Z())*(P0.Z()-E0.Z()));
++          if (dist <= tol) return EGADS_SUCCESS;
++        }
++        
++//      if ((t == tmin) || (t == tmax)) {
+         uvs[0] = uv[0] - pnt.X();
+         uvs[1] = uv[1] - pnt.Y();
+         dd = sqrt(uvs[0]*uvs[0] + uvs[1]*uvs[1]);
+@@ -10191,12 +10291,22 @@
+         }
+         dd = uvs[0]*pw[1] - uvs[1]*pw[0];
+         if (dd == 0.0) d = 1.1e300;
+-//    }
+-      if (d < dist) {
+-        dist  = d;
+-        edge  = wedge;
+-        ts    = t;
+-        sense = sen;
++//      }
++        if (d < dist) {
++          dist  = d;
++          edge  = wedge;
++          ts    = t;
++          sense = sen;
++        }
++      }
++      catch (const Standard_Failure& e) {
++        printf(" EGADS Error: Cannot evaluate PCurve (EG_inFaceAlt)!\n");
++        printf("              %s\n", e.GetMessageString());
++        return EGADS_GEOMERR;
++      }
++      catch (...) {
++        printf(" EGADS Error: Cannot evaluate PCurve (EG_inFaceAlt)!\n");
++        return EGADS_GEOMERR;
+       }
+     }
+   }
+@@ -10206,23 +10316,34 @@
+     return EGADS_NOTFOUND;
+   }
+ 
+-  BRepAdaptor_Curve2d curve2d(edge, pface->face);
+-  curve2d.D1(ts, pnt, t1);
+-  uvs[0] = uv[0] - pnt.X();
+-  uvs[1] = uv[1] - pnt.Y();
+-  d = sqrt(uvs[0]*uvs[0] + uvs[1]*uvs[1]);
+-  if (d != 0.0) {
+-    uvs[0] /= d;
+-    uvs[1] /= d;
+-  }
+-  pw[0] = t1.X();
+-  pw[1] = t1.Y();
+-  d = sqrt(pw[0]*pw[0] + pw[1]*pw[1]);
+-  if (d != 0.0) {
+-    pw[0] /= d;
+-    pw[1] /= d;
++  try {
++    BRepAdaptor_Curve2d curve2d(edge, pface->face);
++    curve2d.D1(ts, pnt, t1);
++    uvs[0] = uv[0] - pnt.X();
++    uvs[1] = uv[1] - pnt.Y();
++    d = sqrt(uvs[0]*uvs[0] + uvs[1]*uvs[1]);
++    if (d != 0.0) {
++      uvs[0] /= d;
++      uvs[1] /= d;
++    }
++    pw[0] = t1.X();
++    pw[1] = t1.Y();
++    d = sqrt(pw[0]*pw[0] + pw[1]*pw[1]);
++    if (d != 0.0) {
++      pw[0] /= d;
++      pw[1] /= d;
++    }
++    d = uvs[0]*pw[1] - uvs[1]*pw[0];
++  }
++  catch (const Standard_Failure& e) {
++    printf(" EGADS Error: Cannot Evaluate PCurve (EG_inFaceAlt)!\n");
++    printf("              %s\n", e.GetMessageString());
++    return EGADS_GEOMERR;
++  }
++  catch (...) {
++    printf(" EGADS Error: Cannot Evaluate PCurve (EG_inFaceAlt)!\n");
++    return EGADS_GEOMERR;
+   }
+-  d = uvs[0]*pw[1] - uvs[1]*pw[0];
+ 
+   if (d*sense*mtype > 0.0) return EGADS_OUTSIDE;
+   return EGADS_SUCCESS;

@@ -23,11 +23,15 @@ fi
 
 rm -rf ESP ESP${version}
 tar xzf ${tar}
+mv ESP${version} ESP
 
 # Version-specific source patches
 if [ "$version" = "128" ]; then
-  echo "Version is 128: patching evaluate.c (periodic parameter support for EG_splinePCDeriv)"
-  cp replace128evaluate.c ESP${version}/EngSketchPad/src/EGADS/util/evaluate.c
+  echo "Patching ESP128: evaluate.c (periodic parameter support for EG_splinePCDeriv)"
+  cp replace128evaluate.c ESP/EngSketchPad/src/EGADS/util/evaluate.c
 fi
-
-mv ESP${version} ESP
+if [ "$version" = "129" ]; then
+  echo "Patching ESP129: EGADS try/catch for OCC calls (FXC-6881), null surface checks"
+  patch -p0 < egadsTopo129.patch
+  patch -p0 < egadsIO129.patch
+fi
