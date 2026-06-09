@@ -7,19 +7,32 @@ set -x # echo commands
 version=${1:-129}
 tar=ESP${version}-linux-x86_64.tgz
 
-# MIT rotates older releases from PreBuilts/ to archive/
+# A given ESP version lives in exactly ONE of PreBuilts/ or archive/: MIT moves
+# a release from PreBuilts/ to archive/ once it ages out, so a 404 from the
+# other directory is EXPECTED and must not abort the build. Reaching
+# acdl.mit.edu can also fail transiently (connection timeouts, 5xx) -- that is
+# what we retry. curl's --retry covers those transient errors but never a 404,
+# and --connect-timeout keeps a hung endpoint from stalling the job for minutes.
 prebuilts_url=https://acdl.mit.edu/ESP/PreBuilts/${tar}
 archive_url=https://acdl.mit.edu/ESP/archive/${tar}
 
-if curl --head --silent --fail "$prebuilts_url" > /dev/null 2>&1; then
-  curl -O "$prebuilts_url" -o ${tar}
-elif curl --head --silent --fail "$archive_url" > /dev/null 2>&1; then
-  echo "Not found in PreBuilts, downloading from archive"
-  curl -O "$archive_url" -o ${tar}
+mit_curl() {
+  curl --fail --location --connect-timeout 30 \
+       --retry 5 --retry-delay 5 --retry-connrefused "$@"
+}
+
+if mit_curl --silent --head --max-time 120 "$prebuilts_url" > /dev/null; then
+  url=$prebuilts_url
+  echo "Found ESP${version} in PreBuilts"
+elif mit_curl --silent --head --max-time 120 "$archive_url" > /dev/null; then
+  url=$archive_url
+  echo "Not in PreBuilts (expected); found ESP${version} in archive"
 else
-  echo "ERROR: ESP${version} not found in PreBuilts or archive" >&2
+  echo "ERROR: ESP${version} unreachable in PreBuilts or archive after retries" >&2
   exit 1
 fi
+
+mit_curl --silent --show-error --max-time 1800 -o "${tar}" "$url"
 
 rm -rf ESP ESP${version}
 tar xzf ${tar}
