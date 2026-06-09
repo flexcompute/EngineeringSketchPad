@@ -31,7 +31,8 @@ if [ "$version" = "128" ]; then
   cp replace128evaluate.c ESP/EngSketchPad/src/EGADS/util/evaluate.c
 fi
 if [ "$version" = "129" ]; then
-  echo "Patching ESP129: EGADS try/catch for OCC calls (FXC-6881), null surface checks"
+  echo "Patching ESP129: EGADS try/catch for OCC calls (FXC-6881), null surface checks, OuterShell guard (FXC-8846)"
   patch -p0 < egadsTopo129.patch
   patch -p0 < egadsIO129.patch
+  patch -p0 < egadsTopoOuterShell129.patch
 fi

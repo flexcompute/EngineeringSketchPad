@@ -1,0 +1,42 @@
+--- ESP/EngSketchPad/src/EGADS/src/egadsTopo.cpp	2026-06-09 12:09:12.000000000 +0000
++++ ESP/EngSketchPad/src/EGADS/src/egadsTopo.cpp	2026-06-09 12:09:29.000000000 +0000
+@@ -2062,7 +2062,38 @@
+     TopoDS_Shell oShell;
+     if (solid == 1) {
+       TopoDS_Solid Solid = TopoDS::Solid(body->shape);
+-      oShell = BRepClass3d::OuterShell(Solid);
++      try {
++        oShell = BRepClass3d::OuterShell(Solid);
++      }
++      catch (...) {
++        printf(" EGADS Warning: Body %2d -> OuterShell Error (nShell = %d)!\n",
++               i+1, nShell);
++        /* use biggest bounding box */
++        if (nShell == 1) {
++          shape  = body->shells.map(1);
++          oShell = TopoDS::Shell(shape);
++        } else {
++          double BoxSize = 0.0;
++          for (j = 0; j < nShell; j++) {
++            double       bbox[6];
++            Bnd_Box      Box;
++            shape              = body->shells.map(j+1);
++            TopoDS_Shell Shell = TopoDS::Shell(shape);
++#if CASVER >= 730
++            BRepBndLib::AddOptimal(Shell, Box, Standard_False);
++#else
++            BRepBndLib::Add(Shell, Box);
++#endif
++            Box.Get(bbox[0], bbox[1], bbox[2], bbox[3], bbox[4], bbox[5]);
++            double bSize = sqrt((bbox[3]-bbox[0])*(bbox[3]-bbox[0]) +
++                                (bbox[4]-bbox[1])*(bbox[4]-bbox[1]) +
++                                (bbox[5]-bbox[2])*(bbox[5]-bbox[2]));
++            if (bSize <= BoxSize) continue;
++            BoxSize = bSize;
++            oShell  = Shell;
++          }
++        }
++      }
+       body->senses = new int[nShell];
+     }
+ 
